@@ -14501,3 +14501,3963 @@ Colima, database, builder, restore and cloud actions remain frozen.
   `29/38`; the unique next action after checkpoint push/readback is the complete Secret-free preflight
   and four fresh account gates, followed only on unanimous P0/P1-zero GO by the
   one authorized successor.
+
+## Item 30 wrapper-only successor pre-create failure and fresh-authority blocker (2026-08-25)
+
+- Current HEAD and upstream are both exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal readiness remains
+  `29/29`, public-launch readiness remains `0/9`, and complete public readiness
+  remains `29/38`. Item30 receives `NO CREDIT`; Items1-29 remain closed and were
+  not rerun. The seven protected paths remain present/untracked/unstaged and
+  were not read, modified, staged or committed.
+- The owner-authorized sole wrapper-only successor was accepted at
+  `2026-08-25T14:52:09Z` as command
+  `c-sz06v2i34uk69kw` / invocation `t-sz06v2i34urnym8`, command name
+  `noteai-item30-real-provider-chain-20260824`, API-C exact one target,
+  `Once`, `KeepCommand=false`, parameter substitution disabled, timeout 1800
+  and `ProcessTree`. Immediately before submission the 17,968-byte Monaco
+  readback SHA-256 was
+  `5c3bd346e008ffb32439d122b6eea44492b52720a2c213cb1cbfd0621a8764a2`
+  and the fresh gate had 1,221 seconds remaining. Server acceptance permanently
+  consumed this successor authority; the command must never be replayed.
+- The invocation terminated `Failed / exit=125 / 3m44s`. Its first and only
+  failure predicate was Docker's pre-create rejection
+  `invalid environment variable: =`. Secret-free readback invocation
+  `t-sz06v2it7m0ekn4` proved the recovery anchor was exactly `PREPARED`
+  (SHA-256
+  `fb84951bbc7c820e33be1d4dc43a40d7ea48b8532f8dc645319992a0cb61b7c5`),
+  the 3,160-byte gate remained exact at
+  `a7174458a68629546da74693bb261b65a69198d98ebbd7c812c08e0444b56649`,
+  and there was no `ACTIVE` state, CID, task container, task/nonce label,
+  volume, journal/result/tmp/final, SQLite/lock, credential env, source overlay,
+  stdout or stderr residue. API-C retained exact CID
+  `872cfd4ec0f5d61ff99036851a74a8ef4890fabe9fadb7a80c2f5c5e1a8e4aa6`,
+  running/healthy, restart count zero and unchanged start time/image.
+- Root cause is bounded to the wrapper's image-environment projection. Docker
+  returned 13 lines comprising 12 nonempty names plus one empty record; the
+  loop converted that empty key into invalid `--env "="`. Container creation,
+  start, executor/journal and every provider dispatch were structurally
+  unreachable. A future candidate may only skip exactly one empty record while
+  all other malformed, duplicate or invalid names fail closed and the final
+  effective-env exact-set checks remain mandatory. This is an offline fix
+  candidate only, not authority for another attempt. The frozen offline inner
+  candidate is 58,427 bytes with SHA-256
+  `6702946a5a36969b3a9f7a3ef4c4d61455e753f504475601f6fd6e5aa0c838a0`;
+  `bash -n`, one positive fixture, empty-count lower/upper bounds and malformed,
+  duplicate, missing-delimiter, empty-value and invalid-name negatives all
+  pass. A one-hunk locality proof keeps the pre-loop and post-loop bytes and
+  all create/start/argv/provider/security literals unchanged. All three
+  persistent reviewers give this offline candidate P0=0/P1=0 GO.
+- Authenticated Claude, Kimi, Amap and Meituan consoles were freshly reloaded
+  after the terminal failure and were byte-for-byte identical to pre-call, with
+  SHA-256 values respectively
+  `00a16f7d9a4c89932c31b241c11606559c74f130af494aee7721ff5c11c4f06f`,
+  `2ecf9b74624a906c0c8f5c3825805c4b80c459706282503afa0b30b5ffeed2cd`,
+  `ef81ba796619641a44bef5f70cdf2640d2351365544c1e8723756a2235cbf90d`
+  and
+  `6f74d73656ee0ee5443eac76435168c84e3db4e3392664c5e8cb82c49998955b`.
+  Provider/model/request/token/Meituan-metadata/funds deltas and actual provider
+  cost are therefore `CNY 0.000000`, not `UNKNOWN`.
+- Exact cleanup invocation `t-sz06v2j1k2eq5ts` terminated `Success / exit=0`.
+  It verified the anchor/gate identities, deleted only those two files and
+  their three controlled directories, and read back Item30 path, task
+  container and task volume residue zero. API-C/API-F are freshly
+  `Running / PrePaid`; Builder, Worker-C and Worker-F are freshly
+  `Stopped / StopCharging / PostPaid`, with running stoppable PostPaid compute
+  zero. Render production remains Starter/live on revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3` with
+  `ready_multi_instance`; there was no deploy and staging was untouched. New
+  PostPaid compute cost is `CNY 0.000000`; existing PrePaid/Render baseline
+  cost continues and is not represented as absolute cloud cost zero.
+- All three persistent reviewers report the safety/evidence/cleanup boundary
+  P0=0/P1=0 and reject Item30 credit; the only release blocker is fresh owner
+  authority. No MFA, professional signature, long-term resource, payment or
+  DNS confirmation is pending. This ordinary failed attempt does not receive a
+  standalone checkpoint.
+- Original Item30 DoD still requires four real production outputs, exact-one
+  attribution and terminal settlements. The unique next action is explicit
+  owner authority for one new bounded wrapper-only successor fixing only this
+  empty-key defect and using a fresh gate, nonce, task, command and invocation,
+  while retaining immutable b55, Meituan-first, exact-one, zero retry/fallback,
+  the three numeric caps and the authorized Meituan
+  `NOT_EXPOSED_BY_PROVIDER` exception. Until then, no provider attempt or
+  PostPaid start is allowed.
+
+## Item 30 credential-binding blocker after provider-free successor preflight (2026-08-26)
+
+- This section supersedes only the prior Item30 next-action paragraph; it does
+  not reopen Items1-29 or alter their accepted evidence. Current HEAD and
+  upstream are both
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal readiness remains
+  `29/29`, public-launch readiness remains `0/9`, and complete public readiness
+  remains `29/38`. Item30 is `NO CREDIT`; the original DoD still requires four
+  real production provider outputs with exact-one attribution and terminal
+  settlement evidence.
+- The owner authorized fresh wrapper-only, provider-free successors and
+  clarified that business exact-one begins only when the first real provider
+  request is dispatched. Each accepted diagnostic Command/Invoke below is
+  nevertheless permanently no-replay. The URL-only preflight
+  `c-sz06v38v73ea3gg` / `t-sz06v38v740r6kg` terminated before container create
+  with `Failed / exit=1`; exact cleanup `c-sz06v39pcm1rdhc` /
+  `t-sz06v39pcmgqrk0` terminated `Success / exit=0`. The corrected preflight
+  `c-sz06v3asqlopds0` / `t-sz06v3asqlw72tc` terminated
+  `Failed / exit=2 / PREFLIGHT_FAILED` after its sole allowed readiness GET;
+  Render returned `AUTH_INVALID` before any provider dispatch. Exact cleanup
+  `c-sz06v3b69b0gwsg` / `t-sz06v3b69bkg3k0` terminated
+  `Success / exit=0` with the canonical cleanup result and zero controlled
+  container, volume, file, credential, database or lock residue.
+- The final Secret-free diagnostic `c-sz06v3ckfg1el8g` /
+  `t-sz06v3ckfggdzb4` was submitted exactly once to API-C and terminated
+  `Success / exit=0 / <1s`; stdout was exactly
+  `{"code":"CURRENT_KEY_ID_MATCH"}` and stderr was empty. It read only the
+  non-secret current HMAC key identifier, made no network, provider, file,
+  database or funds operation, and created no cleanup surface. The command and
+  invocation are terminal and permanently no-replay; business exact-one remains
+  unconsumed.
+- Render live-runtime binding is closed without exposing any credential:
+  production service `srv-d9e765laeets73aikj90` has no pending or unsaved
+  environment change; the 2026-07-19 environment update started revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3` and that deploy became live; a
+  later Render maintenance redeploy of the same revision also became live.
+  The current production readiness endpoint returns HTTP 200. The b55 client
+  and live 84f gateway protocol/auth source are byte-identical, the request had
+  already passed authority/config/key epochs, and no previous-key slot exists.
+  The terminal root-cause classification is therefore
+  `CURRENT_KEY_ID_MATCH + AUTH_INVALID => HMAC_SECRET_SYNC_REQUIRED`. No secret,
+  secret-derived fingerprint or credential value was read into Cloud Assistant,
+  logs, evidence or this handoff.
+- Provider/model/journal/business-database/funds deltas and actual provider cost
+  remain exactly `CNY 0.000000`; there was no real provider request. New
+  PostPaid compute cost is `CNY 0.000000`. Existing API-C/API-F PrePaid and
+  Render Starter baseline charges continue. Fresh terminal resource readback
+  shows API-C and API-F `Running / PrePaid`; Builder, Worker-C and Worker-F are
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute is
+  zero. The seven protected paths remain present/untracked/unstaged and were
+  not read, modified, staged or committed.
+- All three persistent reviewers reject Item30 credit and report safety,
+  verification, cost and cleanup P1=0. The only P0 is owner authorization for a
+  production credential/config write. No MFA, professional signature,
+  long-term-resource purchase, payment or DNS confirmation is currently
+  pending. This blocker receives no standalone checkpoint; the existing
+  Handoff and Risk changes remain uncommitted until the normal Item30 terminal
+  checkpoint.
+- The unique next action is owner authorization for coordinated production HMAC
+  credential reconciliation or rotation across API-C and the Render production
+  gateway, including the current/previous-key strategy, secure activation,
+  allowed API-C restart/Render redeploy window and rollback boundary. Until that
+  authorization is explicit, root must not read, export or fingerprint a secret,
+  change either environment, deploy/restart, or run another preflight/provider
+  chain. Existing PostPaid workers remain StopCharging.
+
+## Item 30 coordinated HMAC rotation paused at action-time secret transmission confirmation (2026-08-26)
+
+- This section supersedes only the preceding Item30 next-action paragraph. The
+  owner explicitly authorized coordinated HMAC rotation limited to API-C and
+  Render production, including a fresh current pair, bounded API-C activation,
+  one Render production redeploy, rollback retention and no staging change.
+  Current HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal readiness remains
+  `29/29`; Item30 remains `NO CREDIT`; complete public readiness remains
+  `29/38`. Items1-29 remain closed and were not rerun.
+- The first successful Stage used command `c-sz06v45d68gio00` / invocation
+  `t-sz06v45d68vi22o`; its independent readback used
+  `c-sz06v45idna9pmo` / `t-sz06v45idnf9ibk`. It created only the bounded RSA
+  Stage material. No Render save/deploy, API environment replacement, service
+  restart, provider request, payment, funds or database write occurred. Its
+  20-minute activation window expired before a safe Render deploy could be
+  completed, so the Render four-row draft was cancelled and read back to the
+  exact baseline: current ID/secret present once each, previous ID/secret absent,
+  and no pending environment change.
+- The first standalone expired-Stage cleanup
+  `c-sz06v48364yuy2o` / `t-sz06v48365lc16o` terminated `Failed / exit=2`
+  before deletion because it compared the Stage unit digest to aggregated
+  `systemctl cat` output. It is permanently no-replay. The only subsequent
+  read-only reconcile `c-sz06v48qyn1h0jk` / `t-sz06v48qynlg7b4` proved the
+  Stage inventory and inodes intact, output directory empty, controller not
+  started, open-FD/container/volume/API-temp counts zero, API HMAC shape still
+  current-two/previous-zero, systemd/runtime exact, and all production/provider/
+  payment/database writes zero.
+- The corrected fresh cleanup `c-sz06v498s6rn9q8` /
+  `t-sz06v498s7e4cu8` changed only that predicate to read the authoritative
+  `/etc/systemd/system/noteai-api.service` file through `O_NOFOLLOW`. It
+  terminated `Success / exit=0` with the frozen canonical cleanup result:
+  RSA files removed two, task removed one, rotation root zero, controller
+  `NOT_STARTED`, and all production/provider/payment/database write counters
+  zero. Independent readback `c-sz06v49koa6ogzk` /
+  `t-sz06v49koaqnnr4` terminated `Success / exit=0`, proving rotation root,
+  task artifacts, helper containers and volumes zero; API HMAC current fields
+  two, previous fields zero, empty key false; and API-C runtime unchanged. All
+  accepted Stage/cleanup/readback identities above are terminal and permanently
+  no-replay.
+- The unused local HMAC pair and encrypted envelope from the expired Stage were
+  never saved to Render or API-C. Mutable buffers were zeroed, clipboard was
+  cleared, the Render draft was absent, and the entire automation session that
+  held the immutable secret string was released. Only the six pre-reviewed,
+  non-secret source templates and their accepted hashes were retained and were
+  freshly rehashed and compiled after reconnection. No old task, nonce, RSA
+  material, HMAC pair or envelope is eligible for reuse.
+- Fresh terminal state: Render production service
+  `srv-d9e765laeets73aikj90` remains on revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`; public live and ready endpoints
+  return HTTP 200; environment baseline is current-two/previous-zero and no
+  draft is open. API-C/API-F remain Running/PrePaid. Builder, Worker-C and
+  Worker-F remain Stopped; the accepted StopCharging/PostPaid baseline has not
+  changed and running stoppable PostPaid compute is zero. Provider/model/
+  payment/funds/database and new PostPaid cost remain `CNY 0.000000`. Existing
+  Render Starter autoscale 2-4 and API PrePaid baseline charges continue.
+  Staging was not touched. The seven protected paths remain present, untracked
+  and unstaged and were not read, modified or committed.
+- All three persistent reviewers give the expired-Stage cleanup terminal state
+  P0=0/P1=0 and authorize a wholly fresh Stage after the secret-transmission
+  gate. No MFA, professional signature, long-term resource purchase, payment or
+  DNS confirmation is pending. There is no active Stage window and no running
+  stoppable PostPaid server while waiting. This pause receives no standalone
+  checkpoint.
+- Unique next action after recovery: obtain the required action-time browser
+  confirmation to transmit one newly generated HMAC key ID and secret to the
+  Render production service for this coordinated rotation. After confirmation,
+  create a wholly fresh task/binding/RSA/HMAC pair/envelope/Command/Invoke,
+  complete its readback, then immediately prepare the exact four HMAC rows and
+  submit one `Save and deploy`. Do not start the fresh 20-minute Stage before
+  that confirmation, and do not touch staging.
+
+## Item 30 production HMAC security incident contained; fresh owner confirmation required (2026-08-26)
+
+- Current HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal readiness remains
+  `29/29`; public-launch readiness remains `0/9`; complete public readiness
+  remains `29/38`. Item30 is `NO CREDIT`, Items1-29 remain closed, and the seven
+  protected paths remain present/untracked/unstaged and were not read, modified,
+  staged or committed.
+- The owner's action-time confirmation was consumed by one production
+  environment update and deploy, `dep-da7eeop42hec73b78qvg`, on the existing
+  Render service `srv-d9e765laeets73aikj90`. It became Live on the unchanged
+  revision `84f8a2f1436627e0f05588ee0276b1950b230ae3`; public live and ready were
+  HTTP 200. Before any API-C controller or provider request was dispatched, a
+  local tool-output inspection disclosed the active Render CURRENT credential.
+  The fixed incident classification is
+  `ACTIVE_RENDER_CURRENT_HMAC_SECRET_EXPOSED_IN_TOOL_OUTPUT`. The credential was
+  immediately classified `COMPROMISED`; its value, hash, fingerprint and length
+  are intentionally absent from Evidence, Risk and Handoff.
+- The first post-deploy API-C controller form was never accepted: its target
+  checkbox remained false and its Stage admission window fell below 180 seconds,
+  so the local gate stopped before the submit click. There is no controller
+  Command/Invoke identity, API environment exchange, service restart, readiness
+  probe or provider dispatch from that draft. The expired Stage was then cleaned
+  by `c-sz06v5vuu2imneo` / `t-sz06v5vuu353qio`; independent readback
+  `c-sz06v5w0jod8y68` / `t-sz06v5w0jos8c8w` proved rotation root, controller
+  artifact, task container and task volume zero, API current fields two,
+  previous fields zero, empty-key false and runtime unchanged. All four
+  identities are terminal and no-replay.
+- A wholly fresh RSA-only successor Stage
+  `c-sz06v5w8dgoe3nk` / `t-sz06v5w8dh5ve2o` and independent readback
+  `c-sz06v5wc8itw3cw` / `t-sz06v5wc8jbdds0` completed successfully. The incident
+  was detected before a new secret envelope, PRE probe or controller was
+  submitted. The Stage was therefore aborted immediately: cleanup
+  `c-sz06v5x5qhrbvnk` / `t-sz06v5x5qi8t62o` returned
+  `HMAC_ABORT_STAGE_CLEANUP_OK`, RSA removed two, task removed one, controller
+  `NOT_STARTED`, rotation root zero and all business-write counters zero.
+  Independent readback `c-sz06v5x9cdq93i8` / `t-sz06v5x9ce7qdxc` returned
+  `HMAC_ABORT_STAGE_CLEANUP_READBACK_OK` with root/artifact/container/volume
+  zero, API current two/previous zero and runtime unchanged. These identities
+  are terminal and permanently no-replay.
+- The pre-authorized rollback boundary was used to revoke the compromised
+  Render credential without generating or transmitting another credential:
+  the previously preserved old Render pair was restored to CURRENT, both
+  PREVIOUS rows were removed, and one rollback environment deploy
+  `dep-da7eu9142hec73b8ntrg` became Live on the same revision. Fresh readback
+  shows exactly CURRENT ID/secret and no PREVIOUS fields; public live and ready
+  are HTTP 200 with `ready_multi_instance`. Staging, source, plan, autoscale and
+  API-F configuration were not changed. API-C remains on its original current
+  pair, current fields two/previous zero, unchanged CID/image/unit/restart-zero
+  runtime; the known pre-existing API-C/Render secret mismatch therefore still
+  blocks Claude readiness but there is no rollback-induced configuration loss.
+- The compromised pair was never installed on API-C or sent to a provider.
+  Controller dispatch, provider/model, payment, funds and business-database
+  write counts are zero; actual provider cost and new Alibaba PostPaid compute
+  cost are `CNY 0.000000`. Existing API-C/API-F PrePaid and Render Starter
+  autoscale 2-4 baseline charges continue. API-C/API-F remain Running/PrePaid;
+  Builder, Worker-C and Worker-F remain Stopped/StopCharging/PostPaid; running
+  stoppable PostPaid compute remains zero.
+- All working browser tabs holding command drafts were closed, both clipboards
+  were cleared, local secret/envelope references were removed and the entire
+  Node automation session was reset. This local cleanup cannot retract the
+  original tool transcript; revocation is provided by the terminal Render
+  rollback above. The three persistent reviewers classify the compromised
+  credential as revoked and the RSA Stage cleanup as closed, P1=0; the remaining
+  release P0 is fresh owner action-time authority for a new production
+  credential submission. No checkpoint is allowed for this nonterminal Item30
+  incident state.
+- Unique next action: obtain a new explicit action-time confirmation for one
+  wholly new HMAC pair and one new Render production `Save and deploy`. After
+  confirmation, generate a new pair, set Render CURRENT to it while preserving
+  the currently restored old pair as PREVIOUS for API-F, bind a new task/RSA/
+  nonce/envelope/controller, wait for Live plus health 200, and only then promote
+  API-C behind the fresh signed PRE gate. Until that confirmation, do not create
+  another Stage, credential, Render draft, controller or provider request.
+
+## Item30 fresh coordinated HMAC rotation in progress (2026-08-26)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`; complete public-launch Readiness is
+  still `29/38`, Item30 is `NO CREDIT`, and accepted Item1-29 remain closed.
+- The owner explicitly authorized a wholly fresh production HMAC pair and
+  delegated future same-scope pre-provider successors to the CTO. Render
+  production received that pair exactly once: CURRENT=fresh and PREVIOUS=the
+  restored old Render pair. Deploy `dep-da7f6se1egvs73ee095g` is Live on the
+  unchanged revision `84f8a2f1436627e0f05588ee0276b1950b230ae3`;
+  `/health/live` and `/health/ready` are HTTP 200 and readiness is
+  `ready_multi_instance`. Staging, plan, autoscale and source were unchanged;
+  this Render save/deploy is permanently no-replay.
+- Fresh RSA-only Stage/readback Command/Invoke pairs
+  `c-sz06v5z4xcbevwg` / `t-sz06v5z4xciwkxs` and
+  `c-sz06v5zp1e0uo74` / `t-sz06v5zp1efu29s` both reached Success and matched the
+  frozen task/binding/runtime manifest. Because the previously reviewed
+  controller bytes were not recoverable from a tracked authority, no secret
+  envelope or controller was submitted. Abort cleanup/readback
+  `c-sz06v60arh6d4hs` / `t-sz06v60arhnueww` and
+  `c-sz06v60gndkrt34` / `t-sz06v60gndzr75s` then proved RSA/task/artifact/
+  container/volume residuals zero, API env and CID unchanged, restart zero and
+  provider/payment/funds/business-DB writes zero. All four identities are
+  permanently no-replay.
+- The only active work is offline reconstruction and three-agent review of the
+  minimum controller. It uses the immutable b55 API image, encrypted full-env
+  rollback, explicit fresh signed PRE readiness, same-filesystem
+  `renameat2(RENAME_EXCHANGE)`, one forward restart, actual-runtime POST
+  readiness, deterministic rollback and UNKNOWN/no-replay boundaries. No new
+  proof layer, tracked helper or production write has been added.
+- API-C and API-F remain Running/PrePaid. Builder, Worker-C and Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  Existing Render Starter autoscale 2-4 and API PrePaid baseline charges
+  continue. New Alibaba PostPaid, provider, payment and funds cost in this
+  rotation remains `CNY 0.000000`; business DB writes remain zero.
+- No MFA, professional signature, long-term-fee authorization or DNS approval is
+  presently awaited. Unique next action: freeze the reviewed controller, create
+  one wholly fresh RSA Stage identity, submit the encrypted bounded controller
+  once, and reconcile its terminal state without replay. Only a dispatched
+  UNKNOWN, changed fee/permission boundary, professional approval, MFA, or the
+  final Item38 DNS switch may interrupt autonomous progress.
+
+## Item30 fresh production CURRENT replacement Live; Stage not yet created (2026-08-26)
+
+- HEAD/upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`;
+  public-launch Readiness remains `29/38`, Item30 remains `NO CREDIT`, and
+  Items1-29 remain closed. The seven protected untracked paths remain present,
+  unstaged and uncommitted and were not read or modified.
+- The CTO used the owner's fresh/same-scope authorization to replace only the
+  two Render production CURRENT HMAC fields with a wholly new pair while
+  leaving the restored-old PREVIOUS pair untouched. The Render split-button
+  menu item itself accepted exactly one `Save and deploy`; there was no second
+  click or replay. Deploy `dep-da7gk3navr4c73fq3pe0` is Live on unchanged
+  revision `84f8a2f1436627e0f05588ee0276b1950b230ae3`. Readback proves exactly
+  four HMAC fields, CURRENT equals the fresh in-memory pair, PREVIOUS remained
+  in place, and the two IDs and secrets are distinct. Public `/health/live` is
+  HTTP 200 `ok` and `/health/ready` is HTTP 200 `ready_multi_instance`.
+  Staging, source, plan and autoscale were not changed.
+- While correcting Render's readonly/hidden editor behavior before that save,
+  a local DOM diagnostic printed the superseded CURRENT credential. It is
+  classified `SUPERSEDED_RENDER_CURRENT_EXPOSED_IN_TOOL_OUTPUT`, permanently
+  `COMPROMISED/NO_REUSE`; its value, hash, fingerprint and length are forbidden
+  from Handoff, Risk and Evidence. The accepted deploy above removed it from
+  every active Render HMAC slot. The new CURRENT pair was never printed and
+  remains only in controlled memory for the forthcoming encrypted Stage.
+- No API-C Stage/controller exists for this successor yet. API-C environment,
+  CID and restart count are unchanged; provider/model/payment/funds/business-DB
+  writes remain zero and business exact-one has not started. API-C/API-F remain
+  Running/PrePaid; Builder and Worker-C/Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  Existing Render Starter/autoscale and API PrePaid baseline charges continue;
+  new Alibaba PostPaid and actual provider cost remain `CNY 0.000000`.
+- The unique next action is to create one wholly fresh task/binding/RSA Stage,
+  independently read it back, seal the still-controlled CURRENT pair, build the
+  reviewed dynamic-child controller carrier below the 18,432-byte Cloud
+  Assistant limit, and submit it once within the issued-age/deadline gates.
+  Any accepted/UNKNOWN identity is no-replay; no further Render save is allowed.
+
+## Item30 two-slot authority blocker after fresh production rotation (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`; complete public-launch Readiness
+  remains `29/38`, Item30 remains `NO CREDIT`, and accepted Items1-29 remain
+  closed. The seven protected untracked paths remain present, unstaged and
+  uncommitted and were not read or modified.
+- Under the owner's delegated same-scope authority, the CTO performed exactly
+  one further Render production CURRENT replacement with a wholly new,
+  unexposed pair while leaving PREVIOUS untouched. Deploy
+  `dep-da7hqn15efls73e28550` is Live on unchanged revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`; public `/health/live` and
+  `/health/ready` are HTTP 200 and readiness is `ready_multi_instance`.
+  Production CURRENT readback equals the controlled fresh pair; PREVIOUS is
+  present and distinct. Staging, source, plan and autoscale were unchanged.
+  This save/deploy is terminal and permanently no-replay. The fresh CURRENT
+  secret remains only in the controlled browser-automation memory session and
+  has never been printed; do not reset that session. If custody is lost, the
+  pair is unavailable and must not be guessed or recovered from masked UI.
+- Read-only API-C gate `c-sz06v6g0dft3hfk` /
+  `t-sz06v6g0dg5kz5s` ended exit 4 because its diagnostic wrapper incorrectly
+  applied regular-file `st_size` semantics to procfs. It was pre-mutation and
+  is permanently no-replay. Fresh corrected gate `c-sz06v6gejfcskqo` /
+  `t-sz06v6gejfu9v5s` proved immutable CID/image/runtime, unit/service,
+  API-file/PID1 HMAC single-current synchronization and rotation residue zero.
+  Its printed PASS label is explicitly rejected: the wrapper's aggregate used
+  Python `False == 0`, while the authoritative typed check was
+  `render_previous_matches_api_old=false`. No Stage, API env exchange, restart,
+  provider/model/payment/funds or business-DB write occurred; both diagnostic
+  identities are no-replay.
+- The mismatch exposes a real two-slot constraint. Render CURRENT must remain
+  the controlled fresh target for API-C and PREVIOUS may be the credential
+  currently preserving API-F. Replacing PREVIOUS with API-C old without first
+  proving API-F's dependency could break the PrePaid production failover. The
+  three retained subagents therefore reject any further Render write or API-C
+  Stage under the current authority. The minimum technical closure is one
+  API-F exact-one signed-readiness diagnostic, but the current owner authority
+  explicitly covers only API-C and Render production; even a read-only API-F
+  Cloud Assistant Command/Invoke is a production-scope expansion.
+- API-C and API-F remain Running/PrePaid. Builder, Worker-C and Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  Existing Render Starter autoscale 2-4 and API PrePaid baseline charges
+  continue. New Alibaba PostPaid, provider, model, payment and funds cost is
+  `CNY 0.000000`; business exact-one has not started and business-DB writes are
+  zero. There is no MFA, professional-signature, long-term-fee or DNS wait.
+- Unique next action after resume: obtain explicit owner authorization for one
+  API-F production exact-one signed-readiness diagnostic (fresh Command/Invoke,
+  no provider/model call, strict runtime CAS, fixed safe output). Do not create
+  Stage, modify Render, read API-F credentials or dispatch provider traffic
+  before that authorization.
+
+## Item30 API-F signed-readiness diagnostic closed without request (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`; complete public-launch Readiness
+  remains `29/38`, Item30 remains `NO CREDIT`, and accepted Items1-29 remain
+  closed. The seven protected untracked paths remain present, unstaged and
+  uncommitted and were not read or modified.
+- The owner's one-Command/Invoke API-F authorization was consumed exactly once
+  by Command `c-sz06v7dz454251c` and Invoke `t-sz06v7dz45bju2o`, targeting only
+  API-F instance `i-wz9bgztwf1tiakww2ops`. Immutable execution metadata reads
+  back Shell, immediate execution, user root, timeout 1800 seconds and process
+  tree termination. Cloud Assistant CommandContent is an exact 10,345-byte
+  readback with SHA-256
+  `fc7dbf6186e1410826ce16d4ebda9ea1ef40e5b1d6eec3f29408115128fa2276`.
+- The terminal result is `Failed`, less than one second, exit 10, fixed stdout
+  `{"code":"API_F_PREVIOUS_READINESS_ABORTED_NO_REQUEST"}`. This is an
+  authoritative `ABORTED_NO_REQUEST`, not `UNKNOWN`: the reviewed wrapper emits
+  it only after a child pre-request abort and successful post-CAS, ExecIDs-zero,
+  unit/runtime/environment and container/volume object-set readback. The
+  Command/Invoke identity is terminal and permanently no-replay. No gateway
+  request, anti-replay TTL write, Render request, provider/model call, payment,
+  funds, business-database write, configuration change or service restart
+  occurred; API-F PREVIOUS readiness was not proved and no Item30 credit is due.
+- The authoritative offline sufficient cause is a wrapper-only mode assertion:
+  b55/current Git records `model/model_router.py` as `100755` and
+  `model/claude_gateway_protocol.py` as `100644`; the Dockerfile copies `model/`
+  and only changes ownership, while the diagnostic incorrectly required mode
+  `0644` for both files before import/probe. No tracked mode, image, application
+  logic or production configuration needs changing.
+- A wholly fresh successor is frozen only in controlled local memory and has
+  not been entered into Cloud Assistant or dispatched. Its exact four-line
+  delta parameterizes the per-file mode and requires router `0755` plus protocol
+  `0644`, preserving every other isolation/source/import/network boundary.
+  Local task name is
+  `noteai-item30-api-f-readiness-9e0d552f132597eaf7db019efddc7fe4`;
+  child/host/carrier SHA-256 values are respectively
+  `9b198ae6dca818bf9dfeb889ec814f0a13e14c9462d4be31d6dbffb4754c6174`,
+  `76b0ee14608eb135f9c0dfa829666a5a39b128dbbe402101e650baa6cb84ad51`
+  and `3dc0cc95f75be2721e767e58c9e7cc5d6084db3a87775bb75cfa4b8427ec1c5d`;
+  carrier size is 10,361 bytes. Roundtrip, compile/AST, positive/negative exact
+  mode fixtures, probe-call one, provider-call zero and docker-exec one all
+  pass. All three persistent reviewers accept the closed terminal and frozen
+  offline candidate with P1=0, but reject a new dispatch without fresh scope.
+- API-C and API-F remain Running/PrePaid. Builder, Worker-C and Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  The only new write/cost is Cloud Assistant audit metadata and less than one
+  second of existing API-F PrePaid CPU. Existing Render Starter autoscale 2-4
+  and API PrePaid baseline charges continue; attributable Render/provider/
+  payment/funds/PostPaid cost is `CNY 0.000000`. No MFA, professional signature,
+  long-term-fee authorization or DNS approval is awaited.
+- Unique next action after resume: obtain explicit owner authorization for one
+  new and unique API-F Cloud Assistant Command/Invoke using the frozen
+  mode-only successor. Before any submission, refresh the API-F-only target,
+  non-saving execution controls, exact CommandContent hash, runtime CAS, Render
+  PREVIOUS binding and zero-PostPaid resource gate. Until then do not fill a new
+  form, create a Command/Invoke, modify Render, create an API-C Stage or call a
+  provider; the old identity must never be replayed.
+
+## Item30 API-F mode-only successor rejected before guest execution (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`; complete public-launch Readiness
+  remains `29/38`, Item30 remains `NO CREDIT`, and accepted Items1-29 remain
+  closed. The seven protected untracked paths remain present, unstaged and
+  uncommitted and were not read or modified.
+- The owner's new-and-unique mode-only authorization was consumed once by
+  Command `c-sz06v7gcmtbsf0g` and Invoke `t-sz06v7gcmty9i4g`, targeting only
+  API-F. The control plane immediately returned `Invalid execution`, with no
+  execution time, ExitCode, stdout or stderr. Server readback records the exact
+  frozen 10,361-byte carrier with SHA-256
+  `3dc0cc95f75be2721e767e58c9e7cc5d6084db3a87775bb75cfa4b8427ec1c5d`
+  but `Username=rootroot`. The latter was produced by hidden UI controlled-state
+  accumulation even though the visible field appeared blank.
+- The three persistent reviewers classify this terminal as
+  `PLATFORM_REJECTED_NO_EXECUTION` / `CONTROL_PLANE_REJECTED_NO_EXECUTION`, not
+  `UNKNOWN` and not child `ABORTED_NO_REQUEST`. The guest script and child never
+  started, so signed readiness, Render, provider/model and anti-replay requests,
+  service restart, configuration, payment/funds and business-database writes
+  are all zero. Business exact-one was not consumed, the `0755/0644` correction
+  remains offline-only and unvalidated, and no Item30 credit is due. This
+  Command/Invoke identity is terminal and permanently no-replay.
+- Fresh action-time resource readback shows API-C and API-F Running/PrePaid;
+  Builder `noteai-build-amd64-b6abaa7-r1`, Worker-C and Worker-F are
+  Stopped/StopCharging/PostPaid. Running stoppable PostPaid compute is zero.
+  The only production write is Cloud Assistant audit metadata; attributable
+  Render/provider/payment/funds/PostPaid cost is `CNY 0.000000`, while existing
+  API PrePaid and Render Starter baseline charges continue. There is no guest
+  process, temporary file, container, volume or secret residue.
+- No MFA, professional signature, long-term-fee authorization or DNS approval
+  is awaited. The current explicit one-successor cloud-write authority is
+  exhausted. Unique next action after resume: obtain one fresh owner
+  authorization, then use a wholly fresh task/nonce/name/Command/Invoke and a
+  clean non-saving API-F-only form that never focuses, fills or types into
+  Username. Before submission, the authoritative request projection must omit
+  Username entirely; all carrier bytes, immutable b55 binding, exact-one and
+  zero-provider/config/database/PostPaid boundaries remain unchanged.
+## Item30 API-F signed-readiness service-manager blocker (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 remain closed.
+  The seven protected untracked paths remain present, unstaged and uncommitted
+  and were not read or modified.
+- Fresh API-F-only signed-readiness Command `c-sz06v7ssjtet24g` / Invoke
+  `t-sz06v7ssjtmar5s` ended in one second with exit 10 and exact stdout
+  `{"code":"API_F_PREVIOUS_READINESS_ABORTED_NO_REQUEST"}`. The reviewed
+  wrapper had not set `exec_started`, so Docker exec, Render readiness, network,
+  anti-replay, provider/model, payment/funds, business-DB and configuration
+  writes were all zero. The identity is terminal and permanently no-replay;
+  business exact-one was not consumed.
+- A fresh host-only pre-request classifier, Command `c-sz06v7ttmeta96o` /
+  Invoke `t-sz06v7ttmffrcao`, ended in less than one second with exit 10 and
+  exact `API_F_PRE_REQUEST_SERVICE_CONTRACT_MISMATCH_NO_REQUEST`. A further
+  fresh unit/systemd-only subclassifier, Command `c-sz06v7udgrvwmbk` / Invoke
+  `t-sz06v7udgs3ebcw`, ended in less than one second with exit 10 and exact
+  `API_F_SERVICE_SYSTEMD_PROPERTIES_MASK_010_MISMATCH_NO_REQUEST`. Both
+  identities are terminal and permanently no-replay. The latter proves the
+  accepted API-F unit remains root-owned regular `0644`, nlink 1,
+  `f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936` /
+  1510 bytes, and that the only mismatch among the ten stable systemd
+  properties is bit 4, `NeedDaemonReload`; all other nine properties match.
+  Neither classifier used Docker, credentials, network, Render or any write.
+- The mismatch must not be hidden by relaxing the wrapper. The minimum repair
+  is one API-F-only `/usr/bin/systemctl daemon-reload`, with no unit/env edit and
+  no restart/start/stop/enable/disable. This changes production systemd-manager
+  state and is outside the latest explicit `config unchanged` successor scope,
+  so it is a real owner-authorization P0. Before the one call, read back the
+  same accepted unit and mask `010`; afterward require mask `000`, unchanged
+  other nine properties and unchanged service/container CID, PID, StartedAt,
+  systemd `NRestarts` and Docker RestartCount. Only then may a wholly fresh
+  signed-readiness successor be built and submitted.
+- API-C and API-F remain Running/PrePaid. Builder
+  `noteai-build-amd64-b6abaa7-r1`, Worker-C and Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  Render production remains Live on deploy `dep-da7hqn15efls73e28550`, revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`, with no pending deploy and four
+  masked HMAC rows; staging is untouched. Attributable provider/model/payment/
+  funds/business-DB/new-PostPaid cost is `CNY 0.000000`; only Cloud Assistant
+  audit metadata and short API-F PrePaid CPU were added. No MFA, professional
+  signature, long-term-fee or DNS wait exists.
+- Unique next action after resume: obtain explicit owner authorization for the
+  single bounded API-F `systemctl daemon-reload` operation above. Do not run it,
+  restart API-F, edit unit/env, modify Render, create API-C Stage or dispatch a
+  readiness/provider request before that authorization.
+
+## Item30 API-F manager-wide NeedDaemonReload mask-7 blocker (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 remain closed
+  and were not rerun. The seven protected untracked paths remain present,
+  unstaged and uncommitted and were not read or modified.
+- The owner's single-unit daemon-reload authorization was consumed once by
+  API-F-only Command `c-sz06v96sa72xdds` / Invoke `t-sz06v96sa7hwrgg`.
+  Terminal exit 10 and exact stdout
+  `{"code":"API_F_DAEMON_RELOAD_ABORTED_NO_MUTATION"}` prove the literal
+  `systemctl daemon-reload` call was not reached. Unit/env/config/service/
+  container/Render/provider/payment/funds/business-DB mutations were zero; the
+  identity is terminal and permanently no-replay.
+- Fresh read-only preflight classifier Command `c-sz06v98a73un20w` / Invoke
+  `t-sz06v98a749mg3k` ended exit 10 with exact
+  `API_F_RELOAD_PREFLIGHT_NOTEAI_NDR_SET_MISMATCH_NO_MUTATION`. Its final host,
+  gzip and carrier SHA-256 values are respectively
+  `f3e87a47db7d78233c76eaf68903ec8e9b1dbdf62b55cf5094aeec69a025f446`,
+  `25975e2e98ed51e3de6d68ee19e46f99266e11fbc5b62cce93b62f9c9b956334`
+  and `d8e366706aa1f74384cea313d89b732f4344df97ba51b2ec0a4f8d395fa89b89`.
+  It performed only systemd/Docker readback and made no production mutation.
+- A second fresh API-F-only, action-free unit-set classifier bound the exact
+  tracked production topology and accepted unit identities: active
+  `noteai-api.service` SHA-256
+  `f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936`,
+  dormant `noteai-xhs-trends.service` SHA-256
+  `3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6`,
+  and dormant `noteai-xhs-tracking.service` SHA-256
+  `4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d`.
+  Command `c-sz06v992grcxi4g` / Invoke `t-sz06v992grrww74` completed exit 0
+  with exact stdout
+  `{"code":"API_F_NOTEAI_NDR_MASK_7_DISTINCT_ACCEPTED_NO_MUTATION"}`.
+  Mask 7 proves all three distinct accepted units currently have
+  `NeedDaemonReload=yes`. Host/gzip/carrier SHA-256 values are respectively
+  `106ef46592fca9da898daca781d09bce357e772538f56bcb72d661807c4909f7`,
+  `19ab813d7edbf0a98ce626380c39cfe80ac9d12f1699ebbb7786abbad50b09dd`
+  and `884c7baa18e61c3bfe39070bc6e1f6bbb8f27cd3c8fb48edfd25bbc1973e643c`.
+  Both classifier identities are terminal/no-replay; their only cloud write is
+  Cloud Assistant audit metadata and their host effect is read-only.
+- A manager-wide `daemon-reload` cannot clear only the API unit. It would load
+  the accepted on-disk definitions and clear pending NDR state for API, Trends
+  and Tracking together. That exact three-unit production systemd-manager
+  mutation exceeds the consumed single-unit action-time scope and is a real
+  fresh-owner-authorization P0; no further diagnostic is needed. Item30's
+  remaining original DoD still includes the four-provider bounded production
+  validation and has not reached a credit-bearing request.
+- API-C and API-F are Running/PrePaid with Cloud Assistant Agent normal.
+  Builder `noteai-build-amd64-b6abaa7-r1`, Worker-C and Worker-F are
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  There is no running temporary compute, CloudShell task or in-progress Invoke.
+  New Alibaba PostPaid, Render deploy, provider/model, payment/funds and
+  business-DB cost is `CNY 0.000000`; only Cloud Assistant metadata and short
+  existing API-F PrePaid CPU were added. Existing API PrePaid and Render
+  Starter baseline charges continue. No MFA, professional signature,
+  long-term-fee or DNS wait exists.
+- Unique next action after resume: obtain fresh owner authorization for one
+  fresh API-F-only manager-wide `systemctl daemon-reload` that explicitly
+  accepts the exact three-unit NDR mask `7 -> 0`. Before the sole literal call,
+  bind all three accepted unit bytes/metadata/state, empty jobs/generators and
+  API runtime CID/image/health/restart; afterward require unit bytes, PID/
+  MainPID/starttime/Result/NRestarts and container identity unchanged. Unit/env
+  writes and restart/start/stop/service-reload/enable/disable/Docker/network/
+  provider/DB actions are forbidden. Any fourth unit, identity drift or
+  UNKNOWN must stop without replay. Do not create the new reload Command/Invoke
+  until that authorization is explicit.
+
+## Item30 API-F manager-wide daemon-reload UNKNOWN closure (2026-08-27)
+
+- HEAD and upstream are both `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 remain closed
+  and were not rerun. The seven protected untracked paths remain present,
+  unstaged and uncommitted and were not read or modified.
+- The explicitly authorized, fresh API-F-only manager-wide reload identity was
+  submitted exactly once: request `01A04342-8FB4-5307-B418-52F6958C69B8`,
+  Command `c-sz06v9bulcujh8g`, Invoke `t-sz06v9buld2169s`. It reached terminal
+  `Failed`, exit 20, in under one second with exact stdout
+  `{"code":"API_F_MANAGER_DAEMON_RELOAD_UNKNOWN"}`. Its final host/gzip/carrier
+  SHA-256 values are respectively
+  `1dee0543d176958796aeae989ee8f32dce3b0701f4775f38e8f252764e2ba957`,
+  `d5750e551f28a8cfcf6a84f61739282e92bfd144abf03d5b994bca1e6b223e90`
+  and `63b6f5b748c9b699a535b5615db8e8e2db7a0d2d7815f43ed0b77067afbe75aa`.
+  The identity is terminal and permanently no-replay. The fixed result does
+  not prove whether the sole literal `daemon-reload` was reached or whether
+  the manager mutation took effect.
+- One fresh, action-free API-F reconciliation was then submitted exactly once:
+  request `01A0434A-6DF9-5F09-ADD6-6045CDAFF33F`, Command
+  `c-sz06v9cm6r8tgcg`, Invoke `t-sz06v9cm6rnsuf4`. It reached terminal
+  `Failed`, exit 20, in one second with exact stdout
+  `{"code":"API_F_MANAGER_RECONCILE_OTHER_OR_DRIFT"}`. Its final
+  host/gzip/carrier SHA-256 values are respectively
+  `90b245e2b450ed8c4c01e90755871bd20a5070c0e8ce2996c19534ae6981bc66`,
+  `aa1741705cf957c07d059cbc72a04154104e47505037e0476d368db0b7d2f0f1`
+  and `79c08fed8c0c59a854acdbb847d04abe2f39bd83a4fde9e77a7b21f70f665560`.
+  It contained no action or network call and is terminal/no-replay. Its result
+  cannot distinguish stable managed mask 7, stable managed mask 0, a fourth
+  global NDR unit or another snapshot/contract drift. Therefore neither reload
+  success nor reload non-execution, current mask 7 nor mask 0, and no specific
+  root cause may be claimed.
+- Known production effects are limited to two new Cloud Assistant Command/
+  Invoke audit records and seconds of existing API-F PrePaid CPU. The possible
+  systemd-manager mutation remains `UNKNOWN`; provider/model/Render/anti-replay/
+  payment/funds/business-DB/config/new-PostPaid activity is zero within both
+  frozen artifacts and observed terminal outputs. Item30 business exact-one
+  has not begun. Both terminal identities must never be replayed.
+- API-C and API-F remain Running/PrePaid with Agent normal. Builder
+  `noteai-build-amd64-b6abaa7-r1`, Worker-C and Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  There is no in-progress Invoke or temporary compute. New PostPaid/provider/
+  payment cost is `CNY 0.000000`; existing API PrePaid and Render Starter
+  baseline charges continue. No MFA, professional-signature, long-term-fee or
+  DNS wait exists; the only wait is fresh owner authorization.
+- Item30's original DoD remains uncredited: a bounded production validation of
+  Claude, Kimi, Amap and Meituan in the fixed order, with exact-one, usage,
+  settlement, cost and cleanup evidence, is still required. No Item31-38
+  dependency credit changes.
+- Review closure: DoD and Risk reviewers classify the explicit `UNKNOWN` stop
+  boundary as P0=1/P1=0 and require fresh owner authorization before another
+  Cloud Assistant diagnostic. Verification classifies a narrower read-only
+  classifier as permissible under standing authority (P0=0/P1=0). The CTO
+  adopts the conservative explicit-boundary interpretation: dispatch nothing
+  further without fresh authorization.
+- Unique next action after resume: obtain explicit authorization for one fresh,
+  API-F-only, action-free NDR-first classifier. It may emit only fixed safe
+  categories for managed mask 0-7, global-extra-NDR, or staged UNKNOWN/drift
+  while separately checking the three accepted units, PID/NRestarts, API
+  container, dormant container count, jobs/generators and object sets. It must
+  not run `daemon-reload`, touch a service/Docker/file/env/config/network/
+  provider/Render/database/funds path, reveal raw values or start PostPaid.
+  Even a stable mask 7 would not authorize another reload.
+
+## Item30 API-F NDR-first classifier cap hard stop (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 remain closed
+  and were not rerun. The seven protected untracked paths remain present,
+  unstaged and uncommitted and were not read or modified.
+- The owner-authorized NDR-first read-only chain is terminal. Initial classifier
+  Command `c-sz06v9fmek1ab5s` / Invoke `t-sz06v9fmekirlkw` ended exit 20 with
+  `API_F_NDR_CLASSIFIER_READ_UNKNOWN_NO_MUTATION`; its server CommandContent
+  was 11,271 bytes with SHA-256
+  `ad2bdba94d00c8987a4255a98fc9d8f6645e62cd7dad95b41d070146b731cfe6`.
+  The first permitted fresh successor, Command `c-sz06v9gj53r4hs0` / Invoke
+  `t-sz06v9gj54dlkw0`, ended exit 20 with the unique fixed reason
+  `API_F_NDR_CLASSIFIER_READ_GLOBAL_NAME_UNKNOWN_NO_MUTATION`; its 11,721-byte
+  server CommandContent SHA-256 was
+  `8536a0a179f69b516c2f1b4239f6a27e44409ba81f15ea8716f2d276e3da596c`.
+  The final permitted successor, Command `c-sz06v9gybk1ydj4` / Invoke
+  `t-sz06v9gybkqxczk`, ended exit 20 in one second with
+  `API_F_NDR_CLASSIFIER_READ_GLOBAL_EXTRA_CAP_UNKNOWN_NO_MUTATION`; its
+  11,779-byte server CommandContent SHA-256 was
+  `59cf86bdcc13730df176c7dbfd92334568805b25fad65c2efeb6ec4f8562260c`.
+  All three server payloads exactly matched their reviewed local artifacts.
+  Every identity is terminal, consumed and permanently no-replay; the two
+  authorized successor slots are exhausted.
+- The only new NDR fact is that one unfinished first global snapshot produced
+  more than 32 non-managed `NeedDaemonReload=yes` candidates and hit the fixed
+  safety cap. Exact count and names, current managed mask, contract mask and
+  two-snapshot stability remain unknown. The failure sentinel
+  `snapshot_stable=false` means stability was not established; it does not
+  prove drift. The earlier manager-wide reload remains `UNKNOWN`, and neither
+  execution nor non-execution may be inferred.
+- The three classifier artifacts were action-free: no `daemon-reload`, service
+  action, Docker mutation, file/env/config write, readiness or provider/model
+  request, network call, Render change, database write, payment or funds event
+  occurred. Item30 business exact-one remains unconsumed. Production effects
+  are limited to Cloud Assistant Command/Invoke audit metadata and seconds of
+  existing API-F PrePaid CPU. Attributable provider/Render/payment/funds/new
+  PostPaid cost is `CNY 0.000000`; existing API PrePaid and Render Starter
+  baseline charges continue.
+- Post-terminal readback confirms API-C `i-wz9j36od3nf2b1uw7bvg` and API-F
+  `i-wz9bgztwf1tiakww2ops` Running/PrePaid with Cloud Assistant Agent normal.
+  Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` are
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  All related Invokes are terminal; no temporary compute was started.
+- No MFA, professional signature, long-term-fee authorization or DNS approval
+  is awaited. The current blocker is a fresh owner decision and authorization
+  for one additional API-F-only, action-free global NDR inventory read whose
+  bounded output can carry all validated extra unit names. Until then, do not
+  create another Cloud Assistant Command/Invoke, execute `daemon-reload`, run
+  signed readiness, call a provider, alter Render/configuration or start
+  PostPaid. A later reload would require a separate fresh mutation
+  authorization even if a future inventory establishes a stable mask.
+- Unique next action after resume: obtain explicit owner authorization for one
+  fresh API-F-only read-only inventory reconcile and have the owner choose its
+  bounded carrier: either a higher exact name-count cap under the existing
+  16-KiB JSON ceiling or fixed pagination inside that single Invoke. No cloud
+  submission is permitted under the exhausted classifier authorization.
+
+## Item30 API-F NDR inventory authorized; console reauthentication wait (2026-08-27)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`
+  on `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 remain closed
+  and were not rerun. The seven protected untracked paths remain present,
+  unstaged and uncommitted and were not read or modified.
+- The owner authorized exactly one fresh API-F-only, action-free NDR inventory
+  reconcile on `i-wz9bgztwf1tiakww2ops`. No new Cloud Assistant Command or
+  Invoke has yet been created, so the authorization is unconsumed and there is
+  no new no-replay identity.
+- The secret-free offline artifact is frozen as task
+  `noteai-item30-api-f-ndr-inventory-c045683ada5c8207a739a16163f69051`.
+  Its 9,423-byte core SHA-256 is
+  `23354d9cb379fe276a7db82ca8684c8fc5178592468dab171fbd016e3897e52e`;
+  its 6,102-byte final CommandContent SHA-256 is
+  `90d2398cf6c9e54bb25680410931ba8ddfbac185ab78e4e905aa26fe9106f037`.
+  Static action/write/network analysis is zero. Focused offline coverage passed
+  masks 0-7; 0/1/24/25/26/33/57/101-name inventories; the greater-than-32,
+  fixed-25-item pagination, escaped-name, CAS/drift, output-cap and strict
+  terminal-tamper cases. All three standing subagents returned GO, P0=0/P1=0.
+- At approximately 14:15 Asia/Shanghai the newly controlled Aliyun console tab
+  redirected to the account login page because the prior session expired.
+  This happened before preflight and before dispatch. No production command,
+  systemd/service/Docker/file/env/config/network/provider/Render/database/
+  payment/funds write occurred; no PostPaid resource was started. The last
+  confirmed resource state remains API-C/API-F Running/PrePaid and Builder,
+  Worker-C and Worker-F Stopped/StopCharging/PostPaid, with zero running
+  stoppable PostPaid compute. Existing API PrePaid and Render Starter baseline
+  charges continue; attributable new cost is `CNY 0.000000`.
+- Current external wait is only owner completion of Aliyun secure login. No MFA
+  value, password, cookie or secret may be supplied to or read by Codex. There
+  is no professional-signature, long-term-fee or DNS wait.
+- Unique next action after resume: after the owner completes login in the open
+  Aliyun tab, read back exact API-F-only/preflight and stopped PostPaid state,
+  confirm no related nonterminal Invoke, then create and execute the one frozen
+  Command/Invoke exactly once. Any form, transport, output, script, classifier,
+  UNKNOWN or terminal-validation failure consumes the authorization and must
+  hard-stop production diagnostics without a successor or `daemon-reload`.
+
+## Item30 API-F NDR inventory terminal global-drift hard stop (2026-08-27)
+
+- HEAD and upstream are both
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; Items1-29 remain accepted and
+  closed and were not rerun. The seven protected untracked paths remain
+  present, unstaged and uncommitted and were not read or modified.
+- After owner-only Aliyun reauthentication, preflight confirmed API-C
+  `i-wz9j36od3nf2b1uw7bvg` and API-F `i-wz9bgztwf1tiakww2ops` Running,
+  PrePaid and Agent-normal. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` were and
+  remain Stopped/StopCharging/PostPaid. The fresh task name was absent and all
+  five earlier NDR Invokes were terminal before dispatch.
+- The owner-authorized identity was created and dispatched exactly once:
+  task `noteai-item30-api-f-ndr-inventory-c045683ada5c8207a739a16163f69051`,
+  Command `c-sz06v9kxaua16o0`, Invoke `t-sz06v9kxaup0kqo`. The identity is
+  terminal, consumed and permanently no-replay. API readback request
+  `01A043A3-7909-5B75-AA6B-C38BE194A874` reports `Finished`/`Failed`, Exit20,
+  Repeat1, `Dropped=0`, API-F as the sole target, Immediate execution,
+  300-second timeout and `ProcessTree`. The form's Username field was not
+  touched and was omitted; the platform reports its effective default user as
+  `root` and an empty launcher.
+- The 6,102-byte server CommandContent, after the UI's non-breaking-space
+  rendering is normalized and its terminal LF restored, is byte-identical to
+  the frozen artifact with SHA-256
+  `90d2398cf6c9e54bb25680410931ba8ddfbac185ab78e4e905aa26fe9106f037`.
+  The 9,423-byte core SHA-256 remains
+  `23354d9cb379fe276a7db82ca8684c8fc5178592468dab171fbd016e3897e52e`.
+- The exact 559-byte canonical ASCII JSON+LF output has SHA-256
+  `7d72e928a96a3a3a4a24d4ffe4aa688083334a7fbeb572e4dacba65bb947b01e`
+  and passed the frozen strict validator. It establishes managed status
+  `STABLE`, managed mask `7`, and `NeedDaemonReload=yes` independently for
+  `noteai-api.service`, `noteai-xhs-trends.service` and
+  `noteai-xhs-tracking.service`. It also establishes global status
+  `SNAPSHOT_DRIFT`, `global_snapshot_stable=false` and
+  `global_complete=false`. Global extra count, names, pages and SHA remain
+  unknown; the empty pages field is a partial-terminal sentinel and must not be
+  interpreted as zero extras.
+- Offline contract review narrows that sentinel precisely: the first global
+  observation failed one of two fail-closed coherence predicates, either the
+  loaded-unit name set changed across its list/show/list window or at least one
+  managed value in the global batch disagreed with the independent managed
+  read. The terminal does not expose which branch fired. It therefore must not
+  be described as two complete global snapshots differing, nor as a proven
+  change in the NDR=yes extras set. DoD and Verification accept the predicate
+  as a conservative completeness gate; Risk records P1=1 availability and
+  diagnosability debt because unrelated loaded-unit churn can cause a safe
+  false negative. The CTO accepts the result only as fail-closed partial
+  evidence and authorizes no cloud successor.
+- The artifact could reach only bounded `systemctl show` and
+  `systemctl list-units --all` reads. No `daemon-reload`, service lifecycle,
+  Docker, file/env/config, network, provider/model, Render, database, payment
+  or funds write was reachable or observed. Production effects are one
+  expected Cloud Assistant Command/Invoke audit record and approximately one
+  second of existing API-F PrePaid CPU. Attributable new provider, payment and
+  PostPaid cost is `CNY 0.000000`; existing API PrePaid and Render Starter
+  baseline charges continue. No temporary resource or stoppable PostPaid
+  compute is running.
+- Terminal review: DoD classifies the result as
+  `PARTIAL_NO_MUTATION / GLOBAL_SNAPSHOT_DRIFT`; Verification accepts the
+  managed facts and zero-mutation evidence but no global inventory; Risk marks
+  current progression P0=1/P1=0 because the global manager impact set is not
+  established or closed. Classifier design carries the separate non-safety
+  P1=1 noted above. Item30 business exact-one remains unconsumed and Items31-38
+  receive no dependency credit.
+- No MFA, professional signature, long-term-fee or DNS approval is currently
+  awaited. Current hard stop is evidentiary and authorization-bounded: this
+  Invoke may not be replayed, and no successor classifier, `daemon-reload`,
+  signed readiness, provider call or other production mutation is authorized.
+- Unique next action after resume: perform offline-only convergence on the
+  frozen snapshot/drift contract and preserve this terminal evidence. Do not
+  request or execute a production write. If a materially different and
+  offline-proven safe read strategy is later proposed, present the unresolved
+  global drift and that exact strategy to the owner for a new decision before
+  any cloud action. No Item checkpoint was created because Item30 did not
+  reach a creditable terminal state.
+
+## Item30 original-DoD scope correction and independent managed-NDR blocker (2026-08-27)
+
+- HEAD and upstream remain
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 remain closed
+  and were not rerun. The seven protected untracked paths remain present,
+  unstaged and uncommitted and were not read or modified.
+- The three standing reviewers and CTO independently reconciled the tracked
+  manifest, Item30 executor, semantic Evidence verifier, readiness gate and
+  focused tests. `NeedDaemonReload=no` is not an original Item30 hard credit
+  condition. Full global loaded-unit double-snapshot stability is a later
+  conservative diagnostic layer and is removed from the Item30 progression
+  decision. No canonical validator, schema, provider bound or original DoD is
+  relaxed or changed.
+- The valid managed fact is retained without waiver: `noteai-api.service`,
+  `noteai-xhs-trends.service` and `noteai-xhs-tracking.service` are independently
+  stable at `NeedDaemonReload=yes`, mask `7`. Dynamic loaded-unit-set change is
+  not classified as production drift without a concrete unit and impact. The
+  global partial terminal and every consumed Command/Invoke remain preserved
+  as historical evidence and permanently no-replay.
+- Readiness now records mask `7` as an independent pre-launch blocker in the
+  existing Item36 `alb_tls` control, without adding a control or schema. Future
+  closure is exactly the three managed units `7 -> 0`, with their accepted
+  identities, PID/NRestarts and API container identity/health unchanged; it
+  does not require the entire global loaded-unit set to be stable. Closure is
+  required before any non-essential restart/deploy and before Item36 execution.
+  Existing Item36 -> Item37 -> Item38 dependencies make unresolved mask `7` a
+  final DNS `NO-GO`.
+- Item30's unchanged shortest path, once the current offline-only restriction
+  is explicitly lifted, is fresh canonical account gates, the executor's own
+  one signed Claude readiness preflight, fixed Meituan/Claude/Kimi/Amap
+  exact-one dispatch with retry/fallback zero, native post counters/settlement,
+  zero-residue/resource readback and the single canonical Evidence semantic
+  gate. A separate API-F readiness diagnostic, NDR classifier or global
+  inventory is not an Item30 credit prerequisite.
+- No production action or authorization request occurred in this offline
+  convergence. No Command/Invoke, `daemon-reload`, readiness/provider call,
+  restart, deploy or database/payment/DNS write was executed. API-C/API-F
+  remain Running/PrePaid; Builder/Worker-C/Worker-F remain
+  Stopped/StopCharging/PostPaid; attributable new provider, payment, Render and
+  PostPaid cost is `CNY 0.000000`.
+- Focused offline validation passed: JSON parsing plus targeted assertions
+  proved Item30's dependency/status/Evidence remained unchanged, Item36 carries
+  the independent mask-7 blocker, and the existing Item36 -> Item37 -> Item38
+  dependency chain remains intact. Canonical Item30 executor/verifier/gate/test
+  files have zero diff; Item30 executor/verifier/tests still have zero
+  `NeedDaemonReload`/`daemon-reload`/`loaded-unit`/`systemctl` matches; repository
+  `git diff --check` passed. Items1-29 were not rerun.
+- Unique next action while the owner's offline-only boundary remains active:
+  preserve this terminal scope correction and perform no production action.
+  Once that boundary is explicitly lifted, resume directly at the canonical
+  Item30 account-gate plus in-executor signed-readiness/provider path. Do not
+  create another classifier, controller, receipt, adapter, proof version or
+  cloud identity, and do not request a new production authorization.
+
+## Item30 canonical API-F execution resumption (2026-08-27)
+
+- The owner explicitly accepted the offline scope correction, lifted the
+  Item30 offline-only boundary and directed the CTO to resume the unchanged
+  canonical executor, verifier, gate and Evidence path. The three standing
+  reviewers independently confirmed that the original DoD, executor and v1
+  Evidence schema do not bind the ephemeral execution container to API-C.
+- The current production-path authority is therefore bound to exactly one
+  fresh, non-replayable, wrapper-only canonical execution whose sole target is
+  API-F instance `i-wz9bgztwf1tiakww2ops`; API-C target count is zero. This
+  supersedes only the historical API-C host selection. Immutable b55 image and
+  source bindings, the entrypoint override boundary, fresh gate/nonce/task/
+  Command/Invoke identities, Meituan/Claude/Kimi/Amap exact-one order,
+  retry/fallback zero, cost bounds, production-write boundary, cleanup and
+  UNKNOWN/no-replay rules remain unchanged.
+- API-F is selected because its existing production credential pair is already
+  accepted by the unchanged Render production gateway. API-C configuration,
+  restart and Render deploy are unnecessary and prohibited for Item30. The
+  managed NDR mask `7` remains solely the independent Item36 P0 blocker above;
+  no NDR, global inventory or service-manager predicate is part of this Item30
+  execution or credit decision.
+- Dispatch remains conditional on fresh action-time account, source, runtime,
+  resource, StopCharging and Render gates plus three-reviewer approval of the
+  newly materialized Secret-free wrapper and account-gate bytes. No production
+  action has occurred at this resumption node. The current human gate is only
+  restoration of the expired Alibaba Cloud console session; no PostPaid
+  resource is running while it is awaited.
+
+## Item30 canonical dispatch blocked before submission (2026-08-28)
+
+- HEAD and upstream remain
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 were not
+  rerun. The seven protected untracked paths remain present, untracked,
+  unstaged and uncommitted and were not read or modified.
+- Fresh native pre-call console readback remained unchanged: Claude total
+  tokens `8657` with `US$20.05` credit; Kimi billed cost `CNY 806.478100`,
+  balance `CNY 28.521900` and current-day cost zero; Amap keyword-search month
+  and day calls zero with quota `5000`; Meituan exposes the accepted credential
+  name but no native counter or price. Current Claude/Kimi/Amap pricing was
+  refreshed, and the Render production gateway remained `live` at deploy
+  `dep-da7hqn15efls73e28550`, revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`. Staging was not touched.
+- The three standing reviewers returned final `GO`, P0=0/P1=0, for the frozen
+  Secret-free artifact. Its wrapper inner body is `61,216` bytes with SHA-256
+  `1debc26bfb71df65daaf9dd5cadb7277790141f6af1d6b7c86557482596f39b9`;
+  the LZMA/base94 carrier is `18,419` bytes with SHA-256
+  `003e88499851f87bc145236db410eb718d5fba43fe6124570e1de514802b39fd`;
+  canonical Base64 is `24,560` bytes with SHA-256
+  `f186181d6fcfa2d8c873a427d464254a0123d9ab3d9bb0587997a1796096c36a`.
+  Byte-exact decode, LZMA EOF/unused-data zero, inner and carrier `bash -n`,
+  CR/NUL zero and both transport limits passed. The unsubmitted task suffix is
+  `104decc8390b544c`; its gate expires at `2026-08-27T20:58:31Z` and is now
+  discard-only, so it must never be submitted or reused after resume.
+- The clean Cloud Assistant form was filled without touching Username and
+  projected the CommandContent byte-exactly, with API-F as its sole target,
+  Immediate/Once, `KeepCommand=false`, parameters disabled and timeout 1200.
+  Its generated CLI nevertheless injected `Username=root`, contrary to the
+  accepted omit-Username hard boundary. The CTO therefore did not click
+  Execute. A subsequent attempt to load the same omit-Username parameter set
+  in Alibaba Cloud's official OpenAPI form was blocked by the browser safety
+  policy and redirected to an error page before any API call. Platform rules
+  prohibit bypassing that block through scripts, a different browser or an
+  indirect API path.
+- No Item30 Command or Invoke was created, no signed-readiness or provider/model
+  request was dispatched, and exact-one remains unconsumed. Production config,
+  restart/deploy, database, payment/funds and DNS writes are zero. Known
+  provider cost and attributable cloud cost are `CNY 0.000000`; the separately
+  authorized Meituan unpriced call did not occur. API-C/API-F remain
+  Running/PrePaid. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` remain
+  Stopped/StopCharging/PostPaid, with running stoppable PostPaid compute zero.
+  The independent managed-NDR mask `7` remains the unchanged Item36 P0 blocker.
+- Unique next action after owner return: obtain a fresh human decision on
+  whether Alibaba Cloud's effective default `Username=root` projection is
+  acceptable for this API-F wrapper. If accepted, regenerate fresh native
+  snapshots, gate, nonce, task and carrier and repeat all action-time checks
+  before one submission. If omission remains mandatory, the owner must perform
+  the official OpenAPI interaction after a fresh artifact is prepared; Codex
+  must not work around the browser safety block. Do not reuse the expired
+  suffix, create a successor before that decision, or advance to Item31.
+
+## Item30 API-F pre-provider terminal and exact-cleanup action hold (2026-08-28)
+
+- HEAD and upstream remain
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; Items1-29 were not rerun. The
+  seven protected untracked paths remain present, untracked, unstaged and
+  uncommitted and were not read or modified.
+- The owner accepted Alibaba Cloud's effective `Username=root` projection for
+  the bounded API-F RunCommand. Fresh Command `c-sz06vb67hq2x2ps` / Invoke
+  `t-sz06vb67hqcwo3k` nevertheless terminated exactly once at wrapper stage
+  `V`, ExitCode `1`, with canonical stdout
+  `{"failure_code":"WRAPPER_PRE_PROVIDER","stage":"V","status":"BLOCKED"}`.
+  That identity is immutable and permanently no-replay.
+- The terminal occurred before `ACTIVE`, task-container create/start, signed
+  readiness, AttemptJournal or any provider dispatch. Authoritative terminal
+  review therefore keeps signed-readiness/model/provider usage, funds,
+  production config and business-database writes at zero; business exact-one
+  remains unconsumed. The isolated cause is the wrapper's obsolete two-file
+  source projection versus the effective API-F runtime environment. It is not
+  an executor, provider, credential, Render or product-code failure.
+- The standing DoD, Verification and Risk agents independently returned
+  `GO`, P0=0/P1=0, for the canonical recovery sequence: exact cleanup of only
+  the failed suffix, then one fresh successor using the unchanged immutable
+  b55 executor and Meituan -> Claude -> Kimi -> Amap ordering. Offline fixtures
+  passed 35/35 runtime-projection cases and 11/11 image-env cases. The
+  successor change is restricted to byte-exact `.Config.Env` versus `/proc`
+  projection into the same root-owned `0600` env-file with metadata/hash CAS,
+  plus ignoring exactly one proven image empty-key record `=` and the existing
+  terminal blank; it introduces no helper, controller, receipt or Evidence
+  version.
+- The previously accepted task-exact cleanup was specialized only to suffix
+  `d329f70ddf467307`. Its 7,820-byte Secret-free script has SHA-256
+  `e1ff8873d1228fc5abbae3ff9aea34909ac9ba9998720f0b775aca7d85a593b6`
+  and first requires the PREPARED anchor, gate binding, exact inventory, zero
+  task container/volume/open-FD and unchanged API-F identity. It can delete
+  only two files and two directories inside that exact TASK and must leave
+  BASE empty. The Alibaba Cloud form is staged at the final Execute boundary
+  with API-F as the sole target, Immediate/Once, parameters disabled,
+  ProcessTree, timeout 300 and effective `Username=root`; Execute has not been
+  clicked because browser safety requires action-time confirmation for the
+  deletion.
+- API-C/API-F remain Running/PrePaid. Builder, Worker-C and Worker-F remain
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid compute is zero.
+  Incremental provider, payment, Render and PostPaid cost remains
+  `CNY 0.000000`; only existing PrePaid baseline and Cloud Assistant audit
+  metadata exist. The independent managed-NDR mask `7` remains the unchanged
+  Item36 P0 blocker and is not reopened in Item30.
+- Unique next action: after the owner confirms the exact cleanup at the staged
+  action boundary, click Execute once, read its terminal result and verify BASE
+  empty plus API-F/resource CAS. Only after cleanup closes may the CTO obtain
+  fresh native counters and Render/resource snapshots, create a fresh gate/
+  nonce/suffix/name/Command/Invoke, and submit the one canonical Item30
+  successor. No provider request, Item checkpoint or Item31 work precedes that
+  closure.
+
+## Item30 exact cleanup closed; Claude authentication wait (2026-08-28)
+
+- HEAD and upstream remain
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 were not
+  rerun. The seven protected untracked paths remain present, untracked,
+  unstaged and uncommitted and were not read or modified.
+- The owner authorized the staged task-exact deletion. Root submitted exactly
+  one API-F-only cleanup, Command `c-sz06vcz884498n4` / Invoke
+  `t-sz06vcz884gqqdc`, with effective `Username=root`. It terminated
+  `Success / ExitCode 0` and returned `TASK_EXACT_CLEANED`: exactly two files
+  and two directories were removed, BASE entry count is zero, task/label
+  container, running-container, volume and open-FD counts are zero, and API-F
+  identity is unchanged. This cleanup identity is terminal and permanently
+  no-replay.
+- No signed-readiness, model or provider request was dispatched. Provider
+  usage, funds, production configuration, restart/deploy, business-database,
+  payment and DNS writes remain zero; the business exact-one authorization is
+  unconsumed. Item30 incremental provider, payment, Render-deploy and PostPaid
+  cost remains `CNY 0.000000`; existing PrePaid and Render Starter baseline
+  costs continue and are not represented as zero.
+- The wrapper-only successor remains offline and unsubmitted. Its only changes
+  are exact API-F `.Config.Env` JSON projection of the fixed eight credentials
+  plus exact-one Meituan credential, byte comparison with `/proc`, a root-owned
+  regular/non-link `0600` env-file with nlink/inode/metadata/SHA create-time
+  CAS, and acceptance of exactly one image empty-key record `=` plus exactly
+  one terminal blank. The immutable b55 image, embedded executor/fact source,
+  provider order, exact-one/no-retry/no-fallback logic, cost boundaries,
+  validator and v1 Evidence schema are unchanged. Offline Stage-V fixtures
+  pass `35/35`, image-env fixtures pass `11/11`, and byte roundtrip, inner and
+  carrier `bash -n`, CR/NUL and transport-size checks pass. No helper,
+  controller, receipt, adapter, NDR/systemd predicate or proof version was
+  added.
+- Fresh read-only resource state has API-F
+  `i-wz9bgztwf1tiakww2ops` and API-C `i-wz9j36od3nf2b1uw7bvg`
+  `Running / PrePaid`. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` each show
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute is
+  zero. Render production service `srv-d9e765laeets73aikj90` remains live on
+  deploy `dep-da7hqn15efls73e28550`, revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`; staging, plan, autoscale and
+  source were not touched. The independent managed-NDR mask `7` remains only
+  the existing Item36 P0 blocker and was not reopened.
+- The three standing reviewers were actually reused. DoD, Verification and
+  Risk each return artifact P0=0/P1=0 and accept the cleanup and minimal
+  wrapper-only representation fix, but all reject Item30 credit and live
+  dispatch while the Claude account gate is stale. The Claude official
+  account page now redirects to login, so no honest fresh native pre-counter,
+  balance and account binding can be formed without owner authentication.
+- Original DoD still remaining is a fresh authenticated Claude account read,
+  synchronized fresh Kimi/Amap/Meituan gates, fresh resource/Render CAS, one
+  new suffix/nonce/gate/name/Command/Invoke, the single API-F signed-readiness
+  and Meituan -> Claude -> Kimi -> Amap exact-one chain, native post settlement,
+  zero-residue readback, canonical Evidence and the one Item30 terminal
+  checkpoint. No professional approval, long-term-cost decision or DNS action
+  is currently awaited; only Claude login/MFA may require the owner.
+- Unique recovery action: when the owner is back at the computer, restore the
+  official Claude account session. Root must then refresh all four native
+  gates and resource/Render state before materializing or submitting a fresh
+  successor. Until then, create no successor Command/Invoke, use no stale
+  counter, keep all PostPaid resources StopCharging, and do not advance to
+  Item31. No checkpoint is created for this nonterminal blocker.
+
+## Item30 canonical wrapper terminal, exact cleanup and production-URL hard gate (2026-08-28)
+
+- HEAD and upstream remain
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Complete public-launch Readiness
+  remains `29/38`; Item30 remains `NO CREDIT`; accepted Items1-29 were not
+  rerun. The seven protected untracked paths remain present, untracked,
+  unstaged and uncommitted and were not read, modified or staged.
+- The owner restored the Claude account session. Fresh action-time native gates
+  were formed for all four providers and the three standing reviewers returned
+  live-dispatch GO. Root submitted exactly one API-F-only canonical wrapper,
+  Command `c-sz06vd3t9p2h2bk` / Invoke `t-sz06vd3t9p9yrcw`, effective
+  `Username=root`, ProcessTree, Once, timeout 1200. It terminated once after
+  `5m1s`, ExitCode 1, with only
+  `{"failure_code":"WRAPPER_PRE_PROVIDER","stage":"V","status":"BLOCKED"}`.
+  This identity is terminal, immutable and permanently no-replay.
+- The failed wrapper stopped before DNS, task-container create/start, signed
+  readiness, AttemptJournal or provider execution. Fresh provider-native
+  post-readback remained unchanged: Claude total tokens `8657` and balance
+  `US$20.05`; Kimi billed cost `CNY 806.478100`, balance `CNY 28.521900` and
+  day/month cost zero; Amap keyword-search day/month requests zero; Meituan's
+  single masked credential row and its safe row hash were unchanged. Therefore
+  signed-readiness and provider requests, model tokens, provider cost, funds,
+  production configuration, restart/deploy, business-database, payment and DNS
+  writes are all zero. Business exact-one remains unconsumed.
+- Owner-authorized exact cleanup Command `c-sz06vd58gbr064g` / Invoke
+  `t-sz06vd58gc3hnuo` then ran only on API-F with the exact 6,609-byte
+  Secret-free script whose SHA-256 is
+  `c92b418240c7ba90c16e40e3d37e3f75eb32804d90604b3c9ed9ee73d1bf5849`.
+  It terminated `Success / ExitCode 0 / 1s` with `TASK_EXACT_CLEANED`, deleted
+  exactly two files and two directories for suffix `a6cf419127064af8`, left
+  BASE/container/volume counts zero and proved API-F identity unchanged. Its
+  safe Stage-V classification proved exact/nonempty fixed credentials,
+  Meituan exact-one, `.Config.Env == /proc` projection and valid authority
+  syntax; the sole failed predicate was `authority_relation=false`. The cleanup
+  identity is also terminal and permanently no-replay.
+- The three standing reviewers were reused on this terminal. DoD returns
+  `NO-GO / P0=1 / P1=0`: the raw URL equality is a transitive canonical
+  readiness requirement, so an ephemeral rewrite would hide a production
+  configuration failure. Verification and Risk each return conditional
+  `GO / P0=0 / P1=0` only for exact same-authority, single-trailing-slash
+  normalization in the short-lived acceptance container. As CTO, root selects
+  fail-closed DoD semantics: no successor is materialized or dispatched while
+  API-F's production raw URL cannot satisfy the unchanged
+  `_valid_gateway_base_url` rule. No validator, Evidence field, provider bound
+  or original DoD is relaxed.
+- Current resources remain API-C/API-F `Running / PrePaid`; Builder, Worker-C
+  and Worker-F remain `Stopped / StopCharging / PostPaid`; running stoppable
+  PostPaid compute is zero. Render production remains Live on deploy
+  `dep-da7hqn15efls73e28550`, revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`; staging was untouched. New
+  provider/payment/Render-deploy/PostPaid cost is `CNY 0.000000`; existing
+  PrePaid and Render Starter baseline charges continue. Managed NDR mask `7`
+  remains only the independent Item36 P0 and was not reopened.
+- Original Item30 DoD still remaining is production-canonical API-F signed
+  readiness, Meituan -> Claude -> Kimi -> Amap exact-one outputs, native
+  settlement, zero-residue readback, canonical v1 Evidence, Readiness credit
+  and the single terminal checkpoint. The current hard gate is fresh owner
+  authorization for a narrowly scoped API-F production configuration
+  correction making
+  `NOTEAI_CLAUDE_GATEWAY_URL` exactly `https://<current validated authority>`,
+  plus only the bounded activation/restart needed to make that one-key change
+  effective with complete non-target env, CID/service and rollback controls.
+  This latest Item30 authority expressly prohibited production config changes
+  and restarts, so root stops here without another Command/Invoke. No
+  checkpoint is created for this nonterminal blocker and Item31 is not started.
+- Unique recovery action: after owner authorization, freeze the exact one-key
+  old/new shape without exposing values, preserve every other API-F env byte,
+  apply and activate the production correction once with rollback, verify the
+  effective runtime env now satisfies the exact URL/authority relation while
+  API-F identity/health, non-target env and rollback invariants hold, then
+  refresh all four native account gates and generate one wholly fresh canonical
+  wrapper identity whose unchanged executor performs the sole signed-readiness.
+  Until then all
+  PostPaid resources remain StopCharging and the two identities above must not
+  be replayed.
+
+## Item30 API-F production URL activation UNKNOWN hard stop (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 receives `NO CREDIT`; accepted Items1-29 were not rerun. The
+  seven protected untracked paths remain present/untracked/unstaged and were
+  not read, modified, staged or committed.
+- The owner-authorized API-F-only URL activation was accepted exactly once as
+  Command `c-sz06vdii5hn1h4w` / Invoke `t-sz06vdii5i70nwg`, name
+  `noteai-item30-api-f-url-fix-75e60c42241ac410`, effective `Username=root`,
+  Immediate/Once, ProcessTree, timeout 600, with API-F
+  `i-wz9bgztwf1tiakww2ops` as the sole target and API-C unchecked. Alibaba
+  Cloud's server-side CommandContent is exactly 11,040 bytes, SHA-256
+  `a1829d88d240648e31ee27a28f35e0ea229c3b06b4ba8e433dd1b06fdd86414f`,
+  byte-identical to the three-reviewer-approved carrier. This identity is
+  terminal and permanently no-replay.
+- Terminal state is `Failed / ExitCode 20 / <1s`, with the sole stdout object
+  `{"code":"URL_CANONICALIZATION_UNKNOWN"}`. Duration is not evidence of a
+  pre-mutation stop. The fixed output can arise before or after candidate
+  creation, atomic exchange, a forward restart attempt or rollback handling;
+  therefore it cannot prove whether `api.env` is old or canonical, whether a
+  restart was submitted, whether runtime identity changed, or whether one of
+  the suffix-specific recovery files remains. No successor, replay, restart,
+  rollback, cleanup, readiness or provider action is authorized from this
+  terminal.
+- The conservative maximum production-write set is restricted to this
+  reviewed controller: `api.env` may be the old or canonical one-key version;
+  at most one root-owned mode-0600 suffix-specific
+  candidate/exchanged/restart-sent/rollback-sent recovery file may remain; at
+  most one forward restart and, on the known-failure path, at most one rollback
+  restart may have been submitted. Preserve any such recovery material and do
+  not read or expose environment values. The carrier has no NDR/daemon-reload,
+  Render, provider/model, business-database, payment/funds or DNS call path, so
+  those direct operations are zero and provider exact-one remains unconsumed.
+- Fresh post-terminal resource readback shows API-F and API-C
+  `Running / PrePaid`. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute is
+  zero. No new billable resource was created. Attributable cost is limited to
+  Cloud Assistant audit metadata plus existing API-F PrePaid short CPU and a
+  possible baseline restart; direct provider/payment/Render-deploy/PostPaid
+  cost is `CNY 0.000000`. Existing PrePaid and Render Starter baseline charges
+  continue.
+- The three persistent reviewers were reused on the exact terminal. DoD and
+  Verification return `NO CREDIT`; Risk returns `NO-GO / P0=1 / P1=0`. All
+  agree that `<1s` cannot narrow UNKNOWN, the accepted Command/Invoke cannot be
+  replayed, direct provider/business calls are zero, and the production
+  activation state must be reconciled before any further Item30 action. The
+  independent managed-NDR mask `7` remains the existing Item36 P0 and is not
+  reopened here.
+- Original Item30 DoD still requires an authoritative API-F activation state,
+  one fresh signed-readiness, Meituan -> Claude -> Kimi -> Amap exact-one
+  production outputs, native settlement/cost reconciliation, zero residue,
+  canonical Evidence/verifier PASS, Readiness credit and the single terminal
+  checkpoint. No Item31 work starts.
+- Unique recovery action after explicit owner direction: run at most one new
+  Secret-free, action-free, API-F-only read reconciliation that classifies the
+  live `api.env` only as old/new/other without outputting values, inventories
+  only this suffix's recovery state, and freezes unit/job, CID/PID/StartedAt,
+  image, running/health and restart counters. It must not call restart,
+  rollback, cleanup, readiness, provider, Render, database, funds, DNS or
+  PostPaid operations. If that one read cannot uniquely classify
+  `APPLIED`/`ROLLED_BACK`/`ABORTED`, retain UNKNOWN and stop for an owner
+  recovery decision.
+
+## Item30 API-F read reconciliation exhausted; activation remains UNKNOWN (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 receives `NO CREDIT`; Items1-29 were not rerun. The seven
+  protected untracked paths remain present/untracked/unstaged and were not
+  read, modified, staged or committed.
+- The owner-authorized API-F-only, Secret-free, action-free reconciliation was
+  accepted exactly once as Command `c-sz06velqigxkhs0` / Invoke
+  `t-sz06velqihcjvuo`, name
+  `noteai-item30-api-f-url-reconcile-7aa84ac05faeafca`, effective
+  `Username=root`, Immediate/Once, ProcessTree, timeout 300. API-F
+  `i-wz9bgztwf1tiakww2ops` was the sole target and API-C was unchecked. The
+  server-side CommandContent is exactly 9,901 bytes, SHA-256
+  `a3860eca54f89fc58156819711e1061b8c32cafa831a0ffeff533c4ecc993bac`,
+  byte-identical to the three-reviewer-approved carrier. This identity is
+  terminal and permanently no-replay.
+- Terminal state is `Failed / ExitCode 20 / 1s`. Cloud Assistant exposed the
+  sole fixed stdout object
+  `{"classification":"UNKNOWN","code":"READ_FAILED_UNIT_LOADED_EXEC","schema":"noteai.item30.api_f_url_reconcile.v1","target":"API_F_ONLY"}`
+  and no displayed stderr. The failure occurred in the first unit/typed-loaded-
+  Exec read stage, before the diagnostic reached `api.env`, the four exact
+  suffix recovery slots, service/runtime state or either complete snapshot.
+  It therefore cannot classify the earlier activation as `APPLIED`,
+  `ROLLED_BACK` or `ABORTED`, and it is not evidence of a concrete unit drift.
+- This reconciliation's reviewed action surface contains only local read-only
+  unit/D-Bus/systemd/Docker/proc/file observations. Its production file,
+  configuration, service, Docker, Render, provider/model, database,
+  payment/funds and DNS write set is zero; signed-readiness and provider
+  exact-one remain unconsumed. It did not read or alter `api.env` or suffix
+  recovery materials. The earlier activation's conservative maximum write set
+  remains unchanged and UNKNOWN: old/new `api.env`, at most one exact-suffix
+  recovery object, at most one forward restart and at most one known-failure
+  rollback restart. Preserve all such material; no cleanup, restart, rollback,
+  readiness or provider action is allowed.
+- Fresh post-terminal resource readback shows API-F and API-C
+  `Running / PrePaid`. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute is
+  zero. No billable resource was created. This reconciliation's cost is
+  limited to Cloud Assistant audit metadata and about one second of existing
+  API-F PrePaid CPU; incremental provider/payment/Render-deploy/PostPaid cost
+  is `CNY 0.000000`. Existing PrePaid and Render Starter baseline charges
+  continue.
+- The three persistent reviewers were reused on the exact terminal. DoD and
+  Verification return `NO CREDIT`; Risk returns `NO-GO / P0=1 / P1=0`. All
+  require permanent no-replay, recovery-material preservation and a stop on
+  any new production action. The independent managed-NDR mask `7` remains the
+  existing Item36 P0 and is not reopened in Item30.
+- Original Item30 DoD still requires authoritative API-F activation state, one
+  fresh signed-readiness, Meituan -> Claude -> Kimi -> Amap exact-one outputs,
+  native settlement, zero-residue readback, canonical Evidence/verifier PASS,
+  Readiness credit and the single terminal checkpoint. No Item31 work starts.
+  No MFA, professional sign-off, long-term-cost approval or DNS confirmation is
+  presently requested; the wait is for an owner recovery decision.
+- Unique recovery action: first determine one specific
+  `UNIT_LOADED_EXEC` failure cause offline from the already accepted unit and
+  typed D-Bus representation. Do not create another Command/Invoke while that
+  cause is not singular. If a new action-free read is then necessary, obtain a
+  new explicit owner authorization for one fresh API-F-only reconcile. Any
+  production recovery write requires separate authorization only after the
+  activation state has been uniquely classified. No checkpoint is created for
+  this nonterminal diagnostic blocker.
+
+## Item30 direct URL classification rejected before host execution (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 receives `NO CREDIT`; Items1-29 were not rerun. The seven
+  protected untracked paths remain present/untracked/unstaged and were not
+  read, modified, staged or committed.
+- The owner-authorized sole fresh API-F-only, Secret-free, action-free direct
+  classifier was accepted as Command `c-sz06vfisu7oqeio` / Invoke
+  `t-sz06vfisu7w83k0`, name
+  `noteai-item30-url-direct-4d6c5faea65642ae`, Immediate/Once,
+  `KeepCommand=false`, parameter substitution disabled, ProcessTree and
+  timeout 60. API-F `i-wz9bgztwf1tiakww2ops` was the sole selected target and
+  API-C was unchecked. The pre-submit Monaco readback exactly matched the
+  three-reviewer-approved 12,384-byte carrier, SHA-256
+  `d1f3c5db85115b381242073d3563e865a41128599042f3077b6a1cfaa631a03c`.
+  This accepted identity and the one-read authorization are consumed and
+  permanently no-replay.
+- The authoritative stored request exposed execution user exactly
+  `rootrootrootrroot`. Although the visible fresh-form input returned an empty
+  value after every normal fill, keypress, CUA and paste event, the console's
+  hidden form state concatenated those five attempts. The sole API-F instance
+  terminated `ExecutionInvalid`: execution time, ExitCode, stdout and stderr
+  are all absent. The fixed classification is
+  `PRE_EXECUTION_INVALID_USERNAME / HOST_EXECUTION_NOT_STARTED`; this is a
+  Cloud Assistant form-projection integrity event, not a secret exposure or
+  host compromise.
+- Payload-controlled API-F file/env/proc/systemd/Docker reads and all payload
+  writes/actions are zero. Cleanup, restart, configuration, network,
+  signed-readiness, provider/model, Render, business database, payment/funds,
+  DNS and PostPaid-start operations are zero. The only new external state is
+  the Cloud Assistant Command/Invoke audit metadata. There is no host residue
+  to clean and no canonical classifier JSON. The earlier URL activation state
+  therefore remains `UNKNOWN`; preserve `api.env` and exact suffix
+  `75e60c42241ac410` recovery material without cleanup, restart, rollback,
+  readiness or provider action.
+- Incremental provider, payment, Render-deploy, database and PostPaid cost is
+  `CNY 0.000000`; existing API-F/API-C PrePaid and Render Starter baseline
+  charges continue. This invalid invocation could not start a PostPaid
+  resource. The latest independent resource readback remains API-C/API-F
+  `Running / PrePaid`, Builder/Worker-C/Worker-F
+  `Stopped / StopCharging / PostPaid`, running stoppable PostPaid zero; this
+  terminal is not represented as a new resource snapshot.
+- All three persistent reviewers were reused. DoD and Verification classify
+  the terminal `PRE_SCRIPT_REJECTED / ZERO_HOST_ACTION`, reject Item30 credit
+  and require permanent no-replay. Risk assigns this event's production impact
+  P0=0 and the hidden-Username UI path P1=1; Item30 progression remains P0=1
+  because activation is still UNKNOWN. Managed NDR mask `7` remains the
+  independent Item36 P0 and was not reopened.
+- No checkpoint is created for this nonterminal blocker and Item31 does not
+  start. No MFA, professional approval, new long-term resource, payment or DNS
+  confirmation is pending. The unique next action is to wait for explicit
+  owner authority for any new production read and a fresh submission surface
+  that proves the authoritative request projection omits `Username` before
+  acceptance. Do not reuse this form/session/Username path, carrier identity,
+  Command or Invoke.
+
+## Item30 official OpenAPI direct classifier terminal UNKNOWN (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 receives `NO CREDIT`; Items1-29 were not rerun. The seven
+  protected untracked paths remain present/untracked/unstaged and were not
+  read, modified, staged or committed.
+- The permanently barred Cloud Assistant form/session was not reused. A fresh
+  official Alibaba OpenAPI Explorer RunCommand surface projected the exact
+  eleven-field API keyset before acceptance: `Username`, `WorkingDir` and all
+  other optional keys were absent. The canonical Base64 carrier was 16,512
+  characters, SHA-256
+  `5e8b1aeb03c1e15ea9502288ff25749215067fd51333a896e5db66eae4fee166`,
+  and decoded exactly to the frozen 12,384-byte carrier, SHA-256
+  `d1f3c5db85115b381242073d3563e865a41128599042f3077b6a1cfaa631a03c`.
+  API-F `i-wz9bgztwf1tiakww2ops` was the sole target; API-C was absent.
+- The one accepted identity is Command `c-sz06vfkpsqpukg0` / Invoke
+  `t-sz06vfkpsr9tr7k`, name
+  `noteai-item30-url-readonly-20260829063827-aeeae31e`, RunShellScript,
+  RepeatMode Once, `KeepCommand=false`, parameter substitution disabled,
+  Base64, ProcessTree and timeout 60. It is terminal and permanently
+  no-replay.
+- Terminal state is `Failed / ExitCode 20 / 1s`, API-F sole target. The sole
+  canonical stdout classifies `UNKNOWN`: Docker is running/healthy with
+  positive PID, present StartedAt and zero RestartCount; systemd has positive
+  MainPID, present ActiveEnterTimestamp and zero NRestarts; the two snapshots
+  are stable; candidate, exchanged, restart-sent and rollback-sent recovery
+  materials are all absent; `api.env`, Docker `Config.Env` and PID1 environ
+  are each classified `OTHER`. No raw target value was exposed.
+- This is the authoritative terminal
+  `ITEM30_API_F_URL_ACTIVATION_STATE_UNKNOWN /
+  ALL_THREE_TARGET_RELATIONS_OTHER / RECOVERY_MATERIALS_ABSENT`. It proves none
+  of the three sources satisfies the frozen NEW/OLD relation, but does not
+  prove their raw bytes equal and cannot classify the earlier activation as
+  `APPLIED`, `ROLLED_BACK` or `ABORTED`. Runtime health is not evidence of
+  canonical configuration.
+- The classifier was action-free. Its production configuration, file,
+  service, Docker-mutation, network, provider/model, Render, business-DB,
+  payment/funds, DNS and PostPaid-start write sets are zero. Only Cloud
+  Assistant Command/Invoke audit metadata and about one second of existing
+  API-F PrePaid CPU were added. Incremental provider/payment/Render-deploy/
+  database/PostPaid cost is `CNY 0.000000`; existing API PrePaid and Render
+  Starter baseline charges continue.
+- Fresh action-time resource readback: API-C and API-F are
+  `Running / PrePaid`, and API-F Cloud Assistant Agent is `normal` version
+  `2.2.4.1097`. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` are each
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid is zero.
+  The visible Cloud Assistant result set had zero nonterminal Invoke.
+- The three persistent reviewers were reused. DoD and Verification return
+  `NO CREDIT`; Risk returns `NO-GO / P0=1 / P1=0`. All accept the
+  `UNKNOWN <-> ExitCode 20` interlock, permanent no-replay and zero action
+  surface. The independent managed-NDR mask `7` remains the existing Item36 P0
+  and is not reopened here.
+- Original Item30 DoD still requires an authoritative API-F activation state,
+  one signed-readiness, Meituan -> Claude -> Kimi -> Amap exact-one production
+  outputs, native settlement/cost reconciliation, zero residue, canonical
+  Evidence/verifier PASS, Readiness credit and the single terminal checkpoint.
+  No Item31 work starts. No MFA, professional sign-off, long-term-cost approval
+  or DNS confirmation is presently pending.
+- Hard stop: do not dispatch a successor/classifier, cleanup, restart,
+  rollback, readiness/provider call or Render/config write. Keep live API-F
+  configuration/runtime untouched and preserve the Cloud Assistant terminal
+  evidence. The unique next action is to wait for a new, precise owner recovery
+  decision; any subsequent production read or single-key configuration
+  recovery requires its own explicit authorization. No checkpoint is created
+  for this no-credit blocker.
+
+## Item30 URL-only forward recovery stopped at accepted DB-read-only baseline (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 receives `NO CREDIT`; accepted Items1-29 were not rerun. The
+  seven protected untracked paths remain present/untracked/unstaged and were
+  not read, modified, staged or committed.
+- The owner-authorized URL-only controller was accepted once as Command
+  `c-sz06vfqxgn6datc` / Invoke `t-sz06vfqxgnnul8g`, name
+  `noteai-item30-url-forward-20260829075557-d372a0a38723`, API-F sole target,
+  `Username` omitted, Once, `KeepCommand=false`, Base64, ProcessTree and
+  timeout 600. Its reviewed controller was `29,007` bytes / SHA-256
+  `f864c6c42be7df4c480023f509677b2ede90ea52fcd74d7841d6c6bc021751a8`.
+  Terminal was `Failed / ExitCode 20 / <1s` with fixed output
+  `UNKNOWN`, `live_change_started=false`, `recovery_retained=false` and
+  `url_state=UNKNOWN`. It definitively made zero config writes, restarts or
+  rollbacks; candidate and terminal marker are absent. This identity is
+  permanently no-replay.
+- A fresh action-free diagnostic was then accepted exactly once as Command
+  `c-sz06vfsn833mqdc` / Invoke `t-sz06vfsn83b4feo`, name
+  `noteai-item30-url-preflight-readonly-20260829081317-c66b43962bb1`, API-F
+  sole target, with the official SDK projection containing exactly the eleven
+  approved request fields and omitting `Username` and `WorkingDir`. The final
+  payload was `18,740` bytes / SHA-256
+  `f8aadd2f56b655bd8188d89b84ecae236c22a02594a564c775c63674e73eb06d`;
+  its transport was `14,000` bytes / SHA-256
+  `91e9c8d536926d17f5b092753952d35e416c44e066ff823f451eb7ae555b9656`.
+  Terminal was `Failed / ExitCode 20 / <1s` with fixed classification
+  `READ_ONLY_DB_ENV_CONTRACT`. Parent, env-path mount, residue, tool and
+  authority gates passed; candidate and terminal marker are absent. The
+  identity is terminal and permanently no-replay.
+- The diagnostic has exactly one reachable predicate at that stage: Docker
+  `Config.Env` did not contain the exact
+  `PGOPTIONS=-c default_transaction_read_only=on` item. It does not prove that
+  every possible PGOPTIONS form is absent and does not prove that the database
+  is writable. It did stop before the image gate, second snapshot, target URL
+  relation and transform gates, so none of those later conditions receives
+  credit.
+- This exact PGOPTIONS membership is not an original Item30 credit condition;
+  the canonical Item30 executor forbids `DATABASE_URL` and uses tmpfs SQLite.
+  It is, however, part of the accepted API-C/API-F runtime recovery baseline
+  and its database-zero-write restart safety contract. Removing the gate would
+  allow a production restart without re-establishing that accepted guard;
+  adding or changing PGOPTIONS would be a second effective env-key change.
+  Both are outside the current authorization to modify only
+  `NOTEAI_CLAUDE_GATEWAY_URL`, preserve every other env byte and perform zero
+  database writes.
+- The three persistent reviewers were reused. DoD and Risk return
+  `NO-GO / P0=1 / P1=0` for a URL restart while this baseline is unproved.
+  Verification returns a conditional `GO / P0=0 / P1=0` for deleting only the
+  literal membership assertion because the controller has no direct DB path
+  and preserves non-target env. The CTO adopts the fail-closed DoD/Risk
+  conclusion: do not weaken the accepted DB-read-only baseline and do not
+  dispatch another mutation, restart, cleanup, readiness or provider action.
+- API-C and API-F remain `Running / PrePaid`; both Cloud Assistant Agents are
+  normal version `2.2.4.1097`. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid compute is
+  zero. Render production was not deployed or changed, staging was untouched,
+  and no new billable resource was created. Incremental provider/model,
+  payment/funds, Render-deploy, database, DNS and PostPaid cost is
+  `CNY 0.000000`; only Cloud Assistant audit metadata and short existing API-F
+  PrePaid CPU were added. Existing PrePaid and Render Starter charges continue.
+- Original Item30 DoD remains: canonical URL activation, one signed-readiness,
+  Meituan -> Claude -> Kimi -> Amap exact-one outputs, native settlement,
+  zero-residue readback, canonical Evidence/verifier PASS, Readiness `30/38`
+  and the single terminal checkpoint. Signed-readiness and provider exact-one
+  remain unconsumed; Item31 does not start. Managed NDR mask `7` remains the
+  independent Item36 P0 and is not reopened.
+- No MFA, professional sign-off, long-term cost or DNS approval is pending.
+  The unique next action requires new owner authority because it changes a
+  second production env key: restore the exact API-F PGOPTIONS read-only
+  baseline with every other env byte unchanged, one bounded activation restart
+  and deterministic rollback, prove effective database read-only state and
+  zero writes, then regenerate a fresh URL-only successor. Until then preserve
+  current runtime/configuration, keep all PostPaid compute StopCharging and do
+  not create another Command/Invoke. No checkpoint is created for this
+  no-credit blocker.
+
+## Item30 API-F PGOPTIONS recovery terminal ABORTED_NO_LIVE_CHANGE (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 and the PGOPTIONS recovery both receive `NO CREDIT`; accepted
+  Items1-29 were not rerun. The seven protected untracked paths remain
+  present/untracked/unstaged and were not read, modified, staged or committed.
+- A fresh official OpenAPI Explorer projection contained exactly the approved
+  eleven RunCommand fields and omitted `Username`, `WorkingDir`, `ClientToken`
+  and every other optional field. The projected Base64 decoded exactly to the
+  frozen 11,320-byte transport, SHA-256
+  `2098656ba5e418e59f7cfe4f1bd1b110d1679a9df0c1bf38cfd78967e96b5625`.
+  API-F `i-wz9bgztwf1tiakww2ops` was the sole target; API-C was absent.
+- The one accepted identity is Command `c-sz06vfx2mynz7k0` / Invoke
+  `t-sz06vfx2mzagao0`, name
+  `noteai-item30-pgoptions-forward-84a4e7739f461beb`, RunShellScript,
+  RepeatMode Once, `KeepCommand=false`, parameter substitution disabled,
+  Base64, ProcessTree and timeout 1200. It is terminal and permanently
+  no-replay.
+- Cloud Assistant terminal is `Failed / ExitCode 10 / 2s`, API-F sole target.
+  Its complete canonical stdout is
+  `{"classification":"ABORTED","db_read_only":"NOT_RUN","forward_restart_dispatched":false,"live_change_started":false,"pgoptions_state":"UNCHANGED","recovery_retained":false,"rollback_restart_dispatched":false,"target":"API_F_ONLY"}`;
+  the result surface exposed no stderr.
+- This is authoritative `ABORTED_NO_LIVE_CHANGE`: `api.env` was not exchanged,
+  PGOPTIONS was not changed by this controller, no forward or rollback restart
+  was dispatched, and the database probe opened no connection and ran no
+  SELECT or rollback. A root-owned mode-0600 candidate may have been created
+  transiently before the failed pre-live predicate, but the controller's
+  terminal interlock proves it was exactly removed and that candidate, action,
+  recovery and terminal-marker residue is zero.
+- Provider/model, Render control plane, business-database write, payment/funds,
+  DNS and PostPaid-start actions are zero. Incremental provider/payment/
+  Render-deploy/database/PostPaid cost is `CNY 0.000000`; only Cloud Assistant
+  audit metadata and about two seconds of existing API-F PrePaid CPU were
+  added. Existing API PrePaid and Render Starter baseline charges continue.
+- Post-terminal readback confirms API-C/API-F remain `Running / PrePaid` with
+  Cloud Assistant Agent normal version `2.2.4.1097`. Builder
+  `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`; running
+  stoppable PostPaid compute is zero.
+- The three persistent reviewers were reused. DoD and Verification return
+  `NO CREDIT`; Risk classifies this event `P0=0 / P1=0`. All require permanent
+  no-replay and reject the URL-only successor because PGOPTIONS activation and
+  effective database read-only state remain unproved. Signed-readiness and all
+  four provider exact-one requests remain unconsumed. Managed NDR mask `7`
+  remains the independent Item36 P0 and was not reopened.
+- No checkpoint is created for this no-credit terminal and Item31 does not
+  start. No MFA, professional approval, new long-term cost or DNS confirmation
+  is pending. Offline control-flow reconciliation is complete: canonical
+  `ABORTED` intentionally omits the first failed pre-live predicate, and the
+  existing historical evidence does not uniquely identify it. The unique next
+  action therefore requires separately bounded owner authorization for one
+  API-F-only, Secret-free, action-free fixed-enum read. Do not dispatch any
+  fresh PGOPTIONS mutation or URL successor and never replay this
+  Command/Invoke.
+
+## Item30 API-F PGOPTIONS fixed-enum preflight deterministic mismatch (2026-08-29)
+
+- Current HEAD and upstream remain exactly
+  `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`. Internal Readiness remains `29/29`,
+  public-launch Readiness remains `0/9`, and complete Readiness remains
+  `29/38`. Item30 and the PGOPTIONS recovery both receive `NO CREDIT`; accepted
+  Items1-29 were not rerun. The seven protected untracked paths remain
+  present/untracked/unstaged and were not read, modified, staged or committed.
+- The owner-authorized fresh API-F-only, Secret-free, action-free fixed-enum
+  preflight was accepted once as Command `c-sz06vfzmaeani80` / Invoke
+  `t-sz06vfzmaes4sn4`, name
+  `noteai-item30-pgoptions-preflight-d25a69b6e9880d1b`. API-F
+  `i-wz9bgztwf1tiakww2ops` was the sole target and API-C was absent. The fresh
+  official OpenAPI Explorer projection contained exactly the approved eleven
+  RunCommand fields and omitted `Username`, `WorkingDir` and `ClientToken`.
+  Its projected Base64 covered all `9,084` characters and decoded exactly to
+  the frozen `6,812`-byte transport, SHA-256
+  `ff93da5bd9fdd7c383337a5def575c1aa045db6dfb8791e3dca70202a4af036c`;
+  the in-memory `18,329`-byte probe SHA-256 is
+  `1d5f410d01621a478302c68aace3a16c550f22fdcc5b299fcbd8720319d1bcaa`.
+  This identity is terminal and permanently no-replay.
+- Cloud Assistant terminal is `Failed / ExitCode 10 / 1s`. The sole visible
+  stdout body is the exact `65`-byte object
+  `{"code":"API_F_PGOPTIONS_PREFLIGHT_PGOPTIONS_PRESTATE_NO_ACTION"}`.
+  The console did not natively expose the trailing LF, stderr count or Dropped
+  count, so those framing fields are not claimed as terminal readback.
+- This is a deterministic `PGOPTIONS_PRESTATE / NO_ACTION` mismatch, not
+  `UNKNOWN`. Host/parent, old recovery-residue absence, tool, `api.env` file,
+  unit/systemd, Docker runtime, PID1 binding, immutable image/revision and two
+  stable snapshots all passed before the first failing stage. The result proves
+  only that the conjunction "`api.env` has no PGOPTIONS record and the stable
+  runtime has no PGOPTIONS value" is false. It does not locate the record in
+  file versus runtime, expose or identify its value, prove canonicality, prove
+  three-source equality or prove the database read-only state. A duplicate or
+  empty file record remains one possible branch; runtime duplicate/empty values
+  were already rejected by earlier runtime gates.
+- The probe stopped before projection, transform, final CAS and every candidate
+  write phase. Live file/config/service/Docker mutation, restart, database
+  connection/query/write, provider/model, Render, payment/funds, DNS and
+  PostPaid-start actions are zero; no cleanup material exists. The only durable
+  side effect is Cloud Assistant Command/Invoke audit metadata plus about one
+  second of existing API-F PrePaid CPU. Incremental provider/payment/
+  Render-deploy/database/PostPaid-resource cost is `CNY 0.000000`; existing API
+  PrePaid and Render Starter baseline charges continue.
+- Post-terminal resource readback confirms API-C/API-F remain
+  `Running / PrePaid`; Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` remain
+  `Stopped / StopCharging / PostPaid`, so running stoppable PostPaid is zero.
+  The visible Cloud Assistant command page has zero nonterminal Invoke.
+- The three persistent reviewers were reused. DoD and Verification return
+  `NO CREDIT`; Risk classifies this Invoke `P0=0 / P1=0` while Item30 progress
+  remains `NO-GO`. All require permanent no-replay, forbid weakening the
+  prestate gate, and reject both a fresh PGOPTIONS mutation and the URL-only
+  successor while the current PGOPTIONS relation remains unresolved. Managed
+  NDR mask `7` remains the independent Item36 P0 and was not reopened.
+- Original Item30 DoD still requires canonical API-F URL activation, one
+  signed-readiness, Meituan -> Claude -> Kimi -> Amap exact-one outputs, native
+  settlement/cost reconciliation, zero residue, canonical Evidence/verifier
+  PASS, Readiness `30/38` and the single terminal checkpoint. Signed-readiness
+  and all four provider requests remain unconsumed; Item31 does not start.
+- No MFA, professional sign-off, new long-term cost or DNS confirmation is
+  pending. The current exact-one read authorization is consumed. The unique
+  next action requires fresh owner authority for one narrower API-F-only,
+  Secret-free, action-free classification that reports file, Docker Config.Env
+  and PID1 PGOPTIONS independently as only `ABSENT / CANONICAL / OTHER /
+  INVALID`, without outputting values. Do not mutate, restart, connect to the
+  database, dispatch the URL successor/readiness/provider chain, create a new
+  proof layer or checkpoint before that classification closes.
+
+## Item30 PGOPTIONS original-DoD trace and wrapper scope correction (2026-08-29)
+
+- This section supersedes only the prior PGOPTIONS next-action/blocker
+  conclusions. It preserves every terminal identity, output and no-replay
+  boundary as history. Current HEAD/upstream remain
+  `22aeb74498db7883a9281a84671056dae26f07f5`; Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`, with Item30 `NO CREDIT` and
+  Items1-29 closed. This audit was entirely offline: no Command/Invoke,
+  production read, config/file/service/Docker action, restart, cleanup,
+  database connection, provider/model, Render, payment/funds, DNS or PostPaid
+  action occurred. The seven protected untracked paths were not read, modified,
+  staged or committed.
+- The original public-launch control first appeared in commit
+  `3d234f2286a552e3521d29174028e3d73a8d3f5f` with the exact tracked manifest
+  text `Capped Claude, Kimi, Amap and Meituan production validation`, direct
+  dependency `internal_failure_rollback`, and blocker `Current production
+  provider credentials, quotas, output and cost attribution are unverified.`
+  Checkpoint `88cf86debb946fb596db2d5187ab57b32705bc2e` retains those exact fields and
+  contains no PGOPTIONS condition.
+- The canonical Item30 executor, verifier and focused tests first appeared
+  together in commit `203799dedbcc9d58d5441e0ffef66cbb67167ba0`.
+  Their complete Git history has zero `PGOPTIONS` or
+  `default_transaction_read_only` occurrence. The executor instead states
+  `SQLITE_PATH = Path("/dev/shm/noteai-item30-usage.db")`, rejects production
+  database selection with `if os.environ.get("DATABASE_URL"): raise
+  ProbeError("PRODUCTION_DATABASE_FORBIDDEN")`, and sets
+  `NOTEAI_SQLITE_PATH` to that tmpfs path before importing/initializing the
+  application database module. Its result declares
+  `noteai_business_database_connection_count: 0` and
+  `noteai_business_database_write_count: 0`.
+- The canonical validator requires those two database counts to be exactly
+  zero and additionally requires `production_service_restart_count: 0`; its
+  Evidence schema, provider gates, signed Claude readiness, exact-one dispatch,
+  native settlement, cleanup and Readiness fields contain no PGOPTIONS key or
+  predicate. Current tracked Item30 executor/validator/tests remain unmodified.
+- PGOPTIONS predates Item30 only as an independent API/Admin runtime recovery
+  mechanism. Commit `e37750cd171541a70efdefdd7c59a3ec5ab63f67` introduced
+  `--env="PGOPTIONS=-c default_transaction_read_only=on"` in
+  `deploy/production/recover_minimal_api_runtimes.sh` for a real service
+  recovery/restart path. That belongs to the already accepted API runtime
+  layer; Item30's direct dependency on the already verified rollback chain does
+  not promote every predecessor implementation detail into a new Item30 credit
+  predicate or authorize reopening Items1-29.
+- The first Item30 executable predicate was added only in the later untracked,
+  one-shot URL activation wrapper on 2026-08-29 as the exact line
+  `require("PGOPTIONS=-c default_transaction_read_only=on" in entries, exc)`;
+  its follow-up diagnostic repeated the same membership check under
+  `READ_ONLY_DB_ENV_CONTRACT`. That URL wrapper could mutate/restart the real
+  API-F service, so the check was a conservative restart-safety control, not a
+  canonical provider-chain condition. The later PGOPTIONS mutation controller
+  and fixed-enum diagnostic derive solely from that expansion.
+- CTO decision, confirmed by all three persistent reviewers: PGOPTIONS is a
+  later Item30 wrapper control layer, not an original Item30 canonical or
+  Readiness condition. The Item30 front door is corrected by restoring the
+  manifest blocker verbatim and by forbidding any future canonical provider
+  wrapper from reading, classifying or gating on production PGOPTIONS. The
+  historical one-shot URL/PGOPTIONS carriers remain frozen and no-replay; they
+  are not edited or reused because doing so would create a different controller
+  identity, which is outside this offline authorization.
+- The deletion is narrow: the canonical Item30 path must continue to reject
+  `DATABASE_URL`, use only fixed tmpfs SQLite, preserve all non-target runtime
+  inputs opaquely, perform zero production config/unit/service/restart action,
+  and satisfy signed-readiness, Meituan -> Claude -> Kimi -> Amap exact-one,
+  native settlement, zero business-DB connection/write, zero residue and the
+  existing canonical verifier. If a future API-F env mutation or restart is
+  separately proposed, its database-read-only safety belongs to that distinct
+  production-change boundary; this scope correction neither diagnoses current
+  PGOPTIONS nor authorizes such a change.
+- The owner explicitly denied further per-location PGOPTIONS classification.
+  No complete predicate matrix branch is needed because the condition is
+  demonstrably non-canonical. Current unique next action is offline focused
+  verification of the unchanged canonical Item30 path, then wait for the owner
+  to lift the present production-action prohibition before any signed-readiness
+  or provider dispatch. No checkpoint is created for this no-credit scope
+  correction and Item31 does not start.
+
+## Item30 API-F production URL forward correction terminal UNKNOWN (2026-08-29)
+
+- Current HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Item30 receives `NO CREDIT`,
+  Items1-29 remain closed, and Item31 does not start. The seven protected
+  untracked paths remain present, untracked and unstaged and were not read,
+  modified or committed.
+- The owner-authorized API-F-only single-key forward correction was dispatched
+  exactly once through Cloud Assistant as Command `c-sz06vg64l5iwqgw` / Invoke
+  `t-sz06vg64l62vx8g`, target `i-wz9bgztwf1tiakww2ops`. The reviewed local
+  transport was `9,801` bytes with SHA-256
+  `4be16e3ec07806e7e69cd3f8e4d04d7acc8670fc80b0d30cc939a59526a412bb`;
+  the OpenAPI SDK projection decoded byte-exact to that transport and omitted
+  `Username`, `WorkingDir` and `ClientToken`. This Command/Invoke identity is
+  consumed and permanently no-replay.
+- Authoritative terminal state is `Failed / ExitCode 20 / 2s` with the fixed
+  Secret-free result `classification=UNKNOWN`, `url_state=UNKNOWN`,
+  `live_change_started=false`, `recovery_retained=false`, target API-F only.
+  The controller stopped before live `api.env` exchange. Forward restart,
+  rollback restart and container replacement are therefore zero. No signed-
+  readiness or provider/model request was dispatched, and the Item30 exact-one
+  chain remains wholly unconsumed.
+- Current durable live-config change is zero. The controller may have created
+  and precisely removed a candidate before the pre-live failure, so this record
+  does not claim that every temporary-file write was zero.
+  `recovery_retained=false` proves no candidate or terminal recovery material
+  remains according to the conservative existence check; no cleanup action was
+  executed or is currently authorized. The only durable new write is Cloud
+  Assistant Command/Invoke audit metadata.
+- Provider/model, Render control plane, business database, payment/funds and
+  DNS calls or writes are zero. Incremental provider/Render/PostPaid/funds cost
+  is `CNY 0.000000`; the only compute consumed was about two seconds on the
+  existing API-F PrePaid instance. API-C `i-wz9j36od3nf2b1uw7bvg` and API-F
+  remain `Running / PrePaid`. Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w` and Worker-F `i-wz93qgvlu1bllpjcfwfj` remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid is zero.
+- All three persistent reviewers were reused. `dod_dependency_auditor` and
+  `verification_evidence_reviewer` return authoritative `NO CREDIT` and confirm
+  live exchange/restart/provider dispatch zero plus zero durable recovery
+  residue. `risk_cost_resource_guard` classifies the event
+  `UNKNOWN_PRE_LIVE_CHANGE`, with event risk `P0=0 / P1=1` only for the missing
+  failure attribution and independent current URL-state evidence. No reviewer
+  authorizes replay, a fresh mutation or provider progression from this state.
+- The original Item30 blocker in the Readiness manifest remains unchanged and
+  accurate: production provider credentials, quotas, output and cost
+  attribution are unverified. No canonical Evidence or checkpoint is created.
+  Managed NDR mask `7` remains the independent Item36 P0 blocker and is not
+  reopened in Item30.
+- No MFA, professional sign-off, new long-term fee or DNS confirmation is
+  pending. The unique next action is a hard stop for owner direction: do not
+  create a successor, diagnostic, cleanup, restart, readiness request or
+  provider call under the consumed authorization. Any separately authorized
+  future read-only reconciliation must be fresh, API-F-only, Secret-free and
+  action-free; until then the production state remains `UNKNOWN` and no action
+  is permitted.
+
+## Item30 frozen URL-forward pre-live branch audit and corrected semantics (2026-08-29)
+
+- This was an offline-only audit of the already consumed controller
+  `c1f8955067b31e3ba84ab44f42b94fc9db31f31c6ebe8c07082a4bceb80f28c1`
+  and transport
+  `4be16e3ec07806e7e69cd3f8e4d04d7acc8670fc80b0d30cc939a59526a412bb`.
+  Their bytes and hashes remain unchanged. No Command/Invoke, production read,
+  file/config/service/Docker action, restart, cleanup, readiness/provider,
+  Render, database, funds, DNS or PostPaid action occurred.
+- The terminal `UNKNOWN,false,false` has two complete source families: any
+  exception before the inner mutation try at controller line 757 is collapsed
+  by the top-level catch, or a line 758-760 candidate/CAS failure reaches an
+  ambiguous cleanup after candidate unlink. Existing evidence proves no live
+  exchange/restart and no current recovery residue but cannot select one first
+  failing predicate.
+- There is no frozen OLD value or historical APPLIED/ROLLED_BACK/ABORTED
+  prerequisite. The actual representation expansion is the pre-live
+  `old_value_shape(old_value)` assertion, the `old_value != CANONICAL`
+  assertion, and the exact-one helpers' rejection of an empty current value.
+  Those predicates contradict the approved semantics: exactly one target key
+  must be set from any current value to the fixed canonical value while the old
+  bytes remain the rollback source.
+- The required three-source equality, stable double snapshot, full
+  file/stat/xattr CAS, non-target env projection, immutable image/unit and
+  runtime health gates are retained. They are execution-time safety/CAS facts,
+  not historical value classification and not inputs for another diagnostic.
+- An exact four-hunk in-memory correction removed the current-value shape and
+  nonempty predicates, retained exact-one, and added a zero-candidate/
+  zero-restart success when all three current sources already equal canonical.
+  It passed fixtures for empty/plain/Unicode/backslash/HTTP current values,
+  already-canonical no-op, missing/duplicate/mismatched target rejection,
+  pre-exchange CAS drift cleanup, deterministic health-failure rollback to
+  arbitrary old bytes, and post-exchange UNKNOWN recovery retention. No new
+  controller, classifier, receipt, adapter, helper or proof file was created.
+- Three-reviewer conclusion: the frozen historical artifact remains
+  `NO CREDIT / no-replay`; the semantic correction is sufficient without a
+  production read. Readiness remains `29/38`, Item30 remains `NO CREDIT`, and
+  no checkpoint is created. The sole next step, only after fresh owner mutation
+  authority, is to materialize exactly this reviewed four-hunk successor and
+  execute it once under the unchanged single-key/restart/rollback boundaries;
+  no preliminary classifier or broad read reconciliation is justified.
+
+## Item30 four-hunk URL-forward successor terminal UNKNOWN (2026-08-29)
+
+- Current HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Items1-29 remain closed,
+  Item30 receives `NO CREDIT`, Item31 does not start, and no checkpoint is
+  created. The original remaining Item30 DoD is unchanged: one accepted signed
+  readiness plus Meituan -> Claude -> Kimi -> Amap exact-one production
+  validation, native usage/settlement attribution, zero business-database
+  write and canonical Evidence verification.
+- The owner-authorized four-hunk successor was materialized from frozen
+  controller SHA-256
+  `c1f8955067b31e3ba84ab44f42b94fc9db31f31c6ebe8c07082a4bceb80f28c1`.
+  The new controller was `32,270` bytes with SHA-256
+  `bc7107a67ed2710fdfd26073fc66d1de93a1946466a2d34cc9ccc66e17b2a0c5`;
+  the transport was `9,793` bytes with SHA-256
+  `db0ac5147a72aa23b6391bcdb37d53a84e49ab6c700e53eda97ee89942beef09`.
+  Compile, shell syntax, gzip/Base64 round-trip, the exact four source hunks,
+  canonical no-op and arbitrary-current-value/rollback fixtures passed before
+  dispatch. All three persistent reviewers returned `GO / P0=0 / P1=0` for
+  the frozen successor bytes.
+- The official OpenAPI Explorer final SDK projection was frozen before submit:
+  `RegionId=cn-shenzhen`, fresh name
+  `noteai-item30-url-forward-successor-b8c4adee0aeb4b1f`,
+  `Type=RunShellScript`, timeout `1200`, `EnableParameter=false`,
+  `RepeatMode=Once`, `KeepCommand=false`, `ContentEncoding=Base64`, sole
+  InstanceId `i-wz9bgztwf1tiakww2ops`, and
+  `TerminationMode=ProcessTree`. `Username`, `WorkingDir` and `ClientToken`
+  setters were absent. The projected CommandContent decoded byte-exact to the
+  reviewed transport SHA above.
+- Exactly one production dispatch was accepted as Command
+  `c-sz06vgaut6cagw0` / Invoke `t-sz06vgaut6orym8`. The identity is consumed
+  and permanently no-replay. Authoritative terminal state is
+  `Failed / ExitCode 20 / about 2s` with the exact fixed Secret-free tuple
+  `classification=UNKNOWN`, `live_change_started=false`,
+  `recovery_retained=false`, `target=API_F_ONLY`, `url_state=UNKNOWN`.
+- The terminal interlocks prove live `api.env` exchange count `0`, forward and
+  rollback restart count `0`, API-F container replacement count `0`, and
+  durable candidate/terminal recovery residue `0`. They do not prove that a
+  root-owned mode-0600 candidate was never created and precisely removed before
+  the pre-live failure, so no broader temporary-file-write claim is made.
+  Current URL state remains unverified; it must not be reported as APPLIED,
+  ROLLED_BACK or canonical.
+- Signed-readiness and all provider/model requests remain `0`; the business
+  exact-one allowance is unconsumed. Render control-plane actions, business
+  database connections/writes, payment/funds and DNS actions are `0`. The only
+  persistent new write is Cloud Assistant Command/Invoke audit metadata. The
+  incremental provider/Render/PostPaid/funds cost is `CNY 0.000000`; only about
+  two seconds of existing API-F PrePaid CPU was used.
+- Resource disposition is unchanged: API-C and API-F remain the existing
+  `Running / PrePaid` nodes; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`. No PostPaid resource was started and no
+  resource requires a new stop action. The seven protected untracked paths
+  remain present, untracked and unstaged and were not read, modified, staged or
+  committed.
+- Terminal three-party review is unanimous: DoD and Verification give
+  `NO CREDIT`; Risk classifies `UNKNOWN_PRE_LIVE_CHANGE / P0=0 / P1=1`, where
+  P1 is only the missing pre-live failure attribution/current URL fact, not a
+  known production impact. Managed NDR mask `7` remains the independent Item36
+  P0 blocker and is not reopened here.
+- No MFA, professional signature, new long-term fee or DNS confirmation is
+  currently pending. The unique recovery action after interruption is a hard
+  stop: do not replay this identity and do not submit another mutation,
+  cleanup, restart, readiness or provider action. Preserve this terminal fact
+  and wait for explicit owner direction before any newly scoped production
+  read or write; offline review may not create another controller, classifier,
+  receipt, adapter, helper or evidence version.
+
+## Item30 final URL three-source reconciliation deterministic hard stop (2026-08-29)
+
+- Current HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Items1-29 remain closed,
+  Item30 receives `NO CREDIT`, Item31 does not start, and no checkpoint is
+  created.
+- The owner-authorized final API-F URL three-source classifier was accepted
+  exactly once as Command `c-sz06vge84stawhs` / Invoke
+  `t-sz06vge84t8aakg`, sole target `i-wz9bgztwf1tiakww2ops`. The official
+  OpenAPI Explorer SDK projection contained the exact intended request fields;
+  `Username`, `WorkingDir` and `ClientToken` were absent. CommandContent
+  decoded to the reviewed `5,527`-byte transport with SHA-256
+  `cd5e363cb868b4cdbd2dcfed6cfae8c2227465ff16473ed9603577479f0b73ce`.
+  This identity is terminal and permanently no-replay.
+- Authoritative terminal state is `Failed / ExitCode 10 / about 2s` with the
+  complete fixed Secret-free output
+  `url_relation=NONCANONICAL_SYNC`,
+  `managed_non_target_env=MISMATCH`, `snapshots=STABLE`, and stable API-F
+  container identity, PID, StartedAt, zero RestartCount, running=true and
+  healthy runtime CAS. This is a deterministic mismatch, not `UNKNOWN`:
+  the target URL is byte-identical across `api.env`, Docker `Config.Env` and
+  PID1 but noncanonical, while at least one non-target key actually managed by
+  `api.env` is not an exact-one same-byte projection in Docker or PID1.
+- The classifier was action-free. Production config/file mutation, cleanup,
+  restart, database connection/write, signed-readiness, provider/model,
+  Render, payment/funds, DNS and PostPaid-start actions are zero. Provider
+  exact-one authority remains unconsumed. Incremental provider/Render/PostPaid/
+  funds cost is `CNY 0.000000`; only Cloud Assistant audit metadata and about
+  two seconds of existing API-F PrePaid CPU were added.
+- API-C and API-F remain the existing `Running / PrePaid` nodes. Builder,
+  Worker-C and Worker-F remain `Stopped / StopCharging / PostPaid`; running
+  stoppable PostPaid is zero. No task residue or cleanup obligation was
+  produced. The seven protected paths remain present/untracked/unstaged and
+  were not read, modified, staged or committed.
+- All three persistent reviewers reject Item30 credit and agree on the fixed
+  branch: do not perform URL-only mutation, signed-readiness, provider calls or
+  another classifier. DoD classifies the active release blocker `P0=1/P1=0`;
+  Verification validates the terminal semantics at `P0=0/P1=0`; Risk
+  classifies this action-free event `P0=0/P1=1`. These labels differ only in
+  whether they describe the release blocker or this safe read event.
+- No MFA, professional signature, new long-term fee or DNS confirmation is
+  pending. The unique recovery action after interruption is to obtain explicit
+  owner authority for the existing canonical configuration publication path
+  to resynchronize all API-F managed environment projections and the canonical
+  target URL. Until that independently authorized production change closes,
+  do not mutate, restart, dispatch signed-readiness/provider work, replay this
+  identity or add another classifier/controller/receipt/adapter/proof version.
+  Managed NDR mask `7` remains the independent Item36 P0 blocker and is not
+  reopened here.
+
+## Item30 canonical configuration publication pre-live blocker (2026-08-29)
+
+- Current HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Items1-29 remain closed,
+  Item30 receives `NO CREDIT`, Item31 does not start, and no checkpoint is
+  created. The seven protected untracked paths remain present, untracked and
+  unstaged and were not read, modified, staged or committed.
+- The owner-authorized existing canonical configuration publication path was
+  attempted with two wholly fresh identities. The first terminal identity is
+  Command `c-sz06vgjgf62z7cw` / Invoke `t-sz06vgjgf6pgagw`; the second and
+  latest is Command `c-sz06vgl9y61va4g` / Invoke
+  `t-sz06vgl9y6jckjk`, request
+  `01A04DBD-9E44-517A-B2FD-D133D41FFF57`. Both identities are consumed and
+  permanently no-replay.
+- Before the latest dispatch, the revised controller was `55,376` bytes with
+  SHA-256
+  `fe71960ce8947f7a58bcc4bbe49f880f1962ba383b6bf2555a13f416067b824f`;
+  its `14,936`-byte transport SHA-256 was
+  `16e88f090573a4bba27268d14c279357aa565d89580064c7d15287a47d5803b8`.
+  Compile, shell syntax, gzip/Base64 byte round-trip and 15 focused tests
+  passed. The prior lossy loaded-Exec string comparison was replaced with a
+  typed D-Bus `a(sasbttttuii)` read, explicit argc and exact argv-element
+  comparison; the flat-text argv-boundary collision fixture is rejected. All
+  three persistent reviewers returned production-preflight
+  `GO / P0=0 / P1=0` for these exact bytes.
+- The official fresh OpenAPI SDK projection contained only the intended 11
+  fields: Shenzhen, the fresh name
+  `noteai-item30-canonical-publish-b585237274e7c4b2`, `RunShellScript`, timeout
+  `1200`, `Once`, `Base64`, `ProcessTree`, both booleans false, sole API-F
+  `i-wz9bgztwf1tiakww2ops`, and the exact CommandContent.
+  `Username`, `WorkingDir`, `ClientToken`, API-C and every other instance were
+  absent. Decoding the final form value reproduced the transport byte-for-byte
+  and the SHA above.
+- The latest authoritative terminal is `Failed / ExitCode 10 / about 1s` with
+  the complete Secret-free output
+  `classification=ABORTED`, `live_change_started=false`,
+  `forward_restart_count=0`, `rollback_restart_count=0`,
+  `managed_projection=UNCHANGED`, `url_state=UNCHANGED`,
+  `recovery_retained=false`, `terminal_retained=false` and
+  `task_residue=false`. This proves no live env exchange or service restart
+  was dispatched and no recovery/task residue remains. It cannot distinguish
+  an initial preflight failure from a pre-exchange candidate/CAS failure that
+  self-cleaned, so it is not an independent readback of current URL or full
+  managed-projection bytes. No cleanup is required or permitted.
+- Signed-readiness and all four provider/model requests remain zero; Item30
+  exact-one authority is unconsumed. Render, business-database writes,
+  payment/funds, DNS, daemon-reload/NDR and PostPaid-start actions are zero.
+  Incremental provider/Render/PostPaid/funds cost is `CNY 0.000000`; only two
+  Cloud Assistant audit records and about one second per attempt on the
+  existing API-F PrePaid node were added. A Cloud Shell storage prompt was
+  opened accidentally while inspecting the official SDK page, but no service
+  agreement, create branch, terminal command, VM task or NAS request was
+  accepted; the prompt was closed and the page reset, so resource and fee
+  residue is zero.
+- Terminal resource readback confirms API-C and API-F remain
+  `Running / PrePaid`. Builder, Worker-C and Worker-F each remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid is zero.
+  Cloud Assistant on API-F remained installed/online with zero active tasks
+  immediately before dispatch.
+- Terminal reviewer reconciliation is unanimous for the event:
+  `ABORTED_NO_LIVE_CHANGE / P0=0 / P1=0`, permanent no-replay and no cleanup.
+  For release progression, DoD and Verification both find the failing
+  pre-live gate non-unique from existing evidence; the active Item30 dependency
+  is `P0=1` and Item30 remains `NO CREDIT`.
+- No MFA, professional signature, new long-term fee or DNS confirmation is
+  pending. The original remaining Item30 DoD is unchanged: close canonical
+  API-F managed configuration, then exactly one signed-readiness and Meituan ->
+  Claude -> Kimi -> Amap production chain, native usage/settlement, zero
+  business-database write, zero residue, canonical Evidence/verifier PASS and
+  Readiness `30/38`. Managed NDR mask `7` remains the independent Item36 P0 and
+  is not reopened here.
+- Unique recovery action after interruption: do not replay either identity,
+  submit another publication, cleanup, restart, signed-readiness or provider
+  call. Obtain a new explicit owner boundary for one fresh API-F-only,
+  Secret-free, action-free fixed-stage attribution read, or an explicit
+  dependency disposition. Until then the canonical publication blocker is
+  fail-closed.
+
+## Item30 fixed-stage terminal root cause and canonical-authority boundary (2026-08-29)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Items1-29 remain closed,
+  Item30 receives `NO CREDIT`, Item31 does not start, and no checkpoint is
+  created. The seven protected untracked paths remain present, untracked and
+  unstaged and were not read, modified, staged or committed.
+- The owner-authorized final action-free fixed-stage read was submitted once
+  through the official OpenAPI surface as Command `c-sz06vgpijt43dog` /
+  Invoke `t-sz06vgpijto2kg0`, request
+  `01A04DE9-1F49-5EA1-98EB-DC6A0788316E`, solely to API-F
+  `i-wz9bgztwf1tiakww2ops`. The final request omitted `Username`,
+  `WorkingDir` and `ClientToken`; its reviewed `13,119`-byte transport SHA-256
+  was `131c99d7264488f77e37bd4c105cb10d92c5212e13d80ea15dac59e6d2e97cce`.
+  This identity is terminal and permanently no-replay.
+- Official readback request `01A04DEA-53D9-5403-8E36-78EC23B1F883`
+  returned exactly one row, `Failed / ExitCode 10`, with the complete fixed
+  Secret-free result
+  `API_F_CANONICAL_PREFLIGHT_MATRIX_MISMATCH_NO_ACTION`, matrix
+  `PPFPNNPPNPNNNNNNN`, and `write_prep=UNOBSERVED`. The output was `117`
+  bytes with SHA-256
+  `51ee0b843a6b03c887d7e4d241747d123e2c280d42dfc8c95c79bd2a9428df7f`.
+- The matrix deterministically means host/tool and `api.env` file read passed,
+  `DECLARATION` failed, unit file passed, loaded/aux-dependent gates were not
+  evaluated, systemd/container passed, PID1 projection was dependency-skipped,
+  image/revision passed, and every later stability/target/authority/transform/
+  CAS gate was dependency-skipped. This is a definite mismatch, not UNKNOWN.
+  A noncanonical URL by itself cannot cause this `DECLARATION` failure because
+  the failing call did not supply an expected target value.
+- Historical reconciliation now identifies the process failure: early LF,
+  carrier, Docker image empty-env-key and HMAC synchronization defects were
+  real bounded pre-provider issues; NDR/global inventory and PGOPTIONS were
+  later-added controls and are not Item30 gates; URL-only repair was invalidated
+  by the stable managed non-target mismatch; and the two later "canonical"
+  publications only transformed the URL while retaining the already-drifted
+  declaration as both input and rollback. Repeated one-predicate classifiers
+  obscured this source-of-truth defect instead of repairing it.
+- Tracked authority review is conclusive: the repository defines schemas and
+  non-secret gateway constants but contains no complete value-bearing API-F
+  configuration authority. `render.gateway.production.yaml` intentionally has
+  `sync:false` HMAC values, the managed-secret tools consume an existing
+  `api.env`, and runtime recovery also consumes rather than creates it. A
+  read-only GitHub Environment listing shows only the five provider secret
+  names `ADMIN_PASSWORD`, `AMAP_WEB_KEY`, `ANTHROPIC_API_KEY`,
+  `MEITUAN_OPEN_TOKEN` and `MOONSHOT_API_KEY`; values are not retrievable and
+  the list is not a complete API-F database/gateway/config bundle.
+- Current Docker `Config.Env`/PID1 cannot be promoted to canonical authority:
+  they are a merged projection of env files, image defaults and explicit unit
+  injection and lose source, order and optional-key semantics. They may be used
+  only as pre/post CAS and rollback witnesses. The current `api.env` likewise
+  cannot self-authorize because `DECLARATION=F` is now proven. No additional
+  classifier, URL-only mutation or blind runtime-to-file reconstruction is
+  allowed.
+- The minimum safe solution is one complete, role-bound protected API-F
+  configuration payload from an owner-controlled production secret authority,
+  validated offline against the tracked role schema and original Item30 key
+  boundary. A single reviewed publication must then preserve old bytes/stat/
+  xattrs as recovery material, create a root-owned mode-0600 same-filesystem
+  candidate, perform final file/runtime CAS, atomic exchange, at most one
+  forward restart, full three-source managed-projection and health verification,
+  and at most one deterministic rollback exchange/restart. Any post-exchange
+  ambiguity is `UNKNOWN`, retains recovery material and is permanently
+  no-replay. Only after `APPLIED` may the canonical signed-readiness and
+  Meituan -> Claude -> Kimi -> Amap exact-one chain begin.
+- The read event itself performed no write preparation, file/config exchange,
+  cleanup, restart, network, provider/model, Render, database, funds, DNS,
+  NDR/global-inventory or PostPaid action. Signed-readiness and provider
+  exact-one remain unconsumed. Incremental provider/Render/PostPaid/funds cost
+  is `CNY 0.000000`; only Cloud Assistant audit metadata and brief existing
+  API-F PrePaid CPU were added. Last authoritative resource state remains
+  API-C/API-F `Running / PrePaid` and Builder/Worker-C/Worker-F
+  `Stopped / StopCharging / PostPaid`; this action-free terminal cannot change
+  those states. The Alibaba console session later expired, so no newer UI
+  snapshot is claimed.
+- The standing reviewers agree on the terminal evidence and `NO CREDIT`.
+  DoD: release blocker `P0=1/P1=0`, declaration is a transitive publication
+  safety dependency and not a new Item30 credit field. Verification: this read
+  event `P0=0/P1=0`, active progression blocker remains P0. Risk: this read
+  event `P0=0/P1=0`, a complete external canonical payload is required before
+  mutation. Managed NDR mask `7` remains the independent Item36 P0 blocker and
+  is not reopened here.
+- No MFA, professional signature, new long-term fee or DNS confirmation is
+  pending. The unique recovery action is to identify and securely supply the
+  complete role-bound production API-F payload through an existing approved
+  secret channel; until then, do not dispatch another Command/Invoke,
+  publication, cleanup, restart, signed-readiness or provider request.
+
+## Item30 canonical-authority Stage pending owner login (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Items1-29 remain closed,
+  Item30 receives `NO CREDIT`, Item31 has not started, and no checkpoint was
+  created.
+- The canonical-authority Stage is frozen and unanimously reviewed `GO` by
+  DoD, Verification and Risk. It is limited to API-F on the existing PrePaid
+  node and may create only the task-exact root-owned private/public/binding
+  material. It performs no configuration exchange, restart, provider/model
+  request, Render action, database or funds write, DNS action, NDR work, or
+  PostPaid start.
+- No fresh Stage Command or Invoke has been accepted. Attempts from the prior
+  in-app API Explorer surface have authoritative zero-dispatch evidence; the
+  latest Cloud Assistant history still names the already terminal old identity
+  `c-sz06vgpijt43dog` / `t-sz06vgpijto2kg0`, which remains permanent
+  no-replay. Signed-readiness and all four provider exact-one authorities remain
+  unconsumed.
+- The API Explorer SDK/Cloud Shell path is permanently excluded from this
+  workflow: no NAS agreement, resource creation, terminal command, or SDK run
+  was accepted, and incremental resource/fee residue is zero. Current resource
+  authority remains API-C/API-F `Running / PrePaid`; Builder, Worker-C and
+  Worker-F `Stopped / StopCharging / PostPaid`; running stoppable PostPaid is
+  zero.
+- The owner completed login personally on the fresh official Chrome API
+  Explorer surface. No password, QR, SMS, MFA, cookie, or secret was read or
+  entered by Codex. The unsubmitted form is now frozen under fresh name
+  `noteai-item30-canonical-authority-stage-6269a391-f2ed-4a96-a719-da70ac2d3a9b`.
+  Official CLI serialization proves the exact 11 API fields, API-F only,
+  `Username`/`WorkingDir`/`ClientToken` absent, and the canonical Base64 command
+  decodes to `5,860` bytes with SHA-256
+  `ea4e14eab4c158254d0b8fa3272c1f98119265de892a7012bd531f04eb3d301f`,
+  byte-identical to the reviewed frozen transport. No submission or cloud
+  action has occurred.
+- The three standing reviewers independently return final one-click `GO`,
+  `P0=0/P1=0`. Unique recovery action: obtain the owner's immediate action-time
+  confirmation, click the one visible official `发起调用` button exactly once,
+  capture any accepted Command/Invoke identity as permanent no-replay, and
+  read its terminal result without using SDK-runner, Cloud Shell, NAS, another
+  browser surface, provider calls, or publication first. Any submit/terminal
+  ambiguity is `UNKNOWN` and hard-stops without another click.
+
+## Item30 canonical-authority Stage READY; independent readback pending (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Items1-29 remain closed,
+  Item30 receives `NO CREDIT`, Item31 has not started, and no checkpoint was
+  created. The seven protected untracked paths remain present, untracked and
+  unstaged and were not read, modified, staged or committed.
+- The first submitted Stage successor is terminal and permanently no-replay:
+  Command `c-sz06vi7g9fxiqkg` / Invoke `t-sz06vi7g9g2ij9c` returned
+  `Failed / ExitCode 10` with the exact `53`-byte Secret-free output
+  `{"status":"CANONICAL_AUTHORITY_STAGE_ABORTED_CLEAN"}` (newline included,
+  SHA-256 `5c9723b97a6d954f7c7b2e8fe055bdf04d28f5bed6b3b4dd6994f1884414c0f1`).
+  Offline root cause was the OpenSSL 3 metadata representation
+  `Private-Key: (3072 bit, 2 primes)` versus the previously exact one-form
+  predicate. The task-exact cleanup completed; no private/public/binding or
+  other residue remained and no live configuration, restart, provider/model,
+  database, funds, Render, DNS or PostPaid action occurred.
+- The representation-only successor was submitted once through the official
+  Alibaba surface as Command `c-sz06vi8e02t1jwg` / Invoke
+  `t-sz06vi8e035j1mo`, RunCommand request
+  `01A0501C-4C76-5E31-810E-7D7DDB531F89`. The accepted final request omitted
+  `Username`, `WorkingDir` and `ClientToken`, targeted only API-F
+  `i-wz9bgztwf1tiakww2ops`, and used the reviewed `5,935`-byte transport
+  SHA-256 `b67705f9b82b1187c1f070909b8647e1fa021c57e8533da380a4c75bae9d3293`.
+  This identity is terminal and permanently no-replay.
+- Official result request `01A0501C-A625-5412-9D25-B8B913779FDB`
+  returned exactly one `Success / ExitCode 0 / Finished` row with Dropped `0`,
+  Repeats `1`, empty ErrorCode and `ProcessTree`. The complete canonical READY
+  output is `1,238` bytes, SHA-256
+  `74f2a115f4c287d913edef5bf0c07342351827cb679a135330cf5cd054be5acd`.
+  It binds task
+  `/etc/noteai/.noteai-item30-canonical-authority-e7c4e6f6d1271d0a`, nonce
+  `fc7810ba5e2dda7ca5707f49cd20fab9`, expiry `1788054027`, binding SHA-256
+  `54bee989e17d024c43996110ed8e1972932df6c2a329fbc53227fe64e5910846`
+  and `625`-byte public-key SHA-256
+  `5c77a571cb6eee3bed87fd9f03f153a99f73f4610b9d33de474e711a3f6ecf19`.
+- The READY event created only the intended root-owned Stage task material on
+  the existing API-F PrePaid node. Signed-readiness and all four provider
+  exact-one requests remain unconsumed. Live configuration exchange, restart,
+  business-database write, funds, Render, DNS, NDR/global-inventory and
+  PostPaid-start actions remain zero. API-C/API-F remain `Running / PrePaid`;
+  Builder, Worker-C and Worker-F remain `Stopped / StopCharging / PostPaid`;
+  running stoppable PostPaid is zero. Incremental provider/funds/Render/
+  PostPaid cost remains `CNY 0.000000`; only Cloud Assistant audit metadata and
+  brief API-F PrePaid CPU were added.
+- DoD, Verification and Risk unanimously give Stage-substep `GO / P0=0 / P1=0`
+  but no Item30 credit. Unique recovery action is one independent API-F-only,
+  Secret-free, action-free readback of the exact Stage task/public/binding,
+  private-key metadata without reading or hashing private bytes, unchanged
+  API-F runtime identity/health and zero task-specific residue. Only its exact
+  ExitCode `0` fixed output with empty stderr may unlock the already-reviewed
+  local owner hidden-TTY intake. Intake must start with at least `1200` seconds
+  remaining and publication with more than `900` seconds; otherwise abandon
+  this Stage and use its exact cleanup boundary. No provider, publication or
+  restart may precede the readback and intake.
+
+## Item30 Stage independent readback PASS; owner hidden intake active (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Item30 remains `NO CREDIT`,
+  Item31 has not started, and no checkpoint was created. The seven protected
+  untracked paths remain present/untracked/unstaged and were not read or
+  modified.
+- The one independent readback was accepted solely on API-F as Command
+  `c-sz06vi9vneha9kw` / Invoke `t-sz06vi9vnew9nnk`, RunCommand request
+  `01A0502B-97C0-5DD3-A30E-47AAA0F7E6DF`. The official final projection had
+  exact eleven API fields, omitted `Username`, `WorkingDir` and `ClientToken`,
+  and decoded byte-identically to the `5,765`-byte Secret-free transport
+  SHA-256 `6ab4efd8a8248dd0956fc1b45e62ae3dd377eb625bd903b27a5d4a08ff0d86c8`;
+  its frozen source was `12,497` bytes, SHA-256
+  `86feb875b06923cc98e34cb309292e6e673f77cfe6b0542411d0daccfcf9600d`.
+  This identity is terminal and permanently no-replay.
+- Official result request `01A0502C-08AB-5BB9-93E2-50DF48E47CB0` returned
+  exactly one `Success / ExitCode 0 / Finished` row with Dropped `0`, Repeats
+  `1`, empty ErrorCode/ErrorInfo and `ProcessTree`. The fixed `315`-byte
+  Secret-free output SHA-256 is
+  `e4d106bc02cc68281834729e3093f8d4b777034ab47e59612f103194ea95b65b`;
+  it is `CANONICAL_AUTHORITY_STAGE_READBACK_READY` with
+  `EXACT_STABLE_NO_RESIDUE` and the exact binding/public hashes and expiry from
+  Stage READY. The private-key contents were never read or hashed.
+- All three standing reviewers independently return readback
+  `GO / P0=0 / P1=0`. This unlocks only the existing owner hidden-TTY intake;
+  it does not yet unlock publication, signed-readiness, provider calls or
+  Item30 credit.
+- The owner hidden-TTY intake is now active in a separately opened local
+  Terminal using the reviewed public/binding material. The first Codex-panel
+  attempt was stopped before any input because the panel was not visible; the
+  first local invocation deterministically rejected before prompting because
+  its working directory was not `/`. Both produced no envelope and accepted no
+  secret input. The current invocation started at `/`, displayed the rollback
+  prompt and is waiting for the owner; plaintext is not echoed and is not sent
+  through Codex tools.
+- Production configuration/restart, network/provider/model, database, funds,
+  Render, DNS, NDR/global-inventory and PostPaid-start remain zero.
+  API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid is zero.
+  Unique recovery action after interruption is to determine whether the local
+  intake produced its one encrypted envelope without reading plaintext. If it
+  did, verify only ownership/mode/size/hash and freeze publication admission;
+  if it did not, do not publish or call providers, and abandon the Stage once
+  its TTL hard gate is no longer sufficient.
+
+## Item30 canonical-authority Stage CLEANED; authority blocker restored (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Item30 remains `NO CREDIT`,
+  Item31 has not started, and no checkpoint was created. The seven protected
+  untracked paths remain present/untracked/unstaged and were not read,
+  modified, staged or committed.
+- The owner hidden-TTY intake was cancelled before any input was accepted.
+  Exact PID `93636` received `SIGINT`; the fixed local terminal is
+  `LOCAL_INTAKE_CANCELLED_NO_ENVELOPE`. The task-exact envelope path is absent,
+  so no plaintext or encrypted configuration payload was read, retained or
+  transmitted by Codex.
+- After verifying the envelope was absent and the exact temporary tree
+  contained no symlink, local directory
+  `/var/tmp/noteai-item30-canonical-authority.WObN3Y` was removed by an
+  explicit file whitelist followed by empty-directory removal. It contained
+  only Secret-free controllers, public/binding material and offline fixtures;
+  no workspace file, production configuration or protected untracked path was
+  removed. The deletion is not directly recoverable, but all non-sensitive
+  scaffolding can be regenerated if a future authorized Stage is created.
+- The now-unused API-F Stage was cleaned exactly once through the official
+  Alibaba surface as Command `c-sz06vicc0qxrojk` / Invoke
+  `t-sz06vicc0rf8yyo`, RunCommand request
+  `01A05044-C93D-5246-9605-C494FB315D38`. The final request had exact eleven
+  approved fields, omitted `Username`, `WorkingDir` and `ClientToken`, and its
+  `5,068`-byte Secret-free transport SHA-256
+  `3abf39f8c2c1364996ec6dcc406d9f7ab27e6140d390b2f1cb7f6fbaa4aa60ca`
+  was byte-identical to the unanimously reviewed cleanup artifact. This
+  identity is terminal and permanently no-replay.
+- Official result request `01A05045-40A6-5D2D-8B59-F30196D59991` returned
+  exactly one `Success / ExitCode 0 / Finished` row with Dropped `0`, Repeats
+  `1`, empty ErrorCode/ErrorInfo and the sole fixed Secret-free output
+  `CANONICAL_AUTHORITY_STAGE_CLEANED`. That output is emitted only after exact
+  unlink/rmdir+fsync, two stable API-F runtime postconditions, persistent task
+  absence, decrypt container/volume zero and task/deleted-FD zero. DoD,
+  Verification and Risk unanimously conclude `GO / P0=0 / P1=0` and that no
+  further cleanup readback is required.
+- Production configuration/restart, provider/model, Render, database, funds,
+  DNS, NDR/global-inventory and PostPaid-start actions remain zero.
+  API-C/API-F remain the existing `Running / PrePaid` nodes; Builder, Worker-C
+  and Worker-F remain the established `Stopped / StopCharging / PostPaid`
+  baseline, with no action in this stage or cleanup capable of starting them.
+  Incremental provider/funds/Render/PostPaid cost is `CNY 0.000000`; only
+  Cloud Assistant audit metadata and brief existing API-F PrePaid CPU were
+  consumed.
+- Signed-readiness and all four provider exact-one authorities remain
+  unconsumed. The sole blocker is unchanged: no complete owner-controlled,
+  role-bound API-F canonical configuration authority was supplied. Current
+  runtime and `api.env` remain non-authoritative and must not be promoted.
+  Unique next action is for an owner-designated authorized technical custodian
+  to supply and validate that complete canonical R/F bundle through the
+  existing hidden-TTY path; until then, do not recreate Stage, start intake or
+  publication, call signed-readiness/providers, or begin Item31. Managed NDR
+  mask `7` remains the independent Item36 P0 and Item38 NO-GO.
+- Offline fallback review is complete. DoD and Risk recommend preserving the
+  independent-authority model and waiting for an authorized technical
+  custodian. Verification identified one technically bounded emergency path,
+  but it would require a fresh owner decision that explicitly promotes the
+  stable exact-one Docker/PID1 managed-key consensus to a one-time rollback
+  authority despite lost provenance/order. Existing publication authority does
+  not include that trust-model change, so the fallback remains `NO-GO` and no
+  controller or production action was prepared or executed.
+- The owner has now confirmed that no authorized technical custodian is
+  available. This closes the preferred custodian branch but does not itself
+  authorize the emergency trust-promotion fallback. Item30 remains hard-stopped
+  until the owner explicitly accepts or rejects that one-time recovery trust
+  decision in plain language; all production and provider boundaries above
+  remain unchanged.
+
+## Item30 historical configuration provenance audit; recovery trust decision pending (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Readiness remains internal
+  `29/29`, public-launch `0/9`, complete `29/38`; Item30 remains `NO CREDIT`,
+  Item31 has not started, and no checkpoint was created. This audit used only
+  tracked Git/Handoff/Evidence and performed no cloud, host, provider,
+  database, funds, Render, DNS, service or cleanup action. The seven protected
+  untracked paths were not read, modified or staged.
+- Tracked history confirms the original order. On 2026-07-19 the controller
+  installed an API-C skeleton whose eight required runtime values were still
+  empty. The next checkpoint records that API-C runtime-secret entry occurred,
+  but intentionally retains no command, per-key source, value manifest or
+  independent value approver. On 2026-07-24 the owner entered only the rotated
+  Admin credential and one-time transfer passphrase through hidden Workbench
+  prompts; the controller encrypted and copied API-C's existing `api.env` to
+  API-F. API-F's root-owned mode-0600 file matched API-C byte-for-byte by
+  SHA-256, and ciphertext plus failed-attempt temporary plaintext were removed.
+  The subsequent API-F promotion accepted the 55-key/zero-duplicate boundary.
+- The 2026-07-29 managed-secret workflow promoted only the role-separated
+  database files on API-F and preserved the pre-existing API file. The
+  2026-07-30 b55 deployment recorded unchanged managed-secret hashes. The
+  2026-08-04 runtime reconciliation consumed existing env files and made no env
+  mutation; it also could not attribute the actor or command that restored the
+  exact historical unit bytes. Items26-29 contain no API env value authority.
+  Item30 has not applied a canonical publication, and signed-readiness plus all
+  four provider exact-one calls remain unconsumed.
+- This validates the owner's recollection and establishes API-C as API-F's
+  historical operational predecessor/byte source. It does not establish API-C
+  as a present canonical authority: the original API-C secret-entry provenance
+  and complete approved value manifest were deliberately not retained, and
+  current API-F `api.env` has a deterministic declaration failure. API-F
+  Docker/PID1 merged projections remain ineligible as root authority. No
+  Secret can or should be reconstructed from tracked hashes.
+- CTO minimum-change recommendation, pending one explicit owner trust decision:
+  use API-C's protected `api.env` only as a one-time encrypted recovery input,
+  never as self-authenticating final truth; derive the forward declaration from
+  the tracked role schema and non-secret production constants; preserve the
+  non-compromised database/provider values without exposing them; replace the
+  lost/rotated gateway trust with one wholly fresh coordinated HMAC pair and
+  the verified canonical Render production authority; then use the existing
+  atomic publication, bounded restart, health, rollback and no-replay boundary.
+  Any source/schema/CAS mismatch remains fail-closed. This is narrower than
+  rotating every provider and database credential, but is still a new one-time
+  trust decision and is not inferred from prior authorizations.
+- DoD, Verification and Risk agree on the historical sequence, missing
+  value-level authority and current `NO CREDIT`; no reviewer permits API-C or
+  runtime promotion under existing authority. No new classifier, receipt,
+  helper, controller layer or provider dispatch is authorized by this audit.
+- Resource/cost state remains API-C/API-F `Running / PrePaid`,
+  Builder/Worker-C/Worker-F `Stopped / StopCharging / PostPaid`, running
+  stoppable PostPaid zero, and incremental provider/Render/PostPaid/funds cost
+  `CNY 0.000000`. Unique next action is the owner's single explicit acceptance
+  or rejection of the narrowly defined API-C historical-source recovery trust;
+  until then, do not recreate Stage, publish/restart, rotate Render, call
+  signed-readiness/providers or begin Item31. Managed NDR mask `7` remains the
+  independent Item36 P0 and Item38 NO-GO.
+
+## Item30 API-C historical-source recovery explicitly authorized; final admission review in progress (2026-08-30)
+
+- The owner explicitly accepted the narrow one-time trust decision: current
+  protected API-C `/etc/noteai/api.env` may be used only as an encrypted
+  recovery input for API-F. It is not promoted to a self-authenticating final
+  authority. The forward declaration must preserve its exact key names/order
+  and non-target bytes while applying the tracked API role boundary,
+  production non-secret gateway constants, the already verified Render
+  production authority and one wholly fresh coordinated HMAC pair.
+- The recovery remains fail-closed. API-C and API-F runtime/file identity,
+  Stage binding/expiry, source/candidate schema, final CAS, atomic exchange,
+  forward restart, health/projection and deterministic rollback are bounded by
+  the same no-replay controller. Any source/schema/CAS mismatch aborts before
+  live change; any post-readiness/exchange ambiguity is `UNKNOWN`, retains
+  recovery material and must not be replayed. Provider/model calls remain
+  forbidden until publication is independently classified `APPLIED`.
+- The final Secret-free one-shot artifact set is frozen under
+  `/var/tmp/noteai-item30-api-c-recovery-20260830` for the three standing
+  reviewers. Its principal SHA-256 values are Stage API-F
+  `a54c8ca229da53121e4d32a608c6999e859ac7110be0a73b11ee82b9a7d9880a`,
+  API-C source wrapper
+  `d6afbaf900978a9d822af1f1b64d29b91bd5bb5ce72e1cc1c7a38708cefff96b`,
+  source encryptor
+  `2fae4983f881948481c276095b3c8feb3132789a97927c3469f9110d428d2b01`,
+  candidate builder
+  `8c246f123303ce46c132133adca0d8390b666e3a8852b06f218e7aaff1cf0674`
+  and publication controller
+  `92fe28bc15bf1955a7e5b4216e434fef91b77b28064f1e809f0af4089b6e9674`.
+  The task-exact abandoned-Stage cleanup SHA-256 is
+  `2d56c549ab649846127d3df49ec2d7a9b3bffadae0edb1c697e306f287c427bd`.
+  Python compile, shell syntax and `18 + 14 + 6 = 38` focused offline tests
+  pass. The publisher revision adds strict pre/post live+exchange object CAS
+  for both atomic exchanges and requires the restored old file's complete
+  managed projection in Docker/PID1 before `ROLLED_BACK`. No Stage may be
+  submitted until DoD, Verification and Risk review these exact bytes with P0
+  zero.
+- No new Cloud Assistant Command/Invoke, Render save/deploy, configuration
+  publication, restart, signed-readiness, provider/model request, database,
+  funds, DNS, cleanup or PostPaid start has occurred at this node. Readiness
+  remains internal `29/29`, public-launch `0/9`, complete `29/38`; Item30 is
+  `NO CREDIT`, signed-readiness and all four provider exact-one authorities
+  remain unconsumed, and no checkpoint is created. API-C/API-F remain
+  `Running / PrePaid`; Builder/Worker-C/Worker-F remain `Stopped /
+  StopCharging / PostPaid`, with running stoppable PostPaid zero.
+- Unique next action: absorb the three final read-only reviews. If and only if
+  P0 is zero, submit the frozen secret-free API-F Stage once through the
+  official fresh surface with `Username` absent; otherwise repair only the
+  identified pre-production artifact defect and refreeze. Managed NDR mask
+  `7` remains the separate Item36 P0/Item38 NO-GO and is not reopened here.
+
+## Item30 API-C encrypted-source recovery stopped on terminal UNKNOWN (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, complete Readiness remains
+  `29/38`; Item30 is `NO CREDIT`, Item31 has not started, and no checkpoint was
+  created. The seven protected untracked paths remain present/untracked/
+  unstaged and were not read, modified, staged or committed.
+- The unanimously reviewed API-F recovery Stage was accepted exactly once as
+  Command `c-sz06vikw64ufwu8` / Invoke `t-sz06vikw659faww`, request
+  `01A0509C-A2C1-5589-81E9-41B661840A34`. Authoritative readback is
+  `Success / ExitCode 0 / STAGED`; it bound task token
+  `a04dcf8476844945998350a9`, binding SHA-256
+  `540bd915a184f2443c869e523cb6ea1039e475c57660697c1d7fa28b615edd61`
+  and the pinned b55 release without a provider call, database connection,
+  restart or live change. This Stage identity is terminal and no-replay.
+- The only API-C encrypted-source request was accepted through the official
+  eleven-field projection with `Username`, `WorkingDir` and `ClientToken`
+  absent. Its Secret-free carrier was `13,167` bytes with SHA-256
+  `c6044772ac59bd6f0c0150e864fd51e79a8b56a3117091203af335644a7e13f4`.
+  Request `01A050A6-2C39-5E56-87E4-B1DC90F82B0F`, Command
+  `c-sz06viltmfplb0g` and Invoke `t-sz06viltmg72lfk` are terminal and
+  permanently no-replay.
+- API-C authoritative readback is `Failed / ExitCode 20 / <1s` with canonical
+  classification `UNKNOWN`, phase `encrypt`, `live_change_started=false`,
+  `provider_calls=0`, `source_mutations=0`, `secret_values_emitted=0`,
+  `readback_required=true` and `task_residue=true`. This does not establish a
+  source/schema/CAS failure class and cannot be converted into success. No
+  Render HMAC value was generated or entered, no Render save/deploy occurred,
+  API-F publication/restart did not begin, signed-readiness was not called,
+  and all four provider exact-one authorities remain unconsumed.
+- Preserve the exact API-C task residue and API-F Stage private/public/binding
+  material until a task-exact readback determines whether an encrypted
+  envelope exists and which fixed Secret-free encryptor outcome occurred.
+  Cleanup, encryption replay, fresh Stage, HMAC generation, Render mutation,
+  publication/restart and provider dispatch are forbidden meanwhile. Any
+  subsequent UNKNOWN must preserve the material and stop.
+- Resource/cost state remains API-C/API-F `Running / PrePaid` and Builder,
+  Worker-C, Worker-F `Stopped / StopCharging / PostPaid`; running stoppable
+  PostPaid is zero. Incremental provider, Render, funds and PostPaid cost is
+  `CNY 0.000000`; only Cloud Assistant audit metadata and brief existing
+  PrePaid CPU were consumed. No MFA, professional signature, long-term cost or
+  DNS confirmation is currently awaited.
+- Unique next action after resumption: obtain explicit authority for one
+  fresh, API-C-only, Secret-free, action-free readback that reports only the
+  exact task inventory, fixed stdout/stderr classification, envelope metadata
+  and binding/API-C identity without exposing env or ciphertext. Do not replay
+  the failed identity. Managed NDR mask `7` remains the independent Item36 P0
+  and Item38 NO-GO and is not part of this readback.
+
+## Item30 API-C task-exact readback closed; deterministic missing-module cause (2026-08-30)
+
+- The owner-authorized single readback was accepted through the official
+  eleven-field projection with `Username`, `WorkingDir` and `ClientToken`
+  absent. Frozen readback SHA-256 was
+  `268c24ba2a36b42e4fa34ccc8b018d46371baf4098161d3759dfc5c61539f82d`;
+  its `6,779`-byte transport SHA-256 was
+  `b4eec81eea52a1260a11d6f55eca1f0bf280cacf7d9b06cf29eb4b39401f79cc`.
+  Request `01A050B2-D043-5193-B935-5A3457EBB9BB`, Command
+  `c-sz06vin1ypdnfnk` and Invoke `t-sz06vin1ypnn11c` are terminal and
+  permanently no-replay.
+- Authoritative result is `ExitCode 20 / UNKNOWN / DRIVER_UNEXPECTED` with
+  `inventory_class=ABORT_EXACT`, `envelope_present=false` and
+  `envelope_metadata_valid=false`. Public-key/driver binding, API env metadata,
+  API-C selected runtime and both snapshots are stable. Exact-name and
+  same-token label container counts, task FD/process-reference count and task
+  volume count are all zero. The readback was action-free and read no API env
+  contents; provider calls, database connections and Secret output are zero.
+- Offline byte/provenance review determines the single cause. Pinned b55's
+  Dockerfile never copies `tools/` into the image, and the API-C wrapper mounted
+  only the source env, API-F public key, source encryptor and output directory.
+  The encryptor nevertheless requires default path
+  `/app/tools/production_secret_envelope.py`. Python returns a loader for that
+  absent path, then `exec_module` raises `FileNotFoundError`; the production
+  catch-all emits the observed fixed `UNKNOWN_UNEXPECTED` before any envelope
+  exists. This conclusion is consistent with the exact abort inventory and
+  requires no further production classifier.
+- Per the owner's UNKNOWN boundary, no cleanup, source successor, HMAC
+  generation, Render mutation, API-F publication/restart, signed-readiness or
+  provider call followed. Preserve both API-C `ABORT_EXACT` residue and API-F
+  Stage material. The source Invoke and readback Invoke are no-replay; the
+  current Stage also cannot be extended or reused after its fixed expiry.
+- Readiness remains internal `29/29`, public-launch `0/9`, complete `29/38`;
+  Item30 is `NO CREDIT`, Item31 has not started and no checkpoint exists.
+  API-C/API-F remain `Running / PrePaid`; Builder/Worker-C/Worker-F remain
+  `Stopped / StopCharging / PostPaid`, with stoppable PostPaid running zero.
+  Incremental provider, Render, funds and PostPaid cost remains
+  `CNY 0.000000`.
+- Unique next action: obtain explicit authority for task-exact cleanup, first
+  deleting only the proven quiescent API-C `ABORT_EXACT` residue and then using
+  the already reviewed exact API-F Stage cleanup. Only after both sides prove
+  zero residue may a wholly fresh Stage/task/nonce/Command/Invoke be considered;
+  any future source successor must mount the tracked envelope module explicitly
+  and pass its real end-to-end offline fixture before submission.
+
+## Item30 task-exact cleanup stopped before deletion (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 is `NO CREDIT`, Item31 has not started and no
+  checkpoint was created. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- The owner-authorized fresh API-C cleanup-only request was accepted through
+  the official exact eleven-field projection with `Username`, `WorkingDir`
+  and `ClientToken` absent. The decoded cleanup was exactly `20,413` bytes,
+  SHA-256
+  `b891f1025bca6245703a2a23b627c932af9e1a14a1de21e715df5d0fb7ea044b`;
+  its `6,767`-byte transport SHA-256 was
+  `afb782605855b6e0093cad129e996d9e941f283f60227958321d4d593ef1cfe7`.
+  Request `01A050C3-1E42-5A0A-9A8F-49EC0C261305`, Command
+  `c-sz06vion5lfphxc` and Invoke `t-sz06vion5lx6scg` are terminal and
+  permanently no-replay.
+- Authoritative result is `Failed / ExitCode 10 / ABORTED`, phase `preflight`,
+  with `cleanup_started=false`, `live_change_started=false`, provider calls,
+  restarts and Secret output all zero. No unlink or rmdir began; deleted files
+  and directories are zero. Therefore the API-C `ABORT_EXACT` residue remains
+  intact, the existing API-F Stage remains intact, and the dependent API-F
+  cleanup was correctly `NOT_SUBMITTED`.
+- Offline exact-byte review identifies the single failed predicate. The cleanup
+  expected stderr bytes in sorted key order
+  `code,secret_values_emitted,status`, while the frozen source encryptor emits
+  the semantically identical fixed literal order
+  `status,code,secret_values_emitted`. The raw-equality preflight therefore
+  aborted before deletion. DoD, Verification and Risk unanimously reject
+  cleanup/Item30 credit, require no-replay for this identity and confirm zero
+  production side effect.
+- API-C/API-F remain `Running / PrePaid`; Builder/Worker-C/Worker-F remain
+  `Stopped / StopCharging / PostPaid`, with running stoppable PostPaid zero.
+  Incremental provider, Render, funds, database, DNS and PostPaid cost remains
+  `CNY 0.000000`; only Cloud Assistant audit metadata and brief existing
+  API-C PrePaid CPU were consumed. No restart, configuration, Render, provider,
+  database, funds or DNS operation occurred.
+- Unique next action: obtain explicit authority for one fresh API-C exact-cleanup
+  successor whose only change is the proven stderr representation predicate.
+  Rebind and revalidate the same exact residue; only authoritative API-C
+  `Success / ExitCode 0 / API_C_ABORT_EXACT_CLEANED` may unlock the already
+  reviewed API-F cleanup. Any ambiguous or UNKNOWN successor preserves both
+  sides and stops. Managed NDR mask `7` remains the independent Item36 P0 and
+  Item38 NO-GO.
+
+## Item30 task-exact cleanup terminally closed with zero residue (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 is `NO CREDIT`, Item31 has not started and no
+  checkpoint was created. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- The explicitly authorized API-C exact-cleanup successor changed only the
+  proven fixed-stderr representation predicate. Its `20,413`-byte raw SHA-256
+  was `60177cb0b3e080a951cca859d7aea31699f4edd12707c1d6391be482486d9d76`;
+  inverse replacement of that one line restored the prior frozen SHA exactly.
+  Its `6,767`-byte transport SHA-256 was
+  `ae2782ece954641f7f0f6659a86f957cad9a3441ea0f82f5254ca81776e680ab`.
+  Request `01A050C9-EA7B-598D-B273-AE0709E7275D`, Command
+  `c-sz06vipazu5a03k` and Invoke `t-sz06vipazuhrhts` are terminal and
+  permanently no-replay. Authoritative result is
+  `Success / ExitCode 0 / API_C_ABORT_EXACT_CLEANED`, with
+  `cleanup_started=true`, `task_residue=false`, and live-change, provider,
+  database, restart and Secret-output counts all zero.
+- Only after the API-C success gate, the already reviewed API-F Stage cleanup
+  was submitted. Its `10,353`-byte raw SHA-256 was
+  `2d56c549ab649846127d3df49ec2d7a9b3bffadae0edb1c697e306f287c427bd`;
+  its `5,007`-byte transport SHA-256 was
+  `81788631d2711389f1f74a9470f53915b94f036336bed782b4d4e4ed8d2c11ce`.
+  Request `01A050CB-AEC9-58A4-835F-E33E8013ABDE`, Command
+  `c-sz06viph6szhslc` and Invoke `t-sz06viph6t6zhmo` are terminal and
+  permanently no-replay. Authoritative result is
+  `Success / ExitCode 0 / STAGE_CLEANED`, with `cleanup_started=true`,
+  `task_residue=false`, and live-change, provider, restart and Secret-output
+  counts all zero.
+- Both official requests had exactly eleven API fields; `Username`,
+  `WorkingDir` and `ClientToken` were absent, and their decoded raw payloads
+  matched the reviewed files byte for byte. DoD, Verification and Risk give
+  the ordered cleanup terminal `GO / P0=0 / P1=0`. Cleanup credit is complete,
+  but signed-readiness and all four provider exact-one authorities remain
+  unconsumed, so Item30 receives no Readiness credit.
+- The only production writes were exact deletion of the two bounded task
+  surfaces. There was no configuration, restart, Render, provider/model,
+  business database, funds, DNS or PostPaid action. API-C/API-F remain
+  `Running / PrePaid`; Builder/Worker-C/Worker-F remain
+  `Stopped / StopCharging / PostPaid`, with running stoppable PostPaid zero.
+  Incremental provider, Render, funds and PostPaid cost is `CNY 0.000000`;
+  only Cloud Assistant audit metadata and brief existing PrePaid CPU were
+  consumed.
+- Unique next action is a separately admitted wholly fresh historical-source
+  recovery: fresh Stage/task/nonce/Command/Invoke, explicit mount of the
+  tracked envelope module, successful actual source-encryptor happy-path
+  fixture and the already accepted one-time API-C recovery trust boundary.
+  Do not publish, restart, mutate Render, invoke signed-readiness/providers or
+  start Item31 before that recovery reaches a deterministic terminal state.
+  Managed NDR mask `7` remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 expired replacement Stage cleaned; full rotation chain frozen offline (2026-09-02T00:08:12+08:00)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 has `NO CREDIT`, Item31 has not started and no
+  checkpoint exists. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- The replacement Key `noteai-rot-0901` was created once in the existing Amap
+  application but has never been read, copied into automation, transmitted or
+  consumed. The later hidden intake ended before reading the Key as exact
+  `ABORTED(stage_public_binding) / secret_values_emitted=0`; authoritative
+  Stage time proves its remaining TTL was below the unchanged 1,200-second
+  intake floor. It is not a Key exposure or a consumed owner-input attempt.
+- That expired Stage is terminally removed by fresh cleanup Command
+  `c-sz06vrlo1kkdq80` / Invoke `t-sz06vrlo1l6utc0`. Official readback is
+  exact-one `Finished / Success / ExitCode=0`, `Dropped=0`, `Repeats=1`, with
+  canonical `STAGE_TASK_EXACT_CLEANED`, `task_residue=false`, and zero live
+  change, restart, provider, database or secret output. This identity is
+  terminal and no-replay.
+- Before any successor Stage, the existing Stage -> hidden Terminal intake ->
+  Stage-envelope -> Builder -> Publisher -> readback -> applied-cleanup chain
+  was frozen offline under nonce `f51e1fc758a2fb93e2ac21ee4343184c` and task
+  token `2fed804a4402cdb6c24cb7cb7204bd30e42227177cc5ff8b`. The exact Stage
+  carrier is 12,170 bytes at SHA-256
+  `882a16c6faa877aec67fff5eda7d37bddc69372876e55c351ef21c0eb12e9f5a`;
+  it unpacks byte-exact Stage SHA
+  `2f5603b47678e69b8a95000e9f8f43c35e1ce847ccd33e9ed09eacf648f0b0bc`
+  and contract SHA
+  `83d79c699ae6b76f74fd58d6ee16f71d0596c5b768256986180310c734b40d7c`.
+  The existing renderer received only a transport-representation shortening;
+  every business source remains byte-identical after unpack.
+- Main verification is `59/59` rotation plus `9/9` preflight and `19/19`
+  focused support tests, with `py_compile`, shell syntax, archive round-trip,
+  placeholder and byte checks passing. Verification independently reports
+  `92/92 PASS`, 2,048 random-binding cleanup maximum 16,086 bytes, and
+  `GO / P0=0 / P1=0`; Risk independently reports artifact
+  `GO / P0=0`, with production dispatch conditional only on fresh action-time
+  browser/resource gates. Stage public output must be exact terminal
+  `STAGED`, then pass existing `intake.validate_stage_before_input(...,
+  minimum_ttl=1200)` and existing `write_exclusive` O_EXCL/0600/fsync/readback
+  before the hidden TTY opens. No new helper or proof layer is introduced.
+- The fixed 1,800-second operation budget is Stage/public at most 60 seconds,
+  hidden intake 90, encrypted Envelope staging 90, Builder terminal 180 and
+  Publisher queue 180. Publisher may be clicked only with at least 1,320
+  seconds remaining and its official actual start must retain at least 1,200;
+  the executable 600-second hard floor is unchanged. After Stage, only
+  deterministic binding/Envelope materialization by the frozen renderer is
+  permitted; no source change, new test or reviewer wait is allowed.
+- Last authoritative resource state remains API-C/API-F `Running / PrePaid`
+  and Builder/Worker-C/Worker-F `Stopped / StopCharging / PostPaid`; provider,
+  Render, database, funds, DNS and ongoing PostPaid cost remain zero. A fresh
+  readback of these states, API-F Agent health and nonterminal task count is
+  mandatory immediately before Stage. Chrome control disconnected while
+  closing completed pages; local diagnostics show Chrome running, its
+  extension enabled and the native-host manifest correct. No new Stage,
+  configuration write, restart or provider action followed the disconnect.
+- Unique next action: owner permits opening one fresh Chrome window solely to
+  restore the logged-in Aliyun/Amap surfaces. Then perform the read-only
+  resource gate, prepopulate the frozen official form projections and request
+  action-time confirmation for the one fresh Stage. Only after that Stage is
+  terminal and safely materialized may the owner paste the already-created
+  Key exactly once. Do not create another Amap Key. Managed NDR mask `7`
+  remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 fresh historical-source recovery stopped at post-CAS UNKNOWN (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 is `NO CREDIT`, Item31 has not started and no
+  checkpoint was created. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- From the previously proven zero-residue state, the new source route staged
+  the tracked `tools/production_secret_envelope.py` explicitly at SHA-256
+  `b6a67fab3fd66f8c378716935b105ac1fbe83c54190eb57baf1b1c3d6b7e2fbf`.
+  The exact production source encryptor, tracked module and pinned b55 base
+  completed a real RSA-3072 happy path offline with payload byte binding,
+  root-owned mode-0600 output and no fixture bypass. All `40/40` focused tests
+  passed; local fixture containers and volumes were removed and local Colima
+  was stopped.
+- The three standing reviewers admitted the fresh API-F Stage with
+  `GO / P0=0 / P1=0`. Its sole official execution was Command
+  `c-sz06virxmp58xs0` / Invoke `t-sz06virxmpmq874`, terminal
+  `Success / ExitCode 0 / STAGED`. It bound nonce
+  `8b83b2ba3c78c051b9cab391df4f90d7`, token
+  `75cd9feeb898088544a405d3`, binding SHA-256
+  `e68e6fec0ce9f270247228e4c00ab8083e71a551c703bee554684e5a7222f641`
+  and expiry epoch `1788065374` to the exact b55 image. Provider/database/
+  restart/live-change/Secret-output counts were zero. The Stage identity is
+  terminal and no-replay; its private/public/manifest material remains
+  preserved on API-F.
+- The rendered API-C source carrier was `15,077` bytes with SHA-256
+  `d5559300c364b38f61ae1a92b9be941bbbd3aa99f868a3976a1aefe6215277fd`;
+  it decoded byte-for-byte to raw SHA-256
+  `472726e9519e4d2431390ac905c2033a1274f9022466f2fbd8fbbefb0cf44026`.
+  The official projection was API-C-only, `Once`, `KeepCommand=false`,
+  `EnableParameter=false`, `Username=root`, timeout 180 seconds and process
+  tree termination. It was clicked once with 1,384 seconds of Stage TTL
+  remaining. Command `c-sz06visjymab85c` / Invoke `t-sz06visjymkatj4` are
+  terminal and permanently no-replay.
+- Authoritative source result is `Failed / ExitCode 20 / UNKNOWN`, phase
+  `source_post_cas`, `readback_required=true`, `task_residue=true`, with
+  `live_change_started=false`, `provider_calls=0`, `source_mutations=0` and
+  `secret_values_emitted=0`. Reaching this phase proves the exact b55
+  source-encryptor exited zero, the task container disappeared, stdout was the
+  exact `SOURCE_ENCRYPTED` line, stderr was empty and a root-owned mode-0600
+  envelope passed the wrapper's shape checks. It does not prove which post-CAS
+  unit/runtime/health/cleanup predicate failed or that the retained envelope
+  is safely stageable. No signed-readiness or provider exact-one authority was
+  consumed.
+- The three standing reviewers require hard stop and preservation. Do not
+  cleanup, replay source, stage the envelope to API-F, publish configuration,
+  restart, mutate Render, invoke readiness/providers, connect a database,
+  touch funds/DNS or start PostPaid. API-C/API-F remain `Running / PrePaid`;
+  Builder/Worker-C/Worker-F remain `Stopped / StopCharging / PostPaid`, with
+  stoppable PostPaid running zero. Incremental provider, Render, funds,
+  database and PostPaid cost is `CNY 0.000000`; only Cloud Assistant metadata
+  and brief existing PrePaid CPU were consumed. No MFA, professional review,
+  long-term fee or DNS confirmation is awaited.
+- Unique next action after owner authority: submit exactly one fresh,
+  API-C-only, Secret-free, action-free, task-exact readback for the retained
+  token. It may report only exact inventory, fixed stdout/stderr class,
+  envelope metadata/SHA/size, binding and API-C runtime/metadata stability,
+  plus exact-name/label container, volume, FD and process-reference counts; it
+  must not output env, Secret or ciphertext and must not cleanup. Only
+  `SOURCE_ENCRYPTED_RECONCILED` may unlock API-F source staging. Any other or
+  UNKNOWN terminal preserves all material and stops. Managed NDR mask `7`
+  remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 current-task readback terminal UNKNOWN; preservation hard stop (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 is `NO CREDIT`, Item31 has not started and no
+  checkpoint was created. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- Before submission, Risk caught the sole unmaterialized public-PEM SHA
+  placeholder. No cloud request had been submitted. The placeholder was
+  replaced only with this Stage's public PEM SHA-256, leaving the authorized
+  read-only contract unchanged. Final raw readback was `19,310` bytes at
+  SHA-256 `02f0825f99a69f20666ab27a947051c2b5a9bcb92724c2ba33e2147549231eea`;
+  its deterministic `7,013`-byte transport SHA-256 was
+  `57b82cd3b2dd5a8c718bd7ec91bc88e4544e3e30719f3f0db9c2b6d1ef4bcc3e`.
+  Placeholders were zero, transport round-trip was exact, shell syntax passed
+  and `18/18` focused tests passed. DoD, Verification and Risk each gave
+  `GO / P0=0 / P1=0` for this readback only.
+- The official final projection decoded byte-for-byte to the frozen carrier
+  and contained one API-C target, zero API-F targets, `Once`,
+  `KeepCommand=false`, `EnableParameter=false`, `Username=root`, timeout 180
+  seconds and process-tree termination. Command `c-sz06vitmr51o64g` / Invoke
+  `t-sz06vitmr5e5nuo` were submitted once and are terminal and permanently
+  no-replay.
+- Authoritative result is `Failed / ExitCode 20 / UNKNOWN`, failure class
+  `READBACK_NOT_CLOSED`, `inventory_class=OTHER` and
+  `driver_outcome=UNCLASSIFIED`. The envelope is present with valid metadata,
+  size `7,022` and SHA-256
+  `b2980aaccc0dba1a42fbb33110b757bcad54f3041fcc3588f7cbef3e6ec7e051`;
+  binding, API env metadata, runtime and double snapshots are stable. Exact
+  task-name/label container, volume, FD and process-reference counts are all
+  zero. The readback is `action_free=true`, read no API env contents and made
+  zero provider calls, database connections or Secret outputs.
+- These positive facts do not convert the result to
+  `SOURCE_ENCRYPTED_RECONCILED`, prove the ciphertext is stageable, identify
+  the unknown residue inventory or authorize cleanup. All three standing
+  reviewers require preservation hard stop. Retain the API-C task/envelope and
+  API-F Stage private/public/manifest material unchanged; do not replay,
+  cleanup, stage, publish, restart, mutate Render, invoke signed-readiness or
+  providers, connect a database, touch funds/DNS or start PostPaid.
+- API-C/API-F remain `Running / PrePaid`; Builder/Worker-C/Worker-F remain
+  `Stopped / StopCharging / PostPaid`, with stoppable PostPaid running zero.
+  Incremental provider, Render, database, funds and PostPaid cost remains
+  `CNY 0.000000`; only Cloud Assistant audit metadata and brief existing
+  API-C PrePaid CPU were consumed. No MFA, professional review, long-term fee
+  or DNS confirmation is awaited.
+- Unique next action is offline-only attribution of the already frozen
+  `inventory=OTHER / driver=UNCLASSIFIED` result. Any further production
+  readback, cleanup or recovery action requires new owner authority and must
+  preserve this no-replay boundary. Managed NDR mask `7` remains the
+  independent Item36 P0 and Item38 NO-GO.
+## Item30 canonical configuration recovery terminally closed; provider-chain admission ready (2026-08-30)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 is `NO CREDIT`, Item31 has not started and no
+  checkpoint was created. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- Fresh Stage6 API-F Stage Invoke `t-sz06vjgvoeanjsw` is terminal `STAGED`;
+  API-C source Invoke `t-sz06vjhr1s4xhc0` is terminal `SOURCE_ENCRYPTED`;
+  API-F source-input Invoke `t-sz06vjhxhu3umf4` is terminal
+  `SOURCE_INPUT_STAGED`; and API-F overlay-builder Invoke
+  `t-sz06vji6wdbg6io` is terminal `OVERLAY_BUILDER_STAGED`. These identities
+  are terminal and permanently no-replay.
+- The sole Stage6 publication Invoke `t-sz06vjiipefyu4g` is terminal
+  `APPLIED`: it performed one bounded forward restart, zero provider calls and
+  zero business-database writes. The independent final readback Invoke
+  `t-sz06vjjhi06feo0` is terminal `APPLIED_RECONCILED`. The exact cleanup
+  Invoke `t-sz06vjkb0ndvpxc` is terminal `APPLIED_TASK_EXACT_CLEANED`, with
+  `canonical_configuration=true`, `task_residue=false`, provider calls zero,
+  restart count zero and no Secret output. All prior recovery identities remain
+  sealed and no-replay.
+- Stage6's one remote readiness was a configuration-admission check and is not
+  reused or replayed as Item30 provider evidence. The unchanged tracked
+  `deploy/production/real_ai_provider_chain.py` still performs its distinct,
+  purpose-bound signed-readiness exactly once before the fresh provider chain.
+  All four provider exact-one authorities remain unconsumed.
+- DoD, Verification and Risk independently give the canonical fresh
+  provider-chain route conditional `GO / P0=0`: fresh account gates and native
+  pre-counters; fixed dispatch `Meituan -> Claude -> Kimi -> Amap`; one request
+  each, retry/fallback zero; Claude/Kimi/Amap priced total at most CNY 0.30;
+  Meituan `NOT_EXPOSED_BY_PROVIDER` under the accepted unpriced exact-one
+  exception; native post-counter/settlement reconciliation; and exact cleanup
+  before the single terminal Item30 checkpoint.
+- API-C/API-F remain `Running / PrePaid`; Builder `i-wz99180s9ig5ecq10uaj`,
+  Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`, so
+  running stoppable PostPaid is zero. No provider request, payment, database,
+  DNS, Render deploy or PostPaid start occurred in this closure.
+- Unique next action: after the owner completes the required Amap console
+  login, freeze all four fresh native account snapshots, materialize and
+  three-party-admit one fresh canonical wrapper, then submit it exactly once
+  to API-F. Any UNKNOWN seals only that identity and enters safe official
+  reconciliation; it does not stop offline recovery work. Managed NDR mask
+  `7` remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 provider admission paused only for Amap owner login (2026-08-30T10:58:06Z)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness is `29/29`,
+  public-launch Readiness is `0/9`, and complete Readiness is `29/38`;
+  Item30 remains `NO CREDIT`, Item31 has not started and no checkpoint exists.
+- DoD, Verification and Risk give `GO / P0=0` to the canonical provider route
+  and to the final one-off readback/cleanup transports. The final temporary
+  readback source SHA-256 is
+  `fc15d0205d90d997bcdc6b1deb2d14d03d1560f7e74c66de16e7597b9e99be12`;
+  the final temporary cleanup source SHA-256 is
+  `5d415763d8c29811458a260a6424b3f400f5151c9f5637c0c7857896cbcdd8de`.
+  Shell/Python syntax, carrier limits and real historical non-sorted gate,
+  byte-drift, symlink, directory-replacement, pre-delete ABORT and partial-
+  delete UNKNOWN fixtures pass. These transports add no Evidence schema,
+  classifier, receipt, adapter or Readiness condition.
+- No fresh provider Command/Invoke has been submitted. Signed-readiness and
+  all four provider exact-one authorities remain unconsumed; provider usage,
+  funds, business-database writes, DNS and Render changes in this admission
+  stage are zero. All prior recovery identities remain terminal and no-replay.
+- API-C/API-F remain `Running / PrePaid`. Builder
+  `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`; running
+  stoppable PostPaid is zero and ongoing incremental PostPaid cost is zero.
+- The only awaited human action is owner authentication to the Amap developer
+  console by QR/possible challenge. No password, code or Secret should be
+  transmitted. Resume with exactly one action: refresh Claude, Kimi, Amap and
+  Meituan source-bound pre snapshots within one 30-minute gate, then render,
+  admit and submit the single fresh API-F provider wrapper. Managed NDR mask
+  `7` remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 provider admission blocked by Amap credential exposure (2026-08-30T13:44:26Z)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 is `NO CREDIT`, Item31 has not started and no
+  checkpoint exists. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- Owner authentication to the Amap console succeeded. The fresh native usage
+  snapshot established keyword-search quota `5000`, month/day request count
+  `0/0`, and a current action-time snapshot. Claude, Kimi and Meituan safe
+  snapshots were also refreshed, but no fresh gate, wrapper, Command or Invoke
+  was materialized or submitted.
+- While performing the required credential-presence check, the Amap console
+  rendered the live credential value into the browser automation result. The
+  value is intentionally not repeated or recorded in tracked files. Treat the
+  credential as exposed and forbid its use for Item30 until it is rotated and
+  the replacement is safely synchronized to API-F. The affected browser page
+  was immediately left for the non-secret usage page.
+- Production effects remain zero: no Item30 signed-readiness or provider
+  request was dispatched; provider usage, configuration writes, restart,
+  Render deploy, business-database writes, funds and DNS changes are zero.
+  API-C/API-F remain `Running / PrePaid`; Builder
+  `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`, with
+  running stoppable PostPaid zero.
+- Unique next action: obtain owner yes/no authority for a coordinated Amap
+  credential rotation using the existing Amap account and existing API-F
+  configuration path, with no credential value in logs, documents or Cloud
+  Assistant. After safe synchronization and health confirmation, recapture the
+  Amap credential-presence/usage snapshot without opening the credential-value
+  surface, then materialize the one fresh canonical provider gate. Managed NDR
+  mask `7` remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 fresh Amap rotation Stage active; waiting only for hidden owner Key input (2026-08-30T18:03:02Z)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness is `29/29`,
+  public-launch Readiness is `0/9`, and complete Readiness is `29/38`;
+  Item30 remains `NO CREDIT`, Item31 has not started and no checkpoint exists.
+  The seven protected untracked paths remain present, untracked and unstaged
+  and were not read, modified, staged or committed.
+- The superseded API-F Stage/Envelope task is terminal
+  `STAGE_ENVELOPE_TASK_EXACT_CLEANED`; its exact local run directory, including
+  the retained encrypted output from the failed intake, was removed by exact
+  path and is not recoverable. The failed intake was a local-only
+  `ABORTED(file_metadata)` with `secret_values_emitted=0`; it caused zero API-F
+  live change, restart, provider, database, funds or DNS action.
+- The single root cause was BSD parent-group inheritance plus an unsafe
+  post-create cleanup assumption. The existing rotation module was minimally
+  repaired to normalize a new file to the effective group, pin the parent
+  directory, perform success readback relative to that directory, use the
+  Linux-safe fd xattr calling form, and retain rather than unlink on every
+  post-create exception. DoD, Verification and Risk give `GO / P0=0 / P1=0`;
+  `36/36` focused tests pass. Principal temporary SHAs are contract
+  `ac27508cd1dabd0095eac8473ebb904dc73f08c8ca0935bf73ec403121c441b7`,
+  intake `1e95255d5b9ddc5c0da62eff448a500917630cdc6bf3716bca1b525355cb4ff4`,
+  render `d51c4c8f237f23bbffb6381c75b0af443d07dff3ca8025385b37ad50e35577bb`
+  and tests `b1d099179595dfd7d1f04bd7b2f823bade804a7d74efcf9edb02ee9ef5b70a8c`.
+  Strict XZ round-trip and all carrier/Base64 limits pass; this changes no
+  executor, validator, Evidence schema, controller, adapter or Readiness rule.
+- Fresh secret-free Stage source SHA is
+  `e4720a464b7047ee53b81a7df16ac84ec5c0563e0220cc9a62e378f1a3d7bcef` and
+  carrier SHA is
+  `8dd092c4f3b6163b3306a86bea0b567046ea8468b452b65855bb0b03c2bc7f0d`.
+  Official API-F-only Command `c-sz06vkt0xpgqo00` / Invoke
+  `t-sz06vkt0xq37r40` is terminal `STAGED`; its public material is stored
+  locally mode `0600`, 1,750 bytes, SHA
+  `ba2c24eeb7fb0e2c4828aab2cef413d8f9ff46fd9f9f0d6ecd2d4e70b5239f5e`.
+  Provider calls, live configuration exchange and restart remain zero.
+- API-C/API-F remain the existing `Running / PrePaid` production nodes.
+  Builder `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and
+  Worker-F `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`;
+  running stoppable PostPaid and ongoing incremental PostPaid cost are zero.
+  Incremental provider, Render, database, funds and DNS cost is zero.
+- The only awaited human action is the already authorized hidden local input
+  of the newly created Amap Key into the open Terminal. Do not send it in chat.
+  Resume with exactly one action: accept only
+  `AMAP_ROTATION_ENVELOPE_READY`, then stage that encrypted Envelope to the
+  same fresh API-F task and continue builder/publisher/readback. Any other
+  terminal preserves or exactly reconciles this task; old identities remain
+  no-replay. Managed NDR mask `7` remains the independent Item36 P0 and
+  Item38 NO-GO.
+
+## Item30 replacement Amap rotation Stage active after expired-task reconciliation (2026-08-31T07:46:00Z)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness is `29/29`,
+  public-launch Readiness is `0/9`, and complete Readiness is `29/38`;
+  Item30 remains `NO CREDIT`, Item31 has not started and no checkpoint exists.
+  The seven protected untracked paths remain present, untracked and unstaged
+  and were not read, modified, staged or committed.
+- The prior Stage `c-sz06vkt0xpgqo00` / `t-sz06vkt0xq37r40` expired before a
+  valid replacement Envelope was produced. Its task is terminal
+  `STAGE_TASK_EXACT_CLEANED` through cleanup Command
+  `c-sz06vlntqbzleyo` / Invoke `t-sz06vlntqch2pds`, ExitCode `0`, and its
+  exact local run is absent. The cleanup performed zero provider, live
+  configuration, restart, database, funds, DNS or PostPaid action.
+- The first successor browser confirmation did not dispatch: the OpenAPI
+  result remained empty and the authoritative Cloud Assistant ledger returned
+  no record for its unique name. That identity and local run are sealed and
+  absent. The next fresh Stage is terminal `STAGED`: Command
+  `c-sz06vlofp7xq7ls`, Invoke `t-sz06vlofp8mp728`, carrier SHA-256
+  `f220c0cf62667d64e55b9143692670286f443852a7273bc104ed39f73268c20c`.
+  Its public output is local mode `0600`, 1,750 bytes, SHA-256
+  `f2ff25571665e75d370435a419a5eda78aee13662eb34284cd80f95b2bbdc5a3`.
+  Stage facts remain `provider_calls=0`, `restart_count=0`,
+  `secret_values_emitted=0`, and `live_change_started=false`.
+- DoD, Verification and Risk are `GO / P0=0 / P1=0`; the rotation bundle is
+  `36/36` PASS. The hardened expired-task cleanup is `20/20` PASS and closes
+  bounded `/proc` EOF, oversize, mid-read and vanished-FD cases. No new
+  controller, classifier, receipt, adapter, Evidence schema or Readiness
+  condition was added.
+- API-C/API-F remain the existing `Running / PrePaid` nodes. Builder
+  `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`; running
+  stoppable PostPaid and incremental cloud/provider cost are zero.
+- The sole next action is owner hidden local input in the newly opened
+  Terminal: paste only the replacement Amap Key value and press Enter once.
+  Do not send the Key in chat. Accept only `AMAP_ROTATION_ENVELOPE_READY`; any
+  other terminal is reconciled without replay. After success, immediately
+  stage the encrypted Envelope into this exact Stage identity and continue the
+  already admitted builder/publisher/readback path. Managed NDR mask `7`
+  remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 current Amap Stage waiting for owner to copy the exact Key value (2026-08-31T07:55:00Z)
+
+- The superseded Stage `c-sz06vlofp7xq7ls / t-sz06vlofp8mp728` is terminal
+  `STAGE_TASK_EXACT_CLEANED / ExitCode 0` through
+  `c-sz06vlprwhvuy9s / t-sz06vlprwiktxq8`; its remote task/exchange and local
+  run are absent. Both no-input `ABORTED(file_metadata)` and later
+  `ABORTED(replacement_shape)` emitted zero secrets and created no Envelope.
+- The metadata root cause was local BSD parent-group inheritance: the public
+  file was `501:0` while intake requires effective `501:20`. The existing
+  `write_exclusive` path now materializes the public output without changing
+  intake; real parent-gid `0` positive/negative fixtures and all `36/36`
+  rotation tests pass, with three-party `GO / P0=0 / P1=0`.
+- Current API-F Stage Command `c-sz06vlq06bqit4w` / Invoke
+  `t-sz06vlq06cfhslc` is terminal `STAGED`. Carrier SHA-256 is
+  `55669ea6f142ebc36b8ab03abb7ee73a339bdd11b8f0566907af5a51ba40e776`;
+  local public output is exact `501:20/0600/nlink1`, 1,750 bytes, SHA-256
+  `d8dad45a00d3706dd623b30751560fa9f596d7d1d6dffc984ff3f6020ff33c07`.
+  Provider/config/restart/secret/funds/database/DNS/PostPaid effects remain 0.
+- Sole next action: owner clicks the copy icon beside the replacement Key
+  value for Amap application `noteai-rot-0830` and replies `已复制Key`. Then
+  reopen the same hidden intake only if TTL remains at least 1,200 seconds.
+  Do not inspect or transmit the Key and do not copy the row, label or app
+  name. API-C/API-F remain PrePaid; all three PostPaid nodes remain
+  Stopped/StopCharging. Readiness remains `29/38`, Item30 `NO CREDIT`.
+
+## Item30 Amap Builder identity sealed; exact Stage+Envelope cleanup ready (2026-08-31T08:28:00Z)
+
+- HEAD/upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`; complete Readiness remains
+  `29/38`, Item30 remains `NO CREDIT`, Item31 has not started and no
+  checkpoint exists. The seven protected untracked paths remain untouched,
+  untracked and unstaged.
+- Hidden intake completed as `AMAP_ROTATION_ENVELOPE_READY` with no secret
+  output. Current encrypted Envelope is local `0600`, 1,574 bytes, SHA-256
+  `830625384f996b259985555a9efea0fd86e39e8aa85b18fa43098950965a255b`.
+  API-F Stage-envelope Command `c-sz06vlr4owx1w5c` / Invoke
+  `t-sz06vlr4oxjiz9c` is terminal `AMAP_ENVELOPE_STAGED`; its fixed facts are
+  live-change false, provider calls zero and secret output zero.
+- The admitted Builder Command `c-sz06vlrfj7zvuo0` / Invoke
+  `t-sz06vlrfj8jv1fk` is permanently sealed after terminal `UNKNOWN`, with
+  live-change false, provider calls zero and secret output zero. The existing
+  post-publisher readback was correctly rejected and not submitted because it
+  cannot distinguish pre-journal Builder states. No publisher, restart,
+  configuration exchange, signed-readiness or provider request was executed.
+- Root cause is loss of the inner Builder fixed-enum stderr in the existing
+  host driver. The same driver was minimally corrected to preserve only a
+  canonical action-free Abort code; `39/39` focused tests pass. No new
+  controller, classifier, adapter, receipt, Evidence or Readiness condition
+  was added.
+- A conservative cleanup is frozen and three-party `GO / P0=0 / P1=0`: it
+  accepts only the current exact four-file Stage+Envelope topology, binds the
+  exact Envelope size/SHA and hardened process-reference scan, and otherwise
+  aborts before deletion. Source SHA is
+  `39785c6614998a9261343b6318d07989c921a6a9b8742ed811d703fb8cf1937f`,
+  carrier SHA is
+  `355fc686e69253438633914116ff1e55bfc6e6c5b43f5c4f9cd89c0c4e7afce3`,
+  and `22/22` cleanup tests pass.
+- API-C/API-F remain `Running / PrePaid`; Builder
+  `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`.
+  Provider, Render, database, funds, DNS and ongoing PostPaid cost are zero.
+- Unique next action: after action-time owner confirmation, submit exactly one
+  API-F cleanup carrier. Accept only `STAGE_TASK_EXACT_CLEANED`; pre-action
+  topology mismatch must delete zero and any partial cleanup UNKNOWN freezes
+  that identity. On success generate a fresh Stage and request one hidden
+  paste of the already-created replacement Key, then resume the corrected
+  Builder path. Managed NDR mask `7` remains the independent Item36 P0 and
+  Item38 NO-GO.
+
+## Item30 Amap credential transfer reduced to one owner action (2026-08-31T09:20:00+08:00)
+
+- The latest local intake ended deterministically as
+  `ABORTED(replacement_shape)` with `secret_values_emitted=0`; no active
+  intake process remains. It produced no encrypted Envelope and performed no
+  production configuration, restart, provider, database, funds, DNS or
+  PostPaid action. That intake attempt is not replayed.
+- API-F's canonical `api.env` deliberately still contains the old Amap Key as
+  the rollback baseline. The newly created Key has not entered any env file,
+  Cloud Assistant payload, tracked file or production runtime, so the
+  existing env cannot be used as authority for the new Key.
+- DoD, Verification and Risk agree on the minimum sequence: finish all
+  action-free preparation first; create a fresh Stage with at least 1,200
+  seconds of remaining binding time; request exactly one no-echo owner paste;
+  consume the resulting encrypted Envelope through the existing
+  builder/publisher path; atomically replace only the Amap key in API-F;
+  perform the bounded restart and three-source health readback; and revoke the
+  old Key only after the new state is deterministically healthy. No ordinary
+  tool, form or wrapper failure is delegated to the owner.
+- A plaintext local env/temporary file is not the default alternative: it
+  would persist the new secret on disk and broaden backup, indexing, crash and
+  deletion risk. It may be considered only under a separate explicit owner
+  choice if no-echo TTY is genuinely unusable; it must never be tracked or
+  used as the production env directly.
+- API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`. Running stoppable PostPaid and
+  incremental provider/configuration/Render/database/funds/DNS effects are
+  zero. Complete Readiness remains `29/38`, Item30 `NO CREDIT`.
+- Unique next action: wait until the owner explicitly says they are ready for
+  one input; only then exact-reconcile any expired unused Stage, prepare a
+  fresh fully validated Stage, and open one hidden prompt. Do not ask the owner
+  to paste repeatedly and do not revoke the old Key before APPLIED health.
+
+## Item30 replacement Envelope ready; expired Stage cleanup admitted (2026-08-31T09:50:00+08:00)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness is `29/29`,
+  public-launch Readiness is `0/9`, and complete Readiness is `29/38`;
+  Item30 remains `NO CREDIT`, Item31 has not started and no checkpoint exists.
+  The seven protected untracked paths remain present, untracked and unstaged
+  and were not read, modified, staged or committed.
+- Hidden intake for Stage Command `c-sz06vlw67p4osg0` / Invoke
+  `t-sz06vlw67ponz7k` completed as `AMAP_ROTATION_ENVELOPE_READY`, with
+  `secret_values_emitted=0`. The encrypted Envelope is local mode `0600`,
+  1,574 bytes, SHA-256
+  `fb1f7fb2068db973347e382f9a2af392bd070736be6eb7054f7ea0f2b041dc4f`.
+  Stage-envelope Command `c-sz06vlwrp3df1fk` / Invoke
+  `t-sz06vlwrp3zw4jk` is terminal `AMAP_ENVELOPE_STAGED / ExitCode 0`.
+  Its fixed counters remain live change false, provider/restart/secret output
+  zero. The old Amap credential remains the live rollback baseline.
+- The Stage expired before Builder dispatch because the official OpenAPI form
+  did not dispatch any of three oversize Builder projections. Exact official
+  `DescribeCommands` ledger queries return `TotalCount=0` for all three unique
+  names; no Builder Command/Invoke, publisher, configuration exchange,
+  restart, signed-readiness or provider request exists. Those browser
+  attempts are permanently sealed and consume no provider exact-one authority.
+- The carrier was minimally reduced at the representation layer only. Source
+  and business entrypoints remain byte-identical after strict canonical Base85
+  plus XZ decode. Render SHA is
+  `69a41e355d045e89ee6d1fc168f2226f0b190b12e60686d01bc3661c55adbc9e`,
+  tests SHA is
+  `5c563278d8266cfea5153046d9dc6de9159e1667e4bf0d6d98dee83d7a4dddfe`,
+  and `43/43` focused tests pass. DoD, Verification and Risk are unanimous
+  `GO / P0=0 / P1=0`; no controller, classifier, adapter, receipt, Evidence or
+  Readiness layer was added.
+- Exact cleanup of the expired task is frozen and admitted. Source SHA is
+  `81d4fdb9b23b136c8a3f04251c57ad607e5b81c55dd0c38d950ca7142a35e902`,
+  carrier SHA is
+  `f70d3bf7631c6609227b550c739b94c998762490a71c86238c0a08a5bf7ffd4b`
+  (`15,518` raw / `20,692` outer Base64 bytes), and `22/22` cleanup tests
+  pass. It may delete only the exact expired task's `stage.json`,
+  `envelope.json`, `public.pem`, `private.pem` and then-empty task directory;
+  no configuration, restart, service, provider, database, funds or DNS action.
+- API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`. Running stoppable PostPaid and actual
+  incremental provider/Render/database/funds/DNS cost remain zero.
+- Unique next action: obtain action-time owner confirmation and submit exactly
+  one fresh API-F cleanup. Accept only `Finished / ExitCode 0 / stderr empty /
+  STAGE_TASK_EXACT_CLEANED / task_residue=false`; otherwise preserve the
+  remaining material and seal that identity. After cleanup success, create a
+  fresh Stage with at least 1,200 seconds remaining, perform one final hidden
+  paste, and resume the already admitted builder/publisher/readback path.
+  Managed NDR mask `7` remains the independent Item36 P0 and Item38 NO-GO.
+- The official RunCommand form is now fully prepared but not submitted. Fresh
+  name is `noteai-item30-amap-stage-cleanup-f70d3bf7631c-19a313ca`; the final
+  CLI projection contains the exact carrier once, API-F instance once, API-C
+  zero times, `Base64 / KeepCommand=false / Timeout=600`, and omits `Username`
+  completely. The live tab is preserved only for the required action-time
+  owner confirmation; no Command/Invoke exists yet.
+
+## Item30 current Stage pre-TTY metadata abort and exact cleanup gate (2026-08-31T20:02:00+08:00)
+
+- HEAD and upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`;
+  complete Readiness remains `29/38`, Item30 remains `NO CREDIT`, and Item31
+  has not started. No signed-readiness or provider exact-one request has been
+  dispatched.
+- Fresh API-F Stage Command `c-sz06vngkn1j0av4` / Invoke
+  `t-sz06vngkn1szw8w` is terminal `STAGED / Success / ExitCode 0`. Its fixed
+  counters remain live change false, provider/restart/secret output zero. The
+  local intake then aborted before opening the TTY as exact
+  `ABORTED(file_metadata)`: its public file was `uid=501/gid=0`, while the
+  Terminal process and unchanged fail-closed intake require `501:20`. The
+  Envelope remains absent; the replacement Key was not read or transmitted.
+- The current Stage is no longer eligible for owner input because its
+  remaining TTL crossed the 1,200-second floor. Three-party review admits only
+  task-exact Stage cleanup. Source is 25,925 bytes / SHA-256
+  `22fa2833853759c3a95298ffe0f19e91f80926d61a0ffafcb0b883b45268fc2d`;
+  carrier is 15,173 bytes / SHA-256
+  `7f57a1c1637ba8ac80fc10991d88cb3833d1498815eca58438920412b2e2c930`;
+  `21/21` cleanup tests and the existing `43/43` rotation/intake tests pass.
+  The cleanup may remove only this token's `stage.json`, `public.pem`,
+  `private.pem` and then-empty task directory; configuration, service restart,
+  provider, database, funds and DNS remain forbidden.
+- The official fresh cleanup form is prepared but not submitted. Final
+  projection has exact carrier, API-F exact-one, API-C zero, `Username`
+  absent, `EnableParameter=false`, `KeepCommand=false`, `Once`, `Base64` and
+  `ProcessTree`. API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and
+  Worker-F remain `Stopped / StopCharging / PostPaid`; incremental cost and
+  running stoppable PostPaid remain zero.
+- Unique next action: after action-time owner confirmation, submit this one
+  cleanup and accept only `Finished / Success / ExitCode 0 / stderr empty /
+  STAGE_TASK_EXACT_CLEANED / task_residue=false`. Then generate a fresh Stage
+  and materialize its already-validated public bytes through the existing
+  `write_exclusive` path as exact `501:20/0600/nlink1` before opening one
+  hidden prompt. Do not ask for Key input until this full pre-TTY path passes.
+
+## Item30 Publisher pre-journal root closed offline; fresh-binding recovery ready (2026-08-31T22:20:00+08:00)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`; public-launch Readiness remains `0/9`; complete Readiness remains
+  `29/38`. Item30 remains `NO CREDIT`, Item31 has not started and no
+  checkpoint exists. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- The retained task token `6101275ceba4bbdec2de89264806cdf2f8d62653f5c23f16`
+  remains recovery-only. Publisher Command/Invoke
+  `t-sz06vnoy1gi8hs0` is permanently no-replay at pre-journal
+  `UNKNOWN / ExitCode 20`, with `live_change_started=false`, provider calls
+  zero and no configuration exchange, restart, database, funds or DNS write.
+  Its post-state readback `t-sz06vnpe8onr2tc` and the three action-free direct
+  diagnostic identities (last `t-sz06vnygm1mzh8g`) are also sealed and will
+  not be replayed or extended.
+- TTL was calculated from authoritative Stage `expires_at_epoch=1788183237`
+  and the official Aliyun Invoke actual start `1788182633`, not browser-submit
+  time. The result is exactly `604` seconds, so it is not below the 600-second
+  hard floor and is excluded as this failure's root cause. Every fresh
+  recovery and Publisher action must start with at least 1,200 seconds
+  remaining; the executable 600-second floor is preserved and not lowered.
+- The earliest supported root is a representation mismatch in the frozen
+  Publisher: Docker `Config.Env` accepted the image-inherited exact-one empty
+  key record `b"="`, while PID1 `/proc/<pid>/environ` used strict parsing and
+  rejected the same inherited record before the first journal. The minimum
+  correction applies the same exact-one rule to both sources and separately
+  requires exactly one terminal NUL, rejecting missing, double-terminal and
+  interior-empty framing. Readback uses the same rule. No journal, exchange,
+  restart or Item30 business condition changed.
+- Offline recovery no longer asks the owner to paste the same Amap key again.
+  A fresh Stage will rebind only the retained encrypted replacement inside
+  immutable b55 with `--network none`, read-only root, cap-drop and
+  no-new-privileges. It validates the expired source Envelope/keypair/payload,
+  rebuilds every fresh inner payload field and fresh AAD/AES/RSA envelope,
+  decrypts the new Envelope for in-memory round-trip verification, wipes
+  plaintext buffers and durably writes only the fresh task's
+  `envelope.json`. The old plaintext candidate is never mounted or moved.
+  Only after canonical rebind success may the old complete task be exactly
+  cleaned and the fresh Builder run.
+- Offline validation is `71/71 PASS`, `py_compile PASS`, deterministic carrier
+  round-trip PASS and every carrier remains within the Cloud Assistant limit.
+  DoD is `GO / P0=0 / P1=0`; Risk is conditional `GO / P0=0` subject to final
+  byte review; Verification is completing the final byte review. This is a
+  recovery executor only, not a controller, classifier, receipt, adapter,
+  Evidence schema or new Readiness condition.
+- API-C/API-F remain `Running / PrePaid`. Builder
+  `i-wz99180s9ig5ecq10uaj`, Worker-C `i-wz98zwcdtcmxzmmoso3w` and Worker-F
+  `i-wz93qgvlu1bllpjcfwfj` remain `Stopped / StopCharging / PostPaid`;
+  running stoppable PostPaid is zero. Actual incremental provider, Render,
+  database, funds and DNS cost remains zero. Managed NDR mask `7` remains the
+  independent Item36 P0 and Item38 NO-GO and is not reopened in Item30.
+- Unique next action: obtain final Verification/Risk byte GO, freeze fresh
+  identities and all carriers before creating the 1,800-second Stage, then
+  continuously submit fresh Stage -> encrypted rebind -> old-task exact
+  cleanup -> fresh Builder -> corrected Publisher while the official
+  Publisher start TTL remains at least 1,200 seconds. Any UNKNOWN seals only
+  that identity and is reconciled without replay; signed-readiness and all
+  four provider exact-one authorities remain unconsumed.
+
+## Item30 Amap replacement applied; two old tasks exactly cleaned (2026-09-01T07:10:03+08:00)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 still has `NO CREDIT`, Item31 has not started and no
+  checkpoint was created. The seven protected untracked paths remain present,
+  untracked and unstaged and were not read, modified, staged or committed.
+- Fresh API-F Stage Invoke `t-sz06vp4azfjcmio` is terminal `STAGED`, with
+  binding `20095e4ccb55ac680cea3d8931bf8f10727210f723de577167793c331130b37d`
+  and an authoritative 1,800-second TTL from official Invoke start. Rewrap
+  Invoke `t-sz06vp4s29x3myo` is terminal `AMAP_ENVELOPE_REBOUND`; the fresh
+  Envelope is 1,574 bytes at SHA-256
+  `a7f2c9490df162285a0dd199b88e5cd5308d3b6295e13ff065f2390456b72f11`.
+  Both report provider calls and live change zero.
+- The old built task was terminally removed by Invoke
+  `t-sz06vp4zzoag740`, and the old stage-only task by Invoke
+  `t-sz06vp52yksic5c`; each is `TASK_EXACT_CLEANED`, `task_residue=false`,
+  and provider/database/restart/live-change counts zero. Their official-start
+  fresh-TTL margins were 1,332 and 1,277 seconds. The fresh Envelope remained
+  byte/SHA/binding stable across both deletions.
+- Builder Invoke `t-sz06vp556omag3k` is terminal
+  `AMAP_CANDIDATE_BUILT`. Publisher Invoke `t-sz06vp56m1i4lj4` began with
+  1,209 seconds of official fresh TTL and is terminal
+  `APPLIED_PENDING_REVOKE`, with exactly one forward restart, zero rollback
+  restarts and zero provider calls. Independent action-free readback Invoke
+  `t-sz06vp58f3dfk00` is terminal
+  `APPLIED_PENDING_REVOKE_RECONCILED`, `snapshot_stable=true`, `writes=0`
+  and `recovery_retained=true`.
+- The actual random-identity rewrap carrier is 16,381 bytes at SHA-256
+  `e849e2a5a35805b6927cf627bb4166e5cec3b3cfd8ef3ee68a6e9eec1464c9c0`.
+  Its representation-only launcher reduction preserves the four unpacked
+  business files byte-for-byte and retains compressed SHA, bounded decode,
+  EOF/unused checks, no-follow exclusive writes, fsync, `env -i` and isolated
+  Python execution. Focused verification is `66/66 PASS`, `bash -n` passes,
+  and independent Verification reports `GO / P0=0 / P1=0` for the launcher
+  and exact cleanup execution.
+- Item30 signed-readiness and all four provider requests remain unconsumed;
+  provider/model cost, funds, business database, Render deploy and DNS effects
+  remain zero. API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and
+  Worker-F remain `Stopped / StopCharging / PostPaid`, so running stoppable
+  PostPaid and ongoing incremental PostPaid cost are zero.
+- The exposed old Amap Key remains active only as the retained rollback
+  material and must now be revoked through the owner-authenticated Amap
+  control plane; recovery cleanup is forbidden until that revocation is
+  confirmed. The Claude Platform browser session has expired and requires
+  owner authentication before a fresh account gate can be frozen. Do not open
+  an Amap credential-value automation surface, emit either Key, or replay any
+  Stage/rewrap/cleanup/builder/publisher/readback identity.
+- Unique next action: when the owner is present, guide the owner through the
+  Amap old-Key revocation without exposing its value, then reauthenticate the
+  Claude Platform session. After both human gates close, refresh all four
+  native account snapshots inside one 30-minute gate and execute the unchanged
+  canonical API-F signed-readiness -> Meituan -> Claude -> Kimi -> Amap
+  exact-one chain. Managed NDR mask `7` remains the independent Item36 P0 and
+  Item38 NO-GO and is not reopened in Item30.
+
+## Item30 provider-control-plane gates closed; cleanup identity under exact readback (2026-09-01T22:15:49+08:00)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 still has `NO CREDIT` and no checkpoint was created.
+  The seven protected untracked paths remain present, untracked and unstaged
+  and were not read, modified, staged or committed.
+- Owner-authenticated provider control planes are now closed: Claude is
+  authenticated with the current September usage counter at zero, and Amap's
+  active application list contains the replacement `noteai-rot-0830` exactly
+  once and the exposed old `noteai-fact` zero times. The old Key is therefore
+  removed from the active list; its provider recycle-bin recovery boundary is
+  retained only as provider-controlled rollback, not as an API-F rollback
+  authority. No Key value was read or emitted.
+- An exact `cleanup-applied` recovery carrier was frozen locally at SHA-256
+  `588dd2ce529e379384b2dc6e94de5378817d9ef4f3e220763cc59ce121e6d215`
+  (`bash -n` and two carrier round-trip tests PASS). Browser submission of the
+  old identity
+  `noteai-item30-amap-cleanup-applied-20260901-a5a04d2f` timed out without an
+  authoritative acceptance response. That identity is sealed and must not be
+  replayed. Its exact Cloud Assistant Command/Invoke ledger must be read before
+  any fresh cleanup successor: if present, reconcile only that identity; if
+  absent, use one fresh identity because absence alone does not prove the old
+  attempt was never transiently accepted.
+- Chrome currently reaches an Alibaba Cloud login page for the ECS Cloud
+  Assistant command list, and the local official CLI has no usable
+  authenticated readback. This is the sole current human gate. No new
+  Command/Invoke, restart, configuration change or provider request was made
+  during reconciliation. API-C/API-F remain `Running / PrePaid`; Builder,
+  Worker-C and Worker-F remain `Stopped / StopCharging / PostPaid`; running
+  stoppable PostPaid and incremental cost remain zero.
+- Unique next action: owner completes Alibaba Cloud authentication in the
+  Chrome tab whose callback is the Shenzhen Cloud Assistant command list.
+  Resume by exact-name readback of the sealed cleanup identity, close recovery
+  cleanup only on the canonical terminal fields, then freeze the fresh native
+  account gate and execute the unchanged signed-readiness -> Meituan -> Claude
+  -> Kimi -> Amap exact-one chain. Managed NDR mask `7` remains the independent
+  Item36 P0 and Item38 NO-GO and is not reopened in Item30.
+
+## Item30 sealed cleanup absent; fresh exact successor prepared (2026-09-01T22:33:20+08:00)
+
+- Owner authentication is current. The Shenzhen Cloud Assistant `My Commands`
+  exact-name filter for sealed identity
+  `noteai-item30-amap-cleanup-applied-20260901-a5a04d2f` returned the
+  authoritative empty state `no matching records`. The old browser attempt is
+  permanently no-replay; it was not resubmitted or reused.
+- Fresh successor name is
+  `noteai-item30-amap-cleanup-applied-20260901-d6c8d0c458c5742a`. The official
+  OpenAPI Explorer form is prepared but not submitted. Its request projection
+  has exactly eleven API fields: `RegionId`, `Name`, `Type`,
+  `CommandContent`, `Timeout`, `EnableParameter`, `RepeatMode`, `KeepCommand`,
+  `ContentEncoding`, sole `InstanceId` and `TerminationMode`. It is API-F only,
+  `cn-shenzhen / RunShellScript / 600 / false / Once / false / Base64 /
+  ProcessTree`; `Username`, `WorkingDir` and `ClientToken` are absent.
+- Projected CommandContent appears exactly once, decodes to 16,358 bytes and
+  is byte-identical to the frozen carrier SHA-256
+  `588dd2ce529e379384b2dc6e94de5378817d9ef4f3e220763cc59ce121e6d215`.
+  Both persistent Verification and Risk reviewers return `GO / P0=0 / P1=0`.
+  No submit click, Command/Invoke, restart, configuration, provider, database,
+  funds, Render, DNS or PostPaid action has occurred in this preparation.
+- The only permitted cleanup write is the exact retained Amap recovery/task
+  material after double-snapshot CAS. Old-Key rollback is permanently
+  forbidden. Success requires exact-one API-F result at
+  `Finished / Success / Exit0`, empty stderr, `Dropped=0`, `Repeats=1`, and
+  canonical `APPLIED_REVOKED_CLEANED`, `task_residue=false`,
+  `recovery_retained=false`, with restart/provider/database/secret emission
+  zero. Any partial or ambiguous result seals this fresh identity as
+  `UNKNOWN_NO_ROLLBACK` and is not replayed.
+- API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid and
+  incremental cost remain zero. Readiness remains `29/38`, Item30 `NO CREDIT`.
+  Unique next action is the owner's immediate action-time confirmation of this
+  exact deletion, followed by exactly one `RunCommand` submit and same-identity
+  terminal reconciliation.
+
+## Item30 Amap recovery cleanup terminal PASS (2026-09-01T22:51:53+08:00)
+
+- Owner confirmed the exact deletion at action time. Fresh Command
+  `c-sz06vrgscookxds` / Invoke `t-sz06vrgscp8k45c` was submitted exactly once
+  under name
+  `noteai-item30-amap-cleanup-applied-20260901-d6c8d0c458c5742a` and is
+  permanently no-replay. It targeted only API-F with root, immediate Shell,
+  timeout 600 and ProcessTree.
+- Official `DescribeInvocationResults` request
+  `01A05D73-0015-5942-B2A5-03EEF851184C` returns exactly one row bound to that
+  Command, Invoke, API-F instance and fresh name: `Finished / Success /
+  ExitCode=0`, `Dropped=0`, `Repeats=1`, empty ErrorCode/ErrorInfo, with start
+  and finish both `2026-09-01T14:46:41Z`.
+- Canonical Output is exactly 287 bytes including one terminal LF, SHA-256
+  `e51e457089f1c57ceaad43ab50b29e3140d1e21e72fd17c76efe2033b1c6e7eb`.
+  It is the exact key set with `classification=APPLIED_REVOKED_CLEANED`, owner
+  old-revoke confirmation true, `recovery_retained=false`,
+  `task_residue=false`, and restart/provider/database/secret emission zero.
+  Verification and Risk terminal predicates are all closed; no further Amap
+  cleanup, rollback, restart or recovery readback is allowed or needed.
+- Production effects are limited to the authorized task-exact deletion and
+  Cloud Assistant audit records. API-C/API-F remain `Running / PrePaid`;
+  Builder, Worker-C and Worker-F remain `Stopped / StopCharging / PostPaid`;
+  provider usage, funds and incremental cost remain zero. Complete Readiness
+  remains `29/38`, Item30 `NO CREDIT`, and no checkpoint was created.
+- Unique next action: freeze fresh native provider account/price snapshots in
+  one 30-minute gate, receive final Verification/Risk admission, then execute
+  the unchanged canonical API-F signed-readiness -> Meituan -> Claude -> Kimi
+  -> Amap exact-one chain with retry/fallback zero. Managed NDR mask `7`
+  remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 Amap credential exposure re-contained before provider dispatch (2026-09-01T22:57:10+08:00)
+
+- While collecting the fresh native Amap account gate, the owner-authenticated
+  application page rendered the current active credential value into a browser
+  diagnostic result. The value is not repeated, hashed, persisted or admitted
+  into tracked Evidence. The affected page was closed immediately, the pending
+  gate was discarded, and the current Amap credential is treated as exposed
+  and permanently forbidden for Item30 provider use.
+- No fresh provider wrapper, Cloud Assistant Command/Invoke, signed-readiness
+  or provider request was submitted. Provider usage, funds, business-database
+  writes, Render changes, DNS changes and restart count remain zero. API-C and
+  API-F remain `Running / PrePaid`; Builder, Worker-C and Worker-F remain
+  `Stopped / StopCharging / PostPaid`, with running stoppable PostPaid zero.
+- Verification and Risk independently return `NO-GO` for provider dispatch and
+  require the already established recovery contract only: create one fresh
+  replacement without browser automation reading its value; use a fresh API-F
+  Stage and owner-hidden local intake; publish only the Amap key; reconcile
+  `APPLIED_PENDING_REVOKE_RECONCILED`; revoke the exposed credential; then
+  exact-clean recovery material to `APPLIED_REVOKED_CLEANED`. No new
+  controller, classifier, adapter, receipt or Evidence layer is permitted.
+- HEAD/upstream remain `22aeb74498db7883a9281a84671056dae26f07f5` and
+  complete Readiness remains `29/38`; Item30 has `NO CREDIT`. The sole next
+  action is to prepare and execute this fresh bounded rotation without opening
+  another credential-value diagnostic surface. Only after terminal cleanup may
+  the four fresh native account snapshots and canonical provider chain resume.
+  Managed NDR mask `7` remains the independent Item36 P0 and Item38 NO-GO.
+
+## Item30 fresh resource gate PASS; Amap owner-login HOLD (2026-09-02T00:21:26+08:00)
+
+- HEAD and upstream are both
+  `22aeb74498db7883a9281a84671056dae26f07f5`; complete Readiness remains
+  `29/38`, Item30 remains `NO CREDIT`, and no checkpoint exists for Item30.
+- The expired replacement Stage residue was already exact-cleaned. The full
+  Stage -> hidden Terminal -> Builder -> Publisher -> readback path, carriers,
+  fixed form projection, binding renderer and focused fixtures are frozen
+  offline. Verification's independent run is `92/92 PASS`; both standing
+  reviewers had admitted the frozen artifacts before this action-time gate.
+- Fresh authenticated Aliyun console readback proves API-C and API-F are
+  `Running / PrePaid`. Builder, Worker-C and Worker-F are each
+  `Stopped / PostPaid / StopCharging` (console `节省停机模式`), so running
+  stoppable PostPaid and continuing PostPaid compute cost are zero.
+- API-F Cloud Assistant is `正常` at version `2.2.4.1097`. The official
+  execution-results views for `运行中`, `等待执行` and `计划执行中` each contain
+  no records, so the action-time nonterminal count is zero.
+- A fresh official Amap application navigation redirected to the owner login
+  form. No username, password or MFA was entered; `noteai-rot-0901` was not
+  read, pasted, transmitted or consumed. No fresh Stage, Command/Invoke,
+  configuration write, restart, provider request, database/funds/DNS action or
+  incremental cost occurred. The Aliyun and Amap tabs are retained as the
+  same handoff surfaces.
+- Verification and Risk independently return `HOLD / P0=1 / P1=0`: the sole
+  blocker is owner Amap authentication. Creating a Stage before login would
+  waste the frozen 1,800-second TTL and is forbidden. The unique next action
+  is for the owner to complete login on the retained official Amap page and
+  report completion; root then rechecks the replacement label without reading
+  its value and proceeds to the already-frozen fresh Stage path.
+
+## Item30 fresh Stage canonical; owner-away Stage cleanup closed (2026-09-02T07:44:01+08:00)
+
+- HEAD and upstream remain identical at
+  `22aeb74498db7883a9281a84671056dae26f07f5`. Internal Readiness remains
+  `29/29`, public-launch Readiness remains `0/9`, and complete Readiness
+  remains `29/38`; Item30 still has `NO CREDIT`, Item31 has not started and no
+  Item30 checkpoint was created. The seven protected untracked paths remain
+  present, untracked and unstaged and were not read, modified, staged or
+  committed.
+- The owner-authenticated resource gate admitted exactly one fresh API-F Stage.
+  Command `c-sz06vsrtczhmoe8` / Invoke `t-sz06vsrtczrm9s0` under name
+  `noteai-item30-amap-stage-20260901-f51e1fc758a2` is terminal official
+  Success / ExitCode 0. Its official start/creation is
+  `2026-09-02T07:33:52+08:00` and completion is
+  `2026-09-02T07:33:54+08:00`. The exact canonical 19-field `STAGED` output
+  has issued/expires epochs `1788305632/1788307432`, an exact 1,800-second
+  TTL, RSA-3072/e=65537 and recomputed binding acceptance. The existing
+  canonical intake validator accepts it at the official start with the
+  1,200-second minimum. This is Stage-only credit and does not grant Item30 or
+  provider credit.
+- Before hidden intake, the owner reported leaving the computer. No Amap Key
+  was read, pasted, transmitted or consumed; no Envelope was created. The
+  existing replacement `noteai-rot-0901` remains the sole unread/unconsumed
+  replacement and must not be recreated. Waiting inside the 1,800-second TTL
+  had no safe benefit, so Verification and Risk independently returned GO for
+  the already-authorized Stage-only exact cleanup.
+- The reused cleanup implementation passed `21/21` focused tests; the current
+  rendered source differs only in seven Stage-binding constants, and its
+  Python/Shell/hash checks pass. Fresh cleanup Command
+  `c-sz06vssjq3n7oqo` / Invoke `t-sz06vssjq3upds0`, name
+  `noteai-item30-amap-stage-cleanup-20260902-053d9d3420c7`, is terminal
+  Success / ExitCode 0 with canonical `STAGE_TASK_EXACT_CLEANED`,
+  `task_residue=false`, and database/provider/restart/secret/live-change
+  counts zero. It deleted only this Stage's `stage.json`, `public.pem`,
+  `private.pem` and then-empty task directory. Both Stage and cleanup
+  identities are permanently no-replay.
+- Production effects are limited to the temporary API-F task-local Stage
+  files, their exact removal and Cloud Assistant audit metadata. Signed
+  readiness and all four provider exact-one requests remain unconsumed;
+  configuration, service, Render, business database, funds and DNS effects
+  remain zero. API-C/API-F remain `Running / PrePaid`; Builder, Worker-C and
+  Worker-F remain `Stopped / StopCharging / PostPaid`, so running stoppable
+  PostPaid and continuing incremental PostPaid cost remain zero. Actual
+  provider, funds and incremental cloud cost for this stage/cleanup cycle are
+  zero.
+- The workflow is paused only for the explicit human-presence gate. Unique
+  next action: after the owner returns and confirms availability, re-establish
+  the official Chrome surfaces if needed, recheck login/resource/nonterminal
+  facts without reading the Key, then create one entirely fresh Stage and
+  immediately open the already-frozen hidden intake for a single paste of the
+  existing `noteai-rot-0901` Key. Do not create another Stage while the owner
+  is absent. After intake, continue the frozen Builder -> Publisher ->
+  readback -> exposed-Key revocation -> exact cleanup path, then resume the
+  unchanged signed-readiness -> Meituan -> Claude -> Kimi -> Amap chain.
+  Managed NDR mask `7` remains the independent Item36 P0 and Item38 NO-GO and
+  is not reopened in Item30.
+
+## Item30 fresh Amap Key exposure contained; owner-only replacement gate (2026-09-02T20:51:28+08:00)
+
+- HEAD/upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`.
+  Complete Readiness remains `29/38`, Item30 remains `NO CREDIT`, Item31 has
+  not started, and no checkpoint was created. The seven protected untracked
+  paths remain untouched.
+- When re-establishing the owner-authenticated Amap action-time gate, Chrome's
+  accessibility surface rendered the raw values of both active Amap Keys.
+  Neither value is repeated, hashed, persisted or admitted into tracked
+  Evidence, but both `noteai-rot-0901` and the already-exposed
+  `noteai-rot-0830` are now forbidden for production use. Amap credential-list
+  browser automation is permanently stopped for this rotation.
+- No Stage, Command/Invoke, Envelope, configuration write, restart,
+  signed-readiness or provider request followed the exposure. A new local-only
+  identity is frozen at nonce prefix `35764578b5b0`; its 12,170-byte Stage
+  carrier SHA-256 is
+  `037b3fa751127e2fbf8e3f55ed9649bef8e686f96701ed2b3b830a0fed9daf6a`
+  and the hidden-intake launcher is 376 bytes at SHA-256
+  `101e044a4ff84b73bac61a65295b4600778eff6c7740625c4b05e5297adbc990`.
+  Python/Shell compilation checks pass. This identity has no cloud presence
+  and must not be submitted before a replacement is manually ready.
+- Fresh owner-authenticated checks show Cloud Assistant `Scheduled`,
+  `Running` and `Pending` result sets each empty; API-C/API-F are
+  `Running / PrePaid`; Builder, Worker-C and Worker-F are each
+  `Stopped / StopCharging / PostPaid`. Running stoppable PostPaid and
+  incremental variable cost remain zero.
+- Unique next action: without any browser automation on the credential list,
+  the owner manually creates exactly one Amap Web Service Key named
+  `noteai-rot-0902`, copies it locally without placing it in chat, and reports
+  `新Key已创建并复制`. Root then submits the already-frozen fresh Stage and
+  immediately opens the hidden Terminal intake exactly once. After APPLIED
+  readback, both exposed Keys must be owner-confirmed revoked before exact
+  cleanup and provider-chain dispatch.
+
+## Item30 provider attempt sealed; task-only stop and readback (2026-09-03)
+
+- HEAD/upstream remain `22aeb74498db7883a9281a84671056dae26f07f5` on
+  `codex/quality-stabilization-real-chain`; internal readiness `29/29`, complete
+  readiness `29/38`, Item30 `NO CREDIT`, Item31 not started. No checkpoint or
+  push. The seven protected paths remain untouched. There are no live
+  subagents; historical reviews are not fresh reviews and the prohibition on
+  recreating agents is respected.
+- Owner supplied `noteai-rot-0902` and explicitly deferred `noteai-rot-0901`
+  deletion under Amap's 24-hour restriction; this is not reopened as an Item30
+  blocker. Never inspect a credential-value page. Owner permits Claude/Kimi/
+  Amap cost below CNY10 if necessary, but canonical caps remain CNY0.30 and
+  were not changed. Meituan retains its separate unpriced exact-one exception.
+- Prior suffix `aa2073ad84277702` was exact-cleaned by Command
+  `c-sz06vv8cxn2idq8` / Invoke `t-sz06vv8cxnhhrsw`, Success/Finished/Exit0,
+  `2026-09-02T16:06:27Z`–`16:06:28Z`, zero residue/provider/restart.
+- Fresh provider Command `c-sz06vvak5kckbnk` / Invoke `t-sz06vvak5ku1m2o`,
+  name `noteai-item30-provider-chain-20260903-dddef76f3bdf1158`, was accepted
+  once (RequestId `01A062F5-BA3E-5806-A599-891F608F5F15`). Actual API-F start
+  `16:31:07Z`, gate expiry `16:46:18Z`, remaining 911 seconds. Official final
+  projection had eleven fields and no Username/WorkingDir/ClientToken.
+- Frozen directory `/var/tmp/noteai-item30-provider-final.aTnSee`; suffix
+  `dddef76f3bdf1158`; nonce
+  `532720502b8bfb8d7f641862cc7df0b57921afae250b4bbd06d552d94e2e743c`.
+  Gate SHA256 `6f1b2bcfd65080d85c785c3a541807e9c7293949b6f6a1a2d4d805b70a53c300`
+  (3157 bytes); wrapper SHA256
+  `5cdd9cc04880fbf3ce09722aa54640aa2503f9319a101d1cd4b39799527311d7`
+  (61965 bytes); carrier SHA256
+  `ae914a6030edb6fcd710070e21666c71fe695d8e792bcaa110f09e7a74cb8f0c`
+  (18360 bytes). Immutable b55/executor/fact source/validator unchanged.
+- Existing scrub had unbounded `/dev/zero` copying (no count). Root stopped
+  only this Invoke/API-F via StopInvocation RequestId
+  `01A062FC-E633-598E-8E77-783D42CE4445` at `16:38:56Z`. Official readback
+  `01A062FD-4D7D-508A-BEE9-1038CAF08BB5` confirms Terminated/Stopped,
+  finish `16:38:58Z`, Repeats1/Dropped0, empty output/errors. Never replay.
+- Task-exact action-free readback Command `c-sz06vvbwvzb6z28` / Invoke
+  `t-sz06vvbwvzg6rr4` is Success/Finished/Exit0 at `16:46:18Z`, RequestId
+  `01A06304-4733-53BA-A769-64ED6C15C6D7`. Its 2619-byte output SHA256 is
+  `88117fe91f4d03ae13c709f4a3d226ab3d679ccc829bf0666009859252659755`.
+  Source `provider-readback.sh` SHA256
+  `bc1f8b3dea267405a69060d5b4557d0b75937603f65c29370ba7138cf1612558`;
+  carrier SHA256 `c10cd870c3d5666f0708d499fa95f750279447ea2c07e37a3147c629e06f4f6d`.
+- Retained executor result is UNKNOWN, 5140 bytes, SHA256
+  `13444140d5b6866006f2d58cf8b45980e1002c9ca1814229233249af90e3b745`.
+  Gate/nonce and TERMINAL anchor bind correctly. It records only Meituan
+  UNKNOWN, logical dispatch1, unknown1, success0, retry0/fallback0. Claude,
+  Kimi and Amap were not dispatched. Native Meituan settlement is unresolved,
+  not zero; do not equate logical dispatch with proved native request success.
+- API-F CID `843a974866addac89fcc1efa0a581f9fcf9f5e5653adcf17bc5fc8de1c9eee05`,
+  PID505150, StartedAt `2026-09-02T13:47:45.602801121Z`, restart0,
+  running/healthy/immutable image are stable. Task references0. Task-container
+  inspect is absent-or-read-error, not independently certified absence.
+  provider.env is absent. stdout.bin is 20,079,681,536 bytes, stderr empty,
+  two exact source files remain; disk available 12,601,638,912 of
+  41,882,943,488 bytes. Gate/result/recovery must be retained. No secret emitted.
+- Offline lead: wrapper clears PATH; canonical Meituan subprocess inherits it;
+  official pinned CLI1.0.16 begins `#!/usr/bin/env node`. Its tarball integrity
+  and bundle SHA256 `8a0527bb6e8b9074cf0221756f35bca989945e8436e4841596a7b7bf79ae06d8`
+  match the Dockerfile. Local negative/positive fixtures show empty-PATH
+  Exit127 before Node entry versus fixed-PATH success, provider calls0. Retain
+  original UNKNOWN until actual dispatch boundary is reconciled.
+- No production config/service/Render/business-DB/funds/DNS changes. API-C/F
+  remain PrePaid; all three PostPaid nodes retain verified Stopped/StopCharging,
+  none was started, incremental PostPaid cost0. NDR mask7 stays Item36 P0 and
+  Item38 NO-GO, not an Item30 gate. No current MFA/new-secret gate.
+- Unique next action: close exact task-transient cleanup while retaining
+  gate/result/recovery and read the hash-bound full result. Existing
+  `provider-cleanup.sh` is prepared but NOT submitted. Reconcile native Meituan
+  status; no provider replay without proved non-dispatch or explicit bounded
+  owner commercial-risk decision. Then continue canonical Item30 only.
+
+### Full journal retained; exact transient cleanup awaits action-time confirmation
+
+- The minimal 773-byte, hash-bound result read used fresh name
+  `noteai-item30-result-read-20260903-d20395c1381366f8`, source SHA256
+  `aaab78f826b086a5bf9d48001a6e694683d784a907db71830ebd302c684b92f5`,
+  Command `c-sz06vvd9z437h8g` / Invoke `t-sz06vvd9z4i6vb4`.
+  Acceptance RequestId `01A06311-9D87-5356-B6B8-1AD7BB34E58E`; terminal
+  readback `01A06312-1ABC-5EB9-B9B8-F7CC69B857CA`, Success/Finished/Exit0,
+  start=finish `2026-09-02T17:01:35Z`, Repeats1/Dropped0, empty errors.
+  Its exact 5140-byte canonical result is now retained off-repo at
+  `/var/tmp/noteai-item30-provider-final.aTnSee/executor-result.json`, same
+  SHA256 `13444140d5b6866006f2d58cf8b45980e1002c9ca1814229233249af90e3b745`.
+- This full result proves `claude_remote_ready=true` and gateway mode, with
+  Meituan runtime READY before the attempt. Meituan elapsed_millis=3 and the
+  executor recorded UNKNOWN; the later three providers are absent. Ephemeral
+  DB residues, business DB connections/writes and actual model cost are zero.
+  Retain UNKNOWN and native-settlement uncertainty; no provider was repeated.
+- The existing offline template, not the executed/frozen wrapper, now limits
+  scrub to `bs="$n" count=1` and fixes only the isolated container PATH to
+  `/usr/local/bin:/usr/bin:/bin`, with the existing inspection predicate matching
+  that value. Template SHA256
+  `443b9e5d96b7862d47cb0d3aa8bc0cb067ff9ef6809226d5031bff4f649332af`.
+  Five byte-length fixtures, empty/fixed PATH fixtures, Shell syntax and the
+  canonical 25 focused tests pass; embedded executor SHA is unchanged. This
+  template has NOT been run in production. No validator/DoD changes or credit.
+- Before any future fresh provider attempt, resolve the existing validator's
+  fixed command_name requirement without false evidence or validator bypass:
+  `noteai-item30-real-provider-chain-20260824` was already used historically
+  (`t-sz06v2i34urnym8`). Do not silently call a different cloud display name
+  this constant or repeat a paid probe just to align metadata.
+- Fresh official DescribeInstances RequestId
+  `01A06317-EDC7-5D81-BC07-8B7AA9C404F7` returns exactly five instances:
+  API-C/F Running/PrePaid; Builder `i-wz99180s9ig5ecq10uaj`, Worker-C
+  `i-wz98zwcdtcmxzmmoso3w`, Worker-F `i-wz93qgvlu1bllpjcfwfj` are each
+  Stopped/PostPaid/StopCharging. Continuing stoppable PostPaid cost is zero.
+- Exact cleanup is fully prepared but NOT submitted, name
+  `noteai-item30-transient-cleanup-20260903-7d12dffb0394a5d3` in Chrome tab
+  `1637490380`. Source `provider-cleanup.sh` is 5411 bytes, SHA256
+  `31346d1c61c92e9578475bfb4a3a49fdd8e6db16176624c8db02d7316545f801`;
+  carrier is 3129 bytes, SHA256
+  `7db8fe8cd085272a406b8ebe5eca0015dd4183a19940ce65cb8a56dbf14fff84`.
+  Shell/Python syntax, exact deletion-scope static checks and carrier roundtrip
+  pass. Final official SDK projection has exactly eleven fields, exact Base64
+  carrier, sole API-F, Shenzhen/Shell/150s/Once/KeepCommand=false/ProcessTree,
+  and Username/WorkingDir/ClientToken absent. No RunCommand submit click yet.
+- The sole planned deletion is stdout.bin (20,079,681,536 bytes), empty
+  stderr.bin, two hash-verified source files, then the empty source directory
+  under exact task `/var/lib/noteai/item30-acceptance/dddef76f3bdf1158`.
+  Gate/result/recovery are retained; no env, configuration, restart, provider,
+  DB/funds/DNS/Render or PostPaid action. API identity/health and exact metadata
+  CAS must hold; UNKNOWN seals the cleanup identity and preserves the ledger.
+  Current pause is for browser cloud-deletion action-time confirmation, not
+  a new Key or technical diagnosis request. On confirmation, recheck the frozen
+  projection, submit exactly once, and reconcile that new Invoke. No Item30
+  terminal checkpoint is permitted until canonical acceptance actually passes.
+
+### Exact task-transient cleanup closed (2026-09-03)
+
+- Owner supplied action-time confirmation `确认清理`. The frozen source and
+  carrier hashes above were unchanged. A fresh official browser surface proved
+  the exact eleven-field request, with Username/WorkingDir/ClientToken absent,
+  before one RunCommand submission. The official result's resolved Username=root
+  is the service default, not a submitted Username field.
+- Command `c-sz06vw7de14nrb4` / Invoke `t-sz06vw7de1h591c`; acceptance RequestId
+  `01A06446-7B75-582B-AFF0-4385E7FF7174`. Terminal query RequestId
+  `01A06446-D918-5518-8804-3C80A518C07E`: Success/Finished/Exit0,
+  start `2026-09-02T22:38:57Z`, finish `2026-09-02T22:38:58Z`, Repeats1,
+  Dropped0, empty errors. Output 5550 bytes, SHA256
+  `f5131f2c288359fc595fba89251e7014ad68d3af072dbb63dcc5f1d55a9b5926`.
+- `TASK_TRANSIENTS_CLEANED`: exactly four temporary files and the empty source
+  directory removed; deleted stdout was 20,079,681,536 bytes. Available disk
+  is now 32,679,415,808 bytes. Gate, executor result and recovery anchor remain;
+  the executor-result hash is unchanged. Temporary output has no product restore
+  path; source copies are reconstructible from tracked code. No business data
+  was deleted. API identity/health unchanged; provider calls0/restarts0/secrets0.
+- HEAD/upstream remain `22aeb74498db7883a9281a84671056dae26f07f5`;
+  Readiness29/38, internal29/29 accepted, no credit/checkpoint. API-C/F remain
+  Running/PrePaid; Builder/Worker-C/Worker-F remain Stopped/StopCharging per the
+  latest official five-instance query; no PostPaid start or new charge.
+- No MFA/new-secret/fee/DNS gate arose. This cleanup identity is terminal and
+  must not be replayed. Unique next action: safely reconcile the sealed Meituan
+  logical UNKNOWN against the existing CLI/PATH evidence and native records,
+  before any new provider request; preserve the original result and resolve
+  the canonical command-name binding without false evidence or validator change.
+
+- Further bounded read-only reconciliation: the signed-in Meituan developer
+  account navigation exposes Token management, account information and AI Hub;
+  the official `/zh/v2/dev/doc` guide supplies setup/token/Skill instructions,
+  not an invocation ledger or settlement query. No credential-value page was
+  entered and no provider request was made. Absence of a visible ledger is not
+  proof that the previous request was not dispatched.
+- Frozen source shows PATH cleared before container start, propagated into the
+  CLI child environment, with the pinned CLI using `/usr/bin/env node`; its
+  failure is reproduced offline. Nevertheless, the old executor collapsed the
+  actual exception to UNKNOWN and the child stderr was not retained. Keep the
+  original logical UNKNOWN intact: this is strong root-cause evidence, not an
+  authoritative native non-dispatch/zero-charge receipt. Technical cleanup is
+  complete. A new real Meituan request would require the owner's explicit
+  acceptance of at most one additional, potentially duplicate, unpriced call;
+  the CNY0.30 / below-CNY10 permission for the other three does not cover this
+  duplication decision. No such call has been submitted.
+
+### Fresh Item30 attempt authorized and frozen (2026-09-03)
+
+- Owner accepted at most one additional potentially duplicate, unpriced
+  Meituan call (`接受，全权由CTO决定`). The old logical UNKNOWN remains sealed;
+  this is a new business attempt, not a replay or a zero-cost attribution.
+- The three existing subagents were successfully reused through follow-up:
+  dod_dependency_auditor, verification_evidence_reviewer and
+  risk_cost_resource_guard all GO. A same canonical display Name is valid for
+  a new Command/Invoke/task/nonce; no validator, executor or DoD changes.
+- Offline wrapper fixes are bounded scrub, fixed isolated-container PATH,
+  retaining BASE siblings, and cleanup only after this task was created.
+  Template SHA256 37e0412c647c71bcd0f2fe1e839412c87ece78d1b7ba7b7a0516994e13e41c0d.
+  Canonical 25 focused tests, syntax, exact executor bytes, carrier roundtrip,
+  existing-sibling, same-task collision and dangling-symlink fixtures PASS.
+- Fresh suffix `5858538c99730d3d`, nonce
+  `38d2ed8f1f125bd7697c151f68bba8fa616ac4810eee478974898b16214e2c0f`.
+  Artifacts: `/var/tmp/noteai-item30-provider-successor.HPwyJm`.
+  Gate3157B SHA256 b202ec24878cd6fe7be0f3fbc46494a3552dee4d1f07b6946fe9b4513e8cd1f8,
+  generated23:15:14Z/expires23:45:14Z on 2026-09-02. Earliest native pre-counter
+  observation23:05:59Z gives an effective existing snapshot deadline23:35:59Z.
+  Wrapper62146B SHA25692f476c24bb6da66aebfa725147aaf38f0baa0a76f2f476dc374a5854e5b9a43;
+  carrier18427B SHA256dc98bc763416af1ad08a39e12d6d33ad1864a4ba54e92054133692f9033c6caf.
+- Official SDK projection verified exact carrier bytes, eleven fields,
+  Username/WorkingDir/ClientToken absent; API-F only, Shenzhen, Once,
+  Timeout900, KeepCommand=false, ProcessTree. Real cloud Name will be
+  `noteai-item30-real-provider-chain-20260824`. Not yet submitted at this entry.
+- Latest resource query01A06466-19D8-5C4F-A929-EF1FB994FED1: API-C/F
+  Running/PrePaid; Builder/Worker-C/Worker-F Stopped/PostPaid/StopCharging.
+  Render production Live84f8a2f1436627e0f05588ee0276b1950b230ae3, Singapore,
+  public health HTTP200; no deploy needed. Native account counters/prices
+  refreshed without reading credentials. Three priced calls each <=CNY0.10,
+  total<=CNY0.30; Meituan separate unpriced exception. No current new charge.
+- HEAD/upstream22aeb74498db7883a9281a84671056dae26f07f5; Readiness29/38,
+  internal29/29 accepted. No Item31, no terminal checkpoint. No human gate.
+  Unique next action: submit this frozen fresh request once, bind acceptance
+  Command/Invoke immediately, then read its terminal and reconcile native usage.
+  Any UNKNOWN seals that identity; retain old result/gate/recovery throughout.
+- One submission accepted at 2026-09-02T23:18:53Z: Command
+  `c-sz06vwaxp5m4kcg`, Invoke `t-sz06vwaxp68lngg`, RequestId
+  `01A0646B-0F7D-5A49-A151-7803A6A23186`. Do not submit again. Unique next
+  action is official terminal readback of this exact Invoke on API-F.
+- Official terminal RequestId01A0646B-8689-5D0F-9882-17BC4E15346E:
+  Failed/Finished/Exit1, start23:18:54Z finish23:19:15Z, Repeats1/Dropped0,
+  Output empty, ErrorCodeExitCodeNonzero. Seal this identity; no replay.
+  Existing task-exact readback was adapted only for fresh binding and safe
+  full original result/journal output; frozen executor key allowlists and
+  source/gate binding reject extra sensitive fields, with stable byte/stat
+  readback. Positive full-result/journal/minimal-UNKNOWN and negative extras
+  pass; Verification GO. No provider/cleanup/config/restart or DB action.
+- Readback source12936B SHA256c5cc1b5d7aef8f4ccba3cfbc162fcb2784ef090c48503655cffbcb100776b701;
+  carrier5560B SHA2563329d565c0483e8f6032deb0ae2c69da497d79079c85e623b44be43446953d6b.
+  Official SDK exact eleven fields/Username absent. One readback accepted:
+  Commandc-sz06vwbo98qieio / Invoket-sz06vwbo995hslc,
+  RequestId01A06472-A276-5BB7-B38E-5299117932F3.
+  Unique next action: read this action-free Invoke terminal, not provider replay.
+
+### Fresh attempt terminal and native Claude reconciliation (2026-09-03)
+
+- Readbackt-sz06vwbo995hslc terminal RequestId01A06473-3586-5B3C-AC1F-67B0673CEE64:
+  Success/Finished/Exit0, start23:27:10Z/finish23:27:11Z, Repeats1/Dropped0.
+  Output7604B SHA256d09d1e008b145fe6b6b457e666f856136fbffe5c5f7c9c9a9895188f9b4a5e23.
+  READBACK_COMPLETE, gate/nonce/source binding valid, original result5594B
+  SHA256c6408e37d455ae7afef74692cb6cfff4e35ce6aa2febe95c23793a6d29fe5a5b,
+  retained off-repo in the fresh directory as executor-result.json.
+- Signed-readiness passed. Meituan SUCCESS/dispatch1/cli1, elapsed15299ms,
+  six structured facts, source1, both target matches true, output5392B/hash
+  e9e8d924b55b0a538c694c1fb36413e8cd4e0bf5208d4138b2bcec31c1153673.
+  Claude UNKNOWN/dispatch1/elapsed2672ms; Kimi/Amap absent and not dispatched.
+  Retry0/fallback0; business DB connections/writes0, user content0.
+  The old Meituan UNKNOWN is not rewritten by this new successful call.
+- API-F before/after identical: CID843a974866addac89fcc1efa0a581f9fcf9f5e5653adcf17bc5fc8de1c9eee05,
+  PID505150, restart0, StartedAt2026-09-02T13:47:45.602801121Z,
+  immutable image/running/healthy unchanged. Task refs0; source/provider.env/
+  stdout/stderr absent. Only recovery.json and result/{gate,result} remain;
+  they are deliberately retained, not cleanup targets. Disk available32,688,971,776B.
+- Claude official usage at23:29:44Z, same account/All filters/Month to date:
+  input0->21, output0->64 (total0->85), web searches0. Official Logs identifies
+  req_011CefU88cmqobf9PJQoH98b at2026-09-02T23:19:14.643Z,
+  Haiku4.5/HTTP/Standard, latency1.122s. This proves real request usage but not
+  exact NOTEAI_OK output or the application's successful usage recording.
+  Cost Month-to-date shows rounded USD0.00/No data; it is not zero-settlement
+  evidence. Published token-price arithmetic gives USD0.000341, an estimate
+  only. Actual settled Claude cost is still not independently resolved.
+- Render production remains Live84f8a2f; official Logs Last hour says No logs,
+  most recent logs3daysago. No deployment/environment/plan changes. Its fixed
+  gateway logs and unavailable operation_id do not permit unique root-cause
+  attribution; no table scan or new classifier is introduced.
+- Offline fixture proves CLAUDE_OUTPUT_INVALID and MODEL_USAGE_NOT_ACTUAL
+  produce identical current executor results when elapsed time is held equal.
+  Thus the diagnosis is limited by lost failure details, not missing Key,
+  TTL, PATH, NDR or PGOPTIONS. Do not guess a root cause from output_tokens64.
+  Minimal proposed repair: preserve fixed error enumeration in the existing
+  failure_code structure, without altering success criteria, prompt, order,
+  caps, provider counts or old records. No canonical source modified yet.
+- Three reused reviewers agree no credit/replay. DoD requires the original
+  provider execution Success/Exit0 plus four actual SUCCESS results; a later
+  readback cannot substitute for the failed provider Invoke. The owner-approved
+  extra unique Meituan call is consumed. Any new full chain will repeat an
+  already-successful Meituan call, requiring a fresh explicit commercial-risk
+  decision; unresolved Claude application outcome also remains no-replay.
+- HEAD/upstream remain22aeb74498db7883a9281a84671056dae26f07f5;
+  internal29/29 accepted, fullReadiness29/38, Item30 NO CREDIT, Item31 not run.
+  No checkpoint/commit/push. No MFA/new-secret/professional/DNS/long-term-fee
+  gate. APIs stay Running/PrePaid, all PostPaid Stopped/StopCharging. Unique
+  next action is to freeze the smallest existing-executor error-reporting
+  remedy offline and obtain only the unavoidable next paid-repeat decision;
+  never rerun either old provider identity or ask the owner to debug logs.
+- Final official resource RequestId01A0647A-584D-502B-8FEE-DB1F8E559399
+  reconfirms API-C/F Running/PrePaid and all three PostPaid nodes
+  Stopped/StopCharging. No additional cleanup is needed. All seven protected
+  paths remain present/untracked/unstaged; only the three existing tracked
+  Handoff/Risk/Readiness files are dirty. JSON parse and git diff --check PASS.
+- DoD and Verification independently approve the narrow offline remedy:
+  only allowlisted CLAUDE_OUTPUT_INVALID / MODEL_USAGE_MISSING /
+  MODEL_USAGE_NOT_ACTUAL in existing top-level failure_code on non-PASS;
+  other errors map to RUNTIME_INTERNAL_ERROR, never exception text or arbitrary
+  code. PASS bytes/structure, journal UNKNOWN/no-replay, subsequent-provider
+  stop, cleanup precedence, prompt/order/caps all remain unchanged. Reviewer
+  in-memory typed3/generic2/PASS-byte-equivalence1 fixtures pass. Before any
+  live successor, tests and truthful new source SHA/Git binding are required.
+  No canonical source has been edited or deployed. Await only a renewed
+  explicit paid-repeat decision for at most one further complete attempt:
+  Meituan is an already-successful repeated unpriced call with no disclosed
+  maximum charge, three other providers remain aggregate<=CNY0.30. Do not
+  reinterpret current broad CTO delegation as another additional-one grant.
+
+### Item30 renewed one-attempt approval and minimal source repair (2026-09-03)
+
+- Owner explicitly answered `同意` to the preceding fixed-error repair and
+  one further complete-chain proposal. This authorizes one fresh Meituan
+  unpriced repeat, not replay of either old identity. Claude/Kimi/Amap remain
+  each<=CNY0.10 and combined<=CNY0.30. No additional repeat is implicit.
+- Existing executor failure handling now preserves only typed ProbeError
+  CLAUDE_OUTPUT_INVALID / MODEL_USAGE_MISSING / MODEL_USAGE_NOT_ACTUAL;
+  other exceptions become RUNTIME_INTERNAL_ERROR without body or arbitrary
+  code. Executor SHA2563607b1cc9d1e08943b0c7bbbde3f0ac83c39513ac458ba5b74a87c9aabb88a05.
+  Canonical validator, success standard, prompt, models, order, caps and
+  immutable b55 image are unchanged. No production configuration mutation.
+- Focused tests28/28 PASS, including fixed-code allowlist, generic exception
+  privacy, journal/no-replay and cleanup-failure precedence. Separate old/new
+  in-memory PASS-byte equivalence and constants comparison PASS. All three
+  existing subagents were reused; source change GO, transport still being
+  byte-frozen offline to the official18432B limit. No new cloud call yet.
+- A single permitted secret-free recovery checkpoint binds the revised
+  executor to a truthful Git source revision before the irreversible paid
+  attempt. It includes these existing Handoff/Risk/Readiness records and the
+  two narrow code/test changes, not PASS Evidence or Readiness credit. The
+  normal Item30 terminal checkpoint remains reserved for real acceptance.
+- Current HEAD/upstream before that checkpoint are
+  22aeb74498db7883a9281a84671056dae26f07f5. Internal29/29 accepted;
+  fullReadiness29/38, Item30 no credit, no Item31. Seven protected paths remain
+  unread/untracked/unstaged. Both old provider identities are permanently
+  sealed; their gate/result/recovery remain intentionally retained.
+- API-C/F Running/PrePaid; Builder/Worker-C/Worker-F Stopped/StopCharging per
+  latest official query01A0647A-584D-502B-8FEE-DB1F8E559399. No new charge
+  this turn, prior Claude settlement and Meituan unpriced amounts are not
+  asserted zero. NDR mask7 remains independent Item36 P0/Item38 NO-GO.
+- No MFA/new-secret/professional/long-term-fee/DNS gate is active. Unique next
+  action: finish exact carrier roundtrip, commit the source binding, refresh
+  native account gates, freeze a fresh task/nonce/Command/Invoke and dispatch
+  once after the three reviewers' final GO. UNKNOWN seals only that identity;
+  continue safe reconciliation without provider replay.
+- Transport-only freeze completed: existing LZMA carrier uses ALONE encoding
+  and five shorter quoted heredoc delimiters. All five bodies are unchanged;
+  no delimiter collision, bash syntax, real isolated decoder stdout equality
+  and stderr0 pass. Template SHA256
+  4f50539efd5606097e013109d8884a84c1228b1fbb5786ae3c27279bd9fd620b;
+  existing builder SHA256944c8817d6e85b218151b4d263849bb25920acc29d2dcc5293915afe9cd876d1.
+  Template carrier18396B; the final fresh gate's actual carrier must separately
+  fit18432B. No production dispatch has occurred. Render production was just
+  read back Live at the same84f8a2f revision and same service identity.

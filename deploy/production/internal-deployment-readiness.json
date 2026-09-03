@@ -16354,7 +16354,7 @@
             "internal_failure_rollback"
           ],
           "evidence": [],
-          "blocker": "Current production provider credentials, quotas, output and cost attribution are unverified.",
+          "blocker": "Latest canonical-name Invoke t-sz06vwaxp68lngg is permanently sealed Failed/Finished/Exit1. Action-free readback t-sz06vwbo995hslc binds result c6408e37d455ae7afef74692cb6cfff4e35ce6aa2febe95c23793a6d29fe5a5b: signed-readiness passed; Meituan SUCCESS exact-one; Claude UNKNOWN dispatch1; Kimi/Amap0. Native Claude request req_011CefU88cmqobf9PJQoH98b records input21/output64; actual settled cost is unresolved, not zero. Old Meituan UNKNOWN and later unpriced success remain separately sealed with gate/result/recovery retained; transients absent/refs0, API-F healthy and business DB writes0. Owner explicitly renewed one fresh complete-chain attempt including one duplicate unpriced Meituan call; Claude/Kimi/Amap each<=CNY0.10 and combined<=CNY0.30. Minimal executor repair now preserves only three typed fixed failure codes, with other exceptions generic;28 focused tests and unchanged PASS bytes verified. Canonical validator, original success DoD, prompts/order/caps and immutable b55 remain unchanged. Truthful new source revision and final carrier byte freeze are required before that one fresh dispatch; no subsequent additional repeat is implicit. NDR remains independent Item36 P0; owner-deferred Amap deletion is not reopened. API-C/F stay PrePaid, all PostPaid StopCharging. Item30 remains NO CREDIT, full Readiness29/38.",
           "next_task": "PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001"
         },
         {
@@ -16426,7 +16426,7 @@
             "tracking_real_and_promotion"
           ],
           "evidence": [],
-          "blocker": "ALB listeners, targets and TLS health semantics are not configured or accepted.",
+          "blocker": "ALB listeners, targets and TLS health semantics are not configured or accepted. Independently, API-F's three accepted NoteAI managed units have a current NeedDaemonReload mask of 7 and must deterministically converge to mask 0 before Item36 execution; full global loaded-unit set stability is not required, and DNS cutover remains NO-GO while this risk is open.",
           "next_task": "PROD-FIRST-LAUNCH-ALB-TLS-001"
         },
         {

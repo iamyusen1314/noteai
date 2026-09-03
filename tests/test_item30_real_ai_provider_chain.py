@@ -454,6 +454,93 @@ class Item30ExecutorTests(unittest.TestCase):
         self.assertEqual(result["totals"]["fallback_count"], 0)
         self.assertEqual(result["totals"]["unknown_count"], 0)
         self.assertEqual(result["data_boundary"]["noteai_business_database_write_count"], 0)
+        self.assertNotIn("failure_code", result)
+
+    def test_provider_failures_preserve_only_allowlisted_fixed_codes(self):
+        for code in (
+            "CLAUDE_OUTPUT_INVALID", "MODEL_USAGE_MISSING", "MODEL_USAGE_NOT_ACTUAL"
+        ):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as temp_dir:
+                gates = account_gate_document()
+                journal_path = Path(temp_dir) / "executor-result.json"
+                journal = executor.AttemptJournal.create(journal_path, gates)
+                backend = FakeBackend()
+                backend.claude = mock.Mock(side_effect=executor.ProbeError(code))
+                result = executor.execute_probe(
+                    backend, gates, clock=lambda: RESULT_TIME, journal=journal
+                )
+
+                self.assertEqual(result["failure_code"], code)
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertEqual(tuple(result["providers"]), ("meituan", "claude"))
+                self.assertEqual(result["providers"]["claude"]["dispatch_count"], 1)
+                self.assertEqual(result["totals"]["automatic_retry_count"], 0)
+                self.assertEqual(result["totals"]["fallback_count"], 0)
+                self.assertEqual(journal.value["status"], "UNKNOWN")
+                self.assertEqual(
+                    journal.value["providers"],
+                    {"meituan": "SUCCESS", "claude": "UNKNOWN"},
+                )
+                with self.assertRaisesRegex(
+                    executor.ProbeError, "EXECUTION_ALREADY_ATTEMPTED"
+                ):
+                    executor.AttemptJournal.create(journal_path, gates)
+
+    def test_provider_failure_details_and_arbitrary_codes_never_escape(self):
+        misleading = RuntimeError("PRIVATE_PROVIDER_BODY")
+        misleading.code = "CLAUDE_OUTPUT_INVALID"
+        for error in (
+            executor.ProbeError("PRIVATE_PROVIDER_BODY"),
+            RuntimeError("PRIVATE_PROVIDER_BODY"),
+            misleading,
+        ):
+            with self.subTest(error_type=type(error).__name__):
+                backend = FakeBackend()
+                backend.claude = mock.Mock(side_effect=error)
+                result = executor.execute_probe(
+                    backend, account_gate_document(), clock=lambda: RESULT_TIME
+                )
+                self.assertEqual(result["failure_code"], "RUNTIME_INTERNAL_ERROR")
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertNotIn("PRIVATE_PROVIDER_BODY", json.dumps(result))
+                self.assertNotIn("kimi", result["providers"])
+                self.assertNotIn("amap", result["providers"])
+
+    def test_cleanup_failure_retains_priority_over_provider_failure_code(self):
+        gates = account_gate_document()
+        backend = FakeBackend()
+        backend.claude = mock.Mock(
+            side_effect=executor.ProbeError("CLAUDE_OUTPUT_INVALID")
+        )
+        artifact = mock.Mock()
+        artifact.unlink.side_effect = OSError("PRIVATE_CLEANUP_DETAIL")
+        artifact.exists.return_value = True
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_path = Path(temp_dir) / "executor-result.json"
+            output = io.StringIO()
+            with mock.patch.object(executor, "_validate_state_dir"), mock.patch.object(
+                executor, "_validate_sqlite_path", return_value=(artifact,)
+            ), mock.patch.object(
+                executor, "_validate_environment_boundary"
+            ), mock.patch.object(
+                executor, "load_account_gates", return_value=gates
+            ), mock.patch.object(
+                executor, "_runtime_source_binding"
+            ), mock.patch.object(
+                executor, "_utc_now", return_value=RESULT_TIME
+            ), mock.patch.object(
+                executor, "ProductionProbeBackend", return_value=backend
+            ), mock.patch.object(
+                executor, "RESULT_PATH", result_path
+            ), mock.patch.object(sys, "stdout", output):
+                self.assertEqual(executor.main([]), 2)
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "UNKNOWN")
+            self.assertEqual(result["failure_code"], "EPHEMERAL_DATABASE_CLEANUP_FAILED")
+            self.assertEqual(result["attempt"]["status"], "UNKNOWN")
+            self.assertEqual(result["cleanup"]["ephemeral_database_residue_count"], 1)
+            self.assertNotIn("PRIVATE_CLEANUP_DETAIL", json.dumps(result))
+            self.assertNotIn("PRIVATE_CLEANUP_DETAIL", output.getvalue())
 
     def test_unknown_stops_chain_and_never_replays_across_attempts(self):
         with tempfile.TemporaryDirectory() as temp_dir:

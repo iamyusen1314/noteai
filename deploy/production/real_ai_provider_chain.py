@@ -837,7 +837,16 @@ def execute_probe(
             started = time.monotonic()
             try:
                 provider_result = getattr(backend, provider)()
-            except Exception:
+            except Exception as exc:
+                result["failure_code"] = (
+                    exc.code
+                    if isinstance(exc, ProbeError) and exc.code in {
+                        "CLAUDE_OUTPUT_INVALID",
+                        "MODEL_USAGE_MISSING",
+                        "MODEL_USAGE_NOT_ACTUAL",
+                    }
+                    else "RUNTIME_INTERNAL_ERROR"
+                )
                 result["providers"][provider] = {
                     "status": "UNKNOWN",
                     "dispatch_count": 1,

@@ -4032,3 +4032,1864 @@ Last updated: 2026-08-19
   `Stopped/StopCharging/PostPaid`、running stoppable PostPaid=0及controlled task/container/
   volume/file residue=0。当前尚未在新授权下产生provider调用或production mutation；
   Readiness仍为`29/38`。
+
+## Item 30 wrapper-only后继在container create前因空env key终止（2026-08-25）
+
+- 终态/防重放：唯一已授权successor为command `c-sz06v2i34uk69kw`、invocation
+  `t-sz06v2i34urnym8`。服务端已accepted，故authority永久耗尽；终态为
+  `Failed / exit=125 / 3m44s`，禁止重新执行、复制或重放。Item30 `NO CREDIT`，
+  完整Readiness保持`29/38`，不生成canonical PASS Evidence、不修改manifest，也不为
+  本次普通失败单独checkpoint。
+- 独立根因：wrapper读取live b55 image Config.Env时，Docker模板投影为13行，其中12个
+  非空name和1个空记录；清空非allowlist环境的循环把空key构造成`--env "="`，Docker在
+  create前直接拒绝。readback只见`PREPARED` anchor，无`ACTIVE`、CID、container、
+  journal/result、SQLite/lock、env/source/stdout/stderr或volume；container start、executor
+  和provider dispatch均不可达，不是provider UNKNOWN。
+- 账户/费用：四家authenticated console的post reload与pre snapshot逐字节相同。
+  provider/model/request/token/Meituan metadata/funds delta及actual provider cost均为
+  `CNY 0.000000`；新增PostPaid compute也为`CNY 0.000000`。既有API-C/F PrePaid及
+  Render Starter baseline仍持续，不能写成全部云成本绝对为0。
+- 清理/资源：Secret-free readback `t-sz06v2it7m0ekn4`闭合失败事实；exact cleanup
+  `t-sz06v2j1k2eq5ts`为`Success / exit=0`，仅删除hash绑定的anchor、gate、result/task/base，
+  最终Item30 path/container/volume/credential/SQLite/lock residue=0。API-C identity、
+  start time、image、healthy和restart0不变；API-C/F `Running/PrePaid`，Builder与
+  Worker-C/F `Stopped/StopCharging/PostPaid`，running stoppable PostPaid=0。Render
+  production仍Starter/live revision `84f8a2f1436627e0f05588ee0276b1950b230ae3`且
+  `ready_multi_instance`，deploy=0，staging未操作。
+- 恢复边界：离线最小fix只能在indirect expansion前跳过恰好一个精确空记录；
+  `=nonempty`、空白/非法/重复name、缺少`=`均必须fail closed，并在render后证明
+  blank/`^=`为0、12个names精确且唯一、显式credential/runtime env exact set，以及
+  forbidden/proxy/DB/payment/admin/cloud-secret为0。不得改变image/python/argv、
+  executor/fact/source、dispatch顺序、cap、retry、mount/network或cleanup语义。新的
+  provider attempt必须先获得owner对一个fresh gate/nonce/task/Command/Invoke后继的
+  明确授权，再由三名reviewer重新给出P0/P1-zero GO；等待期间禁止启动PostPaid资源。
+  当前离线inner候选SHA为
+  `6702946a5a36969b3a9f7a3ef4c4d61455e753f504475601f6fd6e5aa0c838a0`，
+  syntax、上下界/畸形负例及单hunk局部性均PASS，三reviewer仅对该离线候选
+  P0/P1-zero GO。
+
+## Item 30 provider-free preflight收敛到HMAC credential绑定硬门（2026-08-26）
+
+- 终态与信用：Item30仍为`NO CREDIT`，完整Readiness保持`29/38`。原始DoD的四家真实
+  production输出、exact-one归因和terminal settlement均未完成；Items1-29保持关闭，
+  禁止重跑。owner已明确business exact-one从首个真实provider请求派发起算，本轮没有
+  provider dispatch，故该授权未消耗。
+- 防重放：URL-only preflight `c-sz06v38v73ea3gg` / `t-sz06v38v740r6kg`
+  在container create前`Failed / exit=1`，其cleanup `c-sz06v39pcm1rdhc` /
+  `t-sz06v39pcmgqrk0`为`Success / exit=0`；corrected preflight
+  `c-sz06v3asqlopds0` / `t-sz06v3asqlw72tc`在sole readiness GET后
+  `Failed / exit=2 / PREFLIGHT_FAILED`，其cleanup `c-sz06v3b69b0gwsg` /
+  `t-sz06v3b69bkg3k0`为`Success / exit=0`。非秘密key-id诊断
+  `c-sz06v3ckfg1el8g` / `t-sz06v3ckfggdzb4`为
+  `Success / exit=0 / <1s`，唯一stdout为`{"code":"CURRENT_KEY_ID_MATCH"}`、
+  stderr为空。以上所有accepted Command/Invoke均永久no-replay；provider business
+  exact-one仍未消耗。
+- 根因边界：Render production service `srv-d9e765laeets73aikj90`无pending/unsaved
+  environment变更；environment update与revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3` deploy started/live属于同一事件，后续
+  maintenance也将同revision重新deploy为live。production readiness当前HTTP 200；b55
+  client与live84f gateway的protocol/auth source逐字节一致，请求已通过authority/config/
+  key epoch上下文，且无previous-key槽。`AUTH_INVALID`再结合current key-id一致，将独立
+  根因收敛为`HMAC_SECRET_SYNC_REQUIRED`。不得再用secret fingerprint、challenge、导出、
+  wrapper覆盖或新增证明层继续诊断，任何credential/config写入前必须停询owner。
+- 数据、费用和清理：provider/model/journal/business DB/funds delta与actual provider cost
+  均为`CNY 0.000000`，新增PostPaid compute cost为`CNY 0.000000`；既有API-C/F PrePaid
+  和Render Starter baseline继续。所有preflight/diagnostic进程已terminal且无新增文件、
+  container、volume、credential、SQLite或lock清理面。fresh资源读回为API-C/F
+  `Running/PrePaid`，Builder/Worker-C/F `Stopped/StopCharging/PostPaid`，running
+  stoppable PostPaid=0。
+- 授权硬门：三名persistent reviewer一致拒绝Item30 credit并给出P1=0；唯一P0是production
+  credential/config write授权。当前wrapper-only授权不覆盖HMAC secret、Render/ECS env、
+  credential rotation、Render deploy或API-C restart。唯一下一动作是owner明确授权API-C与
+  Render production gateway的HMAC credential协调同步/轮换，并确认current/previous策略、
+  secure activation、短暂重启/部署窗口及回滚边界。获批前preflight/provider successor均
+  NO-GO，所有PostPaid worker保持StopCharging；本blocker不单独checkpoint。
+
+## Item 30 HMAC轮换过期Stage清理闭合与即时secret传输门（2026-08-26）
+
+- Owner已明确授权API-C与Render production gateway的协调HMAC轮换；staging、费用规格、
+  provider顺序和业务exact-one边界不变。首个Stage与readback分别为
+  `c-sz06v45d68gio00` / `t-sz06v45d68vi22o`及
+  `c-sz06v45idna9pmo` / `t-sz06v45idnf9ibk`。它只建立RSA Stage材料；因剩余窗口不足，
+  Render四行草稿在Save前取消，API-C、Render、provider、payment与DB均保持0写入。
+- 首个过期Stage cleanup `c-sz06v48364yuy2o` /
+  `t-sz06v48365lc16o`因错误使用`systemctl cat`聚合表示计算unit hash而在任何删除前
+  `Failed / exit=2`；永久no-replay。权威只读reconcile
+  `c-sz06v48qyn1h0jk` / `t-sz06v48qynlg7b4`证明Stage inventory/inode完整、output空、
+  controller未启动、open-FD/container/volume/API-temp为0，API current2/previous0、
+  systemd/runtime与Render baseline不变。
+- corrected cleanup `c-sz06v498s6rn9q8` / `t-sz06v498s7e4cu8`仅将该predicate改为
+  `O_NOFOLLOW`读取权威unit文件，终态`Success / exit=0`：RSA2与task1精确删除、
+  rotation root0、controller `NOT_STARTED`、全部production/provider/payment/DB write0。
+  独立readback `c-sz06v49koa6ogzk` / `t-sz06v49koaqnnr4`再次证明root/artifact/
+  container/volume0、API current2/previous0/empty-key false及runtime unchanged。上述所有
+  identity均terminal且禁止重放。
+- 旧本地HMAC pair/envelope从未写入Render或API-C；可变buffer已原位清零、clipboard清空、
+  Render draft不存在，并释放了持有immutable secret string的完整自动化会话。恢复后只带回
+  六个Secret-free已审计模板并重新hash/compile；旧task/nonce/RSA/HMAC/envelope全部失效且
+  禁止复用。
+- 当前费用/资源：provider/model/payment/funds/DB与新增PostPaid成本均为
+  `CNY 0.000000`；API-C/F Running/PrePaid；Builder与Worker-C/F Stopped/StopCharging/
+  PostPaid，running stoppable PostPaid=0；既有Render Starter autoscale2-4与API PrePaid
+  基线继续。Render production revision仍为`84f8a2f1436627e0f05588ee0276b1950b230ae3`，
+  live/ready HTTP 200，current2/previous0、无草稿/无pending，staging未动。
+- 剩余P0仅为浏览器在真正输入新HMAC secret前要求的action-time敏感数据传输确认。等待期间
+  不创建fresh Stage，避免20分钟窗口过期；无运行PostPaid资源。确认后必须使用全新task/
+  binding/RSA/HMAC/envelope/Command/Invoke并立即完成Render exact-four-row一次
+  `Save and deploy`。Item30仍NO CREDIT，Readiness仍29/38，不产生独立checkpoint。
+
+## Item 30 production HMAC凭据泄露与撤销终态（2026-08-26）
+
+- 事件分类：`ACTIVE_RENDER_CURRENT_HMAC_SECRET_EXPOSED_IN_TOOL_OUTPUT`。首次action-time
+  授权已由Render deploy `dep-da7eeop42hec73b78qvg`消费；该deploy在相同revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`上Live且health 200，但其CURRENT凭据随后在
+  本地tool output中意外披露，必须永久标记`COMPROMISED/NO_REUSE`。本文件、Handoff与
+  Evidence禁止记录其值、hash、fingerprint或长度；tool transcript不可通过内存清理撤回。
+- 派发边界：泄露发生前API-C controller从未被Cloud Assistant接受。首次表单因真实target
+  checkbox=false且Stage admission不足180秒而在本地submit gate停止；不存在controller
+  Command/Invoke、API env exchange、restart、PRE/POST probe或provider dispatch。业务
+  exact-one仍未起算，provider/payment/funds/DB write均为0。
+- Stage清理：过期Stage cleanup/readback为
+  `c-sz06v5vuu2imneo` / `t-sz06v5vuu353qio`及
+  `c-sz06v5w0jod8y68` / `t-sz06v5w0jos8c8w`，均terminal，root/artifact/container/volume0、
+  API current2/previous0、runtime unchanged。随后fresh RSA-only Stage/readback
+  `c-sz06v5w8dgoe3nk` / `t-sz06v5w8dh5ve2o`及
+  `c-sz06v5wc8itw3cw` / `t-sz06v5wc8jbdds0`尚未接收secret envelope即被冻结；abort cleanup
+  `c-sz06v5x5qhrbvnk` / `t-sz06v5x5qi8t62o`与独立readback
+  `c-sz06v5x9cdq93i8` / `t-sz06v5x9ce7qdxc`证明RSA removed2、task removed1、controller
+  `NOT_STARTED`、rotation root/artifact/container/volume0、API runtime unchanged及全部业务写0。
+  上述identity全部永久no-replay。
+- 撤销终态：使用既有明确保留的rollback边界，将Render已保存的old PREVIOUS原位恢复到
+  CURRENT并删除PREVIOUS；rollback environment deploy `dep-da7eu9142hec73b8ntrg`已在相同
+  revision上Live。Fresh读回为CURRENT字段2、PREVIOUS字段0，public live/ready HTTP 200、
+  `ready_multi_instance`；泄露credential不再位于gateway有效槽。staging、source、plan、
+  autoscale及API-F配置未变。API-C保持原env/CID/image/unit/restart0；其既有secret mismatch
+  仍是功能blocker，但未安装泄露pair。
+- 本地收敛：所有持有draft的浏览器标签关闭，clipboard清空，secret/envelope引用删除并完整
+  reset Node automation session。该动作只是本地清理，真正撤销凭据以terminal Render rollback
+  为准。API-C/F Running/PrePaid；Builder/Worker-C/F Stopped/StopCharging/PostPaid；running
+  stoppable PostPaid=0。actual provider cost及new Alibaba PostPaid cost均为`CNY 0.000000`；
+  既有Render Starter autoscale2-4与API PrePaid基线继续。
+- 当前release结论：Item30 `NO CREDIT`、Readiness `29/38`、P1=0。剩余P0是新的action-time
+  owner确认，因为首次exact-one secret submission授权已经消费，事故后的全新pair和新的
+  Render production deploy属于新的高敏写入。确认前不得生成credential/Stage、编辑Render、
+  提交controller或调用provider。确认后唯一允许路径为：全新pair；Render CURRENT=fresh、
+  PREVIOUS=当前已恢复old；一次新`Save and deploy`；Live/health后全新task/RSA/envelope与
+  fresh signed PRE gate；再promote API-C。compromised pair不得进入任何槽或Evidence。
+
+## Item30 fresh HMAC successor risk update（2026-08-26）
+
+- 新pair已仅一次写入Render production，CURRENT=fresh、PREVIOUS=restored-old；deploy
+  `dep-da7f6se1egvs73ee095g`已Live且live/ready 200。staging、plan、autoscale、source均未变；
+  该Render写永久no-replay，任何后继不得再次Save。
+- 第一组fresh RSA Stage因缺少可追溯的已复核controller bytes而在secret/controller派发前主动
+  abort。独立cleanup/readback已证明rotation root/artifact/container/volume=0、API env/CID未变、
+  restart=0、provider/payment/funds/DB=0；其Command/Invoke永久no-replay，业务exact-one未起算。
+- API-C继续使用原current-only pair且与Render restored-old的历史secret不匹配；因此PRE必须
+  使用fresh pair直接执行provider-free signed readiness，禁止重新声称旧槽密码学验证。
+- 当前P0仅为新鲜controller artifact尚待三方终审。冻结标准：完整env CAS；network-none离线
+  解密与encrypted full-env rollback roundtrip；candidate只改CURRENT两值；PRE exact-one；
+  `RENAME_EXCHANGE`且无env replace fallback；durable journal；forward restart exact-one；实际新
+  runtime POST exact-one；确定失败才exchange-back和第二次restart；UNKNOWN保留恢复锚且禁止重放。
+- API-C/F Running/PrePaid；Builder/Worker-C/F Stopped/StopCharging/PostPaid；running stoppable
+  PostPaid=0。新增Alibaba PostPaid、provider、payment、funds cost=`CNY 0.000000`，业务DB写0；
+  既有Render Starter autoscale2-4和API PrePaid基线费用继续。
+
+## Item30 fresh CURRENT Render终态与旧CURRENT泄露撤销（2026-08-26）
+
+- Render production仅替换CURRENT两项并保留restored-old PREVIOUS两项；唯一一次
+  `Save and deploy`产生deploy `dep-da7gk3navr4c73fq3pe0`，其在同一revision
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`上Live，live/ready均HTTP 200且ready为
+  `ready_multi_instance`。exact4、CURRENT=fresh、PREVIOUS原位、IDs/secrets distinct均只读
+  复核通过；staging/source/plan/autoscale未变。该save/deploy永久no-replay。
+- Render隐藏编辑器诊断曾把随后被替换的旧CURRENT输出到本地tool transcript。该旧pair立即
+  标记`COMPROMISED/NO_REUSE`，禁止记录值/hash/fingerprint/length；上述terminal deploy已将其
+  从全部有效槽撤销。全新CURRENT没有输出，受控buffer继续仅用于下一fresh RSA envelope。
+- controller/Stage/API-C env exchange/restart/PRE/POST/provider dispatch仍为0；业务exact-one未
+  起算，provider/payment/funds/business-DB与new Alibaba PostPaid cost均为`CNY 0.000000`。
+  API-C/F Running/PrePaid，Builder/Worker-C/F Stopped/StopCharging/PostPaid，running stoppable
+  PostPaid=0；既有Render/API PrePaid基线费用继续。
+- 当前P0=0/P1=0；唯一下一动作是fresh task/binding/RSA Stage/readback后JIT seal并提交一次
+  `<18432`字节controller carrier。任何accepted/UNKNOWN均只读对账、禁止重放；不得再次写Render。
+
+## Item30 Render双槽与API-F权限blocker（2026-08-27）
+
+- 当前Render production deploy `dep-da7hqn15efls73e28550`为Live、revision仍是
+  `84f8a2f1436627e0f05588ee0276b1950b230ae3`，live/ready均HTTP 200；CURRENT为新的受控
+  fresh pair，PREVIOUS原位保留且与CURRENT不同。staging/source/plan/autoscale均未改。该
+  Save/deploy永久no-replay；fresh secret未进入tool output、日志、文件或文档，仅留在当前受控
+  automation内存，禁止reset。若custody丢失，只能判定credential unavailable，禁止从masked UI
+  猜测或复用。
+- API-C只读门 `c-sz06v6g0dft3hfk` / `t-sz06v6g0dg5kz5s` 因procfs `st_size=0`
+  被wrapper误判而exit4；fresh修正版 `c-sz06v6gejfcskqo` / `t-sz06v6gejfu9v5s` 证明
+  runtime/unit/API HMAC sync/residue0均true，但Render PREVIOUS与API-C old ID不匹配。修正版输出
+  的PASS不具权威性，因为聚合器错误接受了Python `False == 0`；必须按typed field判定为
+  `REJECTED_NO_MUTATION`。两组Command/Invoke永久no-replay，Stage/restart/provider/payment/
+  funds/business-DB写入均为0。
+- P0=1、P1=0：Render仅有CURRENT/PREVIOUS两槽；在未证明API-F使用关系前覆盖PREVIOUS可能中断
+  PrePaid failover。最小诊断是在API-F actual runtime执行一次fresh nonce signed readiness并证明
+  其key ID等于Render PREVIOUS，但现有owner授权明确仅限API-C与Render production。API-F上的
+  Cloud Assistant Command/Invoke即使业务只读也属于新增生产对象，必须获得一次明确范围授权；
+  授权前禁止读取/使用API-F credential、修改Render或创建API-C Stage。
+- 若后续获批，API-F诊断必须绑定CID/PID/StartedAt/proc starttime/image/unit/health/restart及
+  file/PID1 pair同步，retry/redirect/proxy均为0，只允许一次gateway control-plane readiness并
+  输出固定分类；不得调用provider/model。UNKNOWN先只读对账，禁止Render写和重放。业务
+  exact-one仍为0；新增PostPaid/provider/payment/funds费用=`CNY 0.000000`。API-C/F保持
+  Running/PrePaid，Builder/Worker-C/F保持Stopped/StopCharging，running stoppable PostPaid=0。
+
+## Item30 API-F pre-request mode-gate terminal risk update（2026-08-27）
+
+- 唯一获批的API-F Command/Invoke `c-sz06v7dz454251c` /
+  `t-sz06v7dz45bju2o`已terminal且永久no-replay。目标仅API-F，执行小于1秒、exit10、固定码
+  `API_F_PREVIOUS_READINESS_ABORTED_NO_REQUEST`；host只有在child请求前中止且post
+  CID/PID/StartedAt/starttime/unit/env/ExecIDs/object sets全部稳定时才输出该码，因此不是
+  UNKNOWN。gateway request、anti-replay TTL、Render请求、provider/model/payment/funds/
+  business-DB/config/restart写入均为0；Item30仍NO CREDIT，Readiness仍29/38。
+- 权威离线充分根因是wrapper mode predicate：b55/current的`model_router.py`为tracked
+  `100755`，protocol为`100644`，Dockerfile的COPY后仅chown；wrapper却在import/probe前统一
+  要求0644。风险处置只能是per-file exact mode（router0755、protocol0644），禁止chmod、修改
+  tracked mode、重建镜像、接受mode集合/掩码或改变probe逻辑。
+- mode-only fresh successor仅在受控本地内存冻结，carrier SHA-256
+  `3dc0cc95f75be2721e767e58c9e7cc5d6084db3a87775bb75cfa4b8427ec1c5d`、10,361字节；
+  roundtrip/compile/AST/mode正负例通过且保持probe1/provider0/docker-exec1。三名reviewer对
+  offline artifact均P0=0/P1=0，但最新“一次Command/Invoke”授权已经消费；新的API-F dispatch
+  仍有授权P0=1，禁止填表、创建云对象或复用旧identity。
+- 唯一新增生产痕迹是Cloud Assistant审计元数据和API-F既有PrePaid上不足1秒CPU；归因
+  Render/provider/payment/funds/PostPaid成本=`CNY 0.000000`。API-C/F继续Running/PrePaid，
+  Builder/Worker-C/F继续Stopped/StopCharging，running stoppable PostPaid=0；无计算或临时对象
+  残留。新授权前不得修改Render、创建API-C Stage或调用provider。
+
+## Item30 API-F mode-only successor控制面拒绝风险更新（2026-08-27）
+
+- 获批的新唯一successor已创建Command `c-sz06v7gcmtbsf0g`与Invoke
+  `t-sz06v7gcmty9i4g`，随后由控制面立即标记`Invalid execution`。无执行时间、ExitCode、
+  stdout或stderr；服务端carrier读回为10,361字节、SHA-256
+  `3dc0cc95f75be2721e767e58c9e7cc5d6084db3a87775bb75cfa4b8427ec1c5d`，
+  与冻结artifact逐字节一致，但服务端`Username=rootroot`。根因是可见输入框为空时，UI隐藏
+  controlled state仍累计了两次`root`输入。
+- 权威终态为`PLATFORM_REJECTED_NO_EXECUTION` / `ABORTED_NO_RUNTIME_EFFECT`，已知非
+  `UNKNOWN`。guest script/child均未启动，signed readiness、Render、provider/model、
+  anti-replay、API-F配置/重启、payment/funds/business-DB写入均为0；业务exact-one未消耗，
+  `0755/0644` mode-only修正仍未获得live验证。该Command/Invoke永久no-replay，Item30仍
+  `NO CREDIT`，Readiness仍`29/38`。
+- 无guest进程、FD、task file、container、volume或secret残留；唯一残留为预期的Cloud
+  Assistant审计元数据。增量provider/Render/PostPaid费用为`CNY 0.000000`。fresh ECS列表
+  读回API-C/F Running/PrePaid，Builder与Worker-C/F Stopped/StopCharging/PostPaid，running
+  stoppable PostPaid=0；既有API PrePaid与Render Starter基线继续。
+- P0=1、P1=0：本次明确的“一个新的、唯一successor”云写授权已由Command/Invoke创建耗尽。
+  任何后继必须先取得fresh owner授权并使用全新identity；干净表单中不得触碰Username，且提交
+  前须确认权威request projection完全省略该字段。除该表单投影外，冻结carrier、immutable b55、
+  四家顺序、exact-one、费用和no-replay边界均不得改变；新授权前禁止再次提交、修改Render、
+  创建API-C Stage或调用provider。
+## Item30 API-F NeedDaemonReload production-state blocker (2026-08-27)
+
+- Three fresh API-F identities are terminal and permanently no-replay:
+  signed-readiness `c-sz06v7ssjtet24g` / `t-sz06v7ssjtmar5s` returned known
+  `ABORTED_NO_REQUEST`; pre-request classifier `c-sz06v7ttmeta96o` /
+  `t-sz06v7ttmffrcao` returned known `SERVICE_CONTRACT_MISMATCH_NO_REQUEST`;
+  unit/systemd subclassifier `c-sz06v7udgrvwmbk` / `t-sz06v7udgs3ebcw`
+  returned known mask `010`. All finished in at most one second with fixed
+  stdout and exit 10. No result is UNKNOWN and none consumed readiness/business
+  exact-one.
+- Mask `010` encodes only `NeedDaemonReload` (bit 4). Stable readback accepted
+  the tracked API-F unit as root:root, regular `0644`, nlink 1, 1510 bytes and
+  SHA-256 `f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936`;
+  the other nine systemd properties match. Treating the mismatch as an allowed
+  wrapper value would conceal a real manager/unit synchronization drift and is
+  prohibited.
+- P0=1/P1=0: the minimum repair is exactly one API-F-only
+  `/usr/bin/systemctl daemon-reload`, followed by fixed readback proving
+  `NeedDaemonReload=no`, all other systemd properties unchanged, and service/
+  container CID, PID, StartedAt and restart counters unchanged. Unit/env edits
+  and restart/start/stop/enable/disable are forbidden. Because the current
+  signed-readiness authority explicitly held configuration unchanged, this
+  production state mutation requires fresh owner authorization.
+- Docker exec, Render/HTTP/anti-replay/provider/model/payment/funds/business-DB,
+  unit/env/config writes and restart were zero across the three attempts. The
+  only incremental cost is Cloud Assistant metadata and existing API-F PrePaid
+  CPU; new PostPaid/provider/payment cost is `CNY 0.000000`. API-C/F remain
+  Running/PrePaid; Builder and Worker-C/F remain Stopped/StopCharging, with
+  running stoppable PostPaid compute zero. While awaiting authorization, do not
+  start any PostPaid resource or submit another readiness identity.
+
+## Item30 API-F manager-wide NDR mask-7 authorization risk (2026-08-27)
+
+- The sole authorized daemon-reload identity `c-sz06v96sa72xdds` /
+  `t-sz06v96sa7hwrgg` is terminal exit 10 with fixed
+  `API_F_DAEMON_RELOAD_ABORTED_NO_MUTATION`. The action call was not reached,
+  but the one-identity authorization and that identity are consumed/no-replay.
+  A fresh read-only preflight identity `c-sz06v98a73un20w` /
+  `t-sz06v98a749mg3k` then returned known
+  `NOTEAI_NDR_SET_MISMATCH_NO_MUTATION`; it is also terminal/no-replay.
+- Fresh action-free unit-set classifier `c-sz06v992grcxi4g` /
+  `t-sz06v992grrww74` completed exit 0 with exact fixed mask 7. It bound three
+  separate root-owned regular `0644`, nlink-1 accepted unit identities and
+  their stable systemd contracts: API SHA-256 `f591f43b...bb936`, Trends
+  `3ed7e555...e3b6`, Tracking `4392872f...f82d`. All three distinct canonical
+  units have `NeedDaemonReload=yes`; no alias or unaccepted unit explains the
+  earlier mismatch. The classifier performed no Docker, network, credential,
+  config or file write and no systemd action.
+- Safety conclusion is known, not UNKNOWN: systemd manager, generators,
+  service/container state, unit/env/config, Render, provider/model,
+  payment/funds and business-DB mutations are zero. Incremental cost is Cloud
+  Assistant audit metadata plus short API-F PrePaid CPU; new PostPaid and
+  attributable provider/Render/payment cost remain `CNY 0.000000`.
+- P0=1/P1=0 for a new mutation. A host-manager `daemon-reload` necessarily
+  loads and clears NDR for API, Trends and Tracking together, expanding the
+  consumed single-unit action-time scope. Fresh owner authorization must name
+  that exact mask `7 -> 0` and permit one literal API-F-only daemon-reload.
+  Pre/post must freeze all three accepted unit bytes/metadata, active/dormant
+  state, PID/MainPID/starttime/Result/NRestarts, empty jobs/generators and API
+  container CID/image/health/restart. Any fourth unit, hash/inventory drift,
+  timeout or UNKNOWN forbids action or stops the accepted identity without
+  replay. Unit/env writes, daemon-reexec, start/stop/restart/service-reload,
+  enable/disable, Docker/provider/network/DB actions remain forbidden.
+- Waiting boundary is safe: API-C/F remain Running/PrePaid and Agent-normal;
+  Builder and Worker-C/F remain Stopped/StopCharging/PostPaid; running
+  stoppable PostPaid is zero, with no temporary compute, CloudShell task or
+  in-progress Invoke. Do not start a PostPaid resource, modify Render, submit
+  another readiness identity or create a fresh reload Command/Invoke before
+  the owner gives the exact manager-wide authorization.
+
+## Item30 API-F manager reload/reconcile UNKNOWN hard stop (2026-08-27)
+
+- The authorized manager-wide reload identity, request
+  `01A04342-8FB4-5307-B418-52F6958C69B8`, Command `c-sz06v9bulcujh8g`, Invoke
+  `t-sz06v9buld2169s`, is terminal exit 20 with fixed
+  `API_F_MANAGER_DAEMON_RELOAD_UNKNOWN`. The immediately following action-free
+  reconciliation, request `01A0434A-6DF9-5F09-ADD6-6045CDAFF33F`, Command
+  `c-sz06v9cm6r8tgcg`, Invoke `t-sz06v9cm6rnsuf4`, is terminal exit 20 with
+  fixed `API_F_MANAGER_RECONCILE_OTHER_OR_DRIFT`. Both identities are consumed
+  and permanently no-replay.
+- Causality remains unresolved: evidence cannot prove whether the one literal
+  reload ran, whether NDR is now mask 7 or mask 0, whether another global NDR
+  unit exists, or which snapshot contract drifted. Do not infer success,
+  non-execution or a root cause. The reconciliation itself was read-only and
+  action-free; provider/model/Render/payment/funds/business-DB/config activity
+  is zero. Potential systemd-manager mutation is the sole unknown production
+  effect.
+- P0=1/P1=0 under the owner's explicit `UNKNOWN -> stop/no replay` boundary.
+  DoD and Risk reviewers require fresh owner authorization for any further
+  Cloud Assistant classifier. Verification considered a narrower action-free
+  classifier covered by standing read-only authority, but the CTO selected the
+  stricter interpretation. No reload, readiness request or cloud diagnostic may
+  be dispatched until fresh authorization is obtained.
+- The only safe successor is one fresh API-F-only NDR-first read classifier:
+  exact accepted three-unit inventory and hashes; global NDR and managed mask
+  0-7 stable snapshots; fixed `global-extra-yes` or per-stage UNKNOWN/drift
+  categories; separate readback of unit/PID/NRestarts, API container, dormant
+  container count, jobs/generators and object sets. It must emit no raw values,
+  make no action/network/file/config/provider/database/funds call, and preserve
+  fresh-identity/no-replay. A mask-7 result does not authorize another reload.
+- Waiting is safe: API-C/F remain Running/PrePaid and Agent-normal; Builder and
+  Worker-C/F remain Stopped/StopCharging/PostPaid; running stoppable PostPaid is
+  zero and there is no in-progress Invoke or temporary compute. Incremental
+  cost is two Cloud Assistant audit records plus seconds of existing API-F
+  PrePaid CPU; new PostPaid/provider/payment cost is `CNY 0.000000`. Existing
+  API PrePaid and Render Starter baseline charges continue.
+
+## Item30 API-F NDR inventory output-cap hard stop (2026-08-27)
+
+- The owner-authorized action-free classifier and both bounded successors are
+  terminal and permanently no-replay. Initial `c-sz06v9fmek1ab5s` /
+  `t-sz06v9fmekirlkw` returned fixed `READ_UNKNOWN`; first successor
+  `c-sz06v9gj53r4hs0` / `t-sz06v9gj54dlkw0` returned the unique fixed
+  `GLOBAL_NAME` parser reason; final successor `c-sz06v9gybk1ydj4` /
+  `t-sz06v9gybkqxczk` returned fixed `GLOBAL_EXTRA_CAP`. Each server
+  CommandContent was byte-identical to the reviewed zero-action artifact. The
+  authorized successor budget is now zero.
+- `GLOBAL_EXTRA_CAP` proves only that one incomplete first global read had more
+  than 32 validated non-managed NDR-yes candidates. Exact count/names, current
+  managed mask, contract mask and two-snapshot stability are unknown; do not
+  treat the failure sentinel as observed drift or as a current inventory. The
+  earlier manager reload remains `UNKNOWN`.
+- Production mutation for all three classifiers is known zero: no systemd
+  action, service lifecycle action, Docker mutation, file/env/config write,
+  readiness/provider/network/Render/database/payment/funds path was reachable.
+  The only new records are Cloud Assistant audit metadata and seconds of
+  existing API-F PrePaid CPU. New PostPaid/provider/payment cost is
+  `CNY 0.000000`; Item30 exact-one remains unconsumed and Readiness remains
+  `29/38`.
+- Current release risk is authorization P0=1/P1=0. No further classifier,
+  reconcile, readiness request or `daemon-reload` may be submitted under the
+  exhausted authority. The next request must be a separate fresh API-F-only,
+  strictly read-only inventory authorization whose bounded carrier can return
+  all validated extra names, either through a higher exact cap within the
+  16-KiB JSON limit or fixed pagination inside one Invoke. Any UNKNOWN or new
+  output-cap failure must stop.
+- A future stable inventory does not authorize a second reload. Any later
+  manager mutation requires its own fresh owner authorization after the full
+  affected set is known. Until then, `daemon-reload`, restart/start/stop,
+  Docker/config/Render/provider/database/funds writes are prohibited.
+- Post-terminal resource readback: API-C/F are Running/PrePaid with Agent
+  normal; Builder/Worker-C/Worker-F are Stopped/StopCharging/PostPaid; running
+  stoppable PostPaid is zero and all related Invokes are terminal. Existing
+  API PrePaid and Render Starter baseline charges continue; no temporary or
+  newly billed compute is running.
+
+## Item30 API-F NDR inventory console-auth wait (2026-08-27)
+
+- P0=0/P1=0 for the frozen, owner-authorized read-only inventory artifact after
+  DoD, Verification and Risk review. It exposes only `systemctl show` for
+  `Id`/`NeedDaemonReload` and `systemctl list-units --all`, with bounded calls,
+  canonical output, fixed 25-name pages and no systemd action or other write.
+- The final core is 9,423 bytes, SHA-256
+  `23354d9cb379fe276a7db82ca8684c8fc5178592468dab171fbd016e3897e52e`;
+  final CommandContent is 6,102 bytes, SHA-256
+  `90d2398cf6c9e54bb25680410931ba8ddfbac185ab78e4e905aa26fe9106f037`.
+  The first managed snapshot is retained independently of global/snapshot-two
+  completion. A snapshot-two failure may retain snapshot-one global pages only
+  as a single observation and must report `global_complete=false`, Exit20.
+- The Aliyun console session expired before preflight or dispatch and now
+  requires owner-only secure login. No new Command/Invoke identity exists; no
+  production mutation or diagnostic CPU has occurred; no PostPaid resource was
+  started. Last-confirmed Builder/Worker-C/Worker-F state is
+  Stopped/StopCharging, while API-C/API-F remain existing PrePaid nodes.
+- Resume risk boundary: do not handle credentials, cookies, MFA or raw account
+  data. Once the owner logs in, perform exact read-only resource/invoke/form
+  preflight and submit the frozen API-F-only command once. Any failure after
+  creation forbids replay, a new classifier and any `daemon-reload`; Item30
+  remains uncredited regardless of a successful inventory result.
+
+## Item30 API-F NDR inventory global-drift terminal risk (2026-08-27)
+
+- The only authorized inventory identity, Command `c-sz06v9kxaua16o0` /
+  Invoke `t-sz06v9kxaup0kqo`, is terminal Exit20, Repeat1 and permanently
+  no-replay. `Dropped=0`; the exact 559-byte output SHA-256 is
+  `7d72e928a96a3a3a4a24d4ffe4aa688083334a7fbeb572e4dacba65bb947b01e`.
+  The server CommandContent exactly matches the frozen 6,102-byte SHA-256
+  `90d2398cf6c9e54bb25680410931ba8ddfbac185ab78e4e905aa26fe9106f037`.
+- Accepted partial fact: all three managed units are independently and twice
+  observed `NeedDaemonReload=yes`, with stable mask `7`. Blocking fact:
+  `global_status=SNAPSHOT_DRIFT`, `global_snapshot_stable=false` and
+  `global_complete=false`. Exact global extra count, names and hash are unknown;
+  empty pages must not be treated as an empty inventory. The earlier manager
+  reload remains causally `UNKNOWN` and cannot be inferred from mask `7`.
+- Exact drift semantics are `A OR B`, not “two complete snapshots differed”:
+  either the full loaded-unit name set changed inside the first
+  list/show/list window, or a managed value in the global batch disagreed with
+  the independent managed read. The terminal intentionally does not identify
+  the branch, so it cannot prove that any NDR=yes extra changed. DoD and
+  Verification accept this as a conservative fail-closed completeness gate.
+  Risk additionally records classifier-design P1=1 because unrelated transient
+  loaded-unit churn can produce a safe availability false negative and the
+  merged sentinel prevents offline branch diagnosis. This debt does not weaken
+  the zero-write result and does not authorize a successor.
+- Execution safety P0=0/P1=0: the reviewed core allowed only bounded
+  `systemctl show`/`list-units` reads, and postflight shows no service, Docker,
+  file, config, network, provider, Render, database, payment, funds or resource
+  mutation. Only expected Cloud Assistant audit metadata and approximately one
+  second of existing API-F PrePaid CPU were added. New billable provider,
+  payment and PostPaid cost is `CNY 0.000000`.
+- Progression risk is P0=1 because the global NDR impact set is not established
+  or closed; classifier availability/diagnosability is separately P1=1. A
+  managed mask of `7` is insufficient to authorize a
+  manager-wide reload. Do not request or execute `daemon-reload`, readiness,
+  provider calls, a successor classifier or any production write.
+- Postflight remains safe for an indefinite wait: API-C/API-F are
+  Running/PrePaid and Agent-normal; Builder/Worker-C/Worker-F are
+  Stopped/StopCharging/PostPaid; running stoppable PostPaid is zero. Preserve
+  the Command/Invoke audit metadata as evidence; there is no guest or temporary
+  resource cleanup action to perform.
+- The only current action is offline analysis of the frozen snapshot/drift
+  contract. Any later materially different production-read proposal requires
+  a new owner decision after offline proof; Item30 remains `NO CREDIT` and
+  Readiness remains `29/38`.
+
+## Item30 DoD scope correction and independent managed-NDR pre-launch blocker (2026-08-27)
+
+- Canonical scope review supersedes only the prior progression interpretation,
+  not any terminal history or no-replay boundary. Item30's tracked control
+  requires capped Claude, Kimi, Amap and Meituan production validation and has
+  only the already-verified `internal_failure_rollback` dependency. Its
+  executor, semantic Evidence verifier and focused credit tests contain no
+  `NeedDaemonReload`, `systemctl` or global loaded-unit predicate. A live
+  `NeedDaemonReload=no` observation is therefore not an original Item30 credit
+  condition, and full global loaded-unit double-snapshot stability is a later
+  diagnostic control rather than canonical Item30 DoD.
+- The accepted production fact remains open and is not waived: independent
+  stable reads established `NeedDaemonReload=yes` for
+  `noteai-api.service`, `noteai-xhs-trends.service` and
+  `noteai-xhs-tracking.service`, managed mask `7`. Dynamic changes in the full
+  loaded-unit set are not production drift without a concrete affected unit
+  and impact. The incomplete global inventory remains historical partial
+  diagnostic evidence, but neither its completion nor full-set stability is a
+  credit gate.
+- Scope split: Item30 may receive credit only through its unchanged canonical
+  signed-readiness/provider Evidence path; no validator, Evidence schema,
+  original DoD or accepted Item1-29 status is changed. Managed mask `7` is an
+  independent pre-launch P0 blocker, recorded in the existing Item36
+  `alb_tls.blocker`. It must deterministically converge `7 -> 0` for exactly the
+  three accepted managed units before any non-essential restart/deploy and
+  before Item36 execution, with unit identities, PID/NRestarts and API
+  container identity/health unchanged. Full global loaded-unit set stability
+  is not part of that future acceptance.
+- Existing dependencies carry the stop boundary from Item36 to Item37 and then
+  Item38. If the managed-NDR blocker remains open, Item36/37 receive no credit
+  and authoritative DNS cutover is `NO-GO`. The current state remains Item30
+  `NO CREDIT`, complete Readiness `29/38`; this correction creates no credit.
+- This offline correction authorizes no Command/Invoke, `daemon-reload`,
+  readiness request, provider call, restart, deploy or production write. No
+  resource was started and attributable incremental provider, payment,
+  Render or PostPaid cost remains `CNY 0.000000`; API-C/API-F remain the
+  existing Running/PrePaid baseline and Builder/Worker-C/Worker-F remain
+  Stopped/StopCharging/PostPaid.
+
+## Item30 pre-dispatch Username projection / browser-policy blocker (2026-08-28)
+
+- The final reviewed wrapper and transport are not the blocker: three-agent
+  review returned GO, raw carrier `18,419/18,432` bytes and canonical Base64
+  `24,560/24,576` bytes passed exact roundtrip and syntax checks. Its gate and
+  unsubmitted suffix `104decc8390b544c` are now discard-only and must not be
+  reused after gate expiry.
+- The clean Cloud Assistant UI projected byte-exact CommandContent and only
+  API-F, but injected `Username=root` despite the field never being touched.
+  That violates the accepted omit-Username action-time boundary, so Execute
+  was not clicked. Loading an omit-Username parameter set in the official
+  OpenAPI form was blocked by browser safety policy before any API call; do not
+  bypass that restriction through scripts, another browser surface or an
+  indirect API path.
+- Production risk remains closed at the pre-dispatch boundary: new Command and
+  Invoke count zero; signed-readiness, provider/model, payment/funds, business
+  database, config, restart/deploy and DNS writes zero; exact-one unconsumed;
+  attributable provider/cloud cost `CNY 0.000000`. API-C/API-F remain the
+  existing Running/PrePaid baseline and all three PostPaid machines remain
+  Stopped/StopCharging. The separate Item36 managed-NDR mask-7 P0 remains open
+  and unchanged.
+- Progression P0=1/P1=0: Item30 cannot be dispatched until the owner either
+  accepts Alibaba Cloud's effective default root projection for this bounded
+  API-F command or personally completes an omit-Username OpenAPI interaction
+  after Codex prepares a new fresh artifact. No expired identity, additional
+  proof layer, provider call or Item31 work is permitted while waiting.
+
+## Item30 V-stage pre-provider failure and task-exact cleanup hold (2026-08-28)
+
+- The owner accepted effective `Username=root`. Command
+  `c-sz06vb67hq2x2ps` / Invoke `t-sz06vb67hqcwo3k` then reached a definitive
+  ExitCode `1` at wrapper stage `V`, before ACTIVE, container create/start,
+  signed-readiness or provider dispatch. The identity is permanently
+  no-replay. Provider/model usage, funds, configuration and business-database
+  writes remain zero and business exact-one is unconsumed.
+- Root cause is bounded to the wrapper's stale two-file credential projection
+  versus effective API-F runtime env. Three-agent review gives P0=0/P1=0 to a
+  successor that replaces only that projection and handles the proven image
+  empty-key `=` record, with exact9/duplicate/empty/malformed/CAS fail-closed
+  semantics. Offline projection fixtures passed 35/35 and image fixtures
+  11/11; no NDR/systemd/global-inventory or new proof layer is introduced.
+- The staged cleanup is 7,820 Secret-free bytes, SHA-256
+  `e1ff8873d1228fc5abbae3ff9aea34909ac9ba9998720f0b775aca7d85a593b6`,
+  API-F-only, ProcessTree, timeout 300 and effective `Username=root`. Before
+  deletion it requires PREPARED/gate/inventory/API-F CAS and zero task
+  container, volume and open FD; its maximum deletion is the exact failed
+  suffix's two files and two directories, leaving BASE empty. It has not been
+  executed because browser policy requires action-time deletion confirmation.
+- While waiting, API-C/API-F remain the existing Running/PrePaid baseline;
+  Builder/Worker-C/Worker-F remain Stopped/StopCharging/PostPaid and running
+  stoppable PostPaid is zero. Incremental provider, payment, Render and
+  PostPaid cost remains `CNY 0.000000`. Item30 remains `NO CREDIT`, complete
+  Readiness `29/38`; managed NDR mask `7` remains only the separate Item36 P0.
+- Progression risk is P0=1/P1=0 until exact cleanup receives action-time
+  confirmation and returns `TASK_EXACT_CLEANED` with zero residue and unchanged
+  API-F identity. Only then may a fresh canonical successor be materialized;
+  the failed identity and its expired gate must never be replayed or reused.
+
+## Item30精确cleanup终态与Claude重新认证等待（2026-08-28）
+
+- 精确删除已闭合：API-F-only Command `c-sz06vcz884498n4` / Invoke
+  `t-sz06vcz884gqqdc`唯一执行并以ExitCode 0返回`TASK_EXACT_CLEANED`；仅删除
+  旧suffix的2个文件和2个目录，BASE、task/label container、running container、
+  volume及open-FD均为0，API-F identity不变。该identity永久no-replay。
+- 业务边界未消耗：signed-readiness、四家provider/model、资金、生产配置、
+  restart/deploy、业务数据库、payment及DNS写入仍为0，业务exact-one仍未消耗。
+  Item30本轮增量provider/payment/Render-deploy/PostPaid费用为`CNY 0.000000`；
+  既有PrePaid与Render Starter基线费用继续存在，不得表述为全平台费用0。
+- successor候选只在离线内存中完成最小wrapper修复：API-F `.Config.Env` JSON
+  exact9与`/proc`逐字对账、root regular/non-link `0600`/nlink1/inode/metadata/SHA
+  CAS，以及image env exact-one `=`和exact-one terminal blank。Stage V fixtures
+  `35/35`、image fixtures `11/11`、roundtrip、双`bash -n`、CR/NUL及transport
+  上限均通过；immutable b55、executor、provider顺序、费用/no-replay边界、
+  validator和v1 Evidence不变，未新增helper/controller/receipt/adapter/version。
+- fresh资源读回：API-C/API-F为`Running / PrePaid`；Builder、Worker-C、Worker-F
+  均明确为`已停止 / 节省停机模式 / 按量付费`，即
+  `Stopped / StopCharging / PostPaid`，running stoppable PostPaid=0。Render
+  production仍为live的`dep-da7hqn15efls73e28550`/revision `84f8a2f...ae3`，
+  未触及staging/plan/autoscale/source。Item36 managed-NDR mask `7`保持独立P0，
+  当前Item30不展开。
+- 三名既有reviewer均已真实复用并给出artifact P0=0/P1=0。当前progression为
+  P0=1/P1=0：Claude官方账户页已跳转登录，无法诚实取得30分钟内fresh native
+  counter/balance/account binding。禁止使用旧counter伪造gate，禁止在重新认证前
+  创建successor Command/Invoke或派发真实调用。
+- 唯一恢复动作是owner回到电脑后完成Claude官方账户登录/MFA；随后由主线程同步
+  刷新Claude/Kimi/Amap/Meituan、ECS/API-F和Render，只生成一组fresh
+  suffix/nonce/gate/Command/Invoke。等待期间全部PostPaid必须持续StopCharging，
+  Item30保持`NO CREDIT`、完整Readiness保持`29/38`，不产生checkpoint且不进入Item31。
+
+## Item30 production gateway URL canonicalization blocker（2026-08-28）
+
+- Canonical wrapper `c-sz06vd3t9p2h2bk` / `t-sz06vd3t9p9yrcw`在API-F
+  唯一执行，终态`Failed / ExitCode 1 / WRAPPER_PRE_PROVIDER / stage V`，永久
+  no-replay。它在DNS、container create/start、signed-readiness、journal和任一
+  provider前停止；四家native post counter/row状态与fresh pre完全相同，因此
+  readiness/provider/model/funds/config/restart/deploy/business-DB/payment/DNS写入
+  均为0，business exact-one未消耗。
+- 精确cleanup `c-sz06vd58gbr064g` / `t-sz06vd58gc3hnuo`终态
+  `Success / ExitCode 0 / TASK_EXACT_CLEANED`，永久no-replay。它只删除suffix
+  `a6cf419127064af8`的2个文件和2个目录，BASE/container/volume为0，API-F身份
+  不变。Secret-free分类证明credential exact/nonempty、Meituan exact-one、
+  `.Config.Env == /proc`及authority语法全部通过，唯一失败为
+  `authority_relation=false`；不得输出或记录raw URL、authority或secret值。
+- 三方结论存在受控分歧：DoD为`NO-GO / P0=1 / P1=0`，因为executor要求的
+  `claude_remote_ready=true`传递依赖生产raw URL精确满足
+  `_valid_gateway_base_url`；Verification与Risk仅对同authority、单尾斜杠的短命
+  container表示归一化给出条件`GO / P0=0 / P1=0`。CTO采用fail-closed结论：
+  不用ephemeral rewrite取得信用，不修改validator或Evidence，不生成provider
+  successor。当前release progression风险为`P0=1 / P1=0`。
+- 唯一允许提案是获得新的生产配置写授权后，将API-F
+  `NOTEAI_CLAUDE_GATEWAY_URL`原子修正为`https://<current validated authority>`，
+  保持其余env逐字不变，并只执行使该一键变更生效所必需的有界activation/restart与
+  rollback。现有Item30授权明确禁止config/restart，所以当前不得执行；任何值暴露、
+  其他env漂移、UNKNOWN或服务身份/健康漂移均停止且不重放。
+- 费用与等待边界闭合：API-C/API-F为Running/PrePaid；Builder、Worker-C、Worker-F
+  为Stopped/StopCharging/PostPaid，running stoppable PostPaid=0；Render production
+  revision/deploy不变且staging未触及。新增provider/payment/Render-deploy/PostPaid
+  费用`CNY 0.000000`，既有PrePaid/Render Starter基线继续。Item30保持
+  `NO CREDIT`、完整Readiness `29/38`；Item36 managed-NDR mask `7`仍为独立P0。
+
+## Item30 API-F production URL activation UNKNOWN hard stop（2026-08-29）
+
+- API-F-only Command `c-sz06vdii5hn1h4w` / Invoke
+  `t-sz06vdii5i70nwg`使用server端逐字匹配的11,040-byte carrier，SHA-256
+  `a1829d88d240648e31ee27a28f35e0ea229c3b06b4ba8e433dd1b06fdd86414f`，
+  effective `Username=root`、Immediate/Once、ProcessTree、timeout 600，API-C未选。
+  终态为`Failed / ExitCode 20 / <1s`，唯一stdout为
+  `{"code":"URL_CANONICALIZATION_UNKNOWN"}`。该identity永久no-replay。
+- 风险分类固定为`P0=1 / P1=0 / ACTIVATION_STATE_UNKNOWN`。`<1s`不能证明
+  pre-mutation：UNKNOWN可来自candidate前的只读歧义，也可来自candidate创建、原子
+  exchange、forward restart或rollback处理后的异常。不得把它记录为未变、已应用或已
+  回滚，也不得删除本suffix恢复材料。
+- 最大可能生产写集合仅为：`api.env`可能仍为old或已成为canonical单键版本；本suffix
+  的candidate/exchanged/restart-sent/rollback-sent root-owned mode-0600恢复文件至多
+  一个；forward restart最多提交一次，known-failure路径的rollback restart最多提交
+  一次。CID/PID/StartedAt、health和restart终态均需权威只读对账。禁止输出任何env值。
+- 静态动作面无NDR/daemon-reload、Render、provider/model、business-DB、payment/funds
+  或DNS路径，因此这些controller直接调用/写入为0，provider exact-one未消耗。
+  Item30保持`NO CREDIT`、完整Readiness保持`29/38`；Item36 managed-NDR mask `7`
+  继续作为独立P0，不在Item30展开。
+- fresh控制面读回：API-C/API-F为`Running / PrePaid`；Builder、Worker-C、Worker-F
+  为`Stopped / StopCharging / PostPaid`，running stoppable PostPaid=0。新增收费资源0；
+  费用上界仅Cloud Assistant审计元数据、既有API-F PrePaid短CPU及可能restart的基线
+  CPU/网络；直接provider/payment/Render-deploy/PostPaid费用`CNY 0.000000`。
+- 当前禁止successor、replay、restart、rollback、cleanup、readiness和provider动作。
+  唯一安全后继方向必须先获得owner明确方向：至多一次Secret-free/action-free、
+  API-F-only只读reconcile，仅输出old/new/other关系、suffix状态元数据/哈希关系及
+  unit/job/CID/PID/StartedAt/image/running/health/restart计数；若不能唯一分类则继续
+  UNKNOWN并由owner决定恢复。该方向本身不授予Item30信用或任何生产写权限。
+
+## Item30 API-F read reconcile未闭合激活终态（2026-08-29）
+
+- owner授权的唯一API-F-only、Secret-free、action-free reconcile已消费：Command
+  `c-sz06velqigxkhs0` / Invoke `t-sz06velqihcjvuo`，server CommandContent
+  `9,901` bytes、SHA-256
+  `a3860eca54f89fc58156819711e1061b8c32cafa831a0ffeff533c4ecc993bac`，
+  与三方批准carrier逐字一致；effective `Username=root`、Immediate/Once、
+  ProcessTree、timeout 300、API-F sole target。该identity永久no-replay。
+- 终态为`Failed / ExitCode 20 / 1s`，固定stdout为
+  `{"classification":"UNKNOWN","code":"READ_FAILED_UNIT_LOADED_EXEC","schema":"noteai.item30.api_f_url_reconcile.v1","target":"API_F_ONLY"}`，
+  UI未显示stderr。失败在首个unit/typed loaded-Exec只读阶段；未进入FILES、SERVICE、
+  RUNTIME或第二快照。因此不能把前一activation分类为APPLIED/ROLLED_BACK/ABORTED，
+  也不能据此认定具体unit漂移。
+- 风险保持`P0=1 / P1=0 / ACTIVATION_STATE_UNKNOWN`。本reconcile自身production
+  file/config/service/Docker/Render/provider/DB/payment/funds/DNS写入均为0，仅产生
+  Cloud Assistant审计元数据和约1秒既有API-F PrePaid CPU；provider exact-one未消耗。
+  前一activation最大可能写集合保持UNKNOWN，suffix `75e60c42241ac410`材料和live
+  `api.env`必须原样保留，禁止cleanup/restart/rollback/readiness/provider或新Invoke。
+- fresh资源终态：API-C/API-F `Running / PrePaid`；Builder、Worker-C、Worker-F
+  `Stopped / StopCharging / PostPaid`，running stoppable PostPaid=0；新增
+  provider/payment/Render-deploy/PostPaid费用`CNY 0.000000`，既有PrePaid/Starter
+  基线继续。Item30保持`NO CREDIT`、完整Readiness保持`29/38`。
+- 三方终态为DoD/Verification `NO CREDIT`、Risk `NO-GO / P0=1 / P1=0`。唯一下一
+  边界是先离线确定`UNIT_LOADED_EXEC`单一根因；如仍需新的action-free read，必须
+  重新获得owner明确授权。任何生产恢复写必须在激活状态唯一分类后另行授权。
+
+## Item30 API-F direct classifier被隐藏Username累积拒绝（2026-08-29）
+
+- 唯一授权已消费：Command `c-sz06vfisu7oqeio` / Invoke
+  `t-sz06vfisu7w83k0`，API-F sole target、Immediate/Once、ProcessTree、timeout
+  60，已永久no-replay。pre-submit Monaco载荷为12,384 bytes、SHA-256
+  `d1f3c5db85115b381242073d3563e865a41128599042f3077b6a1cfaa631a03c`。
+- 权威stored execution user为`rootrootrootrroot`，实例终态`执行无效`，执行时间、
+  ExitCode、stdout和stderr均为空。可见Username字段始终回读空值，但控制台hidden
+  state把5次正常输入事件串接；终态固定为
+  `PRE_EXECUTION_INVALID_USERNAME / HOST_EXECUTION_NOT_STARTED`。这是UI请求投影
+  完整性事件，不是secret泄露、权限提升或主机入侵。
+- 仅新增Cloud Assistant Command/Invoke审计元数据。payload未启动，因此API-F
+  file/env/proc/systemd/Docker读取、生产配置与业务写入、cleanup/restart、network、
+  provider/model、Render、DB、payment/funds、DNS及PostPaid-start均为0；无主机残留
+  需要cleanup。增量provider/payment/Render-deploy/DB/PostPaid费用为`CNY 0.000000`，
+  既有PrePaid/Render Starter基线费用继续。
+- 本次没有canonical分类结果，前一activation仍为`UNKNOWN`；`api.env`与suffix
+  `75e60c42241ac410`恢复材料必须原样保留。禁止cleanup/restart/rollback/readiness/
+  provider或自动后继。事件生产影响P0=0，当前UI路径P1=1并封禁；Item30整体仍因
+  activation UNKNOWN保持P0=1、`NO CREDIT`，完整Readiness保持`29/38`。
+- 只有owner再次明确授权新的production read，且fresh提交表面能在accept前权威证明
+  `Username`参数完全缺席，才可设计新identity；不得复用当前表单/session、carrier
+  identity、Command或Invoke。
+
+## Item30 official OpenAPI classifier confirmed UNKNOWN（2026-08-29）
+
+- Fresh官方OpenAPI Explorer在accept前权威投影exact 11-field RunCommand keyset；
+  `Username`、`WorkingDir`及所有未授权可选key均不存在。唯一accepted identity为
+  Command `c-sz06vfkpsqpukg0` / Invoke `t-sz06vfkpsr9tr7k`，API-F sole target，
+  timeout 60，已终态并永久no-replay。
+- 终态为`Failed / ExitCode 20 / 1s`，唯一canonical stdout为`UNKNOWN`。两次快照
+  稳定，API-F Docker/systemd运行健康、PID为正、NRestarts与RestartCount均为0；四个
+  精确suffix recovery material全部`ABSENT`；但`api.env`、Docker `Config.Env`与
+  PID1 environ三者均为`OTHER`。未输出raw URL或secret。
+- 硬风险固定为`P0=1 / P1=0 /
+  ITEM30_API_F_URL_ACTIVATION_STATE_UNKNOWN /
+  ALL_THREE_TARGET_RELATIONS_OTHER / RECOVERY_MATERIALS_ABSENT`。`OTHER`只证明各来源
+  不满足冻结NEW/OLD集合，不证明三者raw相等，不能将前一activation归类为
+  `APPLIED`、`ROLLED_BACK`或`ABORTED`，也不得用健康态替代配置正确性。
+- 本classifier为action-free；config/file/service/Docker mutation/network/provider/
+  Render/DB/payment/funds/DNS/PostPaid写入为0。增量仅Cloud Assistant审计metadata和
+  约1秒既有API-F PrePaid CPU；新增provider/payment/Render-deploy/PostPaid费用为
+  `CNY 0.000000`，既有PrePaid与Render Starter基线费用继续。
+- fresh资源读回保持API-C/API-F `Running / PrePaid`，API-F Agent normal；Builder、
+  Worker-C、Worker-F均`Stopped / StopCharging / PostPaid`，running stoppable
+  PostPaid=0，Cloud Assistant可见非终态Invoke=0。本次无task residue或cleanup动作。
+- 三方终态一致：DoD/Verification `NO CREDIT`，Risk `NO-GO`。Item30保持
+  `29/38`，signed-readiness/provider exact-one未消耗；Item36 managed-NDR mask `7`
+  独立P0不变。立即停止successor/classifier、cleanup、restart/rollback、readiness/
+  provider及任何Render/config写；任何后续生产读取或修复必须取得新的精确owner授权。
+
+## Item30 URL-only恢复被accepted DB-read-only基线阻断（2026-08-29）
+
+- URL-only mutation Command `c-sz06vfqxgn6datc` / Invoke
+  `t-sz06vfqxgnnul8g`终态`Failed / ExitCode 20 / <1s`，固定输出证明
+  `live_change_started=false`、`recovery_retained=false`；config写、restart、rollback
+  均为0，candidate/terminal marker均absent。其identity永久no-replay。
+- 后继action-free diagnostic Command `c-sz06vfsn833mqdc` / Invoke
+  `t-sz06vfsn83b4feo`终态`Failed / ExitCode 20 / <1s`，固定分类为
+  `READ_ONLY_DB_ENV_CONTRACT`。该stage唯一可达谓词证明Docker `Config.Env`不含精确
+  `PGOPTIONS=-c default_transaction_read_only=on` item；不证明所有等价PGOPTIONS均缺失，
+  也不证明数据库可写。parent/mount/residue/tool/authority均PASS，生产写与外呼均为0；
+  identity永久no-replay。
+- 该literal不是Item30原始信用门，但属于accepted API runtime recovery和DB零写restart
+  基线。删除门后restart会降低生产保护；补写PGOPTIONS则是当前“只改URL、其他env逐字
+  不变”授权之外的第二key变更。DoD/Risk为`NO-GO / P0=1 / P1=0`；Verification对只删
+  literal assertion给条件GO。CTO采用fail-closed结论：不得删门、不得修改第二key、不得
+  restart或提交fresh successor。
+- API-C/API-F保持`Running / PrePaid`；Builder/Worker-C/Worker-F保持
+  `Stopped / StopCharging / PostPaid`，running stoppable PostPaid=0。Render/staging、
+  provider/model、DB、payment/funds、DNS及PostPaid写入为0，新增相关费用
+  `CNY 0.000000`；既有PrePaid/Render Starter基线费用继续。
+- Item30仍`NO CREDIT`、完整Readiness仍`29/38`，signed-readiness与四家exact-one未消耗；
+  Item36 NDR mask `7`独立P0不变。唯一安全下一步是取得owner对API-F PGOPTIONS第二key
+  基线恢复的明确授权；完成原子生效/回滚、有效只读和DB零写证明后，才可生成全新URL-only
+  successor。当前不得创建任何新Command/Invoke，且不产生checkpoint。
+
+## Item30 API-F PGOPTIONS恢复确定性ABORTED_NO_LIVE_CHANGE（2026-08-29）
+
+- owner授权的唯一PGOPTIONS恢复已消费：Command `c-sz06vfx2mynz7k0` / Invoke
+  `t-sz06vfx2mzagao0`，API-F sole target、Once、ProcessTree、timeout 1200，官方
+  SDK投影为exact 11-field且省略`Username`/`WorkingDir`/`ClientToken`。服务端
+  CommandContent解码为11,320-byte transport，SHA-256
+  `2098656ba5e418e59f7cfe4f1bd1b110d1679a9df0c1bf38cfd78967e96b5625`；identity
+  已终态并永久no-replay。
+- 终态`Failed / ExitCode 10 / 2s`，完整canonical stdout为
+  `{"classification":"ABORTED","db_read_only":"NOT_RUN","forward_restart_dispatched":false,"live_change_started":false,"pgoptions_state":"UNCHANGED","recovery_retained":false,"rollback_restart_dispatched":false,"target":"API_F_ONLY"}`。
+  该终态权威证明env未exchange、PGOPTIONS未被本controller修改、forward/rollback
+  restart均为0、DB connection/SELECT/rollback均为0；不得把它记为PGOPTIONS成功或
+  database-read-only证明。
+- 文件写集合必须精确表述：pre-live阶段最多可能O_EXCL创建root-owned mode-0600
+  candidate；`ABORTED + recovery_retained=false` interlock证明其后已exact unlink并
+  dir-fsync，candidate/action/recovery/terminal-marker残留为0。禁止泛化成“所有临时
+  文件写入为0”，但live配置写和service action确定为0。
+- 本事件风险`P0=0 / P1=0 / ABORTED_NO_LIVE_CHANGE`；Item30仍因PGOPTIONS激活、
+  URL canonical activation、signed-readiness和provider链未完成而保持`NO CREDIT / 29/38`。
+  URL-only successor继续`NO-GO`，旧identity不得重放，新的PGOPTIONS mutation不得
+  从本终态自动派生。
+- provider/model、Render控制面、business-DB写、payment/funds、DNS和PostPaid-start
+  动作为0；增量相关费用`CNY 0.000000`，仅新增Cloud Assistant审计metadata和约2秒
+  既有API-F PrePaid CPU。post-terminal读回保持API-C/API-F `Running / PrePaid`、Agent
+  normal `2.2.4.1097`；Builder/Worker-C/Worker-F均`Stopped / StopCharging / PostPaid`，
+  running stoppable PostPaid=0。
+- 三方终态一致：DoD/Verification `NO CREDIT`，Risk `P0=0 / P1=0`。离线控制流对账已
+  确认canonical `ABORTED`不输出首个pre-live失败谓词，既有历史事实也无法唯一反推；
+  下一生产动作只能在另行取得owner授权后执行一次API-F-only、Secret-free、action-free
+  固定枚举只读对账。闭合前禁止fresh PGOPTIONS mutation、URL successor、readiness/
+  provider调用或checkpoint。Item36 managed-NDR mask `7`继续为独立P0，不在Item30展开。
+
+## Item30 API-F PGOPTIONS fixed-enum preflight确定性拒绝（2026-08-29）
+
+- owner授权的唯一fixed-enum只读preflight已消费：Command
+  `c-sz06vfzmaeani80` / Invoke `t-sz06vfzmaes4sn4`，API-F sole target；官方
+  OpenAPI Explorer投影为exact 11-field并省略`Username`、`WorkingDir`、
+  `ClientToken`。投影Base64完整覆盖`9,084`字符并精确解码为`6,812`-byte
+  transport，SHA-256
+  `ff93da5bd9fdd7c383337a5def575c1aa045db6dfb8791e3dca70202a4af036c`；
+  identity已终态且永久no-replay。
+- 终态为`Failed / ExitCode 10 / 1s`，唯一可见stdout正文为精确`65`-byte
+  `{"code":"API_F_PGOPTIONS_PREFLIGHT_PGOPTIONS_PRESTATE_NO_ACTION"}`。
+  UI未原生显式给出末尾LF、stderr或Dropped计数，因此不得把这些字段记成终态直接
+  读回；这不改变`Exit10 <-> deterministic mismatch`互锁。
+- 该结果是确定性`NO_ACTION`而非UNKNOWN。它证明host/parent、旧residue absence、
+  tools、env file、unit/systemd、Docker/PID1、image/revision与双快照稳定门均已通过，
+  随后"file target absent且stable runtime target absent"联合前态为假。它不能区分
+  PGOPTIONS位于file/runtime哪一侧、不能输出或推断值、canonicality或三源相等，也不
+  提供DB只读证明；file重复/空记录仍是可能分支，runtime重复/空值已由更早runtime门
+  排除。
+- 探针在projection/transform/final-CAS/candidate-write之前停止。live config/file/
+  service/Docker mutation、restart、DB connection/query/write、provider/model、Render、
+  payment/funds、DNS与PostPaid-start均为0，无清理材料。增量相关费用为
+  `CNY 0.000000`；仅新增Cloud Assistant审计metadata及约1秒既有API-F PrePaid CPU，
+  既有PrePaid和Render Starter基线账单继续。
+- post-terminal资源读回保持API-C/API-F `Running / PrePaid`；Builder/Worker-C/
+  Worker-F均`Stopped / StopCharging / PostPaid`，running stoppable PostPaid=0；可见
+  nonterminal Invoke=0。本事件风险为`P0=0 / P1=0`，但PGOPTIONS baseline、URL
+  activation与Item30继续`NO-GO / NO CREDIT / 29/38`；signed-readiness与四家provider
+  exact-one均未消耗，Item36 NDR mask `7`独立P0不变。
+- 三方均拒绝放宽prestate或从未知现值直接派生mutation。当前exact-one read授权已
+  消费；唯一下一边界是取得owner对一次更窄API-F-only/action-free关系分类的明确授权，
+  只允许把file、Docker Config.Env、PID1分别分类为`ABSENT / CANONICAL / OTHER /
+  INVALID`且不输出值。闭合前禁止mutation、restart、DB连接、URL successor、
+  readiness/provider调用、新证明层或checkpoint。
+
+## Item30 PGOPTIONS后增前门移除与风险分层纠正（2026-08-29）
+
+- 仅离线tracked/history审计确定：PGOPTIONS不是原始Item30/Readiness信用门。原始
+  manifest提交`3d234f2286a552e3521d29174028e3d73a8d3f5f`和权威起点`88cf86d`
+  只要求四家bounded production validation，直接依赖`internal_failure_rollback`，
+  blocker仅为provider credential/quota/output/cost；均无PGOPTIONS。Item30 canonical
+  executor/verifier/tests首次提交`203799d`及其后续完整Git历史也均为0 occurrence。
+- canonical零DB风险依靠三项原始控制闭合：`DATABASE_URL`非空即
+  `PRODUCTION_DATABASE_FORBIDDEN`、usage ledger固定为`/dev/shm` tmpfs SQLite、
+  Evidence精确要求business DB connection/write均为0；validator还要求production
+  service restart为0。signed-readiness和provider链不读取或消费PGOPTIONS。
+- PGOPTIONS的独立来源是更早的API/Admin真实服务恢复层：commit `e37750c`在
+  `recover_minimal_api_runtimes.sh`的restart/runtime路径注入并校验该环境项。它只在
+  2026-08-29后增的一次性URL activation wrapper中被提升为Item30前门，原始代码为
+  `require("PGOPTIONS=-c default_transaction_read_only=on" in entries, exc)`；这是
+  live API-F mutation/restart安全控制，不是provider-chain信用条件。
+- 风险分层结论为`GO / P0=0 / P1=0`：从纯canonical Item30 wrapper和credit predicate
+  删除该membership门，Readiness blocker恢复原始tracked文本，今后Item30 provider前门
+  不再读取或分类生产PGOPTIONS。历史URL/PGOPTIONS carrier保持冻结/no-replay且不改写，
+  不新增classifier/controller/receipt/adapter/helper或证明层。
+- 删除边界不包含任何live API-F配置、unit、service或restart权限。canonical wrapper仍须
+  禁止`DATABASE_URL`、只用tmpfs SQLite、保持production config/restart/DB write为0并
+  通过原Evidence。若未来另行提出API-F env mutation或restart，其effective DB只读和
+  zero-write保护属于该独立生产变更，不得反向加入Item30 DoD；本次既不诊断当前
+  PGOPTIONS也不认定生产配置异常。
+- 本轮生产Command/Invoke、配置、cleanup、restart、DB连接、provider/Render/资金/DNS/
+  PostPaid动作为0，费用增量为`CNY 0.000000`。Item30仍`NO CREDIT / 29/38`，signed-
+  readiness与四家exact-one未消费，Item36 NDR mask `7`独立P0不变。当前production
+  action禁令继续；仅完成offline focused验证，不产生checkpoint。
+
+## Item30 API-F URL前向修正UNKNOWN_PRE_LIVE_CHANGE（2026-08-29）
+
+- owner授权的唯一API-F production单键前向修正已消费：Command
+  `c-sz06vg64l5iwqgw` / Invoke `t-sz06vg64l62vx8g`，sole target
+  `i-wz9bgztwf1tiakww2ops`。冻结transport为`9,801` bytes，SHA-256
+  `4be16e3ec07806e7e69cd3f8e4d04d7acc8670fc80b0d30cc939a59526a412bb`；
+  SDK投影解码与其byte-exact一致并省略`Username`、`WorkingDir`和`ClientToken`。
+  该identity永久no-replay。
+- 权威终态为`Failed / ExitCode 20 / 2s`，无密固定分类为
+  `UNKNOWN / url_state=UNKNOWN / live_change_started=false /
+   recovery_retained=false`。controller在live exchange前停止，因此`api.env`
+  live bytes未交换，forward restart=0、rollback restart=0、container replacement=0；
+  signed-readiness/provider/model请求均为0，业务exact-one未消耗。
+- durable live-config change为0。不得扩大为“所有临时文件写入为0”：candidate可能曾
+  O_EXCL创建后被精确删除；但保守存在性函数输出`recovery_retained=false`，证明当前
+  candidate/terminal材料均不存在，无durable residue，也未执行cleanup。唯一持久新增为
+  Cloud Assistant Command/Invoke审计metadata。
+- provider/Render控制面、business DB、payment/funds、DNS调用或写入均为0；新增
+  PostPaid/Render/provider/资金费用为`CNY 0.000000`，仅消耗既有API-F PrePaid约2秒
+  CPU。API-C/API-F保持`Running / PrePaid`；Builder、Worker-C、Worker-F保持
+  `Stopped / StopCharging / PostPaid`，running stoppable PostPaid=0。
+- 三方复核一致拒绝URL activation与Item30信用。DoD/Verification确认live exchange、
+  restart和provider dispatch均为0且无durable recovery residue；Risk将本事件定为
+  `P0=0 / P1=1`，P1仅是pre-live失败归因及独立当前URL状态证据缺口，不代表已知生产
+  影响。当前Readiness仍`29/38`，Item30 `NO CREDIT`，无Evidence/checkpoint；Item36
+  managed-NDR mask `7`独立P0不变。
+- 风险处置为硬停止：不得重放旧Invoke，不得在UNKNOWN上直接派生fresh mutation、
+  restart、cleanup、readiness或provider调用。唯一下一动作是等待owner方向；若未来另行
+  授权只读reconcile，必须是fresh、API-F-only、Secret-free、action-free且任何UNKNOWN
+  立即停止。当前没有MFA、专业签署、长期费用或DNS等待，全部PostPaid继续StopCharging。
+
+## Item30 URL-forward错误前门离线收敛（2026-08-29）
+
+- 冻结controller/transport保持原SHA且未改写；本轮云端、生产读写、restart、cleanup、
+  provider/Render/DB/资金/DNS/PostPaid动作均为0。
+- `UNKNOWN,false,false`无法离线唯一归因：它覆盖line 757前的全部无reason异常，以及
+  candidate/CAS失败后unlink已发生但目录fsync/确认仍歧义的分支。现有证据仅足以证明
+  live exchange/restart=0与当前recovery residue=0。
+- 确定性P1表示层缺陷已定位：controller不存在known-old常量，却要求当前值通过HTTPS/
+  ASCII shape、非空且`!= CANONICAL`。这会拒绝任意有效现存表示及already-canonical状态，
+  与owner批准的“exact-one key从任意现存值设置为canonical”不一致。
+- 必须保留file=Docker Config.Env=PID1逐字一致、双快照、full-stat/xattr CAS、非目标env、
+  unit/image/runtime/health及回滚材料门；这些是mutation时安全边界，不是历史分类前门。
+- 四处内存差异已通过arbitrary/empty/Unicode/backslash/HTTP、canonical no-op、missing/
+  duplicate/mismatch、CAS drift、health rollback和post-exchange UNKNOWN fixture。未生成新
+  controller或证明层。修正后设计风险`P0=0 / P1=0`；冻结artifact仍`NO CREDIT/no-replay`。
+  唯一下一边界是fresh owner mutation授权后物化这四处差异并执行一次，不先做新的生产
+  classifier/read reconcile。Readiness维持`29/38`，全部PostPaid继续StopCharging。
+
+## Item30 four-hunk URL-forward successor UNKNOWN_PRE_LIVE_CHANGE（2026-08-29）
+
+- owner授权的fresh successor已精确消费：Command `c-sz06vgaut6cagw0` / Invoke
+  `t-sz06vgaut6orym8`，sole target `i-wz9bgztwf1tiakww2ops`。新controller为
+  `32,270` bytes / SHA-256
+  `bc7107a67ed2710fdfd26073fc66d1de93a1946466a2d34cc9ccc66e17b2a0c5`，transport为
+  `9,793` bytes / SHA-256
+  `db0ac5147a72aa23b6391bcdb37d53a84e49ab6c700e53eda97ee89942beef09`；官方SDK投影
+  byte-exact且仅含API-F，`Username`、`WorkingDir`、`ClientToken`均缺席。
+- 权威终态为`Failed / ExitCode 20 / about 2s`，固定输出精确为
+  `UNKNOWN / live_change_started=false / recovery_retained=false /
+  target=API_F_ONLY / url_state=UNKNOWN`。该identity永久no-replay。
+- 事件风险为`UNKNOWN_PRE_LIVE_CHANGE / P0=0 / P1=1`。live `api.env` exchange、
+  forward/rollback restart、container replacement均为0，candidate/terminal durable
+  residue为0；不能排除短命mode-0600 candidate曾创建后被精确删除。URL当前状态仍未知，
+  不得声明canonical/APPLIED/ROLLED_BACK。
+- provider/model、Render control plane、business DB connection/write、payment/funds、
+  DNS及PostPaid-start均为0。仅新增Cloud Assistant审计metadata和约2秒既有API-F
+  PrePaid CPU；新增provider/Render/PostPaid/资金费用`CNY 0.000000`。API-C/API-F维持
+  `Running / PrePaid`，Builder/Worker-C/Worker-F维持`Stopped / StopCharging / PostPaid`，
+  无需额外止费动作。
+- 三方终态一致为DoD/Verification `NO CREDIT`、Risk `P0=0 / P1=1`。Readiness保持
+  `29/38`，signed-readiness和四家provider exact-one均未消耗，无Evidence/checkpoint。
+  硬停止：不得重放、派生fresh mutation、cleanup、restart、readiness或provider调用；
+  后续任何新增生产读写必须有新的明确owner边界。Item36 managed-NDR mask `7`独立P0不变。
+
+## Item30 API-F managed-environment deterministic mismatch (2026-08-29)
+
+- Exact-once read identity Command `c-sz06vge84stawhs` / Invoke
+  `t-sz06vge84t8aakg` is terminal and permanently no-replay. The official
+  request projection omitted `Username`, `WorkingDir` and `ClientToken`, used
+  only API-F, and byte-matched the reviewed `5,527`-byte Secret-free transport
+  SHA-256
+  `cd5e363cb868b4cdbd2dcfed6cfae8c2227465ff16473ed9603577479f0b73ce`.
+- Terminal output is deterministic `ExitCode 10`:
+  `url_relation=NONCANONICAL_SYNC`,
+  `managed_non_target_env=MISMATCH`, `snapshots=STABLE`, with stable healthy
+  API-F container/PID/StartedAt and zero restart count. The URL is synchronized
+  but noncanonical; independently, at least one `api.env`-managed non-target
+  key is not exact-one byte-identical in Docker or PID1. No raw value or secret
+  was emitted.
+- Control outcome is hard stop for release progression: URL-only mutation,
+  signed-readiness, provider dispatch and further classification are all
+  prohibited. Item30 remains `NO CREDIT / 29/38`. The only permitted future
+  production direction is the existing canonical configuration publication
+  path, under separate explicit owner authority, to resynchronize the complete
+  managed projection before returning to the canonical Item30 provider chain.
+- This read event itself caused zero production config/file/service/Docker,
+  restart, database, provider/model, Render, funds, DNS or PostPaid mutation.
+  Incremental related cost is `CNY 0.000000`; only Cloud Assistant audit
+  metadata and about two seconds of existing API-F PrePaid CPU were consumed.
+  API-C/API-F remain `Running / PrePaid`; Builder/Worker-C/Worker-F remain
+  `Stopped / StopCharging / PostPaid`, with running stoppable PostPaid zero.
+- Reviewer reconciliation: DoD records the active release blocker as
+  `P0=1/P1=0`; Verification records the complete deterministic evidence as
+  `P0=0/P1=0`; Risk records this safe read event as `P0=0/P1=1`. All three
+  agree on `NO CREDIT`, no mutation, no replay, no additional classifier and
+  the same canonical-publication recovery path. Item36 managed-NDR mask `7`
+  remains a separate P0 and is unchanged.
+
+## Item30 canonical publication path repeated pre-live ABORT (2026-08-29)
+
+- Two owner-authorized fresh canonical-publication identities are terminal and
+  permanently no-replay: `c-sz06vgjgf62z7cw` / `t-sz06vgjgf6pgagw` and
+  `c-sz06vgl9y61va4g` / `t-sz06vgl9y6jckjk`. The latest authoritative result
+  is `Failed / ExitCode 10 / about 1s` with
+  `ABORTED`, `live_change_started=false`, restart counts `0/0`, unchanged
+  projection/URL classifications and no recovery, terminal or task residue.
+- Event risk is `P0=0 / P1=0 / ABORTED_NO_LIVE_CHANGE`. Live production env
+  exchange, service/container restart, provider/model, Render, business-DB
+  write, funds and DNS actions are zero. A short-lived root-owned candidate may
+  have been created and exactly removed before exchange, so no broader claim
+  of zero temporary-file writes is made; durable residue is zero and cleanup
+  is forbidden.
+- The latest request was API-F-only and byte-bound to reviewed controller
+  SHA-256
+  `fe71960ce8947f7a58bcc4bbe49f880f1962ba383b6bf2555a13f416067b824f`
+  and transport SHA-256
+  `16e88f090573a4bba27268d14c279357aa565d89580064c7d15287a47d5803b8`.
+  The SDK projection omitted `Username`, `WorkingDir` and `ClientToken`; typed
+  D-Bus argv-boundary validation and the collision negative fixture passed.
+- Release risk remains open at `P0=1`: the fixed `ABORTED` output intentionally
+  collapses several initial-preflight and pre-exchange self-cleaning branches,
+  so current evidence cannot uniquely attribute the first failed gate. A blind
+  successor could repeat unsafe ambiguity; no further publication, restart,
+  signed-readiness or provider dispatch is allowed from this state.
+- Post-terminal resources are API-C/API-F `Running / PrePaid` and
+  Builder/Worker-C/Worker-F `Stopped / StopCharging / PostPaid`, with running
+  stoppable PostPaid zero. Provider/Render/PostPaid/funds incremental cost is
+  `CNY 0.000000`; only Cloud Assistant metadata and about two seconds total of
+  existing API-F PrePaid CPU were added. The accidentally opened Cloud Shell
+  NAS prompt never crossed its agreement/create boundary and created no task,
+  NAS resource or fee.
+- Recovery requires new explicit authority for one fresh, API-F-only,
+  Secret-free, action-free fixed-stage attribution read or an explicit
+  dependency disposition. Item30 stays `NO CREDIT / 29/38`; Item31 is blocked.
+  Managed NDR mask `7` remains the independent Item36 P0 and is not folded into
+  this Item30 diagnosis.
+
+## Item30 fixed-stage DECLARATION failure and missing canonical authority (2026-08-29)
+
+- Exact-once action-free identity `c-sz06vgpijt43dog` /
+  `t-sz06vgpijto2kg0` is terminal and permanently no-replay. Official
+  readback is `Failed / ExitCode 10` with fixed matrix
+  `PPFPNNPPNPNNNNNNN`: `DECLARATION=F`; host/tool, `api.env` read, unit,
+  systemd, container and image gates pass; later gates are dependency-skipped.
+  This is deterministic mismatch, not UNKNOWN, and the URL value itself is not
+  evaluated by the failing declaration call.
+- The diagnostic has `P0=0/P1=0`: no write preparation, config/file mutation,
+  restart, cleanup, network, provider/model, Render, DB, funds, DNS, NDR or
+  PostPaid action occurred. Exact-one remains unconsumed; incremental provider/
+  Render/PostPaid/funds cost is `CNY 0.000000`. API-C/API-F remain the existing
+  `Running / PrePaid` baseline and Builder/Worker-C/Worker-F the existing
+  `Stopped / StopCharging / PostPaid` baseline; the later console-session
+  expiry prevents claiming a newer UI snapshot but cannot be caused by this
+  action-free read.
+- Release progression remains `P0=1/P1=0`, `NO CREDIT / 29/38`. Existing
+  evidence narrows the declaration defect to canonical Item30-required values
+  and/or publisher-only declaration hygiene, but cannot safely identify a
+  single subpredicate. No further classifier is permitted. Current runtime is
+  a merged, source-losing projection and current `api.env` is the proven
+  failing input; neither may be promoted to canonical authority.
+- Tracked files contain schema and non-secret constants, not a complete
+  value-bearing API-F payload. The GitHub `production` Environment currently
+  lists five provider secret names only and cannot return their values; it is
+  not the missing database/gateway/config authority. URL-only repair, blind
+  runtime-to-file reconstruction, signed-readiness and provider dispatch are
+  all unsafe from this state.
+- Risk treatment: obtain one complete role-bound payload through an existing
+  owner-controlled secret authority, validate it without outputting values,
+  then use one API-F-only atomic publication with full file/runtime CAS, one
+  forward restart, deterministic health verification and at most one complete
+  rollback restart. Any post-exchange ambiguity is UNKNOWN/no-replay with
+  recovery retained. Until the payload source exists, submit no production
+  successor. Managed NDR mask `7` remains the separate Item36 P0/Item38 NO-GO.
+
+## Item30 canonical-authority Stage exact cleanup and unresolved custody blocker (2026-08-30)
+
+- The hidden-TTY intake was cancelled before accepting input and produced no
+  envelope. No plaintext or encrypted production configuration was read,
+  retained or transmitted. The owner-controlled complete API-F canonical
+  authority therefore remains unavailable; neither current runtime nor the
+  known-failing `api.env` is authorized as a replacement source.
+- The exact local temporary directory was verified envelope-absent and
+  symlink-free, then removed through an explicit file whitelist and
+  empty-directory removal. Only Secret-free controllers, public/binding
+  material and offline fixtures were deleted; no workspace file, production
+  configuration or protected untracked path was touched.
+- Exact cleanup Command `c-sz06vicc0qxrojk` / Invoke
+  `t-sz06vicc0rf8yyo` is terminal and permanently no-replay. Its accepted
+  request omitted `Username`, `WorkingDir` and `ClientToken` and was bound to
+  the reviewed `5,068`-byte Secret-free transport SHA-256
+  `3abf39f8c2c1364996ec6dcc406d9f7ab27e6140d390b2f1cb7f6fbaa4aa60ca`.
+  Authoritative readback is exact-one `Success / ExitCode 0 / Finished`,
+  Dropped `0`, Repeats `1`, empty error fields and fixed
+  `CANONICAL_AUTHORITY_STAGE_CLEANED` output.
+- The fixed success is gated by exact task-file removal and fsync, persistent
+  task absence, decrypt container/volume zero, task/deleted-FD zero and two
+  unchanged API-F runtime postconditions. Private-key bytes were never read or
+  hashed. DoD, Verification and Risk all return `GO / P0=0 / P1=0`; another
+  Cloud Assistant cleanup readback would add no required evidence.
+- Event write/cost boundary: only the exact Stage task material was removed.
+  Production config, service/container restart, provider/model, Render,
+  business database, funds, DNS, NDR/global inventory and PostPaid starts are
+  zero. Incremental provider/funds/Render/PostPaid cost is `CNY 0.000000`;
+  existing API-F PrePaid CPU and Cloud Assistant audit metadata are the only
+  consumed resources. Builder/Worker-C/Worker-F remain on the established
+  `Stopped / StopCharging / PostPaid` baseline.
+- Release risk remains `P0=1`: Item30 is `NO CREDIT / 29/38`; signed-readiness
+  and all four provider exact-one authorities remain unconsumed. No new Stage,
+  intake, publication or provider action is permitted until an
+  owner-designated authorized technical custodian supplies and validates the
+  complete canonical R/F bundle through the established hidden-TTY channel.
+  Managed NDR mask `7` remains the independent Item36 P0/Item38 NO-GO.
+- Offline reviewer reconciliation preserves the safest treatment above. A
+  technically bounded in-place fallback exists only under a new explicit
+  trust-promotion decision: the stable exact-one Docker/PID1 consensus for the
+  tracked managed-key set would become a one-time rollback authority despite
+  lost provenance/order, while current `api.env` would remain recovery material
+  only. Existing publication authority does not cover this root-trust change;
+  no such authority has been granted, and the fallback is therefore `NO-GO`.
+- The owner has confirmed that no authorized technical custodian exists. This
+  fact removes the preferred independent-authority recovery branch but is not
+  consent to promote the live projection. Release state remains `P0=1`, Item30
+  `NO CREDIT / 29/38`, with no Stage, publication, restart or provider action
+  until a separate explicit one-time trust decision is recorded.
+
+## Item30 historical API configuration provenance gap (2026-08-30)
+
+- **State:** `P0 OPEN / TRUST DECISION REQUIRED`. Tracked checkpoints prove the
+  operational sequence `API-C empty skeleton -> undocumented value-level API-C
+  secret entry -> owner-passphrase encrypted byte copy to API-F -> 55-key
+  runtime acceptance`. They do not retain the original API-C per-key source,
+  approver or complete canonical value manifest. API-C is therefore a
+  historical byte source, not an automatically valid present authority.
+- **Preserved facts:** the July 24 API-C/API-F files were byte-identical by
+  SHA-256 without value disclosure; later managed-secret and b55 evidence
+  preserved the API env; no Item26-30 artifact contains a recoverable full env
+  bundle. Current API-F declaration failure and source-losing Docker/PID1
+  projection prohibit blind runtime promotion.
+- **Recommended bounded treatment:** if the owner explicitly accepts the
+  residual provenance risk, treat API-C's protected file only as a one-time
+  encrypted recovery input, derive the final declaration from tracked schema
+  and non-secret constants, preserve non-compromised DB/provider values, and
+  install a fresh coordinated HMAC plus canonical Render authority through the
+  existing atomic publication/rollback boundary. Any source/schema/CAS
+  mismatch is fail-closed. Without that explicit trust decision, the remaining
+  alternative is independently sourced full credential reconstruction/rotation;
+  neither path is authorized by this audit.
+- **Cost/resource boundary:** no production read/write, service action,
+  provider call or new resource occurred. API-C/API-F remain `Running /
+  PrePaid`; Builder/Worker-C/Worker-F remain `Stopped / StopCharging /
+  PostPaid`; running stoppable PostPaid and incremental provider/Render/funds
+  cost remain zero.
+
+## Item30 API-C historical-source recovery trust accepted (2026-08-30)
+
+- **Disposition:** `P0 MITIGATION AUTHORIZED / ADMISSION REVIEW OPEN`. The
+  owner explicitly authorizes protected API-C `/etc/noteai/api.env` as a
+  one-time encrypted recovery input only. Residual historical provenance risk
+  is accepted for this recovery; API-C is not declared an independent present
+  authority.
+- **Mandatory derivation boundary:** preserve exact source key names/order and
+  every non-target byte; enforce the tracked API role boundary and original
+  Item30 provider projection; replace only the six current gateway values with
+  tracked non-secret production constants, the verified Render production
+  authority and a wholly fresh coordinated HMAC. Reject absent/duplicate
+  gateway keys, any previous-slot keys in the API file, source/schema/CAS
+  mismatch, source/runtime drift or ambiguous publication.
+- **Execution treatment:** source travels only as a task-bound encrypted
+  envelope; candidate plaintext exists only root-owned/mode-0600 inside the
+  bounded API-F task. Render CURRENT and API-F candidate must receive the same
+  fresh pair without outputting it; Render PREVIOUS remains unchanged. Atomic
+  exchange permits at most one forward restart and one deterministic rollback
+  restart. Any signed-readiness, exchange or restart `UNKNOWN` is no-replay
+  with recovery retained. No provider/model call may begin before terminal
+  `APPLIED` readback.
+- **Current exposure/cost:** production writes, restarts, Render operations,
+  signed-readiness, provider/model calls, DB/funds/DNS actions and PostPaid
+  starts remain zero at this node. API-C/API-F remain PrePaid; all three
+  PostPaid compute nodes remain `Stopped / StopCharging`. Readiness remains
+  `29/38`; Item30 receives no interim credit. Final frozen artifacts have
+  `38/38` focused offline tests passing; atomic exchange now has dual-object
+  pre/post CAS, rollback requires the restored old file's managed Docker/PID1
+  projection, and a separate task-exact pre-publication Stage cleanup is
+  frozen. The set awaits the three standing reviewers' exact-hash P0 admission
+  decision before any Stage submission.
+
+## Item30 API-C encrypted-source terminal UNKNOWN (2026-08-30)
+
+- **State:** `P0 OPEN / HARD STOP / NO-REPLAY`. API-F recovery Stage Command
+  `c-sz06vikw64ufwu8` / Invoke `t-sz06vikw659faww` is terminal `STAGED`, but
+  the sole API-C encrypted-source Command `c-sz06viltmfplb0g` / Invoke
+  `t-sz06viltmg72lfk` is terminal `ExitCode 20` with canonical
+  `UNKNOWN`, phase `encrypt`, `readback_required=true` and
+  `task_residue=true`.
+- **Known non-effects:** `live_change_started=false`, provider calls, source
+  mutations and secret output are all zero. No Render HMAC/save/deploy, API-F
+  publication/restart, signed-readiness, provider/model request, database,
+  funds, DNS or PostPaid start occurred. Item30 remains `NO CREDIT / 29/38`;
+  its signed-readiness and four provider exact-one authorities are unconsumed.
+- **Preservation boundary:** retain the exact API-C residue and API-F Stage
+  key/binding material. Do not cleanup, rerun encryption, recreate Stage,
+  generate/type HMAC, mutate Render/API-F or dispatch providers. The failed
+  Command/Invoke identity is permanently no-replay. A generic `encrypt` phase
+  is insufficient to infer a fixed driver error or envelope disposition.
+- **Minimum treatment:** one separately authorized fresh API-C-only,
+  Secret-free, action-free, task-exact readback may classify the fixed
+  stdout/stderr outcome, exact inventory, encrypted-envelope metadata and
+  task/API-C binding without outputting raw env, secret or ciphertext. Any
+  mismatch or UNKNOWN preserves all recovery material and stops; only a
+  deterministic result may decide whether an existing envelope can continue
+  or task-exact cleanup is appropriate.
+- **Cost/resources:** API-C/API-F remain `Running / PrePaid`; Builder,
+  Worker-C and Worker-F remain `Stopped / StopCharging / PostPaid`, with zero
+  stoppable PostPaid running. Incremental provider/Render/funds/PostPaid cost
+  remains `CNY 0.000000`. Managed NDR mask `7` remains the independent Item36
+  P0 and Item38 NO-GO.
+
+## Item30 API-C readback: no envelope, exact residue, missing module root cause (2026-08-30)
+
+- **State:** `P0 OPEN / CLEANUP AUTHORITY REQUIRED`. The sole authorized
+  task-exact readback (`c-sz06vin1ypdnfnk` / `t-sz06vin1ypnn11c`) is terminal
+  `UNKNOWN / DRIVER_UNEXPECTED`. It proves `ABORT_EXACT`, envelope absent,
+  stable binding/runtime/double snapshots and zero exact-name/label container,
+  FD, process-reference and volume counts. Both source and readback identities
+  are permanently no-replay.
+- **Deterministic cause:** b55's image contains no `/app/tools` copy, while the
+  wrapper does not mount an envelope module and the encryptor requires
+  `/app/tools/production_secret_envelope.py`. The absent module raises during
+  `exec_module` and is intentionally folded to the observed fixed
+  `UNKNOWN_UNEXPECTED`. No further production state classifier is justified.
+- **Immediate treatment:** preserve API-C and API-F task material; do not
+  cleanup without the separate exact-cleanup authority and do not create a
+  successor. After authority, clean the proven API-C abort inventory first,
+  then the API-F Stage, and require zero residue before any fresh recovery.
+  Any later source artifact must explicitly mount the tracked envelope module
+  and exercise the actual source encryptor happy path offline; it must use a
+  wholly fresh Stage/task/nonce/Command/Invoke.
+- **Exposure/cost:** no env contents, Secret or ciphertext were output. No
+  config/restart, Render, signed-readiness, provider/model, database, funds,
+  DNS or PostPaid action occurred. Item30 remains `NO CREDIT / 29/38`;
+  API-C/API-F remain PrePaid and all three PostPaid nodes remain
+  `Stopped / StopCharging`.
+
+## Item30 API-C exact-cleanup preflight representation mismatch (2026-08-30)
+
+- **State:** `P0 OPEN / ABORTED_NO_CLEANUP`. Fresh cleanup-only Command
+  `c-sz06vion5lfphxc` / Invoke `t-sz06vion5lx6scg` is terminal
+  `ExitCode 10 / ABORTED / preflight`, with `cleanup_started=false`,
+  `live_change_started=false` and provider/restart/Secret-output counts zero.
+  The identity is permanently no-replay and receives no cleanup or Item30
+  credit.
+- **Deterministic cause:** the cleanup's raw stderr predicate expected sorted
+  JSON key order `code,secret_values_emitted,status`; the frozen source
+  encryptor wrote the same fixed values in literal order
+  `status,code,secret_values_emitted`. This representation-only mismatch is
+  sufficient to fail before the deletion boundary and does not imply any new
+  production drift.
+- **Preservation boundary:** deleted file/directory count is zero. API-C
+  `ABORT_EXACT` residue and API-F Stage material both remain intact; API-F
+  cleanup was correctly not submitted. No successor, API-F cleanup,
+  publication, Render/HMAC, restart, readiness or provider action is allowed
+  without new authority.
+- **Exposure/cost:** no configuration, service, Docker, provider, Render,
+  database, funds, DNS or PostPaid mutation occurred. API-C/API-F remain
+  `Running / PrePaid`; Builder/Worker-C/Worker-F remain
+  `Stopped / StopCharging / PostPaid`; running stoppable PostPaid and
+  incremental provider/Render/funds/PostPaid cost remain zero. The minimum
+  treatment is a fresh API-C cleanup successor changing only the exact stderr
+  representation predicate, followed by API-F cleanup only after authoritative
+  API-C `Success / ExitCode 0`.
+
+## Item30 historical-source recovery task surfaces cleaned (2026-08-30)
+
+- **State:** `CLEANUP CLOSED / P0=0 / P1=0`. API-C successor Command
+  `c-sz06vipazu5a03k` / Invoke `t-sz06vipazuhrhts` is terminal
+  `Success / ExitCode 0 / API_C_ABORT_EXACT_CLEANED / task_residue=false`.
+  Only after this success, API-F Command `c-sz06viph6szhslc` / Invoke
+  `t-sz06viph6t6zhmo` reached
+  `Success / ExitCode 0 / STAGE_CLEANED / task_residue=false`. Both identities
+  are permanently no-replay.
+- **Closed exposure:** both task-exact temporary surfaces are absent. The only
+  production writes were their bounded deletions; configuration, service and
+  container restart, Render, provider/model, database, funds, DNS and PostPaid
+  actions were zero. API-C/API-F remain PrePaid and Builder/Worker-C/Worker-F
+  remain `Stopped / StopCharging / PostPaid`.
+- **Release disposition:** cleanup receives terminal credit; Item30 remains
+  `NO CREDIT / 29/38` because signed-readiness and the four real exact-one
+  provider calls are unconsumed. A future recovery must use a wholly fresh
+  Stage/task/nonce/Command/Invoke, explicitly mount the tracked envelope module
+  and pass the actual source-encryptor happy path before any publication or
+  provider dispatch. Managed NDR mask `7` remains the independent Item36 P0 and
+  Item38 NO-GO.
+
+## Item30 fresh historical-source post-CAS UNKNOWN (2026-08-30)
+
+- **State:** `P0 OPEN / HARD STOP / NO-REPLAY`. The rebuilt path passed the
+  actual source-encryptor happy path offline, explicitly mounted tracked
+  envelope module SHA-256 `b6a67fab...e2fbf`, and received unanimous
+  action-time admission. API-F Stage `c-sz06virxmp58xs0` /
+  `t-sz06virxmpmq874` is terminal `STAGED`; API-C source
+  `c-sz06visjymab85c` / `t-sz06visjymkatj4` is terminal
+  `ExitCode 20 / UNKNOWN / source_post_cas / task_residue=true`. Both
+  identities are permanently no-replay.
+- **Proven facts:** the exact b55 network-none/read-only container and tracked
+  module completed encryption, returned the fixed `SOURCE_ENCRYPTED` stdout
+  with empty stderr, disappeared, and produced a root-owned mode-0600 envelope
+  that passed the source wrapper's local shape checks. Source mutation,
+  provider, database, restart, live change and Secret output are zero. The
+  failure occurred only after entering the post-CAS unit/runtime/health/
+  cleanup block; the exact failed predicate and retained task inventory are
+  not yet authoritative.
+- **Preservation boundary:** do not use, copy, stage or decrypt the envelope;
+  do not cleanup or replay the source; preserve the API-C task residue and
+  API-F key/manifest material. Publication, Render mutation, restart,
+  signed-readiness and all provider calls remain forbidden. Item30 remains
+  `NO CREDIT / 29/38`, and all five canonical exact-one authorities remain
+  unconsumed.
+- **Minimum treatment:** one separately authorized fresh API-C-only,
+  Secret-free, action-free, task-exact readback may classify exact inventory,
+  fixed driver outcome, envelope metadata/SHA/size and binding/runtime
+  stability without reading env contents or outputting ciphertext. Only
+  `SOURCE_ENCRYPTED_RECONCILED` can unlock API-F staging; every other terminal
+  preserves the evidence and stops.
+- **Cost/resources:** API-C/API-F remain `Running / PrePaid`; Builder,
+  Worker-C and Worker-F remain `Stopped / StopCharging / PostPaid`, with zero
+  stoppable PostPaid running. Provider/Render/database/funds/PostPaid
+  incremental cost is `CNY 0.000000`. Managed NDR mask `7` remains the
+  independent Item36 P0 and Item38 NO-GO.
+
+## Item30 task-exact readback did not close retained source (2026-08-30)
+
+- **State:** `P0 OPEN / UNKNOWN / PRESERVE / NO-REPLAY`. The owner-authorized
+  readback Command `c-sz06vitmr51o64g` / Invoke `t-sz06vitmr5e5nuo` is
+  terminal `ExitCode 20 / READBACK_NOT_CLOSED`, with
+  `inventory_class=OTHER` and `driver_outcome=UNCLASSIFIED`. The source and
+  readback identities are permanently no-replay.
+- **Positive evidence:** a `7,022`-byte envelope exists with canonical metadata
+  and SHA-256 `b2980aaccc0dba1a42fbb33110b757bcad54f3041fcc3588f7cbef3e6ec7e051`;
+  task binding, API env metadata, selected runtime and double snapshots are
+  stable. Task exact-name/label containers, volumes, FDs and process references
+  are zero. The readback was action-free, read no API env contents and emitted
+  no env, Secret or ciphertext; provider and database counts are zero.
+- **Why still blocked:** `inventory=OTHER` and `driver=UNCLASSIFIED` do not
+  establish `SOURCE_ENCRYPTED_RECONCILED`, do not identify the retained exact
+  inventory and do not authorize use or deletion of the envelope. Stable
+  metadata cannot erase the original post-CAS ambiguity.
+- **Mandatory treatment:** retain API-C task/envelope and API-F Stage key/
+  manifest material. Forbid replay, cleanup, API-F staging, Render/HMAC,
+  publication, restart, readiness and provider calls. Current work is limited
+  to offline attribution; any later production readback, cleanup or recovery
+  requires a new, explicit owner authorization.
+- **Cost/resources:** configuration, provider, Render, database, funds, DNS,
+  Secret output and PostPaid actions are zero. API-C/API-F remain PrePaid;
+  Builder/Worker-C/Worker-F remain `Stopped / StopCharging / PostPaid`.
+  Item30 remains `NO CREDIT / 29/38`; managed NDR mask `7` remains the
+  independent Item36 P0 and Item38 NO-GO.
+## Item30 canonical configuration recovered; remaining provider-chain risk (2026-08-30)
+
+- **Closed P0:** Stage6 API-F canonical configuration is terminal
+  `APPLIED_RECONCILED`; the exact Stage6 task/exchange cleanup is terminal
+  `APPLIED_TASK_EXACT_CLEANED`, with canonical configuration retained and task
+  residue zero. All superseded Stage/source/publisher/readback/cleanup
+  identities are permanently no-replay.
+- **Current P0:** no provider-chain execution may be submitted until all four
+  account gates are fresh and source-bound, including an owner-authenticated
+  Amap native pre-counter snapshot. On admission, the unchanged canonical
+  executor may issue one purpose-bound signed-readiness and then exactly one
+  call in order `Meituan -> Claude -> Kimi -> Amap`, with retry/fallback zero.
+- **UNKNOWN treatment:** seal only the affected Command/Invoke or provider
+  request, preserve exact result/journal/recovery material, and continue safe
+  offline and official action-free reconciliation. Never blindly replay a
+  dispatched readiness or provider request. Do not cleanup result material
+  until its terminal classification and Evidence binding are closed.
+- **Cost/resource guard:** Claude/Kimi/Amap remain capped at CNY 0.10 each and
+  CNY 0.30 combined. Meituan remains the accepted
+  `NOT_EXPOSED_BY_PROVIDER` exact-one exception, so total incremental provider
+  cost is not determinable and must not be represented as zero or proven under
+  a numeric cap. API-C/API-F stay PrePaid; Builder/Worker-C/Worker-F must remain
+  Stopped/StopCharging, with running stoppable PostPaid zero.
+- **Independent pre-launch P0 unchanged:** API-F managed NDR mask `7` remains
+  an Item36 blocker and Item38 NO-GO; it is not an Item30 gate and must not be
+  reintroduced into the provider-chain wrapper.
+
+## Item30 Amap credential exposure before provider dispatch (2026-08-30)
+
+- **P0 OPEN / containment active:** the authenticated Amap application page
+  rendered the production credential value into a browser automation result
+  during a credential-presence check. The value is not copied into tracked
+  evidence, notes or handoff and must not be reused for Item30.
+- **No downstream production effect:** no fresh Item30 gate/wrapper,
+  Cloud Assistant Command/Invoke, signed-readiness or provider request was
+  submitted. Provider usage, configuration, restart, Render, database, funds,
+  DNS and PostPaid mutations remain zero.
+- **Required treatment:** rotate the Amap credential in the existing account,
+  synchronize only the replacement into the existing API-F canonical
+  configuration path without exposing it to Cloud Assistant/logs/documents,
+  verify API-F health and then recapture only a boolean credential-presence
+  fact plus native usage counter. Do not delete or disable the old credential
+  before replacement activation is deterministically healthy; afterward
+  revoke it. Any mutation or revocation UNKNOWN freezes that identity and
+  requires secret-free official reconciliation rather than blind replay.
+- **Cost/resource guard:** no new account, subscription, recharge or PostPaid
+  resource is expected. API-C/API-F stay PrePaid; Builder/Worker-C/Worker-F
+  remain Stopped/StopCharging. Item30 remains `NO CREDIT / 29/38` until this P0
+  and the canonical exact-one chain are both closed.
+
+## Item30 Amap credential re-exposure before provider dispatch (2026-09-01)
+
+- **P0 OPEN / contained:** a fresh Amap account-gate read opened the
+  owner-authenticated application page, whose diagnostic text included the
+  current active credential. The value and any derivative are forbidden from
+  tracked files, Evidence and further output. The page was closed and the gate
+  discarded; that credential is not eligible for Item30 use.
+- **Dispatch boundary intact:** no provider wrapper, signed-readiness or
+  provider request was submitted. Provider usage, funds, database, Render,
+  DNS and restart effects are zero. Existing API-C/API-F remain PrePaid and
+  all three PostPaid nodes remain Stopped/StopCharging.
+- **Required closure:** reuse only the accepted encrypted Amap rotation path:
+  fresh replacement, fresh Stage and hidden intake, Amap-only atomic exchange,
+  bounded restart, three-source healthy reconciliation, exposed-key revocation
+  and exact recovery cleanup. Provider dispatch remains `NO-GO` until the new
+  credential is active exactly once, the exposed credential is absent and
+  cleanup is terminal `APPLIED_REVOKED_CLEANED` with no retained residue.
+- **No expansion:** no credential-value DOM automation, new controller,
+  classifier, receipt, adapter, Evidence schema, PostPaid resource, recharge
+  or subscription is authorized or required.
+
+## Item30 Amap rotation local-intake residue risk closed; fresh Stage waiting for hidden input (2026-08-30)
+
+- **Closed implementation risk:** a local encrypted output could previously be
+  created with the parent directory's inherited group and then be mislabeled
+  `ABORTED(file_metadata)` without cleanup. The old encrypted output and its
+  exact run directory are now removed, while the corresponding API-F task is
+  terminal `STAGE_ENVELOPE_TASK_EXACT_CLEANED`.
+- **Mitigation verified:** the existing write path now normalizes group before
+  writing, uses pinned-directory relative success readback and Linux-safe fd
+  xattr calls, and never unlinks after an `O_EXCL` post-create exception.
+  Such an exception is fixed `UNKNOWN_RESIDUE` with material retained for
+  task-exact reconciliation. Same-name replacement, parent replacement,
+  hardlink and xattr-drift fixtures pass; three-party review reports
+  `P0=0 / P1=0` and `36/36` tests pass.
+- **Current bounded exposure:** fresh API-F Stage is terminal `STAGED`, but no
+  replacement Envelope exists locally yet. Therefore API-F live configuration,
+  restart, provider usage, database, funds and DNS effects remain zero. The
+  fresh Stage identity must not be reused if TTL or binding validation fails.
+- **Only next gate:** owner pastes the already created replacement Amap Key into
+  the local no-echo Terminal. The Key must not enter chat, browser automation,
+  Cloud Assistant output, logs or tracked files. API-C/API-F remain PrePaid;
+  all three PostPaid nodes remain Stopped/StopCharging.
+
+## Item30 Amap replacement input gate refreshed after expired Stage (2026-08-31)
+
+- **Expired task closed:** the expired Stage is terminal
+  `STAGE_TASK_EXACT_CLEANED / ExitCode 0`; remote task/exchange residue and its
+  local run are absent. The cleanup performed no provider, config, restart,
+  database, funds, DNS or PostPaid action.
+- **Undispatched successor closed:** one OpenAPI confirmation produced no
+  response and the authoritative ledger returned no Command/Invoke for its
+  unique name. Production effects were therefore zero; that identity and its
+  local files were sealed and removed rather than replayed.
+- **Current bounded exposure:** fresh API-F Stage
+  `c-sz06vlofp7xq7ls / t-sz06vlofp8mp728` is terminal `STAGED`, with public
+  material stored locally and replacement Envelope still absent. Its fixed
+  counters are provider `0`, restart `0`, secret output `0`, live change
+  `false`. No signed-readiness or provider authority has been consumed.
+- **Control:** accept only a no-echo local owner paste of the replacement Key
+  value while the 1,800-second Stage binding remains valid. Do not trim,
+  normalize, log, inspect or transmit the Key. `replacement_shape`, TTL below
+  1,200 seconds, any ambiguity or UNKNOWN seals the current identity; it must
+  be exactly reconciled before a fresh Stage. API-C/API-F remain PrePaid and
+  all three PostPaid nodes remain Stopped/StopCharging.
+
+## Item30 Amap hidden-input usability state (2026-08-31)
+
+- The pre-prompt `file_metadata` failure was uniquely local `gid 0 != egid
+  20`; it is closed by using the existing fail-closed `write_exclusive` path.
+  The current public Stage file is exact `501:20/0600/nlink1` and passes the
+  complete pre-TTY binding/key/TTL gate.
+- A subsequent `replacement_shape` remains a clean local ABORT: no Envelope,
+  secret output, upload, provider call, config, restart or fee. Validation is
+  intentionally unchanged; labels, Unicode, whitespace and whole-row copies
+  remain rejected.
+- Current Stage `c-sz06vlq06bqit4w / t-sz06vlq06cfhslc` may be reused only
+  while output is absent and remaining TTL is at least 1,200 seconds. The
+  owner must use the Amap Key field's copy icon and must not send the value in
+  chat. Otherwise exact-clean the Stage and generate a fresh identity.
+
+## Item30 Amap Builder UNKNOWN contained before live change (2026-08-31)
+
+- Builder Command `c-sz06vlrfj7zvuo0` / Invoke `t-sz06vlrfj8jv1fk` is
+  permanently no-replay. Its authoritative terminal fixes live change,
+  provider calls and secret output at zero; no publisher, restart, config
+  exchange or provider request followed.
+- The generic readback is post-publisher-only and was not dispatched. It would
+  collapse all pre-journal Builder states and therefore cannot authorize
+  publisher or cleanup.
+- A task-exact cleanup is ready but not yet dispatched. It can delete only the
+  exact current Stage, exact encrypted Envelope, public key, private key and
+  then-empty task directory. Any output/partial/extra object, process/container
+  reference, binding mismatch or snapshot drift aborts before deletion.
+  Partial deletion is fixed UNKNOWN and retains the remainder for recovery.
+- The host driver now retains only canonical fixed-enum inner Abort metadata
+  rather than folding every nonzero builder exit into UNKNOWN; `39/39` tests
+  pass. Cleanup hardening and exact Envelope binding pass `22/22`; three-party
+  review is `GO / P0=0 / P1=0`.
+- API-C/API-F remain PrePaid and healthy; all three PostPaid nodes remain
+  Stopped/StopCharging. Incremental provider, cloud, database, funds and DNS
+  effects are zero. Item30 remains `NO CREDIT / 29/38`.
+
+## Item30 Amap owner-input repetition risk bounded (2026-08-31)
+
+- The production env still holds the old Key and therefore cannot supply the
+  replacement. The latest no-echo intake was a deterministic
+  `ABORTED(replacement_shape)` with zero secret output and zero production
+  effect; no intake process remains active.
+- Repeated owner prompts are now forbidden as an operational pattern. All
+  offline validation and cloud-side Stage preparation must finish first, and
+  a prompt may open only with at least 1,200 seconds of binding time. The
+  intended owner burden is one hidden paste, after which only the existing
+  encrypted builder/publisher/readback chain is used.
+- Do not persist the replacement in a shell/process env or plaintext local
+  `.env` as the default workaround. Those paths expand secret exposure and
+  leave filesystem/process residue. Keep the old Key active for rollback until
+  the new API-F file/runtime state and provider authority are deterministically
+  healthy; revoke it only afterward.
+- API-C/API-F stay PrePaid; all three PostPaid nodes stay
+  Stopped/StopCharging. No provider call or incremental cost was incurred.
+
+## Item30 expired replacement Stage exact-cleanup gate (2026-08-31)
+
+- **Current exposure:** the replacement Envelope is encrypted, emits no
+  secret, and is bound to an API-F Stage that expired before any Builder,
+  publisher, restart, configuration exchange, signed-readiness or provider
+  request was dispatched. Three exact-name official ledger queries each show
+  zero Commands; provider exact-one authorities remain unconsumed.
+- **Admitted cleanup:** three-party result is `GO / P0=0 / P1=0`. The frozen
+  carrier is SHA-256
+  `f70d3bf7631c6609227b550c739b94c998762490a71c86238c0a08a5bf7ffd4b`,
+  15,518 raw bytes / 20,692 outer Base64 bytes, with `22/22` focused tests.
+  It is the prior approved cleanup with only eight current identity/Envelope
+  metadata constants replaced.
+- **Hard boundary:** before deletion, the task root must be exact `0700`, its
+  inventory exactly four root-owned regular non-link/non-mount `0600` files,
+  and binding, Envelope size/SHA, RSA relation, API env/unit/runtime witnesses,
+  zero exchange/container/label/volume/process/FD references and both
+  snapshots must close. Any mismatch aborts before deletion. Partial deletion
+  is fixed `UNKNOWN`, preserves the remainder and permanently seals the
+  identity without replay.
+- **Success condition:** only `Finished / ExitCode 0 / stderr empty` plus the
+  canonical `STAGE_TASK_EXACT_CLEANED` terminal and `task_residue=false` count
+  as cleanup success; this gives cleanup credit only, never Item30 credit.
+  The permitted write set is the four exact task files plus then-empty task
+  directory. Configuration, restart, service, provider, Render, database,
+  funds and DNS actions remain zero.
+- **Resources and next boundary:** API-C/API-F remain PrePaid; Builder,
+  Worker-C and Worker-F remain Stopped/StopCharging, with running stoppable
+  PostPaid and incremental cost zero. A fresh Stage is forbidden until exact
+  cleanup succeeds. Managed NDR mask `7` remains the independent Item36 P0 and
+  Item38 NO-GO and is not an Item30 gate.
+
+## Item30 current Stage local GID mismatch and expiry boundary (2026-08-31)
+
+- **Contained failure:** hidden intake stopped before opening `/dev/tty` as
+  exact `ABORTED(file_metadata)`. The single failed predicate is public Stage
+  file GID `0` versus the Terminal process's required GID `20`; uid `501`,
+  mode `0600`, nlink, size and bytes otherwise pass. Envelope/output remain
+  absent, so replacement secret read/transmission, provider usage, production
+  configuration, restart, database, funds and incremental cost are all zero.
+- **Control correction:** do not relax intake and do not mutate an admitted
+  file in place. A new Stage's public bytes must be materialized at a fresh
+  path by the existing fail-closed `write_exclusive` routine with
+  `uid=euid/gid=egid`, then re-read as exact `501:20/0600/nlink1` with the same
+  SHA. Existing focused rotation/intake tests, including inherited-group
+  normalization and exact TTL/TTY behavior, pass `43/43`.
+- **Expiry/cleanup boundary:** current Stage input is forbidden after its
+  remaining TTL crosses 1,200 seconds. The three-party-approved exact cleanup
+  carrier SHA is
+  `7f57a1c1637ba8ac80fc10991d88cb3833d1498815eca58438920412b2e2c930`
+  with `21/21` tests. It may delete only current token's three Stage files and
+  empty directory after all absence/CAS/runtime predicates pass; any extra
+  object aborts before deletion and any partial deletion is UNKNOWN/no-replay.
+- **Resources:** API-C/API-F stay PrePaid; all three stoppable PostPaid nodes
+  remain Stopped/StopCharging. A fresh Stage and any new owner input remain
+  blocked until the exact cleanup reaches canonical Success/ExitCode 0 and
+  zero residue.
+
+## Item30 pre-journal empty-key representation and fresh-Stage recovery risk (2026-08-31)
+
+- **TTL classification closed:** authoritative `expires_at_epoch` minus
+  Aliyun Invoke actual start is `604` seconds. It does not satisfy the defined
+  `<600` failure predicate and is not the root cause. Fresh recovery and
+  Publisher dispatch require an operational margin of at least 1,200 seconds;
+  the code's 600-second hard floor remains fail-closed.
+- **Root cause:** production Docker and PID1 both inherit one image empty-key
+  record `b"="`; the frozen Publisher allowed it only for Docker and rejected
+  PID1 before the first journal. The minimum correction requires exact-one in
+  both and exact single terminal-NUL framing. Zero, duplicate, malformed,
+  missing-terminal, double-terminal and interior-empty records fail closed.
+- **Recovery boundary:** the expired Envelope is source-only and cannot regain
+  execution eligibility. Fresh rebind must validate old task/keypair/payload
+  without writing the old task, rebuild all fresh payload fields and fresh
+  cryptographic material inside immutable b55/network-none, and write only a
+  new task-local `envelope.json` with O_EXCL, fsync and cryptographic round-trip
+  readback. The existing plaintext candidate is forbidden as transfer
+  authority. UNKNOWN retains recovery materials and seals the identity.
+- **Resource/cost boundary:** API-C/API-F remain PrePaid; all three PostPaid
+  nodes remain Stopped/StopCharging and running PostPaid stays zero. Recovery
+  has provider, Render, database, funds and DNS effects zero. The old Amap key
+  remains active until APPLIED readback and exact-one provider verification;
+  revocation is not implied by recovery success.
+
+## Item30 Amap replacement APPLIED; revocation and Claude authentication P0 (2026-09-01)
+
+- **Recovered production state:** fresh Stage, encrypted rewrap, two exact old
+  task cleanups and Builder are terminal Success. Publisher is terminal
+  `APPLIED_PENDING_REVOKE` after one bounded forward restart; the independent
+  readback is `APPLIED_PENDING_REVOKE_RECONCILED`, stable and action-free.
+  Provider calls, database connections, funds, Render and DNS effects remain
+  zero. Every used identity is sealed and permanently no-replay.
+- **P0 still open:** the previously exposed old Amap Key has not yet been
+  revoked. The retained recovery material is the only rollback boundary and
+  must not be cleaned until owner-authenticated control-plane revocation is
+  confirmed. Automation must not open or serialize the credential-value
+  surface. Revocation UNKNOWN preserves recovery material and blocks provider
+  dispatch.
+- **Independent human gate:** the Claude Platform browser session is logged
+  out. Fresh Item30 account gates cannot be frozen until the owner completes
+  that authentication. Time-bound Kimi/Amap/Meituan snapshots are deferred so
+  they do not expire while waiting.
+- **Release and cost disposition:** Item30 remains `NO CREDIT / 29/38`;
+  signed-readiness and Meituan -> Claude -> Kimi -> Amap exact-one remain
+  unconsumed. API-C/API-F stay `Running / PrePaid`; Builder, Worker-C and
+  Worker-F stay `Stopped / StopCharging / PostPaid`; running stoppable
+  PostPaid and ongoing incremental PostPaid cost are zero. The independent
+  managed-NDR mask `7` remains an Item36 P0 and Item38 NO-GO, not an Item30
+  predicate.
+
+## Item30 old Amap Key revoked; cleanup submission identity uncertain (2026-09-01)
+
+- **Provider security gate closed:** owner-authenticated Amap state shows the
+  replacement `noteai-rot-0830` active exactly once and old `noteai-fact`
+  absent from the active list. Claude authentication is also current, with the
+  September usage counter observed at zero. No credential value was read or
+  emitted. API-F rollback to the old Amap Key is now forbidden.
+- **No-replay boundary:** browser submission of cleanup command name
+  `noteai-item30-amap-cleanup-applied-20260901-a5a04d2f` returned no
+  authoritative acceptance or rejection before the browser connection timed
+  out. The identity is permanently sealed. Only exact-name official ledger
+  readback is allowed; if it exists, reconcile its single Command/Invoke only.
+  A fresh cleanup identity is allowed only after that readback and must never
+  reuse the sealed identity.
+- **Cleanup success predicate:** only exact-one Command/Invoke/Result bound to
+  API-F with `Finished / Success / Exit0`, empty stderr, no drops/repeats and
+  canonical `APPLIED_REVOKED_CLEANED`, `task_residue=false`,
+  `recovery_retained=false`, zero restart/provider/database/secret emission is
+  cleanup credit. Any partial or ambiguous terminal remains HOLD and retains
+  the recovery material.
+- **Current gate and cost:** ECS Cloud Assistant now requires owner login in
+  Chrome; no authenticated CLI fallback is available. No new production
+  action occurred while diagnosing this gate. API-C/API-F remain PrePaid;
+  Builder and both Workers remain Stopped/StopCharging; running stoppable
+  PostPaid, provider usage and incremental cost remain zero.
+
+## Item30 fresh recovery-cleanup successor at action-time deletion gate (2026-09-01)
+
+- **No-replay reconciled:** the authenticated Shenzhen `My Commands` exact-name
+  filter returned no matching record for the sealed timed-out identity. That
+  identity remains permanently excluded. Fresh successor
+  `noteai-item30-amap-cleanup-applied-20260901-d6c8d0c458c5742a` is prepared
+  once and has not been submitted.
+- **Frozen request:** official projection is API-F exact-one with the canonical
+  eleven-field set, `Username`/`WorkingDir`/`ClientToken` absent, and exact
+  16,358-byte carrier SHA-256
+  `588dd2ce529e379384b2dc6e94de5378817d9ef4f3e220763cc59ce121e6d215`.
+  Verification and Risk both report `GO / P0=0 / P1=0`.
+- **Destructive boundary:** after the required action-time owner confirmation,
+  the carrier may delete only the exact retained Amap recovery/task material
+  and then-empty task directories. It cannot roll back to the revoked old Key
+  and cannot alter live config or restart services. Any partial result is
+  `UNKNOWN_NO_ROLLBACK`, permanently no-replay and preserves remaining state
+  for same-identity readback only.
+- **Cost/resource state:** no cloud request has been submitted at this gate;
+  provider usage and incremental cost are zero. Existing API-C/API-F remain
+  PrePaid and all three PostPaid nodes remain Stopped/StopCharging.
+
+## Item30 Amap recovery cleanup closed (2026-09-01)
+
+- **Terminal success:** fresh Command `c-sz06vrgscookxds` / Invoke
+  `t-sz06vrgscp8k45c` is exact-one `Finished / Success / Exit0`, Dropped `0`,
+  Repeats `1`, empty ErrorCode/ErrorInfo and API-F-only. The 287-byte canonical
+  Output with terminal LF has SHA-256
+  `e51e457089f1c57ceaad43ab50b29e3140d1e21e72fd17c76efe2033b1c6e7eb`.
+- **Rollback/residue closure:** `APPLIED_REVOKED_CLEANED`, owner old-revoke
+  confirmation true, `recovery_retained=false` and `task_residue=false` close
+  the recovery exchange and task roots. Old-Key rollback is permanently
+  forbidden and physically unavailable. No additional cleanup, restart or
+  recovery readback is permitted.
+- **Resource/cost disposition:** the existing API-F PrePaid node used less
+  than one second. Restart/provider/database/secret emissions are zero;
+  Builder and both Workers remain Stopped/StopCharging; incremental provider
+  and PostPaid cost remain zero. The next risk boundary is the existing
+  exact-one provider gate only.
+
+## Item30 Amap re-exposure recovery chain frozen before fresh Stage (2026-09-02)
+
+- **Key-consumption boundary:** `noteai-rot-0901` exists once but has never
+  been read or transmitted. The latest intake failed on expired Stage binding
+  before TTY input with `secret_values_emitted=0`; it is neither a Key
+  exposure nor a consumed input. Creating or asking for another Key is
+  forbidden unless this Key is actually read and then enters an
+  irreconcilable UNKNOWN or exposure state.
+- **Residue boundary closed:** cleanup Command `c-sz06vrlo1kkdq80` / Invoke
+  `t-sz06vrlo1l6utc0` is terminal exact-one
+  `STAGE_TASK_EXACT_CLEANED / ExitCode=0 / task_residue=false`, with zero
+  configuration, restart, provider, database and secret effects. It is
+  permanently no-replay.
+- **Offline mitigation closed:** the full direct-input rotation chain and
+  fixed form schema are frozen before successor Stage. Verification reports
+  `GO / P0=0 / P1=0`, `92/92 PASS` and a 16,086-byte maximum across 2,048
+  random cleanup bindings; Risk reports artifact `GO / P0=0`. The existing
+  1,800-second Stage is sufficient only under the fixed 600-second prepublish
+  schedule, with Publisher click remaining TTL at least 1,320 seconds and
+  official start at least 1,200 seconds. The 600-second executable floor is
+  not reduced.
+- **Action-time HOLD:** do not create Stage until Chrome control is stable,
+  Aliyun/Amap require no login or MFA, API-F Agent/nonterminal facts are clean,
+  API-C/API-F are fresh `Running / PrePaid`, and all three PostPaid nodes are
+  fresh `Stopped / StopCharging`. Stage disconnect or any need to change
+  source/tests/review is a pre-live HOLD and exact-clean boundary. Provider
+  dispatch remains forbidden until the new Key is applied, the exposed Key is
+  revoked and recovery cleanup is terminal.
+
+## Item30 Amap login is the sole action-time blocker (2026-09-02)
+
+- **Fresh resource gate closed:** API-C/API-F are `Running / PrePaid`;
+  Builder/Worker-C/Worker-F are `Stopped / PostPaid / 节省停机模式`, hence
+  running PostPaid and continuing PostPaid compute cost are zero. API-F Cloud
+  Assistant is `正常` and the `运行中`, `等待执行` and `计划执行中` result sets are
+  each empty.
+- **Authentication HOLD:** a fresh official Amap application navigation
+  redirected to the owner login form. No credential was entered and the
+  replacement Key was not read. Creating a Stage while authentication is
+  unresolved would consume the fixed TTL without a safe intake window and is
+  forbidden.
+- **Current side effects:** Stage/Command/Invoke, config/restart, provider,
+  database, funds, DNS, secret emission and incremental cost are all zero.
+  Verification and Risk independently classify the state
+  `HOLD / P0=1 / P1=0`; owner Amap login is the only permitted next action.
+
+## Item30 owner-away boundary after canonical fresh Stage (2026-09-02)
+
+- **Canonical Stage, no Key consumption:** API-F Stage Command
+  `c-sz06vsrtczhmoe8` / Invoke `t-sz06vsrtczrm9s0` is exact-one terminal
+  Success / ExitCode 0 with the canonical 19-field `STAGED` output, exact
+  1,800-second TTL, accepted RSA/binding facts and all provider/live/restart/
+  secret counters zero. The owner left before hidden intake, so
+  `noteai-rot-0901` remains unread, untransmitted and unconsumed. This Stage
+  identity is sealed and carries no Item30/provider credit.
+- **Exact residue closure:** Verification and Risk returned GO for immediate
+  Stage-only cleanup rather than waiting through the TTL. Fresh cleanup
+  Command `c-sz06vssjq3n7oqo` / Invoke `t-sz06vssjq3upds0` is terminal
+  `STAGE_TASK_EXACT_CLEANED / ExitCode=0 / task_residue=false`; only the three
+  Stage files and empty task root were removed. Configuration, restart,
+  provider, database, Render, funds, DNS and secret effects remain zero. The
+  cleanup identity is also sealed and no-replay.
+- **Human and resource boundary:** do not create another Stage until the owner
+  is back and able to paste the existing replacement once immediately after
+  canonical Stage validation. No new Amap Key is required. API-C/API-F remain
+  PrePaid and all stoppable PostPaid nodes remain Stopped/StopCharging;
+  provider/funds/incremental cloud cost is zero. On return, refresh the exact
+  login/resource/nonterminal gate, use a fresh Stage identity, and continue
+  the already-frozen direct rotation chain without new controllers or proof
+  layers.
+
+## Item30 Amap accessibility exposure; owner-only replacement required (2026-09-02)
+
+- **Security event contained:** the owner-authenticated Amap Key list exposed
+  both active credential values through Chrome accessibility output. Values
+  are not repeated or persisted, but `noteai-rot-0901` and
+  `noteai-rot-0830` are both prohibited for production use. Automation must
+  not open or inspect the credential list again.
+- **Zero downstream effect:** no cloud Stage, Envelope, config exchange,
+  restart, readiness or provider request occurred after exposure. Fresh
+  Cloud Assistant nonterminal sets are zero; API-C/API-F are PrePaid and all
+  three PostPaid nodes remain Stopped/StopCharging, so provider/funds/
+  incremental cost stays zero.
+- **Minimum recovery:** the owner manually creates and locally copies exactly
+  one new Web Service Key `noteai-rot-0902` without posting it in chat. Only
+  then may the already-frozen local Stage identity be submitted and its
+  hidden-intake window opened. Both exposed Keys require owner-confirmed
+  revocation after APPLIED readback and before recovery cleanup or provider
+  dispatch.
+
+## Item30 wrapper cleanup incident and Meituan UNKNOWN (2026-09-03)
+
+- Provider Invoke `t-sz06vvak5ku1m2o` is permanently sealed: root stopped only
+  its process tree after locating unbounded `/dev/zero` copying in the existing
+  scrub. Official terminal is Terminated/Stopped at `16:38:58Z`, not PASS.
+- Action-free readback `t-sz06vvbwvzg6rr4` confirms API-F running/healthy,
+  PID505150/restart0/StartedAt unchanged, task references0, provider.env absent.
+  One task-only stdout file grew to 20,079,681,536 bytes; available disk is
+  12,601,638,912 bytes. Exact removal is prepared, not yet executed; preserve
+  the result, gate and recovery anchor. No service restart/config write allowed.
+- Canonical result SHA256
+  `13444140d5b6866006f2d58cf8b45980e1002c9ca1814229233249af90e3b745`
+  records Meituan logical dispatch1/UNKNOWN, all later providers uncalled.
+  Native cost/request outcome is unresolved. Never repeat on that identity.
+  Offline empty-PATH/CLI-env-node failure is reproduced but must not be used
+  to fabricate a successful result or waive reconciliation.
+- Existing b55 image, canonical executor and validator unchanged. Owner's
+  deferred deletion of old Amap `noteai-rot-0901` is not a new Item30 gate;
+  never reopen credential-value pages. All PostPaid resources remain stopped,
+  incremental compute cost0. NDR mask7 remains the independent Item36 P0 and
+  Item38 NO-GO. Readiness remains 29/38 and Item30 receives no credit.
+
+- Full hash-bound result read `t-sz06vvd9z4i6vb4` now confirms signed-readiness
+  passed, Meituan logical call elapsed3ms/UNKNOWN and model cost0, business DB
+  connections/writes0. Original result remains intact off-repo and on API-F.
+  Empty-PATH and unbounded-scrub fixes are offline only; 25 focused tests and
+  bounded file-size fixtures pass, canonical executor/validator unchanged.
+- Fresh resource query `01A06317-EDC7-5D81-BC07-8B7AA9C404F7` confirms all
+  three PostPaid nodes Stopped/StopCharging, both APIs Running/PrePaid.
+  Exact cleanup `noteai-item30-transient-cleanup-20260903-7d12dffb0394a5d3`
+  is prepared, not submitted: delete only four known task transients and one
+  then-empty source directory; retain gate/result/recovery. Browser deletion
+  awaits immediate owner confirmation. No new credential input is needed.
+
+- 2026-09-03 update: owner confirmed cleanup; exact frozen cleanup Invoke
+  `t-sz06vw7de1h591c` completed Success/Finished/Exit0, Repeats1/Dropped0,
+  `2026-09-02T22:38:57Z`–`22:38:58Z`. Official terminal RequestId
+  `01A06446-D918-5518-8804-3C80A518C07E`, stdout SHA256
+  `f5131f2c288359fc595fba89251e7014ad68d3af072dbb63dcc5f1d55a9b5926`.
+  Four task transients and one empty source directory are deleted; 20.08GB
+  stdout removed, available disk32,679,415,808 bytes. Result/gate/recovery are
+  retained and hash-unchanged; API identity/health unchanged, provider0/restart0.
+  Task disk-growth residue risk is closed. Meituan native dispatch/settlement
+  UNKNOWN remains unresolved and non-replayable; no Item30 credit or new charge.
+
+- Bounded post-cleanup reconciliation found no request/settlement ledger in the
+  current developer navigation or official setup guide. CLI empty-PATH evidence
+  strongly explains local failure, but the sealed executor journal lacks the
+  actual exception/child stderr. Do not infer native zero charge or silently
+  spend another unpriced Meituan call. Any additional real call carries a
+  possible duplicate-charge owner decision; all three other providers remain
+  uncalled and no new fee was incurred during this reconciliation.
+
+- 2026-09-03 owner accepted one additional potentially duplicate unpriced
+  Meituan call. Three reused reviewers GO; previous UNKNOWN remains unchanged
+  and non-replayable. Fresh attempt5858538c99730d3d has independent gate/nonce
+  and canonical real cloud Name. Other providers remain capped at CNY0.10 each,
+  CNY0.30 combined. This does not bound the two Meituan attempts' total cost.
+  No dispatch at this entry. Fixed scrub/PATH and task-owned cleanup passed
+  offline fixtures; no canonical validator/DoD change. Latest official five-node
+  query01A06466-19D8-5C4F-A929-EF1FB994FED1 confirms all PostPaid StopCharging.
+  NDR remains Item36 P0, not an Item30 gate. Existing Amap owner-deferred key
+  deletion is not reopened. Readiness29/38, no credit until actual acceptance.
+
+- Fresh providert-sz06vwaxp68lngg is terminal Failed/Exit1, permanently sealed.
+  Exact readbackt-sz06vwbo995hslc binds resultc6408e37d455ae7afef74692cb6cfff4e35ce6aa2febe95c23793a6d29fe5a5b:
+  Meituan SUCCESS1, Claude UNKNOWN1, Kimi/Amap0; signed-readiness passed,
+  business DB writes0, retry/fallback0. API identity/health stable. All task
+  transients absent/refs0; keep result/gate/recovery, no further cleanup needed.
+- Claude native requestreq_011CefU88cmqobf9PJQoH98b at23:19:14.643Z records
+  input21/output64, so model-cost0 in the failed executor aggregate must not
+  be mistaken for native zero usage or charge. USD0.000341 is token-price
+  arithmetic only, not settled cost. Meituan old UNKNOWN and fresh successful
+  unpriced call have separate unresolved settlement risks. The extra-one
+  duplicate-risk authorization is consumed; no more provider calls authorized.
+- Existing executor collapses distinct fixed failures identically; offline
+  fixture proves the information loss. Do not declare output mismatch or
+  usage-record failure as uniquely proved. Official Render window has no logs;
+  no new table scan/classifier is justified. Propose only existing failure_code
+  preservation, no lowered DoD or added proof layer. CurrentReadiness29/38;
+  no terminal checkpoint. NDR Item36 P0 and Item38 NO-GO remain unchanged.
+- Final DescribeInstances01A0647A-584D-502B-8FEE-DB1F8E559399 confirms
+  APIs Running/PrePaid and Builder/Worker-C/Worker-F Stopped/StopCharging.
+  All three reviewers support the minimal fixed-error preservation proposal,
+  but no existing result may be reclassified and no further paid call is
+  authorized. No secret input or production configuration change is needed.
+  The remaining owner decision is the explicit extra full-chain repeat risk:
+  already-successful Meituan would be charged again at an undisclosed rate;
+  priced three-provider aggregate remains<=CNY0.30. Current no-replay is intact.
+
+- 2026-09-03 renewed explicit owner `同意` authorizes one further fresh full
+  chain, including one already-successful Meituan unpriced repeat. It does
+  not replay or reclassify either sealed attempt and does not authorize a
+  subsequent additional call. Three priced providers remain each<=CNY0.10,
+  combined<=CNY0.30; Meituan has no disclosed maximum or native settlement.
+  Existing executor now preserves only three fixed typed failure codes;
+  success standards and canonical validator are unchanged.28 focused tests
+  and old/new PASS-byte equivalence PASS, independent source reviewers GO.
+  One secret-free recovery checkpoint will truthfully bind new executor
+  SHA2563607b1cc9d1e08943b0c7bbbde3f0ac83c39513ac458ba5b74a87c9aabb88a05
+  before paid dispatch. Carrier size is still being resolved offline; no new
+  provider/config/restart/DB/funds/Render/DNS action yet. APIs stay PrePaid,
+  all PostPaid StopCharging, old recovery materials retained, Readiness29/38.
+  NDR remains Item36 P0 and owner-deferred Amap deletion is not reopened.
