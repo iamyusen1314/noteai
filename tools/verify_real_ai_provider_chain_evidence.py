@@ -43,7 +43,7 @@ APPLICATION_CONFIG_SHA256 = (
     "dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53"
 )
 GATEWAY_RELEASE_REVISION = "84f8a2f1436627e0f05588ee0276b1950b230ae3"
-COMMAND_NAME = "noteai-item30-real-provider-chain-20260824"
+COMMAND_NAME = "noteai-item30-provider-8719308abacc687d"
 PROVIDERS = ("claude", "kimi", "amap", "meituan")
 DISPATCH_ORDER = ("meituan", "claude", "kimi", "amap")
 PROVIDER_CAPS = {

@@ -1,6 +1,9 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Updated: 2026-08-23 (Asia/Shanghai)
+> Current summary updated: 2026-09-03 (Asia/Shanghai).
+> Internal29/29 accepted; complete public30/38 after Item30 terminal acceptance.
+> Historical sections below remain evidence of their dated state, not reopen
+> instructions. The terminal closure at the end is authoritative.
 >
 > This file is the current Secret-free recovery source. After context
 > compression, re-read this file, Git, the readiness manifest and the risk
@@ -67,8 +70,9 @@
 - V5 package-evidence checkpoint:
   `883e874d4186e523b8110d44338c2e074b26c491`.
 - Repository/isolated readiness: `12/12`.
-- Internal deployment readiness: `25/29 = 86%`.
-- Public launch readiness: `25/38 = 66%`.
+- Current internal deployment readiness (2026-09-03): `29/29 = 100%`.
+- Current complete public readiness (2026-09-03): `30/38 = 79%`, public layer `1/9`.
+- Historical snapshot (2026-08-23): internal `25/29 = 86%`, public `25/38 = 66%`.
 - Public launch completion: false.
 
 ## 2.1 Completed V5 production schema and role deployment
@@ -19243,3 +19247,130 @@ Colima, database, builder, restore and cloud actions remain frozen.
   request dispatched in this continuation, no config/restart/deploy or new
   resource operation. Last confirmed APIsPrePaidRunning/threePostPaidStopped
   StopCharging remain unchanged; existing zero task containers/volumes retained.
+
+### Item30 canonical all-four PASS; terminal closure in progress (2026-09-03 13:30 UTC)
+
+- HEAD5ff46fcf666e6a7a9095996383843b769f4545ce is the one necessary reviewed
+  source-binding recovery commit; upstream22aeb74498db7883a9281a84671056dae26f07f5.
+  Internal29/29 accepted; full29/38 until final canonical evidence/cleanup.
+  No Item31 action. All older identities/raw results remain sealed, not replayed.
+- Fresh task8719308abacc687d ran once through official RunCommand,
+  Commandc-sz06vycf7o53e9s/Invoket-sz06vycf7op2l1c,
+  Request01A0675D-4366-5D8E-926D-0C84443AB03C. Official terminal query
+  01A0675E-86F7-5500-990E-96B9F7621EFD: Success/FinishedExit0,
+  13:02:41Z..13:03:00Z/repeats1/drop0. Actual start had1438seconds of gateTTL.
+  Signed-readinessPASS, Meituan→Claude→Kimi→Amap all SUCCESS/exact-one,
+  dispatch4/unknown0/retry0/fallback0. Paid authorization is consumed; NEVER
+  repeat this chain. Raw6872B/SHA
+  b25452d5262ea35ab6d3a5958cf92dc30d3ec81bc131d91cb25828303ef01fd4
+  is byte-exact archived in /var/tmp/noteai-item30-provider-successor.wXUohr/
+  executor-result.json, not synthesized or rebound.
+- Readerc-sz06vycukkh00zk/t-sz06vycukklztog, Request
+  01A06761-A4E9-51A2-952B-C836750A5B51, query
+  01A06763-97E2-5F3C-BEC5-83A35908D3D8: Success/FinishedExit0 at13:07:28Z..29Z,
+  repeats1/drop0. READBACK_COMPLETE8765B/SHA
+  2c1f9d7e7ed38372ef1c3caf22933d6df3e0a002ec7376c679ab435f2682cc21.
+  API CID843a974866addac89fcc1efa0a581f9fcf9f5e5653adcf17bc5fc8de1c9eee05,
+  PID505150/restarts0/StartedAt2026-09-02T13:47:45.602801121Z remain unchanged,
+  Running/healthy. Successful wrapper proves task containers/volumes0 before
+  removing its anchor. Env/source/stdout/stderr/anchor absent; only archived
+  no-secret result/account-gates.json3159B and executor-result.json6872B remain.
+- Native post: Claude MTD357→391tokens (26input/8output); Kimi billed
+  806.47874→806.47906RMB(delta0.000320); Amap day/month0→1, current basic-search
+  bill paid0; Meituan remains NOT_EXPOSED_BY_PROVIDER, not free. Claude official
+  CSV1072B/SHA424c72d942667914db928e002e8e1960010dd28c7481182fa3276bc1e03bced7
+  displays two-decimal0.00USD. Native displayed/quantized zero is NOT a claim
+  of free service or exact zero cash charge. Application Claude0.000462,
+  Kimi0.000331, sum0.000793 remain unchanged; native differences are within
+  original0.010000RMB tolerance. No additional precision/invoice gate.
+- Latest official five-node observation12:50:01Z: APIsRunningPrePaid,
+  Builder/Worker-C/FStoppedPostPaidStopCharging; no resource actions since.
+  Incremental cloud compute0; existing prepaid/Render costs unchanged;
+  Meituan's accepted one unpriced amount still not disclosed. No production
+  configuration/restart/Render deploy/businessDB writes/payment/DNS mutation.
+  Raw businessDBconnections0 is scoped to isolated provider probe. Original
+  API cleanup health checks may independently perform normal readonlySELECT1.
+- Final cleanup14539B/SHAf96b4cd4d5c0ed96623183c5178d19e23dd556b44a465cf5e381b8b1369bcbaa
+  received DoD/risk/verificationGO;15offlinecases PASS. Fresh exact task only,
+  three Docker query failures now propagate; old sibling/BASE preserved.
+  It reports cleanup first, then independent live/ready GET each once; health
+  failure cannot trigger cleanup replay. Submission not yet dispatched here.
+- Unique next action: submit this fresh secret-free cleanup once through the
+  verified Username-absent official SDK projection; capture terminal and final
+  resource status, assemble existing canonical Evidence, focused gate,30/38,
+  one normal terminal checkpoint/push. No MFA/newsecret/long-term fee/approval
+  or DNS wait. NDRmask7 remains separate Item36P0/Item38NO-GO. Protected7 paths
+  remain unread/unmodified/untracked/unstaged.
+
+### Item30 terminal closure — VERIFIED, full30/38 (2026-09-03 13:40 UTC)
+
+- This terminal section supersedes all pending Item30 statements above. At
+  normal terminal commit assembly HEAD5ff46fcf666e6a7a9095996383843b769f4545ce,
+  upstream origin/codex/quality-stabilization-real-chain at
+  22aeb74498db7883a9281a84671056dae26f07f5. The sole normal Item30 checkpoint
+  is the commit containing this closure; resolve its actual SHA with Git,
+  and verify HEAD equals upstream after its single normal push. No separate
+  documentation checkpoint or self-referential SHA is manufactured.
+- Item30 `PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001` is VERIFIED. Internal29/29
+  stays accepted; public layer0/9→1/9, full29/38→30/38. No Item1–29 execution
+  was repeated. No Item31 action. Public DNS/user traffic remains unauthorized.
+  Existing canonical file:
+  deploy/production/evidence/production-real-ai-provider-chain-verified-20260824.json;
+  terminal acceptance SHA
+  e518cb79ff3876473dedc24c4adbf774879b47c02eadf90d975039538be1b885.
+- All-four PASS and successful reader identities, raw SHA, native pre/post
+  counters and fees are fixed in the preceding section. Canonical embedded
+  raw differs only in JSON object insertion order required by the existing
+  validator; sorted canonical bytes are EXACTLY the archived6872B raw and
+  SHA b25452d5262ea35ab6d3a5958cf92dc30d3ec81bc131d91cb25828303ef01fd4.
+  No scalar/list/journal/hash edit, no splicing, no old-result promotion.
+  Exact command-name validator literal now binds the true fresh command,
+  retaining exact equality and regression rejection of the historical name.
+- Fresh cleanup Name noteai-item30-cleanup-8719308abacc687d-1331 submitted
+  13:31:10Z with14539B reviewed payloadSHA
+  f96b4cd4d5c0ed96623183c5178d19e23dd556b44a465cf5e381b8b1369bcbaa,
+  Base6419388B, exact11SDKfields/Username ABSENT, projectionSHA
+  780a734365d49ee6917ab1031e2c0847518852a9aad7827384e0a2a734431b6b.
+  Request01A06777-5C46-5BBC-96F1-086D7B492792,
+  Commandc-sz06vyeyr2iocn4/Invoket-sz06vyeyr32njeo; official query
+  01A06779-4C37-5A78-9316-A52B891A3F24 gives Success/FinishedExit0,
+  start/finish13:31:12Z, repeats1/drop0. OutputSHA
+  15ccd44d219a2ea4f5fcb594d7a292db42ae0da9394c2117578841bbeffabf97.
+  TASK_EXACT_CLEANED: current task files/containers/volumes/credentials/
+  locks/ephemeralDB residues0. Removed only the two archived no-secret files
+  and empty result/task directories; BASE and old sealed recovery siblings
+  preserved. Local exact archives remain recoverable. NEVER replay cleanup.
+- Independent original API health observations then returned live200/ready200,
+  identity unchanged/restarts0. This is not a provider or gateway-readiness
+  replay. Normal API ready may connect for readonlySELECT1; isolated raw
+  provider-probe DBconnections0 remains truthful and businessDBwrites0.
+  No API/config restart, Render deploy/staging, payment, DNS or resource action.
+- Final official resource query01A0677B-F1D4-5162-8ABE-A16083431D59 at
+  13:36:51Z: exactly API-C/FRunningPrePaid; Builder/Worker-C/FStoppedPostPaid
+  StopCharging. No temporary compute/network resources. Incremental cloud
+  compute0; existing prepaid/Render recurring budgets unchanged. No temporary
+  PostPaid compute is left waiting. Native posted figures and model subtotal
+  retain the rounding/precision/Meituan caveats above and in Risk.
+- Final focused verification: canonical validatorPASS; static manifest gate
+  internal100%(29/29)/public79%(30/38);50model-usage+Item30 testsPASS with
+  network/dotenv disabled;15cleanup offlinecasesPASS;git diff-checkPASS.
+  No unrelated full CI, no Item1–29 production rerun. Current summary corrected
+  to29/29 while dated25/29 and historical14/29 records are retained.
+- Final real subagent review: Zeno/dod_dependency_auditor creditGO/P0=0/P1=0;
+  Lagrange/verification_evidence_reviewer creditGO/P0=0/P1=0 with independent
+  on-disk Git-bound Evidence/raw/native-hash checks; Pascal/risk_cost_resource_guard
+  GO/P0=0 with disclosed fee precision and StopCharging/resource closure.
+  These three reviewers were reused; none performed cloud writes.
+- Files for this sole normal checkpoint: existing Handoff, Risk, Readiness
+  manifest, readiness summary doc, canonical Evidence, existing verifier and
+  its test. No new controller/helper/receipt/Evidence version/Handoff variant.
+  APIs still run immutableb55; Item30's compatibility overlay is not an API
+  deployment. NDRmask7 remains Item36P0 and pre-DNSNO-GO; no expanded NDR or
+  PGOPTIONS/global inventory gate was reintroduced. Protected7 untracked
+  paths remain unread/unmodified/unstaged/uncommitted.
+- No MFA/newsecret/professional signature/newlong-term fee/DNS confirmation
+  is pending for Item30. Unique next task is
+  PROD-FIRST-LAUNCH-PAYMENT-REAL-001 (Item31), not started. On recovery first
+  read Git HEAD/upstream and this canonical accepted evidence; if terminal
+  push is confirmed complete, do not replay anything. Current owner scope
+  ends at Item30; obtain Item31 continuation direction before its execution.

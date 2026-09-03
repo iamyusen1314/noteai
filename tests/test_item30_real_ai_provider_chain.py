@@ -1208,6 +1208,21 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
             verifier.validate_document(evidence_fixture(), verify_git=False), []
         )
 
+    def test_command_name_matches_actual_official_execution(self):
+        actual = "noteai-item30-provider-8719308abacc687d"
+        self.assertEqual(verifier.COMMAND_NAME, actual)
+        for name in (actual, "noteai-item30-real-provider-chain-20260824"):
+            with self.subTest(name=name):
+                value = evidence_fixture()
+                value["execution"]["command_name"] = name
+                value["terminal_acceptance_sha256"] = (
+                    verifier.terminal_acceptance_sha256(value)
+                )
+                self.assertEqual(
+                    verifier.validate_document(value, verify_git=False),
+                    [] if name == actual else ["execution terminal binding mismatch"],
+                )
+
     def test_readonly_source_bind_count_is_exactly_three(self):
         for count in (3, 2, 4):
             with self.subTest(count=count):

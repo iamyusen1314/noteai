@@ -6147,3 +6147,45 @@ Last updated: 2026-08-19
   No original DoD, fee, usage, official terminal or cleanup gate is weakened.
   No fresh production dispatch, resource start, config/restart/deploy or
   businessDB/payment/DNS operation yet; no Item30 credit or Item31 action.
+
+- 2026-09-03 Item30 TERMINAL ACCEPTED: one newly authorized complete chain
+  c-sz06vycf7o53e9s/t-sz06vycf7op2l1c is official Success/FinishedExit0,
+  13:02:41Z..13:03:00Z, repeats1/drop0. Signed-readinessPASS and all four
+  providers SUCCESS/exact-one, no retry/fallback/UNKNOWN. Immutable raw SHA
+  b25452d5262ea35ab6d3a5958cf92dc30d3ec81bc131d91cb25828303ef01fd4.
+  This succeeds a separately accepted commercial attempt; it does not rewrite
+  old UNKNOWNs or permit any replay. Canonical Evidence acceptance SHA
+  e518cb79ff3876473dedc24c4adbf774879b47c02eadf90d975039538be1b885.
+- Native observation reconciliation is within the original RMB0.010000
+  tolerance, not a claim of exact final cash settlement: Claude26/8 and native
+  display-quantized cost0 vs application0.000462; Kimi native0.000320 vs
+  application0.000331 (difference0.000011 remains unexplained); Amap calls1,
+  current native bill paid0. Claude official cost CSV is two-decimal USD;
+  displayed0 does not mean free. Application priced-model subtotal0.000793
+  is not total charge. Meituan's accepted one unpriced call and total charge
+  remain NOT_EXPOSED_BY_PROVIDER/NOT_DETERMINABLE, never zero. Existing caps,
+  account funding and subscription/resource fee boundaries are unchanged.
+- Exact cleanup c-sz06vyeyr2iocn4/t-sz06vyeyr32njeo reports Success/Finished0
+  at13:31:12Z, repeats1/drop0, confirmed by query
+  01A06779-4C37-5A78-9316-A52B891A3F24. TASK_EXACT_CLEANED proves current task
+  files/containers/volumes/credential/lock/ephemeralDB residues0. Only two
+  archived no-secret test files and their empty result/task directories were
+  removed; BASE and sealed old-task recovery evidence remain intact.
+  Subsequent independent API live/ready each returned200 with identical
+  container state/restarts0; cleanup must never be replayed. The ready GET
+  may use the normal readonlyDB SELECT1; raw businessDBconnections0 describes
+  only the isolated provider probe, and business database writes remain0.
+- Final official five-node query01A0677B-F1D4-5162-8ABE-A16083431D59 observed
+  13:36:51Z confirms API-C/FRunningPrePaid and Builder/Worker-C/F
+  StoppedPostPaidStopCharging. Incremental compute0, no PostPaid start, config
+  change, service restart, Render deployment, payment or DNS mutation.
+  Production APIs remain unchanged b55; the reviewed Kimi12line compatibility
+  patch was source-bound read-only in the disposable Item30 probe, not claimed
+  deployed into the API services. Future commercial E2E must use its actually
+  released sources. No new control or Readiness credit beyond Item30.
+- Item30 canonical validator and static Readiness gate PASS, 50focused tests
+  PASS with network/dotenv disabled; cleanup15offlinecases PASS. Full30/38,
+  internal29/29 remains accepted without rerunning Item1–29. The API-F managed
+  NDRmask7 risk is still independent Item36P0 and Item38DNS NO-GO; neither
+  this pass nor health200 closes it. No PGOPTIONS/global-inventory expansion.
+  Item31 is the next task, not executed under the current Item30-only scope.

@@ -1,0 +1,496 @@
+{
+  "schema": "noteai.item30.real-ai-provider-chain-evidence.v1",
+  "task_id": "PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001",
+  "status": "PASS",
+  "observed_at_utc": "2026-09-03T13:36:51Z",
+  "source_binding": {
+    "branch": "codex/quality-stabilization-real-chain",
+    "execution_source_revision": "5ff46fcf666e6a7a9095996383843b769f4545ce",
+    "executor_ref": "deploy/production/real_ai_provider_chain.py",
+    "executor_sha256": "5972f6085f3a1d5b95f0f5c4e60e2aeadb960e28c0c983f414d8a92e1b532dec",
+    "fact_enrichment_ref": "model/fact_enrichment.py",
+    "fact_enrichment_sha256": "9e14b03c5ddb16ad960b60b282ecb0f5cd9545903e10456d78254cd42f1d28a4",
+    "runtime_executor_sha256": "5972f6085f3a1d5b95f0f5c4e60e2aeadb960e28c0c983f414d8a92e1b532dec",
+    "runtime_fact_enrichment_sha256": "9e14b03c5ddb16ad960b60b282ecb0f5cd9545903e10456d78254cd42f1d28a4",
+    "application_release_revision": "b55f11882100e9ef919522540729e366a511f88f",
+    "application_manifest_sha256": "612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620",
+    "application_config_sha256": "dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+    "application_executor_readonly_overlay": true,
+    "application_fact_enrichment_readonly_overlay": true,
+    "gateway_service": "noteai-prod-claude-gateway",
+    "gateway_release_revision": "84f8a2f1436627e0f05588ee0276b1950b230ae3",
+    "gateway_region": "Singapore (Southeast Asia)",
+    "gateway_health_path": "/health/ready",
+    "gateway_health_http_status": 200
+  },
+  "execution": {
+    "command_name": "noteai-item30-provider-8719308abacc687d",
+    "command_identity_sha256": "56effd5ea7a49408b19351f900614316b3adb1bb863ac8046755db310628fb8d",
+    "invocation_identity_sha256": "2c80f617ab08581c8b72114b83f518dc7b4a7c18869f68d73ee08382ba17b96a",
+    "terminal_status": "Success",
+    "exit_code": 0,
+    "repeat_count": 1,
+    "dropped_count": 0,
+    "started_at_utc": "2026-09-03T13:02:41Z",
+    "finished_at_utc": "2026-09-03T13:03:00Z",
+    "stdout_sha256": "182eb2cafe24a18df997fb8baee1f1d44ed2c702c4deafd8285995924b1ae986",
+    "executor_result_sha256": "b25452d5262ea35ab6d3a5958cf92dc30d3ec81bc131d91cb25828303ef01fd4",
+    "executor_result": {
+      "account_gate": {
+        "execution_nonce": "c00f4a56b451dc050d496d4bf53b902ed664791b24c3501d0198dca066eda8b6",
+        "execution_source_revision": "5ff46fcf666e6a7a9095996383843b769f4545ce",
+        "executor_sha256": "5972f6085f3a1d5b95f0f5c4e60e2aeadb960e28c0c983f414d8a92e1b532dec",
+        "expires_at_utc": "2026-09-03T13:26:39Z",
+        "fact_enrichment_sha256": "9e14b03c5ddb16ad960b60b282ecb0f5cd9545903e10456d78254cd42f1d28a4",
+        "generated_at_utc": "2026-09-03T12:56:39Z",
+        "providers": {
+          "claude": {
+            "account_identity_sha256": "bb6af75a8e3e9e314ef2810fa69c95a980c6805fbafadee147a59480cf8680b3",
+            "balance_or_quota_confirmed": true,
+            "credential_name_present": true,
+            "current_price_confirmed": true,
+            "pre_call_counter": {
+              "counter_kind": "total_tokens",
+              "counter_unit": "tokens",
+              "counter_value": "357.000000",
+              "direction": "increasing",
+              "observed_at_utc": "2026-09-03T12:54:25Z",
+              "snapshot_sha256": "3a8aec94f7499ea9345f82a37c3eac8c6a308dcb2a0bc813c369d5d9504d3240",
+              "source": "provider_account_console"
+            },
+            "pre_call_counter_readable": true,
+            "price_snapshot_sha256": "92adc6871d87279e0998e34088d790628c6a5b39073470ace67f88fe87b8a37d",
+            "unit_cost_upper_bound_rmb": "0.100000"
+          },
+          "kimi": {
+            "account_identity_sha256": "b4327f5d8a6ceec9ad96db290bda9a12e9558e997e070f8be7eecdb21bdfab58",
+            "balance_or_quota_confirmed": true,
+            "credential_name_present": true,
+            "current_price_confirmed": true,
+            "pre_call_counter": {
+              "counter_kind": "billed_cost_rmb",
+              "counter_unit": "rmb",
+              "counter_value": "806.478740",
+              "direction": "increasing",
+              "observed_at_utc": "2026-09-03T12:55:15Z",
+              "snapshot_sha256": "89ddbc566671a2b24c12bae98ec9b96eef33394bb7d35cce110aeead11ca7b83",
+              "source": "provider_account_console"
+            },
+            "pre_call_counter_readable": true,
+            "price_snapshot_sha256": "8c49dfa0e4b323715037a1a045799827ef2b04e65f55cee6309873ec3901ce02",
+            "unit_cost_upper_bound_rmb": "0.100000"
+          },
+          "amap": {
+            "account_identity_sha256": "6900efcfd47264adb1c89d9eb94f23c0720ee7551deac128e7330a255d589988",
+            "balance_or_quota_confirmed": true,
+            "credential_name_present": true,
+            "current_price_confirmed": true,
+            "pre_call_counter": {
+              "counter_kind": "request_count",
+              "counter_unit": "requests",
+              "counter_value": "0.000000",
+              "direction": "increasing",
+              "observed_at_utc": "2026-09-03T12:55:47Z",
+              "snapshot_sha256": "cac18005bf975fcb350d209e08f131b28d1f2e5ed9ed59ec77c9685d111d794e",
+              "source": "provider_account_console"
+            },
+            "pre_call_counter_readable": true,
+            "price_snapshot_sha256": "4b3968d52a494e4c29542077b288269f052617f561734d3293bb4b9b736c3968",
+            "unit_cost_upper_bound_rmb": "0.100000"
+          },
+          "meituan": {
+            "account_identity_sha256": "6f74d73656ee0ee5443eac76435168c84e3db4e3392664c5e8cb82c49998955b",
+            "balance_or_quota_confirmed": false,
+            "credential_name_present": true,
+            "current_price_confirmed": false,
+            "pre_call_counter": {
+              "counter_kind": "NOT_EXPOSED_BY_PROVIDER",
+              "counter_unit": "NOT_EXPOSED_BY_PROVIDER",
+              "counter_value": "NOT_EXPOSED_BY_PROVIDER",
+              "direction": "NOT_EXPOSED_BY_PROVIDER",
+              "observed_at_utc": "2026-09-03T12:56:10Z",
+              "snapshot_sha256": "ea6c354e7930cdeae129d3311af9a61ba7c13e28e1b1a905ec75911c2b4137c8",
+              "source": "provider_account_console"
+            },
+            "pre_call_counter_readable": false,
+            "price_snapshot_sha256": "ea6c354e7930cdeae129d3311af9a61ba7c13e28e1b1a905ec75911c2b4137c8",
+            "unit_cost_upper_bound_rmb": "NOT_EXPOSED_BY_PROVIDER"
+          }
+        },
+        "schema": "noteai.item30.account-gates.v1"
+      },
+      "attempt": {
+        "account_gate_sha256": "551a4d812f47fe66586bf84a2511ecf232abc18635a2c8c3703f5b067fe80cd8",
+        "execution_nonce": "c00f4a56b451dc050d496d4bf53b902ed664791b24c3501d0198dca066eda8b6",
+        "execution_source_revision": "5ff46fcf666e6a7a9095996383843b769f4545ce",
+        "executor_sha256": "5972f6085f3a1d5b95f0f5c4e60e2aeadb960e28c0c983f414d8a92e1b532dec",
+        "fact_enrichment_sha256": "9e14b03c5ddb16ad960b60b282ecb0f5cd9545903e10456d78254cd42f1d28a4",
+        "providers": {
+          "amap": "SUCCESS",
+          "claude": "SUCCESS",
+          "kimi": "SUCCESS",
+          "meituan": "SUCCESS"
+        },
+        "schema": "noteai.item30.execution-journal.v1",
+        "status": "PASS"
+      },
+      "bounds": {
+        "actual_prompt_bytes": 57,
+        "automatic_retry_count": 0,
+        "fallback_count": 0,
+        "maximum_dispatches_per_provider": 1,
+        "maximum_output_tokens": 64,
+        "maximum_prompt_bytes": 128,
+        "provider_order": [
+          "meituan",
+          "claude",
+          "kimi",
+          "amap"
+        ],
+        "total_cost_cap_rmb": "OWNER_AUTHORIZED_UNPRICED_SINGLE_CALL"
+      },
+      "cleanup": {
+        "credential_file_persisted_by_executor_count": 0,
+        "ephemeral_database_residue_count": 0
+      },
+      "data_boundary": {
+        "gateway_control_plane_request_expected": true,
+        "gateway_terminal_record_ttl_days": 30,
+        "noteai_business_database_connection_count": 0,
+        "noteai_business_database_write_count": 0,
+        "public_fact_query_only": true,
+        "response_content_persisted_count": 0,
+        "response_url_persisted_count": 0,
+        "synthetic_ai_prompt_only": true,
+        "user_content_count": 0
+      },
+      "observed_at_utc": "2026-09-03T13:02:44Z",
+      "preflight": {
+        "amap_credential_present": true,
+        "claude_remote_ready": true,
+        "claude_transport": "gateway",
+        "kimi_credential_present": true,
+        "meituan_runtime_status": "MEITUAN_TRAVEL_READY"
+      },
+      "providers": {
+        "meituan": {
+          "automatic_retry_count": 0,
+          "cli_invocation_count": 1,
+          "confidence_milli": 900,
+          "dispatch_count": 1,
+          "elapsed_millis": 11686,
+          "fallback_count": 0,
+          "output_bytes": 3710,
+          "output_sha256": "0df6126d1e6d067ab810314793c1567f218c76f8fb46457f0d27f94cac49aeee",
+          "source_count": 1,
+          "status": "SUCCESS",
+          "structured_fact_count": 6,
+          "target_entity_matched": true,
+          "target_region_matched": true,
+          "transport": "fact_enrichment_meituan_travel",
+          "unknown_count": 0
+        },
+        "claude": {
+          "actual_cost_rmb": "0.000462",
+          "automatic_retry_count": 0,
+          "cost_mode": "actual",
+          "dispatch_count": 1,
+          "elapsed_millis": 2806,
+          "fallback_count": 0,
+          "input_tokens": 26,
+          "model": "claude-haiku-4-5-20251001",
+          "model_calls": 1,
+          "output_bytes": 9,
+          "output_sha256": "6ed135b7a08ad03930ee8b7f6665e3ef5622922e9c78129e64ac5a859cb020ff",
+          "output_tokens": 8,
+          "pricing_status": "exact",
+          "provider": "claude",
+          "status": "SUCCESS",
+          "transport": "production_gateway",
+          "unknown_count": 0,
+          "usage_status": "complete"
+        },
+        "kimi": {
+          "actual_cost_rmb": "0.000331",
+          "automatic_retry_count": 0,
+          "cost_mode": "actual",
+          "dispatch_count": 1,
+          "elapsed_millis": 704,
+          "fallback_count": 0,
+          "input_tokens": 26,
+          "model": "kimi-k2.6",
+          "model_calls": 1,
+          "output_bytes": 9,
+          "output_sha256": "6ed135b7a08ad03930ee8b7f6665e3ef5622922e9c78129e64ac5a859cb020ff",
+          "output_tokens": 6,
+          "pricing_status": "exact",
+          "provider": "kimi",
+          "status": "SUCCESS",
+          "transport": "model_router_kimi",
+          "unknown_count": 0,
+          "usage_status": "complete"
+        },
+        "amap": {
+          "automatic_retry_count": 0,
+          "confidence_milli": 900,
+          "detail_request_count": 0,
+          "dispatch_count": 1,
+          "elapsed_millis": 185,
+          "fallback_count": 0,
+          "http_request_count": 1,
+          "output_bytes": 4990,
+          "output_sha256": "d5137750fe161cea7eeb9f8e26335f712eace49f58b3f10b3a53713f2fa5dbe2",
+          "source_count": 3,
+          "status": "SUCCESS",
+          "structured_fact_count": 23,
+          "target_entity_matched": true,
+          "target_region_matched": true,
+          "transport": "fact_enrichment_amap_text_only",
+          "unknown_count": 0
+        }
+      },
+      "schema": "noteai.item30.real-ai-provider-chain-result.v1",
+      "status": "PASS",
+      "task_id": "PROD-FIRST-LAUNCH-PROVIDER-CHAIN-001",
+      "totals": {
+        "actual_model_cost_rmb": "0.000793",
+        "automatic_retry_count": 0,
+        "dispatch_count": 4,
+        "fallback_count": 0,
+        "successful_provider_count": 4,
+        "unknown_count": 0,
+        "worst_case_provider_cost_rmb": "NOT_EXPOSED_BY_PROVIDER"
+      }
+    }
+  },
+  "provider_native_bindings": {
+    "claude": {
+      "account_identity_sha256": "bb6af75a8e3e9e314ef2810fa69c95a980c6805fbafadee147a59480cf8680b3",
+      "custody": "protected_off_repo",
+      "pre": {
+        "counter_kind": "total_tokens",
+        "counter_unit": "tokens",
+        "counter_value": "357.000000",
+        "direction": "increasing",
+        "observed_at_utc": "2026-09-03T12:54:25Z",
+        "snapshot_sha256": "3a8aec94f7499ea9345f82a37c3eac8c6a308dcb2a0bc813c369d5d9504d3240",
+        "source": "provider_account_console",
+        "quota_or_balance_sufficient": true,
+        "current_unit_cap_rmb": "0.100000",
+        "price_snapshot_sha256": "92adc6871d87279e0998e34088d790628c6a5b39073470ace67f88fe87b8a37d"
+      },
+      "post": {
+        "counter_kind": "total_tokens",
+        "counter_unit": "tokens",
+        "counter_value": "391.000000",
+        "direction": "increasing",
+        "observed_at_utc": "2026-09-03T13:25:45Z",
+        "snapshot_sha256": "7d2a6495d6ed1145466635c55081bae0a24850ed3d173101414bfc679cba1bb0",
+        "source": "provider_account_console"
+      },
+      "usage_delta": "34.000000",
+      "native_event_id_sha256": null,
+      "settlement": {
+        "observed_at_utc": "2026-09-03T13:26:36Z",
+        "status": "RECONCILED",
+        "currency": "RMB",
+        "incremental_cost_rmb": "0.000000",
+        "reconciliation_tolerance_rmb": "0.010000",
+        "snapshot_sha256": "7d2a6495d6ed1145466635c55081bae0a24850ed3d173101414bfc679cba1bb0"
+      }
+    },
+    "kimi": {
+      "account_identity_sha256": "b4327f5d8a6ceec9ad96db290bda9a12e9558e997e070f8be7eecdb21bdfab58",
+      "custody": "protected_off_repo",
+      "pre": {
+        "counter_kind": "billed_cost_rmb",
+        "counter_unit": "rmb",
+        "counter_value": "806.478740",
+        "direction": "increasing",
+        "observed_at_utc": "2026-09-03T12:55:15Z",
+        "snapshot_sha256": "89ddbc566671a2b24c12bae98ec9b96eef33394bb7d35cce110aeead11ca7b83",
+        "source": "provider_account_console",
+        "quota_or_balance_sufficient": true,
+        "current_unit_cap_rmb": "0.100000",
+        "price_snapshot_sha256": "8c49dfa0e4b323715037a1a045799827ef2b04e65f55cee6309873ec3901ce02"
+      },
+      "post": {
+        "counter_kind": "billed_cost_rmb",
+        "counter_unit": "rmb",
+        "counter_value": "806.479060",
+        "direction": "increasing",
+        "observed_at_utc": "2026-09-03T13:22:47Z",
+        "snapshot_sha256": "82a11f6f61234da21b6360dcbbe2454a8b81c3f1a380a5be39cdbd79a3d05281",
+        "source": "provider_account_console"
+      },
+      "usage_delta": "0.000320",
+      "native_event_id_sha256": null,
+      "settlement": {
+        "observed_at_utc": "2026-09-03T13:22:47Z",
+        "status": "RECONCILED",
+        "currency": "RMB",
+        "incremental_cost_rmb": "0.000320",
+        "reconciliation_tolerance_rmb": "0.010000",
+        "snapshot_sha256": "82a11f6f61234da21b6360dcbbe2454a8b81c3f1a380a5be39cdbd79a3d05281"
+      }
+    },
+    "amap": {
+      "account_identity_sha256": "6900efcfd47264adb1c89d9eb94f23c0720ee7551deac128e7330a255d589988",
+      "custody": "protected_off_repo",
+      "pre": {
+        "counter_kind": "request_count",
+        "counter_unit": "requests",
+        "counter_value": "0.000000",
+        "direction": "increasing",
+        "observed_at_utc": "2026-09-03T12:55:47Z",
+        "snapshot_sha256": "cac18005bf975fcb350d209e08f131b28d1f2e5ed9ed59ec77c9685d111d794e",
+        "source": "provider_account_console",
+        "quota_or_balance_sufficient": true,
+        "current_unit_cap_rmb": "0.100000",
+        "price_snapshot_sha256": "4b3968d52a494e4c29542077b288269f052617f561734d3293bb4b9b736c3968"
+      },
+      "post": {
+        "counter_kind": "request_count",
+        "counter_unit": "requests",
+        "counter_value": "1.000000",
+        "direction": "increasing",
+        "observed_at_utc": "2026-09-03T13:23:20Z",
+        "snapshot_sha256": "56c05cbcb507ac211f5da70d17cb28dea9ba6ca9597daa46214b3e20ab0c09c1",
+        "source": "provider_account_console"
+      },
+      "usage_delta": "1.000000",
+      "native_event_id_sha256": null,
+      "settlement": {
+        "observed_at_utc": "2026-09-03T13:23:33Z",
+        "status": "RECONCILED",
+        "currency": "RMB",
+        "incremental_cost_rmb": "0.000000",
+        "reconciliation_tolerance_rmb": "0.010000",
+        "snapshot_sha256": "457fed9322dc146bfd572a899d89983d6200d37d62bb511b868db3911989878d"
+      }
+    },
+    "meituan": {
+      "account_identity_sha256": "6f74d73656ee0ee5443eac76435168c84e3db4e3392664c5e8cb82c49998955b",
+      "custody": "protected_off_repo",
+      "pre": {
+        "counter_kind": "NOT_EXPOSED_BY_PROVIDER",
+        "counter_unit": "NOT_EXPOSED_BY_PROVIDER",
+        "counter_value": "NOT_EXPOSED_BY_PROVIDER",
+        "direction": "NOT_EXPOSED_BY_PROVIDER",
+        "observed_at_utc": "2026-09-03T12:56:10Z",
+        "snapshot_sha256": "ea6c354e7930cdeae129d3311af9a61ba7c13e28e1b1a905ec75911c2b4137c8",
+        "source": "provider_account_console",
+        "quota_or_balance_sufficient": "NOT_EXPOSED_BY_PROVIDER",
+        "current_unit_cap_rmb": "NOT_EXPOSED_BY_PROVIDER",
+        "price_snapshot_sha256": "ea6c354e7930cdeae129d3311af9a61ba7c13e28e1b1a905ec75911c2b4137c8"
+      },
+      "post": {
+        "counter_kind": "NOT_EXPOSED_BY_PROVIDER",
+        "counter_unit": "NOT_EXPOSED_BY_PROVIDER",
+        "counter_value": "NOT_EXPOSED_BY_PROVIDER",
+        "direction": "NOT_EXPOSED_BY_PROVIDER",
+        "observed_at_utc": "2026-09-03T13:21:58Z",
+        "snapshot_sha256": "05dc73d98193b4af8db7cfe2c96d3be526b53c45bd9e3ce570928805c2b43376",
+        "source": "provider_account_console"
+      },
+      "usage_delta": "NOT_EXPOSED_BY_PROVIDER",
+      "native_event_id_sha256": null,
+      "settlement": {
+        "observed_at_utc": "2026-09-03T13:21:58Z",
+        "status": "NOT_EXPOSED_BY_PROVIDER",
+        "currency": "NOT_EXPOSED_BY_PROVIDER",
+        "incremental_cost_rmb": "NOT_EXPOSED_BY_PROVIDER",
+        "reconciliation_tolerance_rmb": "NOT_EXPOSED_BY_PROVIDER",
+        "snapshot_sha256": "05dc73d98193b4af8db7cfe2c96d3be526b53c45bd9e3ce570928805c2b43376"
+      }
+    }
+  },
+  "cost_and_settlement": {
+    "currency": "RMB",
+    "incremental_provider_cost_rmb": "NOT_EXPOSED_BY_PROVIDER",
+    "application_model_cost_rmb": "0.000793",
+    "incremental_cloud_compute_cost_rmb": "0.000000",
+    "gateway_control_plane_cost_mode": "existing_fin_003_budget_no_per_call_settlement",
+    "total_incremental_cost_rmb": "NOT_EXPOSED_BY_PROVIDER",
+    "hard_cap_rmb": "OWNER_AUTHORIZED_UNPRICED_SINGLE_CALL",
+    "within_cap": "NOT_DETERMINABLE",
+    "provider_settlement_complete_count": 3
+  },
+  "production_boundary": {
+    "synthetic_ai_prompt_only": true,
+    "public_fact_query_only": true,
+    "provider_dispatch_count": 4,
+    "user_content_count": 0,
+    "response_content_persisted_count": 0,
+    "response_url_persisted_count": 0,
+    "noteai_business_database_connection_count": 0,
+    "noteai_business_database_write_count": 0,
+    "gateway_control_plane_request_expected": true,
+    "gateway_terminal_record_ttl_days": 30,
+    "gateway_control_plane_new_resource_count": 0,
+    "production_service_restart_count": 0,
+    "production_payment_mutation_count": 0,
+    "production_dns_mutation_count": 0,
+    "render_deploy_count": 0,
+    "postpaid_instance_start_count": 0
+  },
+  "resources": {
+    "api_c": {
+      "status": "Running",
+      "charge_type": "PrePaid"
+    },
+    "api_f": {
+      "status": "Running",
+      "charge_type": "PrePaid"
+    },
+    "builder": {
+      "status": "Stopped",
+      "billing_state": "StopCharging",
+      "charge_type": "PostPaid"
+    },
+    "worker_c": {
+      "status": "Stopped",
+      "billing_state": "StopCharging",
+      "charge_type": "PostPaid"
+    },
+    "worker_f": {
+      "status": "Stopped",
+      "billing_state": "StopCharging",
+      "charge_type": "PostPaid"
+    },
+    "temporary_compute_count": 0,
+    "temporary_listener_count": 0,
+    "temporary_security_group_count": 0,
+    "temporary_peering_count": 0,
+    "temporary_route_count": 0,
+    "result_mount_type": "bind",
+    "readonly_source_bind_count": 3,
+    "temporary_docker_volume_count": 0
+  },
+  "cleanup": {
+    "task_container_residue_count": 0,
+    "task_file_residue_count": 0,
+    "credential_residue_count": 0,
+    "ephemeral_database_residue_count": 0,
+    "operation_lock_count": 0,
+    "task_volume_residue_count": 0,
+    "api_container_identity_unchanged": true,
+    "api_container_restart_count": 0,
+    "api_live_http_status": 200,
+    "api_ready_http_status": 200
+  },
+  "readiness": {
+    "internal_verified_before": 29,
+    "internal_verified_after": 29,
+    "internal_total": 29,
+    "internal_percentage_after": 100,
+    "complete_public_verified_before": 29,
+    "complete_public_verified_after": 30,
+    "complete_public_total": 38,
+    "complete_public_percentage_after": 79,
+    "next_task": "PROD-FIRST-LAUNCH-PAYMENT-REAL-001",
+    "public_launch_authorized": false,
+    "real_provider_chain_verified": true
+  },
+  "terminal_acceptance_sha256": "e518cb79ff3876473dedc24c4adbf774879b47c02eadf90d975039538be1b885"
+}

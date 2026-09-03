@@ -2,13 +2,19 @@
 
 Task: `PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`
 
-Status: `PREFLIGHT VERIFIED / PRODUCTION SCHEMA-ROLE EXECUTOR READY`
+Current status (2026-09-03): internal `29/29 = 100%` accepted; public-launch
+`1/9`, complete `30/38 = 79%`. Item30's canonical provider evidence is verified.
+Item1–29 were not rerun. Public DNS/traffic remains unauthorized; Item31 is the
+next task but is outside the current Item30-only execution scope.
+
+Historical status (retained on 2026-09-03):
+`PREFLIGHT VERIFIED / PRODUCTION SCHEMA-ROLE EXECUTOR READY`
 
 This gate prevents three different meanings of “ready” from being collapsed
 into one number. It is offline and read-only: it does not contact Alibaba
 Cloud, a database, a provider or a payment service.
 
-## The three layers
+## Historical three-layer snapshot (retained on 2026-09-03)
 
 | Layer | Meaning | Current evidence |
 |---|---|---|
