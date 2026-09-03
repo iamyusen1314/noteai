@@ -60,6 +60,7 @@ SYNTHETIC_USER = "Reply only NOTEAI_OK. Nothing else."
 PUBLIC_FACT_QUERY = "深圳四季酒店 地址 营业时间 预订"
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 KIMI_MODEL = "kimi-k2.6"
+MODEL_ROUTER_SHA256 = "4b640a1e59c02076ab0046ace09224715c718059b88b9d12f24e12bc5a2ef955"
 MAX_OUTPUT_TOKENS = 64
 MAX_PROMPT_BYTES = 128
 MAX_ACCOUNT_GATE_AGE = timedelta(minutes=30)
@@ -342,9 +343,11 @@ def load_account_gates(path: Path, *, now_text: str | None = None) -> dict[str, 
 def _runtime_source_binding(account_gates: dict[str, Any]) -> None:
     executor_sha = _sha256(Path(__file__).read_bytes())
     fact_sha = _sha256((_model_path() / "fact_enrichment.py").read_bytes())
+    router_sha = _sha256((_model_path() / "model_router.py").read_bytes())
     if (
         account_gates["executor_sha256"] != executor_sha
         or account_gates["fact_enrichment_sha256"] != fact_sha
+        or router_sha != MODEL_ROUTER_SHA256
     ):
         raise ProbeError("RUNTIME_SOURCE_BINDING_MISMATCH")
 

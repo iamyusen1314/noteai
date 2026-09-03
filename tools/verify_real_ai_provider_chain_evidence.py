@@ -1162,7 +1162,7 @@ def validate_document(
                 "temporary_peering_count": 0,
                 "temporary_route_count": 0,
                 "result_mount_type": "bind",
-                "readonly_source_bind_count": 2,
+                "readonly_source_bind_count": 3,
                 "temporary_docker_volume_count": 0,
             },
         ),

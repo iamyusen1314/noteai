@@ -6075,3 +6075,75 @@ Last updated: 2026-08-19
   commit precedes fresh gates; normal terminal push/Readiness credit remain
   contingent on real PASS. Five-node/production gateway refresh precedes call;
   no PostPaid start, original NDR Item36P0 remains independent.
+
+- 2026-09-03 current continuation: source-bound HEAD82503368db3579e46c22416dcadded37c7b24d6f,
+  upstream22aeb74498db7883a9281a84671056dae26f07f5. Fresh five-node official
+  query01A066F9-DDC5-5478-9858-4C1AADDE0978 at11:14:53.328Z confirms API-C/F
+  RunningPrePaid and all three PostPaidStoppedStopCharging. No resource action
+  since. Render production same Live84f8a2f/dep-da9sarh42hec738q8jjg, health200.
+  New exact task227726f4a300455b and gate11:25:47Z..11:55:47Z are local only.
+  Initial carrier overflow was caught before submission; representation-only
+  base120/ALONE carrier17974B, official Base6423968B, decodes to exact frozen
+  business bytes with stderr0. Original18432B/24KiB limits remain enforced.
+  No provider/signed-readiness/production write has been dispatched.
+- Fresh official form navigation redirected to error.taobao.com/tbpc/error.html;
+  the subsequent SDK-read UI action was explicitly denied by browser safety
+  policy before any RunCommand dispatch click. This is a browser access block,
+  not a production UNKNOWN, API acceptance, usage event or proof of MFA need.
+  Do not bypass via another browser/surface, raw CDP or indirect request.
+  Owner asked only to manually restore the normal official OpenAPI page;
+  no Key/secret or technical diagnosis requested. Pending local gate must not
+  be reused after expiry. No new charge; all paid histories remain separate,
+  Meituan undisclosed is not zero. No normal checkpoint/push for this blocker.
+  Full29/38, Item30NO CREDIT, original NDR Item36P0 preserved; no Item31.
+
+- 2026-09-03 12:32UTC current Item30 reconciliation supersedes the preceding
+  browser/pending status. Restored legitimate Chrome access was used, never a
+  safety bypass. c-sz06vy5hnmi5rsw/t-sz06vy5hnn4muww is sealed Failed/Finished
+  Exit1 after signed-readinessPASS, MeituanSUCCESS1, ClaudeSUCCESS1 and
+  KimiUNKNOWN1; Amap0/retry0/fallback0. Frozen readerc-sz06vy5r9y8cphc/
+  t-sz06vy5r9ync3k0 is Success0/READBACK_COMPLETE; raw6271B/SHA
+  44a6a4c612cfa36046ff890f4ab1c574deff0c7c73fd4a1ea12a464393d721b5 remains
+  immutable UNKNOWN/cache_usage_missing/usage_incomplete. Three-way independent
+  official ZIP verification closes native request chatcmpl-6a995dcce124dc999f44a2ed
+  as26input/6output/cache0 (explicit CSV digit, not blank UI inference). ZIP SHA
+  4c1adcd7f6a138684ebd38328cd7a3ab462668897eb446cab37f8a00c4614d8b.
+  Adopted-price Kimi arithmetic0.000331 differs from accountdelta0.00032 by
+  0.000011; cause/exact settlement not established. Claude26/8/applicationcost
+  0.000462 matches nativeMTD323->357; Amap0. Meituan remains unpriced/notzero.
+  No old raw result, identity or accounting history is rewritten or replayed.
+- Local12line Kimi compatibility fix plus existing executor routerSHA binding
+  and two focused test files are implemented but uncommitted/not deployed.
+  48focused+5real-path offline cases PASS; invalid/incomplete usage still stops
+  the chain. Six predicates, prices, validator, schemas, b55 image and live API
+  config are unchanged. Explicit future third read-only router overlay is
+  confined to the temporary probe, with exact source/mount/cleanup binding.
+  Offline guarded templates are not deployable/final fresh carriers. No new
+  classifier/controller/adapter/helper/proof version. DoD/verification GO;
+  no new technical P0, and no Readiness credit from the repair alone.
+- Fresh official resource request01A06731-8C7E-579C-ABCC-C35DB85D633E
+  (response12:14:55Z/read12:16:27.667Z) confirms APIsRunningPrePaid and all
+  threePostPaidStoppedStopCharging; no starts since. Existing406B label-only
+  action-free scriptc-sz06vy8ilerlo1s/t-sz06vy8ilf92ygw is Success0 at
+  12:18:54Z..12:18:55Z,repeats1/drop0/emptystdout, confirmed by
+  01A06737-B873-58BE-9971-CD76C54D2CE7: current matching containers0/volumes0.
+  No cleanup is required; intentional secret-free gate/result/recovery remain.
+  No config/restart/deploy/businessDB/payment/DNS/resource mutation occurred.
+- The frozen chain's one unpriced Meituan authorization is consumed. New
+  complete canonical execution requires another possible unpriced charge;
+  technical GO is not unlimited paid-retry authority. Sole owner decision is
+  acceptance of one additional such call, with no disclosed maximum price.
+  Remaining priced caps stay0.10each/0.30chain withinCNY10 cumulative. No
+  technical diagnosis, MFA/secret, subscription or sustained resource fee is
+  being delegated to owner. Until that commercial decision, perform no new
+  provider call, keep all PostPaidStopCharging and old identities sealed.
+  Full29/38, Item30NO CREDIT/noItem31; NDR Item36P0/Item38NO-GO retained.
+- 2026-09-03 12:46UTC: owner explicitly accepted one additional unpriced
+  Meituan request/possible additional charge for one fresh complete chain.
+  The commercial HOLD is lifted only for that attempt; no unlimited retry.
+  Other caps remain CNY0.10 each/CNY0.30 chain within cumulativeCNY10.
+  Final verifier source-bind topology count is truthfully synchronized2->3,
+  still strict equality; 3 accepted and2/4 rejected in focused regression.
+  No original DoD, fee, usage, official terminal or cleanup gate is weakened.
+  No fresh production dispatch, resource start, config/restart/deploy or
+  businessDB/payment/DNS operation yet; no Item30 credit or Item31 action.

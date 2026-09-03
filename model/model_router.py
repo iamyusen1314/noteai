@@ -211,6 +211,18 @@ def _record_kimi_usage(model: str, usage: dict | None) -> None:
                 cached = details.get("cached_tokens")
             elif details is not None and hasattr(details, "cached_tokens"):
                 cached = getattr(details, "cached_tokens")
+        if (
+            cached is cached_marker
+            and isinstance(usage, dict)
+            and all(
+                type(usage.get(field)) is int and usage[field] >= 0
+                for field in ("prompt_tokens", "completion_tokens")
+            )
+            and (details is None or isinstance(details, dict))
+        ):
+            # Moonshot's reference client normalizes omitted cache counts to
+            # zero. Do not extend that default to missing/invalid token usage.
+            cached = 0
         if cached is cached_marker:
             _record_usage(
                 "kimi", model, tokens_out=tokens_out,

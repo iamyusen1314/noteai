@@ -19022,3 +19022,224 @@ Colima, database, builder, restore and cloud actions remain frozen.
   the one frozen chain. No new layer, config/restart/deploy/businessDB/payment/
   DNS/PostPaid start. Last five-node observation is still05:18:10.448Z;
   nothing started since, refresh is pending. No active human/MFA/secret gate.
+
+### Item30 fresh canonical chain freeze (2026-09-03 11:34 UTC)
+
+- HEAD82503368db3579e46c22416dcadded37c7b24d6f truthfully binds the tested
+  executorbc81071cbebf76e9e9cf26457f71bb0b142d3275f225f58741827f358965c362;
+  upstream22aeb74498db7883a9281a84671056dae26f07f5, no push/terminal credit.
+  Internal29/29/full29/38; Item30 still in progress, no Item31.
+- Official five-node query01A066F9-DDC5-5478-9858-4C1AADDE0978 observed
+  11:14:53.328Z: API-C/F RunningPrePaid; Builder/Worker-C/Worker-F
+  StoppedPostPaid/StopCharging. No node was started or changed. Existing
+  Render production srv-d9e765laeets73aikj90 remains Live at deploy
+  dep-da9sarh42hec738q8jjg/revision84f8a2f1436627e0f05588ee0276b1950b230ae3;
+  one public health/live query returned200. No staging/env/deploy action.
+- Fresh official pre-counters: Claude total323 (115input/208output), displayed
+  creditsUSD20.05 at11:19:37Z; Kimi totalCNY806.47842/balance28.52158 at11:24:01Z;
+  Amap keyword day/month0, monthlyquota5000 at11:24:32Z; Meituan account
+  navigation still NOT_EXPOSED_BY_PROVIDER at11:24:48Z, not zero cost.
+- Exact artifacts /var/tmp/noteai-item30-provider-successor.vtW1b5,
+  task227726f4a300455b, nonce
+  84595bb05b7d128d8821fbff435754df915076a5c5e95fa432542b3d113be43a.
+  Gate3159B/SHA0befbafe8a4fd0874037f7ce2bd8eeb46c8a514fb36d374f4349b94ab60568f1,
+  generated11:25:47Z/expires11:55:47Z; existing admission minimum7minutes.
+  Wrapper63652B/SHA61ec119eaf79c041e9ac86619f7fbb6474e17967999f23cf0c54b5bdfdda55cb.
+  Initial base95 carrier18815B exceeded the official18432B raw equivalent
+  of24KiB Base64. No cloud submission occurred. Existing ALONE carrier
+  alphabet widened to ASCII120 excluding NUL and line separators; quoted
+  heredoc remains non-interpolated and transport remains official Base64.
+  Final carrier17974B/SHA038b4360c52ad404e3617128da5a68ab6ce692edcd94a6b87068456fc966127f,
+  encoded23968B. Actual isolated bash/Python decoder returns exact original
+  wrapper bytes, stderr0; syntax/source/Git blob/original gate checks PASS.
+  No wrapper/business/validator/image/DoD bytes changed by this transport fix.
+  Existing reader12936B/SHAc0f66b17e797d38532ce4981fda376ae548cdf453eabee3583c842672c3dec1d,
+  carrier5562B/SHA9c2c649475e85054bc2e58976023ec2f04cc8808fc25dc634bd08711dc410108.
+- Sole next action: reviewers' final transport GO and exact official SDK
+  projection/Username omission, then submit this one fresh chain. No request
+  dispatched yet; no new provider cost/config/restart/deploy/businessDB/
+  payment/DNS operation. Existing paid history is retained, not reattributed.
+  NDR mask7 remains independent Item36P0; no new MFA/secret/fee/DNS gate.
+- Official fresh form navigation then redirected to
+  https://error.taobao.com/tbpc/error.html. The next SDK-read action was
+  denied by browser site-safety policy, which explicitly prohibits alternate
+  browser/surface/CDP/indirect workarounds. There was no RunCommand dispatch
+  click, no accepted Command/Invoke and no fresh readiness/provider request.
+  This is an access blocker, not a production UNKNOWN or a business exact-one
+  consumption. The oversized URL was used only for local form parameters;
+  the redirect cause is not established by the denied page and is not claimed
+  as proven MFA/session failure. Root requested owner manually restore normal
+  official OpenAPI access; no secret input or provider technical decision.
+  Continue offline verification, never work around the denied browser action.
+  All PostPaid remain last-confirmedStopCharging; no resource start since.
+  Resume only after legitimate page access is restored: refresh any expired
+  gate/counters, freeze exact bytes and verify official serialization before
+  the one authorized fresh dispatch. No failure checkpoint or extra push.
+- Final existing verification reviewer independently confirms carrier
+  17974B/038b4360...6127f, actual full120-character quoted-heredoc decode
+  stdout exact63652B/stderr0 and unchanged ALONE bytes. DoD/source/gate GO
+  and cost/resource GO also received. This is byte-specific transport GO,
+  not a claim that all corrupted inputs fail nonzero: injected LF can yield
+  empty decoded output and NUL can be ignored by bash. Final official
+  Base64 byte equality remains mandatory; missing canonical output cannot
+  receive credit. No additional classifier/guard/controller was introduced.
+- Owner manually restored normal official Chrome OpenAPI access. Root verified
+  the normal authenticated homepage and followed its RunCommand entry into a
+  new blank official form; no denied-page bypass or old-session replay.
+  The original gate remained valid, so no unnecessary gate/source replacement.
+  At11:44:00.983Z both official SDK constructors have exactly11fields and
+  Username entirely absent; Base64 payload equals17974B/038b4360...6127f.
+  Projection SHA0b4dc0db7aef6a5df686512b286012ffdd3c7979692c9801af6147e6fa7bd262,
+  name noteai-item30-provider-227726f4a300455b, onlyAPI-F, Timeout900,
+  Once/KeepCommandfalse/EnableParameterfalse/ProcessTree. Three reviewers GO.
+  One final confirmation clicked11:44:56.556Z. Acceptance/terminal pending;
+  do not click submission again. Unique next action is official read-only
+  acceptance/terminal reconciliation and existing task reader, not a retry.
+- Single acceptance is confirmed: Request01A06716-1E2E-5630-A212-0829A7F7EE4C,
+  Commandc-sz06vy5hnmi5rsw, Invoket-sz06vy5hnn4muww. This identity is now
+  permanently reserved/no-replay. Only its official result query is in flight.
+- Official terminal query01A06717-214B-5BEA-87FD-056ECF392480 reports
+  Failed/FinishedExit1, start11:44:59Z/finish11:45:17Z, repeats1/dropped0,
+  stdout empty. Actual start has648seconds remaining gate TTL, exceeding
+  original420seconds; time gating is not inferred from the browser click.
+  RuntimeUsername=root was resolved by the provider, absent from submitted
+  SDK. Frozen task reader then submitted once at11:47:56.509Z with fresh
+  name noteai-item30-readback-227726f4a300455b-1146, exact11fields/Username
+  absent and carrier5562B/9c2c6494...108. No provider replay or config action.
+  Unique next action is capture this reader acceptance/terminal and bounded
+  result; do not infer a provider root cause from bare Cloud AssistantExit1.
+
+### Item30 terminal reconciliation and Kimi compatibility closure (2026-09-03 12:32 UTC)
+
+- Current HEAD82503368db3579e46c22416dcadded37c7b24d6f/upstream
+  22aeb74498db7883a9281a84671056dae26f07f5 remain unchanged; no new commit,
+  push or Item30 terminal checkpoint. Internal29/29 remains accepted;
+  complete Readiness29/38, Item30NO CREDIT, no Item31. This section supersedes
+  the preceding pending reader/browser status, not any sealed historical call.
+- Frozen reader was accepted once: Commandc-sz06vy5r9y8cphc,
+  Invoket-sz06vy5r9ync3k0, Request01A06718-DCC5-5ADE-B90A-1C90248BCBCB.
+  Official query01A06719-92B9-520C-954D-4F53F68A95C4 reports
+  Success/FinishedExit0 at11:47:59Z, repeats1/drop0. Its8298B output is
+  READBACK_COMPLETE, action-free, secret_values_emitted0, SHA
+  b2c1a2ec6e2cd3663e9407c4f42fe2af945a05f3da278e6e257ec2532d13c5bd.
+  Gate/nonce/source/anchor binding and API identity/health stability passed.
+- Original result is safely archived at
+  /var/tmp/noteai-item30-provider-successor.vtW1b5/executor-result.json:
+  6271B/SHA44a6a4c612cfa36046ff890f4ab1c574deff0c7c73fd4a1ea12a464393d721b5.
+  It remains byte-exact UNKNOWN/MODEL_USAGE_NOT_ACTUAL. Signed-readinessPASS,
+  MeituanSUCCESS1, ClaudeSUCCESS1(26input/8output), KimiUNKNOWN1, Amap0;
+  totaldispatch3/retry0/fallback0. New six-field summary proves the Kimi
+  predicate:26input/6output/calls1/pricingexact/cache_usage_missing/
+  usage_incomplete. This is an application usage-mapping rejection, not proof
+  that the model failed or was unbilled. BusinessDB connections/writes0;
+  no user content, response text or response URL persisted.
+- Native Kimi request chatcmpl-6a995dcce124dc999f44a2ed at11:45:16Z matches26/6.
+  Webpage Cached Tokens was blank, but its official request-log export gives
+  literal ASCII0. Native ZIP:
+  /Users/openclaw/Desktop/moonshot开放平台请求日志_20260827-20260903_e5671b89.zip,
+  SHA4c1adcd7f6a138684ebd38328cd7a3ab462668897eb446cab37f8a00c4614d8b;
+  request_log_part_0001.csv412B/tworows/exactcurrentrequest once. All three
+  reviewers independently verified the safe six-column projection. Do not
+  rewrite the old raw UNKNOWN, splice Amap into it or replay any old identity.
+- Native post counters in the existing vtW1b5 directory: Claude MTD UTC
+  input141/output216/total357 at12:07:58.475Z, agreeing with pre323 plus26/8;
+  displayed creditsUSD20.05. Amap keyword day/month0 at12:09:17.917Z agrees
+  with no dispatch. Meituan navigation still NOT_EXPOSED_BY_PROVIDER at
+  12:12:17.565Z; not zero cost. Kimi total806.47874/balance28.52126 at
+  11:54:49Z gives observed aggregate deltaCNY0.00032. Explicit26/6/cache0
+  implies CNY0.000331 under the adopted price card; the0.000011 difference
+  has no established settlement explanation. Claude application cost is
+  CNY0.000462; priced-model arithmetic subtotal0.000793 is not final provider
+  settlement. Preserve Meituan's separately accepted unpriced cost uncertainty.
+- Official current resource query01A06731-8C7E-579C-ABCC-C35DB85D633E,
+  response12:14:55Z/read12:16:27.667Z, returns exactly five existing nodes:
+  API-C/F RunningPrePaid; Builder/Worker-C/Worker-F StoppedPostPaidStopCharging.
+  No node was started or changed. Existing406B label-only script was then
+  submitted once with name noteai-item30-label-readonly-20260903-1217,
+  exact11SDKfields/Username absent, Commandc-sz06vy8ilerlo1s and
+  Invoket-sz06vy8ilf92ygw. Query01A06737-B873-58BE-9971-CD76C54D2CE7 reports
+  Success/FinishedExit0,start12:18:54Z/finish12:18:55Z,repeats1/drop0/empty
+  stdout. Its two existing docker label lists prove current matching task
+  containers0/volumes0, resolving ABSENT_OR_READ_ERROR without a new classifier.
+  Transient env/stdout/stderr/dns/source files are absent; intentional no-secret
+  gate/result/recovery remain. No deletion was needed; no task-referencing
+  process was reported. No config/restart/Render/businessDB/payment/DNS action.
+- Evidence-backed local repair is now implemented, not deployed. The same
+  request's official cache0 plus Moonshot's fixed reference implementation
+  https://github.com/MoonshotAI/kimi-cli/blob/86f136422a0aae6b217ea49e7ea1d2e8a1defcd2/packages/kosong/src/kosong/chat_provider/kimi.py#L392-L419
+  supports a narrow provider-specific compatibility default, not a universal
+  omission/null=0 API guarantee. model/model_router.py adds12lines: only a
+  complete dict with non-bool nonnegative integer prompt/completion counters
+  and absent/None/dict cache details may normalize truly omitted cache to0.
+  Explicit top/nested cache precedence, missing/invalid usage rejection and
+  existing prices/billing arithmetic are unchanged. Router SHA
+  4b640a1e59c02076ab0046ace09224715c718059b88b9d12f24e12bc5a2ef955.
+- deploy/production/real_ai_provider_chain.py adds only the fixed routerSHA
+  and its check inside existing runtime source binding, before imports,
+  readiness or providers; same RUNTIME_SOURCE_BINDING_MISMATCH, no new gate
+  schema/result field/validator/controller/adapter/helper. Executor SHA
+  5972f6085f3a1d5b95f0f5c4e60e2aeadb960e28c0c983f414d8a92e1b532dec.
+  tests/test_model_usage_audit.py and tests/test_item30_real_ai_provider_chain.py
+  cover the compatibility and source-byte drift.48 focused tests PASS; five
+  real-router->billing/tmpSQLite->canonical-executor offline cases PASS:
+  omitted/explicit0 pass, missinginput/overprompt/invalidcache stayUNKNOWN and
+  stop beforeAmap. Network disabled/dotenv loading disabled. Six acceptance
+  predicates AST and validator bytes remain unchanged; diff-check PASS.
+- Offline wrapper/reader templates are
+  /var/tmp/noteai-item30-kimi-cache-compat.nbQhlo/provider-wrapper.sh
+  (SHA3bfce7db460ff0ed30ad1b590cf1eabe2796687f23bb5f0096f427595bd9bb05) and
+  provider-readback.sh
+  (SHAa44b52bc4ddd49b5a132b2e23f19cbbd0cc429ced63873fc6b723fc2ed4ead3d).
+  Both have an immediate exit70 offline guard and fresh-admission placeholders;
+  NEVER submit these templates as-is. In addition to existing executor/fact
+  overlays, the future probe explicitly mounts the patched router read-only.
+  b55 source SHA48f12f596ab8393853e1cb3033552ef078cc273659b76171d5945e420afc0d6b
+  ->unique12line literal patch->current routerSHA is byte-tested. Normal and
+  failure cleanup, mount inspection and reader inventory include only this
+  precise extra source file. Production API-C/F still run unchanged b55;
+  this is not an API deployment or public-launch fix already applied live.
+  Both scripts pass bash-n. Representative offline fixture ALONE/base120,
+  lc3/lp0/pb0/dict1MiB/preset9EXTREME:18406B including offline guard,
+  Base6424544B; actual bash decoder returns exact bytes/stderr0. This is NOT
+  an actual fresh carrier signoff: final nonce/gate/revision/content must be
+  rebound and byte-checked against18432B/24576B after action-time admission.
+- Zeno DoD GO, Lagrange verification GO and Pascal resource/reconciliation GO;
+  no new technical P0. Paid continuation HOLD: the frozen single chain and
+  its one accepted unpriced Meituan call have been consumed. Canonical v1
+  requires a new complete PASS/officialSuccessExit0 and all four providers;
+  it cannot promote this UNKNOWN or reuse the earlier successes. The unique
+  owner decision is an additional one-call unpriced Meituan/possible duplicate
+  charge risk, not a request to solve a technical problem. Other priced caps
+  stay CNY0.10each/CNY0.30chain within cumulativeCNY10. No amount upper bound
+  for that extra Meituan request is exposed. No new MFA/secret, subscription,
+  sustained cloud fee, professional approval or DNS confirmation is needed.
+  NDR mask7 stays independent Item36P0/Item38NO-GO, not expanded in Item30.
+- Sole next action: obtain that one commercial yes/no. If accepted, use the
+  already-reviewed sources for one truthful source-bound revision, freeze a
+  fresh task/nonce/gate/Command/Invoke with current native counters and exact
+  official SDK/Username omission, then run only the one repaired bounded
+  chain and normal canonical terminal closure. Do not rerun these completed
+  offline audits, create another classifier, replay an old identity or enter
+  Item31. Seven protected untracked paths remain unread/unchanged/unstaged.
+
+### Item30 one-chain commercial authorization accepted (2026-09-03 12:46 UTC)
+
+- Owner explicitly accepted one additional unpriced Meituan fee risk. The
+  commercial HOLD above is lifted for exactly one fresh complete chain;
+  all prior identities remain sealed and no automatic paid retry is allowed.
+  Priced bounds remain CNY0.10 each/CNY0.30 chain within cumulativeCNY10.
+- Final topology review found the existing verifier's fixed source-bind count2
+  must truthfully become3 for executor/fact/router. DoD reviewer approved this
+  implementation-count synchronization, not a business DoD exception. Only
+  that verifier literal and its existing fixture changed; regression accepts3
+  and rejects2/4. Three related tests PASS; combined49focused tests PASS with
+  network/dotenv disabled. No schema/six-predicate/official
+  terminal/fee/cleanup requirement changed. Verifier SHA
+  9bf9b9d08001399e00787f25c49ebcbd3dee3ab7a510946db76fd8adfb8ea4f6.
+- Next action: one necessary source-binding recovery commit of the reviewed
+  sources/tests/these existing records, then fresh counters/gate/carrier and
+  official Username-absent projection. This is not Item30's normal terminal
+  checkpoint; Readiness remains29/38 and Item31 has not started. No production
+  request dispatched in this continuation, no config/restart/deploy or new
+  resource operation. Last confirmed APIsPrePaidRunning/threePostPaidStopped
+  StopCharging remain unchanged; existing zero task containers/volumes retained.

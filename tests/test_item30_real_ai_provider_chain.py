@@ -400,7 +400,7 @@ def evidence_fixture():
             "temporary_peering_count": 0,
             "temporary_route_count": 0,
             "result_mount_type": "bind",
-            "readonly_source_bind_count": 2,
+            "readonly_source_bind_count": 3,
             "temporary_docker_volume_count": 0,
         },
         "cleanup": {
@@ -436,6 +436,23 @@ def rebind_raw(value):
 
 
 class Item30ExecutorTests(unittest.TestCase):
+    def test_runtime_source_binding_includes_exact_model_router(self):
+        gates = account_gate_document()
+        router_source = (ROOT / "model" / "model_router.py").read_bytes()
+        self.assertEqual(digest(router_source), executor.MODEL_ROUTER_SHA256)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            model_path = Path(temp_dir)
+            (model_path / "fact_enrichment.py").write_bytes(FACT_SOURCE.read_bytes())
+            router = model_path / "model_router.py"
+            router.write_bytes(router_source)
+            with mock.patch.object(executor, "_model_path", return_value=model_path):
+                executor._runtime_source_binding(gates)
+                router.write_bytes(router_source + b"\n")
+                with self.assertRaisesRegex(
+                    executor.ProbeError, "RUNTIME_SOURCE_BINDING_MISMATCH"
+                ):
+                    executor._runtime_source_binding(gates)
+
     def test_success_calls_each_provider_once_without_retry_or_fallback(self):
         backend = FakeBackend()
         result = executor.execute_probe(
@@ -1190,6 +1207,19 @@ class Item30EvidenceVerifierTests(unittest.TestCase):
         self.assertEqual(
             verifier.validate_document(evidence_fixture(), verify_git=False), []
         )
+
+    def test_readonly_source_bind_count_is_exactly_three(self):
+        for count in (3, 2, 4):
+            with self.subTest(count=count):
+                value = evidence_fixture()
+                value["resources"]["readonly_source_bind_count"] = count
+                value["terminal_acceptance_sha256"] = (
+                    verifier.terminal_acceptance_sha256(value)
+                )
+                self.assertEqual(
+                    verifier.validate_document(value, verify_git=False),
+                    [] if count == 3 else ["resource state mismatch"],
+                )
 
     def test_application_image_binding_rejects_cad5_and_mixed_identities(self):
         self.assertEqual(

@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,7 +118,7 @@ class ModelUsageAuditTests(unittest.TestCase):
                 else:
                     os.environ[key] = old
 
-    def test_kimi_cached_tokens_supports_both_shapes_and_missing_is_incomplete(self):
+    def test_kimi_cached_tokens_supports_both_shapes_and_top_level_precedence(self):
         first = self._new_usage("score")
         model_router._record_kimi_usage("kimi-k2.6", {
             "prompt_tokens": 100,
@@ -140,14 +141,116 @@ class ModelUsageAuditTests(unittest.TestCase):
 
         third = self._new_usage("chat_fast")
         model_router._record_kimi_usage("kimi-k2.6", {
-            "prompt_tokens": 90,
-            "completion_tokens": 10,
+            "prompt_tokens": 26,
+            "completion_tokens": 6,
+            "cached_tokens": 4,
+            "prompt_tokens_details": {"cached_tokens": 9},
         })
         row = self._children(third)[0]
-        self.assertEqual(row["input_tokens"], 0)
-        self.assertEqual(row["unclassified_input_tokens"], 90)
-        self.assertEqual(row["usage_status"], "cache_usage_missing")
-        self.assertEqual(self._parent(third)["cost_mode"], "usage_incomplete")
+        self.assertEqual((row["input_tokens"], row["cache_read_input_tokens"]), (22, 4))
+        self.assertEqual(row["usage_status"], "complete")
+        self.assertEqual(self._parent(third)["cost_mode"], "actual")
+
+    def test_kimi_missing_cache_matches_explicit_zero_for_complete_usage(self):
+        # Provider-specific compatibility: preserve explicit cache counts, but
+        # normalize an omitted cache count in otherwise complete Kimi usage.
+        variants = (
+            {"cached_tokens": 0},
+            {"prompt_tokens_details": {"cached_tokens": 0}},
+            {},
+            {"prompt_tokens_details": None},
+            {"prompt_tokens_details": {}},
+            {"prompt_tokens_details": SimpleNamespace(cached_tokens=0)},
+            {"cached_tokens": 0, "prompt_tokens_details": {"cached_tokens": 9}},
+        )
+        expected = None
+        for index, cache_shape in enumerate(variants):
+            with self.subTest(index=index):
+                usage_id = self._new_usage()
+                model_router._record_kimi_usage("kimi-k2.6", {
+                    "prompt_tokens": 26,
+                    "completion_tokens": 6,
+                    **cache_shape,
+                })
+                rows = self._children(usage_id)
+                self.assertEqual(len(rows), 1)
+                child = rows[0]
+                parent = self._parent(usage_id)
+                self.assertEqual(child["input_tokens"], 26)
+                self.assertEqual(child["output_tokens"], 6)
+                self.assertEqual(child["cache_read_input_tokens"], 0)
+                self.assertEqual(child["unclassified_input_tokens"], 0)
+                self.assertEqual(child["usage_status"], "complete")
+                self.assertEqual(child["pricing_status"], "exact")
+                self.assertEqual(parent["cost_mode"], "actual")
+                self.assertEqual(parent["model_calls"], 1)
+                projection = (
+                    child["known_cost_rmb"], parent["tokens_in"],
+                    parent["tokens_out"], parent["actual_model_cost_rmb"],
+                )
+                if expected is None:
+                    expected = projection
+                self.assertEqual(projection, expected)
+
+    def test_kimi_missing_cache_never_completes_missing_or_invalid_usage(self):
+        cases = (
+            None,
+            {},
+            {"completion_tokens": 6},
+            {"prompt_tokens": 26},
+            {"prompt_tokens": None, "completion_tokens": 6},
+            {"prompt_tokens": 26, "completion_tokens": None},
+            {"prompt_tokens": True, "completion_tokens": 6},
+            {"prompt_tokens": 26, "completion_tokens": False},
+            {"prompt_tokens": "26", "completion_tokens": 6},
+            {"prompt_tokens": 26, "completion_tokens": "6"},
+            {"prompt_tokens": 26.0, "completion_tokens": 6},
+            {"prompt_tokens": 26, "completion_tokens": 6.0},
+            {"prompt_tokens": -1, "completion_tokens": 6},
+            {"prompt_tokens": 26, "completion_tokens": -1},
+            SimpleNamespace(prompt_tokens=26, completion_tokens=6),
+            {"prompt_tokens": 26, "completion_tokens": 6, "prompt_tokens_details": SimpleNamespace()},
+            {"prompt_tokens": 26, "completion_tokens": 6, "prompt_tokens_details": []},
+            {"prompt_tokens": 26, "completion_tokens": 6, "prompt_tokens_details": "invalid"},
+        )
+        for index, usage in enumerate(cases):
+            with self.subTest(index=index):
+                usage_id = self._new_usage()
+                model_router._record_kimi_usage("kimi-k2.6", usage)
+                rows = self._children(usage_id)
+                self.assertEqual(len(rows), 1)
+                self.assertIn(rows[0]["usage_status"], {"usage_missing", "cache_usage_missing"})
+                self.assertEqual(self._parent(usage_id)["cost_mode"], "usage_incomplete")
+
+    def test_kimi_invalid_or_excess_cache_remains_fail_closed(self):
+        invalid_shapes = (
+            {"cached_tokens": "invalid"},
+            {"prompt_tokens_details": {"cached_tokens": "invalid"}},
+            {"cached_tokens": "invalid", "prompt_tokens_details": {"cached_tokens": 0}},
+        )
+        for index, cache_shape in enumerate(invalid_shapes):
+            with self.subTest(invalid=index):
+                usage_id = self._new_usage()
+                with self.assertRaises(ValueError):
+                    model_router._record_kimi_usage("kimi-k2.6", {
+                        "prompt_tokens": 26, "completion_tokens": 6, **cache_shape,
+                    })
+                self.assertEqual(self._children(usage_id), [])
+                self.assertNotEqual(self._parent(usage_id)["cost_mode"], "actual")
+
+        for cache_shape in (
+            {"cached_tokens": 27},
+            {"prompt_tokens_details": {"cached_tokens": 27}},
+        ):
+            with self.subTest(excess=cache_shape):
+                usage_id = self._new_usage()
+                model_router._record_kimi_usage("kimi-k2.6", {
+                    "prompt_tokens": 26, "completion_tokens": 6, **cache_shape,
+                })
+                row = self._children(usage_id)[0]
+                self.assertEqual(row["usage_status"], "usage_incomplete")
+                self.assertEqual(row["unclassified_input_tokens"], 26)
+                self.assertEqual(self._parent(usage_id)["cost_mode"], "usage_incomplete")
 
     def test_direct_api_kimi_usage_uses_same_cache_contract(self):
         usage_id = self._new_usage("screenshot")
