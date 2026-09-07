@@ -12,6 +12,20 @@ production role grant, publication, push, service mutation or paid Builder.
 Remote readbacks below retain their recorded times; no fresh cloud state is
 claimed this turn. Automation and production execution remain PAUSED by scope.
 
+
+Recovery checkpoint `4caad59` saved the implementation/application scope. Final
+read-only review then found a double durability-failure edge: fsync plus failed
+truncate could leave a complete-looking tail. The follow-up fix retains the
+same journal as `.incomplete` and publishes the final path atomically without
+overwrite only after successful file fsync. Unpublished bytes are always
+UNKNOWN. The real PG16 double-failure regression passes; final suite15/15.
+No runtime image or Item32 package bytes changed. At Beijing12:52:55 the
+task-owned PG16 container and Colima noteai-prep VM were stopped normally;
+image/cache disk, source contexts, exported artifacts and logs were retained.
+The original/default Colima profile was not changed. Final local log
+`/private/tmp/noteai-prep-20260907/pg-tests-publication.log` SHA256
+`3be9fd48890986b2556361bcbd4d6de6b18147d73340ac770622574fb627f42e` supersedes the14-case run.
+
 ### Runnable artifacts and verified result
 
 - **Item34 XHS candidate exists and runs.** Only `xhs-http-runtime` was built in
@@ -60,7 +74,7 @@ claimed this turn. Automation and production execution remain PAUSED by scope.
   production API/Payment writer. Real coverage and canary DDL approval remain
   prerequisites to live use, not new acceptance gates.
 - Actual isolated PG16.15, network none/Unix socket only/no host mount, plus
-  candidate Python3.11: **14 tests PASS** (11collector+3saved0019 SQL). Proven:
+  candidate Python3.11: **15 tests PASS** (12collector+3saved0019 SQL). Proven:
   independent writer processes, committed multirow/duplicate/nested-trigger/FK
   cascade effects, zero-row and ON CONFLICT no-ops, SAVEPOINT/outer rollback,
   wrong target/transaction/channel, listener loss, in-flight tail, fsync failure,

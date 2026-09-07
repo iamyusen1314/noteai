@@ -254,7 +254,7 @@ with `read_journal(path, **capture.context)`; output maps into the existing
 Use `removal_sql` to remove only those exact temporary triggers/function after
 live closure; no cascade and no permanent role expansion.
 
-True isolated PG16.15 plus the candidate's Python3.11 passed11 collector tests:
+True isolated PG16.15 plus the candidate's Python3.11 passed12 collector tests:
 separate API-like/Payment-like writer processes, committed multirow and nested
 trigger/cascade effects, duplicate UPDATE versus ON CONFLICT/zero-row no-op,
 SAVEPOINT and outer rollback, wrong target, changed transaction, listener loss,
@@ -264,6 +264,9 @@ production API/Payment writers are already instrumented. The collector binds
 activation/provider/coverage hash and backend PID/transaction/nonce, records no
 row values, cannot resume a disconnected stream, and leaves incomplete results
 UNKNOWN. Trigger notifications discarded by rollback are not counted.
+The same journal is first retained as `.incomplete`; only after the full tail
+and file fsync succeed is it atomically published without overwriting a final
+path. Even simultaneous fsync/truncate failure leaves unpublished bytes UNKNOWN.
 
 Remaining live integration is concrete: install/remove this temporary DDL only
 for reviewed canary scope and register **every** API/Payment transaction before
@@ -294,13 +297,13 @@ notification path. It proves the offline distinction between DML and final
 state, not PostgreSQL trigger coverage or production provenance. At that earlier stage, production
 DML capture lacked an established source covering both API and Payment
 processes. The local collector above now closes source semantics, while live
-writer integration and coverage remain incomplete. Before live funds,
-obtain an authorized, narrowly scoped metadata readback of the available RDS
-DML-audit mechanism and its rowcount/commit semantics; do not enable broad SQL
-logging, record parameters, or claim SELECT snapshots reconstruct DML. If no
-suitable existing source exists, prepare only a canary-scoped collector after
-that finding. Missing capture means Item31 stays incomplete; best-effort
-create/callback logs and `pg_stat_*` aggregate deltas cannot close it.
+writer integration and coverage remain incomplete. The already-completed
+bounded RDS readback below did not establish a suitable existing DML source;
+it is not a request to repeat that investigation. Before live funds, finish the
+explicit canary-writer integration and reviewed trigger coverage above. Do not
+enable broad SQL logging, record parameters or infer DML from SELECT snapshots.
+Missing capture keeps Item31 incomplete; best-effort create/callback logs and
+`pg_stat_*` aggregate deltas cannot close it.
 
 Authorized September7 readback narrowed this gap. The existing PG16 instance's
 SQL-insight page shows `开启审计日志`. A server-enforced read-only API session

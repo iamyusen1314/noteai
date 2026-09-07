@@ -138,7 +138,7 @@ def transaction_complete(cursor, activation: str, binding: dict) -> None:
 class CanaryCapture:
     """One uninterrupted LISTEN connection and one durable local JSONL file.
 
-    No reconnect, replay, inferred rollback or automatic publication. Sender
+    No reconnect, replay or inferred rollback. Sender
     PID plus registered transaction/nonce is required; payload/GUC alone is
     not treated as authenticated evidence. All participating DB roles/code
     must be trusted, and live coverage review remains an external prerequisite.
@@ -159,8 +159,12 @@ class CanaryCapture:
         self.broken = False
         self.sealing = False
         self.path = journal
+        if journal.name.endswith(".incomplete") or os.path.lexists(journal):
+            raise ValueError("new final journal path required")
+        self.incomplete_path = journal.with_name(journal.name + ".incomplete")
         self.handle = None
-        fd = os.open(journal, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+        fd = os.open(self.incomplete_path,
+                     os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
         self.handle = os.fdopen(fd, "w", encoding="utf-8")
         try:
             listener.execute(sql.SQL("LISTEN {}").format(sql.Identifier(self.channel)))
@@ -177,20 +181,13 @@ class CanaryCapture:
             raise
 
     def _append(self, record: dict) -> None:
-        offset = self.handle.tell()
         try:
             self.handle.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
             self.handle.flush()
             os.fsync(self.handle.fileno())
         except BaseException:
             self.broken = True
-            # Do not leave a failed tail write looking complete on readback.
-            try:
-                self.handle.seek(offset)
-                self.handle.truncate()
-                self.handle.flush()
-            except OSError:
-                pass
+            # Keep failed bytes for diagnosis, but never publish this path.
             raise
 
     def register(self, binding: dict) -> None:
@@ -268,6 +265,16 @@ class CanaryCapture:
             self.sealing = True
             self._barrier("end")
             self.handle.close()
+            # Same-directory hard link is an atomic, no-overwrite publication.
+            # File data (including end) is already fsynced. A failed fsync can
+            # never expose a final path, even if truncation would also fail.
+            os.link(self.incomplete_path, self.path, follow_symlinks=False)
+            directory = os.open(self.path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+            self.incomplete_path.unlink()
             return read_journal(self.path, **self.context)
         except BaseException:
             self.broken = True
@@ -287,6 +294,8 @@ def _validate_binding(binding: dict) -> None:
 def read_journal(path: Path, *, activation: str, coverage_sha256: str, provider: str) -> dict:
     """Read retained bytes; a missing tail stays UNKNOWN, never resumes LISTEN."""
     try:
+        if path.name.endswith(".incomplete"):
+            raise OSError("unpublished journal")
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         with os.fdopen(fd, "rb") as handle:
             info = os.fstat(handle.fileno())

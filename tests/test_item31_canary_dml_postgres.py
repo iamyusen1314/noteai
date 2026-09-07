@@ -176,6 +176,24 @@ c.close()
                 self.capture.finish(admission_closed=True)
         self.assertEqual(dml.read_journal(self.path, **self.capture.context)["status"], "UNKNOWN")
 
+    def test_failed_fsync_and_unavailable_truncate_keep_tail_unpublished(self):
+        b = self.begin()
+        self.writer.execute("ROLLBACK")
+        self.capture.rolled_back(b)
+        original = self.capture.handle
+        proxy = mock.Mock(wraps=original)
+        proxy.truncate.side_effect = OSError("truncate unavailable")
+        self.capture.handle = proxy
+        with mock.patch.object(dml.os, "fsync", side_effect=OSError("fsync unavailable")):
+            with self.assertRaises(OSError):
+                self.capture.finish(admission_closed=True)
+        self.capture.handle = original
+        self.assertFalse(self.path.exists())
+        partial = self.capture.incomplete_path
+        self.assertEqual(json.loads(partial.read_text().splitlines()[-1])["kind"], "end")
+        self.assertEqual(dml.read_journal(partial, **self.capture.context)["status"], "UNKNOWN")
+        self.assertEqual(dml.read_journal(self.path, **self.capture.context)["status"], "UNKNOWN")
+
     def test_retained_binding_mismatch_is_unknown(self):
         b = self.begin()
         self.commit(b)

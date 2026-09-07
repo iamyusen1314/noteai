@@ -32,7 +32,10 @@
   It is not yet integrated into every actual API/Payment writer and cannot
   prove uninstrumented tables/transactions had zero DML. Dedicated listener
   interruption or missing binding/tail stays UNKNOWN; temporary trigger DDL
-  and live coverage are separate Item31 work. No global audit table or service.
+  and live coverage are separate Item31 work. A final review found the dual
+  fsync/truncate failure edge; atomic no-overwrite publication from the same
+  .incomplete journal now prevents false complete readback and retains failure
+  bytes. Actual PG16 regression covers that double failure. No global audit table or service.
 - Item32 new exact4-file recovery package is built and hashes verified; old
   two identities/packages unchanged, no execution/admission/date rollover.
   This supersedes the older no-repackaging statement. UTC quota remains fixed;
@@ -40,7 +43,7 @@
 - Item36 candidate update/private bind/Payment first activation are separate.
   The old healthy APIs and inactive/absent Payment do not establish deployment.
   No such action is an implicit Item34 prerequisite. Item35 signature evidence was not changed.
-- 14 isolated PG16 checks and117 affected Python3.11 regressions pass. Static
+- 15 isolated PG16 checks and117 affected Python3.11 regressions pass. Static
   Readiness remains30/38 (internal29/29), no canonical Evidence/DoD change.
   Production execution and automation remain PAUSED; remote state not re-read
   retains its last-known timestamp. Protected7 contents unchanged and no push.
