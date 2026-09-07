@@ -365,11 +365,16 @@ class SpiderXHSHTTPAdapterTests(unittest.TestCase):
 
     def test_signer_wrapper_basic_and_rap_with_network_disabled(self):
         synthetic_a1 = "a" * 52
+        signer_env = {
+            "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
+            "NODE_PATH": os.environ.get("NOTEAI_XHS_NODE_PATH", str(ROOT / "node_modules")),
+        }
         version = subprocess.run(
             ["node", "-p", "require('crypto-js/package.json').version"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=str(ROOT),
+            env=signer_env,
             timeout=10,
             check=False,
         )
@@ -408,7 +413,7 @@ class SpiderXHSHTTPAdapterTests(unittest.TestCase):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     cwd=str(ROOT),
-                    env={"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")},
+                    env=signer_env,
                     timeout=10,
                     check=False,
                 )
@@ -433,7 +438,7 @@ class SpiderXHSHTTPAdapterTests(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=str(ROOT),
-            env={"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")},
+            env=signer_env,
             timeout=10,
             check=False,
         )

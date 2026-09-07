@@ -37,10 +37,85 @@ No actual node unit is bound/applied and no deployment claim is made.
 Read-only Item32 audit confirms current executor/spider/HOLD/plan hashes still
 match the already prepared recovery package. No new local recovery defect was
 found; retain both sealed identities and fixed UTC plan without rollover.
-Next in progress: actual Python3.11 regressions and necessary XHS/API candidate
-artifact validation from reviewed source with existing local cache. Colima
-noteai-prep was explicitly restarted under local authorization; no cloud Builder.
-Readiness remains30/38; no original canonical/DoD/Readiness edit this local stage.
+
+### Completed runnable candidates and PostgreSQL repair — September7 23:27 Beijing
+
+Source checkpoint `54b06bee359e58963bb5898e2d06275988e474a7` contains the
+diagnostic and renderer changes above. Both actual linux/amd64 candidates use
+Python3.11.15, UID999;114 runtime file hashes match that source and verified
+model release bytes. Later collector/test/docs commits do not change either
+image's true54b06be source identity. Neither candidate has been published.
+
+| Candidate | Actual local tag / OCI index | Export under /private/tmp/noteai-prep-20260907/ |
+|---|---|---|
+| XHS | `noteai-local/item34:54b06be`; `sha256:f331b2f10b054c807e067ea8201bf39ad655e1841e7a75f0d55b2dd7bf1dadd1` | `item34-xhs-54b06be-linux-amd64.docker.tar.gz`,377818145bytes; SHA256 `e67d3e4f86ea53d8ebb6c744c54e0f54b2ae37d5980d0726296ff5eaeadcaa7d` |
+| API | `noteai-local/api:54b06be-lfs`; `sha256:a89dcc78107097b83ef3329238492b337902c66e5ecc951e6bb00ff9c10b257c` | `api-54b06be-lfs-linux-amd64.docker.tar.gz`,377715074bytes; SHA256 `d0a6b4936a0e64fd8906fcb0d2056d071d2e1b6f01d04e89df86c485271b4d72` |
+
+XHS reuses the existing b8 image plus only the changed crawler; all other139
+reviewed context files match. Actual image-derived tests pass19 bounded checks
+including6 mocked Kimi contracts, tracking admission/failure/no-retry and
+renderer regressions. Real Node signer basic/RAP/rejection test also passes.
+Its first fixture omitted the no-network CJS helper and NODE_PATH; the retained
+failure was corrected by including that existing fixture and passing only PATH
+and the explicit dependency path in `tests/test_spider_xhs_http.py`.
+
+API was built from the existing Dockerfile api-runtime. Initial network-none
+build hit an uncached apt dependency and failed; the successful local build used
+authorized trusted dependency downloads, no cloud Builder or production access.
+Initial git-export context contained three Git LFS pointer files: local tag
+`noteai-local/api:54b06be` is REJECTED and must not be published. The accepted
+`-lfs` context resolves saved model files only after matching their Git OIDs,
+release SHA256 and sizes. Actual API image-derived tests pass17 targeted checks.
+Normal entrypoint/Uvicorn starts with required models, temporary SQLite and no
+network; `/health/live` and `/health/ready` both return200, database/model healthy
+with v0.4-composite loaded, and Docker health transitions to healthy. Early
+startup connection refusals are retained; this is not production PG/API health.
+
+Item31 collector now uses a same-connection tuple metadata cursor, preserving
+the real business CompatRow factory, pending cursor result and transaction.
+Actual isolated PG16.15/Python3.11 tests pass14, including real `_record_event`/
+`_finish_event` SQL with a fixed event hash, initially NULL order_id, duplicate
+UPDATE and SAVEPOINT rollback. A first fixture lacked0018's duplicate column;
+that failure is retained, current event guard/schema included, final run passes.
+Tests now isolate db/payment imports with a fixed local socket URL and cleared
+environment so they cannot bootstrap workspace SQLite or inherit a database URL.
+The final container supplied neither DATABASE_URL nor a SQLite fallback.
+This proves selected event SQL and collector compatibility, not full paid order,
+refund, provider authenticity or complete production writer integration.
+
+Local verification files are in `/private/tmp/noteai-prep-20260907/`:
+
+- `xhs-54b06be-source-check-resolved.log`, `xhs-54b06be-regressions.log`,
+  `xhs-54b06be-real-signing-final.log`;
+- `api-54b06be-lfs-source-check.log`, `api-54b06be-lfs-regressions.log`,
+  `api-54b06be-lfs-http-health.log`;
+- `pg-row-factory-regressions-isolated.log`, SHA256
+  `f0b53371d407c38bc03a3917e88aa76f548e8fc3be8c1fc8bf87d5bbdbd01ec2`.
+
+Failed build/fixture logs and original contexts remain alongside final results.
+These local files supplement this existing index, not canonical live Evidence.
+
+New Item34 observation is not a date edit: current failed row cannot bind again,
+same-user POST returns409, another account would violate the wrapper's unique
+note requirement, and0019 cannot be reapplied. The existing plan now records the
+exact source constraints and prospective owner decisions, preserving the failed
+row/attempt/history and existing approved DoD. No new target/window is chosen.
+Item32's already prepared recovery package is still current and sealed; no
+repackaging or successor execution. Item36 has a runnable API candidate and
+separate image/bind renderers; actual host binding and deployment remain pending.
+Local resources restored23:29:46: only noteai-prep-api-54b06be and
+noteai-prep-rowfactory were stopped (exit143 after API SIGTERM, PG exit0);
+both read back running=false. Colima noteai-prep then stopped successfully;
+final colima list confirms noteai-prep and the unchanged default profile stopped.
+Its guest-cwd warning refers to the deliberately unmounted host workspace;
+shutdown exited0. Local images, exports and failure logs remain for recovery.
+Next production step is blocked by the prospective Item34 target/count scope
+decision above; do not consume old authorization while owner rests. Other Items
+retain their specific live boundaries, not a blanket halt on future local work.
+Readiness remains30/38; no canonical Evidence/DoD/Readiness edit or Git push.
+Both existing read-only reviewers checked implementation/scope respectively;
+their import-isolation and inclusive72h wording findings were corrected.
+Final git diff --check passes; direct manifest count remains30verified/38.
 
 ## Current authorized Item34 execution — 2026-09-07
 

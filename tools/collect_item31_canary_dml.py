@@ -19,6 +19,7 @@ from pathlib import Path
 
 from psycopg import sql
 from psycopg.pq import TransactionStatus
+from psycopg.rows import tuple_row
 
 
 PROVIDERS = {"wechatpay_direct", "alipay_direct"}
@@ -109,12 +110,15 @@ def bind_transaction(cursor, activation: str, provider: str) -> dict:
     if cursor.connection.info.transaction_status != TransactionStatus.INTRANS:
         raise ValueError("explicit writer transaction required")
     nonce = str(uuid.uuid4())
-    cursor.execute("SELECT set_config('noteai.item31_activation',%s,true),"
-                   "set_config('noteai.item31_transaction',%s,true),"
-                   "set_config('noteai.item31_provider',%s,true)",
-                   (_uuid(activation), nonce, provider))
-    cursor.execute("SELECT pg_backend_pid(),pg_current_xact_id()::text")
-    pid, txid = cursor.fetchone()
+    # Business connections use CompatRow mappings. Keep metadata positional
+    # without changing their row factory or consuming a business cursor result.
+    with cursor.connection.cursor(row_factory=tuple_row) as metadata:
+        metadata.execute("SELECT set_config('noteai.item31_activation',%s,true),"
+                         "set_config('noteai.item31_transaction',%s,true),"
+                         "set_config('noteai.item31_provider',%s,true)",
+                         (_uuid(activation), nonce, provider))
+        metadata.execute("SELECT pg_backend_pid(),pg_current_xact_id()::text")
+        pid, txid = metadata.fetchone()
     return {"nonce": nonce, "provider": provider, "pid": pid, "txid": txid}
 
 
@@ -123,16 +127,17 @@ def transaction_complete(cursor, activation: str, binding: dict) -> None:
     _validate_binding(binding)
     if cursor.connection.info.transaction_status != TransactionStatus.INTRANS:
         raise ValueError("explicit writer transaction required")
-    cursor.execute("SELECT pg_backend_pid(),pg_current_xact_id()::text,"
-                   "current_setting('noteai.item31_activation',true),"
-                   "current_setting('noteai.item31_transaction',true),"
-                   "current_setting('noteai.item31_provider',true)")
-    if cursor.fetchone() != (binding["pid"], binding["txid"], _uuid(activation),
-                             binding["nonce"], binding["provider"]):
-        raise ValueError("writer transaction changed")
-    cursor.execute("SELECT pg_notify(%s,%s)", (channel_for(activation), json.dumps(
-        {"kind": "commit", **binding}, sort_keys=True, separators=(",", ":"),
-    )))
+    with cursor.connection.cursor(row_factory=tuple_row) as metadata:
+        metadata.execute("SELECT pg_backend_pid(),pg_current_xact_id()::text,"
+                         "current_setting('noteai.item31_activation',true),"
+                         "current_setting('noteai.item31_transaction',true),"
+                         "current_setting('noteai.item31_provider',true)")
+        if metadata.fetchone() != (binding["pid"], binding["txid"], _uuid(activation),
+                                   binding["nonce"], binding["provider"]):
+            raise ValueError("writer transaction changed")
+        metadata.execute("SELECT pg_notify(%s,%s)", (channel_for(activation), json.dumps(
+            {"kind": "commit", **binding}, sort_keys=True, separators=(",", ":"),
+        )))
 
 
 class CanaryCapture:

@@ -1,7 +1,8 @@
 """Synthetic canary DML on a disposable, network-isolated PG16 Unix socket.
 
 Run explicitly in the local test container, never with a supplied production DSN.
-No provider, NoteAI app, dotenv or business database is loaded.
+Selected database/payment functions are imported; no API runtime, provider call,
+dotenv or production database is loaded.
 """
 
 import json
@@ -104,6 +105,115 @@ class CanaryDmlPostgresTests(unittest.TestCase):
         self.writer.execute("ROLLBACK")
         self.capture.rolled_back(b)
         self.assertEqual(self.capture.finish(admission_closed=True)["write_mutations_by_table"], {})
+
+    def test_business_mapping_rows_preserve_binding_and_cursor_results(self):
+        # Import only inside the explicitly enabled local PG fixture; db must
+        # not bootstrap workspace SQLite or inherit a supplied database URL.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
+        with mock.patch.dict(os.environ, {
+            "DATABASE_URL": "postgresql:///noteai_local?host=/var/run/postgresql",
+            "PYTHON_DOTENV_DISABLED": "1",
+        }, clear=True):
+            import db
+
+        self.writer.close()
+        self.writer = psycopg.connect(**CONNECT, autocommit=True, row_factory=db._compat_row_factory)
+        self.writer.execute("BEGIN")
+        with self.writer.cursor() as business:
+            business.execute("SELECT 17 AS marker")
+            binding = dml.bind_transaction(business, self.activation, "wechatpay_direct")
+            self.capture.register(binding)
+            self.assertIsInstance(binding["pid"], int)
+            self.assertTrue(binding["txid"].isdigit())
+            self.assertEqual(business.fetchone()["marker"], 17)
+            self.writer.execute("INSERT INTO payment_orders VALUES(1,'local-only',1)")
+            business.execute("SELECT 29 AS marker")
+            dml.transaction_complete(business, self.activation, binding)
+            self.assertEqual(business.fetchone()["marker"], 29)
+        self.writer.execute("COMMIT")
+        self.assertIs(self.writer.row_factory, db._compat_row_factory)
+        result = self.capture.finish(admission_closed=True)
+        self.assertEqual(result["write_mutations_by_table"], {"payment_orders": 1, "payment_events": 1})
+        self.assertEqual(dml.read_journal(self.path, **self.capture.context), result)
+
+    def test_real_payment_event_insert_bind_duplicate_and_savepoint_by_event_hash(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
+        with mock.patch.dict(os.environ, {
+            "DATABASE_URL": "postgresql:///noteai_local?host=/var/run/postgresql",
+            "PYTHON_DOTENV_DISABLED": "1",
+        }, clear=True):
+            import db
+            import payment_contract as payment
+
+        # Exercise the real event SQL against its original PG schema. The two
+        # referenced tables are only FK fixtures; this is not a paid-order test.
+        self.capture.handle.close()
+        for statement in dml.removal_sql(list(self.targets)):
+            self.owner.execute(statement)
+        self.owner.execute("DROP TABLE payment_events,payment_orders CASCADE")
+        self.owner.execute("DROP TABLE IF EXISTS payment_refunds CASCADE")
+        self.owner.execute("CREATE TABLE payment_orders(id text primary key)")
+        self.owner.execute("CREATE TABLE payment_refunds(id text primary key)")
+        migration = (Path(db.__file__).parent / "migrations/postgres/0014_payment_execution_contract.sql").read_text()
+        event_schema = migration.split("CREATE TABLE IF NOT EXISTS payment_events (", 1)[1].split(
+            "CREATE INDEX IF NOT EXISTS idx_payment_events_state", 1
+        )[0]
+        self.owner.execute("CREATE TABLE IF NOT EXISTS payment_events (" + event_schema)
+        direct = (Path(db.__file__).parent / "migrations/postgres/0018_direct_payment_providers.sql").read_text()
+        self.owner.execute("ALTER TABLE payment_events" + direct.split(
+            "ALTER TABLE payment_events", 1
+        )[1].split("CREATE OR REPLACE FUNCTION noteai_payment_refund_identity_guard_v1()", 1)[0])
+        self.owner.execute(
+            "CREATE TRIGGER noteai_payment_event_identity_v1 BEFORE UPDATE ON payment_events "
+            "FOR EACH ROW EXECUTE FUNCTION noteai_payment_event_identity_guard_v1()"
+        )
+        order_id = str(uuid.uuid4())
+        self.owner.execute("INSERT INTO payment_orders VALUES(%s)", (order_id,))
+        event = payment.CallbackEvent(
+            provider_event_id="synthetic-event", event_type="payment.succeeded",
+            created_time=1788732000, prod_mode=False, app_id="synthetic-app",
+            data={}, provider_name="wechatpay_direct",
+        )
+        event_hash = payment._hash("noteai-wechatpay_direct-event-id-v1", event.provider_event_id)
+        self.targets = {"payment_events": ("provider_event_id_hash", event_hash)}
+        for statement in dml.installation_sql(self.activation, self.targets):
+            self.owner.execute(statement)
+        self.listener.close()
+        self.listener = psycopg.connect(**CONNECT, autocommit=True)
+        self.path = Path(self.temp.name) / "event-dml.jsonl"
+        self.capture = dml.CanaryCapture(
+            self.listener, self.owner, activation=self.activation, targets=self.targets,
+            provider="wechatpay_direct", journal=self.path,
+        )
+        self.writer.close()
+        self.writer = psycopg.connect(**CONNECT, autocommit=True, row_factory=db._compat_row_factory)
+        clock = "2026-09-07T14:00:00+00:00"
+        for delivery in range(3):
+            binding = self.begin()
+            tx = db.Transaction(self.writer, postgres=True)
+            if delivery == 2:
+                tx.execute("SAVEPOINT duplicate_delivery")
+            event_id, duplicate = payment._record_event(
+                tx, event, b"synthetic-payload", "synthetic-signature", clock,
+            )
+            self.assertEqual(duplicate, delivery > 0)
+            if delivery == 0:
+                self.assertIsNone(tx.fetchone("SELECT order_id FROM payment_events WHERE id=?", (event_id,))["order_id"])
+                payment._finish_event(
+                    tx, event_id, state="processed", reason="local_fixture",
+                    order_id=order_id, refund_id=None, clock=clock,
+                )
+            if delivery == 2:
+                tx.execute("ROLLBACK TO SAVEPOINT duplicate_delivery")
+                tx.execute("RELEASE SAVEPOINT duplicate_delivery")
+            self.commit(binding)
+        row = self.writer.execute("SELECT order_id,duplicate_delivery_count FROM payment_events").fetchone()
+        self.assertEqual(row["order_id"], order_id)
+        self.assertEqual(row["duplicate_delivery_count"], 1)
+        result = self.capture.finish(admission_closed=True)
+        self.assertEqual(result["write_mutations_by_table"], {"payment_events": 3})
+        self.assertEqual(dml.read_journal(self.path, **self.capture.context), result)
+        self.assertNotIn("synthetic-payload", self.path.read_text())
 
     def test_independent_api_and_payment_writer_processes(self):
         code = """

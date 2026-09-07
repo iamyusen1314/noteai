@@ -11,7 +11,30 @@
   and new registry digests remain unbound; synthetic preparation is not deploy.
 - Item32 existing recovery package bindings remain current; no new identity,
   date rollover or execution. All production and global automation stay stopped.
-  Local Python3.11 candidate checks are in progress; Readiness remains30/38.
+  Readiness remains30/38.
+- Actual54b06be XHS/API candidates now pass Python3.11.15 linux/amd64 source
+  checks, bounded regressions and API normal-entrypoint/model/HTTP health.
+  Initial API git-export contained three LFS pointers: local api:54b06be is
+  rejected; only api:54b06be-lfs has verified resolved model bytes. Archives,
+  hashes and retained failed/final logs are in the existing Handoff. The XHS
+  derivative changes only crawler; original published b8 identity stays intact.
+  All new digests are LOCAL OCI; no new registry publication or host deployment.
+- Item31 metadata now preserves actual CompatRow and business cursor results.
+  Fourteen isolated PG16 tests pass, including real event INSERT/bind/duplicate
+  and SAVEPOINT rollback with durable readback. First missing0018 column fixture
+  failed and was fixed; selected imports now self-isolate against inherited
+  DSNs/workspace SQLite. An event starts with NULL order_id, so order_id alone
+  is not a valid event capture predicate. One fixed event hash is locally proven;
+  all actual API/Payment transactions and paid/refund paths remain unintegrated.
+  No production collector DDL, provider request or live payment occurred.
+- New Item34 observation cannot merely change dates: failed existing track,
+  unique(track_id,stage), same-user409 and wrapper's global unique note binding
+  preclude replay/account workarounds. Deleting track would cascade failure
+  history. Existing0019 must be verified, not reapplied. Future proposal must
+  prospectively resolve target and old/new write-count compatibility before any
+  execution; old DoD/Evidence/validator are unchanged and old window EXPIRED.
+  The existing plan records exact source positions and pending owner choices.
+  No new target, anchor, identity or new observation authorization is inferred.
 
 ## Current bounded Item34 execution — 2026-09-07
 

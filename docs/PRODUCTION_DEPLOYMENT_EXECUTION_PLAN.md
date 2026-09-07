@@ -34,8 +34,37 @@ execution history, not authorization to repeat them or run other Items.
 EXPIRED。**不重试24h、不执行3d、不自动重启观察。**下方原批准动作仅保留其
 历史范围；现存失败结果与恢复hash写在同一canonical Evidence和Handoff中。
 核心部分结果为5表6distinct对象，辅助认证/注册/赠分进入原同一辅助账本及
-总摘要；它们没有冒充终态7表9行或全库实测DML。下一步可离线完善错误码保留，
-新生产观察须另给具体方案并获owner批准，当前无需owner再执行已完成的命令。
+总摘要；它们没有冒充终态7表9行或全库实测DML。错误码保留及必要候选产物现已
+完成本地修正和验证，见下方现行准备节；新生产观察仍须具体方案与owner批准，
+当前无需owner再执行已完成的命令。
+
+**新观察方案待决定，尚未授权或启动：**当前不能只改起点后重放。具体约束：
+
+- `tools/execute_item34_tracking_checkpoint.py:22`起固定目标、anchor及due；
+  `tools/submit_item34_managed_track.py:27`、既有wrapper的源码绑定及
+  `tools/internal_deployment_readiness_gate.py:4988`也绑定原对象。未来对象/起点
+  必须前瞻性明确批准，不能改旧Evidence、OCI标签或validator来获得旧窗口通过。
+- `deploy/production/execute_item34_tracking.py:1823`要求pending且零历史attempt；
+  当前needs_manual/failed1不满足。`model/migrations/postgres/0010_tracking_execution_contract.sql:249`
+  的attempt外键会随删除track级联删除，且`UNIQUE(track_id,stage)`禁止同track
+  再做24h。不得删旧行/attempt、回退状态或新建账号绕开no-replay。
+- `model/api.py:14330`、`:14365`使同账号同笔记合法POST返回409；wrapper`:1217`
+  又要求该note全局恰好一行，另一账号提交同笔记同样不能解除约束。无schema
+  变更的最小候选是owner从现有账号选另一篇真实目标笔记，仍需owner明确选择；
+  如必须保留原目标，应先设计并批准保留失败历史的实施变更，尚未实施。
+- `scripts/postgres/item34-0019-apply.sql:29`拒绝已有policy/ledger；已提交0019
+  只应按原verify读回。当前validator`:5371`的7表9distinct口径含迁移1/attempt2，
+  新作业必须先明确旧0019与旧失败attempt作为历史前置、新写入另实测的兼容口径，
+  不能把旧迁移伪报为新INSERT或将三次attempt挤成两次。现行批准DoD未修改。
+
+沿用本节原时间规则：24h在[anchor+24h,anchor+72h)，3d在anchor+72h或之后
+（含边界），且晚于24h采样；
+不新增误差、最低间隔或managed全窗口要求。未来一次申请应明确目标/真实anchor、
+上述计数兼容方案，再列必要候选XHS发布与digest读回、现有0019只读确认、正常
+managed提交/绑定、每阶段临时ACL及撤回、两次最多2admission/零自动重试、验证/
+失败恢复/Evidence保存。不得重做账号/赠分、0019 apply或隐含API/Payment/ALB
+部署；费用只允许经批准的既有资源增量，未知金额不记0。本段是待决定草案，
+不是新执行授权；原失败原因仍未定位，新候选只改善下次失败诊断。
 
 **当日晚间 owner 新增单账号授权：**明确允许创建一个长期测试业务账号，
 owner随后选择`noteai_`前缀用户名以避免未验证手机号登录；精确目标SHA256为
@@ -344,8 +373,31 @@ build must bind the final preparation commit and actual role-image contents;
 neither an old image nor the historical Item30 PASS proves the new release.
 Use `test_model_usage_audit` and `test_item30_real_ai_provider_chain` as mocked
 current-source regressions, plus affected payment/API/runtime checks. They do
-not replay the accepted provider chain. The September7 minimal Item34 image build above supersedes the earlier no-build
-statement. No image has been uploaded.
+not replay the accepted provider chain. The original b8 XHS image was published
+only under the closed Item34 approval above; the new local candidates below
+have not been transferred or published.
+
+September7 after23:00: actual source checkpoint
+`54b06bee359e58963bb5898e2d06275988e474a7` now has two verified linux/amd64
+Python3.11.15/UID999 artifacts. XHS `noteai-local/item34:54b06be` reuses b8 with
+only crawler diagnostic preservation; API `noteai-local/api:54b06be-lfs` uses
+the existing api-runtime Dockerfile and includes the Item30 Kimi patch. All114
+runtime files match source and resolved model release hashes. The API model
+bytes were verified against Git LFS OIDs and release sizes/hashes; the earlier
+pointer-only context and `noteai-local/api:54b06be` are rejected, not candidates.
+One failed network-none dependency install was followed by authorized trusted
+downloads in local Colima; no paid Builder was created. Exact archives/SHA256
+and LOCAL OCI indices are indexed in the existing Handoff. Later docs/collector
+changes do not relabel these images as a different source commit. No new
+registry digest exists or is needed for this completed local validation.
+
+Image-derived tests passed19 XHS/renderer/mocked-Kimi checks, the real offline
+Node signer basic/RAP/rejection test, and17 API/mocked-Kimi checks. Actual normal
+API entrypoint loaded required v0.4-composite assets with no model bypass;
+network-none HTTP /health/live and /health/ready returned200, Docker healthy.
+This proves executable local image/SQLite/model health, not production PG,
+provider session, deployment or Item36 acceptance. Preserve failed fixture/
+build logs alongside final logs; no historical Item30 provider replay occurred.
 
 The persisted offline launcher is `scripts/run_paused_local_checks.py`. Invoke
 it with `env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin .venv/bin/python`, followed by
@@ -383,19 +435,41 @@ with `read_journal(path, **capture.context)`; output maps into the existing
 Use `removal_sql` to remove only those exact temporary triggers/function after
 live closure; no cascade and no permanent role expansion.
 
-True isolated PG16.15 plus the candidate's Python3.11 passed12 collector tests:
+True isolated PG16.15 plus Python3.11 passed14 collector tests:
 separate API-like/Payment-like writer processes, committed multirow and nested
 trigger/cascade effects, duplicate UPDATE versus ON CONFLICT/zero-row no-op,
 SAVEPOINT and outer rollback, wrong target, changed transaction, listener loss,
-in-flight tail, fsync failure and persisted binding mismatch. These are
-synthetic PostgreSQL transactions, not real paid canaries or proof that all
-production API/Payment writers are already instrumented. The collector binds
+in-flight tail, fsync failure and persisted binding mismatch. The two added
+tests use the real CompatRow factory and selected real payment event SQL.
+These remain isolated PostgreSQL transactions, not real paid canaries or proof
+that all production API/Payment writers are already instrumented. The collector binds
 activation/provider/coverage hash and backend PID/transaction/nonce, records no
 row values, cannot resume a disconnected stream, and leaves incomplete results
 UNKNOWN. Trigger notifications discarded by rollback are not counted.
 The same journal is first retained as `.incomplete`; only after the full tail
 and file fsync succeed is it atomically published without overwriting a final
 path. Even simultaneous fsync/truncate failure leaves unpublished bytes UNKNOWN.
+
+The collector now uses an independent tuple metadata cursor on the SAME writer
+connection, preserving CompatRow and any unread business cursor result. The
+real event test executes `_record_event` / `_finish_event` against current0014/
+0018 event schema/guard, including duplicate UPDATE and SAVEPOINT rollback,
+then reads the durable three-mutation result. Imports are temporarily bound to
+a fixed local PG socket URL with cleared environment; the fixture cannot
+initialize workspace SQLite or inherit a supplied database URL. The first
+fixture omitted0018's duplicate column and failed; final corrected14-test run
+passes without DATABASE_URL or SQLite fallback supplied to the container.
+
+The smallest valid event predicate is the fixed authenticated
+`provider_event_id_hash`, not order_id: a real event is INSERTed with NULL
+order_id, then bound by UPDATE, while the trigger checks both OLD and NEW.
+This test covers one synthetic event identity only. Full payment/refund canaries
+must bind each actual action/event and all reachable writers explicitly; no
+whole-provider/merchant target or global db.transaction hook is introduced.
+Wrapping the outer canary action is insufficient because the real functions
+open several independent transactions and Payment callbacks run in another
+process. Each must register before first DML and signal completion before its
+own COMMIT, with known rollback and lost-commit UNKNOWN handled separately.
 
 Remaining live integration is concrete: install/remove this temporary DDL only
 for reviewed canary scope and register **every** API/Payment transaction before
@@ -493,7 +567,7 @@ These are three separate implementation actions, not interchangeable completion:
 
 | Action | Actual local result / next implementation | Genuine dependency |
 |---|---|---|
-| Candidate API image update | Current source contains Item30 Kimi repair; deployed b55 does not. The existing pure renderer now accepts a separate exact old/new immutable image replacement and preserves the port/rollback bytes. Actual API candidate and node input binding remain in progress. | An old healthy API or an updated XHS image cannot prove API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
+| Candidate API image update | Actual local `noteai-local/api:54b06be-lfs` contains the Item30 Kimi repair, passes source/regression checks and normal-entrypoint health. The renderer separately replaces exact old/new immutable images and preserves port/rollback bytes. Publication and actual node input binding remain pending. | Local health is not API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
 | Private API binding | Existing pure renderer and rollback bytes are prepared; actual API-C/F unit bytes and exact source hash must be read and bound before apply. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
 | Payment first activation | C was disabled/inactive and F unit not-found at last readback. First installation/configuration, immutable image, shared API container namespace, service start, health and public callback verification remain real actions. | Merchant/canary authorization and provider-reachable callback ingress before live funds. Keeping disabled state is rollback preservation, not first activation or full deployment. |
 
