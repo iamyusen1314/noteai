@@ -2,6 +2,19 @@
 
 ## Current bounded Item34 execution — 2026-09-07
 
+- Evening supersedes afternoon ACR-login blocker: owner reported Login Succeeded.
+  Same377806447-byte image transfer was interrupted by owner Wi-Fi switching;
+  owner resumed it and Workbench shows complete. Remote SHA/load/push are still
+  pending, no registry digest or DB/provider write. Exact source layout and
+  owner revoke channel must be revalidated after reconnect, not inferred from
+  file-upload success.31G/Python3.11.6/Tracking disabled-inactive were read at20:49:42.
+- Normal-account loopback helper now exists with12offline Python3.11 tests;
+  two read-only review findings were fixed: arbitrary ValueError could expose
+  Authorization, and getpass can otherwise fall back to echo. Fixed-code errors
+  and fatal GetPassWarning close both paths. No business credential/session is
+  yet verified. Domain is owner-confirmed pet cats; use宠物猫. Helper adds no
+  account/SQL/provider call and is not inside the approved image.
+
 - Owner approved9802111's exact Item34 application plus bounded auth/policy/
   temporary ACL/safety effects. Only this job leaves PAUSED. All other Items,
   global timers/automations, Git push and public/API/Payment/ALB changes remain

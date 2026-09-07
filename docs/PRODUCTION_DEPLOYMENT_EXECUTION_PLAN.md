@@ -24,13 +24,18 @@ Secret隔离与真实终态不变。镜像保持真实b8ae59c源码身份，不�
 未知金额不记0；不得新增Builder、扩容、订阅或固定费用。本节取代下方七月整套发布顺序，
 不要求先重建全部角色、更新 API、部署 Payment 或完成 ALB。
 
-**本次已执行至何处：**DMS默认角色及指定系统策略已在13:20:40/41落地。
+**晚间续行：**owner已报告API-F Docker Login Succeeded。既定镜像通过同一
+Workbench任务传输，Wi-Fi切换中断后由owner恢复，界面显示完成；主机整包SHA、
+load/push及真实digest仍待核验。没有DB写入/provider dispatch。20:49:42主机
+读回31G可用、Python3.11.6、Tracking disabled/inactive。领域由owner确认关于
+宠物猫，使用`宠物猫`。具体执行状态同步在现有Handoff和canonical中。
+
+**下午已经完成的数据库入口：**DMS默认角色及指定系统策略已在13:20:40/41落地。
 现行 `https://dms.aliyun.com/` 已有 noteai_admin → noteai-prod-postgres/noteai
 会话；13:47:17目录只读读回确认三张表owner、SET ROLE能力、RLS及最低ACL，
 0019 policy/ledger均0。旧DMS入口过时，勿再要求owner重复授权。
 现行页面提出的另一角色AliyunServiceRoleForDMS已取消，没有授权。
-ACR临时密码已生成但值未读取/保存，API-F登录未输入密码即取消；尚未传镜像、
-push或取得digest。Owner离开电脑并要求20:00提醒，仅该一次人工提醒已设置。
+下午ACR临时密码已生成但值未读取/保存，等待owner时取消输入；晚间状态见上。
 没有0019 apply、grant、业务写入或provider dispatch。完整当前读回见既有
 canonical Evidence的production_execution_20260907和现有Handoff顶部。
 
@@ -97,6 +102,14 @@ ACL 已覆盖，生产执行前只查当前权限布尔值，任何额外缺口�
 发起；内部调用必须携带同一合法用户身份）。owner 需在 NoteAI 页面登录其
 现有账户并选定确实属于自己的跟踪对象；若现有会话有效，可直接沿用。
 不猜 user_id，不创建诊断身份，不直接 SQL INSERT managed row。
+
+现有API只绑定主机127.0.0.1:8000时，在API-F现有Item34源码布局放置
+`tools/submit_item34_managed_track.py`，与已有durable Journal同目录复用。
+完成上述生产preflight后，owner在终端正常输入既有账户及隐藏密码；脚本使用
+同一合法token对固定对象正常POST/必要读回，不输出或保存密码/token。执行示例：
+`python3 "$ITEM34_SOURCE/tools/submit_item34_managed_track.py" --domain 宠物猫 --journal "$ITEM34_WORKDIR/managed.host.jsonl"`。
+排他日志在登录前落盘，单次登录/单次创建，未知结果只读回、不重放；没有注册、
+直接SQL或供应商调用。未知发布时间为null，真实服务器字段保存于同一执行日志。
 
 合法请求使用实际 source_note/version/session（若提供则验证所属关系）、
 标题和发布时间事实。平台仅有“08-10”不构造 ISO 时钟；未知 published_at

@@ -463,7 +463,7 @@
     }
   },
   "production_execution_20260907": {
-    "status": "OWNER_SQL_READY_ACR_MANUAL_LOGIN_PENDING",
+    "status": "ACR_LOGIN_REPORTED_IMAGE_TRANSFER_UI_COMPLETE_HOST_HASH_PENDING",
     "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
     "authorization_plan_sha256": "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
     "authorization_record": ".codex/handoffs/current-task.md",
@@ -535,11 +535,20 @@
       "candidate_tag": "item34-20260907-b8ae59c",
       "candidate_tag_seen": false,
       "existing_account_temporary_credential": "GENERATED_VALUE_NOT_READ_OR_RECORDED",
-      "api_f_docker_login": "CANCELLED_AT_PASSWORD_PROMPT_NO_PASSWORD_ENTERED",
+      "api_f_docker_login": "OWNER_REPORTED_LOGIN_SUCCEEDED_20260907_EVENING",
       "registry_digest": null,
       "image_uploaded": false,
       "image_pushed": false,
-      "previous_denied_manifest_cause": "UNLOCATED_NO_REPEAT"
+      "previous_denied_manifest_cause": "UNLOCATED_NO_REPEAT",
+      "archive_transfer": {
+        "status": "WORKBENCH_UI_COMPLETE_HOST_HASH_PENDING",
+        "bytes": 377806447,
+        "expected_sha256": "79ba76c546bf20d71b8e2c1f27ce95805b93d70cfbf663f9cf105e9401b7d6eb",
+        "destination": "/home/ecs-assist-user/item34-xhs-b8ae59c-linux-amd64.docker.tar.gz",
+        "interruption": "XHR_PART29_NETWORK_DISCONNECTED",
+        "owner_explanation": "Owner switched Wi-Fi, then resumed the same transfer",
+        "recovery": "Same Workbench upload task subsequently displayed check-circle completion; no image load/push yet"
+      }
     },
     "owner_return_reminder": {
       "automation_id": "noteai-20",
@@ -554,6 +563,30 @@
     "managed_row_post": "NOT_DISPATCHED",
     "checkpoint_24h": "NOT_DISPATCHED",
     "checkpoint_3d": "NOT_DISPATCHED",
-    "secret_values_recorded": false
+    "secret_values_recorded": false,
+    "api_f_evening_readback": {
+      "observed_at": "2026-09-07T20:49:42+08:00",
+      "python": "3.11.6",
+      "root_filesystem_available": "31G",
+      "tracking_unit": {
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "UnitFileState": "disabled"
+      },
+      "running_container_names": [
+        "noteai-api-f"
+      ],
+      "item34_source_parent": "/var/lib/noteai/item34-image-build-20260906",
+      "executor_relative_layout": "NOT_YET_READ_BACK",
+      "network_state": "Wi-Fi changed after this readback; terminal reconnect pending"
+    },
+    "owner_confirmed_domain": "宠物猫",
+    "local_managed_submission": {
+      "path": "tools/submit_item34_managed_track.py",
+      "sha256": "f749287b0f6b6545f8d63357dc7a22dbdafe125e35547f780a21457ecbad0bae",
+      "status": "OFFLINE_TESTED_NOT_INSTALLED_OR_EXECUTED",
+      "python_tests": "12 passed on isolated Python3.11; fake HTTP only",
+      "scope": "existing user normal login, fixed target at loopback API, exclusive existing journal, no replay, no password/token logging"
+    }
   }
 }

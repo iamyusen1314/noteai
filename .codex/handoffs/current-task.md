@@ -2,6 +2,40 @@
 
 ## Current authorized Item34 execution — 2026-09-07
 
+### Evening continuation — September7 20:57 Beijing
+
+Owner reported API-F Docker `Login Succeeded`; no credential value was read.
+This supersedes the afternoon cancelled-login state below. The existing
+Workbench file manager was tied to an expired connection; normal refresh and
+the already-enabled root passwordless connection restored it, without changing
+credentials or cloud permissions. The377806447-byte approved b8ae59c archive
+was uploaded to `/home/ecs-assist-user/`. Wi-Fi interruption failed part29;
+owner confirmed switching networks and resumed that same upload. Workbench now
+shows completion, **remote SHA256/load/push remain pending**; no registry digest.
+No production DB write, temporary grant, managed POST or provider dispatch yet.
+
+API-F20:49:42 readback: Python3.11.6;31G available; Tracking inactive/dead/disabled;
+only noteai-api-f container running. Existing Item34 source parent found at
+`/var/lib/noteai/item34-image-build-20260906`; exact executor layout still needs
+readback after SSH reconnection. Do not substitute one of the old ACR credential
+attempt directories. The prior owner catalog readback remains13:47 LAST_KNOWN.
+
+Owner confirmed the target domain concerns pet cats; use `宠物猫`. The production
+API is LAST_KNOWN host-loopback127.0.0.1:8000; no proven public frontend session.
+`tools/submit_item34_managed_track.py` supplies the missing normal-login/POST
+host entry, reusing the existing durable Journal. Credentials stay in memory,
+password echo fallback is refused, only fixed errors are logged, no redirect
+or env loading, no registration/SQL/provider request. At most one login and
+one fixed-target POST; response loss permits only authenticated readback. The
+helper is not yet installed/executed.12fake-HTTP/secret-free Python3.11 tests pass,
+including unknown outcomes, no replay, disk failure, deadline and secret errors.
+No runtime image rebuild or OCI-label change. Readiness remains30/38.
+
+Next: remote archive SHA256, load, immutable tag publication/digest readback;
+then owner SQL revalidation/0019/temporary ACL and the legitimate-user helper.
+24h result and snapshot must remain strictly before22:30:38; old window still
+UNPROVEN. Do not rely on PAUSED automation to resume the later3d stage.
+
 The owner explicitly approved the 9802111 top Item34 minimum application section
 in this same task. Only this bounded Item34 job leaves PAUSED. All other Items,
 global schedulers/automations, Git push, API/Payment/ALB/DNS/public launch remain
