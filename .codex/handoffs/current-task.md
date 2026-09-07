@@ -35,8 +35,13 @@ managed promotion and final write ledger. Historical canonical observation data
 compared against prior HEAD are byte-value unchanged. Initial validator import
 missed tools on sys.path; corrected invocation passed without code edits.
 git diff --check passes. No Item1–30 replay. Owner now recalls a generated test
-account expiring August1; its identity/environment/expiry meaning is under
-read-only indexed review, not grounds to reactivate an account or reuse a token.
+account expiring August1. Read-only indexed review found only the July1 RQS-23
+record in docs/REAL_CHAIN_QUALITY_STABILIZATION_PLAN.md: a NoteAI business test
+user had failed screenshot charges refunded. That record does not establish
+random generation, August1 expiry, expiry type, or the current production
+environment. No matching expiry field was located in the indexed non-secret
+records. Do not treat the recollection as proven account deletion, subscription
+expiry, a usable production identity, or grounds to reuse/reset credentials.
 
 ### Earlier input recovery — September7 21:45 Beijing
 

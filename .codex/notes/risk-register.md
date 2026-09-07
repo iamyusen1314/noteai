@@ -13,6 +13,10 @@
   disabled/inactive/dead with no Item34 task container or stage journal.
   Managed validation and both checkpoints remain incomplete. Old window is
   UNPROVEN at this clock, hard deadline22:30:38, no automatic restart.
+  Owner recalls an August1-expiring generated test account. The indexed July1
+  RQS-23 business-test-user refund record confirms neither that expiry nor
+  current production identity/environment. No credentials or database user
+  details were inspected to resolve it; do not infer deletion or reset it.
 
 -21:45 auth recovery supersedes the no-auth state below. The second input
   produced one401 login failure, zero managed POST/provider dispatch. Native
