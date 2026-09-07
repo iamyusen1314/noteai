@@ -25,7 +25,17 @@ unchanged/app SELECTfalse. This is one core migration row plus approved policy
 DDL; no auth/managed/provider/config/safety write yet. Committed0019 stays dormant
 if later work fails; do not delete it or replay apply.
 
-**Current user action:** API-F terminal runs the installed
+**Input recovery after owner accidental keypress:** first helper exited with
+credentials_empty_no_request. Native journal has exactly that one stop event,
+SHA097226215f1eb72f8913c2f1fd1fd8bfeff1d55e848341cbcd50388ae2ab6c29;
+auth dispatches0/managed POST0 verified, original file retained. Owner explicitly
+asked to reopen input. Same installed helper now uses
+`/var/lib/noteai/item34-image-build-20260906/managed-input-2.host.jsonl` and is
+again waiting for existing username. No account or provider identity created,
+no replay of a dispatched operation. This supersedes the original prompt path
+below; inspect this second native journal before any further recovery.
+
+**Original input entry:** API-F terminal runs the installed
 `tools/submit_item34_managed_track.py --domain 宠物猫 --journal
 /var/lib/noteai/item34-image-build-20260906/managed.host.jsonl` and is waiting at
 `Existing NoteAI username or verified phone:`. Owner must use an existing

@@ -633,7 +633,7 @@
       "status": "HOST_HASH_VERIFIED_RUNNING_WAITING_USERNAME_NO_AUTH_DISPATCH",
       "python_tests": "12 passed on isolated Python3.11; fake HTTP only",
       "scope": "existing user normal login, fixed target at loopback API, exclusive existing journal, no replay, no password/token logging",
-      "host_journal": "/var/lib/noteai/item34-image-build-20260906/managed.host.jsonl"
+      "host_journal": "/var/lib/noteai/item34-image-build-20260906/managed-input-2.host.jsonl"
     },
     "host_file_transport": {
       "original_tar_sha256": "3fad8b721811a7dc33cff6aa911d19802de66bb6347fe78df3ef62256e6abc35",
@@ -720,6 +720,19 @@
       },
       "runtime_config_changed": false,
       "rollback_if_later_failure": "Retain committed dormant additive0019 policy/ledger; no deletion"
+    },
+    "normal_input_recovery": {
+      "owner_instruction": "Try again after accidental keypress",
+      "original_journal": "/var/lib/noteai/item34-image-build-20260906/managed.host.jsonl",
+      "original_journal_sha256": "097226215f1eb72f8913c2f1fd1fd8bfeff1d55e848341cbcd50388ae2ab6c29",
+      "original_only_event": "managed_submission_stopped",
+      "original_code": "credentials_empty_no_request",
+      "verified_auth_dispatches": 0,
+      "verified_managed_posts": 0,
+      "original_file_retained": true,
+      "resumed_journal": "/var/lib/noteai/item34-image-build-20260906/managed-input-2.host.jsonl",
+      "status": "WAITING_EXISTING_USERNAME_NO_REQUEST_AT_READBACK",
+      "new_account_or_provider_identity": false
     }
   }
 }
