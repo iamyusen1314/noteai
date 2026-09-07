@@ -1,5 +1,23 @@
 # Risk Register
 
+## September8 07:42 bounded native managed preparation
+
+- The native adapter is now implemented and locally tested, superseding the
+  earlier missing-adapter note below. It uses the old Item34 lock, exact fixed
+  unit/CAS, bounded commands and empty Docker auth config. A custom test root
+  cannot default to real subprocess execution. Actual host lock metadata is
+  755/root directory,600/root single-link file; Tracking Job empty/NDRno read back.
+- Start unknown with pending job and no container is not quiescence. A bound stop
+  is attempted once; pending-job/stop-unknown prevents restore. Residual/foreign
+  containers block mutation; no reset-failed, enable or old-image start is issued.
+  25 managed cases pass under Python3.11; three actual create-only local Docker
+  projections confirm suspended control and no environment-value output.
+- No production systemd run, dedicated-role DB health/ACL acceptance, automatic
+  interrupted-process resume or new window is proven. A future authorized host
+  launcher/current manager reload scope and complete real managed evidence remain
+  to be bound. Constructor/CLI do not dispatch live work; CLI is render-only.
+  No new production permission/target is inferred. Readiness remains30/38.
+
 ## September8 actual host configuration and local managed recovery
 
 - Current read-only API-F Workbench access works through its existing identity;

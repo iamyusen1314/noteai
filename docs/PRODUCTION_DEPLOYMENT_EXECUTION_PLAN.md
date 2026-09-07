@@ -18,9 +18,22 @@ managed preparation now renders the exact frozen suspended unit and validates
 restricted service/container/health projections against the candidate image.
 An injected-adapter bounded start/health/stop/CAS-restore sequence reuses the
 existing durable Journal; real fsync failure and UNKNOWN recovery are tested.
-It has no production host adapter or live CLI entry and does not satisfy the
-managed terminal fields. Next independent local work is the bounded host binding,
-not replay of the failed old sampler. Existing DoD and time rules are unchanged.
+The native host binding is now implemented in that same module, with the original
+lock, exact file/CAS, bounded commands and restricted Docker projections. A start
+timeout with an outstanding systemd job must receive a bounded stop even if no
+container is visible; unresolved stop/job or foreign state prevents restoration.
+It has no live CLI entry and does not satisfy managed terminal fields.25 managed
+cases pass in actual Python3.11 isolation; native operations are tested through
+an injected runner/temporary filesystem. Three actual local Docker create-only
+projection cases pass without exposing environment values. No real systemd start,
+provider or production DB health was run. Existing DoD and time rules are unchanged.
+
+Before any future live application, bind the reviewed host launcher and current
+manager scope for daemon-reload, real published candidate, current log/alert/role
+evidence, and the owner-selected new target/anchor/count compatibility. Durable
+original/intent records support interrupted readback; no automatic resume/replay
+or process-kill recovery success is claimed. Failed services, outstanding jobs or
+concurrent changes remain explicit UNKNOWN rather than an unapproved reset/retry.
 
 September8 07:11–07:24 Beijing API-F read-only configuration checks confirm
 Tracking disabled/inactive/dead and no running service-labelled container, unit

@@ -1,5 +1,72 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Continued execution — September8 07:42; bounded native managed adapter prepared locally
+
+Continued after `e700b36`; no stop at the preparation checkpoint. The same
+`tools/prepare_item34_managed_tracking.py` now includes NativeHostAdapter. Its
+constructor executes nothing; the CLI still only renders files, with no live
+execution switch. It binds the existing `/run/lock/noteai-item34-tracking.lock`,
+fixed Tracking unit, reviewed exact original/candidate bytes, and supplied real
+registry/config IDs. It uses bounded argv with a cleared environment and an
+ephemeral empty Docker config, never the owner's stored credentials. No sampler,
+provider/admission, account/gift, production DB or old observation was executed.
+
+The host binding now implements regular-file/owner/mode/inode reads, exclusive
+cooperative locking, fsynced CAS replacement, manager reload/readback, immutable
+linux/amd64 image/entrypoint/role checks, one start, restricted native container
+projection, health, exact owned stop and stopped-state recovery. Non-default
+filesystem roots require an explicitly injected test runner, preventing local
+test files from being paired with actual systemctl/docker commands by accident.
+The original root-owned sticky lock directory form is supported without changing
+its permissions; current API-F metadata actually reads directory755/root and
+original empty lock600/root/nlink1. An additional read-only current systemd
+projection gives Job empty and NeedDaemonReload=no for dormant Tracking.
+
+Important failure behavior: a timed-out start with no visible container still
+requires one stop of the bound unit; no pending systemd Job, live PID or container
+may remain before restoring the unit. A stop timeout with a remaining job leaves
+UNKNOWN and does not restore the file. A same-name stopped residue blocks startup;
+foreign image/CID is never health-execed or stopped. Restore never starts the old
+image, resets failure counters, enables units or removes old sample containers.
+The lock is cooperative, so every write still checks native binding/CAS. Native
+manual health exec follows structure/ownership validation; the frozen unit's own
+ExecStartPost healthcheck remains part of systemctl start and is not reordered.
+
+Restricted Docker formatting is now tested against the actual local daemon:
+create-only containers with explicit suspended1, suspended0 and1 overridden by0
+produce true/false/false respectively. Docker projects only one service label
+and safe fields; the synthetic unrelated environment key/value never appears.
+The format requires a unique unconflicted suspended1 and emits null for absent
+HostConfig keys so malformed controls fail validation without a template error.
+The first native test exposed absent Tmpfs; another fixture wrongly assumed no
+explicit flag removed the image's inherited suspended1. Both were fixed; failed
+and final logs remain. All exact temporary projection containers were removed,
+none was started, and no host path or Secret was mounted.
+
+25 managed tests now pass in actual Python3.11 linux/amd64, network-none/read-only.
+The final explicit-runner guard also rejects non-callables and preserves falsey
+callable test runners; its focused regression passed again in the latest image
+`noteai-local/managed-prep:20260908-native-fixed`. Seven newly included native
+binding cases use real temporary unit files/journals/locks and an injected runner;
+they do not execute real systemd. Logs:
+`/private/tmp/noteai-prep-20260908/managed-native-python311.log`,
+`managed-native-build.log`, `managed-docker-projection-final.log`; initial local
+projection failure remains `managed-docker-projection.log`. The previous10 Item36
+checks are unchanged; the final runner log is `managed-native-runner-final.log`.
+The actual bind-only candidate is unchanged. Release archives still
+retain54b06be identity; this test image is not a published release candidate.
+
+This completes the bounded native binding implementation and its local fault
+checks, not live managed acceptance. The journal preserves exact original bytes
+and intents for interrupted readback; there is no automatic restart/resume or
+claim of a process-kill recovery run. Future execution must still bind a reviewed
+host launcher, current manager scope before global daemon-reload, real candidate
+publication, log/alert/role evidence and a newly authorized target/anchor/count
+scope. Unknown remaining jobs, failed service states or concurrent changes remain
+explicit incomplete outcomes rather than broad reset/retry. No approval is being
+requested for an incomplete new observation plan. Old failed Evidence stays intact,
+Readiness30/38, production/global automation stopped, protected7 untouched, no push.
+
 ## Continued execution — September8; managed recovery preparation and real API-F binding
 
 Continued from `e2b2de9` without restarting takeover or Item1–30. That checkpoint

@@ -3,10 +3,12 @@ from contextlib import nullcontext
 import hashlib
 import json
 import os
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+from types import SimpleNamespace
 
 from tools import prepare_item34_managed_tracking as managed
 from tools.run_item34_tracking_durable import Journal
@@ -213,6 +215,9 @@ class FakeManagedHost:
     def unit_bytes(self):
         return self.current
 
+    def prepare_candidate(self, candidate, image_ref, image_id, original_image):
+        assert image_ref == NEW and image_id == CONFIG and original_image == OLD
+
     def stopped_state(self):
         return {"unit_sha256": managed.digest(self.current),
                 "image_ref": OLD if self.current == self.original else NEW,
@@ -361,3 +366,168 @@ class ManagedRehearsalTests(unittest.TestCase):
                 self.assertEqual(host.calls.count("start"), 1)
                 if failure == "stop_unknown":
                     self.assertNotIn("restore", host.calls)
+
+
+class NativeRunner:
+    """Native-shaped command results only; no systemd/docker subprocess runs."""
+    def __init__(self, unit, failure=None):
+        self.unit, self.failure = unit, failure
+        self.loaded = unit.read_bytes()
+        self.state = snapshots()[0]
+        self.state.update(ActiveState="inactive", SubState="dead", MainPID="0", InvocationID="")
+        self.job = ""
+        self.container = None
+        self.calls = []
+
+    def __call__(self, argv, **kwargs):
+        assert kwargs["env"] == {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"}
+        assert kwargs["stderr"] == subprocess.DEVNULL and 0 < kwargs["timeout"] <= 190
+        program = Path(argv[0]).name
+        if program == "docker":
+            assert argv[1] == "--config" and argv[3:5] == ["--host", "unix:///var/run/docker.sock"]
+            assert json.loads((Path(argv[2]) / "config.json").read_text()) == {"auths": {}}
+            args = argv[5:]
+        else:
+            assert program == "systemctl"
+            args = argv[1:]
+        self.calls.append((program, args.copy()))
+        raw = ""
+        if program == "systemctl":
+            if args[0] == "show":
+                values = {**self.state, "DropInPaths": "", "Job": self.job,
+                          "NeedDaemonReload": "no" if self.loaded == self.unit.read_bytes() else "yes"}
+                raw = "\n".join(key + "=" + str(value) for key, value in values.items())
+            elif args == ["daemon-reload"]:
+                self.loaded = self.unit.read_bytes()
+            elif args == ["start", managed.UNIT]:
+                self.job = "17"
+                if self.failure in ("start_job_unknown", "stop_job_unknown"):
+                    raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+                self.state.update(ActiveState="active", SubState="running", MainPID="100", InvocationID="d" * 32)
+                self.job = ""
+                self.container = snapshots()[1][0]
+                if self.failure == "foreign_container":
+                    self.container["Image"] = "sha256:" + "f" * 64
+            elif args == ["stop", managed.UNIT]:
+                if self.failure == "stop_job_unknown":
+                    raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+                self.job = ""
+                self.container = None
+                self.state.update(ActiveState="inactive", SubState="dead", MainPID="0", InvocationID="")
+            else:
+                raise AssertionError("unreviewed_systemctl_command")
+        elif args[:2] == ["image", "inspect"]:
+            raw = json.dumps({"Id": CONFIG, "Os": "linux", "Architecture": "amd64",
+                              "Entrypoint": ["/app/scripts/docker_entrypoint.sh"],
+                              "RepoDigests": [NEW], "Role": "xhs-http"})
+        elif args[:2] == ["ps", "-aq"]:
+            raw = self.container["Id"] if self.container else ""
+        elif args[:2] == ["container", "inspect"]:
+            assert args[2:4] == ["--format", managed.container_projection_format()]
+            raw = json.dumps(self.container)
+        elif args[0] == "exec":
+            assert args[1:] == ["e" * 64, "python", "crawler_worker.py", "--healthcheck"]
+            raw = json.dumps(snapshots()[2])
+        else:
+            raise AssertionError("unreviewed_docker_command")
+        return SimpleNamespace(returncode=0, stdout=raw.encode())
+
+
+class NativeManagedBindingTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.unit = self.root / "etc/systemd/system" / managed.UNIT
+        self.unit.parent.mkdir(parents=True)
+        (self.root / "run/lock").mkdir(parents=True)
+        self.workdir = self.root / "task"
+        self.workdir.mkdir(mode=0o700)
+        self.original = TEMPLATE.read_bytes().replace(managed.TOKEN, OLD.encode())
+        self.unit.write_bytes(self.original)
+        self.unit.chmod(0o644)
+
+    def exercise(self, runner):
+        adapter = managed.NativeHostAdapter(self.workdir, root=self.root, runner=runner)
+        journal = Journal(self.workdir / "managed.jsonl")
+        try:
+            return managed.rehearse(adapter, journal, template=TEMPLATE.read_bytes(),
+                                    current_image=OLD, candidate_image=NEW, image_id=CONFIG)
+        finally:
+            journal.close()
+
+    def test_native_binding_uses_bounded_argv_and_restores_real_temporary_unit(self):
+        runner = NativeRunner(self.unit)
+        result = self.exercise(runner)
+        self.assertEqual(result["status"], "INCOMPLETE")
+        self.assertTrue(result["restored"])
+        self.assertEqual(self.unit.read_bytes(), self.original)
+        commands = [args for program, args in runner.calls if program == "systemctl" and args[0] != "show"]
+        self.assertEqual(commands, [["daemon-reload"], ["start", managed.UNIT],
+                                    ["stop", managed.UNIT], ["daemon-reload"]])
+        self.assertFalse(list(self.workdir.glob("managed-docker-*")))
+
+    def test_start_timeout_with_pending_job_and_no_container_still_stops_unit(self):
+        runner = NativeRunner(self.unit, "start_job_unknown")
+        result = self.exercise(runner)
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertTrue(result["restored"])
+        self.assertEqual(runner.job, "")
+        self.assertEqual(sum(args == ["start", managed.UNIT] for _, args in runner.calls), 1)
+        self.assertEqual(sum(args == ["stop", managed.UNIT] for _, args in runner.calls), 1)
+        self.assertFalse(any(args[0] == "exec" for _, args in runner.calls))
+
+    def test_stop_timeout_pending_job_prevents_unit_restore(self):
+        runner = NativeRunner(self.unit, "stop_job_unknown")
+        result = self.exercise(runner)
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertFalse(result["restored"])
+        self.assertEqual(runner.job, "17")
+        self.assertNotEqual(self.unit.read_bytes(), self.original)
+        self.assertEqual(sum(args == ["stop", managed.UNIT] for _, args in runner.calls), 1)
+
+    def test_foreign_running_container_is_not_execed_or_stopped(self):
+        runner = NativeRunner(self.unit, "foreign_container")
+        result = self.exercise(runner)
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertFalse(result["restored"])
+        self.assertFalse(any(args[0] in ("exec", "stop") for _, args in runner.calls))
+
+    def test_stopped_same_name_residue_prevents_any_mutation(self):
+        runner = NativeRunner(self.unit)
+        runner.container = snapshots()[1][0]
+        runner.container["State"]["Running"] = False
+        with self.assertRaisesRegex(ValueError, "managed_not_quiescent"):
+            self.exercise(runner)
+        self.assertEqual(self.unit.read_bytes(), self.original)
+        self.assertFalse(any(args[0] in ("start", "stop", "daemon-reload") for _, args in runner.calls))
+
+    def test_symlink_unit_and_cooperating_second_owner_are_rejected(self):
+        adapter = managed.NativeHostAdapter(self.workdir, root=self.root, runner=NativeRunner(self.unit))
+        second = managed.NativeHostAdapter(self.workdir, root=self.root, runner=NativeRunner(self.unit))
+        with adapter.locked():
+            with self.assertRaises(BlockingIOError), second.locked():
+                self.fail("lock unexpectedly acquired")
+        copy_path = self.root / "saved-unit"
+        self.unit.rename(copy_path)
+        self.unit.symlink_to(copy_path)
+        with self.assertRaises(OSError):
+            adapter.unit_bytes()
+
+    def test_test_root_requires_injected_runner_and_sticky_lock_directory_is_safe(self):
+        with self.assertRaisesRegex(ValueError, "isolated_root_requires_test_runner"):
+            managed.NativeHostAdapter(self.workdir, root=self.root)
+        with self.assertRaisesRegex(ValueError, "managed_runner_must_be_callable"):
+            managed.NativeHostAdapter(self.workdir, root=self.root, runner=False)
+        falsey_runner = mock.MagicMock()
+        falsey_runner.__bool__.return_value = False
+        self.assertIs(managed.NativeHostAdapter(self.workdir, root=self.root, runner=falsey_runner).runner,
+                      falsey_runner)
+        lock_directory = self.root / "run/lock"
+        lock_directory.chmod(0o1777)
+        adapter = managed.NativeHostAdapter(self.workdir, root=self.root, runner=NativeRunner(self.unit))
+        with adapter.locked():
+            self.assertEqual(adapter.unit_bytes(), self.original)
+        lock_directory.chmod(0o0777)
+        with self.assertRaisesRegex(ValueError, "managed_directory_identity"), adapter.locked():
+            self.fail("unsafe lock directory accepted")

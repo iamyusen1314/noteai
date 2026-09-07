@@ -3,7 +3,7 @@
 
 No host command, environment file, database, supplier or observation is opened.
 Inputs are separately reviewed Secret-free unit copies and restricted native
-readbacks. The injectable rehearsal has no host implementation or CLI entry;
+readbacks. The injectable rehearsal has no live CLI entry;
 the CLI only renders files. Returned controls are partial existing
 managed_promotion fields and cannot issue terminal Evidence.
 """
@@ -11,9 +11,15 @@ managed_promotion fields and cannot issue terminal Evidence.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
+import os
 import re
+import stat
+import subprocess
+import tempfile
 from pathlib import Path
 
 if __package__:
@@ -30,6 +36,269 @@ WORKER = ["python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "
 SHA256 = re.compile(r"[0-9a-f]{64}")
 LEGACY_IMAGE = "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec"
 LEGACY_UNIT_SHA256 = "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d"
+SERVICE_FIELDS = ("Id", "LoadState", "ActiveState", "SubState", "UnitFileState",
+                  "Restart", "NRestarts", "MainPID", "InvocationID", "FragmentPath", "DropInPaths")
+HOST_FIELDS = ("Memory", "NanoCpus", "PidsLimit", "ReadonlyRootfs", "CapDrop", "CapAdd",
+               "Privileged", "SecurityOpt", "NetworkMode", "IpcMode", "RestartPolicy",
+               "LogConfig", "PortBindings", "Tmpfs")
+
+
+def container_projection_format():
+    """Docker performs the restricted projection; full Env never leaves it."""
+    fields = {key: "{{json ." + key + "}}" for key in ("Id", "Name", "Image", "RestartCount")}
+    fields["State"] = '{"Running":{{json .State.Running}},"Pid":{{json .State.Pid}}}'
+    fields["Config"] = ('{"Image":{{json .Config.Image}},"User":{{json .Config.User}},'
+                        '"Cmd":{{json .Config.Cmd}},"Labels":{"com.noteai.service":'
+                        '{{json (index .Config.Labels "com.noteai.service")}}}}')
+    fields["HostConfig"] = "{" + ",".join(
+        json.dumps(key) + ':{{json (index .HostConfig "' + key + '")}}' for key in HOST_FIELDS) + "}"
+    fields["Suspended"] = "{{json (and $seen $suspended (not $conflict))}}"
+    fields["Mounts"] = ('[{{range $i,$m := .Mounts}}{{if $i}},{{end}}'
+                        '{"Type":{{json $m.Type}},"Source":{{json $m.Source}},'
+                        '"Destination":{{json $m.Destination}},"RW":{{json $m.RW}}}{{end}}]')
+    prefix = ('{{ $seen := false }}{{ $suspended := false }}{{ $conflict := false }}'
+              '{{range .Config.Env}}{{if eq (index (split . "=") 0) "NOTEAI_XHS_COLLECTION_SUSPENDED"}}'
+              '{{if $seen}}{{ $conflict = true }}{{end}}{{ $seen = true }}'
+              '{{if eq . "NOTEAI_XHS_COLLECTION_SUSPENDED=1"}}{{ $suspended = true }}'
+              '{{else}}{{ $conflict = true }}{{end}}{{end}}{{end}}')
+    return prefix + "{" + ",".join(json.dumps(key) + ":" + value for key, value in fields.items()) + "}"
+
+
+class NativeHostAdapter:
+    """Bounded Linux host binding; constructing it executes nothing.
+
+    No live CLI entry is provided. A future explicitly authorized caller must
+    supply its private existing Journal directory. Tests inject a runner and
+    filesystem root; they never invoke production commands. The shared lock
+    is the existing Item34 sampler lock, not a new receipt or admission scheme.
+    """
+    def __init__(self, workdir: Path, *, root=Path("/"), runner=None):
+        if root != Path("/") and runner is None:
+            raise ValueError("isolated_root_requires_test_runner")
+        if runner is not None and not callable(runner):
+            raise ValueError("managed_runner_must_be_callable")
+        self.root, self.workdir = root, workdir
+        self.runner = subprocess.run if runner is None else runner
+        self.unit = root / "etc/systemd/system" / UNIT
+        self.lock = root / "run/lock/noteai-item34-tracking.lock"
+        self.active = False
+        self.original = self.candidate = None
+        self.image_ref = self.image_id = None
+        self.start_sent = self.stop_sent = False
+        self.cid = self.invocation = None
+
+    @contextmanager
+    def locked(self):
+        for directory in (self.workdir, self.lock.parent, self.unit.parent):
+            metadata = directory.lstat()
+            sticky_lock_directory = directory == self.lock.parent and metadata.st_mode & stat.S_ISVTX
+            if (not stat.S_ISDIR(metadata.st_mode) or directory.is_symlink()
+                    or metadata.st_uid != os.geteuid()
+                    or (metadata.st_mode & 0o022 and not sticky_lock_directory)):
+                raise ValueError("managed_directory_identity")
+        if self.workdir.stat().st_mode & 0o077 or (self.root == Path("/") and os.geteuid() != 0):
+            raise ValueError("managed_private_owner_required")
+        fd = os.open(self.lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        try:
+            metadata = os.fstat(fd)
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.geteuid() or metadata.st_mode & 0o077):
+                raise ValueError("managed_lock_identity")
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with tempfile.TemporaryDirectory(prefix="managed-docker-", dir=self.workdir) as config:
+                self.docker_config = config
+                Path(config, "config.json").write_text('{"auths":{}}\n')
+                self.active = True
+                try:
+                    yield
+                finally:
+                    self.active = False
+        finally:
+            os.close(fd)
+
+    def _run(self, program, args, timeout=15):
+        if not self.active:
+            raise ValueError("managed_lock_required")
+        argv = ["/usr/bin/" + program]
+        if program == "docker":
+            argv += ["--config", self.docker_config, "--host", "unix:///var/run/docker.sock"]
+        try:
+            result = self.runner(argv + args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                 env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"},
+                                 timeout=timeout, check=False)
+            if result.returncode != 0 or len(result.stdout) > 65536:
+                raise ValueError("managed_command_failed")
+            return result.stdout.decode("utf-8", "strict").strip()
+        except Exception:
+            raise ValueError("managed_command_unknown") from None
+
+    def unit_bytes(self):
+        fd = os.open(self.unit, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            before = os.fstat(fd)
+            if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                    or before.st_uid != os.geteuid() or stat.S_IMODE(before.st_mode) != 0o644
+                    or not 0 < before.st_size <= 65536):
+                raise ValueError("managed_unit_file_identity")
+            content = os.read(fd, 65537)
+            after = os.fstat(fd)
+            path_state = self.unit.lstat()
+            identity = lambda m: (m.st_dev, m.st_ino, m.st_size, m.st_mtime_ns, m.st_ctime_ns)
+            if (identity(before) != identity(after) or identity(after) != identity(path_state)
+                    or len(content) != before.st_size):
+                raise ValueError("managed_unit_changed_during_read")
+            return content
+        finally:
+            os.close(fd)
+
+    def _service(self):
+        raw = self._run("systemctl", ["show", UNIT, "--no-pager",
+                                      "--property=" + ",".join(SERVICE_FIELDS + ("Job", "NeedDaemonReload"))])
+        rows = [line.split("=", 1) for line in raw.splitlines()]
+        if any(len(row) != 2 for row in rows) or len(rows) != len(SERVICE_FIELDS) + 2:
+            raise ValueError("managed_service_readback")
+        state = dict(rows)
+        if set(state) != set(SERVICE_FIELDS + ("Job", "NeedDaemonReload")):
+            raise ValueError("managed_service_readback")
+        if (state["FragmentPath"] != "/etc/systemd/system/" + UNIT or state["DropInPaths"]
+                or state["Id"] != UNIT or state["LoadState"] != "loaded"):
+            raise ValueError("managed_service_drift")
+        state["DropInPaths"] = []
+        return state
+
+    def _containers(self):
+        # Include stopped same-name containers: --rm must not erase older work.
+        raw = self._run("docker", ["ps", "-aq", "--no-trunc", "--filter", "name=^/" + CONTAINER + "$"])
+        names = set(raw.splitlines()) if raw else set()
+        labelled = self._run("docker", ["ps", "-aq", "--no-trunc", "--filter",
+                                         "label=com.noteai.service=" + CONTAINER])
+        names.update(labelled.splitlines() if labelled else [])
+        if len(names) > 1 or any(SHA256.fullmatch(cid) is None for cid in names):
+            raise ValueError("managed_container_residue")
+        return [json.loads(self._run("docker", ["container", "inspect", "--format",
+                                                container_projection_format(), cid])) for cid in sorted(names)]
+
+    def stopped_state(self):
+        state, containers = self._service(), self._containers()
+        if (state["Job"] != "" or state["MainPID"] != "0" or containers
+                or (state["UnitFileState"], state["ActiveState"], state["SubState"])
+                != ("disabled", "inactive", "dead")):
+            raise ValueError("managed_not_quiescent")
+        content = self.unit_bytes()
+        images = re.findall(rb"^ExecStartPre=/usr/bin/docker image inspect ([^\n]+)$", content, re.MULTILINE)
+        if len(images) != 1:
+            raise ValueError("managed_unit_image_readback")
+        image = images[0].decode("ascii")
+        return {"unit_sha256": digest(content), "image_ref": image,
+                **{key: state[key] for key in ("UnitFileState", "ActiveState", "SubState")},
+                "running_container_count": 0}
+
+    def prepare_candidate(self, candidate, image_ref, image_id, original_image):
+        state = self._service()
+        if state["NeedDaemonReload"] != "no":
+            raise ValueError("managed_manager_not_current")
+        self.original, self.candidate = self.unit_bytes(), candidate
+        self.original_image, self.image_ref, self.image_id = original_image, image_ref, image_id
+        self.template = candidate.replace(image_ref.encode("ascii"), TOKEN)
+        rendered, _original = render_unit(self.template, self.original,
+                                          current_sha256=digest(self.original), current_image=original_image,
+                                          candidate_image=image_ref)
+        if rendered != candidate or re.fullmatch(r"sha256:[0-9a-f]{64}", image_id) is None:
+            raise ValueError("managed_candidate_binding")
+        fmt = ('{"Id":{{json .Id}},"Os":{{json .Os}},"Architecture":{{json .Architecture}},'
+               '"Entrypoint":{{json .Config.Entrypoint}},"RepoDigests":{{json .RepoDigests}},'
+               '"Role":{{json (index .Config.Labels "com.noteai.runtime.role")}}}')
+        value = json.loads(self._run("docker", ["image", "inspect", "--format", fmt, image_ref]))
+        if (value["Id"] != image_id or value["Os"] != "linux" or value["Architecture"] != "amd64"
+                or value["Entrypoint"] != ["/app/scripts/docker_entrypoint.sh"]
+                or value["Role"] != "xhs-http" or image_ref not in value["RepoDigests"]):
+            raise ValueError("managed_image_platform_binding")
+
+    def replace_unit(self, expected_sha256, content):
+        if not self.active or content not in (self.original, self.candidate) or content is None:
+            raise ValueError("managed_unprepared_unit")
+        if digest(self.unit_bytes()) != expected_sha256:
+            raise ValueError("managed_unit_cas_conflict")
+        fd, name = tempfile.mkstemp(prefix=".noteai-tracking-", dir=self.unit.parent)
+        try:
+            with os.fdopen(fd, "wb") as output:
+                os.fchmod(output.fileno(), 0o644)
+                output.write(content)
+                output.flush()
+                os.fsync(output.fileno())
+            if digest(self.unit_bytes()) != expected_sha256:
+                raise ValueError("managed_unit_cas_conflict")
+            os.replace(name, self.unit)
+            directory = os.open(self.unit.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+        finally:
+            if os.path.exists(name):
+                os.unlink(name)
+
+    def reload(self):
+        self._run("systemctl", ["daemon-reload"])
+        if self._service()["NeedDaemonReload"] != "no":
+            raise ValueError("managed_manager_not_current")
+
+    def _binding(self, unit_sha, image_ref, image_id):
+        if (self.unit_bytes() != self.candidate or digest(self.candidate) != unit_sha
+                or (image_ref, image_id) != (self.image_ref, self.image_id)):
+            raise ValueError("managed_candidate_drift")
+        state = self._service()
+        if state["NeedDaemonReload"] != "no":
+            raise ValueError("managed_manager_not_current")
+        if self.invocation and state["InvocationID"] not in (self.invocation, ""):
+            raise ValueError("managed_invocation_drift")
+        return state
+
+    def start_once(self, unit_sha, image_ref, image_id):
+        self._binding(unit_sha, image_ref, image_id)
+        self.stopped_state()
+        if self.start_sent:
+            raise ValueError("managed_no_start_replay")
+        self.start_sent = True
+        self._run("systemctl", ["start", UNIT], timeout=190)
+        self.invocation = self._service()["InvocationID"]
+
+    def read_managed(self):
+        state = self._binding(digest(self.candidate), self.image_ref, self.image_id)
+        if state.pop("Job") != "":
+            raise ValueError("managed_job_pending")
+        state.pop("NeedDaemonReload")
+        containers = self._containers()
+        if len(containers) != 1:
+            raise ValueError("managed_singleton")
+        # Check ownership/controls before exec, using no purported health result.
+        structural_health = {"status": "ready", "provider_called": False,
+                             "active_provider_attempts": 0, "stale_provider_attempts": 0,
+                             "unlinked_started_attempts": 0}
+        validate_readback(state, containers, structural_health, template=self.template,
+                          image_ref=self.image_ref, image_id=self.image_id,
+                          unit_sha256=digest(self.unit_bytes()))
+        self.cid = containers[0]["Id"]
+        health = json.loads(self._run("docker", ["exec", self.cid, "python", "crawler_worker.py",
+                                                 "--healthcheck"], timeout=20))
+        return state, containers, health
+
+    def stop_candidate(self, unit_sha, image_ref, image_id):
+        self._binding(unit_sha, image_ref, image_id)
+        containers = self._containers()
+        for container in containers:
+            if (container["Name"] != "/" + CONTAINER or container["Image"] != image_id
+                    or container["Config"]["Image"] != image_ref
+                    or container["Config"]["Labels"] != {"com.noteai.service": CONTAINER}
+                    or (self.cid and container["Id"] != self.cid)):
+                raise ValueError("managed_stop_ownership")
+        if not self.start_sent or self.stop_sent:
+            raise ValueError("managed_no_stop_replay")
+        self.stop_sent = True
+        # Even zero containers may hide an outstanding start job. Stop the
+        # exact bound unit once, then independently require job/containers gone.
+        self._run("systemctl", ["stop", UNIT], timeout=55)
+        self.stopped_state()
 
 
 def digest(value: bytes) -> str:
@@ -174,7 +443,7 @@ def rehearse(adapter, journal, *, template: bytes, current_image: str,
              candidate_image: str, image_id: str) -> dict:
     """Exercise the bounded sequence through an explicitly supplied adapter.
 
-    No production adapter is included. The adapter must hold an exclusive unit
+    The adapter must hold an exclusive unit
     lock for this entire call, bound every operation, CAS replace_unit against
     its expected hash, and stop_candidate only when exact unit/container/image
     ownership is confirmed. start_once must never retry. A timeout is UNKNOWN.
@@ -209,6 +478,7 @@ def rehearse(adapter, journal, *, template: bytes, current_image: str,
         candidate_sha = digest(candidate)
         if candidate == original:
             raise ValueError("managed_candidate_unchanged")
+        adapter.prepare_candidate(candidate, candidate_image, image_id, current_image)
         # A failure here prevents all mutations; never continue without a
         # durable exact original, including after an interrupted connection.
         journal.write("managed_original", state=before, unit=rollback.decode("utf-8"))
