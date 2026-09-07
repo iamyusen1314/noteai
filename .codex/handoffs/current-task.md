@@ -1,5 +1,109 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current authorized Item34 execution — 2026-09-07
+
+The owner explicitly approved the 9802111 top Item34 minimum application section
+in this same task. Only this bounded Item34 job leaves PAUSED. All other Items,
+global schedulers/automations, Git push, API/Payment/ALB/DNS/public launch remain
+PAUSED; no Item32 successor, Item31 production collector/payments, new account,
+credential reset, wider permissions, public ACR or new billable resource.
+This authorization includes necessary DMS default-role grant; existing owner
+SQL path; existing-identity ACR authentication and one-image publication;
+0019 exact scripts; temporary attempts SELECT and restoration of only the task
+grant; lawful existing-user authentication/POST; two stages at most2admissions,
+no retry; exact managed validation, results/safety/config/ACL cleanup/Evidence.
+Owner additionally accepts required authentication DML, designated policy DDL,
+temporary grant/revoke and failure safety writes as bounded auxiliary actions.
+Core7-table9-distinct-row counting must be compatible before production writes;
+no log-splitting to disguise an actual violation. Historical Evidence unchanged.
+Approval baseline plan SHA256: `ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d`.
+
+Fresh first clock was UTC05:06:53 / Beijing13:06:53 September7. Local HEAD9802111
+matched, index/tracked tree clean, protected7 untracked and unread. Canonical
+Evidence re-read SHA f869667a495fe6b570a77ce0eaa8d44b667fbb8c2b0477b97416c3f18541754a:
+no checkpoints/attempts/managed_track/terminal. Item34 UNPROVEN;24h actual result
+and snapshot must precede September7 22:30:38. 3d at/after that boundary already
+approved, without enabling PAUSED automations or an automatic window restart.
+The primary submitted the exact DMS default-role authorization; the owner
+completed SMS MFA. RAM readback proves AliyunDMSDefaultRole created13:20:40 and
+the sole displayed system policy AliyunDMSRolePolicy attached13:20:41. The old
+DMS page then lost its authorization blocker. Its login page explicitly points
+to current `https://dms.aliyun.com/`; that current UI already has an existing
+`noteai_admin` session for database `noteai` on noteai-prod-postgres. A different
+AliyunServiceRoleForDMS prompt was CANCELLED, never granted.
+
+Exact0019 preflight ran once in this owner session: DMS batch SUCCEEDED10ms,
+ending ROLLBACK, but batch SELECT booleans were not displayed. A necessary
+catalog-only readback at13:47:17.033636 BJT proves current/session noteai_admin,
+owner activation true; settings/ledger/attempts owners exact; required settings
+RLS true;0019 policy0/ledger0. App SELECT true on other5tables, false only on
+attempts. The original ACL is saved in canonical current execution evidence;
+no app grant has been added. The10core/auth tables have no enabled user trigger.
+The owner session and attempts ownership establish a revoke-capable channel;
+revalidate it immediately before any temporary grant, particularly after the
+owner returns. No migration apply, DB write, managed POST or provider dispatch.
+One JSON-cell readback was truncated; it was not treated as complete. DMS then
+rejected an empty stale selection (request01A07A67-CEE8-5D9A-8406-BC01C6431648);
+no SQL was dispatched for that attempt. Full selection of the same metadata
+query returned all14short rows. No result export or extra access was requested.
+
+ACR readback confirms private immutable noteai/app and no planned new tag.
+Generated one temporary credential for the existing account through its normal
+ACR UI; its value was neither read nor recorded. API-F docker login reached the
+non-echo Password prompt. The hidden UI copy button was not usable by the tool;
+no password entered. The owner is away and requested a20:00BJT reminder.
+Cancelled the waiting login with Ctrl-C and verified the host shell prompt.
+No archive upload/load/push happened, no actual registry digest exists yet,
+and the old UNAUTHORIZED/ACCESS_DENIED request was not repeated.
+
+Created a one-time thread reminder `noteai-20` for September7 20:00BJT; its
+scope is only manual-operation notification. Existing `item34-24h-3d-observation`
+was read back PAUSED and was not changed. This is not an executor wakeup.
+At20:00 the owner should complete normal ACR temporary-password Docker login
+on API-F (generate a fresh temporary credential if expired), and use the
+existing legitimate NoteAI account for the fixed target. Owner DB login may
+already remain available; do not ask for MFA/credentials again unless the
+current UI actually requires it. No password or verification code in chat.
+
+### Local closure while the owner is away
+
+- Corrected the plan's reversed crawler_events/system_settings breakdown to
+  the existing validator's2/1; core remains7tables9distinct objects. Existing
+  validator accepts only the owner's fixed auxiliary actions in one optional
+  canonical object, bound into the existing write digest. Old absent-field
+  evidence keeps its original digest. Source-bounded auth counts remain null,
+  never0; unapproved/unknown scope, failed sampling, clock, missing rows or unrestored ACL
+  still cannot earn acceptance. No authentication collector was installed.
+- Added host-only `tools/run_item34_tracking_durable.py`: invokes the unchanged
+  approved wrapper, fsyncs native snapshots plus original config/active CAS
+  before activation, preserves worker data before cleanup, and supports exact
+  saved-state config restore without provider replay. It is not installed on
+  API-F or part of a rebuilt image. New recovery execution records use the
+  existing Item34 workdir, root-only, exclusive filenames; never reuse a run
+  filename or treat an incomplete journal as terminal Evidence.
+- Initial97tests passed under Python3.14.4 and isolated Python3.11.14; final
+  Python3.11 suite102/102 includes the review fixes for real session-stop flow,
+  CLI ENOSPC restore and the auxiliary fake-zero bypass. One new test fixture
+  initially lacked the original read_transition_state method; corrected only
+  that fixture and reran successfully. The first
+  3.11 attempts lacked dotenv, then psycopg; the temporary venv at
+  `/private/tmp/noteai-item34-host-tests-20260907` now holds the existing pinned
+  dotenv1.2.2/psycopg3.3.4 test-guard dependencies. No repository dependencies
+  changed. Network/PG/dotenv/production-path guards were active during tests.
+- Host logger SHA256 is
+  `116d865b7824e9b422f6b5c0271d60deb06efa24da7cf72484d85683fe425e0c`.
+  Original wrapper remains3d9e65c4…8a and checkpoint73f53cba…8c; historical
+  canonical JSON values were compared against9802111 and are unchanged.
+- Readiness remains30/38, internal29/29. Canonical `production_execution_20260907`
+  now stores the fresh cloud/read-only facts; historical observation, attempts,
+  accepted DoD, original write ledger and runtime image/source bytes unchanged.
+
+Next: save this recovery checkpoint, then at the requested20:00 reminder resume
+from current owner/ACR state, transfer the one existing image, publish/read back
+its true digest, and proceed in the already-authorized order. Before24h, fresh
+time and snapshot must still be strictly before22:30:38. No automatic restart.
+
+
 ## Current implementation closure — 2026-09-07 12:46 Beijing
 
 Continued from `b8ae59cbf1c8423b832dab385eb3f0d367298b71` in the same worktree

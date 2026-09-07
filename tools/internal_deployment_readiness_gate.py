@@ -4739,6 +4739,93 @@ def validate_item36_alb_evidence(
     return errors
 
 
+def _validate_item34_auxiliary_effects(value: Any) -> list[str]:
+    """The September 7 owner supplement; direct auth counts may be unobserved.
+
+    This is a scoped disclosure in the existing write ledger, not a whole-DB
+    audit. Action names fix the allowed auth code paths; arbitrary tables,
+    columns, policies or privileges cannot be added through this object.
+    """
+    error = ["Item34 authorized auxiliary effects invalid"]
+    if not isinstance(value, dict) or not _keys_exact(value, {
+        "authorization_checkpoint", "authorization_plan_sha256",
+        "execution_record_ref", "authentication", "policy_ddl",
+        "temporary_attempts_select", "safety_flag", "unexpected_effects",
+    }):
+        return error
+    if (
+        value["authorization_checkpoint"] != "9802111a27b131e510c1c686870121baead5c45d"
+        or value["authorization_plan_sha256"]
+        != "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d"
+        or value["execution_record_ref"] != ".codex/handoffs/current-task.md"
+        or value["unexpected_effects"] != []
+        or value["policy_ddl"] != {
+            "operation": "APPLY_EXACT_0019",
+            "readback": "USE_EXISTING_RUNTIME_CONFIG_MIGRATION",
+        }
+    ):
+        return error
+    authentication = value["authentication"]
+    if not isinstance(authentication, list):
+        return error
+    # login: auth_login_limits INSERT/DELETE, users.last_login UPDATE,
+    # user_sessions INSERT; rejected login may update only its limiter keys.
+    bounds = {
+        ("existing_user_password_login", "SUCCEEDED"): 6,
+        ("existing_user_password_login", "FAILED"): 4,
+        ("existing_user_password_login", "UNKNOWN"): 6,
+        ("expired_token_cleanup", "SUCCEEDED"): 1,
+        ("expired_token_cleanup", "UNKNOWN"): 1,
+        ("valid_session_check", "SUCCEEDED"): 0,
+    }
+    for action in authentication:
+        if not isinstance(action, dict) or not _keys_exact(action, {
+            "action", "outcome", "actual_committed_row_mutations",
+            "count_basis", "direct_row_mutations_upper_bound",
+        }):
+            return error
+        bound = bounds.get((str(action["action"]), str(action["outcome"])))
+        if bound is None or not _exact_int(action["direct_row_mutations_upper_bound"], bound):
+            return error
+        # There is no approved production auth DML collector in this job.
+        # A response (including a lost response) cannot prove affected-row count.
+        if (action["count_basis"] != "SOURCE_BOUNDED_NOT_OBSERVED"
+                or action["actual_committed_row_mutations"] is not None):
+            return error
+    grants = value["temporary_attempts_select"]
+    if not isinstance(grants, list) or len(grants) != 2:
+        return error
+    stages = []
+    for grant in grants:
+        if not isinstance(grant, dict) or not _keys_exact(grant, {
+            "stage", "grant_added", "original_acl_restored",
+            "original_acl_sha256", "restored_acl_sha256",
+        }):
+            return error
+        stages.append(grant["stage"])
+        acl = grant["original_acl_sha256"]
+        if (
+            type(grant["grant_added"]) is not bool
+            or grant["original_acl_restored"] is not True
+            or not isinstance(acl, str) or SHA256.fullmatch(acl) is None
+            or grant["restored_acl_sha256"] != acl
+        ):
+            return error
+    if sorted(str(stage) for stage in stages) != ["24h", "3d"]:
+        return error
+    # Safety writes remain saved on failure but cannot turn it into acceptance.
+    safety = value["safety_flag"]
+    if (
+        not isinstance(safety, dict)
+        or not _keys_exact(safety, {"key", "outcome", "actual_committed_row_mutations"})
+        or safety["key"] != "xhs_collection_safety"
+        or safety["outcome"] != "NOT_NEEDED"
+        or not _exact_int(safety["actual_committed_row_mutations"], 0)
+    ):
+        return error
+    return []
+
+
 def validate_item34_tracking_evidence(
     control: dict[str, Any],
     *,
@@ -5265,6 +5352,11 @@ def validate_item34_tracking_evidence(
                 "out_of_contract_row_mutations"
             ),
         }
+        if "authorized_auxiliary_effects" in payload:
+            auxiliary = payload["authorized_auxiliary_effects"]
+            errors.extend(_validate_item34_auxiliary_effects(auxiliary))
+            # Keep the original digest algorithm for historical evidence.
+            write_readback["authorized_auxiliary_effects"] = auxiliary
         expected_write_digest = hashlib.sha256(
             json.dumps(
                 write_readback,

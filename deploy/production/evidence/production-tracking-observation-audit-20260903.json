@@ -461,5 +461,99 @@
       "unknown_replay_allowed": false,
       "production_executed": false
     }
+  },
+  "production_execution_20260907": {
+    "status": "OWNER_SQL_READY_ACR_MANUAL_LOGIN_PENDING",
+    "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
+    "authorization_plan_sha256": "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
+    "authorization_record": ".codex/handoffs/current-task.md",
+    "dms_role": {
+      "role": "AliyunDMSDefaultRole",
+      "policy": "AliyunDMSRolePolicy",
+      "role_created_at": "2026-09-07T13:20:40+08:00",
+      "policy_attached_at": "2026-09-07T13:20:41+08:00",
+      "status": "READBACK_VERIFIED",
+      "unapproved_service_linked_role": "AliyunServiceRoleForDMS",
+      "unapproved_role_prompt": "CANCELLED_NO_GRANT"
+    },
+    "owner_preflight": {
+      "path": "scripts/postgres/item34-0019-preflight.sql",
+      "sha256": "dbfac34fe06bbec9e81bd0cad0e33131f7ba1ff25575d447c82adc1013869d41",
+      "dms_batch_status": "SUCCEEDED",
+      "dms_elapsed_ms": 10,
+      "select_booleans_displayed": false,
+      "ends_with": "ROLLBACK"
+    },
+    "owner_catalog_readback": {
+      "observed_at": "2026-09-07T13:47:17.033636+08:00",
+      "database": "noteai",
+      "current_user": "noteai_admin",
+      "session_user": "noteai_admin",
+      "owner_activation_capable": true,
+      "settings_owner_exact": true,
+      "ledger_owner_exact": true,
+      "attempts_owner_exact": true,
+      "rls_contract_exact": true,
+      "policy_count": 0,
+      "ledger_count": 0,
+      "app_select": {
+        "system_settings": true,
+        "tracked_notes": true,
+        "tracking_provider_attempts": false,
+        "crawler_events": true,
+        "growth_records": true,
+        "user_memories": true
+      },
+      "attempts_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+      "attempts_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+      "enabled_user_triggers": [],
+      "trigger_tables": [
+        "schema_migrations",
+        "tracked_notes",
+        "tracking_provider_attempts",
+        "crawler_events",
+        "growth_records",
+        "user_memories",
+        "system_settings",
+        "users",
+        "user_sessions",
+        "auth_login_limits"
+      ],
+      "scope": "catalog metadata and exact 0019 ledger count only; no business-detail scan",
+      "readback_transport": "existing DMS noteai_admin session; 14 short rows; first JSON result was truncated and not treated as complete",
+      "dms_empty_selection_failure": {
+        "request_id": "01A07A67-CEE8-5D9A-8406-BC01C6431648",
+        "status": "SQL_EMPTY_NOT_DISPATCHED",
+        "correction": "selected full same readonly statement"
+      }
+    },
+    "acr": {
+      "instance": "cri-xpuhaclqkxlwy47t",
+      "repository": "noteai/app",
+      "private": true,
+      "tag_immutable": true,
+      "candidate_tag": "item34-20260907-b8ae59c",
+      "candidate_tag_seen": false,
+      "existing_account_temporary_credential": "GENERATED_VALUE_NOT_READ_OR_RECORDED",
+      "api_f_docker_login": "CANCELLED_AT_PASSWORD_PROMPT_NO_PASSWORD_ENTERED",
+      "registry_digest": null,
+      "image_uploaded": false,
+      "image_pushed": false,
+      "previous_denied_manifest_cause": "UNLOCATED_NO_REPEAT"
+    },
+    "owner_return_reminder": {
+      "automation_id": "noteai-20",
+      "at": "2026-09-07T20:00:00+08:00",
+      "one_time": true,
+      "scope": "manual action reminder only; old executors and global automation remain PAUSED"
+    },
+    "production_database_writes": 0,
+    "provider_admissions": 0,
+    "temporary_attempts_select_added": false,
+    "migration_apply": "NOT_DISPATCHED",
+    "managed_row_post": "NOT_DISPATCHED",
+    "checkpoint_24h": "NOT_DISPATCHED",
+    "checkpoint_3d": "NOT_DISPATCHED",
+    "secret_values_recorded": false
   }
 }

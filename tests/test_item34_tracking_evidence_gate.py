@@ -260,6 +260,10 @@ class Item34TrackingEvidenceGateTests(unittest.TestCase):
                 "out_of_contract_row_mutations"
             ],
         }
+        if "authorized_auxiliary_effects" in self.payload:
+            projection["authorized_auxiliary_effects"] = self.payload[
+                "authorized_auxiliary_effects"
+            ]
         writes["ledger_readback_sha256"] = hashlib.sha256(
             json.dumps(
                 projection,
@@ -293,6 +297,105 @@ class Item34TrackingEvidenceGateTests(unittest.TestCase):
 
     def test_accepts_exact_real_24h_and_3d_evidence(self):
         self.assertEqual(self.validate(), [])
+
+    def _add_owner_auxiliary_effects(self):
+        self.payload["authorized_auxiliary_effects"] = {
+            "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
+            "authorization_plan_sha256":
+                "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
+            "execution_record_ref": ".codex/handoffs/current-task.md",
+            "authentication": [{
+                "action": "existing_user_password_login",
+                "outcome": "SUCCEEDED",
+                "actual_committed_row_mutations": None,
+                "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+                "direct_row_mutations_upper_bound": 6,
+            }],
+            "policy_ddl": {
+                "operation": "APPLY_EXACT_0019",
+                "readback": "USE_EXISTING_RUNTIME_CONFIG_MIGRATION",
+            },
+            "temporary_attempts_select": [{
+                "stage": stage, "grant_added": True,
+                "original_acl_restored": True,
+                "original_acl_sha256": "a" * 64,
+                "restored_acl_sha256": "a" * 64,
+            } for stage in ("24h", "3d")],
+            "safety_flag": {
+                "key": "xhs_collection_safety", "outcome": "NOT_NEEDED",
+                "actual_committed_row_mutations": 0,
+            },
+            "unexpected_effects": [],
+        }
+        self._refresh_write_readback_sha256()
+        return self.payload["authorized_auxiliary_effects"]
+
+    def test_auxiliary_source_bound_keeps_unknown_count_and_core_nine(self):
+        auxiliary = self._add_owner_auxiliary_effects()
+        self.assertEqual(self.validate(), [])
+        self.assertIsNone(auxiliary["authentication"][0]["actual_committed_row_mutations"])
+        self.assertEqual(self.payload["actual_production_write_set"]["row_mutations"], 9)
+
+    def test_auxiliary_cannot_hide_unapproved_writes_or_unknown_as_zero(self):
+        for field, value in (
+            ("action", "create_user"), ("columns", ["credits"]),
+            ("actual_committed_row_mutations", 0), ("outcome", "UNAPPROVED"),
+        ):
+            auxiliary = self._add_owner_auxiliary_effects()
+            auxiliary["authentication"][0][field] = value
+            self._refresh_write_readback_sha256()
+            with self.subTest(field=field):
+                self.assertIn("Item34 authorized auxiliary effects invalid", self.validate())
+
+    def test_auxiliary_cannot_relabel_unobserved_count_as_verified_zero(self):
+        auxiliary = self._add_owner_auxiliary_effects()
+        auxiliary["authentication"][0].update(
+            count_basis="READBACK_VERIFIED", actual_committed_row_mutations=0)
+        self._refresh_write_readback_sha256()
+        self.assertIn("Item34 authorized auxiliary effects invalid", self.validate())
+
+    def test_lost_auth_response_keeps_unknown_count_without_relaxing_provider(self):
+        auxiliary = self._add_owner_auxiliary_effects()
+        auxiliary["authentication"][0]["outcome"] = "UNKNOWN"
+        self._refresh_write_readback_sha256()
+        self.assertEqual(self.validate(), [])
+        self.payload["observation"]["actual_provider_attempts"][0]["status"] = "unknown"
+        self.assertTrue(self.validate())
+
+    def test_auxiliary_rejects_other_policy_privilege_and_unrestored_acl(self):
+        mutations = (
+            lambda a: a["policy_ddl"].update(operation="CREATE_OTHER_POLICY"),
+            lambda a: a["temporary_attempts_select"][0].update(privilege="UPDATE"),
+            lambda a: a["temporary_attempts_select"][0].update(original_acl_restored=False),
+            lambda a: a["temporary_attempts_select"][0].update(restored_acl_sha256="b" * 64),
+            lambda a: a["unexpected_effects"].append("unapproved_table"),
+            lambda a: a["safety_flag"].update(outcome="BLOCKED", actual_committed_row_mutations=1),
+        )
+        for mutate in mutations:
+            auxiliary = self._add_owner_auxiliary_effects()
+            mutate(auxiliary)
+            self._refresh_write_readback_sha256()
+            self.assertIn("Item34 authorized auxiliary effects invalid", self.validate())
+
+    def test_auxiliary_is_bound_into_original_ledger_digest(self):
+        auxiliary = self._add_owner_auxiliary_effects()
+        auxiliary["authentication"] = []
+        self.assertIn("production write ledger digest invalid", self.validate())
+
+    def test_auxiliary_does_not_relax_core_counts_clock_or_attempt_success(self):
+        self._add_owner_auxiliary_effects()
+        self.payload["actual_production_write_set"]["rows_by_table"]["crawler_events"] = 1
+        self._refresh_write_readback_sha256()
+        self.assertIn("terminal Tracking row counts invalid", self.validate())
+        self.payload["actual_production_write_set"]["rows_by_table"]["crawler_events"] = 2
+        self._refresh_write_readback_sha256()
+        checkpoint = self.payload["observation"]["checkpoint_24h"]
+        original = checkpoint["observed_at"]
+        checkpoint["observed_at"] = "2026-09-07T22:30:38+08:00"
+        self.assertTrue(self.validate())
+        checkpoint["observed_at"] = original
+        self.payload["observation"]["actual_provider_attempts"][0]["status"] = "failed"
+        self.assertTrue(self.validate())
 
     def test_later_managed_row_does_not_reset_real_observation_anchor(self):
         self.payload["observation"]["managed_track"]["submitted_at"] = (

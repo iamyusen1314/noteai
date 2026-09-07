@@ -1,5 +1,40 @@
 # Risk Register
 
+## Current bounded Item34 execution — 2026-09-07
+
+- Owner approved9802111's exact Item34 application plus bounded auth/policy/
+  temporary ACL/safety effects. Only this job leaves PAUSED. All other Items,
+  global timers/automations, Git push and public/API/Payment/ALB changes remain
+  paused. The new one-time20:00thread reminder is manual notification only.
+- Actual DMS default role/system policy landed13:20:40/41 after owner SMS MFA.
+  Current DMS already has noteai_admin for database noteai.13:47:17catalog
+  readback proves exact owners/activation/RLS;0019policy/ledger0; app lacks only
+  attempts SELECT; original ACL preserved and10core/auth tables have no enabled
+  user trigger. This supersedes the blanket owner-session blocker below.
+  A separate AliyunServiceRoleForDMS prompt was cancelled, never authorized.
+  Revalidate this owner/revoke channel immediately before granting temporary
+  SELECT; no grant, migration apply, auth/managed POST or provider run yet.
+- ACR generated an existing-account temporary credential; its value was not
+  read or recorded. Login stopped at Password and was cancelled on owner-away
+  notice. No archive transfer/push or registry digest. Existing denial cause
+  remains unlocated; no repeated denied request. Owner returns at20:00.
+- Corrected plan text crawler_events2/system_settings1 to match existing core
+  7tables9distinct objects. Auxiliary source-bounded auth counts remain null;
+  a login response cannot prove actual DML count. The same canonical write hash
+  binds auxiliary disclosure without changing historical hash behavior. No
+  collector or global audit was installed; actual scope uncertainty remains
+  incomplete, and no sample failure/late snapshot can gain terminal credit.
+- Host-only durable logger now preserves original wrapper/native results and
+  saved CAS state without rebuildingb8ae59c. Review found two storage-failure
+  edges: broken logging could block session-stop readback, and recovery CLI
+  could stop before restore. Both fixed; original failure path and CLI ENOSPC
+  regressions pass. Storage failures still report UNKNOWN, not terminal success.
+  Host installation and actual detached-runtime readback are not yet verified.
+- Core observation remains UNPROVEN;24h result AND snapshot must precede
+  September7 22:30:38. 3d afterward is already authorized, but no PAUSED timer
+  should be assumed to resume this task. No automatic observation restart.
+  Readiness30/38, internal29/29; protected7 remain untouched and untracked.
+
 ## Current minimal implementation risks — 2026-09-07 12:46 Beijing
 
 - Item34 local XHS artifact is runnable: Python3.11.15/linux-amd64, exact8 source

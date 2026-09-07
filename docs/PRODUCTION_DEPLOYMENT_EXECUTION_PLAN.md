@@ -1,22 +1,38 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `LOCAL PREPARATION VERIFIED / PRODUCTION APPLICATION NOT AUTHORIZED`
+Status: `ITEM34 BOUNDED EXECUTION AUTHORIZED / OTHER PRODUCTION PAUSED`
 
 Date: 2026-09-07 (current scope below; July sections retained as history)
 
 Task: `PROD-DEPLOY-PLAN-001`
 
-This document is a read-only release plan. It does not authorize an ACR
-access, image pull, container/service start, database write, Alibaba Cloud
-mutation, provider call, ALB/TLS/DNS change, or production traffic.
+Only the owner-approved Item34 section below authorizes bounded execution.
+The retained historical release plan does not authorize other production work.
 
 ## Item34 当次最小生产实施申请 — 2026-09-07
 
-本节是下一次一次审批的具体范围，覆盖正常执行、结果读回、已知失败处置及
-Evidence 保存。**目前全部生产动作仍未获批、未执行。** 本轮仅进行了本地
-Docker/Colima、隔离构建及 PG16 验证；没有生产 Secret、业务连接、供应商请求、
-push、镜像上传、新计费资源或自动化恢复。本节取代下方七月整套发布顺序，
+Owner 在本窗口以明确用户指令批准9802111此节范围，覆盖正常执行、结果读回、
+已知失败处置及Evidence保存。**仅本Item34作业解除PAUSED**；其他Item生产、
+全局定时任务/自动化、Git push仍PAUSED。批准基线为
+`9802111a27b131e510c1c686870121baead5c45d`；该基线计划文件SHA256为
+`ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d`。
+批准必要认证写入、指定policy DDL、临时SELECT/grant撤回及安全失败写入的
+辅助范围；它们须与核心7表9distinct行同时记录和核验，不能用拆日志掩盖越界。
+允许此授权补充进入既有记录和必要校验，原目标、时钟、两次采样/no-replay、
+Secret隔离与真实终态不变。镜像保持真实b8ae59c源码身份，不因文档提交重建。
+已接受既定377806447字节镜像在现有资源的传输/存储及最多2次请求的实际增量，
+未知金额不记0；不得新增Builder、扩容、订阅或固定费用。本节取代下方七月整套发布顺序，
 不要求先重建全部角色、更新 API、部署 Payment 或完成 ALB。
+
+**本次已执行至何处：**DMS默认角色及指定系统策略已在13:20:40/41落地。
+现行 `https://dms.aliyun.com/` 已有 noteai_admin → noteai-prod-postgres/noteai
+会话；13:47:17目录只读读回确认三张表owner、SET ROLE能力、RLS及最低ACL，
+0019 policy/ledger均0。旧DMS入口过时，勿再要求owner重复授权。
+现行页面提出的另一角色AliyunServiceRoleForDMS已取消，没有授权。
+ACR临时密码已生成但值未读取/保存，API-F登录未输入密码即取消；尚未传镜像、
+push或取得digest。Owner离开电脑并要求20:00提醒，仅该一次人工提醒已设置。
+没有0019 apply、grant、业务写入或provider dispatch。完整当前读回见既有
+canonical Evidence的production_execution_20260907和现有Handoff顶部。
 
 ### 0019 的实际 SQL、身份与确认
 
@@ -34,8 +50,8 @@ verify 原 hash `2c14d2340b862a9e321df319cc1009dee4e4bcc454c83ff94d711b2657f76bf
 preflight/apply 内容未变。canonical `0019_xhs_tracking_runtime_config.sql`
 仍为 `bad6b9df591aba93a6f636c3185d955062a878ce9ed2a92d6c1dff5e5c267a6f`。
 
-对象是现有 PG16 `noteai-prod-postgres` 的 NoteAI 数据库；实际数据库名应从
-既有注册实例确认，不能凭别名新建或猜测。执行会话须使用**已有能够
+对象是现有 PG16 `noteai-prod-postgres`，数据库名已由当前DMS会话与SQL读回
+确认为`noteai`，不新建或猜测。执行会话须使用**已有能够
 SET ROLE noteai_admin 的数据库身份**，且 settings 与 ledger 的 owner 都应为
 noteai_admin。preflight 检查身份、search_path、RLS 开启且不 FORCE、无同名
 policy/0019 ledger。apply 用 SERIALIZABLE、限定超时、迁移 advisory 事务锁，
@@ -61,7 +77,7 @@ MFA；之后仍须在该实例的 DMS SQL 窗口使用上述已有数据库执�
 现有 `execute_item34_tracking.py` 的 snapshot/bind 强制 `noteai_app`，会读取
 `tracking_provider_attempts`；现有 ACL 仅给 Tracking 此表权限，0019不会修复。
 隔离 PG16 已复现 app SELECT 被拒、临时 grant 后可读、revoke 后权限恢复。
-下一次批准需明确包括：由上述 owner **仅临时 GRANT SELECT ON
+本次 owner 已明确批准：由上述 owner **仅临时 GRANT SELECT ON
 public.tracking_provider_attempts TO noteai_app**，以及恢复原 ACL。先保存原
 ACL/有效权限；已有授权绝不能在结束时误撤。此 grant 对所有 noteai_app 会话
 生效，暴露该 attempts 表的读取能力，非仅某个容器或 UUID；不授写权限、
@@ -127,7 +143,7 @@ v2继承旧base的cryptography48.0.1，当前要求50.0.0；因此本次选择�
 发布目标是**现有** ACR 私网实例的 `noteai/app`，使用既有 API-F 私网连接，
 发布一个绑定本候选的新 immutable tag（预定 `item34-20260907-b8ae59c`，先核实
 不存在，不覆盖旧tag）。上次一次 manifest 请求为 UNAUTHORIZED/ACCESS_DENIED；
-凭证过期还是权限原因仍未定位，不再重复同一拒绝请求。下一次批准可包含
+凭证过期还是权限原因仍未定位，不再重复同一拒绝请求。本次已明确批准
 使用既有合法主体完成一次 ACR 认证恢复和发布；若需要人工登录，owner 到
 **容器镜像服务 ACR → 当前深圳私网实例 → 访问凭证/仓库 noteai/app 操作指引**，
 在受控主机完成现有身份的认证，不在聊天中交出密码。不重置凭证、扩RAM权限、
@@ -147,6 +163,37 @@ v2继承旧base的cryptography48.0.1，当前要求50.0.0；因此本次选择�
 状态 **UNPROVEN**，旧窗口此时仍可实施，前提是全部前置及24h真实完成/快照
 均在当晚22:30:38之前。若到执行时已错过且没有原有有效Evidence，停止本方案
 的24h执行并报告不相容；不补采倒填、不改DoD、不自动重启。
+
+### 同一次执行的断线保存与恢复
+
+`tools/run_item34_tracking_durable.py`是host侧原生结果保存入口，只调用原
+wrapper/checkpoint；它不进入b8ae59c镜像，不改OCI标签，不替换迁移或验收。
+在已有Item34源码目录保留deploy/production与tools相对布局，放置此host文件；
+执行记录使用既有Item34 workdir内的root-only0700目录/0600排他文件。
+先确认实际host目录再代入下述变量，不把变量名当成已存在的部署路径。
+
+```bash
+sudo -n systemd-run --unit=noteai-item34-24h-once --property=Restart=no \
+  --property=UMask=0077 /usr/bin/python3 \
+  "$ITEM34_SOURCE/tools/run_item34_tracking_durable.py" run \
+  --stage 24h --track-id "$REAL_POST_UUID" --image "$REAL_ACR_VPC_DIGEST" \
+  --journal "$ITEM34_WORKDIR/24h.host.jsonl"
+```
+
+这是一次性无重启host进程，不是timer、全局自动化或API/Payment部署；Workbench
+断线不终止它。回包丢失先查询精确unit及原journal，不重复启动。journal在activate
+之前fsync原始非Secret配置、原时间和active CAS时间；保存postflight/worker信息
+后才允许原cleanup，正常原checkpoint结果也保存于同一journal。
+3d在实际边界之后才由本任务主代理启动，使用对应3d unit/journal；不依赖旧PAUSED
+heartbeat自动唤醒。当前20:00提醒仅提醒人工登录，并不启动任何阶段。
+
+若host进程实际退出且配置仍需恢复，只调用此文件的`restore --restore-from
+原阶段.host.jsonl --journal 未用过的恢复日志路径`。恢复取得原排他锁、停止精确
+阶段容器，读取实际配置；已等于原值则不写，仅当当前hash及时间精确等于保存的
+active状态才调用原transition restore。其他情况CAS冲突停下，不调用authorization
+生成新时间、不调用provider。磁盘持续失败也不挡住配置恢复或原session-stop
+安全处理，但结果仍UNKNOWN；新run的任何前置落盘失败均禁止activate。
+恢复不等于采样验收，原reconcile/必要读回、ACL撤回和managed验证仍按原范围完成。
 
 1. **准备执行入口**：确认既有owner数据库会话和API-F原服务/权限状态；按上文
    有需要才完成DMS默认服务角色授权及既有ACR认证。一次受控传输本地候选至
@@ -180,11 +227,21 @@ reconcile/readback恢复判定；reconcile可能stop容器，**不是纯只读�
 原镜像及SQL状态，终止后续采样，撤回本次新增临时读取权，不删业务数据。
 
 核心批准写范围仍是现行7表9个distinct rows（schema_migrations1、tracked_notes1、
-tracking_provider_attempts2、growth_records1、user_memories1、crawler_events1、
-system_settings2）；同一row的claim/finalize/config多次UPDATE并不等于仅9次DML。
+tracking_provider_attempts2、growth_records1、user_memories1、crawler_events2、
+system_settings1）；这里修正9802111中最后两项写反的文字，沿用原validator的2/1，
+没有修改核心计数要求。同一row的claim/finalize/config多次UPDATE并不等于仅9次DML。
 另外明确纳入必要认证写入、policy DDL、临时grant/revoke和安全失败写入范围，
-如实记录，不能为凑终态隐藏副作用。若认证附带写入与现有批准的总写范围不相容，
-保持incomplete并报告，不能仅通过拆分日志宣称out_of_contract=0。
+如实记录，不能为凑终态隐藏副作用。必要辅助动作写入同一canonical Evidence的
+可选authorized_auxiliary_effects，并纳入原write ledger的hash投影；历史无此字段
+的Evidence仍沿用原hash算法。认证仅限既有账户的正常流程，不新增用户或更改
+余额/其他users列；password login成功的直接行变更上界6、失败上界4，过期token
+清理上界1，依据现有auth/account_security源码。未安装生产认证DML采集器时，
+实际次数保留null，标SOURCE_BOUNDED_NOT_OBSERVED，不能把上界或null写成实测0。
+这些不是包含trigger的全库计数；执行前核对相关表是否有额外用户trigger，若发现
+未批准副作用则先停止并报告。核心out_of_contract=0只描述本受控执行中未超出
+核心及明确批准辅助范围，不声称整个生产期间全库只发生9次DML。临时SELECT逐
+阶段记录原ACL与恢复读回，安全flag失败写入不使失败attempt满足终态。
+若发现真实不相容或效果归属不明，保持incomplete，不能仅拆日志宣称零越界。
 Evidence仅写既有canonical路径/原workdir，
 完全满足批准DoD及validator后才计分。
 
