@@ -625,12 +625,59 @@ class DirectAdapterIntegrationTests(unittest.TestCase):
                 direct.assert_not_awaited()
                 browser.assert_not_awaited()
 
-    def test_tracking_challenge_stops_round_after_first_note(self):
+    def test_tracking_admission_does_not_prove_http_dispatch(self):
+        for signer_fails in (True, False):
+            with self.subTest(signer_fails=signer_fails):
+                requests = []
+
+                def handler(request):
+                    requests.append(request)
+                    return httpx.Response(200, json={"success": False})
+
+                signer = FakeSigner()
+                if signer_fails:
+                    signer.sign = mock.Mock(side_effect=xhs.XHSAdapterError("signer_failed"))
+                note = {"id": "note-1", "status": "pending"}
+                admitted = {**note, "active_attempt_id": "attempt-note-1"}
+                with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+                    adapter = xhs.SpiderXHSHTTPAdapter(
+                        credentials=credentials(), signer=signer, client=client,
+                    )
+
+                    async def fetch_detail(_note):
+                        return adapter.note_detail(
+                            "https://www.xiaohongshu.com/explore/0123456789abcdef"
+                        )
+
+                    with mock.patch.object(adapter, "_assert_ready"), mock.patch.object(
+                        crawler, "_admit_provider_attempt", return_value=admitted
+                    ) as admission, mock.patch.object(
+                        crawler, "_record_tracking_failure"
+                    ) as failure, mock.patch.object(crawler, "_save_log") as log:
+                        result = asyncio.run(crawler._process_tracking_notes([note], fetch_detail))
+                admission.assert_called_once_with(note)
+                self.assertEqual(result["attempted"], 1)
+                self.assertEqual(result["failed"], 1)
+                self.assertEqual(len(requests), 0 if signer_fails else 1)
+                code = "signer_failed" if signer_fails else "remote_business_error"
+                failure.assert_called_once_with(admitted, code, code)
+                self.assertEqual(log.call_args.args[0]["error_code"], code)
+
+    def test_tracking_safety_codes_stop_round_after_first_note(self):
+        for code in (
+            "challenge", "cooldown", "login_required",
+            "login_or_challenge_required", "server_session_logged_out",
+            "collection_suspended", "collection_safety_unavailable",
+        ):
+            with self.subTest(code=code):
+                self._assert_tracking_safety_stops_round(code)
+
+    def _assert_tracking_safety_stops_round(self, code):
         calls = []
 
         async def fetch_detail(note):
             calls.append(note["id"])
-            raise xhs.XHSAdapterError("challenge")
+            raise xhs.XHSAdapterError(code)
 
         notes = [
             {"id": "note-1", "status": "pending"},
@@ -663,8 +710,8 @@ class DirectAdapterIntegrationTests(unittest.TestCase):
         )
         failure.assert_called_once_with(
             {**notes[0], "active_attempt_id": "attempt-note-1"},
-            "challenge",
-            "challenge",
+            code,
+            code,
         )
         release.assert_called_once_with(notes[1])
 

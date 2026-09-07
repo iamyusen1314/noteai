@@ -9,6 +9,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
@@ -525,6 +526,49 @@ class TrackingContractTests(unittest.TestCase):
         )
         self.assertEqual(attempt["status"], "failed")
         self.assertEqual(attempt["error_code"], "provider_outcome_unknown")
+
+    def test_adapter_failure_code_persists_without_secrets_or_automatic_retry(self):
+        from spider_xhs_http import XHSAdapterError
+
+        for index, code in enumerate((
+            "signer_failed", "remote_schema_error", "network_error",
+            "Bearer SYNTHETIC_SECRET", ["SYNTHETIC_SECRET"],
+        )):
+            with self.subTest(code=code):
+                track_id = f"adapter-failure-{index}"
+                self._insert_due(track_id)
+                exc = XHSAdapterError("SYNTHETIC_SECRET")
+                exc.code = code
+                fetch = mock.AsyncMock(side_effect=exc)
+                expected = code if index < 3 else "xhsadaptererror"
+                with mock.patch.object(crawler, "_save_log") as log:
+                    result = asyncio.run(crawler._process_due_tracking_notes(
+                        1, fetch, run_id=str(uuid.uuid4()),
+                    ))
+                self.assertEqual(result["attempted"], 1)
+                self.assertEqual(result["failed"], 1)
+                self.assertEqual(result["collected"], 0)
+                fetch.assert_awaited_once()
+                row = dict(db.fetchone(
+                    "SELECT status,last_error_code,last_error,next_check_at,"
+                    "check_24h_at,active_attempt_id FROM tracked_notes WHERE id=?",
+                    (track_id,),
+                ))
+                self.assertEqual(row, {
+                    "status": "needs_manual", "last_error_code": expected,
+                    "last_error": expected, "next_check_at": None,
+                    "check_24h_at": None, "active_attempt_id": None,
+                })
+                attempts = db.fetchall(
+                    "SELECT status,error_code FROM tracking_provider_attempts "
+                    "WHERE track_id=?", (track_id,),
+                )
+                self.assertEqual([dict(a) for a in attempts], [
+                    {"status": "failed", "error_code": expected},
+                ])
+                self.assertEqual(log.call_args.args[0]["error_code"], expected)
+                self.assertNotIn("SYNTHETIC_SECRET", str(log.call_args_list))
+                self.assertEqual(crawler._claim_due_tracking_notes(1), [])
 
     def test_account_deletion_is_blocked_while_provider_attempt_is_active(self):
         self._insert_due("delete-active")

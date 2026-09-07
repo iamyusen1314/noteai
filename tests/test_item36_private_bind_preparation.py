@@ -1,7 +1,7 @@
 import hashlib
 import unittest
 
-from tools.prepare_item36_private_bind import render_private_bind
+from tools.prepare_item36_private_bind import render_image_update, render_private_bind
 
 
 UNIT = (
@@ -61,6 +61,59 @@ class Item36PrivateBindPreparationTests(unittest.TestCase):
         for address in ("0.0.0.0", "127.0.0.1", "8.8.8.8", "100.64.0.1", "::1", "10.0.1.1;false"):
             with self.subTest(address=address), self.assertRaisesRegex(ValueError, "private_ipv4_required"):
                 self.render(address=address)
+
+    def test_image_update_preserves_port_labels_and_exact_rollback(self):
+        original = "registry.example.invalid/api@sha256:" + "a" * 64
+        candidate = "registry.example.invalid/api@sha256:" + "c" * 64
+        for address in (b"127.0.0.1", b"10.0.1.12"):
+            source = UNIT.replace(b"127.0.0.1", address).replace(
+                b"--read-only", f"--label=prior={original} --read-only".encode()
+            )
+            source = f"# prior image {original}\n".encode() + source
+            updated, rollback = render_image_update(
+                source, expected_sha256=hashlib.sha256(source).hexdigest(),
+                expected_image=original, candidate_image=candidate,
+            )
+            self.assertEqual(rollback, source)
+            self.assertEqual(updated.replace(candidate.encode(), original.encode()), source)
+            self.assertIn(b"--publish=" + address + b":8000:8000", updated)
+            self.assertEqual(updated.count(original.encode()), 2)
+
+    def test_image_update_rejects_wrong_source_mutable_injection_and_public_bind(self):
+        original = "registry.example.invalid/api@sha256:" + "a" * 64
+        candidate = "registry.example.invalid/api@sha256:" + "c" * 64
+        for source, expected, new_image, digest in (
+            (UNIT, candidate, candidate, None),
+            (UNIT, original, candidate, "b" * 64),
+            (UNIT, original, original, None),
+            (UNIT, original, "registry.example.invalid/api:latest", None),
+            (UNIT, original, candidate + " --privileged", None),
+            (UNIT, original, "https://" + candidate, None),
+            (UNIT, original, "-" + candidate, None),
+            (UNIT.replace(b"127.0.0.1", b"0.0.0.0"), original, candidate, None),
+            (UNIT.replace(b"--read-only", b"-p9000:9000 --read-only"), original, candidate, None),
+        ):
+            with self.subTest(expected=expected, candidate=new_image), self.assertRaises(ValueError):
+                render_image_update(
+                    source, expected_sha256=digest or hashlib.sha256(source).hexdigest(),
+                    expected_image=expected, candidate_image=new_image,
+                )
+
+    def test_rejects_image_looking_app_argument_and_publish_looking_option_value(self):
+        original = "registry.example.invalid/api@sha256:" + "a" * 64
+        candidate = "registry.example.invalid/api@sha256:" + "c" * 64
+        for source in (
+            UNIT.replace(original.encode(), f"{candidate} {original}".encode()),
+            UNIT.replace(b"--publish=", b"--label -p"),
+            UNIT.replace(b"--read-only", b"--unknown-option --read-only"),
+        ):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                render_image_update(
+                    source, expected_sha256=hashlib.sha256(source).hexdigest(),
+                    expected_image=original, candidate_image=candidate,
+                )
+            with self.assertRaises(ValueError):
+                self.render(source=source)
 
 
 if __name__ == "__main__":

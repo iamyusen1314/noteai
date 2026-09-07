@@ -1,5 +1,18 @@
 # Risk Register
 
+## Local continuation after the failed window — 2026-09-07
+
+- Fixed future Tracking diagnostic-code loss without changing the7 safety stop
+  codes or no-retry policy. Old production xhsadaptererror cause remains
+  UNLOCATED; offline signer success does not validate production session/HTTP.
+- Item36 pure renderer now supports separate exact image replacement. Review
+  exposed argv/image and label/publish confusion in the shared old regex;
+  bounded option parsing and two reproductions now pass. Actual host unit bytes
+  and new registry digests remain unbound; synthetic preparation is not deploy.
+- Item32 existing recovery package bindings remain current; no new identity,
+  date rollover or execution. All production and global automation stay stopped.
+  Local Python3.11 candidate checks are in progress; Readiness remains30/38.
+
 ## Current bounded Item34 execution — 2026-09-07
 
 -22:31 final outcome supersedes earlier pending identity/grant states:

@@ -849,8 +849,8 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
         except Exception as exc:
             # Adapter exceptions expose only a fixed code; no Cookie/a1/xsec token
             # is included in the persisted summary.
-            direct_code = str(getattr(exc, "code", "") or "")
-            allowed_codes = {
+            direct_code = getattr(exc, "code", None)
+            stop_codes = {
                 "challenge",
                 "cooldown",
                 "login_required",
@@ -859,9 +859,28 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
                 "collection_suspended",
                 "collection_safety_unavailable",
             }
+            # Preserve only fixed codes produced by the direct note adapter.
+            # Diagnostics must not change which failures stop/release a round.
+            diagnostic_codes = stop_codes | {
+                "adapter_not_selected",
+                "runtime_role_not_allowed",
+                "operation_not_allowed",
+                "invalid_note_url",
+                "signer_asset_missing",
+                "signer_asset_integrity_failed",
+                "signer_wrapper_missing",
+                "signer_unavailable",
+                "signer_failed",
+                "signer_invalid_response",
+                "remote_http_error",
+                "remote_schema_error",
+                "remote_business_error",
+                "remote_non_json",
+                "network_error",
+            }
             error_code = (
                 direct_code
-                if direct_code in allowed_codes
+                if isinstance(direct_code, str) and direct_code in diagnostic_codes
                 else security_redaction.stable_error_code(exc)
             )
             error_summary = error_code
@@ -889,7 +908,7 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
                     str(note["id"]).encode("utf-8")
                 ).hexdigest()[:16],
             })
-            if error_code in allowed_codes:
+            if error_code in stop_codes:
                 for remaining in notes[index + 1:]:
                     try:
                         _release_unstarted_claim(remaining)

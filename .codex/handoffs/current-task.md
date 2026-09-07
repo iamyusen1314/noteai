@@ -1,5 +1,47 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Continuing local implementation — September7 after owner rests
+
+Owner explicitly requested continued autonomous local work. Production remains
+stopped; failed Item34 Evidence and all old image identities remain unchanged.
+No new observation/identity/provider execution, host mutation or push.
+
+`model/crawler.py` now preserves15 additional fixed Tracking adapter diagnostic
+codes while retaining the original7 safety stop/release codes separately.
+Unknown or non-string code falls back to the exception class; no message,
+payload, cause or Secret is logged. Existing tests now cover persisted failure,
+needs_manual/null next_check, exactly one admission and no second claim; all7
+safety codes still release remaining claims. MockTransport contrasts signer
+failure (HTTP0) with remote business failure (HTTP1), both admission1. These
+new codes cannot reconstruct the old xhsadaptererror or prove HTTP dispatch.
+Four focused local checks pass with env cleared/network+Postgres+dotenv blocked
+and temporary SQLite only. An expanded27-test run had25passes/two intentional
+isolation blocks: an old scheduler fixture tried workspace SQLite, and the
+real Node subprocess was prohibited by that launcher. Neither is counted PASS.
+Separately the exact existing b8ae59c image, networknone/read-only/non-root,
+Python3.11.15 amd64, ran the real NodeSigner with synthetic input successfully;
+this proves a basic offline path, not production session or failure diagnosis.
+An initial probe lacked the temporary SQLite path and stopped during import;
+corrected /tmp bootstrap allowed the signer check, with no production DB/Secret.
+
+`tools/prepare_item36_private_bind.py` now has an independent image-update mode
+bound to exact unit SHA and old/new immutable references, preserving the port
+and byte-exact rollback. Existing bind-only mode stays separate. Review found
+the prior regex could confuse application argv with image or label value with
+publish; a limited literal Docker-options parser now rejects both, unknown
+options and non-bridge namespaces. Eight renderer tests pass, including both
+reproductions. A scheme-prefixed image fixture first exposed an overbroad image
+regex; the registry/repository grammar is now bounded and that regression passes.
+No actual node unit is bound/applied and no deployment claim is made.
+
+Read-only Item32 audit confirms current executor/spider/HOLD/plan hashes still
+match the already prepared recovery package. No new local recovery defect was
+found; retain both sealed identities and fixed UTC plan without rollover.
+Next in progress: actual Python3.11 regressions and necessary XHS/API candidate
+artifact validation from reviewed source with existing local cache. Colima
+noteai-prep was explicitly restarted under local authorization; no cloud Builder.
+Readiness remains30/38; no original canonical/DoD/Readiness edit this local stage.
+
 ## Current authorized Item34 execution — 2026-09-07
 
 ### Final live outcome — September7 22:31 Beijing; local closure follows

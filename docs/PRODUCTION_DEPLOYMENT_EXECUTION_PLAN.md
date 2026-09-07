@@ -493,7 +493,7 @@ These are three separate implementation actions, not interchangeable completion:
 
 | Action | Actual local result / next implementation | Genuine dependency |
 |---|---|---|
-| Candidate API image update | Current source contains Item30 Kimi repair; deployed b55 does not. This turn built XHS only. API candidate build/content regressions and exact digest replacement remain separate release work. | An old healthy API or an updated XHS image cannot prove API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
+| Candidate API image update | Current source contains Item30 Kimi repair; deployed b55 does not. The existing pure renderer now accepts a separate exact old/new immutable image replacement and preserves the port/rollback bytes. Actual API candidate and node input binding remain in progress. | An old healthy API or an updated XHS image cannot prove API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
 | Private API binding | Existing pure renderer and rollback bytes are prepared; actual API-C/F unit bytes and exact source hash must be read and bound before apply. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
 | Payment first activation | C was disabled/inactive and F unit not-found at last readback. First installation/configuration, immutable image, shared API container namespace, service start, health and public callback verification remain real actions. | Merchant/canary authorization and provider-reachable callback ingress before live funds. Keeping disabled state is rollback preservation, not first activation or full deployment. |
 
@@ -519,6 +519,16 @@ Synthetic tests do not prove that either current host unit matches its input
 contract. No actual host unit has been fetched, rendered or applied this turn.
 Production Compose now defaults API binding to loopback; a future reviewed
 private binding must be explicit.
+
+The same tool has a mutually exclusive `--candidate-image` mode requiring
+`--expected-image` plus the same original unit SHA. It replaces only the real
+Docker image argument, preserves the existing loopback/RFC1918 port and writes
+the same byte-identical rollback. A bounded literal-options parser rejects
+application arguments after image, fake publish text in option values, unknown
+options and unsafe network scope. Both modes need an actual reviewed host unit;
+no local synthetic input is marked READY_TO_APPLY for API-C/F. Candidate digest
+binding is done after real publication; its current absence does not prevent
+local source/artifact verification.
 
 For a future authorized application, retain the current API/Payment unit bytes,
 immutable image refs, container identities and prior enabled/active/callback
