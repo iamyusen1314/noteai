@@ -59,6 +59,8 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
     def test_action_ledger_is_durable_one_use_and_contains_no_raw_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             os.chmod(directory, 0o700)
+            # macOS temporary parents may pass down a different group.
+            os.chown(directory, os.geteuid(), os.getegid())
             item = activation()
             with patch.object(canary, "_ACTION_LEDGER_DIRECTORY", directory):
                 admitted = canary._admit_action(item)

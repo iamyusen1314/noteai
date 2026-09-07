@@ -1,5 +1,47 @@
 # Risk Register
 
+## Current paused takeover risks — 2026-09-07
+
+Supersedes older active-execution/deadline instructions below. Cloud/runtime,
+Secrets, Workbench, host-only results and automation state are LAST_KNOWN;
+this turn performs local checks only. Real actions remain PAUSED.
+
+- Item34 UNPROVEN as of Beijing September7 10:13:25. Actual initial browser
+  snapshot is not a managed checkpoint; 24h/3d and managed row evidence are
+  absent. Existing DoD allows later row binding and does not require72h process
+  uptime. 24h must be before September7 22:30:38, 3d at/after it; no invented
+  grace or minimum48h interval. Do not claim VALID, presume EXPIRED or restart.
+- DMS/row/ACR deficits need future scoped readback. AUTH_UNAVAILABLE does not
+  locate the ACR root cause or prove that owner credential injection is needed.
+  No immediate owner operation is needed for the remaining local preparation.
+- Item32 recovery defect repaired locally: early store deletion and premature
+  SUCCEEDED could lose result after successful collection. Store/receipt/candidate
+  now survive publication or seal failure; lock spans final persistence. New
+  readback is byte-availability only, not live/provider verification. Old two
+  identities stay sealed; new source makes the preserved transferred package
+  obsolete, not runnable. No repackaging, successor execution or new identity.
+- Item32/33 share application Trends34/day. Tracking has a separate300/day
+  ledger; official provider account coupling is not known. No quota increase or
+  zero-used-day assumption is authorized; September7 plan has no auto rollover.
+- Item31 DML remains a real terminal gap: isolated rowcount test proves duplicate
+  event UPDATE without duplicate grant, not production/trigger/cross-process
+  audit coverage. Existing native DML capture capability needs scoped future
+  metadata investigation; do not add broad SQL logging or infer DML from rows.
+- Fixed public callback hostname is a sequencing dependency before live payment;
+  client-side pre-DNS probes cannot route provider notifications. Owner must
+  separately approve bounded callback ingress or an explicit sequence decision;
+  no implicit DNS/public launch and no unilateral single-provider switch.
+- New API source includes Item30 Kimi fix, but no new role image is built or
+  deployed. Future release must prove its actual source/image; historical b55
+  acceptance is not new-release coverage.
+- Item36 bind renderer/rollback and Payment namespace lifecycle are local
+  preparation. No real unit, fresh inventory/quote/fee approval or live ALB/NDR
+  result exists this turn. Terminal dependencies33+34 remain; health itself
+  does not depend on real supplier or payment calls. Item35 frozen unsigned
+  package unchanged; two categories/artifacts do not imply a new two-person rule.
+- Readiness remains30/38. Test failures and isolation blocks are recorded in
+  current Handoff; corrected fixtures do not change production acceptance.
+
 ## Current launch-risk delta (2026-09-07 02:34 +08:00)
 
 - P0 / Item32 time gate: the exact successor package is now present and

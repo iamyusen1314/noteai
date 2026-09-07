@@ -795,7 +795,12 @@ def _create_admission(
     plan_sha256: str,
     predecessor: dict[str, Any],
     budget: dict[str, Any],
+    run_directory_name: str | None = None,
 ) -> None:
+    if run_directory_name is not None and re.fullmatch(
+        r"run-[a-zA-Z0-9_-]{1,64}", run_directory_name
+    ) is None:
+        raise Item32Error("recovery_run_identity")
     payload = _json_bytes(
         {
             "schema": "noteai.item32.successor_admission.v1",
@@ -807,6 +812,7 @@ def _create_admission(
             "budget": budget,
             "automatic_retry_count": 0,
             "no_replay": True,
+            "run_directory_name": run_directory_name,
         }
     )
     try:
@@ -2090,6 +2096,21 @@ def execute(
     )
     _ensure_work_root()
     lock_descriptor = _acquire_executor_lock()
+    try:
+        return _execute_locked(
+            plan, plan_sha256, executor_path, adapter_path, hold_evidence_path
+        )
+    finally:
+        os.close(lock_descriptor)
+
+
+def _execute_locked(
+    plan: dict[str, Any],
+    plan_sha256: str,
+    executor_path: Path,
+    adapter_path: Path,
+    hold_evidence_path: Path,
+) -> Path:
     predecessor_locks: list[int] = []
     container_registry: dict[str, str] = {}
     secret_values: dict[str, str] = {}
@@ -2150,6 +2171,7 @@ def execute(
             plan_sha256=plan_sha256,
             predecessor=predecessor,
             budget=budget,
+            run_directory_name=run_dir.name,
         )
         admission_created = True
         _assert_trends_unit_suspended()
@@ -2262,10 +2284,6 @@ def execute(
         if runtime_dir.exists():
             cleanup_failed = True
     secret_values = {}
-    try:
-        os.close(lock_descriptor)
-    except OSError:
-        cleanup_failed = True
     for descriptor in predecessor_locks:
         try:
             os.close(descriptor)
@@ -2290,16 +2308,9 @@ def execute(
         and attempts_readback == 34
         and unknown_readback == 0
     )
-    if terminal_ready and run_dir is not None:
-        try:
-            shutil.rmtree(run_dir)
-        except FileNotFoundError:
-            pass
-        except Exception:
-            cleanup_failed = True
-        if run_dir.exists():
-            cleanup_failed = True
-    elif failure is None and not cleanup_failed:
+    # The isolated store, receipt and candidate are recovery records, not
+    # transient Secret files. Keep them even after a successful export.
+    if not terminal_ready and failure is None and not cleanup_failed:
         failure = Item32Error("terminal_staging")
         failure_traceback = failure.__traceback__
     elif failure is not None and not collection_started and run_dir is not None:
@@ -2375,13 +2386,12 @@ def execute(
                 pass
         raise Item32Error("terminal_staging")
     try:
+        published = _publish_export(staged)
         _update_admission("SUCCEEDED", attempts_readback, unknown_readback)
-        return _publish_export(staged)
+        return published
     except BaseException:
-        try:
-            _discard_staged_export(staged)
-        except Exception:
-            pass
+        # Publication or admission sealing may fail after collection succeeded.
+        # Retain the hidden candidate and isolated store for read-only recovery.
         try:
             _update_admission("HOLD", attempts_readback, unknown_readback)
         except Exception:
@@ -2389,12 +2399,137 @@ def execute(
         raise
 
 
+def read_retained_result() -> dict[str, Any]:
+    """Read existing recovery bytes only; never reconcile by dispatching work.
+
+    A retained file digest proves availability, not a supplier outcome. The
+    current worker/runtime state and terminal Evidence still need separate
+    authorized readback. Old admissions without a bound run remain UNKNOWN.
+    """
+    result: dict[str, Any] = {
+        "status": "UNKNOWN_HOLD",
+        "readiness_credit": False,
+        "no_replay": True,
+        "runtime_state": "NOT_READ",
+    }
+    descriptors: list[int] = []
+
+    def directory(name: str | Path, parent: int | None = None, *, store: bool = False) -> int:
+        fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+        descriptors.append(fd)
+        meta = os.fstat(fd)
+        owners = {os.geteuid(), 999} if store else {os.geteuid()}
+        if meta.st_uid not in owners or stat.S_IMODE(meta.st_mode) != 0o700:
+            raise Item32Error("recovery_directory_metadata")
+        return fd
+
+    def read_file(parent: int, name: str, limit: int, *, store: bool = False) -> bytes:
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        try:
+            before = os.fstat(fd)
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or before.st_nlink != 1
+                or before.st_uid not in ({os.geteuid(), 999} if store else {os.geteuid()})
+                or (stat.S_IMODE(before.st_mode) & 0o022 if store else stat.S_IMODE(before.st_mode) != 0o600)
+                or not 0 < before.st_size <= limit
+            ):
+                raise Item32Error("recovery_file_metadata")
+            chunks = []
+            remaining = limit + 1
+            while remaining:
+                chunk = os.read(fd, min(65536, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            raw = b"".join(chunks)
+            after = os.fstat(fd)
+            linked = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            if (
+                len(raw) != before.st_size
+                or (after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+                != (before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                or (linked.st_dev, linked.st_ino) != (before.st_dev, before.st_ino)
+            ):
+                raise Item32Error("recovery_file_changed")
+            return raw
+        finally:
+            os.close(fd)
+
+    try:
+        root = directory(WORK_ROOT)
+        # Open only: a readback must not create a lock or an admission.
+        lock = os.open("executor.lock", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=root)
+        descriptors.append(lock)
+        meta = os.fstat(lock)
+        if (
+            not stat.S_ISREG(meta.st_mode) or meta.st_nlink != 1
+            or meta.st_uid != os.geteuid() or stat.S_IMODE(meta.st_mode) != 0o600
+        ):
+            raise Item32Error("recovery_lock_metadata")
+        fcntl.flock(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        linked_lock = os.stat("executor.lock", dir_fd=root, follow_symlinks=False)
+        if (linked_lock.st_dev, linked_lock.st_ino) != (meta.st_dev, meta.st_ino):
+            raise Item32Error("recovery_lock_changed")
+        raw = read_file(root, "item32-admission.json", 65536)
+        admission = json.loads(raw)
+        name = admission.get("run_directory_name")
+        if (
+            admission.get("schema") != "noteai.item32.successor_admission.v1"
+            or admission.get("status") not in {"DISPATCHED", "HOLD", "SUCCEEDED"}
+            or admission.get("no_replay") is not True
+            or type(admission.get("automatic_retry_count")) is not int
+            or admission["automatic_retry_count"] != 0
+            or admission.get("predecessor_closure_sha256") != HOLD_EVIDENCE_SHA256
+            or not isinstance(name, str)
+            or re.fullmatch(r"run-[a-zA-Z0-9_-]{1,64}", name) is None
+        ):
+            raise Item32Error("recovery_admission_binding")
+        result.update(admission_sha256=_sha256_bytes(raw), admission_status=admission["status"])
+        run = directory(name, root)
+        task_store = directory("task-store", run, store=True)
+        files = {}
+        for label, parent, filename, limit in (
+            ("store", task_store, "hot_keywords.db", 64 * 1024 * 1024),
+            ("worker_receipt", run, "worker-receipt.json", 4 * 1024 * 1024),
+            ("candidate", run, "item32-evidence.candidate.tar.gz", 8 * 1024 * 1024),
+        ):
+            try:
+                raw = read_file(parent, filename, limit, store=label == "store")
+                files[label] = {"sha256": _sha256_bytes(raw), "size": len(raw)}
+            except FileNotFoundError:
+                files[label] = {"status": "MISSING_UNKNOWN"}
+        result["retained_files"] = files
+        if all("sha256" in value for value in files.values()):
+            result["status"] = "RETAINED_BYTES_READBACK_ONLY"
+        linked_lock = os.stat("executor.lock", dir_fd=root, follow_symlinks=False)
+        if (linked_lock.st_dev, linked_lock.st_ino) != (meta.st_dev, meta.st_ino):
+            raise Item32Error("recovery_lock_changed")
+    except (OSError, ValueError, TypeError, AttributeError, Item32Error):
+        # No raw path, exception, receipt event or database content is emitted.
+        result["status"] = "UNKNOWN_HOLD"
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--plan", required=True)
-    parser.add_argument("--adapter", required=True)
-    parser.add_argument("--hold-evidence", required=True)
+    parser.add_argument("--readback-only", action="store_true")
+    parser.add_argument("--plan")
+    parser.add_argument("--adapter")
+    parser.add_argument("--hold-evidence")
     args = parser.parse_args(argv)
+    if args.readback_only:
+        if args.plan or args.adapter or args.hold_evidence:
+            parser.error("readback-only does not accept execution inputs")
+        result = read_retained_result()
+        print(json.dumps(result, sort_keys=True))
+        return 0 if result["status"] == "RETAINED_BYTES_READBACK_ONLY" else 2
+    if not all((args.plan, args.adapter, args.hold_evidence)):
+        parser.error("execution requires plan, adapter and hold-evidence")
     executor_path = Path(__file__).resolve()
     try:
         export_path = execute(

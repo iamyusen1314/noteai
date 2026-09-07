@@ -1,5 +1,126 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current CTO takeover — 2026-09-07, local preparation only
+
+This section supersedes runtime/action instructions in all older dated sections.
+Real execution and automation remain PAUSED. Current cloud/Workbench/Secret/
+service/image/host-result statements below are LAST_KNOWN unless explicitly
+labelled as a fresh local check. No production or external readback occurred.
+
+### Verified recovery and Item34 ruling
+
+- Fresh local directory/worktree/branch/HEAD check matched `/Users/openclaw/Desktop/noteai`,
+  `codex/quality-stabilization-real-chain`, `58859ce737337446698dd0a72a218718633953e9`,
+  parent `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29`; exactly one upstream-ahead
+  commit at takeover. The recovery commit contains 72 tracked preparation files.
+  Index and tracked tree were clean. Seven protected paths remained untracked;
+  their contents were not read, changed or staged. No checkout/reset/clean/stash.
+- Item34 is **UNPROVEN**, not VALID or EXPIRED, at the fresh UTC clock
+  `2026-09-07 02:13:25` / Beijing `2026-09-07 10:13:25`.
+  Canonical tracking Evidence `observation` contains the genuine same-object
+  authenticated browser anchor at `2026-09-04T22:30:38+08:00`, metrics4/2/2,
+  but both checkpoints and managed_track are null and provider attempts empty.
+  This proves an initial snapshot, not managed execution or continuous service.
+- Approved 24h snapshot/attempt window is `[2026-09-05T22:30:38+08:00,
+  2026-09-07T22:30:38+08:00)`; 3d is at/after the latter, strictly after 24h.
+  `validate_item34_tracking_evidence` checks those boundaries and attempt
+  completion no later than its snapshot. No extra +/- tolerance, 48h minimum
+  checkpoint separation or 3d upper deadline is stated. The product contract
+  at lines107-112 expressly permits later real managed-row binding. No approved
+  requirement found for the managed row/service/scheduler to span all72h;
+  exact-one checkpoint execution is deliberately quiescent between actions.
+  Continuity fields0/[] alone do not establish actual continuity. Existing
+  evidence is incomplete, not proven incompatible; no restart is proposed.
+- DMS LAST_KNOWN: migration0019 absent, runtime roles cannot activate owner,
+  metadata audit found no retained owner executor; standard-role authorization
+  was NOT_DISPATCHED at MFA. Next authorized action is a bounded state readback,
+  followed by the exact existing0019 plan only if separately approved. Owner MFA
+  is needed only if the current legitimate flow still demands it.
+- Managed row LAST_KNOWN: absent. The permitted creation route is authenticated
+  `POST /notes/track-url` for the existing NoteAI user. Establish the legitimate
+  session before future authorized submission; no guessed user/SQL insertion.
+- ACR LAST_KNOWN: local image exists, registry digest missing, one manifest read
+  returned AUTH_UNAVAILABLE. Root cause is UNLOCATED. Future authorized read-only
+  diagnosis must identify current endpoint/auth mechanism/permission and failure
+  class before asking for a credential or owner action. No speculative fix.
+
+### Local results and remaining parallel work
+
+- Kimi integration already exists in `model/model_router.py` and Dockerfile COPY.
+  The old b55 deployed image lacks that overlay; its current runtime is not
+  reverified. Current-source mocked model/Item30 regression passed50 tests;
+  accepted Item30 historical provider execution was not rerun. Future build must
+  use the final recovery source and actual role-image readback.
+- Item32 fixed a real recovery defect in the existing successor: retain the
+  isolated run/store/worker receipt/candidate instead of deleting before export;
+  publish before SUCCEEDED, hold the executor lock through final persistence,
+  bind run basename in existing admission, and add `--readback-only` with no
+  plan, Secret, Docker, provider, database probe or state mutation. This reader
+  proves retained byte availability only, returns no terminal credit, and does
+  not reconstruct a provider result or inspect current cloud/runtime state.
+  Missing/unsafe/busy/unbound records remain UNKNOWN. If export succeeds but
+  admission sealing fails, keep HOLD and both sources for later authorized
+  readback; never replay or ingest an orphan archive as terminal success.
+- Item32 focused tests passed22 after the changes, including publication/seal
+  failures, retained repeated readback, lock lifetime and unsafe paths. Existing
+  plan executor SHA was synchronized locally only. The earlier exact-four-file
+  transfer package/hash in the recovery handoff is now a **superseded source
+  package**, retained unchanged locally/remotely, not authorized to run. No
+  archive rebuilt, transferred or extracted; no new admission or identity.
+  Both predecessor identities remain permanently sealed.
+- Item32/33 use the existing application Trends cap34/run and34/UTC-day;
+  successful Item32 exhausts that bucket before33. It is a repository safety
+  cap, not a newly verified supplier quota. Item34 separately counts Tracking
+  attempts (hard cap300/day); it does not debit the Trends34 counter. Common
+  account/session risk controls may couple them; official shared/independent
+  supplier quota is UNPROVEN. Dates in the successor remain fixed September7
+  UTC; no automatic day rollover or replacement identity is authorized.
+- Item31 local DML preparation now tests actual committed SQLite rowcounts on
+  the existing direct gateway/ledger path: duplicate delivery updates exactly
+  one payment_events row and no second cash/credit entitlement. This is not
+  PostgreSQL or production DML proof. Existing deployment plan now maps canary
+  DML coverage, real callback ingress and the precise missing production source.
+  Native RDS DML capture semantics (API+Payment, commits/rollbacks, triggers)
+  require future scoped authorized fact-finding; final rows/best-effort logs
+  cannot be promoted to proof. No global audit platform or expanded runtime role.
+- Real payment needs publicly resolvable/TLS-valid fixed api.noteaipro.cn callback
+  routes. A pre-DNS client override cannot route supplier notifications. Owner
+  must later decide/authorize the bounded callback ingress before live funds
+  while retaining separate Item38 public launch, or explicitly change sequence.
+  Dual/single-channel launch remains an owner product decision; current DoD
+  still requires both. No DNS/route/merchant/payment change this turn.
+- Item35 confirmed exactly two approval categories/two distinct signed artifacts
+  with corresponding bindings, four document categories, post-freeze signatures,
+  closed conditions and genuine professional/authorized identity. No explicit
+  two-distinct-natural-person rule exists; no extra signer gate or self-signature.
+  Existing frozen review package and its scoped documents remain unchanged.
+- Item36 implemented `tools/prepare_item36_private_bind.py` as pure local unit
+  rendering with exact source SHA, one loopback→confirmed RFC1918 bind and
+  byte-exact rollback; synthetic regression passed. Production Compose defaults
+  to loopback. Existing deployment plan now specifies API-C→API-F, explicit
+  Payment namespace recreation, provider-free health, known-failure restore,
+  UNKNOWN hold, fresh ALB/TLS/NDR and cost/dependency boundaries. No actual host
+  unit was read/rendered/applied and no cloud wrapper/resource was created.
+- Verification launcher uses env-i, disabled dotenv/network/PostgreSQL, denied
+  protected/Secret paths and an isolated temporary bootstrap SQLite. The first
+  broader import was intentionally blocked before workspace DB access; the
+  launcher was corrected to use NOTEAI_SQLITE_PATH. Payment116 initially had
+  one macOS temporary-group fixture error; test now sets the fixture's own
+  process group without weakening runtime permissions. New DML fixture initially
+  missed explicit commit(); corrected recorder commits now prove the path.
+  Combined targeted payment/DML/bind/Item35/36 rerun passed52. A broader
+  hardening suite had42 passes and one blocked unrelated Item25 subprocess;
+  only the affected hardening test is counted in the targeted rerun, not a full
+  suite pass. No historical executor was invoked to clear that test.
+- Fresh static Readiness accounting validates internal29/29, overall30/38,
+  three blocked controls and eight incomplete. No Readiness manifest/DoD or
+  canonical production Evidence has been changed; all preparation has zero
+  terminal credit. No push, deployment, provider request or production mutation.
+- Next local task IN PROGRESS: complete affected API/Item32-36 regressions and
+  review local implementation deltas, then save another non-release recovery
+  checkpoint. External approvals do not block this work. Do not resume automation
+  or refresh live state without the owner's new explicit authorization.
+
 ## Authoritative paused recovery handoff (2026-09-07, Asia/Shanghai)
 
 This section supersedes every earlier `Current execution state` section below.

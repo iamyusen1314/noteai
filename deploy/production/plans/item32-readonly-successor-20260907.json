@@ -4,7 +4,7 @@
   "status": "PREPARED_NOT_EXECUTED",
   "readiness_credit": false,
   "outer_executor": "tools/execute_item32_readonly_trends_successor.py",
-  "outer_executor_sha256": "c007b066dae003ed3d9b5d79b265452c6cf6e2c708dcefa9b3ddf977b0a078ce",
+  "outer_executor_sha256": "fc71cc6f35e231bf9c0510ef88c67469c18759d6c78d58d3bb9d458178f2b7b3",
   "adapter_overlay_ref": "model/spider_xhs_http.py",
   "adapter_overlay_sha256": "642c159992636b54bc4c26ffe70ca27caf48d025c5b693a4308074f9f8628ff7",
   "existing_unit_sha256": "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6",

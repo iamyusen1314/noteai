@@ -30,7 +30,7 @@ services:
       NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED: "${NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED:-0}"
       NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_API_TRUSTED_PROXY_IPS:-127.0.0.1}"
     ports:
-      - "${NOTEAI_API_BIND_IP:-0.0.0.0}:${NOTEAI_API_PORT:-8000}:8000"
+      - "${NOTEAI_API_BIND_IP:-127.0.0.1}:${NOTEAI_API_PORT:-8000}:8000"
     volumes:
       - type: bind
         source: "${NOTEAI_PRODUCTION_DATA_DIR:-/var/lib/noteai/data}"

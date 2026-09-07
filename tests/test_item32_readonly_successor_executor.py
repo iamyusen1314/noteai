@@ -1,4 +1,5 @@
 import hashlib
+import fcntl
 import json
 import os
 import sqlite3
@@ -31,6 +32,29 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_readback_never_creates_state_or_calls_execution_tools(self):
+        with mock.patch.object(successor, "WORK_ROOT", self.root / "absent"), mock.patch.object(
+            successor, "execute", side_effect=AssertionError("execution forbidden")
+        ), mock.patch.object(successor, "_run", side_effect=AssertionError("external forbidden")), mock.patch.object(
+            successor, "_read_secret_env", side_effect=AssertionError("Secret forbidden")
+        ):
+            self.assertEqual(successor.main(["--readback-only"]), 2)
+            self.assertFalse((self.root / "absent").exists())
+
+    def test_readback_missing_bound_run_busy_lock_and_symlink_stay_unknown(self):
+        work = self.root / "work"
+        work.mkdir(mode=0o700)
+        lock_path = work / "executor.lock"
+        lock_path.write_bytes(b"")
+        lock_path.chmod(0o600)
+        with mock.patch.object(successor, "WORK_ROOT", work):
+            self.assertEqual(successor.read_retained_result()["status"], "UNKNOWN_HOLD")
+            with lock_path.open("rb") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.assertEqual(successor.read_retained_result()["status"], "UNKNOWN_HOLD")
+            (work / "item32-admission.json").symlink_to(self.root / "not-to-read")
+            self.assertEqual(successor.read_retained_result()["status"], "UNKNOWN_HOLD")
 
     def snapshot_bytes(self, *, real_per_domain=12, baseline_per_domain=3):
         generated_at = "2026-09-07T00:04:00+00:00"

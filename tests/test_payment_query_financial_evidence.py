@@ -1,8 +1,11 @@
 import importlib
 import os
+import re
 import sys
 import tempfile
 import unittest
+from collections import Counter
+from unittest import mock
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -127,6 +130,72 @@ class PaymentQueryFinancialEvidenceTests(unittest.TestCase):
             [dict(row) for row in cash],
             [{"entry_type": "payment_received_unmatched", "amount_fen": 1300}],
         )
+
+    def test_duplicate_delivery_dml_counts_actual_updates_without_second_entitlement(self):
+        # This records affected rows from the real SQLite contract in an
+        # isolated fixture. It is not a production collector: PostgreSQL
+        # trigger effects and cross-process durable coverage remain unproven.
+        committed = Counter()
+        connect = db.get_conn
+
+        class ObservedConnection:
+            def __init__(self):
+                self.inner = connect()
+                self.pending = Counter()
+
+            def __getattr__(self, name):
+                return getattr(self.inner, name)
+
+            def execute(self, sql, parameters=()):
+                cursor = self.inner.execute(sql, parameters)
+                match = re.match(
+                    r"\s*(?:INSERT(?: OR IGNORE)? INTO|UPDATE|DELETE FROM)\s+(\w+)",
+                    sql, re.IGNORECASE,
+                )
+                if match and cursor.rowcount > 0:
+                    self.pending[match.group(1)] += cursor.rowcount
+                return cursor
+
+            def __enter__(self):
+                self.inner.__enter__()
+                return self
+
+            def commit(self):
+                self.inner.commit()
+                committed.update(self.pending)
+                self.pending.clear()
+
+            def rollback(self):
+                self.inner.rollback()
+                self.pending.clear()
+
+            def __exit__(self, *exc):
+                result = self.inner.__exit__(*exc)
+                if exc[0] is None:
+                    committed.update(self.pending)
+                self.pending.clear()
+                return result
+
+        with mock.patch.object(db, "get_conn", side_effect=ObservedConnection):
+            self.assertTrue(self._payment_query()["ok"])
+            self.assertEqual(committed["payment_entitlement_ledger"], 1)
+            self.assertEqual(committed["credit_transactions"], 1)
+            self.assertEqual(committed["payment_credit_positions"], 1)
+            self.assertEqual(committed["payment_cash_ledger"], 1)
+            self.assertEqual(set(committed), {
+                "payment_orders", "payment_events", "payment_cash_ledger",
+                "payment_credit_positions", "payment_entitlement_ledger",
+                "credits", "credit_transactions",
+            })
+            committed.clear()
+            self.assertTrue(self._payment_query()["duplicate"])
+            # The same final event row survives, but its delivery count is a
+            # genuine UPDATE. A row-count snapshot would miss this mutation.
+            self.assertEqual(committed, {"payment_events": 1})
+            self.assertEqual(db.fetchone(
+                "SELECT duplicate_delivery_count FROM payment_events WHERE order_id=?",
+                (self.stored_order["id"],),
+            )["duplicate_delivery_count"], 1)
 
     def test_signed_success_refund_mismatch_records_unmatched_cash_once(self):
         paid = self._payment_query()

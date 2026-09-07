@@ -10,6 +10,120 @@ This document is a read-only release plan. It does not authorize an ACR
 access, image pull, container/service start, database write, Alibaba Cloud
 mutation, provider call, ALB/TLS/DNS change, or production traffic.
 
+## Paused preparation update — 2026-09-07
+
+This section describes current local preparation. The historical image table
+below belongs to its dated release and is not the next candidate. All live
+execution, cloud queries, image publication, service changes, database access,
+provider requests, payments and DNS remain PAUSED under the current owner scope.
+
+### Candidate source and affected regressions
+
+The recovery starts at `58859ce737337446698dd0a72a218718633953e9`, whose parent
+is accepted Item30 `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29`.
+`model/model_router.py` already contains the Item30 Kimi usage compatibility
+change, and `Dockerfile` copies that source into the runtime. The old b55 API
+image did not receive the temporary Item30 probe overlay. A future authorized
+build must bind the final preparation commit and actual role-image contents;
+neither an old image nor the historical Item30 PASS proves the new release.
+Use `test_model_usage_audit` and `test_item30_real_ai_provider_chain` as mocked
+current-source regressions, plus affected payment/API/runtime checks. They do
+not replay the accepted provider chain. No image has been built or uploaded in
+this paused takeover.
+
+### Item31 bounded DML and callback preparation
+
+Use the existing canary action journal and canonical Item31 Evidence, without
+adding a global audit service, receipt schema or wider long-lived Payment role.
+The real collector must cover each actual transaction in the two 1200-fen
+canaries; preserve failed/UNKNOWN evidence and stop rather than replay.
+
+| Action | Existing source and rows to account for | Evidence limitation to close |
+|---|---|---|
+| Create and admit order | `payment_contract.create_order`, `admit_payment_submission`, response-state update; `payment_orders` | Bind the fixed canary order/request digest and count actual committed INSERT/UPDATE effects, including a timeout-state transition. |
+| Authenticate callback/query | `process_authenticated_callback`, `_record_event`, `_finish_event`; `payment_events`, order, cash, credit position, entitlement, credits and credit transactions | Bind verified provider event and payload digests to committed rows; never retain raw callback/signature/checkout values. |
+| Duplicate notification | `_record_event` increments `duplicate_delivery_count` | One event UPDATE is a real mutation even when the table row count is unchanged; there must be zero second cash/entitlement grant. |
+| Full unused refund | `prepare_full_refund`, admission and authenticated refund query/callback | Bind the same order/refund to one cash reversal, position reversal, credit transaction and entitlement reversal. Submission alone is not refund success. |
+| Reconciliation | Existing provider bill/query boundary and reconciliation tables | Match original order, authenticated notification, refund and ledgers; report discrepancies, not inferred success. |
+
+`tests/test_payment_query_financial_evidence.py` now exercises real SQLite
+statement rowcounts and committed-transaction boundaries for the duplicate
+notification path. It proves the offline distinction between DML and final
+state, not PostgreSQL trigger coverage or production provenance. Production
+DML capture still lacks an established source covering both API and Payment
+processes, transaction commit/rollback and trigger effects. Before live funds,
+obtain an authorized, narrowly scoped metadata readback of the available RDS
+DML-audit mechanism and its rowcount/commit semantics; do not enable broad SQL
+logging, record parameters, or claim SELECT snapshots reconstruct DML. If no
+suitable existing source exists, prepare only a canary-scoped collector after
+that finding. Missing capture means Item31 stays incomplete; best-effort
+create/callback logs and `pg_stat_*` aggregate deltas cannot close it.
+
+The fixed real notification endpoints are:
+
+- `https://api.noteaipro.cn/payments/wechat/callback`
+- `https://api.noteaipro.cn/payments/alipay/callback`
+
+The provider must resolve that hostname and reach valid TLS on port 443.
+A developer hosts entry, `curl --resolve` or an ALB pre-DNS probe cannot make
+provider callbacks reach NoteAI. API forwards only those exact paths and
+allowlisted headers/body to the co-located Payment namespace on 127.0.0.1:8002.
+The normal ordering routes remain fenced until merchant approvals and capped
+canary activation are ready. There is therefore a real sequencing decision:
+the owner must approve a bounded, provider-reachable callback ingress before
+Item31 Live funds while preserving the separate Item38 public-launch decision,
+or explicitly change the launch sequence. This document does not authorize
+DNS, opening other business routes, a different callback domain, or a
+single-channel launch. The existing two-provider requirement remains unchanged.
+
+### Item36 local implementation, health and rollback
+
+`tools/prepare_item36_private_bind.py` is a pure local renderer with no apply,
+cloud, subprocess, database or environment-loading path. Given a reviewed
+Secret-free API unit copy, its exact SHA-256 and that node's confirmed RFC1918
+IPv4 address, it changes only the single loopback 8000 mapping and writes a
+candidate plus byte-identical rollback. It rejects source drift, extra ports,
+public/loopback target addresses, shell expansion and mutable image identities.
+Synthetic tests do not prove that either current host unit matches its input
+contract. No actual host unit has been fetched, rendered or applied this turn.
+Production Compose now defaults API binding to loopback; a future reviewed
+private binding must be explicit.
+
+For a future authorized application, retain the current API/Payment unit bytes,
+immutable image refs, container identities and prior enabled/active/callback
+states on each node. First verify the exact ALB-source TCP8000 security-group
+rule and zero wider ingress. Then process API-C followed by API-F, keeping the
+other accepted node available. On each node:
+
+1. Stop an enabled Payment callback service before replacing its API namespace;
+   retain the prior disabled state if Payment was not enabled.
+2. Apply only the reviewed private-bind unit, start that API, and verify the new
+   container identity, private socket, `/health/live` and `/health/ready` with
+   the existing repeated healthy-readback contract.
+3. If Payment was enabled, explicitly recreate/start it in the new API container
+   namespace and verify loopback 8002 readiness and matching provider identity
+   summaries. `BindsTo`/`PartOf` stops the old container; it does not prove that
+   a stopped Payment service has automatically returned. Compose `depends_on`
+   alone is likewise not recovery evidence.
+4. Only after the node passes may the next node proceed. For known failure,
+   restore the captured original API unit/image and original callback state;
+   if previously enabled, recreate Payment in the restored namespace and verify
+   again. UNKNOWN stops progress pending readback. Do not delete databases,
+   audit history, prior images or unrelated cloud resources.
+
+ALB readiness is a provider-free GET of `/health/ready`; payment, XHS and model
+supplier calls are not health dependencies. Validate both backends, exact
+SNI/Host against the actual ALB endpoint, TLS/certificate binding and a fresh
+post-bind three-unit NDR readback. Retain before-state for only known
+task-created resource rollback. Emit the existing canonical Item36 Evidence
+only after genuine provider readbacks and its validator pass.
+
+Item36 terminal still depends on Items33+34, capacity100, fresh provider quote
+and explicit fixed/variable cost approval. Private-bind and health preparation
+can proceed independently of those terminal dependencies. No current quote,
+cloud wrapper or live execution is implied. The old monthly estimate and
+preparation-only NDR mask0 record remain LAST_KNOWN/reference-only.
+
 ## 1. Immutable release set
 
 All production pulls must use the private VPC registry hostname and the exact

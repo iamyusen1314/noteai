@@ -88,6 +88,7 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         compose = (ROOT / "deploy" / "production" / "docker-compose.yml").read_text(
             encoding="utf-8"
         )
+        self.assertIn("${NOTEAI_API_BIND_IP:-127.0.0.1}", service_block(compose, "api"))
 
         self.assert_hardened_services(
             compose,

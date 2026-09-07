@@ -1,4 +1,5 @@
 import json
+import fcntl
 import os
 import subprocess
 import sys
@@ -36,6 +37,8 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
         attempt_readback=(34, 0),
         collection_remove_failures=0,
         final_cleanup_unknown=False,
+        publication_fails=False,
+        success_seal_fails=False,
     ):
         work = self.root / "successor"
         export = self.root / "export"
@@ -77,9 +80,11 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
         probe_count = 0
 
         def acquire_lock():
-            return os.open(
+            descriptor = os.open(
                 work / "executor.lock", os.O_RDWR | os.O_CREAT, 0o600
             )
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return descriptor
 
         def verify(*_args):
             events.append("predecessors")
@@ -117,7 +122,10 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
 
         def create_container(run_dir, runtime_dir, *_args):
             events.append("container-create")
-            (run_dir / "task-store").mkdir()
+            (run_dir / "task-store").mkdir(mode=0o700)
+            (run_dir / "task-store" / "hot_keywords.db").write_bytes(b"synthetic-store")
+            (run_dir / "worker-receipt.json").write_bytes(b"synthetic-receipt")
+            (run_dir / "worker-receipt.json").chmod(0o600)
             return "item32-test", "a" * 64, runtime_dir / "cookie.env"
 
         def fake_run(args, **_kwargs):
@@ -136,6 +144,12 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
             raise AssertionError(args)
 
         def update_admission(status, provider_calls, unknown_count):
+            events.append(status)
+            with (work / "executor.lock").open("rb") as reader:
+                with self.assertRaises(BlockingIOError):
+                    fcntl.flock(reader, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            if status == "SUCCEEDED" and success_seal_fails:
+                raise successor.Item32Error("seal_failed")
             path = work / "item32-admission.json"
             payload = json.loads(path.read_text(encoding="utf-8"))
             payload.update(
@@ -152,7 +166,7 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
             path.write_text(json.dumps(payload), encoding="utf-8")
 
         def build_artifacts(**kwargs):
-            candidate = kwargs["run_dir"] / "candidate.tar.gz"
+            candidate = kwargs["run_dir"] / "item32-evidence.candidate.tar.gz"
             candidate.write_bytes(b"candidate")
             candidate.chmod(0o600)
             return candidate
@@ -184,7 +198,13 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
         def publish(staged):
             events.append("publish")
             self.assertEqual(list(runtime.iterdir()), [])
-            self.assertFalse(any(work.glob("run-*")))
+            self.assertTrue(any(work.glob("run-*")))
+            with (work / "executor.lock").open("rb") as reader:
+                with self.assertRaises(BlockingIOError):
+                    fcntl.flock(reader, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            if publication_fails:
+                raise successor.Item32Error("publish_failed")
+            (export / "item32-evidence.tar.gz").write_bytes(staged.read_bytes())
             staged.unlink()
             return export / "item32-evidence.tar.gz"
 
@@ -320,6 +340,10 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
                 expected_error = "container_cleanup"
             elif final_cleanup_unknown:
                 expected_error = "cleanup_incomplete"
+            elif publication_fails:
+                expected_error = "publish_failed"
+            elif success_seal_fails:
+                expected_error = "seal_failed"
             if expected_error:
                 with self.assertRaisesRegex(
                     successor.Item32Error, expected_error
@@ -327,12 +351,12 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
                     successor.execute(*arguments)
                 first_run = next(work.glob("run-*"))
                 self.assertTrue((first_run / "task-store").is_dir())
-                self.assertFalse(any(export.iterdir()))
+                self.assertEqual(bool(list(export.iterdir())), success_seal_fails)
                 admission = json.loads(
                     (work / "item32-admission.json").read_text(encoding="utf-8")
                 )
                 self.assertEqual(admission["status"], "HOLD")
-                if post_probe_unknown:
+                if post_probe_unknown or publication_fails or success_seal_fails:
                     with self.assertRaisesRegex(
                         successor.Item32Error, "item32_already_dispatched"
                     ):
@@ -340,6 +364,19 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
             else:
                 result = successor.execute(*arguments)
                 self.assertEqual(result, export / "item32-evidence.tar.gz")
+                self.assertLess(events.index("publish"), events.index("SUCCEEDED"))
+
+            if publication_fails or success_seal_fails or expected_error is None:
+                run_dir = next(work.glob("run-*"))
+                self.assertTrue((run_dir / "item32-evidence.candidate.tar.gz").is_file())
+                before = {p: p.read_bytes() for p in work.rglob("*") if p.is_file()}
+                with mock.patch.object(successor.os, "geteuid", return_value=os.getuid()):
+                    first = successor.read_retained_result()
+                    second = successor.read_retained_result()
+                self.assertEqual(first, second)
+                self.assertEqual(first["status"], "RETAINED_BYTES_READBACK_ONLY")
+                self.assertFalse(first["readiness_credit"])
+                self.assertEqual(before, {p: p.read_bytes() for p in before})
 
         return events, starts, removals, runtime
 
@@ -350,6 +387,28 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
         self.assertLess(events.index("container-create"), events.index("start"))
         self.assertEqual(removals, ["item32-test"])
         self.assertEqual(list(runtime.iterdir()), [])
+
+    def test_publication_failure_preserves_result_and_does_not_mark_success(self):
+        events, starts, _removals, _runtime = self.execute_harness(publication_fails=True)
+        self.assertNotIn("SUCCEEDED", events)
+        self.assertEqual(len(starts), 1)
+
+    def test_seal_failure_preserves_both_export_and_recovery_source(self):
+        _events, starts, _removals, _runtime = self.execute_harness(success_seal_fails=True)
+        self.assertEqual(len(starts), 1)
+
+    def test_retained_readback_rejects_candidate_symlink_and_writable_root(self):
+        self.execute_harness()
+        work = self.root / "successor"
+        run = next(work.glob("run-*"))
+        candidate = run / "item32-evidence.candidate.tar.gz"
+        with mock.patch.object(successor, "WORK_ROOT", work):
+            work.chmod(0o777)
+            self.assertEqual(successor.read_retained_result()["status"], "UNKNOWN_HOLD")
+            work.chmod(0o700)
+            candidate.unlink()
+            candidate.symlink_to(self.root / "not-to-read")
+            self.assertEqual(successor.read_retained_result()["status"], "UNKNOWN_HOLD")
 
     def test_post_dispatch_unknown_is_held_without_replay_or_export(self):
         _events, starts, removals, runtime = self.execute_harness(
