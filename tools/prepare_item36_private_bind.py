@@ -37,23 +37,24 @@ def render_private_bind(unit: bytes, *, expected_sha256: str, private_ip: str) -
     text = unit.decode("utf-8", errors="strict")
     if "\x00" in text or "\r" in text:
         raise ValueError("unit_encoding")
-    starts = [line for line in text.splitlines() if line.startswith("ExecStart=")]
-    if len(starts) != 1 or not starts[0].startswith("ExecStart=/usr/bin/docker run "):
+    starts = list(re.finditer(r"^ExecStart=[^\n]*$", text, re.MULTILINE))
+    if len(starts) != 1 or not starts[0].group().startswith("ExecStart=/usr/bin/docker run "):
         raise ValueError("single_docker_execstart_required")
-    command = starts[0]
+    command = starts[0].group()
     # Only the existing literal mapping changes; no shell expansion or
     # multiline command rewriting is attempted.
-    if any(value in command for value in ("\\", "$", "`", ";", "&&", "||")):
+    if any(value in command for value in ("\\", "$", "`", ";", "&&", "||", "'", '"')):
         raise ValueError("literal_execstart_required")
-    bindings = re.findall(r"(?:^|\s)(?:-p\s+|--publish(?:=|\s+))(\S+)", command)
-    if bindings != ["127.0.0.1:8000:8000"]:
+    bindings = list(re.finditer(r"(?:^|\s)(?:-p\s*|--publish(?:=|\s+))(\S+)", command))
+    if [match.group(1) for match in bindings] != ["127.0.0.1:8000:8000"]:
         raise ValueError("single_loopback_api_binding_required")
-    if re.search(r"(?:^|\s)(?:-P|--publish-all|--network[= ]host|--privileged)(?:\s|$)", command):
+    if re.search(r"(?:^|\s)(?:-P(?:\s|$)|--(?:publish-all|privileged)(?:=|\s|$)|--net(?:work)?(?:=|\s+)host(?:\s|$))", command):
         raise ValueError("unsafe_network_scope")
     if re.search(r"\S+@sha256:[0-9a-f]{64}$", command) is None:
         raise ValueError("immutable_image_required")
-    replacement = command.replace("127.0.0.1:8000:8000", f"{private_ip}:8000:8000", 1)
-    return text.replace(command, replacement, 1).encode("utf-8"), unit
+    begin, end = bindings[0].span(1)
+    replacement = command[:begin] + f"{private_ip}:8000:8000" + command[end:]
+    return (text[:starts[0].start()] + replacement + text[starts[0].end():]).encode("utf-8"), unit
 
 
 def main() -> int:

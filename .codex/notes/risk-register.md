@@ -4,7 +4,9 @@
 
 Supersedes older active-execution/deadline instructions below. Cloud/runtime,
 Secrets, Workbench, host-only results and automation state are LAST_KNOWN;
-this turn performs local checks only. Real actions remain PAUSED.
+this turn performs local checks only. The saved local Item32-34 heartbeat
+configuration was freshly read as PAUSED; remote scheduler/runtime remains
+LAST_KNOWN. Real actions remain PAUSED.
 
 - Item34 UNPROVEN as of Beijing September7 10:13:25. Actual initial browser
   snapshot is not a managed checkpoint; 24h/3d and managed row evidence are
@@ -39,8 +41,11 @@ this turn performs local checks only. Real actions remain PAUSED.
   result exists this turn. Terminal dependencies33+34 remain; health itself
   does not depend on real supplier or payment calls. Item35 frozen unsigned
   package unchanged; two categories/artifacts do not imply a new two-person rule.
-- Readiness remains30/38. Test failures and isolation blocks are recorded in
-  current Handoff; corrected fixtures do not change production acceptance.
+- Readiness remains30/38. Final API/payment292 and Item32-36 preparation198
+  regressions passed; subsequent renderer span/option fixes passed5 cases and
+  saved paused launcher passed18 focused cases. Test failures/isolation blocks
+  remain in Handoff. Local Python3.14.4 is not the target3.11 image; no new
+  image, target-runtime test or production acceptance is implied.
 
 ## Current launch-risk delta (2026-09-07 02:34 +08:00)
 

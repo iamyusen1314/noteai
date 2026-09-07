@@ -31,6 +31,15 @@ current-source regressions, plus affected payment/API/runtime checks. They do
 not replay the accepted provider chain. No image has been built or uploaded in
 this paused takeover.
 
+The persisted offline launcher is `scripts/run_paused_local_checks.py`. Invoke
+it with `env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin .venv/bin/python`, followed by
+the script and explicit `tests.test_*` module names, or `--readiness` for the
+existing static ledger. It disables dotenv/network/PostgreSQL, uses temporary
+SQLite and rejects protected paths. These are Python process guards, not a
+substitute for an OS sandbox or production image validation. Do not use test
+discovery across the seven protected paths. Local takeover checks used
+Python3.14.4; future release checks must cover the actual Python3.11 image.
+
 ### Item31 bounded DML and callback preparation
 
 Use the existing canary action journal and canonical Item31 Evidence, without

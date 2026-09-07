@@ -116,10 +116,53 @@ labelled as a fresh local check. No production or external readback occurred.
   three blocked controls and eight incomplete. No Readiness manifest/DoD or
   canonical production Evidence has been changed; all preparation has zero
   terminal credit. No push, deployment, provider request or production mutation.
-- Next local task IN PROGRESS: complete affected API/Item32-36 regressions and
-  review local implementation deltas, then save another non-release recovery
-  checkpoint. External approvals do not block this work. Do not resume automation
-  or refresh live state without the owner's new explicit authorization.
+### Local preparation closure and exact next boundary
+
+- First new non-release recovery checkpoint: `4aa203f` (parent58859ce), local
+  only. The subsequent commit containing this closure preserves the final
+  Item36 renderer correction and reusable paused-test launcher. No Item31-38
+  terminal checkpoint was created.
+- Final verification: current API/direct-payment/ledger/canary/env suite292
+  PASS; Item32-36 affected suite198 PASS before the last renderer precision
+  correction, followed by all5 renderer cases PASS. Those cases include exact
+  argument/ExecStart span replacement (duplicate strings in labels/comments
+  stay unchanged), compact-port handling and rejection of host/public/multiple
+  bindings. Saved `scripts/run_paused_local_checks.py` was exercised on18
+  affected recovery/payment/renderer cases and on static Readiness: PASS,
+  internal29/29 and overall30/38. Earlier model/Item30 mocked suite50 remains
+  applicable. No full-suite pass is claimed for the previously blocked unrelated
+  historical Item25 subprocess. Changed Python sources compile and diff checks
+  pass. Actual local interpreter is Python3.14.4, not deployment Python3.11;
+  image/build/target-runtime validation still belongs to a future release.
+- Item35 frozen package SHA remains
+  `1b5c37594b2c51b738b2edbc5acad1e052b311a4a8a3f677b64ae3fa3da7b89d`;
+  all10 reviewed-file hashes were freshly recomputed and match. No refreeze,
+  new signature version, new signer threshold or professional submission.
+- Fresh local automation-config read found exactly one automation.toml under
+  the configured local automations root: item34-24h-3d-observation, heartbeat,
+  statusPAUSED. This verifies saved local configuration only, not remote
+  scheduler/runtime activity. No automation was changed or resumed.
+- Last fresh clock at closure: UTC2026-09-07 02:33:15 / Beijing10:33:15. Item34
+  remains UNPROVEN under the unchanged time boundaries. No window restart,
+  sampling, DMS/row/ACR operation, image build/push/deployment or external call.
+- All currently scoped local preparations above are saved and reviewed. No
+  READY_FOR_LIVE/READY_TO_APPLY claim is made for an unobserved current host or
+  missing DML source. Next work is the bounded fact-finding/decision sequence
+  below, all PAUSED pending new authorization; it is not permission to run the
+  dated Item32 package or to wait for an automatic wakeup.
+
+| Proposed next action | Purpose and exact impact | Cost boundary / owner need |
+|---|---|---|
+| Existing RDS audit capability metadata and exact0019/DMS role-state readback; existing API-C/F non-secret unit metadata only | Establish actual rowcount/commit/trigger coverage for two Item31 canaries, confirm privileged migration route and obtain current unit bytes for local rendering; SELECT/metadata only, no enable/apply/grant | No new resources or paid batch requested; any query/traffic fee must be established before execution. Owner authorization required for production access; account MFA only if the current approved flow demands it. |
+| Existing ACR endpoint/auth-method/permission and one classified manifest readback | Locate AUTH_UNAVAILABLE and bind a real registry digest; no login change, new credential, push or pull | No resource creation; establish query/traffic charge boundary before execution. Do not request owner Secret injection without a diagnosed need. |
+| Existing NoteAI-user tracking session and canonical-row readback | Prove the legitimate user/object and current row; no account creation, guessed ID, submit, backfill or provider call | No paid provider request; normal track-url submission is a later separate write authorization. |
+| Decide a bounded provider-reachable callback ingress for the two fixed api.noteaipro.cn paths before real funds | Resolve Item31 versus Item38 DNS sequencing without opening unrelated business routes or changing provider scope | Product/network decision plus explicit later DNS/ALB authorization. No price quote exists; do not create billed resources. Two live canaries still require the existing cumulativeCNY24 funds authorization. |
+| Obtain the two existing Item35 signature categories; later Item36 fresh quote/cost authorization | Actual professional conclusions and final network cost/dependency closure | No self-signing or outbound message by this agent; any professional fee and ALB fixed/variable quote require owner agreement. |
+
+No immediate owner action is requested merely to rescue Item34. The real Item32
+and33 cycles, Item34 checkpoint/apply, Item36 creation/rolling activation and
+Item37/38 commercial release remain separately unauthorized. Preserve all
+sealed failures/UNKNOWNs and the seven untracked protected paths.
 
 ## Authoritative paused recovery handoff (2026-09-07, Asia/Shanghai)
 

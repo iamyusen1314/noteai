@@ -29,6 +29,12 @@ class Item36PrivateBindPreparationTests(unittest.TestCase):
             self.render(digest="b" * 64)
         for source in (
             UNIT.replace(b"--read-only", b"--network=host --read-only"),
+            UNIT.replace(b"--read-only", b"--net=host --read-only"),
+            UNIT.replace(b"--read-only", b"--net  host --read-only"),
+            UNIT.replace(b"--read-only", b"--network='host' --read-only"),
+            UNIT.replace(b"--read-only", b"--privileged=true --read-only"),
+            UNIT.replace(b"--read-only", b"--publish-all=true --read-only"),
+            UNIT.replace(b"--read-only", b"-p0.0.0.0:9000:9000 --read-only"),
             UNIT.replace(b"--read-only", b"-p 9000:9000 --read-only"),
             UNIT.replace(b"127.0.0.1:8000:8000", b"0.0.0.0:8000:8000"),
             UNIT.replace(b"@sha256:" + b"a" * 64, b":latest"),
@@ -36,6 +42,20 @@ class Item36PrivateBindPreparationTests(unittest.TestCase):
         ):
             with self.subTest(source=source), self.assertRaises(ValueError):
                 self.render(source)
+
+    def test_exact_argument_span_preserves_labels_and_comment_with_same_text(self):
+        source = UNIT.replace(b"--read-only", b"--label=prior=127.0.0.1:8000:8000 --read-only")
+        comment = b"# " + source.splitlines()[1] + b"\n"
+        candidate, rollback = self.render(comment + source)
+        self.assertEqual(rollback, comment + source)
+        self.assertTrue(candidate.startswith(comment))
+        self.assertIn(b"--label=prior=127.0.0.1:8000:8000", candidate)
+        self.assertIn(b"--publish=10.0.1.12:8000:8000", candidate)
+
+    def test_compact_short_publish_argument_is_changed_exactly(self):
+        source = UNIT.replace(b"--publish=", b"-p")
+        candidate, _rollback = self.render(source)
+        self.assertIn(b"-p10.0.1.12:8000:8000", candidate)
 
     def test_rejects_public_loopback_ipv6_and_shell_input(self):
         for address in ("0.0.0.0", "127.0.0.1", "8.8.8.8", "100.64.0.1", "::1", "10.0.1.1;false"):
