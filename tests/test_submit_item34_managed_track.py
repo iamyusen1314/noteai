@@ -9,6 +9,8 @@ from tools import submit_item34_managed_track as tool
 
 
 TRACK_ID = "cb5a0714-1d3b-493a-ae37-f026c45dd9b4"
+OWNER_USERNAME = "noteai_19872819531"
+OWNER_ID = "7038b0ae-13c5-4cb0-a9ef-6a4d690ac1e2"
 ROW = {"id": TRACK_ID, "xhs_note_id": tool.NOTE_ID, "domain": "宠物猫",
        "status": "pending", "submitted_at": "real-server-time"}
 
@@ -106,6 +108,68 @@ class SubmissionTest(unittest.TestCase):
         with patch.object(tool.getpass, "getpass", side_effect=fallback), \
                 self.assertRaises(tool.getpass.GetPassWarning):
             tool.hidden_password()
+
+
+class OwnerRegistrationTest(unittest.TestCase):
+    def responses(self):
+        return [(200, {"token": "private-token", "user": {"id": OWNER_ID}}),
+                (200, {"id": OWNER_ID, "username": OWNER_USERNAME, "phone": "",
+                       "phone_verified": False, "contract_accepted": True,
+                       "contract_version": tool.CONTRACT_VERSION, "created_at": "server-time"})]
+
+    def test_fixed_username_registration_has_no_contact_verification_or_secret_log(self):
+        call, journal = Mock(side_effect=self.responses()), Mock()
+        token, user_id = tool.register_owner_account(OWNER_USERNAME, "private-password", journal, call)
+        self.assertEqual((token, user_id), ("private-token", OWNER_ID))
+        body = call.call_args_list[0].args[2]
+        self.assertEqual((body["phone"], body["email"]), ("", ""))
+        self.assertTrue(body["privacy_accepted"])
+        self.assertEqual(call.call_args_list[1].args, ("GET", "/auth/me"))
+        for private in (OWNER_USERNAME, "private-password", "private-token"):
+            self.assertNotIn(private, repr(journal.mock_calls))
+
+    def test_other_username_stops_before_dispatch(self):
+        call = Mock()
+        with self.assertRaisesRegex(ValueError, "owner_username_mismatch"):
+            tool.register_owner_account("other-user", "p", Mock(), call)
+        call.assert_not_called()
+
+    def test_unknown_registration_never_replays_or_guesses_login(self):
+        call = Mock(return_value=(None, {}))
+        with self.assertRaisesRegex(ValueError, "registration_unknown"):
+            tool.register_owner_account(OWNER_USERNAME, "p", Mock(), call)
+        self.assertEqual(call.call_count, 1)
+
+    def test_rejected_registration_never_resets_existing_password(self):
+        call = Mock(return_value=(400, {"detail": "untrusted-private-data"}))
+        journal = Mock()
+        with self.assertRaisesRegex(ValueError, "registration_rejected"):
+            tool.register_owner_account(OWNER_USERNAME, "p", journal, call)
+        self.assertEqual(call.call_count, 1)
+        self.assertNotIn("untrusted-private-data", repr(journal.mock_calls))
+
+    def test_wrong_identity_or_verified_phone_blocks_managed_submission(self):
+        for field, value in (("id", TRACK_ID), ("phone_verified", True),
+                             ("contract_accepted", False), ("username", "other")):
+            responses = self.responses()
+            responses[1][1][field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "registration_readback_unknown"):
+                tool.register_owner_account(OWNER_USERNAME, "p", Mock(), Mock(side_effect=responses))
+
+    def test_failed_journal_prevents_registration(self):
+        journal, call = Mock(), Mock()
+        journal.write.side_effect = OSError("disk full")
+        with self.assertRaises(OSError):
+            tool.register_owner_account(OWNER_USERNAME, "p", journal, call)
+        call.assert_not_called()
+
+    def test_registration_survives_closed_observation_but_managed_post_cannot(self):
+        with patch.object(tool, "before_deadline", side_effect=ValueError("old_window_closed")):
+            token, _ = tool.register_owner_account(OWNER_USERNAME, "p", Mock(), Mock(side_effect=self.responses()))
+            call = Mock(return_value=(200, {"notes": []}))
+            with self.assertRaisesRegex(ValueError, "old_window_closed"):
+                tool.submit_authenticated(token, "宠物猫", Mock(), call)
+            self.assertEqual(call.call_count, 1)
 
 
 if __name__ == "__main__":

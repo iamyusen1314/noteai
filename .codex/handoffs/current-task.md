@@ -2,6 +2,56 @@
 
 ## Current authorized Item34 execution — 2026-09-07
 
+### Later owner test-account supplement — September7 evening
+
+Owner explicitly authorized one new reusable NoteAI test account, then accepted
+the username prefixed with noteai_ instead of verified-phone login. Exact
+username SHA256 is56e5c09dfca80f6c2f70b328fc42af3c125bdd97c8beb47b93747f2e16cf7387.
+Owner chooses the password through double hidden terminal input and confirms
+the current normal registration disclosures. No SMS/contact verification,
+credential reset, expiry extension, paid subscription or provider request.
+The returned legitimate registration session may submit the existing fixed
+managed target; the September7 22:30:38 deadline and provider budget are unchanged.
+
+This supplement adds normal registration (users INSERT/last_login UPDATE,
+user_contract_acceptances INSERT,user_sessions INSERT; direct upper bound4,
+three distinct rows) and one900-point gift (credits initialization/UPDATE plus
+one credit_transactions gift row; upper bound3,two distinct rows). Direct
+counts remain null/SOURCE_BOUNDED_NOT_OBSERVED. Keep these in the SAME canonical
+auxiliary ledger and total write digest, not the original seven-table/nine-row
+core or disguised as an existing-user login. Both earlier401 failures remain.
+
+Production Admin is read-only, so no refused adjust request or permission
+change: existing DMS noteai_admin performs the explicit single-account gift
+using scripts/postgres/owner-test-account-gift-20260907.sql, bound to the real
+registration UUID, canonical user lock, fixed gift ID and exact pre-state.
+Gift has paid_rmb0,total_purchased unchanged, no subscription change. UNKNOWN
+permits only exact-result readback, never another gift. No unused identity.
+
+22:02:10.045536 DMS readback: target username0, prior fixed gift marker0,
+all individual app registration and owner gift privileges true, user triggers0
+on users/user_sessions/user_contract_acceptances/credits/credit_transactions.
+App attempts SELECT stillfalse. Actual API-F API/auth/account_security/billing/
+content_retention file hashes match deployed b55f11882100e9ef919522540729e366a511f88f.
+Thus auxiliary effects were checked before the new production writes.
+Registration/helper and original strict evidence tests59PASS; helper19 also
+PASS in the real Python3.11/amd64 image with networknone/noSecrets. The precise
+auxiliary extension accepts only this username and a single900gift, preserves
+core counts, the hard deadline, old failures and original write-digest binding.
+
+The gift SQL passed7 real isolated PG16 cases, including atomic rollback on
+ledger failure, wrong/deleted identity, existing nonzero credit and duplicate/
+conflicting gift prevention. Owner entered lowercase yes in the first consent
+prompt; exact native journal has one contract_not_accepted_no_request event,
+SHA dc09404e9f260e89099c5916f917e9c8597d0e8289ce03a1cf11c21a7c69cf63, zero
+registration requests. Preserved it and changed affirmative input to ignore
+case. Installed helper SHA8a604b81d94a93d18debebc02dfd3d78ba29231969310204cc5942edc8ccc19a;
+original helper versions retained under root0700 source. Current exclusive
+journal is owner-registration-input-2.host.jsonl, awaiting owner confirmation
+and double hidden new password. No registration/gift result yet. If registration
+succeeds after the sampling deadline, keep the created account but do not POST
+the old managed target; outer exit1 does not mean registration failed.
+
 ### Latest outcome — September7 21:49 Beijing
 
 **Concrete blocker: existing NoteAI product identity is not available.** Owner

@@ -11,6 +11,18 @@ The retained historical release plan does not authorize other production work.
 
 ## Item34 当次最小生产实施申请 — 2026-09-07
 
+**当日晚间 owner 新增单账号授权：**明确允许创建一个长期测试业务账号，
+owner随后选择`noteai_`前缀用户名以避免未验证手机号登录；精确目标SHA256为
+`56e5c09dfca80f6c2f70b328fc42af3c125bdd97c8beb47b93747f2e16cf7387`。
+密码owner隐藏双次输入并正常确认注册说明；手机号留空、未验证。
+允许一次900积分gift、paid_rmb0，不改变订阅或权限。通过当前正常注册API和
+既有DMS owner执行`owner-test-account-gift-20260907.sql`，绑定真实注册UUID；
+未知结果只读回，不重新发分。注册最多4次直接DML、gift最多3次，实际计数未知，
+新增5个distinct辅助对象纳入原canonical同一auxiliary及总写入摘要。
+原7表9core对象、旧401失败、观察起点、22:30:38截止、两次provider上限不变。
+22:02已先验证指定账号和gift不存在、相关权限齐备、五表无额外用户trigger，
+实际API源码一致。该授权不扩展其他账户或生产Admin写权限，不接通SMS。
+
 Owner 在本窗口以明确用户指令批准9802111此节范围，覆盖正常执行、结果读回、
 已知失败处置及Evidence保存。**仅本Item34作业解除PAUSED**；其他Item生产、
 全局定时任务/自动化、Git push仍PAUSED。批准基线为

@@ -336,6 +336,66 @@ class Item34TrackingEvidenceGateTests(unittest.TestCase):
         self.assertIsNone(auxiliary["authentication"][0]["actual_committed_row_mutations"])
         self.assertEqual(self.payload["actual_production_write_set"]["row_mutations"], 9)
 
+    def _add_test_account_setup(self):
+        auxiliary = self._add_owner_auxiliary_effects()
+        setup = {
+            "authorization_record_ref": ".codex/handoffs/current-task.md",
+            "username_sha256": "56e5c09dfca80f6c2f70b328fc42af3c125bdd97c8beb47b93747f2e16cf7387",
+            "user_identity_sha256": "c" * 64,
+            "registration": {
+                "outcome": "SUCCEEDED", "readback": "VERIFIED", "phone_bound": False,
+                "actual_committed_row_mutations": None,
+                "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED", "direct_row_mutations_upper_bound": 4,
+            },
+            "credit_gift": {
+                "outcome": "SUCCEEDED", "readback": "VERIFIED", "amount": 900,
+                "type": "gift", "paid_rmb": 0, "balance_after": 900,
+                "total_purchased_after": 0, "ledger_match_count": 1,
+                "transaction_identity_sha256": "d" * 64, "replayed": False,
+                "actual_committed_row_mutations": None,
+                "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED", "direct_row_mutations_upper_bound": 3,
+            },
+        }
+        auxiliary["test_account_setup"] = setup
+        self._refresh_write_readback_sha256()
+        return setup
+
+    def test_later_owner_test_account_scope_preserves_core_nine(self):
+        self._add_test_account_setup()
+        self.assertEqual(self.validate(), [])
+        self.assertEqual(self.payload["actual_production_write_set"]["row_mutations"], 9)
+
+    def test_owner_setup_rejects_other_identity_fake_phone_or_observed_counts(self):
+        for mutate in (
+            lambda s: s.update(username_sha256="e" * 64),
+            lambda s: s["registration"].update(phone_bound=True),
+            lambda s: s["registration"].update(actual_committed_row_mutations=4),
+            lambda s: s.update(extra_account={}),
+        ):
+            setup = self._add_test_account_setup()
+            mutate(setup)
+            self._refresh_write_readback_sha256()
+            self.assertIn("Item34 owner test account setup invalid", self.validate())
+
+    def test_owner_setup_rejects_paid_topup_overgrant_replay_or_unproven_gift(self):
+        for field, value in (("type", "topup"), ("amount", 901), ("paid_rmb", 270),
+                             ("replayed", True), ("ledger_match_count", 2),
+                             ("readback", "UNKNOWN"), ("actual_committed_row_mutations", 0)):
+            setup = self._add_test_account_setup()
+            setup["credit_gift"][field] = value
+            self._refresh_write_readback_sha256()
+            self.assertIn("Item34 owner test account setup invalid", self.validate())
+
+    def test_owner_setup_is_in_existing_write_digest(self):
+        self._add_test_account_setup()
+        self.payload["authorized_auxiliary_effects"].pop("test_account_setup")
+        self.assertIn("production write ledger digest invalid", self.validate())
+
+    def test_owner_setup_does_not_extend_old_window_or_allow_failed_sample(self):
+        self._add_test_account_setup()
+        self.payload["observation"]["checkpoint_24h"]["observed_at"] = "2026-09-07T22:30:38+08:00"
+        self.assertTrue(self.validate())
+
     def test_auxiliary_cannot_hide_unapproved_writes_or_unknown_as_zero(self):
         for field, value in (
             ("action", "create_user"), ("columns", ["credits"]),

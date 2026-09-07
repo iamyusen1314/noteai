@@ -4747,12 +4747,60 @@ def _validate_item34_auxiliary_effects(value: Any) -> list[str]:
     columns, policies or privileges cannot be added through this object.
     """
     error = ["Item34 authorized auxiliary effects invalid"]
-    if not isinstance(value, dict) or not _keys_exact(value, {
+    base_keys = {
         "authorization_checkpoint", "authorization_plan_sha256",
         "execution_record_ref", "authentication", "policy_ddl",
         "temporary_attempts_select", "safety_flag", "unexpected_effects",
-    }):
+    }
+    if not isinstance(value, dict) or not (
+        _keys_exact(value, base_keys)
+        or _keys_exact(value, base_keys | {"test_account_setup"})
+    ):
         return error
+    # The later owner instruction authorizes exactly one new test identity and
+    # one 900-point gift. Keep it in this SAME auxiliary ledger/write digest;
+    # it cannot be disguised as an existing-user login or a core Tracking row.
+    if "test_account_setup" in value:
+        setup = value["test_account_setup"]
+        setup_error = ["Item34 owner test account setup invalid"]
+        if not isinstance(setup, dict) or not _keys_exact(setup, {
+            "authorization_record_ref", "username_sha256", "user_identity_sha256",
+            "registration", "credit_gift",
+        }):
+            return setup_error
+        if (setup["authorization_record_ref"] != ".codex/handoffs/current-task.md"
+                or setup["username_sha256"] != "56e5c09dfca80f6c2f70b328fc42af3c125bdd97c8beb47b93747f2e16cf7387"
+                or not isinstance(setup["user_identity_sha256"], str)
+                or SHA256.fullmatch(setup["user_identity_sha256"]) is None):
+            return setup_error
+        if setup["registration"] != {
+            "outcome": "SUCCEEDED", "readback": "VERIFIED", "phone_bound": False,
+            "actual_committed_row_mutations": None,
+            "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+            "direct_row_mutations_upper_bound": 4,
+        }:
+            return setup_error
+        gift = setup["credit_gift"]
+        if not isinstance(gift, dict) or not _keys_exact(gift, {
+            "outcome", "readback", "amount", "type", "paid_rmb",
+            "balance_after", "total_purchased_after", "ledger_match_count",
+            "transaction_identity_sha256", "replayed", "actual_committed_row_mutations",
+            "count_basis", "direct_row_mutations_upper_bound",
+        }):
+            return setup_error
+        if (gift["outcome"] != "SUCCEEDED" or gift["readback"] != "VERIFIED"
+                or not _exact_int(gift["amount"], 900) or gift["type"] != "gift"
+                or not _exact_int(gift["paid_rmb"], 0)
+                or not _exact_int(gift["balance_after"], 900)
+                or not _exact_int(gift["total_purchased_after"], 0)
+                or not _exact_int(gift["ledger_match_count"], 1)
+                or gift["replayed"] is not False
+                or gift["actual_committed_row_mutations"] is not None
+                or gift["count_basis"] != "SOURCE_BOUNDED_NOT_OBSERVED"
+                or not _exact_int(gift["direct_row_mutations_upper_bound"], 3)
+                or not isinstance(gift["transaction_identity_sha256"], str)
+                or SHA256.fullmatch(gift["transaction_identity_sha256"]) is None):
+            return setup_error
     if (
         value["authorization_checkpoint"] != "9802111a27b131e510c1c686870121baead5c45d"
         or value["authorization_plan_sha256"]

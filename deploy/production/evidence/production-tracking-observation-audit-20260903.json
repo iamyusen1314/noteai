@@ -464,7 +464,7 @@
     }
   },
   "production_execution_20260907": {
-    "status": "IMAGE_PUBLISHED_0019_VERIFIED_BLOCKED_EXISTING_NOTEAI_IDENTITY",
+    "status": "OWNER_TEST_ACCOUNT_SUPPLEMENT_AUTHORIZED_REGISTRATION_INPUT_PENDING",
     "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
     "authorization_plan_sha256": "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
     "authorization_record": ".codex/handoffs/current-task.md",
@@ -813,6 +813,61 @@
       "native_3d_journal_exists": false,
       "unit_changed": false,
       "managed_acceptance": "INCOMPLETE_NO_SERVICE_START_OR_REAL_SAMPLE"
+    },
+    "owner_test_account_supplement": {
+      "authorization_record_ref": ".codex/handoffs/current-task.md",
+      "username_sha256": "56e5c09dfca80f6c2f70b328fc42af3c125bdd97c8beb47b93747f2e16cf7387",
+      "owner_choice": "Prefixed username accepted; no verified-phone binding",
+      "credit_gift_amount": 900,
+      "real_payment_amount": 0,
+      "subscription_change": false,
+      "normal_registration_direct_row_upper_bound": 4,
+      "credit_gift_direct_row_upper_bound": 3,
+      "actual_committed_row_mutations": null,
+      "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+      "preflight": {
+        "observed_at": "2026-09-07T22:02:10.045536+08:00",
+        "database": "noteai",
+        "current_user": "noteai_admin",
+        "owner_username_count": 0,
+        "gift_description_matches": 0,
+        "app_register_permissions": true,
+        "owner_gift_permissions": true,
+        "enabled_user_trigger_count": 0,
+        "trigger_tables": [
+          "users",
+          "user_sessions",
+          "user_contract_acceptances",
+          "credits",
+          "credit_transactions"
+        ],
+        "app_attempts_select": false
+      },
+      "actual_api_source_revision": "b55f11882100e9ef919522540729e366a511f88f",
+      "actual_api_source_sha256": {
+        "api.py": "859f8d0c57fa76a32b8913e03f5f702b452c151ecac47183405930d1284b7e20",
+        "auth.py": "ca6bc570308b967ca6f53af7c70d5f4e8d84b58123fd8c23e839253b34ae283e",
+        "account_security.py": "712e70502e82d9be226896504213bd104edf7259c704b189fb9049f1116c7a64",
+        "billing.py": "5c30c15f6208ebf0792ab1f3a70e24389da9b17be4d69ca841ee4f6ba4d71082",
+        "content_retention.py": "9602fd0cad911ec890fc3c8112856283bf53fd0c949ff57798455a3786e0c892"
+      },
+      "helper_sha256": "8a604b81d94a93d18debebc02dfd3d78ba29231969310204cc5942edc8ccc19a",
+      "journal": "/var/lib/noteai/item34-image-build-20260906/owner-registration-input-2.host.jsonl",
+      "registration_status": "INPUT_PENDING_NO_RESULT_YET",
+      "initial_consent_stop": {
+        "code": "contract_not_accepted_no_request",
+        "journal_sha256": "dc09404e9f260e89099c5916f917e9c8597d0e8289ce03a1cf11c21a7c69cf63",
+        "event_count": 1,
+        "registration_requests": 0,
+        "file_retained": true,
+        "correction": "Owner typed affirmative lowercase yes; helper now accepts yes case-insensitively"
+      },
+      "gift_sql": "scripts/postgres/owner-test-account-gift-20260907.sql",
+      "gift_sql_sha256": "bdcfb6e8dc66b0268d975598359bb95234190cae7c6c937e62c07c17773035c0",
+      "gift_ledger_id": "4437ee15-a944-507c-8e22-89c79c6ad6d3",
+      "gift_status": "NOT_DISPATCHED",
+      "verification": "59 helper/strict-evidence tests PASS;19 helper tests PASS in actual Python3.11/amd64 image networknone;7 isolatedPG16 transaction tests PASS incl rollback, duplicate/conflicting gift, wrong/deleted account, nonzero balance",
+      "changes_to_original_window_or_provider_budget": false
     }
   }
 }
