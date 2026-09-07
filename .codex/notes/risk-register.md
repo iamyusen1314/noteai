@@ -2,6 +2,27 @@
 
 ## Current bounded Item34 execution — 2026-09-07
 
+-22:31 final outcome supersedes earlier pending identity/grant states:
+  owner-authorized normal test registration and one900gift succeeded with
+  independent balance/one-ledger readback; fixed managed row was created once
+  through its legitimate API and bound without changing real submission time.
+  The only24h worker/admission failed xhsadaptererror at22:23:58.412753;
+  actual upstream HTTP dispatch and incremental fee remain UNKNOWN. Runtime
+  normalization discarded the original adapter code, so cause is UNLOCATED.
+  Do not diagnose cookie/signing/network failure from the generic class name.
+  No qualifying24h completion/snapshot exists before the strict22:30:38 cutoff;
+  old window EXPIRED at22:31:37, no retry/3d dispatch/automatic restart.
+  Managed promotion/health and full terminal acceptance remain incomplete.
+  Config restored with no extra recovery write; safety/non-target identities
+  unchanged; no active/unknown attempt or running exact task container. Stopped
+  failed container/native journals retained. Owner REVOKE independently verified
+  22:29:50.974346: app SELECTfalse, original ACL exactly restored. No lingering
+  temporary grant. Dormant0019 and published b8ae59c image stay committed.
+  Core partial evidence5tables/6distinct objects is not terminal7tables/9rows;
+  auth/register/gift share the same auxiliary+write digest, source-bounded DML
+  actual null, no whole-DB observer claim. Readiness30/38. Next safe work is
+  offline error-code preservation; new production observation needs approval.
+
 -21:49 actual blocker is an unavailable existing NoteAI product identity,
   distinct from API-F/Aliyun/ACR. Owner recalls no password and no confirmed
   existing browser session. Third input returned401, zero managed POST;

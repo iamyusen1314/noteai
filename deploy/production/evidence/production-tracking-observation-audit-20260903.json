@@ -1,6 +1,6 @@
 {
   "item": 34,
-  "status": "OBSERVATION_IN_PROGRESS",
+  "status": "FAILED_24H_OLD_WINDOW_EXPIRED",
   "readiness_credit": false,
   "owner_amendment": {
     "date": "2026-09-03",
@@ -53,7 +53,7 @@
   "current_valid_observation_start": "2026-09-04T22:30:38+08:00",
   "historical_evidence": "NONE_FOR_THE_SAME_TRACKING_OBJECT",
   "promotion_started": false,
-  "provider_calls": 0,
+  "provider_calls": null,
   "resources_started": 0,
   "postpaid_idle_observation_worker": false,
   "schema": "noteai.item34.tracking_observation.v1",
@@ -67,7 +67,7 @@
     "supersedes": "2026-09-03 24h/5d amendment",
     "backfill_or_early_credit_allowed": false
   },
-  "september_8_feasible_from_current_start": true,
+  "september_8_feasible_from_current_start": false,
   "observation": {
     "note_id": "6a7954010000000026034707",
     "canonical_url": "https://www.xiaohongshu.com/explore/6a7954010000000026034707",
@@ -89,23 +89,58 @@
     },
     "checkpoint_24h": null,
     "checkpoint_3d": null,
-    "actual_provider_attempts": [],
+    "actual_provider_attempts": [
+      {
+        "canonical_stage": "24h",
+        "persisted_stage": "24h",
+        "identity_sha256": "91d7f3e9aadad4439a78eb872e2ad385d476640552ce9aca2820fdc6c6f71e25",
+        "run_identity_sha256": "57f5822b10bfd61c80d18e296ada882c5e55700610e4442a62bc844564d8ae48",
+        "status": "failed",
+        "ledger_readback": "VERIFIED",
+        "actual_supplier_call": null,
+        "provider_admissions": 1,
+        "admitted_at": "2026-09-07T14:23:55.862085+00:00",
+        "completed_at": "2026-09-07T14:23:58.412753+00:00",
+        "automatic_retry_count": 0,
+        "error_code": "xhsadaptererror",
+        "source_journal_sha256": "adc829035c0697773960960d997979b3406e12d9e6a6e62aa5de049a69a128e1"
+      }
+    ],
     "manual_fill_used": false,
     "backfill_used": false,
     "early_credit": false,
     "continuity_break_count": 0,
     "interruptions": [],
-    "managed_track": null
+    "managed_track": {
+      "identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+      "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+      "submitted_at": "2026-09-07T14:13:46.453586+00:00",
+      "ledger_readback": "VERIFIED",
+      "ledger_readback_sha256": "0a727374522ba60ba024a14b40d1b1bf40e1ff14a4e1b84cc6335b4bc57c1205",
+      "readback_basis": "Normal authenticated POST/get followed by restored native snapshot of same UUID; this is not terminal sampling acceptance"
+    }
   },
-  "managed_tracking_row_started": false,
-  "managed_tracking_row_blocker": "production read-only preflight found no canonical managed row and no crawler_config record; no unique existing NoteAI internal canary owner is proven, so user_id will not be guessed or created. Item34 is independent of Item32. Direct API-F Workbench access is currently available. Before either provider checkpoint it still requires a legitimate NoteAI-authored managed row, privileged migration 0019 production apply/readback after the Alibaba account-verification gate, and a current immutable XHS image with a registry digest",
+  "managed_tracking_row_started": true,
+  "managed_tracking_row_blocker": "Managed row exists; its24h attempt failed and old strict window expired. Do not retry, schedule3d, or restart automatically.",
   "actual_production_write_set": {
-    "tables": [],
-    "row_mutations": 0,
-    "rows_by_table": {},
+    "tables": [
+      "crawler_events",
+      "schema_migrations",
+      "system_settings",
+      "tracked_notes",
+      "tracking_provider_attempts"
+    ],
+    "rows_by_table": {
+      "schema_migrations": 1,
+      "tracked_notes": 1,
+      "tracking_provider_attempts": 1,
+      "crawler_events": 2,
+      "system_settings": 1
+    },
+    "row_mutations": 6,
     "out_of_contract_row_mutations": 0,
-    "ledger_readback": "NOT_RUN",
-    "ledger_readback_sha256": null
+    "ledger_readback": "PARTIAL_FAILED_STAGE",
+    "ledger_readback_sha256": "a8fe6fe85b39839c84578bd27f86637f193a1e91a6862435d165a030860409c3"
   },
   "secret_values_recorded": false,
   "superseded_20260903_projection": {
@@ -118,8 +153,8 @@
   "terminal_finalized_at": null,
   "earliest_completion_from_observation_anchor": "2026-09-07T22:30:38+08:00",
   "terminal_schedule_basis": "observation_started_at + 72 actual hours; a later bound managed row does not rewrite or backdate the real initial snapshot",
-  "current_earliest_terminal": "2026-09-07T22:30:38+08:00",
-  "current_earliest_terminal_reason": "real authenticated same-object observation anchor established; terminal credit remains prohibited until the 72-hour checkpoint and all managed evidence complete",
+  "current_earliest_terminal": null,
+  "current_earliest_terminal_reason": "Old24h window expired with no qualifying completed observation; restart not authorized",
   "secret_injection": {
     "status": "CONFIGURED_AND_READBACK_VERIFIED",
     "exact_completion_timestamp_available": false,
@@ -464,7 +499,7 @@
     }
   },
   "production_execution_20260907": {
-    "status": "OWNER_TEST_ACCOUNT_SUPPLEMENT_AUTHORIZED_REGISTRATION_INPUT_PENDING",
+    "status": "FAILED_24H_OLD_WINDOW_EXPIRED_SAFELY_STOPPED",
     "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
     "authorization_plan_sha256": "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
     "authorization_record": ".codex/handoffs/current-task.md",
@@ -598,12 +633,12 @@
       "scope": "manual action reminder only; old executors and global automation remain PAUSED"
     },
     "production_database_writes": null,
-    "provider_admissions": 0,
-    "temporary_attempts_select_added": false,
+    "provider_admissions": 1,
+    "temporary_attempts_select_added": true,
     "migration_apply": "COMMITTED_VERIFIED",
-    "managed_row_post": "NOT_DISPATCHED",
-    "checkpoint_24h": "NOT_DISPATCHED",
-    "checkpoint_3d": "NOT_DISPATCHED",
+    "managed_row_post": "CREATED_ONCE_READBACK_VERIFIED",
+    "checkpoint_24h": "FAILED_NO_QUALIFIED_SNAPSHOT",
+    "checkpoint_3d": "NOT_DISPATCHED_FAILED_24H_DEPENDENCY",
     "secret_values_recorded": false,
     "api_f_evening_readback": {
       "observed_at": "2026-09-07T20:49:42+08:00",
@@ -630,11 +665,11 @@
     "owner_confirmed_domain": "宠物猫",
     "local_managed_submission": {
       "path": "tools/submit_item34_managed_track.py",
-      "sha256": "f749287b0f6b6545f8d63357dc7a22dbdafe125e35547f780a21457ecbad0bae",
-      "status": "STOPPED_TWO_401_FAILURES_NO_MANAGED_POST",
-      "python_tests": "12 passed on isolated Python3.11; fake HTTP only",
-      "scope": "existing user normal login, fixed target at loopback API, exclusive existing journal, no replay, no password/token logging",
-      "host_journal": "/var/lib/noteai/item34-image-build-20260906/managed-input-3.host.jsonl"
+      "sha256": "8a604b81d94a93d18debebc02dfd3d78ba29231969310204cc5942edc8ccc19a",
+      "status": "OWNER_REGISTRATION_AND_MANAGED_POST_SUCCEEDED",
+      "python_tests": "19 passed on isolated actual Python3.11/amd64 image; fake HTTP only; same helper tests included in59 local helper/evidence checks",
+      "scope": "Owner-authorized fixed-username normal registration and authenticated fixed-target POST; earlier two failed existing-user logins retained; exclusive native journals, no replay, no password/token logging",
+      "host_journal": "/var/lib/noteai/item34-image-build-20260906/owner-registration-input-2.host.jsonl"
     },
     "host_file_transport": {
       "original_tar_sha256": "3fad8b721811a7dc33cff6aa911d19802de66bb6347fe78df3ef62256e6abc35",
@@ -735,7 +770,7 @@
       "status": "FIRST_EMPTY_REQUEST_RECOVERY_COMPLETE_SECOND_OUTCOME_RECORDED_SEPARATELY",
       "new_account_or_provider_identity": false
     },
-    "production_database_write_count_basis": "1 observed core migration insert; designated policy DDL; actual auth DML unobserved, source-bounded per retained request",
+    "production_database_write_count_basis": "Core six distinct identities reconstructed from normal API/0019 and native target/attempt/event/config readbacks; not six SQL statements. Auth and new-account/gift direct DML remain source-bounded/null in the SAME auxiliary/write digest. No whole-DB observer claim.",
     "normal_login_recovery": {
       "previous_journal": "/var/lib/noteai/item34-image-build-20260906/managed-input-2.host.jsonl",
       "previous_journal_sha256": "7294fad52c310f7b595d0228521b695b531a91682047b4aabe069b5eb2a6ecaf",
@@ -853,7 +888,7 @@
       },
       "helper_sha256": "8a604b81d94a93d18debebc02dfd3d78ba29231969310204cc5942edc8ccc19a",
       "journal": "/var/lib/noteai/item34-image-build-20260906/owner-registration-input-2.host.jsonl",
-      "registration_status": "INPUT_PENDING_NO_RESULT_YET",
+      "registration_status": "CREATED_AND_AUTH_ME_VERIFIED",
       "initial_consent_stop": {
         "code": "contract_not_accepted_no_request",
         "journal_sha256": "dc09404e9f260e89099c5916f917e9c8597d0e8289ce03a1cf11c21a7c69cf63",
@@ -865,9 +900,207 @@
       "gift_sql": "scripts/postgres/owner-test-account-gift-20260907.sql",
       "gift_sql_sha256": "bdcfb6e8dc66b0268d975598359bb95234190cae7c6c937e62c07c17773035c0",
       "gift_ledger_id": "4437ee15-a944-507c-8e22-89c79c6ad6d3",
-      "gift_status": "NOT_DISPATCHED",
+      "gift_status": "COMMITTED_ONCE_READBACK_VERIFIED",
       "verification": "59 helper/strict-evidence tests PASS;19 helper tests PASS in actual Python3.11/amd64 image networknone;7 isolatedPG16 transaction tests PASS incl rollback, duplicate/conflicting gift, wrong/deleted account, nonzero balance",
-      "changes_to_original_window_or_provider_budget": false
+      "changes_to_original_window_or_provider_budget": false,
+      "registration_at": "2026-09-07T14:13:46.037820+00:00",
+      "registration_journal_sha256": "391cc73e471730dc530479757053fb8bfd540ece4323a53eba9fb36c4a5d5f03",
+      "user_identity_sha256": "36fa4c87d8c4b3cb84e57a4276de7a2e0da0390fa94526d0e78c581d74bb632a",
+      "normal_registration_requests": 1,
+      "registration_phone_bound": false,
+      "gift_bound_sql_sha256": "5b320924a39a5be873d9e1f7f749d73d0078e2fd46e4fce8743e8ffcca412c75",
+      "gift_readback_at": "2026-09-07T22:18:39.572912+08:00",
+      "balance": 900,
+      "total_purchased": 0,
+      "total_used": 0,
+      "gift_exact_count": 1,
+      "user_ledger_count": 1
+    },
+    "upstream_http_dispatch": "UNPROVEN_ADMISSION_PRECEDES_SIGNING_AND_HTTP",
+    "managed_row_creation": {
+      "track_identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+      "user_identity_sha256": "36fa4c87d8c4b3cb84e57a4276de7a2e0da0390fa94526d0e78c581d74bb632a",
+      "submitted_at": "2026-09-07T14:13:46.453586+00:00",
+      "published_at": null,
+      "domain": "宠物猫",
+      "request_count": 1,
+      "http_status": 200,
+      "normal_api": "POST /notes/track-url",
+      "original_next_check_at": "2026-09-08T14:13:46.453606+00:00",
+      "bind_status": "BOUND",
+      "bind_rows_mutated": 1,
+      "bind_other_rows_mutated": 0,
+      "bound_next_check_at": "2026-09-05T22:30:38+08:00",
+      "provider_calls_during_bind": 0,
+      "native_bind_log": "/var/lib/noteai/item34-image-build-20260906/24h-bind.native.log"
+    },
+    "temporary_attempts_select_24h": {
+      "stage": "24h",
+      "grant_added": true,
+      "first_batch_readback": "NO_EFFECT_ACL_UNCHANGED_20260907T22:19:53.803674+08:00",
+      "effective_single_grant_readback_at": "2026-09-07T22:21:44.957235+08:00",
+      "original_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+      "owner_revoke_channel_verified_before_grant": true,
+      "original_acl_restored": true,
+      "restored_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+      "revoke_readback_at": "2026-09-07T22:29:50.974346+08:00",
+      "app_select_after_revoke": false
+    },
+    "sampling_24h": {
+      "status": "FAILED_NO_REPLAY",
+      "native_unit": "noteai-item34-24h-once.service",
+      "invocation_id": "8736e3894f7a429288907cf6ceac78ac",
+      "exit_code": 1,
+      "unit_result": "exit-code",
+      "restart": "no",
+      "journal": "/var/lib/noteai/item34-image-build-20260906/24h.host.jsonl",
+      "journal_sha256": "adc829035c0697773960960d997979b3406e12d9e6a6e62aa5de049a69a128e1",
+      "final_verified_result_present": false,
+      "worker_invocations": 1,
+      "worker_result": {
+        "claimed": 1,
+        "attempted": 1,
+        "collected": 0,
+        "failed": 1,
+        "released": 0,
+        "total": 1
+      },
+      "automatic_retry_count": 0,
+      "before_due_count": 1,
+      "exception_class": "Item34CheckpointError",
+      "exception_code": "worker_result",
+      "attempt_error_code": "xhsadaptererror",
+      "admitted_at": "2026-09-07T14:23:55.862085+00:00",
+      "completed_at": "2026-09-07T14:23:58.412753+00:00",
+      "attempt_identity_sha256": "91d7f3e9aadad4439a78eb872e2ad385d476640552ce9aca2820fdc6c6f71e25",
+      "run_identity_sha256": "57f5822b10bfd61c80d18e296ada882c5e55700610e4442a62bc844564d8ae48",
+      "attempt_status": "failed",
+      "actual_upstream_http_dispatch": "UNPROVEN",
+      "cause": "UNLOCATED_ORIGINAL_ADAPTER_CODE_NOT_PRESERVED",
+      "worker_log_sha256": "aa5ae884f77ef0dd4d0f3f91f217fd6a7f662214c4c6da317bb87f0eaa0d48bd",
+      "worker_error_event_at": "2026-09-07T14:23:58.476246+00:00",
+      "actual_incremental_cost": "UNKNOWN_NOT_ZERO"
+    },
+    "failure_recovery": {
+      "journal": "/var/lib/noteai/item34-image-build-20260906/24h-restore.host.jsonl",
+      "journal_sha256": "b42ba261306a495074d9a64e9933e7db89baec9525eef6e13ba347f8fe78921a",
+      "snapshot_at": "2026-09-07T14:26:09.682552+00:00",
+      "configuration_restored": true,
+      "recovery_configuration_write_used": false,
+      "activation_row_mutations": 1,
+      "original_restore_row_mutations": 1,
+      "other_configuration_mutations": 0,
+      "configuration_identity_restored": true,
+      "safety_identity_unchanged": true,
+      "safety_blocked_before": false,
+      "safety_blocked_after": false,
+      "non_target_tracking_unchanged": true,
+      "global_started_count": 0,
+      "global_unknown_count": 0,
+      "target_unknown_count": 0,
+      "target_count_24h": 1,
+      "target_count_7d": 0,
+      "target_status": "needs_manual",
+      "check_24h_at": null,
+      "check_7d_at": null,
+      "next_check_at": null,
+      "claim_present": false,
+      "active_attempt_present": false,
+      "tracking_unit": "disabled/inactive/dead",
+      "task_running_container_count": 0,
+      "precise_worker_container": "noteai-item34-tracking-24h",
+      "worker_container_running": false,
+      "worker_container_exit_code": 1,
+      "stopped_container_retained_for_failure_evidence": true,
+      "provider_replay_allowed": false,
+      "restore_provider_calls": 0,
+      "sampling_acceptance": "NOT_DETERMINED",
+      "native_ledger_sha256": "0a727374522ba60ba024a14b40d1b1bf40e1ff14a4e1b84cc6335b4bc57c1205",
+      "crawler_event_count": 2,
+      "growth_record_count": 0,
+      "user_memory_count": 0
+    },
+    "old_window_decision": {
+      "status": "EXPIRED",
+      "clock_readback_at": "2026-09-07T22:31:37+08:00",
+      "strict_24h_deadline": "2026-09-07T22:30:38+08:00",
+      "qualified_24h_completion_and_snapshot": false,
+      "reason": "One real failed24h admission, null check_24h_at and metrics; no original qualifying24h evidence before deadline",
+      "backfill_used": false,
+      "window_restarted": false,
+      "three_day_dispatched": false
+    },
+    "write_count_basis": "Core six distinct identities reconstructed from normal API/0019 and native target/attempt/event/config readbacks; not six SQL statements. Auth and new-account/gift direct DML remain source-bounded/null in the SAME auxiliary/write digest. No whole-DB observer claim.",
+    "temporary_attempts_select_currently_active": false
+  },
+  "provider_calls_basis": "One worker invocation and one provider admission; upstream HTTP dispatch itself unproven on failed adapter path",
+  "authorized_auxiliary_effects": {
+    "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
+    "authorization_plan_sha256": "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
+    "execution_record_ref": ".codex/handoffs/current-task.md",
+    "authentication": [
+      {
+        "action": "existing_user_password_login",
+        "outcome": "FAILED",
+        "actual_committed_row_mutations": null,
+        "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+        "direct_row_mutations_upper_bound": 4
+      },
+      {
+        "action": "existing_user_password_login",
+        "outcome": "FAILED",
+        "actual_committed_row_mutations": null,
+        "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+        "direct_row_mutations_upper_bound": 4
+      }
+    ],
+    "policy_ddl": {
+      "operation": "APPLY_EXACT_0019",
+      "readback": "USE_EXISTING_RUNTIME_CONFIG_MIGRATION"
+    },
+    "temporary_attempts_select": [
+      {
+        "stage": "24h",
+        "grant_added": true,
+        "original_acl_restored": true,
+        "original_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+        "restored_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c"
+      }
+    ],
+    "safety_flag": {
+      "key": "xhs_collection_safety",
+      "outcome": "NOT_NEEDED",
+      "actual_committed_row_mutations": 0
+    },
+    "unexpected_effects": [],
+    "test_account_setup": {
+      "authorization_record_ref": ".codex/handoffs/current-task.md",
+      "username_sha256": "56e5c09dfca80f6c2f70b328fc42af3c125bdd97c8beb47b93747f2e16cf7387",
+      "user_identity_sha256": "36fa4c87d8c4b3cb84e57a4276de7a2e0da0390fa94526d0e78c581d74bb632a",
+      "registration": {
+        "outcome": "SUCCEEDED",
+        "readback": "VERIFIED",
+        "phone_bound": false,
+        "actual_committed_row_mutations": null,
+        "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+        "direct_row_mutations_upper_bound": 4
+      },
+      "credit_gift": {
+        "outcome": "SUCCEEDED",
+        "readback": "VERIFIED",
+        "amount": 900,
+        "type": "gift",
+        "paid_rmb": 0,
+        "balance_after": 900,
+        "total_purchased_after": 0,
+        "ledger_match_count": 1,
+        "transaction_identity_sha256": "11a7cb0b4ab3ee2f2d3aad3993f50a0997c4e3d52e50a0939774705232d0c745",
+        "replayed": false,
+        "actual_committed_row_mutations": null,
+        "count_basis": "SOURCE_BOUNDED_NOT_OBSERVED",
+        "direct_row_mutations_upper_bound": 3
+      }
     }
-  }
+  },
+  "resources_started_basis": "No new billable resource was created; the one transient task on existing API-F is recorded under production_execution_20260907.sampling_24h and is now stopped"
 }

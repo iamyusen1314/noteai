@@ -2,6 +2,84 @@
 
 ## Current authorized Item34 execution — 2026-09-07
 
+### Final live outcome — September7 22:31 Beijing; local closure follows
+
+**Owner test account and900gift succeeded. Item34 failed its only24h attempt;
+the old window is EXPIRED. Readiness remains30/38, Item34 incomplete.**
+This outcome supersedes the earlier pending identity/input/grant statements.
+No24h retry,3d dispatch or observation restart is permitted from this state.
+
+Normal registration succeeded once at22:13:46.037820; authenticated /auth/me
+confirmed the exact owner-selected username, accepted contract and unbound/
+unverified phone. Owner supplied the password through hidden input. The same
+session submitted the fixed pet-cat target once through POST /notes/track-url:
+actual submitted_at22:13:46.453586, published_at null; wrapper bind changed
+only that row's next_check_at to the approved due time, not the submission or
+initial snapshot. Registration/managed journal SHA256:
+391cc73e471730dc530479757053fb8bfd540ece4323a53eba9fb36c4a5d5f03.
+Single-account gift SQL bound SHA256:
+5b320924a39a5be873d9e1f7f749d73d0078e2fd46e4fce8743e8ffcca412c75.
+DMS owner committed it once; independent22:18:39.572912 readback proves
+balance900,total_purchased0,total_used0,one matching gift and one user ledger
+row. No paid subscription or account expiry was assigned. Do not replay gift.
+Canonical production_execution_20260907 retains exact hashes and safe identity
+bindings; password/session/host Secret values are not saved in Git.
+
+Owner/revoke channel and absent app attempts SELECT were checked before grant.
+The first batch produced no effective ACL change, established by22:19:53
+readback. A subsequent exact single GRANT was effective at22:21:44.957235.
+The one non-restarting24h job then had1 worker invocation and1 provider
+admission, failed at22:23:58.412753 with xhsadaptererror (collected0,failed1).
+Journal24h.host.jsonl SHA256:
+adc829035c0697773960960d997979b3406e12d9e6a6e62aa5de049a69a128e1.
+There is no VERIFIED final result. Admission occurs before signing/HTTP, so
+actual upstream HTTP dispatch and incremental charge remain UNKNOWN, not0.
+The original adapter error code was discarded by the runtime normalization;
+safe stopped-container log readback confirms only xhsadaptererror. Cause is
+UNLOCATED; do not infer cookie expiry, signing failure or a network cause.
+
+Failure recovery readback22:26:09.682552: original crawler_config absent again,
+safety identity unchanged, non-target rows unchanged, target needs_manual,
+check_24h/check_7d/metrics/next_check null, no claim/active attempt or global
+started/unknown attempt. Original failure path restored config; explicit
+restore added no configuration write and made no provider call. Tracking is
+disabled/inactive/dead; exact task container is stopped exit1 and retained for
+failure evidence. Restore journal SHA256:
+b42ba261306a495074d9a64e9933e7db89baec9525eef6e13ba347f8fe78921a.
+After all required snapshot readbacks, owner REVOKE succeeded. Independent
+22:29:50.974346 readback proves app SELECTfalse and original ACL SHA256
+1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c restored.
+No grant is carried into3d. Committed0019 and the published b8ae59c image remain.
+
+Clock22:31:37 is after the strict September7 22:30:38 deadline; the real failed
+attempt and null24h snapshot provide no qualifying completion before it.
+Therefore EXPIRED follows actual timing/evidence, not UNPROVEN alone. Both
+canonical checkpoint objects stay null; no later3d can rescue this old window.
+Core partial write evidence covers5tables/6distinct identities, not6SQL writes
+or the required terminal7tables/9rows. Earlier401s and registration/gift are
+in the SAME auxiliary object and total digest; direct DML remains source-bounded
+with actual counts null, not an assertion of whole-database observation.
+
+Saved work: current canonical Evidence, this Handoff, risk register and existing
+execution plan. Previously completed verification:59 helper/evidence tests,
+19 helper checks in actual Python3.11/amd64 with no network/Secrets,7 isolated
+PG16 gift transaction checks. Final Item34-only offline validator accepts0019
+and the shared write digest, rejects terminal credit as required for the
+failed/incomplete samples, partial core ledger and only one real ACL stage.
+Its generic write-set mismatch text does not establish extra observed writes.
+Independent read-only audit and comparison against b732707 confirm original
+anchor, initial snapshot, object identity and owner amendments unchanged.
+git diff --check passes. Static manifest remains29internal+1public verified
+out of38, without replaying their checks. Local isolated gift PG container
+stopped, then Colima noteai-prep shut down22:41:50; final colima list confirms
+both profiles stopped, restoring the prior local state. Colima emitted a guest
+cwd warning for the unmounted host workspace but exited0 and confirmed VM stop.
+No production code/image rebuild, Item1–30 replay, protected-file content
+access, global automation resume or Git push.
+Next independent work: offline preservation of precise adapter error codes
+and its bounded regression; any new production observation needs a concrete
+new proposal and owner approval. Do not restart from this failed run.
+
 ### Later owner test-account supplement — September7 evening
 
 Owner explicitly authorized one new reusable NoteAI test account, then accepted
@@ -46,13 +124,13 @@ prompt; exact native journal has one contract_not_accepted_no_request event,
 SHA dc09404e9f260e89099c5916f917e9c8597d0e8289ce03a1cf11c21a7c69cf63, zero
 registration requests. Preserved it and changed affirmative input to ignore
 case. Installed helper SHA8a604b81d94a93d18debebc02dfd3d78ba29231969310204cc5942edc8ccc19a;
-original helper versions retained under root0700 source. Current exclusive
-journal is owner-registration-input-2.host.jsonl, awaiting owner confirmation
-and double hidden new password. No registration/gift result yet. If registration
-succeeds after the sampling deadline, keep the created account but do not POST
-the old managed target; outer exit1 does not mean registration failed.
+original helper versions retained under root0700 source. At this earlier
+checkpoint owner-registration-input-2.host.jsonl awaited confirmation and
+double hidden password; the actual success and900gift are recorded above.
+Registration success and managed submission remain distinct outcomes; an
+outer exit1 alone would not prove that registration failed.
 
-### Latest outcome — September7 21:49 Beijing
+### Earlier identity blocker — September7 21:49 Beijing
 
 **Concrete blocker: existing NoteAI product identity is not available.** Owner
 does not recall setting a product password and has no confirmed logged-in

@@ -1,15 +1,41 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `ITEM34 BOUNDED EXECUTION AUTHORIZED / OTHER PRODUCTION PAUSED`
+Status: `ITEM34 FAILED / OLD WINDOW EXPIRED / PRODUCTION EXECUTION STOPPED`
 
 Date: 2026-09-07 (current scope below; July sections retained as history)
 
 Task: `PROD-DEPLOY-PLAN-001`
 
-Only the owner-approved Item34 section below authorizes bounded execution.
-The retained historical release plan does not authorize other production work.
+The bounded Item34 job below has failed and closed safely. Its old observation
+window must not be replayed or restarted. Retained approval and commands are
+execution history, not authorization to repeat them or run other Items.
 
 ## Item34 当次最小生产实施申请 — 2026-09-07
+
+**本次真实结果（北京时间9月7日22:31）：测试账号与900积分已完成；Item34失败，
+旧窗口EXPIRED，Readiness保持30/38。**正常注册一次及/auth/me身份读回成功；
+同一session于22:13:46正常POST固定宠物猫笔记，wrapper绑定原批准due，保留
+真实submitted_at及初始snapshot。既有DMS owner一次赠分提交后，22:18:39独立
+读回balance900、purchased0、used0、精确gift1/用户流水1。绑定SQL的SHA256为
+`5b320924a39a5be873d9e1f7f749d73d0078e2fd46e4fce8743e8ffcca412c75`。
+密码由owner隐藏输入，手机号仍未绑定。不存在重复注册/发分或付费订阅。
+
+精确24h一次任务产生1worker/1provider admission，22:23:58失败，error_code为
+`xhsadaptererror`；collected0/failed1，没有VERIFIED结果或合格24h snapshot。
+原始具体adapter码已被运行代码丢弃，原因未定位；admission先于签名/HTTP，
+不能把它当作已证明的HTTP发出或把费用记0。22:26:09恢复读回确认config回到
+原状态、safety及其他跟踪行未变、目标needs_manual且检查时间/指标/下次调度
+为空，无活动/UNKNOWN attempt。额外restore未再写配置或调用供应商。
+精确任务容器已停止exit1并保留失败证据，Tracking disabled/inactive/dead。
+临时SELECT在需要的读回后撤回；22:29:50独立验证app SELECTfalse及原ACL完全恢复。
+0019已提交及既定b8ae59c镜像保持原真实身份，不删除或重建。
+
+实测22:31:37已超过严格24h截止22:30:38，且没有截止前合格证据，因此旧窗口
+EXPIRED。**不重试24h、不执行3d、不自动重启观察。**下方原批准动作仅保留其
+历史范围；现存失败结果与恢复hash写在同一canonical Evidence和Handoff中。
+核心部分结果为5表6distinct对象，辅助认证/注册/赠分进入原同一辅助账本及
+总摘要；它们没有冒充终态7表9行或全库实测DML。下一步可离线完善错误码保留，
+新生产观察须另给具体方案并获owner批准，当前无需owner再执行已完成的命令。
 
 **当日晚间 owner 新增单账号授权：**明确允许创建一个长期测试业务账号，
 owner随后选择`noteai_`前缀用户名以避免未验证手机号登录；精确目标SHA256为
@@ -36,7 +62,7 @@ Secret隔离与真实终态不变。镜像保持真实b8ae59c源码身份，不�
 未知金额不记0；不得新增Builder、扩容、订阅或固定费用。本节取代下方七月整套发布顺序，
 不要求先重建全部角色、更新 API、部署 Payment 或完成 ALB。
 
-**晚间续行：**owner已报告API-F Docker Login Succeeded。既定镜像通过同一
+**历史晚间续行（21:49前；后续结果以上方收尾为准）：**owner已报告API-F Docker Login Succeeded。既定镜像通过同一
 Workbench任务传输，Wi-Fi切换中断后由owner恢复；主机整包SHA/bytes、load、
 Python3.11.15/UID999及8源码hash已验证。新tag一次push exit0，Registry manifest
 读回匹配同一config；实际digest为
@@ -204,7 +230,7 @@ v2继承旧base的cryptography48.0.1，当前要求50.0.0；因此本次选择�
 3d为后一个边界起且晚于24h，attempt完成不晚于对应snapshot。没有新增±误差、
 两样本间48h最低间隔、3d最晚截止或managed row/服务覆盖整72h的要求。
 
-实测时钟2026-09-07 12:40:25北京时间，canonical两checkpoint仍null、attempts空，
+历史实测时钟2026-09-07 12:40:25北京时间，当时canonical两checkpoint仍null、attempts空，
 最近生产只读记录为10:53:57目标行0；本轮没有新生产/供应商Evidence。
 状态 **UNPROVEN**，旧窗口此时仍可实施，前提是全部前置及24h真实完成/快照
 均在当晚22:30:38之前。若到执行时已错过且没有原有有效Evidence，停止本方案
