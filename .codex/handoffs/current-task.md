@@ -4,6 +4,38 @@
 
 ### Evening continuation — September7 20:57 Beijing
 
+**Latest21:30 continuation:** XHS image is actually published (digest below).
+Host logger116d865b and normal-account helperf749287b are installed and hash
+verified using existing SSH stdin after both small-file OSS transfers failed
+NoSuchKey. No more failed OSS requests. Approved wrapper3d9e65c4 was extracted
+from that real registry digest using network=none/no Secret env; old88f49217
+bytes saved to `deploy/production/execute_item34_tracking.py.pre-20260907` under
+the existing root0700 source directory. No other host source file changed.
+
+DMS21:21:30 fresh owner catalog repeated all14shortrows: owner/activation/RLS
+valid,0019policy/ledger0, original ACL unchanged, app attempts SELECTfalse,
+enabled user triggers0 on10core/auth tables. This confirms core/authorized-aux
+scope compatibility before writes. Exact preflight/apply/verify then executed
+successfully, apply once only. The selected apply/verify SQL text was copied
+from the controlled editor and its SHA exactly matched approved files (AX
+renders extra blank separators; it was not used as the byte identity).
+Independent catalog readback21:28:57.963372 proves ledger_exact_count1,
+policy_contract_count1, full145-characterqual exact, RLS true and original ACL
+unchanged/app SELECTfalse. This is one core migration row plus approved policy
+DDL; no auth/managed/provider/config/safety write yet. Committed0019 stays dormant
+if later work fails; do not delete it or replay apply.
+
+**Current user action:** API-F terminal runs the installed
+`tools/submit_item34_managed_track.py --domain 宠物猫 --journal
+/var/lib/noteai/item34-image-build-20260906/managed.host.jsonl` and is waiting at
+`Existing NoteAI username or verified phone:`. Owner must use an existing
+production NoteAI account, then the hidden password prompt. No credential in
+chat. No auth request was dispatched at this readback. Do not start a second
+helper or reuse its exclusive journal. Before later grant/bind/sample inspect
+the native journal and target result, not a chat assumption. No app attempts
+grant has been added while waiting. Readiness30/38;24h must finish/snapshot
+strictly before22:30:38.3d remains already authorized after the boundary.
+
 Owner reported API-F Docker `Login Succeeded`; no credential value was read.
 This supersedes the afternoon cancelled-login state below. The existing
 Workbench file manager was tied to an expired connection; normal refresh and

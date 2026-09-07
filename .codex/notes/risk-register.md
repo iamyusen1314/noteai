@@ -2,6 +2,16 @@
 
 ## Current bounded Item34 execution — 2026-09-07
 
+-21:30 supersedes pending0019/host statements: approved wrapper and both host
+  helpers are installed with exact hashes; prior wrapper preserved. Small-file
+  OSS NoSuchKey failures retained, then SSH transferred the same approved bytes.
+  DMS fresh owner/ACL/trigger readback21:21 preceded exact0019 apply once;
+  independent21:28:57catalog proves ledger1/policy1/exactqual/RLS, original ACL
+  unchanged. One core migration row plus authorized policyDDL, no runtime flag
+  activation. The normal-user helper is waiting for owner's existing NoteAI
+  username/password; auth/managed/provider not dispatched. Do not restart it
+  or add attempts SELECT while human login is pending. No terminal acceptance.
+
 -21:11 continuation: approved XHS image actually published once, push exit0.
   Registry digest6735b6f243437a87945f837b9f51bbcca49bef51c24fb028f6e94351a1da54b4
   binds the same5c4291f7config; localcb17d276 is the OCI index, not config/digest

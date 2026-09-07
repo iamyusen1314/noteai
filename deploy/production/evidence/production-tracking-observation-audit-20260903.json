@@ -463,7 +463,7 @@
     }
   },
   "production_execution_20260907": {
-    "status": "XHS_IMAGE_PUBLISHED_HOST_FILES_PENDING",
+    "status": "IMAGE_PUBLISHED_0019_VERIFIED_EXISTING_USER_INPUT_PENDING",
     "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",
     "authorization_plan_sha256": "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d",
     "authorization_record": ".codex/handoffs/current-task.md",
@@ -596,10 +596,10 @@
       "one_time": true,
       "scope": "manual action reminder only; old executors and global automation remain PAUSED"
     },
-    "production_database_writes": 0,
+    "production_database_writes": 1,
     "provider_admissions": 0,
     "temporary_attempts_select_added": false,
-    "migration_apply": "NOT_DISPATCHED",
+    "migration_apply": "COMMITTED_VERIFIED",
     "managed_row_post": "NOT_DISPATCHED",
     "checkpoint_24h": "NOT_DISPATCHED",
     "checkpoint_3d": "NOT_DISPATCHED",
@@ -621,16 +621,19 @@
       "network_state": "SSH reconnected after owner Wi-Fi change; image probe completed",
       "source_directory_mode": "root:root 0700",
       "host_wrapper_sha256_before": "88f49217ca203a6d861612eeac7e254132e63ca39863506947e31f6b7877f15d",
-      "host_wrapper_status": "OLD_WRAPPER_REPLACEMENT_PENDING",
-      "checkpoint_sha256": "73f53cbac5f653987deffb769e9abe412a9efe18be3b749e1d5254c709418f8c"
+      "host_wrapper_status": "INSTALLED_FROM_VERIFIED_PUBLISHED_IMAGE",
+      "checkpoint_sha256": "73f53cbac5f653987deffb769e9abe412a9efe18be3b749e1d5254c709418f8c",
+      "host_wrapper_sha256_after": "3d9e65c4535226a0a7d4c499558bff1d19ed69ebbbcf647a657700aff8c85e8a",
+      "prior_wrapper_backup": "/var/lib/noteai/item34-image-build-20260906/deploy/production/execute_item34_tracking.py.pre-20260907"
     },
     "owner_confirmed_domain": "宠物猫",
     "local_managed_submission": {
       "path": "tools/submit_item34_managed_track.py",
       "sha256": "f749287b0f6b6545f8d63357dc7a22dbdafe125e35547f780a21457ecbad0bae",
-      "status": "OFFLINE_TESTED_NOT_INSTALLED_OR_EXECUTED",
+      "status": "HOST_HASH_VERIFIED_RUNNING_WAITING_USERNAME_NO_AUTH_DISPATCH",
       "python_tests": "12 passed on isolated Python3.11; fake HTTP only",
-      "scope": "existing user normal login, fixed target at loopback API, exclusive existing journal, no replay, no password/token logging"
+      "scope": "existing user normal login, fixed target at loopback API, exclusive existing journal, no replay, no password/token logging",
+      "host_journal": "/var/lib/noteai/item34-image-build-20260906/managed.host.jsonl"
     },
     "host_file_transport": {
       "original_tar_sha256": "3fad8b721811a7dc33cff6aa911d19802de66bb6347fe78df3ef62256e6abc35",
@@ -638,13 +641,85 @@
       "failure": "OSS_NoSuchKey",
       "request_ids": [
         "6A9EB72C5F4489333914CF7C",
-        "6A9EB763C9B950363557E7E2"
+        "6A9EB763C9B950363557E7E2",
+        "6A9EB86080E4183238ED375A"
       ],
       "host_tar_stat": "NO_SUCH_FILE",
       "cause": "UNLOCATED",
       "same_content_gzip_sha256": "2605fd5a47acc415f3c66d8eaf364ed9a7e89093912ebf5ba6ee739eb3cb060e",
       "same_content_gzip_bytes": 21710,
-      "gzip_status": "TRANSFER_STARTED_HOST_CONFIRMATION_PENDING"
+      "gzip_status": "FAILED_OSS_NoSuchKey",
+      "recovery": "Stopped failed OSS path; two local scripts copied over existing SSH stdin with compressed payload SHA and individual file SHA verified before writes; wrapper extracted from the published digest with no network/Secret env"
+    },
+    "owner_catalog_revalidation_2121": {
+      "observed_at": "2026-09-07T21:21:30.593188+08:00",
+      "database": "noteai",
+      "current_user": "noteai_admin",
+      "session_user": "noteai_admin",
+      "owner_activation_capable": true,
+      "settings_owner_exact": true,
+      "ledger_owner_exact": true,
+      "attempts_owner_exact": true,
+      "rls_contract_exact": true,
+      "policy_count": 0,
+      "ledger_count": 0,
+      "app_select": {
+        "system_settings": true,
+        "tracked_notes": true,
+        "tracking_provider_attempts": false,
+        "crawler_events": true,
+        "growth_records": true,
+        "user_memories": true
+      },
+      "attempts_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+      "attempts_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+      "enabled_user_triggers": [],
+      "trigger_tables": [
+        "schema_migrations",
+        "tracked_notes",
+        "tracking_provider_attempts",
+        "crawler_events",
+        "growth_records",
+        "user_memories",
+        "system_settings",
+        "users",
+        "user_sessions",
+        "auth_login_limits"
+      ],
+      "scope": "catalog metadata and exact 0019 ledger count only; no business-detail scan",
+      "readback_transport": "Same pre-existing catalog-only SQL in current DMS owner session; all14shortrows read back"
+    },
+    "migration_application": {
+      "preflight_sha256": "dbfac34fe06bbec9e81bd0cad0e33131f7ba1ff25575d447c82adc1013869d41",
+      "apply_sha256": "4ace3f3591a4e922fec7917664bd1e5f1fd7193901b1a8ef93b6375a940a5cca",
+      "verify_sha256": "00f85944d37be8ff4b6e89478b56df35302fa2d16950203dfe9e2e0ba65bfa7a",
+      "selected_apply_verify_bytes": "Clipboard copied ONLY the explicitly selected non-secret SQL; SHA matched approved files exactly. AX rendered blank lines differently but actual editor bytes matched.",
+      "dms_preflight_status": "SUCCEEDED_ROLLBACK",
+      "dms_apply_status": "SUCCEEDED_COMMIT_ONCE",
+      "dms_verify_status": "SUCCEEDED_ROLLBACK",
+      "final_catalog_readback_at": "2026-09-07T21:28:57.963372+08:00",
+      "current_user": "noteai_admin",
+      "database": "noteai",
+      "ledger_exact_count": 1,
+      "policy_contract_count": 1,
+      "policy_qual": "((CURRENT_USER = 'noteai_xhs_tracking'::name) AND (is_secret = 0) AND (key = ANY (ARRAY['crawler_config'::text, 'xhs_collection_safety'::text])))",
+      "policy_qual_length": 145,
+      "rls_contract_exact": true,
+      "attempts_owner_exact": true,
+      "owner_activation_capable": true,
+      "app_attempts_select": false,
+      "attempts_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+      "core_distinct_rows_so_far": {
+        "schema_migrations": 1
+      },
+      "auxiliary_effects_so_far": {
+        "designated_select_policy_created": 1,
+        "temporary_grants": 0,
+        "auth_dispatches": 0,
+        "safety_writes": 0
+      },
+      "runtime_config_changed": false,
+      "rollback_if_later_failure": "Retain committed dormant additive0019 policy/ledger; no deletion"
     }
   }
 }

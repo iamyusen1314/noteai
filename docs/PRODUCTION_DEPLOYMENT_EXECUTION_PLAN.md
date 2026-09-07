@@ -29,7 +29,12 @@ Workbench任务传输，Wi-Fi切换中断后由owner恢复；主机整包SHA/byt
 Python3.11.15/UID999及8源码hash已验证。新tag一次push exit0，Registry manifest
 读回匹配同一config；实际digest为
 `sha256:6735b6f243437a87945f837b9f51bbcca49bef51c24fb028f6e94351a1da54b4`。
-没有DB写入/provider dispatch。20:49:42主机
+21:21重新确认owner/ACL/无用户trigger后，精确0019 preflight/apply/verify已成功；
+21:28:57独立目录读回确认ledger1、policy1、完整qual正确、RLS及原ACL未变。
+已有一行迁移账本和指定policy DDL；auth/managed/provider尚未dispatch。
+Host原wrapper已保留并替换为批准SHA，两份helper已安装。Workbench当前停在
+既有NoteAI业务账户用户名提示，下一步需本人输入，之后按真实结果绑定/采样。
+暂未新增临时SELECT。20:49:42主机
 读回31G可用、Python3.11.6、Tracking disabled/inactive。领域由owner确认关于
 宠物猫，使用`宠物猫`。具体执行状态同步在现有Handoff和canonical中。
 
