@@ -1084,6 +1084,11 @@ class ProductionReadinessGateTests(unittest.TestCase):
         payment_stage = dockerfile.split(
             "FROM runtime-common AS payment-runtime", 1
         )[1].split(
+            "FROM runtime-common AS payment-canary-runtime", 1
+        )[0]
+        payment_canary_stage = dockerfile.split(
+            "FROM runtime-common AS payment-canary-runtime", 1
+        )[1].split(
             "FROM runtime-common AS ai-worker-runtime", 1
         )[0]
         ai_worker_stage = dockerfile.split(
@@ -1098,6 +1103,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         self.assertIn("FROM runtime-common AS api-runtime", dockerfile)
         self.assertIn("FROM runtime-common AS admin-runtime", dockerfile)
         self.assertIn("FROM runtime-common AS payment-runtime", dockerfile)
+        self.assertIn("FROM runtime-common AS payment-canary-runtime", dockerfile)
         self.assertIn("FROM runtime-common AS ai-worker-runtime", dockerfile)
         self.assertIn("FROM runtime-common AS xhs-http-runtime", dockerfile)
         self.assertNotIn("FROM runtime-common AS worker-runtime", dockerfile)
@@ -1108,6 +1114,14 @@ class ProductionReadinessGateTests(unittest.TestCase):
             'CMD ["/app/scripts/render_start_payment.sh"]',
             payment_stage,
         )
+        self.assertIn("payment-canary", payment_canary_stage)
+        self.assertIn("NOTEAI_PAYMENT_CANARY_USER_ID_SHA256", payment_canary_stage)
+        self.assertIn(
+            "/etc/noteai-payment-canary-user-sha256",
+            payment_canary_stage,
+        )
+        self.assertIn("HEALTHCHECK NONE", payment_canary_stage)
+        self.assertNotIn("CMD", payment_canary_stage)
         self.assertIn(
             'CMD ["python", "durable_ai_worker.py", "--once"]',
             ai_worker_stage,
@@ -1119,6 +1133,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
             api_stage,
             admin_stage,
             payment_stage,
+            payment_canary_stage,
             ai_worker_stage,
             xhs_stage,
         ):
@@ -1135,6 +1150,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
             api_stage,
             admin_stage,
             payment_stage,
+            payment_canary_stage,
             ai_worker_stage,
             xhs_stage,
         ):
@@ -1331,6 +1347,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ["python", "market_timing_worker.py", "--clear-session-block"],
                 ["python", "crawler_worker.py"],
                 ["python", "crawler_worker.py", "--once"],
+                ["python", "crawler_worker.py", "--once", "--limit", "1"],
                 ["python", "crawler_worker.py", "--healthcheck"],
                 ["python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", "50"],
                 ["/bin/false"],
@@ -1410,6 +1427,8 @@ class ProductionReadinessGateTests(unittest.TestCase):
                 ["python", "-c", "import api"],
                 ["python", "crawler_worker.py", "--loop", "--interval-minutes", "api.py", "--limit", "50"],
                 ["python", "crawler_worker.py", "--loop", "--interval-minutes", "60", "--limit", "api.py"],
+                ["python", "crawler_worker.py", "--once", "--limit", "0"],
+                ["python", "crawler_worker.py", "--once", "--limit", "2"],
             ),
         }
         for role, commands in rejected.items():
@@ -1554,7 +1573,7 @@ class ProductionReadinessGateTests(unittest.TestCase):
         passed, detail = gate._check_entrypoint_runtime_contract(source)
 
         self.assertTrue(passed, detail)
-        self.assertIn("allowed=30", detail)
+        self.assertIn("allowed=35", detail)
 
     def test_readiness_entrypoint_semantic_harness_rejects_allowlist_backdoor(self):
         source = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")

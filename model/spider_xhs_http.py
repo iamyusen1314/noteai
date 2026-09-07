@@ -32,6 +32,11 @@ MAX_PAGES = 3
 MAX_ITEMS = 60
 MAX_QUERY_LENGTH = 100
 REQUEST_TIMEOUT_SECONDS = 20.0
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 "
+    "Safari/537.36 Edg/138.0.0.0"
+)
 
 VENDOR_DIR = Path(__file__).parent / "vendor" / "spider_xhs"
 SIGNER_WRAPPER = VENDOR_DIR / "signer.js"
@@ -409,7 +414,7 @@ class SpiderXHSHTTPAdapter:
             "content-type": "application/json;charset=UTF-8",
             "origin": "https://www.xiaohongshu.com",
             "referer": "https://www.xiaohongshu.com/",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36",
+            "user-agent": BROWSER_USER_AGENT,
             "cookie": self.credentials.cookie_header,
             "x-s": signed["xs"],
             "x-t": signed["xt"],

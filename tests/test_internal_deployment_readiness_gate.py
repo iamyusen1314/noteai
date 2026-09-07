@@ -37,16 +37,71 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["internal_deployment"]["total"], 29)
         self.assertEqual(report["internal_deployment"]["percentage"], 100)
         self.assertTrue(report["internal_deployment"]["passed"])
-        self.assertEqual(report["complete_public_launch"]["verified"], 29)
+        self.assertEqual(report["complete_public_launch"]["verified"], 30)
         self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 76)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 79)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
         report = gate.build_report()
         actionable = {item["id"]: item for item in report["actionable"]}
 
-        self.assertEqual(report["blocked"], [])
+        self.assertEqual(
+            report["blocked"],
+            [
+                {
+                    "id": "real_payment_chain",
+                    "resume_condition": (
+                        "ICP filing is complete; both direct-provider merchant/product "
+                        "applications are approved; the required AppID, merchant "
+                        "identifiers, certificates and keys are injected through the "
+                        "existing Secret mechanism without exposing values; then "
+                        "exactly one 1200-fen bounded real-payment canary per provider "
+                        "may execute after one owner authorization for the cumulative "
+                        "CNY24 real-fund flow."
+                    ),
+                },
+                {
+                    "id": "real_xhs_trends",
+                    "resume_condition": (
+                        "Never replay either sealed predecessor. The 2026-09-06 UTC "
+                        "diagnostic conservatively consumed one request, while the "
+                        "terminal cycle requires all 34 requests under the unchanged "
+                        "daily cap of 34. The fresh successor therefore fails closed "
+                        "before 2026-09-07T00:00:00Z (Beijing 08:00) and then still "
+                        "requires a fresh used=0/remaining=34 production read-only "
+                        "preflight. Run once only through deploy/production/plans/"
+                        "item32-readonly-successor-20260907.json; any unknown outcome "
+                        "seals the new identity with no replay. Require owner action "
+                        "only if an actual login, verification, risk-control or "
+                        "account-restriction prompt is observed."
+                    ),
+                },
+                {
+                    "id": "legal_provider_approval",
+                    "resume_condition": (
+                        "Any required privacy, terms, refund or cross-border document "
+                        "revisions are complete and the review package is refrozen; "
+                        "the four document categories are APPROVED; two distinct "
+                        "professional signed artifacts and bindings for legal_privacy "
+                        "and provider_commercial_and_xhs are dated no earlier than "
+                        "the applicable package freeze, bind the complete frozen "
+                        "scope, use disjoint signed/binding paths and SHA256 "
+                        "identities, and have open_condition_count 0; the CTO "
+                        "verifies each signer's professional identity and authority."
+                    ),
+                },
+            ],
+        )
+        self.assertEqual(
+            set(actionable),
+            {
+                "real_payment_chain",
+                "real_xhs_trends",
+                "tracking_real_and_promotion",
+                "legal_provider_approval",
+            },
+        )
         self.assertNotIn("immutable_release_candidate", actionable)
         self.assertNotIn("production_readonly_preflight", actionable)
         self.assertIsNone(report["next_safe_task"])
@@ -4196,9 +4251,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for control in candidate["layers"][2]["controls"]
             if control["id"] == "real_ai_provider_chain"
         )
-        provider["status"] = "verified"
-        provider.pop("blocker")
-        provider.pop("next_task")
         provider["evidence"] = [
             {"kind": "git", "ref": "a" * 40},
             {
@@ -4250,9 +4302,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             for control in candidate["layers"][2]["controls"]
             if control["id"] == "real_ai_provider_chain"
         )
-        provider["status"] = "verified"
-        provider.pop("blocker")
-        provider.pop("next_task")
         provider["evidence"] = [{"kind": "path", "ref": "AGENTS.md"}]
 
         with mock.patch.object(
@@ -4266,14 +4315,80 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         provider["dependencies"] = ["real_payment_chain"]
         with self.assertRaisesRegex(
             gate.ManifestError,
-            "real_ai_provider_chain: verified dependency required",
+            "real_ai_provider_chain: canonical dependencies changed",
         ):
             gate.validate_manifest(candidate)
 
-    def test_unknown_and_cyclic_dependencies_fail(self):
+    def test_item31_and_item32_credit_require_semantic_verifiers(self):
+        cases = (
+            (
+                "real_payment_chain",
+                "validate_item31_payment_evidence",
+                "item31 semantic sentinel",
+            ),
+            (
+                "real_xhs_trends",
+                "validate_item32_trends_evidence",
+                "item32 semantic sentinel",
+            ),
+        )
+        for control_id, validator_name, sentinel in cases:
+            with self.subTest(control_id=control_id):
+                candidate = copy.deepcopy(self.manifest)
+                control = next(
+                    item
+                    for item in candidate["layers"][2]["controls"]
+                    if item["id"] == control_id
+                )
+                control["status"] = "verified"
+                control.pop("blocker", None)
+                control.pop("next_task", None)
+                control.pop("resume_condition", None)
+                control["evidence"] = [
+                    {"kind": "path", "ref": "AGENTS.md"}
+                ]
+                with mock.patch.object(
+                    gate, validator_name, return_value=[sentinel]
+                ) as validate:
+                    with self.assertRaisesRegex(gate.ManifestError, sentinel):
+                        gate.validate_manifest(candidate)
+                validate.assert_called_once()
+
+    def test_item33_credit_requires_dependency_and_semantic_verifier(self):
+        candidate = copy.deepcopy(self.manifest)
+        controls = {
+            item["id"]: item for item in candidate["layers"][2]["controls"]
+        }
+        for control_id in ("real_xhs_trends", "trends_managed_promotion"):
+            control = controls[control_id]
+            control["status"] = "verified"
+            control.pop("blocker", None)
+            control.pop("next_task", None)
+            control.pop("resume_condition", None)
+            control["evidence"] = [{"kind": "path", "ref": "AGENTS.md"}]
+
+        with mock.patch.object(
+            gate,
+            "validate_item32_trends_evidence",
+            return_value=[],
+        ), mock.patch.object(
+            gate,
+            "validate_item33_trends_promotion_evidence",
+            return_value=["item33 semantic sentinel"],
+        ) as validate:
+            with self.assertRaisesRegex(
+                gate.ManifestError, "item33 semantic sentinel"
+            ):
+                gate.validate_manifest(candidate)
+        validate.assert_called_once()
+
+    def test_canonical_control_ids_and_dependencies_cannot_change(self):
         broken = copy.deepcopy(self.manifest)
         broken["layers"][1]["controls"][1]["dependencies"] = ["does_not_exist"]
-        with self.assertRaisesRegex(gate.ManifestError, "unknown dependency"):
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "immutable_release_candidate: canonical dependencies changed",
+        ):
             gate.validate_manifest(broken)
 
         broken = copy.deepcopy(self.manifest)
@@ -4281,7 +4396,37 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         second = broken["layers"][1]["controls"][2]
         first["dependencies"] = [second["id"]]
         second["dependencies"] = [first["id"]]
-        with self.assertRaisesRegex(gate.ManifestError, "dependency cycle"):
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "immutable_release_candidate: canonical dependencies changed",
+        ):
+            gate.validate_manifest(broken)
+
+        broken = copy.deepcopy(self.manifest)
+        alb = next(
+            control
+            for control in broken["layers"][2]["controls"]
+            if control["id"] == "alb_tls"
+        )
+        alb["status"] = "verified"
+        alb.pop("blocker")
+        alb.pop("next_task")
+        alb["evidence"] = [{"kind": "path", "ref": "AGENTS.md"}]
+        with mock.patch.object(
+            gate, "validate_item36_alb_evidence", return_value=[]
+        ):
+            with self.assertRaisesRegex(
+                gate.ManifestError,
+                "alb_tls: verified dependency required",
+            ):
+                gate.validate_manifest(broken)
+
+        broken = copy.deepcopy(self.manifest)
+        broken["layers"][2]["controls"][-1]["id"] = "replacement_cutover"
+        with self.assertRaisesRegex(
+            gate.ManifestError,
+            "public_launch: exact control ids and order required",
+        ):
             gate.validate_manifest(broken)
 
     def test_malformed_manifest_never_reports_readiness(self):

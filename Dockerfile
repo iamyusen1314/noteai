@@ -81,6 +81,7 @@ RUN pip install --no-cache-dir -r requirements-api.txt \
 
 # 复制代码
 COPY model/ ./model/
+COPY deploy/production/execute_item34_tracking.py tools/execute_item34_tracking_checkpoint.py ./model/
 COPY scripts/docker_entrypoint.sh scripts/render_start_api.sh scripts/render_start_admin.sh \
     scripts/render_start_payment.sh \
     scripts/render_predeploy.py scripts/render_run_market_timing.sh scripts/render_run_crawler.sh \
@@ -150,6 +151,31 @@ USER noteai
 
 ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 CMD ["/app/scripts/render_start_payment.sh"]
+
+FROM runtime-common AS payment-canary-runtime
+
+ARG NOTEAI_PAYMENT_CANARY_USER_ID_SHA256
+LABEL com.noteai.runtime.role="payment-canary"
+ENV NOTEAI_RUNTIME_ROLE=payment-canary \
+    NOTEAI_PAYMENT_CANARY_ENABLED=0 \
+    NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1
+RUN printf '%s\n' payment-canary > /etc/noteai-runtime-role \
+    && [ "${#NOTEAI_PAYMENT_CANARY_USER_ID_SHA256}" -eq 64 ] \
+    && case "$NOTEAI_PAYMENT_CANARY_USER_ID_SHA256" in \
+         *[!0-9a-f]*) exit 1 ;; \
+       esac \
+    && printf '%s\n' "$NOTEAI_PAYMENT_CANARY_USER_ID_SHA256" \
+         > /etc/noteai-payment-canary-user-sha256 \
+    && chmod 0444 /etc/noteai-runtime-role \
+         /etc/noteai-payment-canary-user-sha256 \
+    && install -d -o noteai -g noteai -m 0700 \
+         /var/lib/noteai/payment-canary-actions
+
+HEALTHCHECK NONE
+
+USER noteai
+
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
 
 FROM runtime-common AS ai-worker-runtime
 

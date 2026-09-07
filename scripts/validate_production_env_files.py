@@ -43,6 +43,10 @@ ROLE_ALLOWED_SECRET_KEYS = {
             "NOTEAI_ADAPAY_API_KEY",
             "NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY",
             "NOTEAI_ADAPAY_PUBLIC_KEY",
+            "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64",
+            "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64",
+            "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64",
+            "NOTEAI_ALIPAY_PUBLIC_KEY_B64",
         }
     ),
     "admin": frozenset({"DATABASE_URL", "ADMIN_PASSWORD"}),
@@ -52,6 +56,23 @@ ROLE_ALLOWED_SECRET_KEYS = {
             "NOTEAI_ADAPAY_API_KEY",
             "NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY",
             "NOTEAI_ADAPAY_PUBLIC_KEY",
+            "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64",
+            "NOTEAI_WECHATPAY_API_V3_KEY",
+            "NOTEAI_ALIPAY_PUBLIC_KEY_B64",
+        }
+    ),
+    "payment_canary_wechat": frozenset(
+        {
+            "DATABASE_URL",
+            "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64",
+            "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64",
+        }
+    ),
+    "payment_canary_alipay": frozenset(
+        {
+            "DATABASE_URL",
+            "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64",
+            "NOTEAI_ALIPAY_PUBLIC_KEY_B64",
         }
     ),
     "ai_dispatcher": frozenset({"DATABASE_URL"}),
@@ -82,9 +103,17 @@ ROLE_ALLOWED_SECRET_KEYS = {
 }
 
 _KNOWN_SECRET_KEYS = frozenset().union(*ROLE_ALLOWED_SECRET_KEYS.values())
+_DEPRECATED_SECRET_KEYS = frozenset(
+    {
+        "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY",
+        "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY",
+        "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY",
+        "NOTEAI_ALIPAY_PUBLIC_KEY",
+    }
+)
 _SECRET_NAME_PATTERN = re.compile(
     r"(?:PASSWORD|SECRET|TOKEN|COOKIE|CREDENTIALS?|PRIVATE_KEY|API_KEY|WEB_KEY|"
-    r"ACCESS_KEY_ID|SECRET_ACCESS_KEY|SIGN_KEY|AES_KEY|AK)$"
+    r"ACCESS_KEY_ID|SECRET_ACCESS_KEY|SIGN_KEY|AES_KEY|AK)(?:_B64)?$"
 )
 _ENV_KEY_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
@@ -97,6 +126,7 @@ def is_secret_key_name(name: str) -> bool:
     return (
         name == "DATABASE_URL"
         or name in _KNOWN_SECRET_KEYS
+        or name in _DEPRECATED_SECRET_KEYS
         or bool(_SECRET_NAME_PATTERN.search(name))
     )
 
@@ -184,6 +214,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--api", type=Path, required=True)
     parser.add_argument("--admin", type=Path, required=True)
     parser.add_argument("--payment", type=Path, required=True)
+    parser.add_argument("--payment-canary-wechat", type=Path)
+    parser.add_argument("--payment-canary-alipay", type=Path)
     parser.add_argument("--ai-dispatcher", type=Path, required=True)
     parser.add_argument("--ai-worker", type=Path, required=True)
     parser.add_argument("--xhs-trends", type=Path, required=True)
@@ -194,17 +226,24 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     try:
-        results = validate_all_role_env_files(
-            (
-                ("api", args.api),
-                ("admin", args.admin),
-                ("payment", args.payment),
-                ("ai_dispatcher", args.ai_dispatcher),
-                ("ai_worker", args.ai_worker),
-                ("xhs_trends", args.xhs_trends),
-                ("xhs_tracking", args.xhs_tracking),
+        role_paths: list[tuple[str, Path]] = [
+            ("api", args.api),
+            ("admin", args.admin),
+            ("payment", args.payment),
+            ("ai_dispatcher", args.ai_dispatcher),
+            ("ai_worker", args.ai_worker),
+            ("xhs_trends", args.xhs_trends),
+            ("xhs_tracking", args.xhs_tracking),
+        ]
+        if args.payment_canary_wechat is not None:
+            role_paths.append(
+                ("payment_canary_wechat", args.payment_canary_wechat)
             )
-        )
+        if args.payment_canary_alipay is not None:
+            role_paths.append(
+                ("payment_canary_alipay", args.payment_canary_alipay)
+            )
+        results = validate_all_role_env_files(role_paths)
     except EnvFileValidationError as exc:
         print(f"FAIL: {exc}")
         return 1

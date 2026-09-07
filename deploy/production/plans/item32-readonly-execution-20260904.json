@@ -1,0 +1,61 @@
+{
+  "item": 32,
+  "status": "PREPARED_NOT_EXECUTED",
+  "readiness_credit": false,
+  "executor": "existing guarded xhs-http image entrypoint plus python market_timing_worker.py --once",
+  "host_alias": "API-F existing PrePaid capacity",
+  "existing_image_config_sha256": "a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+  "existing_registry_manifest_sha256": "406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+  "runtime": {
+    "NOTEAI_RUNTIME_ROLE": "xhs-http",
+    "NOTEAI_XHS_SERVICE": "trends",
+    "NOTEAI_DEPLOYMENT_STAGE": "production",
+    "NOTEAI_XHS_ACQUISITION_ADAPTER": "spider_xhs_http",
+    "NOTEAI_XHS_COLLECTION_SUSPENDED": "false only in task container"
+  },
+  "storage": {
+    "production_DATABASE_URL_in_collection_process": false,
+    "production_data_mount": false,
+    "docker_socket_mount": false,
+    "store": "fresh task-scoped persistent SQLite directory; NOTEAI_HOT_KEYWORD_DB_PATH and NOTEAI_SQLITE_PATH resolve within it",
+    "production_database_write_budget": 0,
+    "isolated_store_writes": "existing run/lease/attempt/snapshot/keyword/freshness/health records only",
+    "retain_on_unknown": true
+  },
+  "required_preflight": [
+    "fresh server-enforced READ ONLY proof of no active production lease, session/challenge stop or unresolved UNKNOWN",
+    "remaining global UTC-day request budget after all prior task stores and production attempts",
+    "safe managed XHS session configured; no cookie value in Evidence",
+    "exact image/role/entrypoint and private task-store ownership",
+    "no automatic rerun or clearing old store to reset admission"
+  ],
+  "bounds": {
+    "cycles": 1,
+    "provider_requests_per_run_max": 34,
+    "provider_requests_per_utc_day_max": 34,
+    "keywords_max": 90,
+    "real_keywords_per_domain_min": 12,
+    "domains": 6,
+    "automatic_retry": 0
+  },
+  "after_execution": [
+    "read aggregate run/attempt status and counter equality, source/schema/challenge state and snapshot digest",
+    "require every admitted attempt terminal succeeded and real source-quality gate",
+    "freeze provider identities and preserve UNKNOWN store; task-exact container cleanup",
+    "Item33 is independent managed promotion; use a later UTC-day bucket if Item32 consumes the day cap"
+  ],
+  "source_sha256": {
+    "model/market_timing_worker.py": "e89be24bd3d32c8283acf4cba3f6586d2d5dff7c2c113377b743897bd0527978",
+    "model/trends_contract.py": "530820f68b1feb67aba0037d76ff9548ac0e629fea1c9854cc3df2048e2f2ca8",
+    "model/spider_xhs_http.py": "981a7c704ae4b9efbf0db39aa2a8a1531f40e6848da3a95357bd3cc7b18ce7b7",
+    "model/hot_keywords.py": "48073372ef7c490192ff6cff54c326401b14d313d427e705a1a90f9bc17449b4"
+  },
+  "provider_calls_dispatched": 0,
+  "cloud_resources_started": 0,
+  "owner_authenticated_browser_session": "VALID_AS_OF_2026-09-04T22:20:00+08:00",
+  "blocking_input": "owner-authenticated XHS session is securely injected; execute only through the bound outer executor with one cycle, zero automatic retries and production DATABASE_URL absent from collection",
+  "outer_executor": "tools/execute_item32_readonly_trends.py",
+  "outer_executor_sha256": "ed0cb9e59a4bc4d40760fbd83410ac8852a950b8737340e501d736aab817f662",
+  "existing_unit_sha256": "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6",
+  "database_readonly_probe_sha256": "74c665e6361a6f7e9c11637faf7891effad4e98e2a480870ec0af586c39afbb7"
+}

@@ -68,9 +68,10 @@ class DurableAiSchemaError(RuntimeError):
 
 def source_contract() -> dict[str, Any]:
     paths = tuple(sorted(MIGRATION_DIR.glob("*.sql")))
-    if tuple(path.name for path in paths) != EXPECTED_MIGRATION_NAMES:
+    expected_paths = paths[: len(EXPECTED_MIGRATION_NAMES)]
+    if tuple(path.name for path in expected_paths) != EXPECTED_MIGRATION_NAMES:
         raise DurableAiSchemaError("migration_set")
-    payloads = {path.name: path.read_bytes() for path in paths}
+    payloads = {path.name: path.read_bytes() for path in expected_paths}
     hashes = {
         name: hashlib.sha256(payload).hexdigest()
         for name, payload in payloads.items()

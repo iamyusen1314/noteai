@@ -432,6 +432,43 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         ),
         "NOTEAI_DURABLE_AI_ACCEPTANCE_ACTION": "fail_before_provider",
     }
+    payment_canary_base_env = {
+        "NOTEAI_DEPLOYMENT_STAGE": "production",
+        "NOTEAI_PAYMENT_CANARY_ENABLED": "1",
+        "NOTEAI_SKIP_MODEL_ARTIFACT_CHECK": "1",
+        "NOTEAI_PAYMENT_CANARY_ACTIVATION_ID": (
+            "00000000-0000-4000-8000-000000000030"
+        ),
+        "NOTEAI_PAYMENT_CANARY_ORDER_ID": (
+            "00000000-0000-4000-8000-000000000031"
+        ),
+        "NOTEAI_PAYMENT_CANARY_USER_ID_SHA256": "1" * 64,
+        "NOTEAI_PAYMENT_CANARY_SUBJECT_HASH": "2" * 64,
+        "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
+        "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": "1788500000",
+        "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": "1788503600",
+        "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
+            "ITEM31-SYNTHETIC-NO-REAL-USER"
+        ),
+    }
+
+    def payment_canary_env(
+        action: str,
+        provider: str = "wechatpay_direct",
+        bill_date: str = "",
+    ) -> dict[str, str]:
+        return {
+            **payment_canary_base_env,
+            "NOTEAI_PAYMENT_CANARY_ACTION": action,
+            "NOTEAI_PAYMENT_CANARY_PROVIDER": provider,
+            "NOTEAI_PAYMENT_CANARY_BILL_DATE": bill_date,
+        }
+
+    canary_python = (
+        "/usr/local/bin/python",
+        "-EsB",
+        "/app/model/payment_canary_executor.py",
+    )
     allowed_cases = {
         "api_start": ("api", ("/app/scripts/render_start_api.sh",), {}),
         "api_predeploy": ("api", ("python", "/app/scripts/render_predeploy.py"), {}),
@@ -445,6 +482,44 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             "payment",
             ("/app/scripts/render_start_payment.sh",),
             {},
+        ),
+        "payment_canary_preflight": (
+            "payment-canary",
+            (*canary_python, "preflight", "wechatpay_direct", "00000000-0000-4000-8000-000000000031"),
+            payment_canary_env("preflight"),
+        ),
+        "payment_canary_query_payment": (
+            "payment-canary",
+            (
+                *canary_python, "query-payment",
+                "wechatpay_direct", "00000000-0000-4000-8000-000000000031",
+            ),
+            payment_canary_env("query-payment"),
+        ),
+        "payment_canary_submit_refund": (
+            "payment-canary",
+            (
+                *canary_python, "submit-refund",
+                "alipay_direct", "00000000-0000-4000-8000-000000000031",
+                "customer_request",
+            ),
+            payment_canary_env("submit-refund", "alipay_direct"),
+        ),
+        "payment_canary_query_refund": (
+            "payment-canary",
+            (
+                *canary_python, "query-refund",
+                "alipay_direct", "00000000-0000-4000-8000-000000000031",
+            ),
+            payment_canary_env("query-refund", "alipay_direct"),
+        ),
+        "payment_canary_reconcile": (
+            "payment-canary",
+            (
+                *canary_python, "reconcile",
+                "wechatpay_direct", "2026-09-07",
+            ),
+            payment_canary_env("reconcile", bill_date="2026-09-07"),
         ),
         "ai_worker_health": (
             "ai-worker",
@@ -553,6 +628,28 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "payment_start_extra": (
             "payment",
             ("/app/scripts/render_start_payment.sh", "extra"),
+        ),
+        "payment_canary_shell": (
+            "payment-canary",
+            ("sh", "-c", "python payment_canary_executor.py preflight wechatpay_direct"),
+        ),
+        "payment_canary_wrong_provider": (
+            "payment-canary",
+            (*canary_python, "preflight", "adapay", "00000000-0000-4000-8000-000000000031"),
+        ),
+        "payment_canary_bad_uuid": (
+            "payment-canary",
+            (
+                *canary_python, "query-payment",
+                "wechatpay_direct", "not-a-uuid",
+            ),
+        ),
+        "payment_canary_extra": (
+            "payment-canary",
+            (
+                *canary_python, "preflight",
+                "wechatpay_direct", "extra",
+            ),
         ),
         "ai_worker_empty": ("ai-worker", ()),
         "ai_worker_api": ("ai-worker", ("python", "api.py")),
@@ -706,7 +803,13 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
                 role,
                 command,
                 allowed=False,
-                extra_env=xhs_tracking_env if role == "xhs-http" else None,
+                extra_env=(
+                    xhs_tracking_env
+                    if role == "xhs-http"
+                    else payment_canary_env("preflight")
+                    if role == "payment-canary"
+                    else None
+                ),
             )
         for name, (marker_state, image_role, declared_role) in marker_cases.items():
             run_case(
@@ -725,6 +828,45 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
             allowed=False,
             extra_env={"NOTEAI_API_STARTS_TREND_SCHEDULER": "1"},
         )
+        canary_preflight_command = (
+            *canary_python,
+            "preflight",
+            "wechatpay_direct",
+            "00000000-0000-4000-8000-000000000031",
+        )
+        canary_activation_rejections = {
+            "payment_canary_disabled": {
+                **payment_canary_env("preflight"),
+                "NOTEAI_PAYMENT_CANARY_ENABLED": "0",
+            },
+            "payment_canary_non_production": {
+                **payment_canary_env("preflight"),
+                "NOTEAI_DEPLOYMENT_STAGE": "staging",
+            },
+            "payment_canary_missing_activation": {
+                **payment_canary_env("preflight"),
+                "NOTEAI_PAYMENT_CANARY_ACTIVATION_ID": "",
+            },
+            "payment_canary_python_inspect": {
+                **payment_canary_env("preflight"),
+                "PYTHONINSPECT": "1",
+            },
+            "payment_canary_target_mismatch": {
+                **payment_canary_env("preflight"),
+                "NOTEAI_PAYMENT_CANARY_ORDER_ID": (
+                    "00000000-0000-4000-8000-000000000032"
+                ),
+            },
+        }
+        for name, case_env in canary_activation_rejections.items():
+            run_case(
+                name,
+                "payment-canary",
+                "payment-canary",
+                canary_preflight_command,
+                allowed=False,
+                extra_env=case_env,
+            )
         run_case(
             "xhs_wrong_adapter",
             "xhs-http",
@@ -1266,6 +1408,11 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
     payment_runtime_stage = dockerfile.split(
         "FROM runtime-common AS payment-runtime", 1
     )[1].split(
+        "FROM runtime-common AS payment-canary-runtime", 1
+    )[0]
+    payment_canary_runtime_stage = dockerfile.split(
+        "FROM runtime-common AS payment-canary-runtime", 1
+    )[1].split(
         "FROM runtime-common AS ai-worker-runtime", 1
     )[0]
     ai_worker_runtime_stage = dockerfile.split(
@@ -1309,6 +1456,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             "FROM runtime-common AS api-runtime" in dockerfile
             and "FROM runtime-common AS admin-runtime" in dockerfile
             and "FROM runtime-common AS payment-runtime" in dockerfile
+            and "FROM runtime-common AS payment-canary-runtime" in dockerfile
             and "FROM runtime-common AS ai-worker-runtime" in dockerfile
             and "FROM runtime-common AS xhs-http-runtime" in dockerfile
             and "FROM runtime-common AS worker-runtime" not in dockerfile
@@ -1317,6 +1465,15 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
             and 'CMD ["/app/scripts/render_start_api.sh"]' in api_runtime_stage
             and 'CMD ["/app/scripts/render_start_admin.sh"]' in admin_runtime_stage
             and 'CMD ["/app/scripts/render_start_payment.sh"]' in payment_runtime_stage
+            and 'LABEL com.noteai.runtime.role="payment-canary"'
+            in payment_canary_runtime_stage
+            and "ARG NOTEAI_PAYMENT_CANARY_USER_ID_SHA256"
+            in payment_canary_runtime_stage
+            and "/etc/noteai-payment-canary-user-sha256"
+            in payment_canary_runtime_stage
+            and "HEALTHCHECK NONE" in payment_canary_runtime_stage
+            and "CMD" not in payment_canary_runtime_stage
+            and "USER noteai" in payment_canary_runtime_stage
             and 'CMD ["python", "durable_ai_worker.py", "--once"]' in ai_worker_runtime_stage
             and "NOTEAI_DURABLE_AI_SUSPENDED=1" in ai_worker_runtime_stage
             and "HEALTHCHECK NONE" in ai_worker_runtime_stage
@@ -1345,6 +1502,7 @@ def check_ci_and_deployment_config() -> list[dict[str, Any]]:
                     api_runtime_stage,
                     admin_runtime_stage,
                     payment_runtime_stage,
+                    payment_canary_runtime_stage,
                     ai_worker_runtime_stage,
                     xhs_runtime_stage,
                 )

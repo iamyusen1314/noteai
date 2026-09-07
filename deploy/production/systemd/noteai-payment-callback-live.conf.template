@@ -1,0 +1,7 @@
+[Service]
+# Install only as a reviewed systemd drop-in after Item31 merchant approvals,
+# managed Secret injection, exact LIVE provider-mode readback and callback
+# ingress approval. Removing this drop-in and restarting restores disabled.
+Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1
+Restart=on-failure
+RestartSec=5

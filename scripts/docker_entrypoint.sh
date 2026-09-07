@@ -21,7 +21,7 @@ if [ -z "$image_runtime_role" ]; then
 fi
 
 case "$image_runtime_role" in
-  api|admin|payment|xhs-http|ai-worker) ;;
+  api|admin|payment|payment-canary|xhs-http|ai-worker) ;;
   *)
     echo "runtime role marker is invalid" >&2
     exit 78
@@ -53,7 +53,16 @@ is_canonical_uuid() {
   esac
 }
 
+is_sha256() {
+  [ "${#1}" -eq 64 ] || return 1
+  case "$1" in
+    *[!0-9a-f]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 command_allowed=0
+item34_acceptance=0
 if [ "$image_runtime_role" = "api" ]; then
   case "${NOTEAI_API_STARTS_TREND_SCHEDULER:-0}" in
     1|true|TRUE|True|yes|YES|Yes|on|ON|On)
@@ -86,6 +95,78 @@ elif [ "$image_runtime_role" = "payment" ]; then
     && [ "$1" = "/app/scripts/render_start_payment.sh" ]; then
     command_allowed=1
   fi
+elif [ "$image_runtime_role" = "payment-canary" ]; then
+  if [ "${NOTEAI_DEPLOYMENT_STAGE:-}" != "production" ] \
+    || [ "${NOTEAI_PAYMENT_CANARY_ENABLED:-0}" != "1" ] \
+    || [ "${NOTEAI_SKIP_MODEL_ARTIFACT_CHECK:-0}" != "1" ]; then
+    echo "payment-canary requires exact production activation" >&2
+    exit 78
+  fi
+  if [ -n "${PYTHONINSPECT:-}${PYTHONSTARTUP:-}${PYTHONPATH:-}" ] \
+    || [ -n "${PYTHONHOME:-}${PYTHONUSERBASE:-}" ] \
+    || [ -n "${LD_PRELOAD:-}${LD_LIBRARY_PATH:-}" ]; then
+    echo "payment-canary rejects interpreter or loader overrides" >&2
+    exit 78
+  fi
+  if ! is_canonical_uuid "${NOTEAI_PAYMENT_CANARY_ACTIVATION_ID:-}" \
+    || ! is_canonical_uuid "${NOTEAI_PAYMENT_CANARY_ORDER_ID:-}" \
+    || ! is_sha256 "${NOTEAI_PAYMENT_CANARY_USER_ID_SHA256:-}" \
+    || ! is_sha256 "${NOTEAI_PAYMENT_CANARY_SUBJECT_HASH:-}" \
+    || [ "${NOTEAI_PAYMENT_CANARY_AMOUNT_FEN:-}" != "1200" ] \
+    || ! is_unsigned_integer "${NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH:-}" \
+    || ! is_unsigned_integer "${NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH:-}" \
+    || [ "${NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION:-}" != \
+      "ITEM31-SYNTHETIC-NO-REAL-USER" ]; then
+    echo "payment-canary activation binding is invalid" >&2
+    exit 78
+  fi
+  canary_action="${4:-}"
+  canary_provider="${5:-}"
+  case "$canary_provider" in
+    wechatpay_direct|alipay_direct) ;;
+    *) canary_provider= ;;
+  esac
+  if [ "${NOTEAI_PAYMENT_CANARY_ACTION:-}" != "$canary_action" ] \
+    || [ "${NOTEAI_PAYMENT_CANARY_PROVIDER:-}" != "$canary_provider" ]; then
+    echo "payment-canary command does not match activation" >&2
+    exit 78
+  fi
+  if [ "$#" -eq 6 ] \
+    && [ "$1" = "/usr/local/bin/python" ] \
+    && [ "$2" = "-EsB" ] \
+    && [ "$3" = "/app/model/payment_canary_executor.py" ] \
+    && [ "$4" = "preflight" ] \
+    && [ -n "$canary_provider" ] \
+    && [ "$6" = "${NOTEAI_PAYMENT_CANARY_ORDER_ID}" ]; then
+    command_allowed=1
+  elif [ "$#" -eq 6 ] \
+    && [ "$1" = "/usr/local/bin/python" ] \
+    && [ "$2" = "-EsB" ] \
+    && [ "$3" = "/app/model/payment_canary_executor.py" ] \
+    && [ -n "$canary_provider" ]; then
+    case "$4" in
+      query-payment|query-refund)
+        [ "$6" = "${NOTEAI_PAYMENT_CANARY_ORDER_ID}" ] \
+          && command_allowed=1
+        ;;
+      reconcile)
+        [ "$6" = "${NOTEAI_PAYMENT_CANARY_BILL_DATE:-}" ] \
+          && command_allowed=1
+        ;;
+    esac
+  elif [ "$#" -eq 7 ] \
+    && [ "$1" = "/usr/local/bin/python" ] \
+    && [ "$2" = "-EsB" ] \
+    && [ "$3" = "/app/model/payment_canary_executor.py" ] \
+    && [ "$4" = "submit-refund" ] \
+    && [ -n "$canary_provider" ] \
+    && [ "$6" = "${NOTEAI_PAYMENT_CANARY_ORDER_ID}" ]; then
+    case "$7" in
+      customer_request|service_not_delivered|duplicate_payment|fraud_review)
+        command_allowed=1
+        ;;
+    esac
+  fi
 elif [ "$image_runtime_role" = "xhs-http" ]; then
   if [ "${NOTEAI_XHS_ACQUISITION_ADAPTER:-}" != "spider_xhs_http" ]; then
     echo "xhs-http runtime requires the pinned acquisition adapter" >&2
@@ -99,6 +180,16 @@ elif [ "$image_runtime_role" = "xhs-http" ]; then
       exit 78
       ;;
   esac
+  if [ -n "${NOTEAI_ITEM34_ACCEPTANCE:-}${NOTEAI_ITEM34_TRACK_ID:-}${NOTEAI_ITEM34_CHECKPOINT_STAGE:-}" ]; then
+    if [ "${NOTEAI_ITEM34_ACCEPTANCE:-}" != "1" ] \
+      || ! is_canonical_uuid "${NOTEAI_ITEM34_TRACK_ID:-}" \
+      || { [ "${NOTEAI_ITEM34_CHECKPOINT_STAGE:-}" != "24h" ] \
+        && [ "${NOTEAI_ITEM34_CHECKPOINT_STAGE:-}" != "3d" ]; }; then
+      echo "item34 acceptance target binding is invalid" >&2
+      exit 78
+    fi
+    item34_acceptance=1
+  fi
   if [ "$#" -eq 1 ]; then
     case "$1" in
       /app/scripts/render_run_market_timing.sh)
@@ -125,6 +216,23 @@ elif [ "$image_runtime_role" = "xhs-http" ]; then
         ;;
       crawler_worker.py:--once|crawler_worker.py:--healthcheck)
         [ "$xhs_service" = "tracking" ] && command_allowed=1
+        ;;
+    esac
+  elif [ "$#" -eq 5 ] \
+    && [ "$1" = "python" ] \
+    && [ "$2" = "crawler_worker.py" ] \
+    && [ "$3" = "--once" ] \
+    && [ "$4" = "--limit" ] \
+    && [ "$5" = "1" ] \
+    && [ "$xhs_service" = "tracking" ]; then
+    command_allowed=1
+  elif [ "$#" -eq 5 ] \
+    && [ "$1" = "python" ] \
+    && [ "$2" = "execute_item34_tracking.py" ] \
+    && [ "$xhs_service" = "tracking" ]; then
+    case "$3:$4" in
+      _snapshot:24h|_snapshot:3d|_schedule:24h|_bind:24h|_role:24h|_role:3d|_config:activate|_config:restore|_safety:24h|_safety:3d)
+        is_canonical_uuid "$5" && command_allowed=1
         ;;
     esac
   elif [ "$#" -eq 5 ] \
@@ -228,6 +336,18 @@ else
         command_allowed=0
       fi
     fi
+  fi
+fi
+
+if [ "$item34_acceptance" -eq 1 ]; then
+  if [ "$#" -ne 5 ] \
+    || [ "$1" != "python" ] \
+    || [ "$2" != "crawler_worker.py" ] \
+    || [ "$3" != "--once" ] \
+    || [ "$4" != "--limit" ] \
+    || [ "$5" != "1" ]; then
+    echo "item34 acceptance requires the exact bounded worker" >&2
+    exit 78
   fi
 fi
 

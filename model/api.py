@@ -33,8 +33,9 @@ import model_router as _mr
 import lightgbm as lgb
 import numpy as np
 import uvicorn
+import anyio
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request
-from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -14588,6 +14589,9 @@ class TopupInput(BaseModel):
 class PaymentOrderInput(BaseModel):
     product_kind: Literal["subscription", "credit_package"]
     product_id: str = Field(min_length=2, max_length=32)
+    provider: Optional[
+        Literal["wechatpay_direct", "alipay_direct", "adapay"]
+    ] = None
 
 
 def _test_billing_enabled() -> bool:
@@ -14607,25 +14611,126 @@ def _payment_flag(name: str) -> bool:
     }
 
 
-def _payment_prod_mode() -> bool:
-    return os.environ.get(
-        "NOTEAI_ADAPAY_PROD_MODE",
-        "",
-    ).strip().lower() in {"1", "true", "yes"}
+def _payment_order_providers() -> tuple[str, ...]:
+    raw = os.environ.get("NOTEAI_PAYMENT_ORDER_PROVIDERS", "").strip()
+    if not raw:
+        return ("adapay",)
+    values = tuple(value.strip() for value in raw.split(","))
+    allowed = {"adapay", "wechatpay_direct", "alipay_direct"}
+    if (
+        any(not value for value in values)
+        or len(values) != len(set(values))
+        or any(value not in allowed for value in values)
+    ):
+        return ()
+    return values
 
 
-def _payment_ordering_available() -> bool:
-    if _payment_flag("NOTEAI_PAYMENT_ORDERING_ENABLED"):
-        _payment_adapter_runtime.configure_from_environment(
-            required_role="api",
+def _selected_payment_provider(requested: str | None) -> str | None:
+    providers = _payment_order_providers()
+    selected = str(requested or "").strip()
+    if not selected:
+        configured_default = os.environ.get(
+            "NOTEAI_PAYMENT_DEFAULT_PROVIDER",
+            "",
+        ).strip()
+        selected = configured_default or (providers[0] if len(providers) == 1 else "")
+    return selected if selected in providers else None
+
+
+def _payment_production_activation_valid() -> bool:
+    providers = set(_payment_order_providers())
+    direct = providers & {"wechatpay_direct", "alipay_direct"}
+    if any(
+        not _payment_adapter_runtime.configured_prod_mode(provider_name)
+        for provider_name in direct
+    ):
+        return False
+    if direct and not _payment_callback_relay_enabled():
+        return False
+    if os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower() != "production":
+        return True
+    return providers == {"wechatpay_direct", "alipay_direct"}
+
+
+def _payment_ordering_available(provider_name: str | None = None) -> bool:
+    if not _payment_flag("NOTEAI_PAYMENT_ORDERING_ENABLED"):
+        return False
+    if not _payment_production_activation_valid():
+        return False
+    if provider_name is None:
+        return any(
+            _payment_ordering_available(candidate)
+            for candidate in _payment_order_providers()
         )
+    selected = _selected_payment_provider(provider_name)
+    if selected is None:
+        return False
+    configured = _payment_adapter_runtime.provider_from_environment(
+        selected,
+        required_role="api",
+    )
     return (
-        _payment_flag("NOTEAI_PAYMENT_ORDERING_ENABLED")
-        and not isinstance(
-            _payment.provider(),
-            _payment.UnavailablePaymentProvider,
+        configured is not None
+        and bool(_payment_adapter_runtime.configured_app_id(selected))
+    )
+
+
+async def _payment_callback_runtime_ready() -> bool:
+    """Read only the fixed co-located Payment readiness endpoint once."""
+    if not _payment_callback_relay_enabled():
+        return False
+    target = "http://127.0.0.1:8002/health/ready"
+    try:
+        with anyio.fail_after(5):
+            async with _httpx.AsyncClient(
+                timeout=_httpx.Timeout(connect=1.0, read=3.0, write=1.0, pool=1.0),
+                limits=_httpx.Limits(
+                    max_connections=1,
+                    max_keepalive_connections=0,
+                ),
+                follow_redirects=False,
+                trust_env=False,
+            ) as client:
+                response = await client.get(
+                    target,
+                    headers={"accept": "application/json"},
+                )
+        if (
+            str(response.url) != target
+            or response.status_code != 200
+            or len(response.content) > 16 * 1024
+            or response.headers.get("content-type", "")
+            .split(";", 1)[0]
+            .strip()
+            .lower()
+            != "application/json"
+        ):
+            return False
+        return _payment_callback_readiness_payload_valid(response.json())
+    except (TimeoutError, ValueError, _httpx.HTTPError):
+        return False
+
+
+def _payment_callback_readiness_payload_valid(payload: Any) -> bool:
+    expected_providers = {
+        provider_name
+        for provider_name in _payment_order_providers()
+        if provider_name in {"wechatpay_direct", "alipay_direct"}
+    }
+    expected_identities = {
+        provider_name: _payment_adapter_runtime.callback_identity_sha256(
+            provider_name
         )
-        and bool(os.environ.get("NOTEAI_ADAPAY_APP_ID", "").strip())
+        for provider_name in sorted(expected_providers)
+    }
+    return bool(
+        isinstance(payload, dict)
+        and payload.get("status") == "ready"
+        and payload.get("service") == "noteai-payment"
+        and expected_providers
+        and all(expected_identities.values())
+        and payload.get("callback_identity_sha256") == expected_identities
     )
 
 
@@ -14638,6 +14743,253 @@ def _payment_device_ip(request: Request) -> str:
     return str(address) if address.is_global else ""
 
 
+_ITEM31_DIRECT_PROVIDERS = frozenset(
+    {"wechatpay_direct", "alipay_direct"}
+)
+_ITEM31_CANARY_AMOUNT_FEN = 1200
+_ITEM31_CANARY_PRODUCT = ("credit_package", "starter")
+_ITEM31_CANARY_ASSERTION = "ITEM31-SYNTHETIC-NO-REAL-USER"
+_ITEM31_CANARY_WINDOW_SECONDS = 3600
+
+
+def _item31_identity(value: str, domain: str) -> str:
+    try:
+        encoded = str(value).encode("ascii")
+    except UnicodeEncodeError as exc:
+        raise ValueError("non-ascii identity") from exc
+    return hashlib.sha256(domain.encode("ascii") + b"\0" + encoded).hexdigest()
+
+
+def _item31_create_canary_context(
+    *,
+    provider_name: str,
+    user_id: str,
+    product_kind: str,
+    product_id: str,
+    idempotency_key: str,
+    prod_mode: bool,
+) -> dict[str, str] | None:
+    """Validate the temporary Item31 create fence before any write or call."""
+    if os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "").strip() != "1":
+        return None
+    try:
+        activation_id = str(
+            _uuid.UUID(
+                os.environ.get(
+                    "NOTEAI_PAYMENT_CANARY_ACTIVATION_ID", ""
+                ).strip()
+            )
+        )
+        starts_text = os.environ.get(
+            "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH", ""
+        ).strip()
+        expires_text = os.environ.get(
+            "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH", ""
+        ).strip()
+        if (
+            not starts_text.isascii()
+            or not starts_text.isdigit()
+            or not expires_text.isascii()
+            or not expires_text.isdigit()
+        ):
+            raise ValueError("invalid activation clock")
+        starts_at = int(starts_text)
+        expires_at = int(expires_text)
+        if str(starts_at) != starts_text or str(expires_at) != expires_text:
+            raise ValueError("non-canonical activation clock")
+        now_epoch = int(_time.time())
+        user_identity = _item31_identity(
+            user_id,
+            "payment-canary-user-v1",
+        )
+        idempotency_identity = _item31_identity(
+            idempotency_key,
+            "noteai-item31-create-idempotency-v1",
+        )
+        valid = (
+            activation_id
+            == os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_ACTIVATION_ID", ""
+            ).strip().lower()
+            and provider_name in _ITEM31_DIRECT_PROVIDERS
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_ACTION", ""
+            ).strip()
+            == "create-payment"
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_PROVIDER", ""
+            ).strip()
+            == provider_name
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_USER_ID_SHA256", ""
+            ).strip()
+            == user_identity
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_SUBJECT_HASH", ""
+            ).strip()
+            == _payment._subject_hash(user_id)
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256", ""
+            ).strip()
+            == idempotency_identity
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN", ""
+            ).strip()
+            == str(_ITEM31_CANARY_AMOUNT_FEN)
+            and os.environ.get(
+                "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION", ""
+            ).strip()
+            == _ITEM31_CANARY_ASSERTION
+            and (str(product_kind), str(product_id))
+            == _ITEM31_CANARY_PRODUCT
+            and prod_mode is True
+            and os.environ.get("NOTEAI_RUNTIME_ROLE", "").strip() == "api"
+            and os.environ.get(
+                "NOTEAI_DEPLOYMENT_STAGE", ""
+            ).strip().lower()
+            == "production"
+            and starts_at <= now_epoch <= expires_at
+            and starts_at < expires_at
+            and expires_at - starts_at <= _ITEM31_CANARY_WINDOW_SECONDS
+        )
+    except (TypeError, ValueError):
+        valid = False
+    if not valid:
+        raise HTTPException(status_code=403, detail="PAYMENT_CANARY_SCOPE_INVALID")
+    return {
+        "provider": provider_name,
+        "activation_identity_sha256": _item31_identity(
+            activation_id,
+            "payment-canary-activation-v1",
+        ),
+        "user_identity_sha256": user_identity,
+        "idempotency_identity_sha256": idempotency_identity,
+    }
+
+
+def _item31_direct_create_audit(
+    context: dict[str, str] | None,
+    provider_request: dict[str, Any],
+    result: Any,
+    *,
+    order_id: str,
+) -> bool:
+    """Emit one strictly allowlisted create digest without affecting checkout."""
+    if context is None:
+        return False
+    try:
+        provider_name = context["provider"]
+        merchant_order_no = str(provider_request["merchant_order_no"])
+        if (
+            set(context)
+            != {
+                "provider",
+                "activation_identity_sha256",
+                "user_identity_sha256",
+                "idempotency_identity_sha256",
+            }
+            or provider_name not in _ITEM31_DIRECT_PROVIDERS
+            or result.provider_name != provider_name
+            or result.prod_mode is not True
+            or result.response_verified is not True
+            or result.merchant_order_no != merchant_order_no
+            or int(result.amount_fen) != int(provider_request["amount_fen"])
+            or result.currency != provider_request["currency"]
+        ):
+            return False
+        order_identity = _item31_identity(order_id, "payment-order-v1")
+        merchant_order_identity = _item31_identity(
+            merchant_order_no,
+            "payment-provider-merchant-order-v1",
+        )
+        request_projection = {
+            "provider": provider_name,
+            "merchant_order_identity_sha256": merchant_order_identity,
+            "amount_fen": int(provider_request["amount_fen"]),
+            "currency": str(provider_request["currency"]),
+            "product_kind": str(provider_request["product_kind"]),
+            "product_id": str(provider_request["product_id"]),
+            "device_ip_present": bool(provider_request.get("device_ip")),
+        }
+        response_projection = {
+            "provider": provider_name,
+            "merchant_order_identity_sha256": merchant_order_identity,
+            "provider_payment_identity_sha256": (
+                _item31_identity(
+                    str(result.provider_payment_id),
+                    "payment-provider-payment-v1",
+                )
+                if result.provider_payment_id
+                else None
+            ),
+            "status": str(result.status),
+            "amount_fen": int(result.amount_fen),
+            "currency": str(result.currency),
+            "application_identity_sha256": _item31_identity(
+                str(result.app_id),
+                "payment-provider-application-v1",
+            ),
+            "checkout_sha256": _item31_identity(
+                str(result.checkout_token),
+                "payment-provider-checkout-v1",
+            ),
+            "response_verified": True,
+            "prod_mode": True,
+        }
+
+        def semantic_digest(domain: str, value: dict[str, Any]) -> str:
+            return hashlib.sha256(
+                domain.encode("ascii")
+                + b"\0"
+                + _json.dumps(
+                    value,
+                    ensure_ascii=True,
+                    allow_nan=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("ascii")
+            ).hexdigest()
+
+        record = {
+            "schema": "noteai.item31.direct_create_digest.v1",
+            "provider": provider_name,
+            "activation_identity_sha256": context[
+                "activation_identity_sha256"
+            ],
+            "order_identity_sha256": order_identity,
+            "user_identity_sha256": context["user_identity_sha256"],
+            "idempotency_identity_sha256": context[
+                "idempotency_identity_sha256"
+            ],
+            "create_request_sha256": semantic_digest(
+                "noteai-item31-create-request-v1",
+                request_projection,
+            ),
+            "create_response_sha256": semantic_digest(
+                "noteai-item31-create-response-v1",
+                response_projection,
+            ),
+            "provider_operation_count": 1,
+            "automatic_retry_count": 0,
+            "outcome_unknown_count": 0,
+        }
+        print(
+            "payment_create_audit "
+            + _json.dumps(
+                record,
+                ensure_ascii=True,
+                allow_nan=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+        return True
+    except Exception:
+        return False
+
+
 def _mark_payment_outcome_unknown(order_id: str, *, phase: str) -> None:
     try:
         _payment.mark_payment_submission_unknown(order_id)
@@ -14647,6 +14999,73 @@ def _mark_payment_outcome_unknown(order_id: str, *, phase: str) -> None:
             exc,
             phase=phase,
         )
+
+
+def _complete_payment_submission_sync(
+    order_id: str,
+    provider: Any,
+    provider_request: dict[str, Any],
+    audit_context: dict[str, str] | None = None,
+) -> tuple[str, dict[str, Any] | None, str]:
+    """Run the one provider attempt and its durable marker in one worker."""
+    try:
+        result = provider.create_payment(provider_request)
+    except Exception as exc:
+        _mark_payment_outcome_unknown(
+            order_id,
+            phase="payment_provider_outcome_marker",
+        )
+        _log_internal_failure(
+            "billing",
+            exc,
+            phase="payment_provider_request",
+        )
+        return "PAYMENT_PROVIDER_OUTCOME_UNKNOWN", None, ""
+    try:
+        updated = _payment.mark_payment_submission(order_id, result)
+    except Exception as exc:
+        _mark_payment_outcome_unknown(
+            order_id,
+            phase="payment_submission_marker",
+        )
+        _log_internal_failure(
+            "billing",
+            exc,
+            phase="payment_provider_response",
+        )
+        return "PAYMENT_PROVIDER_RESPONSE_INVALID", None, ""
+    checkout = str(result.checkout_token or "")
+    if not checkout or len(checkout.encode("utf-8")) > 4096:
+        _mark_payment_outcome_unknown(
+            order_id,
+            phase="payment_checkout_marker",
+        )
+        return "PAYMENT_CHECKOUT_UNAVAILABLE", None, ""
+    _item31_direct_create_audit(
+        audit_context,
+        provider_request,
+        result,
+        order_id=order_id,
+    )
+    return "", updated, checkout
+
+
+async def _complete_payment_submission(
+    order_id: str,
+    provider: Any,
+    provider_request: dict[str, Any],
+    audit_context: dict[str, str] | None = None,
+) -> tuple[str, dict[str, Any] | None, str]:
+    # abandon_on_cancel=False keeps the one provider attempt joined to its
+    # durable success/UNKNOWN marker if the client disconnects or cancels.
+    return await anyio.to_thread.run_sync(
+        _complete_payment_submission_sync,
+        order_id,
+        provider,
+        provider_request,
+        audit_context,
+        abandon_on_cancel=False,
+    )
 
 
 @app.get("/billing/plan")
@@ -14718,8 +15137,26 @@ async def billing_tiers():
 @app.get("/payments/capabilities")
 async def payment_capabilities():
     """Public availability only; never expose provider configuration."""
+    available_providers = [
+        provider_name
+        for provider_name in _payment_order_providers()
+        if _payment_ordering_available(provider_name)
+    ]
+    if (
+        any(
+            provider_name in {"wechatpay_direct", "alipay_direct"}
+            for provider_name in available_providers
+        )
+        and not await _payment_callback_runtime_ready()
+    ):
+        available_providers = [
+            provider_name
+            for provider_name in available_providers
+            if provider_name not in {"wechatpay_direct", "alipay_direct"}
+        ]
     return {
-        "ordering_available": _payment_ordering_available(),
+        "ordering_available": bool(available_providers),
+        "providers": available_providers,
         "refund_policy": "full_unused_entitlement_only",
         "currency": "CNY",
         "auto_renewal": False,
@@ -14755,18 +15192,52 @@ async def payment_order_create(
     user: dict = Depends(_auth.get_current_user),
 ):
     """Create one payment through an explicitly injected adapter."""
-    if not _payment_ordering_available():
+    selected_provider = _selected_payment_provider(body.provider)
+    if (
+        selected_provider is None
+        or not _payment_ordering_available(selected_provider)
+    ):
         raise HTTPException(
             status_code=503,
             detail="PAYMENT_PROVIDER_UNAVAILABLE",
         )
-    device_ip = _payment_device_ip(request)
-    if not device_ip:
+    if (
+        selected_provider in {"wechatpay_direct", "alipay_direct"}
+        and not await _payment_callback_runtime_ready()
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CALLBACK_RUNTIME_UNAVAILABLE",
+        )
+    device_ip = (
+        _payment_device_ip(request) if selected_provider == "adapay" else ""
+    )
+    if selected_provider == "adapay" and not device_ip:
         raise HTTPException(
             status_code=503,
             detail="PAYMENT_CLIENT_IP_UNAVAILABLE",
         )
-    app_id = os.environ.get("NOTEAI_ADAPAY_APP_ID", "").strip()
+    app_id = _payment_adapter_runtime.configured_app_id(selected_provider)
+    prod_mode = _payment_adapter_runtime.configured_prod_mode(
+        selected_provider
+    )
+    canary_context = _item31_create_canary_context(
+        provider_name=selected_provider,
+        user_id=user["id"],
+        product_kind=body.product_kind,
+        product_id=body.product_id,
+        idempotency_key=idempotency_key,
+        prod_mode=prod_mode,
+    )
+    provider = _payment_adapter_runtime.provider_from_environment(
+        selected_provider,
+        required_role="api",
+    )
+    if provider is None:
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_PROVIDER_UNAVAILABLE",
+        )
     try:
         order = _payment.create_order(
             user["id"],
@@ -14774,7 +15245,8 @@ async def payment_order_create(
             body.product_id,
             idempotency_key=idempotency_key,
             app_id=app_id,
-            prod_mode=_payment_prod_mode(),
+            prod_mode=prod_mode,
+            provider_name=selected_provider,
         )
         full_order = _db.fetchone(
             "SELECT * FROM payment_orders WHERE id=? AND user_id=?",
@@ -14787,52 +15259,25 @@ async def payment_order_create(
                 status_code=409,
                 detail="PAYMENT_ORDER_ALREADY_SUBMITTED",
             )
-        try:
-            result = _payment.provider().create_payment(
-                _payment.provider_payment_request(
-                    full_order,
-                    device_ip=device_ip,
-                )
-            )
-        except Exception as exc:
-            _mark_payment_outcome_unknown(
-                order["id"],
-                phase="payment_provider_outcome_marker",
-            )
-            _log_internal_failure(
-                "billing",
-                exc,
-                phase="payment_provider_request",
-            )
+        provider_request = _payment.provider_payment_request(
+            full_order,
+            device_ip=device_ip,
+        )
+        submission_code, updated, checkout = await _complete_payment_submission(
+            order["id"],
+            provider,
+            provider_request,
+            canary_context,
+        )
+        if submission_code:
             raise HTTPException(
                 status_code=503,
-                detail="PAYMENT_PROVIDER_OUTCOME_UNKNOWN",
-            ) from None
-        try:
-            updated = _payment.mark_payment_submission(order["id"], result)
-        except Exception as exc:
-            _mark_payment_outcome_unknown(
-                order["id"],
-                phase="payment_submission_marker",
+                detail=submission_code,
             )
-            _log_internal_failure(
-                "billing",
-                exc,
-                phase="payment_provider_response",
-            )
+        if updated is None:
             raise HTTPException(
                 status_code=503,
                 detail="PAYMENT_PROVIDER_RESPONSE_INVALID",
-            ) from None
-        checkout = str(result.checkout_token or "")
-        if not checkout or len(checkout.encode("utf-8")) > 4096:
-            _mark_payment_outcome_unknown(
-                order["id"],
-                phase="payment_checkout_marker",
-            )
-            raise HTTPException(
-                status_code=503,
-                detail="PAYMENT_CHECKOUT_UNAVAILABLE",
             )
         return {
             "order": updated,
@@ -14844,13 +15289,131 @@ async def payment_order_create(
         raise HTTPException(status_code=status_code, detail=code) from None
 
 
+_PAYMENT_CALLBACK_RELAY_TARGETS = {
+    "/payments/wechat/callback": (
+        "http://127.0.0.1:8002/payments/wechat/callback"
+    ),
+    "/payments/alipay/callback": (
+        "http://127.0.0.1:8002/payments/alipay/callback"
+    ),
+}
+_PAYMENT_CALLBACK_RELAY_RESPONSE_BYTES = 64 * 1024
+
+
+def _payment_callback_relay_enabled() -> bool:
+    return (
+        os.environ.get("NOTEAI_RUNTIME_ROLE", "").strip() == "api"
+        and _payment_flag("NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED")
+    )
+
+
+async def _payment_callback_relay_body(request: Request) -> bytes:
+    length = request.headers.get("content-length")
+    try:
+        if length is not None:
+            declared_length = int(length)
+            if (
+                declared_length < 0
+                or declared_length > _payment.MAX_CALLBACK_DATA_BYTES
+            ):
+                raise HTTPException(
+                    status_code=413,
+                    detail="PAYMENT_CALLBACK_SIZE_INVALID",
+                )
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="PAYMENT_CALLBACK_SIZE_INVALID",
+        ) from None
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > _payment.MAX_CALLBACK_DATA_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="PAYMENT_CALLBACK_SIZE_INVALID",
+            )
+        body.extend(chunk)
+    return bytes(body)
+
+
+async def _relay_payment_callback(request: Request) -> Response:
+    target = _PAYMENT_CALLBACK_RELAY_TARGETS.get(request.url.path)
+    if target is None or not _payment_callback_relay_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
+        )
+    body = await _payment_callback_relay_body(request)
+    forwarded_headers: list[tuple[str, str]] = []
+    for raw_name, raw_value in request.headers.raw:
+        name = raw_name.decode("latin-1").lower()
+        if name == "content-type" or name.startswith("wechatpay-"):
+            forwarded_headers.append((name, raw_value.decode("latin-1")))
+    try:
+        with anyio.fail_after(15):
+            async with _httpx.AsyncClient(
+                timeout=_httpx.Timeout(connect=2.0, read=10.0, write=5.0, pool=2.0),
+                limits=_httpx.Limits(
+                    max_connections=2,
+                    max_keepalive_connections=1,
+                    keepalive_expiry=5.0,
+                ),
+                follow_redirects=False,
+                trust_env=False,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    target,
+                    headers=forwarded_headers,
+                    content=body,
+                ) as upstream:
+                    response_body = bytearray()
+                    async for chunk in upstream.aiter_bytes():
+                        if (
+                            len(response_body) + len(chunk)
+                            > _PAYMENT_CALLBACK_RELAY_RESPONSE_BYTES
+                        ):
+                            raise ValueError("callback response too large")
+                        response_body.extend(chunk)
+                    final_url = str(upstream.url)
+                    status_code = int(upstream.status_code)
+                    content_type = upstream.headers.get("content-type", "")
+    except (TimeoutError, ValueError, _httpx.HTTPError):
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CALLBACK_DEDICATED_RUNTIME_UNAVAILABLE",
+        ) from None
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    if (
+        final_url != target
+        or status_code not in {200, 400, 401, 413, 415, 500, 503}
+        or media_type not in {"application/json", "text/plain"}
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="PAYMENT_CALLBACK_DEDICATED_RUNTIME_INVALID_RESPONSE",
+        )
+    return Response(
+        content=bytes(response_body),
+        status_code=status_code,
+        headers={"content-type": content_type},
+    )
+
+
 @app.post("/payments/adapay/callback")
 async def payment_adapay_callback(_request: Request):
-    """The normal API role can never process provider callbacks."""
+    """The retired provider callback remains unavailable on the API role."""
     raise HTTPException(
         status_code=503,
         detail="PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
     )
+
+
+@app.post("/payments/wechat/callback")
+@app.post("/payments/alipay/callback")
+async def payment_direct_callback_relay(request: Request):
+    """Relay exact direct-provider callbacks to the co-located Payment role."""
+    return await _relay_payment_callback(request)
 
 
 @app.post("/score", response_model=ScoreResponse)

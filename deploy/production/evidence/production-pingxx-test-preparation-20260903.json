@@ -1,0 +1,135 @@
+{
+  "item": 31,
+  "status": "IN_PROGRESS",
+  "environment": "TEST",
+  "provider": "pingxx",
+  "existing_application_only": true,
+  "new_application_created": false,
+  "test_secret_configured": true,
+  "live_enabled": false,
+  "test_payment_created": false,
+  "callback_verified": false,
+  "test_refund_completed": false,
+  "reconciliation_matched": false,
+  "real_funds_flow_fen": 0,
+  "production_database_writes": 0,
+  "secrets_in_evidence": false,
+  "live_acceptance": "NOT_STARTED_OWNER_GATE_AFTER_TEST",
+  "configuration_query": {
+    "identity": "item31-test-readonly-config-20260903-001",
+    "method": "GET",
+    "endpoint": "https://api.pingxx.com/v1/charges",
+    "max_records": 1,
+    "attempts": 1,
+    "outcome": "HTTP_REJECTED_NO_RETRY",
+    "started_at_utc": "2026-09-03T15:51:58.729152+00:00",
+    "http_status": 400,
+    "finished_at_utc": "2026-09-03T15:51:59.003742+00:00"
+  },
+  "configuration_diagnostic": {
+    "identity": "item31-test-readonly-diagnostic-20260903-001",
+    "method": "GET",
+    "attempts": 1,
+    "provider_write_requests": 0,
+    "outcome": "READONLY_DIAGNOSTIC_RECORDED",
+    "started_at_utc": "2026-09-03T15:53:38.303166+00:00",
+    "http_status": 400,
+    "error_type": "invalid_request_error",
+    "error_code": null,
+    "error_param": null,
+    "mentions_request_signature": false,
+    "mentions_public_key": true,
+    "mentions_created_parameter": false,
+    "mentions_app_id": false,
+    "finished_at_utc": "2026-09-03T15:53:38.551696+00:00"
+  },
+  "merchant_rsa_configuration": {
+    "public_key_uploaded": true,
+    "private_key_uploaded": false,
+    "test_verification_enabled": true,
+    "live_verification_enabled": false,
+    "webhook_verification_public_key_available": true
+  },
+  "signed_configuration_query": {
+    "identity": "item31-test-signed-readonly-20260904-001",
+    "method": "GET",
+    "attempts": 1,
+    "provider_write_requests": 0,
+    "outcome": "AUTHENTICATED",
+    "started_at_utc": "2026-09-03T16:01:06.594927+00:00",
+    "test_authentication_accepted": true,
+    "returned_count": 0,
+    "finished_at_utc": "2026-09-03T16:01:06.875250+00:00"
+  },
+  "provider_payment_write_requests": 0,
+  "provider_configuration_mutations": [
+    {
+      "kind": "merchant_rsa_public_key_configuration",
+      "count": 1,
+      "environment": "TEST",
+      "live_enabled": false,
+      "private_key_uploaded": false
+    }
+  ],
+  "focused_validation": {
+    "payment_tests": 54,
+    "api_payment_boundary_tests": 4,
+    "result": "PASS",
+    "external_network_used_by_tests": false,
+    "fixture_results_are_real_provider_evidence": false
+  },
+  "remaining_test_acceptance": [
+    "controlled reachable provider webhook route",
+    "one real Ping++ TEST synthetic charge and signed callback",
+    "duplicate callback exactly-once entitlement",
+    "TEST refund and signed refund callback",
+    "exact object/local ledger reconciliation"
+  ],
+  "test_authentication_available": true,
+  "terminal_checkpoint_created": false,
+  "candidate_files_sha256": {
+    "model/pingxx_adapter.py": "926f0a4486a7e22ee47371413f14b9f0dfe45b7cd6a45b01d9a09e7ccf8c4ae5",
+    "model/payment_contract.py": "096c46284866fe0fa1fe857cf716dbf0e7240468d5e570bc9010204901eef3ba",
+    "model/payment_adapter_runtime.py": "c038d4f7cb963febd13b7d5005dbd8abd0a6ff2f772c05aa8b9170977cf54d7f",
+    "model/payment_runtime.py": "eb613283d62c2ab8ec164c6b53410f83e63009dd8996769a143f2b9575efcb7c",
+    "model/api.py": "99c2711af8e31c0ef285edc734666852489bb23e4d8a624d29211eec533d516f",
+    "model/db.py": "335aa5e891aef2f35aae14227016f988fe9cbcb1881618448233df6bc01ccb93",
+    "model/migrations/postgres/0017_pingxx_provider.sql": "0e7c44d3b8bee11a3253254d5da73bf79debf3f2cbee86c9ed4ffd811f35f33b",
+    "tests/test_pingxx_adapter.py": "edb3c1dfd68512e41970b0c5d4e34278d789018de2445dd1f13f6504f0695717",
+    "tests/test_payment_contract.py": "2ccf2a80661581056e77173445ad928af325e653787ac79da89ef396f6c1e661",
+    "tests/test_adapay_adapter.py": "f356519e8ff4e72e7f2eeda51151edf80c84e1d759d4fc8be8c7e69efddf8363"
+  },
+  "production_migration_applied": false,
+  "production_write_set": {
+    "business_database_writes": 0,
+    "payment_transactions": 0,
+    "dns_changes": 0,
+    "service_starts_or_restarts": 0,
+    "provider_configuration": "one merchant RSA public key setup; TEST verification enabled; Live verification disabled"
+  },
+  "costs": {
+    "real_funds_flow_fen": 0,
+    "new_cloud_compute_rmb": 0,
+    "new_recurring_resources": 0,
+    "new_subscription_or_topup": false,
+    "provider_get_requests": 3,
+    "expected_incremental_provider_fee_rmb": 0,
+    "provider_fee_independently_verified": false
+  },
+  "resource_readback": {
+    "request_id": "01A06807-D64B-5920-BABE-00C25C7BC001",
+    "at_utc": "2026-09-03T16:08:59Z",
+    "api_c": "Running/PrePaid",
+    "api_f": "Running/PrePaid",
+    "builder": "Stopped/StopCharging",
+    "worker_c": "Stopped/StopCharging",
+    "worker_f": "Stopped/StopCharging"
+  },
+  "readiness": {
+    "manifest_gate": "PASS",
+    "complete_public": "30/38",
+    "item31_credit": false,
+    "checkpoint_created": false,
+    "pushed": false
+  }
+}

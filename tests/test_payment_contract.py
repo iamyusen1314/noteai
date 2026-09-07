@@ -211,6 +211,59 @@ class PaymentContractTests(unittest.TestCase):
         self.assertIn("noteai_payment", migration)
         self.assertNotIn("GRANT ", migration.upper())
         self.assertNotIn("REVOKE ", migration.upper())
+        direct_migration = (
+            MODEL_DIR
+            / "migrations"
+            / "postgres"
+            / "0018_direct_payment_providers.sql"
+        ).read_text(encoding="utf-8")
+        for provider_name in (
+            "adapay",
+            "wechatpay_direct",
+            "alipay_direct",
+        ):
+            self.assertIn(provider_name, direct_migration)
+        self.assertIn(
+            "GRANT UPDATE(provider_submitted_at)",
+            direct_migration,
+        )
+        self.assertIn(
+            "GRANT UPDATE(duplicate_delivery_count)",
+            direct_migration,
+        )
+        direct_executable = "\n".join(
+            line for line in direct_migration.splitlines()
+            if not line.lstrip().startswith("--")
+        )
+        self.assertNotRegex(
+            direct_executable,
+            r"(?i)\b(?:LOGIN|PASSWORD|ALTER ROLE)\b",
+        )
+        self.assertNotIn("REVOKE ", direct_migration.upper())
+        incremental_acl = (
+            ROOT
+            / "scripts"
+            / "postgres"
+            / "noteai_production_runtime_roles_0018.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "GRANT UPDATE(provider_submitted_at)\n"
+            "    ON payment_refunds TO noteai_payment;",
+            incremental_acl,
+        )
+        self.assertIn(
+            "GRANT UPDATE(duplicate_delivery_count)\n"
+            "    ON payment_events TO noteai_payment;",
+            incremental_acl,
+        )
+        incremental_executable = "\n".join(
+            line for line in incremental_acl.splitlines()
+            if not line.lstrip().startswith("--")
+        )
+        self.assertNotRegex(
+            incremental_executable,
+            r"(?i)\b(?:LOGIN|PASSWORD|ALTER ROLE)\b",
+        )
 
     def test_catalog_matches_visible_prices_and_has_no_auto_renewal(self):
         payment.assert_catalog_matches_billing()
@@ -221,6 +274,40 @@ class PaymentContractTests(unittest.TestCase):
         self.assertIn("no auto-renewal", contract)
         self.assertIn("integer CNY fen", contract)
         self.assertIn("Studio remains one NoteAI account", contract)
+
+    def test_legacy_sqlite_refund_schema_upgrades_once_to_epoch_submission(self):
+        db.execute(
+            "DROP TRIGGER IF EXISTS "
+            "payment_refunds_provider_submission_immutable_v1"
+        )
+        db.execute("DROP TRIGGER IF EXISTS payment_refunds_insert_guard_v1")
+        db.execute(
+            "ALTER TABLE payment_refunds DROP COLUMN provider_submitted_at"
+        )
+
+        db.init_db()
+        db.init_db()
+
+        columns = {
+            row["name"]: row["type"]
+            for row in db.fetchall("PRAGMA table_info(payment_refunds)")
+        }
+        self.assertEqual(columns["provider_submitted_at"], "INTEGER")
+        triggers = {
+            row["name"]: row["sql"]
+            for row in db.fetchall(
+                "SELECT name,sql FROM sqlite_master "
+                "WHERE type='trigger' AND name LIKE 'payment_refunds_%'"
+            )
+        }
+        self.assertIn(
+            "payment_refunds_provider_submission_immutable_v1",
+            triggers,
+        )
+        self.assertIn(
+            "NEW.provider_submitted_at IS NOT NULL",
+            triggers["payment_refunds_insert_guard_v1"],
+        )
 
     def test_order_is_owner_bound_and_idempotent(self):
         self.create_user()
@@ -263,6 +350,7 @@ class PaymentContractTests(unittest.TestCase):
                 "product_kind",
                 "product_id",
                 "provider_mode",
+                "provider_name",
                 "device_ip",
             },
         )
@@ -427,6 +515,28 @@ class PaymentContractTests(unittest.TestCase):
         )
         replay = self.process(self.event(row))
         self.assertTrue(replay["duplicate"])
+        second_replay = self.process(self.event(row))
+        self.assertTrue(second_replay["duplicate"])
+        self.assertEqual(
+            db.fetchone(
+                "SELECT id,duplicate_delivery_count FROM payment_events "
+                "WHERE reason_code='payment_applied'"
+            )["duplicate_delivery_count"],
+            2,
+        )
+        payment_event = db.fetchone(
+            "SELECT id FROM payment_events WHERE reason_code='payment_applied'"
+        )
+        cash = db.fetchone(
+            "SELECT source_event_id FROM payment_cash_ledger "
+            "WHERE entry_type='payment_received'"
+        )
+        entitlement = db.fetchone(
+            "SELECT source_event_id FROM payment_entitlement_ledger "
+            "WHERE entry_type='credit_grant'"
+        )
+        self.assertEqual(payment_event["id"], cash["source_event_id"])
+        self.assertEqual(payment_event["id"], entitlement["source_event_id"])
         second_terminal = self.process(
             self.event(row, event_id="evt_payment_second_terminal")
         )
@@ -458,9 +568,34 @@ class PaymentContractTests(unittest.TestCase):
             1,
         )
         self.assertEqual(
+            db.fetchone(
+                "SELECT duplicate_delivery_count FROM payment_events"
+            )["duplicate_delivery_count"],
+            0,
+        )
+        self.assertEqual(
             db.fetchone("SELECT COUNT(*) AS c FROM payment_cash_ledger")["c"],
             1,
         )
+
+    def test_live_cash_is_counted_while_test_cash_is_excluded(self):
+        self.create_user()
+        order = payment.create_order(
+            "u-payment", "credit_package", "starter",
+            idempotency_key="live-accounting-fixture", app_id=self.app_id,
+            prod_mode=True, now=self.now,
+        )
+        row = dict(db.fetchone("SELECT * FROM payment_orders WHERE id=?", (order["id"],)))
+        event = json.loads(self.event(row, amount="13.00"))
+        event["prod_mode"] = True
+        with mock.patch.object(payment, "verify_adapay_signature", return_value=True):
+            result = payment.process_signed_callback(
+                json.dumps(event), "fixture-signature", PUBLIC_KEY,
+                expected_app_id=self.app_id, expected_prod_mode=True, now=self.now,
+            )
+        self.assertFalse(result["ok"])
+        self.assertEqual(payment.finance_summary(since="2000-01-01"),
+                         {"received_fen": 0, "refunded_fen": 0, "net_fen": 0, "unmatched_fen": 1300})
 
     def test_amount_mismatch_records_cash_truth_but_no_entitlement(self):
         self.create_user()
@@ -481,7 +616,7 @@ class PaymentContractTests(unittest.TestCase):
         self.assertEqual(cash["amount_fen"], 1300)
         finance = payment.finance_summary(since="2000-01-01T00:00:00+00:00")
         self.assertEqual(finance["net_fen"], 0)
-        self.assertEqual(finance["unmatched_fen"], 1300)
+        self.assertEqual(finance["unmatched_fen"], 0)  # TEST has no real cash.
         self.assertEqual(
             db.fetchone(
                 "SELECT COUNT(*) AS c FROM payment_entitlement_ledger"
@@ -523,6 +658,700 @@ class PaymentContractTests(unittest.TestCase):
         )
         self.assertEqual(stored["payment_status"], "needs_manual")
         self.assertIsNone(stored["provider_payment_id"])
+
+    def test_unknown_payment_outcome_stays_sealed_and_accepts_late_success(self):
+        self.create_user()
+        _order, row = self.create_order()
+        self.assertTrue(payment.admit_payment_submission(row["id"], now=self.now))
+        unknown = payment.mark_payment_submission_unknown(
+            row["id"],
+            now=self.now + timedelta(seconds=1),
+        )
+        self.assertEqual(unknown["payment_status"], "pending")
+        self.assertFalse(
+            payment.admit_payment_submission(
+                row["id"],
+                now=self.now + timedelta(seconds=2),
+            )
+        )
+        result = self.process(
+            self.event(
+                row,
+                event_id="evt_payment_after_unknown_001",
+            )
+        )
+        self.assertTrue(result["ok"])
+        stored = db.fetchone(
+            "SELECT payment_status,entitlement_status,terminal_at "
+            "FROM payment_orders WHERE id=?",
+            (row["id"],),
+        )
+        self.assertEqual(stored["payment_status"], "succeeded")
+        self.assertEqual(stored["entitlement_status"], "applied")
+        self.assertIsNotNone(stored["terminal_at"])
+        self.assertEqual(
+            db.fetchone(
+                "SELECT COUNT(*) AS c FROM payment_cash_ledger "
+                "WHERE order_id=? AND entry_type='payment_received'",
+                (row["id"],),
+            )["c"],
+            1,
+        )
+
+    def test_direct_payment_accepts_pending_create_without_provider_id_then_late_binds(self):
+        self.create_user()
+        order = payment.create_order(
+            "u-payment",
+            "credit_package",
+            "starter",
+            idempotency_key="wechat-direct-late-bind-001",
+            app_id=self.app_id,
+            prod_mode=False,
+            provider_name="wechatpay_direct",
+            now=self.now,
+        )
+        row = dict(
+            db.fetchone(
+                "SELECT * FROM payment_orders WHERE id=?",
+                (order["id"],),
+            )
+        )
+        self.assertTrue(payment.admit_payment_submission(row["id"], now=self.now))
+        payment.mark_payment_submission(
+            row["id"],
+            payment.ProviderPaymentResult(
+                merchant_order_no=row["merchant_order_no"],
+                provider_payment_id=None,
+                status="pending",
+                amount_fen=row["amount_fen"],
+                app_id=self.app_id,
+                prod_mode=False,
+                response_verified=True,
+                checkout_token="synthetic-wechat-native-code-url",
+                provider_name="wechatpay_direct",
+            ),
+            now=self.now,
+        )
+        self.assertIsNone(
+            db.fetchone(
+                "SELECT provider_payment_id FROM payment_orders WHERE id=?",
+                (row["id"],),
+            )["provider_payment_id"]
+        )
+        event = payment.CallbackEvent(
+            provider_event_id="wechat_event_001",
+            event_type="payment.succeeded",
+            created_time=int(self.now.timestamp()),
+            prod_mode=False,
+            app_id=self.app_id,
+            provider_name="wechatpay_direct",
+            data={
+                "order_no": row["merchant_order_no"],
+                "payment_id": "wechat_transaction_001",
+                "pay_amt": "12.00",
+            },
+        )
+        raw = b'{"verified":"wechat-direct-fixture-001"}'
+        result = payment.process_authenticated_callback(
+            event,
+            raw,
+            "verified-signature-fixture",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=self.now,
+        )
+        self.assertTrue(result["ok"])
+        stored = db.fetchone(
+            "SELECT provider_payment_id,payment_status,entitlement_status "
+            "FROM payment_orders WHERE id=?",
+            (row["id"],),
+        )
+        self.assertEqual(stored["provider_payment_id"], "wechat_transaction_001")
+        self.assertEqual(stored["payment_status"], "succeeded")
+        self.assertEqual(stored["entitlement_status"], "applied")
+        duplicate = payment.process_authenticated_callback(
+            event,
+            raw,
+            "verified-refreshed-delivery-signature-fixture",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=self.now,
+        )
+        self.assertTrue(duplicate["duplicate"])
+
+    def test_direct_refund_uses_merchant_identity_when_provider_refund_id_absent(self):
+        self.create_user()
+        order = payment.create_order(
+            "u-payment",
+            "credit_package",
+            "starter",
+            idempotency_key="alipay-direct-refund-001",
+            app_id=self.app_id,
+            prod_mode=False,
+            provider_name="alipay_direct",
+            now=self.now,
+        )
+        row = dict(db.fetchone("SELECT * FROM payment_orders WHERE id=?", (order["id"],)))
+        event = payment.CallbackEvent(
+            provider_event_id="alipay_event_001",
+            event_type="payment.succeeded",
+            created_time=int(self.now.timestamp()),
+            prod_mode=False,
+            app_id=self.app_id,
+            provider_name="alipay_direct",
+            data={
+                "order_no": row["merchant_order_no"],
+                "payment_id": "alipay_trade_001",
+                "pay_amt": "12.00",
+            },
+        )
+        payment.process_authenticated_callback(
+            event,
+            b'{"verified":"alipay-direct-fixture-001"}',
+            "verified-signature-fixture",
+            expected_app_id=self.app_id,
+            expected_provider_name="alipay_direct",
+            expected_prod_mode=False,
+            now=self.now,
+        )
+        prepared = payment.prepare_full_refund(
+            row["id"],
+            reason_code="customer_request",
+            now=self.now + timedelta(minutes=1),
+        )
+        refund = dict(
+            db.fetchone(
+                "SELECT * FROM payment_refunds WHERE id=?",
+                (prepared["id"],),
+            )
+        )
+        payment.mark_refund_submission(
+            refund["id"],
+            payment.ProviderRefundResult(
+                merchant_refund_no=refund["merchant_refund_no"],
+                provider_refund_id=None,
+                status="pending",
+                amount_fen=refund["amount_fen"],
+                response_verified=True,
+                merchant_order_no=row["merchant_order_no"],
+                provider_payment_id="alipay_trade_001",
+                provider_name="alipay_direct",
+                app_id=self.app_id,
+                prod_mode=False,
+            ),
+            now=self.now + timedelta(minutes=2),
+        )
+        stored = db.fetchone(
+            "SELECT provider_refund_id,status FROM payment_refunds WHERE id=?",
+            (refund["id"],),
+        )
+        self.assertIsNone(stored["provider_refund_id"])
+        self.assertEqual(stored["status"], "pending")
+
+    def test_wechat_refund_submission_time_is_write_once_and_query_recoverable(self):
+        self.create_user()
+        order = payment.create_order(
+            "u-payment",
+            "credit_package",
+            "starter",
+            idempotency_key="wechat-refund-recovery-001",
+            app_id=self.app_id,
+            prod_mode=False,
+            provider_name="wechatpay_direct",
+            now=self.now,
+        )
+        stored_order = dict(
+            db.fetchone(
+                "SELECT * FROM payment_orders WHERE id=?",
+                (order["id"],),
+            )
+        )
+        paid_event = payment.CallbackEvent(
+            provider_event_id="wechat_refund_recovery_payment",
+            event_type="payment.succeeded",
+            created_time=int(self.now.timestamp()),
+            prod_mode=False,
+            app_id=self.app_id,
+            provider_name="wechatpay_direct",
+            data={
+                "order_no": stored_order["merchant_order_no"],
+                "payment_id": "wechat_refund_recovery_transaction",
+                "pay_amt": "12.00",
+            },
+        )
+        payment.process_authenticated_callback(
+            paid_event,
+            b'{"verified":"wechat-refund-payment"}',
+            "verified-wechat-payment-signature",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=self.now,
+        )
+        stored_order = dict(
+            db.fetchone(
+                "SELECT * FROM payment_orders WHERE id=?",
+                (order["id"],),
+            )
+        )
+        prepared = payment.prepare_full_refund(
+            order["id"],
+            reason_code="customer_request",
+            now=self.now + timedelta(minutes=1),
+        )
+        refund = dict(
+            db.fetchone(
+                "SELECT * FROM payment_refunds WHERE id=?",
+                (prepared["id"],),
+            )
+        )
+        self.assertIsNone(refund["provider_submitted_at"])
+        self.assertTrue(payment.admit_refund_submission(refund["id"]))
+
+        # The terminal callback can win the race after the create request
+        # timed out, before its signed response was durably bound.
+        refund_event = payment.CallbackEvent(
+            provider_event_id="wechat_refund_recovery_terminal",
+            event_type="refund.succeeded",
+            created_time=int((self.now + timedelta(days=1)).timestamp()),
+            prod_mode=False,
+            app_id=self.app_id,
+            provider_name="wechatpay_direct",
+            data={
+                "refund_order_no": refund["merchant_refund_no"],
+                "payment_id": stored_order["provider_payment_id"],
+                "refund_id": "wechat_refund_recovery_id",
+                "refund_amt": "12.00",
+            },
+        )
+        payment.process_authenticated_callback(
+            refund_event,
+            b'{"verified":"wechat-refund-terminal"}',
+            "verified-wechat-refund-signature",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=self.now + timedelta(days=1),
+        )
+        submitted_at = int((self.now + timedelta(minutes=2)).timestamp())
+        query_result = payment.ProviderRefundResult(
+            merchant_refund_no=refund["merchant_refund_no"],
+            provider_refund_id="wechat_refund_recovery_id",
+            status="succeeded",
+            amount_fen=1200,
+            response_verified=True,
+            merchant_order_no=stored_order["merchant_order_no"],
+            provider_payment_id=stored_order["provider_payment_id"],
+            provider_name="wechatpay_direct",
+            app_id=self.app_id,
+            prod_mode=False,
+            provider_submitted_at=submitted_at,
+        )
+        recovered = payment.mark_refund_query_submission(
+            query_result,
+            now=self.now + timedelta(days=1, minutes=1),
+        )
+        self.assertEqual(recovered["status"], "succeeded")
+        payment.mark_refund_query_submission(
+            query_result,
+            now=self.now + timedelta(days=1, minutes=2),
+        )
+        with self.assertRaisesRegex(
+            payment.PaymentContractError,
+            "PAYMENT_PROVIDER_RESPONSE_MISMATCH",
+        ):
+            payment.mark_refund_query_submission(
+                payment.ProviderRefundResult(
+                    **{
+                        **query_result.__dict__,
+                        "provider_submitted_at": submitted_at + 1,
+                    }
+                ),
+                now=self.now + timedelta(days=1, minutes=3),
+            )
+        terminal = db.fetchone(
+            "SELECT status,provider_submitted_at FROM payment_refunds "
+            "WHERE id=?",
+            (refund["id"],),
+        )
+        self.assertEqual(terminal["status"], "succeeded")
+        self.assertEqual(terminal["provider_submitted_at"], submitted_at)
+        self.assertEqual(
+            db.fetchone(
+                "SELECT COUNT(*) AS c FROM payment_cash_ledger "
+                "WHERE refund_id=? AND entry_type='refund_paid'",
+                (refund["id"],),
+            )["c"],
+            1,
+        )
+
+    def test_wechat_failed_refund_event_preserves_provider_submission_time(self):
+        self.create_user()
+        order = payment.create_order(
+            "u-payment",
+            "credit_package",
+            "starter",
+            idempotency_key="wechat-refund-failed-query-001",
+            app_id=self.app_id,
+            prod_mode=False,
+            provider_name="wechatpay_direct",
+            now=self.now,
+        )
+        stored_order = dict(
+            db.fetchone("SELECT * FROM payment_orders WHERE id=?", (order["id"],))
+        )
+        payment.process_authenticated_callback(
+            payment.CallbackEvent(
+                provider_event_id="wechat_refund_failed_payment",
+                event_type="payment.succeeded",
+                created_time=int(self.now.timestamp()),
+                prod_mode=False,
+                app_id=self.app_id,
+                provider_name="wechatpay_direct",
+                data={
+                    "order_no": stored_order["merchant_order_no"],
+                    "payment_id": "wechat_refund_failed_transaction",
+                    "pay_amt": "12.00",
+                },
+            ),
+            b'{"verified":"wechat-refund-failed-payment"}',
+            "verified-wechat-payment-signature",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=self.now,
+        )
+        stored_order = dict(
+            db.fetchone("SELECT * FROM payment_orders WHERE id=?", (order["id"],))
+        )
+        prepared = payment.prepare_full_refund(
+            order["id"],
+            reason_code="customer_request",
+            now=self.now + timedelta(minutes=1),
+        )
+        refund = dict(
+            db.fetchone(
+                "SELECT * FROM payment_refunds WHERE id=?",
+                (prepared["id"],),
+            )
+        )
+        self.assertTrue(payment.admit_refund_submission(refund["id"]))
+        submitted_at = int((self.now + timedelta(minutes=2)).timestamp())
+        result = payment.process_authenticated_callback(
+            payment.CallbackEvent(
+                provider_event_id="wechat_refund_failed_terminal",
+                event_type="refund.failed",
+                created_time=int((self.now + timedelta(minutes=3)).timestamp()),
+                prod_mode=False,
+                app_id=self.app_id,
+                provider_name="wechatpay_direct",
+                data={
+                    "refund_order_no": refund["merchant_refund_no"],
+                    "payment_id": stored_order["provider_payment_id"],
+                    "refund_id": "wechat_refund_failed_id",
+                    "refund_amt": "12.00",
+                    "provider_submitted_at": submitted_at,
+                },
+            ),
+            b'{"verified":"wechat-refund-failed-terminal"}',
+            "verified-wechat-refund-signature",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=self.now + timedelta(minutes=3),
+        )
+        self.assertTrue(result["ok"])
+        terminal = db.fetchone(
+            "SELECT status,provider_submitted_at FROM payment_refunds WHERE id=?",
+            (refund["id"],),
+        )
+        self.assertEqual(terminal["status"], "failed")
+        self.assertEqual(terminal["provider_submitted_at"], submitted_at)
+        self.assertEqual(
+            db.fetchone(
+                "SELECT COUNT(*) AS c FROM payment_cash_ledger WHERE refund_id=?",
+                (refund["id"],),
+            )["c"],
+            0,
+        )
+
+    def test_refund_intent_cannot_insert_provider_submission_time(self):
+        self.create_user()
+        _order, row = self.create_order()
+        self.succeed_order(row)
+        with self.assertRaisesRegex(Exception, "invalid full refund intent"):
+            db.execute(
+                "INSERT INTO payment_refunds("
+                "id,order_id,merchant_refund_no,provider_refund_id,"
+                "amount_fen,currency,status,reason_code,"
+                "provider_submitted_at,created_at,updated_at,terminal_at"
+                ") VALUES(?,?,?,NULL,?,'CNY','requested','customer_request',"
+                "?,?,?,NULL)",
+                (
+                    "00000000-0000-4000-8000-000000000031",
+                    row["id"],
+                    "NR_00000000000040008000000000000031",
+                    int(row["amount_fen"]),
+                    int(self.now.timestamp()),
+                    self.now.isoformat(),
+                    self.now.isoformat(),
+                ),
+            )
+
+    def test_refund_submission_time_database_fence_is_integer_wechat_only(self):
+        self.create_user()
+        submitted_at = int(self.now.timestamp())
+        for provider_name in ("adapay", "alipay_direct", "wechatpay_direct"):
+            with self.subTest(provider_name=provider_name):
+                order = payment.create_order(
+                    "u-payment",
+                    "credit_package",
+                    "starter",
+                    idempotency_key=f"refund-db-fence-{provider_name}",
+                    app_id=self.app_id,
+                    prod_mode=False,
+                    provider_name=provider_name,
+                    now=self.now,
+                )
+                row = dict(
+                    db.fetchone(
+                        "SELECT * FROM payment_orders WHERE id=?",
+                        (order["id"],),
+                    )
+                )
+                event = payment.CallbackEvent(
+                    provider_event_id=f"refund_db_fence_{provider_name}",
+                    event_type="payment.succeeded",
+                    created_time=submitted_at,
+                    prod_mode=False,
+                    app_id=self.app_id,
+                    provider_name=provider_name,
+                    data={
+                        "order_no": row["merchant_order_no"],
+                        "payment_id": f"payment_{provider_name}",
+                        "pay_amt": "12.00",
+                    },
+                )
+                payment.process_authenticated_callback(
+                    event,
+                    f'{{"verified":"{provider_name}"}}'.encode(),
+                    f"verified-{provider_name}-signature",
+                    expected_app_id=self.app_id,
+                    expected_provider_name=provider_name,
+                    expected_prod_mode=False,
+                    now=self.now,
+                )
+                refund = payment.prepare_full_refund(
+                    order["id"],
+                    reason_code="customer_request",
+                    now=self.now,
+                )
+                with self.assertRaisesRegex(
+                    Exception,
+                    "payment refund provider submission is immutable",
+                ):
+                    db.execute(
+                        "UPDATE payment_refunds SET provider_submitted_at=? "
+                        "WHERE id=?",
+                        (submitted_at, refund["id"]),
+                    )
+                db.execute(
+                    "UPDATE payment_refunds SET status='pending' WHERE id=?",
+                    (refund["id"],),
+                )
+                if provider_name != "wechatpay_direct":
+                    with self.assertRaisesRegex(
+                        Exception,
+                        "payment refund provider submission is immutable",
+                    ):
+                        db.execute(
+                            "UPDATE payment_refunds "
+                            "SET provider_submitted_at=? WHERE id=?",
+                            (submitted_at, refund["id"]),
+                        )
+                    continue
+                for invalid in (submitted_at + 0.5,):
+                    with self.subTest(invalid=invalid), self.assertRaisesRegex(
+                        Exception,
+                        "payment refund provider submission is immutable",
+                    ):
+                        db.execute(
+                            "UPDATE payment_refunds "
+                            "SET provider_submitted_at=? WHERE id=?",
+                            (invalid, refund["id"]),
+                        )
+                db.execute(
+                    "UPDATE payment_refunds SET provider_submitted_at=? "
+                    "WHERE id=?",
+                    (submitted_at, refund["id"]),
+                )
+                stored = db.fetchone(
+                    "SELECT provider_submitted_at,"
+                    "typeof(provider_submitted_at) AS value_type "
+                    "FROM payment_refunds WHERE id=?",
+                    (refund["id"],),
+                )
+                self.assertEqual(stored["provider_submitted_at"], submitted_at)
+                self.assertEqual(stored["value_type"], "integer")
+
+    def test_legacy_sqlite_event_schema_upgrades_once_to_duplicate_counter(self):
+        db.execute("DROP TRIGGER IF EXISTS payment_events_transition_v1")
+        db.execute(
+            "ALTER TABLE payment_events DROP COLUMN duplicate_delivery_count"
+        )
+
+        db.init_db()
+        db.init_db()
+
+        columns = {
+            row["name"]: dict(row)
+            for row in db.fetchall("PRAGMA table_info(payment_events)")
+        }
+        counter = columns["duplicate_delivery_count"]
+        self.assertEqual(counter["type"], "INTEGER")
+        self.assertEqual(counter["notnull"], 1)
+        self.assertEqual(counter["dflt_value"], "0")
+        transition = db.fetchone(
+            "SELECT sql FROM sqlite_master WHERE type='trigger' "
+            "AND name='payment_events_transition_v1'"
+        )["sql"]
+        self.assertIn(
+            "NEW.duplicate_delivery_count>OLD.duplicate_delivery_count+1",
+            transition,
+        )
+
+    def test_wechat_reconciliation_uses_shanghai_provider_dates(self):
+        self.create_user()
+        payment_clock = datetime(2026, 9, 5, 15, 58, tzinfo=timezone.utc)
+        refund_clock = datetime(2026, 9, 5, 15, 59, 30, tzinfo=timezone.utc)
+        terminal_clock = datetime(2026, 9, 5, 16, 1, tzinfo=timezone.utc)
+        order = payment.create_order(
+            "u-payment",
+            "credit_package",
+            "starter",
+            idempotency_key="wechat-shanghai-reconcile-001",
+            app_id=self.app_id,
+            prod_mode=False,
+            provider_name="wechatpay_direct",
+            now=payment_clock,
+        )
+        stored_order = dict(
+            db.fetchone(
+                "SELECT * FROM payment_orders WHERE id=?",
+                (order["id"],),
+            )
+        )
+        payment.process_authenticated_callback(
+            payment.CallbackEvent(
+                provider_event_id="wechat_shanghai_payment",
+                event_type="payment.succeeded",
+                created_time=int(payment_clock.timestamp()),
+                prod_mode=False,
+                app_id=self.app_id,
+                provider_name="wechatpay_direct",
+                data={
+                    "order_no": stored_order["merchant_order_no"],
+                    "payment_id": "wechat_shanghai_transaction",
+                    "pay_amt": "12.00",
+                },
+            ),
+            b'{"verified":"wechat-shanghai-payment"}',
+            "verified-wechat-shanghai-payment-signature",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=terminal_clock,
+        )
+        stored_order = dict(
+            db.fetchone(
+                "SELECT * FROM payment_orders WHERE id=?",
+                (order["id"],),
+            )
+        )
+        prepared = payment.prepare_full_refund(
+            order["id"],
+            reason_code="customer_request",
+            now=refund_clock,
+        )
+        refund = dict(
+            db.fetchone(
+                "SELECT * FROM payment_refunds WHERE id=?",
+                (prepared["id"],),
+            )
+        )
+        payment.mark_refund_submission(
+            refund["id"],
+            payment.ProviderRefundResult(
+                merchant_refund_no=refund["merchant_refund_no"],
+                provider_refund_id="wechat_shanghai_refund",
+                status="pending",
+                amount_fen=1200,
+                response_verified=True,
+                merchant_order_no=stored_order["merchant_order_no"],
+                provider_payment_id=stored_order["provider_payment_id"],
+                provider_name="wechatpay_direct",
+                app_id=self.app_id,
+                prod_mode=False,
+                provider_submitted_at=int(refund_clock.timestamp()),
+            ),
+            now=terminal_clock,
+        )
+        payment.process_authenticated_callback(
+            payment.CallbackEvent(
+                provider_event_id="wechat_shanghai_refund_terminal",
+                event_type="refund.succeeded",
+                created_time=int(terminal_clock.timestamp()),
+                prod_mode=False,
+                app_id=self.app_id,
+                provider_name="wechatpay_direct",
+                data={
+                    "refund_order_no": refund["merchant_refund_no"],
+                    "payment_id": stored_order["provider_payment_id"],
+                    "refund_id": "wechat_shanghai_refund",
+                    "refund_amt": "12.00",
+                },
+            ),
+            b'{"verified":"wechat-shanghai-refund"}',
+            "verified-wechat-shanghai-refund-signature",
+            expected_app_id=self.app_id,
+            expected_provider_name="wechatpay_direct",
+            expected_prod_mode=False,
+            now=terminal_clock,
+        )
+        rows = [
+            {
+                "kind": "payment",
+                "reference": stored_order["merchant_order_no"],
+                "amount_fen": 1200,
+                "status": "succeeded",
+            },
+            {
+                "kind": "refund",
+                "reference": refund["merchant_refund_no"],
+                "amount_fen": 1200,
+                "status": "succeeded",
+            },
+        ]
+        day_five = payment.reconcile_bill(
+            "2026-09-05",
+            b"synthetic-wechat-day-five",
+            rows,
+            prod_mode=False,
+            provider_name="wechatpay_direct",
+            now=terminal_clock,
+        )
+        self.assertEqual(day_five["status"], "matched")
+        day_six = payment.reconcile_bill(
+            "2026-09-06",
+            b"synthetic-wechat-day-six",
+            [],
+            prod_mode=False,
+            provider_name="wechatpay_direct",
+            now=terminal_clock + timedelta(minutes=1),
+        )
+        self.assertEqual(day_six["status"], "matched")
 
     def test_entitlement_failure_rolls_back_partial_grant_but_keeps_cash(self):
         self.create_user()
@@ -1141,7 +1970,8 @@ class PaymentContractTests(unittest.TestCase):
                 subscription["id"],
             ),
         )
-        current = billing.get_subscription("u-payment")
+        with mock.patch.object(billing, "_now", return_value=self.now.isoformat()):
+            current = billing.get_subscription("u-payment")
         self.assertEqual(current["used_monthly_credits"], 17)
         paid_id = subscription["id"]
         after_expiry = (expires + timedelta(seconds=1)).isoformat()
@@ -1276,6 +2106,51 @@ class PaymentContractTests(unittest.TestCase):
         )
         self.assertEqual(mismatch["status"], "discrepancies")
         self.assertEqual(mismatch["discrepancy_count"], 1)
+
+        alipay_empty = payment.reconcile_bill(
+            (self.now + timedelta(days=2)).date().isoformat(),
+            b"synthetic-empty-alipay-trade-bill",
+            [],
+            prod_mode=True,
+            provider_name="alipay_direct",
+            now=self.now + timedelta(days=3),
+        )
+        self.assertEqual(alipay_empty["status"], "matched")
+        self.assertEqual(alipay_empty["row_count"], 0)
+        self.assertEqual(
+            db.fetchone(
+                "SELECT provider FROM payment_reconciliation_runs WHERE id=?",
+                (alipay_empty["id"],),
+            )["provider"],
+            "alipay_direct",
+        )
+
+        for index, provider_status in enumerate(
+            ("pending", "failed", "closed"),
+            start=1,
+        ):
+            unresolved = payment.reconcile_bill(
+                (self.now + timedelta(days=1)).date().isoformat(),
+                f"provider-bill-unresolved-{provider_status}".encode("ascii"),
+                [
+                    {
+                        "kind": "refund",
+                        "reference": f"NR_unresolved_{index}",
+                        "amount_fen": 1200,
+                        "status": provider_status,
+                    }
+                ],
+                prod_mode=False,
+                now=self.now + timedelta(minutes=index + 1),
+            )
+            self.assertEqual(unresolved["status"], "discrepancies")
+            self.assertEqual(unresolved["discrepancy_count"], 1)
+            discrepancy = db.fetchone(
+                "SELECT issue_code FROM payment_reconciliation_items "
+                "WHERE run_id=?",
+                (unresolved["id"],),
+            )
+            self.assertEqual(discrepancy["issue_code"], "status_mismatch")
         settlement = payment.record_settlement_summary(
             self.now.date().isoformat(),
             source_sha256="a" * 64,
@@ -1284,9 +2159,54 @@ class PaymentContractTests(unittest.TestCase):
             fee_fen=20,
             net_fen=1180,
             prod_mode=False,
+            provider_name="wechatpay_direct",
             now=self.now,
         )
         self.assertEqual(settlement["status"], "verified")
+        self.assertEqual(settlement["provider"], "wechatpay_direct")
+        self.assertEqual(
+            db.fetchone(
+                "SELECT provider FROM payment_settlement_summaries "
+                "WHERE id=?",
+                (settlement["id"],),
+            )["provider"],
+            "wechatpay_direct",
+        )
+        alipay_settlement = payment.record_settlement_summary(
+            self.now.date().isoformat(),
+            source_sha256="b" * 64,
+            gross_fen=800,
+            refund_fen=100,
+            fee_fen=10,
+            net_fen=690,
+            prod_mode=False,
+            provider_name="alipay_direct",
+            now=self.now,
+        )
+        self.assertEqual(alipay_settlement["provider"], "alipay_direct")
+        self.assertEqual(
+            db.fetchone(
+                "SELECT provider FROM payment_settlement_summaries "
+                "WHERE id=?",
+                (alipay_settlement["id"],),
+            )["provider"],
+            "alipay_direct",
+        )
+        with self.assertRaisesRegex(
+            payment.PaymentContractError,
+            "PAYMENT_PROVIDER_INVALID",
+        ):
+            payment.record_settlement_summary(
+                self.now.date().isoformat(),
+                source_sha256="c" * 64,
+                gross_fen=100,
+                refund_fen=0,
+                fee_fen=0,
+                net_fen=100,
+                prod_mode=False,
+                provider_name="unknown_provider",
+                now=self.now,
+            )
         with self.assertRaises(payment.PaymentContractError):
             payment.record_settlement_summary(
                 self.now.date().isoformat(),

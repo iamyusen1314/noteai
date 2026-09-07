@@ -1,7 +1,9 @@
 import contextlib
 import io
 import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from tools import production_durable_ai_schema_0017 as schema_0017
@@ -24,6 +26,30 @@ class ProductionDurableAiSchema0017Tests(unittest.TestCase):
             {"id", "operation_id", "state", "delivered_at"},
         )
         self.assertNotIn("acl_payload", contract)
+
+    def test_source_contract_allows_only_later_migrations_after_0017(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory)
+            for name in schema_0017.EXPECTED_MIGRATION_NAMES:
+                source = schema_0017.MIGRATION_DIR / name
+                (fixture / name).write_bytes(source.read_bytes())
+            (fixture / "0018_later.sql").write_text(
+                "SELECT 18;\n", encoding="utf-8"
+            )
+            with mock.patch.object(schema_0017, "MIGRATION_DIR", fixture):
+                self.assertEqual(
+                    tuple(schema_0017.source_contract()["migration_hashes"]),
+                    schema_0017.EXPECTED_MIGRATION_NAMES,
+                )
+            (fixture / "0016_z_unexpected.sql").write_text(
+                "SELECT 16;\n", encoding="utf-8"
+            )
+            with mock.patch.object(schema_0017, "MIGRATION_DIR", fixture):
+                with self.assertRaisesRegex(
+                    schema_0017.DurableAiSchemaError,
+                    "migration_set",
+                ):
+                    schema_0017.source_contract()
 
     def test_role_snapshot_accepts_existing_worker_login(self):
         connection = mock.Mock()

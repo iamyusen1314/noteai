@@ -1,6 +1,549 @@
 # NoteAI Internal Production Readiness Handoff
 
-> Current summary updated: 2026-09-03 (Asia/Shanghai).
+## Authoritative paused recovery handoff (2026-09-07, Asia/Shanghai)
+
+This section supersedes every earlier `Current execution state` section below.
+Those dated sections remain historical records only.  All production executors,
+provider calls, production database writes, payment actions, cloud-resource
+changes, deployment, DNS work and scheduled automation are paused.  The
+`item34-24h-3d-observation` heartbeat is `PAUSED`; it must not be resumed by a
+new window without an explicit owner instruction.
+
+### Repository and checkpoint boundary
+
+- Canonical project/worktree: `/Users/openclaw/Desktop/noteai`.
+- Branch: `codex/quality-stabilization-real-chain`.
+- Accepted Item30 checkpoint, pre-recovery HEAD and upstream:
+  `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29`.  Items1-30 remain accepted and
+  frozen.  They were not rerun or reopened.
+- The local commit containing this section is a non-release
+  recovery/preparation checkpoint whose parent is the accepted Item30 commit.
+  It preserves unfinished Item31-36 source, focused tests, plans and
+  non-sensitive preparation Evidence.  It is not a terminal Item checkpoint,
+  is not approved for deployment, and must not be pushed until a new window
+  reviews it.  Readiness remains `30/38` (internal `29/29`, public `1/9`).
+- Difference from the accepted Item30 version: the recovery tree contains
+  unfinished direct WeChat Pay/Alipay preparation for Item31, sealed Item32
+  failure/UNKNOWN records plus a never-run successor, an inert Item33
+  promotion executor, Item34 24h/3d preparation, the frozen Item35 review
+  package and Item36 preparation-only NDR evidence.  None of those additions
+  has terminal credit.
+
+### Item31-38 state at pause
+
+| Item | Manifest state | Preserved state | Missing terminal work |
+|---|---|---|---|
+| 31 | `blocked` | Provider-neutral ledger/state/webhook/idempotency/refund/reconciliation plus minimum `WeChatPayGateway` and `AlipayGateway`; Ping++ preparation retained as history only | ICP, both merchant/product approvals, production Secrets, exact real DML evidence, one bounded live chain per provider and CNY24 owner authorization |
+| 32 | `blocked` / `HOLD_UNKNOWN_NO_REPLAY` | Two predecessor identities sealed; exact-four-file successor package hash-verified on API-F | Fresh used0/remaining34 preflight and exactly one unambiguous 34-call read-only cycle |
+| 33 | `unverified` | Dependency-bound singleton promotion executor and focused tests; no provider/database/service action | Terminal Item32, fresh UTC provider day, one real cycle and managed promotion |
+| 34 | `unverified` | Same-object observation anchor, preparation Evidence, migration0019 source, local v2 image and exact-one wrapper | Valid existing NoteAI-authored managed row, privileged 0019 apply/readback, ACR registry digest, real 24h/3d attempts and promotion |
+| 35 | `blocked` | Technical package frozen at `2026-09-06T20:11:37+08:00`, SHA256 `1b5c37594b2c51b738b2edbc5acad1e052b311a4a8a3f677b64ae3fa3da7b89d` | Two distinct real professional signed artifacts and bindings |
+| 36 | `unverified` | Preparation-only NDR mask7-to-0 record; latest recorded ALB count0 | Terminal Items33+34, fresh quote/cost approval, private backend bind, ALB/TLS/health routing and fresh post-bind NDR |
+| 37 | `unverified` | No terminal execution | Terminal Items30+31+35+36, pre-DNS commercial E2E, alerts and rollback rehearsal |
+| 38 | `unverified` | No terminal execution and DNS writes0 | Terminal Item37, Go-Live report and explicit owner reply `确认公开上线` |
+
+### Preserved implementation and last applicable focused checks
+
+- Item31 key paths: `model/direct_payment_gateways.py`,
+  `model/payment_canary_executor.py`, `model/payment_contract.py`,
+  `model/payment_runtime.py`, `model/payment_adapter_runtime.py`,
+  `model/migrations/postgres/0018_direct_payment_providers.sql`,
+  `scripts/postgres/noteai_production_runtime_roles_0018.sql`, and the matching
+  `test_direct_payment_gateways`, `test_payment_canary_executor`,
+  `test_item31_payment_evidence_gate`, `test_payment_query_financial_evidence`
+  and payment/API contract tests.  Last recorded results against these
+  preparation sources were 112/112 for the combined provider-neutral/direct
+  set, 30/30 for canary plus Item31 Evidence, 167/167 for the affected API
+  contract module and 8/8 for production env files.  These prove preparation
+  behavior only.
+- Item32/33 key paths: `tools/execute_item32_readonly_trends.py`,
+  `tools/execute_item32_xhs_diagnostic.py`,
+  `tools/execute_item32_readonly_trends_successor.py`,
+  `tools/execute_item33_trends_promotion.py`, their three plans under
+  `deploy/production/plans/`, and the matching Item32/33 focused tests.  Last
+  recorded supporting checks were 225/225, the affected successor/Item33 set
+  was 121/121, and the Item33 executor/Evidence/manifest set was 42/42.  The
+  successor itself has never run.
+- Item34 key paths: `deploy/production/execute_item34_tracking.py`,
+  `tools/execute_item34_tracking_checkpoint.py`,
+  `model/migrations/postgres/0019_xhs_tracking_runtime_config.sql`,
+  `docs/XHS_TRACKING_PRODUCTION_CONTRACT.md`, the canonical preparation
+  Evidence and the three `test_item34_tracking_*` modules.  Last recorded
+  canonical checkpoint/Evidence/wrapper checks were 81/81 and related
+  tracking/spider regressions were 50/50.  No managed row, migration, supplier
+  result or terminal snapshot is implied.
+- Item35/36 key paths: `docs/ITEM35_PROFESSIONAL_REVIEW_PACKAGE_20260903.md`,
+  `tests/test_item35_item36_evidence_gate.py`, and
+  `deploy/production/evidence/production-item36-ndr-convergence-20260904.json`.
+  The last recorded focused validator set was 28/28.  The Item35 package is
+  unsigned and the Item36 Evidence is preparation-only.
+- No tests were rerun merely to create this recovery checkpoint.  The results
+  above apply to the preserved preparation source version and must not be
+  attributed to the accepted Item30 tree or treated as production validation.
+
+### Item32 sealed identities, retained records and successor
+
+- Original known-failure identity: status `HOLD_KNOWN_FAILURE` /
+  `remote_business_error`, provider calls1, retries0, no-replay.  Admission
+  SHA256 is `8b20840ad5f6e5ec44f14086bfe635ff464c2125bfd76b2cb3b377fa2b48bfd8`;
+  retained isolated-store SHA256 is
+  `10e01542b261719794bdaf67ebbc355a8d2fe66e7448c516b206ad300f6402f8`.
+  The host boundary is `/var/lib/noteai/item32-readonly`, with admission at
+  `item32-admission.json`.  The retained store lives under a dynamically named
+  run directory; its unique full path is not verified, so only the root and
+  recorded store digest are authoritative.  Do not replay it.
+- Diagnostic identity: status `HOLD_UNKNOWN` / `UNKNOWN_HOLD`, provider calls1,
+  UNKNOWN1, retries0, no-replay.  Admission SHA256 is
+  `85d370068016ccf72fda32840a0cb58e99be82efb2dee6112c29967f76652561`;
+  result SHA256 is
+  `14406787e1064a265ab050b9e7d905752f1144c50498b9f9e281f373b8857382`.
+  Retained host records are
+  `/var/lib/noteai/item32-xhs-diagnostic/admission.json` and `result.json`.
+  Do not infer success/failure and do not replay it.
+- Canonical no-credit record:
+  `deploy/production/evidence/production-item32-xhs-diagnostic-hold-unknown-20260906.json`.
+- Successor source/plan:
+  `tools/execute_item32_readonly_trends_successor.py` and
+  `deploy/production/plans/item32-readonly-successor-20260907.json`.
+  It is `PREPARED_NOT_EXECUTED`, provider calls0 and readiness credit false.
+  Local archive `/tmp/noteai-item32-successor-20260907.tar.gz` and remote
+  archive `/home/ecs-assist-user/noteai-item32-successor-20260907.tar.gz` are
+  28594 bytes with SHA256
+  `b494b48fab58b1f4359eaac535fb38e6daa02b2aad8c595da29ec76f8b69ec6d`;
+  the verified remote package root is
+  `/var/lib/noteai/item32-successor-package-20260907`.  Runtime work root, if a
+  future owner-authorized execution occurs, is
+  `/var/lib/noteai/item32-readonly-successor`.  No successor result exists.
+  The executor's future canonical output names are
+  `production-item32-xhs-trends-attempt-audit.json`,
+  `production-item32-xhs-trends-snapshot.json`,
+  `production-item32-database-zero-write-proof.json` and
+  `production-item32-xhs-trends-readonly-verified.json`; none is present or
+  credited in this checkpoint.
+
+### Canonical DoD and dependency sources actually found
+
+- Item34 base product contract still names legacy 24h/7d storage/product flow
+  in `docs/XHS_TRACKING_PRODUCTION_CONTRACT.md` lines 12, 39-41 and 67.  The
+  owner-amended public-launch acceptance is 24h plus 3d and is recorded in the
+  same document lines 107-120, the manifest control
+  `tracking_real_and_promotion`, canonical preparation Evidence fields
+  `latest_owner_amendment`, `observation_started_at`,
+  `checkpoint_24h_due_at` and `checkpoint_3d_due_at`, and
+  `tools/internal_deployment_readiness_gate.py::validate_item34_tracking_evidence`.
+  That validator requires 24h at or after start+24h and strictly before
+  start+72h, and 3d at or after start+72h.  The recorded start is
+  `2026-09-04T22:30:38+08:00`; no backfill or early credit is allowed.  This is
+  an explicit owner amendment, not a claim that the original legacy product
+  contract always used 3d.
+- Item35's four document categories and two approval categories are defined by
+  `ITEM35_REQUIRED_DOCUMENTS` and `ITEM35_REQUIRED_APPROVALS` in
+  `tools/internal_deployment_readiness_gate.py`; the acceptance implementation
+  is `validate_item35_approval_evidence`.  The authoritative manifest control
+  is `legal_provider_approval`.  It requires two distinct post-freeze signed
+  artifacts/bindings for `legal_privacy` and
+  `provider_commercial_and_xhs`, complete frozen scope, distinct paths/hashes,
+  zero open conditions and CTO verification of signer identity/authority.
+- The 24h/3d Item34 acceptance and Item35's exact two-category signature form
+  were introduced by owner instructions in this Item31-38 window and are
+  preserved by this recovery tree.  They are not fields from the accepted
+  Item30 commit.  The dependency graph below is unchanged from Item30.
+- The unchanged Item32 cap is sourced by both
+  `docs/XHS_TRENDS_PRODUCTION_CONTRACT.md` and
+  `deploy/production/plans/item32-readonly-execution-20260904.json` and the
+  successor plan: one cycle, six domains, maximum34 provider requests per run
+  and per UTC day, minimum12 qualifying real rows per domain, automatic
+  retries0.  The successor additionally requires used0/remaining34, UTC bucket
+  `2026-09-07`, not-before `2026-09-07T00:00:00Z`, dispatch by23:40Z and finish
+  before `2026-09-08T00:00:00Z`.  The manifest controls
+  `real_xhs_trends` and `trends_managed_promotion` record the resulting fresh-day
+  requirement.  No different quota source was found.
+- Item31-38 dependencies are authoritative in
+  `deploy/production/internal-deployment-readiness.json` under
+  `layers[id=public_launch].controls[*].dependencies`: 31 depends on payment
+  internal runtime+monitoring; 32 on suspended Trends runtime+monitoring; 33
+  on32+internal rollback; 34 on suspended Tracking runtime+monitoring+internal
+  rollback; 35 has no manifest predecessor; 36 on capacity100+33+34; 37 on
+  30+31+35+36; 38 on37.
+
+### Deliberately not saved in this checkpoint
+
+- Seven owner-protected untracked paths remain present/untracked/unstaged and
+  were not read, modified or committed:
+  `.codex/item26-envelope-rotate-promote.sh`,
+  `.codex/item26-envelope-rotate-stage.template.sh`,
+  `.codex/item26-source-manifest-executor.sh`,
+  `.codex/item26-source-manifest-readback.sh`,
+  `.codex/item26-source-manifest-recovery-executor.sh`,
+  `tests/test_stage_item26_manual_cost_stop_helper_v2.py`, and
+  `tools/stage_item26_manual_cost_stop_helper_v2.py`.
+- Host-only admissions/results, isolated stores, transferred archives,
+  Workbench/session state and Secret files are not Git artifacts and are not
+  copied into this checkpoint.  Their safe paths/hashes are recorded above;
+  Secret values are intentionally absent.
+- Item31 true merchant credentials and live Evidence, Item32 terminal Evidence,
+  Item34 real 24h/3d snapshots, Item35 professional signatures, Item36 terminal
+  ALB/TLS Evidence, and all Item37/38 Evidence do not exist and therefore are
+  not included.
+- The recovery commit is intentionally local-only.  Upstream remains the
+  accepted Item30 checkpoint; no push, deployment or automated continuation is
+  authorized.
+
+## Current execution state (2026-09-07 02:34 +08:00)
+
+- Readiness is 30/38 (internal 29/29, public 1/9). Item1–30 and checkpoint
+  `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29` remain frozen; HEAD and upstream
+  still match that checkpoint. No Item31–38 terminal checkpoint exists.
+- Active Item is Item32. The unique successor archive is now verified both
+  locally and on API-F: 28594 bytes, SHA256
+  `b494b48fab58b1f4359eaac535fb38e6daa02b2aad8c595da29ec76f8b69ec6d`.
+  Its exact four files were extracted once into the root-owned mode-0700
+  package root `/var/lib/noteai/item32-successor-package-20260907`; every file
+  hash matched and the link count was zero. The executor has not run. Provider
+  calls, production DB queries/writes, cloud mutations and retries for this
+  staging action are all zero. It must not execute before Beijing 08:00, and
+  both earlier Item32 identities remain sealed no-replay.
+- Item34 remains independent and time-critical. A v2 image was built offline on
+  API-F with network disabled and passed its same-role Secret-free preflight.
+  A direct Workbench readback revalidated its exact local image ID; API-F has
+  no buildx client, and the supported Docker manifest query reached ACR but
+  returned `AUTH_UNAVAILABLE`. It made one read-only registry call, no push and
+  exposed no credential, so the image still has no registry digest. Migration 0019 is
+  absent; both current runtime roles were read back as unable to activate the
+  table-owner role. The unique production RDS was identified through the
+  logged-in Aliyun console. One standard DMS-role authorization confirmation
+  reached real Alibaba SMS/scan verification; a separate RAM role search proved
+  `AliyunDMSDefaultRole` absent, so the action is classified NOT_DISPATCHED,
+  writes0 and retries0. A subsequent API-C metadata-only audit found no
+  persistent NoteAI owner/migration executor in the approved runtime roots;
+  it read no environment contents and made no database query. Therefore DMS
+  verification remains the narrow privileged path. The canonical managed row is also absent; its only
+  supported creation path is authenticated `POST /notes/track-url` with an
+  existing NoteAI user. Direct SQL insertion, guessed users and synthetic-user
+  expansion remain prohibited. Byte-exact 0019 preflight/apply/verify SQL is
+  prepared outside the repository and independently static-reviewed; it freezes
+  search path and RLS under the migration lock, applies no other pending
+  migration and has not executed. The terminal validator now binds the exact
+  0019 source, exact ledger row, search path, RLS and policy semantics through a
+  recomputed readback digest. It requires its one `schema_migrations` ledger
+  insert and an exact seven-table/nine-mutation write set, and rejects any
+  business-row write from the migration. Raw PostgreSQL policy `qual`, duplicate
+  JSON keys and the canonical write-ledger digest are also bound; the final
+  Item34 focused set passes 81/81. The valid 24h action
+  must finish strictly
+  before `2026-09-07T22:30:38+08:00`.
+- Item35's technical package remains frozen and unsigned. Its manifest status is
+  now correctly `blocked`, with the professional-signature resume condition;
+  the focused manifest gate passes and Readiness remains 30/38. Blocked control
+  count is now three: Items31, 32 and 35.
+- An authenticated, read-only Aliyun ICP order readback at 2026-09-07 01:34
+  +08:00 found the September 4 first-filing order at step 5, `管局审核`, with
+  the platform displaying an eight-working-day estimate. The order is not
+  complete. No filing action was submitted, withdrawn or edited. This confirms
+  Item31's external P0 and gives no readiness credit.
+- Current HUMAN GATES are: complete the visible Aliyun account SMS/scan check for
+  the DMS standard role; provide an existing authenticated NoteAI user session
+  for the normal tracking submission; obtain the two real Item35 professional
+  signatures; complete Item31 ICP/direct-provider approvals and later Secret/
+  real-fund authorization; approve Item36 recurring cost; and explicitly confirm
+  Item38 go-live. Current ACR authentication must also be supplied through an
+  existing approved mechanism or secure injection before publication. The
+  owner must not send codes, passwords or Secret values in chat.
+- API-C/API-F remain existing PrePaid resources. No PostPaid Builder/Worker was
+  started; all stoppable PostPaid compute remains StopCharging. No business DB,
+  payment, DNS, provider or recurring-resource write occurred in this stage.
+- The existing hourly thread heartbeat now binds the already-staged Item32
+  package and the direct-browser authorization. Its next real action is the one
+  fresh preflight and exact-once Item32 successor at/after Beijing 08:00; any
+  disconnect or ambiguous result requires read-only reconciliation before a
+  conclusion and never permits replay.
+
+## Current Item31–38 execution window (2026-09-06)
+
+- Readiness remains internal 29/29 and public 30/38. Items1–30 and Item30
+  checkpoint `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29` remain accepted/frozen.
+  No Item31–38 terminal checkpoint exists yet.
+- Item32 remains unverified behind two separately sealed no-replay identities.
+  The original attempt remains a known `remote_business_error`: provider
+  calls1, UNKNOWN0 and automatic retries0. Its independently reviewed one-call
+  diagnostic successor completed at 2026-09-06T06:33:07Z as
+  `DIAGNOSTIC_HOLD_UNKNOWN_NO_CREDIT / UNKNOWN_HOLD`: the request started but no
+  response or status was captured, provider calls1, UNKNOWN1 and automatic
+  retries0. Cumulative calls are2; the second action was neither a replay nor
+  an automatic retry. This diagnostic queried/wrote the production database0,
+  started PostPaid resources0, and left no task container or process. Exact
+  staging cleanup completed after SHA-bound inventory; the Trends unit is
+  inactive/dead/disabled. The root-only admission/result and original isolated
+  store remain as audit boundaries, with admission-to-result SHA binding
+  confirmed. No login/challenge/risk-control/account-restriction marker was
+  observed, so no owner gate can be inferred. Canonical preparation-only
+  closure is `deploy/production/evidence/production-item32-xhs-diagnostic-hold-unknown-20260906.json`;
+  it gives Item32/33/34 zero credit. All further Item32 Trends provider actions are
+  paused until the fresh UTC budget opens, and both prior executors are
+  permanent no-replay. Offline review found that the old terminal adapter sent
+  Chrome121 while its pinned signer asset modeled Chrome/Edge138. The shared
+  adapter now uses the signer's exact User-Agent, without claiming that this
+  proves either prior root cause. A distinct successor executor/plan/work root
+  binds the original admission/store, diagnostic admission/result and canonical
+  no-credit closure before Secret access or provider setup. It requires a fresh
+  local config/source/signer readback no older than15 minutes, the exact
+  2026-09-07 UTC bucket with used0/remaining34, dispatch no later than23:40Z,
+  finish before September8 UTC, a new durable O_EXCL no-replay admission before
+  its single start, the exact34-call sequence and the existing server-enforced
+  production database zero-write proof. Every Secret-bearing container is
+  registered through outer cleanup; after any dispatched exception all exact
+  containers are stopped and the label set is confirmed empty before reading
+  the isolated attempt ledger. Missing/unreadable readback remains explicit
+  UNKNOWN, the failed store is retained, and a successful Evidence archive is
+  hidden until external/runtime/descriptor cleanup completes. The terminal
+  archive now stays in the root-owned 0700 work root until cleanup, then moves
+  through an opened-source-fd/O_EXCL destination copy with source/destination
+  digest and inode checks before ownership is handed to the export account.
+  The current transfer artifact is
+  `/tmp/noteai-item32-successor-20260907.tar.gz`, 28594 bytes, SHA256
+  `b494b48fab58b1f4359eaac535fb38e6daa02b2aad8c595da29ec76f8b69ec6d`;
+  an independent read-only audit confirmed exact4 regular/no-link members and
+  plan-to-executor binding. All earlier transfer identities are obsolete. Snapshot
+  acceptance requires at least12 qualifying real rows per domain; optional
+  `industry_baseline` fill rows can reach15 but never count as real source
+  credit. Item32/33 supporting focused tests pass225/225; preparation adds no
+  credit.
+- Unique next task IN PROGRESS:
+  `PROD-XHS-TRENDS-REAL-SUPPLIER-READONLY-001`, using only the new successor at
+  `deploy/production/plans/item32-readonly-successor-20260907.json`. Because the
+  diagnostic conservatively used one request on 2026-09-06 UTC and the terminal
+  cycle requires all34 under the unchanged daily cap34, the executor must reject
+  before 2026-09-07T00:00:00Z / Beijing08:00 and must then prove used0/
+  remaining34. Neither predecessor may be replayed. If Item32 consumes that
+  bucket, Item33 cannot open its own real-cycle budget before Beijing September8
+  08:00; this is now an explicit launch-chain timing P0. Item31 direct-provider
+  and Item35/36 offline preparation continue without XHS, cloud or payment
+  actions.
+- Item31 is `BLOCKED_EXTERNAL_DEPENDENCY / implementation-preparation-in-progress`.
+  Formal production targets are WeChat Pay direct and Alipay direct. Required
+  sequence is ICP completion, both merchant/product approvals, secure
+  production credential injection, then the controlled real payment,
+  authenticated callback, refund and reconciliation acceptance. The existing
+  provider-neutral order/state/webhook/idempotency/exactly-once/refund/ledger/
+  reconciliation boundary is retained. Ping++ production wiring was removed
+  from the candidate tree and its source candidates were sealed outside the
+  repository. Historical preparation Evidence remains unchanged at
+  `deploy/production/evidence/production-pingxx-test-preparation-20260903.json`
+  and gives Item31 zero credit. Payment production state: direct providers not
+  approved/configured; no Live payment or real funds moved. The affected
+  provider-neutral/legacy-adapter focused set passes 63/63; this is preparation
+  only and does not prove either direct-provider signature or terminal chain.
+  The existing `PaymentProvider` boundary now has minimum offline
+  `WeChatPayGateway` and `AlipayGateway` implementations for create/query,
+  full-refund/query, provider-bound reconciliation and authenticated callback
+  mapping. WeChat API v3 RSA-SHA256 plus AES-GCM resource handling and Alipay
+  RSA2 form verification with exact seller/notification/order/amount binding
+  are covered by synthetic offline fixtures. Alipay refund submission remains
+  pending until a verified fastpay refund query; an authenticated query receipt
+  now enters the existing terminal refund ledger under a deterministic event
+  identity, so duplicate receipts cannot duplicate cash or entitlement reversal.
+  Because Alipay identifies a refund by the authenticated merchant
+  `out_request_no` rather than issuing a separate refund id, the canary derives
+  a provider-bound, domain-separated identity from that value and exposes only
+  its digest. The existing order API also has a canary-only pre-write fence
+  binding the direct provider, synthetic user/subject,
+  `credit_package/starter` at1200fen, fixed Idempotency-Key digest and a window
+  of at most one hour. A successful create writes no new evidence table and
+  emits one allowlisted digest log without changing the API response.
+  WeChat's official `REFUND` payment-query state routes to refund reconciliation
+  and cannot grant entitlement. Direct gateway tests pass 40/40; the combined
+  provider-neutral/legacy/direct/Item31-evidence focused set passes 112/112.
+  The current canary plus canonical-evidence set passes30/30, the affected API
+  contract module passes167/167 and production env-file checks pass8/8. A final
+  control-role read-only lineage assembler is still required to bind the safe
+  create/callback journals to the existing order, refund, cash, entitlement,
+  credit and reconciliation rows; the long-lived Payment role will not receive
+  broader read access for this purpose. Read-only audit also confirmed that
+  final DB state cannot reconstruct actual DML counts or prove zero
+  out-of-contract mutations, and the current create/callback digest logs are
+  best-effort. These remain fail-closed terminal gaps; no new receipt system is
+  being added while the provider approvals are blocked. Each provider canary is fixed at 1200
+  fen, so the two required
+  Live canaries create a cumulative CNY24 real-fund flow and require one owner
+  authorization under the over-CNY20 gate before either is run. Signed
+  production HTTP transports, callback runtime activation and all real external
+  calls remain blocked; no merchant credential was used and no Item31 credit was
+  added.
+- Item33 now has one fail-closed outer promotion executor and terminal semantic
+  validator, but remains dependency-blocked by unverified Item32 and has zero
+  credit. Before any callback the executor validates the canonical readiness
+  manifest, Item32/Item28 semantics and actual dependency Evidence bytes. It
+  rejects a future/stale preflight, any pre-used provider budget or existing
+  same-bucket run, binds cycle completion to its 30-minute lease, and counts a
+  row as real XHS coverage only when its source is allowlisted and quality score
+  is at least55. Callback failures become stable no-content UNKNOWN codes. The
+  singleton-triggered cycle, known-failure rollback and no-replay reapply
+  semantics pass42/42 focused executor/Evidence/manifest tests. No provider,
+  database, service or cloud action ran.
+- Item34 owner amendment on 2026-09-04 replaces 5d/7d with actual 24h and 3d.
+  No prior same-object history exists. The owner-authenticated XHS profile
+  supplied an existing owned note with canonical note id
+  `6a7954010000000026034707`; the evidence anchor is
+  2026-09-04T22:30:38+08:00 with initial public metrics likes4/saves2/comments2.
+  Earliest lawful terminal time is 2026-09-07T22:30:38+08:00. The distinct 24h
+  action must complete in `[2026-09-05T22:30:38+08:00,
+  2026-09-07T22:30:38+08:00)`; at the 72h boundary it is too late and Item34
+  cannot terminal. The executor and terminal validator now enforce the same
+  strict upper bound. No backfill, manual-fill or early credit is allowed. A later managed-row bind does not
+  rewrite this real initial-snapshot clock. An hourly thread heartbeat is active
+  for the actual 24h/72h checkpoints; PostPaid compute will not idle for it.
+  The secure Tracking Secret target is configured. Item34 has no dependency on
+  Item32; the real checkpoint is instead gated by a legitimate NoteAI-authored
+  managed row, migration 0019 readback, a current immutable XHS image and a
+  production host connection. Offline review
+  proved the production invocation must be exact `--once --limit 1`: the
+  default limit50 can claim both legacy 24h and 7d slots in one process for an
+  older note. Before any real call, the global due set must be exactly one and
+  object-bound; `--force` is prohibited; after 24h success the one target must
+  be scheduled exactly at the observation anchor plus72h while the service is
+  stopped. No provider credit or production write has been claimed.
+  The exact-one outer executor and production wrapper are implemented without
+  exposing Secret values. They fix the worker argv and immutable image role,
+  validate the unique due/object/stage binding, persist and read back the
+  minimum managed gate transition, restore the exact prior config on every
+  failure path, and quiesce task containers before classifying the result.
+  Before the unique provider-attempt admission, the same image and Secret
+  target must now pass a zero-network safe health readback for configured
+  session state, known Cookie expiry, pinned signer assets and at least one
+  remaining Tracking daily admission; no Cookie value is returned.
+  Acceptance requires the exact 24h/3d environment tuple and derives every
+  public attempt digest from the canonical UUID in the actual
+  `tracking_provider_attempts` row. The terminal readback now proves
+  `training_eligible=false`, score window `3d`, growth action `url_crawl_3d`,
+  and a classified three-day memory record by content digest only. The
+  canonical Item34 suite passes 70/70 and the related tracking/spider regression
+  set passes 50/50; static compilation, shell syntax and diff checks pass.
+  A real production read-only preflight at 2026-09-06T02:31:28.733689Z found
+  the Tracking tables ready but `crawler_config` absent/disabled, canonical
+  managed rows0, global due rows0, target/global active attempts0 and
+  target/global outcome-unknown attempts0; the unit was
+  inactive/dead/disabled. The transaction was server-enforced read-only,
+  rolled back without an assigned xid, wrote0 rows, made0 XHS calls and did
+  not forward the Cookie. Its first local aggregate query was rejected for an
+  unqualified joined column; zero container/directory residue was proven, then
+  the one-column-alias successor completed. Canonical preparation Evidence is
+  `deploy/production/evidence/production-tracking-observation-audit-20260903.json`.
+  A fresh bounded SSH reachability probe at 2026-09-06T18:23+08:00 timed out
+  before authentication; it executed no remote command and is sealed without
+  retry. A distinct 2026-09-06T19:36+08:00 three-second TCP-only check also
+  timed out before authentication; it executed no remote command, accessed no
+  credential and is separately sealed. The local Aliyun CLI still has no
+  configured credential source. The currently connected API-F Workbench is now
+  a proven, owner-authorized CTO execution channel and is not a human gate. No
+  supplier call was dispatched.
+- Item35 review package is assembled, now names WeChat Pay direct and Alipay
+  direct, and still has zero professional approvals. It was refrozen at
+  2026-09-06T20:11:37+08:00 with package SHA256
+  `1b5c37594b2c51b738b2edbc5acad1e052b311a4a8a3f677b64ae3fa3da7b89d`.
+  Item35 requires two
+  separately bound signed artifacts: legal/privacy and the AI/map/local-life/XHS
+  provider conclusion. Direct merchant/product materials remain Item31 external
+  dependencies and receive no duplicate Item35 credit. The validator also
+  requires the complete signed-artifact path/hash set to be disjoint from the
+  approval-binding path/hash set, closing cross-type artifact reuse; the
+  focused Item35/36 terminal suite passes28/28. Item36 promotion remains
+  dependency-gated by Item33+34. Its independent API-F NDR prerequisite
+  closed from exact managed-unit mask7 to0 at 2026-09-04T15:54:44Z; canonical
+  preparation-only Evidence is
+  `deploy/production/evidence/production-item36-ndr-convergence-20260904.json`.
+  It gives no Item36 credit and must not be replayed. The accepted API units
+  currently publish only on loopback, so Item36 still requires a minimal
+  security-group-restricted private bind, bounded two-node rolling activation
+  with retained rollback state, and fresh post-change NDR readback after its
+  dependencies and recurring-cost gate close. The commercial rollback drill
+  remains Item37 scope.
+  Read-only Item36 audit confirms the latest recorded ALB count remains0. An
+  initial Secret-free executor prototype was independently rejected before any
+  production use: its preflight clock could admit stale inventory, it had no
+  persistent dispatch-intent/no-replay admission, quote and resource-scope
+  binding were weaker than the canonical validator, and its readbacks and
+  rollback receipts could not construct the existing terminal Evidence shape.
+  The untracked prototype and its self-consistency tests were removed; they give
+  no readiness credit. The accepted minimum implementation contract is to emit
+  the existing canonical Item36 schema directly, validate it before atomic
+  publication, bind a durable admission to dependencies/inventory/quote/
+  approval and fixed phase request identities, seal any UNKNOWN without replay,
+  and restore only known task-created resources from retained before-state.
+  No production cloud wrapper, fresh provider inventory/quote or owner fee
+  approval exists; no cloud mutation or credit occurred. The old ¥149.04/month
+  plus outbound-traffic estimate is reference-only and cannot substitute for a
+  fresh approved quote.
+  The offline terminal validator now requires the literal API-C then API-F
+  rolling order; an exact ALB-source security-group rule for TCP8000 bound to
+  both backend instances with wider ingress0; and a controlled pre-DNS probe
+  bound to an actual ALB public endpoint identity with exact SNI and Host. Cost
+  artifacts separately bind fixed monthly spend and variable public egress
+  quote, owner ceiling and billing, so unused egress headroom cannot hide a
+  fixed-cost overrun. Item35/36 focused tests pass28/28. These checks do not
+  prove Aliyun origin or owner approval and give no readiness credit.
+- Active launch P0s: Item31 ICP/direct-merchant approvals, Item32's sealed
+  known supplier rejection plus sealed diagnostic UNKNOWN, Item34's missing
+  managed row/current image/host access plus checkpoint timing,
+  Item35 real professional signatures, and Item36 backend reachability plus
+  its continuing-cost approval. Item37
+  cannot receive credit until Item30+31+35+36 are terminal; Item38 remains
+  behind Item37 and the explicit owner phrase “确认公开上线”.
+- Item34 initial browser read made no production database/config/DNS/service
+  write and no financial action. Current Item34 production write set is empty.
+  The Sep3 aggregate readback identity `t-sz06vyqmnhj4vls` stays no-replay.
+- Latest official resource state is the authenticated ECS console readback at
+  2026-09-05T10:40+08:00: API-C/F Running/PrePaid; Builder and Worker-C/F
+  Stopped/PostPaid/StopCharging. A 2026-09-06T17:13+08:00 local refresh did not
+  reach an authenticated provider query because the local Aliyun CLI has no
+  credential environment or config file; it produced no cloud action and does
+  not replace the official snapshot. No compute was started.
+- Seven protected untracked paths remain present, untracked and unstaged. The
+  main thread did not intentionally open or edit them. One read-only subagent
+  previously ran a broad repository search without explicit path exclusions;
+  the main thread later made the same process error with one `rg` over `tests`
+  and `model`. Neither search emitted protected content or changed files, but
+  an underlying open of the protected test path cannot be disproved. These
+  process exceptions are retained rather than overstating the audit. Ordinary
+  preparation remains uncommitted/unpushed.
+- Readiness integrity now rejects every verified control whose dependencies are
+  not verified and freezes the exact 38 control IDs, order and canonical
+  dependency graph. Item31/32/35/36 terminal evidence is accepted only at its
+  canonical path. The Item32 validator binds the canonical execution plan,
+  image/source identities, exact 10+12+12 request shape, real snapshot bytes
+  and strict production-database zero-write. Item35 binds the frozen review
+  package, reviewed files, scopes and two distinct signed artifacts. Item36
+  binds production ALB/TLS/provider readback, hostname/certificate, post-change
+  health, fresh exact-three-unit NDR, minimal write set and finite approved
+  recurring cost. Its quote and billing paths must be structured Aliyun/深圳/CNY
+  artifacts whose three fixed service lines plus public-egress variable line,
+  units, quantities, 720-hour arithmetic, clocks and totals bind the terminal
+  summary. Semantic digests bind readbacks
+  to the represented configuration/health/probe/NDR/actions; five resource
+  types, two backend targets, two rolling invocations and all four before/after
+  container identities must be distinct; rolling windows are sequential,
+  rollback state is bound, and billing readback follows the final probe.
+  Automated validation proves structure/integrity, while actual Aliyun origin,
+  owner cost authorization and professional signer identity remain real
+  execution/human gates and receive no early credit. The current Item33 focused
+  set is included in the 225/225 Item32/33 chain checks. Item35/36 terminal
+  validation passes28/28; no production-safe Item36 executor is claimed. The
+  full readiness gate still validates the manifest at 30/38.
+- Remaining human gates are any future explicit XHS login/challenge prompt,
+  the current browser Workbench connection needed for API-F execution,
+  ICP completion, WeChat Pay and Alipay merchant/product applications and
+  approvals, direct-payment credential handling, one Item31 authorization for the
+  cumulative CNY24 real-fund flow, new
+  recurring spend, real professional signatures and Item38 launch. Secret
+  values must never enter chat, source, logs, Evidence, Handoff or Risk.
+  Alibaba Session Manager was temporarily re-enabled for the bounded Item32
+  reconciliation and Item34 read-only preflight; no remote injector or local
+  helper/listener remains. Close the Workbench sessions and disable Session
+  Manager again when no further provider-free host readback is needed.
+  The existing hourly thread heartbeat was refreshed on 2026-09-06 to enforce
+  the Item32, Item34 and Item33 time gates; it cannot substitute for a missing
+  authenticated host channel.
+
+> Current summary updated: 2026-09-06 (Asia/Shanghai).
 > Internal29/29 accepted; complete public30/38 after Item30 terminal acceptance.
 > Historical sections below remain evidence of their dated state, not reopen
 > instructions. The terminal closure at the end is authoritative.

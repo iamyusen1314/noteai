@@ -212,6 +212,85 @@ class TrackingContractTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 crawler._claim_due_tracking_notes(invalid)
 
+    def test_item34_acceptance_claim_cannot_take_an_earlier_non_target_row(self):
+        target_id = "8cc8b6de-f826-4c4a-965e-67dbb7e1fcf8"
+        other_id = "00000000-0000-4000-8000-000000000001"
+        self._insert_due(target_id)
+        self._insert_due(other_id, submitted_delta=timedelta(days=3))
+        claimed = crawler._claim_due_tracking_notes(
+            1,
+            target_id=target_id,
+            target_stage="24h",
+        )
+        self.assertEqual([row["id"] for row in claimed], [target_id])
+        other = db.fetchone(
+            "SELECT claim_token,active_attempt_id FROM tracked_notes WHERE id=?",
+            (other_id,),
+        )
+        self.assertIsNone(other["claim_token"])
+        self.assertIsNone(other["active_attempt_id"])
+
+        with mock.patch.dict(
+            os.environ,
+            {
+                "NOTEAI_ITEM34_ACCEPTANCE": "1",
+                "NOTEAI_ITEM34_TRACK_ID": target_id,
+                "NOTEAI_ITEM34_CHECKPOINT_STAGE": "24h",
+            },
+            clear=False,
+        ):
+            self.assertEqual(crawler._item34_acceptance_target_id(), target_id)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "NOTEAI_ITEM34_ACCEPTANCE": "1",
+                "NOTEAI_ITEM34_TRACK_ID": "bad",
+                "NOTEAI_ITEM34_CHECKPOINT_STAGE": "24h",
+            },
+            clear=False,
+        ):
+            with self.assertRaisesRegex(ValueError, "acceptance target invalid"):
+                crawler._item34_acceptance_target_id()
+
+        for environment in (
+            {
+                "NOTEAI_ITEM34_ACCEPTANCE": "1",
+                "NOTEAI_ITEM34_TRACK_ID": target_id,
+                "NOTEAI_ITEM34_CHECKPOINT_STAGE": "",
+            },
+            {
+                "NOTEAI_ITEM34_ACCEPTANCE": "1",
+                "NOTEAI_ITEM34_TRACK_ID": target_id,
+                "NOTEAI_ITEM34_CHECKPOINT_STAGE": "7d",
+            },
+        ):
+            with self.subTest(environment=environment), mock.patch.dict(
+                os.environ, environment, clear=False
+            ):
+                with self.assertRaisesRegex(ValueError, "acceptance target invalid"):
+                    crawler._item34_acceptance_target_id()
+
+        self.assertEqual(
+            crawler._claim_due_tracking_notes(
+                1,
+                target_id=target_id,
+                target_stage="3d",
+            ),
+            [],
+        )
+        db.execute(
+            "UPDATE tracked_notes SET status='checking_7d' WHERE id=?",
+            (target_id,),
+        )
+        self.assertEqual(
+            crawler._claim_due_tracking_notes(
+                1,
+                target_id=target_id,
+                target_stage="24h",
+            ),
+            [],
+        )
+
     def test_sqlite_claim_compares_offset_clocks_by_instant(self):
         self._insert_due("offset-due")
         due = (
@@ -273,6 +352,45 @@ class TrackingContractTests(unittest.TestCase):
             db.fetchone("SELECT COUNT(*) AS c FROM user_memories")["c"],
             1,
         )
+
+    def test_item34_three_day_terminal_semantics_are_truthful_and_not_trainable(self):
+        track_id = "8cc8b6de-f826-4c4a-965e-67dbb7e1fcf8"
+        self._insert_due(track_id, status="checking_7d")
+        note = crawler._claim_due_tracking_notes(
+            1,
+            target_id=track_id,
+            target_stage="3d",
+        )[0]
+        admitted = crawler._admit_provider_attempt(note)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "NOTEAI_ITEM34_ACCEPTANCE": "1",
+                "NOTEAI_ITEM34_TRACK_ID": track_id,
+                "NOTEAI_ITEM34_CHECKPOINT_STAGE": "3d",
+            },
+            clear=False,
+        ):
+            crawler._record_tracking_success(
+                admitted,
+                {"likes": 100, "saves": 40, "comments": 10, "title": "标题"},
+            )
+
+        row = db.fetchone(
+            "SELECT training_eligible,insights_json FROM tracked_notes WHERE id=?",
+            (track_id,),
+        )
+        self.assertEqual(row["training_eligible"], 0)
+        self.assertEqual(json.loads(row["insights_json"])["window"], "3d")
+        self.assertEqual(
+            db.fetchone("SELECT action FROM growth_records")["action"],
+            "url_crawl_3d",
+        )
+        memory_content = db.fetchone(
+            "SELECT content FROM user_memories WHERE memory_type='context'"
+        )["content"]
+        self.assertIn("3天实际", memory_content)
+        self.assertNotIn("7天实际", memory_content)
 
     def test_provider_metrics_and_full_two_stage_lifecycle_are_bounded(self):
         for value in (-1, 2_147_483_648, True, "1"):

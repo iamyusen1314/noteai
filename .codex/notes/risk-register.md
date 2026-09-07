@@ -1,6 +1,262 @@
 # Risk Register
 
-Last updated: 2026-08-19
+## Current launch-risk delta (2026-09-07 02:34 +08:00)
+
+- P0 / Item32 time gate: the exact successor package is now present and
+  hash-verified on API-F, so transfer and host staging are no longer blockers.
+  Execution remains prohibited before Beijing 08:00 and then still depends on
+  a fresh used0/remaining34 readback and one unambiguous exact-once result. Both
+  predecessor identities remain sealed. A Workbench disconnect after dispatch
+  is UNKNOWN until action-free reconciliation; it never authorizes replay.
+- P0 / Item34 deadline: migration 0019, the canonical managed row and a registry
+  digest are still absent. The local v2 image and role preflight are preparation
+  only. A Workbench readback revalidated the local image ID; API-F lacks buildx,
+  and one supported Docker manifest query reached ACR but returned
+  `AUTH_UNAVAILABLE`, with registry writes0 and Secret exposure0. Publication
+  now requires an existing approved ACR authentication mechanism or secure
+  credential injection. The first attempt to authorize the standard DMS service role stopped at
+  Alibaba SMS/scan verification; an independent role-list readback proved the
+  role absent, so the control-plane write is NOT_DISPATCHED rather than UNKNOWN.
+  An API-C metadata-only audit found no persistent NoteAI owner/migration
+  executor in the approved runtime roots, with environment contents read0 and
+  database queries0; DMS remains the narrow privileged path. Owner MFA and an existing authenticated NoteAI user are now explicit human
+  gates. If the real 24h action does not finish before
+  `2026-09-07T22:30:38+08:00`, the anchored Item34 window cannot terminal for the
+  September 8 launch; backfill and a late attempt remain prohibited. The
+  terminal validator now rejects missing/drifted 0019 source, ledger, search
+  path, RLS or policy semantics through a recomputed readback digest. It
+  requires the exact one-row `schema_migrations` ledger write and an exact
+  seven-table/nine-mutation write set, and forbids business-row mutations from
+  that migration. Raw PostgreSQL policy `qual`, duplicate JSON keys and the
+  canonical write-ledger digest are also bound; focused Item34 checks pass
+  81/81.
+- P0 / Item35 classification: professional signed artifacts are still absent.
+  The manifest now records this as `blocked` with a precise resume condition;
+  the correction adds no credit and leaves Readiness 30/38.
+- P0 / Item31 external timing: an authenticated, read-only Aliyun ICP order
+  readback at 2026-09-07 01:34 +08:00 found the September 4 first-filing order
+  at step 5, `管局审核`, with an eight-working-day platform estimate. The filing
+  is not complete, so direct WeChat Pay/Alipay merchant activation and Item31
+  terminal remain externally blocked. No filing action was submitted,
+  withdrawn or edited during the readback.
+- Resource/cost boundary remains unchanged: API-C/F are PrePaid, stoppable
+  PostPaid compute is StopCharging, and no ALB/LCU/EIP, payment, DNS, provider or
+  production business-row write occurred in this stage. The attempted DMS role
+  authorization produced zero IAM configuration writes and zero incremental
+  cost.
+
+## Active Item31–38 launch risks (2026-09-06)
+
+- P0 / Item31 external dependency: Ping++ is no longer the production target.
+  Item31 cannot terminal before ICP completion, WeChat Pay direct and Alipay
+  direct merchant/product approvals, secure credentials, and the bounded real
+  payment/callback/refund/reconciliation chain. This blocks Item37 and therefore
+  38/38 on September 8 unless the external approvals arrive in time. Historical
+  Ping++ TEST preparation is immutable no-credit history. Secret-free direct
+  preparation now includes minimum `WeChatPayGateway`/`AlipayGateway` classes on
+  the existing provider boundary and 112/112 provider-neutral/legacy/direct/
+  Item31-evidence focused tests. Each provider canary is fixed at 1200 fen; the
+  two required Live canaries therefore require one owner authorization for the
+  cumulative CNY24 real-fund flow before execution. A synchronous refund
+  submission remains non-terminal;
+  an authenticated query receipt now enters the existing refund ledger under a
+  deterministic event identity with exactly-once cash and entitlement reversal.
+  Alipay's authenticated `out_request_no` now supplies a domain-separated
+  refund identity when no separate provider refund id exists. The existing API
+  has a canary-only pre-write synthetic-user/provider/starter/1200fen/fixed-
+  idempotency/short-window fence and emits only allowlisted create digests on
+  success. The affected API contracts pass167/167; canary plus canonical
+  Item31 evidence tests pass30/30; production env checks pass8/8. Final row
+  state cannot reconstruct true DML affected-row counts or prove
+  `out_of_contract_row_mutations=0`, while create/callback audit emission is
+  best-effort and can fail after a real-fund action. These remain terminal
+  evidence gaps; no new receipt or parallel billing architecture will be added
+  while both direct providers are externally blocked. Expanding the long-lived
+  Payment role is prohibited.
+  WeChat's `REFUND` query state routes to refund reconciliation rather than a
+  payment success. The signed production transports, callback runtime
+  activation, merchant admissions, credentials and real chains remain unverified;
+  offline fixtures add no readiness credit and move no funds.
+- P0 / Item34 timing: no earlier same-object observation exists. The genuine
+  owned-note window started at 2026-09-04T22:30:38+08:00 and cannot terminal
+  before 2026-09-07T22:30:38+08:00. The 24h/3d amendment is authoritative;
+  legacy `*_7d`, `checking_7d` and attempt-stage `7d` names remain product and
+  storage names. The Item34 acceptance validator anchors credit to the real
+  observation start rather than publication time. No manual/backfill/early
+  credit is acceptable. The 24h attempt must occur at or after the 24h boundary
+  and strictly before the 72h boundary; executor and terminal validator now
+  reject a late 24h attempt symmetrically.
+- P0 / Item32 sealed known failure plus diagnostic UNKNOWN: the original
+  frozen attempt remains `remote_business_error`, provider calls1, UNKNOWN0,
+  retries0. A separately reviewed, one-request diagnostic used a fresh
+  identity and completed as `DIAGNOSTIC_HOLD_UNKNOWN_NO_CREDIT / UNKNOWN_HOLD`:
+  the request started but no response, HTTP status or provider payload shape
+  was captured. It contributed provider calls1, UNKNOWN1 and automatic
+  retries0; cumulative calls are2. Network recovery, container cleanup and
+  database zero-write do not resolve the provider outcome or authorize replay.
+  Both identities are sealed. The diagnostic made production database
+  queries0/writes0, started PostPaid resources0 and moved no funds. Its task
+  container/process and SHA-bound staging files are absent; root-only
+  admission/result plus the original isolated store remain for audit, and the
+  admission result hash matches the retained result. Evidence is
+  `deploy/production/evidence/production-item32-xhs-diagnostic-hold-unknown-20260906.json`.
+  No login/challenge/risk-control/account-restriction marker was observed, so
+  there is no current owner login gate. Offline review found a concrete request
+  precondition defect: the old terminal adapter's Chrome121 HTTP User-Agent did
+  not match the pinned Chrome/Edge138 signer asset. This is corrected without
+  treating it as proof of either prior root cause. A distinct successor now
+  binds both sealed predecessor boundaries and the canonical closure, uses a
+  new work root/admission, mounts only the exact corrected adapter source, and
+  fail-closes before Secret/provider setup unless the local image/source/signer
+  and production READ ONLY checks pass. It is confined to UTC 2026-09-07,
+  dispatch by23:40Z and finish before September8 UTC with a runtime readback no
+  older than15 minutes. Every task container is registered through outer
+  cleanup and stopped before failure-ledger readback; missing/unreadable stores
+  remain explicit UNKNOWN, HOLD stores are retained and public Evidence is
+  atomically exposed only after cleanup. Qualifying real-source counts exclude
+  `industry_baseline` fill rows. Item32/33 supporting focused tests previously
+  pass225/225; the affected successor/Item33 set passes121/121 after publication
+  hardening. Candidate Evidence stays under the root-owned run directory and is
+  copied by file descriptor with `O_EXCL`, digest and inode checks before
+  recipient ownership is applied. The current exact-four-member transfer
+  artifact is `/tmp/noteai-item32-successor-20260907.tar.gz`, size28594, SHA256
+  `b494b48fab58b1f4359eaac535fb38e6daa02b2aad8c595da29ec76f8b69ec6d`;
+  every older transfer identity is obsolete. No provider action has run and no
+  credit is added.
+- P0 / Item32→33 launch timing: the 2026-09-06 UTC diagnostic call counts
+  conservatively against the unchanged 34/day cap, so the exact34 Item32 cycle
+  cannot start before 2026-09-07T00:00:00Z / Beijing08:00 and must then prove
+  used0/remaining34. A successful Item32 consumes the full bucket. Item33's
+  separate real cycle therefore cannot start before 2026-09-08T00:00:00Z /
+  Beijing08:00. Since Item36 waits for Item33+34 and Item37 waits for Item31+
+  Item35+Item36, the September8 chain has no schedule margin. This timing risk
+  does not relax any dependency or acceptance requirement.
+- Item33 execution preparation: the outer executor is deliberately inert while
+  Item32 is unverified. Canonical dependency semantics and actual Evidence
+  bytes are checked before any callback; future/stale preflight, pre-used
+  budget, an existing same-bucket run, cycle completion after the 30-minute
+  lease, weak real-source overclaims and callback error text all fail closed.
+  Focused tests pass42/42. This reduces execution risk but adds no Item33 credit
+  and does not authorize another XHS request.
+- Item34 managed-row risk: the secure XHS-only Secret target is configured.
+  Item34 does not depend on Item32; its current blockers are the missing
+  NoteAI-authored managed row, unapplied/unread migration 0019, a current
+  immutable XHS image with a registry digest, plus the real Alibaba account
+  verification needed to establish the privileged DMS migration path. The
+  connected API-F Workbench is a proven, owner-authorized CTO execution channel
+  and is no longer a host-access gate.
+  The real 2026-09-04T22:30:38+08:00 initial snapshot remains the acceptance
+  clock; a later managed-row bind cannot create earlier credit or reset it.
+  Offline reproduction found `crawler_worker.py --once` defaults to limit50 and
+  can consume both legacy 24h and 7d slots for the same older publication in
+  one process. Every Item34 provider action must use exact `--once --limit 1`,
+  only after proving the global due set is exactly the canonical target; it
+  must not use `--force`. A successful 24h action must schedule only that row
+  to the observation anchor plus72h and stop the worker. No managed row,
+  provider attempt, backfill or early credit is currently claimed.
+  The 2026-09-06T02:31:28.733689Z server-enforced read-only preflight now proves
+  the Tracking tables exist, while `crawler_config`, the canonical managed row
+  and every global due row are absent. Active and outcome-unknown attempt
+  counts are0, the unit is inactive/dead/disabled, database writes are0 and XHS
+  calls are0. The exact-one outer executor and production wrapper now pass
+  70/70 canonical checks plus 50/50 related tracking/spider regressions. They
+  bind the immutable worker image and exact target/stage, require the existing
+  legitimate managed row, create and read back only the bounded config
+  transition, restore the exact prior
+  config on failure, quiesce task containers before classification, derive
+  attempt digests from canonical UUIDs in the real attempt rows, and require
+  terminal 3d score/growth/memory semantics without exposing memory text. The
+  same-image, same-Secret-target role preflight now checks configured local
+  session state, known Cookie expiry, pinned signer assets and at least one
+  remaining Tracking daily admission before the unique provider-attempt row can
+  be created; it makes no network call and exposes no Secret value. This closes
+  the offline implementation gap but does not create the production row,
+  apply migration0019 or provide a registry-backed current image. A
+  bounded API-F SSH reachability probe at
+  2026-09-06T18:23+08:00 timed out before authentication and is sealed without
+  replay. A distinct TCP-only check at 2026-09-06T19:36+08:00 also timed out
+  before authentication and is separately sealed. Neither executed a remote
+  command, production write or provider request; browser Workbench remains the
+  only currently demonstrated host path.
+- P0 / Item35: technical review material is ready and the current WeChat Pay/
+  Alipay plus Item34 three-day scope was refrozen at
+  2026-09-06T20:11:37+08:00 with package SHA256
+  `1b5c37594b2c51b738b2edbc5acad1e052b311a4a8a3f677b64ae3fa3da7b89d`.
+  Future approvals must bind that frozen scope. The legal/privacy and
+  AI/map/local-life/XHS provider professionals have not produced the two
+  separately bound signed artifacts. WeChat Pay and Alipay merchant/product
+  approvals remain Item31 external dependencies and receive no duplicate
+  Item35 credit. Repository text cannot substitute for approval. The validator
+  checks the frozen file scope, artifact digests, separate categories and
+  binding records, plus cross-type path/hash disjointness between the signed
+  conclusions and binding records; it cannot establish a human signer's
+  professional identity. CTO must
+  inspect the actual signed conclusions and signer authority before terminal
+  acceptance. Adding repository-generated signatures would not satisfy this gate.
+- CLOSED PREPARATION SNAPSHOT / Item36 NDR prerequisite: the exact three accepted API-F managed units
+  converged from mask7 to0 once at 2026-09-04T15:54:43Z..15:54:44Z. Official
+  invocation `c-sz06w2c81udrrb4` / `t-sz06w2c81usr5ds` was Success/Finished,
+  exit0, repeats1/drop0; it performed one daemon-reload and zero service or
+  container start/stop/restart. Evidence:
+  `deploy/production/evidence/production-item36-ndr-convergence-20260904.json`.
+  This is preparation only and gives no Item36 credit while Item33+34 remain
+  unresolved. The identity is sealed no-replay. Continuous-cost ALB/LCU/EIP
+  creation remains a separate cost gate. Terminal Item36 still requires a new
+  post-private-bind exact-three-unit NDR readback; this preparation snapshot
+  cannot satisfy it.
+- P0 / Item36 backend reachability: the accepted API-C/F units currently bind
+  `127.0.0.1:8000`, so an ALB cannot reach them as-is. After Item33+34 terminal
+  and the recurring-cost approval, the minimal in-scope change is a
+  security-group-restricted private bind with a bounded two-node rolling
+  activation and retained rollback state. That new unit identity requires a
+  fresh NDR readback; the sealed September 4 NDR snapshot cannot substitute for
+  final Item36 state. The commercial rollback drill remains Item37. DNS writes
+  remain zero.
+- P0 / Item36 recurring-cost and source authenticity boundary: the 2026-09-05
+  authenticated purchase-page readback still showed standard ALB ¥0.125/hour,
+  LCU ¥0.042/LCU-hour and zero ALB instances. With two EIP retention lines at
+  ¥0.02/IP-hour, the 720-hour reference is ¥149.04/month plus outbound traffic.
+  Terminal Evidence now requires structured quote/billing JSON with exact fixed
+  service/unit/quantity arithmetic, separate variable public-egress pricing and
+  owner ceilings, clocks and totals,
+  semantic binding to the represented configuration/health/probe/NDR/actions,
+  distinct resource/backend/invocation identities and a fresh billing readback.
+  The validator cannot independently prove that a local JSON came from Aliyun or
+  that the owner approved it; those facts require the actual controlled cloud
+  readback and the existing human recurring-cost gate.
+  No ALB/LCU/EIP was created and no continuing fee was accepted.
+- P1 / Item36 execution preparation: the initial Secret-free executor prototype
+  was independently rejected before production use and removed. Its preflight
+  chronology could admit stale inventory; it lacked a durable dispatch-intent/
+  no-replay admission; quote and resource-scope binding were weaker than the
+  terminal DoD; and its readbacks/rollback receipts could not directly build
+  the existing canonical Evidence. A replacement must use the existing schema
+  and validator, persist fixed phase identities before dispatch, seal UNKNOWN
+  without replay, and restore only known task-created resources from retained
+  before-state. A production cloud wrapper, fresh Aliyun inventory/quote and
+  owner approval remain absent. The current loopback backend and dependency/
+  cost gates remain P0. The focused Item35/36 terminal validator suite passes
+  28/28, but local validation cannot establish Aliyun origin or substitute for
+  the owner fee gate.
+- P1 / Item37: the immutable API release does not yet include the Item30 Kimi
+  compatibility overlay. Test the actual release only after dependencies close.
+- Item34 Sep3 readback `t-sz06vyqmnhj4vls` remains no-replay. It proved
+  server-enforced read-only and tracked_notes=0; a later aggregate failed and
+  rolled back. It was not retried and gives no historical observation credit.
+- Resource/cost boundary: API-C/F remain PrePaid Running; Builder and Worker-C/F
+  remain PostPaid Stopped/StopCharging by the 2026-09-05T10:40+08:00
+  authenticated ECS console readback. A 2026-09-06T17:13+08:00 local Aliyun
+  CLI refresh stopped before an authenticated provider query because no local
+  credential environment or config exists; it made no cloud change and creates
+  no newer state claim. The 19:36 TCP-only check likewise creates no newer
+  cloud-state claim. No real
+  payment, refund, production database write, DNS write, service restart or new
+  recurring charge has occurred in this window. Alibaba Session Manager is
+  temporarily enabled for the bounded provider-free host readbacks; the remote
+  injector, local helpers and loopback listener remain absent. It must be
+  disabled again when the Workbench sessions are closed.
+
+Last updated: 2026-09-06
 
 ## Local Codex storage recovery risks
 

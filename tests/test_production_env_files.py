@@ -109,6 +109,26 @@ class ProductionEnvFileTests(unittest.TestCase):
                     ),
                 ),
                 (
+                    "payment_canary_wechat",
+                    self._env_file(
+                        directory,
+                        "payment-canary-wechat.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64={SAFE_TEST_SECRET_VALUE}\n",
+                    ),
+                ),
+                (
+                    "payment_canary_alipay",
+                    self._env_file(
+                        directory,
+                        "payment-canary-alipay.env",
+                        f"DATABASE_URL={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64={SAFE_TEST_SECRET_VALUE}\n"
+                        f"NOTEAI_ALIPAY_PUBLIC_KEY_B64={SAFE_TEST_SECRET_VALUE}\n",
+                    ),
+                ),
+                (
                     "ai_dispatcher",
                     self._env_file(
                         directory,
@@ -158,6 +178,8 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "api",
                 "admin",
                 "payment",
+                "payment_canary_wechat",
+                "payment_canary_alipay",
                 "ai_dispatcher",
                 "ai_worker",
                 "xhs_trends",
@@ -166,7 +188,7 @@ class ProductionEnvFileTests(unittest.TestCase):
         )
         self.assertEqual(
             [result["secret_key_count"] for result in results],
-            [2, 2, 4, 1, 3, 2, 2],
+            [2, 2, 4, 3, 3, 1, 3, 2, 2],
         )
 
     def test_cross_role_and_unknown_secret_names_fail_closed(self):
@@ -183,9 +205,22 @@ class ProductionEnvFileTests(unittest.TestCase):
             ("xhs_trends", "MOONSHOT_API_KEY"),
             ("xhs_tracking", "NOTEAI_AUTHORIZED_TREND_TOKEN"),
             ("api", "UNREVIEWED_VENDOR_TOKEN"),
+            ("api", "UNREVIEWED_VENDOR_TOKEN_B64"),
+            ("admin", "RANDOM_PRIVATE_KEY_B64"),
             ("xhs_tracking", "XHS_SESSION_COOKIE"),
             ("api", "NOTEAI_XHS_COOKIES_JSON"),
             ("admin", "NOTEAI_XHS_COOKIES_JSON"),
+            ("api", "NOTEAI_WECHATPAY_API_V3_KEY"),
+            ("payment", "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY"),
+            ("payment", "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY"),
+            ("api", "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY"),
+            ("payment", "NOTEAI_ALIPAY_PUBLIC_KEY"),
+            ("payment", "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64"),
+            ("payment", "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64"),
+            ("payment_canary_wechat", "NOTEAI_WECHATPAY_API_V3_KEY"),
+            ("payment_canary_wechat", "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64"),
+            ("payment_canary_alipay", "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64"),
+            ("payment_canary_alipay", "NOTEAI_ALIPAY_PUBLIC_KEY"),
         )
         with tempfile.TemporaryDirectory() as raw_directory:
             directory = Path(raw_directory)
@@ -300,6 +335,18 @@ class ProductionEnvFileTests(unittest.TestCase):
                 "payment.env",
                 f"NOTEAI_ADAPAY_API_KEY={synthetic_secret}\n",
             )
+            payment_canary_wechat = self._env_file(
+                directory,
+                "payment-canary-wechat.env",
+                f"DATABASE_URL={synthetic_secret}\n"
+                f"NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64={synthetic_secret}\n",
+            )
+            payment_canary_alipay = self._env_file(
+                directory,
+                "payment-canary-alipay.env",
+                f"DATABASE_URL={synthetic_secret}\n"
+                f"NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64={synthetic_secret}\n",
+            )
             ai_worker = self._env_file(
                 directory,
                 "ai-worker.env",
@@ -329,6 +376,10 @@ class ProductionEnvFileTests(unittest.TestCase):
                 os.fspath(admin),
                 "--payment",
                 os.fspath(payment_env),
+                "--payment-canary-wechat",
+                os.fspath(payment_canary_wechat),
+                "--payment-canary-alipay",
+                os.fspath(payment_canary_alipay),
                 "--ai-dispatcher",
                 os.fspath(ai_dispatcher),
                 "--ai-worker",
@@ -343,7 +394,7 @@ class ProductionEnvFileTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertNotIn(synthetic_secret, output.getvalue())
-        self.assertEqual(output.getvalue().count("PASS role="), 7)
+        self.assertEqual(output.getvalue().count("PASS role="), 9)
 
     def test_documented_allowlists_cover_every_implemented_secret_key(self):
         documentation = (ROOT / "docs" / "DEPLOYMENT_SECRETS.md").read_text(

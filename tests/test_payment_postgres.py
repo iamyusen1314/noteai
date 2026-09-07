@@ -123,12 +123,14 @@ class PaymentPostgresContractTests(unittest.TestCase):
             "TO noteai_payment"
         )
         cls.conn.execute(
-            "GRANT UPDATE(provider_refund_id,status,updated_at,terminal_at) "
+            "GRANT UPDATE(provider_refund_id,provider_submitted_at,status,"
+            "updated_at,terminal_at) "
             "ON payment_refunds TO noteai_payment"
         )
         cls.conn.execute(
             "GRANT UPDATE(processing_state,reason_code,order_id,refund_id,"
-            "processed_at) ON payment_events TO noteai_payment"
+            "processed_at,duplicate_delivery_count) "
+            "ON payment_events TO noteai_payment"
         )
         cls.conn.execute(
             "GRANT UPDATE(user_id,remaining_milli,state,updated_at) "
@@ -450,6 +452,39 @@ class PaymentPostgresContractTests(unittest.TestCase):
             )
         self.conn.execute("ROLLBACK TO SAVEPOINT position_repoint")
 
+    def test_duplicate_delivery_counter_is_bounded_and_identity_guarded(self):
+        order_id = self.insert_order(self.order_values("duplicate-counter"))
+        event_id = self.event(order_id, label="duplicate-counter")
+        self.conn.execute(
+            "UPDATE payment_events SET duplicate_delivery_count="
+            "duplicate_delivery_count+1 WHERE id=%s",
+            (event_id,),
+        )
+        self.assertEqual(
+            self.conn.execute(
+                "SELECT duplicate_delivery_count FROM payment_events "
+                "WHERE id=%s",
+                (event_id,),
+            ).fetchone()["duplicate_delivery_count"],
+            1,
+        )
+        for value in (0, 3):
+            self.conn.execute("SAVEPOINT invalid_duplicate_counter")
+            with self.assertRaises(Exception):
+                self.conn.execute(
+                    "UPDATE payment_events SET duplicate_delivery_count=%s "
+                    "WHERE id=%s",
+                    (value, event_id),
+                )
+            self.conn.execute("ROLLBACK TO SAVEPOINT invalid_duplicate_counter")
+        self.conn.execute("SAVEPOINT duplicate_identity_mutation")
+        with self.assertRaises(Exception):
+            self.conn.execute(
+                "UPDATE payment_events SET payload_sha256=%s WHERE id=%s",
+                (self.digest("changed-payload"), event_id),
+            )
+        self.conn.execute("ROLLBACK TO SAVEPOINT duplicate_identity_mutation")
+
     def test_rls_exact_positive_and_complete_negative_matrix(self):
         privileges = (
             "SELECT",
@@ -560,6 +595,21 @@ class PaymentPostgresContractTests(unittest.TestCase):
                 "balance",
                 "total_purchased",
                 "updated_at",
+            },
+            ("noteai_payment", "payment_events"): {
+                "processing_state",
+                "reason_code",
+                "order_id",
+                "refund_id",
+                "processed_at",
+                "duplicate_delivery_count",
+            },
+            ("noteai_payment", "payment_refunds"): {
+                "provider_refund_id",
+                "provider_submitted_at",
+                "status",
+                "updated_at",
+                "terminal_at",
             },
         }
         for (role, table), expected_columns in column_updates.items():

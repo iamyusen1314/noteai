@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
 import billing
 import content_retention
@@ -110,25 +111,73 @@ class PaymentProviderUnavailable(PaymentContractError):
         super().__init__("PAYMENT_PROVIDER_UNAVAILABLE")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ProviderPaymentResult:
     merchant_order_no: str
-    provider_payment_id: str
+    provider_payment_id: str | None
     status: str
     amount_fen: int
     app_id: str
     prod_mode: bool
     response_verified: bool
     checkout_token: str = ""
+    provider_name: str = "adapay"
+    currency: str = "CNY"
+    provider_created_at: int | None = None
+
+    def __repr__(self) -> str:
+        return (
+            "ProviderPaymentResult("
+            f"status={self.status!r},amount_fen={self.amount_fen!r},"
+            f"prod_mode={self.prod_mode!r},"
+            f"response_verified={self.response_verified!r},"
+            "identities_redacted=True,checkout_redacted=True)"
+        )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ProviderRefundResult:
     merchant_refund_no: str
-    provider_refund_id: str
+    provider_refund_id: str | None
     status: str
     amount_fen: int
     response_verified: bool
+    merchant_order_no: str = ""
+    provider_payment_id: str = ""
+    provider_name: str = "adapay"
+    app_id: str = ""
+    prod_mode: bool | None = None
+    currency: str = "CNY"
+    provider_submitted_at: int | None = None
+    provider_created_at: int | None = None
+
+    def __repr__(self) -> str:
+        return (
+            "ProviderRefundResult("
+            f"status={self.status!r},amount_fen={self.amount_fen!r},"
+            f"prod_mode={self.prod_mode!r},"
+            f"response_verified={self.response_verified!r},"
+            "identities_redacted=True)"
+        )
+
+
+@dataclass(frozen=True)
+class ProviderPaymentLookup:
+    """Canonical merchant identity plus any later-bound provider identity."""
+
+    merchant_order_no: str
+    provider_payment_id: str = ""
+    expected_amount_fen: int | None = None
+
+
+@dataclass(frozen=True)
+class ProviderRefundLookup:
+    """Canonical refund identity without assuming a provider refund id exists."""
+
+    merchant_refund_no: str
+    merchant_order_no: str
+    provider_payment_id: str = ""
+    provider_refund_id: str = ""
 
 
 class PaymentProvider(ABC):
@@ -139,7 +188,10 @@ class PaymentProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def query_payment(self, provider_payment_id: str) -> ProviderPaymentResult:
+    def query_payment(
+        self,
+        lookup: ProviderPaymentLookup | str,
+    ) -> ProviderPaymentResult:
         raise NotImplementedError
 
     @abstractmethod
@@ -147,7 +199,10 @@ class PaymentProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def query_refund(self, provider_refund_id: str) -> ProviderRefundResult:
+    def query_refund(
+        self,
+        lookup: ProviderRefundLookup | str,
+    ) -> ProviderRefundResult:
         raise NotImplementedError
 
     @abstractmethod
@@ -215,6 +270,7 @@ def provider_payment_request(
         "product_kind": str(row["product_kind"]),
         "product_id": str(row["product_id"]),
         "provider_mode": str(row["provider_mode"]),
+        "provider_name": str(row["provider"]),
         "device_ip": str(device_ip or ""),
     }
 
@@ -224,10 +280,11 @@ def provider_refund_request(refund: Any, order: Any) -> dict[str, Any]:
     return {
         "merchant_refund_no": str(refund["merchant_refund_no"]),
         "merchant_order_no": str(order["merchant_order_no"]),
-        "provider_payment_id": str(order["provider_payment_id"]),
+        "provider_payment_id": str(order["provider_payment_id"] or ""),
         "amount_fen": int(refund["amount_fen"]),
         "currency": str(refund["currency"]),
         "provider_mode": str(order["provider_mode"]),
+        "provider_name": str(order["provider"]),
         "reason_code": str(refund["reason_code"]),
     }
 
@@ -240,6 +297,7 @@ class CallbackEvent:
     prod_mode: bool
     app_id: str
     data: dict[str, Any]
+    provider_name: str = "adapay"
 
 
 def _now() -> datetime:
@@ -280,8 +338,14 @@ def _subject_hash(user_id: str) -> str:
     return _hash("noteai-payment-subject-v1", user_id)
 
 
-def _app_id_hash(app_id: str) -> str:
-    return _hash("noteai-adapay-app-v1", app_id)
+def _provider_name(value: str) -> str:
+    if value not in {"adapay", "wechatpay_direct", "alipay_direct"}:
+        raise PaymentContractError("PAYMENT_PROVIDER_INVALID")
+    return value
+
+
+def _app_id_hash(app_id: str, provider_name: str = "adapay") -> str:
+    return _hash(f"noteai-{_provider_name(provider_name)}-app-v1", app_id)
 
 
 def _lock_financial_subject(
@@ -561,34 +625,61 @@ def _money_fen(value: Any, field: str) -> int:
 
 def _event_payment(event: CallbackEvent) -> dict[str, Any]:
     payload = event.data
+    raw_provider_payment_id = payload.get("payment_id") or payload.get("id")
+    if raw_provider_payment_id:
+        provider_payment_id = _opaque_ref(
+            raw_provider_payment_id,
+            "provider_payment_id",
+        )
+    elif event.event_type == "payment.succeeded":
+        raise PaymentContractError("PAYMENT_INVALID_PROVIDER_PAYMENT_ID")
+    else:
+        provider_payment_id = None
     return {
         "merchant_order_no": _opaque_ref(
             payload.get("order_no"),
             "merchant_order_no",
         ),
-        "provider_payment_id": _opaque_ref(
-            payload.get("payment_id") or payload.get("id"),
-            "provider_payment_id",
-        ),
+        "provider_payment_id": provider_payment_id,
         "amount_fen": _money_fen(payload.get("pay_amt"), "pay_amt"),
     }
 
 
 def _event_refund(event: CallbackEvent) -> dict[str, Any]:
     payload = event.data
+    raw_provider_refund_id = payload.get("refund_id") or payload.get("id")
+    if raw_provider_refund_id:
+        provider_refund_id = _opaque_ref(
+            raw_provider_refund_id,
+            "provider_refund_id",
+        )
+    elif event.provider_name == "alipay_direct":
+        provider_refund_id = None
+    else:
+        raise PaymentContractError("PAYMENT_INVALID_PROVIDER_REFUND_ID")
+    raw_provider_submitted_at = payload.get("provider_submitted_at")
+    if raw_provider_submitted_at is None:
+        provider_submitted_at = None
+    elif (
+        event.provider_name != "wechatpay_direct"
+        or isinstance(raw_provider_submitted_at, bool)
+        or not isinstance(raw_provider_submitted_at, int)
+        or not 946684800 <= raw_provider_submitted_at <= 4102444800
+    ):
+        raise PaymentContractError("PAYMENT_INVALID_PROVIDER_SUBMITTED_AT")
+    else:
+        provider_submitted_at = raw_provider_submitted_at
     return {
         "merchant_refund_no": _opaque_ref(
             payload.get("refund_order_no"),
             "merchant_refund_no",
         ),
-        "provider_refund_id": _opaque_ref(
-            payload.get("refund_id") or payload.get("id"),
-            "provider_refund_id",
-        ),
+        "provider_refund_id": provider_refund_id,
         "provider_payment_id": _opaque_ref(
             payload.get("payment_id"),
             "provider_payment_id",
         ),
+        "provider_submitted_at": provider_submitted_at,
         "amount_fen": _money_fen(payload.get("refund_amt"), "refund_amt"),
     }
 
@@ -601,6 +692,7 @@ def create_order(
     idempotency_key: str,
     app_id: str,
     prod_mode: bool = False,
+    provider_name: str = "adapay",
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Create one local intent; no provider request is made."""
@@ -613,6 +705,7 @@ def create_order(
     if not uid:
         raise PaymentContractError("PAYMENT_USER_REQUIRED")
     expected_app = _app_id(app_id)
+    selected_provider = _provider_name(provider_name)
     key_hash = _hash("noteai-payment-idempotency-v1", key)
     payload_hash = _hash(
         "noteai-payment-order-payload-v1",
@@ -628,8 +721,14 @@ def create_order(
         ),
     )
     created = _iso(now)
+    if selected_provider != "adapay":
+        payload_hash = _hash("noteai-payment-provider-v1", selected_provider + payload_hash)
     order_id = str(uuid.uuid4())
-    merchant_order_no = "NA_" + order_id.replace("-", "")
+    merchant_order_no = (
+        "NA_" + order_id.replace("-", "")
+        if selected_provider == "adapay"
+        else order_id.replace("-", "")
+    )
     with db.transaction(write=True) as tx:
         try:
             content_retention.assert_user_writable_with_storage(tx, uid)
@@ -691,10 +790,10 @@ def create_order(
                 CATALOG_VERSION,
                 item["amount_fen"],
                 "CNY",
-                "adapay",
+                selected_provider,
                 "live" if prod_mode else "mock",
                 merchant_order_no,
-                _app_id_hash(expected_app),
+                _app_id_hash(expected_app, selected_provider),
                 key_hash,
                 payload_hash,
                 created,
@@ -777,9 +876,11 @@ def mark_payment_submission(
     normalized = _uuid(order_id, "order_id")
     if not result.response_verified:
         raise PaymentContractError("PAYMENT_PROVIDER_RESPONSE_UNVERIFIED")
-    provider_payment_id = _opaque_ref(
-        result.provider_payment_id,
-        "provider_payment_id",
+    raw_provider_payment_id = str(result.provider_payment_id or "").strip()
+    provider_payment_id = (
+        _opaque_ref(raw_provider_payment_id, "provider_payment_id")
+        if raw_provider_payment_id
+        else None
     )
     created = _iso(now)
     mismatch = False
@@ -794,12 +895,17 @@ def mark_payment_submission(
         expected = (
             result.merchant_order_no == row["merchant_order_no"]
             and int(result.amount_fen) == int(row["amount_fen"])
-            and _app_id_hash(_app_id(result.app_id)) == row["app_id_hash"]
+            and result.currency == row["currency"]
+            and result.provider_name == row["provider"]
+            and _app_id_hash(_app_id(result.app_id), result.provider_name)
+            == row["app_id_hash"]
             and bool(result.prod_mode) == (row["provider_mode"] == "live")
             and (
                 not row["provider_payment_id"]
-                or result.provider_payment_id == row["provider_payment_id"]
+                or not raw_provider_payment_id
+                or raw_provider_payment_id == row["provider_payment_id"]
             )
+            and (provider_payment_id is not None or result.status == "pending")
         )
         if not expected or result.status not in {"pending", "succeeded"}:
             tx.execute(
@@ -811,7 +917,8 @@ def mark_payment_submission(
             mismatch = True
         else:
             tx.execute(
-                "UPDATE payment_orders SET provider_payment_id=?,"
+                "UPDATE payment_orders SET provider_payment_id="
+                "COALESCE(provider_payment_id,?),"
                 "payment_status='pending',updated_at=? WHERE id=? "
                 "AND payment_status IN ('created','pending') "
                 "AND provider_payment_id IS NULL",
@@ -832,15 +939,35 @@ def mark_payment_submission_unknown(
     clock = _iso(now)
     with db.transaction(write=True) as tx:
         tx.execute(
-            "UPDATE payment_orders SET payment_status='needs_manual',"
-            "updated_at=?,terminal_at=? WHERE id=? "
+            "UPDATE payment_orders SET payment_status='pending',"
+            "updated_at=? WHERE id=? "
             "AND payment_status IN ('created','pending')",
-            (clock, clock, normalized),
+            (clock, normalized),
         )
         row = tx.fetchone("SELECT * FROM payment_orders WHERE id=?", (normalized,))
     if row is None:
         raise PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
     return _public_order(row)
+
+
+def mark_payment_query_submission(
+    result: ProviderPaymentResult,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Bind one authenticated provider query without reopening dispatch."""
+    merchant_order_no = _opaque_ref(
+        result.merchant_order_no,
+        "merchant_order_no",
+    )
+    provider_name = _provider_name(result.provider_name)
+    row = db.fetchone(
+        "SELECT id FROM payment_orders WHERE merchant_order_no=? AND provider=?",
+        (merchant_order_no, provider_name),
+    )
+    if row is None:
+        raise PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
+    return mark_payment_submission(str(row["id"]), result, now=now)
 
 
 def _insert_cash(
@@ -1020,15 +1147,16 @@ def _record_event(
     clock: str,
 ) -> tuple[str, bool]:
     event_hash = _hash(
-        "noteai-adapay-event-id-v1",
+        f"noteai-{_provider_name(event.provider_name)}-event-id-v1",
         event.provider_event_id,
     )
     payload_sha256 = hashlib.sha256(raw_data).hexdigest()
     signature_sha256 = hashlib.sha256(signature.encode("ascii")).hexdigest()
-    app_id_hash = _app_id_hash(event.app_id)
+    app_id_hash = _app_id_hash(event.app_id, event.provider_name)
     existing = tx.fetchone(
-        "SELECT id,event_type,payload_sha256,signature_sha256,app_id_hash,"
-        "prod_mode,provider_created_at FROM payment_events "
+        "SELECT id,event_type,payload_sha256,app_id_hash,"
+        "prod_mode,provider_created_at,duplicate_delivery_count "
+        "FROM payment_events "
         "WHERE provider_event_id_hash=?",
         (event_hash,),
     )
@@ -1036,20 +1164,24 @@ def _record_event(
         if (
             existing["event_type"] != event.event_type
             or existing["payload_sha256"] != payload_sha256
-            or existing["signature_sha256"] != signature_sha256
             or existing["app_id_hash"] != app_id_hash
             or int(existing["prod_mode"]) != (1 if event.prod_mode else 0)
             or int(existing["provider_created_at"]) != event.created_time
         ):
             raise PaymentContractError("PAYMENT_EVENT_ID_COLLISION")
+        tx.execute(
+            "UPDATE payment_events SET duplicate_delivery_count="
+            "duplicate_delivery_count+1 WHERE id=?",
+            (existing["id"],),
+        )
         return str(existing["id"]), True
     event_row_id = str(uuid.uuid4())
     tx.execute(
         "INSERT INTO payment_events("
         "id,provider_event_id_hash,event_type,payload_sha256,"
         "signature_sha256,app_id_hash,prod_mode,provider_created_at,"
-        "processing_state,reason_code,received_at"
-        ") VALUES(?,?,?,?,?,?,?,?, 'accepted','pending',?)",
+        "duplicate_delivery_count,processing_state,reason_code,received_at"
+        ") VALUES(?,?,?,?,?,?,?,?,0,'accepted','pending',?)",
         (
             event_row_id,
             event_hash,
@@ -1097,6 +1229,28 @@ def process_signed_callback(
     if not verify_adapay_signature(raw_data, signature_b64, public_key_pem):
         raise PaymentContractError("PAYMENT_CALLBACK_SIGNATURE_INVALID")
     event = parse_callback_event(raw_data)
+    return process_authenticated_callback(
+        event, raw_data, signature_b64,
+        expected_app_id=expected_app_id,
+        expected_provider_name="adapay",
+        expected_prod_mode=expected_prod_mode,
+        now=now,
+    )
+
+
+def process_authenticated_callback(
+    event: CallbackEvent,
+    raw_data: bytes,
+    signature_b64: str,
+    *,
+    expected_app_id: str,
+    expected_provider_name: str,
+    expected_prod_mode: bool,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Shared ledger boundary; call only after provider raw-byte verification."""
+    expected_provider = _provider_name(expected_provider_name)
+    _provider_name(event.provider_name)
     expected_app = _app_id(expected_app_id)
     clock = _iso(now)
     with db.transaction(write=True) as tx:
@@ -1114,6 +1268,8 @@ def process_signed_callback(
                 "event_id": event_row_id,
             }
         if (
+            event.provider_name != expected_provider
+            or
             event.app_id != expected_app
             or event.prod_mode is not bool(expected_prod_mode)
         ):
@@ -1169,15 +1325,15 @@ def _process_payment_event(
 ) -> dict[str, Any]:
     payload = _event_payment(event)
     candidate = tx.fetchone(
-        "SELECT user_id FROM payment_orders WHERE merchant_order_no=?",
-        (payload["merchant_order_no"],),
+        "SELECT user_id FROM payment_orders WHERE merchant_order_no=? AND provider=?",
+        (payload["merchant_order_no"], event.provider_name),
     )
     if candidate is not None:
         _lock_financial_subject(tx, candidate["user_id"])
     row = tx.fetchone(
-        "SELECT * FROM payment_orders WHERE merchant_order_no=?"
+        "SELECT * FROM payment_orders WHERE merchant_order_no=? AND provider=?"
         + (" FOR UPDATE" if tx.postgres else ""),
-        (payload["merchant_order_no"],),
+        (payload["merchant_order_no"], event.provider_name),
     )
     if row is None:
         _finish_event(
@@ -1193,9 +1349,12 @@ def _process_payment_event(
     order_id = str(row["id"])
     matches = (
         int(payload["amount_fen"]) == int(row["amount_fen"])
-        and _app_id_hash(event.app_id) == row["app_id_hash"]
+        and event.provider_name == row["provider"]
+        and _app_id_hash(event.app_id, event.provider_name) == row["app_id_hash"]
         and event.prod_mode == (row["provider_mode"] == "live")
         and (
+            payload["provider_payment_id"] is None
+            or
             not row["provider_payment_id"]
             or row["provider_payment_id"] == payload["provider_payment_id"]
         )
@@ -1379,9 +1538,21 @@ def _process_payment_event(
             clock=clock,
         )
         return {"ok": True, "ignored": True}
+    if row["payment_status"] in {"failed", "closed"}:
+        _finish_event(
+            tx,
+            event_row_id,
+            state="processed",
+            reason="already_terminal",
+            order_id=order_id,
+            refund_id=None,
+            clock=clock,
+        )
+        return {"ok": True, "already_terminal": True, "order_id": order_id}
     if row["payment_status"] not in {"needs_manual"}:
         tx.execute(
-            "UPDATE payment_orders SET provider_payment_id=?,"
+            "UPDATE payment_orders SET provider_payment_id="
+            "COALESCE(?,provider_payment_id),"
             "payment_status=?,updated_at=?,terminal_at=? WHERE id=?",
             (
                 payload["provider_payment_id"],
@@ -1618,10 +1789,21 @@ def mark_refund_submission(
     normalized = _uuid(refund_id, "refund_id")
     if not result.response_verified:
         raise PaymentContractError("PAYMENT_PROVIDER_RESPONSE_UNVERIFIED")
-    provider_refund_id = _opaque_ref(
-        result.provider_refund_id,
-        "provider_refund_id",
+    raw_provider_refund_id = str(result.provider_refund_id or "").strip()
+    provider_refund_id = (
+        _opaque_ref(raw_provider_refund_id, "provider_refund_id")
+        if raw_provider_refund_id
+        else None
     )
+    provider_submitted_at = result.provider_submitted_at
+    if provider_submitted_at is not None:
+        if (
+            isinstance(provider_submitted_at, bool)
+            or not isinstance(provider_submitted_at, int)
+            or provider_submitted_at < 946684800
+            or provider_submitted_at > 4102444800
+        ):
+            raise PaymentContractError("PAYMENT_PROVIDER_RESPONSE_MISMATCH")
     clock = _iso(now)
     mismatch = False
     with db.transaction(write=True) as tx:
@@ -1632,34 +1814,87 @@ def mark_refund_submission(
         )
         if row is None:
             raise PaymentContractError("PAYMENT_REFUND_NOT_FOUND")
+        order = tx.fetchone(
+            "SELECT * FROM payment_orders WHERE id=?"
+            + (" FOR UPDATE" if tx.postgres else ""),
+            (row["order_id"],),
+        )
+        direct_bindings_ok = True
+        if order is not None and order["provider"] != "adapay":
+            direct_bindings_ok = (
+                result.provider_name == order["provider"]
+                and result.merchant_order_no == order["merchant_order_no"]
+                and result.currency == row["currency"]
+                and bool(result.prod_mode)
+                == (order["provider_mode"] == "live")
+                and _app_id_hash(
+                    _app_id(result.app_id),
+                    result.provider_name,
+                )
+                == order["app_id_hash"]
+                and (
+                    not result.provider_payment_id
+                    or not order["provider_payment_id"]
+                    or result.provider_payment_id
+                    == order["provider_payment_id"]
+                )
+            )
+        submitted_time_ok = bool(
+            order is not None
+            and (
+                (
+                    order["provider"] == "wechatpay_direct"
+                    and provider_submitted_at is not None
+                )
+                or (
+                    order["provider"] != "wechatpay_direct"
+                    and provider_submitted_at is None
+                )
+            )
+        )
+        stored_submitted_at = row["provider_submitted_at"]
         if (
-            result.merchant_refund_no != row["merchant_refund_no"]
+            order is None
+            or not direct_bindings_ok
+            or not submitted_time_ok
+            or result.merchant_refund_no != row["merchant_refund_no"]
             or int(result.amount_fen) != int(row["amount_fen"])
             or (
                 row["provider_refund_id"]
-                and result.provider_refund_id != row["provider_refund_id"]
+                and raw_provider_refund_id
+                and raw_provider_refund_id != row["provider_refund_id"]
+            )
+            or (
+                stored_submitted_at is not None
+                and int(stored_submitted_at) != provider_submitted_at
             )
             or result.status not in {"pending", "succeeded"}
         ):
-            tx.execute(
-                "UPDATE payment_refunds SET status='needs_manual',"
-                "updated_at=?,terminal_at=? WHERE id=? "
-                "AND status IN ('requested','pending')",
-                (clock, clock, normalized),
-            )
-            tx.execute(
-                "UPDATE payment_orders SET refund_status='needs_manual',"
-                "updated_at=? WHERE id=?",
-                (clock, row["order_id"]),
-            )
+            if row["status"] in {"requested", "pending"}:
+                tx.execute(
+                    "UPDATE payment_refunds SET status='needs_manual',"
+                    "updated_at=?,terminal_at=? WHERE id=?",
+                    (clock, clock, normalized),
+                )
+                tx.execute(
+                    "UPDATE payment_orders SET refund_status='needs_manual',"
+                    "updated_at=? WHERE id=?",
+                    (clock, row["order_id"]),
+                )
             mismatch = True
         else:
             tx.execute(
-                "UPDATE payment_refunds SET provider_refund_id=?,status='pending',"
-                "updated_at=? WHERE id=? "
-                "AND status IN ('requested','pending') "
-                "AND provider_refund_id IS NULL",
-                (provider_refund_id, clock, normalized),
+                "UPDATE payment_refunds SET provider_refund_id="
+                "COALESCE(provider_refund_id,?),provider_submitted_at="
+                "COALESCE(provider_submitted_at,?),status="
+                "CASE WHEN status='requested' THEN 'pending' ELSE status END,"
+                "updated_at=? WHERE id=?",
+                (
+                    provider_refund_id,
+                    provider_submitted_at,
+                    clock,
+                    normalized,
+                ),
             )
         updated = tx.fetchone(
             "SELECT * FROM payment_refunds WHERE id=?",
@@ -1673,6 +1908,31 @@ def mark_refund_submission(
         "amount_fen": int(updated["amount_fen"]),
         "status": updated["status"],
     }
+
+
+def mark_refund_query_submission(
+    result: ProviderRefundResult,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Bind an authenticated query to its existing refund intent.
+
+    This recovery path lets a WeChat query fill the signed provider
+    submission time after a timeout or after the terminal callback arrived.
+    The shared binding checks in ``mark_refund_submission`` remain the sole
+    authority for the write.
+    """
+    merchant_refund_no = _opaque_ref(
+        result.merchant_refund_no,
+        "merchant_refund_no",
+    )
+    row = db.fetchone(
+        "SELECT id FROM payment_refunds WHERE merchant_refund_no=?",
+        (merchant_refund_no,),
+    )
+    if row is None:
+        raise PaymentContractError("PAYMENT_REFUND_NOT_FOUND")
+    return mark_refund_submission(str(row["id"]), result, now=now)
 
 
 def admit_refund_submission(
@@ -1887,6 +2147,9 @@ def _process_refund_event(
     )
     matches = (
         order is not None
+        and event.provider_name == order["provider"]
+        and _app_id_hash(event.app_id, event.provider_name) == order["app_id_hash"]
+        and event.prod_mode == (order["provider_mode"] == "live")
         and int(payload["amount_fen"]) == int(refund["amount_fen"])
         and (
             not refund["provider_refund_id"]
@@ -1896,8 +2159,28 @@ def _process_refund_event(
             not order["provider_payment_id"]
             or order["provider_payment_id"] == payload["provider_payment_id"]
         )
+        and (
+            payload["provider_submitted_at"] is None
+            or refund["provider_submitted_at"] is None
+            or int(refund["provider_submitted_at"])
+            == payload["provider_submitted_at"]
+        )
     )
     if not matches:
+        if refund["status"] == "succeeded":
+            _finish_event(
+                tx,
+                event_row_id,
+                state="needs_manual",
+                reason="contradictory_refund_terminal",
+                order_id=order["id"] if order else None,
+                refund_id=refund["id"],
+                clock=clock,
+            )
+            return {
+                "ok": False,
+                "code": "PAYMENT_REFUND_CONTRADICTORY_TERMINAL",
+            }
         if event.event_type == "refund.succeeded" and order is not None:
             _insert_cash(
                 tx,
@@ -1943,10 +2226,13 @@ def _process_refund_event(
             return {"ok": True, "ignored": True}
         if refund["status"] != "needs_manual":
             tx.execute(
-                "UPDATE payment_refunds SET provider_refund_id=?,status='failed',"
+                "UPDATE payment_refunds SET provider_refund_id=?,"
+                "provider_submitted_at=COALESCE(provider_submitted_at,?),"
+                "status='failed',"
                 "updated_at=?,terminal_at=? WHERE id=?",
                 (
                     payload["provider_refund_id"],
+                    payload["provider_submitted_at"],
                     clock,
                     clock,
                     refund["id"],
@@ -1968,6 +2254,19 @@ def _process_refund_event(
         )
         return {"ok": True, "order_id": order["id"]}
     if refund["status"] == "succeeded":
+        if (
+            payload["provider_submitted_at"] is not None
+            and refund["provider_submitted_at"] is None
+        ):
+            tx.execute(
+                "UPDATE payment_refunds SET provider_submitted_at=?,"
+                "updated_at=? WHERE id=?",
+                (
+                    payload["provider_submitted_at"],
+                    clock,
+                    refund["id"],
+                ),
+            )
         _finish_event(
             tx,
             event_row_id,
@@ -2101,10 +2400,13 @@ def _process_refund_event(
         return {"ok": False, "code": "PAYMENT_REFUND_NEEDS_MANUAL"}
     tx.execute("RELEASE SAVEPOINT payment_entitlement_reverse")
     tx.execute(
-        "UPDATE payment_refunds SET provider_refund_id=?,status='succeeded',"
+        "UPDATE payment_refunds SET provider_refund_id=?,"
+        "provider_submitted_at=COALESCE(provider_submitted_at,?),"
+        "status='succeeded',"
         "updated_at=?,terminal_at=? WHERE id=?",
         (
             payload["provider_refund_id"],
+            payload["provider_submitted_at"],
             clock,
             clock,
             refund["id"],
@@ -2134,9 +2436,11 @@ def reconcile_bill(
     rows: Iterable[dict[str, Any]],
     *,
     prod_mode: bool,
+    provider_name: str = "adapay",
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Compare a bounded canonical provider bill without persisting raw rows."""
+    selected_provider = _provider_name(provider_name)
     try:
         day = date.fromisoformat(str(bill_date))
     except ValueError as exc:
@@ -2188,12 +2492,19 @@ def reconcile_bill(
         if row["kind"] == "refund" and row["status"] == "succeeded"
     )
     discrepancies: list[dict[str, Any]] = []
+    local_start = datetime(
+        day.year,
+        day.month,
+        day.day,
+        tzinfo=ZoneInfo("Asia/Shanghai"),
+    ).astimezone(timezone.utc)
+    local_end = local_start + timedelta(days=1)
     with db.transaction(write=True) as tx:
         existing = tx.fetchone(
             "SELECT * FROM payment_reconciliation_runs "
-            "WHERE provider='adapay' AND provider_mode=? AND bill_date=? "
+            "WHERE provider=? AND provider_mode=? AND bill_date=? "
             "AND source_sha256=?",
-            (mode, day.isoformat(), source_sha256),
+            (selected_provider, mode, day.isoformat(), source_sha256),
         )
         if existing is not None:
             return {
@@ -2210,19 +2521,54 @@ def reconcile_bill(
             "SELECT o.merchant_order_no AS reference,l.amount_fen "
             "FROM payment_cash_ledger l "
             "JOIN payment_orders o ON o.id=l.order_id "
+            "JOIN payment_events e ON e.id=l.source_event_id "
             "WHERE l.entry_type='payment_received' "
-            "AND substr(l.recorded_at,1,10)=? AND o.provider_mode=?",
-            (day.isoformat(), mode),
+            "AND e.provider_created_at>=? AND e.provider_created_at<? "
+            "AND o.provider_mode=? AND o.provider=?",
+            (
+                int(local_start.timestamp()),
+                int(local_end.timestamp()),
+                mode,
+                selected_provider,
+            ),
         )
-        local_refunds = tx.fetchall(
-            "SELECT r.merchant_refund_no AS reference,-l.amount_fen AS amount_fen "
-            "FROM payment_cash_ledger l "
-            "JOIN payment_refunds r ON r.id=l.refund_id "
-            "JOIN payment_orders o ON o.id=l.order_id "
-            "WHERE l.entry_type='refund_paid' "
-            "AND substr(l.recorded_at,1,10)=? AND o.provider_mode=?",
-            (day.isoformat(), mode),
-        )
+        if selected_provider == "wechatpay_direct":
+            local_refunds = tx.fetchall(
+                "SELECT r.merchant_refund_no AS reference,"
+                "-l.amount_fen AS amount_fen "
+                "FROM payment_cash_ledger l "
+                "JOIN payment_refunds r ON r.id=l.refund_id "
+                "JOIN payment_orders o ON o.id=l.order_id "
+                "WHERE l.entry_type='refund_paid' "
+                "AND r.provider_submitted_at>=? "
+                "AND r.provider_submitted_at<? "
+                "AND o.provider_mode=? AND o.provider=?",
+                (
+                    int(local_start.timestamp()),
+                    int(local_end.timestamp()),
+                    mode,
+                    selected_provider,
+                ),
+            )
+        else:
+            local_refunds = tx.fetchall(
+                "SELECT r.merchant_refund_no AS reference,"
+                "-l.amount_fen AS amount_fen "
+                "FROM payment_cash_ledger l "
+                "JOIN payment_refunds r ON r.id=l.refund_id "
+                "JOIN payment_orders o ON o.id=l.order_id "
+                "JOIN payment_events e ON e.id=l.source_event_id "
+                "WHERE l.entry_type='refund_paid' "
+                "AND e.provider_created_at>=? "
+                "AND e.provider_created_at<? "
+                "AND o.provider_mode=? AND o.provider=?",
+                (
+                    int(local_start.timestamp()),
+                    int(local_end.timestamp()),
+                    mode,
+                    selected_provider,
+                ),
+            )
         local = {
             ("payment", str(row["reference"])): int(row["amount_fen"])
             for row in local_payments
@@ -2236,11 +2582,30 @@ def reconcile_bill(
         provider = {
             (row["kind"], row["reference"]): row
             for row in canonical
+        }
+        for key, provider_row in sorted(provider.items()):
+            if provider_row["status"] == "succeeded":
+                continue
+            discrepancies.append(
+                {
+                    "kind": key[0],
+                    "reference_hash": _hash(
+                        "noteai-payment-reconcile-ref-v1",
+                        key[1],
+                    ),
+                    "issue_code": "status_mismatch",
+                    "local_fen": local.get(key),
+                    "provider_fen": int(provider_row["amount_fen"]),
+                }
+            )
+        succeeded_provider = {
+            key: row
+            for key, row in provider.items()
             if row["status"] == "succeeded"
         }
-        for key in sorted(set(local) | set(provider)):
+        for key in sorted(set(local) | set(succeeded_provider)):
             local_amount = local.get(key)
-            provider_row = provider.get(key)
+            provider_row = succeeded_provider.get(key)
             provider_amount = (
                 int(provider_row["amount_fen"])
                 if provider_row is not None
@@ -2271,9 +2636,10 @@ def reconcile_bill(
             "id,provider,provider_mode,bill_date,source_sha256,row_count,"
             "payment_total_fen,refund_total_fen,discrepancy_count,status,"
             "created_at,completed_at"
-            ") VALUES(?,'adapay',?,?,?,?,?,?,?,?,?,?)",
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 run_id,
+                selected_provider,
                 mode,
                 day.isoformat(),
                 source_sha256,
@@ -2324,8 +2690,10 @@ def record_settlement_summary(
     fee_fen: int,
     net_fen: int,
     prod_mode: bool,
+    provider_name: str = "adapay",
     now: datetime | None = None,
 ) -> dict[str, Any]:
+    selected_provider = _provider_name(provider_name)
     try:
         day = date.fromisoformat(str(settlement_date))
     except ValueError as exc:
@@ -2344,9 +2712,10 @@ def record_settlement_summary(
         "INSERT INTO payment_settlement_summaries("
         "id,provider,provider_mode,settlement_date,source_sha256,gross_fen,"
         "refund_fen,fee_fen,net_fen,status,created_at"
-        ") VALUES(?,'adapay',?,?,?,?,?,?,?,'verified',?)",
+        ") VALUES(?,?,?,?,?,?,?,?,?,'verified',?)",
         (
             settlement_id,
+            selected_provider,
             "live" if prod_mode else "mock",
             day.isoformat(),
             digest,
@@ -2359,6 +2728,7 @@ def record_settlement_summary(
     )
     return {
         "id": settlement_id,
+        "provider": selected_provider,
         "settlement_date": day.isoformat(),
         "gross_fen": values[0],
         "refund_fen": values[1],
@@ -2369,7 +2739,7 @@ def record_settlement_summary(
 
 
 def finance_summary(*, since: str) -> dict[str, int]:
-    """Return confirmed cash only; no active-plan or legacy inference."""
+    """Return Live cash only, including unmatched Live events; exclude TEST."""
     row = db.fetchone(
         "SELECT "
         "COALESCE(SUM(CASE WHEN entry_type='payment_received' "
@@ -2382,7 +2752,9 @@ def finance_summary(*, since: str) -> dict[str, int]:
         "COALESCE(SUM(CASE WHEN entry_type IN "
         "('payment_received_unmatched','refund_paid_unmatched') "
         "THEN ABS(amount_fen) ELSE 0 END),0) AS unmatched_fen "
-        "FROM payment_cash_ledger WHERE recorded_at>=?",
+        "FROM payment_cash_ledger l "
+        "JOIN payment_events e ON e.id=l.source_event_id "
+        "WHERE l.recorded_at>=? AND e.prod_mode=1",
         (since,),
     )
     return {

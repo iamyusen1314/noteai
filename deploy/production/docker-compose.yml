@@ -27,6 +27,7 @@ services:
       NOTEAI_MODEL_ARTIFACT_REQUIRED: "1"
       NOTEAI_ENABLE_CLOUD_MODEL_MUTATION: "0"
       NOTEAI_DURABLE_AI_ADMISSION_ENABLED: "0"
+      NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED: "${NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED:-0}"
       NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_API_TRUSTED_PROXY_IPS:-127.0.0.1}"
     ports:
       - "${NOTEAI_API_BIND_IP:-0.0.0.0}:${NOTEAI_API_PORT:-8000}:8000"
@@ -85,6 +86,10 @@ services:
     profiles:
       - payment
     image: "${NOTEAI_PAYMENT_IMAGE_REPOSITORY:?set NOTEAI_PAYMENT_IMAGE_REPOSITORY}@sha256:${NOTEAI_PAYMENT_IMAGE_DIGEST_HEX:?set NOTEAI_PAYMENT_IMAGE_DIGEST_HEX to 64 lowercase hex characters}"
+    depends_on:
+      api:
+        condition: service_healthy
+    network_mode: "service:api"
     logging:
       driver: local
       options:
@@ -108,8 +113,6 @@ services:
       NOTEAI_PAYMENT_CALLBACK_ENABLED: "${NOTEAI_PAYMENT_CALLBACK_ENABLED:-0}"
       NOTEAI_TRUSTED_PROXY_IPS: "${NOTEAI_PAYMENT_TRUSTED_PROXY_IPS:-127.0.0.1}"
       PORT: "8002"
-    ports:
-      - "${NOTEAI_PAYMENT_BIND_IP:-127.0.0.1}:${NOTEAI_PAYMENT_PORT:-8002}:8002"
     restart: "no"
     cpus: "0.25"
     mem_limit: 256m

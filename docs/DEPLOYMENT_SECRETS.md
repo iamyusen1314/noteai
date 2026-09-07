@@ -39,6 +39,14 @@ The seven database roles must resolve to seven distinct regular files with no
 group/world permission bits. The files remain outside Git and images. Do not
 source or print them during validation.
 
+The short-lived Item31 canary does not add a database role. It reuses the
+`noteai_payment` login through one of two provider-specific `0600` env files:
+`/etc/noteai/payment-canary-wechat.env` or
+`/etc/noteai/payment-canary-alipay.env`. Each file contains only its provider's
+request-signing key, verification trust root and dedicated `DATABASE_URL`.
+Never combine the two files or add the WeChat API v3 callback-decryption key or
+retained Adapay credentials.
+
 Allowed Secret key names are intentionally role-specific:
 
 - API: `DATABASE_URL`, `ANTHROPIC_API_KEY`, `MOONSHOT_API_KEY`,
@@ -59,13 +67,30 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY` and the role-bound trust root
   `NOTEAI_ADAPAY_PUBLIC_KEY`. The app id, exact QR channel, HTTPS callback
   URL and exact checkout/bill host lists are non-secret configuration used
-  by the adapter.
+  by the adapter. For direct ordering the API role may instead hold
+  `NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64`,
+  `NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64`,
+  `NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64` and
+  `NOTEAI_ALIPAY_PUBLIC_KEY_B64`.
+  Direct transports are live-only. Their non-secret callback configuration must
+  equal the canonical `https://api.noteaipro.cn/payments/wechat/callback` and
+  `https://api.noteaipro.cn/payments/alipay/callback` endpoints exactly.
 - Admin: `DATABASE_URL` and `ADMIN_PASSWORD`.
 - Payment: `DATABASE_URL`, `NOTEAI_ADAPAY_API_KEY` and
   `NOTEAI_ADAPAY_MERCHANT_PRIVATE_KEY`, plus the role-bound trust root
   `NOTEAI_ADAPAY_PUBLIC_KEY`. The app id, exact QR channel, HTTPS callback URL
   and exact checkout/bill host lists are non-secret configuration, but still
-  belong only in the API and Payment managed files.
+  belong only in the API and Payment managed files. The direct callback role
+  may hold `NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64`,
+  `NOTEAI_WECHATPAY_API_V3_KEY` and `NOTEAI_ALIPAY_PUBLIC_KEY_B64`. Merchant
+  request-signing private keys remain absent from this continuously running
+  callback role.
+- Payment canary, WeChat: only `DATABASE_URL`,
+  `NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64` and
+  `NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64`.
+- Payment canary, Alipay: only `DATABASE_URL`,
+  `NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64` and
+  `NOTEAI_ALIPAY_PUBLIC_KEY_B64`.
 - AI Dispatcher: only `DATABASE_URL`. Provider and private-storage names are
   prohibited; its dedicated database login is enabled only by the separately
   verified Durable AI runtime task.
@@ -79,11 +104,12 @@ Allowed Secret key names are intentionally role-specific:
 
 These are allowed names, not mandatory values. Provider-specific credentials
 must only be present when that separately approved provider path is enabled.
-PEM values in a Compose env file must use one double-quoted line with escaped
-`\n` characters so the file remains parseable by both Compose and the
-key-name validator; never place bare multi-line PEM blocks in an env file,
-and never render the resolved configuration because that would expose the
-decoded value.
+Direct-provider PEM values use the documented `*_B64` names and canonical
+standard Base64 of the complete PEM bytes on one unquoted line. This form has
+the same meaning through Compose `env_file` and Docker `--env-file`; quotes,
+whitespace, escaped `\n` text and bare multi-line PEM blocks are rejected.
+Encode only inside the approved Secret materializer and never print or render
+the resulting value during validation.
 The API and AI Worker storage credentials are deliberately distinct and must
 not be reused across roles or as model-artifact credentials.
 `NOTEAI_XHS_COOKIES_JSON` is the only implemented direct-XHS session input.
@@ -135,6 +161,23 @@ python scripts/validate_production_env_files.py \
   --xhs-trends /etc/noteai/xhs-trends.env \
   --xhs-tracking /etc/noteai/xhs-tracking.env
 ```
+
+When a provider is approved for the one-attempt canary, append exactly one of
+`--payment-canary-wechat /etc/noteai/payment-canary-wechat.env` or
+`--payment-canary-alipay /etc/noteai/payment-canary-alipay.env`. Run every
+action for one provider on the same designated host with the same named Docker
+volume mounted at `/var/lib/noteai/payment-canary-actions`. The image seeds that
+directory as `noteai:noteai` mode `0700`; do not remove the volume until the
+provider chain has reached a known terminal reconciliation. The canary container
+must run with no TTY, closed stdin, no bind mounts, no other volume mounts, a
+bounded process timeout, the `payment-canary` image role, and a fresh activation
+window of at most one hour. Before a provider request, the volume consumes the
+semantic tuple of provider, action, synthetic order, bill date, synthetic user
+subject and 1200-fen amount using one `O_EXCL` mode-`0600` record. A different
+activation ID cannot replay the same tuple; an admitted, completed, unreadable or
+UNKNOWN record remains closed. Validation and Evidence report only key
+names/counts, hashes and result state; they never print Secret values or provider
+payloads.
 
 The validator fails on a reused file, duplicate/invalid names, overexposed
 file permissions, unknown Secret-like names, and a known Secret name supplied

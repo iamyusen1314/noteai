@@ -351,6 +351,18 @@ class SpiderXHSHTTPAdapterTests(unittest.TestCase):
         self.assertNotIn("process.argv[2]", wrapper)
         self.assertNotIn("process.env.a1", wrapper)
 
+    def test_http_user_agent_exactly_matches_pinned_signer_runtime(self):
+        signer_source = (
+            xhs.VENDOR_DIR / "xhs_main_260411.js"
+        ).read_text(encoding="utf-8")
+        self.assertIn('userAgent: "' + xhs.BROWSER_USER_AGENT + '"', signer_source)
+
+        adapter, _signer, requests = self.adapter([
+            (200, {"success": True, "data": {"items": []}}),
+        ])
+        adapter.homefeed(max_pages=1, max_items=1)
+        self.assertEqual(requests[0].headers["user-agent"], xhs.BROWSER_USER_AGENT)
+
     def test_signer_wrapper_basic_and_rap_with_network_disabled(self):
         synthetic_a1 = "a" * 52
         version = subprocess.run(

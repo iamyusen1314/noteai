@@ -368,11 +368,41 @@ async def _refresh_cookie_if_needed(ctx) -> bool:
     return False
 
 
+def _item34_acceptance_target_id() -> str | None:
+    marker = os.environ.get("NOTEAI_ITEM34_ACCEPTANCE", "")
+    target = os.environ.get("NOTEAI_ITEM34_TRACK_ID", "")
+    stage = os.environ.get("NOTEAI_ITEM34_CHECKPOINT_STAGE", "")
+    if not marker and not target and not stage:
+        return None
+    if (
+        marker != "1"
+        or not target
+        or target != target.strip()
+        or stage not in {"24h", "3d"}
+    ):
+        raise ValueError("item34 acceptance target invalid")
+    try:
+        canonical = str(uuid.UUID(target))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("item34 acceptance target invalid") from exc
+    if canonical != target:
+        raise ValueError("item34 acceptance target invalid")
+    return target
+
+
+def _item34_acceptance_stage() -> str | None:
+    if _item34_acceptance_target_id() is None:
+        return None
+    return os.environ["NOTEAI_ITEM34_CHECKPOINT_STAGE"]
+
+
 def _claim_due_tracking_notes(
     limit: int,
     *,
     now: datetime | None = None,
     run_id: str | None = None,
+    target_id: str | None = None,
+    target_stage: str | None = None,
 ) -> list[dict]:
     """Atomically claim due rows in deterministic order.
 
@@ -381,6 +411,19 @@ def _claim_due_tracking_notes(
     must resolve them instead of allowing an automatic duplicate call.
     """
     limit = tracking_contract.validate_round_limit(limit)
+    if (target_id is None) != (target_stage is None):
+        raise ValueError("tracking target binding invalid")
+    if target_id is not None:
+        if target_id != target_id.strip():
+            raise ValueError("tracking target invalid")
+        try:
+            canonical_target = str(uuid.UUID(target_id))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("tracking target invalid") from exc
+        if canonical_target != target_id:
+            raise ValueError("tracking target invalid")
+        if target_stage not in {"24h", "3d"}:
+            raise ValueError("tracking target stage invalid")
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     now_iso = now.isoformat()
     h24 = (now - timedelta(hours=24)).isoformat()
@@ -403,10 +446,19 @@ def _claim_due_tracking_notes(
             check_24h_due = "noteai_tracking_clock_lte(check_24h_at,?)=1"
             order_next = "next_check_at"
             order_submitted = "submitted_at"
+        if target_stage == "24h":
+            target_clause = "AND id=? AND status='pending' "
+        elif target_stage == "3d":
+            target_clause = (
+                "AND id=? AND status IN ('checking_7d','checking_24h') "
+            )
+        else:
+            target_clause = ""
         rows = tx.fetchall(
             "SELECT * FROM tracked_notes WHERE "
             "active_attempt_id IS NULL "
-            "AND (claim_token IS NULL OR claim_expires_at IS NULL OR "
+            + target_clause
+            + "AND (claim_token IS NULL OR claim_expires_at IS NULL OR "
             f"{claim_due}) "
             "AND ("
             "(status='pending' AND ("
@@ -418,7 +470,15 @@ def _claim_due_tracking_notes(
             f") ORDER BY COALESCE({order_next},{order_submitted}),"
             f"{order_submitted},id "
             f"LIMIT ?{lock}",
-            (now_iso, now_iso, h24, now_iso, d7, limit),
+            (
+                *((target_id,) if target_id is not None else ()),
+                now_iso,
+                now_iso,
+                h24,
+                now_iso,
+                d7,
+                limit,
+            ),
         )
         for row in rows:
             snapshot = dict(row)
@@ -631,6 +691,12 @@ def _release_unstarted_claim(note: dict) -> None:
 def _record_tracking_success(note: dict, data: dict) -> None:
     data = tracking_contract.validate_provider_metrics(data)
     is_7d = note["status"] in ("checking_7d", "checking_24h")
+    acceptance_target = _item34_acceptance_target_id()
+    acceptance_stage = _item34_acceptance_stage()
+    item34_3d = (
+        acceptance_target == note.get("id") and acceptance_stage == "3d"
+    )
+    score_window = "3d" if item34_3d else "7d"
     now_iso = _now()
     with db.transaction(write=True) as tx:
         _assert_tracking_writable_with_storage(
@@ -673,7 +739,7 @@ def _record_tracking_success(note: dict, data: dict) -> None:
             views=None,
             predicted_ces=note.get("predicted_ces"),
             evidence_source="crawler",
-            window="7d",
+            window=score_window,
             likes_24h=note.get("likes_24h"),
             saves_24h=note.get("saves_24h"),
             comments_24h=note.get("comments_24h"),
@@ -701,7 +767,7 @@ def _record_tracking_success(note: dict, data: dict) -> None:
                 tracking_contract.deterministic_effect_id(note["id"], "growth"),
                 note["user_id"], note.get("source_note_id"),
                 note.get("domain", "美食"), score.actual_ces, score.grade,
-                "url_crawl_7d", now_iso,
+                "url_crawl_3d" if item34_3d else "url_crawl_7d", now_iso,
             ),
         )
         if memory is None:
@@ -711,7 +777,8 @@ def _record_tracking_success(note: dict, data: dict) -> None:
             tx,
             note["user_id"],
             "context",
-            f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
+            f"真实表现追踪：{title[:24]}，"
+            f"{'3天' if item34_3d else '7天'}实际{score.actual_ces:.1f}分，"
             f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
             f"短板{score.insights.get('weakest_signal')}",
             importance=0.5,
@@ -854,8 +921,15 @@ async def _process_due_tracking_notes(
         "released": 0,
         "total": 0,
     }
+    target_id = _item34_acceptance_target_id()
+    target_stage = _item34_acceptance_stage()
     for _ in range(limit):
-        notes = _claim_due_tracking_notes(1, run_id=run_id)
+        notes = _claim_due_tracking_notes(
+            1,
+            run_id=run_id,
+            target_id=target_id,
+            target_stage=target_stage,
+        )
         if not notes:
             break
         result = await _process_tracking_notes(notes, fetch_detail)
@@ -961,8 +1035,25 @@ async def run_collection_round(limit: int = 50) -> dict:
             "attempted": 0,
         }
     if route == "direct":
-        if xhs_acquisition and xhs_acquisition.collection_safety_status().get("session_blocked"):
-            return {"skipped": True, "reason": "server_session_logged_out", "collected": 0}
+        try:
+            safety_blocked = bool(
+                xhs_acquisition
+                and xhs_acquisition.collection_safety_status().get(
+                    "session_blocked"
+                )
+            )
+        except Exception:
+            return {
+                "skipped": True,
+                "reason": "collection_safety_unavailable",
+                "collected": 0,
+            }
+        if safety_blocked:
+            return {
+                "skipped": True,
+                "reason": "server_session_logged_out",
+                "collected": 0,
+            }
 
     if route == "direct":
         async def fetch_http(note: dict) -> dict | None:

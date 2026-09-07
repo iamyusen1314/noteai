@@ -1,0 +1,140 @@
+{
+  "schema": "noteai.production.item36-ndr-convergence.v1",
+  "item": 36,
+  "status": "NDR_P0_CONVERGED_PRE_DNS_PREPARATION_ONLY",
+  "observed_at_utc": "2026-09-04T15:57:55Z",
+  "readiness_credit": false,
+  "readiness_credit_reason": "Item36 terminal acceptance remains dependency-gated by terminal Item33 and Item34 evidence.",
+  "scope": {
+    "instance_id": "i-wz9bgztwf1tiakww2ops",
+    "instance_role": "API-F",
+    "region": "cn-shenzhen",
+    "accepted_managed_units": [
+      "noteai-api.service",
+      "noteai-xhs-trends.service",
+      "noteai-xhs-tracking.service"
+    ],
+    "pre_mask": 7,
+    "post_mask": 0
+  },
+  "sealed_pre_action_attempts": [
+    {
+      "reason": "NDR_UNIT_STATE_DRIFT",
+      "run_request_id": "01A06D0B-C5AC-5DA1-98B1-B1DBAC04C497",
+      "result_request_id": "01A06D0C-5756-5CDF-8E97-91B9DABDC239",
+      "command_id": "c-sz06w2a56uwk2kg",
+      "invoke_id": "t-sz06w2a56v6jny8",
+      "exit_code": 10,
+      "daemon_reload_count": 0,
+      "repeats": 1,
+      "dropped": 0,
+      "output_bytes": 88,
+      "output_sha256": "df05d8f1f58a0fdf926106d5fdbce37d0b7dbf7df564081f83c98ccb96390d3a",
+      "automatic_retry_allowed": false,
+      "identity_sealed_no_replay": true
+    },
+    {
+      "reason": "NDR_API_IMAGE_DRIFT",
+      "run_request_id": "01A06D1C-4A8A-5F2B-A0FE-13A6BC14ED82",
+      "result_request_id": "01A06D1C-E2E7-5D5F-8EF3-DAB5A22D51B6",
+      "command_id": "c-sz06w2br4vuetc0",
+      "invoke_id": "t-sz06w2br4w1widc",
+      "exit_code": 10,
+      "daemon_reload_count": 0,
+      "repeats": 1,
+      "dropped": 0,
+      "output_bytes": 87,
+      "output_sha256": "7cdf1360d6e0981da520edf2814c81c8c9fdd327c759708eb83311afea3031a9",
+      "automatic_retry_allowed": false,
+      "identity_sealed_no_replay": true
+    }
+  ],
+  "current_release_identity": {
+    "container_name": "noteai-api-f",
+    "container_state": "running",
+    "container_restart_count": 0,
+    "container_started_at": "2026-09-02T13:47:45.602801121Z",
+    "image_id": "sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53",
+    "readonly_candidate_match": true,
+    "existing_canonical_sources": [
+      "deploy/production/evidence/production-api-f-current-release-verified-20260730.json",
+      "deploy/production/evidence/production-minimal-runtime-baseline-reconciled-20260804.json",
+      "deploy/production/evidence/production-real-ai-provider-chain-verified-20260824.json"
+    ]
+  },
+  "successful_bounded_successor": {
+    "command_name": "noteai-item36-ndr-exact-three-20260904-75fae",
+    "run_request_id": "01A06D21-1DA7-5F40-8E86-EA447A3A878F",
+    "result_request_id": "01A06D21-D1E0-598A-994D-6D84DFC283F1",
+    "command_id": "c-sz06w2c81udrrb4",
+    "invoke_id": "t-sz06w2c81usr5ds",
+    "instance_id": "i-wz9bgztwf1tiakww2ops",
+    "target_count": 1,
+    "repeat_mode": "Once",
+    "repeats": 1,
+    "dropped": 0,
+    "username": "root",
+    "termination_mode": "ProcessTree",
+    "started_at_utc": "2026-09-04T15:54:43Z",
+    "finished_at_utc": "2026-09-04T15:54:44Z",
+    "exit_code": 0,
+    "invocation_status": "Success",
+    "invoke_record_status": "Finished",
+    "error_code": "",
+    "error_info": "",
+    "output_bytes": 797,
+    "output_sha256": "831e1f7f37054df62802cdfeb3b034e12defc1e5dd6a0bfe0ebea0cf4544aa40",
+    "output_nonempty_lines": 1,
+    "output_newline_count": 1,
+    "output_ends_with_lf": true,
+    "transport": {
+      "wrapper_bytes": 5407,
+      "wrapper_sha256": "2bc268ea802eed4b808ec206b95dab3eaadf6e42818a22c97ba60763d6121b55",
+      "inner_bytes": 11000,
+      "inner_sha256": "8a07733317e7e01580ac2d06ee98fb264064919c6a7ec73e4ab9313e67875fae",
+      "decoded_payload_byte_equal_to_inner": true,
+      "browser_form_decoded_sha256_matched_before_dispatch": true
+    },
+    "terminal": {
+      "code": "NDR_EXACT_THREE_7_TO_0",
+      "pre_mask": 7,
+      "post_mask": 0,
+      "daemon_reload_count": 1,
+      "automatic_retry_allowed": false,
+      "service_start_count": 0,
+      "service_stop_count": 0,
+      "service_restart_count": 0,
+      "api_live_pre": 200,
+      "api_ready_pre": 200,
+      "api_live_final": 200,
+      "api_ready_final": 200,
+      "api_live_post": 200,
+      "api_ready_post": 200,
+      "unit_state_sha256": "1a599816d05e1ae6c3ce250185d30d5099217124647beaf4efb2e57398a85d4f",
+      "api_container_state_sha256": "8063751f7f4fd4d586c0d9a9b2b7c30776a9e9846a771b0fcd346b46f53c2033",
+      "unit_file_sha256": {
+        "noteai-api.service": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
+        "noteai-xhs-trends.service": "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6",
+        "noteai-xhs-tracking.service": "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d"
+      }
+    },
+    "identity_sealed_no_replay": true
+  },
+  "actual_production_write_set": {
+    "business_database_writes": 0,
+    "dns_writes": 0,
+    "service_start_count": 0,
+    "service_stop_count": 0,
+    "service_restart_count": 0,
+    "persistent_file_writes": 0,
+    "systemd_manager_actions": [
+      "one systemctl daemon-reload"
+    ]
+  },
+  "costs": {
+    "new_cloud_compute_cny": 0,
+    "provider_fees_cny": 0,
+    "real_funds_flow_cny": 0
+  },
+  "secrets_recorded": false
+}

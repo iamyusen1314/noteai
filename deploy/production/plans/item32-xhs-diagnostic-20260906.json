@@ -1,0 +1,39 @@
+{
+  "schema": "noteai.item32.xhs_diagnostic_plan.v1",
+  "item": 32,
+  "status": "PREPARED_NOT_EXECUTED",
+  "readiness_credit": false,
+  "diagnostic_only": true,
+  "outer_executor": "tools/execute_item32_xhs_diagnostic.py",
+  "outer_executor_sha256": "3f559fe2b9f3aee05cf3ee2a1049a2f030d6f94dad448630b6ae864c37a4265d",
+  "adapter_source": "model/spider_xhs_http.py",
+  "adapter_source_sha256": "981a7c704ae4b9efbf0db39aa2a8a1531f40e6848da3a95357bd3cc7b18ce7b7",
+  "existing_image_config_sha256": "a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+  "existing_registry_manifest_sha256": "406445820107cda130698b157a20663b99697a0acdae65030784d3cb083c1e50",
+  "existing_registry_manifest_provenance": "HISTORICAL_SEALED_PLAN_ONLY",
+  "sealed_executor_sha256": "ed0cb9e59a4bc4d40760fbd83410ac8852a950b8737340e501d736aab817f662",
+  "sealed_plan_sha256": "45e32a843a26816a0af4227c335f5cf72525e8fec326031200069f397082fe52",
+  "sealed_admission_sha256": "8b20840ad5f6e5ec44f14086bfe635ff464c2125bfd76b2cb3b377fa2b48bfd8",
+  "sealed_store_sha256": "10e01542b261719794bdaf67ebbc355a8d2fe66e7448c516b206ad300f6402f8",
+  "sealed_admission_required_status": "HOLD",
+  "request": {
+    "method": "POST",
+    "endpoint": "/api/sns/web/v1/homefeed",
+    "category": "homefeed_recommend",
+    "max_pages": 1,
+    "max_items": 20,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0",
+    "timeout_seconds": 20,
+    "follow_redirects": false
+  },
+  "bounds": {
+    "provider_requests": 1,
+    "prior_sealed_provider_requests": 1,
+    "cumulative_provider_requests": 2,
+    "automatic_retry": 0,
+    "production_database_queries": 0,
+    "production_database_writes": 0,
+    "cloud_resource_mutations": 0,
+    "readiness_credit": false
+  }
+}

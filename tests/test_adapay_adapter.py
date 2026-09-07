@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import importlib
 import io
@@ -13,6 +14,7 @@ from unittest import mock
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 
@@ -132,6 +134,7 @@ class AdapayAdapterTests(unittest.TestCase):
             "product_kind": "credit_package",
             "product_id": "starter",
             "provider_mode": "mock",
+            "provider_name": "adapay",
             "device_ip": "8.8.8.8",
         }
 
@@ -303,6 +306,7 @@ class AdapayAdapterTests(unittest.TestCase):
             "amount_fen": 1200,
             "currency": "CNY",
             "provider_mode": "mock",
+            "provider_name": "adapay",
             "reason_code": "customer_request",
         }
 
@@ -611,6 +615,183 @@ class PaymentRuntimeTests(unittest.TestCase):
         self.assertEqual(transport.requests, [])
         self.assertEqual(transport.downloads, [])
 
+    def test_direct_bootstrap_builds_both_selected_gateways_without_requests(self):
+        class DirectBootstrapTransport:
+            def __init__(self):
+                self.closed = False
+
+            def request(self, _provider_name, _operation, _payload):
+                raise AssertionError("bootstrap made a provider request")
+
+            def reconciliation(self, _provider_name, _bill_date):
+                raise AssertionError("bootstrap made a provider request")
+
+            def close(self):
+                self.closed = True
+
+        wechat_transport = DirectBootstrapTransport()
+        alipay_transport = DirectBootstrapTransport()
+        merchant_private_b64 = base64.b64encode(
+            self.merchant_private_pem.encode("ascii")
+        ).decode("ascii")
+        provider_public_b64 = base64.b64encode(
+            self.provider_public_pem.encode("ascii")
+        ).decode("ascii")
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_WECHATPAY_APP_ID": "wxSyntheticApp01",
+            "NOTEAI_WECHATPAY_MERCHANT_ID": "1900000109",
+            "NOTEAI_WECHATPAY_MERCHANT_CERTIFICATE_SERIAL": "FEDCBA9876543210",
+            "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64": merchant_private_b64,
+            "NOTEAI_WECHATPAY_PLATFORM_VERIFIER_ID": "0123456789ABCDEF",
+            "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64": provider_public_b64,
+            "NOTEAI_WECHATPAY_CALLBACK_URL": (
+                "https://api.noteaipro.cn/payments/wechat/callback"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+            "NOTEAI_ALIPAY_APP_ID": "2026000000000001",
+            "NOTEAI_ALIPAY_SELLER_ID": "2088000000000001",
+            "NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64": merchant_private_b64,
+            "NOTEAI_ALIPAY_PUBLIC_KEY_B64": provider_public_b64,
+            "NOTEAI_ALIPAY_CALLBACK_URL": (
+                "https://api.noteaipro.cn/payments/alipay/callback"
+            ),
+            "NOTEAI_ALIPAY_PROD_MODE": "1",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_adapter_runtime.direct_payment_gateways,
+            "HttpxWeChatPayTransport",
+            return_value=wechat_transport,
+        ), mock.patch.object(
+            payment_adapter_runtime.direct_payment_gateways,
+            "HttpxAlipayTransport",
+            return_value=alipay_transport,
+        ):
+            wechat = payment_adapter_runtime.provider_from_environment(
+                "wechatpay_direct",
+                required_role="api",
+            )
+            alipay = payment_adapter_runtime.provider_from_environment(
+                "alipay_direct",
+                required_role="api",
+            )
+            wechat_prod_mode = payment_adapter_runtime.configured_prod_mode(
+                "wechatpay_direct"
+            )
+            alipay_app_id = payment_adapter_runtime.configured_app_id(
+                "alipay_direct"
+            )
+        self.assertIsInstance(
+            wechat,
+            payment_adapter_runtime.direct_payment_gateways.WeChatPayGateway,
+        )
+        self.assertIsInstance(
+            alipay,
+            payment_adapter_runtime.direct_payment_gateways.AlipayGateway,
+        )
+        self.assertTrue(wechat_prod_mode)
+        self.assertEqual(alipay_app_id, "2026000000000001")
+        self.assertFalse(wechat_transport.closed)
+        self.assertFalse(alipay_transport.closed)
+        payment_adapter_runtime.reset_for_tests()
+        self.assertTrue(wechat_transport.closed)
+        self.assertTrue(alipay_transport.closed)
+
+    def test_direct_callback_identity_hash_excludes_role_specific_secrets(self):
+        public_key_b64 = base64.b64encode(
+            self.provider_public_pem.encode("ascii")
+        ).decode("ascii")
+        base_env = {
+            "NOTEAI_WECHATPAY_APP_ID": "wxSyntheticApp01",
+            "NOTEAI_WECHATPAY_MERCHANT_ID": "1900000109",
+            "NOTEAI_WECHATPAY_PLATFORM_VERIFIER_ID": "0123456789ABCDEF",
+            "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64": public_key_b64,
+            "NOTEAI_WECHATPAY_CALLBACK_URL": (
+                "https://api.noteaipro.cn/payments/wechat/callback"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+            "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64": "role-secret-a",
+            "NOTEAI_WECHATPAY_API_V3_KEY": "role-secret-b",
+        }
+        with mock.patch.dict(os.environ, base_env, clear=False):
+            baseline = payment_adapter_runtime.callback_identity_sha256(
+                "wechatpay_direct"
+            )
+        self.assertRegex(baseline, r"^[0-9a-f]{64}$")
+        with mock.patch.dict(
+            os.environ,
+            {
+                **base_env,
+                "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64": "different-a",
+                "NOTEAI_WECHATPAY_API_V3_KEY": "different-b",
+            },
+            clear=False,
+        ):
+            role_separated = (
+                payment_adapter_runtime.callback_identity_sha256(
+                    "wechatpay_direct"
+                )
+            )
+        self.assertEqual(role_separated, baseline)
+        with mock.patch.dict(
+            os.environ,
+            {
+                **base_env,
+                "NOTEAI_WECHATPAY_CALLBACK_URL": (
+                    "https://api.noteaipro.cn/payments/alipay/callback"
+                ),
+            },
+            clear=False,
+        ):
+            drifted = payment_adapter_runtime.callback_identity_sha256(
+                "wechatpay_direct"
+            )
+        self.assertNotEqual(drifted, baseline)
+
+    def test_direct_bootstrap_rejects_legacy_escaped_pem_env(self):
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_WECHATPAY_APP_ID": "wxSyntheticApp01",
+            "NOTEAI_WECHATPAY_MERCHANT_ID": "1900000109",
+            "NOTEAI_WECHATPAY_MERCHANT_CERTIFICATE_SERIAL": "FEDCBA9876543210",
+            "NOTEAI_WECHATPAY_MERCHANT_PRIVATE_KEY_B64": (
+                '"-----BEGIN PRIVATE KEY-----\\nsynthetic\\n'
+                '-----END PRIVATE KEY-----\\n"'
+            ),
+            "NOTEAI_WECHATPAY_PLATFORM_VERIFIER_ID": "0123456789ABCDEF",
+            "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64": "not-base64",
+            "NOTEAI_WECHATPAY_CALLBACK_URL": (
+                "https://api.noteaipro.cn/payments/wechat/callback"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_adapter_runtime.direct_payment_gateways,
+            "HttpxWeChatPayTransport",
+        ) as transport:
+            provider = payment_adapter_runtime.provider_from_environment(
+                "wechatpay_direct",
+                required_role="api",
+            )
+        self.assertIsNone(provider)
+        transport.assert_not_called()
+
+    def test_direct_bootstrap_rejects_mock_mode_before_transport_construction(self):
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_WECHATPAY_PROD_MODE": "0",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_adapter_runtime.direct_payment_gateways,
+            "HttpxWeChatPayTransport",
+        ) as transport:
+            provider = payment_adapter_runtime.provider_from_environment(
+                "wechatpay_direct",
+                required_role="api",
+            )
+        self.assertIsNone(provider)
+        transport.assert_not_called()
+
     def test_dedicated_callback_verifies_and_settles_exactly_once(self):
         now = "2026-07-27T08:00:00+00:00"
         user_id = "u-runtime-payment"
@@ -720,8 +901,262 @@ class PaymentRuntimeTests(unittest.TestCase):
                 "/health/live",
                 "/health/ready",
                 "/payments/adapay/callback",
+                "/payments/wechat/callback",
+                "/payments/alipay/callback",
             },
         )
+
+    def test_direct_callback_routes_use_dedicated_provider_acknowledgements(self):
+        wechat_gateway = mock.Mock()
+        wechat_gateway.process_callback.return_value = {"ok": True}
+        alipay_gateway = mock.Mock()
+        alipay_gateway.process_callback.return_value = {"ok": True}
+        gateways = {
+            "wechatpay_direct": wechat_gateway,
+            "alipay_direct": alipay_gateway,
+        }
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "payment",
+            "NOTEAI_DEPLOYMENT_STAGE": "test",
+            "NOTEAI_PAYMENT_CALLBACK_ENABLED": "1",
+            "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+            "NOTEAI_ALIPAY_PROD_MODE": "1",
+        }
+        client = TestClient(payment_runtime.app)
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_runtime,
+            "_direct_callback_gateway",
+            side_effect=lambda provider_name: gateways[provider_name],
+        ):
+            wechat = client.post(
+                "/payments/wechat/callback",
+                headers={
+                    "Content-Type": "application/json",
+                    "Wechatpay-Timestamp": "1788573600",
+                    "Wechatpay-Nonce": "synthetic-nonce",
+                    "Wechatpay-Signature": "synthetic-signature",
+                    "Wechatpay-Serial": "0123456789ABCDEF",
+                },
+                content=b"{}",
+            )
+            alipay = client.post(
+                "/payments/alipay/callback",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                content=b"synthetic=form",
+            )
+        self.assertEqual(wechat.status_code, 200)
+        self.assertEqual(
+            wechat.json(),
+            {"code": "SUCCESS", "message": "成功"},
+        )
+        self.assertEqual(alipay.status_code, 200)
+        self.assertEqual(alipay.text, "success")
+        wechat_gateway.process_callback.assert_called_once()
+        alipay_gateway.process_callback.assert_called_once_with(
+            b"synthetic=form"
+        )
+
+    def test_direct_callback_digest_logs_first_and_duplicate_without_changing_ack(self):
+        audit = {
+            "schema": "noteai.item31.direct_callback_digest.v1",
+            "provider": "wechatpay_direct",
+            "event_type": "payment.succeeded",
+            "callback_identity_sha256": "a" * 64,
+            "callback_payload_sha256": "b" * 64,
+            "signature_input_sha256": "c" * 64,
+            "signature_scheme": "WECHATPAY2-SHA256-RSA2048",
+        }
+        gateway = mock.Mock()
+        gateway.process_callback.side_effect = [
+            {"ok": True, "duplicate": False, "callback_audit": audit},
+            {"ok": True, "duplicate": True, "callback_audit": audit},
+            {"ok": True, "duplicate": True, "callback_audit": {"bad": True}},
+            {"ok": True, "duplicate": True, "callback_audit": audit},
+        ]
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "payment",
+            "NOTEAI_DEPLOYMENT_STAGE": "test",
+            "NOTEAI_PAYMENT_CALLBACK_ENABLED": "1",
+            "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": "wechatpay_direct",
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+        }
+        client = TestClient(payment_runtime.app)
+        request = {
+            "headers": {
+                "Content-Type": "application/json",
+                "Wechatpay-Timestamp": "1788573600",
+                "Wechatpay-Nonce": "synthetic-nonce",
+                "Wechatpay-Signature": "raw-signature-must-not-log",
+                "Wechatpay-Serial": "0123456789ABCDEF",
+            },
+            "content": b'{"raw":"body-must-not-log"}',
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_runtime,
+            "_direct_callback_gateway",
+            return_value=gateway,
+        ), mock.patch.object(payment_runtime._LOGGER, "info") as info:
+            first = client.post("/payments/wechat/callback", **request)
+            duplicate = client.post("/payments/wechat/callback", **request)
+            malformed = client.post("/payments/wechat/callback", **request)
+        self.assertEqual(first.json(), {"code": "SUCCESS", "message": "成功"})
+        self.assertEqual(duplicate.json(), first.json())
+        self.assertEqual(malformed.json(), first.json())
+        self.assertEqual(info.call_count, 2)
+        logged = [call.args[1] for call in info.call_args_list]
+        self.assertFalse(json.loads(logged[0])["duplicate_delivery"])
+        self.assertTrue(json.loads(logged[1])["duplicate_delivery"])
+        self.assertEqual(
+            {
+                key: value
+                for key, value in json.loads(logged[0]).items()
+                if key != "duplicate_delivery"
+            },
+            {
+                key: value
+                for key, value in json.loads(logged[1]).items()
+                if key != "duplicate_delivery"
+            },
+        )
+        self.assertNotIn("body-must-not-log", str(logged))
+        self.assertNotIn("raw-signature-must-not-log", str(logged))
+
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_runtime,
+            "_direct_callback_gateway",
+            return_value=gateway,
+        ), mock.patch.object(
+            payment_runtime._LOGGER,
+            "info",
+            side_effect=RuntimeError("synthetic log failure"),
+        ):
+            logger_failure = client.post("/payments/wechat/callback", **request)
+        self.assertEqual(logger_failure.status_code, 200)
+        self.assertEqual(logger_failure.json(), first.json())
+
+    def test_direct_callback_rejects_mock_mode_in_nonproduction(self):
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "payment",
+            "NOTEAI_DEPLOYMENT_STAGE": "test",
+            "NOTEAI_PAYMENT_CALLBACK_ENABLED": "1",
+            "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": "wechatpay_direct",
+            "NOTEAI_WECHATPAY_PROD_MODE": "0",
+        }
+        client = TestClient(payment_runtime.app)
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_runtime,
+            "_direct_callback_gateway",
+        ) as gateway:
+            response = client.post(
+                "/payments/wechat/callback",
+                headers={"Content-Type": "application/json"},
+                content=b"{}",
+            )
+        self.assertEqual(response.status_code, 503)
+        gateway.assert_not_called()
+
+    def test_callback_body_stream_stops_without_content_length_at_limit(self):
+        limit = payment.MAX_CALLBACK_DATA_BYTES
+        messages = iter(
+            (
+                {"type": "http.request", "body": b"a" * limit, "more_body": True},
+                {"type": "http.request", "body": b"b", "more_body": True},
+                {"type": "http.request", "body": b"unread", "more_body": False},
+            )
+        )
+        received = []
+
+        async def receive():
+            message = next(messages)
+            received.append(message)
+            return message
+
+        request = payment_runtime.Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/synthetic",
+                "headers": [],
+            },
+            receive,
+        )
+        with self.assertRaises(HTTPException) as raised:
+            asyncio.run(
+                payment_runtime._bounded_callback_body(
+                    request,
+                    max_bytes=limit,
+                )
+            )
+        self.assertEqual(raised.exception.status_code, 413)
+        self.assertEqual(len(received), 2)
+
+    def test_direct_callback_routes_reject_ambiguous_provider_selection(self):
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "payment",
+            "NOTEAI_DEPLOYMENT_STAGE": "test",
+            "NOTEAI_PAYMENT_CALLBACK_ENABLED": "1",
+            "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": (
+                "wechatpay_direct,wechatpay_direct"
+            ),
+        }
+        client = TestClient(payment_runtime.app)
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_runtime,
+            "_direct_callback_gateway",
+        ) as gateway:
+            response = client.post(
+                "/payments/wechat/callback",
+                headers={"Content-Type": "application/json"},
+                content=b"{}",
+            )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.json()["detail"],
+            "PAYMENT_CALLBACK_UNAVAILABLE",
+        )
+        gateway.assert_not_called()
+
+    def test_production_callback_readiness_requires_both_direct_live_modes(self):
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "payment",
+            "NOTEAI_DEPLOYMENT_STAGE": "production",
+            "NOTEAI_PAYMENT_CALLBACK_ENABLED": "1",
+            "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+            "NOTEAI_ALIPAY_PROD_MODE": "0",
+        }
+        client = TestClient(payment_runtime.app)
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            payment_runtime,
+            "_direct_callback_gateway",
+            return_value=mock.Mock(),
+        ), mock.patch.object(
+            payment_runtime,
+            "_database_role_ok",
+            return_value=True,
+        ), mock.patch.object(
+            payment_runtime.db,
+            "database_health",
+            return_value={"ok": True},
+        ):
+            readiness = client.get("/health/ready")
+            callback = client.post(
+                "/payments/wechat/callback",
+                headers={"Content-Type": "application/json"},
+                content=b"{}",
+            )
+        self.assertEqual(readiness.status_code, 503)
+        self.assertFalse(
+            readiness.json()["checks"]["production_activation"]["ok"]
+        )
+        self.assertEqual(callback.status_code, 503)
 
     def test_wrong_runtime_or_production_database_role_rejects_before_processing(self):
         client = TestClient(payment_runtime.app)

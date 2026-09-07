@@ -589,16 +589,57 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
         self.assertIn("--cpus=0.25", unit)
         self.assertIn("--pids-limit=64", unit)
         self.assertIn("--env-file=/etc/noteai/payment.env", unit)
+        self.assertIn("Requires=docker.service noteai-api.service", unit)
+        self.assertIn("BindsTo=noteai-api.service", unit)
+        self.assertIn("PartOf=noteai-api.service", unit)
+        self.assertIn(
+            "After=docker.service noteai-api.service network-online.target",
+            unit,
+        )
+        self.assertIn("--network=container:@@NOTEAI_API_CONTAINER@@", unit)
+        self.assertEqual(unit.count("@@NOTEAI_API_CONTAINER@@"), 2)
+        self.assertIn(
+            "docker container inspect --format={{.State.Running}} "
+            "@@NOTEAI_API_CONTAINER@@",
+            unit,
+        )
+        self.assertIn("| /usr/bin/grep -qx true", unit)
+        self.assertNotIn("--publish=127.0.0.1:8002:8002", unit)
         self.assertIn("--env=NOTEAI_RUNTIME_ROLE=payment", unit)
         self.assertIn("--env=NOTEAI_DEPLOYMENT_STAGE=production", unit)
-        self.assertIn("--env=NOTEAI_PAYMENT_CALLBACK_ENABLED=0", unit)
+        self.assertIn("Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=0", unit)
+        self.assertIn("--env=NOTEAI_PAYMENT_CALLBACK_ENABLED ", unit)
+        self.assertNotIn("--env=NOTEAI_PAYMENT_CALLBACK_ENABLED=0", unit)
         self.assertIn("--env=NOTEAI_TRUSTED_PROXY_IPS=127.0.0.1", unit)
-        self.assertIn("--publish=127.0.0.1:8002:8002", unit)
         self.assertIn("Restart=no", unit)
         self.assertNotIn("Restart=always", unit)
         self.assertNotIn("Restart=on-failure", unit)
         self.assertNotIn("WantedBy=default.target", unit)
         self.assertNotIn("EnvironmentFile=", unit)
+
+        callback_drop_in = (
+            ROOT
+            / "deploy"
+            / "production"
+            / "systemd"
+            / "noteai-payment-callback-live.conf.template"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1", callback_drop_in)
+        self.assertIn("Restart=on-failure", callback_drop_in)
+        self.assertIn("RestartSec=5", callback_drop_in)
+
+        compose = (
+            ROOT / "deploy" / "production" / "docker-compose.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn('network_mode: "service:api"', compose)
+        self.assertIn("condition: service_healthy", compose)
+        self.assertIn(
+            "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED: "
+            '"${NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED:-0}"',
+            compose,
+        )
+        self.assertNotIn("NOTEAI_PAYMENT_BIND_IP", compose)
+        self.assertNotIn("NOTEAI_PAYMENT_PORT", compose)
 
 
 if __name__ == "__main__":

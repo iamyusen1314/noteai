@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "PROD-COMPLETE-FIRST-LAUNCH-001",
-  "as_of_date": "2026-09-03",
+  "as_of_date": "2026-09-06",
   "status_values": [
     "verified",
     "unverified",
@@ -710,506 +710,506 @@
               "kind": "path",
               "ref": "scripts/ci/cleanup_admin_dependency_cache_v3.sh"
             },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_cleanup_v3.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v3-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v3_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v3_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v4.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v4.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v4.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v4.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_transient_state_v4.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_transient_state_v4.py"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/cleanup_admin_dependency_cache_v4.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_cleanup_v4.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v4-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v4_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v4_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v5.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v5.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v5.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v5.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_transient_state_v5.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_transient_state_v5.py"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/cleanup_admin_dependency_cache_v5.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_cleanup_v5.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v5.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildx_v0.35.0_provenance_gha_disabled_projection.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildx_v0.35.0_rawjson_schema_projection.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v5-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v5_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v5_failure_evidence.py"
-        },
-        {
-          "kind": "git",
-          "ref": "ff6e2d6e3849541f1d204769ea2052f850e783cd"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v6.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v6.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v6.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v6.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v6.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v6.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_solvestatus_structural_projection.json"
-        },
-        {
-          "kind": "git",
-          "ref": "4455af46c775eb68cff3a7356324bae99263013b"
-        },
-        {
-          "kind": "git",
-          "ref": "5770f00d7e5756302d34b5f9159066dc3fd5d36d"
-        },
-        {
-          "kind": "git",
-          "ref": "65b79e14baf4ec9a2ea65442226de7c12f64f611"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v6.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v6-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v6_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v6_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v7.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v7.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v7.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v7.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v7.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v7.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_incremental_vertex_projection.json"
-        },
-        {
-          "kind": "git",
-          "ref": "27dcccf1736c40a832a3ca4875aa9ff7bdbe72d5"
-        },
-        {
-          "kind": "git",
-          "ref": "71692d5f25f6a2d3f248cc62a568f4a2bd5af2cd"
-        },
-        {
-          "kind": "git",
-          "ref": "4494f50bf9a18422cef6252792bb9c6bbeaf1135"
-        },
-        {
-          "kind": "git",
-          "ref": "6102ac231b68e3bc6b69db817fd834da0e37e1b9"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v7.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v7-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v7_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v7_failure_evidence.py"
-        },
-        {
-          "kind": "git",
-          "ref": "3714cc2feec65d3059325d0d869ad007083b0276"
-        },
-        {
-          "kind": "git",
-          "ref": "3381c2fdbcb32480bb364a400250f8d24de74c84"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v8.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v8.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v8.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v8.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v8.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v8.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_empty_source_location_projection.json"
-        },
-        {
-          "kind": "git",
-          "ref": "cf253f9b42b096f45405ac55fe546c281a2a748d"
-        },
-        {
-          "kind": "git",
-          "ref": "354bec3b2d36bfaabc5c3307d49f5dc66255cbbf"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v8.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v8-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v8_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v8_failure_evidence.py"
-        },
-        {
-          "kind": "git",
-          "ref": "6961876b35aba5e52fc7e44a59a4881469d0064f"
-        },
-        {
-          "kind": "git",
-          "ref": "72f36354471e2d56ea77760d50417bf09b5cd9e1"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v9.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v9.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v9.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v9.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v9.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v9.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_vertex_input_omission_projection.json"
-        },
-        {
-          "kind": "git",
-          "ref": "590ffc863d7475b5637e644461c7ac7e8612052b"
-        },
-        {
-          "kind": "git",
-          "ref": "c2aebc9bdae9cc26c6c29d994bf55b547349e231"
-        },
-        {
-          "kind": "git",
-          "ref": "fbe629daad669191d4ea9903ffb488c98055f000"
-        },
-        {
-          "kind": "git",
-          "ref": "0e35e7dca22064402f8a7b569c6b966e4c6ec1a3"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v9.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v9-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v9_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v9_failure_evidence.py"
-        },
-        {
-          "kind": "git",
-          "ref": "512638647c5851aa3258cd472da42894110465af"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v10.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v10.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v10.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v10.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v10.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v10.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_cache_observer_projection.json"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/import_admin_dependency_cache_v10.sh"
-        },
-        {
-          "kind": "git",
-          "ref": "9199fb598790a03302c21dd3968c63b58d03f2c2"
-        },
-        {
-          "kind": "git",
-          "ref": "b02c4a18d6b77024f17d0e56c1d081a578854b1f"
-        },
-        {
-          "kind": "git",
-          "ref": "ea2a3b489e74b21a88ea21ecd243cd6a433c7fac"
-        },
-        {
-          "kind": "git",
-          "ref": "8c8567b99541f1f260d988754daa88f97f00f68e"
-        },
-        {
-          "kind": "git",
-          "ref": "b01c65d507cf087bea0d80038eafdb08a8e23bf1"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v10.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v10-attempt1-failed-20260731.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v10_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v10_failure_evidence.py"
-        },
-        {
-          "kind": "git",
-          "ref": "458f2482f9a3267bb9050a274f33ae21fc546ed7"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v11.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v11.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/export_admin_dependency_cache_v11.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/import_admin_dependency_cache_v11.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_export_anchor_observer_projection.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v11.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v11.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v11.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v11.py"
-        },
-        {
-          "kind": "git",
-          "ref": "c0d049b56aa6efaff7133ac44a9fef7f010cd097"
-        },
-        {
-          "kind": "git",
-          "ref": "606c474d347b4dad4e08e6f9fd038a82bdae5315"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v12.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v12.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v12.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v12.py"
-        },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_cleanup_v3.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v3-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v3_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v3_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v4.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v4.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v4.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v4.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_transient_state_v4.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_transient_state_v4.py"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/cleanup_admin_dependency_cache_v4.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_cleanup_v4.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v4-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v4_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v4_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v5.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v5.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v5.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v5.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_transient_state_v5.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_transient_state_v5.py"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/cleanup_admin_dependency_cache_v5.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_cleanup_v5.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v5.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildx_v0.35.0_provenance_gha_disabled_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildx_v0.35.0_rawjson_schema_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v5-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v5_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v5_failure_evidence.py"
+            },
+            {
+              "kind": "git",
+              "ref": "ff6e2d6e3849541f1d204769ea2052f850e783cd"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v6.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v6.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v6.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v6.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v6.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v6.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_solvestatus_structural_projection.json"
+            },
+            {
+              "kind": "git",
+              "ref": "4455af46c775eb68cff3a7356324bae99263013b"
+            },
+            {
+              "kind": "git",
+              "ref": "5770f00d7e5756302d34b5f9159066dc3fd5d36d"
+            },
+            {
+              "kind": "git",
+              "ref": "65b79e14baf4ec9a2ea65442226de7c12f64f611"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v6.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v6-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v6_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v6_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v7.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v7.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v7.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v7.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v7.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v7.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_incremental_vertex_projection.json"
+            },
+            {
+              "kind": "git",
+              "ref": "27dcccf1736c40a832a3ca4875aa9ff7bdbe72d5"
+            },
+            {
+              "kind": "git",
+              "ref": "71692d5f25f6a2d3f248cc62a568f4a2bd5af2cd"
+            },
+            {
+              "kind": "git",
+              "ref": "4494f50bf9a18422cef6252792bb9c6bbeaf1135"
+            },
+            {
+              "kind": "git",
+              "ref": "6102ac231b68e3bc6b69db817fd834da0e37e1b9"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v7.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v7-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v7_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v7_failure_evidence.py"
+            },
+            {
+              "kind": "git",
+              "ref": "3714cc2feec65d3059325d0d869ad007083b0276"
+            },
+            {
+              "kind": "git",
+              "ref": "3381c2fdbcb32480bb364a400250f8d24de74c84"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v8.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v8.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v8.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v8.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v8.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v8.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_empty_source_location_projection.json"
+            },
+            {
+              "kind": "git",
+              "ref": "cf253f9b42b096f45405ac55fe546c281a2a748d"
+            },
+            {
+              "kind": "git",
+              "ref": "354bec3b2d36bfaabc5c3307d49f5dc66255cbbf"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v8.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v8-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v8_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v8_failure_evidence.py"
+            },
+            {
+              "kind": "git",
+              "ref": "6961876b35aba5e52fc7e44a59a4881469d0064f"
+            },
+            {
+              "kind": "git",
+              "ref": "72f36354471e2d56ea77760d50417bf09b5cd9e1"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v9.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v9.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v9.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v9.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v9.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v9.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_vertex_input_omission_projection.json"
+            },
+            {
+              "kind": "git",
+              "ref": "590ffc863d7475b5637e644461c7ac7e8612052b"
+            },
+            {
+              "kind": "git",
+              "ref": "c2aebc9bdae9cc26c6c29d994bf55b547349e231"
+            },
+            {
+              "kind": "git",
+              "ref": "fbe629daad669191d4ea9903ffb488c98055f000"
+            },
+            {
+              "kind": "git",
+              "ref": "0e35e7dca22064402f8a7b569c6b966e4c6ec1a3"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v9.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v9-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v9_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v9_failure_evidence.py"
+            },
+            {
+              "kind": "git",
+              "ref": "512638647c5851aa3258cd472da42894110465af"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v10.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v10.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v10.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v10.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v10.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v10.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_cache_observer_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/import_admin_dependency_cache_v10.sh"
+            },
+            {
+              "kind": "git",
+              "ref": "9199fb598790a03302c21dd3968c63b58d03f2c2"
+            },
+            {
+              "kind": "git",
+              "ref": "b02c4a18d6b77024f17d0e56c1d081a578854b1f"
+            },
+            {
+              "kind": "git",
+              "ref": "ea2a3b489e74b21a88ea21ecd243cd6a433c7fac"
+            },
+            {
+              "kind": "git",
+              "ref": "8c8567b99541f1f260d988754daa88f97f00f68e"
+            },
+            {
+              "kind": "git",
+              "ref": "b01c65d507cf087bea0d80038eafdb08a8e23bf1"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v10.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v10-attempt1-failed-20260731.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v10_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v10_failure_evidence.py"
+            },
+            {
+              "kind": "git",
+              "ref": "458f2482f9a3267bb9050a274f33ae21fc546ed7"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v11.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v11.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/export_admin_dependency_cache_v11.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/import_admin_dependency_cache_v11.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_export_anchor_observer_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v11.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v11.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v11.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v11.py"
+            },
+            {
+              "kind": "git",
+              "ref": "c0d049b56aa6efaff7133ac44a9fef7f010cd097"
+            },
+            {
+              "kind": "git",
+              "ref": "606c474d347b4dad4e08e6f9fd038a82bdae5315"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v12.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v12.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v12.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v12.py"
+            },
             {
               "kind": "git",
               "ref": "8b1f197141b9c84b4ffa812080ecabd6af1bbbce"
@@ -1362,178 +1362,178 @@
               "kind": "path",
               "ref": "tests/test_admin_dependency_cache_v15_failure_evidence.py"
             },
-        {
-          "kind": "git",
-          "ref": "46595fef4916ca2881dd38c0a14ee630bba79c32"
-        },
-        {
-          "kind": "git",
-          "ref": "a94ee2b2feb81eafbcb523be2c95da4ee952cbc4"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v16.json"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v16.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/export_admin_dependency_cache_v16.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/import_admin_dependency_cache_v16.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_git_main_context_identity_projection.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v16.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v16.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v16.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v16.py"
-        },
-        {
-          "kind": "git",
-          "ref": "b6f642e68c21341c90bb3c66f810945ada4e084a"
-        },
-        {
-          "kind": "git",
-          "ref": "095529e03f735494a98ce2302a6e1be570291d8c"
-        },
-        {
-          "kind": "git",
-          "ref": "fd1444d0a62549b3c353cbc1188e6ba25a77e96e"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v16.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/evidence/admin-dependency-cache-v16-attempt1-failed-20260802.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_v16_failure_evidence.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_v16_failure_evidence.py"
-        },
-        {
-          "kind": "git",
-          "ref": "4c2df3b19b4f5493adba78eed89c3a015d76972d"
-        },
-        {
-          "kind": "git",
-          "ref": "751da973dd7136d792adfafa11e50f5e5e0bd689"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/workflows/admin-dependency-cache-export-v17.yml"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/plans/admin-dependency-cache-export-request-v17.json"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/export_admin_dependency_cache_v17.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "scripts/ci/import_admin_dependency_cache_v17.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/fixtures/admin_dependency_cache_v17_frontend_lifecycle_and_localstate_projection.json"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_transient_state_v17.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_transient_state_v17.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_bundle_v17.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_bundle_verifier_v17.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tools/verify_admin_dependency_cache_export_plan_v17.py"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_dependency_cache_export_plan_v17.py"
-        },
-        {
-          "kind": "git",
-          "ref": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e"
-        },
-        {
-          "kind": "git",
-          "ref": "d930990d6a4393c565927306d7ae6b5db1ec4e88"
-        },
-        {
-          "kind": "git",
-          "ref": "6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36"
-        },
-        {
-          "kind": "path",
-          "ref": ".github/release-requests/admin-5335bda-dependency-cache-v17.json"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/admin_item20_stage_a_v2.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_item20_stage_a_v2.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/admin_item20_stage_a_v3.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_item20_stage_a_v3.py"
-        },
-        {
-          "kind": "git",
-          "ref": "6951a003097599f8c82fb46cbdc84b316238ff05"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/admin_item20_stage_a_v4.sh"
-        },
-        {
-          "kind": "path",
-          "ref": "tests/test_admin_item20_stage_a_v4.py"
-        },
-        {
-          "kind": "path",
-          "ref": "deploy/production/admin_item20_stage_a_v5.sh"
-        },
+            {
+              "kind": "git",
+              "ref": "46595fef4916ca2881dd38c0a14ee630bba79c32"
+            },
+            {
+              "kind": "git",
+              "ref": "a94ee2b2feb81eafbcb523be2c95da4ee952cbc4"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v16.json"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v16.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/export_admin_dependency_cache_v16.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/import_admin_dependency_cache_v16.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_buildkit_v0.31.2_git_main_context_identity_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v16.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v16.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v16.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v16.py"
+            },
+            {
+              "kind": "git",
+              "ref": "b6f642e68c21341c90bb3c66f810945ada4e084a"
+            },
+            {
+              "kind": "git",
+              "ref": "095529e03f735494a98ce2302a6e1be570291d8c"
+            },
+            {
+              "kind": "git",
+              "ref": "fd1444d0a62549b3c353cbc1188e6ba25a77e96e"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v16.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/admin-dependency-cache-v16-attempt1-failed-20260802.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_v16_failure_evidence.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_v16_failure_evidence.py"
+            },
+            {
+              "kind": "git",
+              "ref": "4c2df3b19b4f5493adba78eed89c3a015d76972d"
+            },
+            {
+              "kind": "git",
+              "ref": "751da973dd7136d792adfafa11e50f5e5e0bd689"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/workflows/admin-dependency-cache-export-v17.yml"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/plans/admin-dependency-cache-export-request-v17.json"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/export_admin_dependency_cache_v17.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "scripts/ci/import_admin_dependency_cache_v17.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/fixtures/admin_dependency_cache_v17_frontend_lifecycle_and_localstate_projection.json"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_transient_state_v17.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_transient_state_v17.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_bundle_v17.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_bundle_verifier_v17.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tools/verify_admin_dependency_cache_export_plan_v17.py"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_dependency_cache_export_plan_v17.py"
+            },
+            {
+              "kind": "git",
+              "ref": "7ee9a15425c38e8f0d5382cba488bd4a6ce92d6e"
+            },
+            {
+              "kind": "git",
+              "ref": "d930990d6a4393c565927306d7ae6b5db1ec4e88"
+            },
+            {
+              "kind": "git",
+              "ref": "6b8fba3dd8eb5b387b890f7b486a4cfa5e373f36"
+            },
+            {
+              "kind": "path",
+              "ref": ".github/release-requests/admin-5335bda-dependency-cache-v17.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/admin_item20_stage_a_v2.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_item20_stage_a_v2.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/admin_item20_stage_a_v3.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_item20_stage_a_v3.py"
+            },
+            {
+              "kind": "git",
+              "ref": "6951a003097599f8c82fb46cbdc84b316238ff05"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/admin_item20_stage_a_v4.sh"
+            },
+            {
+              "kind": "path",
+              "ref": "tests/test_admin_item20_stage_a_v4.py"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/admin_item20_stage_a_v5.sh"
+            },
             {
               "kind": "path",
               "ref": "tests/test_admin_item20_stage_a_v5.py"
@@ -1736,7 +1736,7 @@
                 "ambient_skipped_count": 28,
                 "ambient_duration_seconds": 1089.286,
                 "v13_scoped_test_count": 10,
-                "v13_scoped_duration_seconds": 0.660,
+                "v13_scoped_duration_seconds": 0.66,
                 "v13_isolated_test_count": 1,
                 "v13_isolated_duration_seconds": 0.911,
                 "v14_detached_test_count": 12,
@@ -1758,7 +1758,7 @@
                 "completed_at": "2026-08-02T09:40:17Z",
                 "ambient_test_count": 1680,
                 "ambient_skipped_count": 28,
-                "ambient_duration_seconds": 1052.530,
+                "ambient_duration_seconds": 1052.53,
                 "v13_scoped_test_count": 10,
                 "v13_scoped_duration_seconds": 0.665,
                 "v13_isolated_test_count": 1,
@@ -16378,26 +16378,28 @@
         },
         {
           "id": "real_payment_chain",
-          "title": "Merchant, callback, refund and reconciliation acceptance",
-          "status": "unverified",
+          "title": "WeChat Pay and Alipay direct merchant, callback, refund and reconciliation acceptance",
+          "status": "blocked",
           "dependencies": [
             "payment_internal_runtime",
             "monitoring_alerting"
           ],
           "evidence": [],
-          "blocker": "Merchant admission, provider compatibility, callback path and real-money reconciliation are unverified.",
+          "blocker": "BLOCKED_EXTERNAL_DEPENDENCY / implementation-preparation-in-progress: An authenticated Aliyun ICP order readback at 2026-09-07T01:34+08:00 showed the first-filing order created on 2026-09-04 at step 5, 管局审核, with an eight-working-day platform estimate; it is not complete. ICP filing must complete before WeChat Pay direct and Alipay direct merchant/product applications can complete and issue the required production credentials. Provider-neutral order/state/webhook/idempotency/exactly-once/refund/ledger/reconciliation logic, direct gateways, the canary-only synthetic create fence, safe create/callback/refund digests and the Alipay out_request_no refund identity are prepared offline. Terminal evidence still cannot reconstruct true DML affected-row counts or prove zero out-of-contract mutations from final row state, and create/callback audit emission is best-effort after a real-fund action; these gaps receive no credit and no new receipt or parallel billing architecture will be added while the direct providers are externally blocked. Merchant admission, real callbacks, payment, refund and reconciliation remain unverified. Ping++ preparation is historical evidence only and receives zero Item31 credit.",
+          "resume_condition": "ICP filing is complete; both direct-provider merchant/product applications are approved; the required AppID, merchant identifiers, certificates and keys are injected through the existing Secret mechanism without exposing values; then exactly one 1200-fen bounded real-payment canary per provider may execute after one owner authorization for the cumulative CNY24 real-fund flow.",
           "next_task": "PROD-FIRST-LAUNCH-PAYMENT-REAL-001"
         },
         {
           "id": "real_xhs_trends",
           "title": "Capped database-read-only real XHS Trends proof",
-          "status": "unverified",
+          "status": "blocked",
           "dependencies": [
             "trends_suspended_runtime",
             "monitoring_alerting"
           ],
           "evidence": [],
-          "blocker": "No real XHS session/schema/challenge/evidence-quality proof exists.",
+          "blocker": "HOLD_UNKNOWN_NO_REPLAY / FRESH_SUCCESSOR_PREPARED_NOT_EXECUTED: the original known remote_business_error identity and the later UNKNOWN_HOLD diagnostic identity remain separately sealed with cumulative provider calls 2 and retries 0. The terminal-path mismatch between the image adapter HTTP User-Agent and its pinned signer asset is corrected in a source-bound read-only overlay; this is a risk correction, not a claimed root cause for either prior outcome. The distinct successor at deploy/production/plans/item32-readonly-successor-20260907.json binds both immutable predecessor digests and may dispatch only in UTC bucket 2026-09-07, no later than 23:40Z, with finish before 2026-09-08T00:00:00Z, a fresh 15-minute runtime readback and used0/remaining34. It creates its durable no-replay admission before the single start, stops every exact registered container before failure-ledger readback, records an unreadable store as UNKNOWN, keeps candidate Evidence under a root-owned run directory, and publishes it by file-descriptor copy with O_EXCL, digest and inode checks only after full cleanup. It keeps the production database server-enforced read-only and counts only qualifying real sources toward the per-domain minimum; industry_baseline fill rows cannot earn real-source credit. The current exact-four-member transfer artifact is /tmp/noteai-item32-successor-20260907.tar.gz, size 28594, SHA256 b494b48fab58b1f4359eaac535fb38e6daa02b2aad8c595da29ec76f8b69ec6d; older transfer identities are obsolete. Preparation closure remains deploy/production/evidence/production-item32-xhs-diagnostic-hold-unknown-20260906.json and gives no Item32 credit.",
+          "resume_condition": "Never replay either sealed predecessor. The 2026-09-06 UTC diagnostic conservatively consumed one request, while the terminal cycle requires all 34 requests under the unchanged daily cap of 34. The fresh successor therefore fails closed before 2026-09-07T00:00:00Z (Beijing 08:00) and then still requires a fresh used=0/remaining=34 production read-only preflight. Run once only through deploy/production/plans/item32-readonly-successor-20260907.json; any unknown outcome seals the new identity with no replay. Require owner action only if an actual login, verification, risk-control or account-restriction prompt is observed.",
           "next_task": "PROD-XHS-TRENDS-REAL-SUPPLIER-READONLY-001"
         },
         {
@@ -16409,12 +16411,12 @@
             "internal_failure_rollback"
           ],
           "evidence": [],
-          "blocker": "Trends has no accepted real bounded cycle and managed recovery evidence.",
+          "blocker": "Trends has no accepted real bounded cycle and managed recovery evidence. The prepared executor binds Item32's terminal UTC bucket and rejects Item33 in that same bucket, so after a successful 2026-09-07 Item32 cycle Item33 cannot dispatch before 2026-09-08T00:00:00Z.",
           "next_task": "PROD-XHS-TRENDS-MANAGED-PROMOTE-001"
         },
         {
           "id": "tracking_real_and_promotion",
-          "title": "Tracking owned-note 24h/7d proof and managed promotion",
+          "title": "Tracking real-note 24h/3d proof and managed promotion",
           "status": "unverified",
           "dependencies": [
             "tracking_suspended_runtime",
@@ -16422,17 +16424,18 @@
             "internal_failure_rollback"
           ],
           "evidence": [],
-          "blocker": "Tracking has no independent real-XHS or managed singleton evidence.",
+          "blocker": "The same owned-note observation remains anchored at 2026-09-04T22:30:38+08:00; 24h and 3d checkpoints are due 2026-09-05T22:30:38+08:00 and 2026-09-07T22:30:38+08:00, with no backfill or early credit. The 24h attempt must occur at or after its 24h boundary and strictly before the 72h boundary; executor and terminal validator reject a late 24h attempt symmetrically. A server-enforced production read-only preflight at 2026-09-06T02:31:28.733689Z found the Tracking tables ready but crawler_config absent/disabled, canonical managed rows 0, global due rows 0, active attempts 0 and outcome-unknown attempts 0; the unit is inactive/dead/disabled, production database writes are 0 and XHS calls are 0. Item34 is independent of Item32. The Secret target is configured. The exact --once --limit 1 outer executor and production wrapper bind the immutable image, exact object/stage, minimum managed transition, exact prior-config restoration, container quiescence and canonical attempt UUIDs. Before the unique provider-attempt admission, the same image and Secret target must pass a zero-network safe readback for configured session state, known authenticated-session expiry, pinned signer assets and at least one remaining Tracking daily admission; no Secret value is returned. Terminal readback requires training_eligible=false, score window 3d, growth action url_crawl_3d and a classified three-day memory content digest. Canonical Item34 checkpoint/evidence/wrapper checks pass 81/81 and related tracking/spider regressions pass 50/50. Direct API-F Workbench access is now proven and authorized for CTO use. The remaining blockers are a legitimate NoteAI-authored managed row, privileged production apply/readback of migration 0019 after the visible Alibaba account-verification gate, and a current immutable XHS image with a registry digest. A 2026-09-07T02:14+08:00 direct Workbench readback revalidated the exact local image ID; API-F lacks buildx and the supported Docker manifest query reached ACR but returned AUTH_UNAVAILABLE, with one registry read, no push and no Secret exposure. A 2026-09-06T18:23+08:00 bounded SSH probe timed out before authentication and is sealed without retry. Both object-bound provider attempts and singleton promotion remain unverified.",
           "next_task": "PROD-XHS-TRACKING-REAL-XHS-CANARY-001"
         },
         {
           "id": "legal_provider_approval",
-          "title": "Professional privacy, terms, refund and cross-border approval",
-          "status": "unverified",
+          "title": "Professional privacy, terms, refund, cross-border and provider approval",
+          "status": "blocked",
           "execution_class": "professional_review",
           "dependencies": [],
           "evidence": [],
-          "blocker": "Repository controls exist, but professional legal/provider confirmation is absent.",
+          "blocker": "The current WeChat Pay/Alipay and Item34 three-day professional review scope was refrozen at 2026-09-06T20:11:37+08:00 with package SHA256 1b5c37594b2c51b738b2edbc5acad1e052b311a4a8a3f677b64ae3fa3da7b89d. The two distinct real signed artifacts and bindings for legal_privacy and provider_commercial_and_xhs are absent; repository controls cannot substitute for professional approval.",
+          "resume_condition": "Any required privacy, terms, refund or cross-border document revisions are complete and the review package is refrozen; the four document categories are APPROVED; two distinct professional signed artifacts and bindings for legal_privacy and provider_commercial_and_xhs are dated no earlier than the applicable package freeze, bind the complete frozen scope, use disjoint signed/binding paths and SHA256 identities, and have open_condition_count 0; the CTO verifies each signer's professional identity and authority.",
           "next_task": "PROD-FIRST-LAUNCH-LEGAL-PROVIDER-REVIEW-001"
         },
         {
@@ -16445,7 +16448,7 @@
             "tracking_real_and_promotion"
           ],
           "evidence": [],
-          "blocker": "ALB listeners, targets and TLS health semantics are not configured or accepted. Independently, API-F's three accepted NoteAI managed units have a current NeedDaemonReload mask of 7 and must deterministically converge to mask 0 before Item36 execution; full global loaded-unit set stability is not required, and DNS cutover remains NO-GO while this risk is open.",
+          "blocker": "ALB listeners, targets and TLS health semantics are not configured or accepted. The latest recorded ALB count is 0 and API-C/F publish only on loopback, so ALB cannot reach them. API-F exact-three NeedDaemonReload mask 7 to 0 is sealed preparation-only Evidence and must not be replayed; terminal state requires fresh post-private-bind NDR. An initial Secret-free executor prototype was independently rejected before production use because its preflight clock, persistent no-replay admission, exact quote binding, canonical readback coverage and rollback identity contract were insufficient; the prototype was removed and gives no credit. Any replacement must directly produce the existing canonical Item36 Evidence shape, pass the existing validator before atomic publication, persist dispatch intent with fixed request identities and seal UNKNOWN without replay. Item36 remains dependency-gated by terminal Item33 and Item34, fresh Aliyun inventory/quote and the ALB/LCU/EIP continuing-cost owner gate. The old CNY149.04/month plus outbound-traffic estimate is reference-only and cannot substitute for a fresh approved quote.",
           "next_task": "PROD-FIRST-LAUNCH-ALB-TLS-001"
         },
         {

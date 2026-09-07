@@ -531,6 +531,7 @@ class AdapayAdapter(payment_contract.PaymentProvider):
             "product_kind",
             "product_id",
             "provider_mode",
+            "provider_name",
             "device_ip",
         }
         if not isinstance(order, dict) or set(order) != expected_keys:
@@ -540,6 +541,8 @@ class AdapayAdapter(payment_contract.PaymentProvider):
         expected_mode = "live" if self._prod_mode else "mock"
         if order["provider_mode"] != expected_mode:
             raise AdapayAdapterError("PAYMENT_PROVIDER_MODE_INVALID")
+        if order["provider_name"] != "adapay":
+            raise AdapayAdapterError("PAYMENT_PROVIDER_IDENTITY_INVALID")
         kind = str(order["product_kind"] or "")
         product_id = str(order["product_id"] or "")
         if (
@@ -623,6 +626,8 @@ class AdapayAdapter(payment_contract.PaymentProvider):
             prod_mode=prod_mode,
             response_verified=True,
             checkout_token=checkout,
+            provider_name="adapay",
+            currency="CNY",
         )
 
     def create_payment(
@@ -666,8 +671,13 @@ class AdapayAdapter(payment_contract.PaymentProvider):
 
     def query_payment(
         self,
-        provider_payment_id: str,
+        lookup: payment_contract.ProviderPaymentLookup | str,
     ) -> payment_contract.ProviderPaymentResult:
+        provider_payment_id = (
+            lookup.provider_payment_id
+            if isinstance(lookup, payment_contract.ProviderPaymentLookup)
+            else lookup
+        )
         payment_id = _opaque(provider_payment_id, field="payment_id")
         data = self._request(
             "GET",
@@ -676,6 +686,11 @@ class AdapayAdapter(payment_contract.PaymentProvider):
         )
         result = self._payment_result(data, include_checkout=False)
         if result.provider_payment_id != payment_id:
+            raise AdapayAdapterError("PAYMENT_PROVIDER_RESPONSE_MISMATCH")
+        if (
+            isinstance(lookup, payment_contract.ProviderPaymentLookup)
+            and result.merchant_order_no != lookup.merchant_order_no
+        ):
             raise AdapayAdapterError("PAYMENT_PROVIDER_RESPONSE_MISMATCH")
         return result
 
@@ -687,6 +702,7 @@ class AdapayAdapter(payment_contract.PaymentProvider):
             "amount_fen",
             "currency",
             "provider_mode",
+            "provider_name",
             "reason_code",
         }
         if not isinstance(refund, dict) or set(refund) != expected_keys:
@@ -696,6 +712,8 @@ class AdapayAdapter(payment_contract.PaymentProvider):
         expected_mode = "live" if self._prod_mode else "mock"
         if refund["provider_mode"] != expected_mode:
             raise AdapayAdapterError("PAYMENT_PROVIDER_MODE_INVALID")
+        if refund["provider_name"] != "adapay":
+            raise AdapayAdapterError("PAYMENT_PROVIDER_IDENTITY_INVALID")
         reason_code = str(refund["reason_code"] or "")
         reasons = {
             "customer_request": "customer request",
@@ -766,8 +784,13 @@ class AdapayAdapter(payment_contract.PaymentProvider):
 
     def query_refund(
         self,
-        provider_refund_id: str,
+        lookup: payment_contract.ProviderRefundLookup | str,
     ) -> payment_contract.ProviderRefundResult:
+        provider_refund_id = (
+            lookup.provider_refund_id
+            if isinstance(lookup, payment_contract.ProviderRefundLookup)
+            else lookup
+        )
         refund_id = _opaque(provider_refund_id, field="refund_id")
         data = self._request(
             "GET",
@@ -790,7 +813,7 @@ class AdapayAdapter(payment_contract.PaymentProvider):
         trans_status = str(row.get("trans_status") or "")
         if trans_status not in _STATUS_MAP:
             raise AdapayAdapterError("PAYMENT_PROVIDER_STATUS_INVALID")
-        return payment_contract.ProviderRefundResult(
+        result = payment_contract.ProviderRefundResult(
             merchant_refund_no=_opaque(
                 row.get("refund_order_no"),
                 field="merchant_refund_no",
@@ -800,6 +823,12 @@ class AdapayAdapter(payment_contract.PaymentProvider):
             amount_fen=_money_fen(row.get("refund_amt")),
             response_verified=True,
         )
+        if (
+            isinstance(lookup, payment_contract.ProviderRefundLookup)
+            and result.merchant_refund_no != lookup.merchant_refund_no
+        ):
+            raise AdapayAdapterError("PAYMENT_PROVIDER_RESPONSE_MISMATCH")
+        return result
 
     def reconciliation_rows(
         self,

@@ -1,6 +1,6 @@
 # XHS Tracking first-launch production contract
 
-Version: `first-launch-2026-07-26`
+Version: `first-launch-2026-09-04-item34-acceptance`
 
 Status: repository candidate only. This document does not authorize a
 migration, role change, service start, supplier call or production write.
@@ -10,6 +10,10 @@ migration, role change, service start, supplier call or production write.
 - Tracking remains a first-launch hard requirement and is independently
   accepted from Trends.
 - User API paths and the 24h/7d/manual-fill product flow remain stable.
+- For public-launch Item34 acceptance only, the owner requires a real 24-hour
+  checkpoint plus a continuous three-day checkpoint from the canonical
+  observation start. This acceptance evidence change does not rename legacy
+  runtime fields or change the general product schedule.
 - Only an HTTPS full note URL on exact host `xiaohongshu.com` or
   `www.xiaohongshu.com` and exact `explore`/`discovery/item` path is accepted.
 - The stored identity is
@@ -97,8 +101,34 @@ Required positive table surface:
 | `growth_records` | `INSERT` only |
 | `user_memories` | `INSERT` only |
 | `crawler_events` | `INSERT` only |
-| `system_settings` | `SELECT` only |
+| `system_settings` | `SELECT` only; RLS exposes only the non-secret `crawler_config` and `xhs_collection_safety` rows |
 | `crawler_events_id_seq` | `USAGE` only |
+
+For the bounded Item34 launch Evidence, canonical checkpoint label `3d` binds
+to the existing persisted `7d` attempt slot. The canonical clock is
+`observation_started_at` from the first authenticated same-object snapshot;
+an older publication time gives no credit. The managed row and both provider
+attempts must bind to that object before terminal acceptance, but creating the
+row later does not rewrite or backdate the recorded observation start.
+
+The production acceptance wrapper binds the canonical tracking UUID and the
+requested `24h` or `3d` checkpoint to the exact one-shot Worker. The claim
+must still match `pending` for `24h`, or the legacy
+`checking_7d`/`checking_24h` state for `3d`, immediately before admission.
+The `3d` result continues to use the legacy 7d metric and attempt columns for
+storage compatibility, while its score evidence window, growth action and
+memory text all say `3d`; it is never training eligible.
+Postflight proves those four semantics from the committed rows and exposes
+only booleans, fixed enums and a memory-content SHA-256, never the memory text.
+
+Before a supplier call, the wrapper reads the non-secret collection safety
+state. A blocked or unreadable state permits zero calls. A known
+login/challenge/cooldown failure is read back from the attempt ledger and an
+app-role helper persists the Tracking stop flag with compare-and-swap and
+readback. Fixed provider-container identities are stopped before cleanup; an
+uncertain start or cleanup is sealed for read-only reconciliation and is never
+replayed. Temporary `crawler_config` activation preserves the exact original
+value and timestamp and restores both with compare-and-swap readback.
 
 The role needs database `CONNECT`, schema `USAGE`, and effective execution of
 `pg_catalog.hashtext(text)` and

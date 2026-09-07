@@ -1,15 +1,136 @@
-# NoteAI Adapay Payment Production Contract
+# NoteAI Payment Production Contract
 
-Status: repository/offline contract for
-`PROD-FIRST-LAUNCH-PAYMENT-CONTRACT-001`, followed by the transport-injected
-adapter and dedicated callback-runtime phase
-`PROD-FIRST-LAUNCH-PAYMENT-ADAPTER-001`. Neither phase authorizes merchant
+## Item31 direct-provider preparation — 2026-09-04
+
+The owner-designated first-launch providers are WeChat Pay direct and Alipay
+direct. Item31 is `BLOCKED_EXTERNAL_DEPENDENCY` until ICP filing, both merchant
+and product approvals, and secure production credential injection are complete.
+No direct-provider payment, callback, refund or reconciliation acceptance has
+run, and the earlier Ping++ TEST preparation gives Item31 no readiness credit.
+
+The existing `PaymentProvider` boundary, internal order state machine,
+authenticated callback ledger, provider-event idempotency, exactly-once
+entitlement, unused full-refund flow and reconciliation model remain the shared
+implementation base. Provider-specific transports and signature verification
+must terminate at that boundary; they must not create a second billing system.
+Migration `0018_direct_payment_providers.sql` only reserves the two direct
+provider identities while preserving accepted Adapay rows. It contains no
+Secret, role, grant, payment, refund, entitlement or balance action.
+
+`model/direct_payment_gateways.py` now provides the minimum implementations
+`WeChatPayGateway` and `AlipayGateway` on the existing `PaymentProvider`
+boundary. They map Native/precreate payment, query, full refund, refund query
+and authenticated reconciliation rows into the existing integer-fen contract.
+The WeChat gateway verifies the exact API v3 notification bytes with the
+configured platform-certificate or public-key verification identity, binds the
+declared signature algorithm, and decrypts `AEAD_AES_256_GCM` resources before
+it can create a canonical callback event. The Alipay gateway verifies the
+sorted form fields with RSA2, then binds the application, seller, notification
+type, order and exact amount before it can create the same canonical payment
+event. Authenticated payment callbacks and WeChat refund callbacks enter the
+existing callback/idempotency/ledger boundary; neither gateway can grant an
+entitlement from a redirect page or synchronous create response. Alipay QR
+checkout is restricted to the official `qr.alipay.com` host.
+
+Alipay's synchronous refund response remains a non-terminal submission receipt
+even when it reports a fund change. An authenticated
+`alipay.trade.fastpay.refund.query` response is bound to its exact signed JSON
+bytes, merchant order, payment, refund identity and amount, then enters the
+existing `refund.succeeded`/`refund.failed` event boundary under a deterministic
+receipt identity. Repeating the same query receipt therefore cannot duplicate
+the cash or entitlement reversal ledger entries. WeChat's payment query state
+`REFUND` is recognized as a refund-reconciliation condition and cannot be
+treated as a malformed payment response or a new entitlement grant.
+
+The one-attempt WeChat API v3 and Alipay RSA2 HTTP transports now sign exact
+payment/refund/query requests and verify the exact provider response before
+returning its signed JSON node. TLS verification is enabled; environment
+proxies, redirects and automatic retries are disabled; response bytes and
+clocks are bounded. WeChat trade-bill location and download are signed, the
+download URL and provider-signed locator's SHA-1 digest are verified, and the
+official trade-bill CSV shape is parsed and bound to the requested merchant,
+app and bill date. Alipay's signed bill locator, exact TLS download URL and
+bounded trade-bill ZIP/CSV parser are implemented. Merchant-authorized official
+sample compatibility remains unverified, so Alipay bill reconciliation stays
+on external provider-compatibility hold until that sample is read back. An injected
+transport must return a provider-bound,
+already authenticated response or bill; the gateway rejects an unsigned,
+cross-provider, malformed or oversized result.
+Item31 counts five semantic provider operations per direct-provider canary:
+payment creation, payment query, refund submission, refund query and daily
+reconciliation. This count is not described as a raw HTTP-request count because
+a provider's reconciliation operation can require a signed locator request and
+a separate bounded download. Callback delivery and its duplicate replay are
+authenticated inbound events and do not increase that operation count. Each
+byte-identical duplicate increments the original event's bounded durable
+delivery counter, so the canary can prove one replay without granting or
+reversing entitlement twice.
+When the temporary Item31 canary flag is enabled, the existing order API binds
+creation to the selected direct provider, the synthetic user and subject,
+`credit_package/starter` at exactly 1200 fen, one fixed Idempotency-Key digest,
+and an activation window of at most one hour before any order write or provider
+call. A successful create emits only domain-separated request, response,
+checkout, order, user and activation digests; it does not change the API
+response or log raw provider/order/checkout values. Alipay refund evidence uses
+the authenticated `out_request_no` as its provider-bound refund identity when
+the provider does not issue a separate refund id; only its domain-separated
+digest is exposed.
+The current transports use live provider origins only, so both direct gateways
+reject mock mode in every deployment stage. Their provider notifications are
+bound to the exact public NoteAI endpoints
+`https://api.noteaipro.cn/payments/wechat/callback` and
+`https://api.noteaipro.cn/payments/alipay/callback`; another host, port, path,
+query or fragment is rejected before a provider request can be made.
+App IDs, merchant IDs and seller IDs are non-secret environment configuration
+and must not be scattered through application code. Private keys, API v3 keys
+and other API keys must use the existing managed Secret path and must never
+appear in source, logs, Evidence or handoff files. Provider public verification
+keys and certificate identities are role-bound trust configuration and must be
+rotated through the same controlled runtime configuration path.
+All four direct-provider PEM inputs use strict canonical standard Base64 on one
+unquoted env-file line. The process decodes them only in memory before strict
+RSA parsing; quoted values, escaped-newline text, whitespace, noncanonical
+Base64 and oversized material fail closed. This keeps Compose `env_file` and
+Docker `--env-file` semantics identical without exposing resolved key bytes.
+The API ordering role receives merchant request-signing keys and provider
+response trust roots, but no WeChat API v3 callback-decryption key. The isolated
+Payment callback role receives that API v3 key and provider trust roots, but no
+merchant request-signing private key while it exposes callback routes only.
+
+The public ALB keeps its exact two API backends on port 8000. The two direct
+callback paths are relayed by the API ingress, without parsing or DB access, to
+the co-located Payment container on `127.0.0.1:8002`. The Payment container
+shares the API container network namespace and publishes no second host or ALB
+port. The relay is disabled by default, accepts only those two fixed paths,
+preserves only the exact body, content type and WeChat signature headers, and
+uses one bounded no-retry loopback request. Callback authentication and all
+payment-state writes remain exclusively in the Payment role. Activation must
+enable the API relay and Payment callback together. The Payment systemd unit is
+bound to the API unit so an API restart stops the old namespace-bound Payment
+container before both are started and verified again.
+
+Status: repository/offline contract, provider gateways, signed payment/query
+transports, WeChat trade-bill reconciliation, direct-provider bootstrap/API
+selection, dedicated callback routes, exact schema controller and bounded
+one-attempt canary executor are prepared for
+`PROD-FIRST-LAUNCH-PAYMENT-CONTRACT-001`. Alipay merchant-sample bill
+compatibility, production migration, image deployment, merchant configuration and runtime activation
+remain `PROD-FIRST-LAUNCH-PAYMENT-ADAPTER-001`. Neither
+phase authorizes merchant
 activation, credential use, provider request, real or mock transaction,
 production migration, grant, service start or cash movement.
 
-## Provider facts and trust boundary
+Primary direct-provider references:
+[WeChat Pay API v3 SDK and notification contract](https://github.com/wechatpay-apiv3/wechatpay-java),
+[WeChat Pay Go API v3 paths](https://github.com/wechatpay-apiv3/wechatpay-go),
+[Alipay Trade API](https://github.com/alipay/alipay-sdk-net-all/blob/master/v3/docs/AlipayTradeApi.md),
+and [Alipay EasySDK callback/bill API](https://github.com/alipay/alipay-easysdk/blob/master/APIDoc.md).
 
-- Adapay is the selected first-launch direction. The official API exposes
+## Retained legacy Adapay facts and trust boundary
+
+- Adapay is the retained legacy adapter and is not the selected public-launch
+  provider. Its historical contract remains below for compatibility and
+  regression review; it gives Item31 no readiness credit. Its official API exposes
   payment creation/query/close, refund creation/query and daily bill download.
 - An asynchronous callback is a form POST containing `data` and `sign`.
   `sign` authenticates the exact UTF-8 bytes of `data` with Adapay's public
@@ -72,10 +193,14 @@ production migration, grant, service start or cash movement.
   `e4f43554a39c80d7f43e342a03b2dbede1c6d9f7efe53a1ba81a69edc743ebba`
   for Refund. Template files are not retained in the repository.
 - `model/payment_runtime.py` is the only callback processor. It exposes only
-  liveness, readiness and the callback path, is disabled by default and, in
+  liveness, readiness and the three provider callback paths, is disabled by
+  default and, in
   production, fails closed unless PostgreSQL reports `current_user =
-  noteai_payment`. The ordinary API keeps its callback path as a compatibility
-  rejection and never processes provider events.
+  noteai_payment`, both direct providers are selected and both modes are LIVE.
+  The ordinary API keeps all callback paths as compatibility rejections and
+  never processes provider events. Ordering selects an allowlisted provider
+  explicitly and reuses the same payment contract; direct providers do not
+  inherit Adapay's transaction-device-IP requirement.
 - `scripts/render_start_api.sh` and the payment start script trust only the
   exact configured proxy CIDRs, defaulting to loopback; wildcard forwarded
   headers are prohibited. The final deployment must set those CIDRs to the
@@ -207,7 +332,7 @@ and the full regression suite.
 
 Production remains blocked until separately controlled packages prove
 merchant/channel admission, Secret injection and rotation, provider
-mock-mode compatibility, callback reachability, production migration/ACL,
+direct-provider live-mode compatibility, callback reachability, production migration/ACL,
 bounded reconciliation scheduling and alerts. A later minimal real-money test
 must have an exact fen cap, named refund plan, pre/post ledger audit, explicit
 evidence retention, no automatic retry and separate authorization.

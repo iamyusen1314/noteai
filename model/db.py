@@ -836,7 +836,11 @@ CREATE TABLE IF NOT EXISTS payment_orders (
                              amount_fen BETWEEN 1 AND 100000000
                          ),
     currency             TEXT NOT NULL CHECK (currency='CNY'),
-    provider             TEXT NOT NULL CHECK (provider='adapay'),
+    provider             TEXT NOT NULL CHECK (
+                             provider IN (
+                                 'adapay','wechatpay_direct','alipay_direct'
+                             )
+                         ),
     provider_mode        TEXT NOT NULL CHECK (
                              provider_mode IN ('mock','live')
                          ),
@@ -931,6 +935,10 @@ CREATE TABLE IF NOT EXISTS payment_events (
                              ),
     prod_mode                INTEGER NOT NULL CHECK (prod_mode IN (0,1)),
     provider_created_at      INTEGER NOT NULL,
+    duplicate_delivery_count INTEGER NOT NULL DEFAULT 0 CHECK (
+                                 typeof(duplicate_delivery_count)='integer'
+                                 AND duplicate_delivery_count BETWEEN 0 AND 1000000
+                             ),
     processing_state         TEXT NOT NULL CHECK (
                                  processing_state IN (
                                      'accepted','processed','ignored',
@@ -966,6 +974,14 @@ CREATE TABLE IF NOT EXISTS payment_refunds (
                              reason_code IN (
                                  'customer_request','service_not_delivered',
                                  'duplicate_payment','fraud_review'
+                             )
+                         ),
+    provider_submitted_at INTEGER CHECK (
+                             provider_submitted_at IS NULL
+                             OR (
+                                 typeof(provider_submitted_at)='integer'
+                                 AND provider_submitted_at BETWEEN
+                                     946684800 AND 4102444800
                              )
                          ),
     created_at           TEXT NOT NULL,
@@ -1095,7 +1111,11 @@ CREATE INDEX IF NOT EXISTS idx_payment_credit_consumptions_usage
 
 CREATE TABLE IF NOT EXISTS payment_reconciliation_runs (
     id                    TEXT PRIMARY KEY,
-    provider              TEXT NOT NULL CHECK (provider='adapay'),
+    provider              TEXT NOT NULL CHECK (
+                              provider IN (
+                                  'adapay','wechatpay_direct','alipay_direct'
+                              )
+                          ),
     provider_mode         TEXT NOT NULL CHECK (
                               provider_mode IN ('mock','live')
                           ),
@@ -1148,7 +1168,11 @@ CREATE TABLE IF NOT EXISTS payment_reconciliation_items (
 
 CREATE TABLE IF NOT EXISTS payment_settlement_summaries (
     id               TEXT PRIMARY KEY,
-    provider         TEXT NOT NULL CHECK (provider='adapay'),
+    provider         TEXT NOT NULL CHECK (
+                         provider IN (
+                             'adapay','wechatpay_direct','alipay_direct'
+                         )
+                     ),
     provider_mode    TEXT NOT NULL CHECK (
                          provider_mode IN ('mock','live')
                      ),
@@ -1275,6 +1299,8 @@ WHEN
         AND NEW.processing_state NOT IN (
             'accepted','processed','ignored','needs_manual'
         ))
+    OR NEW.duplicate_delivery_count<OLD.duplicate_delivery_count
+    OR NEW.duplicate_delivery_count>OLD.duplicate_delivery_count+1
 BEGIN
     SELECT RAISE(ABORT,'invalid payment event transition');
 END;
@@ -1981,6 +2007,104 @@ CREATE TABLE IF NOT EXISTS user_contract_acceptances (
 CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
     ON user_contract_acceptances(contract_version,privacy_accepted_at);
         """)
+        payment_refund_cols = {
+            str(row[1]): str(row[2]).upper()
+            for row in conn.execute(
+                "PRAGMA table_info(payment_refunds)"
+            ).fetchall()
+        }
+        if "provider_submitted_at" not in payment_refund_cols:
+            conn.execute(
+                "ALTER TABLE payment_refunds ADD COLUMN "
+                "provider_submitted_at INTEGER CHECK ("
+                "provider_submitted_at IS NULL OR ("
+                "typeof(provider_submitted_at)='integer' AND "
+                "provider_submitted_at BETWEEN 946684800 AND 4102444800))"
+            )
+        elif payment_refund_cols["provider_submitted_at"] != "INTEGER":
+            raise RuntimeError(
+                "non-epoch payment refund submission column blocks startup"
+            )
+        payment_event_cols = {
+            str(row[1]): str(row[2]).upper()
+            for row in conn.execute(
+                "PRAGMA table_info(payment_events)"
+            ).fetchall()
+        }
+        if "duplicate_delivery_count" not in payment_event_cols:
+            conn.execute(
+                "ALTER TABLE payment_events ADD COLUMN "
+                "duplicate_delivery_count INTEGER NOT NULL DEFAULT 0 CHECK ("
+                "typeof(duplicate_delivery_count)='integer' AND "
+                "duplicate_delivery_count BETWEEN 0 AND 1000000)"
+            )
+        elif payment_event_cols["duplicate_delivery_count"] != "INTEGER":
+            raise RuntimeError(
+                "non-integer payment duplicate counter blocks startup"
+            )
+        conn.executescript(
+            """
+DROP TRIGGER IF EXISTS payment_events_transition_v1;
+CREATE TRIGGER payment_events_transition_v1
+BEFORE UPDATE ON payment_events
+WHEN
+    (OLD.processing_state<>'accepted'
+        AND NEW.processing_state<>OLD.processing_state)
+    OR
+    (OLD.processing_state='accepted'
+        AND NEW.processing_state NOT IN (
+            'accepted','processed','ignored','needs_manual'
+        ))
+    OR NEW.duplicate_delivery_count<OLD.duplicate_delivery_count
+    OR NEW.duplicate_delivery_count>OLD.duplicate_delivery_count+1
+BEGIN
+    SELECT RAISE(ABORT,'invalid payment event transition');
+END;
+
+DROP TRIGGER IF EXISTS payment_refunds_provider_submission_immutable_v1;
+CREATE TRIGGER payment_refunds_provider_submission_immutable_v1
+BEFORE UPDATE OF provider_submitted_at ON payment_refunds
+WHEN
+    (
+        OLD.provider_submitted_at IS NOT NULL
+        AND NEW.provider_submitted_at IS NOT OLD.provider_submitted_at
+    )
+    OR (
+        NEW.provider_submitted_at IS NOT NULL
+        AND (
+            typeof(NEW.provider_submitted_at)<>'integer'
+            OR NEW.provider_submitted_at NOT BETWEEN
+                946684800 AND 4102444800
+            OR NEW.status='requested'
+            OR NOT EXISTS (
+                SELECT 1 FROM payment_orders
+                WHERE id=NEW.order_id
+                  AND provider='wechatpay_direct'
+            )
+        )
+    )
+BEGIN
+    SELECT RAISE(ABORT,'payment refund provider submission is immutable');
+END;
+
+DROP TRIGGER IF EXISTS payment_refunds_insert_guard_v1;
+CREATE TRIGGER payment_refunds_insert_guard_v1
+BEFORE INSERT ON payment_refunds
+WHEN
+    NEW.provider_submitted_at IS NOT NULL
+    OR NOT EXISTS (
+        SELECT 1 FROM payment_orders
+        WHERE id=NEW.order_id
+          AND amount_fen=NEW.amount_fen
+          AND payment_status='succeeded'
+          AND entitlement_status='applied'
+          AND refunded_fen=0
+    )
+BEGIN
+    SELECT RAISE(ABORT,'invalid full refund intent');
+END;
+            """
+        )
         # 存量迁移：幂等加列
         cols = [r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
         if "nickname" not in cols:

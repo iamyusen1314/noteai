@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import tempfile
+import threading
 import unittest
 import sqlite3
 from datetime import datetime, timedelta
@@ -262,16 +263,98 @@ class ApiContractTests(unittest.TestCase):
             },
         )
         self.assertEqual(create.status_code, 401)
-        callback = client.post(
+        for path in (
             "/payments/adapay/callback",
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            content="data=%7B%7D&sign=invalid",
-        )
-        self.assertEqual(callback.status_code, 503)
+            "/payments/wechat/callback",
+            "/payments/alipay/callback",
+        ):
+            callback = client.post(
+                path,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                content="data=%7B%7D&sign=invalid",
+            )
+            self.assertEqual(callback.status_code, 503)
+            self.assertEqual(
+                callback.json()["detail"],
+                "PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
+            )
+
+    def test_direct_payment_callbacks_relay_exact_body_to_local_payment_role(self):
+        client = TestClient(api.app)
+        captured = []
+
+        async def handler(request):
+            captured.append(
+                {
+                    "url": str(request.url),
+                    "body": await request.aread(),
+                    "headers": dict(request.headers),
+                }
+            )
+            if request.url.path.endswith("/wechat/callback"):
+                return api._httpx.Response(
+                    200,
+                    headers={"content-type": "application/json"},
+                    content=b'{"code":"SUCCESS","message":"ok"}',
+                )
+            return api._httpx.Response(
+                200,
+                headers={"content-type": "text/plain"},
+                content=b"success",
+            )
+
+        transport = api._httpx.MockTransport(handler)
+        async_client = api._httpx.AsyncClient
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "1",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            api._httpx,
+            "AsyncClient",
+            side_effect=lambda **kwargs: async_client(
+                transport=transport,
+                **kwargs,
+            ),
+        ):
+            wechat = client.post(
+                "/payments/wechat/callback",
+                headers={
+                    "Content-Type": "application/json",
+                    "Wechatpay-Timestamp": "1788573600",
+                    "Wechatpay-Nonce": "synthetic-nonce",
+                    "Wechatpay-Signature": "synthetic-signature",
+                    "Wechatpay-Serial": "0123456789ABCDEF",
+                    "X-Untrusted": "must-not-forward",
+                },
+                content=b'{"synthetic":true}',
+            )
+            alipay = client.post(
+                "/payments/alipay/callback",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-Untrusted": "must-not-forward",
+                },
+                content=b"synthetic=form",
+            )
+        self.assertEqual(wechat.status_code, 200)
+        self.assertEqual(wechat.json()["code"], "SUCCESS")
+        self.assertEqual(alipay.status_code, 200)
+        self.assertEqual(alipay.text, "success")
         self.assertEqual(
-            callback.json()["detail"],
-            "PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
+            [item["url"] for item in captured],
+            [
+                "http://127.0.0.1:8002/payments/wechat/callback",
+                "http://127.0.0.1:8002/payments/alipay/callback",
+            ],
         )
+        self.assertEqual(
+            [item["body"] for item in captured],
+            [b'{"synthetic":true}', b"synthetic=form"],
+        )
+        self.assertIn("wechatpay-signature", captured[0]["headers"])
+        self.assertNotIn("x-untrusted", captured[0]["headers"])
+        self.assertNotIn("x-untrusted", captured[1]["headers"])
 
     def test_authenticated_payment_order_is_unavailable_before_local_write(self):
         client = TestClient(api.app)
@@ -337,26 +420,567 @@ class ApiContractTests(unittest.TestCase):
                 None,
             )
 
+    def test_direct_payment_order_selects_explicit_gateway_without_client_ip(self):
+        client = TestClient(api.app)
+        api.app.dependency_overrides[api._auth.get_current_user] = lambda: {
+            "id": "synthetic-payment-user"
+        }
+        provider = mock.Mock()
+        provider.create_payment.return_value = api._payment.ProviderPaymentResult(
+            merchant_order_no="0123456789abcdef0123456789abcdef",
+            provider_payment_id=None,
+            status="pending",
+            amount_fen=1200,
+            app_id="wxSyntheticApp01",
+            prod_mode=True,
+            response_verified=True,
+            checkout_token='{"channel":"wechatpay_native","kind":"qr_text","value":"synthetic"}',
+            provider_name="wechatpay_direct",
+        )
+        stored = {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "merchant_order_no": "0123456789abcdef0123456789abcdef",
+            "amount_fen": 1200,
+            "currency": "CNY",
+            "product_kind": "credit_package",
+            "product_id": "starter",
+            "provider_mode": "live",
+            "provider": "wechatpay_direct",
+        }
+        env = {
+            "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "1",
+        }
+        try:
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                api,
+                "_payment_ordering_available",
+                return_value=True,
+            ), mock.patch.object(
+                api._payment_adapter_runtime,
+                "provider_from_environment",
+                return_value=provider,
+            ), mock.patch.object(
+                api._payment_adapter_runtime,
+                "configured_app_id",
+                return_value="wxSyntheticApp01",
+            ), mock.patch.object(
+                api._payment_adapter_runtime,
+                "configured_prod_mode",
+                return_value=True,
+            ), mock.patch.object(
+                api,
+                "_payment_callback_runtime_ready",
+                new=mock.AsyncMock(return_value=True),
+            ), mock.patch.object(
+                api._payment,
+                "create_order",
+                return_value={"id": stored["id"]},
+            ) as create_order, mock.patch.object(
+                api._db,
+                "fetchone",
+                return_value=stored,
+            ), mock.patch.object(
+                api._payment,
+                "admit_payment_submission",
+                return_value=True,
+            ), mock.patch.object(
+                api._payment,
+                "mark_payment_submission",
+                return_value={"id": stored["id"], "payment_status": "pending"},
+            ):
+                response = client.post(
+                    "/payments/orders",
+                    headers={"Idempotency-Key": "direct-provider-selection-001"},
+                    json={
+                        "product_kind": "credit_package",
+                        "product_id": "starter",
+                        "provider": "wechatpay_direct",
+                    },
+                )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                create_order.call_args.kwargs["provider_name"],
+                "wechatpay_direct",
+            )
+            self.assertEqual(create_order.call_args.kwargs["app_id"], "wxSyntheticApp01")
+            provider.create_payment.assert_called_once()
+            self.assertEqual(
+                provider.create_payment.call_args.args[0]["device_ip"],
+                "",
+            )
+        finally:
+            api.app.dependency_overrides.pop(
+                api._auth.get_current_user,
+                None,
+            )
+
+    def test_direct_live_canary_scope_rejects_before_order_or_provider(self):
+        client = TestClient(api.app)
+        user_id = "synthetic-payment-user"
+        api.app.dependency_overrides[api._auth.get_current_user] = lambda: {
+            "id": user_id
+        }
+        expected_key = "item31-live-canary-wechat-001"
+        now_epoch = int(api._time.time())
+        env = {
+            "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": "wechatpay_direct",
+            "NOTEAI_PAYMENT_CANARY_ENABLED": "1",
+            "NOTEAI_PAYMENT_CANARY_ACTION": "create-payment",
+            "NOTEAI_PAYMENT_CANARY_PROVIDER": "wechatpay_direct",
+            "NOTEAI_PAYMENT_CANARY_ACTIVATION_ID": (
+                "00000000-0000-4000-8000-000000000031"
+            ),
+            "NOTEAI_PAYMENT_CANARY_USER_ID_SHA256": api._item31_identity(
+                user_id,
+                "payment-canary-user-v1",
+            ),
+            "NOTEAI_PAYMENT_CANARY_SUBJECT_HASH": (
+                api._payment._subject_hash(user_id)
+            ),
+            "NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256": (
+                api._item31_identity(
+                    expected_key,
+                    "noteai-item31-create-idempotency-v1",
+                )
+            ),
+            "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
+            "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
+                "ITEM31-SYNTHETIC-NO-REAL-USER"
+            ),
+            "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": str(now_epoch - 5),
+            "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": str(now_epoch + 300),
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_DEPLOYMENT_STAGE": "production",
+        }
+        try:
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                api,
+                "_payment_ordering_available",
+                return_value=True,
+            ), mock.patch.object(
+                api,
+                "_payment_callback_runtime_ready",
+                new=mock.AsyncMock(return_value=True),
+            ), mock.patch.object(
+                api._payment_adapter_runtime,
+                "configured_app_id",
+                return_value="wxSyntheticApp01",
+            ), mock.patch.object(
+                api._payment_adapter_runtime,
+                "configured_prod_mode",
+                return_value=True,
+            ), mock.patch.object(
+                api._payment_adapter_runtime,
+                "provider_from_environment",
+            ) as provider_factory, mock.patch.object(
+                api._payment,
+                "create_order",
+            ) as create_order:
+                response = client.post(
+                    "/payments/orders",
+                    headers={"Idempotency-Key": "different-canary-key"},
+                    json={
+                        "product_kind": "credit_package",
+                        "product_id": "starter",
+                        "provider": "wechatpay_direct",
+                    },
+                )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(
+                response.json()["detail"],
+                "PAYMENT_CANARY_SCOPE_INVALID",
+            )
+            provider_factory.assert_not_called()
+            create_order.assert_not_called()
+        finally:
+            api.app.dependency_overrides.pop(
+                api._auth.get_current_user,
+                None,
+            )
+
+    def test_direct_create_audit_contains_only_bound_digests(self):
+        user_id = "synthetic-payment-user"
+        idempotency_key = "item31-live-canary-wechat-001"
+        now_epoch = int(api._time.time())
+        env = {
+            "NOTEAI_PAYMENT_CANARY_ENABLED": "1",
+            "NOTEAI_PAYMENT_CANARY_ACTION": "create-payment",
+            "NOTEAI_PAYMENT_CANARY_PROVIDER": "wechatpay_direct",
+            "NOTEAI_PAYMENT_CANARY_ACTIVATION_ID": (
+                "00000000-0000-4000-8000-000000000031"
+            ),
+            "NOTEAI_PAYMENT_CANARY_USER_ID_SHA256": api._item31_identity(
+                user_id,
+                "payment-canary-user-v1",
+            ),
+            "NOTEAI_PAYMENT_CANARY_SUBJECT_HASH": (
+                api._payment._subject_hash(user_id)
+            ),
+            "NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256": (
+                api._item31_identity(
+                    idempotency_key,
+                    "noteai-item31-create-idempotency-v1",
+                )
+            ),
+            "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
+            "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
+                "ITEM31-SYNTHETIC-NO-REAL-USER"
+            ),
+            "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": str(now_epoch - 5),
+            "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": str(now_epoch + 300),
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_DEPLOYMENT_STAGE": "production",
+        }
+        with mock.patch.dict(os.environ, env, clear=False):
+            context = api._item31_create_canary_context(
+                provider_name="wechatpay_direct",
+                user_id=user_id,
+                product_kind="credit_package",
+                product_id="starter",
+                idempotency_key=idempotency_key,
+                prod_mode=True,
+            )
+        provider_request = {
+            "merchant_order_no": "0123456789abcdef0123456789abcdef",
+            "amount_fen": 1200,
+            "currency": "CNY",
+            "product_kind": "credit_package",
+            "product_id": "starter",
+            "provider_mode": "live",
+            "provider_name": "wechatpay_direct",
+            "device_ip": "",
+        }
+        result = api._payment.ProviderPaymentResult(
+            merchant_order_no=provider_request["merchant_order_no"],
+            provider_payment_id=None,
+            status="pending",
+            amount_fen=1200,
+            app_id="wxSyntheticApp01",
+            prod_mode=True,
+            response_verified=True,
+            checkout_token=(
+                '{"channel":"wechatpay_native","kind":"qr_text",'
+                '"value":"weixin://wxpay/bizpayurl?secret-checkout"}'
+            ),
+            provider_name="wechatpay_direct",
+        )
+        with mock.patch("builtins.print") as output:
+            self.assertTrue(
+                api._item31_direct_create_audit(
+                    context,
+                    provider_request,
+                    result,
+                    order_id="00000000-0000-4000-8000-000000000031",
+                )
+            )
+        encoded = output.call_args.args[0]
+        self.assertTrue(encoded.startswith("payment_create_audit "))
+        record = json.loads(encoded.split(" ", 1)[1])
+        self.assertEqual(
+            set(record),
+            {
+                "schema",
+                "provider",
+                "activation_identity_sha256",
+                "order_identity_sha256",
+                "user_identity_sha256",
+                "idempotency_identity_sha256",
+                "create_request_sha256",
+                "create_response_sha256",
+                "provider_operation_count",
+                "automatic_retry_count",
+                "outcome_unknown_count",
+            },
+        )
+        self.assertNotEqual(
+            record["create_request_sha256"],
+            record["create_response_sha256"],
+        )
+        for raw_value in (
+            user_id,
+            idempotency_key,
+            provider_request["merchant_order_no"],
+            result.app_id,
+            result.checkout_token,
+        ):
+            self.assertNotIn(raw_value, encoded)
+
+    def test_payment_submission_cancellation_cannot_abandon_durable_marker(self):
+        entered = threading.Event()
+        release = threading.Event()
+        marked = threading.Event()
+        provider = mock.Mock()
+        result = api._payment.ProviderPaymentResult(
+            merchant_order_no="0123456789abcdef0123456789abcdef",
+            provider_payment_id=None,
+            status="pending",
+            amount_fen=1200,
+            app_id="wxSyntheticApp01",
+            prod_mode=True,
+            response_verified=True,
+            checkout_token='{"channel":"wechatpay_native","kind":"qr_text","value":"synthetic"}',
+            provider_name="wechatpay_direct",
+        )
+
+        def provider_call(_request):
+            entered.set()
+            if not release.wait(2):
+                raise AssertionError("provider test release timed out")
+            return result
+
+        def mark_submission(_order_id, _result):
+            marked.set()
+            return {"id": _order_id, "payment_status": "pending"}
+
+        provider.create_payment.side_effect = provider_call
+
+        async def exercise():
+            task = asyncio.create_task(
+                api._complete_payment_submission(
+                    "00000000-0000-4000-8000-000000000001",
+                    provider,
+                    {"merchant_order_no": result.merchant_order_no},
+                )
+            )
+            self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+            task.cancel()
+            release.set()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            self.assertTrue(await asyncio.to_thread(marked.wait, 1))
+
+        with mock.patch.object(
+            api._payment,
+            "mark_payment_submission",
+            side_effect=mark_submission,
+        ) as marker:
+            asyncio.run(exercise())
+        provider.create_payment.assert_called_once()
+        marker.assert_called_once()
+
+    def test_direct_payment_order_requires_choice_when_two_providers_enabled(self):
+        client = TestClient(api.app)
+        api.app.dependency_overrides[api._auth.get_current_user] = lambda: {
+            "id": "synthetic-payment-user"
+        }
+        env = {
+            "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_PAYMENT_DEFAULT_PROVIDER": "",
+        }
+        try:
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                api._payment,
+                "create_order",
+            ) as create_order:
+                response = client.post(
+                    "/payments/orders",
+                    headers={"Idempotency-Key": "direct-provider-selection-002"},
+                    json={
+                        "product_kind": "credit_package",
+                        "product_id": "starter",
+                    },
+                )
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(
+                response.json()["detail"],
+                "PAYMENT_PROVIDER_UNAVAILABLE",
+            )
+            create_order.assert_not_called()
+        finally:
+            api.app.dependency_overrides.pop(
+                api._auth.get_current_user,
+                None,
+            )
+
+    def test_direct_callback_readiness_requires_exact_cross_role_identities(self):
+        identities = {
+            "wechatpay_direct": "a" * 64,
+            "alipay_direct": "b" * 64,
+        }
+        payload = {
+            "status": "ready",
+            "service": "noteai-payment",
+            "callback_identity_sha256": identities,
+        }
+        with mock.patch.object(
+            api,
+            "_payment_order_providers",
+            return_value=("wechatpay_direct", "alipay_direct"),
+        ), mock.patch.object(
+            api._payment_adapter_runtime,
+            "callback_identity_sha256",
+            side_effect=lambda provider_name: identities[provider_name],
+        ):
+            self.assertTrue(
+                api._payment_callback_readiness_payload_valid(payload)
+            )
+            self.assertFalse(
+                api._payment_callback_readiness_payload_valid(
+                    {
+                        **payload,
+                        "callback_identity_sha256": {
+                            **identities,
+                            "wechatpay_direct": "c" * 64,
+                        },
+                    }
+                )
+            )
+            self.assertFalse(
+                api._payment_callback_readiness_payload_valid(
+                    {
+                        **payload,
+                        "callback_identity_sha256": {
+                            **identities,
+                            "unexpected": "d" * 64,
+                        },
+                    }
+                )
+            )
+
+    def test_production_direct_ordering_requires_both_live_modes(self):
+        env = {
+            "NOTEAI_DEPLOYMENT_STAGE": "production",
+            "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+            "NOTEAI_ALIPAY_PROD_MODE": "0",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            api._payment_adapter_runtime,
+            "provider_from_environment",
+        ) as provider:
+            self.assertFalse(
+                api._payment_ordering_available("wechatpay_direct")
+            )
+        provider.assert_not_called()
+
+    def test_production_direct_ordering_requires_callback_relay_activation(self):
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_DEPLOYMENT_STAGE": "production",
+            "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "1",
+            "NOTEAI_ALIPAY_PROD_MODE": "1",
+            "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "0",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            api._payment_adapter_runtime,
+            "provider_from_environment",
+        ) as provider:
+            self.assertFalse(
+                api._payment_ordering_available("wechatpay_direct")
+            )
+        provider.assert_not_called()
+
+    def test_direct_order_stops_before_local_write_when_callback_runtime_not_ready(self):
+        client = TestClient(api.app)
+        api.app.dependency_overrides[api._auth.get_current_user] = lambda: {
+            "id": "synthetic-payment-user"
+        }
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "1",
+        }
+        try:
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                api,
+                "_payment_ordering_available",
+                return_value=True,
+            ), mock.patch.object(
+                api,
+                "_payment_callback_runtime_ready",
+                new=mock.AsyncMock(return_value=False),
+            ), mock.patch.object(api._payment, "create_order") as create_order:
+                response = client.post(
+                    "/payments/orders",
+                    headers={"Idempotency-Key": "direct-callback-not-ready-001"},
+                    json={
+                        "product_kind": "credit_package",
+                        "product_id": "starter",
+                        "provider": "wechatpay_direct",
+                    },
+                )
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(
+                response.json()["detail"],
+                "PAYMENT_CALLBACK_RUNTIME_UNAVAILABLE",
+            )
+            create_order.assert_not_called()
+        finally:
+            api.app.dependency_overrides.pop(
+                api._auth.get_current_user,
+                None,
+            )
+
+    def test_nonproduction_direct_ordering_still_requires_live_mode(self):
+        env = {
+            "NOTEAI_DEPLOYMENT_STAGE": "staging",
+            "NOTEAI_PAYMENT_ORDERING_ENABLED": "1",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": (
+                "wechatpay_direct,alipay_direct"
+            ),
+            "NOTEAI_WECHATPAY_PROD_MODE": "0",
+            "NOTEAI_ALIPAY_PROD_MODE": "0",
+        }
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+            api._payment_adapter_runtime,
+            "provider_from_environment",
+        ) as provider:
+            self.assertFalse(
+                api._payment_ordering_available("wechatpay_direct")
+            )
+        provider.assert_not_called()
+
     def test_normal_api_never_processes_payment_callback(self):
         client = TestClient(api.app)
         with mock.patch.dict(
             os.environ,
-            {"NOTEAI_PAYMENT_CALLBACK_ENABLED": "1"},
+            {
+                "NOTEAI_PAYMENT_CALLBACK_ENABLED": "1",
+                "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "0",
+            },
             clear=False,
         ), mock.patch.object(
             api._payment,
             "process_signed_callback",
         ) as processor:
-            duplicate = client.post(
-                "/payments/adapay/callback",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                content="data=first&data=second&sign=synthetic",
+            responses = [
+                client.post(
+                    path,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    content="data=first&data=second&sign=synthetic",
+                )
+                for path in (
+                    "/payments/adapay/callback",
+                    "/payments/wechat/callback",
+                    "/payments/alipay/callback",
+                )
+            ]
+        for response in responses:
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(
+                response.json()["detail"],
+                "PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
             )
-        self.assertEqual(duplicate.status_code, 503)
-        self.assertEqual(
-            duplicate.json()["detail"],
-            "PAYMENT_CALLBACK_DEDICATED_RUNTIME_REQUIRED",
-        )
         processor.assert_not_called()
 
     def test_paid_ai_routes_accept_optional_request_id_header(self):
