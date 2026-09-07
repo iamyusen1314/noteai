@@ -29,12 +29,18 @@ _VALUE_OPTIONS = frozenset({
     "--tmpfs", "--mount", "--volume", "--env-file", "--env", "--log-driver",
     "--log-opt", "--restart", "--publish", "--ulimit", "--stop-timeout",
 })
-_BOOLEAN_OPTIONS = frozenset({"--rm", "--read-only", "--init"})
+_BOOLEAN_OPTIONS = frozenset({"--rm", "--read-only", "--init", "--privileged"})
+_REVIEWED_PGOPTIONS = (
+    '"PGOPTIONS=-c default_transaction_read_only=on '
+    '-c statement_timeout=5000 -c lock_timeout=1000"'
+)
 
 
 def _docker_argument_spans(command: str):
     """Parse only the reviewed literal API run options, never an application argv."""
-    tokens = list(re.finditer(r"\S+", command))
+    # Quotes are permitted only for the exact existing PGOPTIONS literal,
+    # checked below before this parser runs. Preserve every original span.
+    tokens = list(re.finditer(r'(?<!\S)"[^"\n]*"(?!\S)|\S+', command))
     bindings = []
     index = 2  # ExecStart=/usr/bin/docker run
     while index < len(tokens):
@@ -52,6 +58,8 @@ def _docker_argument_spans(command: str):
             separator = "=" if value else ""
             begin = token.start() + 2
         if option in _BOOLEAN_OPTIONS:
+            if option == "--privileged" and word != "--privileged=false":
+                raise ValueError("unsafe_privileged_option")
             if separator and value not in {"true", "false"}:
                 raise ValueError("literal_docker_option_required")
             index += 1
@@ -66,6 +74,11 @@ def _docker_argument_spans(command: str):
             begin, end = tokens[index].span()
         if not value:
             raise ValueError("docker_option_value_required")
+        if '"' in value and (option != "--env" or value != _REVIEWED_PGOPTIONS):
+            raise ValueError("reviewed_environment_literal_required")
+        if (option == "--env" and value.strip('"').split("=", 1)[0] == "PGOPTIONS"
+                and value != _REVIEWED_PGOPTIONS):
+            raise ValueError("reviewed_environment_literal_required")
         if option in {"--network", "--net"} and value != "bridge":
             raise ValueError("unsafe_network_scope")
         if option == "--publish":
@@ -90,7 +103,10 @@ def _literal_api_unit(unit: bytes, expected_sha256: str):
     command = starts[0].group()
     # Only the existing literal mapping changes; no shell expansion or
     # multiline command rewriting is attempted.
-    if any(value in command for value in ("\\", "$", "`", ";", "&&", "||", "'", '"')):
+    if command.count(_REVIEWED_PGOPTIONS) > 1:
+        raise ValueError("single_reviewed_environment_literal_required")
+    literal_command = command.replace(_REVIEWED_PGOPTIONS, "PGOPTIONS_REVIEWED")
+    if any(value in literal_command for value in ("\\", "$", "`", ";", "&&", "||", "'", '"')):
         raise ValueError("literal_execstart_required")
     bindings = _docker_argument_spans(command)
     return text, starts[0], command, bindings

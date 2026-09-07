@@ -1,4 +1,5 @@
 import hashlib
+from pathlib import Path
 import unittest
 
 from tools.prepare_item36_private_bind import render_image_update, render_private_bind
@@ -14,6 +15,34 @@ UNIT = (
 
 
 class Item36PrivateBindPreparationTests(unittest.TestCase):
+    def test_actual_reviewed_api_f_unit_can_bind_and_preserve_exact_rollback(self):
+        source = (Path(__file__).parent / "fixtures/item36-api-f.service").read_bytes()
+        digest = "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936"
+        self.assertEqual(hashlib.sha256(source).hexdigest(), digest)
+        candidate, rollback = self.render(source, address="10.42.11.166", digest=digest)
+        self.assertEqual(rollback, source)
+        self.assertEqual(candidate.replace(b"10.42.11.166:8000:8000", b"127.0.0.1:8000:8000"), source)
+        old_image = source.decode().split("--log-opt max-file=2 ")[1].splitlines()[0]
+        new_image = "registry.example.invalid/api@sha256:" + "b" * 64
+        updated, original = render_image_update(
+            source, expected_sha256=digest, expected_image=old_image, candidate_image=new_image,
+        )
+        self.assertEqual(original, source)
+        self.assertEqual(updated.replace(new_image.encode(), old_image.encode()), source)
+
+    def test_only_reviewed_quote_and_explicit_unprivileged_form_are_allowed(self):
+        source = (Path(__file__).parent / "fixtures/item36-api-f.service").read_bytes()
+        for before, after in ((b"--privileged=false", b"--privileged"),
+                              (b"--privileged=false", b"--privileged=true"),
+                              (b"default_transaction_read_only=on", b"default_transaction_read_only=off"),
+                              (b"statement_timeout=5000", b"statement_timeout=$TIMEOUT"),
+                              (b'1000" --mount', b'1000"--mount'),
+                              (b"--mount", b"--env PGOPTIONS= --mount"),
+                              (b"--mount", b"--env=PGOPTIONS= --mount"),
+                              (b'"PGOPTIONS=', b"'PGOPTIONS=")):
+            with self.subTest(after=after), self.assertRaises(ValueError):
+                self.render(source=source.replace(before, after))
+
     def render(self, source=UNIT, address="10.0.1.12", digest=None):
         return render_private_bind(
             source, expected_sha256=digest or hashlib.sha256(source).hexdigest(), private_ip=address

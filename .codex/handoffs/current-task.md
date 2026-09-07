@@ -1,5 +1,98 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Continued execution — September8; managed recovery preparation and real API-F binding
+
+Continued from `e2b2de9` without restarting takeover or Item1–30. That checkpoint
+contains Item31's explicit contract transaction integration and PG16 proof below.
+Old Item34 remains EXPIRED/no replay/no3d. All production mutation and automation
+remain stopped; the existing read-only resource/config authorization was used.
+
+API-F Workbench was reconnected with the already enabled passwordless root
+identity, without owner input/new privileges. Host UTC readback was
+2026-09-07T23:11:49Z (September8 07:11:49 Beijing); following reads completed before
+07:24 Beijing. Only systemd properties, known Secret-free unit bytes/hash,
+journald file hash and restricted Docker metadata were read. No env/credential,
+business DB, provider, account/gift or service/config mutation occurred. Normal
+Workbench login audit metadata is not claimed as zero host activity. An initial
+incomplete command was cancelled before submission; short/one-line inputs then
+worked. No owner action is needed to restore this access path now.
+
+- Tracking: loaded/disabled/inactive/dead, Restart=no, NRestarts0, MainPID0,
+  empty InvocationID/DropInPaths; running containers with its service label0.
+  Actual unit SHA256 `4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d`
+  still matches the existing frozen template with legacy local config ID
+  `sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec`.
+- API: loaded/enabled/active/running, Restart=always, NRestarts0, MainPID505101;
+  InvocationID `c4547c0146bd4f53a736c05a6f6126cc`, no drop-ins.
+  CID `843a974866addac89fcc1efa0a581f9fcf9f5e5653adcf17bc5fc8de1c9eee05`,
+  Docker RestartCount0, Runningtrue; original registry manifest
+  `612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620`,
+  config `dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`,
+  127.0.0.1:8000:8000. This is process/config readback, not API/DB health.
+  Original unit1510bytes/SHA256
+  `f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936` matched
+  accepted history before content read. Native base64 preserved blank lines;
+  the exact copy is `/private/tmp/noteai-prep-20260908/api-f-current.service`
+  and the same Secret-free regression fixture `tests/fixtures/item36-api-f.service`.
+- The existing journald file SHA remains
+  `b703a523ce01cfea84a843f526b98b6fa0f39f4f91043cd5dabb20646130065b`.
+  Effective journald settings and alert rule/delivery were not reread; LAST_KNOWN.
+
+`tools/prepare_item34_managed_tracking.py` now renders only the two image
+references in the frozen suspended Tracking template and preserves exact original
+bytes. Only the known legacy image+unit hash pair permits a bare old config ID;
+a new image still requires a real registry digest. Restricted service/container/
+health validation binds actual unit SHA to the candidate template/image, checks
+singleton/restart/resources/Docker log limits and read-only health counters.
+Only the service label is projected; real inherited OCI labels stay intact.
+The partial existing managed fields remain INCOMPLETE and deliberately omit
+complete log/alert/rollback/execution/artifact/supplier-attempt acceptance.
+Health ready does not prove the dedicated Tracking DB-role ACL matrix.
+
+The same module now composes a bounded injected-adapter rehearsal using the
+existing durable Journal, without importing the frozen executor's execute/restore:
+fsync exact original -> CAS candidate -> one start -> health -> stop -> independent
+stopped readback -> CAS original -> exact readback. Failed logging still performs
+safety cleanup; unknown start never retries; failed stop/concurrent unit drift
+cannot be called restored. This has NO production host adapter or live CLI mode;
+real host timeouts, exact ownership and cross-process locking remain to be bound
+before any future authorized use. In-memory-host tests exercise the logic with a
+real0600/O_EXCL Journal, actual fsync fault injection, and other write faults.
+They do not claim a production managed rollback or create new receipt/gate fields.
+
+The real API-F unit exposed two unsupported renderer inputs: its exact quoted
+PGOPTIONS and explicit --privileged=false. The Item36 parser now accepts only
+that unique reviewed environment literal and explicit false; other quoting,
+PGOPTIONS override/duplication, attached quote tokens and privileged forms fail.
+Image update and private bind remain separate; all other source bytes stay exact.
+The real bind-only candidate is now saved under
+`/private/tmp/noteai-prep-20260908/api-f-bind/`:
+candidate SHA256 `824207e1b9fdfe744fe70b97af2130350c9fb2fd84d5c03a4a89d07c0d0387ac`,
+rollback SHA256 `f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936`.
+It changes ONLY loopback to API-F's private10.42.11.166:8000. It retains old API
+image/PGOPTIONS and is PREPARED_NOT_APPLIED, not a candidate image rollout,
+Payment first enablement, rolling health validation or completed Item36 deploy.
+
+Actual Python3.11 linux/amd64, network-none/read-only test image runs passed
+18 managed preparation/recovery cases +10 Item36 cases; after final quote/override
+hardening the10 Item36 cases passed again. Three existing actual-image provider-free
+Tracking health checks also passed earlier in this stage. Initial local bind-mount
+test was rejected by the no-host-mount Colima profile; corrected bounded COPY
+contexts were used. Early missing working directory/Journal fixture imports and
+the real-unit renderer rejection are retained as failed preparation logs.
+Logs are under `/private/tmp/noteai-prep-20260908/`, including
+managed-python311-complete.log, item36-python311-bounded-parser.log,
+managed-python311.log (earlier health checks), api-f-bind-first.log and
+api-f-bind-final.log. Final tool/test image is
+`noteai-local/managed-prep:20260908-bounded-parser`; it is a local test image,
+not a new release candidate. Actual release XHS/API archives keep54b06be identity.
+
+No canonical Evidence/DoD/validator/Readiness change;30/38, seven protected paths
+untouched, no Git push. Next local work: bind the prepared managed sequence to
+bounded host operations and recovery ownership, still without executing it.
+New target/anchor and old/new count compatibility remain owner decisions for a
+future Item34 application; they do not pause this independent local preparation.
+
 ## Continued execution — September8; Item31 writer integration completed locally
 
 Owner corrected the prior premature stop. b73fb81 remains the restoration

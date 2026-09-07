@@ -10,6 +10,41 @@ The bounded Item34 job below has failed and closed safely. Its old observation
 window must not be replayed or restarted. Retained approval and commands are
 execution history, not authorization to repeat them or run other Items.
 
+## Current local preparation — September8 (no production execution approval)
+
+Item31's explicit per-transaction canary writer is saved at `e2b2de9`; its real
+isolated PG16 chains and failure readback are detailed below. Current Item34
+managed preparation now renders the exact frozen suspended unit and validates
+restricted service/container/health projections against the candidate image.
+An injected-adapter bounded start/health/stop/CAS-restore sequence reuses the
+existing durable Journal; real fsync failure and UNKNOWN recovery are tested.
+It has no production host adapter or live CLI entry and does not satisfy the
+managed terminal fields. Next independent local work is the bounded host binding,
+not replay of the failed old sampler. Existing DoD and time rules are unchanged.
+
+September8 07:11–07:24 Beijing API-F read-only configuration checks confirm
+Tracking disabled/inactive/dead and no running service-labelled container, unit
+SHA `4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d`.
+API remains active with its old immutable image and127.0.0.1:8000 binding;
+unit SHA `f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936`.
+Existing Workbench access works without owner action. No Secret/DB/provider or
+service/config mutation was performed; current cloud alert and effective
+journald observations remain LAST_KNOWN, despite the matching journald file hash.
+
+The actual API-F unit is now the Item36 renderer regression fixture. Its exact
+quoted PGOPTIONS and explicit unprivileged flag are supported without accepting
+other quotes/overrides. A real bind-only candidate and byte-exact rollback are
+saved in `/private/tmp/noteai-prep-20260908/api-f-bind/`, with candidate SHA
+`824207e1b9fdfe744fe70b97af2130350c9fb2fd84d5c03a4a89d07c0d0387ac`.
+Only the host address becomes10.42.11.166; image/PGOPTIONS/other bytes are retained.
+This is PREPARED_NOT_APPLIED and distinct from image update, rolling deployment,
+Payment first enablement and complete Item36 acceptance. No ACR/Git push.
+
+18 managed preparation/recovery +10 Item36 checks pass in actual Python3.11
+linux/amd64 isolation; failure logs and exact current artifacts are indexed in
+the existing Handoff. No new Evidence/receipt/gate/version envelope or Readiness
+credit is created. All production remains stopped and30/38 remains unchanged.
+
 ## Item34 当次最小生产实施申请 — 2026-09-07
 
 **本次真实结果（北京时间9月7日22:31）：测试账号与900积分已完成；Item34失败，

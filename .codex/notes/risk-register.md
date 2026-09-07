@@ -1,5 +1,29 @@
 # Risk Register
 
+## September8 actual host configuration and local managed recovery
+
+- Current read-only API-F Workbench access works through its existing identity;
+  07:11–07:24 Beijing reads show Tracking disabled/inactive/dead and zero running
+  service-labelled containers, unchanged frozen unit hash. API stays running on
+  the original image/loopback with restart0. Journald file hash matches history,
+  but effective log settings/current cloud alert delivery remain LAST_KNOWN.
+  No business DB/Secret/service mutation or provider call in these reads.
+- Managed preparation now binds native unit hash to candidate image and uses
+  the existing durable Journal for a bounded injected-adapter recovery sequence.
+  Actual fsync failure still restores in the local fake host; UNKNOWN never
+  becomes success/retry. No native production adapter/timeout/ownership/lock
+  implementation yet, so this is not READY_TO_APPLY or managed terminal credit.
+  Missing real log/alert/ACL/rollback/attempt bindings remain incomplete.
+- Real API-F unit exposed unsupported quoted PGOPTIONS and --privileged=false
+  in the Item36 renderer. Exact reviewed forms now work; quote attachment,
+  PGOPTIONS override and expanded privilege are rejected. The saved bind-only
+  candidate preserves the old image and all other bytes. It does not implement
+  rolling deployment, candidate update or Payment first enablement. No host apply.
+-18 managed and10 Item36 tests pass in actual Python3.11 linux/amd64 isolation;
+  source/candidate/rollback hashes and retained failure logs are in Handoff.
+  Existing release images retain54b06be identity. Readiness stays30/38; no old
+  Item34 retry/new observation or production automation is authorized.
+
 ## September8 local writer integration
 
 - Item31 now has explicit per-payment-function transaction injection and a

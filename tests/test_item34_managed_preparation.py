@@ -1,0 +1,363 @@
+import copy
+from contextlib import nullcontext
+import hashlib
+import json
+import os
+from pathlib import Path
+import tempfile
+import unittest
+from unittest import mock
+
+from tools import prepare_item34_managed_tracking as managed
+from tools.run_item34_tracking_durable import Journal
+
+
+ROOT = Path(__file__).resolve().parents[1]
+TEMPLATE = ROOT / "deploy/production/systemd/noteai-xhs-tracking.service.template"
+OLD = "registry.example.invalid/noteai/xhs@sha256:" + "a" * 64
+NEW = "registry.example.invalid/noteai/xhs@sha256:" + "b" * 64
+CONFIG = "sha256:" + "c" * 64
+
+
+def snapshots():
+    # Only the exact native fields required by the validator are projected.
+    # These are synthetic values, not host/registry/readiness Evidence.
+    service = {
+        "Id": managed.UNIT, "LoadState": "loaded", "ActiveState": "active",
+        "SubState": "running", "UnitFileState": "disabled", "Restart": "no",
+        "NRestarts": "0", "MainPID": "100", "InvocationID": "d" * 32,
+        "FragmentPath": "/etc/systemd/system/" + managed.UNIT, "DropInPaths": [],
+    }
+    container = {
+        "Id": "e" * 64, "Name": "/" + managed.CONTAINER, "Image": CONFIG,
+        "RestartCount": 0, "State": {"Running": True, "Pid": 101},
+        "Config": {"Image": NEW, "User": "999:999", "Cmd": managed.WORKER.copy(),
+                   "Labels": {"com.noteai.service": managed.CONTAINER}},
+        "Suspended": True,
+        "Mounts": [{"Type": "bind", "Source": "/var/lib/noteai/data",
+                    "Destination": "/app/model/data", "RW": True}],
+        "HostConfig": {
+            "Memory": 268435456, "NanoCpus": 250000000, "PidsLimit": 64,
+            "ReadonlyRootfs": True, "CapDrop": ["ALL"], "CapAdd": None,
+            "Privileged": False, "SecurityOpt": ["no-new-privileges:true"],
+            "NetworkMode": "bridge", "IpcMode": "private", "PortBindings": {},
+            "RestartPolicy": {"Name": "no", "MaximumRetryCount": 0},
+            "LogConfig": {"Type": "local", "Config": {"max-size": "10m", "max-file": "2"}},
+            "Tmpfs": {"/tmp": "rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999"},
+        },
+    }
+    health = {"status": "ready", "active_provider_attempts": 0,
+              "stale_provider_attempts": 0, "unlinked_started_attempts": 0,
+              "provider_called": False}
+    return service, [container], health
+
+
+class ManagedTrackingPreparationTests(unittest.TestCase):
+    def setUp(self):
+        self.template = TEMPLATE.read_bytes()
+        self.original = self.template.replace(managed.TOKEN, OLD.encode())
+        self.source = hashlib.sha256(self.original).hexdigest()
+
+    def render(self, **changes):
+        args = {"current_sha256": self.source, "current_image": OLD, "candidate_image": NEW}
+        args.update(changes)
+        return managed.render_unit(self.template, self.original, **args)
+
+    def validate(self, service, containers, health):
+        return managed.validate_readback(service, containers, health,
+                                         template=self.template, image_ref=NEW, image_id=CONFIG,
+                                         unit_sha256=managed.digest(self.template.replace(managed.TOKEN, NEW.encode())))
+
+    def test_old_unit_and_new_running_image_do_not_satisfy_binding(self):
+        with self.assertRaisesRegex(ValueError, "managed_unit_image_binding"):
+            managed.validate_readback(*snapshots(), template=self.template,
+                                      image_ref=NEW, image_id=CONFIG, unit_sha256=self.source)
+
+    def test_only_two_images_change_and_suspended_commands_remain_exact(self):
+        candidate, rollback = self.render()
+        self.assertEqual(rollback, self.original)
+        self.assertEqual(candidate.replace(NEW.encode(), OLD.encode()), self.original)
+        self.assertEqual(candidate.count(NEW.encode()), 2)
+        self.assertIn(b"NOTEAI_XHS_COLLECTION_SUSPENDED=1", candidate)
+        self.assertIn(b"Restart=no\n", candidate)
+        self.assertIn(b"--loop --interval-minutes 60 --limit 50", candidate)
+
+    def test_modified_template_or_current_unit_is_rejected(self):
+        for old, new in ((b"SUSPENDED=1", b"SUSPENDED=0"),
+                         (b"Restart=no", b"Restart=always"),
+                         (b"ExecStart=/", b"ExecStartPre=/")):
+            with self.subTest(change=old), self.assertRaisesRegex(ValueError, "template_drift"):
+                managed.render_unit(self.template.replace(old, new), self.original,
+                                    current_sha256=self.source, current_image=OLD, candidate_image=NEW)
+        altered = self.original + b"ExecStartPost=/bin/true\n"
+        with self.assertRaisesRegex(ValueError, "current_unit_drift"):
+            managed.render_unit(self.template, altered, current_sha256=managed.digest(altered),
+                                current_image=OLD, candidate_image=NEW)
+
+    def test_saved_real_legacy_config_digest_and_exact_unit_are_supported(self):
+        original = self.template.replace(managed.TOKEN, managed.LEGACY_IMAGE.encode())
+        self.assertEqual(managed.digest(original), managed.LEGACY_UNIT_SHA256)
+        candidate, rollback = managed.render_unit(
+            self.template, original, current_sha256=managed.LEGACY_UNIT_SHA256,
+            current_image=managed.LEGACY_IMAGE, candidate_image=NEW,
+        )
+        self.assertEqual(rollback, original)
+        self.assertEqual(candidate.count(NEW.encode()), 2)
+        before = {"unit_sha256": managed.LEGACY_UNIT_SHA256, "image_ref": managed.LEGACY_IMAGE,
+                  "UnitFileState": "disabled", "ActiveState": "inactive", "SubState": "dead",
+                  "running_container_count": 0}
+        managed.verify_rollback(before, copy.deepcopy(before))
+        with self.assertRaises(ValueError):
+            self.render(candidate_image=managed.LEGACY_IMAGE)
+        with self.assertRaises(ValueError):
+            self.render(current_image="sha256:" + "f" * 64)
+
+    def test_mutable_image_or_wrong_binding_rejected(self):
+        for options in ({"candidate_image": "registry.example.invalid/noteai/xhs:latest"},
+                        {"current_sha256": "0" * 64}, {"current_image": NEW}):
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                self.render(**options)
+
+    def test_ready_projection_remains_incomplete_without_other_live_evidence(self):
+        result = self.validate(*snapshots())
+        self.assertEqual(result["status"], "INCOMPLETE")
+        self.assertEqual(result["singleton_winner_count"], 1)
+        self.assertEqual(result["health_check"], "PASS")
+        for absent in ("readiness_credit", "alert_controls", "log_controls", "rollback_rehearsal",
+                       "bounded_validation_attempt_identity_sha256"):
+            self.assertNotIn(absent, result)
+
+    def test_service_and_singleton_drift_rejected(self):
+        for field, value in (("Restart", "always"), ("NRestarts", "1"),
+                             ("MainPID", "0"), ("UnitFileState", "enabled"),
+                             ("DropInPaths", ["/unexpected.conf"]), ("InvocationID", "0" * 32)):
+            service, containers, health = snapshots()
+            service[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.validate(service, containers, health)
+        for count in (0, 2):
+            service, containers, health = snapshots()
+            with self.subTest(count=count), self.assertRaisesRegex(ValueError, "singleton"):
+                self.validate(service, containers * count, health)
+
+    def test_actual_container_controls_must_match(self):
+        changes = (("Memory", 0), ("NanoCpus", 0), ("PidsLimit", True),
+                   ("ReadonlyRootfs", False), ("Privileged", True), ("CapAdd", ["SYS_ADMIN"]),
+                   ("NetworkMode", "host"), ("PortBindings", {"80/tcp": []}),
+                   ("RestartPolicy", {"Name": "always", "MaximumRetryCount": 0}),
+                   ("LogConfig", {"Type": "json-file", "Config": {}}), ("Tmpfs", {}))
+        for field, value in changes:
+            service, containers, health = snapshots()
+            containers[0]["HostConfig"][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.validate(service, containers, health)
+        for field, value in (("Suspended", False), ("Image", "sha256:" + "f" * 64),
+                             ("RestartCount", 1), ("Mounts", [])):
+            service, containers, health = snapshots()
+            containers[0][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.validate(service, containers, health)
+
+    def test_secret_shaped_full_inspect_is_rejected_without_echo(self):
+        service, containers, health = snapshots()
+        containers[0]["Config"]["Env"] = ["TOKEN=synthetic-never-echo"]
+        with self.assertRaisesRegex(ValueError, "^config_projection$"):
+            self.validate(service, containers, health)
+
+    def test_health_stale_unlinked_unknown_role_or_boolean_counter_rejected(self):
+        for field, value in (("stale_provider_attempts", 1), ("unlinked_started_attempts", 1),
+                             ("status", "not_ready"), ("provider_called", True),
+                             ("active_provider_attempts", False)):
+            service, containers, health = snapshots()
+            health[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.validate(service, containers, health)
+
+    def test_exact_stopped_state_rollback_only(self):
+        before = {"unit_sha256": self.source, "image_ref": OLD, "UnitFileState": "disabled",
+                  "ActiveState": "inactive", "SubState": "dead", "running_container_count": 0}
+        managed.verify_rollback(before, copy.deepcopy(before))
+        for field, value in (("unit_sha256", "f" * 64), ("image_ref", NEW),
+                             ("running_container_count", 1), ("running_container_count", False),
+                             ("running_container_count", 0.0), ("UnitFileState", "enabled")):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                managed.verify_rollback(before, {**before, field: value})
+
+    def test_cli_writes_exclusive_local_candidate_and_original_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            unit = root / "original.service"
+            unit.write_bytes(self.original)
+            args = ["prepare", "--template", str(TEMPLATE), "--current-unit", str(unit),
+                    "--current-sha256", self.source, "--current-image", OLD,
+                    "--candidate-image", NEW, "--output-dir", str(root / "prepared")]
+            with mock.patch("sys.argv", args), mock.patch("builtins.print"):
+                self.assertEqual(managed.main(), 0)
+                self.assertEqual((root / "prepared/rollback.service").read_bytes(), self.original)
+                with self.assertRaises(FileExistsError):
+                    managed.main()
+
+
+class FakeManagedHost:
+    """No system calls, database, provider, environment or real service access."""
+    def __init__(self, failure=None):
+        self.original = TEMPLATE.read_bytes().replace(managed.TOKEN, OLD.encode())
+        self.current = self.original
+        self.running = False
+        self.calls = []
+        self.failure = failure
+
+    def locked(self):
+        return nullcontext()
+
+    def unit_bytes(self):
+        return self.current
+
+    def stopped_state(self):
+        return {"unit_sha256": managed.digest(self.current),
+                "image_ref": OLD if self.current == self.original else NEW,
+                "UnitFileState": "disabled", "ActiveState": "active" if self.running else "inactive",
+                "SubState": "running" if self.running else "dead", "running_container_count": int(self.running)}
+
+    def replace_unit(self, expected, content):
+        if managed.digest(self.current) != expected:
+            raise ValueError("CAS_conflict")
+        self.calls.append("restore" if content == self.original else "apply")
+        if content == self.original and self.failure == "restore_conflict":
+            self.current += b"# concurrent change\n"
+            raise ValueError("CAS_conflict")
+        self.current = content
+        if content != self.original and self.failure == "apply_unknown":
+            raise TimeoutError("synthetic-apply-unknown")
+
+    def reload(self):
+        self.calls.append("reload")
+
+    def start_once(self, unit_sha, image_ref, image_id):
+        assert unit_sha == managed.digest(self.current) and image_ref == NEW and image_id == CONFIG
+        self.calls.append("start")
+        self.running = True
+        if self.failure == "start_unknown":
+            raise TimeoutError("synthetic-secret-do-not-echo")
+
+    def read_managed(self):
+        self.calls.append("health")
+        data = snapshots()
+        if self.failure == "health":
+            data[2]["status"] = "not_ready"
+        return data
+
+    def stop_candidate(self, unit_sha, image_ref, image_id):
+        assert unit_sha == managed.digest(self.current) and image_ref == NEW and image_id == CONFIG
+        self.calls.append("stop")
+        if self.failure == "stop_unknown":
+            raise TimeoutError("synthetic-stop-unknown")
+        self.running = False
+
+
+class ManagedRehearsalTests(unittest.TestCase):
+    def exercise(self, host, journal):
+        return managed.rehearse(host, journal, template=TEMPLATE.read_bytes(),
+                                current_image=OLD, candidate_image=NEW, image_id=CONFIG)
+
+    def test_real_durable_journal_contains_original_before_bounded_actions(self):
+        host = FakeManagedHost()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "managed.jsonl"
+            journal = Journal(path)
+            try:
+                result = self.exercise(host, journal)
+            finally:
+                journal.close()
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+            self.assertEqual(records[0]["event"], "managed_original")
+            self.assertEqual(records[0]["unit"].encode(), host.original)
+            self.assertEqual(records[-1]["result"], result)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(host.calls, ["apply", "reload", "start", "health", "stop", "restore", "reload"])
+        self.assertEqual(host.current, host.original)
+        self.assertFalse(host.running)
+        self.assertEqual(result["status"], "INCOMPLETE")
+        self.assertTrue(result["restored"])
+        self.assertNotIn("rollback_rehearsal", result["partial"])
+
+    def test_health_failure_and_unknown_start_each_restore_without_retry(self):
+        for failure in ("health", "start_unknown", "apply_unknown"):
+            host = FakeManagedHost(failure)
+            journal = mock.Mock()
+            result = self.exercise(host, journal)
+            with self.subTest(failure=failure):
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertTrue(result["restored"])
+                self.assertEqual(host.current, host.original)
+                self.assertFalse(host.running)
+                self.assertLessEqual(host.calls.count("start"), 1)
+                self.assertNotIn("synthetic-secret", json.dumps(result))
+
+    def test_first_journal_failure_prevents_all_mutation(self):
+        host = FakeManagedHost()
+        journal = mock.Mock()
+        journal.write.side_effect = OSError("disk_failure")
+        with self.assertRaises(OSError):
+            self.exercise(host, journal)
+        self.assertEqual(host.calls, [])
+
+    def test_real_journal_fsync_failure_after_start_still_restores(self):
+        host = FakeManagedHost()
+        with tempfile.TemporaryDirectory() as directory:
+            journal = Journal(Path(directory) / "managed.jsonl")
+            original_fsync = os.fsync
+            calls = 0
+
+            def fail_readback_fsync(fd):
+                nonlocal calls
+                calls += 1
+                if calls == 4:
+                    raise OSError("synthetic_fsync_failure")
+                original_fsync(fd)
+
+            try:
+                with mock.patch("tools.run_item34_tracking_durable.os.fsync", side_effect=fail_readback_fsync):
+                    result = self.exercise(host, journal)
+                self.assertTrue(journal.failed)
+            finally:
+                journal.close()
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertTrue(result["restored"])
+        self.assertEqual(host.calls.count("start"), 1)
+        self.assertEqual(host.calls.count("stop"), 1)
+        self.assertEqual(host.current, host.original)
+
+    def test_later_journal_failures_do_not_suppress_stop_or_restore(self):
+        for event in ("managed_readback", "managed_stop_intent", "managed_restored", "managed_local_result"):
+            host = FakeManagedHost()
+            journal = mock.Mock()
+            failed = False
+
+            def write(name, **data):
+                nonlocal failed
+                if name == event:
+                    failed = True
+                if failed:
+                    raise OSError("disk_failure")
+
+            journal.write.side_effect = write
+            result = self.exercise(host, journal)
+            with self.subTest(event=event):
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertTrue(result["restored"])
+                self.assertEqual(host.calls.count("start"), 1)
+                self.assertEqual(host.calls.count("stop"), 1)
+                self.assertEqual(host.current, host.original)
+
+    def test_failed_stop_or_concurrent_restore_prevents_false_success(self):
+        for failure in ("stop_unknown", "restore_conflict"):
+            host = FakeManagedHost(failure)
+            result = self.exercise(host, mock.Mock())
+            with self.subTest(failure=failure):
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertFalse(result["restored"])
+                self.assertNotEqual(host.current, host.original)
+                self.assertEqual(host.calls.count("start"), 1)
+                if failure == "stop_unknown":
+                    self.assertNotIn("restore", host.calls)
