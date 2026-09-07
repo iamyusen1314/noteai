@@ -13,8 +13,10 @@ import json
 import os
 import re
 import stat
+import threading
 import uuid
 from collections import Counter
+from contextlib import contextmanager
 from pathlib import Path
 
 from psycopg import sql
@@ -140,6 +142,77 @@ def transaction_complete(cursor, activation: str, binding: dict) -> None:
         )))
 
 
+class CanaryWriter:
+    """Explicit payment transaction factory; no global hook or DSN selection.
+
+    The caller supplies a dedicated connection factory and the existing
+    db.Transaction type, and serializes access to its CanaryCapture. Every
+    invocation binds/registers before yielding any business SQL. A failed
+    COMMIT response poisons the capture even if a later rollback succeeds.
+    """
+
+    def __init__(self, capture, connect, transaction_type):
+        self.capture = capture
+        self.connect = connect
+        self.transaction_type = transaction_type
+
+    @contextmanager
+    def __call__(self, *, write=False):
+        # This only serializes this process; remote writers still require the
+        # existing orchestrator's registration/admission protocol.
+        with self.capture.lock:
+            with self._transaction(write=write) as transaction:
+                yield transaction
+
+    @contextmanager
+    def _transaction(self, *, write):
+        capture = self.capture
+        if write is not True or capture.broken or capture.sealing:
+            raise ValueError("canary writer unavailable")
+        connection = self.connect()
+        # A factory returning somebody else's active connection is invalid.
+        # Ownership starts only after this check: rejection must not rollback
+        # or close that caller's transaction.
+        if (not connection.autocommit
+                or connection.info.transaction_status != TransactionStatus.IDLE):
+            raise ValueError("fresh autocommit writer required")
+        registered = False
+        commit_started = False
+        try:
+            connection.execute("BEGIN")
+            with connection.cursor() as cursor:
+                binding = bind_transaction(cursor, capture.context["activation"],
+                                           capture.context["provider"])
+            capture.register(binding)
+            registered = True
+            yield self.transaction_type(connection, postgres=True)
+            with connection.cursor() as cursor:
+                transaction_complete(cursor, capture.context["activation"], binding)
+            commit_started = True
+            connection.commit()
+        except BaseException:
+            if commit_started:
+                # No inferred rollback after COMMIT has been sent. The retained
+                # journal is incomplete and the next action must not proceed.
+                capture.broken = True
+            else:
+                try:
+                    connection.rollback()
+                    if connection.info.transaction_status != TransactionStatus.IDLE:
+                        raise ValueError("rollback not confirmed")
+                    if registered:
+                        capture.rolled_back(binding)
+                except BaseException:
+                    capture.broken = True
+            raise
+        finally:
+            try:
+                connection.close()
+            except BaseException:
+                capture.broken = True
+                raise
+
+
 class CanaryCapture:
     """One uninterrupted LISTEN connection and one durable local JSONL file.
 
@@ -154,6 +227,7 @@ class CanaryCapture:
         if not listener.autocommit or not control.autocommit:
             raise ValueError("dedicated autocommit connections required")
         self.listener, self.control = listener, control
+        self.lock = threading.RLock()
         self.channel = channel_for(activation)
         if provider not in PROVIDERS:
             raise ValueError("provider")
@@ -196,21 +270,23 @@ class CanaryCapture:
             raise
 
     def register(self, binding: dict) -> None:
-        _validate_binding(binding)
-        nonce = _uuid(binding["nonce"])
-        if (self.broken or self.sealing or nonce in self.bindings
-                or binding["provider"] != self.context["provider"]):
-            raise ValueError("writer registration")
-        self.bindings[nonce] = dict(binding)
-        self._append({"kind": "registered", **binding})
+        with self.lock:
+            _validate_binding(binding)
+            nonce = _uuid(binding["nonce"])
+            if (self.broken or self.sealing or nonce in self.bindings
+                    or binding["provider"] != self.context["provider"]):
+                raise ValueError("writer registration")
+            self.bindings[nonce] = dict(binding)
+            self._append({"kind": "registered", **binding})
 
     def rolled_back(self, binding: dict) -> None:
         """Only call after the writer's explicit ROLLBACK has succeeded."""
-        if (self.broken or self.sealing or self.bindings.get(binding["nonce"]) != binding
-                or binding["nonce"] in self.terminal):
-            raise ValueError("rollback binding")
-        self.terminal[binding["nonce"]] = "rollback"
-        self._append({"kind": "rollback", **binding})
+        with self.lock:
+            if (self.broken or self.sealing or self.bindings.get(binding["nonce"]) != binding
+                    or binding["nonce"] in self.terminal):
+                raise ValueError("rollback binding")
+            self.terminal[binding["nonce"]] = "rollback"
+            self._append({"kind": "rollback", **binding})
 
     def _consume(self, notification) -> dict:
         if notification.channel != self.channel:
@@ -264,27 +340,28 @@ class CanaryCapture:
             raise
 
     def finish(self, *, admission_closed: bool) -> dict:
-        try:
-            if self.broken or not admission_closed or not self.bindings:
-                raise ValueError("capture incomplete")
-            self.sealing = True
-            self._barrier("end")
-            self.handle.close()
-            # Same-directory hard link is an atomic, no-overwrite publication.
-            # File data (including end) is already fsynced. A failed fsync can
-            # never expose a final path, even if truncation would also fail.
-            os.link(self.incomplete_path, self.path, follow_symlinks=False)
-            directory = os.open(self.path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        with self.lock:
             try:
-                os.fsync(directory)
-            finally:
-                os.close(directory)
-            self.incomplete_path.unlink()
-            return read_journal(self.path, **self.context)
-        except BaseException:
-            self.broken = True
-            self.handle.close()
-            raise
+                if self.broken or not admission_closed or not self.bindings:
+                    raise ValueError("capture incomplete")
+                self.sealing = True
+                self._barrier("end")
+                self.handle.close()
+                # Same-directory hard link is an atomic, no-overwrite publication.
+                # File data (including end) is already fsynced. A failed fsync can
+                # never expose a final path, even if truncation would also fail.
+                os.link(self.incomplete_path, self.path, follow_symlinks=False)
+                directory = os.open(self.path.parent, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    os.fsync(directory)
+                finally:
+                    os.close(directory)
+                self.incomplete_path.unlink()
+                return read_journal(self.path, **self.context)
+            except BaseException:
+                self.broken = True
+                self.handle.close()
+                raise
 
 
 def _validate_binding(binding: dict) -> None:

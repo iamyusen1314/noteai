@@ -1,5 +1,22 @@
 # Risk Register
 
+## September8 local writer integration
+
+- Item31 now has explicit per-payment-function transaction injection and a
+  dedicated canary writer. COMMIT sent/unknown is never reclassified as rollback;
+  pre-COMMIT rollback must be confirmed. Rejected borrowed INTRANS connections
+  remain owned by their caller. Local RLock prevents sealing races only within
+  one capture/process; actual API thread/Payment callback propagation and
+  cross-process admission remain necessary before live capture.
+-19 isolated PG16 tests now include two synthetic real-SQL payment/refund chains
+  and durable DML readback;62 default regressions pass. First duplicate synthetic
+  provider ID fixture failed and was fixed without changing schema. No real
+  signatures, provider requests/funds, production collector or global DB hook.
+  Reconciliation/settlement are not covered by the new flow proof.
+- Item34 managed checks still lack actual service/resource/restart/log/health/
+  rollback/alert observations; independent local preparation continues next.
+  Existing failed observation and all production execution stay stopped;30/38.
+
 ## Local continuation after the failed window — 2026-09-07
 
 - Fixed future Tracking diagnostic-code loss without changing the7 safety stop

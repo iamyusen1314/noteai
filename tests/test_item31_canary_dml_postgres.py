@@ -11,10 +11,13 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest import mock
 import uuid
+from contextlib import contextmanager
+from datetime import datetime, timezone
 
 import psycopg
 
@@ -23,6 +26,17 @@ from tools import collect_item31_canary_dml as dml
 
 ENABLED = os.environ.get("NOTEAI_LOCAL_PG16_CANARY_TEST") == "1"
 CONNECT = dict(host="/var/run/postgresql", dbname="noteai_local", user="postgres")
+
+
+def local_contract():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
+    with mock.patch.dict(os.environ, {
+        "DATABASE_URL": "postgresql:///noteai_local?host=/var/run/postgresql",
+        "PYTHON_DOTENV_DISABLED": "1",
+    }, clear=True):
+        import db
+        import payment_contract
+    return db, payment_contract
 
 
 @unittest.skipUnless(ENABLED, "explicit isolated PG16 container required")
@@ -105,6 +119,97 @@ class CanaryDmlPostgresTests(unittest.TestCase):
         self.writer.execute("ROLLBACK")
         self.capture.rolled_back(b)
         self.assertEqual(self.capture.finish(admission_closed=True)["write_mutations_by_table"], {})
+
+    def test_writer_business_failure_rolls_back_before_commit(self):
+        db, _ = local_contract()
+        writer = dml.CanaryWriter(self.capture,
+                                 lambda: psycopg.connect(**CONNECT, autocommit=True),
+                                 db.Transaction)
+        with self.assertRaisesRegex(RuntimeError, "synthetic failure"):
+            with writer(write=True) as tx:
+                tx.execute("INSERT INTO payment_orders VALUES(1,'local-only',1)")
+                raise RuntimeError("synthetic failure")
+        self.assertEqual(self.owner.execute("SELECT count(*) FROM payment_orders").fetchone()[0], 0)
+        result = self.capture.finish(admission_closed=True)
+        self.assertEqual(result["status"], "CAPTURE_COMPLETE_NOT_TERMINAL")
+        self.assertEqual(result["write_mutations_by_table"], {})
+        self.assertEqual(list(self.capture.terminal.values()), ["rollback"])
+
+    def test_writer_rejects_borrowed_transaction_without_rollback_or_close(self):
+        db, _ = local_contract()
+        self.writer.execute("BEGIN")
+        self.writer.execute("INSERT INTO payment_orders VALUES(1,'local-only',1)")
+        writer = dml.CanaryWriter(self.capture, lambda: self.writer, db.Transaction)
+        with self.assertRaisesRegex(ValueError, "fresh autocommit"):
+            with writer(write=True):
+                self.fail("borrowed transaction admitted")
+        self.assertFalse(self.writer.closed)
+        self.assertEqual(self.writer.info.transaction_status, psycopg.pq.TransactionStatus.INTRANS)
+        self.assertEqual(self.writer.execute("SELECT count(*) FROM payment_orders").fetchone()[0], 1)
+        self.assertEqual(self.capture.bindings, {})
+        self.writer.execute("ROLLBACK")
+        self.assertEqual(self.owner.execute("SELECT count(*) FROM payment_orders").fetchone()[0], 0)
+
+    def test_writer_lost_commit_ack_keeps_real_commit_unknown_and_stops_next_action(self):
+        db, _ = local_contract()
+
+        class LostCommitAck:
+            def __init__(self):
+                self.inner = psycopg.connect(**CONNECT, autocommit=True)
+
+            def __getattr__(self, key):
+                return getattr(self.inner, key)
+
+            def commit(self):
+                self.inner.commit()
+                raise ConnectionError("synthetic lost commit ack")
+
+        writer = dml.CanaryWriter(self.capture, LostCommitAck, db.Transaction)
+        with self.assertRaises(ConnectionError):
+            with writer(write=True) as tx:
+                tx.execute("INSERT INTO payment_orders VALUES(1,'local-only',1)")
+        self.assertEqual(self.owner.execute("SELECT count(*) FROM payment_orders").fetchone()[0], 1)
+        self.assertTrue(self.capture.broken)
+        self.assertEqual(self.capture.terminal, {})
+        with self.assertRaisesRegex(ValueError, "unavailable"):
+            with writer(write=True):
+                self.fail("next action admitted")
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            self.capture.finish(admission_closed=True)
+        self.assertFalse(self.path.exists())
+        self.assertNotIn('"kind":"rollback"', self.capture.incomplete_path.read_text())
+        self.assertEqual(dml.read_journal(self.capture.incomplete_path, **self.capture.context)["status"], "UNKNOWN")
+
+    def test_writer_and_finish_serialize_before_sealing(self):
+        db, _ = local_contract()
+        writer = dml.CanaryWriter(self.capture,
+                                 lambda: psycopg.connect(**CONNECT, autocommit=True),
+                                 db.Transaction)
+        waiting, finished = threading.Event(), threading.Event()
+        results, errors = [], []
+
+        def seal():
+            waiting.set()
+            try:
+                results.append(self.capture.finish(admission_closed=True))
+            except BaseException as exc:
+                errors.append(exc)
+            finally:
+                finished.set()
+
+        with writer(write=True) as tx:
+            tx.execute("INSERT INTO payment_orders VALUES(1,'local-only',1)")
+            thread = threading.Thread(target=seal)
+            thread.start()
+            self.assertTrue(waiting.wait(2))
+            self.assertFalse(finished.wait(0.05))
+        thread.join(8)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(errors, [])
+        self.assertEqual(results[0]["write_mutations_by_table"], {"payment_orders": 1, "payment_events": 1})
+        with self.assertRaisesRegex(ValueError, "unavailable"):
+            with writer(write=True):
+                self.fail("write after sealing")
 
     def test_business_mapping_rows_preserve_binding_and_cursor_results(self):
         # Import only inside the explicitly enabled local PG fixture; db must
@@ -328,6 +433,171 @@ c.close()
     def test_wrong_notification_channel_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "channel"):
             self.capture._consume(SimpleNamespace(channel="other", payload="{}", pid=1))
+
+
+@unittest.skipUnless(ENABLED, "explicit isolated PG16 container required")
+class CanaryPaymentFlowPostgresTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.db, cls.payment = local_contract()
+        cls.admin = psycopg.connect(**CONNECT, autocommit=True)
+        version, addr = cls.admin.execute(
+            "SELECT current_setting('server_version_num')::int,inet_server_addr()"
+        ).fetchone()
+        if not (160000 <= version < 170000 and addr is None):
+            raise RuntimeError("isolated PG16 socket required")
+        cls.database = "noteai_item31_test_" + uuid.uuid4().hex
+        cls.admin.execute(psycopg.sql.SQL("CREATE DATABASE {}").format(psycopg.sql.Identifier(cls.database)))
+        cls.connection_args = {**CONNECT, "dbname": cls.database}
+        # This fixed local socket is the only database route available in the
+        # network-none test container. All migrations apply to this new DB only.
+        with mock.patch.dict(os.environ, {
+            "DATABASE_URL": "postgresql://postgres@/" + cls.database + "?host=/var/run/postgresql",
+            "PYTHON_DOTENV_DISABLED": "1",
+        }, clear=True):
+            cls.db.apply_postgres_migrations()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.admin.execute(psycopg.sql.SQL("DROP DATABASE {}").format(psycopg.sql.Identifier(cls.database)))
+        cls.admin.close()
+
+    def connect(self):
+        return psycopg.connect(**self.connection_args, autocommit=True,
+                               row_factory=self.db._compat_row_factory)
+
+    @contextmanager
+    def stage(self, provider, targets):
+        activation = str(uuid.uuid4())
+        owner = psycopg.connect(**self.connection_args, autocommit=True)
+        listener = psycopg.connect(**self.connection_args, autocommit=True)
+        for statement in dml.installation_sql(activation, targets):
+            owner.execute(statement)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "canary-dml.jsonl"
+            capture = dml.CanaryCapture(listener, owner, activation=activation,
+                                       targets=targets, provider=provider, journal=path)
+            try:
+                yield dml.CanaryWriter(capture, self.connect, self.db.Transaction)
+                result = capture.finish(admission_closed=True)
+                self.assertEqual(result["status"], "CAPTURE_COMPLETE_NOT_TERMINAL")
+                self.assertEqual(dml.read_journal(path, **capture.context), result)
+                self.stage_counts = result["write_mutations_by_table"]
+            finally:
+                capture.handle.close()
+                listener.close()
+                # Only this isolated fixture can automatically install/remove
+                # DDL. Production predicates may not change under live writers.
+                for statement in dml.removal_sql(list(targets)):
+                    owner.execute(statement)
+                owner.close()
+
+    def test_both_direct_provider_payment_duplicate_and_unused_refund_transactions(self):
+        payment = self.payment
+        now = datetime(2026, 9, 8, tzinfo=timezone.utc)
+        app_id = "synthetic_item31_app"
+        with mock.patch.object(self.db, "get_conn", self.connect), mock.patch.dict(
+            os.environ, {"DATABASE_URL": "postgresql:///noteai_local?host=/var/run/postgresql",
+                         "PYTHON_DOTENV_DISABLED": "1"}, clear=True,
+        ):
+            for provider in ("wechatpay_direct", "alipay_direct"):
+                with self.subTest(provider=provider):
+                    uid = "local_item31_" + uuid.uuid4().hex
+                    self.db.execute(
+                        "INSERT INTO users(id,username,email,password_hash,password_salt,created_at) "
+                        "VALUES(?,?,?,'synthetic','synthetic',?)",
+                        (uid, uid, uid + "@example.invalid", now.isoformat()),
+                    )
+                    payment.billing.get_subscription(uid)
+                    key = "local_order_" + uuid.uuid4().hex
+                    targets = {
+                        "payment_orders": ("idempotency_key_hash", payment._hash("noteai-payment-idempotency-v1", key)),
+                        "payment_events": ("provider_event_id_hash", "no-event-admitted"),
+                        "credits": ("user_id", uid),
+                        "credit_transactions": ("user_id", uid),
+                        "subscriptions": ("user_id", "forbidden-subscription-write"),
+                        "users": ("id", "forbidden-user-write"),
+                        "usage_records": ("user_id", "forbidden-usage-write"),
+                        "payment_reconciliation_runs": ("id", "no-reconciliation-admitted"),
+                        "payment_reconciliation_items": ("id", "no-reconciliation-admitted"),
+                        "payment_settlement_summaries": ("id", "no-settlement-admitted"),
+                    }
+                    for table in ("payment_cash_ledger", "payment_credit_positions",
+                                  "payment_entitlement_ledger", "payment_refunds",
+                                  "payment_credit_consumptions"):
+                        targets[table] = ("order_id", "no-order-admitted")
+                    with self.stage(provider, targets) as writer:
+                        order = payment.create_order(
+                            uid, "credit_package", "starter", idempotency_key=key,
+                            app_id=app_id, provider_name=provider, now=now,
+                            transaction_factory=writer,
+                        )
+                    self.assertEqual(self.stage_counts, {"payment_orders": 1})
+                    targets["payment_orders"] = ("id", order["id"])
+                    for table, (column, _) in list(targets.items()):
+                        if column == "order_id":
+                            targets[table] = (column, order["id"])
+                    with self.stage(provider, targets) as writer:
+                        self.assertTrue(payment.admit_payment_submission(order["id"], now=now, transaction_factory=writer))
+                        self.assertFalse(payment.admit_payment_submission(order["id"], now=now, transaction_factory=writer))
+                        payment.mark_payment_submission_unknown(order["id"], now=now, transaction_factory=writer)
+                    self.assertEqual(self.stage_counts, {"payment_orders": 2})
+                    row = self.db.fetchone("SELECT * FROM payment_orders WHERE id=?", (order["id"],))
+                    event = payment.CallbackEvent(
+                        provider_event_id="local_payment_" + uuid.uuid4().hex,
+                        event_type="payment.succeeded", created_time=int(now.timestamp()),
+                        prod_mode=False, app_id=app_id, provider_name=provider,
+                        data={"id": provider + "_local_payment_id", "order_no": row["merchant_order_no"], "pay_amt": "12.00"},
+                    )
+                    targets["payment_events"] = ("provider_event_id_hash", payment._hash(
+                        "noteai-" + provider + "-event-id-v1", event.provider_event_id,
+                    ))
+                    def callback(event, writer):
+                        return payment.process_authenticated_callback(
+                            event, b"synthetic-already-verified-event", "synthetic-signature",
+                            expected_app_id=app_id, expected_provider_name=provider,
+                            expected_prod_mode=False, now=now, transaction_factory=writer,
+                        )
+                    with self.stage(provider, targets) as writer:
+                        self.assertTrue(callback(event, writer)["ok"])
+                        self.assertTrue(callback(event, writer)["duplicate"])
+                    self.assertEqual(self.stage_counts["payment_events"], 3)
+                    self.assertEqual(self.stage_counts["payment_cash_ledger"], 1)
+                    self.assertEqual(self.stage_counts["payment_entitlement_ledger"], 1)
+                    targets["payment_events"] = ("provider_event_id_hash", "no-event-admitted")
+                    with self.stage(provider, targets) as writer:
+                        refund = payment.prepare_full_refund(order["id"], reason_code="customer_request", now=now, transaction_factory=writer)
+                        refund_row = self.db.fetchone("SELECT * FROM payment_refunds WHERE id=?", (refund["id"],))
+                        self.assertTrue(payment.admit_refund_submission(refund["id"], now=now, transaction_factory=writer))
+                        self.assertFalse(payment.admit_refund_submission(refund["id"], now=now, transaction_factory=writer))
+                        submitted = int(now.timestamp()) if provider == "wechatpay_direct" else None
+                        payment.mark_refund_query_submission(payment.ProviderRefundResult(
+                            merchant_refund_no=refund_row["merchant_refund_no"],
+                            provider_refund_id=provider + "_local_refund_id", status="pending", amount_fen=1200,
+                            response_verified=True, provider_name=provider, app_id=app_id,
+                            merchant_order_no=row["merchant_order_no"], provider_payment_id=provider + "_local_payment_id",
+                            provider_submitted_at=submitted, prod_mode=False,
+                        ), now=now, transaction_factory=writer)
+                    self.assertEqual(self.stage_counts, {"payment_refunds": 3, "payment_orders": 1})
+                    refund_event = payment.CallbackEvent(
+                        provider_event_id="local_refund_" + uuid.uuid4().hex,
+                        event_type="refund.succeeded", created_time=int(now.timestamp()),
+                        prod_mode=False, app_id=app_id, provider_name=provider,
+                        data={"id": provider + "_local_refund_id", "refund_order_no": refund_row["merchant_refund_no"],
+                              "payment_id": provider + "_local_payment_id", "refund_amt": "12.00", "provider_submitted_at": submitted},
+                    )
+                    targets["payment_events"] = ("provider_event_id_hash", payment._hash(
+                        "noteai-" + provider + "-event-id-v1", refund_event.provider_event_id,
+                    ))
+                    with self.stage(provider, targets) as writer:
+                        self.assertTrue(callback(refund_event, writer)["ok"])
+                        self.assertTrue(callback(refund_event, writer)["duplicate"])
+                    self.assertEqual(self.stage_counts["payment_events"], 3)
+                    self.assertEqual(self.stage_counts["payment_cash_ledger"], 1)
+                    final = self.db.fetchone("SELECT refund_status,entitlement_status,refunded_fen FROM payment_orders WHERE id=?", (order["id"],))
+                    self.assertEqual(dict(final), {"refund_status": "refunded", "entitlement_status": "reversed", "refunded_fen": 1200})
+                    cash = self.db.fetchone("SELECT sum(amount_fen) AS net,count(*) AS count FROM payment_cash_ledger WHERE order_id=?", (order["id"],))
+                    self.assertEqual(dict(cash), {"net": 0, "count": 2})
 
 
 if __name__ == "__main__":

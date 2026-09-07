@@ -410,6 +410,21 @@ Python3.14.4; future release checks must cover the actual Python3.11 image.
 
 ### Item31 bounded DML and callback preparation
 
+September8 local integration: the existing collector now exposes CanaryWriter
+for explicit injection into the nine payment_contract writer functions and
+three indirect writer helpers. Each transaction is durably registered before
+business SQL; only confirmed pre-COMMIT rollback may be counted as rollback.
+Lost COMMIT reply stops further actions and leaves unpublished evidence UNKNOWN,
+even when the real rows committed. Fresh-connection rejection preserves an
+existing caller transaction. Shared RLock serializes local writer/finish; it
+does not replace the existing cross-process orchestrator protocol.
+Nineteen isolated PG16/Python3.11 checks now include both direct providers'
+synthetic real-SQL payment/duplicate/full-refund/duplicate paths and per-stage
+durable readback;62 original default payment regressions pass. No HTTP signature,
+API work-thread propagation, live collector, reconciliation or settlement claim.
+The two-provider first-launch requirement is unchanged. Existing release
+artifacts retain their54b06be source; these new canary seams are not inside them.
+
 September7 local implementation: `tools/collect_item31_canary_dml.py` now
 provides the selected minimal source: temporary, canary-predicate AFTER ROW
 triggers emit transactional `pg_notify`; one dedicated LISTEN connection

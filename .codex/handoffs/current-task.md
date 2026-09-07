@@ -1,5 +1,59 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Continued execution — September8; Item31 writer integration completed locally
+
+Owner corrected the prior premature stop. b73fb81 remains the restoration
+baseline; only the same seven protected untracked paths were present. Continue
+independent local implementation after each checkpoint; production blockers
+do not suspend unrelated local work. Old Item34 is EXPIRED/no replay/no3d;
+no production, external provider, account, gift or automation action this stage.
+
+`model/payment_contract.py` now accepts an explicit optional transaction_factory
+at its nine existing writer boundaries and three indirect writer helpers.
+Default callers still use the original db.transaction at call time; business
+SQL, billing states and global DB behavior are unchanged. The existing collector
+now supplies `CanaryWriter`: a dedicated fresh IDLE/autocommit connection,
+BEGIN/bind/durable registration before business SQL, completion before COMMIT,
+then close. Only confirmed pre-COMMIT rollback is recorded as rollback. A lost
+COMMIT reply or failed cleanup poisons the capture and blocks the next action;
+it cannot publish an incomplete journal as zero writes. Invalid borrowed
+INTRANS connections are rejected without rollback/close. A shared local RLock
+serializes writer/register/rollback/finish and rejects writes after sealing;
+this is not a cross-process callback registration service.
+
+Actual isolated PG16.15/Python3.11 tests pass19, including both direct providers'
+synthetic order/admission/payment/duplicate/full-unused-refund/duplicate chains,
+using real contract SQL and current migrations in a new disposable local DB.
+Each action uses exact reviewed predicates, installs one local fixture trigger
+set, closes all writers, seals and reads its journal, then removes that set.
+Forbidden-table sentinels are included; events use their fixed event hash.
+Cash nets to0 and exactly one grant/reversal is retained; duplicate delivery is
+counted as real event UPDATE without double credit. Other tests prove real
+COMMIT followed by simulated lost acknowledgement leaves the row committed,
+capture UNKNOWN/no rollback record/no next action; pre-COMMIT failure commits0;
+concurrent finish waits; borrowed caller transaction remains untouched.
+
+The first full-flow fixture reused a provider payment ID across channels and
+failed the existing global unique constraint; distinct synthetic IDs fixed the
+fixture without changing schema. Read-only review found/fixed borrowed-connection
+cleanup before the final run.62 default payment/financial/canary regressions
+also pass under the existing cleared-environment/no-network launcher.
+Logs retained under `/private/tmp/noteai-prep-20260908/`: canary-postgres.log
+(first failure), canary-postgres-fixed.log (19PASS), payment-default-regressions.log
+(62PASS), and both local build logs. Test image noteai-local/canary-writers:20260908-fixed
+contains the current local changes; previous release candidates keep true54b06be
+identity and were not rebuilt, relabelled or published for this tooling change.
+
+This is callable contract-level integration, not live HTTP/authentication,
+production trigger installation, API worker propagation, cross-process callback
+admission or reconciliation/settlement coverage. record_settlement_summary
+still uses its original db.execute and is explicitly outside this proof.
+No canonical Evidence, Readiness or validator change; static total remains30/38.
+Next in progress: Item34 managed unit/image preparation and restricted service/
+container/health validation against the existing template and approved fields.
+Local noteai-prep Colima and its network-none PG test container are running for
+continued isolated work; no other profile/service was started.
+
 ## Continuing local implementation — September7 after owner rests
 
 Owner explicitly requested continued autonomous local work. Production remains

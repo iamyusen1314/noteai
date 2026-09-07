@@ -694,6 +694,7 @@ def create_order(
     prod_mode: bool = False,
     provider_name: str = "adapay",
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Create one local intent; no provider request is made."""
     assert_catalog_matches_billing()
@@ -729,7 +730,7 @@ def create_order(
         if selected_provider == "adapay"
         else order_id.replace("-", "")
     )
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         try:
             content_retention.assert_user_writable_with_storage(tx, uid)
         except ValueError as exc:
@@ -844,11 +845,12 @@ def admit_payment_submission(
     order_id: str,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> bool:
     """Atomically reserve the sole provider-submission attempt for an order."""
     normalized = _uuid(order_id, "order_id")
     clock = _iso(now)
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         row = tx.fetchone(
             "SELECT id FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -871,6 +873,7 @@ def mark_payment_submission(
     result: ProviderPaymentResult,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Record a verified synchronous response; never grant entitlement."""
     normalized = _uuid(order_id, "order_id")
@@ -884,7 +887,7 @@ def mark_payment_submission(
     )
     created = _iso(now)
     mismatch = False
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         row = tx.fetchone(
             "SELECT * FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -934,10 +937,11 @@ def mark_payment_submission_unknown(
     order_id: str,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     normalized = _uuid(order_id, "order_id")
     clock = _iso(now)
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         tx.execute(
             "UPDATE payment_orders SET payment_status='pending',"
             "updated_at=? WHERE id=? "
@@ -954,6 +958,7 @@ def mark_payment_query_submission(
     result: ProviderPaymentResult,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Bind one authenticated provider query without reopening dispatch."""
     merchant_order_no = _opaque_ref(
@@ -967,7 +972,9 @@ def mark_payment_query_submission(
     )
     if row is None:
         raise PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
-    return mark_payment_submission(str(row["id"]), result, now=now)
+    return mark_payment_submission(
+        str(row["id"]), result, now=now, transaction_factory=transaction_factory,
+    )
 
 
 def _insert_cash(
@@ -1223,6 +1230,7 @@ def process_signed_callback(
     expected_app_id: str,
     expected_prod_mode: bool,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Verify and atomically apply one callback without persisting raw input."""
     raw_data = data.encode("utf-8") if isinstance(data, str) else bytes(data)
@@ -1235,6 +1243,7 @@ def process_signed_callback(
         expected_provider_name="adapay",
         expected_prod_mode=expected_prod_mode,
         now=now,
+        transaction_factory=transaction_factory,
     )
 
 
@@ -1247,13 +1256,14 @@ def process_authenticated_callback(
     expected_provider_name: str,
     expected_prod_mode: bool,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Shared ledger boundary; call only after provider raw-byte verification."""
     expected_provider = _provider_name(expected_provider_name)
     _provider_name(event.provider_name)
     expected_app = _app_id(expected_app_id)
     clock = _iso(now)
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         event_row_id, duplicate = _record_event(
             tx,
             event,
@@ -1673,6 +1683,7 @@ def prepare_full_refund(
     *,
     reason_code: str,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Create one locally eligible full-refund intent; no provider call."""
     normalized = _uuid(order_id, "order_id")
@@ -1687,7 +1698,7 @@ def prepare_full_refund(
     clock = _iso(now)
     refund_id = str(uuid.uuid4())
     merchant_refund_no = "NR_" + refund_id.replace("-", "")
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         row = tx.fetchone(
             "SELECT * FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -1785,6 +1796,7 @@ def mark_refund_submission(
     result: ProviderRefundResult,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     normalized = _uuid(refund_id, "refund_id")
     if not result.response_verified:
@@ -1806,7 +1818,7 @@ def mark_refund_submission(
             raise PaymentContractError("PAYMENT_PROVIDER_RESPONSE_MISMATCH")
     clock = _iso(now)
     mismatch = False
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         row = tx.fetchone(
             "SELECT * FROM payment_refunds WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -1914,6 +1926,7 @@ def mark_refund_query_submission(
     result: ProviderRefundResult,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Bind an authenticated query to its existing refund intent.
 
@@ -1932,18 +1945,21 @@ def mark_refund_query_submission(
     )
     if row is None:
         raise PaymentContractError("PAYMENT_REFUND_NOT_FOUND")
-    return mark_refund_submission(str(row["id"]), result, now=now)
+    return mark_refund_submission(
+        str(row["id"]), result, now=now, transaction_factory=transaction_factory,
+    )
 
 
 def admit_refund_submission(
     refund_id: str,
     *,
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> bool:
     """Atomically reserve the sole provider-submission attempt for a refund."""
     normalized = _uuid(refund_id, "refund_id")
     clock = _iso(now)
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         row = tx.fetchone(
             "SELECT id FROM payment_refunds WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -2438,6 +2454,7 @@ def reconcile_bill(
     prod_mode: bool,
     provider_name: str = "adapay",
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     """Compare a bounded canonical provider bill without persisting raw rows."""
     selected_provider = _provider_name(provider_name)
@@ -2499,7 +2516,7 @@ def reconcile_bill(
         tzinfo=ZoneInfo("Asia/Shanghai"),
     ).astimezone(timezone.utc)
     local_end = local_start + timedelta(days=1)
-    with db.transaction(write=True) as tx:
+    with (transaction_factory or db.transaction)(write=True) as tx:
         existing = tx.fetchone(
             "SELECT * FROM payment_reconciliation_runs "
             "WHERE provider=? AND provider_mode=? AND bill_date=? "
