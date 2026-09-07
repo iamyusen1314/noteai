@@ -2,6 +2,27 @@
 
 ## Current bounded Item34 execution — 2026-09-07
 
+-21:49 actual blocker is an unavailable existing NoteAI product identity,
+  distinct from API-F/Aliyun/ACR. Owner recalls no password and no confirmed
+  existing browser session. Third input returned401, zero managed POST;
+  two actual failed auth requests remain disclosed (upper bound8 total,
+  actual DML UNKNOWN). No further auth attempt. Source only supports test OTP
+  outside production; no SMS request, account creation/reset or token minting.
+  Current0019 node now reflects real ledger/policy/search_path confirmation.
+  DMS21:47 original ACL unchanged/app SELECTfalse; API-F21:49 Tracking remains
+  disabled/inactive/dead with no Item34 task container or stage journal.
+  Managed validation and both checkpoints remain incomplete. Old window is
+  UNPROVEN at this clock, hard deadline22:30:38, no automatic restart.
+
+-21:45 auth recovery supersedes the no-auth state below. The second input
+  produced one401 login failure, zero managed POST/provider dispatch. Native
+  journal SHA7294fad52c310f7b595d0228521b695b531a91682047b4aabe069b5eb2a6ecaf
+  is retained; approved auth DML upper bound4, actual count null/UNKNOWN.
+  Owner explicitly requested another attempt; third exclusive journal is
+  managed-input-3.host.jsonl, prompt opened, outcome pending. Do not guess
+  credentials, reset/create accounts, automatically retry, or grant while
+  account validity is unresolved. No terminal credit;22:30:38 deadline unchanged.
+
 -21:30 supersedes pending0019/host statements: approved wrapper and both host
   helpers are installed with exact hashes; prior wrapper preserved. Small-file
   OSS NoSuchKey failures retained, then SSH transferred the same approved bytes.

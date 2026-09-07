@@ -2,6 +2,63 @@
 
 ## Current authorized Item34 execution — 2026-09-07
 
+### Latest outcome — September7 21:49 Beijing
+
+**Concrete blocker: existing NoteAI product identity is not available.** Owner
+does not recall setting a product password and has no confirmed logged-in
+NoteAI page; clarified that this is not the API-F/Aliyun/ACR account. Third
+helper returned401 at21:44:32.009611. Its native journal SHA256 is
+`baceeb9085b66f3a9e21141b03bfb1a1b95bcf1463d57be663f9eefbc683552c`.
+Both401 results are retained: total2 normal auth requests, each source-bounded
+to4 direct auth row mutations (total upper bound8), actual count null/UNKNOWN.
+Managed POST0/provider0. No further helper is running and no automatic retry.
+Existing OTP implementation is test-delivery-only outside production; no real
+SMS request was made. Do not create/reset users, mint sessions or use test OTP.
+
+Independent DMS catalog21:47:15.627122 confirms search_path_binding true,
+exact0019ledger1/policy1/RLS true and original attempts ACL unchanged,
+app SELECTfalse. Current runtime_config_migration node is now updated from
+these actual results and prior full qual readback; historical observations
+remain untouched. API-F21:49:04.499829 confirms Tracking disabled/inactive/dead,
+MainPID0/Restart=no, no exact Item34 task container and no24h/3d native journal.
+Original unit SHA4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d
+is retained as a restoration baseline; no service start/change occurred.
+
+Next: only a legitimate existing NoteAI user session can remove the current
+identity blocker within this approval. At this clock old-window status is
+UNPROVEN, not EXPIRED; do not dispatch at/after22:30:38 or automatically restart.
+Readiness30/38. ACR image and committed dormant0019 are saved, not terminal34.
+
+Validation: Item34-only validator now accepts the real0019 migration readback;
+terminal validation still correctly fails for missing managed row, two samples,
+managed promotion and final write ledger. Historical canonical observation data
+compared against prior HEAD are byte-value unchanged. Initial validator import
+missed tools on sys.path; corrected invocation passed without code edits.
+git diff --check passes. No Item1–30 replay. Owner now recalls a generated test
+account expiring August1; its identity/environment/expiry meaning is under
+read-only indexed review, not grounds to reactivate an account or reuse a token.
+
+### Earlier input recovery — September7 21:45 Beijing
+
+The second helper made one normal password-login request at21:37:43.991762;
+the API returned401 at21:37:44.076845. Native journal readback confirms zero
+managed POST dispatches and no provider call. Original second journal remains
+`/var/lib/noteai/item34-image-build-20260906/managed-input-2.host.jsonl`, SHA256
+`7294fad52c310f7b595d0228521b695b531a91682047b4aabe069b5eb2a6ecaf`.
+This is an actual failed authentication, unlike the first empty-input event.
+Its approved auxiliary auth DML is source-bounded to4, actual committed row
+count UNKNOWN/null; do not report zero database writes or hide this attempt.
+
+Owner explicitly requested another input attempt. After reading401 (not429),
+the same installed helper was opened with unused native journal
+`/var/lib/noteai/item34-image-build-20260906/managed-input-3.host.jsonl`.
+Its username prompt is confirmed; subsequent auth outcome is pending. Only
+the owner enters an existing production NoteAI account and hidden password.
+No account creation/reset, automatic auth retries, grant or provider dispatch.
+Inspect this third journal before any recovery; keep all earlier native files.
+ACR and0019 remain completed, temporary attempts SELECT remains ungranted.
+Readiness30/38; the old24h completion and snapshot deadline remains22:30:38.
+
 ### Evening continuation — September7 20:57 Beijing
 
 **Latest21:30 continuation:** XHS image is actually published (digest below).

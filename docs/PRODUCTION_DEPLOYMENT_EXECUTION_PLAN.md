@@ -31,9 +31,16 @@ Python3.11.15/UID999及8源码hash已验证。新tag一次push exit0，Registry 
 `sha256:6735b6f243437a87945f837b9f51bbcca49bef51c24fb028f6e94351a1da54b4`。
 21:21重新确认owner/ACL/无用户trigger后，精确0019 preflight/apply/verify已成功；
 21:28:57独立目录读回确认ledger1、policy1、完整qual正确、RLS及原ACL未变。
-已有一行迁移账本和指定policy DDL；auth/managed/provider尚未dispatch。
-Host原wrapper已保留并替换为批准SHA，两份helper已安装。Workbench当前停在
-既有NoteAI业务账户用户名提示，下一步需本人输入，之后按真实结果绑定/采样。
+已有一行迁移账本和指定policy DDL。21:37第二次输入产生一次401认证失败，
+managed POST/provider均未dispatch；其辅助认证写入上界4、实际行数未知，
+原生journal保留。首次空输入为零请求；owner再次明确要求重新输入后，
+第三个独占journal读回也为401：共两次真实认证失败，辅助写入累计上界8、
+实际未知；均未产生managed POST。Owner不记得设过NoteAI产品密码，也没有
+已确认的登录会话。现有短信实现仅非生产测试发送，不能用它绕过当前阻断；
+不创建账户、重置凭据或伪造session。Host原wrapper已保留并替换为批准SHA，
+两份helper已安装。下一步需要合法的既有NoteAI业务身份，非API-F/阿里云账号。
+21:47补齐真实search_path绑定确认；21:49 Tracking保持disabled/inactive/dead，
+无Item34任务容器及阶段journal。旧窗口仍UNPROVEN，截止条件不变。
 暂未新增临时SELECT。20:49:42主机
 读回31G可用、Python3.11.6、Tracking disabled/inactive。领域由owner确认关于
 宠物猫，使用`宠物猫`。具体执行状态同步在现有Handoff和canonical中。
