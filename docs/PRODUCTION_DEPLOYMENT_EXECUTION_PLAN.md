@@ -25,8 +25,11 @@ Secret隔离与真实终态不变。镜像保持真实b8ae59c源码身份，不�
 不要求先重建全部角色、更新 API、部署 Payment 或完成 ALB。
 
 **晚间续行：**owner已报告API-F Docker Login Succeeded。既定镜像通过同一
-Workbench任务传输，Wi-Fi切换中断后由owner恢复，界面显示完成；主机整包SHA、
-load/push及真实digest仍待核验。没有DB写入/provider dispatch。20:49:42主机
+Workbench任务传输，Wi-Fi切换中断后由owner恢复；主机整包SHA/bytes、load、
+Python3.11.15/UID999及8源码hash已验证。新tag一次push exit0，Registry manifest
+读回匹配同一config；实际digest为
+`sha256:6735b6f243437a87945f837b9f51bbcca49bef51c24fb028f6e94351a1da54b4`。
+没有DB写入/provider dispatch。20:49:42主机
 读回31G可用、Python3.11.6、Tracking disabled/inactive。领域由owner确认关于
 宠物猫，使用`宠物猫`。具体执行状态同步在现有Handoff和canonical中。
 
@@ -139,10 +142,16 @@ provider-free healthcheck。实际入口保留 `/app/scripts/docker_entrypoint.s
 `/private/tmp/noteai-prep-20260907/item34-xhs-b8ae59c-linux-amd64.docker.tar.gz`，
 377806447 bytes，SHA256
 `79ba76c546bf20d71b8e2c1f27ce95805b93d70cfbf663f9cf105e9401b7d6eb`。
-本地 OCI manifest/image identity
+本地 OCI image index digest
 `sha256:cb17d276d79a0b6b8bc0ad64a11a5ef0aa8e23bd8b9b00bd35ce62eca42f0a27`
 **不是 ACR 发布凭据**。ACR digest 必须在真正 push 后读回并与所发布内容核对，
 当前未填造，也不阻断本地准备。
+
+归档内该index指向linux/amd64 OCI manifest
+`7b444143c77dcdd44e83a8a2d50f9330febb12df37afa641653d13c454e99897`，其config为
+`5c4291f7062352ea07cce6e1ab02c274dc1267f4fd5aa07d293dd5050c3754eb`。
+API-F classic Docker加载后的Id等于此config，三层引用及SHA均已核验。后续
+validator的immutable_artifact_sha256沿用原wrapper实际返回的config/image Id。
 
 旧 v2 `/Users/openclaw/Desktop/noteai-item34-xhs-overlay-20260906-v2.tar.gz`
 的112个源码文件与当前版本完全匹配（archive SHA

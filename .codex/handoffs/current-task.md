@@ -31,7 +31,39 @@ helper is not yet installed/executed.12fake-HTTP/secret-free Python3.11 tests pa
 including unknown outcomes, no replay, disk failure, deadline and secret errors.
 No runtime image rebuild or OCI-label change. Readiness remains30/38.
 
-Next: remote archive SHA256, load, immutable tag publication/digest readback;
+Subsequent host readback: archive SHA256/377806447 bytes match, Docker load
+succeeded, actual Python3.11.15/x86_64/UID999 and8 source hashes match. One probe
+had a shell-quoting SyntaxError; corrected no-network/no-Secret probe passed.
+The local cb17d276... is an OCI index digest, pointing to amd64 manifest
+7b444143c77dcdd44e83a8a2d50f9330febb12df37afa641653d13c454e99897 and config
+5c4291f7062352ea07cce6e1ab02c274dc1267f4fd5aa07d293dd5050c3754eb. Classic
+API-F Docker Id equals that config; this is the same approved artifact, not
+drift. Actual ACR publication digest still pending. Source directory is root0700;
+host wrapper is old88f49217ca203a6d861612eeac7e254132e63ca39863506947e31f6b7877f15d,
+checkpoint73f53cba already matches. Preserve old wrapper before exact approved
+3d9e65c4 replacement. Minimum three host files are in local transport-only tar
+`/private/tmp/item34-host-files-20260907.tar` (112640bytes, SHA256
+3fad8b721811a7dc33cff6aa911d19802de66bb6347fe78df3ef62256e6abc35); native file
+picker stopped returning UI state, so owner was given this exact file to select.
+The tar only contains wrapper, durable logger and normal-user submission helper.
+
+ACR publication now succeeded: preflight returned no such manifest for the new
+tag, one push exited0; live registry manifest config matches5c4291f7 above.
+Real manifest digest is
+`sha256:6735b6f243437a87945f837b9f51bbcca49bef51c24fb028f6e94351a1da54b4`.
+Use the existing private repository `@` this digest for the approved execution.
+Host native push log/exit are `acr-push-20260907.log` and `.log.exit` in the same
+source directory. No Git push/new resource/service deployment; actual incremental
+transfer/storage charge remains UNKNOWN, never0.
+
+The small plain-tar transfer returned OSS NoSuchKey (two displayed request IDs
+preserved in canonical), and exact host stat proves no tar arrived. Root cause
+unlocated. The same three source files are now being transferred in the existing
+successful gzip format: `/private/tmp/item34-host-files-20260907.tar.gz`,21710bytes,
+SHA2605fd5a47acc415f3c66d8eaf364ed9a7e89093912ebf5ba6ee739eb3cb060e.
+Do not run or use the failed plain tar. Host install/readback pending.
+
+Next: verify/install these host files;
 then owner SQL revalidation/0019/temporary ACL and the legitimate-user helper.
 24h result and snapshot must remain strictly before22:30:38; old window still
 UNPROVEN. Do not rely on PAUSED automation to resume the later3d stage.

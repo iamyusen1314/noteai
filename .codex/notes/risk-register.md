@@ -2,6 +2,14 @@
 
 ## Current bounded Item34 execution — 2026-09-07
 
+-21:11 continuation: approved XHS image actually published once, push exit0.
+  Registry digest6735b6f243437a87945f837b9f51bbcca49bef51c24fb028f6e94351a1da54b4
+  binds the same5c4291f7config; localcb17d276 is the OCI index, not config/digest
+  drift. Host Python3.11.15/UID999/8 source hashes match. Host wrapper remains
+  old pending replacement; three-file plain-tar upload NoSuchKey and missing
+  host file preserved as known failure. Same-content gzip transfer pending.
+  DB owner catalog remains13:47 LAST_KNOWN; no apply/grant/auth/POST/provider yet.
+
 - Evening supersedes afternoon ACR-login blocker: owner reported Login Succeeded.
   Same377806447-byte image transfer was interrupted by owner Wi-Fi switching;
   owner resumed it and Workbench shows complete. Remote SHA/load/push are still
