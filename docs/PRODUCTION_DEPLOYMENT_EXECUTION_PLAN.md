@@ -13,9 +13,11 @@ mutation, provider call, ALB/TLS/DNS change, or production traffic.
 ## Paused preparation update — 2026-09-07
 
 This section describes current local preparation. The historical image table
-below belongs to its dated release and is not the next candidate. All live
-execution, cloud queries, image publication, service changes, database access,
-provider requests, payments and DNS remain PAUSED under the current owner scope.
+below belongs to its dated release and is not the next candidate. The owner's
+subsequent confirmation authorized the bounded readbacks recorded in the current
+Handoff. It did not authorize production writes, publication, service changes,
+provider requests, payments, DNS, role grants or paid resources. Those remain
+PAUSED. This document itself grants no execution permission.
 
 ### Candidate source and affected regressions
 
@@ -68,6 +70,42 @@ suitable existing source exists, prepare only a canary-scoped collector after
 that finding. Missing capture means Item31 stays incomplete; best-effort
 create/callback logs and `pg_stat_*` aggregate deltas cannot close it.
 
+Authorized September7 readback narrowed this gap. The existing PG16 instance's
+SQL-insight page shows `开启审计日志`. A server-enforced read-only API session
+returned `log_statement=ddl` and no installed `pgaudit` among the requested
+extension names; no audit function was enabled. The same session cannot SELECT
+the migration ledger or tracking attempts, and must not be granted broad rights
+just to make evidence convenient. Query visibility is not historical DML proof.
+
+The [official PostgreSQL audit description](https://help.aliyun.com/zh/rds/apsaradb-rds-for-postgresql/sql-insight-or-audit)
+says audit uses database-kernel SQL capture, excludes PgBouncer SQL, and records
+failed SQL in error logs rather than audit logs. Enabling changes log_statement
+to all. The [PG-supported detail API](https://help.aliyun.com/zh/das/developer-reference/api-das-2020-01-16-getdassqlloghotdata)
+has separate UpdateRows, ReturnRows, TransactionId, ThreadID and State fields;
+their presence does not establish committed INSERT/UPDATE/DELETE effects after
+rollback/savepoint or trigger-internal effects. The documented
+[transaction analysis](https://help.aliyun.com/zh/das/user-guide/transaction-analysis)
+prerequisites list MySQL engines, not this PostgreSQL instance. Do not infer
+PG support from a generic DAS transaction-analysis description.
+
+Audit enablement is both a configuration and charging change, outside the read
+authorization. [Official V3 mainland pricing](https://help.aliyun.com/zh/das/product-overview/billing-details-of-the-previous-version)
+lists log import CNY0.24/GB, optional index0.24/GB and insight0.08/GB, plus
+retention/query-dependent costs; security audit has a separate minimum charge.
+Actual selected version/options/volume are unknown, so there is no instance
+quote. Do not buy or enable it as the default answer to the Item31 gap.
+
+The local fixture observer now handles the contract's literal SAVEPOINT,
+ROLLBACK TO SAVEPOINT and RELEASE forms. A real entitlement-write-then-fail
+case commits cash1/order1/event2 affected rows and rolls back all entitlement
+effects. This is why summing successful rowcounts at outer COMMIT is insufficient.
+It is a correction to offline counting, not to the production rollback code.
+Any later canary-scoped capture must distinguish attempted and committed effects,
+retain transaction/savepoint boundaries, classify disconnects UNKNOWN, and cover
+both API and Payment paths. Enabled trigger/internal-rule effects and durable
+readback remain unproven. Keep using the existing canary action journal and
+Evidence fields; do not add a global logging platform or new approval gate.
+
 The fixed real notification endpoints are:
 
 - `https://api.noteaipro.cn/payments/wechat/callback`
@@ -86,6 +124,14 @@ DNS, opening other business routes, a different callback domain, or a
 single-channel launch. The existing two-provider requirement remains unchanged.
 
 ### Item36 local implementation, health and rollback
+
+Fresh September7 service/container metadata shows both APIs on the old b55
+image and loopback8000. Payment is loaded/disabled/inactive on API-C; its unit
+is not-found on API-F, and neither exact-name container inspection succeeded.
+No shared Payment/API namespace or new live health probe is therefore proven.
+Both API unit FragmentPaths were read, but current unit bytes were not exported
+or rendered. A future application must first bind those exact reviewed bytes;
+template similarity and a stored Docker `healthy` state are insufficient.
 
 `tools/prepare_item36_private_bind.py` is a pure local renderer with no apply,
 cloud, subprocess, database or environment-loading path. Given a reviewed

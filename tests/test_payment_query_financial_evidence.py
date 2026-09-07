@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from collections import Counter
+from contextlib import contextmanager
 from unittest import mock
 from datetime import datetime, timezone
 from pathlib import Path
@@ -131,10 +132,13 @@ class PaymentQueryFinancialEvidenceTests(unittest.TestCase):
             [{"entry_type": "payment_received_unmatched", "amount_fen": 1300}],
         )
 
-    def test_duplicate_delivery_dml_counts_actual_updates_without_second_entitlement(self):
+    @contextmanager
+    def _observe_committed_dml(self):
         # This records affected rows from the real SQLite contract in an
         # isolated fixture. It is not a production collector: PostgreSQL
         # trigger effects and cross-process durable coverage remain unproven.
+        # The contract uses explicit transactions and literal savepoint names;
+        # this observer is deliberately limited to those fixture SQL forms.
         committed = Counter()
         connect = db.get_conn
 
@@ -142,12 +146,32 @@ class PaymentQueryFinancialEvidenceTests(unittest.TestCase):
             def __init__(self):
                 self.inner = connect()
                 self.pending = Counter()
+                self.savepoints = []
 
             def __getattr__(self, name):
                 return getattr(self.inner, name)
 
             def execute(self, sql, parameters=()):
                 cursor = self.inner.execute(sql, parameters)
+                statement = sql.strip().rstrip(";")
+                savepoint = re.fullmatch(r"SAVEPOINT (\w+)", statement, re.IGNORECASE)
+                rollback = re.fullmatch(
+                    r"ROLLBACK TO(?: SAVEPOINT)? (\w+)", statement, re.IGNORECASE,
+                )
+                release = re.fullmatch(
+                    r"RELEASE(?: SAVEPOINT)? (\w+)", statement, re.IGNORECASE,
+                )
+                if savepoint:
+                    self.savepoints.append((savepoint[1].lower(), self.pending.copy()))
+                elif rollback or release:
+                    name = (rollback or release)[1].lower()
+                    index = next(i for i in reversed(range(len(self.savepoints)))
+                                 if self.savepoints[i][0] == name)
+                    if rollback:
+                        self.pending = self.savepoints[index][1].copy()
+                        del self.savepoints[index + 1:]
+                    else:
+                        del self.savepoints[index:]
                 match = re.match(
                     r"\s*(?:INSERT(?: OR IGNORE)? INTO|UPDATE|DELETE FROM)\s+(\w+)",
                     sql, re.IGNORECASE,
@@ -164,19 +188,26 @@ class PaymentQueryFinancialEvidenceTests(unittest.TestCase):
                 self.inner.commit()
                 committed.update(self.pending)
                 self.pending.clear()
+                self.savepoints.clear()
 
             def rollback(self):
                 self.inner.rollback()
                 self.pending.clear()
+                self.savepoints.clear()
 
             def __exit__(self, *exc):
                 result = self.inner.__exit__(*exc)
                 if exc[0] is None:
                     committed.update(self.pending)
                 self.pending.clear()
+                self.savepoints.clear()
                 return result
 
         with mock.patch.object(db, "get_conn", side_effect=ObservedConnection):
+            yield committed
+
+    def test_duplicate_delivery_dml_counts_actual_updates_without_second_entitlement(self):
+        with self._observe_committed_dml() as committed:
             self.assertTrue(self._payment_query()["ok"])
             self.assertEqual(committed["payment_entitlement_ledger"], 1)
             self.assertEqual(committed["credit_transactions"], 1)
@@ -196,6 +227,51 @@ class PaymentQueryFinancialEvidenceTests(unittest.TestCase):
                 "SELECT duplicate_delivery_count FROM payment_events WHERE order_id=?",
                 (self.stored_order["id"],),
             )["duplicate_delivery_count"], 1)
+
+    def test_entitlement_savepoint_rollback_excludes_rows_from_committed_dml(self):
+        apply_entitlement = payment_contract._apply_credit_entitlement
+        before_rollback = []
+        credits_before = dict(db.fetchone(
+            "SELECT * FROM credits WHERE user_id=?", ("u-query-evidence",),
+        ) or {})
+
+        def fail_after_real_entitlement_writes(tx, row, event_id, clock):
+            apply_entitlement(tx, row, event_id, clock)
+            before_rollback.append(tx.fetchone(
+                "SELECT COUNT(*) AS c FROM payment_entitlement_ledger WHERE order_id=?",
+                (row["id"],),
+            )["c"])
+            raise RuntimeError("synthetic failure after entitlement writes")
+
+        with self._observe_committed_dml() as committed, mock.patch.object(
+            payment_contract, "_apply_credit_entitlement",
+            side_effect=fail_after_real_entitlement_writes,
+        ):
+            result = self._payment_query()
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["code"], "PAYMENT_ENTITLEMENT_NEEDS_MANUAL")
+            self.assertEqual(before_rollback, [1])
+            self.assertEqual(committed, {
+                "payment_orders": 1, "payment_events": 2, "payment_cash_ledger": 1,
+            })
+            self.assertEqual(dict(db.fetchone(
+                "SELECT * FROM credits WHERE user_id=?", ("u-query-evidence",),
+            ) or {}), credits_before)
+            for table in ("payment_entitlement_ledger", "payment_credit_positions"):
+                self.assertEqual(db.fetchone(
+                    f"SELECT COUNT(*) AS c FROM {table} WHERE order_id=?",
+                    (self.stored_order["id"],),
+                )["c"], 0)
+            self.assertEqual(db.fetchone(
+                "SELECT COUNT(*) AS c FROM credit_transactions WHERE payment_ref=?",
+                (self.stored_order["id"],),
+            )["c"], 0)
+            row = db.fetchone(
+                "SELECT payment_status,entitlement_status FROM payment_orders WHERE id=?",
+                (self.stored_order["id"],),
+            )
+            self.assertEqual((row["payment_status"], row["entitlement_status"]),
+                             ("succeeded", "needs_manual"))
 
     def test_signed_success_refund_mismatch_records_unmatched_cash_once(self):
         paid = self._payment_query()

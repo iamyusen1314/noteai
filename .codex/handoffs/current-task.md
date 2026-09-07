@@ -1,11 +1,111 @@
 # NoteAI Internal Production Readiness Handoff
 
-## Current CTO takeover — 2026-09-07, local preparation only
+## Current CTO takeover — 2026-09-07, bounded readback completed
 
 This section supersedes runtime/action instructions in all older dated sections.
-Real execution and automation remain PAUSED. Current cloud/Workbench/Secret/
-service/image/host-result statements below are LAST_KNOWN unless explicitly
-labelled as a fresh local check. No production or external readback occurred.
+Production mutations, provider execution and automation remain PAUSED. The
+owner's subsequent `确定授权` approved the immediately proposed bounded
+read-only RDS/DMS, API-C/F metadata, ACR and existing tracking-object checks.
+It did not authorize role grants, audit enablement, new credentials, migration,
+managed-row creation, provider sampling, successor execution, publication,
+deployment, DNS or paid-resource creation. Only the dated readbacks below are
+fresh; other cloud/Secret/session/host-result claims remain LAST_KNOWN.
+
+### Authorized readback and local closure — Beijing 2026-09-07 11:00
+
+- Local starting HEAD was `11d7762bef3c1d24a831b82dd75273479d68b8ad`, parent
+  `4aa203f271798f66825a28c9224f84192d8fa4e3`, both descended from the required
+  recovery58859ce. Branch/worktree matched, ahead3, tracked tree/index clean,
+  protected7 untracked. Their contents were not read or changed.
+- Workbench API-F and API-C sessions had disconnected. Normal login through
+  their already-enabled passwordless connection restored access; no password,
+  key, Secret value or Docker credential content was displayed, entered or
+  changed. Manifest access used the existing Docker authentication chain;
+  the CLI may internally load its configured credential without displaying it.
+  Workbench accessibility output exposes an ephemeral session identifier by
+  default; subsequent text output redacted it. Raw Workbench captures/session
+  identifiers are not saved to the repository or treated as portable Evidence.
+- API-F at UTC02:42:28 and API-C at UTC02:49:50: `noteai-api.service` active/
+  running, NRestarts0, no drop-ins and no pending daemon reload; corresponding
+  API containers running with stored Docker health `healthy`, bridge network
+  and only127.0.0.1:8000 binding. Both run old b55 API image, not the Item30 Kimi
+  integrated recovery source. ACR current API digest readback matches
+  `sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620`.
+  Stored Docker health is not a new application health request or release test.
+- Payment on API-C is loaded/disabled/inactive/dead; on API-F the unit is
+  not-found. Exact-name container inspection returned ABSENT_OR_UNREADABLE on
+  both, so no live Payment namespace/readiness is proven. API-C Trends/Tracking
+  units are not-found; API-F both loaded/inactive/dead. API-F UnitFileState was
+  not queried. No service/container was started, stopped or restarted. Current
+  secret-free unit bytes were not exported; local bind rendering still needs
+  a fresh exact-byte source before any separately authorized application.
+- RDS console identified existing `noteai-prod-postgres` / PG16 running.
+  DMS currently says `AliyunDMSDefaultRole` is not authorized. No role grant,
+  authorization retry, MFA challenge, whitelist or account change was made.
+  The RDS SQL-insight page shows `开启审计日志`, not an enabled queryable audit.
+- One bounded PostgreSQL session used the already-injected API-C connection
+  identity in memory, without reading .env, exposing the DSN, importing NoteAI
+  or starting another container. Python isolated mode/disabled bytecode;
+  startup default_transaction_read_only=on, statement5s/lock2s/connect5s/
+  idle-transaction15s timeouts; REPEATABLE READ READ ONLY, finally ROLLBACK/close.
+  At DB server Beijing10:53:57, start/end guards were read_only=on and no write
+  transaction ID. Only fixed SELECT projections ran; no DML/DDL was dispatched
+  by this script. This does not claim zero engine log/statistic writes or zero
+  unrelated concurrent application activity.
+- That session freshly found canonical target `6a7954010000000026034707`
+  tracked_notes count0. notes/tracked_notes are selectable with RLS inactive,
+  so zero is a real snapshot absence for this target. Legitimate NoteAI browser
+  user/session was not revalidated and no user IDs/content were returned.
+  schema_migrations and tracking_provider_attempts have no SELECT privilege:
+  ledger/attempts are UNREADABLE, not zero. Named0019 policy has visible count0;
+  system_settings has RLS active. No config values or policy body were printed.
+- Native audit projection returned log_statement=ddl, no pgaudit parameter
+  rows and no installed pgaudit/pg_stat_statements extension among those two
+  names. This and the console state do not establish usable committed-DML
+  capture for Item31. Official PG audit material distinguishes UpdateRows from
+  ReturnRows but does not prove rollback/savepoint/trigger-adjusted committed
+  effects; see the existing deployment plan's linked capability findings.
+- ACR console freshly shows running existing private immutable noteai/app,
+  matching VPC endpoint, public endpoint disabled and17 tags on one complete
+  page; `item34-20260907-3d9e65c4` is absent. API-F at UTC02:57:10 revalidated
+  local v2 ID `sha256:fe0d3752249a7118f54e88a40a0e8c6275846df4c3c86a0b7b7d125e4ca1c2ac`,
+  RepoDigests[]. Current default Docker config is a regular owner600 file
+  (metadata only). One manifest invocation returned exit1 with UNAUTHORIZED
+  and ACCESS_DENIED. No raw error/credential output, login, push or pull.
+  Failure class is now current authentication/access rejection; underlying
+  token expiry versus credential/permission cause remains UNLOCATED. Console
+  access does not prove the host's registry credential works. Do not request
+  new owner credentials or broaden network/RAM permissions on this evidence.
+- Item34 remains **UNPROVEN** at UTC02:59:58 / Beijing10:59:58: managed-row
+  absence and the missing checkpoints preclude VALID; no new provider sample
+  was taken. The unchanged24h boundary is still Beijing September7 22:30:38,
+  not a relative “today” instruction. No EXPIRED finding or restart is implied.
+- Local DML test observer now restores pending counts on SAVEPOINT rollback.
+  The real isolated payment-query fixture writes entitlement, then injects a
+  failure: cash1/order1/event2 affected rows commit; credits/entitlement effects
+  roll back and the order has succeeded payment/needs_manual entitlement.
+  This repairs test accounting, not a production payment defect. It does not
+  prove PostgreSQL triggers, refund-path capture or durable multi-process DML.
+  Secret-free paused runner: all5 financial-evidence tests PASS; fresh static
+  Readiness validates internal29/29, overall30/38, blocked3/incomplete8. Production
+  source, canonical Evidence, approved DoD and frozen Item35 package unchanged.
+- No new paid resource, audit subscription, billable supplier call, image-layer
+  transfer or production business mutation was requested. Existing connection/
+  console logs may be generated; no claim about exact bill increment is made.
+  The next local checkpoint contains only this test correction and existing
+  Handoff/risk/deployment-plan updates. No readiness credit or push.
+
+Current action boundary: read-only permission above was used, not converted
+into write permission. 0019 terminal proof still needs the existing privileged
+route; DMS use additionally needs its exact default-role authorization. Managed
+row submission needs an authenticated existing NoteAI user and separate write
+authorization. ACR publication needs an approved functioning auth path and
+separate push authorization; do not publish the obsolete dated source package.
+Item31 next local design is a canary-scoped DML source with explicit savepoint,
+trigger and disconnected-result semantics; native broad SQL audit must not be
+enabled merely because it appears in the console. Public callback sequencing,
+merchant approval, professional signatures and later ALB cost/application
+remain owner/external decisions. None blocks preserving this readback checkpoint.
 
 ### Verified recovery and Item34 ruling
 
@@ -31,24 +131,24 @@ labelled as a fresh local check. No production or external readback occurred.
   exact-one checkpoint execution is deliberately quiescent between actions.
   Continuity fields0/[] alone do not establish actual continuity. Existing
   evidence is incomplete, not proven incompatible; no restart is proposed.
-- DMS LAST_KNOWN: migration0019 absent, runtime roles cannot activate owner,
+- Pre-authorization DMS LAST_KNOWN: migration0019 absent, runtime roles cannot activate owner,
   metadata audit found no retained owner executor; standard-role authorization
   was NOT_DISPATCHED at MFA. Next authorized action is a bounded state readback,
   followed by the exact existing0019 plan only if separately approved. Owner MFA
   is needed only if the current legitimate flow still demands it.
-- Managed row LAST_KNOWN: absent. The permitted creation route is authenticated
+- Pre-authorization managed row LAST_KNOWN: absent (freshly confirmed above). The permitted creation route is authenticated
   `POST /notes/track-url` for the existing NoteAI user. Establish the legitimate
   session before future authorized submission; no guessed user/SQL insertion.
-- ACR LAST_KNOWN: local image exists, registry digest missing, one manifest read
+- Pre-authorization ACR LAST_KNOWN: local image exists, registry digest missing, one manifest read
   returned AUTH_UNAVAILABLE. Root cause is UNLOCATED. Future authorized read-only
   diagnosis must identify current endpoint/auth mechanism/permission and failure
   class before asking for a credential or owner action. No speculative fix.
 
-### Local results and remaining parallel work
+### Prior local-only preparation, before the authorized readback
 
 - Kimi integration already exists in `model/model_router.py` and Dockerfile COPY.
-  The old b55 deployed image lacks that overlay; its current runtime is not
-  reverified. Current-source mocked model/Item30 regression passed50 tests;
+  The old b55 deployed image lacks that overlay; its current runtime was later
+  reverified by the authorized metadata readback above. Current-source mocked model/Item30 regression passed50 tests;
   accepted Item30 historical provider execution was not rerun. Future build must
   use the final recovery source and actual role-image readback.
 - Item32 fixed a real recovery defect in the existing successor: retain the
@@ -81,8 +181,8 @@ labelled as a fresh local check. No production or external readback occurred.
   PostgreSQL or production DML proof. Existing deployment plan now maps canary
   DML coverage, real callback ingress and the precise missing production source.
   Native RDS DML capture semantics (API+Payment, commits/rollbacks, triggers)
-  require future scoped authorized fact-finding; final rows/best-effort logs
-  cannot be promoted to proof. No global audit platform or expanded runtime role.
+  remain unproven after the authorized findings above; final rows/best-effort
+  logs cannot be promoted to proof. No global audit platform or expanded runtime role.
 - Real payment needs publicly resolvable/TLS-valid fixed api.noteaipro.cn callback
   routes. A pre-DNS client override cannot route supplier notifications. Owner
   must later decide/authorize the bounded callback ingress before live funds
@@ -116,7 +216,12 @@ labelled as a fresh local check. No production or external readback occurred.
   three blocked controls and eight incomplete. No Readiness manifest/DoD or
   canonical production Evidence has been changed; all preparation has zero
   terminal credit. No push, deployment, provider request or production mutation.
-### Local preparation closure and exact next boundary
+### Earlier local-only preparation closure and authorization proposal
+
+The read-only rows of the proposal below were subsequently approved by the
+owner and performed to the visibility limits recorded above. The remaining
+write/product/signature/cost decisions were not authorized by that confirmation.
+The local-only statements in this subsection describe the preceding checkpoint.
 
 - First new non-release recovery checkpoint: `4aa203f` (parent58859ce), local
   only. The subsequent commit containing this closure preserves the final

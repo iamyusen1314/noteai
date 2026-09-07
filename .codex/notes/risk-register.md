@@ -2,20 +2,51 @@
 
 ## Current paused takeover risks — 2026-09-07
 
-Supersedes older active-execution/deadline instructions below. Cloud/runtime,
-Secrets, Workbench, host-only results and automation state are LAST_KNOWN;
-this turn performs local checks only. The saved local Item32-34 heartbeat
-configuration was freshly read as PAUSED; remote scheduler/runtime remains
-LAST_KNOWN. Real actions remain PAUSED.
+Supersedes older active-execution/deadline instructions below. The owner
+subsequently authorized the bounded production readbacks recorded at the top of
+current-task.md. Only those observations are fresh; Secrets, unqueried host-only
+results and remote automation remain LAST_KNOWN. Saved local Item32-34 heartbeat
+configuration is PAUSED. Production mutations/provider execution remain PAUSED.
 
-- Item34 UNPROVEN as of Beijing September7 10:13:25. Actual initial browser
+- Fresh readback at Beijing September7 10:42-10:57: both API services/containers
+  run old b55, loopback8000, stored Docker health healthy. This is not a fresh
+  release health test. Payment is disabled/inactive on API-C and unit not-found
+  on API-F; exact-name container inspection did not succeed on either. Payment
+  readiness and shared namespace are unproven. No units were applied/restarted.
+- Current managed-row count is0 for the canonical target in a SELECT-readable,
+  non-RLS-filtered table. Existing NoteAI user session remains unvalidated.
+  0019 ledger and attempts are UNREADABLE to API-C's existing identity; named
+  required policy visible count0. The server-enforced read-only transaction
+  ended with ROLLBACK, no script DML/DDL. DMS still lacks AliyunDMSDefaultRole;
+  no grant/MFA retry or privileged migration was dispatched.
+- RDS page offers audit enablement; current log_statement=ddl, no pgaudit
+  extension observed. Official PG audit row fields do not prove committed DML
+  after savepoint/rollback/trigger effects. Enabling broad audit changes logging
+  and billing and is not an approved fix. Existing deployment plan records
+  official capabilities/limitations and directory pricing without a fake quote.
+- ACR private immutable repository/current VPC endpoint are readable through
+  console; complete17-tag list lacks Item34v2. API-F local v2 ID matches and
+  RepoDigests is empty. One current manifest call returned UNAUTHORIZED plus
+  ACCESS_DENIED; Docker-config metadata is owner600/regular, contents not
+  displayed or inspected. Manifest used the existing authentication chain;
+  the CLI may internally load its configured credential.
+  Underlying expiry/credential-versus-permission cause remains UNLOCATED; no
+  credential change, public-network expansion, push/pull or owner Secret demand.
+- Local financial-evidence observer now restores SAVEPOINT counts. New real
+  SQLite write-then-fail test proves cash1/order1/event2 commit with no committed
+  entitlement/credit effect. All5 focused cases pass. This fixes offline
+  accounting only, not production code; refund/trigger/cross-process capture
+  still needs its own evidence. Readiness stays30/38, no new terminal credit.
+
+- Item34 UNPROVEN as of Beijing September7 10:59:58. Actual initial browser
   snapshot is not a managed checkpoint; 24h/3d and managed row evidence are
   absent. Existing DoD allows later row binding and does not require72h process
   uptime. 24h must be before September7 22:30:38, 3d at/after it; no invented
   grace or minimum48h interval. Do not claim VALID, presume EXPIRED or restart.
-- DMS/row/ACR deficits need future scoped readback. AUTH_UNAVAILABLE does not
-  locate the ACR root cause or prove that owner credential injection is needed.
-  No immediate owner operation is needed for the remaining local preparation.
+- DMS/row/ACR fresh findings above supersede their old snapshots. Current access
+  rejection still does not locate the ACR root cause or prove that new owner
+  credentials are needed. Remaining writes/signatures/callback sequencing are
+  separate owner/external actions, not prerequisites to saving local work.
 - Item32 recovery defect repaired locally: early store deletion and premature
   SUCCEEDED could lose result after successful collection. Store/receipt/candidate
   now survive publication or seal failure; lock spans final persistence. New
@@ -27,8 +58,8 @@ LAST_KNOWN. Real actions remain PAUSED.
   zero-used-day assumption is authorized; September7 plan has no auto rollover.
 - Item31 DML remains a real terminal gap: isolated rowcount test proves duplicate
   event UPDATE without duplicate grant, not production/trigger/cross-process
-  audit coverage. Existing native DML capture capability needs scoped future
-  metadata investigation; do not add broad SQL logging or infer DML from rows.
+  audit coverage. Current native-audit findings above leave the committed-DML
+  gap open; do not add broad SQL logging or infer DML from final rows.
 - Fixed public callback hostname is a sequencing dependency before live payment;
   client-side pre-DNS probes cannot route provider notifications. Owner must
   separately approve bounded callback ingress or an explicit sequence decision;
@@ -37,8 +68,8 @@ LAST_KNOWN. Real actions remain PAUSED.
   deployed. Future release must prove its actual source/image; historical b55
   acceptance is not new-release coverage.
 - Item36 bind renderer/rollback and Payment namespace lifecycle are local
-  preparation. No real unit, fresh inventory/quote/fee approval or live ALB/NDR
-  result exists this turn. Terminal dependencies33+34 remain; health itself
+  preparation. Service/image metadata is now fresh, but no exact unit bytes,
+  fresh ALB quote/fee approval or live ALB/NDR result exists. Terminal dependencies33+34 remain; health itself
   does not depend on real supplier or payment calls. Item35 frozen unsigned
   package unchanged; two categories/artifacts do not imply a new two-person rule.
 - Readiness remains30/38. Final API/payment292 and Item32-36 preparation198
