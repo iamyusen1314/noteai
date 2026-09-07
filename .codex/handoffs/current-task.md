@@ -1,5 +1,142 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current implementation closure — 2026-09-07 12:46 Beijing
+
+Continued from `b8ae59cbf1c8423b832dab385eb3f0d367298b71` in the same worktree
+and branch; no takeover restart or Items1–30 live replay. This section supersedes
+older statements that no image/new Item32 package/PG16 DML source was prepared.
+Two existing genuine read-only subagents independently reviewed implementation
+and acceptance bounds; primary alone wrote and tested. This turn was local only:
+no production Secret loaded, business connection, supplier/payment request,
+production role grant, publication, push, service mutation or paid Builder.
+Remote readbacks below retain their recorded times; no fresh cloud state is
+claimed this turn. Automation and production execution remain PAUSED by scope.
+
+### Runnable artifacts and verified result
+
+- **Item34 XHS candidate exists and runs.** Only `xhs-http-runtime` was built in
+  isolated local Colima `noteai-prep` (4CPU/6GiB/30GiB, no host mounts, agent or
+  port forwarding, no active-context switch). Official pinned dependencies were
+  downloaded with a separate empty-auth Docker configuration. VM is arm64;
+  actual container is linux/amd64 under QEMU. Python3.11.15, x86_64, UID999,
+  entrypoint/role and8 baked source hashes verified, cryptography50.0.0 and
+  psycopg3.3.4, pip check PASS. OCI revision full b8ae59c above; local tag
+  `noteai-local/item34:b8ae59c`, local OCI identity
+  `sha256:cb17d276d79a0b6b8bc0ad64a11a5ef0aa8e23bd8b9b00bd35ce62eca42f0a27`.
+  This is local artifact evidence, not a production-host test or ACR digest.
+- Portable Docker image:
+  `/private/tmp/noteai-prep-20260907/item34-xhs-b8ae59c-linux-amd64.docker.tar.gz`,
+  377806447 bytes, SHA256
+  `79ba76c546bf20d71b8e2c1f27ce95805b93d70cfbf663f9cf105e9401b7d6eb`.
+  A real local `docker image load` round-trip succeeded with the same identity.
+  It contains only the reviewed build context, no host Secret or protected path.
+  Image and build cache persist in this Colima profile; no cloud image uploaded.
+- Old v2 source archive SHA `f7e5fbe5718578ac810daa3a01fe92dd4a63f93051ece833b8e75a96d61c2788`
+  has112/112 source paths matching current HEAD. It inherits cryptography48.0.1
+  from b55 versus current50.0.0. Current candidate resolves that dependency drift.
+  Do not confuse the old v1 `/private/tmp/noteai-item34-xhs-overlay-20260906`
+  directory with the v2 archive. Neither the old image nor Item30 historical
+  acceptance proves the new candidate. No API/Payment role was rebuilt.
+- **Item32 new four-file package**:
+  `/private/tmp/noteai-item32-successor-20260907-recovery.tar.gz`,30186 bytes,
+  SHA256 `00eb73fdbbd62f541c000a7d29940ef3a417fecd756046fa59c2f694366ada13`.
+  Four regular repository-relative files verified byte-for-byte: current
+  successor executor, unchanged September7 plan, spider overlay and existing
+  HOLD Evidence. Plan binds executor `fc71cc6f35e231bf9c0510ef88c67469c18759d6c78d58d3bb9d458178f2b7b3`;
+  plan SHA `f74b053b6647d47a0f8061462d0d87dd181c3a11c8b5fa59c7369fd4f4ad27a3`.
+  Recovery retains result/store/publication/lock semantics; no successor,
+  admission, new diagnostic identity or UTC-date/quota rollover was created.
+  Old local/host packages and both sealed identities were not overwritten.
+- **Item31 canary DML source implemented** in
+  `tools/collect_item31_canary_dml.py`. Temporary reviewed AFTER ROW triggers
+  use transactional NOTIFY; capture uses a dedicated uninterrupted LISTEN
+  session and an fsynced local JSONL in the existing canary directory. No audit
+  table/global audit service/production installation. Each channel has its own
+  activation/target hash; each API/Payment writer registers its actual backend
+  PID/txid/nonce before DML. Completion checks the same live transaction/GUCs.
+  Readback rejects missing tail, scope/binding drift, row→rollback, symlink and
+  oversize files. Interrupted capture never reconnects or claims completion.
+  Serialized orchestration is required; source is not yet wired into every
+  production API/Payment writer. Real coverage and canary DDL approval remain
+  prerequisites to live use, not new acceptance gates.
+- Actual isolated PG16.15, network none/Unix socket only/no host mount, plus
+  candidate Python3.11: **14 tests PASS** (11collector+3saved0019 SQL). Proven:
+  independent writer processes, committed multirow/duplicate/nested-trigger/FK
+  cascade effects, zero-row and ON CONFLICT no-ops, SAVEPOINT/outer rollback,
+  wrong target/transaction/channel, listener loss, in-flight tail, fsync failure,
+  retained binding/rebinding/link rejection; exact0019 apply/verify, replay and
+  owner mismatch rejection, temporary attempts SELECT and privilege restoration.
+  Synthetic PG transactions are not real payment or production acceptance.
+- **117 affected-source regressions PASS inside Python3.11/amd64**, network none,
+  read-only rootfs, no production env, using the existing paused launcher:
+  Item34 wrapper/checkpoint/validator; Item32 successor/recovery flow; mocked
+  model-usage/Kimi compatibility. Mock HOLD/provider_calls output is fixture
+  data; no real provider call or historical acceptance replay happened.
+- New SQL recovery copies: `scripts/postgres/item34-0019-{preflight,apply,verify}.sql`.
+  Original paths and exact hashes are now at the top of the existing deployment
+  plan. preflight/apply unchanged; verify only adds SET LOCAL ROLE noteai_admin
+  in its read-only transaction, also reflected in the outside-repo file.
+  Canonical migration/approved Evidence/DoD/Readiness inputs unchanged.
+
+### One concrete next Item34 approval, not a July gate replay
+
+`docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md` now starts with the minimum
+one-time application: existing ACR authentication/publication of this one XHS
+artifact; existing owner0019 SQL; temporary app SELECT on only attempts with
+prior-ACL preservation/revocation; legitimate user POST and exact row binding;
+24h and3d each one supplier attempt; readbacks/config CAS restoration/known
+failure safety flag/precise container cleanup/Evidence; bounded suspended
+Tracking-only managed health/control/rollback validation, no third supplier call.
+The app grant affects all app sessions, not only the task container. DMS cloud
+service authorization is separate from SET ROLE noteai_admin database rights.
+API track-url implementation is unchanged versus deployed b55; authentication
+can write session/login metadata and the POST inserts tracked_notes but makes
+no supplier call. No guessed user or direct SQL-created managed row.
+
+Item34 remains **UNPROVEN** at fresh Beijing12:46:23 September7. The approved
+24h boundary is September7 22:30:38;3d is at/after it and after24h. Initial
+September4 22:30:38 proves only browser4/2/2. Later row binding is permitted;
+no invented grace, minimum48h interval,72h process-uptime requirement or restart.
+No new canonical samples exist. Old window is still feasible if all actual
+prerequisites and24h completion/snapshot fit before the boundary. ACR auth cause
+remains UNLOCATED beyond the prior UNAUTHORIZED/ACCESS_DENIED; do not repeat the
+known denied request or demand a new Secret on speculation. Existing database
+owner route, ACR authenticated publication and legitimate NoteAI session/row
+are the concrete live gaps. Owner UI steps, objects, effects and bounded costs
+are in the plan. Existing resources only; no paid Builder or blanket expansion.
+
+Item36 plan now explicitly separates candidate API update, private binding and
+Payment first activation. Rendering or preserving disabled Payment does not
+mean deploy complete. Item32/33 share application Trends34/day; Tracking ledger
+is separate300/day, while upstream account/session coupling remains unproven.
+Item31 collector integration, callback reachability and merchant approvals are
+separate work; they are not Item34 prerequisites. Item35 signatures unchanged.
+
+### Recovery and remaining work
+
+Static paused Readiness re-read: internal29/29, overall30/38, blocked3/incomplete8;
+no Item31–38 terminal credit. Code/test/SQL/plan/Handoff/risk changes are saved in
+the next recovery commit, parent b8ae59c; this image's critical runtime source
+matches that commit because changes here are preparation tools/tests/docs/SQL.
+Seven protected paths remain untracked/unstaged and their contents untouched.
+No push. Next production action is pending the single explicit approval above;
+no per-command reapproval is planned within that exact scope once granted.
+
+Raw local checks retained under `/private/tmp/noteai-prep-20260907/`:
+`pg-tests-final.log` SHA e9740b47abaccd3f25af6d8cd1396e2c67105a802e1235fabc22a24d1d51a33e;
+`runtime-identity.log` SHA 899d57a0c8c6574fb5486008beb683982afbb71568723fb5ea9258f5f5ad6892;
+`runtime-regressions-3.log` SHA 1d3ea901c2bac03bead496ae13303bb40ffab31b30f5551c15142ea3000ae64e;
+`image-load-readback.log` SHA 20ab300a2a4b39c46d7ff6a1915d66f0e83d28a948653dafc414c1895273a8fe.
+Known local setup failures were retained, not counted PASS: initial isolated
+Docker config could not locate buildx (fixed plugin search path); readonly
+container rejected docker cp (used disposable test image); metadata rebuild
+with network none invalidated apt cache (changed metadata only on existing
+image); test context initially excluded tests, then replaced root Dockerfile
+(fixed only test build context/name). No production source defect was inferred
+from those fixture/build-setup failures. Successful final logs above supersede
+those runs, whose original logs remain beside them.
+
+
 ## Current CTO takeover — 2026-09-07, bounded readback completed
 
 This section supersedes runtime/action instructions in all older dated sections.

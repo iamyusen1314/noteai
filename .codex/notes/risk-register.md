@@ -1,5 +1,51 @@
 # Risk Register
 
+## Current minimal implementation risks — 2026-09-07 12:46 Beijing
+
+- Item34 local XHS artifact is runnable: Python3.11.15/linux-amd64, exact8 source
+  hashes, UID999, dependency check and real Docker export/load pass. Only this
+  role was built. Local OCI identity and successful emulation are not ACR
+  publication or production-host acceptance. Oldv2 source matches but dependency
+  cryptography48.0.1 differs from current50.0.0. No paid Builder is required.
+- Existing Item34 wrapper genuinely lacks app SELECT on attempts;0019 only
+  changes a settings RLS policy. PG16 reproduced failure/grant/revoke. Proposed
+  temporary table SELECT affects all app sessions and needs explicit approval,
+  saved prior ACL and restoration after each stage's full failure/readback
+  closure. It must not be silently persisted or broadened to migration rights.
+- Three existing0019 scripts recovered under scripts/postgres. verify now
+  explicitly SET LOCAL ROLE noteai_admin; owner session is still a live gap.
+  DMS AliyunDMSDefaultRole/MFA is not PostgreSQL owner authorization. A lost
+  COMMIT reply stays UNKNOWN/readback-only, not permission to replay migration.
+- Item34 remains UNPROVEN at September7 12:46:23, with24h deadline22:30:38.
+  No new production sample or row was made; approved later binding remains
+  valid in principle. No inferred expiry/restart or new acceptance tolerance.
+- Legitimate track-url may require authentication writes; POST adds one row
+  without supplier calls. Record real auth side effects rather than claiming
+  global zero writes. Existing b55 route matches current implementation, so
+  API/Payment/ALB are not prerequisites for this minimal Item34 execution.
+- ACR previous authentication/access rejection remains UNLOCATED; no repeat
+  denied request, credential/permission mutation or push this turn. Single
+  planned publication uses existing private repo/host/capacity; actual digest
+  only after publication. Cost details/owner UI steps are in the existing plan.
+- Item31 now has a canary-scoped transactional NOTIFY collector proven on
+  isolated PG16, including trigger/cascade/rollback and separate processes.
+  It is not yet integrated into every actual API/Payment writer and cannot
+  prove uninstrumented tables/transactions had zero DML. Dedicated listener
+  interruption or missing binding/tail stays UNKNOWN; temporary trigger DDL
+  and live coverage are separate Item31 work. No global audit table or service.
+- Item32 new exact4-file recovery package is built and hashes verified; old
+  two identities/packages unchanged, no execution/admission/date rollover.
+  This supersedes the older no-repackaging statement. UTC quota remains fixed;
+  Trends34/day versus Tracking300/day does not establish upstream independence.
+- Item36 candidate update/private bind/Payment first activation are separate.
+  The old healthy APIs and inactive/absent Payment do not establish deployment.
+  No such action is an implicit Item34 prerequisite. Item35 signature evidence was not changed.
+- 14 isolated PG16 checks and117 affected Python3.11 regressions pass. Static
+  Readiness remains30/38 (internal29/29), no canonical Evidence/DoD change.
+  Production execution and automation remain PAUSED; remote state not re-read
+  retains its last-known timestamp. Protected7 contents unchanged and no push.
+
+
 ## Current paused takeover risks — 2026-09-07
 
 Supersedes older active-execution/deadline instructions below. The owner
