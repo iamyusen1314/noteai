@@ -2,7 +2,7 @@
 
 Status: `PROGRAM ACTIVE — LOCAL PREPARATION / ITEM34 OLD WINDOW PATH EXPIRED / PRODUCTION PAUSED`
 
-Date: 2026-09-07 (current scope below; July sections retained as history)
+Date: 2026-09-08 (current scope below; July sections retained as history)
 
 Task: `PROD-DEPLOY-PLAN-001`
 
@@ -11,6 +11,49 @@ window must not be replayed or restarted. Retained approval and commands are
 execution history, not authorization to repeat them or run other Items.
 
 ## Current local preparation — September8 (no production execution approval)
+
+Current runnable API/Payment candidates are built from source checkpoint
+`f3deedbc1dfdbc7db2ffdd7213df2198c5e1d25d`, including the Item30 Kimi repair,
+Item31 runtime binding and the PostgreSQL connection-options correction.
+The combined archive is
+`/private/tmp/noteai-prep-20260908/api-payment-f3deedb-linux-amd64.docker.tar.gz`,
+377756229 bytes, SHA256
+`c95e557ee67e5cd6c8b228fb04170ce770a4629d8cbe69a124129ef1fb530ae1`.
+It contains exactly the API and Payment local tags; all 33 content-addressed
+blobs match their hashes. These are unpublished artifacts. Local image IDs and
+archive config hashes are not ACR publication digests. Later documentation
+commits do not change the actual source identity or require relabelling.
+
+Both images match 115 packaged source/dependency files, three real LFS models,
+Python 3.11.15, linux/amd64 and UID999. Actual role entrypoints return live/ready
+200 in an isolated shared namespace: API uses temporary SQLite and V04 models;
+Payment uses PG16, a local test role and synthetic callback configuration.
+Both packaged DB helpers now retain read-only on / statement timeout 5s / lock
+timeout 1s; the health override changes only statement timeout to 1s. The server
+rejects a zero-row UPDATE in read-only mode. No production DB was contacted.
+The actual API also completes full startup on fresh PG16/19 migrations with
+noteai_app granted only SELECT managed_prompts, zero business seed rows and
+the original read-only PGOPTIONS: live/ready200, V04 loaded, on/5s/1s confirmed.
+
+Local shutdown has an explicit platform limitation. API SIGTERM exits 143 after
+complete shutdown. Payment as PID1 under local amd64 emulation logs complete
+shutdown but remains in sigsuspend and reaches bounded stop exit137, without OOM.
+A minimal signal.raise_signal program, with no NoteAI imports, reproduces that
+PID1 behavior. The same Payment image with local Docker --init returns ready200
+and exits143 in 0.24s. This isolates the observed behavior to the local signal/
+PID1 runtime boundary; it does not prove the native production host's behavior.
+No speculative application shutdown patch or production --init change is made.
+Keep the normal native stop/readback in the existing future implementation.
+The restored older local API passes health and its namespace has no Payment
+listener. This is a local first-enable rollback rehearsal, not proof of the
+production before-state or graceful PID1 stop acceptance.
+
+Current cloud input path: the existing API-F terminal remains visible, but a
+Workbench new-connection attempt explicitly returned account not logged in or
+login expired. The connection form was cancelled; no host command/login was
+submitted. The existing fresh ECS tab shows the Aliyun login page. API-C unit,
+ALB/TLS and account quote inputs still need an authenticated read; none are
+inferred from API-F or old pricing. No production execution was resumed.
 
 Item31's explicit per-transaction canary writer is saved at `e2b2de9`; its real
 isolated PG16 chains and failure readback are detailed below. Current Item34
@@ -512,6 +555,13 @@ Python3.14.4; future release checks must cover the actual Python3.11 image.
 
 ### Item31 bounded DML and callback preparation
 
+`PAYMENT_DIRECT_READY_FOR_LIVE` describes the completed engineering preparation
+only: the actual API/Payment/operator transaction binding, coverage matrix,
+isolated PG16 chains, durable result readback and current runnable role images
+are implemented and verified. It is not terminal DONE or permission to execute.
+Merchant/ingress readiness, exact live identity/ACL/trigger/FK bindings, temporary
+DDL and a separately approved real two-channel canary remain live prerequisites.
+
 September8 current implementation: actual API startup/shutdown, both Payment
 callback routes and the existing canary CLI now bind the same collector. Docker
 copies the existing tool to `/app/model/collect_item31_canary_dml.py`; no alternate
@@ -550,8 +600,10 @@ approved capture. This preserves the two-channel first-launch decision.
 Start the API container to establish its network namespace, then start Payment
 inside it while API startup waits at most15s for the first socket. Do not wait
 for API healthy before starting Payment. This is one initial connection, with
-no reconnect after UNKNOWN. Cross-container timing still requires the local
-candidate-image rehearsal below; the PG hook test is not that rehearsal.
+no reconnect after UNKNOWN. The actual local candidate pair has now established
+the namespace and broker with dispatches 0.18s apart, completed full ASGI startup,
+captured one registered synthetic mutation and read back the sealed journal.
+That rehearsal is independent of the earlier PG hook test and remains local.
 
 Close new API/operator admission, let already admitted worker/callback actions
 finish, stop API/operator, then stop Payment last. Payment closes broker
@@ -729,7 +781,7 @@ These are three separate implementation actions, not interchangeable completion:
 
 | Action | Actual local result / next implementation | Genuine dependency |
 |---|---|---|
-| Candidate API image update | Actual local `noteai-local/api:54b06be-lfs` contains the Item30 Kimi repair, passes source/regression checks and normal-entrypoint health. The renderer separately replaces exact old/new immutable images and preserves port/rollback bytes. Publication and actual node input binding remain pending. | Local health is not API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
+| Candidate API image update | Current `noteai-local/api:f3deedb` includes the Item30 repair, real canary binding and corrected DB connection restrictions; source and actual role health pass. The earlier 54b image is retained only as a prior local artifact. The renderer separately replaces exact old/new immutable images and preserves port/rollback bytes. Publication and actual node input binding remain pending. | Local health is not API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
 | Private API binding | API-F actual1510-byte unit is bound to SHA f591f43b…936; its private10.42.11.166 candidate SHA824207e1…ac and exact rollback are retained under /private/tmp/noteai-prep-20260908/api-f-bind/. API-C still needs its own current unit bytes/hash before apply. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
 | Payment first activation | C was disabled/inactive and F unit not-found at last readback. First installation/configuration, immutable image, shared API container namespace, service start, health and public callback verification remain real actions. | Merchant/canary authorization and provider-reachable callback ingress before live funds. Keeping disabled state is rollback preservation, not first activation or full deployment. |
 
@@ -795,9 +847,10 @@ one-mutation readback. These are local tests, not production ACL/merchant/ALB or
 Item36 terminal evidence. Logs and interimf49 archive are indexed in Handoff.
 
 That rehearsal also confirmed a real application defect: its DB helper replaced
-PGOPTIONS, dropping read-only/statement/lock timeout controls. The repair must be
-included in the final API/Payment candidates; priorf49 artifacts are superseded
-for release. Preserve DSN/PGOPTIONS precedence, UTC and health timeout behavior.
+PGOPTIONS, dropping read-only/statement/lock timeout controls. The f3deedb repair
+is included and verified inside both final local API/Payment candidates; prior
+f49 artifacts are superseded for release. DSN/PGOPTIONS precedence, UTC and
+explicit health timeout behavior are preserved.
 After this repair the current F unit's read-only intent is effective when not
 superseded by explicit DSN options; validate the effective session in a future
 approved check. A production payment canary needing writes must explicitly

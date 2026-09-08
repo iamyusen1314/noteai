@@ -1,5 +1,69 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 final API/Payment artifacts — next independent task in progress
+
+Source checkpoint f3deedbc1dfdbc7db2ffdd7213df2198c5e1d25d now has two actual
+Python3.11.15/linux-amd64/UID999 candidates. Both match115 packaged files and
+the three real LFS models; normal API and synthetic Payment role health pass.
+Packaged PG connections preserve on/5s/1s and reject read-only UPDATE; explicit
+health timeout changes only statement timeout to1s. An additional full API
+startup on fresh PG16/19 migrations, noteai_app with SELECT managed_prompts only,
+zero business seed rows and the original read-only PGOPTIONS returns live/ready200
+with V04 loaded. This is actual image execution, not a mocked startup or production
+ACL/DB proof. Initial option-probe tuple extraction failed on CompatRow keys and
+was corrected; both failed and successful logs remain.
+
+Transferable artifact:
+`/private/tmp/noteai-prep-20260908/api-payment-f3deedb-linux-amd64.docker.tar.gz`
+377756229 bytes, SHA256 c95e557ee67e5cd6c8b228fb04170ce770a4629d8cbe69a124129ef1fb530ae1.
+Exactly two tags and all33 content-addressed blobs verify. Archive config hashes:
+API83a425736b6dce502f1af4c6d3abdb742a095ef954c789fc51a40398dff38f95;
+Payment3ceb52e8f2b347dfc5a2d28967d70a1ee727e7ce68db932e3e6302860f4f796f.
+These are local config hashes, not ACR digests. No upload/push/relabel; f49's prior
+archive remains superseded and recoverable. f3 source identity survives later
+documentation or proposal-only changes without rebuilding these role images.
+
+Native entrypoints share one isolated namespace and return API/Payment live/ready200.
+The older local API can be restored and has no Payment listener. Actual f3 API
+SIGTERM shuts down and exits143. Payment PID1 under local amd64 emulation logs
+complete shutdown but hangs in sigsuspend and is bounded-stopped137, OOMfalse.
+A no-NoteAI minimal signal program reproduces this; local --init makes the same
+Payment image stop in0.24s, exit143. No application shutdown fix or production
+--init change is justified. Native production stop remains unverified under the
+existing future implementation; shutdown log text is not process-exit proof.
+
+Logs/maps stay under the same /private/tmp/noteai-prep-20260908 directory:
+*-f3deedb-source-check.log, *-f3deedb-pgoptions-fixed.log,
+*-f3deedb-local-health.log, api-f3deedb-readonly-pg-startup.log,
+item36-local-first-enable-rollback.log, item36-payment-stop-probe.json,
+item36-minimal-signal.json, item36-payment-init-probe.json,
+api-payment-f3deedb-archive-integrity.json and item36-final-local-closure.json.
+All local test containers are stopped; exact synthetic test DBs and the roles
+created by these rehearsals were removed. Images, volumes, stopped containers,
+durable canary readback and logs are retained. Colima remains available for the
+next isolated task; production and all automation remain PAUSED.
+
+Item31 engineering is PAYMENT_DIRECT_READY_FOR_LIVE, not terminal acceptance.
+Item32's unique archive remains source-matched but time-expired/unrun. Item35
+scope hashes still match its external signing package. Item36 F inputs and
+candidate/rollback preparation are concrete; C/ALB/TLS/account quote are still
+missing. A Workbench new-connection attempt now explicitly reports account not
+logged in or login expired. Both dialogs were cancelled, with no remote command,
+credential entry or new session; the old F terminal remains. The existing Aliyun
+login tab1637490914 is preserved for owner interaction. Item37's16 offline UI
+checks and Item38 prospective DNS rollback inputs remain preparation only.
+
+**NEXT IN PROGRESS — Item34 prospective-generation PG feasibility.** Independent
+review found that the existing same-note/new-T0 proposal still labels its9/13
+distinct budget untested. Continue isolated PG verification of retained failed
+history, per-generation uniqueness, CAS opening, stale-claim fencing and quota
+inclusion. Use synthetic T0 only, no production migration/provider/observation,
+new URL or identity. This is why login PATH_BLOCKED is not PROGRAM_STOP.
+Readiness remains30/38; the canonical Readiness file is unchanged from9e7f4df.
+
+Changed in this save: existing plan/Handoff/risk only. The prior f3 code repair
+and f49 runtime implementation remain committed. No Git push.
+
 ## September8 candidate runtime milestone and connection-options correction
 
 Real API and Payment images fromf49a8ba were built using the original runtime

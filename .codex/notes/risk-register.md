@@ -1,5 +1,26 @@
 # Risk Register
 
+## September8 final candidate and local shutdown boundary
+
+- Current API/Payment source is f3deedb; both actual packaged DB helpers now
+  enforce the tested PGOPTIONS read-only/timeouts. The verified two-role archive
+  is indexed at the top of the existing plan/Handoff. Nothing was published.
+- Local amd64-emulated Payment PID1 reaches application shutdown complete but
+  then remains in sigsuspend until bounded Docker stop kills it (137, not OOM).
+  A minimal Python signal.raise_signal program without NoteAI reproduces this;
+  --init makes that program exit143 and the same actual Payment image stop in
+  0.24s after ready200. This is a measured local PID1/signal boundary, not proof
+  of production behavior or an application thread leak. No speculative shutdown
+  patch or production --init change is made. The existing future native stop
+  and exact-state readback remain necessary; shutdown text alone is insufficient.
+  The upstream [QEMU signal implementation](https://github.com/qemu/qemu/blob/master/linux-user/signal.c)
+  has a default-signal kill/sigsuspend path consistent with this inference;
+  the running emulator's exact source stack was not traced.
+- Workbench new-connection UI now explicitly reports account not logged in or
+  login expired; its dialog was cancelled and no remote command was submitted.
+  Existing API-F terminal output remains only a prior observation. Actual C
+  unit, ALB/TLS and account quote inputs cannot be invented from F or old prices.
+
 ## September8 confirmed connection-options defect (local reproduction)
 
 - Actual application connection setup discarded unit PGOPTIONS read-only and
@@ -19,8 +40,9 @@
 
 - The explicit canary collector is now bound into actual API/Payment lifecycle
   and the existing operator entrypoint;44 isolated PG16/Python3.11 checks and
-  99 affected defaults pass. Actual cross-container namespace startup remains
-  the next candidate rehearsal. No production trigger/role/merchant acceptance.
+  99 affected defaults pass. Actual cross-container startup, one registered
+  synthetic mutation and durable closure/readback now pass locally. Final f3
+  images also pass normal role health. No production trigger/role/merchant acceptance.
 - API namespace must exist before Payment joins it; API's canary startup waits
   only15s for the first broker socket. Do not wait for API healthy first. Same
   filesystem volume and UID999 are necessary in addition to network namespace.
