@@ -17,7 +17,7 @@ execution history, not authorization to repeat them or run other Items.
 preflight/apply/verify；同一owner-owned原笔记的新鲜T0及原managed row的owner CAS；
 24h/3d各一次受控采样与原managed验证（仅精确Tracking unit的必要替换、daemon-reload、
 有界start/health/stop及原unit/配置恢复）、两次临时attempts SELECT/撤回、精确停止、
-失败reconcile/CAS恢复和现有Evidence保存。新采样7表9distinct、旧新合并13distinct、
+失败reconcile/CAS恢复和现有Evidence保存。新作业核心7表9distinct（含0020账本1行）、旧新合并13distinct、
 新增最多2admissions/0自动重试，旧认证/注册/900gift不重做。真实provider费用与
 既有传输/存储增量未知时保留UNKNOWN；无新增固定费用、Builder或其他资源。
 

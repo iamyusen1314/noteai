@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September9 cloud login resumed — C candidate implementation saved in working tree
+## September9 cloud login resumed — C candidate implementation saved at ba55923
 
 Continue existingec5c7f7 checkout. Owner restored Aliyun login; priorPROGRAM_STOP
 is closed. Existing main-account/ECS root and DMSnoteai_admin sessions work.
@@ -57,7 +57,7 @@ No extraT0grant or24hretainedSELECT; nonewgate. ActualGUCbindingsnoteai/noteai_a
 
 FinaldiffcheckPASS, actualC/Payment sourcehashes and outputrollbacks verified.
 Staticledger12/12+17/17+1/9=30/38; Readinessledger andsealedItem34canonicalEvidence
-are byte-unchanged from9e7f4df. Ready for recoverycommit of seven explicit files
+are byte-unchanged from9e7f4df. Recoverycommitba55923 saved seven explicit files
 (helper/test/twofixtures/existingplan/Handoff/risk), never protecteduntrackedpaths.
 
 Authorizedindependentwork is now complete:34sameobjectnewT0package/SQL/DBowner/
