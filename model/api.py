@@ -14990,9 +14990,9 @@ def _item31_direct_create_audit(
         return False
 
 
-def _mark_payment_outcome_unknown(order_id: str, *, phase: str) -> None:
+def _mark_payment_outcome_unknown(order_id: str, *, phase: str, transaction_factory=None) -> None:
     try:
-        _payment.mark_payment_submission_unknown(order_id)
+        _payment.mark_payment_submission_unknown(order_id, **_payment.transaction_options(transaction_factory))
     except Exception as exc:
         _log_internal_failure(
             "billing",
@@ -15006,6 +15006,7 @@ def _complete_payment_submission_sync(
     provider: Any,
     provider_request: dict[str, Any],
     audit_context: dict[str, str] | None = None,
+    transaction_factory=None,
 ) -> tuple[str, dict[str, Any] | None, str]:
     """Run the one provider attempt and its durable marker in one worker."""
     try:
@@ -15014,6 +15015,7 @@ def _complete_payment_submission_sync(
         _mark_payment_outcome_unknown(
             order_id,
             phase="payment_provider_outcome_marker",
+            transaction_factory=transaction_factory,
         )
         _log_internal_failure(
             "billing",
@@ -15022,11 +15024,12 @@ def _complete_payment_submission_sync(
         )
         return "PAYMENT_PROVIDER_OUTCOME_UNKNOWN", None, ""
     try:
-        updated = _payment.mark_payment_submission(order_id, result)
+        updated = _payment.mark_payment_submission(order_id, result, **_payment.transaction_options(transaction_factory))
     except Exception as exc:
         _mark_payment_outcome_unknown(
             order_id,
             phase="payment_submission_marker",
+            transaction_factory=transaction_factory,
         )
         _log_internal_failure(
             "billing",
@@ -15039,6 +15042,7 @@ def _complete_payment_submission_sync(
         _mark_payment_outcome_unknown(
             order_id,
             phase="payment_checkout_marker",
+            transaction_factory=transaction_factory,
         )
         return "PAYMENT_CHECKOUT_UNAVAILABLE", None, ""
     _item31_direct_create_audit(
@@ -15055,17 +15059,32 @@ async def _complete_payment_submission(
     provider: Any,
     provider_request: dict[str, Any],
     audit_context: dict[str, str] | None = None,
+    transaction_factory=None,
 ) -> tuple[str, dict[str, Any] | None, str]:
     # abandon_on_cancel=False keeps the one provider attempt joined to its
     # durable success/UNKNOWN marker if the client disconnects or cancels.
-    return await anyio.to_thread.run_sync(
+    worker = asyncio.create_task(anyio.to_thread.run_sync(
         _complete_payment_submission_sync,
         order_id,
         provider,
         provider_request,
         audit_context,
+        transaction_factory,
         abandon_on_cancel=False,
-    )
+    ))
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        # Native asyncio cancellation can otherwise release the route's canary
+        # action before AnyIO's worker has saved its result. Join the exact
+        # existing task even under repeated cancellation; never submit again.
+        while not worker.done():
+            try:
+                await asyncio.shield(worker)
+            except asyncio.CancelledError:
+                continue
+        worker.result()
+        raise
 
 
 @app.get("/billing/plan")
@@ -15229,6 +15248,18 @@ async def payment_order_create(
         idempotency_key=idempotency_key,
         prod_mode=prod_mode,
     )
+    transaction_factory = None
+    resolver = getattr(request.app.state, "item31_canary_create_resolver", None)
+    if resolver is not None:
+        if canary_context is None or not callable(resolver):
+            raise HTTPException(status_code=403, detail="PAYMENT_CANARY_SCOPE_INVALID")
+        try:
+            transaction_factory = resolver(canary_context)
+        except Exception:
+            raise HTTPException(status_code=403, detail="PAYMENT_CANARY_SCOPE_INVALID") from None
+        if transaction_factory is None:
+            raise HTTPException(status_code=403, detail="PAYMENT_CANARY_SCOPE_INVALID")
+    transaction_options = _payment.transaction_options(transaction_factory)
     provider = _payment_adapter_runtime.provider_from_environment(
         selected_provider,
         required_role="api",
@@ -15238,55 +15269,58 @@ async def payment_order_create(
             status_code=503,
             detail="PAYMENT_PROVIDER_UNAVAILABLE",
         )
-    try:
-        order = _payment.create_order(
-            user["id"],
-            body.product_kind,
-            body.product_id,
-            idempotency_key=idempotency_key,
-            app_id=app_id,
-            prod_mode=prod_mode,
-            provider_name=selected_provider,
-        )
-        full_order = _db.fetchone(
-            "SELECT * FROM payment_orders WHERE id=? AND user_id=?",
-            (order["id"], user["id"]),
-        )
-        if full_order is None:
-            raise _payment.PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
-        if not _payment.admit_payment_submission(order["id"]):
-            raise HTTPException(
-                status_code=409,
-                detail="PAYMENT_ORDER_ALREADY_SUBMITTED",
+    with _payment.canary_action(transaction_factory):
+        try:
+            order = _payment.create_order(
+                user["id"],
+                body.product_kind,
+                body.product_id,
+                idempotency_key=idempotency_key,
+                app_id=app_id,
+                prod_mode=prod_mode,
+                provider_name=selected_provider,
+                **transaction_options,
             )
-        provider_request = _payment.provider_payment_request(
-            full_order,
-            device_ip=device_ip,
-        )
-        submission_code, updated, checkout = await _complete_payment_submission(
-            order["id"],
-            provider,
-            provider_request,
-            canary_context,
-        )
-        if submission_code:
-            raise HTTPException(
-                status_code=503,
-                detail=submission_code,
+            full_order = _db.fetchone(
+                "SELECT * FROM payment_orders WHERE id=? AND user_id=?",
+                (order["id"], user["id"]),
             )
-        if updated is None:
-            raise HTTPException(
-                status_code=503,
-                detail="PAYMENT_PROVIDER_RESPONSE_INVALID",
+            if full_order is None:
+                raise _payment.PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
+            if not _payment.admit_payment_submission(order["id"], **transaction_options):
+                raise HTTPException(
+                    status_code=409,
+                    detail="PAYMENT_ORDER_ALREADY_SUBMITTED",
+                )
+            provider_request = _payment.provider_payment_request(
+                full_order,
+                device_ip=device_ip,
             )
-        return {
-            "order": updated,
-            "checkout": checkout,
-        }
-    except _payment.PaymentContractError as exc:
-        code = exc.code
-        status_code = 409 if "CONFLICT" in code or "ACTIVE_" in code else 400
-        raise HTTPException(status_code=status_code, detail=code) from None
+            submission_code, updated, checkout = await _complete_payment_submission(
+                order["id"],
+                provider,
+                provider_request,
+                canary_context,
+                transaction_factory,
+            )
+            if submission_code:
+                raise HTTPException(
+                    status_code=503,
+                    detail=submission_code,
+                )
+            if updated is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="PAYMENT_PROVIDER_RESPONSE_INVALID",
+                )
+            return {
+                "order": updated,
+                "checkout": checkout,
+            }
+        except _payment.PaymentContractError as exc:
+            code = exc.code
+            status_code = 409 if "CONFLICT" in code or "ACTIVE_" in code else 400
+            raise HTTPException(status_code=status_code, detail=code) from None
 
 
 _PAYMENT_CALLBACK_RELAY_TARGETS = {

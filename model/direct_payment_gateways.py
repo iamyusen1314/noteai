@@ -857,6 +857,21 @@ def _bill(
     return source, rows
 
 
+def _event_transaction_factory(event, transaction_factory):
+    resolver = getattr(transaction_factory, "for_event", None)
+    if resolver is None:
+        return transaction_factory
+    if not callable(resolver):
+        raise _fail("PAYMENT_CANARY_SCOPE_INVALID")
+    try:
+        result = resolver(event)
+    except Exception:
+        raise _fail("PAYMENT_CANARY_SCOPE_INVALID") from None
+    if not callable(result):
+        raise _fail("PAYMENT_CANARY_SCOPE_INVALID")
+    return result
+
+
 def _process_verified_payment_query(
     result: payment_contract.ProviderPaymentResult,
     raw_body: bytes,
@@ -867,6 +882,7 @@ def _process_verified_payment_query(
     expected_provider_name: str,
     expected_prod_mode: bool,
     now: datetime | None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     provider_created_at = result.provider_created_at
     if result.status == "succeeded":
@@ -879,7 +895,7 @@ def _process_verified_payment_query(
     elif provider_created_at is not None:
         raise _fail("PAYMENT_INVALID_EVENT_CLOCK")
     if result.status == "pending":
-        payment_contract.mark_payment_query_submission(result, now=now)
+        payment_contract.mark_payment_query_submission(result, now=now, **payment_contract.transaction_options(transaction_factory))
     if result.status == "pending":
         return {"ok": True, "pending": True}
     if result.status not in {"succeeded", "failed"}:
@@ -919,6 +935,7 @@ def _process_verified_payment_query(
         },
         provider_name=expected_provider_name,
     )
+    transaction_factory = _event_transaction_factory(event, transaction_factory)
     return payment_contract.process_authenticated_callback(
         event,
         raw_body,
@@ -927,6 +944,7 @@ def _process_verified_payment_query(
         expected_provider_name=expected_provider_name,
         expected_prod_mode=expected_prod_mode,
         now=now,
+        **payment_contract.transaction_options(transaction_factory),
     )
 
 
@@ -940,9 +958,10 @@ def _process_verified_refund_query(
     expected_provider_name: str,
     expected_prod_mode: bool,
     now: datetime | None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     if result.provider_submitted_at is not None and result.status == "pending":
-        payment_contract.mark_refund_query_submission(result, now=now)
+        payment_contract.mark_refund_query_submission(result, now=now, **payment_contract.transaction_options(transaction_factory))
     if result.status == "pending":
         return {"ok": True, "pending": True}
     if result.status not in {"succeeded", "failed"}:
@@ -990,6 +1009,7 @@ def _process_verified_refund_query(
         data=data,
         provider_name=expected_provider_name,
     )
+    transaction_factory = _event_transaction_factory(event, transaction_factory)
     return payment_contract.process_authenticated_callback(
         event,
         raw_body,
@@ -998,6 +1018,7 @@ def _process_verified_refund_query(
         expected_provider_name=expected_provider_name,
         expected_prod_mode=expected_prod_mode,
         now=now,
+        **payment_contract.transaction_options(transaction_factory),
     )
 
 
@@ -2017,6 +2038,7 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
         lookup: payment_contract.ProviderPaymentLookup,
         *,
         now: datetime | None = None,
+        transaction_factory=None,
     ) -> dict[str, Any]:
         result, raw_body, signature, verified_at = (
             self._query_payment_with_receipt(lookup)
@@ -2030,6 +2052,7 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
             expected_provider_name=self.provider_name,
             expected_prod_mode=self._prod_mode,
             now=now,
+            **payment_contract.transaction_options(transaction_factory),
         )
 
     def create_refund(self, refund: dict[str, Any]) -> payment_contract.ProviderRefundResult:
@@ -2089,6 +2112,7 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
         lookup: payment_contract.ProviderRefundLookup,
         *,
         now: datetime | None = None,
+        transaction_factory=None,
     ) -> dict[str, Any]:
         result, raw_body, signature, verified_at = (
             self._query_refund_with_receipt(lookup)
@@ -2102,6 +2126,7 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
             expected_provider_name=self.provider_name,
             expected_prod_mode=self._prod_mode,
             now=now,
+            **payment_contract.transaction_options(transaction_factory),
         )
 
     def _refund_result(
@@ -2354,8 +2379,20 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
         headers: Mapping[str, str],
         *,
         now: datetime | None = None,
+        transaction_factory=None,
+        transaction_resolver=None,
     ) -> dict[str, Any]:
         callback = self.authenticate_callback(raw_body, headers, now=now)
+        if transaction_resolver is not None:
+            if transaction_factory is not None or not callable(transaction_resolver):
+                raise _fail("PAYMENT_CANARY_SCOPE_INVALID")
+            # Resolve only authenticated event identities, before any business SQL.
+            try:
+                transaction_factory = transaction_resolver(callback.event)
+            except Exception:
+                raise _fail("PAYMENT_CANARY_SCOPE_INVALID") from None
+            if transaction_factory is None:
+                raise _fail("PAYMENT_CANARY_SCOPE_INVALID")
         result = payment_contract.process_authenticated_callback(
             callback.event,
             callback.raw_body,
@@ -2364,6 +2401,7 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
             expected_provider_name=self.provider_name,
             expected_prod_mode=self._prod_mode,
             now=now,
+            **payment_contract.transaction_options(transaction_factory),
         )
         return {
             **result,
@@ -2541,6 +2579,7 @@ class AlipayGateway(payment_contract.PaymentProvider):
         lookup: payment_contract.ProviderPaymentLookup,
         *,
         now: datetime | None = None,
+        transaction_factory=None,
     ) -> dict[str, Any]:
         result, raw_body, signature, verified_at = (
             self._query_payment_with_receipt(lookup)
@@ -2554,6 +2593,7 @@ class AlipayGateway(payment_contract.PaymentProvider):
             expected_provider_name=self.provider_name,
             expected_prod_mode=self._prod_mode,
             now=now,
+            **payment_contract.transaction_options(transaction_factory),
         )
 
     def create_refund(self, refund: dict[str, Any]) -> payment_contract.ProviderRefundResult:
@@ -2611,6 +2651,7 @@ class AlipayGateway(payment_contract.PaymentProvider):
         lookup: payment_contract.ProviderRefundLookup,
         *,
         now: datetime | None = None,
+        transaction_factory=None,
     ) -> dict[str, Any]:
         result, raw_body, signature, verified_at = (
             self._query_refund_with_receipt(lookup)
@@ -2624,6 +2665,7 @@ class AlipayGateway(payment_contract.PaymentProvider):
             expected_provider_name=self.provider_name,
             expected_prod_mode=self._prod_mode,
             now=now,
+            **payment_contract.transaction_options(transaction_factory),
         )
 
     def _refund_submission_result(
@@ -2781,8 +2823,18 @@ class AlipayGateway(payment_contract.PaymentProvider):
             signature_input_sha256=hashlib.sha256(signature_input).hexdigest(),
         )
 
-    def process_callback(self, raw_body: bytes, *, now: datetime | None = None) -> dict[str, Any]:
+    def process_callback(self, raw_body: bytes, *, now: datetime | None = None, transaction_factory=None, transaction_resolver=None) -> dict[str, Any]:
         callback = self.authenticate_callback(raw_body)
+        if transaction_resolver is not None:
+            if transaction_factory is not None or not callable(transaction_resolver):
+                raise _fail("PAYMENT_CANARY_SCOPE_INVALID")
+            # Resolve only authenticated event identities, before any business SQL.
+            try:
+                transaction_factory = transaction_resolver(callback.event)
+            except Exception:
+                raise _fail("PAYMENT_CANARY_SCOPE_INVALID") from None
+            if transaction_factory is None:
+                raise _fail("PAYMENT_CANARY_SCOPE_INVALID")
         result = payment_contract.process_authenticated_callback(
             callback.event,
             callback.raw_body,
@@ -2791,6 +2843,7 @@ class AlipayGateway(payment_contract.PaymentProvider):
             expected_provider_name=self.provider_name,
             expected_prod_mode=self._prod_mode,
             now=now,
+            **payment_contract.transaction_options(transaction_factory),
         )
         return {
             **result,

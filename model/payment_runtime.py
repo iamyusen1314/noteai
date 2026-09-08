@@ -446,6 +446,15 @@ def _log_direct_callback_audit(result: object) -> bool:
         return False
 
 
+def _canary_callback_options(request: Request) -> dict:
+    resolver = getattr(request.app.state, "item31_canary_callback_resolver", None)
+    if resolver is None:
+        return {}
+    if not callable(resolver):
+        raise HTTPException(status_code=503, detail="PAYMENT_CANARY_SCOPE_INVALID")
+    return {"transaction_resolver": resolver}
+
+
 @app.post("/payments/wechat/callback")
 async def wechatpay_callback(request: Request):
     """Authenticate one WeChat Pay API v3 notification and acknowledge it."""
@@ -454,29 +463,32 @@ async def wechatpay_callback(request: Request):
             status_code=503,
             detail="PAYMENT_CALLBACK_UNAVAILABLE",
         )
-    raw = await _direct_callback_body(request, content_type="application/json")
-    provider_headers: dict[str, str] = {}
-    for raw_key, raw_value in request.headers.raw:
-        key = raw_key.decode("latin-1").lower()
-        if not key.startswith("wechatpay-"):
-            continue
-        if key in provider_headers:
-            raise HTTPException(
-                status_code=400,
-                detail="PAYMENT_CALLBACK_HEADER_INVALID",
+    options = _canary_callback_options(request)
+    with payment_contract.canary_action(options.get("transaction_resolver")):
+        raw = await _direct_callback_body(request, content_type="application/json")
+        provider_headers: dict[str, str] = {}
+        for raw_key, raw_value in request.headers.raw:
+            key = raw_key.decode("latin-1").lower()
+            if not key.startswith("wechatpay-"):
+                continue
+            if key in provider_headers:
+                raise HTTPException(
+                    status_code=400,
+                    detail="PAYMENT_CALLBACK_HEADER_INVALID",
+                )
+            provider_headers[key] = raw_value.decode("latin-1")
+        try:
+            result = _direct_callback_gateway("wechatpay_direct").process_callback(
+                raw,
+                provider_headers,
+                **options,
             )
-        provider_headers[key] = raw_value.decode("latin-1")
-    try:
-        result = _direct_callback_gateway("wechatpay_direct").process_callback(
-            raw,
-            provider_headers,
-        )
-    except payment_contract.PaymentContractError as exc:
-        _direct_callback_error(exc)
-    _log_direct_callback_audit(result)
-    if result.get("code"):
-        _LOGGER.warning("payment_callback_manual code=%s", str(result["code"]))
-    return {"code": "SUCCESS", "message": "成功"}
+        except payment_contract.PaymentContractError as exc:
+            _direct_callback_error(exc)
+        _log_direct_callback_audit(result)
+        if result.get("code"):
+            _LOGGER.warning("payment_callback_manual code=%s", str(result["code"]))
+        return {"code": "SUCCESS", "message": "成功"}
 
 
 @app.post("/payments/alipay/callback", response_class=PlainTextResponse)
@@ -487,15 +499,17 @@ async def alipay_callback(request: Request):
             status_code=503,
             detail="PAYMENT_CALLBACK_UNAVAILABLE",
         )
-    raw = await _direct_callback_body(
-        request,
-        content_type="application/x-www-form-urlencoded",
-    )
-    try:
-        result = _direct_callback_gateway("alipay_direct").process_callback(raw)
-    except payment_contract.PaymentContractError as exc:
-        _direct_callback_error(exc)
-    _log_direct_callback_audit(result)
-    if result.get("code"):
-        _LOGGER.warning("payment_callback_manual code=%s", str(result["code"]))
-    return PlainTextResponse("success", media_type="text/plain")
+    options = _canary_callback_options(request)
+    with payment_contract.canary_action(options.get("transaction_resolver")):
+        raw = await _direct_callback_body(
+            request,
+            content_type="application/x-www-form-urlencoded",
+        )
+        try:
+            result = _direct_callback_gateway("alipay_direct").process_callback(raw, **options)
+        except payment_contract.PaymentContractError as exc:
+            _direct_callback_error(exc)
+        _log_direct_callback_audit(result)
+        if result.get("code"):
+            _LOGGER.warning("payment_callback_manual code=%s", str(result["code"]))
+        return PlainTextResponse("success", media_type="text/plain")

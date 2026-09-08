@@ -1,5 +1,16 @@
 # Risk Register
 
+## September8 program continuation correction
+
+- PATH_BLOCKED never implies PROGRAM_STOP; independent authorized engineering
+  continues per the owner’s explicit ten-condition stop policy in current Handoff.
+- New URL is not required by Item34 DoD. Prior request withdrawn; original-note
+  new T0 needs prospective generation/fencing/count design, no old-window replay.
+- A read-only subagent broad tools glob scanned one protected tool path with no
+  matched content output. No modification/staging occurred; owner informed.
+  Restrict all further content searches to explicit authorized paths.
+
+
 ## September8 managed launcher preparation
 
 - The existing durable runner now exposes a mutually exclusive managed action,

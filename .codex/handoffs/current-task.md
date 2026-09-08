@@ -1,5 +1,90 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 independent engineering milestone — payment HTTP and process capture
+
+The current source now propagates the explicit canary transaction factory through
+actual API order/admission/worker success/UNKNOWN, both direct gateway callback/
+query paths, Payment HTTP routes, canary refund/reconcile and the standalone
+settlement writer. Defaults keep original DB behavior; no global DB hook exists.
+API cancellation joins the one existing worker task before releasing its action.
+Payment action covers body/authentication/SQL; event resolution occurs after real
+signature verification and checks the approved user/key/provider/app/order before
+business INSERT. A fixed reviewed event-hash mode and user/provider-scoped order
+reference replace the impossible preknown webhook ID; registered/commit/row and
+retained journal metadata strictly agree on the authenticated event hash.
+
+The same existing collector now has an explicitly constructed private Unix
+CaptureBroker/CaptureProxy: one listener/journal, same-UID peers, fsync before
+registration ACK, bounded messages, no remote SQL/DDL/finish/reconnect. Open action
+EOF and COMMIT unknown prevent sealing. Early finish with an active action is
+rejected before any sealing and keeps admitted workers able to save their result.
+No broker was installed, uploaded or started on production.
+
+Actual Python3.11 network-none PG16 verification:19 existing collector cases PASS;
+new actual HTTP/worker/broker suite6 PASS, including valid synthetic auth sessions,
+both real local signature algorithms, duplicate callbacks without double grant,
+provider UNKNOWN marker, raw asyncio cancellation, same key used by another user,
+two real subprocess writers on one journal and open-action disconnect. The first
+subprocess test failed before SQL because its cleared env omitted PYTHONPATH;
+fixed only the explicit isolated child path and retained both logs.
+Logs under `/private/tmp/noteai-prep-20260908/`: canary-runtime-baseline-pg.log,
+canary-runtime-http-pg.log (initial2 new+1 imported fixture PASS),
+canary-broker-http-pg.log (failure), canary-broker-fixed-http-pg.log (6PASS).
+Test image `noteai-local/canary-writers:20260908-broker-fixed` is local only.
+117 affected default contract/gateway/canary/query/API regressions also PASS
+under the cleared-environment paused test runner; log
+`canary-integrated-default-regressions.log`. Production behavior was not exercised.
+
+In progress, not terminal/READY yet: extend actual query/refund/reconciliation and
+ACK-loss coverage, finalize the canary runtime binding package, then rebuild only
+affected API/Payment candidates and finish Item36/37/38 preparations. Auth expired
+session cleanup is outside payment DML scope; no generic zero-write claim is made.
+Readiness30/38; no real provider/payment/production write, service deploy or push.
+Local no-host-mount Colima noteai-prep and its isolated PG test container are
+running for continued authorized tests. API-F terminal remains readable; an ECS
+console claim attempt timed out before configuration readback, so no new API-C or
+cloud resource state is claimed. That UI path does not suspend local work.
+
+## Active program execution policy — September8, continued from9e7f4df
+
+Owner explicitly corrected the stop policy: a single BLOCKED/HOLD/EXPIRED path
+is PATH_BLOCKED, not PROGRAM_STOP. Seal its true state and immediately continue
+(A) remaining preparation on that item, (B) independent items, (C) unfinished
+READY_FOR_LIVE/READY_TO_APPLY engineering, then (D) known implementation/test/
+binding gaps. Checkpoint, handoff, unchanged Readiness and external waiting do
+not end the program. No new gate, validator, receipt or audit layer is required.
+PROGRAM_STOP is permitted only under the owner's ten specified conditions:
+required owner login/MFA/new credentials; unapproved public DNS/real traffic;
+irreversible deletion; unbounded new cost; new product decision; owner public
+launch statement; real security conflict; CONNECTED_UNKNOWN unresolved by
+existing read-only reconcile; no authorized technical work left; or all local
+preparations complete with only external/owner dependencies. Even a path needing
+owner work does not stop independent work. A real stop must explain why no other
+authorized work remains and name the single owner action. No automation resumes.
+
+Item34 canonical contract107–112 does NOT require a different note. The prior
+new-URL request is withdrawn and is not a HUMAN_GATE. Prepare original owner-owned
+note6a7954010000000026034707 with a prospective new T0; no production observation
+is authorized. Old window is permanently EXPIRED/no24h/no3d/no replay/backfill.
+The current schema/wrapper cannot safely represent a second window on that row;
+minimum generation/fencing design and honest historical/new counts are now in
+the existing execution plan, not a changed DoD or acceptance claim.
+
+Current independent work: complete Item31 API/Payment writer propagation and
+isolated PG16 coverage; retain Item32 matching recovery package and prepare
+future same-successor date binding without dispatch/new identity; verify Item35
+existing scope (10 frozen files match); finish Item36 actual API/Payment candidate
+and per-node rollback inputs; prepare Item37/38 existing-plan scenarios/rollback.
+Readiness remains30/38. No production write/provider/payment/deploy/Git push.
+
+Protected-file deviation: the successor_release_audit read-only agent reported
+one broad rg over tools/*.py included protected
+`tools/stage_item26_manual_cost_stop_helper_v2.py`. No match content was output
+and no protected file was modified/staged. This violates the no-read instruction;
+owner was informed immediately. All agents must now use explicit authorized file
+paths for content reads; do not claim all seven remained unread this round.
+
+
 ## Continued execution — September8; existing durable launcher integrated for managed preparation
 
 Continued from `b18feea`. `tools/run_item34_tracking_durable.py` now has a separate

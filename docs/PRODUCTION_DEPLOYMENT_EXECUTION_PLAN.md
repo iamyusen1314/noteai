@@ -127,13 +127,31 @@ EXPIRED。**不重试24h、不执行3d、不自动重启观察。**下方原批�
   的attempt外键会随删除track级联删除，且`UNIQUE(track_id,stage)`禁止同track
   再做24h。不得删旧行/attempt、回退状态或新建账号绕开no-replay。
 - `model/api.py:14330`、`:14365`使同账号同笔记合法POST返回409；wrapper`:1217`
-  又要求该note全局恰好一行，另一账号提交同笔记同样不能解除约束。无schema
-  变更的最小候选是owner从现有账号选另一篇真实目标笔记，仍需owner明确选择；
-  如必须保留原目标，应先设计并批准保留失败历史的实施变更，尚未实施。
+  又要求该note全局恰好一行，另一账号提交同笔记同样不能解除约束。
+  **批准DoD没有要求新笔记**：`docs/XHS_TRACKING_PRODUCTION_CONTRACT.md:107–112`
+  要求同对象真实初始snapshot/T0及row/attempt绑定。先前索取新URL已撤回；
+  原owner-owned对象的新T0按下述方案准备，不能靠修改旧row时钟直接启动。
 - `scripts/postgres/item34-0019-apply.sql:29`拒绝已有policy/ledger；已提交0019
   只应按原verify读回。当前validator`:5371`的7表9distinct口径含迁移1/attempt2，
   新作业必须先明确旧0019与旧失败attempt作为历史前置、新写入另实测的兼容口径，
   不能把旧迁移伪报为新INSERT或将三次attempt挤成两次。现行批准DoD未修改。
+
+原对象前瞻性实施方案（尚未应用schema或批准生产执行）：
+
+1. 保留原track、owner及全部旧Evidence/attempt；tracked_notes增加当前窗口代次和
+   真实新T0，attempts增加代次，旧记录默认为0。唯一键改为(track_id,generation,stage)。
+   禁止用每次执行的run_id冒充窗口身份，禁止新增账号/删行绕过唯一键。
+2. 新窗口只能由明确批准的一次动作CAS原代次及旧失败attempt身份后开启；普通claim、
+   重连、启动不生成代次。claim/admit/finalize和当前窗口结果同时绑定代次；全局活动/
+   UNKNOWN及UTC日额度仍跨全部代次统计。真实新T0必须来自新一次同对象初始snapshot，
+   不使用旧发布时间或回填时间。现有0019仅verify，不再apply。
+3. 当前实施预算须区分历史和新作业。旧核心真实为5表6distinct；若新增迁移1并沿用其余
+   成功写集，新作业候选为迁移1/原track1/新attempt2/growth1/memory1/events2/settings1
+   共7表9distinct；与旧历史合并为13distinct、attempt累计3。该数是待PG验证预算，
+   不是实际DML次数；若迁移单独执行，新采样自身不能冒称7表9行。历史HTTP仍含UNKNOWN。
+4. 未来申请包含最小迁移及回滚边界、已有合法对象绑定、真实T0、两个时间窗口、两次最多
+   2新admission/0重试、权限临时授撤、managed验证及恢复。新一代结果在现有canonical
+   文件追加前瞻性部分，旧分支/失败事实不变；需明确批准新的计数口径和执行范围。
 
 沿用本节原时间规则：24h在[anchor+24h,anchor+72h)，3d在anchor+72h或之后
 （含边界），且晚于24h采样；

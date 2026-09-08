@@ -17,6 +17,7 @@ import re
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from contextlib import nullcontext
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
@@ -24,6 +25,20 @@ from zoneinfo import ZoneInfo
 import billing
 import content_retention
 import db
+
+
+def transaction_options(transaction_factory=None) -> dict:
+    """Preserve default callers; explicitly bind only an injected canary writer."""
+    if transaction_factory is None:
+        return {}
+    if not callable(transaction_factory):
+        raise ValueError("payment transaction factory must be callable")
+    return {"transaction_factory": transaction_factory}
+
+
+def canary_action(transaction_factory=None):
+    action = getattr(transaction_factory, "action", None)
+    return action() if action is not None else nullcontext()
 
 
 CONTRACT_VERSION = "adapay-v1-2026-07-26"
@@ -730,7 +745,7 @@ def create_order(
         if selected_provider == "adapay"
         else order_id.replace("-", "")
     )
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         try:
             content_retention.assert_user_writable_with_storage(tx, uid)
         except ValueError as exc:
@@ -850,7 +865,7 @@ def admit_payment_submission(
     """Atomically reserve the sole provider-submission attempt for an order."""
     normalized = _uuid(order_id, "order_id")
     clock = _iso(now)
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         row = tx.fetchone(
             "SELECT id FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -887,7 +902,7 @@ def mark_payment_submission(
     )
     created = _iso(now)
     mismatch = False
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         row = tx.fetchone(
             "SELECT * FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -941,7 +956,7 @@ def mark_payment_submission_unknown(
 ) -> dict[str, Any]:
     normalized = _uuid(order_id, "order_id")
     clock = _iso(now)
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         tx.execute(
             "UPDATE payment_orders SET payment_status='pending',"
             "updated_at=? WHERE id=? "
@@ -1263,7 +1278,7 @@ def process_authenticated_callback(
     _provider_name(event.provider_name)
     expected_app = _app_id(expected_app_id)
     clock = _iso(now)
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         event_row_id, duplicate = _record_event(
             tx,
             event,
@@ -1698,7 +1713,7 @@ def prepare_full_refund(
     clock = _iso(now)
     refund_id = str(uuid.uuid4())
     merchant_refund_no = "NR_" + refund_id.replace("-", "")
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         row = tx.fetchone(
             "SELECT * FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -1818,7 +1833,7 @@ def mark_refund_submission(
             raise PaymentContractError("PAYMENT_PROVIDER_RESPONSE_MISMATCH")
     clock = _iso(now)
     mismatch = False
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         row = tx.fetchone(
             "SELECT * FROM payment_refunds WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -1959,7 +1974,7 @@ def admit_refund_submission(
     """Atomically reserve the sole provider-submission attempt for a refund."""
     normalized = _uuid(refund_id, "refund_id")
     clock = _iso(now)
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         row = tx.fetchone(
             "SELECT id FROM payment_refunds WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -2516,7 +2531,7 @@ def reconcile_bill(
         tzinfo=ZoneInfo("Asia/Shanghai"),
     ).astimezone(timezone.utc)
     local_end = local_start + timedelta(days=1)
-    with (transaction_factory or db.transaction)(write=True) as tx:
+    with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
         existing = tx.fetchone(
             "SELECT * FROM payment_reconciliation_runs "
             "WHERE provider=? AND provider_mode=? AND bill_date=? "
@@ -2709,6 +2724,7 @@ def record_settlement_summary(
     prod_mode: bool,
     provider_name: str = "adapay",
     now: datetime | None = None,
+    transaction_factory=None,
 ) -> dict[str, Any]:
     selected_provider = _provider_name(provider_name)
     try:
@@ -2725,12 +2741,13 @@ def record_settlement_summary(
         raise PaymentContractError("PAYMENT_SETTLEMENT_EQUATION_INVALID")
     settlement_id = str(uuid.uuid4())
     clock = _iso(now)
-    db.execute(
+    statement = (
         "INSERT INTO payment_settlement_summaries("
         "id,provider,provider_mode,settlement_date,source_sha256,gross_fen,"
         "refund_fen,fee_fen,net_fen,status,created_at"
-        ") VALUES(?,?,?,?,?,?,?,?,?,'verified',?)",
-        (
+        ") VALUES(?,?,?,?,?,?,?,?,?,'verified',?)"
+    )
+    parameters = (
             settlement_id,
             selected_provider,
             "live" if prod_mode else "mock",
@@ -2741,8 +2758,12 @@ def record_settlement_summary(
             values[2],
             values[3],
             clock,
-        ),
     )
+    if transaction_factory is None:
+        db.execute(statement, parameters)
+    else:
+        with transaction_factory(write=True) as tx:
+            tx.execute(statement, parameters)
     return {
         "id": settlement_id,
         "provider": selected_provider,

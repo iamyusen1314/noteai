@@ -676,13 +676,15 @@ def _query_payment(
     provider_name: str,
     order: dict[str, Any],
     activation: dict[str, Any],
+    *, transaction_factory=None,
 ) -> dict[str, Any]:
     gateway.process_payment_query(
         payment_contract.ProviderPaymentLookup(
             merchant_order_no=str(order["merchant_order_no"]),
             provider_payment_id=str(order["provider_payment_id"] or ""),
             expected_amount_fen=int(order["amount_fen"]),
-        )
+        ),
+        **payment_contract.transaction_options(transaction_factory),
     )
     readback = _order(str(order["id"]), provider_name, activation)
     return {
@@ -703,6 +705,7 @@ def _submit_refund(
     order: dict[str, Any],
     activation: dict[str, Any],
     reason_code: str,
+    *, transaction_factory=None,
 ) -> dict[str, Any]:
     reason = str(reason_code or "").strip()
     if reason not in _REASONS:
@@ -710,13 +713,14 @@ def _submit_refund(
     prepared = payment_contract.prepare_full_refund(
         str(order["id"]),
         reason_code=reason,
+        **payment_contract.transaction_options(transaction_factory),
     )
     refund = db.fetchone(
         "SELECT * FROM payment_refunds WHERE id=?",
         (prepared["id"],),
     )
     if refund is None or not payment_contract.admit_refund_submission(
-        str(refund["id"])
+        str(refund["id"]), **payment_contract.transaction_options(transaction_factory)
     ):
         raise PaymentCanaryError("PAYMENT_CANARY_REFUND_ADMISSION_FAILED")
     provider_request = payment_contract.provider_refund_request(refund, order)
@@ -729,7 +733,7 @@ def _submit_refund(
     except Exception as exc:
         raise PaymentCanaryError("PAYMENT_PROVIDER_OUTCOME_UNKNOWN") from exc
     try:
-        payment_contract.mark_refund_submission(str(refund["id"]), result)
+        payment_contract.mark_refund_submission(str(refund["id"]), result, **payment_contract.transaction_options(transaction_factory))
     except Exception as exc:
         raise PaymentCanaryError("PAYMENT_PROVIDER_RESPONSE_INVALID") from exc
     response_sha256, provider_refund_identity_sha256 = _refund_result_digest(
@@ -757,6 +761,7 @@ def _query_refund(
     provider_name: str,
     order: dict[str, Any],
     activation: dict[str, Any],
+    *, transaction_factory=None,
 ) -> dict[str, Any]:
     refund, order = _refund_for_order(order, provider_name, activation)
     gateway.process_refund_query(
@@ -765,7 +770,8 @@ def _query_refund(
             merchant_order_no=str(order["merchant_order_no"]),
             provider_payment_id=str(order["provider_payment_id"] or ""),
             provider_refund_id=str(refund["provider_refund_id"] or ""),
-        )
+        ),
+        **payment_contract.transaction_options(transaction_factory),
     )
     readback, order_readback = _refund_for_order(order, provider_name, activation)
     return {
@@ -781,7 +787,7 @@ def _query_refund(
     }
 
 
-def _reconcile(gateway: Any, provider_name: str, bill_date: str) -> dict[str, Any]:
+def _reconcile(gateway: Any, provider_name: str, bill_date: str, *, transaction_factory=None) -> dict[str, Any]:
     canonical_day = _canonical_day(bill_date)
     source, rows = gateway.reconciliation_rows(canonical_day)
     result = payment_contract.reconcile_bill(
@@ -790,6 +796,7 @@ def _reconcile(gateway: Any, provider_name: str, bill_date: str) -> dict[str, An
         rows,
         prod_mode=True,
         provider_name=provider_name,
+        **payment_contract.transaction_options(transaction_factory),
     )
     return {
         "ok": result["status"] == "matched",
@@ -805,7 +812,7 @@ def _reconcile(gateway: Any, provider_name: str, bill_date: str) -> dict[str, An
     }
 
 
-def execute(argv: list[str]) -> dict[str, Any]:
+def execute(argv: list[str], *, transaction_factory=None) -> dict[str, Any]:
     if len(argv) < 2:
         raise PaymentCanaryError("PAYMENT_CANARY_ARGUMENTS_INVALID")
     action = str(argv[0])
@@ -836,40 +843,42 @@ def execute(argv: list[str]) -> dict[str, Any]:
     gateway, identity = _gateway(provider_name)
     if action == "preflight":
         return _preflight(provider_name, identity, order, activation)
-    admission = _admit_action(activation)
-    try:
-        if action == "query-payment":
-            result = _query_payment(gateway, provider_name, order, activation)
-        elif action == "query-refund":
-            result = _query_refund(gateway, provider_name, order, activation)
-        elif action == "reconcile":
-            result = _reconcile(gateway, provider_name, argv[2])
-        elif action == "submit-refund":
-            result = _submit_refund(
-                gateway,
-                provider_name,
-                order,
-                activation,
-                argv[3],
-            )
-        else:  # pragma: no cover - action validated before admission
-            raise PaymentCanaryError("PAYMENT_CANARY_ACTION_INVALID")
-    except Exception as exc:
-        code = getattr(exc, "code", "PAYMENT_CANARY_INTERNAL_ERROR")
+    with payment_contract.canary_action(transaction_factory):
+        admission = _admit_action(activation)
         try:
-            _seal_action(
-                admission,
-                state="sealed_unknown",
-                result={"code": str(code)},
-            )
+            if action == "query-payment":
+                result = _query_payment(gateway, provider_name, order, activation, transaction_factory=transaction_factory)
+            elif action == "query-refund":
+                result = _query_refund(gateway, provider_name, order, activation, transaction_factory=transaction_factory)
+            elif action == "reconcile":
+                result = _reconcile(gateway, provider_name, argv[2], transaction_factory=transaction_factory)
+            elif action == "submit-refund":
+                result = _submit_refund(
+                    gateway,
+                    provider_name,
+                    order,
+                    activation,
+                    argv[3],
+                    transaction_factory=transaction_factory,
+                )
+            else:  # pragma: no cover - action validated before admission
+                raise PaymentCanaryError("PAYMENT_CANARY_ACTION_INVALID")
+        except Exception as exc:
+            code = getattr(exc, "code", "PAYMENT_CANARY_INTERNAL_ERROR")
+            try:
+                _seal_action(
+                    admission,
+                    state="sealed_unknown",
+                    result={"code": str(code)},
+                )
+            finally:
+                _close_action(admission)
+            raise
+        try:
+            _seal_action(admission, state="completed", result=result)
         finally:
             _close_action(admission)
-        raise
-    try:
-        _seal_action(admission, state="completed", result=result)
-    finally:
-        _close_action(admission)
-    return {**result, "action_admission_sha256": admission.identity_sha256}
+        return {**result, "action_admission_sha256": admission.identity_sha256}
 
 
 def main() -> int:
