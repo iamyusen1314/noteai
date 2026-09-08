@@ -10,6 +10,7 @@ NoteAI Pro 爬虫系统 v2
   python crawler.py check-cookie # 验证 Cookie 有效性
 """
 import asyncio
+import base64
 import hashlib
 import json
 import os
@@ -409,11 +410,25 @@ def _item34_acceptance_stage() -> str | None:
 def _item34_acceptance_generation() -> int | None:
     value = os.environ.get("NOTEAI_ITEM34_OBSERVATION_GENERATION", "")
     if not value:
+        if os.environ.get('NOTEAI_ITEM34_OBSERVATION_BINDING_B64'):
+            raise ValueError('item34 observation binding incomplete')
         return None
     if (_item34_acceptance_target_id() is None
             or not re.fullmatch(r"[1-9][0-9]{0,8}", value)):
         raise ValueError("item34 observation generation invalid")
     return int(value)
+
+
+def _item34_observation_binding() -> dict:
+    raw=os.environ.get('NOTEAI_ITEM34_OBSERVATION_BINDING_B64','')
+    if not raw or len(raw)>12000:raise ValueError('item34 observation binding missing')
+    try:
+        value=tracking_contract.validate_observation_binding(json.loads(base64.b64decode(raw,validate=True)))
+    except (ValueError,TypeError):
+        raise ValueError('item34 observation binding invalid') from None
+    if value['generation']!=_item34_acceptance_generation() or value['track_id']!=_item34_acceptance_target_id():
+        raise ValueError('item34 observation binding changed')
+    return value
 
 
 def _claim_due_tracking_notes(
@@ -522,6 +537,8 @@ def _claim_due_tracking_notes(
                 # stale generation-zero command targeting the same note.
                 if generation != target_generation:
                     continue
+                # A bare generation is insufficient to authorize an observation.
+                tracking_contract.assert_observation_binding(snapshot,_item34_observation_binding())
                 stage = "24h" if target_stage == "24h" else "7d"
                 if not tracking_contract.observation_stage_ready(snapshot, stage, now):
                     continue
@@ -663,6 +680,15 @@ def _admit_provider_attempt(note: dict) -> dict:
             note,
             require_active_attempt=False,
         )
+        if generation:
+            if not tx.postgres:raise ValueError('observation requires PostgreSQL')
+            binding=_item34_observation_binding()
+            tracking_contract.assert_observation_binding(note,binding)
+            tracking_contract.assert_observation_binding(current,binding)
+            old=tx.fetchone('SELECT * FROM tracking_provider_attempts WHERE id=? AND track_id=? FOR SHARE',
+                            (binding['previous_attempt_id'],note['id']))
+            if not old or tracking_contract.observation_history_digest(dict(old))!=binding['previous_attempt_sha256']:
+                raise ValueError('item34 observation history changed')
         if tx.postgres:
             # Shared with the prospective owner CAS: global admission state
             # cannot change between its quiescence check and window opening.
@@ -770,11 +796,15 @@ def _record_tracking_success(note: dict, data: dict) -> None:
     )
     score_window = "3d" if item34_3d else "7d"
     with db.transaction(write=True) as tx:
-        _assert_tracking_writable_with_storage(
+        current = _assert_tracking_writable_with_storage(
             tx,
             note,
             require_active_attempt=True,
         )
+        if generation:
+            binding=_item34_observation_binding()
+            tracking_contract.assert_observation_binding(note,binding)
+            tracking_contract.assert_observation_binding(current,binding)
         result_now = datetime.now(timezone.utc)
         if not tracking_contract.observation_stage_ready(note, stage, result_now):
             raise ValueError("observation result outside window")

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 import uuid
+import hashlib
+import json
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
@@ -182,6 +184,48 @@ def observation_generation(note: dict) -> int:
     if type(generation) is not int or generation < 0:
         raise TrackingContractError("invalid_observation_generation")
     return generation
+
+
+def validate_observation_binding(value: dict) -> dict:
+    keys={'track_id','owner_id','generation','observation_started_at','initial_snapshot',
+          'previous_attempt_id','previous_attempt_sha256'}
+    try:
+        if not isinstance(value,dict) or set(value)!=keys or type(value['generation']) is not int or value['generation']!=1:
+            raise ValueError()
+        for name in ('track_id','owner_id','previous_attempt_id'):
+            if str(uuid.UUID(value[name]))!=value[name]:raise ValueError()
+        anchor=datetime.fromisoformat(value['observation_started_at'].replace('Z','+00:00'))
+        if anchor.tzinfo is None:raise ValueError()
+        if not re.fullmatch(r'[0-9a-f]{64}',value['previous_attempt_sha256']):raise ValueError()
+        metrics=value['initial_snapshot']
+        if not isinstance(metrics,dict) or set(metrics)!={'likes','saves','comments'}:raise ValueError()
+        validate_provider_metrics(metrics)
+        result=json.loads(json.dumps(value))
+        result['observation_started_at']=anchor.astimezone(timezone.utc).isoformat()
+        return result
+    except (ValueError,TypeError,KeyError,AttributeError):
+        raise TrackingContractError('invalid_observation_binding') from None
+
+
+def assert_observation_binding(note: dict, binding: dict) -> None:
+    try:
+        anchor=datetime.fromisoformat(note['observation_started_at'].replace('Z','+00:00')).astimezone(timezone.utc).isoformat()
+        if (note['id']!=binding['track_id'] or note['user_id']!=binding['owner_id']
+            or observation_generation(note)!=binding['generation'] or anchor!=binding['observation_started_at']
+            or note['observation_initial_snapshot']!=binding['initial_snapshot']):raise ValueError()
+    except (ValueError,TypeError,KeyError,AttributeError):
+        raise TrackingContractError('observation_binding_changed') from None
+
+
+def observation_history_digest(row: dict) -> str:
+    fields=('id','track_id','user_id','run_id','stage','status','admitted_at','completed_at','error_code')
+    value={key:row[key] for key in fields}
+    for key in ('admitted_at','completed_at'):
+        parsed=datetime.fromisoformat(str(value[key]).replace('Z','+00:00'))
+        if parsed.tzinfo is None:raise TrackingContractError('invalid_observation_history')
+        value[key]=parsed.astimezone(timezone.utc).isoformat()
+    value['observation_generation']=row.get('observation_generation',0)
+    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode('utf-8')).hexdigest()
 
 
 def observation_stage_ready(note: dict, stage: str, now: datetime) -> bool:

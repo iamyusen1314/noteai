@@ -1183,5 +1183,66 @@ class Item34Tracking3dCheckpointExecutorTests(unittest.TestCase):
         self.assertEqual(result["managed_transition"]["configuration_row_mutations"], 2)
 
 
+def prospective_binding():
+    return {'track_id':TRACK_ID,'owner_id':'00000000-0000-4000-8000-000000000001',
+            'generation':1,'observation_started_at':'2026-09-10T12:00:00+00:00',
+            'initial_snapshot':{'likes':4,'saves':2,'comments':2},
+            'previous_attempt_id':'00000000-0000-4000-8000-000000000002',
+            'previous_attempt_sha256':'c'*64}
+
+
+class ProspectiveObservationCheckpointTests(unittest.TestCase):
+    def setUp(self):
+        self.binding=prospective_binding()
+        self.delta=datetime.fromisoformat(self.binding['observation_started_at'])-datetime.fromisoformat(executor.OBSERVATION_STARTED_AT)
+
+    def shifted(self,value):
+        if isinstance(value,dict):return {k:self.shifted(v) for k,v in value.items()}
+        if isinstance(value,list):return [self.shifted(v) for v in value]
+        if isinstance(value,str) and value.startswith('2026-') and 'T' in value:
+            return (datetime.fromisoformat(value)+self.delta).astimezone(timezone.utc).isoformat()
+        return value
+
+    def snapshot(self,value):
+        return {**self.shifted(value),**executor.observation_identity()}
+
+    def test_two_stages_use_explicit_new_t0_and_leave_legacy_constants_unchanged(self):
+        original=(executor.OBSERVATION_STARTED_AT,executor.CHECKPOINT_24H_DUE_AT,executor.CHECKPOINT_3D_DUE_AT)
+        fixture=Item34TrackingCheckpointExecutorTests()
+        terminal=Item34Tracking3dCheckpointExecutorTests()
+        calls=[]
+        with executor.observation_context(self.binding):
+            result=executor.execute_24h_checkpoint(expected_track_id=TRACK_ID,
+                read_preflight=lambda:self.snapshot(fixture.preflight()),
+                run_worker=lambda argv:calls.append(argv) or fixture.worker_receipt(),
+                schedule_3d=lambda *_:{**self.shifted(fixture.schedule_receipt()),'target_rows_mutated':0},
+                read_postflight=lambda:self.snapshot(fixture.postflight()),clock=lambda:NOW+self.delta)
+            self.assertEqual(result['observation_started_at'],self.binding['observation_started_at'])
+            self.assertEqual(result['observation_binding_sha256'],executor.observation_identity()['observation_binding_sha256'])
+            result=executor.execute_3d_checkpoint(expected_track_id=TRACK_ID,
+                read_preflight=lambda:self.snapshot(terminal.snapshot()),
+                run_worker=lambda argv:calls.append(argv) or fixture.worker_receipt(),
+                read_postflight=lambda:self.snapshot(terminal.snapshot(phase='post')),
+                clock=lambda:terminal.now+self.delta)
+            self.assertEqual(result['score_window'],'3d')
+            self.assertFalse(result['readiness_credit'])
+        self.assertEqual(calls,[executor.WORKER_ARGV,executor.WORKER_ARGV])
+        self.assertEqual(original,(executor.OBSERVATION_STARTED_AT,executor.CHECKPOINT_24H_DUE_AT,executor.CHECKPOINT_3D_DUE_AT))
+        self.assertIsNone(executor.current_observation())
+
+    def test_old_window_and_cross_binding_never_dispatch(self):
+        with self.assertRaisesRegex(executor.Item34CheckpointError,'old_observation_sealed'):
+            with executor.observation_context({**self.binding,'observation_started_at':executor.OBSERVATION_STARTED_AT}):pass
+        fixture=Item34TrackingCheckpointExecutorTests(); calls=[]
+        with executor.observation_context(self.binding):
+            pre=self.snapshot(fixture.preflight()); pre['observation_binding_sha256']='d'*64
+            with self.assertRaises(executor.Item34CheckpointError):
+                executor.execute_24h_checkpoint(expected_track_id=TRACK_ID,read_preflight=lambda:pre,
+                    run_worker=lambda argv:calls.append(argv),schedule_3d=lambda *_:None,
+                    read_postflight=lambda:None,clock=lambda:NOW+self.delta)
+        self.assertEqual(calls,[])
+        self.assertIsNone(executor.current_observation())
+
+
 if __name__ == "__main__":
     unittest.main()

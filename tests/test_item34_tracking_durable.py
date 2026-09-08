@@ -170,7 +170,7 @@ class DurableTrackingTests(unittest.TestCase):
         self.assertEqual(self.transitions, [])
 
     def test_real_wrapper_failure_path_still_sets_session_stop_after_disk_failure(self):
-        wrapper = durable.load_wrapper()
+        wrapper = durable.load_wrapper(prospective=True)
         stopped = []
         calls = []
         test = self
@@ -246,8 +246,37 @@ class DurableTrackingTests(unittest.TestCase):
             finally:
                 journal.close()
 
-    def test_approved_wrapper_bytes_remain_unchanged(self):
-        self.assertEqual(hashlib.sha256(durable.WRAPPER.read_bytes()).hexdigest(), durable.WRAPPER_SHA256)
+    def test_legacy_hash_is_frozen_and_prospective_source_binding_is_exact(self):
+        self.assertEqual(durable.WRAPPER_SHA256,'3d9e65c4535226a0a7d4c499558bff1d19ed69ebbbcf647a657700aff8c85e8a')
+        self.assertEqual(hashlib.sha256(durable.WRAPPER.read_bytes()).hexdigest(), durable.PROSPECTIVE_WRAPPER_SHA256)
+        with self.assertRaisesRegex(ValueError,'approved_wrapper_changed'):durable.load_wrapper()
+
+    def test_prospective_recovery_restores_exact_config_even_with_unknown_sampling(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        binding=prospective_binding();saved={**self.saved,'track_id':binding['track_id'],'observation_binding':binding}
+        test=self
+        class Adapter(self.adapter):
+            def read_config_snapshot(self):return {'config':copy.deepcopy(test.current)}
+            def read_snapshot(self,**kwargs):raise ValueError('generation history changed')
+        self.wrapper.HostAdapter=Adapter
+        self.wrapper._worker_name=lambda stage:'noteai-item34-tracking-g1-'+stage
+        stops=[]
+        self.wrapper._quiesce_worker=lambda name,image:stops.append((name,image)) or {'after_running':False}
+        with durable.checkpoint.observation_context(binding):
+            result=durable.restore(self.wrapper,MemoryJournal(),saved)
+        self.assertTrue(result['configuration_restored'])
+        self.assertEqual(result['sampling_acceptance'],'UNKNOWN')
+        self.assertEqual(len(self.transitions),1)
+        self.assertEqual(stops,[('noteai-item34-tracking-g1-24h',saved['image'])])
+
+    def test_cross_binding_saved_track_is_rejected_before_any_stop(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        binding=prospective_binding();saved={**self.saved,'observation_binding':binding}
+        with durable.checkpoint.observation_context(binding), \
+             patch.object(self.wrapper,'_quiesce_named_container') as stop:
+            with self.assertRaisesRegex(ValueError,'saved_observation_binding'):
+                durable.restore(self.wrapper,MemoryJournal(),saved)
+            stop.assert_not_called()
 
 
 if __name__ == "__main__":

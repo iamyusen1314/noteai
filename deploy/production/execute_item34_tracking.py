@@ -39,7 +39,7 @@ import execute_item34_tracking_checkpoint as checkpoint
 IMAGE_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 STAGES = {"24h", "3d"}
-INNER_ACTIONS = {"_snapshot", "_config", "_schedule", "_bind", "_role", "_safety"}
+INNER_ACTIONS = {"_snapshot", "_config", "_config_snapshot", "_schedule", "_bind", "_role", "_safety"}
 MAX_OUTPUT_BYTES = 512 * 1024
 LOCK_PATH = Path("/run/lock/noteai-item34-tracking.lock")
 XHS_ENV_PATH = Path("/etc/noteai/xhs-tracking.env")
@@ -73,6 +73,90 @@ IMAGE_SOURCE_LABELS = {
         "db155b05492fce0cab11e4a7ab23b080eb9064bc1e79cdcfde03dc8938e2d977",
     ),
 }
+# The old image identity above stays sealed. Prospective generation execution
+# uses the independently built source below plus exact host/checkpoint bytes.
+PROSPECTIVE_IMAGE_SOURCE_LABELS = dict(IMAGE_SOURCE_LABELS)
+PROSPECTIVE_IMAGE_SOURCE_LABELS.update({
+    'com.noteai.item34.source.entrypoint-sha256':('/app/scripts/docker_entrypoint.sh','39ddd93385f5e6f13a0f97a4e5d22031977cabbb1380d31e93624e6db71c48f3'),
+    'com.noteai.item34.source.crawler-sha256':('/app/model/crawler.py','56f955f7ded2a95b942cf88061a6cf13052925e8b0fc4e02c639d540b53041a7'),
+    'com.noteai.item34.source.db-sha256':('/app/model/db.py','818a134d966fe6e0dc0bfd4fda91bb1626380dc58e6ecec6bc426cddd04af93d'),
+    'com.noteai.item34.source.tracking-contract-sha256':('/app/model/tracking_contract.py','8ce74c612e0ed2ce1bb886bf94d8d19087d87aef5fea0db529baccac303e2fc8'),
+    'com.noteai.item34.source.observation-migration-sha256':('/app/model/migrations/postgres/0020_tracking_observation_generation.sql','22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9'),
+})
+
+
+def _worker_name(stage: str) -> str:
+    binding=checkpoint.current_observation()
+    generation=f"g{binding['generation']}-" if binding is not None else ""
+    return f"noteai-item34-tracking-{generation}{stage}"
+
+
+def _observation_file(path: Path) -> dict:
+    _regular_root_file(path,"observation_file")
+    if path.stat().st_size > 8192:
+        _fail("observation_file")
+    try:
+        value=json.loads(path.read_bytes())
+        with checkpoint.observation_context(value) as binding:
+            if binding is None:_fail("observation_binding")
+            return binding
+    except (ValueError,UnicodeDecodeError):
+        _fail("observation_file")
+
+
+def _observation_environment() -> dict | None:
+    raw=os.environ.get("NOTEAI_ITEM34_OBSERVATION_BINDING_B64","")
+    if not raw:
+        if os.environ.get('NOTEAI_ITEM34_OBSERVATION_GENERATION'):_fail('observation_environment')
+        return None
+    if len(raw)>12000:_fail("observation_environment")
+    try:
+        value=json.loads(base64.b64decode(raw,validate=True))
+        with checkpoint.observation_context(value) as binding:
+            if binding is None:_fail("observation_binding")
+            return binding
+    except (ValueError,UnicodeDecodeError):
+        _fail("observation_environment")
+
+
+def _observation_target(target: Mapping[str, Any], track_id: str) -> None:
+    binding=checkpoint.current_observation()
+    if binding is None:return
+    if (track_id!=binding['track_id'] or str(target.get('id'))!=track_id
+        or str(target.get('user_id'))!=binding['owner_id']
+        or target.get('observation_generation')!=binding['generation']
+        or _clock_text(target.get('observation_started_at'))!=checkpoint.window_clock('anchor')
+        or target.get('observation_initial_snapshot')!=binding['initial_snapshot']):
+        _fail('observation_row_binding')
+
+
+def _history_projection(row: Mapping[str, Any]) -> dict:
+    fields=('id','track_id','user_id','run_id','stage','status','admitted_at','completed_at','error_code')
+    result={key:row[key] for key in fields}
+    for key in ('admitted_at','completed_at'):
+        result[key]=checkpoint._clock(str(result[key]),'observation_history').isoformat()
+    result['observation_generation']=row.get('observation_generation',0)
+    return result
+
+
+def _observation_attempts(rows: list, track_id: str) -> list:
+    binding=checkpoint.current_observation()
+    if binding is None:return rows
+    prior=[row for row in rows if row.get('observation_generation')==0]
+    current=[row for row in rows if row.get('observation_generation')==binding['generation']]
+    if len(prior)!=1 or len(rows)!=len(current)+1:
+        _fail('observation_history')
+    old=_history_projection(prior[0])
+    if (old['id']!=binding['previous_attempt_id'] or old['track_id']!=track_id
+        or old['user_id']!=binding['owner_id'] or old['status']!='failed' or old['stage']!='24h'
+        or not old['error_code'] or old['error_code']=='provider_outcome_unknown'
+        or checkpoint._clock(old['completed_at'],'observation_history')>=
+           checkpoint._clock(binding['observation_started_at'],'observation_anchor')
+        or _sha256(_canonical_json(old))!=binding['previous_attempt_sha256']):
+        _fail('observation_history')
+    return current
+
+
 SESSION_BLOCK_ERROR_CODES = {
     "challenge",
     "cooldown",
@@ -274,8 +358,9 @@ def _docker_json(argv: list[str], code: str) -> Any:
 
 
 def _expected_image_source_labels() -> dict[str, str]:
+    sources=PROSPECTIVE_IMAGE_SOURCE_LABELS if checkpoint.current_observation() is not None else IMAGE_SOURCE_LABELS
     labels = {
-        key: expected for key, (_path, expected) in IMAGE_SOURCE_LABELS.items()
+        key: expected for key, (_path, expected) in sources.items()
     }
     labels["com.noteai.item34.source.wrapper-sha256"] = _sha256(
         Path(__file__).read_bytes()
@@ -363,8 +448,36 @@ def _service_state() -> dict[str, Any]:
     }
 
 
+# Docker projects only these non-secret fields; never fetch complete Config.Env.
+_CONTAINER_STATE_FORMAT = '[{"State":{"Running":{{json .State.Running}},"ExitCode":{{json .State.ExitCode}}}}]'
+_OBSERVATION_ENV_KEYS = (
+    'NOTEAI_ITEM34_ACCEPTANCE','NOTEAI_ITEM34_TRACK_ID','NOTEAI_ITEM34_CHECKPOINT_STAGE',
+    'NOTEAI_ITEM34_OBSERVATION_GENERATION','NOTEAI_ITEM34_OBSERVATION_BINDING_B64',
+    'NOTEAI_RUNTIME_ROLE','NOTEAI_XHS_SERVICE','NOTEAI_XHS_ACQUISITION_ADAPTER',
+)
+_OBSERVATION_CONTAINER_FORMAT = (
+    '[{"Id":{{json .Id}},"Config":{"Image":{{json .Config.Image}},'
+    '"Cmd":{{json .Config.Cmd}},"Entrypoint":{{json .Config.Entrypoint}},'
+    '"Labels":{"com.noteai.item34.observation-binding-sha256":'
+    '{{json (index .Config.Labels "com.noteai.item34.observation-binding-sha256")}}},'
+    '"Env":[null{{range .Config.Env}}{{if or '+
+    ' '.join('(eq (index (split . "=") 0) "'+key+'")' for key in _OBSERVATION_ENV_KEYS)+
+    '}},{{json .}}{{end}}{{end}}]}}]'
+)
+
+
+def _observation_worker_environment(name: str) -> list[str]:
+    binding=checkpoint.current_observation()
+    stages=[stage for stage in STAGES if name==_worker_name(stage)]
+    if binding is None or len(stages)!=1:_fail('observation_stop_binding')
+    values=('1',binding['track_id'],stages[0],str(binding['generation']),
+            base64.b64encode(_canonical_json(binding)).decode('ascii'),
+            'xhs-http','tracking','spider_xhs_http')
+    return sorted(key+'='+value for key,value in zip(_OBSERVATION_ENV_KEYS,values))
+
+
 def _container_exists(name: str) -> bool:
-    completed = _run(["docker", "container", "inspect", name], timeout=15)
+    completed = _run(["docker", "container", "inspect", "--format", "{{.Id}}", name], timeout=15)
     return completed.returncode == 0
 
 
@@ -405,7 +518,7 @@ def _named_container_state(name: str) -> dict[str, Any] | None:
     if names != [name]:
         _fail("container_readback")
     inspected = _docker_json(
-        ["docker", "container", "inspect", name],
+        ["docker", "container", "inspect", "--format", _CONTAINER_STATE_FORMAT, name],
         "container_readback",
     )
     state = (
@@ -426,11 +539,33 @@ def _named_container_state(name: str) -> dict[str, Any] | None:
     }
 
 
-def _quiesce_named_container(name: str) -> dict[str, Any]:
+def _quiesce_named_container(name: str, *, expected_image: str | None = None) -> dict[str, Any]:
     before = _named_container_state(name)
+    container_id=None
+    if checkpoint.current_observation() is not None and name.startswith('noteai-item34-tracking-'):
+        if expected_image is None or IMAGE_RE.fullmatch(expected_image) is None:
+            _fail('observation_stop_binding')
+        if before is not None:
+            items=_docker_json(['docker','container','inspect','--format',_OBSERVATION_CONTAINER_FORMAT,name],'container_readback')
+            item=items[0] if isinstance(items,list) and len(items)==1 else {}
+            config=item.get('Config',{})
+            container_id=item.get('Id')
+            if (not isinstance(container_id,str) or re.fullmatch(r'[0-9a-f]{64}',container_id) is None
+                or config.get('Image')!=expected_image or config.get('Cmd')!=list(checkpoint.WORKER_ARGV)
+                or config.get('Entrypoint')!=['/app/scripts/docker_entrypoint.sh']
+                or not isinstance(config.get('Env'),list)
+                or any(not isinstance(v,str) for v in config['Env'] if v is not None)
+                or sorted(v for v in config['Env'] if v is not None)!=_observation_worker_environment(name)
+                or config.get('Labels',{}).get('com.noteai.item34.observation-binding-sha256')!=
+                   checkpoint.observation_identity()['observation_binding_sha256']):
+                _fail('observation_container_identity')
     if before is not None and before["running"] is True:
-        _stop_container(name)
+        _stop_container(container_id or name)
     after = _named_container_state(name)
+    if container_id is not None and after is not None:
+        items=_docker_json(['docker','container','inspect','--format',_OBSERVATION_CONTAINER_FORMAT,name],'container_readback')
+        if not isinstance(items,list) or len(items)!=1 or items[0].get('Id')!=container_id:
+            _fail('observation_container_replaced')
     if after is not None and after["running"] is not False:
         _fail("container_not_quiescent")
     return {
@@ -442,7 +577,14 @@ def _quiesce_named_container(name: str) -> dict[str, Any]:
         "before_exit_code": before["exit_code"] if before is not None else None,
         "after_running": after["running"] if after is not None else False,
         "after_exit_code": after["exit_code"] if after is not None else None,
+        **({'container_id':container_id} if container_id is not None else {}),
     }
+
+
+def _quiesce_worker(name: str, image: str | None) -> dict[str, Any]:
+    if checkpoint.current_observation() is not None:
+        return _quiesce_named_container(name,expected_image=image)
+    return _quiesce_named_container(name)
 
 
 def _cleanup_helper_container(name: str) -> None:
@@ -513,11 +655,20 @@ def _container_create_argv(
                 f"--env=NOTEAI_ITEM34_CHECKPOINT_STAGE={acceptance_stage}",
             ]
         )
+    binding=checkpoint.current_observation()
+    if binding is not None:
+        if acceptance_track_id is not None and binding['track_id']!=acceptance_track_id:
+            _fail('observation_row_binding')
+        argv.extend([
+            '--label=com.noteai.item34.observation-binding-sha256='+checkpoint.observation_identity()['observation_binding_sha256'],
+            '--env=NOTEAI_ITEM34_OBSERVATION_BINDING_B64='+base64.b64encode(_canonical_json(binding)).decode('ascii'),
+            f"--env=NOTEAI_ITEM34_OBSERVATION_GENERATION={binding['generation']}",
+        ])
     return [*argv, image, *command]
 
 
 def _start_known_container(
-    name: str, *, timeout: int, provider: bool
+    name: str, *, timeout: int, provider: bool, image: str | None = None
 ) -> tuple[bytes, int]:
     try:
         completed = subprocess.run(
@@ -529,12 +680,12 @@ def _start_known_container(
         )
     except (OSError, subprocess.TimeoutExpired):
         try:
-            _quiesce_named_container(name)
+            _quiesce_worker(name,image) if provider else _quiesce_named_container(name)
         except Exception:
             _fail("worker_runtime_unknown" if provider else "container_result_unknown")
         _fail("worker_outcome_unknown" if provider else "container_result_unknown")
     inspected = _docker_json(
-        ["docker", "container", "inspect", name], "container_readback"
+        ["docker", "container", "inspect", "--format", _CONTAINER_STATE_FORMAT, name], "container_readback"
     )
     state = (
         inspected[0].get("State", {})
@@ -549,7 +700,7 @@ def _start_known_container(
     ):
         if provider:
             try:
-                _quiesce_named_container(name)
+                _quiesce_worker(name,image)
             except Exception:
                 _fail("worker_runtime_unknown")
         _fail("worker_outcome_unknown" if provider else "container_result")
@@ -577,7 +728,7 @@ class HostAdapter:
         self.last_worker: dict[str, Any] | None = None
         self.transition_used = False
         self.active_config_updated_at: str | None = None
-        self.worker_name = f"noteai-item34-tracking-{stage}"
+        self.worker_name = _worker_name(stage)
 
     def _short_container(
         self,
@@ -813,6 +964,11 @@ class HostAdapter:
             _cleanup_helper_container(name)
 
     def read_transition_state(self) -> Mapping[str, Any]:
+        if checkpoint.current_observation() is not None:
+            config=self.read_config_snapshot()['config']
+            return {'crawler_enabled':config['enabled'],'collection_suspended':config['suspended'],
+                'crawler_config_present':config['present'],'crawler_config_sha256':config['sha256'],
+                'runtime_role':'xhs-http','adapter':'spider_xhs_http'}
         snapshot = self.read_snapshot(phase="transition")
         return snapshot["production_config"]
 
@@ -884,7 +1040,7 @@ class HostAdapter:
         return value
 
     def schedule_3d(self, track_id: str, due_at: str) -> Mapping[str, Any]:
-        if track_id != self.track_id or due_at != checkpoint.CHECKPOINT_3D_DUE_AT:
+        if track_id != self.track_id or due_at != checkpoint.window_clock('3d'):
             _fail("schedule_binding")
         return self._short_container(
             "schedule",
@@ -927,9 +1083,9 @@ class HostAdapter:
                 "worker_container_requires_reconciliation",
             }:
                 raise
-            state = _quiesce_named_container(self.worker_name)
+            state = _quiesce_worker(self.worker_name,self.image)
             if state["container_present"]:
-                _remove_container(self.worker_name)
+                _remove_container(state.get('container_id') or self.worker_name)
             result = {
                 "claimed": 0,
                 "attempted": 0,
@@ -957,7 +1113,8 @@ class HostAdapter:
                 "result": result,
             }
         raw, exit_code = _start_known_container(
-            self.worker_name, timeout=150, provider=True
+            self.worker_name, timeout=150, provider=True,
+            **({'image':self.image} if checkpoint.current_observation() is not None else {})
         )
         result = _worker_json_result(raw)
         self.last_worker = {
@@ -990,9 +1147,13 @@ class HostAdapter:
         self.last_worker["run"]["run_id"] = matches[0]["run_id"]
 
     def cleanup_known_worker(self) -> None:
-        state = _quiesce_named_container(self.worker_name)
+        state = _quiesce_worker(self.worker_name,self.image)
         if state["container_present"]:
-            _remove_container(self.worker_name)
+            _remove_container(state.get('container_id') or self.worker_name)
+
+    def read_config_snapshot(self) -> dict:
+        return self._short_container('config-readback',
+            ['python','execute_item34_tracking.py','_config_snapshot',self.stage,self.track_id])
 
 
 def _write_audit(
@@ -1072,7 +1233,7 @@ def _execute_host(stage: str, track_id: str, image: str) -> dict[str, Any]:
             else:
                 result = checkpoint.execute_3d_checkpoint(**kwargs)
         except Exception:
-            _quiesce_named_container(adapter.worker_name)
+            _quiesce_worker(adapter.worker_name,adapter.image)
             terminal_code: str | None = None
             if adapter.last_worker is not None:
                 try:
@@ -1131,6 +1292,10 @@ def _connect(*, write: bool):
 def _clock_text(value: Any) -> str | None:
     if value is None:
         return None
+    if checkpoint.current_observation() is not None:
+        raw=value.isoformat() if isinstance(value,datetime) else str(value)
+        if re.match(r'^\d{4}-\d\d-\d\dT',raw):
+            return checkpoint._clock(raw,'observation_clock').isoformat()
     if isinstance(value, datetime):
         return value.isoformat()
     return str(value)
@@ -1169,6 +1334,29 @@ def _collection_safety_projection(raw: Any) -> dict[str, Any]:
         "reason_code": reason if blocked else "",
         "blocked_at": blocked_at if blocked else "",
     }
+
+
+def _inner_config_snapshot() -> dict[str, Any]:
+    """Only the already-authorized non-secret CAS object, even if sampling is UNKNOWN."""
+    connection=_connect(write=False)
+    try:
+        with connection.transaction(),connection.cursor() as cursor:
+            cursor.execute('SET TRANSACTION READ ONLY')
+            cursor.execute('SELECT current_user')
+            if cursor.fetchone()['current_user']!='noteai_app':_fail('audit_role')
+            cursor.execute("SELECT value_json,is_secret,updated_at FROM system_settings WHERE key='crawler_config'")
+            rows=cursor.fetchall()
+            if len(rows)>1 or (rows and rows[0]['is_secret']!=0):_fail('crawler_config')
+            raw=rows[0]['value_json'] if rows else None
+            try:value=json.loads(raw) if raw is not None else None
+            except (TypeError,ValueError):_fail('crawler_config')
+            if value is not None and not isinstance(value,dict):_fail('crawler_config')
+            return {'config':{'present':bool(rows),'enabled':bool(value and value.get('enabled') is True),
+                'suspended':False,'sha256':_sha256(raw.encode()) if rows else None,
+                'value_b64':base64.b64encode(raw.encode()).decode() if rows else None,
+                'updated_at':str(rows[0]['updated_at']) if rows else None}}
+    finally:
+        connection.close()
 
 
 def _inner_snapshot(stage: str, track_id: str) -> dict[str, Any]:
@@ -1226,6 +1414,7 @@ def _inner_snapshot(stage: str, track_id: str) -> dict[str, Any]:
                     _fail("managed_row_binding")
                 if target["xhs_url"] != checkpoint.CANONICAL_URL:
                     _fail("managed_row_binding")
+                _observation_target(target,track_id)
 
                 now_text = _clock_text(observed)
                 h24 = _clock_text(observed.replace(tzinfo=timezone.utc))
@@ -1256,14 +1445,16 @@ def _inner_snapshot(stage: str, track_id: str) -> dict[str, Any]:
                     for row in due_rows
                 ]
                 cursor.execute(
-                    "SELECT a.id,a.track_id,a.run_id,a.stage,a.status,a.admitted_at,"
+                    ("SELECT a.id,a.track_id,a.user_id,a.run_id,a.stage,a.status,a.admitted_at,"
+                     "a.observation_generation," if checkpoint.current_observation() is not None else
+                     "SELECT a.id,a.track_id,a.run_id,a.stage,a.status,a.admitted_at,")+
                     "a.completed_at,a.error_code,t.xhs_note_id FROM "
                     "tracking_provider_attempts a JOIN tracked_notes t ON "
                     "t.id=a.track_id AND t.user_id=a.user_id WHERE a.track_id=%s "
                     "ORDER BY CASE a.stage WHEN '24h' THEN 1 ELSE 2 END",
                     (track_id,),
                 )
-                attempts_raw = cursor.fetchall()
+                attempts_raw = _observation_attempts(cursor.fetchall(),track_id)
                 stages = {row["stage"] for row in attempts_raw}
                 if not expected_attempt_stages.issubset(stages):
                     _fail("prior_attempt_missing")
@@ -1310,10 +1501,10 @@ def _inner_snapshot(stage: str, track_id: str) -> dict[str, Any]:
                 import tracking_contract
 
                 effect_growth = tracking_contract.deterministic_effect_id(
-                    track_id, "growth"
+                    track_id, "growth", generation=(checkpoint.current_observation() or {}).get('generation',0)
                 )
                 effect_memory = tracking_contract.deterministic_effect_id(
-                    track_id, "memory"
+                    track_id, "memory", generation=(checkpoint.current_observation() or {}).get('generation',0)
                 )
                 cursor.execute(
                     "SELECT action FROM growth_records WHERE id=%s",
@@ -1431,7 +1622,8 @@ def _inner_snapshot(stage: str, track_id: str) -> dict[str, Any]:
         "snapshot": {
             "schema": checkpoint.SNAPSHOT_SCHEMA,
             "observed_at": _clock_text(observed),
-            "observation_started_at": checkpoint.OBSERVATION_STARTED_AT,
+            "observation_started_at": checkpoint.window_clock('anchor'),
+            **checkpoint.observation_identity(),
             "production_config": {
                 "crawler_enabled": config_enabled,
                 "collection_suspended": False,
@@ -1781,6 +1973,18 @@ def _inner_safety_block(stage: str, track_id: str) -> dict[str, Any]:
 
 
 def _inner_schedule(track_id: str) -> dict[str, Any]:
+    if checkpoint.current_observation() is not None:
+        snapshot=_inner_snapshot('24h',track_id)['snapshot']
+        target=snapshot['target']
+        if (target['status']!='checking_7d' or target['check_24h_at'] is None
+            or target['check_7d_at'] is not None or target['active_attempt_present']
+            or target['claim_present'] or target['next_check_at']!=checkpoint.window_clock('3d')
+            or snapshot['attempts']['target_count_24h']!=1
+            or snapshot['attempts']['target_count_7d']!=0):
+            _fail('observation_schedule_binding')
+        # The generation-aware crawler already stored anchor+72h atomically.
+        return {'track_id':track_id,'next_check_at':checkpoint.window_clock('3d'),
+                'target_rows_mutated':0,'other_tracked_notes_row_mutations':0}
     connection = _connect(write=True)
     try:
         with connection.transaction():
@@ -1789,7 +1993,8 @@ def _inner_schedule(track_id: str) -> dict[str, Any]:
                     "SELECT current_user,next_check_at FROM tracked_notes WHERE "
                     "id=%s AND xhs_note_id=%s AND xhs_url=%s AND "
                     "status='checking_7d' AND check_24h_at IS NOT NULL AND "
-                    "check_7d_at IS NULL AND active_attempt_id IS NULL FOR UPDATE",
+                    "check_7d_at IS NULL AND active_attempt_id IS NULL AND "
+                    "COALESCE(to_jsonb(tracked_notes)->>'observation_generation','0')='0' FOR UPDATE",
                     (track_id, checkpoint.CANONICAL_NOTE_ID, checkpoint.CANONICAL_URL),
                 )
                 rows = cursor.fetchall()
@@ -1813,6 +2018,20 @@ def _inner_schedule(track_id: str) -> dict[str, Any]:
 
 
 def _inner_bind(track_id: str) -> dict[str, Any]:
+    if checkpoint.current_observation() is not None:
+        snapshot=_inner_snapshot('24h',track_id)['snapshot']
+        target=snapshot['target']
+        if (target['status']!='pending' or target['check_24h_at'] is not None
+            or target['check_7d_at'] is not None or target['active_attempt_present']
+            or target['claim_present'] or target['next_check_at']!=checkpoint.window_clock('24h')
+            or snapshot['attempts']['target_count_24h']!=0
+            or snapshot['attempts']['target_count_7d']!=0):
+            _fail('observation_schedule_binding')
+        return {'schema':'noteai.item34.tracking_schedule_bind.v1','status':'ALREADY_BOUND',
+                'track_identity_sha256':_sha256(f'noteai-item34-tracking-row-v1:{track_id}'.encode('ascii')),
+                'next_check_at':checkpoint.window_clock('24h'),'target_rows_mutated':0,
+                'other_tracked_notes_row_mutations':0,'provider_calls':0,'secret_values_recorded':False,
+                **checkpoint.observation_identity()}
     connection = _connect(write=True)
     try:
         with connection.transaction():
@@ -1962,6 +2181,8 @@ def _main(argv: list[str]) -> int:
     reconcile_parser.add_argument("--stage", choices=sorted(STAGES), required=True)
     reconcile_parser.add_argument("--track-id", required=True)
     reconcile_parser.add_argument("--image", required=True)
+    for command in (run_parser,bind_parser,reconcile_parser):
+        command.add_argument('--observation-binding',type=Path)
     for action in sorted(INNER_ACTIONS):
         inner = subparsers.add_parser(action, add_help=False)
         if action == "_config":
@@ -1971,7 +2192,17 @@ def _main(argv: list[str]) -> int:
             inner.add_argument("stage", choices=sorted(STAGES))
             inner.add_argument("track_id")
     args = parser.parse_args(argv)
+    binding=_observation_environment()
+    if getattr(args,'observation_binding',None) is not None:
+        if binding is not None:_fail('duplicate_observation_binding')
+        binding=_observation_file(args.observation_binding)
+    with checkpoint.observation_context(binding):
+        if binding is not None and args.track_id!=binding['track_id']:
+            _fail('observation_row_binding')
+        return _dispatch(args)
 
+
+def _dispatch(args) -> int:
     if args.action == "run":
         value = _execute_host(args.stage, args.track_id, args.image)
     elif args.action == "bind":
@@ -1985,9 +2216,9 @@ def _main(argv: list[str]) -> int:
         if os.geteuid() != 0:
             _fail("root_required")
         track_id = _canonical_uuid(args.track_id, "track_identity")
-        worker_name = f"noteai-item34-tracking-{args.stage}"
+        worker_name = _worker_name(args.stage)
         with _exclusive_lock(LOCK_PATH):
-            quiescence = _quiesce_named_container(worker_name)
+            quiescence = _quiesce_worker(worker_name,args.image)
             adapter = HostAdapter(image=args.image, stage=args.stage, track_id=track_id)
             snapshot = adapter.read_snapshot(phase="failure")
             attempts = [
@@ -2026,6 +2257,8 @@ def _main(argv: list[str]) -> int:
             value = _inner_snapshot(args.stage, track_id)
         elif args.action == "_config":
             value = _inner_config(args.phase)
+        elif args.action == '_config_snapshot':
+            value = _inner_config_snapshot()
         elif args.action == "_schedule":
             if args.stage != "24h":
                 _fail("schedule_stage")

@@ -1,4 +1,7 @@
 import importlib.util
+import copy
+import base64
+import json
 import subprocess
 import sys
 import unittest
@@ -20,6 +23,57 @@ IMAGE = "registry.cn-shenzhen.aliyuncs.com/noteai/xhs@sha256:" + "a" * 64
 
 
 class Item34TrackingProductionWrapperTests(unittest.TestCase):
+    def test_prospective_container_carries_complete_binding_and_unique_stage_name(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        binding=prospective_binding()
+        with wrapper.checkpoint.observation_context(binding):
+            argv=wrapper._container_create_argv(name=wrapper._worker_name('24h'),image=IMAGE,
+                env_file=wrapper.XHS_ENV_PATH,command=list(wrapper.checkpoint.WORKER_ARGV),
+                acceptance_track_id=TRACK_ID,acceptance_stage='24h')
+            self.assertIn('noteai-item34-tracking-g1-24h',argv)
+            self.assertIn('--env=NOTEAI_ITEM34_OBSERVATION_GENERATION=1',argv)
+            encoded=next(x.split('=',2)[2] for x in argv if x.startswith('--env=NOTEAI_ITEM34_OBSERVATION_BINDING_B64='))
+            self.assertEqual(json.loads(base64.b64decode(encoded)),binding)
+            self.assertIn('--label=com.noteai.item34.observation-binding-sha256='+
+                wrapper.checkpoint.observation_identity()['observation_binding_sha256'],argv)
+
+    def test_prospective_stop_checks_identity_before_touching_exact_cid(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        with wrapper.checkpoint.observation_context(prospective_binding()):
+            item={'Id':'a'*64,'Config':{'Image':IMAGE,'Cmd':list(wrapper.checkpoint.WORKER_ARGV),
+                'Entrypoint':['/app/scripts/docker_entrypoint.sh'],
+                'Env':[None,*wrapper._observation_worker_environment(wrapper._worker_name('24h'))],
+                'Labels':{'com.noteai.item34.observation-binding-sha256':
+                    wrapper.checkpoint.observation_identity()['observation_binding_sha256']}}}
+            for field in ('Image','Cmd','Labels','Env'):
+                wrong=copy.deepcopy(item);wrong['Config'][field]='wrong'
+                if field=='Labels':wrong['Config'][field]={}
+                with mock.patch.object(wrapper,'_named_container_state',return_value={'running':True,'exit_code':0}), \
+                     mock.patch.object(wrapper,'_docker_json',return_value=[wrong]), \
+                     mock.patch.object(wrapper,'_stop_container') as stop:
+                    with self.assertRaises(wrapper.ProductionAdapterError):
+                        wrapper._quiesce_worker(wrapper._worker_name('24h'),IMAGE)
+                    stop.assert_not_called()
+            for change in ('stage','duplicate'):
+                wrong=copy.deepcopy(item)
+                if change=='stage':
+                    wrong['Config']['Env']=[v.replace('CHECKPOINT_STAGE=24h','CHECKPOINT_STAGE=3d')
+                        if isinstance(v,str) else v for v in wrong['Config']['Env']]
+                else:wrong['Config']['Env'].append('NOTEAI_ITEM34_ACCEPTANCE=1')
+                with mock.patch.object(wrapper,'_named_container_state',return_value={'running':True,'exit_code':0}), \
+                     mock.patch.object(wrapper,'_docker_json',return_value=[wrong]), \
+                     mock.patch.object(wrapper,'_stop_container') as stop:
+                    with self.assertRaises(wrapper.ProductionAdapterError):
+                        wrapper._quiesce_worker(wrapper._worker_name('24h'),IMAGE)
+                    stop.assert_not_called()
+            with mock.patch.object(wrapper,'_named_container_state',side_effect=[
+                {'running':True,'exit_code':0},{'running':False,'exit_code':143}]), \
+                 mock.patch.object(wrapper,'_docker_json',return_value=[item]), \
+                 mock.patch.object(wrapper,'_stop_container') as stop:
+                result=wrapper._quiesce_worker(wrapper._worker_name('24h'),IMAGE)
+                stop.assert_called_once_with('a'*64)
+                self.assertEqual(result['container_id'],'a'*64)
+
     def _image_inspect(self):
         labels = {
             "com.noteai.runtime.role": "xhs-http",
@@ -90,6 +144,8 @@ class Item34TrackingProductionWrapperTests(unittest.TestCase):
         for binding in (
             "_snapshot:24h",
             "_snapshot:3d",
+            "_config_snapshot:24h",
+            "_config_snapshot:3d",
             "_schedule:24h",
             "_bind:24h",
             "_role:24h",

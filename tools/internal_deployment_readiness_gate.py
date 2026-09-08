@@ -75,6 +75,8 @@ EXPECTED_ACCEPTED_RISK_FINDINGS = {
     },
 }
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+# Canonical failed root saved at 9e7f4df; append-only prospective child excluded.
+ITEM34_SEALED_OBSERVATION_SHA256 = "657cb64162b98ccdfc9d6693ceaea4bac670ca3955d9e65c6b8e06b6c1dc5cb1"
 ITEM26_TERMINAL_EVIDENCE = [
     {"kind": "path", "ref": ".codex/handoffs/current-task.md"}
 ]
@@ -4739,7 +4741,8 @@ def validate_item36_alb_evidence(
     return errors
 
 
-def _validate_item34_auxiliary_effects(value: Any) -> list[str]:
+def _validate_item34_auxiliary_effects(value: Any, *, generation: int = 0,
+                                       authorization: Any = None) -> list[str]:
     """The September 7 owner supplement; direct auth counts may be unobserved.
 
     This is a scoped disclosure in the existing write ledger, not a whole-DB
@@ -4757,6 +4760,27 @@ def _validate_item34_auxiliary_effects(value: Any) -> list[str]:
         or _keys_exact(value, base_keys | {"test_account_setup"})
     ):
         return error
+    expected_checkpoint = "9802111a27b131e510c1c686870121baead5c45d"
+    expected_plan = "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d"
+    expected_policy = {"operation": "APPLY_EXACT_0019",
+                       "readback": "USE_EXISTING_RUNTIME_CONFIG_MIGRATION"}
+    if generation == 1:
+        # Filled from a future explicit owner approval in the SAME manifest;
+        # absent today. The closed approval cannot authorize another job.
+        if (not isinstance(authorization, dict) or not _keys_exact(authorization, {
+                "authorization_checkpoint", "authorization_plan_sha256"})
+            or not isinstance(authorization["authorization_checkpoint"], str)
+            or re.fullmatch(r"[0-9a-f]{40}", authorization["authorization_checkpoint"]) is None
+            or authorization["authorization_checkpoint"] == expected_checkpoint
+            or not isinstance(authorization["authorization_plan_sha256"], str)
+            or SHA256.fullmatch(authorization["authorization_plan_sha256"]) is None
+            or authorization["authorization_plan_sha256"] == expected_plan
+            or "test_account_setup" in value or value["authentication"] != []):
+            return error
+        expected_checkpoint = authorization["authorization_checkpoint"]
+        expected_plan = authorization["authorization_plan_sha256"]
+        expected_policy = {"operation": "APPLY_EXACT_0020_VERIFY_EXISTING_0019",
+                           "readback": "USE_EXISTING_MIGRATION_RECORDS"}
     # The later owner instruction authorizes exactly one new test identity and
     # one 900-point gift. Keep it in this SAME auxiliary ledger/write digest;
     # it cannot be disguised as an existing-user login or a core Tracking row.
@@ -4802,15 +4826,11 @@ def _validate_item34_auxiliary_effects(value: Any) -> list[str]:
                 or SHA256.fullmatch(gift["transaction_identity_sha256"]) is None):
             return setup_error
     if (
-        value["authorization_checkpoint"] != "9802111a27b131e510c1c686870121baead5c45d"
-        or value["authorization_plan_sha256"]
-        != "ae5b7fa36456dd01a7c1b9be63889d0e9d86298e54d354082c90859b0116e47d"
+        value["authorization_checkpoint"] != expected_checkpoint
+        or value["authorization_plan_sha256"] != expected_plan
         or value["execution_record_ref"] != ".codex/handoffs/current-task.md"
         or value["unexpected_effects"] != []
-        or value["policy_ddl"] != {
-            "operation": "APPLY_EXACT_0019",
-            "readback": "USE_EXISTING_RUNTIME_CONFIG_MIGRATION",
-        }
+        or value["policy_ddl"] != expected_policy
     ):
         return error
     authentication = value["authentication"]
@@ -4899,6 +4919,108 @@ def validate_item34_tracking_evidence(
     except (OSError, json.JSONDecodeError, ValueError):
         return ["canonical tracking evidence is unreadable"]
 
+    # Explicitly selecting a prospective generation does not rewrite the sealed
+    # legacy object. Default manifest accounting still evaluates the old branch.
+    canonical_anchor = ITEM34_OBSERVATION_STARTED_AT
+    generation = control.get("observation_generation", 0)
+    if type(generation) is not int or generation not in {0, 1}:
+        return ["tracking observation generation invalid"]
+    if generation == 1:
+        legacy = dict(payload)
+        payload = legacy.pop("prospective_observation", None)
+        if not isinstance(payload, dict):
+            return ["prospective tracking evidence missing"]
+        legacy_digest = hashlib.sha256(json.dumps(legacy, ensure_ascii=True,
+            separators=(",", ":"), sort_keys=True).encode("ascii")).hexdigest()
+        legacy_observation=legacy.get("observation") or {}
+        legacy_writes=legacy.get("actual_production_write_set") or {}
+        old_attempts = legacy_observation.get("actual_provider_attempts") if isinstance(legacy_observation,dict) else None
+        old_counts = legacy_writes.get("rows_by_table") if isinstance(legacy_writes,dict) else None
+        if (legacy.get("status") != "FAILED_24H_OLD_WINDOW_EXPIRED"
+            or legacy.get("readiness_credit") is not False
+            or old_counts != {"schema_migrations":1,"tracked_notes":1,
+                              "tracking_provider_attempts":1,"crawler_events":2,"system_settings":1}
+            or not isinstance(old_attempts,list) or len(old_attempts)!=1
+            or not isinstance(old_attempts[0],dict)
+            or old_attempts[0].get("status")!="failed"
+            or old_attempts[0].get("error_code") in {None,"provider_outcome_unknown"}
+            or payload.get("previous_observation_sha256") != legacy_digest
+            or legacy_digest != ITEM34_SEALED_OBSERVATION_SHA256):
+            errors.append("sealed failed observation history mismatch")
+        if not _exact_int(payload.get("observation_generation"),1):
+            errors.append("prospective tracking generation mismatch")
+        binding = payload.get("observation_binding_sha256")
+        if not isinstance(binding,str) or SHA256.fullmatch(binding) is None:
+            errors.append("prospective tracking binding missing")
+        new_observation = payload.get("observation", {})
+        canonical_anchor = new_observation.get("observation_started_at") if isinstance(new_observation,dict) else None
+        try:
+            _require(_item34_zoned_clock(canonical_anchor,"new anchor") >
+                     _item34_zoned_clock(ITEM34_OBSERVATION_STARTED_AT,"old anchor")+timedelta(hours=72),
+                     "prospective observation must follow the sealed window")
+        except ManifestError as exc:
+            errors.append(str(exc))
+        for key in ("checkpoint_24h","checkpoint_3d"):
+            value=new_observation.get(key) if isinstance(new_observation,dict) else None
+            if not isinstance(value,dict) or value.get("observation_binding_sha256")!=binding:
+                errors.append("prospective checkpoint binding mismatch")
+        from execute_item34_tracking_checkpoint import (
+            observation_context, observation_identity, Item34CheckpointError,
+        )
+        try:
+            with observation_context(payload.get("observation_binding")) as bound:
+                _require(bound is not None, "prospective binding content missing")
+                _require(observation_identity().get("observation_binding_sha256") == binding,
+                         "prospective binding content mismatch")
+                old_track = legacy_observation.get("managed_track", {})
+                new_track = new_observation.get("managed_track", {})
+                track_hash = hashlib.sha256(
+                    f"noteai-item34-tracking-row-v1:{bound['track_id']}".encode("ascii")).hexdigest()
+                _require(new_track.get("identity_sha256") == old_track.get("identity_sha256") == track_hash
+                         and new_track.get("submitted_at") == old_track.get("submitted_at"),
+                         "prospective observation changed original track")
+                _require(_item34_zoned_clock(bound["observation_started_at"], "binding anchor") ==
+                         _item34_zoned_clock(canonical_anchor, "new anchor")
+                         and bound["initial_snapshot"] == new_observation.get("initial_snapshot", {}).get("metrics"),
+                         "prospective initial observation binding mismatch")
+                previous_hash = hashlib.sha256(
+                    f"noteai-item34-tracking-attempt-row-v1:{bound['previous_attempt_id']}".encode("ascii")).hexdigest()
+                _require(previous_hash == old_attempts[0].get("identity_sha256"),
+                         "prospective previous attempt binding mismatch")
+                _require(all(_exact_int(a.get("observation_generation"), 1)
+                             and a.get("observation_binding_sha256") == binding
+                             for a in new_observation.get("actual_provider_attempts", [])),
+                         "prospective attempt generation binding mismatch")
+        except (Item34CheckpointError, ManifestError, KeyError, TypeError, AttributeError, IndexError) as exc:
+            errors.append(str(exc) if isinstance(exc, ManifestError) else "prospective binding invalid")
+        old_ids={a.get('identity_sha256') for a in old_attempts or [] if isinstance(a,dict)} if isinstance(old_attempts,list) else set()
+        new_attempts=new_observation.get('actual_provider_attempts') if isinstance(new_observation,dict) else None
+        if isinstance(new_attempts,list) and any(isinstance(a,dict) and a.get('identity_sha256') in old_ids for a in new_attempts):
+            errors.append('old provider attempt reused by prospective observation')
+        migration=payload.get("generation_migration",{})
+        migration_path="model/migrations/postgres/0020_tracking_observation_generation.sql"
+        migration_digest=_actual_file_sha256(migration_path,root=root)
+        if (not isinstance(migration,dict) or migration.get("path")!=migration_path
+            or migration.get("version")!="0020_tracking_observation_generation.sql"
+            or not isinstance(migration_digest,str) or SHA256.fullmatch(migration_digest) is None
+            or migration_digest!='22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9'
+            or migration.get("sha256")!=migration_digest
+            or migration.get("ledger_source_sha256")!=migration_digest
+            or not _exact_int(migration.get("ledger_exact_count"),1)
+            or not _exact_int(migration.get("schema_migrations_insert_count"),1)
+            or migration.get("production_status")!="VERIFIED"
+            or migration.get("ledger_readback")!="VERIFIED"):
+            errors.append("prospective migration verification missing")
+        combined=payload.get("combined_production_write_set",{})
+        counts={"schema_migrations":2,"tracked_notes":1,"tracking_provider_attempts":3,
+                "crawler_events":4,"system_settings":1,"growth_records":1,"user_memories":1}
+        if (not isinstance(combined,dict) or combined.get("rows_by_table")!=counts
+            or any(not _exact_int(combined['rows_by_table'].get(k),v) for k,v in counts.items())
+            or not _exact_int(combined.get("distinct_rows"),13)
+            or not _exact_int(combined.get("provider_admissions"),3)
+            or combined.get("ledger_readback")!="VERIFIED"):
+            errors.append("combined observation history accounting invalid")
+
     if payload.get("schema") != "noteai.item34.tracking_observation.v1":
         errors.append("tracking evidence schema mismatch")
     if _has_sensitive_evidence_key(payload):
@@ -4973,7 +5095,7 @@ def validate_item34_tracking_evidence(
             or migration.get("policy_qual_readback_sha256")
             != ITEM34_RUNTIME_CONFIG_POLICY_QUAL_SHA256
             or migration.get("production_status") != "VERIFIED"
-            or not _exact_int(migration.get("schema_migrations_insert_count"), 1)
+            or not _exact_int(migration.get("schema_migrations_insert_count"), 0 if generation == 1 else 1)
             or not _exact_int(migration.get("business_row_mutations"), 0)
             or migration.get("ledger_readback") != "VERIFIED"
             or migration.get("ledger_readback_sha256")
@@ -5013,7 +5135,7 @@ def validate_item34_tracking_evidence(
             "observation_started_at",
         )
         canonical_started = _item34_zoned_clock(
-            ITEM34_OBSERVATION_STARTED_AT,
+            canonical_anchor,
             "canonical_observation_started_at",
         )
         _require(
@@ -5402,9 +5524,12 @@ def validate_item34_tracking_evidence(
         }
         if "authorized_auxiliary_effects" in payload:
             auxiliary = payload["authorized_auxiliary_effects"]
-            errors.extend(_validate_item34_auxiliary_effects(auxiliary))
+            errors.extend(_validate_item34_auxiliary_effects(auxiliary, generation=generation,
+                authorization=control.get("observation_authorization")))
             # Keep the original digest algorithm for historical evidence.
             write_readback["authorized_auxiliary_effects"] = auxiliary
+        if generation == 1 and "authorized_auxiliary_effects" not in payload:
+            errors.append("prospective authorized auxiliary effects missing")
         expected_write_digest = hashlib.sha256(
             json.dumps(
                 write_readback,

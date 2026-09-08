@@ -231,7 +231,7 @@ elif [ "$image_runtime_role" = "xhs-http" ]; then
     && [ "$2" = "execute_item34_tracking.py" ] \
     && [ "$xhs_service" = "tracking" ]; then
     case "$3:$4" in
-      _snapshot:24h|_snapshot:3d|_schedule:24h|_bind:24h|_role:24h|_role:3d|_config:activate|_config:restore|_safety:24h|_safety:3d)
+      _snapshot:24h|_snapshot:3d|_config_snapshot:24h|_config_snapshot:3d|_schedule:24h|_bind:24h|_role:24h|_role:3d|_config:activate|_config:restore|_safety:24h|_safety:3d)
         is_canonical_uuid "$5" && command_allowed=1
         ;;
     esac

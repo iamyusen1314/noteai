@@ -1,5 +1,44 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 prospective Item34 execution material completed; XHS artifact in progress
+
+Continued after3a6f5f9, no production/automation resume. Native0020 (SHA22ef0a2c...
+032d7a9) and existing-pattern preflight/apply/verify are complete and indexed at
+plan top with exact hashes, role binding, changes/readback/rollback. Native future
+predeploy discovers0020; ordinary API/Payment startup does not. f3 artifacts remain
+truthful. No new URL required, real T0/owner relowner still absent; old window sealed.
+
+Wrapper/checkpoint/durable now accept one complete prospective binding, preserve
+old constants/old source/archive, isolate gen1 attempts/effect IDs and use fresh
+T0+24/72 clocks. Sampling UNKNOWN no longer prevents saved-CAS config-only restore.
+Worker stop checks image/argv/entrypoint/label plus actual allowed non-secret Env
+and stops/removes exact CID; full Docker Config.Env is never fetched. New readonly
+_config_snapshot entrypoint allowlist is wired. Worker claims/admissions require
+full binding and old attempt history digest under locks.
+
+Existing evidence validator has only an explicit generation1 branch in the SAME
+canonical file: pinned old-root SHA657cb641...dc5cb1, preserved track/submitted_at,
+complete binding,0019 verify INSERT0,0020 INSERT1, new9/combined13 counts and future
+explicit scope in original manifest. No actual canonical/DoD/manifest edit or
+terminal credit. Old auth/register/gift stays historical; no repetition. An initial
+branch incorrectly expected0019 INSERT1/old authorization; corrected with focused
+negative regressions. Missing fresh owner approval still prevents the live branch.
+
+23 actualPG16/Python3.11 generation/SQL tests passed;31 old Tracking/performance
+passed.117 offline checkpoint/wrapper/durable/evidence tests pass0.099s, including
+closed approval, changed/rehashed history, different track time, exact stage stop,
+fsync failure and UNKNOWN restoration. Earlier stale wrapper hash failed safely
+and was then synchronized; failures retained. Logs under existing
+/private/tmp/noteai-prep-20260908: item34-generation-bound-wrapper-pg16.log,
+item34-generation-bound-worker-legacy.log,item34-prospective-final-bound-offline.log.
+
+Changed: model crawler/contract/0020; existing SQL scripts; wrapper/checkpoint/
+durable/entrypoint; existing targeted tests and readiness validator; plan/Handoff/
+risk. Readiness30/38. Seven protected paths remain unstaged/untracked, no additional
+content access in this stage. NEXT IN PROGRESS: final single XHS role build from
+saved source and actual packaged entrypoint/source/PG readback/projection checks,
+then save transferable artifact. All work remains local, no ACR or Git push.
+
 ## September8 same-object generation implementation — execution materials in progress
 
 Continued afterdd6cb9e. Existing crawler/Tracking contract now support an explicitly

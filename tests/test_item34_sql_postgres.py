@@ -1,6 +1,7 @@
 """Execute the saved 0019 SQL on an isolated PG16 fixture, not production."""
 
 import asyncio
+import base64
 from contextlib import ExitStack
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -9,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import threading
 import unittest
 from unittest import mock
@@ -153,7 +155,14 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         self.db = importlib.import_module("db")
         self.crawler = importlib.import_module("crawler")
         self.contract = importlib.import_module("tracking_contract")
-        self.db.apply_postgres_migrations()
+        # Reproduce the real pre-0020 state, then apply the exact prospective
+        # owner SQL below. This temporary migration view never reaches production.
+        migrations = Path(self.stack.enter_context(tempfile.TemporaryDirectory()))
+        for source in self.db._POSTGRES_MIGRATIONS_DIR.glob('*.sql'):
+            if source.name < '0020':
+                (migrations/source.name).write_bytes(source.read_bytes())
+        with mock.patch.object(self.db,'_POSTGRES_MIGRATIONS_DIR',migrations):
+            self.db.apply_postgres_migrations()
         self.owner = psycopg.connect(**self.args, autocommit=True)
         self.addCleanup(self.owner.close)
         self.phase = "history"
@@ -185,8 +194,8 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         self.owner.execute("INSERT INTO users(id,username,password_hash,password_salt,created_at) "
                            "VALUES(%s,%s,'synthetic','synthetic','2026-01-01T00:00:00Z')", (self.uid,self.uid))
         self.owner.execute("INSERT INTO tracked_notes(id,user_id,xhs_note_id,xhs_url,submitted_at,status,attempt_count) "
-                           "VALUES(%s,%s,'0123456789abcdef01234567',"
-                           "'https://www.xiaohongshu.com/explore/0123456789abcdef01234567',"
+                           "VALUES(%s,%s,'6a7954010000000026034707',"
+                           "'https://www.xiaohongshu.com/explore/6a7954010000000026034707',"
                            "'2026-01-01T00:00:00Z','needs_manual',1)", (self.track,self.uid))
         self.owner.execute("INSERT INTO tracking_provider_attempts(id,track_id,user_id,run_id,stage,status,"
                            "admitted_at,completed_at,error_code) VALUES(%s,%s,%s,'synthetic-old','24h','failed',"
@@ -208,13 +217,21 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         self.owner.execute("INSERT INTO system_settings(key,value_json,updated_at) "
                            "VALUES('xhs_collection_safety','{}',%s)",(self.anchor.isoformat(),))
         self.set_phase("proposal")
-        candidate = (ROOT / "tests/fixtures/item34-observation-generation.sql").read_text()
-        with self.owner.transaction():
-            self.owner.execute(candidate, prepare=False)
-            # Conditional budget for ONE prospective forward migration, not an
-            # approved migration identity or a production ledger assertion.
-            self.owner.execute("INSERT INTO schema_migrations(version,sha256) VALUES(%s,%s)",
-                ("LOCAL_ITEM34_GENERATION_CANDIDATE_ONLY",hashlib.sha256(candidate.encode()).hexdigest()))
+        self.owner.execute((ROOT / "tests/fixtures/item34-observation-generation.sql").read_text())
+        self.owner.execute("SELECT set_config('noteai.item34.expected_database',%s,false)",(self.database,))
+        self.owner.execute("SELECT set_config('noteai.item34.expected_owner','postgres',false)")
+        candidate = (ROOT / "scripts/postgres/item34-observation-generation-apply.sql").read_text()
+        self.owner.execute(candidate, prepare=False)
+        payload=candidate.split('-- DDL_PAYLOAD_BEGIN\n',1)[1].split('-- DDL_PAYLOAD_END\n',1)[0]
+        self.assertEqual(self.owner.execute("SELECT sha256 FROM schema_migrations WHERE "
+            "version='0020_tracking_observation_generation.sql'").fetchone()[0],hashlib.sha256(payload.encode()).hexdigest())
+        self.assertEqual(self.owner.execute("SELECT n.nspname,count(*) FROM pg_proc p JOIN pg_namespace n "
+            "ON n.oid=p.pronamespace WHERE p.proname IN ('noteai_item34_open_observation',"
+            "'noteai_item34_observation_owner_guard') GROUP BY n.nspname").fetchall(),[('public',2)])
+        self.assertEqual(self.owner.execute("SELECT n.nspname,p.proname,t.tgenabled FROM pg_trigger t "
+            "JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace n ON n.oid=p.pronamespace "
+            "WHERE t.tgrelid='tracked_notes'::regclass AND t.tgname='item34_observation_owner_guard'").fetchall(),
+            [('public','noteai_item34_observation_owner_guard','O')])
         acl = (ROOT / "scripts/postgres/noteai_production_runtime_roles.sql").read_text()
         tracking_acl = acl.split("-- NOTEAI-RUNTIME-ACL-STAGE: tracking\n",1)[1].split(
             "-- NOTEAI-RUNTIME-ACL-STAGE: trends",1)[0]
@@ -222,6 +239,16 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         # Test-only measurement must not grant application schema/control rights.
         self.owner.execute('GRANT INSERT ON item34_test_dml TO noteai_xhs_tracking')
         self.set_phase("window")
+        self.install_binding()
+
+    def install_binding(self):
+        self.binding={'track_id':self.track,'owner_id':self.uid,'generation':1,
+            'observation_started_at':self.anchor.isoformat(),'initial_snapshot':{'likes':4,'saves':2,'comments':2},
+            'previous_attempt_id':self.failed,
+            'previous_attempt_sha256':self.contract.observation_history_digest(self.row('tracking_provider_attempts',self.failed))}
+        os.environ.update({'NOTEAI_ITEM34_ACCEPTANCE':'1','NOTEAI_ITEM34_TRACK_ID':self.track,
+            'NOTEAI_ITEM34_CHECKPOINT_STAGE':'24h','NOTEAI_ITEM34_OBSERVATION_GENERATION':'1',
+            'NOTEAI_ITEM34_OBSERVATION_BINDING_B64':base64.b64encode(json.dumps(self.binding).encode()).decode()})
 
     def drop_database(self):
         self.admin.execute(psycopg.sql.SQL("DROP DATABASE {}").format(psycopg.sql.Identifier(self.database)))
@@ -291,6 +318,86 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         self.assert_history_unchanged()
         self.assertEqual(self.row("tracked_notes",self.track)["observation_initial_snapshot"],
                          {"likes":4,"saves":2,"comments":2})
+
+    def test_manual_apply_is_native_migration_compatible_and_no_replay(self):
+        self.assertEqual(self.db.apply_postgres_migrations(),[])
+        candidate=(ROOT/'scripts/postgres/item34-observation-generation-apply.sql').read_text()
+        with self.assertRaisesRegex(psycopg.errors.RaiseException,'migration history'):
+            self.owner.execute(candidate,prepare=False)
+        self.owner.execute('ROLLBACK')
+        self.assertEqual(self.row('tracked_notes',self.track)['observation_generation'],0)
+        for name in ('preflight','verify'):
+            result_sets=[]
+            with self.owner.cursor() as cursor:
+                cursor.execute((ROOT/f'scripts/postgres/item34-observation-generation-{name}.sql').read_text(),prepare=False)
+                while True:
+                    if cursor.description:result_sets.append(cursor.fetchall())
+                    if not cursor.nextset():break
+            if name == 'verify':
+                self.assertEqual(result_sets[0][0][2:],(1,2,1))
+                self.assertEqual(result_sets[1],[
+                    ('tracked_notes','observation_generation','integer',True,'0'),
+                    ('tracked_notes','observation_initial_snapshot','jsonb',False,None),
+                    ('tracked_notes','observation_started_at','text',False,None),
+                    ('tracking_provider_attempts','observation_generation','integer',True,'0')])
+                self.assertEqual(result_sets[2][0][2:],('public','noteai_item34_observation_owner_guard','O'))
+                self.assertEqual(len(result_sets[3]),4)
+                self.assertEqual(len(result_sets[4]),2)
+                self.assertTrue(all(row[2] is False and row[-1] is False for row in result_sets[4]))
+        with tempfile.TemporaryDirectory() as directory:
+            missing=Path(directory)
+            for source in self.db._POSTGRES_MIGRATIONS_DIR.glob('*.sql'):
+                if source.name < '0020':(missing/source.name).write_bytes(source.read_bytes())
+            with mock.patch.object(self.db,'_POSTGRES_MIGRATIONS_DIR',missing):
+                with self.assertRaisesRegex(RuntimeError,'migration missing locally'):
+                    self.db.apply_postgres_migrations()
+            (missing/'0020_tracking_observation_generation.sql').write_text('-- wrong local bytes\n')
+            with mock.patch.object(self.db,'_POSTGRES_MIGRATIONS_DIR',missing):
+                with self.assertRaisesRegex(RuntimeError,'checksum mismatch'):
+                    self.db.apply_postgres_migrations()
+
+    def test_candidate_wrong_binding_and_mid_ddl_failure_leave_schema_and_ledger_unchanged(self):
+        database='noteai_item34_test_'+uuid.uuid4().hex
+        role='noteai_item34_owner_'+uuid.uuid4().hex[:16]
+        self.admin.execute(psycopg.sql.SQL('CREATE DATABASE {}').format(psycopg.sql.Identifier(database)))
+        self.admin.execute(psycopg.sql.SQL('CREATE ROLE {} NOLOGIN').format(psycopg.sql.Identifier(role)))
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                prior=Path(directory)
+                for source in self.db._POSTGRES_MIGRATIONS_DIR.glob('*.sql'):
+                    if source.name < '0020':(prior/source.name).write_bytes(source.read_bytes())
+                with mock.patch.dict(os.environ,{'DATABASE_URL':f'postgresql://postgres@/{database}?host=/var/run/postgresql'}), \
+                     mock.patch.object(self.db,'_POSTGRES_MIGRATIONS_DIR',prior):
+                    self.db.apply_postgres_migrations()
+            candidate=(ROOT/'scripts/postgres/item34-observation-generation-apply.sql').read_text()
+            with psycopg.connect(**{**self.args,'dbname':database},autocommit=True) as c:
+                c.execute("SELECT set_config('noteai.item34.expected_database',%s,false)",(database,))
+                c.execute("SELECT set_config('noteai.item34.expected_owner','wrong-owner',false)")
+                with self.assertRaisesRegex(psycopg.errors.RaiseException,'database or owner binding'):
+                    c.execute(candidate,prepare=False)
+                c.execute('ROLLBACK')
+                c.execute("SELECT set_config('noteai.item34.expected_owner','postgres',false)")
+                broken=candidate.replace('-- DDL_PAYLOAD_END\n','SELECT 1/0;\n-- DDL_PAYLOAD_END\n')
+                with self.assertRaises(psycopg.errors.DivisionByZero):c.execute(broken,prepare=False)
+                c.execute('ROLLBACK')
+                self.assertEqual(c.execute("SELECT count(*) FROM pg_attribute WHERE attrelid='tracked_notes'::regclass "
+                    "AND attname='observation_generation' AND NOT attisdropped").fetchone()[0],0)
+                self.assertEqual(c.execute("SELECT count(*) FROM schema_migrations WHERE version>='0020'").fetchone()[0],0)
+                c.execute(psycopg.sql.SQL('GRANT USAGE,CREATE ON SCHEMA public TO {}').format(psycopg.sql.Identifier(role)))
+                for table in ('tracked_notes','tracking_provider_attempts','schema_migrations'):
+                    c.execute(psycopg.sql.SQL('ALTER TABLE {} OWNER TO {}').format(
+                        psycopg.sql.Identifier(table),psycopg.sql.Identifier(role)))
+                c.execute(psycopg.sql.SQL('SET ROLE {}').format(psycopg.sql.Identifier(role)))
+                c.execute("SELECT set_config('noteai.item34.expected_owner',%s,false)",(role,))
+                self.assertFalse(c.execute('SELECT rolsuper FROM pg_roles WHERE rolname=current_user').fetchone()[0])
+                c.execute(candidate,prepare=False)
+                self.assertEqual(c.execute("SELECT n.nspname,count(*) FROM pg_proc p JOIN pg_namespace n "
+                    "ON n.oid=p.pronamespace WHERE p.proname IN ('noteai_item34_open_observation',"
+                    "'noteai_item34_observation_owner_guard') AND pg_get_userbyid(p.proowner)=current_user "
+                    "GROUP BY n.nspname").fetchall(),[('public',2)])
+        finally:
+            self.admin.execute(psycopg.sql.SQL('DROP DATABASE {}').format(psycopg.sql.Identifier(database)))
+            self.admin.execute(psycopg.sql.SQL('DROP ROLE {}').format(psycopg.sql.Identifier(role)))
 
     def test_concurrent_open_has_one_winner(self):
         barrier = threading.Barrier(2)
@@ -472,6 +579,56 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         attempt=self.row('tracking_provider_attempts',admitted['active_attempt_id'])
         self.assertEqual(self.crawler._parse_iso(attempt['admitted_at']),self.time)
         self.assertEqual(self.time.date().isoformat(),'2026-01-12')
+
+    def test_complete_binding_is_required_at_claim_and_locked_admission(self):
+        self.open(); self.time=self.anchor+timedelta(hours=24)
+        with mock.patch.dict(os.environ,{'NOTEAI_ITEM34_OBSERVATION_BINDING_B64':''}):
+            with self.assertRaisesRegex(ValueError,'binding missing'):self.claim()
+        self.assertIsNone(self.row('tracked_notes',self.track)['claim_token'])
+        note=self.claim()[0]
+        self.owner.execute("UPDATE tracked_notes SET observation_initial_snapshot=%s::jsonb WHERE id=%s",
+                           ('{"likes":5,"saves":2,"comments":2}',self.track))
+        with self.assertRaisesRegex(ValueError,'binding_changed'):self.crawler._admit_provider_attempt(note)
+        self.owner.execute("UPDATE tracked_notes SET observation_initial_snapshot=%s::jsonb WHERE id=%s",
+                           (json.dumps(self.binding['initial_snapshot']),self.track))
+        self.owner.execute("UPDATE tracking_provider_attempts SET error_code='changed_history' WHERE id=%s",(self.failed,))
+        with self.assertRaisesRegex(ValueError,'history changed'):self.crawler._admit_provider_attempt(note)
+        self.assertEqual(self.owner.execute('SELECT count(*) FROM tracking_provider_attempts WHERE track_id=%s',
+                                            (self.track,)).fetchone()[0],1)
+        self.assertIsNone(self.row('tracked_notes',self.track)['active_attempt_id'])
+
+    def test_prospective_wrapper_reads_actual_generation_and_old_helper_cannot_reschedule_it(self):
+        from deploy.production import execute_item34_tracking as wrapper
+        # A synthetic T0 after the sealed legacy boundary, still in the past.
+        self.anchor=datetime(2026,9,7,15,tzinfo=timezone.utc);self.time=self.anchor
+        self.install_binding();self.open()
+        self.owner.execute('GRANT SELECT ON tracked_notes,tracking_provider_attempts,growth_records,'
+                           'user_memories,crawler_events,system_settings TO noteai_app')
+        self.owner.execute('GRANT UPDATE(next_check_at) ON tracked_notes TO noteai_app')
+        def app_connection(*,write):
+            c=psycopg.connect(**self.args,autocommit=True,row_factory=psycopg.rows.dict_row)
+            c.execute('SET ROLE noteai_app');c.autocommit=False
+            return c
+        with mock.patch.object(wrapper,'_connect',app_connection):
+            with wrapper.checkpoint.observation_context(self.binding):
+                before=self.row('tracked_notes',self.track)
+                bound=wrapper._inner_bind(self.track)
+                self.assertEqual((bound['status'],bound['target_rows_mutated']),('ALREADY_BOUND',0))
+                self.assertEqual(self.row('tracked_notes',self.track),before)
+                snap=wrapper._inner_snapshot('24h',self.track)['snapshot']
+                self.assertEqual(snap['attempts']['rows'],[])
+                self.assertEqual(snap['observation_binding_sha256'],wrapper.checkpoint.observation_identity()['observation_binding_sha256'])
+                self.time=self.anchor+timedelta(hours=24);self.role='noteai_xhs_tracking';self.run_stage('24h')
+                self.assertEqual(wrapper._inner_schedule(self.track)['target_rows_mutated'],0)
+                snap=wrapper._inner_snapshot('24h',self.track)['snapshot']
+                self.assertEqual(snap['attempts']['target_count_24h'],1)
+                self.assertNotEqual(snap['attempts']['rows'][0]['attempt_id'],self.failed)
+                self.assertTrue(wrapper._inner_config_snapshot()['config']['present'])
+            due=self.row('tracked_notes',self.track)['next_check_at']
+            with self.assertRaisesRegex(wrapper.ProductionAdapterError,'schedule_binding'):
+                wrapper._inner_schedule(self.track)
+            self.assertEqual(self.row('tracked_notes',self.track)['next_check_at'],due)
+        self.assert_history_unchanged()
 
     def test_day_lock_wait_crossing_midnight_rejects_without_admission(self):
         self.open(); self.time=self.anchor+timedelta(hours=36)-timedelta(seconds=1)

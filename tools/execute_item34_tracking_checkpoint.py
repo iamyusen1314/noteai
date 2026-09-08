@@ -11,10 +11,13 @@ creating a second Tracking implementation.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sys
 import uuid
 from collections.abc import Callable, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -29,6 +32,71 @@ OBJECT_IDENTITY_SHA256 = (
 OBSERVATION_STARTED_AT = "2026-09-04T22:30:38+08:00"
 CHECKPOINT_24H_DUE_AT = "2026-09-05T22:30:38+08:00"
 CHECKPOINT_3D_DUE_AT = "2026-09-07T22:30:38+08:00"
+# Legacy constants above stay frozen. A prospective invocation supplies its
+# explicit binding; entering this context never creates a T0 or a database row.
+_OBSERVATION = ContextVar("item34_observation", default=None)
+
+
+def current_observation() -> dict | None:
+    value = _OBSERVATION.get()
+    return json.loads(json.dumps(value)) if value is not None else None
+
+
+def observation_identity() -> dict:
+    value = current_observation()
+    if value is None:
+        return {}
+    raw = json.dumps(value,sort_keys=True,separators=(",", ":")).encode("utf-8")
+    return {"observation_binding_sha256":hashlib.sha256(raw).hexdigest()}
+
+
+def window_clock(kind: str) -> str:
+    legacy = {"anchor":OBSERVATION_STARTED_AT,"24h":CHECKPOINT_24H_DUE_AT,"3d":CHECKPOINT_3D_DUE_AT}
+    if kind not in legacy:
+        raise Item34CheckpointError("observation_clock_kind")
+    value = current_observation()
+    if value is None:
+        return legacy[kind]
+    anchor = _clock(value["observation_started_at"],"observation_anchor")
+    return (anchor+timedelta(hours={"anchor":0,"24h":24,"3d":72}[kind])).isoformat()
+
+
+@contextmanager
+def observation_context(value: Mapping[str, Any] | None):
+    binding = None
+    if value is not None:
+        value = _dict(value,"observation_binding")
+        _exact_keys(value,{"track_id","owner_id","generation","observation_started_at",
+                          "initial_snapshot","previous_attempt_id","previous_attempt_sha256"},"observation_binding")
+        for key in ("track_id","owner_id","previous_attempt_id"):
+            _canonical_uuid(value[key],"observation_binding")
+        if type(value["generation"]) is not int or value["generation"] != 1:
+            raise Item34CheckpointError("observation_generation")
+        anchor=_clock(value["observation_started_at"],"observation_anchor")
+        if anchor <= _clock(CHECKPOINT_3D_DUE_AT,"observation_anchor"):
+            raise Item34CheckpointError("old_observation_sealed")
+        _sha256(value["previous_attempt_sha256"],"observation_history")
+        metrics=_dict(value["initial_snapshot"],"observation_metrics")
+        _exact_keys(metrics,{"likes","saves","comments"},"observation_metrics")
+        for metric in metrics.values():
+            if _nonnegative_int(metric,"observation_metrics") > 2147483647:
+                raise Item34CheckpointError("observation_metrics")
+        binding=json.loads(json.dumps(dict(value)))
+        binding["observation_started_at"]=anchor.isoformat()
+    token=_OBSERVATION.set(binding)
+    try:
+        yield current_observation()
+    finally:
+        _OBSERVATION.reset(token)
+
+
+def _validate_observation(value: Mapping[str, Any], track_id: str) -> None:
+    binding=current_observation()
+    if binding is not None and (binding["track_id"] != track_id or
+        value.get("observation_binding_sha256") != observation_identity()["observation_binding_sha256"]):
+        raise Item34CheckpointError("observation_binding")
+
+
 WORKER_ARGV = (
     "python",
     "crawler_worker.py",
@@ -276,20 +344,20 @@ def _validate_target(
             or target["check_7d_at"] is not None
         ):
             raise Item34CheckpointError("target_pre_state")
-        if target["next_check_at"] != CHECKPOINT_24H_DUE_AT:
+        if target["next_check_at"] != window_clock('24h'):
             raise Item34CheckpointError("target_pre_schedule")
         _validate_metrics(target["metrics"], populated=False)
         return
 
     if (
         target["status"] != "checking_7d"
-        or target["next_check_at"] != CHECKPOINT_3D_DUE_AT
+        or target["next_check_at"] != window_clock('3d')
         or target["check_7d_at"] is not None
     ):
         raise Item34CheckpointError("target_post_state")
     check_24h = _clock(target["check_24h_at"], "target_post_clock")
     if (
-        check_24h < _clock(CHECKPOINT_24H_DUE_AT, "checkpoint_clock")
+        check_24h < _clock(window_clock('24h'), "checkpoint_clock")
         or check_24h > now + _POST_READBACK_WINDOW
     ):
         raise Item34CheckpointError("checkpoint_24h_early")
@@ -405,10 +473,12 @@ def _snapshot_common(
     }
     if phase == "post":
         keys |= {"run", "write_audit"}
+    keys |= set(observation_identity())
     _exact_keys(snapshot, keys, f"{phase}_snapshot")
+    _validate_observation(snapshot,track_id)
     if (
         snapshot["schema"] != SNAPSHOT_SCHEMA
-        or snapshot["observation_started_at"] != OBSERVATION_STARTED_AT
+        or snapshot["observation_started_at"] != window_clock('anchor')
     ):
         raise Item34CheckpointError(f"{phase}_snapshot_binding")
     observed = _clock(snapshot["observed_at"], f"{phase}_snapshot_clock")
@@ -511,8 +581,8 @@ def _validate_schedule_receipt(value: Any, track_id: str) -> None:
     )
     if (
         receipt["track_id"] != track_id
-        or receipt["next_check_at"] != CHECKPOINT_3D_DUE_AT
-        or receipt["target_rows_mutated"] != 1
+        or receipt["next_check_at"] != window_clock('3d')
+        or receipt["target_rows_mutated"] != (0 if current_observation() is not None else 1)
         or receipt["other_tracked_notes_row_mutations"] != 0
     ):
         raise Item34CheckpointError("schedule_write")
@@ -536,7 +606,7 @@ def _validate_postflight(
     if (
         observed < pre_observed_at
         or observed > now + _POST_READBACK_WINDOW
-        or observed >= _clock(CHECKPOINT_3D_DUE_AT, "checkpoint_clock")
+        or observed >= _clock(window_clock('3d'), "checkpoint_clock")
         or not config[0]
         or config[1]
     ):
@@ -729,8 +799,8 @@ def execute_24h_checkpoint(
 
     track_id = _canonical_track_id(expected_track_id)
     execution_time = _trusted_now(clock)
-    due_24h = _clock(CHECKPOINT_24H_DUE_AT, "checkpoint_clock")
-    due_3d = _clock(CHECKPOINT_3D_DUE_AT, "checkpoint_clock")
+    due_24h = _clock(window_clock('24h'), "checkpoint_clock")
+    due_3d = _clock(window_clock('3d'), "checkpoint_clock")
     if execution_time < due_24h:
         raise Item34CheckpointError("checkpoint_24h_not_due")
     if execution_time >= due_3d:
@@ -830,7 +900,7 @@ def execute_24h_checkpoint(
         _validate_worker_receipt(worker_receipt)
 
         try:
-            schedule_receipt = schedule_3d(track_id, CHECKPOINT_3D_DUE_AT)
+            schedule_receipt = schedule_3d(track_id, window_clock('3d'))
         except Exception:
             raise Item34CheckpointError("schedule_write_unknown") from None
         _validate_schedule_receipt(schedule_receipt, track_id)
@@ -891,9 +961,10 @@ def execute_24h_checkpoint(
         "track_identity_sha256": hashlib.sha256(
             f"noteai-item34-tracking-row-v1:{track_id}".encode("ascii")
         ).hexdigest(),
-        "observation_started_at": OBSERVATION_STARTED_AT,
+        "observation_started_at": window_clock('anchor'),
+        **observation_identity(),
         "checkpoint_observed_at": post_observed.isoformat(),
-        "next_checkpoint_at": CHECKPOINT_3D_DUE_AT,
+        "next_checkpoint_at": window_clock('3d'),
         "run_identity_sha256": hashlib.sha256(
             f"noteai-item34-tracking-run-v1:{run_id}".encode("ascii")
         ).hexdigest(),
@@ -956,16 +1027,16 @@ def _validate_3d_target(
         or target["note_id"] != CANONICAL_NOTE_ID
         or target["canonical_url"] != CANONICAL_URL
         or target["object_identity_sha256"] != OBJECT_IDENTITY_SHA256
-        or target["next_check_at"] != CHECKPOINT_3D_DUE_AT
+        or target["next_check_at"] != window_clock('3d')
         or target["claim_present"] is not False
         or target["active_attempt_present"] is not False
     ):
         raise Item34CheckpointError("target_binding")
     check_24h = _clock(target["check_24h_at"], "target_24h_clock")
     if not (
-        _clock(CHECKPOINT_24H_DUE_AT, "checkpoint_clock")
+        _clock(window_clock('24h'), "checkpoint_clock")
         <= check_24h
-        < _clock(CHECKPOINT_3D_DUE_AT, "checkpoint_clock")
+        < _clock(window_clock('3d'), "checkpoint_clock")
     ):
         raise Item34CheckpointError("target_24h_clock")
     _validate_metrics(target["metrics"], populated=True)
@@ -985,7 +1056,7 @@ def _validate_3d_target(
     ):
         raise Item34CheckpointError("target_post_state")
     check_3d = _clock(target["check_7d_at"], "target_3d_clock")
-    if check_3d < _clock(CHECKPOINT_3D_DUE_AT, "checkpoint_clock") or check_3d > now + _POST_READBACK_WINDOW:
+    if check_3d < _clock(window_clock('3d'), "checkpoint_clock") or check_3d > now + _POST_READBACK_WINDOW:
         raise Item34CheckpointError("target_3d_clock")
     return check_24h, check_3d, target["metrics"]
 
@@ -1051,12 +1122,12 @@ def _validate_3d_attempts(
         admitted = _clock(row["admitted_at"], "provider_attempt_clock")
         completed = _clock(row["completed_at"], "provider_attempt_clock")
         floor = _clock(
-            CHECKPOINT_24H_DUE_AT if stage == "24h" else CHECKPOINT_3D_DUE_AT,
+            window_clock('24h') if stage == "24h" else window_clock('3d'),
             "checkpoint_clock",
         )
         if admitted < floor or completed < admitted:
             raise Item34CheckpointError("provider_attempt_clock")
-        if stage == "24h" and completed >= _clock(CHECKPOINT_3D_DUE_AT, "checkpoint_clock"):
+        if stage == "24h" and completed >= _clock(window_clock('3d'), "checkpoint_clock"):
             raise Item34CheckpointError("provider_attempt_clock")
         by_stage[stage] = row
     if set(by_stage) != ({"24h"} if phase == "pre" else {"24h", "7d"}):
@@ -1086,8 +1157,10 @@ def _validate_3d_snapshot(
     }
     if phase == "post":
         keys |= {"run", "write_audit", "terminal_effects"}
+    keys |= set(observation_identity())
     _exact_keys(snapshot, keys, f"3d_{phase}_snapshot")
-    if snapshot["schema"] != SNAPSHOT_SCHEMA or snapshot["observation_started_at"] != OBSERVATION_STARTED_AT:
+    _validate_observation(snapshot,track_id)
+    if snapshot["schema"] != SNAPSHOT_SCHEMA or snapshot["observation_started_at"] != window_clock('anchor'):
         raise Item34CheckpointError(f"3d_{phase}_snapshot_binding")
     observed = _clock(snapshot["observed_at"], f"3d_{phase}_snapshot_clock")
     config = _validate_production_config(snapshot["production_config"])
@@ -1184,7 +1257,7 @@ def execute_3d_checkpoint(
 
     track_id = _canonical_track_id(expected_track_id)
     execution_time = _trusted_now(clock)
-    due_3d = _clock(CHECKPOINT_3D_DUE_AT, "checkpoint_clock")
+    due_3d = _clock(window_clock('3d'), "checkpoint_clock")
     if execution_time < due_3d:
         raise Item34CheckpointError("checkpoint_3d_not_due")
     try:
@@ -1307,7 +1380,8 @@ def execute_3d_checkpoint(
         "note_id": CANONICAL_NOTE_ID,
         "object_identity_sha256": OBJECT_IDENTITY_SHA256,
         "track_identity_sha256": hashlib.sha256(f"noteai-item34-tracking-row-v1:{track_id}".encode("ascii")).hexdigest(),
-        "observation_started_at": OBSERVATION_STARTED_AT,
+        "observation_started_at": window_clock('anchor'),
+        **observation_identity(),
         "checkpoint_observed_at": post_observed.isoformat(),
         "run_identity_sha256": hashlib.sha256(f"noteai-item34-tracking-run-v1:{run_id}".encode("ascii")).hexdigest(),
         "attempt_identity_sha256": _attempt_identity_sha256(

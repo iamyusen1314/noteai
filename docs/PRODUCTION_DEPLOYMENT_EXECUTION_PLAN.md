@@ -12,6 +12,81 @@ execution history, not authorization to repeat them or run other Items.
 
 ## Current local preparation — September8 (no production execution approval)
 
+### Item34 同对象新 T0：实施材料已接通，生产仍未授权
+
+复用同一篇 owner-owned 笔记 `6a7954010000000026034707`，不索取新 URL。
+批准依据仍为 `docs/XHS_TRACKING_PRODUCTION_CONTRACT.md:107–112`；旧窗口
+`FAILED_24H_OLD_WINDOW_EXPIRED` 永久封存。以下是未来一次申请的最小范围，
+不是9802111旧授权的续用，也没有设定或启动新T0。
+
+依赖顺序与实际对象：
+
+1. 现有合法会话只读核对实际数据库名、三表`tracked_notes` /
+   `tracking_provider_attempts` / `schema_migrations`的owner、owner可激活性、
+   schema CREATE权限、原ACL/撤权通道、旧失败attempt、无全局started/UNKNOWN。
+   DMS服务角色只解决DMS接入；不替代DB实际owner与权限。当前Aliyun登录已失效，
+   生产relowner尚未读回，不能假定noteai_admin或新增grant解决。
+2. 仅受控发布本次最终XHS候选到既有ACR私网不可变tag，读回真实digest；API、Payment、
+   ALB部署不是此前置。旧b8镜像原样保留。费用为既有传输/存储及后述真实请求增量，
+   未知不记0；无Builder、扩容、新账号、固定收费资源或公开ACR。
+3. 0019仅用原verify读回（本作业INSERT0）；以实际三表owner执行以下0020
+   preflight/apply/verify，先在同会话绑定`noteai.item34.expected_database`及
+   `noteai.item34.expected_owner`。apply只安装schema/CAS，未开启观察。
+   原生migration也会被未来`render_predeploy.py`发现；该生产入口仍PAUSED。
+   不能在已有0020的DB上用缺0020的旧源码运行predeploy；正常API启动不运行迁移，
+   因此API/Payment f3运行产物无需重建。
+4. 经新范围明确批准后，通过合法XHS浏览器重新读取同对象的新鲜详情，保存真实UTC/
+   北京时钟与likes/saves/comments作为新T0，不使用旧缓存、发布时间或历史snapshot。
+   浏览器可产生多条网络请求、访问/会话副作用，次数与费用未知时如实保留未知。
+   不调用NoteAI注册、赠分或再次POST；原managed row已经存在。
+5. actual table owner在有界事务中调用`public.noteai_item34_open_observation`，
+   参数为原track/owner、previous_generation=0、精确旧failed attempt、新T0和新指标。
+   函数CAS当前行至generation1，保留id、submitted_at、published_at及旧attempt；
+   默认日常worker不claim新代次。提交后只读核对结果，UNKNOWN不重放。
+   将同一7字段binding写入现有root-only文件：track_id、owner_id、generation、
+   observation_started_at、initial_snapshot、previous_attempt_id、previous_attempt_sha256。
+   wrapper/worker在claim与admission行锁内核对完整binding和旧history SHA。
+6. 沿用现有durable launcher的`run --observation-binding <root0600文件>`，同一
+   binding分阶段`24h`与`3d`，分别使用未用过的journal和`g1-24h`/`g1-3d`精确容器。
+   24h真实完成及snapshot严格在[T0+24h,T0+72h)；3d在T0+72h之后且晚于24h。
+   两阶段最多2个新provider admission、0自动重试，普通定时器/自动化不恢复。
+   24h后明确下一阶段的实际时间及当前线程继续方式，不能依赖PAUSED任务唤醒。
+7. 每阶段按原ACL临时授予noteai_app attempts SELECT（影响全部该角色会话），只撤本次
+   新增授权，异常也恢复。执行前确认owner撤权通道。按精确CID、实际镜像/命令/
+   非Secret环境binding停止任务；不同stage或重复binding拒绝操作。只投影允许的Docker
+   字段，不读完整容器Env。durable restore沿用原journal/CAS，采样UNKNOWN不妨碍已知
+   配置的精确恢复；恢复失败立即报告，不能为了验收覆盖并发状态。
+8. 完成现有managed Tracking验证、停止/恢复/读回、ACL撤回及Evidence保存。managed
+   缺口仍为incomplete，不能用两次采样替代。沿用既有managed helper、真实unit模板和
+   journal，不另建executor/receipt。DDL事务失败rollback；提交后保留schema/ledger/
+   history，只停止精确任务、恢复配置和新增ACL，不删除数据或down migration。
+
+本地已验证的计数兼容：新采样6表8distinct，加一次0020 ledger为7表9distinct；
+旧核心5表6distinct原样保留，合并13distinct、累计3admissions。distinct不是DML次数。
+新范围必须明确批准该前瞻计数和必要DDL/临时ACL/安全失败副作用。旧认证/注册/900gift
+只在旧辅助记录中保留，不再执行。现有validator的显式generation1分支引用同一canonical
+文件的prospective_observation子记录；校验固定封存根SHA、完整binding/原track时间、
+0019 verify-only/0020 INSERT1、原managed终态和同一辅助写摘要。未来批准后才在原manifest
+绑定observation_authorization的checkpoint/plan SHA；当前manifest、canonical及30/38不变。
+
+SQL及host来源（SHA256；均未上传/执行）：
+
+- `model/migrations/postgres/0020_tracking_observation_generation.sql`：`22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9`。
+- `scripts/postgres/item34-observation-generation-preflight.sql`：`7b7ab54f532cbebc1256dd7c390fc4aa35b7700797212ac456dc9b2babafad3c`。
+- `scripts/postgres/item34-observation-generation-apply.sql`：`c3e7d27e01605b5b6f1edeaa2a01b0b2c2d2f64043ea8986f21f27828ed5856f`。
+- `scripts/postgres/item34-observation-generation-verify.sql`：`1001e9ea9477b7941dc2f95dfbffbc13e68a3f1432c736a8ff1c1aea0e6284bf`。
+- `deploy/production/execute_item34_tracking.py`：`7f3eb11f3378369431161c7d54e319da4505ad67e3a5e550efc3f8625e6bd42e`。
+- `tools/execute_item34_tracking_checkpoint.py`：`027980d8f0298c5f5de71ed1e91793aa26f25597594a329d6e141d88f27a9a98`。
+- `tools/run_item34_tracking_durable.py`：`9e476127c270390a6269df33fc37c74ccec8c3880426d809000ef5c5c7597916`。
+
+23个实际Python3.11/amd64 PG16测试通过，包含非superuser三表owner、全部verify结果集、
+失败DDL/ledger同事务回滚、原生migration发现/checksum拒绝、完整binding漂移和真实worker
+两阶段写集。31个旧Tracking/性能契约通过。117个checkpoint/wrapper/durable/evidence
+离线回归通过；测试修复曾暴露容器内旧checkpoint遮蔽新工具路径，实际封装必须逐文件核验。
+入口现已放行严格限定的只读_config_snapshot阶段命令，最终生产形状XHS镜像验证进行中。
+旧生产失败原因仍未定位；本地错误码保留修复不能声称供应商已恢复。
+
+
 Current runnable API/Payment candidates are built from source checkpoint
 `f3deedbc1dfdbc7db2ffdd7213df2198c5e1d25d`, including the Item30 Kimi repair,
 Item31 runtime binding and the PostgreSQL connection-options correction.
@@ -73,7 +148,7 @@ provider or production DB health was run. Existing DoD and time rules are unchan
 
 Before any future live application, bind the reviewed host launcher and current
 manager scope for daemon-reload, real published candidate, current log/alert/role
-evidence, and the owner-selected new target/anchor/count compatibility. Durable
+evidence, and the same owner-owned target and prospective anchor/count compatibility. Durable
 original/intent records support interrupted readback; no automatic resume/replay
 or process-kill recovery success is claimed. Failed services, outstanding jobs or
 concurrent changes remain explicit UNKNOWN rather than an unapproved reset/retry.
@@ -105,7 +180,7 @@ the exact unit/journal are unused before an authorized launch; an uncertain
 response requires exact unit/journal readback, never relaunch. Existing log and
 original-unit/intent records must survive interruption. No timer, automatic
 resume, broad reset or old-window restart is added. This entry has not been
-uploaded/run in production; a new target/anchor/count-compatible owner scope is
+uploaded/run in production; a same-target/new-anchor/count-compatible owner scope is
 still needed before any new production execution.
 
 September8 07:11–07:24 Beijing API-F read-only configuration checks confirm
@@ -212,17 +287,10 @@ EXPIRED。**不重试24h、不执行3d、不自动重启观察。**下方原批�
 24h成功写入在等锁后及事务最后复核截止。COMMIT与对应snapshot是否真正早于截止
 仍须实际外层读回证明，不能由事务内时间或本地合成时钟代替。
 
-`tests/fixtures/item34-observation-generation.sql`是可运行的隔离PG16设计夹具，
-数据库名前置限制为`noteai_item34_test_<hex>`，**不是生产迁移或授权执行包**。
-它实现代次唯一键、active attempt跨代FK、只允许真实table owner变更新元数据及
-CAS开窗；不会由render_predeploy发现/应用，也不写真实0019 ledger。普通API式
-宽表INSERT/UPDATE权限不自动获得开窗权限。生产实际relowner及owner撤回路径
-仍需现有合法会话只读确认，不能从测试postgres身份推断noteai_admin。
-未来最小前向迁移须在既有计划/SQL体系中绑定该真实owner和一次新ledger；DDL事务
-未提交可rollback，提交后须保留新schema、旧history及任何新attempt，停精确任务并
-恢复配置/本次新增ACL，不做有数据的down migration或恢复旧时间。旧wrapper仍固定
-原T0/零历史attempt/原源码标签，不能拿此crawler修改冒充新窗口wrapper已可执行。
-新T0和前瞻计数获准后只扩展既有wrapper/validator的显式新窗口分支，旧分支原样封存。
+原先隔离设计夹具现已收敛为顶部绑定的原生0020及三份SQL，测试夹具只保留
+隔离数据库名约束。existing wrapper/checkpoint/durable已实现显式新generation分支，
+旧常量/历史来源保持原样。当前尚无新T0、生产迁移或执行授权，顶部为现行材料。
+
 
 沿用本节原时间规则：24h在[anchor+24h,anchor+72h)，3d在anchor+72h或之后
 （含边界），且晚于24h采样；

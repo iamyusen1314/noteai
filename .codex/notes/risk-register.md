@@ -6,10 +6,16 @@
   code has generation fencing and isolatedPG16 CAS/SQL proof, not a new live job.
   Old failed attempt/Evidence/original timestamps remain; current track state and
   errors would change only through explicit owner CAS. No URL/account workaround.
-- Test fixture is deliberately test-database-only, and local postgres relowner
-  is not proof of production owner permissions. Existing fixed-T0 wrapper and
-  old zero-history budget cannot execute a new generation unchanged. Production
-  SQL/binding/verification materials remain next local work, without applying them.
+- Native0020/preflight/apply/verify and an explicit prospective wrapper binding
+  are now prepared; production actual relowner remains unknown. Native future
+  predeploy discovers0020 and old-source predeploy would reject its missing file.
+  Ordinary API/Payment startup remains compatible; no forced role rebuild.
+- New-generation validator retains the sealed root and old accounting;0019 is
+  historical/verify-only and only0020 is a new migration INSERT. Future approval
+  must bind the same existing manifest/auxiliary record. No new auth/register/gift.
+- Container stop uses projected nonsecret binding/actual stage and exactCID.
+  Configuration CAS recovery is independent of incomplete sampling readback.
+  This is locally tested recovery logic, not a production recovery claim.
 - Actual PG counts are conditional:6tables8sampling objects, plus one prospective
   migration7tables9, old/new union13. Full DML is larger and explicitly retained.
   No old ledger INSERT or third attempt is disguised as part of the new two calls.

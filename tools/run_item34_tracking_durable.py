@@ -19,10 +19,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import execute_item34_tracking_checkpoint as checkpoint
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = ROOT / "deploy/production/execute_item34_tracking.py"
 WRAPPER_SHA256 = "3d9e65c4535226a0a7d4c499558bff1d19ed69ebbbcf647a657700aff8c85e8a"
+PROSPECTIVE_WRAPPER_SHA256 = "7f3eb11f3378369431161c7d54e319da4505ad67e3a5e550efc3f8625e6bd42e"
 
 
 class Journal:
@@ -72,8 +75,9 @@ class UnavailableJournal:
         pass
 
 
-def load_wrapper():
-    if hashlib.sha256(WRAPPER.read_bytes()).hexdigest() != WRAPPER_SHA256:
+def load_wrapper(*, prospective=False):
+    expected=PROSPECTIVE_WRAPPER_SHA256 if prospective else WRAPPER_SHA256
+    if hashlib.sha256(WRAPPER.read_bytes()).hexdigest() != expected:
         raise ValueError("approved_wrapper_changed")
     spec = importlib.util.spec_from_file_location("item34_approved_wrapper", WRAPPER)
     module = importlib.util.module_from_spec(spec)
@@ -99,7 +103,9 @@ def logging_adapter(base, journal):
             # This fsync must finish BEFORE activate or provider dispatch.
             journal.write("authorization", image=self.image, stage=self.stage,
                           track_id=self.track_id, initial_private=self.initial_private,
-                          authorization=result, active_config_updated_at=self.active_config_updated_at)
+                          authorization=result, active_config_updated_at=self.active_config_updated_at,
+                          **({'observation_binding':checkpoint.current_observation()}
+                             if checkpoint.current_observation() is not None else {}))
             return result
 
         def transition(self, phase, authorization):
@@ -177,6 +183,11 @@ def restore(wrapper, journal, saved):
     stage, track_id, image = saved["stage"], saved["track_id"], saved["image"]
     if stage not in wrapper.STAGES:
         raise ValueError("stage")
+    if saved.get('observation_binding')!=checkpoint.current_observation():
+        raise ValueError('saved_observation_binding')
+    binding=checkpoint.current_observation()
+    if binding is not None and track_id!=binding['track_id']:
+        raise ValueError('saved_observation_binding')
     # The original lock also excludes an active executor. Never generate a new
     # authorization timestamp; use the exact saved CAS state.
     log_failed = False
@@ -189,9 +200,23 @@ def restore(wrapper, journal, saved):
             log_failed = True
 
     with wrapper._exclusive_lock(wrapper.LOCK_PATH):
-        stopped = wrapper._quiesce_named_container(f"noteai-item34-tracking-{stage}")
+        name=wrapper._worker_name(stage) if checkpoint.current_observation() is not None else f"noteai-item34-tracking-{stage}"
+        stopped = wrapper._quiesce_worker(name,image) if binding is not None else wrapper._quiesce_named_container(name)
         adapter = wrapper.HostAdapter(image=image, stage=stage, track_id=track_id)
-        snapshot = adapter.read_snapshot(phase="failure")
+        sampling_unknown=False
+        def read_recovery_state():
+            nonlocal sampling_unknown
+            if binding is None:return adapter.read_snapshot(phase='failure')
+            # Config recovery must remain reachable even when generation/history
+            # makes sampling unverifiable. The saved exact CAS still controls it.
+            private=adapter.read_config_snapshot()
+            adapter.latest_private={'config':private['config']}
+            try:return adapter.read_snapshot(phase='failure')
+            except Exception:
+                sampling_unknown=True
+                adapter.latest_private={'config':private['config']}
+                return {'sampling_acceptance':'UNKNOWN'}
+        snapshot = read_recovery_state()
         original = saved["initial_private"]["config"]
         current = adapter.latest_private["config"]
         record("restore_readback", snapshot=snapshot, private=adapter.latest_private, stopped=stopped)
@@ -208,7 +233,7 @@ def restore(wrapper, journal, saved):
             record("restore_intent", active_config_updated_at=adapter.active_config_updated_at)
             result = adapter.transition("restore", saved["authorization"])
             # Read back even if result persistence fails; do not replay restore.
-            snapshot = adapter.read_snapshot(phase="failure")
+            snapshot = read_recovery_state()
             record("restore_result", result=result, snapshot=snapshot, private=adapter.latest_private)
             changed = True
         if config_identity(adapter.latest_private["config"]) != config_identity(original):
@@ -217,7 +242,7 @@ def restore(wrapper, journal, saved):
             raise ValueError("final_runtime_state")
         result = {"configuration_restored": True, "configuration_write_used": changed,
                   "provider_replay_allowed": False, "provider_calls": 0,
-                  "sampling_acceptance": "NOT_DETERMINED", "secret_values_recorded": False}
+                  "sampling_acceptance": "UNKNOWN" if sampling_unknown else "NOT_DETERMINED", "secret_values_recorded": False}
         record("result", result=result)
         if log_failed:
             raise OSError("restore_readback_not_durable")
@@ -234,26 +259,38 @@ def main(argv=None):
     parser.add_argument("--current-image")
     parser.add_argument("--image-id")
     parser.add_argument("--restore-from", type=Path)
+    parser.add_argument('--observation-binding',type=Path)
     args = parser.parse_args(argv)
     if os.geteuid() != 0:
         raise ValueError("root_required")
     if args.action == "managed":
         if (not all((args.image, args.current_image, args.image_id))
-                or any((args.stage, args.track_id, args.restore_from))):
+                or any((args.stage, args.track_id, args.restore_from,args.observation_binding))):
             raise ValueError("managed_arguments")
         return execute_managed(args)
     if args.current_image or args.image_id:
         raise ValueError("managed_arguments_require_managed_action")
     if args.action == "run" and (not all((args.stage, args.track_id, args.image)) or args.restore_from):
         raise ValueError("run_arguments")
-    if args.action == "restore" and (not args.restore_from or any((args.stage, args.track_id, args.image))):
+    if args.action == "restore" and (not args.restore_from or any((args.stage, args.track_id, args.image,args.observation_binding))):
         raise ValueError("restore_arguments")
-    wrapper = load_wrapper()
     saved = saved_authorization(args.restore_from) if args.action == "restore" else None
+    binding=saved.get('observation_binding') if saved is not None else None
+    prospective=bool(binding is not None or args.observation_binding is not None)
+    wrapper=load_wrapper(prospective=True) if prospective else load_wrapper()
+    if args.observation_binding is not None:binding=wrapper._observation_file(args.observation_binding)
+    with checkpoint.observation_context(binding):
+        if binding is not None and args.action=='run' and binding['track_id']!=args.track_id:
+            raise ValueError('observation_row_binding')
+        return _run_logged(args,wrapper,saved,prospective=prospective)
+
+
+def _run_logged(args,wrapper,saved,*,prospective):
     journal = None
     try:
         journal = Journal(args.journal)
-        journal.write("start", action=args.action, pid=os.getpid(), wrapper_sha256=WRAPPER_SHA256)
+        journal.write("start", action=args.action, pid=os.getpid(),
+                      wrapper_sha256=PROSPECTIVE_WRAPPER_SHA256 if prospective else WRAPPER_SHA256)
     except OSError as exc:
         if journal is not None:
             journal.close()

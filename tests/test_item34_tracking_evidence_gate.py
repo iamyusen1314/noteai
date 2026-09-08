@@ -1,10 +1,12 @@
 import hashlib
+import copy
 import json
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -297,6 +299,114 @@ class Item34TrackingEvidenceGateTests(unittest.TestCase):
 
     def test_accepts_exact_real_24h_and_3d_evidence(self):
         self.assertEqual(self.validate(), [])
+
+    def prospective_evidence(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        import execute_item34_tracking_checkpoint as checkpoint
+        bound=prospective_binding()
+        bound['observation_started_at']='2026-09-11T14:30:38+00:00'
+        track_hash=hashlib.sha256(f"noteai-item34-tracking-row-v1:{bound['track_id']}".encode('ascii')).hexdigest()
+        legacy=copy.deepcopy(self.payload)
+        legacy['observation']['managed_track']['identity_sha256']=track_hash
+        legacy.update(status='FAILED_24H_OLD_WINDOW_EXPIRED',readiness_credit=False)
+        legacy['observation']['actual_provider_attempts']=[{
+            'identity_sha256':hashlib.sha256(f"noteai-item34-tracking-attempt-row-v1:{bound['previous_attempt_id']}".encode('ascii')).hexdigest(),'status':'failed','error_code':'xhsadaptererror'}]
+        legacy['actual_production_write_set']['rows_by_table']={
+            'schema_migrations':1,'tracked_notes':1,'tracking_provider_attempts':1,'crawler_events':2,'system_settings':1}
+        digest=hashlib.sha256(json.dumps(legacy,ensure_ascii=True,separators=(',',':'),sort_keys=True).encode('ascii')).hexdigest()
+        pinned=mock.patch.object(gate,'ITEM34_SEALED_OBSERVATION_SHA256',digest)
+        pinned.start();self.addCleanup(pinned.stop)
+        def shift(value):
+            if isinstance(value,dict):return {k:shift(v) for k,v in value.items()}
+            if isinstance(value,list):return [shift(v) for v in value]
+            if isinstance(value,str) and value.startswith('2026-') and 'T' in value:
+                return (datetime.fromisoformat(value)+timedelta(days=7)).isoformat()
+            return value
+        new=shift(self.payload)
+        with checkpoint.observation_context(bound):
+            binding_sha=checkpoint.observation_identity()['observation_binding_sha256']
+        new.update(observation_generation=1,observation_binding=bound,
+                   observation_binding_sha256=binding_sha,previous_observation_sha256=digest)
+        new['observation']['managed_track']=copy.deepcopy(legacy['observation']['managed_track'])
+        for stage in ('checkpoint_24h','checkpoint_3d'):
+            new['observation'][stage]['observation_binding_sha256']=binding_sha
+            new['observation'][stage]['managed_track_identity_sha256']=track_hash
+        for attempt in new['observation']['actual_provider_attempts']:
+            attempt.update(observation_generation=1,observation_binding_sha256=binding_sha,
+                           managed_track_identity_sha256=track_hash)
+        original=self.payload;self.payload=new
+        new['production_preparation_20260907']['runtime_config_migration']['schema_migrations_insert_count']=0
+        self._refresh_migration_readback_sha256()
+        aux=self._add_owner_auxiliary_effects()
+        self.control['observation_authorization']={'authorization_checkpoint':'1'*40,'authorization_plan_sha256':'2'*64}
+        aux.update(self.control['observation_authorization'])
+        aux['authentication']=[]
+        aux['policy_ddl']={'operation':'APPLY_EXACT_0020_VERIFY_EXISTING_0019',
+                           'readback':'USE_EXISTING_MIGRATION_RECORDS'}
+        self._refresh_write_readback_sha256()
+        self.payload=original
+        migration_path='model/migrations/postgres/0020_tracking_observation_generation.sql'
+        (self.root/migration_path).write_bytes((ROOT/migration_path).read_bytes())
+        sha=hashlib.sha256((ROOT/migration_path).read_bytes()).hexdigest()
+        new['generation_migration']={'path':migration_path,'version':Path(migration_path).name,'sha256':sha,
+            'ledger_source_sha256':sha,'ledger_exact_count':1,'schema_migrations_insert_count':1,
+            'production_status':'VERIFIED','ledger_readback':'VERIFIED'}
+        new['combined_production_write_set']={'rows_by_table':{'schema_migrations':2,'tracked_notes':1,
+            'tracking_provider_attempts':3,'crawler_events':4,'system_settings':1,'growth_records':1,'user_memories':1},
+            'distinct_rows':13,'provider_admissions':3,'ledger_readback':'VERIFIED'}
+        legacy['prospective_observation']=new
+        return legacy,new
+
+    def test_prospective_branch_preserves_failed_history_and_default_accounting(self):
+        legacy,new=self.prospective_evidence()
+        self.path.write_text(json.dumps(legacy))
+        now=datetime(2026,9,16,tzinfo=timezone.utc)
+        errors=gate.validate_item34_tracking_evidence(self.control,root=self.root,now=now)
+        self.assertIn('tracking terminal status mismatch',errors)
+        control={**self.control,'observation_generation':1}
+        self.assertEqual(gate.validate_item34_tracking_evidence(control,root=self.root,now=now),[])
+        new['combined_production_write_set']['provider_admissions']=2
+        self.path.write_text(json.dumps(legacy))
+        self.assertIn('combined observation history accounting invalid',
+            gate.validate_item34_tracking_evidence(control,root=self.root,now=now))
+        self.assertEqual(legacy['status'],'FAILED_24H_OLD_WINDOW_EXPIRED')
+
+    def test_prospective_branch_cannot_hide_changed_history_or_reuse_old_attempt(self):
+        legacy,new=self.prospective_evidence()
+        legacy['observation']['actual_provider_attempts'][0]['error_code']='changed'
+        new['observation']['actual_provider_attempts'][0]['identity_sha256']=legacy['observation']['actual_provider_attempts'][0]['identity_sha256']
+        self.path.write_text(json.dumps(legacy))
+        errors=gate.validate_item34_tracking_evidence({**self.control,'observation_generation':1},
+            root=self.root,now=datetime(2026,9,16,tzinfo=timezone.utc))
+        self.assertIn('sealed failed observation history mismatch',errors)
+        self.assertIn('old provider attempt reused by prospective observation',errors)
+
+    def test_prospective_rejects_rehashed_history_changed_track_and_closed_approval(self):
+        legacy,new=self.prospective_evidence()
+        control={**self.control,'observation_generation':1}
+        def errors():
+            self.path.write_text(json.dumps(legacy))
+            return gate.validate_item34_tracking_evidence(control,root=self.root,
+                now=datetime(2026,9,16,tzinfo=timezone.utc))
+        self.assertEqual(errors(),[])
+        legacy['observation']['actual_provider_attempts'][0]['error_code']='different'
+        old={k:v for k,v in legacy.items() if k!='prospective_observation'}
+        new['previous_observation_sha256']=hashlib.sha256(json.dumps(old,ensure_ascii=True,
+            separators=(',',':'),sort_keys=True).encode('ascii')).hexdigest()
+        self.assertIn('sealed failed observation history mismatch',errors())
+        new['observation']['managed_track']['submitted_at']='2026-09-11T14:30:38+00:00'
+        self.assertIn('prospective observation changed original track',errors())
+        new['authorized_auxiliary_effects']['authorization_checkpoint']='9802111a27b131e510c1c686870121baead5c45d'
+        self.assertIn('Item34 authorized auxiliary effects invalid',errors())
+        new['production_preparation_20260907']['runtime_config_migration']['schema_migrations_insert_count']=1
+        self.assertIn('runtime config migration verification invalid',errors())
+
+    def test_sealed_root_digest_matches_saved_canonical(self):
+        actual=json.loads((ROOT/gate.ITEM34_TRACKING_EVIDENCE).read_text())
+        actual.pop('prospective_observation',None)
+        digest=hashlib.sha256(json.dumps(actual,ensure_ascii=True,
+            separators=(',',':'),sort_keys=True).encode('ascii')).hexdigest()
+        self.assertEqual(digest,gate.ITEM34_SEALED_OBSERVATION_SHA256)
 
     def _add_owner_auxiliary_effects(self):
         self.payload["authorized_auxiliary_effects"] = {
