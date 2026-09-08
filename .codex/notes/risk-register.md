@@ -1,5 +1,20 @@
 # Risk Register
 
+## September8 confirmed connection-options defect (local reproduction)
+
+- Actual application connection setup discarded unit PGOPTIONS read-only and
+  timeout settings by overriding options with timezone alone. Direct psycopg
+  yielded on/5s/1s; db helper yielded off/0/0 in isolated PG16. Unit text is not
+  evidence of effective production constraints; no production readback occurred.
+- Local correction preserves DSN options/PGOPTIONS precedence plus UTC and
+  explicit health timeout. PG16 verifies settings, IDLE state and actual
+  read-only rejection; affected API/Payment candidate images must include this
+  correction. Interimf49 images retain their truthful identity but are superseded
+  for release. Item32's direct probe/isolated collection does not use this helper.
+- Future Item31 API canary writes cannot silently bypass a retained read-only
+  setting. Any scoped removal of that setting is a separately disclosed part of
+  the later approved production job; local readiness is not authorization.
+
 ## September8 payment/runtime and candidate preparation
 
 - The explicit canary collector is now bound into actual API/Payment lifecycle

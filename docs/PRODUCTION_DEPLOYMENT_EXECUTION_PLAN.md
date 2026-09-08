@@ -786,6 +786,24 @@ and returns to absent/disabled, not an empty unit or a running old service. A
 previously loaded C unit requires its actual bytes/hash and exact state rollback.
 12 renderer regressions pass locally; these are not Payment live health proof.
 
+Actual September8 candidate-container verification now covers115 source/dependency
+files, both real role entrypoints, Python3.11.15/linux-amd64/UID999, V04 models,
+normal callback-off503, synthetic callback-on200 with isolated PG16 role, API
+namespace replacement and explicit Payment recreation. Real production ASGI
+startup/one registered synthetic UPDATE/ordered shutdown produced a durable
+one-mutation readback. These are local tests, not production ACL/merchant/ALB or
+Item36 terminal evidence. Logs and interimf49 archive are indexed in Handoff.
+
+That rehearsal also confirmed a real application defect: its DB helper replaced
+PGOPTIONS, dropping read-only/statement/lock timeout controls. The repair must be
+included in the final API/Payment candidates; priorf49 artifacts are superseded
+for release. Preserve DSN/PGOPTIONS precedence, UTC and health timeout behavior.
+After this repair the current F unit's read-only intent is effective when not
+superseded by explicit DSN options; validate the effective session in a future
+approved check. A production payment canary needing writes must explicitly
+include scoped removal/restoration of that setting in its approved unit/config
+change. Neither the renderer nor connection helper silently disables it.
+
 For a future authorized application, retain the current API/Payment unit bytes,
 immutable image refs, container identities and prior enabled/active/callback
 states on each node. First verify the exact ALB-source TCP8000 security-group
@@ -794,7 +812,8 @@ other accepted node available. On each node:
 
 1. Stop an enabled Payment callback service before replacing its API namespace;
    retain the prior disabled state if Payment was not enabled.
-2. Apply only the reviewed private-bind unit, start that API, and verify the new
+2. Apply the specifically approved candidate-image update and/or private-bind
+   change (compare each actual image/unit input separately), start that API, and verify the new
    container identity, private socket, `/health/live` and `/health/ready` with
    the existing repeated healthy-readback contract.
 3. If Payment was enabled, explicitly recreate/start it in the new API container

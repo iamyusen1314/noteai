@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import unittest
 from unittest import mock
 import uuid
+from urllib.parse import quote, urlencode
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
@@ -465,6 +466,37 @@ class CanaryPaymentFlowPostgresTests(unittest.TestCase):
     def connect(self):
         return psycopg.connect(**self.connection_args, autocommit=True,
                                row_factory=self.db._compat_row_factory)
+
+    def test_connection_keeps_deployment_readonly_and_timeout_options(self):
+        cases = [
+            (None, "-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=1000", None, ("on", "5s", "1s")),
+            ("-c default_transaction_read_only=off -c statement_timeout=7000 -c lock_timeout=2000", "-c default_transaction_read_only=on", None, ("off", "7s", "2s")),
+            (None, "-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=1000", 1000, ("on", "1s", "1s")),
+            (None, "", None, ("off", "0", "0")),
+        ]
+        for dsn_options, environment_options, health_timeout, expected in cases:
+            query = {"host": "/var/run/postgresql"}
+            if dsn_options is not None:
+                query["options"] = dsn_options
+            url = "postgresql://postgres@/" + self.database + "?" + urlencode(query, quote_via=quote)
+            with self.subTest(expected=expected), mock.patch.dict(os.environ, {
+                "DATABASE_URL": url, "PGOPTIONS": environment_options,
+                "PYTHON_DOTENV_DISABLED": "1",
+            }, clear=True):
+                connection = self.db._get_postgres_conn(statement_timeout_ms=health_timeout)
+                try:
+                    self.assertFalse(connection.autocommit)
+                    self.assertEqual(connection.info.transaction_status, psycopg.pq.TransactionStatus.IDLE)
+                    actual = tuple(connection.execute("SHOW " + setting).fetchone()[0] for setting in
+                                   ("default_transaction_read_only", "statement_timeout", "lock_timeout"))
+                    self.assertEqual(actual, expected)
+                    self.assertEqual(connection.execute("SHOW timezone").fetchone()[0], "UTC")
+                    if expected[0] == "on":
+                        with self.assertRaises(psycopg.errors.ReadOnlySqlTransaction):
+                            connection.execute("UPDATE payment_orders SET updated_at=updated_at WHERE false")
+                    connection.rollback()
+                finally:
+                    connection.close()
 
     @contextmanager
     def stage(self, provider, targets):

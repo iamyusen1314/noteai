@@ -1,5 +1,63 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 candidate runtime milestone and connection-options correction
+
+Real API and Payment images fromf49a8ba were built using the original runtime
+stages with final truthful source labels;115 packaged source/dependency files,
+real3 LFS models, Python3.11.15/linux-amd64/UID999 all match. The initial
+network-none BUILD could not reuse default-network RUN cache; default-network
+build reused trusted dependencies. Runtime tests remained network-none.
+Normal API SQLite/V04 live+ready200 and Payment callback-off live200/ready503
+were proven. An initial local API fixture omitted its separate hot-keyword DB
+path; it failed safely under read-only rootfs and was corrected with another
+/tmp-only SQLite path. No image source was changed for that fixture.
+
+Actual full production ASGI startup (no warmup mocks) then ran on isolated PG16
+with locally created minimal noteai_app/noteai_payment test roles and reviewed
+synthetic binding. API namespace then Payment were dispatched0.18s apart, both
+started; a registered synthetic local order UPDATE was captured. API stopped
+first, Payment last and the existing journal readback returned exactly
+payment_orders:1, CAPTURE_COMPLETE_NOT_TERMINAL, hash
+79fc3541eabbde9ac072c57e700be334bc915e03a5c43ee78076708a1231c5f1.
+This validates actual container startup, same UID/volume broker, graceful close
+and durable readback, with no provider request or production-role acceptance.
+
+The real callback-config check rejected the synthetic .invalid callback URL;
+using the already-fixed canonical public callback URL as a STRING (network none,
+callback-only no-network transport, synthetic keys/IDs) made Payment live+ready200.
+Old Payment's namespace remained different from replacement API's; before
+explicit recreation the replacement API could not connect to8002, afterward
+both shared the new namespace and all health endpoints returned200.
+
+Logs/material: /private/tmp/noteai-prep-20260908, *-f49a8ba-source-check-final.log,
+*-local-health-b/c/d.log, item36-namespace-before-*.log,
+item36-canary-image-dml.jsonl and item36-canary-image-readback.json.
+Interim combined archive api-payment-f49a8ba-linux-amd64.docker.tar.gz,
+377747525bytes/SHA b0d1f9af86c595c3de9e873a658c31aa40d8ab76237682130a223fb6b66573c6.
+Keep its actualf49 source identity. It is now SUPERSEDED FOR RELEASE by the
+connection-options fix below, not relabelled as newer code.
+
+A concrete safety defect was independently reproduced in these local images:
+direct psycopg honors unit PGOPTIONS as read-only on, statement timeout5s and
+lock timeout1s; db._get_postgres_conn instead returned off/0/0 because its explicit
+timezone options replaced them. Production effective state was NOT queried and
+cannot be inferred from unit text. Owner informed; no production action occurred.
+The local fix preserves DSN explicit options, otherwise PGOPTIONS, then adds UTC
+and only an explicitly requested health statement timeout. The connection stays
+IDLE/autocommitFalse before caller SQL. Four PG16 option/precedence/health/default
+cases pass, including server rejection of a zero-row UPDATE in read-only mode;
+the first DSN test incorrectly encoded spaces as+ and its failure is retained.
+The13 actual canary runtime cases also pass with the new db source. Two default
+API model-health checks pass. A paired isolated probe also confirmed explicit
+URI options= keeps native empty-options precedence (direct/helper both off/0/0);
+log pgoptions-explicit-empty.log. No service-file support is newly claimed.
+
+Next IN PROGRESS: save this repair checkpoint, rebuild ONLY API/Payment from its
+actual source and verify packaged DB behavior and rollback. f49 archive/failed
+logs remain. Item32's7 bindings and4 archive members were rechecked after this
+change: unchanged; it uses direct psycopg/no-DATABASE_URL collection/stdlib-only
+readback, so no forced repack. Readiness30/38. No production execution or push.
+
 ## September8 executable payment binding, financial coverage and offline UI milestone
 
 Continued after679ed35; no program stop. Actual API/Payment startup/shutdown and

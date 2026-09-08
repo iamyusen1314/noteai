@@ -282,16 +282,24 @@ def _get_postgres_conn(
         import psycopg
     except ImportError as exc:
         raise RuntimeError("PostgreSQL requires psycopg[binary]") from exc
+    database_url = _database_url()
+    # Preserve libpq's explicit DSN options before falling back to PGOPTIONS.
+    # Replacing them with timezone alone silently drops deployment read-only
+    # and timeout restrictions. Keep the original option text, without logging
+    # connection data or reserializing libpq's escaping rules.
+    options = psycopg.conninfo.conninfo_to_dict(database_url).get(
+        "options", os.environ.get("PGOPTIONS", "")
+    )
     connect_kwargs: dict[str, Any] = {
         "row_factory": _compat_row_factory,
-        "options": "-c timezone=UTC",
+        "options": (options + " " if options else "") + "-c timezone=UTC",
     }
     if connect_timeout_seconds is not None:
         connect_kwargs["connect_timeout"] = max(1, int(connect_timeout_seconds))
     if statement_timeout_ms is not None:
         timeout_ms = max(100, int(statement_timeout_ms))
         connect_kwargs["options"] += f" -c statement_timeout={timeout_ms}"
-    return psycopg.connect(_database_url(), **connect_kwargs)
+    return psycopg.connect(database_url, **connect_kwargs)
 
 
 def get_conn():
