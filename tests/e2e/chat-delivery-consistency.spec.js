@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./offline-fixture');
 
 
 test('canonical chat response replaces conflicting streamed draft using text-only rendering', async ({ page }) => {

@@ -12052,6 +12052,12 @@ async def startup():
         _pm.audit_versioned_baseline()
     else:
         _pm.apply_versioned_baseline()
+    if (os.environ.get("NOTEAI_ITEM31_DML_BINDING_FILE") or os.environ.get("NOTEAI_ITEM31_DML_BINDING_SHA256")
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "") not in {"", "0"}):
+        import collect_item31_canary_dml
+        runtime = collect_item31_canary_dml.configured_runtime("api", _db)
+        app.state.item31_canary_runtime = runtime
+        app.state.item31_canary_create_resolver = runtime.scope.create
 
 
 def _init_default_prompts():
@@ -12125,6 +12131,9 @@ def _init_default_prompts():
 
 @app.on_event("shutdown")
 async def shutdown():
+    runtime = getattr(app.state, "item31_canary_runtime", None)
+    if runtime is not None:
+        runtime.close()
     if _SCHEDULER_AVAILABLE:
         stop_scheduler()
 

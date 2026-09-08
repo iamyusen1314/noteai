@@ -1,6 +1,6 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `ITEM34 FAILED / OLD WINDOW EXPIRED / PRODUCTION EXECUTION STOPPED`
+Status: `PROGRAM ACTIVE — LOCAL PREPARATION / ITEM34 OLD WINDOW PATH EXPIRED / PRODUCTION PAUSED`
 
 Date: 2026-09-07 (current scope below; July sections retained as history)
 
@@ -145,6 +145,12 @@ EXPIRED。**不重试24h、不执行3d、不自动重启观察。**下方原批�
    重连、启动不生成代次。claim/admit/finalize和当前窗口结果同时绑定代次；全局活动/
    UNKNOWN及UTC日额度仍跨全部代次统计。真实新T0必须来自新一次同对象初始snapshot，
    不使用旧发布时间或回填时间。现有0019仅verify，不再apply。
+   原T0实际来自已认证XHS浏览器的新鲜详情（旧canonical71–88），NoteAI POST并不采集
+   初始指标。最小候选沿用一次明确授权的同对象浏览器详情新读取，保留真实时钟与指标；
+   不重截旧缓存页面。该读取可能有多条网络请求、访问记录及会话更新，另记影响和费用，
+   不能称外部调用0或费用0。随后两个checkpoint仍最多2个Tracking admission。
+   若改为程序化T0并记durable admission，则新窗口共3、加旧失败历史共4；当前24h/7d
+   schema不能藏一个T0阶段，7表9/合并13的候选预算必须重算。
 3. 当前实施预算须区分历史和新作业。旧核心真实为5表6distinct；若新增迁移1并沿用其余
    成功写集，新作业候选为迁移1/原track1/新attempt2/growth1/memory1/events2/settings1
    共7表9distinct；与旧历史合并为13distinct、attempt累计3。该数是待PG验证预算，
@@ -506,20 +512,55 @@ Python3.14.4; future release checks must cover the actual Python3.11 image.
 
 ### Item31 bounded DML and callback preparation
 
-September8 local integration: the existing collector now exposes CanaryWriter
-for explicit injection into the nine payment_contract writer functions and
-three indirect writer helpers. Each transaction is durably registered before
-business SQL; only confirmed pre-COMMIT rollback may be counted as rollback.
-Lost COMMIT reply stops further actions and leaves unpublished evidence UNKNOWN,
-even when the real rows committed. Fresh-connection rejection preserves an
-existing caller transaction. Shared RLock serializes local writer/finish; it
-does not replace the existing cross-process orchestrator protocol.
-Nineteen isolated PG16/Python3.11 checks now include both direct providers'
-synthetic real-SQL payment/duplicate/full-refund/duplicate paths and per-stage
-durable readback;62 original default payment regressions pass. No HTTP signature,
-API work-thread propagation, live collector, reconciliation or settlement claim.
-The two-provider first-launch requirement is unchanged. Existing release
-artifacts retain their54b06be source; these new canary seams are not inside them.
+September8 current implementation: actual API startup/shutdown, both Payment
+callback routes and the existing canary CLI now bind the same collector. Docker
+copies the existing tool to `/app/model/collect_item31_canary_dml.py`; no alternate
+operator entrypoint, global transaction hook or permanent audit service is added.
+The Payment process owns one LISTEN/control pair, broker and existing journal;
+API and operator use one unreconnectable private Unix connection each. Every
+business writer uses a fresh CompatRow connection set to autocommit before any
+SQL, then the existing BEGIN/register/fsync/SQL/complete/COMMIT sequence.
+
+Binding inputs are one reviewed non-secret JSON via
+`NOTEAI_ITEM31_DML_BINDING_FILE` and its `NOTEAI_ITEM31_DML_BINDING_SHA256`:
+`activation`, `provider`, `targets`, `work_directory`, `user_id`,
+`idempotency_key_hash`, `app_id`, `create_context`, `reconciliation_run_id`.
+Use the existing approved canary identities; preparation chooses none. JSON
+`create_context` is the four-field output of the existing API canary fence;
+its user/provider/activation/create-key digests must agree with the normal
+activation environment. `targets` uses the existing installation renderer's
+finite mappings (all12 allowed writer tables plus users/usage_records/paid-credit
+consumption sentinels). An explicitly bound reconciliation run UUID makes its
+run/items predicates knowable before SQL; default non-canary UUID behavior stays
+unchanged. No field holds a password, DSN, signature or checkout token.
+
+Malformed activation, hash-only/file-only configuration, wrong subject/provider,
+missing coverage or an interrupted broker rejects startup/action; there is no
+ordinary-writer fallback. Operator orders are checked against the fixed user's
+key/provider/app/live/CNY/1200-fen scope BEFORE gateway/action admission. Gateway
+callback authentication precedes event/order resolution and first INSERT.
+An expired window stops new actions but lets an already admitted worker save its
+result. Cancellation waits for that original worker; no provider resubmission.
+
+All three containers must mount the SAME existing canary work-directory volume
+at the same path, with actual UID999 and directory0700/socket0600. Sharing the
+API network namespace alone does not share files. Only one provider capture is
+active; close/remove its reviewed temporary DDL before the other provider's
+approved capture. This preserves the two-channel first-launch decision.
+Start the API container to establish its network namespace, then start Payment
+inside it while API startup waits at most15s for the first socket. Do not wait
+for API healthy before starting Payment. This is one initial connection, with
+no reconnect after UNKNOWN. Cross-container timing still requires the local
+candidate-image rehearsal below; the PG hook test is not that rehearsal.
+
+Close new API/operator admission, let already admitted worker/callback actions
+finish, stop API/operator, then stop Payment last. Payment closes broker
+admission before sealing and reading its existing journal. An active peer EOF,
+lost COMMIT/registration ACK, lost LISTEN stream or fsync failure keeps UNKNOWN.
+A nonempty completed journal is never overwritten at process restart. Resolver
+references remain installed through shutdown; removal cannot expose default SQL.
+Only later explicit Item31 approval can install/remove the exact temporary DDL,
+mount these inputs or admit a real provider/payment action.
 
 September7 local implementation: `tools/collect_item31_canary_dml.py` now
 provides the selected minimal source: temporary, canary-predicate AFTER ROW
@@ -582,9 +623,9 @@ open several independent transactions and Payment callbacks run in another
 process. Each must register before first DML and signal completion before its
 own COMMIT, with known rollback and lost-commit UNKNOWN handled separately.
 
-Remaining live integration is concrete: install/remove this temporary DDL only
-for reviewed canary scope and register **every** API/Payment transaction before
-any DML; include forbidden-table sentinels for all reachable out-of-contract
+Remaining live application is concrete: install/remove this temporary DDL only
+for reviewed canary scope and activate the implemented runtime binding for
+**every** API/Payment transaction before any DML; include forbidden-table sentinels for all reachable out-of-contract
 writes. The current source supports INSERT/UPDATE/DELETE; TRUNCATE, missing
 writer registration, absent trigger coverage, unknown trigger/rule/FK effects
 or an interrupted listener preclude complete DML evidence. Do not infer all
@@ -599,22 +640,32 @@ canaries; preserve failed/UNKNOWN evidence and stop rather than replay.
 
 | Action | Existing source and rows to account for | Evidence limitation to close |
 |---|---|---|
-| Create and admit order | `payment_contract.create_order`, `admit_payment_submission`, response-state update; `payment_orders` | Bind the fixed canary order/request digest and count actual committed INSERT/UPDATE effects, including a timeout-state transition. |
-| Authenticate callback/query | `process_authenticated_callback`, `_record_event`, `_finish_event`; `payment_events`, order, cash, credit position, entitlement, credits and credit transactions | Bind verified provider event and payload digests to committed rows; never retain raw callback/signature/checkout values. |
-| Duplicate notification | `_record_event` increments `duplicate_delivery_count` | One event UPDATE is a real mutation even when the table row count is unchanged; there must be zero second cash/entitlement grant. |
-| Full unused refund | `prepare_full_refund`, admission and authenticated refund query/callback | Bind the same order/refund to one cash reversal, position reversal, credit transaction and entitlement reversal. Submission alone is not refund success. |
-| Reconciliation | Existing provider bill/query boundary and reconciliation tables | Match original order, authenticated notification, refund and ledgers; report discrepancies, not inferred success. |
+| Create and admit order | Actual `POST /payments/orders` → create/admit → worker success/UNKNOWN; `payment_orders` | PG16 covers both providers, repeat create, normal result, timeout, cancellation, admission COMMIT ACK loss and callback-before-provider-response. |
+| Authenticate callback/query | Actual Payment HTTP → authenticated event transaction; event/order/cash/position/entitlement/credits/credit_transactions | Both real local signature algorithms and real PG rows; dynamic authenticated event hash and user/key-scoped order predicate. Production transport/ACL/merchant approval are not claimed. |
+| Duplicate notification | `_record_event` increments `duplicate_delivery_count` | Actual HTTP/PG duplicate commits one event UPDATE, zero second cash/entitlement grants. |
+| Full unused refund | Existing executor prepare/admit/mark and authenticated refund query | PG16 covers three submission transactions and real terminal reversal rows; no invented Alipay refund callback. Submission remains pending until authoritative result. |
+| Query/reconciliation | Existing operator pending query; bound `reconcile_bill` run/items | PG16 covers pending query UPDATE, matched whole-day bill, duplicate source/no extra DML, missing/mismatch item rows and explicit UUID propagation. This is a whole-provider/day bill boundary, not an unproven canary-only bill. |
+| Settlement | Existing `record_settlement_summary` function | Explicit factory now covers its standalone SQL; PG16 verifies source-bound row. No new settlement HTTP/CLI was created. |
+| Process lifecycle | Actual API/Payment ASGI hooks, existing operator `main`, two real child writers | Dedicated autocommit adaptation, one journal, normal closure/readback, malformed binding and different-key order rejection before provider admission. |
+
+Only an existing valid canary session enters this payment scope. Normal valid
+authentication is read-only; expired-session cleanup in auth.py occurs before the
+payment factory and is not counted by this collector. Login/registration/token
+creation and account preparation must be separately disclosed/authorized outside
+the payment measurement window. No all-authentication/all-business zero-DML claim
+is made. The isolated HTTP fixtures generate their sessions before capture.
 
 `tests/test_payment_query_financial_evidence.py` now exercises real SQLite
 statement rowcounts and committed-transaction boundaries for the duplicate
 notification path. It proves the offline distinction between DML and final
 state, not PostgreSQL trigger coverage or production provenance. At that earlier stage, production
 DML capture lacked an established source covering both API and Payment
-processes. The local collector above now closes source semantics, while live
-writer integration and coverage remain incomplete. The already-completed
+processes. The local collector and runtime binding above now cover the implemented writer
+paths; production installation, exact current ACL/trigger/FK readback and real
+canary evidence remain incomplete. The already-completed
 bounded RDS readback below did not establish a suitable existing DML source;
-it is not a request to repeat that investigation. Before live funds, finish the
-explicit canary-writer integration and reviewed trigger coverage above. Do not
+it is not a request to repeat that investigation. Before live funds, apply the
+explicit runtime binding and review actual trigger/ACL/FK coverage above. Do not
 enable broad SQL logging, record parameters or infer DML from SELECT snapshots.
 Missing capture keeps Item31 incomplete; best-effort create/callback logs and
 `pg_stat_*` aggregate deltas cannot close it.
@@ -679,7 +730,7 @@ These are three separate implementation actions, not interchangeable completion:
 | Action | Actual local result / next implementation | Genuine dependency |
 |---|---|---|
 | Candidate API image update | Actual local `noteai-local/api:54b06be-lfs` contains the Item30 Kimi repair, passes source/regression checks and normal-entrypoint health. The renderer separately replaces exact old/new immutable images and preserves port/rollback bytes. Publication and actual node input binding remain pending. | Local health is not API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
-| Private API binding | Existing pure renderer and rollback bytes are prepared; actual API-C/F unit bytes and exact source hash must be read and bound before apply. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
+| Private API binding | API-F actual1510-byte unit is bound to SHA f591f43b…936; its private10.42.11.166 candidate SHA824207e1…ac and exact rollback are retained under /private/tmp/noteai-prep-20260908/api-f-bind/. API-C still needs its own current unit bytes/hash before apply. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
 | Payment first activation | C was disabled/inactive and F unit not-found at last readback. First installation/configuration, immutable image, shared API container namespace, service start, health and public callback verification remain real actions. | Merchant/canary authorization and provider-reachable callback ingress before live funds. Keeping disabled state is rollback preservation, not first activation or full deployment. |
 
 Do not start any of these three as an implicit Item34 dependency. Item36
@@ -690,9 +741,12 @@ Fresh September7 service/container metadata shows both APIs on the old b55
 image and loopback8000. Payment is loaded/disabled/inactive on API-C; its unit
 is not-found on API-F, and neither exact-name container inspection succeeded.
 No shared Payment/API namespace or new live health probe is therefore proven.
-Both API unit FragmentPaths were read, but current unit bytes were not exported
-or rendered. A future application must first bind those exact reviewed bytes;
-template similarity and a stored Docker `healthy` state are insufficient.
+This September7 observation is LAST_KNOWN except the September8 API-F readback
+at the top of this plan. API-F bytes have now been exported and rendered; API-C
+has not. Current API-F live/DB health, Payment state and API-C input still require
+fresh readback before apply. Stored Docker `healthy` is insufficient. Two current
+ECS console read attempts hit CDP focus-emulation timeouts before new metadata;
+this is a resource-read PATH_BLOCKED, not a program stop or evidence of lost MFA.
 
 `tools/prepare_item36_private_bind.py` is a pure local renderer with no apply,
 cloud, subprocess, database or environment-loading path. Given a reviewed
@@ -700,8 +754,9 @@ Secret-free API unit copy, its exact SHA-256 and that node's confirmed RFC1918
 IPv4 address, it changes only the single loopback 8000 mapping and writes a
 candidate plus byte-identical rollback. It rejects source drift, extra ports,
 public/loopback target addresses, shell expansion and mutable image identities.
-Synthetic tests do not prove that either current host unit matches its input
-contract. No actual host unit has been fetched, rendered or applied this turn.
+The actual API-F fixture matches the exported source hash and renders successfully;
+its current candidate remains a local artifact and has not been applied. API-C
+must not be inferred by changing the F node name/IP.
 Production Compose now defaults API binding to loopback; a future reviewed
 private binding must be explicit.
 
@@ -711,9 +766,25 @@ Docker image argument, preserves the existing loopback/RFC1918 port and writes
 the same byte-identical rollback. A bounded literal-options parser rejects
 application arguments after image, fake publish text in option values, unknown
 options and unsafe network scope. Both modes need an actual reviewed host unit;
-no local synthetic input is marked READY_TO_APPLY for API-C/F. Candidate digest
+synthetic API-C inputs are not marked READY_TO_APPLY. The bound F file is ready for its scoped application review, subject to fresh native readback. Candidate digest
 binding is done after real publication; its current absence does not prevent
 local source/artifact verification.
+
+Payment namespace preparation now reuses that same renderer and the frozen
+`noteai-payment.service.template` (SHA3c7a78e7…1685). Its `--payment-namespace`
+mode derives only the exact noteai-api-c/f container name from a reviewed real
+API unit. Callback0/1 is explicit; an unpublished image retains the visible
+`@@NOTEAI_PAYMENT_IMAGE@@` placeholder, never an invented registry digest.
+The actual F-bound first-enable candidate is
+`/private/tmp/noteai-prep-20260908/payment-api-f/noteai-payment.service.candidate`,
+SHA67291769f8643d7ef1e3a234bb1affa5735cbb83936bece49f7ffc257400ddfe.
+It binds network=container:noteai-api-f, callback1, no independent public port.
+It still needs the actual published Payment digest before application. The prior
+F not-found observation means no rollback file is invented: after fresh absence
+confirmation, rollback stops/removes only the exact newly installed candidate
+and returns to absent/disabled, not an empty unit or a running old service. A
+previously loaded C unit requires its actual bytes/hash and exact state rollback.
+12 renderer regressions pass locally; these are not Payment live health proof.
 
 For a future authorized application, retain the current API/Payment unit bytes,
 immutable image refs, container identities and prior enabled/active/callback
@@ -749,6 +820,56 @@ and explicit fixed/variable cost approval. Private-bind and health preparation
 can proceed independently of those terminal dependencies. No current quote,
 cloud wrapper or live execution is implied. The old monthly estimate and
 preparation-only NDR mask0 record remain LAST_KNOWN/reference-only.
+
+### Item32/35/37/38 independent preparation status — September8
+
+Item32: the unique successor recovery archive remains current (4 regular files,
+30186bytes, SHA00eb73fdbbd62f541c000a7d29940ef3a417fecd756046fa59c2f694366ada13).
+Seven source/HOLD/signer bindings match; no repack for unrelated document changes.
+Its UTC September7 dispatch23:40/finishSeptember8 00:00 limits are expired. This
+is a time PATH_BLOCKED. Before future authorization, retain the same WORK_ROOT,
+old sealed records and old package. A prospective date rebind updates the same
+executor's four time constants, canonical plan and executor hash/package together;
+only after fresh absence of dispatch/admission/export and used0/remaining34 is
+proven may the one not-yet-run successor proceed. No new diagnostic identity,
+account or automatic date rollover is needed or authorized. readback-only remains
+inert and does not confer completion or reconnect a supplier request.
+
+Item35: the existing frozen review package and its10 scope files still match;
+current implementation wiring does not change the professional review scope.
+Keep the existing legal_privacy and provider_commercial_and_xhs signed categories,
+four document approvals and zero unclosed conditions; do not add a requirement
+for two different natural persons or freeze a duplicate package. Existing package
+already lists the subject/contact/retention/provider questions still needing
+real professional answers. No self-signature or message to others has occurred.
+
+Item37 local scenario mapping uses the existing FIRST_LAUNCH_UI_ADMIN_CONTRACT,
+chat-delivery-consistency, sse-stall-guard, quota-ui, admin-production-readonly
+specs plus the actual Item31 HTTP/PG canary fixtures. The intended chain is
+current candidate → controlled pre-DNS ingress → normal result/UNKNOWN/duplicate/
+refund → current alert → exact recovery. It does not replay Items27/28 or count
+local mocks as commercial acceptance. Real prerequisites30/31/35/36 remain.
+
+Item38 preparation keeps the existing root/API/Admin hostname scope and no
+invented www/additional names. A future DNS change must bind each record's actual
+ID/type/value/TTL and its exact before-state to the actual accepted ALB target;
+update rollback restores the old value/TTL, newly created records may only be
+removed by their returned exact IDs, and unrelated records are left intact.
+Current business records/ALB/certificate state are LAST_KNOWN until fresh reads.
+Pre-DNS SNI tests and provider callback ingress are not owner public launch.
+Actual public action still requires terminal37 plus the explicit owner Go-Live
+statement and reviewed traffic limits. No DNS change or public traffic is made.
+
+Fresh quote collection inputs, to complete in the existing plan after a current
+provider read: cn-shenzhen, one ALB across the existing C/F zones/vSwitches, LCU1,
+EIP2,720h monthly comparison; list ALB and each EIP hourly fees, LCU unit price,
+public traffic price/GB and a separately approved traffic/spend ceiling. Include
+quote time/expiry, tax/currency, selected configuration and any discount/payment
+conditions. Old149.04 or missing fields are never a fresh quote and null is not0.
+Read-only certificate inputs are exact Issued certificate ID, api.noteaipro.cn
+coverage/validity, chain and binding; backend inputs are the two real node IDs/
+private IPs/8000, GET /health/ready200, HTTPS443/SNI/Host and ALB-only source SG.
+No purchase, new EIP/ALB, listener/certificate binding, SG or DNS action is authorized.
 
 ## 1. Immutable release set
 

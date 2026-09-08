@@ -787,7 +787,7 @@ def _query_refund(
     }
 
 
-def _reconcile(gateway: Any, provider_name: str, bill_date: str, *, transaction_factory=None) -> dict[str, Any]:
+def _reconcile(gateway: Any, provider_name: str, bill_date: str, *, transaction_factory=None, reconciliation_run_id=None) -> dict[str, Any]:
     canonical_day = _canonical_day(bill_date)
     source, rows = gateway.reconciliation_rows(canonical_day)
     result = payment_contract.reconcile_bill(
@@ -797,6 +797,7 @@ def _reconcile(gateway: Any, provider_name: str, bill_date: str, *, transaction_
         prod_mode=True,
         provider_name=provider_name,
         **payment_contract.transaction_options(transaction_factory),
+        **({"reconciliation_run_id": reconciliation_run_id} if reconciliation_run_id is not None else {}),
     )
     return {
         "ok": result["status"] == "matched",
@@ -812,10 +813,14 @@ def _reconcile(gateway: Any, provider_name: str, bill_date: str, *, transaction_
     }
 
 
-def execute(argv: list[str], *, transaction_factory=None) -> dict[str, Any]:
+def execute(argv: list[str], *, transaction_factory=None, reconciliation_run_id=None) -> dict[str, Any]:
     if len(argv) < 2:
         raise PaymentCanaryError("PAYMENT_CANARY_ARGUMENTS_INVALID")
     action = str(argv[0])
+    if reconciliation_run_id is not None:
+        if action != "reconcile":
+            raise PaymentCanaryError("PAYMENT_CANARY_ARGUMENTS_INVALID")
+        _canonical_uuid(reconciliation_run_id, "reconciliation_run_id")
     provider_name = _provider_name(argv[1])
     if action not in _ACTIONS:
         raise PaymentCanaryError("PAYMENT_CANARY_ACTION_INVALID")
@@ -840,6 +845,11 @@ def execute(argv: list[str], *, transaction_factory=None) -> dict[str, Any]:
     activation = _activation(action, provider_name, argv[2])
     _assert_runtime_context(provider_name)
     order = _order(activation["order_id"], provider_name, activation)
+    order_validator = getattr(transaction_factory, "order_validator", None)
+    if order_validator is not None:
+        if not callable(order_validator):
+            raise PaymentCanaryError("PAYMENT_CANARY_ORDER_BINDING_INVALID")
+        order_validator(order)  # Before provider construction or durable admission.
     gateway, identity = _gateway(provider_name)
     if action == "preflight":
         return _preflight(provider_name, identity, order, activation)
@@ -851,7 +861,7 @@ def execute(argv: list[str], *, transaction_factory=None) -> dict[str, Any]:
             elif action == "query-refund":
                 result = _query_refund(gateway, provider_name, order, activation, transaction_factory=transaction_factory)
             elif action == "reconcile":
-                result = _reconcile(gateway, provider_name, argv[2], transaction_factory=transaction_factory)
+                result = _reconcile(gateway, provider_name, argv[2], transaction_factory=transaction_factory, reconciliation_run_id=reconciliation_run_id)
             elif action == "submit-refund":
                 result = _submit_refund(
                     gateway,
@@ -882,8 +892,24 @@ def execute(argv: list[str], *, transaction_factory=None) -> dict[str, Any]:
 
 
 def main() -> int:
+    runtime = None
     try:
-        result = execute(sys.argv[1:])
+        options = {}
+        if sys.argv[1:2] != ["preflight"] and (os.environ.get("NOTEAI_ITEM31_DML_BINDING_FILE")
+                or os.environ.get("NOTEAI_ITEM31_DML_BINDING_SHA256")
+                or os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "") not in {"", "0"}):
+            import collect_item31_canary_dml
+            runtime = collect_item31_canary_dml.configured_runtime("payment-canary", db)
+            options["transaction_factory"] = runtime.writer
+            if sys.argv[1:2] == ["reconcile"]:
+                run_id = runtime.binding["reconciliation_run_id"]
+                if run_id is None:
+                    raise PaymentCanaryError("PAYMENT_CANARY_RECONCILIATION_BINDING_REQUIRED")
+                options["reconciliation_run_id"] = run_id
+        result = execute(sys.argv[1:], **options)
+        if runtime is not None:
+            runtime.close()
+            runtime = None
         print(json.dumps(result, ensure_ascii=True, separators=(",", ":"), sort_keys=True))
         return 0 if result.get("ok") is True else 1
     except (PaymentCanaryError, payment_contract.PaymentContractError) as exc:
@@ -899,7 +925,13 @@ def main() -> int:
         )
         return 1
     finally:
-        payment_adapter_runtime.close_configured_providers()
+        try:
+            if runtime is not None:
+                runtime.close()
+        except Exception:
+            print('{"ok":false,"code":"PAYMENT_CANARY_CAPTURE_CLOSE_FAILED"}')
+        finally:
+            payment_adapter_runtime.close_configured_providers()
 
 
 if __name__ == "__main__":

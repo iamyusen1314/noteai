@@ -34,6 +34,7 @@ _REVIEWED_PGOPTIONS = (
     '"PGOPTIONS=-c default_transaction_read_only=on '
     '-c statement_timeout=5000 -c lock_timeout=1000"'
 )
+PAYMENT_TEMPLATE_SHA256 = "3c7a78e79edcfc8736589ea30432cab60ffdd53cb2032121be001d02fa851685"
 
 
 def _docker_argument_spans(command: str):
@@ -152,6 +153,42 @@ def render_image_update(
     return (text[:start.start()] + replacement + text[start.end():]).encode("utf-8"), unit
 
 
+def render_payment_namespace(
+    api_unit: bytes, *, expected_sha256: str, template: bytes,
+    payment_image: str | None = None, callback_enabled: bool = False,
+    prior_unit: bytes | None = None, prior_sha256: str | None = None,
+) -> tuple[bytes, bytes | None]:
+    """Bind the existing Payment template to the reviewed node's real API name.
+
+    An unpublished image keeps its explicit template placeholder; that output
+    cannot be applied. None rollback means the original unit was absent, never
+    an empty file to install. A loaded prior unit must have exact retained bytes.
+    """
+    _text, _start, command, _bindings = _literal_api_unit(api_unit, expected_sha256)
+    if hashlib.sha256(template).hexdigest() != PAYMENT_TEMPLATE_SHA256:
+        raise ValueError("payment_template_binding")
+    names = re.findall(r"(?:^|\s)--name(?:=|\s+)([^\s]+)", command)
+    if len(names) != 1 or names[0] not in {"noteai-api-c", "noteai-api-f"}:
+        raise ValueError("reviewed_api_container_required")
+    if type(callback_enabled) is not bool:
+        raise ValueError("explicit_callback_state_required")
+    if payment_image is not None and IMMUTABLE_IMAGE.fullmatch(payment_image) is None:
+        raise ValueError("immutable_payment_image_required")
+    if prior_unit is None:
+        if prior_sha256 is not None:
+            raise ValueError("absent_payment_unit_has_no_hash")
+    elif (not 0 < len(prior_unit) <= 65536 or prior_sha256 is None
+          or hashlib.sha256(prior_unit).hexdigest() != prior_sha256):
+        raise ValueError("prior_payment_unit_binding")
+    candidate = template.replace(b"@@NOTEAI_API_CONTAINER@@", names[0].encode())
+    if payment_image is not None:
+        candidate = candidate.replace(b"@@NOTEAI_PAYMENT_IMAGE@@", payment_image.encode())
+    if callback_enabled:
+        candidate = candidate.replace(b"Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=0\n",
+                                      b"Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1\n")
+    return candidate, prior_unit
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--unit", required=True, type=Path)
@@ -159,12 +196,33 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--private-ip")
     mode.add_argument("--candidate-image")
+    mode.add_argument("--payment-namespace", action="store_true")
     parser.add_argument("--expected-image")
+    parser.add_argument("--payment-image")
+    parser.add_argument("--payment-callback-enabled", choices=("0", "1"), default="0")
+    parser.add_argument("--prior-payment-unit", type=Path)
+    parser.add_argument("--prior-payment-sha256")
     parser.add_argument("--output-dir", required=True, type=Path)
     args = parser.parse_args()
     if args.unit.is_symlink():
         parser.error("unit must be a regular reviewed local file")
-    if args.candidate_image:
+    role = "api"
+    if args.payment_namespace:
+        if args.expected_image or bool(args.prior_payment_unit) != bool(args.prior_payment_sha256):
+            parser.error("exact prior Payment input/hash pair required; no API expected-image")
+        if args.prior_payment_unit and args.prior_payment_unit.is_symlink():
+            parser.error("prior Payment unit must be a regular reviewed local file")
+        role = "payment"
+        candidate, rollback = render_payment_namespace(
+            args.unit.read_bytes(), expected_sha256=args.expected_sha256,
+            template=(Path(__file__).resolve().parents[1] / "deploy/production/systemd/noteai-payment.service.template").read_bytes(),
+            payment_image=args.payment_image, callback_enabled=args.payment_callback_enabled == "1",
+            prior_unit=args.prior_payment_unit.read_bytes() if args.prior_payment_unit else None,
+            prior_sha256=args.prior_payment_sha256,
+        )
+    elif args.payment_image or args.prior_payment_unit or args.prior_payment_sha256 or args.payment_callback_enabled != "0":
+        parser.error("Payment options require --payment-namespace")
+    elif args.candidate_image:
         if not args.expected_image:
             parser.error("--expected-image is required for an image update")
         candidate, rollback = render_image_update(
@@ -180,9 +238,11 @@ def main() -> int:
     # Exclusive directory creation avoids overwriting a prior recovery package.
     args.output_dir.mkdir(mode=0o700)
     for name, payload in (
-        ("noteai-api.service.candidate", candidate),
-        ("noteai-api.service.rollback", rollback),
+        (f"noteai-{role}.service.candidate", candidate),
+        (f"noteai-{role}.service.rollback", rollback),
     ):
+        if payload is None:
+            continue
         path = args.output_dir / name
         with path.open("xb") as output:
             output.write(payload)

@@ -1,5 +1,27 @@
 # Risk Register
 
+## September8 payment/runtime and candidate preparation
+
+- The explicit canary collector is now bound into actual API/Payment lifecycle
+  and the existing operator entrypoint;44 isolated PG16/Python3.11 checks and
+  99 affected defaults pass. Actual cross-container namespace startup remains
+  the next candidate rehearsal. No production trigger/role/merchant acceptance.
+- API namespace must exist before Payment joins it; API's canary startup waits
+  only15s for the first broker socket. Do not wait for API healthy first. Same
+  filesystem volume and UID999 are necessary in addition to network namespace.
+- Payment owns one finite capture. Close all admission/drain API/operator before
+  stopping it; disconnect, missing commit, or failed fsync cannot seal. Resolver
+  remains installed through exit, preserving fail-closed rather than SQL fallback.
+- Canary metadata contains no credentials. Normal authentication writes outside
+  a valid existing session are not counted by this payment collector; full-app
+  or all-auth zero-DML claims remain unsupported. Reconciliation reads a whole
+  provider/day bill and must be authorized as such.
+- Item36 Payment namespace candidate is real renderable material, not an applied
+  unit or published image. API-C input and fresh account quote remain unverified;
+  local CLI lacks identity configuration and a fresh console tab requests login.
+-16 existing UI scenarios pass with explicit offline interception and exclusive
+  static server; no business backend or real credentials. This cannot score37/38.
+
 ## September8 program continuation correction
 
 - PATH_BLOCKED never implies PROGRAM_STOP; independent authorized engineering

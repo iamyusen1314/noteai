@@ -16,6 +16,7 @@ import stat
 import socket
 import struct
 import threading
+import time
 import uuid
 from collections import Counter
 from contextlib import contextmanager
@@ -195,14 +196,18 @@ class CanaryWriter:
     COMMIT response poisons the capture even if a later rollback succeeds.
     """
 
-    def __init__(self, capture, connect, transaction_type, *, event_hash=None):
+    def __init__(self, capture, connect, transaction_type, *, event_hash=None, admission_check=None):
         self.capture = capture
         self.connect = connect
         self.transaction_type = transaction_type
         self.event_hash = event_hash
         self.event_resolver = None
+        self.order_validator = None
+        self.admission_check = admission_check
 
     def action(self):
+        if self.admission_check is not None:
+            self.admission_check()
         return self.capture.action()
 
     def for_event(self, event):
@@ -285,12 +290,13 @@ class CanaryScope:
         self.app_id, self.prod_mode = app_id, prod_mode
         self.create_context = dict(create_context)
         writer.event_resolver = self.callback
+        writer.order_validator = self.validate_order
 
     def __call__(self, event):
         return self.callback(event)
 
     def action(self):
-        return self.writer.capture.action()
+        return self.writer.action()
 
     def create(self, context):
         if context != self.create_context:
@@ -315,6 +321,16 @@ class CanaryScope:
             )
         else:
             raise ValueError("canary callback event")
+        self.validate_order(order)
+        digest = hashlib.sha256(("noteai-" + provider + "-event-id-v1").encode()
+                                + b"\0" + event.provider_event_id.encode()).hexdigest()
+        return CanaryWriter(self.writer.capture, self.writer.connect,
+                            self.writer.transaction_type, event_hash=digest,
+                            admission_check=self.writer.admission_check)
+
+    def validate_order(self, order):
+        import payment_contract
+        provider = self.writer.capture.context["provider"]
         if (not order or order["user_id"] != self.user_id
                 or order["idempotency_key_hash"] != self.key_hash
                 or order["provider"] != provider
@@ -322,10 +338,175 @@ class CanaryScope:
                 or order["provider_mode"] != ("live" if self.prod_mode else "mock")
                 or order["amount_fen"] != 1200 or order["currency"] != "CNY"):
             raise ValueError("canary callback order")
-        digest = hashlib.sha256(("noteai-" + provider + "-event-id-v1").encode()
-                                + b"\0" + event.provider_event_id.encode()).hexdigest()
-        return CanaryWriter(self.writer.capture, self.writer.connect,
-                            self.writer.transaction_type, event_hash=digest)
+
+
+def configured_runtime(role, database):
+    try:
+        return _configured_runtime(role, database)
+    except Exception:
+        # Uvicorn prints startup exceptions. Never expose connection/config data.
+        raise ValueError("ITEM31_RUNTIME_BINDING_FAILED") from None
+
+
+def _configured_runtime(role, database):
+    """Explicit existing-canary startup binding. Defaults do not open a socket/DB.
+
+    The reviewed non-secret JSON is mounted separately from credentials. This
+    does not install triggers, choose identities, enable callbacks or call a
+    provider. Invalid/incomplete activation never falls back to ordinary SQL.
+    """
+    path = os.environ.get("NOTEAI_ITEM31_DML_BINDING_FILE", "")
+    digest = os.environ.get("NOTEAI_ITEM31_DML_BINDING_SHA256", "")
+    enabled = os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "") == "1"
+    if not (path or digest or os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "") not in {"", "0"}):
+        return None
+    if (not enabled or not path or not re.fullmatch(r"[0-9a-f]{64}", digest)
+            or role not in {"api", "payment", "payment-canary"}
+            or os.environ.get("NOTEAI_RUNTIME_ROLE") != role
+            or os.environ.get("NOTEAI_DEPLOYMENT_STAGE") != "production"
+            or not database.using_postgres()):
+        raise ValueError("item31 runtime binding required")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, "rb") as handle:
+        metadata = os.fstat(handle.fileno())
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                or metadata.st_uid not in {0, os.geteuid()}
+                or stat.S_IMODE(metadata.st_mode) & 0o022 or metadata.st_size > 16384):
+            raise ValueError("item31 binding file metadata")
+        raw = handle.read(16385)
+    if hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError("item31 binding file hash")
+    binding = json.loads(raw)
+    if set(binding) != {"activation", "provider", "targets", "work_directory",
+                        "user_id", "idempotency_key_hash", "app_id", "create_context",
+                        "reconciliation_run_id"}:
+        raise ValueError("item31 binding fields")
+    if binding["provider"] != os.environ.get("NOTEAI_PAYMENT_CANARY_PROVIDER"):
+        raise ValueError("item31 provider binding")
+    import payment_contract
+    import payment_adapter_runtime
+    if (binding["app_id"] != payment_adapter_runtime.configured_app_id(binding["provider"])
+            or not payment_adapter_runtime.configured_prod_mode(binding["provider"])):
+        raise ValueError("item31 configured provider identity")
+    expected_user = payment_contract._hash("payment-canary-user-v1", binding["user_id"])
+    if (os.environ.get("NOTEAI_PAYMENT_CANARY_USER_ID_SHA256") != expected_user
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_SUBJECT_HASH") != payment_contract._subject_hash(binding["user_id"])
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_AMOUNT_FEN") != "1200"
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION") != "ITEM31-SYNTHETIC-NO-REAL-USER"):
+        raise ValueError("item31 subject binding")
+    context = binding["create_context"]
+    if (not isinstance(context, dict) or set(context) != {"provider", "activation_identity_sha256",
+            "user_identity_sha256", "idempotency_identity_sha256"}
+            or context["provider"] != binding["provider"] or context["user_identity_sha256"] != expected_user
+            or any(not re.fullmatch(r"[0-9a-f]{64}", context[key]) for key in context if key != "provider")):
+        raise ValueError("item31 create context")
+    if role == "api" and (context["activation_identity_sha256"] != payment_contract._hash(
+            "payment-canary-activation-v1", os.environ.get("NOTEAI_PAYMENT_CANARY_ACTIVATION_ID", ""))
+            or context["idempotency_identity_sha256"] != os.environ.get("NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256")):
+        raise ValueError("item31 API activation binding")
+    if binding["reconciliation_run_id"] is not None:
+        run_id = _uuid(binding["reconciliation_run_id"])
+        if (binding["targets"].get("payment_reconciliation_runs") != ["id", run_id]
+                or binding["targets"].get("payment_reconciliation_items") != ["run_id", run_id]):
+            raise ValueError("item31 reconciliation target")
+    # Reuse the existing renderer's bounds; rendering does not execute DDL.
+    installation_sql(binding["activation"], binding["targets"])
+    if not (ALLOWED_TABLES | {"users", "usage_records", "payment_credit_consumptions"}).issubset(binding["targets"]):
+        raise ValueError("item31 reachable writer coverage")
+    if (binding["targets"].get("credits") != ["user_id", binding["user_id"]]
+            or binding["targets"].get("payment_orders") != ["idempotency_key_hash", binding["idempotency_key_hash"]]):
+        raise ValueError("item31 target subject")
+    return CanaryRuntime(role, database, binding)
+
+
+class CanaryRuntime:
+    """Payment owns capture; API/operator connect once to that exact capture.
+
+    An orderly Payment shutdown first closes the broker to all new/active peers,
+    then seals only a complete capture. Stop API/operator admission and let their
+    admitted actions finish before stopping Payment. Open action EOF is UNKNOWN.
+    Resolver references stay installed until process exit; no default fallback.
+    """
+
+    def __init__(self, role, database, binding):
+        self.role, self.database, self.binding = role, database, binding
+        self.connections, self.capture, self.broker, self.proxy = [], None, None, None
+        self.result = None
+        directory = Path(binding["work_directory"])
+        metadata = os.lstat(directory)
+        if (not directory.is_absolute() or not stat.S_ISDIR(metadata.st_mode)
+                or metadata.st_uid != os.geteuid() or stat.S_IMODE(metadata.st_mode) != 0o700):
+            raise ValueError("item31 existing private work directory")
+        self._admission_check()
+        context = {"activation": binding["activation"], "provider": binding["provider"],
+                   "coverage_sha256": coverage_sha256(binding["targets"])}
+        try:
+            if role == "payment":
+                self.connections = [self._connect()]
+                self.connections.append(self._connect())
+                self.capture = CanaryCapture(*self.connections, activation=binding["activation"],
+                    targets=binding["targets"], provider=binding["provider"], journal=directory / "canary-dml.jsonl")
+                broker = CaptureBroker(self.capture, directory / "capture.sock")
+                broker.__enter__()
+                self.broker = broker
+                capture = self.capture
+            else:
+                # The API container's namespace must exist before Payment can
+                # join it. Wait only for socket creation BEFORE the first and
+                # only connection. Never reconnect an interrupted capture.
+                until = time.monotonic() + 15
+                while not os.path.lexists(directory / "capture.sock") and time.monotonic() < until:
+                    time.sleep(0.05)
+                self.proxy = CaptureProxy(directory / "capture.sock", context=context)
+                capture = self.proxy
+            self.writer = CanaryWriter(capture, self._connect, database.Transaction,
+                                       admission_check=self._admission_check)
+            self.scope = CanaryScope(self.writer, database.fetchone, user_id=binding["user_id"],
+                idempotency_key_hash=binding["idempotency_key_hash"], app_id=binding["app_id"],
+                prod_mode=True, create_context=binding["create_context"])
+        except BaseException:
+            self.close(clean=False)
+            raise
+
+    def _connect(self):
+        connection = self.database.get_conn()
+        try:
+            if connection.info.transaction_status != TransactionStatus.IDLE:
+                raise ValueError("item31 connection is not fresh")
+            connection.autocommit = True  # Before any SQL; retains CompatRow.
+            return connection
+        except BaseException:
+            connection.close()
+            raise
+
+    def _admission_check(self):
+        starts = os.environ.get("NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH", "")
+        expires = os.environ.get("NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH", "")
+        if (not starts.isascii() or not starts.isdigit() or not expires.isascii() or not expires.isdigit()
+                or str(int(starts)) != starts or str(int(expires)) != expires
+                or not int(starts) <= time.time() <= int(expires)
+                or not 0 < int(expires) - int(starts) <= 3600):
+            raise ValueError("item31 action window closed")
+
+    def close(self, *, clean=True):
+        try:
+            if self.proxy is not None:
+                self.proxy.close()
+                self.proxy = None
+            if self.broker is not None and self.broker.server is not None:
+                self.broker.__exit__(None, None, None)
+                self.broker = None
+            if self.capture is not None and not self.capture.handle.closed:
+                if clean:
+                    self.result = self.capture.finish(admission_closed=True)
+                else:
+                    self.capture.broken = True
+        finally:
+            if self.capture is not None and not self.capture.handle.closed:
+                self.capture.handle.close()
+            for connection in self.connections:
+                connection.close()
+            self.connections = []
 
 
 class CaptureBroker:

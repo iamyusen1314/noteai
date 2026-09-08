@@ -81,6 +81,7 @@ RUN pip install --no-cache-dir -r requirements-api.txt \
 
 # 复制代码
 COPY model/ ./model/
+COPY tools/collect_item31_canary_dml.py ./model/
 COPY deploy/production/execute_item34_tracking.py tools/execute_item34_tracking_checkpoint.py ./model/
 COPY scripts/docker_entrypoint.sh scripts/render_start_api.sh scripts/render_start_admin.sh \
     scripts/render_start_payment.sh \

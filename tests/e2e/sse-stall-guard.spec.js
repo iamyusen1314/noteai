@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./offline-fixture');
 
 async function openApp(page) {
   await page.addInitScript(() => {

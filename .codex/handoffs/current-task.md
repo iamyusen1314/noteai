@@ -1,5 +1,73 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 executable payment binding, financial coverage and offline UI milestone
+
+Continued after679ed35; no program stop. Actual API/Payment startup/shutdown and
+existing payment_canary_executor.main now assemble the existing collector. Payment
+owns its one capture/broker; API/operator use same-UID, one-connection proxies.
+Docker now includes the existing collector module. Reviewed file/hash/activation/
+subject/key/app/coverage checks fail closed; a different-key operator order is
+rejected before gateway/admission. Dedicated writer connections adapt the normal
+non-autocommit CompatRow connection before SQL. Normal shutdown seals only after
+closing broker admission; active disconnect/ACK loss remains UNKNOWN, and a
+completed capture cannot be overwritten by restart. No production collector,
+provider, payment or service was enabled.
+
+Actual Python3.11/linux-amd64, network-none PG16:44 tests PASS (19 collector,
+13 actual HTTP/financial/lifecycle cases,12 Item36 renderer cases). The lifecycle
+case executes real ASGI hooks and existing CLI binding; unrelated model/prompt
+warmup and real provider/production role checks are mocked. It does not prove
+cross-container startup timing or production privileges. Financial checks cover
+payment query, full refund, refund query, matched/mismatch/missing reconciliation,
+duplicate bill/no extra DML, settlement, early callback before provider response,
+and registration/COMMIT ACK loss. Normal contract/gateway/operator regressions
+99 PASS after the binding changes (earlier111 included12 renderer checks).
+Final log `/private/tmp/noteai-prep-20260908/canary-complete-pg311.log`;
+image `noteai-local/canary-writers:20260908-complete`. Prior failed/fixed startup
+and financial logs remain in the same directory: a fixture restored all
+sys.modules and caused NumPy reimport errors; another assertion used a nonexistent
+status column instead of payment_status. Both corrected; no production failure.
+
+Item36 existing renderer now renders the actual API-F Payment namespace with
+separate immutable-image binding and exact prior-unit/absence rollback semantics.
+Prepared `/private/tmp/noteai-prep-20260908/payment-api-f/noteai-payment.service.candidate`
+SHA67291769f8643d7ef1e3a234bb1affa5735cbb83936bece49f7ffc257400ddfe,
+uses container:noteai-api-f, callback1, no public port; real published Payment
+image remains an explicit placeholder. Old API-F unit/input hash remains
+f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936.
+No prior Payment unit is fabricated for LAST_KNOWN absence. Current candidate
+API/Payment images and real local namespace/health rehearsal are NEXT IN PROGRESS.
+
+Item37's four existing UI specs now use a shared offline fixture: owned static
+origin/finite asset GETs, synthetic runtime-config, unmocked HTTP/WebSocket blocked,
+service workers disabled. NOTEAI_E2E_OFFLINE=1 selects exactly these four files
+and an exclusive5187 server; no backend/real session/.env.16 scenarios PASS
+with actual installed Playwright Chromium; existing trusted browser dependencies
+were downloaded locally. Log item37-offline.log under the same temporary root.
+These mocked UI checks are preparation, not commercial E2E or Item37 acceptance.
+
+Item34 same-note newT0 is a prospective design, not a new observation. Canonical
+T0 metrics require a fresh authenticated source read; normal POST schedules a row
+but supplies no initial source metrics. New browser T0 work is separately bounded
+from the subsequent two Tracking provider admissions; unknown fees/call counts
+are not0. Original failed window is permanently sealed. Item32 archive's four
+members/seven bindings match; only its expired dates require a future approved
+same-successor rebind. Item35 existing10 frozen hashes match; external signatures
+remain external and do not suspend local work. Details remain in the existing plan.
+
+Resource readback path: one local aliyun sts GetCallerIdentity returned an
+unconfigured CLI error before identity readback; no retry or credential file read.
+A fresh ECS console tab shows the Aliyun login page; existing API-F Workbench
+terminal remains readable. This does not prove every old console session expired.
+API-C/current ALB/TLS/account quote remain UNVERIFIED/LAST_KNOWN, not new measured
+facts. No new privilege, resource, DNS, production write or push. Readiness30/38.
+
+Changed: Dockerfile, API/Payment/canary/contract/collector, PG and renderer tests,
+existing private-bind renderer, Playwright config and four existing specs/shared
+fixture, plan/Handoff/risk. Next: commit this source, build only affected actual
+API and Payment role candidates with verified LFS bytes, then run local health,
+namespace-replacement and startup-order checks. Checkpoint is not PROGRAM_STOP.
+
 ## September8 independent engineering milestone — payment HTTP and process capture
 
 The current source now propagates the explicit canary transaction factory through

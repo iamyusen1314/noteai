@@ -2470,6 +2470,7 @@ def reconcile_bill(
     provider_name: str = "adapay",
     now: datetime | None = None,
     transaction_factory=None,
+    reconciliation_run_id=None,
 ) -> dict[str, Any]:
     """Compare a bounded canonical provider bill without persisting raw rows."""
     selected_provider = _provider_name(provider_name)
@@ -2510,7 +2511,8 @@ def reconcile_bill(
             }
         )
     clock = _iso(now)
-    run_id = str(uuid.uuid4())
+    run_id = (_uuid(reconciliation_run_id, "reconciliation_run_id")
+              if reconciliation_run_id is not None else str(uuid.uuid4()))
     source_sha256 = hashlib.sha256(source).hexdigest()
     mode = "live" if prod_mode else "mock"
     payment_total = sum(

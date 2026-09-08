@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 import unittest
 
-from tools.prepare_item36_private_bind import render_image_update, render_private_bind
+from tools.prepare_item36_private_bind import render_image_update, render_private_bind, render_payment_namespace
 
 
 UNIT = (
@@ -15,6 +15,38 @@ UNIT = (
 
 
 class Item36PrivateBindPreparationTests(unittest.TestCase):
+    def test_payment_first_enable_uses_actual_api_namespace_and_preserves_absence(self):
+        source = (Path(__file__).parent / "fixtures/item36-api-f.service").read_bytes()
+        template = (Path(__file__).resolve().parents[1] / "deploy/production/systemd/noteai-payment.service.template").read_bytes()
+        candidate, rollback = render_payment_namespace(
+            source, expected_sha256=hashlib.sha256(source).hexdigest(), template=template,
+            callback_enabled=True,
+        )
+        self.assertIsNone(rollback)
+        self.assertIn(b"--network=container:noteai-api-f", candidate)
+        self.assertIn(b"Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1\n", candidate)
+        self.assertIn(b"@@NOTEAI_PAYMENT_IMAGE@@", candidate)
+        self.assertNotIn(b"@@NOTEAI_API_CONTAINER@@", candidate)
+        self.assertNotIn(b"--publish", candidate)
+
+    def test_payment_image_binding_and_existing_disabled_unit_exact_rollback(self):
+        template = (Path(__file__).resolve().parents[1] / "deploy/production/systemd/noteai-payment.service.template").read_bytes()
+        image = "registry.example.invalid/payment@sha256:" + "c" * 64
+        prior = b"[Service]\n# separately reviewed disabled prior unit\n"
+        candidate, rollback = render_payment_namespace(
+            UNIT, expected_sha256=hashlib.sha256(UNIT).hexdigest(), template=template,
+            payment_image=image, prior_unit=prior, prior_sha256=hashlib.sha256(prior).hexdigest(),
+        )
+        self.assertEqual(rollback, prior)
+        self.assertIn(b"--network=container:noteai-api-c", candidate)
+        self.assertEqual(candidate.count(image.encode()), 2)
+        self.assertNotIn(b"@@", candidate)
+        for options in ({"template": template + b"# drift\n"}, {"payment_image": "payment:latest"},
+                        {"callback_enabled": "1"}, {"prior_unit": prior, "prior_sha256": "0" * 64}):
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                render_payment_namespace(UNIT, expected_sha256=hashlib.sha256(UNIT).hexdigest(),
+                                         **{"template": template, **options})
+
     def test_actual_reviewed_api_f_unit_can_bind_and_preserve_exact_rollback(self):
         source = (Path(__file__).parent / "fixtures/item36-api-f.service").read_bytes()
         digest = "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936"

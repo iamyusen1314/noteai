@@ -46,6 +46,23 @@ app = FastAPI(
 )
 
 
+@app.on_event("startup")
+async def startup():
+    if (os.environ.get("NOTEAI_ITEM31_DML_BINDING_FILE") or os.environ.get("NOTEAI_ITEM31_DML_BINDING_SHA256")
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "") not in {"", "0"}):
+        import collect_item31_canary_dml
+        runtime = collect_item31_canary_dml.configured_runtime("payment", db)
+        app.state.item31_canary_runtime = runtime
+        app.state.item31_canary_callback_resolver = runtime.scope
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    runtime = getattr(app.state, "item31_canary_runtime", None)
+    if runtime is not None:
+        runtime.close()
+
+
 def _enabled(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in _TRUE_VALUES
 
