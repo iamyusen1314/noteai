@@ -226,15 +226,24 @@ def restore(wrapper, journal, saved):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("run", "restore"))
+    parser.add_argument("action", choices=("run", "restore", "managed"))
     parser.add_argument("--journal", type=Path, required=True)
     parser.add_argument("--stage", choices=("24h", "3d"))
     parser.add_argument("--track-id")
     parser.add_argument("--image")
+    parser.add_argument("--current-image")
+    parser.add_argument("--image-id")
     parser.add_argument("--restore-from", type=Path)
     args = parser.parse_args(argv)
     if os.geteuid() != 0:
         raise ValueError("root_required")
+    if args.action == "managed":
+        if (not all((args.image, args.current_image, args.image_id))
+                or any((args.stage, args.track_id, args.restore_from))):
+            raise ValueError("managed_arguments")
+        return execute_managed(args)
+    if args.current_image or args.image_id:
+        raise ValueError("managed_arguments_require_managed_action")
     if args.action == "run" and (not all((args.stage, args.track_id, args.image)) or args.restore_from):
         raise ValueError("run_arguments")
     if args.action == "restore" and (not args.restore_from or any((args.stage, args.track_id, args.image))):
@@ -265,6 +274,41 @@ def main(argv=None):
         try:
             journal.write("exception", exception_class=type(exc).__name__, code=code,
                           provider_replay_allowed=False)
+        except OSError:
+            pass
+        raise
+    finally:
+        journal.close()
+
+
+def execute_managed(args):
+    """Separate managed-unit action; never load or execute the old sampler.
+
+    This is an execution entry, not authorization. The existing plan currently
+    keeps production PAUSED. A future owner-approved one-shot service may call
+    it with the reviewed source and actual registry/config identities.
+    """
+    if __package__:
+        from . import prepare_item34_managed_tracking as managed
+    else:
+        import prepare_item34_managed_tracking as managed
+    template = ROOT / "deploy/production/systemd/noteai-xhs-tracking.service.template"
+    journal = Journal(args.journal)
+    try:
+        journal.write("start", action="managed", pid=os.getpid(),
+                      managed_source_sha256=hashlib.sha256(Path(managed.__file__).read_bytes()).hexdigest())
+        adapter = managed.NativeHostAdapter(args.journal.parent)
+        result = managed.rehearse(
+            adapter, journal, template=template.read_bytes(), current_image=args.current_image,
+            candidate_image=args.image, image_id=args.image_id,
+        )
+        journal.write("result", result=result)
+        print(json.dumps(result, sort_keys=True))
+        return 0 if (result["status"] == "INCOMPLETE" and result["restored"] is True
+                     and result["failed_steps"] == []) else 1
+    except Exception as exc:
+        try:
+            journal.write("exception", exception_class=type(exc).__name__, provider_replay_allowed=False)
         except OSError:
             pass
         raise

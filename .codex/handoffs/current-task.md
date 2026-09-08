@@ -1,5 +1,57 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Continued execution — September8; existing durable launcher integrated for managed preparation
+
+Continued from `b18feea`. `tools/run_item34_tracking_durable.py` now has a separate
+`managed` action using its existing exclusive Journal and the prepared native
+adapter. It requires explicit current image, candidate registry image and config
+ID; old stage/track/restore arguments are rejected. It never loads the frozen old
+sampler. UNKNOWN is nonzero; even successful process completion returns partial
+INCOMPLETE managed evidence, not terminal credit. Initial journal failure prevents
+adapter construction. The old run/restore behavior and frozen wrapper bytes are
+unchanged, and the new host code has NOT been uploaded or executed in production.
+The preparation module itself retains its render-only CLI.
+
+The existing execution plan now includes the concrete future non-restarting
+systemd-run invocation for this action, reusing the existing source/workdir
+layout and journal. A Workbench disconnect does not terminate such an authorized
+transient host process; this preparation did not create that service. A lost
+launch response requires exact service/journal readback, never another launch.
+An incomplete/crash-tail record is not completion, and a pending manager job or
+failed/foreign state remains UNKNOWN. New target/anchor/count authorization is
+still absent, and the URL clarification is pending; no date/identity is rolled.
+
+17 actual Python3.11 isolated tests pass:3 new launcher boundary cases and14
+existing durable regressions, including unchanged approved wrapper hash and
+safety restore under journal failure. No historical production acceptance was
+rerun. Latest local test image `noteai-local/managed-prep:20260908-launcher-final`;
+logs `/private/tmp/noteai-prep-20260908/managed-launcher-python311.log` and
+`managed-launcher-build.log`. This follows25 native/managed tests and the three
+actual local Docker projection checks already saved below.
+
+The final defensive exit check also passes in Python3.11: exit0 requires explicit
+INCOMPLETE status, restored=true and an empty failed_steps list. Even an
+inconsistent UNKNOWN result claiming successful restoration remains nonzero.
+Log: `/private/tmp/noteai-prep-20260908/managed-launcher-exit-final.log`.
+
+Workbench later disconnected and had a stale multiline paste confirmation from
+the earlier unsubmitted read command. That confirmation was cancelled; the old
+multiline command was never run. Existing passwordless root access was restored
+without new privileges or owner intervention. After the08:03:48 Beijing login,
+fresh read-only API and Trends projections both report NeedDaemonReload=no.
+Tracking's earlier Job empty/NDRno is time-qualified below; no claim that a future
+global manager reload is automatically safe is inferred. Actual host python3 is
+3.11.6. No daemon-reload, start/stop, credential read, business DB or provider
+operation was performed in this continuation. Readiness remains30/38. Production
+execution remains PAUSED; no automation was resumed. Unread cloud/automation
+state remains LAST_KNOWN. Protected7 untouched; no Git push.
+
+At08:12:31–34 Beijing, the only running local test container,
+`noteai-prep-rowfactory`, was stopped, then Colima profile `noteai-prep` was stopped.
+Fresh `colima list` confirmed both `default` and `noteai-prep` Stopped. No images,
+archives or logs were deleted; disposable test PostgreSQL tmpfs data is not a
+production artifact. No production service was stopped by this local cleanup.
+
 ## Continued execution — September8 07:42; bounded native managed adapter prepared locally
 
 Continued after `e700b36`; no stop at the preparation checkpoint. The same

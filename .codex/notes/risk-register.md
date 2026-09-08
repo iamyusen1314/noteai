@@ -1,5 +1,23 @@
 # Risk Register
 
+## September8 managed launcher preparation
+
+- The existing durable runner now exposes a mutually exclusive managed action,
+  without entering the old sampler or granting authorization. Initial logging
+  failure blocks all host dispatch, UNKNOWN returns nonzero, and completion of
+  this process is still INCOMPLETE managed acceptance.17 new/existing launcher
+  tests pass in actual isolated Python3.11; no production execution or upload.
+- The concrete non-restarting host invocation is now in the current plan.
+  A lost launch response must be read back through that exact unit/journal and
+  not relaunched. No automatic resume, timer or old-window restart is created.
+  The owner-selected new target and count-compatible observation scope remain
+  pending; they have not blocked the independent local work recorded here.
+- API-F host Python3.11.6 is now read back. After reconnecting at08:03 Beijing,
+  API/Trends both report NDRno; these are point-in-time observations, not blanket
+  permission for future global reload. Production execution remains PAUSED;
+  no automation was resumed, and unread cloud/automation state is LAST_KNOWN.
+  Readiness remains30/38.
+
 ## September8 07:42 bounded native managed preparation
 
 - The native adapter is now implemented and locally tested, superseding the

@@ -12,6 +12,7 @@ from types import SimpleNamespace
 
 from tools import prepare_item34_managed_tracking as managed
 from tools.run_item34_tracking_durable import Journal
+from tools import run_item34_tracking_durable as durable_managed
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -531,3 +532,51 @@ class NativeManagedBindingTests(unittest.TestCase):
         lock_directory.chmod(0o0777)
         with self.assertRaisesRegex(ValueError, "managed_directory_identity"), adapter.locked():
             self.fail("unsafe lock directory accepted")
+
+
+class ManagedLauncherTests(unittest.TestCase):
+    def args(self):
+        return ["managed", "--journal", "/unopened/managed.host.jsonl", "--image", NEW,
+                "--current-image", OLD, "--image-id", CONFIG]
+
+    def test_managed_action_reuses_journal_and_never_loads_frozen_sampler(self):
+        result = {"status": "INCOMPLETE", "restored": True, "failed_steps": [], "partial": {}}
+        with mock.patch.object(durable_managed.os, "geteuid", return_value=0), \
+                mock.patch.object(durable_managed, "Journal") as journal, \
+                mock.patch.object(durable_managed, "load_wrapper") as old_sampler, \
+                mock.patch.object(managed, "NativeHostAdapter") as adapter, \
+                mock.patch.object(managed, "rehearse", return_value=result) as rehearsal, \
+                mock.patch("builtins.print"):
+            self.assertEqual(durable_managed.main(self.args()), 0)
+            old_sampler.assert_not_called()
+            adapter.assert_called_once_with(Path("/unopened"))
+            self.assertEqual(rehearsal.call_args.kwargs["candidate_image"], NEW)
+            self.assertEqual(rehearsal.call_args.kwargs["current_image"], OLD)
+            journal.return_value.close.assert_called_once()
+
+    def test_unknown_result_is_nonzero_and_mixed_old_arguments_are_rejected(self):
+        result = {"status": "UNKNOWN", "restored": False, "failed_steps": ["stop"], "partial": None}
+        with mock.patch.object(durable_managed.os, "geteuid", return_value=0), \
+                mock.patch.object(durable_managed, "Journal"), \
+                mock.patch.object(durable_managed, "load_wrapper") as old_sampler, \
+                mock.patch.object(managed, "NativeHostAdapter"), \
+                mock.patch.object(managed, "rehearse", return_value=result) as rehearsal, \
+                mock.patch("builtins.print"):
+            self.assertEqual(durable_managed.main(self.args()), 1)
+            rehearsal.return_value = {**result, "restored": True, "failed_steps": []}
+            self.assertEqual(durable_managed.main(self.args()), 1)
+            with self.assertRaisesRegex(ValueError, "managed_arguments"):
+                durable_managed.main(self.args() + ["--stage", "24h"])
+            with self.assertRaisesRegex(ValueError, "managed_arguments_require_managed_action"):
+                durable_managed.main(["run", "--journal", "/unopened/old", "--current-image", OLD])
+            old_sampler.assert_not_called()
+
+    def test_initial_journal_failure_prevents_adapter_construction(self):
+        with mock.patch.object(durable_managed.os, "geteuid", return_value=0), \
+                mock.patch.object(durable_managed, "Journal") as journal, \
+                mock.patch.object(managed, "NativeHostAdapter") as adapter:
+            journal.return_value.write.side_effect = OSError("disk_failure")
+            with self.assertRaises(OSError):
+                durable_managed.main(self.args())
+            adapter.assert_not_called()
+            journal.return_value.close.assert_called_once()

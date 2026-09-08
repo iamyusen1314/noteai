@@ -22,7 +22,7 @@ The native host binding is now implemented in that same module, with the origina
 lock, exact file/CAS, bounded commands and restricted Docker projections. A start
 timeout with an outstanding systemd job must receive a bounded stop even if no
 container is visible; unresolved stop/job or foreign state prevents restoration.
-It has no live CLI entry and does not satisfy managed terminal fields.25 managed
+The prepared native binding does not satisfy managed terminal fields.25 managed
 cases pass in actual Python3.11 isolation; native operations are tested through
 an injected runner/temporary filesystem. Three actual local Docker create-only
 projection cases pass without exposing environment values. No real systemd start,
@@ -34,6 +34,36 @@ evidence, and the owner-selected new target/anchor/count compatibility. Durable
 original/intent records support interrupted readback; no automatic resume/replay
 or process-kill recovery success is claimed. Failed services, outstanding jobs or
 concurrent changes remain explicit UNKNOWN rather than an unapproved reset/retry.
+
+The existing durable launcher now has the separate `managed` action below. It
+does not load the old sampler and rejects stage/track/restore arguments. Initial
+journal failure prevents dispatch; UNKNOWN is nonzero and successful process
+completion remains INCOMPLETE.17 Python3.11 launcher/default-path regressions pass.
+Current API-F host Python is3.11.6; after08:03 Beijing reconnect its API and Trends
+both show NeedDaemonReload=no, without any actual reload or service action.
+
+The following is **prepared command material, not authorization to execute**.
+Reuse the existing host source/workdir layout and its root-only journal directory;
+bind actual paths and freshly read image/config IDs only in the future approved
+application. Include the updated durable launcher, managed helper, its existing
+private-bind helper import and frozen Tracking template. Do not use or overwrite
+the old completed sampler's journal, unit name or archived host bundle.
+
+```bash
+sudo -n systemd-run --unit=noteai-item34-managed-once --property=Restart=no \
+  --property=UMask=0077 /usr/bin/python3 \
+  "$ITEM34_SOURCE/tools/run_item34_tracking_durable.py" managed \
+  --current-image "$CURRENT_TRACKING_IMAGE" --image "$REAL_ACR_VPC_DIGEST" \
+  --image-id "$REAL_IMAGE_CONFIG_ID" --journal "$ITEM34_WORKDIR/managed.host.jsonl"
+```
+
+This one-shot host process is independent of the Workbench connection. Confirm
+the exact unit/journal are unused before an authorized launch; an uncertain
+response requires exact unit/journal readback, never relaunch. Existing log and
+original-unit/intent records must survive interruption. No timer, automatic
+resume, broad reset or old-window restart is added. This entry has not been
+uploaded/run in production; a new target/anchor/count-compatible owner scope is
+still needed before any new production execution.
 
 September8 07:11–07:24 Beijing API-F read-only configuration checks confirm
 Tracking disabled/inactive/dead and no running service-labelled container, unit

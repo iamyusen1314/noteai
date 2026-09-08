@@ -3,8 +3,9 @@
 
 No host command, environment file, database, supplier or observation is opened.
 Inputs are separately reviewed Secret-free unit copies and restricted native
-readbacks. The injectable rehearsal has no live CLI entry;
-the CLI only renders files. Returned controls are partial existing
+readbacks. This module's CLI only renders files; the existing durable launcher
+has a separate managed action requiring future production authorization.
+Returned controls are partial existing
 managed_promotion fields and cannot issue terminal Evidence.
 """
 
@@ -67,7 +68,8 @@ def container_projection_format():
 class NativeHostAdapter:
     """Bounded Linux host binding; constructing it executes nothing.
 
-    No live CLI entry is provided. A future explicitly authorized caller must
+    The existing durable launcher's separate managed action calls this class;
+    a future explicitly authorized caller must
     supply its private existing Journal directory. Tests inject a runner and
     filesystem root; they never invoke production commands. The shared lock
     is the existing Item34 sampler lock, not a new receipt or admission scheme.
