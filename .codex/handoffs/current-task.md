@@ -1,5 +1,69 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 13:31 Beijing — all currently independent local preparation completed
+
+Final source checkpoint fcc863f65ad1d3d788e8936ef1284a9ab27ad025 has a runnable
+single XHS candidate and complete host transfer files. XHS archive:
+/private/tmp/noteai-prep-20260908/item34-xhs-fcc863f-linux-amd64.docker.tar.gz
+377808949bytes / SHA f4e39dbcd57fcc9c4eef63f8db6ffde8a0e8a108ebce1c7ed41637a86d7a9ed3.
+Exactly one tag,27 content blobs verified; actual Docker load and source identity
+readback match. Local .Id ab538ef4...ae2dc94 is an OCI INDEX, not config; archive
+config39dac3bb...719f01. Neither is an ACR publication digest. Preserve actual
+fcc source despite later documentation checkpoint; do not rebuild other roles.
+
+Host archive /private/tmp/noteai-prep-20260908/item34-host-fcc863f.tar:
+11 regular members/256000bytes/SHA1ccdcd629f7a32c6e7d71f23f379345b42a4ad2aee6ed822d8f1094d907698b7.
+It includes existing wrapper/checkpoint/durable/managed/private-bind helper,
+frozen Tracking template,0020/three SQL and0019 verify, all source-matched.
+No credentials, real observation binding or new T0 are included. No upload/push.
+
+Final image:116 packaged files including3 realLFS models, Python3.11.15/amd64/
+UID999/xhs-http labels match; no Playwright. Actual nativeentrypoint _config_snapshot
+runs as localnoteai_app against isolatedPG16.15 and reads only prepared nonsecret
+config. Actual Docker projection includes only allowed env keys, rejects unrelated
+syntheticSecret disclosure; worker never started. Exact temporaryDB and LOGIN
+property restored.23 packaged PG16 tests pass3.342s.117 execution/recovery/Evidence
+offline checks pass; old31 Tracking/performance tests had passed earlier.
+Build,actual-entrypoint/source/PG/projection/load/integrity logs all remain under
+/private/tmp/noteai-prep-20260908 with xhs-fcc863f prefixes. One test-context copy
+assumed nonexistent tests/__init__.py; corrected only the temporary context.
+No production or provider test, long-window proof, or terminal credit is claimed.
+
+Independent audits atfcc863f: Item32 unique archive4members/7bindings still match;
+no repack/rebind/newidentity/dispatch. Item35 all10 frozen hashes match, existing
+2categories/4document approvals unchanged; no selfsign/newgate. Item37/38 have no
+remaining identified offline implementation gap; actualcommercial/DNS facts pending.
+API/Payment f3 archives and Item31 fulltransactioncanary tests remain ready as
+indexed below. F unit/privatebind/Payment/rollback inputs are concrete; actual C
+unit/ALB/TLS/accountfreshquote still cannot be read without authenticated Aliyun.
+
+PATH scheduling A–D has now exhausted known authorized independent engineering:
+34 local same-object T0/schema/executor/recovery/XHSpackage done, newlive scope
+unapproved;31 PAYMENT_DIRECT_READY_FOR_LIVE, real merchant/ingress/funds outside
+current scope;32 source/recovery/package done, exact expired timing requires a
+future approved same-successor rebind plus freshused0 readback;35 external review
+pending;36 local candidates/F inputs/rollback done, C/TLS/quote require cloudlogin;
+37/38 prepared but terminal predecessors/actualDNS/ownerGoLive missing.
+No new platform/gates/receipts or repeatedtests are created just to keep busy.
+
+PROGRAM_STOP condition10 (with condition1 on the next read-only path): all current
+independent local preparations are complete; only external/owner inputs remain.
+This stop is not caused by Item34 expiry, checkpoint or unchanged score. Owner's
+single next action: log in normally in the existing Aliyun login tab1637490914
+(account.aliyun.com/login), completing MFA there if requested. Do not send secrets
+in chat. This restores the path to Cunit/TLS/ALB/freshquote and realowner metadata;
+it is not production execution approval. After login immediately resume those
+already-authorized read-only inputs, then finalize the same boundednewT0 application.
+No new URL or account is required. Old-window approval remains closed.
+
+Readiness actual static ledger remains30/38 (12/12+17/17+1/9); canonical Evidence
+and manifest are byte-unchanged from9e7f4df. Seven protected paths remain unstaged/
+untracked with no additional content access after the disclosed earlier subagent
+scan. Task's local PG has stopped; no local containers were running before Colima
+stop. Final colima list confirms default and noteai-prep both Stopped. Images,
+archives,volumes,failedlogs and recoverydata remain. No reset/clean/
+stash/productionresume/Gitpush. Final save changes only existing plan/Handoff/risk.
+
 ## September8 prospective Item34 execution material completed; XHS artifact in progress
 
 Continued after3a6f5f9, no production/automation resume. Native0020 (SHA22ef0a2c...

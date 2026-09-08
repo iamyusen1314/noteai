@@ -1,5 +1,21 @@
 # Risk Register
 
+## September8 final local closure and external-only stop
+
+- fcc863f XHS actual image/entrypoint/PG16/source/transfer/load checks pass; host
+  dependencies and SQL are packaged. Docker's local .Id is an OCI index; archive
+  config is a different verified blob. Neither is an ACR digest. Future API-F
+  binding requires real target-host image readback, without relabelling source.
+- Remaining native production image/managed/72h/provider behavior is UNPROVEN.
+  Old failed window remains sealed and provider failure cause unlocated; no
+  new T0 or sampling is authorized by the former9802111 approval.
+- All known independently authorized local31–38 preparations are complete. The
+  next cloud metadata path requires owner Aliyun login; external signatures and
+  new execution/public-launch scopes remain external. PROGRAM_STOP uses owner
+  condition10/1, not a singleItem blockage or readiness pressure. Resume allowed
+  read-only inputs after login; do not request a new note URL or rebuild valid
+  artifacts due to documentation-only changes. Readiness30/38 remains unchanged.
+
 ## September8 prospective generation and clock boundaries
 
 - Same owner-owned note may receive a prospectively authorized new T0. Current

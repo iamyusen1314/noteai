@@ -1,6 +1,6 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `PROGRAM ACTIVE — LOCAL PREPARATION / ITEM34 OLD WINDOW PATH EXPIRED / PRODUCTION PAUSED`
+Status: `LOCAL PREPARATION COMPLETE — EXTERNAL INPUTS PENDING / ITEM34 OLD WINDOW SEALED / PRODUCTION PAUSED`
 
 Date: 2026-09-08 (current scope below; July sections retained as history)
 
@@ -13,6 +13,31 @@ execution history, not authorization to repeat them or run other Items.
 ## Current local preparation — September8 (no production execution approval)
 
 ### Item34 同对象新 T0：实施材料已接通，生产仍未授权
+
+最终可运行XHS产物已保存，源码`fcc863f65ad1d3d788e8936ef1284a9ab27ad025`：
+`/private/tmp/noteai-prep-20260908/item34-xhs-fcc863f-linux-amd64.docker.tar.gz`，
+377808949bytes，SHA256`f4e39dbcd57fcc9c4eef63f8db6ffde8a0e8a108ebce1c7ed41637a86d7a9ed3`。
+唯一tag`noteai-local/xhs:fcc863f`，27个content blobs逐个校验，Docker load回读成功。
+本机Docker `.Id`为OCI index `ab538ef4e1f21e18a9c2c20198b250e88c304d39167fff95ca583a58fae2dc94`；
+archive config为`39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb719f01`，
+二者有真实index→manifest→config关系，均不是已发布ACR digest。未来按API-F实际Docker
+读回的image identity绑定容器，不把本地OCI index冒称config或云端digest。
+
+对应host传输包`/private/tmp/noteai-prep-20260908/item34-host-fcc863f.tar`，
+11个regular成员、256000bytes，SHA256
+`1ccdcd629f7a32c6e7d71f23f379345b42a4ad2aee6ed822d8f1094d907698b7`；
+wrapper/checkpoint/durable、既有managed/private-bind helper、冻结unit、0020及三SQL、
+0019 verify均逐字节匹配，包含恢复所需依赖。没有Secret、真实binding、新T0或日志。
+没有上传/发布，新范围授权与实际owner/ACR会话读回后才可使用。
+
+实际镜像验证：116个打包文件含3个真实LFS模型匹配；Python3.11.15/linux-amd64/
+UID999、xhs-http role及全部源码标签匹配，无Playwright。原生entrypoint执行
+_config_snapshot，以本地noteai_app只读连接隔离PG16.15、读回预置非Secret配置；
+临时DB和LOGIN属性恢复。真实Docker模板只返回允许的绑定环境字段，明确排除另一
+合成Secret字段，未启动worker。最终镜像内23个PG测试3.342s通过，不用旧测试镜像
+覆盖新源码；117个离线执行/恢复/Evidence回归通过。镜像构建使用已授权的可信依赖
+下载，未创建云端Builder；本机执行不冒充API-F生产镜像验收或真实72h观察。
+
 
 复用同一篇 owner-owned 笔记 `6a7954010000000026034707`，不索取新 URL。
 批准依据仍为 `docs/XHS_TRACKING_PRODUCTION_CONTRACT.md:107–112`；旧窗口
@@ -61,6 +86,26 @@ execution history, not authorization to repeat them or run other Items.
    journal，不另建executor/receipt。DDL事务失败rollback；提交后保留schema/ledger/
    history，只停止精确任务、恢复配置和新增ACL，不删除数据或down migration。
 
+未来同会话有界开窗SQL形状如下；所有`<...>`仅在新范围获准、真实T0/owner读回后
+按同一binding替换为审核过的字面量。占位材料不能直接执行；不创建独立迁移/执行体系。
+
+```sql
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SET LOCAL statement_timeout = '30s';
+SET LOCAL lock_timeout = '5s';
+SET LOCAL idle_in_transaction_session_timeout = '45s';
+SELECT public.noteai_item34_open_observation(
+  '<original_track_uuid>', '<original_owner_uuid>', 0,
+  '<sealed_failed_attempt_uuid>', '<fresh_zoned_T0>'::timestamptz,
+  '<fresh_likes_saves_comments_JSON>'::jsonb
+) AS opened_generation;
+COMMIT;
+```
+
+返回1仅代表CAS已知成功；独立读回原track/id/timestamps、generation/T0/initial/
+next_check_at=T0+24h、旧attempt完整hash及零新attempt后，wrapper bind应返回
+ALREADY_BOUND/target_rows_mutated0。失联只做该只读reconcile，不重发开窗SQL。
+
 本地已验证的计数兼容：新采样6表8distinct，加一次0020 ledger为7表9distinct；
 旧核心5表6distinct原样保留，合并13distinct、累计3admissions。distinct不是DML次数。
 新范围必须明确批准该前瞻计数和必要DDL/临时ACL/安全失败副作用。旧认证/注册/900gift
@@ -83,7 +128,7 @@ SQL及host来源（SHA256；均未上传/执行）：
 失败DDL/ledger同事务回滚、原生migration发现/checksum拒绝、完整binding漂移和真实worker
 两阶段写集。31个旧Tracking/性能契约通过。117个checkpoint/wrapper/durable/evidence
 离线回归通过；测试修复曾暴露容器内旧checkpoint遮蔽新工具路径，实际封装必须逐文件核验。
-入口现已放行严格限定的只读_config_snapshot阶段命令，最终生产形状XHS镜像验证进行中。
+入口已放行严格限定的只读_config_snapshot阶段命令，最终XHS镜像验证已通过，见本节顶部。
 旧生产失败原因仍未定位；本地错误码保留修复不能声称供应商已恢复。
 
 
