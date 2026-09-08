@@ -1,5 +1,22 @@
 # Risk Register
 
+## September8 prospective generation and clock boundaries
+
+- Same owner-owned note may receive a prospectively authorized new T0. Current
+  code has generation fencing and isolatedPG16 CAS/SQL proof, not a new live job.
+  Old failed attempt/Evidence/original timestamps remain; current track state and
+  errors would change only through explicit owner CAS. No URL/account workaround.
+- Test fixture is deliberately test-database-only, and local postgres relowner
+  is not proof of production owner permissions. Existing fixed-T0 wrapper and
+  old zero-history budget cannot execute a new generation unchanged. Production
+  SQL/binding/verification materials remain next local work, without applying them.
+- Actual PG counts are conditional:6tables8sampling objects, plus one prospective
+  migration7tables9, old/new union13. Full DML is larger and explicitly retained.
+  No old ledger INSERT or third attempt is disguised as part of the new two calls.
+- Admission and24h successful writes now recheck time after SQL waits. This
+  prevents stale timestamps on the tested boundaries, but COMMIT/snapshot timing
+  still needs the real outer readback. No local test can validate a live72h window.
+
 ## September8 final candidate and local shutdown boundary
 
 - Current API/Payment source is f3deedb; both actual packaged DB helpers now

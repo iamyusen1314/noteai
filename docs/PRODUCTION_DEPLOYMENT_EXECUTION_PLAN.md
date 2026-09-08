@@ -196,11 +196,33 @@ EXPIRED。**不重试24h、不执行3d、不自动重启观察。**下方原批�
    schema不能藏一个T0阶段，7表9/合并13的候选预算必须重算。
 3. 当前实施预算须区分历史和新作业。旧核心真实为5表6distinct；若新增迁移1并沿用其余
    成功写集，新作业候选为迁移1/原track1/新attempt2/growth1/memory1/events2/settings1
-   共7表9distinct；与旧历史合并为13distinct、attempt累计3。该数是待PG验证预算，
-   不是实际DML次数；若迁移单独执行，新采样自身不能冒称7表9行。历史HTTP仍含UNKNOWN。
+   共7表9distinct；与旧历史合并为13distinct、attempt累计3。9月8日隔离PG16已用
+   真实crawler两阶段SQL和Tracking角色验证该条件预算，逐表断言旧events2/settings1，
+   新attempt2/events2及两代合并写集。采样本身为6表8distinct；加一次候选迁移才为
+   7表9。窗口实际DML为track8/attempt4/events2/settings2/growth1/memory1，
+   不能把distinct当实际DML次数。旧历史仍为5表6distinct；历史HTTP仍含UNKNOWN。
 4. 未来申请包含最小迁移及回滚边界、已有合法对象绑定、真实T0、两个时间窗口、两次最多
    2新admission/0重试、权限临时授撤、managed验证及恢复。新一代结果在现有canonical
    文件追加前瞻性部分，旧分支/失败事实不变；需明确批准新的计数口径和执行范围。
+
+本地工程已实现：`model/crawler.py` / `model/tracking_contract.py`显式绑定generation，
+普通调度只claim旧代次；新代次必须同时给出固定track、stage、generation。新T0按
+存储anchor计算窗口和3d due，growth/memory去重身份也按代次隔离，旧代次语义不变。
+全局活动/UNKNOWN及UTC额度跨代次；admission在等锁后复核日期、租约和阶段，
+24h成功写入在等锁后及事务最后复核截止。COMMIT与对应snapshot是否真正早于截止
+仍须实际外层读回证明，不能由事务内时间或本地合成时钟代替。
+
+`tests/fixtures/item34-observation-generation.sql`是可运行的隔离PG16设计夹具，
+数据库名前置限制为`noteai_item34_test_<hex>`，**不是生产迁移或授权执行包**。
+它实现代次唯一键、active attempt跨代FK、只允许真实table owner变更新元数据及
+CAS开窗；不会由render_predeploy发现/应用，也不写真实0019 ledger。普通API式
+宽表INSERT/UPDATE权限不自动获得开窗权限。生产实际relowner及owner撤回路径
+仍需现有合法会话只读确认，不能从测试postgres身份推断noteai_admin。
+未来最小前向迁移须在既有计划/SQL体系中绑定该真实owner和一次新ledger；DDL事务
+未提交可rollback，提交后须保留新schema、旧history及任何新attempt，停精确任务并
+恢复配置/本次新增ACL，不做有数据的down migration或恢复旧时间。旧wrapper仍固定
+原T0/零历史attempt/原源码标签，不能拿此crawler修改冒充新窗口wrapper已可执行。
+新T0和前瞻计数获准后只扩展既有wrapper/validator的显式新窗口分支，旧分支原样封存。
 
 沿用本节原时间规则：24h在[anchor+24h,anchor+72h)，3d在anchor+72h或之后
 （含边界），且晚于24h采样；

@@ -177,7 +177,36 @@ def stage_for_status(status: str) -> str:
     raise TrackingContractError("invalid_tracking_stage")
 
 
-def deterministic_effect_id(track_id: str, effect: str) -> str:
+def observation_generation(note: dict) -> int:
+    generation = note.get("observation_generation", 0)
+    if type(generation) is not int or generation < 0:
+        raise TrackingContractError("invalid_observation_generation")
+    return generation
+
+
+def observation_stage_ready(note: dict, stage: str, now: datetime) -> bool:
+    """Prospective generations use a new T0; generation zero keeps its contract."""
+    if observation_generation(note) == 0:
+        return True
+    try:
+        anchor = datetime.fromisoformat(note["observation_started_at"].replace("Z", "+00:00"))
+        if anchor.tzinfo is None:
+            return False
+        if stage == "24h":
+            return anchor + timedelta(hours=24) <= now < anchor + timedelta(hours=72)
+        previous = datetime.fromisoformat(note["check_24h_at"].replace("Z", "+00:00"))
+        return (stage == "7d" and previous.tzinfo is not None
+                and anchor + timedelta(hours=24) <= previous < anchor + timedelta(hours=72)
+                and now >= anchor + timedelta(hours=72) and now > previous)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
+def deterministic_effect_id(track_id: str, effect: str, *, generation: int = 0) -> str:
     if effect not in {"growth", "memory"}:
         raise TrackingContractError("invalid_tracking_effect")
-    return str(uuid.uuid5(_EFFECT_NAMESPACE, f"{track_id}:terminal:{effect}"))
+    observation_generation({"observation_generation": generation})
+    identity = f"{track_id}:terminal:{effect}"
+    if generation:
+        identity = f"{track_id}:observation:{generation}:terminal:{effect}"
+    return str(uuid.uuid5(_EFFECT_NAMESPACE, identity))

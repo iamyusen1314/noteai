@@ -1,5 +1,54 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September8 same-object generation implementation — execution materials in progress
+
+Continued afterdd6cb9e. Existing crawler/Tracking contract now support an explicitly
+bound prospective generation while ordinary workers keep generation-zero behavior.
+The PG16 fixture keeps the old failed attempt/Evidence and track identity/original
+timestamps, adds owner-controlled T0/initial snapshot, generation uniqueness and
+active-attempt FK fencing. CAS changes the current track state/error/schedule only;
+it is not a replay or automatic observation. Broad table grants cannot change the
+new metadata. Production relowner has not been read back.
+
+Real isolated Python3.11/amd64 PG16:19 tests PASS2.545s; old Tracking/performance
+contracts31 PASS17.232s. Actual crawler two-stage SQL runs as Tracking role with
+synthetic provider results. Per-table assertions match oldevents2/settings1:
+sampling6tables8distinct, plus ONE prospective migration7tables9, combined old/new
+13distinct and3attempts. Actual new window DML track8/attempt4/events2/settings2/
+growth1/memory1. Test-only safety seed and measurement table are not reported as
+production writes. Initial history fixture had the right total but wrong table
+composition; corrected before this checkpoint, prior logs retained.
+
+Lock-boundary synthetic clocks exercise real PG SQL: admission time/day selected
+after global lock, UTC date/lease/stage rechecked after quota SQL; result timestamp
+after row lock and24h deadline rechecked before transaction exit. Stale generation,
+old worker active pointer, duplicate stage, global UNKNOWN and300/day cap reject.
+Late successful-result writes roll back; COMMIT and snapshot before deadline still
+require actual future readback. These are injected clocks, not a72h observation or
+long-duration lock contention experiment. No provider or production service called.
+
+Design fixture `tests/fixtures/item34-observation-generation.sql`, SHA256
+12cf6d39c78f65576615b0d329b60fa5d60d409102ae224deb17bf4972bb11dd,
+rejects any database outside noteai_item34_test_<hex>. It is NOT a production
+migration or executor. Logs remain /private/tmp/noteai-prep-20260908:
+item34-generation-commit-boundary-{pg16,legacy}.log and earlier failed/success logs.
+An omitted --platform build failed resolving the local amd64 base; corrected with
+explicit linux/amd64. A read-only default SQLite import path failed before tests;
+corrected with /tmp paths. The host paused guard rejected the legacy CLI subprocess;
+its guard was preserved, and actual isolated3.11 CLI coverage passed instead.
+
+Readiness static accounting reread:30/38, no canonical/DoD/Readiness edit. Seven
+protected paths remain unstaged/untracked; no additional content access in this
+stage. Local PG restarted only for these disposable tests; per-test databases
+were dropped. No production or automation resume, no Git push.
+
+NEXT IN PROGRESS: reuse existing SQL/checkpoint/wrapper for unexecuted prospective
+generation inputs, precise preflight/verify/recovery, and eventually build the
+single affected XHS role from final source. The old wrapper's fixed T0/source/
+zero-history branch stays sealed; this implementation alone is not a new live
+job. API/Payment f3 artifacts remain valid for their actual source and scope.
+Login PATH_BLOCKED does not stop these independently authorized preparations.
+
 ## September8 final API/Payment artifacts — next independent task in progress
 
 Source checkpoint f3deedbc1dfdbc7db2ffdd7213df2198c5e1d25d now has two actual

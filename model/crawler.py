@@ -65,7 +65,7 @@ def _assert_tracking_writable_with_storage(
         )
     lock = " FOR UPDATE" if getattr(storage, "postgres", False) else ""
     current = storage.fetchone(
-        "SELECT status,claim_token,claim_expires_at,active_attempt_id "
+        "SELECT * "
         f"FROM tracked_notes WHERE id=? AND user_id=?{lock}",
         (note["id"], note["user_id"]),
     )
@@ -76,6 +76,10 @@ def _assert_tracking_writable_with_storage(
         or current["status"] != expected_status
         or not note.get("claim_token")
         or current["claim_token"] != note.get("claim_token")
+        or tracking_contract.observation_generation(dict(current))
+        != tracking_contract.observation_generation(note)
+        or (tracking_contract.observation_generation(note) > 0
+            and current["observation_started_at"] != note.get("observation_started_at"))
     ):
         raise ValueError("tracking write fenced")
     if not require_active_attempt:
@@ -155,6 +159,11 @@ def _parse_iso(value: str | None) -> datetime | None:
 
 def _next_due_from_note(note: dict, days: int) -> str:
     now = datetime.now(timezone.utc)
+    if tracking_contract.observation_generation(note):
+        base = _parse_iso(note.get("observation_started_at"))
+        if base is None:
+            raise ValueError("observation anchor missing")
+        return (base + timedelta(days=3)).isoformat()
     base = (
         _parse_iso(note.get("published_at"))
         or _parse_iso(note.get("submitted_at"))
@@ -372,7 +381,8 @@ def _item34_acceptance_target_id() -> str | None:
     marker = os.environ.get("NOTEAI_ITEM34_ACCEPTANCE", "")
     target = os.environ.get("NOTEAI_ITEM34_TRACK_ID", "")
     stage = os.environ.get("NOTEAI_ITEM34_CHECKPOINT_STAGE", "")
-    if not marker and not target and not stage:
+    generation = os.environ.get("NOTEAI_ITEM34_OBSERVATION_GENERATION", "")
+    if not marker and not target and not stage and not generation:
         return None
     if (
         marker != "1"
@@ -396,6 +406,16 @@ def _item34_acceptance_stage() -> str | None:
     return os.environ["NOTEAI_ITEM34_CHECKPOINT_STAGE"]
 
 
+def _item34_acceptance_generation() -> int | None:
+    value = os.environ.get("NOTEAI_ITEM34_OBSERVATION_GENERATION", "")
+    if not value:
+        return None
+    if (_item34_acceptance_target_id() is None
+            or not re.fullmatch(r"[1-9][0-9]{0,8}", value)):
+        raise ValueError("item34 observation generation invalid")
+    return int(value)
+
+
 def _claim_due_tracking_notes(
     limit: int,
     *,
@@ -403,6 +423,7 @@ def _claim_due_tracking_notes(
     run_id: str | None = None,
     target_id: str | None = None,
     target_stage: str | None = None,
+    target_generation: int | None = None,
 ) -> list[dict]:
     """Atomically claim due rows in deterministic order.
 
@@ -413,6 +434,10 @@ def _claim_due_tracking_notes(
     limit = tracking_contract.validate_round_limit(limit)
     if (target_id is None) != (target_stage is None):
         raise ValueError("tracking target binding invalid")
+    if target_generation is not None and (
+        target_id is None or type(target_generation) is not int or target_generation < 1
+    ):
+        raise ValueError("tracking observation binding invalid")
     if target_id is not None:
         if target_id != target_id.strip():
             raise ValueError("tracking target invalid")
@@ -454,10 +479,18 @@ def _claim_due_tracking_notes(
             )
         else:
             target_clause = ""
+        # A prospective row must not consume the ordinary worker's LIMIT and
+        # starve unrelated generation-zero work. JSON lookup also works before
+        # the prospective column exists, without changing the old schema.
+        generation_clause = (
+            "AND COALESCE(to_jsonb(tracked_notes)->>'observation_generation','0')=? "
+            if tx.postgres else ""
+        )
         rows = tx.fetchall(
             "SELECT * FROM tracked_notes WHERE "
             "active_attempt_id IS NULL "
             + target_clause
+            + generation_clause
             + "AND (claim_token IS NULL OR claim_expires_at IS NULL OR "
             f"{claim_due}) "
             "AND ("
@@ -472,6 +505,7 @@ def _claim_due_tracking_notes(
             f"LIMIT ?{lock}",
             (
                 *((target_id,) if target_id is not None else ()),
+                *((str(target_generation or 0),) if tx.postgres else ()),
                 now_iso,
                 now_iso,
                 h24,
@@ -482,6 +516,15 @@ def _claim_due_tracking_notes(
         )
         for row in rows:
             snapshot = dict(row)
+            generation = tracking_contract.observation_generation(snapshot)
+            if generation or target_generation is not None:
+                # New windows are never work for the ordinary scheduler or a
+                # stale generation-zero command targeting the same note.
+                if generation != target_generation:
+                    continue
+                stage = "24h" if target_stage == "24h" else "7d"
+                if not tracking_contract.observation_stage_ready(snapshot, stage, now):
+                    continue
             claim_token = str(uuid.uuid4())
             expiry_guard = (
                 "claim_expires_at::timestamptz<=?::timestamptz"
@@ -539,8 +582,7 @@ def _reconcile_stale_provider_attempts(
         else "noteai_tracking_clock_lte(t.claim_expires_at,?)=1"
     )
     candidates = db.fetchall(
-        "SELECT t.id,t.user_id,t.status,t.claim_token,t.claim_expires_at,"
-        "t.active_attempt_id "
+        "SELECT t.* "
         "FROM tracked_notes t JOIN tracking_provider_attempts a "
         "ON a.id=t.active_attempt_id AND a.track_id=t.id AND a.user_id=t.user_id "
         "WHERE a.status='started' AND t.claim_expires_at IS NOT NULL "
@@ -610,39 +652,64 @@ def _admit_provider_attempt(note: dict) -> dict:
     stage = tracking_contract.stage_for_status(
         note.get("claimed_status") or note.get("status", "")
     )
+    generation = tracking_contract.observation_generation(note)
+    if not tracking_contract.observation_stage_ready(note, stage, datetime.now(timezone.utc)):
+        raise ValueError("observation stage outside window")
     attempt_id = str(uuid.uuid4())
-    admitted_at = _now()
-    day_start = datetime.now(timezone.utc).replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0,
-    ).isoformat()
     run_id = str(note.get("run_id") or uuid.uuid4())
     with db.transaction(write=True) as tx:
-        _assert_tracking_writable_with_storage(
+        current = _assert_tracking_writable_with_storage(
             tx,
             note,
             require_active_attempt=False,
         )
         if tx.postgres:
+            # Shared with the prospective owner CAS: global admission state
+            # cannot change between its quiescence check and window opening.
+            tx.execute("SELECT pg_advisory_xact_lock(hashtext(?))",
+                       ("noteai:tracking:observation-open",))
+        # Waiting for another admission must not reserve yesterday's quota.
+        day_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0,
+        ).isoformat()
+        if tx.postgres:
             tx.execute(
                 "SELECT pg_advisory_xact_lock(hashtext(?))",
                 (f"noteai:tracking:daily-cap:{day_start[:10]}",),
             )
+        if generation:
+            unresolved = tx.fetchone(
+                "SELECT COUNT(*) AS c FROM tracking_provider_attempts WHERE "
+                "status='started' OR (status='failed' AND error_code='provider_outcome_unknown')"
+            )
+            if int(unresolved["c"]):
+                raise ValueError("tracking global outcome unresolved")
+        day_predicate = "admitted_at::timestamptz>=?::timestamptz" if tx.postgres else "admitted_at>=?"
         admitted_count = tx.fetchone(
             "SELECT COUNT(*) AS c FROM tracking_provider_attempts "
-            "WHERE admitted_at>=?",
+            f"WHERE {day_predicate}",
             (day_start,),
         )
         if int(admitted_count["c"]) >= tracking_contract.DAILY_PROVIDER_LIMIT:
             raise tracking_contract.TrackingDailyLimitReached(
                 "tracking_daily_provider_limit"
             )
+        # The row lock keeps claim/generation stable, but not the wall clock.
+        # Recheck after all waits and quota SQL, immediately before admission.
+        admission_now = datetime.now(timezone.utc)
+        if admission_now.date().isoformat() != day_start[:10]:
+            raise ValueError("tracking admission UTC day changed")
+        expires_at = _parse_iso(current["claim_expires_at"])
+        if expires_at is None or expires_at <= admission_now:
+            raise ValueError("tracking claim expired")
+        if not tracking_contract.observation_stage_ready(note, stage, admission_now):
+            raise ValueError("observation admission outside window")
+        admitted_at = admission_now.isoformat()
         tx.execute(
             "INSERT INTO tracking_provider_attempts("
             "id,track_id,user_id,run_id,stage,status,admitted_at"
-            ") VALUES(?,?,?,?,?,?,?)",
+            + (",observation_generation" if generation else "")
+            + ") VALUES(?,?,?,?,?,?,?" + (",?" if generation else "") + ")",
             (
                 attempt_id,
                 note["id"],
@@ -651,6 +718,7 @@ def _admit_provider_attempt(note: dict) -> dict:
                 stage,
                 "started",
                 admitted_at,
+                *((generation,) if generation else ()),
             ),
         )
         cursor = tx.execute(
@@ -690,20 +758,27 @@ def _release_unstarted_claim(note: dict) -> None:
 
 def _record_tracking_success(note: dict, data: dict) -> None:
     data = tracking_contract.validate_provider_metrics(data)
+    generation = tracking_contract.observation_generation(note)
+    stage = tracking_contract.stage_for_status(note.get("claimed_status") or note["status"])
+    if not tracking_contract.observation_stage_ready(note, stage, datetime.now(timezone.utc)):
+        raise ValueError("observation result outside window")
     is_7d = note["status"] in ("checking_7d", "checking_24h")
     acceptance_target = _item34_acceptance_target_id()
     acceptance_stage = _item34_acceptance_stage()
     item34_3d = (
-        acceptance_target == note.get("id") and acceptance_stage == "3d"
+        generation > 0 or (acceptance_target == note.get("id") and acceptance_stage == "3d")
     )
     score_window = "3d" if item34_3d else "7d"
-    now_iso = _now()
     with db.transaction(write=True) as tx:
         _assert_tracking_writable_with_storage(
             tx,
             note,
             require_active_attempt=True,
         )
+        result_now = datetime.now(timezone.utc)
+        if not tracking_contract.observation_stage_ready(note, stage, result_now):
+            raise ValueError("observation result outside window")
+        now_iso = result_now.isoformat()
         if not note.get("note_title") and data.get("title"):
             tx.execute(
                 "UPDATE tracked_notes SET note_title=? WHERE id=?",
@@ -729,6 +804,8 @@ def _record_tracking_success(note: dict, data: dict) -> None:
             )
             if attempt_cursor.rowcount != 1:
                 raise ValueError("tracking provider attempt finalize fenced")
+            if not tracking_contract.observation_stage_ready(note, stage, datetime.now(timezone.utc)):
+                raise ValueError("observation result outside window")
             return
 
         score = perf.score_performance(
@@ -764,7 +841,7 @@ def _record_tracking_success(note: dict, data: dict) -> None:
             "id,user_id,note_id,domain,score,grade,action,recorded_at"
             ") VALUES(?,?,?,?,?,?,?,?)",
             (
-                tracking_contract.deterministic_effect_id(note["id"], "growth"),
+                tracking_contract.deterministic_effect_id(note["id"], "growth", generation=generation),
                 note["user_id"], note.get("source_note_id"),
                 note.get("domain", "美食"), score.actual_ces, score.grade,
                 "url_crawl_3d" if item34_3d else "url_crawl_7d", now_iso,
@@ -786,6 +863,7 @@ def _record_tracking_success(note: dict, data: dict) -> None:
             memory_id=tracking_contract.deterministic_effect_id(
                 note["id"],
                 "memory",
+                generation=generation,
             ),
         )
         attempt_cursor = tx.execute(
@@ -942,12 +1020,14 @@ async def _process_due_tracking_notes(
     }
     target_id = _item34_acceptance_target_id()
     target_stage = _item34_acceptance_stage()
+    target_generation = _item34_acceptance_generation()
     for _ in range(limit):
         notes = _claim_due_tracking_notes(
             1,
             run_id=run_id,
             target_id=target_id,
             target_stage=target_stage,
+            **({"target_generation": target_generation} if target_generation is not None else {}),
         )
         if not notes:
             break
