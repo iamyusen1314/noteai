@@ -58,6 +58,10 @@ def _docker_argument_spans(command: str):
             option, value = "--publish", word[2:]
             separator = "=" if value else ""
             begin = token.start() + 2
+        elif word in {"-e", "-v"}:
+            # Actual API-C uses separate short env/volume options. Keep their
+            # original spans and the same value checks as the long options.
+            option = {"-e": "--env", "-v": "--volume"}[word]
         if option in _BOOLEAN_OPTIONS:
             if option == "--privileged" and word != "--privileged=false":
                 raise ValueError("unsafe_privileged_option")

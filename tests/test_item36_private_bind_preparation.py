@@ -15,6 +15,44 @@ UNIT = (
 
 
 class Item36PrivateBindPreparationTests(unittest.TestCase):
+    def test_actual_api_c_short_options_bind_image_and_payment_with_exact_rollback(self):
+        source = (Path(__file__).parent / "fixtures/item36-api-c.service").read_bytes()
+        digest = "46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6"
+        self.assertEqual(hashlib.sha256(source).hexdigest(), digest)
+        bound, rollback = self.render(source, address="10.42.10.44", digest=digest)
+        self.assertEqual(rollback, source)
+        self.assertEqual(bound.replace(b"10.42.10.44:8000:8000", b"127.0.0.1:8000:8000"), source)
+        old_image = source.decode().split("--log-opt max-file=2 ")[1].splitlines()[0]
+        new_image = "registry.example.invalid/api@sha256:" + "b" * 64
+        updated, original = render_image_update(
+            bound, expected_sha256=hashlib.sha256(bound).hexdigest(),
+            expected_image=old_image, candidate_image=new_image,
+        )
+        self.assertEqual(original, bound)
+        self.assertEqual(updated.replace(new_image.encode(), old_image.encode()), bound)
+        prior = (Path(__file__).parent / "fixtures/item36-payment-c.service").read_bytes()
+        prior_digest = "40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb"
+        self.assertEqual(hashlib.sha256(prior).hexdigest(), prior_digest)
+        template = (Path(__file__).resolve().parents[1] / "deploy/production/systemd/noteai-payment.service.template").read_bytes()
+        candidate, prior_rollback = render_payment_namespace(
+            source, expected_sha256=digest, template=template,
+            prior_unit=prior, prior_sha256=prior_digest, callback_enabled=True,
+        )
+        self.assertEqual(prior_rollback, prior)
+        self.assertIn(b"--network=container:noteai-api-c", candidate)
+        self.assertIn(b"Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1\n", candidate)
+        self.assertIn(b"@@NOTEAI_PAYMENT_IMAGE@@", candidate)
+        self.assertNotIn(b"--publish", candidate)
+
+    def test_api_c_short_environment_retains_quote_and_value_guards(self):
+        source = (Path(__file__).parent / "fixtures/item36-api-c.service").read_bytes()
+        for before, after in ((b"default_transaction_read_only=on", b"default_transaction_read_only=off"),
+                              (b"-e PYTHONUNBUFFERED=1", b"-e --privileged=true"),
+                              (b"-v /var/lib/noteai/data:/app/model/data", b"-v --network=host"),
+                              (b"-e PYTHONUNBUFFERED=1", b"-e 'PYTHONUNBUFFERED=1'")):
+            with self.subTest(after=after), self.assertRaises(ValueError):
+                self.render(source.replace(before, after))
+
     def test_payment_first_enable_uses_actual_api_namespace_and_preserves_absence(self):
         source = (Path(__file__).parent / "fixtures/item36-api-f.service").read_bytes()
         template = (Path(__file__).resolve().parents[1] / "deploy/production/systemd/noteai-payment.service.template").read_bytes()

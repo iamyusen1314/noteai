@@ -1,5 +1,35 @@
 # Risk Register
 
+## September9 authenticated configuration readback and C-specific correction
+
+- Aliyun login blocker resolved; prior stop is historical. Actual DMS three-table
+  owner/schema rights are now verified, but no new DDL/grant/revoke was executed.
+  Final DMS metadata SELECT reported read_only=off; it was SQL-read-only, not an
+  enforced transaction scope. No business rows, config secrets or credentials read.
+- C differs materially from F: its prior Payment unit exists, disabled/inactive.
+  Exact Secret-free C original API/Payment bytes and rollback are now retained.
+  Renderer supports actual separate-e/-v;14checks and independent byte comparison
+  pass. No host/unit/service mutation occurred; unpublished digest stays absent.
+- ALB0 and API SG has no8000 rule. Native ingress is not ready merely because
+  private-bind candidates render. Future scoped SG/listener/backend application
+  is required, separately from image updates and Payment first enable.
+- Issued API certificate expires2027-02-02; subscription expiry2027-07-19 must
+  not be substituted. Both existing EIPs are allocated. Fresh displayed149.04CNY
+  monthly comparison excludes traffic and is not a ceiling/final order. Current
+  CDT allowance is shared; no unverified free allowance, tax or discount assumed.
+- Prospective Item34 remains unapproved/unstarted; no old replay or new URL.
+  Readiness30/38. Only metadata inputs/local code are being completed this turn.
+- ACR console/privateendpoint/immutable repo are verified, but API-F existing
+  Docker credential path returnedAUTH_DENIED on one oldmanifest read. Cause is
+  unlocated, request was not repeated; owner normal existing-credential login
+  is needed, not a new RAM role/public endpoint/password reset. DNS business
+  root/API/Admin records are actually absent; three validationTXT remain intact.
+- The future Item34 ACL order is fixed: T0 CAS reconciliation uses owner; app
+  wrapperbind/snapshot/run only after24h temporarygrant. Eachsamplingphase
+  immediatelyrevokesonlynewgrant, includingfailure. No thirdgrant atT0 and no
+  SELECT retained through the24h wait. Managedunitlifecycle is explicit in the
+  same once-only application, with exactrecovery and nootherroledeployment.
+
 ## September8 final local closure and external-only stop
 
 - fcc863f XHS actual image/entrypoint/PG16/source/transfer/load checks pass; host

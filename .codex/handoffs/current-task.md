@@ -1,5 +1,82 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 cloud login resumed — C candidate implementation saved in working tree
+
+Continue existingec5c7f7 checkout. Owner restored Aliyun login; priorPROGRAM_STOP
+is closed. Existing main-account/ECS root and DMSnoteai_admin sessions work.
+No production permissions or execution were resumed. DMS newservice-role prompt
+cancelled, no credentials read. Two real readonly agents used, root owns changes.
+
+Fresh DMS07:23:54Beijing metadata: DBnoteai/PG16.13, actual threeowners allnoteai_admin,
+canSET/currentowner/schemaUSAGE/CREATE true.0019 exacthash matches,0020 absent,
+generationcols0. noteai_app attempts/ledgerSELECT false, previousACL restored.
+Final result SELECT readonlysettingoff, no DML/DDL; firstREADONLYbatchROLLBACK
+onlystatus and truncatedJSON expanded into46scalarrows. No businesspayload read.
+FutureDDL/ACL execution or globalUNKNOWN absence is not proven by catalogrights.
+
+FactualAPI running,Paymentnotfound,XHSdisabled. CAPIrunning/Paymentloadeddisabled,
+noPaymentcontainer; bothNDReloadno/Jobempty. CprivateIP10.42.10.44 and actual
+unit1577bytes/SHA46010368...77e6 exported onlyafterhistoricalhash+envallowlist.
+CPayment1481/SHA40a49dbe...47bb matches historicalcd1ae7a template and freshhost.
+Both saved as Secret-free tests/fixtures/item36-{api,payment}-c.service. Noenvfiles.
+
+Actual C uses -e/-v unsupported by renderer. Small existinghelper correction now
+preserves originalshortoptions and sameguards.14focusedtestsPASS; independent
+audit exactbytesPASS. Existinghelper generated /private/tmp/noteai-prep-20260909/
+api-c-bind (candidateSHA01909ade...7dbb) andpayment-api-c (20fe15cf...1e17), exact
+rollbacksretainactualCAPI andexistingdisabledPayment. Paymentcandidatehasreal
+unpublishedimageplaceholder; not an applied service. f3API/Payment andfccXHS
+images remain valid/no rebuild/relabel. Sourceandfullhashes inexistingplan top.
+
+Fresh cloud: ShenzhenALB0; reservedALB C/Fswitches10.42.0.0/24 and10.42.1.0/24;
+API SG onlyTCP22Workbench100.104/16, no8000. IssuedAPIcert26148574-cn-hangzhou
+validthrough2027-02-02, currentcloudbindings0; publicchainmetadata read, nokeys.
+TwoexistingEIPs bothallocated(CICP/NAT), nonefree. September9 authenticatedforms
+ALB0.125/LCU0.042/EIP0.020 each CNY/h;720h/LCU1/EIP2=149.04beforeCDTtraffic;
+notspendceiling/finalorder, tax/expiry/finaldiscountUNKNOWN. Nonepurchased.
+
+Changedexistingrenderer/test +twoactualfixtures +plan/Handoff/risk. Readiness30/38,
+canonicalEvidence/manifest untouched,sevenprotectedpaths noaccess/change/staging.
+ACR readback complete: cri-xpuhaclqkxlwy47t/noteai/app private/immutable,
+productionVPC10.42.10.49 effective,publicoff. All18tags do not include proposed
+item34-xhs-fcc863f-g1-20260909. One API-F07:37:24 existing612a manifest metadata
+read returnedrc1/AUTH_DENIED; no retry/layerdownload/configread. Reasonunlocated,
+not assumedexpiry. Manual normaldockerlogin with existingACRpassword is needed
+atAPI-FWorkbench; exactcommand inplan top, passwordneverinchat. This isPATH_BLOCKED.
+
+DNS actualnoteaipro.cn unfilteredonepage3records: onlythree_dnsauth TXT,TTL600,
+enabled. Root/API/AdminbusinessbeforestateABSENT; nooldbusinessrecordID needed.
+FuturecreationbindsexactreturnedIDsandpreservesTXT. NoDNSwrite/publicprobe.
+
+Same existingplan now has a concrete once-only prospectiveItem34 scope at top:
+onlyfccXHS/privateimmutabletag,verify0019/apply0020,sameobjectrealT0/ownerCAS,
+twoadmissions/temporaryACL/managedTrackingunitboundedlifecycleandrestoration.
+IndependentDBaudit caught wronggrant ordering; fixed: T0CASownerreconcile only,
+24h grant precedesappwrapperbind/snapshot/run; revokeafterphase,repeatat3d.
+No extraT0grant or24hretainedSELECT; nonewgate. ActualGUCbindingsnoteai/noteai_admin.
+
+FinaldiffcheckPASS, actualC/Payment sourcehashes and outputrollbacks verified.
+Staticledger12/12+17/17+1/9=30/38; Readinessledger andsealedItem34canonicalEvidence
+are byte-unchanged from9e7f4df. Ready for recoverycommit of seven explicit files
+(helper/test/twofixtures/existingplan/Handoff/risk), never protecteduntrackedpaths.
+
+Authorizedindependentwork is now complete:34sameobjectnewT0package/SQL/DBowner/
+ACRconfig/once-onlyscope;31directpaymentfullPGcanary;32uniqueunrunsuccessorpackage
+withfuturetimingrebindrequired;35existingfrozenprofessionalpack;36bothnodeinputs/
+candidate/privatebind/exactrollback/Paymentfirstenable/TLS/ALB/freshquote;37/38
+offlinepreparedandactualDNSbusinessabsence. No further identified local defect
+or missing current configuration read remains. Nativeapply/liveacceptance and
+externalcommercial/signature/publicGoLive steps are not authorized by cloudlogin.
+
+PROGRAM_STOP conditions10 and1: current authorizedpreparations are complete,
+and the nextblockedcredentialpath requires owner's existingACRpassword atAPI-F.
+This does not makeACRfailure the reasonotherworkstopped; the Cfix/TLS/quote/DNS
+were completed after that failure. Owneraction: approve the same newItem34scope
+atplan top, with normal existing-credential ACRlogin at itsfirststep. Exactlogin
+command is shown there; no passwordinchat/reset/newrole. If onlyACRlogin is
+completed, resume once readonlyauthverification, never infer newT0 approval.
+Oldwindowpermanentlysealed,newT0notauthorized,noGitpush orautomationresume.
+
 ## September8 13:31 Beijing — all currently independent local preparation completed
 
 Final source checkpoint fcc863f65ad1d3d788e8936ef1284a9ab27ad025 has a runnable

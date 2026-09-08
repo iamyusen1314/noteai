@@ -1,14 +1,167 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `LOCAL PREPARATION COMPLETE — EXTERNAL INPUTS PENDING / ITEM34 OLD WINDOW SEALED / PRODUCTION PAUSED`
+Status: `READ-ONLY CLOUD INPUTS RESUMED / C CANDIDATES PREPARED / ITEM34 OLD WINDOW SEALED / PRODUCTION PAUSED`
 
-Date: 2026-09-08 (current scope below; July sections retained as history)
+Date: 2026-09-09 (current scope below; July sections retained as history)
 
 Task: `PROD-DEPLOY-PLAN-001`
 
 The bounded Item34 job below has failed and closed safely. Its old observation
 window must not be replayed or restarted. Retained approval and commands are
 execution history, not authorization to repeat them or run other Items.
+
+**本次待一次批准：Item34 同对象新T0受控实施（2026-09-09）。** 沿用下方现有
+八步实施材料与全部SQL/hash，唯一XHS源码仍为fcc863f，不复用旧窗口授权。
+申请限于：恢复现有ACR身份；把该唯一已构建镜像/host包传至API-F并发布至既有
+私网仓库新不可变tag `item34-xhs-fcc863f-g1-20260909`；0019 verify-only及0020
+preflight/apply/verify；同一owner-owned原笔记的新鲜T0及原managed row的owner CAS；
+24h/3d各一次受控采样与原managed验证（仅精确Tracking unit的必要替换、daemon-reload、
+有界start/health/stop及原unit/配置恢复）、两次临时attempts SELECT/撤回、精确停止、
+失败reconcile/CAS恢复和现有Evidence保存。新采样7表9distinct、旧新合并13distinct、
+新增最多2admissions/0自动重试，旧认证/注册/900gift不重做。真实provider费用与
+既有传输/存储增量未知时保留UNKNOWN；无新增固定费用、Builder或其他资源。
+
+所需人工操作已定位：API-F Workbench `root@noteai-api-f`，使用现有ACR访问密码
+正常运行 `docker login --username=aliyun0345188616 noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com`。
+密码仅在该终端隐藏提示输入，不发聊天、不重置，不开放公网；这是恢复该主机
+Docker仓库身份，控制台MFA不代替它。当前一次旧manifest只读查询AUTH_DENIED，
+原因未定位，故未重复发送。该身份恢复可先由owner完成；生产发布/0020/T0等仍须
+明确批准本段新范围。批准只作用于本作业；其余Item/全局自动化继续PAUSED。
+
+新T0现在不设定。批准后按真实T0记录24h窗口[T0+24h,T0+72h)及3d边界T0+72h，
+当前线程用时钟等待并在每个阶段核对持久化status后仅调用既有durable launcher一次；
+不依赖PAUSED任务唤醒。若线程被中断，恢复只读status，不重放UNKNOWN；若24h已
+越界则封存该路径。24h完成后读回真实完成/snapshot时间，并给出3d的北京时间和
+同一线程继续方式。此申请不包含API/Payment/ALB/SG/DNS实施或其他Item真实执行。
+
+## September9 authenticated inputs and C implementation (no production execution approval)
+
+Owner has restored Aliyun login. The September8 login stop below is historical.
+Main agent used existing root Workbench sessions and existing DMS `noteai_admin`;
+no new identity, role grant, credential reset or production task was started.
+DMS's optional new `AliyunServiceRoleForDMS` creation was cancelled. Cloud UI and
+host reads below concern configuration/metadata, not user/order/note payloads.
+
+**Item34 DB owner input is now concrete.** DMS SELECT at
+2026-09-09 07:23:54.161471+08:00 returned database `noteai`, PostgreSQL160013,
+active/session role `noteai_admin`. `tracked_notes`, `tracking_provider_attempts`
+and `schema_migrations` are all owned by that role, active_is_owner/can_set_owner/
+schema USAGE/CREATE all true, RLS/force RLS false on those three tables.0019 ledger
+hash is `bad6b9df591aba93a6f636c3185d955062a878ce9ed2a92d6c1dff5e5c267a6f`;
+0020 ledger absent and generation columns count0. `noteai_app` has no SELECT on
+attempts or migration ledger; it does have SELECT on the other five named core
+tables. Attempts ACL is exactly
+`{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}`.
+Existing config policy `noteai_xhs_tracking_config_read_v1` remains SELECT,
+PERMISSIVE/public, current_user restricted to Tracking and is_secret=0 for the
+two config keys. No config values or business rows were read.
+
+The first bounded READ ONLY batch completed with ROLLBACK but DMS exposed only
+the last status; a SELECT-only result was truncated, so its existing metadata
+fields were expanded into46 scalar rows and read through the UI. That final
+SELECT reports transaction_read_only=off; it contains no DML/DDL/grant. Do not
+claim the final DMS connection is transaction-enforced read-only. Metadata proves
+owner privileges, not a successful future DDL/grant/revoke or a fresh no-UNKNOWN
+business preflight. Those exact checks remain inside the future bounded job.
+
+**Item36 actual C/F inputs.** Fresh F07:17:25 and C07:24:18 Beijing systemd
+projections show API enabled/active/running, no drop-ins, NeedDaemonReload=no,
+no outstanding Job and NRestarts0. F Payment is not-found; C Payment is loaded,
+disabled/inactive/dead. F Tracking/Trends are disabled/inactive; C has neither
+unit. C07:34:49 Docker projection confirms x86_64, exact API container
+`872cfd4ec0f5d61ff99036851a74a8ef4890fabe9fadb7a80c2f5c5e1a8e4aa6`, running,
+bridge, loopback8000, Docker restart=no and no Payment container. API ref remains
+the old private `noteai/app@sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620`;
+image config `dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53`.
+No production health request or full Docker Env read was performed.
+
+C=`i-wz9j36od3nf2b1uw7bvg`/10.42.10.44/app switch
+`vsw-wz93ahnxzaztndac48er3`; F=`i-wz9bgztwf1tiakww2ops`/10.42.11.166/app
+switch `vsw-wz9u43x14smx5vl8mo51x`. Shared VPC=`vpc-wz90181in1rs2zqpnn9o3`,
+API SG=`sg-wz98p0xa5040vpnyvgys`. Current ingress has only TCP22 from
+100.104.0.0/16; no TCP8000 grant. ALB reserved C switch
+`vsw-wz943c5e3hy03rrkuyo40`=10.42.0.0/24 and F switch
+`vsw-wz91uof0a4blq54yi09zn`=10.42.1.0/24 are available,252 addresses each.
+Future ALB-only8000 source rules must be explicitly applied and read back with
+the listener/backend job; these source subnets are not the app switches.
+
+C actual Secret-free unit bytes now live in `tests/fixtures/item36-api-c.service`
+(1577bytes/SHA46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6)
+and `tests/fixtures/item36-payment-c.service`
+(1481bytes/SHA40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb).
+Remote exports required exact historical installed hashes and API env allowlist;
+no .env content was accessed. Payment also exactly matches the cd1ae7a template
+with its accepted ad582745…02e2b image. A simple F→C comparison failed safely;
+actual C preserves its own StartLimit/KillMode/timeouts/short Docker arguments.
+
+The existing renderer now accepts only separate `-e`/`-v` as the already-checked
+long env/volume options. Actual C regression verifies private bind, future image
+replacement and Payment namespace with prior-unit rollback;14 focused checks pass.
+Independent read-only audit confirms only the intended bytes change. No candidate
+image rebuild/relabel is needed for this host preparation helper correction.
+
+Runnable local outputs under `/private/tmp/noteai-prep-20260909/`:
+
+| Output | SHA256 | Application boundary |
+|---|---|---|
+| `api-c-bind/noteai-api.service.candidate` | `01909adec06ec678d26a03a405331b0e8cb3e1d6ed22706ed36d611444697dbb` | only bind changes to10.42.10.44:8000; old image retained |
+| `api-c-bind/noteai-api.service.rollback` | `46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6` | exact enabled/running C original |
+| `payment-api-c/noteai-payment.service.candidate` | `20fe15cfb4c245192961e52cb8c6c2f50e9c5edeafedb0c64cf58650c38c1e17` | API-C namespace, callback1, no publish; real unpublished-image placeholder remains |
+| `payment-api-c/noteai-payment.service.rollback` | `40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb` | restore existing C unit disabled/inactive; do not remove it as on F |
+
+Candidate image update, private binding, and Payment first enable are separate
+implementation actions. Real f3 API/Payment artifacts stay valid; a future real
+publication supplies their digest arguments. A placeholder is not apply-ready
+service content, but publication absence does not require a rebuild or block
+completion of the local preparation. Native signal/stop caveat below remains.
+
+**ALB/TLS and fresh quote.** Shenzhen ALB instance list confirms zero instances;
+no real listener/backend/DNS target can yet be filled. Existing API certificate
+is Issued `26148574-cn-hangzhou`, subscription `cas_dv-cn-ev94vjind00k`, covering
+api.noteaipro.cn and www.api.noteaipro.cn, valid2026-07-18 08:00:00 through
+2027-02-02 07:59:59 Beijing. Fingerprint7356F712ED37DE4D6FD9D40969EE971B6459BB63;
+RSA2048/RapidSSL TLS RSA CA G1 → DigiCert Global Root G2 → DigiCert Global Root CA.
+Console chain validity is2017-11-02–2027-11-02 and2024-01-18–2031-11-10.
+Cloud deployed resources0. Subscription expiry2027-07-19 is not certificate expiry.
+Only public metadata/chain was viewed; no key/package download or TLS binding.
+
+Authenticated quote form: Shenzhen, IPv4 public Standard ALB, production VPC,
+C/F reserved ALB switches, automatic two EIPs, pay-by-traffic, no shared bandwidth.
+Displayed ALB0.125CNY/hour (list0.147), LCU0.042CNY/unit (list0.049); separate same
+region BGP EIP form displays0.020CNY/IP/hour and current CDT tiered traffic.
+720h atLCU1/EIP2 comparison is149.04CNY before traffic. This is recalculated from
+September9 displayed inputs, not reused from the old149.04 estimate, and is not
+a spend ceiling or binding order quote. Forms state final discount at order;
+tax inclusion, validity duration and final contractual discount are UNKNOWN.
+No order/config-list save, agreement, purchase or resource change was submitted.
+[Current CDT pricing](https://help.aliyun.com/document_detail/410942.html) gives
+mainland0.80/0.75/0.70/0.65CNY perGB by successive0–10/10–50/50–150/>150TB tiers;
+account-wide free allowance is shared and its remainder was not requested, so
+no free traffic is assumed. Future approval needs a finite traffic/spend ceiling.
+
+Fresh EIP list: both addresses allocated, none free. ICP EIP
+`eip-wz9upi1f15ywx1nsdhy9l` is attached to C; the other is attached to existing NAT.
+Neither can be silently repurposed.
+
+**ACR and DNS final readback.** Existing ACR `cri-xpuhaclqkxlwy47t`, repository
+`crr-itdckfeycjvs274j`/noteai/app is private/normal with immutable versions, no
+code source. Private endpoint10.42.10.49 is effective in the production VPC via
+the C app switch; public switch aria-checked=false and public whitelist empty.
+All18 current versions on one unfiltered page contain no proposed
+`item34-xhs-fcc863f-g1-20260909`; old b8 tag remains. No tag was reserved/pushed.
+API-F07:37:24Beijing `docker manifest inspect` of the exact old612a digest returned
+rc1/AUTH_DENIED. Only metadata was requested, no layer download. This is a real
+credential-path blockage, not proof of expired password or a network/root cause;
+no repeat request or Docker config/Secret read. Console session is working.
+
+Fresh noteaipro.cn DNS page has exactly3records/onepage, empty search: only
+`_dnsauth`, `_dnsauth.api`, `_dnsauth.admin` TXT, all enabled TTL600s. No root `@`,
+`api` or `admin` business records exist. Their actual before-state is ABSENT,
+not missing old record IDs/values. Future authorized creation must retain the
+returned exact new IDs for rollback and preserve all3 TXT records. No DNS edit,
+record ID invention, nameserver change or public probe was made.
+Item34 new T0 remains unstarted.
+Readiness30/38; no terminal Evidence/manifest change.
 
 ## Current local preparation — September8 (no production execution approval)
 
@@ -49,14 +202,16 @@ _config_snapshot，以本地noteai_app只读连接隔离PG16.15、读回预置�
 1. 现有合法会话只读核对实际数据库名、三表`tracked_notes` /
    `tracking_provider_attempts` / `schema_migrations`的owner、owner可激活性、
    schema CREATE权限、原ACL/撤权通道、旧失败attempt、无全局started/UNKNOWN。
-   DMS服务角色只解决DMS接入；不替代DB实际owner与权限。当前Aliyun登录已失效，
-   生产relowner尚未读回，不能假定noteai_admin或新增grant解决。
+   DMS服务角色只解决DMS接入；不替代DB实际owner与权限。September9已读回三表
+   owner均为noteai_admin、schema CREATE可用、0019存在/0020未安装，详见顶部。
+   生产执行前仍核对当前ACL、精确历史attempt及无started/UNKNOWN，不新增广泛grant。
 2. 仅受控发布本次最终XHS候选到既有ACR私网不可变tag，读回真实digest；API、Payment、
    ALB部署不是此前置。旧b8镜像原样保留。费用为既有传输/存储及后述真实请求增量，
    未知不记0；无Builder、扩容、新账号、固定收费资源或公开ACR。
 3. 0019仅用原verify读回（本作业INSERT0）；以实际三表owner执行以下0020
-   preflight/apply/verify，先在同会话绑定`noteai.item34.expected_database`及
-   `noteai.item34.expected_owner`。apply只安装schema/CAS，未开启观察。
+   preflight/apply/verify，先在同会话绑定`noteai.item34.expected_database=noteai`及
+   `noteai.item34.expected_owner=noteai_admin`（执行前再核对实际身份）。
+   apply只安装schema/CAS，未开启观察。
    原生migration也会被未来`render_predeploy.py`发现；该生产入口仍PAUSED。
    不能在已有0020的DB上用缺0020的旧源码运行predeploy；正常API启动不运行迁移，
    因此API/Payment f3运行产物无需重建。
@@ -67,17 +222,21 @@ _config_snapshot，以本地noteai_app只读连接隔离PG16.15、读回预置�
 5. actual table owner在有界事务中调用`public.noteai_item34_open_observation`，
    参数为原track/owner、previous_generation=0、精确旧failed attempt、新T0和新指标。
    函数CAS当前行至generation1，保留id、submitted_at、published_at及旧attempt；
-   默认日常worker不claim新代次。提交后只读核对结果，UNKNOWN不重放。
+   默认日常worker不claim新代次。提交后由noteai_admin精确只读核对结果，UNKNOWN不重放。
    将同一7字段binding写入现有root-only文件：track_id、owner_id、generation、
    observation_started_at、initial_snapshot、previous_attempt_id、previous_attempt_sha256。
    wrapper/worker在claim与admission行锁内核对完整binding和旧history SHA。
-6. 沿用现有durable launcher的`run --observation-binding <root0600文件>`，同一
+   T0阶段不提前调用app wrapper bind，不额外增加一次grant或把临时SELECT留到24h。
+6. 每个采样阶段先确认owner撤权通道、保存原ACL，仅新增noteai_app attempts SELECT
+   （影响全部该角色会话）；随后才运行app wrapper bind/snapshot与dispatch。24h的bind
+   应为ALREADY_BOUND/target_rows_mutated0。沿用现有durable launcher的
+   `run --observation-binding <root0600文件>`，同一
    binding分阶段`24h`与`3d`，分别使用未用过的journal和`g1-24h`/`g1-3d`精确容器。
    24h真实完成及snapshot严格在[T0+24h,T0+72h)；3d在T0+72h之后且晚于24h。
    两阶段最多2个新provider admission、0自动重试，普通定时器/自动化不恢复。
    24h后明确下一阶段的实际时间及当前线程继续方式，不能依赖PAUSED任务唤醒。
-7. 每阶段按原ACL临时授予noteai_app attempts SELECT（影响全部该角色会话），只撤本次
-   新增授权，异常也恢复。执行前确认owner撤权通道。按精确CID、实际镜像/命令/
+7. 每阶段结束及异常时按原ACL立即只撤本阶段新增授权，撤回失败立即报告，不把授权
+   留到下一阶段。按精确CID、实际镜像/命令/
    非Secret环境binding停止任务；不同stage或重复binding拒绝操作。只投影允许的Docker
    字段，不读完整容器Env。durable restore沿用原journal/CAS，采样UNKNOWN不妨碍已知
    配置的精确恢复；恢复失败立即报告，不能为了验收覆盖并发状态。
@@ -102,9 +261,10 @@ SELECT public.noteai_item34_open_observation(
 COMMIT;
 ```
 
-返回1仅代表CAS已知成功；独立读回原track/id/timestamps、generation/T0/initial/
-next_check_at=T0+24h、旧attempt完整hash及零新attempt后，wrapper bind应返回
-ALREADY_BOUND/target_rows_mutated0。失联只做该只读reconcile，不重发开窗SQL。
+返回1仅代表CAS已知成功；由noteai_admin独立读回原track/id/timestamps、generation/
+T0/initial/next_check_at=T0+24h、旧attempt完整hash及零新attempt。wrapper bind留到
+24h临时SELECT作用期，应返回ALREADY_BOUND/target_rows_mutated0。失联只做该只读
+reconcile，不重发开窗SQL。
 
 本地已验证的计数兼容：新采样6表8distinct，加一次0020 ledger为7表9distinct；
 旧核心5表6distinct原样保留，合并13distinct、累计3admissions。distinct不是DML次数。
@@ -168,7 +328,7 @@ The restored older local API passes health and its namespace has no Payment
 listener. This is a local first-enable rollback rehearsal, not proof of the
 production before-state or graceful PID1 stop acceptance.
 
-Current cloud input path: the existing API-F terminal remains visible, but a
+Historical September8 cloud input path (superseded by September9 readback): the existing API-F terminal remained visible, but a
 Workbench new-connection attempt explicitly returned account not logged in or
 login expired. The connection form was cancelled; no host command/login was
 submitted. The existing fresh ECS tab shows the Aliyun login page. API-C unit,

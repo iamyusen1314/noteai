@@ -1,0 +1,22 @@
+[Unit]
+Description=NoteAI API-C managed production service (digest pinned, loopback only)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60s
+StartLimitBurst=3
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5s
+TimeoutStartSec=120s
+TimeoutStopSec=45s
+KillMode=control-group
+ExecStartPre=-/usr/bin/docker rm -f noteai-api-c
+ExecStart=/usr/bin/docker run --log-driver=local --log-opt=max-size=10m --log-opt=max-file=2 --rm --name noteai-api-c --pull never --user 999:999 --read-only --privileged=false --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 512 --memory 1536m --cpus 2 --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m,mode=1777,uid=999,gid=999 --env-file /etc/noteai/api.env --env-file /etc/noteai/private-storage.env -e PYTHONUNBUFFERED=1 -e NOTEAI_RUNTIME_ROLE=api -e NOTEAI_CLOUD_RUNTIME=1 -e NOTEAI_API_STARTS_TREND_SCHEDULER=0 -e NOTEAI_MODEL_ARTIFACT_REQUIRED=1 -e NOTEAI_ENABLE_CLOUD_MODEL_MUTATION=0 -e NOTEAI_VIDEO_CACHE_DIR=/app/model/data/video_frames -e "PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=1000" -p 127.0.0.1:8000:8000 -v /var/lib/noteai/data:/app/model/data --restart no --log-driver local --log-opt max-size=10m --log-opt max-file=2 noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620
+ExecStop=/usr/bin/docker stop --time 30 noteai-api-c
+ExecStopPost=-/usr/bin/docker rm -f noteai-api-c
+
+[Install]
+WantedBy=multi-user.target
