@@ -4,6 +4,16 @@ Status: `ITEM34 GENERATION1 SCOPE APPROVED / EXECUTION IN PROGRESS / OLD WINDOW 
 
 Date: 2026-09-09 (current scope below; July sections retained as history)
 
+**当次最新实测（23:23北京时间保存）：新T0已建立，等待真实24h/3d。** owner本人
+完成原笔记网站安全验证后，真实页面指标赞4/收藏2/评论2；实际T0为
+`2026-09-09T14:53:11+00:00`（北京时间9月9日22:53:11）。原owner串行CAS仅提交一次，
+22:59独立26字段读回确认gen1/原row原identity与历史不变；主机binding378bytes/
+root0600及executor解析独立通过。唯一镜像发布、0019verify、0020apply/readback及
+有界managed周期/恢复均已完成；禁止重放这些动作。新provider admission仍0。
+实际新作业DML截至此处为账本INSERT1+原跟踪行UPDATE1，两表两distinctrows；0020DDL
+另记，未来7表9行不提前计数。canonical prospective记录承载事实，旧root不变。
+managed仍缺真实成功采样身份绑定及完整validator；Readiness30/38。
+
 Task: `PROD-DEPLOY-PLAN-001`
 
 The September4–7 Item34 observation failed and is permanently sealed. Its
@@ -44,11 +54,17 @@ config.json为600/root；未读取内容。Docker仍提示未加密保存，未�
 生产发布/0020/同对象新T0及下述验证恢复现在仅在本段已批准范围内执行；
 其余Item/全局自动化继续PAUSED。
 
-新T0尚未实测，不预填。实施时按真实T0记录24h窗口[T0+24h,T0+72h)及3d边界T0+72h，
-当前线程用时钟等待并在每个阶段核对持久化status后仅调用既有durable launcher一次；
-不依赖PAUSED任务唤醒。若线程被中断，恢复只读status，不重放UNKNOWN；若24h已
-越界则封存该路径。24h完成后读回真实完成/snapshot时间，并给出3d的北京时间和
-同一线程继续方式。此申请不包含API/Payment/ALB/SG/DNS实施或其他Item真实执行。
+真实24h窗口为北京时间9月10日22:53:11至9月12日22:53:11（后端点严格不含），
+3d从9月12日22:53:11起，且在真实24h snapshot之后。实际续执行方式为仅此Item34
+作业的同任务两次有界唤醒：9月10日/12日22:55，调度id `noteai-item34-generation1`，
+已由正式工具创建并读回ACTIVE/COUNT2/current-task绑定；替代先前拟用的连续时钟等待。
+原混合Item32–34及20点提醒均保持PAUSED，没有服务器采样cron或全局自动化恢复。
+届时主代理先核对实际时钟、原journal和精确unit/container状态，再串行执行对应已批准
+阶段；调度成功不等于采样成功，电脑需开机且Codex运行。合法会话届时失效只报告
+确切人工操作，不读凭据或重放。durable没有status子命令；只读原完整journal和精确
+运行时状态，不能用run试探。若24h越界且无原合格Evidence即封存，不自动重启。
+每阶段提前确认owner撤权通道和原ACL，异常也及时恢复配置并撤回仅本阶段新增grant；
+完成24h后读回实际完成/snapshot再决定3d。此范围不含API/Payment/ALB/SG/DNS或其他Item。
 
 执行材料恢复：原/private/tmp两个包已不存在，既有Colima原镜像仍匹配fcc863f源码、
 OCI index及config39dac3bb...719f01。已原样export，27个content blobs全部实算通过，
@@ -108,7 +124,7 @@ policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或
 `noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88`。
 config保持`sha256:39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb719f01`，
 源码仍fcc863f。传输目录已保存image-push.log/.exit/.pid和image-published-manifest.json，
-root0600；遇到断线只读这些原结果，不重新push。当时0020尚待执行；其后结果见下方，新T0仍未建立。
+root0600；遇到断线只读这些原结果，不重新push。当时0020尚待执行；其后结果见下方，该时点新T0未建立。
 
 **原 managed 有界验证已实际完成并恢复。** 22:00原状态/镜像预检通过；22:07
 无网络、无data挂载、仅stdlib配置检查确认选择PostgreSQL及URI原Tracking角色，排除
@@ -125,7 +141,7 @@ MainPID0/Job空/NeedDaemonReload=no/NRestarts0、无同名或service-label容器
 0020前序路径问题（现已解决）：原owner可查询，但native长SQL无法完整可靠读回，执行前
 清为无害注释；新标签登录拒绝未重复。临时data:校验页被浏览器策略拒绝，
 该方式停止且未绕过。按既有正常SQL入口恢复完整内容核验后才执行原hash文件，
-不把工具文本输入故障解释为缺少数据库权限。当前无新T0、appgrant、配置激活或provider
+不把工具文本输入故障解释为缺少数据库权限。该前序时点无新T0、appgrant、配置激活或provider
 admission；同对象网站验证仍需owner交互。其他生产/自动化PAUSED，Readiness30/38。
 
 **0020现已单次应用并核验。** 正常Duplicate Tab保留原noteai_admin会话，完整编辑器
@@ -139,8 +155,8 @@ Tracking与PUBLIC均无EXECUTE。DMS会规范缩进，不冒充原函数body逐�
 仅新增迁移账本INSERT1及批准schema DDL，无业务对象更新或配置激活。
 原目录读回保存在新source目录`0020.catalog-readback.json`，7110bytes/SHA
 `21a06cb200774784a18c7022b586a9fedaa390610b830624af12e7c356c51cc0`，root0600。
-禁止重放apply；后续新T0仍需真实同对象页面，Readiness30/38。
-22:44原笔记标签已置前，当前UI仍显示“安全验证／拖动箭头完成拼图”，同时提示
+禁止重放apply；在22:30时点新T0仍需真实同对象页面，Readiness30/38。
+22:44原笔记标签已置前，当时UI仍显示“安全验证／拖动箭头完成拼图”，同时提示
 “当前笔记暂时无法浏览／请打开小红书App扫码查看”。需要owner本人完成该交互；
 尚不证明解除后能访问，也不从旧页面填写新指标。无需重复ACR登录、push或0020。
 

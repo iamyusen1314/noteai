@@ -16434,7 +16434,7 @@
               "ref": "deploy/production/evidence/production-tracking-observation-audit-20260903.json"
             }
           ],
-          "blocker": "Old 2026-09-04 observation and failed 24h attempt remain permanently sealed. Owner approved the 11074c6 plan-top same-object generation1 scope on 2026-09-09. ACR login and private manifest readback now pass. The exact fcc863f XHS image survived local temporary-file loss and is being exported without rebuild or relabelling. Current owner/ACL/old-attempt preflight, unique publication, 0019 verify-only, 0020 apply, fresh T0/CAS, two bounded samples and complete managed acceptance remain to execute. No new T0 or terminal credit is claimed; all other production and automation stay paused.",
+          "blocker": "Old 2026-09-04 observation and failed 24h attempt remain permanently sealed. Owner-approved 11074c6 generation1 scope has completed unique fcc863f publication (digest a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88), 0019 verification, 0020 apply/readback and same-object owner CAS at actual T0 2026-09-09T14:53:11+00:00 with initial4/2/2. Host binding is verified. New admissions0, actual write set currently2tables/2distinctrows; no terminal credit. Suspended managed cycle passed and original unit restored but successful sampler identity binding and complete validator remain incomplete. Await real24h completion/snapshot in [2026-09-10T14:53:11Z,2026-09-12T14:53:11Z), then3d at or after the latter boundary. Only this Item34 job has two bounded same-task wakeups; all other production/global automation remain paused.",
           "next_task": "PROD-XHS-TRACKING-REAL-XHS-CANARY-001"
         },
         {

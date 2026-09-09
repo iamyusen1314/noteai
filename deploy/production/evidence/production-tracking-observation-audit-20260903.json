@@ -1102,5 +1102,160 @@
       }
     }
   },
-  "resources_started_basis": "No new billable resource was created; the one transient task on existing API-F is recorded under production_execution_20260907.sampling_24h and is now stopped"
+  "resources_started_basis": "No new billable resource was created; the one transient task on existing API-F is recorded under production_execution_20260907.sampling_24h and is now stopped",
+  "prospective_observation": {
+    "schema": "noteai.item34.tracking_observation.v1",
+    "item": 34,
+    "status": "OBSERVING_AWAITING_24H",
+    "readiness_credit": false,
+    "previous_observation_sha256": "657cb64162b98ccdfc9d6693ceaea4bac670ca3955d9e65c6b8e06b6c1dc5cb1",
+    "observation_generation": 1,
+    "observation_binding": {
+      "track_id": "25824b51-99d6-4728-95a4-d68efca92503",
+      "owner_id": "b666248d-8c8d-40ee-9f09-eb47cb728a8d",
+      "generation": 1,
+      "observation_started_at": "2026-09-09T14:53:11+00:00",
+      "initial_snapshot": {
+        "likes": 4,
+        "saves": 2,
+        "comments": 2
+      },
+      "previous_attempt_id": "f3a38a3b-d012-4f49-b057-a2061a10da4e",
+      "previous_attempt_sha256": "3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40"
+    },
+    "observation_binding_sha256": "9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b",
+    "observation": {
+      "note_id": "6a7954010000000026034707",
+      "canonical_url": "https://www.xiaohongshu.com/explore/6a7954010000000026034707",
+      "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+      "ownership_basis": "same authenticated owner profile and current note detail after owner completed website verification",
+      "platform_publication_display": "08-10",
+      "publication_clock_used_for_acceptance_credit": false,
+      "observation_started_at": "2026-09-09T14:53:11+00:00",
+      "initial_snapshot": {
+        "observed_at": "2026-09-09T14:53:11+00:00",
+        "source": "controlled authenticated browser note detail after owner website verification; native visible heart/star/comment icons read 4/2/2, comments total 2; actual clock read at 2026-09-09 14:53:11 UTC",
+        "metrics": {
+          "likes": 4,
+          "saves": 2,
+          "comments": 2
+        },
+        "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+        "xsec_or_session_values_recorded": false
+      },
+      "managed_track": {
+        "identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+        "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+        "submitted_at": "2026-09-07T14:13:46.453586+00:00",
+        "ledger_readback": "VERIFIED",
+        "ledger_readback_sha256": "90a96b5ef86e829598b31f660e6d8f63fb2b3ab5115e66a1ace115a30c5c14b8",
+        "readback_basis": "single owner CAS transaction completed; independent26field owner SELECT confirms generation1/initial/T0/next_check+24h and unchanged original identity/times/old attempt; not terminal sampling acceptance"
+      },
+      "checkpoint_24h": null,
+      "checkpoint_3d": null,
+      "actual_provider_attempts": [],
+      "manual_fill_used": false,
+      "backfill_used": false,
+      "early_credit": false
+    },
+    "owner_open_observation": {
+      "status": "COMMITTED_READBACK_VERIFIED",
+      "transaction_dispatch_count": 1,
+      "transaction_sql_sha256": "6537ca2296b9141661c183c018e1206af4a0a22f158a57305a51113766f6f018",
+      "dms_statement_group_count": 1,
+      "dms_transaction_success": true,
+      "function_return_value_displayed": false,
+      "actual_generation_readback": 1,
+      "readback": {
+        "active_role": "noteai_admin",
+        "admitted_today_utc": "0",
+        "app_attempts_select": "false",
+        "attempt_count": "0",
+        "database_name": "noteai",
+        "fixed_target_attempts": "1",
+        "generation": "1",
+        "generation1_attempts": "0",
+        "global_started": "0",
+        "global_unknown": "0",
+        "idle_fields_clear": "true",
+        "initial_comments": "2",
+        "initial_likes": "4",
+        "initial_saves": "2",
+        "next_check_at": "2026-09-10T14:53:11.000000Z",
+        "next_check_exact": "true",
+        "observation_started_at": "2026-09-09T14:53:11.000000Z",
+        "observed_at": "2026-09-09T22:59:00.916185+08:00",
+        "old_history_exact": "true",
+        "original_identity_times": "true",
+        "owner_id": "b666248d-8c8d-40ee-9f09-eb47cb728a8d",
+        "published_at": null,
+        "session_role": "noteai_admin",
+        "status": "pending",
+        "submitted_at": "2026-09-07T14:13:46.453586+00:00",
+        "track_id": "25824b51-99d6-4728-95a4-d68efca92503"
+      },
+      "readback_sha256": "90a96b5ef86e829598b31f660e6d8f63fb2b3ab5115e66a1ace115a30c5c14b8",
+      "previous_attempt_projection_sha256": "3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40",
+      "tracked_notes_update_count": 1,
+      "new_rows_created": 0,
+      "provider_admissions": 0,
+      "temporary_grant_performed": false
+    },
+    "generation_migration": {
+      "path": "model/migrations/postgres/0020_tracking_observation_generation.sql",
+      "version": "0020_tracking_observation_generation.sql",
+      "sha256": "22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9",
+      "ledger_source_sha256": "22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9",
+      "ledger_exact_count": 1,
+      "schema_migrations_insert_count": 1,
+      "production_status": "VERIFIED",
+      "ledger_readback": "VERIFIED",
+      "applied_at": "2026-09-09T14:22:30.179508Z",
+      "catalog_readback_sha256": "21a06cb200774784a18c7022b586a9fedaa390610b830624af12e7c356c51cc0"
+    },
+    "actual_production_write_set": {
+      "tables": [
+        "schema_migrations",
+        "tracked_notes"
+      ],
+      "rows_by_table": {
+        "schema_migrations": 1,
+        "tracked_notes": 1
+      },
+      "row_mutations": 2,
+      "out_of_contract_row_mutations": 0,
+      "ledger_readback": "PARTIAL_OBSERVATION_IN_PROGRESS",
+      "basis": "one0020 ledger INSERT plus one original tracked row owner CAS UPDATE; schema DDL separately recorded; expected future writes are not counted as actual"
+    },
+    "host_binding": {
+      "path": "/var/lib/noteai/item34-image-build-20260906/g1-20260909/observation-binding.json",
+      "status": "VERIFIED",
+      "bytes": 378,
+      "file_sha256": "53f3adaaa366a21f499e1c0f4c7faddb5c8a999594d096ed8b28cd95209a9acf",
+      "observation_binding_sha256": "9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b",
+      "uid": 0,
+      "gid": 0,
+      "mode": "0600",
+      "creation_dispatch_count": 1,
+      "readback_basis": "API-F Cloud Assistant result15 wrote378bytes using O_EXCL/O_NOFOLLOW and fsync; independent result16 succeeded, verified regular root/root0600 bytes/hash and frozen observation_context parsing; no database or provider call",
+      "executor_24h_not_before": "2026-09-10T14:53:11+00:00",
+      "executor_3d_not_before": "2026-09-12T14:53:11+00:00"
+    },
+    "managed_runtime": {
+      "status": "INCOMPLETE",
+      "completed_cycle_restored": true,
+      "journal_sha256": "fd303a7aed14df507f1817ef5c07f724403c03e884cb28e5df9ff22983ea3e65",
+      "remaining": "actual new successful sampler identity binding and full existing validator"
+    },
+    "provider_admissions": 0,
+    "automatic_retry_count": 0,
+    "terminal_finalized_at": null,
+    "current_earliest_terminal": "2026-09-12T14:53:11+00:00",
+    "sampling_windows": {
+      "24h_not_before": "2026-09-10T14:53:11+00:00",
+      "24h_completion_and_snapshot_strictly_before": "2026-09-12T14:53:11+00:00",
+      "3d_not_before": "2026-09-12T14:53:11+00:00"
+    },
+    "secret_values_recorded": false
+  }
 }

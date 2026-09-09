@@ -1,5 +1,103 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 23:23 Beijing — same-object generation1 T0 committed; bounded continuation scheduled
+
+Continue from fceb5df. The prior22:41 PROGRAM_STOP is resolved by owner's personal
+website verification; no new URL, credential or production approval is needed.
+The actual original note detail was visible again, title “上传一张猫的照片，AI帮它写了句话，我破防了”,
+author运营智多星, same authenticated owner profile. Native visible heart/star/comment
+counts were4/2/2, comment total2. Actual clock read immediately after the snapshot:
+**T0=2026-09-09T14:53:11+00:00 (September9 22:53:11 Beijing)**. The08-10 platform
+publication display is not the observation clock. No agent CAPTCHA interaction.
+
+22:54:15 owner preflight and separate10field old-attempt projection confirmed
+original target/owner/history, exact0019/0020, gen0, original ACL/appSELECTfalse,
+globalstarted/UNKNOWN/dayadmissions0. Old attempt SHA remains
+`3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40`.
+One457byte serializable owner CAS transaction was fully read back in DMS's native
+confirmation then Direct Execute was clicked once; onegroup succeeded. SQL SHA
+`6537ca2296b9141661c183c018e1206af4a0a22f158a57305a51113766f6f018`.
+DMS hid the function return; generation1 is proven by the independent26field
+owner SELECT at22:59:00.916185, not an invented displayed returnvalue. That result
+is saved verbatim as fields in canonical prospective child, SHA
+`90a96b5ef86e829598b31f660e6d8f63fb2b3ab5115e66a1ace115a30c5c14b8`.
+It confirms pending/gen1, T0/initial4/2/2, next_check exactlyT0+24h, original
+identity/submitted_at/published_at unchanged, old10fieldhistory exact, idle fields
+clear, generation1attempts0/globalstarted0/UNKNOWN0/dayadmissions0/appSELECTfalse.
+Actual new-job DML to date is ledgerINSERT1 + originaltrackedrowUPDATE1 =2distinct
+rows in2tables; approved0020DDL is also recorded. Future7tables9rows are not actual.
+No registration/gift/POST/newrow/grant/config activation/provider sampling occurred.
+
+Host binding is now saved and independently VERIFIED:
+`/var/lib/noteai/item34-image-build-20260906/g1-20260909/observation-binding.json`.
+Exactly378bytes, root/root0600, regular/no-link, fileSHA
+`53f3adaaa366a21f499e1c0f4c7faddb5c8a999594d096ed8b28cd95209a9acf`;
+normalized7field bindingSHA
+`9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b`.
+Cloud Assistant result14 verified root0700 and unused binding/phasejournals;
+result15 single999char fully verified command used O_EXCL/O_NOFOLLOW,0600 and
+file/directory fsync, returned378; result16 independently verified bytes/mode/owner
+and parsed the frozen executor context, returning exact24h/3d boundaries. Do not
+repeat creation. An unsubmitted long draft and text-input failures caused no
+host action; selected-text source under1000chars was checked before Execute.
+
+**Next24h window:** September10 22:53:11 <= completion/snapshot < September12
+22:53:11 Beijing. **3d:** at/after September12 22:53:11, after actual24h snapshot.
+Actual approved job continuation is now two bounded same-task heartbeat wakeups,
+September10 and12 at22:55 Beijing, id `noteai-item34-generation1`, ACTIVE/COUNT2,
+target current task `01a079a4-1c05-7d21-a98a-2d418cdd20c9`. Tool creation and saved
+metadata were read back. This replaces the plan's proposed active clock wait;
+it invokes the CTO in this task to recheck time/state and run only the corresponding
+already-approved stage. It is not a server sampler cron and gives no future-run
+success guarantee. Local machine must remain on and Codex running; lost legal
+login/MFA means that path needs owner's exact interaction, never secret extraction.
+Existing `item34-24h-3d-observation` (old mixedItem32–34) and `noteai-20` remain
+PAUSED; no global automation was resumed. The two provider admissions remain0
+until real future execution. No new paid resource/Builder; future marginal cost
+remains UNKNOWN_NOT_ZERO. On any late24h without qualifying evidence, seal this
+path, never backfill/restart/replay. No new approval per already-approved phase.
+
+For next phase use frozen source directory above and actual published digest
+`noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88`.
+Before any grant prove live owner revoke channel and read original ACL; grant
+only if absent, then revoke only this phase's addition immediately after success
+or failure. Never leave it until3d. Temp SELECT affects allnoteai_app sessions.
+Run existing `deploy/production/execute_item34_tracking.py bind --stage 24h
+--track-id 25824b51-99d6-4728-95a4-d68efca92503 --image <digest>
+--observation-binding <binding>` only within the approved phase; expected
+ALREADY_BOUND/target_rows_mutated0. Existing durable `run` uses the same arguments
+and `--journal <source>/g1-24h.host.jsonl`, with unique transient
+`noteai-item34-g1-24h-once`, Restart=no/UMask0077.3d uses stage3d, g1-3d journal/unit;
+persisted internal stage is7d. Check original unit/journal/container absence or
+existing result before dispatch; an existing/UNKNOWN result permits only status
+and reconcile, not a second launcher. Precise worker names are
+`noteai-item34-tracking-g1-24h` and `noteai-item34-tracking-g1-3d`.
+Existing durable `restore --restore-from <original phase journal> --journal
+<unused restore journal>` pulls original authorization; do not add stage/image/
+track/binding flags to restore. Always confirm exact stop/config restoration/ACL
+revoke and save original results. Do not repeat the completed managed cycle;
+bind its real successful new sampler identity and run the existing full validator.
+
+Here status means read-only original journal complete records and exact native
+unit/container metadata: durable has no status subcommand. Missing/partial journal
+or absent uniqueauthorization does not prove no dispatch; reconcile first. The
+managed helper's result deliberately remainsINCOMPLETE and does not assemble final
+managed_promotion. Reuse actual cycle/rollback/log/alert/image evidence to fill the
+existing identity and control fields plus successful sampler
+bounded_validation_attempt_identity_sha256; never simply renameINCOMPLETE toVERIFIED.
+Any missing native evidence stays incomplete, no new gate or repeated cycle.
+
+Canonical old root SHA remains657cb64162b98ccdfc9d6693ceaea4bac670ca3955d9e65c6b8e06b6c1dc5cb1.
+Only its prospective child records newT0; no old Evidence rewritten. Independent
+read-only audit recomputed both binding hashes,26fieldreadback and time windows.
+Item34 remainsunverified and Readiness30/38; manifest blocker text is synchronized
+only. Other local prepared artifacts remain those atfceb5df; no test/history replay.
+Changed current files: this Handoff, existing plan/risk, canonical tracking JSON
+and manifest's Item34 blocker only. Seven protected paths untouched; no Git push.
+Main independent JSON/hash check and git diff --check pass: old canonical semantic
+root exact, both binding hashes/378bytes and26fieldreadback exact; manifest diff
+is only /layers/2/controls/4/blocker, allterminal statuses unchanged. No code changed.
+
 ## September9 22:41 Beijing — persistent runnable artifacts recovered
 
 Continue from4ecd79b; no repeat of Item34 publication,0020 or managed cycle.

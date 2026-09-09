@@ -1,5 +1,35 @@
 # Risk Register
 
+## September9 23:23 Beijing — new T0 verified; real sampling still pending
+
+- Owner personally completed the original note website verification. Fresh
+  native metrics4/2/2 and actual clock establish September9 22:53:11 Beijing T0.
+  One approved owner CAS committed; independent26field readback proves gen1,
+  exact newanchor/nextcheck and unchanged originalidentity/oldfailedhistory.
+  Newjob actual2tables/2distinctrows only; schema DDL separately recorded.
+  No new admission, temporary grant, configactivation or real sample yet.
+- Host binding378bytes/root0600, fileSHA53f3adaa...a9acf and semanticSHA9d795cf2...6297b
+  independently verified by existing frozen executor. FileSHA includes newline;
+  semanticSHA does not. Neither may substitute for the other. Creation is used,
+  so never rerun O_EXCL writer on ambiguous reconnect; read the existing result.
+- Native whole-page AX/screenshot initially included XHS security query values
+  in tool output. No values were copied into repository Evidence or this record;
+  canonical xsec_or_session_values_recorded=false means the saved artifact only,
+  not that the earlier tool output was clean. Do not persist screenshots/whole AX
+  or repeat those values. Subsequent reads are scoped; no cookies/password/env
+  contents were read. No credential reset or browser security bypass occurred.
+- Old root stays sealed. New24h completion AND snapshot must be strictly before
+  September12 22:53:11 Beijing;3d starts at that boundary. No later repair/backfill.
+  Two same-task Item34-only wakeups (September10/12 22:55) are saved ACTIVE;
+  old/global automations stay PAUSED. Machine/Codex availability and future owner
+  session validity are required; schedule creation is not actual sampling proof.
+  If wakeup or login fails, reconcile real state and report exact path block.
+- Each phase must recheck owner revoke channel and original ACL before its
+  temporary allnoteai_app SELECT. Revoke only this phase's added grant even on
+  failure, immediately report failed撤权. Max2newadmissions/0retry; no newresources.
+  Managed cycle remains restored/INCOMPLETE until real successful sampler binding
+  and full existing validator pass. Readiness remains30/38.
+
 ## September9 22:41 Beijing — runnable recovery persisted; remaining external boundary
 
 - Missing Item32 transport and f3 API/Payment export are recovered in persistent
