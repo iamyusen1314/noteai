@@ -10,15 +10,49 @@ in that application are released; other Items, global automation and Git push
 remain paused. Root executes serially; two real readonly agents checked code
 and canonical acceptance. Old root Evidence remains sealed and30/38 unchanged.
 
-Actual material gap: both indexed /private/tmp/noteai-prep-20260908 transfer files
-are absent. Existing local Colima noteai-prep image survives with exactly the
-approved fcc863f source and ab538ef4...ae2dc94 OCI index. Started that isolated
-local profile and export the same image to persistent Downloads/noteai-item34-fcc863f;
-no rebuild/relabel. Restore host package from the same source's exact11 allowlisted
-files, validate all bytes before transmission, and record actual transport hashes.
-DMS existing noteai_admin session is available; no new service-linked role needed.
-Next in progress: recover packages and perform current bounded DB/old-attempt/ACL
-preflight, then unique image publication,0020,real fresh T0 and owner CAS.
+Material recovery completed at checkpoint fb37c76: the exact existing fcc863f
+image was exported, not rebuilt/relabelled. All27 blob hashes/source/config match.
+Persistent Downloads/noteai-item34-fcc863f has image gzip377759397bytes /
+af7c177451c1c056a40abdadbfc1335641798f1dd68579533ff2d87172b15d69 and host
+11-file gzip48566bytes / cf06fcef012b7408e3c6a2ab383d3d3c936e55cb62ecd067a8c423223c39208f.
+Use those actual hashes, not the disappeared /private/tmp transports.
+
+Fresh existing DMS noteai_admin checks:20:05:30.002355Beijing noteai/PG160013,
+allthreeowners/currentowner/schema rights true;0019 exact/0020 absent,
+generationcols0,globalstarted0/UNKNOWN0/UTCtodayadmissions0. Attempts ACL exactly
+{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin};
+noteai_app attemptsSELECT false; enablednoninternaltriggers0 on ten scoped
+core/auth tables. No role created, DDL/DML/grant or provider call performed.
+Original preflight READ ONLY batch ended successfully; final scalar projection
+is SQL-read-only but connection read_only off, not an enforced read-only session.
+
+20:07:01.408588 target-only reconciliation: original track/owner identities,
+submitted_at2026-09-07T14:13:46.453586+00:00,published_atNULL intact; status
+needs_manual/attempt_count1 and every native prior-CAS condition exact. Unique old
+24h attempt remains failed/xhsadaptererror, admitted14:23:55.862085+00:00 and
+completed14:23:58.412753+00:00 September7. Full approved history projection hash
+3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40;
+track and attempt identity hashes match sealed canonical. No old replay.
+0019 original verify-only completed;20:27:16.145885 scalar readback confirms
+ledger1/policy1/RLSexact, only Tracking/current_user/is_secret0 and two scoped
+config keys in qual. No config values read; this job0019 INSERT0.
+
+Current PATH_BLOCKED is transfer UI, not credentials: current API-F Workbench
+root connection is SSM, which officially does not support file transfer. Normal
+SSH options have no saved credential; no password/key guessed/reset/read. ECS
+instance Upload/download form targets /root,root/root,0600,nooverwrite,1800s;
+no file selected or upload submitted. Its embedded OOS upload component and the
+standalone OOS maintenance page remain skeleton. Fresh console error in official
+aliyun-ecs/oos/0.2.75/index.js is cross-origin Window.setTimeout SecurityError.
+No browser protections disabled. Explore an existing-resource normal transfer
+path before any dependency writes; ACR authentication is already valid.
+A Workbench UI metadata scan incidentally exposed a terminal session identifier
+in tool output; no value retained in files/Evidence, subsequent reads exclude
+status/session labels. Do not reproduce the value or read full Workbench DOM.
+
+Next in progress: approved unique image transport/publication, then0020 and
+fresh same-object T0/owner CAS. Canonical unchanged; manifest only records approved
+generation/scope bindings, all38statuses unchanged and Readiness30/38.
 
 ## September9 ACR fixed-password login — authentication recovered
 

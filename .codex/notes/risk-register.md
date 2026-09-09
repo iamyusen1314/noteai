@@ -1,13 +1,23 @@
 # Risk Register
 
-## September9 prospective Item34 approved — material recovery in progress
+## September9 prospective Item34 approved — transport UI path blocked
 
 - Owner approved the11074c6 plan-top generation1 scope after ACR recovery. Only
   that job is released; old-window Evidence, other production and automation stay
   sealed/paused. No new T0 or database mutation has yet occurred.
-- /private/tmp transfer files are missing. The exact fcc863f local image survives
-  in the existing isolated Colima profile; recover its transport without rebuild
-  or label changes. New transport hashes must be real, not copied from missing files.
+- Exact fcc863f transports recovered and verified at fb37c76; persistent Downloads
+  hashes are in plan/Handoff. No rebuild or relabel. Current SSM connection cannot
+  transfer files; ECS/OOS uploader fails with an observed official frontend
+  cross-origin setTimeout SecurityError. No upload submitted, no protections
+  bypassed and no reason to repeat Docker login. Alternative existing-resource
+  transfer remains in progress; no0020/T0 write yet.
+- Existing noteai_admin fresh preflight confirms globalstarted0/UNKNOWN0 and exact
+  old row/failed history;0019 verify-only ledger/policy/RLS readback passes. Final
+  scalar SELECT is read-only SQL, not a read_only-enforced session. Before write,
+  respect current no-UNKNOWN/CAS checks and do not treat catalog rights as DDL success.
+- A Workbench terminal-session identifier was incidentally exposed by UI metadata
+  output. No value saved to files/Evidence; scoped reads now exclude status/token
+  labels. Do not reproduce the value or read credentials/full Workbench DOM.
 - Same-session0020 GUC bindings and current owner/old-attempt/globalUNKNOWN/ACL
   readbacks precede apply. T0 owner reconciliation precedes any app wrapper call;
   grant only within each sampling phase. Managed helper success is INCOMPLETE

@@ -63,6 +63,16 @@ host包恰有原11个allowlisted常规文件，逐一由fcc863f提交恢复并�
 包含该源码的private-bind helper（28c06849...327f0），不混入后续Item36代码。
 旧包及旧源码身份保留在历史段，不能据旧传输hash核对当前包。
 
+当次前置实测：2026-09-09 20:05:30北京时间，现有noteai_admin确认全局
+started/UNKNOWN/UTC日admissions均0，原ACL未扩大、十个范围内表无额外enabled
+noninternal trigger；20:07:01固定原row/旧failed attempt精确CAS状态满足、history SHA
+`3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40`，
+旧id/submitted_at/published_at未变。20:27:16原0019 verify-only逐字段读回ledger1、
+policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或新T0已建立。
+当前上传路径故障：SSM不支持传文件；ECS/OOS官方上传组件出现跨域脚本异常，
+仍未选择/提交文件。目标/root、root/root、0600、不覆盖、超时1800s已准备；
+改用既有身份/资源内正常传输路径，不扩大权限、不减弱浏览器安全。ACR认证已恢复。
+
 ## September9 authenticated inputs and C implementation (no production execution approval)
 
 Owner has restored Aliyun login. The September8 login stop below is historical.
