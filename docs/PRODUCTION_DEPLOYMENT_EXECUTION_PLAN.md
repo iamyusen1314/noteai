@@ -21,12 +21,18 @@ preflight/apply/verify；同一owner-owned原笔记的新鲜T0及原managed row�
 新增最多2admissions/0自动重试，旧认证/注册/900gift不重做。真实provider费用与
 既有传输/存储增量未知时保留UNKNOWN；无新增固定费用、Builder或其他资源。
 
-所需人工操作已定位：API-F Workbench `root@noteai-api-f`，使用现有ACR访问密码
-正常运行 `docker login --username=aliyun0345188616 noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com`。
-密码仅在该终端隐藏提示输入，不发聊天、不重置，不开放公网；这是恢复该主机
-Docker仓库身份，控制台MFA不代替它。当前一次旧manifest只读查询AUTH_DENIED，
-原因未定位，故未重复发送。该身份恢复可先由owner完成；生产发布/0020/T0等仍须
-明确批准本段新范围。批准只作用于本作业；其余Item/全局自动化继续PAUSED。
+ACR认证入口已核实：容器镜像服务 → `noteai-prod-shenzhen` → 访问凭证；当前页面
+提供“设置固定密码”和“生成临时密码”。9月7日下午Handoff记载通过ACR页面生成
+临时凭据，值未读取/记录，当时Password提示已取消；晚间owner报告Login Succeeded
+及后续push成功不能证明使用过owner亲设的固定密码。不得要求owner回忆未经证明
+存在的固定密码，也不得将当前一次AUTH_DENIED直接归因为凭据过期。
+本轮只检查manifest，尚未发起docker login，API-F当前没有Password输入提示。
+后续认证使用现有合法身份的正常凭据流程；命令为
+`docker login --username=aliyun0345188616 noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com`。
+只有命令实际到达Password提示后才请owner在终端隐藏输入，不发聊天、不重置密码、
+不开放公网。控制台MFA不代替Docker仓库认证；本次仅打开访问凭证页，未生成或
+读取新凭据、未重试拒绝请求。生产发布/0020/T0等仍须明确批准本段新范围；
+其余Item/全局自动化继续PAUSED。
 
 新T0现在不设定。批准后按真实T0记录24h窗口[T0+24h,T0+72h)及3d边界T0+72h，
 当前线程用时钟等待并在每个阶段核对持久化status后仅调用既有durable launcher一次；

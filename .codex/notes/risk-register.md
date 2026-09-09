@@ -21,8 +21,12 @@
   Readiness30/38. Only metadata inputs/local code are being completed this turn.
 - ACR console/privateendpoint/immutable repo are verified, but API-F existing
   Docker credential path returnedAUTH_DENIED on one oldmanifest read. Cause is
-  unlocated, request was not repeated; owner normal existing-credential login
-  is needed, not a new RAM role/public endpoint/password reset. DNS business
+  unlocated, request was not repeated. September7 history proves an afternoon
+  temporary-credential flow, not an owner-set fixed password; this round did not
+  start docker login or prepare a Password prompt. The access-credentials page
+  has fixed/temporary options; only page metadata was read, no credential generated
+  or value accessed. Do not equate AUTH_DENIED with expiry or ask owner to recall
+  an unproven fixed password. No RAM role/public endpoint/password reset. DNS business
   root/API/Admin records are actually absent; three validationTXT remain intact.
 - The future Item34 ACL order is fixed: T0 CAS reconciliation uses owner; app
   wrapperbind/snapshot/run only after24h temporarygrant. Eachsamplingphase

@@ -41,8 +41,13 @@ ACR readback complete: cri-xpuhaclqkxlwy47t/noteai/app private/immutable,
 productionVPC10.42.10.49 effective,publicoff. All18tags do not include proposed
 item34-xhs-fcc863f-g1-20260909. One API-F07:37:24 existing612a manifest metadata
 read returnedrc1/AUTH_DENIED; no retry/layerdownload/configread. Reasonunlocated,
-not assumedexpiry. Manual normaldockerlogin with existingACRpassword is needed
-atAPI-FWorkbench; exactcommand inplan top, passwordneverinchat. This isPATH_BLOCKED.
+not assumedexpiry. Credential guidance corrected after owner's question: no
+dockerlogin was started this round and API-F has no current Password prompt.
+September7 afternoon used an ACR-generated temporary credential, not evidence
+of an owner-set fixed password; evening Login Succeeded does not identify its type.
+ACR access-credentials page freshly shows Set fixed password / Generate temporary
+password. Page opened only: no new credential generated, value read or denied call
+repeated. Future normal credential flow and command remain in the existing plan.
 
 DNS actualnoteaipro.cn unfilteredonepage3records: onlythree_dnsauth TXT,TTL600,
 enabled. Root/API/AdminbusinessbeforestateABSENT; nooldbusinessrecordID needed.
@@ -68,13 +73,15 @@ offlinepreparedandactualDNSbusinessabsence. No further identified local defect
 or missing current configuration read remains. Nativeapply/liveacceptance and
 externalcommercial/signature/publicGoLive steps are not authorized by cloudlogin.
 
-PROGRAM_STOP conditions10 and1: current authorizedpreparations are complete,
-and the nextblockedcredentialpath requires owner's existingACRpassword atAPI-F.
-This does not makeACRfailure the reasonotherworkstopped; the Cfix/TLS/quote/DNS
-were completed after that failure. Owneraction: approve the same newItem34scope
-atplan top, with normal existing-credential ACRlogin at itsfirststep. Exactlogin
-command is shown there; no passwordinchat/reset/newrole. If onlyACRlogin is
-completed, resume once readonlyauthverification, never infer newT0 approval.
+Earlier PROGRAM_STOP cited conditions10 and1. The condition1 explanation was
+unsupported: an owner-known existing fixed ACR password is not established.
+The current question resumed useful credential-provenance and UI verification;
+one real readonly agent corroborated the historical temporary-credential record.
+Plan/Handoff/risk instructions are corrected; no new gate or production approval
+is inferred. The Cfix/TLS/quote/DNS were already completed after AUTH_DENIED.
+All known independent engineering preparations remain complete; future production
+work still requires the prospective Item34 scope at plan top. If only ACR login
+is completed, resume once readonly auth verification, never infer newT0 approval.
 Oldwindowpermanentlysealed,newT0notauthorized,noGitpush orautomationresume.
 
 ## September8 13:31 Beijing — all currently independent local preparation completed
