@@ -1,5 +1,53 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 22:09 Beijing — real managed cycle passed and original state restored
+
+Continue the same approved generation1 scope, no re-takeover/replay. Unique XHS
+publication is saved at2d97e5b.0020 is still NOT SUBMITTED: native DMS CodeMirror
+setValue truncated the long draft, detected before Execute. That draft is now a
+harmless NOT SUBMITTED comment. Original owner SELECT worked21:49:07.724755;
+new DMS tabs returned login-permission/WebSocket failures. Do not repeat refused
+login or create optional DMS roles. Existing owner authority is proven, reliable
+long-SQL editor verification is PATH_BLOCKED. The browser rejected a temporary
+data: clipboard-check page; that method was abandoned, no workaround or security
+setting change. Native OS clipboard and browser-session clipboard are distinct;
+do not claim a native copy was verified by the browser's virtual clipboard.
+
+Managed validation can run independently of0020/T0: two real read-only agents
+confirmed suspended worker/health paths use existing SELECT-only PG schema and
+never activate collection.22:00:19.783887 native preflight passed exact source,
+published digest/config, original unit and unused journal/transient identity.
+22:07:27.801569 network-none/no-data-mount/stdlib-only image check verified
+DATABASE_URL selects PostgreSQL, URI role noteai_xhs_tracking/database noteai,
+no tested identity query/PGOPTIONS/PGSERVICE/preload overrides. Hostaddr defaults
+were not part of this projection; it is not a complete effective DSN attestation.
+Only booleans output, no Secret/connection
+string read by the agent. This avoids SQLite initialization fallback; it does
+not claim a transaction-enforced read-only connection.
+
+Exactly one durable managed action dispatched22:08:30.126004 through existing
+API-F Cloud Assistant, transient noteai-item34-managed-once/Restart=no. Candidate
+unit SHAd4ae9407d65f3f96b0536c2b3572421e848642f292051b58fbbbdd07937b65e2;
+actual published a2ee0f2e...57ab6a88/config39dac3bb...719f01, sourcefcc unchanged.
+22:08:39.201442 singleton1/resource/restart/health PASS, service identity SHA
+29c14138571c6d5a18dcd1c2a4d12e162ba9195763dd9003d1e3c8116a321497.
+Then exact stop once;22:09:09.568071 original unit bytes/state restored. Final
+result INCOMPLETE/restored=true/failed_steps=[]; no restart/recovery replay.
+22:09:23.731593 independent readback confirms original SHA4392872f...91f82d,
+disabled/inactive/dead,MainPID0,Jobempty,NeedDaemonReload=no,NRestarts0,Resultsuccess,
+no same-name or service-label container, transient launcher no longer loaded.
+
+Original root0600 journal (never reuse):
+/var/lib/noteai/item34-image-build-20260906/g1-20260909/managed.host.jsonl
+4685bytes/SHAfd303a7aed14df507f1817ef5c07f724403c03e884cb28e5df9ff22983ea3e65.
+It preserves fsynced original unit, apply/start/stop/restore intents and result.
+No schema/config/appgrant/T0/real provider admission added. Prior alarm/log proof
+remains scoped as recorded below. Managed terminal still requires the actual
+new successful bounded attempt identity and full existing validator; this cycle
+alone is not Item34 DONE. Canonical old root and Readiness30/38 unchanged.
+Next in progress: restore a reliable approved0020 execution surface; same-XHS
+website verification/fresh realT0 remains an independent owner interaction.
+
 ## September9 19:56 Beijing — prospective Item34 scope approved, executing
 
 Owner explicitly approved the once-only scope at plan top after ACR recovery.

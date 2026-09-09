@@ -1,5 +1,26 @@
 # Risk Register
 
+## September9 22:09 Beijing — managed cycle restored, SQL delivery path blocked
+
+- Actual unique published XHS image ran once in approved suspended managed unit:
+  singleton/resource/restart/health PASS, then exact original unit restored with
+  no failed steps. Independent host read confirms disabled/inactive/dead, Jobempty,
+  no containers/restarts/daemon-reload pending. Original managed journal4685bytes/
+  fd303a7a...ea3e65 retained root0600; do not rerun its used identity.
+- Network-none stdlib configuration check ruled out SQLite fallback and tested
+  query/PGOPTIONS/PGSERVICE overrides without exposing Secret values; hostaddr
+  defaults were not projected. Managed code uses SELECT-only PG
+  paths; no claim that the connection enforces transaction_read_only.
+- 0020 remains unsubmitted. Native long CodeMirror setValue truncated the draft;
+  detected before Execute and replaced by harmless comment. Native OS clipboard
+  is not the browser-session clipboard. Browser data: validation page rejected,
+  method abandoned; no policy workaround. New DMS login refusals not retried.
+- This is PATH_BLOCKED, not whole-program stop. Original owner metadata query
+  worked21:49; pending work is reliable unchanged SQL delivery and same-object
+  website verification/newT0. No temporary SELECT or config activation exists.
+  Successful managed cycle does not supply real sampler attempt identity or
+  terminal acceptance. Old root sealed; Readiness30/38.
+
 ## September9 21:47 Beijing — approved XHS publication verified
 
 - Single newprivate immutabletag push returned0; realdigest a2ee0f2e...57ab6a88

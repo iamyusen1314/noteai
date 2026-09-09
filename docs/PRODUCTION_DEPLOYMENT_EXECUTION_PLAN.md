@@ -110,6 +110,24 @@ config保持`sha256:39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb71
 源码仍fcc863f。传输目录已保存image-push.log/.exit/.pid和image-published-manifest.json，
 root0600；遇到断线只读这些原结果，不重新push。0020尚待执行，新T0未建立。
 
+**原 managed 有界验证已实际完成并恢复。** 22:00原状态/镜像预检通过；22:07
+无网络、无data挂载、仅stdlib配置检查确认选择PostgreSQL及URI原Tracking角色，排除
+SQLite回落，未输出Secret；未把该投影当完整有效DSN证明。22:08:30只派发一次既有durable managed，
+22:08:39 singleton/resource/restart/health PASS；22:09:09原unit逐字节恢复，
+最终INCOMPLETE/restored=true/failed_steps=[]。22:09:23独立读回disabled/inactive/dead、
+MainPID0/Job空/NeedDaemonReload=no/NRestarts0、无同名或service-label容器。
+原journal为新source目录下`managed.host.jsonl`，4685bytes/SHA
+`fd303a7aed14df507f1817ef5c07f724403c03e884cb28e5df9ff22983ea3e65`，root0600。
+实际service identity SHA为
+`29c14138571c6d5a18dcd1c2a4d12e162ba9195763dd9003d1e3c8116a321497`。
+不重放此managed身份；该结果仍欠真实新采样attempt绑定及完整validator，不计terminal。
+
+0020仍未提交：DMS原owner标签21:49查询可用，但native长SQL setValue截断，执行前
+发现并清为无害注释；新标签登录拒绝不再重复。临时data:校验页被浏览器策略拒绝，
+该方式停止且未绕过。按既有正常SQL入口恢复完整内容核验后才执行原hash文件，
+不把工具文本输入故障解释为缺少数据库权限。当前无新T0、appgrant、配置激活或provider
+admission；同对象网站验证仍需owner交互。其他生产/自动化PAUSED，Readiness30/38。
+
 ## September9 authenticated inputs and C implementation (no production execution approval)
 
 Owner has restored Aliyun login. The September8 login stop below is historical.
