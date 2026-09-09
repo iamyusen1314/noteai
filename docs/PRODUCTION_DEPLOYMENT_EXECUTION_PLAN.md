@@ -93,6 +93,13 @@ policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或
 固定XHS页面现在要求网站安全验证，已请求owner本人处理；未取得新指标/新T0，
 该路径暂停不阻止已批准的镜像发布和独立准备，且不请求新URL/绕过验证。
 
+当次续读：21:25 journald实际有效5项匹配、服务active；现有Tracking告警正常，
+仅复用原通知历史、未修改规则。DMS新标签出现WebSocket及登录权限提示，未申请权限；
+原owner标签21:40:21仍实际查询成功：noteai_admin/三owners、globalstarted/UNKNOWN0、
+0019exact1/0020absent、原ACL未变。原OSS上传任务随后明确success2/uploading0/failed0，
+唯一镜像Get已派发一次。较早HEAD因对象尚未核实而返回OperationError，其具体原因
+未定位，不猜测403/凭据过期，也未重试；以后按Get真实字节数/SHA读回继续load/push。
+
 ## September9 authenticated inputs and C implementation (no production execution approval)
 
 Owner has restored Aliyun login. The September8 login stop below is historical.

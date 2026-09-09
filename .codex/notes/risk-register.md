@@ -11,6 +11,11 @@
 - Fresh DMS READ ONLY preflight failed with WebSocket connection error; no0020
   write was submitted. Reconnect existing owner session; do not infer current
   owner availability from earlier success or accept unrelated new service roles.
+- Resolved via ORIGINAL DMS tab:21:40:21 current owner/threeowners/noUNKNOWN/
+  originalACL verified. Newtab's login-permission prompts were not approved;
+  current owner channel works without permission expansion. OSS original upload
+  subsequently reports2success/0uploading/0failed; image singleGet nowinprogress.
+  Earlier HEAD OperationError remains unclassified; not retried or calleda403.
 
 ## September9 21:10 Beijing — original unit verified; T0 website interaction pending
 

@@ -126,6 +126,19 @@ OSS image reached100% but UI still says uploading; do not equate progress with
 completion or resubmit. Single existing-role internal HeadObject reconciliation
 is in progress; image Get/load/push and0020 remain unstarted at this entry.
 
+Subsequent reconciliation: single HEAD returnedOperationError (not classified;
+no automatic retry). Separate OSS exact-prefix listing then showed only hostgzip,
+and exact-image multipart listing no rows; original uploader was left intact.
+By21:41Beijing original OSS task UI confirms uploading0/success2/failure0.
+Only then the unique image internalGet was dispatched once; fullhash resultpending.
+Original DMS tab1637491328 remained usable through native UI, despite newtab
+WebSocket/login-permission failures. Native SQL text must be verified AFTER
+setValue; clipboard-only paste/copy had not retained editor state and submitted
+no query.21:40:21.631084 original-owner SELECT returned14scalarrows:noteai_admin
+active/session,noteai/160013,threeownersmatch,0019exact1,0020absent/gencols0,
+globalstarted0/UNKNOWN0/UTCtoday0,appattemptsSELECTfalse and exactoriginalACL.
+No permission application or new role needed; use this existing owner channel.
+
 ## September9 ACR fixed-password login — authentication recovered
 
 Owner reports setting the ACR fixed password. Main agent restored the existing
