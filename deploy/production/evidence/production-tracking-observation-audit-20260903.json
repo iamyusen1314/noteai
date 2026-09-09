@@ -1241,11 +1241,26 @@
       "executor_24h_not_before": "2026-09-10T14:53:11+00:00",
       "executor_3d_not_before": "2026-09-12T14:53:11+00:00"
     },
-    "managed_runtime": {
+    "managed_promotion": {
       "status": "INCOMPLETE",
+      "singleton_winner_count": 1,
+      "resource_controls": "PASS",
+      "restart_controls": "PASS",
+      "health_check": "PASS",
+      "rollback_rehearsal": "PASS",
+      "log_controls": "PASS",
+      "alert_controls": "PASS",
+      "execution_identity_sha256": null,
+      "execution_identity_basis": "pending actual successful checkpoint run_identity_sha256 for the bounded supplier validation; existing canonical contract does not require a separate managed-cycle execution digest; service cycle remains independently bound by managed_service_identity_sha256 and its original journal",
+      "immutable_artifact_sha256": "39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb719f01",
+      "managed_service_identity_sha256": "29c14138571c6d5a18dcd1c2a4d12e162ba9195763dd9003d1e3c8116a321497",
+      "bounded_validation_attempt_identity_sha256": null,
       "completed_cycle_restored": true,
+      "journal": "/var/lib/noteai/item34-image-build-20260906/g1-20260909/managed.host.jsonl",
       "journal_sha256": "fd303a7aed14df507f1817ef5c07f724403c03e884cb28e5df9ff22983ea3e65",
-      "remaining": "actual new successful sampler identity binding and full existing validator"
+      "evidence_basis": ".codex/handoffs/current-task.md September9 22:09 real managed cycle and independent original-state restoration; September9 21:25 effective journald and exact Tracking alarm readback; existing accepted Item25 notification proof in internal-deployment-readiness.json monitoring_alerting",
+      "alert_delivery_basis": "existing accepted notification test reused; no new notification dispatch; period60s and namespace remain attributed to original acceptance, not freshly reread",
+      "remaining": "actual successful new sampler attempt/run identity bindings and full existing validator; no fabricated identity hash or managed cycle replay"
     },
     "provider_admissions": 0,
     "automatic_retry_count": 0,

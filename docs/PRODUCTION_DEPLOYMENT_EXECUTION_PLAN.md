@@ -12,7 +12,12 @@ root0600及executor解析独立通过。唯一镜像发布、0019verify、0020ap
 有界managed周期/恢复均已完成；禁止重放这些动作。新provider admission仍0。
 实际新作业DML截至此处为账本INSERT1+原跟踪行UPDATE1，两表两distinctrows；0020DDL
 另记，未来7表9行不提前计数。canonical prospective记录承载事实，旧root不变。
-managed仍缺真实成功采样身份绑定及完整validator；Readiness30/38。
+managed既有字段已按真实周期/恢复及原通知验收填入prospective；仍缺真实成功采样
+绑定、受真实执行支持的execution identity及完整validator，不能用任意journalhash填空；
+Readiness30/38。
+执行身份来源已核定：后续真实成功checkpoint的原run_identity_sha256用于此次有界
+供应商验证的execution_identity，其attempt_identity_sha256绑定bounded验证；原managed
+周期仍由实际service identity/journal证明。现行合同不要求另造managed执行摘要或第三次调用。
 
 Task: `PROD-DEPLOY-PLAN-001`
 
@@ -58,6 +63,7 @@ config.json为600/root；未读取内容。Docker仍提示未加密保存，未�
 3d从9月12日22:53:11起，且在真实24h snapshot之后。实际续执行方式为仅此Item34
 作业的同任务两次有界唤醒：9月10日/12日22:55，调度id `noteai-item34-generation1`，
 已由正式工具创建并读回ACTIVE/COUNT2/current-task绑定；替代先前拟用的连续时钟等待。
+同一调度随后改为明确UTC起点9月10日14:55、间隔两日共两次并读回，避免默认时区歧义。
 原混合Item32–34及20点提醒均保持PAUSED，没有服务器采样cron或全局自动化恢复。
 届时主代理先核对实际时钟、原journal和精确unit/container状态，再串行执行对应已批准
 阶段；调度成功不等于采样成功，电脑需开机且Codex运行。合法会话届时失效只报告

@@ -29,6 +29,20 @@
   failure, immediately report failed撤权. Max2newadmissions/0retry; no newresources.
   Managed cycle remains restored/INCOMPLETE until real successful sampler binding
   and full existing validator pass. Readiness remains30/38.
+- The existing managed_promotion fields now carry actual completed checks in the
+  canonical prospective child. Its execution_identity remainsnull: the helper
+  does not return it and the validator only checks SHA format. Do not fill an
+  arbitrary journal/service hash or test placeholder. The later real execution
+  must support the field; successful sampler binding is also stillnull. No extra
+  approval gate or managed cycle replay was introduced.
+- Canonical scope review confirms no requirement for a separate managed-cycle
+  execution digest. Existing successful checkpoint run_identity_sha256 can identify
+  the bounded supplier validation, while original service identity/journal bind
+  the managed cycle. This explicit source mapping resolves the preparation issue;
+  both actual run/attempt values remainnull until success, without a third call.
+- Same heartbeat updated to an explicit UTC start at September10 14:55 with two
+  occurrences two days apart; saved schedule matches22:55 Beijing September10/12.
+  This removes default timezone ambiguity. No duplicate or globaljob activation.
 
 ## September9 22:41 Beijing — runnable recovery persisted; remaining external boundary
 

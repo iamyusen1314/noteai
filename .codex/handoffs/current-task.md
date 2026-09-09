@@ -98,6 +98,31 @@ Main independent JSON/hash check and git diff --check pass: old canonical semant
 root exact, both binding hashes/378bytes and26fieldreadback exact; manifest diff
 is only /layers/2/controls/4/blocker, allterminal statuses unchanged. No code changed.
 
+Follow-through after checkpoint049a677: prepared the existing managed_promotion
+fields directly in canonical prospective child from the already executed native
+cycle, replacing the temporary managed_runtime summary. Singleton/resource/
+restart/health/rollback/log/alert fields are supported by actual cycle/readback
+and accepted Item25 notification proof; no cycle or notification replay. Config
+39dac3bb...719f01 remains immutable_artifact, not the registry manifest digest.
+Service identity29c14138...1497 is real. Execution identity and successful bounded
+attempt remainnull; current helper has no execution_identity return and validator
+only format-checks it, so no journal/service hash substitution or falseVERIFIED.
+Canonical acceptance review resolved the source mapping: contract section160 and
+existing plan's bounded managed validation require binding one real sample, not
+a third call or a distinct managed-cycle execution hash. CTO will reuse that
+successful checkpoint's existing run_identity_sha256 as execution_identity and
+attempt_identity_sha256 as bounded_validation_attempt_identity. This is an explicit
+interpretation of the existing field, not a new DoD rule. It identifies the bounded
+supplier run, not the separately evidenced managed service cycle. Both staynull
+until actual success; no missing implementation gate or newly invented digest.
+Schedule was updated through the same formal tool to explicit UTC start September10
+14:55, two occurrences separated by two days; exact saved start/count/current-task
+binding was reread. This fixes timezone ambiguity without another schedule or
+unpausing oldjobs. No run success is claimed before an actual wakeup and execution.
+The saved wakeup prompt uses approved time windows even if scheduling is delayed,
+not a new calendar-date gate. Final JSON/hash/diff checks pass; old canonical root
+and manifest statuses unchanged, old two automations independently stillPAUSED.
+
 ## September9 22:41 Beijing — persistent runnable artifacts recovered
 
 Continue from4ecd79b; no repeat of Item34 publication,0020 or managed cycle.
