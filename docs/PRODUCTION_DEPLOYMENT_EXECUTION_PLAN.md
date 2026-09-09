@@ -1,6 +1,6 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `READ-ONLY CLOUD INPUTS RESUMED / C CANDIDATES PREPARED / ITEM34 OLD WINDOW SEALED / PRODUCTION PAUSED`
+Status: `ITEM34 GENERATION1 SCOPE APPROVED / EXECUTION IN PROGRESS / OLD WINDOW SEALED / OTHER PRODUCTION PAUSED`
 
 Date: 2026-09-09 (current scope below; July sections retained as history)
 
@@ -10,7 +10,10 @@ The bounded Item34 job below has failed and closed safely. Its old observation
 window must not be replayed or restarted. Retained approval and commands are
 execution history, not authorization to repeat them or run other Items.
 
-**本次待一次批准：Item34 同对象新T0受控实施（2026-09-09）。** 沿用下方现有
+**本次已获owner一次批准：Item34 同对象新T0受控实施（2026-09-09）。** 批准基线
+`11074c6147cc4acebb3b72c2470fe25debe49c0e`，其本计划SHA256为
+`e77d033a5c25392f48d66a6bf2ed3e6331727728915386a1634d2d4921a24162`。
+owner在ACR恢复后明确回复“批准”；以下范围串行执行，不逐命令再次申请。沿用下方现有
 八步实施材料与全部SQL/hash，唯一XHS源码仍为fcc863f，不复用旧窗口授权。
 现有ACR身份已恢复，余下申请限于：把该唯一已构建镜像/host包传至API-F并发布至既有
 私网仓库新不可变tag `item34-xhs-fcc863f-g1-20260909`；0019 verify-only及0020
@@ -38,14 +41,27 @@ September9后续owner已设置固定密码并在终端隐藏输入；主代理�
 截至2026-09-09 19:52:47北京时间，stat-only读回/root/.docker为700/root、
 config.json为600/root；未读取内容。Docker仍提示未加密保存，未配置credential helper，
 文件访问限制不冒充加密。未来同主机/root在凭据有效时可复用，但Workbench/MFA独立。
-生产发布/0020/T0等仍须明确批准本段新范围；
+生产发布/0020/同对象新T0及下述验证恢复现在仅在本段已批准范围内执行；
 其余Item/全局自动化继续PAUSED。
 
-新T0现在不设定。批准后按真实T0记录24h窗口[T0+24h,T0+72h)及3d边界T0+72h，
+新T0尚未实测，不预填。实施时按真实T0记录24h窗口[T0+24h,T0+72h)及3d边界T0+72h，
 当前线程用时钟等待并在每个阶段核对持久化status后仅调用既有durable launcher一次；
 不依赖PAUSED任务唤醒。若线程被中断，恢复只读status，不重放UNKNOWN；若24h已
 越界则封存该路径。24h完成后读回真实完成/snapshot时间，并给出3d的北京时间和
 同一线程继续方式。此申请不包含API/Payment/ALB/SG/DNS实施或其他Item真实执行。
+
+执行材料恢复：原/private/tmp两个包已不存在，既有Colima原镜像仍匹配fcc863f源码、
+OCI index及config39dac3bb...719f01。已原样export，27个content blobs全部实算通过，
+没有重建或改标签。以下为当前实际传输包；压缩/容器tar元数据不同不改镜像身份：
+
+| 当前文件（目录 `/Users/openclaw/Downloads/noteai-item34-fcc863f/`） | bytes | SHA256 |
+|---|---:|---|
+| `item34-xhs-fcc863f-linux-amd64.docker.tar.gz` | 377759397 | `af7c177451c1c056a40abdadbfc1335641798f1dd68579533ff2d87172b15d69` |
+| `item34-host-fcc863f.tar.gz` | 48566 | `cf06fcef012b7408e3c6a2ab383d3d3c936e55cb62ecd067a8c423223c39208f` |
+
+host包恰有原11个allowlisted常规文件，逐一由fcc863f提交恢复并核对原SQL/源码hash；
+包含该源码的private-bind helper（28c06849...327f0），不混入后续Item36代码。
+旧包及旧源码身份保留在历史段，不能据旧传输hash核对当前包。
 
 ## September9 authenticated inputs and C implementation (no production execution approval)
 

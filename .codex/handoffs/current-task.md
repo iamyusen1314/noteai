@@ -1,5 +1,25 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 19:56 Beijing — prospective Item34 scope approved, executing
+
+Owner explicitly approved the once-only scope at plan top after ACR recovery.
+Authorization baseline11074c6147cc4acebb3b72c2470fe25debe49c0e; its plan SHA
+e77d033a5c25392f48d66a6bf2ed3e6331727728915386a1634d2d4921a24162. This supersedes
+the prior new-scope approval wait. Only generation1 Item34 operations/resolution
+in that application are released; other Items, global automation and Git push
+remain paused. Root executes serially; two real readonly agents checked code
+and canonical acceptance. Old root Evidence remains sealed and30/38 unchanged.
+
+Actual material gap: both indexed /private/tmp/noteai-prep-20260908 transfer files
+are absent. Existing local Colima noteai-prep image survives with exactly the
+approved fcc863f source and ab538ef4...ae2dc94 OCI index. Started that isolated
+local profile and export the same image to persistent Downloads/noteai-item34-fcc863f;
+no rebuild/relabel. Restore host package from the same source's exact11 allowlisted
+files, validate all bytes before transmission, and record actual transport hashes.
+DMS existing noteai_admin session is available; no new service-linked role needed.
+Next in progress: recover packages and perform current bounded DB/old-attempt/ACL
+preflight, then unique image publication,0020,real fresh T0 and owner CAS.
+
 ## September9 ACR fixed-password login — authentication recovered
 
 Owner reports setting the ACR fixed password. Main agent restored the existing

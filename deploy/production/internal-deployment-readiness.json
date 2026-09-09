@@ -16418,13 +16418,23 @@
           "id": "tracking_real_and_promotion",
           "title": "Tracking real-note 24h/3d proof and managed promotion",
           "status": "unverified",
+          "observation_generation": 1,
+          "observation_authorization": {
+            "authorization_checkpoint": "11074c6147cc4acebb3b72c2470fe25debe49c0e",
+            "authorization_plan_sha256": "e77d033a5c25392f48d66a6bf2ed3e6331727728915386a1634d2d4921a24162"
+          },
           "dependencies": [
             "tracking_suspended_runtime",
             "monitoring_alerting",
             "internal_failure_rollback"
           ],
-          "evidence": [],
-          "blocker": "The same owned-note observation remains anchored at 2026-09-04T22:30:38+08:00; 24h and 3d checkpoints are due 2026-09-05T22:30:38+08:00 and 2026-09-07T22:30:38+08:00, with no backfill or early credit. The 24h attempt must occur at or after its 24h boundary and strictly before the 72h boundary; executor and terminal validator reject a late 24h attempt symmetrically. A server-enforced production read-only preflight at 2026-09-06T02:31:28.733689Z found the Tracking tables ready but crawler_config absent/disabled, canonical managed rows 0, global due rows 0, active attempts 0 and outcome-unknown attempts 0; the unit is inactive/dead/disabled, production database writes are 0 and XHS calls are 0. Item34 is independent of Item32. The Secret target is configured. The exact --once --limit 1 outer executor and production wrapper bind the immutable image, exact object/stage, minimum managed transition, exact prior-config restoration, container quiescence and canonical attempt UUIDs. Before the unique provider-attempt admission, the same image and Secret target must pass a zero-network safe readback for configured session state, known authenticated-session expiry, pinned signer assets and at least one remaining Tracking daily admission; no Secret value is returned. Terminal readback requires training_eligible=false, score window 3d, growth action url_crawl_3d and a classified three-day memory content digest. Canonical Item34 checkpoint/evidence/wrapper checks pass 81/81 and related tracking/spider regressions pass 50/50. Direct API-F Workbench access is now proven and authorized for CTO use. The remaining blockers are a legitimate NoteAI-authored managed row, privileged production apply/readback of migration 0019 after the visible Alibaba account-verification gate, and a current immutable XHS image with a registry digest. A 2026-09-07T02:14+08:00 direct Workbench readback revalidated the exact local image ID; API-F lacks buildx and the supported Docker manifest query reached ACR but returned AUTH_UNAVAILABLE, with one registry read, no push and no Secret exposure. A 2026-09-06T18:23+08:00 bounded SSH probe timed out before authentication and is sealed without retry. Both object-bound provider attempts and singleton promotion remain unverified.",
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-tracking-observation-audit-20260903.json"
+            }
+          ],
+          "blocker": "Old 2026-09-04 observation and failed 24h attempt remain permanently sealed. Owner approved the 11074c6 plan-top same-object generation1 scope on 2026-09-09. ACR login and private manifest readback now pass. The exact fcc863f XHS image survived local temporary-file loss and is being exported without rebuild or relabelling. Current owner/ACL/old-attempt preflight, unique publication, 0019 verify-only, 0020 apply, fresh T0/CAS, two bounded samples and complete managed acceptance remain to execute. No new T0 or terminal credit is claimed; all other production and automation stay paused.",
           "next_task": "PROD-XHS-TRACKING-REAL-XHS-CANARY-001"
         },
         {

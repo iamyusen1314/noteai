@@ -1,5 +1,18 @@
 # Risk Register
 
+## September9 prospective Item34 approved — material recovery in progress
+
+- Owner approved the11074c6 plan-top generation1 scope after ACR recovery. Only
+  that job is released; old-window Evidence, other production and automation stay
+  sealed/paused. No new T0 or database mutation has yet occurred.
+- /private/tmp transfer files are missing. The exact fcc863f local image survives
+  in the existing isolated Colima profile; recover its transport without rebuild
+  or label changes. New transport hashes must be real, not copied from missing files.
+- Same-session0020 GUC bindings and current owner/old-attempt/globalUNKNOWN/ACL
+  readbacks precede apply. T0 owner reconciliation precedes any app wrapper call;
+  grant only within each sampling phase. Managed helper success is INCOMPLETE
+  until actual current log/alert/role/rollback and bounded-supplier bindings exist.
+
 ## September9 19:52 Beijing — ACR authentication recovered
 
 - Owner set a fixed ACR password and entered it only in API-F's actual hidden
