@@ -37,7 +37,7 @@ track and attempt identity hashes match sealed canonical. No old replay.
 ledger1/policy1/RLSexact, only Tracking/current_user/is_secret0 and two scoped
 config keys in qual. No config values read; this job0019 INSERT0.
 
-Current PATH_BLOCKED is transfer UI, not credentials: current API-F Workbench
+Earlier transfer PATH_BLOCKED (resolved below), not credentials: current API-F Workbench
 root connection is SSM, which officially does not support file transfer. Normal
 SSH options have no saved credential; no password/key guessed/reset/read. ECS
 instance Upload/download form targets /root,root/root,0600,nooverwrite,1800s;
@@ -49,6 +49,38 @@ path before any dependency writes; ACR authentication is already valid.
 A Workbench UI metadata scan incidentally exposed a terminal session identifier
 in tool output; no value retained in files/Evidence, subsequent reads exclude
 status/session labels. Do not reproduce the value or read full Workbench DOM.
+
+Transfer path recovered at20:53:53.363801Beijing: native macOS file picker
+selected the exact48566-byte host gzip (no extension permission change). OSS UI
+reported upload success; existing bucket noteai-private-prod-20260729-c60cc608
+is Standard/LRS/private inShenzhen, prefix noteai-private/item34/g1-20260909/.
+Existing API-F ECS role noteai-storage-api-20260729-c60cc608 is attached. A single
+IMDSv2-only, OSS V4 internal GetObject returned48566bytes and the exactcf06fcef...208f
+SHA to /var/lib/noteai/item34-image-build-20260906/g1-20260909-transport/,
+root0700 directory/root0600 file, with no automatic retry. No role expansion,
+.env/business modules/database/provider calls. Prior four-action prefix policy
+and2day expiration remainLAST_KNOWN; current successful exactGet is verified.
+One reusable oldb8 image was used solely as an SDK tool, not an old sampler:
+network-none check proved local immutable config5c4291f7062352ea07cce6e1ab02c274dc1267f4fd5aa07d293dd5050c3754eb,
+SDKoss-v2=1.3.2/credentials=1.0.10. Download used root read-only/capdrop/no-new-
+privileges container, host network, only new transport directory mounted, noenv.
+Reviewed one-off helper /private/tmp/noteai-prep-20260909/item34-get-transport.py
+SHA4ec4e0b00f62bb11f2f5697da0744c6cd9f8444a17440b8e3c8bdce02650781a;
+exact script was submitted via existing ECS Cloud Assistant immediate command,
+not a saved/boot/scheduled command. Future interrupted download: inspect partial
+and final hashes; do not overwrite/retry blindly. Existing-resource feesUNKNOWN.
+Image upload has been submitted once, actual completion still to be read back.
+
+Workbench SSM now explicitlydisconnected/session creation timed out. Its terminal3
+contains an unsubmitted duplicated readonly probe; do not pressEnter. ECS Cloud
+Assistant worked at20:40:22 (free root31200595968bytes), then SDK probe and exact
+host download succeeded. RAM also exhibited the same cross-origin frontenderror;
+no policy guessed. CloudShell was inspected as an alternative: paidNAS/TOS was
+notaccepted; closing its NASprompt automatically exposed a free one-hour shell.
+No shellcommand/fileupload wasrun; UI closed, ephemeral VMexpiry not yet verified.
+A browser inventory incidentally exposed an XHS sessionquery parameter; no value
+retained or reproduced in files/Evidence. Further tab metadata output omits URLs
+outside this exact work; no full Workbench snapshots.
 
 Next in progress: approved unique image transport/publication, then0020 and
 fresh same-object T0/owner CAS. Canonical unchanged; manifest only records approved

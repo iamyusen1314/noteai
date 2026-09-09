@@ -1,5 +1,21 @@
 # Risk Register
 
+## September9 20:54 Beijing — existing-resource transport works
+
+- Host gzip OSSupload and API-F internalGet succeeded, exact48566bytes/SHA. Existing
+  ECS role used with IMDSv2/V4 once, no grant/Secret output/production businesscall.
+  Image upload submitted once, completionpending;0020/T0 still not started.
+- Workbench disconnected and retains unsent readonly input; use existing ECS Cloud
+  Assistant immediate command with exact-copy verification and resultreadback.
+  Normal OOS/RAM UIs hitcrossoriginfrontenderror; no browsersecurity workaround.
+- Current bucket private/Standard/LRS and roleattachment verified; historical
+  prefixACL/lifecycle remainLAST_KNOWN. Successful exactGet proves this readpath,
+  not all permission/lifecycle claims. Existing incrementalfees remainUNKNOWN.
+- CloudShell NAS/TOS notaccepted and no commandrun; a free ephemeral shell appeared
+  after dismissingNAS and UI wasclosed. Expiration remains unverified.
+- A tabinventory exposed an XHS querysessionparameter incidentally; no value saved
+  in reports/files or retransmitted. Scope further metadata output to exacttabs.
+
 ## September9 prospective Item34 approved — transport UI path blocked
 
 - Owner approved the11074c6 plan-top generation1 scope after ACR recovery. Only

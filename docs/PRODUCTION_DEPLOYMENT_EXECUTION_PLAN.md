@@ -69,9 +69,20 @@ noninternal trigger；20:07:01固定原row/旧failed attempt精确CAS状态满�
 `3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40`，
 旧id/submitted_at/published_at未变。20:27:16原0019 verify-only逐字段读回ledger1、
 policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或新T0已建立。
-当前上传路径故障：SSM不支持传文件；ECS/OOS官方上传组件出现跨域脚本异常，
+前序上传路径故障（下方已有替代路径实测）：SSM不支持传文件；ECS/OOS官方上传组件出现跨域脚本异常，
 仍未选择/提交文件。目标/root、root/root、0600、不覆盖、超时1800s已准备；
 改用既有身份/资源内正常传输路径，不扩大权限、不减弱浏览器安全。ACR认证已恢复。
+
+传输路径补充（当次执行事实）：既有私有OSS桶
+`noteai-private-prod-20260729-c60cc608`，前缀`noteai-private/item34/g1-20260909/`。
+20:53:53北京时间，唯一host gzip上传成功，并由API-F既有角色
+`noteai-storage-api-20260729-c60cc608`以IMDSv2/V4/内网GetObject一次取回，
+48566bytes及cf06fcef...208f全SHA通过。落地目录
+`/var/lib/noteai/item34-image-build-20260906/g1-20260909-transport/`root0700，文件0600。
+实际命令通道为现有ECS云助手立即执行；Workbench SSM断开，不再依赖其上传或残留输入。
+旧b8镜像仅作为无业务环境的SDK工具，下载0自动重试、失败保留partial后只读核实；
+不是旧采样器执行。新镜像上传已提交一次，完成后同样精确Get/字节数/hash校验，再load/push。
+没有新建桶、授权角色或固定计费资源；实际传输/存储费用未知，不记录为0。
 
 ## September9 authenticated inputs and C implementation (no production execution approval)
 
