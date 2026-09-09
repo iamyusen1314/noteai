@@ -100,6 +100,16 @@ policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或
 唯一镜像Get已派发一次。较早HEAD因对象尚未核实而返回OperationError，其具体原因
 未定位，不猜测403/凭据过期，也未重试；以后按Get真实字节数/SHA读回继续load/push。
 
+**唯一XHS镜像已实际发布。** 21:41:21整包Get/hash通过，单次load后21:43:40目标
+主机隔离验证Python3.11.15/x86_64与九源码hash通过。检查曾误用两个镜像内路径；
+冻结Dockerfile85实际复制到/app/model，修正检查路径后通过，无重建/重load/改OCI标签。
+21:46:06一次push退出0；21:47:00 tagmanifest、config、平台、本地RepoDigests交叉匹配。
+后续只使用真实引用：
+`noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88`。
+config保持`sha256:39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb719f01`，
+源码仍fcc863f。传输目录已保存image-push.log/.exit/.pid和image-published-manifest.json，
+root0600；遇到断线只读这些原结果，不重新push。0020尚待执行，新T0未建立。
+
 ## September9 authenticated inputs and C implementation (no production execution approval)
 
 Owner has restored Aliyun login. The September8 login stop below is historical.

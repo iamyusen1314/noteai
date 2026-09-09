@@ -139,6 +139,24 @@ active/session,noteai/160013,threeownersmatch,0019exact1,0020absent/gencols0,
 globalstarted0/UNKNOWN0/UTCtoday0,appattemptsSELECTfalse and exactoriginalACL.
 No permission application or new role needed; use this existing owner channel.
 
+21:41:21.522082 image internalGet VERIFIED377759397bytes/exactaf7c1774...15d69.
+Single dockerload completed; first source probe failed because it incorrectly
+looked for wrapper/checkpoint under repository paths inside/app. Frozenfcc
+Dockerfile85 copies both into/app/model. Corrected only those two probe paths,
+did not rebuild/reload:21:43:40.939384 actual API-F network-none/UID999 verification
+passed allnine hashes,Python3.11.15/x86_64,rolexhs-http/sourcefcc863f/config
+39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb719f01.
+21:44:50 unique targetmanifest explicitlyabsent,notAUTH_DENIED. Single private
+push exited0 at21:46:06.869922, with root0600 image-push.log/.exit/.pid in new
+transportdir.21:47:00.373563 fresh tagmanifest/config/platform and localRepoDigests
+allmatch pushfinaldigest:
+noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88
+The exact private immutable tag is item34-xhs-fcc863f-g1-20260909, manifest4712bytes.
+Raw nonsensitive manifest retained root0600 as image-published-manifest.json.
+This is a real published XHS artifact, no API/Payment/other deployment/Gitpush.
+0020 nextinprogress; actual DMS payload8880bytes SHA matches approvedc3e7d27e...856f.
+T0/binding/temporaryappgrant/newadmissions stillnone; Readiness30/38.
+
 ## September9 ACR fixed-password login — authentication recovered
 
 Owner reports setting the ACR fixed password. Main agent restored the existing

@@ -1,5 +1,16 @@
 # Risk Register
 
+## September9 21:47 Beijing — approved XHS publication verified
+
+- Single newprivate immutabletag push returned0; realdigest a2ee0f2e...57ab6a88
+  binds frozenfcc/config39dac3bb...719f01/linux-amd64, independentlymanifestread.
+  Actual API-F Python3.11.15/ninefiles verified. Firstprobe's two repository-shaped
+  in-image paths were wrong; frozenDockerfile places executors in/app/model.
+  Corrected probe only, no rebuild/loadreplay or source relabel.
+- Local/host/OSS artifact persistence and pushlog/exit/rawmanifest preserved.
+  0020/T0/managednative stillunstarted, no newprovideradmission or appgrant;
+  successful publication is not Item34 terminal or a public rollout.
+
 ## September9 late-evening current-path reconciliation
 
 - API-F three CLI imports and effective bounded journald configuration verified;
