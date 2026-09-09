@@ -106,6 +106,26 @@ Next in progress: approved unique image transport/publication, then0020 and
 fresh same-object T0/owner CAS. Canonical unchanged; manifest only records approved
 generation/scope bindings, all38statuses unchanged and Readiness30/38.
 
+21:20:55Beijing actual API-F wrapper/durable/managed CLI --help each exited0.
+21:25:19.130946 effective journald readback matched Storage=persistent,
+SystemMaxUse=256M,RuntimeMaxUse=64M,MaxRetentionSec=7day,MaxFileSec=1day;
+journald active. Existing bounded drop-in102bytes/SHA
+b703a523ce01cfea84a843f526b98b6fa0f39f4f91043cd5dabb20646130065b; no restart.
+Fresh CMS exact Tracking rule is normal, API-F/crawler_worker.py, Average>=1,
+evaluation1, allseven days00:00-23:59+0800, cloud-account contactgroup,
+INSUFFICIENT_DATA, recovery notification enabled. This is the dormant-role
+unexpected-start alarm; managed start may trigger it. Existing historical
+notification proof is reused, not replayed. Period60s/namespace remainLAST_KNOWN
+where not exposed by current UI. Readonly edit form cancelled without changes.
+
+Later same-session DMS READ ONLY preflight failed with WebSocket connection
+failure and yielded no database result. No0020 or other write was submitted.
+Normal DMS page reconnect is in progress; optional AliyunServiceRoleForDMS
+creation again cancelled. Prior owner/ACL facts remain timestampedLAST_KNOWN.
+OSS image reached100% but UI still says uploading; do not equate progress with
+completion or resubmit. Single existing-role internal HeadObject reconciliation
+is in progress; image Get/load/push and0020 remain unstarted at this entry.
+
 ## September9 ACR fixed-password login — authentication recovered
 
 Owner reports setting the ACR fixed password. Main agent restored the existing

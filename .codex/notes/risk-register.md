@@ -1,5 +1,17 @@
 # Risk Register
 
+## September9 late-evening current-path reconciliation
+
+- API-F three CLI imports and effective bounded journald configuration verified;
+  current exact dormant Tracking alarm normal. No service or alarm changed.
+  Alarm's original >=1 condition detects unexpected starts; approved bounded
+  managed start may notify existing receivers. No historical notification replay.
+- OSS image UI reached100% but completion remains unconfirmed. One internal
+  exact-object HEAD is being used for result reconciliation, not a second upload.
+- Fresh DMS READ ONLY preflight failed with WebSocket connection error; no0020
+  write was submitted. Reconnect existing owner session; do not infer current
+  owner availability from earlier success or accept unrelated new service roles.
+
 ## September9 21:10 Beijing — original unit verified; T0 website interaction pending
 
 - Generation1 hostsource11files hashmatch/root0700; actualhostPython3.11.6,5syntaxPASS.
