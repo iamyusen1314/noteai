@@ -26,12 +26,15 @@ ACR认证入口已核实：容器镜像服务 → `noteai-prod-shenzhen` → 访
 临时凭据，值未读取/记录，当时Password提示已取消；晚间owner报告Login Succeeded
 及后续push成功不能证明使用过owner亲设的固定密码。不得要求owner回忆未经证明
 存在的固定密码，也不得将当前一次AUTH_DENIED直接归因为凭据过期。
-本轮只检查manifest，尚未发起docker login，API-F当前没有Password输入提示。
-后续认证使用现有合法身份的正常凭据流程；命令为
+此前只检查manifest，未发起docker login，故当时没有Password输入提示。
+September9后续owner已报告设置固定密码；主代理在既有API-F root会话执行下列
+精确命令一次，已实际读回Password提示，等待owner隐藏输入，尚未确认登录成功。
+认证使用现有合法身份的正常凭据流程；命令为
 `docker login --username=aliyun0345188616 noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com`。
 只有命令实际到达Password提示后才请owner在终端隐藏输入，不发聊天、不重置密码、
-不开放公网。控制台MFA不代替Docker仓库认证；本次仅打开访问凭证页，未生成或
-读取新凭据、未重试拒绝请求。生产发布/0020/T0等仍须明确批准本段新范围；
+不开放公网。控制台MFA不代替Docker仓库认证；主代理未生成或读取新凭据、
+未重试旧拒绝请求。登录成功后仅做一次旧manifest只读验证；凭据存储保护未新配置。
+生产发布/0020/T0等仍须明确批准本段新范围；
 其余Item/全局自动化继续PAUSED。
 
 新T0现在不设定。批准后按真实T0记录24h窗口[T0+24h,T0+72h)及3d边界T0+72h，

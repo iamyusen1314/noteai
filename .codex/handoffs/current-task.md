@@ -1,5 +1,18 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 ACR fixed-password login — awaiting owner terminal input
+
+Owner reports setting the ACR fixed password. Main agent restored the existing
+API-F Workbench connection and submitted the exact private-registry docker login
+command from the plan as root. The actual final terminal row is now Password:;
+Login Succeeded has not yet been observed. No password was read or recorded.
+Input timeout left a partial command; it was inspected, completed and checked
+against the exact intended command before one Enter submission. No login replay.
+Next: owner enters the password only in Workbench; read back login outcome, then
+one bounded old-manifest metadata verification if login succeeded. Do not infer
+push/new T0/0020 or automation approval. Existing credential-storage protection
+is not newly verified or configured. Readiness remains30/38; protected paths untouched.
+
 ## September9 cloud login resumed — C candidate implementation saved at ba55923
 
 Continue existingec5c7f7 checkout. Owner restored Aliyun login; priorPROGRAM_STOP
