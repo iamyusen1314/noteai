@@ -1,5 +1,27 @@
 # Risk Register
 
+## September9 22:41 Beijing — runnable recovery persisted; remaining external boundary
+
+- Missing Item32 transport and f3 API/Payment export are recovered in persistent
+  Downloads/noteai-release-prep-20260909 storage; new real transport hashes are
+  in current plan/Handoff. Existing source/role/config/identity/date bindings
+  remain unchanged. Main full hash checks plus independent metadata/config audit
+  pass. No rebuild/relabel or new API/Payment publication occurred.
+- Both real-node private-bind candidates and exact rollbacks are present; F
+  Payment first-enable and C prior-unit rollback differ and remain explicit.
+  Unpublished Payment placeholder is not an apply-complete service. Historical
+  /private/tmp raw logs remainMISSING; never recreate them from summary claims.
+- Current plan now reflects actual September9 C/F, ALB0, business DNS ABSENT,
+  certificate and displayed quote inputs. Quote expiry/tax/final discount and
+  finite owner traffic/spend ceiling remain unresolved;149.04CNY is not a ceiling.
+- Independent review found no further concrete authorized local engineering gap
+  after this recovery. The same-object XHS website challenge is now the immediate
+  owner dependency for newT0.0020 is applied/verified and managed cycle restored;
+  neither proves a fresh anchor, successful sampler or terminal managed binding.
+  No newT0/admission, canonical old root sealed,30/38 unchanged. Remaining other
+  Item work has genuine production/merchant/signature/fee/terminal dependencies;
+  no new gate, raw receipt, self-signature or repeated historical test is created.
+
 ## September9 22:30 Beijing — 0020 verified; persistent local recovery required
 
 - Normal DMS tab duplication preserved existing owner and restored reliable full

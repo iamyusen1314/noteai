@@ -6,9 +6,9 @@ Date: 2026-09-09 (current scope below; July sections retained as history)
 
 Task: `PROD-DEPLOY-PLAN-001`
 
-The bounded Item34 job below has failed and closed safely. Its old observation
-window must not be replayed or restarted. Retained approval and commands are
-execution history, not authorization to repeat them or run other Items.
+The September4–7 Item34 observation failed and is permanently sealed. Its
+retained approval and commands are history, not permission to replay them. The
+separate September9 generation1 job is approved only within the scope below.
 
 **本次已获owner一次批准：Item34 同对象新T0受控实施（2026-09-09）。** 批准基线
 `11074c6147cc4acebb3b72c2470fe25debe49c0e`，其本计划SHA256为
@@ -108,7 +108,7 @@ policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或
 `noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88`。
 config保持`sha256:39dac3bb52cf49296e2e11e9156fc045408345cb32786456e4e26f45fb719f01`，
 源码仍fcc863f。传输目录已保存image-push.log/.exit/.pid和image-published-manifest.json，
-root0600；遇到断线只读这些原结果，不重新push。0020尚待执行，新T0未建立。
+root0600；遇到断线只读这些原结果，不重新push。当时0020尚待执行；其后结果见下方，新T0仍未建立。
 
 **原 managed 有界验证已实际完成并恢复。** 22:00原状态/镜像预检通过；22:07
 无网络、无data挂载、仅stdlib配置检查确认选择PostgreSQL及URI原Tracking角色，排除
@@ -140,10 +140,17 @@ Tracking与PUBLIC均无EXECUTE。DMS会规范缩进，不冒充原函数body逐�
 原目录读回保存在新source目录`0020.catalog-readback.json`，7110bytes/SHA
 `21a06cb200774784a18c7022b586a9fedaa390610b830624af12e7c356c51cc0`，root0600。
 禁止重放apply；后续新T0仍需真实同对象页面，Readiness30/38。
+22:44原笔记标签已置前，当前UI仍显示“安全验证／拖动箭头完成拼图”，同时提示
+“当前笔记暂时无法浏览／请打开小红书App扫码查看”。需要owner本人完成该交互；
+尚不证明解除后能访问，也不从旧页面填写新指标。无需重复ACR登录、push或0020。
 
-## September9 authenticated inputs and C implementation (no production execution approval)
+## September9 morning authenticated inputs and C implementation (historical pre-approval readback)
 
-Owner has restored Aliyun login. The September8 login stop below is historical.
+This morning section records the state before the generation1 approval and
+evening execution above. Its0020-absent/ACR-failed state is historical; do not
+repeat completed actions or seek the same scope approval again. Other Items
+remain production-paused. Owner has restored Aliyun login; the September8 login
+stop below is historical.
 Main agent used existing root Workbench sessions and existing DMS `noteai_admin`;
 no new identity, role grant, credential reset or production task was started.
 DMS's optional new `AliyunServiceRoleForDMS` creation was cancelled. Cloud UI and
@@ -207,7 +214,9 @@ replacement and Payment namespace with prior-unit rollback;14 focused checks pas
 Independent read-only audit confirms only the intended bytes change. No candidate
 image rebuild/relabel is needed for this host preparation helper correction.
 
-Runnable local outputs under `/private/tmp/noteai-prep-20260909/`:
+Runnable C outputs were copied byte-for-byte on September9 to persistent
+`/Users/openclaw/Downloads/noteai-release-prep-20260909/` (original temporary
+C files still existed at recovery; the table hashes are unchanged):
 
 | Output | SHA256 | Application boundary |
 |---|---|---|
@@ -250,15 +259,17 @@ Fresh EIP list: both addresses allocated, none free. ICP EIP
 `eip-wz9upi1f15ywx1nsdhy9l` is attached to C; the other is attached to existing NAT.
 Neither can be silently repurposed.
 
-**ACR and DNS final readback.** Existing ACR `cri-xpuhaclqkxlwy47t`, repository
+**September9 morning ACR and DNS readback (historical).** Evening ACR
+authentication and publication above supersede this failed pre-approval check;
+DNS remains the actual before-state measured at this morning read. Existing ACR `cri-xpuhaclqkxlwy47t`, repository
 `crr-itdckfeycjvs274j`/noteai/app is private/normal with immutable versions, no
 code source. Private endpoint10.42.10.49 is effective in the production VPC via
 the C app switch; public switch aria-checked=false and public whitelist empty.
-All18 current versions on one unfiltered page contain no proposed
+At that read, all18 versions on one unfiltered page contained no proposed
 `item34-xhs-fcc863f-g1-20260909`; old b8 tag remains. No tag was reserved/pushed.
 API-F07:37:24Beijing `docker manifest inspect` of the exact old612a digest returned
 rc1/AUTH_DENIED. Only metadata was requested, no layer download. This is a real
-credential-path blockage, not proof of expired password or a network/root cause;
+credential-path blockage at that time, not proof of expired password or a network/root cause;
 no repeat request or Docker config/Secret read. Console session is working.
 
 Fresh noteaipro.cn DNS page has exactly3records/onepage, empty search: only
@@ -270,11 +281,13 @@ record ID invention, nameserver change or public probe was made.
 Item34 new T0 remains unstarted.
 Readiness30/38; no terminal Evidence/manifest change.
 
-## Current local preparation — September8 (no production execution approval)
+## September8 preparation record (historical; current approval and artifacts above)
 
-### Item34 同对象新 T0：实施材料已接通，生产仍未授权
+### Item34 同对象新 T0：September8实施材料与当时未授权状态
 
-最终可运行XHS产物已保存，源码`fcc863f65ad1d3d788e8936ef1284a9ab27ad025`：
+以下保留September8原包与本地验收历史；旧临时包现已不存在，当前持久包、真实发布
+digest及已执行步骤见顶部，不依据本段重做或要求重复批准。原产物源码
+`fcc863f65ad1d3d788e8936ef1284a9ab27ad025`：
 `/private/tmp/noteai-prep-20260908/item34-xhs-fcc863f-linux-amd64.docker.tar.gz`，
 377808949bytes，SHA256`f4e39dbcd57fcc9c4eef63f8db6ffde8a0e8a108ebce1c7ed41637a86d7a9ed3`。
 唯一tag`noteai-local/xhs:fcc863f`，27个content blobs逐个校验，Docker load回读成功。
@@ -402,16 +415,26 @@ SQL及host来源（SHA256；均未上传/执行）：
 Current runnable API/Payment candidates are built from source checkpoint
 `f3deedbc1dfdbc7db2ffdd7213df2198c5e1d25d`, including the Item30 Kimi repair,
 Item31 runtime binding and the PostgreSQL connection-options correction.
-The combined archive is
-`/private/tmp/noteai-prep-20260908/api-payment-f3deedb-linux-amd64.docker.tar.gz`,
-377756229 bytes, SHA256
-`c95e557ee67e5cd6c8b228fb04170ce770a4629d8cbe69a124129ef1fb530ae1`.
-It contains exactly the API and Payment local tags; all 33 content-addressed
-blobs match their hashes. These are unpublished artifacts. Local image IDs and
+The old temporary export is now MISSING. The unchanged existing images were
+exported again on September9 to the persistent current archive
+`/Users/openclaw/Downloads/noteai-release-prep-20260909/api-payment-f3deedb-linux-amd64.docker.tar.gz`,
+377671928 bytes, SHA256
+`7f699a779f8f57e4bd31bd0a54723e152c54624dc12d89be9939735ade9becf8`.
+The adjacent raw tar is379689984bytes/SHA
+`936b1c797c624dcf521890ba069eaf4144dcc550fcb2a4ae2407bfc735b0c14b`.
+It contains exactly the API and Payment local tags; all33 content-addressed
+blobs match their hashes and decompressed gzip matches the raw tar. API config
+is83a425736b6dce502f1af4c6d3abdb742a095ef954c789fc51a40398dff38f95,
+Payment config3ceb52e8f2b347dfc5a2d28967d70a1ee727e7ce68db932e3e6302860f4f796f.
+Both retain the actual f3 source/linux-amd64 identity, without rebuild/relabel.
+These are unpublished artifacts. Local image IDs and
 archive config hashes are not ACR publication digests. Later documentation
 commits do not change the actual source identity or require relabelling.
 
-Both images match 115 packaged source/dependency files, three real LFS models,
+Historical September8 functional checks below remain historical results; raw
+temporary logs are now MISSING and have not been reconstructed. Current export
+checks establish artifact bytes and preserved identities, not a new live test.
+Both images matched115 packaged source/dependency files, three real LFS models,
 Python 3.11.15, linux/amd64 and UID999. Actual role entrypoints return live/ready
 200 in an isolated shared namespace: API uses temporary SQLite and V04 models;
 Payment uses PG16, a local test role and synthetic callback configuration.
@@ -507,7 +530,8 @@ journald observations remain LAST_KNOWN, despite the matching journald file hash
 The actual API-F unit is now the Item36 renderer regression fixture. Its exact
 quoted PGOPTIONS and explicit unprivileged flag are supported without accepting
 other quotes/overrides. A real bind-only candidate and byte-exact rollback are
-saved in `/private/tmp/noteai-prep-20260908/api-f-bind/`, with candidate SHA
+recovered from the same fixture to
+`/Users/openclaw/Downloads/noteai-release-prep-20260909/api-f-bind/`, with unchanged candidate SHA
 `824207e1b9fdfe744fe70b97af2130350c9fb2fd84d5c03a4a89d07c0d0387ac`.
 Only the host address becomes10.42.11.166; image/PGOPTIONS/other bytes are retained.
 This is PREPARED_NOT_APPLIED and distinct from image update, rolling deployment,
@@ -1183,8 +1207,8 @@ These are three separate implementation actions, not interchangeable completion:
 
 | Action | Actual local result / next implementation | Genuine dependency |
 |---|---|---|
-| Candidate API image update | Current `noteai-local/api:f3deedb` includes the Item30 repair, real canary binding and corrected DB connection restrictions; source and actual role health pass. The earlier 54b image is retained only as a prior local artifact. The renderer separately replaces exact old/new immutable images and preserves port/rollback bytes. Publication and actual node input binding remain pending. | Local health is not API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
-| Private API binding | API-F actual1510-byte unit is bound to SHA f591f43b…936; its private10.42.11.166 candidate SHA824207e1…ac and exact rollback are retained under /private/tmp/noteai-prep-20260908/api-f-bind/. API-C still needs its own current unit bytes/hash before apply. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
+| Candidate API image update | Current `noteai-local/api:f3deedb` includes the Item30 repair, real canary binding and corrected DB connection restrictions; source and actual role health pass. The earlier 54b image is retained only as a prior local artifact. The renderer separately replaces exact old/new immutable images and preserves port/rollback bytes. Actual C/F unit inputs are captured; publication and binding the resulting real digest into the host candidates remain pending. | Local health is not API candidate deployment. No Payment/ALB prerequisite for the Item34 track-url route. |
+| Private API binding | Both actual C/F units are captured. F1510-byte original SHAf591f43b…936 renders private10.42.11.166 candidate SHA824207e1…ac; C1577-byte original SHA46010368…77e6 renders10.42.10.44 candidate SHA01909ade…9dbb. Candidates and exact rollbacks are retained under the persistent directory above, api-f-bind/ and api-c-bind/. | Requires approved network scope and exact host input. Does not require Payment first activation merely to change a bind, but must preserve any previously active callback namespace. |
 | Payment first activation | C was disabled/inactive and F unit not-found at last readback. First installation/configuration, immutable image, shared API container namespace, service start, health and public callback verification remain real actions. | Merchant/canary authorization and provider-reachable callback ingress before live funds. Keeping disabled state is rollback preservation, not first activation or full deployment. |
 
 Do not start any of these three as an implicit Item34 dependency. Item36
@@ -1195,12 +1219,12 @@ Fresh September7 service/container metadata shows both APIs on the old b55
 image and loopback8000. Payment is loaded/disabled/inactive on API-C; its unit
 is not-found on API-F, and neither exact-name container inspection succeeded.
 No shared Payment/API namespace or new live health probe is therefore proven.
-This September7 observation is LAST_KNOWN except the September8 API-F readback
-at the top of this plan. API-F bytes have now been exported and rendered; API-C
-has not. Current API-F live/DB health, Payment state and API-C input still require
-fresh readback before apply. Stored Docker `healthy` is insufficient. Two current
-ECS console read attempts hit CDP focus-emulation timeouts before new metadata;
-this is a resource-read PATH_BLOCKED, not a program stop or evidence of lost MFA.
+The September9 authenticated C/F metadata and exact original unit exports
+at the top supersede that September7 observation. Both node candidates and their
+distinct rollback states are prepared. A future approved application still needs
+fresh pre-apply state and actual health; stored Docker `healthy` is insufficient.
+The earlier CDP focus-emulation read failures are historical, not a current
+missing-C-input or lost-MFA claim.
 
 `tools/prepare_item36_private_bind.py` is a pure local renderer with no apply,
 cloud, subprocess, database or environment-loading path. Given a reviewed
@@ -1220,7 +1244,8 @@ Docker image argument, preserves the existing loopback/RFC1918 port and writes
 the same byte-identical rollback. A bounded literal-options parser rejects
 application arguments after image, fake publish text in option values, unknown
 options and unsafe network scope. Both modes need an actual reviewed host unit;
-synthetic API-C inputs are not marked READY_TO_APPLY. The bound F file is ready for its scoped application review, subject to fresh native readback. Candidate digest
+C uses its own real fixture, not synthetic F substitutions. Both bound files
+are ready for scoped application review, subject to fresh native readback. Candidate digest
 binding is done after real publication; its current absence does not prevent
 local source/artifact verification.
 
@@ -1230,15 +1255,17 @@ mode derives only the exact noteai-api-c/f container name from a reviewed real
 API unit. Callback0/1 is explicit; an unpublished image retains the visible
 `@@NOTEAI_PAYMENT_IMAGE@@` placeholder, never an invented registry digest.
 The actual F-bound first-enable candidate is
-`/private/tmp/noteai-prep-20260908/payment-api-f/noteai-payment.service.candidate`,
+`/Users/openclaw/Downloads/noteai-release-prep-20260909/payment-api-f/noteai-payment.service.candidate`,
 SHA67291769f8643d7ef1e3a234bb1affa5735cbb83936bece49f7ffc257400ddfe.
 It binds network=container:noteai-api-f, callback1, no independent public port.
 It still needs the actual published Payment digest before application. The prior
 F not-found observation means no rollback file is invented: after fresh absence
 confirmation, rollback stops/removes only the exact newly installed candidate
 and returns to absent/disabled, not an empty unit or a running old service. A
-previously loaded C unit requires its actual bytes/hash and exact state rollback.
-12 renderer regressions pass locally; these are not Payment live health proof.
+previously loaded C unit now has its own actual fixture, candidate and exact
+rollback in payment-api-c/ under the same persistent root (hashes above); restore
+its disabled/inactive state, not F's absent state.12 earlier renderer regressions
+and14 later C-focused checks passed locally; these are not Payment live health proof.
 
 Actual September8 candidate-container verification now covers115 source/dependency
 files, both real role entrypoints, Python3.11.15/linux-amd64/UID999, V04 models,
@@ -1291,18 +1318,22 @@ only after genuine provider readbacks and its validator pass.
 
 Item36 terminal still depends on Items33+34, capacity100, fresh provider quote
 and explicit fixed/variable cost approval. Private-bind and health preparation
-can proceed independently of those terminal dependencies. No current quote,
-cloud wrapper or live execution is implied. The old monthly estimate and
-preparation-only NDR mask0 record remain LAST_KNOWN/reference-only.
+can proceed independently of those terminal dependencies. September9 actual
+quote/configuration inputs are recorded above; final quote expiry/tax/discount
+and the owner's finite spend/traffic ceiling remain unresolved. No live execution
+is implied. The older estimate and preparation-only NDR mask0 stay reference-only.
 
-### Item32/35/37/38 independent preparation status — September8
+### Item32/35/37/38 independent preparation status — September9 recovery
 
-Item32: the unique successor recovery archive remains current (4 regular files,
-30186bytes, SHA00eb73fdbbd62f541c000a7d29940ef3a417fecd756046fa59c2f694366ada13).
-Seven source/HOLD/signer bindings match; no repack for unrelated document changes.
+Item32: the old temporary recovery archive is MISSING. The same four regular
+allowlisted files were repacked without changing source, identity or dates at
+`/Users/openclaw/Downloads/noteai-release-prep-20260909/noteai-item32-successor-20260907-recovery.tar.gz`,
+30187bytes/SHA b94879afb5d198818576cde1946786cbfea2afff8caed5b2dbff6ad8e196f920.
+Seven source/HOLD/signer bindings and all four member hashes match. Repack only
+restores missing transport; it does not revive the sealed execution window.
 Its UTC September7 dispatch23:40/finishSeptember8 00:00 limits are expired. This
 is a time PATH_BLOCKED. Before future authorization, retain the same WORK_ROOT,
-old sealed records and old package. A prospective date rebind updates the same
+old sealed records and the recovered unchanged package contents. A prospective date rebind updates the same
 executor's four time constants, canonical plan and executor hash/package together;
 only after fresh absence of dispatch/admission/export and used0/remaining34 is
 proven may the one not-yet-run successor proceed. No new diagnostic identity,
@@ -1329,17 +1360,19 @@ invented www/additional names. A future DNS change must bind each record's actua
 ID/type/value/TTL and its exact before-state to the actual accepted ALB target;
 update rollback restores the old value/TTL, newly created records may only be
 removed by their returned exact IDs, and unrelated records are left intact.
-Current business records/ALB/certificate state are LAST_KNOWN until fresh reads.
+September9 actual configuration reads show business records ABSENT, ALB0 and
+the issued certificate/validity above. No actual ALB target exists; refresh the
+scoped before-state before a later approved change.
 Pre-DNS SNI tests and provider callback ingress are not owner public launch.
 Actual public action still requires terminal37 plus the explicit owner Go-Live
 statement and reviewed traffic limits. No DNS change or public traffic is made.
 
-Fresh quote collection inputs, to complete in the existing plan after a current
-provider read: cn-shenzhen, one ALB across the existing C/F zones/vSwitches, LCU1,
-EIP2,720h monthly comparison; list ALB and each EIP hourly fees, LCU unit price,
-public traffic price/GB and a separately approved traffic/spend ceiling. Include
-quote time/expiry, tax/currency, selected configuration and any discount/payment
-conditions. Old149.04 or missing fields are never a fresh quote and null is not0.
+September9 authenticated quote inputs above cover cn-shenzhen, one ALB across
+the existing C/F zones/vSwitches, LCU1/EIP2/720h comparison, hourly ALB/EIP and
+LCU prices plus current public traffic tiers. Remaining fields are a separately
+approved finite traffic/spend ceiling, quote expiry, tax and final discount/order
+conditions. Revalidate displayed prices before a future approved order. The
+recalculated149.04CNY is not a ceiling, and missing fields are never0.
 Read-only certificate inputs are exact Issued certificate ID, api.noteaipro.cn
 coverage/validity, chain and binding; backend inputs are the two real node IDs/
 private IPs/8000, GET /health/ready200, HTTPS443/SNI/Host and ALB-only source SG.

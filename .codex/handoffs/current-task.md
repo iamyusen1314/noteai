@@ -1,5 +1,82 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 22:41 Beijing — persistent runnable artifacts recovered
+
+Continue from4ecd79b; no repeat of Item34 publication,0020 or managed cycle.
+Actual recovery closed the missing-artifact gap found at22:30. Current persistent
+root is `/Users/openclaw/Downloads/noteai-release-prep-20260909`, directory0700,
+regular files0600. These are local prepared artifacts, not production acceptance.
+
+- API/Payment existing f3 images exported without rebuild/relabel. Combined
+  `api-payment-f3deedb-linux-amd64.docker.tar.gz` is377671928bytes/SHA
+  `7f699a779f8f57e4bd31bd0a54723e152c54624dc12d89be9939735ade9becf8`;
+  adjacent raw tar379689984bytes/SHA
+  `936b1c797c624dcf521890ba069eaf4144dcc550fcb2a4ae2407bfc735b0c14b`.
+  All33 blob hashes and decompressed stream match. Two roles retain source
+  f3deedbc1dfdbc7db2ffdd7213df2198c5e1d25d/linux-amd64. API config
+  83a425736b6dce502f1af4c6d3abdb742a095ef954c789fc51a40398dff38f95;
+  Payment config3ceb52e8f2b347dfc5a2d28967d70a1ee727e7ce68db932e3e6302860f4f796f.
+  Independent read-only audit confirms regular/no-link archives, exact2tags,
+  20layers/role and original config/revision/platform. No new registry digest.
+- Item32 `noteai-item32-successor-20260907-recovery.tar.gz`,30187bytes/SHA
+  `b94879afb5d198818576cde1946786cbfea2afff8caed5b2dbff6ad8e196f920`:
+  exactly4allowlisted original members, all4hashes and7source/HOLD/signer
+  bindings independently checked. New archive metadata does not change its
+  original dates/WORK_ROOT/identity. September7–8 execution window remains
+  EXPIRED/NOT_EXECUTED; no successor, new identity or date rebind occurred.
+- Item36 F files regenerated with the existing renderer from actual F fixture;
+  C files copied exactly from surviving temporary outputs. All7hashes match:
+  api-f-bind candidate824207e1b9fdfe744fe70b97af2130350c9fb2fd84d5c03a4a89d07c0d0387ac,
+  rollbackf591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936;
+  payment-api-f candidate67291769f8643d7ef1e3a234bb1affa5735cbb83936bece49f7ffc257400ddfe;
+  api-c-bind candidate01909adec06ec678d26a03a405331b0e8cb3e1d6ed22706ed36d611444697dbb,
+  rollback46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6;
+  payment-api-c candidate20fe15cfb4c245192961e52cb8c6c2f50e9c5edeafedb0c64cf58650c38c1e17,
+  rollback40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb.
+  No F Payment rollback invented; its prior unit was absent. C restores its
+  actual disabled/inactive prior unit. Payment unpublished-image placeholder
+  remains, so prepared candidate content is not claimed deployed/apply-complete.
+
+Old /private/tmp transports/F outputs and raw logs including
+canary-complete-pg311.log/item37-offline.log are MISSING. Historical test outcomes
+remain attributed to their recorded execution; missing raw evidence was not
+reconstructed or counted as a new pass. No source code changed in this recovery;
+no unchanged functional suite rerun. Current plan paths, C/F inputs and actual
+September9 quote/DNS/TLS readback references were corrected; historical Evidence
+was not rewritten. Item35 frozen10file package still matches its existing hashes.
+
+A real independent read-only analysis found no remaining concrete local
+implementation/package/input gap in Items31/32/35/36/37/38 after this recovery.
+Next authorized Item34 action needs the same-object website verification and
+fresh actual metrics/T0.22:44 Beijing UI readback confirms the original fixed
+note tab is now foreground with “安全验证 / 拖动箭头完成拼图”, alongside “当前笔记暂时
+无法浏览 / 请打开小红书App扫码查看”. No reload, CAPTCHA interaction or provider call
+was made by the agent. Owner must complete that website interaction personally;
+its resolution is not yet proven. Do not copy challenge URL query parameters
+into Evidence. Never use sealed September4–7 evidence as a fresh snapshot. No new T0, provider admission, app
+SELECT grant, production API/Payment/ALB/SG/DNS change or automation restart.
+Readiness30/38 and canonical old root remain unchanged. Other remaining work
+requires merchant/callback/live-DML scope (31), explicit successor dates/scope
+and fresh quota/absence (32), external professional signatures (35), separate
+publication/apply/cost ceiling plus33/34 (36), then actual prerequisites/public
+Go-Live (37/38). Do not invent more local gates to avoid acknowledging this state.
+
+Final read-only acceptance review independently confirms canonical old root SHA
+657cb64162b98ccdfc9d6693ceaea4bac670ca3955d9e65c6b8e06b6c1dc5cb1,
+no prospective child, manifest30verified/3blocked/5unverified. Its only findings
+were ambiguous morning/September8 historical headings, now clarified in place.
+Documentation diff check passes; no new validator/receipt/test run was added.
+
+PROGRAM_STOP
+原因：当前原笔记网站安全验证需要owner本人交互；新T0尚无真实指标。
+为什么没有任何其他已授权工作可以继续：两名真实只读subagents独立核对后，
+当前已识别的独立本地实现、镜像/包恢复、两节点候选/回滚与现有文档收尾均已完成；
+其余Item剩生产授权、商户/回调、真实签署、费用上限或terminal依赖。属于停止条件10，
+不是因为Item34单一路径受阻或保存checkpoint而停止。不得为保持忙碌新增gate/重跑历史。
+owner唯一需要做的动作：在已置前的Chrome原笔记页面本人完成“安全验证”的滑块交互；
+保留同一对象页面，完成后告知，继续既有批准范围内新T0及两阶段实施，不重复申请。
+验证通过后能否正常显示笔记仍待真实读回；不保证验证本身即恢复访问。
+
 ## September9 22:30 Beijing — 0020 applied once and fully read back
 
 The DMS delivery PATH_BLOCKED below is resolved. Chrome's normal Duplicate Tab
