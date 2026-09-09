@@ -1,17 +1,27 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September9 ACR fixed-password login — awaiting owner terminal input
+## September9 ACR fixed-password login — authentication recovered
 
 Owner reports setting the ACR fixed password. Main agent restored the existing
 API-F Workbench connection and submitted the exact private-registry docker login
-command from the plan as root. The actual final terminal row is now Password:;
-Login Succeeded has not yet been observed. No password was read or recorded.
+command from the plan as root. Owner entered the password in the actual Password:
+prompt; main agent freshly observed Login Succeeded and returned root prompt.
+No password was read or recorded.
 Input timeout left a partial command; it was inspected, completed and checked
 against the exact intended command before one Enter submission. No login replay.
-Next: owner enters the password only in Workbench; read back login outcome, then
-one bounded old-manifest metadata verification if login succeeded. Do not infer
-push/new T0/0020 or automation approval. Existing credential-storage protection
-is not newly verified or configured. Readiness remains30/38; protected paths untouched.
+One `timeout 30s docker manifest inspect` of the existing private noteai/app digest
+sha256:612a7e57b8a4226e4c23be6267ee60fb79677cae9eb46ea1843aed11fc517620 returned
+manifest metadata; immediate shell exit-status readback was0. No layer download,
+push or new observation. Previous AUTH_DENIED is historical; its cause remains
+unlocated, but the current authentication blocker is resolved. By September9
+19:52:47Beijing, stat-only checks confirm /root/.docker=700/root and its
+config.json=600/root. Docker still warns of unencrypted credential storage;
+no contents read, encryption/helper setup not claimed. Existing root permissions
+limit file access; future same-host/root registry operations can reuse credentials
+while valid. This does not preserve Workbench/MFA sessions or authorize operations.
+Plan/Handoff/risk updated; documentation-only diff check passes. Readiness remains
+30/38; protected paths untouched. Next production scope remains the existing once-only
+prospective Item34 application; fixed-password setup does not approve new T0/0020/push.
 
 ## September9 cloud login resumed — C candidate implementation saved at ba55923
 

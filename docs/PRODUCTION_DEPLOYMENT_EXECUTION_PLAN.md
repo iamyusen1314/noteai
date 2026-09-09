@@ -12,7 +12,7 @@ execution history, not authorization to repeat them or run other Items.
 
 **本次待一次批准：Item34 同对象新T0受控实施（2026-09-09）。** 沿用下方现有
 八步实施材料与全部SQL/hash，唯一XHS源码仍为fcc863f，不复用旧窗口授权。
-申请限于：恢复现有ACR身份；把该唯一已构建镜像/host包传至API-F并发布至既有
+现有ACR身份已恢复，余下申请限于：把该唯一已构建镜像/host包传至API-F并发布至既有
 私网仓库新不可变tag `item34-xhs-fcc863f-g1-20260909`；0019 verify-only及0020
 preflight/apply/verify；同一owner-owned原笔记的新鲜T0及原managed row的owner CAS；
 24h/3d各一次受控采样与原managed验证（仅精确Tracking unit的必要替换、daemon-reload、
@@ -27,13 +27,17 @@ ACR认证入口已核实：容器镜像服务 → `noteai-prod-shenzhen` → 访
 及后续push成功不能证明使用过owner亲设的固定密码。不得要求owner回忆未经证明
 存在的固定密码，也不得将当前一次AUTH_DENIED直接归因为凭据过期。
 此前只检查manifest，未发起docker login，故当时没有Password输入提示。
-September9后续owner已报告设置固定密码；主代理在既有API-F root会话执行下列
-精确命令一次，已实际读回Password提示，等待owner隐藏输入，尚未确认登录成功。
+September9后续owner已设置固定密码并在终端隐藏输入；主代理在既有API-F root
+会话执行下列精确命令一次，已实际读回Login Succeeded及返回root提示。
 认证使用现有合法身份的正常凭据流程；命令为
 `docker login --username=aliyun0345188616 noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com`。
 只有命令实际到达Password提示后才请owner在终端隐藏输入，不发聊天、不重置密码、
 不开放公网。控制台MFA不代替Docker仓库认证；主代理未生成或读取新凭据、
-未重试旧拒绝请求。登录成功后仅做一次旧manifest只读验证；凭据存储保护未新配置。
+登录成功后仅做一次旧manifest只读验证（既有612a7e57...17620 digest，timeout30s），
+返回真实manifest且退出码0；未下载镜像层。当前认证阻断解除，先前拒绝原因仍不猜测。
+截至2026-09-09 19:52:47北京时间，stat-only读回/root/.docker为700/root、
+config.json为600/root；未读取内容。Docker仍提示未加密保存，未配置credential helper，
+文件访问限制不冒充加密。未来同主机/root在凭据有效时可复用，但Workbench/MFA独立。
 生产发布/0020/T0等仍须明确批准本段新范围；
 其余Item/全局自动化继续PAUSED。
 

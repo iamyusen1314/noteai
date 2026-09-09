@@ -1,5 +1,19 @@
 # Risk Register
 
+## September9 19:52 Beijing — ACR authentication recovered
+
+- Owner set a fixed ACR password and entered it only in API-F's actual hidden
+  prompt. Fresh Login Succeeded and one bounded existing-manifest query exit0
+  prove current private registry access. No image layer download or push; prior
+  AUTH_DENIED cause stays unlocated and is no longer a current authentication stop.
+- Docker reports unencrypted storage. Stat-only reads show /root/.docker700/root
+  and config.json600/root; no contents accessed and no encryption/helper claimed.
+  Persisted credentials can be reused on the same host/root while valid, but do
+  not remove Workbench/MFA or operation-authorization requirements. No new resources.
+- Prospective Item34 scope still requires its one owner approval; old window stays
+  sealed. No newT0/0020/provider calls/otherItem execution or automation resumed.
+  Existing plan and Handoff updated; documentation-only diff check passes,30/38 unchanged.
+
 ## September9 authenticated configuration readback and C-specific correction
 
 - Aliyun login blocker resolved; prior stop is historical. Actual DMS three-table
