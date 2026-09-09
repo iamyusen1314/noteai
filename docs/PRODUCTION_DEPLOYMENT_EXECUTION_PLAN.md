@@ -84,6 +84,15 @@ policy1、RLS/qual exact，本作业INSERT0。该结果不代表0020已执行或
 不是旧采样器执行。新镜像上传已提交一次，完成后同样精确Get/字节数/hash校验，再load/push。
 没有新建桶、授权角色或固定计费资源；实际传输/存储费用未知，不记录为0。
 
+21:08已落地source/workdir：`/var/lib/noteai/item34-image-build-20260906/g1-20260909`
+（root0700，11文件逐hash通过）。主机Python3.11.6，5个Python文件语法通过。
+未来binding为该目录`observation-binding.json`；24h/3d/managed及必要restore journal
+各用其下未使用文件，绝不复用父目录旧journal。21:10原Tracking仍disabled/inactive/dead，
+原unit SHA4392872f...91f82d匹配；`--current-image`实际为本地config
+`sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec`，不能误用API registry digest。
+固定XHS页面现在要求网站安全验证，已请求owner本人处理；未取得新指标/新T0，
+该路径暂停不阻止已批准的镜像发布和独立准备，且不请求新URL/绕过验证。
+
 ## September9 authenticated inputs and C implementation (no production execution approval)
 
 Owner has restored Aliyun login. The September8 login stop below is historical.

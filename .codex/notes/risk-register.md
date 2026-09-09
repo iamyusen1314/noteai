@@ -1,5 +1,16 @@
 # Risk Register
 
+## September9 21:10 Beijing — original unit verified; T0 website interaction pending
+
+- Generation1 hostsource11files hashmatch/root0700; actualhostPython3.11.6,5syntaxPASS.
+  OriginalTracking remainsdisabled/inactive/dead and SHA4392872f...91f82d. Restore
+  current-image is local configa78f4753...01f8ec, not APIregistrydigest. A readonly
+  projection initially assumed registry-shaped ref and failed its assertion;
+  corrected projection succeeded, no servicechanges.
+- FixedXHS detail askswebsite securityverification; no newT0/snapshot/metrics.
+  Owner askedto complete SAMEpage verification, no newURL/account/credential.
+  Keep imagepublication and approved independentwork moving; never fabricateT0.
+
 ## September9 20:54 Beijing — existing-resource transport works
 
 - Host gzip OSSupload and API-F internalGet succeeded, exact48566bytes/SHA. Existing

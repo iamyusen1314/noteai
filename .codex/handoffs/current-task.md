@@ -82,6 +82,26 @@ A browser inventory incidentally exposed an XHS sessionquery parameter; no value
 retained or reproduced in files/Evidence. Further tab metadata output omits URLs
 outside this exact work; no full Workbench snapshots.
 
+21:08:07.723590Beijing: host11-file bundle safely unpacked into new root0700
+/var/lib/noteai/item34-image-build-20260906/g1-20260909; every file hash matches.
+Five Python files parse on actual API-F Python3.11.6.21:10:19.335762 unitreadback
+confirms originalTracking SHA4392872f...91f82d,loaded/disabled/inactive/dead,
+NeedDaemonReload=no,NRestarts0,Jobempty,Resultsuccess. Actual originalTracking
+image is local config sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec,
+not API's registry digest. First readonlyprobe passed unitSHA but stopped at its
+incorrect registry-shaped extraction assertion; corrected local-config projection
+succeeded. No unitchange/start. New binding/journals will use this newsource dir;
+none exists yet. Future managed current-image must use that actuallocalID.
+
+ACRfresh UI confirms existing app/crr-itdckfeycjvs274j private/immutable,
+publicentryclosed; all18versions ononepage, targetitem34-xhs-fcc863f-g1-20260909
+absent. Same-object XHS browser access check shows a self/profilelink but target
+returns 'currently cannot browse' and a website securityverification. No fresh
+metrics/T0/canonicalchild captured. Ownerinteraction request sent asynchronously
+for the SAMEpage verification; no newURL/password/code requested. This blocks
+only T0, not imagepublication or authorized independent implementation. Browser
+requestcount/feesUNKNOWN, sampleradmissions0. Do not solve/evade the websitechallenge.
+
 Next in progress: approved unique image transport/publication, then0020 and
 fresh same-object T0/owner CAS. Canonical unchanged; manifest only records approved
 generation/scope bindings, all38statuses unchanged and Readiness30/38.
