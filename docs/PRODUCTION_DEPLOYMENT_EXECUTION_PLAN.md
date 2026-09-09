@@ -122,11 +122,24 @@ MainPID0/Job空/NeedDaemonReload=no/NRestarts0、无同名或service-label容器
 `29c14138571c6d5a18dcd1c2a4d12e162ba9195763dd9003d1e3c8116a321497`。
 不重放此managed身份；该结果仍欠真实新采样attempt绑定及完整validator，不计terminal。
 
-0020仍未提交：DMS原owner标签21:49查询可用，但native长SQL setValue截断，执行前
-发现并清为无害注释；新标签登录拒绝不再重复。临时data:校验页被浏览器策略拒绝，
+0020前序路径问题（现已解决）：原owner可查询，但native长SQL无法完整可靠读回，执行前
+清为无害注释；新标签登录拒绝未重复。临时data:校验页被浏览器策略拒绝，
 该方式停止且未绕过。按既有正常SQL入口恢复完整内容核验后才执行原hash文件，
 不把工具文本输入故障解释为缺少数据库权限。当前无新T0、appgrant、配置激活或provider
 admission；同对象网站验证仍需owner交互。其他生产/自动化PAUSED，Readiness30/38。
+
+**0020现已单次应用并核验。** 正常Duplicate Tab保留原noteai_admin会话，完整编辑器
+读回及DMS自带最终确认校验通过；确认事务仅省略原文件末尾换行，未改SQL内容。
+两条原绑定SET加完整事务共3条成功；账本实际applied_at为
+`2026-09-09T14:22:30.179508Z`。原verify只读事务结束后，逐组读回ledger1/columns4/
+generation2/guard1/constraints4；现有Tracking角色在transaction_read_only=on会话
+读取完整目录定义，两函数正文非空行与批准源一致、owner-only/invoker/正确search_path，
+Tracking与PUBLIC均无EXECUTE。DMS会规范缩进，不冒充原函数body逐字节相同。
+22:30:55owner核实原对象/旧failedattempt完整、gen0/T0空，新admission0，原ACL未变。
+仅新增迁移账本INSERT1及批准schema DDL，无业务对象更新或配置激活。
+原目录读回保存在新source目录`0020.catalog-readback.json`，7110bytes/SHA
+`21a06cb200774784a18c7022b586a9fedaa390610b830624af12e7c356c51cc0`，root0600。
+禁止重放apply；后续新T0仍需真实同对象页面，Readiness30/38。
 
 ## September9 authenticated inputs and C implementation (no production execution approval)
 

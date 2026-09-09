@@ -1,10 +1,63 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September9 22:30 Beijing — 0020 applied once and fully read back
+
+The DMS delivery PATH_BLOCKED below is resolved. Chrome's normal Duplicate Tab
+preserved the existing noteai_admin session and provided a controllable editor;
+optional service-role creation was cancelled. No credential extraction/new role.
+Original tab's22:16:48 readonly result and duplicate's22:19:55.894462 result both
+showed0019 exact/0020 absent, threeownersmatch, globalstarted/UNKNOWN/dayadmissions0,
+original attempts ACL and appSELECTfalse. A distinct readonly field proved the
+duplicate's real query path. Editor virtual content and immediately changing
+execution panels can display partial/previous text: do not diagnose corruption
+or a submitted query solely from those transitional views.
+
+Bound editor full bytes matched original8880byte apply SHA c3e7d27e...856f plus
+the two approved session database/owner bindings. DMS's existing final change
+confirmation showed exactly3statements: those2SETs and the whole serializable
+transaction. Transaction copied back8879bytes, exact original minus only final
+newline (review SHA3d18546bffcca0ffd762517485e2eaa4b21f4f3ec28b8eac091064999fd121a7).
+Confirmed Direct Execute once; all3successful/21ms. Real ledger applied_at is
+2026-09-09T14:22:30.179508Z. No apply replay or new workflow.
+
+Original verify SHA1001e9ea...84bf READ ONLY transaction completed. Its five
+SELECTs were then projected into one result because DMS hid intermediate results:
+ledger1/generationcolumns2/guard1 and4newcolumns confirmed. Long definition cells
+were truncated, so the approved existing Tracking identity read only those same
+catalog SELECTs via the published image, with PostgreSQL transaction_read_only=on,
+15sstatement/3slock/8sconnect limits, no business modules/data mount/provider call.
+22:27:52.072877 real DB noteai/current+session noteai_xhs_tracking confirmed;
+explicit URL target matched original RDS, no hostaddr/service/options override.
+All4constraints validated; active FK is generation-aware/deferrable/deferred;
+trigger targets the exact owner guard. Both actual function bodies match approved
+source nonblank lines (DMS normalized indentation), ownernoteai_admin,
+security_invoker, correct search_path, PUBLIC EXECUTEfalse and TrackingEXECUTEfalse.
+This tool container usedroot only to read the root-private SQL bind; the separately
+verified actual managed runtime wasUID999. No SQL or env-file permissions changed.
+
+Original catalog output saved without a second DB call, root0600:
+/var/lib/noteai/item34-image-build-20260906/g1-20260909/0020.catalog-readback.json
+7110bytes/SHA21a06cb200774784a18c7022b586a9fedaa390610b830624af12e7c356c51cc0.
+22:30:55.764346 owner post-read confirms exact0020 ledger1, obsolete unique absent,
+both functions owner-only ACL, original attempts ACL/appSELECTfalse, original
+fixedrow+oldfailedattempt exact and generation0/anchorNULL, targetattempts1,
+generation1attempts0/globalstarted0/UNKNOWN0/dayadmissions0. New job business DML
+so far is only one migration ledger INSERT; approved schema DDL also occurred.
+No newT0, sampling, configuration activation or temporary grant. Readiness30/38.
+
+Next in progress: restore missing local Item31/32/36 runnable artifacts to
+persistent Downloads storage. Actual stat found old /private/tmp exports/packages,
+F candidates and raw test logs MISSING despite older Handoff statements. Existing
+f3 images, four Item32 source bindings, F fixture and current C outputs are intact.
+Reuse/export/rerender; do not rebuild valid images, rebind successor dates/identity
+or recreate missing historical logs. Same-object XHS website verification still
+needs owner interaction; no freshT0 can be claimed from the inaccessible page.
+
 ## September9 22:09 Beijing — real managed cycle passed and original state restored
 
 Continue the same approved generation1 scope, no re-takeover/replay. Unique XHS
-publication is saved at2d97e5b.0020 is still NOT SUBMITTED: native DMS CodeMirror
-setValue truncated the long draft, detected before Execute. That draft is now a
+publication is saved at2d97e5b.0020 was NOT SUBMITTED at this point: native DMS
+long-text readback was incomplete/unreliable before Execute. That draft became a
 harmless NOT SUBMITTED comment. Original owner SELECT worked21:49:07.724755;
 new DMS tabs returned login-permission/WebSocket failures. Do not repeat refused
 login or create optional DMS roles. Existing owner authority is proven, reliable

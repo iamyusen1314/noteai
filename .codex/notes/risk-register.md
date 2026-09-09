@@ -1,5 +1,24 @@
 # Risk Register
 
+## September9 22:30 Beijing — 0020 verified; persistent local recovery required
+
+- Normal DMS tab duplication preserved existing owner and restored reliable full
+  editor/final confirmation readback, no new role/credential. Initial partial or
+  previous text in transitional UI is not proof of submitted SQL corruption.
+- Approved0020 confirmed once, ledger applied14:22:30.179508Z. READ ONLY verification
+  plus actual Tracking catalog read proves allcolumns/constraints/trigger/functions;
+  source body lines match, owner-only function ACL. Original fixed row/oldfailed
+  attempt intact, no newT0/admission/appgrant/config activation. New business DML
+  so far ledgerINSERT1; schema DDL is also recorded, not hidden in DML count.
+- Canonical old root remains sealed and30/38 unchanged. Native managed partial
+  still lacks actual new successful sampler identity/final validator. Same-object
+  website challenge still blocksT0 only; do not ask for another URL.
+- Actual local stat found historical /private/tmp Item32 package, f3 image export,
+  F candidates and old raw test logs absent. Existing f3 images and frozen inputs
+  survive. Restore runnable artifacts to persistent storage, retain real new
+  transport hashes; missing raw logs must remainMISSING, never reconstructed from
+  summaries. This is authorized independent work, not PROGRAM_STOP.
+
 ## September9 22:09 Beijing — managed cycle restored, SQL delivery path blocked
 
 - Actual unique published XHS image ran once in approved suspended managed unit:
@@ -11,8 +30,8 @@
   query/PGOPTIONS/PGSERVICE overrides without exposing Secret values; hostaddr
   defaults were not projected. Managed code uses SELECT-only PG
   paths; no claim that the connection enforces transaction_read_only.
-- 0020 remains unsubmitted. Native long CodeMirror setValue truncated the draft;
-  detected before Execute and replaced by harmless comment. Native OS clipboard
+- 0020 was unsubmitted at this point. Native long CodeMirror readback was incomplete;
+  the unverified draft was replaced by harmless comment. Native OS clipboard
   is not the browser-session clipboard. Browser data: validation page rejected,
   method abandoned; no policy workaround. New DMS login refusals not retried.
 - This is PATH_BLOCKED, not whole-program stop. Original owner metadata query
