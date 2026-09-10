@@ -170,6 +170,9 @@ class V5Detail:
             if len(matches) != 1:
                 raise XHSAdapterError("remote_schema_error", diagnostics=self.last_response_diagnostics)
             card = matches[0].get("note_card", {})
+            if (isinstance(card, dict) and matches[0].get("id") is not None and
+                    card.get("note_id") is not None and matches[0]["id"] != card["note_id"]):
+                raise XHSAdapterError("remote_schema_error", diagnostics=self.last_response_diagnostics)
             author = card.get("user", {}) if isinstance(card, dict) else {}
             if not isinstance(author, dict) or author.get("user_id") != self.user_id:
                 raise XHSAdapterError("owned_note_identity_unproven", diagnostics=self.last_response_diagnostics)

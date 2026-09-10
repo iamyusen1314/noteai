@@ -83,6 +83,19 @@ class V5ReadTests(unittest.TestCase):
         self.assertEqual(events[-1]["response_diagnostics"]["business_code"], -3)
         self.assertNotIn("FAKE", json.dumps(events))
 
+    def test_conflicting_returned_note_id_is_never_a_verified_owned_read(self):
+        reader, sent, events = self.reader([
+            self.dsl(), httpx.Response(200, json={"success": True, "code": 0, "data": {"user_id": "0123456789abcdef01234567"}}),
+            httpx.Response(200, json={"success": True, "code": 0, "data": {"items": [{
+                "id": self.detail()["source_note_id"], "note_card": {"note_id": "different-note",
+                    "user": {"user_id": "0123456789abcdef01234567"},
+                    "interact_info": {"liked_count": "4", "collected_count": "2", "comment_count": "0"}}}]}}),
+        ])
+        with self.assertRaisesRegex(legacy.XHSAdapterError, "remote_schema_error"):
+            reader.read(self.detail())
+        self.assertIsNone(reader.last_owned_metrics)
+        self.assertEqual(len(sent), 3)
+
     def test_dsl_redirect_and_malformed_response_never_executes_script(self):
         for response in [httpx.Response(302, headers={"Location": "https://example.invalid/?token=FAKE"}),
                          httpx.Response(200, text="require('child_process').execSync('false')")]:
