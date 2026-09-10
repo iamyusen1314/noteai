@@ -1,5 +1,50 @@
 # Spider_XHS HTTP adapter provenance and boundary
 
+## September11 generation1 failure: upstream comparison
+
+Actual failed image source is NoteAI `fcc863f65ad1d3d788e8936ef1284a9ab27ad025`,
+published digest `a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88`.
+Its chain is NoteAI's crawler_worker → crawler → spider_xhs_http → custom
+stdin Node wrapper. The worker and HTTP adapter are NoteAI code, not an upstream
+worker. Only the two assets pinned below are copied byte-for-byte; fresh raw
+GitHub reads at the locked commit matched both SHA256 values. No upstream tag
+was recorded for that lock; the exact commit, not a guessed version, is authoritative.
+
+GitHub REST/raw reads found [v5.0.0](https://github.com/cv-cat/Spider_XHS/releases/tag/v5.0.0),
+published September7 17:27:34 UTC, tag/master
+`7077c88f82771f547cc1afdadaec4025be2355e6`. This is a formal release after the
+locked commit, not merely an Issue claim. It includes [PR184](https://github.com/cv-cat/Spider_XHS/pull/184)
+(head `b0b33cbe3b090834b3bf4e27ae3624466b44090f`) and [PR178](https://github.com/cv-cat/Spider_XHS/pull/178)
+(merge `4267f89830c04262ac01e578e60cf7d0eb2eb5e0`, head
+`71d6140ff76bd026494ecb08f43fb6e71c6344ad`). No later merged-but-unreleased
+master revision was found at this check. Public source was compared in process
+memory, not installed or executed; no persistent download directory was created.
+
+| Relevant change at v5 commit | Actual NoteAI inclusion / association |
+|---|---|
+| [feed endpoint/body](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/apis/xhs_pc_apis.py#L503) | Same `/api/sns/web/v1/feed`, note ID, image formats, topic, default pc_search and empty missing xsec_token. No proved endpoint/parameter fix. |
+| [auth/context](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/apis/xhs_pc_apis.py#L120), [xy-direction](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/xhs_utils/xhs_pc/params.py#L306), [release state](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/xhs_utils/xhs_pc/state.py#L447) | New signing/session context, user-derived direction and newer browser/release profile; absent from frozen NoteAI (a1-only context, direction13, Chrome138). Plausible compatibility candidate, not a confirmed root cause without the upstream error. |
+| [bootstrap](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/xhs_utils/xhs_pc/auth.py#L438), [DSL fetch](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/xhs_utils/xhs_pc/dsl.py#L115) | Default auth constructor calls user/me; missing DSL can cause another GET. Cannot run this path under a one-request limit. |
+| [Node runtime](https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/xhs_utils/xhs_pc/runtime.py#L109) | Upstream payload includes cookie/a1 in argv; must preserve NoteAI stdin isolation. Whole HTTP layer additionally requires curl_cffi. No wholesale upgrade or single-asset substitution adopted. |
+
+Pure v5 next_sign_context/signing can operate locally only with matching lawful
+DSL/user/release inputs; their availability here is unproven. It is a coupled
+signature context change, not evidence that replacing two JS files fixes this error.
+[Open PR149](https://github.com/cv-cat/Spider_XHS/pull/149) is unmerged collection work;
+[PR140](https://github.com/cv-cat/Spider_XHS/pull/140) concerns npm installation.
+[Issue144](https://github.com/cv-cat/Spider_XHS/issues/144) and
+[Issue143](https://github.com/cv-cat/Spider_XHS/issues/143) are user detail-failure
+reports without this run's missing business code; [Issue173](https://github.com/cv-cat/Spider_XHS/issues/173)
+concerns build DNS/APT, outside this response failure. None proves this root cause.
+
+Original retained stdout is 556 bytes, SHA256
+`43fc4c26024e2fe5d51874c8f93f340ba651a9f65bee19f3f0da4aef03738b54`, stderr0.
+It contains only fixed error/round counters; no HTTP status, raw business code
+or message survived. Frozen response classification proves a 2xx JSON object
+with success=false or an unaccepted code, not exact HTTP200 or an expired session.
+The separate diagnostic retains numeric codes/status and fixed message concepts;
+it does not change success rules, signing, old evidence or the published image.
+
 ## Locked source
 
 - NoteAI implementation baseline: `93b03d5c40fb64fa264c0ada1c055f8e7696b161`.

@@ -132,6 +132,97 @@ def sanitize_crawler_event(event: Any) -> dict[str, Any]:
     result["action"] = str(result.get("action") or "crawler_event")[:80]
     if event.get("error") and not result.get("error_code"):
         result["error_code"] = "crawler_operation_failed"
+    diagnostics = sanitize_xhs_response_diagnostics(event.get("response_diagnostics"))
+    if diagnostics:
+        result["response_diagnostics"] = diagnostics
+    return result
+
+
+# Fixed concepts only: upstream messages and arbitrary string codes are never
+# copied into logs, even when they contain an unrecognized credential format.
+_XHS_MESSAGE_MARKERS = {
+    "login": ("login", "登录", "未登陆", "session expired"),
+    "challenge": ("captcha", "challenge", "验证码", "滑块", "人机验证", "安全验证"),
+    "risk": ("risk control", "风控", "账号异常"),
+    "access_restricted": ("access denied", "forbidden", "访问受限", "无权限", "禁止访问"),
+    "rate_limit": ("too many", "rate limit", "cooldown", "频繁", "访问过快"),
+    "signature": ("invalid signature", "signature error", "签名错误", "签名无效"),
+    "invalid_parameter": ("invalid param", "参数错误", "参数异常", "参数无效"),
+    "not_found": ("not found", "不存在", "已删除"),
+    "server_error": ("server error", "service unavailable", "系统错误", "系统异常", "服务异常"),
+}
+
+
+def xhs_response_diagnostics(status: int, payload: Any, *, json_decoded: bool = True) -> dict[str, Any]:
+    """Project response metadata without retaining body, messages or headers."""
+    result: dict[str, Any] = {"http_status": status, "payload_kind": "non_json"}
+    if json_decoded:
+        result["payload_kind"] = (
+            "object" if isinstance(payload, dict) else
+            "array" if isinstance(payload, list) else "scalar"
+        )
+    if isinstance(payload, dict) and json_decoded:
+        success = payload.get("success")
+        result["success_state"] = (
+            "true" if success is True else "false" if success is False else
+            "absent" if "success" not in payload else "other"
+        )
+        for prefix, obj in (("business", payload), ("nested_business", payload.get("data"))):
+            if not isinstance(obj, dict):
+                continue
+            code = obj.get("code")
+            numeric = (
+                type(code) is int and abs(code) <= 999999999 or
+                isinstance(code, str) and re.fullmatch(r"-?[0-9]{1,9}", code) is not None
+            )
+            result[prefix + "_code_kind"] = (
+                "absent" if "code" not in obj else "null" if code is None else
+                "integer" if numeric and type(code) is int else
+                "numeric_string" if numeric else "omitted"
+            )
+            if numeric:
+                result[prefix + "_code"] = code
+        objects = [payload]
+        if isinstance(payload.get("data"), dict):
+            objects.append(payload["data"])
+        messages = [obj[key][:1000].lower() for obj in objects
+                    for key in ("msg", "message") if isinstance(obj.get(key), str)]
+        result["message_present"] = bool(messages)
+        result["message_tags"] = sorted(
+            tag for tag, markers in _XHS_MESSAGE_MARKERS.items()
+            if any(marker in message for marker in markers for message in messages)
+        )
+    return sanitize_xhs_response_diagnostics(result)
+
+
+def sanitize_xhs_response_diagnostics(value: Any) -> dict[str, Any]:
+    """Recheck even exception-supplied metadata at each persistence boundary."""
+    if not isinstance(value, dict):
+        return {}
+    result: dict[str, Any] = {}
+    status = value.get("http_status")
+    if type(status) is int and 100 <= status <= 599:
+        result["http_status"] = status
+    for key, choices in (
+        ("payload_kind", {"non_json", "object", "array", "scalar"}),
+        ("success_state", {"true", "false", "absent", "other"}),
+        ("business_code_kind", {"absent", "null", "integer", "numeric_string", "omitted"}),
+        ("nested_business_code_kind", {"absent", "null", "integer", "numeric_string", "omitted"}),
+    ):
+        item = value.get(key)
+        if isinstance(item, str) and item in choices:
+            result[key] = item
+    for key in ("business_code", "nested_business_code"):
+        item = value.get(key)
+        if type(item) is int and abs(item) <= 999999999:
+            result[key] = item
+        elif isinstance(item, str) and re.fullmatch(r"-?[0-9]{1,9}", item):
+            result[key] = item
+    if type(value.get("message_present")) is bool:
+        result["message_present"] = value["message_present"]
+    if isinstance(value.get("message_tags"), list):
+        result["message_tags"] = sorted({tag for tag in value["message_tags"]
+                                         if isinstance(tag, str) and tag in _XHS_MESSAGE_MARKERS})
     return result
 
 

@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
 
 import runtime_settings
+from security_redaction import sanitize_xhs_response_diagnostics, xhs_response_diagnostics
 
 
 ADAPTER_NAME = "spider_xhs_http"
@@ -61,8 +62,9 @@ _LEGACY_BROWSER_RUNTIME_ROLES = frozenset({"local", "legacy"})
 class XHSAdapterError(RuntimeError):
     """Secret-free, stable adapter failure."""
 
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, diagnostics: Any = None):
         self.code = code
+        self.diagnostics = sanitize_xhs_response_diagnostics(diagnostics)
         super().__init__(code)
 
 
@@ -319,6 +321,14 @@ def _message_markers(payload: dict[str, Any]) -> str:
 
 
 def _validate_response(status_code: int, payload: Any) -> dict[str, Any]:
+    try:
+        return _validate_response_payload(status_code, payload)
+    except XHSAdapterError as exc:
+        exc.diagnostics = xhs_response_diagnostics(status_code, payload)
+        raise
+
+
+def _validate_response_payload(status_code: int, payload: Any) -> dict[str, Any]:
     if status_code == 429:
         raise XHSAdapterError("cooldown")
     if status_code in {401, 403}:
@@ -357,6 +367,7 @@ class SpiderXHSHTTPAdapter:
         self.signer = signer or NodeSigner()
         self._client = client
         self.timeout = min(max(float(timeout), 1.0), 30.0)
+        self.last_response_diagnostics: dict[str, Any] = {}
 
     def session_health(self) -> dict[str, Any]:
         return self.credentials.public_health()
@@ -377,6 +388,7 @@ class SpiderXHSHTTPAdapter:
         data: dict[str, Any] | str = "",
         needs_rap: bool = False,
     ) -> dict[str, Any]:
+        self.last_response_diagnostics = {}
         self._assert_ready()
         method = method.upper()
         if method not in {"GET", "POST"}:
@@ -441,10 +453,16 @@ class SpiderXHSHTTPAdapter:
                 content=body.encode("utf-8") if body else None,
             )
             response_received = True
+            self.last_response_diagnostics = xhs_response_diagnostics(
+                response.status_code, None, json_decoded=False,
+            )
             try:
                 payload = response.json()
             except Exception as exc:
-                raise XHSAdapterError("remote_non_json") from exc
+                raise XHSAdapterError(
+                    "remote_non_json", diagnostics=self.last_response_diagnostics,
+                ) from exc
+            self.last_response_diagnostics = xhs_response_diagnostics(response.status_code, payload)
             validated = _validate_response(response.status_code, payload)
             if trends_attempt is not None:
                 try:

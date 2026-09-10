@@ -1,5 +1,20 @@
 # Risk Register
 
+## September11 — separate bounded generation1 error diagnosis
+
+- Owner now permits one additional diagnostic request, separately counted, no
+  24h retry/snapshot/3d/T0 or readiness credit. Old failed evidence remains sealed.
+- Original retained logs lack exactHTTP/businesscode/msg. New fixed metadata
+  projection addresses this actual observability gap without relaxing success.
+- Upstream v5 signing/context is a candidate only; high-level v5 adds bootstrap/
+  DSL calls and argv credentials. Do not upgrade wholesale or run its demo.
+- New task uses original identity with verified readonly PG options and unchanged
+  persistent safety. Only image default-off gets per-task authorized opt-in;
+  actual host/session stop is never cleared. No empty SQLite safety substitution.
+- One fsynced journal prevents replay after dispatch/UNKNOWN. At preparation
+  checkpoint extra admissions0/1; actual readback must replace this latest status
+  after execution, not overwrite any historical observation evidence.
+
 ## September10 — generation1 single24h failed; safe recovery verified
 
 - Original heartbeat actually woke22:55:42.677 Beijing after the Codex upgrade.

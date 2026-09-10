@@ -1,5 +1,38 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September11 00:04 Beijing — bounded error diagnosis in progress
+
+User's new explicit one-request diagnosis scope supersedes the prior PROGRAM_STOP
+only for this task. Continue41c5266 and current local diagnostic changes; do not
+replay the failed24h, restartT0/0020, or resume3d/otherItems/automation. Extra XHS
+diagnostic quota is currently0/1. Original worker retained stdout readback
+t-sz06wnqng2i5bls confirms556bytes/SHA43fc4c26024e2fe5d51874c8f93f340ba651a9f65bee19f3f0da4aef03738b54,
+stderr0, only note_error/round_complete/final counters. Exact HTTP/businesscode/msg
+was not retained. Prior failed multiline parser t-sz06wnqhmilaygw had no side effect.
+Host flag projection t-sz06wnqvl805q80 shows all four non-secret runtime/adapter/
+service/suspension keys absent from existing tracking env. No Secret was printed.
+
+Two actual read-only agents confirmed frozen own-worker provenance, fresh GitHub
+v5 release7077c88f/PR178+184 candidate signing changes and new bootstrap/DSL requests
+that forbid directly importing the new high-level path into a one-request job.
+No source directory was downloaded; public source was compared in process memory.
+See existing provenance and execution plan top sections for exact links/boundary.
+Do not claim signer mismatch as established root cause.
+
+Local minimal change adds bounded response metadata to adapter exceptions and
+existing crawler event redaction, keeping error/success semantics unchanged.
+One separate diagnostic entry uses original PG readonly safety, fixed note/feed,
+intent-before-send journal, limit1/no retry/no redirect/no worker/DB writes.
+Python3.11.14 env-i isolated venv at
+/Users/openclaw/Downloads/noteai-item34-diagnostic-20260910/venv ran10 focused cases:
+business metadata/redaction, unchanged success codes, redirects, UNKNOWN timeout,
+operator/session stop, second-send prevention and existing partial-journal refusal.
+Independent review caught keyword-DSN conversion breaking PostgreSQL routing; fixed by preserving URI form and original options, with routing/readonly rejection regressions. Actual production-image diagnostic runtime/preflight and request remain pending.
+Next: independent code review, frozen-image/source verification, readonly safety,
+then the already-authorized single request only if these checks permit it.
+Readiness30/38; canonical historical Evidence/manifest untouched; seven protected
+paths untouched. No push. Only task-level local preparation currently changed.
+
 ## September10 23:21 Beijing — generation1 24h failed once; restore and revoke verified
 
 Continue the actual e7f3900 checkout; no rollback, image rebuild or observation

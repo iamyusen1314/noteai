@@ -1010,6 +1010,7 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
             _save_log({
                 "action": "note_error",
                 "error_code": error_code,
+                "response_diagnostics": getattr(exc, "diagnostics", None),
                 "run_id": note.get("run_id"),
                 "stage": note.get("provider_stage"),
                 "track_ref": hashlib.sha256(

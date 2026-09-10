@@ -1,5 +1,51 @@
 # NoteAI Production Deployment Execution Plan
 
+## September11 — separately approved one-request error diagnostic (in progress)
+
+Owner explicitly authorized diagnosis of generation1 remote_business_error at
+41c5266 and actual descendants: existing evidence first, confirmed upstream
+GitHub comparison, minimal local instrumentation, at most ONE additional XHS
+request in total. This does not reopen the failed24h/3d/T0/0020 or grant any
+readiness credit. Original admissions/history and image remain frozen below.
+At preparation checkpoint, extra diagnostic admissions are0/1; do not infer a
+future result from this preparation record. Read the unique task journal first
+after any disconnect; existing/partial intent means reconcile only, never replay.
+
+Original worker stdout was read via Cloud Assistant t-sz06wnqng2i5bls:556bytes,
+SHA43fc4c26024e2fe5d51874c8f93f340ba651a9f65bee19f3f0da4aef03738b54,stderr0.
+An earlier parser invocation t-sz06wnqhmilaygw failed on multiline JSON without
+any provider request. Original journal SHA/attempt/result remain as below.
+No exact historical HTTP status, upstream code or message exists in those logs.
+The upstream comparison and fixed commit links are in SPIDER_XHS_HTTP_PROVENANCE.md.
+v5 signing changes are candidates; no speculative success-code relaxation or upgrade.
+
+Execution: a single short-lived task container on existing API-F, using the
+already-published fcc863f digest, with only reviewed adapter diagnostics,
+security_redaction and tools/diagnose_item34_xhs.py mounted read-only. This is an
+explicit diagnostic overlay, not a replacement production image or service.
+No crawler_worker/checkpoint or crawler_config activation. Existing secret env
+path is consumed only inside the task; no credential values enter argv/logs/Git.
+Host's four non-secret switches were all absent in t-sz06wnqvl805q80. Image
+default SUSPENDED=1 is the fail-closed task opt-in baseline; this separately
+authorized container may explicitly opt in, without editing host env or clearing
+persistent safety. Any actual explicit host stop or original PG session_blocked
+must end with zero requests. Use existing noteai_xhs_tracking identity, append
+default_transaction_read_only=on to original DSN options in memory, verify role
+and SHOW-equivalent transaction_read_only, SELECT only original non-secret safety.
+The normal adapter safety read remains active, with another check before dispatch.
+No temporary grant/revoke or production DML is required.
+
+Only POST feed for the fixed original note, unchanged body/signature assets.
+HTTP retries0, redirectsfalse, trust_envfalse, hard request hook limit1. Journal
+intent fsync precedes dispatch; headers and sanitized final result survive
+disconnect. Preserve numeric status/business codes and fixed message categories,
+never raw messages/body, Cookie/Token/Authorization/signatures or unrelated data.
+Success is RESPONSE_ACCEPTED_NOT_A_SNAPSHOT; explicit failure or UNKNOWN is also
+terminal for this diagnostic allowance. No second call or automatic auth request.
+After readback, stop/remove only the exact diagnostic container if needed; preserve
+the task journal and old worker. Existing-resource marginal cost UNKNOWN_NOT_ZERO;
+no new Builder/subscription/paid resource. No other automation/Item action.
+
 Status: `ITEM34 GENERATION1 FAILED / RESTORE AND REVOKE VERIFIED / NO REPLAY / OTHER PRODUCTION PAUSED`
 
 Date: 2026-09-10 (latest result below; prior execution records retained as history)
