@@ -57,6 +57,36 @@ No new real XHS requests yet; Readiness30/38. Current changes: adapter, v5 asset
 bridge/runtime, redaction, existing diagnostic, XHS-only curl dependency, tests and
 existing control/provenance documents. No owner technical decision is required.
 
+## September11 01:19 Beijing — repair batch01 received session rejection; continue diagnosis
+
+Final candidate a4e5b93 actual host preflight verified Python3.11.15/Node20.20.2/
+curl_cffi0.15.0/x86_64,23 source hashes, fake signing and readonly tracking safety;
+configured credential not locally expired, safety record absent/sessionblockedfalse.
+This did not claim upstream login success. Batch01 launched once at
+2026-09-10T17:19:25.432835Z, exactCID
+e6c212d2b2af11d67233513833eb105232d287116cc86e4545cdca9156d6274a,
+actual image23f2d27c...1db2383. Real DSL GET200/59,828bytes, then user/me GET200 /
+successfalse / integercode-3 /85bytes. No detail request was sent. Final01:19:26.648012:
+READ_NOT_VERIFIED, physicalHTTP2, initialization2, detailadmissions0, retries0,
+businesswrites0, qualifying_snapshotfalse. Message present/fixedtagsempty; no raw
+message/body/credentials saved. This extends failure localization to existing-session
+API business rejection, but proves neither expired Cookie nor signature as root cause.
+
+Original fsynced batch01/out/xhs-repair-batch.jsonl is2132bytes/SHA
+25679fb7156650214915ce4d0929cef6650be812b584f37cf4fdceb626a1d7eb under the
+repair host directory. Local batch01-result-readback.txt has full safe parsed result
+and original invocation; process exited1/PID0/OOMfalse/partialfalse/stderr0.
+At17:22:42.552336Z exact exitedCID removed after result/hash verification, journal
+unchanged. No replay; old gen1 failed attempt/T0/0020/Evidence/automations untouched.
+Same RMB100 budget: reserve10 prior uncertainty plus1 batch/build/13.16MB trusted
+download; actual incremental cost UNKNOWN_NOT_ZERO, no new paid resource.
+
+Continue: independent pure request/header differential against actual upstream
+from_cookie/bootstrap, then one evidence-driven changed hypothesis. Upstream public
+material still has no maintained code-3 definition. Do not repeat identical calls,
+assume passwords expired, restart an observation, or stop the program at this failure.
+Readiness30/38. New wrapper HTTP-event persistence is local preparation only.
+
 ## September11 01:18 Beijing — final a4e5b93 diagnostic candidate built on API-F
 
 Code review fixed conflicting returned note IDs and curl_cffi environment-proxy
