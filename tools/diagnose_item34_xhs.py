@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import sys
 from datetime import datetime, timezone
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 MODEL = Path(__file__).resolve().parents[1] / "model"
 sys.path.insert(0, str(MODEL))
@@ -44,7 +44,8 @@ def configure_readonly_database() -> None:
         ("connect_timeout", "5"),
     ])
     # Keep URI form: NoteAI's existing DB routing deliberately rejects keyword DSNs.
-    os.environ["DATABASE_URL"] = urlunsplit(parts._replace(query=urlencode(query)))
+    # libpq URI query uses percent decoding, not HTML form '+' decoding.
+    os.environ["DATABASE_URL"] = urlunsplit(parts._replace(query=urlencode(query, quote_via=quote)))
 
 
 def readonly_safety() -> dict:

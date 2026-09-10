@@ -143,6 +143,7 @@ class ResponseDiagnosticTests(unittest.TestCase):
 
     def test_readonly_configuration_preserves_pg_routing_and_dsn_options(self):
         import db
+        from psycopg.conninfo import conninfo_to_dict
         os.environ["DATABASE_URL"] = (
             "postgresql://fake:FAKE_PASSWORD@example.invalid/noteai?sslmode=require"
             "&options=-c%20application_name%3Ditem34&connect_timeout=90"
@@ -155,6 +156,7 @@ class ResponseDiagnosticTests(unittest.TestCase):
         self.assertEqual(query["connect_timeout"], ["5"])
         self.assertEqual(query["options"], [
             "-c application_name=item34 -c default_transaction_read_only=on -c statement_timeout=5000"])
+        self.assertEqual(conninfo_to_dict(os.environ["DATABASE_URL"])["options"], query["options"][0])
         conn = mock.Mock()
         conn.execute.return_value.fetchone.side_effect = [
             {"role": "noteai_xhs_tracking", "readonly": "on"},

@@ -27,7 +27,7 @@ Python3.11.14 env-i isolated venv at
 /Users/openclaw/Downloads/noteai-item34-diagnostic-20260910/venv ran10 focused cases:
 business metadata/redaction, unchanged success codes, redirects, UNKNOWN timeout,
 operator/session stop, second-send prevention and existing partial-journal refusal.
-Independent review caught keyword-DSN conversion breaking PostgreSQL routing; fixed by preserving URI form and original options, with routing/readonly rejection regressions. Actual production-image diagnostic runtime/preflight and request remain pending.
+Independent review caught keyword-DSN conversion breaking PostgreSQL routing; fixed by preserving URI form and original options, with routing/readonly rejection regressions. API-F readonly preflight t-sz06wnsb8vgs7b4 returned OperationalError before any XHS request. A real libpq offline parse exposed literal plus signs from URL form encoding; fixed to percent-encoded URI query and verified with psycopg3.2.13. This proves a local encoding defect, not the sole cause of that remote error. Recheck only this corrected readonly preflight; no XHS admission/journal exists yet.
 Next: independent code review, frozen-image/source verification, readonly safety,
 then the already-authorized single request only if these checks permit it.
 Readiness30/38; canonical historical Evidence/manifest untouched; seven protected
