@@ -47,6 +47,32 @@ DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
 matches full upstream under three socket-denied synthetic differential cases.
 No read success/newT0/managed release is claimed. Readiness30/38.
 
+## September11 — generation2 validator and release binding integrated
+
+The existing validator now accepts explicitgeneration2 in the same canonical
+file via a future recovery_observation sibling; old root and prospectivegen1
+remain untouched. Whole sealed base canonicalSHA115b8916c6b7eb828f4cd654b175a3b9fbb4be754286ad9b68149d1dc37b670f
+is distinct from original fileSHA42181f20...9e94. Reconstruct the known failedg1
+projection from its EXISTING owner final_readback; exactSHA
+e63c97e040c29a45b04839f4a2d2cd3d1bc90ee6b81f6be2659b18e5c5492536.
+The new validator checks both history identities/hashes, original owner/track,
+no0019/0020insert,6table8current/16union/4historicalTrackingadmissions. It still
+requires full managed and business terminal proof.46 existing-validator tests
+pass including changed-and-rehashed history, forged historical hash/owner,
+0020replay, wrong9/13 accounting and incomplete managed rejection. ActualEvidence
+and Readiness remain unchanged; these are synthetic local fixtures only.
+
+Futuregeneration2 wrapper now explicitly selects pc_v5 and checks it on exact
+container recovery. It pins all repaired read components and full vendor manifest,
+plus the host contract/redaction dependency bytes. Legacy image maps remain
+unchanged.122 checkpoint/wrapper/durable/Evidence tests pass. Existing plan top
+records the full authorized order including readonly session test, real registry
+digest, managed rollback, fresh native T0, existingownerCASprevious_generation1,
+two stage windows, result recovery and exact temporarygrant restoration.
+Next IN_PROGRESS: final source-bound XHS candidate and host bundle verification.
+No second real repair batch, image publication, managed/T0/automation change yet.
+Owner private session input remains pending in connected Workbench Shell.
+
 ## September11 02:00 Beijing — private input ready; generation2 core passes isolated PG16
 
 Checkpoint4d16a01 preserves complete Cookie context and optional signing state.

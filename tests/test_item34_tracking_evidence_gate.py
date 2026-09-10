@@ -408,6 +408,117 @@ class Item34TrackingEvidenceGateTests(unittest.TestCase):
             separators=(',',':'),sort_keys=True).encode('ascii')).hexdigest()
         self.assertEqual(digest,gate.ITEM34_SEALED_OBSERVATION_SHA256)
 
+    def recovery_evidence(self):
+        import execute_item34_tracking_checkpoint as checkpoint
+        from tracking_contract import observation_history_digest
+        baseline=json.loads((ROOT/gate.ITEM34_TRACKING_EVIDENCE).read_text())
+        baseline.pop('recovery_observation',None)
+        digest=hashlib.sha256(json.dumps(baseline,ensure_ascii=True,sort_keys=True,separators=(',',':')).encode('ascii')).hexdigest()
+        self.assertEqual(digest,gate.ITEM34_SEALED_GENERATION1_SHA256)
+        prior=baseline['prospective_observation'];old_binding=prior['observation_binding']
+        readback=prior['production_execution_20260910']['owner_readback']['final_readback']
+        row={key:readback[key] for key in ('run_id','stage','admitted_at','completed_at','error_code')}
+        row.update(id=readback['attempt_id'],status=readback['attempt_status'],observation_generation=1,
+                   track_id=old_binding['track_id'],user_id=old_binding['owner_id'])
+        def shift(value):
+            if isinstance(value,dict):return {k:shift(v) for k,v in value.items()}
+            if isinstance(value,list):return [shift(v) for v in value]
+            if isinstance(value,str) and value.startswith('2026-') and 'T' in value:
+                return (datetime.fromisoformat(value)+timedelta(days=7)).isoformat()
+            return value
+        new=shift(self.payload)
+        bound={**old_binding,'generation':2,'observation_started_at':new['observation']['observation_started_at'],
+               'initial_snapshot':new['observation']['initial_snapshot']['metrics'],
+               'previous_attempt_id':row['id'],'previous_attempt_sha256':observation_history_digest(row),
+               'sealed_attempts':[{'generation':0,'attempt_id':old_binding['previous_attempt_id'],
+                    'sha256':old_binding['previous_attempt_sha256']},
+                   {'generation':1,'attempt_id':row['id'],'sha256':observation_history_digest(row)}]}
+        with checkpoint.observation_context(bound) as normalized:
+            bound=normalized;binding_sha=checkpoint.observation_identity()['observation_binding_sha256']
+        new.update(observation_generation=2,observation_binding=bound,
+                   observation_binding_sha256=binding_sha,previous_observation_sha256=digest)
+        track_hash=prior['observation']['managed_track']['identity_sha256']
+        new['observation']['managed_track'].update(identity_sha256=track_hash,
+            submitted_at=prior['observation']['managed_track']['submitted_at'])
+        for stage in ('checkpoint_24h','checkpoint_3d'):
+            new['observation'][stage].update(observation_binding_sha256=binding_sha,managed_track_identity_sha256=track_hash)
+        for attempt in new['observation']['actual_provider_attempts']:
+            attempt.update(observation_generation=2,observation_binding_sha256=binding_sha,managed_track_identity_sha256=track_hash)
+        migration_path='model/migrations/postgres/0020_tracking_observation_generation.sql'
+        (self.root/migration_path).write_bytes((ROOT/migration_path).read_bytes())
+        sha=hashlib.sha256((ROOT/migration_path).read_bytes()).hexdigest()
+        new['generation_migration']={'path':migration_path,'version':Path(migration_path).name,'sha256':sha,
+            'ledger_source_sha256':sha,'ledger_exact_count':1,'schema_migrations_insert_count':0,
+            'production_status':'VERIFIED','ledger_readback':'VERIFIED'}
+        new['combined_production_write_set']={'rows_by_table':{'schema_migrations':2,'tracked_notes':1,
+            'tracking_provider_attempts':4,'crawler_events':6,'system_settings':1,'growth_records':1,'user_memories':1},
+            'distinct_rows':16,'provider_admissions':4,'ledger_readback':'VERIFIED'}
+        writes=new['actual_production_write_set'];writes['tables'].remove('schema_migrations')
+        writes['rows_by_table'].pop('schema_migrations');writes['row_mutations']=8
+        original=self.payload;self.payload=new
+        new['production_preparation_20260907']['runtime_config_migration']['schema_migrations_insert_count']=0
+        self._refresh_migration_readback_sha256()
+        auxiliary=self._add_owner_auxiliary_effects()
+        self.control['observation_authorization']={'authorization_checkpoint':'3'*40,'authorization_plan_sha256':'4'*64}
+        auxiliary.update(self.control['observation_authorization']);auxiliary['authentication']=[]
+        auxiliary['policy_ddl']={'operation':'VERIFY_EXISTING_0019_0020','readback':'USE_EXISTING_MIGRATION_RECORDS'}
+        self._refresh_write_readback_sha256();self.payload=original
+        baseline['recovery_observation']=new
+        return baseline,new
+
+    def test_recovery_uses_both_sealed_histories_without_changing_historical_status(self):
+        baseline,new=self.recovery_evidence();self.path.write_text(json.dumps(baseline))
+        now=datetime(2026,9,16,tzinfo=timezone.utc)
+        control={**self.control,'observation_generation':2}
+        self.assertEqual(gate.validate_item34_tracking_evidence(control,root=self.root,now=now),[])
+        for generation in (0,1):
+            self.assertIn('tracking terminal status mismatch',gate.validate_item34_tracking_evidence(
+                {**control,'observation_generation':generation},root=self.root,now=now))
+        self.assertEqual(baseline['prospective_observation']['status'],'FAILED_24H_REMOTE_BUSINESS_ERROR')
+
+    def test_recovery_rejects_rehashed_old_history_migration_replay_and_incomplete_managed(self):
+        baseline,new=self.recovery_evidence();original=copy.deepcopy(baseline)
+        control={**self.control,'observation_generation':2}
+        def errors():
+            self.path.write_text(json.dumps(baseline))
+            return gate.validate_item34_tracking_evidence(control,root=self.root,now=datetime(2026,9,16,tzinfo=timezone.utc))
+        for generation in (0,1):
+            baseline=copy.deepcopy(original);new=baseline['recovery_observation']
+            history=baseline if generation==0 else baseline['prospective_observation']
+            history['observation']['actual_provider_attempts'][0]['error_code']='changed'
+            prior={k:v for k,v in baseline.items() if k!='recovery_observation'}
+            new['previous_observation_sha256']=hashlib.sha256(json.dumps(prior,ensure_ascii=True,
+                separators=(',',':'),sort_keys=True).encode('ascii')).hexdigest()
+            self.assertIn('sealed failed observation history mismatch',errors())
+        for field,value,expected in (
+                ('generation_migration',{'schema_migrations_insert_count':1},'prospective migration verification missing'),
+                ('actual_production_write_set',{'row_mutations':9},'terminal Tracking mutation count invalid'),
+                ('combined_production_write_set',{'distinct_rows':13},'combined observation history accounting invalid')):
+            baseline=copy.deepcopy(original);new=baseline['recovery_observation'];new[field].update(value)
+            self.assertIn(expected,errors())
+        baseline=copy.deepcopy(original);new=baseline['recovery_observation']
+        new['observation_binding']['sealed_attempts'][1]['sha256']='f'*64
+        new['observation_binding']['previous_attempt_sha256']='f'*64
+        self._refresh_recovery_binding(new)
+        self.assertIn('sealed generation1 attempt projection mismatch',errors())
+        baseline=copy.deepcopy(original);new=baseline['recovery_observation']
+        new['observation_binding']['owner_id']='00000000-0000-4000-8000-000000000099'
+        self._refresh_recovery_binding(new)
+        self.assertIn('recovery changed original owner or track',errors())
+        baseline=copy.deepcopy(original);new=baseline['recovery_observation']
+        new['managed_promotion']['health_check']='INCOMPLETE'
+        self.assertTrue(errors())
+
+    def _refresh_recovery_binding(self,new):
+        import execute_item34_tracking_checkpoint as checkpoint
+        with checkpoint.observation_context(new['observation_binding']):
+            binding_sha=checkpoint.observation_identity()['observation_binding_sha256']
+        new['observation_binding_sha256']=binding_sha
+        for stage in ('checkpoint_24h','checkpoint_3d'):
+            new['observation'][stage]['observation_binding_sha256']=binding_sha
+        for attempt in new['observation']['actual_provider_attempts']:
+            attempt['observation_binding_sha256']=binding_sha
+
     def _add_owner_auxiliary_effects(self):
         self.payload["authorized_auxiliary_effects"] = {
             "authorization_checkpoint": "9802111a27b131e510c1c686870121baead5c45d",

@@ -15,6 +15,59 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
+## Current implementation order — repaired session and generation2
+
+1. Reconcile the original completed batch01; never replay it. Actual API-F v5
+   request chain stopped at user/me HTTP200/business-3 after DSL200 (physical2,
+   detail0). Existing managed Cookie input contains only a1/web_session. Obtain
+   the complete lawful owned-account Request Cookie through the existing hidden
+   --stage-session entry, optionally preserving real webSsk. The private candidate
+   file is task-only; old managed env/Trends/Item32 remain unchanged. Current
+   Workbench is explicitly Shell, waiting for hidden input. The next finite batch
+   tests the changed session context with DSL/session/detail each at most once,
+   stops at the first failure, and records actual initialization/detail requests
+   in a fresh exclusive existing diagnostic journal. No automatic auth/retry.
+2. After the owned read is genuinely verified, build/reuse the reviewed XHS
+   candidate's exact source layers, publish a new immutable tag to the existing
+   private ACR and read its real digest. Do not change old source labels or tags.
+   Include the complete v5 asset manifest, custom bridge/runtime, crawler,
+   tracking_contract, redaction, checkpoint and wrapper source bindings. The
+   host bundle also contains model/tracking_contract.py and security_redaction.py;
+   its previous small package alone is insufficient for these imports.
+3. Use the existing durable managed preparation to bind the suspended unit to
+   that digest, verify exact runtime identity/resources/singleton/start-stop/
+   rollback and restore original unit/config bytes on failure. Preparation remains
+   partial until all existing managed DoD fields are actually satisfied. No API,
+   Payment, ALB, DNS or public traffic action is a dependency of this job.
+4. Only after the read path and controlled rollout pass, obtain fresh native
+   metrics and actual zoned clock for the same owned note. Keep old T0/history.
+   Verify existing0019/0020 ledgers; both INSERT counts0. With existing lawful
+   owner, lock the original target and both old attempts, verify their full
+   existing projections, globalSTARTED/UNKNOWN0 and current safety. Call the
+   EXISTING noteai_item34_open_observation with previous_generation=1 and the
+   exact generation1 failed attempt; no0020apply. Bind generation2 to both sealed
+   attempts and new real T0/metrics using the existing binding file mechanism.
+5. Preserve the original24h/3d business rules:24h completion AND snapshot in
+   [T0+24h,T0+72h);3d at/afterT0+72h and after24h. Use one unique generation2
+   continuation; no old automation or global scheduler is resumed. Each approved
+   stage uses existing wrapper/durable launcher, exact task identity and pc_v5;
+   physical initialization is counted separately from two Tracking admissions.
+   Temporary attempts SELECT uses existing owner revoke channel and restores
+   only newly added grants on every exit. UNKNOWN reconciles original result.
+6. Currentgeneration2 terminal write set is6tables/8distinct rows, no migration
+   insertion; union with sealedg0+failedg1 is16distinct/4Tracking admissions.
+   This was measured in isolated PG16; live readback must agree. Existing
+   canonical validator now preserves g0/g1 and can select an appended
+   recovery_observation only after complete true evidence exists. No current
+   production Evidence/Readiness update follows from these preparations.
+
+The cumulative RMB100 ceiling remains shared: reserve11 for prior uncertainty
+and batch01/build/transfer, actual bill UNKNOWN_NOT_ZERO. Each new bounded batch
+or publish must fit the remaining89 reserve and use existing resources only.
+Extra privacy/transport or fixture failures remain recorded; no missing result
+is described as success. Remaining active path: lawful session input plus final
+candidate/host package verification; source/validator work continues independently.
+
 ## September11 — separately approved one-request error diagnostic (completed)
 
 **Final: extra allowance1/1 consumed; HTTP200/successfalse/businesscode-3,

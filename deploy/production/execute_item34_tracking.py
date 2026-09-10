@@ -88,6 +88,20 @@ PROSPECTIVE_IMAGE_SOURCE_LABELS.update({
     'com.noteai.item34.source.observation-migration-sha256':('/app/model/migrations/postgres/0020_tracking_observation_generation.sql','22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9'),
 })
 
+# Generation2 uses the repaired read path; prior image identities stay sealed.
+RECOVERY_IMAGE_SOURCE_LABELS = dict(PROSPECTIVE_IMAGE_SOURCE_LABELS)
+RECOVERY_IMAGE_SOURCE_LABELS.update({
+    'com.noteai.item34.source.crawler-sha256':('/app/model/crawler.py','cd7d1dc738529a81101e90d14c2e32791c7067f3e89b5a0eab2a39875da6e0fa'),
+    'com.noteai.item34.source.tracking-contract-sha256':('/app/model/tracking_contract.py','172ef39b85cfe5ae228d9aa4fdf6ec10a2269f0a816605f60dc577098dcd1a3e'),
+    'com.noteai.item34.source.spider-sha256':('/app/model/spider_xhs_http.py','6ddcbfba6fbbb150744617eae63a3c0ceae50c2c4f7c8229bb81137f45af55f9'),
+    'com.noteai.item34.source.v5-reader-sha256':('/app/model/spider_xhs_v5.py','36417a7ed30926c3243b422313ef4ea264cbd2550da62b5af963598a9f326047'),
+    'com.noteai.item34.source.v5-runtime-sha256':('/app/model/vendor/spider_xhs/v5/runtime.py','45bb816e6205be506a0af4e9141507927c4a7bf3c1632aeedbe0ae6a139569dc'),
+    'com.noteai.item34.source.v5-bridge-sha256':('/app/model/vendor/spider_xhs/v5/bridge.js','6f2989c286d6e1f0c3b2d0422c6a66c37938a99026593d5c006d751d0e653e7b'),
+    'com.noteai.item34.source.v5-headers-sha256':('/app/model/vendor/spider_xhs/v5/headers.py','1f277bbc30af5b1b6d0dd0f44549dc97b95ac01a956f9dbb3d8f1a6b2db22356'),
+    'com.noteai.item34.source.v5-manifest-sha256':('/app/model/vendor/spider_xhs/v5/upstream.json','ede5937cf326c3fe19edbae8e98cecc8dd9b3b5b983a87594f8d262336328fb6'),
+    'com.noteai.item34.source.redaction-sha256':('/app/model/security_redaction.py','c5fc02966035a01012a1a35b7005f3a62a72602c042e98dbad707029ca56f451'),
+})
+
 
 def _worker_name(stage: str) -> str:
     binding=checkpoint.current_observation()
@@ -376,7 +390,9 @@ def _docker_json(argv: list[str], code: str) -> Any:
 
 
 def _expected_image_source_labels() -> dict[str, str]:
-    sources=PROSPECTIVE_IMAGE_SOURCE_LABELS if checkpoint.current_observation() is not None else IMAGE_SOURCE_LABELS
+    binding=checkpoint.current_observation()
+    sources=(RECOVERY_IMAGE_SOURCE_LABELS if binding and binding['generation']==2 else
+             PROSPECTIVE_IMAGE_SOURCE_LABELS if binding is not None else IMAGE_SOURCE_LABELS)
     labels = {
         key: expected for key, (_path, expected) in sources.items()
     }
@@ -386,6 +402,11 @@ def _expected_image_source_labels() -> dict[str, str]:
     labels["com.noteai.item34.source.checkpoint-sha256"] = _sha256(
         Path(checkpoint.__file__).read_bytes()
     )
+    if binding and binding['generation']==2:
+        for key, path in (('tracking-contract',Path(checkpoint.tracking_contract.__file__)),
+                          ('redaction',MODEL/'security_redaction.py')):
+            if _sha256(path.read_bytes())!=sources[f'com.noteai.item34.source.{key}-sha256'][1]:
+                _fail('host_dependency_source_changed')
     return labels
 
 
@@ -472,6 +493,7 @@ _OBSERVATION_ENV_KEYS = (
     'NOTEAI_ITEM34_ACCEPTANCE','NOTEAI_ITEM34_TRACK_ID','NOTEAI_ITEM34_CHECKPOINT_STAGE',
     'NOTEAI_ITEM34_OBSERVATION_GENERATION','NOTEAI_ITEM34_OBSERVATION_BINDING_B64',
     'NOTEAI_RUNTIME_ROLE','NOTEAI_XHS_SERVICE','NOTEAI_XHS_ACQUISITION_ADAPTER',
+    'NOTEAI_XHS_PROTOCOL',
 )
 _OBSERVATION_CONTAINER_FORMAT = (
     '[{"Id":{{json .Id}},"Config":{"Image":{{json .Config.Image}},'
@@ -491,6 +513,7 @@ def _observation_worker_environment(name: str) -> list[str]:
     values=('1',binding['track_id'],stages[0],str(binding['generation']),
             base64.b64encode(_canonical_json(binding)).decode('ascii'),
             'xhs-http','tracking','spider_xhs_http')
+    if binding['generation']==2:values+=('pc_v5',)
     return sorted(key+'='+value for key,value in zip(_OBSERVATION_ENV_KEYS,values))
 
 
@@ -682,6 +705,8 @@ def _container_create_argv(
             '--env=NOTEAI_ITEM34_OBSERVATION_BINDING_B64='+base64.b64encode(_canonical_json(binding)).decode('ascii'),
             f"--env=NOTEAI_ITEM34_OBSERVATION_GENERATION={binding['generation']}",
         ])
+        if binding['generation']==2:
+            argv.append('--env=NOTEAI_XHS_PROTOCOL=pc_v5')
     return [*argv, image, *command]
 
 

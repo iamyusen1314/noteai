@@ -2,6 +2,7 @@ import importlib.util
 import copy
 import base64
 import json
+import hashlib
 import subprocess
 import sys
 import unittest
@@ -23,6 +24,21 @@ IMAGE = "registry.cn-shenzhen.aliyuncs.com/noteai/xhs@sha256:" + "a" * 64
 
 
 class Item34TrackingProductionWrapperTests(unittest.TestCase):
+    def test_generation2_binds_repaired_protocol_and_complete_source_set(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        with wrapper.checkpoint.observation_context(prospective_binding(2)):
+            argv=wrapper._container_create_argv(name=wrapper._worker_name('24h'),image=IMAGE,
+                env_file=wrapper.XHS_ENV_PATH,command=list(wrapper.checkpoint.WORKER_ARGV),
+                acceptance_track_id=TRACK_ID,acceptance_stage='24h')
+            self.assertIn('noteai-item34-tracking-g2-24h',argv)
+            self.assertIn('--env=NOTEAI_XHS_PROTOCOL=pc_v5',argv)
+            self.assertIn('NOTEAI_XHS_PROTOCOL=pc_v5',wrapper._observation_worker_environment(wrapper._worker_name('24h')))
+            labels=wrapper._expected_image_source_labels()
+            for key,(path,expected) in wrapper.RECOVERY_IMAGE_SOURCE_LABELS.items():
+                if key.startswith('com.noteai.item34.source.'):
+                    self.assertEqual(labels[key],expected)
+                    self.assertEqual(hashlib.sha256((ROOT/path.removeprefix('/app/')).read_bytes()).hexdigest(),expected)
+
     def test_prospective_container_carries_complete_binding_and_unique_stage_name(self):
         from tests.test_item34_tracking_checkpoint_executor import prospective_binding
         binding=prospective_binding()
