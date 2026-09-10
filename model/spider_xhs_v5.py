@@ -41,7 +41,7 @@ class CurlClient:
             return len(chunk)
         result = self.session.request(
             method, url, headers=headers, data=content, allow_redirects=False,
-            timeout=20, content_callback=collect, proxies={},
+            timeout=20, content_callback=collect, proxies={"all": ""},
             accept_encoding=wire.DEFAULT_ACCEPT_ENCODING,
         )
         # Only safe status/body for in-memory parsing crosses this boundary.

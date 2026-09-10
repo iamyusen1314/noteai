@@ -148,7 +148,7 @@ class V5ReadTests(unittest.TestCase):
             client = v5.CurlClient()
             def send(*args, **kwargs):
                 self.assertFalse(kwargs["allow_redirects"])
-                self.assertEqual(kwargs["proxies"], {})
+                self.assertEqual(kwargs["proxies"], {"all": ""})
                 self.assertEqual(kwargs["accept_encoding"], "gzip, deflate, br, zstd")
                 cb = kwargs["content_callback"]
                 self.assertEqual(cb(b"test"), 4)
@@ -193,7 +193,14 @@ class V5ReadTests(unittest.TestCase):
         client = v5.CurlClient()
         try:
             origin = "http://127.0.0.1:" + str(server.server_port)
-            self.assertEqual(client.request("GET", origin + "/redirect", headers={}).status_code, 302)
+            # curl_cffi trust_env=False alone does not disable libcurl proxies.
+            with mock.patch.dict(os.environ, {
+                "HTTP_PROXY": "http://127.0.0.1:9", "HTTPS_PROXY": "http://127.0.0.1:9",
+                "ALL_PROXY": "http://127.0.0.1:9", "http_proxy": "http://127.0.0.1:9",
+                "https_proxy": "http://127.0.0.1:9", "all_proxy": "http://127.0.0.1:9",
+                "NO_PROXY": "", "no_proxy": "",
+            }):
+                self.assertEqual(client.request("GET", origin + "/redirect", headers={}).status_code, 302)
             with mock.patch.object(v5, "MAX_RESPONSE_BYTES", 128):
                 with self.assertRaises(Exception):
                     client.request("GET", origin + "/large", headers={})
