@@ -57,6 +57,29 @@ No new real XHS requests yet; Readiness30/38. Current changes: adapter, v5 asset
 bridge/runtime, redaction, existing diagnostic, XHS-only curl dependency, tests and
 existing control/provenance documents. No owner technical decision is required.
 
+## September11 repair — candidate2a47477 verified locally; live batch not yet sent
+
+Recovered checkpoint2a47477 includes final observer-constructor wiring. Local
+candidate `noteai-local/xhs-repair:2a47477` has image index
+`sha256:c9794f0aa65f65dfe0f2128897f3800bc7888624611e35d9d433498a638ed6a6`.
+It reuses original fcc runtime, adds23 explicitly selected source files and8
+hash-verified PyPI wheels (13,155,862bytes); no unrelated source/Secret copied.
+Python3.11.15/x86_64 candidate passed23 focused tests with network=none/read-only
+root and temporary test SQLite. Initial Colima mount and default SQLite-location
+failures were test setup failures; selected tests were copied into a temporary
+check image and the test DB placed in tmpfs. No production claim follows.
+
+Existing API-F receives the same59,026byte source archive SHA256
+48705ddabc6384fd2b287fcaba9e5beaea902c01b383bb8adfa9c855d284d568 through10
+hash-verified chunks. Directory is
+`/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911`.
+Local original commands/results/build material are under
+`/Users/openclaw/Downloads/noteai-xhs-repair-20260911`.
+Next: assemble, hash-check fixed trusted Linux wheels, build on existing API-F,
+verify actual source/Python3.11/Node/curl and readonly safety, then one finite
+DSL/session/detail experiment. No original journal/image/worker/T0 is overwritten.
+No new XHS request at this checkpoint; readiness30/38 and old evidence unchanged.
+
 ## September11 00:16 Beijing — single diagnostic completed: HTTP200 / businesscode -3
 
 Continue21d533c and its final-result documentation descendant. The separately
