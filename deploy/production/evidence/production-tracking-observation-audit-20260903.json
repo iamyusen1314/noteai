@@ -1106,7 +1106,7 @@
   "prospective_observation": {
     "schema": "noteai.item34.tracking_observation.v1",
     "item": 34,
-    "status": "OBSERVING_AWAITING_24H",
+    "status": "FAILED_24H_REMOTE_BUSINESS_ERROR",
     "readiness_credit": false,
     "previous_observation_sha256": "657cb64162b98ccdfc9d6693ceaea4bac670ca3955d9e65c6b8e06b6c1dc5cb1",
     "observation_generation": 1,
@@ -1153,7 +1153,25 @@
       },
       "checkpoint_24h": null,
       "checkpoint_3d": null,
-      "actual_provider_attempts": [],
+      "actual_provider_attempts": [
+        {
+          "canonical_stage": "24h",
+          "persisted_stage": "24h",
+          "identity_sha256": "24a6f6958d205336727995d492f44d3f9fa95337091df0b368e1fa1fbc0b4b24",
+          "run_identity_sha256": "64b54d3c7766edaea35187cbaa4dd2eac66bf790554233fbbc42ceef33a3aa4e",
+          "status": "failed",
+          "ledger_readback": "VERIFIED",
+          "actual_supplier_call": null,
+          "provider_admissions": 1,
+          "admitted_at": "2026-09-10T15:06:18.938698+00:00",
+          "completed_at": "2026-09-10T15:06:21.457869+00:00",
+          "automatic_retry_count": 0,
+          "error_code": "remote_business_error",
+          "source_journal_sha256": "0464e2542bbea2154a93b92df0c9f55977614797e599d1558660744d079246e1",
+          "observation_generation": 1,
+          "observation_binding_sha256": "9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b"
+        }
+      ],
       "manual_fill_used": false,
       "backfill_used": false,
       "early_credit": false
@@ -1216,16 +1234,26 @@
     "actual_production_write_set": {
       "tables": [
         "schema_migrations",
-        "tracked_notes"
+        "tracked_notes",
+        "tracking_provider_attempts",
+        "crawler_events",
+        "system_settings"
       ],
       "rows_by_table": {
         "schema_migrations": 1,
-        "tracked_notes": 1
+        "tracked_notes": 1,
+        "tracking_provider_attempts": 1,
+        "crawler_events": 2,
+        "system_settings": 1
       },
-      "row_mutations": 2,
+      "row_mutations": 6,
       "out_of_contract_row_mutations": 0,
-      "ledger_readback": "PARTIAL_OBSERVATION_IN_PROGRESS",
-      "basis": "one0020 ledger INSERT plus one original tracked row owner CAS UPDATE; schema DDL separately recorded; expected future writes are not counted as actual"
+      "ledger_readback": "VERIFIED_FAILED_ATTEMPT_NOT_TERMINAL_ACCEPTANCE",
+      "basis": "Distinct rows/keys touched by this generation job: prior0020 ledger1, original tracked row1, one failed generation1 attempt, two exact-run crawler events, one temporary crawler_config key inserted then removed by exact restore. Repeated updates to the tracked row and config insert/delete are not counted as new distinct rows. No growth or memory effect; DDL and temporary grant/revoke separately recorded.",
+      "crawler_config_transition_count": 2,
+      "crawler_config_persisted_after_restore": false,
+      "growth_records_created": 0,
+      "user_memories_created": 0
     },
     "host_binding": {
       "path": "/var/lib/noteai/item34-image-build-20260906/g1-20260909/observation-binding.json",
@@ -1262,15 +1290,542 @@
       "alert_delivery_basis": "existing accepted notification test reused; no new notification dispatch; period60s and namespace remain attributed to original acceptance, not freshly reread",
       "remaining": "actual successful new sampler attempt/run identity bindings and full existing validator; no fabricated identity hash or managed cycle replay"
     },
-    "provider_admissions": 0,
+    "provider_admissions": 1,
     "automatic_retry_count": 0,
     "terminal_finalized_at": null,
-    "current_earliest_terminal": "2026-09-12T14:53:11+00:00",
+    "current_earliest_terminal": null,
     "sampling_windows": {
       "24h_not_before": "2026-09-10T14:53:11+00:00",
       "24h_completion_and_snapshot_strictly_before": "2026-09-12T14:53:11+00:00",
       "3d_not_before": "2026-09-12T14:53:11+00:00"
     },
-    "secret_values_recorded": false
+    "secret_values_recorded": false,
+    "current_earliest_terminal_reason": "The single authorized 24h attempt failed without a qualifying snapshot. No same-generation replay or 3d execution is permitted; this is failure, not an expired time window.",
+    "combined_production_write_set": {
+      "rows_by_table": {
+        "schema_migrations": 2,
+        "tracked_notes": 1,
+        "tracking_provider_attempts": 2,
+        "crawler_events": 4,
+        "system_settings": 1
+      },
+      "row_mutations": 10,
+      "basis": "Union of sealed old job and actual failed generation1 write sets; shared tracked row and crawler_config key counted once; not the expected successful13 rows."
+    },
+    "production_execution_20260910": {
+      "status": "FAILED_READBACK_AND_RESTORE_VERIFIED",
+      "source_revision": "fcc863f65ad1d3d788e8936ef1284a9ab27ad025",
+      "image": "noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88",
+      "host": "noteai-prod-api-f",
+      "journal_path": "/var/lib/noteai/item34-image-build-20260906/g1-20260909/g1-24h.host.jsonl",
+      "journal_summary": {
+        "bytes": 10606,
+        "sha256": "0464e2542bbea2154a93b92df0c9f55977614797e599d1558660744d079246e1",
+        "complete_tail": true,
+        "events": [
+          {
+            "event": "start",
+            "at": "2026-09-10T15:06:08.877892+00:00",
+            "phase": null
+          },
+          {
+            "event": "snapshot",
+            "at": "2026-09-10T15:06:10.778693+00:00",
+            "phase": "pre"
+          },
+          {
+            "event": "authorization",
+            "at": "2026-09-10T15:06:10.780732+00:00",
+            "phase": null
+          },
+          {
+            "event": "transition_intent",
+            "at": "2026-09-10T15:06:10.782317+00:00",
+            "phase": "activate"
+          },
+          {
+            "event": "transition_result",
+            "at": "2026-09-10T15:06:12.742629+00:00",
+            "phase": "activate"
+          },
+          {
+            "event": "snapshot",
+            "at": "2026-09-10T15:06:14.681861+00:00",
+            "phase": "pre"
+          },
+          {
+            "event": "worker_intent",
+            "at": "2026-09-10T15:06:14.683578+00:00",
+            "phase": null
+          },
+          {
+            "event": "worker_result",
+            "at": "2026-09-10T15:06:21.808867+00:00",
+            "phase": null
+          },
+          {
+            "event": "transition_intent",
+            "at": "2026-09-10T15:06:21.810461+00:00",
+            "phase": "restore"
+          },
+          {
+            "event": "transition_result",
+            "at": "2026-09-10T15:06:23.737544+00:00",
+            "phase": "restore"
+          },
+          {
+            "event": "snapshot",
+            "at": "2026-09-10T15:06:27.557654+00:00",
+            "phase": "failure"
+          },
+          {
+            "event": "exception",
+            "at": "2026-09-10T15:06:27.559257+00:00",
+            "phase": null
+          }
+        ],
+        "results": []
+      },
+      "journal_records_readback": [
+        {
+          "event": "transition_result",
+          "phase": "activate",
+          "recorded_at": "2026-09-10T15:06:12.742629+00:00",
+          "result": {
+            "after_config_present": true,
+            "after_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+            "before_config_present": false,
+            "before_config_sha256": null,
+            "collection_suspended": false,
+            "configuration_mutations": 1,
+            "crawler_enabled": true,
+            "other_configuration_mutations": 0,
+            "phase": "activate",
+            "transition_id": "1dbcd33d140c64360ffcf8f1281996debd7458988e2716e9fa215333d22563b1"
+          }
+        },
+        {
+          "event": "worker_result",
+          "recorded_at": "2026-09-10T15:06:21.808867+00:00",
+          "result": {
+            "automatic_retry_count": 0,
+            "exit_code": 1,
+            "invocation_count": 1,
+            "result": {
+              "attempted": 1,
+              "claimed": 1,
+              "collected": 0,
+              "failed": 1,
+              "released": 0,
+              "total": 1
+            }
+          },
+          "worker": {
+            "result": {
+              "attempted": 1,
+              "claimed": 1,
+              "collected": 0,
+              "failed": 1,
+              "released": 0,
+              "total": 1
+            },
+            "run": {
+              "attempted": 1,
+              "automatic_retry_count": 0,
+              "collected": 0,
+              "failed": 1,
+              "run_id": "",
+              "worker_argv": [
+                "python",
+                "crawler_worker.py",
+                "--once",
+                "--limit",
+                "1"
+              ],
+              "worker_invocation_count": 1
+            }
+          }
+        },
+        {
+          "event": "transition_result",
+          "phase": "restore",
+          "recorded_at": "2026-09-10T15:06:23.737544+00:00",
+          "result": {
+            "after_config_present": false,
+            "after_config_sha256": null,
+            "before_config_present": true,
+            "before_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+            "collection_suspended": false,
+            "configuration_mutations": 1,
+            "crawler_enabled": false,
+            "other_configuration_mutations": 0,
+            "phase": "restore",
+            "transition_id": "1dbcd33d140c64360ffcf8f1281996debd7458988e2716e9fa215333d22563b1"
+          }
+        },
+        {
+          "code": "worker_result",
+          "event": "exception",
+          "exception_class": "Item34CheckpointError",
+          "provider_replay_allowed": false,
+          "recorded_at": "2026-09-10T15:06:27.559257+00:00"
+        }
+      ],
+      "original_snapshots": [
+        {
+          "event": "snapshot",
+          "phase": "pre",
+          "recorded_at": "2026-09-10T15:06:10.778693+00:00",
+          "snapshot": {
+            "attempts": {
+              "global_started_count": 0,
+              "global_unknown_count": 0,
+              "rows": [],
+              "target_count_24h": 0,
+              "target_count_7d": 0,
+              "target_unknown_count": 0
+            },
+            "global_due": {
+              "count": 1,
+              "rows": [
+                {
+                  "note_id": "6a7954010000000026034707",
+                  "stage": "24h",
+                  "track_id": "25824b51-99d6-4728-95a4-d68efca92503"
+                }
+              ]
+            },
+            "non_target_tracked_notes_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "observation_binding_sha256": "9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b",
+            "observation_started_at": "2026-09-09T14:53:11+00:00",
+            "observed_at": "2026-09-10T15:06:10.569209+00:00",
+            "production_config": {
+              "adapter": "spider_xhs_http",
+              "collection_suspended": false,
+              "crawler_config_present": false,
+              "crawler_config_sha256": null,
+              "crawler_enabled": false,
+              "runtime_role": "xhs-http"
+            },
+            "runtime_state": {
+              "task_container_count": 0,
+              "unit_active_state": "inactive",
+              "unit_file_state": "disabled",
+              "unit_sub_state": "dead"
+            },
+            "schema": "noteai.item34.tracking_checkpoint_snapshot.v1",
+            "target": {
+              "active_attempt_present": false,
+              "canonical_url": "https://www.xiaohongshu.com/explore/6a7954010000000026034707",
+              "check_24h_at": null,
+              "check_7d_at": null,
+              "claim_present": false,
+              "metrics": {
+                "comments": null,
+                "likes": null,
+                "saves": null
+              },
+              "next_check_at": "2026-09-10T14:53:11+00:00",
+              "note_id": "6a7954010000000026034707",
+              "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+              "score_window": null,
+              "status": "pending",
+              "track_id": "25824b51-99d6-4728-95a4-d68efca92503",
+              "training_eligible": false
+            }
+          },
+          "audit": {
+            "attempt_count": 0,
+            "crawler_event_count": 2,
+            "growth_action": "",
+            "growth_record_count": 0,
+            "ledger_sha256": "b309a4743bf907b95181f824a307b64b8e2fded1528179e5df4a567a482880d9",
+            "memory_content_sha256": null,
+            "memory_window": "",
+            "user_memory_count": 0
+          }
+        },
+        {
+          "event": "snapshot",
+          "phase": "pre",
+          "recorded_at": "2026-09-10T15:06:14.681861+00:00",
+          "snapshot": {
+            "attempts": {
+              "global_started_count": 0,
+              "global_unknown_count": 0,
+              "rows": [],
+              "target_count_24h": 0,
+              "target_count_7d": 0,
+              "target_unknown_count": 0
+            },
+            "global_due": {
+              "count": 1,
+              "rows": [
+                {
+                  "note_id": "6a7954010000000026034707",
+                  "stage": "24h",
+                  "track_id": "25824b51-99d6-4728-95a4-d68efca92503"
+                }
+              ]
+            },
+            "non_target_tracked_notes_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "observation_binding_sha256": "9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b",
+            "observation_started_at": "2026-09-09T14:53:11+00:00",
+            "observed_at": "2026-09-10T15:06:14.403643+00:00",
+            "production_config": {
+              "adapter": "spider_xhs_http",
+              "collection_suspended": false,
+              "crawler_config_present": true,
+              "crawler_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+              "crawler_enabled": true,
+              "runtime_role": "xhs-http"
+            },
+            "runtime_state": {
+              "task_container_count": 0,
+              "unit_active_state": "inactive",
+              "unit_file_state": "disabled",
+              "unit_sub_state": "dead"
+            },
+            "schema": "noteai.item34.tracking_checkpoint_snapshot.v1",
+            "target": {
+              "active_attempt_present": false,
+              "canonical_url": "https://www.xiaohongshu.com/explore/6a7954010000000026034707",
+              "check_24h_at": null,
+              "check_7d_at": null,
+              "claim_present": false,
+              "metrics": {
+                "comments": null,
+                "likes": null,
+                "saves": null
+              },
+              "next_check_at": "2026-09-10T14:53:11+00:00",
+              "note_id": "6a7954010000000026034707",
+              "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+              "score_window": null,
+              "status": "pending",
+              "track_id": "25824b51-99d6-4728-95a4-d68efca92503",
+              "training_eligible": false
+            }
+          },
+          "audit": {
+            "attempt_count": 0,
+            "crawler_event_count": 2,
+            "growth_action": "",
+            "growth_record_count": 0,
+            "ledger_sha256": "b309a4743bf907b95181f824a307b64b8e2fded1528179e5df4a567a482880d9",
+            "memory_content_sha256": null,
+            "memory_window": "",
+            "user_memory_count": 0
+          }
+        },
+        {
+          "event": "snapshot",
+          "phase": "failure",
+          "recorded_at": "2026-09-10T15:06:27.557654+00:00",
+          "snapshot": {
+            "attempts": {
+              "global_started_count": 0,
+              "global_unknown_count": 0,
+              "rows": [
+                {
+                  "admitted_at": "2026-09-10T15:06:18.938698+00:00",
+                  "attempt_id": "951a7141-142f-44e4-b7c2-180399e15027",
+                  "completed_at": "2026-09-10T15:06:21.457869+00:00",
+                  "note_id": "6a7954010000000026034707",
+                  "run_id": "da798fa7-1d78-4240-a9e8-3f8bc13ab4cf",
+                  "stage": "24h",
+                  "status": "failed",
+                  "track_id": "25824b51-99d6-4728-95a4-d68efca92503"
+                }
+              ],
+              "target_count_24h": 1,
+              "target_count_7d": 0,
+              "target_unknown_count": 0
+            },
+            "global_due": {
+              "count": 0,
+              "rows": []
+            },
+            "non_target_tracked_notes_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "observation_binding_sha256": "9d795cf288e432fb1b43ef96564b9d858e0cf4c36146481c8601d321fc46297b",
+            "observation_started_at": "2026-09-09T14:53:11+00:00",
+            "observed_at": "2026-09-10T15:06:27.346196+00:00",
+            "production_config": {
+              "adapter": "spider_xhs_http",
+              "collection_suspended": false,
+              "crawler_config_present": false,
+              "crawler_config_sha256": null,
+              "crawler_enabled": false,
+              "runtime_role": "xhs-http"
+            },
+            "runtime_state": {
+              "task_container_count": 0,
+              "unit_active_state": "inactive",
+              "unit_file_state": "disabled",
+              "unit_sub_state": "dead"
+            },
+            "schema": "noteai.item34.tracking_checkpoint_snapshot.v1",
+            "target": {
+              "active_attempt_present": false,
+              "canonical_url": "https://www.xiaohongshu.com/explore/6a7954010000000026034707",
+              "check_24h_at": null,
+              "check_7d_at": null,
+              "claim_present": false,
+              "metrics": {
+                "comments": null,
+                "likes": null,
+                "saves": null
+              },
+              "next_check_at": null,
+              "note_id": "6a7954010000000026034707",
+              "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+              "score_window": null,
+              "status": "needs_manual",
+              "track_id": "25824b51-99d6-4728-95a4-d68efca92503",
+              "training_eligible": false
+            }
+          },
+          "audit": {
+            "attempt_count": 1,
+            "crawler_event_count": 4,
+            "growth_action": "",
+            "growth_record_count": 0,
+            "ledger_sha256": "a7a4c627de8b5d4aa9f4b76a1c866308ef8c5907052297835498fdeb3cc53377",
+            "memory_content_sha256": null,
+            "memory_window": "",
+            "user_memory_count": 0
+          }
+        }
+      ],
+      "owner_readback": {
+        "final_readback": {
+          "T0": "2026-09-09T14:53:11.000000Z",
+          "admitted_at": "2026-09-10T15:06:18.938698+00:00",
+          "attempt_generation": "1",
+          "attempt_id": "951a7141-142f-44e4-b7c2-180399e15027",
+          "attempt_status": "failed",
+          "check_24h_at": null,
+          "check_7d_at": null,
+          "claims_clear": "true",
+          "completed_at": "2026-09-10T15:06:21.457869+00:00",
+          "error_code": "remote_business_error",
+          "generation": "1",
+          "next_check_at": null,
+          "observed_at": "2026-09-10T23:12:45.238955+08:00",
+          "run_id": "da798fa7-1d78-4240-a9e8-3f8bc13ab4cf",
+          "stage": "24h",
+          "target_status": "needs_manual"
+        },
+        "owner": {
+          "database": "noteai",
+          "observed_at": "2026-09-10T23:11:14.876474+08:00",
+          "current_user": "noteai_admin",
+          "session_user": "noteai_admin"
+        },
+        "safety": {
+          "global_started": 0,
+          "global_unknown": 0,
+          "admitted_today_utc": 1,
+          "generation1_attempts": 1
+        },
+        "acl": {
+          "owner": "noteai_admin",
+          "actual_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+          "app_select": false
+        },
+        "events": {
+          "3:action": "note_error",
+          "3:created_at": "2026-09-10T15:06:21.522560+00:00",
+          "3:error_code": "remote_business_error",
+          "3:run_id": "da798fa7-1d78-4240-a9e8-3f8bc13ab4cf",
+          "4:action": "round_complete",
+          "4:created_at": "2026-09-10T15:06:21.562275+00:00",
+          "4:error_code": null,
+          "4:run_id": "da798fa7-1d78-4240-a9e8-3f8bc13ab4cf"
+        }
+      },
+      "launcher_dispatch_count": 1,
+      "systemd_invocation_id": "c815b52ec2684740ae382fafc9a62c11",
+      "launcher_cloud_invocation_id": "t-sz06wnmmiwsbvgg",
+      "cloud_readback_invocations": {
+        "files": "t-sz06wnmd2xjul8g",
+        "pre_runtime": "t-sz06wnmex045o8w",
+        "image": "t-sz06wnmgivdz4sg",
+        "bind": "t-sz06wnmk0jxk54w",
+        "journal_summary": "t-sz06wnmoa6rqdj4",
+        "failure_restore": "t-sz06wnmpxxvsfeo",
+        "final_runtime": "t-sz06wnmv7lb9c00",
+        "original_snapshots": "t-sz06wnmzebyo16o"
+      },
+      "bind": {
+        "status": "ALREADY_BOUND",
+        "target_rows_mutated": 0,
+        "provider_calls": 0
+      },
+      "temporary_acl": {
+        "original_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+        "active_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin,noteai_app=r/noteai_admin}",
+        "grant_dispatch_count": 1,
+        "revoke_dispatch_count": 1,
+        "scope": "SELECT on public.tracking_provider_attempts for all noteai_app sessions",
+        "owner_channel_verified_before_grant": true,
+        "owner": "noteai_admin",
+        "grant_readback_at": "2026-09-10T23:05:45.260281+08:00",
+        "revoke_readback_at": "2026-09-10T23:08:40.636654+08:00",
+        "final_acl_exactly_matches_original": true,
+        "final_app_select": false
+      },
+      "final_runtime": {
+        "units": {
+          "noteai-xhs-tracking": {
+            "rc": 0,
+            "properties": "MainPID=0\nNRestarts=0\nLoadState=loaded\nActiveState=inactive\nSubState=dead\nUnitFileState=disabled\nJob=\nNeedDaemonReload=no\n"
+          },
+          "noteai-item34-g1-24h-once": {
+            "rc": 0,
+            "properties": "MainPID=0\nNRestarts=0\nLoadState=loaded\nActiveState=failed\nSubState=failed\nUnitFileState=transient\nJob=\nNeedDaemonReload=no\n"
+          },
+          "noteai-item34-g1-3d-once": {
+            "rc": 0,
+            "properties": "MainPID=0\nNRestarts=0\nLoadState=not-found\nActiveState=inactive\nSubState=dead\nUnitFileState=\nJob=\nNeedDaemonReload=no\n"
+          }
+        },
+        "containers": {
+          "name=noteai-item34-tracking-g1-": {
+            "rc": 0,
+            "rows": [
+              "noteai-item34-tracking-g1-24h|exited|noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app"
+            ]
+          },
+          "label=com.noteai.service=noteai-xhs-tracking": {
+            "rc": 0,
+            "rows": []
+          }
+        }
+      },
+      "exited_failure_container_retained": true,
+      "container_restarted": false,
+      "configuration_restored": true,
+      "sampling_replay_allowed": false,
+      "stage_3d_execution_allowed": false,
+      "failure_interpretation": "Frozen adapter classifies a 2xx JSON object with success=false or an unaccepted business code as remote_business_error. Specific upstream business code/message was not retained. Credential expiry, signing failure or risk control is not proven; no classification patch, session reset or new provider request.",
+      "cost": "UNKNOWN_NOT_ZERO: one admitted attempt and existing execution/transfer/storage marginal usage; no new billed resource",
+      "scheduler": {
+        "automation_id": "noteai-item34-generation1",
+        "target_thread_id": "01a079a4-1c05-7d21-a98a-2d418cdd20c9",
+        "actual_wakeup_at": "2026-09-10T14:55:42.677000+00:00",
+        "previous_next_wakeup_at": "2026-09-12T14:56:01+00:00",
+        "status": "DELETED_AFTER_24H_FAILURE",
+        "reason": "No successful24h snapshot; original3d prerequisites cannot be met without forbidden replay. Deleted only the obsolete two-phase continuation through automation_update; old mixed and20:00 automations remainPAUSED."
+      },
+      "validation": {
+        "status": "NOT_ACCEPTED",
+        "validator": "tools/internal_deployment_readiness_gate.py:validate_item34_tracking_evidence",
+        "execution": "offline, generation1 only, no production environment or Item1-30 replay",
+        "basis": "Missing successful24h/3d snapshots and managed supplier binding; failed partial write set is not terminal9 rows. Existing generic write-set exceeds diagnostic also fires for a subset of terminal tables and is not independent evidence of extra production writes.",
+        "readiness_verified": 30,
+        "readiness_total": 38
+      }
+    }
   }
 }

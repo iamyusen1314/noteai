@@ -1,5 +1,35 @@
 # Risk Register
 
+## September10 — generation1 single24h failed; safe recovery verified
+
+- Original heartbeat actually woke22:55:42.677 Beijing after the Codex upgrade.
+  Current in-app browser, API-F commands and existing DMS noteai_admin worked;
+  source/image/binding matched. No new role or credential was required.
+- Exactly one new admission failed23:06:21.457869 Beijing with remote_business_error.
+  Owner and original journal agree: needs_manual/no24h snapshot, claims clear,
+  globalSTARTED0/UNKNOWN0. Failure occurred inside the allowed time window;
+  do not label it expired or turn remaining admission budget into retry permission.
+- Config restored23:06:23; temporary SELECT revoked and originalACL verified
+ 23:08:40, independently repeated23:11:14. Worker is exited; one-shot unit failed
+  withPID0/Jobempty; originalTracking staysdisabled/inactive. Keep original journal
+  and stopped container for readback, neverstart/replay. No3d task exists.
+- 3d requires a successful24h snapshot and therefore cannot proceed onSeptember12.
+  Only obsolete noteai-item34-generation1 continuation was deleted; old mixed and
+ 20:00 automations remainPAUSED. T0/0020/old sealedEvidence are unchanged.
+- Generic remote_business_error lost the upstream businesscode/message in the
+  frozen adapter. No evidence supports blaming ACR/XHS credentials, signing or
+  risk control, or adding businesscode200 to success values. No new request or
+  speculative code patch is authorized by the spent24h stage.
+- Actual new-job writes5tables/6distinct; old+new10; no terminal growth/memory
+  effects. Config's two transitions and temporary permission actions are explicit.
+  Readiness30/38; managed proof remainsINCOMPLETE. Existing offline Item34
+  validator rejects this incomplete failure; its generic table-set error also
+  reports missing terminal tables and does not independently prove scope excess.
+- Existing independent local preparation is complete; no new engineering gap
+  established by the bounded source/contract audit. Future real diagnosis/new
+  observation needs a separate concrete scope; no user login/password is needed
+  merely to preserve the completed recovery. No production retry or new schedule.
+
 ## September9 23:23 Beijing — new T0 verified; real sampling still pending
 
 - Owner personally completed the original note website verification. Fresh

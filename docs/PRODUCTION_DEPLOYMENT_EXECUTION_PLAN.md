@@ -1,8 +1,32 @@
 # NoteAI Production Deployment Execution Plan
 
-Status: `ITEM34 GENERATION1 SCOPE APPROVED / EXECUTION IN PROGRESS / OLD WINDOW SEALED / OTHER PRODUCTION PAUSED`
+Status: `ITEM34 GENERATION1 FAILED / RESTORE AND REVOKE VERIFIED / NO REPLAY / OTHER PRODUCTION PAUSED`
 
-Date: 2026-09-09 (current scope below; July sections retained as history)
+Date: 2026-09-10 (latest result below; prior execution records retained as history)
+
+**当次结果：generation1唯一24h已执行失败，恢复与撤权已核实。** 原任务实际于北京时间
+9月10日22:55:42.677唤醒；升级后的API-F云助手和现有DMS owner会话可用，源码/镜像/
+binding匹配，没有要求新ACR密码。唯一launcher于23:06启动，真实admission为
+23:06:18.938698，完成23:06:21.457869，error_code=`remote_business_error`。
+attempt=`951a7141-142f-44e4-b7c2-180399e15027`，run=`da798fa7-1d78-4240-a9e8-3f8bc13ab4cf`。
+原journal路径为下述source目录的`g1-24h.host.jsonl`，10606bytes，SHA256
+`0464e2542bbea2154a93b92df0c9f55977614797e599d1558660744d079246e1`，12条完整记录，
+没有成功result。23:12:45 owner独立读回needs_manual、24h/3d/next_check均NULL、
+claims clear；新admission1、retry0、globalSTARTED0/UNKNOWN0。没有合格24h snapshot。
+
+原配置已于23:06:23恢复，唯一新增SELECT已撤回；23:08:40/23:11:14独立读回appSELECTfalse
+及原ACL完全一致。精确worker已exited并保留原结果；launcher失败但PID0/Job空；原Tracking
+仍disabled/inactive。实际新作业5表6distinct（0020账本1、原track1、failedattempt1、
+两条同run事件、临时config key1），旧新合并10；临时config插入/删除共2次转换，
+grant/revoke辅助动作另记，growth/memory0，不冒称完整成功写集。费用UNKNOWN_NOT_ZERO。
+
+此路径为已知失败而非时间EXPIRED。不得重采24h；3d缺成功24h前提，9月12日不能执行。
+原调度当时下一触发为UTC9月12日14:56:01/北京时间22:56:01，现已通过正式工具删除
+这条失去执行用途的`noteai-item34-generation1`续执行任务；其他自动化不变、旧任务仍PAUSED。
+原T0、0020、旧Evidence、镜像与managed周期不变。现有记录未保存上游原业务码/消息，
+不能猜测凭据或签名失效，也没有合同依据修改成功码；后续真实诊断/新观察不在剩余阶段授权内。
+原结果、读回与辅助动作保存在现有canonical prospective child；Readiness仍30/38，
+managed仍INCOMPLETE，现有Item34 validator未通过。下文9月9日“等待采样”均属此前实测历史。
 
 **当次最新实测（23:23北京时间保存）：新T0已建立，等待真实24h/3d。** owner本人
 完成原笔记网站安全验证后，真实页面指标赞4/收藏2/评论2；实际T0为

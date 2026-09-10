@@ -1,5 +1,95 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September10 23:21 Beijing — generation1 24h failed once; restore and revoke verified
+
+Continue the actual e7f3900 checkout; no rollback, image rebuild or observation
+restart. The original same-task heartbeat actually woke at
+2026-09-10T14:55:42.677Z (22:55:42.677 Beijing). Its saved UTC rule had exactly
+two occurrences two days apart, not a September11 run; the card's “每天14:55”
+was not the full rule. Before this failure the next scheduler timestamp was
+September12 14:56:01 UTC /22:56:01 Beijing. It is now cancelled as described below.
+The heartbeat uses the current task/project cwd; actual source and local persistent
+transport hashes matched. Upgrade recovery required the supported in-app browser
+runtime in place of the unavailable old CUA tool. API-F Cloud Assistant and the
+existing DMS noteai_admin session worked; no ACR password or new login was needed.
+DMS's separate AliyunServiceRoleForDMS creation prompt was cancelled, not authorized.
+
+Fresh owner SELECT at23:01:23 confirmed exact generation1/T0/initial4/2/2,
+unchanged old failed history, new attempts0/globalSTARTED0/UNKNOWN0/UTCday0.
+23:02:09 owner/three-table ACL projection confirmed noteai_admin owns the tables
+and the live owner channel can revoke. Host files/binding hashes matched;
+g1-24h/g1-3d journals were absent, precise units absent and no active workers.
+The actual image remained fcc863f/linux-amd64/config39dac3bb...719f01 and published
+digest a2ee0f2e...b6a88. Only the approved temporary attempts SELECT was granted;
+23:05:45 readback showed the exact added noteai_app=r ACL. Frozen bind returned
+ALREADY_BOUND, target_rows_mutated0/provider_calls0.
+
+The unique launcher was dispatched once: Cloud Assistant t-sz06wnmmiwsbvgg,
+unit noteai-item34-g1-24h-once, invocation c815b52ec2684740ae382fafc9a62c11.
+One real provider admission at15:06:18.938698Z completed FAILED at15:06:21.457869Z,
+error remote_business_error, attempt951a7141-142f-44e4-b7c2-180399e15027,
+run da798fa7-1d78-4240-a9e8-3f8bc13ab4cf. No automatic retry or qualifying snapshot.
+Original journal is
+`/var/lib/noteai/item34-image-build-20260906/g1-20260909/g1-24h.host.jsonl`,
+10606bytes, complete12records, SHA
+0464e2542bbea2154a93b92df0c9f55977614797e599d1558660744d079246e1.
+It ends with Item34CheckpointError/worker_result, not a successful result record.
+The failure is known from its native failure snapshot and independent owner
+readback at23:12:45: needs_manual, checks/next_check NULL, claims clear, original
+T0 retained, one generation1attempt, globalSTARTED0/UNKNOWN0. No CONNECTED_UNKNOWN.
+
+Original config CAS restore succeeded at15:06:23.737544Z, crawler_config absent
+again/enabledfalse/safety unchanged. The one newly added SELECT was revoked once;
+23:08:40 and23:11:14 owner readbacks show appSELECTfalse and exact original ACL
+{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}.
+Original Tracking unit remains disabled/inactive/dead/PID0/Jobempty/NDRno.
+The one-shot launcher is failed/PID0/Jobempty; its exact worker container is exited
+and retained with its original result, not running or restarted. No extra restore
+or stop was needed. 3d unit/container/journal were not created.
+
+Actual new-job distinct writes are5tables/6rows:0020ledger1, originaltrack1,
+failedattempt1, exact-run crawler_events2 (IDs3 note_error and4 round_complete),
+temporary crawler_config key1. Config insert/delete are two transitions on that
+one key; growth/memory0. Old+new union is10distinct, not the successful13 expectation.
+Approved temporary grant/revoke are separately recorded, not hidden as business
+counts. Provider and existing-resource marginal costs remain UNKNOWN_NOT_ZERO.
+
+PATH_BLOCKED: generation1 is FAILED_24H_REMOTE_BUSINESS_ERROR, not EXPIRED.
+Same-generation24h cannot replay;3d requires a succeeded24h and real snapshot,
+so waiting until September12 cannot make this path executable. The obsolete
+noteai-item34-generation1 heartbeat was deleted via the existing automation tool;
+native scheduler readback confirms absence. Old item34-24h-3d-observation and
+noteai-20 remainPAUSED; other production/global automation is unchanged.
+
+Read-only frozen-source review confirms remote_business_error means a2xx JSON
+object had success=false or an unaccepted business code. Exact upstream code/msg
+was not retained; credential expiry, risk control or signing failure is UNPROVEN.
+Existing fixtures/contracts do not justify adding businesscode200 or changing
+success classification. No supplier replay, session reset, new identity or T0.
+Current Item31/32/35/36/37/38 prepared artifacts still have no newly identified
+independent implementation gap; their remaining live/signature/scope dependencies
+are the existing ones below. Do not invent work or rerun historical suites.
+
+Updated only existing canonical prospective Evidence, manifest blocker, plan,
+risk and this Handoff. Canonical old root/T0/binding/0020/managed evidence are
+unchanged; no successful managed identity was filled. The existing Item34 validator
+was called offline and correctly did not accept the failed/incomplete observation;
+its generic “write set exceeds” diagnostic also fires for a subset of required
+terminal tables and is not evidence of an actual extra-table production write.
+Readiness remains30/38, all terminal statuses unchanged. No Item1–30 replay,
+new validator/receipt, Git push or protected-path access. Independent read-only
+review confirms oldroot/frozenbindings, actual5table6row/union10 accounting and
+manifest-only blocker change. git diff --check passes. A second independent audit
+at23:22:28 confirms generation1 automation absent inDB/TOML, both oldjobsPAUSED
+with no next run, and no second Item34 schedule for this task/project.
+
+PROGRAM_STOP
+原因：本次已批准的唯一24h失败，原结果、停止状态、配置与撤权均已核实并保存；3d不具备前提。
+为什么没有任何其他已授权工作可以继续：现有独立本地准备已经完成，源码核对未发现可据实修复的误判；
+其余动作涉及新的真实诊断/观察范围或既有外部依赖，符合停止条件10，不因单个PATH_BLOCKED停止。
+owner唯一需要做的动作：本次无需重新登录或提供密码；若要继续真实故障定位，需另行明确其受控请求范围，
+原两阶段额度不能转作诊断或重试。不自动创建新观察或新任务。
+
 ## September9 23:23 Beijing — same-object generation1 T0 committed; bounded continuation scheduled
 
 Continue from fceb5df. The prior22:41 PROGRAM_STOP is resolved by owner's personal
