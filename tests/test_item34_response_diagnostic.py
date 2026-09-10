@@ -6,6 +6,7 @@ import sys
 import tempfile
 import types
 import unittest
+import warnings
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
@@ -69,6 +70,14 @@ class ResponseDiagnosticTests(unittest.TestCase):
         for raw in ("a1=FAKE", "a1=FAKE; web_session=FAKE\nBAD=VALUE", "a1=FAKE; a1=FAKE2; web_session=FAKE"):
             with self.assertRaises(diagnostic.DiagnosticStop):
                 diagnostic.request_cookie_records(raw)
+
+    def test_getpass_echo_fallback_is_rejected_before_reading_a_credential(self):
+        def fallback(*args):
+            warnings.warn('terminal echo control unavailable', diagnostic.getpass.GetPassWarning)
+            self.fail('fallback must never read a credential')
+        with mock.patch.object(diagnostic.getpass,'getpass',side_effect=fallback):
+            with self.assertRaises(diagnostic.getpass.GetPassWarning):
+                diagnostic.private_input('hidden')
 
     def execute(self, handler, *, safety=lambda: {"session_blocked": False}):
         def send(request):

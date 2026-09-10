@@ -538,10 +538,14 @@ def _claim_due_tracking_notes(
                 if generation != target_generation:
                     continue
                 # A bare generation is insufficient to authorize an observation.
-                tracking_contract.assert_observation_binding(snapshot,_item34_observation_binding())
+                binding=_item34_observation_binding()
+                tracking_contract.assert_observation_binding(snapshot,binding)
                 stage = "24h" if target_stage == "24h" else "7d"
                 if not tracking_contract.observation_stage_ready(snapshot, stage, now):
                     continue
+                history=tx.fetchall('SELECT * FROM tracking_provider_attempts WHERE track_id=? '
+                    'ORDER BY observation_generation,id FOR SHARE',(snapshot['id'],))
+                tracking_contract.assert_observation_history([dict(old) for old in history],binding)
             claim_token = str(uuid.uuid4())
             expiry_guard = (
                 "claim_expires_at::timestamptz<=?::timestamptz"
@@ -685,10 +689,9 @@ def _admit_provider_attempt(note: dict) -> dict:
             binding=_item34_observation_binding()
             tracking_contract.assert_observation_binding(note,binding)
             tracking_contract.assert_observation_binding(current,binding)
-            old=tx.fetchone('SELECT * FROM tracking_provider_attempts WHERE id=? AND track_id=? FOR SHARE',
-                            (binding['previous_attempt_id'],note['id']))
-            if not old or tracking_contract.observation_history_digest(dict(old))!=binding['previous_attempt_sha256']:
-                raise ValueError('item34 observation history changed')
+            history=tx.fetchall('SELECT * FROM tracking_provider_attempts WHERE track_id=? '
+                'ORDER BY observation_generation,id FOR SHARE',(note['id'],))
+            tracking_contract.assert_observation_history([dict(old) for old in history],binding)
         if tx.postgres:
             # Shared with the prospective owner CAS: global admission state
             # cannot change between its quiescence check and window opening.

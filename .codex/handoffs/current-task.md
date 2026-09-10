@@ -47,6 +47,49 @@ DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
 matches full upstream under three socket-denied synthetic differential cases.
 No read success/newT0/managed release is claimed. Readiness30/38.
 
+## September11 02:00 Beijing — private input ready; generation2 core passes isolated PG16
+
+Checkpoint4d16a01 preserves complete Cookie context and optional signing state.
+API-F task input path is
+/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/session-input/start.sh.
+Initial synthetic import preflight failed on legacy db import attempting SQLite;
+no production connection/write occurred. Corrected existing --stage-session to
+exit before HTTP/DB imports and use the pure signing-state parser. Real host
+Python3.11 isolated PTY check then passed: input_echoedfalse/database_importedfalse/
+XHSrequests0/managed_env_changedfalse. Original safe readbacks retain failure and
+success. A subsequent local fix turns GetPassWarning into an exception, forbidding
+fallback echo;102 targeted Python3.11 tests now pass. Existing active first input
+was already successfully entered with echo disabled/no warning; do not interrupt
+an owner mid-input. Optional webSsk may be left blank. Future start source must
+include the warning guard before another prompt is launched.
+
+API-F Workbench tab5 is actually connected through existing passwordless root
+permission, explicitly switched from default Agent mode to Shell. It is waiting
+at Request Cookie(hidden), no candidate completed as last readback. Owner asked
+once asynchronously to paste the original owned browser's complete request Cookie
+there (never in chat), then leave optionalwebSsk blank. No MFA/ACR password request.
+Browser AX included its session identifier before scoped filtering; no such value
+is copied here or into Git, no Cookie/Token input was read. Future UI reads must
+filter status identifiers and report only safe prompt/completion predicates.
+
+Generation2 core is implemented locally: unchanged generation1 binding shape,
+generation2 seals both oldfailedattempts, claim and admission each lock complete
+history FOR SHARE inside the target transaction. Existing checkpoint/wrapper
+share the same pure contract.23 real isolated PG16 tests pass4.253s, including
+actual failedg1->g2 two-stage writers,8 new/16 total distinct rows, no migration
+ledger change, oldrow tamper rejected before claim and admission, and a second
+connection UPDATE times out against each oldrow at both boundaries.102 other
+focused Python3.11 tests pass. Test packaging failures (missing selected SQL and
+fixture role) were fixed; no production observation was started.
+
+Current isolated image noteai-local/item34-generation2:checks is localtestonly;
+log Downloads/noteai-xhs-repair-20260911/generation2-pg16.log. Local PG16 container
+noteai-item34-g2-pg16 uses networknone/Unix socket volume/tmpfs data only.
+Still IN_PROGRESS: future source/host-package bindings and existingvalidator's
+no-migration6table8/16 accounting; core tests do not mean READY_FOR_LIVE.
+Next continue those independent changes while lawful session context is pending.
+Readiness30/38, original canonicalEvidence unchanged, no second repair batch.
+
 ## September11 01:37 Beijing — actual session context and safe input repair
 
 API-F network=none inspection at2026-09-10T17:37:12.758463Z confirmed raw2/effective2

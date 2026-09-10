@@ -125,14 +125,18 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         with psycopg.connect(host="/var/run/postgresql",dbname="postgres",user="postgres",autocommit=True) as c:
             version, addr = c.execute("SELECT current_setting('server_version_num')::int,inet_server_addr()").fetchone()
             assert 160000 <= version < 170000 and addr is None
-            cls.created_role = not c.execute("SELECT 1 FROM pg_roles WHERE rolname='noteai_xhs_tracking'").fetchone()
-            if cls.created_role:c.execute('CREATE ROLE noteai_xhs_tracking NOLOGIN')
+            cls.created_roles=[]
+            for role in ('noteai_xhs_tracking','noteai_app'):
+                if not c.execute('SELECT 1 FROM pg_roles WHERE rolname=%s',(role,)).fetchone():
+                    c.execute(psycopg.sql.SQL('CREATE ROLE {} NOLOGIN').format(psycopg.sql.Identifier(role)))
+                    cls.created_roles.append(role)
 
     @classmethod
     def tearDownClass(cls):
-        if cls.created_role:
+        if cls.created_roles:
             with psycopg.connect(host="/var/run/postgresql",dbname="postgres",user="postgres",autocommit=True) as c:
-                c.execute('DROP ROLE noteai_xhs_tracking')
+                for role in cls.created_roles:
+                    c.execute(psycopg.sql.SQL('DROP ROLE {}').format(psycopg.sql.Identifier(role)))
 
     def setUp(self):
         self.stack = ExitStack()
@@ -241,13 +245,18 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         self.set_phase("window")
         self.install_binding()
 
-    def install_binding(self):
-        self.binding={'track_id':self.track,'owner_id':self.uid,'generation':1,
+    def install_binding(self, generation=1, history=None):
+        history=history or [self.failed]
+        self.binding={'track_id':self.track,'owner_id':self.uid,'generation':generation,
             'observation_started_at':self.anchor.isoformat(),'initial_snapshot':{'likes':4,'saves':2,'comments':2},
-            'previous_attempt_id':self.failed,
-            'previous_attempt_sha256':self.contract.observation_history_digest(self.row('tracking_provider_attempts',self.failed))}
+            'previous_attempt_id':history[-1],
+            'previous_attempt_sha256':self.contract.observation_history_digest(self.row('tracking_provider_attempts',history[-1]))}
+        if generation==2:
+            self.binding['sealed_attempts']=[{'generation':g,'attempt_id':ident,
+                'sha256':self.contract.observation_history_digest(self.row('tracking_provider_attempts',ident))}
+                for g,ident in enumerate(history)]
         os.environ.update({'NOTEAI_ITEM34_ACCEPTANCE':'1','NOTEAI_ITEM34_TRACK_ID':self.track,
-            'NOTEAI_ITEM34_CHECKPOINT_STAGE':'24h','NOTEAI_ITEM34_OBSERVATION_GENERATION':'1',
+            'NOTEAI_ITEM34_CHECKPOINT_STAGE':'24h','NOTEAI_ITEM34_OBSERVATION_GENERATION':str(generation),
             'NOTEAI_ITEM34_OBSERVATION_BINDING_B64':base64.b64encode(json.dumps(self.binding).encode()).decode()})
 
     def drop_database(self):
@@ -275,10 +284,10 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
     def object_counts(self, objects):
         return {table:sum(t == table for t,_ in objects) for table,_ in objects}
 
-    def open(self, *, connection=None, failed=None, anchor=None):
+    def open(self, *, connection=None, failed=None, anchor=None, previous_generation=0):
         return (connection or self.owner).execute(
-            "SELECT noteai_item34_open_observation(%s,%s,0,%s,%s,%s::jsonb)",
-            (self.track,self.uid,failed or self.failed,anchor or self.anchor,
+            "SELECT noteai_item34_open_observation(%s,%s,%s,%s,%s,%s::jsonb)",
+            (self.track,self.uid,previous_generation,failed or self.failed,anchor or self.anchor,
              json.dumps({"likes":4,"saves":2,"comments":2}))).fetchone()[0]
 
     def claim(self, stage="24h", generation=1):
@@ -293,22 +302,90 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         for key in ("id","user_id","xhs_note_id","xhs_url","submitted_at","published_at"):
             self.assertEqual(current_track[key],self.old_track[key])
 
-    def run_stage(self, stage):
+    def run_stage(self, stage, *, generation=1, fail=False):
         spider = importlib.import_module("spider_xhs_http")
         with ExitStack() as stack:
             stack.enter_context(mock.patch.dict(os.environ, {"NOTEAI_ITEM34_ACCEPTANCE":"1",
                 "NOTEAI_ITEM34_TRACK_ID":self.track,"NOTEAI_ITEM34_CHECKPOINT_STAGE":stage,
-                "NOTEAI_ITEM34_OBSERVATION_GENERATION":"1"}))
+                "NOTEAI_ITEM34_OBSERVATION_GENERATION":str(generation)}))
             stack.enter_context(mock.patch.object(spider,"collection_route",return_value="direct"))
             stack.enter_context(mock.patch.object(spider,"collection_route_suspended",return_value=False))
             stack.enter_context(mock.patch.object(self.crawler.xhs_acquisition,"collection_safety_status",
                                                    return_value={"session_blocked":False}))
             fetch = stack.enter_context(mock.patch.object(self.crawler,"_extract_note_data_with_spider_http",
-                new=mock.AsyncMock(return_value={"likes":20,"saves":10,"comments":3,"title":"Synthetic note"})))
+                new=mock.AsyncMock(side_effect=spider.XHSAdapterError('remote_business_error') if fail else None,
+                    return_value={"likes":20,"saves":10,"comments":3,"title":"Synthetic note"})))
             stack.enter_context(mock.patch.object(self.crawler,"_random_delay",new=mock.AsyncMock()))
             result = asyncio.run(self.crawler.run_collection_round(limit=1))
-            self.assertEqual((result["collected"],result["attempted"],result["failed"]),(1,1,0))
+            self.assertEqual((result["collected"],result["attempted"],result["failed"]),(0,1,1) if fail else (1,1,0))
             fetch.assert_awaited_once()
+
+    def prepare_generation2(self):
+        self.open()
+        self.time=self.anchor+timedelta(hours=24)
+        self.owner.execute("UPDATE system_settings SET value_json='{}' WHERE key='crawler_config'")
+        self.run_stage('24h',fail=True)
+        failed=self.owner.execute('SELECT id FROM tracking_provider_attempts WHERE observation_generation=1').fetchone()[0]
+        self.sealed={ident:self.row('tracking_provider_attempts',ident) for ident in (self.failed,failed)}
+        self.ledger=self.owner.execute('SELECT * FROM schema_migrations ORDER BY version').fetchall()
+        self.g1_objects=self.history|self.objects('proposal')|self.objects('window')
+        self.assertEqual(len(self.g1_objects),10)
+        self.anchor+=timedelta(days=2);self.time=self.anchor
+        self.set_phase('generation2')
+        self.install_binding(2,[self.failed,failed])
+        self.assertEqual(self.open(failed=failed,previous_generation=1),2)
+
+    def test_generation2_preserves_both_failed_generations_and_has_eight_new_objects(self):
+        self.prepare_generation2()
+        self.role='noteai_xhs_tracking'
+        self.owner.execute("UPDATE system_settings SET value_json='{}' WHERE key='crawler_config'")
+        self.time=self.anchor+timedelta(hours=24);self.run_stage('24h',generation=2)
+        self.time=self.anchor+timedelta(hours=72);self.run_stage('3d',generation=2)
+        self.assertEqual(self.row('tracked_notes',self.track)['status'],'complete')
+        self.assertEqual(self.claim('3d',generation=2),[])
+        self.assertEqual(self.claim('24h',generation=1),[])
+        current=self.objects('generation2')
+        self.assertEqual(self.object_counts(current),{'tracked_notes':1,'tracking_provider_attempts':2,
+            'crawler_events':2,'system_settings':1,'growth_records':1,'user_memories':1})
+        self.assertEqual(len(current),8)
+        self.assertEqual(len(self.g1_objects|current),16)
+        self.assertEqual(self.owner.execute('SELECT * FROM schema_migrations ORDER BY version').fetchall(),self.ledger)
+        for ident,row in self.sealed.items():self.assertEqual(self.row('tracking_provider_attempts',ident),row)
+
+    def test_generation2_checks_each_history_before_claim_and_again_before_admission(self):
+        self.prepare_generation2();self.time=self.anchor+timedelta(hours=24)
+        for ident,row in self.sealed.items():
+            self.owner.execute("UPDATE tracking_provider_attempts SET error_code='changed' WHERE id=%s",(ident,))
+            with self.assertRaisesRegex(ValueError,'history'):self.claim(generation=2)
+            self.assertIsNone(self.row('tracked_notes',self.track)['claim_token'])
+            self.owner.execute('UPDATE tracking_provider_attempts SET error_code=%s WHERE id=%s',(row['error_code'],ident))
+            claimed=self.claim(generation=2)[0]
+            self.owner.execute("UPDATE tracking_provider_attempts SET error_code='changed' WHERE id=%s",(ident,))
+            with self.assertRaisesRegex(ValueError,'history'):self.crawler._admit_provider_attempt(claimed)
+            self.assertIsNone(self.row('tracked_notes',self.track)['active_attempt_id'])
+            self.owner.execute('UPDATE tracking_provider_attempts SET error_code=%s WHERE id=%s',(row['error_code'],ident))
+            self.crawler._release_unstarted_claim(claimed)
+        self.assertEqual(self.owner.execute('SELECT count(*) FROM tracking_provider_attempts').fetchone()[0],2)
+
+    def test_generation2_locks_both_sealed_attempts_through_claim_and_admission(self):
+        self.prepare_generation2();self.time=self.anchor+timedelta(hours=24)
+        original=self.contract.assert_observation_history
+        checks=[]
+        def verify_locked(rows,binding):
+            result=original(rows,binding)
+            with psycopg.connect(**self.args,autocommit=True) as other:
+                for ident in self.sealed:
+                    with self.assertRaises(psycopg.errors.LockNotAvailable),other.transaction():
+                        other.execute("SET LOCAL lock_timeout='60ms'")
+                        other.execute("UPDATE tracking_provider_attempts SET error_code='must_block' WHERE id=%s",(ident,))
+            checks.append(True)
+            return result
+        with mock.patch.object(self.contract,'assert_observation_history',side_effect=verify_locked):
+            claimed=self.claim(generation=2)[0]
+            admitted=self.crawler._admit_provider_attempt(claimed)
+        self.assertEqual(checks,[True,True])
+        self.crawler._record_tracking_failure(admitted,'synthetic','synthetic')
+        for ident,row in self.sealed.items():self.assertEqual(self.row('tracking_provider_attempts',ident),row)
 
     def test_cas_preserves_failed_history_and_refuses_replay_wrong_identity_or_future_t0(self):
         for kwargs in ({"failed":str(uuid.uuid4())},{"anchor":datetime.now(timezone.utc)+timedelta(days=1)}):
@@ -592,7 +669,7 @@ class ObservationGenerationPostgresTests(unittest.TestCase):
         self.owner.execute("UPDATE tracked_notes SET observation_initial_snapshot=%s::jsonb WHERE id=%s",
                            (json.dumps(self.binding['initial_snapshot']),self.track))
         self.owner.execute("UPDATE tracking_provider_attempts SET error_code='changed_history' WHERE id=%s",(self.failed,))
-        with self.assertRaisesRegex(ValueError,'history changed'):self.crawler._admit_provider_attempt(note)
+        with self.assertRaisesRegex(ValueError,'history_changed'):self.crawler._admit_provider_attempt(note)
         self.assertEqual(self.owner.execute('SELECT count(*) FROM tracking_provider_attempts WHERE track_id=%s',
                                             (self.track,)).fetchone()[0],1)
         self.assertIsNone(self.row('tracked_notes',self.track)['active_attempt_id'])

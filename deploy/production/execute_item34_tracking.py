@@ -146,19 +146,11 @@ def _history_projection(row: Mapping[str, Any]) -> dict:
 def _observation_attempts(rows: list, track_id: str) -> list:
     binding=checkpoint.current_observation()
     if binding is None:return rows
-    prior=[row for row in rows if row.get('observation_generation')==0]
-    current=[row for row in rows if row.get('observation_generation')==binding['generation']]
-    if len(prior)!=1 or len(rows)!=len(current)+1:
+    if track_id!=binding['track_id']:_fail('observation_history')
+    try:
+        return checkpoint.tracking_contract.assert_observation_history(rows,binding)
+    except checkpoint.tracking_contract.TrackingContractError:
         _fail('observation_history')
-    old=_history_projection(prior[0])
-    if (old['id']!=binding['previous_attempt_id'] or old['track_id']!=track_id
-        or old['user_id']!=binding['owner_id'] or old['status']!='failed' or old['stage']!='24h'
-        or not old['error_code'] or old['error_code']=='provider_outcome_unknown'
-        or checkpoint._clock(old['completed_at'],'observation_history')>=
-           checkpoint._clock(binding['observation_started_at'],'observation_anchor')
-        or _sha256(_canonical_json(old))!=binding['previous_attempt_sha256']):
-        _fail('observation_history')
-    return current
 
 
 SESSION_BLOCK_ERROR_CODES = {

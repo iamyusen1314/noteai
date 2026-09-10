@@ -12,6 +12,7 @@ import json
 import getpass
 import os
 import re
+import warnings
 from pathlib import Path
 import sys
 from datetime import datetime, timezone
@@ -19,10 +20,6 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 MODEL = Path(__file__).resolve().parents[1] / "model"
 sys.path.insert(0, str(MODEL))
-
-import httpx
-import spider_xhs_http as xhs
-from security_redaction import sanitize_xhs_response_diagnostics, sanitize_xhs_http_event
 
 NOTE_URL = "https://www.xiaohongshu.com/explore/6a7954010000000026034707"
 ENDPOINT = "https://edith.xiaohongshu.com/api/sns/web/v1/feed"
@@ -32,6 +29,13 @@ REPAIR_JOURNAL = Path("/out/xhs-repair-batch.jsonl")
 
 class DiagnosticStop(RuntimeError):
     pass
+
+
+def private_input(prompt: str) -> str:
+    # A TTY may exist while echo control fails. Never use getpass's fallback.
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', getpass.GetPassWarning)
+        return getpass.getpass(prompt)
 
 
 def request_cookie_records(raw: str) -> list:
@@ -62,11 +66,11 @@ def stage_session() -> int:
     if path.exists() or path.is_symlink():
         raise DiagnosticStop("existing_session_candidate_readback_only")
     print("Paste complete Request Cookie from the existing owned-account browser. Input is hidden.", flush=True)
-    records = request_cookie_records(getpass.getpass("Request Cookie (hidden): "))
+    records = request_cookie_records(private_input("Request Cookie (hidden): "))
     # Optional state is not a prerequisite; blank means no added signing state.
     print("Optional existing webSsk JSON; press Enter if unavailable. Do not invent it.", flush=True)
-    raw_ssk = getpass.getpass("webSsk JSON (hidden, optional): ")
-    from spider_xhs_v5 import session_signing_storage
+    raw_ssk = private_input("webSsk JSON (hidden, optional): ")
+    from vendor.spider_xhs.v5.runtime import session_signing_storage
     storage = session_signing_storage(raw_ssk)
     rows = {"NOTEAI_XHS_COOKIES_JSON": records}
     if storage:
@@ -85,6 +89,21 @@ def stage_session() -> int:
     print(json.dumps({"status": "SESSION_CANDIDATE_STAGED_NOT_APPLIED", "cookie_count": len(records),
         "optional_signing_state_present": bool(storage), "xhs_requests": 0, "business_writes": 0}), flush=True)
     return 0
+
+
+# Hidden staging must not import the runtime DB facade: its legacy import path
+# initializes SQLite if DATABASE_URL is absent. This branch needs stdlib only.
+if __name__ == '__main__' and sys.argv[1:] == ['--stage-session']:
+    try:
+        stage_exit=stage_session()
+    except BaseException:
+        print('{"status":"SESSION_STAGING_STOPPED_RECONCILE_PRIVATE_CANDIDATE"}',flush=True)
+        sys.exit(2)
+    sys.exit(stage_exit)
+
+import httpx
+import spider_xhs_http as xhs
+from security_redaction import sanitize_xhs_response_diagnostics, sanitize_xhs_http_event
 
 
 def configure_readonly_database() -> None:

@@ -5,7 +5,6 @@ credential replacement, proxies, redirects or automatic retry. State is per task
 """
 from __future__ import annotations
 import json
-import base64
 import os
 import re
 import time
@@ -28,16 +27,9 @@ _DSL = re.compile(r"function\s+getdss\s*\(\s*\)\s*\{\s*return\s+['\"]([0-9]{13})
 
 def session_signing_storage(raw):
     """Accept only optional existing PC signing state, never synthesize it."""
-    if not raw:
-        return {}
     try:
-        value = json.loads(raw)
-        if (len(raw) > 4096 or not isinstance(value, dict) or set(value) != {"xhs-pc-web"}
-                or not isinstance(value["xhs-pc-web"], str)
-                or not 32 <= len(base64.b64decode(value["xhs-pc-web"], validate=True)) <= 1024):
-            raise ValueError()
-        return {"webSsk": value}
-    except (ValueError, TypeError):
+        return runtime.session_signing_storage(raw)
+    except RuntimeError:
         raise XHSAdapterError("invalid_session_signing_state") from None
 
 

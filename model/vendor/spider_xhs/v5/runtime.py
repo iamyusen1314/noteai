@@ -1,12 +1,30 @@
 """NoteAI stdin-only boundary for the pinned v5 pure signing algorithms."""
 from __future__ import annotations
 import hashlib
+import base64
 import json
 import os
 from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).parent
+
+
+def session_signing_storage(raw):
+    """Validate optional existing PC state without importing any database code."""
+    if not raw:
+        return {}
+    try:
+        if not isinstance(raw,str) or len(raw)>4096:
+            raise ValueError()
+        value=json.loads(raw)
+        if (not isinstance(value,dict) or set(value)!={'xhs-pc-web'}
+            or not isinstance(value['xhs-pc-web'],str)
+            or not 32<=len(base64.b64decode(value['xhs-pc-web'],validate=True))<=1024):
+            raise ValueError()
+        return {'webSsk':value}
+    except (ValueError,TypeError):
+        raise RuntimeError('invalid_session_signing_state') from None
 
 
 def verify_assets():

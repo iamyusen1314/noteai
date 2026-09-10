@@ -15,11 +15,17 @@ import json
 import re
 import sys
 import uuid
+from pathlib import Path
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
+MODEL = Path(__file__).resolve().parents[1] / 'model'
+if MODEL.is_dir() and str(MODEL) not in sys.path:
+    sys.path.insert(0,str(MODEL))
+import tracking_contract
 
 
 CANONICAL_NOTE_ID = "6a7954010000000026034707"
@@ -66,11 +72,12 @@ def observation_context(value: Mapping[str, Any] | None):
     binding = None
     if value is not None:
         value = _dict(value,"observation_binding")
-        _exact_keys(value,{"track_id","owner_id","generation","observation_started_at",
-                          "initial_snapshot","previous_attempt_id","previous_attempt_sha256"},"observation_binding")
+        keys={"track_id","owner_id","generation","observation_started_at",
+              "initial_snapshot","previous_attempt_id","previous_attempt_sha256"}
+        _exact_keys(value,keys|({'sealed_attempts'} if value.get('generation')==2 else set()),"observation_binding")
         for key in ("track_id","owner_id","previous_attempt_id"):
             _canonical_uuid(value[key],"observation_binding")
-        if type(value["generation"]) is not int or value["generation"] != 1:
+        if type(value["generation"]) is not int or value["generation"] not in {1,2}:
             raise Item34CheckpointError("observation_generation")
         anchor=_clock(value["observation_started_at"],"observation_anchor")
         if anchor <= _clock(CHECKPOINT_3D_DUE_AT,"observation_anchor"):
@@ -81,6 +88,10 @@ def observation_context(value: Mapping[str, Any] | None):
         for metric in metrics.values():
             if _nonnegative_int(metric,"observation_metrics") > 2147483647:
                 raise Item34CheckpointError("observation_metrics")
+        try:
+            tracking_contract.validate_observation_binding(dict(value))
+        except tracking_contract.TrackingContractError:
+            raise Item34CheckpointError('observation_binding') from None
         binding=json.loads(json.dumps(dict(value)))
         binding["observation_started_at"]=anchor.isoformat()
     token=_OBSERVATION.set(binding)

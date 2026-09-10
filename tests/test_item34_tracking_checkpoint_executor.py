@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import json
 import sys
 import traceback
 import unittest
@@ -1183,12 +1184,16 @@ class Item34Tracking3dCheckpointExecutorTests(unittest.TestCase):
         self.assertEqual(result["managed_transition"]["configuration_row_mutations"], 2)
 
 
-def prospective_binding():
-    return {'track_id':TRACK_ID,'owner_id':'00000000-0000-4000-8000-000000000001',
-            'generation':1,'observation_started_at':'2026-09-10T12:00:00+00:00',
+def prospective_binding(generation=1):
+    value={'track_id':TRACK_ID,'owner_id':'00000000-0000-4000-8000-000000000001',
+            'generation':generation,'observation_started_at':'2026-09-10T12:00:00+00:00',
             'initial_snapshot':{'likes':4,'saves':2,'comments':2},
             'previous_attempt_id':'00000000-0000-4000-8000-000000000002',
             'previous_attempt_sha256':'c'*64}
+    if generation==2:
+        value['sealed_attempts']=[{'generation':0,'attempt_id':'00000000-0000-4000-8000-000000000003','sha256':'d'*64},
+            {'generation':1,'attempt_id':value['previous_attempt_id'],'sha256':value['previous_attempt_sha256']}]
+    return value
 
 
 class ProspectiveObservationCheckpointTests(unittest.TestCase):
@@ -1242,6 +1247,18 @@ class ProspectiveObservationCheckpointTests(unittest.TestCase):
                     read_postflight=lambda:None,clock=lambda:NOW+self.delta)
         self.assertEqual(calls,[])
         self.assertIsNone(executor.current_observation())
+
+    def test_generation2_two_stages_and_complete_sealed_binding(self):
+        self.binding=prospective_binding(2)
+        self.test_two_stages_use_explicit_new_t0_and_leave_legacy_constants_unchanged()
+        for change in ('missing','duplicate','out_of_order','alias'):
+            binding=json.loads(json.dumps(self.binding))
+            if change=='missing':binding['sealed_attempts'].pop(0)
+            if change=='duplicate':binding['sealed_attempts'][0]['attempt_id']=binding['previous_attempt_id']
+            if change=='out_of_order':binding['sealed_attempts'].reverse()
+            if change=='alias':binding['previous_attempt_sha256']='e'*64
+            with self.assertRaises(executor.Item34CheckpointError):
+                with executor.observation_context(binding):pass
 
 
 if __name__ == "__main__":
