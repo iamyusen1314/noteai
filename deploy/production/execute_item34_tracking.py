@@ -32,8 +32,12 @@ ROOT = HERE.parents[1]
 TOOLS = ROOT / "tools"
 if TOOLS.is_dir() and str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
+MODEL = ROOT / "model"
+if MODEL.is_dir() and str(MODEL) not in sys.path:
+    sys.path.insert(0, str(MODEL))
 
 import execute_item34_tracking_checkpoint as checkpoint
+from security_redaction import sanitize_xhs_http_event
 
 
 IMAGE_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$")
@@ -230,7 +234,7 @@ def _json_line(raw: bytes, code: str) -> dict[str, Any]:
     return value
 
 
-def _worker_json_result(raw: bytes) -> dict[str, Any]:
+def _worker_json_result(raw: bytes, http_observations: list | None = None) -> dict[str, Any]:
     """Parse bounded crawler event objects followed by one worker result."""
     if not raw or len(raw) > MAX_OUTPUT_BYTES:
         _fail("worker_json")
@@ -246,7 +250,7 @@ def _worker_json_result(raw: bytes) -> dict[str, Any]:
             position += 1
         if position == len(text):
             break
-        if len(values) >= 8:
+        if len(values) >= 14:  # Existing seven crawler events + six HTTP events + result.
             _fail("worker_json")
         try:
             value, position = decoder.raw_decode(text, position)
@@ -263,13 +267,35 @@ def _worker_json_result(raw: bytes) -> dict[str, Any]:
     }
     if not values or not isinstance(values[-1], dict):
         _fail("worker_json")
+    observed, crawler_count, pending, sent = [], 0, None, 0
     for value in values[:-1]:
+        if isinstance(value, dict) and set(value) == {"xhs_http"}:
+            event = sanitize_xhs_http_event(value["xhs_http"])
+            if not event or event != value["xhs_http"]:
+                _fail("worker_json")
+            if event["phase"] == "dispatch":
+                if pending is not None or sent >= 3 or event["sequence"] != sent + 1:
+                    _fail("worker_json")
+                if event["request_kind"] != ("dsl", "session", "detail")[sent]:
+                    _fail("worker_json")
+                sent += 1
+                pending = (event["sequence"], event["request_kind"])
+            else:
+                if pending != (event["sequence"], event["request_kind"]):
+                    _fail("worker_json")
+                pending = None
+            observed.append(event)
+            continue
+        crawler_count += 1
         if (
             not isinstance(value, dict)
             or set(value) != {"crawler_event"}
             or not isinstance(value["crawler_event"], dict)
+            or crawler_count > 7
         ):
             _fail("worker_json")
+    if http_observations is not None:
+        http_observations.extend(observed)
     result = values[-1]
     if set(result) == expected_keys:
         return result
@@ -1116,7 +1142,8 @@ class HostAdapter:
             self.worker_name, timeout=150, provider=True,
             **({'image':self.image} if checkpoint.current_observation() is not None else {})
         )
-        result = _worker_json_result(raw)
+        http_observations: list = []
+        result = _worker_json_result(raw, http_observations)
         self.last_worker = {
             "run": {
                 "run_id": "",
@@ -1128,6 +1155,7 @@ class HostAdapter:
                 "failed": result["failed"],
             },
             "result": result,
+            "http_observations": http_observations,
         }
         return {
             "exit_code": exit_code,

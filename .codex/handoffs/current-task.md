@@ -57,6 +57,31 @@ No new real XHS requests yet; Readiness30/38. Current changes: adapter, v5 asset
 bridge/runtime, redaction, existing diagnostic, XHS-only curl dependency, tests and
 existing control/provenance documents. No owner technical decision is required.
 
+## September11 01:18 Beijing — final a4e5b93 diagnostic candidate built on API-F
+
+Code review fixed conflicting returned note IDs and curl_cffi environment-proxy
+inheritance; real localhost test sets both-case proxy variables and empty NO_PROXY.
+Final a4e5b93 passed24 tests in local Linuxamd64/Python3.11.15 candidate. API-F
+actually completed the reviewed source delta,13,155,862bytes fixed trusted wheels,
+and offline installation/build at2026-09-10T17:17:50.062430Z. Actual host image is
+`sha256:23f2d27cb364433cc17aba6cb130c3f094acde1627dc8a3d4f4b3d77f1db2383`,
+source `a4e5b93b0eaf3e785cfea58c8f39d6a50c5e5020`, amd64. This is a diagnostic
+candidate on the existing host, not yet a published/managed release. Final manifest
+SHA3f834d4d9c00c6fff36231428bbd8f02c8264683811c6efe95a91e69f7dafd0d,
+v5 adapterSHA6a1fa72f8a52042a72c83513f42b87b0ff26bc86f87200fa3d248c4744edcae2.
+Safe result is local prepare-progress-2-readback.txt; original prepare-result.json
+and prepare.log remain under the existing repair directory. No new XHS call yet;
+actual readonly runtime/safety preflight is now in progress.
+
+Independent Tracking preparation now parses six allowlisted physical HTTP events
+into existing worker_result journal metadata without altering business counters
+or adding database crawler_events. This closes the nine-output-object parser
+failure introduced by necessary initialization. Updated only the prospective
+wrapper source hash; sealed legacy hash remains unchanged.38 targeted wrapper/
+durable tests pass after the expected source-binding update; production wrapper
+is not deployed by this preparation. Host release bundle must carry the existing
+security_redaction module alongside wrapper/checkpoint. Readiness30/38 unchanged.
+
 ## September11 repair — candidate2a47477 verified locally; live batch not yet sent
 
 Recovered checkpoint2a47477 includes final observer-constructor wiring. Local

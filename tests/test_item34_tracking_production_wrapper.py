@@ -285,6 +285,26 @@ class Item34TrackingProductionWrapperTests(unittest.TestCase):
                     wrapper._worker_json_result(invalid)
                 self.assertEqual(raised.exception.code, "worker_json")
 
+    def test_worker_json_retains_bounded_physical_requests_without_changing_stats(self):
+        events = []
+        for sequence, kind in enumerate(("dsl", "session", "detail"), 1):
+            for phase in ("dispatch", "response"):
+                event = {"phase": phase, "request_kind": kind, "sequence": sequence,
+                         "at": "2026-09-11T01:02:03+00:00"}
+                if phase == "response":
+                    event["response_diagnostics"] = {"http_status": 200}
+                events.append({"xhs_http": event})
+        stats = {"claimed": 1, "attempted": 1, "collected": 1, "failed": 0, "released": 0, "total": 1}
+        values = [*events, {"crawler_event": {"action": "round_complete"}}, stats]
+        raw = b"\n".join(wrapper._canonical_json(value) for value in values)
+        observed = []
+        self.assertEqual(wrapper._worker_json_result(raw, observed), stats)
+        self.assertEqual(observed, [e["xhs_http"] for e in events])
+        for corrupted in (events[1:] + [stats], [events[0], events[0], stats],
+                          [{"xhs_http": {**events[0]["xhs_http"], "cookie": "PRIVATE"}}, stats]):
+            with self.assertRaises(wrapper.ProductionAdapterError):
+                wrapper._worker_json_result(b"\n".join(wrapper._canonical_json(v) for v in corrupted))
+
     def test_worker_json_normalizes_only_known_zero_call_outcomes(self):
         expected = {
             "claimed": 0,

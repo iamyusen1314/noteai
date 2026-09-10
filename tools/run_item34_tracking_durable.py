@@ -25,7 +25,7 @@ import execute_item34_tracking_checkpoint as checkpoint
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = ROOT / "deploy/production/execute_item34_tracking.py"
 WRAPPER_SHA256 = "3d9e65c4535226a0a7d4c499558bff1d19ed69ebbbcf647a657700aff8c85e8a"
-PROSPECTIVE_WRAPPER_SHA256 = "7f3eb11f3378369431161c7d54e319da4505ad67e3a5e550efc3f8625e6bd42e"
+PROSPECTIVE_WRAPPER_SHA256 = "2c53f20da263aa74a049a1a33e442675922587caef74f8086e63e17ae446583b"
 
 
 class Journal:
