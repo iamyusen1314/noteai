@@ -27,8 +27,14 @@ Cookie/Token/signature/user content is retained. Owned note identity and numeric
 metrics must be verified for a repair success; it is still not a snapshot.
 
 This is a coupled compatibility experiment, not a proved explanation of historical
-code-3. 22 targeted Python3.11.14 offline tests pass; real candidate validation and
-live results remain pending. Historical facts below are unchanged.
+code-3. Actual API-F a4e5b93 batch01 completed DSL200 then user/me200/code-3,
+without detail. Three pure upstream differentials match the default wire assembly.
+Actual runtime contains only a1/web_session; the full Request Cookie import
+preserves additional lawful context. Optional existing webSsk now reaches signer
+stdin and x6/x7; no value is manufactured.26 Python3.11.14 tests pass. The hidden
+--stage-session action writes a separate0600 task candidate only; no managed
+configuration/network/DB change. Real session repair remains UNPROVEN.
+Historical facts below are unchanged.
 
 ## September11 generation1 failure: upstream comparison
 

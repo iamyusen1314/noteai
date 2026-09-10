@@ -1,4 +1,5 @@
 import json
+import io
 import os
 from pathlib import Path
 import sys
@@ -40,6 +41,34 @@ class ResponseDiagnosticTests(unittest.TestCase):
             credentials=xhs.SessionCredentials.from_records([
                 {"name": "a1", "value": "FAKE_A1"}, {"name": "web_session", "value": "FAKE_SESSION"},
             ]))
+
+    def test_complete_request_cookie_staging_is_private_and_does_not_apply(self):
+        cookie = "Cookie: a1=FAKE_A1; web_session=FAKE_SESSION==; gid=FAKE_GID; webBuild=6.47.2; custom=FAKE_CONTEXT"
+        rows = diagnostic.request_cookie_records(cookie)
+        self.assertEqual([r["name"] for r in rows], ["a1", "web_session", "gid", "webBuild", "custom"])
+        self.assertEqual(rows[1]["value"], "FAKE_SESSION==")
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "session-candidate.env"
+            output = io.StringIO()
+            with mock.patch.object(diagnostic, "Path", return_value=path), \
+                 mock.patch.object(diagnostic.os, "geteuid", return_value=0), \
+                 mock.patch.object(sys.stdin, "isatty", return_value=True), \
+                 mock.patch.object(sys.stderr, "isatty", return_value=True), \
+                 mock.patch.object(diagnostic.getpass, "getpass", side_effect=[cookie, ""]) as prompt, \
+                 mock.patch.object(sys, "stdout", output), \
+                 mock.patch.object(diagnostic, "readonly_safety") as db_read:
+                self.assertEqual(diagnostic.stage_session(), 0)
+                with self.assertRaisesRegex(diagnostic.DiagnosticStop, "existing_session_candidate"):
+                    diagnostic.stage_session()
+                db_read.assert_not_called()
+                self.assertEqual(prompt.call_count, 2)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(json.loads(path.read_text().split("=", 1)[1]), rows)
+            self.assertNotIn("FAKE", output.getvalue())
+            self.assertEqual(list(Path(folder).iterdir()), [path])
+        for raw in ("a1=FAKE", "a1=FAKE; web_session=FAKE\nBAD=VALUE", "a1=FAKE; a1=FAKE2; web_session=FAKE"):
+            with self.assertRaises(diagnostic.DiagnosticStop):
+                diagnostic.request_cookie_records(raw)
 
     def execute(self, handler, *, safety=lambda: {"session_blocked": False}):
         def send(request):

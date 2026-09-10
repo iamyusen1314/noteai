@@ -13,6 +13,18 @@
   no-replay after UNKNOWN. Do not import upstream credential argv or open-ended
   retry behavior. New real T0 only after verified read path/controlled rollout.
 
+## Current session repair finding
+
+- Actual batch01 a4e5b93 DSL200 then user/me200/business-3; no detail dispatched.
+  This locates a session API rejection without proving expiry/signature root cause.
+- Host raw/effective Cookie counts2; other known context fields absent. Runtime
+  does not trim by name; successful injection source is unlocated. Existing browser
+  tool cannot safely export full HttpOnly request context. Do not read browser files
+  or invent gid/state to work around it.
+- Complete Request Cookie hidden staging and optional webSsk are locally tested;
+  their real use still needs lawful browser context. Keep original managed env,
+  Trends, oldattempts/T0/0020 and snapshots untouched until controlled verified rollout.
+
 ## September11 — separate bounded generation1 error diagnosis
 
 - Completed extra diagnostic1/1 atSeptember11 00:13:35 Beijing: HTTP200,

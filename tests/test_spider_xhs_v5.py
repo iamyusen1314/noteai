@@ -1,4 +1,5 @@
 import json
+import base64
 import os
 from pathlib import Path
 import sys
@@ -141,6 +142,21 @@ class V5ReadTests(unittest.TestCase):
             runtime.sign(profile, v5.SESSION_API, "", "1789010000000")
         payload = invoke.call_args.args[0]["payload"]
         self.assertEqual(payload["dslPair"], str(payload["now"]) + ";1789010000000")
+
+    def test_existing_optional_signing_state_reaches_real_node_envelope(self):
+        raw = json.dumps({"xhs-pc-web": base64.b64encode(b"FAKE_TEST_STATE_" * 3).decode()})
+        alphabet = "ZmserbBoHQtNP+wOcza/LpngG8yJq42KWYj0DSfdikx3VT16IlUAFM97hECvuRX5"
+        standard = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        for supplied in ("", raw):
+            profile = PcDeviceProfile(cookies=self.credentials().cookie_header,
+                local_storage=v5.session_signing_storage(supplied))
+            signed, _ = runtime.sign(profile, v5.SESSION_API, "", "1789010000000")
+            envelope = json.loads(base64.b64decode(signed["xs"][4:].translate(str.maketrans(alphabet, standard))))
+            self.assertEqual("x6" in envelope, bool(supplied))
+            self.assertEqual("x7" in envelope, bool(supplied))
+        for invalid in ('{"ugc":"fake"}', '{"xhs-pc-web":"bad"}', '[]', 'FAKE_PRIVATE'):
+            with self.assertRaisesRegex(legacy.XHSAdapterError, "invalid_session_signing_state"):
+                v5.session_signing_storage(invalid)
 
     def test_curl_transport_is_bounded_and_disables_redirect_proxy_environment(self):
         from curl_cffi.curl import CURL_WRITEFUNC_ERROR

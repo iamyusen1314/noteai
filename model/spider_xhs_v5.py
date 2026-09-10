@@ -5,6 +5,8 @@ credential replacement, proxies, redirects or automatic retry. State is per task
 """
 from __future__ import annotations
 import json
+import base64
+import os
 import re
 import time
 from datetime import datetime, timezone
@@ -22,6 +24,21 @@ DETAIL_API = "/api/sns/web/v1/feed"
 BASE = "https://edith.xiaohongshu.com"
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _DSL = re.compile(r"function\s+getdss\s*\(\s*\)\s*\{\s*return\s+['\"]([0-9]{13})['\"]")
+
+
+def session_signing_storage(raw):
+    """Accept only optional existing PC signing state, never synthesize it."""
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+        if (len(raw) > 4096 or not isinstance(value, dict) or set(value) != {"xhs-pc-web"}
+                or not isinstance(value["xhs-pc-web"], str)
+                or not 32 <= len(base64.b64decode(value["xhs-pc-web"], validate=True)) <= 1024):
+            raise ValueError()
+        return {"webSsk": value}
+    except (ValueError, TypeError):
+        raise XHSAdapterError("invalid_session_signing_state") from None
 
 
 class CurlClient:
@@ -54,7 +71,8 @@ class CurlClient:
 class V5Detail:
     def __init__(self, *, credentials, assert_ready, client=None, observe=None):
         runtime.verify_assets()
-        self.profile = PcDeviceProfile(cookies=credentials.cookie_header)
+        self.profile = PcDeviceProfile(cookies=credentials.cookie_header,
+            local_storage=session_signing_storage(os.environ.get("NOTEAI_XHS_WEB_SSK_JSON", "")))
         self.credentials = credentials
         self.assert_ready = assert_ready
         self.client = client

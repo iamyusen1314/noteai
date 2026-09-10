@@ -14,7 +14,7 @@ Do not replay oldwindows/T0/attempts/0020 or rewrite old evidence/call counts.
 
 Cumulative incremental runtime budget for this repair is RMB100, persistent across
 versions/checkpoints/sessions. Prior diagnostic admission1 and generation1 failed
-admission1 remain historical facts, with prior cost UNKNOWN_NOT_ZERO. No post-authorization cloud action yet. Reserve RMB10 conservatively for prior
+admission1 remain historical facts, with prior cost UNKNOWN_NOT_ZERO. Batch01 completed as recorded below. Reserve RMB10 conservatively for prior
 uncertain attributable incremental fees (not a statement of the billed amount);
 keep all repair spending under the SAME RMB100 total. First finite batch reserves
 RMB1 for at most3 HTTP requests (2MiB response cap each), small source transfer and
@@ -41,21 +41,41 @@ global automations remain PAUSED. Start fresh observation scheduling only after
 the corrected read path and controlled rollout are verified. Readiness30/38 until
 the approved complete business DoD is genuinely met.
 
-Current implementation: explicit Tracking opt-in pc_v5 integrates the pinned
-v5.0.0/7077c88 complete read-signing dependency set. First experiment is DSL GET,
-existing Cookie user/me GET, fixed owned-note feed POST, each once; stop on earlier
-failure, no redirect/retry/login/profile/account creation. Existing diagnostic
-entry --repair-v5 uses a NEW exclusive task journal, fsync before every physical
-request, readonly PG safety before each send, and no worker/business DML. Original
-one-shot mode/journal stays sealed. 23 focused Python3.11.14 tests passed, including
-real Node signing, local curl response-cap/redirect behavior, old-cookie DSL time
-refresh, required web_session, UNKNOWN and journal no-replay. Target image build/
-Python3.11.15 + linux/amd64 verification and first live batch are IN_PROGRESS.
-Review additionally caught and fixed the adapter constructor observer binding;
-actual adapter integration regression now proves durable dispatch wiring before HTTP.
-No new real XHS requests yet; Readiness30/38. Current changes: adapter, v5 assets/
-bridge/runtime, redaction, existing diagnostic, XHS-only curl dependency, tests and
-existing control/provenance documents. No owner technical decision is required.
+Current implementation: explicit Tracking opt-in pc_v5 integrates pinned
+v5.0.0/7077c88. Actual a4e5b93 candidate is built/checked on API-F; batch01 was
+DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
+matches full upstream under three socket-denied synthetic differential cases.
+No read success/newT0/managed release is claimed. Readiness30/38.
+
+## September11 01:37 Beijing — actual session context and safe input repair
+
+API-F network=none inspection at2026-09-10T17:37:12.758463Z confirmed raw2/effective2
+Cookie records (a1/web_session); gid/loadts/ets/webBuild/acw_tc/webId/websectiga/
+sec_poison_id absent. Only fixed field-presence booleans/counts were returned;
+no value/hash/connection string was exposed. Original injection Evidence also
+records2. Runtime preserves all suitable records, so the clipping origin is
+UNLOCATED. Missing full request context is a hypothesis, not proven code-3 cause.
+Local original readback: Downloads/noteai-xhs-repair-20260911/session-context-inspect-readback.txt.
+
+Existing Chrome owned-account page remains open; its cached navigation and17
+retained console entries prove no fresh session success or specific restriction.
+Available browser capabilities cannot safely export full HttpOnly Cookie/storage;
+do not bypass this via browser files/hidden runtime/CDP. No new XHS call occurred.
+
+Minimal code now supports full Request Cookie conversion via existing diagnostic
+--stage-session: root TTY hidden input, optional existing webSsk, exclusive0600
+/out/session-candidate.env, fsync, no DB/network/managed-file overwrite. It is
+Tracking-only; do not alter Trends or sealed Item32's two-cookie package. Optional
+webSsk previously dropped at the stdin bridge is now preserved through the actual
+upstream signer; real Node test proves x6/x7 when supplied and absence otherwise.
+Its presence/necessity in the real browser is still UNPROVEN; never fabricate it.
+26 targeted Python3.11.14 tests passed including secret-free staging/no overwrite,
+complete field/order preservation and prior transport/durable regressions.
+Next: verify isolated host hidden-input entry; obtain complete existing lawful
+request context if human export is necessary. Meanwhile implement existing
+binding/history checks for authorized same-object generation2 recovery locally;
+do not create realT0 before verified read and controlled rollout.
+Budget remains same11/100 conservative reserved; actual billing UNKNOWN_NOT_ZERO.
 
 ## September11 01:19 Beijing — repair batch01 received session rejection; continue diagnosis
 

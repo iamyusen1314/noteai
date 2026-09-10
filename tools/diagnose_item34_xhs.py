@@ -9,7 +9,9 @@ An existing journal (including a partial one) permits readback only.
 from __future__ import annotations
 
 import json
+import getpass
 import os
+import re
 from pathlib import Path
 import sys
 from datetime import datetime, timezone
@@ -30,6 +32,59 @@ REPAIR_JOURNAL = Path("/out/xhs-repair-batch.jsonl")
 
 class DiagnosticStop(RuntimeError):
     pass
+
+
+def request_cookie_records(raw: str) -> list:
+    """Convert an owner's complete Request Cookie without discarding context."""
+    if not isinstance(raw, str) or not raw or len(raw) > 32768 or any(
+            ord(char) < 32 or ord(char) > 126 for char in raw):
+        raise DiagnosticStop("request_cookie_invalid")
+    if raw.lower().startswith("cookie:"):
+        raw = raw.split(":", 1)[1].strip()
+    records, names = [], set()
+    for pair in raw.split(";"):
+        name, separator, value = pair.strip().partition("=")
+        if (not separator or not value or name in names
+                or not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name)):
+            raise DiagnosticStop("request_cookie_invalid")
+        names.add(name)
+        records.append({"name": name, "value": value, "domain": ".xiaohongshu.com"})
+    if not {"a1", "web_session"}.issubset(names):
+        raise DiagnosticStop("request_cookie_auth_missing")
+    return records
+
+
+def stage_session() -> int:
+    """TTY-only task candidate; leave managed env, history and DB untouched."""
+    if not sys.stdin.isatty() or not sys.stderr.isatty() or os.geteuid() != 0:
+        raise DiagnosticStop("private_root_terminal_required")
+    path = Path("/out/session-candidate.env")
+    if path.exists() or path.is_symlink():
+        raise DiagnosticStop("existing_session_candidate_readback_only")
+    print("Paste complete Request Cookie from the existing owned-account browser. Input is hidden.", flush=True)
+    records = request_cookie_records(getpass.getpass("Request Cookie (hidden): "))
+    # Optional state is not a prerequisite; blank means no added signing state.
+    print("Optional existing webSsk JSON; press Enter if unavailable. Do not invent it.", flush=True)
+    raw_ssk = getpass.getpass("webSsk JSON (hidden, optional): ")
+    from spider_xhs_v5 import session_signing_storage
+    storage = session_signing_storage(raw_ssk)
+    rows = {"NOTEAI_XHS_COOKIES_JSON": records}
+    if storage:
+        rows["NOTEAI_XHS_WEB_SSK_JSON"] = storage["webSsk"]
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "w") as handle:
+        for name, value in rows.items():
+            handle.write(name + "=" + json.dumps(value, ensure_ascii=True, separators=(",", ":")) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+    print(json.dumps({"status": "SESSION_CANDIDATE_STAGED_NOT_APPLIED", "cookie_count": len(records),
+        "optional_signing_state_present": bool(storage), "xhs_requests": 0, "business_writes": 0}), flush=True)
+    return 0
 
 
 def configure_readonly_database() -> None:
@@ -215,6 +270,8 @@ def run_repair(append, *, adapter_factory=xhs.SpiderXHSHTTPAdapter, safety=reado
 
 
 def main() -> int:
+    if sys.argv[1:] == ["--stage-session"]:
+        return stage_session()
     repair = sys.argv[1:] == ["--repair-v5"]
     if sys.argv[1:] and not repair:
         raise DiagnosticStop("unsupported_mode")

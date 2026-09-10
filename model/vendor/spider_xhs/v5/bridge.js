@@ -14,7 +14,7 @@ try {
   } else if (input.operation === 'sign') {
     const p = input.payload;
     const keys = new Set(['api','data','a1','cookie','b1','dslPair','tier','now','version',
-      'loadts','seq','envConst','envFpTail','webBuild','signVersion','appId','platform']);
+      'loadts','seq','envConst','envFpTail','webBuild','signVersion','appId','platform','webSsk']);
     if (Object.keys(p).some(k => !keys.has(k)) || p.appId !== 'xhs-pc-web' ||
         !['0101','0301'].includes(p.tier) || ![
           '/api/sns/web/v2/user/me', '/api/sns/web/v1/feed'

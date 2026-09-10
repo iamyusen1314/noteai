@@ -50,6 +50,8 @@ def sign(profile, api, data, dsl):
     payload.update({"api": api, "data": data, "a1": profile.cookie_map["a1"],
                     "cookie": profile.document_cookie, "b1": profile.current_b1(context["now"]),
                     "dslPair": profile.dsl_pair(dsl, timestamp_ms=context["now"])})
+    if "webSsk" in context:
+        payload["webSsk"] = context["webSsk"]
     result = invoke({"operation": "sign", "payload": payload})
     required = {"xs", "xt", "xs_common"}
     if api.endswith("/feed"):
