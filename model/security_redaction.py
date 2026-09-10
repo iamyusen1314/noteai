@@ -226,6 +226,27 @@ def sanitize_xhs_response_diagnostics(value: Any) -> dict[str, Any]:
     return result
 
 
+def sanitize_xhs_http_event(value: Any) -> dict[str, Any]:
+    """Strict fixed projection for physical HTTP observations, never raw headers."""
+    if not isinstance(value, dict):
+        return {}
+    phase, kind, sequence, at = (value.get(k) for k in ("phase", "request_kind", "sequence", "at"))
+    if phase not in {"dispatch", "response", "unknown"} or kind not in {"dsl", "session", "detail"}:
+        return {}
+    if type(sequence) is not int or not 1 <= sequence <= 3:
+        return {}
+    if not isinstance(at, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+\+00:00", at):
+        return {}
+    result = {"phase": phase, "request_kind": kind, "sequence": sequence, "at": at}
+    for key in ("request_body_bytes", "response_bytes"):
+        item = value.get(key)
+        if type(item) is int and 0 <= item <= 2 * 1024 * 1024:
+            result[key] = item
+    if phase == "response":
+        result["response_diagnostics"] = sanitize_xhs_response_diagnostics(value.get("response_diagnostics"))
+    return result
+
+
 def safe_failure_event(
     event_code: str,
     exc: BaseException | None = None,

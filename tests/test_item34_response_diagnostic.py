@@ -135,11 +135,44 @@ class ResponseDiagnosticTests(unittest.TestCase):
             path = Path(root) / "result.jsonl"
             path.write_text('{"event":"dispatch_intent"')
             with mock.patch.object(diagnostic, "JOURNAL", path), mock.patch.object(
-                diagnostic, "configure_readonly_database") as configure:
+                diagnostic, "configure_readonly_database") as configure, mock.patch.object(sys, "argv", ["diagnose"]):
                 with self.assertRaises(FileExistsError):
                     diagnostic.main()
                 configure.assert_not_called()
             self.assertEqual(path.read_text(), '{"event":"dispatch_intent"')
+
+    def test_repair_records_initialization_separately_and_unknown_never_retries(self):
+        os.environ["NOTEAI_XHS_PROTOCOL"] = "pc_v5"
+        def factory(*, http_observer):
+            adapter = mock.Mock(last_response_diagnostics={}, last_owned_metrics=None)
+            def read(url):
+                self.assertEqual(url, diagnostic.NOTE_URL)
+                for phase in ("dispatch", "unknown"):
+                    http_observer({"phase": phase, "request_kind": "dsl", "sequence": 1,
+                                   "at": "2026-09-11T01:02:03.000000+00:00"})
+                raise xhs.XHSAdapterError("network_error")
+            adapter.note_detail.side_effect = read
+            return adapter
+        result = diagnostic.run_repair(self.records.append, adapter_factory=factory, safety=lambda: {})
+        self.assertEqual(result["outcome"], "UNKNOWN")
+        self.assertEqual(result["physical_http_requests"], 1)
+        self.assertEqual(result["initialization_requests"], 1)
+        self.assertEqual(result["provider_detail_admissions"], 0)
+        self.assertEqual(result["automatic_retries"], 0)
+
+    def test_repair_refuses_existing_journal_and_unprojected_private_metadata(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "repair.jsonl"
+            path.write_text('partial')
+            with mock.patch.object(diagnostic, "REPAIR_JOURNAL", path), mock.patch.object(
+                sys, "argv", ["diagnose", "--repair-v5"]), mock.patch.object(diagnostic, "run_repair") as run:
+                with self.assertRaises(FileExistsError):
+                    diagnostic.main()
+                run.assert_not_called()
+        value = {"phase": "response", "request_kind": "session", "sequence": 2,
+                 "at": "2026-09-11T01:02:03+00:00", "Cookie": "FAKE_SECRET",
+                 "response_diagnostics": {"http_status": 200, "body": "FAKE_PRIVATE"}}
+        self.assertNotIn("FAKE", json.dumps(redaction.sanitize_xhs_http_event(value)))
 
     def test_readonly_configuration_preserves_pg_routing_and_dsn_options(self):
         import db

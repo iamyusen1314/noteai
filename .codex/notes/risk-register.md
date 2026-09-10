@@ -1,5 +1,18 @@
 # Risk Register
 
+## Current — September11 full engineering repair authorization
+
+- Earlier one-request and author-reply-only restrictions are superseded for new
+  XHS repair work; historical usage/failures remain unchanged. Upstream signing
+  compatibility is a valid hypothesis to test before final root cause proof.
+- Cumulative new runtime budget RMB100 across the task; old uncertain costs stay
+  uncertain. Bound existing transfer/storage/request rates and finite batch sizes;
+  no new subscriptions/long-lived resources or unrelated authority expansion.
+- Necessary initialization must be distinguished from retries/unrelated calls.
+  Preserve actual access/safety stops, safe credentials, durable results and
+  no-replay after UNKNOWN. Do not import upstream credential argv or open-ended
+  retry behavior. New real T0 only after verified read path/controlled rollout.
+
 ## September11 — separate bounded generation1 error diagnosis
 
 - Completed extra diagnostic1/1 atSeptember11 00:13:35 Beijing: HTTP200,

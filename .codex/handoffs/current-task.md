@@ -1,5 +1,60 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current control — September11 2026 full XHS repair and Item34 recovery authorization
+
+Owner explicitly replaces the earlier one-extra-request and per-step approval
+limits with end-to-end engineering authorization. Continue actual20f82b7 and its
+successors. CTO owns technical choices, necessary upstream adaptation/dependencies,
+isolated tests/builds, finite hypothesis-driven real initialization/read batches,
+XHS candidate publish on existing resources, controlled Tracking rollout,
+verification and rollback. After the real read path is proven, the original
+owner-owned note may receive a NEW real observation anchor and24h/3d continuation
+within existing Item34 DoD, without another approval of the same technical flow.
+Do not replay oldwindows/T0/attempts/0020 or rewrite old evidence/call counts.
+
+Cumulative incremental runtime budget for this repair is RMB100, persistent across
+versions/checkpoints/sessions. Prior diagnostic admission1 and generation1 failed
+admission1 remain historical facts, with prior cost UNKNOWN_NOT_ZERO. No post-authorization cloud action yet. Reserve RMB10 conservatively for prior
+uncertain attributable incremental fees (not a statement of the billed amount);
+keep all repair spending under the SAME RMB100 total. First finite batch reserves
+RMB1 for at most3 HTTP requests (2MiB response cap each), small source transfer and
+trusted dependency download capped100MiB. Existing ECS/prepaid resources only.
+Catalog conservative traffic rates: NAT Shenzhen0.23/GiB processed plus CDT
+mainland0.80/GB outbound; do not assume free allowances. The RMB1 reserve exceeds
+the bounded100MiB traffic estimate; actual incremental cost remains UNKNOWN_NOT_ZERO
+until billed. Reconcile/reserve before every further batch or artifact publish.
+Use paid resources first; no new subscription/long-lived paid resource, account
+permission expansion, commercial license, payment, publicDNS/traffic cutover or
+irreversible deletion is included. Existing safe credentials may be used normally;
+CAPTCHA/MFA/access restriction is never bypassed. Only unavoidable human security
+interaction or remaining business decisions return to owner; continue independent
+authorized work when one path is blocked. No Gitpush; protected seven paths untouched.
+
+Current scheduling: finite experiments must test a specific changed hypothesis,
+record all real calls including necessary initialization, and reconcile UNKNOWN
+before any new action. No endless identical failure, automatic auth/account/proxy
+rotation or fabricated success. Old one-shot diagnostic journal stays consumed;
+use existing durable execution/recording mechanisms for current authorized work.
+All dated sections below are retained history; their spent-quota/external-author
+reply requirements do not schedule or block the current repair. Other Items and
+global automations remain PAUSED. Start fresh observation scheduling only after
+the corrected read path and controlled rollout are verified. Readiness30/38 until
+the approved complete business DoD is genuinely met.
+
+Current implementation: explicit Tracking opt-in pc_v5 integrates the pinned
+v5.0.0/7077c88 complete read-signing dependency set. First experiment is DSL GET,
+existing Cookie user/me GET, fixed owned-note feed POST, each once; stop on earlier
+failure, no redirect/retry/login/profile/account creation. Existing diagnostic
+entry --repair-v5 uses a NEW exclusive task journal, fsync before every physical
+request, readonly PG safety before each send, and no worker/business DML. Original
+one-shot mode/journal stays sealed. 22 focused Python3.11.14 tests passed, including
+real Node signing, local curl response-cap/redirect behavior, old-cookie DSL time
+refresh, required web_session, UNKNOWN and journal no-replay. Target image build/
+Python3.11.15 + linux/amd64 verification and first live batch are IN_PROGRESS.
+No new real XHS requests yet; Readiness30/38. Current changes: adapter, v5 assets/
+bridge/runtime, redaction, existing diagnostic, XHS-only curl dependency, tests and
+existing control/provenance documents. No owner technical decision is required.
+
 ## September11 00:16 Beijing — single diagnostic completed: HTTP200 / businesscode -3
 
 Continue21d533c and its final-result documentation descendant. The separately

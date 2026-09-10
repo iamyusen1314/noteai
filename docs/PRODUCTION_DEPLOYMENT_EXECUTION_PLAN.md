@@ -1,5 +1,20 @@
 # NoteAI Production Deployment Execution Plan
 
+## Current execution — owner full-task authorization, September11 2026
+
+The current control is the top of `.codex/handoffs/current-task.md`, linked by
+AGENTS.md. Earlier per-request/exhausted-quota and author-reply prerequisites below
+are retained completed-job history and no longer restrict new authorized repair.
+CTO may select and adapt needed upstream updates, perform finite hypothesis-driven
+initialization/read tests on the original owned note, build/publish XHS candidates,
+update/verify/rollback Tracking on existing resources, then establish a new real
+observation and schedule24h/3d under unchanged business DoD. Cumulative incremental
+runtime ceiling RMB100; track actual calls/cost across checkpoints, no reset.
+Preserve old failed jobs/anchors/attempts/migration/Evidence; UNKNOWN gets reconcile,
+not replay. No unrelated production/permissions/commercial/traffic authorization.
+Use existing durable launcher/records; no new validation hierarchy. Existing
+one-shot diagnostic remains consumed and must never be invoked again.
+
 ## September11 — separately approved one-request error diagnostic (completed)
 
 **Final: extra allowance1/1 consumed; HTTP200/successfalse/businesscode-3,

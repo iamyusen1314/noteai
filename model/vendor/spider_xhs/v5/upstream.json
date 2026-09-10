@@ -1,0 +1,62 @@
+{
+  "repository": "https://github.com/cv-cat/Spider_XHS",
+  "commit": "7077c88f82771f547cc1afdadaec4025be2355e6",
+  "files": {
+    "state.py": {
+      "upstream_path": "xhs_utils/xhs_pc/state.py",
+      "sha256": "34c944fa9f1d56931b9b02e14ec306b75b7c4e4c43bbd688eab008dcbb5d4ea1"
+    },
+    "js/reference_profile.json": {
+      "upstream_path": "xhs_utils/xhs_pc/js/reference_profile.json",
+      "sha256": "0dff04b7834d70f08a03e3c756bc4d1eb6e86f02ff2ec1cc5d0f618aceedc3dd"
+    },
+    "js/core/sign.js": {
+      "upstream_path": "xhs_utils/xhs_core/js/sign.js",
+      "sha256": "05806abbdbb36a6c39dff7bf543e1f71baf46f36c3c8d45d5bb084a96960f370"
+    },
+    "js/core/mns.js": {
+      "upstream_path": "xhs_utils/xhs_core/js/mns.js",
+      "sha256": "b4971e235a6410138fff843b83b7241c9fdc83ec5b68d97869bd64b2a41a831e"
+    },
+    "js/core/xs_common.js": {
+      "upstream_path": "xhs_utils/xhs_core/js/xs_common.js",
+      "sha256": "1a09ea330e3a1c1ae29b890adde62decb7e5d38dc957754a6813e2af9993a521"
+    },
+    "js/core/b1.js": {
+      "upstream_path": "xhs_utils/xhs_core/js/b1.js",
+      "sha256": "fbbe2830ebe6392938cbb3f779ff073066b49b8bc3fe07647efcc6dd46c00fe1"
+    },
+    "js/core/mns_keystreams.json": {
+      "upstream_path": "xhs_utils/xhs_core/js/mns_keystreams.json",
+      "sha256": "b3b5d635c03429990cb4ebbe9a1515253c255261939c476c87f1e3d2455aace4"
+    },
+    "js/core/mns_0101_keystream.json": {
+      "upstream_path": "xhs_utils/xhs_core/js/mns_0101_keystream.json",
+      "sha256": "178d780acdbe9e96f5dd4b7c7e54ca79aab40c49b65600ee7aa69a6a19de87d3"
+    },
+    "js/pc/rap.js": {
+      "upstream_path": "xhs_utils/xhs_pc/js/rap.js",
+      "sha256": "d4cd78d047f8397886bc6f7c7e1b9efa4ada0ef5e7052f1d2c717bf2ef59ed11"
+    },
+    "js/pc/rap_crypto.js": {
+      "upstream_path": "xhs_utils/xhs_pc/js/rap_crypto.js",
+      "sha256": "491c9e5ab7c5efb912417fee223490506f18f75d6e3973ce022580b819afef4a"
+    },
+    "js/pc/aes_encrypt.js": {
+      "upstream_path": "xhs_utils/xhs_pc/js/aes_encrypt.js",
+      "sha256": "78b209756837a2f963ac489e787c97cbefa6bfed5e31d4605b6f58715b5ec922"
+    },
+    "js/pc/aes_decrypt.js": {
+      "upstream_path": "xhs_utils/xhs_pc/js/aes_decrypt.js",
+      "sha256": "16b5febcfb2882c5d5671072fd9afb01c753975bcddbea2e1c041ff83a22fa66"
+    },
+    "js/pc/deflate.js": {
+      "upstream_path": "xhs_utils/xhs_pc/js/deflate.js",
+      "sha256": "be39291d1608213c537b2ffbaff15711ed5be81a439a7b71921126ff4f607d60"
+    },
+    "js/pc/rap_fingerprint_template.json": {
+      "upstream_path": "xhs_utils/xhs_pc/js/rap_fingerprint_template.json",
+      "sha256": "9e269794ee294116b3750291a90ac6945e507060a45347f3507bc9bdd3fe6142"
+    }
+  }
+}

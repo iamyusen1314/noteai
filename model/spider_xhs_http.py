@@ -368,6 +368,8 @@ class SpiderXHSHTTPAdapter:
         self._client = client
         self.timeout = min(max(float(timeout), 1.0), 30.0)
         self.last_response_diagnostics: dict[str, Any] = {}
+        self.http_observer = None
+        self.last_owned_metrics = None
 
     def session_health(self) -> dict[str, Any]:
         return self.credentials.public_health()
@@ -638,6 +640,17 @@ class SpiderXHSHTTPAdapter:
             "xsec_source": xsec_source,
             "xsec_token": xsec_token,
         }
+        if os.environ.get("NOTEAI_XHS_PROTOCOL", "") == "pc_v5":
+            if os.environ.get("NOTEAI_XHS_SERVICE", "") != "tracking":
+                raise XHSAdapterError("runtime_role_not_allowed")
+            from spider_xhs_v5 import V5Detail
+            reader = V5Detail(credentials=self.credentials, assert_ready=self._assert_ready,
+                              client=self._client, observe=self.http_observer)
+            try:
+                return reader.read(data)
+            finally:
+                self.last_response_diagnostics = reader.last_response_diagnostics
+                self.last_owned_metrics = reader.last_owned_metrics
         return self._request("POST", "/api/sns/web/v1/feed", data=data, needs_rap=True)
 
 

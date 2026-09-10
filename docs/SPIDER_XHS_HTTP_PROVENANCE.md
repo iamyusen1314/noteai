@@ -1,5 +1,35 @@
 # Spider_XHS HTTP adapter provenance and boundary
 
+## Current repair candidate — September11 full engineering authorization
+
+Owner now authorizes necessary upstream adaptation and finite normal-read experiments
+under the persistent RMB100 task cap; the older spent one-call boundary below is
+historical. v5.0.0 at `7077c88f82771f547cc1afdadaec4025be2355e6` was downloaded into
+`/Users/openclaw/Downloads/noteai-xhs-repair-20260911/upstream` with69 relevant
+source files verified against Git blob hashes. No upstream installer/demo was run.
+
+`model/vendor/spider_xhs/v5/upstream.json` pins14 byte-identical state/signing/
+RAP/reference assets. `headers.py` contains unchanged pure definitions extracted
+from upstream params.py and core/http.py; custom runtime.py and bridge.js preserve
+stdin-only secret handling and restrict signing to PC user/me and feed. Upstream
+argv credentials, arbitrary program injection, Creator/login/write APIs and retry
+behavior are not included. Existing legacy assets remain for unchanged callers.
+
+Explicit `NOTEAI_XHS_PROTOCOL=pc_v5` selects the new Tracking-only chain: DSL GET,
+existing legal Cookie user/me GET, fixed owned-note feed POST. It uses fresh parsed
+DSL (never executes downloaded DSL script), real user_id-derived xy-direction,
+complete current B1/MNS/x-s-common/RAP context, upstream UA/header order and pinned
+curl_cffi0.15.0 chrome146 transport. No invented gid, fingerprint-ready state or
+security profile: tier follows the actual existing cookies. Required web_session,
+real persistent safety and operator stops precede network calls. Each physical
+request is projected into existing task output/journal; no raw response/header/
+Cookie/Token/signature/user content is retained. Owned note identity and numeric
+metrics must be verified for a repair success; it is still not a snapshot.
+
+This is a coupled compatibility experiment, not a proved explanation of historical
+code-3. 22 targeted Python3.11.14 offline tests pass; real candidate validation and
+live results remain pending. Historical facts below are unchanged.
+
 ## September11 generation1 failure: upstream comparison
 
 After this comparison, the only authorized extra diagnostic returned HTTP200,

@@ -195,6 +195,10 @@ CMD ["python", "durable_ai_worker.py", "--once"]
 
 FROM runtime-common AS xhs-http-runtime
 
+# Only the XHS role needs the reviewed PC transport; other role dependencies stay unchanged.
+USER root
+RUN pip install --no-cache-dir curl_cffi==0.15.0
+
 LABEL com.noteai.runtime.role="xhs-http"
 ENV NOTEAI_RUNTIME_ROLE=xhs-http \
     NOTEAI_XHS_ACQUISITION_ADAPTER=spider_xhs_http \
