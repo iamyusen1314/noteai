@@ -1,5 +1,67 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September11 00:16 Beijing — single diagnostic completed: HTTP200 / businesscode -3
+
+Continue21d533c and its final-result documentation descendant. The separately
+approved extra diagnostic allowance is now **1/1 consumed, automatic retries0**.
+Never invoke it again, recreate its container/journal, or turn it into a24h retry.
+No3d/T0/0020/oldattempt/image/automation change; canonical observation Evidence
+and readiness manifest are byte-unchanged from41c5266. Readiness remains30/38.
+
+Original evidence establishes a2xx JSON business rejection but no exact original
+status/code/msg. New diagnostic at2026-09-10T16:13:35.173400Z (September11
+00:13:35.173400 Beijing) dispatched once; response headers at16:13:35.310850Z,
+final16:13:35.312590Z: **REMOTE_REJECTED, HTTP200, successfalse, code-3 integer,
+remote_business_error**. Message was present, no fixed category matched; raw
+message/body was not saved. This does not prove absent login/risk text, and -3
+must NOT be backfilled into the old attempt. Code classification was correct;
+there is no evidence to relax success or patch signing speculatively.
+
+API-F original image preflight t-sz06wnsj56x7pj4 verified Python3.11.15/x86_64,
+original db/signing assets, existing tracking identity/transaction_read_only=true,
+original safety record absent/sessionblockedfalse, locally configured auth cookies
+not locally expired. This is not proof that the upstream accepts the session.
+Task-only opt-in preserved host env and true shared safety. Adapter's normal
+safety read and pre-dispatch readonly check stayed active; no init/worker/config/
+production DML/grant/revoke occurred. No new paid resource; marginal cost UNKNOWN_NOT_ZERO.
+
+Unique launch t-sz06wnsn1gpfz0g created container
+ae7cd330cf02169a04bfff18de56f48921fb3524ced421413be5a519d57d4268,
+name noteai-item34-diagnostic-20260911. Readback t-sz06wnspisiq5ts proved exited/
+PID0/rc1/OOMfalse, five complete journal records and a known response, not UNKNOWN.
+Journal:
+`/var/lib/noteai/item34-image-build-20260906/g1-20260909/diagnostic-20260911/out/item34-diagnostic.jsonl`
+1158bytes, SHA256
+`0c722cf384d109340d8d6d5953726e6c8d4b4b5ce0aa7a7c9df98d3c6d62f287`.
+stdout494bytes/SHA7587222045a208eade016a4801421153488a20c5fc157b6a8b639747ab1e4e15,
+stderr0. Safe original readback copy is
+`/Users/openclaw/Downloads/noteai-item34-diagnostic-20260910/result-readback.json`;
+this is a parsed readback, not byte-identical journal export. Cleanup
+t-sz06wnstlw2gr9c at16:15:36.524646Z removed only that already-exited exact
+container, after checking identity/image/final result; same journal SHA survived.
+Old retained worker and all historical files remain intact.
+
+Diagnostic files mounted read-only over the original fcc863f image (not a new
+production image): adapterSHA7e4b5fd5e90cce1cc3fec4b66a901e2e0a706065b80481cffe6cceb1a5ec436e,
+redactionSHA9cf5a2ed9988bf3e52ede76d6b07cf66c570d8b34cede99fc1878fa5c905fd94,
+entrySHA41ecaefce49a7e7499b39df5e37bf10c44cdbec1a25b2e05f0cf2910cd11e78c.
+The entry correction was hash-verified in t-sz06wnsi60polj4 before the only request.
+Current crawler event wiring is local candidate work, not deployed to old worker.
+Ten targeted Python3.11 tests pass, including actual libpq URI decoding, safe
+business metadata, unchanged success contract, stopping and no-replay behavior.
+
+Upstream read-only followup scanned40 relevant v5Python/Markdown files: no-3 error
+definition. Issues36/127 describe different HTTP/status/code shapes; do not copy
+their login/risk suggestions. See existing provenance for exact release/commit links.
+Confirmed failure layer is upstream business rejection; exact reason UNPROVEN.
+Next smallest evidence step is an upstream maintained definition of feed code-3
+and its supported signing/release input contract, using public reference material
+or a minimal support question (no private logs/note/account/credentials attached).
+No message has been sent to anyone. Do not request a new URL/ACR password/MFA
+without evidence. A coupled v5 signing port or any further XHS call is outside
+the exhausted one-call scope and needs a concrete new approval, not an automatic retry.
+No newly identified independent authorized engineering gap remains in this diagnosis.
+
 ## September11 00:04 Beijing — bounded error diagnosis in progress
 
 User's new explicit one-request diagnosis scope supersedes the prior PROGRAM_STOP

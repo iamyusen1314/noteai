@@ -1,6 +1,51 @@
 # NoteAI Production Deployment Execution Plan
 
-## September11 — separately approved one-request error diagnostic (in progress)
+## September11 — separately approved one-request error diagnostic (completed)
+
+**Final: extra allowance1/1 consumed; HTTP200/successfalse/businesscode-3,
+REMOTE_REJECTED; no retry or qualifying snapshot.** Dispatch16:13:35.173400UTC /
+September11 00:13:35.173400 Beijing, final16:13:35.312590UTC. The original24h
+upstreamcode was not retained and is not retroactively assigned-3. Message
+present/no known fixed tag; exact message and root cause remain unknown.
+The upstream check found v5 signing changes but no authoritative-3 definition;
+no success relaxation or signing upgrade was adopted. Current checkpoint21d533c
+contains the corrected diagnostic implementation, built on7c47575 preparation.
+
+Host source directory:
+`/var/lib/noteai/item34-image-build-20260906/g1-20260909/diagnostic-20260911`.
+Read-only mounts: model/spider_xhs_http.py SHA
+7e4b5fd5e90cce1cc3fec4b66a901e2e0a706065b80481cffe6cceb1a5ec436e;
+model/security_redaction.py SHA9cf5a2ed9988bf3e52ede76d6b07cf66c570d8b34cede99fc1878fa5c905fd94;
+tools/diagnose_item34_xhs.py SHA41ecaefce49a7e7499b39df5e37bf10c44cdbec1a25b2e05f0cf2910cd11e78c.
+Original published fcc863f digest/config is unchanged; this was an explicit
+task overlay, not an image release. No Node asset, request body or success rule changed.
+
+Corrected preflight t-sz06wnsj56x7pj4 verified imagePython3.11.15/x86_64, original
+PG identity and readonly transaction, original safety absent/unblocked. Prior
+preflight t-sz06wnsb8vgs7b4 had OperationalError/zeroXHS; offline real libpq
+parsing exposed URL '+' encoding, corrected and retested before this request.
+Launch t-sz06wnsn1gpfz0g; result readback t-sz06wnspisiq5ts; exact exited-container
+cleanup t-sz06wnstlw2gr9c at16:15:36.524646UTC. Task journal `out/item34-diagnostic.jsonl`
+has5complete records/1158bytes/SHA
+0c722cf384d109340d8d6d5953726e6c8d4b4b5ce0aa7a7c9df98d3c6d62f287,
+unchanged after cleanup. stdout494bytes/sha7587222045a208eade016a4801421153488a20c5fc157b6a8b639747ab1e4e15,
+stderr0. Safe local readback is in the existing Handoff index. No business writes,
+grants/config/oldattempt/T0/0020 changes; no automation resumed. Readiness30/38.
+
+Next minimal action: obtain a maintained upstream feed code-3 definition and
+supported signing/release input contract before choosing a fix. A support question
+can omit all private logs/account/note data; none was sent. v5 full auth can make
+bootstrap/DSL calls and needs a coupled compatibility change, so no automatic
+port or second XHS request. No owner login/password action is established by -3.
+
+Prepared minimal maintainer question (draft only): “For the PC feed endpoint,
+does HTTP200/success=false/code=-3 have a maintained definition? Does the signer
+at9504b5249103f34a0a4e7062939258061559e2fd remain compatible? If a v5 signer
+change is required, which release/commit and request context fields are necessary
+for a single read-only feed call without bootstrap or additional requests?”
+Do not attach private logs, the note URL/identity, response body or credentials.
+
+The following is the retained scope and preparation record, not permission to rerun.
 
 Owner explicitly authorized diagnosis of generation1 remote_business_error at
 41c5266 and actual descendants: existing evidence first, confirmed upstream

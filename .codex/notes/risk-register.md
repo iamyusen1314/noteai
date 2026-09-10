@@ -2,6 +2,25 @@
 
 ## September11 — separate bounded generation1 error diagnosis
 
+- Completed extra diagnostic1/1 atSeptember11 00:13:35 Beijing: HTTP200,
+  successfalse/code-3. Known upstream business rejection; original24h code is
+  still unknown and must not be backfilled. No fixed message tag matched; raw
+  message was not retained, so no specific login/signature/risk diagnosis follows.
+- Original PG readonly preflight and repeated real safety checks passed; no
+  production business writes. Exact exited task container removed00:15:36 after
+  preserving five-record1158byte journalSHA0c722cf384d109340d8d6d5953726e6c8d4b4b5ce0aa7a7c9df98d3c6d62f287.
+  Original image/history/worker/T0/0020/automation remain unchanged, Readiness30/38.
+- No authoritative upstream-3 mapping found. Next evidence needed is maintained
+  code semantics/signing contract; no new password/login or URL is justified.
+  No further real request remains authorized; do not create another diagnostic
+  identity or reuse the consumed task journal. Unknown marginal cost stays unknown.
+- The initial readonly diagnostic preflight revealed URL-form encoding incompatible
+  with libpq options. Fixed locally before the only XHS request, then verified in
+  real imagePython3.11.15 and ten targeted localPython3.11 cases. This local setup
+  bug is distinct from the original XHS business failure.
+
+Preparation scope below is retained history; its0/1 count is superseded above.
+
 - Owner now permits one additional diagnostic request, separately counted, no
   24h retry/snapshot/3d/T0 or readiness credit. Old failed evidence remains sealed.
 - Original retained logs lack exactHTTP/businesscode/msg. New fixed metadata

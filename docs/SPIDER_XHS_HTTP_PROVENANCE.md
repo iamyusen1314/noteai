@@ -2,6 +2,18 @@
 
 ## September11 generation1 failure: upstream comparison
 
+After this comparison, the only authorized extra diagnostic returned HTTP200,
+successfalse/code-3 atSeptember11 00:13:35 Beijing using the unchanged original
+signing/request path. This establishes a business rejection, not a parser false
+negative. The old24h exact code remains unknown. Additional read-only scan of40
+relevant Python/Markdown files at7077c88 found no-3 definition or documented fix;
+the sole literal-3 source occurrence was a URL slice. [Issue36](https://github.com/cv-cat/Spider_XHS/issues/36)
+is HTTP461/code0, and [Issue127](https://github.com/cv-cat/Spider_XHS/issues/127)
+is successTrue/code0/emptydata; neither can explain this failure. Response message
+was present but unmatched by fixed safe tags; no raw message was retained.
+The signing compatibility changes below remain candidates, not a demonstrated
+cause. The extra request allowance is exhausted; no comparison retry was sent.
+
 Actual failed image source is NoteAI `fcc863f65ad1d3d788e8936ef1284a9ab27ad025`,
 published digest `a2ee0f2ef94191af45b2af1dce192379194bd103e5084204f7ff224457ab6a88`.
 Its chain is NoteAI's crawler_worker → crawler → spider_xhs_http → custom
