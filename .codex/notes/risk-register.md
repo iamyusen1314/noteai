@@ -25,6 +25,19 @@
   their real use still needs lawful browser context. Keep original managed env,
   Trends, oldattempts/T0/0020 and snapshots untouched until controlled verified rollout.
 
+## Current candidate verification
+
+- Local d322a8a candidate is fully bound through30 source paths and both actual
+  /app/model executor aliases. Initial incremental-COPY omission was caught by
+  a real g2 import failure and corrected before release;103 final restricted
+  container tests,23 isolated PG16 cases and actual hidden-input PTY pass.
+- Local runnable archive and11-file host package are retained. They have no ACR
+  publication/managed acceptance/newT0 status. Do not reuse the rejected initial
+  local image or infer a production read from offline tests.
+- Actual upstream session remains unverified. Await the legitimate existing
+  browser's full Request Cookie via the already-connected hidden input; do not
+  repeat the same two-record session test, reset credentials, or expand scope.
+
 ## September11 — separate bounded generation1 error diagnosis
 
 - Completed extra diagnostic1/1 atSeptember11 00:13:35 Beijing: HTTP200,

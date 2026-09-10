@@ -65,8 +65,47 @@ The cumulative RMB100 ceiling remains shared: reserve11 for prior uncertainty
 and batch01/build/transfer, actual bill UNKNOWN_NOT_ZERO. Each new bounded batch
 or publish must fit the remaining89 reserve and use existing resources only.
 Extra privacy/transport or fixture failures remain recorded; no missing result
-is described as success. Remaining active path: lawful session input plus final
-candidate/host package verification; source/validator work continues independently.
+is described as success. Remaining active path: lawful session input; candidate/host package verification and source/validator
+preparation are complete as recorded below.
+
+## Current candidate artifact — source d322a8a
+
+The source remains d322a8a35d75dc0a7dcb6c4bb8d3f876a844df11 even when later
+preparation documentation is committed. Local artifact directory:
+`/Users/openclaw/Downloads/noteai-xhs-repair-20260911/release-d322a8a`.
+The existing incremental candidate must reproduce the root Dockerfile runtime
+COPY: both deploy/production/execute_item34_tracking.py and
+ tools/execute_item34_tracking_checkpoint.py go to `/app/model/`, in addition to
+source-layout paths. The first candidate missed these runtime aliases and failed
+generation2 import; it was rejected locally, never published. Corrected existing
+source manifest and package probe verify both actual runtime aliases and g2
+imports with cwd=/app/model. No application success criterion was weakened.
+
+Corrected local candidate `noteai-local/xhs-repair:d322a8a` is Linux/amd64,
+Python3.11.15, Node20.20.2, curl_cffi0.15.0;30 source files and2 runtime aliases
+match the committed bytes. Local OCI index
+`sha256:b8b5fa4657405215f02b3bbab31362a67008412ebd642e3c6df344b4a5f4705b`,
+config `sha256:6ee9de326a9dd53be29bb2298b9d746e31f35e36bae1e844322da9626927a665`.
+These are local identities, NOT an ACR publication digest.
+
+- Docker archive `item34-xhs-d322a8a-linux-amd64.docker.tar.gz`:406079306bytes,
+  SHA256 `ca460f33281200c63a66af10ee7fc2ac78c4ca05edc0c3fbff464ac7a7acc456`.
+- Existing host bundle `item34-host-d322a8a.tar.gz`:55978bytes,
+  SHA256 `b8fa65655ab4418a441c5875ed86935baa68f44e49909e355efa6b78ef99d48a`.
+  All11 files match; includes contract/redaction imports and0020 ledger/verify,
+  excludes0020 apply, real binding/T0, credentials and logs.
+- Source manifest SHA256
+  `c9ca08e0a4130b3a556f61c860010f6aabf8e57182ac7a2f6f5afae524d73764`;
+  host manifest SHA256
+  `64e5d070cb34a7d9d1aab3a0c6ea8c9ea87af2273739ddc3448f43d550c43fc3`.
+
+Existing package probe verifies host/image bindings and real image import paths,
+without DB import or XHS request. Final image's isolated root PTY staging also
+passed: no echoed synthetic Cookie, mode0600 candidate, no DB import/network or
+managed env change. Final103 focused tests passed93.079s under networknone/read-only/256MiB/0.25CPU/
+64pids; the same candidate application passed23 isolated PG16 tests4.376s. Preserve the earlier failing
+runtime logs. This artifact is local preparation, not a successful real read or
+managed service acceptance. Reconcile lawful session input before the next batch.
 
 ## September11 — separately approved one-request error diagnostic (completed)
 

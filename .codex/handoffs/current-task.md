@@ -47,6 +47,52 @@ DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
 matches full upstream under three socket-denied synthetic differential cases.
 No read success/newT0/managed release is claimed. Readiness30/38.
 
+## September11 02:25 Beijing — runnable recovery candidate and host package verified
+
+Candidate source stays d322a8a35d75dc0a7dcb6c4bb8d3f876a844df11. Existing final
+artifacts are under Downloads/noteai-xhs-repair-20260911/release-d322a8a; exact
+archive/source/host hashes are in the current execution plan's candidate section.
+Local Linux/amd64 image noteai-local/xhs-repair:d322a8a has OCI index
+b8b5fa4657405215f02b3bbab31362a67008412ebd642e3c6df344b4a5f4705b,
+config6ee9de326a9dd53be29bb2298b9d746e31f35e36bae1e844322da9626927a665.
+The406079306byte Docker archive is ready; no ACR publication digest exists yet.
+Host tar55978bytes includes11 verified dependencies, no0020apply/Secret/realT0.
+
+Actual candidate verification: Python3.11.15/x86_64, Node20.20.2,
+curl_cffi0.15.0;30 source files+2 runtime aliases and11 host files match. Existing
+probe imports g2 from the REAL image cwd=/app/model and separately verifies host
+source bindings, no DB import/XHS request. Full103 targeted tests passed93.079s
+with networknone/read-only/256MiB/0.25CPU/64pids. Retained runtime-tests-final.log
+SHAa946223ce1ded3a40f32c636998fbab244ce5badd9c3c494db0a5b5caf1da742.
+Same candidate application previously passed23 isolated PG16 tests4.376s; retained
+pg16-tests.log SHA34ecdcef6d830164f0d00e519303562b135bb04f16355e89fb39da14cfd1f00f.
+Final staged-input PTY test passed noecho/0600/noDB/noXHS, using synthetic data only.
+The exact task-owned networknone/tmpfs PG16 container was stopped and removed;
+all failure/success logs and the socket-only volume remain available.
+
+A real packaging defect was found before publication: incremental COPY left old
+/app/model/execute_item34_tracking.py and checkpoint in the base. Corrected both
+flattened runtime paths to match the root Dockerfile and extended the EXISTING
+manifest/probe to verify them. First failed62-test log retained. The next run
+passed the g2 case then found absent repository Dockerfile in test fixtures;
+added only that test asset and retained its69-test failure log. Final103 pass.
+Independent read-only comparison found no other omitted changed runtime module;
+all inherited relevant shared modules remain byte-compatible. No production
+success rule or source identity was changed to make this pass.
+
+Readiness30/38 and canonical production Evidence remain byte-identical. No
+second repair batch, production write, ACR upload, managed service update, newT0
+or automation has occurred. Budget reserve still11/100; actual cost
+UNKNOWN_NOT_ZERO. Remaining real path needs the full lawful owned-account session:
+Workbench is connected, first Request Cookie(hidden) prompt has normal noecho,
+no session candidate completed at last readback. Do not interrupt a pending
+owner input or expose terminal/session values. No new ACR password/MFA is required.
+Next: reconcile private staged-file metadata after owner input, reserve the next
+finite changed-context batch, then execute once through the existing diagnostic
+path and preserve the actual result. Read success is required before publication,
+managed rollout and a fresh native g2 observation. Independent candidate work is
+complete; do not invent further tests or replay unchanged requests while waiting.
+
 ## September11 — generation2 validator and release binding integrated
 
 The existing validator now accepts explicitgeneration2 in the same canonical
