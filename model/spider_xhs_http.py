@@ -362,13 +362,14 @@ class SpiderXHSHTTPAdapter:
         signer: Signer | None = None,
         client: httpx.Client | None = None,
         timeout: float = REQUEST_TIMEOUT_SECONDS,
+        http_observer=None,
     ):
         self.credentials = credentials or SessionCredentials.from_runtime_settings()
         self.signer = signer or NodeSigner()
         self._client = client
         self.timeout = min(max(float(timeout), 1.0), 30.0)
         self.last_response_diagnostics: dict[str, Any] = {}
-        self.http_observer = None
+        self.http_observer = http_observer
         self.last_owned_metrics = None
 
     def session_health(self) -> dict[str, Any]:

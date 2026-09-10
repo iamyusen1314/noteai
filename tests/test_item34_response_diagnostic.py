@@ -160,6 +160,20 @@ class ResponseDiagnosticTests(unittest.TestCase):
         self.assertEqual(result["provider_detail_admissions"], 0)
         self.assertEqual(result["automatic_retries"], 0)
 
+    def test_repair_actual_adapter_wires_durable_observer_before_mock_network(self):
+        os.environ["NOTEAI_XHS_PROTOCOL"] = "pc_v5"
+        def factory(*, http_observer):
+            client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(403)))
+            self.addCleanup(client.close)
+            return xhs.SpiderXHSHTTPAdapter(client=client, signer=self.signer,
+                credentials=xhs.SessionCredentials.from_records([
+                    {"name": "a1", "value": "a" * 52}, {"name": "web_session", "value": "FAKE_SESSION"},
+                ]), http_observer=http_observer)
+        result = diagnostic.run_repair(self.records.append, adapter_factory=factory, safety=lambda: {})
+        self.assertEqual(result["error_code"], "login_or_challenge_required")
+        self.assertEqual(result["physical_http_requests"], 1)
+        self.assertEqual([r["event"] for r in self.records], ["safety_readback", "xhs_http", "xhs_http", "result"])
+
     def test_repair_refuses_existing_journal_and_unprojected_private_metadata(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "repair.jsonl"

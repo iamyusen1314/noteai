@@ -47,10 +47,12 @@ existing Cookie user/me GET, fixed owned-note feed POST, each once; stop on earl
 failure, no redirect/retry/login/profile/account creation. Existing diagnostic
 entry --repair-v5 uses a NEW exclusive task journal, fsync before every physical
 request, readonly PG safety before each send, and no worker/business DML. Original
-one-shot mode/journal stays sealed. 22 focused Python3.11.14 tests passed, including
+one-shot mode/journal stays sealed. 23 focused Python3.11.14 tests passed, including
 real Node signing, local curl response-cap/redirect behavior, old-cookie DSL time
 refresh, required web_session, UNKNOWN and journal no-replay. Target image build/
 Python3.11.15 + linux/amd64 verification and first live batch are IN_PROGRESS.
+Review additionally caught and fixed the adapter constructor observer binding;
+actual adapter integration regression now proves durable dispatch wiring before HTTP.
 No new real XHS requests yet; Readiness30/38. Current changes: adapter, v5 assets/
 bridge/runtime, redaction, existing diagnostic, XHS-only curl dependency, tests and
 existing control/provenance documents. No owner technical decision is required.
