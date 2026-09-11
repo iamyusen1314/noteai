@@ -1,5 +1,19 @@
 # Risk Register
 
+## September11 — Alipay onboarding and owner-reported ICP completion
+
+- ICP completion is owner-reported; exact filing approval subject/number is not yet
+  read. WeChat application remains in progress, not approved. No Readiness change.
+- Existing Alipay code is directRSA2 precreate/public-key mode. Website payment
+  product approval, precreate eligibility and certificate mode are not interchangeable.
+  Confirm actual merchant/application/product before configuring live trust material.
+- Last observed official merchant page required QR login. Owner will handle
+  legal-representative login/application and request integration after approval;
+  further onboarding action is deferred to that update. No new key, application,
+  commercial agreement, payment request or deployment has been executed.
+- Public callback readiness remains unproven; local resolver198.18.x.x is insufficient.
+  Existing dual-channel activation and separate live-funds/DNS authorization remain.
+
 ## Current — September11 full engineering repair authorization
 
 - Earlier one-request and author-reply-only restrictions are superseded for new

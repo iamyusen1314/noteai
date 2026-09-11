@@ -1,5 +1,45 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current payment onboarding request — 2026-09-11 22:05 Beijing
+
+Owner reports ICP filing completed and WeChat Pay application in progress, and
+asks to assist Alipay integration through the Alibaba Cloud entry. Continue existing
+Item31 direct-payment code and records. Filing completion is OWNER_REPORTED;
+filing number/subject have not yet been independently read. No readiness credit.
+This onboarding request does not change Item34 generation2 or its unique schedule,
+XHS budget, old evidence, other production pauses, Gitpush or protected paths.
+
+Alibaba Cloud official guide https://help.aliyun.com/zh/document_detail/3043684.html
+points to https://b.alipay.com/page/portal/home for merchant/product signing and
+Alipay open platform for application/key setup. Opened that real merchant entry;
+last observed page requires phone-Alipay QR login. Owner subsequently confirmed
+that the legal representative must log in and apply, and will complete application
+and review before asking CTO to implement integration. Payment onboarding is now
+waiting for that owner update; do not continue the application or poll the login.
+No application/signing/key creation/payment request has been submitted by CTO.
+The exact Alibaba Cloud product/link the owner saw remains unspecified; do not
+assume a paid aggregator or a new merchant/service-provider subscription is needed.
+
+Readonly implementation check confirms directRSA2 precreate/query/refund/refundquery/
+bill interface, fixedAlipaycallback and existing API-to-Payment relay. Current
+application must authorize the actual chosen product/business; website-payment
+products andprecreate are different endpoints, and page/wap/certificate mode is
+not implemented. No new payment/collector framework is needed for currentprecreate.
+Current production still requires both channelsLIVE; no single-channel launch implied.
+Fullcallback readiness is not proven by localDNS: current resolver returns an
+198.18.x.x address, so its apparentresolution does not establish publicprovider
+reachability. No business service was contacted and no DNS change occurred.
+
+Current independent work completed: reconciled payment contract/architecture with
+actual direct-provider callback implementation and owner-reportedICP status;
+recorded merchant/product/key compatibility in the existing contract/plan. No
+runtime code changed or tests replayed for docs. Next: when owner reports approval
+and asks to resume, read the approved merchant/app/product scope, then implement
+the matching integration through existing credentials and the payment boundary.
+Owner will handle legal-representative login and the application independently;
+no further login request is pending from CTO. Do not ask for Cookie/password/key
+in chat or reuse Aliyun cloud login as merchant proof.
+
 ## Current control — September11 2026 full XHS repair and Item34 recovery authorization
 
 Owner explicitly replaces the earlier one-extra-request and per-step approval

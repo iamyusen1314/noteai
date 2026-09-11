@@ -22,22 +22,28 @@ Last updated: 2026-08-19
 - Migration sequence: first introduce and verify a single `ClaudeTransport` boundary; then build/test the Gateway; then deploy Alibaba production infrastructure and data services; then canary the gateway transport; finally switch public DNS and retire the old Render business services after a rollback window.
 - Do not operate two full business APIs against one production database as a transitional dual-active design.
 
-## Payment execution contract (provider activation not yet implemented)
+## Payment execution contract — current direct-provider implementation
 
-- Adapay is the selected V1 aggregation provider, subject to written merchant admission for NoteAI's AI SaaS and non-withdrawable/non-transferable service credits, plus confirmation of the required Alipay, WeChat and UnionPay PC/H5 flows.
-- `model/payment_contract.py` and migration `0014` now implement the
-  provider-isolated repository contract: fixed integer-fen catalogue,
-  signed callback verification, collision-safe Event idempotency, immutable
-  cash/entitlement ledgers, paid-credit source positions, one full unused
-  refund, reconciliation/settlement summaries and exact role boundaries.
-  Existing test top-up/upgrade endpoints and legacy `payment_ref` remain
-  non-cash test paths.
-- Payment success comes only from a verified server callback or authoritative order query with matching merchant/app/environment/currency/amount. Browser redirects never grant credits.
-- Cash refunds remain separate from AI-operation credit reversals. T+1 reconciliation compares NoteAI ledgers, Adapay charge/refund/fee files and bank settlement batches.
-- Ordering and callback switches default off and no network adapter is
-  selected by environment. Merchant credentials, official adapter,
-  mock/sandbox compatibility, callback reachability, production migration/
-  ACL, bounded scheduler/alerts and any capped real-money proof remain open.
+- Current owner-designated V1 channels are WeChat Pay direct and Alipay direct.
+  The older Adapay contract remains for historical rows; it is not the current
+  onboarding path. Canonical details are in `docs/PAYMENT_PRODUCTION_CONTRACT.md`.
+- `model/direct_payment_gateways.py` implements WeChat Native and Alipay RSA2
+  precreate, signed response/callback verification, query, full unused refund,
+  refund query and bounded bill download on the existing `PaymentProvider` and
+  integer-fen ledger. Alipay page/wap payment and certificate mode are not implemented.
+- Exact public callback paths are relayed by the API to the co-located Payment
+  process on127.0.0.1:8002. Only Payment verifies and processes provider events;
+  the retired Adapay route remains rejected by the API. Redirects never grant credits.
+- Actual API/Payment/operator canary writer binding and isolatedPG16 DML evidence
+  preparation are implemented. Production activation remains off and requires
+  both direct channels LIVE; prior offline work is not real payment acceptance.
+- September11 owner reports ICP complete and WeChat application in progress;
+  Alipay application is now owner-managed: the legal representative will log in
+  and apply, and owner will request implementation after approval. Merchant/product
+  approvals, secure application binding, callback deployment/reachability and
+  official Alipay merchant bill compatibility remain actual external/live inputs.
+  No real money, provider signing, credentials or public traffic is implied by
+  this architecture record.
 
 ## Frontend
 

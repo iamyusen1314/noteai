@@ -1,10 +1,48 @@
 # NoteAI Payment Production Contract
 
+## Current Alipay onboarding — September11 2026
+
+The owner requests assistance with the Alipay entry described as available through
+Alibaba Cloud. Alibaba Cloud's official website-payment configuration guide routes
+merchant registration and product signing to the [Alipay merchant platform](https://b.alipay.com/page/portal/home),
+then application/key configuration to the Alipay open platform:
+[Alibaba Cloud guide](https://help.aliyun.com/zh/document_detail/3043684.html).
+That guide covers its website-builder product; it is a source for the official
+onboarding entry, not proof that NoteAI uses that builder or has product approval.
+The last observed merchant page was unauthenticated and displayed Alipay scan-login.
+Owner then confirmed legal-representative login is required and will complete the
+application and review before asking CTO to implement integration. Onboarding is
+deferred until that update. No merchant application, signing, key generation/injection
+or transaction was performed by CTO.
+
+Current NoteAI code supports only direct `alipay.trade.precreate` QR checkout,
+query, full refund/refund query and bill download. It does not currently implement
+`alipay.trade.page.pay`, `alipay.trade.wap.pay`, service-provider delegated signing
+or X.509 certificate mode. The exact approved merchant product must match the
+actual website SaaS use and chosen endpoint. Do not assume an ordinary website-pay
+approval automatically grants precreate, or that existing precreate implementation
+proves eligibility for the merchant's business. Required product compatibility is
+an actual integration dependency, not a new acceptance gate.
+
+Use the existing RSA2 public-key mode if approved: application APP_ID, actual
+seller identity, API/operator request-signing private key, Alipay verification
+public key and fixed `https://api.noteaipro.cn/payments/alipay/callback`.
+Secrets remain in the existing managed private path; no keys in chat/Git. Do not
+substitute app/public-root certificates for PEM public-key inputs. Signing keys
+are not provisioned before identifying the correct approved application.
+Current gateway transports use live origins, so no pretend sandbox run or live
+request may be described as an offline check. Merchant-approved official bill
+sample compatibility remains pending as described below. First-launch dual-provider
+scope remains unchanged while the owner applies for WeChat separately.
+
 ## Item31 direct-provider preparation — 2026-09-04
 
 The owner-designated first-launch providers are WeChat Pay direct and Alipay
-direct. Item31 is `BLOCKED_EXTERNAL_DEPENDENCY` until ICP filing, both merchant
-and product approvals, and secure production credential injection are complete.
+direct. On September11 the owner reported ICP filing completed and WeChat Pay
+application in progress, and requested Alipay onboarding first. The filing number
+and exact filing subject have not yet been read from the approval. Item31 remains
+`BLOCKED_EXTERNAL_DEPENDENCY` until both merchant/product approvals, actual callback
+ingress and secure production credential injection are complete.
 No direct-provider payment, callback, refund or reconciliation acceptance has
 run, and the earlier Ping++ TEST preparation gives Item31 no readiness credit.
 
@@ -197,8 +235,9 @@ and [Alipay EasySDK callback/bill API](https://github.com/alipay/alipay-easysdk/
   default and, in
   production, fails closed unless PostgreSQL reports `current_user =
   noteai_payment`, both direct providers are selected and both modes are LIVE.
-  The ordinary API keeps all callback paths as compatibility rejections and
-  never processes provider events. Ordering selects an allowlisted provider
+  The ordinary API rejects the retired Adapay callback and relays only the two
+  fixed WeChat/Alipay callback paths when the relay is enabled; it never processes
+  provider events. Ordering selects an allowlisted provider
   explicitly and reuses the same payment contract; direct providers do not
   inherit Adapay's transaction-device-IP requirement.
 - `scripts/render_start_api.sh` and the payment start script trust only the

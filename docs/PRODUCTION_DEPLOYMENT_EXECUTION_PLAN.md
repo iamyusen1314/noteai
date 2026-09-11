@@ -1,5 +1,19 @@
 # NoteAI Production Deployment Execution Plan
 
+## Current payment onboarding — September11 2026
+
+Owner reports ICP completed, WeChat application in progress, and requests Alipay
+onboarding first. Owner subsequently took over legal-representative login and the
+application, and will request implementation after approval. Application and product
+approval remain unverified; defer onboarding action until that update. Use the current contract's Alipay onboarding
+section and existing API/Payment canary implementation. No real-money test, public
+callback activation, DNS or single-provider launch has occurred or is implied.
+Current implementation isRSA2 precreate, notpage/wap/certificate mode; choose/confirm
+an approved product matching the actual NoteAI website business before privatekey
+binding. The Alibaba Cloud guide redirects signing to the Alipay merchant platform;
+there is no confirmed need to buy an Alibaba Cloud payment subscription.
+Item34 generation2, its published image and unique two-stage task below stay intact.
+
 ## Current execution — owner full-task authorization, September11 2026
 
 The current control is the top of `.codex/handoffs/current-task.md`, linked by
