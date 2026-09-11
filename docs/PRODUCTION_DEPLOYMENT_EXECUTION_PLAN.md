@@ -15,7 +15,23 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
-## Current repair update — September11 19:31 Beijing
+## Current repair update — September11 19:55 Beijing
+
+Batch03 verifies the real owned read:11:55:43.749367UTC detailHTTP200/code0,
+likes4/saves2/comments2 after normal DSL/session initialization. Three physical
+requests,0 retry/businesswrite/snapshot. API-F used the original a4e image plus
+five explicitly hashed4cc77f4 read-only source overlays; this is real diagnostic
+validation, not an already published image. JournalSHA
+67483b832a270d3cc731b4811008feff07571de6bec8d9d10e4558f307dd7e44;
+exact exited task removed after durable result preservation. Budget reserve13/100,
+actual UNKNOWN_NOT_ZERO. Current work proceeds to publication and controlled
+Tracking deployment, retaining all old failures/anchors/0020. Private Cookie and
+same-note access candidates are staged; do not ask the owner to enter them again.
+The existing unit forwards its env file, but the managed helper currently only
+CAS-updates/restores the unit; safely merge/restore the verified private env keys
+before rollout validation. No template change or new gate is needed.
+
+### Retained preceding detail finding — September11 19:31 Beijing
 
 Batch02 full-session test passed user/me200/code0 then stopped at detail461/code300031.
 Use the original browser's legitimate same-note xsec_token/source as private task
@@ -35,16 +51,10 @@ before controlled deployment. Budget reserve12/100, actual UNKNOWN_NOT_ZERO.
 
 ## Current implementation order — repaired session and generation2
 
-1. Reconcile the original completed batch01; never replay it. Actual API-F v5
-   request chain stopped at user/me HTTP200/business-3 after DSL200 (physical2,
-   detail0). Existing managed Cookie input contains only a1/web_session. Obtain
-   the complete lawful owned-account Request Cookie through the existing hidden
-   --stage-session entry, optionally preserving real webSsk. The private candidate
-   file is task-only; old managed env/Trends/Item32 remain unchanged. Current
-   Workbench is explicitly Shell, waiting for hidden input. The next finite batch
-   tests the changed session context with DSL/session/detail each at most once,
-   stops at the first failure, and records actual initialization/detail requests
-   in a fresh exclusive existing diagnostic journal. No automatic auth/retry.
+1. Completed: batches01/02 are sealed failures and batch03 verifies the owned read
+   with the complete lawful session and original link context. Preserve original
+   journals/results, no replay. Private candidates remain task-only until controlled
+   env application. No more session input or identical diagnostic is needed.
 2. After the owned read is genuinely verified, build/reuse the reviewed XHS
    candidate's exact source layers, publish a new immutable tag to the existing
    private ACR and read its real digest. Do not change old source labels or tags.
@@ -79,12 +89,13 @@ before controlled deployment. Budget reserve12/100, actual UNKNOWN_NOT_ZERO.
    recovery_observation only after complete true evidence exists. No current
    production Evidence/Readiness update follows from these preparations.
 
-The cumulative RMB100 ceiling remains shared: reserve11 for prior uncertainty
-and batch01/build/transfer, actual bill UNKNOWN_NOT_ZERO. Each new bounded batch
-or publish must fit the remaining89 reserve and use existing resources only.
+The cumulative RMB100 ceiling remains shared: reserve13 for prior uncertainty
+and batches01–03/build/transfer, actual bill UNKNOWN_NOT_ZERO. Each new bounded batch
+or publish must fit the remaining87 reserve and use existing resources only.
 Extra privacy/transport or fixture failures remain recorded; no missing result
-is described as success. Remaining active path: lawful session input; candidate/host package verification and source/validator
-preparation are complete as recorded below.
+is described as success. Remaining active path: publish the context-corrected
+candidate, apply recoverable Tracking configuration and verify managed controls,
+then establish a fresh true generation2 anchor using the existing owner function.
 
 ## Current candidate artifact — source d322a8a
 

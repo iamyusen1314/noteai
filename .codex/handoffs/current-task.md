@@ -42,10 +42,46 @@ the corrected read path and controlled rollout are verified. Readiness30/38 unti
 the approved complete business DoD is genuinely met.
 
 Current implementation: explicit Tracking opt-in pc_v5 integrates pinned
-v5.0.0/7077c88. Actual a4e5b93 candidate is built/checked on API-F; batch01 was
-DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
-matches full upstream under three socket-denied synthetic differential cases.
-No read success/newT0/managed release is claimed. Readiness30/38.
+v5.0.0/7077c88. Actual batch03 on API-F now verifies the owned note with the
+complete lawful session and original visible link context. Old batch01/02
+failures remain below. No newT0/managed release is claimed. Readiness30/38.
+
+## September11 19:55 Beijing — real owned read verified; controlled deployment in progress
+
+Batch03 started once11:55:42.164065UTC. It retained actual a4e image
+23f2d27c...1db2383 plus five read-only public source overlays from4cc77f4;
+the original image identity was not relabelled. Actual Python3.11.15/x86_64,
+Node20.20.2/curl_cffi0.15.0,23 base hashes plus5 overlays and fake signer passed.
+The real container's network-none fake-PTY check proved noecho/0600/noDB import.
+Private note-access.env was then staged from the existing visible same-note link,
+not browser hidden storage. Cookie candidate remains16 records; optionalSSK empty.
+Only private root0600 task files hold values; managed env remains unchanged.
+
+At11:55:43.749367UTC detail returnedHTTP200/code0/success true after DSL200 and
+session200/code0. Final11:55:43.752719 OWNED_READ_VERIFIED_NOT_A_SNAPSHOT, native
+likes4/saves2/comments2, physical3/init2/detail1/retries0/businesswrites0.
+This verifies the corrected real read path. The same-note context omission was
+a concrete adapter integration defect; the changed-context test resolved the
+preceding461/300031. It does not retroactively identify originalgen1's unknown
+business code or establish an observation snapshot/T0.
+
+Host batch03/out/xhs-repair-batch.jsonl:2843bytes/9 complete records,
+SHA67483b832a270d3cc731b4811008feff07571de6bec8d9d10e4558f307dd7e44.
+Local batch03-{preflight,launch,result,cleanup}-readback.txt under the existing
+Downloads/noteai-xhs-repair-20260911 retain safe readbacks. Exact exited0/PID0
+CIDfeb2590af3cb8ba86f1725032cabfb2df796922d8441b4eeff8675f49371a244
+removed11:56:58.842981UTC only after stdout592bytes and stderr0 were fsynced;
+journal unchanged. Repair batches total8 physical/init6/detail2; earlier extra
+diagnostic1 and generation1 admission1 remain separate. Reserve13/100 including
+this bounded batch, actual cost UNKNOWN_NOT_ZERO; budget never reset.
+
+Next in progress: real4cc77f4 candidate packaging/target-runtime checks, existing
+private ACR publication, controlled Tracking env merge/recovery and managed
+verification. Existing managed helper handles unit image CAS/restore only;
+add necessary private env application/restoration before claiming rollout.
+Existing unit already forwards the env file; no API/Payment/ALB dependency.
+Readiness and canonical Evidence unchanged. Do not replay batch03 or reuse its
+metrics/time as a newT0; obtain a fresh native anchor after controlled rollout.
 
 ## September11 19:31 Beijing — full session accepted; owned-link context repair
 

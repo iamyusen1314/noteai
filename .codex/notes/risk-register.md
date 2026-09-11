@@ -27,6 +27,15 @@
 
 ## Current detail access finding — batch02
 
+- Resolved by real batch03 at11:55:43UTC: original same-note link context plus
+  already accepted16-cookie session returned detailHTTP200/code0 and verified
+  owned4/2/2 metrics. Three physical requests,0 businesswrites/snapshot. Preserve
+  batch02's461/300031 and originalgen1 unknown detail; no retroactive rewriting.
+- Remaining deployment risk: private candidates are not yet in managed env, and
+  managed unit rehearsal restores the original image. Complete recoverable env
+  application and actual managed checks before freshT0; read success alone is
+  not complete Item34 acceptance. Cumulative reserve13/100, actual cost unknown.
+
 - New16-cookie session is actually accepted: user/me200/code0. Detail then returned
   HTTP461/code300031, without a usable note; exact failure is retained. No claim
   that461 proves CAPTCHA, expired credentials or signing failure.
@@ -47,9 +56,9 @@
 - Local runnable archive and11-file host package are retained. They have no ACR
   publication/managed acceptance/newT0 status. Do not reuse the rejected initial
   local image or infer a production read from offline tests.
-- Actual upstream session remains unverified. Await the legitimate existing
-  browser's full Request Cookie via the already-connected hidden input; do not
-  repeat the same two-record session test, reset credentials, or expand scope.
+- Actual session/detail are verified by batches02/03 above. The d322 artifact
+  lacks the4cc private-context integration; validate its correctly bound successor
+  before publishing. Do not repeat old requests or request another Cookie input.
 
 ## September11 — separate bounded generation1 error diagnosis
 
