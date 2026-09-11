@@ -48,6 +48,34 @@ failures remain below. No newT0/managed release is claimed. Readiness30/38.
 
 ## September11 19:55 Beijing — real owned read verified; controlled deployment in progress
 
+Follow-on local deployment preparation: source4cc77f4 Linux/amd64 candidate built
+from the existing base, actual Python3.11.15/Node20.20.2/curl_cffi0.15.0. Existing
+package probe verifies30source files,2real/app/model aliases and11host files;
+108 targeted candidate tests pass18.518s, networknone/no productionSecret.
+Image config afd7a2bc5cd6f02bde0a3fb10b04bcbff69de132992e603e44fa2a1405604ce8;
+local archive406080962bytes/SHA92beda8c6719a059094f49530b78feb42314231b8bc67ed1d114971e0c9bb182.
+No registry digest or production deployment has yet been obtained.
+
+Existing managed helper now has TrackingEnvUpdate: same Item34 lock/quiescent
+host, exclusive private original/candidate backups, bounded strict four-key
+merge, fsync+exact-byte CAS apply/restore and rehydration from original task files.
+Non-target configuration and Secret values/hashes stay out of the journal. A
+persistent journal failure cannot prevent safe restore; it remains explicitly
+UNKNOWN afterward. Tracking-only env allowlist and existing deployment-secret
+documentation include the two new private context/storage keys.44 targeted
+Python3.11 tests pass, including sustained journal failure, concurrent changes,
+wrong object, duplicate keys, Secret-free logs and actual private-file restore.
+This is ready host implementation, not an applied production config.
+
+Current transfer caution: the Workbench file panel points to an expired old
+session, while its terminal initially remained usable. A public multi-line source
+paste was not executed and left the old shell at continuation input; subsequent
+release-parts0–14 have no verified execution. Do not replay them blindly. No
+candidate-source archive landing or remote build is claimed. A fresh Workbench
+tab is using existing enabled password-free root connection; reconcile exact
+source-file/part metadata through the fresh terminal before continuing transfer.
+Olddiagnostic results are sealed and unaffected. No owner ACR password is needed.
+
 Batch03 started once11:55:42.164065UTC. It retained actual a4e image
 23f2d27c...1db2383 plus five read-only public source overlays from4cc77f4;
 the original image identity was not relabelled. Actual Python3.11.15/x86_64,

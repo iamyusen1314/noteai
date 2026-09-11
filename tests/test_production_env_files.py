@@ -16,6 +16,17 @@ SAFE_DISABLED_VALUE = "0"
 
 
 class ProductionEnvFileTests(unittest.TestCase):
+    def test_private_note_context_and_optional_signing_state_are_tracking_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._env_file(Path(directory), "tracking.env",
+                                  "DATABASE_URL=FAKE\nNOTEAI_XHS_NOTE_ACCESS_JSON=FAKE\n"
+                                  "NOTEAI_XHS_WEB_SSK_JSON=\n")
+            validator.validate_role_env_file("xhs_tracking", path)
+            for role in validator.ROLE_ALLOWED_SECRET_KEYS:
+                if role != "xhs_tracking":
+                    with self.subTest(role=role), self.assertRaises(validator.EnvFileValidationError):
+                        validator.validate_role_env_file(role, path)
+
     def _env_file(self, directory: Path, name: str, body: str) -> Path:
         path = directory / name
         path.write_text(body, encoding="utf-8")

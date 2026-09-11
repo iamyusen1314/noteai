@@ -98,6 +98,8 @@ ROLE_ALLOWED_SECRET_KEYS = {
         {
             "DATABASE_URL",
             "NOTEAI_XHS_COOKIES_JSON",
+            "NOTEAI_XHS_NOTE_ACCESS_JSON",
+            "NOTEAI_XHS_WEB_SSK_JSON",
         }
     ),
 }

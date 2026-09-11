@@ -100,7 +100,8 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_AI_WORKER_STORE_SECRET_ACCESS_KEY` and optional
   `NOTEAI_AI_WORKER_STORE_SESSION_TOKEN`.
 - XHS Trends: `DATABASE_URL` and `NOTEAI_XHS_COOKIES_JSON`.
-- XHS Tracking: `DATABASE_URL` and `NOTEAI_XHS_COOKIES_JSON`.
+- XHS Tracking: `DATABASE_URL`, `NOTEAI_XHS_COOKIES_JSON`,
+  `NOTEAI_XHS_NOTE_ACCESS_JSON` and optional `NOTEAI_XHS_WEB_SSK_JSON`.
 
 These are allowed names, not mandatory values. Provider-specific credentials
 must only be present when that separately approved provider path is enabled.
@@ -112,7 +113,12 @@ Encode only inside the approved Secret materializer and never print or render
 the resulting value during validation.
 The API and AI Worker storage credentials are deliberately distinct and must
 not be reused across roles or as model-artifact credentials.
-`NOTEAI_XHS_COOKIES_JSON` is the only implemented direct-XHS session input.
+`NOTEAI_XHS_COOKIES_JSON` supplies the direct-XHS session. Tracking's explicit
+pc_v5 path also accepts the original same-note private access context through
+`NOTEAI_XHS_NOTE_ACCESS_JSON` and optional existing signing storage through
+`NOTEAI_XHS_WEB_SSK_JSON`. These private values are Tracking-only and must never
+enter canonical note URLs, image labels, logs or Git. The current verified repair
+uses an empty optional signing-state value; it does not manufacture one.
 It may exist only in the two distinct `0600` XHS role files; API/Admin files
 must reject it. Values are never printed. The old snapshot-upload and
 authorized-trend tokens are not accepted by either managed XHS role.

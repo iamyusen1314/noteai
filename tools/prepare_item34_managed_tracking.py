@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Offline managed Tracking preparation using the existing suspended unit.
 
-No host command, environment file, database, supplier or observation is opened.
+The default CLI opens no host environment, database, supplier or observation.
+Explicit host adapters also support a private, recoverable Tracking env update.
 Inputs are separately reviewed Secret-free unit copies and restricted native
 readbacks. This module's CLI only renders files; the existing durable launcher
 has a separate managed action requiring future production authorization.
@@ -305,6 +306,184 @@ class NativeHostAdapter:
 
 def digest(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _private_bytes(path: Path) -> bytes:
+    """Read only a bounded private file; never return its value to a journal."""
+    parent = path.parent.lstat()
+    if (not stat.S_ISDIR(parent.st_mode) or path.parent.is_symlink()
+            or parent.st_uid != os.geteuid() or parent.st_mode & 0o022):
+        raise ValueError("tracking_env_directory")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                or before.st_uid != os.geteuid() or stat.S_IMODE(before.st_mode) != 0o600
+                or not 0 < before.st_size <= 65536):
+            raise ValueError("tracking_env_file_identity")
+        raw = os.read(fd, 65537)
+        identity = lambda m: (m.st_dev, m.st_ino, m.st_size, m.st_mtime_ns, m.st_ctime_ns)
+        if (identity(before) != identity(os.fstat(fd))
+                or identity(before) != identity(path.lstat()) or len(raw) != before.st_size):
+            raise ValueError("tracking_env_read_race")
+        return raw
+    finally:
+        os.close(fd)
+
+
+def merge_tracking_env(original: bytes, cookies: bytes, access: bytes) -> bytes:
+    """Change only the four proven v5 inputs; preserve every other line."""
+    def rows(raw):
+        result = {}
+        for line in raw.decode("utf-8").splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            key, separator, value = line.partition("=")
+            if (not separator or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key)
+                    or key in result or "\x00" in value):
+                raise ValueError()
+            result[key] = value
+        return result
+
+    def unique(pairs):
+        if len(dict(pairs)) != len(pairs):
+            raise ValueError()
+        return dict(pairs)
+
+    try:
+        current, cookie_values, access_values = rows(original), rows(cookies), rows(access)
+        if ("DATABASE_URL" not in current or set(cookie_values) != {"NOTEAI_XHS_COOKIES_JSON"}
+                or set(access_values) != {"NOTEAI_XHS_NOTE_ACCESS_JSON"}):
+            raise ValueError()
+        records = json.loads(cookie_values["NOTEAI_XHS_COOKIES_JSON"], object_pairs_hook=unique)
+        if (not isinstance(records, list) or not 2 <= len(records) <= 128
+                or any(not isinstance(r, dict) or not isinstance(r.get("name"), str)
+                       or not isinstance(r.get("value"), str) or not r["value"] for r in records)):
+            raise ValueError()
+        names = [r["name"] for r in records]
+        if len(set(names)) != len(names) or not {"a1", "web_session"}.issubset(names):
+            raise ValueError()
+        context = json.loads(access_values["NOTEAI_XHS_NOTE_ACCESS_JSON"], object_pairs_hook=unique)
+        if (not isinstance(context, dict) or set(context) != {"note_id", "xsec_token", "xsec_source"}
+                or context["note_id"] != "6a7954010000000026034707"
+                or not isinstance(context["xsec_token"], str)
+                or not re.fullmatch(r"[A-Za-z0-9_+/=-]{1,512}", context["xsec_token"])
+                or not isinstance(context["xsec_source"], str)
+                or not re.fullmatch(r"[a-z][a-z0-9_]{0,39}", context["xsec_source"])):
+            raise ValueError()
+        updates = {**cookie_values, **access_values, "NOTEAI_XHS_WEB_SSK_JSON": "",
+                   "NOTEAI_XHS_PROTOCOL": "pc_v5"}
+        output = []
+        for line in original.decode("utf-8").splitlines(keepends=True):
+            key = line.partition("=")[0]
+            output.append(key + "=" + updates.pop(key) + "\n" if key in updates else line)
+        body = "".join(output)
+        if body and not body.endswith("\n"):
+            body += "\n"
+        body += "".join(key + "=" + value + "\n" for key, value in updates.items())
+        result = body.encode("utf-8")
+        if len(result) > 65536:
+            raise ValueError()
+        return result
+    except (ValueError, TypeError, UnicodeError):
+        raise ValueError("tracking_env_candidate_invalid") from None
+
+
+class TrackingEnvUpdate:
+    """Use the existing host lock/journal, private backups and exact-byte CAS.
+
+    Explicit callers own success/rollback policy. After disconnection, inspect
+    the original journal and these same files; never stage another candidate.
+    Neither private bytes nor their hashes are recorded in the journal.
+    """
+    def __init__(self, adapter, journal):
+        self.adapter, self.journal = adapter, journal
+        self.target = adapter.root / "etc/noteai/xhs-tracking.env"
+        self.original = adapter.workdir / "tracking-original.env"
+        self.candidate = adapter.workdir / "tracking-candidate.env"
+
+    def _quiescent(self):
+        if not self.adapter.active:
+            raise ValueError("managed_lock_required")
+        self.adapter.stopped_state()
+
+    @staticmethod
+    def _sync_directory(path):
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    def prepare(self, cookie_file: Path, access_file: Path):
+        self._quiescent()
+        original = _private_bytes(self.target)
+        candidate = merge_tracking_env(original, _private_bytes(cookie_file), _private_bytes(access_file))
+        for path, data in ((self.original, original), (self.candidate, candidate)):
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+        self._sync_directory(self.adapter.workdir)
+        self.journal.write("tracking_env_prepared", private_original_saved=True,
+                           changed_keys=["NOTEAI_XHS_COOKIES_JSON", "NOTEAI_XHS_NOTE_ACCESS_JSON",
+                                         "NOTEAI_XHS_WEB_SSK_JSON", "NOTEAI_XHS_PROTOCOL"])
+
+    def _replace(self, expected, replacement):
+        if _private_bytes(self.target) != expected:
+            raise ValueError("tracking_env_cas_conflict")
+        fd, name = tempfile.mkstemp(prefix=".noteai-tracking-env-", dir=self.target.parent)
+        try:
+            with os.fdopen(fd, "wb") as output:
+                os.fchmod(output.fileno(), 0o600)
+                output.write(replacement)
+                output.flush()
+                os.fsync(output.fileno())
+            if _private_bytes(self.target) != expected:
+                raise ValueError("tracking_env_cas_conflict")
+            os.replace(name, self.target)
+            self._sync_directory(self.target.parent)
+            if _private_bytes(self.target) != replacement:
+                raise ValueError("tracking_env_apply_unknown")
+        finally:
+            if os.path.exists(name):
+                os.unlink(name)
+
+    def apply(self):
+        self._quiescent()
+        original, candidate = _private_bytes(self.original), _private_bytes(self.candidate)
+        cookie = access = b""
+        for line in candidate.splitlines(keepends=True):
+            if line.startswith(b"NOTEAI_XHS_COOKIES_JSON="):
+                cookie += line
+            if line.startswith(b"NOTEAI_XHS_NOTE_ACCESS_JSON="):
+                access += line
+        if merge_tracking_env(original, cookie, access) != candidate:
+            raise ValueError("tracking_env_candidate_drift")
+        self.journal.write("tracking_env_apply_intent")
+        self._replace(original, candidate)
+        self.journal.write("tracking_env_applied", private_original_preserved=True)
+
+    def restore(self):
+        self._quiescent()
+        original, candidate = _private_bytes(self.original), _private_bytes(self.candidate)
+        current = _private_bytes(self.target)
+        if current not in (original, candidate):
+            raise ValueError("tracking_env_cas_conflict")
+        journal_failed = False
+        try:
+            self.journal.write("tracking_env_restore_intent")
+        except Exception:
+            journal_failed = True
+        if current != original:
+            self._replace(candidate, original)
+        try:
+            self.journal.write("tracking_env_restored", original_bytes_verified=True)
+        except Exception:
+            journal_failed = True
+        if journal_failed:
+            raise ValueError("tracking_env_restored_journal_unknown")
 
 
 def render_unit(template: bytes, current_unit: bytes, *, current_sha256: str,

@@ -534,6 +534,123 @@ class NativeManagedBindingTests(unittest.TestCase):
             self.fail("unsafe lock directory accepted")
 
 
+class PrivateTrackingEnvTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.work = self.root / "task"
+        self.work.mkdir(mode=0o700)
+        self.target = self.root / "etc/noteai/xhs-tracking.env"
+        self.target.parent.mkdir(parents=True)
+        self.original = (b"# keep this comment\nDATABASE_URL=FAKE_DATABASE\n"
+                         b"NOTEAI_XHS_COOKIES_JSON=[]\nNOTEAI_XHS_COLLECTION_SUSPENDED=0\n"
+                         b"UNRELATED=keep-exactly\nNOTEAI_XHS_WEB_SSK_JSON=old\n")
+        self.cookie = self.work / "cookies.env"
+        self.access = self.work / "access.env"
+        self.records = [{"name": "a1", "value": "FAKE_A1"},
+                        {"name": "web_session", "value": "FAKE_SESSION"}]
+        self.context = {"note_id": "6a7954010000000026034707",
+                        "xsec_token": "FAKE_ACCESS", "xsec_source": "pc_user"}
+        self.write(self.target, self.original)
+        self.write(self.cookie, b"NOTEAI_XHS_COOKIES_JSON=" + json.dumps(self.records).encode() + b"\n")
+        self.write(self.access, b"NOTEAI_XHS_NOTE_ACCESS_JSON=" + json.dumps(self.context).encode() + b"\n")
+        self.adapter = SimpleNamespace(root=self.root, workdir=self.work, active=True,
+                                       stopped_state=mock.Mock(return_value={}))
+        self.journal = Journal(self.work / "journal.jsonl")
+        self.addCleanup(self.journal.close)
+        self.update = managed.TrackingEnvUpdate(self.adapter, self.journal)
+
+    @staticmethod
+    def write(path, raw):
+        path.write_bytes(raw)
+        path.chmod(0o600)
+
+    def prepare(self):
+        self.update.prepare(self.cookie, self.access)
+
+    def test_actual_private_files_apply_and_restore_original_bytes_without_log_secrets(self):
+        self.prepare()
+        self.update.apply()
+        changed = self.target.read_bytes()
+        for line in (b"# keep this comment\n", b"DATABASE_URL=FAKE_DATABASE\n",
+                     b"UNRELATED=keep-exactly\n", b"NOTEAI_XHS_COLLECTION_SUSPENDED=0\n"):
+            self.assertIn(line, changed)
+        self.assertIn(b"NOTEAI_XHS_PROTOCOL=pc_v5\n", changed)
+        self.assertIn(b"NOTEAI_XHS_WEB_SSK_JSON=\n", changed)
+        self.assertEqual(self.target.stat().st_mode & 0o777, 0o600)
+        # Rehydrate the original task after a lost connection, without preparing again.
+        recovered = managed.TrackingEnvUpdate(self.adapter, self.journal)
+        recovered.restore()
+        self.assertEqual(self.target.read_bytes(), self.original)
+        self.assertEqual(recovered.candidate.read_bytes(), changed)
+        self.assertNotIn(b"FAKE_", (self.work / "journal.jsonl").read_bytes())
+        with self.assertRaises(FileExistsError):
+            self.prepare()
+
+    def test_concurrent_config_change_is_never_overwritten_on_apply_or_restore(self):
+        self.prepare()
+        drift = self.original + b"NEW_OWNER_SETTING=keep\n"
+        self.write(self.target, drift)
+        for operation in (self.update.apply, self.update.restore):
+            with self.assertRaisesRegex(ValueError, "tracking_env_cas_conflict"):
+                operation()
+            self.assertEqual(self.target.read_bytes(), drift)
+
+    def test_candidate_cannot_change_database_or_unrelated_keys(self):
+        self.prepare()
+        self.write(self.update.candidate, self.update.candidate.read_bytes().replace(
+            b"FAKE_DATABASE", b"WRONG_DATABASE"))
+        with self.assertRaisesRegex(ValueError, "tracking_env_candidate_drift"):
+            self.update.apply()
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+    def test_bad_object_duplicate_keys_or_symlink_never_mutate_managed_env(self):
+        invalid = self.access.read_bytes().replace(b"6a7954010000000026034707", b"0" * 24)
+        with self.assertRaisesRegex(ValueError, "^tracking_env_candidate_invalid$"):
+            managed.merge_tracking_env(self.original, self.cookie.read_bytes(), invalid)
+        with self.assertRaisesRegex(ValueError, "^tracking_env_candidate_invalid$"):
+            managed.merge_tracking_env(self.original, self.cookie.read_bytes() * 2, self.access.read_bytes())
+        link = self.work / "cookie-link.env"
+        link.symlink_to(self.cookie)
+        with self.assertRaises(OSError):
+            self.update.prepare(link, self.access)
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+    def test_fsync_failure_after_replace_remains_recoverable_without_reapply(self):
+        self.prepare()
+        write = self.journal.write
+        def fail_result(event, **data):
+            if event == "tracking_env_applied":
+                raise OSError("synthetic storage failure")
+            return write(event, **data)
+        with mock.patch.object(self.journal, "write", side_effect=fail_result):
+            with self.assertRaises(OSError):
+                self.update.apply()
+        self.assertEqual(self.target.read_bytes(), self.update.candidate.read_bytes())
+        self.update.restore()
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+    def test_lock_and_quiescent_service_are_required(self):
+        self.adapter.active = False
+        with self.assertRaisesRegex(ValueError, "managed_lock_required"):
+            self.prepare()
+        self.adapter.active = True
+        self.adapter.stopped_state.side_effect = ValueError("managed_not_quiescent")
+        with self.assertRaisesRegex(ValueError, "managed_not_quiescent"):
+            self.prepare()
+        self.assertFalse(self.update.original.exists())
+
+    def test_persistent_journal_failure_cannot_prevent_verified_env_restore(self):
+        self.prepare()
+        self.update.apply()
+        self.journal.failed = True  # Real Journal remains failed after any fsync error.
+        recovered = managed.TrackingEnvUpdate(self.adapter, self.journal)
+        with self.assertRaisesRegex(ValueError, "tracking_env_restored_journal_unknown"):
+            recovered.restore()
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+
 class ManagedLauncherTests(unittest.TestCase):
     def args(self):
         return ["managed", "--journal", "/unopened/managed.host.jsonl", "--image", NEW,
