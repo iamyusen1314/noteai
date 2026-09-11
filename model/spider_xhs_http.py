@@ -644,7 +644,23 @@ class SpiderXHSHTTPAdapter:
         if os.environ.get("NOTEAI_XHS_PROTOCOL", "") == "pc_v5":
             if os.environ.get("NOTEAI_XHS_SERVICE", "") != "tracking":
                 raise XHSAdapterError("runtime_role_not_allowed")
-            from spider_xhs_v5 import V5Detail
+            from spider_xhs_v5 import V5Detail, runtime
+            try:
+                context = runtime.note_access_context(
+                    os.environ.get("NOTEAI_XHS_NOTE_ACCESS_JSON", ""), note_id)
+                # Keep canonical identity free of access credentials. Only this
+                # task's same-object request receives its original link context.
+                strict_query = parse_qs(parsed.query, keep_blank_values=True)
+                for key, limit in (("xsec_token", 512), ("xsec_source", 40)):
+                    values = strict_query.get(key, [])
+                    if len(values) > 1 or (values and len(values[0]) > limit):
+                        raise ValueError()
+                    if context and values and values[0] != context[key]:
+                        raise ValueError()
+                    if context:
+                        data[key] = context[key]
+            except (RuntimeError, ValueError, TypeError):
+                raise XHSAdapterError("invalid_note_access_context") from None
             reader = V5Detail(credentials=self.credentials, assert_ready=self._assert_ready,
                               client=self._client, observe=self.http_observer)
             try:

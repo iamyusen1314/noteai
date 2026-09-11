@@ -4,10 +4,48 @@ import hashlib
 import base64
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).parent
+
+
+def note_access_context(raw, note_id):
+    """Validate the existing owned link's private context; never create a token."""
+    if not raw:
+        return {}
+    try:
+        if not isinstance(raw, str) or len(raw) > 4096:
+            raise ValueError()
+        if raw.startswith("{"):
+            def unique_pairs(pairs):
+                if len(dict(pairs)) != len(pairs):
+                    raise ValueError()
+                return dict(pairs)
+            value = json.loads(raw, object_pairs_hook=unique_pairs)
+        else:
+            url = urlsplit(raw)
+            if (url.scheme != "https" or url.hostname != "www.xiaohongshu.com"
+                    or url.username or url.password or url.port not in (None, 443)
+                    or url.fragment or url.path != "/explore/" + note_id):
+                raise ValueError()
+            query = parse_qs(url.query, keep_blank_values=True)
+            if any(len(query.get(key, [])) != 1 for key in ("xsec_token", "xsec_source")):
+                raise ValueError()
+            value = {"note_id": note_id, "xsec_token": query["xsec_token"][0],
+                     "xsec_source": query["xsec_source"][0]}
+        if (not isinstance(value, dict) or set(value) != {"note_id", "xsec_token", "xsec_source"}
+                or value["note_id"] != note_id
+                or not isinstance(value["xsec_token"], str)
+                or not re.fullmatch(r"[A-Za-z0-9_+/=-]{1,512}", value["xsec_token"])
+                or not isinstance(value["xsec_source"], str)
+                or not re.fullmatch(r"[a-z][a-z0-9_]{0,39}", value["xsec_source"])):
+            raise ValueError()
+        return value
+    except (ValueError, TypeError):
+        raise RuntimeError("invalid_note_access_context") from None
 
 
 def session_signing_storage(raw):

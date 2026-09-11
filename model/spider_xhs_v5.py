@@ -109,6 +109,9 @@ class V5Detail:
         self.observe({"phase": "response", "request_kind": kind, "sequence": sequence,
                       "at": datetime.now(timezone.utc).isoformat(), "response_bytes": len(raw),
                       "response_diagnostics": meta})
+        if response.status_code in {461, 471}:
+            # A safety stop, not a claim about the cause or a CAPTCHA diagnosis.
+            raise XHSAdapterError("access_restricted", diagnostics=meta)
         if len(raw) > MAX_RESPONSE_BYTES:
             raise XHSAdapterError("remote_response_too_large", diagnostics=meta)
         if kind == "dsl" and 200 <= response.status_code < 300:

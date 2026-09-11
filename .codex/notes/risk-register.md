@@ -25,6 +25,19 @@
   their real use still needs lawful browser context. Keep original managed env,
   Trends, oldattempts/T0/0020 and snapshots untouched until controlled verified rollout.
 
+## Current detail access finding — batch02
+
+- New16-cookie session is actually accepted: user/me200/code0. Detail then returned
+  HTTP461/code300031, without a usable note; exact failure is retained. No claim
+  that461 proves CAPTCHA, expired credentials or signing failure.
+- Existing legal browser URL carries access parameters omitted by canonical-only
+  tasks. New private same-object context keeps credentials out of persistent note
+  identity and can test this concrete gap through the same endpoint. Never use
+  unrelated discovery, account/proxy rotation or safety-flag clearing.
+- Broader access_restricted stopping is local-only until release; existing failed
+  results/claims/T0/0020 stay untouched. No observed session success alone can
+  establish a new T0 or satisfy managed Tracking acceptance.
+
 ## Current candidate verification
 
 - Local d322a8a candidate is fully bound through30 source paths and both actual

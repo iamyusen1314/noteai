@@ -91,11 +91,11 @@ PROSPECTIVE_IMAGE_SOURCE_LABELS.update({
 # Generation2 uses the repaired read path; prior image identities stay sealed.
 RECOVERY_IMAGE_SOURCE_LABELS = dict(PROSPECTIVE_IMAGE_SOURCE_LABELS)
 RECOVERY_IMAGE_SOURCE_LABELS.update({
-    'com.noteai.item34.source.crawler-sha256':('/app/model/crawler.py','cd7d1dc738529a81101e90d14c2e32791c7067f3e89b5a0eab2a39875da6e0fa'),
+    'com.noteai.item34.source.crawler-sha256':('/app/model/crawler.py','92bfa0d466a840e1be2b80b64e57116fb988cf90e0e1499ec7f1fcc8eeb2ae4d'),
     'com.noteai.item34.source.tracking-contract-sha256':('/app/model/tracking_contract.py','172ef39b85cfe5ae228d9aa4fdf6ec10a2269f0a816605f60dc577098dcd1a3e'),
-    'com.noteai.item34.source.spider-sha256':('/app/model/spider_xhs_http.py','6ddcbfba6fbbb150744617eae63a3c0ceae50c2c4f7c8229bb81137f45af55f9'),
-    'com.noteai.item34.source.v5-reader-sha256':('/app/model/spider_xhs_v5.py','36417a7ed30926c3243b422313ef4ea264cbd2550da62b5af963598a9f326047'),
-    'com.noteai.item34.source.v5-runtime-sha256':('/app/model/vendor/spider_xhs/v5/runtime.py','45bb816e6205be506a0af4e9141507927c4a7bf3c1632aeedbe0ae6a139569dc'),
+    'com.noteai.item34.source.spider-sha256':('/app/model/spider_xhs_http.py','360a43f781e55e2c529387e70ef7be3b5f47a716bf6ede56d3daaaefa9b6bea1'),
+    'com.noteai.item34.source.v5-reader-sha256':('/app/model/spider_xhs_v5.py','b2655f4a21cb04cd9a56aa44b97c17624537331065e34ad4a9acd6a4ac812f72'),
+    'com.noteai.item34.source.v5-runtime-sha256':('/app/model/vendor/spider_xhs/v5/runtime.py','bcb3663f0db104341175f67dcf71d38c1c00f76b6a6cfe6388782f2e40026ffe'),
     'com.noteai.item34.source.v5-bridge-sha256':('/app/model/vendor/spider_xhs/v5/bridge.js','6f2989c286d6e1f0c3b2d0422c6a66c37938a99026593d5c006d751d0e653e7b'),
     'com.noteai.item34.source.v5-headers-sha256':('/app/model/vendor/spider_xhs/v5/headers.py','1f277bbc30af5b1b6d0dd0f44549dc97b95ac01a956f9dbb3d8f1a6b2db22356'),
     'com.noteai.item34.source.v5-manifest-sha256':('/app/model/vendor/spider_xhs/v5/upstream.json','ede5937cf326c3fe19edbae8e98cecc8dd9b3b5b983a87594f8d262336328fb6'),

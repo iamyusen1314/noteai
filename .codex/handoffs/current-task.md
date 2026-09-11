@@ -47,6 +47,70 @@ DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
 matches full upstream under three socket-denied synthetic differential cases.
 No read success/newT0/managed release is claimed. Readiness30/38.
 
+## September11 19:31 Beijing — full session accepted; owned-link context repair
+
+Batch02 started once11:31:05.433629UTC with exact a4e5b93 image and fresh16-cookie
+input. DSL200, sessionHTTP200/code0/success true, then detailHTTP461/code300031/
+success true; final11:31:07.023421 READ_NOT_VERIFIED/remote_http_error.3 physical,
+2 initialization,1 detail admission,0 retry/businesswrite/qualifying snapshot.
+This proves the new lawful session is accepted. It does not identify which old
+Cookie/context field caused the prior-3. No old24h failure is retroactively assigned
+these details. Budget same12/100 conservative reserve; actual UNKNOWN_NOT_ZERO.
+
+Host batch02/out/xhs-repair-batch.jsonl:2788bytes/9complete records/no partial,
+SHAa302fe172e49c367d52df06f87f17c5ff27127e9c6ff7f325f751c774ff27db3.
+Local batch02-result-readback.txt holds safe full events. Exact exitedCID
+3097b3a65790aecac1cd4b7314a7afe128595014afbc213736675119be317cab hadPID0/OOMfalse,
+exit1. At11:35:57.651465UTC its stdout534bytes and stderr0 were fsynced under
+batch02, then the exact container removed; journal unchanged. CandidateCookie
+remains root0600 in the original task staging directory, managed env unchanged.
+
+Existing Chrome owned-note visible URL has xsec_token and xsec_source; no value
+was output. Its current DOM has no matched CAPTCHA/login/unavailable/access notice.
+This is not enough to declare API reading successful or infer461 means CAPTCHA.
+Pinned upstream7077c88 apis/xhs_pc_apis.py503-527 preserves these link parameters;
+our adapter already understands URLquery, but diagnostic and Tracking pass canonical
+URLs without private context. Confirmed implementation gap, causal hypothesis for
+new detail failure. No new search/feed discovery, challenge workaround or URL identity
+change is needed to test legitimate same-object link context.
+
+Minimal local repair: same-object bounded private NOTEAI_XHS_NOTE_ACCESS_JSON,
+existing hidden stager's --stage-note-access branch, noDB imports, exclusive0600
+note-access.env. Preserve original token/source only in requests, never canonical
+DBURL/Evidence/labels. Reject wrong objects, duplicate/conflicting/oversized input
+beforeDSL. pc_v5 HTTP461/471 now yields broad access_restricted and stops/releases
+remaining claimed work; it does NOT claim a CAPTCHA cause. Old result remains
+remote_http_error.31 Python3.11.14 focused tests pass2.495s, including realNode
+sign/wire and original secret/no-replay checks. One SQLite round-release test
+passes0.052s under projectPython3.14; targetimage verification remains to follow.
+Initial bare-Python dependency and test PATH isolation failures were corrected;
+no production call was used for those fixes. Future wrapper/durable hashes updated
+for changed components; old artifact identities remain historical.
+Next IN_PROGRESS: safely stage visible owned-link context, verify the task overlay
+in actual Python3.11 image, then a new finite changed-context read. No newT0,
+managed release, ACR publication, migration or automation yet. Readiness30/38.
+
+## September11 — batch02 approved-context verification IN_PROGRESS
+
+Owner completed hidden staging:16 Cookie records, optional webSsk absent,
+no requests/business writes. Fresh host preflight verified root0600 candidate,
+no active original staging process, unchanged sealed batch01 journal, actual
+Python3.11.15/Node20.20.2/curl_cffi0.15.0/a4e5b93 source23files and fake signer.
+Readonly noteai_xhs_tracking identity/safety passed; persistent safety absent,
+no session stop. Candidate's16 records are configured/not locally expired;
+this does not prove upstream session acceptance. No Secret value was returned.
+
+Batch02 deliberately reuses the SAME actual a4e5b93 image23f2d27c...1db2383,
+only replacing two-record input with full16 and explicitly emptying optional
+webSsk. Independent AST/source comparison confirms this --repair-v5 path matches
+d322 with optional state absent. This isolates the session-context hypothesis;
+it is not d322 artifact acceptance. Fresh batch02 directory/journal and exact
+noteai-xhs-repair-20260911-b02 container, max3 DSL/session/owned-detail requests,
+zero retry/businesswrite/qualifying snapshot. Stop at first failure; UNKNOWN
+reads this original result only. Launch is next, not claimed completed here.
+Reserve another RMB1; same cumulative reserve12/100 (88 remaining), actual
+incremental cost UNKNOWN_NOT_ZERO. Do not reset old budgets/admissions/Evidence.
+
 ## September11 — owner guided session input; original private task reattached
 
 Owner now sees a me request in Chrome Network after the guided normal-page refresh

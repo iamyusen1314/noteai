@@ -962,6 +962,7 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
             # is included in the persisted summary.
             direct_code = getattr(exc, "code", None)
             stop_codes = {
+                "access_restricted",
                 "challenge",
                 "cooldown",
                 "login_required",
@@ -977,6 +978,7 @@ async def _process_tracking_notes(notes: list[dict], fetch_detail) -> dict:
                 "runtime_role_not_allowed",
                 "operation_not_allowed",
                 "invalid_note_url",
+                "invalid_note_access_context",
                 "signer_asset_missing",
                 "signer_asset_integrity_failed",
                 "signer_wrapper_missing",

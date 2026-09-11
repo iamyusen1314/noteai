@@ -79,6 +79,34 @@ class ResponseDiagnosticTests(unittest.TestCase):
             with self.assertRaises(diagnostic.getpass.GetPassWarning):
                 diagnostic.private_input('hidden')
 
+    def test_private_note_access_staging_is_same_object_only_and_exclusive(self):
+        from vendor.spider_xhs.v5.runtime import note_access_context
+        url = diagnostic.NOTE_URL + "?xsec_token=FAKE_ACCESS_TOKEN%3D%3D&xsec_source=pc_user"
+        context = note_access_context(url, diagnostic.NOTE_URL.rsplit("/", 1)[1])
+        self.assertEqual(context["xsec_token"], "FAKE_ACCESS_TOKEN==")
+        for bad in (url.replace("https:", "http:"), url.replace("6a795401", "0a795401"),
+                    url + "&xsec_token=FAKE_OTHER", json.dumps(context)[:-1] + ',"xsec_source":"pc_feed"}'):
+            with self.assertRaisesRegex(RuntimeError, "invalid_note_access_context"):
+                note_access_context(bad, diagnostic.NOTE_URL.rsplit("/", 1)[1])
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "note-access.env"
+            output = io.StringIO()
+            with mock.patch.object(diagnostic, "Path", return_value=path), \
+                 mock.patch.object(diagnostic.os, "geteuid", return_value=0), \
+                 mock.patch.object(sys.stdin, "isatty", return_value=True), \
+                 mock.patch.object(sys.stderr, "isatty", return_value=True), \
+                 mock.patch.object(diagnostic.getpass, "getpass", return_value=url) as prompt, \
+                 mock.patch.object(sys, "stdout", output), mock.patch.object(diagnostic, "readonly_safety") as db_read:
+                self.assertEqual(diagnostic.stage_session(note_access=True), 0)
+                with self.assertRaisesRegex(diagnostic.DiagnosticStop, "existing_session_candidate"):
+                    diagnostic.stage_session(note_access=True)
+                prompt.assert_called_once()
+                db_read.assert_not_called()
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(path.read_text().split("=", 1)[0], "NOTEAI_XHS_NOTE_ACCESS_JSON")
+            self.assertEqual(json.loads(path.read_text().split("=", 1)[1]), context)
+            self.assertNotIn("FAKE_ACCESS", output.getvalue())
+
     def execute(self, handler, *, safety=lambda: {"session_blocked": False}):
         def send(request):
             self.sent.append(request)

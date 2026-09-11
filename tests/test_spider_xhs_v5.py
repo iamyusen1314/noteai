@@ -84,6 +84,56 @@ class V5ReadTests(unittest.TestCase):
         self.assertEqual(events[-1]["response_diagnostics"]["business_code"], -3)
         self.assertNotIn("FAKE", json.dumps(events))
 
+    def test_private_owned_link_context_reaches_signature_and_wire_without_changing_identity(self):
+        note_id = self.detail()["source_note_id"]
+        context = {"note_id": note_id, "xsec_token": "FAKE_ACCESS_TOKEN==", "xsec_source": "pc_user"}
+        reader, sent, events = self.reader([
+            self.dsl(), httpx.Response(200, json={"success": True, "code": 0, "data": {"user_id": "0123456789abcdef01234567"}}),
+            httpx.Response(200, json={"success": True, "code": 0, "data": {"items": [{
+                "id": note_id, "note_card": {"user": {"user_id": "0123456789abcdef01234567"},
+                    "interact_info": {"liked_count": "4", "collected_count": "2", "comment_count": "0"}}}]}}),
+        ])
+        adapter = legacy.SpiderXHSHTTPAdapter(credentials=self.credentials(), client=reader.client, http_observer=events.append)
+        canonical = "https://www.xiaohongshu.com/explore/" + note_id
+        with mock.patch.dict(os.environ, {"PATH": os.environ["PATH"], "NOTEAI_XHS_PROTOCOL": "pc_v5", "NOTEAI_XHS_SERVICE": "tracking",
+                "NOTEAI_XHS_NOTE_ACCESS_JSON": json.dumps(context)}, clear=True), \
+             mock.patch.object(adapter, "_assert_ready"), mock.patch.object(runtime, "sign", wraps=runtime.sign) as sign:
+            self.assertTrue(adapter.note_detail(canonical)["success"])
+        body = json.loads(sent[-1].content)
+        self.assertEqual(body["source_note_id"], note_id)
+        self.assertEqual(body["xsec_token"], context["xsec_token"])
+        self.assertEqual(body["xsec_source"], context["xsec_source"])
+        self.assertEqual(sign.call_args.args[2], body)
+        self.assertEqual(len(sent), 3)
+        self.assertNotIn("FAKE_ACCESS", json.dumps(events))
+        self.assertNotIn("?", canonical)
+
+    def test_wrong_or_conflicting_access_context_is_refused_before_dsl(self):
+        note_id = self.detail()["source_note_id"]
+        canonical = "https://www.xiaohongshu.com/explore/" + note_id
+        context = {"note_id": note_id, "xsec_token": "FAKE_ACCESS", "xsec_source": "pc_user"}
+        for stored, url in [(dict(context, note_id="0" * 24), canonical),
+                            (dict(context, xsec_token="x" * 513), canonical),
+                            (context, canonical + "?xsec_token=DIFFERENT"),
+                            (context, canonical + "?xsec_token=FAKE_ACCESS&xsec_token=FAKE_ACCESS")]:
+            adapter = legacy.SpiderXHSHTTPAdapter(credentials=self.credentials())
+            with mock.patch.dict(os.environ, {"NOTEAI_XHS_PROTOCOL": "pc_v5", "NOTEAI_XHS_SERVICE": "tracking",
+                    "NOTEAI_XHS_NOTE_ACCESS_JSON": json.dumps(stored)}, clear=True), mock.patch.object(v5, "V5Detail") as reader:
+                with self.assertRaisesRegex(legacy.XHSAdapterError, "invalid_note_access_context"):
+                    adapter.note_detail(url)
+                reader.assert_not_called()
+
+    def test_access_restriction_stops_even_with_success_true_or_non_json(self):
+        for response in (httpx.Response(461, json={"success": True, "code": 300031, "msg": "FAKE_PRIVATE"}),
+                         httpx.Response(461, text="FAKE_PRIVATE"), httpx.Response(471, json={})):
+            reader, sent, events = self.reader([self.dsl(),
+                httpx.Response(200, json={"success": True, "code": 0, "data": {"user_id": "0123456789abcdef01234567"}}), response])
+            with self.assertRaisesRegex(legacy.XHSAdapterError, "access_restricted"):
+                reader.read(self.detail())
+            self.assertEqual(len(sent), 3)
+            self.assertIsNone(reader.last_owned_metrics)
+            self.assertNotIn("FAKE_PRIVATE", json.dumps(events))
+
     def test_conflicting_returned_note_id_is_never_a_verified_owned_read(self):
         reader, sent, events = self.reader([
             self.dsl(), httpx.Response(200, json={"success": True, "code": 0, "data": {"user_id": "0123456789abcdef01234567"}}),

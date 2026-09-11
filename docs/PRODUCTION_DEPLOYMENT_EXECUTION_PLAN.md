@@ -15,6 +15,24 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
+## Current repair update — September11 19:31 Beijing
+
+Batch02 full-session test passed user/me200/code0 then stopped at detail461/code300031.
+Use the original browser's legitimate same-note xsec_token/source as private task
+context; original canonical identity, historical attempts and failure are unchanged.
+Pinned upstream already forwards those parameters from a full note URL:
+https://github.com/cv-cat/Spider_XHS/blob/7077c88f82771f547cc1afdadaec4025be2355e6/apis/xhs_pc_apis.py#L503
+Current adapter can now merge strictly validated same-object private context into
+request data; hidden input stores only NOTEAI_XHS_NOTE_ACCESS_JSON in root0600
+note-access.env. Cookie candidate remains separate and unchanged. No raw link,
+access token, Cookie or signature enters this plan, Git, source labels or Evidence.
+A broad461/471 safety stop does not assert a CAPTCHA diagnosis. Retain actual
+batch02 failure; do not replay it. Next finite batch tests the explicit missing
+context through the original endpoint and current safety checks, before any image
+publication/managed rollout/newT0. The d322 archive below remains a historical
+prepared candidate; the context repair needs a correctly bound successor artifact
+before controlled deployment. Budget reserve12/100, actual UNKNOWN_NOT_ZERO.
+
 ## Current implementation order — repaired session and generation2
 
 1. Reconcile the original completed batch01; never replay it. Actual API-F v5

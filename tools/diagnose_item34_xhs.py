@@ -58,23 +58,30 @@ def request_cookie_records(raw: str) -> list:
     return records
 
 
-def stage_session() -> int:
+def stage_session(*, note_access=False) -> int:
     """TTY-only task candidate; leave managed env, history and DB untouched."""
     if not sys.stdin.isatty() or not sys.stderr.isatty() or os.geteuid() != 0:
         raise DiagnosticStop("private_root_terminal_required")
-    path = Path("/out/session-candidate.env")
+    path = Path("/out/note-access.env" if note_access else "/out/session-candidate.env")
     if path.exists() or path.is_symlink():
         raise DiagnosticStop("existing_session_candidate_readback_only")
-    print("Paste complete Request Cookie from the existing owned-account browser. Input is hidden.", flush=True)
-    records = request_cookie_records(private_input("Request Cookie (hidden): "))
-    # Optional state is not a prerequisite; blank means no added signing state.
-    print("Optional existing webSsk JSON; press Enter if unavailable. Do not invent it.", flush=True)
-    raw_ssk = private_input("webSsk JSON (hidden, optional): ")
-    from vendor.spider_xhs.v5.runtime import session_signing_storage
-    storage = session_signing_storage(raw_ssk)
-    rows = {"NOTEAI_XHS_COOKIES_JSON": records}
-    if storage:
-        rows["NOTEAI_XHS_WEB_SSK_JSON"] = storage["webSsk"]
+    if note_access:
+        from vendor.spider_xhs.v5.runtime import note_access_context
+        context = note_access_context(private_input("Owned note URL (hidden): "), NOTE_URL.rsplit("/", 1)[1])
+        if not context:
+            raise DiagnosticStop("invalid_note_access_context")
+        rows = {"NOTEAI_XHS_NOTE_ACCESS_JSON": context}
+    else:
+        print("Paste complete Request Cookie from the existing owned-account browser. Input is hidden.", flush=True)
+        records = request_cookie_records(private_input("Request Cookie (hidden): "))
+        # Optional state is not a prerequisite; blank means no added signing state.
+        print("Optional existing webSsk JSON; press Enter if unavailable. Do not invent it.", flush=True)
+        raw_ssk = private_input("webSsk JSON (hidden, optional): ")
+        from vendor.spider_xhs.v5.runtime import session_signing_storage
+        storage = session_signing_storage(raw_ssk)
+        rows = {"NOTEAI_XHS_COOKIES_JSON": records}
+        if storage:
+            rows["NOTEAI_XHS_WEB_SSK_JSON"] = storage["webSsk"]
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(descriptor, "w") as handle:
         for name, value in rows.items():
@@ -86,16 +93,19 @@ def stage_session() -> int:
         os.fsync(directory)
     finally:
         os.close(directory)
-    print(json.dumps({"status": "SESSION_CANDIDATE_STAGED_NOT_APPLIED", "cookie_count": len(records),
-        "optional_signing_state_present": bool(storage), "xhs_requests": 0, "business_writes": 0}), flush=True)
+    result = {"status": "NOTE_ACCESS_STAGED_NOT_APPLIED" if note_access else "SESSION_CANDIDATE_STAGED_NOT_APPLIED",
+              "xhs_requests": 0, "business_writes": 0}
+    if not note_access:
+        result.update(cookie_count=len(records), optional_signing_state_present=bool(storage))
+    print(json.dumps(result), flush=True)
     return 0
 
 
 # Hidden staging must not import the runtime DB facade: its legacy import path
 # initializes SQLite if DATABASE_URL is absent. This branch needs stdlib only.
-if __name__ == '__main__' and sys.argv[1:] == ['--stage-session']:
+if __name__ == '__main__' and sys.argv[1:] in (['--stage-session'], ['--stage-note-access']):
     try:
-        stage_exit=stage_session()
+        stage_exit=stage_session(note_access=sys.argv[1:] == ['--stage-note-access'])
     except BaseException:
         print('{"status":"SESSION_STAGING_STOPPED_RECONCILE_PRIVATE_CANDIDATE"}',flush=True)
         sys.exit(2)

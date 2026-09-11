@@ -527,6 +527,24 @@ class TrackingContractTests(unittest.TestCase):
         self.assertEqual(attempt["status"], "failed")
         self.assertEqual(attempt["error_code"], "provider_outcome_unknown")
 
+    def test_access_restriction_stops_round_and_releases_unstarted_claims(self):
+        from spider_xhs_http import XHSAdapterError
+
+        self._insert_due("restricted-first")
+        self._insert_due("restricted-second")
+        fetch = mock.AsyncMock(side_effect=XHSAdapterError("access_restricted"))
+        notes = crawler._claim_due_tracking_notes(2)
+        with mock.patch.object(crawler, "_save_log"):
+            result = asyncio.run(crawler._process_tracking_notes(notes, fetch))
+        self.assertEqual(result["attempted"], 1)
+        self.assertEqual(result["failed"], 1)
+        self.assertEqual(result["released"], 1)
+        self.assertEqual(result["collected"], 0)
+        fetch.assert_awaited_once()
+        self.assertEqual(db.fetchone("SELECT COUNT(*) AS c FROM tracking_provider_attempts")["c"], 1)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) AS c FROM tracked_notes WHERE claim_token IS NOT NULL")["c"], 0)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) AS c FROM growth_records")["c"], 0)
+
     def test_adapter_failure_code_persists_without_secrets_or_automatic_retry(self):
         from spider_xhs_http import XHSAdapterError
 
