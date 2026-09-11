@@ -13,6 +13,18 @@
   no-replay after UNKNOWN. Do not import upstream credential argv or open-ended
   retry behavior. New real T0 only after verified read path/controlled rollout.
 
+## September11 21:54 — current controls verified with explicit readback limits
+
+- Actual originalunit/currentunit match, inactive/disabled/no containers; newprivate
+  env retained and boundedjournald active. Phase journals/containers absent.
+- ExistingTracking rule currenttarget/severity/threshold/evaluation/notifygroup/
+  all-day/silence24h reread; no save or newnotification. Metricperiod60s/namespace
+  remainLAST_KNOWN from original accepted evidence, not newly displayed values.
+- Managed statusINCOMPLETE only becomesVERIFIED with actual successful future
+  run/attempt and complete approvedstage evidence. No newinitialread/window needed.
+  Pendingtime is the remaining prerequisite; currentownerinteractionnone.
+- Readiness30/38; cumulative reserve29/100,actualUNKNOWN_NOT_ZERO,repair11calls.
+
 ## September11 21:43 — generation2 established; future phases are not acceptance yet
 
 - Actual corrected published87b9 image returned owned noteHTTP200/code0,4/2/2.

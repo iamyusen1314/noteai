@@ -47,6 +47,38 @@ complete lawful session and original visible link context. Old batch01/02
 failures remain below. Corrected published image and true generation2 are now
 recorded in the latest current section; no terminal acceptance. Readiness30/38.
 
+## September11 21:54 Beijing — current controls closed; awaiting scheduled real stages
+
+Checkpoint3a4ef43 saves published read success, actualgen2 ownerCAS and schedule.
+Current host readback13:49:15.706962UTC verifies original managed before/restored/
+current unit states exactly equal:439287unitSHA,disabled/inactive/dead,containers0.
+Repaired private env remains applied. Effectivejournald active/persistent,
+SystemMaxUse256M/RuntimeMaxUse64M/retention7day/file1day; Dockerlocal10m/2 was
+checked by the actual original managed validator. No service/safety/DB/provider
+mutation. Bothg2phasejournals absent and both exactstagecontainers absent.
+
+Current cloudmonitor classic rule `noteai-item25-process-tracking-20260811-v1`
+was reread on the existing logged-in console: normal, exactAPI-F/crawler_worker.py,
+Critical/Average>=1/evaluation1, original cloud-account contactgroup,all-day and
+silence24h. Detail and existing edit form were viewed; edit was cancelled without
+save, no rule/notification write. Period60s/namespace stay explicitlyLAST_KNOWN
+from accepted originalItem25 evidence because current UI does not expose them.
+Existing real notification delivery acceptance is reused; no new test notification.
+Current managed rollback/log/alert fieldsPASS with source/readback limits recorded;
+status remainsINCOMPLETE because successful future stage run/attempt identities
+are absent. Batch05 initial read cannot substitute for them.
+
+Only existing canonical/Handoff/plan/risk records updated, no newvalidator/gate.
+Whole old canonical normalizedSHA115b8916...670f still unchanged. Existing targeted
+validator was run offline, confirming no sealed-history/binding errors and expected
+terminal incompleteness; statuscount30/38 unchanged. NoItem1–30 acceptance replay.
+The next meaningful work is the unique existing scheduled generation2 wakeup:
+September12 13:36:18UTC /21:36:18Beijing, then plannedSeptember14 13:36UTC /21:36.
+No earlybind/phasejournal/admission is needed. Current preparation has no remaining
+owner input; real futurelogin/MFA is handled only if the platform actually requests
+it. Computer/Codex must remain running for local thread wakeups. Cumulative cost
+reserve29/100; actual UNKNOWN_NOT_ZERO; no newphysicalrequests afterbatch05.
+
 ## September11 21:43 Beijing — published read repaired, generation2 established and scheduled
 
 Actual batch05 uses published digest87b9bf70...417c9/config6d5dcf...b703,

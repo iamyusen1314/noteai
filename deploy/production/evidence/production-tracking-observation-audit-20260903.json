@@ -1996,11 +1996,12 @@
       "ledger_source_sha256": "22ef0a2c21529fe4d8ed38c42c2283ae61e6e6822d6411bd07620d353042d7a9",
       "ledger_exact_count": 1,
       "schema_migrations_insert_count": 0,
-      "production_status": "PREVIOUSLY_APPLIED_CURRENT_LEDGER_VERIFIED",
+      "production_status": "VERIFIED",
       "ledger_readback": "VERIFIED",
       "applied_at": "2026-09-09T14:22:30.179508Z",
       "catalog_readback_sha256": "21a06cb200774784a18c7022b586a9fedaa390610b830624af12e7c356c51cc0",
-      "current_ledger_readback_sha256": "143bd949c48836d3661531e357b7ed9faa060eb49a3c5b5a52c4fca91a7c8746"
+      "current_ledger_readback_sha256": "143bd949c48836d3661531e357b7ed9faa060eb49a3c5b5a52c4fca91a7c8746",
+      "basis": "Existing0020 applied September9, exact current ledger independently reread; this generation does not apply it again."
     },
     "actual_production_write_set": {
       "tables": [
@@ -2035,9 +2036,9 @@
       "resource_controls": "PASS",
       "restart_controls": "PASS",
       "health_check": "PASS",
-      "rollback_rehearsal": "PASS_ORIGINAL_JOURNAL_PENDING_INDEPENDENT_READBACK",
-      "log_controls": "PENDING_CURRENT_READBACK",
-      "alert_controls": "PENDING_CURRENT_READBACK",
+      "rollback_rehearsal": "PASS",
+      "log_controls": "PASS",
+      "alert_controls": "PASS",
       "execution_identity_sha256": null,
       "execution_identity_basis": "pending actual successful checkpoint run_identity_sha256 for the bounded supplier validation; existing canonical contract does not require a separate managed-cycle execution digest; service cycle remains independently bound by managed_service_identity_sha256 and its original journal",
       "immutable_artifact_sha256": "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703",
@@ -2046,7 +2047,83 @@
       "completed_cycle_restored": true,
       "journal": "/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/managed-4cc77f4-entrypoint/managed.host.jsonl",
       "journal_sha256": "1f7f86f8ebb3002aa1d3102d5f8425406dd5a53b2184741754c74385b9ba3fb1",
-      "remaining": "Read current original unit/log/alert controls; bind future successful actual sampler run/attempt. Do not repeat managed cycle."
+      "remaining": "Actual successful generation2 checkpoint run_identity_sha256 and bounded_validation_attempt_identity_sha256 plus genuine24h/3d snapshots and final write accounting; no repeated managed cycle or new control system.",
+      "current_host_controls": {
+        "at": "2026-09-11T13:49:15.706962+00:00",
+        "before": {
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "UnitFileState": "disabled",
+          "image_ref": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+          "running_container_count": 0,
+          "unit_sha256": "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d"
+        },
+        "business_writes": 0,
+        "current": {
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "UnitFileState": "disabled",
+          "image_ref": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+          "running_container_count": 0,
+          "unit_sha256": "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d"
+        },
+        "docker_log_controls": "local/max-size10m/max-file2 verified by original managed validator",
+        "generation2_phase_journals": {
+          "g2-24h.host.jsonl": false,
+          "g2-3d.host.jsonl": false
+        },
+        "generation2_task_containers": 0,
+        "journald": {
+          "MaxFileSec": "1day",
+          "MaxRetentionSec": "7day",
+          "RuntimeMaxUse": "64M",
+          "Storage": "persistent",
+          "SystemMaxUse": "256M"
+        },
+        "journald_active": "active",
+        "private_env_applied_verified": true,
+        "provider_calls": 0,
+        "restored": {
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "UnitFileState": "disabled",
+          "image_ref": "sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+          "running_container_count": 0,
+          "unit_sha256": "4392872f292a8caef960cc4f8eea34fed62791e783f6dcfc75f7655f2891f82d"
+        },
+        "service_mutations": 0,
+        "status": "CURRENT_ROLLBACK_AND_LOG_CONTROLS_VERIFIED"
+      },
+      "current_alert_controls": {
+        "read_at": "2026-09-11T13:53:12.368Z",
+        "source_url": "https://cloudmonitornext.console.aliyun.com/alert/rule",
+        "rule_id": "noteai-item25-process-tracking-20260811-v1",
+        "name": "NoteAI Item25 process tracking 20260811 v1",
+        "state": "正常",
+        "resource": "instanceId=i-wz9bgztwf1tiakww2ops,processName=crawler_worker.py",
+        "contact_group": "云账号报警联系人",
+        "effective_time": "00:00-23:59",
+        "no_data_policy": "INSUFFICIENT_DATA",
+        "severity": "Critical",
+        "aggregation": "Average",
+        "comparison": ">=",
+        "threshold": 1,
+        "evaluation_count": 1,
+        "period_seconds": 60,
+        "period_readback": "LAST_KNOWN_ACCEPTED_NOT_DISPLAYED_IN_CURRENT_DETAILS",
+        "current_notification_test_sent": false,
+        "notification_delivery_basis": "existing monitoring_alerting accepted August11 notification delivery",
+        "business_writes": 0,
+        "rule_mutations": 0,
+        "current_form_readback": {
+          "resource_exact": true,
+          "process_exact": true,
+          "evaluation_count": 1,
+          "silence_hours": 24,
+          "form_saved": false
+        }
+      },
+      "alert_delivery_basis": "Reuse original accepted monitoring_alerting notification test; current same-rule target, severity, threshold, evaluation, all-day schedule and notification group reread. Period60s and namespace are LAST_KNOWN from original acceptance, not exposed in current UI. No test notification or rule change."
     },
     "provider_admissions": 0,
     "automatic_retry_count": 0,
@@ -2125,6 +2202,8 @@
       "old_tracking_admissions": 2,
       "generation2_tracking_admissions": 0,
       "batch04_physical_requests": 0
-    }
+    },
+    "managed_tracking_row_started": true,
+    "provider_calls": 0
   }
 }

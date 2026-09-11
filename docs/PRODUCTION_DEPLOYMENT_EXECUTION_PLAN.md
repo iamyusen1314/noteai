@@ -15,6 +15,18 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
+## Current control closure — September11 21:54 Beijing
+
+Published87b9 XHS repair, realgen2T0 and unique continuation are recorded below.
+Current original unit restoration/private env and effectivejournald were independently
+verified13:49:15UTC. Same existingTracking alarm target/threshold/notification group
+and schedule match, no rule/testnotification changed; period60s remains clearly
+LAST_KNOWN from acceptedItem25 evidence. Managed rollback/log/alert nowPASS,
+while execution/run and boundedattempt identities await actual successful stages.
+Do not re-run the managed cycle or initialread. Current authorized preparation is
+complete; resume through the one existing generation2 task at the recorded due times.
+Cumulative reserve29/100, actualUNKNOWN_NOT_ZERO; Readiness30/38.
+
 ## Current generation2 continuation — September11 21:43 Beijing
 
 The actual published4cc/87b9 image reads the owned note successfully. Existing
