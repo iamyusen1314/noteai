@@ -16418,7 +16418,7 @@
           "id": "tracking_real_and_promotion",
           "title": "Tracking real-note 24h/3d proof and managed promotion",
           "status": "unverified",
-          "observation_generation": 1,
+          "observation_generation": 2,
           "observation_authorization": {
             "authorization_checkpoint": "11074c6147cc4acebb3b72c2470fe25debe49c0e",
             "authorization_plan_sha256": "e77d033a5c25392f48d66a6bf2ed3e6331727728915386a1634d2d4921a24162"
@@ -16434,7 +16434,7 @@
               "ref": "deploy/production/evidence/production-tracking-observation-audit-20260903.json"
             }
           ],
-          "blocker": "Generation1 single24h attempt on2026-09-10 admitted15:06:18.938698Z and failed15:06:21.457869Z with remote_business_error; no qualifying24h or3d snapshot, target needs_manual. Exact original journal and owner readback agree: admissions1/retry0/globalSTARTED0/UNKNOWN0; config restored and only temporary SELECT revoked to originalACL. Actual newjob5tables/6distinctrows (old+new10), no terminal credit. Frozen fcc863f image/source/binding remain exact; no evidence supports changing response success classification. Same-generation replay and3d execution are prohibited; obsolete Item34 continuation deleted. Existing managed cycle remains restored/INCOMPLETE. Old observation permanently sealed; other production/global jobs remainPAUSED.",
+          "blocker": "Generation2 established by existing owner CAS and independent readback at2026-09-11T13:34:10.891601Z, initial4/2/2, original target UPDATE1/newadmissions0. Published corrected4cc image87b9 reads the owned note successfully with normal initialization; oldg0/g1 failures and0020 remain sealed. New24h and3d are not yet due; scheduled unique same-task continuation September12/14 at21:36Beijing. Current managed cycle health/resource/restart/singleton verified, remaining controls/run identities incomplete. Readiness remains unverified; no old-window replay or terminal credit.",
           "next_task": "PROD-XHS-TRACKING-REAL-XHS-CANARY-001"
         },
         {

@@ -44,7 +44,81 @@ the approved complete business DoD is genuinely met.
 Current implementation: explicit Tracking opt-in pc_v5 integrates pinned
 v5.0.0/7077c88. Actual batch03 on API-F now verifies the owned note with the
 complete lawful session and original visible link context. Old batch01/02
-failures remain below. No newT0/managed release is claimed. Readiness30/38.
+failures remain below. Corrected published image and true generation2 are now
+recorded in the latest current section; no terminal acceptance. Readiness30/38.
+
+## September11 21:43 Beijing — published read repaired, generation2 established and scheduled
+
+Actual batch05 uses published digest87b9bf70...417c9/config6d5dcf...b703,
+unchanged4cc77f4 source, no overlays. Detail returned HTTP200/code0/successtrue,
+owned note verified4/2/2, at2026-09-11T13:34:10.891601Z. Physical3/init2/detail1,
+retry0/businesswrites0; this is the initial reading, not24h/3d acceptance.
+Original2843byte/9record journalSHAbb7086e5e7ec76623f816c8191900ab66777556a9664d725e418ae1a8e74c92c
+and logs fsynced before exact stopped fee14a...66a container removal at13:39:28UTC.
+
+Batch04 remains STOPPED_BEFORE_REQUEST,0physical, original635bytes/2records
+SHA c672bf5afcac92829492e55ff678b5ce8b497c0ad1c9212e007d6f0f157c0840.
+Managed file had no suspension override; image default1 blocked the authorized
+finite task. Batch05 supplied0 ONLY to its scoped reader, preserved global env,
+unit/config/safety and prechecked service/runtime/protocol/current readonly safety.
+No persistent safety flag was cleared. Terminal paste/Enter delivery caused an
+extra readonly preflight then FileExistsError; no second batch05 launch occurred.
+
+Existing owner CAS template validated in isolated PG160015: exact success plus
+history/config/unresolved guards and replay rejection; UPDATE1/newattempt0,
+migrationwrites0. Default corrected ENTRYPOINT + real isolated PG16 healthcheck
+passed ready/providerfalse/active0; networknone/Unixsocket only, local DB stopped.
+TemplateSHA c84896fff1468a1c3cbac0dcac10c32383fbb74a566e2cf16bca551b2a33f84a;
+filled SQL SHA7762877486cabdff21c9724536234223076de843431afc4188bd3af16bd34ae8,
+local generation2-open.sql in existing Downloads/noteai-xhs-repair-20260911.
+One owner DMS transaction group succeeded; independent21:38:31.032151Beijing
+readback confirms gen2/pending/attempt0, actualT0 above, nextcheck+24h, old2full
+histories/ACL/0019/0020/config/safety unchanged, globalunresolved0/dayadmissions0.
+Production effect to date: originaltrackedrowUPDATE1, no new rows/admissions/grants.
+Both original windows and failures remain sealed. Do not execute owner CAS again.
+
+Root0600 actual binding:
+`/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/generation2/observation-binding.json`.
+695bytes/fileSHA0db13fcdc5715fe458069d9413be30266147d1ba0863de31dc847be05ee3cb5b;
+normalized8field SHA820021a3b76df257fceb539ad68b5e3c6c17ae29c7a7fb7180afceca3111c14f.
+It binds g0=3f14... and correct INTEGER1 g1=d7a2...; O_EXCL/private/fsync/readback
+completed once. Current canonical only appends recovery_observation; whole old
+root+g1 normalizedSHA115b8916...670f is unchanged. Current manifest selects gen2
+but remains unverified/Readiness30/38; no future DML/attempt is pre-counted.
+
+24h completion AND snapshot must be in
+[September12 21:34:10.891601, September14 21:34:10.891601) Beijing.
+3d is September14 21:34:10.891601 or later, after qualified24h.
+Unique heartbeat `noteai-item34-generation2` ACTIVE binds this task
+01a079a4-1c05-7d21-a98a-2d418cdd20c9 and actualcwd/Users/openclaw/Desktop/noteai.
+Actual scheduler next_run_at=1789220178000: September12 13:36:18UTC/21:36:18Beijing.
+Rule has only Saturday/Monday,COUNT2,13:36UTC; second planned September14
+13:36UTC/21:36Beijing. No September13 occurrence, no run yet. Initial invalid
+anchored create did not create a job; corrected one job, then same-id timezone
+update based on actual scheduler epoch (not card text). Other2jobs stillPAUSED;
+oldgen1 absent. No server sampler cron/globalautomation resumed. Local computer
+must stay on and Codex running; future real login/MFA gap is reported only if seen.
+
+Future exact entry (DO NOT RUN BEFORE DUE): host-e3d660a/tools/
+run_item34_tracking_durable.py run --stage 24h (then3d) --track-id
+25824b51-99d6-4728-95a4-d68efca92503 --image <published87b9digestabove>
+--observation-binding <g2bindingabove> --journal <g2dir>/g2-24h.host.jsonl
+(or g2-3d.host.jsonl), unique transient noteai-item34-g2-24h-once/g2-3d-once,
+Restart=no/UMask0077. First inspect original journal/admission/container and due
+state, verify owner revoke channel/originalACL, add only required temporarySELECT,
+use existing bind/run contract; stage identities derive from g2 binding. Any
+UNKNOWN reconciles original result; restoration uses original journal, no replay.
+Revoke only newly added SELECT on every exit, stop exact tasks/restore config.
+Each stage max1Trackingadmission/retry0; initialization calls counted separately.
+Do not rerun managed cycle; bind actual future successful run/attempt to existing
+managed evidence. No stage journal/worker/admission has been created yet.
+
+Cumulative conservative reserve29/100; actual UNKNOWN_NOT_ZERO. Repair actual
+calls11physical/init8/detail3; oldextra1 andoldTracking2 separate, g2Tracking0.
+All public original readbacks, tested SQL and commands remain in existing local
+Downloads/noteai-xhs-repair-20260911. No push/protected-path access. Next active:
+current bounded unit/journald/Tracking alarm readonly verification, then save its
+actual managed control evidence; supplier run/attempt identities wait for stages.
 
 ## September11 21:08 Beijing — executable image published and bounded managed cycle verified
 

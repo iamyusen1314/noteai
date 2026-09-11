@@ -13,6 +13,23 @@
   no-replay after UNKNOWN. Do not import upstream credential argv or open-ended
   retry behavior. New real T0 only after verified read path/controlled rollout.
 
+## September11 21:43 — generation2 established; future phases are not acceptance yet
+
+- Actual corrected published87b9 image returned owned noteHTTP200/code0,4/2/2.
+  New trueT0 September11 13:34:10.891601UTC is established by one owner CAS and
+  independent readback. Old whole canonical normalizedSHA115b8916...670f preserved.
+- Batch04 performed0calls because image default suspension remained1; batch05
+  supplies0 solely to the approved finite task, after readonly current safety.
+  Global unit/config/safety are untouched. Original failure is retained.
+- Exact owner SQL passed isolatedPG16 guards/replay rejection; actualeffect only
+  originaltargetUPDATE1. No new migration/attempt/grant. Binding root0600 andfsync.
+- One unique generation2 task ACTIVE, next actualSep12 13:36:18UTC/21:36:18Beijing,
+  next plannedSep14 13:36UTC. Localcomputer/Codex runtime availability is required;
+  scheduler creation is not a guarantee of future execution. No oldjobs resumed.
+- Current managed health/resource/restart/singleton verified; finish only existing
+  readonly controls, and keep future sampler run/attempt identities missing.
+  Readiness30/38. Cumulative reserve29/100, billed UNKNOWN_NOT_ZERO; repair11calls.
+
 ## September11 21:08 — corrected release and managed partial result
 
 - Corrected same4cc source image87b9bf70...417c9 is published/config6d5dcf...b703;

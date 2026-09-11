@@ -15,6 +15,36 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
+## Current generation2 continuation — September11 21:43 Beijing
+
+The actual published4cc/87b9 image reads the owned note successfully. Existing
+owner function established gen2 once; independent owner readback preserves old
+histories/ACL/0019/0020. T0=2026-09-11T13:34:10.891601Z, initial4/2/2.
+Current actual DML is originaltrackedUPDATE1; g2admissions0, Readiness30/38.
+Exact source SQL, hash, owner result, private binding, tools and recovery commands
+are indexed in the latest Handoff section. Canonical only appends the real
+recovery_observation; old whole normalizedSHA115b8916...670f remains sealed.
+No second CAS/freshT0/managed cycle is needed.
+
+The unique same-task generation2 heartbeat is ACTIVE. Independently read scheduler
+next timestamp: September12 13:36:18UTC /21:36:18Beijing; second planned September14
+13:36UTC /21:36Beijing. Only two Saturday/Monday occurrences; no September13 run.
+24h completion and snapshot must be >=September12 13:34:10.891601UTC and strictly
+before September14 13:34:10.891601UTC;3d after that boundary and qualified24h.
+Use host-e3d660a durable run, the existing g2 binding and actual87b9 digest. Stage
+journals are g2-24h.host.jsonl/g2-3d.host.jsonl, not yet created. Current source/docs
+changes do not justify rebuilding or relabelling the image. Verify original results
+before dispatch, preserve owner temporarySELECT/revoke and exact config recovery.
+OtherautomationsPAUSED; local machine/Codex must be running for the thread wakeup.
+
+Isolated PG16 exact owner CAS guards/replay rejection and normal image ENTRYPOINT
+healthcheck passed; localDB is stopped. Batch04 default-suspend failure had0calls;
+batch05 correctly scoped activation used3calls/no retries/noDBwrites, then logs
+persisted and exact container removed. No security flag changed. Cumulative
+reserve29/100, actual UNKNOWN_NOT_ZERO, repair11physical/init8/detail3. Next local
+control closure is existing unit/journald/alert readback; future successful sampler
+identities remain pending and cannot be replaced by this initial read.
+
 ## Current verified managed candidate — September11 21:08 Beijing
 
 Execute source4cc's corrected0755 candidate by real digest
