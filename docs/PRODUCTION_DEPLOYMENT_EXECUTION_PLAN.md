@@ -15,6 +15,23 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
+## Current verified managed candidate — September11 21:08 Beijing
+
+Execute source4cc's corrected0755 candidate by real digest
+`noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9`.
+Config6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703.
+Normal default entrypoint and complete source/alias bindings verified. Actual
+managed cycle with hoste3d660a passed health/resource/restart/singleton checks,
+restored original unit and durably retained repaired env. JournalSHA
+1f7f86f8ebb3002aa1d3102d5f8425406dd5a53b2184741754c74385b9ba3fb1.
+The launch client timeout was reconciled from the original result; no replay.
+Managed status is still INCOMPLETE until all current DoD fields are satisfied.
+No newT0 yet. Next: isolated owner-CAS validation, fresh original-note API metrics
+and native time, existing owner function generation2, then one unique continuation.
+Use correctly typed g1 pin d7a2d3988cfc466de58fd51b71b74474f7a15bfdbcb03a681e09e70d28df7485;
+old e63 Handoff summary is a string-type hashing error, not changed history.
+Cumulative reserve27/100; actual UNKNOWN_NOT_ZERO; otherItems/globalautomation PAUSED.
+
 ## Current packaging correction — September11 20:55 Beijing
 
 The first managed cycle actually started and failed at OCI entrypoint execution:

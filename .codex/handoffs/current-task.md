@@ -46,6 +46,57 @@ v5.0.0/7077c88. Actual batch03 on API-F now verifies the owned note with the
 complete lawful session and original visible link context. Old batch01/02
 failures remain below. No newT0/managed release is claimed. Readiness30/38.
 
+## September11 21:08 Beijing — executable image published and bounded managed cycle verified
+
+Current runnable release keeps source4cc77f41a8dc32e56a383461f32051b914367d03.
+Only entrypoint metadata changed from0644 to0755; native default ENTRYPOINT ran
+its original /bin/false with expected exit1, no override/noSecret/networknone.
+30source hashes+2runtime aliases and Python3.11.15 remain verified. This probe
+proves executability, not health. Native fixed config:
+6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703.
+Existing private ACR new tag item34-xhs-4cc77f4-g2-20260911-entrypoint published once
+at13:01:39.499368UTC; independently verified digest:
+`noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9`.
+Registry manifestSHA76b58ab816ff8842f83f45429928ae544df05dc9aed12e19891d702246b22aed.
+Rejected e5c1 and all previous artifacts/failures remain unchanged.
+
+Host e3d660a6e02b416844cd096b9ffd160be4ab1e9d transferred as12hashed public files;
+only managed recovery source changed from56ee, image is not relabelled.
+Original managed-entrypoint task ran once; launcher client timed out after20s,
+so only original result was reconciled. Actual original journal5151bytes/13complete
+records/SHA1f7f86f8ebb3002aa1d3102d5f8425406dd5a53b2184741754c74385b9ba3fb1
+shows no exception, no failed steps, original unit restored and new private env
+retained after final durable result. Health/resource/restart PASS, singleton1;
+managed identitySHA262df78b4dbcce6f91bcadc7cc0e997267d6283a39b2ced05641d5348b3672cf.
+Status remains INCOMPLETE: bounded cycle is not complete Item34 terminal acceptance.
+Remote task directory is
+`/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/managed-4cc77f4-entrypoint`;
+original journal/private backups remain there. Public readbacks and Dockerfile
+are in existing local release-4cc77f4/entrypoint-fix. No task replay is permitted.
+
+Current owner projection at20:59:36.036526Beijing confirms exact original target,
+generation1 needs_manual, originalT0/4-2-2, both full failed histories, no unresolved
+attempt, UTC-day admissions0, original attempts ACL (appSELECTfalse/trackingSELECTtrue),
+config/safety rows absent,0019/0020 exact. Prior readonly SQL column/type errors
+made no write; corrected original result is saved outside repo as
+generation2-owner-state-readback.json. Generation2 SQL template is prepared but
+unexecuted and still needs isolated PG16 validation plus actual freshT0 input.
+
+Correction to the retained d322a8a Handoff summary below: old g1 e63c97...92536 was
+computed with DMS string generation"1". Full original canonical projection and
+latest real row are identical; canonical validator already converts generation
+with int. Correct INTEGER1 history pin is
+`d7a2d3988cfc466de58fd51b71b74474f7a15bfdbcb03a681e09e70d28df7485`.
+Use d7 in new binding; preserve old summary/error and all canonical Evidence.
+g0 remains3f14d4342114bc283c88f9c90a65748ad62a4216ec1f1d2147dc03c54c37bb40.
+No production row/Evidence/validator changed to achieve this correction.
+
+Cumulative conservative reserve27/100 for completed preparation/managed cycle;
+actual UNKNOWN_NOT_ZERO. Repair calls remain8physical/init6/detail2. No newT0 or
+automation has been created, Readiness30/38. Next: isolated exact owner-CAS test,
+fresh authenticated same-note initial read, existing owner CAS to generation2,
+one unique24h/3d continuation and remaining existing managed log/alert checks.
+
 ## September11 20:55 Beijing — first managed failure safely restored; packaging repair underway
 
 Original managed invocation21a5fef915284c1f91922887612267b7 actually ran once at

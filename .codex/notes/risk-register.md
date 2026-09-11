@@ -13,6 +13,19 @@
   no-replay after UNKNOWN. Do not import upstream credential argv or open-ended
   retry behavior. New real T0 only after verified read path/controlled rollout.
 
+## September11 21:08 — corrected release and managed partial result
+
+- Corrected same4cc source image87b9bf70...417c9 is published/config6d5dcf...b703;
+  real default entrypoint test covers the previously missed executable bit.
+- Actual controlled managed cycle passes health/resource/restart/singleton, with
+  original unit restored and new env retained. Original client timeout was
+  reconciled, not replayed. Existing log/alert/bounded sampling identity fields
+  still need true evidence; INCOMPLETE is not terminal. No newT0 yet.
+- g1 old Handoff hash e63 used string"1" instead of integer1. Original and current
+  ten fields are identical; correct current-contract pin is d7a2d398...df7485.
+  Do not alter old canonical Evidence or relax history validation.
+- Same cumulative reserve27/100, actual UNKNOWN_NOT_ZERO. Readiness30/38.
+
 ## September11 20:55 — managed packaging failure and recovery
 
 - Actual e5c1 image entrypoint content matches but mode0644 is not executable;
