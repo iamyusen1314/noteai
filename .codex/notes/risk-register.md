@@ -15,6 +15,15 @@
 
 ## Current session repair finding
 
+- September11 20:31 current: corrected4cc image is actually published and manifest
+  read back; digest e5c1bf28653217e78c8f854bb4cf55c8bbe56978b98110034d097f615a7e095f,
+  config41748d7b7604be071b58672bcc2803e1837bfd0dbf28ceb62f2762a29238a8c1.
+  Existing owner/database channel verified;0020 exact1/unresolved0. No managed
+  env/unit change or newT0 yet. Same cumulative reserve22/100; billed UNKNOWN_NOT_ZERO.
+  Complete private-env application under the existing lock through durable
+  managed result; final storage failure must also restore env. Original host
+  transfer is queued: read its original result before any resend/assembly.
+
 - Actual batch01 a4e5b93 DSL200 then user/me200/business-3; no detail dispatched.
   This locates a session API rejection without proving expiry/signature root cause.
 - Host raw/effective Cookie counts2; other known context fields absent. Runtime

@@ -3,7 +3,8 @@
 
 Run once under a non-restarting transient service. The root-only journal holds
 native snapshots and non-secret crawler configuration for interrupted recovery.
-It is not terminal Evidence and never permits replay. No env file is opened.
+It is not terminal Evidence and never permits replay. Only the explicitly paired
+managed configuration inputs permit a private, recoverable env update.
 """
 
 from __future__ import annotations
@@ -260,15 +261,18 @@ def main(argv=None):
     parser.add_argument("--image-id")
     parser.add_argument("--restore-from", type=Path)
     parser.add_argument('--observation-binding',type=Path)
+    parser.add_argument('--cookie-candidate', type=Path)
+    parser.add_argument('--note-access-candidate', type=Path)
     args = parser.parse_args(argv)
     if os.geteuid() != 0:
         raise ValueError("root_required")
     if args.action == "managed":
         if (not all((args.image, args.current_image, args.image_id))
-                or any((args.stage, args.track_id, args.restore_from,args.observation_binding))):
+                or any((args.stage, args.track_id, args.restore_from,args.observation_binding))
+                or bool(args.cookie_candidate) != bool(args.note_access_candidate)):
             raise ValueError("managed_arguments")
         return execute_managed(args)
-    if args.current_image or args.image_id:
+    if args.current_image or args.image_id or args.cookie_candidate or args.note_access_candidate:
         raise ValueError("managed_arguments_require_managed_action")
     if args.action == "run" and (not all((args.stage, args.track_id, args.image)) or args.restore_from):
         raise ValueError("run_arguments")
@@ -321,9 +325,9 @@ def _run_logged(args,wrapper,saved,*,prospective):
 def execute_managed(args):
     """Separate managed-unit action; never load or execute the old sampler.
 
-    This is an execution entry, not authorization. The existing plan currently
-    keeps production PAUSED. A future owner-approved one-shot service may call
-    it with the reviewed source and actual registry/config identities.
+    This entry uses the current owner-authorized scope and actual registry/config
+    identities. Optional private env application shares the managed lock through
+    final durable result or safety restore. It never changes sampling authority.
     """
     if __package__:
         from . import prepare_item34_managed_tracking as managed
@@ -335,11 +339,34 @@ def execute_managed(args):
         journal.write("start", action="managed", pid=os.getpid(),
                       managed_source_sha256=hashlib.sha256(Path(managed.__file__).read_bytes()).hexdigest())
         adapter = managed.NativeHostAdapter(args.journal.parent)
-        result = managed.rehearse(
-            adapter, journal, template=template.read_bytes(), current_image=args.current_image,
-            candidate_image=args.image, image_id=args.image_id,
-        )
-        journal.write("result", result=result)
+        with adapter.locked():
+            update = managed.TrackingEnvUpdate(adapter, journal) if args.cookie_candidate else None
+            restore_env = False
+            try:
+                if update is not None:
+                    update.prepare(args.cookie_candidate, args.note_access_candidate)
+                    # Apply may change bytes before a subsequent fsync raises.
+                    restore_env = True
+                    update.apply()
+                result = managed.rehearse(
+                    adapter, journal, template=template.read_bytes(), current_image=args.current_image,
+                    candidate_image=args.image, image_id=args.image_id, lock_held=True,
+                )
+                passed = (result["status"] == "INCOMPLETE" and result["restored"] is True
+                          and result["failed_steps"] == [])
+                if update is not None:
+                    if not passed:
+                        restore_env = False
+                        update.restore()
+                    else:
+                        update.verify_applied()
+                    result["tracking_env_applied"] = passed
+                journal.write("result", result=result)
+                # Keep the candidate only after the final result is durable.
+                restore_env = False
+            finally:
+                if restore_env:
+                    update.restore()
         print(json.dumps(result, sort_keys=True))
         return 0 if (result["status"] == "INCOMPLETE" and result["restored"] is True
                      and result["failed_steps"] == []) else 1

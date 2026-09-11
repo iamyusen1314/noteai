@@ -13,7 +13,7 @@ managed_promotion fields and cannot issue terminal Evidence.
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import fcntl
 import hashlib
 import json
@@ -485,6 +485,11 @@ class TrackingEnvUpdate:
         if journal_failed:
             raise ValueError("tracking_env_restored_journal_unknown")
 
+    def verify_applied(self):
+        self._quiescent()
+        if _private_bytes(self.target) != _private_bytes(self.candidate):
+            raise ValueError("tracking_env_cas_conflict")
+
 
 def render_unit(template: bytes, current_unit: bytes, *, current_sha256: str,
                 current_image: str, candidate_image: str) -> tuple[bytes, bytes]:
@@ -621,7 +626,7 @@ def verify_rollback(before: dict, after: dict) -> None:
 
 
 def rehearse(adapter, journal, *, template: bytes, current_image: str,
-             candidate_image: str, image_id: str) -> dict:
+             candidate_image: str, image_id: str, lock_held: bool = False) -> dict:
     """Exercise the bounded sequence through an explicitly supplied adapter.
 
     The adapter must hold an exclusive unit
@@ -646,7 +651,9 @@ def rehearse(adapter, journal, *, template: bytes, current_image: str,
         except Exception:
             failures.append("journal_safety")
 
-    with adapter.locked():
+    if lock_held and not adapter.active:
+        raise ValueError("managed_lock_required")
+    with nullcontext() if lock_held else adapter.locked():
         before = adapter.stopped_state()
         verify_rollback(before, before)
         original = adapter.unit_bytes()

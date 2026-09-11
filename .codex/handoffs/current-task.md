@@ -46,7 +46,48 @@ v5.0.0/7077c88. Actual batch03 on API-F now verifies the owned note with the
 complete lawful session and original visible link context. Old batch01/02
 failures remain below. No newT0/managed release is claimed. Readiness30/38.
 
-## September11 19:55 Beijing — real owned read verified; controlled deployment in progress
+## September11 20:31 Beijing — repaired image published; managed deployment in progress
+
+Native API-F source4cc77f41a8dc32e56a383461f32051b914367d03 built once on existing
+resources at12:18:55.087601UTC. Config41748d7b7604be071b58672bcc2803e1837bfd0dbf28ceb62f2762a29238a8c1,
+Linux/amd64 Python3.11.15/Node20.20.2/curl_cffi0.15.0;30source hashes and2actual
+executor aliases verified. Existing private ACR authentication worked without new
+owner input. New immutable tag item34-xhs-4cc77f4-g2-20260911 published once at
+12:22:00.882804UTC; actual registry/config readback verifies:
+`noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:e5c1bf28653217e78c8f854bb4cf55c8bbe56978b98110034d097f615a7e095f`.
+Old published images remain intact. Inherited base version/creation labels remain
+historical; exact4cc source manifest/revision identify this candidate. Host-only
+recovery changes do not justify rebuilding or relabelling its image source.
+
+Safe readbacks are in the existing outside-repo release-4cc77f4 directory under
+`/Users/openclaw/Downloads/noteai-xhs-repair-20260911`: native-result-readback.json,
+acr-preflight-readback.json, acr-publish-readback.json and owner-readonly-readback.json.
+Remote original native/publish intent, logs, result and manifest are under
+`/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/release-4cc77f4-native`.
+Cumulative conservative reserve22/100 RMB; actual UNKNOWN_NOT_ZERO, no budget reset.
+Repair calls remain8physical/init6/detail2, no additional XHS request for publication.
+
+DMS original successful result at2026-09-11T20:31:07.405038+08:00 verifies current
+role/database noteai_admin/noteai, PG160013, tracked_notes owner noteai_admin,
+exact installed0020 ledger1 and global unresolved attempts0. No SQL write or role
+change. Original one-row result read through single-row details; not rerun to show
+hidden columns. Existing owner channel is available, no new credentials required.
+
+The existing durable managed action now integrates paired private session/context
+inputs, holding the same host lock through env application, suspended unit cycle,
+final result fsync or safety restore. Final private env equality is checked again after the cycle;
+concurrent owner changes stay UNKNOWN and are never overwritten. No old sampler is loaded. Failed cycle or
+final fsync restores exact env bytes; concurrent drift remains UNKNOWN.73 targeted
+Python3.11 tests pass including actual private files and durable journal failures.
+Current production managed env/unit are still unchanged; no newT0/automation.
+Original29-part host90b3b87 transfer is in progress in fresh Workbench; reconcile
+its existing markers before assembly, never resend blindly. Updated two host
+sources will receive an explicit accurate successor binding; image remains4cc.
+Next: complete host transfer, native preflight and recoverable managed cycle;
+then fresh same-note authenticated API metrics/clock and owner CAS generation2.
+Readiness30/38; protected paths untouched; no Gitpush.
+
+## September11 19:55 Beijing — retained real owned-read and local preparation detail
 
 Follow-on local deployment preparation: source4cc77f4 Linux/amd64 candidate built
 from the existing base, actual Python3.11.15/Node20.20.2/curl_cffi0.15.0. Existing
@@ -54,7 +95,8 @@ package probe verifies30source files,2real/app/model aliases and11host files;
 108 targeted candidate tests pass18.518s, networknone/no productionSecret.
 Image config afd7a2bc5cd6f02bde0a3fb10b04bcbff69de132992e603e44fa2a1405604ce8;
 local archive406080962bytes/SHA92beda8c6719a059094f49530b78feb42314231b8bc67ed1d114971e0c9bb182.
-No registry digest or production deployment has yet been obtained.
+At that local-only stage, no registry digest or production deployment was obtained;
+the later actual registry result is recorded above.
 
 Existing managed helper now has TrackingEnvUpdate: same Item34 lock/quiescent
 host, exclusive private original/candidate backups, bounded strict four-key
@@ -67,13 +109,16 @@ Python3.11 tests pass, including sustained journal failure, concurrent changes,
 wrong object, duplicate keys, Secret-free logs and actual private-file restore.
 This is ready host implementation, not an applied production config.
 
-Current transfer caution: the Workbench file panel points to an expired old
+Retained earlier transfer caution: the Workbench file panel pointed to an expired old
 session, while its terminal initially remained usable. A public multi-line source
 paste was not executed and left the old shell at continuation input; subsequent
 release-parts0–14 have no verified execution. Do not replay them blindly. No
 candidate-source archive landing or remote build is claimed. A fresh Workbench
 tab is using existing enabled password-free root connection; reconcile exact
 source-file/part metadata through the fresh terminal before continuing transfer.
+This was subsequently reconciled as archive absent/parts empty; the later60-part
+source transfer and native build/publication above completed successfully. The
+closed old shell must not be reused.
 Olddiagnostic results are sealed and unaffected. No owner ACR password is needed.
 
 Batch03 started once11:55:42.164065UTC. It retained actual a4e image

@@ -15,7 +15,31 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
-## Current repair update — September11 19:55 Beijing
+## Current repair update — September11 20:31 Beijing
+
+Source4cc77f41a8dc32e56a383461f32051b914367d03 is actually built and published.
+Registry digest to execute:
+`noteai-prod-shenzhen-registry-vpc.cn-shenzhen.cr.aliyuncs.com/noteai/app@sha256:e5c1bf28653217e78c8f854bb4cf55c8bbe56978b98110034d097f615a7e095f`.
+Native image config41748d7b7604be071b58672bcc2803e1837bfd0dbf28ceb62f2762a29238a8c1,
+Linux/amd64/Python3.11.15,30source hashes+2runtime aliases verified. ACR push completed
+once12:22:00.882804UTC and independent registry manifest matched. Existing old
+images retained; host/doc changes do not alter the real4cc image source.
+Existing DMS owner channel readback20:31:07Beijing: noteai_admin owns tracked_notes,
+PG160013, exact0020 ledger1, global unresolved attempts0. No new owner login or
+ACR password is required. These are current readbacks, not production writes.
+
+Current next action is the existing durable managed entry with paired private
+session/context candidates. Hold its original lock across strict four-key merge,
+fsynced private backup/CAS application, bounded suspended unit cycle and final
+durable result. Restore original env on any cycle/final-journal failure; retain
+candidate only after successful durable result. Original unit is restored by the
+existing rehearsal contract. No provider request, API/Payment/ALB deployment or
+global automation is part of that cycle. Then obtain one fresh normal same-note
+authenticated API read for a real new initial snapshot/time and owner CAS below.
+Managed acceptance remains partial until the existing approved fields all pass.
+Cumulative conservative cost reserve22/100 RMB; actual UNKNOWN_NOT_ZERO.
+
+### Retained September11 19:55 owned-read result
 
 Batch03 verifies the real owned read:11:55:43.749367UTC detailHTTP200/code0,
 likes4/saves2/comments2 after normal DSL/session initialization. Three physical
@@ -27,9 +51,9 @@ exact exited task removed after durable result preservation. Budget reserve13/10
 actual UNKNOWN_NOT_ZERO. Current work proceeds to publication and controlled
 Tracking deployment, retaining all old failures/anchors/0020. Private Cookie and
 same-note access candidates are staged; do not ask the owner to enter them again.
-The existing unit forwards its env file, but the managed helper currently only
-CAS-updates/restores the unit; safely merge/restore the verified private env keys
-before rollout validation. No template change or new gate is needed.
+The existing unit forwards its env file. The current helper and durable managed
+entry now support its private recoverable update; actual application is still
+pending native preflight. No template change or new gate is needed.
 
 ### Retained preceding detail finding — September11 19:31 Beijing
 
@@ -89,12 +113,12 @@ before controlled deployment. Budget reserve12/100, actual UNKNOWN_NOT_ZERO.
    recovery_observation only after complete true evidence exists. No current
    production Evidence/Readiness update follows from these preparations.
 
-The cumulative RMB100 ceiling remains shared: reserve13 for prior uncertainty
-and batches01–03/build/transfer, actual bill UNKNOWN_NOT_ZERO. Each new bounded batch
-or publish must fit the remaining87 reserve and use existing resources only.
+The cumulative RMB100 ceiling remains shared: reserve22 for prior uncertainty
+and batches01–03/build/transfer/publication, actual bill UNKNOWN_NOT_ZERO. Each new bounded batch
+must fit the remaining78 reserve and use existing resources only.
 Extra privacy/transport or fixture failures remain recorded; no missing result
-is described as success. Remaining active path: publish the context-corrected
-candidate, apply recoverable Tracking configuration and verify managed controls,
+is described as success. Remaining active path: apply recoverable Tracking
+configuration using the published candidate and verify managed controls,
 then establish a fresh true generation2 anchor using the existing owner function.
 
 ## Current candidate artifact — source d322a8a

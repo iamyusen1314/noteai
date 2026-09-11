@@ -1,5 +1,5 @@
 import copy
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 import os
@@ -697,3 +697,97 @@ class ManagedLauncherTests(unittest.TestCase):
                 durable_managed.main(self.args())
             adapter.assert_not_called()
             journal.return_value.close.assert_called_once()
+
+    def test_private_inputs_require_pair_and_managed_action_before_journal(self):
+        for argv in (self.args() + ["--cookie-candidate", "/unused/cookie"],
+                     self.args() + ["--note-access-candidate", "/unused/access"],
+                     ["run", "--journal", "/unused/journal", "--cookie-candidate", "/unused/cookie"],
+                     ["restore", "--journal", "/unused/journal", "--note-access-candidate", "/unused/access"]):
+            with mock.patch.object(os, "geteuid", return_value=0), \
+                    mock.patch.object(durable_managed, "Journal") as journal:
+                with self.assertRaisesRegex(ValueError, "managed_arguments"):
+                    durable_managed.main(argv)
+                journal.assert_not_called()
+
+
+class ManagedPrivateEnvIntegrationTests(PrivateTrackingEnvTests):
+    """Real private files and durable journal; only native service actions are fake."""
+    def execute(self, *, failure=None, journal_failure=None):
+        fixture = self
+        class Host(FakeManagedHost):
+            active = False
+            @contextmanager
+            def locked(self):
+                fixture.assertFalse(self.active, "nested lock")
+                self.active = True
+                try:
+                    yield
+                finally:
+                    self.active = False
+
+            def stopped_state(self):
+                fixture.assertTrue(self.active)
+                if self.running:
+                    raise ValueError("managed_not_quiescent")
+                return super().stopped_state()
+
+            def read_managed(self):
+                if self.failure == "env_drift":
+                    fixture.write(fixture.target, b"UNRELATED=concurrent-owner-change\n")
+                return super().read_managed()
+
+        host = Host(failure)
+        host.root, host.workdir = self.root, self.work
+        original_write = self.journal.write
+        def write(event, **data):
+            if event == journal_failure:
+                self.journal.failed = True
+            return original_write(event, **data)
+        with mock.patch.object(durable_managed, "Journal", return_value=self.journal), \
+                mock.patch.object(self.journal, "close"), \
+                mock.patch.object(self.journal, "write", side_effect=write), \
+                mock.patch.object(managed, "NativeHostAdapter", return_value=host), \
+                mock.patch.object(durable_managed, "load_wrapper", side_effect=AssertionError("sampler")), \
+                mock.patch("builtins.print"):
+            # Keep the real private-file owner identity in the isolated fixture.
+            parsed = SimpleNamespace(journal=self.work / "journal.jsonl", image=NEW,
+                                     current_image=OLD, image_id=CONFIG,
+                                     cookie_candidate=self.cookie, note_access_candidate=self.access)
+            result = durable_managed.execute_managed(parsed)
+        return host, result
+
+    def test_success_retains_candidate_after_durable_result_under_single_lock(self):
+        host, result = self.execute()
+        self.assertEqual(result, 0)
+        self.assertEqual(host.current, host.original)
+        self.assertEqual(host.calls.count("start"), 1)
+        self.assertEqual(self.target.read_bytes(), self.update.candidate.read_bytes())
+        records = [json.loads(line) for line in (self.work / "journal.jsonl").read_text().splitlines()]
+        self.assertTrue(records[-1]["result"]["tracking_env_applied"])
+        self.assertEqual(records[-1]["result"]["status"], "INCOMPLETE")
+        self.assertNotIn("FAKE_SESSION", json.dumps(records))
+
+    def test_failed_managed_start_restores_both_unit_and_env_once(self):
+        host, result = self.execute(failure="start_unknown")
+        self.assertEqual(result, 1)
+        self.assertEqual(host.current, host.original)
+        self.assertFalse(host.running)
+        self.assertEqual(host.calls.count("start"), 1)
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+    def test_final_result_storage_failure_restores_env_without_replaying_cycle(self):
+        with self.assertRaisesRegex(ValueError, "tracking_env_restored_journal_unknown"):
+            self.execute(journal_failure="result")
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+    def test_apply_result_storage_failure_restores_env_before_managed_start(self):
+        with self.assertRaisesRegex(ValueError, "tracking_env_restored_journal_unknown"):
+            self.execute(journal_failure="tracking_env_applied")
+        self.assertEqual(self.target.read_bytes(), self.original)
+
+    def test_concurrent_env_change_during_cycle_is_unknown_and_never_overwritten(self):
+        with self.assertRaisesRegex(ValueError, "tracking_env_cas_conflict"):
+            self.execute(failure="env_drift")
+        self.assertEqual(self.target.read_bytes(), b"UNRELATED=concurrent-owner-change\n")
+        records = [json.loads(line) for line in (self.work / "journal.jsonl").read_text().splitlines()]
+        self.assertFalse(any(r["event"] == "result" for r in records))
