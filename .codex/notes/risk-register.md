@@ -13,6 +13,19 @@
   no-replay after UNKNOWN. Do not import upstream credential argv or open-ended
   retry behavior. New real T0 only after verified read path/controlled rollout.
 
+## September11 20:55 — managed packaging failure and recovery
+
+- Actual e5c1 image entrypoint content matches but mode0644 is not executable;
+  native permission-denied/exit126 proves packaging failure. Earlier Python
+  override tests did not cover normal ENTRYPOINT. Preserve rejected image and
+  original failure; correct only executable metadata and test actual entrypoint.
+- Existing managed recovery rejected failed/failed even with no process/container.
+  Original unit/private env now restored from existing backups; recovery-only
+  code records failure/counters, verifies exact stopped ownership, then clears
+  only this systemd failed marker once. No collection safety flag cleared.
+- No XHS request, business write or newT0 occurred. Readiness30/38. Shared reserve
+ 26/100 includes next bounded fix/probe/publication; actual UNKNOWN_NOT_ZERO.
+
 ## Current session repair finding
 
 - September11 20:31 current: corrected4cc image is actually published and manifest

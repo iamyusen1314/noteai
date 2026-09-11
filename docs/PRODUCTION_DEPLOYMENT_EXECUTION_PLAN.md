@@ -15,6 +15,19 @@ not replay. No unrelated production/permissions/commercial/traffic authorization
 Use existing durable launcher/records; no new validation hierarchy. Existing
 one-shot diagnostic remains consumed and must never be invoked again.
 
+## Current packaging correction — September11 20:55 Beijing
+
+The first managed cycle actually started and failed at OCI entrypoint execution:
+mode0644/permission denied/exit126. Its original journal and service failure are
+preserved; original unit and private env are now safely restored. Published e5c1
+is retained but MUST NOT be used for another managed attempt. Same4cc source needs
+only the original Dockerfile's entrypoint0755 mode restored, followed by a true
+default ENTRYPOINT smoke (no override, no Secret/network), source/alias checks and
+new immutable tag/digest. Do not relabel source or repeat the failed artifact.
+Existing managed helper now handles stopped failed-unit recovery only after durable
+failure projection, PID/controlPID/job/container checks; no retry/safety clearing.
+Cumulative conservative reserve26/100, actual UNKNOWN_NOT_ZERO. No newT0 exists.
+
 ## Current repair update — September11 20:31 Beijing
 
 Source4cc77f41a8dc32e56a383461f32051b914367d03 is actually built and published.

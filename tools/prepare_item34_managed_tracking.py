@@ -88,6 +88,7 @@ class NativeHostAdapter:
         self.original = self.candidate = None
         self.image_ref = self.image_id = None
         self.start_sent = self.stop_sent = False
+        self.failure_reset_sent = False
         self.cid = self.invocation = None
 
     @contextmanager
@@ -302,6 +303,39 @@ class NativeHostAdapter:
         # exact bound unit once, then independently require job/containers gone.
         self._run("systemctl", ["stop", UNIT], timeout=55)
         self.stopped_state()
+
+    def recover_failed_unit(self, journal):
+        """Clear only this stopped unit's recorded failure, never restart it.
+
+        Normal pre-start checks still reject failed units. systemd reset-failed
+        also clears its restart/start-limit counters: preserve the actual failed
+        projection durably first, and never substitute reset counters in history.
+        Collection safety and environment bytes are not changed here.
+        """
+        state = self._service()
+        if (state["ActiveState"], state["SubState"]) != ("failed", "failed"):
+            return
+        if not self.start_sent or self.failure_reset_sent:
+            raise ValueError("managed_failure_reset_not_allowed")
+        self._binding(digest(self.candidate), self.image_ref, self.image_id)
+        if (state["UnitFileState"] != "disabled" or state["Job"]
+                or state["MainPID"] != "0" or self._containers()):
+            raise ValueError("managed_failed_unit_not_quiescent")
+        fields = ("ControlPID", "Result", "ExecMainCode", "ExecMainStatus")
+        raw = self._run("systemctl", ["show", UNIT, "--no-pager",
+                                       "--property=" + ",".join(fields)])
+        rows = [line.split("=", 1) for line in raw.splitlines()]
+        if any(len(row) != 2 for row in rows) or len(rows) != len(fields):
+            raise ValueError("managed_failed_unit_readback")
+        details = dict(rows)
+        if set(details) != set(fields) or details["ControlPID"] != "0":
+            raise ValueError("managed_failed_unit_control_process")
+        journal.write("managed_failed_unit_readback", state=state, details=details,
+                      provider_replay_allowed=False)
+        self.failure_reset_sent = True
+        self._run("systemctl", ["reset-failed", UNIT])
+        journal.write("managed_failed_unit_cleared", state=self.stopped_state(),
+                      security_stop_flags_changed=False)
 
 
 def digest(value: bytes) -> str:
@@ -709,6 +743,8 @@ def rehearse(adapter, journal, *, template: bytes, current_image: str,
                 # A stop timeout never implies stopped. Restore only after an
                 # independent safe-state read; do not overwrite concurrent drift.
                 try:
+                    if hasattr(adapter, "recover_failed_unit"):
+                        adapter.recover_failed_unit(journal)
                     stopped = adapter.stopped_state()
                     if (stopped["UnitFileState"] != "disabled"
                             or stopped["ActiveState"] != "inactive"

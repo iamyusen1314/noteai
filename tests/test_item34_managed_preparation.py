@@ -379,6 +379,7 @@ class NativeRunner:
         self.job = ""
         self.container = None
         self.calls = []
+        self.control_pid = "0"
 
     def __call__(self, argv, **kwargs):
         assert kwargs["env"] == {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"}
@@ -397,11 +398,19 @@ class NativeRunner:
             if args[0] == "show":
                 values = {**self.state, "DropInPaths": "", "Job": self.job,
                           "NeedDaemonReload": "no" if self.loaded == self.unit.read_bytes() else "yes"}
+                if args[-1] == "--property=ControlPID,Result,ExecMainCode,ExecMainStatus":
+                    values = {"ControlPID": self.control_pid, "Result": "exit-code",
+                              "ExecMainCode": "1", "ExecMainStatus": "126"}
                 raw = "\n".join(key + "=" + str(value) for key, value in values.items())
             elif args == ["daemon-reload"]:
                 self.loaded = self.unit.read_bytes()
             elif args == ["start", managed.UNIT]:
                 self.job = "17"
+                if self.failure in ("exited_failed", "failed_control_pid", "reset_unknown"):
+                    self.state.update(ActiveState="failed", SubState="failed", MainPID="0", InvocationID="d" * 32)
+                    self.job = ""
+                    self.control_pid = "123" if self.failure == "failed_control_pid" else "0"
+                    return SimpleNamespace(returncode=1, stdout=b"")
                 if self.failure in ("start_job_unknown", "stop_job_unknown"):
                     raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
                 self.state.update(ActiveState="active", SubState="running", MainPID="100", InvocationID="d" * 32)
@@ -414,6 +423,11 @@ class NativeRunner:
                     raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
                 self.job = ""
                 self.container = None
+                if self.failure not in ("exited_failed", "failed_control_pid", "reset_unknown"):
+                    self.state.update(ActiveState="inactive", SubState="dead", MainPID="0", InvocationID="")
+            elif args == ["reset-failed", managed.UNIT]:
+                if self.failure == "reset_unknown":
+                    raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
                 self.state.update(ActiveState="inactive", SubState="dead", MainPID="0", InvocationID="")
             else:
                 raise AssertionError("unreviewed_systemctl_command")
@@ -467,6 +481,54 @@ class NativeManagedBindingTests(unittest.TestCase):
         self.assertEqual(commands, [["daemon-reload"], ["start", managed.UNIT],
                                     ["stop", managed.UNIT], ["daemon-reload"]])
         self.assertFalse(list(self.workdir.glob("managed-docker-*")))
+
+    def test_failed_exited_unit_is_recorded_then_restored_without_retry(self):
+        runner = NativeRunner(self.unit, "exited_failed")
+        result = self.exercise(runner)
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertTrue(result["restored"])
+        self.assertEqual(self.unit.read_bytes(), self.original)
+        commands = [args for program, args in runner.calls if program == "systemctl"]
+        self.assertEqual(commands.count(["start", managed.UNIT]), 1)
+        self.assertEqual(commands.count(["reset-failed", managed.UNIT]), 1)
+        records = [json.loads(line) for line in (self.workdir / "managed.jsonl").read_text().splitlines()]
+        failure = next(r for r in records if r["event"] == "managed_failed_unit_readback")
+        self.assertEqual(failure["details"]["ExecMainStatus"], "126")
+        self.assertEqual(failure["state"]["ActiveState"], "failed")
+
+    def test_failed_unit_control_pid_blocks_failure_reset_and_restore(self):
+        runner = NativeRunner(self.unit, "failed_control_pid")
+        result = self.exercise(runner)
+        self.assertFalse(result["restored"])
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertNotIn(("systemctl", ["reset-failed", managed.UNIT]), runner.calls)
+
+    def test_failure_reset_unknown_is_not_repeated(self):
+        runner = NativeRunner(self.unit, "reset_unknown")
+        result = self.exercise(runner)
+        self.assertFalse(result["restored"])
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertEqual(runner.calls.count(("systemctl", ["reset-failed", managed.UNIT])), 1)
+
+    def test_preexisting_failed_unit_is_rejected_before_any_start_or_reset(self):
+        runner = NativeRunner(self.unit)
+        runner.state.update(ActiveState="failed", SubState="failed")
+        with self.assertRaisesRegex(ValueError, "managed_not_quiescent"):
+            self.exercise(runner)
+        self.assertFalse(any(args[0] in {"start", "reset-failed"} for _, args in runner.calls))
+
+    def test_failed_projection_storage_error_never_claims_success(self):
+        runner = NativeRunner(self.unit, "exited_failed")
+        write = Journal.write
+        def fail_projection(journal, event, **data):
+            if event == "managed_failed_unit_readback":
+                raise OSError("synthetic_failed_projection_storage")
+            return write(journal, event, **data)
+        with mock.patch.object(Journal, "write", new=fail_projection):
+            result = self.exercise(runner)
+        self.assertFalse(result["restored"])
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertNotIn(("systemctl", ["reset-failed", managed.UNIT]), runner.calls)
 
     def test_start_timeout_with_pending_job_and_no_container_still_stops_unit(self):
         runner = NativeRunner(self.unit, "start_job_unknown")

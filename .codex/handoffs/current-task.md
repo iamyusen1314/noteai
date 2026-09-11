@@ -46,6 +46,45 @@ v5.0.0/7077c88. Actual batch03 on API-F now verifies the owned note with the
 complete lawful session and original visible link context. Old batch01/02
 failures remain below. No newT0/managed release is claimed. Readiness30/38.
 
+## September11 20:55 Beijing — first managed failure safely restored; packaging repair underway
+
+Original managed invocation21a5fef915284c1f91922887612267b7 actually ran once at
+12:47:19UTC. A nonzero systemd-run return was NOT proof of non-dispatch. Original
+host journal3848bytes SHAe749e291cd20be510020bbcb8f775fe2bf3582790fc584c25d819c5a3d93f5bc
+records private env apply then start/stop/restore failure; no health success. Native
+unit invocation0fcba865bf5644288716eb1e04504045 exited126, MainPID0/Jobempty,
+disabled/failed, no same-name or labelled container. Original service journal
+167178bytes SHA57dfc3fc394363c17e0993163334080aef2111f60a87d9e20c3271d37133acfd
+is retained privately on API-F; no raw service log was emitted.
+
+Native network-none diagnosis confirms /app/scripts/docker_entrypoint.sh mode0644,
+not executable, and exactly one matching permission-denied error. The public
+source unpack/COPY lost the executable bit; content/source hashes alone did not
+catch it because previous tests overrode ENTRYPOINT. Published e5c1 digest remains
+an immutable rejected-for-managed artifact. Its read adapter is proven, but its
+normal startup is not usable. Correct only packaging mode on the same4cc source,
+then verify the real default entrypoint before controlled successor publication.
+
+Safety recovery reused the original journal/private backups and existing lock:
+recorded failed state, exact stopped unit reset-failed once (systemd only, no
+collection safety change), CAS restored original439287 unit and exact original
+private env. Native readback confirms disabled/inactive/dead, no containers,
+originala78f image reference. Original failure/restart counts preserved; no
+provider/business writes/newT0. Existing host helper now has a recovery-only
+failed-unit path with ControlPID0 check and durable original failure projection;
+normal failed pre-start still rejects, unknown reset is never replayed.78 targeted
+Python3.11 tests pass, including real-shaped failed startup, active control PID,
+unknown reset and journal failure. No new gate or sampler was added.
+
+Original task files: remote managed-4cc77f4/{managed.host.jsonl,
+original-service-start.jsonl,failure-reconcile.json,managed-recovery.host.jsonl};
+local release-4cc77f4/managed-{original-result-readback,failure-reconcile,
+safe-recovery-readback}.json. Exact original files remain; no failed job replay.
+Cumulative reserve23/100 so far; reserve26/100 for the bounded packaging correction,
+normal-entrypoint probe and successor publication. Actual cost UNKNOWN_NOT_ZERO.
+Repair XHS calls still8physical/init6/detail2. Readiness30/38. Next: fixed-mode
+candidate/default-entrypoint validation, then a corrected bounded managed cycle.
+
 ## September11 20:31 Beijing — repaired image published; managed deployment in progress
 
 Native API-F source4cc77f41a8dc32e56a383461f32051b914367d03 built once on existing
