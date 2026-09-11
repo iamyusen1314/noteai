@@ -47,6 +47,24 @@ DSL200 then sessionHTTP200/business-3, no detail sent. Default request assembly
 matches full upstream under three socket-denied synthetic differential cases.
 No read success/newT0/managed release is claimed. Readiness30/38.
 
+## September11 — owner guided session input; original private task reattached
+
+Owner now sees a me request in Chrome Network after the guided normal-page refresh
+step. No browser request status, body or credential was read; native browser
+request count is NOT_ENUMERATED and is separate from the unchanged repair-batch
+and Tracking admission records. Do not claim browser session success from a row.
+
+Workbench tab5 had returned to a root shell; the old hidden prompt was no longer
+visible. Read-only task reconciliation found no session-candidate.env and exactly
+one original active staging container61168031b3bb65dd9df0b7d0ecf568c12a41bdd5ed4a30763f23b9a355cc4d46.
+Verified this exact container's stage-session command, running/open-stdin/TTY,
+and actual stdin termios ECHO disabled. Reattached the ORIGINAL container with
+sig-proxy=false; fixed HIDDEN_INPUT_TTY_VERIFIED and SESSION_INPUT_REATTACH_OK
+markers plus Request Cookie(hidden) prompt were read back. No new input container,
+request, production write or credential read. Candidate remains absent at this
+readback; do not replay staging after owner input. Owner is being guided to copy
+only the actual request Cookie value into this hidden prompt, never into chat.
+
 ## September11 02:25 Beijing — runnable recovery candidate and host package verified
 
 Candidate source stays d322a8a35d75dc0a7dcb6c4bb8d3f876a844df11. Existing final
