@@ -12,6 +12,38 @@ from scripts import reset_production_admin_password as recovery
 
 
 class AdminPasswordRecoveryTests(unittest.TestCase):
+    def test_input_errors_are_clear_retry_locally_and_never_echo_values(self):
+        old = b"DATABASE_URL=fixture\nADMIN_PASSWORD=old-fixture-password\n"
+        short = "short-fixture"
+        good = "Replacement-fixture-123"
+        wrong = "different-fixture-123"
+        out = io.StringIO()
+        with patch.object(recovery.getpass, "getpass", side_effect=[short, good, wrong, good, good]), contextlib.redirect_stdout(out):
+            self.assertEqual(recovery.read_password(old), good)
+        self.assertIn("16–128", out.getvalue())
+        self.assertIn("两次输入不一致", out.getvalue())
+        for value in [short, good, wrong, "old-fixture-password"]:
+            self.assertNotIn(value, out.getvalue())
+
+    def test_unsupported_characters_and_unchanged_password_are_not_applied(self):
+        old = b"DATABASE_URL=fixture\nADMIN_PASSWORD=old-fixture-password\n"
+        out = io.StringIO()
+        with patch.object(recovery.getpass, "getpass", side_effect=["x" * 16 + "中", "old-fixture-password", "x" * 15]), contextlib.redirect_stdout(out):
+            with self.assertRaises(recovery.InputRejected):
+                recovery.read_password(old)
+        self.assertIn("英文输入法", out.getvalue())
+        self.assertIn("新密码不能与原密码相同", out.getvalue())
+        self.assertNotIn("old-fixture-password", out.getvalue())
+
+    def test_hidden_input_fallback_fails_closed(self):
+        import warnings
+        def fallback(prompt):
+            warnings.warn("fixture warning", recovery.getpass.GetPassWarning)
+            return "never-accepted-fixture"
+        with patch.object(recovery.getpass, "getpass", side_effect=fallback), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(recovery.getpass.GetPassWarning):
+                recovery.read_password(b"ADMIN_PASSWORD=old-fixture-password\n")
+
     def test_literal_password_preserves_every_other_config_byte(self):
         original = b"# retained\r\nDATABASE_URL=postgresql://fixture@local/db\r\nADMIN_PASSWORD=old-fixture-value\r\nOTHER=a=b\r\n"
         password = "Fixture$`'\";=Strong123"

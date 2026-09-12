@@ -2,6 +2,19 @@
 
 ## September12 — owner-approved Admin password recovery in progress
 
+22:57 input feedback correction: owner reported a second STOPPED/RecoveryError.
+Read-only result at14:54:03.644966UTC again proves no reset result/backup/process,
+Admin active and target sessions0. Earlier generic failure did not retain which
+input condition failed; do not invent its cause. Corrected existing script now
+gives fixed Chinese reasons for length/unsupported characters/unchanged password/
+confirmation mismatch and permits at most3 local hidden-input rounds before any
+mutation. No password value or response fingerprint is recorded. Safety/strength
+rules and mutation path unchanged. Seven isolated Python3.11/networknone checks
+passed including no-echo fallback rejection; readonly review found no new issue.
+New source SHA ffa930caf37824713875e871fc94e5768f9726f629f160e1abb273244d63f75f;
+CAS installation replaces only the old79bdbe98 script after absent process/result/
+backup checks. Cloud installation result is being read back before another prompt.
+
 22:53 Chrome correction: owner explicitly directed Chrome control. Existing runtime
 liveAgent exposes healthy Chrome extension browser2/profile sam. Reuse adminChrome
 and chromeWorkbench; Chrome tab1637491606 is the original API-C Workbench1.0 SSM

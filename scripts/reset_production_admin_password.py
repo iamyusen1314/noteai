@@ -35,6 +35,10 @@ class RecoveryError(Exception):
     pass
 
 
+class InputRejected(RecoveryError):
+    pass
+
+
 def require(value):
     if not value:
         raise RecoveryError()
@@ -44,10 +48,40 @@ def terminate(signum, frame):
     raise RecoveryError()
 
 
+def password_problem(password):
+    if not 16 <= len(password) <= 128:
+        return "密码需要 16–128 位；尚未修改，请重新输入。"
+    if not all(33 <= ord(char) <= 126 for char in password):
+        return "请使用英文输入法的字母、数字或半角符号，不含空格、中文、全角符号或换行；尚未修改。"
+    return None
+
+
+def read_password(original):
+    old = next(line.split(b"=", 1)[1] for line in original.splitlines()
+               if line.startswith(b"ADMIN_PASSWORD="))
+    print("设置 NoteAI 后台新密码：16–128 位，英文输入法，不含空格。输入不显示；Ctrl+C 可取消。", flush=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", getpass.GetPassWarning)
+        for _ in range(3):
+            password = getpass.getpass("新后台密码: ")
+            problem = password_problem(password)
+            if problem:
+                print(problem, flush=True)
+                continue
+            if secrets.compare_digest(old, password.encode()):
+                print("新密码不能与原密码相同；尚未修改，请重新输入。", flush=True)
+                continue
+            confirm = getpass.getpass("再次输入新后台密码: ")
+            if not secrets.compare_digest(password.encode(), confirm.encode()):
+                print("两次输入不一致；尚未修改，请从新密码重新输入。", flush=True)
+                continue
+            return password
+    raise InputRejected()
+
+
 def replacement(data, password):
     # Docker env-file values are literal; never shell-evaluate the password.
-    require(16 <= len(password) <= 128)
-    require(all(33 <= ord(char) <= 126 for char in password))
+    require(password_problem(password) is None)
     lines = data.splitlines(keepends=True)
     matches = [i for i, line in enumerate(lines) if line.startswith(b"ADMIN_PASSWORD=")]
     require(len(matches) == 1)
@@ -241,12 +275,7 @@ def main():
     api = inspect("noteai-api-c")
     require(request("/health/live", port=8000)[0] == 200)
     preflight = database(live=True)
-    print("请输入新的 NoteAI 后台密码两次（16–128 位，不含空格；输入不显示）。", flush=True)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", getpass.GetPassWarning)
-        password = getpass.getpass("新后台密码: ")
-        confirm = getpass.getpass("再次输入新后台密码: ")
-    require(secrets.compare_digest(password.encode(), confirm.encode()))
+    password = read_password(original)
     changed = replacement(original, password)
     # Once hidden input is complete, a Workbench disconnect must not interrupt
     # revocation halfway through. Durable result readback replaces terminal output.
@@ -315,5 +344,6 @@ if __name__ == "__main__":
         sys.exit(main())
     except (Exception, KeyboardInterrupt) as error:
         # Error strings/tracebacks can include secret-bearing subprocess input.
-        print(json.dumps({"state": "STOPPED", "error_type": type(error).__name__}), flush=True)
+        reason = "input_not_validated_no_change" if isinstance(error, InputRejected) else "cancelled_read_original_result" if isinstance(error, KeyboardInterrupt) else "check_or_io_failed_read_original_result"
+        print(json.dumps({"state": "STOPPED", "error_type": type(error).__name__, "reason": reason}), flush=True)
         sys.exit(1)
