@@ -41,9 +41,15 @@ def enabled() -> bool:
 def service_status() -> dict:
     from account_security import sms_available
     import public_product
+    from sms_delivery import configuration
+    try:
+        sms_sign_name = configuration().sign_name
+    except ValueError:
+        sms_sign_name = ""
     return {
         "release": "free_product" if product_enabled() else "website_and_accounts",
         "registration_open": sms_available(),
+        "sms_sign_name": sms_sign_name,
         "payment_open": False,
         "ai_open": public_product.available(),
         "media_open": False,
@@ -132,7 +138,7 @@ def validate_startup(storage) -> None:
     if os.environ.get("NOTEAI_DEPLOYMENT_STAGE") == "production":
         if not storage.using_postgres():
             raise RuntimeError("public accounts require PostgreSQL in production")
-        if os.environ.get("NOTEAI_OTP_MODE", "disabled") not in {"disabled", "aliyun_sms"}:
+        if os.environ.get("NOTEAI_OTP_MODE", "disabled") not in {"disabled", "aliyun_sms", "aliyun_pnvs"}:
             raise RuntimeError("production public accounts reject mock OTP")
         origins = os.environ.get("NOTEAI_PUBLIC_ORIGINS", "").split(",")
         if not origins or any(v not in {"https://noteaipro.com", "https://www.noteaipro.com"} for v in origins):
@@ -143,6 +149,6 @@ def validate_startup(storage) -> None:
     for table in ("users", "user_sessions", "user_contract_acceptances", "auth_verification_challenges",
                   "auth_sms_budget", "auth_sms_deliveries"):
         storage.fetchone(f"SELECT 1 FROM {table} LIMIT 0")
-    if os.environ.get("NOTEAI_OTP_MODE") == "aliyun_sms":
+    if os.environ.get("NOTEAI_OTP_MODE") in {"aliyun_sms", "aliyun_pnvs"}:
         from sms_delivery import configuration
         configuration()

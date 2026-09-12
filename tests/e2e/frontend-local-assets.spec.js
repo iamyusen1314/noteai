@@ -45,7 +45,7 @@ test('original public product works under strict script CSP with OTP and dynamic
       const file = path.resolve('dist'+url.pathname.replace(/^\/dist/,''));
       if (fs.existsSync(file)) return route.fulfill({path:file});
     }
-    if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:registrationOpen,ai_open:true}});
+    if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:registrationOpen,ai_open:true,sms_sign_name:'恒创联众'}});
     if (url.pathname === '/synthetic-api/auth/verification/request') {
       expect(route.request().postDataJSON()).toEqual({channel:'phone',destination:'13800138000',purpose:'register_phone'});
       return route.fulfill({status:202,json:{challenge_id:'offline-challenge',expires_in_seconds:600}});
@@ -59,6 +59,7 @@ test('original public product works under strict script CSP with OTP and dynamic
   await page.locator('#nav-guest').getByRole('button',{name:'注册',exact:true}).click();
   await expect(page.locator('#auth-phone')).toBeVisible();
   await expect(page.locator('#auth-password')).toBeHidden();
+  await expect(page.locator('#public-auth-status')).toContainText('【恒创联众】');
   await page.locator('#auth-phone').fill('13800138000');
   await page.getByRole('button',{name:'获取验证码',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>_registerPhoneChallenge?.id)).toBe('offline-challenge');

@@ -2,6 +2,22 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+### 2026-09-12 17:05 北京时间：改用已存在的 PNVS 短信认证，继续交付
+
+Owner 报告标准短信因法定代表人超过 70 岁拒绝资质。阿里云官方《资质材料》明确法人和管理员均为 18–70 岁，单换经办人不能解除法人限制。腾讯云/华为云尚无已核实的超龄豁免，不能保证换厂商通过。
+
+已查明同一阿里云账户的「号码认证 → 短信认证」支持平台提供的签名/模板，无需单独企业短信资质；之前把标准短信审核当唯一前置不完整，下面的 PROGRAM_STOP/等待资质结论已由本条替代。当前真实控制台短信认证/融合认证均显示开启（本轮没有切换），赠送签名「恒创联众」通过，注册模板 `100001` 可用。没有购买套餐、订阅、发送短信或更换账户。
+
+按原官网累计 100 元授权继续接入：仅新增 PNVS custom-code 发送分支，复用已有随机码/PBKDF、10 分钟、错误次数、原挑战和业务事务一次消费；官方明确此分支由应用校验，不调用不能校验自定义码的 CheckSmsVerifyCode。`AutoRetry=0`、`ReturnVerifyCode=false`、`Interval=60`，同一 10 元短信预算每次预扣 0.06 元，失败/UNKNOWN 不退回或重发。平台公开 API 提供手机号间隔控制；未确认 PNVS 独立日/月总量设置，不将 Dysms 的 `100:1000` 当作 PNVS 配置。应用累计上限仍最多 166 次，总预算不重置。
+
+0023 仅扩展真实 provider 身份约束，保留 0021/22、旧行、ACL、预算；尚未在生产执行。现有 SQLite 旧约束不自动重建，必须在发送前失败关闭，不声称完成旧 SQLite 升级。原产品页补足短信签名告知；当前公网仍是前端 8161588/API 9941c85，注册关闭。Item34 gen2 无变更。
+
+批准依据与官方接口：
+- https://help.aliyun.com/zh/sms/user-guide/qualification-application-description
+- https://help.aliyun.com/zh/pnvs/getting-started/sms-authentication-service-novice-guide
+- https://help.aliyun.com/zh/pnvs/developer-reference/api-dypnsapi-2017-05-25-sendsmsverifycode
+- https://help.aliyun.com/zh/pnvs/product-overview/product-pricing/
+
 ### 2026-09-12 16:50 北京时间：当前可恢复交付与剩余缺口
 
 - `noteaipro.com` / `www.noteaipro.com` 已恢复原产品，前端 `8161588`、API `9941c85` 已实际部署；网站哈希、浏览器交互、API 健康和公开路由边界均已读回。不是新用户真实结果验收通过。

@@ -2,6 +2,17 @@
 
 ## Current September12 afternoon — original free product release
 
+September12 17:05: standard-SMS legal representative age rejection is owner-reported
+and consistent with Aliyun's published 18–70 rule. It does not block the official
+PNVS SMS-authentication product, which uses platform-provided signature/template.
+Current console shows that product enabled and the supplied registration pair
+available; no new service activation or SMS send in this check. Adapt the existing
+OTP transactions and unchanged cumulative budget, distinguish actual provider rows
+with additive0023, and do not misstate standard-SMS caps as PNVS controls. PNVS has
+the API phone interval plus application-enforced cumulative limits; its independent
+platform total cap has not been confirmed. The earlier wait-for-qualification stop
+is superseded; real registration/free-result acceptance remains pending.
+
 Original frontend8161588 and bounded API9941c85 are now deployed on C.
 NewRDS snapshot3156865822 available before atomic0021/22; payment0018 excluded.
 Liveauth/Payment/Adminroute refusals passed, cumulativebudgets and no-resetACLverified.

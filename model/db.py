@@ -1938,7 +1938,7 @@ INSERT OR IGNORE INTO auth_sms_budget(id,limit_milli_cny)
 CREATE TABLE IF NOT EXISTS auth_sms_deliveries (
     challenge_id TEXT PRIMARY KEY REFERENCES auth_verification_challenges(id),
     budget_id TEXT NOT NULL REFERENCES auth_sms_budget(id),
-    provider TEXT NOT NULL CHECK (provider = 'aliyun_sms'),
+    provider TEXT NOT NULL CHECK (provider IN ('aliyun_sms','aliyun_pnvs')),
     state TEXT NOT NULL CHECK (state IN ('reserved','accepted','rejected','unknown')),
     reserve_milli_cny INTEGER NOT NULL CHECK (reserve_milli_cny = 60),
     provider_code TEXT NOT NULL DEFAULT '',

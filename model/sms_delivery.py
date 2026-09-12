@@ -1,4 +1,4 @@
-"""One bounded Aliyun standard-SMS dispatch; no credential or payload logging."""
+"""One bounded Aliyun SMS/PNVS dispatch; no credential or payload logging."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,8 +15,10 @@ from urllib.parse import quote
 import httpx
 
 ENDPOINT = "https://dysmsapi.aliyuncs.com"
+PNVS_ENDPOINT = "https://dypnsapi.aliyuncs.com"
+LIVE_MODES = frozenset({"aliyun_sms", "aliyun_pnvs"})
 BUDGET_ID = "website-accounts-20260912"
-# Conservative reservation: current single-segment price is CNY0.045.
+# Standard SMS is CNY0.045; PNVS first-tier price is CNY0.06 per send.
 RESERVE_MILLI_CNY = 60
 TOTAL_MILLI_CNY = 10_000
 DAILY_SEND_LIMIT = 100
@@ -27,6 +29,7 @@ class Config:
     sign_name: str
     template_code: str
     role_name: str
+    provider: str = "aliyun_sms"
 
 
 @dataclass(frozen=True)
@@ -38,20 +41,26 @@ class DeliveryResult:
 
 
 def configuration() -> Config:
-    if os.environ.get("NOTEAI_OTP_MODE", "disabled") != "aliyun_sms":
+    provider = os.environ.get("NOTEAI_OTP_MODE", "disabled")
+    if provider not in LIVE_MODES:
         raise ValueError("SMS disabled")
     sign = os.environ.get("NOTEAI_SMS_SIGN_NAME", "").strip()
     template = os.environ.get("NOTEAI_SMS_TEMPLATE_CODE", "").strip()
     role = os.environ.get("NOTEAI_SMS_RAM_ROLE", "").strip()
     # These are deployment inputs read back from the actual approved template and
     # platform settings, not an assertion that an arbitrary template is approved.
+    valid_product = (
+        (provider == "aliyun_sms" and re.fullmatch(r"SMS_[0-9]{5,20}", template)
+         and os.environ.get("NOTEAI_SMS_PLATFORM_LIMITS") == "100:1000")
+        or (provider == "aliyun_pnvs" and sign == "恒创联众" and template == "100001"
+            and os.environ.get("NOTEAI_SMS_PLATFORM_LIMITS") == "pnvs_interval_60")
+    )
     if (not re.fullmatch(r"[\u4e00-\u9fffA-Za-z0-9]{2,16}", sign)
-            or not re.fullmatch(r"SMS_[0-9]{5,20}", template)
+            or not valid_product
             or not re.fullmatch(r"[A-Za-z0-9.@_-]{1,64}", role)
-            or os.environ.get("NOTEAI_SMS_PLATFORM_LIMITS") != "100:1000"
             or os.environ.get("NOTEAI_SMS_SINGLE_SEGMENT") != "1"):
         raise ValueError("SMS configuration incomplete")
-    return Config(sign, template, role)
+    return Config(sign, template, role, provider)
 
 
 def _credentials(role_name: str):
@@ -63,14 +72,19 @@ def _credentials(role_name: str):
     )).get_credential()
 
 
-def signed_request(parameters: dict[str, str], credential, *, timestamp: str, nonce: str):
+def signed_request(parameters: dict[str, str], credential, *, timestamp: str, nonce: str,
+                   provider: str = "aliyun_sms"):
     """ACS3 canonical query follows Aliyun's published V3 signing contract."""
+    if provider not in LIVE_MODES:
+        raise ValueError("unsupported SMS provider")
+    endpoint = PNVS_ENDPOINT if provider == "aliyun_pnvs" else ENDPOINT
     encode = lambda value: quote(str(value), safe="-_.~")
     query = "&".join(f"{encode(k)}={encode(v)}" for k, v in sorted(parameters.items()))
     payload_hash = hashlib.sha256(b"").hexdigest()
     headers = {
-        "host": "dysmsapi.aliyuncs.com",
-        "x-acs-action": "SendSms", "x-acs-version": "2017-05-25",
+        "host": endpoint.removeprefix("https://"),
+        "x-acs-action": "SendSmsVerifyCode" if provider == "aliyun_pnvs" else "SendSms",
+        "x-acs-version": "2017-05-25",
         "x-acs-date": timestamp, "x-acs-signature-nonce": nonce,
         "x-acs-content-sha256": payload_hash,
     }
@@ -81,7 +95,7 @@ def signed_request(parameters: dict[str, str], credential, *, timestamp: str, no
         f"ACS3-HMAC-SHA256 Credential={credential.access_key_id},"
         f"SignedHeaders={signed_headers},Signature={signature}"
     )
-    return ENDPOINT + "/?" + query, headers
+    return endpoint + "/?" + query, headers
 
 
 def _signature(query: str, headers: dict[str, str], secret: str):
@@ -110,12 +124,28 @@ def send(config: Config, *, phone: str, code: str, challenge_id: str) -> Deliver
         credential = _credentials(config.role_name)
         if not all((credential.access_key_id, credential.access_key_secret, credential.security_token)):
             return DeliveryResult("rejected", "CREDENTIAL_UNAVAILABLE")
-        url, headers = signed_request({
+        parameters = {
             "PhoneNumbers": phone.removeprefix("+86"), "SignName": config.sign_name,
             "TemplateCode": config.template_code,
             "TemplateParam": json.dumps({"code": code}, separators=(",", ":")),
             "OutId": challenge_id,
-        }, credential, timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), nonce=uuid.uuid4().hex)
+        }
+        if config.provider == "aliyun_pnvs":
+            # Official custom-code mode: NoteAI generates and atomically verifies
+            # its own challenge. CheckSmsVerifyCode cannot verify custom codes.
+            # Platform-provided signature/template stay paired; no credential or
+            # code is returned to the browser, and neither side retries sends.
+            parameters.pop("PhoneNumbers")
+            parameters.update({
+                "PhoneNumber": phone.removeprefix("+86"), "CountryCode": "86",
+                "SchemeName": "noteai-public-login",
+                "TemplateParam": json.dumps({"code": code, "min": "10"}, separators=(",", ":")),
+                "AutoRetry": "0", "ReturnVerifyCode": "false", "Interval": "60",
+                "ValidTime": "600", "CodeLength": "6", "DuplicatePolicy": "2",
+            })
+        url, headers = signed_request(parameters, credential,
+            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            nonce=uuid.uuid4().hex, provider=config.provider)
     except Exception:
         return DeliveryResult("rejected", "CREDENTIAL_UNAVAILABLE")
     try:
@@ -138,9 +168,19 @@ def send(config: Config, *, phone: str, code: str, challenge_id: str) -> Deliver
                     "isv.MOBILE_NUMBER_ILLEGAL", "isv.RAM_PERMISSION_DENY",
                     "isv.OUT_OF_SERVICE", "isv.ACCOUNT_NOT_EXISTS", "isv.ACCOUNT_ABNORMAL",
                     "isv.TEMPLATE_MISSING_PARAMETERS", "isv.INVALID_PARAMETERS",
+                    "MOBILE_NUMBER_ILLEGAL", "BUSINESS_LIMIT_CONTROL", "FREQUENCY_FAIL",
+                    "INVALID_PARAMETERS", "FUNCTION_NOT_OPENED",
                 } else ""
                 request_id, biz_id = _reference(payload.get("RequestId")), _reference(payload.get("BizId"))
-                if 200 <= response.status_code < 300 and business_code == "OK" and request_id and biz_id:
+                success = True
+                if config.provider == "aliyun_pnvs":
+                    model = payload.get("Model")
+                    raw_biz = model.get("BizId") if isinstance(model, dict) else None
+                    biz_id = raw_biz if isinstance(raw_biz, str) and re.fullmatch(r"[A-Za-z0-9_.^\-]{12,100}", raw_biz) else ""
+                    success = payload.get("Success") is True and isinstance(model, dict)
+                    if isinstance(model, dict) and model.get("OutId") not in (None, challenge_id):
+                        return DeliveryResult("unknown", "REFERENCE_MISMATCH", request_id)
+                if 200 <= response.status_code < 300 and business_code == "OK" and request_id and biz_id and success:
                     return DeliveryResult("accepted", business_code, request_id, biz_id)
                 if response.status_code < 500 and isinstance(raw_code, str) and raw_code != "OK" and request_id:
                     return DeliveryResult("rejected", business_code or "PROVIDER_REJECTED", request_id, biz_id)

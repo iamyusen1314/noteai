@@ -1,7 +1,7 @@
 """Account security contracts that are safe to exercise without real providers.
 
 Delivery is disabled by default. ``test`` is explicit non-production only;
-the public phone release uses a bounded, durable Aliyun standard-SMS dispatch.
+the public phone release uses a bounded, durable Aliyun SMS or PNVS dispatch.
 """
 from __future__ import annotations
 
@@ -193,7 +193,7 @@ def issue_verification(
     if normalized_channel not in _ALLOWED_PURPOSE_CHANNELS.get(normalized_purpose, set()):
         raise ValueError("验证用途与渠道不匹配")
     normalized_destination = _contact(normalized_channel, destination)
-    if os.environ.get("NOTEAI_OTP_MODE", "disabled") == "aliyun_sms":
+    if os.environ.get("NOTEAI_OTP_MODE", "disabled") in sms_delivery.LIVE_MODES:
         if normalized_channel != "phone" or normalized_purpose not in {"register_phone", "login_phone"}:
             raise VerificationDeliveryUnavailable("本阶段仅开放手机号注册与登录验证")
         return _issue_live_sms(normalized_destination, normalized_purpose, requester_fingerprint)
@@ -341,8 +341,8 @@ def _issue_live_sms(destination: str, purpose: str, requester: str) -> dict[str,
              _iso(now), _iso(now + timedelta(minutes=OTP_TTL_MINUTES)), OTP_MAX_ATTEMPTS, requester_hash),
         )
         tx.execute("INSERT INTO auth_sms_deliveries(challenge_id,budget_id,provider,state,reserve_milli_cny,"
-                   "created_at,updated_at) VALUES(?,?,'aliyun_sms','reserved',?,?,?)",
-                   (challenge_id, sms_delivery.BUDGET_ID, sms_delivery.RESERVE_MILLI_CNY, _iso(now), _iso(now)))
+                   "created_at,updated_at) VALUES(?,?,?,'reserved',?,?,?)",
+                   (challenge_id, sms_delivery.BUDGET_ID, config.provider, sms_delivery.RESERVE_MILLI_CNY, _iso(now), _iso(now)))
     result = sms_delivery.send(config, phone=destination, code=code, challenge_id=challenge_id)
     del code
     try:
@@ -431,8 +431,10 @@ def verify_verification_with_storage(
     ):
         raise VerificationRejected(generic_error)
     delivery = storage.fetchone("SELECT state FROM auth_sms_deliveries WHERE challenge_id=?", (row["id"],))
-    requires_live = (os.environ.get("NOTEAI_OTP_MODE") == "aliyun_sms"
-                     or (os.environ.get("NOTEAI_PUBLIC_ACCOUNT_ONLY") == "1" and _deployment_stage() == "production"))
+    requires_live = (os.environ.get("NOTEAI_OTP_MODE") in sms_delivery.LIVE_MODES
+                     or (_deployment_stage() == "production" and (
+                         os.environ.get("NOTEAI_PUBLIC_ACCOUNT_ONLY") == "1"
+                         or os.environ.get("NOTEAI_PUBLIC_PRODUCT") == "1")))
     if (delivery and delivery["state"] == "rejected") or (requires_live and not delivery):
         raise VerificationRejected(generic_error)
     supplied_hash = hashlib.pbkdf2_hmac(

@@ -2,7 +2,7 @@
   "Version": "1",
   "Statement": [{
     "Effect": "Allow",
-    "Action": "dysms:SendSms",
+    "Action": "dypns:SendSmsVerifyCode",
     "Resource": "*",
     "Condition": {"IpAddress": {"acs:SourceIp": "39.108.66.93"}}
   }]

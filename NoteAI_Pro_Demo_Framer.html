@@ -4721,7 +4721,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">隐私与跨境</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">系统按最小必要原则处理账户、创作和安全审计数据。Claude 路径可能把必要文本从中国境内阿里云发送到新加坡 Gateway；默认先在境内处理图片，只发送必要文本。当前公开免费实例只使用境内 Kimi API，不启用上述跨境路径。阿里云标准短信服务处理注册登录所需手机号与验证码，账户信息不发送给模型。</p>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">系统按最小必要原则处理账户、创作和安全审计数据。Claude 路径可能把必要文本从中国境内阿里云发送到新加坡 Gateway；默认先在境内处理图片，只发送必要文本。当前公开免费实例只使用境内 Kimi API，不启用上述跨境路径。阿里云号码认证及短信服务处理注册登录所需手机号与验证码，账户信息不发送给模型。</p>
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">退款与账户删除</h2>
@@ -5283,7 +5283,7 @@ async function refreshPublicStatus() {
   const status = document.getElementById('public-product-status');
   status.style.display = 'block';
   status.textContent = '原产品免费体验 · 每月12积分，诊断6 / 生成8 / 深度重写3 / 快速对话1积分。' +
-    (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂未开放，短信资质审核中。') +
+    (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成可用；服务总额度用尽时暂停新增调用。' : '真实AI服务尚未开放，不会把示例当作处理结果。') +
     ' 图片、视频、外部笔记跟踪及支付暂未开放。';
   syncPublicAuthAvailability();
@@ -5292,9 +5292,11 @@ function syncPublicAuthAvailability() {
   if (!PUBLIC_PRODUCT) return;
   const open = _publicStatus?.registration_open === true;
   const notice = document.getElementById('public-auth-status');
-  notice.style.display = open ? 'none' : 'block';
-  notice.textContent = _publicStatus
-    ? '手机验证码注册和登录暂未开放，短信资质审核中。你仍可浏览原工作台、套餐与协议；审核完成并验证后开放。'
+  notice.style.display = 'block';
+  notice.textContent = open
+    ? (_publicStatus.sms_sign_name ? `验证码短信签名为【${_publicStatus.sms_sign_name}】，由阿里云提供发送服务。验证码10分钟内有效，请勿告诉他人。` : '验证码10分钟内有效，请勿告诉他人。')
+    : _publicStatus
+    ? '手机验证码注册和登录暂未开放。你仍可浏览原工作台、套餐与协议；如需帮助请联系页脚客服。'
     : '暂时无法确认短信服务状态，请稍后再试。你仍可浏览原工作台、套餐与协议。';
   document.querySelector('#auth-phone-code-row button').disabled = !open;
   document.getElementById('auth-submit-btn').disabled = !open;

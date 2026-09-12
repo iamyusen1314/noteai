@@ -1,5 +1,6 @@
 """Published ACS3 vector and isolated HTTP transport checks; synthetic data only."""
 import hashlib
+import json
 import io
 import logging
 from pathlib import Path
@@ -55,6 +56,41 @@ class SmsTransportTests(unittest.TestCase):
             self.assertEqual(set(params), {"PhoneNumbers", "SignName", "TemplateCode", "TemplateParam", "OutId"})
             return httpx.Response(200, json={"Code": "OK", "RequestId": self.request_id, "BizId": self.biz_id})
         self.assertEqual(self.invoke(handler).state, "accepted")
+
+    def test_pnvs_custom_code_uses_approved_pair_and_no_automatic_retry(self):
+        self.config = sms.Config("恒创联众", "100001", "isolated-test-role", "aliyun_pnvs")
+        def handler(req):
+            self.assertEqual(req.url.host, "dypnsapi.aliyuncs.com")
+            self.assertEqual(req.headers["x-acs-action"], "SendSmsVerifyCode")
+            params = parse_qs(req.url.query.decode())
+            self.assertNotIn("PhoneNumbers", params)
+            self.assertEqual(params["PhoneNumber"], ["13800138000"])
+            self.assertEqual(params["TemplateCode"], ["100001"])
+            self.assertEqual(params["SignName"], ["恒创联众"])
+            self.assertEqual(json.loads(params["TemplateParam"][0]), {"code": "987654", "min": "10"})
+            self.assertEqual(params["AutoRetry"], ["0"])
+            self.assertEqual(params["ReturnVerifyCode"], ["false"])
+            self.assertEqual(params["Interval"], ["60"])
+            self.assertEqual(params["ValidTime"], ["600"])
+            return httpx.Response(200, json={"Code": "OK", "Success": True,
+                "RequestId": self.request_id, "Model": {"BizId": self.biz_id + "^1",
+                "OutId": "local-synthetic-challenge"}})
+        result = self.invoke(handler)
+        self.assertEqual(result.state, "accepted")
+        self.assertEqual(result.biz_id, self.biz_id + "^1")
+
+    def test_pnvs_incomplete_or_mismatched_success_is_unknown(self):
+        self.config = sms.Config("恒创联众", "100001", "isolated-test-role", "aliyun_pnvs")
+        for model, success in (({}, True), ({"BizId": self.biz_id}, False),
+            ({"BizId": self.biz_id}, "true"), ({"BizId": self.biz_id, "OutId": "other"}, True)):
+            with self.subTest(model=model, success=success):
+                result = self.invoke(lambda req: httpx.Response(200, json={"Code": "OK",
+                    "Success": success, "RequestId": self.request_id, "Model": model}))
+                self.assertEqual(result.state, "unknown")
+
+    def test_pnvs_transport_failure_does_not_resend(self):
+        self.config = sms.Config("恒创联众", "100001", "isolated-test-role", "aliyun_pnvs")
+        self.test_redirect_timeout_invalid_response_never_retries()
 
     def test_redirect_timeout_invalid_response_never_retries(self):
         for kind in ("redirect", "timeout", "server-error", "large", "missing-id"):

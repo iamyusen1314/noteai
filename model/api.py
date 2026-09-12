@@ -12743,7 +12743,7 @@ async def legal_contracts():
             "privacy": {
                 "purposes": ["phone_verification", "account_access", "security_and_support"],
                 "data": ["phone", "session", "verification_result", "consent", "security_metadata"],
-                "sms_provider": "阿里云短信服务（标准短信）及其通信合作方",
+                "sms_provider": "阿里云号码认证及短信服务及其通信合作方",
                 "hosting": "阿里云中国境内",
                 "account_data_sent_to_ai_providers": False,
                 "submitted_creation_text_sent_to_kimi": _public_account.product_enabled(),

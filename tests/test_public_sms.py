@@ -25,6 +25,8 @@ ENV = {"NOTEAI_OTP_MODE": "aliyun_sms", "NOTEAI_DEPLOYMENT_STAGE": "test",
        "NOTEAI_SMS_SIGN_NAME": "测试短信", "NOTEAI_SMS_TEMPLATE_CODE": "SMS_123456",
        "NOTEAI_SMS_RAM_ROLE": "isolated-test-role", "NOTEAI_SMS_PLATFORM_LIMITS": "100:1000",
        "NOTEAI_SMS_SINGLE_SEGMENT": "1"}
+PNVS_ENV = {"NOTEAI_OTP_MODE": "aliyun_pnvs", "NOTEAI_SMS_SIGN_NAME": "恒创联众",
+            "NOTEAI_SMS_TEMPLATE_CODE": "100001", "NOTEAI_SMS_PLATFORM_LIMITS": "pnvs_interval_60"}
 
 
 class SmsAdmissionTests(unittest.TestCase):
@@ -296,6 +298,61 @@ class SmsPostgresTests(SmsAdmissionTests):
                     "challenge_id": challenge.json()["challenge_id"], "code": captured["code"]})
                 self.assertEqual(result.status_code, 200, result.text)
                 self.assertEqual(client.get("/auth/me", headers={"Authorization": "Bearer invalid"}).status_code, 401)
+
+
+class PnvsAdmissionTests(SmsAdmissionTests):
+    def setUp(self):
+        super().setUp()
+        override = mock.patch.dict(os.environ, PNVS_ENV)
+        override.start()
+        self.addCleanup(override.stop)
+
+    def test_provider_identity_and_no_cross_product_configuration(self):
+        with mock.patch.object(sms, "send", return_value=sms.DeliveryResult("accepted", "OK", "r", "b")):
+            self.issue()
+        self.assertEqual(db.fetchone("SELECT provider FROM auth_sms_deliveries")[0], "aliyun_pnvs")
+        for mismatch in ({"NOTEAI_SMS_TEMPLATE_CODE": "SMS_123456"},
+                         {"NOTEAI_SMS_PLATFORM_LIMITS": "100:1000"},
+                         {"NOTEAI_SMS_SIGN_NAME": "NoteAI"}):
+            with mock.patch.dict(os.environ, mismatch), self.assertRaises(ValueError):
+                sms.configuration()
+
+    def test_existing_sqlite_provider_constraint_fails_before_dispatch(self):
+        # Existing local SQLite files are not rebuilt implicitly. A legacy CHECK
+        # must fail closed; production uses the compatible PostgreSQL migration.
+        sql = db.fetchone("SELECT sql FROM sqlite_master WHERE name='auth_sms_deliveries'")[0]
+        self.owner_execute("DROP TABLE auth_sms_deliveries")
+        self.owner_execute(sql.replace("provider IN ('aliyun_sms','aliyun_pnvs')", "provider = 'aliyun_sms'"))
+        db.init_db()
+        with mock.patch.object(sms, "send") as provider:
+            with self.assertRaises(Exception): self.issue()
+        provider.assert_not_called()
+        self.assertEqual(self.reserve(), 0)
+
+
+@unittest.skipUnless(os.environ.get("NOTEAI_ISOLATED_SMS_PG16") == "1", "dedicated isolated PG16 required")
+class PnvsPostgresTests(SmsPostgresTests):
+    def setUp(self):
+        super().setUp()
+        override = mock.patch.dict(os.environ, PNVS_ENV)
+        override.start()
+        self.addCleanup(override.stop)
+
+    test_provider_identity_and_no_cross_product_configuration = PnvsAdmissionTests.test_provider_identity_and_no_cross_product_configuration
+
+    def test_0023_preserves_legacy_delivery_and_cumulative_budget(self):
+        with mock.patch.dict(os.environ, ENV), mock.patch.object(
+                sms, "send", return_value=sms.DeliveryResult("accepted", "OK", "r", "b")):
+            self.issue()
+        before = dict(db.fetchone("SELECT * FROM auth_sms_deliveries"))
+        sql = (Path(__file__).resolve().parents[1] / "model/migrations/postgres/0023_pnvs_sms_provider.sql").read_text()
+        with self.psycopg.connect(self.owner_dsn) as conn:
+            conn.execute("ALTER TABLE auth_sms_deliveries DROP CONSTRAINT auth_sms_deliveries_provider_check")
+            conn.execute("ALTER TABLE auth_sms_deliveries ADD CONSTRAINT auth_sms_deliveries_provider_check CHECK(provider='aliyun_sms')")
+            conn.execute(sql)
+        self.assertEqual(dict(db.fetchone("SELECT * FROM auth_sms_deliveries")), before)
+        self.assertEqual(self.reserve(), 60)
+        self.assertTrue(security.sms_available())
 
 
 if __name__ == "__main__": unittest.main()
