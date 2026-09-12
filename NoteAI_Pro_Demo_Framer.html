@@ -5303,6 +5303,7 @@ function syncProductUI() {
     if (el.id === 'chat-file-input') el.accept='.txt,.md,.json,.csv';
     else el.disabled=true;
   });
+  ['genCoverInput','genVideoInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display='none';});
   // Existing profile actions keep their real scope; deletion/export are support requests.
   document.querySelectorAll('[data-product-action="handleUpgrade"],[data-product-action="handleTopup"]').forEach(el => {
     el.setAttribute('aria-disabled','true'); el.title='支付尚未开放';
@@ -5318,8 +5319,11 @@ async function acceptProductContract() {
     _authUser.contract_accepted=true; syncProductUI(); loadBillingPlan(); showPage('upload');
   } catch(err) { showToast(err.message); }
 }
+function completeProductResult(result) { return !!result && !result._error && !result._outcome_unknown; }
 function requireProductConsent() {
-  if (!PUBLIC_PRODUCT || _authUser?.contract_accepted) return true;
+  if (!PUBLIC_PRODUCT) return true;
+  if (_authUser && !_authUser.phone_verified) { showToast('当前账户尚未验证手机号。请通过手机验证码登录，或联系支持完成原账户绑定'); return false; }
+  if (_authUser?.contract_accepted) return true;
   if (!_authToken) openAuthModal('login');
   else { showPage('legal'); showToast('请先确认当前免费产品服务与隐私说明'); }
   return false;
@@ -6514,7 +6518,7 @@ function _handleGenStreamEvent(ev) {
       addBubble('系统', errMsg, 4, 10, 80);
       if (quotaDetail) {
         showQuotaExceededModal(quotaDetail);
-        showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足，请订阅套餐或充值积分`);
+        showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足，请查看本月免费额度`);
         break;
       }
       showToast('⚠ ' + errMsg);
@@ -6642,7 +6646,7 @@ function _handleAnalyzeStreamEvent(ev) {
       if (ev.status_code === 401) openAuthModal('login');
       if (quotaDetail) {
         showQuotaExceededModal(quotaDetail);
-        showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI深度诊断'}积分不足，请订阅套餐或充值积分`);
+        showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI深度诊断'}积分不足，请查看本月免费额度`);
       } else {
         showToast('⚠ ' + errMsg);
       }
@@ -6806,7 +6810,7 @@ async function startDiagnosis() {
           _diagnosisStreamActive = false;
           updateDiagnosisSubmitState();
           _diagnoseResult = { _error: true, _quota: true };
-          showToast('诊断积分不足，请订阅套餐或充值积分');
+          showToast('诊断积分不足，请查看本月免费额度');
           showQuotaExceededModal(errData.detail || errData);
           resolve(); return;
         }
@@ -6997,7 +7001,7 @@ async function populateReport() {
 
   // ── 无数据：用内联空状态替换内容（不用 position:absolute，避免高度计算问题）──
   const emptyEl = document.getElementById('_report_empty_inline');
-  if (!d || d._error) {
+  if (!completeProductResult(d)) {
     if (diagBody) diagBody.style.display = 'none';
     if (genBody)  genBody.style.display  = 'none';
     renderReportLifecycle(null);
@@ -7290,8 +7294,11 @@ async function populateGenerateReport() {
 
   if (_diagnosePromise) await _diagnosePromise;
   const d = _generateResult;
-  if (!d || d._error) {
-    if (mainTitle) mainTitle.innerHTML = `<span style="color:var(--error)">⚠ ${(d && d._errMsg) || '生成失败，请检查网络后重试'}</span>`;
+  if (!completeProductResult(d)) {
+    document.getElementById("chatEntryBanner").style.display="none";
+    document.getElementById("scoreRingNum").textContent="--";
+    renderReportLifecycle(null);
+    if (mainTitle) mainTitle.innerHTML = `<span style="color:var(--error)">⚠ ${escapeHtml((d && d._errMsg) || '结果尚未确认，请先查看原任务或历史记录，不要重复提交')}</span>`;
     return;
   }
 
@@ -7695,7 +7702,7 @@ function loadPlanToChat(idx) {
 /* 从诊断报告顶部按钮进入：用原版笔记+完整诊断上下文开始对话优化 */
 function startDiagChatOptimization() {
   const d = _diagnoseResult;
-  if (!d || d._error) { showToast('请先完成诊断'); return; }
+  if (!completeProductResult(d)) { showToast('请先完成诊断'); return; }
   _noteDetailData = {
     title:   d._inputTitle || '',
     body:    d._inputDesc  || '',
@@ -7906,14 +7913,16 @@ function startLiveAnimation() {
       stepActive(0);
       setProgress(4, '正在连接真实 AI 诊断链路…');
     } else {
+      if(liveH1) liveH1.textContent='任务进度';
       setProgress(0, '暂无进行中的 AI 任务');
       addBubble('系统', '请从“开始诊断”上传内容并发起诊断。这里仅显示真实任务进度。', 4, 0, 0);
     }
     return;
   }
 
-  // 生成模式：由 SSE stream 驱动，仅初始化
-  setTimeout(() => { stepDone(0); stepActive(1); setProgress(8, '正在连接 AI 专家…'); }, 300);
+  // Only a dispatched request may show active processing.
+  if (_genStreamActive) { stepActive(0); setProgress(4,'正在连接真实生成链路…'); }
+  else { setProgress(0,'暂无进行中的 AI 任务'); if(liveH1) liveH1.textContent='任务进度'; }
 }
 
 function setProgress(pct, label) {
@@ -8173,7 +8182,7 @@ function renderReportLifecycle(d) {
   const scoreEl = document.getElementById('report-loop-score');
   const stepsEl = document.getElementById('report-loop-steps');
   if (!card || !stepsEl) return;
-  if (!d || d._error) {
+  if (!completeProductResult(d)) {
     card.style.display = 'none';
     return;
   }
@@ -9173,7 +9182,10 @@ let _chatUserStateEpoch = 0;
 /* ── Entry point: called from "开始对话优化" button ── */
 async function startChatOptimization() {
   const d = _generateResult;
-  if (!d || d._error) { showToast('⚠️ 请先生成笔记，再开始对话优化'); return; }
+  if (!completeProductResult(d)) {
+    document.getElementById("chatEntryBanner").style.display="none";
+    document.getElementById("scoreRingNum").textContent="--";
+    renderReportLifecycle(null); showToast('⚠️ 请先生成笔记，再开始对话优化'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   const identitySnapshot = _chatIdentitySnapshot();
 
@@ -9465,7 +9477,7 @@ async function chatSendMessage(options = {}) {
     const handleChatAccessFailure = async response => {
       if (response.status === 402) {
         const errData = await response.json().catch(() => ({}));
-        chatAppendAi('对话深度重写积分不足，请订阅套餐或充值积分后继续。');
+        chatAppendAi('对话深度重写积分不足，请查看本月免费额度后继续。');
         showQuotaExceededModal(normalizeQuotaDetail(errData.detail || errData));
         return true;
       }
@@ -10398,6 +10410,7 @@ function initLibraryPage() {
 }
 
 async function loadTrackingIndex() {
+  if (PUBLIC_PRODUCT) return;
   _trackingBySourceNote = new Map();
   if (!_authToken) return;
   try {
@@ -10455,8 +10468,8 @@ async function initReportPage() {
 	  }
 
 	  const hasFreshReport = _isGenerateMode
-	    ? !!_generateResult
-	    : (_diagnoseResult && !_diagnoseResult._error);
+	    ? completeProductResult(_generateResult)
+	    : completeProductResult(_diagnoseResult);
 	  if (hasFreshReport) {
 	    const detail = document.getElementById('diag-detail-section');
 	    if (detail) detail.style.display = 'block';
@@ -10593,6 +10606,7 @@ async function openDiagDetail(diagId) {
 
   // 删除按钮
   const delBtn = document.getElementById('detail-delete-btn');
+  if(PUBLIC_PRODUCT && delBtn) delBtn.style.display='none';
   if (delBtn) delBtn.onclick = () => deleteDiagnosis(diagId);
 
   try {
@@ -11252,6 +11266,7 @@ async function saveEmail() {
 }
 
 function openChangePwd() {
+  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
   document.getElementById('profile-change-pwd-form').style.display = 'flex';
   document.getElementById('pwd-old').value = '';
   document.getElementById('pwd-new').value = '';
@@ -11952,7 +11967,7 @@ async function _ocrImages(imagesToOcr) {
 	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
 	          _setSsImageStatus(img, 'failed', reason);
-	          showToast('截图识别积分不足，请订阅套餐或充值积分');
+	          showToast('截图识别积分不足，请查看本月免费额度');
 	          if (!quotaModalShown) {
 	            quotaModalShown = true;
 	            showQuotaExceededModal(normalizeQuotaDetail(errData.detail || errData));
@@ -12419,6 +12434,7 @@ const _AVATAR_EMOJIS = [
 ];
 
 function openAvatarPicker() {
+  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   const grid = document.getElementById('avatar-picker-grid');
   grid.innerHTML = '';
@@ -12562,6 +12578,7 @@ async function pickAvatar(emoji) {
    昵称内联编辑
 ═══════════════════════════════════════════════════════════ */
 function startNicknameEdit() {
+  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   const cur = document.getElementById('profile-nickname-display').textContent;
   document.getElementById('profile-nickname-input').value = cur;
@@ -12635,6 +12652,7 @@ let _trackingLinkedTitle  = '';
 let _trackingLinkedSessionId = null;
 
 function openTrackUrlModal() {
+  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   document.getElementById('track-url-modal').style.display = 'flex';
   document.getElementById('track-url-input').value = '';
@@ -12707,6 +12725,7 @@ async function submitTrackUrl() {
 }
 
 async function loadTrackingList() {
+  if (PUBLIC_PRODUCT) { const el=document.getElementById('profile-tracking-list'); if(el) el.textContent='外部笔记跟踪尚未开放；已保存笔记可以继续查看和优化。'; return; }
   if (!_authToken) return;
   try {
     const res = await fetch(API_AUTH + '/notes/tracking', { headers: authHeader() });
@@ -12823,6 +12842,7 @@ async function loadBillingPlan() {
       fetch(API_AUTH + '/billing/plan',      { headers: authHeader() }),
       fetch(API_AUTH + '/billing/usage?days=30', { headers: authHeader() }),
     ]);
+    if (!planRes.ok || !usageRes.ok) return;
     const plan  = await planRes.json();
     const usage = await usageRes.json();
     // 先缓存，供 quota bars 和 toggleUsageDetail 使用
@@ -12864,6 +12884,7 @@ async function loadBillingPlan() {
         chat_rewrite: { label:'对话深度重写', credits:3 },
         screenshot: { label:'截图识别', credits:0.5 },
       };
+      if (PUBLIC_PRODUCT) { opCosts.chat_fast={label:'快速对话',credits:1}; delete opCosts.screenshot; }
       const opCostHTML = Object.entries(opCosts).map(([key, info]) => {
         const meta = opMeta[key] || { label: info.label || key, accent: 'var(--holo-mid)', unit: '次' };
         const credits = Number(info.credits || 0);
@@ -12887,6 +12908,7 @@ async function loadBillingPlan() {
         video_analyze:{ label: '视频解析',   cost: '成本监控', desc: '视频诊断/生成时调用' },
       };
       const byOp = window._lastUsageData?.by_operation || {};
+      if (PUBLIC_PRODUCT) { delete freeMeta.chat_fast; delete freeMeta.extra_image; delete freeMeta.video_analyze; }
       const freeRows = Object.entries(freeMeta).map(([key, meta]) => {
         const d = byOp[key] || { count: 0, cost_rmb: 0 };
         return `
@@ -12928,10 +12950,10 @@ async function loadBillingPlan() {
           ${opCostHTML}
         </div>
         <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-top:16px;margin-bottom:4px">
-          免费操作（不占配额，会产生平台 API 成本）
+          主流程内部步骤（已包含在诊断或生成积分中）
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">
-          这些操作对用户免费，但会实际消耗平台 API 费用。0次表示本月尚未触发（例如：直接使用"爆文生成"不会触发"内容诊断"）。
+          这些步骤不提供独立调用入口，平台仍核算实际API费用。0次表示本月尚未触发（例如：直接使用"爆文生成"不会触发"内容诊断"）。
         </div>
         <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:4px 14px">
           <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">

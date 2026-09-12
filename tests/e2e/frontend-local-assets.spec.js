@@ -67,6 +67,16 @@ test('original public product works under strict script CSP with OTP and dynamic
   });
   await page.getByRole('button',{name:'动态套餐入口'}).click();
   await expect(page.locator('#page-pricing')).toHaveClass(/active/);
+  await page.evaluate(()=>{ switchMode('generate'); showPage('live'); });
+  await expect(page.locator('#progressLabel')).toHaveText('暂无进行中的 AI 任务');
+  await page.evaluate(async()=>{
+    _isGenerateMode=true; _generateResult={_outcome_unknown:true,_errMsg:'原任务结果未确认'};
+    await initReportPage(); await populateGenerateReport();
+  });
+  await expect(page.locator('#scoreRingNum')).toHaveText('--');
+  await expect(page.locator('#chatEntryBanner')).toBeHidden();
+  await page.evaluate(()=>{showPage('upload');switchMode('diagnose');});
+  await expect(page.locator('#manual-form')).toBeVisible();
   await page.setViewportSize({width:390,height:844});
   await expect(page.locator('footer a[href="https://beian.miit.gov.cn/"]')).toBeVisible();
   expect(errors).toEqual([]);
