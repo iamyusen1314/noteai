@@ -1,5 +1,15 @@
 # NoteAI Production Deployment Execution Plan
 
+September12 owner-approved Admin recovery: reset only noteai_admin application
+password through hidden interactive API-C input and revoke its admin_sessions.
+Prepare/verify before stopping only Admin; preserve exact other env bytes and the
+database credential, atomically replace root0600 config, revoke/read back with the
+existing dedicated role, then verify fresh login, old-password denial and logout.
+On an uncertain mutation, keep Admin stopped and reconcile the original operation;
+never restore old sessions or blindly retry. No public API/F/scheduler change.
+Aliyun login is restored; tested script staged on C, Workbench terminal connection
+recovery is in progress. Password/session mutation has not started. See Handoff top.
+
 September12 22:15: original Admin stays live; owner handles screenshots. Aliyun
 console now requires normal login (ConsoleNeedLogin), and the pending temporary
 attempts SELECT requires the existing DMS owner session to finish revoke. Exact

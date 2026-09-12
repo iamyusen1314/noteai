@@ -1,5 +1,14 @@
 # Risk Register
 
+September12 Admin recovery: owner now explicitly approves only application password
+reset plus noteai_admin session revocation. Earlier credential-change exclusion
+does not block this operation. Reviewed/tested hidden-input script is staged on C;
+no production reset has started. Cloud login restored, initial Workbench connection
+timed out. Same image and dedicated role are retained; no database credential or
+permission change. Any uncertain reset keeps Admin stopped for original-result
+reconcile, with private root0600 backup; no old sessions are restored. Separate
+Item34 temporary SELECT recovery still requires the existing DMS owner channel.
+
 September12 22:15: cloud ConsoleNeedLogin is now an explicit human dependency;
 pending attempts SELECT is still not restored, and the normal DMS database-login
 dialog requires the existing owner credential. No attempt to infer/reset a password,

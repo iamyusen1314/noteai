@@ -1,5 +1,31 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 — owner-approved Admin password recovery in progress
+
+Owner explicitly approves resetting the existing noteai_admin application password
+and revoking that administrator's old sessions. No database password, role,
+business record, public API, F artifact or schedule change is included. Password
+must be entered twice through a real API-C Workbench TTY with echo disabled; never
+chat, Cloud Assistant arguments or output. Prepare atomic root0600 replacement,
+precise admin_sessions revocation, readback and normal login/logout validation.
+Owner restored normal Aliyun login. Cloud Assistant staged the reviewed script at
+/var/lib/noteai/admin-public-20260912/reset_production_admin_password.py, SHA
+79bdbe98f0ac1d95baeacc4f3a469c8d763adff3e1e1a9a256ca5650d90b6d26.
+Actual host Python3.11.6; original Admin76018cdf and API are running. Dedicated
+role readback finds zero current noteai_admin sessions; result/backup do not exist,
+so no password change or session deletion has started. Initial Workbench connection
+returned explicit server timeout; normal connection recovery is in progress.
+The script passes isolated Python3.11.15 tests including PG16 committed target-only
+revocation preserving another administrator, literal env-value/injection checks,
+root0600 atomic replacement/CAS/symlink rejection, and actual health-response/login/
+logout handling. HUP after hidden input is ignored so disconnect cannot interrupt
+the bounded operation; TERM enters safe recovery. No new image or dependency.
+Private local test output: /private/tmp/noteai-admin-reset-offline-20260912.log.
+On execution, original result is password-reset-result.json in the existing stage;
+do not rerun if present. Original private backup remains root0600 there, never Git.
+Existing pending Item34 attempts SELECT recovery remains separate and urgent;
+the Admin application reset does not restore the DMS database owner channel.
+
 ## September12 22:03 Beijing — Admin delivery confirmed; original24h safety recovery
 
 22:15 current human dependency: Aliyun ECS console explicitly returned
