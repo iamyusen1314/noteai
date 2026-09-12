@@ -1,5 +1,23 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 — public-security filing materials delivered
+
+Owner is completing the police filing and requested the fields shown in three
+photos. Read-only Aliyun domain console confirms noteaipro.com owner
+易事快（广州）咨询服务有限公司, registrar Alibaba Cloud Computing Ltd., registered
+2026-07-15, expires2027-07-15. Downloaded official PNG certificate without editing,
+489441bytes, SHA256a318aba1774abf7412d41e80e7cf1b1c109d6e8b8bb57202118ca3794bcdee9e.
+Owner materials are outsideGit at/Users/openclaw/Desktop/NoteAI公安备案资料/:
+noteaipro.com-域名证书.png and 公安备案逐项填写资料.txt.
+CurrentDNS UI reread confirms@/www enabled to39.108.66.93. Provider field guidance
+uses Aliyun's official police-filing guide: access provider西湖区, registrar余杭区,
+both杭州浙江境内, access租赁虚拟空间. This is provider address, not server location.
+Current static-only public service supports noninteractive selection; reassess after
+actual auth/AI opening. No dangerous-goods service or existing AI licence is claimed.
+Market value/monthly-active counts were not fabricated; current screenshot's
+unexpanded site-category subcodes remain unconfirmed. No filing submitted, cloud
+resource changed, SMS sent or Item34 observation modified. Readiness30/38.
+
 ## September12 11:13 Beijing — runnable account image and updated public artifact
 
 Sourcecheckpointbcaf587bf238f761c30613c81ce936cf47bb5fe6 is saved, not pushed.
