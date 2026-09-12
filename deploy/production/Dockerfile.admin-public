@@ -1,0 +1,17 @@
+# Reuse the verified Admin runtime/dependencies, not the public API role.
+ARG NOTEAI_ADMIN_BASE_IMAGE=sha256:fa0e658cba59a0adda16f64efb9bdfe543f459d90fe35997bd39046eb7743bd4
+FROM ${NOTEAI_ADMIN_BASE_IMAGE}
+ARG NOTEAI_OCI_REVISION
+ARG NOTEAI_OCI_CREATED
+USER root
+COPY --chown=noteai:noteai model/ /app/model/
+COPY --chown=noteai:noteai scripts/docker_entrypoint.sh scripts/render_start_admin.sh /app/scripts/
+RUN test "$(cat /etc/noteai-runtime-role)" = admin \
+    && chmod 0555 /app/scripts/docker_entrypoint.sh /app/scripts/render_start_admin.sh
+ENV NOTEAI_RUNTIME_ROLE=admin PORT=8001 PYTHON_DOTENV_DISABLED=1
+LABEL org.opencontainers.image.revision="${NOTEAI_OCI_REVISION}" \
+      org.opencontainers.image.version="admin-public-${NOTEAI_OCI_REVISION}" \
+      org.opencontainers.image.created="${NOTEAI_OCI_CREATED}"
+USER noteai
+ENTRYPOINT ["/app/scripts/docker_entrypoint.sh"]
+CMD ["/app/scripts/render_start_admin.sh"]

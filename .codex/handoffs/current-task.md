@@ -2,6 +2,14 @@
 
 ## Current 2026-09-12 evening — original Admin publication and genuine Alipay materials
 
+18:18 isolated verification: PostgreSQL16 dedicated-role tests4/4 PASS; Python3.11.15
+onlinux/amd64 with actual synthetic noteai_admin_runtime normal login→16 core GET200→
+logout oldtoken403 passed. Free quota12/used6/remaining6/wallet0; all60 synthetic-table
+contents unchanged after test session cleanup. Outputs at/private/tmp/noteai-admin-pg16-audit-20260912-r1/;
+initial missing synthetic noteai_app fixture and final PASS retained. This is not
+production acceptance. New Admin Dockerfile reuses actualfa0e658c Admin base/role;
+no dependency/network installation or API role relabel. Production candidate next.
+
 18:15 preparation: current host confirms Admin containernoteai-admin-c, roleadmin,
 imagefa0e658c…743bd4/source5335bda, loopback8001, rootread-only UID999, dedicated
 noteai_admin_runtime with admin_sessions SELECT/INSERT/DELETE and no business DML.
