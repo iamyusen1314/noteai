@@ -1,5 +1,15 @@
 # NoteAI Production Deployment Execution Plan
 
+September12 22:15: original Admin stays live; owner handles screenshots. Aliyun
+console now requires normal login (ConsoleNeedLogin), and the pending temporary
+attempts SELECT requires the existing DMS owner session to finish revoke. Exact
+readback/SQL remain at Handoff top. Host-only cleanup fix598460a passed78 isolated
+tests and the existing12-file package verified on Python3.11; it is READY_TO_APPLY,
+not installed. Restore/revoke first, then verify/install the bounded successor
+using the existing mechanism, preserving frozen87b9/4cc and original host/history.
+Current unique scheduler epoch1789393052000 means September14 13:37:32UTC /
+21:37:32Beijing; no repeat24h or September13 execution. No terminal credit.
+
 September12 22:03 continuation: owner handles screenshots; original Admin696825c
 is live and required server-side functions/permission separation are verified.
 Fresh public hash and existing C results agree. Remaining owner usability input

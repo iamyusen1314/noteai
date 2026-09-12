@@ -1,5 +1,13 @@
 # Risk Register
 
+September12 22:15: cloud ConsoleNeedLogin is now an explicit human dependency;
+pending attempts SELECT is still not restored, and the normal DMS database-login
+dialog requires the existing owner credential. No attempt to infer/reset a password,
+substitute runtime DB privileges or silently keep the grant. Existing12-file host
+fix598460a is verified offline/READY_TO_APPLY only; F image/wrapper/current executor
+unchanged. Original successful24h and cleanup error preserved. Admin remains live;
+owner application's safe password possession/entry is a separate unresolved check.
+
 September12 22:03: original Admin publication remains healthy; required production
 query/auth/logout isolation has real evidence. Owner password possession/browser
 sign-in is not yet established, and is the remaining delivery interaction.

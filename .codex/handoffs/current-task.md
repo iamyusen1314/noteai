@@ -2,6 +2,31 @@
 
 ## September12 22:03 Beijing — Admin delivery confirmed; original24h safety recovery
 
+22:15 current human dependency: Aliyun ECS console explicitly returned
+ConsoleNeedLogin/requestedd791ba-f833-4766-b352-2b059c94e9ee. Its normal Login
+button was opened; no repeated cloud requests after that rejection. Do NOT infer
+this proves the cause of the earlier DMS database I/O failure. No corrected host
+was installed and no new sampling occurred. Owner must restore cloud login and
+the existing DMS noteai_admin database login to finish the guarded revoke; the
+actual pending grant remains a safety issue, not accepted extended permission.
+Admin application login separately awaits confirmation of its existing password.
+
+Recovery checkpoint598460af97bfa4e9439a2ed30005030a923a5af3 contains the host-only
+cleanup correction. Existing12-file package prepared locally, only durable changed,
+other11 files frome3d660a; original F host remains untouched. Archive
+Downloads/noteai-xhs-repair-20260911/item34-host-598460a.tar.gz,65924bytes,
+SHA54a45ef932370cba94aaec5f6b18c5d06a3a5d4129fd5bd517f39a80eaf43cfb.
+Existing successor mechanism script host-successor-598460a.py verifies original
+manifest/all hashes, creates only host-598460a with O_EXCL/fsync, changes durable
+SHAedcabf414dba14fbbf92e2f98433c96aa3fa799333a3ccd4fd19ee6cd6d8a9cc,
+and verifies --help without provider or business action. The12-file package itself
+also passed isolated Python3.11.15 import/help and all file hashes; test container
+was stopped and removed after retained test results. This package is READY_TO_APPLY,
+not installed and not a new gate. Restore owner channel/revoke FIRST, then install
+this existing-entry correction and read it back; update ONLY the current original
+automation's host path while preserving its schedule, target and no-replay rules.
+Next actual scheduled time remains September14 21:37:32Beijing /13:37:32UTC.
+
 22:10 preparation: existing durable now normalizes identical Env strings only
 during generation2 exact-stage container stop, retaining the frozen wrapper's
 full identity guard. Other stages/containers, conflicting values and malformed

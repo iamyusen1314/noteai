@@ -2233,14 +2233,14 @@
     "scheduler": {
       "id": "noteai-item34-generation2",
       "status": "ACTIVE",
+      "next_run_at": 1789393052000,
+      "last_run_at": 1789220182215,
       "rrule": "RRULE:FREQ=WEEKLY;BYDAY=SA,MO;BYHOUR=13;BYMINUTE=36;BYSECOND=0;COUNT=2",
-      "next_run_at": 1789220178000,
-      "last_run_at": null,
       "kind": "heartbeat",
       "target_thread_id": "01a079a4-1c05-7d21-a98a-2d418cdd20c9",
-      "next_utc": "2026-09-12T13:36:18+00:00",
-      "next_beijing": "2026-09-12T21:36:18+08:00",
-      "run_count": 0
+      "next_utc": "2026-09-14T13:37:32+00:00",
+      "next_beijing": "2026-09-14T21:37:32+08:00",
+      "readback_basis": "Current local scheduler row; heartbeat runs not represented in automation_runs table"
     },
     "cost": {
       "cumulative_repair_reserved_cny": 32,
