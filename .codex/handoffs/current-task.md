@@ -13,7 +13,9 @@ rules and mutation path unchanged. Seven isolated Python3.11/networknone checks
 passed including no-echo fallback rejection; readonly review found no new issue.
 New source SHA ffa930caf37824713875e871fc94e5768f9726f629f160e1abb273244d63f75f;
 CAS installation replaces only the old79bdbe98 script after absent process/result/
-backup checks. Cloud installation result is being read back before another prompt.
+backup checks. Actual installation result INPUT_FEEDBACK_FIXED_NOT_APPLIED confirms
+the SHA and absent result/backup. The corrected script was then launched once and
+the visible new-password prompt confirmed; owner input is pending. Checkpointf325a25.
 
 22:53 Chrome correction: owner explicitly directed Chrome control. Existing runtime
 liveAgent exposes healthy Chrome extension browser2/profile sam. Reuse adminChrome
