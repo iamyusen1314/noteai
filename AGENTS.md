@@ -6,7 +6,8 @@ September12 owner explicitly authorizes resetting only the existing noteai_admin
 Admin application password and revoking that administrator's old login sessions.
 Use owner-controlled hidden terminal input, preserve database credentials and all
 other identities, and restart only Admin if needed. This is the narrow exception
-to the credential-change exclusion below; current procedure is at Handoff top.
+to the credential-change exclusion below. This reset is now completed/verified;
+do not replay it. Current result and separate remaining recovery are at Handoff top.
 
 September12 evening owner authorizes publishing the original Admin securely on
 existing resources and collecting truthful private Alipay screenshots. Reuse the

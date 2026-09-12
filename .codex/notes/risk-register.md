@@ -1,5 +1,14 @@
 # Risk Register
 
+September12 23:01: Admin application password recovery completed. Original result
+VERIFIED, new login200/old password401/logout-oldtoken403; fresh target sessions0.
+Original revoke affected0rows; one verification session inserted and deleted.
+Same image and public API container remain healthy; no business/DB credential/F
+change. Owner browser login is available but not performed by this verification.
+Never replay this completed reset. Separate pending Item34 temporary SELECT is
+still an actual unresolved risk requiring the existing DMS owner login, unaffected
+by the Admin application password change. Current detail is at Handoff top.
+
 September12 Admin recovery: owner now explicitly approves only application password
 reset plus noteai_admin session revocation. Earlier credential-change exclusion
 does not block this operation. Reviewed/tested hidden-input script is staged on C;

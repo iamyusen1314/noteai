@@ -1,5 +1,35 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 23:01 Beijing — Admin password recovery completed
+
+Owner entered and confirmed the new password privately in Chrome Workbench. The
+original password-reset-result.json is VERIFIED at2026-09-12T14:58:54.571822UTC.
+Fresh14:59:46.239282UTC readback confirms no reset process, Admin active, target
+sessions0. New-password login200, old-password401, anonymous403, users query200,
+logout200 and logged-out verification token403. Original sessions were0; the
+precise revoke affected0rows and independent commit readback was0. Verification
+created/deleted exactly1Admin session; these are real auth writes, not excluded
+from shared DB facts. No business, SMS/model/XHS request, role or DB credential
+change. Public API retains the SAME containerID/StartedAt and health; F untouched.
+
+Existing Admin source696825c/image76018cdf is unchanged; only private admin.env's
+ADMIN_PASSWORD changed. Root0600 before-config remains privately in the existing C
+admin-public-20260912 stage alongside original result and the ffa930ca script. Do
+not run --apply again: this operation is complete, not a reusable pending reset.
+No password/token value has entered tools, chat, Git, local artifacts or receipts.
+Private nonsecret readback: /private/tmp/noteai-admin-password-reset-readback-20260912.json.
+Public HTTPS15:00:52UTC: main/admin200 with unchanged HTML692ab2a4/79e5fea9,
+anonymous Admin403, registration/AIopen, payment/Tracking/media closed. Saved at
+/private/tmp/noteai-admin-password-reset-public-20260912.json. Chrome has the real
+Admin login page ready; owner browser sign-in remains a user action, not a claimed
+completed verification. Readiness30/37 and existing cumulative budgets unchanged.
+
+Separate existing Item34 temporary attempts SELECT recovery remains unresolved;
+normal cloud login is restored but the DMS owner database session still requires
+its existing credential. This Admin application password reset does not change or
+restore that database credential. Original24h success and pending revoke, exact
+host preparation and original September14 schedule remain as recorded below.
+
 ## September12 — owner-approved Admin password recovery in progress
 
 22:57 input feedback correction: owner reported a second STOPPED/RecoveryError.

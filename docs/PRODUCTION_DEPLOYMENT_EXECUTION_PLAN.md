@@ -1,5 +1,13 @@
 # NoteAI Production Deployment Execution Plan
 
+September12 23:01 result: the owner-approved Admin password reset is VERIFIED.
+New-password login/queries/logout passed; old password401, logged-out token403,
+remaining Admin sessions0. Original sessions0/revoke0; verification1INSERT+1DELETE
+is recorded honestly. Same Admin image and API container, public HTTPS healthy;
+no DB password, business or Tracking change. Do not repeat the completed reset.
+Exact original result/private readback and separate pending Item34 revoke are at
+Handoff top. The preparation/input-wait paragraphs below are historical.
+
 September12 owner-approved Admin recovery: reset only noteai_admin application
 password through hidden interactive API-C input and revoke its admin_sessions.
 Prepare/verify before stopping only Admin; preserve exact other env bytes and the
