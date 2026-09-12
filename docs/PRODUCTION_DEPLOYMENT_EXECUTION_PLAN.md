@@ -20,6 +20,14 @@ canaryvalues restored. Task lifecycle/roleconcurrency validated in isolatedPG16,
 not by replaying sealedproduction. Originalstage5c8707c contains exactbeforeconfig,
 script andDEPLOYEDresult; Handofftop holds hashes/limitations. No repeats/newmigration.
 
+September13 02:11: existing host-only598460a cleanup fix is installed/read back on F;
+12file artifact verified,11unchanged, frozen image/binding/24hjournal preserved.
+Only the originalgeneration2 automation host path changed to host-598460a/tools.
+Same next actual3d trigger September14 21:37:32Beijing /13:37:32UTC, no new trigger.
+No provider/DB/service action occurred. Apply original stage conditions and precise
+permission recovery at scheduled time; do not reinstall, reset24h or sample early.
+Exact artifact hashes and original runtime readback are at current Handoff top.
+
 September13 01:22:42 result: original2159d47 Admin/API deployment succeeded;0024
 and canonical12Prompt baseline already committed/verified. Do not execute again.
 Browser/core canaries are continuing. Small missing-subscription wallet and transient

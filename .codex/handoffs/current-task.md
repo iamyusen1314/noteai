@@ -78,9 +78,26 @@ notreset: existingSMS0.12reserve/model44.03of50reserve, remainingmodel5.97; no n
 provider spend. Existingresource build/very small private storage incremental charges
 awaitbilling and are NOT asserted0. No newrecurringresource/permission/subscription.
 
-Next independent safety work: verify original3d task's handling of existing host-only
-cleanup fix598460a (stillREADY_TO_APPLY). CurrentAdmindelivery is complete; this
-separate Item34 recovery must retain frozenimage/T0/uniqueentry and avoid sampling.
+September13 02:11 Beijing: the separate Item34 host cleanup recovery is now applied
+and independently read back. At02:10:29.565420, F installed the exact598460a12-file
+artifact in existing root/host-598460a; only durable changed, all11otherfiles match
+host-e3d660a. Transfer used the exact reviewed source delta with both old manifest
+and resulting artifact hashes checked before O_EXCL/fsync creation; no new wrapper,
+image build, service restart, DB action or provider request. Readback02:11:20.158655
+verified both12-file manifests, frozen87b9image/source4cc77f4, binding and original
+24hjournal unchanged, no3d journal/launch/container. New manifest SHA256
+8c0e0ee81d41b898faa955ca813a2df11dd8304a68a46027de5b10d50050c112;
+durable SHA256edcabf414dba14fbbf92e2f98433c96aa3fa799333a3ccd4fd19ee6cd6d8a9cc.
+Original24h failed service metadata remains historical; do not restart/reset it.
+
+Updated only the original noteai-item34-generation2 prompt's host path through the
+automation tool. Independent SQLite/TOML comparison confirms same ID,ACTIVE,
+heartbeat,target,schedule,created_at,last_run_at and next_run_at; no trigger created.
+Next actual3d trigger remains September14 21:37:32Beijing /13:37:32UTC. It must still
+confirm owner revoke channel/original ACL, qualified24h and all original guards;
+no admission before its original boundary or replay of completed24h. The current
+Admin delivery and this concrete recovery are complete. Await the original task's
+planned time; no new engineering task or repeated observation is required now.
 
 ## September13 01:43 Beijing — Admin operations DEPLOYED; live canaries continue
 

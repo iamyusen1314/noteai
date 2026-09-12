@@ -2453,6 +2453,28 @@
         "target_tracked_notes_distinct_rows": 1,
         "tracking_provider_attempts_inserted": 1
       }
+    },
+    "host_cleanup_recovery": {
+      "installed_at": "2026-09-12T18:10:29.565420+00:00",
+      "readback_at": "2026-09-12T18:11:20.158655+00:00",
+      "status": "HOST_ONLY_VERIFIED",
+      "host_path": "/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/host-598460a",
+      "host_source_revision": "598460af97bfa4e9439a2ed30005030a923a5af3",
+      "host_manifest_sha256": "8c0e0ee81d41b898faa955ca813a2df11dd8304a68a46027de5b10d50050c112",
+      "durable_sha256": "edcabf414dba14fbbf92e2f98433c96aa3fa799333a3ccd4fd19ee6cd6d8a9cc",
+      "verified_host_files": 12,
+      "unchanged_host_files": 11,
+      "image_and_binding_unchanged": true,
+      "original_24h_journal_unchanged": true,
+      "stage_3d_started": false,
+      "provider_requests": 0,
+      "business_writes": 0,
+      "services_changed": 0,
+      "automation_id": "noteai-item34-generation2",
+      "automation_change": "Only prompt host-e3d660a/tools to host-598460a/tools and normal updated_at; independent SQLite/TOML comparison",
+      "next_run_at_unchanged": 1789393052000,
+      "last_run_at_unchanged": 1789220182215,
+      "readiness_credit": false
     }
   }
 }

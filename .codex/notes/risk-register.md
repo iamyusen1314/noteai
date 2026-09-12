@@ -1,12 +1,21 @@
 # Risk Register
 
+September13 02:11: previously prepared598460a host cleanup correction is installed
+and verified on F. Originalgeneration2 automation now references that exact host;
+only prompt path/normal updated_at changed, next actual3d remains September14
+21:37:32Beijing. Original24h failure,successful snapshot and recovered ACL retained;
+image/T0/binding unchanged, no early request. Next stage still requires live owner
+revoke channel/originalACL and original guards; a future login failure affects that
+path only. Current Admin scope delivered; no additional independent repair remains
+necessary before the original planned observation.
+
 September13 01:57: Admin5c8707c is live; legacywallet independence and temporary
 session-failure recovery verified. Original5canaryoperations reconciled: wallet0,
 monthlyused6, modeltestrevision3 restored;productionmodel0,oldtestwallet900 unchanged.
 No providercalls. Existingsealedtasks have no allowed actions; ordinary lifecycle
 verified under real isolatedPG16 roles. Admin process visibility of F/log sources
-remains unobserved; no invalidCookie inference. Separate598460a hostcleanup remains
-READY_TO_APPLY pending original3d plan readback, not a reason to undo Admin delivery.
+remains unobserved; no invalidCookie inference. Separate598460a hostcleanup
+was READY_TO_APPLY at that readback; see the later02:11 recovery above.
 
 September13 01:43: scoped Admin/API2159d47 and0024 are live; old blanket readonly
 restrictions below are historical. Prompt12baseline restored; first live gift+1
