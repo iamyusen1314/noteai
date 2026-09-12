@@ -24,6 +24,7 @@ __all__ = [
 import db
 import account_security as _security
 from content_retention import CONTRACT_VERSION as _CONTRACT_VERSION
+from public_account import CONTRACT_VERSION as _ACCOUNT_CONTRACT_VERSION
 
 _TOKEN_EXPIRE_DAYS = 30
 _bearer = HTTPBearer(auto_error=False)
@@ -213,9 +214,9 @@ def create_user_with_storage(
         if not phone_verified:
             raise ValueError("手机号必须先完成验证码验证")
     if contract_version and (
-        contract_version != _CONTRACT_VERSION
+        contract_version not in {_CONTRACT_VERSION, _ACCOUNT_CONTRACT_VERSION}
         or not privacy_accepted
-        or not cross_border_notice_acknowledged
+        or (contract_version == _CONTRACT_VERSION and not cross_border_notice_acknowledged)
     ):
         raise ValueError("必须确认当前版本的服务、隐私及跨境处理说明")
     uid = str(uuid.uuid4())
@@ -259,7 +260,8 @@ def create_user_with_storage(
                 "user_id,contract_version,privacy_accepted_at,"
                 "cross_border_notice_acknowledged_at,source"
                 ") VALUES(?,?,?,?,?)",
-                (uid, contract_version, now, now, "registration"),
+                (uid, contract_version, now,
+                 now if cross_border_notice_acknowledged else "", "registration"),
             )
     except BaseException as exc:
         if _is_unique_violation(exc):

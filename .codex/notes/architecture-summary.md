@@ -1,6 +1,12 @@
 # Architecture Summary
 
-Last updated: 2026-08-19
+Last updated: 2026-09-12
+
+Current scoped public release uses owner-selectednoteaipro.com/www.noteaipro.com,
+matching actual approved ICP and API-C EIP39.108.66.93. Public static pages/examples
+are independent of the account-only API; business/AI/payment/Tracking public routes
+remain denied. Earlier.cn/ALB/full-commercial naming below is historical context,
+not a prerequisite for this authorized website/account delivery. Preservegen2 onF.
 
 ## Confirmed Production Target (partially implemented)
 

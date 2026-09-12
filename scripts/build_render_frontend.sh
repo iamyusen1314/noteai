@@ -4,6 +4,13 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 
+if [ "${NOTEAI_PUBLIC_ACCOUNT_ONLY:-0}" = "1" ]; then
+  mkdir -p "$DIST_DIR"
+  cp "$ROOT_DIR/public/index.html" "$ROOT_DIR/public/site.css" "$ROOT_DIR/public/site.js" "$DIST_DIR/"
+  echo "Public website bundle ready: $DIST_DIR (publish only index.html, site.css, site.js)"
+  exit 0
+fi
+
 if [ -z "${NOTEAI_PUBLIC_API_BASE:-}" ]; then
   echo "NOTEAI_PUBLIC_API_BASE is required for the Render static-site build" >&2
   exit 1

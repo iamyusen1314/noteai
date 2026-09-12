@@ -1,5 +1,21 @@
 # Risk Register
 
+## Current September12 — authorized website and phone-account publication
+
+- ICP completed per owner, website 粤ICP备2026135207号-1 / entity
+  粤ICP备2026135207号; historical pending filing is not a current blocker.
+  Actual console match confirmed.com / 易事快（广州）咨询服务有限公司 /39.108.66.93; owner selected.com and confirmed public contacts. Earlier.cn assumptions are historical.
+- Scoped public DNS/HTTPS, website and phone auth are now authorized. Other business
+  routes must stay closed on the server; no full-commercial-launch claim or scoring.
+- Separate cumulative website/SMS budget RMB100 needs executable send caps and
+  unsettled-usage reservation. No new recurring resources; alerts alone are insufficient.
+- Preserve generation2 observation/unique schedule and account for all concurrent
+  auth writes honestly. SMS approval/MFA may block registration, not static website.
+- PNVS approved gift100001 is present, but platform hard send cap and real delivery
+  are unverified. Account status must remain closed until actual readiness. Static
+  website/demo are independent; mailto deletion is explicit human submission, not
+  immediate retention mutation. API-C no webserver/cert and.com DNS0 at02:00Z.
+
 ## September12 — website review readiness
 
 - Native application needs the filed PC website URL; the explicit H5 screenshot

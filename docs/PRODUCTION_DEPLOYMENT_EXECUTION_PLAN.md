@@ -1,5 +1,67 @@
 # NoteAI Production Deployment Execution Plan
 
+## September12 website implementation — .com binding and public examples
+
+Owner selected noteaipro.com; public support phone18988528731 and ecfine@163.com.
+Actual ICP console readback: 易事快（广州）咨询服务有限公司 / 易事快NoteAI智能助手,
+website粤ICP备2026135207号-1, domainnoteaipro.com, homepagewww.noteaipro.com,
+accessIP39.108.66.93, 网站应用服务, 管局审核通过. Earlier.cn naming is historical;
+this scoped publication uses.com. Subject footer粤ICP备2026135207号 linksMIIT.
+
+Implemented public/index.html, site.css and site.js: independent feature/pricing/
+terms/privacy/refund/contact/status pages; labelled original fictional cat example
+(2026-09-12, input→diagnosis→rewrite, no real model/crawler call or production data).
+Post-login links lead to examples/pricing/status/deletion. Deletion application uses
+explicit email/phone support; opening mailto is not server submission and does not
+invoke the existing retention method that would stop the user's Tracking. This is
+the same public service description for all visitors; no reviewer-only bypass.
+Prices matchbilling.py (99/260,199/560,299/900,399/1250;30days;not on sale).
+
+model/public_account.py andapi/auth changes enforce exact account-only routes,
+Origin/JSON/body limits, no-store responses and startup before business/model/jobs.
+OTP account registration uses existing verified-phone/session/consent transaction;
+legacy acceptance remains separate, no fabricated cross-border acknowledgement.
+Production SMS remains disabled: delivery adapter, durable budget/cross-instance
+limits, PG16 tests and real provider validation are not yet complete. Not LIVE.
+
+Python3.11.15 linux/amd64 isolated container (existingapi:f3deedb dependencies,
+networknone, noSecretfiles) passed7 newaccount tests. Initial test harness bindmount
+and copied-file permission failures were fixed before a real7-test pass; zero-test
+or failed runs are not success. Real desktop1365/mobile390 browser visits verified
+example navigation, no horizontal overflow/broken anchors/JS errors with API absent.
+Changes after this result require targeted recheck. Build script supports a three-
+file public artifact; never publish stale full dist. No Readiness change(30/38).
+
+Cloud readback around2026-09-12T02:00Z: API-C Workbench existing root passwordless
+connection works; C39.108.66.93 listensSSH22 and API8000/Admin8001 onloopback only.
+Nginx/certbot absent,23GBfree. Existing API/Admin units unchanged. DNSconsole shows
+noteaipro.com zero records. Public hosting/TLS/DNS not applied yet. F/Item34 untouched.
+PNVS is accessible; approved gift signatures and login/register template100001 are
+present; September currentmonth sends0 inconsole. No publicSMSsend, credential/RAM
+change, productionDBwrite or chargeable action in this scope yet. Platform hard
+sending cap not found in Contact settings or SMS parameters; alerts are insufficient.
+Website static publication continues independently of this SMS configuration gap.
+
+
+## Current authorized website and phone-account publication — September12 2026
+
+Owner authorizes actual public homepage/service/pricing/entity/contact/legal pages
+and phone-OTP registration/login/logout/own-account access, scoped DNS/HTTPS,
+deployment and recovery. Follow Handoff's current scope and separate cumulative
+RMB100 website/SMS budget with enforceable send/spend caps. Reuse paid hosting and
+auth structures; no fixed-fee/new long-term resources. Payment, AI, XHS, scheduler,
+Admin and other unopened routes must be denied server-side. Website publication
+does not wait for SMS approval or full commercial readiness. Normal scoped steps
+need no repeated permission; legal-representative signing/MFA remains human.
+
+ICP is completed per owner: website 粤ICP备2026135207号-1, entity
+粤ICP备2026135207号. Footer shows the latter linked to https://beian.miit.gov.cn/;
+platform forms use the number required by each field. Routine domain/entity/host
+consistency readback is pending, not a renewed filing application or approval gate.
+Preserve the existing Item34 generation2 image/T0/two-stage schedule and reconcile
+shared resources/write-count impact before auth rollout. This scope gives no
+terminal Item31/34/37/38 credit. Controlled Git push requires trigger/scope review.
+
 ## Current payment onboarding — September11 2026
 
 Owner reports ICP completed, WeChat application in progress, and requests Alipay

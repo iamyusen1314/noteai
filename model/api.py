@@ -72,6 +72,7 @@ except Exception:
 import db as _db
 import auth as _auth
 import account_security as _account_security
+import public_account as _public_account
 import memory as _memory
 import billing as _billing
 import content_retention as _retention
@@ -11929,6 +11930,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
+app.add_middleware(_public_account.PublicAccountBoundary)
 
 
 _ANALYSIS_LOG_DDL = """
@@ -12033,6 +12035,9 @@ def _log_analysis(note_hash: str, domain: str, percentile: float,
 
 @app.on_event("startup")
 async def startup():
+    if _public_account.enabled():
+        _public_account.validate_startup(_db)
+        return
     _private_storage.configure_from_environment()
     _ensure_model_artifacts_once()
     if USE_V04_COMPOSITE:
@@ -12131,6 +12136,8 @@ def _init_default_prompts():
 
 @app.on_event("shutdown")
 async def shutdown():
+    if _public_account.enabled():
+        return
     runtime = getattr(app.state, "item31_canary_runtime", None)
     if runtime is not None:
         runtime.close()
@@ -12701,6 +12708,24 @@ async def market_timing_freshness(user: dict = Depends(_auth.get_current_user)):
 @app.get("/legal/contracts")
 async def legal_contracts():
     """Versioned product disclosures; professional legal sign-off is separate."""
+    if _public_account.enabled():
+        return {
+            "version": _public_account.CONTRACT_VERSION,
+            "scope": "website_and_accounts",
+            "operator": "易事快（广州）咨询服务有限公司",
+            "website": "https://noteaipro.com",
+            "privacy": {
+                "purposes": ["phone_verification", "account_access", "security_and_support"],
+                "data": ["phone", "session", "verification_result", "consent", "security_metadata"],
+                "sms_provider": "阿里云号码认证短信认证服务及其通信合作方",
+                "hosting": "阿里云中国境内",
+                "account_data_sent_to_ai_providers": False,
+            },
+            "deletion_contact": "ecfine@163.com",
+            "support_phone": "18988528731",
+            "payment_enabled": False,
+            "account_registration_free": True,
+        }
     return {
         "version": "first-launch-2026-07-25",
         "status": "product_contract_implemented_legal_review_pending",
@@ -12766,8 +12791,9 @@ class LoginInput(BaseModel):
 
 def _auth_request_fingerprint(request: Request) -> str:
     client = request.client.host if request.client else ""
-    user_agent = request.headers.get("user-agent", "")[:200]
-    return f"{client}|{user_agent}"
+    # Uvicorn accepts forwarded addresses only from the configured trusted proxy.
+    # User-Agent is controlled by the caller and must not create a new IP quota.
+    return client
 
 
 @app.post("/auth/register")
@@ -12874,6 +12900,8 @@ async def auth_verification_request(
     user: Optional[dict] = Depends(_auth.get_optional_user),
 ):
     purpose = req.purpose.strip().lower()
+    if _public_account.enabled() and (req.channel != "phone" or purpose not in {"register_phone", "login_phone"}):
+        raise HTTPException(status_code=400, detail="本阶段仅开放手机号注册与登录验证")
     user_required = purpose == "bind_phone"
     if user_required and not user:
         raise HTTPException(status_code=401, detail="该验证用途需要登录")
@@ -12909,6 +12937,52 @@ class OTPLoginInput(BaseModel):
     phone: str = Field(min_length=1, max_length=20)
     challenge_id: str = Field(min_length=1, max_length=64)
     code: str = Field(min_length=1, max_length=12)
+
+
+class OTPRegisterInput(OTPLoginInput):
+    contract_version: str = Field(min_length=1, max_length=64)
+    privacy_accepted: bool = False
+
+
+@app.get("/public/status")
+def public_account_status():
+    if not _public_account.enabled():
+        raise HTTPException(status_code=404)
+    return _public_account.service_status()
+
+
+@app.post("/auth/register/otp")
+async def auth_register_otp(req: OTPRegisterInput, request: Request):
+    if not _public_account.enabled():
+        raise HTTPException(status_code=404)
+    if req.contract_version != _public_account.CONTRACT_VERSION or not req.privacy_accepted:
+        raise HTTPException(status_code=400, detail="请先阅读并同意当前账户服务条款与隐私说明")
+    verification_error = None
+    result = None
+    try:
+        with _db.transaction(write=True) as tx:
+            try:
+                phone, challenge = _account_security.verify_verification_with_storage(
+                    tx, challenge_id=req.challenge_id, code=req.code, channel="phone",
+                    destination=req.phone, purpose="register_phone",
+                )
+                created = _auth.create_user_with_storage(
+                    tx, "member_" + _uuid.uuid4().hex[:20],
+                    _auth.secrets.token_urlsafe(36) + "!A9", phone=phone,
+                    phone_verified=True, contract_version=req.contract_version,
+                    privacy_accepted=True,
+                )
+                _account_security.mark_verification_consumed_with_storage(tx, challenge["id"])
+                result = _auth.login_user_by_id_with_storage(
+                    tx, created["id"], user_agent=request.headers.get("user-agent", "")[:200],
+                )
+            except _account_security.VerificationRejected as exc:
+                verification_error = exc
+        if verification_error is not None:
+            raise verification_error
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/auth/login/otp")
@@ -13025,10 +13099,11 @@ async def auth_logout(
 
 @app.get("/auth/me")
 async def auth_me(user: dict = Depends(_auth.get_current_user)):
+    contract_version = _public_account.CONTRACT_VERSION if _public_account.enabled() else _retention.CONTRACT_VERSION
     acceptance = _db.fetchone(
         "SELECT contract_version FROM user_contract_acceptances "
         "WHERE user_id=? AND contract_version=?",
-        (user["id"], _retention.CONTRACT_VERSION),
+        (user["id"], contract_version),
     )
     return {
         "id":           user["id"],
@@ -13042,7 +13117,7 @@ async def auth_me(user: dict = Depends(_auth.get_current_user)):
         "avatar_emoji": user["avatar_emoji"],
         "avatar_data":  user.get("avatar_data"),
         "created_at":   user["created_at"],
-        "contract_version": _retention.CONTRACT_VERSION,
+        "contract_version": contract_version,
         "contract_accepted": bool(acceptance),
     }
 

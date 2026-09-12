@@ -1,5 +1,16 @@
 # NoteAI Payment Production Contract
 
+## Current filing and account-publication scope — September12 2026
+
+Owner confirms ICP completed: website 粤ICP备2026135207号-1; entity
+粤ICP备2026135207号. Use the exact number each merchant application field requests;
+public footer displays the entity number linked to https://beian.miit.gov.cn/.
+Domain/entity/hosting consistency is a routine deployment check, not pending filing.
+Public website and phone-account delivery are independently authorized by the
+current Handoff; payment merchant/product approvals and actual payment activation
+remain separate and incomplete. Do not represent filing as a licence or payment
+approval, or keep historical pending-ICP references as a current blocker.
+
 ## Current Alipay onboarding — September11 2026
 
 The owner requests assistance with the Alipay entry described as available through
