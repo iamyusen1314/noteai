@@ -92,6 +92,37 @@ class SmsTransportTests(unittest.TestCase):
         self.config = sms.Config("恒创联众", "100001", "isolated-test-role", "aliyun_pnvs")
         self.test_redirect_timeout_invalid_response_never_retries()
 
+    def test_pnvs_independent_inner_request_reference_and_strict_success(self):
+        self.config = sms.Config("恒创联众", "100001", "isolated-test-role", "aliyun_pnvs")
+        inner = "abcdef12-abcd-1234-abcd-123456789012"
+        for outer, nested, success, out_id, expected in (
+            (None, inner, True, "local-synthetic-challenge", "accepted"),
+            (self.request_id, inner, True, "local-synthetic-challenge", "accepted"),
+            (None, None, True, "local-synthetic-challenge", "unknown"),
+            (None, inner, "true", "local-synthetic-challenge", "unknown"),
+            (None, inner, True, "other", "unknown"),
+        ):
+            with self.subTest(outer=outer, nested=nested, success=success, out_id=out_id):
+                result = self.invoke(lambda req: httpx.Response(200, json={"Code": "OK",
+                    "Success": success, "RequestId": outer, "Model": {"RequestId": nested,
+                    "BizId": self.biz_id, "OutId": out_id}}))
+                self.assertEqual(result.state, expected)
+                self.assertEqual(result.request_id, outer or nested or "")
+
+    def test_pnvs_unknown_diagnostics_do_not_include_response_or_code(self):
+        self.config = sms.Config("恒创联众", "100001", "isolated-test-role", "aliyun_pnvs")
+        with self.assertLogs("sms_delivery", level="WARNING") as captured:
+            result = self.invoke(lambda req: httpx.Response(200, json={"Code": "OK", "Success": True,
+                "Message": "synthetic-private-body", "Model": {"BizId": self.biz_id,
+                "VerifyCode": "987654", "RequestId": "synthetic-invalid-reference-with-private-content!"}}))
+        self.assertEqual(result.state, "unknown")
+        diagnostic = json.loads(captured.records[0].getMessage().split(" ", 1)[1])
+        self.assertEqual(diagnostic, {"http_status": 200, "code_is_string": True, "code_is_ok": True,
+            "success_is_bool": True, "success_is_true": True, "outer_request_id_valid": False,
+            "inner_request_id_valid": False, "biz_id_valid": True})
+        self.assertNotIn("987654", " ".join(captured.output))
+        self.assertNotIn("synthetic-", " ".join(captured.output))
+
     def test_redirect_timeout_invalid_response_never_retries(self):
         for kind in ("redirect", "timeout", "server-error", "large", "missing-id"):
             seen = []

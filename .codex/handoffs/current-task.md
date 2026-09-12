@@ -2,6 +2,12 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+### 2026-09-12 17:35 北京时间：真实免费报告完成，继续最小短信兼容修复
+
+同一注册账户的原创文字诊断真实完成、报告已持久化，原文52.1/最佳建议72.2；本人账户显示12→6积分、手机号已验证。DMS只读确认17个模型调用均responded/HTTP200，累计保守预留44030/50000milli；页面按实际用量估计约0.3113元/36.3Ktokens，不是供应商最终账单，不能回退预留或声称44.03元已实际消费。剩余模型保守容量仅5.97元，不自动补预算，下一次完整多阶段任务可能因硬上限中止，需继续改善成本预留精度或明确暂停对应入口，不能假装有无限公开体验容量。
+
+官方PNVS SendSmsVerifyCode文档及官方Python SDK同时定义顶层RequestId和Model.RequestId且示例不同；已做最小本地后备兼容，合法顶层优先、内层后备，仍要求HTTP2xx/Code=OK/Success严格true/BizId与OutId相容。只对UNKNOWN输出固定布尔/HTTP状态诊断，无原body/验证码/消息/URL/凭据；本次原响应未保存，不能将该兼容差异当已证实历史根因。当前生产仍745d7e8，尚未部署此修复。当前源码准确复制到Python3.11无网络容器后，9项transport测试通过（含新增内层/双层/缺失ID及敏感诊断验证）；早一次83项回归复跑因旧容器拷贝目录嵌套仍使用旧test文件，不能把它当新2项覆盖，原83项基线结果仍有效。退出/再次OTP登录仍待完成。页面价格卡动态文案仍出现截图组合，顶部与服务端仍明确关闭；记录后续小修，不改变支付/媒体关闭范围。
+
 ### 2026-09-12 17:30 北京时间：PNVS 已部署并真实送达、原产品建号成功
 
 当前生产前端/API 均为 `745d7e8`，API-C 实际镜像 `sha256:f183b7b88bdb67c7dd90398f8e6dacee131a31d1cc45120dbfd0ace80fb7fe94`，Python3.11、原正常入口、模型/DB启动及私网候选检查通过。网站 index SHA `b0fef339741c7bc121fdbe63d30d4bc05f22fd75a9f9bc77e50cae057f1025c6`；两域名 HTTPS 实际哈希及本人接口401、支付/Admin/Tracking404均通过。原 Nginx SHA未变；dropin新SHA `582ab32e6d64718525588c835d05743357e9897e2e169e24cc89f013a04faced`。未改 API-F/Item34 的产物、T0、采样或任务。

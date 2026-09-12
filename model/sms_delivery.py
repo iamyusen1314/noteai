@@ -175,6 +175,10 @@ def send(config: Config, *, phone: str, code: str, challenge_id: str) -> Deliver
                 success = True
                 if config.provider == "aliyun_pnvs":
                     model = payload.get("Model")
+                    # PNVS defines independent top-level and Model.RequestId
+                    # references. Prefer the outer one, but do not require both.
+                    if isinstance(model, dict):
+                        request_id = request_id or _reference(model.get("RequestId"))
                     raw_biz = model.get("BizId") if isinstance(model, dict) else None
                     biz_id = raw_biz if isinstance(raw_biz, str) and re.fullmatch(r"[A-Za-z0-9_.^\-]{12,100}", raw_biz) else ""
                     success = payload.get("Success") is True and isinstance(model, dict)
@@ -184,6 +188,19 @@ def send(config: Config, *, phone: str, code: str, challenge_id: str) -> Deliver
                     return DeliveryResult("accepted", business_code, request_id, biz_id)
                 if response.status_code < 500 and isinstance(raw_code, str) and raw_code != "OK" and request_id:
                     return DeliveryResult("rejected", business_code or "PROVIDER_REJECTED", request_id, biz_id)
+                if config.provider == "aliyun_pnvs":
+                    # Fixed diagnostics only: never log a request URL, raw
+                    # response, provider Message, returned code, or credential.
+                    logging.getLogger(__name__).warning("PNVS_RESULT_UNCONFIRMED %s", json.dumps({
+                        "http_status": response.status_code,
+                        "code_is_string": isinstance(raw_code, str),
+                        "code_is_ok": raw_code == "OK",
+                        "success_is_bool": isinstance(payload.get("Success"), bool),
+                        "success_is_true": payload.get("Success") is True,
+                        "outer_request_id_valid": bool(_reference(payload.get("RequestId"))),
+                        "inner_request_id_valid": isinstance(model, dict) and bool(_reference(model.get("RequestId"))),
+                        "biz_id_valid": bool(biz_id),
+                    }, sort_keys=True))
                 return DeliveryResult("unknown", "UNCONFIRMED_RESPONSE", request_id, biz_id)
     except Exception:
         return DeliveryResult("unknown", "TRANSPORT_OR_RESPONSE_UNKNOWN")
