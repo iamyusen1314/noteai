@@ -1091,7 +1091,7 @@ async function loadUsers() {
     <tr>
       <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
       <td style="font-size:12px">${esc(u.phone_masked||u.email_masked||'–')}</td>
-      <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier)}</span></td>
+      <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier||'无有效订阅')}</span></td>
       <td style="font-size:12px;color:var(--text-muted)">${esc((u.created_at||'').slice(0,10))}</td>
       <td>${u.month_ops}</td>
       <td>${fmtTokens(u.month_tokens || 0)}</td>
@@ -1124,7 +1124,7 @@ async function showUser(uid) {
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
-        <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier)}</span></div>
+        <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier||'无有效订阅；钱包独立保留')}</span></div>
         <div style="font-size:13px;margin-top:6px">本周期已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
         <div style="font-size:13px;margin-top:6px">钱包积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
         <div style="font-size:13px;margin-top:6px">套餐周期额度: <b>${quota?.monthly_limit == null ? '待核对' : Number(quota.monthly_limit).toFixed(1)}</b>；剩余: <b>${quota?.monthly_remaining == null ? '周期待正常业务核对/续期' : Number(quota.monthly_remaining).toFixed(1)}</b></div>
@@ -1225,7 +1225,7 @@ function entitlementInput() {
   return {payload:data,reason:document.getElementById('en-reason').value.trim()};
 }
 function entitlementValues(value) {
-  return `用户：${value.username}\n套餐：${value.tier}；截止：${value.tier === 'free' ? '免费版按自然月续期' : value.expires_at}\n本周期已用：${value.used_monthly_credits} 积分\n钱包：${value.wallet_balance}；可确认未用赠送：${value.noncash_recoverable}\n功能例外：${JSON.stringify(value.features)}\n来源：${value.entitlement_source}`;
+  return `用户：${value.username}\n套餐：${value.tier || '无有效订阅（钱包独立保留）'}；截止：${value.tier === 'free' ? '免费版按自然月续期' : value.expires_at || '不适用'}\n本周期已用：${value.used_monthly_credits ?? '不适用'} 积分\n钱包：${value.wallet_balance}；可确认未用赠送：${value.noncash_recoverable}\n功能例外：${JSON.stringify(value.features)}\n来源：${value.entitlement_source}`;
 }
 async function previewEntitlement() {
   try {
@@ -1811,14 +1811,22 @@ window.addEventListener('load', async () => {
   if (_adminToken) {
     try {
       const r = await fetch(`${ADMIN_BASE}/admin/me`, {headers:{'Authorization':`Bearer ${_adminToken}`}});
-      if (r.ok) {
-        const d = await r.json();
-        document.getElementById('admin-name').textContent = d.username;
-        await showApp();
+      if (r.status === 401 || r.status === 403) {
+        clearAdminSession();
         return;
       }
-    } catch(e) {}
-    clearAdminSession();
+      if (!r.ok) throw new Error('session verification unavailable');
+      const d = await r.json();
+      if (!d || typeof d.username !== 'string' || !d.username) throw new Error('invalid session response');
+      document.getElementById('admin-name').textContent = d.username;
+      await showApp();
+    } catch(e) {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      const err = document.getElementById('login-error');
+      err.textContent = '暂时无法核验已有会话，后台保持锁定。会话已保留，请刷新页面重试；无需重设密码。';
+      err.style.display = 'block';
+    }
   }
 });
 </script>

@@ -114,7 +114,7 @@ test('published original Admin supports login, user quota detail and confirmed l
   fs.mkdirSync(path.join(dir,'assets'), {recursive:true});
   fs.copyFileSync('model/admin.html', path.join(dir,'index.html'));
   cp.execFileSync('python3',['tools/build_public_product_frontend.py',dir]);
-  const errors=[]; let loggedIn=false; let logoutOk=true;
+  const errors=[]; let loggedIn=false; let logoutOk=true; let meMode='ok';
   page.on('pageerror', error => errors.push(error.message));
   const json = (route,value,status=200) => route.fulfill({status,json:value});
   await context.route('**/*', async route => {
@@ -126,7 +126,13 @@ test('published original Admin supports login, user quota detail and confirmed l
     if(url.pathname==='/admin/login') { loggedIn=true; return json(route,{token:'admin_synthetic_only',username:'synthetic-admin'}); }
     if(url.pathname==='/admin/logout') { if(logoutOk) loggedIn=false; return json(route,logoutOk?{ok:true}:{detail:'unavailable'},logoutOk?200:503); }
     if(!loggedIn) return json(route,{detail:'forbidden'},403);
-    if(url.pathname==='/admin/me') return json(route,{username:'synthetic-admin'});
+    if(url.pathname==='/admin/me') {
+      if(meMode==='network') return route.abort();
+      if(meMode==='malformed') return route.fulfill({status:200,body:'invalid-json'});
+      if(meMode==='503') return json(route,{detail:'temporarily unavailable'},503);
+      if(meMode==='403') return json(route,{detail:'expired'},403);
+      return json(route,{username:'synthetic-admin'});
+    }
     if(url.pathname==='/admin/capabilities') return json(route,{mode:'production_read_only',capabilities:{}});
     if(url.pathname==='/admin/overview') return json(route,overview);
     if(url.pathname==='/admin/ai-operations') return json(route,{operations:{},settlements:{},outbox:{}});
@@ -140,6 +146,26 @@ test('published original Admin supports login, user quota detail and confirmed l
   await page.getByRole('button',{name:'登录管理后台',exact:true}).click();
   await expect(page.locator('#app')).toBeVisible();
   await expect(page.locator('#login-password')).toHaveValue('');
+  const sessionKey = await page.evaluate(() => Object.keys(sessionStorage).find(key=>sessionStorage.getItem(key)==='admin_synthetic_only'));
+  expect(sessionKey).toBeTruthy();
+  for (const mode of ['503', 'network', 'malformed']) {
+    meMode=mode;
+    await page.reload();
+    await expect(page.locator('#app')).toBeHidden();
+    await expect(page.locator('#login-error')).toContainText('会话已保留');
+    expect(await page.evaluate(key=>sessionStorage.getItem(key),sessionKey)).toBe('admin_synthetic_only');
+    meMode='ok';
+    await page.reload();
+    await expect(page.locator('#app')).toBeVisible();
+  }
+  meMode='403';
+  await page.reload();
+  await expect(page.locator('#app')).toBeHidden();
+  expect(await page.evaluate(key=>sessionStorage.getItem(key),sessionKey)).toBeNull();
+  meMode='ok';
+  await page.locator('#login-password').fill('synthetic-only');
+  await page.getByRole('button',{name:'登录管理后台',exact:true}).click();
+  await expect(page.locator('#app')).toBeVisible();
   await page.locator('.nav-item').filter({hasText:'用户管理'}).click();
   await page.getByRole('button',{name:'详情',exact:true}).click();
   await expect(page.locator('#um-content')).toContainText('套餐周期额度: 12.0；剩余: 6.0');

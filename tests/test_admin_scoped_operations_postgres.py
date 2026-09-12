@@ -77,6 +77,27 @@ class AdminOperationsPostgres(unittest.TestCase):
         self.assertEqual(self.owner_query("SELECT balance FROM credits WHERE user_id=?", (self.uid,))["balance"], 5)
         self.assertFalse(json.loads(db.fetchone("SELECT result_json FROM admin_operations WHERE id=?", (rid,))["result_json"])["ok"])
 
+    def test_wallet_only_legacy_user_keeps_subscription_absent(self):
+        with patch.dict(os.environ, {"DATABASE_URL":self.owner_url}):
+            db.execute("DELETE FROM subscriptions WHERE user_id=?", (self.uid,))
+        payload = {"action":"adjust_credits","source":"gift","amount":1}
+        p = admin_entitlements.preview(self.uid, payload)
+        rid = str(uuid.uuid4())
+        self.gift(rid, p)
+        self.assertTrue(self.gift(rid, p)["replayed"])
+        self.gift(str(uuid.uuid4()), admin_entitlements.preview(self.uid, {**payload,"amount":-1}))
+        self.assertEqual(self.owner_query("SELECT balance FROM credits WHERE user_id=?",(self.uid,))["balance"],0)
+        self.assertEqual(self.owner_query("SELECT COUNT(*) AS n FROM subscriptions WHERE user_id=?",(self.uid,))["n"],0)
+        with self.assertRaises(HTTPException) as denied:
+            admin_entitlements.preview(self.uid,{"action":"set_membership","source":"gift","tier":"free"})
+        self.assertEqual(denied.exception.status_code,409)
+        p = admin_entitlements.preview(self.uid,payload)
+        with patch.dict(os.environ,{"DATABASE_URL":self.owner_url}):
+            billing.get_subscription(self.uid)
+        with self.assertRaises(HTTPException) as stale:
+            self.gift(str(uuid.uuid4()),p)
+        self.assertEqual(stale.exception.status_code,409)
+
     def test_role_denies_identity_cash_secret_and_record_rewrite(self):
         queries = [
             ("UPDATE users SET username='not-permitted' WHERE id=?", (self.uid,)),

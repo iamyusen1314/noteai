@@ -2,14 +2,14 @@
 
 Last updated: 2026-09-12
 
-Current public product is the original frontend3f47200/API265481b on C, with real
-PNVS phone login and existing12credit bounded free text workflows. Public payment,
-Tracking and media remain closed. Separate original Admin696825c is now served at
-https://admin.noteaipro.com by its own Admin-role image76018cdf, loopback8001 and
-minimum noteai_admin_runtime. Nginx permits only normal Admin login/logout and
-specific authenticated GETs; normal users cannot access Admin. Root/www/API remain
-unchanged; original Admin identity retained. Full detail/results/rollback are at
-Handoff top. Generation2 fixed F image and unique task remain unchanged.
+Current public product uses original frontend3f47200 and API2159d47 on C. Original
+Admin2159d47 is live at https://admin.noteaipro.com using noteai_admin_runtime and
+scoped owner entitlements, Prompt draft/publication, model config and ordinary task
+operations.0024 minimum ACL/schema is applied. Twelve original Prompt baselines are
+now in the real runtime DB. API-C opts into dynamic config; test config never enters
+production routing. Public payment/media/Tracking remain closed; existing phone
+registration and bounded free product stay open. Generation2 fixed F image/T0 and
+unique task are unchanged. Exact live artifacts/results are at Handoff top.
 
 ## Historical website/account-only stage (superseded by current scope above)
 

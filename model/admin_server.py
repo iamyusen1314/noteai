@@ -452,7 +452,7 @@ async def admin_users(
     rows = db.fetchall(
         f"""SELECT u.id, u.username, u.email, u.phone, u.nickname,
                    u.avatar_emoji, u.created_at, u.last_login,
-                   COALESCE(s.tier,'free') as tier,
+                   s.tier as tier,
                    COALESCE(s.expires_at,'') as expires_at,
                    COALESCE(cr.balance,0) as credits
             FROM users u
@@ -504,7 +504,7 @@ def _mask_email_admin(email: str) -> str:
 def _admin_quota_snapshot(sub: Optional[dict], wallet: float) -> dict:
     """Describe persisted entitlements without creating or renewing a subscription."""
     stored = dict(sub) if sub else {}
-    tier = stored.get("tier", "free")
+    tier = stored.get("tier")
     rule = _billing.TIERS.get(tier)
     limit = float(rule.get("monthly_credits", 0)) if rule else None
     used = float(stored.get("used_monthly_credits") or 0)
@@ -581,7 +581,7 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
             "phone_masked": phone_masked,
             "email_masked": email_masked,
         },
-        "subscription":  dict(sub) if sub else {"tier": "free"},
+        "subscription":  dict(sub) if sub else {"tier": None, "is_active": 0},
         "credits":       dict(credits_row) if credits_row else {"balance": 0},
         "quota":         _admin_quota_snapshot(
             dict(sub) if sub else None,

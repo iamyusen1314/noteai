@@ -22,6 +22,39 @@ original UI, ledger/config/task mechanisms and existing deploy/recovery tooling;
 no new audit platform, acceptance layers or Readiness credit for local preparation.
 Implementation continues fromef06f8b with only seven protected untracked paths.
 
+## September13 01:43 Beijing — Admin operations DEPLOYED; live canaries continue
+
+Original deploy-result.json is DEPLOYED at01:22:42.650701Beijing. API/Admin source
+2159d47 and exact images below are live; public frontend hash692ab2a4 is unchanged.
+API config opt-in1, production revision0/defaults; registration/free/SMS stay open,
+payment/media/publicTracking closed. Real browser owner login is now visible;
+12actual DB Prompts, scoped mutation UI and real Trends/Tracking pages are available.
+Original result is /var/lib/noteai/admin-operations-2159d47/deploy-result.json.
+Do not repeat deploy.py,0024 or the baseline application. Original scripts/results,
+before config and exact rollback inputs remain in the same private C stage.
+
+Owner's September12 consented phone-registration test account was used via actual
+Admin UI: gift+1 requestf99e4402-ff2c-4fc0-b478-bb5c67ff4e1f, original identical HTTP
+re-submit replayed=true, exactly1gift ledger row. Published API noteai_app billing
+readback wallet1/used6 agrees. Fresh UI restore42482235-8df5-4f80-9da6-9105e9f8b332
+returns wallet0/used6; final API readback pending. Existing subscription is free,
+period2026-09-01/expiry2099; raw noncash0 was checked before gift. Two real noncash
+ledger rows are retained; no payment/provider call. A normal verification Admin
+session was inserted and revoked precisely; owner's browser session remains valid.
+Model scope=test UI draft is in progress; read original UI/result, do not duplicate.
+
+The September7 owner test account has900wallet but NO active subscription. Its
+preview409 and read-only query failure caused no writes. Fix now lets independent
+wallet adjustments proceed without fabricating a subscription; membership/features
+still require a real subscription, and concurrent initialization invalidates CAS.
+UI accurately labels absent subscription. Python3.11/real isolatedPG16 all10 role
+checks pass, including absent-subscription gift/replay/restore and concurrent init.
+Also fixed original browser /admin/me transient failure clearing valid sessions:
+503/network/malformed responses retain token and lock the screen;401/403 clears it.
+Strict-CSP offline browser checks pass login/reload/failure recovery/detail/logout.
+These small corrections are local, pending updated Admin-only image/static release;
+current public API and frozen F need no rebuild. Budgets/Readiness30/37 unchanged.
+
 ## September13 01:22 Beijing — scoped Admin deployment IN_PROGRESS
 
 Current source candidates remain2159d47; recovery checkpoint369d9bc adds only the

@@ -1,5 +1,13 @@
 # Risk Register
 
+September13 01:43: scoped Admin/API2159d47 and0024 are live; old blanket readonly
+restrictions below are historical. Prompt12baseline restored; first live gift+1
+replay check passed and UI restored0 (finalAPI readback pending). Modeltest only,
+no global switch/provider requests. Missing-subscription wallet and transient-me
+session issues are corrected/tested locally, pending Admin-only rollout. Do not
+rollback oldAPI across active feature/model restrictions; preserve enforcement and
+concurrent ledger facts. ExistingF/current3d and budgets unchanged.
+
 September13 00:34: existing DMS owner restored; original guarded Item34 temporary
 attempts SELECT revoke succeeded, independent readback app_select=false and exact
 original ACL. Historical failures remain. Generation2 T0/24h/current checking_7d

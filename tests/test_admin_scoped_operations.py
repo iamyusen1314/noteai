@@ -76,6 +76,28 @@ class ScopedAdminOperations(unittest.TestCase):
             with self.assertRaises(HTTPException):
                 entitlements.preview(self.uid, {"action": "adjust_credits", "source": "gift", "amount": amount})
 
+    def test_wallet_without_subscription_and_new_subscription_invalidates_preview(self):
+        db.execute("DELETE FROM subscriptions WHERE user_id=?", (self.uid,))
+        payload = {"action": "adjust_credits", "source": "gift", "amount": 1}
+        p = entitlements.preview(self.uid, payload)
+        self.assertIsNone(p["before"]["subscription_id"])
+        rid = str(uuid.uuid4())
+        self.adjust(payload, rid, p["expected"])
+        self.assertTrue(self.adjust(payload, rid, p["expected"])["replayed"])
+        self.adjust({**payload, "amount": -1})
+        self.assertEqual(db.fetchone("SELECT balance FROM credits WHERE user_id=?", (self.uid,))["balance"], 0)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) AS n FROM subscriptions WHERE user_id=?", (self.uid,))["n"], 0)
+        for change in ({"action":"set_membership","source":"gift","tier":"free"},
+                       {"action":"set_features","source":"gift","features":{"score":False}}):
+            with self.assertRaises(HTTPException) as denied:
+                entitlements.preview(self.uid, change)
+            self.assertEqual(denied.exception.status_code, 409)
+        p = entitlements.preview(self.uid, payload)
+        billing.get_subscription(self.uid)
+        with self.assertRaises(HTTPException) as stale:
+            self.adjust(payload, expected=p["expected"])
+        self.assertEqual(stale.exception.status_code, 409)
+
     def test_membership_preserves_usage_and_feature_denial_applies_to_free_route(self):
         sub = billing.get_subscription(self.uid)
         db.execute("UPDATE subscriptions SET used_monthly_credits=6 WHERE id=?", (sub["id"],))
