@@ -7,7 +7,7 @@ CREATE TABLE public.auth_sms_budget (
     enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0,1))
 );
 INSERT INTO public.auth_sms_budget(id,limit_milli_cny)
-    VALUES ('website-accounts-20260912',60000);
+    VALUES ('website-accounts-20260912',10000);
 
 CREATE TABLE public.auth_sms_deliveries (
     challenge_id TEXT PRIMARY KEY REFERENCES public.auth_verification_challenges(id),

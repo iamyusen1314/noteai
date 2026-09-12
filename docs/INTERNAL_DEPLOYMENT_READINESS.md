@@ -1,5 +1,18 @@
 # NoteAI Internal Deployment Readiness
 
+## Current owner scope — September 12
+
+The owner authorizes restoring the real product and bounded free usage, with
+payments closed. Item35 professional signatures are withdrawn from release
+requirements and dispatch; the original unsigned control remains historical,
+with no DONE credit. There are30verified controls,7active incomplete controls and
+1withdrawn requirement (current30/37; historical30/38). Item numbers and frozen
+Evidence are unchanged. Full commercial `--require public` is still incomplete;
+it is not a prerequisite for this separately authorized incremental free release.
+ICP is complete: 粤ICP备2026135207号-1. Earlier snapshots and “public prohibited”
+statements below describe their historical scope, not the current authorization.
+
+
 Task: `PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`
 
 Current status (2026-09-03): internal `29/29 = 100%` accepted; public-launch

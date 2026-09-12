@@ -1906,6 +1906,26 @@ CREATE INDEX IF NOT EXISTS idx_auth_verification_requester
     ON auth_verification_challenges(requester_hash,purpose,created_at DESC)
     WHERE requester_hash <> '';
 
+CREATE TABLE IF NOT EXISTS public_trial_budget (
+    id TEXT PRIMARY KEY CHECK(id='website-free-product-20260912'),
+    limit_milli_cny INTEGER NOT NULL CHECK(limit_milli_cny=50000),
+    reserved_milli_cny INTEGER NOT NULL DEFAULT 0 CHECK(reserved_milli_cny BETWEEN 0 AND limit_milli_cny),
+    enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1))
+);
+INSERT OR IGNORE INTO public_trial_budget(id,limit_milli_cny) VALUES('website-free-product-20260912',50000);
+CREATE TABLE IF NOT EXISTS public_trial_calls (
+    id TEXT PRIMARY KEY, budget_id TEXT NOT NULL REFERENCES public_trial_budget(id),
+    user_id TEXT NOT NULL REFERENCES users(id), request_hash TEXT NOT NULL,
+    state TEXT NOT NULL CHECK(state IN('dispatched','responded','unknown')),
+    reserve_milli_cny INTEGER NOT NULL CHECK(reserve_milli_cny=2590),
+    http_status INTEGER, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_public_trial_request ON public_trial_calls(request_hash,state);
+CREATE TRIGGER IF NOT EXISTS trial_budget_monotone BEFORE UPDATE ON public_trial_budget
+    WHEN NEW.id <> OLD.id OR NEW.limit_milli_cny <> OLD.limit_milli_cny
+         OR NEW.reserved_milli_cny < OLD.reserved_milli_cny
+    BEGIN SELECT RAISE(ABORT, 'Public trial cumulative budget cannot be reset'); END;
+
 CREATE TABLE IF NOT EXISTS auth_sms_budget (
     id TEXT PRIMARY KEY CHECK (id = 'website-accounts-20260912'),
     limit_milli_cny INTEGER NOT NULL CHECK (limit_milli_cny BETWEEN 60 AND 60000),
@@ -1914,7 +1934,7 @@ CREATE TABLE IF NOT EXISTS auth_sms_budget (
     enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0,1))
 );
 INSERT OR IGNORE INTO auth_sms_budget(id,limit_milli_cny)
-    VALUES ('website-accounts-20260912',60000);
+    VALUES ('website-accounts-20260912',10000);
 CREATE TABLE IF NOT EXISTS auth_sms_deliveries (
     challenge_id TEXT PRIMARY KEY REFERENCES auth_verification_challenges(id),
     budget_id TEXT NOT NULL REFERENCES auth_sms_budget(id),

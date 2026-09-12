@@ -2,11 +2,20 @@
 
 ## Current execution control
 
+September12 afternoon owner directs restoration of the real NoteAI product UI
+and registration/free-before-payment usage, with payments temporarily closed.
+Assess actual risks and open verified low-risk functionality; fix concrete security,
+cost and compatibility gaps before exposing affected routes. The earlier account-only
+scope is no longer the target product. Owner withdraws Item35 professional signatures
+as a release prerequisite; preserve historical unsigned evidence and required user
+privacy/consent controls. Existing cumulative budgets, protected paths and Item34
+generation2 isolation remain in force. Current detail is at the Handoff top.
+
 September12 owner additionally authorizes end-to-end public website and phone-OTP
 account registration/login delivery, including scoped DNS/HTTPS/deployment and
 minimum SMS permissions, within a SEPARATE cumulative RMB100 incremental budget.
-Follow the current scope in `.codex/handoffs/current-task.md`: server-side account-only
-access, payments/AI/crawling/admin closed, no new recurring resources, preserve Item34
+The original account-only scope below is superseded by the paragraph above;
+keep server-side boundaries while opening verified features, no recurring resources, preserve Item34
 generation2. Controlled Git push is allowed only after checking deployment triggers
 and excluding unrelated cumulative changes. Ordinary scoped steps need no reapproval.
 

@@ -7,7 +7,7 @@ ARG NOTEAI_OCI_REVISION
 ARG NOTEAI_OCI_CREATED
 LABEL org.opencontainers.image.revision="${NOTEAI_OCI_REVISION}" \
       org.opencontainers.image.created="${NOTEAI_OCI_CREATED}" \
-      com.noteai.public.scope="website-and-accounts"
+      com.noteai.public.scope="free-product-configurable"
 COPY --chown=noteai:noteai model/*.py /app/model/
 COPY --chown=noteai:noteai model/migrations /app/model/migrations/
 COPY --chown=noteai:noteai tools/collect_item31_canary_dml.py /app/model/

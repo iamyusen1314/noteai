@@ -1,5 +1,78 @@
 # NoteAI Production Deployment Execution Plan
 
+## Current September12 afternoon — real product free release
+
+At15:00Beijing: text-only original UI/OTP/new-contract consent, strict scoped API,
+Kimi-only provider accounting and no-retry/UNKNOWN handling are implemented.
+Python3.11 actual isolatedPG16 verifies25 concurrent requests produce19 admissions,
+49.21yuan cumulative reservation, max2 in flight; noteai_app cannot raise/reset/delete
+budget. Invalid JSON/incomplete SSE/persistence failure stop the original business
+result, not just the final event. SQLite32checks(1PG-onlyskip), PG16/product13checks,
+strict-CSP original browser navigation/OTP/dynamic buttons passed. No real SMS/model
+calls or production DB/API changes in this phase. Current original-site deployment
+and normal-entrypoint full-model candidate verification remain in progress.
+
+
+Owner's latest explicit scope supersedes “full open” ambiguity: restore original
+product, verified phone signup/login and bounded real free use; transactions,
+Admin, unverified media/Tracking and unrelated privileges remain closed. Ordinary
+implementation/build/scoped rollout is authorized, within the same cumulative
+RMB100 website budget, including model calls. No production deployment or database
+transaction has begun in this phase. API-C readback at2026-09-12T06:39:45Z confirms
+old API/Admin healthy,6.5GB available and website rollback targetbcaf587.
+
+Current implementation: original HTML retained, OTP registration wired, original
+12credits/month reused (analyze6/generate8/rewrite3; public fastchat1credit), new
+instance-only Kimi domestic routing and physical pre-send sharedPG budget.
+Budget allocation changes BEFORE un-applied0021: website22 + setup5 + SMS10 +
+model50 + margin13 =100; old spend/unknown reserves are not zeroed. Each Kimi HTTP
+pre-reserves2.59yuan, including failures/UNKNOWN, at official6.50input/27output per
+million and262144context/explicit32768maximum output. No tool fees, media calls,
+external facts or automatic retries allowed in this first text release. Original
+quality thresholds and no-replay behavior remain; these are implementation tests,
+not a completed real production flow. New0022budget migration is not applied.
+
+Item35 is withdrawn from current dependency/dispatch/scoring, while blocked unsigned
+control/history remain. Verified count30unchanged; active30/37, historical30/38,
+Item36–38numbersunchanged. Original compiled static event handlers and dynamic
+button dispatch now work without script unsafe-inline/eval; browser desktop/mobile
+OTP form, original navigation/dynamic actions/ICP checked with offline responses.
+25SQLite auth/SMS/budget/unknown checks passed; PG16 and current image checks in
+progress. No realSMS/model requests, production mutations, Gitpush or new resources.
+Generation2automation reread ACTIVE / next2026-09-12T13:36:18Z / last_runNULL and
+no run history. Runtime pending/attempt0 remains existing indexed evidence, not
+fresh cloud journal readback. Do not trigger early or change its task/image/T0.
+
+Concrete external work: owner SMS qualification remains required in the existing
+Dysms form; no sign/template approved. Alipay rejection wording is owner-reported;
+no merchant-console receipt was available. Official Anthropic China-owned-company
+restrictions prevent treating the old Singapore route as an automatically valid
+public path; public trial uses existing domesticKimi instead. Separately check
+actual applicable Guangdong API-based GenAI application registration information
+before opening public generated content; do not substitute a professional signature
+or invent a registration number. Engineering and private scoped verification continue.
+
+Sources: https://platform.kimi.com/docs/pricing/chat.md ;
+https://www.anthropic.com/news/updating-restrictions-of-sales-to-unsupported-regions ;
+https://cagd.gov.cn/v/2026/07/9378.html .
+
+Owner replaces the static/account-only target with the original NoteAI product,
+registration and bounded free use before payment; payment transactions stay closed.
+Alipay owner-reported rejection: 页面展示与实际运营内容不符合. Restore the existing
+product frontend and real workflow wiring, not another sample-only homepage.
+Item35 professional signatures are withdrawn as a publishing prerequisite;
+historical unsigned records and ordinary privacy/terms/consent remain truthful.
+No whole-commercial38-item completion is required to release a separately verified
+free scope. No terminal credit is gained by changing scope or running local tests.
+
+Before exposing affected functions fix the actual gaps found: free-provider routes
+outside12credit cap, username-only signup abuse, original frontend OTP/consent wiring,
+and static-only Nginx CSP/body-size/SSE restrictions. Current live account image skips
+models/OSS and cannot serve real product simply by enabling a proxy. Reuse the real
+API/model/storage source and existing bounded execution/cost controls, retaining
+Item34generation2 isolation and recoverable per-component rollout. Existing budgets
+are cumulative; no unlimited publicAI funding or new recurring resources implied.
+
 ## September12 account-only candidate and SMS deployment inputs
 
 Built and normal-entrypoint verified candidate: sourcebcaf587bf238f761c30613c81ce936cf47bb5fe6,

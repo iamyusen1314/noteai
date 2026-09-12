@@ -1,5 +1,21 @@
 # Risk Register
 
+## Current September12 afternoon — original free product release
+
+Owner withdraws Item35 professional signatures as release prerequisite; no approval
+or DONE is inferred. Replace earlier account-only target with the real product and
+verified, bounded free use. Current controls/history and rollout details are at the
+Handoff/plan top. Core current risks are signup verification, uncontrolled free
+provider calls, cross-user access, SSE unknown promotion, and deploy compatibility.
+Engineering fixes are in progress, not production acceptance. Budget remains100:
+22web+5setup+10SMS+50model+13margin; previous60SMS allocation is superseded before
+unapplied0021. SMS qualification is an actual external dependency. PublicAPI uses
+Kimi domestic route; no unauthenticated username signup, payment, Admin or Tracking
+exposure. Check applicable GenAI application registration using current Guangdong
+requirements; no old professional-signature gate or invented licence. No Item34
+automation/image/T0 change and no hidden exclusion of normal writes.
+
+
 ## Current September12 — authorized website and phone-account publication
 
 - ICP completed per owner, website 粤ICP备2026135207号-1 / entity

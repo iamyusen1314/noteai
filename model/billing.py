@@ -143,6 +143,10 @@ _ACTIVE_USAGE_ID: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 # ─────────────────────────────────────────────────────────────
 QUOTA_OPS = ["analyze", "generate", "chat_rewrite", "screenshot"]
 
+# Public fast chat must consume the same finite user credit balance as other AI.
+if os.environ.get("NOTEAI_PUBLIC_PRODUCT") == "1":
+    OPERATIONS["chat_fast"] = {**OPERATIONS["chat_fast"], "credits": 1, "free": False}
+
 TIERS: dict[str, dict] = {
     "free": {
         "name":  "免费版",

@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-12
 
+Current owner correction restores the original product UI and existing12credit free
+tier, not the separate static/account shell described historically below. Current
+public boundary opens only verified text workflows with sharedPG physical-call
+budget; no payment/Admin/Tracking/media route exposure. Detailed stage/current
+truth is at Handoff top. Production API replacement remains pending, generation2
+fixed F image and unique task unchanged.
+
 Current scoped public release uses owner-selectednoteaipro.com/www.noteaipro.com,
 matching actual approved ICP and API-C EIP39.108.66.93. Public static pages/examples
 are independent of the account-only API; business/AI/payment/Tracking public routes

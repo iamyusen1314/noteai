@@ -350,7 +350,6 @@ EXPECTED_PUBLIC_LAUNCH_DEPENDENCIES = {
         "real_ai_provider_chain",
         "real_payment_chain",
         "alb_tls",
-        "legal_provider_approval",
     ],
     "dns_cutover": ["pre_dns_commercial_smoke"],
 }
@@ -6247,7 +6246,14 @@ def validate_manifest(manifest: dict[str, Any], *, root: Path = ROOT) -> None:
         visit(control_id)
 
 
-def _score(controls: list[dict[str, Any]]) -> dict[str, Any]:
+def _withdrawn(control: dict[str, Any]) -> bool:
+    # The owner withdrew this professional-signature requirement, not its history.
+    return control["id"] == "legal_provider_approval" and bool(control.get("withdrawn_by_owner"))
+
+
+def _score(controls: list[dict[str, Any]], *, historical: bool = False) -> dict[str, Any]:
+    if not historical:
+        controls = [item for item in controls if not _withdrawn(item)]
     total = len(controls)
     verified = sum(item["status"] == "verified" for item in controls)
     blocked = sum(item["status"] == "blocked" for item in controls)
@@ -6292,7 +6298,7 @@ def build_report(
         for control in layer["controls"]
     }
     for control in all_controls:
-        if control["status"] == "verified":
+        if control["status"] == "verified" or _withdrawn(control):
             continue
         if all(
             controls_by_id[dependency]["status"] == "verified"
@@ -6320,6 +6326,10 @@ def build_report(
         "layers": layers,
         "internal_deployment": _score(internal_controls),
         "complete_public_launch": _score(all_controls),
+        "historical_complete_public_launch": _score(all_controls, historical=True),
+        "withdrawn": [{"id": item["id"], "reason": item["withdrawn_by_owner"],
+                       "historical_status": item["status"]}
+                      for item in all_controls if _withdrawn(item)],
         "actionable": actionable,
         "next_safe_task": safe_actionable[0] if safe_actionable else None,
         "accepted_risks": [
@@ -6338,7 +6348,7 @@ def build_report(
                 "resume_condition": control["resume_condition"],
             }
             for control in all_controls
-            if control["status"] == "blocked"
+            if control["status"] == "blocked" and not _withdrawn(control)
         ],
     }
 

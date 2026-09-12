@@ -32,6 +32,7 @@ from urllib.parse import urlsplit
 import anthropic
 import httpcore
 import httpx
+import public_product as _public_product
 import claude_gateway_protocol as _cgp
 
 # ── 模型常量 ──────────────────────────────────────────────────────
@@ -1635,7 +1636,7 @@ async def _call_model_with_retries(
     absolute_deadline: float | None = None,
 ) -> str:
     operation_id = operation_id or _new_operation_id()
-    attempts = MODEL_RETRY_ATTEMPTS
+    attempts = 1 if _public_product.enabled() else MODEL_RETRY_ATTEMPTS
     for attempt in range(1, attempts + 1):
         try:
             t0 = time.monotonic()
@@ -1768,7 +1769,7 @@ async def _call_kimi(
         "temperature": 0.6,
     }
     timeout = KIMI_TIMEOUT_Q
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with _public_product.kimi_async_client(timeout=timeout) as client:
         r = await client.post(
             KIMI_API_URL, json=payload,
             headers={"Authorization": f"Bearer {key}"},
@@ -1785,7 +1786,8 @@ async def call(
     thinking: bool = False, max_tokens: int = 1200,
 ) -> str:
     """路由到对应模型；Claude 仅在确认未调用 provider 时走 fallback。"""
-    routing = TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []})
+    routing = ({"primary": KIMI_TEXT, "fallback": []} if _public_product.enabled()
+               else TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
     models_to_try = [routing["primary"]] + list(routing.get("fallback", []))
     absolute_deadline = _gateway_absolute_deadline(
         task,
@@ -1807,6 +1809,8 @@ async def call(
                 absolute_deadline=absolute_deadline,
             )
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             if _is_gateway_deadline_error(exc):
                 raise
             if model_id.startswith("claude") and not (
@@ -1920,7 +1924,7 @@ async def _stream_kimi(
     payload: dict = {
         "model": model,
         "messages": messages,
-        "thinking": {"type": "enabled", "budget_tokens": min(max_tokens - 500, 12000)}
+        "thinking": {"type": "enabled"}
                     if thinking else {"type": "disabled"},
         "stream": True,
         "max_tokens": max_tokens,
@@ -1929,7 +1933,7 @@ async def _stream_kimi(
         payload["temperature"] = 0.6
 
     timeout = KIMI_TIMEOUT
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with _public_product.kimi_async_client(timeout=timeout) as client:
         async with client.stream(
             "POST", KIMI_API_URL, json=payload,
             headers={"Authorization": f"Bearer {key}"},
@@ -1966,7 +1970,8 @@ async def stream(
     """路由到流式接口；Claude 仅在零输出且确认未调用 provider 时 fallback。
     yield: ('thinking', text) | ('content', text)
     """
-    routing = TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []})
+    routing = ({"primary": KIMI_TEXT, "fallback": []} if _public_product.enabled()
+               else TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
     primary  = routing["primary"]
     fallbacks = list(routing.get("fallback", []))
     absolute_deadline = _gateway_absolute_deadline(
@@ -2009,6 +2014,8 @@ async def stream(
         finally:
             await _close_async_iterator(primary_stream)
     except Exception as exc:
+        if isinstance(exc, _public_product.TrialProviderStopped):
+            raise
         if primary.startswith("claude"):
             if emitted:
                 _log(f"stream task={task} model={primary} STOP code=CLAUDE_STREAM_PARTIAL")
@@ -2078,6 +2085,10 @@ async def stream_chat(
     对于 Claude：Kimi messages 格式 (system/user/assistant) 可直接用。
     yield: ('thinking', text) | ('content', text)
     """
+    if _public_product.enabled():
+        async for event in _stream_kimi(KIMI_TEXT, system, user_content, thinking, max_tokens, history):
+            yield event
+        return
     absolute_deadline = _gateway_absolute_deadline(
         "stream",
         thinking,
@@ -2172,6 +2183,17 @@ def call_claude_sync(
     first_text_block: bool = False,
 ) -> str:
     operation_id = _new_operation_id()
+    if _public_product.enabled():
+        payload = {"model": KIMI_TEXT, "messages": [
+            *([{"role": "system", "content": system}] if system else []), *messages],
+            "max_tokens": max_tokens, "thinking": {"type": "disabled"}, "temperature": 0.6}
+        with _public_product.kimi_client(timeout=KIMI_TIMEOUT) as client:
+            response = client.post(KIMI_API_URL, json=payload, headers={
+                "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")})
+            response.raise_for_status()
+            result = response.json()
+            _record_kimi_usage(KIMI_TEXT, result.get("usage"))
+            return result["choices"][0]["message"]["content"]
     request = ClaudeMessageRequest(
         model=model,
         max_tokens=max_tokens,

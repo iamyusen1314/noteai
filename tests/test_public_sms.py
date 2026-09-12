@@ -127,7 +127,7 @@ class SmsAdmissionTests(unittest.TestCase):
         self.assertEqual(self.reserve(), 60)
 
     def test_last_reservation_is_cross_connection_atomic(self):
-        self.owner_execute("UPDATE auth_sms_budget SET reserved_milli_cny=59940")
+        self.owner_execute("UPDATE auth_sms_budget SET reserved_milli_cny=9940")
         barrier = threading.Barrier(2)
         def one(i):
             barrier.wait()
@@ -137,7 +137,7 @@ class SmsAdmissionTests(unittest.TestCase):
             with ThreadPoolExecutor(max_workers=2) as pool: results = list(pool.map(one, (1, 2)))
         self.assertEqual(sorted(results), ["closed", "sms"])
         self.assertEqual(provider.call_count, 1)
-        self.assertEqual(self.reserve(), 60000)
+        self.assertEqual(self.reserve(), 10000)
         self.assertFalse(security.sms_available())
 
     def test_commit_unknown_does_not_dispatch(self):
@@ -245,7 +245,7 @@ class SmsPostgresTests(SmsAdmissionTests):
         with self.psycopg.connect(self.owner_dsn, autocommit=True) as conn:
             conn.execute("TRUNCATE auth_sms_deliveries,auth_sms_budget,auth_verification_challenges")
             conn.execute("INSERT INTO auth_sms_budget(id,limit_milli_cny,enabled) "
-                         "VALUES('website-accounts-20260912',60000,1)")
+                         "VALUES('website-accounts-20260912',10000,1)")
         self.env = mock.patch.dict(os.environ, {**ENV, "DATABASE_URL": self.app_dsn})
         self.env.start()
 

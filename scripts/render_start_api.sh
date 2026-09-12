@@ -2,7 +2,7 @@
 set -eu
 
 cd /app/model
-if [ "${NOTEAI_PUBLIC_ACCOUNT_ONLY:-0}" = "1" ]; then
+if [ "${NOTEAI_PUBLIC_ACCOUNT_ONLY:-0}" = "1" ] || [ "${NOTEAI_PUBLIC_PRODUCT:-0}" = "1" ]; then
   set -- --no-access-log
 else
   set --

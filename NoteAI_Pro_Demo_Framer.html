@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NoteAI Pro · 小红书创作者智能诊断平台</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="/assets/vendor/echarts-5.4.3.min.js"></script>
 <script src="/assets/vendor/lucide-1.27.0.min.js"></script>
 <style>
@@ -2773,6 +2771,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   </div>
 </nav>
 
+<div id="public-product-status" role="status" style="display:none;padding:14px 24px;margin-top:66px;color:var(--text-2);background:var(--surf-1);font-size:13px;line-height:1.7"></div>
 <!-- ═══ 登录/注册弹窗 ═══ -->
 <div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
   <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:36px 40px;width:380px;max-width:90vw;position:relative">
@@ -2805,7 +2804,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <input id="auth-password" type="password"  placeholder="密码（至少10位，含两类字符）" style="padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none" onfocus="this.style.borderColor='rgba(123,97,255,0.5)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')doAuth()">
       <div id="auth-consent-row" style="display:none;flex-direction:column;gap:7px;font-size:11px;color:var(--text-muted);line-height:1.45">
         <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-privacy-consent" type="checkbox" style="margin-top:2px">我已阅读并同意当前版本的服务条款、隐私与退款说明</label>
-        <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-cross-border-consent" type="checkbox" style="margin-top:2px">我已知悉最小必要文本可能经新加坡 Claude Gateway 处理；正式开放仍以专业合规确认结果为准</label>
+        <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-cross-border-consent" type="checkbox" style="margin-top:2px">我已知悉最小必要文本可能经新加坡 Claude Gateway 处理；启用该处理路径前需另行告知并取得相应同意</label>
       </div>
       <div id="auth-error" style="color:#EF4444;font-size:12px;display:none;text-align:center"></div>
       <button onclick="doAuth()" style="padding:13px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;margin-top:4px" id="auth-submit-btn">登录</button>
@@ -2849,14 +2848,14 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
 <section class="v4-hero">
   <div class="v4-hero-copy">
-    <div class="v4-system-line">NoteAI Pro V0.4 · Claude 主脑 · 真实链路交付</div>
+    <div class="v4-system-line">NoteAI Pro V0.4 · 内容诊断与创作工作台</div>
     <h1 class="v4-title" aria-label="小红书爆文创作，V0.4 质量工程">
       <span class="v4-title-desktop">小红书爆文创作<br>V0.4 质量工程</span>
       <span class="v4-title-mobile">小红书爆文创作<br>V0.4 质量工程</span>
     </h1>
     <p class="v4-lead">
-      V0.4 商业级质量模型、Claude 多 Agent 协作、真实事实源补全和对话优化记忆，
-      把 AI 诊断、爆文生成、二次优化连成一条能交付的内容生产线。
+      V0.4 质量模型、多 Agent 协作和对话优化记忆，
+      将内容诊断、文案生成、二次优化连接起来。免费体验先支持文字输入，生成效果不保证发布流量。
     </p>
     <div class="v4-cta-row">
       <button class="v4-btn v4-btn-primary" onclick="goToDiagnose()"><i data-lucide="search"></i>开始 AI 诊断</button>
@@ -2876,10 +2875,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <img class="v4-hero-fallback" src="assets/landing/v04-quality-engine.png" alt="NoteAI Pro V0.4 AI quality engine">
     <div class="v4-hero-status">
       <span class="v4-live-dot"></span>
-      <div><b>Claude Agents reviewing</b><em>事实校验 · brief · V0.4 复核</em></div>
+      <div><b>多阶段协作示意</b><em>事实校验 · brief · V0.4 复核</em></div>
     </div>
     <div class="v4-hero-card v4-hero-card-score">
-      <span>交付分</span><b>76.2</b><em>Chat 可继续优化</em>
+      <span>产品示意 · 非实时结果</span><b>76.2</b><em>Chat 可继续优化</em>
     </div>
     <div class="v4-hero-card v4-hero-card-ready">
       <span>质量门禁</span><b>PASS</b><em>无事实硬伤</em>
@@ -2890,7 +2889,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
 <section class="v4-proof-strip">
   <div class="v4-proof-item"><i data-lucide="layers"></i><b>V0.4 composite</b><span>评分、分类、偏好排序同时工作</span></div>
-  <div class="v4-proof-item"><i data-lucide="brain-circuit"></i><b>Claude main brain</b><span>更强的长文推理与表达修正</span></div>
+  <div class="v4-proof-item"><i data-lucide="brain-circuit"></i><b>多 Agent 协作</b><span>更强的长文推理与表达修正</span></div>
   <div class="v4-proof-item"><i data-lucide="shield-check"></i><b>60 分硬底线</b><span>低质稿不冒充成功交付</span></div>
   <div class="v4-proof-item"><i data-lucide="map-pin"></i><b>事实源增强</b><span>高德 + 美团酒旅补真实信息</span></div>
 </section>
@@ -2922,7 +2921,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
 <section class="v4-section v4-agent-section fade-up">
   <div class="v4-agent-map">
-    <div class="v4-claude-core">Claude<br><span>主脑</span></div>
+    <div class="v4-claude-core">多 Agent<br><span>主脑</span></div>
     <div class="v4-agent-node active"><i data-lucide="file-text"></i><b>内容分析师</b><span>结构、钩子、信息密度</span></div>
     <div class="v4-agent-node"><i data-lucide="eye"></i><b>视觉诊断师</b><span>封面、构图、素材表达</span></div>
     <div class="v4-agent-node"><i data-lucide="trending-up"></i><b>增长策略师</b><span>搜索、流量、发布策略</span></div>
@@ -2930,9 +2929,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="v4-agent-node"><i data-lucide="scale"></i><b>仲裁者</b><span>分歧裁决、最终交付</span></div>
   </div>
   <div class="v4-section-copy">
-    <span class="v4-kicker">Claude + 5 Agents</span>
+    <span class="v4-kicker">5 Agents</span>
     <h2>不是 5 个名字，而是 5 种专业判断互相制衡</h2>
-    <p>Claude 负责深层推理与表达质量，五个 agent 分工拆解内容、视觉、增长和用户心理。系统会暴露分歧、做仲裁、再用 V0.4 模型复核，避免一条 prompt 直接拍脑袋。</p>
+    <p>语言模型负责推理与表达质量，五个 agent 分工拆解内容、视觉、增长和用户心理。系统会暴露分歧、做仲裁、再用 V0.4 模型复核，避免一条 prompt 直接拍脑袋。</p>
     <div class="v4-agent-quote">
       <i data-lucide="message-square-warning"></i>
       增长策略师认为标题需要更强搜索词，用户模拟器认为过硬会降低信任感；仲裁者会把两者压成自然但可点击的表达。
@@ -2967,7 +2966,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div><i data-lucide="upload-cloud"></i><b>素材输入</b><span>截图/手动/视频</span></div>
     <div><i data-lucide="database-zap"></i><b>事实补全</b><span>高德/美团/用户素材</span></div>
     <div><i data-lucide="route"></i><b>生成 brief</b><span>按行业规划交付标准</span></div>
-    <div><i data-lucide="brain-circuit"></i><b>Claude Agents</b><span>多角度创作与诊断</span></div>
+    <div><i data-lucide="brain-circuit"></i><b>多 Agent</b><span>多角度创作与诊断</span></div>
     <div><i data-lucide="scan-search"></i><b>V0.4 复核</b><span>评分、排序、门禁</span></div>
     <div><i data-lucide="messages-square"></i><b>对话优化</b><span>继续提升并学习偏好</span></div>
   </div>
@@ -2987,7 +2986,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 </section>
 
 <section class="v4-final-cta fade-up">
-  <h2>让 Claude 和 V0.4 先替你把质量关过一遍</h2>
+  <h2>让多 Agent 和 V0.4 先替你把质量关过一遍</h2>
   <p>免费开始诊断，也可以直接上传素材生成爆文。真正有价值的内容系统，应该让用户看到确定性的提升。</p>
   <div class="v4-cta-row">
     <button class="v4-btn v4-btn-primary" onclick="goToDiagnose()"><i data-lucide="search"></i>开始第一次诊断</button>
@@ -3018,7 +3017,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div class="mode-card-title">AI 内容诊断</div>
         <div class="mode-card-desc">
           上传你已发布 / 未发布的笔记，<br>
-          Claude 5 位 AI 专家从 <strong style="color:var(--accent)">124 维复合质量特征</strong> 找出问题、<br>
+          5 位 AI 专家从 <strong style="color:var(--accent)">124 维复合质量特征</strong> 找出问题、<br>
           给出改写方案和行动清单。
         </div>
       </div>
@@ -4338,10 +4337,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="tech-dim-panel" id="tdim-3">
       <div class="tech-group-label">
         AI 语义深度特征 · 3 个特征
-        <span class="tech-paper-badge tech-paper-badge-gold">⚡ Kimi moonshot-v1-8k 实时计算 · 全网独家</span>
+        <span class="tech-paper-badge tech-paper-badge-gold">⚡ Kimi moonshot-v1-8k 实时计算 · 复合特征</span>
       </div>
       <p style="color:var(--text-2);font-size:14px;max-width:700px;margin-bottom:32px;line-height:1.7">
-        RedNote-Vibe 论文（2509.22055v2）SHAP 分析证实：高情感强度 + 高共情度 + 精妙修辞是区分普通笔记与爆款笔记的顶级特征组合。我们是国内首个将这 3 个维度接入评分模型的平台。
+        RedNote-Vibe 论文（2509.22055v2）SHAP 分析证实：高情感强度 + 高共情度 + 精妙修辞是区分普通笔记与爆款笔记的顶级特征组合。我们是NoteAI将这 3 个维度接入评分模型的平台。
       </p>
       <div class="feat-grid" id="fg-semantic"></div>
     </div>
@@ -4602,7 +4601,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </div>
       <!-- 创作者版 -->
 	      <div class="pricing-card pricing-card-featured" style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:16px;padding:22px 18px;position:relative">
-	        <div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>
+	        <div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">进阶套餐</div>
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">创作者版</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥99</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">260积分/30天</div>
@@ -4697,7 +4696,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </div>
     </div>
 	    <div class="billing-info-card billing-commitment" style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
-      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按 Claude 美元账单、Kimi 人民币账单和真实 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
+      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按实际供应商账单和 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
     </div>
   </div>
 </div><!-- /page-pricing -->
@@ -4707,9 +4706,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-legal" style="padding-top:60px;min-height:100vh">
   <div style="max-width:860px;margin:0 auto;padding:48px 24px">
-    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);margin-bottom:10px">版本 first-launch-2026-07-25</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);margin-bottom:10px">版本 <span id="legal-version">first-launch-2026-07-25</span></div>
     <h1 style="font-size:34px;color:var(--text);margin:0 0 10px">服务、隐私、留存与退款说明</h1>
-    <p style="color:var(--text-2);line-height:1.8">以下为已实现的产品合同。中国法律、隐私、消费者保护及跨境路径仍须在公开上线前完成专业复核；当前支付入口不收取真实款项。</p>
+    <p style="color:var(--text-2);line-height:1.8">以下为已实现的产品合同。当前免费体验使用 Kimi 国内API处理你主动提交的创作文本；不收取真实款项，不自动订阅。</p>
     <div style="display:grid;gap:14px;margin-top:28px">
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">账户安全</h2>
@@ -4721,12 +4720,16 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">隐私与跨境</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">系统按最小必要原则处理账户、创作和安全审计数据。Claude 路径可能把必要文本从中国境内阿里云发送到新加坡 Gateway；默认先在境内处理图片，只发送必要文本。准确的处理者清单、法律依据、告知同意和传输机制须在公开上线前完成专业确认。</p>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">系统按最小必要原则处理账户、创作和安全审计数据。Claude 路径可能把必要文本从中国境内阿里云发送到新加坡 Gateway；默认先在境内处理图片，只发送必要文本。当前公开免费实例只使用境内 Kimi API，不启用上述跨境路径。阿里云标准短信服务处理注册登录所需手机号与验证码，账户信息不发送给模型。</p>
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">退款与账户删除</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">真实支付网关尚未启用，因此当前不得收取真实款项。未来退款必须原路退回并与订单、回调和账本核对。账户删除请求会立即撤销访问，主存储删除期限不超过24小时，滚动备份不超过30天；依法必须保留的财务和安全记录单独管理。</p>
+        <p style="color:var(--text-2);line-height:1.8;margin:0">真实支付网关尚未启用，因此当前不得收取真实款项。未来退款必须原路退回并与订单、回调和账本核对。可通过 ecfine@163.com 提交账户注销、数据导出或删除申请，我们核验本人身份后处理；主存储处理期限不超过24小时，滚动备份不超过30天，依法必须保留的记录除外。</p>
       </section>
+    </div>
+    <div id="product-consent" style="display:none;margin-top:20px">
+      <label><input id="product-consent-checkbox" type="checkbox">我同意本页服务和隐私说明，主动提交的创作文本交由Kimi国内API处理。</label>
+      <button onclick="acceptProductContract()">确认并继续免费使用</button>
     </div>
     <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
       <button onclick="showPage('landing')" style="padding:10px 16px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer">返回首页</button>
@@ -4734,6 +4737,15 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
   </div>
 </div>
+
+<footer style="padding:24px;text-align:center;color:var(--text-2);font-size:12px;line-height:2;border-top:1px solid var(--border)">
+  <div>易事快（广州）咨询服务有限公司 · NoteAI Pro</div>
+  <div>客服电话：<a href="tel:18988528731">18988528731</a> · 邮箱：<a href="mailto:ecfine@163.com">ecfine@163.com</a></div>
+  <div><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">粤ICP备2026135207号</a> ·
+    <a href="#" onclick="showPage('legal');return false">协议、隐私、退款与删除申请</a> ·
+    <a href="#" onclick="showPage('pricing');return false">套餐与免费额度</a></div>
+  <div>AI生成与诊断建议仅供创作参考，请核对事实；发布或转发时保留AI内容标识。支付暂未开放。</div>
+</footer>
 
 <!-- 头像选择器弹窗 -->
 <div id="avatar-picker-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -5225,6 +5237,126 @@ const API_BASE = (
     : location.origin)
 ).replace(/\/$/, '');
 
+function productActionAttributes(action, ...args) {
+  return `data-product-action="${action}" data-product-args="${escapeHtml(JSON.stringify(args))}"`;
+}
+document.addEventListener('click', event => {
+  const target = event.target.closest('[data-product-action]');
+  if (!target) return;
+  const actions = {openAuthModal, handleUpgrade, handleTopup, removeGenImage, showPage,
+    goToDiagnose, chatRemoveAttachImage, chatRemoveAttachFile, startChatFromNote,
+    trackNoteFromLibrary, openNoteDetail, copyNoteToClipboard, _removeSsImage,
+    removeDiagImage, openManualFill,
+    copyText: text => navigator.clipboard.writeText(String(text)).then(()=>showToast('已复制，请保留AI内容标识'))};
+  const action = actions[target.dataset.productAction];
+  if (!Object.prototype.hasOwnProperty.call(actions, target.dataset.productAction)) return;
+  try {
+    const args = JSON.parse(target.dataset.productArgs || '[]');
+    if (!Array.isArray(args)) return;
+    event.preventDefault(); event.stopPropagation();
+    action(...args);
+  } catch (_) { showToast('操作未完成，请重试'); }
+});
+const PUBLIC_PRODUCT = window.NOTEAI_PUBLIC_PRODUCT === true;
+if (PUBLIC_PRODUCT) {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = function(input, options = {}) {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url === API_BASE + '/analyze/stream' || url === API_BASE + '/generate/stream') {
+      const payload = JSON.parse(options.body || '{}');
+      payload.fact_source_policy = 'skip';
+      options = {...options, body:JSON.stringify(payload)};
+    }
+    return originalFetch(input, options);
+  };
+}
+let _publicStatus = null;
+const PUBLIC_PRODUCT_CONTRACT = 'free-product-2026-09-12';
+async function refreshPublicStatus() {
+  if (!PUBLIC_PRODUCT) return;
+  try {
+    const response = await fetch(API_BASE + '/public/status', { cache: 'no-store' });
+    if (!response.ok) throw new Error('status unavailable');
+    _publicStatus = await response.json();
+  } catch (_) { _publicStatus = null; }
+  const status = document.getElementById('public-product-status');
+  status.style.display = 'block';
+  status.textContent = '原产品免费体验 · 每月12积分，诊断6 / 生成8 / 深度重写3 / 快速对话1积分。' +
+    (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂未开放，短信资质审核中。') +
+    (_publicStatus?.ai_open ? '文字诊断与生成可用；服务总额度用尽时暂停新增调用。' : '真实AI服务尚未开放，不会把示例当作处理结果。') +
+    ' 图片、视频、外部笔记跟踪及支付暂未开放。';
+}
+function requirePublicCapability(key) {
+  if (!PUBLIC_PRODUCT || _publicStatus?.[key]) return true;
+  showToast(key === 'registration_open' ? '短信注册尚未开放；请稍后再试，或通过页脚联系支持' : '此项服务尚未开放；可先浏览原工作台、套餐与说明');
+  return false;
+}
+function syncProductUI() {
+  document.getElementById('legal-version').textContent = PUBLIC_PRODUCT_CONTRACT;
+  document.getElementById('product-consent').style.display = _authUser && !_authUser.contract_accepted ? 'block' : 'none';
+  document.querySelectorAll('.input-type').forEach(el => {
+    if (el.querySelector('.input-type-label')?.textContent !== '手动填写') {
+      el.setAttribute('aria-disabled','true'); el.title='当前免费体验支持文字；图片和视频暂未开放';
+    }
+  });
+  document.querySelectorAll('input[type="file"]').forEach(el => {
+    if (el.id === 'chat-file-input') el.accept='.txt,.md,.json,.csv';
+    else el.disabled=true;
+  });
+  // Existing profile actions keep their real scope; deletion/export are support requests.
+  document.querySelectorAll('[data-product-action="handleUpgrade"],[data-product-action="handleTopup"]').forEach(el => {
+    el.setAttribute('aria-disabled','true'); el.title='支付尚未开放';
+    if (el.tagName === 'BUTTON') { el.disabled=true; el.textContent='支付未开放'; }
+  });
+}
+async function acceptProductContract() {
+  if (!document.getElementById('product-consent-checkbox').checked) { showToast('请先阅读并勾选同意'); return; }
+  try {
+    const res=await fetch(API_AUTH+'/auth/contracts/accept',{method:'POST',headers:{...authHeader(),'Content-Type':'application/json'},
+      body:JSON.stringify({contract_version:PUBLIC_PRODUCT_CONTRACT,privacy_accepted:true})});
+    const data=await res.json(); if(!res.ok) throw new Error(data.detail || '确认失败');
+    _authUser.contract_accepted=true; syncProductUI(); loadBillingPlan(); showPage('upload');
+  } catch(err) { showToast(err.message); }
+}
+function requireProductConsent() {
+  if (!PUBLIC_PRODUCT || _authUser?.contract_accepted) return true;
+  if (!_authToken) openAuthModal('login');
+  else { showPage('legal'); showToast('请先确认当前免费产品服务与隐私说明'); }
+  return false;
+}
+async function publicPhoneAuth() {
+  const err = document.getElementById('auth-error');
+  const phone = document.getElementById('auth-phone').value.trim();
+  const code = document.getElementById('auth-phone-code').value.trim();
+  const registering = _authTab === 'register';
+  const btn = document.getElementById('auth-submit-btn');
+  try {
+    if (!requirePublicCapability('registration_open')) return;
+    if (!/^1[3-9]\d{9}$/.test(phone) || !_registerPhoneChallenge || _registerPhoneChallenge.destination !== phone || !code)
+      throw new Error('请输入手机号并获取、填写本次验证码');
+    if (registering && !document.getElementById('auth-privacy-consent').checked)
+      throw new Error('请先阅读并同意当前服务条款与隐私说明');
+    btn.disabled = true;
+    const response = await fetch(API_BASE + (registering ? '/auth/register/otp' : '/auth/login/otp'), {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        phone, code, challenge_id:_registerPhoneChallenge.id,
+        ...(registering ? {contract_version:PUBLIC_PRODUCT_CONTRACT,privacy_accepted:true} : {}),
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : '注册或登录失败');
+    _registerPhoneChallenge = null;
+    document.getElementById('auth-phone-code').value = '';
+    authAcceptSession(result);
+    await authRestoreSession();
+    closeAuthModal();
+    showPage('upload');
+    if (!requireProductConsent()) return;
+    showToast('登录成功，可使用免费积分进行文字诊断或生成');
+  } catch (error) { err.textContent=error.message;err.style.display='block'; }
+  finally { btn.disabled=false; }
+}
+
 /* ── Page System ───────────────────────────────────────────── */
 function showPage(name, tabEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -5248,6 +5380,7 @@ function showPage(name, tabEl) {
   if (name === 'landing') initHeroAnimation();
   if (name === 'tech')    initTechPage();
   if (name === 'chat')    initChatPage();
+  if (PUBLIC_PRODUCT) syncProductUI();
   if (name === 'library') initLibraryPage();
 }
 
@@ -5340,7 +5473,7 @@ async function shareDiagnosisCard(button) {
     ctx.font = '400 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillText(new Date().toLocaleDateString('zh-CN'), 88, 1340);
     ctx.textAlign = 'right';
-    ctx.fillText('noteai.pro', 992, 1340);
+    ctx.fillText('noteaipro.com · AI生成内容', 992, 1340);
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('image encode failed');
@@ -5564,7 +5697,7 @@ function renderPricingConfig(cfg) {
     ).join('');
     return `
 	      <div class="pricing-card ${isRecommended ? 'pricing-card-featured' : ''}" style="background:${isRecommended ? 'linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06))' : 'var(--surf-1)'};border:${isRecommended ? '1.5px solid rgba(123,97,255,0.35)' : `1px solid ${tier === 'studio' ? 'rgba(0,212,255,0.25)' : 'var(--border)'}`};border-radius:16px;padding:22px 18px;position:relative">
-	        ${isRecommended ? '<div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">最受欢迎</div>' : ''}
+	        ${isRecommended ? '<div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">进阶套餐</div>' : ''}
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${accent};text-transform:uppercase;margin-bottom:12px">${pricingEsc(t.name || tier)}</div>
         <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/30天' : ''}</span></div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/${price > 0 ? '30天' : '月'}</div>
@@ -5573,7 +5706,7 @@ function renderPricingConfig(cfg) {
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮 / 截图${cScreenshot}张</div>
           ${features}
         </div>
-        <button onclick="${tier === 'free' ? `openAuthModal('register')` : `handleUpgrade('${tier}')`}" style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '暂不可购买'}</button>
+        <button ${productActionAttributes(tier === 'free' ? 'openAuthModal' : 'handleUpgrade', tier === 'free' ? 'register' : tier)} style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '暂不可购买'}</button>
       </div>`;
   }).join('');
   const opCards = Object.entries(ops).map(([key, op]) => `
@@ -5585,7 +5718,7 @@ function renderPricingConfig(cfg) {
   const topups = (cfg.topup_packages || []).map(p => {
     const credits = Number(p.credits || 0);
     return `
-	      <div class="topup-card" onclick="handleTopup('${pricingEsc(p.id)}')" style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'}'">
+	      <div class="topup-card" ${productActionAttributes('handleTopup',p.id)} style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'}'">
         <div style="font-size:20px;font-weight:800;color:var(--text)">${credits.toFixed(credits % 1 ? 1 : 0)}积分</div>
         <div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥${Number(p.price_rmb || 0).toLocaleString()}</div>
         <div style="font-size:11px;color:var(--text-muted)">约${pricingMax(credits, costs.analyze)}次诊断 / ${pricingMax(credits, costs.generate)}次爆文</div>
@@ -5617,9 +5750,13 @@ function renderPricingConfig(cfg) {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">${topups}</div>
     </div>
 	    <div class="billing-info-card billing-commitment" style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
-      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按 Claude 美元账单、Kimi 人民币账单和真实 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
+      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按实际供应商账单和 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
     </div>`;
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  if (PUBLIC_PRODUCT) {
+    const notice=document.createElement('p'); notice.textContent='当前开放免费文字体验：每月12积分（北京时间每月1日08:00刷新）；支付、图片、视频和笔记跟踪尚未开放。下列付费套餐仅作价格与交付说明，不能购买。';
+    root.prepend(notice); syncProductUI();
+  }
 }
 
 /* ── Upload mode switcher ───────────────────────────────────── */
@@ -5636,7 +5773,7 @@ function switchMode(mode) {
   const sub   = document.getElementById('uploadPageSub');
   if (isDiag) {
     if (title) title.textContent = '诊断你的笔记';
-    if (sub)   sub.textContent   = '上传截图 / 填写内容，Claude 5 位 AI 专家从 124 维复合质量特征找出问题并给出改写方案';
+    if (sub)   sub.textContent   = '上传截图 / 填写内容，5 位 AI 专家从 124 维复合质量特征找出问题并给出改写方案';
   } else {
     if (title) title.textContent = 'AI 生成爆文';
     if (sub)   sub.textContent   = '上传素材照片，AI 逆推爆文特征，直接输出可发布的标题、正文和话题标签';
@@ -5657,6 +5794,7 @@ function goToDiagnose(tabEl) {
 }
 
 function selectType(el, type) {
+  if (PUBLIC_PRODUCT && type !== '手动填写') { showToast('当前免费体验支持文字输入，图片和视频暂未开放'); return; }
   const previousType = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
   if (previousType === '视频上传' && type !== '视频上传'
       && (_diagVideoState === 'preflight' || _diagVideoState === 'uploading')) {
@@ -5778,7 +5916,7 @@ function _renderGenThumbs() {
     <div class="gen-thumb-item">
       <img src="${img.dataURL}" alt="素材${i+1}" loading="lazy">
       <span class="gen-thumb-order">${i+1}</span>
-      <button class="gen-thumb-remove" onclick="removeGenImage(${i})" title="移除">×</button>
+      <button class="gen-thumb-remove" ${productActionAttributes('removeGenImage',i)} title="移除">×</button>
     </div>
   `).join('');
   grid.style.display = 'grid';
@@ -5882,6 +6020,7 @@ function _setGenVideoState(state) {
 }
 
 async function _uploadVideoFile(file) {
+  if (PUBLIC_PRODUCT) { showToast("当前免费体验不支持视频，请填写文字简报"); return; }
   const errEl = document.getElementById('genVideoError');
   if (errEl) errEl.style.display = 'none';
 
@@ -6002,6 +6141,8 @@ function _setGenerationSubmitBusy(isBusy) {
 }
 
 async function startGeneration() {
+  if (!requirePublicCapability("ai_open")) return;
+  if (PUBLIC_PRODUCT && !requireProductConsent()) return;
   if (_genStreamActive) return;
   const domain = document.getElementById('genDomain')?.value || '美食';
   const brief  = (document.getElementById('genBrief')?.value || '').trim() || null;
@@ -6050,7 +6191,7 @@ async function startGeneration() {
       if (resp.status === 402) {
         const errData = await resp.json().catch(() => ({}));
         _generateResult = { _error: true, _quota: true };
-        showToast('爆文生成积分不足，请订阅套餐或充值积分');
+        showToast('爆文生成积分不足，请查看当前免费额度');
         showQuotaExceededModal(errData.detail || errData);
         _resolveGen(); return;
       }
@@ -6222,7 +6363,7 @@ function _handleGenStreamEvent(ev) {
           <div class="bubble-text" style="font-size:12px;color:var(--text-2)">
             ${ev.message}
             <div style="margin-top:8px">
-              <button onclick="showPage('pricing')"
+              <button ${productActionAttributes('showPage','pricing')}
                 style="padding:4px 12px;border-radius:8px;border:1px solid rgba(245,158,11,0.4);
                        background:rgba(245,158,11,0.1);color:var(--warning);cursor:pointer;font-size:11px;font-weight:600">
                 升级套餐 →
@@ -6561,6 +6702,8 @@ function formatLocalTime() {
 }
 
 async function startDiagnosis() {
+  if (!requirePublicCapability("ai_open")) return;
+  if (PUBLIC_PRODUCT && !requireProductConsent()) return;
   if (_diagnosisStreamActive) return;
   _isGenerateMode = false;
   const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
@@ -6869,7 +7012,7 @@ async function populateReport() {
           <p style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:20px">
             请先在「开始诊断」页面输入笔记内容，<br>AI 分析完成后报告将自动显示在这里。
           </p>
-          <button onclick="goToDiagnose()"
+          <button ${productActionAttributes('goToDiagnose')}
             style="padding:11px 28px;border-radius:12px;border:none;cursor:pointer;
                    background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;
                    font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(123,97,255,0.4)">
@@ -7124,10 +7267,11 @@ async function populateReport() {
 }
 
 /* ── Copy helper ────────────────────────────────────────────── */
+function markedProductText(text) { return PUBLIC_PRODUCT ? '【NoteAI AI生成或辅助创作内容，请核对事实】\n' + text : text; }
 function copyText(elId) {
   const el = document.getElementById(elId);
   if (!el) return;
-  navigator.clipboard.writeText(el.textContent.trim()).then(() => showToast('✅ 已复制到剪贴板'));
+  navigator.clipboard.writeText(markedProductText(el.textContent.trim())).then(() => showToast('✅ 已复制到剪贴板'));
 }
 
 /* ── Generation report populate ─────────────────────────────── */
@@ -7141,7 +7285,7 @@ async function populateGenerateReport() {
   // 尚无结果时显示 loading 占位
   const mainTitle = document.getElementById('genMainTitle');
   if (mainTitle && !_generateResult) {
-    mainTitle.innerHTML = '<span style="color:var(--text-muted);font-style:italic;font-weight:400">AI 正在生成爆文，请稍候…</span>';
+    mainTitle.innerHTML = '<span style="color:var(--text-muted);font-style:italic;font-weight:400">等待真实生成结果…</span>';
   }
 
   if (_diagnosePromise) await _diagnosePromise;
@@ -7181,7 +7325,7 @@ async function populateGenerateReport() {
            border-radius:var(--r-sm);padding:12px 16px">
         <span style="font-size:11px;font-weight:700;color:var(--text-muted);flex-shrink:0">方案 ${String.fromCharCode(65+i)}</span>
         <span style="flex:1;font-size:14px;color:var(--text);line-height:1.5">${escapeHtml(v)}</span>
-        <button onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>showToast('✅ 已复制'))"
+        <button ${productActionAttributes('copyText',v)}
           data-t="${escapeHtml(v)}"
           style="flex-shrink:0;background:transparent;border:1px solid var(--border-hover);color:var(--text-2);
                  padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">
@@ -7204,7 +7348,7 @@ async function populateGenerateReport() {
       tagsEl.innerHTML = extractedTags.map(t =>
         `<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
                background:rgba(0,153,255,0.08);border:1px solid rgba(0,153,255,0.2);color:var(--accent);
-               cursor:pointer" onclick="navigator.clipboard.writeText('${t}');showToast('✅ 已复制 ${t}')">${t}</span>`
+               cursor:pointer" ${productActionAttributes('copyText',t)}>${t}</span>`
       ).join('');
       document.getElementById('genTagsCard').style.display = 'block';
     }
@@ -7252,7 +7396,7 @@ async function populateGenerateReport() {
       document.getElementById('genTimingSuggestChips').innerHTML = mt.suggested_keywords.map(kw =>
         `<span style="background:rgba(0,153,255,0.08);border:1px solid rgba(0,153,255,0.25);color:var(--accent);
                padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer"
-               onclick="navigator.clipboard.writeText('${kw}');this.style.background='rgba(0,153,255,0.2)'">+ ${kw}</span>`
+               ${productActionAttributes('copyText',kw)}>+ ${kw}</span>`
       ).join('');
       document.getElementById('genTimingSuggest').style.display = 'block';
     } else {
@@ -7449,7 +7593,7 @@ function togglePlanBody(idx) {
 function copyAndToast(elId) {
   const el = document.getElementById(elId);
   if (!el) return;
-  navigator.clipboard.writeText(el.textContent.trim())
+  navigator.clipboard.writeText(markedProductText(el.textContent.trim()))
     .then(() => showToast('✅ 标题已复制'));
 }
 
@@ -7524,7 +7668,7 @@ function copyPlan(idx) {
     showToast('该方案正文未生成，请重新诊断');
     return;
   }
-  navigator.clipboard.writeText(title + (body ? '\n\n' + body : ''))
+  navigator.clipboard.writeText(markedProductText(title + (body ? '\n\n' + body : '')))
     .then(() => showToast('✅ 标题+正文已复制'));
 }
 
@@ -8760,7 +8904,7 @@ function initScrollAnimations() {
 function copyBodyRewrite() {
   const text = document.getElementById('bodySuggested')?.textContent || '';
   if (!text) return;
-  navigator.clipboard.writeText(text)
+  navigator.clipboard.writeText(markedProductText(text))
     .then(() => showToast('改写正文已复制到剪贴板！'))
     .catch(() => showToast('复制失败，请手动选中文字复制'));
 }
@@ -9225,6 +9369,7 @@ function chatHandleAuthFailure() {
 }
 
 function chatHandleFileSelect(input) {
+  if (PUBLIC_PRODUCT && Array.from(input.files || []).some(f => f.type.startsWith('image/'))) { input.value=''; showToast('当前仅接受文字附件'); return; }
   const files = Array.from(input.files);
   input.value = '';
   const stateEpoch = _chatUserStateEpoch;
@@ -9257,13 +9402,13 @@ function chatRenderAttachPreview() {
   if (_chatAttachImage) {
     const chip = document.createElement('div');
     chip.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--surf-3);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;color:var(--text-2)';
-    chip.innerHTML = `<img src="${_chatAttachImage.dataURL}" style="width:28px;height:28px;object-fit:cover;border-radius:4px"> ${_chatAttachImage.name} <span onclick="chatRemoveAttachImage()" style="cursor:pointer;color:var(--error);margin-left:2px">✕</span>`;
+    chip.innerHTML = `<img src="${_chatAttachImage.dataURL}" style="width:28px;height:28px;object-fit:cover;border-radius:4px"> ${escapeHtml(_chatAttachImage.name)} <span ${productActionAttributes('chatRemoveAttachImage')} style="cursor:pointer;color:var(--error);margin-left:2px">✕</span>`;
     area.appendChild(chip);
   }
   _chatAttachFiles.forEach((f, i) => {
     const chip = document.createElement('div');
     chip.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--surf-3);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;color:var(--text-2)';
-    chip.innerHTML = `📄 ${f.name} <span onclick="chatRemoveAttachFile(${i})" style="cursor:pointer;color:var(--error);margin-left:2px">✕</span>`;
+    chip.innerHTML = `📄 ${escapeHtml(f.name)} <span ${productActionAttributes('chatRemoveAttachFile',i)} style="cursor:pointer;color:var(--error);margin-left:2px">✕</span>`;
     area.appendChild(chip);
   });
 }
@@ -9271,6 +9416,7 @@ function chatRemoveAttachImage() { _chatAttachImage = null; chatRenderAttachPrev
 function chatRemoveAttachFile(i) { _chatAttachFiles.splice(i, 1); chatRenderAttachPreview(); }
 
 async function chatSendMessage(options = {}) {
+  if (!requirePublicCapability('ai_open') || !requireProductConsent()) return;
   if (_chatBusy || !_chatSessionId) return;
   const opts = (options && typeof options === 'object') ? options : {};
   const inp  = document.getElementById('chat-input');
@@ -9965,7 +10111,7 @@ let _verificationChallenge = null;
 function openAuthModal(tab) {
   document.getElementById('auth-modal').style.display = 'flex';
   switchAuthTab(tab || 'login');
-  setTimeout(() => document.getElementById('auth-username').focus(), 100);
+  setTimeout(() => document.getElementById(PUBLIC_PRODUCT ? 'auth-phone' : 'auth-username').focus(), 100);
 }
 function closeAuthModal() {
   document.getElementById('auth-modal').style.display = 'none';
@@ -9998,6 +10144,19 @@ function switchAuthTab(tab) {
   document.getElementById('auth-recovery-actions').style.display = isLogin ? 'flex' : 'none';
   document.getElementById('auth-submit-btn').textContent  = isLogin ? '登录' : '注册并登录';
   document.getElementById('auth-error').style.display = 'none';
+  if (PUBLIC_PRODUCT) {
+    _registerPhoneChallenge = null;
+    document.getElementById('auth-username').style.display = 'none';
+    document.getElementById('auth-password').style.display = 'none';
+    ['auth-email-row','auth-email-code-row','auth-recovery-actions'].forEach(id => document.getElementById(id).style.display='none');
+    document.getElementById('auth-phone-row').style.display='block';
+    document.getElementById('auth-phone-code-row').style.display='flex';
+    document.getElementById('auth-phone').placeholder='已验证或准备注册的手机号';
+    document.getElementById('auth-cross-border-consent').closest('label').style.display='none';
+    document.getElementById('auth-privacy-consent').closest('label').lastChild.textContent=
+      '我已阅读并同意账户及免费创作服务条款、隐私与退款说明；主动提交的创作文本由Kimi国内API处理';
+    document.getElementById('auth-submit-btn').textContent=isLogin ? '验证码登录' : '免费注册并登录';
+  }
 }
 
 async function requestVerification(channel, destination, purpose, headers) {
@@ -10012,13 +10171,14 @@ async function requestVerification(channel, destination, purpose, headers) {
 }
 
 async function requestRegisterPhoneCode() {
+  if (!requirePublicCapability("registration_open")) return;
   const phone = document.getElementById('auth-phone').value.trim();
   const errEl = document.getElementById('auth-error');
   if (!/^1[3-9]\d{9}$/.test(phone)) {
     errEl.textContent = '请先输入正确手机号'; errEl.style.display = 'block'; return;
   }
   try {
-    const data = await requestVerification('phone', phone, 'register_phone');
+    const data = await requestVerification('phone', phone, PUBLIC_PRODUCT && _authTab === 'login' ? 'login_phone' : 'register_phone');
     _registerPhoneChallenge = { id: data.challenge_id, destination: phone };
     showToast('验证码请求已受理');
   } catch (err) {
@@ -10054,6 +10214,7 @@ function authAcceptSession(data) {
 }
 
 async function doAuth() {
+  if (PUBLIC_PRODUCT) return publicPhoneAuth();
   const username = document.getElementById('auth-username').value.trim();
   const password = document.getElementById('auth-password').value;
   const email    = document.getElementById('auth-email').value.trim();
@@ -10213,7 +10374,8 @@ async function doLogout() {
   if (tokenToRevoke) {
     await fetch(API_AUTH + '/auth/logout', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + tokenToRevoke },
+      headers: { Authorization: 'Bearer ' + tokenToRevoke, 'Content-Type':'application/json' },
+      body: JSON.stringify({}),
     }).catch(()=>{});
   }
 }
@@ -10347,7 +10509,7 @@ async function loadDiagnosisHistory(reset = false) {
           <div style="font-size:40px;margin-bottom:12px">📋</div>
           <div style="font-weight:600;margin-bottom:6px">暂无诊断记录</div>
           <div style="font-size:13px">去「开始诊断」提交笔记，报告将自动保存在这里</div>
-          <button onclick="goToDiagnose()" style="margin-top:14px;padding:9px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600;cursor:pointer">去诊断笔记 →</button>
+          <button ${productActionAttributes('goToDiagnose')} style="margin-top:14px;padding:9px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600;cursor:pointer">去诊断笔记 →</button>
         </div>`;
       if (countEl) countEl.textContent = '';
       return;
@@ -10558,9 +10720,9 @@ function renderLibraryPrimaryActions(note) {
   const scoreArg = Number.isFinite(Number(note.score)) ? Number(note.score) : 'null';
   return `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button onclick="event.stopPropagation();startChatFromNote(${noteArg})"
+      <button ${productActionAttributes('startChatFromNote',note)}
         style="padding:7px 12px;border-radius:9px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:12px;font-weight:700;cursor:pointer">💬 继续优化</button>
-      <button onclick="event.stopPropagation();trackNoteFromLibrary(${idArg},${titleArg},${domainArg},${scoreArg})"
+      <button ${productActionAttributes('trackNoteFromLibrary',note.id,note.title,note.domain,note.score)}
         style="padding:7px 12px;border-radius:9px;background:rgba(0,153,255,0.08);border:1px solid rgba(0,153,255,0.24);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">📡 追踪效果</button>
     </div>`;
 }
@@ -10667,17 +10829,17 @@ function buildGroupCard(group) {
         <span style="font-size:10px;color:var(--text-muted);background:var(--surf-3);padding:1px 7px;border-radius:20px">${srcLabel} v${v.version}${isLatestV ? ' · 最新' : ''}</span>
         <span style="font-size:16px;font-weight:800;color:${col}">${v.score ? v.score.toFixed(1) : '–'}</span>
       </div>
-      <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:6px">${v.title}</div>
-      <div style="font-size:11px;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px">${(v.body||'').slice(0,120)}…</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:6px">${escapeHtml(v.title)}</div>
+      <div style="font-size:11px;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px">${escapeHtml((v.body||'').slice(0,120))}…</div>
       ${renderLibraryTrackingBadge(v.id)}
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="openNoteDetail(${JSON.stringify(v).replace(/"/g,'&quot;')})"
+        <button ${productActionAttributes('openNoteDetail',v)}
           style="flex:1;padding:5px 0;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer">查看全文</button>
-        <button onclick="copyNoteToClipboard(${JSON.stringify(v.title+'\n\n'+v.body).replace(/"/g,'&quot;')})"
+        <button ${productActionAttributes('copyNoteToClipboard',v.title+'\n\n'+v.body)}
           style="flex:1;padding:5px 0;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-2);font-size:11px;cursor:pointer">复制</button>
-        ${isLatestV ? `<button onclick="event.stopPropagation();startChatFromNote(${JSON.stringify(v).replace(/"/g,'&quot;')})"
+        ${isLatestV ? `<button ${productActionAttributes('startChatFromNote',v)}
           style="width:100%;margin-top:4px;padding:6px 0;border-radius:8px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:11px;font-weight:600;cursor:pointer">💬 继续优化</button>` : ''}
-        <button onclick="event.stopPropagation();trackNoteFromLibrary('${v.id}','${v.title.replace(/'/g,"\\'")}','${v.domain}',${v.score||'null'})"
+        <button ${productActionAttributes('trackNoteFromLibrary',v.id,v.title,v.domain,v.score)}
           style="width:100%;margin-top:${isLatestV?'0':'4px'};padding:5px 0;border-radius:8px;background:rgba(0,153,255,0.06);border:1px solid rgba(0,153,255,0.2);color:var(--accent);font-size:11px;cursor:pointer">📡 追踪效果</button>
       </div>`;
     versionsRow.appendChild(card);
@@ -10701,7 +10863,7 @@ function buildGroupCard(group) {
 }
 
 function copyNoteToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制到剪贴板')).catch(() => showToast('复制失败，请手动复制'));
+  navigator.clipboard.writeText(markedProductText(text)).then(() => showToast('✅ 已复制到剪贴板')).catch(() => showToast('复制失败，请手动复制'));
 }
 
 function startChatFromNote(note) {
@@ -11122,6 +11284,7 @@ async function saveChangePwd() {
 }
 
 async function revokeAllSessions() {
+  if (PUBLIC_PRODUCT) { showToast('请通过 ecfine@163.com 联系支持办理本人数据导出、恢复或会话撤销'); return; }
   if (!confirm('撤销全部设备上的登录会话？当前设备也会退出。')) return;
   try {
     const res = await fetch(API_AUTH + '/auth/sessions/revoke-all', {
@@ -11136,6 +11299,7 @@ async function revokeAllSessions() {
 }
 
 async function exportAccountData() {
+  if (PUBLIC_PRODUCT) { showToast('请通过 ecfine@163.com 联系支持办理本人数据导出、恢复或会话撤销'); return; }
   try {
     const res = await fetch(API_AUTH + '/account/export', { headers: authHeader() });
     if (!res.ok) {
@@ -11152,6 +11316,7 @@ async function exportAccountData() {
 }
 
 async function recoverArchivedContent() {
+  if (PUBLIC_PRODUCT) { showToast('请通过 ecfine@163.com 联系支持办理本人数据导出、恢复或会话撤销'); return; }
   try {
     const response = await fetch(API_AUTH + '/account/archive/recovery', {
       headers: authHeader(),
@@ -11182,6 +11347,7 @@ async function recoverArchivedContent() {
 }
 
 async function requestAccountDeletion() {
+  if (PUBLIC_PRODUCT) { window.location.href='mailto:ecfine@163.com?subject=NoteAI账户注销或数据删除申请'; showToast('请发送申请邮件，我们核验本人身份后处理；此操作尚未删除账户'); return; }
   const password = prompt('请先导出数据，再输入当前密码确认删除账户：');
   if (!password || !confirm('确认提交？账户访问会立即撤销。')) return;
   try {
@@ -11241,7 +11407,7 @@ async function autoSaveGeneratedNote(genResult) {
       // 生成后提示用户可追踪发布效果（非阻断，3秒后显示）
       setTimeout(() => {
         if (_authToken) {
-          showToast('💡 笔记已保存到笔记库。发布后可在对应版本卡片追踪真实表现');
+          showToast(PUBLIC_PRODUCT ? '笔记已保存，可在笔记库查看和继续优化；跟踪尚未开放' : '💡 笔记已保存到笔记库。发布后可在对应版本卡片追踪真实表现');
         }
       }, 3000);
     }
@@ -11717,7 +11883,7 @@ function _renderSsThumbs() {
       <img src="${img.dataURL}">
       <div class="ss-thumb-index">${i===0?'图1':('图'+(i+1))}</div>
       <div class="ss-thumb-status is-${status}">${escapeHtml(status === 'recognizing' ? `识别图${i+1}` : _ssStatusLabel(status))}</div>
-      <button onclick="event.stopPropagation();_removeSsImage(${i})"
+      <button ${productActionAttributes('_removeSsImage',i)}
         style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
                border:none;background:rgba(0,0,0,0.6);color:#fff;font-size:12px;cursor:pointer;
                display:flex;align-items:center;justify-content:center;line-height:1;padding:0">×</button>
@@ -12114,7 +12280,7 @@ function _renderDiagThumbs() {
     <div class="gen-thumb-item">
       <img src="${img.dataURL}" alt="图${i+1}" loading="lazy">
       <span class="gen-thumb-order">${i+1}</span>
-      <button class="gen-thumb-remove" onclick="removeDiagImage(${i})" title="移除">×</button>
+      <button class="gen-thumb-remove" ${productActionAttributes('removeDiagImage',i)} title="移除">×</button>
     </div>`).join('');
   grid.style.display = 'grid';
 }
@@ -12577,7 +12743,7 @@ async function loadTrackingList() {
           <span>${n.submitted_at?.slice(0,10)||'–'} · ${escapeHtml(n.domain)}</span>
         </div>
         ${(n.status === 'needs_manual' || n.status === 'failed') ? `
-          <button onclick="openManualFill('${n.id}')"
+          <button ${productActionAttributes('openManualFill',n.id)}
             style="margin-top:8px;padding:4px 12px;border-radius:7px;border:1px solid var(--accent);
                    background:rgba(0,153,255,0.08);color:var(--accent);cursor:pointer;font-size:11px;font-weight:600">
             手动填写互动数据
@@ -12875,6 +13041,7 @@ async function handleTopup(packageId) {
 
 /* 积分不足时弹升级引导 */
 function showQuotaExceededModal(detail) {
+  if (PUBLIC_PRODUCT) { showToast('本月免费积分不足。北京时间下月1日08:00刷新，当前不能充值或购买；可继续查看本人已保存结果。'); return; }
   const d = normalizeQuotaDetail(detail);
   const opName = OP_NAMES[d.operation] || d.operation || '此功能';
   const ok = confirm(
@@ -12888,6 +13055,12 @@ function showQuotaExceededModal(detail) {
   if (ok) showPage('pricing');
 }
 
+refreshPublicStatus();
+if (PUBLIC_PRODUCT) {
+  syncProductUI();
+  const manual=Array.from(document.querySelectorAll('.input-type')).find(el=>el.querySelector('.input-type-label')?.textContent==='手动填写');
+  if(manual) selectType(manual,'手动填写');
+}
 </script>
 </body>
 </html>

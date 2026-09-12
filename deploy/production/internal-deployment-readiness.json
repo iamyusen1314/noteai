@@ -16446,7 +16446,8 @@
           "evidence": [],
           "blocker": "The current WeChat Pay/Alipay and Item34 three-day professional review scope was refrozen at 2026-09-06T20:11:37+08:00 with package SHA256 1b5c37594b2c51b738b2edbc5acad1e052b311a4a8a3f677b64ae3fa3da7b89d. The two distinct real signed artifacts and bindings for legal_privacy and provider_commercial_and_xhs are absent; repository controls cannot substitute for professional approval.",
           "resume_condition": "Any required privacy, terms, refund or cross-border document revisions are complete and the review package is refrozen; the four document categories are APPROVED; two distinct professional signed artifacts and bindings for legal_privacy and provider_commercial_and_xhs are dated no earlier than the applicable package freeze, bind the complete frozen scope, use disjoint signed/binding paths and SHA256 identities, and have open_condition_count 0; the CTO verifies each signer's professional identity and authority.",
-          "next_task": "PROD-FIRST-LAUNCH-LEGAL-PROVIDER-REVIEW-001"
+          "next_task": "PROD-FIRST-LAUNCH-LEGAL-PROVIDER-REVIEW-001",
+          "withdrawn_by_owner": "2026-09-12: professional signatures removed as a release prerequisite; unsigned history retained without completion credit"
         },
         {
           "id": "alb_tls",
@@ -16468,8 +16469,7 @@
           "dependencies": [
             "real_ai_provider_chain",
             "real_payment_chain",
-            "alb_tls",
-            "legal_provider_approval"
+            "alb_tls"
           ],
           "evidence": [],
           "blocker": "No complete current-release commercial E2E exists on the controlled pre-DNS path.",

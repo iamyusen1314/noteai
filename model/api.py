@@ -74,6 +74,7 @@ import db as _db
 import auth as _auth
 import account_security as _account_security
 import public_account as _public_account
+import public_product as _public_product
 import memory as _memory
 import billing as _billing
 import content_retention as _retention
@@ -457,6 +458,7 @@ def compute_semantic_features(title: str, desc: str) -> dict:
         d = _j.loads(raw.strip())
         return {c: float(d.get(c, 0.5)) for c in SEMANTIC_FEATURE_COLS}
     except Exception:
+        _public_product.assert_result_known()
         return defaults
 
 
@@ -739,7 +741,7 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
             total_tokens = 0
             final_usage: dict | None = None
             debug_count = 0  # log first few chunks to understand structure
-            with _httpx.Client(timeout=_KIMI_TIMEOUT_THINK) as client:
+            with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_THINK) as client:
                 with client.stream("POST", _KIMI_API_URL, json=payload, headers=headers) as resp:
                     resp.raise_for_status()
                     for line in resp.iter_lines():
@@ -775,6 +777,8 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                 print(f"[kimi_chat] WARN empty mode=think stream total_tokens={total_tokens}", file=sys.stderr, flush=True)
             return content
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             _log_internal_failure(
                 "kimi_chat",
                 exc,
@@ -785,7 +789,7 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
     else:
         # ── Non-streaming fast path ──
         try:
-            with _httpx.Client(timeout=_KIMI_TIMEOUT_FAST) as client:
+            with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as client:
                 r = client.post(_KIMI_API_URL, json=payload, headers=headers)
                 r.raise_for_status()
                 d = r.json()
@@ -797,6 +801,8 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                     print(f"[kimi_chat] WARN empty mode=fast finish={finish} usage={usage}", file=sys.stderr, flush=True)
                 return content
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             _log_internal_failure(
                 "kimi_chat",
                 exc,
@@ -832,7 +838,7 @@ async def _kimi_stream_gen(
     headers = {"Authorization": f"Bearer {key}"}
     timeout = _KIMI_TIMEOUT_THINK if thinking else _KIMI_TIMEOUT_FAST
     try:
-        async with _httpx.AsyncClient(timeout=timeout) as client:
+        async with _public_product.kimi_async_client(timeout=timeout) as client:
             async with client.stream("POST", _KIMI_API_URL, json=payload, headers=headers) as resp:
                 resp.raise_for_status()
                 final_usage: dict | None = None
@@ -858,6 +864,8 @@ async def _kimi_stream_gen(
                     {"model": _KIMI_MODEL, "usage": final_usage or {}}
                 )
     except Exception as exc:
+        if isinstance(exc, _public_product.TrialProviderStopped):
+            raise
         _log_internal_failure(
             "kimi_stream_gen",
             exc,
@@ -871,7 +879,7 @@ async def _wait_video_file_ready(file_id: str, key: str, max_wait: int = 60) -> 
     headers = {"Authorization": f"Bearer {key}"}
     for _ in range(max_wait // 3):
         try:
-            async with _httpx.AsyncClient(timeout=_httpx.Timeout(10.0)) as client:
+            async with _public_product.kimi_async_client(timeout=_httpx.Timeout(10.0)) as client:
                 r = await client.get(f"{_MOONSHOT_FILES_URL}/{file_id}", headers=headers)
                 if r.status_code == 200:
                     status = r.json().get("status", "")
@@ -962,7 +970,7 @@ async def _kimi_video_understand(
         file=sys.stderr, flush=True,
     )
     try:
-        async with _httpx.AsyncClient(timeout=_httpx.Timeout(connect=10.0, read=180.0, write=30.0, pool=10.0)) as client:
+        async with _public_product.kimi_async_client(timeout=_httpx.Timeout(connect=10.0, read=180.0, write=30.0, pool=10.0)) as client:
             r = await client.post(_KIMI_API_URL, json=payload, headers={"Authorization": f"Bearer {key}"})
             if r.status_code != 200:
                 _log_internal_failure(
@@ -976,6 +984,8 @@ async def _kimi_video_understand(
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
             return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
+        if isinstance(exc, _public_product.TrialProviderStopped):
+            raise
         _log_internal_failure(
             "kimi_video_understand",
             exc,
@@ -1197,6 +1207,7 @@ async def _idempotent_sse_stream(
                 except Exception:
                     event_type = ""
             if event_type in success_types:
+                _public_product.assert_result_known()
                 _idempotency.mark_completed(claim)
                 terminal_seen = True
             elif event_type == "error":
@@ -3154,6 +3165,8 @@ def _compute_market_timing_for_delivery(title: str, desc: str, domain: str) -> d
         except HTTPException:
             raise
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             _log_internal_failure(
                 "provider",
                 exc,
@@ -3595,6 +3608,8 @@ async def _agent_arbitrate(
         try:
             body_results.append(await _gen_plan_body(*style))
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             body_results.append(exc)
 
     plans = []
@@ -3698,6 +3713,8 @@ async def _run_five_agents(
             try:
                 result = task.result()
             except Exception as exc:
+                if isinstance(exc, _public_product.TrialProviderStopped):
+                    raise
                 _log_internal_failure(
                     "provider",
                     exc,
@@ -3769,7 +3786,7 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
         "视觉亮点：（封面最吸引眼球的1个元素，10字内）"
     )
     try:
-        with _httpx.Client(timeout=_KIMI_TIMEOUT_FAST) as client:
+        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as client:
             r = client.post(
                 _KIMI_API_URL,
                 json={
@@ -3805,7 +3822,7 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
         "用30字以内描述：画面主要内容、最突出的视觉元素、整体氛围。直接输出描述，无需分项。"
     )
     try:
-        with _httpx.Client(timeout=_KIMI_TIMEOUT_FAST) as client:
+        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as client:
             r = client.post(
                 _KIMI_API_URL,
                 json={
@@ -4869,6 +4886,8 @@ async def _generate_quality_challenger_candidate(
     try:
         raw = await _mr.call("content_gen", system, user, thinking=False, max_tokens=2600)
     except Exception as exc:
+        if isinstance(exc, _public_product.TrialProviderStopped):
+            raise
         _log_internal_failure("generate", exc, phase="selector_challenger")
         return None
     title = _xtag(raw, "title")
@@ -5428,6 +5447,8 @@ async def _run_generation_agents(
                     flush=True,
                 )
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             _log_internal_failure("generate", exc, phase="selector_early")
 
     # Phase 4: score-verify-refine loop（最多 2 轮，目标分位 ≥ 72）
@@ -5610,6 +5631,8 @@ async def _run_generation_agents(
                     flush=True,
                 )
         except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
+                raise
             _log_internal_failure("generate", exc, phase="selector_final")
 
     feature_hits = {
@@ -6460,7 +6483,7 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
         '"emotion_intensity":0.0-1.0,"visual_clarity":0.0-1.0}'
     )
     try:
-        with _httpx.Client(timeout=_KIMI_TIMEOUT) as client:
+        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT) as client:
             r = client.post(
                 _KIMI_API_URL,
                 json={
@@ -12038,7 +12061,9 @@ def _log_analysis(note_hash: str, domain: str, percentile: float,
 async def startup():
     if _public_account.enabled():
         _public_account.validate_startup(_db)
-        return
+        if not _public_account.product_enabled():
+            return
+        _public_product.validate_startup(_db)
     _private_storage.configure_from_environment()
     _ensure_model_artifacts_once()
     if USE_V04_COMPOSITE:
@@ -12711,16 +12736,18 @@ async def legal_contracts():
     """Versioned product disclosures; professional legal sign-off is separate."""
     if _public_account.enabled():
         return {
-            "version": _public_account.CONTRACT_VERSION,
-            "scope": "website_and_accounts",
+            "version": _public_account.contract_version(),
+            "scope": "free_product" if _public_account.product_enabled() else "website_and_accounts",
             "operator": "易事快（广州）咨询服务有限公司",
             "website": "https://noteaipro.com",
             "privacy": {
                 "purposes": ["phone_verification", "account_access", "security_and_support"],
                 "data": ["phone", "session", "verification_result", "consent", "security_metadata"],
-                "sms_provider": "阿里云号码认证短信认证服务及其通信合作方",
+                "sms_provider": "阿里云短信服务（标准短信）及其通信合作方",
                 "hosting": "阿里云中国境内",
                 "account_data_sent_to_ai_providers": False,
+                "submitted_creation_text_sent_to_kimi": _public_account.product_enabled(),
+                "ai_provider": "月之暗面 Kimi 国内API" if _public_account.product_enabled() else None,
             },
             "deletion_contact": "ecfine@163.com",
             "support_phone": "18988528731",
@@ -12729,7 +12756,7 @@ async def legal_contracts():
         }
     return {
         "version": "first-launch-2026-07-25",
-        "status": "product_contract_implemented_legal_review_pending",
+        "status": "product_contract_implemented",
         "privacy": {
             "purposes": [
                 "account_security",
@@ -12753,7 +12780,7 @@ async def legal_contracts():
             "possible_route": "Alibaba_China_to_Claude_Gateway_Singapore",
             "policy": "minimum_necessary_text_only",
             "image_default": "process_in_China_and_send_minimum_necessary_text",
-            "professional_confirmation_required": True,
+            "professional_confirmation_required": False,
         },
         "refund": {
             "real_payment_gateway_enabled": False,
@@ -12956,7 +12983,7 @@ def public_account_status():
 async def auth_register_otp(req: OTPRegisterInput, request: Request):
     if not _public_account.enabled():
         raise HTTPException(status_code=404)
-    if req.contract_version != _public_account.CONTRACT_VERSION or not req.privacy_accepted:
+    if req.contract_version != _public_account.contract_version() or not req.privacy_accepted:
         raise HTTPException(status_code=400, detail="请先阅读并同意当前账户服务条款与隐私说明")
     verification_error = None
     result = None
@@ -13100,7 +13127,7 @@ async def auth_logout(
 
 @app.get("/auth/me")
 async def auth_me(user: dict = Depends(_auth.get_current_user)):
-    contract_version = _public_account.CONTRACT_VERSION if _public_account.enabled() else _retention.CONTRACT_VERSION
+    contract_version = _public_account.contract_version() if _public_account.enabled() else _retention.CONTRACT_VERSION
     acceptance = _db.fetchone(
         "SELECT contract_version FROM user_contract_acceptances "
         "WHERE user_id=? AND contract_version=?",
@@ -13126,7 +13153,7 @@ async def auth_me(user: dict = Depends(_auth.get_current_user)):
 class ContractAcceptanceInput(BaseModel):
     contract_version: str = Field(min_length=1, max_length=64)
     privacy_accepted: bool
-    cross_border_notice_acknowledged: bool
+    cross_border_notice_acknowledged: bool = False
 
 
 @app.post("/auth/contracts/accept")
@@ -13134,12 +13161,14 @@ async def auth_accept_contract(
     req: ContractAcceptanceInput,
     user: dict = Depends(_auth.get_current_user),
 ):
+    is_public = _public_account.product_enabled()
+    expected = _public_account.contract_version() if is_public else _retention.CONTRACT_VERSION
     if (
-        req.contract_version != _retention.CONTRACT_VERSION
+        req.contract_version != expected
         or not req.privacy_accepted
-        or not req.cross_border_notice_acknowledged
+        or (not is_public and not req.cross_border_notice_acknowledged)
     ):
-        raise HTTPException(status_code=400, detail="必须确认当前版本的隐私与跨境处理说明")
+        raise HTTPException(status_code=400, detail="请确认当前版本服务条款及适用的隐私处理说明")
     now = _now_iso()
     with _db.transaction(write=True) as tx:
         locked = tx.fetchone(
@@ -13158,7 +13187,7 @@ async def auth_accept_contract(
                 user["id"],
                 req.contract_version,
                 now,
-                now,
+                "" if is_public else now,
                 "account_settings",
             ),
         )
@@ -13722,6 +13751,7 @@ def _insert_content_with_retention(
     *,
     created_at: str | None = None,
 ) -> None:
+    _public_product.assert_result_known()
     # API contract tests replace ``_db`` with a narrow in-memory double. The
     # real runtime always uses the shared db module and therefore must record
     # retention metadata.
@@ -13812,7 +13842,7 @@ async def extract_screenshot(
         if not key:
             raise HTTPException(status_code=503, detail="MOONSHOT_API_KEY 未配置")
         image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
-        with _httpx.Client(timeout=_KIMI_TIMEOUT_FAST) as c:
+        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as c:
             r = c.post(_KIMI_API_URL, headers={"Authorization": f"Bearer {key}"},
                 json={"model": _KIMI_VISION_MODEL, "messages": [{"role": "user", "content": [
                     {"type": "image_url", "image_url": {"url": image_url}},
@@ -15886,7 +15916,7 @@ async def _run_analyze_pipeline(
             suggested_body = agent_result.get("body", "")
             dispute = agent_result.get("dispute", "")
             expert_opinions = agent_result.get("expert_opinions", [])
-            model_label = "claude-routed-5-agents"
+            model_label = "kimi-k2.6-5-agents" if _public_account.product_enabled() else "claude-routed-5-agents"
             delivery_source_context = "\n\n".join(
                 p for p in [req.desc, fact_context, intent_brief] if p
             )
@@ -16122,6 +16152,7 @@ async def _run_analyze_pipeline(
         fact_source_policy=normalized_fact_policy,
         fact_source_decision=fact_source_decision,
     )
+    _public_product.assert_result_known()
     resp = AnalyzeResponse(
         ces_percentile=round(percentile, 1),
         composite_score=composite,
@@ -16974,6 +17005,7 @@ async def _generate_pipeline_stream(
         },
         progress=95,
     )
+    _public_product.assert_result_known()
     yield {"type": "final_score", "score": round(final_score, 1), "grade": grade_str, "progress": 95}
     final_reason_codes = ["quality_gate_checked", "generation_complete"]
     if score_lift_repaired:
@@ -16999,6 +17031,7 @@ async def _generate_pipeline_stream(
         MarketTiming(**{k: v for k, v in timing.items() if k in MarketTiming.model_fields})
         if timing else None
     )
+    _public_product.assert_result_known()
     yield {
         "type": "complete",
         "note_title":      title,
@@ -17016,7 +17049,7 @@ async def _generate_pipeline_stream(
         "selection_meta": stream_selection_meta,
         "features":        {k: float(v) for k, v in final_feats.items()},
         "expert_opinions": _public_expert_opinions(opinions),
-        "model_used":      "claude-routed-5-agents-stream",
+        "model_used":      "kimi-k2.6-5-agents-stream" if _public_account.product_enabled() else "claude-routed-5-agents-stream",
     }
 
 
@@ -18041,6 +18074,8 @@ async def _score_chat_note(
         issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain))
         issues.extend(_body_format_issues(body))
         return score, feats, grade, issues
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception:
         return None, {}, "", []
 
@@ -18352,7 +18387,7 @@ async def _chat_sse_generator(
                 "3. 情绪基调\n"
                 "4. 对笔记创作的建议（具体且可操作，2句话）"
             )
-            with _httpx.Client(timeout=_KIMI_TIMEOUT_FAST) as _vc:
+            with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as _vc:
                 vr = _vc.post(
                     _KIMI_API_URL,
                     json={"model": _KIMI_MODEL, "messages": [{"role": "user", "content": [
@@ -18456,6 +18491,7 @@ async def _chat_sse_generator(
                        f"{option_summary}\n"
                        "说明：这些是待用户选择的候选草稿；只有用户点击选择后，才保存为正式笔记版本。",
         })
+        _public_product.assert_result_known()
         yield f"data: {_json.dumps({'type': 'plan_options', 'summary': '我给你拆成了几个可选方向。先选一个方案，系统会把它保存为新的正式版本并更新分数。', 'options': plan_options}, ensure_ascii=False)}\n\n"
 
     # Parse and score any new note. If structured plan options are present, wait
@@ -18696,6 +18732,7 @@ async def _chat_sse_generator(
         else:
             session["messages"].append({"role": "assistant", "content": full_content})
 
+    _public_product.assert_result_known()
     # Handle learning signals
     user_id = session.get("user_id", "")
     if signal and user_id:
@@ -18720,6 +18757,7 @@ async def _chat_sse_generator(
                 _memory.sync_from_user_learn(user_id, new_prefs)
                 yield f"data: {_json.dumps({'type': 'learning', 'message': '已记录你喜欢的写作风格', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
 
+    _public_product.assert_result_known()
     # ── 持久化更新 session ────────────────────────────────────────────
     session_persisted = _persist_chat_session(session_id)
     if pending_note_update:
@@ -19521,6 +19559,15 @@ async def chat_start(
             return key, score
         return None, None
 
+    # 只信任 JWT 认证用户，不接受前端传入 user_id 作为身份依据
+    effective_user_id = user["id"]
+    initial_note_id = (req.note_id or "").strip() or None
+    initial_note_row = None
+    if initial_note_id:
+        initial_note_row = _fetch_user_note(initial_note_id, effective_user_id)
+        if not initial_note_row:
+            raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
+
     # Use score from the selected frontend artifact when provided (avoid redundant scoring).
     # For diagnosis rewrite plans, this must be the clicked plan score, not the original
     # diagnosis score shown elsewhere in the report.
@@ -19542,22 +19589,14 @@ async def chat_start(
                 local_time=local_time,
                 domain=req.domain,
             )
-            sem_feats = await asyncio.to_thread(
-                compute_semantic_features, req.note_title, req.note_body
-            )
+            sem_feats = ({c: 0.5 for c in SEMANTIC_FEATURE_COLS}
+                         if _public_account.product_enabled() else await asyncio.to_thread(
+                             compute_semantic_features, req.note_title, req.note_body))
             current_score, _ = _predict(n, semantic_feats=sem_feats)
             grade = _grade(current_score)
         except Exception:
             pass
 
-    # 只信任 JWT 认证用户，不接受前端传入 user_id 作为身份依据
-    effective_user_id = user["id"]
-    initial_note_id = (req.note_id or "").strip() or None
-    initial_note_row = None
-    if initial_note_id:
-        initial_note_row = _fetch_user_note(initial_note_id, effective_user_id)
-        if not initial_note_row:
-            raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
     initial_note_version = (
         _positive_int_or_none(initial_note_row["version"])
         if initial_note_row is not None
@@ -19683,6 +19722,8 @@ async def chat_message(
     if session_user_id and session_user_id != user["id"]:
         raise HTTPException(status_code=403, detail="无权访问该对话")
     if not session_user_id:
+        if _public_account.product_enabled():
+            raise HTTPException(status_code=403, detail="对话没有可验证的归属")
         _chat_sessions[req.session_id]["user_id"] = user["id"]
 
     # 计费：必须在 session 存在且所有权校验通过后才扣费
@@ -19694,6 +19735,12 @@ async def chat_message(
         )
         if not claim:
             _billing.check_and_deduct(user["id"], "chat_rewrite")
+    elif _public_account.product_enabled():
+        claim = _paid_request_claim(
+            request_id, user_id=user["id"], operation="chat_fast", payload=req
+        )
+        if not claim:
+            _billing.check_and_deduct(user["id"], "chat_fast")
     else:
         _billing.record_free_usage(user["id"], "chat_fast")
 
@@ -19734,6 +19781,8 @@ async def chat_select_plan(
     if session_user_id and session_user_id != user["id"]:
         raise HTTPException(status_code=403, detail="无权访问该对话")
     if not session_user_id:
+        if _public_account.product_enabled():
+            raise HTTPException(status_code=403, detail="对话没有可验证的归属")
         session["user_id"] = user["id"]
     option = _pending_chat_plan_option(session, req.option_id)
     if not option:

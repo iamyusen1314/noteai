@@ -7,6 +7,18 @@ from urllib.parse import urlsplit
 from starlette.responses import JSONResponse
 
 CONTRACT_VERSION = "account-access-2026-09-12"
+PRODUCT_CONTRACT_VERSION = "free-product-2026-09-12"
+
+
+def product_enabled() -> bool:
+    value = os.environ.get("NOTEAI_PUBLIC_PRODUCT", "0")
+    if value not in {"0", "1"}:
+        raise RuntimeError("invalid public product mode")
+    return value == "1"
+
+
+def contract_version() -> str:
+    return PRODUCT_CONTRACT_VERSION if product_enabled() else CONTRACT_VERSION
 ALLOWED_ROUTES = frozenset({
     ("GET", "/health/live"),
     ("GET", "/public/status"),
@@ -23,18 +35,22 @@ def enabled() -> bool:
     value = os.environ.get("NOTEAI_PUBLIC_ACCOUNT_ONLY", "0")
     if value not in {"0", "1"}:
         raise RuntimeError("invalid public account release mode")
-    return value == "1"
+    return value == "1" or product_enabled()
 
 
 def service_status() -> dict:
     from account_security import sms_available
+    import public_product
     return {
-        "release": "website_and_accounts",
+        "release": "free_product" if product_enabled() else "website_and_accounts",
         "registration_open": sms_available(),
         "payment_open": False,
-        "ai_open": False,
+        "ai_open": public_product.available(),
+        "media_open": False,
+        "free_monthly_credits": 12,
+        "fast_chat_credits": 1 if product_enabled() else 0,
         "tracking_open": False,
-        "contract_version": CONTRACT_VERSION,
+        "contract_version": contract_version(),
         "support_phone": "18988528731",
         "support_email": "ecfine@163.com",
     }
@@ -71,7 +87,11 @@ class PublicAccountBoundary:
         async def reject(status, detail):
             await JSONResponse({"detail": detail}, status_code=status)(scope, receive, send)
 
-        if (method, path) not in ALLOWED_ROUTES or scope.get("raw_path", path.encode()) != path.encode():
+        import public_product
+        allowed = (method, path) in ALLOWED_ROUTES or (
+            product_enabled() and public_product.allowed_route(method, path)
+        )
+        if not allowed or scope.get("raw_path", path.encode()) != path.encode():
             return await reject(404, "本阶段未开放此功能")
         if method == "POST":
             origins = {v for v in os.environ.get("NOTEAI_PUBLIC_ORIGINS", "").split(",") if v}
@@ -87,7 +107,7 @@ class PublicAccountBoundary:
                 if message["type"] == "http.disconnect":
                     return
                 body.extend(message.get("body", b""))
-                if len(body) > 8192:
+                if len(body) > (65536 if product_enabled() and not path.startswith("/auth/") else 8192):
                     return await reject(413, "请求过大")
                 if not message.get("more_body", False):
                     break
@@ -100,7 +120,11 @@ class PublicAccountBoundary:
                     return {"type": "http.request", "body": bytes(body), "more_body": False}
                 return await receive()
 
+            if product_enabled():
+                return await public_product.dispatch(self.app, scope, bounded_receive, send, bytes(body))
             return await self.app(scope, bounded_receive, send)
+        if product_enabled():
+            return await public_product.dispatch(self.app, scope, receive, send, b"")
         return await self.app(scope, receive, send)
 
 

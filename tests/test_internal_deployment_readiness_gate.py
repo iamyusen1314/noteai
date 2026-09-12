@@ -38,8 +38,8 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
         self.assertEqual(report["internal_deployment"]["percentage"], 100)
         self.assertTrue(report["internal_deployment"]["passed"])
         self.assertEqual(report["complete_public_launch"]["verified"], 30)
-        self.assertEqual(report["complete_public_launch"]["total"], 38)
-        self.assertEqual(report["complete_public_launch"]["percentage"], 79)
+        self.assertEqual(report["complete_public_launch"]["total"], 37)
+        self.assertEqual(report["complete_public_launch"]["percentage"], 81)
         self.assertFalse(report["complete_public_launch"]["passed"])
 
     def test_current_schema_is_verified_and_exact_risks_remain_accepted(self):
@@ -77,20 +77,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                         "account-restriction prompt is observed."
                     ),
                 },
-                {
-                    "id": "legal_provider_approval",
-                    "resume_condition": (
-                        "Any required privacy, terms, refund or cross-border document "
-                        "revisions are complete and the review package is refrozen; "
-                        "the four document categories are APPROVED; two distinct "
-                        "professional signed artifacts and bindings for legal_privacy "
-                        "and provider_commercial_and_xhs are dated no earlier than "
-                        "the applicable package freeze, bind the complete frozen "
-                        "scope, use disjoint signed/binding paths and SHA256 "
-                        "identities, and have open_condition_count 0; the CTO "
-                        "verifies each signer's professional identity and authority."
-                    ),
-                },
             ],
         )
         self.assertEqual(
@@ -99,7 +85,6 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
                 "real_payment_chain",
                 "real_xhs_trends",
                 "tracking_real_and_promotion",
-                "legal_provider_approval",
             },
         )
         self.assertNotIn("immutable_release_candidate", actionable)
@@ -3484,10 +3469,10 @@ class InternalDeploymentReadinessGateTests(unittest.TestCase):
             },
             managed["evidence"],
         )
-        self.assertEqual(
-            actionable["legal_provider_approval"]["execution_class"],
-            "professional_review",
-        )
+        self.assertNotIn("legal_provider_approval", actionable)
+        self.assertEqual(report["withdrawn"][0]["historical_status"], "blocked")
+        self.assertEqual(report["historical_complete_public_launch"]["total"], 38)
+        self.assertEqual(report["historical_complete_public_launch"]["verified"], 30)
         self.assertNotIn("dns_cutover", actionable)
 
     def test_current_role_risk_incident_is_unknown_not_accepted(self):

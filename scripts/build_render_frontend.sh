@@ -4,7 +4,7 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 
-if [ "${NOTEAI_PUBLIC_ACCOUNT_ONLY:-0}" = "1" ]; then
+if [ "${NOTEAI_PUBLIC_ACCOUNT_ONLY:-0}" = "1" ] && [ "${NOTEAI_PUBLIC_PRODUCT:-0}" != "1" ]; then
   mkdir -p "$DIST_DIR"
   cp "$ROOT_DIR/public/index.html" "$ROOT_DIR/public/site.css" "$ROOT_DIR/public/site.js" "$DIST_DIR/"
   echo "Public website bundle ready: $DIST_DIR (publish only index.html, site.css, site.js)"
@@ -25,9 +25,13 @@ const fs = require("fs");
 const value = String(process.env.NOTEAI_PUBLIC_API_BASE || "").replace(/\/$/, "");
 fs.writeFileSync(
   process.env.NOTEAI_RUNTIME_CONFIG_PATH,
-  `window.NOTEAI_API_BASE = ${JSON.stringify(value)};\n`,
+  `window.NOTEAI_API_BASE = ${JSON.stringify(value)};\nwindow.NOTEAI_PUBLIC_PRODUCT = ${process.env.NOTEAI_PUBLIC_PRODUCT === "1"};\n`,
   "utf8",
 );
 '
+
+if [ "${NOTEAI_PUBLIC_PRODUCT:-0}" = "1" ]; then
+  python3 "$ROOT_DIR/tools/build_public_product_frontend.py" "$DIST_DIR"
+fi
 
 echo "Frontend bundle ready: $DIST_DIR"

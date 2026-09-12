@@ -18,7 +18,7 @@ ENDPOINT = "https://dysmsapi.aliyuncs.com"
 BUDGET_ID = "website-accounts-20260912"
 # Conservative reservation: current single-segment price is CNY0.045.
 RESERVE_MILLI_CNY = 60
-TOTAL_MILLI_CNY = 60_000
+TOTAL_MILLI_CNY = 10_000
 DAILY_SEND_LIMIT = 100
 
 
