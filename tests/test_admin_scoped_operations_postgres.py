@@ -194,7 +194,10 @@ class AdminOperationsPostgres(unittest.TestCase):
         with patch.dict(os.environ, {"DATABASE_URL":self.owner_url}):
             dispatch = durable_ai.claim_outbox(operation_id=op, now=now+timedelta(seconds=1))
             durable_ai.mark_outbox_delivered(dispatch, now=now+timedelta(seconds=2))
-            durable_ai.claim_delivered_operation(op, lease_seconds=60, now=now+timedelta(seconds=3))
+        worker_url = self.admin_url.replace("noteai_admin_runtime:", "noteai_ai_worker:")
+        with patch.dict(os.environ, {"DATABASE_URL":worker_url}):
+            worker = durable_ai.claim_delivered_operation(op, lease_seconds=60, now=now+timedelta(seconds=3))
+            self.assertEqual(worker.operation_id, op)
         with self.assertRaises(HTTPException) as denied:
             self.task_change(op, "pause", preview)
         self.assertEqual(denied.exception.status_code, 409)

@@ -12,6 +12,28 @@ Preserve cash facts, session/role isolation, same budgets, protected paths and t
 latest actual Item34 protected state. Reuse existing build/deploy/rollback tooling,
 publish independently completed capabilities and record actual results in Handoff.
 
+Current implementation inputs: source2159d47; two existing-C offline candidates
+Admin sha256:1812f5e7003f5bb893475810b7c742bce482e03e1d63aa798f95a360c8399688,
+API sha256:31be3b88634d9838fb81fab75d35389b829e95b0ad30cd7c29b0aeb1d80c36ba.
+Backup original RDS jobt-0mqiwfhpukvq0rpwnh completed September13 00:43:27Beijing,
+restore point00:40:51. Original DMS noteai_admin is verified; service uses only
+noteai_admin_runtime. Apply only /Users/openclaw/Downloads/noteai-admin-operations-20260913/0024-admin-operations-apply.sql,
+SHA25691cec63af33200c34a344d3b1cd2884685de5eeabeaecf4fd090ed68d059cb5e.
+Single atomic DO, exact22existing ledger pins, additive0024 and exact runtime ACL;
+no0018/payment migration, Tracking action or customer adjustment. Verify applied_at
+DEFAULT before execution; lock_timeout5s, do not claim DO-local statement_timeout
+bounds the whole command. UNKNOWN means original ledger/result readback, no replay.
+After success verify ledger23/0024SHA613b86f37ea6f1c0e26b12885b8d059bf92958946b7902b30e14107282d95419,
+new columns/functions/policies/exact privileges and original Item34 state/ACL.
+Stage loopback candidates, retain exact original unit/env/proxy/static inputs, then
+update API-C and Admin only with health/auth/role checks and rollback. API model
+config opt-in is necessary for real loading. If a feature denial/model pause has
+already been activated, old API ignores it: preserve enforcement or close affected
+AI routes before old-code rollback. Keep actual Prompt/entitlement history; do not
+restore the whole DB over concurrent user/Tracking work. Restore missing canonical
+Prompt baseline through existing mechanism after original marker/history readback;
+verify all12key/version/content hashes. No generic predeploy/all-migrations command.
+
 September12 23:01 result: the owner-approved Admin password reset is VERIFIED.
 New-password login/queries/logout passed; old password401, logged-out token403,
 remaining Admin sessions0. Original sessions0/revoke0; verification1INSERT+1DELETE

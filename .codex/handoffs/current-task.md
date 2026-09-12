@@ -45,7 +45,7 @@ rollback/result persistence, Prompt/model restoration and original retry; dispat
 policy compatibility failed and is being fixed/tested before production rollout.
 Same cumulative budget, seven protected paths and Readiness30/37 unchanged.
 
-00:48 continuation: real PG16.14 with Python3.11.15/linux-amd64 now passes9
+00:43 continuation: real PG16.14 with Python3.11.15/linux-amd64 now passes9
 scoped dedicated-role tests including actual HTTP login/owner mutations/viewer and
 ordinary token rejection/logout, duplicate gift, stale writes, persisted failures,
 Prompt/model recovery, dispatcher pause and competing original-task retry. Fixed
@@ -58,6 +58,32 @@ without granting it. Independent RDS task readback confirms the ORIGINAL console
 jobt-0mqiwfhpukvq0rpwnh, September13 00:40:49Beijing, Running. No second CreateBackup
 was sent; unused API tab closed. Reconcile this original task until complete. Existing usage78.69GB/400GB free
 quota,200GB instance; no new paid service.
+
+
+Continuation: original RDS full snapshot completed at00:43:27Beijing, start00:40:50, restore point00:40:51 (same taskt-0mqiwfhpukvq0rpwnh). No second backup/DBS role. Candidate2159d47 archive1034235bytes SHA256c6fcc4c182b96cc8c4982a3e9de89bdeec984a227896d1020d6da7cb3cb76f1b uploaded once to the existing private bucket, keynoteai-private/admin-public/20260913/noteai-admin-operations-2159d47.tar.gz. Existing C offline network=none builds completed: Admin1812f5e7003f5bb893475810b7c742bce482e03e1d63aa798f95a360c8399688; API31be3b88634d9838fb81fab75d35389b829e95b0ad30cd7c29b0aeb1d80c36ba. BothPython3.11.15/linuxamd64, original containers unchanged, no provider/SMS/business write. API-C model-config flag must also be enabled; template corrected (source images remain2159d47).
+
+
+01:07:32.170185+08 independent DMS readback confirms0024 COMMITTED once (26ms),
+ledger23/expected613b86f hash,0018absent, admin_operations0. Four additive columns,
+three lock/guard functions and exact RLS/ACL are part of the atomic original SQL.
+Privilege readback: Admin tier UPDATE=true, paid_rmb INSERT=false, password UPDATE=false,
+operation DELETE=false; dispatcher pause SELECT=true; app attempts SELECT=false.
+Generation2 remains checking_7d with original T0/24h/nextcheck; no attempt or lease.
+Before execution production applied_at TIMESTAMPTZ NOT NULL DEFAULT now() was read;
+DMS text sha exactly91cec63; isolated PG16 single DO22→23 passed. Fixture setup
+failures (salt/canonical note/policy duplicate) were local test-fixture issues and
+retained; no production replay. Existing backup is complete as recorded above.
+
+C candidate first check failed KeyError before login because probe required an
+ADMIN_USERNAME env that production legitimately omits (defaultnoteai_admin).
+Readback confirms password present, dedicated Admin role; no credentials printed.
+Candidate stopped; original services unchanged. Corrected existing probe uses the
+same application default; current candidate-result.json preserves previous_failure.
+Corrected candidate run is IN_PROGRESS: read original result, do not launch again.
+Existing API role actual grants prompt INSERT/UPDATE and settings INSERT, so use
+original prompt_manager.apply_versioned_baseline through that already lawful role
+(no new owner service or permission). Original prompts/history/marker=0/0/NULL.
+Still do not seed until original candidate result reconciled. No baseline mutation yet.
 
 
 ## September12 23:01 Beijing — Admin password recovery completed
