@@ -1,5 +1,33 @@
 # NoteAI Production Deployment Execution Plan
 
+## Current scoped static publication on API-C
+
+Candidate website checkpointdaac49f: public/index.html,site.css,site.js only.
+Use existingC/EIP39.108.66.93, install distro-signedNginx and officialCertbot in a
+separatevenv; obtain no-fee ACME certificate fornoteaipro.com/www.noteaipro.com.
+Readbackfound three existingpaidcertificates all.cn; leave them unchanged.
+Nginx configdeploy/production/public-website.nginx.conf serves onlythreefiles and
+closedaccountstatus, rejects otherpaths, neverproxiescurrentAPI/Admin. HTTPS443 and
+HTTP80(redirect+ACME) only; add a website security group boundonlyC, preserve shared
+C/F security group and allF units. DNS addexact@/www A records toexistingC IP with
+TTL600; prior.com had0records. No ALB/new recurring resource or database mutation.
+EIP actualbilling readback:1Mbps,postpaid,CDT BGP(multiline) bytraffic. Official
+https://help.aliyun.com/zh/cdt/internet-data-transfers/ shows China mainland first
+tier0.80CNY/GB; sharedfree20GB/month is not assumed available. Web10GiB quota
+reservesRMB22 (including margin), installationRMB5, SMS allocation atmostRMB60,
+remainingRMB13 held for other uncertainty. No purchase/expansion/long-term resource.
+public_website_budget.py uses onlyC80/443 output nft quota,64MiB prepaid blocks,
+atomic durable reservation before kernel grant; lost blocks after restart are charged
+infull and never refunded. Dedicatednginx prestart +30s budgettimer keep hardcap
+independentofSMS. Do notflushruleset or touchDocker/SSH/F.
+Before publicexposure, validateNginx/config/staticfile hashes,
+then perform DNS/TLS/publicpositive and deniedroute checks. Bound installation/
+certificate/transfer toexistingresources; reserveRMB5 for uncertain small setup
+usage against website100 pendingactualreadback; noSMScharged, no XHSbudgetreset.
+Rollback: stoponlynewNginx, withdrawonlynewwebsiteSGbinding andexactnew@/wwwrecords;
+keepcandidate/certprivatefiles for recovery. Preserve oldAPI/Admin units unchanged.
+No fullbackendexposure and no SMSactivation during this static phase.
+
 ## September12 website implementation — .com binding and public examples
 
 Owner selected noteaipro.com; public support phone18988528731 and ecfine@163.com.

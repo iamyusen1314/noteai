@@ -1,0 +1,9 @@
+[Unit]
+Description=Maintain prepaid NoteAI website egress quota on API-C
+Before=nginx.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/libexec/noteai-public-website-budget.py
+User=root
+UMask=0077

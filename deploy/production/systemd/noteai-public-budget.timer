@@ -1,0 +1,10 @@
+[Unit]
+Description=Refill NoteAI website quota only from its remaining prepaid budget
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=30s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

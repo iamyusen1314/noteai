@@ -1,5 +1,40 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 static publication in progress — recovery state
+
+Website sourcecheckpointdaac49f; productionapplication notyetstarted. Installed
+Nginx1.30.4 fromAlibabaLinux signedrepo and Certbot5.8.0 in/opt/noteai-certbot.
+Initialpip usedhostdefaultHTTPAliyunmirror; replacedsameversiondependencies from
+explicitHTTPSPyPI withno-cache/force-reinstall beforeanycertificateuse. NoSecretsused.
+Staticbundle/hostfiles staged at/var/lib/noteai/public-website-daac49f, checksummed.
+
+Actualcloudmutations nowcompleted: newSGsg-wz9hqmqvl1e64c6zkgum
+(noteai-public-website-c), onlypublicTCP80/443, onlymemberAPI-C
+ i-wz9j36od3nf2b1uw7bvg. SharedC/F SGunchanged. ExactA records@ andwww for
+noteaipro.com nowpoint39.108.66.93, TTL600, enabled. NoALB/purchase/newfixedfees.
+
+Budgethelperpublic_website_budget.py +nginxprestart +budgettimer areprepared,
+notyetinstalled/initialized. Limit10GiB,64MiB durableprepaidblocks; webpageallocation
+RMB22 inclpacket/segmentationmargin, setupRMB5 reserved, SMSatmostRMB60, RMB13
+unassignedmargin. These are reservations, notactualsettledbill. OfficialCDT first
+ChinaBGP tier0.80/GB; sharedfreedataallowance notassumed. CexistingEIP1Mbpspostpaid.
+
+Sixofflinebudgettestspass; realC isolatedunshare/veth test passed: boundedweb3packets,
+exhaustedHTTPS0, SSHcontrol10, nontargetsource10. Initialtestpeerforwardloop counted
+238nontargetpackets; disabledforwarding ONLYinsidefreshisolatednamespace andretook
+samecheck. Productionnetworkstackwasnotchanged. Independentreadonlyreviewcompleted.
+
+WorkbenchAXtypeText removesnewlines: themultilineinstallpastewasNOTexecuted and
+leftshellawaitingheredoc. Ctrl-CviaAX/Playwright hadnoeffect; closedonlythatpending
+terminaltab andopenednewShellusingexistingCconnection (no newcredentials). Do NOT
+claimNginxstarted orreplay blindly: freshshellmustfirstcheckbudgetfile/currentlink
+andservice. Usebase64-verifiedsingleline script transfer from
+/private/tmp/noteai-public-install-transfer.txt (actualreadableinstallscript at
+/private/tmp/noteai-public-install.sh) afterconfirmingneitherexists. Candidatehost
+install-static.sh is notyetcreated. Thenverifyhashes,Nginx-t,andHTTP; issueACME cert
+andapplyexistingfullNginxconfig. DNSisalreadychanged; do notduplicate records.
+Item34F/image/T0/automationandDBunchanged; SMS0calls; Readiness30/38.
+
 ## September12 website implementation — .com binding and public examples
 
 Owner selected noteaipro.com; public support phone18988528731 and ecfine@163.com.
