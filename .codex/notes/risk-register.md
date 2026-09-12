@@ -1,5 +1,13 @@
 # Risk Register
 
+September13 01:57: Admin5c8707c is live; legacywallet independence and temporary
+session-failure recovery verified. Original5canaryoperations reconciled: wallet0,
+monthlyused6, modeltestrevision3 restored;productionmodel0,oldtestwallet900 unchanged.
+No providercalls. Existingsealedtasks have no allowed actions; ordinary lifecycle
+verified under real isolatedPG16 roles. Admin process visibility of F/log sources
+remains unobserved; no invalidCookie inference. Separate598460a hostcleanup remains
+READY_TO_APPLY pending original3d plan readback, not a reason to undo Admin delivery.
+
 September13 01:43: scoped Admin/API2159d47 and0024 are live; old blanket readonly
 restrictions below are historical. Prompt12baseline restored; first live gift+1
 replay check passed and UI restored0 (finalAPI readback pending). Modeltest only,

@@ -22,6 +22,66 @@ original UI, ledger/config/task mechanisms and existing deploy/recovery tooling;
 no new audit platform, acceptance layers or Readiness credit for local preparation.
 Implementation continues fromef06f8b with only seven protected untracked paths.
 
+## September13 01:57 Beijing — scoped Admin delivered and canaries restored
+
+Live Admin source5c8707c6fcf7a6058fe137f0a4852336dc50365c,
+image1049d7d406868fa57fdc75ab71657b72ddfc9748ba3e32d941dbd174c6d9b38e,
+Python3.11.15/linuxamd64. Original Admin UI at https://admin.noteaipro.com supports
+owner entitlements, Prompt draft/publication, current Kimi route config and ordinary
+durable task controls. API remains2159d47/image31be3b88; public frontend3f47200 and
+same HTML692ab2a4. The Admin-only successor preserved API containerID/StartedAt,
+public symlink, F and permissions. Existing browser owner session survived reload.
+New compiled Admin JS sha256c4049dfb1bde8890bdf23ba686efdaa9065ff1352b4447642cf91f9b9aa53b7a.
+
+Private package /private/tmp/noteai-admin-fix-5c8707c.tar.gz,77747bytes,
+SHA256954bd9ded71e8c1697a27a80d9883c574a0d00e40daa336f3f5a3dcf20746cb4,
+contains only3changedsource+3compiledweb+existing-style manifest. Uploaded once to
+existing private bucket/keynoteai-private/admin-public/20260913/ with that filename.
+Original C stage /var/lib/noteai/admin-operations-5c8707c: deploy.py9016bytes/SHA
+606fab05f471027bf41db2ebfb1c8f11fcbec7daab784f0952143e24c0734bd7;
+deploy-result.json DEPLOYED at01:55:36.731182Beijing. Candidate and live auth/query/
+legacy-wallet-preview succeeded; each precise verifier session revoked. Do not
+repeat either successful deployment. BeforeAdminunit/proxy and priorweb2159d47
+remain for Admin-only rollback; no DB rollback or API/F replacement is needed.
+
+Independent01:57:03readback of existing C stage2159d47/operations-canary-final.json:
+all5original UI operations succeeded. Gift f99e4402→wallet1; identical request
+replay=true/exactly1gift row; restore42482235→wallet0. Published API reports wallet0,
+used6/remaining6, old owner-test wallet900 and subscriptioncount0 unchanged.
+Test model draft1db75ace revision1; activation7d9ef10f revision2 actually resolved
+512tokens in published API; restorea7c620db revision3 resolvesoriginal4096 again.
+Productionrevision0 throughout. Actual full UUIDs/times are in the original result,
+not a new receipt. Two noncash ledger rows + five Adminoperation rows + one test
+config row retained honestly; no paid order, model/SMS/XHS request or Task mutation.
+Prompt baseline12 already_current remains correct, all formalversions/text unchanged
+by canaries. The earlier wallet preview409 was non-mutating, not a failed adjustment.
+
+Real browser verifies Prompt12catalog andchat formalDBsource/cache10sec, template
+preview distinct from private request-time material; owner save controls enabled.
+Crawler showsactualtracked_notes1,24h1/later0/generation2checking_7d and nextbusiness
+September14 21:34BJT, separate from realJuly25/26 industry suspended/expired evidence.
+Optional downloader is not required by fixed HTTP Tracking; Cookie not read does not
+mean invalid; unobserved process/log sources remainunknown. No refresh provider call.
+Tasks list original sealed successes; their detail hasNOallowed actions. New ordinary
+pause/resume/schedule/eligible retry and ordinary-user/viewer rejection were verified
+on actual isolatedPG16 roles/HTTP/dispatcher/worker, not by replaying production tasks.
+No eligible ordinary production task was dispatched for this verification. Payment,
+training/globalcrawler/privilegedidentity changes remainoutside these controls;
+legacywallet-only accounts need normal subscription initialization before membership/
+feature edits, but their independent gift wallet now works with existingrole.
+
+Verification:10realPG16role tests,8focusedPython3.11tests,2strictCSPbrowsercases
+includingnetwork/503/badJSONreload retention+403clear, original64broaderchecks earlier.
+Live HTTPS frontend remains originalregisteredfreeproduct; no SMS/resampledAI needed.
+Readiness30/37 unchanged; noGitpush, sevenprotectedpaths untouched. Website budget
+notreset: existingSMS0.12reserve/model44.03of50reserve, remainingmodel5.97; no new
+provider spend. Existingresource build/very small private storage incremental charges
+awaitbilling and are NOT asserted0. No newrecurringresource/permission/subscription.
+
+Next independent safety work: verify original3d task's handling of existing host-only
+cleanup fix598460a (stillREADY_TO_APPLY). CurrentAdmindelivery is complete; this
+separate Item34 recovery must retain frozenimage/T0/uniqueentry and avoid sampling.
+
 ## September13 01:43 Beijing — Admin operations DEPLOYED; live canaries continue
 
 Original deploy-result.json is DEPLOYED at01:22:42.650701Beijing. API/Admin source

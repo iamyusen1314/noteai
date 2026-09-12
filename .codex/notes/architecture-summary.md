@@ -3,7 +3,7 @@
 Last updated: 2026-09-12
 
 Current public product uses original frontend3f47200 and API2159d47 on C. Original
-Admin2159d47 is live at https://admin.noteaipro.com using noteai_admin_runtime and
+Admin5c8707c is live at https://admin.noteaipro.com using noteai_admin_runtime and
 scoped owner entitlements, Prompt draft/publication, model config and ordinary task
 operations.0024 minimum ACL/schema is applied. Twelve original Prompt baselines are
 now in the real runtime DB. API-C opts into dynamic config; test config never enters
