@@ -2,6 +2,26 @@
 
 ## September12 account-only candidate and SMS deployment inputs
 
+Built and normal-entrypoint verified candidate: sourcebcaf587bf238f761c30613c81ce936cf47bb5fe6,
+noteai-local/public-account:bcaf587, local image/indexc95957ca...da4bc5c6 (unpublished).
+Recovery package/private/tmp/noteai-public-account-bcaf587-linux-amd64.docker.tar.gz,
+378391824bytes, SHA256660837bb070e830a6e518cb878a9106e1f51e5b73cd9ff0fed63e9947a8c8dea.
+Default entrypoint, UID999/read-only/Python3.11.15/amd64 and Docker health passed
+against isolatedPG16; allowed routes/status and business denial checked. Full
+runtimesource staysbcaf587 across subsequent document-only checkpoints.
+ExistingC nginx -t checked the candidate without activation. Website three-file
+artifact also nowbcaf587; account API still not deployed and realSMS0.
+
+Shared-resource check before live account rollout: current validator
+tools/internal_deployment_readiness_gate.py:4745–4787 treats auxiliary accounting
+as task-scoped; generation2 auth must remain[]. Its six core tables and8distinct
+rows at5493–5541 are not a whole-DB write ban. Record new website0021/auth changes
+under this existing website scope; do not alter the frozen Item34 ledger or claim
+global zero activity. RDS/noteai_app and historically C/F RAM role are shared.
+Reread actual role association/effective policies/F egress before the IP-restricted
+SendSms attachment, plus currentC resource headroom and DB connection/lock limits.
+Different hosts or tables alone do not establish complete isolation.
+
 Public website is already live; account rollout is separate. Use standardDysms,
 not PNVS gift templates. Actual platform hard caps100/day,1000/month; automatic
 package repurchaseOFF. No SMS sent. Qualification form requires owner identity
@@ -12,6 +32,16 @@ Reserve0.06yuan/admission with a fixed60yuan cumulative application budget and
 100 rolling24h limit. Unknown/failed reservations remain charged; no retry/refund.
 Platform hard-stop reference:
 https://help.aliyun.com/zh/sms/user-guide/configure-alerting-for-messages
+
+Prepared application content (not submitted/approved): self-use signature易事快,
+derived from 易事快（广州）咨询服务有限公司; template
+“您的验证码为${code}，10分钟内有效。请勿向他人泄露。” for user-initiated phone
+register/login only. With the chosen sign and six-digit code this is34characters;
+read back actual approved text/sign/segment rule before setting SINGLE_SEGMENT=1.
+User-facing examples are original fictional teaching material dated2026-09-12,
+not production Evidence. WeChat Native's actual additional review request has not
+been provided/read; use the real public URL and content, do not invent a review-only
+page or claim examples ensure approval.
 
 Candidate build uses deploy/production/Dockerfile.public-account and existing
 linux/amd64 Python3.11.15 API base ID
@@ -46,8 +76,12 @@ consented private test. Retain original challenge/delivery and monotone reservat
 Use existingC noteai-api.service with the prepared account-only drop-in; back up
 its exact current unit/drop-ins/image and Nginx configuration first. Derive a new
 root0600 /etc/noteai/public-account.env host-side containing only existing DATABASE_URL,
-approved origins, actual SMS sign/template/role and confirmed cap/segment inputs;
-no AI/payment/XHS credentials. Do not run the all-role secret distribution pipeline.
+approved origins, NOTEAI_OTP_MODE (disabled until the consented private test,
+then aliyun_sms), actual SMS sign/template/role and confirmed cap/segment inputs;
+no AI/payment/XHS credentials. Privately check DSN options: embedded libpq options
+take precedence over PGOPTIONS. Apply the approved account-only readonly=off and
+bounded timeouts to this dedicated connection; report only safe option checks,
+never the DSN. Do not run the all-role secret distribution pipeline.
 Private loopback8000 only, nonroot/read-only container, bounded CPU/memory/logs,
 no model or scheduler startup. Validate /health/live, status, auth rejection and
 unopened business routes before including public-account.locations.conf in HTTPS;

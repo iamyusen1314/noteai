@@ -1,6 +1,66 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September12 11:10 Beijing — SMS implementation and account candidate
+## September12 11:13 Beijing — runnable account image and updated public artifact
+
+Sourcecheckpointbcaf587bf238f761c30613c81ce936cf47bb5fe6 is saved, not pushed.
+Built noteai-local/public-account:bcaf587 using the verified existing API base,
+network=none and a2.77MB committed allowlisted context (no .env/protected files).
+Local image/index ID c95957ca534f187bfab39bc1e7745eeae2b6e12aed4228f279d5cfe2da4bc5c6
+is NOT a published registry digest. Default entrypoint/CMD actually booted in
+isolatedPG16 with production account mode, UID999, read-only root, bounded resources,
+no host ports or credentials; Docker health passed, Python3.11.15 linux/amd64.
+/health/live,/public/status,/legal/contracts200; unauthenticated/auth/me401;
+disabledSMS request503; /billing/tiers,/notes/track-url,/admin,/docs404, all no-store.
+The model/private-storage/scheduler startup branch was not entered.
+
+Recoverable single-image package:
+/private/tmp/noteai-public-account-bcaf587-linux-amd64.docker.tar.gz
+bytes378391824; SHA256660837bb070e830a6e518cb878a9106e1f51e5b73cd9ff0fed63e9947a8c8dea.
+Archive manifest/config checked: one exact tag, truebcaf587 source, amd64/Linux,
+normal entrypoint. No production image upload/load/account rollout occurred.
+
+Public privacy copy now names actual Aliyun standardSMS. ExistingC served only
+the newbcaf587 three-file directory by atomic symlink; prior daac49f is preserved.
+Both public domains return200 and exact hashes:
+index dd465ca304ef2e70296ae779f9fc15478dbafda113e3bfe423bacfbbe463a19a;
+CSS 6c71b8f7da799b20011c0a83deda85d71dea26573015eec499cc5773a6207487;
+JS 8cb3efdff712ec86eb1c5c706dfbbaf278232ea418d426b69e95101284c5e017.
+Real public browser freshly loaded the updated privacy, dated example and ICP.
+Website account status remains closed. No API/DB/SMS/Tracking side effect.
+
+API-C nginx -t passed the account candidate (benign existing types_hash warning).
+The candidate lives in/var/lib/noteai/public-account-bcaf587/nginx-account-candidate.conf;
+it was only syntax-tested. Active nginx.conf SHA8813cf27...ea48fd unchanged.
+Previous-web-link.txt in that directory preserves the static rollback target.
+Two independent read-only agents reviewed public scope and deployment boundaries;
+fixed privacy provider wording and documented explicit OTP mode plus DSN option
+precedence. RAM role page still loading after one reload, not a proven denial.
+Owner action remains the existing SMS qualification form; do not request ACR secrets.
+Keep preparing only concrete necessary inputs; no mock SMS or premature public auth.
+Readiness30/38 and Item34generation2 remain unchanged.
+
+Final shared-resource review: internal_deployment_readiness_gate.py:4745–4787
+defines scoped auxiliary disclosure, not a whole-DB audit; generation2 authentication
+must remain[] and no test-account setup may be added. Lines5493–5541 bind6coretables,
+1/2/1/1/2/1=8distinct rows. Website0021/auth writes belong to this separate existing
+authorization and must stay truthful in its records, never be relabelled as Item34
+auxiliary or hidden from global accounting. No inherent count conflict is established.
+RDS/noteai_app are shared; historicalC/F RAM role names are also the same. Before
+SendSms attach, reread effective role bindings/policies and actualF egress so the
+singleIP39.108.66.93 condition cannot expandF access. Do not infer permission or
+resource isolation from different instance names. Account rollout also needs
+actualC memory/DB lock/connection checks and backed-up0021; none applied this turn.
+
+Independent implementation/preparation is complete for the current external state.
+Only the owner can complete the qualification identity/phone checks; signature/
+template approval, minimal policy binding, backed-up auth rollout and consented
+real end-to-end testing follow without asking for the same engineering authority.
+No further synthetic work or repeated loading-page polling is useful now. Preserve
+the original Item34 task; do not create another wakeup or sample early. Local
+disposable account/PG test containers are stopped after checks; image/tar/source
+and the existing public website remain available. No prodaccount LIVE claim.
+
+## September12 — SMS implementation and account candidate
 
 The public website remains live as recorded below. Standard Aliyun SMS (Dysms)
 was activated within the existing delivery authorization; actual saved platform

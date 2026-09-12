@@ -26,6 +26,17 @@
 - Deletion mailto requires the user to send the request; it does not mutate Tracking
   or claim instant deletion. Candidate account deployment must retain rollback,
   actual inherited ACL checks and honest concurrent auth-write accounting.
+- bcaf587 account image now passed normal-entrypoint/UID999/read-only/PG16 health
+  and allowed/denied route checks; recoverable tar exists locally, unpublished.
+  ActualC Nginx candidate syntax passed without activation. SMS service mode must
+  explicitly become aliyun_sms for the approved private test; DSN-embedded options
+  override PGOPTIONS and need safe private validation. Public privacy/provider name
+  now matches standardSMS; website alone is live, not phone registration.
+- Item34 gen2's6table/8row rule is task-scoped, not a whole-DB ban; its auth auxiliary
+  must stayempty. Keep normal website auth/migration writes truthful under their
+  existing authorization. Shared RDS/noteai_app and historical sharedC/F RAM role
+  require actual effective-policy/F-egress/resource checks before auth rollout.
+  No SMS policy was attached and no frozen Tracking permission was changed.
 
 ## September12 — website review readiness
 
