@@ -1,4 +1,5 @@
 import base64
+import asyncio
 import importlib
 import json
 import os
@@ -596,6 +597,20 @@ class PaymentContractTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(payment.finance_summary(since="2000-01-01"),
                          {"received_fen": 0, "refunded_fen": 0, "net_fen": 0, "unmatched_fen": 1300})
+
+    def test_admin_cash_breakdowns_exclude_test_events_consistently(self):
+        import admin_server
+        self.now = datetime.now(timezone.utc)
+        self.create_user()
+        _order, row = self.create_order()
+        self.process(self.event(row))
+        summary = asyncio.run(admin_server.admin_revenue(days=30, admin={"username": "synthetic"}))
+        self.assertEqual(summary["subscription_net_cash"], 0)
+        self.assertEqual(summary["credit_package_net_cash"], 0)
+        self.assertEqual(summary["daily_cash"], [])
+        overview = asyncio.run(admin_server.admin_overview(admin={"username": "synthetic"}))
+        self.assertEqual(overview["finance"]["sub_revenue"], 0)
+        self.assertEqual(overview["finance"]["credits_revenue"], 0)
 
     def test_amount_mismatch_records_cash_truth_but_no_entitlement(self):
         self.create_user()

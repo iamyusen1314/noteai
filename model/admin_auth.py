@@ -35,8 +35,8 @@ def get_admin_credentials() -> tuple[str, str]:
 def admin_login(username: str, password: str) -> str:
     """验证管理员凭据，返回 admin token。"""
     admin_user, admin_pass = get_admin_credentials()
-    if not (secrets.compare_digest(username, admin_user) and
-            secrets.compare_digest(password, admin_pass)):
+    if not (secrets.compare_digest(username.encode('utf-8'), admin_user.encode('utf-8')) and
+            secrets.compare_digest(password.encode('utf-8'), admin_pass.encode('utf-8'))):
         raise HTTPException(status_code=401, detail="管理员账号或密码错误")
     token = "admin_" + secrets.token_urlsafe(32)
     created_at = time.time()

@@ -1,5 +1,15 @@
 # Risk Register
 
+September12 evening: owner authorizes original Admin publication; earlier blanket
+Admin bans below are historical. Dedicated origin/admin role and real session
+revocation must protect normal-user separation. Fix missing login throttle/input
+bounds and TEST/live cash inconsistency before opening. No credential reset,
+balance/plan/status edits or payment/task activation. Owner will handle Alipay
+supplement/upload; original wording remains unverified, not a deployment dependency.
+Genuine screenshots stay private and do not imply paid activity or approval.
+Website budget/model reservation unchanged (44.03/50CNY); reuse the existing report.
+Generation2 remains bound to F and its original schedule.
+
 September12 17:43: real OTP registration, text diagnosis,6-credit deduction, logout and OTP return-login to the same account/report all completed. PNVS second send is accepted/OK after documented nested RequestId support; first UNKNOWN retained separately from its confirmed delivery receipt. Currentweb3f47200/API265481b; static free-tier media promise corrected and live-checked. Provider costs remain bounded: SMSreserved120milli; modelreserved44030/50000milli (usage-estimated0.3113CNY is notinvoice), so only5.97CNY conservative capacity remains. Do not promise another complete multi-stage run or silently reset reservations; capacity/accounting precision is a concrete follow-up limitation. Payment, media, publicTracking andAdmin stayclosed. No in-flight operation and noReadinessincrement.
 
 September12 17:30: PNVS is now deployed on C with SourceIp-restricted SendSmsVerifyCode on the existing shared role. 0023 applied atomically; budget10000/60/enabled1. The single SMS has a matching official successful delivery receipt and owner completed genuine OTP registration/login, receiving12 original free credits. Original adapter result remains UNKNOWN (missing retained RequestId), not rewritten; raw historical response absent, specific parsing cause unproven. Public payment/Admin/Tracking denials and exact deployed web hash verified on both domains. A single real text diagnosis is in progress; full free-result/return-login/logout acceptance not yet claimed. See Handoff top for recovery and fixed artifacts. Older wait-for-standard-SMS qualification statements below are historical.

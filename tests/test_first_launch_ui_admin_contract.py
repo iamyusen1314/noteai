@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+from datetime import datetime, timezone, timedelta
+import httpx
 
 from fastapi import BackgroundTasks, HTTPException
 
@@ -57,6 +59,37 @@ class FirstLaunchUiAdminContractTests(unittest.IsolatedAsyncioTestCase):
         )
         admin_auth.admin_logout(token)
         self.assertIsNone(admin_auth._verify_admin_token(token))
+
+    async def test_public_admin_login_validation_and_session_boundary(self):
+        transport = httpx.ASGITransport(app=admin_server.admin_app)
+        with mock.patch.dict(os.environ, {"ADMIN_USERNAME": "contract-admin", "ADMIN_PASSWORD": "synthetic-pass"}):
+            async with httpx.AsyncClient(transport=transport, base_url="http://admin.test") as client:
+                invalid = await client.post("/admin/login", json={"username": "错误用户", "password": "非ASCII密码"})
+                self.assertEqual(invalid.status_code, 401)
+                secret_sentinel = "DO_NOT_ECHO_" * 100
+                invalid = await client.post("/admin/login", json={"username": "contract-admin", "password": secret_sentinel})
+                self.assertEqual(invalid.status_code, 422)
+                self.assertNotIn("DO_NOT_ECHO", invalid.text)
+                self.assertEqual((await client.get("/admin/users")).status_code, 403)
+                self.assertEqual((await client.get("/admin/me", headers={"Authorization": "Bearer user_synthetic"})).status_code, 403)
+                login = await client.post("/admin/login", json={"username": "contract-admin", "password": "synthetic-pass"})
+                self.assertEqual(login.status_code, 200)
+                headers = {"Authorization": "Bearer " + login.json()["token"]}
+                self.assertEqual((await client.get("/admin/me", headers=headers)).status_code, 200)
+                self.assertTrue((await client.post("/admin/logout", headers=headers)).json()["ok"])
+                self.assertEqual((await client.get("/admin/me", headers=headers)).status_code, 403)
+
+    def test_admin_quota_describes_persisted_free_period_without_writes(self):
+        now = datetime.now(timezone.utc)
+        sub = {"tier": "free", "used_monthly_credits": 6,
+               "expires_at": "2099-01-01T00:00:00+00:00",
+               "period_start": now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()}
+        with mock.patch.object(db, "execute", side_effect=AssertionError("no writes")), mock.patch.object(admin_server._billing, "get_quota_status", side_effect=AssertionError("must not renew")):
+            quota = admin_server._admin_quota_snapshot(sub, 0)
+            self.assertEqual((quota["monthly_limit"], quota["monthly_used"], quota["monthly_remaining"], quota["wallet_balance"]), (12, 6, 6, 0))
+            sub["period_start"] = (now - timedelta(days=62)).isoformat()
+            self.assertIsNone(admin_server._admin_quota_snapshot(sub, 0)["monthly_remaining"])
+            self.assertIsNone(admin_server._admin_quota_snapshot(None, 0)["monthly_remaining"])
 
     def test_production_capabilities_and_cors_fail_closed(self):
         with mock.patch.dict(

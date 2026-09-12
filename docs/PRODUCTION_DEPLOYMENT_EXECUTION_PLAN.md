@@ -1,5 +1,26 @@
 # NoteAI Production Deployment Execution Plan
 
+## 2026-09-12 evening — authorized original Admin publication
+
+Publish the existing Admin at a dedicated HTTPS origin on API-C; reuse its owner
+identity and dedicated role, preserving original navigation and real data. Scope:
+login/logout, users/details, usage, plans/entitlements and truthful operating
+overview. First read actual image/unit/ACL; fix bounded login/proxy/UI/query gaps;
+test offline, retain old unit/image/Nginx, stage on loopback and roll out only Admin
+plus exact DNS/TLS/proxy routes. Read back health, authenticated queries, ordinary
+user/anonymous denials and revoked-session denial. No public API/image change,
+payment activation, user balance/plan/status changes or task switches are included.
+Normal auth session writes are real writes; do not hide them from shared DB counts.
+Use existing website cumulative100CNY budget, no new recurring resources/provider
+test run. Generation2 T0, F artifact and unique schedule remain unchanged.
+
+Capture real foreground/background pages privately, reusing the consented free
+report and identifying it as self-test/free. No fabricated cash/user activity or
+unredacted private evidence in Git/public storage. Owner will handle Alipay
+supplement/upload and no longer requires retrieving its original wording; do not
+claim a confirmed platform-specific screenshot checklist. Details/results and
+remaining gaps continue in the existing Handoff, not a new receipt framework.
+
 2026-09-12 17:43实际完成：号码认证PNVS替代标准SMS，原网站前端3f47200/API265481b；两条真实短信、原账户验证码注册、真实Kimi文字报告、12→6积分、退出、再次登录和本人报告读回已走通。新登录发送accepted/OK，旧UNKNOWN不改写。SMS累计0.12元预留，模型44.03元保守预留/17个HTTP200；用量成本估计不是最终账单，剩余保守模型容量5.97元，不自动补预算。当前无操作在途，Readiness终态数不变。准确产物、原结果与回滚见Handoff17:43/17:41顶部。
 
 当前执行更新（2026-09-12 17:30）：原前端/API745d7e8已部署，0023与C来源限定PNVS权限已完成，短信预算固定10000milli/已预留60/启用1。唯一短信控制台回执成功且owner原码注册/登录成功，账户12积分；原适配器UNKNOWN保留，不补发、不回填。一次免费文字诊断在途，仅读回原结果；剩余真实再次登录/退出与完整报告/扣额核验继续执行。恢复路径、精确产物/SQL/hash/requestId及失败恢复详见现有Handoff顶部17:30节，避免重复维护多套证据。Item34 gen2不变，其他范围未扩大，费用计入原累计100元。

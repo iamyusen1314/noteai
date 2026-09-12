@@ -33,7 +33,8 @@ from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field
 
 # 共享模块
 import db
@@ -202,6 +203,12 @@ admin_app = FastAPI(
     version="1.0.0",
 )
 
+
+@admin_app.exception_handler(RequestValidationError)
+async def admin_invalid_request(_request, _exc):
+    # Pydantic error inputs may contain a login password; never echo them.
+    return JSONResponse(status_code=422, content={"detail": "请求参数无效"})
+
 admin_app.add_middleware(
     CORSMiddleware,
     allow_origins=_admin_cors_origins(),
@@ -229,8 +236,8 @@ if (_STATIC_DIR / "admin.html").exists():
 # ══════════════════════════════════════════════════════════════════════════
 
 class AdminLoginInput(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=1, max_length=1024)
 
 @admin_app.post("/admin/login")
 async def admin_login(req: AdminLoginInput):
@@ -293,7 +300,8 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
         "THEN l.amount_fen ELSE 0 END),0) AS credit_fen "
         "FROM payment_cash_ledger l "
         "JOIN payment_orders o ON o.id=l.order_id "
-        "WHERE l.recorded_at>=?",
+        "JOIN payment_events e ON e.id=l.source_event_id "
+        "WHERE l.recorded_at>=? AND e.prod_mode=1",
         (month_start,),
     )
     sub_revenue = round(int(by_kind["subscription_fen"] or 0) / 100, 2)
@@ -410,6 +418,8 @@ async def admin_users(
     admin: dict = Depends(_aauth.get_admin_user)
 ):
     """用户列表（分页+搜索+套餐筛选）。"""
+    if not 1 <= page <= 100000 or not 1 <= page_size <= 100 or len(search) > 128:
+        raise HTTPException(status_code=422, detail="查询范围无效")
     offset = (page - 1) * page_size
     where_clauses, params = [], []
 
@@ -481,6 +491,37 @@ def _mask_email_admin(email: str) -> str:
     return f"{local[:1]}***@{domain}"
 
 
+def _admin_quota_snapshot(sub: Optional[dict], wallet: float) -> dict:
+    """Describe persisted entitlements without creating or renewing a subscription."""
+    stored = dict(sub) if sub else {}
+    tier = stored.get("tier", "free")
+    rule = _billing.TIERS.get(tier)
+    limit = float(rule.get("monthly_credits", 0)) if rule else None
+    used = float(stored.get("used_monthly_credits") or 0)
+    current = bool(stored and rule)
+    try:
+        now = datetime.now(timezone.utc)
+        end = datetime.fromisoformat(str(stored.get("expires_at", "")).replace("Z", "+00:00"))
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=timezone.utc)
+        current = current and end > now
+        if tier == "free":
+            start = datetime.fromisoformat(str(stored.get("period_start", "")).replace("Z", "+00:00"))
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            current = current and month <= start <= now
+    except (TypeError, ValueError):
+        current = False
+    return {
+        "monthly_limit": limit, "monthly_used": used,
+        "monthly_remaining": round(max(0, limit - used), 2) if current else None,
+        "wallet_balance": round(wallet, 2),
+        "period_current": current,
+        "source": "persisted_subscription_and_current_rules",
+    }
+
+
 @admin_app.get("/admin/users/{user_id}")
 async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """用户详情（不含笔记全文）。"""
@@ -496,7 +537,8 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
     email_masked = _mask_email_admin(user.pop("email", "") or "")
 
     sub = db.fetchone(
-        "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1", (user_id,))
+        "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1 "
+        "ORDER BY started_at DESC LIMIT 1", (user_id,))
     credits_row = db.fetchone("SELECT * FROM credits WHERE user_id=?", (user_id,))
 
     month_start = datetime.now(timezone.utc).replace(
@@ -531,6 +573,10 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
         },
         "subscription":  dict(sub) if sub else {"tier": "free"},
         "credits":       dict(credits_row) if credits_row else {"balance": 0},
+        "quota":         _admin_quota_snapshot(
+            dict(sub) if sub else None,
+            float(credits_row["balance"] or 0) if credits_row else 0,
+        ),
         "month_usage":   [dict(r) for r in usage_rows],
         "recent_usage":  [dict(r) for r in recent_usage],
         "credit_txns":   [dict(r) for r in credit_txns],
@@ -683,6 +729,8 @@ async def admin_trigger_check(note_id: str, admin: dict = Depends(_aauth.get_adm
 @admin_app.get("/admin/revenue")
 async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
     """Confirmed payment/refund cash plus model cost for the requested window."""
+    if not 1 <= days <= 366:
+        raise HTTPException(status_code=422, detail="查询天数应为1至366")
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     cash = _payment.finance_summary(since=since)
 
@@ -695,7 +743,8 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
         "('payment_received','refund_paid') THEN l.amount_fen ELSE 0 END),0) "
         "AS net_fen "
         "FROM payment_orders o JOIN payment_cash_ledger l ON l.order_id=o.id "
-        "WHERE l.recorded_at>=? GROUP BY o.product_kind",
+        "JOIN payment_events e ON e.id=l.source_event_id "
+        "WHERE l.recorded_at>=? AND e.prod_mode=1 GROUP BY o.product_kind",
         (since,),
     )
     kind_net = {
@@ -703,7 +752,7 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
         for row in kind_rows
     }
     daily_cash = db.fetchall(
-        "SELECT DATE(recorded_at) AS day,"
+        "SELECT DATE(l.recorded_at) AS day,"
         "COALESCE(SUM(CASE WHEN entry_type='payment_received' "
         "THEN amount_fen ELSE 0 END),0) AS received_fen,"
         "COALESCE(SUM(CASE WHEN entry_type='refund_paid' "
@@ -714,8 +763,10 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
         "COALESCE(SUM(CASE WHEN entry_type IN "
         "('payment_received_unmatched','refund_paid_unmatched') "
         "THEN ABS(amount_fen) ELSE 0 END),0) AS unmatched_fen "
-        "FROM payment_cash_ledger WHERE recorded_at>=? "
-        "GROUP BY DATE(recorded_at) ORDER BY day",
+        "FROM payment_cash_ledger l "
+        "JOIN payment_events e ON e.id=l.source_event_id "
+        "WHERE l.recorded_at>=? AND e.prod_mode=1 "
+        "GROUP BY DATE(l.recorded_at) ORDER BY day",
         (since,),
     )
 
@@ -1306,7 +1357,7 @@ async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
             if _is_restricted_admin_runtime()
             else len(cookie_content) if isinstance(cookie_content, list) else 0
         ),
-        "cookie_runtime_status": cookie_runtime_status,
+        "cookie_runtime_status": "not_observed_here" if _is_restricted_admin_runtime() else cookie_runtime_status,
         "cookie_last_verified_at": cookie_last_verified_at,
         "cookie_consecutive_failures": cookie_consecutive_failures,
         "cookie_action_required": cookie_runtime_status in {
@@ -1408,9 +1459,10 @@ async def admin_crawler_logs(
                 for item in _crawler.get_crawler_logs(limit)
             ],
             "raw_text_included": False,
+            "available": True,
         }
     except Exception:
-        return {"logs": []}
+        return {"logs": [], "available": False, "reason": "log_source_unavailable", "raw_text_included": False}
 
 
 @admin_app.get("/admin/xhs/freshness")
@@ -1464,6 +1516,7 @@ async def admin_logs(lines: int = 100, admin: dict = Depends(_aauth.get_admin_us
             return _redaction.summarize_log_lines(lf, lines)
     return {
         "source": "",
+        "available": False,
         "line_count": 0,
         "counts": {"error": 0, "warning": 0, "info": 0},
         "events": [],

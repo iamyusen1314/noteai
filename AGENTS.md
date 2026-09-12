@@ -2,10 +2,20 @@
 
 ## Current execution control
 
+September12 evening owner authorizes publishing the original Admin securely on
+existing resources and collecting truthful private Alipay screenshots. Reuse the
+existing owner Admin identity, dedicated database role and original UI; ordinary
+users remain excluded. Scoped build/deploy/HTTPS/DNS, minimum Admin permissions,
+verification and rollback are approved. This supersedes the earlier blanket
+Admin-publication ban below, not payment/refund, user-entitlement/status changes,
+credential changes or scheduler permissions. Follow the current Handoff/plan;
+preserve generation2 and the same cumulative website budget.
+
 September12 afternoon owner directs restoration of the real NoteAI product UI
 and registration/free-before-payment usage, with payments temporarily closed.
 Enable verified-phone users to use the existing bounded free entitlements and real
-text workflows; keep payment/Admin/unapproved capabilities closed server-side.
+text workflows; keep payment/unapproved capabilities closed server-side; Admin
+follows the later dedicated publication scope above.
 Fix concrete security, cost and compatibility gaps before exposing affected routes. The earlier account-only
 scope is no longer the target product. Owner withdraws Item35 professional signatures
 as a release prerequisite; preserve historical unsigned evidence and required user

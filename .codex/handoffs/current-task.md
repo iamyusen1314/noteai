@@ -1,5 +1,51 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current 2026-09-12 evening — original Admin publication and genuine Alipay materials
+
+18:15 preparation: current host confirms Admin containernoteai-admin-c, roleadmin,
+imagefa0e658c…743bd4/source5335bda, loopback8001, rootread-only UID999, dedicated
+noteai_admin_runtime with admin_sessions SELECT/INSERT/DELETE and no business DML.
+Existing noteai_admin password configured (length>=20), root0600 admin.env; no
+credential value read or changed. API265481b/image20dc1636 and Nginxf1acd394 remain.
+First probe used stale container names and failed; second editor replacement
+appended and failed shell syntax; both were read-only and produced no mutation.
+Corrected probe succeeded. A later bare certbot PATH lookup failed because the
+existing tool is /opt/noteai-certbot/bin/certbot, not /usr/bin; no deployment yet.
+
+DNS added exactlyadmin A39.108.66.93/defaultTTL600, console readback18:10:37;
+root/www unchanged. This is not HTTPS/Admin publication yet. Code fixes cover
+UTF8/bounded/no-secret-echo login, conservative logout confirmation, trusted proxy,
+live-only cash breakdowns, persisted-only free quota, and CSP-compatible original
+Admin dynamic controls. All13 targeted Python3.11 tests and4 browser tests passed
+(first isolated run lacked the static frontend file; supplied it and reran). PG16
+dedicated-role and production candidate remain in progress. Owner will operate
+the real Admin and handle screenshots/upload; delivery priority is usable Admin.
+
+Owner authorizes scoped implementation, deployment, HTTPS/DNS and safe rollback of
+the original Admin, using the existing owner identity and dedicated minimum DB role.
+The earlier blanket public-Admin ban is superseded. Preserve the working public
+web3f47200/API265481b, real SMS and free-product flow. Do not alter real user credits,
+plans/status, enable payment/refunds, broaden managers or change credentials/tasks.
+Use the existing cumulative website RMB100 cap, no new recurring resource. Reuse
+the consented free self-test report for screenshots; no invented paid activity,
+private raw screenshots in Git or public storage, or legal submissions/signatures.
+
+At 18:00 Beijing implementation starts from777d033, tracked clean/protected7 only.
+The original Admin provides overview/users/detail/usage/plans; secure publication
+needs login throttling/input bounds, exact proxy trust, live-only cash filtering
+and explicit free-plan quota display. Target admin.noteaipro.com on existing API-C,
+subject to actual DNS/service readback. Existing credential path/identity is only
+historically verified until the current host check; no new identity is inferred.
+
+Unique generation2 automation remains ACTIVE, correct thread/cwd, next_run
+2026-09-12T13:36:18Z /21:36:18 Beijing; scheduler has no runs yet. Original T0,
+24h/3d conditions, fixed F artifact and authorization unchanged. Latest cloud
+generation2 journal is LAST_KNOWN (Sep11), not a fresh in-flight assertion.
+Alipay current browser is signed out: only owner's reported refusal wording is
+available, not original supplement text. Owner will handle supplement/upload and
+does not require further receipt retrieval; continue Admin and genuine screenshots.
+No production mutations yet in this stage; Readiness completion30.
+
 ## Current September12 afternoon — restore real product and bounded free use
 
 ### 2026-09-12 17:43 北京时间：短信替代与真实账户/免费结果链路完成

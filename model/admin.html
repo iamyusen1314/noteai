@@ -562,7 +562,7 @@ function hasAdminCapability(name) {
 
 function requireAdminCapability(name) {
   if (hasAdminCapability(name)) return true;
-  alert('当前生产 Admin 为只读控制台；该操作必须通过独立受审计流程执行。');
+  alert('该操作不在当前开放范围，查询功能可正常使用。');
   return false;
 }
 
@@ -577,7 +577,7 @@ function applyAdminCapabilities(mode=_adminMode) {
   const readOnly = mode !== 'local_operator';
   banner.style.display = readOnly ? 'block' : 'none';
   banner.textContent = mode === 'production_read_only'
-    ? '生产只读控制台：可查看运营、账本、队列和健康状态；用户、Prompt、模型、Crawler 与 Tracking 变更必须走独立受审计流程。'
+    ? '生产只读控制台：用户查询、套餐权益、用量与经营数据已开放。支付、用户权益调整、模型及任务变更未开放；免费自测不代表付费经营。'
     : '能力状态不可用：所有写操作已安全锁定，请刷新或联系运维人员。';
 }
 
@@ -614,12 +614,14 @@ async function doAdminLogin() {
     });
     const d = await r.json();
     if (!r.ok) { err.textContent = d.detail || '登录失败'; err.style.display='block'; return; }
+    document.getElementById('login-password').value = '';
+    err.style.display = 'none';
     _adminToken = d.token;
     sessionStorage.setItem('noteai_admin_token', _adminToken);
     document.getElementById('admin-name').textContent = d.username;
     await showApp();
   } catch(e) {
-    err.textContent = '无法连接管理服务器（port 8001）'; err.style.display='block';
+    err.textContent = '无法连接管理服务器，请稍后重试'; err.style.display='block';
   } finally {
     btn.disabled = false; btn.textContent = '登录管理后台';
   }
@@ -627,6 +629,7 @@ async function doAdminLogin() {
 
 function clearAdminSession() {
   _adminToken = null;
+  document.getElementById('login-password').value = '';
   sessionStorage.removeItem('noteai_admin_token');
   _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
   _adminMode = 'unavailable';
@@ -636,17 +639,22 @@ function clearAdminSession() {
 
 async function doAdminLogout() {
   const token = _adminToken;
+  let revoked = !token;
   try {
     if (token) {
-      await fetch(`${ADMIN_BASE}/admin/logout`, {
+      const response = await fetch(`${ADMIN_BASE}/admin/logout`, {
         method:'POST',
         headers:{'Authorization':`Bearer ${token}`},
       });
+      revoked = response.ok && (await response.json()).ok === true;
     }
   } catch(e) {
     // Local state must still be cleared if the server is unavailable.
   } finally {
     clearAdminSession();
+    const err = document.getElementById('login-error');
+    err.textContent = revoked ? '' : '本机已退出，服务端会话撤销未确认。请联系运维撤销该旧会话；重新登录不能撤销旧会话。';
+    err.style.display = revoked ? 'none' : 'block';
   }
 }
 
@@ -1032,7 +1040,7 @@ async function loadUsers() {
       <td>${fmtTokens(u.month_tokens || 0)}</td>
       <td style="color:var(--warning)">¥${(u.month_cost||0).toFixed(4)}</td>
       <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
-      <td><button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="showUser(decodeURIComponent(this.dataset.userId))">详情</button></td>
+      <td><button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="user-detail">详情</button></td>
     </tr>`).join('');
 }
 function searchUsers() { _userPage=1; loadUsers(); }
@@ -1042,7 +1050,7 @@ function nextPage() { if(_userPage*15<_userTotal){_userPage++;loadUsers();} }
 async function showUser(uid) {
   const r = await aFetch(`/admin/users/${uid}`);
   const d = await r.json();
-  const u = d.user, sub = d.subscription, cr = d.credits||{balance:0};
+  const u = d.user, sub = d.subscription, cr = d.credits||{balance:0}, quota = d.quota;
   document.getElementById('um-title').textContent = `用户详情 — ${u.username}`;
   const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
   document.getElementById('um-content').innerHTML = `
@@ -1061,7 +1069,8 @@ async function showUser(uid) {
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
         <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier)}</span></div>
         <div style="font-size:13px;margin-top:6px">本周期已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
-        <div style="font-size:13px;margin-top:6px">积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
+        <div style="font-size:13px;margin-top:6px">钱包积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
+        <div style="font-size:13px;margin-top:6px">套餐周期额度: <b>${quota?.monthly_limit == null ? '待核对' : Number(quota.monthly_limit).toFixed(1)}</b>；剩余: <b>${quota?.monthly_remaining == null ? '周期待正常业务核对/续期' : Number(quota.monthly_remaining).toFixed(1)}</b></div>
         <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
       </div>
     </div>
@@ -1090,9 +1099,9 @@ async function showUser(uid) {
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'add_credits')">手动加积分</button>
-      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'set_tier')">修改套餐</button>
-      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" onclick="adjustUser(decodeURIComponent(this.dataset.userId),'reset_quota')">重置本周期积分</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="add_credits">手动加积分</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="set_tier">修改套餐</button>
+      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="reset_quota">重置本周期积分</button>
     </div>`;
   applyAdminCapabilities();
   openModal('user-modal');
@@ -1321,7 +1330,7 @@ async function showHistory() {
           <span style="font-weight:600">v${h.version}</span>
           <div style="display:flex;gap:6px">
             <span style="font-size:11px;color:var(--text-muted)">${(h.saved_at||'').slice(0,16).replace('T',' ')}</span>
-            <button class="btn btn-ghost btn-sm" data-capability="prompt_mutation" onclick="rollbackPrompt(${h.version})">回滚</button>
+            <button class="btn btn-ghost btn-sm" data-capability="prompt_mutation" data-admin-action="prompt-rollback" data-prompt-version="${esc(String(h.version))}">回滚</button>
           </div>
         </div>
         <pre style="font-size:11px;color:var(--text-2);white-space:pre-wrap;max-height:80px;overflow:hidden">${esc((h.content||'').slice(0,200))}…</pre>
@@ -1352,7 +1361,7 @@ async function loadModels() {
       <td>${m.rmse||'–'}</td>
       <td>${m.accuracy?m.accuracy+'%':'–'}</td>
       <td><span class="badge ${statusMap[m.status]||'badge-free'}">${esc({production:'生产中',archived:'已归档',training:'训练中'}[m.status]||m.status)}</span></td>
-      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" data-capability="model_mutation" data-model-version="${esc(encodeURIComponent(String(m.version||'')))}" onclick="deployModel(decodeURIComponent(this.dataset.modelVersion))">部署</button>`:'–'}</td>
+      <td>${m.status!=='production'?`<button class="btn btn-ghost btn-sm" data-capability="model_mutation" data-model-version="${esc(encodeURIComponent(String(m.version||'')))}" data-admin-action="model-deploy">部署</button>`:'–'}</td>
     </tr>`).join('');
   document.getElementById('train-jobs').innerHTML = (d.training_jobs||[]).reverse().slice(0,5).map(j=>`
     <div style="background:var(--surf-2);border-radius:8px;padding:10px;margin-bottom:8px">
@@ -1389,7 +1398,7 @@ async function loadCrawler() {
   const d = await r.json();
   document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
   const cookieLabels = {
-    not_configured:'未配置', pending_validation:'待验证', verified:'已验证',
+    not_observed_here:'本控制台不读取采集凭据', not_configured:'未配置', pending_validation:'待验证', verified:'已验证',
     needs_relogin:'登录已失效', needs_attention:'需要检查',
     collection_suspended:'合规停采'
   };
@@ -1397,7 +1406,9 @@ async function loadCrawler() {
   const cookieWarn = ['pending_validation','needs_attention','collection_suspended'].includes(d.cookie_runtime_status);
   document.getElementById('cw-cookie').innerHTML = `<span class="dot ${cookieOk?'dot-green':cookieWarn?'dot-yellow':'dot-red'}"></span>${cookieLabels[d.cookie_runtime_status]||'未知'}${d.cookie_file_exists?`（${d.cookie_count}条）`:''}`;
   document.getElementById('cw-cookie-sub').textContent =
-    d.cookie_runtime_status === 'needs_relogin'
+    d.cookie_runtime_status === 'not_observed_here'
+      ? '会话状态由实际 Tracking 执行环境核验，此处不表示其未配置或失效'
+      : d.cookie_runtime_status === 'needs_relogin'
       ? '账号已被平台退出，请人工重新登录；采集已安全暂停'
       : d.cookie_runtime_status === 'collection_suspended'
         ? '采集已合规暂停；恢复前需由管理员完成授权检查'
@@ -1409,7 +1420,7 @@ async function loadCrawler() {
   const logsR = await aFetch('/admin/crawler/logs?limit=30');
   const logs  = await logsR.json();
   document.getElementById('crawler-logs').innerHTML = (logs.logs||[]).reverse().map(l=>`
-    <div class="log-line">${esc(JSON.stringify(l).slice(0,120))}</div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:8px">暂无日志</div>';
+    <div class="log-line">${esc(JSON.stringify(l).slice(0,120))}</div>`).join('') || `<div style="color:var(--text-muted);font-size:12px;padding:8px">${logs.available === false ? '日志源不可用；未读取实际采集日志。' : '暂无日志'}</div>`;
 }
 
 function _fmtShortTime(value) {
@@ -1525,7 +1536,7 @@ async function loadSettings() {
   const logs  = await logsR.json();
   document.getElementById('server-logs').innerHTML = (logs.events||[]).map(event=>`
     <div class="log-line">${esc(event.level)} · ${esc(event.event_code)} · ${esc(event.line_hash)}</div>`
-  ).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无日志摘要</div>';
+  ).join('') || '<div style="color:var(--text-muted);font-size:12px">本 Admin 未接入该文件日志源，不表示其他执行节点无日志。</div>';
 }
 
 /* ── Chart helpers ────────────────────────────────────────────────── */
@@ -1562,6 +1573,17 @@ function updateClock() {
   document.getElementById('topbar-time').textContent = new Date().toLocaleString('zh-CN');
   setTimeout(updateClock, 1000);
 }
+
+// Dynamic rows use delegated controls so the published original UI needs no inline JS.
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-admin-action]');
+  if (!button || button.disabled) return;
+  const action = button.dataset.adminAction;
+  if (action === 'user-detail') showUser(decodeURIComponent(button.dataset.userId));
+  else if (['add_credits','set_tier','reset_quota'].includes(action)) adjustUser(decodeURIComponent(button.dataset.userId), action);
+  else if (action === 'prompt-rollback') rollbackPrompt(Number(button.dataset.promptVersion));
+  else if (action === 'model-deploy') deployModel(decodeURIComponent(button.dataset.modelVersion));
+});
 
 /* ── Auto-login if token exists ───────────────────────────────────── */
 window.addEventListener('load', async () => {
