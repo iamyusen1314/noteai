@@ -2,6 +2,47 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+### 2026-09-12 16:50 北京时间：当前可恢复交付与剩余缺口
+
+- `noteaipro.com` / `www.noteaipro.com` 已恢复原产品，前端 `8161588`、API `9941c85` 已实际部署；网站哈希、浏览器交互、API 健康和公开路由边界均已读回。不是新用户真实结果验收通过。
+- 复用免费层每月 12 积分：文字诊断 6、生成 8、深度改写 3、快速对话 1。服务端要求已验证手机号，保留本人数据隔离、扣额、并发与持久化预算控制。支付、Admin、公开 Tracking 和媒体能力保持关闭。
+- 最新 DMS 只读结果：模型/SMS 已预留金额均为 0，模型调用和短信记录均为 0；模型预算已启用，SMS 未启用。部署、传输及未结算费用仍计入原 100 元预算，不据调用计数将整体费用记为 0。
+- 云助手结果 18：API-C 对 Kimi 入口的无凭据 HEAD 返回 404、短信入口返回 200，curl 均成功；只证明网络连接，没有生成内容、发验证码或认证请求。
+- `DescribeInstanceRamRole` 原请求 `01A094CF-17CD-598E-8A87-C5EEA827FB22` 返回指定的 C/F 两台实例均绑定 `noteai-storage-api-20260729-c60cc608`。已读角色策略无 SMS 权限。没有修改角色或 F；后续最小 SendSms 策略须限定官网 C 的来源并核实，不向共用角色附加无条件发送权限。
+- 当前唯一人工缺项：已有阿里云短信资质页的企业/法定代表人/经办人资料及本人手机验证。随后仍需签名、模板审批，现阶段未批准；注册按钮明确说明不可用，没有测试验证码或未验证账号绕过。
+- 资质及签名/模板可用后，原授权已覆盖最小短信接入、凭据注入、真实验证码注册/登录/退出/本人数据访问及免费模型结果验证，无需重申请普通技术步骤。未完成这些真实验证前，不宣称完整交付。
+- 当前没有部署、数据库操作或模型/SMS 请求在途。已有独立发布与接入准备已完成；等待上述实际人工/平台条件，不新增无价值任务。Item34 generation2 的原 T0、固定产物及唯一续执行任务未改动，不提前采样；Readiness 完成数仍为 30，Item35 撤销不计审核通过。
+
+Independentpublicbrowser confirms8161588 finaltwofixes: closedOTPmodalnotice,
+send/submitdisabled, legalnavigationworks, nofreeOCRclaim; noJSerrors/allGET.
+Browseruseslocalproxy; directEIPtwo-domainhashproof isseparate. Fullphone/realmodel
+E2E still notpassed. ExistingownerSMSqualificationquestion remainspending; no new
+credentials or repeatedtechnicalpermissionrequest is needed.
+
+16:42Beijing: originalfrontend8161588 LIVE onbothdomains, exactindexSHA
+f10dcad7124ba1d4b8a4427ca09de5294a21b2e7c2c6b6cdfe103b1bcd34f6fa.
+PrivateOSSkeynoteai-private/public-product/8161588/noteai-original-product-8161588.tar.gz,
+2172198bytes/SHA58f45fb4ca0c83b781ad90b549e6a5dd46a166795c5788f67c10c103c1eaef4e;
+Cstage/var/lib/noteai/public-product-8161588, webrollback4218070.
+Cloud16 webapply succeeded but following independent api.ipify.org networkprobe
+failed (taskoverallnonzero); do not rerunwebapply. Bothdomains directEIPindexhash
+andcloud17 originalresultreadback resolveactualstate: web8161588, API9941c85
+healthyUID999,API/Admin/Nginxallactive, existing10GiBegresscap/reserved64MiB.
+ActualAPIresult at1789201881.5039012, dropinSHAc1d4a97e53bc8fc8098f15ddfb81c29851d646dc49e9ef23d27b5032adcdd790.
+No pendingdeployment operation; backendmodel/SMS realrequestsremain0.
+
+RAMexistingrole ListPoliciesForRole readback01A094C4-C2FD-574D-9771-C2AE8C77B332:
+onlyoriginalcustomstoragepolicyv1. GetPolicyVersion01A094C6-712E-5624-A604-BEFFDD5551CA
+confirms ListObjects noteai-private/* prefix plusGet/Put/Delete on sameprivateprefix,
+noSMSpermission. No role/policy mutation. ExistingfutureSMSpolicy restrictsSendSms
+toC39.108.66.93; service-seenegress is NOTconfirmedbythefailedipifyprobe.
+OfficialECS/EIP routing saysownEIPtakesprecedenceoverSNAT; permission staysunapplied
+untilexactapprovedSMSinputs and safeC/Fbinding check, withoutnewownerpermissionrequest.
+Currentexternalprerequisite is existingenterprise/legalrep/adminidentity qualification
+athttps://dysms.console.aliyun.com/domestic/text/qualification/add, thenapprovedsign/
+template. No accountpassword/ACRcredential needed. Nofullregistration/free-result
+acceptanceclaimed; noItem34sample/T0/image/permission/automationchange.
+
 16:36Beijing: API9941c85 is LIVE onC, actualDockerimageff0da7f…1a798;
 cloud15 normal-entrypoint privatecandidate/modelDB/scopechecks passed and stopped,
 then sameimage activated. NginxSHAf1acd3941f563d755097e64adc58e9f27e08c6edba4bd4ed685bb727da961155.

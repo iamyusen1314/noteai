@@ -6,8 +6,12 @@ Current owner correction restores the original product UI and existing12credit f
 tier, not the separate static/account shell described historically below. Current
 public boundary opens only verified text workflows with sharedPG physical-call
 budget; no payment/Admin/Tracking/media route exposure. Detailed stage/current
-truth is at Handoff top. Production API replacement remains pending, generation2
-fixed F image and unique task unchanged.
+truth is at Handoff top. Original frontend8161588 and API9941c85 are now deployed
+on C. Actual public GET/refusal checks pass; OTP remains disabled pending SMS
+qualification/sign/template. 0021/22 applied after the current RDS backup;
+0018 payment is excluded. Generation2 fixed F image and unique task are unchanged.
+
+## Historical website/account-only stage (superseded by current scope above)
 
 Current scoped public release uses owner-selectednoteaipro.com/www.noteaipro.com,
 matching actual approved ICP and API-C EIP39.108.66.93. Public static pages/examples

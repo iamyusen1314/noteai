@@ -4,8 +4,9 @@
 
 September12 afternoon owner directs restoration of the real NoteAI product UI
 and registration/free-before-payment usage, with payments temporarily closed.
-Assess actual risks and open verified low-risk functionality; fix concrete security,
-cost and compatibility gaps before exposing affected routes. The earlier account-only
+Enable verified-phone users to use the existing bounded free entitlements and real
+text workflows; keep payment/Admin/unapproved capabilities closed server-side.
+Fix concrete security, cost and compatibility gaps before exposing affected routes. The earlier account-only
 scope is no longer the target product. Owner withdraws Item35 professional signatures
 as a release prerequisite; preserve historical unsigned evidence and required user
 privacy/consent controls. Existing cumulative budgets, protected paths and Item34
@@ -45,7 +46,7 @@ boundaries; the September12 scoped Git permission above supersedes the older ban
 - ORM / schema tool: none; local SQLite schema is implemented in `model/db.py`, and versioned PostgreSQL SQL migrations live under `model/migrations/postgres/`.
 - Package managers: `pip` for Python dependencies, `npm` for Node/Playwright dependencies.
 - Runtime: Python 3.11 in Docker/CI; local `.venv` also exists. Node.js is used for e2e tooling.
-- Deployment: Dockerfile, `docker-compose.yml`, Render Blueprint `render.yaml`, GitHub Actions CI, private S3/Git LFS model artifact strategy. Render staging is deployed; production is not approved.
+- Deployment: Dockerfile, `docker-compose.yml`, Render Blueprint `render.yaml`, GitHub Actions CI, private S3/Git LFS model artifact strategy. Scoped original-product/free API publication is authorized and partially live on Alibaba API-C; full commercial launch remains unapproved. Follow the current execution control and Handoff above.
 
 ## Common Commands
 

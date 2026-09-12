@@ -2,7 +2,7 @@
 
 ## Current September12 afternoon — original free product release
 
-Actualoriginal frontend4218070 and boundedAPI9941c85 are now deployed onC.
+Original frontend8161588 and bounded API9941c85 are now deployed on C.
 NewRDS snapshot3156865822 available before atomic0021/22; payment0018 excluded.
 Liveauth/Payment/Adminroute refusals passed, cumulativebudgets and no-resetACLverified.
 Fullphone-registration/free-result E2E remains incomplete pendingSMSqualification/
@@ -12,6 +12,13 @@ before execution; currentchannel is a truthfulsupport deletionrequest, notinstan
 FirstcandidatefailedprivateURIplusencoding, originalAPIuntouched; correctedpercent20
 sameimage thenpassed. Productionrollback mustclosepublicroutes/drainoldworkersbefore
 restoringoldfullAPI; do nottrustmerelyRunning withoutoldhealthreadback.
+
+September12 16:50 readback confirms C/F share the existing storage role and its
+policy has no SMS permission. No role change was made; future minimum SendSms
+permission must be restricted to the website C source, not unconditionally added
+to the shared role. Credential-free HEAD checks establish C connectivity to Kimi
+and SMS only. Production model/SMS call records remain zero; signup and real-result
+acceptance remain incomplete until identity qualification and sign/template approval.
 
 Owner withdraws Item35 professional signatures as release prerequisite; no approval
 or DONE is inferred. Replace earlier account-only target with the real product and

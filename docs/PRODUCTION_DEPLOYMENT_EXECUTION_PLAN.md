@@ -2,6 +2,38 @@
 
 ## Current September12 afternoon — real product free release
 
+### 2026-09-12 16:50 北京时间：实施结果与直接续执行点
+
+原产品前端 `8161588`、受限免费 API `9941c85` 已实际上线；两域名哈希、浏览器交互、正常容器健康、公开认证/支付/Admin 路由边界均已读回。0021/0022 已在当前 RDS 备份后一次执行，0018 支付未执行。当前没有部署或数据库操作在途，不重放已完成命令。完整“新用户注册到真实免费结果”尚未验证。
+
+后续直接续执行：在已有短信资质页完成必须由 owner 提供的真实身份材料及手机验证后，沿原授权完成批准签名/模板、最小发送权限与服务器配置、有限真实验证码和免费结果验证。此前保持 OTP 关闭，不伪造手机号或验证码。模型/SMS 最新预算预留和调用记录均为 0；部署/传输未结算费用仍计入原累计 100 元，预算不重置。
+
+只读实例角色请求 `01A094CF-17CD-598E-8A87-C5EEA827FB22` 确认 C/F 共用原存储角色，已有策略无短信权限；没有权限变更。未来 SendSms 必须限定官网 C 来源并核实，不能无条件扩大共享角色。云助手结果 18 的无凭据 HEAD 仅确认 C 能连接 Kimi 和短信入口，不是实际模型/SMS 业务成功。Item34 generation2 原任务和产物不变。
+
+16:42Beijing: originalfrontend8161588 LIVE onbothdomains, exactindexSHA
+f10dcad7124ba1d4b8a4427ca09de5294a21b2e7c2c6b6cdfe103b1bcd34f6fa.
+PrivateOSSkeynoteai-private/public-product/8161588/noteai-original-product-8161588.tar.gz,
+2172198bytes/SHA58f45fb4ca0c83b781ad90b549e6a5dd46a166795c5788f67c10c103c1eaef4e;
+Cstage/var/lib/noteai/public-product-8161588, webrollback4218070.
+Cloud16 webapply succeeded but following independent api.ipify.org networkprobe
+failed (taskoverallnonzero); do not rerunwebapply. Bothdomains directEIPindexhash
+andcloud17 originalresultreadback resolveactualstate: web8161588, API9941c85
+healthyUID999,API/Admin/Nginxallactive, existing10GiBegresscap/reserved64MiB.
+ActualAPIresult at1789201881.5039012, dropinSHAc1d4a97e53bc8fc8098f15ddfb81c29851d646dc49e9ef23d27b5032adcdd790.
+No pendingdeployment operation; backendmodel/SMS realrequestsremain0.
+
+RAMexistingrole ListPoliciesForRole readback01A094C4-C2FD-574D-9771-C2AE8C77B332:
+onlyoriginalcustomstoragepolicyv1. GetPolicyVersion01A094C6-712E-5624-A604-BEFFDD5551CA
+confirms ListObjects noteai-private/* prefix plusGet/Put/Delete on sameprivateprefix,
+noSMSpermission. No role/policy mutation. ExistingfutureSMSpolicy restrictsSendSms
+toC39.108.66.93; service-seenegress is NOTconfirmedbythefailedipifyprobe.
+OfficialECS/EIP routing saysownEIPtakesprecedenceoverSNAT; permission staysunapplied
+untilexactapprovedSMSinputs and safeC/Fbinding check, withoutnewownerpermissionrequest.
+Currentexternalprerequisite is existingenterprise/legalrep/adminidentity qualification
+athttps://dysms.console.aliyun.com/domestic/text/qualification/add, thenapprovedsign/
+template. No accountpassword/ACRcredential needed. Nofullregistration/free-result
+acceptanceclaimed; noItem34sample/T0/image/permission/automationchange.
+
 16:36Beijing: API9941c85 is LIVE onC, actualDockerimageff0da7f…1a798;
 cloud15 normal-entrypoint privatecandidate/modelDB/scopechecks passed and stopped,
 then sameimage activated. NginxSHAf1acd3941f563d755097e64adc58e9f27e08c6edba4bd4ed685bb727da961155.
