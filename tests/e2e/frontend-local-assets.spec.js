@@ -41,7 +41,7 @@ test('original public product works under strict script CSP with OTP and dynamic
       return route.fulfill({path:path.resolve('dist'+url.pathname),contentType:'application/javascript'});
     }
     if (/^\/assets\/(vendor|landing)\/[a-zA-Z0-9_.-]+$/.test(url.pathname)) {
-      if (fs.existsSync(path.resolve('.'+url.pathname))) return route.continue();
+      if (fs.existsSync(path.resolve('dist'+url.pathname))) return route.fulfill({path:path.resolve('dist'+url.pathname)});
     }
     if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:true,ai_open:true}});
     if (url.pathname === '/synthetic-api/auth/verification/request') {

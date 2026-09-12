@@ -18,7 +18,8 @@ fi
 
 mkdir -p "$DIST_DIR"
 cp "$ROOT_DIR/NoteAI_Pro_Demo_Framer.html" "$DIST_DIR/index.html"
-cp -R "$ROOT_DIR/assets" "$DIST_DIR/assets"
+mkdir -p "$DIST_DIR/assets"
+cp -R "$ROOT_DIR/assets/." "$DIST_DIR/assets/"
 
 NOTEAI_RUNTIME_CONFIG_PATH="$DIST_DIR/runtime-config.js" node -e '
 const fs = require("fs");
