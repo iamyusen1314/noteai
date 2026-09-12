@@ -2,14 +2,14 @@
 
 Last updated: 2026-09-12
 
-Current owner correction restores the original product UI and existing12credit free
-tier, not the separate static/account shell described historically below. Current
-public boundary opens only verified text workflows with sharedPG physical-call
-budget; no payment/Admin/Tracking/media route exposure. Detailed stage/current
-truth is at Handoff top. Original frontend8161588 and API9941c85 are now deployed
-on C. Actual public GET/refusal checks pass; OTP remains disabled pending SMS
-qualification/sign/template. 0021/22 applied after the current RDS backup;
-0018 payment is excluded. Generation2 fixed F image and unique task are unchanged.
+Current public product is the original frontend3f47200/API265481b on C, with real
+PNVS phone login and existing12credit bounded free text workflows. Public payment,
+Tracking and media remain closed. Separate original Admin696825c is now served at
+https://admin.noteaipro.com by its own Admin-role image76018cdf, loopback8001 and
+minimum noteai_admin_runtime. Nginx permits only normal Admin login/logout and
+specific authenticated GETs; normal users cannot access Admin. Root/www/API remain
+unchanged; original Admin identity retained. Full detail/results/rollback are at
+Handoff top. Generation2 fixed F image and unique task remain unchanged.
 
 ## Historical website/account-only stage (superseded by current scope above)
 

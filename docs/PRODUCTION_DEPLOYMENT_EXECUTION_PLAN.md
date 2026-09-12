@@ -2,6 +2,14 @@
 
 ## 2026-09-12 evening — authorized original Admin publication
 
+18:40 execution result: original Admin is live at https://admin.noteaipro.com,
+source696825c/image76018cdf on existing C; genuine HTTPS login, core queries,
+logout invalidation and valid ordinary-user denial passed. Root/www/API unchanged.
+First health-path error and verified rollback are retained; same candidate then
+deployed with corrected health check. Existing Handoff top contains exact results,
+rollback paths and limitations. Owner handles screenshots; no screenshot workflow
+blocks usable Admin. Readiness remains30/37.
+
 Publish the existing Admin at a dedicated HTTPS origin on API-C; reuse its owner
 identity and dedicated role, preserving original navigation and real data. Scope:
 login/logout, users/details, usage, plans/entitlements and truthful operating

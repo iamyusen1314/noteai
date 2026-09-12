@@ -1,5 +1,17 @@
 # Risk Register
 
+September12 18:40: Admin696825c is actually published at admin.noteaipro.com with
+existing independent identity/dedicated DB role. Public HTTPS normal login/core
+queries/logout-old403 and valid ordinary-user denial passed, invalid login limit429.
+Original public web/API unchanged; real4 temporary Admin session inserts/deletes
+are recorded, not hidden from shared DB counts. No business/entitlement mutation.
+The first deployment falsely used a blocked API health path; readback resolved its
+UNKNOWN and verified rollback before same-image correction. Operational scripts now
+use allowed health, bounded precise-session cleanup and live quota consistency.
+Original failure retained. Remaining: owner browser sign-in not performed here,
+optional F logs/provider status unavailable in Admin, payment/privileged writes
+closed. Existing budget and Item34 unchanged; see Handoff for exact recovery.
+
 September12 evening: owner authorizes original Admin publication; earlier blanket
 Admin bans below are historical. Dedicated origin/admin role and real session
 revocation must protect normal-user separation. Fix missing login throttle/input

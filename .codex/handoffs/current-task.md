@@ -2,6 +2,80 @@
 
 ## Current 2026-09-12 evening — original Admin publication and genuine Alipay materials
 
+### 18:40 Beijing — original Admin published and production access separation verified
+
+Live URL: https://admin.noteaipro.com ; original Admin source
+`696825cfc2a8f9a170fd49e1ba0081fd693ee498`, actual linux/amd64 Python3.11.15 image
+`sha256:76018cdf498243b8d3a9716df3baebaa67564c64ce576233c97d518aa4d5b11c`.
+This is the existing Admin UI/runtime, not a screenshot-only replacement. The
+existing noteai_admin credential was used through the server-only safe environment,
+not printed, exported to chat, reset or replaced. Owner can use the normal password
+login at that URL. Browser login page/assets were inspected; owner-controlled
+browser sign-in remains unperformed here (secure credential-entry capability was
+not advertised). Backend HTTPS login and all required query/logout paths are real.
+
+Production candidate, installed runtime and public HTTPS checks all passed:
+users/search/details, existing plans/monthly allowance, recent usage, revenue/usage
+and operating overview, settings and the original optional read endpoints. The
+consented free account has one real note/usage record, monthly12/used6/remaining6,
+wallet0; this is a readback fact, not a required fixed quota for future deployment.
+The public ordinary-user session was valid on /auth/me200 and denied on Admin
+me/users/settings403. Anonymous Admin403, root-site Admin404, docs/.env404;
+four non-secret invalid logins returned401/401/401/429. Each of the four production
+verification logins was followed by confirmed logout, oldtoken403 and exact own
+admin_session rows0. These were real4INSERT+4DELETE auth writes on the shared DB,
+not excluded from global write facts; no user business data/plan/balance writes.
+No new SMS/model/XHS call, DDL, role grant, Git push or task switch occurred.
+
+External GET hashes match the original built Admin index
+`79e5fea9565c55fa0983c46f36a74b9561ad307cc2f8d0f80e40dacf09585edf`,
+appJS`f57f8562c8169acc01148c38a1d3c2f9e5c5a1ee2139449640eaa06478734357`,
+eventJS`df431d51e87fce9b9d57d80bd4ab626eb5114609e82705d82832d76764c7f04b`
+and pinnedECharts. CSP/no-store are actual public response headers. New Admin
+Nginx SHA59a3c15f24d858edd09d18e97639cf525afac1c92c9c7e971fe55d7136acb85c;
+unitdropin SHAb1d40ea4ba2e9d134916c2d5d3b517b979f58c693ad14001a76fcb0be402cb12.
+TLS notAfter2026-12-11T09:20:28Z; reuse original certificate timer, adding only this
+cert's renewal to its existing service. DNS adminA39.108.66.93; root/www unchanged.
+Publicweb3f47200/index692ab2a4 and API265481b/image20dc1636 are unchanged and healthy.
+Dedicated DB role noteai_admin_runtime and existing root0600 admin.env unchanged.
+
+A first live deployment successfully verified Admin but then used /health/ready
+against the restricted public API, causing a false failure and rollback. Preserve
+original deploy-result.json with UNKNOWN_AssertionError. Subsequent read-only
+reconcile proved old Admin healthy, API /health/live and /public/status200, public
+Admin route closed and no old Nginx draining worker; own session already removed.
+Corrected execution uses the existing allowed API health path, bounded verifier
+with exact owned-session cleanup, and does not freeze live user quota at6/6.
+It redeployed the SAME image; no rebuild or credential change. Corrected live/public
+results are VERIFIED. This failure and successful recovery are both historical facts.
+
+Recovery material: C `/var/lib/noteai/admin-public-20260912/` has original unit,
+bootstrap404 Admin config, certificate-service backup, verified source context,
+build/candidate/private logs, original failed deploy result, corrected-deploy-result.json,
+corrected-live-runtime-result.json and public-verification-result.json. Old Admin
+basefa0e658c is retained. To rollback: restore saved Admin404 config, nginx-t/reload
+and verify old workers drained; remove ONLY public-admin.conf override, restart
+ONLY noteai-admin.service and confirm original image/ready; restore saved certificate
+service if desired. Preserve root/www/API config and F. Do not rerun deploy scripts
+whose started/result files exist. Original source archive private OSS
+`noteai-private/admin-public/20260912/noteai-admin-public-696825c.tar.gz`,972285bytes,
+SHAe34601cde20e06374513e91dd7aa8bae447e3a7d97b4083c31e5780989b6800b.
+Local operational scripts under /private/tmp/noteai_admin_*.py and external HTTP
+readback /private/tmp/noteai-admin-public-http-20260912.json are supplementary;
+canonical recoverable application code/config is checkpoint696825c and server context.
+
+Known limitations: model/provider configuration and F log availability are honestly
+unobserved by this dedicated Admin (not global provider failure); financial zeros
+are real, not paid activity. Balance/status/plan edits, payment/refund, model/prompt
+mutation and crawler/task switches remain closed. Owner handles screenshots/upload;
+no Alipay receipt or screenshot requirement blocks this delivery. No new fixed fee;
+actual transfer/storage/egress increment remains within existing website reserve,
+unsettled amounts are not called zero. SMS/model reservations remain unchanged.
+18:39:33 read-only scheduler check: unique generation2 ACTIVE, next
+2026-09-12T13:36:18Z /21:36:18 Beijing; no recorded automation run; F not accessed.
+T0/fixed artifact/3d schedule untouched. Readiness remains30/37, no terminal credit.
+
+
 18:18 isolated verification: PostgreSQL16 dedicated-role tests4/4 PASS; Python3.11.15
 onlinux/amd64 with actual synthetic noteai_admin_runtime normal login→16 core GET200→
 logout oldtoken403 passed. Free quota12/used6/remaining6/wallet0; all60 synthetic-table
