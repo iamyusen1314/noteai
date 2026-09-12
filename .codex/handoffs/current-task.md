@@ -2,6 +2,20 @@
 
 ## September12 — owner-approved Admin password recovery in progress
 
+22:53 Chrome correction: owner explicitly directed Chrome control. Existing runtime
+liveAgent exposes healthy Chrome extension browser2/profile sam. Reuse adminChrome
+and chromeWorkbench; Chrome tab1637491606 is the original API-C Workbench1.0 SSM
+connection as root. The earlier request for owner to connect manually was premature
+and is superseded; this browser works. Owner only needs hidden credential entry.
+The first invocation reached getpass but owner reported incorrect input. Read-only
+Cloud Assistant at14:51:41.645594UTC proved result/backup absent, no reset process,
+Admin active and target sessions0: no production mutation occurred. After that
+reconcile, the same script was relaunched and its new-password prompt confirmed.
+It now awaits owner input/confirmation. Do NOT start another copy while pending.
+After submission read original password-reset-result.json and service state; do not
+blindly rerun. Workbench marked handoff; chromeResetConsole/tab1637491609 supports
+the original-result readback. No credential value is exposed in any tool output.
+
 22:48 continuation: checkpoint08ffa10 contains the tested recovery implementation.
 Cloud Assistant successfully installed/read back the script; it was NOT run with
 --apply. Workbench2.0 first returned an explicit remote-server timeout, the next

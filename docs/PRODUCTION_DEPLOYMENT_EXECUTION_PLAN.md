@@ -7,8 +7,10 @@ database credential, atomically replace root0600 config, revoke/read back with t
 existing dedicated role, then verify fresh login, old-password denial and logout.
 On an uncertain mutation, keep Admin stopped and reconcile the original operation;
 never restore old sessions or blindly retry. No public API/F/scheduler change.
-Aliyun login is restored; tested script staged on C, Workbench terminal connection
-recovery is in progress. Password/session mutation has not started. See Handoff top.
+Aliyun login is restored; tested script staged on C and actual Chrome Workbench is
+connected. Hidden password input awaits owner; an earlier invalid input was proved
+to have caused no mutation before restarting input. Do not duplicate the active
+invocation; read original result after submission. See Handoff top.
 
 September12 22:15: original Admin stays live; owner handles screenshots. Aliyun
 console now requires normal login (ConsoleNeedLogin), and the pending temporary

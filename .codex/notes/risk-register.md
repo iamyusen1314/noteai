@@ -3,8 +3,11 @@
 September12 Admin recovery: owner now explicitly approves only application password
 reset plus noteai_admin session revocation. Earlier credential-change exclusion
 does not block this operation. Reviewed/tested hidden-input script is staged on C;
-no production reset has started. Cloud login restored, initial Workbench connection
-timed out. Same image and dedicated role are retained; no database credential or
+no production mutation has started. Cloud login restored; in-app Workbench failed,
+but real Chrome works and now holds the hidden password prompt on API-C. Owner's
+first input mistake was reconciled: result/backup absent, no process, Admin active,
+sessions0. Only then was input restarted. Do not duplicate the pending invocation.
+Same image and dedicated role are retained; no database credential or
 permission change. Any uncertain reset keeps Admin stopped for original-result
 reconcile, with private root0600 backup; no old sessions are restored. Separate
 Item34 temporary SELECT recovery still requires the existing DMS owner channel.
