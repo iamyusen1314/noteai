@@ -2,6 +2,23 @@
 
 ## Current September12 afternoon — real product free release
 
+16:21Beijing: API-C private candidate env is prepared0600 (13allowlistedkeys,
+OTPdisabled), old unit/env/Nginx privately backed up; service still old. DMS app
+required-columnACL missing0/sessionDELETEtrue. RDS current usage84,263,682,048bytes,
+PaidBackupSize0 (request01A094AF-EAE0-56CF-8B8C-4AF734A14CF7); actual200GB general_essd
+(request01A094B0-B1AB-554F-9F0D-BE9D5FECFF33), policySnapshot/14days/logbackupON
+(request01A094B2-90C0-56C7-8472-C720F9BA3E58). Official freequota2xstorage=400GB:
+currentusage + conservative200GB singlebackup remains within existing allowance.
+One currentCreateBackup(Snapshot) is being dispatched before0021/22. Reconcile its
+original request/result; do not repeat creation afterUNKNOWN. No new subscription,
+resource or retention change; final bill remains unsettled, not claimed0.
+The priorDescribeLogBackupFiles result was notproofPG PITR: thatAPI describesSQLServer.
+Old snapshot3155863892 remains historical, not currentgen2 recoveryproof.
+Migrationrollback restoresAPI/config and preserves additive tables/cumulativeusage,
+never wholeDB rollback overgen2. NewtrialcallsFK blocks oldphysical-user-deletion
+worker oncecalls exist; deletionworker remains off and requires compatibility fix
+before future execution. No currentuserrow is rewritten by0021/22.
+
 15:56Beijing: public Chromium loaded original71047de and exercised manual/brief,
 idle/empty-report and phone-registration form without business requests. Browser
 traffic actually uses local127.0.0.1:1082 proxy; do not call this a directEIP proof.

@@ -2,6 +2,43 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+16:21Beijing: API-C private candidate env is prepared0600 (13allowlistedkeys,
+OTPdisabled), old unit/env/Nginx privately backed up; service still old. DMS app
+required-columnACL missing0/sessionDELETEtrue. RDS current usage84,263,682,048bytes,
+PaidBackupSize0 (request01A094AF-EAE0-56CF-8B8C-4AF734A14CF7); actual200GB general_essd
+(request01A094B0-B1AB-554F-9F0D-BE9D5FECFF33), policySnapshot/14days/logbackupON
+(request01A094B2-90C0-56C7-8472-C720F9BA3E58). Official freequota2xstorage=400GB:
+currentusage + conservative200GB singlebackup remains within existing allowance.
+One currentCreateBackup(Snapshot) is being dispatched before0021/22. Reconcile its
+original request/result; do not repeat creation afterUNKNOWN. No new subscription,
+resource or retention change; final bill remains unsettled, not claimed0.
+The priorDescribeLogBackupFiles result was notproofPG PITR: thatAPI describesSQLServer.
+Old snapshot3155863892 remains historical, not currentgen2 recoveryproof.
+Migrationrollback restoresAPI/config and preserves additive tables/cumulativeusage,
+never wholeDB rollback overgen2. NewtrialcallsFK blocks oldphysical-user-deletion
+worker oncecalls exist; deletionworker remains off and requires compatibility fix
+before future execution. No currentuserrow is rewritten by0021/22.
+
+16:05Beijing: original frontend4218070 is LIVE. API-C verified all8 served SHA,
+then both external root/www returned277801bytes indexSHA
+541600d534cb5da4898070ac12931699a05830686fd6a438eb8085d3d685c464.
+Private deployment stage/var/lib/noteai/public-product-4218070; immediate rollback
+link is71047de (earlierbcaf587 remains). API candidate9941c85 is actually loaded onC:
+Docker image IDsha256:ff0da7f6232d31cf916b34dd9b4154f240e99cf31fdee1e148b2fb419731a798,
+trueOCI9941c85/Linux/amd64, tarSHAa2f4edf…36b56b matched. This host's classicDocker
+image ID is the config hash, not localcontainerd indexf074… or a registrydigest.
+No API service replaced, no productionDB write/SMS/model call, no Item34change.
+DMS fresh exactcolumn check returned missing_column_count=0/session_delete=true.
+Single-DO exact0021/22 SQL prepared at/private/tmp/noteai_public_0021_0022_apply.sql,
+SHA4d4f3856b8f6b6e6d35848d77e0476dc9360016253fae4313e257641b4c09eab.
+IndependentPG16 tested complete/partial-failure atomicrollback, original19SHA,
+0018absence and budget/ACL consistency; TIMESTAMPTZ/TEXT applied_at both work.
+DMS must submit the entireDO as ONEstatement, no multi-connection BEGIN/COMMIT.
+InsideDO statement_timeout does not guarantee an outer30second timer; do not claim it.
+Currentbackup metadata found successfulavailable RDSsnapshot3155863892 completed
+2026-09-11T13:05:47Z; WAL/PITR and affected-auth backup are still being checked.
+
+
 15:56Beijing: public Chromium loaded original71047de and exercised manual/brief,
 idle/empty-report and phone-registration form without business requests. Browser
 traffic actually uses local127.0.0.1:1082 proxy; do not call this a directEIP proof.
