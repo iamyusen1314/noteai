@@ -1,6 +1,43 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September12 static publication in progress — recovery state
+## September12 10:40 Beijing — public website is live; SMS remains closed
+
+https://noteaipro.com/ and https://www.noteaipro.com/ now return HTTPS 200.
+Both domains serve the exact three-file daac49f artifact: index SHA256
+9fcbd9678ac4034e6972d14e64db0d18216ba47ebbe9d1c48d3e479e99f6601b;
+CSS 6c71b8f7da799b20011c0a83deda85d71dea26573015eec499cc5773a6207487;
+JS 59ba9374c7dfd7d709ac716afbb2176433759da59cdfac6b17fdbc34ad3f3db5.
+Real public browser verified the example step switch and truthful closed account
+status. Both domains reject /admin, /notes/track-url, /.env, /auth/register with404.
+No account service has been deployed or SMS sent yet; no production DB mutation.
+
+API-C existing root passwordless login recovered without owner intervention.
+Reconcile proved previous malformed heredoc did not install or start anything.
+Actual OS hostname is noteai-api-c (console label noteai-prod-api-c); the helper
+and installer were corrected to that exact hostname before application, six budget
+tests passed. Installed helper SHA256
+e2744b024429ae792c198ad516ea5f03a4e82ed62fbe7a023e68a602272b84d4.
+Initial durable reservation 67108864 bytes, limit10GiB; Nginx and dedicated budget
+timer started. No change to the old API/Admin containers or API-F/Item34.
+
+Let's Encrypt certificate issued for exactly root/www, expires2026-12-11.
+Private key remains host-only. Full scoped Nginx configuration applied after
+nginx -t; noteai-public-certificate.timer checks only this certificate. This is
+website HTTPS maintenance, not restoration of paused business schedulers.
+Original Nginx configuration is backed up at
+/var/lib/noteai/public-website-daac49f/nginx.original.conf; bootstrap backup is
+nginx-before-https.conf in the same directory. Stop only nginx to retract public
+service; preserve the budget ledger on rollback. DNS/SG objects are recorded below.
+Actual incremental bill is unsettled, not zero; maintain22yuan web/5setup/60SMS/13margin.
+
+Fresh PNVS functions page shows SMS authentication NOT ENABLED, even though gift
+signatures/templates are displayed. Other phone/graphic/fusion service switches are
+not part of this task and were left unchanged. PNVS hard global send limit remains
+unconfirmed; standard SMS has documented day/month suspension caps. Continue the
+SMS choice/configuration and durable adapter work; do not claim live registration.
+Readiness remains30/38. Generation2 original T0/image/schedule are unchanged.
+
+## Historical September12 static publication recovery state (superseded above)
 
 Website sourcecheckpointdaac49f; productionapplication notyetstarted. Installed
 Nginx1.30.4 fromAlibabaLinux signedrepo and Certbot5.8.0 in/opt/noteai-certbot.

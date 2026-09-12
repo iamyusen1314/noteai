@@ -11,10 +11,13 @@
   unsettled-usage reservation. No new recurring resources; alerts alone are insufficient.
 - Preserve generation2 observation/unique schedule and account for all concurrent
   auth writes honestly. SMS approval/MFA may block registration, not static website.
-- PNVS approved gift100001 is present, but platform hard send cap and real delivery
-  are unverified. Account status must remain closed until actual readiness. Static
-  website/demo are independent; mailto deletion is explicit human submission, not
-  immediate retention mutation. API-C no webserver/cert and.com DNS0 at02:00Z.
+- Root/www public HTTPS and static examples are now live; exact artifact hashes and
+  denied business routes verified. Nginx has a durable10GiB egress cap; certificate
+  expires2026-12-11 with a scoped renewal timer. Settled incremental bill is unknown.
+- PNVS gift100001 is present but its SMS service switch is off; global hard send cap
+  remains unconfirmed. Registration stays closed. Complete a provider with actual
+  platform and application caps before sending. Deletion mailto requires the user
+  to send the request; it does not mutate Tracking or claim instant deletion.
 
 ## September12 — website review readiness
 

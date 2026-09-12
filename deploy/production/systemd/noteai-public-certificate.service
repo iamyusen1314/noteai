@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew only the NoteAI public website certificate
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/systemctl is-active --quiet nginx.service
+ExecStart=/opt/noteai-certbot/bin/certbot renew --cert-name noteaipro.com --non-interactive --quiet --deploy-hook "/usr/sbin/nginx -t && /usr/bin/systemctl reload nginx.service"

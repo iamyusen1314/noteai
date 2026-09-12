@@ -110,7 +110,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--initialize', action='store_true')
     args = parser.parse_args()
-    if os.geteuid() != 0 or socket.gethostname() != 'noteai-prod-api-c':
+    if os.geteuid() != 0 or socket.gethostname() != 'noteai-api-c':
         raise SystemExit('web budget is restricted to API-C root')
     try:
         result = tick(initialize=args.initialize)

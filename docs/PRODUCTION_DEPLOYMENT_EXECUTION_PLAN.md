@@ -1,6 +1,22 @@
 # NoteAI Production Deployment Execution Plan
 
-## Current scoped static publication on API-C
+## September12 live static publication result
+
+Root and www HTTPS are live on existing API-C. Public three-file artifact remains
+source daac49f; deployed web helper now checks actual hostname noteai-api-c.
+Nginx, persistent 10GiB egress cap and scoped certificate renewal timer are enabled.
+Certificate expires2026-12-11; key stays on host. Public checks verified both domains,
+all three artifact hashes, truthful closed registration status and denied business
+routes. No production database, account API, payment or Tracking deployment occurred.
+Rollback: stop only nginx; restore its saved config/current symlink if necessary,
+validate before restarting, and never reset the durable budget ledger. DNS and the
+C-only SG can be reverted by their exact objects below if a full retraction is needed.
+Next: finish actual SMS platform hard caps and adapter, PG16 verification, compatible
+backed-up auth changes and scoped account deployment; then consented end-to-end test.
+PNVS SMS switch is currently off; gift assets alone did not prove service activation.
+Readiness30/38. No Item34 generation2 changes.
+
+## Static publication implementation and recoverable inputs
 
 Candidate website checkpointdaac49f: public/index.html,site.css,site.js only.
 Use existingC/EIP39.108.66.93, install distro-signedNginx and officialCertbot in a

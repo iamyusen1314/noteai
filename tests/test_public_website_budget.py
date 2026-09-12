@@ -71,7 +71,7 @@ class WebsiteBudgetTests(unittest.TestCase):
         self.assertEqual(self.state()['reserved_bytes'], budget.BLOCK)
 
     def test_io_failure_stops_only_nginx_even_without_kernel_enforcement(self):
-        with mock.patch.object(budget.socket, 'gethostname', return_value='noteai-prod-api-c'), \
+        with mock.patch.object(budget.socket, 'gethostname', return_value='noteai-api-c'), \
              mock.patch.object(budget.os, 'geteuid', return_value=0), \
              mock.patch.object(budget, 'tick', side_effect=OSError('ledger unavailable')), \
              mock.patch.object(budget.subprocess, 'run') as stop, \
