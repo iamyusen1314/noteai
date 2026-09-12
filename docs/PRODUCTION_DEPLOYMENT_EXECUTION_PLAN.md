@@ -2,6 +2,32 @@
 
 ## Current September12 afternoon — real product free release
 
+Frontend71047de is now live on C after actual8file SHA and nginx checks;
+first reload-race failure rolled back, corrected bounded worker readback passed.
+Rollbackbcaf587 and exact private backup remain. API and production schemas unchanged.
+Browser verification and actual owner/backup/migration checks continue.
+
+Current product rollout supersedes the historical account-only startup instructions
+below. Reuse candidate9941c85 without rebuilding for unit/document changes. API-C
+cloud-assistant readback at15:31Beijing confirms noteai-api.service active, exact
+unit/etc/systemd/system/noteai-api.service, no drop-ins, UID999:999, loopback8000,
+and /var/lib/noteai/data:/app/model/data RW. Old image is
+sha256:dd955f9e736fc00df471f39de6e483ed0873f5855cc0ffffc074823845fefd53.
+The existing systemd/noteai-public-account-api.conf.template is now product-scoped:
+product=1, retries=1, model validation on, original data mount retained; no scheduler,
+durable dispatcher, billing test or migration-on-start. Derive its root0600 env only
+on C from existing DATABASE_URL, MOONSHOT_API_KEY, required private-storage inputs,
+exact public origins and OTP inputs. Never inherit Claude/fact/payment/XHS secrets.
+Before API switch: privately back up actual unit/env/Nginx and migration/auth state;
+read actual owner/ledger/ACL and locks; only0021/0022 may be pending. Use the existing
+transaction/checksum migration mechanism without render_predeploy.py's additional
+Prompt baseline writes. Enable only fixed50000milli model budget under this owner
+scope; SMS10000milli remains disabled until approved sign/template and private test.
+Validate the API privately before the exact proxy includes; restore original unit/
+image/config on failure and preserve additive schema and cumulative reservations.
+Production owner/backup/ACL/application and complete API image transfer are pending.
+
+
 Saved runtimecheckpoint9941c85ab540f788b6981795310fc684331419b5; full candidate
 noteai-local/public-product:9941c85 local image/index
 f074b9e166c1c39466f0a660c3b01933bd52c0252972d8374dce02280c0f8004,
@@ -17,7 +43,7 @@ Frontend checkpoint71047de includes original UI/error/idle/closed-control fixes
 and repeatable asset packaging; strict-CSP browser checked the actual dist bundle.
 Web archive/private/tmp/noteai-original-product-71047de.tar.gz,2174249bytes,
 SHA9bf3727cb899a03bdcac38af79c9c7a347c7168a35cf81f72ae43d971be8283a.
-Pending production0019/0020/T0 unaffected. Current unapplied0021 SHA
+Existing production0019/0020/T0 unaffected. Current unapplied0021 SHA
  d840fdf167805341688f2266cd333bdb81c64a4eed7bedc63776dcf4e4870fc9;
 0022 SHA1e2ff550215f63d7942c54ada54cf3b3467de26bac6e4462d74cc720aadf46d6.
 These supersede only future application inputs, not any prior applied ledger.

@@ -2,18 +2,29 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
-Website transfer is PATH_BLOCKED by Workbench transport, not an owner-password
-request. API-C normal root session was restored with existing passwordless access,
-but file manager kept an expired old session; new tab later reported server timeout.
-Using original authenticated terminal sent archive89exclusive parts to
-/var/lib/noteai/public-product-71047de/parts; last observed acknowledgmentPART_046.
-Later47–88 and metadata command have no observed result yet: reconcile files first,
-never assume upload complete or overwrite received parts. Archive assembly and
-website switch have NOT run. Current public site stillbcaf587; no API/DB/Item34 change.
-Existing ECS cloud-assistant command page for onlyAPI-C is the next recovery path.
-Local exact apply script/private/tmp/noteai_original_product_apply.py has hash,
-host/current-config/current-symlink assertions, nginx syntax check, 8servedfile hash
-verification and config/symlink rollback; not executed remotely.
+Original product frontend71047de is now LIVE on API-C. Cloud assistant completed
+exact raw-tar SHA8c1ac57c2b90777bb1d4c95d515f720dc132c7abf1631700c2e893f8045af865,
+nginx syntax and all8 served-file SHA checks; index
+6d02bd21fda65d09bea433e08da3cfed6e5c043a1f60b9c6f64552379bedec60.
+Transfer recovered from received48part prefix + unchanged public Git LFS image
+at429b55a (same d4661a4d SHA) + original tar tail. Incomplete parts remain untouched;
+no source downgrade or image rebuild. The first raw URL returned an LFS pointer,
+then45s media transfer timed out; neither reached publication. First complete
+apply hit404 immediately after asynchronous nginx reload and rolled back. Current
+helper waits boundedly for allnew-worker served hashes; second apply passed.
+Existing cloud-assistant command history retains failures and success. Public
+browser verification follows. No API replacement/DB write/SMS/model call/Item34
+change. Current web link/var/www/noteai-public/71047de; rollback targetbcaf587 and
+private backups in/var/lib/noteai/public-product-71047de. Helper remains at
+/private/tmp/noteai_original_product_apply.py; UNKNOWN must reconcile, not rerun.
+
+API-C readback: noteai-api.service active, no drop-ins, loopback8000, UID999:999,
+original data mount/var/lib/noteai/data:/app/model/data RW and olddd955f9image.
+Updated existing unit template restores this mount, enables product/model checks
+and one provider attempt, no scheduler/migration-on-start. Candidate image itself
+remains9941c85. DMS existing noteai_admin session works after dismissing optional
+new service-role/audit prompts; no new role granted. Metadata preflight is read-only,
+full row/hash reconciliation in progress; no0021/0022apply yet.
 
 Saved runtimecheckpoint9941c85ab540f788b6981795310fc684331419b5; full candidate
 noteai-local/public-product:9941c85 local image/index
