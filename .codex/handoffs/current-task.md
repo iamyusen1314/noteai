@@ -22,6 +22,38 @@ original UI, ledger/config/task mechanisms and existing deploy/recovery tooling;
 no new audit platform, acceptance layers or Readiness credit for local preparation.
 Implementation continues fromef06f8b with only seven protected untracked paths.
 
+## September13 01:22 Beijing — scoped Admin deployment IN_PROGRESS
+
+Current source candidates remain2159d47; recovery checkpoint369d9bc adds only the
+API-C model-config binding/template, precise implementation record and worker-role
+regression. Both actual C/linuxamd64/Python3.11.15 candidates are VERIFIED and stopped.
+Original candidate failures remain nested in candidate-result.json: missing optional
+ADMIN_USERNAME (defaultnoteai_admin), incorrect health/ready probe (public mode404,
+health/live200), and probe SELECT of migration ledger (app correctly has no SELECT).
+These were probe corrections; no role broadening, weaker business success test or
+candidate image rebuild. Admin normal login, all scoped queries/capabilities and
+logout passed; API config resolves defaults and confirms all12 actual DB Prompts.
+
+Original prompt_manager.apply_versioned_baseline executed ONCE using the already
+permitted noteai_app role at01:16:18Beijing. Preflight source/module hashes matched,
+original managed/history/marker0/0/NULL. Result inserted12,updated0; independent
+candidate process confirms12already_current, sourcekey/version/UTF8 hashes match.
+Actual writes12managed rows+1existing-style marker, historydelta0; no provider,
+SMS or Tracking writes. Original result /var/lib/noteai/admin-operations-2159d47/
+prompt-baseline-result.json; do not reapply or replace with all-migrations predeploy.
+
+Deploy script /var/lib/noteai/admin-operations-2159d47/deploy.py,11746bytes,
+SHA256d0e904077b77bb70d97c6921d920229a019144f03fbd1a570b70156f3b686705,
+compiled successfully and launched ONCE via current API-C Cloud Assistant at~01:22.
+Current UI result17 is in progress. Read original deploy-result.json/log/session
+state; DO NOT launch again. Script retains exact before unit/proxy/web inputs,
+briefly gates backend ingress and drains original Nginx workers/provider calls,
+then replaces only C API/Admin, verifies actual roles/login/logout, publishes original
+Admin compiledweb and restores ingress. Public static frontend and F remain intact.
+Result handling/rollback preserves concurrent facts; if new owner actions occurred,
+old API cannot silently discard new enforcement. Other Item automation unchanged.
+Readiness30/37, original budgets, protectedpaths and no Git push unchanged.
+
 ## September13 00:34 Beijing — original Item34 ACL restored; Admin implementation continues
 
 Owner restored the existing DMS database login. Actual SQL role noteai_admin and
