@@ -2,6 +2,16 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+### 2026-09-12 17:43 北京时间：短信替代与真实账户/免费结果链路完成
+
+当前实际发布：前端 `3f47200c8c1a0aea78766c2441ca591ef6267d39`，API `265481b66c8be95dc5b81b6d7d47d031fbabdac5` / image20dc1636…971b4。前端两域名HTTPS已按真实hash读回：index `692ab2a406e4716f8bec76e625b72344c367a947733017d4958ab8a11ddc0c18`、app `5ba63fb564067b66d6f1f31e2286ca666f73a455e3e8206d20fdf1ea9fc33302`；真实浏览确认静态回退卡片显示文字范围，消除了下方17:35记录的暂时文案缺口。它不是重新设计展示站；原产品保留。C `/var/lib/noteai/public-product-3f47200/web-result.json` 为原结果6，回滚web745d7e8，不需更动API或数据库。
+
+DMS最后只读：同一测试账户count1、active_sessions1；register_phone/login_phone两挑战均consumed=true、wrong_attempts0。Owner授权代填第二次收到验证码后，正常再次登录显示相同账户6积分，并从本人历史读回唯一真实诊断及报告，无新模型调用、重复建号或重复赠送。注册、真实短信送达、创建用户、原12积分→真实报告→扣6积分、退出、再次登录、本人报告读回均有真实结果；离线PG16覆盖错误/过期/重用/并发/隔离等边界，未把离线当生产跨用户访问实测。
+
+SMS累计2条/120milli预留；第二条accepted/OK，第一条原UNKNOWN与后来官方成功回执分别保留。模型17次responded/200、44030milli保守预留，页面用量估计0.3113元但非最终账单；不清零或挪用Item34预算。保守剩余模型容量只有5.97元，公开试用受此硬上限约束，不能承诺下一次多阶段任务必能完成；这仍是后续成本核算/容量改善的具体限制，不因完成本轮短信验证而掩盖。达到额度必须停止相应调用，不能自动追加费用。
+
+当前没有部署、DDL、短信或模型请求在途；没有Git push，保护7路径未触碰。原Item34 gen2固定产物/T0/唯一观察任务未修改或提前采样。Readiness完成数仍30；本链路不计Item31/34/37/38完成，也不将Item35撤销算审核通过。用户当前无需再处理标准短信法人年龄资质或提供ACR密码。本轮号码认证替代已实装并验证，普通支付/媒体/Tracking/Admin仍按原服务端范围拒绝。
+
 ### 2026-09-12 17:41 北京时间：真实再次登录已完成，短信解析兼容更新已生效
 
 API现为 `265481b66c8be95dc5b81b6d7d47d031fbabdac5`，实际镜像 `sha256:20dc1636b6a270634d5f67c491c028013b2564601fdea0b75583dab42bf971b4`；仅在745d7e8基镜像上替换sms_delivery.py，准确代码SHA `9b2a9bd2dda8f893706bb62c5e14d700721aa0d177ff156ce25410bf59200f43`，未重建其他业务。C `/var/lib/noteai/public-product-265481b/` 保留原dropin与实际candidate/result；单文件构建/部署脚本 `/private/tmp/noteai_pnvs_reference_deploy.py` SHA `6fbe5975d699c7d6e7d6d9f6259d310d91b5c200ba4bae68580f4cf3028e16b5`，当前dropin SHA `c7a2abf9b4927aad2c7bc42a0f58f2d9f4774a99fc7730f33b5d96d181948e23`。云助手结果5成功，切换前模型dispatched=0，私网正常候选健康、代码哈希和Python3.11检查通过。前端仍745d7e8。
