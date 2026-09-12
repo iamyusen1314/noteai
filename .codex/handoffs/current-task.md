@@ -1,5 +1,31 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 — website availability for WeChat Pay application
+
+Owner asks whether merchant review needs the website and how to handle its current
+unavailability. This is a requirements/readiness inquiry, not public DNS or deployment
+approval. Alipay application remains owner-managed; Item34 generation2 is unchanged.
+Official Native application guidance requires the PC website URL and ICP filing:
+https://pay.wechatpay.cn/doc/v3/merchant/4012791875 . It does not state that every
+Native application receives a manual homepage visit. H5 has separate explicit public
+website/homepage/service screenshot requirements; do not impose those as Native rules:
+https://pay.wechatpay.cn/doc/v3/merchant/4012791841 .
+
+At 2026-09-12T01:06:01.966827Z, bounded HEAD probes to root HTTPS, root HTTP and
+www HTTPS, without retries or redirect following, returned no HTTP response
+(curl35/52/35). Resolver targets were local proxy-range198.18.0.16/17, so these
+prove only failure through this host's path, not the authoritative cloud cause.
+September9 console evidence of root DNS absent and ALB0 remains LAST_KNOWN,
+indexed in the existing execution plan; no cloud configuration was changed.
+
+Suggested next scope: reuse existing static frontend/service/pricing material to
+prepare a truthful public product-information surface, confirm the approved legal
+entity/filing/contact details, and inspect the current hosting/DNS/TLS path before
+proposing its bounded publication. Keep purchase disabled and describe availability
+honestly. A holding page alone is not evidence of actual services; acceptance still
+depends on the submitted scenario and review. No new site, resource, payment request,
+business write or automation was created; Readiness remains30/38.
+
 ## Current payment onboarding request — 2026-09-11 22:05 Beijing
 
 Owner reports ICP filing completed and WeChat Pay application in progress, and

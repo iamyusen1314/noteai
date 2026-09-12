@@ -1,5 +1,16 @@
 # Risk Register
 
+## September12 — website review readiness
+
+- Native application needs the filed PC website URL; the explicit H5 screenshot
+  checklist is a separate product requirement. Do not promise approval from a
+  static page or assume a manual homepage visit on every application.
+- Root/www HEAD checks failed through this host's proxy path; current authoritative
+  DNS/TLS/hosting cause is unverified. September9 cloud configuration is LAST_KNOWN.
+- Existing product pages can support preparation, but legal entity, actual filing
+  number, contact details and accurate service availability need confirmation before
+  publication. Owner has not authorized public DNS/traffic changes through this inquiry.
+
 ## September11 — Alipay onboarding and owner-reported ICP completion
 
 - ICP completion is owner-reported; exact filing approval subject/number is not yet
