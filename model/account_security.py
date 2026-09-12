@@ -1,9 +1,7 @@
 """Account security contracts that are safe to exercise without real providers.
 
-The OTP delivery adapter is deliberately disabled by default. ``test`` mode is
-available only outside a production deployment stage and never returns a code
-through an API response. Production SMS/email delivery remains a later,
-separately approved integration.
+Delivery is disabled by default. ``test`` is explicit non-production only;
+the public phone release uses a bounded, durable Aliyun standard-SMS dispatch.
 """
 from __future__ import annotations
 
@@ -16,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import db
+import sms_delivery
 
 
 PASSWORD_MIN_LENGTH = 10
@@ -194,6 +193,10 @@ def issue_verification(
     if normalized_channel not in _ALLOWED_PURPOSE_CHANNELS.get(normalized_purpose, set()):
         raise ValueError("验证用途与渠道不匹配")
     normalized_destination = _contact(normalized_channel, destination)
+    if os.environ.get("NOTEAI_OTP_MODE", "disabled") == "aliyun_sms":
+        if normalized_channel != "phone" or normalized_purpose not in {"register_phone", "login_phone"}:
+            raise VerificationDeliveryUnavailable("本阶段仅开放手机号注册与登录验证")
+        return _issue_live_sms(normalized_destination, normalized_purpose, requester_fingerprint)
     destination_hash = _digest(normalized_channel, normalized_destination)
     requester_hash = (
         _digest("requester", requester_fingerprint)
@@ -275,6 +278,89 @@ def issue_verification(
     }
 
 
+def sms_available() -> bool:
+    """Availability does not initialize credentials or call a provider."""
+    try:
+        sms_delivery.configuration()
+        row = db.fetchone("SELECT * FROM auth_sms_budget WHERE id=?", (sms_delivery.BUDGET_ID,))
+        count = db.fetchone(
+            "SELECT COUNT(*) AS c FROM auth_sms_deliveries WHERE created_at>=?",
+            (_iso(_now() - timedelta(days=1)),),
+        )
+        return bool(row and row["enabled"] == 1
+                    and row["reserved_milli_cny"] + sms_delivery.RESERVE_MILLI_CNY <= row["limit_milli_cny"]
+                    and row["limit_milli_cny"] <= sms_delivery.TOTAL_MILLI_CNY
+                    and count["c"] < sms_delivery.DAILY_SEND_LIMIT)
+    except Exception:
+        return False
+
+
+def _issue_live_sms(destination: str, purpose: str, requester: str) -> dict[str, Any]:
+    try:
+        config = sms_delivery.configuration()
+    except ValueError:
+        raise VerificationDeliveryUnavailable("短信服务尚未就绪") from None
+    if not requester:
+        raise VerificationDeliveryUnavailable("无法确认请求来源")
+    destination_hash, requester_hash = _digest("phone", destination), _digest("requester", requester)
+    challenge_id, salt = str(uuid.uuid4()), secrets.token_hex(16)
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    code_hash = hashlib.pbkdf2_hmac("sha256", code.encode(), salt.encode(), 50_000).hex()
+    # Every live instance locks the same budget row. A successful commit is the
+    # only path to the HTTP dispatch; an uncertain commit causes no send.
+    with db.transaction(write=True) as tx:
+        row = tx.fetchone("SELECT * FROM auth_sms_budget WHERE id=?" + (" FOR UPDATE" if tx.postgres else ""),
+                          (sms_delivery.BUDGET_ID,))
+        if (not row or row["enabled"] != 1 or row["limit_milli_cny"] > sms_delivery.TOTAL_MILLI_CNY
+                or row["reserved_milli_cny"] + sms_delivery.RESERVE_MILLI_CNY > row["limit_milli_cny"]):
+            raise VerificationDeliveryUnavailable("短信服务额度已暂停，请联系客服")
+        now = _now()
+        for column, value, limits in (
+            ("destination_hash", destination_hash, ((60, 1), (3600, 5), (86400, 10))),
+            ("requester_hash", requester_hash, ((60, 1), (3600, 10), (86400, 30))),
+        ):
+            for seconds, maximum in limits:
+                count = tx.fetchone(
+                    f"SELECT COUNT(*) AS c FROM auth_verification_challenges WHERE {column}=? AND created_at>=?",
+                    (value, _iso(now - timedelta(seconds=seconds))),
+                )
+                if count["c"] >= maximum:
+                    raise VerificationRejected("验证码请求过于频繁，请稍后再试")
+        count = tx.fetchone("SELECT COUNT(*) AS c FROM auth_sms_deliveries WHERE created_at>=?",
+                            (_iso(now - timedelta(days=1)),))
+        if count["c"] >= sms_delivery.DAILY_SEND_LIMIT:
+            raise VerificationDeliveryUnavailable("今日短信额度已暂停，请稍后再试")
+        tx.execute("UPDATE auth_sms_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
+                   (sms_delivery.RESERVE_MILLI_CNY, sms_delivery.BUDGET_ID))
+        tx.execute(
+            "INSERT INTO auth_verification_challenges("
+            "id,channel,destination_hash,destination_masked,purpose,code_hash,code_salt,"
+            "created_at,expires_at,consumed_at,attempt_count,max_attempts,requested_by_user_id,requester_hash) "
+            "VALUES(?,'phone',?,?,?,?,?,?,?,NULL,0,?,NULL,?)",
+            (challenge_id, destination_hash, _mask_contact("phone", destination), purpose, code_hash, salt,
+             _iso(now), _iso(now + timedelta(minutes=OTP_TTL_MINUTES)), OTP_MAX_ATTEMPTS, requester_hash),
+        )
+        tx.execute("INSERT INTO auth_sms_deliveries(challenge_id,budget_id,provider,state,reserve_milli_cny,"
+                   "created_at,updated_at) VALUES(?,?,'aliyun_sms','reserved',?,?,?)",
+                   (challenge_id, sms_delivery.BUDGET_ID, sms_delivery.RESERVE_MILLI_CNY, _iso(now), _iso(now)))
+    result = sms_delivery.send(config, phone=destination, code=code, challenge_id=challenge_id)
+    del code
+    try:
+        with db.transaction(write=True) as tx:
+            tx.execute("UPDATE auth_sms_deliveries SET state=?,provider_code=?,provider_request_id=?,"
+                       "provider_biz_id=?,updated_at=? WHERE challenge_id=? AND state='reserved'",
+                       (result.state, result.code, result.request_id, result.biz_id, _iso(_now()), challenge_id))
+    except Exception:
+        # Keep the original challenge and reservation after a result-store outage.
+        # A received random code can still prove control; never send it again.
+        if result.state != "rejected":
+            result = sms_delivery.DeliveryResult("unknown", "RESULT_STORE_UNKNOWN")
+    if result.state == "rejected":
+        raise VerificationDeliveryUnavailable("短信未能发送，请稍后再试或联系客服")
+    return {"challenge_id": challenge_id, "delivery": "sms" if result.state == "accepted" else "sms_unknown",
+            "destination_masked": _mask_contact("phone", destination), "expires_in_seconds": OTP_TTL_MINUTES * 60}
+
+
 def consume_verification(
     *,
     challenge_id: str,
@@ -343,6 +429,11 @@ def verify_verification_with_storage(
         >= int(row["max_attempts"] or OTP_MAX_ATTEMPTS)
         or (row["requested_by_user_id"] or None) != (requested_by_user_id or None)
     ):
+        raise VerificationRejected(generic_error)
+    delivery = storage.fetchone("SELECT state FROM auth_sms_deliveries WHERE challenge_id=?", (row["id"],))
+    requires_live = (os.environ.get("NOTEAI_OTP_MODE") == "aliyun_sms"
+                     or (os.environ.get("NOTEAI_PUBLIC_ACCOUNT_ONLY") == "1" and _deployment_stage() == "production"))
+    if (delivery and delivery["state"] == "rejected") or (requires_live and not delivery):
         raise VerificationRejected(generic_error)
     supplied_hash = hashlib.pbkdf2_hmac(
         "sha256",

@@ -1,5 +1,67 @@
 # NoteAI Production Deployment Execution Plan
 
+## September12 account-only candidate and SMS deployment inputs
+
+Public website is already live; account rollout is separate. Use standardDysms,
+not PNVS gift templates. Actual platform hard caps100/day,1000/month; automatic
+package repurchaseOFF. No SMS sent. Qualification form requires owner identity
+documents and phone verification; complete approved signature and single-segment
+template before real sending. Current official price0.045yuan/segment:
+https://help.aliyun.com/zh/sms/product-overview/notice-on-price-adjustment-for-domestic-sms-services-2604
+Reserve0.06yuan/admission with a fixed60yuan cumulative application budget and
+100 rolling24h limit. Unknown/failed reservations remain charged; no retry/refund.
+Platform hard-stop reference:
+https://help.aliyun.com/zh/sms/user-guide/configure-alerting-for-messages
+
+Candidate build uses deploy/production/Dockerfile.public-account and existing
+linux/amd64 Python3.11.15 API base ID
+sha256:4893fe0f2fcbaf8f1bdbe8d8264a5eead3972022da10eb39c5714a72b826cb7a
+(noteai-local/api:f3deedb). Verify ID, then overlay only committed runtime source
+from an allowlisted build context; label its actual source commit. No new package
+download, XHS image rebuild or production registry digest fabricated in preparation.
+Run the normal inherited entrypoint/CMD in the isolated PG16 network, using
+production account mode with synthetic DB only. Keep the app disabled until real
+SMS configuration, budget state and scoped readback pass.
+
+Production target is only API-C i-wz9j36od3nf2b1uw7bvg / noteai-api-c. Actual RAM
+role-name readback noteai-storage-api-20260729-c60cc608; actual Docker gateway
+172.17.0.1 must be the sole trusted proxy. Existing API-F/Tracking remains untouched.
+Prepared public-account.sms-policy.json allows onlydysms:SendSms, constrained to
+C's egress IP; verify actual service-seen egress and role association before attach.
+No new RAM identity/long-lived key. Use explicit IMDSv2; never print credential values.
+Official SendSms source-IP policy reference:
+https://help.aliyun.com/zh/sms/custom-permission-policy-reference
+
+0021_public_account_sms_budget.sql SHA256
+f10b7b5a43ee2e7d36e8c962dfd8d3c4a9b5bbff3a592a6b0d444d1a19f5ae60
+is additive and NOT production-applied. Before application, use existing owner
+connection/recovery path to verify migration state, actual inherited/default ACL,
+auth/Tracking compatibility and a recoverable backup of affected auth schema/data
+and migration ledger. Keep all real auth writes in global accounting. Apply once
+with the existing migration mechanism, then read back ledger/tables/column grants;
+UNKNOWN means reconcile the original transaction, not a blind replay. Schema leaves
+budget disabled. Owner deployment may enable only the fixed budget before the
+consented private test. Retain original challenge/delivery and monotone reservations.
+
+Use existingC noteai-api.service with the prepared account-only drop-in; back up
+its exact current unit/drop-ins/image and Nginx configuration first. Derive a new
+root0600 /etc/noteai/public-account.env host-side containing only existing DATABASE_URL,
+approved origins, actual SMS sign/template/role and confirmed cap/segment inputs;
+no AI/payment/XHS credentials. Do not run the all-role secret distribution pipeline.
+Private loopback8000 only, nonroot/read-only container, bounded CPU/memory/logs,
+no model or scheduler startup. Validate /health/live, status, auth rejection and
+unopened business routes before including public-account.locations.conf in HTTPS;
+replace only the static /public/status location and preserve default404/staticfiles.
+Nginx overwrites client-supplied forwarding headers. Access logs remain disabled.
+
+After actual approved template and minimum permission, test with only owner or a
+consented number: send/verify/register/me/logout/login, wrong/expired rejection and
+business404. No fake receipt or registration_open claim before these real results.
+On failure close SMS via fixed budget enabled=0, return Nginx to static-only status,
+restore exactC unit/image if necessary; preserve additive schema and all budget/
+challenge/history rows. Do not drop data or reset budget. No API-F/global task change.
+Offline37-test result is recorded in Handoff; Readiness30/38.
+
 ## September12 live static publication result
 
 Root and www HTTPS are live on existing API-C. Public three-file artifact remains

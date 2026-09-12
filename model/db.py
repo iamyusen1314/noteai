@@ -1906,6 +1906,33 @@ CREATE INDEX IF NOT EXISTS idx_auth_verification_requester
     ON auth_verification_challenges(requester_hash,purpose,created_at DESC)
     WHERE requester_hash <> '';
 
+CREATE TABLE IF NOT EXISTS auth_sms_budget (
+    id TEXT PRIMARY KEY CHECK (id = 'website-accounts-20260912'),
+    limit_milli_cny INTEGER NOT NULL CHECK (limit_milli_cny BETWEEN 60 AND 60000),
+    reserved_milli_cny INTEGER NOT NULL DEFAULT 0
+        CHECK (reserved_milli_cny >= 0 AND reserved_milli_cny <= limit_milli_cny),
+    enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0,1))
+);
+INSERT OR IGNORE INTO auth_sms_budget(id,limit_milli_cny)
+    VALUES ('website-accounts-20260912',60000);
+CREATE TABLE IF NOT EXISTS auth_sms_deliveries (
+    challenge_id TEXT PRIMARY KEY REFERENCES auth_verification_challenges(id),
+    budget_id TEXT NOT NULL REFERENCES auth_sms_budget(id),
+    provider TEXT NOT NULL CHECK (provider = 'aliyun_sms'),
+    state TEXT NOT NULL CHECK (state IN ('reserved','accepted','rejected','unknown')),
+    reserve_milli_cny INTEGER NOT NULL CHECK (reserve_milli_cny = 60),
+    provider_code TEXT NOT NULL DEFAULT '',
+    provider_request_id TEXT NOT NULL DEFAULT '',
+    provider_biz_id TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_sms_delivery_created ON auth_sms_deliveries(created_at);
+CREATE TRIGGER IF NOT EXISTS sms_budget_monotone BEFORE UPDATE ON auth_sms_budget
+    WHEN NEW.id <> OLD.id OR NEW.limit_milli_cny <> OLD.limit_milli_cny
+         OR NEW.reserved_milli_cny < OLD.reserved_milli_cny
+    BEGIN SELECT RAISE(ABORT, 'SMS cumulative budget cannot be reset or enlarged'); END;
+
 -- ── 首发归档合同元数据；内容本体仍在原业务表 ─────────────────────
 CREATE TABLE IF NOT EXISTS content_retention (
     content_type TEXT NOT NULL CHECK (content_type IN ('note','diagnosis')),

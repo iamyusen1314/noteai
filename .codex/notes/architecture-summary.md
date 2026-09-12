@@ -8,6 +8,14 @@ are independent of the account-only API; business/AI/payment/Tracking public rou
 remain denied. Earlier.cn/ALB/full-commercial naming below is historical context,
 not a prerequisite for this authorized website/account delivery. Preservegen2 onF.
 
+Public website is live with static examples and explicit closed registration.
+The account-only API reuses existing users/sessions/OTP/consent transactions and
+skips model/private-storage/scheduler startup on that instance. Standard Aliyun
+Dysms adapter uses ECS IMDSv2 and ACS3, with auth_sms_budget/auth_sms_deliveries
+in additive0021 for durable pre-dispatch reservations and no replay after UNKNOWN.
+Platform caps100/day,1000/month are saved; real sends remain0 pending qualification
+and sign/template approval. New auth schema and candidate API are not deployed yet.
+
 ## Confirmed Production Target (partially implemented)
 
 - Alibaba Cloud South China runs the complete production system: user frontend/API, Admin, PostgreSQL, billing/payment, V0.4 artifacts, Kimi/Moonshot, fact enrichment, market timing/tracking workers, object storage/video cache, logs and monitoring.

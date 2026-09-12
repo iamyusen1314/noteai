@@ -27,9 +27,10 @@ def enabled() -> bool:
 
 
 def service_status() -> dict:
+    from account_security import sms_available
     return {
         "release": "website_and_accounts",
-        "registration_open": os.environ.get("NOTEAI_OTP_MODE", "disabled") == "aliyun_pnvs",
+        "registration_open": sms_available(),
         "payment_open": False,
         "ai_open": False,
         "tracking_open": False,
@@ -107,7 +108,7 @@ def validate_startup(storage) -> None:
     if os.environ.get("NOTEAI_DEPLOYMENT_STAGE") == "production":
         if not storage.using_postgres():
             raise RuntimeError("public accounts require PostgreSQL in production")
-        if os.environ.get("NOTEAI_OTP_MODE", "disabled") not in {"disabled", "aliyun_pnvs"}:
+        if os.environ.get("NOTEAI_OTP_MODE", "disabled") not in {"disabled", "aliyun_sms"}:
             raise RuntimeError("production public accounts reject mock OTP")
         origins = os.environ.get("NOTEAI_PUBLIC_ORIGINS", "").split(",")
         if not origins or any(v not in {"https://noteaipro.com", "https://www.noteaipro.com"} for v in origins):
@@ -115,5 +116,9 @@ def validate_startup(storage) -> None:
         state = storage.fetchone("SELECT current_user AS role, current_setting('default_transaction_read_only') AS readonly")
         if state["role"] != "noteai_app" or state["readonly"] != "off":
             raise RuntimeError("public account role or transaction configuration is invalid")
-    for table in ("users", "user_sessions", "user_contract_acceptances", "auth_verification_challenges"):
+    for table in ("users", "user_sessions", "user_contract_acceptances", "auth_verification_challenges",
+                  "auth_sms_budget", "auth_sms_deliveries"):
         storage.fetchone(f"SELECT 1 FROM {table} LIMIT 0")
+    if os.environ.get("NOTEAI_OTP_MODE") == "aliyun_sms":
+        from sms_delivery import configuration
+        configuration()

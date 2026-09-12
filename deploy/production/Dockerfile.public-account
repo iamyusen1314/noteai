@@ -1,0 +1,22 @@
+# Reuse the verified Python3.11 API dependencies; no new package download.
+# Build must verify the base image ID recorded in the current execution plan.
+ARG NOTEAI_API_BASE_IMAGE=noteai-local/api:f3deedb
+FROM ${NOTEAI_API_BASE_IMAGE}
+USER root
+ARG NOTEAI_OCI_REVISION
+ARG NOTEAI_OCI_CREATED
+LABEL org.opencontainers.image.revision="${NOTEAI_OCI_REVISION}" \
+      org.opencontainers.image.created="${NOTEAI_OCI_CREATED}" \
+      com.noteai.public.scope="website-and-accounts"
+COPY --chown=noteai:noteai model/*.py /app/model/
+COPY --chown=noteai:noteai model/migrations /app/model/migrations/
+COPY --chown=noteai:noteai tools/collect_item31_canary_dml.py /app/model/
+COPY --chown=noteai:noteai scripts/docker_entrypoint.sh scripts/render_start_api.sh /app/scripts/
+RUN chmod 755 /app/scripts/docker_entrypoint.sh /app/scripts/render_start_api.sh
+ENV NOTEAI_PUBLIC_ACCOUNT_ONLY=1 \
+    NOTEAI_OTP_MODE=disabled \
+    NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1 \
+    NOTEAI_API_STARTS_TREND_SCHEDULER=0 \
+    NOTEAI_DURABLE_AI_ADMISSION_ENABLED=0 \
+    PYTHON_DOTENV_DISABLED=1
+USER noteai

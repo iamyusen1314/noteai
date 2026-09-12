@@ -1,5 +1,46 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 11:10 Beijing — SMS implementation and account candidate
+
+The public website remains live as recorded below. Standard Aliyun SMS (Dysms)
+was activated within the existing delivery authorization; actual saved platform
+hard stops are100/day and1000/month, package auto-renew remainsOFF. PNVS SMS remains
+OFF and its gift100001 assets are not used. Real SMS sends0, no production0021,
+account deployment or RAM change yet. Website budget remains100yuan total,
+22web/5setup/60SMS/13margin; unsettled incremental charges are not zero.
+
+No reusable approved SMS qualification exists. The existing console form at
+https://dysms.console.aliyun.com/domestic/text/qualification/add has the real
+company's self-use name and OTP purpose filled. Owner must supply business
+certificate, legal-representative details, administrator ID images and phone
+verification directly there. No identity document/OTP belongs in chat or Git.
+Qualification/signature/template approval is the remaining external prerequisite;
+continue independent candidate preparation. No substitute PNVS template or mock.
+
+Implemented model/sms_delivery.py (official ACS3 SendSms query signing, explicit
+ECS IMDSv2 credentials, no HTTP retries/redirects, bounded redacted outcome),
+account_security/db/public_account/api integration, additive0021 and targeted tests.
+Durable reservation precedes dispatch:60milliCNY/attempt,60000milliCNY lifetime,
+100 rolling24h; phone/source cross-purpose limits; unknown results retain the
+original challenge and reservation without replay/refund. Runtime cannot enable,
+enlarge or reset the budget. No plaintext codes or provider request URLs are logged.
+
+37 targeted tests passed in isolated PostgreSQL16 + SQLite on Python3.11.15
+linux/amd64, with only synthetic provider responses: real API register/me/logout/
+login, expiry/attempts/single-use, parallel budget admission, uncertain commit and
+lost result storage, restricted role ACL, official signature vector and HTTP wire.
+Initial PG end-to-end test failed because its fixture omitted baseline session
+DELETE; corrected that fixture to the existing production preflight contract,
+then focused tests and full37 passed. This is offline validation, not live SMS.
+
+Actual API-C role-name-only IMDSv2 readback:
+noteai-storage-api-20260729-c60cc608; Docker bridge172.17.0.1. No credential values
+were read. Candidate role policy and account-only unit/proxy inputs are prepared,
+not applied. RAM role console currently stays on loading skeleton; no permission
+failure has been established. Candidate image normal-entrypoint test is IN_PROGRESS.
+Base dependencies are existing API image4893fe0f2fcbaf8f1bdbe8d8264a5eead3972022da10eb39c5714a72b826cb7a.
+Readiness30/38; generation2 T0/image/unique continuation untouched.
+
 ## September12 10:40 Beijing — public website is live; SMS remains closed
 
 https://noteaipro.com/ and https://www.noteaipro.com/ now return HTTPS 200.

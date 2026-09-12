@@ -37,6 +37,7 @@ import anyio
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request
 from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -12911,7 +12912,7 @@ async def auth_verification_request(
         else None
     )
     try:
-        issued = _account_security.issue_verification(
+        issued = await run_in_threadpool(_account_security.issue_verification,
             channel=req.channel,
             destination=req.destination,
             purpose=purpose,

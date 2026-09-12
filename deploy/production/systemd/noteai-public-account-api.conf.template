@@ -1,0 +1,5 @@
+# Drop-in for the existing API-C noteai-api.service only; never API-F.
+# Render @PUBLIC_ACCOUNT_IMAGE@ from the actually published immutable digest.
+[Service]
+ExecStart=
+ExecStart=/usr/bin/docker run --log-driver=local --log-opt=max-size=10m --log-opt=max-file=2 --pull=never --rm --name=noteai-api-c --user=999:999 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network=bridge --ipc=private --memory=1536m --cpus=2 --pids-limit=256 --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=128m,mode=1777,uid=999,gid=999 --env-file=/etc/noteai/public-account.env --env=NOTEAI_RUNTIME_ROLE=api --env=NOTEAI_DEPLOYMENT_STAGE=production --env=NOTEAI_CLOUD_RUNTIME=1 --env=NOTEAI_PUBLIC_ACCOUNT_ONLY=1 --env=NOTEAI_API_STARTS_TREND_SCHEDULER=0 --env=NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1 --env=NOTEAI_ENABLE_CLOUD_MODEL_MUTATION=0 --env=NOTEAI_DURABLE_AI_ADMISSION_ENABLED=0 --env=NOTEAI_TRUSTED_PROXY_IPS=172.17.0.1 --env=PYTHON_DOTENV_DISABLED=1 --env="PGOPTIONS=-c default_transaction_read_only=off -c statement_timeout=10000 -c lock_timeout=5000" --publish=127.0.0.1:8000:8000 @PUBLIC_ACCOUNT_IMAGE@

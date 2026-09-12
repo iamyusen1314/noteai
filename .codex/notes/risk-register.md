@@ -14,10 +14,18 @@
 - Root/www public HTTPS and static examples are now live; exact artifact hashes and
   denied business routes verified. Nginx has a durable10GiB egress cap; certificate
   expires2026-12-11 with a scoped renewal timer. Settled incremental bill is unknown.
-- PNVS gift100001 is present but its SMS service switch is off; global hard send cap
-  remains unconfirmed. Registration stays closed. Complete a provider with actual
-  platform and application caps before sending. Deletion mailto requires the user
-  to send the request; it does not mutate Tracking or claim instant deletion.
+- StandardDysms was activated and actual100/day,1000/month hard stops saved;
+  package auto-renewOFF. PNVS SMS remains off and its gift100001 is not used.
+  Durable app reservations cap total sends1000 at0.06yuan reserved each, with
+  cross-instance phone/source limits.37 isolated Python3.11/PG16 tests passed;
+  realSMS0 and production0021/RAM/account rollout not applied. Owner identity
+  qualification then approved sign/template remain external requirements.
+- C role name is known, but actual role policy/association and service-seen egress
+  must be checked before minimalSendSms attachment. RAM role UI currently stays
+  loading, not a proven permission denial. No credential values are required in chat.
+- Deletion mailto requires the user to send the request; it does not mutate Tracking
+  or claim instant deletion. Candidate account deployment must retain rollback,
+  actual inherited ACL checks and honest concurrent auth-write accounting.
 
 ## September12 — website review readiness
 

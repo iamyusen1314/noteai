@@ -63,7 +63,9 @@ el('send-code').addEventListener('click', async () => {
     const result = await api('/auth/verification/request', {channel: 'phone', destination: phone, purpose});
     if (phone === el('phone').value && purpose === el('auth-mode').value) challenge = {id: result.challenge_id, phone, purpose};
     cooldownUntil = Date.now() + 60000;
-    el('auth-message').textContent = '验证码发送请求已受理，请查看本人手机短信。';
+    el('auth-message').textContent = result.delivery === 'sms_unknown'
+      ? '发送结果暂未确认。如已收到验证码，可继续验证；页面不会自动重发。'
+      : '验证码发送请求已受理，请查看本人手机短信。';
   } catch (error) {
     cooldownUntil = Date.now() + 60000;
     el('auth-message').textContent = error.name === 'TimeoutError' ? '发送结果暂不明确，请稍后再试；页面不会自动重发。' : error.message;
