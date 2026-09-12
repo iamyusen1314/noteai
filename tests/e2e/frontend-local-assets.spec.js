@@ -72,6 +72,8 @@ test('original public product works under strict script CSP with OTP and dynamic
   await page.getByRole('button',{name:'动态套餐入口'}).click();
   await expect(page.locator('#page-pricing')).toHaveClass(/active/);
   await expect(page.locator('#public-pricing-notice')).toContainText('不能购买');
+  await expect(page.locator('#free-plan-mix')).toContainText('图片与视频暂未开放');
+  await expect(page.locator('#free-plan-mix')).not.toContainText('8张');
   for (const button of await page.locator('#pricing-content button[data-product-action="handleUpgrade"]').all()) {
     await expect(button).toBeDisabled();
   }

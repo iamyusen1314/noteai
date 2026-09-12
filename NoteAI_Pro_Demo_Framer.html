@@ -4595,7 +4595,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">12积分/月</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>最多 AI诊断 <b>2次</b></div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或爆文生成 <b>1次</b> + 截图 <b>8张</b></div>
+          <div id="free-plan-mix"><span style="color:var(--success);margin-right:6px">✓</span>或爆文生成 <b>1次</b> + 截图 <b>8张</b></div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>7天在线存档 + 7天恢复期</div>
         </div>
         <button onclick="openAuthModal('register')" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer;font-size:13px;font-weight:600">免费开始</button>
@@ -5308,6 +5308,8 @@ function requirePublicCapability(key) {
 }
 function syncProductUI() {
   const pricing = document.getElementById('pricing-content');
+  const freeMix = document.getElementById('free-plan-mix');
+  if (freeMix) freeMix.textContent = '✓ 或文字生成1次；图片与视频暂未开放';
   if (pricing && !pricing.querySelector('#public-pricing-notice')) {
     const notice = document.createElement('p');
     notice.id = 'public-pricing-notice';
