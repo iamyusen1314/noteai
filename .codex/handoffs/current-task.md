@@ -2,6 +2,21 @@
 
 ## September12 — owner-approved Admin password recovery in progress
 
+22:48 continuation: checkpoint08ffa10 contains the tested recovery implementation.
+Cloud Assistant successfully installed/read back the script; it was NOT run with
+--apply. Workbench2.0 first returned an explicit remote-server timeout, the next
+normal connection stayed loading, and the official1.0 alternative loaded an empty
+page; browser control also reported CDP navigation/focus/evaluate timeouts. These
+are observed terminal/UI failures, not proof that Admin/DB/SSH credentials fail.
+Owner was asked to connect API-C in their normal Chrome before hidden new-password
+entry. Do not request the old Admin password or put a password in Cloud Assistant.
+Aliyun normal login is usable; DMS separately has the original instance under
+not-logged-in and still needs its existing database credential. That password dialog
+was closed to avoid confusing it with the new Admin application password prompt.
+No reset result/backup existed at the last server readback, no service stop, session
+DELETE, SMS/model/XHS request or F/scheduler change occurred. Local isolated test
+containers/network are cleaned after retained output. Readiness30/37 unchanged.
+
 Owner explicitly approves resetting the existing noteai_admin application password
 and revoking that administrator's old sessions. No database password, role,
 business record, public API, F artifact or schedule change is included. Password
