@@ -4612,7 +4612,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>付费创建归档在账户存在期间无产品到期日</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>AI记忆学习偏好</div>
         </div>
-        <button onclick="handleUpgrade('pro')" style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
+        <button data-product-action="handleUpgrade" data-product-args='["pro"]' style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
       <!-- 成长版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
@@ -4625,7 +4625,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:#22C55E;margin-right:6px">◆</span>参考组合：30诊断 + 45爆文 + 6重写 = 558积分</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>适合稳定更新账号</div>
         </div>
-        <button onclick="handleUpgrade('growth')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
+        <button data-product-action="handleUpgrade" data-product-args='["growth"]' style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
       <!-- 专业版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
@@ -4638,7 +4638,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:#FFD700;margin-right:6px">◆</span>参考组合：50诊断 + 70爆文 + 13重写 = 899积分</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>最多3/4调度槽位给优先队列（非完成时效承诺）</div>
         </div>
-        <button onclick="handleUpgrade('pro_plus')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
+        <button data-product-action="handleUpgrade" data-product-args='["pro_plus"]' style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
       <!-- 工作室版 -->
 	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
@@ -4653,7 +4653,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div><span style="color:var(--success);margin-right:6px">✓</span>最多3/4调度槽位给优先队列（非完成时效承诺）</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>专属客服支持</div>
         </div>
-        <button onclick="handleUpgrade('studio')" style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
+        <button data-product-action="handleUpgrade" data-product-args='["studio"]' style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
       </div>
     </div>
 	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
@@ -4685,13 +4685,13 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
       <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。当前套餐周期积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
-	        <div class="topup-card" onclick="handleTopup('starter')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["starter"]' style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">30积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥12</div><div style="font-size:11px;color:var(--text-muted)">约5次诊断 / 3次爆文</div></div>
-	        <div class="topup-card" onclick="handleTopup('creator')" style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["creator"]' style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
           <div style="font-size:20px;font-weight:800;color:var(--text)">100积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥39</div><div style="font-size:11px;color:var(--text-muted)">约16次诊断 / 12次爆文</div></div>
-	        <div class="topup-card" onclick="handleTopup('growth')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["growth"]' style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">300积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥109</div><div style="font-size:11px;color:var(--text-muted)">约50次诊断 / 37次爆文</div></div>
-	        <div class="topup-card" onclick="handleTopup('studio')" style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
+	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["studio"]' style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:20px;font-weight:800;color:var(--text)">800积分</div><div style="font-size:16px;font-weight:700;color:#00D4FF">¥279</div><div style="font-size:11px;color:var(--text-muted)">约133次诊断 / 100次爆文</div></div>
       </div>
     </div>
@@ -5292,6 +5292,13 @@ function requirePublicCapability(key) {
   return false;
 }
 function syncProductUI() {
+  const pricing = document.getElementById('pricing-content');
+  if (pricing && !pricing.querySelector('#public-pricing-notice')) {
+    const notice = document.createElement('p');
+    notice.id = 'public-pricing-notice';
+    notice.textContent = '免费文字体验额度：每月12积分（北京时间每月1日08:00刷新）。实际开放状态见页面顶部。支付、图片、视频和笔记跟踪尚未开放；下列付费套餐仅作价格与交付说明，不能购买。';
+    pricing.prepend(notice);
+  }
   document.getElementById('legal-version').textContent = PUBLIC_PRODUCT_CONTRACT;
   document.getElementById('product-consent').style.display = _authUser && !_authUser.contract_accepted ? 'block' : 'none';
   document.querySelectorAll('.input-type').forEach(el => {
@@ -5686,6 +5693,11 @@ function renderPricingConfig(cfg) {
     chat_rewrite: { label: '对话深度重写', unit: '轮', desc: '进入高质量优化/改稿模式时扣除', color: '#00D4FF' },
     screenshot: { label: '截图识别', unit: '张', desc: '独立截图 OCR/识别功能按张扣除', color: '#22C55E' },
   };
+  if (PUBLIC_PRODUCT) {
+    ops.analyze.desc = '手动文字输入进入真实诊断链路';
+    delete ops.screenshot;
+    ops.chat_fast = { label: '快速对话', unit: '轮', desc: '真实文字对话，每轮1积分', color: '#22C55E' };
+  }
   const tierCards = pricingTierOrder(tiers).map(tier => {
     const t = tiers[tier] || {};
     const monthly = Number(t.monthly_credits || 0);
@@ -5707,7 +5719,7 @@ function renderPricingConfig(cfg) {
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/${price > 0 ? '30天' : '月'}</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断${cAnalyze}次 / 爆文${cGenerate}次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮 / 截图${cScreenshot}张</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮${PUBLIC_PRODUCT ? '；图片与视频暂未开放' : ` / 截图${cScreenshot}张`}</div>
           ${features}
         </div>
         <button ${productActionAttributes(tier === 'free' ? 'openAuthModal' : 'handleUpgrade', tier === 'free' ? 'register' : tier)} style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '暂不可购买'}</button>
@@ -5757,10 +5769,7 @@ function renderPricingConfig(cfg) {
       <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按实际供应商账单和 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
     </div>`;
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  if (PUBLIC_PRODUCT) {
-    const notice=document.createElement('p'); notice.textContent='当前开放免费文字体验：每月12积分（北京时间每月1日08:00刷新）；支付、图片、视频和笔记跟踪尚未开放。下列付费套餐仅作价格与交付说明，不能购买。';
-    root.prepend(notice); syncProductUI();
-  }
+  if (PUBLIC_PRODUCT) syncProductUI();
 }
 
 /* ── Upload mode switcher ───────────────────────────────────── */
@@ -8379,7 +8388,7 @@ function initHeroAnimInternal() {
 }
 
 /* ── V0.4 desktop 3D quality engine ─────────────────────────── */
-const V4_THREE_MODULE_URL = './assets/vendor/three.module.min.js';
+const V4_THREE_MODULE_URL = new URL('./assets/vendor/three.module.min.js', document.baseURI).href;
 let _v4Hero3DStarted = false;
 let _live3DStarted = false;
 let _live3DController = null;
@@ -13049,6 +13058,7 @@ function toggleUsageDetail() {
 
 /* 升级套餐 */
 async function handleUpgrade(tier) {
+  if (PUBLIC_PRODUCT) { showToast('支付尚未开放，不能购买套餐'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   void tier;
   showToast('当前未启用真实支付，暂时不能购买套餐。价格仅用于首发方案说明。');
@@ -13056,6 +13066,7 @@ async function handleUpgrade(tier) {
 
 /* 积分充值 */
 async function handleTopup(packageId) {
+  if (PUBLIC_PRODUCT) { showToast('支付尚未开放，不能充值'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   void packageId;
   showToast('当前未启用真实支付，暂时不能购买积分。价格仅用于首发方案说明。');

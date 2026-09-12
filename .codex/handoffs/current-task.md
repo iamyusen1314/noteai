@@ -2,6 +2,35 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+15:56Beijing: public Chromium loaded original71047de and exercised manual/brief,
+idle/empty-report and phone-registration form without business requests. Browser
+traffic actually uses local127.0.0.1:1082 proxy; do not call this a directEIP proof.
+Independent curl --noproxy/--resolve returns both domains200 and exact indexSHA;
+AliDNS public lookup confirms39.108.66.93. Real browser found Three relativeimport
+404 and static pricing fallback missing closed-payment handling. Minimal source
+fix resolves module relative to document, makes static/dynamic purchase controls
+consistent and keeps a current-scope notice even when tiers API is unavailable.
+Actual dist browser imports Three and checks disabled fallback payments; passed.
+Not yet deployed this follow-up. API candidate remains9941c85 unchanged.
+
+Unique API artifact uploaded successfully to existing private OSS bucket at
+noteai-private/public-product/9941c85-a2f4edf54c2b/
+noteai-public-product-9941c85-linux-amd64.docker.tar.gz (378316224bytes).
+Explicit private ACL, original encryption/storage inheritance; no new bucket,
+RAM permissions or paid resource. C download first failed: SDK StreamBody.read
+accepts no size parameter; actual retained partial is0bytes. Changed helper to
+iter_bytes, retaining failed zero-byte artifact, same immutable source/SHA.
+Follow-up readback/load is in progress; not yet service deployment or DB writes.
+
+Actual DMS owner preflight:19 ledger entries all original SHA match; pending
+0018_direct_payment_providers.sql,0021,0022. Precisely EXCLUDE0018 (payment).
+Do not run full db.apply_postgres_migrations or render_predeploy. Apply only0021/22
+inside existing advisory-lock/checksum transaction, after current backup and
+column-level authACL verification. Whole-table INSERT/UPDATE false is insufficient
+to diagnose a permission gap. Original ACL query UI stalled; fresh owner session
+recovered and prior history checked before the read-only query resumed.
+
+
 Original product frontend71047de is now LIVE on API-C. Cloud assistant completed
 exact raw-tar SHA8c1ac57c2b90777bb1d4c95d515f720dc132c7abf1631700c2e893f8045af865,
 nginx syntax and all8 served-file SHA checks; index

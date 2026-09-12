@@ -2,6 +2,35 @@
 
 ## Current September12 afternoon — real product free release
 
+15:56Beijing: public Chromium loaded original71047de and exercised manual/brief,
+idle/empty-report and phone-registration form without business requests. Browser
+traffic actually uses local127.0.0.1:1082 proxy; do not call this a directEIP proof.
+Independent curl --noproxy/--resolve returns both domains200 and exact indexSHA;
+AliDNS public lookup confirms39.108.66.93. Real browser found Three relativeimport
+404 and static pricing fallback missing closed-payment handling. Minimal source
+fix resolves module relative to document, makes static/dynamic purchase controls
+consistent and keeps a current-scope notice even when tiers API is unavailable.
+Actual dist browser imports Three and checks disabled fallback payments; passed.
+Not yet deployed this follow-up. API candidate remains9941c85 unchanged.
+
+Unique API artifact uploaded successfully to existing private OSS bucket at
+noteai-private/public-product/9941c85-a2f4edf54c2b/
+noteai-public-product-9941c85-linux-amd64.docker.tar.gz (378316224bytes).
+Explicit private ACL, original encryption/storage inheritance; no new bucket,
+RAM permissions or paid resource. C download first failed: SDK StreamBody.read
+accepts no size parameter; actual retained partial is0bytes. Changed helper to
+iter_bytes, retaining failed zero-byte artifact, same immutable source/SHA.
+Follow-up readback/load is in progress; not yet service deployment or DB writes.
+
+Actual DMS owner preflight:19 ledger entries all original SHA match; pending
+0018_direct_payment_providers.sql,0021,0022. Precisely EXCLUDE0018 (payment).
+Do not run full db.apply_postgres_migrations or render_predeploy. Apply only0021/22
+inside existing advisory-lock/checksum transaction, after current backup and
+column-level authACL verification. Whole-table INSERT/UPDATE false is insufficient
+to diagnose a permission gap. Original ACL query UI stalled; fresh owner session
+recovered and prior history checked before the read-only query resumed.
+
+
 Frontend71047de is now live on C after actual8file SHA and nginx checks;
 first reload-race failure rolled back, corrected bounded worker readback passed.
 Rollbackbcaf587 and exact private backup remain. API and production schemas unchanged.
@@ -19,7 +48,7 @@ durable dispatcher, billing test or migration-on-start. Derive its root0600 env 
 on C from existing DATABASE_URL, MOONSHOT_API_KEY, required private-storage inputs,
 exact public origins and OTP inputs. Never inherit Claude/fact/payment/XHS secrets.
 Before API switch: privately back up actual unit/env/Nginx and migration/auth state;
-read actual owner/ledger/ACL and locks; only0021/0022 may be pending. Use the existing
+read actual owner/ledger/ACL and locks; preserve pending0018 and apply only0021/0022. Use the existing
 transaction/checksum migration mechanism without render_predeploy.py's additional
 Prompt baseline writes. Enable only fixed50000milli model budget under this owner
 scope; SMS10000milli remains disabled until approved sign/template and private test.

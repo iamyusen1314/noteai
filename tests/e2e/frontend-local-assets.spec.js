@@ -40,8 +40,9 @@ test('original public product works under strict script CSP with OTP and dynamic
     if (['/assets/product-app.js','/assets/product-events.js'].includes(url.pathname)) {
       return route.fulfill({path:path.resolve('dist'+url.pathname),contentType:'application/javascript'});
     }
-    if (/^\/assets\/(vendor|landing)\/[a-zA-Z0-9_.-]+$/.test(url.pathname)) {
-      if (fs.existsSync(path.resolve('dist'+url.pathname))) return route.fulfill({path:path.resolve('dist'+url.pathname)});
+    if (/^(\/dist)?\/assets\/(vendor|landing)\/[a-zA-Z0-9_.-]+$/.test(url.pathname)) {
+      const file = path.resolve('dist'+url.pathname.replace(/^\/dist/,''));
+      if (fs.existsSync(file)) return route.fulfill({path:file});
     }
     if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:true,ai_open:true}});
     if (url.pathname === '/synthetic-api/auth/verification/request') {
@@ -52,6 +53,7 @@ test('original public product works under strict script CSP with OTP and dynamic
     return route.abort();
   });
   await page.goto('/dist/index.html');
+  expect(await page.evaluate(async () => (await import(V4_THREE_MODULE_URL)).REVISION)).toBeTruthy();
   await expect(page.locator('#public-product-status')).toContainText('每月12积分');
   await page.locator('#nav-guest').getByRole('button',{name:'注册',exact:true}).click();
   await expect(page.locator('#auth-phone')).toBeVisible();
@@ -67,6 +69,11 @@ test('original public product works under strict script CSP with OTP and dynamic
   });
   await page.getByRole('button',{name:'动态套餐入口'}).click();
   await expect(page.locator('#page-pricing')).toHaveClass(/active/);
+  await expect(page.locator('#public-pricing-notice')).toContainText('不能购买');
+  for (const button of await page.locator('#pricing-content button[data-product-action="handleUpgrade"]').all()) {
+    await expect(button).toBeDisabled();
+  }
+  await expect(page.locator('#pricing-content .topup-card').first()).toHaveAttribute('aria-disabled','true');
   await page.evaluate(()=>{ switchMode('generate'); showPage('live'); });
   await expect(page.locator('#progressLabel')).toHaveText('暂无进行中的 AI 任务');
   await page.evaluate(async()=>{
