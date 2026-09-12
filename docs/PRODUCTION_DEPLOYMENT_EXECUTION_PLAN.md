@@ -1,5 +1,7 @@
 # NoteAI Production Deployment Execution Plan
 
+当前执行更新（2026-09-12 17:30）：原前端/API745d7e8已部署，0023与C来源限定PNVS权限已完成，短信预算固定10000milli/已预留60/启用1。唯一短信控制台回执成功且owner原码注册/登录成功，账户12积分；原适配器UNKNOWN保留，不补发、不回填。一次免费文字诊断在途，仅读回原结果；剩余真实再次登录/退出与完整报告/扣额核验继续执行。恢复路径、精确产物/SQL/hash/requestId及失败恢复详见现有Handoff顶部17:30节，避免重复维护多套证据。Item34 gen2不变，其他范围未扩大，费用计入原累计100元。
+
 ## Current September12 afternoon — real product free release
 
 ### 2026-09-12 17:05 北京时间：PNVS 继续实施，不再等待标准短信法人资质

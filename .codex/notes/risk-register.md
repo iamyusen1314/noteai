@@ -1,5 +1,7 @@
 # Risk Register
 
+September12 17:30: PNVS is now deployed on C with SourceIp-restricted SendSmsVerifyCode on the existing shared role. 0023 applied atomically; budget10000/60/enabled1. The single SMS has a matching official successful delivery receipt and owner completed genuine OTP registration/login, receiving12 original free credits. Original adapter result remains UNKNOWN (missing retained RequestId), not rewritten; raw historical response absent, specific parsing cause unproven. Public payment/Admin/Tracking denials and exact deployed web hash verified on both domains. A single real text diagnosis is in progress; full free-result/return-login/logout acceptance not yet claimed. See Handoff top for recovery and fixed artifacts. Older wait-for-standard-SMS qualification statements below are historical.
+
 ## Current September12 afternoon — original free product release
 
 September12 17:05: standard-SMS legal representative age rejection is owner-reported

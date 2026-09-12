@@ -2,6 +2,17 @@
 
 ## Current September12 afternoon — restore real product and bounded free use
 
+### 2026-09-12 17:30 北京时间：PNVS 已部署并真实送达、原产品建号成功
+
+当前生产前端/API 均为 `745d7e8`，API-C 实际镜像 `sha256:f183b7b88bdb67c7dd90398f8e6dacee131a31d1cc45120dbfd0ace80fb7fe94`，Python3.11、原正常入口、模型/DB启动及私网候选检查通过。网站 index SHA `b0fef339741c7bc121fdbe63d30d4bc05f22fd75a9f9bc77e50cae057f1025c6`；两域名 HTTPS 实际哈希及本人接口401、支付/Admin/Tracking404均通过。原 Nginx SHA未变；dropin新SHA `582ab32e6d64718525588c835d05743357e9897e2e169e24cc89f013a04faced`。未改 API-F/Item34 的产物、T0、采样或任务。
+
+- 阿里云已存在的号码认证服务，平台签名恒创联众/模板100001，原网站现如实告知。真实短信仅发1条，原BizId `400523289205170564^0`，OutId `6ace7fd4-5b3d-42a2-8210-73360cb2b0a7`；控制台按该流水号只读查询确认提交17:26:10、送达回执17:26:14、发送成功1条。没有读取或保存控制台短信正文。Owner确认收码，原应用随机码/PBKDF及单事务注册/登录成功，新账户显示原设计12积分；没有使用mock或直接造用户。
+- 原适配器响应记录保留 `unknown/UNCONFIRMED_RESPONSE`、request_id空、上述biz_id；未保存原响应正文，不能还原原Code/Success类型。控制台送达与本人成功验证是新增事实，不改写原UNKNOWN，也不补发。正在只读核对官方响应字段。验证码不保存到项目或证据。
+- 0023单DO已应用并读回：ledger22、0023 SHA `c9e9bd1d03f3280c0bab85b91f64b0d06b284c316652315ec3b5c4abee33a114`、双provider CHECK，0018仍不存在。修改前空发送/挑战表及原定义已读回，原0021 SQL与现有RDS备份3156865822保留；该备份早于0021/22，不冒称包含新schema。执行文件 `/private/tmp/noteai_public_0023_apply.sql` SHA `e6d58c7fcfff0ea84c7d6469bc2caaa1b4970cdf3f776021af3f4c47bd9d64e5`。随后仅将固定SMS预算enabled从0改1；当前10000/60/1，保留累计预留，不重置费用。实际短信单价0.06元，部署/传输及未结算费用继续计入原100元。
+- 最小RAM策略 `noteai-public-pnvs-send-20260912` v1只允许 `dypns:SendSmsVerifyCode`，条件SourceIp=39.108.66.93。创建请求 `01A094E9-1639-500D-A2AA-47FF2D23A897`，附加到既有共享role请求 `01A094EB-B575-5B31-8726-30869378C5E9`，正文读回 `01A094EC-E2E8-59B7-839D-8B31F689E48A`。这是对C来源的明确条件授权，不说角色完全未变；没有新增用户/角色或无关权限。
+- 恢复材料在 C `/var/lib/noteai/public-product-745d7e8/`，保留原私有env/dropin/web8161588目标；回滚目标是受限API9941c85，不是早期全后端。增量包SHA `afe2eb2084c45dafe587d173ba1df84997a33d907a7da0ca64ce9dbcb0c7325e`，私网OSS对象 `noteai-private/public-product/745d7e8/noteai-public-product-745d7e8.tar.gz`。外部脚本 `/private/tmp/noteai_public_pnvs_deploy.py` SHA `87d86ef3dff1bdf02cd301b6833205fc6e701017730a2c195235acfa63b08437`。原cloud结果2因unit中旧镜像在注释与命令各出现一次而前置拒绝，结果3证实旧API仍运行、未启动candidate或切换；修正只处理固定两处并核实原备份后，结果4成功。旧回滚接口缺sms_sign_name的核验兼容也已修正。
+- 验证：隔离Python3.11/PG16共83项通过，真实dist严格CSP浏览器通过。当前一次真实文字诊断正在原注册账户执行，原创猫咪生活输入、无XHS/事实供应商请求，每次Kimi调用保守预留2.59元、50元模型硬上限。完成/失败先读原结果，不重复启动；再次登录/退出、最终报告与扣额读回仍待完成，不提前称全E2E通过。Readiness完成数仍30，不新增terminal。
+
 ### 2026-09-12 17:05 北京时间：改用已存在的 PNVS 短信认证，继续交付
 
 Owner 报告标准短信因法定代表人超过 70 岁拒绝资质。阿里云官方《资质材料》明确法人和管理员均为 18–70 岁，单换经办人不能解除法人限制。腾讯云/华为云尚无已核实的超龄豁免，不能保证换厂商通过。
