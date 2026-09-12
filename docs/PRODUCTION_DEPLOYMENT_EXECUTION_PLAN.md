@@ -1,5 +1,18 @@
 # NoteAI Production Deployment Execution Plan
 
+September12 22:03 continuation: owner handles screenshots; original Admin696825c
+is live and required server-side functions/permission separation are verified.
+Fresh public hash and existing C results agree. Remaining owner usability input
+is safe possession/entry of the existing Admin password, not another deployment.
+Generation2 actual24h sampling succeeded once, original final cleanup failed on
+an identical Env duplicate; exact stopped container/log cleanup is now verified.
+Temporary attempts SELECT remains present after DMS connection failure. Restore
+the existing owner login, readonly-reconcile then apply the already saved guarded
+revoke and confirm original ACL; no provider replay or new permission. Existing
+Handoff22:03 and canonical recovery_observation contain original results.3d stays
+at September14>=21:34:10.891601, planned21:36; host cleanup correction must preserve
+the fixed87b9 image. No Readiness credit or automation replacement.
+
 ## 2026-09-12 evening — authorized original Admin publication
 
 18:40 execution result: original Admin is live at https://admin.noteaipro.com,

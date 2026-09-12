@@ -1,5 +1,80 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September12 22:03 Beijing — Admin delivery confirmed; original24h safety recovery
+
+22:10 preparation: existing durable now normalizes identical Env strings only
+during generation2 exact-stage container stop, retaining the frozen wrapper's
+full identity guard. Other stages/containers, conflicting values and malformed
+input retain original rejection. Original inspected values and image/wrapper bytes
+are unchanged; existing journal start records durable's actual SHA. Independent
+read-only review found no blocker. Python3.11.15/linuxamd64/networknone78 targeted
+tests passed using the13 hash-verified4cc frozen image source files plus current
+durable/tests. Initial test environment had empty Colima bind mounts; switched to
+copying Secret-free tracked source. Its first populated run also exposed a missing
+Dockerfile fixture and later website db.py versus frozen-image db.py; final test
+uses the actual frozen artifact inputs, not relaxed expected hashes. Failure and
+PASS output retained in Downloads/noteai-xhs-repair-20260911/generation2-cleanup-tests.log.
+This is local host-tool verification, not a new production sample/terminal credit.
+Scheduler database actual next_run_at1789393052000 is September14 13:37:32UTC /
+21:37:32Beijing (planned rule13:36 with scheduler offset); last_run1789220182215.
+Unique ACTIVE heartbeat/target thread unchanged. No September13/repeated24h run.
+Corrected host tool has not yet been installed on F at this checkpoint.
+
+Owner prioritizes usable original Admin and will handle screenshots/upload. Do not
+block Admin on Alipay supplement text or construct screenshot-only material.
+Current HTTPS readback13:54:27UTC: Admin index200/hash79e5fea9…5edf, anonymous
+/admin/me403, original website200/hash692ab2a4…0c18; publicstatus shows actual
+free_product/registration/AI enabled, payment/media/publicTracking disabled.
+C readback13:56:18UTC recovered the original corrected deploy/runtime/public
+verification results: source696825c/image76018cdf, required queries/login/logout
+and ordinary-user denial VERIFIED, own verification sessions removed. No new login,
+SMS/model call, deployment or business write was needed for this readback.
+Remaining Admin usability check: owner browser sign-in and possession of the
+existing independent Admin password are unconfirmed. Current page is the real
+login at https://admin.noteaipro.com, username noteai_admin. Do not infer its
+password from the identical database username, ACR, Workbench or phone OTP.
+Owner was asked only whether the existing password is held; no secret requested
+in chat. Fresh nonsecret server readback is saved privately at
+/private/tmp/noteai-admin-delivery-readback-20260912.json.
+
+The original generation2 automation started the24h task once, at13:44:30UTC.
+Actual attempt027be64b-66b2-4d7f-93a1-e778bcc6e864/run0d37c0c2-c221-4b88-ad46-e3717fac7d37
+succeeded13:44:42.890012UTC; native snapshot13:44:48.933013UTC, metrics4/2/2,
+both inside the original window. One admission/3HTTP (2init/1detail),retry0;
+do not sample24h again. Config restore13:44:51.232811UTC returned the original
+absent crawler_config. Native postflight was revalidated locally using the
+original recorded time and worker.run; no new result or timestamp was invented.
+
+Original host ended with observation_container_identity after successful sampling:
+Docker supplied10 selected Env entries/9unique with one identical duplicate.
+Full original CID/image/Cmd/entrypoint/binding and stopped exit0 were verified;
+no conflicting value existed. At14:00:10.032730UTC exact exited container
+161b213c8b424cf965dd8f8262af457af72dd96be93102f5db27cadf14807bde was removed
+after root0600/fsync log retention. Original journal remains unchanged, SHA
+3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3;
+stdout1733bytes/SHA3d506cf72647b67b704c7548e12bee12bd7a343951bd977238750eed12e84045.
+Original exception is retained and is NOT relabeled a successful host receipt.
+
+URGENT PATH_BLOCKED: temporary attempts SELECT is NOT yet revoked. Original owner
+DO revoke received DMS5030 I/O error; read reconcile failed closed/5050 connection.
+C dedicated-role catalog read13:56:18UTC proved noteai_app still has SELECT and
+the ACL is exactly original plus this grant. No blind retry occurred. Normal DMS
+logout/relogin reached the existing instance password dialog, noteai_admin selected,
+password not retained. Owner must input the EXISTING DATABASE password there;
+this is independent of Admin application credentials. Do not change credentials,
+grant another role or leave the permission until3d. Once owner channel returns,
+read current ACL then run existing guarded generation2-24h-revoke.sql and verify
+original ACL/app_selectfalse. C/F services are otherwise unchanged and working.
+
+All current stage files/results remain under existing Downloads/noteai-xhs-repair-20260911
+and F xhs-repair-20260911/generation2, including original journal and g2-24h.cleanup.json.
+Canonical recovery_observation records actual24h data and pending ACL recovery;
+sealed oldroot+g1 SHA115b8916…670f unchanged. Cumulative XHS reserve32/100,
+actual cost UNKNOWN_NOT_ZERO; website budget unchanged. Readiness30/37 unchanged.
+Original unique automation remains ACTIVE for September14 planned21:36Beijing;
+no replacement task, newT0 or3d request. Before3d resolve the host-only identical
+Env cleanup bug without relabeling/rebuilding the frozen image or replaying24h.
+
 ## Current 2026-09-12 evening — original Admin publication and genuine Alipay materials
 
 ### 18:40 Beijing — original Admin published and production access separation verified

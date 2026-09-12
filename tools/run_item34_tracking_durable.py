@@ -10,6 +10,7 @@ managed configuration inputs permit a private, recoverable env update.
 from __future__ import annotations
 
 import argparse
+import copy
 import errno
 import hashlib
 import importlib.util
@@ -18,6 +19,7 @@ import os
 import stat
 import sys
 from datetime import datetime, timezone
+from contextlib import contextmanager
 from pathlib import Path
 
 import execute_item34_tracking_checkpoint as checkpoint
@@ -152,6 +154,52 @@ def execute(wrapper, journal, *, stage, track_id, image):
         return result
     finally:
         wrapper.HostAdapter = original
+
+
+@contextmanager
+def generation2_cleanup_environment(wrapper, stage):
+    """Normalize identical Docker Env duplicates only for the exact task stop.
+
+    Docker can retain an env-file entry alongside the identical explicit --env.
+    The frozen image/wrapper identity and every original stop guard remain in
+    force. Conflicting values are retained and rejected by that original guard.
+    This host-only correction does not change the inspection journal or image.
+    """
+    binding = checkpoint.current_observation()
+    if binding is None or binding['generation'] != 2:
+        yield
+        return
+    name = wrapper._worker_name(stage)
+    original_quiesce = wrapper._quiesce_worker
+
+    def quiesce(task_name, image):
+        if task_name != name:
+            return original_quiesce(task_name, image)
+        original_read = wrapper._docker_json
+        exact_inspect = ['docker', 'container', 'inspect', '--format',
+                         wrapper._OBSERVATION_CONTAINER_FORMAT, name]
+
+        def read(argv, code):
+            value = original_read(argv, code)
+            if argv == exact_inspect and isinstance(value, list) and len(value) == 1:
+                config = value[0].get('Config') if isinstance(value[0], dict) else None
+                env = config.get('Env') if isinstance(config, dict) else None
+                if isinstance(env, list) and all(v is None or isinstance(v, str) for v in env):
+                    value = copy.deepcopy(value)
+                    value[0]['Config']['Env'] = list(dict.fromkeys(env))
+            return value
+
+        wrapper._docker_json = read
+        try:
+            return original_quiesce(task_name, image)
+        finally:
+            wrapper._docker_json = original_read
+
+    wrapper._quiesce_worker = quiesce
+    try:
+        yield
+    finally:
+        wrapper._quiesce_worker = original_quiesce
 
 
 def saved_authorization(path: Path):
@@ -294,7 +342,8 @@ def _run_logged(args,wrapper,saved,*,prospective):
     try:
         journal = Journal(args.journal)
         journal.write("start", action=args.action, pid=os.getpid(),
-                      wrapper_sha256=PROSPECTIVE_WRAPPER_SHA256 if prospective else WRAPPER_SHA256)
+                      wrapper_sha256=PROSPECTIVE_WRAPPER_SHA256 if prospective else WRAPPER_SHA256,
+                      durable_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
     except OSError as exc:
         if journal is not None:
             journal.close()
@@ -304,8 +353,10 @@ def _run_logged(args,wrapper,saved,*,prospective):
             raise
         journal = UnavailableJournal()
     try:
-        result = (execute(wrapper, journal, stage=args.stage, track_id=args.track_id, image=args.image)
-                  if args.action == "run" else restore(wrapper, journal, saved))
+        stage = args.stage if args.action == 'run' else saved['stage']
+        with generation2_cleanup_environment(wrapper, stage):
+            result = (execute(wrapper, journal, stage=args.stage, track_id=args.track_id, image=args.image)
+                      if args.action == "run" else restore(wrapper, journal, saved))
         print(json.dumps(result, sort_keys=True))
         return 0
     except Exception as exc:

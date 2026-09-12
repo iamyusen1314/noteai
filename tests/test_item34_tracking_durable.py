@@ -28,6 +28,63 @@ class MemoryJournal:
 
 
 class DurableTrackingTests(unittest.TestCase):
+    def test_generation2_cleanup_accepts_only_identical_env_duplicates(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        wrapper = durable.load_wrapper(prospective=True)
+        image = 'registry.invalid/app@sha256:' + 'a' * 64
+        binding = prospective_binding(2)
+        frozen_sha = hashlib.sha256(durable.WRAPPER.read_bytes()).hexdigest()
+        with durable.checkpoint.observation_context(binding):
+            name = wrapper._worker_name('3d')
+            env = wrapper._observation_worker_environment(name)
+            item = {'Id': 'b' * 64, 'Config': {'Image': image,
+                    'Cmd': list(durable.checkpoint.WORKER_ARGV),
+                    'Entrypoint': ['/app/scripts/docker_entrypoint.sh'],
+                    'Labels': {'com.noteai.item34.observation-binding-sha256':
+                               durable.checkpoint.observation_identity()['observation_binding_sha256']},
+                    'Env': [None, *env, env[0]]}}
+            original_stop = wrapper._quiesce_worker
+            for change in ('identical', 'conflicting', 'missing', 'wrong_image', 'wrong_binding', 'malformed'):
+                value = copy.deepcopy(item)
+                if change == 'conflicting':
+                    value['Config']['Env'].append('NOTEAI_ITEM34_CHECKPOINT_STAGE=24h')
+                elif change == 'missing':
+                    value['Config']['Env'].remove(env[-1])
+                elif change == 'wrong_image':
+                    value['Config']['Image'] = image.replace('a' * 64, 'c' * 64)
+                elif change == 'wrong_binding':
+                    value['Config']['Labels'] = {}
+                elif change == 'malformed':
+                    value['Config']['Env'].append(1)
+                raw = copy.deepcopy(value)
+                with patch.object(wrapper, '_docker_json', return_value=[value]) as read, \
+                     patch.object(wrapper, '_named_container_state', side_effect=[
+                         {'running': True, 'exit_code': 0}, {'running': False, 'exit_code': 143}]), \
+                     patch.object(wrapper, '_stop_container') as stop:
+                    with durable.generation2_cleanup_environment(wrapper, '3d'):
+                        if change == 'identical':
+                            result = wrapper._quiesce_worker(name, image)
+                            self.assertEqual(result['container_id'], 'b' * 64)
+                            stop.assert_called_once_with('b' * 64)
+                        else:
+                            with self.assertRaises(wrapper.ProductionAdapterError):
+                                wrapper._quiesce_worker(name, image)
+                            stop.assert_not_called()
+                    self.assertIs(wrapper._docker_json, read)
+                    self.assertIs(wrapper._quiesce_worker, original_stop)
+                    self.assertEqual(value, raw)
+            self.assertEqual(hashlib.sha256(durable.WRAPPER.read_bytes()).hexdigest(), frozen_sha)
+            self.assertEqual(frozen_sha, durable.PROSPECTIVE_WRAPPER_SHA256)
+
+    def test_generation2_cleanup_does_not_change_other_container_inspection(self):
+        from tests.test_item34_tracking_checkpoint_executor import prospective_binding
+        wrapper = durable.load_wrapper(prospective=True)
+        with durable.checkpoint.observation_context(prospective_binding(2)), \
+             patch.object(wrapper, '_quiesce_worker', return_value={'unchanged': True}) as stop:
+            with durable.generation2_cleanup_environment(wrapper, '3d'):
+                self.assertEqual(wrapper._quiesce_worker('unrelated-container', 'image'), {'unchanged': True})
+            stop.assert_called_once_with('unrelated-container', 'image')
+
     def setUp(self):
         self.original = {"present": False, "sha256": None, "updated_at": None, "value_b64": None}
         raw = b'{"enabled":true}'

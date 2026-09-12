@@ -1831,7 +1831,7 @@
   "recovery_observation": {
     "schema": "noteai.item34.tracking_observation.v1",
     "item": 34,
-    "status": "OBSERVING_GENERATION2_AWAITING_24H",
+    "status": "24H_SAMPLE_SUCCEEDED_ACL_RESTORATION_PENDING",
     "readiness_credit": false,
     "previous_observation_sha256": "115b8916c6b7eb828f4cd654b175a3b9fbb4be754286ad9b68149d1dc37b670f",
     "observation_generation": 2,
@@ -1889,9 +1889,59 @@
         "ledger_readback_sha256": "7f46e8119d8002923c7916f5dbfd563ff1a978640710544e7f24b25781190690",
         "readback_basis": "September11 independent owner projection after existing-function CAS; original row identity/submission unchanged"
       },
-      "checkpoint_24h": null,
+      "checkpoint_24h": {
+        "observed_at": "2026-09-12T13:44:48.933013+00:00",
+        "metrics": {
+          "comments": 2,
+          "likes": 4,
+          "saves": 2
+        },
+        "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+        "managed_track_identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+        "attempt_identity_sha256": "0d501421f68efb29060705ffc5d9b658b99acd0510d84a440cadc53943faaf4d",
+        "observation_binding_sha256": "820021a3b76df257fceb539ad68b5e3c6c17ae29c7a7fb7180afceca3111c14f",
+        "source": "Original generation2 24h native DB snapshot and successful attempt. Original host final result failed in cleanup; no provider replay, timestamp change or replacement snapshot.",
+        "source_journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3"
+      },
       "checkpoint_3d": null,
-      "actual_provider_attempts": [],
+      "actual_provider_attempts": [
+        {
+          "identity_sha256": "0d501421f68efb29060705ffc5d9b658b99acd0510d84a440cadc53943faaf4d",
+          "run_identity_sha256": "b1e9036547a0915fed7273ac137f889c1b00f936a7680289c1700ab5329da713",
+          "canonical_stage": "24h",
+          "persisted_stage": "24h",
+          "status": "succeeded",
+          "admitted_at": "2026-09-12T13:44:41.568363+00:00",
+          "completed_at": "2026-09-12T13:44:42.890012+00:00",
+          "ledger_readback": "VERIFIED",
+          "actual_supplier_call": true,
+          "call_count": 1,
+          "worker_mode": "once",
+          "round_limit": 1,
+          "run_provider_calls": 1,
+          "automatic_retry_count": 0,
+          "due_candidate_count_before": 1,
+          "due_target_match": true,
+          "force_used": false,
+          "other_row_mutations": 0,
+          "outcome_unknown_count_before": 0,
+          "outcome_unknown_count_after": 0,
+          "runtime_quiescent_before": true,
+          "runtime_quiescent_after": true,
+          "crawler_events_inserted": 1,
+          "configuration_transition_used": true,
+          "configuration_row_mutations": 2,
+          "configuration_restored": true,
+          "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+          "managed_track_identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+          "premature_7d_attempt_count": 0,
+          "post_next_check_at": "2026-09-14T13:34:10.891601+00:00",
+          "physical_http_requests": 3,
+          "initialization_requests": 2,
+          "detail_requests": 1,
+          "source_journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3"
+        }
+      ],
       "manual_fill_used": false,
       "backfill_used": false,
       "early_credit": false
@@ -2014,7 +2064,8 @@
       "out_of_contract_row_mutations": 0,
       "ledger_readback": "VERIFIED_INITIAL_CAS_NOT_TERMINAL",
       "ledger_readback_sha256": "5d4edb5f33ffd6e07bfa2e72822962867069911daa0278022be73c72517b586f",
-      "basis": "One original target UPDATE by existing0020 function. No new attempts, settings, migration, growth or memory rows; future terminal write set is not yet actual."
+      "basis": "One original target UPDATE by existing0020 function. No new attempts, settings, migration, growth or memory rows; future terminal write set is not yet actual.",
+      "scope": "initial owner CAS only; actual 24h deltas are retained under phase_24h_reconciliation.actual_write_audit/config_transitions; terminal cumulative accounting pending"
     },
     "host_binding": {
       "path": "/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/generation2/observation-binding.json",
@@ -2039,15 +2090,15 @@
       "rollback_rehearsal": "PASS",
       "log_controls": "PASS",
       "alert_controls": "PASS",
-      "execution_identity_sha256": null,
-      "execution_identity_basis": "pending actual successful checkpoint run_identity_sha256 for the bounded supplier validation; existing canonical contract does not require a separate managed-cycle execution digest; service cycle remains independently bound by managed_service_identity_sha256 and its original journal",
+      "execution_identity_sha256": "b1e9036547a0915fed7273ac137f889c1b00f936a7680289c1700ab5329da713",
+      "execution_identity_basis": "Original successful generation2 24h persisted attempt and worker_cleanup.worker.run; no managed cycle repeated.",
       "immutable_artifact_sha256": "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703",
       "managed_service_identity_sha256": "262df78b4dbcce6f91bcadc7cc0e997267d6283a39b2ced05641d5348b3672cf",
-      "bounded_validation_attempt_identity_sha256": null,
+      "bounded_validation_attempt_identity_sha256": "0d501421f68efb29060705ffc5d9b658b99acd0510d84a440cadc53943faaf4d",
       "completed_cycle_restored": true,
       "journal": "/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/managed-4cc77f4-entrypoint/managed.host.jsonl",
       "journal_sha256": "1f7f86f8ebb3002aa1d3102d5f8425406dd5a53b2184741754c74385b9ba3fb1",
-      "remaining": "Actual successful generation2 checkpoint run_identity_sha256 and bounded_validation_attempt_identity_sha256 plus genuine24h/3d snapshots and final write accounting; no repeated managed cycle or new control system.",
+      "remaining": "24h temporary ACL must be restored; 3d due September14 and final full DoD/accounting remain pending. Original cleanup identity failure preserved; exact exited container removed with logs retained.",
       "current_host_controls": {
         "at": "2026-09-11T13:49:15.706962+00:00",
         "before": {
@@ -2125,7 +2176,7 @@
       },
       "alert_delivery_basis": "Reuse original accepted monitoring_alerting notification test; current same-rule target, severity, threshold, evaluation, all-day schedule and notification group reread. Period60s and namespace are LAST_KNOWN from original acceptance, not exposed in current UI. No test notification or rule change."
     },
-    "provider_admissions": 0,
+    "provider_admissions": 1,
     "automatic_retry_count": 0,
     "terminal_finalized_at": null,
     "sampling_windows": {
@@ -2192,7 +2243,7 @@
       "run_count": 0
     },
     "cost": {
-      "cumulative_repair_reserved_cny": 29,
+      "cumulative_repair_reserved_cny": 32,
       "cumulative_cap_cny": 100,
       "actual_incremental": "UNKNOWN_NOT_ZERO",
       "repair_physical_requests": 11,
@@ -2200,10 +2251,187 @@
       "repair_detail_requests": 3,
       "old_pre_authorization_diagnostic_calls": 1,
       "old_tracking_admissions": 2,
-      "generation2_tracking_admissions": 0,
-      "batch04_physical_requests": 0
+      "generation2_tracking_admissions": 1,
+      "batch04_physical_requests": 0,
+      "generation2_physical_requests": 3,
+      "generation2_initialization_requests": 2,
+      "generation2_detail_requests": 1
     },
     "managed_tracking_row_started": true,
-    "provider_calls": 0
+    "provider_calls": 1,
+    "phase_24h_reconciliation": {
+      "original_host_terminal": [
+        {
+          "code": "observation_container_identity",
+          "event": "exception",
+          "exception_class": "ProductionAdapterError",
+          "provider_replay_allowed": false,
+          "recorded_at": "2026-09-12T13:44:53.147608+00:00"
+        }
+      ],
+      "original_journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3",
+      "original_journal_bytes": 19688,
+      "historical_native_postflight_validation": "PASS",
+      "original_final_receipt_returned": false,
+      "worker_result": {
+        "attempted": 1,
+        "claimed": 1,
+        "collected": 1,
+        "failed": 0,
+        "released": 0,
+        "total": 1
+      },
+      "http_observations": [
+        {
+          "at": "2026-09-12T13:44:41.729354+00:00",
+          "phase": "dispatch",
+          "request_body_bytes": 0,
+          "request_kind": "dsl",
+          "sequence": 1
+        },
+        {
+          "at": "2026-09-12T13:44:41.872119+00:00",
+          "phase": "response",
+          "request_kind": "dsl",
+          "response_bytes": 59828,
+          "response_diagnostics": {
+            "http_status": 200,
+            "payload_kind": "non_json"
+          },
+          "sequence": 1
+        },
+        {
+          "at": "2026-09-12T13:44:42.130862+00:00",
+          "phase": "dispatch",
+          "request_body_bytes": 0,
+          "request_kind": "session",
+          "sequence": 2
+        },
+        {
+          "at": "2026-09-12T13:44:42.294410+00:00",
+          "phase": "response",
+          "request_kind": "session",
+          "response_bytes": 616,
+          "response_diagnostics": {
+            "business_code": 0,
+            "business_code_kind": "integer",
+            "http_status": 200,
+            "message_present": true,
+            "message_tags": [],
+            "nested_business_code_kind": "absent",
+            "payload_kind": "object",
+            "success_state": "true"
+          },
+          "sequence": 2
+        },
+        {
+          "at": "2026-09-12T13:44:42.632855+00:00",
+          "phase": "dispatch",
+          "request_body_bytes": 201,
+          "request_kind": "detail",
+          "sequence": 3
+        },
+        {
+          "at": "2026-09-12T13:44:42.827174+00:00",
+          "phase": "response",
+          "request_kind": "detail",
+          "response_bytes": 8313,
+          "response_diagnostics": {
+            "business_code": 0,
+            "business_code_kind": "integer",
+            "http_status": 200,
+            "message_present": true,
+            "message_tags": [],
+            "nested_business_code_kind": "absent",
+            "payload_kind": "object",
+            "success_state": "true"
+          },
+          "sequence": 3
+        }
+      ],
+      "config_transitions": [
+        {
+          "event": "transition_result",
+          "phase": "activate",
+          "recorded_at": "2026-09-12T13:44:35.015732+00:00",
+          "result": {
+            "after_config_present": true,
+            "after_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+            "before_config_present": false,
+            "before_config_sha256": null,
+            "collection_suspended": false,
+            "configuration_mutations": 1,
+            "crawler_enabled": true,
+            "other_configuration_mutations": 0,
+            "phase": "activate",
+            "transition_id": "33833339210186486070ce82d999cecc161d61028726d6802d285671db98190c"
+          }
+        },
+        {
+          "event": "transition_result",
+          "phase": "restore",
+          "recorded_at": "2026-09-12T13:44:51.232811+00:00",
+          "result": {
+            "after_config_present": false,
+            "after_config_sha256": null,
+            "before_config_present": true,
+            "before_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+            "collection_suspended": false,
+            "configuration_mutations": 1,
+            "crawler_enabled": false,
+            "other_configuration_mutations": 0,
+            "phase": "restore",
+            "transition_id": "33833339210186486070ce82d999cecc161d61028726d6802d285671db98190c"
+          }
+        }
+      ],
+      "container_cleanup": {
+        "at": "2026-09-12T14:00:10.032730+00:00",
+        "status": "EXACT_EXITED_CONTAINER_REMOVED_LOGS_PRESERVED",
+        "container_id": "161b213c8b424cf965dd8f8262af457af72dd96be93102f5db27cadf14807bde",
+        "journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3",
+        "environment_entries": 10,
+        "unique_environment_entries": 9,
+        "duplicate_values_identical": true,
+        "worker_logs": {
+          "stdout": {
+            "bytes": 1733,
+            "sha256": "3d506cf72647b67b704c7548e12bee12bd7a343951bd977238750eed12e84045"
+          },
+          "stderr": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "provider_requests": 0,
+        "business_writes": 0
+      },
+      "temporary_attempts_select": {
+        "status": "REVOKE_FAILED_DMS_CONNECTION",
+        "original_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+        "latest_readback": {
+          "role": "noteai_admin_runtime",
+          "checked_at": "2026-09-12 13:56:18.958213+00",
+          "acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin,noteai_app=r/noteai_admin}",
+          "app_select": true
+        },
+        "dms_revoke_error": "5030 I/O error sending to backend",
+        "dms_read_reconcile_errors": [
+          "5030 connection closed",
+          "5050 connection attempt failed"
+        ],
+        "owner_relogin_required": true
+      },
+      "new_provider_requests_after_original_attempt": 0,
+      "actual_write_audit": {
+        "crawler_events_inserted": 1,
+        "other_system_settings_row_mutations": 0,
+        "other_tracked_notes_row_mutations": 0,
+        "out_of_contract_row_mutations": 0,
+        "system_settings_row_mutations": 1,
+        "target_tracked_notes_distinct_rows": 1,
+        "tracking_provider_attempts_inserted": 1
+      }
+    }
   }
 }

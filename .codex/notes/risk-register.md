@@ -1,5 +1,17 @@
 # Risk Register
 
+September12 22:03: original Admin publication remains healthy; required production
+query/auth/logout isolation has real evidence. Owner password possession/browser
+sign-in is not yet established, and is the remaining delivery interaction.
+Separately, original generation2 24h succeeded but final host cleanup rejected an
+identical Docker Env duplicate. Exact stopped container was subsequently verified,
+logs retained and container removed; old exception remains. DMS lost its owner
+connection during revoke; C readonly catalog confirms temporary noteai_app attempts
+SELECT still present. Owner normal database re-login is required to finish the
+already approved guarded revoke, before any next stage. No silent permission
+extension/role change or provider replay. Canonical stores actual sample and pending
+ACL recovery; frozen image/T0, sealed history and Readiness30/37 unchanged.
+
 September12 18:40: Admin696825c is actually published at admin.noteaipro.com with
 existing independent identity/dedicated DB role. Public HTTPS normal login/core
 queries/logout-old403 and valid ordinary-user denial passed, invalid login limit429.
