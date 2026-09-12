@@ -2806,6 +2806,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-privacy-consent" type="checkbox" style="margin-top:2px">我已阅读并同意当前版本的服务条款、隐私与退款说明</label>
         <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-cross-border-consent" type="checkbox" style="margin-top:2px">我已知悉最小必要文本可能经新加坡 Claude Gateway 处理；启用该处理路径前需另行告知并取得相应同意</label>
       </div>
+      <div id="public-auth-status" role="status" style="display:none;color:var(--text-2);font-size:12px;line-height:1.6"></div>
       <div id="auth-error" style="color:#EF4444;font-size:12px;display:none;text-align:center"></div>
       <button onclick="doAuth()" style="padding:13px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;margin-top:4px" id="auth-submit-btn">登录</button>
       <div id="auth-recovery-actions" style="display:flex;justify-content:center;gap:16px;font-size:12px">
@@ -5285,6 +5286,18 @@ async function refreshPublicStatus() {
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂未开放，短信资质审核中。') +
     (_publicStatus?.ai_open ? '文字诊断与生成可用；服务总额度用尽时暂停新增调用。' : '真实AI服务尚未开放，不会把示例当作处理结果。') +
     ' 图片、视频、外部笔记跟踪及支付暂未开放。';
+  syncPublicAuthAvailability();
+}
+function syncPublicAuthAvailability() {
+  if (!PUBLIC_PRODUCT) return;
+  const open = _publicStatus?.registration_open === true;
+  const notice = document.getElementById('public-auth-status');
+  notice.style.display = open ? 'none' : 'block';
+  notice.textContent = _publicStatus
+    ? '手机验证码注册和登录暂未开放，短信资质审核中。你仍可浏览原工作台、套餐与协议；审核完成并验证后开放。'
+    : '暂时无法确认短信服务状态，请稍后再试。你仍可浏览原工作台、套餐与协议。';
+  document.querySelector('#auth-phone-code-row button').disabled = !open;
+  document.getElementById('auth-submit-btn').disabled = !open;
 }
 function requirePublicCapability(key) {
   if (!PUBLIC_PRODUCT || _publicStatus?.[key]) return true;
@@ -5365,7 +5378,7 @@ async function publicPhoneAuth() {
     if (!requireProductConsent()) return;
     showToast('登录成功，可使用免费积分进行文字诊断或生成');
   } catch (error) { err.textContent=error.message;err.style.display='block'; }
-  finally { btn.disabled=false; }
+  finally { btn.disabled=false; syncPublicAuthAvailability(); }
 }
 
 /* ── Page System ───────────────────────────────────────────── */
@@ -5708,7 +5721,8 @@ function renderPricingConfig(cfg) {
     const cGenerate = pricingMax(monthly, costs.generate);
     const cRewrite = pricingMax(monthly, costs.chat_rewrite);
     const cScreenshot = pricingMax(monthly, costs.screenshot);
-    const features = (t.features || []).slice(0, 3).map(f =>
+    const publicFreeFeatures = ['验证手机号后使用免费额度', '真实文字诊断、生成及对话优化', '额度用尽后提示，不自动购买'];
+    const features = (PUBLIC_PRODUCT && tier === 'free' ? publicFreeFeatures : (t.features || [])).slice(0, 3).map(f =>
       `<div><span style="color:var(--success);margin-right:6px">✓</span>${pricingEsc(f)}</div>`
     ).join('');
     return `
@@ -10177,6 +10191,7 @@ function switchAuthTab(tab) {
     document.getElementById('auth-privacy-consent').closest('label').lastChild.textContent=
       '我已阅读并同意账户及免费创作服务条款、隐私与退款说明；主动提交的创作文本由Kimi国内API处理';
     document.getElementById('auth-submit-btn').textContent=isLogin ? '验证码登录' : '免费注册并登录';
+    syncPublicAuthAvailability();
   }
 }
 

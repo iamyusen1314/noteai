@@ -25,6 +25,7 @@ test('original public product works under strict script CSP with OTP and dynamic
   const fs = require('node:fs');
   const path = require('node:path');
   const errors = [];
+  let registrationOpen = true;
   page.on('pageerror', error => errors.push(error.message));
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
@@ -44,7 +45,7 @@ test('original public product works under strict script CSP with OTP and dynamic
       const file = path.resolve('dist'+url.pathname.replace(/^\/dist/,''));
       if (fs.existsSync(file)) return route.fulfill({path:file});
     }
-    if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:true,ai_open:true}});
+    if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:registrationOpen,ai_open:true}});
     if (url.pathname === '/synthetic-api/auth/verification/request') {
       expect(route.request().postDataJSON()).toEqual({channel:'phone',destination:'13800138000',purpose:'register_phone'});
       return route.fulfill({status:202,json:{challenge_id:'offline-challenge',expires_in_seconds:600}});
@@ -74,6 +75,22 @@ test('original public product works under strict script CSP with OTP and dynamic
     await expect(button).toBeDisabled();
   }
   await expect(page.locator('#pricing-content .topup-card').first()).toHaveAttribute('aria-disabled','true');
+  await page.evaluate(() => renderPricingConfig({
+    tiers:{free:{name:'免费版',monthly_credits:12,price:0,features:['可体验AI诊断/截图识别']}},
+    credit_costs:{analyze:6,generate:8,chat_rewrite:3,chat_fast:1,screenshot:0.5},
+  }));
+  await expect(page.locator('.pricing-card').first()).toContainText('真实文字诊断、生成及对话优化');
+  await expect(page.locator('.pricing-card').first()).not.toContainText('可体验AI诊断/截图识别');
+  registrationOpen = false;
+  await page.evaluate(() => refreshPublicStatus());
+  await page.locator('#nav-guest').getByRole('button',{name:'注册',exact:true}).click();
+  await expect(page.locator('#public-auth-status')).toContainText('手机验证码注册和登录暂未开放');
+  await expect(page.locator('#auth-phone-code-row button')).toBeDisabled();
+  await expect(page.locator('#auth-submit-btn')).toBeDisabled();
+  await page.locator('#auth-tab-login').click();
+  await expect(page.locator('#auth-submit-btn')).toBeDisabled();
+  await page.locator('#auth-modal').getByRole('link',{name:'服务条款、隐私与退款说明'}).click();
+  await expect(page.locator('#page-legal')).toHaveClass(/active/);
   await page.evaluate(()=>{ switchMode('generate'); showPage('live'); });
   await expect(page.locator('#progressLabel')).toHaveText('暂无进行中的 AI 任务');
   await page.evaluate(async()=>{

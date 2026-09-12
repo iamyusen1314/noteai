@@ -2,6 +2,58 @@
 
 ## Current September12 afternoon — real product free release
 
+16:36Beijing: API9941c85 is LIVE onC, actualDockerimageff0da7f…1a798;
+cloud15 normal-entrypoint privatecandidate/modelDB/scopechecks passed and stopped,
+then sameimage activated. NginxSHAf1acd3941f563d755097e64adc58e9f27e08c6edba4bd4ed685bb727da961155.
+Bothdomains directEIP HTTPS passed13GETchecks each: actualfree_product/status,
+AIbudgetavailable, registrationfalse/paymentfalse/Trackingfalse, tiers200,
+unauthenticatedown-data401, forbiddenpublic/Admin/payment/docs404 andwrongmethods403.
+AdditionalpublicPOST noauthanalyze401/payment404/untrustedoriginauth403; noSMS/modelcall.
+DMS budget_no_reset=true and2monotonetriggers reread. Existinggen2automation file
+remainsACTIVE/heartbeat/exactthread; noautomationwrite or sample. Runtime9941c85 remains the actual source identity.
+Publicbrowser (throughlocalproxy) confirms samebehavior/noJSerror but found modal
+closure notice andfreeplanOCRwording mismatch. MinimaloriginalHTML+existinge2etest
+now disableSMSactions whileclosed, keepagreements accessible, andrender actualtext
+freefeatures. Actualdist/CSP browser passed4.2s. Frontendfollow-up not yetpublished.
+SMSqualificationpage still requires actualenterprise/legalrepresentative/admin
+identity documents andadminphoneverification; nosubmission/approvalconfirmed.
+Readinessverified30 unchanged; no terminal credit forpartialpublicdelivery.
+
+16:31Beijing: originalcloudresult12 failed before anyservicechange; candidateexit3,
+OOMfalse. Readback13 confirms oldAPI stillrunningdd955f9. Actualfailure:
+libpq rejected +default_transaction_read_only because privateURI options used
+urlencode plusfor spaces. FixedexactcandidateURI topercent20; actualpsycopg
+conninfo parser offline verifies unchangedintendedoptions, noDBconnection.
+Cloudresult14 confirmsfixed; original env/result/started/logs retained privately
+with.failed-plus-dsn suffix, exitedcandidate renamedwithsame suffix. No business
+request or DBwrite during failedstartup. Proxyinputs installedbutinactive are
+reusedonlyonexactbytesmatch. Existinghelper also fixesrollbackorder: stopcurrentAPI,
+reloadoriginalstaticNginx, waitexactoldworkerPID exit, thenrestoreoldAPI; ifnotdrained,
+keepAPIstoppedandreportUNKNOWN. No fixed2second assumption.
+Correctedhelper SHA983ea7d2f9dc436de30806b8776c940ded03f6c37523a57a8299de20a87c9ed6
+has now been dispatched against same9941c85image, not replayofDB/Item34operation.
+
+Database readback aftersingleDO:21ledger rows, exact0021/0022SHA,0018count0;
+SMSlimit10000/reserved0/enabled0, model50000/reserved0/enabled1;
+SMSdeliveries0/modelcalls0. DMSstatement26ms, readback9ms; no livebusiness acceptance.
+Original frontend4218070 remains current. First clouddeploy input exceeded UI18432characterlimit; buttondisabled, no dispatch.
+Same reviewedcode is compressed withstdlibzlib before dispatch; reconcile original result in/var/lib/noteai/public-product-9941c85,
+not repeat the operation. Candidate validation uses onlyGET and normalstartup.
+
+16:25Beijing: single currentRDS snapshot3156865822 is Success/IsAvail1,
+start2026-09-12T08:20:11Z end08:22:48Z, manualFullBackup/Snapshot.
+CreateBackup onlyonce:job142480554/request01A094B3-B201-5701-BEB7-1EFC45A9EA2C;
+Finished query01A094B6-9E2E-555B-9765-E7F6D6FA13E9; availablebackupreadback
+01A094B7-3D4F-543E-B01C-F7B7544F7AB1. No policy/retention/resource/role change.
+DMS owner then executed exact singleDO0021/0022 successfully:one statement,26ms;
+readback underway. No0018 or historicalmigration/Tracking/userrowrewrite.
+DMS own rollbackUI says its featureoff; currentRDSbackup above is separate actual
+backup, not a claim that DMS transactional rollback product was enabled.
+API service has not yet switched; deploymenthelper/private rollback at
+/private/tmp/noteai_public_api_deploy.py SHAdf3ff2a5add291ea31a72105947ccb9f5fce84c321bc41a4d4fb93846cc3d7d9.
+Normalentrypoint private18080 candidate validation precedes Cunit and exactproxy
+activation; no businessPOST/providerrequest in these deployment checks.
+
 16:21Beijing: API-C private candidate env is prepared0600 (13allowlistedkeys,
 OTPdisabled), old unit/env/Nginx privately backed up; service still old. DMS app
 required-columnACL missing0/sessionDELETEtrue. RDS current usage84,263,682,048bytes,

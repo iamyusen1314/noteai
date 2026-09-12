@@ -2,6 +2,17 @@
 
 ## Current September12 afternoon — original free product release
 
+Actualoriginal frontend4218070 and boundedAPI9941c85 are now deployed onC.
+NewRDS snapshot3156865822 available before atomic0021/22; payment0018 excluded.
+Liveauth/Payment/Adminroute refusals passed, cumulativebudgets and no-resetACLverified.
+Fullphone-registration/free-result E2E remains incomplete pendingSMSqualification/
+sign/template and approvedconsentedtest. Do not claimconfiguredAIavailability is
+realmodel-result acceptance. Existingdeletionworker needs trialcallsFK compatibility
+before execution; currentchannel is a truthfulsupport deletionrequest, notinstantdelete.
+FirstcandidatefailedprivateURIplusencoding, originalAPIuntouched; correctedpercent20
+sameimage thenpassed. Productionrollback mustclosepublicroutes/drainoldworkersbefore
+restoringoldfullAPI; do nottrustmerelyRunning withoutoldhealthreadback.
+
 Owner withdraws Item35 professional signatures as release prerequisite; no approval
 or DONE is inferred. Replace earlier account-only target with the real product and
 verified, bounded free use. Current controls/history and rollout details are at the
