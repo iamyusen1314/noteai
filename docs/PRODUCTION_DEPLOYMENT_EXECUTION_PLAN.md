@@ -2,6 +2,26 @@
 
 ## Current September12 afternoon — real product free release
 
+Saved runtimecheckpoint9941c85ab540f788b6981795310fc684331419b5; full candidate
+noteai-local/public-product:9941c85 local image/index
+f074b9e166c1c39466f0a660c3b01933bd52c0252972d8374dce02280c0f8004,
+Python3.11.15/x86_64/UID999/read-only root, normal entrypoint and actual V0.4 model
+hash checks all passed. IsolatedPG16 startup first exposed a test-role missing
+managed_prompts SELECT; granted only there, restarted same candidate and health
+passed. /billing/tiers reports fastchat1; Admin/Tracking404, auth/me401, no realSMS.
+Recovery tar/private/tmp/noteai-public-product-9941c85-linux-amd64.docker.tar.gz,
+378316224bytes SHAa2f4edf54c2badac313dc2f16a30c09886a9dade511a25ab77443fd45336b56b.
+This is NOT a production registry digest or deployment.
+
+Frontend checkpoint71047de includes original UI/error/idle/closed-control fixes
+and repeatable asset packaging; strict-CSP browser checked the actual dist bundle.
+Web archive/private/tmp/noteai-original-product-71047de.tar.gz,2174249bytes,
+SHA9bf3727cb899a03bdcac38af79c9c7a347c7168a35cf81f72ae43d971be8283a.
+Pending production0019/0020/T0 unaffected. Current unapplied0021 SHA
+ d840fdf167805341688f2266cd333bdb81c64a4eed7bedc63776dcf4e4870fc9;
+0022 SHA1e2ff550215f63d7942c54ada54cf3b3467de26bac6e4462d74cc720aadf46d6.
+These supersede only future application inputs, not any prior applied ledger.
+
 At15:00Beijing: text-only original UI/OTP/new-contract consent, strict scoped API,
 Kimi-only provider accounting and no-retry/UNKNOWN handling are implemented.
 Python3.11 actual isolatedPG16 verifies25 concurrent requests produce19 admissions,
