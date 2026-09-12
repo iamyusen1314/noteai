@@ -1,5 +1,65 @@
 # NoteAI Internal Production Readiness Handoff
 
+## Current owner scope — usable scoped Admin operations and truthful status
+
+Owner approves end-to-end implementation, minimum role/schema/proxy changes,
+verification and controlled publication of single-user gift/compensation/trial and
+membership/feature adjustments; existing lawful model route/parameter/enable and
+save/activate/restore; ordinary task pause/resume/schedule/eligible retry. Owner UI
+object/parameter confirmation authorizes each later action. Earlier blanket readonly
+and409 instructions below are historical for these capabilities, not dispatch rules.
+Codex verifies using explicitly marked test users/configurations/tasks, preserves
+real customer entitlements, cash/payment facts and global production selections.
+No training, new provider purchase, recurring cost or unlimited calls. Same budget.
+
+Also fix actual Prompt blank/error handling and connect the real runtime Prompt
+source with view/edit/draft/publication. Separate Trends historical industry evidence,
+Tracking observations, schedule intent, process visibility and recent results;
+unavailable queries must not become0 and page refresh must not dispatch providers.
+Inspect current Item34 records before writing, protect sealed/unknown/in-flight
+operations and current observation without assuming it is still waiting. Reuse the
+original UI, ledger/config/task mechanisms and existing deploy/recovery tooling;
+no new audit platform, acceptance layers or Readiness credit for local preparation.
+Implementation continues fromef06f8b with only seven protected untracked paths.
+
+## September13 00:34 Beijing — original Item34 ACL restored; Admin implementation continues
+
+Owner restored the existing DMS database login. Actual SQL role noteai_admin and
+DB noteai verified; the original guarded generation2-24h-revoke.sql executed once.
+Independent00:34:21.655548+08 readback confirms app SELECT=false and the EXACT
+original owner/Tracking ACL. Canonical evidence appends recovery while preserving
+the original DMS failure/readback. No provider request or business-row write.
+Generation2 remains checking_7d, T0 unchanged,24h timestamp13:44:42.890012UTC,
+later snapshotnull, nextcheck September14 13:34:10.891601UTC, no active attempt/lease.
+Host-only cleanup fix598460a remains separate READY_TO_APPLY; original3d task remains.
+
+Current scoped Admin source implements atomic/idempotent noncash entitlements,
+real Prompt draft/publication/runtime source display, request-snapshot model config,
+and pause/resume/schedule/eligible retry of ordinary durable tasks. Legacy objects
+remain protected. Original UI now distinguishes DB/query errors from empty and
+Trends July25/26 ledger from Tracking. Latest read-only production Prompt200 returns
+empty DB;12 canonical baseline prompts exist in source and are not yet published.
+No production Admin feature/schema/role/image changes yet. Python3.11 isolated64
+unit/contract tests pass. Real PG16 role checks passed gift concurrency, failure
+rollback/result persistence, Prompt/model restoration and original retry; dispatcher
+policy compatibility failed and is being fixed/tested before production rollout.
+Same cumulative budget, seven protected paths and Readiness30/37 unchanged.
+
+00:48 continuation: real PG16.14 with Python3.11.15/linux-amd64 now passes9
+scoped dedicated-role tests including actual HTTP login/owner mutations/viewer and
+ordinary token rejection/logout, duplicate gift, stale writes, persisted failures,
+Prompt/model recovery, dispatcher pause and competing original-task retry. Fixed
+Admin outbox RLS to TO noteai_admin_runtime (no dispatcher broad grant), trigger
+role branch, exact permission error assertions and UI model draft key-order bug.
+Original Admin bundle builds with both JS syntax checks; exact proxy routes and
+scoped unit inputs are prepared. Production remains old pending backup/migration/
+controlled C candidates. RDS console backup modal requested new DBS role; cancelled
+without granting it. Independent RDS task readback confirms the ORIGINAL console backup was dispatched:
+jobt-0mqiwfhpukvq0rpwnh, September13 00:40:49Beijing, Running. No second CreateBackup
+was sent; unused API tab closed. Reconcile this original task until complete. Existing usage78.69GB/400GB free
+quota,200GB instance; no new paid service.
+
+
 ## September12 23:01 Beijing — Admin password recovery completed
 
 Owner entered and confirmed the new password privately in Chrome Workbench. The

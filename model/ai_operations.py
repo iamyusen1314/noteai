@@ -246,6 +246,7 @@ def enqueue_operation_in_transaction(
     priority: int = 0,
     available_at: datetime | None = None,
     now: datetime | None = None,
+    admin_control_scope: str = "protected",
 ) -> str:
     """Create one queued operation and its first event in the caller's transaction."""
     op_id = _operation_id(operation_id)
@@ -253,13 +254,15 @@ def enqueue_operation_in_transaction(
     request = _digest(request_hash, "request_hash")
     kind = _enum_value(operation_kind, OperationKind, "operation kind")
     normalized_priority = _priority(priority)
+    if admin_control_scope not in ("protected", "ordinary"):
+        raise ValueError("invalid admin control scope")
     now_iso = _iso(now)
     available_iso = _iso(available_at or _now(now))
     tx.execute(
         "INSERT INTO ai_operations("
         "id,subject_hash,request_hash,operation_kind,status,provider_phase,"
-        "priority,available_at,created_at,updated_at) "
-        "VALUES(?,?,?,?,'queued','not_started',?,?,?,?)",
+        "priority,available_at,created_at,updated_at,admin_control_scope) "
+        "VALUES(?,?,?,?,'queued','not_started',?,?,?,?,?)",
         (
             op_id,
             subject,
@@ -269,6 +272,7 @@ def enqueue_operation_in_transaction(
             available_iso,
             now_iso,
             now_iso,
+            admin_control_scope,
         ),
     )
     row = _row_for_update(tx, op_id)
@@ -313,7 +317,7 @@ def _claimable_lane_row(
         "((status='queued' AND available_at<=?) OR "
         "(status='running' AND provider_phase='not_started' "
         "AND lease_expires_at IS NOT NULL AND lease_expires_at<=?)) "
-        f"AND {priority_predicate} "
+        f"AND operator_paused=0 AND {priority_predicate} "
         "ORDER BY created_at,id LIMIT 1"
         f"{_lock_suffix(tx, skip_locked=True)}",
         (now_iso, now_iso),
@@ -489,6 +493,8 @@ def _take_operation_lease_tx(
     now_iso: str,
     expires_iso: str,
 ) -> OperationLease:
+    if current.get("operator_paused"):
+        raise ValueError("paused operation cannot receive a lease")
     takeover = current.get("status") == OperationStatus.RUNNING.value
     fence = int(current.get("lease_fence") or 0) + 1
     tx.execute(
@@ -542,6 +548,8 @@ def claim_operation_in_transaction(
     if not row:
         return None
     current = dict(row)
+    if current.get("operator_paused"):
+        return None
     claimable = (
         current.get("status") == OperationStatus.QUEUED.value
         and str(current.get("available_at") or "") <= now_iso
@@ -671,6 +679,8 @@ def begin_provider_attempt_in_transaction(
     if not row:
         return None
     current = dict(row)
+    if current.get("operator_paused"):
+        return None
     phase = current.get("provider_phase")
     if (
         not _lease_matches(current, lease, now_iso)
@@ -1047,7 +1057,7 @@ def get_operation(operation_id: str) -> dict[str, Any] | None:
     op_id = _operation_id(operation_id)
     row = db.fetchone(
         "SELECT id,subject_hash,request_hash,operation_kind,status,provider_phase,"
-        "priority,available_at,lease_fence,lease_expires_at,heartbeat_at,claim_count,"
+        "priority,operator_paused,admin_control_scope,available_at,lease_fence,lease_expires_at,heartbeat_at,claim_count,"
         "provider_attempt_count,event_sequence,result_hash,result_count,created_at,"
         "updated_at,started_at,terminal_at FROM ai_operations WHERE id=?",
         (op_id,),

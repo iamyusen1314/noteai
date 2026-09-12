@@ -60,6 +60,7 @@ class Invocation:
     user_id: str
     request_id: str
     failure: str = ""
+    model_config: dict | None = None
 
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
@@ -104,6 +105,9 @@ async def dispatch(app, scope, receive, send, body: bytes):
             if path in {"/analyze/stream", "/generate/stream"} and payload.get("fact_source_policy") != "skip":
                 raise HTTPException(422, "当前体验不调用外部商家事实源，请使用已有材料创作")
         context = Invocation(user["id"], request_id or str(uuid.uuid4()))
+        if path in PAID_ROUTES and os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1":
+            import model_runtime_config
+            context.model_config = await run_in_threadpool(model_runtime_config.read)
     except HTTPException as exc:
         return await JSONResponse({"detail": exc.detail}, status_code=exc.status_code)(scope, receive, send)
     marker = _invocation.set(context)

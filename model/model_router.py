@@ -33,6 +33,7 @@ import anthropic
 import httpcore
 import httpx
 import public_product as _public_product
+import model_runtime_config as _runtime_config
 import claude_gateway_protocol as _cgp
 
 # ── 模型常量 ──────────────────────────────────────────────────────
@@ -1788,6 +1789,8 @@ async def call(
     """路由到对应模型；Claude 仅在确认未调用 provider 时走 fallback。"""
     routing = ({"primary": KIMI_TEXT, "fallback": []} if _public_product.enabled()
                else TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
+    if _public_product.enabled():
+        routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
     models_to_try = [routing["primary"]] + list(routing.get("fallback", []))
     absolute_deadline = _gateway_absolute_deadline(
         task,
@@ -1972,6 +1975,8 @@ async def stream(
     """
     routing = ({"primary": KIMI_TEXT, "fallback": []} if _public_product.enabled()
                else TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
+    if _public_product.enabled():
+        routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
     primary  = routing["primary"]
     fallbacks = list(routing.get("fallback", []))
     absolute_deadline = _gateway_absolute_deadline(
@@ -2086,7 +2091,8 @@ async def stream_chat(
     yield: ('thinking', text) | ('content', text)
     """
     if _public_product.enabled():
-        async for event in _stream_kimi(KIMI_TEXT, system, user_content, thinking, max_tokens, history):
+        selected_model, max_tokens = _runtime_config.resolve("chat", KIMI_TEXT, max_tokens)
+        async for event in _stream_kimi(selected_model, system, user_content, thinking, max_tokens, history):
             yield event
         return
     absolute_deadline = _gateway_absolute_deadline(
@@ -2184,7 +2190,8 @@ def call_claude_sync(
 ) -> str:
     operation_id = _new_operation_id()
     if _public_product.enabled():
-        payload = {"model": KIMI_TEXT, "messages": [
+        selected_model, max_tokens = _runtime_config.resolve("semantic", KIMI_TEXT, max_tokens)
+        payload = {"model": selected_model, "messages": [
             *([{"role": "system", "content": system}] if system else []), *messages],
             "max_tokens": max_tokens, "thinking": {"type": "disabled"}, "temperature": 0.6}
         with _public_product.kimi_client(timeout=KIMI_TIMEOUT) as client:

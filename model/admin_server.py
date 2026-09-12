@@ -38,6 +38,8 @@ from pydantic import BaseModel, Field
 
 # 共享模块
 import db
+import admin_entitlements as _admin_entitlements
+import admin_prompts as _admin_prompts
 import admin_auth as _aauth
 import billing as _billing
 import content_retention as _retention
@@ -73,26 +75,34 @@ def _is_restricted_admin_runtime() -> bool:
     return stage == "production" or cloud in _TRUE_VALUES
 
 
-def _admin_capabilities_payload() -> dict:
+def _admin_capabilities_payload(admin=None) -> dict:
     restricted = _is_restricted_admin_runtime()
     capabilities = {
         name: not restricted for name in _ADMIN_MUTATION_CAPABILITIES
     }
+    scopes = set(os.environ.get("NOTEAI_ADMIN_OPERATION_SCOPES", "").split(","))
+    scoped = restricted and os.environ.get("NOTEAI_ADMIN_OPERATIONS_ENABLED") == "1"
+    owner = bool(admin and admin.get("username") == os.environ.get("ADMIN_USERNAME", "noteai_admin"))
+    capabilities.update(entitlement_management=False, model_configuration=False, task_management=False)
+    if scoped and owner:
+        for name in ("entitlement_management", "prompt_mutation", "model_configuration", "task_management"):
+            capabilities[name] = name in scopes
     return {
-        "mode": "production_read_only" if restricted else "local_operator",
-        "read_only": restricted,
+        "mode": "production_owner_operations" if restricted and any(capabilities.values()) else "production_read_only" if restricted else "local_operator",
+        "read_only": restricted and not any(capabilities.values()),
+        "role": "owner" if owner else "viewer",
         "capabilities": capabilities,
         "mutation_workflow": (
-            "audited_release_workflow" if restricted else "local_operator"
+            "owner_confirmed_scoped_operation" if scoped and owner else "restricted" if restricted else "local_operator"
         ),
     }
 
 
-def _require_admin_capability(name: str) -> None:
-    if _admin_capabilities_payload()["capabilities"].get(name) is not True:
+def _require_admin_capability(name: str, admin=None) -> None:
+    if _admin_capabilities_payload(admin)["capabilities"].get(name) is not True:
         raise HTTPException(
             status_code=409,
-            detail="生产 Admin 为只读控制台；该操作必须通过独立受审计流程执行",
+            detail="当前身份或运行环境未开放此项操作",
         )
 
 
@@ -257,7 +267,7 @@ async def admin_me(admin: dict = Depends(_aauth.get_admin_user)):
 @admin_app.get("/admin/capabilities")
 async def admin_capabilities(admin: dict = Depends(_aauth.get_admin_user)):
     """Expose the fail-closed Admin UI contract without configuration values."""
-    return _admin_capabilities_payload()
+    return _admin_capabilities_payload(admin)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -650,6 +660,72 @@ async def admin_user_adjust(
     raise HTTPException(status_code=400, detail=f"未知操作: {req.action}")
 
 
+class AdminOperationInput(BaseModel):
+    request_id: str = Field(min_length=36, max_length=36)
+    reason: str = Field(min_length=3, max_length=300)
+    expected: str = ""
+    payload: dict = Field(default_factory=dict)
+
+
+@admin_app.get("/admin/tasks")
+async def admin_task_list(limit: int = 40, admin: dict = Depends(_aauth.get_admin_user)):
+    import admin_tasks
+    return admin_tasks.list_tasks(limit)
+
+
+@admin_app.get("/admin/tasks/{operation_id}")
+async def admin_task_detail(operation_id: str, admin: dict = Depends(_aauth.get_admin_user)):
+    import admin_tasks
+    return admin_tasks.detail(operation_id)
+
+
+@admin_app.post("/admin/tasks/{operation_id}/{action}")
+async def admin_task_change(operation_id: str, action: str, body: AdminOperationInput, admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("task_management", admin)
+    import admin_tasks
+    return admin_tasks.change(operation_id, action, actor=admin["username"],
+        request_id=body.request_id, reason=body.reason, expected=body.expected,
+        priority=body.payload.get("priority"), available_at=body.payload.get("available_at"))
+
+
+@admin_app.get("/admin/model-config")
+async def admin_model_config(scope: str = "production", admin: dict = Depends(_aauth.get_admin_user)):
+    import model_runtime_config
+    return model_runtime_config.view(scope)
+
+
+@admin_app.post("/admin/model-config/{action}")
+async def admin_model_config_change(action: str, body: AdminOperationInput, admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("model_configuration", admin)
+    import model_runtime_config
+    return model_runtime_config.change(action, body.payload.get("scope", "production"),
+        actor=admin["username"], request_id=body.request_id, reason=body.reason,
+        expected=body.payload.get("expected_revision"), config=body.payload.get("config"))
+
+
+@admin_app.post("/admin/users/{user_id}/entitlements/preview")
+async def admin_entitlement_preview(user_id: str, body: dict, admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("entitlement_management", admin)
+    return _admin_entitlements.preview(user_id, body)
+
+
+@admin_app.post("/admin/users/{user_id}/entitlements/apply")
+async def admin_entitlement_apply(user_id: str, body: AdminOperationInput, admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("entitlement_management", admin)
+    return _admin_entitlements.apply(user_id, body.payload, actor=admin["username"],
+                                     request_id=body.request_id, reason=body.reason, expected=body.expected)
+
+
+@admin_app.get("/admin/operations/{request_id}")
+async def admin_operation_result(request_id: str, admin: dict = Depends(_aauth.get_admin_user)):
+    if admin.get("username") != os.environ.get("ADMIN_USERNAME", "noteai_admin"):
+        raise HTTPException(403, "仅 owner 可查看操作结果")
+    row = db.fetchone("SELECT actor,reason,result_json,created_at FROM admin_operations WHERE id=?", (request_id,))
+    if not row:
+        raise HTTPException(404, "未找到已提交结果；请核对原操作，不要更换编号重试")
+    return {**json.loads(row["result_json"]), "actor": row["actor"], "reason": row["reason"], "created_at": row["created_at"]}
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # P2-B URL 追踪管理
 # ══════════════════════════════════════════════════════════════════════════
@@ -906,7 +982,7 @@ def _load_prompts() -> dict:
 @admin_app.get("/admin/prompts")
 async def admin_prompts_list(admin: dict = Depends(_aauth.get_admin_user)):
     """列出所有 Prompt 及元数据。"""
-    data = _load_prompts()
+    data = {"prompts": {p["key"]: p for p in _admin_prompts.catalog()}}
     result = []
     for key, p in data.get("prompts", {}).items():
         result.append({
@@ -916,18 +992,32 @@ async def admin_prompts_list(admin: dict = Depends(_aauth.get_admin_user)):
             "version":      p.get("version", 1),
             "updated_at":   p.get("updated_at", ""),
             "preview":      (p.get("content", ""))[:100] + "…",
+            "source": p["source"], "runtime_loaded": p["runtime_loaded"], "editable": p["editable"],
         })
     return {"prompts": result}
 
 
 @admin_app.get("/admin/prompts/{key}")
 async def admin_prompt_get(key: str, admin: dict = Depends(_aauth.get_admin_user)):
-    data = _load_prompts()
-    p = data["prompts"].get(key)
-    if not p:
-        raise HTTPException(status_code=404, detail=f"Prompt '{key}' 不存在")
-    history = data.get("history", {}).get(key, [])
-    return {**p, "key": key, "history": history[-10:]}
+    return _admin_prompts.detail(key)
+
+
+@admin_app.put("/admin/prompts/{key}/draft")
+async def admin_prompt_draft(key: str, body: AdminOperationInput, admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("prompt_mutation", admin)
+    return _admin_prompts.draft(key, body.payload.get("content"), actor=admin["username"],
+                               request_id=body.request_id, reason=body.reason,
+                               expected_version=body.payload.get("expected_version"),
+                               expected_draft_id=body.payload.get("expected_draft_id"))
+
+
+@admin_app.post("/admin/prompts/{key}/publish")
+async def admin_prompt_publish(key: str, body: AdminOperationInput, admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("prompt_mutation", admin)
+    return _admin_prompts.publish(key, actor=admin["username"], request_id=body.request_id,
+                                 reason=body.reason, draft_id=body.payload.get("draft_id"),
+                                 expected_version=body.payload.get("expected_version"),
+                                 rollback_version=body.payload.get("rollback_version"))
 
 
 def _build_effective_prompt_preview(key: str, domain: str, content: str, version: int) -> dict:
@@ -1271,6 +1361,38 @@ def _load_crawler_config() -> dict:
 @admin_app.get("/admin/crawler/status")
 async def admin_crawler_status(admin: dict = Depends(_aauth.get_admin_user)):
     config = _load_crawler_config()
+    if _is_restricted_admin_runtime():
+        # Schedule intent, database evidence and process state are distinct.
+        # A GET must never import/run a worker or inspect its credentials.
+        try:
+            counts = db.fetchone(
+                "SELECT COUNT(*) AS total,"
+                "SUM(CASE WHEN check_24h_at IS NOT NULL THEN 1 ELSE 0 END) AS snapshots_24h,"
+                "SUM(CASE WHEN check_7d_at IS NOT NULL THEN 1 ELSE 0 END) AS snapshots_later,"
+                "MAX(CASE WHEN check_24h_at>COALESCE(check_7d_at,'') THEN check_24h_at ELSE check_7d_at END) AS latest_success "
+                "FROM tracked_notes"
+            )
+            recent = [dict(r) for r in db.fetchall(
+                "SELECT id,observation_generation,status,observation_started_at,"
+                "check_24h_at,check_7d_at,last_checked_at,next_check_at,attempt_count,"
+                "CASE WHEN active_attempt_id IS NULL THEN 0 ELSE 1 END AS attempt_active "
+                "FROM tracked_notes ORDER BY COALESCE(last_checked_at,submitted_at) DESC,id LIMIT 10"
+            )]
+            tracking = {"available": True, "source": "PostgreSQL tracked_notes",
+                        "total": int(counts["total"]), "snapshots_24h": int(counts["snapshots_24h"] or 0),
+                        "snapshots_later": int(counts["snapshots_later"] or 0),
+                        "latest_success": counts["latest_success"], "recent": recent}
+        except Exception as exc:
+            tracking = {"available": False, "source": "PostgreSQL tracked_notes",
+                        "error_type": type(exc).__name__}
+        return {"enabled": bool(config.get("enabled", False)),
+                "schedule_enabled": bool(config.get("enabled", False)),
+                "schedule_source": "crawler_config (schedule intent only)",
+                "process_state": "not_observed_from_admin", "tracking": tracking,
+                "cookie_runtime_status": "not_observed_here", "cookie_file_exists": False,
+                "cookie_last_verified_at": None,
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "notice": "行业新鲜度来自 Trends 历史账本；单篇 Tracking 来自 tracked_notes。配置关闭不代表观察失败，最近读成功也不证明当前登录仍有效。"}
     cookie_content = (
         []
         if _is_restricted_admin_runtime()

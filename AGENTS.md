@@ -2,6 +2,17 @@
 
 ## Current execution control
 
+September12 late-evening owner authorizes implementing and publishing scoped owner
+Admin operations: single-user noncash entitlement adjustments, existing legal model
+route/configuration save/activate/restore, ordinary task pause/resume/configuration
+and eligible retry, plus real Prompt management and truthful crawler status.
+Owner confirmation in the authenticated UI authorizes each later scoped operation.
+This supersedes blanket production read-only/409 and corresponding earlier Admin
+exclusions; Codex itself must not choose real customers or change live model/task
+state without a specific instruction. Use marked test objects for verification.
+Preserve payment facts, secrets, role isolation, current Item34 protected state,
+same budgets and seven protected paths. Latest details are at Handoff/plan top.
+
 September12 owner explicitly authorizes resetting only the existing noteai_admin
 Admin application password and revoking that administrator's old login sessions.
 Use owner-controlled hidden terminal input, preserve database credentials and all

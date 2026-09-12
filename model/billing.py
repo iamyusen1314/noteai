@@ -8,6 +8,7 @@ import uuid
 import contextvars
 import os
 import re
+import json
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import HTTPException, status
@@ -422,6 +423,11 @@ def _get_subscription_tx(tx: db.Transaction, user_id: str) -> dict:
                     (sid,),
                 )
             )
+            # Account-level restrictions survive expiry of the paid/gift tier.
+            # The expired row remains the historical entitlement record.
+            previous_features = dict(row).get("feature_overrides_json") or "{}"
+            tx.execute("UPDATE subscriptions SET feature_overrides_json=? WHERE id=?", (previous_features, sid))
+            sub["feature_overrides_json"] = previous_features
     # A paid purchase has one allocation for its exact 30-day term. Only the
     # free plan renews on a calendar-month boundary; paid plans are replaced by
     # a new confirmed payment rather than silently reset or auto-renewed.
@@ -510,6 +516,21 @@ def _quota_error(
     )
 
 
+def _require_feature_tx(tx, user_id, operation):
+    if not user_id:
+        return None
+    sub = _get_subscription_tx(tx, _assert_user(user_id, operation))
+    try:
+        features = json.loads(sub.get("feature_overrides_json") or "{}")
+        if not isinstance(features, dict):
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise HTTPException(503, "账号功能配置需核对") from None
+    if features.get(operation) is False:
+        raise HTTPException(403, "该账号当前未开放此功能")
+    return sub
+
+
 def check_and_deduct_in_transaction(
     tx: db.Transaction,
     user_id: Optional[str],
@@ -519,12 +540,15 @@ def check_and_deduct_in_transaction(
     op = OPERATIONS.get(operation)
     if not op:
         raise ValueError(f"未知操作: {operation}")
+    # Admin feature restrictions apply to free operations too. This cannot
+    # enable routes closed by the public release or bypass provider budgets.
+    sub = _require_feature_tx(tx, user_id, operation)
     if op["free"] or op["credits"] == 0:
         usage_id = _record_usage_tx(tx, user_id, operation, "free", 0) if user_id else None
         return {"source": "free", "credits_used": 0, "usage_id": usage_id}
 
     uid = _assert_user(user_id, operation)
-    sub = _get_subscription_tx(tx, uid)
+    sub = sub or _get_subscription_tx(tx, uid)
     tier_cfg = TIERS[sub["tier"]]
     cost = round(float(op["credits"]), 2)
     monthly_limit = round(float(tier_cfg.get("monthly_credits", 0) or 0), 2)
@@ -658,7 +682,8 @@ def record_free_usage(user_id: Optional[str], operation: str,
     if not user_id:
         return   # 匿名用户免费操作不跟踪
     _record_usage(user_id, operation, source="free", credits_used=0,
-                  tokens_in=tokens_in, tokens_out=tokens_out, force_active=True)
+                  tokens_in=tokens_in, tokens_out=tokens_out, force_active=True,
+                  enforce_feature=True)
 
 
 def record_auxiliary_usage(user_id: Optional[str], operation: str,
@@ -913,7 +938,8 @@ def get_credit_transactions(user_id: str, limit: int = 30) -> list[dict]:
 def _record_usage(user_id: str, operation: str, source: str,
                   credits_used: float,
                   tokens_in: int = 0, tokens_out: int = 0,
-                  force_active: bool = False) -> str | None:
+                  force_active: bool = False,
+                  enforce_feature: bool = False) -> str | None:
     """
     ★ 所有用量记录的唯一入口。
     user_id 不允许为 None 或空字符串，否则抛出内部错误（防止脏数据）。
@@ -928,6 +954,8 @@ def _record_usage(user_id: str, operation: str, source: str,
             content_retention.assert_user_writable_with_storage(tx, user_id)
         except ValueError:
             raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
+        if enforce_feature:
+            _require_feature_tx(tx, user_id, operation)
         usage_id = _record_usage_tx(
             tx,
             user_id,
@@ -1170,6 +1198,8 @@ def get_quota_status(user_id: str) -> dict:
         "tier_name":       tier_cfg["name"],
         "price":           tier_cfg["price"],
         "expires_at":      sub["expires_at"],
+        "feature_overrides": json.loads(sub.get("feature_overrides_json") or "{}"),
+        "entitlement_source": sub.get("entitlement_source", "existing"),
         "monthly_credits": monthly_limit,
         "monthly_credits_used": monthly_used,
         "monthly_credits_remaining": monthly_remaining,

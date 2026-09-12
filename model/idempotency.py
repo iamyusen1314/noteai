@@ -43,6 +43,7 @@ _OWNER_OPERATION_FIELDS = (
     "operation_kind",
     "status",
     "provider_phase",
+    "operator_paused",
     "priority",
     "available_at",
     "claim_count",
@@ -249,7 +250,7 @@ def get_admitted_operation_for_user(
     """Return a fixed safe projection only when the linked claim belongs to user."""
     row = db.fetchone(
         "SELECT o.id AS operation_id,o.operation_kind,o.status,o.provider_phase,"
-        "o.priority,o.available_at,o.claim_count,o.provider_attempt_count,"
+        "o.priority,o.operator_paused,o.available_at,o.claim_count,o.provider_attempt_count,"
         "o.event_sequence,o.result_count,o.created_at,o.updated_at,o.started_at,"
         "o.terminal_at FROM ai_operations o "
         "JOIN ai_operation_admissions a ON a.operation_id=o.id "

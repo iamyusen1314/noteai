@@ -1,5 +1,13 @@
 # Risk Register
 
+September13 00:34: existing DMS owner restored; original guarded Item34 temporary
+attempts SELECT revoke succeeded, independent readback app_select=false and exact
+original ACL. Historical failures remain. Generation2 T0/24h/current checking_7d
+unchanged; no provider request/business writes. Host cleanup fix remains separate.
+Current Admin write capability scope supersedes older blanket readonly requirements.
+Implementation must pass real dedicated-role PG16 and proxy/API/browser checks;
+no production feature/role/schema switch has occurred yet.
+
 September12 23:01: Admin application password recovery completed. Original result
 VERIFIED, new login200/old password401/logout-oldtoken403; fresh target sessions0.
 Original revoke affected0rows; one verification session inserted and deleted.

@@ -1831,7 +1831,7 @@
   "recovery_observation": {
     "schema": "noteai.item34.tracking_observation.v1",
     "item": 34,
-    "status": "24H_SAMPLE_SUCCEEDED_ACL_RESTORATION_PENDING",
+    "status": "24H_SAMPLE_SUCCEEDED_ACL_RESTORED_3D_PENDING",
     "readiness_credit": false,
     "previous_observation_sha256": "115b8916c6b7eb828f4cd654b175a3b9fbb4be754286ad9b68149d1dc37b670f",
     "observation_generation": 2,
@@ -2420,7 +2420,28 @@
           "5030 connection closed",
           "5050 connection attempt failed"
         ],
-        "owner_relogin_required": true
+        "owner_relogin_required": true,
+        "recovery": {
+          "status": "ORIGINAL_ACL_RESTORED",
+          "observed_at": "2026-09-13T00:34:21.655548+08:00",
+          "execution_role": "noteai_admin",
+          "database": "noteai",
+          "source": "Original DMS SQL console; guarded DO succeeded once; separate SELECT readback",
+          "sql_path": "/Users/openclaw/Downloads/noteai-xhs-repair-20260911/generation2-24h-revoke.sql",
+          "sql_sha256": "b28cdfa162f135ebc58a288bb0cc10482c04bc36b3f376174a96eefbe5090501",
+          "acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+          "app_select": false,
+          "generation": 2,
+          "track_status": "checking_7d",
+          "T0": "2026-09-11T13:34:10.891601Z",
+          "check_24h_at": "2026-09-12T13:44:42.890012+00:00",
+          "check_7d_at": null,
+          "next_check_at": "2026-09-14T13:34:10.891601+00:00",
+          "active_attempt": false,
+          "leased": false,
+          "provider_requests": 0,
+          "business_row_writes": 0
+        }
       },
       "new_provider_requests_after_original_attempt": 0,
       "actual_write_audit": {

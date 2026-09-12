@@ -228,6 +228,7 @@ input,select,textarea{font-family:inherit}
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       <span>爬虫管理</span>
     </div>
+    <div class="nav-item" onclick="showPage('tasks',this)"><span>普通业务任务</span></div>
     <div class="nav-section">系统</div>
     <div class="nav-item" onclick="showPage('settings',this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -364,11 +365,14 @@ input,select,textarea{font-family:inherit}
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-ghost btn-sm" onclick="showHistory()">历史版本</button>
-              <button class="btn btn-primary btn-sm" data-capability="prompt_mutation" onclick="savePrompt()">保存</button>
+              <button class="btn btn-primary btn-sm" data-capability="prompt_mutation" onclick="savePrompt()">保存草稿</button>
+              <button class="btn btn-primary btn-sm" data-capability="prompt_mutation" onclick="publishPrompt()">发布生效</button>
             </div>
           </div>
           <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">可编辑基础 Prompt</div>
           <textarea class="form-textarea" id="pe-content" style="min-height:220px"></textarea>
+          <div id="pe-state" role="status" style="margin-top:8px;color:var(--warning)"></div>
+          <label for="pe-reason">操作原因</label><input id="pe-reason" class="form-input" maxlength="300" placeholder="说明本次调整原因，至少3字">
           <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
             模型策略 <b style="color:var(--accent)">V0.4</b> · 基础修订号 <span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
           </div>
@@ -392,6 +396,17 @@ input,select,textarea{font-family:inherit}
 
   <!-- ═══ MODELS ═══════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-models">
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">业务模型路由</div>
+      <p>当前公开实例使用已有 Kimi K2.6 与原累计预算控制。训练与评分模型产物是下方独立模块。</p>
+      <label for="mc-scope">配置范围</label><select id="mc-scope" class="form-input" onchange="loadModelConfig()"><option value="production">当前公开 API</option><option value="test">隔离测试配置（不进入生产路由）</option></select>
+      <div id="mc-state" role="status"></div><div id="mc-routes"></div>
+      <label for="mc-reason">操作原因</label><input id="mc-reason" class="form-input" minlength="3" maxlength="300">
+      <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeModelConfig('draft')">保存草稿</button>
+      <button class="btn btn-primary" data-capability="model_configuration" onclick="changeModelConfig('activate')">发布生效</button>
+      <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeModelConfig('restore')">恢复上一配置</button>
+      <button class="btn btn-ghost" onclick="readPendingOperation()">读取原操作结果</button>
+    </div>
     <div class="card-grid card-grid-3" style="margin-bottom:20px">
       <div class="stat-card"><div class="stat-label">当前生产版本</div><div class="stat-val" id="m-current" style="color:var(--accent)">–</div></div>
       <div class="stat-card"><div class="stat-label">训练数据量</div><div class="stat-val" id="m-rows">–</div></div>
@@ -415,11 +430,19 @@ input,select,textarea{font-family:inherit}
     </div>
   </div>
 
+  <div class="content-area page" id="page-tasks">
+    <div class="card">
+      <div class="section-title">普通业务任务管理</div>
+      <p id="tasks-state" role="status"></p>
+      <table class="data-table"><thead><tr><th>任务</th><th>实际状态</th><th>执行时间</th><th>供应商次数</th><th>管理</th></tr></thead><tbody id="tasks-rows"></tbody></table>
+    </div>
+  </div>
+
   <!-- ═══ CRAWLER ══════════════════════════════════════════════════ -->
   <div class="content-area page" id="page-crawler">
     <div class="card-grid card-grid-3" style="margin-bottom:20px">
       <div class="stat-card">
-        <div class="stat-label">爬虫状态</div>
+        <div class="stat-label">行业采集调度配置</div>
         <div class="stat-val" id="cw-status">–</div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-primary btn-sm" data-capability="crawler_control" onclick="toggleCrawler(true)">启用</button>
@@ -433,14 +456,15 @@ input,select,textarea{font-family:inherit}
         <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openCookieModal()">Cookie 安全配置说明</button>
       </div>
       <div class="stat-card">
-        <div class="stat-label">累计采集条数</div>
+        <div class="stat-label">单篇 Tracking 数据库记录</div>
         <div class="stat-val" id="cw-total">–</div>
+        <div id="cw-tracking-detail" class="stat-sub"></div>
         <button class="btn btn-primary btn-sm" data-capability="crawler_control" style="margin-top:10px" onclick="runCrawlerNow()">▶ 立即采集</button>
       </div>
     </div>
     <div class="card-grid card-grid-4" style="margin-bottom:20px">
       <div class="stat-card">
-        <div class="stat-label">当日累计新鲜证据</div>
+        <div class="stat-label">Trends 行业新鲜证据</div>
         <div class="stat-val" id="xhs-fresh-ok">–</div>
         <div class="stat-sub" id="xhs-fresh-sub"></div>
       </div>
@@ -511,6 +535,34 @@ input,select,textarea{font-family:inherit}
 </div>
 
 <!-- ── History Modal ──────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="entitlement-modal">
+  <div class="modal" style="width:680px">
+    <button class="modal-close" onclick="closeModal('entitlement-modal')">✕</button>
+    <div class="modal-title">单用户权益调整</div>
+    <p id="en-target"></p>
+    <label for="en-source">权益来源</label><select id="en-source" class="form-input"><option value="gift">免费赠送</option><option value="trial">试用额度</option><option value="compensation">运营补偿</option></select>
+    <div id="en-credit-fields"><label for="en-amount">积分增减（负数仅扣回可确认未使用的赠送积分）</label><input id="en-amount" class="form-input" type="number" step="0.01" min="-10000" max="10000"></div>
+    <div id="en-membership-fields"><label for="en-tier">会员套餐</label><select id="en-tier" class="form-input"><option value="free">免费版</option><option value="pro">创作者版</option><option value="growth">成长版</option><option value="pro_plus">专业版</option><option value="studio">工作室版</option></select><label for="en-expiry">有效期（当前浏览器本地时间）</label><input id="en-expiry" class="form-input" type="datetime-local"></div>
+    <div id="en-feature-fields"><label for="en-feature">功能</label><select id="en-feature" class="form-input"><option value="analyze">深度诊断</option><option value="generate">内容生成</option><option value="chat_rewrite">对话重写</option><option value="chat_fast">快速对话</option><option value="score">快速评分</option><option value="diagnose">内容诊断</option><option value="screenshot">截图识别</option></select><label for="en-enabled">账号权限（不能越过全站未开放能力）</label><select id="en-enabled" class="form-input"><option value="true">允许</option><option value="false">停用该功能</option></select></div>
+    <label for="en-reason">操作原因</label><input id="en-reason" class="form-input" minlength="3" maxlength="300">
+    <button class="btn btn-ghost" onclick="previewEntitlement()">预览调整前后</button>
+    <pre id="en-preview" style="white-space:pre-wrap"></pre>
+    <button id="en-confirm" class="btn btn-primary" data-capability="entitlement_management" onclick="confirmEntitlement()">确认执行本次调整</button>
+    <div id="en-result" role="status"></div>
+    <button class="btn btn-ghost" onclick="readPendingOperation()">读取原操作结果</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="task-modal"><div class="modal" style="width:680px">
+  <button class="modal-close" onclick="closeModal('task-modal')">✕</button>
+  <div class="modal-title">原任务操作</div><pre id="task-detail" style="white-space:pre-wrap"></pre>
+  <label for="task-priority">优先级（0–9）</label><input id="task-priority" class="form-input" type="number" min="0" max="9">
+  <label for="task-time">最早执行时间（浏览器本地时间）</label><input id="task-time" class="form-input" type="datetime-local">
+  <label for="task-reason">操作原因</label><input id="task-reason" class="form-input" minlength="3" maxlength="300">
+  <div id="task-actions"></div><p id="task-result" role="status"></p>
+  <button class="btn btn-ghost" onclick="readPendingOperation()">读取原操作结果</button>
+</div></div>
+
 <div class="modal-backdrop" id="history-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('history-modal')">✕</button>
@@ -545,6 +597,7 @@ let _currentPage = 'dashboard';
 let _userPage = 1;
 let _userSearch = '', _userTierFilter = '';
 let _currentPromptKey = null;
+let _currentPromptDetail = null;
 let _promptListItems = new Map();
 const _adminCapabilityNames = [
   'business_mutation',
@@ -552,6 +605,7 @@ const _adminCapabilityNames = [
   'model_mutation',
   'crawler_control',
   'tracking_requeue',
+  'entitlement_management', 'model_configuration', 'task_management',
 ];
 let _adminCapabilities = Object.fromEntries(_adminCapabilityNames.map(name => [name, false]));
 let _adminMode = 'unavailable';
@@ -576,9 +630,12 @@ function applyAdminCapabilities(mode=_adminMode) {
   if (!banner) return;
   const readOnly = mode !== 'local_operator';
   banner.style.display = readOnly ? 'block' : 'none';
-  banner.textContent = mode === 'production_read_only'
+  banner.textContent = mode === 'production_owner_operations'
+    ? 'Owner 运营控制台：按对象预览并确认后执行。支付、训练、封存任务及未知结果重放仍受限；查询页面不会发起采集或模型请求。'
+    : mode === 'production_read_only'
     ? '生产只读控制台：用户查询、套餐权益、用量与经营数据已开放。支付、用户权益调整、模型及任务变更未开放；免费自测不代表付费经营。'
     : '能力状态不可用：所有写操作已安全锁定，请刷新或联系运维人员。';
+  if (_pendingAdminOperation) banner.textContent += ` 原操作 ${_pendingAdminOperation} 待核实，请使用“读取原操作结果”。`;
 }
 
 async function loadAdminCapabilities() {
@@ -884,11 +941,11 @@ function showPage(name, el) {
   document.getElementById('topbar-title').textContent =
     {'dashboard':'Dashboard','users':'用户管理','revenue':'收入统计',
      'usage':'用量分析','prompts':'Prompt 管理','models':'模型管理',
-     'crawler':'爬虫管理','settings':'系统设置'}[name] || name;
+     'crawler':'爬虫管理','settings':'系统设置','tasks':'普通业务任务'}[name] || name;
   _currentPage = name;
   const loaders = {dashboard:loadDashboard, users:loadUsers, revenue:loadRevenue,
                    usage:loadUsage, prompts:loadPrompts, models:loadModels,
-                   crawler:loadCrawler, settings:loadSettings};
+                   crawler:loadCrawler, tasks:loadTasks, settings:loadSettings};
   if (loaders[name]) loaders[name]();
 }
 
@@ -1099,29 +1156,100 @@ async function showUser(uid) {
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="add_credits">手动加积分</button>
-      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="set_tier">修改套餐</button>
-      <button class="btn btn-ghost btn-sm" data-capability="business_mutation" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="reset_quota">重置本周期积分</button>
+      ${[['adjust_credits','试用 / 赠送积分'],['set_membership','会员有效期'],['set_features','功能权限']].map(([action,label])=>`<button class="btn btn-ghost btn-sm" data-capability="entitlement_management" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-username="${esc(u.username)}" data-entitlement-action="${action}" data-admin-action="entitlement">${label}</button>`).join('')}
     </div>`;
   applyAdminCapabilities();
   openModal('user-modal');
 }
 
-async function adjustUser(uid, action) {
-  if(!requireAdminCapability('business_mutation')) return;
-  let value='', note='';
-  if (action==='add_credits') {
-    value = prompt('增加积分数量（正数）：'); if(!value) return;
-    note  = prompt('备注：') || '管理员操作';
-  } else if (action==='set_tier') {
-    value = prompt('新套餐（free/pro/growth/pro_plus/studio）：'); if(!value) return;
-  } else if (action==='reset_quota') {
-    if(!confirm('确认重置本周期套餐积分？')) return;
+let _entitlement = null;
+let _pendingAdminOperation = sessionStorage.getItem('noteai_pending_admin_operation') || null;
+async function adminJson(path, options) {
+  const response = await aFetch(path, options);
+  let data;
+  try { data = await response.json(); } catch (_) { throw new Error(`接口响应格式异常（HTTP ${response.status}）`); }
+  if (!response.ok) {
+    const error = new Error(typeof data.detail === 'string' ? data.detail : `请求失败（HTTP ${response.status}）`);
+    error.status = response.status;
+    throw error;
   }
-  const r = await aFetch(`/admin/users/${uid}/adjust`, {method:'POST', body:JSON.stringify({action,value,note})});
-  const d = await r.json();
-  if(d.ok) { alert('操作成功'); closeModal('user-modal'); loadUsers(); }
-  else alert('失败: '+JSON.stringify(d));
+  return data;
+}
+async function submitAdminOperation(path, body, method='POST') {
+  if (_pendingAdminOperation) throw new Error(`原操作 ${_pendingAdminOperation} 尚待核实，请先读取原结果。`);
+  const requestId = crypto.randomUUID();
+  _pendingAdminOperation = requestId;
+  sessionStorage.setItem('noteai_pending_admin_operation', requestId);
+  try {
+    const data = await adminJson(path, {method, body:JSON.stringify({...body, request_id:requestId})});
+    _pendingAdminOperation = null;
+    sessionStorage.removeItem('noteai_pending_admin_operation');
+    return data;
+  } catch(error) {
+    if (error.status && error.status < 500) {
+      _pendingAdminOperation = null;
+      sessionStorage.removeItem('noteai_pending_admin_operation');
+    }
+    throw new Error(`${error.message}；操作编号 ${requestId}${_pendingAdminOperation ? '。结果未确认，请读取原结果，不要重新提交。' : ''}`);
+  }
+}
+async function readPendingOperation() {
+  if (!_pendingAdminOperation) { alert('当前没有待核实操作'); return; }
+  try {
+    const result = await adminJson(`/admin/operations/${encodeURIComponent(_pendingAdminOperation)}`);
+    alert(`${result.ok ? '原操作已成功' : '原操作未生效'}：${result.request_id}\n${JSON.stringify(result.after || result.error || {}, null, 2)}`);
+    _pendingAdminOperation = null;
+    sessionStorage.removeItem('noteai_pending_admin_operation');
+  } catch(e) { alert(e.message); }
+}
+function openEntitlement(uid, action, username) {
+  if (!requireAdminCapability('entitlement_management')) return;
+  _entitlement = {uid, action, username, preview:null};
+  document.getElementById('en-target').textContent = `目标：${username} · ${uid}`;
+  document.getElementById('en-credit-fields').hidden = action !== 'adjust_credits';
+  document.getElementById('en-membership-fields').hidden = action !== 'set_membership';
+  document.getElementById('en-feature-fields').hidden = action !== 'set_features';
+  document.getElementById('en-reason').value = '';
+  document.getElementById('en-preview').textContent = '先填写参数和原因，再预览；不产生付费订单。';
+  document.getElementById('en-result').textContent = '';
+  document.getElementById('en-confirm').disabled = true;
+  openModal('entitlement-modal');
+}
+function entitlementInput() {
+  const data = {action:_entitlement.action,source:document.getElementById('en-source').value};
+  if (data.action === 'adjust_credits') data.amount = document.getElementById('en-amount').value;
+  else if (data.action === 'set_membership') {
+    data.tier = document.getElementById('en-tier').value;
+    data.expires_at = data.tier === 'free' ? '' : new Date(document.getElementById('en-expiry').value).toISOString();
+  } else data.features = {[document.getElementById('en-feature').value]: document.getElementById('en-enabled').value === 'true'};
+  return {payload:data,reason:document.getElementById('en-reason').value.trim()};
+}
+function entitlementValues(value) {
+  return `用户：${value.username}\n套餐：${value.tier}；截止：${value.tier === 'free' ? '免费版按自然月续期' : value.expires_at}\n本周期已用：${value.used_monthly_credits} 积分\n钱包：${value.wallet_balance}；可确认未用赠送：${value.noncash_recoverable}\n功能例外：${JSON.stringify(value.features)}\n来源：${value.entitlement_source}`;
+}
+async function previewEntitlement() {
+  try {
+    const input = entitlementInput();
+    if (input.reason.length < 3) throw new Error('请填写至少 3 字的操作原因');
+    const data = await adminJson(`/admin/users/${encodeURIComponent(_entitlement.uid)}/entitlements/preview`, {method:'POST',body:JSON.stringify(input.payload)});
+    _entitlement.preview = {...data, input};
+    document.getElementById('en-preview').textContent = `调整前\n${entitlementValues(data.before)}\n\n调整后\n${entitlementValues(data.after)}\n\n原因：${input.reason}\n${data.notice}`;
+    document.getElementById('en-confirm').disabled = false;
+  } catch(e) { document.getElementById('en-result').textContent = e.message; }
+}
+async function confirmEntitlement() {
+  if (!requireAdminCapability('entitlement_management')) return;
+  const preview = _entitlement?.preview;
+  if (!preview) return;
+  try {
+    if (JSON.stringify(entitlementInput()) !== JSON.stringify(preview.input)) throw new Error('参数或原因已改变，请重新预览');
+    document.getElementById('en-confirm').disabled = true;
+    const result = await submitAdminOperation(`/admin/users/${encodeURIComponent(_entitlement.uid)}/entitlements/apply`, {payload:preview.payload,expected:preview.expected,reason:preview.input.reason});
+    document.getElementById('en-result').textContent = `已生效，操作编号 ${result.request_id}。用户端下次查询使用同一权益记录。`;
+    document.getElementById('en-preview').textContent = entitlementValues(result.after);
+    _entitlement.preview = null;
+    await loadUsers();
+  } catch(e) { document.getElementById('en-result').textContent = e.message; }
 }
 
 /* ── Revenue ──────────────────────────────────────────────────────── */
@@ -1232,15 +1360,18 @@ async function loadUsage() {
 
 /* ── Prompts ──────────────────────────────────────────────────────── */
 async function loadPrompts() {
-  const r = await aFetch('/admin/prompts');
-  const d = await r.json();
+  const list = document.getElementById('prompt-list');
+  list.textContent = '正在加载真实 Prompt…';
+  try {
+  const d = await adminJson('/admin/prompts');
+  if (!Array.isArray(d.prompts)) throw new Error('Prompt 接口结构不匹配');
+  if (!d.prompts.length) { list.textContent = '接口已返回：没有可管理的 Prompt。'; return; }
   const modules = new Map();
   (Array.isArray(d.prompts) ? d.prompts : []).forEach(p => {
     const m = String(p && p.module || '其他');
     if (!modules.has(m)) modules.set(m, []);
     modules.get(m).push(p || {});
   });
-  const list = document.getElementById('prompt-list');
   list.textContent = '';
   _promptListItems = new Map();
   modules.forEach((prompts, moduleName) => {
@@ -1257,34 +1388,50 @@ async function loadPrompts() {
       label.textContent = String(prompt.label || key);
       const revision = document.createElement('span');
       revision.className = 'prompt-module-badge';
-      revision.textContent = `修订 ${Number.isFinite(Number(prompt.version)) ? Number(prompt.version) : 1}`;
+      revision.textContent = prompt.runtime_loaded ? `修订 ${prompt.version}` : '尚未发布';
       row.append(label, revision);
       row.addEventListener('click', () => loadPromptDetail(key));
       list.appendChild(row);
       _promptListItems.set(key, row);
     });
   });
+  } catch(e) { list.textContent = `加载失败：${e.message}`; }
 }
 
 async function loadPromptDetail(key) {
-  document.querySelectorAll('.prompt-list-item').forEach(el=>el.classList.remove('active'));
-  const listEl = _promptListItems.get(String(key));
-  if(listEl) listEl.classList.add('active');
-  const r = await aFetch(`/admin/prompts/${encodeURIComponent(String(key))}`);
-  const d = await r.json();
-  _currentPromptKey = key;
-  document.getElementById('pe-label').textContent   = d.label||key;
-  document.getElementById('pe-meta').textContent    = `模块：${d.module||'–'} · key: ${key}`;
-  document.getElementById('pe-content').value       = d.content||'';
-  document.getElementById('pe-version').textContent = d.version||1;
-  document.getElementById('pe-updated').textContent = (d.updated_at||'').slice(0,16).replace('T',' ');
-  document.getElementById('prompt-editor-empty').style.display   = 'none';
-  document.getElementById('prompt-editor-content').style.display = 'flex';
-  await loadPromptPreview();
+  document.getElementById('prompt-editor-empty').textContent = '正在加载…';
+  try {
+    const d = await adminJson(`/admin/prompts/${encodeURIComponent(String(key))}`);
+    _currentPromptKey = key;
+    _currentPromptDetail = d;
+    document.querySelectorAll('.prompt-list-item').forEach(el=>el.classList.remove('active'));
+    _promptListItems.get(String(key))?.classList.add('active');
+    document.getElementById('pe-label').textContent = d.label || key;
+    document.getElementById('pe-meta').textContent = `模块：${d.module || '–'} · key: ${key}`;
+    document.getElementById('pe-content').value = d.draft?.content ?? d.content ?? '';
+    document.getElementById('pe-version').textContent = d.version;
+    document.getElementById('pe-updated').textContent = d.updated_at ? new Date(d.updated_at).toLocaleString() : '尚未发布';
+    document.getElementById('pe-state').textContent = `${d.runtime_loaded ? '正式来源：共享 managed_prompts 数据库，API 请求时读取并组合，缓存最多 10 秒。' : d.source === 'empty_runtime_fallback' ? '正式值为空：运行时使用调用位置的代码 fallback。' : '来源：原项目 V0.4 基线文件；尚未发布至生产数据库，不能称为当前运行配置。'}${d.draft ? ` 有草稿（基于修订 ${d.draft.base_version}），保存草稿不会生效。` : ''}`;
+    document.getElementById('prompt-editor-empty').style.display = 'none';
+    document.getElementById('prompt-editor-content').style.display = 'flex';
+    document.getElementById('pe-content').readOnly = !d.editable || !hasAdminCapability('prompt_mutation');
+    await loadPromptPreview();
+  } catch(e) {
+    document.getElementById('prompt-editor-empty').style.display = 'block';
+    document.getElementById('prompt-editor-empty').textContent = `加载失败：${e.message}`;
+    document.getElementById('prompt-editor-content').style.display = 'none';
+  }
 }
 
 async function loadPromptPreview() {
   if(!_currentPromptKey) return;
+  if (!_currentPromptDetail?.runtime_loaded) {
+    document.getElementById('pe-effective').value = '';
+    document.getElementById('pe-preview-meta').textContent = '当前基础正文尚未发布；此处不冒充实际请求。';
+    document.getElementById('pe-dynamic-layers').textContent = '';
+    document.getElementById('pe-preview-privacy').textContent = '';
+    return;
+  }
   const domain = document.getElementById('pe-domain').value;
   const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/effective?domain=${encodeURIComponent(domain)}`);
   if(!r.ok) {
@@ -1304,18 +1451,23 @@ async function loadPromptPreview() {
 }
 
 async function savePrompt() {
-  if(!_currentPromptKey) return;
-  if(!requireAdminCapability('prompt_mutation')) return;
-  const content = document.getElementById('pe-content').value;
-  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}`, {
-    method:'PUT', body:JSON.stringify({content}),
-  });
-  const d = await r.json();
-  if(d.ok) {
-    document.getElementById('pe-version').textContent=d.version;
-    await loadPromptPreview();
-    alert('已保存基础修订 '+d.version);
-  }
+  if (!_currentPromptKey || !requireAdminCapability('prompt_mutation')) return;
+  try {
+    const result = await submitAdminOperation(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/draft`, {reason:document.getElementById('pe-reason').value.trim(),payload:{content:document.getElementById('pe-content').value,expected_version:_currentPromptDetail.version,expected_draft_id:_currentPromptDetail.draft?.draft_id || null}}, 'PUT');
+    await loadPromptDetail(_currentPromptKey);
+    alert(`草稿已保存，尚未生效。操作编号 ${result.request_id}`);
+  } catch(e) { alert(e.message); }
+}
+async function publishPrompt() {
+  if (!_currentPromptKey || !requireAdminCapability('prompt_mutation')) return;
+  if (!_currentPromptDetail?.draft) { alert('请先保存草稿'); return; }
+  if (document.getElementById('pe-content').value !== _currentPromptDetail.draft.content) { alert('编辑内容尚未保存，请先保存草稿'); return; }
+  if (!confirm(`发布 ${_currentPromptDetail.label} 草稿？正式业务将在下一次读取时使用，最多 10 秒缓存；不会自动调用模型。`)) return;
+  try {
+    const result = await submitAdminOperation(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/publish`, {reason:document.getElementById('pe-reason').value.trim(),payload:{expected_version:_currentPromptDetail.version,draft_id:_currentPromptDetail.draft.draft_id}});
+    await loadPromptDetail(_currentPromptKey); await loadPrompts();
+    alert(`已发布修订 ${result.after.version}；操作编号 ${result.request_id}`);
+  } catch(e) { alert(e.message); }
 }
 
 async function showHistory() {
@@ -1340,15 +1492,19 @@ async function showHistory() {
 }
 
 async function rollbackPrompt(version) {
-  if(!_currentPromptKey) return;
-  if(!requireAdminCapability('prompt_mutation')) return;
-  if(!confirm(`确认回滚到 v${version}？`)) return;
-  const r = await aFetch(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/rollback`, {method:'POST',body:JSON.stringify({version})});
-  if(r.ok) { closeModal('history-modal'); loadPromptDetail(_currentPromptKey); alert('已回滚'); }
+  if (!_currentPromptKey || !requireAdminCapability('prompt_mutation')) return;
+  if (!confirm(`恢复 ${_currentPromptDetail.label} 的修订 ${version}？会生成新修订，保留全部历史。`)) return;
+  try {
+    const reason = prompt('请输入恢复原因（至少 3 字）：');
+    if (!reason) return;
+    await submitAdminOperation(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/publish`, {reason,payload:{expected_version:_currentPromptDetail.version,rollback_version:version}});
+    closeModal('history-modal'); await loadPromptDetail(_currentPromptKey); await loadPrompts();
+  } catch(e) { alert(e.message); }
 }
 
 /* ── Models ───────────────────────────────────────────────────────── */
 async function loadModels() {
+  await loadModelConfig();
   const r = await aFetch('/admin/models');
   const d = await r.json();
   document.getElementById('m-current').textContent = d.current_version;
@@ -1374,6 +1530,34 @@ async function loadModels() {
   applyAdminCapabilities();
 }
 
+let _modelConfig = null;
+async function loadModelConfig() {
+  const state = document.getElementById('mc-state');
+  state.textContent = '正在读取配置…';
+  try {
+    const scope = document.getElementById('mc-scope').value;
+    const data = await adminJson(`/admin/model-config?scope=${scope}`);
+    _modelConfig = data;
+    state.textContent = `已保存修订 ${data.revision}；生效修订 ${data.active_revision}。${data.effect}${data.instance_opt_in ? '' : ' 当前实例尚未绑定动态配置，不应发布。'}`;
+    document.getElementById('mc-routes').innerHTML = data.tasks.map(task=>{
+      const row = (data.draft || data.active)[task];
+      return `<div style="display:flex;gap:12px;align-items:center;margin:12px 0" data-model-task="${esc(task)}"><b style="min-width:100px">${esc(task)}</b><select class="form-input" data-model-field="model">${data.allowed_models.map(model=>`<option value="${esc(model)}" ${model===row.model?'selected':''}>${esc(model)}</option>`).join('')}</select><label><input type="checkbox" data-model-field="enabled" ${row.enabled?'checked':''}> 启用</label><label>输出上限 <input class="form-input" type="number" min="256" max="32768" step="1" data-model-field="max_tokens" value="${row.max_tokens}"></label><small>当前：${data.active[task].enabled?'启用':'暂停'} / ${data.active[task].max_tokens}</small></div>`;
+    }).join('');
+    applyAdminCapabilities();
+  } catch(e) { state.textContent = `配置读取失败：${e.message}`; }
+}
+async function changeModelConfig(action) {
+  if (!_modelConfig || !requireAdminCapability('model_configuration')) return;
+  try {
+    const config = {};
+    document.querySelectorAll('[data-model-task]').forEach(row=>{ config[row.dataset.modelTask] = {model:row.querySelector('[data-model-field="model"]').value,enabled:row.querySelector('[data-model-field="enabled"]').checked,max_tokens:Number(row.querySelector('[data-model-field="max_tokens"]').value)}; });
+    if (action === 'activate' && (!_modelConfig.draft || !_modelConfig.tasks.every(task=>['model','enabled','max_tokens'].every(field=>config[task][field] === _modelConfig.draft[task]?.[field])))) throw new Error('请先保存当前编辑内容为草稿');
+    if (action !== 'draft' && !confirm(`${action==='activate'?'发布草稿':'恢复上一配置'}：${_modelConfig.scope}？不会自动发起模型调用。`)) return;
+    const result = await submitAdminOperation(`/admin/model-config/${action}`, {reason:document.getElementById('mc-reason').value.trim(),payload:{scope:_modelConfig.scope,expected_revision:_modelConfig.revision,config:action==='draft'?config:null}});
+    await loadModelConfig(); alert(`${action==='draft'?'草稿已保存，尚未生效':'配置已更新'}；操作编号 ${result.request_id}`);
+  } catch(e) { alert(e.message); }
+}
+
 async function deployModel(version) {
   if(!requireAdminCapability('model_mutation')) return;
   if(!confirm(`确认部署版本 ${version}？`)) return;
@@ -1392,50 +1576,83 @@ async function triggerTraining() {
   if(d.ok) { alert(`训练任务已创建：${d.job_id}`); loadModels(); }
 }
 
+let _taskDetail = null;
+async function loadTasks() {
+  const status = document.getElementById('tasks-state');
+  status.textContent = '正在查询原任务状态…';
+  try {
+    const data = await adminJson('/admin/tasks');
+    if (!Array.isArray(data.tasks)) throw new Error('任务接口结构不匹配');
+    status.textContent = data.notice;
+    document.getElementById('tasks-rows').innerHTML = data.tasks.map(t=>`<tr><td>${esc(t.operation_kind)}<br><small>${esc(t.id)}</small></td><td>${esc(t.status)}${t.operator_paused?' · 已暂停':''}<br>${esc(t.provider_phase)}${t.admin_control_scope==='protected'?' · 历史/验收保护':''}</td><td>${esc(_fmtShortTime(t.available_at))}</td><td>${t.provider_attempt_count}</td><td><button class="btn btn-ghost btn-sm" data-admin-action="task-detail" data-task-id="${esc(t.id)}">详情与操作</button></td></tr>`).join('') || '<tr><td colspan="5">当前任务表为空；此页面不会创建任务。</td></tr>';
+  } catch(e) { status.textContent = `查询不可用：${e.message}`; document.getElementById('tasks-rows').textContent = ''; }
+}
+async function showTask(id) {
+  try {
+    const data = await adminJson(`/admin/tasks/${encodeURIComponent(id)}`);
+    _taskDetail = data;
+    const t = data.task;
+    document.getElementById('task-detail').textContent = `任务 ${t.id}\n${t.operation_kind} · ${t.status} · ${t.provider_phase}\n暂停：${t.operator_paused?'是':'否'}；通知状态：${t.outbox_state || '无'}\n供应商次数：${t.provider_attempt_count}；通知次数：${t.dispatch_attempts ?? '未知'}\n执行时间：${_fmtShortTime(t.available_at)}\n租约截止：${_fmtShortTime(t.lease_expires_at)}\n${data.notice}`;
+    document.getElementById('task-priority').value = t.priority;
+    document.getElementById('task-time').value = '';
+    document.getElementById('task-reason').value = '';
+    document.getElementById('task-result').textContent = '';
+    document.getElementById('task-actions').innerHTML = data.allowed_actions.map(action=>`<button class="btn btn-ghost" data-capability="task_management" data-admin-action="task-change" data-task-action="${action}">${({pause:'暂停',resume:'恢复',schedule:'确认调度参数',retry:'恢复原通知（合格重试）'})[action]}</button>`).join('') || '<p>当前任务无可安全执行的管理动作。</p>';
+    applyAdminCapabilities(); openModal('task-modal');
+  } catch(e) { alert(e.message); }
+}
+async function changeTask(action) {
+  if (!_taskDetail || !requireAdminCapability('task_management')) return;
+  try {
+    const payload = {};
+    if (action === 'schedule') {
+      payload.priority = Number(document.getElementById('task-priority').value);
+      payload.available_at = new Date(document.getElementById('task-time').value).toISOString();
+    }
+    const reason = document.getElementById('task-reason').value.trim();
+    if (reason.length < 3) throw new Error('请填写至少 3 字的操作原因');
+    if (!confirm(`确认对任务 ${_taskDetail.task.id} 执行 ${action}？${action==='retry'?'保留原 UUID 与计费，仅恢复未发供应商请求的原通知。':''}${action==='schedule'?` 新优先级 ${payload.priority}，最早执行 ${payload.available_at}`:''}`)) return;
+    const result = await submitAdminOperation(`/admin/tasks/${encodeURIComponent(_taskDetail.task.id)}/${action}`, {reason,expected:_taskDetail.expected,payload});
+    await showTask(_taskDetail.task.id); await loadTasks();
+    document.getElementById('task-result').textContent = `已提交真实状态，操作编号 ${result.request_id}。实际执行仍受既有 worker、全局开放范围和预算约束。`;
+  } catch(e) { document.getElementById('task-result').textContent = e.message; }
+}
+
 /* ── Crawler ──────────────────────────────────────────────────────── */
 async function loadCrawler() {
-  const r = await aFetch('/admin/crawler/status');
-  const d = await r.json();
-  document.getElementById('cw-status').innerHTML = `<span class="dot ${d.enabled?'dot-green':'dot-red'}"></span>${d.enabled?'运行中':'已停止'}`;
-  const cookieLabels = {
-    not_observed_here:'本控制台不读取采集凭据', not_configured:'未配置', pending_validation:'待验证', verified:'已验证',
-    needs_relogin:'登录已失效', needs_attention:'需要检查',
-    collection_suspended:'合规停采'
-  };
-  const cookieOk = d.cookie_runtime_status === 'verified';
-  const cookieWarn = ['pending_validation','needs_attention','collection_suspended'].includes(d.cookie_runtime_status);
-  document.getElementById('cw-cookie').innerHTML = `<span class="dot ${cookieOk?'dot-green':cookieWarn?'dot-yellow':'dot-red'}"></span>${cookieLabels[d.cookie_runtime_status]||'未知'}${d.cookie_file_exists?`（${d.cookie_count}条）`:''}`;
-  document.getElementById('cw-cookie-sub').textContent =
-    d.cookie_runtime_status === 'not_observed_here'
-      ? '会话状态由实际 Tracking 执行环境核验，此处不表示其未配置或失效'
-      : d.cookie_runtime_status === 'needs_relogin'
-      ? '账号已被平台退出，请人工重新登录；采集已安全暂停'
-      : d.cookie_runtime_status === 'collection_suspended'
-        ? '采集已合规暂停；恢复前需由管理员完成授权检查'
-        : d.cookie_action_required
-          ? `请检查采集；连续失败 ${d.cookie_consecutive_failures||0} 次`
-          : (d.cookie_last_verified_at ? `最近验证 ${_fmtShortTime(d.cookie_last_verified_at)}` : '保存后由下一轮采集验证');
-  document.getElementById('cw-total').textContent = (d.total_collected||0).toLocaleString() + ' 条';
+  try {
+    const d = await adminJson('/admin/crawler/status');
+    document.getElementById('cw-status').textContent = d.schedule_enabled === true ? '配置为启用（非进程证明）' : d.schedule_enabled === false ? '行业自动调度关闭' : '配置状态不可用';
+    document.getElementById('cw-cookie').textContent = '本控制台不读取采集凭据';
+    document.getElementById('cw-cookie-sub').textContent = '不等于 Cookie 未配置或失效；下方实际 Tracking 成功结果只证明对应时刻读取成功。';
+    const tracking = d.tracking || {};
+    document.getElementById('cw-total').textContent = tracking.available ? `${tracking.total} 条` : '查询不可用';
+    document.getElementById('cw-tracking-detail').textContent = tracking.available
+      ? `来源：共享 tracked_notes；24h 已记录 ${tracking.snapshots_24h || 0}，后续阶段已记录 ${tracking.snapshots_later || 0}。最近成功：${_fmtShortTime(tracking.latest_success)}。进程状态：本 Admin 未直接观测。\n${(tracking.recent || []).map(row=>`generation${row.observation_generation} · ${row.status} · 24h ${_fmtShortTime(row.check_24h_at)} · 后续 ${_fmtShortTime(row.check_7d_at)} · 下次业务时间 ${_fmtShortTime(row.next_check_at)}${row.attempt_active?' · 有在途attempt':''}`).join('\n')}`
+      : `Tracking 查询不可用：${tracking.error_type || '未取得结果'}；不能显示为 0。`;
+  } catch(e) {
+    document.getElementById('cw-status').textContent = `读取失败：${e.message}`;
+    document.getElementById('cw-total').textContent = '未知';
+  }
   await loadXhsHealth();
-  const logsR = await aFetch('/admin/crawler/logs?limit=30');
-  const logs  = await logsR.json();
-  document.getElementById('crawler-logs').innerHTML = (logs.logs||[]).reverse().map(l=>`
-    <div class="log-line">${esc(JSON.stringify(l).slice(0,120))}</div>`).join('') || `<div style="color:var(--text-muted);font-size:12px;padding:8px">${logs.available === false ? '日志源不可用；未读取实际采集日志。' : '暂无日志'}</div>`;
+  try {
+    const logs = await adminJson('/admin/crawler/logs?limit=30');
+    document.getElementById('crawler-logs').innerHTML = (logs.logs || []).map(l=>`<div class="log-line">${esc(JSON.stringify(l).slice(0,160))}</div>`).join('') || `<div>${logs.available === false ? '原日志源查询不可用；不是零次执行。' : '该日志源当前没有记录。'}</div>`;
+  } catch(e) { document.getElementById('crawler-logs').textContent = `日志查询失败：${e.message}`; }
 }
 
 function _fmtShortTime(value) {
   if (!value) return '–';
   try {
-    return new Date(value).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    if (!/(Z|[+-]\d{2}:\d{2})$/.test(String(value))) return `${String(value).replace('T',' ')}（原记录未带时区）`;
+    return new Date(value).toLocaleString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
   } catch(e) { return String(value).slice(0,16); }
 }
 
 async function loadXhsHealth() {
   try {
-    const freshR = await aFetch('/admin/xhs/freshness');
-    const fresh = await freshR.json();
-    const healthR = await aFetch('/admin/xhs/health?limit=12');
-    const health = await healthR.json();
+    const fresh = await adminJson('/admin/xhs/freshness');
+    const health = await adminJson('/admin/xhs/health?limit=12');
     const missing = fresh.missing_domains || [];
     const latestSource = fresh.latest_run_source_health || {};
     const accessStatus = ['challenge','cooldown','login_required','suspended','normal'].includes(fresh.access_status)
@@ -1452,19 +1669,21 @@ async function loadXhsHealth() {
         : latestSource.available !== true
           ? '最新一轮来源待观测'
           : (latestSourceDegraded ? '最新一轮来源退化' : '最新一轮来源健康');
-    document.getElementById('xhs-fresh-ok').innerHTML = `<span class="dot ${fresh.ok?'dot-green':'dot-red'}"></span>${fresh.ok?'达标':'缺失'}（累计）`;
+    const queryUnavailable = (fresh.domains || []).some(row=>row.reason === 'trends_contract_unavailable');
+    document.getElementById('xhs-fresh-ok').innerHTML = `<span class="dot ${fresh.ok?'dot-green':'dot-red'}"></span>${fresh.ok?'有效':'不足 / 过期'}（行业账本）`;
     document.getElementById('xhs-fresh-sub').textContent = `${fresh.required ? '生产硬门槛已开启' : '硬门槛未开启'}；${latestSourceState}${fresh.access_error_code ? `（${fresh.access_error_code}）` : (latestSource.error_code ? `（${latestSource.error_code}）` : '')}`;
-    document.getElementById('xhs-missing-count').textContent = missing.length;
+    if (queryUnavailable) document.getElementById('xhs-fresh-ok').textContent = '行业账本查询不可用';
+    document.getElementById('xhs-missing-count').textContent = queryUnavailable ? '未知' : missing.length;
     document.getElementById('xhs-missing-domains').textContent = missing.join('、') || '全部行业已满足';
     document.getElementById('xhs-deadline').textContent = _fmtShortTime(fresh.deadline);
-    document.getElementById('xhs-deadline-sub').textContent = fresh.deadline_missed ? '已错过截止' : (fresh.deadline_passed ? '今日截止已过' : '截止前可补采');
-    document.getElementById('xhs-sidecar').innerHTML = `<span class="dot ${health.sidecar && health.sidecar.configured?'dot-green':'dot-red'}"></span>${health.sidecar && health.sidecar.configured?'已配置':'未配置'}`;
-    document.getElementById('xhs-sidecar-sub').textContent = health.sidecar && health.sidecar.host ? health.sidecar.host : 'NOTEAI_XHS_DOWNLOADER_URL';
+    document.getElementById('xhs-deadline-sub').textContent = fresh.deadline_missed ? '行业证据规则的每日截止；不代表 Tracking 停止' : '仅行业证据时间规则，不是单篇观察触发时间';
+    document.getElementById('xhs-sidecar').textContent = health.sidecar?.configured ? '已配置可选下载器' : '当前 Tracking 不适用';
+    document.getElementById('xhs-sidecar-sub').textContent = 'NOTEAI_XHS_DOWNLOADER_URL 属于可选下载适配器；已绑定的 HTTP Tracking 读取不依赖它。';
     document.getElementById('xhs-fresh-table').innerHTML = (fresh.domains || []).map(row => `
       <tr>
         <td>${esc(row.domain || '–')}</td>
-        <td><span class="badge ${row.ok?'badge-success':'badge-error'}">${esc(row.ok?'fresh':(row.status || 'missing'))}</span></td>
-        <td>${row.evidence_count || 0} / ${row.minimum || 0}</td>
+        <td><span class="badge ${row.ok?'badge-success':'badge-error'}">${esc(row.reason === 'trends_contract_unavailable' ? '来源不可用' : row.ok?'fresh':(row.status || 'missing'))}</span></td>
+        <td>${row.reason === 'trends_contract_unavailable' ? '查询不可用' : (row.evidence_count ?? '未知')} / ${row.minimum ?? '未知'}</td>
         <td>${_fmtShortTime(row.fresh_until)}</td>
         <td style="color:var(--text-muted)">${esc(row.reason || '–')}</td>
       </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-muted)">暂无账本记录</td></tr>';
@@ -1580,7 +1799,9 @@ document.addEventListener('click', event => {
   if (!button || button.disabled) return;
   const action = button.dataset.adminAction;
   if (action === 'user-detail') showUser(decodeURIComponent(button.dataset.userId));
-  else if (['add_credits','set_tier','reset_quota'].includes(action)) adjustUser(decodeURIComponent(button.dataset.userId), action);
+  else if (action === 'entitlement') openEntitlement(decodeURIComponent(button.dataset.userId), button.dataset.entitlementAction, button.dataset.username);
+  else if (action === 'task-detail') showTask(button.dataset.taskId);
+  else if (action === 'task-change') changeTask(button.dataset.taskAction);
   else if (action === 'prompt-rollback') rollbackPrompt(Number(button.dataset.promptVersion));
   else if (action === 'model-deploy') deployModel(decodeURIComponent(button.dataset.modelVersion));
 });

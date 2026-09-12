@@ -1,5 +1,17 @@
 # NoteAI Production Deployment Execution Plan
 
+## Current scoped Admin operations release
+
+Owner authorizes implementing/deploying single-user noncash entitlement management,
+existing model configuration save/activate/restore, ordinary task management,
+Prompt source/edit/publication and truthful Trends/Tracking status. Replace blanket
+readonly capability/proxy/DB restrictions only for the reviewed scoped operations.
+Owner UI confirmation constitutes later operational authorization; Codex validation
+uses marked test objects, not selected real customers/global model switches/tasks.
+Preserve cash facts, session/role isolation, same budgets, protected paths and the
+latest actual Item34 protected state. Reuse existing build/deploy/rollback tooling,
+publish independently completed capabilities and record actual results in Handoff.
+
 September12 23:01 result: the owner-approved Admin password reset is VERIFIED.
 New-password login/queries/logout passed; old password401, logged-out token403,
 remaining Admin sessions0. Original sessions0/revoke0; verification1INSERT+1DELETE

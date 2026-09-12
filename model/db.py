@@ -740,9 +740,18 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     used_chat_rewrite INTEGER DEFAULT 0,
     used_screenshot   INTEGER DEFAULT 0,
     used_monthly_credits REAL DEFAULT 0,
+    feature_overrides_json TEXT NOT NULL DEFAULT '{}',
+    entitlement_source TEXT NOT NULL DEFAULT 'existing',
     period_start TEXT NOT NULL    -- 本周期开始时间（每月重置）
 );
 CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
+
+CREATE TABLE IF NOT EXISTS admin_operations (
+    id TEXT PRIMARY KEY, actor TEXT NOT NULL, action TEXT NOT NULL,
+    target TEXT NOT NULL, reason TEXT NOT NULL, binding_hash TEXT NOT NULL,
+    result_json TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_admin_operations_target ON admin_operations(target,created_at DESC);
 
 -- ── 用量明细 ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS usage_records (
@@ -1523,6 +1532,8 @@ CREATE TABLE IF NOT EXISTS ai_operations (
                                'not_started', 'provider_started', 'provider_terminal'
                            )),
     priority               INTEGER NOT NULL DEFAULT 0 CHECK (priority BETWEEN 0 AND 9),
+    operator_paused        INTEGER NOT NULL DEFAULT 0 CHECK (operator_paused IN (0,1)),
+    admin_control_scope    TEXT NOT NULL DEFAULT 'protected' CHECK (admin_control_scope IN ('protected','ordinary')),
     available_at           TEXT NOT NULL,
     lease_owner_hash       TEXT CHECK (
                                lease_owner_hash IS NULL OR (
@@ -2175,7 +2186,15 @@ END;
         if "deletion_requested_at" not in cols:
             conn.execute("ALTER TABLE users ADD COLUMN deletion_requested_at TEXT")
         # subscriptions 表列名迁移：used_rewrite → used_chat_rewrite
+        operation_cols = [r[1] for r in conn.execute("PRAGMA table_info(ai_operations)").fetchall()]
+        for name, definition in (("operator_paused", "INTEGER NOT NULL DEFAULT 0 CHECK (operator_paused IN (0,1))"),
+                                 ("admin_control_scope", "TEXT NOT NULL DEFAULT 'protected' CHECK (admin_control_scope IN ('protected','ordinary'))")):
+            if name not in operation_cols:
+                conn.execute(f"ALTER TABLE ai_operations ADD COLUMN {name} {definition}")
         sub_cols = [r[1] for r in conn.execute("PRAGMA table_info(subscriptions)").fetchall()]
+        for column, default in (("feature_overrides_json", "{}"), ("entitlement_source", "existing")):
+            if column not in sub_cols:
+                conn.execute(f"ALTER TABLE subscriptions ADD COLUMN {column} TEXT NOT NULL DEFAULT '{default}'")
         if "used_rewrite" in sub_cols and "used_chat_rewrite" not in sub_cols:
             conn.execute("ALTER TABLE subscriptions ADD COLUMN used_chat_rewrite INTEGER DEFAULT 0")
             conn.execute("UPDATE subscriptions SET used_chat_rewrite = used_rewrite")

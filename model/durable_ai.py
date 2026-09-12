@@ -601,8 +601,11 @@ def admit_job(
     payload: Any,
     now: datetime | None = None,
     store: PayloadStore | None = None,
+    admin_control_scope: str = "protected",
 ) -> dict[str, Any]:
     """Persist object metadata, charge, queue, settlement and outbox atomically."""
+    if admin_control_scope not in ("ordinary", "protected"):
+        raise ValueError("invalid admin control scope")
     normalized_request_id = idempotency.normalize_request_id(request_id)
     if not normalized_request_id:
         raise ValueError("request id is required")
@@ -736,6 +739,7 @@ def admit_job(
             operation_id=op_id,
             priority=priority,
             now=now_value,
+            admin_control_scope=admin_control_scope,
         )
         if locked_media:
             private_storage.link_media_refs_in_transaction(
@@ -1146,6 +1150,7 @@ def claim_outbox(
         if exact_operation_id is not None:
             exact = tx.fetchone(
                 "SELECT b.* FROM ai_operation_outbox b "
+                "JOIN ai_operations o ON o.id=b.operation_id AND o.operator_paused=0 "
                 "WHERE b.operation_id=? AND b.state='pending' "
                 "AND b.available_at<=? AND b.attempt_count<? "
                 "AND (b.lease_expires_at IS NULL OR b.lease_expires_at<=?) "
@@ -1174,7 +1179,7 @@ def claim_outbox(
                 predicate = "o.priority>0" if priority_lane else "o.priority=0"
                 return tx.fetchone(
                     "SELECT b.* FROM ai_operation_outbox b "
-                    "JOIN ai_operations o ON o.id=b.operation_id "
+                    "JOIN ai_operations o ON o.id=b.operation_id AND o.operator_paused=0 "
                     "WHERE b.state='pending' AND b.available_at<=? "
                     "AND b.attempt_count<? "
                     "AND (b.lease_expires_at IS NULL OR b.lease_expires_at<=?) "
@@ -1333,7 +1338,7 @@ def _claim_delivered_operation(
             "SELECT o.id FROM ai_operation_outbox b "
             "JOIN ai_operations o ON o.id=b.operation_id "
             "JOIN ai_operation_settlements s ON s.operation_id=o.id "
-            "WHERE b.state='delivered' AND s.billing_state='charged' "
+            "WHERE b.state='delivered' AND s.billing_state='charged' AND o.operator_paused=0 "
             f"{exact_predicate}"
             "AND ((o.status='queued' AND o.available_at<=?) OR "
             "(o.status='running' AND o.provider_phase='not_started' "
@@ -1400,7 +1405,7 @@ def recover_unstarted_leases(
             "JOIN idempotency_requests i ON i.id=a.idempotency_request_id "
             "JOIN ai_operation_settlements s ON s.operation_id=o.id "
             "JOIN ai_operation_outbox b ON b.operation_id=o.id "
-            "WHERE o.status='running' AND o.provider_phase='not_started' "
+            "WHERE o.status='running' AND o.provider_phase='not_started' AND o.operator_paused=0 "
             "AND o.lease_expires_at IS NOT NULL AND o.lease_expires_at<=? "
             "AND s.billing_state='charged' AND b.state='delivered' "
             "AND b.attempt_count<? ORDER BY o.lease_expires_at,o.id LIMIT 1",
@@ -1439,6 +1444,7 @@ def recover_unstarted_leases(
             current_outbox = dict(outbox)
             if not (
                 current_operation.get("status") == "running"
+                and not current_operation.get("operator_paused")
                 and current_operation.get("provider_phase") == "not_started"
                 and str(current_operation.get("lease_expires_at") or "") <= now_iso
                 and current_outbox.get("state") == "delivered"
@@ -1666,7 +1672,7 @@ def status_for_user(user_id: str, operation_id: str) -> dict[str, Any] | None:
     except ValueError:
         return None
     row = db.fetchone(
-        "SELECT o.id AS operation_id,o.operation_kind,o.status,o.priority,"
+        "SELECT o.id AS operation_id,o.operation_kind,o.status,o.operator_paused,o.priority,"
         "o.event_sequence,o.result_count,o.created_at,o.updated_at,o.started_at,"
         "o.terminal_at,s.billing_state,s.failure_code,"
         "CASE WHEN s.result_ref_id IS NULL THEN 0 ELSE 1 END AS result_available "
@@ -1684,6 +1690,8 @@ def status_for_user(user_id: str, operation_id: str) -> dict[str, Any] | None:
         result["user_status"] = "refunded"
     elif result["status"] == "outcome_unknown":
         result["user_status"] = "needs_manual"
+    elif result.get("operator_paused"):
+        result["user_status"] = "paused"
     else:
         result["user_status"] = result["status"]
     result["result_available"] = bool(result["result_available"])
@@ -1767,9 +1775,11 @@ def admin_summary() -> dict[str, Any]:
     )
     oldest = db.fetchone(
         "SELECT MIN(created_at) AS oldest_queued_at FROM ai_operations "
-        "WHERE status='queued'"
+        "WHERE status='queued' AND operator_paused=0"
     )
+    paused = db.fetchone("SELECT COUNT(*) AS n FROM ai_operations WHERE operator_paused=1")
     return {
+        "paused": int(paused["n"]),
         "operations": {row["status"]: int(row["count"]) for row in status_rows},
         "settlements": {
             row["billing_state"]: int(row["count"]) for row in settlement_rows

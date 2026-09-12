@@ -11826,6 +11826,7 @@ async def _score_directed_second_pass(
         )
     except Exception as exc:
         _log_internal_failure("score_lift", exc, phase="second_pass")
+        _public_product.assert_result_known()
         if locals().get("det_repaired"):
             return title, body, score, features, grade or _grade(score), issues, True, det_reason
         return title, body, score, features, grade or _grade(score), issues, False, "二修异常，保留原稿"
@@ -16507,6 +16508,7 @@ async def _generate_pipeline_stream(
             try:
                 result = task.result()
             except Exception:
+                _public_product.assert_result_known()
                 result = {"role": role, "raw": ""}
             opinions.append(result)
             raw = result.get("raw", "")
@@ -19829,6 +19831,7 @@ def _submit_durable_ai_job(
             operation=operation,
             request_id=request_id or "",
             payload=normalized_payload,
+            admin_control_scope="ordinary",
         )
     except _durable_ai.DurableAiError as exc:
         raise _durable_ai_http_error(exc) from exc
