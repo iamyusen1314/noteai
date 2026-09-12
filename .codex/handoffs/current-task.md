@@ -20,9 +20,21 @@ No password/token value has entered tools, chat, Git, local artifacts or receipt
 Private nonsecret readback: /private/tmp/noteai-admin-password-reset-readback-20260912.json.
 Public HTTPS15:00:52UTC: main/admin200 with unchanged HTML692ab2a4/79e5fea9,
 anonymous Admin403, registration/AIopen, payment/Tracking/media closed. Saved at
-/private/tmp/noteai-admin-password-reset-public-20260912.json. Chrome has the real
-Admin login page ready; owner browser sign-in remains a user action, not a claimed
-completed verification. Readiness30/37 and existing cumulative budgets unchanged.
+/private/tmp/noteai-admin-password-reset-public-20260912.json. Owner subsequently
+confirms successful browser entry to Admin and asks why mutation controls remain
+closed. This is owner-reported browser completion, alongside the verified normal
+server login above. Readiness30/37 and existing cumulative budgets unchanged.
+
+Current capability clarification: production still disables all five mutation
+capabilities in admin_server.py; HTML, proxy and dedicated DB ACL enforce the same
+query scope. This question does not authorize new balance/status/task changes.
+Existing user adjustments are implemented but not connected for production writes.
+Other old operations need engineering correction, not just permission: enable is
+a no-op, disable does not prevent subsequent login, model deploy writes local Admin
+artifacts rather than a verified API rollout, and immediate collection requires the
+isolated Tracking Worker. Do not describe all operating mutations as delivered or
+unlock all capabilities by changing the runtime to local. No production mutation
+or additional auth/provider request was made for this read-only clarification.
 
 Separate existing Item34 temporary attempts SELECT recovery remains unresolved;
 normal cloud login is restored but the DMS owner database session still requires

@@ -4,7 +4,11 @@ September12 23:01: Admin application password recovery completed. Original resul
 VERIFIED, new login200/old password401/logout-oldtoken403; fresh target sessions0.
 Original revoke affected0rows; one verification session inserted and deleted.
 Same image and public API container remain healthy; no business/DB credential/F
-change. Owner browser login is available but not performed by this verification.
+change. Owner subsequently confirms successful browser login. Current delivery
+still limits operating mutations: production capabilities, proxy and DB ACL are
+query-only beyond auth. Older enable/disable and model rollout paths have concrete
+implementation gaps; do not treat every disabled operation as merely awaiting
+authorization or claim a complete mutation-capable Admin has been delivered.
 Never replay this completed reset. Separate pending Item34 temporary SELECT is
 still an actual unresolved risk requiring the existing DMS owner login, unaffected
 by the Admin application password change. Current detail is at Handoff top.
