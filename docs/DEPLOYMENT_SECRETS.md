@@ -73,7 +73,7 @@ Allowed Secret key names are intentionally role-specific:
   `NOTEAI_ALIPAY_MERCHANT_PRIVATE_KEY_B64` and
   `NOTEAI_ALIPAY_PUBLIC_KEY_B64`.
   Direct transports are live-only. Their non-secret callback configuration must
-  equal the canonical `https://api.noteaipro.cn/payments/wechat/callback` and
+  equal the canonical `https://noteaipro.com/payments/wechat/callback` and
   `https://api.noteaipro.cn/payments/alipay/callback` endpoints exactly.
 - Admin: `DATABASE_URL` and `ADMIN_PASSWORD`.
 - Payment: `DATABASE_URL`, `NOTEAI_ADAPAY_API_KEY` and

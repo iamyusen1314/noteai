@@ -132,9 +132,9 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
                 {
                     "name": name,
                     "environment": "LIVE",
-                    "synthetic_user": True,
-                    "synthetic_order": True,
-                    "real_user_order": False,
+                    "synthetic_user": False,
+                    "synthetic_order": False,
+                    "real_user_order": True,
                     "payment_amount_fen": gate.ITEM31_CANARY_AMOUNT_FEN,
                     "started_at": "2026-09-07T10:00:00+08:00",
                     "finished_at": "2026-09-07T10:05:00+08:00",
@@ -176,11 +176,11 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
                 gate.ITEM31_CANARY_AMOUNT_FEN * len(gate.ITEM31_DIRECT_PROVIDERS)
             ),
             "net_real_funds_fen": 0,
-            "owner_over_20_cny_approval": True,
+            "owner_over_20_cny_approval": False,
             "actual_production_write_set": {
                 "tables": sorted(gate.ITEM31_REQUIRED_WRITE_TABLES),
                 "row_mutations_by_table": {
-                    table: 2 for table in sorted(gate.ITEM31_REQUIRED_WRITE_TABLES)
+                    table: len(gate.ITEM31_DIRECT_PROVIDERS) for table in sorted(gate.ITEM31_REQUIRED_WRITE_TABLES)
                 },
                 "ledger_readback_sha256": hashlib.sha256(
                     json.dumps(
@@ -212,7 +212,7 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
             now=datetime(2026, 9, 8, tzinfo=timezone.utc),
         )
 
-    def test_accepts_both_direct_live_full_refund_chains(self):
+    def test_accepts_approved_wechat_owner_live_full_refund_chain(self):
         self.assertEqual(self.validate(), [])
 
     def test_requires_each_starter_credit_write_table(self):
@@ -294,24 +294,24 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
             self.validate(),
         )
 
-    def test_rejects_test_or_single_provider_credit(self):
+    def test_rejects_test_or_missing_approved_provider_credit(self):
         self.payload["environment"] = "TEST"
         self.payload["providers"].pop()
         self.payload["cumulative_payment_fen"] = gate.ITEM31_CANARY_AMOUNT_FEN
         errors = self.validate()
         self.assertIn("Item31 direct Live terminal status mismatch", errors)
         self.assertIn(
-            "Item31 requires both direct providers exactly once",
+            "Item31 requires the approved WeChat Native provider exactly once",
             errors,
         )
 
-    def test_rejects_noncanonical_amount_or_missing_over_20_approval(self):
+    def test_rejects_noncanonical_amount_without_requesting_unneeded_over_20_approval(self):
         provider = self.payload["providers"][0]
         provider["payment_amount_fen"] = 1
         self.payload["owner_over_20_cny_approval"] = False
         errors = self.validate()
         self.assertIn("Item31 bounded provider canary mismatch", errors)
-        self.assertIn("Item31 over-CNY20 authorization missing", errors)
+        self.assertNotIn("Item31 over-CNY20 authorization missing", errors)
 
     def test_requires_exact_provider_operation_count(self):
         for count in (1, 4, 6, 10):
@@ -324,7 +324,7 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
 
     def test_rejects_bool_counts_and_malformed_collections_without_crashing(self):
         self.payload["providers"][0]["payment"]["duplicate_callback_count"] = True
-        self.payload["providers"][1]["reconciliation"]["matched_sides"] = [
+        self.payload["providers"][0]["reconciliation"]["matched_sides"] = [
             []
         ]
         self.payload["actual_production_write_set"]["tables"] = [[]]
@@ -340,27 +340,28 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
         self.payload["providers"][0]["merchant_approval"][
             "artifact_sha256"
         ] = "0" * 64
-        self.payload["providers"][1]["payment"][
+        self.payload["providers"][0]["payment"][
             "provider_payment_identity_sha256"
         ] = self.payload["providers"][0]["payment"][
-            "provider_payment_identity_sha256"
+            "callback_identity_sha256"
         ]
         errors = self.validate()
         self.assertIn("Item31 merchant/product approval binding missing", errors)
         self.assertIn(
-            "Item31 provider payment/callback identities must be distinct",
+            "Item31 payment/callback exactly-once proof mismatch",
             errors,
         )
 
     def test_rejects_provider_swapped_approval_and_canary_artifact(self):
-        first, second = self.payload["providers"]
-        first["merchant_approval"], second["merchant_approval"] = (
-            second["merchant_approval"],
-            first["merchant_approval"],
-        )
+        first = self.payload["providers"][0]
+        approval_path = self.root / first["merchant_approval"]["artifact_path"]
+        approval = json.loads(approval_path.read_text(encoding="utf-8"))
+        approval["provider"] = "alipay_direct"
+        approval_path.write_text(json.dumps(approval), encoding="utf-8")
+        first["merchant_approval"]["artifact_sha256"] = hashlib.sha256(approval_path.read_bytes()).hexdigest()
         canary_path = self.root / first["canary_audit_ref"]
         canary = json.loads(canary_path.read_text(encoding="utf-8"))
-        canary["provider"] = second["name"]
+        canary["provider"] = "alipay_direct"
         canary_path.write_text(json.dumps(canary), encoding="utf-8")
         first["canary_audit_sha256"] = hashlib.sha256(
             canary_path.read_bytes()

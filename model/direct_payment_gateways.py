@@ -45,7 +45,7 @@ MAX_PEM_BYTES = 12 * 1024
 MAX_PEM_B64_BYTES = ((MAX_PEM_BYTES + 2) // 3) * 4
 WECHATPAY_API_ORIGIN = "https://api.mch.weixin.qq.com"
 ALIPAY_GATEWAY_URL = "https://openapi.alipay.com/gateway.do"
-WECHATPAY_CALLBACK_URL = "https://api.noteaipro.cn/payments/wechat/callback"
+WECHATPAY_CALLBACK_URL = "https://noteaipro.com/payments/wechat/callback"
 ALIPAY_CALLBACK_URL = "https://api.noteaipro.cn/payments/alipay/callback"
 
 _APP_ID_RE = re.compile(r"^[A-Za-z0-9_:-]{3,64}$")

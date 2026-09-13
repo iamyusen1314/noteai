@@ -276,6 +276,40 @@ class ModelUsageAuditTests(unittest.TestCase):
                 self.assertEqual(row["unclassified_input_tokens"], 26)
                 self.assertEqual(self._parent(usage_id)["cost_mode"], "usage_incomplete")
 
+    def test_vision_missing_dimensions_preserve_known_cost_without_actual_claim(self):
+        for usage in ({"completion_tokens": 81}, {"unexpected": 1},
+                      {"prompt_tokens": "invalid", "completion_tokens": 81},
+                      {"prompt_tokens": True, "completion_tokens": 81}):
+            with self.subTest(usage=usage):
+                usage_id = self._new_usage("screenshot")
+                model_router._record_kimi_usage("moonshot-v1-32k-vision-preview", usage)
+                row = self._children(usage_id)[0]
+                self.assertEqual(row["usage_status"], "usage_incomplete")
+                self.assertEqual(row["input_tokens"], 0)
+                self.assertEqual(row["output_tokens"], usage.get("completion_tokens", 0))
+                self.assertEqual(self._parent(usage_id)["cost_mode"], "usage_incomplete")
+
+    def test_api_media_records_actual_identity_and_stops_missing_usage(self):
+        vision = "moonshot-v1-32k-vision-preview"
+        for actual in (None, "kimi-k2.6", vision):
+            usage_id = self._new_usage("screenshot")
+            payload = {"model": actual, "usage": {"prompt_tokens": 120, "completion_tokens": 30}}
+            if actual == vision:
+                api._record_kimi_usage_from_payload(payload, vision)
+            else:
+                with self.assertRaises(api._public_product.TrialProviderStopped):
+                    api._record_kimi_usage_from_payload(payload, vision)
+            row = self._children(usage_id)[0]
+            self.assertEqual(row["model"], actual or "unknown")
+            if actual is None:
+                self.assertNotEqual(row["pricing_status"], "exact")
+        usage_id = self._new_usage("screenshot")
+        with self.assertRaises(api._public_product.TrialProviderStopped):
+            api._record_kimi_usage_from_payload({"model": vision, "usage": {"completion_tokens": 81}}, vision)
+        row = self._children(usage_id)[0]
+        self.assertEqual(row["usage_status"], "usage_incomplete")
+        self.assertGreater(row["known_cost_rmb"], 0)
+
     def test_direct_api_kimi_usage_uses_same_cache_contract(self):
         usage_id = self._new_usage("screenshot")
         api._record_kimi_usage_from_payload({

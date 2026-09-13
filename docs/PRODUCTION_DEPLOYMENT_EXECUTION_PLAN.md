@@ -1,5 +1,18 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 22:57 actual state supersedes older dated entries below: API08ef/5c5b3c
+is deployed; original06failed/title-limit-and-stop bug identified,6credits refunded
+once/0.779947RMB actual model cost retained. No repeated original package or test.
+WeChat config is now safely APPLIED_PAYMENT_DISABLED on API-C with existing role
+separation and private before-config rollback; no newsecret input required. Actual
+Payment/canary/DML/owner-scanned12RMBtest/refund/reconcile remain next. Native-only,
+Alipay deferred; no public purchase until paid rights are deliverable.
+Separate next media batch is owner-approved Ark doubao-seed-2-0-lite-260428
+verification/integration for image/video+audio understanding; Claude's duties,
+Render/AWS,Item34 and existing unfinished work remain. No K2.6media deployment or
+claim that08ef includes this later migration. Exact jobs/hashes/first failures are
+at current Handoff top. Readiness30/37; continue real engineering.
+
 September13 latest owner scope: recover confirmed original product/media/cost
 functionality on current production, starting with the confirmed owner's3000-credit
 Admin gift. Subsequent necessary test-batch rights for this same identity are
@@ -8,7 +21,9 @@ monetary test cap or historical invoice fabrication. Native WeChat first is now
 authorized including scoped Payment/API/callback deployment, owner-scanned test
 payments and full original-route test refunds; activate after real loop and rights
 delivery verification. Alipay DEFERRED/DISABLED is removed from current launch
-dependencies. Merchant signed/AppID entered remains OWNER_REPORTED until readback.
+dependencies. Owner now confirms Native enabled/AppID binding completed; certificate/key
+match and public-key format have been verified locally. APIv3 input/injection,
+real payment/refund/reconciliation remain incomplete.
 Current Handoff top holds compact capability comparison and exact operations.
 No old service restart,0025 replay, historical evidence rewrite or Item34 reset.
 

@@ -236,7 +236,7 @@ class DirectPaymentGatewayTests(unittest.TestCase):
             platform_certificate_serial="0123456789ABCDEF",
             platform_public_key_pem=public_pem(self.wechat_private),
             api_v3_key=b"synthetic-api-v3-key-material-00",
-            callback_url="https://api.noteaipro.cn/payments/wechat/callback",
+            callback_url="https://noteaipro.com/payments/wechat/callback",
             prod_mode=True,
             transport=self.wechat_transport,
         )
@@ -428,7 +428,7 @@ class DirectPaymentGatewayTests(unittest.TestCase):
             platform_certificate_serial="0123456789ABCDEF",
             platform_public_key_pem=public_pem(self.wechat_private),
             api_v3_key=b"synthetic-api-v3-key-material-00",
-            callback_url="https://api.noteaipro.cn/payments/wechat/callback",
+            callback_url="https://noteaipro.com/payments/wechat/callback",
             prod_mode=True,
             transport=transport,
         )
@@ -1510,7 +1510,7 @@ class DirectPaymentGatewayTests(unittest.TestCase):
                 platform_certificate_serial="0123456789ABCDEF",
                 platform_public_key_pem=public_pem(self.wechat_private),
                 api_v3_key=32,
-                callback_url="https://api.noteaipro.cn/payments/wechat/callback",
+                callback_url="https://noteaipro.com/payments/wechat/callback",
                 prod_mode=True,
                 transport=self.wechat_transport,
             )
@@ -1520,7 +1520,7 @@ class DirectPaymentGatewayTests(unittest.TestCase):
             platform_certificate_serial="PUB_KEY_ID_SYNTHETIC001",
             platform_public_key_pem=public_pem(self.wechat_private),
             api_v3_key=b"synthetic-api-v3-key-material-00",
-            callback_url="https://api.noteaipro.cn/payments/wechat/callback",
+            callback_url="https://noteaipro.com/payments/wechat/callback",
             prod_mode=True,
             transport=self.wechat_transport,
         )

@@ -1,5 +1,15 @@
 # Risk Register
 
+September13 22:57: original06title compression hit40-token cap; swallowed stop
+masked the cause and allowed unverified expert fallback. Known model cost0.779947RMB,
+6credits refunded once, wallet3000; no quality pass. API08ef alone deployed; next
+local stop/complete-output fix is under targeted verification. Native secret inputs
+are applied with roles separated and all payment activation flags0, backups retained;
+payment loop still unverified. Owner authorizes Doubao Seed2.0 Lite0428 as next
+multimodal batch, preserving actual videoaudio; APIformat/metering/storage/public
+chain remain implementation work. Do not continue retiredVision/model-field-only
+replacement. No revised history,Item34 action orReadiness increment.
+
 September13 21:46: owner gift3000 is verified through the existing Admin ledger
 and normal wallet. Fresh business05 on unchanged API6c955bb failed
 DIAGNOSIS_FACT_UNVERIFIED: model assigned unsupported room/ticket conditions.

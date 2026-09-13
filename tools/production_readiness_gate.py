@@ -447,8 +447,8 @@ def _check_entrypoint_runtime_contract(entrypoint: str) -> tuple[bool, str]:
         "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
         "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": "1788500000",
         "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": "1788503600",
-        "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
-            "ITEM31-SYNTHETIC-NO-REAL-USER"
+        "NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION": (
+            "ITEM31-OWNER-CONTROLLED-TEST-ORDER"
         ),
     }
 

@@ -95,6 +95,12 @@ class PublicAccountBoundary:
             await JSONResponse({"detail": detail}, status_code=status)(scope, receive, send)
 
         import public_product
+        if scope.get("raw_path", path.encode()) != path.encode():
+            return await reject(404, "本阶段未开放此功能")
+        if (method, path) == ("POST", "/payments/wechat/callback") and public_product.wechat_configured(callback=True):
+            # Provider callbacks have no browser identity. The fixed local
+            # Payment runtime validates raw signature/body/merchant/order.
+            return await self.app(scope, receive, send)
         allowed = (method, path) in ALLOWED_ROUTES or (
             product_enabled() and public_product.allowed_route(method, path)
         )

@@ -358,8 +358,8 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
             "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
             "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": str(start),
             "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": str(start + 3600),
-            "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
-                "ITEM31-SYNTHETIC-NO-REAL-USER"
+            "NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION": (
+                "ITEM31-OWNER-CONTROLLED-TEST-ORDER"
             ),
         }
         with patch.dict(os.environ, exact, clear=True), patch.object(

@@ -1,5 +1,18 @@
 # NoteAI Payment Production Contract
 
+Current September13 owner scope supersedes the historical dual-provider preparation
+below: Native WeChat first, Alipay DEFERRED/DISABLED. Owner confirms Native enabled
+and AppID binding completed; local certificate/key matching is verified. The real
+canary uses only the confirmed owner account, no synthetic-user assertion or fake
+paid order. Preserve UID/image/1200-fen/time/idempotency fences, normal callback
+signature validation, full original-route refund and transaction-level DML capture.
+Actual callback: https://noteaipro.com/payments/wechat/callback . Native APIv3 uses
+the merchant signing certificate/key, platform public key ID/key and APIv3 key;
+APIv2 is not used. The callback role never receives merchant signing private keys.
+0018 read-only verify accepts hash-matching known successors such as0025; apply
+retains its strict pre-0018 contract and must not replay completed migrations.
+
+
 ## Current filing and account-publication scope — September12 2026
 
 Owner confirms ICP completed: website 粤ICP备2026135207号-1; entity

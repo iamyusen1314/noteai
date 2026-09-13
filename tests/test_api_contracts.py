@@ -31,6 +31,11 @@ hot_keywords = importlib.import_module("hot_keywords")
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_cover_scoring_preserves_actual_zero_dimensions(self):
+        self.assertEqual(api._score_cover_vision({name: 0 for name in (
+            "cover_aesthetic_score", "cover_composition_score", "cover_visual_clarity",
+            "cover_emotion_intensity", "cover_text_prominence")}), 10.0)
+
     def test_sse_timing_envelope_uses_monotonic_sequence_stage_and_terminal(self):
         ticks = iter((10.0, 10.0, 10.25, 11.0, 12.0))
         timing = api._SSETimingEnvelope(
@@ -550,8 +555,8 @@ class ApiContractTests(unittest.TestCase):
                 )
             ),
             "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
-            "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
-                "ITEM31-SYNTHETIC-NO-REAL-USER"
+            "NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION": (
+                "ITEM31-OWNER-CONTROLLED-TEST-ORDER"
             ),
             "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": str(now_epoch - 5),
             "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": str(now_epoch + 300),
@@ -629,8 +634,8 @@ class ApiContractTests(unittest.TestCase):
                 )
             ),
             "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
-            "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": (
-                "ITEM31-SYNTHETIC-NO-REAL-USER"
+            "NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION": (
+                "ITEM31-OWNER-CONTROLLED-TEST-ORDER"
             ),
             "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": str(now_epoch - 5),
             "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": str(now_epoch + 300),
@@ -1266,17 +1271,20 @@ class ApiContractTests(unittest.TestCase):
         captured = {}
 
         class FakeResponse:
+            extensions = {}
             def raise_for_status(self):
                 return None
 
             def json(self):
                 return {
+                    "model": "kimi-k2.6",
                     "choices": [{
+                        "finish_reason": "stop",
                         "message": {
                             "content": '{"type":"B","title":"","body":"","domain":"美食","cover_desc":"一张清晰的菜品图"}'
                         }
                     }],
-                    "usage": {},
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 10, "cached_tokens": 0},
                 }
 
         class FakeClient:
@@ -2651,9 +2659,55 @@ class ApiContractTests(unittest.TestCase):
 
         bodies = [p["body"] for p in result["plans"]]
         self.assertEqual(len(bodies), 3)
-        self.assertEqual(len(set(bodies)), 3)
-        self.assertFalse(any(body == shared_candidate for body in bodies))
-        self.assertTrue(all(p.get("fallback") == "style_candidate" for p in result["plans"]))
+        self.assertEqual(bodies, ["", "", ""])
+        self.assertFalse(result["body"])
+        self.assertTrue(all(not p.get("fallback") for p in result["plans"]))
+
+    def test_arbitrate_title_stop_reads_peers_and_prevents_body_dispatch(self):
+        pp = api._public_product
+        state = pp.Invocation("isolated-owner", "title-stop")
+        token = pp._invocation.set(state)
+        events = []
+        calls = []
+        async def call(route, system, user, **kwargs):
+            calls.append(route)
+            if route == "arbitrate":
+                title = "用于验证标题压缩完整性及并行结果读回的很长酒店标题"
+                return ("<diagnosis>测试</diagnosis>"
+                        + "".join(f"<plan_{x}_title>{title}{x}</plan_{x}_title>" for x in "abc")
+                        + "<plan>测试</plan>")
+            self.assertEqual(route, "semantic")
+            self.assertGreaterEqual(kwargs["max_tokens"], 256)
+            await asyncio.sleep(0)
+            events.append("peer_read")
+            if len(events) == 1:
+                raise api._mr.ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
+            return "酒店出行预算选择指南"
+        try:
+            with mock.patch.dict(os.environ, {"NOTEAI_PUBLIC_PRODUCT": "1"}), mock.patch.object(api._mr, "call", call):
+                with self.assertRaisesRegex(pp.TrialProviderStopped, "CLAUDE_OUTPUT_INCOMPLETE"):
+                    asyncio.run(api._agent_arbitrate("酒店", "旅行", 62, "待优化", []))
+            self.assertEqual(events, ["peer_read"] * 3)
+            self.assertEqual(calls.count("diagnosis"), 0)
+            self.assertEqual(state.failure, "CLAUDE_OUTPUT_INCOMPLETE")
+        finally:
+            pp._invocation.reset(token)
+
+    def test_router_preserves_existing_stop_without_dispatch_or_reclassification(self):
+        pp = api._public_product
+        state = pp.Invocation("isolated-owner", "prior-stop", failure="CLAUDE_OUTPUT_INCOMPLETE")
+        token = pp._invocation.set(state)
+        async def stopped(*args, **kwargs):
+            pp.assert_result_known()
+        try:
+            with mock.patch.dict(os.environ, {"NOTEAI_PUBLIC_PRODUCT": "1"}), mock.patch.object(api._mr, "_call_claude", stopped):
+                with self.assertRaisesRegex(pp.TrialProviderStopped, "CLAUDE_OUTPUT_INCOMPLETE"):
+                    asyncio.run(api._mr._call_model_with_retries("semantic", "claude-haiku-4-5-20251001", "test", "test", False, 256))
+                api._mr.ClaudeGatewayError("CLAUDE_OUTCOME_UNKNOWN", 502)
+                pp.TrialProviderStopped("PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
+            self.assertEqual(state.failure, "CLAUDE_OUTPUT_INCOMPLETE")
+        finally:
+            pp._invocation.reset(token)
 
     def test_model_router_empty_claude_response_fails_closed_without_retry_or_fallback(self):
         original_call_claude = api._mr._call_claude
@@ -3209,6 +3263,28 @@ class ApiContractTests(unittest.TestCase):
             for response, call in zip(responses, api._insert_growth_record.call_args_list):
                 self.assertEqual(call.kwargs["note_id"], response.saved_note_id)
             api._insert_growth_record.reset_mock()
+            api._insert_content_with_retention.reset_mock()
+            async def empty_plans(*args, **kwargs):
+                result = await fake_run_agents(*args, **kwargs)
+                result["plans"] = [{"title": p["title"], "body": ""} for p in result["plans"]]
+                result["body"] = ""
+                return result
+            async def stopped_agents(*args, **kwargs):
+                raise api._public_product.TrialProviderStopped("CLAUDE_OUTPUT_INCOMPLETE")
+            async def stream_events():
+                response = await api.analyze_stream_endpoint(requests[0], user={"id": "u1"}, request_id=None)
+                chunks = [chunk async for chunk in response.body_iterator]
+                return "".join(chunk.decode() if isinstance(chunk, bytes) else chunk for chunk in chunks)
+            for handler, code in ((empty_plans, "DIAGNOSIS_PLANS_UNVERIFIED"), (stopped_agents, "CLAUDE_OUTPUT_INCOMPLETE")):
+                api._run_five_agents = handler
+                with mock.patch.object(api._billing, "refund_operation_charge") as refund:
+                    result = asyncio.run(stream_events())
+                    refund.assert_called_once()
+                self.assertIn(code, result)
+                self.assertNotIn('"type": "complete"', result)
+                api._insert_content_with_retention.assert_not_called()
+                api._insert_growth_record.assert_not_called()
+            api._run_five_agents = fake_run_agents
             for fail_at in (0, 1):
                 writes = mock.Mock(side_effect=([None] * fail_at) + [RuntimeError("private db detail")])
                 api._insert_content_with_retention = writes
@@ -3252,10 +3328,10 @@ class ApiContractTests(unittest.TestCase):
             api._insert_growth_record = original_growth
             api._insert_content_with_retention = original_insert_content
 
-        self.assertEqual(len(fact_calls), 5)
+        self.assertEqual(len(fact_calls), 7)
         self.assertNotIn("截图里有餐厅门头", fact_calls[1][2])
         self.assertIn("视频里拍到芝士焗小青龙", fact_calls[2][2])
-        self.assertEqual(len(captured_notes), 5)
+        self.assertEqual(len(captured_notes), 6)
         self.assertIn("手动输入", captured_notes[0].desc)
         self.assertNotIn("【其他内容图片描述】", captured_notes[1].desc)
         self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
@@ -3264,7 +3340,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(responses[2].input_diagnostics["video_duration_sec"], 3.0)
         self.assertEqual(responses[2].input_diagnostics["video_frames_extracted"], 1)
         self.assertEqual(responses[2].input_diagnostics["video_frames_to_ai"], 1)
-        self.assertEqual(len(captured_agent_contexts), 5)
+        self.assertEqual(len(captured_agent_contexts), 6)
         self.assertIn("【其他内容图片描述】", captured_agent_contexts[1])
         for ctx in captured_agent_contexts:
             self.assertIn("【联网事实补全】", ctx)

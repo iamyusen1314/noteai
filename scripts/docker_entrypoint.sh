@@ -115,8 +115,8 @@ elif [ "$image_runtime_role" = "payment-canary" ]; then
     || [ "${NOTEAI_PAYMENT_CANARY_AMOUNT_FEN:-}" != "1200" ] \
     || ! is_unsigned_integer "${NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH:-}" \
     || ! is_unsigned_integer "${NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH:-}" \
-    || [ "${NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION:-}" != \
-      "ITEM31-SYNTHETIC-NO-REAL-USER" ]; then
+    || [ "${NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION:-}" != \
+      "ITEM31-OWNER-CONTROLLED-TEST-ORDER" ]; then
     echo "payment-canary activation binding is invalid" >&2
     exit 78
   fi

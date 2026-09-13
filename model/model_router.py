@@ -211,9 +211,9 @@ def _record_kimi_usage(model: str, usage: dict | None, *, physical_call_id: str 
     if not usage:
         record("kimi", model, usage_status="usage_missing")
         return
-    prompt_tokens = _usage_attr(usage, "prompt_tokens")
-    tokens_out = _usage_attr(usage, "completion_tokens")
     if model == KIMI_TEXT:
+        prompt_tokens = _usage_attr(usage, "prompt_tokens")
+        tokens_out = _usage_attr(usage, "completion_tokens")
         cached_marker = object()
         cached = usage.get("cached_tokens", cached_marker) if isinstance(usage, dict) else cached_marker
         if cached is cached_marker:
@@ -254,9 +254,18 @@ def _record_kimi_usage(model: str, usage: dict | None, *, physical_call_id: str 
             cache_read_tokens=cache_read,
         )
         return
-    # The confirmed Moonshot vision model has no documented cache tier in the
-    # adopted price card; do not invent or infer one from absent fields.
-    record("kimi", model, prompt_tokens, tokens_out)
+    # Vision has no documented cache tier in the adopted price card. Missing
+    # dimensions still mean incomplete usage, never a zero-token actual bill.
+    complete = isinstance(usage, dict) and all(
+        type(usage.get(key)) is int and usage[key] >= 0
+        for key in ("prompt_tokens", "completion_tokens")
+    )
+    known_input = usage.get("prompt_tokens") if isinstance(usage, dict) else None
+    known_output = usage.get("completion_tokens") if isinstance(usage, dict) else None
+    record("kimi", model,
+           known_input if type(known_input) is int and known_input >= 0 else 0,
+           known_output if type(known_output) is int and known_output >= 0 else 0,
+           usage_status="complete" if complete else "usage_incomplete")
 
 
 # ── Claude transport boundary ────────────────────────────────
@@ -599,7 +608,9 @@ class ClaudeGatewayError(RuntimeError):
         if _public_product.enabled() and _public_product._invocation.get() is not None:
             # A caller that historically supplied default scores must not turn
             # a failed selected model into a successful formal-product result.
-            _public_product._invocation.get().failure = safe_code
+            current = _public_product._invocation.get()
+            if not current.failure:
+                current.failure = safe_code
         super().__init__(f"claude gateway error: {safe_code}")
 
 
@@ -1804,6 +1815,10 @@ async def _call_model_with_retries(
             if not result:
                 raise ValueError("empty response")
             return result
+        except _public_product.TrialProviderStopped:
+            # Preserve the original invocation stop; it was already reconciled
+            # or marked unknown and must not be relabelled or retried here.
+            raise
         except Exception as exc:
             if _is_gateway_deadline_error(exc):
                 raise

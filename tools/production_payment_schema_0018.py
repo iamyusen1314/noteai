@@ -108,6 +108,10 @@ def source_contract() -> dict[str, Any]:
         "migration_payload": payloads[MIGRATION_NAME],
         "migration_sha256": MIGRATION_SHA256,
         "migration_hashes": hashes,
+        "successor_hashes": {
+            path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in paths[len(EXPECTED_MIGRATION_NAMES):]
+        },
     }
 
 
@@ -168,8 +172,18 @@ def _verify_ledger(
     rows: list[dict[str, Any]],
     names: tuple[str, ...],
     hashes: dict[str, str],
+    *,
+    successor_hashes: dict[str, str] | None = None,
 ) -> None:
-    if tuple(str(row["version"]) for row in rows) != names:
+    versions = tuple(str(row["version"]) for row in rows)
+    if successor_hashes is not None:
+        extras = versions[len(names):]
+        if (versions[:len(names)] != names or len(set(versions)) != len(versions)
+                or tuple(sorted(extras)) != extras
+                or any(name not in successor_hashes for name in extras)):
+            raise PaymentSchemaError("ledger_versions")
+        hashes = {**hashes, **successor_hashes}
+    elif versions != names:
         raise PaymentSchemaError("ledger_versions")
     if any(
         str(row["sha256"] or "") != hashes[str(row["version"])]
@@ -472,9 +486,10 @@ def _verify_preconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any]
     }
 
 
-def _verify_postconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
+def _verify_postconditions(conn: Any, contract: dict[str, Any], *, allow_successors: bool = False) -> dict[str, Any]:
     rows = _ledger_rows(conn)
-    _verify_ledger(rows, EXPECTED_MIGRATION_NAMES, contract["migration_hashes"])
+    _verify_ledger(rows, EXPECTED_MIGRATION_NAMES, contract["migration_hashes"],
+                   successor_hashes=contract.get("successor_hashes", {}) if allow_successors else None)
     if any(
         providers != PROVIDERS_AFTER
         for providers in _provider_constraint_sets(conn).values()
@@ -580,7 +595,7 @@ def _verify_postconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any
         raise PaymentSchemaError("payment_broad_privilege")
     return {
         "ledger_count": len(rows),
-        "ledger_last": MIGRATION_NAME,
+        "ledger_last": str(rows[-1]["version"]),
         "migration_sha256": MIGRATION_SHA256,
         "provider_constraint_count": len(PROVIDER_CONSTRAINTS),
         "direct_provider_count": 2,
@@ -691,7 +706,7 @@ def verify_schema(
         conn.execute("SET LOCAL statement_timeout='30s'")
         conn.execute("SET LOCAL lock_timeout='5s'")
         _activate_owner(conn, expected_session_role=expected_session_role)
-        verification = _verify_postconditions(conn, contract)
+        verification = _verify_postconditions(conn, contract, allow_successors=True)
     return {
         "status": "verified",
         "mode": "verify",

@@ -10,6 +10,27 @@ from tools import production_payment_schema_0018 as schema_0018
 
 
 class ProductionPaymentSchema0018Tests(unittest.TestCase):
+    def test_readback_accepts_only_source_matching_successors_and_never_changes_apply_contract(self):
+        contract = schema_0018.source_contract()
+        rows = [{"version": name, "sha256": value} for name, value in contract["migration_hashes"].items()]
+        successors = contract["successor_hashes"]
+        later = [{"version": name, "sha256": value} for name, value in successors.items()]
+        self.assertTrue(any(row["version"].startswith("0025_") for row in later))
+        schema_0018._verify_ledger(rows + later, schema_0018.EXPECTED_MIGRATION_NAMES,
+                                  contract["migration_hashes"], successor_hashes=successors)
+        for invalid in (rows[:-1] + later, rows + later + later[-1:], rows + [{"version": "9999_unknown.sql", "sha256": "0" * 64}]):
+            with self.assertRaises(schema_0018.PaymentSchemaError):
+                schema_0018._verify_ledger(invalid, schema_0018.EXPECTED_MIGRATION_NAMES,
+                                          contract["migration_hashes"], successor_hashes=successors)
+        with self.assertRaisesRegex(schema_0018.PaymentSchemaError, "ledger_hash"):
+            schema_0018._verify_ledger(rows + [{**later[0], "sha256": "0" * 64}],
+                                      schema_0018.EXPECTED_MIGRATION_NAMES, contract["migration_hashes"],
+                                      successor_hashes=successors)
+        with self.assertRaisesRegex(schema_0018.PaymentSchemaError, "ledger_versions"):
+            schema_0018._verify_ledger(rows + later, schema_0018.EXPECTED_MIGRATION_NAMES, contract["migration_hashes"])
+        with self.assertRaisesRegex(schema_0018.PaymentSchemaError, "ledger_versions"):
+            schema_0018._verify_ledger(rows, schema_0018.PRIOR_MIGRATION_NAMES, contract["migration_hashes"])
+
     def test_source_contract_is_exact_and_incremental(self):
         contract = schema_0018.source_contract()
 

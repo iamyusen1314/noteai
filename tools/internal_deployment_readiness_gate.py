@@ -241,7 +241,7 @@ ITEM33_ENDPOINTS = {"homefeed", "search_recommend", "search_notes"}
 ITEM31_PAYMENT_EVIDENCE_SCHEMA = "noteai.item31.direct_payment_chain.v1"
 ITEM31_MERCHANT_APPROVAL_SCHEMA = "noteai.item31.merchant_approval.v1"
 ITEM31_CANARY_AUDIT_SCHEMA = "noteai.item31.direct_provider_canary_audit.v1"
-ITEM31_DIRECT_PROVIDERS = {"wechatpay_direct", "alipay_direct"}
+ITEM31_DIRECT_PROVIDERS = {"wechatpay_direct"}
 ITEM31_CANARY_AMOUNT_FEN = 1200
 ITEM31_PROVIDER_OPERATION_COUNT = 5
 ITEM31_PAYMENT_EVIDENCE = (
@@ -2826,7 +2826,7 @@ def validate_item31_payment_evidence(
         or len(names) != len(set(names))
         or set(names) != ITEM31_DIRECT_PROVIDERS
     ):
-        errors.append("Item31 requires both direct providers exactly once")
+        errors.append("Item31 requires the approved WeChat Native provider exactly once")
     total_payment_fen = 0
     total_refund_fen = 0
     payment_identities: set[str] = set()
@@ -2876,9 +2876,9 @@ def validate_item31_payment_evidence(
             or not isinstance(provider_name, str)
             or provider_name not in ITEM31_DIRECT_PROVIDERS
             or item.get("environment") != "LIVE"
-            or item.get("synthetic_user") is not True
-            or item.get("synthetic_order") is not True
-            or item.get("real_user_order") is not False
+            or item.get("synthetic_user") is not False
+            or item.get("synthetic_order") is not False
+            or item.get("real_user_order") is not True
             or not _exact_int(amount_fen, ITEM31_CANARY_AMOUNT_FEN)
             or not _exact_int(
                 item.get("provider_operation_count"),
@@ -3189,7 +3189,7 @@ def validate_item31_payment_evidence(
         or not _exact_int(payload.get("net_real_funds_fen"), 0)
     ):
         errors.append("Item31 cumulative full-refund amount mismatch")
-    if payload.get("owner_over_20_cny_approval") is not True:
+    if total_payment_fen > 2000 and payload.get("owner_over_20_cny_approval") is not True:
         errors.append("Item31 over-CNY20 authorization missing")
     writes = payload.get("actual_production_write_set")
     expected_write_readback = hashlib.sha256(

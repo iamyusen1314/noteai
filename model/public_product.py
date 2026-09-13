@@ -50,9 +50,22 @@ def enabled() -> bool:
     return os.environ.get("NOTEAI_PUBLIC_PRODUCT", "0") == "1"
 
 
+def wechat_configured(*, callback: bool = False) -> bool:
+    """Current Native-first scope; flags alone do not certify provider readiness."""
+    flag = "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED" if callback else "NOTEAI_PAYMENT_ORDERING_ENABLED"
+    return (enabled() and os.environ.get("NOTEAI_RUNTIME_ROLE") == "api"
+            and os.environ.get(flag, "").lower() in {"1", "true", "yes"}
+            and os.environ.get("NOTEAI_PAYMENT_ORDER_PROVIDERS", "").strip() == "wechatpay_direct")
+
+
 def allowed_route(method: str, path: str) -> bool:
     if (method, path) in EXACT_ROUTES:
         return True
+    if wechat_configured():
+        if (method, path) in {("GET", "/payments/capabilities"), ("GET", "/payments/orders"), ("POST", "/payments/orders")}:
+            return True
+        if method == "GET" and re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
+            return True
     return method == "GET" and bool(re.fullmatch(
         r"/(?:notes|diagnoses)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})(?:/versions)?", path
     ))
@@ -76,7 +89,7 @@ _invocation = contextvars.ContextVar("public_product_invocation", default=None)
 
 async def dispatch(app, scope, receive, send, body: bytes):
     path = scope["path"]
-    if path.startswith("/auth/") or path in {"/health/live", "/public/status", "/legal/contracts", "/billing/tiers"}:
+    if path.startswith("/auth/") or path in {"/health/live", "/public/status", "/legal/contracts", "/billing/tiers", "/payments/capabilities"}:
         return await app(scope, receive, send)
     from fastapi import HTTPException
     from fastapi.security import HTTPAuthorizationCredentials
@@ -106,6 +119,8 @@ async def dispatch(app, scope, receive, send, body: bytes):
                 raise HTTPException(400, "请求格式无效")
             if not isinstance(payload, dict):
                 raise HTTPException(400, "请求格式无效")
+            if path == "/payments/orders" and payload.get("provider") not in (None, "wechatpay_direct"):
+                raise HTTPException(403, "当前仅开放微信支付")
             # Media and Tracking retain their concrete validation/deployment boundaries.
             # Facts use the existing intent/entity decision, never a gift/free downgrade.
             if any(payload.get(k) for k in ("cover_image", "cover_images", "extra_images", "image_base64", "video_file_id")):
@@ -236,7 +251,7 @@ def validate_startup(storage):
 class TrialProviderStopped(RuntimeError):
     def __init__(self, code):
         current = _invocation.get()
-        if current is not None:
+        if current is not None and not current.failure:
             current.failure = code
         super().__init__(code)
 
@@ -348,7 +363,9 @@ def _record_response(call_id: str, status: int | None, *, unknown=False, not_dis
     import db
     # Reservation remains charged even if body/stream subsequently disconnects.
     if (unknown or (status is None and not not_dispatched)) and _invocation.get() is not None:
-        _invocation.get().failure = "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY"
+        current = _invocation.get()
+        if not current.failure:
+            current.failure = "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY"
     expected = "responded" if not_dispatched or (status is not None and not unknown) else "unknown"
     try:
         with db.transaction(write=True) as tx:

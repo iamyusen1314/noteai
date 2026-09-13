@@ -103,7 +103,7 @@ class RuntimeCanaryPostgresTests(unittest.TestCase):
             "NOTEAI_PAYMENT_CANARY_SUBJECT_HASH": self.payment._subject_hash(uid),
             "NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256": self.api._item31_identity(key, "noteai-item31-create-idempotency-v1"),
             "NOTEAI_PAYMENT_CANARY_AMOUNT_FEN": "1200",
-            "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION": "ITEM31-SYNTHETIC-NO-REAL-USER",
+            "NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION": "ITEM31-OWNER-CONTROLLED-TEST-ORDER",
             "NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH": str(now - 5),
             "NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH": str(now + 300),
             "NOTEAI_RUNTIME_ROLE": "api", "NOTEAI_DEPLOYMENT_STAGE": "production",

@@ -1,5 +1,89 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 22:57 Beijing — API08ef preserved; WeChat inputs applied disabled; media next batch
+
+Current API08ef08e712277d0e800037a8b11a8593bb458960 is DEPLOYED at
+2026-09-13T14:29:58.797156Z, image
+sha256:5c5b3ccba9e6f0d3c963ea6cc30de94ac6d7ae403ebf1585de65fbed3f2bcc9f.
+Only model/api.py was layered atop6c/e5985a63, the retained compatible rollback;
+this does not imply all files committed at08ef are deployed. Original stage
+/var/lib/noteai/fact-repair-08ef08e retains build/result/before/logs;
+executeSHA52e70c77e3a658990662418a5a054c17d6a4093516a96a2fcd11a76293fd9724.
+Private archive noteai-fact-repair-08ef08e.tar.gz,224025bytes,
+SHAf452b858643782d085b90d284cdd3fcd695c2161ee9f3ae2d4cf82b44eeebb77.
+Initial upload failed; confirmed404/ABSENT before retrying the original failed row.
+Build finished1789309788.6912258; actualPython3.11.15/amd64 image/module hashes,
+canary/drain/CAS/health passed. No repeat original688/0025/build. Adminb033,
+web363,Gateway601,model configuration and Item34 preserved.
+
+Original fresh business06 was launched once on actual08ef,request
+formal-claude-meituan-20260913-06,stage
+/var/lib/noteai/formal-claude-363f3e3/business-analyze-06. Started1789309939.805995,
+ended1789310055.7265084,HTTP200SSE FAILED/complete0,
+SSESHA07fe7fbb03596ad15f91ce2aa8458419fec151e35ac8ccf2b94d76840c7a9950.
+Outer launch.json retained an incorrect05 label; actualexecute/started/header/
+claim/ledger confirm06. Do not rewrite that record or replay either identity.
+Claimfbdec584-2c26-41a1-a33e-bc63e562c203,
+usage3e2c2635-a339-461a-860c-36f452d5285f: charge6/refund6 once, wallet3000,
+total_used0,total_purchased0.9Haiku calls0.399637RMB +1Sonnet0.380310RMB=
+0.779947RMB, all physical responses200/exact/complete metering; returned content
+completion is separate (one title response hit max_tokens). Meituan internal
+request/fee totals remain unavailable, not0. No07 launched.
+Original router logs identify40-token title compression terminating max_tokens,
+CLAUDE_OUTPUT_INCOMPLETE. API swallowed that stop; subsequent pre-admission failures
+were relabelledUNKNOWN; unverified expert candidates became fallback plans, then
+final facts check rejected room/ticket/price/comparison claims. Not successful
+quality validation and not evidence of29/10 equivalent complete business stages.
+Local correction increases title output capacity to256, preserves first failure,
+reads started peers, stops later dispatch and removes expert-prefix plan fallback.
+Empty/unqualified three-plan output must fail before successful persistence.
+34 targeted Python3.11/network-none tests now pass, including the original stop
+readback/no-body-dispatch, first-code preservation, SSE error/refund/no-success-save,
+three valid plans, Native evidence/provider/Secret/no-replay scope. Existing shell
+semantic harness passes35allowed/61rejected. Initial failures were missing isolated
+fixture files plus olddual-provider/aggregate fixtures; actual canary Secret regex
+also now rejects later XHSnote-access/web-ssk keys. No external call in these tests.
+No07 launched; next build/publish only the changed runtime modules.
+
+Owner confirms Native enabled and AppID binding completed. Local merchant1117594954
+certificate/private-key match and WeChat public-key format/hash verified without
+printing credentials. APIv2 is unused by Nativev3. Owner completed existing hidden
+input; encrypted envelope stays outsideGit, SHA
+f28005b946bed21654234e1a9494d3443078cb73f07fb2edb632252c4dabff9b.
+Private encrypted transfer archive10281bytes,
+SHA8b6920448064d8d67b51456a8906a8140468bd9f49dcf02f344496302ae94b42,
+root=/var/lib/noteai/wechat-native-20260913. Existing envelope/role validator reused.
+config-stage-result.json verifies role separation; config-apply-result.json at
+1789311459.2344124 is WECHAT_CONFIG_APPLIED_PAYMENT_DISABLED. API envSHA
+ebf84b90394514aca748fe71eda1e2931e209f02dd8cb3ff68171ca8c31de5d4;
+Payment envSHA5f16eb47778f0667849698e19a524c73c3d0f4fa35cba86baa3cdd3911e57a03.
+Before-config preserves both original private env files. API retains noteai_app;
+Payment retains noteai_payment. API has merchant signing key but noAPIv3;
+Payment hasAPIv3 but no merchant signing key. Ordering/relay/callback/canary remain0;
+no service restart, provider request or business write. Canary credentials fragment
+has noDB yet. Do not regenerate envelope or request already saved keys again.
+Next: actual Payment/canary images+ownerUIDbinding/PG16DML,0018 read-only verify
+compatible with0025, exactcallback route, owner-visible12RMBtestorder/pay/refund/
+reconcile. No public activation until payment loop and sold rights are deliverable.
+Local shell entrypoint, Python controls and current Item31 scope now align with
+owner-controlled Native first; Alipay DEFERRED. No historical evidence rewritten.
+
+Owner next-batch decision: migrate素材理解 to Doubao-Seed-2.0, prioritizing exact
+IDdoubao-seed-2-0-lite-260428 through existing Ark account/key namednoteai. Verify
+actual image/video+audio API/limits/pricing, preserve audio/time context and route
+understanding into original industryPrompt/Claude pipeline. This does not replace
+Claude/Render/AWS, cover generation or existing hotel/payment work. Local K2.6
+vision compatibility work is not deployed and is not the final migration choice;
+retain general full-context/failure/accounting fixes while adapting actual Ark API.
+No public media enablement until original upload/storage/model/result/credits/cost
+chain verifies. No new framework, renamed historical package or Item34 action.
+
+Fresh predeploy Item34 row25824b51-99d6-4728-95a4-d68efca92503: generation2,
+checking_7d,T0=2026-09-11T13:34:10.891601Z,24h=2026-09-12T13:44:42.890012Z,
+3dnull,next=2026-09-14T13:34:10.891601Z,activeattempt0. F image/uniqueautomation
+remainLAST_KNOWN unchanged (not re-read here). No T0/image/evidence changes.
+Readiness30/37 unchanged; required independent product/payment/media work continues.
+
 ## September13 21:46 Beijing — gift verified; factual-quality batch failed safely
 
 Normal Admin preview/apply for the already verified owner UID

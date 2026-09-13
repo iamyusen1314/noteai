@@ -110,7 +110,7 @@ def _log_internal_failure(
 # ── Model constants ────────────────────────────────────────────────
 
 _KIMI_MODEL        = "kimi-k2.6"
-_KIMI_VISION_MODEL = "moonshot-v1-32k-vision-preview"
+_KIMI_VISION_MODEL = "kimi-k2.6"
 _KIMI_API_URL      = "https://api.moonshot.cn/v1/chat/completions"
 _MOONSHOT_FILES_URL = "https://api.moonshot.cn/v1/files"
 
@@ -214,8 +214,18 @@ def _get_video_meta(file_id: str | None, user_id: str | None = None) -> dict | N
 def _record_kimi_usage_from_payload(payload: dict | None, model: str | None = None,
                                     *, physical_call_id: str | None = None) -> None:
     payload = payload if isinstance(payload, dict) else {}
-    _mr._record_kimi_usage(model or payload.get("model") or _KIMI_MODEL,
+    actual = payload.get("model")
+    identity_known = isinstance(actual, str) and bool(re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", actual))
+    _mr._record_kimi_usage(actual if identity_known else "unknown",
                           payload.get("usage"), physical_call_id=physical_call_id)
+    if not identity_known or (model is not None and actual != model):
+        raise _public_product.TrialProviderStopped("MEDIA_MODEL_IDENTITY_UNCONFIRMED")
+    usage = payload.get("usage")
+    if not isinstance(usage, dict) or not all(
+        type(usage.get(key)) is int and usage[key] >= 0
+        for key in ("prompt_tokens", "completion_tokens")
+    ):
+        raise _public_product.TrialProviderStopped("MEDIA_MODEL_USAGE_INCOMPLETE")
 
 
 def _image_media_type(raw: bytes) -> str:
@@ -274,8 +284,8 @@ def _moonshot_network_exception(exc: Exception, context: str) -> HTTPException:
 def _video_send_count(duration_sec: float, total_frames: int) -> int:
     """
     按视频时长决定发给 AI 的帧数。
-    上限 28 帧（moonshot-v1-32k-vision-preview 每帧约 1000 tokens，
-    32k context 减去 prompt+response 余量约 28 帧安全上限）。
+    沿用原28帧均匀采样策略；旧moonshot-v1已下线，当前K2.6恢复版本
+    保留该策略以验证同一素材处理链，不将它标成当前模型的上下文上限。
 
     策略：时长越长 → 帧间隔越大，但始终覆盖开头/中间/结尾。
     ≤5s  : 全部帧 (≤5)        — 短视频每帧都重要
@@ -294,7 +304,7 @@ def _video_send_count(duration_sec: float, total_frames: int) -> int:
         target = 20
     else:
         target = 26
-    return min(target, total_frames, 28)  # 硬上限 28，永不超 token 限制
+    return min(target, total_frames, 28)  # 原已确认的均匀采样上限
 
 
 def _clean_video_analysis_for_library(video_desc: str, max_chars: int = 420) -> str:
@@ -704,7 +714,7 @@ async def _kimi_video_understand(
         "model": _KIMI_VISION_MODEL,
         "messages": [{"role": "user", "content": content_parts}],
         "max_tokens": 1500,
-        "temperature": 0.6,
+        "thinking": {"type": "disabled"},
     }
     print(
         f"[kimi_video_understand] duration={duration_sec:.0f}s "
@@ -724,6 +734,8 @@ async def _kimi_video_understand(
                 r.raise_for_status()
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
+            if data["choices"][0].get("finish_reason") != "stop":
+                raise ValueError("media_output_incomplete")
             return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
         if isinstance(exc, _public_product.TrialProviderStopped):
@@ -3151,12 +3163,15 @@ async def _agent_arbitrate(
                 "semantic",
                 f"你是标题压缩专家。将用户提供的小红书标题压缩到{_TITLE_PLATFORM_MAX}字以内，保留核心信息（地点/价格/菜品/情绪/决策价值），语义完整，可直接使用。只输出压缩后的标题，不要任何说明。",
                 f"原标题（{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_PLATFORM_MAX}字，优先{_TITLE_TARGET_TEXT}：",
-                max_tokens=40,
+                max_tokens=256,
             )
             shortened = shortened.strip().strip('"').strip("'")
             if shortened and len(shortened) <= _TITLE_DELIVERY_MAX and len(shortened) >= 6:
                 return shortened
+        except _public_product.TrialProviderStopped:
+            raise
         except Exception:
+            _public_product.assert_result_known()
             pass
         # AI 压缩失败：保留原题，后续质量复核标记需精修，禁止硬截断。
         return t
@@ -3173,6 +3188,11 @@ async def _agent_arbitrate(
         *[_clean_title(t) for t in titles_pool],
         return_exceptions=True,
     )
+    # Read back already-started peers before propagating the original stop.
+    _public_product.assert_result_known()
+    for result in clean_results:
+        if isinstance(result, _public_product.TrialProviderStopped):
+            raise result
     plan_a_title = clean_results[0] if isinstance(clean_results[0], str) else ""
     plan_b_title = clean_results[1] if isinstance(clean_results[1], str) else ""
     plan_c_title = clean_results[2] if isinstance(clean_results[2], str) else ""
@@ -3262,29 +3282,6 @@ async def _agent_arbitrate(
     def _is_distinct_body(body: str, existing: list[str]) -> bool:
         return bool(_body_signature(body)) and not any(_same_body(body, other) for other in existing)
 
-    def _style_fallback_body(title: str, style_name: str, base_body: str) -> str:
-        base = (base_body or "").strip()
-        if not base:
-            return ""
-        lead_title = title or style_name
-        leads = {
-            "决策信息型": f"{lead_title}。先把到店决策放前面：",
-            "菜品种草型": f"{lead_title}。这版从招牌菜和点单建议切入：",
-            "体验路线型": f"{lead_title}。这版从路线和体验亮点切入：",
-            "搭配公式型": f"{lead_title}。这版从搭配公式和适合人群切入：",
-            "肤质反馈型": f"{lead_title}。这版从肤质反馈和适合条件切入：",
-            "空间改造型": f"{lead_title}。这版从改造结果和清单切入：",
-            "动作计划型": f"{lead_title}。这版从动作安排和执行门槛切入：",
-            "安全实操型": f"{lead_title}。这版从安全边界和步骤切入：",
-            "核心卖点型": f"{lead_title}。这版从核心卖点和行动建议切入：",
-            "避坑决策型": f"{lead_title}。这版先讲适合谁、怎么点更稳：",
-            "避坑取舍型": f"{lead_title}。这版先讲适合谁、哪里要谨慎：",
-        }
-        lead = leads.get(style_name, f"{lead_title}。")
-        if base.startswith(lead):
-            return base
-        return f"{lead}{base}"
-
     async def _retry_plan_body(title: str, style_name: str, style_rules: str, existing_bodies: list[str]) -> str:
         if not title:
             return ""
@@ -3312,7 +3309,10 @@ async def _agent_arbitrate(
         try:
             result = await _mr.call("diagnosis", sys_retry, usr_retry, max_tokens=4096)
             return _extract_generated_body(result)
+        except _public_product.TrialProviderStopped:
+            raise
         except Exception:
+            _public_product.assert_result_known()
             return ""
 
     async def _gen_plan_body(title: str, style_name: str, style_rules: str) -> str:
@@ -3337,7 +3337,10 @@ async def _agent_arbitrate(
             # Complete structured Chinese output needs room beyond the former1200 cap.
             result = await _mr.call("diagnosis", sys_body, usr_body, max_tokens=4096)
             return _extract_generated_body(result)
+        except _public_product.TrialProviderStopped:
+            raise
         except Exception:
+            _public_product.assert_result_known()
             return ""
 
     # 三套最终正文是诊断交付的核心，不再并发抢同一模型窗口；速度让位于稳定性和去重质量。
@@ -3373,8 +3376,9 @@ async def _agent_arbitrate(
         if body and not _is_distinct_body(body, accepted_bodies):
             body = await _retry_plan_body(final_title, style_name, plan_styles[i][2], accepted_bodies)
         if not body or not _is_distinct_body(body, accepted_bodies):
-            body = _style_fallback_body(final_title, style_name, body_candidate)
-            fallback_used = bool(body)
+            # An expert draft is not a generated plan; prefix changes cannot
+            # turn the same unverified content into three independent results.
+            body = ""
         if body:
             body = await _shape_body_for_delivery(final_title, body, domain, source_context, style_name)
         if body and not _is_distinct_body(body, accepted_bodies):
@@ -3402,7 +3406,7 @@ async def _agent_arbitrate(
             "progress": 80 + i * 3,
         })
 
-    primary_body = next((p["body"] for p in plans if p.get("body")), body_candidate)
+    primary_body = next((p["body"] for p in plans if p.get("body")), "")
 
     return {
         "diagnosis": diagnosis_text,
@@ -3532,7 +3536,7 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
         raise HTTPException(503, "图片理解服务未配置")
     raw_bytes = base64.b64decode(img_b64)
     b64 = base64.standard_b64encode(raw_bytes).decode()
-    media = "image/webp" if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP" else "image/jpeg"
+    media = _image_media_type(raw_bytes)
     brief_hint = f"\n创作者补充说明：{brief}" if brief else ""
     prompt = (
         f"这是一张小红书{domain}领域的素材图，请深度分析并提炼创作素材。{brief_hint}\n\n"
@@ -3553,7 +3557,7 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
                         {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
                         {"type": "text", "text": prompt},
                     ]}],
-                    "temperature": 0.6,
+                    "thinking": {"type": "disabled"},
                     "max_tokens": 2048,
                 },
                 headers={"Authorization": f"Bearer {key}"},
@@ -3561,6 +3565,8 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
             r.raise_for_status()
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
+            if data["choices"][0].get("finish_reason") != "stop":
+                raise ValueError("media_output_incomplete")
             return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="image_understand")
@@ -3575,7 +3581,7 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
         raise HTTPException(503, "图片理解服务未配置")
     raw_bytes = base64.b64decode(img_b64)
     b64 = base64.standard_b64encode(raw_bytes).decode()
-    media = "image/webp" if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP" else "image/jpeg"
+    media = _image_media_type(raw_bytes)
     brief_hint = f"（创作者说明：{brief}）" if brief else ""
     prompt = (
         f"这是一张小红书{domain}领域素材图{brief_hint}。"
@@ -3591,7 +3597,7 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
                         {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
                         {"type": "text", "text": prompt},
                     ]}],
-                    "temperature": 0.5,
+                    "thinking": {"type": "disabled"},
                     "max_tokens": 80,
                 },
                 headers={"Authorization": f"Bearer {key}"},
@@ -3599,6 +3605,8 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
             r.raise_for_status()
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
+            if data["choices"][0].get("finish_reason") != "stop":
+                raise ValueError("media_output_incomplete")
             return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="image_quick")
@@ -5875,10 +5883,10 @@ def _score_cover_deterministic(feats: dict) -> float:
 
 def _score_cover_vision(vision: dict) -> float:
     """Compute visual_score (0-100) from Kimi/Claude vision features."""
-    aesthetic = float(vision.get("cover_aesthetic_score") or 0.5)
-    composition = float(vision.get("cover_composition_score") or 0.5)
-    clarity = float(vision.get("cover_visual_clarity") or 0.5)
-    emotion = float(vision.get("cover_emotion_intensity") or 0.5)
+    aesthetic = float(vision["cover_aesthetic_score"] if vision.get("cover_aesthetic_score") is not None else 0.5)
+    composition = float(vision["cover_composition_score"] if vision.get("cover_composition_score") is not None else 0.5)
+    clarity = float(vision["cover_visual_clarity"] if vision.get("cover_visual_clarity") is not None else 0.5)
+    emotion = float(vision["cover_emotion_intensity"] if vision.get("cover_emotion_intensity") is not None else 0.5)
     text_prom = float(vision.get("cover_text_prominence") or 0)
 
     score = (
@@ -5897,7 +5905,7 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
     with open(img_path, "rb") as f:
         data = f.read()
     b64 = base64.standard_b64encode(data).decode()
-    media = "image/webp" if data[:4] == b"RIFF" and data[8:12] == b"WEBP" else "image/jpeg"
+    media = _image_media_type(data)
 
     prompt = (
         '分析这张小红书封面图片。只返回以下JSON，不要解释：\n'
@@ -5915,7 +5923,9 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
                         {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
                         {"type": "text", "text": prompt},
                     ]}],
-                    "max_tokens": 2500,
+                    "max_tokens": 8192,
+                    "thinking": {"type": "enabled"},
+                    "response_format": {"type": "json_object"},
                     "temperature": 1,
                 },
                 headers={"Authorization": f"Bearer {api_key}"},
@@ -5923,12 +5933,19 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
             r.raise_for_status()
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
+            if data["choices"][0].get("finish_reason") != "stop":
+                raise ValueError("cover_output_incomplete")
             raw = data["choices"][0]["message"]["content"].strip()
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
                     raw = raw[4:]
             d = __import__('json').loads(raw)
+            dimensions = ("text_prominence", "composition_score", "aesthetic_score", "emotion_intensity", "visual_clarity")
+            if not isinstance(d, dict) or type(d.get("has_text_overlay")) is not bool or any(
+                type(d.get(name)) not in (int, float) or not 0 <= d[name] <= 1 for name in dimensions
+            ):
+                raise ValueError("cover_dimensions_incomplete")
             return {
                 "cover_has_text": int(bool(d.get("has_text_overlay", False))),
                 "cover_text_prominence": float(d.get("text_prominence", 0.5)),
@@ -5937,8 +5954,9 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
                 "cover_emotion_intensity": float(d.get("emotion_intensity", 0.5)),
                 "cover_visual_clarity": float(d.get("visual_clarity", 0.5)),
             }
-    except Exception:
-        return {}
+    except Exception as exc:
+        _log_internal_failure("provider", exc, phase="cover_understand")
+        raise HTTPException(502, "封面语义分析未完成；未使用默认分数代替实际结果") from None
 
 
 def _extract_cover(image_b64: str, use_vision: bool = False) -> tuple[float, dict]:
@@ -5965,7 +5983,7 @@ def _extract_cover(image_b64: str, use_vision: bool = False) -> tuple[float, dic
                 all_feats.update(vision_feats)
                 visual_score = _score_cover_vision(vision_feats)
             else:
-                visual_score = _score_cover_deterministic(all_feats)
+                raise HTTPException(503, "封面语义分析服务未配置")
         else:
             visual_score = _score_cover_deterministic(all_feats)
 
@@ -13364,13 +13382,15 @@ async def extract_screenshot(
                 json={"model": _KIMI_VISION_MODEL, "messages": [{"role": "user", "content": [
                     {"type": "image_url", "image_url": {"url": image_url}},
                     {"type": "text", "text": prompt},
-                ]}], "temperature": 0.1, "max_tokens": 1200})
+                ]}], "thinking": {"type": "disabled"}, "response_format": {"type": "json_object"}, "max_tokens": 8192})
         try:
             r.raise_for_status()
         except _httpx.HTTPStatusError as exc:
             raise _moonshot_http_exception(exc, "extract_screenshot") from exc
         data = r.json()
         _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
+        if data["choices"][0].get("finish_reason") != "stop":
+            raise ValueError("media_output_incomplete")
         raw = data["choices"][0]["message"]["content"].strip()
         import re as _re
         m = _re.search(r'\{[\s\S]*\}', raw)
@@ -14379,7 +14399,7 @@ _ITEM31_DIRECT_PROVIDERS = frozenset(
 )
 _ITEM31_CANARY_AMOUNT_FEN = 1200
 _ITEM31_CANARY_PRODUCT = ("credit_package", "starter")
-_ITEM31_CANARY_ASSERTION = "ITEM31-SYNTHETIC-NO-REAL-USER"
+_ITEM31_CANARY_ASSERTION = "ITEM31-OWNER-CONTROLLED-TEST-ORDER"
 _ITEM31_CANARY_WINDOW_SECONDS = 3600
 
 
@@ -14468,7 +14488,7 @@ def _item31_create_canary_context(
             ).strip()
             == str(_ITEM31_CANARY_AMOUNT_FEN)
             and os.environ.get(
-                "NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION", ""
+                "NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION", ""
             ).strip()
             == _ITEM31_CANARY_ASSERTION
             and (str(product_kind), str(product_id))
@@ -15519,9 +15539,15 @@ async def _run_analyze_pipeline(
                                     quality_issues.extend(_body_format_issues(b))
                                     quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
                                     quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
+                                except _public_product.TrialProviderStopped:
+                                    raise
                                 except Exception:
+                                    _public_product.assert_result_known()
                                     pass
+                    except _public_product.TrialProviderStopped:
+                        raise
                     except Exception:
+                        _public_product.assert_result_known()
                         quality_issues = ["方案质量复核失败，不能作为最终交付内容"]
                         quality_failed = True
                 else:
@@ -15574,6 +15600,15 @@ async def _run_analyze_pipeline(
                 "AI深度诊断失败自动退回",
             )
         raise
+    except _public_product.TrialProviderStopped as exc:
+        if not billing_managed:
+            _billing.refund_operation_charge(user["id"], "analyze", billing_charge, "AI深度诊断失败自动退回")
+        code = str(exc)
+        if not re.fullmatch(r"[A-Z0-9_]{1,64}", code):
+            code = "PUBLIC_MODEL_STAGE_FAILED"
+        raise HTTPException(status_code=502, detail={
+            "code": code, "message": "模型处理未能完整确认，本次已停止；请查看原任务记录。",
+        }) from None
     except Exception as e:
         if not billing_managed:
             _billing.refund_operation_charge(
@@ -15636,6 +15671,17 @@ async def _run_analyze_pipeline(
             if _plan.get("body") and not _plan.get("quality_failed"):
                 suggested_body = _plan["body"]
                 break
+
+    if model_label == "claude-routed-5-agents" and (
+        len(plans_scored) != 3 or any(not (item.get("title") or "").strip()
+            or not (item.get("body") or "").strip() or item.get("quality_failed") for item in plans_scored)
+    ):
+        if not billing_managed:
+            _billing.refund_operation_charge(user["id"], "analyze", billing_charge, "诊断方案未完整交付退回权益")
+        raise HTTPException(status_code=422, detail={
+            "code": "DIAGNOSIS_PLANS_UNVERIFIED",
+            "message": "三套方案尚未全部完成必要质量验证，本次未保存为成功报告。",
+        })
 
     saved_diag_id: str | None = None
     saved_note_id: str | None = None
@@ -16659,6 +16705,23 @@ async def _stream_upload_to_temp(
     size_bytes = 0
     digest = hashlib.sha256()
     try:
+        existing_path = f"/proc/self/fd/{file.file.fileno()}"
+    except (AttributeError, OSError, ValueError):
+        existing_path = ""
+    if existing_path and os.path.isfile(existing_path):
+        while True:
+            chunk = await file.read(_UPLOAD_CHUNK_BYTES)
+            if not chunk:
+                break
+            size_bytes += len(chunk)
+            if size_bytes > maximum_bytes:
+                raise HTTPException(413, f"上传文件超过 {maximum_bytes // (1024 * 1024)}MB 限制")
+            digest.update(chunk)
+        if size_bytes < 1:
+            raise HTTPException(422, "上传文件为空")
+        await file.seek(0)
+        return existing_path, size_bytes, digest.hexdigest()
+    try:
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             tmp_path = tmp.name
             while True:
@@ -16715,7 +16778,6 @@ async def upload_image(
         with Image.open(tmp_path) as source:
             source.verify()
         with Image.open(tmp_path) as source:
-            source.load()
             width, height = source.size
             if (
                 width < 1
@@ -16725,6 +16787,7 @@ async def upload_image(
                 or width * height > 40_000_000
             ):
                 raise HTTPException(status_code=422, detail="图片尺寸超出安全限制")
+            source.load()
             normalized = source.convert("RGB")
             with tempfile.SpooledTemporaryFile(
                 max_size=_private_storage.MAX_IMAGE_BYTES
@@ -17966,7 +18029,7 @@ async def _chat_sse_generator(
             domain = session.get("domain", "美食")
             raw_bytes = base64.b64decode(image_base64)
             b64 = base64.standard_b64encode(raw_bytes).decode()
-            media = "image/webp" if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP" else "image/jpeg"
+            media = _image_media_type(raw_bytes)
             key_v = os.environ.get("MOONSHOT_API_KEY", "")
             vision_prompt = (
                 f"这是用户上传的{domain}领域图片，请深度分析：\n"

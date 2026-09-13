@@ -16378,15 +16378,15 @@
         },
         {
           "id": "real_payment_chain",
-          "title": "WeChat Pay and Alipay direct merchant, callback, refund and reconciliation acceptance",
+          "title": "WeChat Native merchant, callback, full refund and reconciliation acceptance; Alipay deferred",
           "status": "blocked",
           "dependencies": [
             "payment_internal_runtime",
             "monitoring_alerting"
           ],
           "evidence": [],
-          "blocker": "BLOCKED_EXTERNAL_DEPENDENCY / implementation-preparation-in-progress: An authenticated Aliyun ICP order readback at 2026-09-07T01:34+08:00 showed the first-filing order created on 2026-09-04 at step 5, 管局审核, with an eight-working-day platform estimate; it is not complete. ICP filing must complete before WeChat Pay direct and Alipay direct merchant/product applications can complete and issue the required production credentials. Provider-neutral order/state/webhook/idempotency/exactly-once/refund/ledger/reconciliation logic, direct gateways, the canary-only synthetic create fence, safe create/callback/refund digests and the Alipay out_request_no refund identity are prepared offline. Terminal evidence still cannot reconstruct true DML affected-row counts or prove zero out-of-contract mutations from final row state, and create/callback audit emission is best-effort after a real-fund action; these gaps receive no credit and no new receipt or parallel billing architecture will be added while the direct providers are externally blocked. Merchant admission, real callbacks, payment, refund and reconciliation remain unverified. Ping++ preparation is historical evidence only and receives zero Item31 credit.",
-          "resume_condition": "ICP filing is complete; both direct-provider merchant/product applications are approved; the required AppID, merchant identifiers, certificates and keys are injected through the existing Secret mechanism without exposing values; then exactly one 1200-fen bounded real-payment canary per provider may execute after one owner authorization for the cumulative CNY24 real-fund flow.",
+          "blocker": "September13 owner confirms ICP completed, WeChat Native enabled and AppID binding completed. Local merchant certificate/private-key match verified; platform public key parses. API-C payment and API role env files have no WeChat configuration yet. Secure injection, scoped deployment, real owner-scanned payment, exactly-once rights, full original-route refund, reconciliation and transaction-level DML validation remain incomplete. Alipay is DEFERRED/DISABLED; it is not a Native launch dependency. No terminal credit.",
+          "resume_condition": "Use the confirmed owner test identity through existing canary UID/image/hash/1200-fen/idempotency/time-window fences. Complete role-separated secure APIv3 configuration and precise HTTPS callback deployment; owner scans after the amount is displayed. Approved full original-route refund applies only to these test orders. Publish verified WeChat only when sold rights are deliverable. No replay of 0018 or already applied 0025.",
           "next_task": "PROD-FIRST-LAUNCH-PAYMENT-REAL-001"
         },
         {

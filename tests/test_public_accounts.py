@@ -189,6 +189,34 @@ class PublicProductTests(unittest.TestCase):
         self.assertEqual(denied_media.status_code,422)
         self.assertEqual(self.client.get('/notes',headers={'Authorization':'Bearer invalid'}).status_code,401)
 
+    def test_native_callback_has_exact_provider_boundary_without_browser_credentials(self):
+        import httpx
+        seen = []
+        async def upstream(request):
+            seen.append((str(request.url), await request.aread(), list(request.headers.raw)))
+            return httpx.Response(401, json={"code": "SIGNATURE_INVALID"})
+        original_client = httpx.AsyncClient
+        env = {"NOTEAI_RUNTIME_ROLE": "api", "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "1",
+               "NOTEAI_PAYMENT_ORDERING_ENABLED": "1", "NOTEAI_PAYMENT_ORDER_PROVIDERS": "wechatpay_direct"}
+        unsigned = TestClient(api.app)
+        with mock.patch.dict(os.environ, env), mock.patch.object(api._httpx, "AsyncClient",
+                side_effect=lambda **kw: original_client(transport=httpx.MockTransport(upstream), **kw)):
+            response = unsigned.post("/payments/wechat/callback", content=b'{"raw": true}',
+                headers={"Content-Type": "application/json", "Wechatpay-Nonce": "test-nonce"})
+            self.assertEqual(response.status_code, 401)
+            self.assertEqual(len(seen), 1)
+            self.assertEqual(seen[0][0], "http://127.0.0.1:8002/payments/wechat/callback")
+            self.assertEqual(seen[0][1], b'{"raw": true}')
+            for path in ("/payments/alipay/callback", "/payments/wechat/callback/", "/payments%2Fwechat%2Fcallback"):
+                self.assertEqual(unsigned.post(path, content=b'{}').status_code, 404)
+            self.assertEqual(unsigned.get("/payments/wechat/callback").status_code, 404)
+            self.assertEqual(unsigned.post("/payments/wechat/callback",content=b'x'*32769).status_code, 413)
+            self.assertEqual(len(seen), 1)
+            self.assertEqual(unsigned.get("/payments/orders").status_code, 401)
+            self.assertEqual(unsigned.post("/payments/orders",json={}).status_code, 403)
+            self.assertEqual(self.client.post("/payments/orders",json={"provider":"alipay_direct"}).status_code, 403)
+        self.assertEqual(unsigned.post("/payments/wechat/callback",content=b'{}').status_code, 404)
+
     def test_physical_call_reserves_before_transport_and_never_resets(self):
         import httpx
         seen=[]

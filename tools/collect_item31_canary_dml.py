@@ -392,7 +392,7 @@ def _configured_runtime(role, database):
     if (os.environ.get("NOTEAI_PAYMENT_CANARY_USER_ID_SHA256") != expected_user
             or os.environ.get("NOTEAI_PAYMENT_CANARY_SUBJECT_HASH") != payment_contract._subject_hash(binding["user_id"])
             or os.environ.get("NOTEAI_PAYMENT_CANARY_AMOUNT_FEN") != "1200"
-            or os.environ.get("NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION") != "ITEM31-SYNTHETIC-NO-REAL-USER"):
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION") != "ITEM31-OWNER-CONTROLLED-TEST-ORDER"):
         raise ValueError("item31 subject binding")
     context = binding["create_context"]
     if (not isinstance(context, dict) or set(context) != {"provider", "activation_identity_sha256",

@@ -40,11 +40,11 @@ _REASONS = {
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_CANARY_AMOUNT_FEN = 1200
 _MAX_ACTIVATION_WINDOW_SECONDS = 3600
-_SYNTHETIC_ASSERTION = "ITEM31-SYNTHETIC-NO-REAL-USER"
+_OWNER_TEST_ASSERTION = "ITEM31-OWNER-CONTROLLED-TEST-ORDER"
 _CANARY_USER_BINDING = "/etc/noteai-payment-canary-user-sha256"
 _ACTION_LEDGER_DIRECTORY = "/var/lib/noteai/payment-canary-actions"
 _SECRET_NAME_RE = re.compile(
-    r"(?:PASSWORD|SECRET|TOKEN|COOKIES_JSON|COOKIE|CREDENTIALS?|"
+    r"(?:PASSWORD|SECRET|TOKEN|COOKIES_JSON|NOTE_ACCESS_JSON|WEB_SSK_JSON|COOKIE|CREDENTIALS?|"
     r"PRIVATE_KEY|PUBLIC_KEY|API_KEY|APP_KEY|WEB_KEY|MAP_KEY|ACCESS_KEY_ID|"
     r"SECRET_ACCESS_KEY|SIGN_KEY|AES_KEY|SIGN|AK)"
     r"(?:_B64)?$"
@@ -406,8 +406,8 @@ def _activation(action: str, provider_name: str, subject: str) -> dict[str, Any]
         or not amount_text.isdigit()
         or str(int(amount_text)) != amount_text
         or int(amount_text) != _MAX_CANARY_AMOUNT_FEN
-        or os.environ.get("NOTEAI_PAYMENT_CANARY_SYNTHETIC_ASSERTION", "").strip()
-        != _SYNTHETIC_ASSERTION
+        or os.environ.get("NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION", "").strip()
+        != _OWNER_TEST_ASSERTION
     ):
         raise PaymentCanaryError("PAYMENT_CANARY_ACTIVATION_INVALID")
     starts_at = _canonical_epoch(
