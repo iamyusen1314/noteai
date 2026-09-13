@@ -1,5 +1,14 @@
 # Risk Register
 
+September13 20:26: API3f29c61/ea946e33 is deployed; original path/result confirms
+actual /app/model imports. It preserves full understood media and stops failed
+media/failed arbitration instead of delivering a shortened or expert-fallback
+result.34 isolated checks passed, but public media is still closed and fresh text
+quality acceptance is pending. Owner test allowance12/12/wallet0, no in-flight
+request; the specific30-credit gift question remains unanswered, no grant. This is
+an entitlement boundary, not a revived RMB cap. Compatible5f rollback is retained;
+original688/0025/Item34 and all historical business04 facts remain unchanged.
+
 September13 continuation: business04's technically successful diagnosis included
 unsupported hotel transport/capacity/package claims; human quality FAILED, old
 result/charge/costs preserved. Current API-only correction blocks unsupported facts,

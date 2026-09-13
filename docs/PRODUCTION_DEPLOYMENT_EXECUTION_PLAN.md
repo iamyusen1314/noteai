@@ -1,5 +1,14 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 20:26 current API source3f29c61 imageea946e33 is DEPLOYED. Only API
+changed atop5f, which remains the compatible immediate rollback. Original build,
+upload/hash and result locations are at Handoff top; exact running image and actual
+/app/model imports are verified. Full media context and same-quality bounded
+arbitration repair are implemented; public media remains closed pending real
+verification. Admin/web/Gateway/config/0025/Item34 unchanged. Do not repeat original
+688 upload/build/DDL or use its image as if it contained this successor. Existing
+owner test-credit question is pending; no business05 or entitlement grant occurred.
+
 September13 20:10 current API source5f37777 image48eed5a4 is DEPLOYED, with actual
 /app/model imports verified. Full immutable identities and original job results are
 at Handoff top. It supersedes only API1a below; retained2ad44 is the immediate

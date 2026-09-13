@@ -1,6 +1,23 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September13 continuation — full media context and honest arbitration repaired
+## September13 20:26 Beijing — full-context API successor deployed; original batch preserved
+
+Actual source3f29c61837c5dbb057ab1666d1982ef0610270bc is DEPLOYED at
+1789302415.8649375, image
+sha256:ea946e332e4dc26fdc78a0d9e20169e14f3f734d08635fee3046a7c9e306ad7a.
+Original durable stage /var/lib/noteai/formal-context-3f29c61 has build/result;
+execute.py SHA d99f1df942e38d3766a5a3431ce6f7f09349249d37188c945ee6b8d133f581f7,
+launch pid1569723 at1789302399.6397114. Archive uploaded once:
+noteai-formal-context-3f29c61.tar.gz,222843bytes,SHA
+fe053aabedab51ee63582c7a0be22fdbd1f228138c7cca752e99207b4a497e58.
+Only /app/model/api.py changed atop5f; actual Python3.11.15 imports/hashes and
+loaded context/arbitration/completion checks passed. API file SHA
+6a0596ef35ca713975e5ff8cbaf338a49cce3345fb2cb88fa818a7f3de62025d.
+Retained5f image48eed5a4 below is the immediate compatible rollback. Existing
+canary/drain/CAS/health completed, provider requests/business writes0 for rollout.
+CloudAssistant readback result48 confirms this exact running image; original
+product browser reload has no console errors. Adminb033/web363/Gateway601,
+configuration/0025/Item34 unchanged; original688 upload/build/DDL never replayed.
 
 API source now preserves completed video understanding beyond800/300characters,
 passes all merged image/video observations to creators and arbitration separately
@@ -16,10 +33,12 @@ arbitration fields no longer imply Kimi throttling, turn off thinking, reduce ou
 capacity to2000/3000, or promote a content-expert draft. A known completed malformed
 response receives at most one full-thinking16000 format repair with original
 context; unknown/transport failure propagates without replay. Failed repair remains
-an error. Historical calls/failures unchanged. These new local changes will be an
-API-only successor to deployed5f/48eed5a4; original688/0025/web/Admin/Gateway and
-Item34 remain preserved. The existing30-credit owner question remains pending;
-no production gift/business05, no new provider call, no Readiness increment.
+an error. Historical calls/failures unchanged. The existing30-credit owner question
+remains pending; actual result47 readback shows the verified owner free allowance
+12/12, wallet0 and no running business request. No production gift/business05,
+no new provider call, no Readiness increment (30/37). Next finish the corresponding
+generation fact-flow check and run a fresh business-quality validation only with
+legitimate available test entitlements; this is not a monetary inference cap.
 
 
 ## September13 20:10 Beijing — API factual/completion correction deployed
