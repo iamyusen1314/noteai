@@ -187,15 +187,37 @@ async def _fetch_api_ai_readiness() -> dict:
             return result
         result.update(
             status="observed", source="api_public_status",
-            kimi_status="admission_open" if public["ai_open"] else "admission_closed",
-            claude_status="not_in_public_route", kimi_configured=True,
-            # The public API's startup contract requires Kimi credentials.
-            # Claude's private configuration is deliberately not inferred.
+            # Availability comes from each actual route. A release-wide switch
+            # does not identify which provider is selected or currently healthy.
             claude_configuration_known=False,
             notice="公开文字入口状态来自正式网站 API /public/status；具体任务仍受配置与额度限制。未发起供应商连通测试，用量时间不等于健康状态。",
         )
         result["suppliers"] = public.get("suppliers") if isinstance(public.get("suppliers"), list) else None
+        rows = result["suppliers"]
+        if rows is not None and (any(not isinstance(row, dict) or not isinstance(row.get("id"), str)
+                                     for row in rows)
+                                 or len({row["id"] for row in rows}) != len(rows)):
+            result["suppliers"] = None
+            result["supplier_status_error"] = "invalid_supplier_rows"
+        for provider in ("kimi", "claude"):
+            matches = [row for row in result["suppliers"] or []
+                       if isinstance(row, dict) and row.get("id") == provider]
+            row = matches[0] if len(matches) == 1 else None
+            if (row is not None and type(row.get("enabled")) is bool
+                    and isinstance(row.get("business"), list)
+                    and all(isinstance(task, str) for task in row["business"])):
+                result[provider + "_status"] = (
+                    "not_in_public_route" if not row["business"] else
+                    "admission_open" if row["enabled"] and public["ai_open"] else "admission_closed")
+                result[provider + "_configured"] = bool(row["enabled"])
+            else:
+                result[provider + "_status"] = "unavailable"
         for supplier in result["suppliers"] or []:
+            if not isinstance(supplier, dict):
+                continue
+            if not public["ai_open"] and supplier.get("group") == "generation_models":
+                supplier["enabled"] = False
+                supplier["reason"] = "当前业务调用总开关关闭；此状态不代表供应商故障"
             supplier["latest"] = fact_history.get(supplier.get("id"))
             supplier["source"] = "api_public_product_availability"
             if supplier.get("group") == "data_tools":

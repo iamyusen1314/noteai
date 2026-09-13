@@ -1,5 +1,54 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 18:48 Beijing — C API candidate and Gateway trust verified
+
+C363f3e3 built once: APIsha256:8c29c43fe98f202ffbb65d5b250e747ac2daac4b3e5ac88f5304743b1be92840;
+Adminsha256:23283daf99915ecc72a9f2b8c5572f05ac3d1f14c13d8da86112ad65dd2962f1.
+BothPython3.11.15/amd64, four delta files verified. Original688 service remains live.
+Candidate binding prepared successfully, active env unchanged. Candidate API started
+on127.0.0.1:18080, loaded full five Claude routes, Meituan ready configuration, and
+verified signed remote Gateway readiness/shared DynamoDB/epochs. Exact candidate
+container stopped; original API unchanged. No model/fact business requests.
+Render Shell confirms60168e1/Python3.11.16 and sourceSHA
+3d92c7bb95682ca196a1568b96b6ea012d5f3918826420a49cb9d00199c0485d.
+Actual C-to-Render readiness proves configured shared control plane; it is not
+business-model or quality acceptance.
+
+Found remaining Admin status hardcoding: it always reported Claude outside public
+routing. Fix admin_server.py to use each supplier's actual route/admission state,
+respect global closure and return unknown for malformed/duplicate supplier data.
+Six targeted Python3.11 isolated checks pass; no frontend change needed for existing
+status labels. Retain363 API and web assets; build only affected Admin successor,
+record its distinct source/image, then controlled C rollout and real business tests.
+No0025 replay/Item34 change/Readiness increase. Original preparation scripts/results
+remain at existing C stages; Handoff preceding entry has exact transfer references.
+
+## September13 continuation — final C candidate uploaded; original operations preserved
+
+Final C source363f3e3f118fcfae71270683a225da45396917ec archive439374bytes,
+SHA2f6f0b7a3e082904ce029cc3f0ff73ddf9eb4e660ac2970b8fdb57b4cf89d684,
+was uploaded once to the existing private OSS/admin-public/20260913 directory.
+989aa43 remains LOCAL_ONLY and superseded; original688857f archive/images/build
+results, live C deployment and0025 are unchanged. No migration replay.
+C build launched once(pid1555693;1789295923.3190515); read original
+/var/lib/noteai/formal-claude-363f3e3/build-result.json next. Reviewed build.py
+SHA2780108429ffeebf0cd75cd89ba004c78133b47c8724979f90a9f252856bbf12 fixes nonroot
+source readability and truthful timeout/baseline outcomes. The first bootstrap
+failed before any download/build because it sought a differently named AST variable;
+original source readback corrected that; no real build was repeated.
+
+F encrypted binding export succeeded once,1954bytes/SHA
+431006693634200083163761e8734059b56442994bc320bd8b59087e35830375,
+private key formal-bindings-03acdbd0.envelope.json. Provider calls/business writes0;
+F unchanged. C candidate-only preparation is dispatched; active env not yet applied.
+Read original bindings/prepare-result.json, never re-export or blindly repeat.
+Current C production model config source is existing_runtime_defaults/revision0,
+five old Kimi routes; no persisted production override. CLI executable/Node/temp
+write checks passed, fact flags absent, inflight0. Successor restores formal default
+routes and adds Meituan facts flags/130-second timeout, preserving test config.
+Gateway601 exact Render deployment is live; runtime hash/readiness/business checks
+continue. Readiness30/37 unchanged; no Item34 or provider business calls in this stage.
+
 ## September13 18:10 Beijing — Gateway successor live; C candidate refinement
 
 Gateway-only60168e1dac42036f874ede27cce8557ae0a8dd2d was pushed on

@@ -27,15 +27,38 @@ class AdminSystemStatusTests(unittest.IsolatedAsyncioTestCase):
     async def test_release_status_uses_only_fixed_owned_read_and_separates_health(self):
         for admission in (True, False):
             with self.subTest(admission=admission):
-                response = httpx.Response(200, json={"release": "free_product", "ai_open": admission})
+                response = httpx.Response(200, json={"release": "free_product", "ai_open": admission,
+                    "suppliers": [{"id": "kimi", "enabled": False, "business": []},
+                                  {"id": "claude", "enabled": admission, "business": ["diagnosis", "chat"]}]})
                 with mock.patch.object(httpx.AsyncClient, "get", new_callable=mock.AsyncMock, return_value=response) as get:
                     status = await admin_server._fetch_api_ai_readiness()
                 get.assert_awaited_once_with("https://noteaipro.com/public/status")
                 self.assertEqual(status["source"], "api_public_status")
-                self.assertEqual(status["kimi_status"], "admission_open" if admission else "admission_closed")
-                self.assertEqual(status["claude_status"], "not_in_public_route")
+                self.assertEqual(status["kimi_status"], "not_in_public_route")
+                self.assertEqual(status["claude_status"], "admission_open" if admission else "admission_closed")
                 self.assertFalse(status["upstream_probed"])
                 self.assertFalse(status["claude_configuration_known"])
+
+    async def test_missing_or_unknown_routes_do_not_report_a_provider_as_selected(self):
+        for suppliers in (None, [{"id": "claude", "enabled": False, "business": None}],
+                          [{"id": "claude", "enabled": True, "business": ["chat"]}] * 2,
+                          [None, {"id": "kimi", "enabled": "true", "business": ["diagnosis"]}]):
+            response = httpx.Response(200, json={"release": "free_product", "ai_open": True,
+                                                "suppliers": suppliers})
+            with mock.patch.object(httpx.AsyncClient, "get", new_callable=mock.AsyncMock, return_value=response):
+                status = await admin_server._fetch_api_ai_readiness()
+            self.assertEqual(status["claude_status"], "unavailable")
+            self.assertEqual(status["kimi_status"], "unavailable")
+            if suppliers is None or any(not isinstance(row, dict) for row in suppliers) or len(suppliers) == 2:
+                self.assertIsNone(status["suppliers"])
+
+    async def test_global_admission_closed_overrides_provider_availability(self):
+        response = httpx.Response(200, json={"release": "free_product", "ai_open": False,
+            "suppliers": [{"id": "claude", "group": "generation_models", "enabled": True, "business": ["chat"]}]})
+        with mock.patch.object(httpx.AsyncClient, "get", new_callable=mock.AsyncMock, return_value=response):
+            status = await admin_server._fetch_api_ai_readiness()
+        self.assertEqual(status["claude_status"], "admission_closed")
+        self.assertFalse(status["suppliers"][0]["enabled"])
 
     async def test_source_failure_and_malformed_status_do_not_imply_unconfigured(self):
         for response in (httpx.Response(503), httpx.Response(302),
