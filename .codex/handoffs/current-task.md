@@ -33,6 +33,18 @@ same HTML692ab2a4. The Admin-only successor preserved API containerID/StartedAt,
 public symlink, F and permissions. Existing browser owner session survived reload.
 New compiled Admin JS sha256c4049dfb1bde8890bdf23ba686efdaa9065ff1352b4447642cf91f9b9aa53b7a.
 
+September13 08:33 owner-requested model-route recheck: live Admin top section reads
+all5 business routes, productionrevision0; draft/activate/restore controls available.
+Legacy lower scoring-artifact deploy/train buttons retain their separate meaning
+and are disabled. Current API-C readback08:33:06.496712 verifies dynamic-config
+opt-in, productionrevision0/no draft, testrevision3/restored and both chat resolves
+return kimi-k2.6/4096 for a4096 request. Runtime module SHA256
+c280aa4a4a8132330f091c982b7076dd466aae6e2d1ef2c458545153eb27547f matches current source.
+Original3 model-operation results remain successful; no replay, provider call,
+business write or deployment during this check. This verifies current KimiK2.6
+five-route enable/output-limit and draft/activate/restore integration, not arbitrary
+provider/model selection or new temperature/thinking/concurrency controls.
+
 Private package /private/tmp/noteai-admin-fix-5c8707c.tar.gz,77747bytes,
 SHA256954bd9ded71e8c1697a27a80d9883c574a0d00e40daa336f3f5a3dcf20746cb4,
 contains only3changedsource+3compiledweb+existing-style manifest. Uploaded once to
