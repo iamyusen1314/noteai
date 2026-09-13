@@ -1,5 +1,14 @@
 # Risk Register
 
+September13 20:48: effective API6c955bb/e5985a63 closes the same-source generation
+alternative-title/final-candidate defects and the synchronous multi-image omissions.
+Final38 affected Python3.11 checks and actual-image import/canary/drain/health pass.
+Old d7 package remains local only; original3f is retained compatible rollback.
+Public original UI normal, no schema/config/Gateway/Item34 mutation or new model
+request. Real quality remains unverified after correction until the existing
+specific test-credit question is answered; preserve original04 failure and cost.
+No Readiness increase. Transfer/storage increment remains unsettled, not0.
+
 September13 20:26: API3f29c61/ea946e33 is deployed; original path/result confirms
 actual /app/model imports. It preserves full understood media and stops failed
 media/failed arbitration instead of delivering a shortened or expert-fallback

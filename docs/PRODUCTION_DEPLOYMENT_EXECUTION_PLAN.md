@@ -1,5 +1,15 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 20:48 current API source6c955bb imagee5985a63 is DEPLOYED/verified.
+Only api.py changed atop3f/ea946e33, the retained immediate compatible rollback.
+Original job/package/hash/build/result is indexed at Handoff top.38 isolated
+checks cover generation variants, selected state, sync/stream refinement, full
+media and existing Prompt management; public media remains closed pending actual
+verification. No original688 upload/build/0025 replay; Admin/web/Gateway/config/
+Item34 preserved. Original04 remains factual-quality FAILED. Only the fresh normal
+account quality run is pending available owner-confirmed test entitlement, not
+old monetary limits; no gift/business05 yet. Readiness30/37.
+
 September13 20:26 current API source3f29c61 imageea946e33 is DEPLOYED. Only API
 changed atop5f, which remains the compatible immediate rollback. Original build,
 upload/hash and result locations are at Handoff top; exact running image and actual

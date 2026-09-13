@@ -1,6 +1,24 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September13 continuation — corresponding generation corrections verified, next API-only rollout
+## September13 20:48 Beijing — corresponding generation corrections deployed
+
+Actual API source6c955bb557604f662a9fa0f2d4d0f0dc80e781ba is DEPLOYED at
+1789303728.6801155, image
+sha256:e5985a63f0c1b3231a5485462b758dfaf68f76ef8a2a98fc9aea61167390df1b.
+Original durable stage /var/lib/noteai/generation-integrity-6c955bb preserves
+launch/build/result/logs and before/. Execute SHA
+3fcfec650323816452fbf8063da75c1ce5bb970faa4bf65ac94670dccb949e64,
+pid1572257 launched1789303712.411465; original build finished1789303718.6128087.
+Private OSS archive noteai-generation-integrity-6c955bb.tar.gz uploaded once,
+223364bytes,SHA cdb9103afbdc56136d493e45a90dae10be721138edfdea6c59f06538ad275116.
+Actual api.py SHA d1257a22c653adc4a03e910061d4e0e2833a8f96f26ec5a75fcdb874b23995a2;
+Python3.11.15 isolated image verified /app/model/api.py/idempotency.py origins,
+hashes and loaded variant/fact/completion checks. Existing canary/drain/health/CAS
+flow passed. Result50 confirms current image exactly; no build/DB job remains in
+flight. Original UI browser reload is normal with no console errors. Retained
+3f/ea946e33 below is immediate compatible rollback; Adminb033/web363/Gateway601,
+env/model configuration/0025/Item34 unchanged. This rollout made no model request
+or business write; transfer/storage/runtime charges remain actual/unsettled, not0.
 
 Current local API successor closes two confirmed generation gaps: alternative
 titles now share the existing structured-fact check during repair/selection and
@@ -23,10 +41,14 @@ and its223310-byte local archive (SHA e2d646c0437c1e5638f2aa07ced56fce6615745de9
 remain LOCAL_ONLY, never uploaded/built: independent review identified remaining
 refine/empty-explanation handling, now fixed and covered through the real mocked
 sync/stream refinement loops. Source changes are api.py and
-test_api_contracts.py only. Runtime still3f/ea946e33 below until original durable
-API-only flow verifies successor source/build/results. Preserve prior archives,
-3f compatible rollback, original688/0025/web and Item34. No real business05/gift;
-the single test-credit question remains pending. Readiness30/37.
+test_api_contracts.py only. Prior archives, original688/0025/web and Item34 are
+preserved. No real business05/gift; the single test-credit question remains
+pending. Latest verified owner allowance12/12/wallet0, no running business request.
+Independent fixes, isolated regressions and scoped deployment are now complete for
+this batch. Next real quality run needs owner-confirmed test entitlement through
+the existing Admin gift ledger; do not bypass phone checks/credits or turn this
+into a monetary model cap. Original04 technical success/factual quality failure
+remains immutable, no new quality acceptance or Readiness increment (30/37).
 
 ## September13 20:26 Beijing — full-context API successor deployed; original batch preserved
 

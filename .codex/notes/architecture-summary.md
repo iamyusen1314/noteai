@@ -1,6 +1,6 @@
 # Architecture Summary
 
-September13 current rollout: effective C API3f29c61 imageea946e33, Adminb033de0,
+September13 current rollout: effective C API6c955bb imagee5985a63, Adminb033de0,
 web363f3e3 and Render Gateway60168e1 are live. Actual import paths and historical
 mixed-path build correction are at Handoff top. API-C → Render → Anthropic is
 verified by business04's23 physical Haiku/Sonnet calls and persisted owner result;
@@ -8,7 +8,8 @@ AWS DynamoDB provides shared control, separate S3 provides artifacts. Meituan
 matched facts reached the product; no Amap public binding. Human factual quality
 FAILED despite successful execution. Factual/completion and full-media-context/
 same-quality arbitration corrections are deployed with verified runtime origins;
-5f image48eed5a4 is the compatible immediate rollback. No0025 replay or Item34
+generation alternative-title/selected-state checks now apply before completion;
+3f imageea946e33 is the compatible immediate rollback. No0025 replay or Item34
 artifact change. Fresh real quality validation still needs available owner test
 entitlements; public media remains closed pending its actual verification.
 
