@@ -1,5 +1,35 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 current owner decision — retain Claude on original Render + AWS
+
+Owner explicitly retains Claude as a formal product requirement and accepts the
+previously disclosed service-terms, interruption, availability and metered-call
+risks. This records a product decision/risk acceptance, not supplier approval,
+ELIGIBLE or risk elimination. The personal API account fact remains unchanged;
+no generic company-specific letter or repeated confirmation is a current gate.
+Implement the existing Render + AWS design using normal existing accounts and
+secure credentials; do not misstate identity/location or bypass actual denials,
+MFA, CAPTCHA or access restrictions. This supersedes the earlier current instruction
+to leave this channel disabled solely for the already-disclosed terms risk. Preserve
+that dated assessment as history, not an active deployment veto or scope deletion.
+
+Trace the actual AWS/Render/component references; S3 existence does not establish
+Bedrock. Restore the confirmed Claude task responsibilities, complete Prompt/context,
+real model identity, costs/results and no silent fallback. Equivalent gifted and
+purchased entitlements use one quality chain. No temporary monetary cap, no new
+subscription/resources/recharge without the appropriate owner decision. Continue
+Amap/Meituan/Prompt/Admin work independently; protect Item34 and historical evidence.
+
+Current runtime remains0e83d0d. The688857f candidate archive is privately uploaded;
+its first existing-C offline build returned FAILED/CalledProcessError before any
+deploy or database migration. Read the original result/log and correct the concrete
+build issue, never replay a deployment. Affected two-table private backup completed
+2026-09-13T06:39:24.970416Z, root0600 at
+/var/lib/noteai/formal-supplier-688857f/db-before.json (SHA256
+b5a502184ff986db84f977283c80274aebdd734cdd843c7f64a9545f5ce09597),
+1budget/17calls, reserved44030, RLSoff. This is an affected-table backup, not a new
+full RDS restore point.0025 remains unapplied; Readiness30/37.
+
 ## September13 14:29 Beijing — supplier facts candidate ready for controlled C rollout
 
 Current supplier-console readback: Amap's original authenticated account is a

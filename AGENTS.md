@@ -2,10 +2,13 @@
 
 ## Current execution control
 
-September13 owner confirms Claude API is a personal account. Do not infer a company
-account or require a generic company-specific approval letter. Current applicable-use
-conclusion and independent supplier work are at the Handoff top; preserve historical
-technical success, equal-entitlement quality and no temporary monetary stop.
+September13 owner retains Claude on the existing Render + AWS design and accepts
+the previously disclosed supplier/availability risks. Record that as owner risk
+acceptance, not supplier approval; no repeated generic-letter gate, deletion or
+silent Kimi substitution. Use normal existing interfaces/credentials, respect actual
+access denials and preserve equal-entitlement quality/cost records. The account is
+personal. Current implementation control is at Handoff/plan top and architecture
+references in .codex/notes/architecture-summary.md; preserve historical assessments.
 
 September13 owner authorizes delivery of the existing full formal product and
 current37-item acceptance scope. Equivalent granted and purchased entitlements use

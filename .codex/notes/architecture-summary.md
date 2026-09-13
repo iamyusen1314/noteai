@@ -1,5 +1,13 @@
 # Architecture Summary
 
+September13 current owner decision: retain and implement the original Render + AWS
+Claude architecture. Render Singapore84f8a2f/Item30 success are historical technical
+facts; current AWS component references and active routing must be read back.
+Existing S3 buckets do not prove Bedrock. Owner accepts disclosed risks without
+supplier-eligibility certification; no generic letter gate or silent substitution.
+Current source/deploy/remaining work is at Handoff top; prior inventories below
+remain version-specific.
+
 Last updated: 2026-09-12
 
 Current public product uses original frontend3f47200 and API2159d47 on C. Original

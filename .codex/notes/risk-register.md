@@ -1,5 +1,13 @@
 # Risk Register
 
+September13 latest owner retains Claude and explicitly accepts the disclosed
+terms/interruption/availability risks. This supersedes the earlier instruction to
+keep the channel disabled solely on that disclosed risk; no supplier approval is
+claimed. Continue normal existing-interface integration and quality verification,
+stop only the concrete denied/MFA/restricted path if observed. No identity/location
+misrepresentation, repeated generic letter gate, or silent Kimi equivalence claim.
+Current build failure is pre-deployment; original backup/candidate remain preserved.
+
 September13 14:29 actual Amap console explicitly shows no technical-service use licence;
 keep public C Amap unbound, no inferred commercial permission from quota/history.
 Meituan official full-output requirements are implemented in the current candidate;
