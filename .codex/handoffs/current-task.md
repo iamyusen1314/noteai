@@ -1,5 +1,28 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 19:26 Beijing — API quality correction deployed; fresh business03
+
+Original durable job /var/lib/noteai/formal-quality-1a1870a/result.json read back
+DEPLOYED at1789298796.5879982. API source1a1870a3f22285877c725d1e8d8306d0a7f6cd99,
+image sha256:30f690b908aa15e927e3f9b0aabbd2c887a35465d845e63043c89d50523059be,
+Python3.11.15/amd64; original75 image retained as rollback. Three runtime files
+verified. Archive noteai-formal-quality-1a1870a.tar.gz,255129bytes,SHA
+54de41c5efd98b4b1ed440ee429c8bd1e8dffc645ae0619b5d6a5f498589dcc0 uploaded once;
+execute.py SHA4a7bfbae04cd91f07a9e1b602b4d13a6813bbfe17f73f7547ec552ff7bbeb6a4.
+Adminb033/web363/env/model configuration/Gateway601/0025 remain unchanged.
+Deployment made zero provider requests/business writes. Original688 batch remains
+retained, never relabelled as containing these later fixes. Readiness30/37.
+
+Fresh normal owner request formal-claude-meituan-20260913-03 was submitted once
+using the same approved public hotel self-test and normal6-credit entitlement.
+Purpose: verify sufficient structured output, full context and corrected hotel
+fact scope through the real Claude chain. Original01/02 remain historical failures;
+02 refunded its normal credits, actual model costs remain recorded. Durable stage
+/var/lib/noteai/formal-claude-363f3e3/business-analyze-03; execute.py SHA
+156f87ad7b38a96b11727358b5df97a34ed60538e93a3dfb5a4ee0a20caaff94.
+Read original result/ledger/owned persisted output next; no replay on UNKNOWN.
+No Item34/Item30 executor, gift, migration or additional Amap binding.
+
 ## September13 continuation — bounded output and fact corrections verified locally
 
 api.py now gives structured diagnosis experts/arbitration/full-body operations4096

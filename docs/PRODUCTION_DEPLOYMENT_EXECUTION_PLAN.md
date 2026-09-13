@@ -1,5 +1,19 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 19:26 Beijing current component set: C API1a1870a image
+sha256:30f690b908aa15e927e3f9b0aabbd2c887a35465d845e63043c89d50523059be,
+Adminb033de0, public/Admin web363f3e3, Render Gateway60168e1. Exact original jobs,
+archives, hashes and rollback bases are indexed at the Handoff top. Original688
+supplier batch and0025 were applied and verified once; dated earlier pending states
+below are history, not instructions to repeat uploads/builds/migrations.
+Existing Meituan/Gateway binding is active on C; Amap remains unbound for the actual
+technical-service permission gap. Real owner business02 reached Meituan and Claude,
+failed on incomplete expert output and refunded credits once; actual cost retained.
+API1a fixes bounded output capacity and scoped hotel facts without changing Prompt
+text or success criteria. Fresh business03 now verifies the corrected full chain;
+read its original result, cost links and owned saved result before further action.
+Item34 fixed F artifact/T0/history and unique continuation are unchanged.30/37.
+
 September13 17:52 Beijing actual execution: original688857f API/Admin batch and0025
 are DEPLOYED/verified; preserve its exact archive/build logs/backup/results at
 /var/lib/noteai/formal-supplier-688857f. No repeat upload/build/DDL. Both runtime images
