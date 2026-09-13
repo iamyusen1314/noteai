@@ -12490,10 +12490,15 @@ class OTPRegisterInput(OTPLoginInput):
 
 
 @app.get("/public/status")
-def public_account_status():
+async def public_account_status():
     if not _public_account.enabled():
         raise HTTPException(status_code=404)
-    return _public_account.service_status()
+    status = _public_account.service_status()
+    if (os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "").strip() != "1"
+            and _public_product.wechat_configured()):
+        capability = await payment_capabilities(user=None)
+        status["payment_open"] = "wechatpay_direct" in capability["providers"]
+    return status
 
 
 @app.post("/auth/register/otp")
@@ -14795,7 +14800,7 @@ async def billing_tiers():
 
 
 @app.get("/payments/capabilities")
-async def payment_capabilities():
+async def payment_capabilities(user: dict | None = Depends(_auth.get_optional_user)):
     """Public availability only; never expose provider configuration."""
     available_providers = [
         provider_name
@@ -14814,20 +14819,50 @@ async def payment_capabilities():
             for provider_name in available_providers
             if provider_name not in {"wechatpay_direct", "alipay_direct"}
         ]
+    canary_checkout = None
+    if os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "").strip() == "1":
+        # Reuse the existing exact create fence. The request key is an order
+        # idempotency identity, never an authentication token or a new grant.
+        key = "item31-native-" + os.environ.get("NOTEAI_PAYMENT_CANARY_ACTIVATION_ID", "").strip()
+        try:
+            if (not user or not user.get("phone_verified_at")
+                    or "wechatpay_direct" not in available_providers):
+                raise ValueError("canary_not_available")
+            consent = _db.fetchone(
+                "SELECT user_id FROM user_contract_acceptances WHERE user_id=? AND contract_version=?",
+                (user["id"], _public_product.CONTRACT_VERSION))
+            if not consent:
+                raise ValueError("contract_required")
+            context = _item31_create_canary_context(
+                provider_name="wechatpay_direct", user_id=user["id"],
+                product_kind="credit_package", product_id="starter",
+                idempotency_key=key, prod_mode=True)
+            if context is None:
+                raise ValueError("canary_unbound")
+            canary_checkout = {"product_kind": "credit_package", "product_id": "starter",
+                               "amount_fen": _ITEM31_CANARY_AMOUNT_FEN, "idempotency_key": key,
+                               "notice": "本人授权的微信支付自测；金额按原套餐，支付后核验并原路全额退款。"}
+            available_providers = ["wechatpay_direct"]
+        except (HTTPException, ValueError):
+            available_providers = []
     return {
         "ordering_available": bool(available_providers),
         "providers": available_providers,
         "refund_policy": "full_unused_entitlement_only",
         "currency": "CNY",
         "auto_renewal": False,
+        "canary_checkout": canary_checkout,
     }
 
 
 @app.get("/payments/orders")
-async def payment_orders(user: dict = Depends(_auth.get_current_user)):
-    return {
-        "orders": _payment.list_orders_for_user(user["id"], limit=20),
-    }
+async def payment_orders(user: dict = Depends(_auth.get_current_user),
+                         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
+    try:
+        return {"orders": _payment.list_orders_for_user(user["id"], limit=20,
+                    idempotency_key=idempotency_key)}
+    except _payment.PaymentContractError as exc:
+        raise HTTPException(400, exc.code) from None
 
 
 @app.get("/payments/orders/{order_id}")

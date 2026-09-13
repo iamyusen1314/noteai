@@ -51,6 +51,7 @@ def service_status() -> dict:
         "release": "free_product" if product_enabled() else "website_and_accounts",
         "registration_open": sms_available(),
         "sms_sign_name": sms_sign_name,
+        # The async public endpoint fills this from real local readiness.
         "payment_open": False,
         "ai_open": public_product.available(),
         "media_open": public_product.media_enabled(),

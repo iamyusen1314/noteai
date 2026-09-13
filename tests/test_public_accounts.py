@@ -169,6 +169,58 @@ class PublicProductTests(unittest.TestCase):
         db._DB_PATH = self.old_db
         self.temp.cleanup()
 
+    def test_native_capabilities_use_exact_owner_fence_and_orders_stay_readable(self):
+        import time
+        activation='00000000-0000-4000-8000-000000000031'
+        key='item31-native-'+activation
+        env={'NOTEAI_PAYMENT_ORDERING_ENABLED':'1','NOTEAI_PAYMENT_ORDER_PROVIDERS':'wechatpay_direct',
+             'NOTEAI_PAYMENT_CANARY_ENABLED':'1','NOTEAI_PAYMENT_CANARY_ACTION':'create-payment',
+             'NOTEAI_PAYMENT_CANARY_PROVIDER':'wechatpay_direct','NOTEAI_PAYMENT_CANARY_ACTIVATION_ID':activation,
+             'NOTEAI_PAYMENT_CANARY_USER_ID_SHA256':api._item31_identity(self.user['id'],'payment-canary-user-v1'),
+             'NOTEAI_PAYMENT_CANARY_SUBJECT_HASH':api._payment._subject_hash(self.user['id']),
+             'NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256':api._item31_identity(key,'noteai-item31-create-idempotency-v1'),
+             'NOTEAI_PAYMENT_CANARY_AMOUNT_FEN':'1200','NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION':'ITEM31-OWNER-CONTROLLED-TEST-ORDER',
+             'NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH':str(int(time.time())-5),
+             'NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH':str(int(time.time())+300),
+             'NOTEAI_RUNTIME_ROLE':'api','NOTEAI_DEPLOYMENT_STAGE':'production'}
+        with mock.patch.dict(os.environ,env), mock.patch.object(api,'_payment_ordering_available',return_value=True), \
+             mock.patch.object(api,'_payment_callback_runtime_ready',new=mock.AsyncMock(return_value=True)):
+            value=self.client.get('/payments/capabilities').json()
+            self.assertTrue(value['ordering_available'])
+            self.assertEqual(value['canary_checkout']['idempotency_key'],key)
+            self.assertEqual(value['canary_checkout']['amount_fen'],1200)
+            self.assertFalse(TestClient(api.app).get('/payments/capabilities').json()['ordering_available'])
+            with mock.patch.dict(os.environ,{'NOTEAI_PAYMENT_CANARY_USER_ID_SHA256':'0'*64}):
+                self.assertFalse(self.client.get('/payments/capabilities').json()['ordering_available'])
+            with mock.patch.dict(os.environ,{'NOTEAI_PAYMENT_CANARY_IDEMPOTENCY_KEY_SHA256':'0'*64}):
+                self.assertIsNone(self.client.get('/payments/capabilities').json()['canary_checkout'])
+            with mock.patch.dict(os.environ,{'NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH':'1'}):
+                self.assertFalse(self.client.get('/payments/capabilities').json()['ordering_available'])
+            self.assertFalse(self.client.get('/public/status').json()['payment_open'])
+            with mock.patch.dict(os.environ,{'NOTEAI_PAYMENT_CANARY_ENABLED':'0'}):
+                self.assertTrue(self.client.get('/public/status').json()['payment_open'])
+                with mock.patch.object(api,'_payment_callback_runtime_ready',new=mock.AsyncMock(return_value=False)):
+                    self.assertFalse(self.client.get('/public/status').json()['payment_open'])
+        self.assertEqual(db.fetchone('SELECT count(*) FROM payment_orders')[0],0)
+        # A local unpaid intent is sufficient to test read ownership; no provider
+        # transport, paid status, balance or entitlement is invented.
+        order=api._payment.create_order(self.user['id'],'credit_package','starter',
+            idempotency_key=key,app_id='wxSyntheticApp01',prod_mode=True,provider_name='wechatpay_direct')
+        with mock.patch.dict(os.environ,{'NOTEAI_PAYMENT_ORDERING_ENABLED':'0'}):
+            detail=self.client.get('/payments/orders/'+order['id'])
+            self.assertEqual(detail.status_code,200)
+            recovered=self.client.get('/payments/orders',headers={'Idempotency-Key':key})
+            self.assertEqual(recovered.json()['orders'][0]['id'],order['id'])
+            self.assertEqual(self.client.get('/payments/orders',headers={'Idempotency-Key':'other-key-123'}).json()['orders'],[])
+            self.assertEqual(TestClient(api.app).get('/payments/orders/'+order['id']).status_code,401)
+            other=api._auth.create_user('other_native_reader','SyntheticPassword!42',phone='+8613800138001',
+                phone_verified=True,contract_version=public.PRODUCT_CONTRACT_VERSION,privacy_accepted=True)
+            other_client=TestClient(api.app,headers={'Origin':'https://noteaipro.com',
+                'Authorization':'Bearer '+api._auth.create_token(other['id'])})
+            self.assertEqual(other_client.get('/payments/orders/'+order['id']).status_code,404)
+            self.assertEqual(other_client.get('/payments/orders',headers={'Idempotency-Key':key}).json()['orders'],[])
+
+
     def test_ark_screenshot_actual_parent_once_and_replay_refused(self):
         import base64, io, httpx, ark_media
         from PIL import Image

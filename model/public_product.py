@@ -73,6 +73,11 @@ def allowed_route(method: str, path: str) -> bool:
         return True
     if (method, path) in EXACT_ROUTES:
         return True
+    # Original order ownership is still enforced by the API when ordering is
+    # paused; a pause must not hide payment/refund reconciliation from its owner.
+    if method == "GET" and (path in {"/payments/capabilities", "/payments/orders"}
+            or re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path)):
+        return True
     if wechat_configured():
         if (method, path) in {("GET", "/payments/capabilities"), ("GET", "/payments/orders"), ("POST", "/payments/orders")}:
             return True

@@ -846,7 +846,16 @@ def get_order_for_user(order_id: str, user_id: str) -> dict[str, Any] | None:
     return _public_order(row) if row is not None else None
 
 
-def list_orders_for_user(user_id: str, *, limit: int = 20) -> list[dict[str, Any]]:
+def list_orders_for_user(user_id: str, *, limit: int = 20,
+                         idempotency_key: str | None = None) -> list[dict[str, Any]]:
+    if idempotency_key is not None:
+        if not _IDEMPOTENCY_RE.fullmatch(idempotency_key):
+            raise PaymentContractError("PAYMENT_IDEMPOTENCY_KEY_INVALID")
+        row = db.fetchone(
+            "SELECT * FROM payment_orders WHERE user_id=? AND idempotency_key_hash=?",
+            (str(user_id or ""), _hash("noteai-payment-idempotency-v1", idempotency_key)),
+        )
+        return [_public_order(row)] if row is not None else []
     bounded = max(1, min(int(limit), 50))
     rows = db.fetchall(
         "SELECT * FROM payment_orders WHERE user_id=? "

@@ -1,5 +1,33 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 01:41 Beijing — 0026 committed/verified; Ark API input applied disabled
+
+0026 fixed source3838a403aca4200994e48e23710af2ad4d49d7adbca50693d19056fd2e061a37
+committed01:39:03.332055+08, independent ownerDMS verification01:39:32.34811+08:
+ledger26/0026once,80columns,exactconstraints/ACL/function/trigger/policy PASS;
+model_usage144/idempotency8/private_media0 unchanged, new defaults correct.
+The first transport2a66621... returned DMS trailing dollar-quote parse failure;
+read-only reconciliation found0026absent/67columns/guardNULL before any correction.
+Success transportf8752dcb451185a37007b23f3e058188a8abaabde01e2d68d661b23c51309adc
+only removes the final DO-body END semicolon to match successful0018 format;
+PG16's10atomic/compatibility checks PASS. Originalfailedfile/history retained.
+Files: ~/Downloads/noteai-0026-transport-20260914/{apply.sql,apply-dms.sql,preflight.sql,verify.sql}.
+No migration replay; do not apply0026again. Private result at
+~/.codex/tmp/noteai-media-e0b84d4/production-0026-result.json. Earlier affecteddata/
+metadata backups retained; owner25-rowledger additionally saved at C
+/var/lib/noteai/media-e0b84d4/owner-ledger-before.json SHA24e1c5833a1591979817877e2360c73f82d52c39ba840c174c8becba960b1b60.
+
+OriginalArk envelope decrypted only inside existingnetwork-noneAPIcandidate;
+API-only env validated/applied with0600backup at1789321244.4045844. APIenvSHA
+49690b5c2e4aa1612eae64c13adaead84ee80ec0fd7b399040bb275e062ecd8d,
+mediaflag0; no restart/providerrequest, Admin/Paymentenvsunchanged.
+Currente0bimages stillBUILT_NOT_DEPLOYED. ContinueclosedAPI/Admin/web rollout,
+actualmedia and boundednewhotelquality verification. WeChat NativeAPI/UI separate
+localbatch preservesexactowner/1200fen/idempotency,notincluded in e0bimage.
+29Python3.11network-none affectedchecks PASS, realsecond-user token returns404
+and keyrecoveryempty; public payment_open nowusesactuallocalreadiness,notflags.
+Readiness30/37unchanged. No Gitpush,7protectedpaths untouched.
+
 ## September14 01:20 Beijing — exact media/Native candidates built; production unchanged
 
 Source e0b84d4fde3371dbcff530cb155ebc3f305f4c1e includes full media/OCR/report-fact
