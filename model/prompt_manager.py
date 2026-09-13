@@ -6,6 +6,8 @@ NoteAI Pro Prompt 管理器
 """
 import json
 import time
+from contextvars import ContextVar
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,6 +20,15 @@ _cache_ts: float = 0
 _CACHE_TTL = 10  # 秒，10s 内不重复访问数据库
 _BASELINE_MARKER_KEY = "managed_prompt_baseline"
 _BASELINE_ADVISORY_LOCK = "noteai_managed_prompt_baseline_v04"
+
+
+@dataclass
+class RequestPrompts:
+    rows: dict
+    used: dict = field(default_factory=dict)
+
+
+_request_prompts = ContextVar("request_prompts", default=None)
 
 
 class PromptBaselineRollbackBlocked(RuntimeError):
@@ -34,10 +45,10 @@ def _file_prompts() -> dict:
         return {}
 
 
-def _load() -> dict:
+def _load(*, fresh: bool = False) -> dict:
     global _cache, _cache_ts
     now = time.monotonic()
-    if now - _cache_ts < _CACHE_TTL and _cache:
+    if not fresh and now - _cache_ts < _CACHE_TTL and _cache:
         return _cache
     rows = db.fetchall(
         "SELECT key,label,module,content,version,updated_at FROM managed_prompts"
@@ -59,11 +70,40 @@ def _load() -> dict:
 
 def get(key: str, fallback: str = "") -> str:
     """获取 prompt。优先共享数据库，否则返回代码内 fallback。"""
-    prompts = _load()
+    current = _request_prompts.get()
+    prompts = current.rows if current is not None else _load()
     p = prompts.get(key)
-    if p and p.get("content"):
-        return p["content"]
-    return fallback
+    managed = bool(p and p.get("content"))
+    content = p["content"] if managed else fallback
+    if current is not None:
+        current.used[key] = {
+            "source": "managed_prompts" if managed else "code_fallback",
+            "version": p["version"] if managed else None,
+            "sha256": _content_sha256(content),
+        }
+    return content
+
+
+def capture_request() -> RequestPrompts:
+    """One DB statement pins all published rows for a complete business request.
+
+    A later publication becomes visible to the next request, including requests
+    started within the ordinary cache TTL. No Prompt content is logged here.
+    """
+    return RequestPrompts({key: dict(row) for key, row in _load(fresh=True).items()})
+
+
+def bind_request(snapshot: RequestPrompts):
+    return _request_prompts.set(snapshot)
+
+
+def release_request(token) -> None:
+    _request_prompts.reset(token)
+
+
+def request_versions() -> dict:
+    current = _request_prompts.get()
+    return {key: dict(value) for key, value in current.used.items()} if current is not None else {}
 
 
 def reload() -> int:

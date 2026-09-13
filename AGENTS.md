@@ -2,6 +2,23 @@
 
 ## Current execution control
 
+September13 owner authorizes delivery of the existing full formal product and
+current37-item acceptance scope. Equivalent granted and purchased entitlements use
+the same model/Prompt/context/media/quality path; provenance affects accounting,
+never quality. The earlier Kimi-only free text strategy and temporary RMB50/100
+inference caps are superseded for implementation verification and authorized test
+accounts' normal model/necessary third-party usage. Keep historical costs/reserves,
+credit checks, idempotency, isolation, concurrency/rate limits and no unknown replay;
+do not invent a replacement monetary cap. Actual provider eligibility/balance,
+subscriptions, new resources, contracts and public payments retain their boundaries.
+Scoped implementation, lawful provider integration, real tests, deployment/rollback
+and controlled push are authorized. Do not silently substitute a requested test
+model. Preserve current Item34 fixed artifacts/history/in-flight work and all seven
+protected paths. Historical deferred functions remain deferred; do not add future
+features or rebuild acceptance. Item35 remains NOT_REQUIRED, not passed. Latest
+execution/remaining dependencies are at Handoff and execution-plan top; earlier
+dated scope/budget paragraphs below are historical wherever they conflict.
+
 September12 late-evening owner authorizes implementing and publishing scoped owner
 Admin operations: single-user noncash entitlement adjustments, existing legal model
 route/configuration save/activate/restore, ordinary task pause/resume/configuration

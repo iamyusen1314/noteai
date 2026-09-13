@@ -143,7 +143,7 @@ def recall(user_id: str, memory_type: Optional[str] = None, limit: int = 10) -> 
     return [dict(r) for r in rows]
 
 
-def build_memory_prompt(user_id: str) -> str:
+def build_memory_prompt(user_id: str, *, domain: str | None = None) -> str:
     """
     构建注入到 system prompt 的记忆片段。
     返回空字符串表示无记忆（匿名用户）。
@@ -160,10 +160,20 @@ def build_memory_prompt(user_id: str) -> str:
                 " ORDER BY importance DESC LIMIT ?",
                 (user_id, _MAX_STYLE_MEMORIES),
             )
+            # General writing preferences remain shared. Historical task content
+            # must be tied to this user's own note in the requested industry.
+            domain_filter = ""
+            context_params = [user_id]
+            if domain:
+                domain_filter = (
+                    " AND EXISTS (SELECT 1 FROM notes n WHERE n.id=user_memories.source_note_id"
+                    " AND n.user_id=user_memories.user_id AND n.domain=?)"
+                )
+                context_params.append(domain)
             context_rows = tx.fetchall(
                 "SELECT id,content FROM user_memories WHERE user_id=? "
-                "AND memory_type='context' ORDER BY created_at DESC LIMIT ?",
-                (user_id, _MAX_CONTEXT_MEMORIES),
+                "AND memory_type='context'" + domain_filter + " ORDER BY created_at DESC LIMIT ?",
+                (*context_params, _MAX_CONTEXT_MEMORIES),
             )
             achieve_rows = tx.fetchall(
                 "SELECT content FROM user_memories WHERE user_id=? "

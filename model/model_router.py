@@ -1766,10 +1766,11 @@ async def _call_kimi(
             {"role": "user",   "content": user},
         ],
         "max_tokens": max_tokens,
-        "thinking": {"type": "disabled"},
-        "temperature": 0.6,
+        "thinking": {"type": "enabled" if thinking else "disabled"},
     }
-    timeout = KIMI_TIMEOUT_Q
+    if not thinking:
+        payload["temperature"] = 0.6
+    timeout = KIMI_TIMEOUT if thinking else KIMI_TIMEOUT_Q
     async with _public_product.kimi_async_client(timeout=timeout) as client:
         r = await client.post(
             KIMI_API_URL, json=payload,

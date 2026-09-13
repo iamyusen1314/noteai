@@ -2918,7 +2918,7 @@ class ApiContractTests(unittest.TestCase):
             api._generated_quality_issues = lambda *_args, **_kwargs: []
             api._delivery_integrity_issues = lambda *_args, **_kwargs: []
             api._needs_v04_score_lift = lambda *_args, **_kwargs: False
-            api._memory.build_memory_prompt = lambda user_id: "用户偏好：文案自然，少模板。"
+            api._memory.build_memory_prompt = lambda user_id, **kwargs: "用户偏好：文案自然，少模板。"
             api._memory.check_and_record_achievements = lambda *_args, **_kwargs: None
             api._log_analysis = lambda *_args, **_kwargs: None
             api._db.execute = lambda *_args, **_kwargs: None

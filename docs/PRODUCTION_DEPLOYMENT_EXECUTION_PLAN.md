@@ -1,5 +1,22 @@
 # NoteAI Production Deployment Execution Plan
 
+## September13 active implementation — existing formal product
+
+Apply current Handoff owner scope: equivalent granted/purchased entitlements receive
+the same formal model/Prompt/context/media pipeline. Remove temporary Kimi-only
+quality and RMB50/100 inference blocking for normal authorized product use; keep
+historical costs/reserves, real usage/settlement, credit checks, identity isolation,
+finite retries, concurrency and UNKNOWN reconciliation. No replacement monetary cap.
+Validate existing provider account/channel/eligibility before real integration;
+specific test-model failure must remain visible without a hidden fallback. Reuse
+existing models, Gateway, billing, Prompt, feedback, workers and deployment tooling.
+Restore only canonical existing features; historical deferrals and payment closure
+remain. No added subscription/resource/contract or provider-restriction workaround.
+Read latest Item34 state before shared changes; preserve fixed observation artifacts.
+Verify each completed capability and deploy controlled changes independently. Keep
+current37 acceptance/Item35 NOT_REQUIRED and all historical facts unchanged until
+actual corresponding DoD passes. Current software9f21c32/live0e83d0d is the baseline.
+
 ## September13 morning — targeted Admin truthfulness repair
 
 Reuse the existing C images (Admin5c8707c / API2159d47), deployment scripts and

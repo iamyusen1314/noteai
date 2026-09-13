@@ -1,5 +1,23 @@
 # Risk Register
 
+September13 latest owner decision supersedes the prior temporary Kimi-only quality
+and RMB50/100 inference-stop strategy for formal product implementation/verification
+and authorized account usage. Historical44.03/50 reserve remains evidence, not a
+future stop rule after controlled implementation. Equal entitlements must not vary
+quality with payment/grant provenance. Preserve credit eligibility, accounting,
+request isolation, finite/provider-safe execution and unknown-result reconciliation.
+Do not implement this by dropping all provider/admission guards or clearing ledgers.
+Actual provider service eligibility, balance and new subscription/resource needs are
+external facts; no workaround or unapproved purchase. Existing final-Prompt provenance
+is not established by identical reconstruction alone. Current precise engineering
+and external gaps remain open until implemented/verified; Item34 stays protected.
+
+September13 13:23: original Render Gateway freshly confirmed Live at84f8a2f, configured2–4
+Singapore Starter. Current public C lacks its binding; historical successful transport
+does not establish supplier entity eligibility. First context/memory/Prompt-snapshot
+quality candidate passes isolated checks but is not deployed; usage provenance remains
+request-local pending durable cost linkage. No production changes or supplier calls.
+
 September13 morning: owner audit found concrete omissions in the earlier Admin
 completion claim: provider status was a stub; industry previews showed only shared
 bases; diagnostic arbitration used the wrong route; library continuation could

@@ -1,4 +1,6 @@
 import importlib
+import asyncio
+import json
 import os
 import sys
 import tempfile
@@ -6,6 +8,8 @@ import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
+import httpx
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +25,29 @@ admin_server = importlib.import_module("admin_server")
 
 
 class ModelUsageAuditTests(unittest.TestCase):
+    def test_nonstream_kimi_preserves_requested_thinking_and_full_output_allowance(self):
+        calls = []
+        timeouts = []
+        def respond(request):
+            calls.append(json.loads(request.content))
+            return httpx.Response(200, json={"choices": [{"message": {"content": "offline result"}}],
+                                            "usage": {"prompt_tokens": 20, "completion_tokens": 10, "cached_tokens": 0}})
+        def client(**kwargs):
+            timeouts.append(kwargs["timeout"])
+            return httpx.AsyncClient(transport=httpx.MockTransport(respond), **kwargs)
+        async def run():
+            for thinking in (True, False):
+                result = await model_router._call_kimi("kimi-k2.6", "system", "owner material", thinking=thinking, max_tokens=16000)
+                self.assertEqual(result, "offline result")
+        with mock.patch.object(model_router._public_product, "kimi_async_client", side_effect=client):
+            asyncio.run(run())
+        self.assertEqual(calls[0]["thinking"], {"type": "enabled"})
+        self.assertNotIn("temperature", calls[0])
+        self.assertEqual(calls[1]["thinking"], {"type": "disabled"})
+        self.assertEqual(calls[1]["temperature"], 0.6)
+        self.assertEqual([p["max_tokens"] for p in calls], [16000, 16000])
+        self.assertEqual(timeouts, [model_router.KIMI_TIMEOUT, model_router.KIMI_TIMEOUT_Q])
+
     def setUp(self):
         self._old_db_path = db._DB_PATH
         self._tmpdir = tempfile.TemporaryDirectory()

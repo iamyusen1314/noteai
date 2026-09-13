@@ -53,6 +53,198 @@ class PromptBaselineTests(unittest.TestCase):
                 ),
             )
 
+    def test_request_keeps_published_prompt_versions_across_parallel_steps(self):
+        prompt_manager.apply_versioned_baseline()
+        first = prompt_manager.capture_request()
+        old = first.rows["agent_content_system"]["content"]
+        token = prompt_manager.bind_request(first)
+        try:
+            db.execute("UPDATE managed_prompts SET content=?,version=version+1 WHERE key=?",
+                       ("new published revision", "agent_content_system"))
+            prompt_manager.reload()
+
+            async def steps():
+                async def step():
+                    await asyncio.sleep(0)
+                    return prompt_manager.get("agent_content_system")
+                return await asyncio.gather(step(), step())
+
+            self.assertEqual(asyncio.run(steps()), [old, old])
+            metadata = prompt_manager.request_versions()["agent_content_system"]
+            self.assertEqual(metadata["sha256"], hashlib.sha256(old.encode()).hexdigest())
+            self.assertNotIn("content", metadata)
+            self.assertEqual(prompt_manager.get("absent_test_prompt", "code value"), "code value")
+            self.assertEqual(prompt_manager.request_versions()["absent_test_prompt"]["source"], "code_fallback")
+        finally:
+            prompt_manager.release_request(token)
+        second = prompt_manager.capture_request()
+        token = prompt_manager.bind_request(second)
+        try:
+            self.assertEqual(prompt_manager.get("agent_content_system"), "new published revision")
+        finally:
+            prompt_manager.release_request(token)
+        self.assertEqual(prompt_manager.request_versions(), {})
+
+    def test_new_request_bypasses_cache_without_changing_inflight_snapshot(self):
+        prompt_manager.apply_versioned_baseline()
+        first = prompt_manager.capture_request()
+        db.execute("UPDATE managed_prompts SET content=?,version=version+1 WHERE key=?",
+                   ("published inside cache TTL", "chat_system"))
+        second = prompt_manager.capture_request()
+        self.assertEqual(second.rows["chat_system"]["content"], "published inside cache TTL")
+        self.assertNotEqual(first.rows["chat_system"]["content"], second.rows["chat_system"]["content"])
+
+    def test_diagnosis_leaf_requests_keep_material_constraints_and_memory_tail(self):
+        prompt_manager.apply_versioned_baseline()
+        body = "真实素材。" * 300 + "末尾素材：无糖、不含坚果。"
+        context = "图片与商家背景。" * 300 + "硬约束：不能更改价格。\n用户记忆：不要夸大功效。"
+        calls = []
+
+        async def capture(task, system, user, **kwargs):
+            calls.append((task, system, user))
+            return "<opinion>offline fixture</opinion>"
+
+        async def run():
+            await asyncio.gather(
+                api._agent_content("真实标题", body, "美食", [], {}, context),
+                api._agent_growth("真实标题", body, "美食", None, {}, context),
+                api._agent_user("真实标题", body, "美食", {}, [], {}, context),
+            )
+
+        with mock.patch.object(api._mr, "call", side_effect=capture):
+            asyncio.run(run())
+        self.assertEqual(len(calls), 3)
+        for task, system, user in calls:
+            self.assertEqual(task, "diagnosis")
+            self.assertIn(body, user)
+            self.assertIn(context, user)
+            self.assertIn("不计入正文长度/评分", user)
+
+    def test_generation_memory_reaches_creators_arbiter_and_challenger_separate_from_facts(self):
+        prompt_manager.apply_versioned_baseline()
+        memory = "历史参考标记：旧店地址仅为历史；偏好自然语气。"
+        brief = "已核实本次素材。" * 300 + "本次唯一地址：新店。"
+        calls = []
+
+        async def capture(task, system, user, **kwargs):
+            calls.append((system, user))
+            return "<title>离线测试标题</title><body>离线测试正文</body>"
+
+        async def run():
+            await api._gent_content("美食", brief, {}, "图片观察", memory)
+            await api._gent_growth("美食", brief, None, {}, "图片观察", memory)
+            await api._gent_user("美食", brief, {}, "图片观察", memory)
+            await api._gent_arbitrate("美食", [], None, [], fact_context=brief, memory_context=memory)
+            await api._generate_quality_challenger_candidate(
+                domain="美食", brief=brief, image_desc="图片观察", timing=None,
+                current_title="原稿", current_body="原稿正文", memory_context=memory)
+
+        with mock.patch.object(api._mr, "call", side_effect=capture), \
+             mock.patch.object(api, "_generation_candidate_count", return_value=2):
+            asyncio.run(run())
+        self.assertGreaterEqual(len(calls), 5)
+        self.assertEqual(sum(brief in user for _, user in calls), 5)
+        for system, user in calls:
+            self.assertIn(memory, system)
+            self.assertIn("不构成本次", system)
+            self.assertNotIn(memory, user)
+
+    def test_generation_uses_real_industry_while_stats_preserve_legacy_fallback(self):
+        import hot_keywords
+        class StopBeforeProvider(Exception):
+            pass
+        for domain in ("美妆", "家居", "母婴", "酒店"):
+            for endpoint in (api.generate_stream_endpoint, api.generate):
+                queries = []
+                def timing(title, body, actual_domain):
+                    queries.append(actual_domain)
+                    raise StopBeforeProvider()
+                with mock.patch.object(api, "_compute_market_timing_for_delivery", side_effect=timing), \
+                     mock.patch.object(api, "_paid_request_claim", return_value=None), \
+                     mock.patch.object(api._billing, "check_and_deduct"), \
+                     mock.patch.object(api._billing, "get_subscription", return_value={"tier": "pro"}), \
+                     mock.patch.object(api, "_maybe_enrich_facts", new=mock.AsyncMock(return_value={})), \
+                     mock.patch.object(api._mr, "call", side_effect=AssertionError("provider forbidden")):
+                    try:
+                        asyncio.run(endpoint(api.GenerateInput(domain=domain, brief="合法离线素材"),
+                                             user={"id": "owner"}, request_id=None))
+                    except Exception:
+                        pass
+                self.assertEqual(queries, [domain])
+        with mock.patch.object(hot_keywords, "_load_domain_stats"), \
+             mock.patch.object(hot_keywords, "_DOMAIN_STATS", {
+                 "穿搭": {"avg_ces": 63, "saturation": .138},
+                 "美妆": {"avg_ces": 64, "saturation": .04},
+                 "职场": {"avg_ces": 62, "saturation": .095}}):
+            self.assertEqual(hot_keywords.get_domain_stats("美妆")["saturation"], .04)
+            self.assertEqual(hot_keywords.get_domain_stats("家居")["saturation"], .095)
+
+    def test_memory_isolates_user_and_industry_and_does_not_treat_orphans_as_current_context(self):
+        import memory
+        for uid in ("owner", "other"):
+            db.execute("INSERT INTO users(id,username,password_hash,password_salt,created_at) VALUES(?,?,?,?,?)",
+                       (uid, uid, "offline-no-login", "offline", "2026-09-13T00:00:00Z"))
+        for nid, uid, domain in (("food", "owner", "美食"), ("beauty", "owner", "美妆"), ("otherfood", "other", "美食")):
+            db.execute("INSERT INTO notes(id,user_id,title,body,domain,source,created_at) VALUES(?,?,?,?,?,?,?)",
+                       (nid, uid, "offline", "offline", domain, "generate", "2026-09-13T00:00:00Z"))
+        memory.add_memory("owner", "style", "本人写作偏好")
+        memory.add_memory("other", "style", "其他用户私有偏好")
+        for nid, text in (("food", "本人餐饮参考"), ("beauty", "本人美妆参考"), ("otherfood", "错误关联他人笔记"), (None, "无来源历史")):
+            memory.add_memory("owner", "context", text, source_note_id=nid)
+        result = memory.build_memory_prompt("owner", domain="美食")
+        self.assertIn("本人写作偏好", result)
+        self.assertIn("本人餐饮参考", result)
+        for excluded in ("其他用户私有偏好", "本人美妆参考", "错误关联他人笔记", "无来源历史"):
+            self.assertNotIn(excluded, result)
+        untouched = db.fetchall("SELECT access_count FROM user_memories WHERE content IN(?,?,?)",
+                               ("本人美妆参考", "错误关联他人笔记", "无来源历史"))
+        self.assertTrue(all(row["access_count"] == 0 for row in untouched))
+
+    def test_restored_chat_recalls_memory_only_after_owner_and_admission_checks(self):
+        from fastapi import HTTPException
+        uid, sid = "chat-owner", "restored-offline-chat"
+        db.execute("INSERT INTO users(id,username,password_hash,password_salt,created_at) VALUES(?,?,?,?,?)",
+                   (uid, uid, "offline-no-login", "offline", "2026-09-13T00:00:00Z"))
+        session = {"user_id": uid, "domain": "美食", "messages": [], "note_title": "原标题", "note_body": "原正文"}
+        original = dict(api._chat_sessions)
+        class StopAtModelInput(Exception):
+            pass
+        captured = []
+        original_builder = api._build_chat_system_prompt
+        def capture(session):
+            captured.append(original_builder(session))
+            raise StopAtModelInput()
+        try:
+            api._chat_sessions[sid] = session
+            self.assertTrue(api._persist_chat_session(sid))
+            api._chat_sessions.pop(sid)
+            with mock.patch.object(api._memory, "build_memory_prompt", return_value="本人恢复记忆标记") as recall, \
+                 mock.patch.object(api, "_build_chat_system_prompt", side_effect=capture), \
+                 mock.patch.object(api, "_paid_request_claim", return_value=None), \
+                 mock.patch.object(api._billing, "check_and_deduct"), \
+                 mock.patch.object(api._billing, "record_free_usage"):
+                req = api.ChatMessageInput(session_id=sid, message="继续聊原稿")
+                with self.assertRaises(HTTPException):
+                    asyncio.run(api.chat_message(req, user={"id": "intruder"}, request_id=None))
+                recall.assert_not_called()
+                with self.assertRaises(HTTPException):
+                    asyncio.run(api.chat_select_plan(api.ChatSelectPlanInput(session_id=sid, option_id="absent"), user={"id": uid}))
+                recall.assert_not_called()
+                async def run():
+                    response = await api.chat_message(req, user={"id": uid}, request_id=None)
+                    recall.assert_not_called()
+                    return [chunk async for chunk in response.body_iterator]
+                events = asyncio.run(run())
+                recall.assert_called_once_with(uid, domain="美食")
+                self.assertIn("本人恢复记忆标记", captured[0])
+                self.assertTrue(any('"error"' in chunk for chunk in events))
+                self.assertTrue(api._persist_chat_session(sid))
+                row = dict(db.fetchone("SELECT * FROM chat_sessions WHERE id=?", (sid,)))
+                self.assertNotIn("本人恢复记忆标记", json.dumps(row, ensure_ascii=False))
+        finally:
+            api._chat_sessions.clear()
+            api._chat_sessions.update(original)
+
     def _legacy_hash_patch(self):
         real_hash = prompt_baselines.content_sha256
 

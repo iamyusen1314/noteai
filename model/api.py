@@ -472,25 +472,6 @@ _DEFAULT_DOMAIN_KNOWLEDGE = _prompt_composer._DEFAULT_DOMAIN_KNOWLEDGE
 _TRAVEL_DOMAIN_ALIASES = _prompt_composer._TRAVEL_DOMAIN_ALIASES
 _DOMAIN_ALIASES = _prompt_composer._DOMAIN_ALIASES
 
-# Maps API domain names → training-data domain names for category_saturation lookup.
-# API domains not in features.parquet get saturation=0.5 (bad default); these aliases
-# redirect them to the closest training-data category so get_domain_stats returns real stats.
-_TIMING_ALIASES: dict[str, str] = {
-    "餐饮": "美食",   # restaurant → food (saturation 0.028)
-    "食品": "美食",
-    "旅游": "旅行",
-    "酒店": "旅行",
-    "住宿": "旅行",
-    "酒旅": "旅行",
-    "民宿": "旅行",
-    "出行": "旅行",
-    "运动健身": "运动",
-    "亲子": "情感",
-    "美妆": "穿搭",   # beauty → fashion (saturation 0.138)
-    "家居": "职场",   # home decor → career (saturation 0.095)
-    "健身": "运动",   # fitness → sports (saturation 0.017)
-    "母婴": "健康",   # parenting → health (saturation 0.107; baby care ≈ health content)
-}
 
 _get_dk = _prompt_composer._get_dk
 
@@ -2999,8 +2980,8 @@ async def _agent_content(
     user = (
         f"当前品类：{domain}\n"
         f"标题（{len(note_title or '')}字）：{note_title or '（无标题）'}\n"
-        f"正文（{len(desc or '')}字）：{(desc or '')[:500]}\n\n"
-        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context[:1200]}\n\n" if agent_context else "")
+        f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
         + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
     raw = await _mr.call("diagnosis", system, user)
@@ -3062,8 +3043,8 @@ async def _agent_growth(
 
     user = (
         f"标题：{note_title or '（无）'}\n"
-        f"正文（前300字）：{(desc or '')[:300]}\n\n"
-        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context[:1200]}\n\n" if agent_context else "")
+        f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
         + f"【实时热词数据】\n{timing_text}"
     )
     raw = await _mr.call("diagnosis", system, user)
@@ -3089,8 +3070,8 @@ async def _agent_user(
 
     user_ctx = (
         f"标题：{note_title or '（无）'}\n"
-        f"正文（前400字）：{(desc or '')[:400]}\n\n"
-        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context[:1200]}\n\n" if agent_context else "")
+        f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
         + f"语义特征：情感强度={emo:.2f} 共情度={emp:.2f} 修辞水平={rhet:.2f}\n"
         + (f"互动引导语数量：{cta:.0f}\n" if cta is not None else "")
         + (f"互动性表达密度：{stance:.2f}\n" if stance is not None else "")
@@ -4002,8 +3983,19 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
 
 # ── Generation Agent 2: 内容创作 ──────────────────────────────────
 
-async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: str) -> dict:
-    base = _runtime_prompt("gent_content_system", domain)
+def _generation_memory_context(memory_context: str) -> str:
+    if not memory_context:
+        return ""
+    return (
+        "\n\n【用户写作偏好与历史参考】\n"
+        "以下记忆仅用于风格和历史参考，不构成本次商家、价格、地址、功效等事实依据；"
+        "与本次素材或硬约束冲突时，以本次已确认信息为准。\n"
+        + memory_context
+    )
+
+
+async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: str, memory_context: str = "") -> dict:
+    base = _runtime_prompt("gent_content_system", domain) + _generation_memory_context(memory_context)
     planning_brief = _build_generation_planning_brief(domain, "", brief, "爆文初稿规划")
     system = (
         base.replace("{domain}", domain) +
@@ -4036,8 +4028,9 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
 async def _gent_growth(
     domain: str, brief: str | None,
     timing: dict | None, dk: dict, image_desc: str,
+    memory_context: str = "",
 ) -> dict:
-    base = _runtime_prompt("gent_growth_system", domain)
+    base = _runtime_prompt("gent_growth_system", domain) + _generation_memory_context(memory_context)
     # 注入动态热词数据
     if timing:
         mks = "、".join(timing.get("matched_keywords", [])[:6]) or "无"
@@ -4073,8 +4066,8 @@ async def _gent_growth(
 
 # ── Generation Agent 4: 用户共鸣 ──────────────────────────────────
 
-async def _gent_user(domain: str, brief: str | None, dk: dict, image_desc: str) -> dict:
-    base = _runtime_prompt("gent_user_system", domain)
+async def _gent_user(domain: str, brief: str | None, dk: dict, image_desc: str, memory_context: str = "") -> dict:
+    base = _runtime_prompt("gent_user_system", domain) + _generation_memory_context(memory_context)
     system = (
         base.replace("{domain}", domain) +
         f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n"
@@ -4098,6 +4091,7 @@ async def _gent_arbitrate(
     fix_items: list[str] | None = None,
     prev_score: float | None = None,
     fact_context: str | None = None,
+    memory_context: str = "",
 ) -> dict:
     round_hint = ""
     if fix_items:
@@ -4131,6 +4125,7 @@ async def _gent_arbitrate(
         f"【图片与事实数据规则】图片可用于场景/氛围润色；价格/地址/时间/排队时长只能来自创作者说明或已核验事实源；不得使用【xxx】占位，不得编造。\n"
         f"【输出质量标准】{_get_arbitrate_standards(domain)}\n"
         f"实时热词：{tstr}"
+        f"{_generation_memory_context(memory_context)}"
     )
 
     blocks = ""
@@ -4143,7 +4138,7 @@ async def _gent_arbitrate(
             blocks += f"\n【视觉专家】\n场景：{scene}\n标题钩子元素：{hooks}\n"
         elif role == "内容专家":
             title = _xtag_any(raw, "title", "draft_title")
-            body = _xtag_any(raw, "body", "draft_body")[:400]
+            body = _xtag_any(raw, "body", "draft_body")
             blocks += f"\n【内容专家草稿】\n标题草稿：{title}\n正文草稿：{body}\n"
         elif role == "增长专家":
             keywords = _xtag_any(raw, "keywords", "keyword_tip")
@@ -4165,7 +4160,7 @@ async def _gent_arbitrate(
         fact_text = "创作者未提供价格、营业时间、排队时长等结构化事实；不得编造具体数字。"
     user = (
         f"领域：{domain}\n"
-        f"【创作者真实信息/事实边界】\n{fact_text[:1200]}\n\n"
+        f"【创作者真实信息/事实边界】\n{fact_text}\n\n"
         f"{blocks}"
     )
     raw = await _mr.call("arbitrate", system, user, thinking=True, max_tokens=16000)
@@ -4209,12 +4204,12 @@ async def _gent_arbitrate(
 
     # 小红书标题交付安全线：优先语义压缩，避免半句截断。
     if title and len(title) > _TITLE_DELIVERY_MAX:
-        title = await _fit_title_limit(title, body, domain)
+        title = await _fit_title_limit(title, body, domain, memory_context)
     if title:
         title = _sanitize_title_for_delivery(title, fact_context, domain)
-    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain) if len(v) > _TITLE_DELIVERY_MAX else v, fact_context, domain) for v in variants]
+    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context) if len(v) > _TITLE_DELIVERY_MAX else v, fact_context, domain) for v in variants]
     if body:
-        body = await _shape_body_for_delivery(title, body, domain, fact_context, "爆文生成")
+        body = await _shape_body_for_delivery(title, body, domain, fact_context, "爆文生成", memory_context)
 
     return {"title": title, "body": body, "variants": variants, "rationale": rationale}
 
@@ -4275,6 +4270,7 @@ async def _generate_quality_challenger_candidate(
     current_title: str,
     current_body: str,
     candidate_index: int = 0,
+    memory_context: str = "",
 ) -> dict | None:
     """Generate an alternate draft for V0.4 candidate selection."""
     if _generation_candidate_count(domain) <= 1:
@@ -4295,16 +4291,17 @@ async def _generate_quality_challenger_candidate(
         f"{_quality_expression_brief(canonical)}\n\n"
         "严格输出XML：<title>20字以内标题</title><body>完整正文，含话题标签</body>"
         "<variants>3个备选标题，每行一个</variants><rationale>一句话说明差异化策略</rationale>"
+        f"{_generation_memory_context(memory_context)}"
     )
     user = (
         f"品类：{canonical}\n"
         f"候选方向：{angle}\n"
         f"实时信息：{timing_text}\n\n"
-        f"【图片/素材描述】\n{(image_desc or canonical)[:1200]}\n\n"
-        f"【创作者真实信息/联网事实边界】\n{(brief or '未提供结构化事实；不得编造价格、地址、营业时间、功效、个人经历。')[:1500]}\n\n"
+        f"【图片/素材描述】\n{image_desc or canonical}\n\n"
+        f"【创作者真实信息/联网事实边界】\n{brief or '未提供结构化事实；不得编造价格、地址、营业时间、功效、个人经历。'}\n\n"
         "【当前主稿】请避开同样的首段和结构，但保持事实一致。\n"
         f"标题：{current_title}\n"
-        f"正文：{(current_body or '')[:900]}\n\n"
+        f"正文：{current_body or ''}\n\n"
         "要求：标题自然、有点击理由但不能低级夸张；正文要有信息密度、行业槽位和真实行动建议，"
         "不要用编号大纲，不要写占位符，不要为了评分机械重复关键词。"
     )
@@ -4320,10 +4317,10 @@ async def _generate_quality_challenger_candidate(
     if not title or not body:
         return None
     variants = [v.strip() for v in _xtag(raw, "variants").splitlines() if v.strip()][:3]
-    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, canonical), brief, canonical)
-    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优")
+    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, canonical, memory_context), brief, canonical)
+    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优", memory_context)
     variants = [
-        _sanitize_title_for_delivery(await _fit_title_limit(v, body, canonical), brief, canonical)
+        _sanitize_title_for_delivery(await _fit_title_limit(v, body, canonical, memory_context), brief, canonical)
         for v in variants
     ]
     return {
@@ -4630,6 +4627,7 @@ async def _run_generation_agents(
     cover_feats: dict,
     cover_images: list[str] | None = None,
     user_tier: str = "free",           # 用户套餐，决定深度分析图片数
+    memory_context: str = "",
 ) -> dict:
     """
     Pipeline:
@@ -4699,9 +4697,9 @@ async def _run_generation_agents(
     # Phase 2: three creation agents in parallel
     print(f"[gen] P2-trio start", file=sys.stderr, flush=True)
     c_res, g_res, u_res = await asyncio.gather(
-        _gent_content(domain, brief, dk, image_desc),
-        _gent_growth(domain, brief, timing, dk, image_desc),
-        _gent_user(domain, brief, dk, image_desc),
+        _gent_content(domain, brief, dk, image_desc, memory_context),
+        _gent_growth(domain, brief, timing, dk, image_desc, memory_context),
+        _gent_user(domain, brief, dk, image_desc, memory_context),
         return_exceptions=True,
     )
     opinions: list[dict] = [vis_result]
@@ -4745,6 +4743,7 @@ async def _run_generation_agents(
         fix_items=pre_fix_items or None,
         prev_score=pre_score,
         fact_context=brief or "",
+        memory_context=memory_context,
     )
     title, body = arb.get("title", ""), arb.get("body", "")
     print(f"[gen] P3-arbitrate done in {_time.time()-_t0:.0f}s title_len={len(title)} body_len={len(body)}", file=sys.stderr, flush=True)
@@ -4779,7 +4778,7 @@ async def _run_generation_agents(
             keep_hint = "产品名称+价格+肤质适用+使用效果+结尾互动CTA（点赞/收藏/评论）"
         else:
             keep_hint = "单品名称+价格+搭配逻辑+适合人群+结尾互动CTA（点赞/收藏/评论）"
-        trim_sys = "你是文字编辑专家，任务是在不改变语气和风格的前提下压缩小红书笔记正文字数。"
+        trim_sys = "你是文字编辑专家，任务是在不改变语气和风格的前提下压缩小红书笔记正文字数。" + _generation_memory_context(memory_context)
         trim_usr = (
             f"请将以下小红书{canonical_trim}笔记正文压缩到{max_body}字以内（不含标签行）。\n"
             f"保留核心内容：{keep_hint}。\n"
@@ -4799,7 +4798,7 @@ async def _run_generation_agents(
     canonical_burst = _GEN_CHECKLIST_ALIASES.get(domain, domain)
     if canonical_burst == "健身" and body:
         print(f"[gen] P3.5b-burst inject for domain={domain}", file=sys.stderr, flush=True)
-        burst_sys = "你是小红书文案编辑，擅长为健身笔记注入节奏感和感染力。"
+        burst_sys = "你是小红书文案编辑，擅长为健身笔记注入节奏感和感染力。" + _generation_memory_context(memory_context)
         burst_usr = (
             "请在以下健身笔记正文中，每段长描述句子结束后（在。或！标点后面），"
             "另起一个**独立短句**（5-10字），要用句号结尾让它完全独立，"
@@ -4836,6 +4835,7 @@ async def _run_generation_agents(
             current_title=title,
             current_body=body,
             candidate_index=cand_idx,
+            memory_context=memory_context,
         )
         if challenger:
             _remember_generation_candidate(
@@ -4930,6 +4930,7 @@ async def _run_generation_agents(
                 domain, opinions, timing, weaknesses,
                 fix_items=repair_items, prev_score=percentile,
                 fact_context=brief or "",
+                memory_context=memory_context,
             )
             t_new = arb_next.get("title", "").strip()
             b_new = arb_next.get("body", "").strip()
@@ -7525,7 +7526,7 @@ def _fallback_title_under_limit(title: str) -> str:
     return title
 
 
-async def _fit_title_limit(title: str, body: str, domain: str) -> str:
+async def _fit_title_limit(title: str, body: str, domain: str, memory_context: str = "") -> str:
     """Keep XHS titles under the delivery-safe limit without semantic chopping."""
     title = _clean_generated_title(title)
     if len(title) <= _TITLE_DELIVERY_MAX:
@@ -7541,7 +7542,7 @@ async def _fit_title_limit(title: str, body: str, domain: str) -> str:
         )
         shortened = await _mr.call(
             "semantic",
-            f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_PLATFORM_MAX}字以内的中文标题。",
+            f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_PLATFORM_MAX}字以内的中文标题。" + _generation_memory_context(memory_context),
             prompt,
             max_tokens=80,
         )
@@ -10236,7 +10237,7 @@ def _compact_body_to_delivery_limit(body: str, domain: str | None) -> str:
     return (compact_main + ("\n" + tags if tags else "")).strip()
 
 
-async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "") -> str:
+async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "") -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     shaped = _insert_safe_fact_line(body or "", domain, source_context)
     if not shaped.strip() or canonical not in _DOMAIN_QUALITY_TARGETS:
@@ -10285,6 +10286,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"你是小红书{canonical}文案交付编辑，只负责把已有正文修成可交付版本。"
         "不得新增未提供的价格、人均、营业时间、排队时长、楼层等结构化事实；"
         "不得解释，不得输出标题或方案说明。"
+        + _generation_memory_context(memory_context)
     )
     user = (
         f"标题：{title}\n"
@@ -15309,11 +15311,7 @@ async def _run_analyze_pipeline(
                 memories = mem0_recall(user["id"], query=f"{req.domain} 笔记优化", top_k=3)
             except Exception:
                 pass
-        local_memory_prompt = ""
-        try:
-            local_memory_prompt = _memory.build_memory_prompt(user["id"])
-        except Exception:
-            local_memory_prompt = ""
+        local_memory_prompt = _memory.build_memory_prompt(user["id"], domain=req.domain)
 
         # 约束条件 + 本地长期记忆注入（加入 note.desc 开头，让所有 agents 都能读到）
         constraint_brief = _user_constraints_brief(req.user_constraints, "AI诊断")
@@ -15794,6 +15792,7 @@ async def _generate_pipeline_stream(
     video_file_id: str | None = None,
     user_tier: str = "free",
     user_id: str | None = None,
+    memory_context: str = "",
 ) -> AsyncGenerator[dict, None]:
     """Streaming version of generate pipeline — yields SSE event dicts."""
     dk = _get_dk(domain)
@@ -15913,11 +15912,11 @@ async def _generate_pipeline_stream(
     opinions: list[dict] = [vis_result]
 
     # Stagger task creation by 1.5s each so three calls don't all hit Moonshot at once
-    t_content = asyncio.create_task(_gent_content(domain, brief, dk, image_desc))
+    t_content = asyncio.create_task(_gent_content(domain, brief, dk, image_desc, memory_context))
     await asyncio.sleep(1.5)
-    t_growth  = asyncio.create_task(_gent_growth(domain, brief, timing, dk, image_desc))
+    t_growth  = asyncio.create_task(_gent_growth(domain, brief, timing, dk, image_desc, memory_context))
     await asyncio.sleep(1.5)
-    t_user    = asyncio.create_task(_gent_user(domain, brief, dk, image_desc))
+    t_user    = asyncio.create_task(_gent_user(domain, brief, dk, image_desc, memory_context))
 
     p2_tasks = [
         (t_content, "内容创作师", 1),
@@ -16019,6 +16018,7 @@ async def _generate_pipeline_stream(
         f"【图片与事实数据规则】图片可润色场景；价格/地址/时间只能来自创作者说明或联网事实补全；不得使用【xxx】占位，不得编造。\n"
         f"【输出质量标准】{_get_arbitrate_standards(domain)}\n"
         f"实时热词：{tstr2}"
+        f"{_generation_memory_context(memory_context)}"
     )
 
     arb_blocks = ""
@@ -16027,14 +16027,14 @@ async def _generate_pipeline_stream(
         if r_op == "视觉专家":
             arb_blocks += f"\n【视觉专家】\n场景：{_xtag_any(raw_op,'scene','image_desc') or op.get('_image_desc','')[:120]}\n标题钩子：{_xtag_any(raw_op,'hooks','inspiration')}\n"
         elif r_op == "内容专家":
-            arb_blocks += f"\n【内容专家草稿】\n标题草稿：{_xtag_any(raw_op,'title','draft_title')}\n正文草稿：{_xtag_any(raw_op,'body','draft_body')[:400]}\n"
+            arb_blocks += f"\n【内容专家草稿】\n标题草稿：{_xtag_any(raw_op,'title','draft_title')}\n正文草稿：{_xtag_any(raw_op,'body','draft_body')}\n"
         elif r_op == "增长专家":
             arb_blocks += f"\n【增长专家】\n核心关键词：{_xtag_any(raw_op,'keywords','keyword_tip')}\n话题标签：{_xtag_any(raw_op,'tags','tag_recommendation')}\n发布时机：{_xtag(raw_op,'timing_tip')}\n"
         elif r_op == "用户专家":
             arb_blocks += f"\n【用户专家】\n情感钩子：{_xtag_any(raw_op,'hook','user_angle')}\n互动引导语：{_xtag_any(raw_op,'cta','hook')}\n"
     if timing and timing.get("matched_keywords"):
         arb_blocks += f"\n【命中实时热词，必须融入标题或正文前50字】：{'、'.join(timing['matched_keywords'][:5])}\n"
-    arb_user = f"领域：{domain}\n【创作者真实信息/事实边界】\n{(brief or '')[:1200] or '（无）'}\n\n{arb_blocks}"
+    arb_user = f"领域：{domain}\n【创作者真实信息/事实边界】\n{brief or '（无）'}\n\n{arb_blocks}"
 
     # Brief cooldown after P2 burst to let Moonshot rate-limit window recover
     await asyncio.sleep(3)
@@ -16049,9 +16049,9 @@ async def _generate_pipeline_stream(
     arb_raw = "".join(content_parts)
     title = _xtag(arb_raw, "title")
     body  = _xtag(arb_raw, "body")
-    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain), brief, domain) if title else ""
+    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context), brief, domain) if title else ""
     raw_variants = [v.strip() for v in _xtag(arb_raw, "variants").splitlines() if v.strip()][:3]
-    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain), brief, domain) for v in raw_variants]
+    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_variants]
     rationale = _xtag(arb_raw, "rationale")
 
     if not title or not body:
@@ -16071,9 +16071,9 @@ async def _generate_pipeline_stream(
             raw2 = await _mr.call("arbitrate", arb_system, arb_user, thinking=False, max_tokens=3000)
             t2 = _xtag(raw2, "title") or title
             body     = _xtag(raw2, "body") or body
-            title    = _sanitize_title_for_delivery(await _fit_title_limit(t2, body, domain), brief, domain) if t2 else ""
+            title    = _sanitize_title_for_delivery(await _fit_title_limit(t2, body, domain, memory_context), brief, domain) if t2 else ""
             raw_v2   = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
-            variants = ([_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain), brief, domain) for v in raw_v2] or variants)
+            variants = ([_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_v2] or variants)
             rationale = _xtag(raw2, "rationale") or rationale
             if title and body:
                 break
@@ -16086,7 +16086,7 @@ async def _generate_pipeline_stream(
         }
         return
 
-    body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成")
+    body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成", memory_context)
     stream_selection_candidates: list[dict] = []
     stream_selection_meta: dict = {}
 
@@ -16123,6 +16123,7 @@ async def _generate_pipeline_stream(
             current_title=title,
             current_body=body,
             candidate_index=cand_idx,
+            memory_context=memory_context,
         )
         if challenger:
             _remember_stream_candidate(
@@ -16173,7 +16174,7 @@ async def _generate_pipeline_stream(
         try:
             trimmed = await _mr.call(
                 "content_gen",
-                "你是文字编辑专家，在不改变语气的前提下压缩小红书笔记正文字数。",
+                "你是文字编辑专家，在不改变语气的前提下压缩小红书笔记正文字数。" + _generation_memory_context(memory_context),
                 f"压缩到{max_b}字以内（不含标签行），保留：{keep_hint_s}。直接输出，不加说明：\n\n{body}",
                 thinking=False,
                 max_tokens=600,
@@ -16194,7 +16195,7 @@ async def _generate_pipeline_stream(
 
     for q_round in range(3):
         try:
-            title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain), brief, domain)
+            title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context), brief, domain)
             final_score, final_feats, grade_str = await _score_generated_note(
                 title, body, domain, local_time, timing, cover_feats or None
             )
@@ -16243,6 +16244,7 @@ async def _generate_pipeline_stream(
             f"{_get_checklist(domain)}\n\n"
             f"输出格式：<title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body>"
             "<variants>3个备选标题，每行一个</variants><rationale>一句话说明修复点</rationale>"
+            + _generation_memory_context(memory_context)
         )
         repair_user = (
             f"品类：{domain}\n"
@@ -16258,15 +16260,16 @@ async def _generate_pipeline_stream(
             b_fix = _xtag(raw_fix, "body")
             raw_fix_variants = [v.strip() for v in _xtag(raw_fix, "variants").splitlines() if v.strip()][:3]
             if t_fix and b_fix:
-                title = _sanitize_title_for_delivery(await _fit_title_limit(t_fix, b_fix, domain), brief, domain)
+                title = _sanitize_title_for_delivery(await _fit_title_limit(t_fix, b_fix, domain, memory_context), brief, domain)
                 body = await _shape_body_for_delivery(
                     title,
                     b_fix.strip(),
                     domain,
                     brief,
                     "流式爆文质量修复",
+                    memory_context,
                 )
-                variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain), brief, domain) for v in raw_fix_variants] or variants
+                variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_fix_variants] or variants
                 rationale = _xtag(raw_fix, "rationale") or rationale
                 _remember_stream_candidate(
                     f"refine_round_{q_round + 1}",
@@ -16785,7 +16788,7 @@ async def generate_stream_endpoint(
     cover_image = cover_images[0] if cover_images else None
     timing: dict | None = None
     if req.domain:
-        timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
+        timing_domain = req.domain
         query = f"{req.brief or ''} {timing_domain}"
         timing = _compute_market_timing_for_delivery("", query, timing_domain)
     claim = _paid_request_claim(
@@ -16855,6 +16858,7 @@ async def generate_stream_endpoint(
             video_file_id=req.video_file_id,
             user_tier=user_tier,
             user_id=user["id"],
+            memory_context=_memory.build_memory_prompt(user["id"], domain=req.domain),
         ):
             if event.get("type") == "complete":
                 fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
@@ -16954,7 +16958,7 @@ async def generate(
         enriched_brief = _append_fact_enrichment(constrained_brief, fact_enrichment)
 
         # 2. Market timing (hot keywords)
-        timing_domain = _TIMING_ALIASES.get(req.domain, req.domain)
+        timing_domain = req.domain
         query = f"{req.brief or ''} {timing_domain}"
         timing = _compute_market_timing_for_delivery("", query, timing_domain)
 
@@ -16971,6 +16975,7 @@ async def generate(
                     cover_feats=cover_feats,
                     cover_images=images,
                     user_tier=user_tier,
+                    memory_context=_memory.build_memory_prompt(user["id"], domain=req.domain),
                 ),
                 timeout=660.0
             )
@@ -17840,6 +17845,11 @@ async def _chat_sse_generator(
         session.get("fact_context", ""),
     )
 
+    # This generator runs only after ownership and paid-request replay checks.
+    # Refresh on every real turn so restart and in-memory sessions use equal context.
+    session["mem_prompt"] = _memory.build_memory_prompt(
+        session.get("user_id") or "", domain=session.get("domain")
+    )
     system_prompt = _build_chat_system_prompt(session)
     history = session.get("messages", [])[-20:]
     messages: list[dict] = [{"role": "system", "content": system_prompt}]
@@ -19040,7 +19050,7 @@ async def chat_start(
     user_prefs = _get_user_learn(effective_user_id) if effective_user_id else {}
 
     # 注入用户记忆（越用越懂你）
-    mem_prompt = _memory.build_memory_prompt(effective_user_id) if effective_user_id else ""
+    mem_prompt = ""  # Recalled after ownership/entitlement checks on each actual turn.
     inherited_fact_context = ""
     try:
         if isinstance(gen_ctx, dict):

@@ -1,5 +1,86 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 current owner scope — formal product, equal entitlement quality
+
+Owner now authorizes completing the existing formal product, real business quality
+verification and current37-item acceptance scope. Purchased and Admin-granted equal
+entitlements must use the same model routes, industry/task Prompt layers, context,
+media handling and necessary steps. Grant provenance is accounting only; no fake
+payment or implicit Admin/unlimited entitlement. Ordinary registration still uses
+existing credit/feature checks; owner grants membership/credits to selected accounts.
+
+The earlier Kimi-only public-free degradation and temporary RMB50/100 inference
+thresholds no longer govern this implementation/verification and authorized test
+accounts' normal model/necessary third-party use. Owner accepts actual metered costs;
+no substitute monetary cap. Historical call/cost/reserve/failure records are retained,
+not reset. Keep exact-once credit/accounting, UNKNOWN reconciliation, finite hypothesis
+tests, concurrency/provider limits and abuse/loop protection. Actual provider balance,
+platform restrictions, new subscriptions/resources and contracts still need their
+own external actions; this does not authorize bypassing provider eligibility.
+
+Restore original model responsibilities as the comparison baseline; independently
+verify lawful existing channels and adapt/test/deploy when available. Explicit model
+tests report the actual selected/executed model and must not silently fall back.
+Current Prompt baseline equivalence is not proof of the owner's final intended text:
+verify actual request assembly and historical provenance without inventing rewrites.
+Include real feedback linkage to model/Prompt/task versions; keep private outputs out
+of public Git. Diagnose/generate/semantic/arbitrate/chat/media/cover/Tracking only where
+already in canonical scope; explicitly deferred features stay deferred. Future new
+features are not part of this task. Item1–38 numbering/history remains; Item35 is
+NOT_REQUIRED, currentReadiness30/37, no replay of historical acceptance for scoring.
+
+Implementation starts from actual9f21c32 (live0e83d0d), with scoped code/config/minimum
+permissions, tests, safe builds/deploy/rollback and controlled push authorized. Read
+latest actual Item34 state before shared changes, preserve its original observation,
+fixed artifact, unique task and in-flight work. No public payment activation or
+unapproved recurring resources. Two real read-only agents map model/accounting and
+Prompt/canonical capability gaps; main agent owns writes and deployments. Current
+priority: remove temporary quality/budget branches without losing durable accounting,
+then integrate legal provider routes and existing entitlement-qualified capabilities.
+Older dated policies below are history where this decision supersedes them.
+
+## September13 13:23 Beijing — Render design readback and first formal-quality candidate
+
+Owner clarified Render was chosen for the prior Claude design. Fresh authenticated
+Render readback confirms existing production service srv-d9e765laeets73aikj90 is Live,
+source84f8a2f1436627e0f05588ee0276b1950b230ae3, deploydep-da9sarh42hec738q8jjg,
+Singapore Starter with configured autoscaling2–4. No resource/config/deploy change.
+Original5a78c26 July12 explicitly authorized this Gateway; Item30 September3 verified
+Haiku through it with26input+8output and native+34. Render separates provider
+transport from Alibaba business/auth/accounting; it is not a recorded exception to
+supplier entity/region terms. No applicable exception/contract was found in the
+bounded historical review. Earlier Item35 signature removal remains in force.
+Current public C readback at13:00 has no Claude Gateway host/HMAC/API-key binding;
+its active five-task config revision0 is Kimi. This is a concrete integration gap,
+not proof that the original Render design disappeared or that Claude was retested.
+
+First local candidate fixes: full diagnosis leaf body/context (no1200-character
+loss of tail constraints/memory), true-domain generation trend queries with old
+statistical-category fallback isolated to statistics, authenticated industry-scoped
+memory across generation/final repairs, memory reload only on real owned chat turns,
+and one published Prompt snapshot per current public business request. Formal base
+Prompt texts unchanged; latest reachable87d679f is not asserted to be final owner
+acceptance. Prompt hash/version metadata is currently request-local only, not yet a
+persisted provenance claim. Kimi nonstream thinking=True now reaches provider input
+with the proper thinking timeout and no incompatible0.6 temperature.
+
+Secret-free Linux/amd64 Python3.11.15 verification:50 tests ran,49passed/1PG integration
+skipped in network-none run; includes actual leaf request capture, memory owner/domain
+isolation, restored chat admission ordering and original API/account boundaries.
+Model usage/parameter suite15passed separately. Initial harness lacked entrypoint/
+scripts, one edit indentation and two fixture assumptions were corrected before this
+result; no production/model/SMS/XHS calls were made. Two real read-only reviews found
+and led to fixing final-repair memory omissions and statistical fallback regression.
+Candidate is not deployed yet. Current live remains0e83d0d; Readiness30/37 unchanged.
+Item34 DB at13:00 remains generation2 checking_7d with successful24h, no active attempt;
+T0/fixed F artifact/unique original3d arrangement unchanged.
+
+Next active work: remove old fee enforcement through existing0025 migration while
+keeping old17calls/44030milliCNY reserve intact, bind each new physical call to the
+existing exact cost ledger and result provenance, then controlled C rollout and real
+quality verification. Supplier eligibility affects Claude only; independent work
+continues. No new acceptance framework or deferred-function expansion.
+
 ## Current owner scope — usable scoped Admin operations and truthful status
 
 Owner approves end-to-end implementation, minimum role/schema/proxy changes,

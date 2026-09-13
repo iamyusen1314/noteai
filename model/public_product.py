@@ -61,6 +61,7 @@ class Invocation:
     request_id: str
     failure: str = ""
     model_config: dict | None = None
+    prompts: object | None = None
 
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
@@ -108,12 +109,18 @@ async def dispatch(app, scope, receive, send, body: bytes):
         if path in PAID_ROUTES and os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1":
             import model_runtime_config
             context.model_config = await run_in_threadpool(model_runtime_config.read)
+        if path in PAID_ROUTES:
+            import prompt_manager
+            context.prompts = await run_in_threadpool(prompt_manager.capture_request)
     except HTTPException as exc:
         return await JSONResponse({"detail": exc.detail}, status_code=exc.status_code)(scope, receive, send)
     marker = _invocation.set(context)
+    prompt_marker = prompt_manager.bind_request(context.prompts) if context.prompts is not None else None
     try:
         return await app(scope, receive, send)
     finally:
+        if prompt_marker is not None:
+            prompt_manager.release_request(prompt_marker)
         _invocation.reset(marker)
 
 

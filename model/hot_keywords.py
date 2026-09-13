@@ -1318,10 +1318,33 @@ def _load_domain_stats():
         pass
 
 
+# Maps API domain names → training-data domain names for category_saturation lookup.
+# API domains not in features.parquet get saturation=0.5 (bad default); these aliases
+# redirect them to the closest training-data category so get_domain_stats returns real stats.
+_LEGACY_STATS_ALIASES: dict[str, str] = {
+    "餐饮": "美食",   # restaurant → food (saturation 0.028)
+    "食品": "美食",
+    "旅游": "旅行",
+    "酒店": "旅行",
+    "住宿": "旅行",
+    "酒旅": "旅行",
+    "民宿": "旅行",
+    "出行": "旅行",
+    "运动健身": "运动",
+    "亲子": "情感",
+    "美妆": "穿搭",   # beauty → fashion (saturation 0.138)
+    "家居": "职场",   # home decor → career (saturation 0.095)
+    "健身": "运动",   # fitness → sports (saturation 0.017)
+    "母婴": "健康",   # parenting → health (saturation 0.107; baby care ≈ health content)
+}
+
+
 def get_domain_stats(domain: str) -> dict:
     """Returns {avg_ces: float, saturation: float} for a domain. Falls back to defaults."""
     _load_domain_stats()
-    return _DOMAIN_STATS.get(domain, {"avg_ces": 50.0, "saturation": 0.5})
+    return _DOMAIN_STATS.get(domain, _DOMAIN_STATS.get(
+        _LEGACY_STATS_ALIASES.get(domain, domain), {"avg_ces": 50.0, "saturation": 0.5}
+    ))
 
 
 # ── Read ──────────────────────────────────────────────────────────────────────
