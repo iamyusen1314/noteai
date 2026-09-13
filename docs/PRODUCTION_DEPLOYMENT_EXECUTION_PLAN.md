@@ -1,7 +1,7 @@
 # NoteAI Production Deployment Execution Plan
 
-September13 19:26 Beijing current component set: C API1a1870a image
-sha256:30f690b908aa15e927e3f9b0aabbd2c887a35465d845e63043c89d50523059be,
+September13 19:38 Beijing current component set: C API1a1870a image
+sha256:2ad44a4114d692b1720b2f57c43d9018b13d9a386a51333f79451a699c119345,
 Adminb033de0, public/Admin web363f3e3, Render Gateway60168e1. Exact original jobs,
 archives, hashes and rollback bases are indexed at the Handoff top. Original688
 supplier batch and0025 were applied and verified once; dated earlier pending states
@@ -9,8 +9,11 @@ below are history, not instructions to repeat uploads/builds/migrations.
 Existing Meituan/Gateway binding is active on C; Amap remains unbound for the actual
 technical-service permission gap. Real owner business02 reached Meituan and Claude,
 failed on incomplete expert output and refunded credits once; actual cost retained.
+Initial75/1a delta builds copied to the wrong /app root; their image replacements
+are historical facts, not proof of effective API/router fixes. The corrected image
+imports all4 current modules from /app/model, verified in isolatedPython3.11.
 API1a fixes bounded output capacity and scoped hotel facts without changing Prompt
-text or success criteria. Fresh business03 now verifies the corrected full chain;
+text or success criteria. Fresh business04 now verifies the corrected full chain;
 read its original result, cost links and owned saved result before further action.
 Item34 fixed F artifact/T0/history and unique continuation are unchanged.30/37.
 

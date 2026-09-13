@@ -1,5 +1,23 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 19:38 Beijing — runtime path correction verified and deployed
+
+Original runtime-path-correction/result.json is DEPLOYED at1789299523.6879401.
+Effective API source1a1870a, image
+sha256:2ad44a4114d692b1720b2f57c43d9018b13d9a386a51333f79451a699c119345.
+Its isolated Python3.11.15 import checked api/_mr/_facts/_public_product actual
+/app/model origins, all4 hashes and loaded4096/response_received constants.
+Built from the retained363 image with verified75/1a files, zero repeat upload/DDL.
+Old mixed-path images remain retained as failed-release evidence, not recommended
+functional rollback;363 is a known previous runtime with the documented1200 limit.
+Adminb033, web363, Gateway601, env/config and Item34 fixed artifact are unchanged.
+
+Fresh owner business04 launched once1789299573.618135,pid1564734 through normal
+authentication/entitlement; existing stage business-analyze-04, script SHA
+28de18656bb2e637b3b94ccad4b2807b0595090e9e4b84f92416d50317211535.
+It tests the now-loaded correction, not a replay of03. Read original result first.
+Readiness30/37; all prior failure costs/claims remain historical.
+
 ## September13 continuation — mixed import path found; original failures preserved
 
 Fresh03 failed at1789299203.5727541,HTTP200/no complete; root-only SSE SHA
