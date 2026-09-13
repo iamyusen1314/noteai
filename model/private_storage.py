@@ -28,6 +28,7 @@ import idempotency
 
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_ORIGINAL_VIDEO_BYTES = 100 * 1024 * 1024
 MAX_VIDEO_BUNDLE_BYTES = 64 * 1024 * 1024
 MAX_VIDEO_FRAMES = 100
 MAX_FRAME_BYTES = 2 * 1024 * 1024
@@ -37,12 +38,13 @@ ORPHAN_MIN_AGE_SECONDS = 24 * 60 * 60
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _OBJECT_KEY_RE = re.compile(
-    r"^v1/(payload|media)/(request|result|image|video_frames)/"
+    r"^v1/(payload|media)/(request|result|image|video_frames|video)/"
     r"[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\.(json|bin|zip)$"
 )
-_PURPOSES = frozenset({"image", "video_frames"})
+_PURPOSES = frozenset({"image", "video_frames", "video"})
 _CONTENT_TYPES = {
+    "video": frozenset({"video/mp4", "video/quicktime", "video/x-msvideo"}),
     "image": frozenset({"image/jpeg", "image/png", "image/webp"}),
     "video_frames": frozenset({"application/vnd.noteai.video-frames+zip"}),
 }
@@ -677,6 +679,7 @@ def _object_prefix(value: str) -> str:
         "v1/payload/result",
         "v1/media/image",
         "v1/media/video_frames",
+        "v1/media/video",
     }:
         raise ValueError("invalid private object prefix")
     return normalized + "/"
@@ -1054,14 +1057,14 @@ def store_media_bytes(
     if normalized_type not in _CONTENT_TYPES[purpose_value]:
         raise ValueError("media content type does not match purpose")
     body = bytes(payload)
-    maximum = MAX_IMAGE_BYTES if purpose_value == "image" else MAX_VIDEO_BUNDLE_BYTES
+    maximum = {"image": MAX_IMAGE_BYTES, "video_frames": MAX_VIDEO_BUNDLE_BYTES, "video": MAX_ORIGINAL_VIDEO_BYTES}[purpose_value]
     if not body or len(body) > maximum:
         raise ValueError("private media size is outside the allowed range")
     count = _bounded_int(
         item_count,
         "item_count",
         1,
-        1 if purpose_value == "image" else MAX_VIDEO_FRAMES,
+        MAX_VIDEO_FRAMES if purpose_value == "video_frames" else 1,
     )
     ttl = _bounded_int(ttl_seconds, "ttl_seconds", 60, 30 * 24 * 60 * 60)
     subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
@@ -1220,9 +1223,7 @@ def load_media_bytes(
     selected = backend or get_object_backend()
     body, metadata = selected.get(
         key,
-        max_bytes=MAX_IMAGE_BYTES
-        if reference.purpose == "image"
-        else MAX_VIDEO_BUNDLE_BYTES,
+        max_bytes={"image": MAX_IMAGE_BYTES, "video_frames": MAX_VIDEO_BUNDLE_BYTES, "video": MAX_ORIGINAL_VIDEO_BYTES}[reference.purpose],
     )
     _verify_object(
         body=body,
@@ -1239,6 +1240,113 @@ def load_media_bytes(
     return reference, body
 
 
+def _ark_update(reference_id: str, subject_hash: str, expected: str, values: dict) -> None:
+    allowed = {'ark_state','ark_file_id','ark_claim_id','ark_model','ark_expires_at','ark_call_hash','ark_updated_at'}
+    if not values or not set(values) <= allowed:
+        raise ValueError('invalid Ark lifecycle update')
+    with db.transaction(write=True) as tx:
+        changed = tx.execute('UPDATE private_media_refs SET ' + ','.join(key+'=?' for key in values)
+            + ' WHERE id=? AND subject_hash=? AND ark_state=?',
+            (*values.values(), reference_id, subject_hash, expected))
+        if changed.rowcount != 1:
+            raise MediaReferenceUnavailable('ARK_FILE_CONCURRENT_OR_UNCONFIRMED')
+
+
+def understand_original_video(reference: MediaReference, body: bytes, prompt: str) -> str:
+    """Use original audio/video bytes, with one durable Files upload per media.
+
+    Existing business idempotency owns the inference. An unknown inference or
+    upload is never released by another request; known file IDs remain readable.
+    """
+    import ark_media
+    import public_product
+    import time
+    current = public_product._invocation.get()
+    if not current or idempotency.operation_subject_hash(current.user_id) != reference.subject_hash:
+        raise MediaReferenceUnavailable()
+    if reference.purpose != 'video' or hashlib.sha256(body).hexdigest() != reference.content_sha256:
+        raise MediaReferenceUnavailable('ORIGINAL_VIDEO_REQUIRED')
+    public_product.assert_result_known()
+    if not ark_media.configured():
+        raise ark_media.ArkMediaError('ARK_NOT_CONFIGURED')
+    # Keep JSON overhead well under Ark's64MiB request limit, preserving all bytes.
+    if len(body) <= 46 * 1024 * 1024:
+        return ark_media.chat(prompt, [ark_media.video_part(body, mime=reference.content_type, fps=2.0)],
+                              audio_possible=True, max_tokens=8192)
+    row = db.fetchone('SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?',
+                      (reference.id, reference.subject_hash))
+    if not row or row['state'] != 'ready' or row['expires_at'] <= _utc().isoformat():
+        raise MediaReferenceUnavailable()
+    state = row['ark_state']
+    now = _utc().isoformat()
+    if state == 'none':
+        expires_at = int(time.time()) + 86410
+        _ark_update(reference.id, reference.subject_hash, 'none', {'ark_state':'uploading',
+            'ark_claim_id':str(uuid.uuid4()), 'ark_model':ark_media.MODEL,
+            'ark_expires_at':expires_at, 'ark_updated_at':now})
+        def persist(result):
+            values = {'ark_state':result['state'], 'ark_updated_at':_utc().isoformat()}
+            if result.get('file_id'):
+                values['ark_file_id'] = result['file_id']
+            _ark_update(reference.id, reference.subject_hash, 'uploading', values)
+        ark_media.upload_video(body, mime=reference.content_type, persist=persist, fps=2.0,
+                               expire_at=expires_at)
+        row = db.fetchone('SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?',
+                          (reference.id, reference.subject_hash))
+        state = row['ark_state']
+    if state == 'uploaded':
+        # Polling the originalID is read-only and is safe after a lost client.
+        ark_media.wait_file(row['ark_file_id'])
+        _ark_update(reference.id, reference.subject_hash, 'uploaded',
+                    {'ark_state':'active', 'ark_updated_at':_utc().isoformat()})
+        state = 'active'
+    if state != 'active' or row['ark_model'] != ark_media.MODEL or row['ark_expires_at'] <= int(time.time()):
+        raise MediaReferenceUnavailable('ARK_FILE_PENDING_OR_UNKNOWN_NO_REPLAY')
+    call_hash = hashlib.sha256((current.request_id + ':' + current.route).encode()).hexdigest()
+    _ark_update(reference.id, reference.subject_hash, 'active',
+                {'ark_state':'inference','ark_call_hash':call_hash,'ark_updated_at':_utc().isoformat()})
+    try:
+        result = ark_media.chat(prompt, [ark_media.file_video_part(row['ark_file_id'])],
+                               audio_possible=True, max_tokens=8192)
+    except BaseException:
+        # A response may have incurred cost even on failure. Only completed
+        # physical-call records release this file for a distinct operation.
+        uncertain = db.fetchone("SELECT id FROM public_trial_calls WHERE user_id=? AND request_hash=? AND (state IN ('dispatched','unknown') OR (state='responded' AND http_status=200 AND model_usage_record_id IS NULL)) LIMIT 1",
+            (current.user_id, hashlib.sha256((current.user_id + ":" + current.request_id).encode()).hexdigest()))
+        next_state = 'unknown' if uncertain else 'active'
+        _ark_update(reference.id, reference.subject_hash, 'inference',
+                    {'ark_state':next_state,'ark_updated_at':_utc().isoformat()})
+        raise
+    _ark_update(reference.id, reference.subject_hash, 'inference',
+                {'ark_state':'active','ark_updated_at':_utc().isoformat()})
+    return result
+
+
+def _delete_ark_media(row) -> None:
+    """A local deletion cannot certify remote deletion or race an inference."""
+    import ark_media
+    value = dict(row)
+    state = value.get('ark_state', 'none')
+    if state in {'none', 'deleted', 'failed'}:
+        return
+    if state not in {'uploaded', 'active', 'delete_pending'} or not value.get('ark_file_id'):
+        raise ObjectStorageUnavailable('ARK_FILE_UNRECONCILED_DELETE_PENDING')
+    if state != 'delete_pending':
+        _ark_update(value['id'], value['subject_hash'], state,
+                    {'ark_state':'delete_pending','ark_updated_at':_utc().isoformat()})
+    try:
+        # Read back a lost DELETE before another cleanup attempt. An explicit
+        # matching file proves it still exists; a generic404 is not invented
+        # success and leaves the existing durable cleanup state unresolved.
+        if state == 'delete_pending':
+            ark_media.read_file_state(value['ark_file_id'])
+        ark_media.delete_file(value['ark_file_id'])
+    except Exception as exc:
+        raise ObjectStorageUnavailable('ARK_FILE_DELETE_UNCONFIRMED') from exc
+    _ark_update(value['id'], value['subject_hash'], 'delete_pending',
+                {'ark_state':'deleted','ark_updated_at':_utc().isoformat()})
+
+
 def delete_user_media(
     user_id: str,
     *,
@@ -1248,12 +1356,14 @@ def delete_user_media(
     subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
     rows = db.fetchall(
         "SELECT * FROM private_media_refs "
-        "WHERE subject_hash=? AND state='ready' ORDER BY created_at,id",
+        "WHERE subject_hash=? AND (state='ready' OR ark_state NOT IN ('none','failed','deleted')) ORDER BY created_at,id",
         (subject_hash,),
     )
     if not rows:
         return 0
     selected = backend or get_object_backend()
+    for row in rows:
+        _delete_ark_media(row)
     references = [_media_reference_from_row(row) for row in rows]
     for reference in references:
         key = _media_key(reference.id, subject_hash, reference.purpose)
@@ -1284,7 +1394,7 @@ def has_ready_user_media(storage: Any, user_id: str) -> bool:
     return bool(
         storage.fetchone(
             "SELECT 1 FROM private_media_refs "
-            "WHERE subject_hash=? AND state='ready' LIMIT 1",
+            "WHERE subject_hash=? AND (state='ready' OR ark_state NOT IN ('none','failed','deleted')) LIMIT 1",
             (subject_hash,),
         )
     )
@@ -1306,6 +1416,7 @@ def expire_media(
     selected = backend or get_object_backend()
     expired = 0
     for row in rows:
+        _delete_ark_media(row)
         reference = _media_reference_from_row(row)
         key = _media_key(reference.id, reference.subject_hash, reference.purpose)
         if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:

@@ -1260,75 +1260,25 @@ class ApiContractTests(unittest.TestCase):
             if original_key is not None:
                 os.environ["MOONSHOT_API_KEY"] = original_key
 
-        self.assertEqual(ctx.exception.status_code, 503)
+        self.assertEqual(ctx.exception.status_code, 422)
         self.assertEqual(calls, [("u-test", "screenshot", charge, "截图识别失败自动退回")])
 
     def test_extract_screenshot_preserves_uploaded_image_media_type(self):
-        original_check = api._billing.check_and_deduct
-        original_refund = api._billing.refund_operation_charge
-        original_client = api._httpx.Client
-        original_key = os.environ.get("MOONSHOT_API_KEY")
-        captured = {}
-
-        class FakeResponse:
-            extensions = {}
-            def raise_for_status(self):
-                return None
-
-            def json(self):
-                return {
-                    "model": "kimi-k2.6",
-                    "choices": [{
-                        "finish_reason": "stop",
-                        "message": {
-                            "content": '{"type":"B","title":"","body":"","domain":"美食","cover_desc":"一张清晰的菜品图"}'
-                        }
-                    }],
-                    "usage": {"prompt_tokens": 20, "completion_tokens": 10, "cached_tokens": 0},
-                }
-
-        class FakeClient:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, tb):
-                return False
-
-            def post(self, url, headers=None, json=None):
-                captured["payload"] = json
-                return FakeResponse()
-
-        try:
-            os.environ["MOONSHOT_API_KEY"] = "test-key"
-            api._billing.check_and_deduct = lambda user_id, op: {"source": "subscription"}
-            api._billing.refund_operation_charge = lambda *args, **kwargs: None
-            api._httpx.Client = FakeClient
-            png_b64 = base64.b64encode(b"\x89PNG\r\n\x1a\nfake-png").decode()
-
-            async def run():
-                return await api.extract_screenshot(
-                    api.ScreenshotExtractInput(image_base64=png_b64),
-                    user={"id": "u-test"},
-                )
-
-            result = asyncio.run(run())
-        finally:
-            api._billing.check_and_deduct = original_check
-            api._billing.refund_operation_charge = original_refund
-            api._httpx.Client = original_client
-            if original_key is None:
-                os.environ.pop("MOONSHOT_API_KEY", None)
-            else:
-                os.environ["MOONSHOT_API_KEY"] = original_key
-
-        image_url = captured["payload"]["messages"][0]["content"][0]["image_url"]["url"]
-        self.assertTrue(image_url.startswith("data:image/png;base64,"))
-        self.assertEqual(result["_media_type"], "image/png")
-        self.assertTrue(result["is_photo_only"])
-        self.assertEqual(result["tags"], "")
+        import io
+        from PIL import Image
+        image = io.BytesIO(); Image.new('RGB', (300,200), 'green').save(image,'PNG')
+        with mock.patch.object(api._billing,'check_and_deduct',return_value={'source':'subscription'}), \
+             mock.patch.object(api._billing,'refund_operation_charge') as refund, \
+             mock.patch.object(api._ark_media,'chat',return_value=json.dumps({'type':'B','title':'','body':'','domain':'美食','cover_desc':'真实素材描述'})) as call:
+            result = asyncio.run(api.extract_screenshot(api.ScreenshotExtractInput(
+                image_base64=base64.b64encode(image.getvalue()).decode()),user={'id':'u-test'}))
+        part = call.call_args.args[1][0]['image_url']
+        self.assertTrue(part['url'].startswith('data:image/png;base64,'))
+        self.assertEqual(base64.b64decode(part['url'].split(',')[1]),image.getvalue())
+        self.assertEqual(result['_media_type'],'image/png')
+        self.assertTrue(result['is_photo_only'])
+        self.assertEqual(result['model_used'],api._ark_media.MODEL)
+        refund.assert_not_called()
 
     def test_ocr_body_and_tags_are_separated_for_scoring(self):
         body, tags = api._split_ocr_body_and_tags(
@@ -1351,7 +1301,8 @@ class ApiContractTests(unittest.TestCase):
                 user={"id": "u-test"},
             )
 
-        result = asyncio.run(run())
+        with mock.patch.object(api._billing, "record_free_usage"):
+            result = asyncio.run(run())
         self.assertEqual(result["body"], "红米肠外皮薄，虾肉弹。")
         self.assertEqual(result["tags"], "#广州美食 #北京路早茶")
         self.assertEqual(result["char_count"], 11)
@@ -1439,78 +1390,42 @@ class ApiContractTests(unittest.TestCase):
             {"type": "B", "cover_desc": "第一张真实画面", "tags": [], "domain": "旅行"},
             {"type": "B", "cover_desc": "第二张真实画面", "tags": []},
         ])
-        with mock.patch.object(api._mr, "call") as provider:
+        with mock.patch.object(api._mr, "call") as provider, mock.patch.object(api._billing, "record_free_usage"):
             result = asyncio.run(api.validate_ocr(request, user={"id": "u-test"}))
         provider.assert_not_called()
         self.assertTrue(result["is_photo_only"])
         self.assertIn("第一张真实画面", result["body"])
         self.assertIn("第二张真实画面", result["body"])
 
-    def test_extract_screenshot_maps_moonshot_network_error_to_503(self):
-        original_check = api._billing.check_and_deduct
-        original_refund = api._billing.refund_operation_charge
-        original_client = api._httpx.Client
-        original_key = os.environ.get("MOONSHOT_API_KEY")
-        calls = []
-
-        class FailingClient:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, tb):
-                return False
-
-            def post(self, *args, **kwargs):
-                raise api._httpx.ProxyError("503 Service Unavailable")
-
-        try:
-            os.environ["MOONSHOT_API_KEY"] = "test-key"
-            charge = {"source": "subscription", "credits_used": 0.5}
-            api._billing.check_and_deduct = lambda user_id, op: charge
-            api._billing.refund_operation_charge = lambda user_id, op, ch, desc: calls.append((user_id, op, ch, desc))
-            api._httpx.Client = FailingClient
-            jpg_b64 = base64.b64encode(b"\xff\xd8\xfffake-jpg").decode()
-
-            async def run():
-                return await api.extract_screenshot(
-                    api.ScreenshotExtractInput(image_base64=jpg_b64),
-                    user={"id": "u-test"},
-                )
-
-            with self.assertRaises(HTTPException) as ctx:
-                asyncio.run(run())
-        finally:
-            api._billing.check_and_deduct = original_check
-            api._billing.refund_operation_charge = original_refund
-            api._httpx.Client = original_client
-            if original_key is None:
-                os.environ.pop("MOONSHOT_API_KEY", None)
-            else:
-                os.environ["MOONSHOT_API_KEY"] = original_key
-
-        self.assertEqual(ctx.exception.status_code, 503)
-        self.assertIn("Moonshot Vision 网络不可达", ctx.exception.detail)
-        self.assertEqual(calls, [("u-test", "screenshot", charge, "截图识别失败自动退回")])
+    def test_extract_screenshot_preserves_ark_unknown_without_fallback(self):
+        import io
+        from PIL import Image
+        image=io.BytesIO();Image.new('RGB',(300,200),'green').save(image,'PNG')
+        charge={'source':'credits','credits_used':0.5,'usage_id':'ocr-test'}
+        with mock.patch.object(api._billing,'check_and_deduct',return_value=charge), \
+             mock.patch.object(api._billing,'refund_operation_charge') as refund, \
+             mock.patch.object(api._ark_media,'chat',side_effect=api._public_product.TrialProviderStopped('ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY')) as call:
+            with self.assertRaises(HTTPException) as stopped:
+                asyncio.run(api.extract_screenshot(api.ScreenshotExtractInput(
+                    image_base64=base64.b64encode(image.getvalue()).decode()),user={'id':'u-test'}))
+        self.assertEqual(stopped.exception.status_code,502)
+        self.assertEqual(stopped.exception.detail['code'],'ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY')
+        call.assert_called_once()
+        refund.assert_called_once_with('u-test','screenshot',charge,'截图识别失败自动退回')
 
     def test_extract_screenshot_rejects_provider_error_without_inventing_photo_description(self):
-        response = mock.Mock(extensions={})
-        response.json.return_value = {"choices": [{"message": {"content": '{"error":"unreadable"}'}}]}
-        client = mock.MagicMock()
-        client.__enter__.return_value.post.return_value = response
-        charge = {"source": "credits", "credits_used": 0.5, "usage_id": "ocr-test-usage"}
-        with mock.patch.dict(os.environ, {"MOONSHOT_API_KEY": "offline-key"}), \
-             mock.patch.object(api._public_product, "kimi_client", return_value=client), \
-             mock.patch.object(api._billing, "check_and_deduct", return_value=charge), \
-             mock.patch.object(api._billing, "refund_operation_charge") as refund, \
-             mock.patch.object(api, "_record_kimi_usage_from_payload") as cost:
+        import io
+        from PIL import Image
+        image=io.BytesIO();Image.new('RGB',(300,200),'green').save(image,'PNG')
+        charge={'source':'credits','credits_used':0.5,'usage_id':'ocr-test'}
+        with mock.patch.object(api._billing,'check_and_deduct',return_value=charge), \
+             mock.patch.object(api._billing,'refund_operation_charge') as refund, \
+             mock.patch.object(api._ark_media,'chat',return_value='{"error":"unreadable"}') as call:
             with self.assertRaises(HTTPException):
                 asyncio.run(api.extract_screenshot(api.ScreenshotExtractInput(
-                    image_base64=base64.b64encode(b"\xff\xd8\xfffake-jpg").decode()), user={"id": "u-test"}))
-        cost.assert_called_once()
-        refund.assert_called_once_with("u-test", "screenshot", charge, "截图识别失败自动退回")
+                    image_base64=base64.b64encode(image.getvalue()).decode()),user={'id':'u-test'}))
+        call.assert_called_once()
+        refund.assert_called_once_with('u-test','screenshot',charge,'截图识别失败自动退回')
 
     def test_expert_opinion_evidence_is_bound_to_v04_sources(self):
         weakness = api.WeaknessItem(
@@ -3434,6 +3349,41 @@ class ApiContractTests(unittest.TestCase):
                 self.assertFalse(api._structured_fact_boundary_issues(accepted, source, "旅行"))
                 self.assertTrue(api._structured_fact_boundary_issues(rejected, source, "旅行"))
         self.assertFalse(api._structured_fact_boundary_issues("野趣房是否不含门票？需确认。", "部分房型含门票。", "旅行"))
+
+    def test_hotel_unknown_holiday_is_not_a_promise(self):
+        source = "酒店998元起，房型与门票绑定未知。"
+        for text in ("建议核实春节是否适用。", "春节是否适用仍未知。", "不要宣称春节不加价。"):
+            self.assertFalse(api._structured_fact_boundary_issues(text, source, "旅行"), text)
+        for text in ("春节适用998元起套餐。", "建议春节入住998元含票套餐。"):
+            self.assertTrue(api._structured_fact_boundary_issues(text, source, "旅行"), text)
+
+    def test_diagnosis_report_repair_keeps_full_source_and_has_one_attempt(self):
+        source = "酒店998元起，房型与门票绑定未知。\n" + "原事实明细。" * 1000 + "尾部约束：不得推定含票。"
+        good = ("原文缺少具体房型的可核验权益。", "建议核实春节是否适用，并补充具体房型与套餐权益。")
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock()) as call:
+            self.assertEqual(asyncio.run(api._repair_diagnosis_report_facts(*good, "旅行", source)), good)
+            call.assert_not_awaited()
+        for output, accepted in (
+            (f"<diagnosis>{good[0]}</diagnosis><plan>{good[1]}</plan>", True),
+            ("<diagnosis>998元含票。</diagnosis><plan>春节入住。</plan>", False),
+            ("<diagnosis>不完整</diagnosis>", False),
+        ):
+            with self.subTest(accepted=accepted), mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=output)) as call:
+                task = api._repair_diagnosis_report_facts("998元含票。", "春节入住。", "旅行", source)
+                if accepted:
+                    self.assertEqual(asyncio.run(task), good)
+                else:
+                    with self.assertRaises(HTTPException) as failure:
+                        asyncio.run(task)
+                    self.assertEqual(failure.exception.detail["code"], "DIAGNOSIS_FACT_UNVERIFIED")
+                self.assertEqual(call.await_count, 1)
+                self.assertEqual(call.call_args.args[0], "arbitrate")
+                self.assertIn(source, call.call_args.args[2])
+                self.assertIn("998元含票。", call.call_args.args[2])
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(side_effect=RuntimeError("UNKNOWN"))) as call:
+            with self.assertRaisesRegex(RuntimeError, "UNKNOWN"):
+                asyncio.run(api._repair_diagnosis_report_facts("998元含票。", "春节入住。", "旅行", source))
+            self.assertEqual(call.await_count, 1)
 
     def test_hotel_price_ranges_do_not_borrow_qualifiers_or_invent_capacity(self):
         source = "狩猎房969元起/晚；亲子房1965元起。部分房型含门票，具体绑定未知。"

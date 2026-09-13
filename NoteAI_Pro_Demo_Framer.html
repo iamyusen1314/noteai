@@ -5274,8 +5274,9 @@ async function refreshPublicStatus() {
   status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。诊断6 / 生成8 / 深度重写3 / 快速对话1积分。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    ' 图片、视频、外部笔记跟踪及支付暂未开放。';
+    (_publicStatus?.media_open ? '图片和视频音画理解已开放，按同等账户权益执行。' : '图片和视频暂未开放。') + '外部笔记跟踪及支付暂未开放。';
   syncPublicAuthAvailability();
+  syncProductUI();
 }
 function syncPublicAuthAvailability() {
   if (!PUBLIC_PRODUCT) return;
@@ -5298,25 +5299,27 @@ function requirePublicCapability(key) {
 function syncProductUI() {
   const pricing = document.getElementById('pricing-content');
   const freeMix = document.getElementById('free-plan-mix');
-  if (freeMix) freeMix.textContent = '✓ 或文字生成1次；图片与视频暂未开放';
+  const mediaOpen = _publicStatus?.media_open === true;
+  if (freeMix) freeMix.textContent = mediaOpen ? '✓ 或生成1次；图片/视频按本人账户权益使用' : '✓ 或文字生成1次；图片与视频暂未开放';
   if (pricing && !pricing.querySelector('#public-pricing-notice')) {
     const notice = document.createElement('p');
     notice.id = 'public-pricing-notice';
-    notice.textContent = '免费文字体验额度：每月12积分（北京时间每月1日08:00刷新）。实际开放状态见页面顶部。支付、图片、视频和笔记跟踪尚未开放；下列付费套餐仅作价格与交付说明，不能购买。';
+    notice.textContent = '免费账户每月12积分（北京时间每月1日08:00刷新）。赠送与购买同等权益使用同一正式流程。素材与业务开放状态见页面顶部；支付及笔记跟踪尚未开放，下列付费套餐不能购买。';
     pricing.prepend(notice);
   }
   document.getElementById('legal-version').textContent = PUBLIC_PRODUCT_CONTRACT;
   document.getElementById('product-consent').style.display = _authUser && !_authUser.contract_accepted ? 'block' : 'none';
   document.querySelectorAll('.input-type').forEach(el => {
     if (el.querySelector('.input-type-label')?.textContent !== '手动填写') {
-      el.setAttribute('aria-disabled','true'); el.title='当前免费体验支持文字；图片和视频暂未开放';
+      const allowed = mediaOpen && /图片|截图|视频/.test(el.querySelector('.input-type-label')?.textContent || '');
+      el.setAttribute('aria-disabled', String(!allowed)); el.title=allowed ? '' : '此项输入尚未开放';
     }
   });
   document.querySelectorAll('input[type="file"]').forEach(el => {
-    if (el.id === 'chat-file-input') el.accept='.txt,.md,.json,.csv';
-    else el.disabled=true;
+    if (el.id === 'chat-file-input') el.accept=mediaOpen ? 'image/jpeg,image/png,image/webp,.txt,.md,.json,.csv' : '.txt,.md,.json,.csv';
+    else el.disabled=!mediaOpen;
   });
-  ['genCoverInput','genVideoInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display='none';});
+  ['genCoverInput','genVideoInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=mediaOpen ? '' : 'none';});
   // Existing profile actions keep their real scope; deletion/export are support requests.
   document.querySelectorAll('[data-product-action="handleUpgrade"],[data-product-action="handleTopup"]').forEach(el => {
     el.setAttribute('aria-disabled','true'); el.title='支付尚未开放';
@@ -5726,7 +5729,7 @@ function renderPricingConfig(cfg) {
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/${price > 0 ? '30天' : '月'}</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断${cAnalyze}次 / 爆文${cGenerate}次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮${PUBLIC_PRODUCT ? '；图片与视频暂未开放' : ` / 截图${cScreenshot}张`}</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮${PUBLIC_PRODUCT && !_publicStatus?.media_open ? '；图片与视频暂未开放' : ` / 截图${cScreenshot}张`}</div>
           ${features}
         </div>
         <button ${productActionAttributes(tier === 'free' ? 'openAuthModal' : 'handleUpgrade', tier === 'free' ? 'register' : tier)} style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '暂不可购买'}</button>
@@ -5814,7 +5817,7 @@ function goToDiagnose(tabEl) {
 }
 
 function selectType(el, type) {
-  if (PUBLIC_PRODUCT && type !== '手动填写') { showToast('当前免费体验支持文字输入，图片和视频暂未开放'); return; }
+  if (PUBLIC_PRODUCT && type !== '手动填写' && (!/图片|截图|视频/.test(type) || !requirePublicCapability('media_open'))) { showToast('此项输入尚未开放'); return; }
   const previousType = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
   if (previousType === '视频上传' && type !== '视频上传'
       && (_diagVideoState === 'preflight' || _diagVideoState === 'uploading')) {
@@ -6040,7 +6043,7 @@ function _setGenVideoState(state) {
 }
 
 async function _uploadVideoFile(file) {
-  if (PUBLIC_PRODUCT) { showToast("当前免费体验不支持视频，请填写文字简报"); return; }
+  if (PUBLIC_PRODUCT && !requirePublicCapability("media_open")) return;
   const errEl = document.getElementById('genVideoError');
   if (errEl) errEl.style.display = 'none';
 
@@ -6184,7 +6187,9 @@ async function startGeneration() {
   _genStreamActive = true;
   _setGenerationSubmitBusy(true);
 
-  const coverImages = _genCoverImages.map(img => img.dataURL.split(',')[1]);
+  let coverImages;
+  try { coverImages = await Promise.all(_genCoverImages.map(img => privateImageInput(img.dataURL))); }
+  catch (error) { _genStreamActive = false; _setGenerationSubmitBusy(false); showToast(error.message); return; }
 
   let _resolveGen, _rejectGen;
   _diagnosePromise = new Promise((res, rej) => { _resolveGen = res; _rejectGen = rej; });
@@ -6731,6 +6736,31 @@ function formatLocalTime() {
   return `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}`;
 }
 
+const _privateImageInputs = new Map();
+async function privateImageInput(value) {
+  if (!value) return null;
+  const owner = _authVerifiedOwnerId || _authUser?.id;
+  if (!owner || !_authToken) throw new Error('请先登录后上传图片');
+  if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(value)) return value;
+  const key = owner + ':' + value;
+  if (!_privateImageInputs.has(key)) {
+    _privateImageInputs.set(key, (async () => {
+      const raw = value.startsWith('data:') ? value.split(',')[1] : value;
+      const prefix = atob(raw.slice(0, 24));
+      const mime = prefix.startsWith('\x89PNG') ? 'image/png' : prefix.startsWith('RIFF') ? 'image/webp' : 'image/jpeg';
+      const blob = await (await fetch('data:' + mime + ';base64,' + raw)).blob();
+      const form = new FormData();
+      form.append('file', blob, 'material.' + ({'image/png':'png','image/webp':'webp','image/jpeg':'jpg'}[mime]));
+      const response = await fetch(API_BASE + '/upload-image', {method:'POST',headers:authHeader(),body:form});
+      const result = await response.json();
+      if (!response.ok || !result.media_ref) throw new Error(typeof result.detail === 'string' ? result.detail : '图片私有存储未确认，请查看原上传状态');
+      if ((_authVerifiedOwnerId || _authUser?.id) !== owner) throw new Error('账户已切换，停止使用原图片');
+      return result.media_ref;
+    })());
+  }
+  return await _privateImageInputs.get(key);
+}
+
 async function startDiagnosis() {
   if (!requirePublicCapability("ai_open")) return;
   if (PUBLIC_PRODUCT && !requireProductConsent()) return;
@@ -6801,6 +6831,11 @@ async function startDiagnosis() {
     document.getElementById('merchantNameInput')?.focus();
     return;
   }
+
+  try {
+    coverB64 = await privateImageInput(coverB64);
+    extraImages = await Promise.all(extraImages.map(privateImageInput));
+  } catch (error) { showToast(error.message); return; }
 
   // ── 完整 AI 诊断流（含约束条件 + 多图 + 真实 agent 事件）────────────
   _diagnoseResult = null;
@@ -9531,6 +9566,7 @@ async function chatSendMessage(options = {}) {
   const requestController = new AbortController();
   _chatRequestAbortController = requestController;
   try {
+    if (attachImage) payload.image_base64 = await privateImageInput(attachImage.base64);
     const handleChatAccessFailure = async response => {
       if (response.status === 402) {
         const errData = await response.json().catch(() => ({}));
@@ -10445,6 +10481,7 @@ async function submitVerificationFlow() {
   }
 }
 async function doLogout() {
+  _privateImageInputs.clear();
   const tokenToRevoke = _authToken;
   authClearLocalSession();
   showToast('已退出登录');
@@ -12020,11 +12057,11 @@ async function _ocrImages(imagesToOcr) {
   _updateScreenshotOcrUi();
 
   await Promise.allSettled(imagesToOcr.map(img =>
-    fetch(API_BASE + '/extract-screenshot', {
+    privateImageInput(img.dataURL).then(mediaRef => fetch(API_BASE + '/extract-screenshot', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeader() },
-      body: JSON.stringify({ image_base64: img.dataURL.split(',')[1] }),
-	    }).then(r => {
+      headers: { 'Content-Type': 'application/json', ...authHeader(), 'X-Request-ID': (img.ocrRequestId ||= crypto.randomUUID()) },
+      body: JSON.stringify({ image_base64: mediaRef }),
+	    })).then(r => {
 	      if (!_ssImages.includes(img)) return;
 	      if (r.status === 402) {
 	        return r.json().catch(() => ({})).then(errData => {
@@ -12103,8 +12140,8 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
   try {
     const res = await fetch(API_BASE + '/validate-ocr', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeader() },
-      body: JSON.stringify({ ocr_results: ocrResults }),
+      headers: { 'Content-Type': 'application/json', ...authHeader(), 'X-Request-ID': crypto.randomUUID() },
+      body: JSON.stringify({ ocr_results: ocrResults, ocr_request_ids: ocrResults.map(r => r.ocr_request_id).filter(Boolean) }),
     });
     if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
     if (res.status === 401) {

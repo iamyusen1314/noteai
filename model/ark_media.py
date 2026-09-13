@@ -201,7 +201,7 @@ def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
     return content.strip()
 
 
-def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, transport=None) -> str:
+def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, expire_at: int | None = None, transport=None) -> str:
     """Caller must durably claim the media upload before invoking this once.
 
     persist records returned ID/status before any later inference. On an unknown
@@ -210,26 +210,37 @@ def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, transp
     if not payload or len(payload) > MAX_VIDEO_BYTES or mime not in {"video/mp4", "video/quicktime", "video/x-msvideo"} or not .2 <= fps <= 5:
         raise ArkMediaError("ARK_VIDEO_INVALID")
     headers = _headers()
+    expire_at = expire_at if expire_at is not None else int(time.time()) + 86410
+    if type(expire_at) is not int or not int(time.time()) + 86400 <= expire_at <= int(time.time()) + 30 * 86400:
+        raise ArkMediaError("ARK_FILE_EXPIRY_INVALID")
+    known_id = None
+    terminal_saved = False
     try:
         with _client(transport=transport) as client:
             response = client.post(BASE_URL + "/files", headers=headers,
-                data={"purpose": "user_data", "expire_at": str(int(time.time()) + 86410),
+                data={"purpose": "user_data", "expire_at": str(expire_at),
                       "preprocess_configs[video][fps]": str(fps),
                       "preprocess_configs[video][model]": MODEL},
                 files={"file": ("material" + {"video/mp4": ".mp4", "video/quicktime": ".mov", "video/x-msvideo": ".avi"}[mime], payload, mime)})
             if response.status_code != 200:
-                persist({"state": "failed", "http_status": response.status_code})
+                rejected = response.status_code in {400, 401, 403, 404, 413, 415, 422, 429}
+                persist({"state": "failed" if rejected else "unknown", "http_status": response.status_code})
+                terminal_saved = True
                 raise ArkMediaError("ARK_FILE_HTTP_" + str(response.status_code))
             data = response.json()
-            file_id = data.get("id")
+            file_id = data.get("id") if isinstance(data, dict) else None
             if not isinstance(file_id, str) or not _FILE_ID.fullmatch(file_id):
-                raise ValueError()
+                raise ArkMediaError("ARK_FILE_IDENTITY_UNCONFIRMED")
+            known_id = file_id
             persist({"state": "uploaded", "file_id": file_id, "model": MODEL})
             return file_id
-    except ArkMediaError:
-        raise
-    except BaseException:
-        persist({"state": "unknown"})
+    except BaseException as exc:
+        if not terminal_saved:
+            # Keep a returned identifier even when its first durable write had
+            # an uncertain outcome. It is the only exact readback reference.
+            persist({"state": "unknown", **({"file_id": known_id} if known_id else {})})
+        if isinstance(exc, ArkMediaError):
+            raise
         raise ArkMediaError("ARK_FILE_UPLOAD_UNKNOWN_NO_REPLAY") from None
 
 
@@ -253,6 +264,20 @@ def wait_file(file_id: str, *, max_wait: int = 180, transport=None) -> None:
             if time.monotonic() >= deadline:
                 raise ArkMediaError("ARK_FILE_PROCESSING_TIMEOUT")
             time.sleep(2)
+
+
+def read_file_state(file_id: str, *, transport=None) -> str:
+    """Read only the original file. Unspecified errors do not certify absence."""
+    if not _FILE_ID.fullmatch(file_id):
+        raise ArkMediaError("ARK_FILE_REFERENCE_INVALID")
+    with _client(transport=transport) as client:
+        response = client.get(BASE_URL + "/files/" + file_id, headers=_headers())
+        if response.status_code != 200:
+            raise ArkMediaError("ARK_FILE_STATUS_HTTP_" + str(response.status_code))
+        data = response.json()
+        if data.get("id") != file_id or data.get("status") not in {"active", "processing", "error"}:
+            raise ArkMediaError("ARK_FILE_IDENTITY_OR_STATE_UNCONFIRMED")
+        return data["status"]
 
 
 def delete_file(file_id: str, *, transport=None) -> None:

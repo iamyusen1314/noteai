@@ -1556,7 +1556,7 @@ function renderSupplierView(runtime) {
   const rows = runtime && Array.isArray(runtime.suppliers) ? runtime.suppliers : null;
   if (!rows) return '<p>供应商配置来源暂不可用；不能据此认定未配置或用量为零。</p>';
   const history = Array.isArray(runtime.recent_usage) ? runtime.recent_usage : null;
-  return [['generation_models','生成模型'],['data_tools','数据 / 工具服务']].map(([group,label]) =>
+  return [['generation_models','生成模型'],['media_models','图片 / 视频 / 音频理解'],['data_tools','数据 / 工具服务']].map(([group,label]) =>
     `<h3>${label}</h3><div class="card-grid card-grid-2">${rows.filter(row => row.group === group).map(row => {
       const entries = history ? history.filter(item => item.provider === row.id).sort((a,b) => String(b.last_recorded_at).localeCompare(String(a.last_recorded_at))) : null;
       const last = row.latest;

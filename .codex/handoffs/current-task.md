@@ -1,5 +1,84 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 01:02 Beijing — hotel08 failed/reconciled; complete media candidate verified locally
+
+Original08 is terminalRESPONSE_FAILED at1789316390.588022,HTTP200SSEcomplete0,
+DIAGNOSIS_FACT_UNVERIFIED; originalT0/history unchanged. SSESHA
+b931e7744fbc228159636012661c87b78fe20306fdb5f61c8c132e418b9b04ee.
+Claim8bcc0863-393c-4813-99e2-00cacafd1492,usage4dd42b47-91ab-4dc2-aa82-b48782b4c09e:
+6credits charged/refunded once,ownerwallet3000,total_used0,total_purchased0.
+4Sonnet1.696065+23Haiku1.226015=2.922080RMB actualmodelcost,27physicalresponses
+200/exact/complete,noneinflight. Meituan/internalfees remain unsettled,not0.
+Two repairedplans passed their facts; report and firstplan stillfailed. Existing
+rawreport/fullrejectedcandidate were not retained; do not claim every08failure
+was a guardfalsepositive. New report-only bounded repair plus narrow unknown-
+holiday correction are local,notyettestedlive;no09/replay.
+
+Currentlocalmedia candidate uses exactdoubao-seed-2-0-lite-260428/ArkChat+Files,
+existing private upload/ref ownership and normal billing. Originalvideo/audio
+retained; previewframe is not actualsampling evidence. LargeFiles upload has
+originalID/UNKNOWN preservation; deletion requires originalreadback. Existing
+SQLite/PGmedia lifecycle gains minimum bindingcolumns/guards via0026(NOT_APPLIED).
+Existing OCR admission additionally binds actualresult digest and includedmerge:
+a newlycompleted screenshot can extend a group; consumed-only regroup/recursive
+merge/falsifiedresult are refused. No content stored in admissiontable.
+Imageinputs reuse originalupload-image,APIchecksownerref; legacybase64compatible.
+Same publicboundary gates authenticated largebodies before buffering,one media
+requestslot perAPI,exactmediaNginxroutes and originalAdminmedia suppliergroup.
+No publicmedia/Arkactivation implied. OriginalencryptedArkkey and applied-closed
+WeChatinputs retained;no reinput,0Arkrequests,0WeChatrequests.
+
+Two actualreadonlysubagents verified currentPG16/SQLite lifecycle, exactminimum
+ACL, backwardrowprojection, forcedfailure atomicrollback, UNKNOWNID persistence,
+OCR transaction rollback/repeatedclaim. Python3.11+frontend/AdminJS syntax PASS.
+Affected regression initially caught a real supplierlistKeyError, corrected;
+oldVision fixtures updated to exactArkinput contract. Final86-test rerun PASS (82executed,4PGenvironment skips); separate actualPG16
+checks passed. Independent synthetic MP4+AAC passed realupload/privateownership/
+fullbyte Ark MockTransport/audioledger and downstreamcontext;4affected checks PASS.
+Admin reads API publicstatus;Ark Secret remainsAPI-only. These are localverification,
+notproductionacceptance.
+
+Production remainsAPIbc63377/0408a9,Adminb033/web363/Gateway601,Item34fixedF retained.
+0018 alreadycommitted/readbackverified;0025 neverreplayed. Next: savecurrentmedia
+checkpoint, buildnecessaryAPI/Admin/Payment candidates on retainedimages;
+applycompatible0026, stageclosedrollout/realmedia and newhotelquality verification;
+continueNativecanary/DML/callback/test12RMB owner-scan/refund/reconcile. Paymentpublic
+UI stillneedsactualNativeorder/poll flow. No ownerinteraction currentlyrequired.
+Readiness30/37unchanged;noneofthislocalwork is terminalDONE;noGitpush.
+
+## September14 00:15 Beijing — 0018 committed; hotelbc63377 deployed; new08 started
+
+Production0018 committed2026-09-13T23:59:00.068891+08:00 under the original
+noteai_admin/noteai session, fixed payload01064affc00e77811408b0a21b127d7d0890825ebb5d689adc4ec00e829d2c77.
+DMS singleDO SHA650e786953e08b9bfb6dfc0b375add818fce13367290a04e8fdb567800180122.
+Independent readback at00:00:49.481836+08:00 confirms ledger0018once,25total,
+0025 SHA580883da14d7f093e667fb3ae2aceeb6f345b2c948c00512b252d5ec096f3281 unchanged,
+all5affectedpaymenttables0, both newcolumns and exact6columnprivileges correct;
+no broadPaymentUPDATE. Exact three newfunctionsourceSHA and before/after metadata
+are private at ~/.codex/tmp/noteai-payment-0018-20260913/. No replay0018/0025.
+OriginalRDSbackup remains LAST_KNOWN; fresh affected empty tables/schema verified.
+Native configuration remains applied disabled; actual Payment/canary/DML/callback/
+owner-scanned12RMBtest/refund/reconcile still outstanding, not payment acceptance.
+
+Hotel-only sourcebc633773be5f43924f4cc6a13b06de77ad684267 DEPLOYED at
+1789315489.7599518,image sha256:0408a9cbc593063ec2d8a03160408490f1b378226eb26866aa70d0168360d49b.
+Only model/api.py changed (7e685263c09adcf51f0475a6a0bda959e637ad06b5489b7e75230f89103a0cef),
+not current localArk/billing/Admin/public_product. c47 imageebc078...4bc8e remains
+immediate rollback; original config/web/Admin/Gateway/Item34 unchanged.
+Stage /var/lib/noteai/hotel-facts-bc63377, executeSHA
+f179607062058ec116fc8eb630cde050af72717d6230e51d070cf3bda8f20d4e;
+archive225550bytes SHA86b2ba4705824483b517177b379f28cae5ba056e570ca29740e36c8ca6d0c6de.
+Python3.11.15/amd64 actual import/hash, canary/drain/CAS/health passed. Zero provider/
+business writes during rollout; existing transfer increment unsettled, not zero.
+New08 is a new normal owner analyze request formal-claude-meituan-20260914-08,
+business-analyze-08 under existing formal-claude-363f3e3, executeSHA
+7029482d635391a606e4c59a321e6bd515d6e9e992838ab042d8ef38d730d8a7.
+It tests full factual context through shaping and strict price/capacity boundaries;
+one clientPOST,noautomaticretry, normal6creditcharge/refund and actualcosts.
+Read original08 result before any followup;07 remains failed with originalcosts.
+Ark full media integration and Payment preparation continue independently;
+publicmedia/payments remain closed, no newItem34action, Readiness30/37 unchanged.
+
 ## September13 23:55 Beijing — original07 reconciled; factual repair and0018 compatibility verified locally
 
 Original07 router readback confirms32responses end_turn, including second repairs

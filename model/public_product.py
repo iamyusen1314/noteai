@@ -43,7 +43,17 @@ EXACT_ROUTES = frozenset({
     ("POST", "/chat/start"), ("POST", "/chat/message"),
     ("POST", "/chat/select-plan"),
 })
-PAID_ROUTES = {"/analyze/stream", "/generate/stream", "/chat/message"}
+PAID_ROUTES = {"/analyze/stream", "/generate/stream", "/chat/message", "/extract-screenshot", "/validate-ocr"}
+MEDIA_UPLOAD_ROUTES = {"/upload-image", "/upload-video"}
+MEDIA_PAYLOAD_ROUTES = {"/analyze/stream", "/generate/stream", "/chat/message", "/extract-screenshot", "/validate-ocr"}
+
+
+def media_enabled() -> bool:
+    import ark_media
+    import private_storage
+    return (enabled() and os.environ.get("NOTEAI_PUBLIC_MEDIA_ENABLED", "0") == "1"
+            and ark_media.configured() and private_storage.object_backend_configured())
+
 
 
 def enabled() -> bool:
@@ -59,6 +69,8 @@ def wechat_configured(*, callback: bool = False) -> bool:
 
 
 def allowed_route(method: str, path: str) -> bool:
+    if method == "POST" and media_enabled() and path in MEDIA_UPLOAD_ROUTES | {"/extract-screenshot", "/validate-ocr"}:
+        return True
     if (method, path) in EXACT_ROUTES:
         return True
     if wechat_configured():
@@ -87,7 +99,29 @@ class Invocation:
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
 
 
-async def dispatch(app, scope, receive, send, body: bytes):
+async def authenticated_user(scope):
+    """Authenticate uploads before reading their bodies, using original consent."""
+    from fastapi import HTTPException
+    from fastapi.security import HTTPAuthorizationCredentials
+    import auth
+    import db
+    headers = {k.lower(): v for k, v in scope.get("headers", [])}
+    token = headers.get(b"authorization", b"").decode("latin1")
+    if not token.startswith("Bearer "):
+        raise HTTPException(401, "请先登录")
+    user = await run_in_threadpool(auth.get_current_user,
+        HTTPAuthorizationCredentials(scheme="Bearer", credentials=token[7:]))
+    if not user.get("phone_verified_at"):
+        raise HTTPException(403, "免费试用需要已验证手机号")
+    consent = await run_in_threadpool(db.fetchone,
+        "SELECT user_id FROM user_contract_acceptances WHERE user_id=? AND contract_version=?",
+        (user["id"], CONTRACT_VERSION))
+    if not consent:
+        raise HTTPException(403, "请确认当前产品服务条款与隐私说明")
+    return user
+
+
+async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None):
     path = scope["path"]
     if path.startswith("/auth/") or path in {"/health/live", "/public/status", "/legal/contracts", "/billing/tiers", "/payments/capabilities"}:
         return await app(scope, receive, send)
@@ -97,18 +131,7 @@ async def dispatch(app, scope, receive, send, body: bytes):
     import db
     headers = {k.lower(): v for k, v in scope.get("headers", [])}
     try:
-        token = headers.get(b"authorization", b"").decode("latin1")
-        if not token.startswith("Bearer "):
-            raise HTTPException(401, "请先登录")
-        user = await run_in_threadpool(auth.get_current_user,
-            HTTPAuthorizationCredentials(scheme="Bearer", credentials=token[7:]))
-        if not user.get("phone_verified_at"):
-            raise HTTPException(403, "免费试用需要已验证手机号")
-        consent = await run_in_threadpool(db.fetchone,
-            "SELECT user_id FROM user_contract_acceptances WHERE user_id=? AND contract_version=?",
-            (user["id"], CONTRACT_VERSION))
-        if not consent:
-            raise HTTPException(403, "请确认当前产品服务条款与隐私说明")
+        user = authenticated or await authenticated_user(scope)
         request_id = headers.get(b"x-request-id", b"").decode("ascii", errors="ignore")
         if path in PAID_ROUTES and not re.fullmatch(r"[A-Za-z0-9_-]{8,100}", request_id):
             raise HTTPException(400, "请携带有效请求标识，避免重复扣额")
@@ -123,7 +146,7 @@ async def dispatch(app, scope, receive, send, body: bytes):
                 raise HTTPException(403, "当前仅开放微信支付")
             # Media and Tracking retain their concrete validation/deployment boundaries.
             # Facts use the existing intent/entity decision, never a gift/free downgrade.
-            if any(payload.get(k) for k in ("cover_image", "cover_images", "extra_images", "image_base64", "video_file_id")):
+            if not media_enabled() and any(payload.get(k) for k in ("cover_image", "cover_images", "extra_images", "image_base64", "video_file_id")):
                 raise HTTPException(422, "当前免费体验支持文字输入；图片和视频尚未开放")
 
         context = Invocation(user["id"], request_id or str(uuid.uuid4()), route=path)
@@ -202,9 +225,15 @@ def runtime_services():
         "NOTEAI_CLAUDE_GATEWAY_URL", "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH",
         "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID",
         "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET")) and os.environ.get("NOTEAI_CLAUDE_TRANSPORT") == "gateway"
+    import ark_media
     rows = [
+        {"id":"doubao", "name":"Doubao Seed 2.0 Lite 0428", "group":"media_models",
+         "model":ark_media.MODEL, "role":"图片、视频及视频原音轨的素材理解，完整观察进入现有行业Prompt和Claude任务",
+         "business":["screenshot", "image_understanding", "video_audio_understanding", "cover_analysis", "chat_image"],
+         "configured":ark_media.configured(), "enabled":media_enabled(),
+         "reason":"需精确模型与私有存储就绪；不会用文件名、封面或文字描述替代真实素材"},
         {"id": "kimi", "name": "Kimi K2.6", "group": "generation_models",
-         "role": "Kimi 文字与视觉处理；文字任务按当前已发布模型路由执行",
+         "role": "Kimi 文字任务按当前已发布模型路由执行；素材理解单独由豆包负责",
          "business": tasks["kimi"], "configured": bool(os.environ.get("MOONSHOT_API_KEY")),
          "enabled": bool(tasks["kimi"] and os.environ.get("MOONSHOT_API_KEY") and available()),
          "reason": "按已发布业务配置与用户权益执行，实际用量入账；不因赠送来源降质"},
@@ -217,7 +246,7 @@ def runtime_services():
     ]
     for row in rows:
         row.update(source="api_runtime_configuration", upstream_probed=False)
-        if tasks[row["id"]] is None:
+        if row["id"] in tasks and tasks[row["id"]] is None:
             row["reason"] = "当前模型路由读取失败；未将未知状态当作已启用或实时健康"
     return rows + fact_enrichment.runtime_services()
 

@@ -1,5 +1,17 @@
 # Architecture Summary
 
+September14 01:02BJT current: hotel08 failed/reconciled,6credits refunded once and2.922080RMB
+modelcost retained;APIbc63377 unchanged. CurrentArk full-media/ownedupload/normalcost/
+OCRno-replay candidate remainsLOCAL,0026NOT_APPLIED.0018 iscommitted,WeChatconfigured
+closed; actualPaymentloop and mediaquality verification stilloutstanding. SeeHandoff
+top for exactsources,regression and nextdeployment. NoItem34action or30/37increment.
+
+September14 00:15: production0018 committed and independently verified;0025 unchanged.
+Hotel-only APIbc63377/0408a9 deployed, c47 rollback; new normal owner08 tests full
+factual context, no07replay. Native config remains closed; actualPayment loop and
+fullArk media integration are outstanding. Exact files/hashes/states at Handoff
+top. No deployment of localArk/accounting changes implied; Item34 and30/37 preserved.
+
 September13 23:33 current state: APIc47/ebc078 is deployed (three exact runtime modules);
 08ef remains rollback. Business07 generated three plans but failed final facts;
 6credits refunded once and3.079685RMB actual model cost retained. DMS original

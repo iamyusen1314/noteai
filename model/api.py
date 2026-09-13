@@ -75,6 +75,7 @@ import auth as _auth
 import account_security as _account_security
 import public_account as _public_account
 import public_product as _public_product
+import ark_media as _ark_media
 import memory as _memory
 import billing as _billing
 import content_retention as _retention
@@ -165,6 +166,48 @@ def _store_video_meta(file_id: str, meta: dict) -> None:
     _cleanup_video_cache()
 
 
+async def _await_media_worker(function, *args, **kwargs):
+    """Join the original media call and its accounting even after disconnect."""
+    worker = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        while not worker.done():
+            try:
+                await asyncio.shield(worker)
+            except asyncio.CancelledError:
+                continue
+        worker.result()
+        raise
+
+
+def _original_video_metadata(payload: bytes | None = None, *, path: str | None = None) -> dict:
+    import cv2
+    if path is None:
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temporary:
+            temporary.write(payload or b"")
+            temporary.flush()
+            return _original_video_metadata(path=temporary.name)
+    capture = cv2.VideoCapture(path)
+    try:
+        fps = float(capture.get(cv2.CAP_PROP_FPS))
+        count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        if not math.isfinite(fps) or fps <= 0 or count <= 0:
+            raise ValueError("original_video_unreadable")
+        duration = count / fps
+        if not 0 < duration <= _VIDEO_MAX_DURATION:
+            raise ValueError("original_video_duration_invalid")
+        ok, frame = capture.read()
+        if not ok:
+            raise ValueError("original_video_frame_unreadable")
+        ok, preview = cv2.imencode(".jpg", frame)
+        if not ok:
+            raise ValueError("original_video_preview_unavailable")
+        return {"frames": [preview.tobytes()], "duration_sec": duration, "raw_fps": fps,
+                "original_video": True, "analysis_fps": 2.0}
+    finally:
+        capture.release()
+
 def _get_video_meta(file_id: str | None, user_id: str | None = None) -> dict | None:
     if not file_id:
         return None
@@ -175,9 +218,15 @@ def _get_video_meta(file_id: str | None, user_id: str | None = None) -> dict | N
             _reference, bundle = _private_storage.load_media_bytes(
                 str(file_id),
                 user_id=user_id,
-                purpose="video_frames",
             )
-            return _private_storage.read_video_frame_bundle(bundle)
+            if _reference.purpose == "video":
+                result = _original_video_metadata(bundle)
+                result["reference"] = _reference
+                result["original_bytes"] = bundle
+                return result
+            if _reference.purpose == "video_frames":
+                return _private_storage.read_video_frame_bundle(bundle)
+            return None
     except (ValueError, _private_storage.PrivateStorageError):
         if re.fullmatch(
             r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -238,9 +287,28 @@ def _image_media_type(raw: bytes) -> str:
     return "image/jpeg"
 
 
+def _read_image_input(image_value: str) -> bytes:
+    # Resolve only the authenticated owner's existing private image reference.
+    # A UUID never becomes an arbitrary URL. Legacy base64 remains compatible.
+    if re.fullmatch(r"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", image_value or ""):
+        current = _public_product._invocation.get()
+        if not current:
+            raise HTTPException(401, "读取私有图片需要当前用户身份")
+        try:
+            return _private_storage.load_media_bytes(image_value, user_id=current.user_id, purpose="image")[1]
+        except _private_storage.PrivateStorageError:
+            raise HTTPException(404, "图片不存在、已过期或不属于当前用户") from None
+    try:
+        return base64.b64decode(image_value, validate=True)
+    except (ValueError, TypeError):
+        raise HTTPException(422, "图片编码无效，请重新上传实际文件") from None
+
+
 def _data_url_from_image_b64(image_b64: str) -> tuple[str, str, int]:
     try:
-        raw = base64.b64decode(image_b64, validate=False)
+        raw = _read_image_input(image_b64)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise ValueError("图片 base64 无法解码") from exc
     if not raw:
@@ -651,102 +719,26 @@ async def _wait_video_file_ready(file_id: str, key: str, max_wait: int = 60) -> 
 
 
 async def _kimi_video_understand(
-    file_id: str,
-    domain: str,
-    brief: str | None,
-    *,
-    user_id: str | None = None,
+    file_id: str, domain: str, brief: str | None, *, user_id: str | None = None, meta: dict | None = None,
 ) -> str:
-    """按视频时长动态决定发送帧数，均匀覆盖开头/中间/结尾。"""
-    meta = _get_video_meta(file_id, user_id)
-    if not meta:
-        print(
-            "[kimi_video_understand] frames_unavailable",
-            file=sys.stderr,
-            flush=True,
-        )
-        return ""
-
-    frames       = meta["frames"]
-    duration_sec = meta.get("duration_sec", len(frames))
-    n_total      = len(frames)
-
-    key = os.environ.get("MOONSHOT_API_KEY", "")
-    if not key:
-        return ""
-
-    # 按时长动态决定发送帧数（详见 _video_send_count 注释）
-    n_send = _video_send_count(duration_sec, n_total)
-
-    if n_total <= n_send:
-        selected = frames
-    else:
-        # 均匀采样，首帧和尾帧一定包含
-        step_f = (n_total - 1) / (n_send - 1)
-        indices = sorted(set(round(i * step_f) for i in range(n_send)))
-        selected = [frames[i] for i in indices]
-
-    n_send = len(selected)
+    """Retain the original product helper name, now using complete Ark AV input."""
+    meta = meta if meta is not None else await _await_media_worker(_get_video_meta, file_id, user_id)
+    if not meta or not meta.get("original_video"):
+        raise HTTPException(422, "此视频缺少原始音画文件，请上传原视频；未用旧抽帧冒充音画理解")
     brief_hint = f"\n创作者补充说明：{brief}" if brief else ""
-
-    content_parts: list[dict] = []
-    for frame_bytes in selected:
-        b64 = base64.b64encode(frame_bytes).decode()
-        content_parts.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
-
-    interval_sec = round(duration_sec / n_send, 1) if n_send > 1 else duration_sec
-    content_parts.append({
-        "type": "text",
-        "text": (
-            f"你是小红书内容分析师，领域：{domain}。\n"
-            f"视频总时长 {duration_sec:.0f}s，共提取 {n_total} 帧（1帧/秒去重后），"
-            f"现均匀采样 {n_send} 帧（约每 {interval_sec}s 一帧），按时间顺序呈现。\n"
-            f"请综合所有帧深度解读：\n"
-            f"1. 整体场景与视觉氛围（结合多帧，描述完整视频内容而非单帧）\n"
-            f"2. 视频出现的关键元素：菜品/食物/产品/地点/人物/文字字幕/品牌LOGO\n"
-            f"3. 视频叙事结构：开头→中间→结尾各展示了什么，整体故事线是什么\n"
-            f"4. 适合小红书标题的3个钩子短语（含具体数字或情绪词）\n"
-            f"5. 情绪基调与目标用户群体{brief_hint}"
-        ),
-    })
-
-    payload = {
-        "model": _KIMI_VISION_MODEL,
-        "messages": [{"role": "user", "content": content_parts}],
-        "max_tokens": 1500,
-        "thinking": {"type": "disabled"},
-    }
-    print(
-        f"[kimi_video_understand] duration={duration_sec:.0f}s "
-        f"total_frames={n_total} sent_frames={n_send} interval={interval_sec}s",
-        file=sys.stderr, flush=True,
+    prompt = (
+        f"你是小红书内容分析师，领域：{domain}。\n"
+        f"以下为完整原视频（{meta['duration_sec']:.2f}秒），含其原有音轨。画面按2fps处理，不是只有封面。\n"
+        "请保留时间点并综合完整音画分析：\n"
+        "1. 开头、中段、结尾的场景变化、视觉氛围和叙事结构\n"
+        "2. 关键商品、环境、人物动作、画面文字及品牌；看不清或未出现的事实明确未知\n"
+        "3. 口播/字幕主要信息及对应时间点；区分原声、画面和创作者补充，不把声音推测成画面事实\n"
+        "4. 三个有来源依据的创作钩子；没有来源的价格、数量、设施、功效不得编造\n"
+        "5. 情绪基调与目标用户；若无音轨、静音或口播不清，明确说明，不能假称已识别\n"
+        f"各场景给出对应时间，不可只看首帧就推断整段内容。{brief_hint}"
     )
-    try:
-        async with _public_product.kimi_async_client(timeout=_httpx.Timeout(connect=10.0, read=180.0, write=30.0, pool=10.0)) as client:
-            r = await client.post(_KIMI_API_URL, json=payload, headers={"Authorization": f"Bearer {key}"})
-            if r.status_code != 200:
-                _log_internal_failure(
-                    "kimi_video_understand",
-                    provider="kimi",
-                    phase="http",
-                    http_status=r.status_code,
-                )
-                r.raise_for_status()
-            data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
-            if data["choices"][0].get("finish_reason") != "stop":
-                raise ValueError("media_output_incomplete")
-            return data["choices"][0]["message"]["content"].strip()
-    except Exception as exc:
-        if isinstance(exc, _public_product.TrialProviderStopped):
-            raise
-        _log_internal_failure(
-            "kimi_video_understand",
-            exc,
-            provider="kimi",
-            phase="request",
-        )
-        return ""
+    return await _await_media_worker(_private_storage.understand_original_video,
+        meta['reference'], meta['original_bytes'], prompt)
 
 
 def _normalize_tags_for_scoring(body: str) -> str:
@@ -899,6 +891,7 @@ def _paid_request_claim(
     user_id: str,
     operation: str,
     payload: BaseModel,
+    included_ocr_ids: tuple[str, ...] = (),
 ) -> dict[str, Any] | None:
     """Claim an optional idempotency key; headerless clients keep old behavior."""
     raw_request_id = request_id if isinstance(request_id, str) else ""
@@ -910,6 +903,7 @@ def _paid_request_claim(
             operation=operation,
             request_id=raw_request_id,
             payload=payload.model_dump(mode="json"),
+            **({"included_ocr_ids": included_ocr_ids} if included_ocr_ids else {}),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail={
@@ -3531,12 +3525,7 @@ async def _run_five_agents(
 
 def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str:
     """深度图片理解：5维分析，供深度分析档位使用（图1用 _gent_visual，图2+ 用此函数）。"""
-    key = os.environ.get("MOONSHOT_API_KEY", "")
-    if not key:
-        raise HTTPException(503, "图片理解服务未配置")
-    raw_bytes = base64.b64decode(img_b64)
-    b64 = base64.standard_b64encode(raw_bytes).decode()
-    media = _image_media_type(raw_bytes)
+    raw_bytes = _read_image_input(img_b64)
     brief_hint = f"\n创作者补充说明：{brief}" if brief else ""
     prompt = (
         f"这是一张小红书{domain}领域的素材图，请深度分析并提炼创作素材。{brief_hint}\n\n"
@@ -3548,26 +3537,9 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
         "视觉亮点：（封面最吸引眼球的1个元素，10字内）"
     )
     try:
-        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as client:
-            r = client.post(
-                _KIMI_API_URL,
-                json={
-                    "model": _KIMI_VISION_MODEL,
-                    "messages": [{"role": "user", "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
-                        {"type": "text", "text": prompt},
-                    ]}],
-                    "thinking": {"type": "disabled"},
-                    "max_tokens": 2048,
-                },
-                headers={"Authorization": f"Bearer {key}"},
-            )
-            r.raise_for_status()
-            data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
-            if data["choices"][0].get("finish_reason") != "stop":
-                raise ValueError("media_output_incomplete")
-            return data["choices"][0]["message"]["content"].strip()
+        return _ark_media.chat(prompt, [_ark_media.image_part(raw_bytes)], max_tokens=4096)
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="image_understand")
         raise HTTPException(502, "图片理解未完成；未使用文字说明代替图片结果") from None
@@ -3576,38 +3548,16 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
 def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
     """轻量图片描述：识别真实图片内容，用简短 prompt 降低延迟和成本。
     适用于超出套餐深度分析限额的图片，结果仍作为 Agent 上下文。"""
-    key = os.environ.get("MOONSHOT_API_KEY", "")
-    if not key:
-        raise HTTPException(503, "图片理解服务未配置")
-    raw_bytes = base64.b64decode(img_b64)
-    b64 = base64.standard_b64encode(raw_bytes).decode()
-    media = _image_media_type(raw_bytes)
+    raw_bytes = _read_image_input(img_b64)
     brief_hint = f"（创作者说明：{brief}）" if brief else ""
     prompt = (
         f"这是一张小红书{domain}领域素材图{brief_hint}。"
         "用30字以内描述：画面主要内容、最突出的视觉元素、整体氛围。直接输出描述，无需分项。"
     )
     try:
-        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as client:
-            r = client.post(
-                _KIMI_API_URL,
-                json={
-                    "model": _KIMI_VISION_MODEL,
-                    "messages": [{"role": "user", "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
-                        {"type": "text", "text": prompt},
-                    ]}],
-                    "thinking": {"type": "disabled"},
-                    "max_tokens": 80,
-                },
-                headers={"Authorization": f"Bearer {key}"},
-            )
-            r.raise_for_status()
-            data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
-            if data["choices"][0].get("finish_reason") != "stop":
-                raise ValueError("media_output_incomplete")
-            return data["choices"][0]["message"]["content"].strip()
+        return _ark_media.chat(prompt, [_ark_media.image_part(raw_bytes)], max_tokens=1024)
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="image_quick")
         raise HTTPException(502, "图片理解未完成；未使用文字说明代替图片结果") from None
@@ -3964,7 +3914,7 @@ _get_arbitrate_standards = _prompt_composer._get_arbitrate_standards
 
 async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: dict) -> dict:
     if img_b64:
-        description = await asyncio.to_thread(_kimi_vision_understand, img_b64, domain, brief)
+        description = await _await_media_worker(_kimi_vision_understand, img_b64, domain, brief)
         if not description or len(description.strip()) <= 3:
             raise HTTPException(status_code=502, detail="图片画面理解失败，未将文字简报当作图片分析继续生成")
     else:
@@ -4640,7 +4590,7 @@ async def _run_generation_agents(
     if deep_imgs:
         deep_tasks = [
             _gent_visual(img, domain, brief, dk) if i == 0
-            else asyncio.to_thread(_kimi_vision_understand, img, domain, brief)
+            else _await_media_worker(_kimi_vision_understand, img, domain, brief)
             for i, img in enumerate(deep_imgs)
         ]
         deep_results = await asyncio.gather(*deep_tasks, return_exceptions=True)
@@ -4661,7 +4611,7 @@ async def _run_generation_agents(
     # 轻量描述：套餐外的图片
     brief_descs: list[str] = []
     if brief_imgs:
-        brief_tasks = [asyncio.to_thread(_kimi_vision_understand, img, domain, brief) for img in brief_imgs]
+        brief_tasks = [_await_media_worker(_kimi_vision_understand, img, domain, brief) for img in brief_imgs]
         brief_results = await asyncio.gather(*brief_tasks, return_exceptions=True)
         if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_results):
             raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
@@ -5900,12 +5850,10 @@ def _score_cover_vision(vision: dict) -> float:
 
 
 def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
-    """Synchronous Kimi Vision call for single image (used in API path)."""
+    """Original cover dimensions, now understood by the configured Ark model."""
 
     with open(img_path, "rb") as f:
         data = f.read()
-    b64 = base64.standard_b64encode(data).decode()
-    media = _image_media_type(data)
 
     prompt = (
         '分析这张小红书封面图片。只返回以下JSON，不要解释：\n'
@@ -5914,46 +5862,27 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
         '"emotion_intensity":0.0-1.0,"visual_clarity":0.0-1.0}'
     )
     try:
-        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT) as client:
-            r = client.post(
-                _KIMI_API_URL,
-                json={
-                    "model": _KIMI_MODEL,
-                    "messages": [{"role": "user", "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
-                        {"type": "text", "text": prompt},
-                    ]}],
-                    "max_tokens": 8192,
-                    "thinking": {"type": "enabled"},
-                    "response_format": {"type": "json_object"},
-                    "temperature": 1,
-                },
-                headers={"Authorization": f"Bearer {api_key}"},
-            )
-            r.raise_for_status()
-            data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
-            if data["choices"][0].get("finish_reason") != "stop":
-                raise ValueError("cover_output_incomplete")
-            raw = data["choices"][0]["message"]["content"].strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            d = __import__('json').loads(raw)
-            dimensions = ("text_prominence", "composition_score", "aesthetic_score", "emotion_intensity", "visual_clarity")
-            if not isinstance(d, dict) or type(d.get("has_text_overlay")) is not bool or any(
-                type(d.get(name)) not in (int, float) or not 0 <= d[name] <= 1 for name in dimensions
-            ):
-                raise ValueError("cover_dimensions_incomplete")
-            return {
-                "cover_has_text": int(bool(d.get("has_text_overlay", False))),
-                "cover_text_prominence": float(d.get("text_prominence", 0.5)),
-                "cover_composition_score": float(d.get("composition_score", 0.5)),
-                "cover_aesthetic_score": float(d.get("aesthetic_score", 0.5)),
-                "cover_emotion_intensity": float(d.get("emotion_intensity", 0.5)),
-                "cover_visual_clarity": float(d.get("visual_clarity", 0.5)),
-            }
+        raw = _ark_media.chat(prompt, [_ark_media.image_part(data)], max_tokens=2048, json_output=True)
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        d = __import__('json').loads(raw)
+        dimensions = ("text_prominence", "composition_score", "aesthetic_score", "emotion_intensity", "visual_clarity")
+        if not isinstance(d, dict) or type(d.get("has_text_overlay")) is not bool or any(
+            type(d.get(name)) not in (int, float) or not 0 <= d[name] <= 1 for name in dimensions
+        ):
+            raise ValueError("cover_dimensions_incomplete")
+        return {
+            "cover_has_text": int(bool(d.get("has_text_overlay", False))),
+            "cover_text_prominence": float(d.get("text_prominence", 0.5)),
+            "cover_composition_score": float(d.get("composition_score", 0.5)),
+            "cover_aesthetic_score": float(d.get("aesthetic_score", 0.5)),
+            "cover_emotion_intensity": float(d.get("emotion_intensity", 0.5)),
+            "cover_visual_clarity": float(d.get("visual_clarity", 0.5)),
+        }
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="cover_understand")
         raise HTTPException(502, "封面语义分析未完成；未使用默认分数代替实际结果") from None
@@ -5963,10 +5892,10 @@ def _extract_cover(image_b64: str, use_vision: bool = False) -> tuple[float, dic
     """
     Extract cover features and compute visual_score from base64 image.
     Returns (visual_score, feature_dict).
-    use_vision=True calls Kimi Vision for semantic features (used in /analyze).
+    use_vision=True uses Ark for semantic features; deterministic scoring stays local.
     """
     # Write to temp file so PIL/OpenCV can read it
-    raw = base64.b64decode(image_b64)
+    raw = _read_image_input(image_b64)
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
         f.write(raw)
         tmp_path = Path(f.name)
@@ -5977,9 +5906,8 @@ def _extract_cover(image_b64: str, use_vision: bool = False) -> tuple[float, dic
         all_feats = {**det, **face}
 
         if use_vision:
-            kimi_key = os.environ.get("MOONSHOT_API_KEY")
-            if kimi_key:
-                vision_feats = _call_kimi_vision_sync(tmp_path, kimi_key)
+            if _ark_media.configured():
+                vision_feats = _call_kimi_vision_sync(tmp_path, "")
                 all_feats.update(vision_feats)
                 visual_score = _score_cover_vision(vision_feats)
             else:
@@ -6082,7 +6010,7 @@ class DiagnoseResponse(ScoreResponse):
 class AnalyzeInput(NoteInput):
     user_id:          str | None       = Field(default=None, description="用户ID，用于从记忆库读取历史偏好")
     user_constraints: list[str] | None = Field(default=None, description="用户约束条件列表（如：不改标题、目标带货）")
-    extra_images:     list[str] | None = Field(default=None, description="额外内容图片 base64 列表（最多9张，每张均走视觉识别）")
+    extra_images:     list[str] | None = Field(default=None, max_length=9, description="额外内容图片 base64 列表（最多9张，每张均走视觉识别）")
     video_file_id:    str | None       = Field(default=None, description="视频 file_id（由 /upload-video 返回），用于视频内容诊断")
     input_mode:       str | None       = Field(default=None, description="输入模式：manual/screenshot/video/generate")
     ocr_char_count:   int | None       = Field(default=None, description="截图 OCR 合并后正文字符数（前端显示口径，用于审计）")
@@ -6164,7 +6092,7 @@ class AnalyzeResponse(BaseModel):
 class GenerateInput(BaseModel):
     domain: str = Field(default="美食", description="内容领域")
     cover_image: str | None = Field(default=None, description="素材图片 base64（单图兼容）")
-    cover_images: list[str] | None = Field(default=None, description="多图素材 base64 列表（最多9张）")
+    cover_images: list[str] | None = Field(default=None, max_length=9, description="多图素材 base64 列表（最多9张）")
     brief: str | None = Field(default=None, description="创作简报（可选：关键词、场景、特色）")
     local_time: str = Field(default="2024010112", description="发布时间 YYYYMMDDHH")
     user_id: str | None = Field(default=None)
@@ -10454,7 +10382,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         issues.append("出现未提供的排队/等位时长数字，结构化事实不能编造")
     if _UNVERIFIED_RATING_BACKING_RE.search(out) and not _UNVERIFIED_RATING_BACKING_RE.search(src):
         issues.append("出现未提供的五星/满分/榜单背书，结构化事实不能编造")
-    if _UNVERIFIED_HOLIDAY_SCENE_RE.search(out) and not _UNVERIFIED_HOLIDAY_SCENE_RE.search(src):
+    if _UNVERIFIED_HOLIDAY_SCENE_RE.search(factual_out) and not _UNVERIFIED_HOLIDAY_SCENE_RE.search(src):
         issues.append("出现未提供的节假日/时令场景，结构化事实不能编造")
     unsupported_group_sizes = [
         match.group(0)
@@ -10464,6 +10392,42 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     if unsupported_group_sizes:
         issues.append("出现未提供的人数/适用规模信息，结构化事实不能编造")
     return issues
+
+
+async def _repair_diagnosis_report_facts(diagnosis: str, plan: str, domain: str, source_context: str) -> tuple[str, str]:
+    """Repair only an unsupported report, once, using the original arbiter route.
+
+    Titles, candidate bodies and expert opinions are not regenerated here. The
+    same factual guard is used before and after this bounded correction.
+    """
+    issues = _structured_fact_boundary_issues(f"{diagnosis}\n{plan}", source_context, domain)
+    if not issues:
+        return diagnosis, plan
+    from datetime import datetime
+    system = (_runtime_prompt("agent_arbitrate_system", domain)
+              .replace("{domain}", domain or "通用")
+              .replace("2026年06月23日", datetime.now().strftime("%Y年%m月%d日"))
+              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}")
+    user = (
+        "仅修订以下诊断报告中的事实越界，保留完整诊断、可执行建议与行业规则。\n"
+        "不生成标题或方案正文，不把未核实信息改成确定事实；需要补充的信息明确标注待核实。\n"
+        "起价必须逐个金额保留限定，房型、门票、入住人数、日期须逐项有来源依据。\n"
+        f"【完整事实来源】\n{source_context}\n\n"
+        f"【原诊断】\n{diagnosis}\n\n【原优化建议】\n{plan}\n\n"
+        f"【需修正的问题】\n" + "\n".join(dict.fromkeys(issues))
+        + "\n仅输出完整的 <diagnosis>...</diagnosis><plan>...</plan>，不得省略原有无争议的分析和建议。"
+    )
+    raw = await _mr.call("arbitrate", system, user, max_tokens=4096)
+    repaired_diagnosis, repaired_plan = _xtag(raw or "", "diagnosis").strip(), _xtag(raw or "", "plan").strip()
+    remaining = _structured_fact_boundary_issues(f"{repaired_diagnosis}\n{repaired_plan}", source_context, domain)
+    if not repaired_diagnosis or not repaired_plan or remaining:
+        raise HTTPException(status_code=422, detail={
+            "code": "DIAGNOSIS_FACT_UNVERIFIED",
+            "message": "诊断报告一次事实修复后仍未通过，本次未交付为合格结果。",
+            "issues": remaining or ["报告修复未返回完整诊断和建议"],
+            "components": {"report": remaining or ["报告修复未完整返回"]},
+        })
+    return repaired_diagnosis, repaired_plan
 
 
 _FITNESS_SOURCE_ACTION_TERMS = (
@@ -13370,10 +13334,16 @@ def _split_ocr_body_and_tags(body: str | None, explicit_tags: Any = None) -> tup
 async def extract_screenshot(
     req: ScreenshotExtractInput,
     user: dict = Depends(_auth.get_current_user),
+    request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
 ):
-    billing_charge = _billing.check_and_deduct(user["id"], "screenshot")
-    """用 Kimi Vision 从小红书截图中提取标题、正文、话题标签。"""
-    key = os.environ.get("MOONSHOT_API_KEY", "")
+    claim = _paid_request_claim(request_id, user_id=user['id'], operation='screenshot', payload=req)
+    billing_charge = claim['charge'] if claim else _billing.check_and_deduct(user['id'], 'screenshot')
+    def refund():
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code='request_failed')
+        else:
+            _billing.refund_operation_charge(user['id'], 'screenshot', billing_charge, '截图识别失败自动退回')
+    """用实际素材理解模型提取截图标题、正文和话题标签。"""
     prompt = (
         "请分析这张图片，判断它属于哪种类型，并提取对应内容：\n\n"
         "类型说明：\n"
@@ -13392,24 +13362,11 @@ async def extract_screenshot(
         "注意：1）话题必须放入 tags，不要混入 body；2）B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
     )
     try:
-        if not key:
-            raise HTTPException(status_code=503, detail="MOONSHOT_API_KEY 未配置")
         image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
-        with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as c:
-            r = c.post(_KIMI_API_URL, headers={"Authorization": f"Bearer {key}"},
-                json={"model": _KIMI_VISION_MODEL, "messages": [{"role": "user", "content": [
-                    {"type": "image_url", "image_url": {"url": image_url}},
-                    {"type": "text", "text": prompt},
-                ]}], "thinking": {"type": "disabled"}, "response_format": {"type": "json_object"}, "max_tokens": 8192})
-        try:
-            r.raise_for_status()
-        except _httpx.HTTPStatusError as exc:
-            raise _moonshot_http_exception(exc, "extract_screenshot") from exc
-        data = r.json()
-        _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
-        if data["choices"][0].get("finish_reason") != "stop":
-            raise ValueError("media_output_incomplete")
-        raw = data["choices"][0]["message"]["content"].strip()
+        raw_bytes = _read_image_input(req.image_base64)
+        raw = await _await_media_worker(_ark_media.chat, prompt,
+            [_ark_media.image_part(raw_bytes)],
+            max_tokens=8192, json_output=True)
         import re as _re
         m = _re.search(r'\{[\s\S]*\}', raw)
         if not m:
@@ -13439,40 +13396,56 @@ async def extract_screenshot(
 
         result["_media_type"] = media_type
         result["_image_bytes"] = image_bytes
+        result['model_used'] = _ark_media.MODEL
+        if claim:
+            result['ocr_request_id'] = str(request_id)
+            if not _idempotency.mark_completed(claim, confirm_existing=True, ocr_result=result):
+                raise HTTPException(503, '原截图结果完成状态未确认，请勿重复提交')
         return result
-    except (_httpx.ConnectError, _httpx.ProxyError, _httpx.TimeoutException, _httpx.NetworkError) as exc:
-        http_exc = _moonshot_network_exception(exc, "extract_screenshot")
-        _billing.refund_operation_charge(
-            user["id"],
-            "screenshot",
-            billing_charge,
-            "截图识别失败自动退回",
-        )
-        raise http_exc
+    except (_public_product.TrialProviderStopped, _ark_media.ArkMediaError) as exc:
+        refund()
+        code = str(exc)
+        raise HTTPException(502, {"code":code if re.fullmatch(r"[A-Z0-9_]{1,80}",code) else "MEDIA_PROVIDER_UNCONFIRMED",
+                                  "message":"素材理解未能完整确认，本次已停止；请查看原任务结果，不重复提交。"}) from None
+    except asyncio.CancelledError:
+        refund()
+        raise
     except HTTPException:
-        _billing.refund_operation_charge(
-            user["id"],
-            "screenshot",
-            billing_charge,
-            "截图识别失败自动退回",
-        )
+        refund()
         raise
     except Exception as e:
         _log_internal_failure("provider", e, phase="extract_screenshot")
-        _billing.refund_operation_charge(
-            user["id"],
-            "screenshot",
-            billing_charge,
-            "截图识别失败自动退回",
-        )
+        refund()
         raise HTTPException(status_code=500, detail="截图解析服务暂时不可用")
 
 
 class ValidateOcrInput(BaseModel):
     ocr_results: list[dict] = Field(min_length=1, max_length=9)
+    ocr_request_ids: list[str] = Field(default_factory=list, max_length=9)
 
 @app.post("/validate-ocr")
-async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_current_user)):
+async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_current_user),
+                       request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER)):
+    sources = tuple(sorted(req.ocr_request_ids))
+    if _public_product.enabled() and (len(sources) != len(req.ocr_results) or not sources):
+        raise HTTPException(422, "请使用已完成的本人截图识别结果")
+    # Stable source set permits one included merge, regardless of client retry key.
+    key = 'ocr-merge-' + hashlib.sha256(_json.dumps(sources).encode()).hexdigest() if sources else None
+    claim = _paid_request_claim(key, user_id=user['id'], operation='screenshot', payload=req, included_ocr_ids=sources) if sources else None
+    if not claim:
+        _billing.record_free_usage(user['id'], 'screenshot')
+    try:
+        result = await _validate_ocr_impl(req, user)
+        if claim and not _idempotency.mark_completed(claim, confirm_existing=True):
+            raise HTTPException(503, '截图合并完成状态未确认，请勿重复提交')
+        return result
+    except BaseException:
+        if claim:
+            _idempotency.mark_failed_and_refund(claim, failure_code='request_failed')
+        raise
+
+
+async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
     """Claude Haiku 内容鉴别 Agent：
     对多张截图的 OCR 结果去重、验证、重组，返回唯一干净的标题+正文+话题。
     解决：7张相同笔记截图 → OCR x7 → 内容堆叠的问题。
@@ -13537,7 +13510,6 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
         "{\"title\":\"唯一标题\",\"body\":\"去重后的完整正文，不含话题\",\"tags\":\"#话题1 #话题2\",\"domain\":\"美食/旅行/穿搭/...\",\"char_count\":正文实际字数}"
     )
     user_prompt = "\n\n---\n\n".join(blocks)
-    _billing.record_free_usage(user["id"], "screenshot")
 
     try:
         raw = await _mr.call("semantic", system, user_prompt, max_tokens=8192)
@@ -15297,18 +15269,18 @@ async def _run_analyze_pipeline(
                 "label": "正在提取封面视觉评分特征…",
                 "progress": 8,
             })
-            visual_score, cover_feats = await asyncio.to_thread(
+            visual_score, cover_feats = await _await_media_worker(
                 _extract_cover, req.cover_image, True
             )
 
         # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
         if req.video_file_id:
-            video_meta = _get_video_meta(req.video_file_id, user["id"])
+            video_meta = await _await_media_worker(_get_video_meta, req.video_file_id, user["id"])
             if not video_meta:
                 raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
             video_duration_sec = float(video_meta.get("duration_sec", 0) or 0)
-            video_frames_extracted = len(video_meta.get("frames", []) or [])
-            video_frames_to_ai = _video_send_count(video_duration_sec, video_frames_extracted)
+            video_frames_extracted = None if video_meta.get("original_video") else len(video_meta.get("frames", []) or [])
+            video_frames_to_ai = None if video_meta.get("original_video") else _video_send_count(video_duration_sec, video_frames_extracted)
             await _emit_progress(emit, {
                 "type": "stage",
                 "stage": "video",
@@ -15319,7 +15291,7 @@ async def _run_analyze_pipeline(
                 req.video_file_id,
                 req.domain,
                 req.desc or None,
-                user_id=user["id"],
+                user_id=user["id"], meta=video_meta,
             )
             if not video_desc or len(video_desc.strip()) < 20:
                 raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
@@ -15342,7 +15314,7 @@ async def _run_analyze_pipeline(
                 "progress": 14,
             })
             extra_tasks = [
-                asyncio.to_thread(_kimi_vision_quick, img_b64, req.domain or "通用", None)
+                _await_media_worker(_kimi_vision_quick, img_b64, req.domain or "通用", None)
                 for img_b64 in imgs_to_analyze
             ]
             extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
@@ -15475,6 +15447,9 @@ async def _run_analyze_pipeline(
             model_label = "claude-routed-5-agents"
             delivery_source_context = "\n\n".join(
                 p for p in [req.desc, fact_context, intent_brief] if p
+            )
+            diagnosis, plan = await _repair_diagnosis_report_facts(
+                diagnosis, plan, req.domain, delivery_source_context,
             )
 
             # ── 每个方案的标题+正文做旧评分器遥测与可解释质量复核 ──────
@@ -16007,7 +15982,7 @@ async def _generate_pipeline_stream(
 
     # ── P1: Visual ──────────────────────────────────────────────────
     if video_file_id:
-        _video_meta = _get_video_meta(video_file_id, user_id)
+        _video_meta = await _await_media_worker(_get_video_meta, video_file_id, user_id)
         has_frames = bool(_video_meta)
         if not has_frames:
             raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传后再生成")
@@ -16016,16 +15991,16 @@ async def _generate_pipeline_stream(
             _vmeta     = _video_meta or {}
             n_total_f  = len(_vmeta["frames"])
             dur_f      = _vmeta.get("duration_sec", n_total_f)
-            n_send_f   = _video_send_count(dur_f, n_total_f)
-            observed_frame_count = n_send_f
+            n_send_f   = int(math.ceil(dur_f * 2)) if _vmeta.get("original_video") else _video_send_count(dur_f, n_total_f)
+            observed_frame_count = None if _vmeta.get("original_video") else n_send_f
             yield {"type": "video_analyzing",
-                   "label": f"分析视频（{dur_f:.0f}s，提取 {n_total_f} 帧，发送 {n_send_f} 帧至 AI）…"}
+                   "label": f"分析完整原视频（{dur_f:.0f}s，画面按2fps处理，保留原音轨）…"}
         video_desc = (
             await _kimi_video_understand(
                 video_file_id,
                 domain,
                 brief,
-                user_id=user_id,
+                user_id=user_id, meta=_video_meta,
             )
             if has_frames
             else ""
@@ -16039,12 +16014,12 @@ async def _generate_pipeline_stream(
             "_image_desc": video_desc,
         }
         image_desc = vis_result["_image_desc"]
-        _vm2 = _get_video_meta(video_file_id, user_id) or {}
+        _vm2 = _video_meta or {}
         n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
         yield {
             "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
             "content": video_desc[:120],
-            "detail": f"均匀采样 {n_s2}/{n_t2} 帧，覆盖完整 {d2:.0f}s 时间线",
+            "detail": f"使用{d2:.0f}s原视频与原音轨，画面按2fps处理；预览帧不代表模型输入",
             "progress": 22,
         }
     else:
@@ -16064,7 +16039,7 @@ async def _generate_pipeline_stream(
         if deep_imgs_s:
             deep_tasks_s = [
                 _gent_visual(img, domain, brief, dk) if i == 0
-                else asyncio.to_thread(_kimi_vision_understand, img, domain, brief)
+                else _await_media_worker(_kimi_vision_understand, img, domain, brief)
                 for i, img in enumerate(deep_imgs_s)
             ]
             deep_results_s = await asyncio.gather(*deep_tasks_s, return_exceptions=True)
@@ -16084,7 +16059,7 @@ async def _generate_pipeline_stream(
         # Match the synchronous pipeline: all submitted images keep full observations.
         brief_descs_s: list[str] = []
         if brief_imgs_s:
-            brief_tasks_s = [asyncio.to_thread(_kimi_vision_understand, img, domain, brief) for img in brief_imgs_s]
+            brief_tasks_s = [_await_media_worker(_kimi_vision_understand, img, domain, brief) for img in brief_imgs_s]
             brief_res_s   = await asyncio.gather(*brief_tasks_s, return_exceptions=True)
             if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_res_s):
                 raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
@@ -16119,6 +16094,7 @@ async def _generate_pipeline_stream(
             "image_count": observed_image_count,
             "deep_image_count": observed_deep_image_count,
             "frame_count": observed_frame_count,
+            "video_input": "original_audio_video_2fps" if video_file_id else None,
         },
         progress=22,
     )
@@ -16702,12 +16678,11 @@ async def _generate_pipeline_stream(
 _VIDEO_MAX_DURATION = 90  # 秒，超过拒绝上传
 _VIDEO_MAX_BYTES = 100 * 1024 * 1024
 _UPLOAD_CHUNK_BYTES = 1024 * 1024
-_VIDEO_SUFFIXES = frozenset({".mp4", ".mov", ".avi", ".m4v", ".webm"})
+_VIDEO_SUFFIXES = frozenset({".mp4", ".mov", ".avi"})
 _VIDEO_CONTENT_TYPES = frozenset({
     "video/mp4",
     "video/quicktime",
     "video/x-msvideo",
-    "video/webm",
     "application/octet-stream",
 })
 _IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".webp"})
@@ -16860,141 +16835,34 @@ async def upload_image(
 
 
 @app.post("/upload-video")
-async def upload_video(
-    file: UploadFile = File(...),
-    user: dict = Depends(_auth.get_current_user),
-):
-    """
-    接收视频，按 1fps 抽帧 + 相邻帧差分去重，返回 owner-bound media_ref。
-    限制：最长 90 秒、最大 100MB。
-    """
-    import cv2 as _cv2
-    import numpy as _np
-
+async def upload_video(file: UploadFile = File(...), user: dict = Depends(_auth.get_current_user)):
+    """Store the complete original, including audio, in owner-bound private storage."""
+    if not _private_storage.object_backend_configured():
+        raise HTTPException(503, "私有素材存储暂不可用")
     filename = file.filename or "video.mp4"
     suffix = Path(filename).suffix.lower() or ".mp4"
-    if suffix not in _VIDEO_SUFFIXES:
-        raise HTTPException(status_code=415, detail="不支持的视频文件类型")
     declared_type = str(file.content_type or "application/octet-stream").lower()
-    if declared_type not in _VIDEO_CONTENT_TYPES:
-        raise HTTPException(status_code=415, detail="不支持的视频内容类型")
-    production = (
-        os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
-        == "production"
-    )
-    if production and not _private_storage.object_backend_configured():
-        raise HTTPException(status_code=503, detail="私有素材存储暂不可用")
-
-    tmp_path, size_bytes, _upload_sha256 = await _stream_upload_to_temp(
-        file,
-        suffix=suffix,
-        maximum_bytes=_VIDEO_MAX_BYTES,
-    )
-    frames: list[bytes] = []
-    cap = None
+    if suffix not in _VIDEO_SUFFIXES or declared_type not in _VIDEO_CONTENT_TYPES:
+        raise HTTPException(415, "不支持的视频文件类型")
+    path, size, digest = await _stream_upload_to_temp(file, suffix=suffix, maximum_bytes=_VIDEO_MAX_BYTES)
     try:
-        cap = _cv2.VideoCapture(tmp_path)
-        fps = cap.get(_cv2.CAP_PROP_FPS) or 30.0
-        total_raw = int(cap.get(_cv2.CAP_PROP_FRAME_COUNT))
-        if total_raw < 1:
-            raise HTTPException(status_code=422, detail="无法读取视频帧，请确认视频格式（mp4/mov/avi）")
-
-        duration_sec = total_raw / fps
-        if duration_sec > _VIDEO_MAX_DURATION:
-            raise HTTPException(
-                status_code=422,
-                detail=f"视频时长 {duration_sec:.0f}s 超过上限（{_VIDEO_MAX_DURATION}s / 1分30秒），请剪短后重新上传",
-            )
-
-        # 每秒取1帧，相邻帧做差分去重（灰度64×64缩略图均值差 < 8 视为重复）
-        step = max(1, int(fps))          # 每fps帧取1帧 ≈ 1fps
-        prev_thumb: _np.ndarray | None = None
-
-        frame_idx = 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame_idx % step == 0:
-                gray = _cv2.cvtColor(frame, _cv2.COLOR_BGR2GRAY)
-                thumb = _cv2.resize(gray, (64, 64))
-                if prev_thumb is not None:
-                    diff = float(_np.mean(_np.abs(thumb.astype(_np.int16) - prev_thumb.astype(_np.int16))))
-                    if diff < 8:          # 画面几乎没变，跳过
-                        frame_idx += 1
-                        continue
-                prev_thumb = thumb
-
-                # 缩放到 512px 宽（小红书竖版字幕在此分辨率下可读）
-                h, w = frame.shape[:2]
-                if w > 512:
-                    frame = _cv2.resize(frame, (512, int(h * 512 / w)))
-                ok, buf = _cv2.imencode(".jpg", frame, [_cv2.IMWRITE_JPEG_QUALITY, 78])
-                if ok:
-                    frames.append(buf.tobytes())
-            frame_idx += 1
-    except HTTPException:
-        raise
-    except Exception as exc:
-        _log_internal_failure("video_file", exc, phase="parse")
-        raise HTTPException(status_code=500, detail="视频解析失败")
+        original = Path(path).read_bytes()
+        if hashlib.sha256(original).hexdigest() != digest:
+            raise ValueError("video_upload_digest_mismatch")
+        meta = await _await_media_worker(_original_video_metadata, path=path)
+        mime = {".mp4":"video/mp4", ".mov":"video/quicktime", ".avi":"video/x-msvideo"}[suffix]
+        reference = await _await_media_worker(_private_storage.store_media_bytes, user['id'],
+            purpose="video", content_type=mime, payload=original, item_count=1)
+    except (ValueError, _private_storage.PrivateStorageError) as exc:
+        _log_internal_failure("video_file", exc, phase="original_store")
+        raise HTTPException(422, "原视频读取或保存未完成，请检查格式、90秒/100MB限制；没有用封面代替") from None
     finally:
-        if cap is not None:
-            cap.release()
-        if tmp_path:
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
-
-    if not frames:
-        raise HTTPException(status_code=422, detail="视频中未能提取到画面，请检查文件是否损坏")
-
-    fid = str(_uuid.uuid4()).replace("-", "")[:20]
-    n_will_send = _video_send_count(duration_sec, len(frames))
-    if _private_storage.object_backend_configured():
-        try:
-            bundle = _private_storage.build_video_frame_bundle(
-                frames,
-                duration_sec=duration_sec,
-                raw_fps=fps,
-            )
-            reference = _private_storage.store_media_bytes(
-                user["id"],
-                purpose="video_frames",
-                content_type="application/vnd.noteai.video-frames+zip",
-                payload=bundle,
-                item_count=len(frames),
-            )
-            fid = reference.id
-        except (_private_storage.PrivateStorageError, ValueError) as exc:
-            _log_internal_failure(
-                "video_file",
-                exc,
-                phase="private_store",
-            )
-            raise HTTPException(status_code=503, detail="视频素材保存失败") from exc
-    else:
-        _store_video_meta(fid, {
-            "frames":       frames,
-            "duration_sec": round(duration_sec, 1),
-            "raw_fps":      round(fps, 1),
-        })
-    print(
-        f"[upload_video] duration={duration_sec:.1f}s raw_fps={fps:.1f} "
-        f"frames_extracted={len(frames)} frames_to_ai={n_will_send}",
-        file=sys.stderr,
-        flush=True,
-    )
-    return {
-        "file_id":      fid,
-        "media_ref":    fid if len(fid) == 36 else None,
-        "filename":     filename,
-        "size":         size_bytes,
-        "duration_sec": round(duration_sec, 1),
-        "frames":       len(frames),
-        "frames_to_ai": n_will_send,
-    }
+        if not path.startswith("/proc/self/fd/"):
+            Path(path).unlink(missing_ok=True)
+    return {"file_id":reference.id, "media_ref":reference.id, "filename":filename, "size":size,
+            "duration_sec":round(meta['duration_sec'],2), "frames":len(meta['frames']),
+            "frames_to_ai":None, "video_input":"original_audio_video", "analysis_fps":2.0, "audio_preserved":True,
+            "expires_at":reference.expires_at}
 
 
 @app.post("/generate/stream")
@@ -17069,7 +16937,7 @@ async def generate_stream_endpoint(
         if cover_image:
             yield f"data: {_json.dumps({'type':'stage','stage':'p0','label':'正在提取封面评分特征…','progress':4}, ensure_ascii=False)}\n\n"
             try:
-                visual_score, cover_feats = await asyncio.to_thread(
+                visual_score, cover_feats = await _await_media_worker(
                     _extract_cover, cover_image, False
                 )
             except Exception as exc:
@@ -17173,7 +17041,7 @@ async def generate(
         visual_score = None
         cover_feats: dict = {}
         if primary_image:
-            visual_score, cover_feats = await asyncio.to_thread(
+            visual_score, cover_feats = await _await_media_worker(
                 _extract_cover, primary_image, True
             )
 
@@ -17190,6 +17058,10 @@ async def generate(
         constrained_brief = _merge_user_constraints_into_text(req.brief, normalized_constraints, "AI爆文生成")
         constrained_brief = f"{intent_brief}\n\n{constrained_brief}".strip() if intent_brief else constrained_brief
         enriched_brief = _append_fact_enrichment(constrained_brief, fact_enrichment)
+
+        if req.video_file_id:
+            observation = await _kimi_video_understand(req.video_file_id, req.domain, req.brief, user_id=user['id'])
+            enriched_brief += "\n\n【完整视频音画观察】\n" + observation
 
         # 2. Market timing (hot keywords)
         timing_domain = req.domain
@@ -18046,10 +17918,7 @@ async def _chat_sse_generator(
         yield f"data: {_json.dumps({'type': 'image_analyzing'}, ensure_ascii=False)}\n\n"
         try:
             domain = session.get("domain", "美食")
-            raw_bytes = base64.b64decode(image_base64)
-            b64 = base64.standard_b64encode(raw_bytes).decode()
-            media = _image_media_type(raw_bytes)
-            key_v = os.environ.get("MOONSHOT_API_KEY", "")
+            raw_bytes = _read_image_input(image_base64)
             vision_prompt = (
                 f"这是用户上传的{domain}领域图片，请深度分析：\n"
                 "1. 场景描述（30字，有画面感）\n"
@@ -18057,22 +17926,11 @@ async def _chat_sse_generator(
                 "3. 情绪基调\n"
                 "4. 对笔记创作的建议（具体且可操作，2句话）"
             )
-            with _public_product.kimi_client(timeout=_KIMI_TIMEOUT_FAST) as _vc:
-                vr = _vc.post(
-                    _KIMI_API_URL,
-                    json={"model": _KIMI_MODEL, "messages": [{"role": "user", "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:{media};base64,{b64}"}},
-                        {"type": "text", "text": vision_prompt},
-                    ]}], "temperature": 0.6, "thinking": {"type": "disabled"}},
-                    headers={"Authorization": f"Bearer {key_v}"},
-                )
-                vr.raise_for_status()
-                data = vr.json()
-                _record_kimi_usage_from_payload(data, _KIMI_MODEL, physical_call_id=vr.extensions.get("noteai_call_id"))
-                image_analysis = data["choices"][0]["message"]["content"].strip()
+            image_analysis = await _await_media_worker(_ark_media.chat, vision_prompt,
+                [_ark_media.image_part(raw_bytes)], max_tokens=4096)
         except Exception as e:
-            _log_internal_failure("kimi_chat", e, phase="image_analysis")
-            image_analysis = "图片解析暂时不可用"
+            _log_internal_failure("media_chat", e, phase="image_analysis")
+            raise HTTPException(502, "图片理解未完成；未继续生成替代结果") from None
         yield f"data: {_json.dumps({'type': 'image_analyzed', 'analysis': image_analysis}, ensure_ascii=False)}\n\n"
 
     use_thinking = _should_use_thinking(user_msg)
@@ -18096,20 +17954,12 @@ async def _chat_sse_generator(
     # ── Build user message content (multimodal if image attached) ───
     user_content: str | list
     if image_base64 and image_analysis:
-        # Include image_url for vision + text; analysis also injected as text context
-        raw_b = base64.b64decode(image_base64)
-        b64_clean = base64.standard_b64encode(raw_b).decode()
-        media_type = "image/webp" if raw_b[:4] == b"RIFF" and raw_b[8:12] == b"WEBP" else "image/jpeg"
         combined_text = user_msg
         if file_text:
-            combined_text += f"\n\n【附件内容】\n{file_text[:3000]}"
-        combined_text += f"\n\n【图片分析结果】\n{image_analysis}"
-        user_content = [
-            {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64_clean}"}},
-            {"type": "text", "text": combined_text},
-        ]
+            combined_text += f"\n\n【附件内容】\n{file_text}"
+        user_content = combined_text + f"\n\n【图片分析结果】\n{image_analysis}"
     elif file_text:
-        user_content = f"{user_msg}\n\n【附件内容】\n{file_text[:3000]}"
+        user_content = f"{user_msg}\n\n【附件内容】\n{file_text}"
     else:
         user_content = user_msg
 
@@ -18117,9 +17967,9 @@ async def _chat_sse_generator(
     # Store plain text in history (avoid storing large base64 in session)
     history_text = user_msg
     if image_analysis:
-        history_text += f"\n[已上传图片，AI视觉分析：{image_analysis[:100]}…]"
+        history_text += f"\n[已上传图片，AI视觉分析：{image_analysis}]"
     if file_text:
-        history_text += f"\n[已上传文件，内容摘要：{file_text[:100]}…]"
+        history_text += f"\n[已上传文件，内容：{file_text}]"
     session.setdefault("messages", []).append({"role": "user", "content": history_text})
 
     full_content = ""

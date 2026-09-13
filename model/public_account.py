@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from urllib.parse import urlsplit
 
 from starlette.responses import JSONResponse
@@ -52,7 +53,7 @@ def service_status() -> dict:
         "sms_sign_name": sms_sign_name,
         "payment_open": False,
         "ai_open": public_product.available(),
-        "media_open": False,
+        "media_open": public_product.media_enabled(),
         "free_monthly_credits": 12,
         "fast_chat_credits": 1 if product_enabled() else 0,
         "tracking_open": False,
@@ -68,6 +69,8 @@ class PublicAccountBoundary:
 
     def __init__(self, app):
         self.app = app
+        import asyncio
+        self.media_slots = asyncio.Semaphore(1)
 
     async def __call__(self, scope, receive, send):
         if not enabled() or scope["type"] == "lifespan":
@@ -112,30 +115,67 @@ class PublicAccountBoundary:
             # Public browser writes must originate from the actual HTTPS website.
             if not origin or origin not in origins or urlsplit(origin).scheme != "https":
                 return await reject(403, "请求来源无效")
+            content_type = headers.get(b"content-type", b"").split(b";", 1)[0].strip()
+            media_upload = public_product.media_enabled() and path in public_product.MEDIA_UPLOAD_ROUTES
+            media_json = public_product.media_enabled() and path in public_product.MEDIA_PAYLOAD_ROUTES
+            authenticated = None
+            if media_upload or media_json:
+                from fastapi import HTTPException
+                try:
+                    authenticated = await public_product.authenticated_user(scope)
+                except HTTPException as exc:
+                    return await reject(exc.status_code, exc.detail)
+            if media_upload:
+                if content_type != b"multipart/form-data":
+                    return await reject(415, "请上传原始素材文件")
+                maximum = (100 if path == "/upload-video" else 10) * 1024 * 1024 + 65536
+                consumed = 0
+                async def upload_receive():
+                    nonlocal consumed
+                    message = await receive()
+                    consumed += len(message.get("body", b""))
+                    if consumed > maximum:
+                        raise HTTPException(413, "上传文件超过允许大小")
+                    return message
+                async with self.media_slots:
+                    return await public_product.dispatch(self.app, scope, upload_receive, send, b"", authenticated=authenticated)
             if headers.get(b"content-type", b"").split(b";", 1)[0].strip() != b"application/json":
                 return await reject(415, "请求格式必须为JSON")
-            body = bytearray()
-            while True:
-                message = await receive()
-                if message["type"] == "http.disconnect":
-                    return
-                body.extend(message.get("body", b""))
-                if len(body) > (65536 if product_enabled() and not path.startswith("/auth/") else 8192):
-                    return await reject(413, "请求过大")
-                if not message.get("more_body", False):
-                    break
-            delivered = False
+            if media_json:
+                request_id = headers.get(b"x-request-id", b"")
+                if path in public_product.PAID_ROUTES and not re.fullmatch(rb"[A-Za-z0-9_-]{8,100}", request_id):
+                    return await reject(400, "请提供有效请求标识，避免重复处理")
 
-            async def bounded_receive():
-                nonlocal delivered
-                if not delivered:
-                    delivered = True
-                    return {"type": "http.request", "body": bytes(body), "more_body": False}
-                return await receive()
+            async def dispatch_json():
+                body = bytearray()
+                while True:
+                    message = await receive()
+                    if message["type"] == "http.disconnect":
+                        return
+                    body.extend(message.get("body", b""))
+                    if len(body) > (128 * 1024 * 1024 if media_json else (65536 if product_enabled() and not path.startswith("/auth/") else 8192)):
+                        return await reject(413, "请求过大")
+                    if not message.get("more_body", False):
+                        break
+                delivered = False
 
-            if product_enabled():
-                return await public_product.dispatch(self.app, scope, bounded_receive, send, bytes(body))
-            return await self.app(scope, bounded_receive, send)
+                async def bounded_receive():
+                    nonlocal delivered
+                    if not delivered:
+                        delivered = True
+                        return {"type": "http.request", "body": bytes(body), "more_body": False}
+                    return await receive()
+
+                if product_enabled():
+                    return await public_product.dispatch(self.app, scope, bounded_receive, send, bytes(body), authenticated=authenticated)
+                return await self.app(scope, bounded_receive, send)
+
+            if media_json:
+                # Acquire before accumulating/decoding large image JSON, not
+                # only when the eventual provider call reaches admission.
+                async with self.media_slots:
+                    return await dispatch_json()
+            return await dispatch_json()
         if product_enabled():
             return await public_product.dispatch(self.app, scope, receive, send, b"")
         return await self.app(scope, receive, send)

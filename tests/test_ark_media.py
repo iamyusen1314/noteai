@@ -135,3 +135,30 @@ class ArkMediaTests(unittest.TestCase):
             self.assertEqual(terminal.call_args.args[1],302)
         finally:
             public_product._invocation.reset(marker)
+
+    def test_file_upload_server_error_and_lost_persistence_keep_unknown_identity(self):
+        with mock.patch.dict(os.environ, {"NOTEAI_ARK_API_KEY": "synthetic-offline"}):
+            for status, expected in ((503,'unknown'),(401,'failed')):
+                events=[]
+                with self.assertRaises(ark.ArkMediaError):
+                    ark.upload_video(b'original-video',mime='video/mp4',persist=events.append,
+                        transport=httpx.MockTransport(lambda request: httpx.Response(status,json={})))
+                self.assertEqual([v['state'] for v in events],[expected])
+            events=[]
+            def persist(value):
+                events.append(value)
+                if len(events)==1: raise RuntimeError('simulated lost write acknowledgement')
+            with self.assertRaisesRegex(ark.ArkMediaError,'UNKNOWN'):
+                ark.upload_video(b'original-video',mime='video/mp4',persist=persist,
+                    transport=httpx.MockTransport(lambda request: httpx.Response(200,json={'id':'file-original','status':'active'})))
+            self.assertEqual(events[-1],{'state':'unknown','file_id':'file-original'})
+
+    def test_file_reconcile_does_not_call_delete_or_guess_404_success(self):
+        calls=[]
+        def respond(request):
+            calls.append(request.method)
+            return httpx.Response(404,json={'error':{'code':'unconfirmed'}})
+        with mock.patch.dict(os.environ, {"NOTEAI_ARK_API_KEY": "synthetic-offline"}):
+            with self.assertRaisesRegex(ark.ArkMediaError,'HTTP_404'):
+                ark.read_file_state('file-original',transport=httpx.MockTransport(respond))
+        self.assertEqual(calls,['GET'])

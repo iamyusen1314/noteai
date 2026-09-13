@@ -169,6 +169,144 @@ class PublicProductTests(unittest.TestCase):
         db._DB_PATH = self.old_db
         self.temp.cleanup()
 
+    def test_ark_screenshot_actual_parent_once_and_replay_refused(self):
+        import base64, io, httpx, ark_media
+        from PIL import Image
+        self.metered_usage()
+        db.execute('DELETE FROM usage_records')
+        photo=io.BytesIO();Image.new('RGB',(300,200),'green').save(photo,'PNG')
+        seen=[]
+        def respond(request):
+            value=json.loads(request.content);seen.append(value)
+            self.assertEqual(base64.b64decode(value['messages'][0]['content'][0]['image_url']['url'].split(',')[1]),photo.getvalue())
+            return httpx.Response(200,json={'model':ark_media.MODEL,
+                'usage':{'prompt_tokens':100,'completion_tokens':20,'prompt_tokens_details':{'cached_tokens':0}},
+                'choices':[{'finish_reason':'stop','message':{'content':json.dumps({'type':'B','title':'','body':'','tags':[],'domain':'美食','cover_desc':'隔离测试绿色画面'})}}]})
+        original=httpx.Client
+        with mock.patch.dict(os.environ,{'NOTEAI_PUBLIC_MEDIA_ENABLED':'1','NOTEAI_ARK_API_KEY':'isolated-only'}), \
+             mock.patch.object(api._private_storage,'object_backend_configured',return_value=True), \
+             mock.patch.object(ark_media,'_client',side_effect=lambda **kw: original(transport=httpx.MockTransport(respond),trust_env=False)):
+            headers={'X-Request-ID':'isolated-screenshot-001'}
+            result=self.client.post('/extract-screenshot',headers=headers,json={'image_base64':base64.b64encode(photo.getvalue()).decode()})
+            self.assertEqual(result.status_code,200,result.text)
+            self.assertEqual(result.json()['model_used'],ark_media.MODEL)
+            again=self.client.post('/extract-screenshot',headers=headers,json={'image_base64':base64.b64encode(photo.getvalue()).decode()})
+            self.assertEqual(again.status_code,409,again.text)
+            self.assertEqual(len(seen),1)
+            merge=self.client.post('/validate-ocr',headers={'X-Request-ID':'isolated-merge-001'},json={
+                'ocr_results':[result.json()], 'ocr_request_ids':[result.json()['ocr_request_id']]})
+            self.assertEqual(merge.status_code,200,merge.text)
+            merge2=self.client.post('/validate-ocr',headers={'X-Request-ID':'isolated-merge-new'},json={
+                'ocr_results':[result.json()], 'ocr_request_ids':[result.json()['ocr_request_id']]})
+            self.assertEqual(merge2.status_code,409)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM model_usage_records')[0],1)
+        call=db.fetchone('SELECT * FROM public_trial_calls')
+        parent=db.fetchone('SELECT * FROM usage_records WHERE id=?',(call['usage_record_id'],))
+        self.assertEqual(parent['operation'],'screenshot')
+        self.assertEqual(parent['cost_mode'],'actual')
+        self.assertEqual(parent['model_calls'],1)
+        self.assertGreater(parent['actual_model_cost_rmb'],0)
+        self.assertIsNotNone(call['model_usage_record_id'])
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM idempotency_requests WHERE complete_applied=1')[0],2)
+
+    def test_private_image_to_ark_owned_pixels_and_bounded_ocr_append(self):
+        import base64, io, httpx, ark_media, private_storage
+        from PIL import Image
+        self.metered_usage()
+        backend = private_storage.InMemoryObjectBackend()
+        private_storage.configure_object_backend(backend, key_epoch='isolated-media-input')
+        self.addCleanup(private_storage.reset_object_backend)
+        photo = io.BytesIO(); Image.new('RGB', (300, 200), 'green').save(photo, 'PNG')
+        stored = []
+        def respond(request):
+            value = json.loads(request.content)
+            actual = base64.b64decode(value['messages'][0]['content'][0]['image_url']['url'].split(',')[1])
+            self.assertEqual(actual, stored[0])
+            return httpx.Response(200,json={'model':ark_media.MODEL,
+                'usage':{'prompt_tokens':100,'completion_tokens':20,'prompt_tokens_details':{'cached_tokens':0}},
+                'choices':[{'finish_reason':'stop','message':{'content':json.dumps({'type':'B','title':'','body':'','tags':[],'domain':'美食','cover_desc':'真实上传的绿色画面，由隔离传输fixture返回'})}}]})
+        original = httpx.Client
+        with mock.patch.dict(os.environ,{'NOTEAI_PUBLIC_MEDIA_ENABLED':'1','NOTEAI_ARK_API_KEY':'isolated-only'}), \
+             mock.patch.object(ark_media,'_client',side_effect=lambda **kw: original(transport=httpx.MockTransport(respond),trust_env=False)):
+            uploaded = self.client.post('/upload-image', files={'file':('source.png',photo.getvalue(),'image/png')})
+            self.assertEqual(uploaded.status_code,200,uploaded.text)
+            ref = uploaded.json()['media_ref']
+            stored.append(private_storage.load_media_bytes(ref,user_id=self.user['id'],purpose='image')[1])
+            with self.assertRaises(private_storage.MediaReferenceUnavailable):
+                private_storage.load_media_bytes(ref,user_id='another-user',purpose='image')
+            first = self.client.post('/extract-screenshot',headers={'X-Request-ID':'owned-ocr-one'},json={'image_base64':ref})
+            self.assertEqual(first.status_code,200,first.text)
+            def merge(values):
+                return self.client.post('/validate-ocr',headers={'X-Request-ID':'owned-merge-submit'},json={
+                    'ocr_results':values,'ocr_request_ids':[v['ocr_request_id'] for v in values]})
+            tampered = {**first.json(), 'cover_desc':'invented changed object'}
+            self.assertEqual(merge([tampered]).status_code,409)
+            self.assertEqual(merge([first.json()]).status_code,200)
+            second = self.client.post('/extract-screenshot',headers={'X-Request-ID':'owned-ocr-two'},json={'image_base64':ref})
+            self.assertEqual(second.status_code,200,second.text)
+            appended = merge([first.json(),second.json()])
+            self.assertEqual(appended.status_code,200,appended.text)
+            self.assertEqual(merge([second.json()]).status_code,409)
+            # A completed merge is not an original screenshot and cannot fund
+            # recursive free model calls, even when its deterministic key is known.
+            sources = tuple(sorted(['owned-ocr-one','owned-ocr-two']))
+            import hashlib
+            forged = {**appended.json(),'ocr_request_id':'ocr-merge-'+hashlib.sha256(json.dumps(sources).encode()).hexdigest()}
+            self.assertEqual(merge([forged]).status_code,409)
+            self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls c JOIN model_usage_records m ON m.id=c.model_usage_record_id WHERE m.provider='doubao'")[0],2)
+
+
+    def test_ark_cancel_joins_one_physical_call_before_refund(self):
+        import asyncio, base64, io, threading, httpx, ark_media
+        from PIL import Image
+        self.metered_usage()
+        entered, release=threading.Event(),threading.Event()
+        photo=io.BytesIO();Image.new('RGB',(300,200),'green').save(photo,'PNG')
+        calls=[]
+        def respond(request):
+            calls.append(request);entered.set()
+            if not release.wait(5):raise AssertionError('isolated release not signaled')
+            return httpx.Response(200,json={'model':ark_media.MODEL,
+                'usage':{'prompt_tokens':100,'completion_tokens':20,'prompt_tokens_details':{'cached_tokens':0}},
+                'choices':[{'finish_reason':'stop','message':{'content':json.dumps({'type':'B','title':'','body':'','tags':[],'cover_desc':'隔离测试画面'})}}]})
+        async def run():
+            task=asyncio.create_task(api.extract_screenshot(api.ScreenshotExtractInput(image_base64=base64.b64encode(photo.getvalue()).decode()),self.user,'isolated-cancel-ocr'))
+            try:
+                for _ in range(400):
+                    if entered.is_set():break
+                    await asyncio.sleep(.005)
+                self.assertTrue(entered.is_set())
+                task.cancel();await asyncio.sleep(.02);task.cancel();await asyncio.sleep(.02)
+                self.assertFalse(task.done())
+                self.assertEqual(db.fetchone("SELECT refund_applied FROM idempotency_requests WHERE operation='screenshot'")[0],0)
+            finally:release.set()
+            with self.assertRaises(asyncio.CancelledError):await task
+        original=httpx.Client
+        with mock.patch.dict(os.environ,{'NOTEAI_ARK_API_KEY':'isolated-only'}), \
+             mock.patch.object(ark_media,'_client',side_effect=lambda **kw: original(transport=httpx.MockTransport(respond),trust_env=False)):
+            asyncio.run(run())
+        self.assertEqual(len(calls),1)
+        row=db.fetchone("SELECT usage_id,status,refund_applied FROM idempotency_requests WHERE operation='screenshot'")
+        self.assertEqual((row['status'],row['refund_applied']),('failed',1))
+        usage=db.fetchone('SELECT actual_model_cost_rmb,model_calls FROM usage_records WHERE id=?',(row['usage_id'],))
+        self.assertGreater(usage['actual_model_cost_rmb'],0)
+        self.assertEqual(usage['model_calls'],1)
+
+    def test_media_unauthorized_body_not_read_and_origin_still_required(self):
+        import asyncio
+        from public_account import PublicAccountBoundary
+        reads=[];sent=[]
+        async def forbidden(*args):raise AssertionError('handler reached')
+        async def receive():reads.append(1);return {'type':'http.request','body':b'should-not-read','more_body':False}
+        async def send(message):sent.append(message)
+        scope={'type':'http','method':'POST','path':'/upload-video','raw_path':b'/upload-video',
+               'headers':[(b'origin',b'https://noteaipro.com'),(b'content-type',b'multipart/form-data; boundary=offline')],
+               'query_string':b'', 'server':('test',80),'client':('127.0.0.1',1000),'scheme':'http','http_version':'1.1'}
+        with mock.patch.object(self.product,'media_enabled',return_value=True):
+            asyncio.run(PublicAccountBoundary(forbidden)(scope,receive,send))
+        self.assertEqual(reads,[])
+        self.assertEqual(sent[0]['status'],401)
+
     def payload(self):
         return {'model':'kimi-k2.6','max_tokens':100,'messages':[{'role':'user','content':'自有测试文本'}]}
 

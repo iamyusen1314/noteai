@@ -270,6 +270,7 @@ def claim_and_charge(
     operation: str,
     request_id: str,
     payload: Any,
+    included_ocr_ids: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Atomically claim a key and apply one paid charge + primary usage row."""
     normalized = normalize_request_id(request_id)
@@ -337,7 +338,31 @@ def claim_and_charge(
                 if status == "failed" else "",
             }
 
-        charge = billing.check_and_deduct_in_transaction(tx, user_id, operation)
+        if included_ocr_ids:
+            if operation != 'screenshot' or not 1 <= len(included_ocr_ids) <= 9 or len(set(included_ocr_ids)) != len(included_ocr_ids):
+                raise ValueError('invalid included OCR sources')
+            supplied = payload.get('ocr_results', []) if isinstance(payload, dict) else []
+            results = {result.get('ocr_request_id'): result for result in supplied if isinstance(result, dict)}
+            if len(results) != len(included_ocr_ids) or set(results) != set(included_ocr_ids):
+                raise HTTPException(409, '截图结果与原识别请求不匹配')
+            fresh_sources = []
+            for source_id in sorted(included_ocr_ids):
+                source = tx.fetchone("SELECT id,ocr_result_hash,ocr_merge_key_hash FROM idempotency_requests WHERE user_id=? AND operation='screenshot' AND key_hash=? AND status='completed' AND complete_applied=1 AND refund_applied=0" + lock, (user_id, _sha256(source_id)))
+                if not source or not source['ocr_result_hash'] or source['ocr_result_hash'] != payload_hash(results[source_id]):
+                    raise HTTPException(409, '请先完成本人每张截图的原识别请求')
+                if not source['ocr_merge_key_hash']:
+                    fresh_sources.append(source['id'])
+            # Appending a newly charged screenshot may extend the original
+            # batch; arbitrary regrouping of only consumed results may not.
+            if not fresh_sources:
+                raise HTTPException(409, '这些截图已用于原合并请求，请读取原结果，不重复处理')
+            for source_row_id in fresh_sources:
+                tx.execute("UPDATE idempotency_requests SET ocr_merge_key_hash=? WHERE id=? AND ocr_merge_key_hash IS NULL", (key_digest, source_row_id))
+            billing._require_feature_tx(tx, user_id, operation)
+            charge = {'usage_id': billing._record_usage_tx(tx, user_id, operation, 'free', 0),
+                      'source':'free', 'credits_used':0}
+        else:
+            charge = billing.check_and_deduct_in_transaction(tx, user_id, operation)
         tx.execute(
             "UPDATE idempotency_requests SET usage_id=?,charged_subscription_id=?,"
             "charged_period_start=?,charge_source=?,credits_used=?,"
@@ -482,7 +507,7 @@ def settle_expired_requests_for_account_deletion_with_storage(
 
 
 def mark_completed(
-    context: dict[str, Any] | None, *, confirm_existing: bool = False,
+    context: dict[str, Any] | None, *, confirm_existing: bool = False, ocr_result: dict | None = None,
 ) -> bool:
     if not context or context.get("state") != "owner":
         return False
@@ -509,14 +534,16 @@ def mark_completed(
         ):
             return False
         if current.get("status") == "completed" and current.get("complete_applied"):
-            return bool(confirm_existing and not current.get("refund_applied"))
+            return bool(confirm_existing and not current.get("refund_applied") and
+                        (ocr_result is None or current.get('ocr_result_hash') == payload_hash(ocr_result)))
         if current.get("status") != "running" or current.get("lease_token_hash") != lease_digest:
             return False
-        tx.execute(
-            "UPDATE idempotency_requests SET status='completed',complete_applied=1,"
-            "completed_at=?,updated_at=? WHERE id=?",
-            (now, now, context["request_id"]),
-        )
+        if ocr_result is not None and current['operation'] != 'screenshot':
+            raise ValueError('OCR result requires original screenshot admission')
+        extra = ',ocr_result_hash=?' if ocr_result is not None else ''
+        tx.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1,"
+                   "completed_at=?,updated_at=?" + extra + " WHERE id=?",
+                   (now, now, *((payload_hash(ocr_result),) if ocr_result is not None else ()), context['request_id']))
     return True
 
 

@@ -660,6 +660,84 @@ def _upgrade_sqlite_trial_usage(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA foreign_keys=ON")
 
 
+def _upgrade_sqlite_original_video(conn: sqlite3.Connection) -> None:
+    """Keep old media, operation links and owner triggers in one atomic upgrade."""
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='private_media_refs'").fetchone()
+    if not row or "ark_state" in {r[1] for r in conn.execute("PRAGMA table_info(private_media_refs)")}:
+        return
+    from inspect import getsource
+    source = getsource(_init_sqlite)
+    schema = source[source.index("CREATE TABLE IF NOT EXISTS private_media_refs ("):source.index("CREATE INDEX IF NOT EXISTS idx_private_media_refs_subject")]
+    extras = list(conn.execute("SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL AND (tbl_name='private_media_refs' AND type IN ('index','trigger') OR type='trigger' AND sql LIKE '%private_media_refs%')"))
+    columns = ",".join(r[1] for r in conn.execute("PRAGMA table_info(private_media_refs)"))
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        for kind, name, statement in extras:
+            if kind == "trigger":
+                conn.execute('DROP TRIGGER "' + name.replace('"', '""') + '"')
+        conn.execute(schema.replace("private_media_refs", "private_media_refs_video_upgrade", 1))
+        conn.execute(f"INSERT INTO private_media_refs_video_upgrade({columns}) SELECT {columns} FROM private_media_refs")
+        conn.execute("DROP TABLE private_media_refs")
+        conn.execute("ALTER TABLE private_media_refs_video_upgrade RENAME TO private_media_refs")
+        for kind, name, statement in extras:
+            conn.execute(statement)
+        if conn.execute("PRAGMA foreign_key_check").fetchone():
+            raise RuntimeError("media history foreign-key mismatch")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+
+
+def _install_sqlite_ark_media_guards(conn: sqlite3.Connection) -> None:
+    conn.execute('SAVEPOINT ark_guard_install')
+    try:
+        # Replace only these owned definitions inside init's transaction so an
+        # existing local database receives corrected guards, too.
+        conn.execute('DROP TRIGGER IF EXISTS noteai_ark_media_insert_v1')
+        conn.execute('DROP TRIGGER IF EXISTS noteai_ark_media_update_v1')
+        columns = [r[1] for r in conn.execute('PRAGMA table_info(private_media_refs)')]
+        ark = ['ark_state','ark_file_id','ark_claim_id','ark_model','ark_expires_at','ark_call_hash','ark_updated_at']
+        immutable = ' OR '.join(f'NEW.{c} IS NOT OLD.{c}' for c in columns if c not in ark + ['state','deleted_at'])
+        metadata = ' OR '.join(f'NEW.{c} IS NOT OLD.{c}' for c in ark[1:])
+        conn.execute("""CREATE TRIGGER IF NOT EXISTS noteai_ark_media_insert_v1
+            BEFORE INSERT ON private_media_refs WHEN NEW.ark_state<>'none' OR
+            NEW.ark_file_id IS NOT NULL OR NEW.ark_claim_id IS NOT NULL OR NEW.ark_model IS NOT NULL OR
+            NEW.ark_expires_at IS NOT NULL OR NEW.ark_call_hash IS NOT NULL OR NEW.ark_updated_at IS NOT NULL
+            BEGIN SELECT RAISE(ABORT,'invalid initial Ark binding'); END""")
+        conn.execute(f"""CREATE TRIGGER IF NOT EXISTS noteai_ark_media_update_v1
+            BEFORE UPDATE ON private_media_refs WHEN
+            ({immutable}) OR
+            (NEW.ark_state=OLD.ark_state AND ({metadata})) OR
+            ((NEW.state IS NOT OLD.state OR NEW.deleted_at IS NOT OLD.deleted_at) AND NOT (OLD.state='ready' AND NEW.state IN ('expired','deleted') AND NEW.deleted_at IS NOT NULL AND NEW.ark_state IN ('none','failed','deleted'))) OR
+            (NEW.ark_state<>OLD.ark_state AND (
+              OLD.state<>'ready' OR NEW.state<>OLD.state OR NEW.deleted_at IS NOT OLD.deleted_at OR
+              NOT ((OLD.ark_state='none' AND NEW.ark_state='uploading') OR
+                (OLD.ark_state='uploading' AND NEW.ark_state IN ('uploaded','unknown','failed')) OR
+                (OLD.ark_state='uploaded' AND NEW.ark_state IN ('active','delete_pending')) OR
+                (OLD.ark_state='active' AND NEW.ark_state IN ('inference','delete_pending')) OR
+                (OLD.ark_state='inference' AND NEW.ark_state IN ('active','unknown')) OR
+                (OLD.ark_state='delete_pending' AND NEW.ark_state='deleted')) OR
+              (OLD.ark_state<>'none' AND (NEW.ark_claim_id IS NOT OLD.ark_claim_id OR NEW.ark_model IS NOT OLD.ark_model OR NEW.ark_expires_at IS NOT OLD.ark_expires_at)) OR
+              (OLD.ark_file_id IS NOT NULL AND NEW.ark_file_id IS NOT OLD.ark_file_id) OR
+              (NOT (OLD.ark_state='active' AND NEW.ark_state='inference') AND NEW.ark_call_hash IS NOT OLD.ark_call_hash) OR
+              (NEW.ark_state='inference' AND NEW.ark_call_hash IS NULL) OR
+              NEW.ark_claim_id IS NULL OR NEW.ark_model<>'doubao-seed-2-0-lite-260428' OR NEW.ark_model IS NULL OR
+              NEW.ark_expires_at IS NULL OR NEW.ark_updated_at IS NULL))
+            BEGIN SELECT RAISE(ABORT,'invalid Ark lifecycle transition'); END""")
+
+    except BaseException:
+        conn.execute('ROLLBACK TO ark_guard_install')
+        conn.execute('RELEASE ark_guard_install')
+        raise
+    else:
+        conn.execute('RELEASE ark_guard_install')
+
+
 def _init_sqlite() -> None:
     """创建所有表（幂等）。"""
     with closing(_get_sqlite_conn()) as conn, conn:
@@ -1542,6 +1620,8 @@ CREATE TABLE IF NOT EXISTS idempotency_requests (
     refunded_at          TEXT,
     completed_at         TEXT,
     failed_at            TEXT,
+    ocr_result_hash      TEXT,
+    ocr_merge_key_hash   TEXT,
     UNIQUE(user_id, operation, key_hash)
 );
 CREATE INDEX IF NOT EXISTS idx_idempotency_status_lease
@@ -1752,7 +1832,7 @@ CREATE TABLE IF NOT EXISTS private_media_refs (
                             length(subject_hash) = 64
                             AND subject_hash NOT GLOB '*[^0-9a-f]*'
                         ),
-    purpose             TEXT NOT NULL CHECK (purpose IN ('image','video_frames')),
+    purpose             TEXT NOT NULL CHECK (purpose IN ('image','video_frames','video')),
     content_type        TEXT NOT NULL CHECK (
                             (purpose = 'image' AND content_type IN (
                                 'image/jpeg','image/png','image/webp'
@@ -1761,6 +1841,7 @@ CREATE TABLE IF NOT EXISTS private_media_refs (
                                 purpose = 'video_frames'
                                 AND content_type = 'application/vnd.noteai.video-frames+zip'
                             )
+                            OR (purpose='video' AND content_type IN ('video/mp4','video/quicktime','video/x-msvideo'))
                         ),
     object_key_hash     TEXT NOT NULL CHECK (
                             length(object_key_hash) = 64
@@ -1776,10 +1857,12 @@ CREATE TABLE IF NOT EXISTS private_media_refs (
                                 purpose = 'video_frames'
                                 AND size_bytes BETWEEN 1 AND 67108864
                             )
+                            OR (purpose='video' AND size_bytes BETWEEN 1 AND 104857600)
                         ),
     item_count          INTEGER NOT NULL CHECK (
                             (purpose = 'image' AND item_count = 1)
                             OR (purpose = 'video_frames' AND item_count BETWEEN 1 AND 100)
+                            OR (purpose='video' AND item_count=1)
                         ),
     schema_version      INTEGER NOT NULL CHECK (schema_version BETWEEN 1 AND 16),
     encryption_mode     TEXT NOT NULL CHECK (
@@ -1794,6 +1877,15 @@ CREATE TABLE IF NOT EXISTS private_media_refs (
     created_at          TEXT NOT NULL,
     ready_at            TEXT NOT NULL,
     deleted_at          TEXT,
+    ark_state TEXT NOT NULL DEFAULT 'none' CHECK(ark_state IN ('none','uploading','uploaded','active','inference','unknown','failed','delete_pending','deleted')),
+    ark_file_id TEXT,
+    ark_claim_id TEXT,
+    ark_model TEXT,
+    ark_expires_at INTEGER,
+    ark_call_hash TEXT,
+    ark_updated_at TEXT,
+    CHECK(ark_state='none' OR purpose='video'),
+    CHECK(ark_state NOT IN ('uploaded','active','inference','delete_pending','deleted') OR ark_file_id IS NOT NULL),
     CHECK (
         (state = 'ready' AND deleted_at IS NULL)
         OR (state IN ('expired','deleted') AND deleted_at IS NOT NULL)
@@ -2128,6 +2220,12 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
     ON user_contract_acceptances(contract_version,privacy_accepted_at);
         """)
         _upgrade_sqlite_trial_usage(conn)
+        _upgrade_sqlite_original_video(conn)
+        ocr_columns = {r[1] for r in conn.execute('PRAGMA table_info(idempotency_requests)')}
+        for name in ('ocr_result_hash', 'ocr_merge_key_hash'):
+            if name not in ocr_columns:
+                conn.execute(f'ALTER TABLE idempotency_requests ADD COLUMN {name} TEXT')
+        _install_sqlite_ark_media_guards(conn)
         payment_refund_cols = {
             str(row[1]): str(row[2]).upper()
             for row in conn.execute(
