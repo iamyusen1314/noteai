@@ -97,7 +97,7 @@ def preview(user_id, payload):
         before = snapshot(tx, user_id)
     return {"before": before, "after": proposed(before, payload),
             "expected": operations.fingerprint(before), "payload": payload,
-            "notice": "不产生支付订单或现金流水；功能开通仍受服务开放范围和全局成本上限约束。会员调整保留本周期已用额度。"}
+            "notice": "不产生支付订单或现金流水；同等权益使用相同正式业务链，仍受服务开放范围、积分与供应商限流约束。会员调整保留本周期已用额度。"}
 
 
 def apply(user_id, payload, *, actor, request_id, reason, expected):

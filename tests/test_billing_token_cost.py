@@ -122,6 +122,7 @@ class BillingTokenCostTests(unittest.TestCase):
         self._create_user("u-analyze")
         billing.record_free_usage("u-analyze", "analyze")
         billing.record_auxiliary_usage("u-analyze", "extra_image")
+        billing.record_auxiliary_usage("u-analyze", "video_analyze")
         billing.record_model_usage("claude", "claude-haiku-4-5-20251001", 600, 200, cost_rmb=0.04)
 
         summary = billing.get_usage_summary("u-analyze", days=30)
@@ -129,6 +130,25 @@ class BillingTokenCostTests(unittest.TestCase):
         self.assertEqual(summary["by_operation"]["analyze"]["total_tokens"], 800)
         self.assertEqual(summary["by_operation"]["analyze"]["actual_model_cost_rmb"], 0.04)
         self.assertEqual(summary["by_operation"]["extra_image"]["total_tokens"], 0)
+        self.assertEqual(summary["by_operation"]["extra_image"]["cost_rmb"], 0)
+        self.assertEqual(summary["by_operation"]["video_analyze"]["cost_rmb"], 0)
+        self.assertEqual(summary["total_api_cost"], 0.04)
+        self.assertEqual(summary["total_credits"], 0)
+        self.assertEqual(sum(row["cost"] for row in admin_server.build_usage_stats_payload()["by_operation"]), 0.04)
+        audit = admin_server._model_cost_audit_payload("2020-01-01")
+        self.assertEqual(audit["coverage"]["included_in_parent_records"], 2)
+        self.assertEqual(audit["coverage"]["legacy_unverifiable_records"], 0)
+        self.assertFalse(audit["coverage"]["actual_margin_ready"])
+
+    def test_auxiliary_event_requires_owned_active_parent(self):
+        self._create_user("u-parent")
+        self._create_user("u-other")
+        with self.assertRaises(ValueError):
+            billing.record_auxiliary_usage("u-other", "extra_image")
+        billing.record_free_usage("u-parent", "analyze")
+        with self.assertRaises(ValueError):
+            billing.record_auxiliary_usage("u-other", "extra_image")
+        self.assertEqual(db.fetchone("SELECT COUNT(*) AS n FROM usage_records WHERE user_id=?", ("u-other",))["n"], 0)
 
     def test_unpriced_later_call_downgrades_parent_to_partial(self):
         self._create_user("u-mixed")

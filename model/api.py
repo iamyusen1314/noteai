@@ -3529,7 +3529,7 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
     """深度图片理解：5维分析，供深度分析档位使用（图1用 _gent_visual，图2+ 用此函数）。"""
     key = os.environ.get("MOONSHOT_API_KEY", "")
     if not key:
-        return brief or f"{domain}相关素材图"
+        raise HTTPException(503, "图片理解服务未配置")
     raw_bytes = base64.b64decode(img_b64)
     b64 = base64.standard_b64encode(raw_bytes).decode()
     media = "image/webp" if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP" else "image/jpeg"
@@ -3554,6 +3554,7 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
                         {"type": "text", "text": prompt},
                     ]}],
                     "temperature": 0.6,
+                    "max_tokens": 2048,
                 },
                 headers={"Authorization": f"Bearer {key}"},
             )
@@ -3561,8 +3562,9 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
             return data["choices"][0]["message"]["content"].strip()
-    except Exception:
-        return brief or f"{domain}相关素材图"
+    except Exception as exc:
+        _log_internal_failure("provider", exc, phase="image_understand")
+        raise HTTPException(502, "图片理解未完成；未使用文字说明代替图片结果") from None
 
 
 def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
@@ -3570,7 +3572,7 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
     适用于超出套餐深度分析限额的图片，结果仍作为 Agent 上下文。"""
     key = os.environ.get("MOONSHOT_API_KEY", "")
     if not key:
-        return brief or f"{domain}素材图"
+        raise HTTPException(503, "图片理解服务未配置")
     raw_bytes = base64.b64decode(img_b64)
     b64 = base64.standard_b64encode(raw_bytes).decode()
     media = "image/webp" if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP" else "image/jpeg"
@@ -3598,8 +3600,9 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
             data = r.json()
             _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
             return data["choices"][0]["message"]["content"].strip()
-    except Exception:
-        return brief or f"{domain}素材图"
+    except Exception as exc:
+        _log_internal_failure("provider", exc, phase="image_quick")
+        raise HTTPException(502, "图片理解未完成；未使用文字说明代替图片结果") from None
 
 
 # ── Generation: 62-dim feature checklist ─────────────────────────
@@ -11204,10 +11207,10 @@ async def _score_directed_second_pass(
     )
     action_coverage_block = any("遗漏已提供动作" in issue for issue in issues)
     fact_repair = any("结构化事实不能编造" in issue for issue in issues)
-    fact_only_block = fact_repair and not _has_blocking_quality_issues(
-        score, [issue for issue in issues if "结构化事实不能编造" not in issue], domain,
-    )
-    if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_only_block:
+    # A fact defect still needs the bounded repair when the same draft also has
+    # a short title or another quality defect. There is no separate hard-repair
+    # caller for diagnosis plans; returning early used to strand those drafts.
+    if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_repair:
         return title, body, score, features, grade or _grade(score), issues, False, "存在硬质量问题，交给硬修复链路"
 
     (
@@ -13368,6 +13371,10 @@ async def extract_screenshot(
         if not m:
             raise ValueError("无法解析返回内容")
         result = _json.loads(m.group(0))
+        if not isinstance(result, dict) or result.get("error") or not any(
+            isinstance(result.get(k), str) and result[k].strip() for k in ("title", "body", "cover_desc")
+        ):
+            raise ValueError("screenshot_recognition_incomplete")
 
         img_type = result.get("type", "A")
         body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
@@ -13385,15 +13392,6 @@ async def extract_screenshot(
         elif img_type == "A" and result.get("cover_desc"):
             result["body"] = (result.get("body") or "") + \
                 f"\n\n【配图视觉描述】{result['cover_desc']}"
-
-        # C类型（纯文字截图）：不需要 cover_desc
-        # 兜底：如果返回了 error 字段，按 B 类型处理（强制提取视觉描述）
-        if "error" in result and not result.get("body"):
-            result["type"]  = "B"
-            result["title"] = ""
-            result["body"]  = ""
-            result["cover_desc"] = result.get("cover_desc") or "图片内容"
-            result["is_photo_only"] = True
 
         result["_media_type"] = media_type
         result["_image_bytes"] = image_bytes
@@ -13427,7 +13425,7 @@ async def extract_screenshot(
 
 
 class ValidateOcrInput(BaseModel):
-    ocr_results: list[dict]  # [{type, title, body, domain, cover_desc, ...}]
+    ocr_results: list[dict] = Field(min_length=1, max_length=9)
 
 @app.post("/validate-ocr")
 async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_current_user)):
@@ -13438,6 +13436,18 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
     results = req.ocr_results
     if not results:
         raise HTTPException(status_code=400, detail="无 OCR 结果")
+    if any(not all(isinstance(r.get(k, ""), (str, type(None))) for k in
+                   ("type", "title", "body", "domain", "cover_desc")) or not (
+                   isinstance(r.get("tags"), (str, type(None))) or isinstance(r.get("tags"), list)
+                   and all(isinstance(tag, str) for tag in r["tags"])) for r in results):
+        raise HTTPException(422, "截图文字字段格式无效")
+    if sum(len(str(r.get(k) or "")) for r in results for k in
+           ("title", "body", "tags", "cover_desc")) > 24000:
+        raise HTTPException(413, "截图文字超过单次处理范围，请拆分笔记；未截断内容")
+    if all(r.get("type") == "B" and str(r.get("cover_desc") or "").strip() for r in results):
+        observations = "\n\n".join(f"【图{i+1}视觉观察】{r['cover_desc']}" for i, r in enumerate(results))
+        return {"title": "", "body": observations, "tags": "", "domain": results[0].get("domain") or "美食",
+                "char_count": 0, "validated": False, "is_photo_only": True}
 
     # 单张且内容质量合理（<500字）直接返回，不需要 agent
     if len(results) == 1 and len((results[0].get("body") or "")) < 500:
@@ -13462,7 +13472,7 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
         if title or body or tags:
             t_label = f"【图{i+1} 类型:{img_type}】\n"
             t_label += f"标题: {title}\n" if title else ""
-            t_label += f"正文: {body[:300]}\n" if body else ""
+            t_label += f"正文: {body}\n" if body else ""
             t_label += f"话题: {tags}\n" if tags else ""
             t_label += f"配图: {cover}\n" if cover else ""
             blocks.append(t_label)
@@ -13486,11 +13496,13 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
     _billing.record_free_usage(user["id"], "screenshot")
 
     try:
-        raw = await _mr.call("semantic", system, user_prompt, max_tokens=800)
+        raw = await _mr.call("semantic", system, user_prompt, max_tokens=8192)
         import re as _re2, json as _j2
         m = _re2.search(r'\{[\s\S]*\}', raw)
         if m:
             d = _j2.loads(m.group(0))
+            if not isinstance(d, dict) or not isinstance(d.get("body"), str) or not d["body"].strip():
+                raise ValueError("ocr_merge_body_missing")
             body_main, tags = _split_ocr_body_and_tags(d.get("body"), d.get("tags"))
             return {
                 "title":      (d.get("title") or "").strip(),
@@ -13503,17 +13515,7 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
     except Exception as e:
         _log_internal_failure("provider", e, phase="validate_ocr")
 
-    # fallback: 简单取最长的
-    best = max(results, key=lambda r: len(r.get("body") or ""))
-    body_main, tags = _split_ocr_body_and_tags(best.get("body"), best.get("tags"))
-    return {
-        "title":  (best.get("title") or "").strip(),
-        "body":   body_main,
-        "tags":   tags,
-        "domain": best.get("domain") or "美食",
-        "char_count": _body_content_len_without_tags(body_main),
-        "validated": False,
-    }
+    raise HTTPException(502, "截图文字合并未完成；原识别内容已保留，请勿将单张内容当作完整笔记")
 
 
 class SaveNoteInput(BaseModel):
@@ -14273,7 +14275,7 @@ def _payment_production_activation_valid() -> bool:
         return False
     if os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower() != "production":
         return True
-    return providers == {"wechatpay_direct", "alipay_direct"}
+    return bool(providers) and providers <= {"wechatpay_direct", "alipay_direct"}
 
 
 def _payment_ordering_available(provider_name: str | None = None) -> bool:
@@ -16004,10 +16006,10 @@ async def _generate_pipeline_stream(
             vis_result    = {"_image_desc": brief or domain}
             extra_deep_s  = []
 
-        # 轻量分析：超出套餐深度限额的图片，用 _kimi_vision_quick 识别真实内容（视觉模型，简短 prompt）
+        # Match the synchronous pipeline: all submitted images keep full observations.
         brief_descs_s: list[str] = []
         if brief_imgs_s:
-            brief_tasks_s = [asyncio.to_thread(_kimi_vision_quick, img, domain, brief) for img in brief_imgs_s]
+            brief_tasks_s = [asyncio.to_thread(_kimi_vision_understand, img, domain, brief) for img in brief_imgs_s]
             brief_res_s   = await asyncio.gather(*brief_tasks_s, return_exceptions=True)
             if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_res_s):
                 raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")

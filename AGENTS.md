@@ -2,6 +2,20 @@
 
 ## Current execution control
 
+September13 owner authorizes restoring the confirmed original product/media/cost
+capabilities on current production and WeChat-first payment delivery. Grant3000
+test credits through existing Admin operations to the already confirmed owner
+user61d63b05-17eb-47d5-b19e-fb7eab297299 after checking prior result; necessary
+batch-specific top-ups/matching entitlements for this same user are authorized.
+Keep normal accounting/qualification, no gifts to others or fictional payment.
+WeChat Native integration/deployment/live tests are authorized: owner confirms
+amount and scans to pay, followed by full original-route refunds of those test
+orders; activate verified WeChat only when sold rights are deliverable. Alipay is
+DEFERRED/DISABLED, no longer a release dependency. No old service/0025/Item34 replay.
+Current scope, compact historical-capability comparison and exact operations are
+at Handoff/plan top; prior blanket payment/media exclusions below are historical
+where they conflict. Preserve secrets, data and all seven protected paths.
+
 September13 owner retains Claude on the existing Render + AWS design and accepts
 the previously disclosed supplier/availability risks. Record that as owner risk
 acceptance, not supplier approval; no repeated generic-letter gate, deletion or

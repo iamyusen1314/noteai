@@ -185,7 +185,7 @@ def _production_callback_activation_valid() -> bool:
         return False
     if not _production():
         return True
-    return providers == frozenset(direct_modes)
+    return bool(providers) and providers <= frozenset(direct_modes)
 
 
 def _callback_available(provider_name: str) -> bool:

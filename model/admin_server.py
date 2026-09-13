@@ -249,7 +249,8 @@ def _model_cost_audit_payload(since: str) -> dict:
     parent = db.fetchone(
         "SELECT COUNT(*) AS total_records,"
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='actual' THEN 1 ELSE 0 END),0) AS strict_actual_records,"
-        "COALESCE(SUM(CASE WHEN child_count=0 THEN 1 ELSE 0 END),0) AS legacy_unverifiable_records,"
+        "COALESCE(SUM(CASE WHEN child_count=0 AND cost_mode!='included_in_parent' THEN 1 ELSE 0 END),0) AS legacy_unverifiable_records,"
+        "COALESCE(SUM(CASE WHEN child_count=0 AND cost_mode='included_in_parent' THEN 1 ELSE 0 END),0) AS included_in_parent_records,"
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='partial' THEN 1 ELSE 0 END),0) AS partial_records,"
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='unpriced' THEN 1 ELSE 0 END),0) AS unpriced_records,"
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='usage_incomplete' THEN 1 ELSE 0 END),0) AS usage_incomplete_records "
@@ -259,15 +260,17 @@ def _model_cost_audit_payload(since: str) -> dict:
     )
     total = int(parent["total_records"] or 0)
     strict = int(parent["strict_actual_records"] or 0)
+    included = int(parent["included_in_parent_records"] or 0)
     coverage = {
         "total_records": total,
         "strict_actual_records": strict,
+        "included_in_parent_records": included,
         "legacy_unverifiable_records": int(parent["legacy_unverifiable_records"] or 0),
         "partial_records": int(parent["partial_records"] or 0),
         "unpriced_records": int(parent["unpriced_records"] or 0),
         "usage_incomplete_records": int(parent["usage_incomplete_records"] or 0),
         "strict_actual_pct": round(strict / total * 100, 1) if total else 0.0,
-        "actual_margin_ready": bool(total and strict == total),
+        "actual_margin_ready": bool(strict and strict + included == total),
     }
     by_model = [{
         "provider": row["provider"],

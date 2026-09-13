@@ -867,6 +867,30 @@ class ApiContractTests(unittest.TestCase):
             )
         provider.assert_not_called()
 
+    def test_production_single_wechat_activation_preserves_live_and_relay_requirements(self):
+        payment_runtime = importlib.import_module("payment_runtime")
+        env = {
+            "NOTEAI_RUNTIME_ROLE": "api", "NOTEAI_DEPLOYMENT_STAGE": "production",
+            "NOTEAI_PAYMENT_ORDER_PROVIDERS": "wechatpay_direct",
+            "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": "wechatpay_direct",
+            "NOTEAI_WECHATPAY_PROD_MODE": "1", "NOTEAI_ALIPAY_PROD_MODE": "0",
+            "NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "1",
+        }
+        with mock.patch.dict(os.environ, env):
+            self.assertTrue(api._payment_production_activation_valid())
+            self.assertTrue(payment_runtime._production_callback_activation_valid())
+            self.assertIsNone(api._selected_payment_provider("alipay_direct"))
+            with mock.patch.dict(os.environ, {"NOTEAI_WECHATPAY_PROD_MODE": "0"}):
+                self.assertFalse(api._payment_production_activation_valid())
+                self.assertFalse(payment_runtime._production_callback_activation_valid())
+            with mock.patch.dict(os.environ, {"NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED": "0"}):
+                self.assertFalse(api._payment_production_activation_valid())
+            for providers in ("", "adapay", "wechatpay_direct,adapay", "wechatpay_direct,unknown"):
+                with mock.patch.dict(os.environ, {"NOTEAI_PAYMENT_ORDER_PROVIDERS": providers,
+                                                   "NOTEAI_PAYMENT_CALLBACK_PROVIDERS": providers}):
+                    self.assertFalse(api._payment_production_activation_valid())
+                    self.assertFalse(payment_runtime._production_callback_activation_valid())
+
     def test_production_direct_ordering_requires_callback_relay_activation(self):
         env = {
             "NOTEAI_RUNTIME_ROLE": "api",
@@ -1373,6 +1397,47 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(result["tags"], "#广州美食 #北京路早茶 #虾饺皇")
         self.assertEqual(result["char_count"], 11)
 
+    def test_validate_ocr_keeps_long_tail_and_does_not_replace_failure_with_one_image(self):
+        tail = "第九张的地址与营业时间仅在此处"
+        text = "原文段落" * 200 + tail
+        request = api.ValidateOcrInput(ocr_results=[{"body": text}, {"body": "另一张独有正文"}])
+        async def merge(task, system, prompt, max_tokens):
+            self.assertEqual(task, "semantic")
+            self.assertIn(tail, prompt)
+            self.assertIn("另一张独有正文", prompt)
+            self.assertGreaterEqual(max_tokens, 8192)
+            return json.dumps({"body": text + "另一张独有正文"})
+        with mock.patch.object(api._billing, "record_free_usage"), mock.patch.object(api._mr, "call", side_effect=merge):
+            result = asyncio.run(api.validate_ocr(request, user={"id": "u-test"}))
+            self.assertIn(tail, result["body"])
+        with mock.patch.object(api._billing, "record_free_usage"), mock.patch.object(api._mr, "call", side_effect=RuntimeError("offline failure")):
+            with self.assertRaises(HTTPException) as stopped:
+                asyncio.run(api.validate_ocr(request, user={"id": "u-test"}))
+            self.assertEqual(stopped.exception.status_code, 502)
+
+    def test_vision_helpers_do_not_return_brief_as_real_image_result(self):
+        image = base64.b64encode(b"isolated-image-fixture").decode()
+        for helper in (api._kimi_vision_understand, api._kimi_vision_quick):
+            with self.subTest(helper=helper.__name__), mock.patch.dict(os.environ, {"MOONSHOT_API_KEY": ""}):
+                with self.assertRaises(HTTPException):
+                    helper(image, "旅行", "用户文字说明不能冒充图片识别")
+            with self.subTest(helper=helper.__name__), mock.patch.dict(os.environ, {"MOONSHOT_API_KEY": "offline-key"}), \
+                 mock.patch.object(api._public_product, "kimi_client", side_effect=RuntimeError("offline unavailable")):
+                with self.assertRaises(HTTPException):
+                    helper(image, "旅行", "用户文字说明不能冒充图片识别")
+
+    def test_photo_only_ocr_keeps_all_actual_observations_without_fake_note_text(self):
+        request = api.ValidateOcrInput(ocr_results=[
+            {"type": "B", "cover_desc": "第一张真实画面", "tags": [], "domain": "旅行"},
+            {"type": "B", "cover_desc": "第二张真实画面", "tags": []},
+        ])
+        with mock.patch.object(api._mr, "call") as provider:
+            result = asyncio.run(api.validate_ocr(request, user={"id": "u-test"}))
+        provider.assert_not_called()
+        self.assertTrue(result["is_photo_only"])
+        self.assertIn("第一张真实画面", result["body"])
+        self.assertIn("第二张真实画面", result["body"])
+
     def test_extract_screenshot_maps_moonshot_network_error_to_503(self):
         original_check = api._billing.check_and_deduct
         original_refund = api._billing.refund_operation_charge
@@ -1421,6 +1486,23 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 503)
         self.assertIn("Moonshot Vision 网络不可达", ctx.exception.detail)
         self.assertEqual(calls, [("u-test", "screenshot", charge, "截图识别失败自动退回")])
+
+    def test_extract_screenshot_rejects_provider_error_without_inventing_photo_description(self):
+        response = mock.Mock(extensions={})
+        response.json.return_value = {"choices": [{"message": {"content": '{"error":"unreadable"}'}}]}
+        client = mock.MagicMock()
+        client.__enter__.return_value.post.return_value = response
+        charge = {"source": "credits", "credits_used": 0.5, "usage_id": "ocr-test-usage"}
+        with mock.patch.dict(os.environ, {"MOONSHOT_API_KEY": "offline-key"}), \
+             mock.patch.object(api._public_product, "kimi_client", return_value=client), \
+             mock.patch.object(api._billing, "check_and_deduct", return_value=charge), \
+             mock.patch.object(api._billing, "refund_operation_charge") as refund, \
+             mock.patch.object(api, "_record_kimi_usage_from_payload") as cost:
+            with self.assertRaises(HTTPException):
+                asyncio.run(api.extract_screenshot(api.ScreenshotExtractInput(
+                    image_base64=base64.b64encode(b"\xff\xd8\xfffake-jpg").decode()), user={"id": "u-test"}))
+        cost.assert_called_once()
+        refund.assert_called_once_with("u-test", "screenshot", charge, "截图识别失败自动退回")
 
     def test_expert_opinion_evidence_is_bound_to_v04_sources(self):
         weakness = api.WeaknessItem(
@@ -2738,7 +2820,7 @@ class ApiContractTests(unittest.TestCase):
                  mock.patch.object(api, "_get_video_meta", return_value={"frames": [b"f"], "duration_sec": 3}), \
                  mock.patch.object(api, "_kimi_video_understand", new=mock.AsyncMock(return_value=full_observation)), \
                  mock.patch.object(api, "_gent_visual", new=mock.AsyncMock(return_value={"role": "视觉专家", "raw": "<scene>主图概要</scene>", "_image_desc": "主图完整观察"})), \
-                 mock.patch.object(api, "_kimi_vision_quick", return_value=full_observation), \
+                 mock.patch.object(api, "_kimi_vision_understand", return_value=full_observation), \
                  mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})) as content, \
                  mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})) as growth, \
                  mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})) as audience, \
@@ -3260,6 +3342,7 @@ class ApiContractTests(unittest.TestCase):
         source = "酒店地址在番禺区汉溪大道东299号，美团评分4.7，￥929起/晚。"
         old_body = "酒店位于园区内，不用接驳，适合2大1小。"
         old_issues = api._structured_fact_boundary_issues(old_body, source, "旅行")
+        old_issues.append("标题偏短，需要补完整决策价值")
         safe_body = "酒店地址在番禺区汉溪大道东299号，929元起/晚，评分4.7；建议联系酒店确认接驳方式。"
 
         async def unchanged_shape(_title, body, *_args, **_kwargs):

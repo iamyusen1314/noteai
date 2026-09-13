@@ -1,5 +1,17 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 latest owner scope: recover confirmed original product/media/cost
+functionality on current production, starting with the confirmed owner's3000-credit
+Admin gift. Subsequent necessary test-batch rights for this same identity are
+authorized. Preserve normal accounting and equivalent-rights quality; no old
+monetary test cap or historical invoice fabrication. Native WeChat first is now
+authorized including scoped Payment/API/callback deployment, owner-scanned test
+payments and full original-route test refunds; activate after real loop and rights
+delivery verification. Alipay DEFERRED/DISABLED is removed from current launch
+dependencies. Merchant signed/AppID entered remains OWNER_REPORTED until readback.
+Current Handoff top holds compact capability comparison and exact operations.
+No old service restart,0025 replay, historical evidence rewrite or Item34 reset.
+
 September13 20:48 current API source6c955bb imagee5985a63 is DEPLOYED/verified.
 Only api.py changed atop3f/ea946e33, the retained immediate compatible rollback.
 Original job/package/hash/build/result is indexed at Handoff top.38 isolated

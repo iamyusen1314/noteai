@@ -1,5 +1,17 @@
 # Architecture Summary
 
+September13 21:46 update: production versions below remain unchanged. Owner
+test entitlement is now3000 noncash credits via the original Admin gift ledger.
+Fresh05 follows normal Claude/Meituan/business/credit paths; final fact guard
+correctly stopped unsupported room-ticket assertions, refunded6credits, retained
+29 actual model calls and2.93832RMB cost. Local media recovery keeps the original
+Vision/components and records auxiliary operations as included in their parent
+cost rather than duplicate estimates. Original QA003 implementation is traced to
+2776d7c; screenshot3/34actual and31historical-unverifiable remain historical.
+WeChat Native-first delivery reuses original orders/Payment/callback/reconcile;
+Alipay is deferred, not a prerequisite. Current checkpoint and remaining actual
+engineering are at Handoff top; no fresh media/payment acceptance is claimed.
+
 September13 current rollout: effective C API6c955bb imagee5985a63, Adminb033de0,
 web363f3e3 and Render Gateway60168e1 are live. Actual import paths and historical
 mixed-path build correction are at Handoff top. API-C → Render → Anthropic is

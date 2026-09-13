@@ -1,5 +1,15 @@
 # Risk Register
 
+September13 21:46: owner gift3000 is verified through the existing Admin ledger
+and normal wallet. Fresh business05 on unchanged API6c955bb failed
+DIAGNOSIS_FACT_UNVERIFIED: model assigned unsupported room/ticket conditions.
+All29 physical Claude calls have complete actual metering, known cost2.93832RMB;
+6credits refunded once, wallet3000. No product-quality pass or replay. Local
+bounded factual-repair, media failure/context and parent-cost corrections pass
+28 isolated Python3.11 checks; not deployed yet. WeChat Native-first is authorized,
+Alipay deferred; merchant-console tool access is blocked, status facts requested
+without secrets. Other engineering continues. Item34 unchanged; Readiness30/37.
+
 September13 20:48: effective API6c955bb/e5985a63 closes the same-source generation
 alternative-title/final-candidate defects and the synchronous multi-image omissions.
 Final38 affected Python3.11 checks and actual-image import/canary/drain/health pass.

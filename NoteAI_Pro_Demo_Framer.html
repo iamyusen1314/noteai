@@ -12111,7 +12111,10 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
       openAuthModal('login');
       throw new Error('请先登录后进行截图识别');
     }
-    if (!res.ok) throw new Error('validate-ocr failed');
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.detail || `截图文字合并失败（HTTP ${res.status}）`);
+    }
     const d = await res.json();
     if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
 
@@ -12148,9 +12151,12 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
   } catch(e) {
     if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
     console.error('_validateAndMergeOcr error:', e);
-    // 降级到普通合并
-    _mergeAndShowOcrResults(revision, imageSnapshot);
-    return true;
+    // Keep per-image OCR for recovery, but never promote a failed merge.
+    _screenshotExtracted = null;
+    _ssMergedRevision = null;
+    if (statusEl) statusEl.textContent = e.message || '截图文字合并未完成，原识别内容仍保留';
+    showToast(e.message || '截图文字合并未完成');
+    return false;
   } finally {
     if (_isCurrentSsBatch(revision, imageSnapshot)) {
       if (_ssOcrValidatingRevision === revision) {

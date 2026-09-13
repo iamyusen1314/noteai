@@ -782,14 +782,15 @@ function adminCostCoverage(rawCoverage) {
   const partial = source.partial_records;
   const unpriced = source.unpriced_records;
   const usageIncomplete = source.usage_incomplete_records;
-  const classifiedTotal = strict + legacy + partial + unpriced + usageIncomplete;
-  if (strict > total || classifiedTotal !== total) {
+  const included = source.included_in_parent_records === undefined ? 0 : source.included_in_parent_records;
+  const classifiedTotal = strict + legacy + partial + unpriced + usageIncomplete + included;
+  if (!adminIsNonNegativeInteger(included) || strict > total || classifiedTotal !== total) {
     return {
       state:'unavailable', ready:false, total:0, strict:0, pct:null,
       legacy:0, partial:0, unpriced:0, usageIncomplete:0,
     };
   }
-  const ready = source.actual_margin_ready === true && total > 0 && strict === total;
+  const ready = source.actual_margin_ready === true && strict > 0 && strict + included === total;
   return {
     state: total === 0 ? 'empty' : (ready ? 'complete' : 'incomplete'),
     ready,
@@ -800,6 +801,7 @@ function adminCostCoverage(rawCoverage) {
     partial,
     unpriced,
     usageIncomplete,
+    included,
   };
 }
 
@@ -808,6 +810,7 @@ function adminCoverageCountsText(coverage, includeAllCategories = true) {
   const parts = [
     `严格实际 ${coverage.strict}/${coverage.total} 条操作记录（${coverage.pct.toFixed(1)}%）`,
     `历史不可复算 ${coverage.legacy} 条操作记录`,
+    `成本计入主任务 ${coverage.included || 0} 条附加事件（不另计费）`,
   ];
   if (includeAllCategories) {
     parts.push(
@@ -862,6 +865,7 @@ const ADMIN_LEDGER_SOURCE_LABELS = Object.freeze({
 const ADMIN_LEDGER_COST_MODE_LABELS = Object.freeze({
   actual:'实际成本（以覆盖审计为准）', partial:'部分计价成本', unpriced:'未计价成本',
   usage_incomplete:'用量不完整', estimated:'估算成本',
+  included_in_parent:'附加事件：成本计入主任务，不另计费',
   legacy_unverifiable_actual:'历史不可复算成本',
 });
 const ADMIN_LEDGER_TXN_TYPE_LABELS = Object.freeze({

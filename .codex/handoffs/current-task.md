@@ -1,5 +1,96 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 21:46 Beijing — gift verified; factual-quality batch failed safely
+
+Normal Admin preview/apply for the already verified owner UID
+61d63b05-17eb-47d5-b19e-fb7eab297299 succeeded once. Operation/ledger identity
+6976d44d-3112-4815-8cf8-ab50e1a3a40e, actor noteai_admin, source gift,
+reason owner-approved full-product test batch3000. Wallet0→3000, paid_rmb0,
+total_purchased0; existing monthly12/12 unchanged. Persisted operation GET and
+Admin wallet/ledger both200 at2026-09-13T13:39:40Z; replayed=false, one matching
+gift, temporary normal Admin session logged out. Preflight first used nonexistent
+users.is_active, then a non-granted phone-verification column; both read-only
+failures retained in CloudAssistant51–53. Normal Admin API54–55 verified exact
+UID/username/preview using existing dedicated role; no permission expansion.
+
+Fresh quality request formal-claude-meituan-20260913-05 launched once via existing
+durable launcher, pid1577404 at1789306833.4332595, script SHA
+04e7932796d5381495cdbcadcabd024dcec5f003a8623725ee44a72f2bee7d8f.
+Stage /var/lib/noteai/formal-claude-363f3e3/business-analyze-05; fixed actual6c image
+is checked before dispatch. Same approved public hotel self-test, normal owner
+session/credits, full configured Claude/fact chain. No automatic client retry.
+Terminal is RESPONSE_FAILED at1789307212.3265917, original SSE SHA
+bfbbdce455a9b8b6182306efc148302d69aac18795f847528bfe8d50a42a127a.
+DIAGNOSIS_FACT_UNVERIFIED blocked unsupported room/ticket/price/comparison claims;
+not a successful product-quality result. Claimb4c64a70-e3b4-4e9c-9a98-3b6c395bc694,
+usage2a3c6a72-e341-4e13-9cf7-f4755a3c8e9b: charge6wallet once, refund once,
+complete0. Wallet readback3000/total_used0/total_purchased0.29physicalHaiku4.5/
+Sonnet4.6 calls allresponded200/complete/exact, unresolved0; parent/children
+known model cost both2.93832RMB, source refunded. MeituanCLI1 current response
+now gives room-specific969/1163/1357/1648/1965起prices,929起/晚headline and
+partial room ticket availability; it does not establish which named room includes
+or excludes tickets. Original output wrongly assigned those terms. No automatic
+new request; current local second-pass fix permits existing bounded factual repair
+when the same draft also has a short-title/other quality issue (old path returned
+without any real hard-repair caller). Final factual/quality checks remain.
+
+Original QA-003/FIN-001 source found at2776d7c52c91947498a073efbe7030a3f95615a8;
+513675d historical Handoff21–22/286/534–563 confirms staging deploy,3/34 actual,
+31unverifiable, real Kimi OCR1301/81tokens/0.008125RMB,9OCR/2s upload. It explicitly
+did not submit final media diagnosis. Owner screenshot matches that report; exact
+screen timestamp alone is not a unique commit proof. Current V0.4 manifest's four
+artifact hashes match history; no weight replacement/retraining needed.
+
+Local media correction now rejects fabricated brief fallback, preserves complete
+OCR instead of300chars/longest-image fallback, retains pure-photo observations,
+and aligns streaming extra-image depth with synchronous flow. Frontend no longer
+promotes merge502 to success. New auxiliary media events retain count/source0credit
+but cost_mode included_in_parent, no duplicate0.016/0.17 estimate; physical model
+cost stays on actual parent. Historical rows unchanged. Admin displays this basis.
+OCR upstream error JSON also now fails/refunds instead of inventing“图片内容”.
+Single-direct-provider activation no longer requires Alipay alongside WeChat;
+LIVE, relay, identity and allowed-provider checks remain. All are LOCAL_ONLY.
+28 isolatedPython3.11 targeted checks pass; initial1test fixture still mocked oldquickhelper,
+corrected to actualdeephelper, no safety relaxation. Public media/payment stay
+closed until corresponding full-chain/deploy verification. No0025/F/Item34 change.
+
+Wechat merchant browser control at existing development-settings page was rejected
+by the tool's site-safety policy (no page read, no workaround). Owner asked once
+for Native/actualAppIDbinding/APIsecurity configuration status, no keys requested.
+This blocks merchant-console read only; local payment/media/cost work continues.
+Readiness30/37 unchanged.
+
+## September13 owner integration — original product/media/cost recovery and WeChat first
+
+Owner confirms3000 test-credit gift to the already verified unique user
+61d63b05-17eb-47d5-b19e-fb7eab297299/member_43fea885ae4344588152. Check original
+grant/result first, use existing Admin preview/apply/idempotency ledger; no direct
+balance edit or paid order. Necessary batch-specific top-ups/matching entitlements
+for this same owner are also authorized, without repeated questions. Earlier30
+credit question is superseded; normal credit checks/cost history remain.
+
+Recover confirmed original functionality using QA-003 / July12 14:08:55 /
+noteai-staging-admin.onrender.com usage-analysis evidence, not a replacement UI or
+old runtime restoration. Trace screenshots/general images/video/storage/preprocess/
+actual components into industry business/results and original cost reports. Keep
+historical3/34 strict-actual,31unverifiable as history; no invented old costs.
+Current source6c955bb/API and a45e911 recovery are preserved,0025 already applied.
+
+WeChat signed/AppID entered are OWNER_REPORTED until current console readback.
+Native-first Payment/API/HTTPS callback deployment and live integration are
+authorized; owner sees amount and pays by scanning. Full original-route refunds
+for those confirmed test orders are authorized. Enable only verified WeChat when
+sold rights are deliverable. Alipay DEFERRED/DISABLED is not a release prerequisite;
+no public-price changes, no other customer-order mutation. Preserve Item34 actual
+state/fixed artifacts and seven protected paths; no Readiness increment from scope.
+
+| Original capability/evidence | Current difference | Actual repair | Verification | Deployed version | Remaining |
+| --- | --- | --- | --- | --- | --- |
+| QA-003 usage report, July12 owner screenshot clues | History/source comparison in progress | Reuse existing usage/ledger/report modules | Pending focused comparison | Adminb033de0 | Exact historical coverage and current aggregation |
+| Existing screenshot/image/video pipelines | Public media currently disabled; original component inventory in progress | Existing context/failure fixes preserved | Offline checks passed; real media pending | API6c955bb | Upload-to-result/current cost verification |
+| Owner noncash test entitlements | Wallet0 and monthly12/12 before gift | Existing Admin operation6976d44d adds3000gift once | Operation+wallet+ledger200, balance3000 | Adminb033de0 | 05 failed factual quality;6 debited/refunded once; next corrected candidate |
+| Direct WeChat Native | Merchant signed/AppID OWNER_REPORTED | Alipay dependency removal and current binding next | No live payment yet | Existing code, Payment not enabled | Console binding/secure inputs/test payment/refund |
+
 ## September13 20:48 Beijing — corresponding generation corrections deployed
 
 Actual API source6c955bb557604f662a9fa0f2d4d0f0dc80e781ba is DEPLOYED at

@@ -695,7 +695,8 @@ def record_auxiliary_usage(user_id: Optional[str], operation: str,
     if not db.fetchone("SELECT id FROM users WHERE id=?", (user_id,)):
         return
     _record_usage(user_id, operation, source="free", credits_used=0,
-                  tokens_in=tokens_in, tokens_out=tokens_out, force_active=False)
+                  tokens_in=tokens_in, tokens_out=tokens_out, force_active=False,
+                  auxiliary=True)
 
 # ─────────────────────────────────────────────────────────────
 # ⑦ 积分操作
@@ -940,7 +941,8 @@ def _record_usage(user_id: str, operation: str, source: str,
                   credits_used: float,
                   tokens_in: int = 0, tokens_out: int = 0,
                   force_active: bool = False,
-                  enforce_feature: bool = False) -> str | None:
+                  enforce_feature: bool = False,
+                  auxiliary: bool = False) -> str | None:
     """
     ★ 所有用量记录的唯一入口。
     user_id 不允许为 None 或空字符串，否则抛出内部错误（防止脏数据）。
@@ -957,6 +959,11 @@ def _record_usage(user_id: str, operation: str, source: str,
             raise HTTPException(status_code=401, detail="登录账号不存在或已失效")
         if enforce_feature:
             _require_feature_tx(tx, user_id, operation)
+        if auxiliary and (tokens_in or tokens_out or not tx.fetchone(
+            "SELECT id FROM usage_records WHERE id=? AND user_id=?",
+            (_ACTIVE_USAGE_ID.get(), user_id),
+        )):
+            raise ValueError("auxiliary usage requires its existing user-owned parent")
         usage_id = _record_usage_tx(
             tx,
             user_id,
@@ -964,12 +971,20 @@ def _record_usage(user_id: str, operation: str, source: str,
             source,
             credits_used,
         )
+        if auxiliary:
+            # This row counts a media event; physical calls are costed once on
+            # the active parent. Zero here means no separate charge, not a free
+            # provider request or an inferred settlement of unknown model cost.
+            tx.execute(
+                "UPDATE usage_records SET cost_rmb=0,estimated_cost_rmb=0,"
+                "cost_mode='included_in_parent' WHERE id=?", (usage_id,),
+            )
         if tokens_in or tokens_out:
             tx.execute(
                 "UPDATE usage_records SET tokens_in=?,tokens_out=? WHERE id=?",
                 (tokens_in, tokens_out, usage_id),
             )
-    if force_active or _ACTIVE_USAGE_ID.get() is None:
+    if not auxiliary and (force_active or _ACTIVE_USAGE_ID.get() is None):
         _ACTIVE_USAGE_ID.set(usage_id)
     return usage_id
 
