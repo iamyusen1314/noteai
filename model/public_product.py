@@ -67,6 +67,7 @@ class Invocation:
     prompts: object | None = None
     route: str = ""
     call_ids: set = field(default_factory=set)
+    observed_models: set = field(default_factory=set)
     fact_observation: dict | None = None
 
 
@@ -244,6 +245,25 @@ def assert_result_known():
     current = _invocation.get()
     if enabled() and current is not None and current.failure:
         raise TrialProviderStopped(current.failure)
+
+
+def record_model_identity(model, *, physical_call_id, usage_status=None):
+    current = _invocation.get()
+    if (current is not None and physical_call_id in current.call_ids
+            and usage_status != "usage_missing"
+            and isinstance(model, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", model)):
+        current.observed_models.add(model)
+
+
+def executed_model_label(legacy_label):
+    """Report observed, accounted models, never infer them from entitlement/source."""
+    current = _invocation.get()
+    if not enabled() or current is None:
+        return legacy_label
+    assert_result_known()
+    if not current.observed_models:
+        raise TrialProviderStopped("PUBLIC_MODEL_IDENTITY_UNCONFIRMED")
+    return " + ".join(sorted(current.observed_models))
 
 
 class _SlotsBusy(Exception):

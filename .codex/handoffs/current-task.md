@@ -1,5 +1,21 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 19:10 Beijing — report model identity correction
+
+Post-rollout targeted review found public diagnosis/generation terminal model_used
+still hardcoded Kimi. Fix api.py to resolve final labels from request-local observed
+models recorded only after usage persistence; model_router.py/public_product.py
+retain exact physical-call ownership and refuse unproven/failed results. This does
+not change routes, Prompt text or deployment bindings. Python3.11 isolated Claude
+transport26 tests pass, including two model-accounting/identity regressions. Final
+API-only delta is next; keep Adminb033, web363, Gateway601 and0025 untouched.
+Browser original product renders after a transient connection failure; Admin shows
+the expected unauthenticated login form. Server-side authenticated checks already
+passed. No real business request has been dispatched in this batch.
+Correction to prior read-only wording: owner quota accessor opens the existing
+subscription transaction and can refresh a due period; this was normal authorized
+account inspection, not a claim of a universally read-only DB implementation.
+
 ## September13 19:00 Beijing — original batch preserved; Claude successor deployed
 
 C /var/lib/noteai/formal-claude-363f3e3/deploy-result.json is DEPLOYED at

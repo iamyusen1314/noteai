@@ -15331,7 +15331,7 @@ async def _run_analyze_pipeline(
             suggested_body = agent_result.get("body", "")
             dispute = agent_result.get("dispute", "")
             expert_opinions = agent_result.get("expert_opinions", [])
-            model_label = "kimi-k2.6-5-agents" if _public_account.product_enabled() else "claude-routed-5-agents"
+            model_label = "claude-routed-5-agents"
             delivery_source_context = "\n\n".join(
                 p for p in [req.desc, fact_context, intent_brief] if p
             )
@@ -15587,7 +15587,7 @@ async def _run_analyze_pipeline(
         suggested_plans=plans_scored,
         improvement_plan=plan,
         suggested_body=suggested_body,
-        model_used=model_label,
+        model_used=_public_product.executed_model_label(model_label),
         dispute=dispute,
         expert_opinions=_public_expert_opinions(expert_opinions),
         fact_enrichment=fact_enrichment,
@@ -16470,7 +16470,7 @@ async def _generate_pipeline_stream(
         "selection_meta": stream_selection_meta,
         "features":        {k: float(v) for k, v in final_feats.items()},
         "expert_opinions": _public_expert_opinions(opinions),
-        "model_used":      "kimi-k2.6-5-agents-stream" if _public_account.product_enabled() else "claude-routed-5-agents-stream",
+        "model_used":      _public_product.executed_model_label("claude-routed-5-agents-stream"),
     }
 
 
@@ -17041,7 +17041,7 @@ async def generate(
             intent_contract=intent_contract,
             fact_source_decision=fact_source_decision,
             supplement_prompts=supplement_prompts,
-            model_used="claude-routed-5-agents",
+            model_used=_public_product.executed_model_label("claude-routed-5-agents"),
         )
     except BaseException:
         if claim:

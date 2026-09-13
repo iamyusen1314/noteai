@@ -171,6 +171,10 @@ def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int
         billing.record_model_usage(
             provider, model, tokens_in=tokens_in, tokens_out=tokens_out, **kwargs
         )
+        _public_product.record_model_identity(
+            model, physical_call_id=kwargs.get("physical_call_id"),
+            usage_status=kwargs.get("usage_status"),
+        )
     except Exception:
         if kwargs.get("physical_call_id"):
             raise _public_product.TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED") from None

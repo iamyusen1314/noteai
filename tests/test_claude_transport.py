@@ -195,6 +195,47 @@ class _FakeClaudeTransport:
 
 
 class ClaudeTransportTests(unittest.TestCase):
+    def test_public_result_model_names_follow_accounted_calls(self):
+        import public_product
+        import billing
+        context = public_product.Invocation("owner-test", "identity-test")
+        context.call_ids.update({"call-haiku", "call-sonnet"})
+        marker = public_product._invocation.set(context)
+        try:
+            with mock.patch.object(public_product, "enabled", return_value=True), \
+                 mock.patch.object(billing, "record_model_usage"):
+                model_router._record_usage("claude", "claude-haiku-4-5-20251001",
+                    physical_call_id="call-haiku", usage_status="complete")
+                model_router._record_usage("claude", "claude-sonnet-4-6",
+                    physical_call_id="call-sonnet", usage_status="complete")
+                model_router._record_usage("kimi", "kimi-k2.6",
+                    physical_call_id="another-request", usage_status="complete")
+                self.assertEqual(public_product.executed_model_label("kimi-old"),
+                    "claude-haiku-4-5-20251001 + claude-sonnet-4-6")
+                context.failure = "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY"
+                with self.assertRaises(public_product.TrialProviderStopped):
+                    public_product.executed_model_label("kimi-old")
+        finally:
+            public_product._invocation.reset(marker)
+
+    def test_public_model_identity_requires_usage_persistence(self):
+        import public_product
+        import billing
+        context = public_product.Invocation("owner-test", "identity-missing")
+        context.call_ids.add("call-haiku")
+        marker = public_product._invocation.set(context)
+        try:
+            with mock.patch.object(public_product, "enabled", return_value=True), \
+                 mock.patch.object(billing, "record_model_usage", side_effect=RuntimeError("write failed")):
+                with self.assertRaises(public_product.TrialProviderStopped):
+                    model_router._record_usage("claude", "claude-haiku-4-5-20251001",
+                        physical_call_id="call-haiku", usage_status="complete")
+                self.assertFalse(context.observed_models)
+                with self.assertRaises(public_product.TrialProviderStopped):
+                    public_product.executed_model_label("configured-but-unproven")
+        finally:
+            public_product._invocation.reset(marker)
+
     def setUp(self):
         self.original_transport = model_router._CLAUDE_TRANSPORT
         self.transport = _FakeClaudeTransport()
