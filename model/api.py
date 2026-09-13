@@ -393,7 +393,7 @@ def compute_semantic_features(title: str, desc: str) -> dict:
     defaults = {c: 0.5 for c in SEMANTIC_FEATURE_COLS}
     prompt = _KIMI_SEMANTIC_PROMPT().format(
         title=(title or "").strip(),
-        desc=((desc or "").strip())[:300],
+        desc=(desc or "").strip(),
     )
     try:
         import json as _j
@@ -408,9 +408,14 @@ def compute_semantic_features(title: str, desc: str) -> dict:
             if raw.startswith("json"):
                 raw = raw[4:]
         d = _j.loads(raw.strip())
-        return {c: float(d.get(c, 0.5)) for c in SEMANTIC_FEATURE_COLS}
+        result = {c: float(d[c]) for c in SEMANTIC_FEATURE_COLS}
+        if any(not 0 <= value <= 1 for value in result.values()):
+            raise ValueError("semantic scores outside range")
+        return result
     except Exception:
         _public_product.assert_result_known()
+        if _public_product.enabled():
+            raise _public_product.TrialProviderStopped("PUBLIC_SEMANTIC_RESULT_INVALID") from None
         return defaults
 
 
@@ -3436,6 +3441,7 @@ async def _run_five_agents(
 
     opinions: list[dict] = []
     progress = 36
+    stage_failure = None
     while pending:
         done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
         for task in done:
@@ -3443,6 +3449,15 @@ async def _run_five_agents(
             try:
                 result = task.result()
             except Exception as exc:
+                if _public_product.enabled():
+                    # Finish reading the already-started peers before leaving
+                    # the stage. A missing necessary expert is not a zero-score
+                    # opinion and must not proceed to arbitration as success.
+                    stage_failure = exc
+                    current = _public_product._invocation.get()
+                    if current is not None and not current.failure:
+                        current.failure = "PUBLIC_MODEL_STAGE_FAILED"
+                    continue
                 if isinstance(exc, _public_product.TrialProviderStopped):
                     raise
                 _log_internal_failure(
@@ -3464,6 +3479,10 @@ async def _run_five_agents(
                 raw = result.get("raw") or ""
                 progress = min(progress + 6, 58)
                 await _emit_progress(emit, _agent_event_payload(role, raw, agent_idx, progress))
+
+    if stage_failure is not None:
+        _public_product.assert_result_known()
+        raise _public_product.TrialProviderStopped("PUBLIC_MODEL_STAGE_FAILED") from None
 
     await _emit_progress(emit, {
         "type": "stage",

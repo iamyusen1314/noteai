@@ -267,8 +267,9 @@ class PublicProductTests(unittest.TestCase):
     def test_result_write_failure_stops_completion_and_followup(self):
         import httpx
         transport=mock.Mock(return_value=httpx.Response(200,json={'choices':[{'message':{'content':'ok'},'finish_reason':'stop'}]}))
-        with self.product.kimi_client(transport=httpx.MockTransport(transport)) as client, \
-             mock.patch.object(db,'execute',side_effect=RuntimeError('synthetic result write failure')):
+        db.execute("CREATE TRIGGER fail_result_write BEFORE UPDATE OF state ON public_trial_calls "
+                   "BEGIN SELECT RAISE(ABORT, 'synthetic result write failure'); END")
+        with self.product.kimi_client(transport=httpx.MockTransport(transport)) as client:
             with self.assertRaises(self.product.TrialProviderStopped): client.post(self.product.ENDPOINT,json=self.payload())
             with self.assertRaises(self.product.TrialProviderStopped): client.post(self.product.ENDPOINT,json=self.payload())
         self.assertEqual(transport.call_count,1)
@@ -307,6 +308,118 @@ class PublicProductTests(unittest.TestCase):
         db.execute("UPDATE public_trial_budget SET policy_mode='owner_metered',reserved_milli_cny=49000")
         billing.record_free_usage(self.user['id'], 'score')
         return billing._ACTIVE_USAGE_ID.get()
+
+    def claude_request(self):
+        import model_router
+        return model_router.ClaudeMessageRequest(model=model_router.CLAUDE_HAIKU,
+            max_tokens=1200, messages=({'role':'user','content':'isolated fixture'},),
+            operation_id=model_router._new_operation_id())
+
+    def test_claude_operation_has_one_actual_usage_link_and_shared_slots(self):
+        import model_router
+        usage_id = self.metered_usage()
+        request = self.claude_request()
+        self.product.admit_claude_sync(request, b'{}')
+        second = self.product._reserve_payload(self.payload(), 2590)
+        with self.assertRaises(self.product._SlotsBusy):
+            self.product._reserve_claude_once(self.claude_request(), b'{}')
+        usage = {'input_tokens':100, 'output_tokens':20, 'cache_read_input_tokens':0,
+                 'cache_creation_input_tokens':0}
+        for _ in range(2):
+            model_router._record_request_claude_usage(request, usage, request.model)
+        self.product._record_response(request.operation_id, 200)
+        self.product._record_response(second, None, not_dispatched=True)
+        row = db.fetchone('SELECT * FROM public_trial_calls WHERE id=?', (request.operation_id,))
+        self.assertEqual(row['usage_record_id'], usage_id)
+        self.assertEqual(json.loads(row['provenance_json'])['operation_id'], request.operation_id)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM model_usage_records')[0], 1)
+        self.assertGreater(db.fetchone('SELECT reserved_milli_cny FROM public_trial_budget')[0], 50000)
+
+    def test_claude_repeated_cancel_waits_for_admission_then_records_no_dispatch(self):
+        import asyncio, threading
+        self.metered_usage()
+        request = self.claude_request()
+        entered, release = threading.Event(), threading.Event()
+        reserve = self.product._reserve_claude_once
+        def blocked(*args):
+            entered.set()
+            if not release.wait(3):
+                raise AssertionError('test did not release transaction')
+            return reserve(*args)
+        async def run():
+            task = asyncio.create_task(self.product.admit_claude(request, b'{}'))
+            try:
+                for _ in range(200):
+                    if entered.is_set(): break
+                    await asyncio.sleep(.005)
+                self.assertTrue(entered.is_set())
+                task.cancel()
+                await asyncio.sleep(.01)
+                task.cancel()
+                await asyncio.sleep(.01)
+                self.assertFalse(task.done())
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError): await task
+        with mock.patch.object(self.product, '_reserve_claude_once', side_effect=blocked):
+            asyncio.run(run())
+        self.assertTrue(request.call_state['finalized'])
+        self.assertNotIn('sent', request.call_state)
+        row = db.fetchone('SELECT state,http_status FROM public_trial_calls WHERE id=?', (request.operation_id,))
+        self.assertEqual(tuple(row), ('responded', None))
+
+    def test_call_terminal_compare_and_set_never_overwrites_unknown(self):
+        self.metered_usage()
+        request = self.claude_request()
+        self.product.admit_claude_sync(request, b'{}')
+        self.product._record_response(request.operation_id, 200, unknown=True)
+        self.product._record_response(request.operation_id, 200, unknown=True)
+        with self.assertRaises(self.product.TrialProviderStopped):
+            self.product._record_response(request.operation_id, 200)
+        with self.assertRaises(self.product.TrialProviderStopped):
+            self.product._record_response('missing-operation', 200)
+        self.assertEqual(db.fetchone('SELECT state FROM public_trial_calls')[0], 'unknown')
+
+    def test_semantic_failure_or_invalid_scores_cannot_become_default_success(self):
+        import model_router
+        for raw in ('{}', '{"bad":"output"}'):
+            self.product._invocation.get().failure = ''
+            with mock.patch.object(model_router, 'call_semantic_sync', return_value=raw):
+                with self.assertRaises(self.product.TrialProviderStopped):
+                    api.compute_semantic_features('title', 'owner text')
+        self.product._invocation.get().failure = ''
+        def unavailable(**kwargs):
+            raise model_router.ClaudeGatewayError('GATEWAY_NOT_CONFIGURED', fallback_safe=True)
+        with mock.patch.object(model_router, 'call_semantic_sync', side_effect=unavailable):
+            with self.assertRaisesRegex(self.product.TrialProviderStopped, 'GATEWAY_NOT_CONFIGURED'):
+                api.compute_semantic_features('title', 'owner text')
+
+    def test_semantic_prompt_keeps_the_complete_note(self):
+        text = '素材' * 400 + '不得虚构的尾部事实'
+        values = {key:.75 for key in api.SEMANTIC_FEATURE_COLS}
+        with mock.patch.object(api._mr, 'call_semantic_sync', return_value=json.dumps(values)) as call:
+            self.assertEqual(api.compute_semantic_features('title', text), values)
+        self.assertIn(text, call.call_args.kwargs['user'])
+
+    def test_necessary_expert_failure_drains_peers_and_never_arbitrates(self):
+        import asyncio, model_router
+        completed = []
+        async def rejected(*args, **kwargs):
+            raise model_router.ClaudeGatewayError('RATE_LIMIT', 429, fallback_safe=True)
+        async def peer(*args, **kwargs):
+            await asyncio.sleep(.01)
+            completed.append(True)
+            return {'role':'isolated expert','raw':'real fixture'}
+        note = api.NoteInput(note_title='test',desc='owner fixture',domain='美食')
+        with mock.patch.object(api,'_agent_content',side_effect=rejected), \
+             mock.patch.object(api,'_agent_visual',side_effect=peer), \
+             mock.patch.object(api,'_agent_growth',side_effect=peer), \
+             mock.patch.object(api,'_agent_user',side_effect=peer), \
+             mock.patch.object(api,'_agent_arbitrate') as arbitrate:
+            with self.assertRaisesRegex(self.product.TrialProviderStopped,'RATE_LIMIT'):
+                asyncio.run(api._run_five_agents(note,50,'B',[],{},None,None,{},{}))
+        self.assertEqual(len(completed),3)
+        arbitrate.assert_not_called()
 
     def test_metered_actual_usage_is_bound_once_without_resetting_old_reserve(self):
         import billing, model_router, httpx
@@ -413,6 +526,54 @@ class PublicProductPostgresTests(unittest.TestCase):
             for sql in ['SELECT user_id FROM public_trial_calls','SELECT request_hash FROM public_trial_calls',
                         "UPDATE public_trial_calls SET provenance_json='{}'"]:
                 with self.assertRaises(self.pg.psycopg.errors.InsufficientPrivilege): conn.execute(sql)
+
+    def test_pg16_claude_and_kimi_share_capacity_and_bind_actual_cost_once(self):
+        import billing, model_router, httpx, time, threading
+        from concurrent.futures import ThreadPoolExecutor
+        with self.pg.psycopg.connect(self.pg.owner_dsn,autocommit=True) as conn:
+            conn.execute("UPDATE public_trial_budget SET policy_mode='owner_metered',reserved_milli_cny=44030")
+        active=0; maximum=0; lock=threading.Lock()
+        def upstream(request):
+            nonlocal active, maximum
+            with lock: active+=1; maximum=max(maximum,active)
+            time.sleep(.03)
+            with lock: active-=1
+            payload=json.loads(request.content)
+            if payload['model'].startswith('claude'):
+                return httpx.Response(200,json={'protocol_version':model_router._cgp.PROTOCOL_VERSION,
+                    'text_blocks':['isolated actual output'],'model':payload['model'],'stop_reason':'end_turn',
+                    'usage':{'input_tokens':100,'output_tokens':20,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}})
+            return httpx.Response(200,json={'choices':[{'message':{'content':'isolated actual output'},'finish_reason':'stop'}],
+                'usage':{'prompt_tokens':100,'completion_tokens':20}})
+        def run(i):
+            billing.clear_active_usage(); billing.record_free_usage(self.user['id'],'score')
+            marker=self.product._invocation.set(self.product.Invocation(self.user['id'],f'pg-mixed-{i}'))
+            try:
+                if i % 2:
+                    request=model_router.ClaudeMessageRequest(model=model_router.CLAUDE_HAIKU,max_tokens=1200,
+                        messages=({'role':'user','content':'isolated'},),operation_id=model_router._new_operation_id())
+                    transport=model_router.GatewayClaudeTransport(base_url='https://gateway.example.invalid',
+                        key_id='isolated-key',secret='isolated-secret',http_transport=httpx.MockTransport(upstream))
+                    result=transport.create_message_sync(request)
+                    for _ in range(2): model_router._record_request_claude_usage(request,result.usage,result.model)
+                    model_router._require_claude_completion(request,result)
+                    model_router._finish_claude_call(request,complete=True)
+                    return request.operation_id
+                with self.product.kimi_client(transport=httpx.MockTransport(upstream)) as client:
+                    result=client.post(self.product.ENDPOINT,json={'model':'kimi-k2.6','max_tokens':100,'messages':[{'content':'isolated'}]})
+                call_id=result.extensions['noteai_call_id']
+                for _ in range(2): model_router._record_kimi_usage('kimi-k2.6',result.json()['usage'],physical_call_id=call_id)
+                return call_id
+            finally:
+                self.product._invocation.reset(marker); billing.clear_active_usage()
+        with mock.patch.dict(os.environ,{'NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH':'isolated-config',
+                                        'NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH':'isolated-epoch'}):
+            with ThreadPoolExecutor(max_workers=4) as pool: calls=list(pool.map(run,range(4)))
+        self.assertEqual(len(set(calls)),4)
+        self.assertLessEqual(maximum,2)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE state='responded' AND model_usage_record_id IS NOT NULL")[0],4)
+        self.assertEqual(db.fetchone('SELECT COUNT(DISTINCT model_usage_record_id) FROM public_trial_calls')[0],4)
+        self.assertGreater(db.fetchone('SELECT reserved_milli_cny FROM public_trial_budget')[0],50000)
 
     def test_pg16_global_concurrency_and_ceiling_at_application_role(self):
         import threading, httpx, time

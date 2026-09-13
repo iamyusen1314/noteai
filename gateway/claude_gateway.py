@@ -357,6 +357,17 @@ def _provider_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     return kwargs
 
 
+def _completion_metadata(value):
+    result = {}
+    for key in ("model", "stop_reason"):
+        item = value.get(key)
+        if item is not None and (not isinstance(item, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", item)):
+            raise ValueError("invalid provider completion metadata")
+        if item is not None:
+            result[key] = item
+    return result
+
+
 class AnthropicProvider:
     def __init__(self):
         self._client: anthropic.AsyncAnthropic | None = None
@@ -370,14 +381,17 @@ class AnthropicProvider:
             )
         return self._client
 
-    async def create(self, payload: dict[str, Any]) -> tuple[list[str], dict[str, Any] | None]:
+    async def create(self, payload: dict[str, Any]) -> tuple[list[str], dict[str, Any] | None, dict]:
         response = await self._get_client().messages.create(**_provider_kwargs(payload))
         text_blocks = [
             block.text
             for block in response.content
             if getattr(block, "type", None) == "text"
         ]
-        return text_blocks, _normalized_usage(getattr(response, "usage", None))
+        return text_blocks, _normalized_usage(getattr(response, "usage", None)), {
+            "model": getattr(response, "model", None),
+            "stop_reason": getattr(response, "stop_reason", None),
+        }
 
     async def stream(self, payload: dict[str, Any]) -> AsyncGenerator[dict[str, Any], None]:
         async with self._get_client().messages.stream(**_provider_kwargs(payload)) as stream_ctx:
@@ -394,7 +408,9 @@ class AnthropicProvider:
                     final_message = await final_message
                 usage = _normalized_usage(getattr(final_message, "usage", None))
                 if usage is not None:
-                    yield {"type": "usage", "usage": usage}
+                    yield {"type": "usage", "usage": usage,
+                           "model": getattr(final_message, "model", None),
+                           "stop_reason": getattr(final_message, "stop_reason", None)}
             except Exception:
                 pass
 
@@ -1041,10 +1057,13 @@ async def create_message(request: Request):
     started = time.monotonic()
     try:
         provider_call = _PROVIDER.create(payload)
-        text_blocks, usage = (
+        provider_result = (
             await shared.await_provider(provider_call)
             if shared is not None else await provider_call
         )
+        text_blocks, usage = provider_result[:2]
+        completion = provider_result[2] if len(provider_result) == 3 else {}
+        metadata = _completion_metadata(completion)
         if (
             not isinstance(text_blocks, list)
             or not all(isinstance(block, str) for block in text_blocks)
@@ -1067,6 +1086,7 @@ async def create_message(request: Request):
             "protocol_version": PROTOCOL_VERSION,
             "text_blocks": text_blocks,
             "usage": usage,
+            **metadata,
         }
     except (asyncio.CancelledError, GeneratorExit):
         if shared is not None and not shared.finalized:
@@ -1169,7 +1189,7 @@ async def stream_message(request: Request):
                     raise ValueError("duplicate provider usage")
                 usage_seen = True
                 final_usage = event["usage"]
-                return {"type": "usage", "usage": event["usage"]}
+                return {"type": "usage", "usage": event["usage"], **_completion_metadata(event)}
             raise ValueError("invalid provider stream event")
 
     try:

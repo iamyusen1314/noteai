@@ -213,7 +213,7 @@ class FrontendReportStaticTests(unittest.TestCase):
 
     def test_generation_report_keeps_generate_context(self):
         self.assertIn("if (!_isGenerateMode && _diagnosePromise)", HTML)
-        self.assertIn("? !!_generateResult", HTML)
+        self.assertIn("? completeProductResult(_generateResult)", HTML)
         self.assertIn("if (_isGenerateMode)", HTML)
         self.assertIn("await autoSaveGeneratedNote(_generateResult)", HTML)
         self.assertIn("_isGenerateMode = true; showPage('report'); await populateReport();", HTML)

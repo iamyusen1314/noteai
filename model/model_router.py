@@ -176,9 +176,11 @@ def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int
             raise _public_product.TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED") from None
 
 
-def _record_claude_usage(model: str, usage) -> None:
+def _record_claude_usage(model: str, usage, *, physical_call_id: str | None = None) -> None:
+    def record(*args, **kwargs):
+        return _record_usage(*args, physical_call_id=physical_call_id, **kwargs)
     if not usage:
-        _record_usage("claude", model, usage_status="usage_missing")
+        record("claude", model, usage_status="usage_missing")
         return
     cache_write = _usage_attr(usage, "cache_creation_input_tokens")
     cache_details = _usage_value(usage, "cache_creation")
@@ -186,7 +188,7 @@ def _record_claude_usage(model: str, usage) -> None:
     write_1h = _usage_attr(cache_details, "ephemeral_1h_input_tokens")
     write_unknown = max(0, cache_write - write_5m - write_1h)
     usage_status = "cache_ttl_unknown" if write_unknown else "complete"
-    _record_usage(
+    record(
         "claude", model,
         _usage_attr(usage, "input_tokens"),
         _usage_attr(usage, "output_tokens"),
@@ -263,12 +265,15 @@ class ClaudeMessageRequest:
     system: str | None = None
     temperature: float | None = None
     thinking_budget: int | None = None
+    call_state: dict = field(default_factory=dict, compare=False, repr=False)
 
 
 @dataclass(frozen=True)
 class ClaudeMessageResult:
     text_blocks: tuple[str, ...]
     usage: dict[str, Any] | None = None
+    model: str | None = None
+    stop_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -276,6 +281,72 @@ class ClaudeStreamEvent:
     type: str
     text: str = ""
     usage: dict[str, Any] | None = None
+    model: str | None = None
+    stop_reason: str | None = None
+
+
+def _completion_metadata(payload, key):
+    value = payload.get(key)
+    if value is None:
+        return None  # Older Gateways did not observe these fields.
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", value):
+        raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", 502)
+    return value
+
+
+def _record_request_claude_usage(request, usage, actual_model=None):
+    request.call_state["usage_recording_attempted"] = True
+    model = actual_model or request.model
+    call_id = request.call_state.get("id")
+    if call_id:
+        _record_claude_usage(model, usage, physical_call_id=call_id)
+    else:
+        _record_claude_usage(model, usage)
+    request.call_state["usage_recorded"] = True
+
+
+def _require_claude_completion(request, result):
+    if not _public_product.enabled():
+        return
+    if result.usage is None or result.model is None or result.stop_reason is None:
+        raise ClaudeGatewayError("CLAUDE_COMPLETION_UNPROVEN", 502)
+    if result.model != request.model:
+        raise ClaudeGatewayError("CLAUDE_MODEL_IDENTITY_MISMATCH", 502)
+    if result.stop_reason != "end_turn":
+        raise ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
+
+
+def _finish_claude_call(request, *, complete=False, error=None):
+    state = request.call_state
+    if not state.get("id") or state.get("finalized"):
+        return
+    pre_dispatch = not state.get("sent")
+    rejected_before_provider = isinstance(error, ClaudeGatewayError) and error.fallback_safe
+    _public_product._record_response(state["id"], state.get("http_status"),
+                                    unknown=not (complete or pre_dispatch or rejected_before_provider),
+                                    not_dispatched=pre_dispatch)
+    state["finalized"] = True
+
+
+def _claude_history(history, user):
+    messages = []
+    for message in history or []:
+        if not isinstance(message, dict) or message.get("role") not in {"user", "assistant"}:
+            raise ClaudeGatewayError("CLAUDE_HISTORY_INVALID", 422, fallback_safe=True)
+        content = message.get("content")
+        if not isinstance(content, (str, list)):
+            raise ClaudeGatewayError("CLAUDE_HISTORY_INVALID", 422, fallback_safe=True)
+        messages.append({"role": message["role"], "content": content})
+    messages.append({"role": "user", "content": user})
+    if len(messages) > 50:
+        raise ClaudeGatewayError("CLAUDE_HISTORY_LIMIT_EXCEEDED", 422, fallback_safe=True)
+    return messages
+
+
+def _thinking_budget(max_tokens, margin):
+    if max_tokens <= 1024:
+        raise ClaudeGatewayError("CLAUDE_THINKING_OUTPUT_LIMIT_INVALID", 422, fallback_safe=True)
+    return min(max_tokens - 1, max(min(max_tokens - margin, 10000), 1024))
 
 
 class ClaudeTransport(Protocol):
@@ -366,6 +437,7 @@ class LocalAnthropicTransport:
                 if getattr(block, "type", None) == "text"
             ),
             _normalized_claude_usage(getattr(response, "usage", None)),
+            getattr(response, "model", None), getattr(response, "stop_reason", None),
         )
 
     async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
@@ -442,6 +514,8 @@ class LocalAnthropicTransport:
                 yield ClaudeStreamEvent(
                     "usage",
                     usage=_normalized_claude_usage(getattr(final_message, "usage", None)),
+                    model=getattr(final_message, "model", None),
+                    stop_reason=getattr(final_message, "stop_reason", None),
                 )
         except asyncio.CancelledError:
             raise ClaudeRequestCancelled(usage_audit_required=True) from None
@@ -510,6 +584,10 @@ class ClaudeGatewayError(RuntimeError):
         self.status_code = status_code
         self.usage_audit_required = bool(usage_audit_required)
         self.fallback_safe = bool(fallback_safe)
+        if _public_product.enabled() and _public_product._invocation.get() is not None:
+            # A caller that historically supplied default scores must not turn
+            # a failed selected model into a successful formal-product result.
+            _public_product._invocation.get().failure = safe_code
         super().__init__(f"claude gateway error: {safe_code}")
 
 
@@ -1008,7 +1086,8 @@ class GatewayClaudeTransport:
             or not _cgp.valid_usage_envelope(usage)
         ):
             raise ClaudeGatewayError("GATEWAY_PROTOCOL_ERROR", response.status_code)
-        return ClaudeMessageResult(tuple(blocks), usage)
+        return ClaudeMessageResult(tuple(blocks), usage, _completion_metadata(payload, "model"),
+                                   _completion_metadata(payload, "stop_reason"))
 
     async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
         self._require_config()
@@ -1022,7 +1101,9 @@ class GatewayClaudeTransport:
                 trust_env=False,
                 transport=transport,
             ) as client:
+                await _public_product.admit_claude(request, body)
                 request_dispatched = True
+                request.call_state["sent"] = True
                 response = await client.post(
                     f"{self.base_url}{_cgp.MESSAGES_PATH}",
                     content=body,
@@ -1037,6 +1118,7 @@ class GatewayClaudeTransport:
                 exc,
                 usage_audit_required=request_dispatched,
             ) from None
+        request.call_state["http_status"] = response.status_code
         try:
             return self._decode_result(response)
         except ClaudeGatewayError as exc:
@@ -1056,7 +1138,9 @@ class GatewayClaudeTransport:
                 trust_env=False,
                 transport=transport,
             ) as client:
+                _public_product.admit_claude_sync(request, body)
                 request_dispatched = True
+                request.call_state["sent"] = True
                 response = client.post(
                     f"{self.base_url}{_cgp.MESSAGES_PATH}",
                     content=body,
@@ -1067,6 +1151,7 @@ class GatewayClaudeTransport:
                 exc,
                 usage_audit_required=request_dispatched,
             ) from None
+        request.call_state["http_status"] = response.status_code
         try:
             return self._decode_result(response)
         except ClaudeGatewayError as exc:
@@ -1100,13 +1185,16 @@ class GatewayClaudeTransport:
                 trust_env=False,
                 transport=transport,
             ) as client:
+                await _public_product.admit_claude(request, body)
                 request_dispatched = True
+                request.call_state["sent"] = True
                 async with client.stream(
                     "POST",
                     f"{self.base_url}{_cgp.STREAM_PATH}",
                     content=body,
                     headers=self._headers(_cgp.STREAM_PATH, body),
                 ) as response:
+                    request.call_state["http_status"] = response.status_code
                     if response.status_code != 200:
                         self._require_response_media_type(response, "application/json")
                         await response.aread()
@@ -1139,7 +1227,9 @@ class GatewayClaudeTransport:
                             if event.get("usage") is None or usage_seen:
                                 raise stream_error("GATEWAY_PROTOCOL_ERROR")
                             usage_seen = True
-                            yield ClaudeStreamEvent("usage", usage=event["usage"])
+                            yield ClaudeStreamEvent("usage", usage=event["usage"],
+                                                    model=_completion_metadata(event, "model"),
+                                                    stop_reason=_completion_metadata(event, "stop_reason"))
                         elif event_type == "done":
                             if not usage_seen:
                                 raise stream_error("GATEWAY_STREAM_USAGE_MISSING")
@@ -1456,6 +1546,8 @@ def claude_transport_readiness(*, require_remote: bool = False) -> dict[str, Any
 
 def get_claude_transport() -> ClaudeTransport:
     global _CLAUDE_TRANSPORT
+    if _public_product.enabled() and claude_transport_mode() != "gateway":
+        raise ClaudeGatewayError("PUBLIC_CLAUDE_REQUIRES_GATEWAY", 503, fallback_safe=True)
     if _CLAUDE_TRANSPORT is None:
         mode = claude_transport_mode()
         if mode == "local":
@@ -1737,23 +1829,30 @@ async def _call_claude(
     operation_id = operation_id or _new_operation_id()
     thinking_budget = None
     if thinking:
-        thinking_budget = max(min(max_tokens - 1000, 10000), 1024)
+        thinking_budget = _thinking_budget(max_tokens, 1000)
+    request = ClaudeMessageRequest(
+        model=model, max_tokens=max_tokens, system=system,
+        messages=({"role": "user", "content": user},), operation_id=operation_id,
+        temperature=None if thinking else 0.7, thinking_budget=thinking_budget,
+    )
+    complete = False
+    failure = None
     try:
-        result = await get_claude_transport().create_message(ClaudeMessageRequest(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=({"role": "user", "content": user},),
-            operation_id=operation_id,
-            temperature=None if thinking else 0.7,
-            thinking_budget=thinking_budget,
-        ))
+        result = await get_claude_transport().create_message(request)
+        _record_request_claude_usage(request, result.usage, result.model)
+        _require_claude_completion(request, result)
+        text = "".join(result.text_blocks).strip()
+        if _public_product.enabled() and not text:
+            raise ClaudeGatewayError("CLAUDE_OUTPUT_EMPTY", 502)
+        complete = True
+        return text
     except BaseException as exc:
-        if getattr(exc, "usage_audit_required", False):
-            _record_claude_usage(model, None)
+        failure = exc
+        if getattr(exc, "usage_audit_required", False) and not request.call_state.get("usage_recording_attempted"):
+            _record_request_claude_usage(request, None)
         raise
-    _record_claude_usage(model, result.usage)
-    return "".join(result.text_blocks).strip()
+    finally:
+        _finish_claude_call(request, complete=complete, error=failure)
 
 
 # ── Kimi 非流式调用 ───────────────────────────────────────────────
@@ -1792,10 +1891,10 @@ async def call(
     thinking: bool = False, max_tokens: int = 1200,
 ) -> str:
     """路由到对应模型；Claude 仅在确认未调用 provider 时走 fallback。"""
-    routing = ({"primary": KIMI_TEXT, "fallback": []} if _public_product.enabled()
-               else TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
+    routing = dict(TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
     if _public_product.enabled():
         routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
+        routing["fallback"] = []  # A selected formal model is never silently substituted.
     models_to_try = [routing["primary"]] + list(routing.get("fallback", []))
     absolute_deadline = _gateway_absolute_deadline(
         task,
@@ -1836,6 +1935,9 @@ async def _claude_transport_stream(
     request: ClaudeMessageRequest,
     absolute_deadline: float | None = None,
 ) -> AsyncGenerator[ClaudeStreamEvent, None]:
+    complete = False
+    failure = None
+    content_seen = False
     usage_recorded = False
     provider_event_seen = False
     transport_iterator = get_claude_transport().stream_message(request).__aiter__()
@@ -1855,13 +1957,20 @@ async def _claude_transport_stream(
                     unstructured_cancel_usage_audit_required=True,
                 )
             except StopAsyncIteration:
+                if _public_product.enabled() and (not usage_recorded or not content_seen):
+                    raise ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
+                complete = True
                 break
             provider_event_seen = True
             if event.type == "usage":
-                _record_claude_usage(model, event.usage)
+                _record_request_claude_usage(request, event.usage, event.model)
                 usage_recorded = True
+                _require_claude_completion(request, event)
+            if event.type == "content" and event.text.strip():
+                content_seen = True
             yield event
     except BaseException as exc:
+        failure = exc
         fallback_safe = isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
         if _is_gateway_deadline_error(exc):
             audit_required = bool(getattr(exc, "usage_audit_required", False))
@@ -1875,11 +1984,14 @@ async def _claude_transport_stream(
                 or provider_event_seen
                 or not fallback_safe
             )
-        if audit_required and not usage_recorded:
-            _record_claude_usage(model, None)
+        if audit_required and not request.call_state.get("usage_recording_attempted"):
+            _record_request_claude_usage(request, None)
         raise
     finally:
-        await _close_async_iterator(transport_iterator)
+        try:
+            await _close_async_iterator(transport_iterator)
+        finally:
+            _finish_claude_call(request, complete=complete, error=failure)
 
 
 async def _stream_claude(
@@ -1890,11 +2002,11 @@ async def _stream_claude(
     absolute_deadline: float | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """流式调用 Claude，yield ('thinking', text) 或 ('content', text)。"""
-    messages = list(history or []) + [{"role": "user", "content": user}]
+    messages = _claude_history(history, user)
     operation_id = operation_id or _new_operation_id()
     thinking_budget = None
     if thinking:
-        thinking_budget = max(min(max_tokens - 2000, 10000), 1024)
+        thinking_budget = _thinking_budget(max_tokens, 2000)
     request = ClaudeMessageRequest(
         model=model,
         max_tokens=max_tokens,
@@ -1978,10 +2090,10 @@ async def stream(
     """路由到流式接口；Claude 仅在零输出且确认未调用 provider 时 fallback。
     yield: ('thinking', text) | ('content', text)
     """
-    routing = ({"primary": KIMI_TEXT, "fallback": []} if _public_product.enabled()
-               else TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
+    routing = dict(TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
     if _public_product.enabled():
         routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
+        routing["fallback"] = []  # A selected formal model is never silently substituted.
     primary  = routing["primary"]
     fallbacks = list(routing.get("fallback", []))
     absolute_deadline = _gateway_absolute_deadline(
@@ -2096,9 +2208,14 @@ async def stream_chat(
     yield: ('thinking', text) | ('content', text)
     """
     if _public_product.enabled():
-        selected_model, max_tokens = _runtime_config.resolve("chat", KIMI_TEXT, max_tokens)
-        async for event in _stream_kimi(selected_model, system, user_content, thinking, max_tokens, history):
-            yield event
+        selected_model, max_tokens = _runtime_config.resolve("chat", CLAUDE_SONNET, max_tokens)
+        iterator = (_stream_claude if selected_model.startswith("claude") else _stream_kimi)(
+            selected_model, system, user_content, thinking, max_tokens, history)
+        try:
+            async for event in iterator:
+                yield event
+        finally:
+            await _close_async_iterator(iterator)
         return
     absolute_deadline = _gateway_absolute_deadline(
         "stream",
@@ -2195,10 +2312,14 @@ def call_claude_sync(
 ) -> str:
     operation_id = _new_operation_id()
     if _public_product.enabled():
-        selected_model, max_tokens = _runtime_config.resolve("semantic", KIMI_TEXT, max_tokens)
+        model, max_tokens = _runtime_config.resolve("semantic", model, max_tokens)
+    if _public_product.enabled() and model == KIMI_TEXT:
+        selected_model = model
         payload = {"model": selected_model, "messages": [
             *([{"role": "system", "content": system}] if system else []), *messages],
-            "max_tokens": max_tokens, "thinking": {"type": "disabled"}, "temperature": 0.6}
+            "max_tokens": max_tokens, "thinking": {"type": "enabled" if thinking_budget else "disabled"}}
+        if thinking_budget is None:
+            payload["temperature"] = temperature if temperature is not None else 0.6
         with _public_product.kimi_client(timeout=KIMI_TIMEOUT) as client:
             response = client.post(KIMI_API_URL, json=payload, headers={
                 "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")})
@@ -2216,6 +2337,8 @@ def call_claude_sync(
         temperature=temperature,
         thinking_budget=thinking_budget,
     )
+    complete = False
+    failure = None
     try:
         transport = get_claude_transport()
         if claude_transport_mode() == "gateway":
@@ -2242,13 +2365,21 @@ def call_claude_sync(
             result = asyncio.run(bounded_gateway_call())
         else:
             result = transport.create_message_sync(request)
+        _record_request_claude_usage(request, result.usage, result.model)
+        _require_claude_completion(request, result)
+        parts = result.text_blocks[:1] if first_text_block else result.text_blocks
+        text = "".join(parts).strip()
+        if _public_product.enabled() and not text:
+            raise ClaudeGatewayError("CLAUDE_OUTPUT_EMPTY", 502)
+        complete = True
+        return text
     except BaseException as exc:
-        if getattr(exc, "usage_audit_required", False):
-            _record_claude_usage(model, None)
+        failure = exc
+        if getattr(exc, "usage_audit_required", False) and not request.call_state.get("usage_recording_attempted"):
+            _record_request_claude_usage(request, None)
         raise
-    _record_claude_usage(model, result.usage)
-    parts = result.text_blocks[:1] if first_text_block else result.text_blocks
-    return "".join(parts).strip()
+    finally:
+        _finish_claude_call(request, complete=complete, error=failure)
 
 
 def call_semantic_sync(system: str, user: str, max_tokens: int = 300) -> str:

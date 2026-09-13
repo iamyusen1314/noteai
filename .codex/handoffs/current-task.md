@@ -1,5 +1,44 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 17:50 Beijing — Claude successor verified locally; original batch remains live
+
+Original API-C688857f remains DEPLOYED, freshly read09:48:08Z;0025 unchanged and
+not replayed. C currently has no Gateway or Meituan binding. Public original UI
+loads; its stale free-cap/six-industry copy is corrected in the successor, not yet
+live. Original archive/images/build failure/result remain retained as above.
+
+Claude successor restores existing Haiku diagnosis/generation/semantic and Sonnet
+arbitration/chat routing, optional actual-model/stop metadata, full semantic input,
+and shared0025 physical-call/actual-cost accounting. Missing or truncated outputs,
+refusal, identity mismatch and failed necessary experts cannot become defaults or
+complete success. Repeated cancellation waits for admission and records no-dispatch;
+terminal conflicts are not overwritten; observed usage is never replaced by a
+second missing-usage settlement after write failure. No provider calls here.
+Python3.11 isolated transport/Gateway/Admin tests:143 run, initial one new-fixture
+argument error fixed and retested; 139passed/3PGskipped. Additional isolatedPG16
+4passed including mixed Claude/Kimi shared2slots and exactly-once actual cost under
+application role. Prompt/facts/billing/frontend78run:77passed, one stale static
+assertion expected old truthy result rather than current completeProductResult;
+assertion corrected; targeted frontend18passed. Gateway metadata3targeted checks
+passed after retaining old responses unchanged when metadata is absent. No production acceptance claimed.
+
+Render Shell09:39:05Z confirms actual84f8a2f/Python3.11.15, direct HTTPSapi.anthropic.com
+with no endpoint override; DynamoDB mode/table noteai-prod-claude-gateway-control,
+region ap-southeast-1, principal noteai-production, existing AWS OIDC role matches CF.
+AWS static keys/business DB/Moonshot absent. Config/key epochs prod-config-20260719-v1/
+prod-key-20260719-v1. Secret values never printed. Auto-Deploy Off visually confirmed;
+Dockerfile gateway/Dockerfile, start/app/start.sh, no predeploy. Gateway-only commit60168e1dac42036f874ede27cce8557ae0a8dd2d
+is on codex/gateway-formal-20260913 based on actual84f8a2f, single Gateway-file delta,
+manual exact-commit deployment, keeping original branch/staging untouched. That
+parent has only bounded ordinary CI, no later cache/deploy jobs. Main C successor
+uses private package; no push of accumulated original branch.
+
+Next finish local checkpoint and Gateway-only release, prepare secure Meituan/Gateway
+binding on C using existing envelope, then C successor build/canary and actual owner
+business validation. Preserve F/Item34 and Readiness30/37. No reset/clean/stash or
+protected-path access. Post-Claude rollback must retain new config compatibility,
+not deploy Kimi-only validators against a persisted Claude config.
+
 ## September13 17:19 Beijing — original688857f batch deployed; Claude successor in progress
 
 Original688857f batch is now DEPLOYED on C. API image

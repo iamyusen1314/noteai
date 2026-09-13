@@ -1,5 +1,29 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 17:52 Beijing actual execution: original688857f API/Admin batch and0025
+are DEPLOYED/verified; preserve its exact archive/build logs/backup/results at
+/var/lib/noteai/formal-supplier-688857f. No repeat upload/build/DDL. Both runtime images
+and full hashes are at Handoff top. Public original UI is live; Meituan binding and
+real facts-to-output verification remain pending. Amap stays unbound for the observed
+missing technical-service permission. Readiness30/37, Item34 unchanged.
+
+Claude successor is separate: Gateway-only60168e1dac42036f874ede27cce8557ae0a8dd2d
+(parent84f8a2f, onlygateway/claude_gateway.py, newcodex/gateway-formal-20260913) is
+prepared for precise manual deployment. Production Auto-Deploy Off confirmed; do
+not push accumulated original branch or change staging bindings. Reuse existing
+2–4instances/DynamoDB/OIDC; no new resource. Gateway adds actual model/stop metadata
+without changing protocol, no-replay or historical usage. Deploy Gateway before the
+new C decoder/routing. C successor uses a new private delta package atop688857f;
+retain old artifacts and verify source hashes rather than relabeling them.
+
+Before C activation: preserve private environment/config rollback, bind existing
+Gateway/Meituan credentials through the established envelope, verify exact readiness
+and controlled owner business output/cost/Prompt. In-flight work keeps its original
+config. After Claude config activation use a compatible rollback (old Kimi-only
+config validator is incompatible); no schema rollback or history deletion. Finish
+both original supplier batch verification and Claude formal business verification.
+Detailed progress/test failures and corrections are at Handoff top.
+
 ## September13 current owner decision — retain Claude on original Render + AWS
 
 Owner explicitly retains Claude as a formal product requirement and accepts the

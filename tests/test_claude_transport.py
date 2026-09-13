@@ -203,6 +203,54 @@ class ClaudeTransportTests(unittest.TestCase):
     def tearDown(self):
         model_router.set_claude_transport(self.original_transport)
 
+    def test_formal_selected_models_require_real_identity_and_complete_output(self):
+        usage = {'input_tokens':10, 'output_tokens':3, 'cache_read_input_tokens':0,
+                 'cache_creation_input_tokens':0}
+        with mock.patch.dict(os.environ, {'NOTEAI_PUBLIC_PRODUCT':'1', 'NOTEAI_CLAUDE_TRANSPORT':'gateway'}), \
+             mock.patch.object(model_router._runtime_config, 'resolve', side_effect=lambda task, model, tokens:(model, tokens)), \
+             mock.patch.object(model_router, '_record_claude_usage') as record, \
+             mock.patch.object(model_router, '_call_kimi', side_effect=AssertionError('silent substitution')):
+            for model in (model_router.CLAUDE_HAIKU, model_router.CLAUDE_SONNET):
+                self.transport.async_result = model_router.ClaudeMessageResult(('formal output',),usage,model,'end_turn')
+                self.assertEqual(asyncio.run(model_router._call_claude(model,'all layers','complete input')), 'formal output')
+            for actual, reason in ((None,None), (model_router.CLAUDE_SONNET,'end_turn'),
+                                   (model_router.CLAUDE_HAIKU,'max_tokens'), (model_router.CLAUDE_HAIKU,'refusal')):
+                self.transport.async_result = model_router.ClaudeMessageResult(('partial',),usage,actual,reason)
+                with self.assertRaises(model_router.ClaudeGatewayError):
+                    asyncio.run(model_router._call_claude(model_router.CLAUDE_HAIKU,'system','input'))
+            self.assertEqual(record.call_count,6)  # Actual usage is retained even for failed business output.
+
+    def test_formal_stream_usage_write_failure_is_not_replaced_by_missing_usage(self):
+        usage = {'input_tokens':10,'output_tokens':3,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}
+        self.transport.stream_events = [model_router.ClaudeStreamEvent('content','output'),
+            model_router.ClaudeStreamEvent('usage',usage=usage,model=model_router.CLAUDE_SONNET,stop_reason='end_turn')]
+        async def run():
+            return [event async for event in model_router._stream_claude(
+                model_router.CLAUDE_SONNET,'system','user',thinking=False,max_tokens=1200)]
+        with mock.patch.dict(os.environ, {'NOTEAI_PUBLIC_PRODUCT':'1','NOTEAI_CLAUDE_TRANSPORT':'gateway'}), \
+             mock.patch.object(model_router, '_record_claude_usage', side_effect=RuntimeError('uncertain write')) as record:
+            with self.assertRaisesRegex(RuntimeError, 'uncertain write'): asyncio.run(run())
+        self.assertEqual(record.call_count,1)
+        self.assertEqual(record.call_args.args[1],usage)
+
+    def test_formal_chat_preserves_history_and_does_not_silently_fallback(self):
+        usage={'input_tokens':10,'output_tokens':3,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}
+        self.transport.stream_events=[model_router.ClaudeStreamEvent('content','complete'),
+            model_router.ClaudeStreamEvent('usage',usage=usage,model=model_router.CLAUDE_SONNET,stop_reason='end_turn')]
+        history=[{'role':'user','content':'原始行业素材','time':'ui-only'}, {'role':'assistant','content':'此前建议'}]
+        async def run():
+            return [event async for event in model_router.stream_chat('公共层＋行业层＋任务层', history,
+                        '当前修改要求', thinking=False, max_tokens=1200)]
+        with mock.patch.dict(os.environ, {'NOTEAI_PUBLIC_PRODUCT':'1','NOTEAI_CLAUDE_TRANSPORT':'gateway'}), \
+             mock.patch.object(model_router._runtime_config,'resolve',return_value=(model_router.CLAUDE_SONNET,1200)), \
+             mock.patch.object(model_router,'_record_claude_usage'):
+            self.assertEqual(asyncio.run(run()),[('content','complete')])
+        request=self.transport.stream_requests[-1]
+        self.assertEqual(request.model,model_router.CLAUDE_SONNET)
+        self.assertEqual(request.system,'公共层＋行业层＋任务层')
+        self.assertEqual(request.messages,({'role':'user','content':'原始行业素材'},
+            {'role':'assistant','content':'此前建议'}, {'role':'user','content':'当前修改要求'}))
+
     def test_non_stream_calls_preserve_temperature_and_thinking_contract(self):
         with mock.patch.object(model_router, "_record_claude_usage") as record_usage:
             fast = asyncio.run(model_router._call_claude(

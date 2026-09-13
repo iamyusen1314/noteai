@@ -2856,7 +2856,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </h1>
     <p class="v4-lead">
       V0.4 质量模型、多 Agent 协作和对话优化记忆，
-      将内容诊断、文案生成、二次优化连接起来。免费体验先支持文字输入，生成效果不保证发布流量。
+      将内容诊断、文案生成、二次优化连接起来。同等权益使用同一正式处理流程，生成效果不保证发布流量。
     </p>
     <div class="v4-cta-row">
       <button class="v4-btn v4-btn-primary" onclick="goToDiagnose()"><i data-lucide="search"></i>开始 AI 诊断</button>
@@ -2866,7 +2866,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="v4-hero-proof">
       <span><b>100,000+</b> 真实笔记训练/评估</span>
       <span><b>124维</b> 复合质量特征</span>
-      <span><b>6大行业</b> 首批核心覆盖</span>
+      <span><b>7大行业</b> 行业规则分别加载</span>
     </div>
   </div>
   <div class="v4-hero-visual" aria-label="V0.4 AI quality engine visual">
@@ -2892,7 +2892,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <div class="v4-proof-item"><i data-lucide="layers"></i><b>V0.4 composite</b><span>评分、分类、偏好排序同时工作</span></div>
   <div class="v4-proof-item"><i data-lucide="brain-circuit"></i><b>多 Agent 协作</b><span>更强的长文推理与表达修正</span></div>
   <div class="v4-proof-item"><i data-lucide="shield-check"></i><b>60 分硬底线</b><span>低质稿不冒充成功交付</span></div>
-  <div class="v4-proof-item"><i data-lucide="map-pin"></i><b>事实源增强</b><span>高德 + 美团酒旅补真实信息</span></div>
+  <div class="v4-proof-item"><i data-lucide="map-pin"></i><b>事实源增强</b><span>按来源可用性检索，保留事实出处</span></div>
 </section>
 
 <section class="v4-section v4-model-section fade-up">
@@ -2944,7 +2944,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <div class="v4-section-copy">
     <span class="v4-kicker">真实事实源 + 多行业</span>
     <h2>用户没提供的信息，不靠编；能联网补的事实，系统帮你补</h2>
-    <p>餐饮/本地生活使用高德作为基础事实源，酒旅接入美团 travel skill。系统把地址、人均、评分、交通、权益等真实信息自然融入文案，既减少虚假，也让用户感到“它真的懂我这家店/这次旅行”。</p>
+    <p>优先使用你提供并确认的真实素材；餐饮与本地生活按已开放来源补充位置等事实，酒旅按需使用美团检索。每次结果显示实际来源及缺失信息，来源未开放或查询失败时不会编造门店、价格或服务。高德公开检索当前尚未启用。</p>
   </div>
   <div class="v4-source-grid">
     <div class="v4-source-card"><i data-lucide="map"></i><b>高德事实源</b><span>餐饮、本地生活、商圈、地址、人均、评分</span></div>
@@ -2955,6 +2955,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="v4-industry-card"><i data-lucide="shirt"></i><span>穿搭时尚</span></div>
     <div class="v4-industry-card"><i data-lucide="sofa"></i><span>家居家装</span></div>
     <div class="v4-industry-card"><i data-lucide="dumbbell"></i><span>运动健身</span></div>
+    <div class="v4-industry-card"><i data-lucide="baby"></i><span>母婴育儿</span></div>
   </div>
 </section>
 
@@ -5270,9 +5271,9 @@ async function refreshPublicStatus() {
   } catch (_) { _publicStatus = null; }
   const status = document.getElementById('public-product-status');
   status.style.display = 'block';
-  status.textContent = '原产品免费体验 · 每月12积分，诊断6 / 生成8 / 深度重写3 / 快速对话1积分。' +
+  status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。诊断6 / 生成8 / 深度重写3 / 快速对话1积分。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
-    (_publicStatus?.ai_open ? '文字诊断与生成可用；服务总额度用尽时暂停新增调用。' : '真实AI服务尚未开放，不会把示例当作处理结果。') +
+    (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
     ' 图片、视频、外部笔记跟踪及支付暂未开放。';
   syncPublicAuthAvailability();
 }
@@ -13130,8 +13131,8 @@ async function handleTopup(packageId) {
 
 /* 积分不足时弹升级引导 */
 function showQuotaExceededModal(detail) {
-  if (PUBLIC_PRODUCT) { showToast('本月免费积分不足。北京时间下月1日08:00刷新，当前不能充值或购买；可继续查看本人已保存结果。'); return; }
   const d = normalizeQuotaDetail(detail);
+  if (PUBLIC_PRODUCT) { showToast(`${d.message || '当前账户积分或对应功能权益不足。'} 请在本人账户页核对套餐与赠送余额；支付暂未开放，可继续查看已保存结果。`); return; }
   const opName = OP_NAMES[d.operation] || d.operation || '此功能';
   const ok = confirm(
     `⚠️ ${opName} 积分不足\n\n` +

@@ -1,4 +1,4 @@
-"""Small, nonsecret configuration for the existing bounded public Kimi route.
+"""Nonsecret configuration for the existing formal Claude and Kimi routes.
 
 The API opts in per instance. Tracking's frozen runtime never opts in. Reads do
 not call a provider; each opted-in dispatch reads the active database revision.
@@ -15,10 +15,14 @@ import db
 
 TASKS = ("diagnosis", "content_gen", "arbitrate", "chat", "semantic")
 MODEL = "kimi-k2.6"
+HAIKU = "claude-haiku-4-5-20251001"
+SONNET = "claude-sonnet-4-6"
+MODELS = (MODEL, HAIKU, SONNET)
 
 
 def defaults():
-    return {task: {"model": MODEL, "enabled": True, "max_tokens": 32768} for task in TASKS}
+    return {task: {"model": SONNET if task in ("arbitrate", "chat") else HAIKU,
+                   "enabled": True, "max_tokens": 32768} for task in TASKS}
 
 
 def _key(scope):
@@ -34,10 +38,10 @@ def validate(config):
     for task, value in config.items():
         if not isinstance(value, dict) or set(value) != {"model", "enabled", "max_tokens"}:
             raise HTTPException(422, "配置只能包含模型、启停与输出上限")
-        if value["model"] != MODEL or type(value["enabled"]) is not bool:
-            raise HTTPException(422, "当前公开服务仅接通并计费保护 Kimi K2.6；其他模型尚未绑定此实例")
+        if value["model"] not in MODELS or type(value["enabled"]) is not bool:
+            raise HTTPException(422, "请选择已接入的 Claude Haiku、Claude Sonnet 或 Kimi K2.6")
         if type(value["max_tokens"]) is not int or not 256 <= value["max_tokens"] <= 32768:
-            raise HTTPException(422, "输出上限须为 256–32768 的整数；实际请求还受原业务及总预算约束")
+            raise HTTPException(422, "输出上限须为 256–32768 的整数；实际请求还受对应业务和模型参数约束")
         result[task] = dict(value)
     return result
 
@@ -58,8 +62,8 @@ def read(scope="production", tx=None):
 
 def view(scope="production"):
     state = read(scope)
-    return {**state, "allowed_models": [MODEL], "tasks": list(TASKS),
-            "load_path": "API model_router → model_runtime_config.resolve → existing budgeted Kimi transport",
+    return {**state, "allowed_models": list(MODELS), "tasks": list(TASKS),
+            "load_path": "API model_router → model_runtime_config.resolve → Claude Gateway / Kimi transport → usage ledger",
             "effect": "保存仅更新草稿；发布后此实例下一次模型请求读取，已在途请求使用原配置。test 不进入生产路由。",
             "instance_opt_in": os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1"}
 

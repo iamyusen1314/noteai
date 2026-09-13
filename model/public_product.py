@@ -1,11 +1,14 @@
 """Scoped public use of the existing product, credit ledger and model pipeline.
 
 No provider payload, credentials or returned content is persisted here. Cumulative
-reservations cover the maximum possible token bill, including an unknown result.
+reservations retain conservative estimates, including unknown outcomes; actual
+returned usage is separately settled and is never inferred from the reservation.
 """
 from __future__ import annotations
 
+import asyncio
 import contextvars
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import hashlib
@@ -174,25 +177,32 @@ def runtime_services():
     import model_runtime_config
     try:
         active = model_runtime_config.read()["active"]
-        tasks = [task for task, row in active.items() if row.get("enabled")]
+        tasks = {provider: [task for task, row in active.items()
+                           if row.get("enabled") and row.get("model", "").startswith(provider)]
+                 for provider in ("kimi", "claude")}
     except Exception:
-        tasks = None
+        tasks = {"kimi": None, "claude": None}
     gateway = all(os.environ.get(key) for key in (
         "NOTEAI_CLAUDE_GATEWAY_URL", "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH",
         "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID",
-        "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET"))
+        "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET")) and os.environ.get("NOTEAI_CLAUDE_TRANSPORT") == "gateway"
     rows = [
         {"id": "kimi", "name": "Kimi K2.6", "group": "generation_models",
-         "role": "当前已生效的文字诊断、生成、语义、仲裁和对话模型；原设计同时承担视觉分析",
-         "business": tasks, "configured": bool(os.environ.get("MOONSHOT_API_KEY")), "enabled": available(),
+         "role": "Kimi 文字与视觉处理；文字任务按当前已发布模型路由执行",
+         "business": tasks["kimi"], "configured": bool(os.environ.get("MOONSHOT_API_KEY")),
+         "enabled": bool(tasks["kimi"] and os.environ.get("MOONSHOT_API_KEY") and available()),
          "reason": "按已发布业务配置与用户权益执行，实际用量入账；不因赠送来源降质"},
         {"id": "claude", "name": "Claude Haiku / Sonnet", "group": "generation_models",
          "role": "原分工：Haiku 诊断、生成、语义；Sonnet 仲裁、对话",
-         "business": [], "configured": bool(gateway), "enabled": False,
-         "reason": "当前个人 API 通道的公开地区条款不覆盖中国内地商家场景，未启用；历史 Gateway 调用成功保留，不能作为当前用途通过"},
+         "business": tasks["claude"], "configured": bool(gateway),
+         "enabled": bool(tasks["claude"] and gateway and available()),
+         "reason": ("通过既有 Gateway 执行已发布路由；实际模型、完整结果及用量逐次确认，失败不静默替换"
+                    if gateway else "此实例的 Gateway 绑定未齐备；指定 Claude 的请求会明确失败，不静默替换")},
     ]
     for row in rows:
         row.update(source="api_runtime_configuration", upstream_probed=False)
+        if tasks[row["id"]] is None:
+            row["reason"] = "当前模型路由读取失败；未将未知状态当作已启用或实时健康"
     return rows + fact_enrichment.runtime_services()
 
 
@@ -241,13 +251,6 @@ class _SlotsBusy(Exception):
 
 
 def _reserve(request: httpx.Request) -> str:
-    import db
-    import billing
-    import prompt_manager
-    current = _invocation.get()
-    assert_result_known()
-    if current is None:
-        raise TrialProviderStopped("PUBLIC_TRIAL_REQUIRES_USER_REQUEST")
     if request.method != "POST" or str(request.url) != ENDPOINT:
         raise TrialProviderStopped("PUBLIC_TRIAL_PROVIDER_NOT_ALLOWED")
     try:
@@ -262,15 +265,28 @@ def _reserve(request: httpx.Request) -> str:
             raise ValueError()
     except (ValueError, TypeError, AttributeError):
         raise TrialProviderStopped("PUBLIC_TRIAL_REQUEST_OUT_OF_SCOPE") from None
+    return _reserve_payload(payload, RESERVE_MILLI_CNY)
+
+
+def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
+    import db
+    import billing
+    import prompt_manager
+    current = _invocation.get()
+    assert_result_known()
+    if current is None:
+        raise TrialProviderStopped("PUBLIC_TRIAL_REQUIRES_USER_REQUEST")
     now = datetime.now(timezone.utc).isoformat()
-    call_id = str(uuid.uuid4())
+    call_id = call_id or str(uuid.uuid4())
     request_hash = hashlib.sha256((current.user_id + ":" + current.request_id).encode()).hexdigest()
     with db.transaction(write=True) as tx:
         lock = " FOR UPDATE" if tx.postgres else ""
         budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?" + lock, (BUDGET_ID,))
         metered = bool(budget and dict(budget).get("policy_mode") == "owner_metered")
+        if require_metered and not metered:
+            raise TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_NOT_READY")
         if (not budget or budget["enabled"] != 1 or (not metered
-                and budget["reserved_milli_cny"] + RESERVE_MILLI_CNY > budget["limit_milli_cny"])):
+                and budget["reserved_milli_cny"] + reserve > budget["limit_milli_cny"])):
             raise TrialProviderStopped("PUBLIC_TRIAL_BUDGET_EXHAUSTED")
         usage_id = billing._ACTIVE_USAGE_ID.get() if metered else None
         if metered:
@@ -289,30 +305,45 @@ def _reserve(request: httpx.Request) -> str:
         if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= 2:
             raise _SlotsBusy()
         tx.execute("UPDATE public_trial_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
-                   (RESERVE_MILLI_CNY, BUDGET_ID))
+                   (reserve, BUDGET_ID))
         if metered:
             provenance = json.dumps({"model": payload["model"], "route": current.route,
                 "operation": parent["operation"], "entitlement_source": parent["source"],
                 "model_config_revision": (current.model_config or {}).get("active_revision"),
                 "prompts": prompt_manager.request_versions(),
-                "fact_observation": current.fact_observation}, separators=(",", ":"), sort_keys=True)
+                "fact_observation": current.fact_observation,
+                "provider": "claude" if payload["model"].startswith("claude") else "kimi",
+                "operation_id": payload.get("operation_id"),
+                "max_tokens": payload.get("max_tokens")}, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "
-                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",RESERVE_MILLI_CNY,now,usage_id,provenance))
+                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now,usage_id,provenance))
         else:
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at) "
-                       "VALUES(?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",RESERVE_MILLI_CNY,now))
+                       "VALUES(?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now))
         current.call_ids.add(call_id)
     return call_id
 
 
-def _record_response(call_id: str, status: int | None, *, unknown=False):
+def _record_response(call_id: str, status: int | None, *, unknown=False, not_dispatched=False):
     import db
     # Reservation remains charged even if body/stream subsequently disconnects.
-    if (status is None or unknown) and _invocation.get() is not None:
+    if (unknown or (status is None and not not_dispatched)) and _invocation.get() is not None:
         _invocation.get().failure = "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY"
+    expected = "responded" if not_dispatched or (status is not None and not unknown) else "unknown"
     try:
-        db.execute("UPDATE public_trial_calls SET state=?,http_status=? WHERE id=? AND state='dispatched'",
-                   ("responded" if status is not None and not unknown else "unknown", status, call_id))
+        with db.transaction(write=True) as tx:
+            lock = " FOR UPDATE" if tx.postgres else ""
+            row = tx.fetchone("SELECT state,http_status FROM public_trial_calls WHERE id=?" + lock, (call_id,))
+            if not row:
+                raise RuntimeError("physical call missing")
+            if row["state"] == "dispatched":
+                tx.execute("UPDATE public_trial_calls SET state=?,http_status=? WHERE id=? AND state='dispatched'",
+                           (expected, status, call_id))
+            elif row["state"] != expected or row["http_status"] != status:
+                raise RuntimeError("physical call terminal conflict")
+            result = tx.fetchone("SELECT state,http_status FROM public_trial_calls WHERE id=?", (call_id,))
+            if not result or result["state"] != expected or result["http_status"] != status:
+                raise RuntimeError("physical call result not persisted")
     except Exception:
         raise TrialProviderStopped("PUBLIC_TRIAL_RESULT_PERSISTENCE_UNKNOWN") from None
 
@@ -326,6 +357,89 @@ def _reserve_with_wait(request):
             if time.monotonic() >= deadline:
                 raise TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
             time.sleep(0.25)
+        except TrialProviderStopped:
+            raise
+        except Exception:
+            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+
+
+def _reserve_claude_once(request, body):
+    """Use the original Gateway operation identity; no payload is persisted."""
+    import billing
+    import claude_gateway_protocol as protocol
+    if (request.model not in protocol.ALLOWED_MODELS
+            or not protocol.valid_operation_id(request.operation_id)
+            or type(request.max_tokens) is not int or not 1 <= request.max_tokens <= 32768
+            or len(body) > 8 * 1024 * 1024):
+        raise TrialProviderStopped("PUBLIC_MODEL_REQUEST_OUT_OF_SCOPE")
+    price = billing._pricing_snapshot("claude", request.model)
+    if price["pricing_status"] != "exact":
+        raise TrialProviderStopped("PUBLIC_MODEL_PRICE_CONFIGURATION_INVALID")
+    # Estimate against text bytes (including message overhead) and a context
+    # allowance, at the highest cache-write price. Not a claimed supplier bill,
+    # quality switch, input truncation or monetary admission cap.
+    input_rate = max(price[k] or 0 for k in ("input", "cache_write_5m", "cache_write_1h"))
+    reserve = math.ceil((max(200000, len(body)) * input_rate + request.max_tokens * price["output"])
+                        * price["usd_cny"] / 1000)
+    return _reserve_payload({"model": request.model, "max_tokens": request.max_tokens,
+                             "operation_id": request.operation_id}, reserve,
+                            call_id=request.operation_id, require_metered=True)
+
+
+def admit_claude_sync(request, body):
+    if not enabled():
+        return
+    deadline = time.monotonic() + 90
+    while True:
+        try:
+            request.call_state["id"] = _reserve_claude_once(request, body)
+            return
+        except _SlotsBusy:
+            if time.monotonic() >= deadline:
+                raise TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
+            time.sleep(0.25)
+        except TrialProviderStopped:
+            raise
+        except Exception:
+            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+
+
+async def admit_claude(request, body):
+    if not enabled():
+        return
+    deadline = time.monotonic() + 90
+    while True:
+        # Only one short transaction runs in the thread. Never leave a 90-second
+        # slot waiter behind after its user request has been cancelled.
+        attempt = asyncio.create_task(asyncio.to_thread(_reserve_claude_once, request, body))
+        try:
+            request.call_state["id"] = await asyncio.shield(attempt)
+            return
+        except asyncio.CancelledError:
+            while not attempt.done():
+                try:
+                    await asyncio.shield(attempt)
+                except asyncio.CancelledError:
+                    continue
+                except BaseException:
+                    break
+            try:
+                call_id = attempt.result()
+            except _SlotsBusy:
+                pass
+            except TrialProviderStopped:
+                raise
+            except Exception:
+                raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+            else:
+                request.call_state["id"] = call_id
+                _record_response(call_id, None, not_dispatched=True)
+                request.call_state["finalized"] = True
+            raise
+        except _SlotsBusy:
+            if time.monotonic() >= deadline:
+                raise TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
+            await asyncio.sleep(0.25)
         except TrialProviderStopped:
             raise
         except Exception:

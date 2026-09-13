@@ -282,6 +282,25 @@ class ClaudeGatewayEndpointTests(unittest.TestCase):
         self.assertEqual([event["type"] for event in events], ["content", "content", "usage", "done"])
         self.assertFalse(any("thinking" in json.dumps(event) for event in events))
 
+    def test_sdk_metadata_survives_gateway_and_transport_without_leaking_thinking(self):
+        async def create(**kwargs):
+            return SimpleNamespace(model=kwargs['model'],stop_reason='end_turn',
+                usage=SimpleNamespace(input_tokens=11,output_tokens=4,cache_read_input_tokens=0,
+                    cache_creation_input_tokens=0,cache_creation=None),
+                content=[SimpleNamespace(type='thinking',thinking='private reasoning'),
+                         SimpleNamespace(type='text',text='actual fixture')])
+        provider=claude_gateway.AnthropicProvider()
+        provider._client=SimpleNamespace(messages=SimpleNamespace(create=create))
+        claude_gateway._PROVIDER=provider
+        response=self.post()
+        self.assertEqual(response.status_code,200,response.text)
+        result=model_router.GatewayClaudeTransport._decode_result(response)
+        self.assertEqual(result.model,model_router.CLAUDE_HAIKU)
+        self.assertEqual(result.stop_reason,'end_turn')
+        self.assertEqual(result.usage['input_tokens'],11)
+        self.assertEqual(result.text_blocks,('actual fixture',))
+        self.assertNotIn('private reasoning',response.text)
+
     def test_stream_provider_failure_before_first_public_event_is_json_error(self):
         self.provider.error = RuntimeError("secret prompt https://provider.invalid/private")
         response = self.post(path=protocol.STREAM_PATH)
@@ -1332,7 +1351,7 @@ class AnthropicProviderBoundaryTests(unittest.TestCase):
                 return events()
 
             def get_final_message(self):
-                return SimpleNamespace(usage=usage)
+                return SimpleNamespace(usage=usage,model='claude-haiku-4-5-20251001',stop_reason='end_turn')
 
         provider = claude_gateway.AnthropicProvider()
         provider._client = SimpleNamespace(
@@ -1352,6 +1371,8 @@ class AnthropicProviderBoundaryTests(unittest.TestCase):
         events = asyncio.run(collect())
         self.assertEqual([event["type"] for event in events], ["content", "usage"])
         self.assertEqual(events[0]["text"], "public-content")
+        self.assertEqual(events[-1]['model'],'claude-haiku-4-5-20251001')
+        self.assertEqual(events[-1]['stop_reason'],'end_turn')
         self.assertNotIn("private-reasoning", json.dumps(events))
 
 
