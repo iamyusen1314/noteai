@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./offline-fixture');
 
 function overviewPayload(system = {}) {
   return {
@@ -111,7 +111,7 @@ test('admin dashboard shows unavailable when API readiness is unreachable', asyn
   });
 
   const status = page.locator('#system-status');
-  await expect(status).toContainText('API 服务不可检测');
+  await expect(status).toContainText('状态查询暂不可用');
   await expect(status).not.toContainText('API 服务未配置');
   expect(await page.locator('body').textContent()).not.toContain('undefined');
 });
@@ -120,7 +120,21 @@ test('admin dashboard treats missing status fields as unavailable without undefi
   await openDashboard(page, {});
 
   const status = page.locator('#system-status');
-  await expect(status).toContainText('API 服务不可检测');
+  await expect(status).toContainText('状态查询暂不可用');
   await expect(status).toContainText('数据库状态不可检测');
   expect(await page.locator('body').textContent()).not.toContain('undefined');
+});
+
+test('release admission and usage are not presented as provider health', async ({page}) => {
+  await openDashboard(page, {ai_runtime: {
+    source:'api_public_status', status:'observed', kimi_status:'admission_open', claude_status:'not_in_public_route', upstream_probed:false,
+    recent_usage:[{provider:'kimi',model:'kimi-k2.6',last_recorded_at:'2026-09-12T12:00:00Z'}],
+  }, database_backend:'postgresql',database_ok:true});
+  const status=page.locator('#system-status');
+  await expect(status).toContainText('公开文字入口可接收请求');
+  await expect(status).toContainText('当前公开路由未使用');
+  await expect(status).toContainText('/public/status');
+  await expect(status).toContainText('最近用量入账');
+  await expect(status).toContainText('未发起供应商连通测试');
+  await expect(status).not.toContainText('API 服务已配置');
 });

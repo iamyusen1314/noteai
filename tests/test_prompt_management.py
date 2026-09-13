@@ -342,9 +342,12 @@ class PromptComposerContractTests(unittest.TestCase):
                     preview = admin_server._build_effective_prompt_preview(
                         "agent_content_system", domain, "V0.4基础内容", 5
                     )
-                    self.assertEqual(preview["rendered_text"], api_text)
+                    self.assertIn(api_text, preview["rendered_text"])
                     self.assertEqual(preview["domain"], domain)
-                    self.assertEqual(preview["preview_kind"], "effective_template")
+                    self.assertEqual(preview["preview_kind"], "published_industry_layers")
+                    self.assertIn(api._get_dk(domain)["content"], preview["rendered_text"])
+                    self.assertIn(api._get_quality_contract(domain), preview["rendered_text"])
+                    self.assertEqual(preview["edit_scope"], "shared_key_all_industries")
                     self.assertFalse(preview["preview_complete"])
                     self.assertTrue(preview["dynamic_layers"])
                     self.assertNotIn("用户正文", preview["rendered_text"])
@@ -359,6 +362,22 @@ class PromptComposerContractTests(unittest.TestCase):
             self.assertEqual(preview["domain"], "通用")
             self.assertEqual(preview["requested_domain"], "美食")
             self.assertEqual(len(preview["dynamic_layers"]), 1)
+
+    def test_every_industry_preview_contains_substantive_shared_runtime_rules(self):
+        baseline = prompt_baselines.load_current_baseline()
+        for key, row in baseline.items():
+            previews = [admin_server._build_effective_prompt_preview(key, domain, row["content"], row["version"])
+                        for domain in prompt_composer.SUPPORTED_DOMAINS]
+            if key == "semantic_features":
+                self.assertEqual(len({p["rendered_text"] for p in previews}), 1)
+                continue
+            bodies = [p["rendered_text"].split("\n", 1)[1] for p in previews]
+            self.assertEqual(len(set(bodies)), 7, key)
+            for preview in previews:
+                self.assertNotIn("{domain}", preview["rendered_text"])
+                self.assertIn(api._get_quality_contract(preview["domain"]), preview["rendered_text"])
+                self.assertFalse(preview["preview_complete"])
+                self.assertEqual(preview["base_source"], "published_database")
 
     def test_aliases_are_canonicalized_and_unknown_domains_rejected(self):
         self.assertEqual(prompt_composer.canonicalize_domain("餐饮"), "美食")

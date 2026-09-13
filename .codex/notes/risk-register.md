@@ -1,5 +1,20 @@
 # Risk Register
 
+September13 morning: owner audit found concrete omissions in the earlier Admin
+completion claim: provider status was a stub; industry previews showed only shared
+bases; diagnostic arbitration used the wrong route; library continuation could
+fabricate/retain an old score. Current fixes and exact test/deployment state are at
+the Handoff top. Seven industry static rules remain latest reachable87d679f; fresh
+production readback confirms all12 baseline contents and zero prompt_history rows.
+No formal Prompt text has been changed. Preview is explicitly static layers, with
+62-feature/request-specific assembly not expanded; do not claim a complete request.
+Claude implementation/history remains but current public route is Kimi-only; actual
+provider eligibility, Gateway and bounded billing must precede a lawful change.
+Public SSE tasks are not durable-worker jobs: ordinary task controls do not manage
+all user requests. Budget remains conservatively reserved44.03/50CNY (last known);
+not enough to promise another full multi-stage run. No reservation reset or inflated
+Readiness. New fixes do not touch Item34, schema, permissions or business selections.
+
 September13 02:11: previously prepared598460a host cleanup correction is installed
 and verified on F. Originalgeneration2 automation now references that exact host;
 only prompt path/normal updated_at changed, next actual3d remains September14

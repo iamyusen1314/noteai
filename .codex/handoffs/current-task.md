@@ -22,6 +22,41 @@ original UI, ledger/config/task mechanisms and existing deploy/recovery tooling;
 no new audit platform, acceptance layers or Readiness credit for local preparation.
 Implementation continues fromef06f8b with only seven protected untracked paths.
 
+## September13 morning — owner audit corrects incomplete Admin delivery claims
+
+Current scoped work continues from cd1db87. Owner asks why only Kimi, identical
+industry previews and undetectable provider status, and for concrete remaining gaps.
+Two independent read-only reviews confirmed: provider status was a fixed unavailable
+stub; industry preview omitted API-appended knowledge/quality/planning, although all
+seven real industry rule groups remain in the latest reachable baseline87d679f.
+Local refs contain no later prompts.json revision; production readback at09:07Beijing confirms all12 formal content hashes equal the
+repository baseline and prompt_history has0rows. This is a current DB fact, not a
+claim about any unreachable/deleted history.
+
+Implementation in progress: shared original rules extracted into existing
+prompt_composer (no formal Prompt text edits); Admin shows published static layers,
+shared-key/global edit scope and explicitly omitted request/governance layers. It
+must not claim a captured complete Prompt or preview an unsaved draft. Original
+runtime strings compared equal across220 isolated cases. Replace status stub with
+fixed owned HTTPS /public/status plus non-sensitive model_usage_records timestamps;
+admission and historical usage are not paid provider health probes. Claude historical
+Haiku/Sonnet roles remain, public free routes currently Kimi-only under existing
+budget/provider restrictions; no automatic provider change.
+
+Additional confirmed defects being repaired: diagnostic arbitration calls diagnosis
+instead of arbitrate; library chat opening can fabricate a score from semantic0.5,
+and null score leaves the prior gauge. Public SSE operations are not connected to
+ordinary durable workers; task empty state will explicitly say this. Queue admission,
+provider budget context, one-time charge/result/UNKNOWN settlement must be integrated
+before claiming all public jobs are manageable; do not enable old acceptance worker.
+
+Readiness remains30/37. No model/SMS/XHS calls or business writes for this audit;
+Item34 fixed image/T0/unique3d task untouched. Candidate verification:28 targeted tests passed on isolated Linux/amd64 Python3.11.15;
+11 browser tests passed (network-blocked), including unknown-score gauge clearing and
+admission-vs-health distinction. LocalPython3.11 initially lacked Anthropic; old local
+image initially lacked cryptography; isolated test image installed the repository's
+pinned cryptography50.0.0 only. No production dependency change. Deployment pending.
+
 ## September13 01:57 Beijing — scoped Admin delivered and canaries restored
 
 Live Admin source5c8707c6fcf7a6058fe137f0a4852336dc50365c,

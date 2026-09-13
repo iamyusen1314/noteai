@@ -139,3 +139,16 @@ test('draft followed by EOF is outcome unknown and does not pollute canonical lo
   expect(stored).toContain('STORED_CANONICAL');
   expect(stored).not.toContain('DRAFT_ONLY_SENTINEL');
 });
+
+
+test('opening an unscored note clears the previous artifact gauge', async ({page}) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  await page.evaluate(() => {
+    document.getElementById('chat-active-area').style.display = 'flex';
+    chatUpdateNote('已评分', '本人旧版本', 75.3, '优秀', {version:1});
+    chatUpdateNote('未评分', '另一版本', null, '', {version:1});
+  });
+  await expect(page.locator('#chat-gauge-text')).toHaveText('—');
+  await expect(page.locator('#chat-score-grade')).toHaveText('暂无已保存评分');
+  expect(await page.locator('#chat-gauge-fill').evaluate(el => Number(el.style.strokeDashoffset))).toBeCloseTo(2*Math.PI*23, 2);
+});

@@ -369,7 +369,7 @@ input,select,textarea{font-family:inherit}
               <button class="btn btn-primary btn-sm" data-capability="prompt_mutation" onclick="publishPrompt()">发布生效</button>
             </div>
           </div>
-          <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">可编辑基础 Prompt</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">可编辑基础 Prompt（此 key 全行业共享）</div>
           <textarea class="form-textarea" id="pe-content" style="min-height:220px"></textarea>
           <div id="pe-state" role="status" style="margin-top:8px;color:var(--warning)"></div>
           <label for="pe-reason">操作原因</label><input id="pe-reason" class="form-input" maxlength="300" placeholder="说明本次调整原因，至少3字">
@@ -377,7 +377,7 @@ input,select,textarea{font-family:inherit}
             模型策略 <b style="color:var(--accent)">V0.4</b> · 基础修订号 <span id="pe-version">1</span> · 最后修改 <span id="pe-updated"></span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
-            <label for="pe-domain" style="font-size:11px;font-weight:700;color:var(--text-2)">行业有效模板预览</label>
+            <label for="pe-domain" style="font-size:11px;font-weight:700;color:var(--text-2)">正式行业静态层预览（只读）</label>
             <select id="pe-domain" class="form-input" style="width:120px;padding:6px 8px" onchange="loadPromptPreview()">
               <option value="美食">美食</option><option value="旅行">旅行</option>
               <option value="穿搭">穿搭</option><option value="美妆">美妆</option>
@@ -398,7 +398,9 @@ input,select,textarea{font-family:inherit}
   <div class="content-area page" id="page-models">
     <div class="card" style="margin-bottom:20px">
       <div class="section-title">业务模型路由</div>
-      <p>当前公开实例使用已有 Kimi K2.6 与原累计预算控制。训练与评分模型产物是下方独立模块。</p>
+      <p>当前公开文字实例使用 Kimi K2.6，受同一累计预算控制；下方设置实际业务路由。训练与评分模型产物是后面的独立模块。</p>
+      <p>原产品分工：Claude Haiku 负责诊断、生成及语义分析，Claude Sonnet 负责仲裁与对话，Kimi 为原备用路径。当前公开版本统一使用 Kimi；Claude 的既有实现仍保留，但未纳入本公开实例可发布路由。</p>
+      <p>Claude 恢复需要同时满足供应商实际服务条件、现有 Gateway 配置与同一受控预算接入；不是仅增加下拉选项。此页不会自动发起模型调用。</p>
       <label for="mc-scope">配置范围</label><select id="mc-scope" class="form-input" onchange="loadModelConfig()"><option value="production">当前公开 API</option><option value="test">隔离测试配置（不进入生产路由）</option></select>
       <div id="mc-state" role="status"></div><div id="mc-routes"></div>
       <label for="mc-reason">操作原因</label><input id="mc-reason" class="form-input" minlength="3" maxlength="300">
@@ -433,6 +435,7 @@ input,select,textarea{font-family:inherit}
   <div class="content-area page" id="page-tasks">
     <div class="card">
       <div class="section-title">普通业务任务管理</div>
+      <p>仅显示已接入持久队列的任务。当前网页文字诊断、生成和对话通过实时请求执行，尚未接入此列表；空列表不代表没有用户请求。</p>
       <p id="tasks-state" role="status"></p>
       <table class="data-table"><thead><tr><th>任务</th><th>实际状态</th><th>执行时间</th><th>供应商次数</th><th>管理</th></tr></thead><tbody id="tasks-rows"></tbody></table>
     </div>
@@ -834,7 +837,10 @@ function adminCoverageHeadline(coverage, periodLabel, completeText, incompleteTe
 const ADMIN_SYSTEM_STATUS_LABELS = Object.freeze({
   configured: {label:'API 服务已配置', dot:'dot-green'},
   not_configured: {label:'API 服务未配置', dot:'dot-red'},
-  unavailable: {label:'API 服务不可检测', dot:'dot-yellow'},
+  unavailable: {label:'状态查询暂不可用', dot:'dot-yellow'},
+  admission_open: {label:'公开文字入口可接收请求', dot:'dot-green'},
+  admission_closed: {label:'公开文字入口受额度或状态限制', dot:'dot-yellow'},
+  not_in_public_route: {label:'当前公开路由未使用', dot:'dot-yellow'},
 });
 
 function adminProviderStatus(aiRuntime, field) {
@@ -1022,7 +1028,15 @@ async function loadDashboard() {
   const claudeStatus = adminProviderStatus(aiRuntime, 'claude_status');
   const kimiView = ADMIN_SYSTEM_STATUS_LABELS[kimiStatus];
   const claudeView = ADMIN_SYSTEM_STATUS_LABELS[claudeStatus];
-  const aiSource = aiRuntime.source === 'api_readiness' ? '状态来源：API readiness' : '状态来源：不可检测';
+  const aiSource = aiRuntime.source === 'api_public_status'
+    ? '状态来源：正式网站 API /public/status（只读）'
+    : aiRuntime.source === 'api_readiness' ? '状态来源：API readiness' : '状态来源查询失败或未接入';
+  const lastUsage = provider => {
+    if (!Array.isArray(aiRuntime.recent_usage)) return '历史用量查询不可用';
+    const rows = aiRuntime.recent_usage.filter(row => String(row.provider).toLowerCase() === provider);
+    rows.sort((a,b) => String(b.last_recorded_at).localeCompare(String(a.last_recorded_at)));
+    return rows.length ? `最近用量入账：${_fmtShortTime(rows[0].last_recorded_at)} · ${rows[0].model}（非健康探测）` : '本数据库暂无该供应商用量记录；不代表从未调用';
+  };
   const modelSize = Number.isFinite(Number(s.model_size_mb)) ? ` (${Number(s.model_size_mb)}MB)` : '';
   const databaseBackend = s.database_backend === 'postgresql'
     ? 'PostgreSQL' : s.database_backend === 'sqlite' ? 'SQLite' : '';
@@ -1037,10 +1051,10 @@ async function loadDashboard() {
   document.getElementById('system-status').innerHTML = `
     <div class="stat-card"><div class="stat-label">Kimi API</div>
       <div><span class="dot ${kimiView.dot}"></span>${kimiView.label}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${aiSource}</div></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${esc(aiSource)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(lastUsage('kimi'))}</div><div style="font-size:11px;color:var(--text-muted)">未发起供应商连通测试；具体任务仍受启停和额度约束。</div></div>
     <div class="stat-card"><div class="stat-label">Claude API</div>
       <div><span class="dot ${claudeView.dot}"></span>${claudeView.label}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${aiSource}</div></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${esc(aiSource)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(lastUsage('claude'))}</div><div style="font-size:11px;color:var(--text-muted)">未读取私有配置或发起连通测试。</div></div>
     <div class="stat-card"><div class="stat-label">ML 模型</div>
       <div><span class="dot ${s.model_exists?'dot-green':'dot-red'}"></span>${s.model_exists?`存在${modelSize}`:'未找到'}</div></div>
     <div class="stat-card"><div class="stat-label">数据库</div>
@@ -1411,7 +1425,7 @@ async function loadPromptDetail(key) {
     document.getElementById('pe-content').value = d.draft?.content ?? d.content ?? '';
     document.getElementById('pe-version').textContent = d.version;
     document.getElementById('pe-updated').textContent = d.updated_at ? new Date(d.updated_at).toLocaleString() : '尚未发布';
-    document.getElementById('pe-state').textContent = `${d.runtime_loaded ? '正式来源：共享 managed_prompts 数据库，API 请求时读取并组合，缓存最多 10 秒。' : d.source === 'empty_runtime_fallback' ? '正式值为空：运行时使用调用位置的代码 fallback。' : '来源：原项目 V0.4 基线文件；尚未发布至生产数据库，不能称为当前运行配置。'}${d.draft ? ` 有草稿（基于修订 ${d.draft.base_version}），保存草稿不会生效。` : ''}`;
+    document.getElementById('pe-state').textContent = `${d.runtime_loaded ? '正式来源：共享 managed_prompts 数据库，API 请求时读取并组合，缓存最多 10 秒。' : d.source === 'empty_runtime_fallback' ? '正式值为空：运行时使用调用位置的代码 fallback。' : '来源：原项目 V0.4 基线文件；尚未发布至生产数据库，不能称为当前运行配置。'}${d.draft ? ` 编辑器正在显示草稿（基于修订 ${d.draft.base_version}），保存草稿不会生效；下方仅预览正式修订。` : ' 编辑器显示正式基础模板。'} 本 key 的发布影响所有行业；下方行业选择不改变编辑/发布范围。`;
     document.getElementById('prompt-editor-empty').style.display = 'none';
     document.getElementById('prompt-editor-content').style.display = 'flex';
     document.getElementById('pe-content').readOnly = !d.editable || !hasAdminCapability('prompt_mutation');
@@ -1444,9 +1458,9 @@ async function loadPromptPreview() {
   const d = await r.json();
   document.getElementById('pe-effective').value = d.rendered_text || '';
   document.getElementById('pe-preview-meta').textContent =
-    `类型：${d.preview_kind || 'effective_template'} · 行业：${d.domain || domain} · 完整请求预览：${d.preview_complete ? '是' : '否'}`;
+    `正式数据库修订 ${d.base_revision} · 行业：${d.domain || domain} · 仅展示同源静态层，不是完整请求或未发布草稿。`;
   document.getElementById('pe-dynamic-layers').textContent =
-    `请求时动态追加：${Array.isArray(d.dynamic_layers) ? d.dynamic_layers.join('、') : '无'}`;
+    `尚未展开/请求时追加：${Array.isArray(d.dynamic_layers) ? d.dynamic_layers.join('、') : '无'}`;
   document.getElementById('pe-preview-privacy').textContent = d.privacy_notice || '';
 }
 
@@ -1462,7 +1476,7 @@ async function publishPrompt() {
   if (!_currentPromptKey || !requireAdminCapability('prompt_mutation')) return;
   if (!_currentPromptDetail?.draft) { alert('请先保存草稿'); return; }
   if (document.getElementById('pe-content').value !== _currentPromptDetail.draft.content) { alert('编辑内容尚未保存，请先保存草稿'); return; }
-  if (!confirm(`发布 ${_currentPromptDetail.label} 草稿？正式业务将在下一次读取时使用，最多 10 秒缓存；不会自动调用模型。`)) return;
+  if (!confirm(`发布 ${_currentPromptDetail.label} 草稿到全部行业？行业下拉框仅用于查看。正式业务将在下一次读取时使用，最多 10 秒缓存；不会自动调用模型。`)) return;
   try {
     const result = await submitAdminOperation(`/admin/prompts/${encodeURIComponent(_currentPromptKey)}/publish`, {reason:document.getElementById('pe-reason').value.trim(),payload:{expected_version:_currentPromptDetail.version,draft_id:_currentPromptDetail.draft.draft_id}});
     await loadPromptDetail(_currentPromptKey); await loadPrompts();
@@ -1541,7 +1555,7 @@ async function loadModelConfig() {
     state.textContent = `已保存修订 ${data.revision}；生效修订 ${data.active_revision}。${data.effect}${data.instance_opt_in ? '' : ' 当前实例尚未绑定动态配置，不应发布。'}`;
     document.getElementById('mc-routes').innerHTML = data.tasks.map(task=>{
       const row = (data.draft || data.active)[task];
-      return `<div style="display:flex;gap:12px;align-items:center;margin:12px 0" data-model-task="${esc(task)}"><b style="min-width:100px">${esc(task)}</b><select class="form-input" data-model-field="model">${data.allowed_models.map(model=>`<option value="${esc(model)}" ${model===row.model?'selected':''}>${esc(model)}</option>`).join('')}</select><label><input type="checkbox" data-model-field="enabled" ${row.enabled?'checked':''}> 启用</label><label>输出上限 <input class="form-input" type="number" min="256" max="32768" step="1" data-model-field="max_tokens" value="${row.max_tokens}"></label><small>当前：${data.active[task].enabled?'启用':'暂停'} / ${data.active[task].max_tokens}</small></div>`;
+      return `<div style="display:flex;gap:12px;align-items:center;margin:12px 0" data-model-task="${esc(task)}"><b style="min-width:100px">${esc(({diagnosis:'诊断专家',content_gen:'内容生成',arbitrate:'仲裁',chat:'对话',semantic:'语义分析'})[task] || task)}</b><select class="form-input" data-model-field="model">${data.allowed_models.map(model=>`<option value="${esc(model)}" ${model===row.model?'selected':''}>${esc(model)}</option>`).join('')}</select><label><input type="checkbox" data-model-field="enabled" ${row.enabled?'checked':''}> 启用</label><label>输出上限 <input class="form-input" type="number" min="256" max="32768" step="1" data-model-field="max_tokens" value="${row.max_tokens}"></label><small>当前：${data.active[task].enabled?'启用':'暂停'} / ${data.active[task].max_tokens}</small></div>`;
     }).join('');
     applyAdminCapabilities();
   } catch(e) { state.textContent = `配置读取失败：${e.message}`; }

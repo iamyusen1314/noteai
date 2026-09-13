@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./offline-fixture');
 
 
 test('admin prompt preview is industry-scoped, read-only and XSS-safe', async ({ page }) => {
@@ -62,6 +62,7 @@ test('admin prompt preview is industry-scoped, read-only and XSS-safe', async ({
           version: 5,
           updated_at: '2026-07-12T00:00:00+00:00',
           history: [],
+          runtime_loaded: true, editable: true,
         }),
       });
       return;
@@ -80,8 +81,8 @@ test('admin prompt preview is industry-scoped, read-only and XSS-safe', async ({
   });
 
   await expect(page.locator('#pe-effective')).toHaveValue(/V0\.4有效模板/);
-  await expect(page.locator('#pe-preview-meta')).toContainText('effective_template');
-  await expect(page.locator('#pe-preview-meta')).toContainText('完整请求预览：否');
+  await expect(page.locator('#pe-preview-meta')).toContainText('正式数据库修订 5');
+  await expect(page.locator('#pe-preview-meta')).toContainText('不是完整请求或未发布草稿');
   await expect(page.locator('#pe-dynamic-layers')).toContainText('<img id="layer-xss"');
   await expect(page.locator('#pe-preview-privacy')).toContainText('不包含用户正文');
   await expect(page.locator('#prompt-preview-xss, #layer-xss, #prompt-key-xss, #prompt-label-xss, #prompt-module-xss')).toHaveCount(0);

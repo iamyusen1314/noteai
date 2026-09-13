@@ -1771,6 +1771,23 @@ class ApiContractTests(unittest.TestCase):
             api._get_user_learn = original_get_user_learn
             api._memory.build_memory_prompt = original_memory_prompt
 
+    def test_public_chat_start_reuses_matching_saved_score_without_new_inference(self):
+        row = {"id":"note-root", "title":"初始标题", "body":"初始正文", "domain":"美食", "score":68.0, "grade":"良好", "version":1}
+        for score, body, expected in ((68.0,"初始正文",68.0), (0.0,"初始正文",0.0),
+                                      (None,"初始正文",None), (68.0,"改动正文",None)):
+            with self.subTest(score=score, body=body), mock.patch.object(api, "_fetch_user_note", return_value={**row,"score":score}), \
+                 mock.patch.object(api._public_account, "product_enabled", return_value=True), \
+                 mock.patch.object(api, "_get_user_learn", return_value={}), \
+                 mock.patch.object(api._memory, "build_memory_prompt", return_value=""), \
+                 mock.patch.object(api, "_persist_chat_session"), \
+                 mock.patch.object(api, "compute_semantic_features", side_effect=AssertionError("no model")), \
+                 mock.patch.object(api, "_predict", side_effect=AssertionError("no invented score")):
+                resp = asyncio.run(api.chat_start(api.ChatStartInput(note_id="note-root", note_title="初始标题",
+                    note_body=body, domain="美食"), user={"id":"u1"}))
+                self.assertEqual(resp.current_score, expected)
+                self.assertEqual(api._chat_sessions[resp.session_id]["current_score"], expected)
+                api._chat_sessions.pop(resp.session_id)
+
     def test_chat_start_prefers_selected_plan_score_over_original_diagnosis_score(self):
         original_sessions = dict(api._chat_sessions)
         original_get_user_learn = api._get_user_learn
@@ -2450,6 +2467,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(len(bodies), 3)
         self.assertEqual(len(set(bodies)), 3)
         self.assertIn("本阶段只输出诊断和3个标题", calls[0][2])
+        self.assertEqual(calls[0][0], "arbitrate")
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
 
     def test_plan_title_distinct_repair_handles_duplicate_titles(self):

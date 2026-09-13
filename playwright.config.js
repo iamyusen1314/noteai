@@ -6,7 +6,7 @@ module.exports = defineConfig({
   testDir: './tests/e2e',
   ...(offline ? { testMatch: [
     'chat-delivery-consistency.spec.js', 'sse-stall-guard.spec.js',
-    'quota-ui.spec.js', 'admin-production-readonly.spec.js', 'frontend-local-assets.spec.js',
+    'quota-ui.spec.js', 'admin-production-readonly.spec.js', 'admin-system-status.spec.js', 'admin-prompt-preview.spec.js', 'frontend-local-assets.spec.js',
   ] } : {}),
   timeout: 30_000,
   expect: {

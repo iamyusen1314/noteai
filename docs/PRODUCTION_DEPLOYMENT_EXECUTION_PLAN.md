@@ -1,5 +1,21 @@
 # NoteAI Production Deployment Execution Plan
 
+## September13 morning — targeted Admin truthfulness repair
+
+Reuse the existing C images (Admin5c8707c / API2159d47), deployment scripts and
+exact HTTPS proxies. Only overlay model/admin_server.py, prompt_composer.py and
+api.py plus original Admin/public compiled bundles; no dependency/schema/role
+change in production, no provider call or formal Prompt publication. Existing
+public frontend file before this patch matches3f47200; API files before this patch
+match2159d47. Verify candidate Python3.11/amd64, live dedicated roles, source hashes,
+static industry layers vs API shared rules, status source and public boundaries.
+Drain existing ingress before replacements, retain original units/proxies/symlinks,
+restore these if verification fails. Preserve new configuration enforcement during
+rollback (previous2159d47/5c8707c already includes it). Read original execution result
+if launch outcome is unknown. Item34 fixed runtime/unique3d schedule excluded.
+Current progress and limitations are maintained in the existing Handoff.
+
+
 ## Current scoped Admin operations release
 
 Owner authorizes implementing/deploying single-user noncash entitlement management,

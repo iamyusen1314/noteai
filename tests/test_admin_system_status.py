@@ -1,6 +1,8 @@
 import sys
 import tempfile
 import unittest
+from unittest import mock
+import httpx
 from pathlib import Path
 
 
@@ -22,20 +24,39 @@ class AdminSystemStatusTests(unittest.IsolatedAsyncioTestCase):
         db._DB_PATH = self._old_db_path
         self._tmpdir.cleanup()
 
-    async def test_provider_status_is_safe_unavailable_without_protected_source(self):
-        status = await admin_server._fetch_api_ai_readiness()
+    async def test_release_status_uses_only_fixed_owned_read_and_separates_health(self):
+        for admission in (True, False):
+            with self.subTest(admission=admission):
+                response = httpx.Response(200, json={"release": "free_product", "ai_open": admission})
+                with mock.patch.object(httpx.AsyncClient, "get", new_callable=mock.AsyncMock, return_value=response) as get:
+                    status = await admin_server._fetch_api_ai_readiness()
+                get.assert_awaited_once_with("https://noteaipro.com/public/status")
+                self.assertEqual(status["source"], "api_public_status")
+                self.assertEqual(status["kimi_status"], "admission_open" if admission else "admission_closed")
+                self.assertEqual(status["claude_status"], "not_in_public_route")
+                self.assertFalse(status["upstream_probed"])
+                self.assertFalse(status["claude_configuration_known"])
 
-        self.assertEqual(status, {
-            "status": "unavailable",
-            "source": "protected_status_unavailable",
-            "claude_status": "unavailable",
-            "kimi_status": "unavailable",
-            "claude_configured": False,
-            "kimi_configured": False,
-        })
+    async def test_source_failure_and_malformed_status_do_not_imply_unconfigured(self):
+        for response in (httpx.Response(503), httpx.Response(302),
+                         httpx.Response(200, json={"release": "free_product", "ai_open": "true"}),
+                         httpx.Response(200, json={"release": "website_and_accounts", "ai_open": False})):
+            with mock.patch.object(httpx.AsyncClient, "get", new_callable=mock.AsyncMock, return_value=response):
+                status = await admin_server._fetch_api_ai_readiness()
+            self.assertEqual(status["kimi_status"], "unavailable")
+            self.assertIn("source_error", status)
+            self.assertFalse(status["upstream_probed"])
+
+    async def test_history_failure_is_unknown_not_empty_or_healthy(self):
+        with mock.patch.object(db, "fetchall", side_effect=RuntimeError("synthetic")), mock.patch.object(
+                httpx.AsyncClient, "get", new_callable=mock.AsyncMock, side_effect=httpx.ConnectError("offline")):
+            status = await admin_server._fetch_api_ai_readiness()
+        self.assertIsNone(status["recent_usage"])
+        self.assertEqual(status["usage_source"], "query_unavailable")
 
     async def test_admin_overview_exposes_explicit_system_status_and_legacy_booleans(self):
-        payload = await admin_server.admin_overview(admin={"username": "synthetic-admin"})
+        with mock.patch.object(httpx.AsyncClient, "get", new_callable=mock.AsyncMock, side_effect=httpx.ConnectError("offline")):
+            payload = await admin_server.admin_overview(admin={"username": "synthetic-admin"})
 
         system = payload["system"]
         self.assertEqual(system["ai_runtime"]["status"], "unavailable")

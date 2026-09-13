@@ -10009,11 +10009,19 @@ function chatUpdateNote(title, body, score, grade, options = {}) {
 }
 
 function chatUpdateGauge(score, grade) {
-  if (score == null) return;
   const fill = document.getElementById('chat-gauge-fill');
   const txt  = document.getElementById('chat-gauge-text');
   const grEl = document.getElementById('chat-score-grade');
   const r = 23, circ = 2 * Math.PI * r;
+  if (score == null || !Number.isFinite(Number(score))) {
+    fill.style.strokeDashoffset = circ;
+    fill.style.stroke = '#94A3B8';
+    txt.textContent = '—';
+    txt.style.color = '#94A3B8';
+    grEl.textContent = '暂无已保存评分';
+    grEl.style.color = '#94A3B8';
+    return;
+  }
   fill.style.strokeDashoffset = circ * (1 - Math.max(0, Math.min(100, score)) / 100);
   txt.textContent = formatScoreValue(score);
   const col = score >= 70 ? '#22C55E' : score >= 55 ? '#F59E0B' : '#EF4444';

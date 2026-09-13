@@ -136,8 +136,47 @@ def _unavailable_api_ai_status() -> dict:
 
 
 async def _fetch_api_ai_readiness() -> dict:
-    """Keep provider state unavailable until a protected status source exists."""
-    return _unavailable_api_ai_status()
+    """Read the deployed public API's release state; never probe a paid provider.
+
+    /public/status reports admission availability, not upstream health. Keep
+    that distinction and historical usage explicit; neither proves liveness.
+    The fixed owned HTTPS origin cannot be overridden by an Admin request.
+    Admin and API run in distinct containers; Admin loopback is not the API.
+    """
+    import httpx
+    result = _unavailable_api_ai_status()
+    result.update(checked_at=datetime.now(timezone.utc).isoformat(),
+                  upstream_probed=False, recent_usage=[], usage_source="model_usage_records")
+    try:
+        rows = db.fetchall(
+            "SELECT provider,model,MAX(recorded_at) AS last_recorded_at "
+            "FROM model_usage_records GROUP BY provider,model"
+        )
+        result["recent_usage"] = [dict(row) for row in rows]
+    except Exception:
+        result["recent_usage"] = None
+        result["usage_source"] = "query_unavailable"
+    try:
+        async with httpx.AsyncClient(timeout=3.0, follow_redirects=False, trust_env=False) as client:
+            response = await client.get("https://noteaipro.com/public/status")
+        if response.status_code != 200 or len(response.content) > 32768:
+            raise ValueError("status_source_unavailable")
+        public = response.json()
+        if public.get("release") != "free_product" or type(public.get("ai_open")) is not bool:
+            result["source_error"] = "unsupported_release_status"
+            return result
+        result.update(
+            status="observed", source="api_public_status",
+            kimi_status="admission_open" if public["ai_open"] else "admission_closed",
+            claude_status="not_in_public_route", kimi_configured=True,
+            # The public API's startup contract requires Kimi credentials.
+            # Claude's private configuration is deliberately not inferred.
+            claude_configuration_known=False,
+            notice="公开文字入口状态来自正式网站 API /public/status；具体任务仍受配置与额度限制。未发起供应商连通测试，用量时间不等于健康状态。",
+        )
+    except Exception:
+        result["source_error"] = "public_api_status_unavailable"
+    return result
 
 
 def _model_cost_audit_payload(since: str) -> dict:
@@ -1022,13 +1061,7 @@ async def admin_prompt_publish(key: str, body: AdminOperationInput, admin: dict 
 
 def _build_effective_prompt_preview(key: str, domain: str, content: str, version: int) -> dict:
     requested_domain = _prompt_composer.canonicalize_domain(domain)
-    effective_domain = "通用" if key == "semantic_features" else requested_domain
-    composed = _prompt_composer.compose_effective_prompt(
-        key,
-        effective_domain,
-        content,
-        allow_other_domain=key == "semantic_features",
-    )
+    composed = _prompt_composer.industry_preview(key, requested_domain, content)
     return {
         "key": key,
         "domain": composed.domain,
@@ -1036,11 +1069,15 @@ def _build_effective_prompt_preview(key: str, domain: str, content: str, version
         "model_strategy": "V0.4",
         "baseline_id": _prompt_baselines.BASELINE_ID,
         "base_revision": int(version or 1),
-        "preview_kind": "effective_template",
+        "preview_kind": "published_industry_layers",
+        "base_source": "published_database",
+        "edit_scope": "shared_key_all_industries",
         "preview_complete": False,
         "rendered_text": composed.text,
-        "dynamic_layers": _prompt_composer.dynamic_layer_labels(key),
-        "privacy_notice": "真实请求会按路由追加行业规则和授权材料；预览不包含用户正文、记忆、附件、内部推理或认证信息。",
+        "layers": [{"name": layer.name, "source": layer.source} for layer in composed.layers],
+        "dynamic_layers": (["当前标题与正文"] if key == "semantic_features" else
+                           ["62维特征治理与路由输出约束（代码内置，本预览未展开）", "当前请求事实与素材", "市场时机与关键词证据", "用户约束与授权记忆"]),
+        "privacy_notice": "此处展示正式基础模板及业务同源行业层，不是完整请求或草稿预览；〈请求时…〉是明确待填字段。代码内置规则只读；不包含用户正文、记忆、附件、内部推理或认证信息。",
     }
 
 
