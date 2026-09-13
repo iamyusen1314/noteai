@@ -39,6 +39,44 @@ priority: remove temporary quality/budget branches without losing durable accoun
 then integrate legal provider routes and existing entitlement-qualified capabilities.
 Older dated policies below are history where this decision supersedes them.
 
+## September13 13:52 Beijing — formal call accounting candidate verified
+
+Latest owner addition requires a complete model/tool supplier view and current
+Amap/Meituan business-chain verification. No company-specific approval-letter
+requirement is assumed for Claude: Commercial Terms A.1 permits customer products;
+D.2 incorporates Supported Regions for Customer and Users. The exact unresolved
+account fact is the contracting Customer and its applicable channel terms, not
+missing internal approval. Render/Item30 technical history remains intact.
+
+Current candidate removes future monetary admission stops under owner_metered in
+existing0025, retaining all historical reserves/calls and exact credit enforcement.
+Each physical Kimi response carries its original call ID into the existing cost
+ledger, binding usage and published Prompt/config metadata without storing raw
+prompts. Same settlement is idempotent; mismatched or failed settlement stops the
+current request and later replay while retaining the real HTTP response state.
+Old call parents remain NULL, enforced by the new SQL CHECK. Python3.11/amd64
+isolated tests:39 passed including genuine PG16 concurrent application-role calls,
+uncapped future reservations, exact one-time cost settlement, failed-settlement
+stop/no replay and existing auth/SMS/payment boundaries. Two fixture errors (missing
+Admin role and billing base grants) were fixed to match current API-C read-only ACL;
+0025's cross-column constraint name was corrected after actual PG16 failure.
+Independent review also verified SQLite history/atomic failure rollback and PG16
+history, new binding CHECK and column-level ACL. No production0025 or deployment yet.
+
+Deploy0025 before this code. Never roll back its history/policy or reset reservations.
+After cumulative reserves exceed50000, old pre0025 binaries would revive the obsolete
+stop; use this compatible candidate for recovery from later changes. This update
+is not terminal acceptance; Readiness30/37 and Item34 remain unchanged.
+
+Supplier fresh readback2026-09-13T05:39:49Z: API-C has noAMAP_WEB_KEY; Meituan CLI
+exists but MEITUAN_TRAVEL_TOKEN_MISSING. Both facts domains currently disabled.
+The first read used wrong container name noteai-api and failed locally; corrected
+noteai-api-c read succeeded, no upstream requests/writes. Historical prepare allowlist
+excluded these keys. Next active work: exact F credential provenance/readback,
+existing encrypted envelope transfer limited to these two keys, fix per-entity
+facts plus frontend/API policies, complete Admin supplier grouping and real pipeline
+verification. No F restart, XHS request, migration or observation changes.
+
 ## September13 13:23 Beijing — Render design readback and first formal-quality candidate
 
 Owner clarified Render was chosen for the prior Claude design. Fresh authenticated

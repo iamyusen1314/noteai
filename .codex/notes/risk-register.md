@@ -1,5 +1,15 @@
 # Risk Register
 
+September13 formal accounting candidate is locally verified including PG16.0025
+must precede code; original pre0025 binaries cannot be used as a full recovery
+once cumulative reservations exceed the retired50000 limit. Preserve schema/history
+and use the compatible checkpoint. API-C actual Amap/Meituan credential bindings
+are missing; historical C sources predate an Amap credential replacement, so only
+the later verified F source may be considered, without exposing or replacing XHS.
+Claude requires actual Customer/region/terms evaluation, not an invented approval
+letter. Current product supplier-view/real fact-to-output verification is pending.
+
+
 September13 latest owner decision supersedes the prior temporary Kimi-only quality
 and RMB50/100 inference-stop strategy for formal product implementation/verification
 and authorized account usage. Historical44.03/50 reserve remains evidence, not a

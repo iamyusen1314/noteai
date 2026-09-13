@@ -9,6 +9,7 @@ import contextvars
 import os
 import re
 import json
+import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import HTTPException, status
@@ -987,6 +988,7 @@ def record_model_usage(
     cache_write_1h_tokens: int | None = None,
     cache_write_unknown_ttl_tokens: int = 0,
     usage_status: str = "complete",
+    physical_call_id: str | None = None,
 ) -> None:
     """Append one model-call audit row to the current operation.
 
@@ -995,6 +997,16 @@ def record_model_usage(
     cross this persistence boundary.
     """
     usage_id = _ACTIVE_USAGE_ID.get()
+    if physical_call_id:
+        call = db.fetchone("SELECT usage_record_id FROM public_trial_calls WHERE id=?", (physical_call_id,))
+        if not call:
+            raise RuntimeError("physical usage call missing")
+        if call["usage_record_id"]:
+            if usage_id and usage_id != call["usage_record_id"]:
+                raise RuntimeError("physical usage parent mismatch")
+            usage_id = call["usage_record_id"]
+        else:
+            physical_call_id = None  # Historical capped-policy path has no inferred link.
     if not usage_id:
         return
     _record_model_usage_for_usage_id(
@@ -1009,6 +1021,7 @@ def record_model_usage(
         cache_write_1h_tokens=cache_write_1h_tokens,
         cache_write_unknown_ttl_tokens=cache_write_unknown_ttl_tokens,
         usage_status=usage_status,
+        physical_call_id=physical_call_id,
     )
 
 
@@ -1027,6 +1040,7 @@ def _record_model_usage_for_usage_id(
     cache_write_1h_tokens: int | None = None,
     cache_write_unknown_ttl_tokens: int = 0,
     usage_status: str = "complete",
+    physical_call_id: str | None = None,
 ) -> None:
     tokens_in = max(0, int(tokens_in or 0))
     tokens_out = max(0, int(tokens_out or 0))
@@ -1080,6 +1094,10 @@ def _record_model_usage_for_usage_id(
         known_cost = max(0.0, float(cost_rmb))
         pricing_status = "manual"
     known_cost = round(known_cost, 9)
+    fingerprint = hashlib.sha256(json.dumps([
+        provider, model, tokens_in, tokens_out, unclassified, cache_read,
+        cache_write, write_5m, write_1h, write_unknown, usage_status, cost_rmb,
+    ], separators=(",", ":")).encode()).hexdigest()
 
     with db.transaction(write=True) as tx:
         owner = tx.fetchone(
@@ -1087,6 +1105,8 @@ def _record_model_usage_for_usage_id(
             (usage_id,),
         )
         if not owner:
+            if physical_call_id:
+                raise RuntimeError("physical usage owner missing")
             return
         try:
             content_retention.assert_user_writable_with_storage(
@@ -1094,6 +1114,8 @@ def _record_model_usage_for_usage_id(
                 str(owner["user_id"] or ""),
             )
         except ValueError:
+            if physical_call_id:
+                raise RuntimeError("physical usage retention reconciliation required") from None
             return
         lock = " FOR UPDATE" if tx.postgres else ""
         parent = tx.fetchone(
@@ -1102,7 +1124,18 @@ def _record_model_usage_for_usage_id(
             (usage_id, owner["user_id"]),
         )
         if not parent:
+            if physical_call_id:
+                raise RuntimeError("physical usage parent unavailable")
             return
+        if physical_call_id:
+            physical = tx.fetchone("SELECT * FROM public_trial_calls WHERE id=?" + lock, (physical_call_id,))
+            if not physical or physical["usage_record_id"] != usage_id or physical["user_id"] != owner["user_id"]:
+                raise RuntimeError("physical usage binding mismatch")
+            if physical["model_usage_record_id"]:
+                if physical["usage_fingerprint"] != fingerprint:
+                    raise RuntimeError("physical usage settlement mismatch")
+                return
+        model_usage_id = str(uuid.uuid4())
         tx.execute(
             "INSERT INTO model_usage_records("
             "id,usage_record_id,provider,model,input_tokens,unclassified_input_tokens,"
@@ -1113,7 +1146,7 @@ def _record_model_usage_for_usage_id(
             "price_version,known_cost_rmb,pricing_status,usage_status,recorded_at) "
             "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                str(uuid.uuid4()), usage_id, str(provider or "unknown"), str(model or "unknown"),
+                model_usage_id, usage_id, str(provider or "unknown"), str(model or "unknown"),
                 tokens_in, unclassified, cache_read, cache_write, write_5m, write_1h,
                 write_unknown, tokens_out, pricing["input"], pricing["cache_read"],
                 pricing["cache_write_5m"], pricing["cache_write_1h"], pricing["output"],
@@ -1161,6 +1194,9 @@ def _record_model_usage_for_usage_id(
                 int(totals["calls"] or 0), model_names, mode, round(reported_cost, 9), usage_id,
             ),
         )
+        if physical_call_id:
+            tx.execute("UPDATE public_trial_calls SET model_usage_record_id=?,usage_fingerprint=? WHERE id=? AND model_usage_record_id IS NULL",
+                       (model_usage_id, fingerprint, physical_call_id))
 
 # ─────────────────────────────────────────────────────────────
 # ⑨ 配额状态查询（用于前端显示）

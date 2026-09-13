@@ -211,59 +211,11 @@ def _get_video_meta(file_id: str | None, user_id: str | None = None) -> dict | N
         return None
 
 
-def _record_kimi_usage_from_payload(payload: dict | None, model: str | None = None) -> None:
-    if not isinstance(payload, dict):
-        return
-    usage = payload.get("usage") or {}
-    if not usage:
-        try:
-            _billing.record_model_usage(
-                "kimi", model or payload.get("model") or _KIMI_MODEL,
-                usage_status="usage_missing",
-            )
-        except Exception:
-            pass
-        return
-    try:
-        resolved_model = model or payload.get("model") or _KIMI_MODEL
-        prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
-        completion_tokens = int(usage.get("completion_tokens", 0) or 0)
-        if resolved_model == _KIMI_MODEL:
-            missing = object()
-            cached = usage.get("cached_tokens", missing)
-            if cached is missing:
-                details = usage.get("prompt_tokens_details")
-                cached = details.get("cached_tokens", missing) if isinstance(details, dict) else missing
-            if cached is missing:
-                _billing.record_model_usage(
-                    "kimi", resolved_model, tokens_out=completion_tokens,
-                    unclassified_input_tokens=prompt_tokens,
-                    usage_status="cache_usage_missing",
-                )
-                return
-            cache_read = max(0, int(cached or 0))
-            if cache_read > prompt_tokens:
-                _billing.record_model_usage(
-                    "kimi", resolved_model, tokens_out=completion_tokens,
-                    unclassified_input_tokens=prompt_tokens,
-                    usage_status="usage_incomplete",
-                )
-                return
-            _billing.record_model_usage(
-                "kimi", resolved_model,
-                tokens_in=prompt_tokens - cache_read,
-                tokens_out=completion_tokens,
-                cache_read_tokens=cache_read,
-            )
-            return
-        _billing.record_model_usage(
-            "kimi",
-            resolved_model,
-            tokens_in=prompt_tokens,
-            tokens_out=completion_tokens,
-        )
-    except Exception:
-        pass
+def _record_kimi_usage_from_payload(payload: dict | None, model: str | None = None,
+                                    *, physical_call_id: str | None = None) -> None:
+    payload = payload if isinstance(payload, dict) else {}
+    _mr._record_kimi_usage(model or payload.get("model") or _KIMI_MODEL,
+                          payload.get("usage"), physical_call_id=physical_call_id)
 
 
 def _image_media_type(raw: bytes) -> str:
@@ -554,7 +506,8 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                             continue
             content = "".join(content_parts).strip()
             _record_kimi_usage_from_payload(
-                {"model": _KIMI_MODEL, "usage": final_usage or {}}
+                {"model": _KIMI_MODEL, "usage": final_usage or {}},
+                physical_call_id=resp.extensions.get("noteai_call_id")
             )
             if not content:
                 print(f"[kimi_chat] WARN empty mode=think stream total_tokens={total_tokens}", file=sys.stderr, flush=True)
@@ -576,7 +529,7 @@ def _kimi_chat(system: str, user: str, thinking: bool = False, max_tokens: int =
                 r = client.post(_KIMI_API_URL, json=payload, headers=headers)
                 r.raise_for_status()
                 d = r.json()
-                _record_kimi_usage_from_payload(d, _KIMI_MODEL)
+                _record_kimi_usage_from_payload(d, _KIMI_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
                 content = d["choices"][0]["message"]["content"].strip()
                 if not content:
                     finish = d["choices"][0].get("finish_reason", "?")
@@ -644,7 +597,8 @@ async def _kimi_stream_gen(
                     except Exception:
                         continue
                 _record_kimi_usage_from_payload(
-                    {"model": _KIMI_MODEL, "usage": final_usage or {}}
+                    {"model": _KIMI_MODEL, "usage": final_usage or {}},
+                physical_call_id=resp.extensions.get("noteai_call_id")
                 )
     except Exception as exc:
         if isinstance(exc, _public_product.TrialProviderStopped):
@@ -764,7 +718,7 @@ async def _kimi_video_understand(
                 )
                 r.raise_for_status()
             data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
             return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
         if isinstance(exc, _public_product.TrialProviderStopped):
@@ -3572,7 +3526,7 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
             )
             r.raise_for_status()
             data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
             return data["choices"][0]["message"]["content"].strip()
     except Exception:
         return brief or f"{domain}相关素材图"
@@ -3609,7 +3563,7 @@ def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
             )
             r.raise_for_status()
             data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+            _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
             return data["choices"][0]["message"]["content"].strip()
     except Exception:
         return brief or f"{domain}素材图"
@@ -5925,7 +5879,7 @@ def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
             )
             r.raise_for_status()
             data = r.json()
-            _record_kimi_usage_from_payload(data, _KIMI_MODEL)
+            _record_kimi_usage_from_payload(data, _KIMI_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
             raw = data["choices"][0]["message"]["content"].strip()
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
@@ -13281,7 +13235,7 @@ async def extract_screenshot(
         except _httpx.HTTPStatusError as exc:
             raise _moonshot_http_exception(exc, "extract_screenshot") from exc
         data = r.json()
-        _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL)
+        _record_kimi_usage_from_payload(data, _KIMI_VISION_MODEL, physical_call_id=r.extensions.get("noteai_call_id"))
         raw = data["choices"][0]["message"]["content"].strip()
         import re as _re
         m = _re.search(r'\{[\s\S]*\}', raw)
@@ -17830,7 +17784,7 @@ async def _chat_sse_generator(
                 )
                 vr.raise_for_status()
                 data = vr.json()
-                _record_kimi_usage_from_payload(data, _KIMI_MODEL)
+                _record_kimi_usage_from_payload(data, _KIMI_MODEL, physical_call_id=vr.extensions.get("noteai_call_id"))
                 image_analysis = data["choices"][0]["message"]["content"].strip()
         except Exception as e:
             _log_internal_failure("kimi_chat", e, phase="image_analysis")

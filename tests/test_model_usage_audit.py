@@ -67,10 +67,7 @@ class ModelUsageAuditTests(unittest.TestCase):
 
     def _new_usage(self, operation="score"):
         billing.record_free_usage("u-audit", operation)
-        return db.fetchone(
-            "SELECT id FROM usage_records WHERE user_id=? ORDER BY recorded_at DESC LIMIT 1",
-            ("u-audit",),
-        )["id"]
+        return billing._ACTIVE_USAGE_ID.get()
 
     def _parent(self, usage_id):
         return dict(db.fetchone("SELECT * FROM usage_records WHERE id=?", (usage_id,)))

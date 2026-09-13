@@ -6,7 +6,7 @@ reservations cover the maximum possible token bill, including an unknown result.
 from __future__ import annotations
 
 import contextvars
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -62,6 +62,8 @@ class Invocation:
     failure: str = ""
     model_config: dict | None = None
     prompts: object | None = None
+    route: str = ""
+    call_ids: set = field(default_factory=set)
 
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
@@ -105,7 +107,7 @@ async def dispatch(app, scope, receive, send, body: bytes):
                 raise HTTPException(422, "当前免费体验支持文字输入；图片和视频尚未开放")
             if path in {"/analyze/stream", "/generate/stream"} and payload.get("fact_source_policy") != "skip":
                 raise HTTPException(422, "当前体验不调用外部商家事实源，请使用已有材料创作")
-        context = Invocation(user["id"], request_id or str(uuid.uuid4()))
+        context = Invocation(user["id"], request_id or str(uuid.uuid4()), route=path)
         if path in PAID_ROUTES and os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1":
             import model_runtime_config
             context.model_config = await run_in_threadpool(model_runtime_config.read)
@@ -130,8 +132,9 @@ def available():
     import db
     try:
         budget = db.fetchone("SELECT * FROM public_trial_budget WHERE id=?", (BUDGET_ID,))
-        return bool(budget and budget["enabled"] == 1
-            and budget["reserved_milli_cny"] + RESERVE_MILLI_CNY <= budget["limit_milli_cny"])
+        return bool(budget and budget["enabled"] == 1 and (
+            dict(budget).get("policy_mode") == "owner_metered"
+            or budget["reserved_milli_cny"] + RESERVE_MILLI_CNY <= budget["limit_milli_cny"]))
     except Exception:
         return False
 
@@ -169,6 +172,8 @@ class _SlotsBusy(Exception):
 
 def _reserve(request: httpx.Request) -> str:
     import db
+    import billing
+    import prompt_manager
     current = _invocation.get()
     assert_result_known()
     if current is None:
@@ -193,9 +198,21 @@ def _reserve(request: httpx.Request) -> str:
     with db.transaction(write=True) as tx:
         lock = " FOR UPDATE" if tx.postgres else ""
         budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?" + lock, (BUDGET_ID,))
-        if (not budget or budget["enabled"] != 1
-                or budget["reserved_milli_cny"] + RESERVE_MILLI_CNY > budget["limit_milli_cny"]):
+        metered = bool(budget and dict(budget).get("policy_mode") == "owner_metered")
+        if (not budget or budget["enabled"] != 1 or (not metered
+                and budget["reserved_milli_cny"] + RESERVE_MILLI_CNY > budget["limit_milli_cny"])):
             raise TrialProviderStopped("PUBLIC_TRIAL_BUDGET_EXHAUSTED")
+        usage_id = billing._ACTIVE_USAGE_ID.get() if metered else None
+        if metered:
+            parent = tx.fetchone("SELECT id,source,operation FROM usage_records WHERE id=? AND user_id=?",
+                                 (usage_id, current.user_id))
+            if not parent:
+                raise TrialProviderStopped("PUBLIC_MODEL_REQUIRES_ENTITLEMENT_USAGE")
+            pending = tx.fetchall("SELECT id FROM public_trial_calls WHERE request_hash=? "
+                                  "AND usage_record_id IS NOT NULL AND model_usage_record_id IS NULL "
+                                  "AND state='responded' AND http_status=200", (request_hash,))
+            if any(row["id"] not in current.call_ids for row in pending):
+                raise TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED_NO_REPLAY")
         if tx.fetchone("SELECT id FROM public_trial_calls WHERE request_hash=? AND state='unknown' LIMIT 1", (request_hash,)):
             raise TrialProviderStopped("PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
         # At most two physical calls may be in flight in the entire public scope.
@@ -203,8 +220,17 @@ def _reserve(request: httpx.Request) -> str:
             raise _SlotsBusy()
         tx.execute("UPDATE public_trial_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
                    (RESERVE_MILLI_CNY, BUDGET_ID))
-        tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at) "
-                   "VALUES(?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",RESERVE_MILLI_CNY,now))
+        if metered:
+            provenance = json.dumps({"model": payload["model"], "route": current.route,
+                "operation": parent["operation"], "entitlement_source": parent["source"],
+                "model_config_revision": (current.model_config or {}).get("active_revision"),
+                "prompts": prompt_manager.request_versions()}, separators=(",", ":"), sort_keys=True)
+            tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "
+                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",RESERVE_MILLI_CNY,now,usage_id,provenance))
+        else:
+            tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at) "
+                       "VALUES(?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",RESERVE_MILLI_CNY,now))
+        current.call_ids.add(call_id)
     return call_id
 
 
@@ -338,6 +364,7 @@ class _KimiClient(httpx.Client):
         except BaseException:
             _record_response(call_id, None)
             raise TrialProviderStopped("PUBLIC_TRIAL_TRANSPORT_UNKNOWN") from None
+        response.extensions["noteai_call_id"] = call_id
         if kwargs.get("stream") and response.status_code == 200 and response.is_closed:
             parser = _TerminalParser()
             parser.feed(response.content)
@@ -366,6 +393,7 @@ class _KimiAsyncClient(httpx.AsyncClient):
         except BaseException:
             await run_in_threadpool(_record_response, call_id, None)
             raise TrialProviderStopped("PUBLIC_TRIAL_TRANSPORT_UNKNOWN") from None
+        response.extensions["noteai_call_id"] = call_id
         if kwargs.get("stream") and response.status_code == 200 and response.is_closed:
             parser = _TerminalParser()
             parser.feed(response.content)

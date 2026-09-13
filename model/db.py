@@ -618,6 +618,48 @@ def _ensure_sqlite_content_retention_purge_guards(
     )
 
 
+def _upgrade_sqlite_trial_usage(conn: sqlite3.Connection) -> None:
+    """Preserve old trial rows while replacing only the retired local CHECKs."""
+    if "policy_mode" in {row[1] for row in conn.execute("PRAGMA table_info(public_trial_budget)")}:
+        return
+    tables = ("public_trial_budget", "public_trial_calls")
+    schemas = {name: conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone()[0] for name in tables}
+    extras = [row[0] for row in conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type IN('index','trigger') AND tbl_name IN(?,?) AND sql IS NOT NULL", tables)]
+    schemas["public_trial_budget"] = schemas["public_trial_budget"].replace(
+        "CHECK(reserved_milli_cny BETWEEN 0 AND limit_milli_cny)",
+        "CHECK(reserved_milli_cny>=0 AND (policy_mode='owner_metered' OR reserved_milli_cny<=limit_milli_cny))")
+    schemas["public_trial_budget"] = schemas["public_trial_budget"].rstrip()[:-1] + ", policy_mode TEXT NOT NULL DEFAULT 'legacy_capped' CHECK(policy_mode IN('legacy_capped','owner_metered')))"
+    schemas["public_trial_calls"] = schemas["public_trial_calls"].replace("CHECK(reserve_milli_cny=2590)", "CHECK(reserve_milli_cny>=0)")
+    schemas["public_trial_calls"] = schemas["public_trial_calls"].rstrip()[:-1] + ", usage_record_id TEXT REFERENCES usage_records(id), model_usage_record_id TEXT UNIQUE REFERENCES model_usage_records(id), usage_fingerprint TEXT, provenance_json TEXT NOT NULL DEFAULT '{}' CHECK(length(CAST(provenance_json AS BLOB))<=16384), CHECK((model_usage_record_id IS NULL AND usage_fingerprint IS NULL) OR (usage_record_id IS NOT NULL AND model_usage_record_id IS NOT NULL AND usage_fingerprint IS NOT NULL AND length(usage_fingerprint)=64)))"
+    # SQLite requires foreign_keys to change outside a transaction. Rebuild and
+    # validate both related tables atomically; any failure rolls back old rows.
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        for name in tables:
+            columns = ",".join(row[1] for row in conn.execute(f"PRAGMA table_info({name})"))
+            schema = schemas[name].replace(name, name + "_formal_upgrade", 1)
+            conn.execute(schema)
+            conn.execute(f"INSERT INTO {name}_formal_upgrade({columns}) SELECT {columns} FROM {name}")
+        for name in reversed(tables):
+            conn.execute(f"DROP TABLE {name}")
+        for name in tables:
+            conn.execute(f"ALTER TABLE {name}_formal_upgrade RENAME TO {name}")
+        for statement in extras:
+            conn.execute(statement)
+        for name in tables:
+            if conn.execute(f"PRAGMA foreign_key_check({name})").fetchone():
+                raise RuntimeError("trial history foreign-key mismatch")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+
+
 def _init_sqlite() -> None:
     """创建所有表（幂等）。"""
     with closing(_get_sqlite_conn()) as conn, conn:
@@ -1920,16 +1962,24 @@ CREATE INDEX IF NOT EXISTS idx_auth_verification_requester
 CREATE TABLE IF NOT EXISTS public_trial_budget (
     id TEXT PRIMARY KEY CHECK(id='website-free-product-20260912'),
     limit_milli_cny INTEGER NOT NULL CHECK(limit_milli_cny=50000),
-    reserved_milli_cny INTEGER NOT NULL DEFAULT 0 CHECK(reserved_milli_cny BETWEEN 0 AND limit_milli_cny),
-    enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1))
+    reserved_milli_cny INTEGER NOT NULL DEFAULT 0 CHECK(reserved_milli_cny>=0 AND (policy_mode='owner_metered' OR reserved_milli_cny<=limit_milli_cny)),
+    enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)),
+    policy_mode TEXT NOT NULL DEFAULT 'legacy_capped' CHECK(policy_mode IN('legacy_capped','owner_metered'))
 );
 INSERT OR IGNORE INTO public_trial_budget(id,limit_milli_cny) VALUES('website-free-product-20260912',50000);
 CREATE TABLE IF NOT EXISTS public_trial_calls (
     id TEXT PRIMARY KEY, budget_id TEXT NOT NULL REFERENCES public_trial_budget(id),
     user_id TEXT NOT NULL REFERENCES users(id), request_hash TEXT NOT NULL,
     state TEXT NOT NULL CHECK(state IN('dispatched','responded','unknown')),
-    reserve_milli_cny INTEGER NOT NULL CHECK(reserve_milli_cny=2590),
-    http_status INTEGER, created_at TEXT NOT NULL
+    reserve_milli_cny INTEGER NOT NULL CHECK(reserve_milli_cny>=0),
+    http_status INTEGER, created_at TEXT NOT NULL,
+    usage_record_id TEXT REFERENCES usage_records(id),
+    model_usage_record_id TEXT UNIQUE REFERENCES model_usage_records(id),
+    usage_fingerprint TEXT,
+    provenance_json TEXT NOT NULL DEFAULT '{}' CHECK(length(CAST(provenance_json AS BLOB))<=16384),
+    CHECK((model_usage_record_id IS NULL AND usage_fingerprint IS NULL) OR
+          (usage_record_id IS NOT NULL AND model_usage_record_id IS NOT NULL
+           AND usage_fingerprint IS NOT NULL AND length(usage_fingerprint)=64))
 );
 CREATE INDEX IF NOT EXISTS idx_public_trial_request ON public_trial_calls(request_hash,state);
 CREATE TRIGGER IF NOT EXISTS trial_budget_monotone BEFORE UPDATE ON public_trial_budget
@@ -2073,6 +2123,7 @@ CREATE TABLE IF NOT EXISTS user_contract_acceptances (
 CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
     ON user_contract_acceptances(contract_version,privacy_accepted_at);
         """)
+        _upgrade_sqlite_trial_usage(conn)
         payment_refund_cols = {
             str(row[1]): str(row[2]).upper()
             for row in conn.execute(

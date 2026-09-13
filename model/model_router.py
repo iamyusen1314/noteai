@@ -172,7 +172,8 @@ def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int
             provider, model, tokens_in=tokens_in, tokens_out=tokens_out, **kwargs
         )
     except Exception:
-        pass
+        if kwargs.get("physical_call_id"):
+            raise _public_product.TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED") from None
 
 
 def _record_claude_usage(model: str, usage) -> None:
@@ -198,9 +199,11 @@ def _record_claude_usage(model: str, usage) -> None:
     )
 
 
-def _record_kimi_usage(model: str, usage: dict | None) -> None:
+def _record_kimi_usage(model: str, usage: dict | None, *, physical_call_id: str | None = None) -> None:
+    def record(*args, **kwargs):
+        return _record_usage(*args, physical_call_id=physical_call_id, **kwargs)
     if not usage:
-        _record_usage("kimi", model, usage_status="usage_missing")
+        record("kimi", model, usage_status="usage_missing")
         return
     prompt_tokens = _usage_attr(usage, "prompt_tokens")
     tokens_out = _usage_attr(usage, "completion_tokens")
@@ -226,7 +229,7 @@ def _record_kimi_usage(model: str, usage: dict | None) -> None:
             # zero. Do not extend that default to missing/invalid token usage.
             cached = 0
         if cached is cached_marker:
-            _record_usage(
+            record(
                 "kimi", model, tokens_out=tokens_out,
                 unclassified_input_tokens=prompt_tokens,
                 usage_status="cache_usage_missing",
@@ -234,20 +237,20 @@ def _record_kimi_usage(model: str, usage: dict | None) -> None:
             return
         cache_read = max(0, int(cached or 0))
         if cache_read > prompt_tokens:
-            _record_usage(
+            record(
                 "kimi", model, tokens_out=tokens_out,
                 unclassified_input_tokens=prompt_tokens,
                 usage_status="usage_incomplete",
             )
             return
-        _record_usage(
+        record(
             "kimi", model, prompt_tokens - cache_read, tokens_out,
             cache_read_tokens=cache_read,
         )
         return
     # The confirmed Moonshot vision model has no documented cache tier in the
     # adopted price card; do not invent or infer one from absent fields.
-    _record_usage("kimi", model, prompt_tokens, tokens_out)
+    record("kimi", model, prompt_tokens, tokens_out)
 
 
 # ── Claude transport boundary ────────────────────────────────
@@ -1778,7 +1781,8 @@ async def _call_kimi(
         )
         r.raise_for_status()
         data = r.json()
-        _record_kimi_usage(model, data.get("usage") if isinstance(data, dict) else None)
+        _record_kimi_usage(model, data.get("usage") if isinstance(data, dict) else None,
+                           physical_call_id=r.extensions.get("noteai_call_id"))
         return data["choices"][0]["message"]["content"].strip()
 
 
@@ -1962,7 +1966,7 @@ async def _stream_kimi(
                         yield ("content", delta["content"])
                 except Exception:
                     continue
-            _record_kimi_usage(model, final_usage)
+            _record_kimi_usage(model, final_usage, physical_call_id=resp.extensions.get("noteai_call_id"))
 
 
 # ── 统一流式调用入口 ──────────────────────────────────────────────
@@ -2200,7 +2204,8 @@ def call_claude_sync(
                 "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")})
             response.raise_for_status()
             result = response.json()
-            _record_kimi_usage(KIMI_TEXT, result.get("usage"))
+            _record_kimi_usage(selected_model, result.get("usage"),
+                               physical_call_id=response.extensions.get("noteai_call_id"))
             return result["choices"][0]["message"]["content"]
     request = ClaudeMessageRequest(
         model=model,

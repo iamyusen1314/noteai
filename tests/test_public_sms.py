@@ -235,6 +235,8 @@ class SmsPostgresTests(SmsAdmissionTests):
             if not 160000 <= int(version) < 170000: raise AssertionError("PG16 required")
             if not conn.execute("SELECT 1 FROM pg_roles WHERE rolname='noteai_app'").fetchone():
                 conn.execute("CREATE ROLE noteai_app LOGIN")
+            if not conn.execute("SELECT 1 FROM pg_roles WHERE rolname='noteai_admin_runtime'").fetchone():
+                conn.execute("CREATE ROLE noteai_admin_runtime LOGIN")
         with mock.patch.dict(os.environ, {"DATABASE_URL": cls.owner_dsn}):
             db.apply_postgres_migrations()
         with psycopg.connect(cls.owner_dsn, autocommit=True) as conn:

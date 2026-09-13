@@ -290,6 +290,72 @@ class PublicProductTests(unittest.TestCase):
         db.execute('UPDATE public_trial_budget SET reserved_milli_cny=49000')
         self.assertFalse(self.client.get('/public/status').json()['ai_open'])
 
+    def metered_usage(self):
+        import billing
+        billing.clear_active_usage()
+        self.addCleanup(billing.clear_active_usage)
+        db.execute("UPDATE public_trial_budget SET policy_mode='owner_metered',reserved_milli_cny=49000")
+        billing.record_free_usage(self.user['id'], 'score')
+        return billing._ACTIVE_USAGE_ID.get()
+
+    def test_metered_actual_usage_is_bound_once_without_resetting_old_reserve(self):
+        import billing, model_router, httpx
+        usage_id = self.metered_usage()
+        result = {'choices':[{'message':{'content':'offline fixture'},'finish_reason':'stop'}],
+                  'usage':{'prompt_tokens':100,'completion_tokens':20,'cached_tokens':10}}
+        with self.product.kimi_client(transport=httpx.MockTransport(lambda _: httpx.Response(200,json=result))) as client:
+            response = client.post(self.product.ENDPOINT,json=self.payload())
+        call_id = response.extensions['noteai_call_id']
+        # The bound operation survives an asynchronous caller losing its local context.
+        billing.clear_active_usage()
+        for _ in range(2):
+            model_router._record_kimi_usage('kimi-k2.6', result['usage'], physical_call_id=call_id)
+        row = db.fetchone('SELECT * FROM public_trial_calls WHERE id=?',(call_id,))
+        self.assertEqual(row['usage_record_id'], usage_id)
+        self.assertTrue(row['model_usage_record_id'])
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM model_usage_records')[0],1)
+        parent=db.fetchone('SELECT * FROM usage_records WHERE id=?',(usage_id,))
+        self.assertEqual(parent['model_calls'],1)
+        self.assertEqual(parent['cost_mode'],'actual')
+        self.assertEqual(db.fetchone('SELECT reserved_milli_cny FROM public_trial_budget')[0],51590)
+        self.assertTrue(self.product.available())
+        with self.assertRaises(self.product.TrialProviderStopped):
+            model_router._record_kimi_usage('kimi-k2.6', {'prompt_tokens':101,'completion_tokens':20}, physical_call_id=call_id)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM model_usage_records')[0],1)
+
+    def test_metered_accounting_failure_is_explicit_and_new_invocation_cannot_replay(self):
+        import billing, model_router, httpx
+        self.metered_usage()
+        with self.product.kimi_client(transport=httpx.MockTransport(lambda _: httpx.Response(200,json={
+                'choices':[{'message':{'content':'offline fixture'},'finish_reason':'stop'}]}))) as client:
+            response=client.post(self.product.ENDPOINT,json=self.payload())
+        with mock.patch.object(billing,'_record_model_usage_for_usage_id',side_effect=RuntimeError('isolated DB failure')):
+            with self.assertRaisesRegex(self.product.TrialProviderStopped,'ACCOUNTING_UNCONFIRMED'):
+                model_router._record_kimi_usage('kimi-k2.6', {'prompt_tokens':100,'completion_tokens':20},
+                    physical_call_id=response.extensions['noteai_call_id'])
+        self.assertEqual(db.fetchone('SELECT state FROM public_trial_calls')[0],'responded')
+        with self.assertRaisesRegex(self.product.TrialProviderStopped,'ACCOUNTING_UNCONFIRMED'):
+            self.product.assert_result_known()
+        with self.product.kimi_client(transport=httpx.MockTransport(lambda _: self.fail('same invocation must stop'))) as client:
+            with self.assertRaisesRegex(self.product.TrialProviderStopped,'ACCOUNTING_UNCONFIRMED'):
+                client.post(self.product.ENDPOINT,json=self.payload())
+        current=self.product._invocation.set(self.product.Invocation(self.user['id'],'trial-request-123'))
+        try:
+            with self.product.kimi_client(transport=httpx.MockTransport(lambda _: self.fail('must not replay'))) as client:
+                with self.assertRaisesRegex(self.product.TrialProviderStopped,'ACCOUNTING_UNCONFIRMED_NO_REPLAY'):
+                    client.post(self.product.ENDPOINT,json=self.payload())
+        finally:
+            self.product._invocation.reset(current)
+
+    def test_metered_requires_existing_owned_entitlement_operation(self):
+        import billing, httpx
+        billing.clear_active_usage()
+        db.execute("UPDATE public_trial_budget SET policy_mode='owner_metered'")
+        with self.product.kimi_client(transport=httpx.MockTransport(lambda _: self.fail('no owned operation'))) as client:
+            with self.assertRaisesRegex(self.product.TrialProviderStopped,'REQUIRES_ENTITLEMENT_USAGE'):
+                client.post(self.product.ENDPOINT,json=self.payload())
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM public_trial_calls')[0],0)
+
     def test_semantic_failure_cannot_become_default_success(self):
         with mock.patch.object(api._mr,'call_semantic_sync',side_effect=lambda **kw: self.product.TrialProviderStopped('synthetic')):
             # A real raise sets the shared request failure even through old catches.
@@ -305,6 +371,11 @@ class PublicProductPostgresTests(unittest.TestCase):
         from tests.test_public_sms import SmsPostgresTests
         SmsPostgresTests.setUpClass()
         cls.pg=SmsPostgresTests
+        with cls.pg.psycopg.connect(cls.pg.owner_dsn,autocommit=True) as conn:
+            # Match the existing API-C runtime grants, independently read back
+            # on September13. No owner credentials enter application execution.
+            conn.execute('GRANT SELECT,INSERT,UPDATE ON subscriptions,usage_records TO noteai_app')
+            conn.execute('GRANT SELECT,INSERT ON model_usage_records TO noteai_app')
 
     def setUp(self):
         import public_product, auth, uuid
@@ -342,6 +413,41 @@ class PublicProductPostgresTests(unittest.TestCase):
         self.assertEqual(db.fetchone('SELECT reserved_milli_cny FROM public_trial_budget')[0],49210)
         self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE state='responded'")[0],19)
         for sql in ['UPDATE public_trial_budget SET enabled=0','UPDATE public_trial_budget SET limit_milli_cny=100000','DELETE FROM public_trial_calls']:
+            with self.assertRaises(self.pg.psycopg.errors.InsufficientPrivilege): db.execute(sql)
+
+    def test_pg16_metered_concurrent_calls_keep_exact_accounting_and_minimum_role(self):
+        import billing, model_router, httpx, time, threading
+        from concurrent.futures import ThreadPoolExecutor
+        with self.pg.psycopg.connect(self.pg.owner_dsn,autocommit=True) as conn:
+            conn.execute("UPDATE public_trial_budget SET policy_mode='owner_metered',reserved_milli_cny=44030")
+        active=0; maximum=0; lock=threading.Lock()
+        def upstream(request):
+            nonlocal active, maximum
+            with lock: active+=1; maximum=max(maximum,active)
+            time.sleep(.03)
+            with lock: active-=1
+            return httpx.Response(200,json={'choices':[{'message':{'content':'offline fixture'},'finish_reason':'stop'}],
+                'usage':{'prompt_tokens':100,'completion_tokens':20}})
+        def run(i):
+            billing.clear_active_usage()
+            billing.record_free_usage(self.user['id'],'score')
+            marker=self.product._invocation.set(self.product.Invocation(self.user['id'],f'pg-metered-{i}'))
+            try:
+                with self.product.kimi_client(transport=httpx.MockTransport(upstream)) as client:
+                    response=client.post(self.product.ENDPOINT,json={'model':'kimi-k2.6','max_tokens':100,'messages':[{'content':'fixture'}]})
+                call_id=response.extensions['noteai_call_id']
+                for _ in range(2):
+                    model_router._record_kimi_usage('kimi-k2.6',response.json()['usage'],physical_call_id=call_id)
+                return call_id
+            finally:
+                self.product._invocation.reset(marker); billing.clear_active_usage()
+        with ThreadPoolExecutor(max_workers=6) as pool: calls=list(pool.map(run,range(8)))
+        self.assertEqual(len(set(calls)),8)
+        self.assertLessEqual(maximum,2)
+        self.assertEqual(db.fetchone('SELECT reserved_milli_cny FROM public_trial_budget')[0],44030+2590*8)
+        self.assertEqual(db.fetchone('SELECT COUNT(DISTINCT model_usage_record_id) FROM public_trial_calls')[0],8)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls c JOIN usage_records u ON u.id=c.usage_record_id WHERE u.model_calls=1 AND u.cost_mode='actual'")[0],8)
+        for sql in ["UPDATE public_trial_budget SET policy_mode='legacy_capped'",'UPDATE public_trial_calls SET usage_record_id=NULL']:
             with self.assertRaises(self.pg.psycopg.errors.InsufficientPrivilege): db.execute(sql)
 
 
