@@ -4845,8 +4845,8 @@ async def _run_generation_agents(
                 body = selected_early.get("body", body)
                 if "variants" in selected_early:
                     arb["variants"] = selected_early["variants"]
-                if selected_early.get("rationale"):
-                    arb["rationale"] = selected_early.get("rationale")
+                if "rationale" in selected_early:
+                    arb["rationale"] = selected_early["rationale"]
                 print(
                     f"[gen] selector early selected={selected_early.get('origin')} "
                     f"score={float(selected_early.get('score') or 0.0):.1f}",
@@ -4867,6 +4867,7 @@ async def _run_generation_agents(
     semantic_feats: dict = {}
     # Track best title/body independently so score reporting stays accurate
     best_title, best_body, best_variants = title, body, arb.get("variants", [])
+    best_rationale = arb.get("rationale", "")
     best_issues: list[str] = []
     quality_issues: list[str] = []
 
@@ -4897,6 +4898,7 @@ async def _run_generation_agents(
                 weaknesses = _find_weaknesses(features, domain)
                 best_title, best_body = title, body
                 best_variants = arb.get("variants", [])
+                best_rationale = arb.get("rationale", "")
                 best_issues = list(quality_issues)
 
             # 达标或已是最后一轮 → 停止
@@ -4919,16 +4921,17 @@ async def _run_generation_agents(
             )
             t_new = arb_next.get("title", "").strip()
             b_new = arb_next.get("body", "").strip()
-            if t_new and b_new and (t_new != title or b_new != body):
+            v_new = arb_next.get("variants", arb.get("variants", []))
+            if t_new and b_new and (t_new != title or b_new != body or v_new != arb.get("variants", [])):
                 title, body = t_new, b_new
-                arb["variants"] = arb_next.get("variants") or arb["variants"]
-                arb["rationale"] = arb_next.get("rationale") or arb["rationale"]
+                arb["variants"] = v_new
+                arb["rationale"] = arb_next.get("rationale", arb.get("rationale", ""))
                 _remember_generation_candidate(
                     f"refine_round_{round_idx + 1}",
                     title,
                     body,
-                    arb_next.get("variants") or arb.get("variants", []),
-                    arb_next.get("rationale") or arb.get("rationale", ""),
+                    v_new,
+                    arb.get("rationale", ""),
                 )
             else:
                 break  # 模型输出无变化，停止
@@ -4937,6 +4940,7 @@ async def _run_generation_agents(
 
     # Use the highest-scoring version (guards against round-2 regression)
     title, body, arb["variants"] = best_title, best_body, best_variants
+    arb["rationale"] = best_rationale
     quality_issues = best_issues
 
     score_lift_repaired = False
@@ -5035,8 +5039,8 @@ async def _run_generation_agents(
                 quality_issues = selected_final.get("quality_issues", quality_issues)
                 if "variants" in selected_final:
                     arb["variants"] = selected_final["variants"]
-                if selected_final.get("rationale"):
-                    arb["rationale"] = selected_final.get("rationale")
+                if "rationale" in selected_final:
+                    arb["rationale"] = selected_final["rationale"]
                 print(
                     f"[gen] selector final selected={selected_final.get('origin')} "
                     f"score={percentile:.1f} candidates={final_selection.get('candidate_count')}",
@@ -16275,7 +16279,7 @@ async def _generate_pipeline_stream(
                 title = selected_early.get("title", title)
                 body = selected_early.get("body", body)
                 variants = selected_early.get("variants", variants)
-                rationale = selected_early.get("rationale") or rationale
+                rationale = selected_early.get("rationale", rationale)
                 yield {
                     "type": "selector_selected",
                     "origin": selected_early.get("origin"),
@@ -16315,6 +16319,7 @@ async def _generate_pipeline_stream(
     quality_issues: list[str] = []
 
     best_title, best_body, best_variants = title, body, variants
+    best_rationale = rationale
     best_score, best_feats, best_grade = -1.0, {}, "待评估"
     best_issues: list[str] = []
 
@@ -16344,6 +16349,7 @@ async def _generate_pipeline_stream(
         )
         if is_better:
             best_title, best_body, best_variants = title, body, variants
+            best_rationale = rationale
             best_score, best_feats, best_grade = final_score, final_feats, grade_str
             best_issues = list(quality_issues)
 
@@ -16396,8 +16402,8 @@ async def _generate_pipeline_stream(
                     "流式爆文质量修复",
                     memory_context,
                 )
-                variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_fix_variants] or variants
-                rationale = _xtag(raw_fix, "rationale") or rationale
+                variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_fix_variants]
+                rationale = _xtag(raw_fix, "rationale")
                 _remember_stream_candidate(
                     f"refine_round_{q_round + 1}",
                     title,
@@ -16418,6 +16424,7 @@ async def _generate_pipeline_stream(
 
     if best_score >= 0:
         title, body, variants = best_title, best_body, best_variants
+        rationale = best_rationale
         final_score, final_feats, grade_str = best_score, best_feats, best_grade
         quality_issues = best_issues
 
@@ -16523,7 +16530,7 @@ async def _generate_pipeline_stream(
                 title = selected_final.get("title", title)
                 body = selected_final.get("body", body)
                 variants = selected_final.get("variants", variants)
-                rationale = selected_final.get("rationale") or rationale
+                rationale = selected_final.get("rationale", rationale)
                 final_score = float(selected_final.get("score") or final_score or 0.0)
                 final_feats = selected_final.get("features") or final_feats
                 grade_str = selected_final.get("grade") or _grade(final_score)

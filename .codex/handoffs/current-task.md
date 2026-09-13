@@ -6,17 +6,23 @@ Current local API successor closes two confirmed generation gaps: alternative
 titles now share the existing structured-fact check during repair/selection and
 before final delivery; a selected candidate's empty issues/variants no longer
 inherit the old draft. Deduplication includes variants, preserving a variant-only
-repair, and synchronous best-version tracking keeps matching variants. No new
+repair, and synchronous best-version tracking keeps matching variants/explanation.
+Refinement now accepts a variant-only correction and explicit empty variants or
+rationale without carrying the old candidate's values. No new
 checker framework, extra provider call or lower acceptance threshold. The same
 inspection found synchronous multi-image failures still skipped and merged
 observations not stored into the visual opinion; this successor aligns them with
 the previously fixed streaming path. Generation timeout no longer blames Kimi
 without evidence or asks to repeat the original request.
 
-37 isolatedPython3.11 tests passed for these changes, existing selector/quality/
+38 isolatedPython3.11 tests passed for the final changes, existing selector/quality/
 arbitration/media and all27 Prompt-management checks. Initial tests failed on an
 incomplete safe fixture and a mocked shared mutable issue-list; those test defects
-were corrected without relaxing production checks. Source changes are api.py and
+were corrected without relaxing production checks. The earlier d7bb5ff checkpoint
+and its223310-byte local archive (SHA e2d646c0437c1e5638f2aa07ced56fce6615745de90a015f934567456d7568c9)
+remain LOCAL_ONLY, never uploaded/built: independent review identified remaining
+refine/empty-explanation handling, now fixed and covered through the real mocked
+sync/stream refinement loops. Source changes are api.py and
 test_api_contracts.py only. Runtime still3f/ea946e33 below until original durable
 API-only flow verifies successor source/build/results. Preserve prior archives,
 3f compatible rollback, original688/0025/web and Item34. No real business05/gift;

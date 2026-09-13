@@ -6053,7 +6053,7 @@ class ApiContractTests(unittest.TestCase):
             for unsafe_final in (False, True):
                 selected = {"origin": "selected", "title": "广州酒店筛选清单", "body": source,
                             "variants": old_variants if unsafe_final else [], "quality_issues": [],
-                            "score": 80, "features": {}, "grade": "优秀"}
+                            "score": 80, "features": {}, "grade": "优秀", "rationale": ""}
                 async def run():
                     if streaming:
                         return [event async for event in api._generate_pipeline_stream(
@@ -6067,7 +6067,7 @@ class ApiContractTests(unittest.TestCase):
                      mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})), \
                      mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})), \
                      mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})), \
-                     mock.patch.object(api, "_gent_arbitrate", new=mock.AsyncMock(return_value={"title": "广州酒店筛选清单", "body": old_body, "variants": old_variants, "rationale": ""})), \
+                     mock.patch.object(api, "_gent_arbitrate", new=mock.AsyncMock(return_value={"title": "广州酒店筛选清单", "body": old_body, "variants": old_variants, "rationale": "旧候选说明"})), \
                      mock.patch.object(api._mr, "stream", new=initial_stream), \
                      mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="")), \
                      mock.patch.object(api, "_fit_title_limit", new=fit), \
@@ -6091,6 +6091,61 @@ class ApiContractTests(unittest.TestCase):
                     if not unsafe_final:
                         self.assertEqual(result["variants"], [])
                         self.assertEqual(result["quality_issues"], [])
+                        self.assertEqual(result["rationale"], "")
+
+    def test_generation_refine_accepts_variant_only_correction_without_old_fallback(self):
+        source = "广州长隆酒店，929元起/晚，美团评分4.7，房型有狩猎大床房，部分套餐含水上乐园门票。"
+        title = "广州酒店房型选择清单"
+        unsafe_variant = "998元每晚含门票"
+
+        async def fit(value, *_args):
+            return value
+
+        async def shape(_title, body, *_args):
+            return body
+
+        async def initial_stream(*_args, **_kwargs):
+            yield "content", f"<title>{title}</title><body>{source}</body><variants>{unsafe_variant}</variants>"
+
+        for streaming in (False, True):
+            async def run():
+                if streaming:
+                    return [event async for event in api._generate_pipeline_stream(
+                        "旅行", source, None, None, {}, None, "2026091320", user_id="marked-test",
+                    )][-1]
+                return await api._run_generation_agents("旅行", None, source, "2026091320", None, None, {})
+
+            with self.subTest(streaming=streaming), \
+                 mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})), \
+                 mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})), \
+                 mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})), \
+                 mock.patch.object(api, "_gent_arbitrate", new=mock.AsyncMock(side_effect=[
+                     {"title": title, "body": source, "variants": [unsafe_variant], "rationale": ""},
+                     {"title": title, "body": source, "variants": [], "rationale": "仅修复备选标题"},
+                 ])) as arbitrate, \
+                 mock.patch.object(api._mr, "stream", new=initial_stream), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=f"<title>{title}</title><body>{source}</body><variants></variants>")) as call, \
+                 mock.patch.object(api, "_fit_title_limit", new=fit), \
+                 mock.patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda value, *_args: value), \
+                 mock.patch.object(api, "_shape_body_for_delivery", new=shape), \
+                 mock.patch.object(api, "_generation_candidate_count", return_value=1), \
+                 mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(80, {}, "优秀"))), \
+                 mock.patch.object(api, "compute_semantic_features", return_value={}), \
+                 mock.patch.object(api, "_predict", return_value=(80, {})), \
+                 mock.patch.object(api, "_generated_quality_issues", side_effect=lambda *_args: []), \
+                 mock.patch.object(api, "_needs_v04_score_lift", return_value=False), \
+                 mock.patch.object(api, "_v04_publishable_probability", return_value=None), \
+                 mock.patch.object(api, "get_v04_preference_ranker", return_value=None), \
+                 mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()):
+                result = asyncio.run(run())
+            self.assertFalse(result.get("quality_failed"), result)
+            self.assertEqual(result["quality_issues"], [])
+            self.assertEqual(result["title_variants" if streaming else "variants"], [])
+            if streaming:
+                self.assertEqual(result["type"], "complete")
+                self.assertEqual(call.await_count, 1)
+            else:
+                self.assertEqual(arbitrate.await_count, 2)
 
     def test_generation_selector_uses_v04_ranker_when_scores_are_close(self):
         original_score_candidate = api._score_generation_delivery_candidate
