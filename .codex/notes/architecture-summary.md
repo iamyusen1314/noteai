@@ -1,5 +1,13 @@
 # Architecture Summary
 
+September13 18:54 current rollout: C API363f3e3, Adminb033de0, web363f3e3 and
+Render Gateway60168e1 are live. Exact image/hash and recovery records are at the
+Handoff top. C now binds the existing signed Gateway/shared AWS DynamoDB control
+plane and official Meituan CLI; Amap public binding remains absent. Gateway calls
+the Anthropic API directly, AWS owns shared control and separate artifact storage.
+No new resource, subscription, F/Item34 change or0025 replay. Signed readiness and
+deployment checks passed; real formal business quality validation remains pending.
+
 September13 current owner decision: retain and implement the original Render + AWS
 Claude architecture. Render Singapore84f8a2f/Item30 success are historical technical
 facts; current AWS component references and active routing must be read back.

@@ -1,5 +1,36 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 19:00 Beijing — original batch preserved; Claude successor deployed
+
+C /var/lib/noteai/formal-claude-363f3e3/deploy-result.json is DEPLOYED at
+2026-09-13T10:54:07.562Z. API source363f3e3 / image
+sha256:8c29c43fe98f202ffbb65d5b250e747ac2daac4b3e5ac88f5304743b1be92840;
+Admin sourceb033de0 / image
+sha256:09a14480e1e894627a10a7c13b22ff99d603a728f6bed39f75d9ea7e948a46d8.
+Both Python3.11.15/amd64. Only Admin was rebuilt after363 to fix hardcoded provider
+status; original363 Admin image remains retained. Web roots both363f3e3; public JS
+df25bf2fca435cdd7f61b9412b19c5f443f4dcd0ab2937b12e844e498435c1c2 and Admin JS
+cfdfd338e2eddbe596d96089b7ee16ca331a1c1444a07dc3ab4377e250f6ae4e verified.
+Deployer SHA d679f27bbe99494b2711ee267c7506c936e8413b5d63ba289e76cb07d0b94bc2.
+Candidate/live Admin login, core views, seven industry effective Prompt views,
+capabilities and logout denial passed. Live Admin now reports actual Claude route
+admission from API status; no paid health probe. Model config DB rows unchanged.
+Public registration open; payment/Tracking closed. Inflight0 before/after drain.
+Binding candidate applied only to C; F fixed artifact/config and Item34 unchanged.
+Root-only original env and exact images/web/proxy recovery inputs retained.
+
+Original688857f build/deploy results, archive and images remain rollback/history;
+0025 applied exactly once and verified, no migration replay. The final release is
+the component set above plus Render Gateway60168e1, not old688 or a relabelled image.
+Historical nested build-result states remain build facts, not current deployment.
+Desktop HTTPS HEAD returns200 for both official domains. Initial browser connection
+closed transiently; one deliberate reload now shows the real original product with
+seven industries and current supplier copy. No production business call yet in this
+formal verification batch. Existing owner session validated; remaining6 credits
+allow one normal diagnosis. Next validate actual Claude/Meituan facts-to-Prompt-to-
+result chain, preserving original request/result on failure or unknown. No credit
+gift, fallback substitution or Item34 replay. Readiness remains30/37.
+
 ## September13 18:48 Beijing — C API candidate and Gateway trust verified
 
 C363f3e3 built once: APIsha256:8c29c43fe98f202ffbb65d5b250e747ac2daac4b3e5ac88f5304743b1be92840;

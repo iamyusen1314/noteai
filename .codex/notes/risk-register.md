@@ -1,5 +1,12 @@
 # Risk Register
 
+September13 19:00: Claude successor is deployed (C API363/Adminb033/web363,
+Gateway601). Signed shared-control readiness, live admin permissions/status and
+public HTTPS checks passed; these are not business quality acceptance. Original688
+and private recovery inputs remain preserved,0025 not replayed. Amap public binding
+stays absent. Next one normal owner diagnosis uses its actual remaining6 credits;
+no synthetic gift/payment or bypass. Item34/F unchanged; Readiness30/37.
+
 September13 latest owner retains Claude and explicitly accepts the disclosed
 terms/interruption/availability risks. This supersedes the earlier instruction to
 keep the channel disabled solely on that disclosed risk; no supplier approval is
