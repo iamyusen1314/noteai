@@ -6,7 +6,12 @@ keep the channel disabled solely on that disclosed risk; no supplier approval is
 claimed. Continue normal existing-interface integration and quality verification,
 stop only the concrete denied/MFA/restricted path if observed. No identity/location
 misrepresentation, repeated generic letter gate, or silent Kimi equivalence claim.
-Current build failure is pre-deployment; original backup/candidate remain preserved.
+Original688857f build failure was a128MB AST verification OOM; successful API image
+was reused and remaining Admin built.0025 and C rollout are now verified/deployed;
+original failure/backup preserved. A denied app-role schema_migrations read was
+replaced by existing owner DMS readback, without new privileges. Claude successor and
+actual supplier business validations remain incomplete. Do not revert pre0025 code
+once new reservations exceed the retired cap; preserve compatible schema/history.
 
 September13 14:29 actual Amap console explicitly shows no technical-service use licence;
 keep public C Amap unbound, no inferred commercial permission from quota/history.

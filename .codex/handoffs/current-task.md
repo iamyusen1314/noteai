@@ -1,5 +1,58 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 17:19 Beijing — original688857f batch deployed; Claude successor in progress
+
+Original688857f batch is now DEPLOYED on C. API image
+sha256:c6829efbdae9661ea508a81f24776e4c1c9152a91fa73dbea4c7afdca58f50f6
+was reused; Admin image sha256:825b93d02c8c225c7a0dd549440f8cc4fa6bab356ff7fc917ca8a5bdadd675b8
+built once. BothPython3.11.15/amd64 and12 manifest files verified. Original OOM failure
+remains embedded in build-result.json with original logs, not erased. Private host
+/var/lib/noteai/formal-supplier-688857f/deploy-result.json reports DEPLOYED at
+2026-09-13T09:17:48Z; isolated candidate/coreAdmin/login/logout/session-denial and
+exact HTTPS public/Admin asset hashes passed. Model configuration and credential
+files unchanged, payments and publicTracking remain closed; no supplier calls here.
+
+0025 single guarded owner transaction completed, confirmed15:19:35.941372+08:
+24 ledger entries, exactSHA580883da14d7f093e667fb3ae2aceeb6f345b2c948c00512b252d5ec096f3281,
+owner_metered/44030 historical reserve/17 original responded calls/0inflight/0invented
+historical links. Private before/after comparison proves every old field unchanged.
+Only approved application link UPDATE and Admin content-free SELECT columns were
+added; Admin user_id/request_hash/UPDATE denied. The initial app-role ledger SELECT
+was denied and replaced with existing DMS-owner readback, without widening privileges.
+No migration replay. db-after-result.json stores safe comparison and ACL outcome.
+
+Remaining original-batch work: browser checks, bind existing Meituan through protected
+mechanism and verify real facts-to-product/cost flow. Amap public binding remains
+limited by the actual missing commercial technical-service permission; no purchase.
+Claude successor changes are local/in progress and NOT part of deployed688857f.
+Next continue its transport/accounting/full-terminal compatibility tests and isolated
+Gateway/C release; preserve original archive, fixed F/Item34, and Readiness30/37.
+
+## September13 continuation — original supplier batch and Claude successor
+
+Owner confirms the original C supplier/accounting/0025/website batch remains active.
+Keep its exact uploaded source688857ff190eccffb15859cf5763cec61446db90 and archive
+SHA256 b7f94356c2c5fa3e27007d242fd1f0b9df82cbce971bf37fcd98bff47a7232ce
+(private OSS noteai-private/admin-public/20260913/noteai-formal-supplier-688857f.tar.gz).
+Original API build succeeded: sha256:c6829efbdae9661ea508a81f24776e4c1c9152a91fa73dbea4c7afdca58f50f6.
+The subsequent all-files AST list at128MB exited137; independent sequential parsing
+found no syntax errors. Original build-result.json/log are retained (failure embedded
+when completed). Resume only the missing Admin build and verify exact manifest files
+at256MB; do not redownload/rebuild the API. No deploy or0025 has run; live remains0e83d0d.
+Release this verified supplier/accounting batch first; Claude runtime changes use a
+separate successor artifact and do not retroactively change688857f contents. Next:
+read resumed original result, apply guarded0025, validate/switch C, then Claude successor.
+
+AWS original production CloudFormation stack noteai-prod-claude-gateway-control is
+freshly confirmed CREATE_COMPLETE, created2026-07-19 15:27:46 Beijing: exactly the
+control DynamoDB table and Render OIDC role. Subject binds production Render service
+srv-d9e765laeets73aikj90/workspace tea-d96tu0naqgkc73chnkf0/default; audience sts.amazonaws.com.
+Render remains Live84f8a2f1436627e0f05588ee0276b1950b230ae3, Singapore, existing2–4
+Starter instances; no deploy/config changes. AWS S3 retains both July buckets named
+noteai-v04-artifacts-sg-20260710-f7k9m2q4 and cf-templates-1uq0ykfj7e92s-ap-southeast-1.
+Actual DynamoDB metadata and Render environment binding remain to be read. No Bedrock
+reference is found in the source or this stack. No provider request in this stage.
+
 ## September13 current owner decision — retain Claude on original Render + AWS
 
 Owner explicitly retains Claude as a formal product requirement and accepts the

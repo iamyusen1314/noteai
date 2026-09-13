@@ -6,7 +6,19 @@ facts; current AWS component references and active routing must be read back.
 Existing S3 buckets do not prove Bedrock. Owner accepts disclosed risks without
 supplier-eligibility certification; no generic letter gate or silent substitution.
 Current source/deploy/remaining work is at Handoff top; prior inventories below
-remain version-specific.
+remain version-specific. September13 console readback confirms the original production
+CloudFormation stack noteai-prod-claude-gateway-control (CREATE_COMPLETE, July19),
+with table plus Render OIDC role only; its subject is the existing production Gateway
+srv-d9e765laeets73aikj90. Source infra/aws/claude_gateway_control_plane.yaml and
+Gateway dynamodb_control_store.py bind shared nonce/rate/operation/lease control.
+S3 model artifacts are loaded separately by model/artifact_loader.py; the July10
+noteai-v04-artifacts-sg-20260710-f7k9m2q4 bucket and July19 cf-templates bucket exist.
+Render is still Singapore84f8a2f/2–4 instances. The source request chain is API-C →
+Render Gateway → Anthropic Messages API, not Bedrock. DynamoDB actual table is ACTIVE, on-demand, TTL expires_at enabled, AWS-managed
+KMS encryption; no items were read and no settings changed. Active Render environment
+references and direct Anthropic endpoint override still require bounded readback.
+C supplier/accounting batch688857f and0025 deployed September13; detailed exact image,
+verification and pending Claude successor/Meituan binding are at Handoff top.
 
 Last updated: 2026-09-12
 
