@@ -1,5 +1,14 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 07:25BJT: owner recharge has restored original EIP/network access.
+4d7781f API/public web is now deployed with media/payment disabled; Admin unchanged.
+Original permission/import failure and pre-switch script failure were corrected;
+exact original logs, source/image hashes, rollout result and rollback are at Handoff
+top. No migration replay or all-role rebuild. New hotel10 verifies the factual-report
+repair through the normal owner chain; read its original result and ledger before
+another action. Private owner media verification and Native two-capture implementation
+below continue. Prior dated arrears/LOCAL_ONLY statements are retained history.
+
 September14 03:05BJT: e0b84d4 API/Admin/web remains deployed;0018/0025/0026
 are committed/verified and must not replay.4d7781f Native API/UI and nullable media
 successor is locally packaged/verified only, no upload/build/deploy. Exact artifact,

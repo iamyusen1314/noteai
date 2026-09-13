@@ -1,5 +1,58 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 owner recharge — network restored; exact4d build resumes
+
+Owner confirms recharge. Existing website EIP39.108.66.93 and NAT47.106.77.147
+read 已分配 at original nominal1/200Mbps, no arrears/throttle markers. Public
+HTTPS /public/status200; C-to-Render /health/ready200 in0.78s at1789340481.8013632
+(07:01:21.801363BJT). First /health probe used an unimplemented path and returned
+HTTPError; no model request. API2a6eecd6/Admin3e40c576 remain running.
+At1789340527.2656615 original OSS HEAD for fixture, final4d archive and deployer
+all returned404. Original failed fixture upload was retried once and completed;
+final4d archive and729046b6 deployer each uploaded once. The deployer remained0%
+briefly then completed; attempted cancel found no matching button because it was
+already successful, so no cancel or alternate script upload occurred.
+C root /var/lib/noteai/native-media-4d7781f was absent initially. First raw SDK read
+and second app-object wrapper attempt failed before payload write; both zero-byte
+source.tar.gz and verified-source.tar.gz remain. The app key guard intentionally
+rejects deployment keys; it was not weakened. Corrected host transfer reuses the
+existing SDK client/iter_bytes bounded to3MB, with exact private deployment keys.
+transfer-result.json at1789340986.6283937 verifies archive.tar.gz441817bytes/
+c229a5729402b37d9174c52e8bba64d8344746d196436d680abde01f875082da,
+existing fixture original.tar.gz2130910bytes/21884b8f...01934c and deploy.py11085bytes/
+729046b68f0b641fc6745b4ff986751504a7cdb2893400a08261c8ce91a279a5.
+All13 source archive members validated before extraction into build/. Original
+sourceidentity4d7781f is preserved, no reupload/build of e0b or migration replay.
+First image6371fd337696 built but isolated check FAILED: all five copied source
+files were root:root0600 and unreadable to runtime UID999. permission-check.json
+confirms this actual cause. Original build/log/result/image remain unchanged.
+Source-identical build-readable context corrects only public code modes to0644;
+original build.py0e31e5bd is reused, no reupload. build-readable/build-result.json
+at1789341612.74349 (07:20:12BJT) is BUILT_NOT_DEPLOYED, API
+sha256:54564f67144b2e4857bd54a4c511f626740128023cf82993f54bd852d2c79185,
+base2a6eecd6/source4d7781f. Linuxamd64/Python3.11.15,13 exact copied/inherited
+files and actual /app/model module imports verified with no network/Secrets.
+First rollout script5d474950 stopped before started.json: original API drop has
+one image reference in its provenance comment and one in ExecStart, contrary to
+its overly strict total-count1 assumption. Config hash matched; no service change.
+Corrected script23d06c570ea5ee08b3c1f8630322047400df5af1915bd45fc35e697299d79879
+accepts exactly that observed comment+single runtime reference; original script/log
+are retained. It reuses build-readable and the same image/rollback. Read the original
+deploy/result.json before deciding further work; never relaunch an in-flight job.
+Corrected rollout finished DEPLOYED_PAYMENT_MEDIA_DISABLED at1789341909.848575
+(07:25:09BJT), API54564f67/publicweb4d7781f. Admin3e40c576/Adminwebe0b84d4 and
+model/role env hashes unchanged; old2a6/publice0b retained. Actual nginx hash
+bf4f6ab9b57bb61f65077bab740c057a21dfe04e8e3f590611d4adc3ee9092c1. Public
+HTTPS status and both Native JS assets return200; media/payment/tracking remain0.
+Fresh normal hotel10 uses original09 client plus only new request/path and current
+image binding, never09 replay: launch1789342027.6007833,pid1633187,request
+formal-claude-meituan-20260914-10, scriptSHA
+0f934ba6e182c246dc969832363937704f8705933e6cfa643fa15959ea4d4195.
+Original hotel input is reused to verify new factual-report repair after restored
+network. Read C business-analyze-10/result.json and original ledgers; no repeat.
+Native/Ark real tests remain incomplete. Item34 unchanged, Readiness30/37. Existing
+runtime/transfer/model costs continue, unknown charges not0; no new recurring resources.
+
 ## September14 03:05 Beijing — e0b84d4 live; Native two-capture preparation verified; EIP arrears blocks live delivery
 
 Original deploy result at C /var/lib/noteai/media-e0b84d4/deploy/result.json is

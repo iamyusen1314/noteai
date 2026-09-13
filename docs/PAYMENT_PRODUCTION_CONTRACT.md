@@ -128,7 +128,7 @@ byte-identical duplicate increments the original event's bounded durable
 delivery counter, so the canary can prove one replay without granting or
 reversing entitlement twice.
 When the temporary Item31 canary flag is enabled, the existing order API binds
-creation to the selected direct provider, the synthetic user and subject,
+creation to the selected direct provider, the confirmed owner test user and subject,
 `credit_package/starter` at exactly 1200 fen, one fixed Idempotency-Key digest,
 and an activation window of at most one hour before any order write or provider
 call. A successful create emits only domain-separated request, response,
@@ -140,7 +140,7 @@ digest is exposed.
 The current transports use live provider origins only, so both direct gateways
 reject mock mode in every deployment stage. Their provider notifications are
 bound to the exact public NoteAI endpoints
-`https://api.noteaipro.cn/payments/wechat/callback` and
+`https://noteaipro.com/payments/wechat/callback` and
 `https://api.noteaipro.cn/payments/alipay/callback`; another host, port, path,
 query or fragment is rejected before a provider request can be made.
 App IDs, merchant IDs and seller IDs are non-secret environment configuration
