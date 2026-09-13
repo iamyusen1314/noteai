@@ -1,5 +1,38 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 continuation — real model chain complete; factual quality failed
+
+Business04 completed1789299898.5904195: one successful SSE terminal, actual
+claude-haiku-4-5-20251001 + claude-sonnet-4-6,3 plans. Root-only response.sse SHA
+7c29578b62afdbfe87dbbcf5147f4cb6654f43a31ce838065b7d7eb8c37a8e12 at the existing
+business-analyze-04 stage. Claim97d0b361-c7d2-4e52-899c-7d79b4f7e21c completed,
+usagec2d58257-e358-4a49-940d-5676abfb514d,6monthly credits once/no refund.
+23physical calls all responded200, all linked to complete/exact model usage;
+parent model_calls23/actual costRMB2.595306 matches children. This is priced model
+cost, not a supplier invoice; Meituan CLI1 internalHTTP/cost still unknown.
+Owner GET diagnosis7bc79a34-f531-4401-949d-8377bb2628af and note versions for
+c84ea6de-87eb-43e4-8254-2db0bedac30b both200, correct model IDs/3plans.
+
+Human content check FAILED: unsupported in-park/walking/no-shuttle claims,
+room occupancy and package/ticket/nightly/comparison claims passed old quality
+checks. Preserve this original result and completed billing, never relabel as
+quality acceptance. Current fix uses existing factual checks/one second pass:
+amount/unit/ticket/transport/occupancy scope, no score exemption for fabricated
+facts, lower telemetry accepted when facts repaired, original input distinguished
+from expert candidates, final report and full plan facts checked without truncated
+issue lists. No historical industry Prompt text changed. Also prevent silent
+report-save failure and unconfirmed idempotent completion. ScopedPython3.11
+49checks passed before final relation refinement; follow-up fixed a question
+misclassified as an affirmative ticket claim. No new validator platform/schema.
+
+The verified-phone owner account's normal allowance was consumed by04. Original
+owner-created noteai_19872819531 still has900credits and an active legitimate
+session, but GET/auth/me says phone_verified=false; do not bypass this boundary.
+One scoped question is pending for30test-credit gift to the verified-phone owner
+account member_43fea885ae4344588152; no grant performed. Continue code/tests/deploy
+while pending. New business request requires available legitimate entitlements.
+Current API2ad44 (source1a), Adminb033/web363/Gateway601/0025 unchanged;30/37.
+
 ## September13 19:38 Beijing — runtime path correction verified and deployed
 
 Original runtime-path-correction/result.json is DEPLOYED at1789299523.6879401.

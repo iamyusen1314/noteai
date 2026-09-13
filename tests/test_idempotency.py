@@ -202,11 +202,21 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         self.assertEqual(other_user["state"], "owner")
         self.assertTrue(idempotency.mark_completed(first))
         self.assertFalse(idempotency.mark_completed(first))
+        self.assertTrue(idempotency.mark_completed(first, confirm_existing=True))
+        for key, value in (
+            ("lease_token", "wrong"), ("user_id", "u-state-b"),
+            ("operation", "generate"), ("payload_hash", "wrong"),
+            ("charge", {"usage_id": "unrelated"}),
+        ):
+            self.assertFalse(idempotency.mark_completed(
+                {**first, key: value}, confirm_existing=True,
+            ))
         self.assertEqual(self._claim("u-state-a", "shared-user-key")["state"], "completed")
 
         failed = self._claim("u-state-a", "failed-key", operation="chat_rewrite")
         self.assertTrue(idempotency.mark_failed_and_refund(failed, failure_code="request_failed"))
         self.assertFalse(idempotency.mark_failed_and_refund(failed, failure_code="request_failed"))
+        self.assertFalse(idempotency.mark_completed(failed, confirm_existing=True))
         self.assertEqual(
             self._claim("u-state-a", "failed-key", operation="chat_rewrite")["state"],
             "failed",
@@ -940,6 +950,34 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         self.assertEqual(row["status"], "failed")
         self.assertEqual(row["refund_applied"], 1)
         self.assertEqual(row["failure_code"], "stream_cancelled")
+
+    def test_sse_lost_claim_never_emits_success_or_refunds_new_owner(self):
+        self._create_user("u-lost-completion")
+        claim = self._claim("u-lost-completion", "lost-completion")
+        db.execute(
+            "UPDATE idempotency_requests SET lease_token_hash=? WHERE id=?",
+            ("new-owner-lease", claim["request_id"]),
+        )
+
+        async def source():
+            yield 'data: {"type":"complete"}\n\n'
+
+        async def consume():
+            return [json.loads(chunk.removeprefix("data: ").strip())
+                    async for chunk in api._idempotent_sse_stream(
+                        source(), claim, success_types={"complete"},
+                    )]
+
+        events = asyncio.run(consume())
+        self.assertEqual([event["type"] for event in events], ["error"])
+        self.assertEqual(events[0]["error_code"], "completion_unconfirmed")
+        row = db.fetchone(
+            "SELECT status,complete_applied,refund_applied FROM idempotency_requests WHERE id=?",
+            (claim["request_id"],),
+        )
+        self.assertEqual(dict(row), {
+            "status": "running", "complete_applied": 0, "refund_applied": 0,
+        })
 
 
 if __name__ == "__main__":

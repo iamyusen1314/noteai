@@ -950,7 +950,15 @@ async def _idempotent_sse_stream(
                     event_type = ""
             if event_type in success_types:
                 _public_product.assert_result_known()
-                _idempotency.mark_completed(claim)
+                if not _idempotency.mark_completed(claim, confirm_existing=True):
+                    _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
+                    terminal_seen = True
+                    yield 'data: ' + _json.dumps({
+                        "type": "error",
+                        "error_code": "completion_unconfirmed",
+                        "message": "原任务完成状态未能确认，请查看历史记录；不要重复提交原请求。",
+                    }, ensure_ascii=False) + '\n\n'
+                    return
                 terminal_seen = True
             elif event_type == "error":
                 _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
@@ -3086,7 +3094,8 @@ async def _agent_arbitrate(
     user_phase1 = (
         f"笔记标题：{note_title or '（无）'}\n"
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
-        f"原始正文：{body_candidate[:600] if body_candidate else '（无正文）'}\n"
+        f"内容专家候选（未经核验，不是用户原文或事实来源）：{body_candidate or '（无候选）'}\n"
+        f"{_safe_fact_delivery_brief(domain, source_context)}\n"
         f"领域：{domain or '通用'} | 预测分位：{percentile:.0f}/100（{grade}）\n\n"
         f"{phase_planning_brief}\n"
         f"【四位专家独立诊断】{opinion_block}\n"
@@ -3209,7 +3218,7 @@ async def _agent_arbitrate(
     base_ctx = (
         f"原始笔记标题：{note_title}\n"
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
-        f"原始正文（参考基础）：{body_candidate[:400] if body_candidate else '（无原始正文）'}\n"
+        f"内容专家候选（未经核验，不是事实来源）：{body_candidate or '（无候选）'}\n"
         f"领域：{domain} | 当前日期：{_today2}\n"
         f"品类知识库：{_content_dk}\n\n"
         f"辅助信号诊断的核心弱项：{opinion_block}\n\n"
@@ -9578,7 +9587,10 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             f"- 当前可用决策事实：{facts}\n"
             "- 酒店类写法：按预算、评分、交通距离、早餐/亲子/商务设施拆成自然取舍句；前120字至少自然保留3项美团酒旅决策事实，不要机械罗列成表格，不要写Markdown粗体小标题。\n"
             "- 路线类写法：DAY时间段、景点顺序、住宿商圈和体力节奏可以来自已核验行程；路线时间窗不是营业时间，不能另编景区开闭门时间。\n"
-            "- 风险词边界：不得写必住、闭眼冲、最划算、最低价、提前预订更便宜、首选、多玩半天/2-3小时、直接省门票钱、儿童年龄段、提前几周预订、旺季满房或延迟退房；可写预算更友好、交通更方便、亲子设施更完整。\n"
+            "- 地址或商圈不能推导园区内、步行进园、无需接驳、距离或车程；房型名称不能推导床数、入住容量、儿童年龄或面积。缺少这些事实时给出具体确认问题，不把推测写成结论。\n"
+            "- 价格必须保留原来的起价、单位、日期和权益条件；部分套餐含票不等于某个起价套餐一定含票，未注明按晚的套餐价不能改成每晚价格。服务项目预约时间不能改成酒店营业或入住时间。\n"
+            "- 专家意见、候选稿、行业常识不是本次商家事实。无比较对象和同条件报价，不得写更划算、预算更友好、更便宜、差价不大、交通更方便或设施更完整。可以指导读者按同日期、人数和权益比较，不预设比较结论。\n"
+            "- 不得写必住、闭眼冲、最低价、首选、多玩半天/2-3小时、直接省门票钱、提前几周预订、旺季满房或延迟退房等无依据承诺。\n"
             "- 正文目标：不含标签360-480字，3-5段自然正文+8-10个标签；不要输出Markdown标题、方案编号或解释文字。"
         )
     if canonical == "母婴":
@@ -10310,8 +10322,64 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         return issues
 
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
-    if _PRICE_FACT_RE.search(out) and not _PRICE_FACT_RE.search(src):
+    source_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(src)}
+    output_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(out)}
+    if output_prices - source_prices:
         issues.append("出现未提供的价格/人均/套餐价数字，结构化事实不能编造")
+    if canonical == "旅行":
+        # Compare affirmative claims only: a question or a stated unknown is not
+        # evidence that the venue has the queried property.
+        def assertions(value: str) -> list[str]:
+            return [part.strip() for part in re.split(r"[。！？\n；;，,]", value)
+                    if part.strip() and not re.search(
+                        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|不能推|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可|不含|不包含)", part)]
+
+        claims, evidence = assertions(out), assertions(src)
+        for match in _PRICE_FACT_RE.finditer(out):
+            amount = re.search(r"\d+", match.group()).group()
+            source_matches = [m for m in _PRICE_FACT_RE.finditer(src)
+                              if re.search(r"\d+", m.group()).group() == amount]
+            if source_matches and all("起" in src[max(0, m.start() - 3):m.end() + 1] for m in source_matches):
+                if "起" not in out[max(0, match.start() - 3):match.end() + 1]:
+                    issues.append("将起价写成确定成交价，结构化事实不能编造")
+        if _BUSINESS_HOURS_RE.search(out) and not any(
+            _BUSINESS_HOURS_RE.search(line) and not re.search(r"预订|预约|服务项目|部分|确认|未知", line)
+            for line in src.splitlines()
+        ):
+            issues.append("将服务预约或待确认时间写成酒店营业时间，结构化事实不能编造")
+        families = (
+            (r"(?:园区内|景区内|园内|景区里|园区里)", "位于园区/景区内部"),
+            (r"步行.{0,10}(?:到|达|进)|(?:到|进).{0,6}(?:步行|走路)", "步行到达景区"),
+            (r"(?:不用|无需|不必|省去).{0,10}(?:接驳|班车|往返)|(?:起床|出门).{0,8}(?:进园|景点)", "接驳或进园条件"),
+            (r"(?:\d|[一二三四五六七八九十两])\s*大\s*[+＋]?\s*(?:\d|[一二三四五六七八九十两])\s*小|(?:1|2|一|两|二)张(?:大床|单床)", "房型床数或入住容量"),
+            (r"(?:更|最|很|相对更)?(?:划算|便宜|预算友好)|预算(?:会)?更友好|性价比.{0,4}(?:高|更好)|差价不大|省.{0,5}(?:门票钱|预算)", "同条件价格比较结论"),
+        )
+        for pattern, label in families:
+            unsupported = any(re.search(pattern, part) for part in claims) and not any(re.search(pattern, part) for part in evidence)
+            if label == "房型床数或入住容量":
+                known_sizes = {re.sub(r"\s+", "", m.group()) for part in evidence for m in re.finditer(pattern, part)}
+                unsupported = any(re.sub(r"\s+", "", m.group()) not in known_sizes
+                                  for part in claims for m in re.finditer(pattern, part))
+            if unsupported:
+                issues.append(f"出现未提供的{label}，结构化事实不能编造")
+        nightly = re.compile(r"(?:￥|¥)?(\d{2,5})\s*元?\s*起?\s*(?:/晚|每晚|一晚)|(?:每晚|一晚)\s*(?:￥|¥)?(\d{2,5})\s*元?")
+        source_nightly = {m.group(1) or m.group(2) for part in evidence for m in nightly.finditer(part)}
+        if any((m.group(1) or m.group(2)) not in source_nightly for part in claims for m in nightly.finditer(part)):
+            issues.append("将未注明每晚的价格绑定为房晚价，结构化事实不能编造")
+        ticket_pattern = r"(?:含|包含|赠送).{0,15}(?:门票|票)"
+        ticket_evidence = [line for line in re.split(r"[。！？\n；;]", src)
+                           if any(re.search(ticket_pattern, clause) and "部分" not in clause
+                                  for clause in assertions(line))]
+        for part in re.split(r"[。！？\n；;]", out):
+            ticket_clauses = [clause for clause in assertions(part)
+                              if re.search(ticket_pattern, clause) and "部分" not in clause]
+            if not ticket_clauses:
+                continue
+            amounts = {re.search(r"\d+", m.group()).group() for m in _PRICE_FACT_RE.finditer(part)}
+            room_scopes = {term for term in re.findall(r"[\u4e00-\u9fff]{2,8}(?:大床|双床|单床)(?:房)?", part)}
+            if not any(all(amount in line for amount in amounts)
+                       and all(room in line for room in room_scopes) for line in ticket_evidence):
+                issues.append("将价格或房型与未核验的含票权益绑定，结构化事实不能编造")
     if canonical == "美食" and _PRICE_VALUE_CLAIM_RE.search(out) and not _source_has_price_evidence(src):
         issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
     if canonical == "美食" and _BUFFET_VALUE_CLAIM_RE.search(out) and not _source_has_buffet_evidence(src):
@@ -10434,10 +10502,10 @@ def _delivery_integrity_issues(text: str, source_context: str | None, domain: st
 def _has_blocking_quality_issues(score: float, issues: list[str], domain: str | None = None) -> bool:
     if score < _quality_min_acceptable_percentile(domain):
         return True
-    # 60+ content should stay deliverable and enter chat optimization instead of
-    # being hard-blocked. Quality/fact issues remain visible repair signals.
+    # A high telemetry score never makes an unsupported factual claim deliverable.
     fatal_markers = (
         "标题为空", "正文为空", "质量复核失败", "占位符", "内部格式",
+        "结构化事实不能编造",
     )
     return any(any(marker in issue for marker in fatal_markers) for issue in issues)
 
@@ -11117,7 +11185,11 @@ async def _score_directed_second_pass(
         )
     )
     action_coverage_block = any("遗漏已提供动作" in issue for issue in issues)
-    if has_blocking and not title_readability_only_block and not action_coverage_block:
+    fact_repair = any("结构化事实不能编造" in issue for issue in issues)
+    fact_only_block = fact_repair and not _has_blocking_quality_issues(
+        score, [issue for issue in issues if "结构化事实不能编造" not in issue], domain,
+    )
+    if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_only_block:
         return title, body, score, features, grade or _grade(score), issues, False, "存在硬质量问题，交给硬修复链路"
 
     (
@@ -11159,6 +11231,8 @@ async def _score_directed_second_pass(
     for item in v04_lift_items:
         if item not in repair_items:
             repair_items.insert(0, item)
+    if fact_repair:
+        repair_items = [issue for issue in issues if "结构化事实不能编造" in issue] + repair_items
     if not repair_items:
         repair_items = ["围绕当前品类补强标题钩子、核心词聚焦、正文实用信息、互动引导和标签组合"]
 
@@ -11222,7 +11296,8 @@ async def _score_directed_second_pass(
         acceptable = (
             not _has_blocking_quality_issues(cand_score, cand_issues, domain)
             and (
-                score_gain >= 0.2
+                fact_repair
+                or score_gain >= 0.2
                 or (cand_score >= score and issue_gain > 0 and new_hits >= old_hits)
                 or (cand_score >= score and _score_gap_issue_count(cand_issues) < _score_gap_issue_count(issues))
             )
@@ -15367,10 +15442,10 @@ async def _run_analyze_pipeline(
                         quality_issues.extend(_body_format_issues(b))
                         quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
                         quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
-                        if not quality_failed and (
+                        if any("结构化事实不能编造" in issue for issue in quality_issues) or (not quality_failed and (
                             _score_gap_issue_count(quality_issues) > 0
                             or _needs_v04_score_lift(score_raw, plan_features, req.domain, req.desc)
-                        ):
+                        )):
                             (
                                 t,
                                 b,
@@ -15519,9 +15594,30 @@ async def _run_analyze_pipeline(
                 _plan["title_needs_refine"] = _plan["title_meta"]["needs_refine"]
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
+    delivery_fact_context = "\n\n".join(p for p in [req.desc, fact_context, intent_brief] if p)
+    report_fact_issues = _structured_fact_boundary_issues(
+        f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
+    )
+    final_plan_fact_issues = [issue for item in plans_scored for issue in _structured_fact_boundary_issues(
+        f"{item.get('title', '')}\n{item.get('body', '')}", delivery_fact_context, req.domain,
+    )]
+    if plans_scored:
+        suggested_body = next((item["body"] for item in plans_scored
+                               if item.get("body") and not item.get("quality_failed")), "")
+    shared_body_fact_issues = _structured_fact_boundary_issues(suggested_body, delivery_fact_context, req.domain)
+    if report_fact_issues or final_plan_fact_issues or shared_body_fact_issues:
+        if not billing_managed:
+            _billing.refund_operation_charge(
+                user["id"], "analyze", billing_charge, "诊断事实复核失败退回权益",
+            )
+        raise HTTPException(status_code=422, detail={
+            "code": "DIAGNOSIS_FACT_UNVERIFIED",
+            "message": "诊断或方案包含未获来源支持的事实，本次未交付为合格结果。",
+            "issues": list(dict.fromkeys(report_fact_issues + final_plan_fact_issues + shared_body_fact_issues)),
+        })
     if not suggested_body:
         for _plan in plans_scored:
-            if _plan.get("body"):
+            if _plan.get("body") and not _plan.get("quality_failed"):
                 suggested_body = _plan["body"]
                 break
 
@@ -15639,8 +15735,16 @@ async def _run_analyze_pipeline(
             created_at=note_created_at,
         )
         saved_note_id = note_id
-    except Exception:
-        pass
+    except Exception as exc:
+        _log_internal_failure("analyze_persistence", exc, phase="save_note")
+        if not billing_managed:
+            _billing.refund_operation_charge(
+                user["id"], "analyze", billing_charge, "诊断保存未确认退回权益",
+            )
+        raise HTTPException(status_code=503, detail={
+            "code": "ANALYZE_PERSISTENCE_UNCONFIRMED",
+            "message": "笔记保存状态未能确认，请先查看历史记录；不要重复提交原请求。",
+        }) from exc
 
     resp.saved_note_id = saved_note_id
 
@@ -15667,8 +15771,17 @@ async def _run_analyze_pipeline(
             created_at=diagnosis_created_at,
         )
         saved_diag_id = diag_id
-    except Exception:
-        pass
+    except Exception as exc:
+        _log_internal_failure("analyze_persistence", exc, phase="save_diagnosis")
+        if not billing_managed:
+            _billing.refund_operation_charge(
+                user["id"], "analyze", billing_charge, "诊断保存未确认退回权益",
+            )
+        raise HTTPException(status_code=503, detail={
+            "code": "ANALYZE_PERSISTENCE_UNCONFIRMED",
+            "message": "笔记已保存，但报告保存状态未能确认；请核实原记录，不要重复生成。",
+            "saved_note_id": saved_note_id,
+        }) from exc
 
     resp.diagnosis_id = saved_diag_id
     return resp
@@ -15694,8 +15807,12 @@ async def analyze(
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         raise
-    if claim:
-        _idempotency.mark_completed(claim)
+    if claim and not _idempotency.mark_completed(claim, confirm_existing=True):
+        _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        raise HTTPException(status_code=503, detail={
+            "code": "COMPLETION_UNCONFIRMED",
+            "message": "原任务完成状态未能确认，请查看历史记录；不要重复提交原请求。",
+        })
     return result
 
 
@@ -17047,8 +17164,12 @@ async def generate(
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         raise
-    if claim:
-        _idempotency.mark_completed(claim)
+    if claim and not _idempotency.mark_completed(claim, confirm_existing=True):
+        _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        raise HTTPException(status_code=503, detail={
+            "code": "COMPLETION_UNCONFIRMED",
+            "message": "原任务完成状态未能确认，请查看历史记录；不要重复提交原请求。",
+        })
     return response
 
 

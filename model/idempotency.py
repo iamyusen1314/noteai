@@ -481,7 +481,9 @@ def settle_expired_requests_for_account_deletion_with_storage(
     return settled
 
 
-def mark_completed(context: dict[str, Any] | None) -> bool:
+def mark_completed(
+    context: dict[str, Any] | None, *, confirm_existing: bool = False,
+) -> bool:
     if not context or context.get("state") != "owner":
         return False
     lease_digest = _sha256(str(context.get("lease_token") or ""))
@@ -498,8 +500,16 @@ def mark_completed(context: dict[str, Any] | None) -> bool:
         if not row:
             return False
         current = dict(row)
-        if current.get("status") == "completed" and current.get("complete_applied"):
+        if confirm_existing and (
+            any(current.get(key) != context.get(key) for key in (
+                "user_id", "operation", "key_hash", "payload_hash",
+            ))
+            or current.get("lease_token_hash") != lease_digest
+            or current.get("usage_id") != (context.get("charge") or {}).get("usage_id")
+        ):
             return False
+        if current.get("status") == "completed" and current.get("complete_applied"):
+            return bool(confirm_existing and not current.get("refund_applied"))
         if current.get("status") != "running" or current.get("lease_token_hash") != lease_digest:
             return False
         tx.execute(

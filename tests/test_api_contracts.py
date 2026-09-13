@@ -158,7 +158,7 @@ class ApiContractTests(unittest.TestCase):
             first = asyncio.run(run())
 
         self.assertIn('"complete"', first)
-        completed.assert_called_once_with(claim)
+        completed.assert_called_once_with(claim, confirm_existing=True)
         refunded.assert_not_called()
 
     def test_health_reports_local_v04_composite_model_label(self):
@@ -2835,6 +2835,7 @@ class ApiContractTests(unittest.TestCase):
         original_memory_achievement = api._memory.check_and_record_achievements
         original_log = api._log_analysis
         original_db_execute = api._db.execute
+        original_insert_content = api._insert_content_with_retention
         captured_notes = []
         captured_agent_contexts = []
         fact_calls = []
@@ -2931,6 +2932,7 @@ class ApiContractTests(unittest.TestCase):
             api._memory.check_and_record_achievements = lambda *_args, **_kwargs: None
             api._log_analysis = lambda *_args, **_kwargs: None
             api._db.execute = lambda *_args, **_kwargs: None
+            api._insert_content_with_retention = mock.Mock()
 
             requests = [
                 api.AnalyzeInput(
@@ -2958,6 +2960,22 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api.analyze(req, user={"id": "u1"}))
                 for req in requests
             ]
+            for fail_at in (0, 1):
+                writes = mock.Mock(side_effect=([None] * fail_at) + [RuntimeError("private db detail")])
+                api._insert_content_with_retention = writes
+                calls_before = len(captured_notes)
+                with mock.patch.object(api._billing, "refund_operation_charge") as refund:
+                    with self.assertRaises(api.HTTPException) as failure:
+                        asyncio.run(api.analyze(requests[0], user={"id": "u1"}))
+                    refund.assert_called_once()
+                self.assertEqual(failure.exception.status_code, 503)
+                self.assertEqual(failure.exception.detail["code"], "ANALYZE_PERSISTENCE_UNCONFIRMED")
+                self.assertNotIn("private db detail", str(failure.exception.detail))
+                self.assertEqual(writes.call_count, fail_at + 1)
+                self.assertEqual(len(captured_notes), calls_before + 1)
+                self.assertEqual(bool(failure.exception.detail.get("saved_note_id")), bool(fail_at))
+                if fail_at:
+                    self.assertEqual(failure.exception.detail["saved_note_id"], writes.call_args_list[0].args[3])
         finally:
             api._billing.check_and_deduct = original_check
             api._billing.record_free_usage = original_record
@@ -2981,18 +2999,19 @@ class ApiContractTests(unittest.TestCase):
             api._memory.check_and_record_achievements = original_memory_achievement
             api._log_analysis = original_log
             api._db.execute = original_db_execute
+            api._insert_content_with_retention = original_insert_content
 
-        self.assertEqual(len(fact_calls), 3)
+        self.assertEqual(len(fact_calls), 5)
         self.assertNotIn("截图里有餐厅门头", fact_calls[1][2])
         self.assertIn("视频里拍到芝士焗小青龙", fact_calls[2][2])
-        self.assertEqual(len(captured_notes), 3)
+        self.assertEqual(len(captured_notes), 5)
         self.assertIn("手动输入", captured_notes[0].desc)
         self.assertNotIn("【其他内容图片描述】", captured_notes[1].desc)
         self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
         self.assertEqual(responses[2].input_diagnostics["video_duration_sec"], 3.0)
         self.assertEqual(responses[2].input_diagnostics["video_frames_extracted"], 1)
         self.assertEqual(responses[2].input_diagnostics["video_frames_to_ai"], 1)
-        self.assertEqual(len(captured_agent_contexts), 3)
+        self.assertEqual(len(captured_agent_contexts), 5)
         self.assertIn("【其他内容图片描述】", captured_agent_contexts[1])
         for ctx in captured_agent_contexts:
             self.assertIn("【联网事实补全】", ctx)
@@ -3017,14 +3036,82 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(any("价格" in item for item in issues), issues)
         self.assertTrue(any("营业时间" in item for item in issues), issues)
         self.assertTrue(any("排队" in item for item in issues), issues)
-        self.assertFalse(api._has_blocking_quality_issues(80, issues, "美食"))
+        self.assertTrue(api._has_blocking_quality_issues(80, issues, "美食"))
 
         narrative_only = "朋友说这里环境不错，进门灯光很舒服，乳鸽香气很足。点赞收藏。"
         self.assertEqual(api._structured_fact_boundary_issues(narrative_only, source, "美食"), [])
 
         travel_source = "广州长隆酒店：美团豪华型，美团真实评分4.8，￥929起/晚"
         travel_body = "这家住宿起价929元/晚，适合想住在园区里的亲子家庭。"
-        self.assertFalse(api._structured_fact_boundary_issues(travel_body, travel_source, "旅行"))
+        self.assertTrue(api._structured_fact_boundary_issues(travel_body, travel_source, "旅行"))
+
+    def test_travel_facts_do_not_invent_transport_capacity_or_price_entitlements(self):
+        source = (
+            "广州长隆酒店：番禺区汉溪大道东299号；美团评分4.7；￥929起/晚。\n"
+            "价格区间：998元起，具体价格根据房型和套餐有所不同。\n"
+            "房型包括狩猎大床房、野趣双床房；部分套餐含水上乐园门票。\n"
+            "接驳安排未知，是否位于园区内尚未确认。"
+        )
+        for body in (
+            "酒店就在园区内，步行可达野生动物园，具体距离建议确认。",
+            "出门就能进景点，无需安排接驳。",
+            "狩猎大床房适合2大1小，双床房适合2大2小。",
+            "酒店有两张单床，适合一家入住。",
+            "998元起/晚的含水上乐园门票套餐值得选。",
+            "3晚含票套餐相比分开购票预算更友好，差价不大。",
+            "酒店住宿只要889元。",
+            "每晚998元，包含水上乐园门票。",
+            "998元的套餐，含水上乐园门票。",
+            "狩猎大床套餐包含水上乐园门票。",
+        ):
+            with self.subTest(body=body):
+                issues = api._structured_fact_boundary_issues(body, source, "旅行")
+                self.assertTrue(issues)
+                self.assertTrue(api._has_blocking_quality_issues(99, issues, "旅行"))
+        for body in (
+            "美团标注929元起/晚，部分套餐含水上乐园门票。请按出行日期比较报价。",
+            "建议联系酒店确认是否需要接驳、房型最多可住几人，以及套餐包含哪些门票。",
+            "接驳与步行距离未确认，不预设交通更方便。",
+            "998元套餐含不含门票，要先确认。",
+        ):
+            self.assertFalse(api._structured_fact_boundary_issues(body, source, "旅行"), body)
+        evidence = "酒店位于园区内，步行可达水上乐园；狩猎房适合2大1小。998元起/晚含水上乐园门票。"
+        self.assertFalse(api._structured_fact_boundary_issues(evidence, evidence, "旅行"))
+        self.assertTrue(api._structured_fact_boundary_issues("狩猎房适合2大2小。", evidence, "旅行"))
+        self.assertFalse(api._structured_fact_boundary_issues("929元/晚。", "每晚929元。", "旅行"))
+        self.assertTrue(api._structured_fact_boundary_issues("929元/晚。", "每晚929元起。", "旅行"))
+        self.assertTrue(api._structured_fact_boundary_issues(
+            "酒店营业时间9:30-18:30。", "预订/排队：营业时间9:30-18:30（部分服务项目时间，建议确认）。", "旅行",
+        ))
+        self.assertTrue(api._structured_fact_boundary_issues(
+            "酒店位于园区内，步行可达景点。", "酒店并非园区内，不可步行到景区。", "旅行",
+        ))
+
+    def test_fact_repair_accepts_lower_telemetry_but_rejects_higher_fabrication(self):
+        source = "酒店地址在番禺区汉溪大道东299号，美团评分4.7，￥929起/晚。"
+        old_body = "酒店位于园区内，不用接驳，适合2大1小。"
+        old_issues = api._structured_fact_boundary_issues(old_body, source, "旅行")
+        safe_body = "酒店地址在番禺区汉溪大道东299号，929元起/晚，评分4.7；建议联系酒店确认接驳方式。"
+
+        async def unchanged_shape(_title, body, *_args, **_kwargs):
+            return body
+
+        for candidate, score, expected in ((safe_body, 75, True), (old_body, 99, False)):
+            with self.subTest(score=score), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=f"<note><title>广州酒店住宿选择</title><body>{candidate}</body></note>")) as call, \
+                 mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(score, {"body_len": 400}, "良好"))), \
+                 mock.patch.object(api, "_shape_body_for_delivery", new=unchanged_shape), \
+                 mock.patch.object(api, "_fit_title_limit", new=mock.AsyncMock(return_value="广州酒店住宿选择")), \
+                 mock.patch.object(api, "_generated_quality_issues", return_value=[]), \
+                 mock.patch.object(api, "_try_deterministic_score_lift", new=mock.AsyncMock(return_value=("广州酒店住宿选择", old_body, 80, {"body_len": 400}, "优秀", old_issues, False, ""))), \
+                 mock.patch.object(api, "_v04_generation_lift_instructions", return_value=[]):
+                result = asyncio.run(api._score_directed_second_pass(
+                    "广州酒店住宿选择", old_body, "旅行", "2026091319",
+                    source_context=source, current_score=80,
+                    current_features={"body_len": 400}, current_issues=old_issues,
+                ))
+                self.assertEqual(result[6], expected, result)
+                self.assertEqual(call.await_count, 1)
 
     def test_structured_fact_boundary_blocks_unprovided_price_value_claims(self):
         source = "广州番禺万博珑厨双人套餐，菜品有小青龙、乳鸽和点心拼盘。"
