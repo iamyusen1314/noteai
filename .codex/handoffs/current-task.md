@@ -60,6 +60,14 @@ for Native/actualAppIDbinding/APIsecurity configuration status, no keys requeste
 This blocks merchant-console read only; local payment/media/cost work continues.
 Readiness30/37 unchanged.
 
+Follow-up local fix79cbe95 successor: definite negative ticket claims now require
+matching room/polarity evidence; short room names cannot inherit another room's
+benefit. Existing bounded second-pass remains the only repair pass. Failed fact or
+report persistence no longer adds successful growth/achievement records. Existing
+failure detail identifies report/plan/shared-body components without source content.
+Four focused Python3.11 checks pass, including post-save growth and exact room/negative
+scope. Current production6c remains unchanged until candidate verification/rollout.
+
 ## September13 owner integration — original product/media/cost recovery and WeChat first
 
 Owner confirms3000 test-credit gift to the already verified unique user

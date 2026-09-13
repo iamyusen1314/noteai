@@ -3075,6 +3075,7 @@ class ApiContractTests(unittest.TestCase):
         original_memory_achievement = api._memory.check_and_record_achievements
         original_log = api._log_analysis
         original_db_execute = api._db.execute
+        original_growth = api._insert_growth_record
         original_insert_content = api._insert_content_with_retention
         captured_notes = []
         captured_agent_contexts = []
@@ -3175,6 +3176,7 @@ class ApiContractTests(unittest.TestCase):
             api._memory.check_and_record_achievements = lambda *_args, **_kwargs: None
             api._log_analysis = lambda *_args, **_kwargs: None
             api._db.execute = lambda *_args, **_kwargs: None
+            api._insert_growth_record = mock.Mock()
             api._insert_content_with_retention = mock.Mock()
 
             requests = [
@@ -3203,6 +3205,10 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api.analyze(req, user={"id": "u1"}))
                 for req in requests
             ]
+            self.assertEqual(api._insert_growth_record.call_count, 3)
+            for response, call in zip(responses, api._insert_growth_record.call_args_list):
+                self.assertEqual(call.kwargs["note_id"], response.saved_note_id)
+            api._insert_growth_record.reset_mock()
             for fail_at in (0, 1):
                 writes = mock.Mock(side_effect=([None] * fail_at) + [RuntimeError("private db detail")])
                 api._insert_content_with_retention = writes
@@ -3214,6 +3220,7 @@ class ApiContractTests(unittest.TestCase):
                 self.assertEqual(failure.exception.status_code, 503)
                 self.assertEqual(failure.exception.detail["code"], "ANALYZE_PERSISTENCE_UNCONFIRMED")
                 self.assertNotIn("private db detail", str(failure.exception.detail))
+                api._insert_growth_record.assert_not_called()
                 self.assertEqual(writes.call_count, fail_at + 1)
                 self.assertEqual(len(captured_notes), calls_before + 1)
                 self.assertEqual(bool(failure.exception.detail.get("saved_note_id")), bool(fail_at))
@@ -3242,6 +3249,7 @@ class ApiContractTests(unittest.TestCase):
             api._memory.check_and_record_achievements = original_memory_achievement
             api._log_analysis = original_log
             api._db.execute = original_db_execute
+            api._insert_growth_record = original_growth
             api._insert_content_with_retention = original_insert_content
 
         self.assertEqual(len(fact_calls), 5)
@@ -3309,6 +3317,8 @@ class ApiContractTests(unittest.TestCase):
             "998元的套餐，含水上乐园门票。",
             "狩猎大床套餐包含水上乐园门票。",
             "不是所有套餐都含票但998元套餐含票。",
+            "野趣房不含门票。",
+            "亲子房包含水上乐园门票。",
         ):
             with self.subTest(body=body):
                 issues = api._structured_fact_boundary_issues(body, source, "旅行")
@@ -3337,6 +3347,17 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(api._structured_fact_boundary_issues(
             "步行到景区。", "酒店不能步行到景区。", "旅行",
         ))
+
+    def test_ticket_entitlements_keep_room_and_negation_scope(self):
+        for source, accepted, rejected in (
+            ("野趣房不含门票。", "野趣房不含门票。", "野趣房含门票。"),
+            ("亲子房包含水上乐园门票。", "亲子房包含水上乐园门票。", "野趣房包含水上乐园门票。"),
+            ("狩猎大床房含水上乐园门票。", "狩猎大床房含水上乐园门票。", "狩猎大床房不含水上乐园门票。"),
+        ):
+            with self.subTest(source=source):
+                self.assertFalse(api._structured_fact_boundary_issues(accepted, source, "旅行"))
+                self.assertTrue(api._structured_fact_boundary_issues(rejected, source, "旅行"))
+        self.assertFalse(api._structured_fact_boundary_issues("野趣房是否不含门票？需确认。", "部分房型含门票。", "旅行"))
 
     def test_fact_repair_accepts_lower_telemetry_but_rejects_higher_fabrication(self):
         source = "酒店地址在番禺区汉溪大道东299号，美团评分4.7，￥929起/晚。"

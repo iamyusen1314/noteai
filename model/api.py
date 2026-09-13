@@ -10334,12 +10334,12 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
     factual_out = out
     if canonical == "旅行":
-        # Compare affirmative claims only: a question or a stated unknown is not
+        # Compare definite claims: a question or a stated unknown is not
         # evidence that the venue has the queried property.
         def assertions(value: str) -> list[str]:
             return [part.strip() for part in re.split(r"[。！？\n；;，,]|但是|但|然而|不过", value)
                     if part.strip() and not re.search(
-                        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|[吗呢]\s*$|需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|不能|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可|不含|不包含)", part)]
+                        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|[吗呢]\s*$|需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|不能|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可)", part)]
 
         claims, evidence = assertions(out), assertions(src)
         factual_out = "\n".join(claims)
@@ -10385,10 +10385,16 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             if not ticket_clauses:
                 continue
             amounts = {re.search(r"\d+", m.group()).group() for m in _PRICE_FACT_RE.finditer(part)}
-            room_scopes = {term for term in re.findall(r"[\u4e00-\u9fff]{2,8}(?:大床|双床|单床)(?:房)?", part)}
+            room_scopes = {term for term in re.findall(
+                r"[\u4e00-\u9fff]{2,8}(?:大床|双床|单床)(?:房)?|[\u4e00-\u9fff]{2,6}房", part)}
+            negative = any(re.search(r"(?:不含|不包含|不赠送).{0,15}(?:门票|票)", clause)
+                           for clause in ticket_clauses)
             if not any(all(amount in line for amount in amounts)
-                       and all(room in line for room in room_scopes) for line in ticket_evidence):
-                issues.append("将价格或房型与未核验的含票权益绑定，结构化事实不能编造")
+                       and all(room in line for room in room_scopes)
+                       and any(bool(re.search(r"(?:不含|不包含|不赠送).{0,15}(?:门票|票)", clause)) == negative
+                               for clause in assertions(line) if re.search(ticket_pattern, clause))
+                       for line in ticket_evidence):
+                issues.append("将价格或房型与未核验的含票/不含票权益绑定，结构化事实不能编造")
     source_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(src)}
     output_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(factual_out)}
     if output_prices - source_prices:
@@ -15585,22 +15591,6 @@ async def _run_analyze_pipeline(
     note_hash = _hashlib.sha256(f"{req.note_title}|{req.desc}".encode()).hexdigest()[:16]
     _log_analysis(note_hash, req.domain, percentile, composite, timing)
 
-    # 写成长记录（已登录用户）
-    try:
-        import datetime as _dt_ana, uuid as _uuid_ana
-        _insert_growth_record(
-            user_id=user["id"],
-            note_id=None,
-            domain=req.domain or "美食",
-            score=round(percentile, 1),
-            grade=grade,
-            action="analyze",
-            recorded_at=_dt_ana.datetime.now(_dt_ana.timezone.utc).isoformat(),
-        )
-        _memory.check_and_record_achievements(user["id"], percentile, "analyze")
-    except Exception:
-        pass
-
     title_scores   = suggested_title_scores if 'suggested_title_scores' in locals() else []
     plans_scored   = suggested_plans_scored if 'suggested_plans_scored' in locals() else []
     if _constraint_flags(req.user_constraints)["keep_title"] and (req.note_title or "").strip():
@@ -15620,9 +15610,10 @@ async def _run_analyze_pipeline(
     report_fact_issues = _structured_fact_boundary_issues(
         f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
     )
-    final_plan_fact_issues = [issue for item in plans_scored for issue in _structured_fact_boundary_issues(
+    plan_fact_issues = [_structured_fact_boundary_issues(
         f"{item.get('title', '')}\n{item.get('body', '')}", delivery_fact_context, req.domain,
-    )]
+    ) for item in plans_scored]
+    final_plan_fact_issues = [issue for issues in plan_fact_issues for issue in issues]
     if plans_scored:
         suggested_body = next((item["body"] for item in plans_scored
                                if item.get("body") and not item.get("quality_failed")), "")
@@ -15636,6 +15627,9 @@ async def _run_analyze_pipeline(
             "code": "DIAGNOSIS_FACT_UNVERIFIED",
             "message": "诊断或方案包含未获来源支持的事实，本次未交付为合格结果。",
             "issues": list(dict.fromkeys(report_fact_issues + final_plan_fact_issues + shared_body_fact_issues)),
+            "components": {"report": report_fact_issues,
+                           "plans": {str(index + 1): issues for index, issues in enumerate(plan_fact_issues) if issues},
+                           "shared_body": shared_body_fact_issues},
         })
     if not suggested_body:
         for _plan in plans_scored:
@@ -15804,6 +15798,22 @@ async def _run_analyze_pipeline(
             "message": "笔记已保存，但报告保存状态未能确认；请核实原记录，不要重复生成。",
             "saved_note_id": saved_note_id,
         }) from exc
+
+    # 仅已通过事实复核且保存成功的诊断计入成长记录。
+    try:
+        import datetime as _dt_ana, uuid as _uuid_ana
+        _insert_growth_record(
+            user_id=user["id"],
+            note_id=saved_note_id,
+            domain=req.domain or "美食",
+            score=round(percentile, 1),
+            grade=grade,
+            action="analyze",
+            recorded_at=_dt_ana.datetime.now(_dt_ana.timezone.utc).isoformat(),
+        )
+        _memory.check_and_record_achievements(user["id"], percentile, "analyze")
+    except Exception as exc:
+        _log_internal_failure("analyze_persistence", exc, phase="save_growth")
 
     resp.diagnosis_id = saved_diag_id
     return resp
