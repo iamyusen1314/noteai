@@ -1,5 +1,12 @@
 # NoteAI Production Deployment Execution Plan
 
+September13 20:10 current API source5f37777 image48eed5a4 is DEPLOYED, with actual
+/app/model imports verified. Full immutable identities and original job results are
+at Handoff top. It supersedes only API1a below; retained2ad44 is the immediate
+compatible rollback. Admin/web/Gateway/config/0025 unchanged. New checks reject the
+actual04 unsupported claims offline; fresh business quality remains unverified
+pending the existing owner test-credit question. No replay of04 or old migrations.
+
 September13 19:38 Beijing current component set: C API1a1870a image
 sha256:2ad44a4114d692b1720b2f57c43d9018b13d9a386a51333f79451a699c119345,
 Adminb033de0, public/Admin web363f3e3, Render Gateway60168e1. Exact original jobs,

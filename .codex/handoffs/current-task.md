@@ -1,5 +1,36 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 20:10 Beijing — API factual/completion correction deployed
+
+Actual source5f3777705b81cb6f92b272048490bba643bac4f5 is deployed at
+1789301443.7050486, image
+sha256:48eed5a4a0912c824753631eb39f292cd9bb61ec3f8b1ecef244d20d347ab6ae.
+Existing durable flow /var/lib/noteai/formal-integrity-5f37777, execute.py SHA
+d977ccd66a0c19e65a591c626b0340ccd7e994aced2f3c42abfd232e33ec8512,
+launch pid1567518 at1789301428.0408404. Archive uploaded once:
+noteai-formal-integrity-5f37777.tar.gz,226772bytes,SHA
+6b06776cfc9ecf861d34caa1d282333b0bcbcf69396f15a5a3cfb417d090e2b7.
+Only api.py/idempotency.py changed atop retained2ad44. Isolated production image
+Python3.11.15 verified actual /app/model imports, both hashes and factual/completion
+checks. Existing drain/CAS/health/rollback completed; Adminb033/web363/Gateway601,
+environment/model config/0025/Item34 unchanged. Provider requests/business writes0
+for deployment. Prior packages/images/original688 logs remain intact.
+
+Network-none inspection of original04 SSE with the new exact image identifies
+unsupported hours, park/walking/shuttle, occupancy, price comparison, nightly and
+ticket scopes in the actual diagnosis and all3plans. It would block this report;
+this is an offline check of retained output, not fresh model quality acceptance.
+Original SSE hash/ledger unchanged. Root-only historical-quality-check.json in the
+same stage stores only issue summaries; first read-only script had a quote syntax
+error and was corrected, no provider/DB effect. Public/Admin HTTPS both200, original
+product browser loads without console errors, /public/status200 with Claude and
+Meituan enabled, public Amap/payment/media/Tracking disabled. An initial probe used
+incorrect /api/public/status; actual runtime-config uses same-origin /public/status.
+No new owner gift or business05; the single30-credit authorization question remains
+pending. Continue independent full-context defects; new real business requires
+legitimate available entitlements. Readiness30/37, no production quality claim.
+
+
 ## September13 continuation — fact and completion corrections verified locally
 
 Current API-only successor fixes af16ad1's final question/negation false positives.
