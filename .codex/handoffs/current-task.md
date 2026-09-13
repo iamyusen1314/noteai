@@ -1,5 +1,92 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 23:55 Beijing — original07 reconciled; factual repair and0018 compatibility verified locally
+
+Original07 router readback confirms32responses end_turn, including second repairs
+and post-repair shaping. Exact full rejected candidate bodies/reasons were not
+saved in old SSE; do not infer them. New api.py gives the existing shaping request
+complete factual source, binds each starting-price qualifier to its own amount,
+normalizes stated adult/child counts, and includes existing repair reasons plus
+hard-issue summaries in the original SSE event. No extra repair request/looser
+success criteria.44targeted Python3.11/network-none tests PASS;4hotel tests rerun
+PASS after reviewer-found unit-suffix/natural-count edge fixes. Initial local
+harness failures were ENTRYPOINT cwd and wrong NOTEAI_SQLITE_PATH variable, before
+any provider call. New audio billing/admin totals preserve nonaudio fingerprints,
+include all four input dimensions, and never invent missing usage or costs.
+
+Original fixed0018 payload remains01064a...d2c77. Existing tool now supports only
+source-matching successor ledgers; actual isolatedPG16 preflight/apply/verify
+preserved60tables, original24ledger rows including applied_at and0025 configuration.
+Only0018 added; exact6column-privilege delta, no tableUPDATE; secondapply refused.
+Corrected two old verifier defects: actualPGbigint literal formatting and falsely
+requiring aWeChat condition in refundINSERT (only the update guard needs it).
+Same-tool singleDO DMS transport now also PASSes actualPG16 autocommit: full
+postcheck failure rollback, exact apply/verify and rejected replay. ToolSHA
+7cefe615f67535bb1d034ce68de4961c47b5c944ab4779121e398851461f838a. No production
+DDL executed. Its first test failed safely on pg_catalog-first creation path and
+rolled back; corrected outer path public,pg_catalog, original function bodies unchanged.
+Production DMS at23:52:05.059872BJT: noteai_admin/noteai,all5affectedpaymenttables0,
+all3existing functionprosrc SHA match original0014. Original definitions and before
+metadata are saved privately at ~/.codex/tmp/noteai-payment-0018-20260913/.
+Existing RDS backup is retained LAST_KNOWN; empty affectedtables/schema match are
+freshly read, not a claim of a new whole-database snapshot. Continue atomic0018,
+closedPayment deployment and owner Native test; do not replay0025 or oldrequests.
+
+ArkChat/Files adapter, accounting0026 and input tests are preparation only;
+original video still requires full-byte/private lifecycle/API integration before
+publicenablement. Existing encryptedArk/WeChatinputs reused. Hotel-only runtime
+candidate must be separated from subsequent media wiring. APIc47 remains live;
+Readiness30/37 unchanged. No newpayment/model/XHS request in this local stage.
+
+## September13 23:33 Beijing — c47 deployed;07 failed facts;DMS restored;Ark adapter in progress
+
+API c47a138e855b2f91a9c19995fd8a5fb35f29f021 DEPLOYED at1789312142.9064841,
+image sha256:ebc078bad46771dd240f7c0167d72dd6009b75c05266eeba6f1045950744bc8e.
+Only model/api.py,model/model_router.py,model/public_product.py layered onto08ef;
+this does not deploy all c47 files. Stage /var/lib/noteai/diagnosis-stop-c47a138,
+executeSHA8c1caa7df8653b48fc5800ba1c73fac20260cde545426da251fd6b31ef967a65.
+Archive251036bytes SHAe9c32ec0b9c301312fcfa7843d3836c9bebde82566e205ba337fae93bbb79dd7.
+ActualPython3.11.15/amd64 import/hash, canary, drain, CAS and health passed;
+08ef image5c5b3c remains immediate rollback. Native configs previously applied
+closed; API restart now loaded those closed settings. Admin/web/Gateway/Item34
+unchanged, no provider/business call during deployment; transfer cost unsettled.
+
+New business07 launched once1789312619.2058759,pid1587384,request
+formal-claude-meituan-20260913-07,stage business-analyze-07 under the existing
+/var/lib/noteai/formal-claude-363f3e3. executeSHA
+a1a9d0fd020a0e5b8ec72520365f544dc90e9bed1d038a5b1eced3f30cbc07ab;
+all launch/started/request labels07. TerminalRESPONSE_FAILED,complete0,
+DIAGNOSIS_FACT_UNVERIFIED; three real plans generated but final hotel facts failed.
+SSESHA12b4b9fcb7bc3375e5c6f3f5be60bb7b2d891beec9d1230132f009db40f9f06a.
+Claim ed580243-e843-4c23-8a2e-9138e1cba990,usage0aa46171-86ab-415d-8fc3-a5354b6f72e2:
+charge6/refund6 once,wallet3000,total_used0,total_purchased0;28Haiku1.266167RMB
++4Sonnet1.813518RMB=3.079685RMB,32responded200/exact/complete,noneinflight.
+Original output/guard comparison continues; no08 launched, no quality pass.
+
+DMS old session first expired; after refresh a stale iframe showed permission
+failure. No new AliyunServiceRoleForDMS was authorized. Owner confirmed existing
+noteai_admin login; fresh original session SELECT succeeded at
+2026-09-13T23:31:15.827242+08:00.0018count0,ledger24,last0025; two new0018
+columns absent, all3provider constraints exactlyadapay. API orderSELECT/INSERT
+and Payment orderSELECT/refund+eventINSERT true; broadPaymentUPDATE false.
+No migration executed. Existing0018 tool now locally accepts exact-source known
+successors only when0018absent and asserts entire ledger delta is exactly0018;
+fixedSQL/hash/owner/transaction/ACL guards unchanged.13runtimeDML tests PASS on
+new isolatedPG16.14/network-none/Unixsocket; fixture needed two inertlocalroles.
+This test is not a productionnoteai_payment ACL acceptance.
+
+Ark Chrome existing account has model260428 enabled. Existingnoteai key copied
+only in memory to encrypted envelope at /var/lib/noteai/ark-media-20260913/envelope.json,
+SHA594d0d2e17d9225f6f5374be2b8fb3d7ab3744663c86ed0db8417dd830906c11;
+ARK_KEY_ENCRYPTED_STAGED_NOT_ACTIVE,0providercalls. No newkey/MFA/input needed.
+Local ark_media.py uses exact Chat/Files API, no redirects/retries, disjoint audio
+cost dimensions in originalbilling with additive0026 (NOT_APPLIED), original
+non-audio fingerprints preserved. Files preprocessor explicitly260428 retains
+videoaudio. File lifecycle callback/storage/fullAPI/UI integration still incomplete;
+publicmedia remainsclosed. Current candidates are not deployedc47 media capability.
+Readiness30/37 unchanged. Continue0018/Payment,hotel factual repair and fullmedia
+integration; none replaces the others. Sevenprotectedpaths remain untouched.
+
 ## September13 22:57 Beijing — API08ef preserved; WeChat inputs applied disabled; media next batch
 
 Current API08ef08e712277d0e800037a8b11a8593bb458960 is DEPLOYED at

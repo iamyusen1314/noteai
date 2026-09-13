@@ -1,5 +1,14 @@
 # Architecture Summary
 
+September13 23:33 current state: APIc47/ebc078 is deployed (three exact runtime modules);
+08ef remains rollback. Business07 generated three plans but failed final facts;
+6credits refunded once and3.079685RMB actual model cost retained. DMS original
+owner login now works;0018absent/ledger24through0025 confirmed, noSQLapply yet.
+Native configuration applied closed;Payment/canary/real loop still pending.
+Ark260428 enabled; key encryptedstaged, no providerrequest. Local Chat/Files/audio
+cost adaptation and additive0026 remain under implementation, not deployedmedia.
+Exact outcomes/hashes and next steps are at Handoff top;Item34 preserved,30/37.
+
 September13 21:46 update: production versions below remain unchanged. Owner
 test entitlement is now3000 noncash credits via the original Admin gift ledger.
 Fresh05 follows normal Claude/Meituan/business/credit paths; final fact guard

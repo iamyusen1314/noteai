@@ -823,6 +823,8 @@ CREATE TABLE IF NOT EXISTS model_usage_records (
     input_tokens                 INTEGER DEFAULT 0,
     unclassified_input_tokens    INTEGER DEFAULT 0,
     cache_read_input_tokens      INTEGER DEFAULT 0,
+    audio_input_tokens           INTEGER NOT NULL DEFAULT 0 CHECK(audio_input_tokens>=0),
+    audio_cache_read_input_tokens INTEGER NOT NULL DEFAULT 0 CHECK(audio_cache_read_input_tokens>=0),
     cache_write_input_tokens     INTEGER DEFAULT 0,
     cache_write_5m_tokens        INTEGER DEFAULT 0,
     cache_write_1h_tokens        INTEGER DEFAULT 0,
@@ -830,6 +832,8 @@ CREATE TABLE IF NOT EXISTS model_usage_records (
     output_tokens                INTEGER DEFAULT 0,
     input_price_per_1m           REAL,
     cache_read_price_per_1m      REAL,
+    audio_input_price_per_1m     REAL,
+    audio_cache_read_price_per_1m REAL,
     cache_write_5m_price_per_1m  REAL,
     cache_write_1h_price_per_1m  REAL,
     output_price_per_1m          REAL,
@@ -2253,6 +2257,15 @@ END;
             conn.execute("ALTER TABLE subscriptions ADD COLUMN used_chat_rewrite INTEGER DEFAULT 0")
         if "used_monthly_credits" not in sub_cols:
             conn.execute("ALTER TABLE subscriptions ADD COLUMN used_monthly_credits REAL DEFAULT 0")
+        media_cost_cols = {r[1] for r in conn.execute("PRAGMA table_info(model_usage_records)")}
+        for column, definition in {
+            "audio_input_tokens": "INTEGER NOT NULL DEFAULT 0 CHECK(audio_input_tokens>=0)",
+            "audio_cache_read_input_tokens": "INTEGER NOT NULL DEFAULT 0 CHECK(audio_cache_read_input_tokens>=0)",
+            "audio_input_price_per_1m": "REAL",
+            "audio_cache_read_price_per_1m": "REAL",
+        }.items():
+            if column not in media_cost_cols:
+                conn.execute(f"ALTER TABLE model_usage_records ADD COLUMN {column} {definition}")
         usage_cols = [r[1] for r in conn.execute("PRAGMA table_info(usage_records)").fetchall()]
         usage_additions = {
             "estimated_cost_rmb": "ALTER TABLE usage_records ADD COLUMN estimated_cost_rmb REAL DEFAULT 0",

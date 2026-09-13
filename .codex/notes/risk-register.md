@@ -1,5 +1,14 @@
 # Risk Register
 
+September13 23:33 current state: APIc47/ebc078 is deployed (three exact runtime modules);
+08ef remains rollback. Business07 generated three plans but failed final facts;
+6credits refunded once and3.079685RMB actual model cost retained. DMS original
+owner login now works;0018absent/ledger24through0025 confirmed, noSQLapply yet.
+Native configuration applied closed;Payment/canary/real loop still pending.
+Ark260428 enabled; key encryptedstaged, no providerrequest. Local Chat/Files/audio
+cost adaptation and additive0026 remain under implementation, not deployedmedia.
+Exact outcomes/hashes and next steps are at Handoff top;Item34 preserved,30/37.
+
 September13 22:57: original06title compression hit40-token cap; swallowed stop
 masked the cause and allowed unverified expert fallback. Known model cost0.779947RMB,
 6credits refunded once, wallet3000; no quality pass. API08ef alone deployed; next

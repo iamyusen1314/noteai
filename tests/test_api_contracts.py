@@ -3435,6 +3435,25 @@ class ApiContractTests(unittest.TestCase):
                 self.assertTrue(api._structured_fact_boundary_issues(rejected, source, "旅行"))
         self.assertFalse(api._structured_fact_boundary_issues("野趣房是否不含门票？需确认。", "部分房型含门票。", "旅行"))
 
+    def test_hotel_price_ranges_do_not_borrow_qualifiers_or_invent_capacity(self):
+        source = "狩猎房969元起/晚；亲子房1965元起。部分房型含门票，具体绑定未知。"
+        for text in ("价格从969元起到1965元。", "两个大人带一个小娃这个档位足够。"):
+            with self.subTest(text=text):
+                self.assertTrue(api._structured_fact_boundary_issues(text, source, "旅行"))
+        for text in ("狩猎房969元起/晚；亲子房1965元起。", "亲子房起价为1965元。"):
+            with self.subTest(text=text):
+                self.assertFalse(api._structured_fact_boundary_issues(text, source, "旅行"))
+        self.assertTrue(api._structured_fact_boundary_issues("狩猎房969元/晚。", "狩猎房969元/晚起。", "旅行"))
+        for text in ("亲子房支持两个大人带一个小娃。", "亲子房支持2个成人和1个儿童。"):
+            self.assertFalse(api._structured_fact_boundary_issues(text, "亲子房支持2大1小。", "旅行"))
+
+    def test_body_shape_preserves_complete_factual_source_after_summary(self):
+        source = "\n".join(f"资料{i}：地点待确认。" for i in range(9)) + "\n最终权益边界：房型不等于套餐，人数与票务绑定未知。"
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="请核对具体日期和套餐权益。")) as call:
+            asyncio.run(api._shape_body_for_delivery("酒店怎么选", "简短正文", "旅行", source))
+        self.assertEqual(call.await_count, 1)
+        self.assertIn(source, call.call_args.args[2])
+
     def test_fact_repair_accepts_lower_telemetry_but_rejects_higher_fabrication(self):
         source = "酒店地址在番禺区汉溪大道东299号，美团评分4.7，￥929起/晚。"
         old_body = "酒店位于园区内，不用接驳，适合2大1小。"
@@ -3461,6 +3480,8 @@ class ApiContractTests(unittest.TestCase):
                 ))
                 self.assertEqual(result[6], expected, result)
                 self.assertEqual(call.await_count, 1)
+                if not expected:
+                    self.assertIn("仍有硬性问题", result[7])
 
     def test_structured_fact_boundary_blocks_unprovided_price_value_claims(self):
         source = "广州番禺万博珑厨双人套餐，菜品有小青龙、乳鸽和点心拼盘。"

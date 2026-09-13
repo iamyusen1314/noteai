@@ -235,6 +235,8 @@ def _model_cost_audit_payload(since: str) -> dict:
         "COALESCE(SUM(m.input_tokens),0) AS input_tokens,"
         "COALESCE(SUM(m.unclassified_input_tokens),0) AS unclassified_input_tokens,"
         "COALESCE(SUM(m.cache_read_input_tokens),0) AS cache_read_tokens,"
+        "COALESCE(SUM(m.audio_input_tokens),0) AS audio_input_tokens,"
+        "COALESCE(SUM(m.audio_cache_read_input_tokens),0) AS audio_cache_read_tokens,"
         "COALESCE(SUM(m.cache_write_input_tokens),0) AS cache_write_tokens,"
         "COALESCE(SUM(m.output_tokens),0) AS output_tokens,"
         "COALESCE(SUM(m.known_cost_rmb),0) AS known_cost_rmb,"
@@ -281,6 +283,8 @@ def _model_cost_audit_payload(since: str) -> dict:
         "input_tokens": int(row["input_tokens"] or 0),
         "unclassified_input_tokens": int(row["unclassified_input_tokens"] or 0),
         "cache_read_tokens": int(row["cache_read_tokens"] or 0),
+        "audio_input_tokens": int(row["audio_input_tokens"] or 0),
+        "audio_cache_read_tokens": int(row["audio_cache_read_tokens"] or 0),
         "cache_write_tokens": int(row["cache_write_tokens"] or 0),
         "output_tokens": int(row["output_tokens"] or 0),
         "known_cost_rmb": round(row["known_cost_rmb"] or 0, 6),
@@ -290,7 +294,7 @@ def _model_cost_audit_payload(since: str) -> dict:
     return {
         "by_model": by_model,
         "cache": {
-            "read_tokens": sum(item["cache_read_tokens"] for item in by_model),
+            "read_tokens": sum(item["cache_read_tokens"] + item["audio_cache_read_tokens"] for item in by_model),
             "write_tokens": sum(item["cache_write_tokens"] for item in by_model),
             "unclassified_input_tokens": sum(item["unclassified_input_tokens"] for item in by_model),
         },

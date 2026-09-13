@@ -664,7 +664,7 @@ def _preflight(
             activation["activation_id"], "payment-canary-activation-v1"
         ),
         "order_identity_sha256": _identity(order["id"], "payment-order-v1"),
-        "synthetic_subject": "verified",
+        "owner_controlled_subject": "verified",
         "amount_fen": activation["amount_fen"],
         "provider_operation_count": 0,
         "automatic_retry_count": 0,

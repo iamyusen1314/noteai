@@ -25,6 +25,34 @@ admin_server = importlib.import_module("admin_server")
 
 
 class ModelUsageAuditTests(unittest.TestCase):
+    def test_doubao_audio_cost_uses_disjoint_dimensions_and_parent_totals(self):
+        usage_id = self._new_usage("screenshot")
+        billing.record_model_usage("doubao", "doubao-seed-2-0-lite-260428",
+            tokens_in=550, tokens_out=120, cache_read_tokens=150,
+            audio_input_tokens=250, audio_cache_read_tokens=50)
+        row = self._children(usage_id)[0]
+        expected = (550*.6+150*.12+250*9+50*1.8+120*3.6)/1000000
+        self.assertAlmostEqual(row["known_cost_rmb"],expected,places=9)
+        self.assertEqual(row["audio_input_tokens"],250)
+        self.assertEqual(row["audio_cache_read_input_tokens"],50)
+        self.assertEqual(row["price_currency"],"RMB")
+        self.assertEqual(row["pricing_status"],"exact")
+        self.assertEqual(self._parent(usage_id)["tokens_in"],1000)
+        self.assertEqual(self._parent(usage_id)["model_calls"],1)
+        self.assertEqual(self._parent(usage_id)["cost_mode"],"actual")
+        audit = admin_server._model_cost_audit_payload("2000-01-01")
+        self.assertEqual(audit["cache"]["read_tokens"],200)
+        self.assertEqual(audit["by_model"][0]["audio_input_tokens"],250)
+
+    def test_doubao_large_audio_input_selects_full_input_price_tier(self):
+        usage_id = self._new_usage("screenshot")
+        billing.record_model_usage("doubao", "doubao-seed-2-0-lite-260428",
+            tokens_in=1000, tokens_out=100, audio_input_tokens=33000)
+        row = self._children(usage_id)[0]
+        self.assertEqual(row["input_price_per_1m"],.9)
+        self.assertEqual(row["audio_input_price_per_1m"],13.5)
+        self.assertEqual(self._parent(usage_id)["tokens_in"],34000)
+
     def test_nonstream_kimi_preserves_requested_thinking_and_full_output_allowance(self):
         calls = []
         timeouts = []

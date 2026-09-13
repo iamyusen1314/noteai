@@ -10,12 +10,17 @@ from tools import production_payment_schema_0018 as schema_0018
 
 
 class ProductionPaymentSchema0018Tests(unittest.TestCase):
-    def test_readback_accepts_only_source_matching_successors_and_never_changes_apply_contract(self):
+    def test_missing_0018_accepts_only_source_matching_successors(self):
         contract = schema_0018.source_contract()
         rows = [{"version": name, "sha256": value} for name, value in contract["migration_hashes"].items()]
         successors = contract["successor_hashes"]
         later = [{"version": name, "sha256": value} for name, value in successors.items()]
         self.assertTrue(any(row["version"].startswith("0025_") for row in later))
+        schema_0018._verify_ledger(rows[:-1] + later, schema_0018.PRIOR_MIGRATION_NAMES,
+                                  contract["migration_hashes"], successor_hashes=successors)
+        with self.assertRaisesRegex(schema_0018.PaymentSchemaError, "ledger_versions"):
+            schema_0018._verify_ledger(rows + later, schema_0018.PRIOR_MIGRATION_NAMES,
+                                      contract["migration_hashes"], successor_hashes=successors)
         schema_0018._verify_ledger(rows + later, schema_0018.EXPECTED_MIGRATION_NAMES,
                                   contract["migration_hashes"], successor_hashes=successors)
         for invalid in (rows[:-1] + later, rows + later + later[-1:], rows + [{"version": "9999_unknown.sql", "sha256": "0" * 64}]):
@@ -158,7 +163,11 @@ class ProductionPaymentSchema0018Tests(unittest.TestCase):
             return mock.Mock()
 
         connection.execute.side_effect = execute
+        ledger_before = [{"version": "0025_formal_product_usage.sql", "sha256": "a" * 64}]
+        ledger_after = [{"version": schema_0018.MIGRATION_NAME, "sha256": schema_0018.MIGRATION_SHA256}] + ledger_before
         with mock.patch.object(schema_0018, "_activate_owner"), mock.patch.object(
+            schema_0018, "_ledger_rows", side_effect=(ledger_before, ledger_after),
+        ), mock.patch.object(
             schema_0018,
             "_verify_preconditions",
         ), mock.patch.object(
@@ -202,6 +211,10 @@ class ProductionPaymentSchema0018Tests(unittest.TestCase):
         self.assertNotIn("render_predeploy.py", source)
 
     def test_bounded_checks_reject_reversed_or_weakened_constraints(self):
+        self.assertTrue(schema_0018._exact_bounded_check(
+            "CHECK (provider_submitted_at IS NULL OR provider_submitted_at >= 946684800 "
+            "AND provider_submitted_at <= '4102444800'::bigint)",
+            column="provider_submitted_at", lower=946684800, upper=4102444800, nullable=True))
         self.assertTrue(
             schema_0018._exact_bounded_check(
                 "CHECK ((duplicate_delivery_count >= 0) AND "

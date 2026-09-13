@@ -10322,6 +10322,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"{_quality_expression_brief(canonical)}\n"
         f"当前表达问题：{'；'.join(readability_issues + integrity_issues + structure_issues) if (readability_issues or integrity_issues or structure_issues) else '无'}\n"
         f"{safe_brief}\n\n"
+        f"完整只读事实依据（保留原有条件与未知项，不从价格推导房型权益或入住容量）：\n{source_context or '未提供更多事实'}\n\n"
         "请重写下面正文，只输出正文+标签，不能有Markdown标题、方案编号、解释文字：\n"
         f"{shaped}"
     )
@@ -10361,13 +10362,20 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
 
         claims, evidence = assertions(out), assertions(src)
         factual_out = "\n".join(claims)
+        def starting_price(value: str, match) -> bool:
+            # Bind the qualifier to this amount, never to a preceding range endpoint.
+            number = re.search(r"\d+", match.group())
+            suffix = match.group()[number.end():] + value[match.end():match.end() + 2]
+            return bool(re.search(r"起价(?:为|是|：|:)?\s*$", value[:match.start()])
+                        or re.match(r"\s*(?:元|块|rmb)?\s*(?:/晚|每晚|一晚|/人)?\s*起", suffix, re.I))
+
         for part in claims:
             for match in _PRICE_FACT_RE.finditer(part):
                 amount = re.search(r"\d+", match.group()).group()
                 source_matches = [m for m in _PRICE_FACT_RE.finditer(src)
                                   if re.search(r"\d+", m.group()).group() == amount]
-                if source_matches and all("起" in src[max(0, m.start() - 3):m.end() + 1] for m in source_matches):
-                    if "起" not in part[max(0, match.start() - 3):match.end() + 1]:
+                if source_matches and all(starting_price(src, m) for m in source_matches):
+                    if not starting_price(part, match):
                         issues.append("将起价写成确定成交价，结构化事实不能编造")
         if _BUSINESS_HOURS_RE.search(factual_out) and not any(
             _BUSINESS_HOURS_RE.search(line) and not re.search(r"预订|预约|服务项目|部分|确认|未知", line)
@@ -10378,14 +10386,20 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             (r"(?:园区内|景区内|园内|景区里|园区里)", "位于园区/景区内部"),
             (r"步行.{0,10}(?:到|达|进)|(?:到|进).{0,6}(?:步行|走路)", "步行到达景区"),
             (r"(?:不用|无需|不必|省去).{0,10}(?:接驳|班车|往返)|(?:起床|出门).{0,8}(?:进园|景点)", "接驳或进园条件"),
-            (r"(?:\d|[一二三四五六七八九十两])\s*大\s*[+＋]?\s*(?:\d|[一二三四五六七八九十两])\s*小|(?:1|2|一|两|二)张(?:大床|单床)", "房型床数或入住容量"),
+            (r"(?:\d|[一二三四五六七八九十两])\s*(?:个)?\s*(?:大人|成人|大)\s*(?:带|和|加|[+＋])?\s*(?:\d|[一二三四五六七八九十两])\s*(?:个)?\s*(?:小娃|小孩|儿童|孩子|小)|(?:1|2|一|两|二)张(?:大床|单床)", "房型床数或入住容量"),
             (r"(?:更|最|很|相对更)?(?:划算|便宜|预算友好)|预算(?:会)?更友好|性价比.{0,4}(?:高|更好)|差价不大|省.{0,5}(?:门票钱|预算)", "同条件价格比较结论"),
         )
         for pattern, label in families:
             unsupported = any(re.search(pattern, part) for part in claims) and not any(re.search(pattern, part) for part in evidence)
             if label == "房型床数或入住容量":
-                known_sizes = {re.sub(r"\s+", "", m.group()) for part in evidence for m in re.finditer(pattern, part)}
-                unsupported = any(re.sub(r"\s+", "", m.group()) not in known_sizes
+                def capacity_key(value: str) -> tuple:
+                    numerals = dict(zip("一二三四五六七八九十两", (1,2,3,4,5,6,7,8,9,10,2)))
+                    numbers = tuple(int(n) if n.isdigit() else numerals[n]
+                                    for n in re.findall(r"\d+|[一二三四五六七八九十两]", value))
+                    kind = ("大床" if "大床" in value else "单床") if "张" in value else "入住人数"
+                    return (kind, *numbers)
+                known_sizes = {capacity_key(m.group()) for part in evidence for m in re.finditer(pattern, part)}
+                unsupported = any(capacity_key(m.group()) not in known_sizes
                                   for part in claims for m in re.finditer(pattern, part))
             if unsupported:
                 issues.append(f"出现未提供的{label}，结构化事实不能编造")
@@ -11335,6 +11349,8 @@ async def _score_directed_second_pass(
         cand_issues = _filter_quality_issues_for_content_intent(cand_issues, domain, source_context)
 
         old_hits = _score_lift_hit_count(title, body, features, score, domain)
+        candidate_hard_issues = [item for item in cand_issues
+                                 if _has_blocking_quality_issues(100, [item], domain)]
         new_hits = _score_lift_hit_count(cand_title, cand_body, cand_features, cand_score, domain)
         score_gain = cand_score - score
         issue_gain = _score_gap_issue_count(issues) - _score_gap_issue_count(cand_issues)
@@ -11356,7 +11372,9 @@ async def _score_directed_second_pass(
         if det_repaired:
             return title, body, score, features, grade or _grade(score), issues, True, det_reason
         return title, body, score, features, grade or _grade(score), issues, False, (
-            f"二修未采纳：候选{cand_score:.1f}，原稿{score:.1f}，未形成稳定提升"
+            f"二修未采纳：候选{cand_score:.1f}，原稿{score:.1f}，"
+            + ("仍有硬性问题：" + "；".join(candidate_hard_issues[:6])
+               if candidate_hard_issues else "未达到交付底线或稳定改善条件")
         )
     except Exception as exc:
         _log_internal_failure("score_lift", exc, phase="second_pass")
@@ -15579,6 +15597,7 @@ async def _run_analyze_pipeline(
                     "quality_failed": quality_failed,
                     "issues": quality_issues[:5],
                     "score_lift_repaired": score_lift_repaired,
+                    "score_lift_reason": score_lift_reason,
                     "progress": min(88 + len(suggested_plans_scored) * 2, 95),
                 })
             if _constraint_flags(req.user_constraints)["keep_title"] and (req.note_title or "").strip():

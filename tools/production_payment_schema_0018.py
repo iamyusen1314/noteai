@@ -304,7 +304,9 @@ def _duplicate_delivery_column(conn: Any) -> dict[str, Any] | None:
 
 
 def _normalized_expression(value: Any) -> str:
-    return re.sub(r"[()\s]+", " ", str(value)).strip().lower()
+    # PostgreSQL prints constants above int32 with a quoted bigint cast.
+    expression = re.sub(r"'(-?\d+)'::bigint", r"\1", str(value))
+    return re.sub(r"[()\s]+", " ", expression).strip().lower()
 
 
 def _exact_bounded_check(
@@ -451,10 +453,12 @@ def _verify_trigger_bindings(conn: Any) -> None:
 
 
 def _verify_preconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any]:
+    rows = _ledger_rows(conn)
     _verify_ledger(
-        _ledger_rows(conn),
+        rows,
         PRIOR_MIGRATION_NAMES,
         contract["migration_hashes"],
+        successor_hashes=contract.get("successor_hashes", {}),
     )
     if any(
         providers != PROVIDERS_BEFORE
@@ -476,8 +480,8 @@ def _verify_preconditions(conn: Any, contract: dict[str, Any]) -> dict[str, Any]
     privileges = _column_privilege_snapshot(conn)
     _runtime_role_snapshot(conn)
     return {
-        "ledger_count": len(PRIOR_MIGRATION_NAMES),
-        "ledger_last": PRIOR_MIGRATION_NAMES[-1],
+        "ledger_count": len(rows),
+        "ledger_last": str(rows[-1]["version"]),
         "provider_constraint_count": len(PROVIDER_CONSTRAINTS),
         "provider_submitted_at_column_count": 0,
         "duplicate_delivery_count_column_count": 0,
@@ -562,7 +566,11 @@ def _verify_postconditions(conn: Any, contract: dict[str, Any], *, allow_success
         fragment in insert
         for fragment in (
             "new.provider_submitted_at is not null",
-            "provider = 'wechatpay_direct'",
+            "id = new.order_id",
+            "amount_fen = new.amount_fen",
+            "payment_status = 'succeeded'",
+            "entitlement_status = 'applied'",
+            "refunded_fen = 0",
         )
     ):
         raise PaymentSchemaError("refund_guard_functions")
@@ -657,6 +665,7 @@ def apply_schema(
             "SELECT pg_advisory_xact_lock(hashtext('noteai_schema_migrations'))"
         )
         _verify_preconditions(conn, contract)
+        ledger_before = _ledger_rows(conn)
         role_before = _runtime_role_snapshot(conn)
         privileges_before = _column_privilege_snapshot(conn)
         conn.execute(contract["migration_payload"].decode("utf-8"))
@@ -666,7 +675,13 @@ def apply_schema(
         )
         if int(inserted.rowcount or 0) != 1:
             raise PaymentSchemaError("ledger_insert")
-        verification = _verify_postconditions(conn, contract)
+        verification = _verify_postconditions(conn, contract, allow_successors=True)
+        expected_ledger = sorted(
+            ledger_before + [{"version": MIGRATION_NAME, "sha256": MIGRATION_SHA256}],
+            key=lambda row: row["version"],
+        )
+        if _ledger_rows(conn) != expected_ledger:
+            raise PaymentSchemaError("ledger_delta")
         if _runtime_role_snapshot(conn) != role_before:
             raise PaymentSchemaError("runtime_role_drift")
         if _column_privilege_snapshot(conn) != privileges_before | target_privileges:
@@ -715,6 +730,117 @@ def verify_schema(
         "provider_calls": 0,
         "verification": verification,
     }
+
+
+def dms_apply_sql(contract: dict[str, Any] | None = None, *, expected_database: str = "noteai") -> str:
+    """Render the same fixed delta as one atomic statement for an owner DMS session.
+
+    Does not connect or execute. Existing functions are source-matched before
+    replacement, so their original 0014 definitions remain a recoverable backup.
+    """
+    contract = contract or source_contract()
+    payload = contract["migration_payload"].decode("utf-8")
+    if hashlib.sha256(payload.encode()).hexdigest() != MIGRATION_SHA256:
+        raise PaymentSchemaError("migration_source_hash")
+    def literal(value):
+        return "'" + str(value).replace("'", "''") + "'"
+    def function_hashes(source):
+        result = {}
+        for name in ("noteai_payment_event_identity_guard_v1", *TRIGGER_FUNCTIONS.values()):
+            match = re.search(r"CREATE OR REPLACE FUNCTION " + re.escape(name)
+                              + r"\(\).*?AS \$\$(.*?)\$\$;", source, re.S)
+            if match is None:
+                raise PaymentSchemaError("source_function_missing")
+            result[name] = hashlib.sha256(match.group(1).encode()).hexdigest()
+        return result
+    before = function_hashes((MIGRATION_DIR / "0014_payment_execution_contract.sql").read_text())
+    after = function_hashes(payload)
+    known = {**contract["migration_hashes"], **contract.get("successor_hashes", {})}
+    hashes = literal(json.dumps(known, sort_keys=True)) + "::jsonb"
+    before_hashes = literal(json.dumps(before, sort_keys=True)) + "::jsonb"
+    after_hashes = literal(json.dumps(after, sort_keys=True)) + "::jsonb"
+    constraints = ",".join(literal(v) for v in PROVIDER_CONSTRAINTS.values())
+    roles = "SELECT jsonb_agg(to_jsonb(r) ORDER BY rolname) FROM pg_roles r WHERE rolname LIKE 'noteai_%'"
+    grants = "SELECT jsonb_agg(to_jsonb(g) ORDER BY table_name,column_name,privilege_type) FROM information_schema.column_privileges g WHERE table_schema='public' AND grantee='noteai_payment'"
+    functions = ("SELECT jsonb_object_agg(p.proname,encode(sha256(convert_to(p.prosrc,'UTF8')),'hex')) "
+                 "FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+                 "WHERE n.nspname='public' AND p.proname IN (" + ",".join(literal(x) for x in before) + ")")
+    return f"""-- Fixed 0018 SHA256 {MIGRATION_SHA256}; no business DML/provider calls.
+DO $noteai_0018$
+DECLARE
+  ledger_before jsonb; roles_before jsonb; grants_before jsonb;
+  role_members_before jsonb; object_owners_before jsonb;
+  body_hashes jsonb; table_acl_before jsonb;
+BEGIN
+  IF current_user <> 'noteai_admin' OR current_database() <> {literal(expected_database)}
+  THEN RAISE EXCEPTION 'owner_database_required'; END IF;
+  PERFORM set_config('search_path','public,pg_catalog',true);
+  PERFORM set_config('timezone','UTC',true);
+  PERFORM set_config('statement_timeout','60s',true);
+  PERFORM set_config('lock_timeout','5s',true);
+  PERFORM set_config('idle_in_transaction_session_timeout','90s',true);
+  PERFORM pg_advisory_xact_lock(hashtext('noteai_schema_migrations'));
+  IF EXISTS(SELECT 1 FROM schema_migrations WHERE version={literal(MIGRATION_NAME)})
+     OR (SELECT count(*) FROM schema_migrations WHERE version < {literal(MIGRATION_NAME)}) <> 17
+     OR EXISTS(SELECT 1 FROM schema_migrations WHERE ({hashes} ->> version) IS DISTINCT FROM sha256)
+  THEN RAISE EXCEPTION 'ledger_precondition'; END IF;
+  SELECT jsonb_agg(to_jsonb(s) ORDER BY version) INTO ledger_before FROM schema_migrations s;
+  SELECT ({roles}) INTO roles_before;
+  SELECT ({grants}) INTO grants_before;
+  SELECT jsonb_agg(to_jsonb(m) ORDER BY roleid,member) INTO role_members_before FROM pg_auth_members m;
+  SELECT jsonb_agg(jsonb_build_array(oid,relowner) ORDER BY oid) INTO object_owners_before
+    FROM pg_class WHERE relnamespace='public'::regnamespace;
+  SELECT jsonb_agg(to_jsonb(t) ORDER BY grantee,table_name,privilege_type) INTO table_acl_before
+    FROM information_schema.table_privileges t WHERE table_schema='public';
+  IF (SELECT count(*) FROM pg_constraint WHERE conname IN ({constraints})
+      AND connamespace='public'::regnamespace AND convalidated
+      AND pg_get_constraintdef(oid,true) = 'CHECK (provider = ''adapay''::text)') <> 3
+     OR EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public'
+          AND ((table_name='payment_refunds' AND column_name='provider_submitted_at')
+            OR (table_name='payment_events' AND column_name='duplicate_delivery_count')))
+     OR NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='noteai_payment')
+     OR has_table_privilege('noteai_payment','payment_refunds','UPDATE')
+     OR has_table_privilege('noteai_payment','payment_events','UPDATE')
+  THEN RAISE EXCEPTION 'schema_acl_precondition'; END IF;
+  SELECT ({functions}) INTO body_hashes;
+  IF body_hashes IS DISTINCT FROM {before_hashes} THEN RAISE EXCEPTION 'original_function_drift'; END IF;
+  IF (SELECT count(*) FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid
+      WHERE t.tgenabled='O' AND ((t.tgrelid='payment_refunds'::regclass AND
+        ((t.tgname='noteai_payment_refund_identity_v1' AND p.proname='noteai_payment_refund_identity_guard_v1') OR
+         (t.tgname='noteai_payment_refund_insert_v1' AND p.proname='noteai_payment_refund_insert_guard_v1')))
+        OR (t.tgrelid='payment_events'::regclass AND t.tgname='noteai_payment_event_identity_v1'
+            AND p.proname='noteai_payment_event_identity_guard_v1'))) <> 3
+  THEN RAISE EXCEPTION 'trigger_binding'; END IF;
+
+{payload}
+
+  INSERT INTO schema_migrations(version,sha256) VALUES ({literal(MIGRATION_NAME)},{literal(MIGRATION_SHA256)});
+  IF (SELECT jsonb_agg(to_jsonb(s) ORDER BY version) FROM schema_migrations s
+      WHERE version <> {literal(MIGRATION_NAME)}) IS DISTINCT FROM ledger_before
+     OR ({roles}) IS DISTINCT FROM roles_before
+     OR (SELECT jsonb_agg(to_jsonb(m) ORDER BY roleid,member) FROM pg_auth_members m) IS DISTINCT FROM role_members_before
+     OR (SELECT jsonb_agg(to_jsonb(t) ORDER BY grantee,table_name,privilege_type)
+         FROM information_schema.table_privileges t WHERE table_schema='public') IS DISTINCT FROM table_acl_before
+     OR (SELECT jsonb_agg(jsonb_build_array(oid,relowner) ORDER BY oid) FROM pg_class
+         WHERE relnamespace='public'::regnamespace) IS DISTINCT FROM object_owners_before
+  THEN RAISE EXCEPTION 'ledger_role_table_acl_drift'; END IF;
+  SELECT ({functions}) INTO body_hashes;
+  IF body_hashes IS DISTINCT FROM {after_hashes} THEN RAISE EXCEPTION 'function_postcondition'; END IF;
+  IF NOT has_column_privilege('noteai_payment','payment_refunds','provider_submitted_at','UPDATE')
+     OR NOT has_column_privilege('noteai_payment','payment_events','duplicate_delivery_count','UPDATE')
+     OR (SELECT jsonb_agg(to_jsonb(g) ORDER BY table_name,column_name,privilege_type)
+         FROM information_schema.column_privileges g WHERE table_schema='public' AND grantee='noteai_payment'
+         AND NOT ((table_name='payment_refunds' AND column_name='provider_submitted_at')
+               OR (table_name='payment_events' AND column_name='duplicate_delivery_count'))) IS DISTINCT FROM grants_before
+     OR (SELECT count(*) FROM information_schema.column_privileges WHERE table_schema='public'
+         AND grantee='noteai_payment' AND is_grantable='NO' AND privilege_type IN ('SELECT','INSERT','UPDATE')
+         AND ((table_name='payment_refunds' AND column_name='provider_submitted_at')
+           OR (table_name='payment_events' AND column_name='duplicate_delivery_count'))) <> 6
+  THEN RAISE EXCEPTION 'column_acl_delta'; END IF;
+  RAISE NOTICE '0018_APPLIED_VERIFY_REQUIRED';
+END
+$noteai_0018$;
+"""
 
 
 def main(argv: list[str] | None = None) -> int:

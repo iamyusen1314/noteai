@@ -447,6 +447,21 @@ class CanaryPaymentFlowPostgresTests(unittest.TestCase):
         ).fetchone()
         if not (160000 <= version < 170000 and addr is None):
             raise RuntimeError("isolated PG16 socket required")
+        # Current migrations reference these runtime roles. They are inert
+        # fixtures in the explicitly isolated cluster, not production accounts.
+        for role in ("noteai_app", "noteai_admin_runtime"):
+            attributes = cls.admin.execute(
+                "SELECT rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,"
+                "rolinherit,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=%s",
+                (role,),
+            ).fetchone()
+            if attributes is None:
+                cls.admin.execute(psycopg.sql.SQL(
+                    "CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE "
+                    "NOINHERIT NOREPLICATION NOBYPASSRLS"
+                ).format(psycopg.sql.Identifier(role)))
+            elif attributes != (False,) * 7:
+                raise RuntimeError("isolated fixture role attributes differ")
         cls.database = "noteai_item31_test_" + uuid.uuid4().hex
         cls.admin.execute(psycopg.sql.SQL("CREATE DATABASE {}").format(psycopg.sql.Identifier(cls.database)))
         cls.connection_args = {**CONNECT, "dbname": cls.database}
@@ -456,7 +471,14 @@ class CanaryPaymentFlowPostgresTests(unittest.TestCase):
             "DATABASE_URL": "postgresql://postgres@/" + cls.database + "?host=/var/run/postgresql",
             "PYTHON_DOTENV_DISABLED": "1",
         }, clear=True):
-            cls.db.apply_postgres_migrations()
+            try:
+                cls.db.apply_postgres_migrations()
+            except BaseException:
+                cls.admin.execute(psycopg.sql.SQL("DROP DATABASE {}").format(
+                    psycopg.sql.Identifier(cls.database)
+                ))
+                cls.admin.close()
+                raise
 
     @classmethod
     def tearDownClass(cls):

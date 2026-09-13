@@ -273,13 +273,21 @@ def _exact_price(model: str, direction: str, currency: str, default: float | Non
     return value if value > 0 else None
 
 
-def _pricing_snapshot(provider: str, model: str) -> dict:
+def _pricing_snapshot(provider: str, model: str, *, prompt_tokens: int = 0) -> dict:
     """Resolve only product-confirmed exact model prices.
 
     Provider-wide variables remain supported by the old estimate helper, but
     are deliberately excluded here because they cannot prove a model-specific
     supplier cost.
     """
+    if provider == "doubao" and model == "doubao-seed-2-0-lite-260428":
+        import ark_media
+        rates = ark_media.pricing(prompt_tokens)
+        return {"currency": "RMB", "usd_cny": _billing_usd_cny(),
+                "price_version": ark_media.PRICE_VERSION, "pricing_status": "exact",
+                "cache_write_5m": None, "cache_write_1h": None,
+                **{dimension: _exact_price(model, dimension, "RMB", price)
+                   for dimension, price in rates.items()}}
     base = _EXACT_MODEL_PRICES.get(str(model or ""))
     if base and str(provider or "").lower() != str(base.get("provider") or "").lower():
         base = None
@@ -998,6 +1006,8 @@ def record_model_usage(
     *,
     unclassified_input_tokens: int = 0,
     cache_read_tokens: int = 0,
+    audio_input_tokens: int = 0,
+    audio_cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
     cache_write_5m_tokens: int | None = None,
     cache_write_1h_tokens: int | None = None,
@@ -1031,6 +1041,8 @@ def record_model_usage(
         cost_rmb=cost_rmb,
         unclassified_input_tokens=unclassified_input_tokens,
         cache_read_tokens=cache_read_tokens,
+        audio_input_tokens=audio_input_tokens,
+        audio_cache_read_tokens=audio_cache_read_tokens,
         cache_write_tokens=cache_write_tokens,
         cache_write_5m_tokens=cache_write_5m_tokens,
         cache_write_1h_tokens=cache_write_1h_tokens,
@@ -1050,6 +1062,8 @@ def _record_model_usage_for_usage_id(
     *,
     unclassified_input_tokens: int = 0,
     cache_read_tokens: int = 0,
+    audio_input_tokens: int = 0,
+    audio_cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
     cache_write_5m_tokens: int | None = None,
     cache_write_1h_tokens: int | None = None,
@@ -1061,6 +1075,9 @@ def _record_model_usage_for_usage_id(
     tokens_out = max(0, int(tokens_out or 0))
     unclassified = max(0, int(unclassified_input_tokens or 0))
     cache_read = max(0, int(cache_read_tokens or 0))
+    if any(type(value) is not int or value < 0 for value in (audio_input_tokens, audio_cache_read_tokens)):
+        raise ValueError("invalid audio usage dimensions")
+    audio_input, audio_cache = audio_input_tokens, audio_cache_read_tokens
     cache_write = max(0, int(cache_write_tokens or 0))
     write_5m = max(0, int(cache_write_5m_tokens or 0))
     write_1h = max(0, int(cache_write_1h_tokens or 0))
@@ -1076,7 +1093,9 @@ def _record_model_usage_for_usage_id(
     }:
         usage_status = "usage_incomplete"
 
-    pricing = _pricing_snapshot(provider, model)
+    pricing = (_pricing_snapshot(provider, model, prompt_tokens=
+                tokens_in + unclassified + cache_read + cache_write + audio_input + audio_cache)
+               if provider == "doubao" else _pricing_snapshot(provider, model))
     pricing_status = str(pricing["pricing_status"])
     currency = str(pricing["currency"])
     fx = float(pricing["usd_cny"])
@@ -1089,6 +1108,8 @@ def _record_model_usage_for_usage_id(
 
     known_cost = sum((
         dimension_cost(tokens_in, pricing["input"]),
+        dimension_cost(audio_input, pricing.get("audio_input")),
+        dimension_cost(audio_cache, pricing.get("audio_cache_read")),
         dimension_cost(cache_read, pricing["cache_read"]),
         dimension_cost(write_5m, pricing["cache_write_5m"]),
         dimension_cost(write_1h, pricing["cache_write_1h"]),
@@ -1096,6 +1117,8 @@ def _record_model_usage_for_usage_id(
     ))
     required_prices = (
         (tokens_in, pricing["input"]),
+        (audio_input, pricing.get("audio_input")),
+        (audio_cache, pricing.get("audio_cache_read")),
         (cache_read, pricing["cache_read"]),
         (write_5m, pricing["cache_write_5m"]),
         (write_1h, pricing["cache_write_1h"]),
@@ -1109,10 +1132,14 @@ def _record_model_usage_for_usage_id(
         known_cost = max(0.0, float(cost_rmb))
         pricing_status = "manual"
     known_cost = round(known_cost, 9)
-    fingerprint = hashlib.sha256(json.dumps([
+    fingerprint_values = [
         provider, model, tokens_in, tokens_out, unclassified, cache_read,
         cache_write, write_5m, write_1h, write_unknown, usage_status, cost_rmb,
-    ], separators=(",", ":")).encode()).hexdigest()
+    ]
+    # Keep old non-audio settlement fingerprints valid across this rollout.
+    if provider == "doubao" or audio_input or audio_cache:
+        fingerprint_values.extend([audio_input, audio_cache])
+    fingerprint = hashlib.sha256(json.dumps(fingerprint_values, separators=(",", ":")).encode()).hexdigest()
 
     with db.transaction(write=True) as tx:
         owner = tx.fetchone(
@@ -1158,8 +1185,9 @@ def _record_model_usage_for_usage_id(
             "cache_write_1h_tokens,cache_write_unknown_ttl_tokens,output_tokens,"
             "input_price_per_1m,cache_read_price_per_1m,cache_write_5m_price_per_1m,"
             "cache_write_1h_price_per_1m,output_price_per_1m,price_currency,usd_cny,"
-            "price_version,known_cost_rmb,pricing_status,usage_status,recorded_at) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "price_version,known_cost_rmb,pricing_status,usage_status,recorded_at,"
+            "audio_input_tokens,audio_cache_read_input_tokens,audio_input_price_per_1m,audio_cache_read_price_per_1m) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 model_usage_id, usage_id, str(provider or "unknown"), str(model or "unknown"),
                 tokens_in, unclassified, cache_read, cache_write, write_5m, write_1h,
@@ -1167,11 +1195,12 @@ def _record_model_usage_for_usage_id(
                 pricing["cache_write_5m"], pricing["cache_write_1h"], pricing["output"],
                 currency, fx, pricing["price_version"], known_cost, pricing_status,
                 usage_status, _now(),
+                audio_input, audio_cache, pricing.get("audio_input"), pricing.get("audio_cache_read"),
             ),
         )
         totals = tx.fetchone(
             "SELECT COUNT(*) AS calls, "
-            "COALESCE(SUM(input_tokens+unclassified_input_tokens+cache_read_input_tokens+cache_write_input_tokens),0) AS tokens_in, "
+            "COALESCE(SUM(input_tokens+unclassified_input_tokens+cache_read_input_tokens+cache_write_input_tokens+audio_input_tokens+audio_cache_read_input_tokens),0) AS tokens_in, "
             "COALESCE(SUM(output_tokens),0) AS tokens_out, "
             "COALESCE(SUM(known_cost_rmb),0) AS known_cost, "
             "COALESCE(SUM(CASE WHEN pricing_status='exact' THEN 0 ELSE 1 END),0) AS pricing_gaps, "

@@ -347,7 +347,9 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
                 "model_config_revision": (current.model_config or {}).get("active_revision"),
                 "prompts": prompt_manager.request_versions(),
                 "fact_observation": current.fact_observation,
-                "provider": "claude" if payload["model"].startswith("claude") else "kimi",
+                "provider": ("claude" if payload["model"].startswith("claude") else
+                             "doubao" if payload["model"] == "doubao-seed-2-0-lite-260428" else "kimi"),
+                "modality": payload.get("modality"),
                 "operation_id": payload.get("operation_id"),
                 "max_tokens": payload.get("max_tokens")}, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "

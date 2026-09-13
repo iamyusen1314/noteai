@@ -1329,6 +1329,9 @@ async function loadUsage() {
     const tokens = adminFiniteNumber(model?.input_tokens)
       + adminFiniteNumber(model?.cache_read_tokens)
       + adminFiniteNumber(model?.cache_write_tokens)
+      + adminFiniteNumber(model?.unclassified_input_tokens)
+      + adminFiniteNumber(model?.audio_input_tokens)
+      + adminFiniteNumber(model?.audio_cache_read_tokens)
       + adminFiniteNumber(model?.output_tokens);
     return `${esc(model?.model || '未知模型')} ${fmtTokens(tokens)} / ¥${adminFiniteNumber(model?.known_cost_rmb).toFixed(4)}`;
   }).join('；') || '暂无逐模型明细';
