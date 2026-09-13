@@ -1,6 +1,6 @@
 # NoteAI Internal Production Readiness Handoff
 
-## September14 02:20 Beijing — e0b84d4 deployed; EIP arrears blocks public traffic
+## September14 03:05 Beijing — e0b84d4 live; Native two-capture preparation verified; EIP arrears blocks live delivery
 
 Original deploy result at C /var/lib/noteai/media-e0b84d4/deploy/result.json is
 DEPLOYED_MEDIA_DISABLED at1789322169.424091 (01:56:09BJT). API image2a6eecd63d99,
@@ -26,7 +26,8 @@ permissions weakened, DNS changed, resource replaced or recharge performed.
 Owner asked to replenish arrears/positive balance at the opened Chrome funds page:
 https://billing-cost.console.aliyun.com/fortune/billing-account (amount panel has
 not loaded, so no amount asserted). This is PATH_BLOCKED for public/provider work;
-continue Native UI/binding/media preparation. Do not send paid probes during lock.
+Native UI/binding/media preparation has now completed the independent work below.
+Do not send paid probes during lock. Restore connectivity before live verification.
 
 Hotel09 confirmed absent before its sole launch1789322935.826398, pid1605198,
 request formal-claude-meituan-20260914-09, scriptSHAb14d4f83250566023e907ff2a6da5a7372d1043df2040504441e9304bce8a663.
@@ -39,27 +40,76 @@ Original Haiku operation bYD57WVh8jNZmUHW8fXaNAWBbcPTQIQm remains UNKNOWN with n
 HTTP status; reserve2805milliCNY is not a settled bill. Ledger usage_missing /
 usage_incomplete and legacy estimate1.45 remain explicit; known subtotal0 is not
 proof of zero provider cost. No replay/second hotel request. Gateway original
-operation needs read-only reconciliation after connectivity returns.08 unchanged.
+operation readback is recorded below; no retained admission found.08 unchanged.
 
-Separate Native API boundary sourcece1feca and in-progress original-product QR/order
-UI are not in e0bproduction. Existing order APIs are reused; detail response is a bare
-order, so polling now matches that contract. Two exact static QR/UI paths are added
-locally, not a broad route exposure. Existing UNKNOWN identity is retained across
-history views and different products; pending/manual refunds stay truthful; account
-switches stop stale preparation.10 actual offline JS scenarios pass, checked in
-at tests/payment_native_ui.test.cjs. Local QR vendor2.0.4 uses the official exact
-npm archive verified SHA512; no remote QR service or unreviewed install scripts.
-Ark nullable optional audio details are accepted only when input/cached zero is
-known; unknown real video audio remains incomplete.11 Python3.11 network-none
-checks PASS; initial test-module discovery failure was environment-only and its
-log retained. Both changes remain a separate undeployed successor. Next: finish HTTPS diagnosis and original09
-result readback, actual isolated media verification, then Native Payment/broker/
-callback and owner12RMB scan/refund/reconcile. Isolated Chrome test additionally verified amount-before-create, local QR canvas,
-original bare-order poll to paid+rights, onePOST/twoGET/zero production calls, and
-390px modal without horizontal overflow. CSP bundle extraction and script syntax
-pass. This is synthetic component verification, not a real WeChat acceptance.
-The original callback-live unit template now preserves Restart=no during its
-bounded collector capture, preventing unreviewed restart of the same capture.
+Native API/UI/nullable media fix is now committed4d7781f, NOT in e0bproduction.
+The exact4d API-five-module/original-frontend source package is prepared only:
+~/.codex/tmp/noteai-native-media-4d7781f.tar.gz,441817bytes,
+SHAc229a5729402b37d9174c52e8bba64d8344746d196436d680abde01f875082da.
+Original build.py/manifest are reused in the adjacent directory; build only API
+atop actual2a6eecd6, reuse e0b Admin/Payment/canary (their relevant runtime code is
+unchanged). No upload/build/new image digest exists yet. Package exact commit/
+file hashes (11 Git files/13 archive members) and Python syntax PASS. Final builder
+SHA0e31e5bdf0f3bbf3dfb4c29eea78dbaccb4dea7a002f173b03f8a65686d42c71.
+Initial unuploaded archive a3988511... is preserved as the adjacent
+noteai-native-media-4d7781f.initial-unuploaded.tar.gz; only host-script cleanup
+changed afterward, not4d runtime identity. First local package attempt stopped on a
+nonrecursive license-path lookup before copying files; corrected without upload.
+Scoped successor deployment script: ~/Downloads/noteai-native-media-4d7781f-deploy.py
+SHA729046b68f0b641fc6745b4ff986751504a7cdb2893400a08261c8ce91a279a5
+(LOCAL_NOT_EXECUTED). It reuses original helpers, drains API ingress, replaces only
+API/public web, patches exactly two JS asset locations into the actual nginx.conf,
+and preserves original config/image/web rollback. No blanket Nginx/template replace.
+Builder/deployer failure cleanup binds exact CID, image and source label; preexisting
+same-name containers block dispatch. Failed cleanup preserves UNKNOWN and original
+timeout, never a false FAILED/clear state.14 pure-memory AST cases PASS, no Docker/
+cloud/full-script execution; ~/Downloads/noteai-native-media-cid-review-20260914/
+readonly-ast-190403312977.json SHA1255dbe7e9dc814f52ae379b8a257a488ce55e0213de2d2e3f5c61cf1d51e2a3.
+Actual C read at1789325275: nginx.conf643f1753...336901; API drop293673f2...470f45;
+Payment inactive/Restart=no, API active/Restart=always, both no queued job. During
+bounded capture API must also temporarily use Restart=no; restore afterward.
+
+Original-product Native UI uses existing capabilities/order APIs and exact1200fen
+owner fence. Existing UNKNOWN key survives history/product changes, no automatic
+POST retry, refunds stay pending until terminal; local QR2.0.4 is official/MIT.
+10 Node scenarios PASS; isolated Chrome verified amount-before-create, QR canvas,
+bare-order polling, onePOST/twoGET/zero provider calls and390px layout. This is
+component verification, not real WeChat acceptance. CSP bundle/syntax PASS.
+Ark optional-null audio details are accepted only when input/cached zero is known;
+unknown real video audio stays incomplete.11 Python3.11 network-none checks PASS.
+Existing payment unit hardening assertion was synchronized to Restart=no; isolated
+method PASS. Full module import first failed on missing unrelated historical plan
+in the selective test copy, not runtime behavior; no full suite pass asserted.
+Temporary capture full-unit template now preserves original hardening, same UID999/
+private mounts, no API stop dependency and no automatic enable/restart. Dependencies
+cannot be cleared with empty drop-in directives; use full temporary unit and restore
+saved original. Trade(callback1) and reconciliation(callback0) variants both pass
+local Linux systemd-analyze verify; not installed. Template is
+deploy/production/systemd/noteai-payment-canary-capture.service.template.
+Two-capture PG16 proof is now in existing tests/test_item31_runtime_dml_postgres.py:
+normal API create/signed payment/refund callbacks/operator refund in first sealed
+capture; new305-second next-day capture reconciles SAME order/key/original context
+with callbacks off. Only phase2 reconciliation_runs writes; prior journal/action
+bytes unchanged. Wrong order/context and duplicate refund/reconcile are refused.
+The full affected14-case module PASS in32.035s under Python3.11/network-none/real
+PG16 UNIX socket; original single-case PASS13.533s retained. Source test uses only
+the disposable noteai_item31_test_ database/synthetic gateways; actual role/Secret
+checks are separately scoped, not proven by these mocks. Logs at
+~/.codex/tmp/noteai-native-two-capture-feoxs96l/{committed,module}-suite-result.log;
+earlier standalone proof/failed fixture attempts remain in that same private folder.
+No live activation/time window/order/callback/capture has been created.
+
+Original Hotel09 Gateway readback at1789325178.7452836 through existing Render
+60168e1 Shell/DynamoDB strong GetItem: HTTP200, item_found=false at
+OP#5d26941f334a5a3c62c1f6a69b1b219fd4fc8232790b9b12acdf7def49b20a9c.
+No model request, claim, lease or business write. First local hash assertion failed
+before GetItem (missing original operation: prefix), corrected using existing
+_operation(). Private readback: ~/.codex/tmp/noteai-media-e0b84d4/hotel09-gateway-readback.json,
+SHA5c2a80829c8f52cf51ce9937a5eab193c03a713e12f69ae3b99382f7742a2a93.
+No retained admission is found; this does not justify changing UNKNOWN/unknown fee
+to zero or resending09. Current DMS noteai_admin session timeout readback is0,
+backend15003,02:41:24.591136BJT, after RESET; no schema/data change. Old local test
+browser/server18765 closed after completed synthetic UI validation.
 
 The one private screenshot transport upload reported browser interruption. Original
 object readback via existing private SDK did not confirm any object (OperationError,
@@ -69,6 +119,17 @@ SHA21884b8f37caff70592ea6d1594d8fd6bd238bb824d2fc5d202c26a34401934c;
 not in Git/public downloads. No Ark request was made after the EIP lock was known.
 Item34 unchanged;30/37 unchanged.
 No Gitpush; seven protected paths untouched.
+
+Next after owner recharge: read both original EIP states, verify public TLS and
+C-to-Render health once, reconcile original private fixture transfer before any
+retry; then upload/build the exact final4d package once and apply the scoped closed
+API/public-web successor. Preserve e0b rollback and existing Ark/WeChat encrypted
+inputs. Continue actual image/video+audio/full-business quality and cost verification;
+Native uses one owner-scanned12RMB order/full refund, then the same order's next-day
+bill in its separate closed capture. Never replay09,0018,0025,0026 or Item34.
+Current independent work for these live paths is saved; only actual network recovery
+and subsequent owner scan/real supplier results remain. Do not generate unrelated
+engineering to occupy the wait or declare media/payment complete.
 
 ## September14 01:41 Beijing — 0026 committed/verified; Ark API input applied disabled
 

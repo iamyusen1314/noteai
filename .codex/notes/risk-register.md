@@ -1,12 +1,16 @@
 # Risk Register
 
-September14 02:20BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
+September14 03:05BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
 Actual EIP console shows website and NAT both arrears-locked/throttled1Kbps;
 local TLS/health/bindings/80+443rules are correct. Owner recharge is required,
 not a speculative code rollback.09 failed GATEWAY_TIMEOUT;6credits refunded once,
 original provider operation UNKNOWN/fee unconfirmed; do not replay. Public/media/
-provider verification waits for network recovery while local Native UI and media
-compatibility work continues. Exact state and original results at Handoff top.
+provider verification waits for network recovery. Native UI/media compatibility and
+same-order two-capture PG16 proof are complete locally; candidate remains unuploaded/
+unbuilt. Production Native closure must include actual refund terminal state and the
+next-day bill, not merely QR/query success. Original Gateway09 strong read found no
+retained admission, which does not settle unknown cost. Exact results/next steps are
+at Handoff top; owner recharge and later owner scan are actual external dependencies.
 Item34/30/37 unchanged; no new network permissions/resources or budget reset.
 
 September14 01:02BJT current: hotel08 failed/reconciled,6credits refunded once and2.922080RMB

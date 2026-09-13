@@ -1,12 +1,15 @@
 # Architecture Summary
 
-September14 02:20BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
+September14 03:05BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
 Actual EIP console shows website and NAT both arrears-locked/throttled1Kbps;
 local TLS/health/bindings/80+443rules are correct. Owner recharge is required,
 not a speculative code rollback.09 failed GATEWAY_TIMEOUT;6credits refunded once,
 original provider operation UNKNOWN/fee unconfirmed; do not replay. Public/media/
-provider verification waits for network recovery while local Native UI and media
-compatibility work continues. Exact state and original results at Handoff top.
+provider verification waits for network recovery. Local Native UI/media compatibility,
+same-order two-capture PG16 proof and bounded service/deployment recovery preparation
+are complete;4d source package remains unuploaded/unbuilt. Original Gateway09 strong
+read found no retained admission; UNKNOWN cost is preserved. Exact state/results
+and continuation steps are at Handoff top; no real media/payment pass asserted.
 Item34/30/37 unchanged; no new network permissions/resources or budget reset.
 
 September14 01:02BJT current: hotel08 failed/reconciled,6credits refunded once and2.922080RMB

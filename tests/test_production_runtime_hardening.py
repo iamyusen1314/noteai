@@ -626,8 +626,8 @@ class ProductionRuntimeHardeningTests(unittest.TestCase):
             / "noteai-payment-callback-live.conf.template"
         ).read_text(encoding="utf-8")
         self.assertIn("Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1", callback_drop_in)
-        self.assertIn("Restart=on-failure", callback_drop_in)
-        self.assertIn("RestartSec=5", callback_drop_in)
+        self.assertIn("Restart=no", callback_drop_in)
+        self.assertNotIn("Restart=on-failure", callback_drop_in)
 
         compose = (
             ROOT / "deploy" / "production" / "docker-compose.yml"

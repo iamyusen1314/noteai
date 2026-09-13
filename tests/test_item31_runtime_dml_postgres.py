@@ -623,5 +623,160 @@ finally:
                         transaction_factory=writer)
                 self.assertEqual(self.stage_counts, {"payment_settlement_summaries": 1})
 
+    # Normal Native writers and same-order next-day reconciliation each seal
+    # their own short capture. All gateway material below is a synthetic fixture;
+    # actual payment-role/Secret-scope checks remain separately verified.
+    def _bind_phase_runtime(self, stack, directory, activation, targets, uid, key_hash, app_id, context, run_id=None):
+        directory.mkdir(mode=448)
+        binding = {'activation': activation, 'provider': 'wechatpay_direct', 'targets': targets, 'work_directory': str(directory), 'user_id': uid, 'idempotency_key_hash': key_hash, 'app_id': app_id, 'create_context': context, 'reconciliation_run_id': run_id}
+        path = directory / 'binding.json'
+        raw = json.dumps(binding, sort_keys=True).encode()
+        path.write_bytes(raw)
+        path.chmod(384)
+        stack.enter_context(mock.patch.dict(os.environ, {'NOTEAI_ITEM31_DML_BINDING_FILE': str(path), 'NOTEAI_ITEM31_DML_BINDING_SHA256': hashlib.sha256(raw).hexdigest()}))
+        return binding
+
+    def test_native_two_closed_captures_one_order(self):
+        # The next-day bill covers the full day, so isolate this one-order
+        # scenario from earlier synthetic canaries in this disposable test DB.
+        self.assertTrue(self.database.startswith("noteai_item31_test_"))
+        self.db.execute("TRUNCATE users CASCADE")
+        p = 'wechatpay_direct'
+        uid, token, key, key_hash, targets, app_id, env = self.subject(p)
+        root = Path(self.scratch)
+        ledger = root / 'actions'
+        ledger.mkdir(mode=448)
+        with ExitStack() as common:
+            common.enter_context(mock.patch.object(self.payment, '_now', return_value=datetime.now(timezone.utc).replace(microsecond=0) - timedelta(seconds=3)))
+            common.enter_context(mock.patch.object(self.executor, '_ACTION_LEDGER_DIRECTORY', str(ledger)))
+            common.enter_context(mock.patch.object(self.executor, '_bound_canary_user_id_sha256', return_value=env['NOTEAI_PAYMENT_CANARY_USER_ID_SHA256']))
+            common.enter_context(mock.patch.object(self.executor, '_database_role_ok', return_value=True))
+            common.enter_context(mock.patch.object(self.executor, '_provider_secret_scope_ok', return_value=True))
+            gateway = self.fixture.wechat
+            common.enter_context(mock.patch.object(self.executor, '_gateway', return_value=(gateway, {})))
+            owner = self.connect()
+            common.callback(owner.close)
+            create_gateway = mock.Mock()
+            create_gateway.create_payment.side_effect = lambda request: self.pending(request, p, app_id)
+            with ExitStack() as day1:
+                self.configure(day1, p, app_id, env, create_gateway)
+                context = self.api._item31_create_canary_context(provider_name=p, user_id=uid, product_kind='credit_package', product_id='starter', idempotency_key=key, prod_mode=True)
+                first = self._bind_phase_runtime(day1, root / 'day1', env['NOTEAI_PAYMENT_CANARY_ACTIVATION_ID'], targets, uid, key_hash, app_id, context)
+                for sql in dml.installation_sql(first['activation'], targets):
+                    owner.execute(sql)
+                with mock.patch.dict(os.environ, {'NOTEAI_RUNTIME_ROLE': 'payment'}):
+                    broker1 = dml.configured_runtime('payment', self.db)
+                self.addCleanup(lambda: broker1.close(clean=False))
+                with mock.patch.dict(os.environ, {'NOTEAI_RUNTIME_ROLE': 'api'}):
+                    api_runtime = dml.configured_runtime('api', self.db)
+                self.addCleanup(api_runtime.close)
+                self.api.app.state.item31_canary_create_resolver = api_runtime.scope.create
+                self.runtime.app.state.item31_canary_callback_resolver = broker1.scope
+                created = self.post_order(p, token, key)
+                self.assertEqual(created.status_code, 200, created.text)
+                order_id = created.json()['order']['id']
+                row = self.db.fetchone('SELECT * FROM payment_orders WHERE id=?', (order_id,))
+                route, body, headers = self.signed_callback(p, row)
+                result = self.callbacks.post(route, content=body, headers=headers)
+                self.assertEqual(result.status_code, 200, result.text)
+                row = self.db.fetchone('SELECT * FROM payment_orders WHERE id=?', (order_id,))
+
+                def refund_result(request):
+                    return self.payment.ProviderRefundResult(merchant_refund_no=request['merchant_refund_no'], provider_refund_id='synthetic_refund_' + order_id.replace('-', ''), status='pending', amount_fen=1200, app_id=app_id, prod_mode=True, response_verified=True, provider_name=p, merchant_order_no=row['merchant_order_no'], provider_payment_id=row['provider_payment_id'], provider_submitted_at=int(time.time()))
+                with mock.patch.dict(os.environ, {'NOTEAI_RUNTIME_ROLE': 'payment-canary', 'NOTEAI_PAYMENT_CANARY_ACTION': 'submit-refund', 'NOTEAI_PAYMENT_CANARY_ORDER_ID': order_id}), mock.patch.object(gateway, 'create_refund', side_effect=refund_result) as refund_call:
+                    operator1 = dml.configured_runtime('payment-canary', self.db)
+                    try:
+                        result = self.executor.execute(['submit-refund', p, order_id, 'customer_request'], transaction_factory=operator1.writer)
+                        self.assertTrue(result['ok'], result)
+                        with self.assertRaisesRegex(self.executor.PaymentCanaryError, 'ACTION_ALREADY_ADMITTED'):
+                            self.executor.execute(['submit-refund', p, order_id, 'customer_request'], transaction_factory=operator1.writer)
+                        refund_call.assert_called_once()
+                    finally:
+                        operator1.close()
+                refund = self.db.fetchone('SELECT * FROM payment_refunds WHERE order_id=?', (order_id,))
+                route, body, headers = self.signed_callback(p, row, refund=refund)
+                outer = json.loads(body)
+                resource = outer['resource']
+                cipher = AESGCM(b'synthetic-api-v3-key-material-00')
+                payload = json.loads(cipher.decrypt(resource['nonce'].encode(), base64.b64decode(resource['ciphertext']), resource['associated_data'].encode()))
+                payload['amount'].pop('currency', None)
+                payload['refund_id'] = refund['provider_refund_id']
+                resource['ciphertext'] = base64.b64encode(cipher.encrypt(resource['nonce'].encode(), json.dumps(payload, separators=(',', ':')).encode(), resource['associated_data'].encode())).decode()
+                body = json.dumps(outer, separators=(',', ':')).encode()
+                headers['Wechatpay-Signature'] = base64.b64encode(self.fixture.wechat_private.sign((headers['Wechatpay-Timestamp'] + '\n' + headers['Wechatpay-Nonce'] + '\n').encode() + body + b'\n', padding.PKCS1v15(), hashes.SHA256())).decode()
+                result = self.callbacks.post(route, content=body, headers=headers)
+                self.assertEqual(result.status_code, 200, result.text)
+                api_runtime.close()
+                broker1.close()
+                self.assertEqual(dml.read_journal(root / 'day1/canary-dml.jsonl', **broker1.capture.context), broker1.result)
+                self.assertEqual(broker1.result['status'], 'CAPTURE_COMPLETE_NOT_TERMINAL')
+                for sql in dml.removal_sql(list(targets)):
+                    owner.execute(sql)
+                create_gateway.create_payment.assert_called_once()
+            self.api.app.state._state.pop('item31_canary_create_resolver', None)
+            self.runtime.app.state._state.pop('item31_canary_callback_resolver', None)
+            day1_bytes = (root / 'day1/canary-dml.jsonl').read_bytes()
+            day1_ledger = {f.name: f.read_bytes() for f in ledger.glob('*.json')}
+            self.assertEqual(len(day1_ledger), 1)
+            paid = self.db.fetchone('SELECT * FROM payment_orders WHERE id=?', (order_id,))
+            self.assertEqual(paid['refund_status'], 'refunded')
+            self.assertEqual(paid['refunded_fen'], 1200)
+            self.assertEqual(self.db.fetchone('SELECT balance FROM credits WHERE user_id=?', (uid,))['balance'], 0)
+            bill_day = datetime.now(timezone(timedelta(hours=8))).date().isoformat()
+            next_epoch = int(time.time()) + 86400
+            next_activation = str(uuid.uuid4())
+            run_id = str(uuid.uuid4())
+            targets2 = dict(targets)
+            targets2['payment_reconciliation_runs'] = ('id', run_id)
+            targets2['payment_reconciliation_items'] = ('run_id', run_id)
+            next_env = {**env, 'NOTEAI_RUNTIME_ROLE': 'payment', 'NOTEAI_PAYMENT_CANARY_ACTION': 'reconcile', 'NOTEAI_PAYMENT_CANARY_ACTIVATION_ID': next_activation, 'NOTEAI_PAYMENT_CANARY_ORDER_ID': order_id, 'NOTEAI_PAYMENT_CANARY_BILL_DATE': bill_day, 'NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH': str(next_epoch - 5), 'NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH': str(next_epoch + 300), 'NOTEAI_PAYMENT_CALLBACK_ENABLED': '0', 'NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED': '0', 'NOTEAI_PAYMENT_ORDERING_ENABLED': '0'}
+            bill = [{'kind': 'payment', 'reference': row['merchant_order_no'], 'amount_fen': 1200, 'status': 'succeeded'}, {'kind': 'refund', 'reference': refund['merchant_refund_no'], 'amount_fen': 1200, 'status': 'succeeded'}]
+            with ExitStack() as day2:
+                day2.enter_context(mock.patch.dict(os.environ, next_env))
+                day2.enter_context(mock.patch.object(time, 'time', return_value=next_epoch))
+                day2.enter_context(mock.patch.object(self.payment, '_now', return_value=datetime.fromtimestamp(next_epoch, timezone.utc)))
+                day2.enter_context(mock.patch.object(self.api._payment_adapter_runtime, 'configured_app_id', return_value=app_id))
+                day2.enter_context(mock.patch.object(self.api._payment_adapter_runtime, 'configured_prod_mode', return_value=True))
+                second = self._bind_phase_runtime(day2, root / 'day2', next_activation, targets2, uid, key_hash, app_id, context, run_id)
+                self.assertNotEqual(first['activation'], second['activation'])
+                self.assertEqual(first['create_context'], second['create_context'])
+                self.assertEqual(first['idempotency_key_hash'], second['idempotency_key_hash'])
+                for sql in dml.installation_sql(second['activation'], targets2):
+                    owner.execute(sql)
+                self.assertFalse(self.runtime._callback_available(p))
+                broker2 = dml.configured_runtime('payment', self.db)
+                self.addCleanup(lambda: broker2.close(clean=False))
+                with mock.patch.dict(os.environ, {'NOTEAI_RUNTIME_ROLE': 'api'}), self.assertRaisesRegex(ValueError, 'ITEM31_RUNTIME_BINDING_FAILED'):
+                    dml.configured_runtime('api', self.db)
+                with mock.patch.dict(os.environ, {'NOTEAI_RUNTIME_ROLE': 'payment-canary'}):
+                    operator2 = dml.configured_runtime('payment-canary', self.db)
+                    try:
+                        with self.assertRaisesRegex(ValueError, 'canary create binding'):
+                            operator2.scope.create({**context, 'idempotency_identity_sha256': '0' * 64})
+                        with self.assertRaisesRegex(ValueError, 'canary callback order'):
+                            operator2.scope.validate_order({**dict(paid), 'idempotency_key_hash': '0' * 64})
+                        with self.assertRaisesRegex(self.executor.PaymentCanaryError, 'ACTIVATION_INVALID'):
+                            self.executor.execute(['submit-refund', p, order_id, 'customer_request'], transaction_factory=operator2.writer)
+                        with mock.patch.dict(os.environ, {'NOTEAI_PAYMENT_CANARY_ACTION': 'submit-refund'}), self.assertRaisesRegex(self.executor.PaymentCanaryError, 'ACTION_ALREADY_ADMITTED'):
+                            self.executor.execute(['submit-refund', p, order_id, 'customer_request'], transaction_factory=operator2.writer)
+                        with mock.patch.object(gateway, 'reconciliation_rows', return_value=(b'synthetic-next-day-verified-bill', bill)) as bill_call:
+                            result = self.executor.execute(['reconcile', p, bill_day], transaction_factory=operator2.writer, reconciliation_run_id=run_id)
+                            self.assertTrue(result['ok'], result)
+                            with self.assertRaisesRegex(self.executor.PaymentCanaryError, 'ACTION_ALREADY_ADMITTED'):
+                                self.executor.execute(['reconcile', p, bill_day], transaction_factory=operator2.writer, reconciliation_run_id=run_id)
+                            bill_call.assert_called_once()
+                    finally:
+                        operator2.close()
+                broker2.close()
+                for sql in dml.removal_sql(list(targets2)):
+                    owner.execute(sql)
+            self.assertEqual(broker2.result['write_mutations_by_table'], {'payment_reconciliation_runs': 1})
+            self.assertEqual(dml.read_journal(root / 'day2/canary-dml.jsonl', **broker2.capture.context), broker2.result)
+            self.assertEqual((root / 'day1/canary-dml.jsonl').read_bytes(), day1_bytes)
+            for name, raw in day1_ledger.items():
+                self.assertEqual((ledger / name).read_bytes(), raw)
+            self.assertEqual(len(list(ledger.glob('*.json'))), 2)
+            self.assertEqual(dml.read_journal(root / 'day1/canary-dml.jsonl', **broker1.capture.context), broker1.result)
+
 # Imported fixture class is not another test suite in this module.
 del PG

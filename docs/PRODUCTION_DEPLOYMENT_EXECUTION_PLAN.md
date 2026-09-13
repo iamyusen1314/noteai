@@ -1,13 +1,55 @@
 # NoteAI Production Deployment Execution Plan
 
-September14 02:20BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
-Actual EIP console shows website and NAT both arrears-locked/throttled1Kbps;
-local TLS/health/bindings/80+443rules are correct. Owner recharge is required,
-not a speculative code rollback.09 failed GATEWAY_TIMEOUT;6credits refunded once,
-original provider operation UNKNOWN/fee unconfirmed; do not replay. Public/media/
-provider verification waits for network recovery while local Native UI and media
-compatibility work continues. Exact state and original results at Handoff top.
-Item34/30/37 unchanged; no new network permissions/resources or budget reset.
+September14 03:05BJT: e0b84d4 API/Admin/web remains deployed;0018/0025/0026
+are committed/verified and must not replay.4d7781f Native API/UI and nullable media
+successor is locally packaged/verified only, no upload/build/deploy. Exact artifact,
+scoped rollout/rollback script and latest C config hashes are at Handoff top.
+Both existing EIPs are arrears-locked/1Kbps; owner recharge remains necessary.
+Original09 Gateway strong GetItem returned HTTP200/no retained item; local UNKNOWN,
+once-refunded6credits and unconfirmed provider cost are preserved. No09 replay.
+
+Current Native implementation is two short captures for the SAME12RMB owner order:
+1. After connectivity and closed-candidate verification, bind A_trade/U/AppID/key
+   with <=3600-second window. The normal account login/consent precedes capture.
+   Start API container namespace then Payment broker before API's15-second startup
+   wait expires; mount same UID999/0700 directory and readonly9-field binding.
+   Both services Restart=no during capture. Use the full temporary Payment unit
+   (not empty dependency overrides); restore its exact original after sealing.
+   Normal API creates one original-price starter order; owner sees12RMB and pays.
+   Exact callbacks/queries/refund are captured. Check refund succeeded, order
+   refunded, entitlement reversed and refunded_fen1200; CLI ok alone is insufficient.
+   Close ingress/admission, drain original work, stop API/operator first, Payment
+   last, read original sealed journal, revoke only temporary DDL/permissions.
+2. WeChat's real daily bill becomes available after10:00BJT on the following day:
+   https://pay.wechatpay.cn/doc/v3/merchant/4013071218 . Do not try same-day bill or
+   call instantaneous query a completed reconciliation. Bind new short A_bill/R/
+   workdir to the SAME user/order key/AppID/ORIGINAL create_context (A_trade hash).
+   Keep original action-ledger directory; changing capture cannot replay actions.
+   Run only callback-disabled Payment broker and ACTION=reconcile original canary;
+   the ordinary API does not receive phase2 binding. /health/live+broker checks
+   apply; callback-ready503 is expected and must not cause enabling callback.
+   Full actual daily bill remains unfiltered; discrepancies cannot be hidden.
+   Each capture independently seals and is read with its original context. Keep
+   both journal hashes/counts in the existing execution record; never concatenate
+   journals or claim an uninterrupted overnight capture. Existing audit/validator
+   still needs real MATCHED, zero discrepancies, exact funds/rights/DML proof.
+   No new order/payment/refund is authorized by merely starting this second phase.
+No activation/time window has been created yet. Existing execution functions and
+role images support separate capture bindings; normal create/callback/refund plus
+same-order next-day reconcile and no-replay proof now passes the existing PG16
+runtime module (14cases,32.035s,Python3.11/network-none). This uses synthetic gateways
+and the explicitly disposable local DB, not production role/payment acceptance.
+Both temporary full-unit variants pass Linux systemd-analyze verify. Root launch
+must bind activation in the nine-field JSON exactly to the phase environment;
+do not infer equality merely from a valid hash. Original role/Secret checks remain.
+Immediate one-hour closure cannot prove next-day bill completion.
+Final4d source archive is441817bytes/SHAc229a572...5082da; build.py0e31e5bd...6d42c71;
+scoped deployer729046b6...1a279a5. Exact paths/full hashes and retained initial archive
+are at Handoff top. CID/image/source-bound cleanup and timeout preservation pass
+14 pure-memory cases. This package is not uploaded/built; no new image digest.
+After owner restores the locked EIPs, verify real connectivity and original
+results before transfer/build/closed rollout. No new provider request during lock.
+Item34/30-of37 remains unchanged, no new resources or old budget resets.
 
 September14 01:02BJT current: hotel08 failed/reconciled,6credits refunded once and2.922080RMB
 modelcost retained;APIbc63377 unchanged. CurrentArk full-media/ownedupload/normalcost/

@@ -1,0 +1,29 @@
+[Unit]
+Description=NoteAI bounded Native callback capture (explicit launcher only)
+# Full temporary unit replacement, not a drop-in: dependency directives cannot
+# be removed by assigning empty lists in a drop-in. Restore the saved original
+# unit after capture is sealed. Launcher starts API namespace first, then this
+# broker before API readiness; stops API/operator peers before this broker.
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=no
+TimeoutStartSec=180
+TimeoutStopSec=45
+KillMode=process
+Environment=DOCKER_CONTEXT=default
+# Trade phase uses 1; next-day reconcile-only phase MUST use 0.
+Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=@@NOTEAI_PAYMENT_CALLBACK_ENABLED@@
+ExecStartPre=/usr/bin/test -f /etc/noteai/payment.env
+ExecStartPre=/usr/bin/test -f @@NOTEAI_ITEM31_ENV_FILE@@
+ExecStartPre=/usr/bin/test -f @@NOTEAI_ITEM31_BINDING_FILE@@
+ExecStartPre=/usr/bin/test -d @@NOTEAI_ITEM31_WORK_DIRECTORY@@
+ExecStartPre=/usr/bin/docker image inspect @@NOTEAI_PAYMENT_IMAGE@@
+ExecStartPre=/bin/sh -ec '/usr/bin/docker container inspect --format={{.State.Running}} @@NOTEAI_API_CONTAINER@@ | /usr/bin/grep -qx true'
+ExecStart=/usr/bin/docker run --log-driver=local --log-opt=max-size=10m --log-opt=max-file=2 --pull=never --rm --restart=no --name=noteai-payment --label=com.noteai.service=noteai-payment --user=999:999 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --network=container:@@NOTEAI_API_CONTAINER@@ --ipc=private --memory=256m --cpus=0.25 --pids-limit=64 --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=256m,mode=1777,uid=999,gid=999 --env-file=/etc/noteai/payment.env --env-file=@@NOTEAI_ITEM31_ENV_FILE@@ --mount=type=bind,src=@@NOTEAI_ITEM31_BINDING_FILE@@,dst=@@NOTEAI_ITEM31_BINDING_FILE@@,readonly --mount=type=bind,src=@@NOTEAI_ITEM31_WORK_DIRECTORY@@,dst=@@NOTEAI_ITEM31_WORK_DIRECTORY@@ --env=NOTEAI_RUNTIME_ROLE=payment --env=NOTEAI_DEPLOYMENT_STAGE=production --env=NOTEAI_SKIP_MODEL_ARTIFACT_CHECK=1 --env=NOTEAI_PAYMENT_CALLBACK_ENABLED --env=NOTEAI_TRUSTED_PROXY_IPS=127.0.0.1 --env=PORT=8002 @@NOTEAI_PAYMENT_IMAGE@@
+ExecStop=/usr/bin/docker container stop --time=30 noteai-payment
+
+# No Install section: never enable or restart this bounded capture automatically.
