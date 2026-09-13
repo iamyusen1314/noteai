@@ -11,9 +11,16 @@ No formal Prompt text has been changed. Preview is explicitly static layers, wit
 Claude implementation/history remains but current public route is Kimi-only; actual
 provider eligibility, Gateway and bounded billing must precede a lawful change.
 Public SSE tasks are not durable-worker jobs: ordinary task controls do not manage
-all user requests. Budget remains conservatively reserved44.03/50CNY (last known);
+all user requests. Final September13 morning readback confirms reserved44.03/50CNY;
 not enough to promise another full multi-stage run. No reservation reset or inflated
 Readiness. New fixes do not touch Item34, schema, permissions or business selections.
+Source0e83d0d is live on C API/Admin at09:24:41; original host results and rollback
+inputs are indexed at Handoff top. Real browser verified seven industry differences,
+model revision0, meaningful status source and public-SSE task limitation. The owner
+session remains usable; no password reset is needed. No provider requests were made
+for this audit. Runtime/shared-Prompt extraction preserves the original strings;
+arbitration route and saved/unknown score fixes were verified offline and deployed,
+without claiming a new paid AI end-to-end run or raising Readiness.
 
 September13 02:11: previously prepared598460a host cleanup correction is installed
 and verified on F. Originalgeneration2 automation now references that exact host;

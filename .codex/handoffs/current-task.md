@@ -33,7 +33,7 @@ Local refs contain no later prompts.json revision; production readback at09:07Be
 repository baseline and prompt_history has0rows. This is a current DB fact, not a
 claim about any unreachable/deleted history.
 
-Implementation in progress: shared original rules extracted into existing
+Implemented in0e83d0d: shared original rules extracted into existing
 prompt_composer (no formal Prompt text edits); Admin shows published static layers,
 shared-key/global edit scope and explicitly omitted request/governance layers. It
 must not claim a captured complete Prompt or preview an unsaved draft. Original
@@ -43,7 +43,7 @@ admission and historical usage are not paid provider health probes. Claude histo
 Haiku/Sonnet roles remain, public free routes currently Kimi-only under existing
 budget/provider restrictions; no automatic provider change.
 
-Additional confirmed defects being repaired: diagnostic arbitration calls diagnosis
+Additional confirmed defects repaired: diagnostic arbitration called diagnosis
 instead of arbitrate; library chat opening can fabricate a score from semantic0.5,
 and null score leaves the prior gauge. Public SSE operations are not connected to
 ordinary durable workers; task empty state will explicitly say this. Queue admission,
@@ -55,7 +55,64 @@ Item34 fixed image/T0/unique3d task untouched. Candidate verification:28 targete
 11 browser tests passed (network-blocked), including unknown-score gauge clearing and
 admission-vs-health distinction. LocalPython3.11 initially lacked Anthropic; old local
 image initially lacked cryptography; isolated test image installed the repository's
-pinned cryptography50.0.0 only. No production dependency change. Deployment pending.
+pinned cryptography50.0.0 only. No production dependency change. One additional
+compiled-original-Admin strict CSP browser check passed. These are scoped tests,
+not all-project acceptance.
+
+September13 09:24:41 Beijing: source0e83d0d25a8ef40654cc5e9083291081252e95b1
+is DEPLOYED to existing API-C and Admin, both Python3.11.15/linuxamd64. API image
+sha256:a46524323fb8dcc010dcc95e5f28d07a11c694daeac6cdc5b5ae9cb8622e97d5;
+Admin image sha256:abab2ba9518a1d67251641c0734009494424bea73b7075fd02db9030c6cca1fe.
+Existing base API31be3b88/Admin1049d7d4 preserved; no production dependency install.
+Public and Admin current symlinks now point to their respective0e83d0d directories.
+Public JS SHA2562d942b93db0311cbbff58766ea749d73ce05d1b55f28f39391bd38bd5954b4a4;
+Admin JS SHA256c320594e50e2a45c7aa014231a50a8c64966f8205839ead9d9e9b9fb0a06fce9.
+Same public HTML692ab2a4. Scoped ingress drained before unit replacement; candidate
+containers stopped, precise temporary proxies restored; no rollback was required.
+Model config and credential-file hashes remained unchanged. No schema/ACL/F change,
+model/SMS/XHS request, task mutation or business write; candidate/live auth canaries
+each revoked only their own verification session and rejected its subsequent use.
+
+Original C stage /var/lib/noteai/admin-truth-0e83d0d contains build/deploy scripts,
+before/ unit and proxy backups, old web paths, candidate-admin-result.json,
+live-admin-result.json, live-status-result.json and deploy-result.json. Read these
+original results before any uncertain continuation; never replay the completed deploy.
+deploy.py SHA2565fe25417a75a4e119efa0f5fb0082034e5f3cbbdf0ee54346ec97732e359002b.
+Local secret-free package /private/tmp/noteai-admin-truth-0e83d0d.tar.gz,
+446701bytes/SHA25609e6adfa18c96f5feb3033134d5006244c89c2758f0b451b429b17156cdfdbe1,
+uploaded once to existing private OSS noteai-private/admin-public/20260913/ with
+the same filename; exact content hashes validated before host build. Existing-resource
+transfer/storage/build incremental charges await billing, not asserted0; no new fee
+subscription/resource. Git not pushed; seven protected paths remain untouched.
+
+Final original readback (CloudAssistant t-sz06wwaykq5syrk, result5) confirms DEPLOYED,
+live Admin core GETs200, seven substantive industry variants, authenticated checks
+and logout verification. Current status source api_public_status, Kimi admission_open,
+Claude not_in_public_route/configuration_unknown, upstream_probed=false. Latest
+local usage record is KimiK2.6 September12 17:31:30 Beijing; this is not an upstream
+health measurement. Current budget reserved44030/limit50000milliCNY;17responded,
+0dispatched, remaining conservative model reserve5.97CNY. Do not reset or conflate
+that reserve with Dashboard actual recorded cost0.31CNY.
+
+Real owner browser verification September13 09:33–09:35: existing session restored
+without password entry/reset; earlier brief login screen was not credential failure.
+Prompt seven industry selections each display distinct original quality/planning
+content; model page reads production saved/active revision0 and correct Claude role
+explanation; Dashboard displays live admission source/historical usage, no fixed
+unavailable stub; task page explicitly separates public SSE from durable jobs and
+retains sealed historical rows. Admin left on Prompt management for owner review.
+The seven preview differences include food experience/decision structure, travel
+budget/route tradeoffs, outfit body/occasion logic, beauty skin/texture limits, home
+space/budget/replication, fitness sets/breathing/safety and parenting observation/
+settling boundaries. Formal shared base templates were not rewritten to fake this.
+
+Remaining exact limits: Claude is not enabled in public routes; restoration needs
+actual provider eligibility plus the existing Gateway and bounded cost enforcement.
+Prompt editor edits the global base for its key, not seven independent DB templates;
+62-feature governance and private request material remain explicitly unexpanded.
+Public real-time requests are not manageable durable jobs yet; integrate actual
+processor/budget context and single charge/result/UNKNOWN handling before enabling
+that path. This audit repairs confirmed defects but does not claim these gaps done.
 
 ## September13 01:57 Beijing — scoped Admin delivered and canaries restored
 
