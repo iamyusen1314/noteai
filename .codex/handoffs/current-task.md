@@ -1,5 +1,32 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 19:07 Beijing — API model label fix deployed, business check in progress
+
+Only API75d17f092cef1300fb5d254d2b8c0734afd4991f was built and deployed, exact image
+sha256:1833425c0f71620f4453889ce5a3a8e797717437f80de9ead9f7b43369999975,
+Python3.11.15/amd64. Original363 API remains recovery base; Adminb033/web363/
+Gateway601/active env/model configuration/0025 unchanged. Original job at
+/var/lib/noteai/model-identity-75d17f0/result.json is DEPLOYED,
+1789297664.5899036; execute.py SHA
+3c14e1bb78efbe8cd997f286b5fa42618cb44a1531c9a10ae98fae13109308c7.
+Private archive noteai-model-identity-75d17f0.tar.gz,245116bytes/SHA
+4135b0b240afd0236b4002fda9f629875a99d56223cf9c104e8ba978cc84dcd5 was uploaded once.
+No provider call or migration during rollout. Read-only independent check also
+verified concurrent request/thread model identity isolation and diagnosis persistence.
+Ordinary note/chat historical storage contracts are unchanged.
+
+Business request formal-claude-meituan-20260913-01 is dispatched through the normal
+owner-authenticated /analyze/stream route; not an Item30/Item34 executor. Public
+hotel-screening self-test, no fictional stay/price; normal6-credit entitlement,
+required Claude stages and conditional official Meituan facts. One HTTP submission,
+zero automatic retries. Durable stage
+/var/lib/noteai/formal-claude-363f3e3/business-analyze-01 stores launch/started/result,
+root-only response.sse and complete-private.json if present. Execute SHA
+52cd52e64dc535025906cb00ae26fac7343b35ce028c2a6df870b1394977f39c.
+Read the original result and scoped usage before any next action; in-flight/UNKNOWN
+must not be resubmitted. Actual model count/cost/fact parsing/quality/storage remain
+to verify; no success or Readiness increment claimed.
+
 ## September13 19:10 Beijing — report model identity correction
 
 Post-rollout targeted review found public diagnosis/generation terminal model_used
