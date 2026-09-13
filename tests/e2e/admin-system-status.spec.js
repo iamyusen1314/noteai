@@ -138,3 +138,33 @@ test('release admission and usage are not presented as provider health', async (
   await expect(status).toContainText('未发起供应商连通测试');
   await expect(status).not.toContainText('API 服务已配置');
 });
+
+test('supplier groups retain unknown usage and original cached observation without probes', async ({page}) => {
+  await openDashboard(page, {});
+  await page.evaluate(() => {
+    document.getElementById('supplier-view').innerHTML=renderSupplierView({suppliers:[
+      {id:'kimi',name:'Kimi K2.6',group:'generation_models',role:'诊断',business:['诊断'],enabled:true,source:'api_public_product_availability'},
+      {id:'claude',name:'Claude',group:'generation_models',role:'原仲裁分工',business:[],enabled:false,reason:'当前通道地区条件不覆盖',source:'api_public_product_availability'},
+      {id:'amap',name:'高德地图',group:'data_tools',role:'门店事实',business:[],enabled:false,source:'api_public_product_availability'},
+      {id:'meituan_travel',name:'美团酒旅',group:'data_tools',role:'酒旅',business:['旅行'],enabled:true,source:'api_public_product_availability',latest:{observed_at:'2026-09-13T01:00:00Z',persisted_at:'2026-09-13T02:00:00Z',status:'partial',cached:true,http_requests:0,cli_invocations:0,cost_cny:null}},
+    ],recent_usage:null});
+    document.querySelectorAll('.page').forEach(el=>{ if(el.contains(document.getElementById('supplier-view'))) el.style.display='block'; });
+  });
+  const text=await page.locator('#supplier-view').textContent();
+  expect(text).toContain('生成模型'); expect(text).toContain('数据 / 工具服务');
+  expect(text).toContain('用量未知'); expect(text).toContain('缓存（非新检索）');
+  expect(text).toContain('2026-09-13T01:00:00Z'); expect(text).not.toContain('2026-09-13T02:00:00Z');
+  expect(text).toContain('待供应商账单确认'); expect(text).not.toContain('undefined');
+});
+
+test('complete provider answer preserves prices and text while rendering safe source media', async ({page}) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  await page.evaluate(() => renderProviderAnswer({observed_at:'2026-09-13T01:00:00Z',provider_response:
+    '广州甲酒店 ￥4XX起/晚\n<img src=x onerror="window.unsafeSource=true">\n![房间](https://example.invalid/room.jpg)\n最后一段完整保留'},document.body,'test-source-answer'));
+  const card=page.locator('#test-source-answer');
+  await expect(card).toContainText('￥4XX起/晚'); await expect(card).toContainText('最后一段完整保留');
+  expect(await card.locator('img').count()).toBe(1);
+  expect(await card.locator('img').getAttribute('referrerpolicy')).toBe('no-referrer');
+  expect(await page.evaluate(()=>window.unsafeSource)).toBeUndefined();
+  expect(await card.locator('a').getAttribute('rel')).toBe('noopener noreferrer');
+});

@@ -2349,6 +2349,11 @@ _FACT_ENRICHMENT_SCHEMA = {
     "raw_title": "string",
     "query": "string",
     "facts": _FACT_FIELDS_SCHEMA,
+    "entities": ("list", {"name": "string", "facts": _FACT_FIELDS_SCHEMA, "source": "string", "url": "string"}),
+    "status": "string", "observed_at": "string",
+    "provider_response": "string",
+    "calls": {"http_requests": "nullable_number", "cli_invocations": "integer",
+              "last_http_status": "nullable_number", "partial_errors": ("list", "string")},
     "sources": ("list", _FACT_SOURCE_SCHEMA),
     "confidence": "number",
     "cached": "bool",
@@ -6414,6 +6419,9 @@ def _merchant_entity_signal(domain: str | None, title: str | None, text: str | N
         candidate = _normalize_merchant_name(explicit.group(1))
         if candidate:
             return True, candidate
+    branch = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}[（(][^（）()\n]{2,30}(?:店|楼|馆)[)）])", src)
+    if branch:
+        return True, _normalize_merchant_name(branch.group(1))
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "旅行":
         pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:酒店|民宿|客栈|度假村|乐园|景区|营地))"
@@ -9637,7 +9645,13 @@ async def _maybe_enrich_facts(
             query = ""
         return _disabled_fact_enrichment(decision, query=query)
     try:
-        result = await asyncio.to_thread(_facts.enrich_content_facts, domain, query_title, query_text)
+        result = await asyncio.to_thread(_facts.enrich_content_facts, domain, query_title, query_text,
+                                         provider=decision.get("provider"))
+        import public_product
+        public_product.record_fact_observation(result)
+        if result.get("error_code") == "MERCHANT_SELECTION_REQUIRED":
+            decision.update(needs_user_supplement=True, supplement_fields=["merchant_name"],
+                            supplement_prompt="匹配到多家门店，请确认完整分店名称，不能混用候选门店事实。")
         result["decision"] = decision
         return result
     except Exception as exc:
@@ -15205,6 +15219,10 @@ async def _run_analyze_pipeline(
                 "provider": fact_enrichment.get("provider"),
                 "query": fact_enrichment.get("query"),
                 "facts": fact_enrichment.get("facts", {}),
+                "entities": fact_enrichment.get("entities", []),
+                "status": fact_enrichment.get("status"), "error_code": fact_enrichment.get("error_code"),
+                "observed_at": fact_enrichment.get("observed_at"), "calls": fact_enrichment.get("calls"),
+                "provider_response": fact_enrichment.get("provider_response"),
                 "sources": fact_enrichment.get("sources", [])[:3],
                 "confidence": fact_enrichment.get("confidence", 0),
                 "cached": fact_enrichment.get("cached", False),
@@ -16783,7 +16801,7 @@ async def generate_stream_endpoint(
         constrained_brief = f"{intent_brief}\n\n{constrained_brief}".strip() if intent_brief else constrained_brief
         enriched_brief = _append_fact_enrichment(constrained_brief, fact_enrichment)
         if fact_enrichment and fact_enrichment.get("enabled"):
-            yield f"data: {_json.dumps({'type':'fact_enrichment','provider':fact_enrichment.get('provider'),'query':fact_enrichment.get('query'),'facts':fact_enrichment.get('facts',{}),'sources':fact_enrichment.get('sources',[])[:3],'confidence':fact_enrichment.get('confidence',0),'cached':fact_enrichment.get('cached',False)}, ensure_ascii=False)}\n\n"
+            yield f"data: {_json.dumps({'type':'fact_enrichment','provider':fact_enrichment.get('provider'),'query':fact_enrichment.get('query'),'facts':fact_enrichment.get('facts',{}),'entities':fact_enrichment.get('entities',[]),'status':fact_enrichment.get('status'),'error_code':fact_enrichment.get('error_code'),'observed_at':fact_enrichment.get('observed_at'),'calls':fact_enrichment.get('calls'),'provider_response':fact_enrichment.get('provider_response'),'sources':fact_enrichment.get('sources',[])[:3],'confidence':fact_enrichment.get('confidence',0),'cached':fact_enrichment.get('cached',False)}, ensure_ascii=False)}\n\n"
 
         cover_feats: dict = {}
         visual_score: float | None = None
@@ -16815,6 +16833,7 @@ async def generate_stream_endpoint(
             memory_context=_memory.build_memory_prompt(user["id"], domain=req.domain),
         ):
             if event.get("type") == "complete":
+                event["fact_enrichment"] = fact_enrichment
                 fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
                 event["user_constraints"] = normalized_constraints
                 event["constraint_contract"] = constraint_contract

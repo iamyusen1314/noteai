@@ -26,5 +26,7 @@ ALTER TABLE public.public_trial_calls ADD CONSTRAINT public_trial_accounting_bin
 -- The application may finish only its original call's accounting link. It may
 -- not change policy, principal, old reservations or manufacture linked history.
 GRANT UPDATE(model_usage_record_id,usage_fingerprint) ON public.public_trial_calls TO noteai_app;
+-- The Admin reads only content-free call provenance, not identities/request hashes.
+GRANT SELECT(created_at,provenance_json) ON public.public_trial_calls TO noteai_admin_runtime;
 UPDATE public.public_trial_budget SET policy_mode='owner_metered'
     WHERE id='website-free-product-20260912';

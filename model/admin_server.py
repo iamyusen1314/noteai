@@ -149,13 +149,33 @@ async def _fetch_api_ai_readiness() -> dict:
                   upstream_probed=False, recent_usage=[], usage_source="model_usage_records")
     try:
         rows = db.fetchall(
-            "SELECT provider,model,MAX(recorded_at) AS last_recorded_at "
-            "FROM model_usage_records GROUP BY provider,model"
+            "SELECT provider,model,recorded_at AS last_recorded_at,usage_status,pricing_status,call_count,known_cost "
+            "FROM (SELECT provider,model,recorded_at,usage_status,pricing_status,"
+            "ROW_NUMBER() OVER(PARTITION BY provider,model ORDER BY recorded_at DESC,id DESC) AS pos,"
+            "COUNT(*) OVER(PARTITION BY provider,model) AS call_count,"
+            "SUM(known_cost_rmb) OVER(PARTITION BY provider,model) AS known_cost "
+            "FROM model_usage_records) recent WHERE pos=1"
         )
         result["recent_usage"] = [dict(row) for row in rows]
     except Exception:
         result["recent_usage"] = None
         result["usage_source"] = "query_unavailable"
+    fact_history = {}
+    try:
+        rows = db.fetchall("SELECT created_at,provenance_json FROM public_trial_calls ORDER BY created_at DESC LIMIT 200")
+        for record in rows:
+            observed = json.loads(record["provenance_json"]).get("fact_observation")
+            if not isinstance(observed,dict) or not observed.get("provider"):
+                continue
+            provider = observed["provider"]
+            if provider not in fact_history:
+                fact_history[provider] = {key: observed.get(key) for key in (
+                    "observed_at","status","error_code","cached","cost_cny","http_requests",
+                    "cli_invocations","last_http_status","partial_errors")}
+                fact_history[provider]["persisted_at"] = record["created_at"]
+        result["fact_usage_source"] = "latest_observation_in_200_business_model_calls"
+    except Exception:
+        result["fact_usage_source"] = "query_unavailable"
     try:
         async with httpx.AsyncClient(timeout=3.0, follow_redirects=False, trust_env=False) as client:
             response = await client.get("https://noteaipro.com/public/status")
@@ -174,6 +194,13 @@ async def _fetch_api_ai_readiness() -> dict:
             claude_configuration_known=False,
             notice="公开文字入口状态来自正式网站 API /public/status；具体任务仍受配置与额度限制。未发起供应商连通测试，用量时间不等于健康状态。",
         )
+        result["suppliers"] = public.get("suppliers") if isinstance(public.get("suppliers"), list) else None
+        for supplier in result["suppliers"] or []:
+            supplier["latest"] = fact_history.get(supplier.get("id"))
+            supplier["source"] = "api_public_product_availability"
+            if supplier.get("group") == "data_tools":
+                supplier["observation_scope"] = ("最近随业务模型调用保存的事实观察（最近200条调用内），未覆盖没有后续模型调用的检索；不累加重复保存的观察"
+                    if result["fact_usage_source"] != "query_unavailable" else "事实观察查询不可用，不代表调用量为零")
     except Exception:
         result["source_error"] = "public_api_status_unavailable"
     return result
@@ -730,7 +757,9 @@ async def admin_task_change(operation_id: str, action: str, body: AdminOperation
 @admin_app.get("/admin/model-config")
 async def admin_model_config(scope: str = "production", admin: dict = Depends(_aauth.get_admin_user)):
     import model_runtime_config
-    return model_runtime_config.view(scope)
+    result = model_runtime_config.view(scope)
+    result["supplier_runtime"] = await _fetch_api_ai_readiness()
+    return result
 
 
 @admin_app.post("/admin/model-config/{action}")

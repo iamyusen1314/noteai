@@ -3340,7 +3340,8 @@ class ApiContractTests(unittest.TestCase):
         original = api._facts.enrich_content_facts
         calls = []
 
-        def fake_enrich(domain, title, text):
+        def fake_enrich(domain, title, text, *, provider=None):
+            self.assertEqual(provider, "amap")
             calls.append((domain, title, text))
             return {
                 "enabled": True,
@@ -3369,6 +3370,41 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(calls[0][0], "美食")
         self.assertEqual(calls[0][1], "长禧家珑厨万博广晟店")
         self.assertIn("门店名：长禧家珑厨万博广晟店", calls[0][2])
+
+    def test_food_decision_intent_keeps_detected_brand_through_search(self):
+        from unittest import mock
+        captured=[]
+        def enrich(domain,title,text,**kwargs):
+            captured.append(facts._amap_keyword_from_query(facts.build_fact_query(domain,title,text)))
+            return {"enabled":True,"provider":"amap","facts":{},"sources":[]}
+        with mock.patch.object(api._facts,'enrich_content_facts',side_effect=enrich):
+            asyncio.run(api._maybe_enrich_facts('美食','长禧家.珑厨(万博广晟店)探店','广州番禺粤菜',
+                content_intent='决策转化型',merchant_visibility='show'))
+        self.assertEqual(captured,['长禧家.珑厨(万博广晟店)'])
+
+    def test_fact_enrichment_survives_generation_terminal_result(self):
+        from unittest import mock
+        enrichment={'enabled':True,'provider':'meituan_travel','facts':{'price':'￥4XX起/晚'},
+                    'provider_response':'完整供应商原文\n不可丢失末段','observed_at':'2026-09-13T06:00:00Z','decision':{}}
+        async def pipeline(**kwargs):
+            self.assertIn('联网事实补全',kwargs['brief'])
+            yield {'type':'complete','title':'测试标题','body':'测试正文'}
+        async def run():
+            response=await api.generate_stream_endpoint(api.GenerateInput(domain='旅行',brief='广州酒店查询'),
+                user={'id':'synthetic-owner'},request_id='synthetic-request')
+            return [json.loads(chunk.removeprefix('data: ').strip()) async for chunk in response.body_iterator]
+        with mock.patch.object(api,'_maybe_enrich_facts',new=mock.AsyncMock(return_value=enrichment)), \
+             mock.patch.object(api,'_generate_pipeline_stream',new=pipeline), \
+             mock.patch.object(api,'_compute_market_timing_for_delivery',return_value={}), \
+             mock.patch.object(api,'_paid_request_claim',return_value=None), \
+             mock.patch.object(api._billing,'check_and_deduct'), \
+             mock.patch.object(api._billing,'get_subscription',return_value={'tier':'free'}), \
+             mock.patch.object(api._memory,'build_memory_prompt',return_value=''):
+            events=asyncio.run(run())
+        terminal=next(event for event in events if event['type']=='complete')
+        self.assertEqual(terminal['fact_enrichment'],enrichment)
+        safe=api._sanitize_public_schema_value(terminal['fact_enrichment'],api._FACT_ENRICHMENT_SCHEMA)
+        self.assertEqual(safe['provider_response'],enrichment['provider_response'])
 
     def test_placeholder_fact_sentences_are_removed_and_flagged(self):
         body = (
@@ -3524,7 +3560,7 @@ class ApiContractTests(unittest.TestCase):
     def test_amap_parenthesized_shop_name_keeps_brand_core_and_ranks_restaurant(self):
         query = "万博 广州 番禺 长禧家.珑厨(万博广晟店) 地址 营业时间 人均 预订"
         keyword = facts._amap_keyword_from_query(query)
-        self.assertEqual(keyword, "长禧家.珑厨")
+        self.assertEqual(keyword, "长禧家.珑厨(万博广晟店)")
         restaurant = {
             "name": "长禧家.珑厨(万博广晟店)",
             "address": "南村镇汉溪大道东386号广晟万博城A座7层",
@@ -3562,6 +3598,7 @@ class ApiContractTests(unittest.TestCase):
             "biz_ext": {"cost": "98", "rating": "4.5"},
         }
         detail = {
+            "id": "BTEST",
             "business": {
                 "opentime_today": "11:00-22:00",
                 "tag": "芝士焗小青龙,鸿运烧味拼盘",

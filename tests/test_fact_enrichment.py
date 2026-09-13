@@ -18,6 +18,90 @@ import fact_enrichment as facts  # noqa: E402
 
 
 class FactEnrichmentTests(unittest.TestCase):
+    def test_distinct_poi_fields_never_form_one_merchant(self):
+        items=[{'title':'甲店','facts':{'address':'甲路1号'}},
+               {'title':'乙店','facts':{'price':'人均88元','hours':'09:00-18:00'}}]
+        result=facts.extract_facts_from_search_items(items)
+        self.assertEqual(result,{'address':'甲路1号'})
+
+    def test_brand_and_branch_survive_full_query_path(self):
+        query=facts.build_fact_query('美食','长禧家.珑厨(万博广晟店)探店','广州番禺粤菜')
+        keyword=facts._amap_keyword_from_query(query)
+        self.assertEqual(keyword,'长禧家.珑厨(万博广晟店)')
+        self.assertTrue(facts._amap_poi_matches_keyword({'name':keyword},keyword))
+        for name in ['别家粤菜(万博广晟店)','长禧家.珑厨(东风店)']:
+            self.assertFalse(facts._amap_poi_matches_keyword({'name':name,'address':keyword},keyword))
+
+    def test_hotel_bullets_keep_names_and_do_not_cross_fill(self):
+        items=facts._meituan_travel_items('- **广州甲酒店**：￥399起/晚。\n- **广州乙酒店**：\n酒店地址：广州市天河区乙路2号。')
+        self.assertEqual([item['title'] for item in items],['广州甲酒店','广州乙酒店'])
+        self.assertIn('399',items[0]['facts']['price'])
+        self.assertNotIn('address',items[0]['facts'])
+        self.assertIn('乙路2号',items[1]['facts']['address'])
+        self.assertNotIn('price',items[1]['facts'])
+        self.assertNotIn('price',facts._extract_meituan_travel_facts('广州甲酒店 ￥XX起/晚'))
+
+    def test_local_facts_preserve_provider_failure_as_partial(self):
+        local={'title':'测试店','url':'https://example.invalid/verified','source':'local_verified','facts':{'address':'广州市甲路1号'}}
+        with mock.patch.object(facts,'fact_search_enabled',return_value=True), \
+             mock.patch.object(facts,'_authorized_fact_items',return_value=[local]), \
+             mock.patch.object(facts,'_cache_ttl_seconds',return_value=0), \
+             mock.patch.object(facts,'_search',side_effect=facts.FactProviderError('AMAP_BUSINESS_10003')):
+            result=facts.enrich_content_facts('美食','测试店','',provider='amap')
+        self.assertEqual(result['status'],'partial')
+        self.assertEqual(result['facts']['address'],'广州市甲路1号')
+        self.assertEqual(result['calls']['partial_errors'],['AMAP_BUSINESS_10003'])
+        self.assertEqual(facts._LAST_READ['amap']['status'],'partial')
+
+    def test_plain_hotel_lines_keep_entities_separate(self):
+        items=facts._meituan_travel_items('广州甲酒店，￥399起/晚。\n广州乙酒店，酒店地址：广州市天河区乙路2号。')
+        self.assertEqual(len(items),2)
+        self.assertNotIn('address',items[0]['facts'])
+        self.assertNotIn('price',items[1]['facts'])
+        inline=facts._meituan_travel_items('广州甲酒店，￥399起/晚；广州乙酒店，酒店地址：广州市天河区乙路2号。')
+        self.assertEqual(len(inline),2)
+        self.assertNotIn('address',inline[0]['facts'])
+        self.assertNotIn('price',inline[1]['facts'])
+
+    def test_hotel_introduction_and_pronoun_are_not_extra_merchants(self):
+        items=facts._meituan_travel_items('为你找到了广州长隆附近的亲子酒店。\n[**时光公寓**](https://example.invalid/1) 美团真实评分4.8 ￥380起/晚\n这家公寓有亲子房和大滑梯。\n[**瑾程酒店**](https://example.invalid/2) 美团真实评分5.0 ￥326起/晚')
+        self.assertEqual([item['title'] for item in items],['时光公寓','瑾程酒店'])
+        self.assertIn('大滑梯',items[0]['snippet'])
+
+    def test_cached_partial_keeps_warning_and_observation_with_zero_new_calls(self):
+        local={'title':'缓存测试店','source':'local_verified','facts':{'address':'广州市甲路1号'}}
+        with mock.patch.object(facts,'_CACHE',{}), mock.patch.object(facts,'fact_search_enabled',return_value=True), \
+             mock.patch.object(facts,'_authorized_fact_items',return_value=[local]), \
+             mock.patch.object(facts,'_cache_ttl_seconds',return_value=60), \
+             mock.patch.object(facts,'_search',side_effect=facts.FactProviderError('AMAP_BUSINESS_10003')) as search:
+            first=facts.enrich_content_facts('美食','缓存测试店','',provider='amap')
+            cached=facts.enrich_content_facts('美食','缓存测试店','',provider='amap')
+        self.assertEqual(search.call_count,1)
+        self.assertTrue(cached['cached'])
+        self.assertEqual(cached['status'],'partial')
+        self.assertEqual(cached['observed_at'],first['observed_at'])
+        self.assertEqual(cached['calls']['http_requests'],0)
+        self.assertIn('部分供应商数据未取得',facts.format_fact_context(cached))
+
+    def test_amap_business_failure_and_wrong_detail_identity_are_not_empty_success(self):
+        import httpx
+        with self.assertRaisesRegex(facts.FactProviderError,'AMAP_BUSINESS_10003'):
+            facts._amap_response(httpx.Response(200,json={'status':'0','infocode':'10003','info':'synthetic'}))
+        with self.assertRaisesRegex(facts.FactProviderError,'AMAP_INVALID_RESPONSE'):
+            facts._amap_response(httpx.Response(200,json={'pois':[]}))
+        with self.assertRaisesRegex(facts.FactProviderError,'AMAP_DETAIL_ID_MISMATCH'):
+            facts._merge_amap_detail({'id':'A','name':'甲店'},{'id':'B','business':{'cost':'88'}})
+
+    def test_runtime_supplier_refresh_has_no_external_calls_and_unknown_history(self):
+        with mock.patch.object(facts,'_LAST_READ',{}), \
+             mock.patch.object(facts,'_meituan_travel_token',return_value=''), \
+             mock.patch.object(facts.httpx.Client,'get',side_effect=AssertionError('no probe')), \
+             mock.patch.object(facts.subprocess,'run',side_effect=AssertionError('no CLI')):
+            rows=facts.runtime_services()
+        self.assertTrue({'amap','meituan_travel'}.issubset({row['id'] for row in rows}))
+        self.assertTrue(all(row['latest'] is None for row in rows))
+        self.assertTrue(all(row['upstream_probed'] is False for row in rows))
+
     def test_meituan_runtime_readiness_uses_fixed_missing_codes(self):
         with mock.patch.dict(os.environ, {
             "NOTEAI_FACT_SEARCH": "1",
@@ -89,6 +173,20 @@ class FactEnrichmentTests(unittest.TestCase):
         self.assertNotIn("MEITUAN_AI_HUB_TOKEN", observed["env"])
         self.assertNotIn("MEITUAN_OPEN_TOKEN", observed["env"])
         self.assertFalse(Path(observed["home"]).exists())
+
+    def test_complete_provider_answer_is_separate_from_noncontent_call_metadata(self):
+        answer='广州甲酒店 ￥4XX起/晚。\n' + '完整供应商说明。'*200 + '\n最后一段必须保留。'
+        def search(query,provider):
+            facts._READ_TRACE.get()['provider_response']=answer
+            return provider,facts._meituan_travel_items(answer)
+        with mock.patch.object(facts,'fact_search_enabled',return_value=True), \
+             mock.patch.object(facts,'_authorized_fact_items',return_value=[]), \
+             mock.patch.object(facts,'_cache_ttl_seconds',return_value=0), \
+             mock.patch.object(facts,'_search',side_effect=search):
+            result=facts.enrich_content_facts('旅行','广州甲酒店','',provider='meituan_travel')
+        self.assertEqual(result['provider_response'],answer)
+        self.assertNotIn('provider_response',result['calls'])
+        self.assertNotIn('price',result['facts'])
 
     def test_meituan_cli_redacts_token_and_cleans_config_after_failure(self):
         observed: dict = {}

@@ -16,6 +16,8 @@ import json
 import shutil
 import subprocess
 import tempfile
+import contextvars
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -25,8 +27,65 @@ import httpx
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 _CACHE: dict[str, tuple[float, dict]] = {}
+_READ_TRACE = contextvars.ContextVar("fact_read_trace", default=None)
+_LAST_READ: dict[str, dict] = {}
+
+
+class FactProviderError(RuntimeError):
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(code)
+
+
+def _fact_get(client, url, *, params):
+    trace = _READ_TRACE.get()
+    if trace is not None:
+        trace["http_requests"] += 1
+    response = client.get(url, params=params)
+    if trace is not None:
+        trace["last_http_status"] = response.status_code
+    response.raise_for_status()
+    return response
+
+
+def _amap_response(response):
+    data = response.json()
+    if not isinstance(data, dict):
+        raise FactProviderError("AMAP_INVALID_RESPONSE")
+    if "status" not in data:
+        raise FactProviderError("AMAP_INVALID_RESPONSE")
+    if str(data["status"]) != "1":
+        code = str(data.get("infocode", ""))
+        raise FactProviderError("AMAP_BUSINESS_" + (code if re.fullmatch(r"\d{5}", code) else "ERROR"))
+    return data
+
+
+def runtime_services() -> list[dict]:
+    """Only local runtime configuration and observations; no upstream probes."""
+    travel = meituan_travel_runtime_status()
+    enabled = _truthy_env("NOTEAI_FACT_SEARCH", "1")
+    rows = [
+        {"id": "amap", "name": "高德地图", "role": "明确餐饮门店的地址、营业时间及可取得的消费信息",
+         "business": ["美食诊断", "美食生成"], "configured": bool(os.environ.get("AMAP_WEB_KEY")),
+         "enabled": enabled and bool(os.environ.get("AMAP_WEB_KEY")),
+         "reason": "按商家与创作意图按需检索" if enabled and os.environ.get("AMAP_WEB_KEY") else "开关关闭或当前 API 未绑定凭据"},
+        {"id": "meituan_travel", "name": "美团酒旅", "role": "官方酒旅查询；酒店、旅行方案事实补全（不包含零售 OAuth API）",
+         "business": ["旅行诊断", "旅行生成"], "configured": bool(_meituan_travel_token()) and _meituan_travel_cli_executable(),
+         "enabled": travel["status_code"] == _MEITUAN_TRAVEL_STATUS_READY, "reason": travel["status_code"]},
+    ]
+    for provider, key, name in (("baidu_map", "BAIDU_MAP_AK", "百度地图"), ("tencent_map", "TENCENT_MAP_KEY", "腾讯地图"),
+                               ("serpapi", "SERPAPI_API_KEY", "SerpAPI"), ("bing", "BING_SEARCH_API_KEY", "Bing"),
+                               ("google_cse", "GOOGLE_CSE_ID", "Google Custom Search")):
+        configured = bool(os.environ.get(key)) and (provider != "google_cse" or bool(os.environ.get("GOOGLE_API_KEY")))
+        rows.append({"id": provider, "name": name, "role": "已有可配置事实检索适配器", "business": [],
+                     "configured": configured, "enabled": False,
+                     "reason": "当前正式美食/旅行入口未选择此适配器" if configured else "当前 API 未绑定，未选择该适配器"})
+    for row in rows:
+        row.update(group="data_tools", source="api_runtime_configuration", latest=_LAST_READ.get(row["id"]),
+                   observation_scope="当前 API 进程；重启前记录不据此推断", upstream_probed=False)
+    return rows
 _TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_FACT_SEARCH_TIMEOUT", "8") or "8")
-_MEITUAN_TRAVEL_TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_MEITUAN_TRAVEL_TIMEOUT", "45") or "45")
+_MEITUAN_TRAVEL_TIMEOUT_SECONDS = float(os.environ.get("NOTEAI_MEITUAN_TRAVEL_TIMEOUT", "130") or "130")
 _MEITUAN_TRAVEL_STATUS_READY = "MEITUAN_TRAVEL_READY"
 _MEITUAN_TRAVEL_STATUS_DISABLED = "MEITUAN_TRAVEL_DISABLED"
 _MEITUAN_TRAVEL_STATUS_CLI_MISSING = "MEITUAN_TRAVEL_CLI_MISSING"
@@ -344,6 +403,10 @@ def build_fact_query(domain: str | None, title: str | None, text: str | None) ->
     explicit = re.search(r"(?:店名|门店|餐厅|品牌)[:：]\s*([^\n。；;，,]{2,30})", src)
     name = explicit.group(1).strip() if explicit else ""
     if not name:
+        full_branch = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,40}[（(][^（）()\n]{2,40}[)）])", src)
+        if full_branch:
+            name = full_branch.group(1)
+    if not name:
         m = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·]{2,24}(?:万博店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|店|楼))", src)
         name = m.group(1).strip() if m else ""
     if not name and "珑厨" in src:
@@ -397,7 +460,7 @@ def _amap_keyword_from_query(query: str) -> str:
     cleaned = _NOISE_RE.sub(" ", cleaned).strip()
     parenthesized = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,40})[（(][^\n（）()]{2,40}[)）]", cleaned)
     if parenthesized:
-        outside = _clean_text(parenthesized.group(1), 80)
+        outside = _clean_text(parenthesized.group(0), 80)
         if len(_amap_norm(outside)) >= 2:
             return outside
     match = _AMAP_STORE_NAME_RE.search(cleaned)
@@ -453,7 +516,7 @@ def _amap_poi_matches_keyword(poi: dict, keyword: str) -> bool:
     haystack = _amap_norm(
         " ".join(
             _amap_scalar(poi.get(field))
-            for field in ("name", "address", "type", "tag", "business_area")
+            for field in ("name",)
         )
     )
     compact_keyword = _amap_norm(keyword)
@@ -461,9 +524,12 @@ def _amap_poi_matches_keyword(poi: dict, keyword: str) -> bool:
         return True
     if compact_keyword in haystack:
         return True
+    branch = re.search(r"[（(]([^（）()]+)[)）]", keyword)
+    if branch and _amap_norm(branch.group(1)) not in haystack:
+        return False
     terms = _amap_core_terms(keyword)
     if not terms:
-        return True
+        return False
     return all(term in haystack for term in terms)
 
 
@@ -493,7 +559,7 @@ def _amap_poi_rank(poi: dict, keyword: str, query: str) -> int:
     haystack = _amap_norm(
         " ".join(
             _amap_scalar(poi.get(field))
-            for field in ("name", "address", "type", "tag", "business_area")
+            for field in ("name",)
         )
     )
     compact_keyword = _amap_norm(keyword)
@@ -611,6 +677,8 @@ def _amap_poi_facts(poi: dict) -> dict:
 
 
 def _merge_amap_detail(base: dict, detail: dict) -> dict:
+    if base.get("id") != detail.get("id") or not base.get("id"):
+        raise FactProviderError("AMAP_DETAIL_ID_MISMATCH")
     merged = dict(base)
     for key, value in detail.items():
         if key == "business" and isinstance(value, dict):
@@ -627,7 +695,7 @@ def _amap_fetch_v5_detail(client: httpx.Client, key: str, poi_id: str) -> dict:
     if not poi_id:
         return {}
     try:
-        resp = client.get(
+        resp = _fact_get(client,
             "https://restapi.amap.com/v5/place/detail",
             params={
                 "key": key,
@@ -636,12 +704,14 @@ def _amap_fetch_v5_detail(client: httpx.Client, key: str, poi_id: str) -> dict:
                 "output": "json",
             },
         )
-        resp.raise_for_status()
-        data = resp.json()
+        data = _amap_response(resp)
         pois = data.get("pois") if isinstance(data, dict) else None
         if isinstance(pois, list) and pois and isinstance(pois[0], dict):
             return pois[0]
-    except Exception:
+    except Exception as exc:
+        trace = _READ_TRACE.get()
+        if trace is not None:
+            trace["partial_errors"].append(exc.code if isinstance(exc, FactProviderError) else type(exc).__name__)
         return {}
     return {}
 
@@ -769,10 +839,12 @@ def _search_amap(
     query: str, *, max_detail_requests: int = 3,
 ) -> list[dict]:
     key = os.environ.get("AMAP_WEB_KEY", "")
+    if not key:
+        raise FactProviderError("AMAP_CREDENTIAL_NOT_BOUND")
     region = _extract_region(query)
     keyword = _amap_keyword_from_query(query)
     with httpx.Client(timeout=_TIMEOUT_SECONDS) as client:
-        resp = client.get(
+        resp = _fact_get(client,
             "https://restapi.amap.com/v3/place/text",
             params={
                 "key": key,
@@ -785,8 +857,7 @@ def _search_amap(
                 "output": "json",
             },
         )
-        resp.raise_for_status()
-        data = resp.json()
+        data = _amap_response(resp)
     ranked_pois: list[dict] = []
     for poi in data.get("pois", [])[:6]:
         if isinstance(poi, dict) and _amap_poi_matches_keyword(poi, keyword):
@@ -794,7 +865,7 @@ def _search_amap(
     ranked_pois.sort(key=lambda item: _amap_poi_rank(item, keyword, query), reverse=True)
 
     enriched_pois: list[dict] = []
-    detail_limit = max(0, min(3, int(max_detail_requests)))
+    detail_limit = max(0, min(3, int(max_detail_requests))) if len(ranked_pois) == 1 else 0
     with httpx.Client(timeout=_TIMEOUT_SECONDS) as client:
         for poi in ranked_pois[:detail_limit]:
             detail = _amap_fetch_v5_detail(client, key, _amap_scalar(poi.get("id")))
@@ -807,14 +878,18 @@ def _search_meituan_travel(query: str) -> list[dict]:
     cli_path = _meituan_travel_cli_path()
     region = _extract_region(query)
     if not _meituan_travel_cli_executable():
-        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_CLI_MISSING)
+        raise FactProviderError(_MEITUAN_TRAVEL_STATUS_CLI_MISSING)
     credential = _meituan_travel_token()
     if not credential:
-        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_TOKEN_MISSING)
+        raise FactProviderError(_MEITUAN_TRAVEL_STATUS_TOKEN_MISSING)
     try:
         with tempfile.TemporaryDirectory(prefix="noteai-mttravel-") as runtime_home:
             runtime_home_path = Path(runtime_home)
             _write_meituan_travel_runtime_config(runtime_home_path, credential)
+            trace = _READ_TRACE.get()
+            if trace is not None:
+                trace["cli_invocations"] += 1
+                trace["http_requests"] = None  # CLI does not expose its internal HTTP count.
             completed = subprocess.run(
                 [cli_path, region if region != "全国" else "中国", query],
                 capture_output=True,
@@ -824,23 +899,60 @@ def _search_meituan_travel(query: str) -> list[dict]:
                 env=_meituan_travel_subprocess_env(runtime_home_path),
             )
     except subprocess.TimeoutExpired:
-        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_TIMEOUT) from None
+        raise FactProviderError(_MEITUAN_TRAVEL_STATUS_TIMEOUT) from None
     except (OSError, subprocess.SubprocessError):
-        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED) from None
+        raise FactProviderError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED) from None
     output = _redact_secret_values(
-        "\n".join(part for part in [completed.stdout, completed.stderr] if part),
+        completed.stdout,
         (credential,),
     )
     if completed.returncode != 0:
-        raise RuntimeError(_MEITUAN_TRAVEL_STATUS_EXEC_FAILED)
+        raise FactProviderError("MEITUAN_TRAVEL_AUTH_FAILED" if completed.returncode == 3 else _MEITUAN_TRAVEL_STATUS_EXEC_FAILED)
+    if len(output.encode("utf-8")) > 262144:
+        raise FactProviderError("MEITUAN_TRAVEL_RESPONSE_TOO_LARGE")
+    trace = _READ_TRACE.get()
+    if trace is not None:
+        trace["provider_response"] = output
     snippet = _clean_text(output, 1200)
     if not snippet:
         return []
+    return _meituan_travel_items(output)
+
+
+def _meituan_travel_items(output: str) -> list[dict]:
+    # Split recognized hotel headings before extraction, retaining each source.
+    blocks = []
+    current = []
+    current_name = ""
+    for line in re.split(r"\n|(?<=[；;])(?=[\u4e00-\u9fa5A-Za-z0-9·（）()]{2,40}(?:酒店|公寓|民宿|客栈|度假村|饭店))", output):
+        clean = _strip_markdown(line, 500)
+        heading = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·（）()]{2,40}(?:酒店|公寓|民宿|客栈|度假村|饭店)(?:[（(][^（）()]+[)）])?)", clean)
+        named = heading and not re.match(r"^(?:为你|为您|这家|那家|这间|那间|它|我|你|您|有的|关于|不过|好的|小团|亲子酒店)", heading.group(1))
+        is_heading = named and (heading.start() == 0 or "美团真实评分" in clean or re.match(r"^\s*(?:#+\s*|[-*+]\s+|\d+[.、)]\s*|\[?\*\*)", line))
+        if is_heading:
+            name = _clean_hotel_name(heading.group(1))
+            if current_name and name != current_name:
+                blocks.append((current_name, "\n".join(current)))
+                current = []
+            current_name = name
+        current.append(line)
+    if current:
+        blocks.append((current_name, "\n".join(current)))
+    if len(blocks) > 1:
+        return [item for name, block in blocks[:4] for item in _meituan_travel_single_item(block, name=name)]
+    return _meituan_travel_single_item(output, name=current_name)
+
+
+def _meituan_travel_single_item(output: str, *, name: str = "") -> list[dict]:
+    snippet = _clean_text(output, 1200)
     urls = re.findall(r"https?://[^\s)）]+", snippet)
-    first_line = next((line.strip() for line in snippet.splitlines() if line.strip()), "")
+    first_line = next((line.strip() for line in output.splitlines() if line.strip()), "")
+    if not name:
+        match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·（）()]{2,40}(?:酒店|公寓|民宿|客栈|度假村|饭店))", _strip_markdown(first_line))
+        name = _clean_hotel_name(match.group(1)) if match else "美团酒旅事实（对象未命名）"
     structured_facts = _extract_meituan_travel_facts(output)
     return [{
-        "title": _clean_text(first_line or "美团酒旅事实", 80),
+        "title": _clean_text(name, 80),
         "url": urls[0] if urls else "",
         "snippet": snippet,
         "source": "美团酒旅",
@@ -895,7 +1007,7 @@ def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
         clean = _strip_markdown(line)
         name_match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·（）()]+(?:酒店|公寓|民宿|客栈|度假|饭店)[\u4e00-\u9fa5A-Za-z0-9·（）()]*)", clean)
         rating_match = re.search(r"美团真实评分\s*(\d(?:\.\d)?)", clean)
-        price_match = re.search(r"(?:¥|￥)\s*[\dXx]{2,5}\s*起/晚", clean)
+        price_match = re.search(r"(?:¥|￥)\s*\d{2,5}\s*起/晚", clean)
         tags = clean
         if price_match:
             tags = clean[price_match.end():]
@@ -949,7 +1061,7 @@ def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
         if rating_match:
             facts["rating"] = f"{primary_name}美团真实评分{rating_match.group(1)}"
     if not facts.get("price"):
-        price_match = re.search(r"(?:¥|￥)\s*[\dXx]{2,5}\s*起/晚|\d{2,5}\s*元起/晚", clean_full)
+        price_match = re.search(r"(?:¥|￥)\s*\d{2,5}\s*起/晚|\d{2,5}\s*元起/晚", clean_full)
         if price_match:
             normalized_price = re.sub(r"\s+", "", price_match.group(0))
             facts["price"] = f"{primary_name}{normalized_price}"
@@ -1160,6 +1272,8 @@ def _valid_extracted_fact(key: str, value: str | None) -> bool:
 
 
 def extract_facts_from_search_items(items: list[dict]) -> dict:
+    # A flat fact map describes exactly one entity, never columns from several POIs.
+    items = items[:1]
     texts = [
         _clean_text(f"{item.get('title', '')}。{item.get('snippet', '')}", 500)
         for item in items
@@ -1222,9 +1336,34 @@ def _merge_sources(items: list[dict]) -> list[dict]:
     return sources
 
 
-def enrich_content_facts(domain: str | None, title: str | None, text: str | None) -> dict:
+def enrich_content_facts(domain: str | None, title: str | None, text: str | None, *, provider: str | None = None) -> dict:
+    selected = provider or _provider_name(domain)
+    trace = {"http_requests": 0, "cli_invocations": 0, "last_http_status": None, "partial_errors": []}
+    marker = _READ_TRACE.set(trace)
+    try:
+        result = _enrich_content_facts(domain, title, text, provider=selected)
+    finally:
+        _READ_TRACE.reset(marker)
+    now = datetime.now(timezone.utc).isoformat()
+    provider_response = trace.pop("provider_response", None)
+    if provider_response is not None:
+        result["provider_response"] = provider_response
+    result.setdefault("observed_at", now)
+    if result.get("cached"):
+        trace["partial_errors"] = list((result.get("calls") or {}).get("partial_errors") or [])
+    result["calls"] = trace
+    status = ("disabled" if not result.get("enabled") else "failed" if result.get("error") else
+              "partial" if trace["partial_errors"] else "matched" if result.get("facts") or result.get("entities") else "no_matching_facts")
+    result["status"] = status
+    _LAST_READ[selected] = {"at": now, "status": status, "error_code": result.get("error_code"),
+                            "http_requests": trace["http_requests"], "cli_invocations": trace["cli_invocations"],
+                            "last_http_status": trace["last_http_status"], "cost_cny": None,
+                            "cached": bool(result.get("cached")), "source": "api_process_fact_read"}
+    return result
+
+
+def _enrich_content_facts(domain: str | None, title: str | None, text: str | None, *, provider: str) -> dict:
     query = build_fact_query(domain, title, text)
-    provider = _provider_name(domain)
     if not fact_search_enabled(domain):
         return {"enabled": False, "provider": provider, "query": query, "facts": {}, "sources": [], "confidence": 0.0}
 
@@ -1245,6 +1384,9 @@ def enrich_content_facts(domain: str | None, title: str | None, text: str | None
             search_provider, provider_items = _search(query, provider)
             items.extend(provider_items)
     except Exception as exc:
+        trace = _READ_TRACE.get()
+        if trace is not None and local_items:
+            trace["partial_errors"].append(exc.code if isinstance(exc, FactProviderError) else type(exc).__name__)
         if not local_items:
             return {
                 "enabled": True,
@@ -1254,18 +1396,27 @@ def enrich_content_facts(domain: str | None, title: str | None, text: str | None
                 "sources": [],
                 "confidence": 0.0,
                 "error": "provider_request_failed",
-                "error_code": type(exc).__name__.lower(),
+                "error_code": exc.code if isinstance(exc, FactProviderError) else type(exc).__name__.lower(),
             }
 
     sources = _merge_sources(items)
-    facts = extract_facts_from_search_items(items)
+    entities = [{"name": item.get("title", ""), "facts": extract_facts_from_search_items([item]),
+                 "source": item.get("source", ""), "url": item.get("url", "")} for item in items]
+    entities = [entity for entity in entities if entity["facts"]]
+    # One flat map may never describe several candidates. Hotel lists remain
+    # explicitly named objects; restaurant branches need user disambiguation.
+    ambiguous = provider == "amap" and len({entity["url"] or entity["name"] for entity in entities}) > 1
+    facts = entities[0]["facts"] if len(entities) == 1 else {}
     confidence = min(0.9, 0.35 + 0.12 * len(facts) + 0.04 * min(len(sources), 5))
     result = {
         "enabled": True,
         "provider": _provider_label(search_provider, local_items),
         "query": query,
         "facts": facts,
+        "entities": [] if ambiguous else entities,
         "sources": sources,
+        "error": "entity_ambiguous" if ambiguous else "",
+        "error_code": "MERCHANT_SELECTION_REQUIRED" if ambiguous else "",
         "confidence": round(confidence if facts else 0.2 if sources else 0.0, 2),
         "cached": False,
     }
@@ -1275,19 +1426,32 @@ def enrich_content_facts(domain: str | None, title: str | None, text: str | None
 
 
 def format_fact_context(enrichment: dict | None) -> str:
-    if not enrichment or not enrichment.get("facts"):
+    if not enrichment:
+        return ""
+    if enrichment.get("error"):
+        return "【事实检索未完成】对象或数据未核实，不得编造地址、价格、评分或营业时间；请明确提示需要补充/确认的信息。"
+    if not enrichment.get("facts") and not enrichment.get("entities"):
         return ""
     facts = enrichment.get("facts") or {}
     lines = [
         "【联网事实补全】",
         f"查询：{enrichment.get('query', '')}",
-        f"事实源：{enrichment.get('provider', '')}",
+        f"事实源：{enrichment.get('provider', '')}；读取时间：{enrichment.get('observed_at', '未记录')}",
         f"置信度：{enrichment.get('confidence', 0)}；来源数量：{len(enrichment.get('sources') or [])}",
         "已提取字段（只能引用这里列出的事实；未列出的字段不得编造）：",
     ]
     for key, label in _FACT_FIELD_LABELS.items():
         if facts.get(key):
             lines.append(f"- {label}：{facts[key]}")
+    if (enrichment.get("calls") or {}).get("partial_errors"):
+        lines.append("部分供应商数据未取得；仅使用下列已有字段，不能宣称检索完整。")
+    if enrichment.get("entities"):
+        lines.append("对象与事实必须一一对应，不能跨店合并；报价、营业信息以供应商当日确认情况为准：")
+        for entity in enrichment["entities"][:4]:
+            lines.append(f"对象：{entity.get('name', '')}")
+            for key, value in (entity.get("facts") or {}).items():
+                if key in _FACT_FIELD_LABELS:
+                    lines.append(f"- {_FACT_FIELD_LABELS[key]}：{value}")
     if enrichment.get("sources"):
         lines.append("来源：")
         for idx, src in enumerate(enrichment["sources"][:3], 1):

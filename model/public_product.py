@@ -64,6 +64,7 @@ class Invocation:
     prompts: object | None = None
     route: str = ""
     call_ids: set = field(default_factory=set)
+    fact_observation: dict | None = None
 
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
@@ -101,12 +102,11 @@ async def dispatch(app, scope, receive, send, body: bytes):
                 raise HTTPException(400, "请求格式无效")
             if not isinstance(payload, dict):
                 raise HTTPException(400, "请求格式无效")
-            # This first free rollout accepts text. Media, external URL collection,
-            # paid fact sources and Tracking have their own unverified dependencies.
+            # Media and Tracking retain their concrete validation/deployment boundaries.
+            # Facts use the existing intent/entity decision, never a gift/free downgrade.
             if any(payload.get(k) for k in ("cover_image", "cover_images", "extra_images", "image_base64", "video_file_id")):
                 raise HTTPException(422, "当前免费体验支持文字输入；图片和视频尚未开放")
-            if path in {"/analyze/stream", "/generate/stream"} and payload.get("fact_source_policy") != "skip":
-                raise HTTPException(422, "当前体验不调用外部商家事实源，请使用已有材料创作")
+
         context = Invocation(user["id"], request_id or str(uuid.uuid4()), route=path)
         if path in PAID_ROUTES and os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1":
             import model_runtime_config
@@ -137,6 +137,76 @@ def available():
             or budget["reserved_milli_cny"] + RESERVE_MILLI_CNY <= budget["limit_milli_cny"]))
     except Exception:
         return False
+
+
+def record_fact_observation(result):
+    """Bind non-content retrieval metadata to the existing business call record."""
+    current = _invocation.get()
+    if current is None:
+        return
+    calls = result.get("calls") or {}
+    def code(value):
+        return value if isinstance(value,str) and re.fullmatch(r"[A-Za-z0-9_]{1,80}",value) else None
+    def counter(value):
+        return value if type(value) is int and 0 <= value <= 1000 else None
+    providers = str(result.get("provider") or "").split("+")
+    provider = next((name for name in providers if name in
+        {"amap","meituan_travel","baidu_map","tencent_map","serpapi","bing","google_cse"}),None)
+    observed_at = result.get("observed_at")
+    try:
+        if not isinstance(observed_at,str) or len(observed_at)>40:
+            raise ValueError
+        datetime.fromisoformat(observed_at)
+    except ValueError:
+        observed_at = None
+    current.fact_observation = {
+        "provider": provider, "observed_at": observed_at,
+        "status": code(result.get("status")), "error_code": code(result.get("error_code")),
+        "cached": bool(result.get("cached")), "cost_cny": None,
+        "http_requests": counter(calls.get("http_requests")), "cli_invocations": counter(calls.get("cli_invocations")),
+        "last_http_status": counter(calls.get("last_http_status")),
+        "partial_errors": [item for item in (calls.get("partial_errors") or [])[:8] if code(item)],
+    }
+
+
+def runtime_services():
+    import fact_enrichment
+    import model_runtime_config
+    try:
+        active = model_runtime_config.read()["active"]
+        tasks = [task for task, row in active.items() if row.get("enabled")]
+    except Exception:
+        tasks = None
+    gateway = all(os.environ.get(key) for key in (
+        "NOTEAI_CLAUDE_GATEWAY_URL", "NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH",
+        "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID",
+        "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET"))
+    rows = [
+        {"id": "kimi", "name": "Kimi K2.6", "group": "generation_models",
+         "role": "当前已生效的文字诊断、生成、语义、仲裁和对话模型；原设计同时承担视觉分析",
+         "business": tasks, "configured": bool(os.environ.get("MOONSHOT_API_KEY")), "enabled": available(),
+         "reason": "按已发布业务配置与用户权益执行，实际用量入账；不因赠送来源降质"},
+        {"id": "claude", "name": "Claude Haiku / Sonnet", "group": "generation_models",
+         "role": "原分工：Haiku 诊断、生成、语义；Sonnet 仲裁、对话",
+         "business": [], "configured": bool(gateway), "enabled": False,
+         "reason": "当前个人 API 通道的公开地区条款不覆盖中国内地商家场景，未启用；历史 Gateway 调用成功保留，不能作为当前用途通过"},
+    ]
+    for row in rows:
+        row.update(source="api_runtime_configuration", upstream_probed=False)
+    return rows + fact_enrichment.runtime_services()
+
+
+def public_services():
+    # Product availability is public; process observations and configuration
+    # presence belong to authenticated operations, not registration/status.
+    fields = {"id", "name", "group", "role", "business", "enabled", "reason"}
+    public = []
+    for row in runtime_services():
+        summary = {key: value for key, value in row.items() if key in fields}
+        if row.get("group") == "data_tools":
+            summary["reason"] = "根据业务输入按需查询，缺失信息会明确提示" if row.get("enabled") else "当前未开放该检索来源"
+        public.append(summary)
+    return public
 
 
 def validate_startup(storage):
@@ -224,7 +294,8 @@ def _reserve(request: httpx.Request) -> str:
             provenance = json.dumps({"model": payload["model"], "route": current.route,
                 "operation": parent["operation"], "entitlement_source": parent["source"],
                 "model_config_revision": (current.model_config or {}).get("active_revision"),
-                "prompts": prompt_manager.request_versions()}, separators=(",", ":"), sort_keys=True)
+                "prompts": prompt_manager.request_versions(),
+                "fact_observation": current.fact_observation}, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "
                        "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",RESERVE_MILLI_CNY,now,usage_id,provenance))
         else:

@@ -1,5 +1,96 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 14:29 Beijing — supplier facts candidate ready for controlled C rollout
+
+Current supplier-console readback: Amap's original authenticated account is a
+verified personal developer and explicitly displays "未获得技术服务使用许可";
+all-orders has no rows. Basic keyword quota5000/month, month1/day0, ID queries0.
+This is now an observed missing permission for commercial use, not a missing bespoke
+letter. Official terms https://lbs.amap.com/pages/terms/ sections3.1/3.2.1 apply;
+no new licence/subscription purchase is authorized. Keep Amap unbound on public C;
+merchant-provided facts and other available business paths continue independently.
+
+Meituan's original noteai Token metadata: created2026-06-25,last used2026-09-03;
+no token value read or reset. Existing AI Hub meituan-travel details12 remain
+available at https://developer.meituan.com/zh/v2/dev/aiHub/skillManage/detail/12 .
+Official purpose covers hotel/travel queries and requires complete response display,
+original masked prices, source labels and images. No current price/quota/settlement
+is exposed here; never claim free/zero incremental cost. Runtime is the fixed
+travel-cli1.0.16 voyage endpoint, not merchant retail OAuth. Candidate retains one
+CLI per needed query (internal physical HTTP count unknown), no automatic replay;
+130s wrapper allows official120s response timeout, replacing the former45s cut-off.
+
+Candidate fixes full API brand+branch propagation, no cross-hotel field filling,
+ambiguous POI handling, explicit upstream business failure, partial/cache truth and
+complete private supplier response through SSE plus diagnosis/generation terminal
+and existing result/context schemas. Original text/price remains visible with safe
+DOM text/links/images; no raw HTML execution. Do not claim the text-only notes table
+preserves the full result: source belongs to original result/diagnosis and the
+existing chat generate-context paths. No formal industry Prompt text was rewritten.
+
+Admin's existing model page groups models and data/tools. Public status exposes only
+product availability; exact observations are only in the authenticated Admin view,
+read from existing model ledger and content-free0025 call provenance. Latest200
+model-call observation scope is explicit; duplicated observations are not summed,
+cache preserves original time/partial status; absent/history is not current health.
+No query, URL, entity/private response or credential enters call metadata.0025 adds
+only Admin SELECT(created_at,provenance_json); identities/hashes/writes remain denied.
+
+Verification:59 targeted Python3.11.15/amd64 tests passed;3 genuine isolated PG16
+migration/accounting/column-ACL checks passed;7 Playwright offline-browser checks
+passed including full source/XSS/unknown usage and zero paid probes. Two original
+private-production-container/filename read errors were retained and corrected;
+original C script is build.py, not hostbuild.py. DMS preflight14:24:42.554207+08
+confirmed noteai_admin/current DB noteai,23 migrations/no0025,expected constraints,
+17responded/no dispatched and reserved44030. Item34 stillgeneration2 checking_7d,
+original24h/T0/next3d, noactiveattempt/lease. No production migration/deploy or provider
+call in this stage; Readiness30/37. Compiled candidate is at
+/private/tmp/noteai-formal-supplier-candidate;0025SHA256
+580883da14d7f093e667fb3ae2aceeb6f345b2c948c00512b252d5ec096f3281.
+Next: only Meituan key binding via existing protected envelope, private before-backup,
+0025 and scoped C candidate build/verification/deployment, then normal entitled-owner
+travel input-to-result test. Amap/Claude actual external conditions limit their
+paths only. Protect F/Item34; do not repeat old ACR/Item30 actions or reset budgets.
+
+## September13 14:07 Beijing — Claude account fact and applicable-use conclusion
+
+Owner explicitly confirms the existing Claude API account was opened and is used
+personally. This is an owner-confirmed fact, not a company account assumption.
+Console's Japan country setting is recorded metadata, not proof of the person's
+actual location; that location remains unverified and is not needed again to decide
+the confirmed mainland-China end-user scenario. Render Gateway is independently
+verified in Singapore. NoteAI's intended users are mainland-China merchants.
+
+The direct API Commercial Terms (effective2025-06-17), A.1, permit customer products;
+D.2 requires both Customer and Users to follow Supported Regions. The current list
+contains Japan/Singapore but not mainland China. Thus the published direct-channel
+terms do not cover this stated end-user scenario, irrespective of the personal
+account or Gateway location. There is no general company-specific approval-letter
+requirement; that file is not a gate and no further account-identity question is
+pending. Historical Render84f8a2f and Item30 technical SUCCESS remain exactly that.
+Sources: https://www.anthropic.com/legal/commercial-terms (A.1,D.2),
+https://www.anthropic.com/supported-countries (API availability).
+
+Do not enable this Claude channel for the stated scenario on the evidence available.
+A viable Claude path would require applicable service terms/contract that actually
+cover these users and this product, not a relay or server-location change; none has
+been identified. Independently evaluate already lawful model routes with task-level
+quality evidence; do not call Kimi-only parity/full delivery proven. No new contract,
+subscription, special-letter requirement, Item35 signature or monetary threshold.
+Amap/Meituan/Prompt/accounting engineering continues; this is a single-path limit.
+
+Current independent candidate:52 isolated Python3.11/amd64 tests passed for selected
+API fact routes, per-entity facts, explicit failure states, Admin/runtime sources and
+public-product boundaries. No production change or provider call in this stage.
+F readback2026-09-13T05:58:58Z confirms only the existing Amap and Meituan AI Hub keys
+match container configuration, original process and current host api.env; no values
+were exposed. Before activating Amap in this product, verify its existing technical
+service licence/use coverage in the original account: historical5000 quota and one
+success do not establish it. Meituan is the voyage/openapi/query wine/travel channel,
+not retail merchant OAuth; one CLI invocation has unknown physical redirect count.
+Next: finish factual binding/UI verification and inspect existing provider metadata,
+then scoped C rollout and eligible real business verification. No F/XHS changes.
+
 ## September13 current owner scope — formal product, equal entitlement quality
 
 Owner now authorizes completing the existing formal product, real business quality
@@ -39,7 +130,7 @@ priority: remove temporary quality/budget branches without losing durable accoun
 then integrate legal provider routes and existing entitlement-qualified capabilities.
 Older dated policies below are history where this decision supersedes them.
 
-## September13 13:52 Beijing — formal call accounting candidate verified
+## September13 13:51 Beijing — formal call accounting candidate verified
 
 Latest owner addition requires a complete model/tool supplier view and current
 Amap/Meituan business-chain verification. No company-specific approval-letter

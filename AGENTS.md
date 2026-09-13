@@ -2,6 +2,11 @@
 
 ## Current execution control
 
+September13 owner confirms Claude API is a personal account. Do not infer a company
+account or require a generic company-specific approval letter. Current applicable-use
+conclusion and independent supplier work are at the Handoff top; preserve historical
+technical success, equal-entitlement quality and no temporary monetary stop.
+
 September13 owner authorizes delivery of the existing full formal product and
 current37-item acceptance scope. Equivalent granted and purchased entitlements use
 the same model/Prompt/context/media/quality path; provenance affects accounting,

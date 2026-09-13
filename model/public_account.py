@@ -56,6 +56,7 @@ def service_status() -> dict:
         "free_monthly_credits": 12,
         "fast_chat_credits": 1 if product_enabled() else 0,
         "tracking_open": False,
+        "suppliers": public_product.public_services() if product_enabled() else [],
         "contract_version": contract_version(),
         "support_phone": "18988528731",
         "support_email": "ecfine@163.com",

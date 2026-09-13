@@ -1,5 +1,6 @@
 """Offline checks of the public route boundary and existing OTP transactions."""
 import importlib
+import json
 import os
 from pathlib import Path
 import sys
@@ -290,6 +291,15 @@ class PublicProductTests(unittest.TestCase):
         db.execute('UPDATE public_trial_budget SET reserved_milli_cny=49000')
         self.assertFalse(self.client.get('/public/status').json()['ai_open'])
 
+    def test_public_status_does_not_disclose_private_supplier_observations(self):
+        import fact_enrichment
+        with mock.patch.object(fact_enrichment,'_LAST_READ',{'amap':{'at':'private-time','http_requests':2}}):
+            suppliers=self.client.get('/public/status').json()['suppliers']
+        self.assertTrue(suppliers)
+        for supplier in suppliers:
+            self.assertFalse({'configured','latest','http_requests','cli_invocations','observation_scope'} & set(supplier))
+        self.assertNotIn('private-time',str(suppliers))
+
     def metered_usage(self):
         import billing
         billing.clear_active_usage()
@@ -301,6 +311,9 @@ class PublicProductTests(unittest.TestCase):
     def test_metered_actual_usage_is_bound_once_without_resetting_old_reserve(self):
         import billing, model_router, httpx
         usage_id = self.metered_usage()
+        self.product.record_fact_observation({'provider':'local_verified+amap','observed_at':'2026-09-13T06:00:00+00:00',
+            'status':'partial','query':'PRIVATE QUERY','provider_response':'PRIVATE RESPONSE','facts':{'private':'value'},
+            'calls':{'http_requests':2,'cli_invocations':0,'last_http_status':200,'partial_errors':['AMAP_BUSINESS_10003']}})
         result = {'choices':[{'message':{'content':'offline fixture'},'finish_reason':'stop'}],
                   'usage':{'prompt_tokens':100,'completion_tokens':20,'cached_tokens':10}}
         with self.product.kimi_client(transport=httpx.MockTransport(lambda _: httpx.Response(200,json=result))) as client:
@@ -312,6 +325,10 @@ class PublicProductTests(unittest.TestCase):
             model_router._record_kimi_usage('kimi-k2.6', result['usage'], physical_call_id=call_id)
         row = db.fetchone('SELECT * FROM public_trial_calls WHERE id=?',(call_id,))
         self.assertEqual(row['usage_record_id'], usage_id)
+        provenance=json.loads(row['provenance_json'])
+        self.assertEqual(provenance['fact_observation']['provider'],'amap')
+        self.assertEqual(provenance['fact_observation']['http_requests'],2)
+        self.assertNotIn('PRIVATE',row['provenance_json'])
         self.assertTrue(row['model_usage_record_id'])
         self.assertEqual(db.fetchone('SELECT COUNT(*) FROM model_usage_records')[0],1)
         parent=db.fetchone('SELECT * FROM usage_records WHERE id=?',(usage_id,))
@@ -388,6 +405,14 @@ class PublicProductPostgresTests(unittest.TestCase):
         self.user=auth.create_user('trial_pg_'+uuid.uuid4().hex[:12],'NotARealPassword!42')
 
     def tearDown(self): self.env.stop()
+
+    def test_pg16_admin_reads_only_noncontent_observation_columns(self):
+        with self.pg.psycopg.connect(self.pg.owner_dsn,autocommit=True) as conn:
+            conn.execute('SET ROLE noteai_admin_runtime')
+            conn.execute('SELECT created_at,provenance_json FROM public_trial_calls').fetchall()
+            for sql in ['SELECT user_id FROM public_trial_calls','SELECT request_hash FROM public_trial_calls',
+                        "UPDATE public_trial_calls SET provenance_json='{}'"]:
+                with self.assertRaises(self.pg.psycopg.errors.InsufficientPrivilege): conn.execute(sql)
 
     def test_pg16_global_concurrency_and_ceiling_at_application_role(self):
         import threading, httpx, time

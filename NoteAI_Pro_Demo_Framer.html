@@ -5259,18 +5259,6 @@ document.addEventListener('click', event => {
   } catch (_) { showToast('操作未完成，请重试'); }
 });
 const PUBLIC_PRODUCT = window.NOTEAI_PUBLIC_PRODUCT === true;
-if (PUBLIC_PRODUCT) {
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = function(input, options = {}) {
-    const url = typeof input === 'string' ? input : input.url;
-    if (url === API_BASE + '/analyze/stream' || url === API_BASE + '/generate/stream') {
-      const payload = JSON.parse(options.body || '{}');
-      payload.fact_source_policy = 'skip';
-      options = {...options, body:JSON.stringify(payload)};
-    }
-    return originalFetch(input, options);
-  };
-}
 let _publicStatus = null;
 const PUBLIC_PRODUCT_CONTRACT = 'free-product-2026-09-12';
 async function refreshPublicStatus() {
@@ -6383,6 +6371,9 @@ function appendSafeProcessCard(containerId, ev, extraClass = '') {
 
 function _handleGenStreamEvent(ev) {
   switch (ev.type) {
+    case 'fact_enrichment':
+      _handleAnalyzeStreamEvent(ev);
+      break;
     case 'image_quota_notice': {
       // 图片数超过套餐深度分析上限时的友好提示
       const area = document.getElementById('bubbleArea');
@@ -6610,11 +6601,18 @@ function _handleAnalyzeStreamEvent(ev) {
       const pieces = [];
       if (facts.name) pieces.push(facts.name);
       if (facts.rating) pieces.push(`评分 ${facts.rating}`);
-      if (facts.avg_price) pieces.push(`人均 ${facts.avg_price}`);
-      if (facts.business_hours) pieces.push(`营业 ${facts.business_hours}`);
-      addBubble('事实源', `${provider} 已返回真实素材：${pieces.join('；') || '已补充可核验信息'}`, 1, 0, 0);
+      if (facts.price) pieces.push(`参考价格 ${facts.price}`);
+      if (facts.hours) pieces.push(`营业 ${facts.hours}`);
+      if (facts.address) pieces.push(`地址 ${facts.address}`);
+      const entities = Array.isArray(ev.entities) ? ev.entities : [];
+      const received = pieces.length > 0 || entities.some(entity => Object.keys(entity.facts || {}).length > 0);
+      const detail = ev.error_code ? `检索未完成：${ev.error_code}；不会编造缺失事实` : received
+        ? `已取得可追溯信息：${pieces.join('；') || entities.map(entity => entity.name).join('、')}；读取时间 ${ev.observed_at || '未记录'}`
+        : '未取得匹配事实，请补充或确认门店信息';
+      addBubble('事实源', `${provider} ${detail}${ev.status === 'partial' ? '；部分供应商数据未取得' : ''}`, 1, 0, 0);
+      renderProviderAnswer(ev, document.getElementById('bubbleArea'), 'live-provider-answer');
       pulseLive3DAgent(1, 'thinking');
-      if (ev.progress) setProgress(ev.progress, '事实源信息已接入诊断上下文');
+      if (ev.progress) setProgress(ev.progress, received && !ev.error_code ? '事实源信息已接入诊断上下文' : '事实源缺项已明确标记');
       break;
     }
     case 'diagnosis_score': {
@@ -7025,6 +7023,7 @@ async function populateReport() {
   try { if (_diagnosePromise) await _diagnosePromise; } catch(e) { /* 诊断失败时继续显示空状态 */ }
 
   const d = _diagnoseResult;
+  renderProviderAnswer(d?.fact_enrichment, document.querySelector('#page-report .report-page'), 'report-provider-answer');
 
   // ── 无数据：用内联空状态替换内容（不用 position:absolute，避免高度计算问题）──
   const emptyEl = document.getElementById('_report_empty_inline');
@@ -7321,6 +7320,7 @@ async function populateGenerateReport() {
 
   if (_diagnosePromise) await _diagnosePromise;
   const d = _generateResult;
+  renderProviderAnswer(d?.fact_enrichment, document.querySelector('#page-report .report-page'), 'report-provider-answer');
   if (!completeProductResult(d)) {
     document.getElementById("chatEntryBanner").style.display="none";
     document.getElementById("scoreRingNum").textContent="--";
@@ -7980,6 +7980,35 @@ function agentArb(i) {
   const av=document.getElementById('av'+i); av.classList.remove('thinking'); av.classList.add('arbiter');
   pulseLive3DAgent(i, 'arbiter');
 }
+function renderProviderAnswer(enrichment, container, cardId) {
+  document.getElementById(cardId)?.remove();
+  if (!container || !enrichment || typeof enrichment.provider_response !== 'string' || !enrichment.provider_response) return;
+  const card = document.createElement('section'); card.id = cardId; card.className = 'bubble provider-answer';
+  const heading = document.createElement('h3'); heading.textContent = `美团酒旅原始查询结果 · ${enrichment.observed_at || '读取时间未记录'}${enrichment.cached ? '（缓存）' : ''}`;
+  const notice = document.createElement('p'); notice.textContent = '下方保留本次供应商返回的完整文字与价格原文；这是查询时的结果，不代表实时余房或订单承诺。NoteAI 分析与供应商原文分别展示。';
+  card.append(heading,notice);
+  enrichment.provider_response.split('\n').forEach(line=>{
+    const row=document.createElement('div'); row.style.whiteSpace='pre-wrap';
+    // Preserve all text. Raw HTML is never interpreted; URLs are the only links.
+    const pattern=/https?:\/\/[^\s<>"'\])）]+/g; let offset=0;
+    for (const match of line.matchAll(pattern)) {
+      row.append(document.createTextNode(line.slice(offset,match.index)));
+      const raw=match[0]; let safe=false;
+      try { const url=new URL(raw); safe=['https:','http:'].includes(url.protocol) && !url.username && !url.password; } catch(e) {}
+      if (safe) { const a=document.createElement('a'); a.href=raw; a.textContent=raw; a.target='_blank'; a.rel='noopener noreferrer'; row.append(a); }
+      else row.append(document.createTextNode(raw));
+      offset=match.index+raw.length;
+    }
+    row.append(document.createTextNode(line.slice(offset))); card.append(row);
+    for (const match of line.matchAll(pattern)) {
+      if (!/\.(?:jpe?g|png|webp|gif)(?:[?/#]|$)|\/(?:images?|photos?)\//i.test(match[0])) continue;
+      try { const url=new URL(match[0]); if (url.username || url.password) continue; } catch(e) { continue; }
+      const img=document.createElement('img'); img.src=match[0]; img.alt='美团酒旅返回的图片'; img.loading='lazy'; img.referrerPolicy='no-referrer'; img.style.cssText='max-width:100%;height:auto;display:block;margin:8px 0'; card.append(img);
+    }
+  });
+  container.append(card);
+}
+
 function addBubble(agent, text, col, top, left) {
   const area = document.getElementById('bubbleArea');
   const b = document.createElement('div');

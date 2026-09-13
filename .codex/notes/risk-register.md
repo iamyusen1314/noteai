@@ -1,5 +1,25 @@
 # Risk Register
 
+September13 14:29 actual Amap console explicitly shows no technical-service use licence;
+keep public C Amap unbound, no inferred commercial permission from quota/history.
+Meituan official full-output requirements are implemented in the current candidate;
+real end-to-end validation and deployment remain pending. CLI physical HTTP and
+actual incremental charges are unknown, not0. Detailed runtime observations are
+Admin-only and duplicate provenance is not a sum of requests. DMS existing owner
+preflight succeeded; current Item34 unchanged. See Handoff current source/limits.
+
+September13 14:07 current Claude conclusion: owner confirms a personal API account;
+no company-account inference or special approval-letter requirement. Published
+Commercial Terms D.2 binds Customer and Users to Supported Regions; the confirmed
+mainland merchant scenario is not covered by the current direct API list. Japan
+Console metadata and Singapore Gateway transport do not change that. Do not request
+personal location again for this conclusion or alter historical technical success.
+Applicable alternative service terms or a lawful model with evidenced task quality
+are distinct paths; no unverified Claude deployment/Kimi-equivalence claim.
+Amap existing commercial licence/use scope still needs actual account metadata,
+not a bespoke letter. CLI success/token presence alone establishes neither ongoing
+health nor price; Meituan physical request count remains unknown behind its CLI.
+
 September13 formal accounting candidate is locally verified including PG16.0025
 must precede code; original pre0025 binaries cannot be used as a full recovery
 once cumulative reservations exceed the retired50000 limit. Preserve schema/history
