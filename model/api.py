@@ -4633,7 +4633,11 @@ async def _run_generation_agents(
             for i, img in enumerate(deep_imgs)
         ]
         deep_results = await asyncio.gather(*deep_tasks, return_exceptions=True)
-        vis_result   = deep_results[0] if isinstance(deep_results[0], dict) else {"_image_desc": brief or domain}
+        if not isinstance(deep_results[0], dict) or any(not isinstance(result, (str, dict)) or not (
+            result.strip() if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
+        ) for result in deep_results):
+            raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
+        vis_result = deep_results[0]
         extra_deep_descs = [
             r if isinstance(r, str) else r.get("_image_desc", "")
             for r in deep_results[1:]
@@ -4648,6 +4652,8 @@ async def _run_generation_agents(
     if brief_imgs:
         brief_tasks = [asyncio.to_thread(_kimi_vision_understand, img, domain, brief) for img in brief_imgs]
         brief_results = await asyncio.gather(*brief_tasks, return_exceptions=True)
+        if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_results):
+            raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
         brief_descs = [r for r in brief_results if isinstance(r, str) and len(r) > 5]
 
     image_desc = vis_result.get("_image_desc", brief or domain)
@@ -4667,6 +4673,7 @@ async def _run_generation_agents(
             + "\n".join(all_img_descs)
         )
 
+    vis_result = {**vis_result, "_image_desc": image_desc}
     extra_descs = extra_deep_descs + brief_descs  # 向后兼容变量名
 
     # Phase 2: three creation agents in parallel
@@ -4836,8 +4843,8 @@ async def _run_generation_agents(
             if selected_early:
                 title = selected_early.get("title", title)
                 body = selected_early.get("body", body)
-                if selected_early.get("variants"):
-                    arb["variants"] = selected_early.get("variants")
+                if "variants" in selected_early:
+                    arb["variants"] = selected_early["variants"]
                 if selected_early.get("rationale"):
                     arb["rationale"] = selected_early.get("rationale")
                 print(
@@ -4859,7 +4866,7 @@ async def _run_generation_agents(
     percentile, features, grade, weaknesses = 0.0, {}, "待评估", []
     semantic_feats: dict = {}
     # Track best title/body independently so score reporting stays accurate
-    best_title, best_body = title, body
+    best_title, best_body, best_variants = title, body, arb.get("variants", [])
     best_issues: list[str] = []
     quality_issues: list[str] = []
 
@@ -4879,7 +4886,9 @@ async def _run_generation_agents(
             )
             print(f"[gen] P4-refine round={round_idx} score={pct_new:.1f}", file=sys.stderr, flush=True)
             quality_issues = _generated_quality_issues(title, body, domain, pct_new, feat_new, brief or "")
-            quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues.extend(_delivery_integrity_issues(
+                f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []),
+            ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
             # 只在新分数更高时才更新最佳内容（防止模型退化被采纳）
             if pct_new > percentile or (abs(pct_new - percentile) < 0.01 and len(quality_issues) < len(best_issues or quality_issues)):
@@ -4887,6 +4896,7 @@ async def _run_generation_agents(
                 grade = _grade(percentile)
                 weaknesses = _find_weaknesses(features, domain)
                 best_title, best_body = title, body
+                best_variants = arb.get("variants", [])
                 best_issues = list(quality_issues)
 
             # 达标或已是最后一轮 → 停止
@@ -4926,7 +4936,7 @@ async def _run_generation_agents(
             break
 
     # Use the highest-scoring version (guards against round-2 regression)
-    title, body = best_title, best_body
+    title, body, arb["variants"] = best_title, best_body, best_variants
     quality_issues = best_issues
 
     score_lift_repaired = False
@@ -4989,7 +4999,9 @@ async def _run_generation_agents(
             )
             grade = _grade(percentile)
             quality_issues = _generated_quality_issues(title, body, domain, percentile, features, brief or "")
-            quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues.extend(_delivery_integrity_issues(
+                f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []),
+            ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception:
             quality_issues = quality_issues or []
@@ -5020,9 +5032,9 @@ async def _run_generation_agents(
                 percentile = float(selected_final.get("score") or percentile or 0.0)
                 features = selected_final.get("features") or features
                 grade = selected_final.get("grade") or _grade(percentile)
-                quality_issues = selected_final.get("quality_issues") or quality_issues
-                if selected_final.get("variants"):
-                    arb["variants"] = selected_final.get("variants")
+                quality_issues = selected_final.get("quality_issues", quality_issues)
+                if "variants" in selected_final:
+                    arb["variants"] = selected_final["variants"]
                 if selected_final.get("rationale"):
                     arb["rationale"] = selected_final.get("rationale")
                 print(
@@ -5036,6 +5048,9 @@ async def _run_generation_agents(
                 raise
             _log_internal_failure("generate", exc, phase="selector_final")
 
+    quality_issues = list(dict.fromkeys(quality_issues + _delivery_integrity_issues(
+        f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []),
+    )))
     feature_hits = {
         **_feature_hits_for_generation(title, features, percentile, domain, body=body),
         "has_positive_emotion": bool(features.get("title_has_pos_emotion", 0)),
@@ -10481,8 +10496,14 @@ def _home_replicability_density_issues(text: str, source_context: str | None, do
     return []
 
 
-def _delivery_integrity_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
+def _delivery_integrity_issues(
+    text: str, source_context: str | None, domain: str | None = None,
+    *, title_variants: list[str] | None = None,
+) -> list[str]:
     issues = _structured_fact_boundary_issues(text, source_context, domain)
+    for index, variant in enumerate(title_variants or [], 1):
+        issues.extend(f"备选标题{index}：{issue}" for issue in
+                      _structured_fact_boundary_issues(variant, source_context, domain))
     issues.extend(_fitness_source_action_coverage_issues(text, source_context, domain))
     issues.extend(_fitness_unverified_result_issues(text, source_context, domain))
     issues.extend(_travel_hotel_fact_density_issues(text, source_context, domain))
@@ -10582,7 +10603,9 @@ async def _score_generation_delivery_candidate(
         body = _append_missing_fitness_source_actions(body, source_context)
     score, features, grade = await _score_generated_note(title, body, canonical, local_time, timing, cover_feats)
     issues = _generated_quality_issues(title, body, canonical, score, features, source_context)
-    issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context or "", canonical))
+    issues.extend(_delivery_integrity_issues(
+        f"{title}\n{body}", source_context or "", canonical, title_variants=candidate.get("variants", []),
+    ))
     issues.extend(_body_format_issues(body))
     issues = _filter_quality_issues_for_content_intent(
         list(dict.fromkeys(issue for issue in issues if issue)),
@@ -10617,13 +10640,13 @@ async def _select_best_generation_candidate(
 ) -> dict:
     """Score and select the best generated note candidate with V0.4 runtime signals."""
     deduped: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, tuple[str, ...]]] = set()
     for candidate in candidates:
         title = str(candidate.get("title") or "")
         body = str(candidate.get("body") or "")
         if not title.strip() or not body.strip():
             continue
-        sig = _candidate_signature(title, body)
+        sig = (_candidate_signature(title, body), tuple(candidate.get("variants") or []))
         if sig in seen:
             continue
         seen.add(sig)
@@ -16251,7 +16274,7 @@ async def _generate_pipeline_stream(
             if selected_early:
                 title = selected_early.get("title", title)
                 body = selected_early.get("body", body)
-                variants = selected_early.get("variants") or variants
+                variants = selected_early.get("variants", variants)
                 rationale = selected_early.get("rationale") or rationale
                 yield {
                     "type": "selector_selected",
@@ -16302,7 +16325,9 @@ async def _generate_pipeline_stream(
                 title, body, domain, local_time, timing, cover_feats or None
             )
             quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats, brief or "")
-            quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues.extend(_delivery_integrity_issues(
+                f"{title}\n{body}", brief or "", domain, title_variants=variants,
+            ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception as exc:
             _log_internal_failure(
@@ -16467,7 +16492,9 @@ async def _generate_pipeline_stream(
                 cover_feats or None,
             )
             quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats, brief or "")
-            quality_issues.extend(_delivery_integrity_issues(f"{title}\n{body}", brief or "", domain))
+            quality_issues.extend(_delivery_integrity_issues(
+                f"{title}\n{body}", brief or "", domain, title_variants=variants,
+            ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception:
             pass
@@ -16495,12 +16522,12 @@ async def _generate_pipeline_stream(
             if selected_final:
                 title = selected_final.get("title", title)
                 body = selected_final.get("body", body)
-                variants = selected_final.get("variants") or variants
+                variants = selected_final.get("variants", variants)
                 rationale = selected_final.get("rationale") or rationale
                 final_score = float(selected_final.get("score") or final_score or 0.0)
                 final_feats = selected_final.get("features") or final_feats
                 grade_str = selected_final.get("grade") or _grade(final_score)
-                quality_issues = selected_final.get("quality_issues") or quality_issues
+                quality_issues = selected_final.get("quality_issues", quality_issues)
                 yield {
                     "type": "selector_selected",
                     "origin": selected_final.get("origin"),
@@ -16511,6 +16538,9 @@ async def _generate_pipeline_stream(
         except Exception as exc:
             _log_internal_failure("generate", exc, phase="stream_selector_final")
 
+    quality_issues = list(dict.fromkeys(quality_issues + _delivery_integrity_issues(
+        f"{title}\n{body}", brief or "", domain, title_variants=variants,
+    )))
     feature_hits = _feature_hits_for_generation(title, final_feats, final_score, domain, body=body)
 
     if _has_blocking_quality_issues(final_score, quality_issues, domain):
@@ -17083,7 +17113,7 @@ async def generate(
                 timeout=660.0
             )
         except asyncio.TimeoutError:
-            raise HTTPException(status_code=504, detail="生成超时，请重试（kimi响应过慢）")
+            raise HTTPException(status_code=504, detail="生成超时，请先查看原任务状态，不要重复提交原请求")
 
         if result.get("quality_failed"):
             failure_prompts = _supplement_prompts_from_quality_issues(
