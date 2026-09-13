@@ -1574,6 +1574,15 @@ async function loadModelConfig() {
       const row = (data.draft || data.active)[task];
       return `<div style="display:flex;gap:12px;align-items:center;margin:12px 0" data-model-task="${esc(task)}"><b style="min-width:100px">${esc(({diagnosis:'诊断专家',content_gen:'内容生成',arbitrate:'仲裁',chat:'对话',semantic:'语义分析'})[task] || task)}</b><select class="form-input" data-model-field="model">${data.allowed_models.map(model=>`<option value="${esc(model)}" ${model===row.model?'selected':''}>${esc(model)}</option>`).join('')}</select><label><input type="checkbox" data-model-field="enabled" ${row.enabled?'checked':''}> 启用</label><label>输出上限 <input class="form-input" type="number" min="256" max="32768" step="1" data-model-field="max_tokens" value="${row.max_tokens}"></label><small>当前：${data.active[task].enabled?'启用':'暂停'} / ${data.active[task].max_tokens}</small></div>`;
     }).join('');
+    document.querySelectorAll('[data-model-task]').forEach(row=>{
+      const select = row.querySelector('[data-model-field="model"]');
+      const input = row.querySelector('[data-model-field="max_tokens"]');
+      const updateLimits = () => {
+        const limits = data.model_limits?.[select.value];
+        if (limits) { input.min = limits.min; input.max = limits.max; input.title = `当前接入允许 ${limits.min}–${limits.max}；切换模型不会自动改写原数值`; }
+      };
+      select.addEventListener('change', updateLimits); updateLimits();
+    });
     applyAdminCapabilities();
   } catch(e) { state.textContent = `配置读取失败：${e.message}`; }
 }

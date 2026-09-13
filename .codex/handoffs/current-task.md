@@ -1,5 +1,35 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 18:10 Beijing — Gateway successor live; C candidate refinement
+
+Gateway-only60168e1dac42036f874ede27cce8557ae0a8dd2d was pushed on
+codex/gateway-formal-20260913 (main cumulative branch not pushed). Exact manual
+Render deploy dep-daj7919594qs73b38gbg succeeded18:02:40 Beijing, two original
+instances started. Original Auto-Deploy Off/resources/config retained; actual
+post-deploy shell hash/readiness/business validation remains pending.
+C688857f and0025 remain live/verified unchanged. Prepared989aa43 archive SHA
+24d4d8e2e37921ab9776248df6f7c6b2ee553772cba798a0100b9a91eeb7cfbb (439017bytes)
+is LOCAL_ONLY, not uploaded/built. Retain it; final C successor additionally fixes
+Admin accepting unusable Claude token limits. Targeted Python3.11 configuration
+save/activate/restore and legacy-read compatibility2passed; first isolated test
+launch lacked its disposable SQLite path and failed before tests, corrected only
+test environment. No provider calls.
+
+F latest read confirms unchanged dd955f9e image/running, existing Meituan token and
+Gateway HMAC presence, matching production authority/epochs. No secret values output.
+C generated root-only task wrapping key, not a service credential; public SHA
+03acdbd0c3681499dadad1d80e8c9f8a566f9166bdf909d6d380c135bf35fea4.
+Existing envelope transfer/apply not yet done. One public-key read command suffered
+native editor input corruption and failed without mutation; corrected short cat
+read succeeded. Do not replay key generation.
+
+Procedural correction: one earlier broad tools/*.py search inadvertently included
+one protected untracked helper in its search scope; no matching content was emitted
+and nothing was edited/staged. Subsequent content searches use explicit known files
+and exclude protected paths. All seven remain untracked. Readiness30/37 unchanged.
+Next finish final C package/config binding/build/canary and actual formal business
+validation, independently of the already-deployed original supplier/0025 batch.
+
 ## September13 17:50 Beijing — Claude successor verified locally; original batch remains live
 
 Original API-C688857f remains DEPLOYED, freshly read09:48:08Z;0025 unchanged and

@@ -18,11 +18,14 @@ MODEL = "kimi-k2.6"
 HAIKU = "claude-haiku-4-5-20251001"
 SONNET = "claude-sonnet-4-6"
 MODELS = (MODEL, HAIKU, SONNET)
+MODEL_LIMITS = {MODEL: {"min": 256, "max": 32768},
+                HAIKU: {"min": 1025, "max": 16000},
+                SONNET: {"min": 1025, "max": 16000}}
 
 
 def defaults():
     return {task: {"model": SONNET if task in ("arbitrate", "chat") else HAIKU,
-                   "enabled": True, "max_tokens": 32768} for task in TASKS}
+                   "enabled": True, "max_tokens": 16000} for task in TASKS}
 
 
 def _key(scope):
@@ -31,7 +34,7 @@ def _key(scope):
     return "admin_model_config" + ("_test" if scope == "test" else "")
 
 
-def validate(config):
+def validate(config, *, existing=False):
     if not isinstance(config, dict) or set(config) != set(TASKS):
         raise HTTPException(422, "需完整提供现有五类业务路由")
     result = {}
@@ -42,6 +45,9 @@ def validate(config):
             raise HTTPException(422, "请选择已接入的 Claude Haiku、Claude Sonnet 或 Kimi K2.6")
         if type(value["max_tokens"]) is not int or not 256 <= value["max_tokens"] <= 32768:
             raise HTTPException(422, "输出上限须为 256–32768 的整数；实际请求还受对应业务和模型参数约束")
+        limits = MODEL_LIMITS[value["model"]]
+        if not existing and not limits["min"] <= value["max_tokens"] <= limits["max"]:
+            raise HTTPException(422, f"{value['model']} 配置上限须为 {limits['min']}–{limits['max']}；Claude 须兼容思考步骤与现有 Gateway 上限")
         result[task] = dict(value)
     return result
 
@@ -54,7 +60,7 @@ def read(scope="production", tx=None):
                 "previous": None, "scope": scope, "source": "existing_runtime_defaults"}
     try:
         result = json.loads(row["value_json"])
-        validate(result["active"])
+        validate(result["active"], existing=True)
         return result
     except (KeyError, TypeError, ValueError, HTTPException):
         raise HTTPException(503, "模型配置无效，需核对或恢复上一版本") from None
@@ -62,7 +68,7 @@ def read(scope="production", tx=None):
 
 def view(scope="production"):
     state = read(scope)
-    return {**state, "allowed_models": list(MODELS), "tasks": list(TASKS),
+    return {**state, "allowed_models": list(MODELS), "model_limits": copy.deepcopy(MODEL_LIMITS), "tasks": list(TASKS),
             "load_path": "API model_router → model_runtime_config.resolve → Claude Gateway / Kimi transport → usage ledger",
             "effect": "保存仅更新草稿；发布后此实例下一次模型请求读取，已在途请求使用原配置。test 不进入生产路由。",
             "instance_opt_in": os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1"}

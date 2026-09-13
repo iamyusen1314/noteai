@@ -138,9 +138,26 @@ class ScopedAdminOperations(unittest.TestCase):
         self.assertEqual(prompt_manager.get(key), "isolated test draft")
         self.assertEqual(db.fetchone("SELECT COUNT(*) AS n FROM prompt_history WHERE prompt_key=?", (key,))["n"], 3)
 
+    def test_claude_config_rejects_unexecutable_limits_without_rewriting_old_active(self):
+        config = model_runtime_config.defaults()
+        self.assertEqual(config["arbitrate"]["max_tokens"], 16000)
+        for invalid in (512, 1024, 16001, 32768):
+            config["arbitrate"]["max_tokens"] = invalid
+            with self.assertRaises(HTTPException):
+                model_runtime_config.validate(config)
+        config["arbitrate"]["max_tokens"] = 1025
+        self.assertEqual(model_runtime_config.validate(config), config)
+        config["arbitrate"]["max_tokens"] = 32768
+        legacy = {"active": config, "revision": 7}
+        with patch.object(db, "fetchone", return_value={"value_json": json.dumps(legacy)}):
+            self.assertEqual(model_runtime_config.read(), legacy)
+        config["arbitrate"].update(model=model_runtime_config.MODEL, max_tokens=512)
+        self.assertEqual(model_runtime_config.validate(config), config)
+
     def test_model_draft_activate_restore_and_inflight_snapshot(self):
         with patch.dict(os.environ, {"NOTEAI_MODEL_CONFIG_ENABLED": "1"}):
             config = model_runtime_config.defaults()
+            config["chat"]["model"] = model_runtime_config.MODEL
             config["chat"]["max_tokens"] = 512
             def change(action, revision, value=None):
                 return model_runtime_config.change(action, "test", actor="noteai_admin", request_id=str(uuid.uuid4()),
