@@ -2418,6 +2418,7 @@ class ApiContractTests(unittest.TestCase):
         original_call = api._mr.call
         original_sleep = api.asyncio.sleep
         calls = []
+        source_context = "完整原始素材" * 300 + "尾部约束：不提供接驳服务，不含门票。"
 
         async def fake_sleep(_seconds):
             return None
@@ -2458,6 +2459,7 @@ class ApiContractTests(unittest.TestCase):
                         "<confidence>0.8</confidence>"
                     ),
                 }],
+                source_context=source_context,
             ))
         finally:
             api._mr.call = original_call
@@ -2468,6 +2470,13 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(len(set(bodies)), 3)
         self.assertIn("本阶段只输出诊断和3个标题", calls[0][2])
         self.assertEqual(calls[0][0], "arbitrate")
+        self.assertEqual(calls[0][3]["max_tokens"], 4096)
+        self.assertIn(source_context, calls[0][2])
+        bodies_calls = [call for call in calls if "请按「" in call[2] or "请重新生成一篇「" in call[2]]
+        self.assertGreaterEqual(len(bodies_calls), 3)
+        for call in bodies_calls:
+            self.assertIn(source_context, call[2])
+            self.assertEqual(call[3]["max_tokens"], 4096)
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
 
     def test_plan_title_distinct_repair_handles_duplicate_titles(self):

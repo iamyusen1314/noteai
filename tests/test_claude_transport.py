@@ -195,6 +195,32 @@ class _FakeClaudeTransport:
 
 
 class ClaudeTransportTests(unittest.TestCase):
+    def test_known_nonstream_truncation_is_responded_but_not_success_or_replayed(self):
+        import public_product
+        request = model_router.ClaudeMessageRequest(model=model_router.CLAUDE_HAIKU,
+            max_tokens=1200,system="all layers",messages=({"role":"user","content":"input"},))
+        request.call_state.update(id="known-truncation",sent=True,http_status=200)
+        result=model_router.ClaudeMessageResult(("partial",),{"input_tokens":10,"output_tokens":1200},
+            model_router.CLAUDE_HAIKU,"max_tokens")
+        with mock.patch.object(public_product,"enabled",return_value=True), \
+             mock.patch.object(public_product,"_record_response") as record:
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                model_router._require_claude_completion(request,result)
+            self.assertFalse(raised.exception.fallback_safe)
+            model_router._finish_claude_call(request,error=raised.exception)
+            model_router._finish_claude_call(request,error=raised.exception)
+            record.assert_called_once_with("known-truncation",200,unknown=False,not_dispatched=False)
+        stream_request=model_router.ClaudeMessageRequest(model=model_router.CLAUDE_HAIKU,
+            max_tokens=1200,system="all layers",messages=({"role":"user","content":"input"},))
+        stream_request.call_state.update(id="stream-not-ended",sent=True,http_status=200)
+        with mock.patch.object(public_product,"enabled",return_value=True), \
+             mock.patch.object(public_product,"_record_response") as record:
+            with self.assertRaises(model_router.ClaudeGatewayError) as raised:
+                model_router._require_claude_completion(stream_request,
+                    model_router.ClaudeStreamEvent("usage",usage=result.usage,model=result.model,stop_reason="max_tokens"))
+            model_router._finish_claude_call(stream_request,error=raised.exception)
+            record.assert_called_once_with("stream-not-ended",200,unknown=True,not_dispatched=False)
+
     def test_public_result_model_names_follow_accounted_calls(self):
         import public_product
         import billing

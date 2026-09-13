@@ -2948,7 +2948,7 @@ async def _agent_content(
         + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
         + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
-    raw = await _mr.call("diagnosis", system, user)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
     return {"role": "内容专家", "raw": raw}
 
 
@@ -2976,7 +2976,7 @@ async def _agent_visual(
         f"封面视觉得分：{visual_score}/100\n"
         f"视觉特征数据（辅助视觉14维）：\n{feat_lines or '无特征数据'}"
     )
-    raw = await _mr.call("diagnosis", system, user)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
     return {"role": "视觉专家", "raw": raw}
 
 
@@ -3011,7 +3011,7 @@ async def _agent_growth(
         + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
         + f"【实时热词数据】\n{timing_text}"
     )
-    raw = await _mr.call("diagnosis", system, user)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
     return {"role": "增长专家", "raw": raw}
 
 
@@ -3040,7 +3040,7 @@ async def _agent_user(
         + (f"互动引导语数量：{cta:.0f}\n" if cta is not None else "")
         + (f"互动性表达密度：{stance:.2f}\n" if stance is not None else "")
     )
-    raw = await _mr.call("diagnosis", system, user_ctx)
+    raw = await _mr.call("diagnosis", system, user_ctx, max_tokens=4096)
     return {"role": "用户专家", "raw": raw}
 
 
@@ -3085,7 +3085,7 @@ async def _agent_arbitrate(
     # ── 阶段1：生成诊断 + 三个标题（不含正文，避免 Claude 偷懒复用） ──
     user_phase1 = (
         f"笔记标题：{note_title or '（无）'}\n"
-        f"用户原始输入/图片视频上下文（事实边界）：{(source_context or '')[:1200] or '（无）'}\n"
+        f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
         f"原始正文：{body_candidate[:600] if body_candidate else '（无正文）'}\n"
         f"领域：{domain or '通用'} | 预测分位：{percentile:.0f}/100（{grade}）\n\n"
         f"{phase_planning_brief}\n"
@@ -3102,7 +3102,7 @@ async def _agent_arbitrate(
         + "<plan>下一步优化策略，3-5条</plan>\n"
         + "<dispute>专家分歧与取舍</dispute>\n"
     )
-    raw1 = await _mr.call("arbitrate", system, user_phase1)
+    raw1 = await _mr.call("arbitrate", system, user_phase1, max_tokens=4096)
     await _emit_progress(emit, {
         "type": "expert_opinion",
         "role": "仲裁专家",
@@ -3202,17 +3202,17 @@ async def _agent_arbitrate(
     from datetime import datetime as _dt_now2
     _today2 = _dt_now2.now().strftime("%Y年%m月%d日")
     _domain_benchmark = _get_dk(domain)
-    _content_dk = _domain_benchmark.get("content", "")[:400]
+    _content_dk = _domain_benchmark.get("content", "")
     expression_brief = _quality_expression_brief(domain)
     base_planning_brief = _build_generation_planning_brief(domain, note_title, source_context, "三方案正文总规划")
 
     base_ctx = (
         f"原始笔记标题：{note_title}\n"
-        f"用户原始输入/图片视频上下文（事实边界）：{(source_context or '')[:1200] or '（无）'}\n"
+        f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
         f"原始正文（参考基础）：{body_candidate[:400] if body_candidate else '（无原始正文）'}\n"
         f"领域：{domain} | 当前日期：{_today2}\n"
         f"品类知识库：{_content_dk}\n\n"
-        f"辅助信号诊断的核心弱项：{opinion_block[:300]}\n\n"
+        f"辅助信号诊断的核心弱项：{opinion_block}\n\n"
         f"{base_planning_brief}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
         f"{expression_brief}\n\n"
@@ -3301,7 +3301,7 @@ async def _agent_arbitrate(
             f"请重新生成一篇「{style_name}」完整正文，必须与上面正文明显不同："
         )
         try:
-            result = await _mr.call("diagnosis", sys_retry, usr_retry, max_tokens=1400)
+            result = await _mr.call("diagnosis", sys_retry, usr_retry, max_tokens=4096)
             return _extract_generated_body(result)
         except Exception:
             return ""
@@ -3325,8 +3325,8 @@ async def _agent_arbitrate(
         )
         usr_body = f"{base_ctx}\n\n【本方案标题】{title}\n\n请按「{style_name}」风格撰写与标题配套的完整正文："
         try:
-            # max_tokens 提升到1200，中文300字≈300-500 tokens，600太小容易截断或空响应
-            result = await _mr.call("diagnosis", sys_body, usr_body, max_tokens=1200)
+            # Complete structured Chinese output needs room beyond the former1200 cap.
+            result = await _mr.call("diagnosis", sys_body, usr_body, max_tokens=4096)
             return _extract_generated_body(result)
         except Exception:
             return ""
@@ -3955,7 +3955,7 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
         f"【品类视觉知识·{domain}】\n{dk.get('visual', '')}"
     )
 
-    raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=400)
+    raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=2048)
     return {"role": "视觉专家", "raw": raw, "_image_desc": description}
 
 
@@ -3997,7 +3997,7 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
             f"领域：{domain}\n\n"
             f"注意：创作者未补充具体数字和地址，价格/地址/时间请用【xxx】占位，不要编造数字。"
         )
-    raw = await _mr.call("content_gen", system, user, max_tokens=1000)
+    raw = await _mr.call("content_gen", system, user, max_tokens=4096)
     return {"role": "内容专家", "raw": raw}
 
 
@@ -4038,7 +4038,7 @@ async def _gent_growth(
         user = f"【图片视觉】{image_desc}\n【真实信息（价格/地址等事实）】{brief}\n领域：{domain}\n【热词数据】{timing_text}"
     else:
         user = f"【图片视觉】{image_desc}\n领域：{domain}\n【热词数据】{timing_text}"
-    raw = await _mr.call("content_gen", system, user, max_tokens=400)
+    raw = await _mr.call("content_gen", system, user, max_tokens=2048)
     return {"role": "增长专家", "raw": raw}
 
 
@@ -4055,7 +4055,7 @@ async def _gent_user(domain: str, brief: str | None, dk: dict, image_desc: str, 
         user = f"品类：{domain}\n【图片视觉】{image_desc}\n【创作者真实信息（价格/地址等）】{brief}"
     else:
         user = f"品类：{domain}\n【图片视觉】{image_desc}"
-    raw = await _mr.call("content_gen", system, user, max_tokens=400)
+    raw = await _mr.call("content_gen", system, user, max_tokens=2048)
     return {"role": "用户专家", "raw": raw}
 
 
@@ -4763,7 +4763,7 @@ async def _run_generation_agents(
             f"删掉重复修饰和多余铺垫，直接输出压缩后的正文，不要加任何说明：\n\n{body}"
         )
         try:
-            trimmed = await _mr.call("content_gen", trim_sys, trim_usr, thinking=False, max_tokens=600)
+            trimmed = await _mr.call("content_gen", trim_sys, trim_usr, thinking=False, max_tokens=4096)
             if trimmed and len(trimmed) < len(body):
                 body = trimmed.strip()
                 arb["body"] = body
@@ -4788,7 +4788,7 @@ async def _run_generation_agents(
             + body
         )
         try:
-            rhythmed = await _mr.call("content_gen", burst_sys, burst_usr, thinking=False, max_tokens=800)
+            rhythmed = await _mr.call("content_gen", burst_sys, burst_usr, thinking=False, max_tokens=4096)
             if rhythmed and rhythmed.strip():
                 body = rhythmed.strip()
                 arb["body"] = body
@@ -10286,7 +10286,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"{shaped}"
     )
     try:
-        repaired = await _mr.call("content_gen", system, user, thinking=False, max_tokens=900)
+        repaired = await _mr.call("content_gen", system, user, thinking=False, max_tokens=4096)
         repaired = (repaired or "").strip()
         if repaired and not _body_format_issues(repaired):
             compacted = _compact_body_to_delivery_limit(_insert_safe_fact_line(repaired, domain, source_context), domain)
@@ -16168,7 +16168,7 @@ async def _generate_pipeline_stream(
                 "你是文字编辑专家，在不改变语气的前提下压缩小红书笔记正文字数。" + _generation_memory_context(memory_context),
                 f"压缩到{max_b}字以内（不含标签行），保留：{keep_hint_s}。直接输出，不加说明：\n\n{body}",
                 thinking=False,
-                max_tokens=600,
+                max_tokens=4096,
             )
             if trimmed and len(trimmed) < len(body):
                 body = trimmed.strip()

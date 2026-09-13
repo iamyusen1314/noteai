@@ -1,5 +1,43 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 continuation — bounded output and fact corrections verified locally
+
+api.py now gives structured diagnosis experts/arbitration/full-body operations4096
+output tokens, short generation experts2048; existing16000/6000 thinking paths and
+successful120-token semantic task unchanged. No model substitution/Prompt text
+rewrite/quality relaxation/automatic retry. Necessary source, industry and expert
+context are passed intact. fact_enrichment.py preserves hotel qualifiers, addresses,
+package scope, matched sources and negations. Current claimed fixture is based on
+the actual02 public hotel response, not private account content. model_router.py
+records safe actual stop metadata and classifies only a complete nonstream JSON
+with known incomplete-output reason as responded+business failure; stream without
+done remainsUNKNOWN. Old physical rows/failed IDs remain unchanged; no new DB grant.
+Python3.11 isolated checks:51passed then5 affected-flow regressions; after the last
+hotel-card/source refinement all24 fact tests pass. Next API-only successor from75;
+Adminb033/web363/Gateway601/0025 and Item34 remain fixed. No new real request yet.
+
+## September13 continuation — real business failure isolated; correction in progress
+
+Original01 returned403 because the test client omitted Origin; scoped readback shows
+no idempotency row/physical model call. Original evidence unchanged. Corrected normal
+client02 launched1789297946.6323898, finished1789297979.2219787,HTTP200/SSE error,
+no complete. /business-analyze-02 within the existing363 stage retains private SSE,
+result and execute.py SHA31e062697207cb569dbe526646a72fd1853d5b8ddbc7b046c9ec5a3cb991b60d.
+Claim failed,6 subscription credits charged once/refunded once; no accepted result.
+Meituan CLI1 returned the named Guangzhou hotel; internal HTTP/cost remain unknown.
+Three actual Haiku records:770/56,3861/1200,4093/1200 input/output tokens;
+known priced model cost totalsRMB0.147028, not a supplier invoice. Semantic succeeded;
+two experts returned HTTP200/usage but raised CLAUDE_OUTPUT_INCOMPLETE. Their original
+physical states remain UNKNOWN (business-output classification), not rewritten.
+No original provider operation or XHS/Item34 action is replayed.
+
+Concrete fixes underway: explicit capacity for structured experts/full bodies;
+remove1200-character source/400-character industry/300-character expert truncation;
+retain strict completion and model identity checks. Correct Meituan package appointment
+hours, slash-containing address and business-source link; retain denial/time qualifiers
+and refuse a different named hotel. Existing tests51 pass; affected flow regressions
+continue. API75 remains live; new candidate not built/uploaded yet. Readiness30/37.
+
 ## September13 19:07 Beijing — API model label fix deployed, business check in progress
 
 Only API75d17f092cef1300fb5d254d2b8c0734afd4991f was built and deployed, exact image

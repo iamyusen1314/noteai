@@ -316,6 +316,11 @@ def _require_claude_completion(request, result):
         raise ClaudeGatewayError("CLAUDE_COMPLETION_UNPROVEN", 502)
     if result.model != request.model:
         raise ClaudeGatewayError("CLAUDE_MODEL_IDENTITY_MISMATCH", 502)
+    if isinstance(result, ClaudeMessageResult):
+        # A fully parsed JSON response is different from a stream usage frame.
+        request.call_state["response_received"] = True
+        request.call_state["response_stop_reason"] = result.stop_reason
+        _log(f"completion model={result.model} stop_reason={result.stop_reason}")
     if result.stop_reason != "end_turn":
         raise ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
 
@@ -326,8 +331,11 @@ def _finish_claude_call(request, *, complete=False, error=None):
         return
     pre_dispatch = not state.get("sent")
     rejected_before_provider = isinstance(error, ClaudeGatewayError) and error.fallback_safe
+    known_output_failure = (state.get("response_received") and state.get("response_stop_reason")
+                            in {"max_tokens", "refusal", "stop_sequence", "pause_turn"}
+                            and isinstance(error, ClaudeGatewayError) and error.code == "CLAUDE_OUTPUT_INCOMPLETE")
     _public_product._record_response(state["id"], state.get("http_status"),
-                                    unknown=not (complete or pre_dispatch or rejected_before_provider),
+                                    unknown=not (complete or pre_dispatch or rejected_before_provider or known_output_failure),
                                     not_dispatched=pre_dispatch)
     state["finalized"] = True
 

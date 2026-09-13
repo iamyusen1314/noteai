@@ -945,7 +945,13 @@ def _meituan_travel_items(output: str) -> list[dict]:
 
 def _meituan_travel_single_item(output: str, *, name: str = "") -> list[dict]:
     snippet = _clean_text(output, 1200)
-    urls = re.findall(r"https?://[^\s)）]+", snippet)
+    # A hotel source is its business link, never the preceding cover image.
+    links = re.findall(r"(?<!!)\[([^\]]+)\]\((https?://[^\s)]+)\)", output)
+    named_links = [url for label, url in links if _strip_markdown(label, len(label)) == name]
+    urls = named_links or [url for _, url in links]
+    if not urls:
+        urls = [url for url in re.findall(r"https?://[^\s)）]+", output)
+                if not re.search(r"\.(?:jpe?g|png|gif|webp)(?:\?|$)", url, re.I)]
     first_line = next((line.strip() for line in output.splitlines() if line.strip()), "")
     if not name:
         match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·（）()]{2,40}(?:酒店|公寓|民宿|客栈|度假村|饭店))", _strip_markdown(first_line))
@@ -969,14 +975,14 @@ def _strip_markdown(text: str | None, limit: int = 240) -> str:
     return _clean_text(out, limit)
 
 
-def _append_fact_bits(current: str, bits: list[str], limit: int = 260) -> str:
+def _append_fact_bits(current: str, bits: list[str]) -> str:
     values = []
     for part in [current or "", *bits]:
         for chunk in re.split(r"[；;]\s*", part):
-            clean = _clean_text(chunk, 120)
+            clean = _clean_text(chunk, len(chunk))
             if clean and clean not in values:
                 values.append(clean)
-    return "；".join(values)[:limit]
+    return "；".join(values)
 
 
 def _clean_hotel_name(name: str | None) -> str:
@@ -998,13 +1004,13 @@ def _clean_hotel_name(name: str | None) -> str:
 def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
     """Extract stable hotel/travel facts from the meituan-travel Skill prose."""
     text = output or ""
-    clean_full = _strip_markdown(text, 2200)
+    clean_full = _strip_markdown(text, len(text))
     hotel_rows: list[dict[str, str]] = []
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     for idx, line in enumerate(lines):
         if "[**" not in line or "美团真实评分" not in line:
             continue
-        clean = _strip_markdown(line)
+        clean = _strip_markdown(line, len(line))
         name_match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·（）()]+(?:酒店|公寓|民宿|客栈|度假|饭店)[\u4e00-\u9fa5A-Za-z0-9·（）()]*)", clean)
         rating_match = re.search(r"美团真实评分\s*(\d(?:\.\d)?)", clean)
         price_match = re.search(r"(?:¥|￥)\s*\d{2,5}\s*起/晚", clean)
@@ -1012,13 +1018,13 @@ def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
         if price_match:
             tags = clean[price_match.end():]
         tags = re.sub(r"^住就送[·\-\d元券包]*", "", tags).strip()
-        next_line = _strip_markdown(lines[idx + 1]) if idx + 1 < len(lines) else ""
+        next_line = _strip_markdown(lines[idx + 1], len(lines[idx + 1])) if idx + 1 < len(lines) else ""
         hotel_rows.append({
             "name": _clean_hotel_name(name_match.group(1) if name_match else clean[:28]),
             "rating": f"美团真实评分{rating_match.group(1)}" if rating_match else "",
             "price": re.sub(r"\s+", "", price_match.group(0)) if price_match else "",
-            "tags": tags[:80],
-            "note": next_line[:120] if re.search(r"(?:亲子|地铁|交通|自驾|打车|步行|距离|早餐|滑梯|儿童|停车|穿梭巴士|提前半小时入园|白虎|火烈鸟)", next_line) else "",
+            "tags": tags,
+            "note": next_line if re.search(r"(?:亲子|地铁|交通|自驾|打车|步行|距离|早餐|滑梯|儿童|停车|穿梭巴士|提前半小时入园|白虎|火烈鸟)", next_line) else "",
         })
         if len(hotel_rows) >= 4:
             break
@@ -1028,18 +1034,18 @@ def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
         primary_name = hotel_rows[0].get("name", "")
         facts["rating"] = "；".join(
             f"{row['name']}{row['rating']}" for row in hotel_rows if row.get("rating")
-        )[:180]
+        )
         facts["price"] = "；".join(
             f"{row['name']}{row['price']}" for row in hotel_rows if row.get("price")
-        )[:180]
+        )
         facts["deal"] = "；".join(
             f"{row['name']}：{row['tags']}" for row in hotel_rows if row.get("tags")
-        )[:220]
+        )
         travel_notes = [
             f"{row['name']}：{row['note']}" for row in hotel_rows if row.get("note")
         ]
         if travel_notes:
-            facts["review_keywords"] = "；".join(travel_notes)[:260]
+            facts["review_keywords"] = "；".join(travel_notes)
         area_terms = []
         for term in ("广州长隆", "汉溪长隆地铁站", "南村万博地铁站", "长隆野生动物园", "亚龙湾", "太古里", "西湖"):
             if term in text and term not in area_terms:
@@ -1076,41 +1082,58 @@ def _extract_meituan_travel_facts(output: str | None) -> dict[str, str]:
         if _valid_extracted_fact("address", address):
             facts["address"] = _clean_text(address, 120)
 
+    # Explicit labelled values retain their scope, negation and qualifiers.
+    # In particular a package appointment is not the hotel's opening hours.
+    for raw_line in lines:
+        clean_line = _strip_markdown(raw_line, len(raw_line))
+        explicit_address = re.match(r"^(?:酒店地址|地址)\s*[:：]\s*(.+)$", clean_line)
+        if explicit_address and _valid_extracted_fact("address", explicit_address.group(1)):
+            facts["address"] = explicit_address.group(1)
+        labelled = re.match(r"^(营业时间|酒店营业时间|预约时间|价格区间|套餐价格)\s*[:：]\s*(.+)$", clean_line)
+        if labelled:
+            label, value = labelled.groups()
+            if label in {"价格区间", "套餐价格"}:
+                facts["deal"] = "；".join(filter(None, [facts.get("deal"), clean_line]))
+            elif re.search(r"套餐|预约|变装|项目|体验", value) or label == "预约时间":
+                facts["booking"] = clean_line
+            else:
+                facts["hours"] = clean_line
+
     hours_bits = []
     stay_match = re.search(
         r"(?:入住|办理入住)[^。；;]{0,20}?(\d{1,2}[:：]\d{2})[^。；;]{0,30}?(?:退房|离店)[^。；;]{0,20}?(\d{1,2}[:：]\d{2})",
         clean_full,
     )
     if stay_match:
-        hours_bits.append(f"入住{stay_match.group(1)}以后；退房{stay_match.group(2)}以前")
+        hours_bits.extend(sentence.strip() for sentence in re.split(r"[。\n]", text)
+                          if re.search(r"入住|退房|离店", sentence) and re.search(r"\d{1,2}[:：]\d{2}", sentence))
     breakfast_match = re.search(r"早餐[^。；;]{0,20}?(\d{1,2}[:：]\d{2})\s*(?:至|-|~|到)\s*(\d{1,2}[:：]\d{2})", clean_full)
     if breakfast_match:
         hours_bits.append(f"早餐{breakfast_match.group(1)}-{breakfast_match.group(2)}")
     if hours_bits:
-        facts["hours"] = _append_fact_bits(facts.get("hours", ""), hours_bits, 160)
+        facts["hours"] = _append_fact_bits(facts.get("hours", ""), hours_bits)
 
     experience_terms = [
         "儿童乐园", "亲子房", "探趣亲子房", "白虎自助餐厅", "火烈鸟", "免费停车场",
         "免费穿梭巴士", "提前半小时入园", "汉溪长隆地铁站", "南村万博地铁站",
         "长隆欢乐世界", "长隆水上乐园", "长隆野生动物世界",
     ]
-    matched_terms = [term for term in experience_terms if term in clean_full]
+    sentences = [_strip_markdown(sentence, len(sentence)) for sentence in re.split(r"[。\n]", text)]
+    matched_terms = [sentence for sentence in sentences if any(term in sentence for term in experience_terms)]
     if matched_terms:
         facts["review_keywords"] = _append_fact_bits(
             facts.get("review_keywords", ""),
-            [f"{primary_name}：{ '、'.join(matched_terms[:8]) }"],
-            260,
+            matched_terms,
         )
     package_terms = [
         "童趣乐园门票", "水上乐园门票", "动物世界+欢乐世界+飞鸟乐园", "多园畅玩门票",
         "无限次入园", "提前半小时入园",
     ]
-    matched_packages = [term for term in package_terms if term in clean_full]
+    matched_packages = [sentence for sentence in sentences if any(term in sentence for term in package_terms)]
     if matched_packages:
         facts["deal"] = _append_fact_bits(
             facts.get("deal", ""),
-            [f"{primary_name}：套餐/房型可能包含{'、'.join(matched_packages[:5])}，以美团实时页为准"],
-            220,
+            matched_packages,
         )
     if not facts.get("business_area"):
         area_terms = []
@@ -1282,9 +1305,13 @@ def extract_facts_from_search_items(items: list[dict]) -> dict:
     for item in items:
         item_facts = item.get("facts") if isinstance(item.get("facts"), dict) else {}
         for key in _LOCAL_FACT_KEYS:
-            normalized = _normalize_fact_value(item_facts.get(key))
+            value = item_facts.get(key)
+            normalized = (_clean_text(value, len(value)) if item.get("source") == "美团酒旅" and isinstance(value, str)
+                          else _normalize_fact_value(value))
             if normalized and not facts.get(key):
                 facts[key] = normalized
+    if items and items[0].get("source") == "美团酒旅":
+        return {key: value for key, value in facts.items() if value}
     regex_facts = {
         "address": _pick_first(_ADDRESS_RE, texts),
         "price": _pick_first(_PRICE_RE, texts),
@@ -1403,10 +1430,17 @@ def _enrich_content_facts(domain: str | None, title: str | None, text: str | Non
     entities = [{"name": item.get("title", ""), "facts": extract_facts_from_search_items([item]),
                  "source": item.get("source", ""), "url": item.get("url", "")} for item in items]
     entities = [entity for entity in entities if entity["facts"]]
+    target = _clean_hotel_name(str(title or ""))
+    named_hotel = provider == "meituan_travel" and re.fullmatch(
+        r"[\u4e00-\u9fa5A-Za-z0-9·（）()]{2,60}(?:酒店|公寓|民宿|客栈|度假村|饭店)(?:[（(][^（）()]+[)）])?", target)
+    mismatch = bool(named_hotel and entities and not any(entity["name"] == target for entity in entities))
+    if named_hotel and not mismatch:
+        entities = [entity for entity in entities if entity["name"] == target]
+        sources = _merge_sources([item for item in items if item.get("title") == target])
     # One flat map may never describe several candidates. Hotel lists remain
     # explicitly named objects; restaurant branches need user disambiguation.
     ambiguous = provider == "amap" and len({entity["url"] or entity["name"] for entity in entities}) > 1
-    facts = entities[0]["facts"] if len(entities) == 1 else {}
+    facts = entities[0]["facts"] if len(entities) == 1 and not mismatch else {}
     confidence = min(0.9, 0.35 + 0.12 * len(facts) + 0.04 * min(len(sources), 5))
     result = {
         "enabled": True,
@@ -1415,8 +1449,8 @@ def _enrich_content_facts(domain: str | None, title: str | None, text: str | Non
         "facts": facts,
         "entities": [] if ambiguous else entities,
         "sources": sources,
-        "error": "entity_ambiguous" if ambiguous else "",
-        "error_code": "MERCHANT_SELECTION_REQUIRED" if ambiguous else "",
+        "error": "entity_mismatch" if mismatch else "entity_ambiguous" if ambiguous else "",
+        "error_code": "MERCHANT_OBJECT_MISMATCH" if mismatch else "MERCHANT_SELECTION_REQUIRED" if ambiguous else "",
         "confidence": round(confidence if facts else 0.2 if sources else 0.0, 2),
         "cached": False,
     }

@@ -18,6 +18,63 @@ import fact_enrichment as facts  # noqa: E402
 
 
 class FactEnrichmentTests(unittest.TestCase):
+    def test_hotel_package_hours_address_and_business_source_keep_their_scope(self):
+        answer = ('![酒店图片](https://images.example.invalid/photo.jpg)\n'
+            '[**广州长隆酒店**](http://dpurl.cn/hotel-test) 美团豪华型 **美团真实评分4.7** **￥929起/晚** 亲子酒店\n'
+            '**酒店地址**：番禺区长隆/南村汉溪大道东299号\n'
+            '**营业时间**：9:30-18:30（公主变装套餐预约时间）\n'
+            '**价格区间**：998元起（狩猎大床房/双床房套餐），具体价格会根据房型和包含的门票套餐有所不同。')
+        item = facts._meituan_travel_items(answer)[0]
+        result = facts.extract_facts_from_search_items([item])
+        self.assertEqual(item['url'], 'http://dpurl.cn/hotel-test')
+        self.assertEqual(result['address'], '番禺区长隆/南村汉溪大道东299号')
+        self.assertNotIn('hours', result)
+        self.assertIn('公主变装套餐预约时间', result['booking'])
+        self.assertIn('￥929起/晚', result['price'])
+        self.assertIn('998元起（狩猎大床房/双床房套餐）', result['deal'])
+
+    def test_hotel_negative_facilities_and_late_qualifiers_are_not_invented(self):
+        answer = ('广州长隆酒店 美团真实评分4.7 ￥929起/晚。\n'
+            '不提供免费穿梭巴士，套餐不含无限次入园。\n'
+            '办理入住须在15:00以前，退房可在11:00以后。\n'
+            + '补充说明。' * 500 + '\n酒店地址：广州市番禺区汉溪大道东299号\n'
+            '[广州长隆酒店](https://example.invalid/hotel)')
+        item = facts._meituan_travel_items(answer)[0]
+        result = facts.extract_facts_from_search_items([item])
+        self.assertIn('不提供免费穿梭巴士', result['review_keywords'])
+        self.assertIn('不含无限次入园', result['deal'])
+        self.assertNotIn('可能包含', result['deal'])
+        self.assertIn('15:00以前', result['hours'])
+        self.assertIn('11:00以后', result['hours'])
+        self.assertIn('汉溪大道东299号', result['address'])
+        self.assertEqual(item['url'], 'https://example.invalid/hotel')
+
+    def test_named_hotel_mismatch_is_not_matched_or_injected(self):
+        with mock.patch.object(facts,'fact_search_enabled',return_value=True), \
+             mock.patch.object(facts,'_authorized_fact_items',return_value=[]), \
+             mock.patch.object(facts,'_cache_ttl_seconds',return_value=0), \
+             mock.patch.object(facts,'_search',return_value=('meituan_travel',[
+                 {'title':'上海其他酒店','source':'美团酒旅','facts':{'price':'￥499起/晚'}}])):
+            result=facts.enrich_content_facts('旅行','广州长隆酒店','广州',provider='meituan_travel')
+        self.assertEqual(result['error_code'],'MERCHANT_OBJECT_MISMATCH')
+        self.assertEqual(result['status'],'failed')
+        self.assertFalse(result['facts'])
+        self.assertNotIn('￥499', facts.format_fact_context(result))
+
+    def test_hotel_card_qualifier_and_selected_source_are_preserved(self):
+        qualifier='套餐说明' * 75 + '不包含门票且不可退订'
+        item=facts._meituan_travel_items('[**广州长隆酒店**](https://example.invalid/target) 美团真实评分4.7 ￥929起/晚 '+qualifier)[0]
+        self.assertIn(qualifier, facts.extract_facts_from_search_items([item])['deal'])
+        others=[{'title':name,'source':'美团酒旅','url':'https://example.invalid/'+str(i),'facts':{'price':'￥499起/晚'}}
+                for i,name in enumerate(['广州甲酒店','广州乙酒店','广州丙酒店'])]
+        with mock.patch.object(facts,'fact_search_enabled',return_value=True), \
+             mock.patch.object(facts,'_authorized_fact_items',return_value=[]), \
+             mock.patch.object(facts,'_cache_ttl_seconds',return_value=0), \
+             mock.patch.object(facts,'_search',return_value=('meituan_travel',others+[item])):
+            result=facts.enrich_content_facts('旅行','广州长隆酒店','广州',provider='meituan_travel')
+        self.assertEqual([s['url'] for s in result['sources']],['https://example.invalid/target'])
+        self.assertEqual([e['name'] for e in result['entities']],['广州长隆酒店'])
+
     def test_distinct_poi_fields_never_form_one_merchant(self):
         items=[{'title':'甲店','facts':{'address':'甲路1号'}},
                {'title':'乙店','facts':{'price':'人均88元','hours':'09:00-18:00'}}]
@@ -317,11 +374,11 @@ class FactEnrichmentTests(unittest.TestCase):
         self.assertEqual(extracted["rating"], "广州长隆酒店美团真实评分4.8")
         self.assertEqual(extracted["price"], "广州长隆酒店￥929起/晚")
         self.assertIn("汉溪大道东299号", extracted["address"])
-        self.assertIn("入住15:00以后", extracted["hours"])
+        self.assertIn("入住是15:00以后", extracted["hours"])
         self.assertIn("早餐07:00-10:00", extracted["hours"])
         self.assertIn("儿童乐园", extracted["review_keywords"])
         self.assertIn("童趣乐园门票", extracted["deal"])
-        self.assertIn("以美团实时页为准", extracted["deal"])
+        self.assertIn("很多套餐包含", extracted["deal"])
         self.assertNotIn("套餐浮动", " ".join(extracted.values()))
 
     def test_hotel_name_cleanup_removes_skill_preface(self):
