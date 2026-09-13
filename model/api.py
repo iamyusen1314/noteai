@@ -3954,6 +3954,8 @@ _get_arbitrate_standards = _prompt_composer._get_arbitrate_standards
 async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: dict) -> dict:
     if img_b64:
         description = await asyncio.to_thread(_kimi_vision_understand, img_b64, domain, brief)
+        if not description or len(description.strip()) <= 3:
+            raise HTTPException(status_code=502, detail="图片画面理解失败，未将文字简报当作图片分析继续生成")
     else:
         description = brief or f"{domain}相关内容"
 
@@ -4120,9 +4122,11 @@ async def _gent_arbitrate(
         role = op.get("role", "")
         raw = op.get("raw", "")
         if role == "视觉专家":
-            scene = _xtag_any(raw, "scene", "image_desc") or op.get("_image_desc", "")[:120]
+            scene = _xtag_any(raw, "scene", "image_desc") or op.get("_image_desc", "")
             hooks = _xtag_any(raw, "hooks", "inspiration")
             blocks += f"\n【视觉专家】\n场景：{scene}\n标题钩子元素：{hooks}\n"
+            if op.get("_image_desc") and op["_image_desc"] != scene:
+                blocks += f"素材完整观察（AI识别，不能替代商家事实来源）：{op['_image_desc']}\n"
         elif role == "内容专家":
             title = _xtag_any(raw, "title", "draft_title")
             body = _xtag_any(raw, "body", "draft_body")
@@ -4157,37 +4161,21 @@ async def _gent_arbitrate(
     variants = [v.strip() for v in _xtag(raw, "variants").splitlines() if v.strip()][:3]
     rationale = _xtag(raw, "rationale")
 
-    # Fast-mode retry: thinking mode often times out or runs out of tokens → try without reasoning chain
+    # A completed response missing required fields is a format failure, not
+    # evidence of throttling. Repair once without weakening the model path.
     if not body or not title:
-        print(f"[gen] P3-arbitrate thinking failed (title={bool(title)} body={bool(body)}), retrying fast mode", file=sys.stderr, flush=True)
-        raw2 = await _mr.call("arbitrate", system, user, thinking=False, max_tokens=2000)
-        t2 = _xtag(raw2, "title")
-        b2 = _xtag(raw2, "body")
-        if t2 and b2:
-            title, body = t2, b2
-            v2 = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
-            r2 = _xtag(raw2, "rationale")
-            if v2:
-                variants = v2
-            if r2:
-                rationale = r2
-            print(f"[gen] P3-arbitrate fast-mode succeeded title_len={len(title)} body_len={len(body)}", file=sys.stderr, flush=True)
-
-    # Fallback: if both thinking and fast mode failed, use content expert's draft
-    if not body or not title:
-        for op in opinions:
-            if op.get("role") == "内容专家":
-                op_raw = op.get("raw", "")
-                if not title:
-                    t = _xtag(op_raw, "title")
-                    if t:
-                        title = t
-                if not body:
-                    b = _xtag(op_raw, "body")
-                    if b:
-                        body = b
-                if title and body:
-                    break
+        repair_user = (user + "\n\n【一次结构修复】前次已返回，但缺少完整的<title>或<body>。"
+                       "请依据上方完整素材与行业规则重新完成仲裁，保留必要分析，并输出完整title/body。"
+                       "下方仅为待修复的模型草稿，不能作为事实来源。\n" + raw)
+        raw2 = await _mr.call("arbitrate", system, repair_user, thinking=True, max_tokens=16000)
+        title, body = _xtag(raw2, "title"), _xtag(raw2, "body")
+        variants = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
+        rationale = _xtag(raw2, "rationale")
+    if not title or not body:
+        raise HTTPException(status_code=502, detail={
+            "code": "GENERATION_ARBITRATION_INCOMPLETE",
+            "message": "仲裁未返回完整结果，本次未用专家草稿替代正式交付。",
+        })
 
     # 小红书标题交付安全线：优先语义压缩，避免半句截断。
     if title and len(title) > _TITLE_DELIVERY_MAX:
@@ -15267,7 +15255,7 @@ async def _run_analyze_pipeline(
             merged_desc = (
                 (base_desc + "\n\n" if base_desc else "")
                 + "【视频画面内容（AI 解读）】\n"
-                + video_desc[:800]
+                + video_desc
             )
             req = req.model_copy(update={"desc": merged_desc})
 
@@ -15285,6 +15273,8 @@ async def _run_analyze_pipeline(
                 for img_b64 in imgs_to_analyze
             ]
             extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
+            if any(not isinstance(result, str) or len(result.strip()) <= 3 for result in extra_results):
+                raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续诊断，请稍后重试")
             extra_descs = [
                 f"图{i+1}：{r}" for i, r in enumerate(extra_results)
                 if isinstance(r, str) and len(r) > 3
@@ -15915,6 +15905,8 @@ async def _generate_pipeline_stream(
     if video_file_id:
         _video_meta = _get_video_meta(video_file_id, user_id)
         has_frames = bool(_video_meta)
+        if not has_frames:
+            raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传后再生成")
         yield {"type": "stage", "stage": "p1", "label": "视觉分析师正在解读视频画面…", "progress": 8}
         if has_frames:
             _vmeta     = _video_meta or {}
@@ -15934,19 +15926,21 @@ async def _generate_pipeline_stream(
             if has_frames
             else ""
         )
+        if not video_desc or len(video_desc.strip()) < 20:
+            raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证生成质量，请重新上传或稍后重试")
 
         vis_result = {
             "role": "视觉专家",
-            "raw": f"<scene>{video_desc[:300]}</scene><hooks></hooks>",
-            "_image_desc": video_desc[:300] if video_desc else (brief or domain),
+            "raw": f"<scene>{video_desc}</scene><hooks></hooks>",
+            "_image_desc": video_desc,
         }
         image_desc = vis_result["_image_desc"]
         _vm2 = _get_video_meta(video_file_id, user_id) or {}
         n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
         yield {
             "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
-            "content": video_desc[:120] if video_desc else "（视频画面分析未成功，已用文字简报作为创作依据）",
-            "detail": f"均匀采样 {n_s2}/{n_t2} 帧，覆盖完整 {d2:.0f}s 时间线" if video_desc else "降级为纯文字模式",
+            "content": video_desc[:120],
+            "detail": f"均匀采样 {n_s2}/{n_t2} 帧，覆盖完整 {d2:.0f}s 时间线",
             "progress": 22,
         }
     else:
@@ -15970,6 +15964,10 @@ async def _generate_pipeline_stream(
                 for i, img in enumerate(deep_imgs_s)
             ]
             deep_results_s = await asyncio.gather(*deep_tasks_s, return_exceptions=True)
+            if not isinstance(deep_results_s[0], dict) or any(not isinstance(result, (str, dict)) or not (
+                result.strip() if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
+            ) for result in deep_results_s):
+                raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
             vis_result = deep_results_s[0] if isinstance(deep_results_s[0], dict) else {"_image_desc": brief or domain}
             extra_deep_s = [
                 r if isinstance(r, str) else r.get("_image_desc", "")
@@ -15984,6 +15982,8 @@ async def _generate_pipeline_stream(
         if brief_imgs_s:
             brief_tasks_s = [asyncio.to_thread(_kimi_vision_quick, img, domain, brief) for img in brief_imgs_s]
             brief_res_s   = await asyncio.gather(*brief_tasks_s, return_exceptions=True)
+            if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_res_s):
+                raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
             brief_descs_s = [r for r in brief_res_s if isinstance(r, str) and len(r) > 5]
 
         image_desc = vis_result.get("_image_desc", brief or domain)
@@ -15994,6 +15994,7 @@ async def _generate_pipeline_stream(
         )
         if all_extra_s:
             image_desc = f"【主图】\n{image_desc}\n\n【其余{len(all_extra_s)}张素材图】\n" + "\n".join(all_extra_s)
+        vis_result = {**vis_result, "_image_desc": image_desc}
 
         scene = _xtag_any(vis_result.get("raw", ""), "scene", "image_desc") or image_desc[:80]
         hooks = _xtag_any(vis_result.get("raw", ""), "hooks", "inspiration")
@@ -16145,7 +16146,8 @@ async def _generate_pipeline_stream(
             arb_blocks += f"\n【用户专家】\n情感钩子：{_xtag_any(raw_op,'hook','user_angle')}\n互动引导语：{_xtag_any(raw_op,'cta','hook')}\n"
     if timing and timing.get("matched_keywords"):
         arb_blocks += f"\n【命中实时热词，必须融入标题或正文前50字】：{'、'.join(timing['matched_keywords'][:5])}\n"
-    arb_user = f"领域：{domain}\n【创作者真实信息/事实边界】\n{brief or '（无）'}\n\n{arb_blocks}"
+    arb_user = (f"领域：{domain}\n【创作者真实信息/事实边界】\n{brief or '（无）'}\n\n"
+                f"【完整素材观察（AI识别，不替代商家事实来源）】\n{image_desc}\n\n{arb_blocks}")
 
     # Brief cooldown after P2 burst to let Moonshot rate-limit window recover
     await asyncio.sleep(3)
@@ -16167,32 +16169,21 @@ async def _generate_pipeline_stream(
 
     if not title or not body:
         yield {"type": "stage", "stage": "p3_retry",
-               "label": "仲裁专家遇到限流，等待 API 配额恢复…", "progress": 70}
-        for _attempt, _wait in enumerate([(60, "第1次重试"), (90, "第2次重试")], 1):
-            _wait_secs, _attempt_label = _wait
-            for _remaining in range(_wait_secs, 0, -5):
-                yield {"type": "rate_limit_wait",
-                       "seconds_left": _remaining,
-                       "total": _wait_secs,
-                       "attempt": _attempt,
-                       "label": f"API 配额恢复中… 还需约 {_remaining}s（{_attempt_label}）"}
-                await asyncio.sleep(5)
-            yield {"type": "stage", "stage": "p3_retry",
-                   "label": f"{_attempt_label}：配额已恢复，正在生成…", "progress": 72}
-            raw2 = await _mr.call("arbitrate", arb_system, arb_user, thinking=False, max_tokens=3000)
-            t2 = _xtag(raw2, "title") or title
-            body     = _xtag(raw2, "body") or body
-            title    = _sanitize_title_for_delivery(await _fit_title_limit(t2, body, domain, memory_context), brief, domain) if t2 else ""
-            raw_v2   = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
-            variants = ([_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_v2] or variants)
-            rationale = _xtag(raw2, "rationale") or rationale
-            if title and body:
-                break
-
+               "label": "仲裁结果结构不完整，正在保留完整流程进行一次修复…", "progress": 70}
+        repair_user = (arb_user + "\n\n【一次结构修复】前次已返回，但缺少完整的<title>或<body>。"
+                       "请依据上方完整素材与行业规则重新完成仲裁，保留必要分析，并输出完整title/body。"
+                       "下方仅为待修复的模型草稿，不能作为事实来源。\n" + arb_raw)
+        raw2 = await _mr.call("arbitrate", arb_system, repair_user, thinking=True, max_tokens=16000)
+        title, body = _xtag(raw2, "title"), _xtag(raw2, "body")
+        title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context), brief, domain) if title else ""
+        raw_v2 = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
+        variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_v2]
+        rationale = _xtag(raw2, "rationale")
     if not title or not body:
         yield {
             "type": "error",
-            "message": "内容生成失败（Kimi API 限流），请稍等 30 秒后重试",
+            "message": "仲裁未返回完整结果，本次未作为合格生成交付。",
+            "error_code": "generation_arbitration_incomplete",
             "stage": "p3_failed",
         }
         return

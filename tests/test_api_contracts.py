@@ -2708,6 +2708,137 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 502)
         self.assertFalse(predict_called["value"])
 
+    def test_generation_complete_media_observation_reaches_creators_and_arbiter(self):
+        class AtArbiter(Exception):
+            pass
+
+        full_observation = "真实素材观察，需与商家事实核对。" * 100 + "素材末尾标记"
+        for video in (True, False):
+            captured = []
+
+            async def stop_at_arbiter(task, system, user, **kwargs):
+                captured.append((task, system, user))
+                raise AtArbiter()
+                yield ""
+
+            async def run():
+                stream = api._generate_pipeline_stream(
+                    "美食", "创作者已确认事实", None, None, {}, None, "2026091312",
+                    video_file_id="owned-video" if video else None,
+                    cover_images=None if video else ["main-image", "second-image"],
+                    user_id="owner", memory_context="本人偏好",
+                )
+                try:
+                    async for _event in stream:
+                        pass
+                finally:
+                    await stream.aclose()
+
+            with self.subTest(video=video), \
+                 mock.patch.object(api, "_get_video_meta", return_value={"frames": [b"f"], "duration_sec": 3}), \
+                 mock.patch.object(api, "_kimi_video_understand", new=mock.AsyncMock(return_value=full_observation)), \
+                 mock.patch.object(api, "_gent_visual", new=mock.AsyncMock(return_value={"role": "视觉专家", "raw": "<scene>主图概要</scene>", "_image_desc": "主图完整观察"})), \
+                 mock.patch.object(api, "_kimi_vision_quick", return_value=full_observation), \
+                 mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})) as content, \
+                 mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})) as growth, \
+                 mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})) as audience, \
+                 mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()), \
+                 mock.patch.object(api._mr, "stream", new=stop_at_arbiter):
+                with self.assertRaises(AtArbiter):
+                    asyncio.run(run())
+                self.assertIn(full_observation, content.call_args.args[3])
+                self.assertIn(full_observation, growth.call_args.args[4])
+                self.assertIn(full_observation, audience.call_args.args[3])
+                self.assertEqual(len(captured), 1)
+                self.assertIn(full_observation, captured[0][2])
+                self.assertIn("不替代商家事实来源", captured[0][2])
+
+    def test_generation_failed_media_never_falls_back_to_text(self):
+        for media, result, expected_status in (
+            ("missing-video", None, 422), ("empty-video", "", 502),
+            ("failed-main-image", RuntimeError("private supplier detail"), 502),
+            ("failed-extra-image", "", 502),
+        ):
+            async def run():
+                async for _event in api._generate_pipeline_stream(
+                    "美食", "已有文字不能替代失败的素材", None, None, {}, None, "2026091312",
+                    video_file_id=media if "video" in media else None,
+                    cover_images=None if "video" in media else ["main", "extra"], user_id="owner",
+                ):
+                    pass
+
+            visual = mock.AsyncMock(side_effect=result) if isinstance(result, Exception) else mock.AsyncMock(
+                return_value={"role": "视觉专家", "raw": "ok", "_image_desc": "已分析的主图内容"})
+            with self.subTest(media=media), \
+                 mock.patch.object(api, "_get_video_meta", return_value=None if media == "missing-video" else {"frames": [b"f"], "duration_sec": 3}), \
+                 mock.patch.object(api, "_kimi_video_understand", new=mock.AsyncMock(return_value=result)), \
+                 mock.patch.object(api, "_gent_visual", new=visual), \
+                 mock.patch.object(api, "_kimi_vision_quick", return_value=""), \
+                 mock.patch.object(api, "_gent_content", new=mock.AsyncMock()) as content:
+                with self.assertRaises(HTTPException) as failure:
+                    asyncio.run(run())
+                self.assertEqual(failure.exception.status_code, expected_status)
+                self.assertNotIn("private supplier detail", str(failure.exception.detail))
+                content.assert_not_called()
+
+        with mock.patch.object(api, "_kimi_vision_understand", return_value=""), \
+             mock.patch.object(api._mr, "call", new=mock.AsyncMock()) as model_call:
+            with self.assertRaises(HTTPException):
+                asyncio.run(api._gent_visual("image", "美食", "有文字简报", {}))
+            model_call.assert_not_called()
+
+    def test_generation_format_repair_preserves_quality_and_never_promotes_expert_draft(self):
+        source = "创作者事实完整上下文。" * 180 + "末尾事实边界"
+        draft = [{"role": "内容专家", "raw": "<title>专家候选</title><body>不能充作已仲裁结果</body>"}]
+        for repaired in (False, True):
+            second = "<title>修复标题</title><body>完成仲裁的正文</body>" if repaired else "仍无结构"
+            with self.subTest(repaired=repaired), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(side_effect=["缺少结构", second])) as call, \
+                 mock.patch.object(api, "_shape_body_for_delivery", new=mock.AsyncMock(return_value="完成仲裁的正文")):
+                if repaired:
+                    result = asyncio.run(api._gent_arbitrate("美食", draft, None, [], fact_context=source))
+                    self.assertEqual(result["title"], "修复标题")
+                else:
+                    with self.assertRaises(HTTPException) as failure:
+                        asyncio.run(api._gent_arbitrate("美食", draft, None, [], fact_context=source))
+                    self.assertEqual(failure.exception.detail["code"], "GENERATION_ARBITRATION_INCOMPLETE")
+                self.assertEqual(call.await_count, 2)
+                for args in call.call_args_list:
+                    self.assertTrue(args.kwargs["thinking"])
+                    self.assertEqual(args.kwargs["max_tokens"], 16000)
+                    self.assertIn(source, args.args[2])
+                self.assertIn("一次结构修复", call.call_args_list[1].args[2])
+
+    def test_generation_stream_repairs_format_once_and_never_replays_transport_failure(self):
+        async def collect():
+            return [event async for event in api._generate_pipeline_stream(
+                "美食", "本次创作者真实事实", None, None, {}, None, "2026091312", user_id="owner")]
+
+        for transport_failure in (False, True):
+            async def stream(*args, **kwargs):
+                if transport_failure:
+                    raise RuntimeError("unknown transport outcome")
+                yield "content", "已完整响应，但无规定结构"
+
+            with self.subTest(transport_failure=transport_failure), \
+                 mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})), \
+                 mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})), \
+                 mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})), \
+                 mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()), \
+                 mock.patch.object(api._mr, "stream", new=stream), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="修复后仍缺少结构")) as call:
+                if transport_failure:
+                    with self.assertRaises(RuntimeError):
+                        asyncio.run(collect())
+                    call.assert_not_called()
+                else:
+                    events = asyncio.run(collect())
+                    self.assertEqual(call.await_count, 1)
+                    self.assertEqual(call.call_args.kwargs, {"thinking": True, "max_tokens": 16000})
+                    self.assertEqual(events[-1]["error_code"], "generation_arbitration_incomplete")
+                    self.assertFalse(any(event.get("type") == "complete" for event in events))
+                    self.assertNotIn("Kimi API 限流", json.dumps(events, ensure_ascii=False))
+
     def test_video_library_body_summarizes_material_without_raw_analysis_markdown(self):
         body = api._video_library_note_body(
             "",
@@ -2840,8 +2971,11 @@ class ApiContractTests(unittest.TestCase):
         captured_agent_contexts = []
         fact_calls = []
 
+        video_observation = ("视频里拍到芝士焗小青龙、红烧乳鸽和万博门店环境。" * 45
+                             + "素材末尾：仅记录实际展示菜品，不代表已实际用餐。")
+
         async def fake_video(file_id, domain, brief, **_kwargs):
-            return "视频里拍到芝士焗小青龙、红烧乳鸽和万博门店环境，适合做餐饮探店诊断。"
+            return video_observation
 
         async def fake_enrich(domain, title, text, **_kwargs):
             fact_calls.append((domain, title, text))
@@ -3008,6 +3142,8 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("手动输入", captured_notes[0].desc)
         self.assertNotIn("【其他内容图片描述】", captured_notes[1].desc)
         self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
+        self.assertIn(video_observation, captured_notes[2].desc)
+        self.assertIn(video_observation, fact_calls[2][2])
         self.assertEqual(responses[2].input_diagnostics["video_duration_sec"], 3.0)
         self.assertEqual(responses[2].input_diagnostics["video_frames_extracted"], 1)
         self.assertEqual(responses[2].input_diagnostics["video_frames_to_ai"], 1)

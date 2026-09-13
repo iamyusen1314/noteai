@@ -1,5 +1,27 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 continuation — full media context and honest arbitration repaired
+
+API source now preserves completed video understanding beyond800/300characters,
+passes all merged image/video observations to creators and arbitration separately
+from merchant facts, and fails explicitly on missing/failed media rather than
+substituting a text brief. Existing upload/owner/frames/tier image-count boundaries
+and short progress/library display summaries remain unchanged. Public media remains
+closed; this is not real media acceptance.34 isolatedPython3.11 checks pass,
+including long-tail observations through actual request/creator/arbiter inputs,
+failed media stopping before downstream work, industry Prompt/memory separation.
+
+A concrete existing generation downgrade was also removed: missing structured
+arbitration fields no longer imply Kimi throttling, turn off thinking, reduce output
+capacity to2000/3000, or promote a content-expert draft. A known completed malformed
+response receives at most one full-thinking16000 format repair with original
+context; unknown/transport failure propagates without replay. Failed repair remains
+an error. Historical calls/failures unchanged. These new local changes will be an
+API-only successor to deployed5f/48eed5a4; original688/0025/web/Admin/Gateway and
+Item34 remain preserved. The existing30-credit owner question remains pending;
+no production gift/business05, no new provider call, no Readiness increment.
+
+
 ## September13 20:10 Beijing — API factual/completion correction deployed
 
 Actual source5f3777705b81cb6f92b272048490bba643bac4f5 is deployed at
