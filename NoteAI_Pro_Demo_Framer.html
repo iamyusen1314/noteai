@@ -5230,6 +5230,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
      JAVASCRIPT
 ═══════════════════════════════════════════════════════════════ -->
 <script src="./runtime-config.js"></script>
+<script src="/assets/vendor/qrcode-generator-2.0.4.js"></script>
+<script src="/assets/payment-native.js"></script>
 <script>
 /* ── API Config ────────────────────────────────────────────── */
 const API_BASE = (
@@ -5274,9 +5276,10 @@ async function refreshPublicStatus() {
   status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。诊断6 / 生成8 / 深度重写3 / 快速对话1积分。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    (_publicStatus?.media_open ? '图片和视频音画理解已开放，按同等账户权益执行。' : '图片和视频暂未开放。') + '外部笔记跟踪及支付暂未开放。';
+    (_publicStatus?.media_open ? '图片和视频音画理解已开放，按同等账户权益执行。' : '图片和视频暂未开放。') + '外部笔记跟踪暂未开放。' + (_publicStatus?.payment_open ? '微信支付已开放，支付宝暂未开放。' : '公众收款暂未开放。');
   syncPublicAuthAvailability();
   syncProductUI();
+  refreshNativeCapabilities();
 }
 function syncPublicAuthAvailability() {
   if (!PUBLIC_PRODUCT) return;
@@ -5321,10 +5324,7 @@ function syncProductUI() {
   });
   ['genCoverInput','genVideoInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=mediaOpen ? '' : 'none';});
   // Existing profile actions keep their real scope; deletion/export are support requests.
-  document.querySelectorAll('[data-product-action="handleUpgrade"],[data-product-action="handleTopup"]').forEach(el => {
-    el.setAttribute('aria-disabled','true'); el.title='支付尚未开放';
-    if (el.tagName === 'BUTTON') { el.disabled=true; el.textContent='支付未开放'; }
-  });
+  nativeSyncControls();
 }
 async function acceptProductContract() {
   if (!document.getElementById('product-consent-checkbox').checked) { showToast('请先阅读并勾选同意'); return; }
@@ -5703,8 +5703,8 @@ function renderPricingConfig(cfg) {
     screenshot: { label: '截图识别', unit: '张', desc: '独立截图 OCR/识别功能按张扣除', color: '#22C55E' },
   };
   if (PUBLIC_PRODUCT) {
-    ops.analyze.desc = '手动文字输入进入真实诊断链路';
-    delete ops.screenshot;
+    ops.analyze.desc = _publicStatus?.media_open ? '文字、真实图片和视频音画素材进入完整诊断链路' : '手动文字输入进入真实诊断链路';
+    if (!_publicStatus?.media_open) delete ops.screenshot;
     ops.chat_fast = { label: '快速对话', unit: '轮', desc: '真实文字对话，每轮1积分', color: '#22C55E' };
   }
   const tierCards = pricingTierOrder(tiers).map(tier => {
@@ -10143,6 +10143,7 @@ let _authToken = localStorage.getItem('noteai_token') || null;
 let _authVerifiedOwnerId = null;
 
 function authClearLocalSession() {
+  nativeClearSession();
   _authToken = null;
   _authUser = null;
   _authVerifiedOwnerId = null;
@@ -10199,6 +10200,7 @@ function renderAvatar(el, avatarData, avatarEmoji, imgStyle) {
 }
 
 function authUpdateNav() {
+  refreshNativeCapabilities();
   const guest = document.getElementById('nav-guest');
   const userEl = document.getElementById('nav-user');
   if (_authUser) {
@@ -12993,7 +12995,7 @@ async function loadBillingPlan() {
         chat_rewrite: { label:'对话深度重写', credits:3 },
         screenshot: { label:'截图识别', credits:0.5 },
       };
-      if (PUBLIC_PRODUCT) { opCosts.chat_fast={label:'快速对话',credits:1}; delete opCosts.screenshot; }
+      if (PUBLIC_PRODUCT) { opCosts.chat_fast={label:'快速对话',credits:1}; if (!_publicStatus?.media_open) delete opCosts.screenshot; }
       const opCostHTML = Object.entries(opCosts).map(([key, info]) => {
         const meta = opMeta[key] || { label: info.label || key, accent: 'var(--holo-mid)', unit: '次' };
         const credits = Number(info.credits || 0);
@@ -13156,21 +13158,9 @@ function toggleUsageDetail() {
   }
 }
 
-/* 升级套餐 */
-async function handleUpgrade(tier) {
-  if (PUBLIC_PRODUCT) { showToast('支付尚未开放，不能购买套餐'); return; }
-  if (!_authToken) { openAuthModal('login'); return; }
-  void tier;
-  showToast('当前未启用真实支付，暂时不能购买套餐。价格仅用于首发方案说明。');
-}
-
-/* 积分充值 */
-async function handleTopup(packageId) {
-  if (PUBLIC_PRODUCT) { showToast('支付尚未开放，不能充值'); return; }
-  if (!_authToken) { openAuthModal('login'); return; }
-  void packageId;
-  showToast('当前未启用真实支付，暂时不能购买积分。价格仅用于首发方案说明。');
-}
+/* 复用正式订单、原价与同一权益入账链。 */
+async function handleUpgrade(tier) { return nativeStartCheckout('subscription',tier); }
+async function handleTopup(packageId) { return nativeStartCheckout('credit_package',packageId); }
 
 /* 积分不足时弹升级引导 */
 function showQuotaExceededModal(detail) {

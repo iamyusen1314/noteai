@@ -3,5 +3,6 @@
 # managed Secret injection, exact LIVE provider-mode readback and callback
 # ingress approval. Removing this drop-in and restarting restores disabled.
 Environment=NOTEAI_PAYMENT_CALLBACK_ENABLED=1
-Restart=on-failure
-RestartSec=5
+# The bounded Item31 collector is tied to one listener/capture lifetime.
+# A failed process must be reconciled before restarting its original capture.
+Restart=no

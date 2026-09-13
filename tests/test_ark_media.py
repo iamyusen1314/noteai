@@ -16,6 +16,24 @@ import model_router
 
 
 class ArkMediaTests(unittest.TestCase):
+    def test_nullable_audio_usage_does_not_invent_unknown_video_cost(self):
+        def classify(details, audio_possible):
+            return ark.usage_dimensions({"usage": {"prompt_tokens": 1000,
+                "completion_tokens": 120, "prompt_tokens_details": details}},
+                audio_possible=audio_possible)
+        image = classify({"cached_tokens": 0, "audio_tokens": None,
+                          "audio_cached_tokens": None}, False)
+        self.assertEqual(image["usage_status"], "complete")
+        self.assertEqual(image["tokens_in"], 1000)
+        no_cache = classify({"cached_tokens": 0, "audio_tokens": 300,
+                             "audio_cached_tokens": None}, True)
+        self.assertEqual(no_cache["audio_input_tokens"], 300)
+        self.assertEqual(no_cache["tokens_in"], 700)
+        for details in ({"cached_tokens": 0, "audio_tokens": None},
+                        {"cached_tokens": 200, "audio_tokens": 300,
+                         "audio_cached_tokens": None}):
+            self.assertEqual(classify(details, True)["usage_status"], "usage_incomplete")
+
     def test_four_disjoint_dimensions_and_missing_audio_are_explicit(self):
         response = {"usage": {"prompt_tokens": 1000, "completion_tokens": 120,
             "prompt_tokens_details": {"audio_tokens": 300, "cached_tokens": 200, "audio_cached_tokens": 50},

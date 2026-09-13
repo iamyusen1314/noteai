@@ -1,5 +1,14 @@
 # Architecture Summary
 
+September14 02:20BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
+Actual EIP console shows website and NAT both arrears-locked/throttled1Kbps;
+local TLS/health/bindings/80+443rules are correct. Owner recharge is required,
+not a speculative code rollback.09 failed GATEWAY_TIMEOUT;6credits refunded once,
+original provider operation UNKNOWN/fee unconfirmed; do not replay. Public/media/
+provider verification waits for network recovery while local Native UI and media
+compatibility work continues. Exact state and original results at Handoff top.
+Item34/30/37 unchanged; no new network permissions/resources or budget reset.
+
 September14 01:02BJT current: hotel08 failed/reconciled,6credits refunded once and2.922080RMB
 modelcost retained;APIbc63377 unchanged. CurrentArk full-media/ownedupload/normalcost/
 OCRno-replay candidate remainsLOCAL,0026NOT_APPLIED.0018 iscommitted,WeChatconfigured

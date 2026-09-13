@@ -63,8 +63,12 @@ def usage_dimensions(data: dict, *, audio_possible: bool) -> dict:
     details = usage.get("prompt_tokens_details")
     details = details if isinstance(details, dict) else {}
     c = details.get("cached_tokens")
-    a = details.get("audio_tokens", None if audio_possible else 0)
-    ac = details.get("audio_cached_tokens", 0 if a == 0 or c == 0 else None)
+    a = details.get("audio_tokens")
+    if a is None and not audio_possible:
+        a = 0
+    ac = details.get("audio_cached_tokens")
+    if ac is None and (a == 0 or c == 0):
+        ac = 0
     if not all(integer(value) for value in (a, c, ac)) or not (ac <= a <= p and ac <= c <= p and p - a - c + ac >= 0):
         return {"tokens_in": 0, "tokens_out": out,
                 "unclassified_input_tokens": p, "usage_status": "usage_incomplete"}

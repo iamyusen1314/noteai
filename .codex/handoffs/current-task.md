@@ -1,5 +1,75 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 02:20 Beijing — e0b84d4 deployed; EIP arrears blocks public traffic
+
+Original deploy result at C /var/lib/noteai/media-e0b84d4/deploy/result.json is
+DEPLOYED_MEDIA_DISABLED at1789322169.424091 (01:56:09BJT). API image2a6eecd63d99,
+Admin3e40c57634c8, public/Admin web symlinks both e0b84d4; exact full hashes remain
+in the built-artifact entry below. Original APIbc63377/Adminb033/web363 retained.
+0026 already committed/verified, never replay. Ark API-only env49690...ecd8d is
+loaded with media0; payment0/tracking0, registration/AI enabled. Model configuration
+hash and Admin/Payment envs unchanged. No Ark/WeChat provider request yet.
+
+Deployment's first RO query failed on percent-parameter parsing before started;
+second closed-candidate check expected401 but the original Admin correctly returns403,
+so failed before production mutation. Both failures retained. Corrected script SHA
+9546c5e517ef8cb418bc18cc65eb96166431b7022f65e85e668b717365abf079,
+local ~/Downloads/noteai-0026-transport-20260914/deploy-media.py, reuses original
+helpers and existing built images. Successful rollout did not reupload/rebuild.
+
+Actual external blocker found in the existing EIP console: website EIP
+39.108.66.93/eip-wz9upi1f15ywx1nsdhy9l and NAT EIP47.106.77.147/
+eip-wz9myseox6t7fp50kveuw both show 欠费锁定 / 限速至1Kbps. Current website binding,
+existing80/443rules, running Nginx worker and local TLS certificate verification
+are correct. Both public website TLS and C-to-Render health time out. No network
+permissions weakened, DNS changed, resource replaced or recharge performed.
+Owner asked to replenish arrears/positive balance at the opened Chrome funds page:
+https://billing-cost.console.aliyun.com/fortune/billing-account (amount panel has
+not loaded, so no amount asserted). This is PATH_BLOCKED for public/provider work;
+continue Native UI/binding/media preparation. Do not send paid probes during lock.
+
+Hotel09 confirmed absent before its sole launch1789322935.826398, pid1605198,
+request formal-claude-meituan-20260914-09, scriptSHAb14d4f83250566023e907ff2a6da5a7372d1043df2040504441e9304bce8a663.
+Original C /var/lib/noteai/formal-claude-363f3e3/business-analyze-09/result.json is
+RESPONSE_FAILED at1789323007.768127, GATEWAY_TIMEOUT, no complete, SSE SHA
+7f4fceee26008649a9833e158e0ca26e8e57b4efee056cce06bc08eeeca0d215.
+Reconcile.json independently confirms claim9ea8a138-2014-4166-9d74-24b9eb1fa16a,
+usageb7534e04-fee0-4f45-9318-12e9116eead8, charged6/refunded6 once, wallet3000.
+Original Haiku operation bYD57WVh8jNZmUHW8fXaNAWBbcPTQIQm remains UNKNOWN with no
+HTTP status; reserve2805milliCNY is not a settled bill. Ledger usage_missing /
+usage_incomplete and legacy estimate1.45 remain explicit; known subtotal0 is not
+proof of zero provider cost. No replay/second hotel request. Gateway original
+operation needs read-only reconciliation after connectivity returns.08 unchanged.
+
+Separate Native API boundary sourcece1feca and in-progress original-product QR/order
+UI are not in e0bproduction. Existing order APIs are reused; detail response is a bare
+order, so polling now matches that contract. Two exact static QR/UI paths are added
+locally, not a broad route exposure. Existing UNKNOWN identity is retained across
+history views and different products; pending/manual refunds stay truthful; account
+switches stop stale preparation.10 actual offline JS scenarios pass, checked in
+at tests/payment_native_ui.test.cjs. Local QR vendor2.0.4 uses the official exact
+npm archive verified SHA512; no remote QR service or unreviewed install scripts.
+Ark nullable optional audio details are accepted only when input/cached zero is
+known; unknown real video audio remains incomplete.11 Python3.11 network-none
+checks PASS; initial test-module discovery failure was environment-only and its
+log retained. Both changes remain a separate undeployed successor. Next: finish HTTPS diagnosis and original09
+result readback, actual isolated media verification, then Native Payment/broker/
+callback and owner12RMB scan/refund/reconcile. Isolated Chrome test additionally verified amount-before-create, local QR canvas,
+original bare-order poll to paid+rights, onePOST/twoGET/zero production calls, and
+390px modal without horizontal overflow. CSP bundle extraction and script syntax
+pass. This is synthetic component verification, not a real WeChat acceptance.
+The original callback-live unit template now preserves Restart=no during its
+bounded collector capture, preventing unreviewed restart of the same capture.
+
+The one private screenshot transport upload reported browser interruption. Original
+object readback via existing private SDK did not confirm any object (OperationError,
+zero body); do not assert successful transfer/reupload blindly. Local archive
+~/.codex/tmp/noteai-media-owner-fixture-20260914.tar.gz,2130910bytes,
+SHA21884b8f37caff70592ea6d1594d8fd6bd238bb824d2fc5d202c26a34401934c;
+not in Git/public downloads. No Ark request was made after the EIP lock was known.
+Item34 unchanged;30/37 unchanged.
+No Gitpush; seven protected paths untouched.
+
 ## September14 01:41 Beijing — 0026 committed/verified; Ark API input applied disabled
 
 0026 fixed source3838a403aca4200994e48e23710af2ad4d49d7adbca50693d19056fd2e061a37
