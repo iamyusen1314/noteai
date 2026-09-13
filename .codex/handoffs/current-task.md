@@ -37,6 +37,9 @@ checks passed. Independent synthetic MP4+AAC passed realupload/privateownership/
 fullbyte Ark MockTransport/audioledger and downstreamcontext;4affected checks PASS.
 Admin reads API publicstatus;Ark Secret remainsAPI-only. These are localverification,
 notproductionacceptance.
+Finaldeployment-input check adds Ark API-only secret allowlist/documentation and
+matching upload pixel/byte limits;11focused checks PASS after isolatedfixture copy
+was completed. Latestcandidate source includes these additions,not9c4-only.
 
 Production remainsAPIbc63377/0408a9,Adminb033/web363/Gateway601,Item34fixedF retained.
 0018 alreadycommitted/readbackverified;0025 neverreplayed. Next: savecurrentmedia

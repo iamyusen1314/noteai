@@ -16,6 +16,16 @@ SAFE_DISABLED_VALUE = "0"
 
 
 class ProductionEnvFileTests(unittest.TestCase):
+    def test_ark_material_secret_is_api_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._env_file(Path(directory), "api.env",
+                                  "DATABASE_URL=FAKE\nNOTEAI_ARK_API_KEY=FAKE\n")
+            validator.validate_role_env_file("api", path)
+            for role in validator.ROLE_ALLOWED_SECRET_KEYS:
+                if role != "api":
+                    with self.subTest(role=role), self.assertRaises(validator.EnvFileValidationError):
+                        validator.validate_role_env_file(role, path)
+
     def test_private_note_context_and_optional_signing_state_are_tracking_only(self):
         with tempfile.TemporaryDirectory() as directory:
             path = self._env_file(Path(directory), "tracking.env",

@@ -228,6 +228,9 @@ class PublicProductTests(unittest.TestCase):
         original = httpx.Client
         with mock.patch.dict(os.environ,{'NOTEAI_PUBLIC_MEDIA_ENABLED':'1','NOTEAI_ARK_API_KEY':'isolated-only'}), \
              mock.patch.object(ark_media,'_client',side_effect=lambda **kw: original(transport=httpx.MockTransport(respond),trust_env=False)):
+            tiny = io.BytesIO(); Image.new('RGB', (1, 1), 'green').save(tiny, 'PNG')
+            rejected = self.client.post('/upload-image', files={'file':('tiny.png',tiny.getvalue(),'image/png')})
+            self.assertEqual(rejected.status_code,422)
             uploaded = self.client.post('/upload-image', files={'file':('source.png',photo.getvalue(),'image/png')})
             self.assertEqual(uploaded.status_code,200,uploaded.text)
             ref = uploaded.json()['media_ref']

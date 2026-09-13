@@ -16,6 +16,7 @@ ROLE_ALLOWED_SECRET_KEYS = {
             "DATABASE_URL",
             "ANTHROPIC_API_KEY",
             "MOONSHOT_API_KEY",
+            "NOTEAI_ARK_API_KEY",
             "AMAP_WEB_KEY",
             "BAIDU_MAP_AK",
             "TENCENT_MAP_KEY",

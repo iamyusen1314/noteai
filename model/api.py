@@ -16778,7 +16778,7 @@ async def upload_image(
                 or height < 1
                 or width > 8192
                 or height > 8192
-                or width * height > 40_000_000
+                or not 196 <= width * height <= 36_000_000
             ):
                 raise HTTPException(status_code=422, detail="图片尺寸超出安全限制")
             source.load()
@@ -16795,7 +16795,7 @@ async def upload_image(
                 )
                 output.seek(0)
                 body = output.read(_private_storage.MAX_IMAGE_BYTES + 1)
-        if not body or len(body) > _private_storage.MAX_IMAGE_BYTES:
+        if not body or len(body) >= _private_storage.MAX_IMAGE_BYTES:
             raise HTTPException(status_code=413, detail="规范化图片超过 10MB 限制")
     except HTTPException:
         raise
