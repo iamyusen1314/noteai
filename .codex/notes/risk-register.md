@@ -1,5 +1,13 @@
 # Risk Register
 
+September13 continuation: business04's technically successful diagnosis included
+unsupported hotel transport/capacity/package claims; human quality FAILED, old
+result/charge/costs preserved. Current API-only correction blocks unsupported facts,
+uses the existing bounded repair and refuses unconfirmed persistence/completion.
+Final32 affected checks and preceding49 completion/cost checks passed offline;
+new real quality acceptance is still pending legitimate owner test entitlements.
+No Amap permission inference, Item34 change or Readiness increment.
+
 September13 19:00: Claude successor is deployed (C API363/Adminb033/web363,
 Gateway601). Signed shared-control readiness, live admin permissions/status and
 public HTTPS checks passed; these are not business quality acceptance. Original688

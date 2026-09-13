@@ -1,5 +1,20 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 continuation — fact and completion corrections verified locally
+
+Current API-only successor fixes af16ad1's final question/negation false positives.
+The af16 checkpoint retained a failing price-question test, followed by one test
+command with a nonexistent billing module name; neither was a release pass.
+Correct module run passed49 Python3.11 isolated tests, then32 affected fact/API
+checks passed after the last negation/contrast/unknown-scope refinement. Independent
+read-only review confirmed completion ownership, one refund and preserved costs.
+No industry Prompt text/schema/Gateway/Admin/web change. Only api.py and
+idempotency.py will replace their real /app/model files atop retained2ad44 image;
+actual imports must match candidate hashes before the existing drain/health/rollback.
+No repeated original upload/build/0025; no new business request or test-credit gift.
+Original04 remains technically completed but quality FAILED. Readiness30/37.
+
+
 ## September13 continuation — real model chain complete; factual quality failed
 
 Business04 completed1789299898.5904195: one successful SSE terminal, actual
@@ -22,8 +37,8 @@ facts, lower telemetry accepted when facts repaired, original input distinguishe
 from expert candidates, final report and full plan facts checked without truncated
 issue lists. No historical industry Prompt text changed. Also prevent silent
 report-save failure and unconfirmed idempotent completion. ScopedPython3.11
-49checks passed before final relation refinement; follow-up fixed a question
-misclassified as an affirmative ticket claim. No new validator platform/schema.
+49checks passed before final relation refinement; follow-up initially fixed one ticket question but still failed a price question;
+this failure is resolved by the later verified successor above. No new validator platform/schema.
 
 The verified-phone owner account's normal allowance was consumed by04. Original
 owner-created noteai_19872819531 still has900credits and an active legitimate

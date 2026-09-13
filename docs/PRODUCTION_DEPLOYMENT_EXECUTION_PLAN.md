@@ -13,8 +13,13 @@ Initial75/1a delta builds copied to the wrong /app root; their image replacement
 are historical facts, not proof of effective API/router fixes. The corrected image
 imports all4 current modules from /app/model, verified in isolatedPython3.11.
 API1a fixes bounded output capacity and scoped hotel facts without changing Prompt
-text or success criteria. Fresh business04 now verifies the corrected full chain;
-read its original result, cost links and owned saved result before further action.
+text or success criteria. Business04 completed the real23-call Haiku/Sonnet chain with matched cost links
+and owned saved results, but human factual quality FAILED. Preserve its original
+completed ledger. The next API-only successor corrects factual scope and result
+completion/persistence using existing checks;32 final affected checks passed.
+Actual /app/model imports must be verified, then reuse retained2ad44 for rollback.
+New business validation needs legitimate owner test credits; a scoped gift question
+is pending, no grant or request has occurred.
 Item34 fixed F artifact/T0/history and unique continuation are unchanged.30/37.
 
 September13 17:52 Beijing actual execution: original688857f API/Admin batch and0025

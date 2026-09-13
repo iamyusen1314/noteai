@@ -10322,27 +10322,26 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         return issues
 
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
-    source_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(src)}
-    output_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(out)}
-    if output_prices - source_prices:
-        issues.append("出现未提供的价格/人均/套餐价数字，结构化事实不能编造")
+    factual_out = out
     if canonical == "旅行":
         # Compare affirmative claims only: a question or a stated unknown is not
         # evidence that the venue has the queried property.
         def assertions(value: str) -> list[str]:
-            return [part.strip() for part in re.split(r"[。！？\n；;，,]", value)
+            return [part.strip() for part in re.split(r"[。！？\n；;，,]|但是|但|然而|不过", value)
                     if part.strip() and not re.search(
-                        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|不能推|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可|不含|不包含)", part)]
+                        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|[吗呢]\s*$|需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|不能|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可|不含|不包含)", part)]
 
         claims, evidence = assertions(out), assertions(src)
-        for match in _PRICE_FACT_RE.finditer(out):
-            amount = re.search(r"\d+", match.group()).group()
-            source_matches = [m for m in _PRICE_FACT_RE.finditer(src)
-                              if re.search(r"\d+", m.group()).group() == amount]
-            if source_matches and all("起" in src[max(0, m.start() - 3):m.end() + 1] for m in source_matches):
-                if "起" not in out[max(0, match.start() - 3):match.end() + 1]:
-                    issues.append("将起价写成确定成交价，结构化事实不能编造")
-        if _BUSINESS_HOURS_RE.search(out) and not any(
+        factual_out = "\n".join(claims)
+        for part in claims:
+            for match in _PRICE_FACT_RE.finditer(part):
+                amount = re.search(r"\d+", match.group()).group()
+                source_matches = [m for m in _PRICE_FACT_RE.finditer(src)
+                                  if re.search(r"\d+", m.group()).group() == amount]
+                if source_matches and all("起" in src[max(0, m.start() - 3):m.end() + 1] for m in source_matches):
+                    if "起" not in part[max(0, match.start() - 3):match.end() + 1]:
+                        issues.append("将起价写成确定成交价，结构化事实不能编造")
+        if _BUSINESS_HOURS_RE.search(factual_out) and not any(
             _BUSINESS_HOURS_RE.search(line) and not re.search(r"预订|预约|服务项目|部分|确认|未知", line)
             for line in src.splitlines()
         ):
@@ -10380,6 +10379,10 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             if not any(all(amount in line for amount in amounts)
                        and all(room in line for room in room_scopes) for line in ticket_evidence):
                 issues.append("将价格或房型与未核验的含票权益绑定，结构化事实不能编造")
+    source_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(src)}
+    output_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(factual_out)}
+    if output_prices - source_prices:
+        issues.append("出现未提供的价格/人均/套餐价数字，结构化事实不能编造")
     if canonical == "美食" and _PRICE_VALUE_CLAIM_RE.search(out) and not _source_has_price_evidence(src):
         issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
     if canonical == "美食" and _BUFFET_VALUE_CLAIM_RE.search(out) and not _source_has_buffet_evidence(src):
@@ -10392,7 +10395,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         unsupported_beauty_markers = _unsupported_beauty_claim_markers(out, src)
         if unsupported_beauty_markers:
             issues.append(f"美妆出现未提供的试用/功效边界承诺：{'、'.join(unsupported_beauty_markers)}")
-    business_hours_like = _BUSINESS_HOURS_RE.search(out)
+    business_hours_like = _BUSINESS_HOURS_RE.search(factual_out)
     if canonical != "旅行":
         business_hours_like = business_hours_like or _BUSINESS_TIME_RANGE_RE.search(out)
     if business_hours_like and not (
@@ -10407,7 +10410,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         issues.append("出现未提供的节假日/时令场景，结构化事实不能编造")
     unsupported_group_sizes = [
         match.group(0)
-        for match in _UNVERIFIED_GROUP_SIZE_RE.finditer(out)
+        for match in _UNVERIFIED_GROUP_SIZE_RE.finditer(factual_out)
         if match.group(0) not in src and not match.group(0).startswith("1人")
     ]
     if unsupported_group_sizes:

@@ -3063,6 +3063,7 @@ class ApiContractTests(unittest.TestCase):
             "每晚998元，包含水上乐园门票。",
             "998元的套餐，含水上乐园门票。",
             "狩猎大床套餐包含水上乐园门票。",
+            "不是所有套餐都含票但998元套餐含票。",
         ):
             with self.subTest(body=body):
                 issues = api._structured_fact_boundary_issues(body, source, "旅行")
@@ -3073,6 +3074,8 @@ class ApiContractTests(unittest.TestCase):
             "建议联系酒店确认是否需要接驳、房型最多可住几人，以及套餐包含哪些门票。",
             "接驳与步行距离未确认，不预设交通更方便。",
             "998元套餐含不含门票，要先确认。",
+            "房型可住2大1小吗？998元套餐含票吗？",
+            "是否适合3人入住、营业时间是否为9:30-18:30？需确认。",
         ):
             self.assertFalse(api._structured_fact_boundary_issues(body, source, "旅行"), body)
         evidence = "酒店位于园区内，步行可达水上乐园；狩猎房适合2大1小。998元起/晚含水上乐园门票。"
@@ -3085,6 +3088,9 @@ class ApiContractTests(unittest.TestCase):
         ))
         self.assertTrue(api._structured_fact_boundary_issues(
             "酒店位于园区内，步行可达景点。", "酒店并非园区内，不可步行到景区。", "旅行",
+        ))
+        self.assertTrue(api._structured_fact_boundary_issues(
+            "步行到景区。", "酒店不能步行到景区。", "旅行",
         ))
 
     def test_fact_repair_accepts_lower_telemetry_but_rejects_higher_fabrication(self):
