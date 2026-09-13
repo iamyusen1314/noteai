@@ -1,5 +1,28 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September13 continuation — mixed import path found; original failures preserved
+
+Fresh03 failed at1789299203.5727541,HTTP200/no complete; root-only SSE SHA
+f4ffcb48120e3f54904d7547dacdcb2e0280854c6704cbdffe3b3fef7ae878d8.
+Its claim8c1dda49-ddf5-4d86-a115-77ce5d07163c (usage_id) is failed,6credits
+charged/refunded once. Three actual Haiku calls costRMB0.151116 priced/known,
+not an invoice; two expert outputs still reached1200. Old UNKNOWN rows unchanged.
+
+Root cause is now confirmed:75 and1a delta Dockerfiles copied to /app/, whereas
+render_start_api.sh changes to /app/model. Current loaded API/router source hashes
+match363; api imports router before prepending /app, then loads root-level new facts.
+Prior build hashes were real but checked the wrong import destination. Therefore
+their DEPLOYED results prove image replacement, NOT effective API/router fixes.
+Adminb033 was checked at /app/model/admin_server.py and is correctly applied.
+
+Corrective original-stage child runtime-path-correction reuses retained75/1a source
+files, no upload/download/DDL; build FROM363 plus all4 current1a modules into
+/app/model. Candidate isolation imports the actual API, checks all module origins,
+source hashes and loaded function constants4096/response_received, then uses the
+existing canary/drain/rollback steps. Execute SHA
+459dd5b39ab355445ef6afecef01057c8771232156c95755127beec456455f54.
+Read its original result before any fresh test; no repeated03.30/37 unchanged.
+
 ## September13 19:26 Beijing — API quality correction deployed; fresh business03
 
 Original durable job /var/lib/noteai/formal-quality-1a1870a/result.json read back
