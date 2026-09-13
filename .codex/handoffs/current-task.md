@@ -1,5 +1,40 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 01:20 Beijing — exact media/Native candidates built; production unchanged
+
+Source e0b84d4fde3371dbcff530cb155ebc3f305f4c1e includes full media/OCR/report-fact
+repairs plus API-only Ark secret allowlist and upload bounds. Unique sourcearchive
+~/.codex/tmp/noteai-media-native-e0b84d4.tar.gz,561886bytes,
+SHAd3fd2fcab70d6855017b11fc0cbf923cbf1451c8a73336531096f18b577afd87,
+uploaded once to existing private OSS admin-public/20260913 prefix. Buildscript
+SHA95e68a9a2f90daad429e0b732b8afd18d5782a534a1a48f5dae30a78dc270040,
+original launchpid1598457; original buildresult BUILT_NOT_DEPLOYED at1789319892.0647423,
+retained /var/lib/noteai/media-e0b84d4/build. No service/schema/config switch.
+Actual Python3.11.15/amd64 network-none imports and exact file/source hashes PASS:
+- API sha256:2a6eecd63d9960089973b04364c325753ca4f961816d9b91476253e73090e461.
+- Admin sha256:3e40c57634c872959d7b79f9294aff5489c36e9f58e8fad5387dbb7f76c8226a.
+- Payment sha256:3a4a55cf1a0582036fc908c8d6520b197b20942780f755dc10be7c1f69a324b6.
+- Paymentcanary sha256:b49b2a6b5da78a07952d8f8d1dc67ecf9922a1254ba1e1615789597d9be74a82.
+Existing APIbc63377/Adminb033 stay live; baseimages retained. Future Native UI/gate
+changes are a separate candidate; these images do not include them.
+
+DMS owner read01:13:14.297301BJT confirms144model_usage/8idempotency/0media rows,
+Item34gen2 checking_7d,originalT0,activeattemptNULL. APIrole's repeatable-read backup
+matches these counts,0600 at /var/lib/noteai/media-e0b84d4/database-before.json,
+SHAcef01c75eed712ed6cfe84d2c1a244879c88c64ec7db14fce60cc275f7e97e2b.
+Affected schema/ACL backup database-metadata-before.json,
+SHAdb6b4dd13e9de46df0350f7218a7713cfb126f88779357b45c9f62b312f7330a,
+67originalcolumns/25constraints/9indexes/3policies. APIrole cannotSELECTledger
+(sqlstate42501); do not repeat denied read or grant it. OwnerDMS ledger readback
+is being saved separately. These are affected-table recovery materials,not a new
+whole-database backup. 0026stillNOT_APPLIED;0018/0025 not replayed.
+
+Next: apply fixed0026 only after same-transaction compatibility/ACL assertions;
+then closed scoped rollout/Ark activation and real media+hotel quality verification.
+Continue actualNative UI/orderreadback/broker/callback/owner12RMBpay/refund/reconcile.
+Ark and WeChat providerrequests0; transfer/storage increment unsettled,not0.
+Readiness30/37 unchanged;noGitpush;sevenprotectedpaths unchanged.
+
 ## September14 01:02 Beijing — hotel08 failed/reconciled; complete media candidate verified locally
 
 Original08 is terminalRESPONSE_FAILED at1789316390.588022,HTTP200SSEcomplete0,
