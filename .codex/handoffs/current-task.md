@@ -1,5 +1,39 @@
 # NoteAI Internal Production Readiness Handoff
 
+September14 12:30–12:40BJT current: original clarification claim/usage6a426f5a /
+2f3234ca COMPLETED,version3,one saved note with the same6a426f5a UUID.
+Actual free answer + omit + prepared resumption succeeded; browser reload restored
+owner and normal note library read the same final note. Original prepared SHA
+8329563777e78552afeb2500e575bb16783d26ab4d06ad3b14f6ffe3c9a9c32a unchanged.
+3 physical calls before answer +10 after,13responded total; charge1/refund0/complete1,
+8credits once. Metering:12Haiku/33081in/9607out/RMB0.567812 +1Sonnet/7586in/6335out/
+RMB0.824481 = RMB1.392293, exact/complete records. No media or original experts replay.
+Both answers remain merchant_confirmation/revision3, not external facts/long-term memory.
+Result score72.9 uses confirmed drinks, but unsupported service/all-in claims and
+old pre-answer expert advice remain: mechanism pass is NOT complete content-quality
+acceptance. Preserve result, no new whole generation solely for this fixture.
+
+Web99c9ed8 is DEPLOYED at1789360235.0947776; cloned4c assets and replaced ONLY
+product-app.js SHA d537466e2ea7cac7ba3665bc62fcb5422f2b2059d8ce1ec35bfaacdccb438249.
+HTML/events/runtime config hashes unchanged; exactAPIce container unchanged.
+Host result /var/lib/noteai/clarification-ce6ade7/web-99c9ed8-result.json, rollbackweb4c.
+Public refresh/owner session/library normal; isolated actual browser confirmed draft
+preservation across question version and no stale prior-cover display. No API/image
+rebuild for web. Local private fixture localhost5197 is test-only and not public.
+
+Native next: actual host verified originalPayment inactive/container absent; both
+Payment3a4a55cf and canaryb49b2a6b images exist. CurrentAPIunit SHA4862ef72c0735c329a1967b766e1112b1e96e860c7a9b3fd28533b44f2a83d67;
+mainAPIunit46010368…77e6, originalPaymentunit40a49dbe…47bb retained.
+Original encrypted-config fragment now has a MINIMAL prepared DB binding via existing
+noteai_payment (no credential reset/extra permission), role validator passed:
+/var/lib/noteai/wechat-native-20260913/candidate-config/canary-bound.env,
+SHA861cc4be3dec07a5c20c1f271f87a566ab91bb61e4c3049add5e641d6db0f9bf.
+Enabled0; no service/provider/DB write. Merchant1117594954/AppID matching existing
+API/Payment config verified. No APIv3 or unrelated model/SMS/XHS credentials copied.
+Actual9-fieldbinding/activation/DDL/launcher still needs implementation; temporary
+unit templates alone are not a production launcher. Continue Native and media recovery.
+Readiness30/37 unchanged. No protected paths/Gitpush/Item34 changes.
+
 Current live APIce6ade7/image51f46b9a5ec522841379c97a6564c3f5b6ef02ee6b4b93cb85e6ab257d907589,
 CID4eb94ab5a64dcb56325d7cda2d017fe4d877bab72ef8dccf51b88b299dc7de26.
 CloudAssistant104–107: private archive6acf7a5696d6c34164e4418bc6398165780a02b78f75383ed2ebd16a897c93fe

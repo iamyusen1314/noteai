@@ -1,15 +1,15 @@
 # NoteAI Production Deployment Execution Plan
 
-Current September14: API707f263 and web4c0c1ac are live;0027 remains applied.
-Original707 claim6a426f5a is waiting,3 settled expert calls/8credits charged once.
-Original private metadata proves the required beverage question was omitted because
-it cites two valid source keys in one string. Minimal parser successor accepts all
-exact references; no fuzzy search or extra model call. After scoped API rollout,
-CAS-restore only this original omitted question on the unanswered waiting task,
-increment its version, preserve original prepared/usage/questions, then reply through
-the normal page and verify no repeated expert/whole-charge. Current source/results,
-rollback bindings and independent Native/media next actions remain in Handoff.
-No Item34/role/migration replay or terminal Readiness change.
+Current September14: APIce6ade7 and web99c9ed8 are live;0027 remains applied.
+Original707 claim6a426f5a now completed with one8credit charge, sameusage and note;
+3 calls before answer/10 after; exact recorded modelcostRMB1.392293. Free answer,
+omit and original prepared continuation are actually verified. Saved content quality
+still needs improvement; no terminal Readiness increase or replay of this fixture.
+Web-only draft-refresh/cover-state fixes are live with API unchanged. Native original
+credentials + existing noteai_payment DB binding are prepared disabled; true capture
+binding/DDL/launcher and owner scan/refund/next-day bill remain. Do not use old4d
+API deployer as payment launcher or replace currentce code. Exact current artifacts,
+original results, costs and remaining media/quality work are in Handoff top.
 
 September14 clarification implementation uses existing chat/idempotency, not a new
 queue or charge. Release scope: current-source API5 modules plus task_clarification,
