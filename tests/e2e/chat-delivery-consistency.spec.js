@@ -212,3 +212,38 @@ test('a changed account cannot save or receive a delayed generation result', asy
   await expect(page.locator('#genMainTitle')).not.toContainText('PRIVATE_SENTINEL');
   await expect(page.locator('#genReportBody')).toBeHidden();
 });
+
+test('library chat restores its own confirmation without importing another upload form', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  await page.evaluate(async () => {
+    _authToken = 'synthetic-library-token';
+    _authUser = {id:'synthetic-library-owner'};
+    _authVerifiedOwnerId = _authUser.id;
+    document.getElementById('merchantNameInput').value = 'OTHER_MERCHANT_SENTINEL';
+    document.querySelectorAll('.c-tag').forEach(el => el.classList.add('on'));
+    window.__libraryRequests = [];
+    window.fetch = async (url, opts = {}) => {
+      if (String(url).endsWith('/chat/start')) {
+        window.__libraryRequests.push(JSON.parse(opts.body));
+        return new Response(JSON.stringify({session_id:'synthetic-library-chat',current_score:73,
+          grade:'良好',welcome:'原说明已恢复',confirmed_facts:[{question_id:'drink',question:'套餐饮品？',
+            answer:'2杯拿铁',merchant:'本笔记商家',object:'9月双人套餐',time_range:'9月',status:'confirmed'}]}),
+          {status:200,headers:{'Content-Type':'application/json'}});
+      }
+      return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
+    };
+    _noteDetailData = {id:'synthetic-original-note',title:'已保存标题',body:'已保存正文',domain:'美食',score:73,version:1};
+    await startChatFromLibrary();
+  });
+  const requests = await page.evaluate(() => window.__libraryRequests);
+  expect(requests).toHaveLength(1);
+  expect(requests[0].note_id).toBe('synthetic-original-note');
+  expect(requests[0].user_constraints).toBeNull();
+  for (const key of ['merchant_name','merchant_visibility','content_intent','fact_source_policy']) {
+    expect(requests[0]).not.toHaveProperty(key);
+  }
+  await page.getByRole('button',{name:'查看或纠正本次商家确认',exact:true}).click();
+  await expect(page.getByPlaceholder('填写更正后的完整说明')).toHaveValue('2杯拿铁');
+  await expect(page.locator('#chat-messages')).toContainText('本笔记商家');
+  await expect(page.locator('#chat-messages')).not.toContainText('OTHER_MERCHANT_SENTINEL');
+});

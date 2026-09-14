@@ -1,3 +1,33 @@
+September14 17:34BJT continuation: quality03 is FAILED, not in flight; no replay.
+Original claim6dd1ad5e-a0fc-4758-b52b-240984d05786/usagecc607ed0-2acb-485c-8119-2403725d6182:
+charge1/refund1/complete0;6credits restored.25respondedcalls, actual2.2056242RMB
+(21Haiku74065in/13847out1.0031;3Sonnet23356in/6768out1.201116;
+1Ark2047in/50out0.0014082). Final DIAGNOSIS_PLANS_UNVERIFIED; scores65.4/66.7/57.9,
+not quality acceptance. Final plan21char title/214char body skipped bounded second
+pass because low score entered an early return with no actual subsequent repair.
+Full three-body inputs also repeated one unverified expert draft: shared anchoring
+is confirmed in code, its exact causal contribution is a hypothesis, not proven.
+Private original result/SSE and quality-read-*.json remain under media-882a763/owner-check;
+responseSHAca16d60b60bd2113e4964e1be5e0c26b4e5eebeda695ad1aea78a583d101f0a1.
+Exact candidateb8563e4e10c240317219306bbe9cab523348f01534471884144638846b104e45
+stopped/auto-removed1789378065.8909957; public882 API unchanged.
+
+LOCAL next fix: original bounded second-pass now accepts nonempty length defects,
+retains final source/quality checks; independent bodies use original source plus
+arbitrated direction, while complete expert drafts remain in original arbitration.
+No new model route, lowered quality threshold or new retry loop. Separate real
+navigation gap fixed: library-to-chat restores same-owner active note/parent context,
+latest ordinary correction before completed original task, excludes sibling branches
+and internal prepared inputs/old scores. A newer constraints-only chat no longer
+hides original confirmed facts. Library does not import another upload form's merchant
+or choices; original_fact_context stays separate from corrected answers.
+5Python3.11 regressions pass (noteai-library-source-length-r2.log),4existing chat-start
+contracts pass,3initial correction/SQLite plus1offlineChromium pass. Current production
+is still882 API/e22web; next checkpoint/build affectedAPI+web, then existing completed
+clarification note's normal correction/refresh validation. No new full media call yet.
+Payment bill/duplicate callback, video real material and Item34 remain separate;
+Readiness30/37 unchanged, no Gitpush/protected path changes.
+
 September14 17:20BJT actual deployment readback: 882a763 API is DEPLOYED at
 1789377417.5478654, image0af22757443fa0110fe00c1ceb054e0b35a6a73e0f86107bab07db75282b623b.
 Original deploy/result.json confirms web e22 retained, Admin/model config/envs unchanged,

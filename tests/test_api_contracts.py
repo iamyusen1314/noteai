@@ -2538,6 +2538,8 @@ class ApiContractTests(unittest.TestCase):
             self.assertIn(source_context, call[2])
             self.assertIn(api._CONTENT_SOURCE_POLICY, call[2])
             self.assertIn(api._CONTENT_SOURCE_POLICY, call[1])
+            self.assertNotIn("这是一篇内容专家候选正文", call[2])
+            self.assertIn("标题缺少清晰角度", call[2])
             self.assertEqual(call[3]["max_tokens"], 4096)
             for unsupported in ('必点招牌菜感官描述', '围绕火候、口感、分量',
                                 '正文必须出现「必点」', '主菜亮点→口感/火候', '这口很记人'):
@@ -3035,6 +3037,81 @@ class ApiContractTests(unittest.TestCase):
             api._memory.build_memory_prompt = original_memory_prompt
             if result is not None:
                 api._chat_sessions.pop(result.session_id, None)
+
+    def test_library_chat_restores_exact_owned_task_and_corrected_branch(self):
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.executescript("""
+          CREATE TABLE notes(id TEXT,user_id TEXT,title TEXT,body TEXT,domain TEXT,
+            score REAL,grade TEXT,version INT,parent_id TEXT);
+          CREATE TABLE chat_sessions(id TEXT,user_id TEXT,note_id TEXT,domain TEXT,
+            generate_ctx_json TEXT,updated_at TEXT);
+          CREATE TABLE idempotency_requests(id TEXT,user_id TEXT,status TEXT);
+        """)
+        fact={"question_id":"drink", "field":"drink_count", "question":"包含几杯？",
+            "merchant":"蓝猫店", "object":"9月双人套餐", "time_range":"9月",
+            "status":"confirmed", "answer":"2杯拿铁", "source":"merchant_confirmation", "revision":1}
+        omit={**fact,"question_id":"parking","field":"parking","question":"停车优惠？",
+            "status":"omitted","answer":""}
+        context={"merchant_confirmations":[fact,omit],"original_fact_context":"原素材198元",
+            "fact_context":"原素材198元【本次商家确认】2杯拿铁","merchant_name":"蓝猫店",
+            "merchant_visibility":"不展示商家","user_constraints":["不写未确认赠品"],
+            "saved_note_id":"root","current_score":99,"prepared":{"secret":"never"}}
+        for note_id,parent,owner in [('root',None,'owner'),('child','root','owner'),
+                ('sibling','root','owner'),('foreign',None,'other')]:
+            conn.execute("INSERT INTO notes VALUES(?,?,?,?,?,?,?,?,?)",
+                (note_id,owner,"已保存标题","已保存正文","美食",73,"良好",1,parent))
+        conn.execute("INSERT INTO idempotency_requests VALUES('task','owner','completed')")
+        task={"status":"completed","result":context}
+        conn.execute("INSERT INTO chat_sessions VALUES(?,?,?,?,?,?)",
+            ('task','owner','root','美食',json.dumps({'task_continuation':task}),'2026-09-01'))
+        # A foreign account's newer context with the same note id is excluded.
+        conn.execute("INSERT INTO chat_sessions VALUES(?,?,?,?,?,?)",
+            ('foreign-context','other','root','美食',json.dumps({'fact_context':'OTHER_MERCHANT'}),'2026-09-30'))
+        conn.execute("INSERT INTO chat_sessions VALUES(?,?,?,?,?,?)", ('old-empty-chat','owner',
+            'root','美食',json.dumps({'fact_context':'','user_constraints':['不写价格']}),'2026-09-02'))
+        created=[]
+        def start(note_id):
+            result=asyncio.run(api.chat_start(api.ChatStartInput(note_id=note_id,
+                note_title="已保存标题",note_body="已保存正文",domain="美食"),user={'id':'owner'}))
+            created.append(result.session_id)
+            return result,api._chat_sessions[result.session_id]
+        try:
+            with mock.patch.object(api._db,'fetchone',side_effect=lambda sql,args=():conn.execute(sql,args).fetchone()), \
+                 mock.patch.object(api._db,'fetchall',side_effect=lambda sql,args=():conn.execute(sql,args).fetchall()), \
+                 mock.patch.object(api,'_retention_visible',return_value=True), \
+                 mock.patch.object(api,'_persist_chat_session',return_value=True), \
+                 mock.patch.object(api,'_get_user_learn',return_value={}):
+                response,original=start('root')
+                self.assertEqual(response.current_score,73)
+                self.assertEqual(response.confirmed_facts,[fact,omit])
+                self.assertEqual(original['user_constraints'],['不写价格'])
+                self.assertEqual(original['merchant_name'],'蓝猫店')
+                self.assertEqual(original['merchant_visibility'],'不展示商家')
+                self.assertNotIn('prepared',original['generate_context'])
+                self.assertNotIn('OTHER_MERCHANT',original['fact_context'])
+                api._merge_supplement_values_into_session(original,{'confirmation_drink':'更正：1杯拿铁，9月周末适用'})
+                conn.execute("INSERT INTO chat_sessions VALUES(?,?,?,?,?,?)",('corrected','owner',
+                    'child','美食',json.dumps(original['generate_context']),'2026-09-02'))
+                _,child=start('child')
+                self.assertIn('1杯拿铁',child['fact_context'])
+                self.assertNotIn('2杯拿铁',child['fact_context'])
+                self.assertEqual(child['generate_context']['original_fact_context'],'原素材198元')
+                api._merge_supplement_values_into_session(child,{'confirmation_drink':'再次更正：3杯拿铁，仅9月周末'})
+                self.assertNotIn('1杯拿铁',child['fact_context'])
+                self.assertIn('3杯拿铁',child['fact_context'])
+                self.assertIn('不得写入或暗示',child['fact_context'])
+                _,sibling=start('sibling')
+                self.assertIn('2杯拿铁',sibling['fact_context'])
+                self.assertNotIn('1杯拿铁',sibling['fact_context'])
+                with self.assertRaises(HTTPException) as denied:start('foreign')
+                self.assertEqual(denied.exception.status_code,404)
+                conn.execute("UPDATE idempotency_requests SET status='running' WHERE id='task'")
+                _,unsettled=start('root')
+                self.assertEqual(unsettled['generate_context']['merchant_confirmations'],[])
+        finally:
+            for sid in created:api._chat_sessions.pop(sid,None)
+            conn.close()
 
     def test_merchant_correction_keeps_original_scope_and_does_not_become_preference(self):
         session = {"domain":"美食", "merchant_name":"蓝猫店", "note_id":"original-note", "generate_context":{
@@ -3811,6 +3888,33 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(fit.call_args.kwargs['constraint_context'], constraints)
         self.assertEqual(shape.call_args.kwargs['constraint_context'], constraints)
         self.assertTrue(result[6], result[7])
+
+    def test_second_pass_repairs_low_scoring_length_defect_once_and_keeps_final_checks(self):
+        original_title = '这是一条超出二十字限制需要语义压缩的真实标题'
+        original_body = '当前正文偏短，只有原素材。'
+        candidate_title = '原素材中的海鲜汤面'
+        valid_body = ('照片中白碗摆放在木桌上，碗里是奶白色的汤面。原作者写到汤底鲜浓、配料充足。'
+            '可以先介绍画面，再保留作者已经描述的感受；没有提供的门店和价格本次不展开。' * 4
+            + '想找类似汤面时，可以先核对自己想吃的口味。点赞收藏。#汤面 #美食 #乌冬 #海鲜 #用餐记录')
+        for final_body, final_score, accepted in ((valid_body,74,True),(original_body,57,False)):
+            async def shape(_title, body, *_args, **_kwargs):return body
+            with self.subTest(accepted=accepted), \
+                 mock.patch.object(api._mr,'call',new=mock.AsyncMock(return_value=
+                    f'<note><title>{candidate_title}</title><body>{final_body}</body></note>')) as call, \
+                 mock.patch.object(api,'_fit_title_limit',new=mock.AsyncMock(return_value=candidate_title)), \
+                 mock.patch.object(api,'_shape_body_for_delivery',new=shape), \
+                 mock.patch.object(api,'_score_generated_note',new=mock.AsyncMock(return_value=
+                    (final_score,{'body_len':len(final_body),'tag_count':5,'body_cta_count':2},'良好'))):
+                result=asyncio.run(api._score_directed_second_pass(original_title,original_body,'美食','2026091417',
+                    source_context=valid_body,current_score=57.9,current_features={'body_len':214},
+                    current_issues=['标题超过平台上限（当前21字）','正文过短（当前214字）'],
+                    constraint_context='不得添加原素材没有的信息。'))
+            self.assertEqual(call.await_count,1)
+            self.assertEqual(result[6],accepted,result[7])
+            if not accepted:
+                self.assertEqual(result[0],original_title)
+                self.assertEqual(result[1],original_body)
+                self.assertTrue(api._has_blocking_quality_issues(result[2],result[5],'美食'))
 
     def test_body_shape_preserves_observation_and_explicit_experience_as_distinct_sources(self):
         sources = (

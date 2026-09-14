@@ -1,3 +1,12 @@
+September14 current correction risk: quality03 failed and refunded credits; actual
+provider cost2.2056242RMB retained. A low-scoring length defect bypassed the existing
+one-pass repair; local fix now uses that same bounded pass, without weakening final
+checks. Shared complete expert draft in all three body inputs is removed from that
+stage only; all original expert/arbitration steps remain. Causal quality improvement
+requires a new-version live result, not presumed from local tests. Library-to-chat
+also restores scoped persisted facts/answers, excludes sibling/other-account context
+and prevents unrelated upload form selections. Local regressions pass, not live yet.
+
 # Risk Register
 
 September14 quality-02 confirms transport and once-only accounting, not content quality.

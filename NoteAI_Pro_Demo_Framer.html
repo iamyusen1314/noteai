@@ -11869,8 +11869,12 @@ async function startChatFromLibrary() {
   closeNoteDetail();
   showPage('chat');
   try {
-    const constraints = getConstraintTags();
-    const intentPayload = getContentIntentPayload(note || {});
+    // A saved note belongs to its own merchant context, not the upload form.
+    const constraints = Array.isArray(note.user_constraints) ? note.user_constraints : [];
+    const intentPayload = {};
+    for (const key of ['content_intent','merchant_visibility','merchant_name','fact_source_policy']) {
+      if (typeof note[key] === 'string' && note[key]) intentPayload[key] = note[key];
+    }
     const res = await fetch(API_AUTH + '/chat/start', {
       method: 'POST',
       headers: { ...authHeader(), 'Content-Type': 'application/json' },

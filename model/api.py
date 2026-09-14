@@ -3340,16 +3340,16 @@ async def _agent_arbitrate(
         f"【表达约束与辅助分析；不新增事实】\n{analysis_context}\n"
         f"原始笔记标题：{note_title}\n"
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
-        f"内容专家候选（未经核验，不是事实来源）：{body_candidate or '（无候选）'}\n"
         f"领域：{domain} | 当前日期：{_today2}\n"
         f"品类知识库：{_content_dk}\n\n"
-        f"辅助信号诊断的核心弱项：{opinion_block}\n\n"
+        f"仲裁后的诊断与写作方向（不作为新增事实）：{diagnosis_text}\n{plan_text}\n\n"
         f"{base_planning_brief}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
         f"{expression_brief}\n\n"
         "【事实边界硬规则】价格、人均、套餐价、营业时间、排队时长、楼层等结构化事实，"
         "只能使用上方用户原始输入/图片视频上下文或已核验事实源明确提供的信息。未提供时不得编造具体数字，"
-        "可自然写成“价格以门店套餐页为准”“建议出发前确认营业时间”。"
+        "可自然写成“价格以门店套餐页为准”“建议出发前确认营业时间”。\n"
+        f"{constraint_context}"
     )
 
     plan_styles = _plan_strategy_specs(domain, plan_a_title, plan_b_title, plan_c_title)
@@ -11537,7 +11537,10 @@ async def _score_directed_second_pass(
     # A fact defect still needs the bounded repair when the same draft also has
     # a short title or another quality defect. There is no separate hard-repair
     # caller for diagnosis plans; returning early used to strand those drafts.
-    if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_repair:
+    length_repair = bool(title.strip() and body.strip()) and any(
+        marker in issue for issue in issues
+        for marker in ("标题超过平台上限", "标题过短", "标题偏短", "正文过短", "正文过长"))
+    if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_repair and not length_repair:
         return title, body, score, features, grade or _grade(score), issues, False, "存在硬质量问题，交给硬修复链路"
 
     if constraint_context:
@@ -15945,10 +15948,8 @@ async def _run_analyze_pipeline(
                         quality_issues.extend(_body_format_issues(b))
                         quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
                         quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
-                        if any("结构化事实不能编造" in issue for issue in quality_issues) or (not quality_failed and (
-                            _score_gap_issue_count(quality_issues) > 0
-                            or _needs_v04_score_lift(score_raw, plan_features, req.domain, req.desc)
-                        )):
+                        if (_score_gap_issue_count(quality_issues) > 0
+                                or _needs_v04_score_lift(score_raw, plan_features, req.domain, req.desc)):
                             (
                                 t,
                                 b,
@@ -19624,6 +19625,57 @@ class ChatSelectPlanInput(BaseModel):
     option_id: str = Field(description="A/B/C 候选方案 ID")
 
 
+def _saved_note_chat_context(note_row: dict, user_id: str) -> dict:
+    """Recover business context only along this owner's selected note ancestry."""
+    source_keys = {"merchant_confirmations", "original_fact_context", "fact_context",
+        "fact_enrichment", "confirmed_supplement_values", "user_constraints",
+        "merchant_visibility", "merchant_name", "fact_source_policy", "content_intent"}
+    visited = set()
+    constraint_overlay = {}
+    current = note_row
+    for _ in range(64):
+        if not current or current["id"] in visited or current["domain"] != note_row["domain"]:
+            break
+        note_id = current["id"]
+        visited.add(note_id)
+        rows = _db.fetchall(
+            "SELECT c.generate_ctx_json,r.status AS task_status FROM chat_sessions c "
+            "LEFT JOIN idempotency_requests r ON r.id=c.id AND r.user_id=c.user_id "
+            "WHERE c.note_id=? AND c.user_id=? AND c.domain=? "
+            "ORDER BY CASE WHEN r.id IS NULL THEN 0 ELSE 1 END,c.updated_at DESC,c.id DESC LIMIT 64",
+            (note_id, user_id, note_row["domain"]),
+        )
+        for row in rows:
+            try:
+                stored = _json.loads(row["generate_ctx_json"] or "{}")
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(stored, dict):
+                continue
+            if _clarification.KEY in stored:
+                task = stored[_clarification.KEY]
+                if (not isinstance(task, dict) or row["task_status"] != "completed"
+                        or task.get("status") != "completed"):
+                    continue
+                stored = task.get("result")
+                if not isinstance(stored, dict) or stored.get("saved_note_id") != note_id:
+                    continue
+            elif row["task_status"] is not None:
+                continue
+            context = _sanitize_chat_generate_context(
+                {key: stored[key] for key in source_keys if key in stored})
+            # An empty chat opened by an older client must not hide the original
+            # confirmed material. No old score, draft, internal prompt or memory.
+            if (context.get("merchant_confirmations") or context.get("fact_context")
+                    or context.get("confirmed_supplement_values")):
+                return {**context, **constraint_overlay}
+            if context.get("user_constraints") and not constraint_overlay:
+                constraint_overlay = {"user_constraints": context["user_constraints"]}
+        parent_id = current["parent_id"]
+        current = _fetch_user_note(parent_id, user_id) if parent_id else None
+    return constraint_overlay
+
+
 @app.post("/chat/start", response_model=ChatStartResponse)
 async def chat_start(
     req: ChatStartInput,
@@ -19633,7 +19685,13 @@ async def chat_start(
     current_score: float | None = None
     grade = ""
 
-    gen_ctx = req.generate_context or {}
+    effective_user_id = user["id"]
+    initial_note_id = (req.note_id or "").strip() or None
+    initial_note_row = _fetch_user_note(initial_note_id, effective_user_id) if initial_note_id else None
+    if initial_note_id and not initial_note_row:
+        raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
+    gen_ctx = req.generate_context or (
+        _saved_note_chat_context(initial_note_row, effective_user_id) if initial_note_row else {})
     normalized_constraints = _normalize_user_constraints(
         req.user_constraints or gen_ctx.get("user_constraints") or []
     )
@@ -19681,15 +19739,6 @@ async def chat_start(
                 continue
             return key, score
         return None, None
-
-    # 只信任 JWT 认证用户，不接受前端传入 user_id 作为身份依据
-    effective_user_id = user["id"]
-    initial_note_id = (req.note_id or "").strip() or None
-    initial_note_row = None
-    if initial_note_id:
-        initial_note_row = _fetch_user_note(initial_note_id, effective_user_id)
-        if not initial_note_row:
-            raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
 
     # Use score from the selected frontend artifact when provided (avoid redundant scoring).
     # For diagnosis rewrite plans, this must be the clicked plan score, not the original
@@ -19775,7 +19824,10 @@ async def chat_start(
         session_generate_context["fact_enrichment"] = gen_ctx["fact_enrichment"]
     if isinstance(gen_ctx.get("market_timing"), dict):
         session_generate_context["market_timing"] = gen_ctx["market_timing"]
-    session_generate_context["original_fact_context"] = inherited_fact_context.split("【本次商家确认", 1)[0]
+    session_generate_context["original_fact_context"] = gen_ctx.get("original_fact_context")
+    if session_generate_context["original_fact_context"] is None:
+        session_generate_context["original_fact_context"] = re.split(
+            r"【本次(?:最新)?商家确认", inherited_fact_context, maxsplit=1)[0]
 
     _chat_sessions[sid] = {
         "note_title":       req.note_title,
