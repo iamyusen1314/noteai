@@ -1,3 +1,22 @@
+September15 01:14BJT: bounded cross-industry Chat structure correction is local,
+NOT_DEPLOYED. Existing turn contract recognizes explicit1–10 exact paragraph counts,
+rejects negative/range/ambiguous expressions, excludes hashtags, and removes only an
+explicitly unwanted identical standalone leading title. Existing score/repair/final
+save path applies these rules; a later score lift cannot replace a compliant draft
+with noncompliant output. Pending options retain original edit request in the existing
+string schema; selection rechecks server-side after reload, UI respects selectable=false.
+No industry Prompt/model/credit/media workflow or DB schema change. Python3.11 networknone
+15Chat delivery tests and21offline browser tests PASS.19existing Chat API regressions:
+16 initiallyPASS;3old fixtures failed identically on prechangeAPI (missingparent_id,
+stale confirmation wording, stale exact brief). Fixtures corrected without runtime
+changes and those3PASS. Firstnewrepair mock reused a mutable issue list, corrected;
+initialbrowserfixture hiddenpage and containerdefaultentrypoint corrected. No production
+calls in this correction. Next exactAPI-only image + publicJS candidate; keep Admin538,
+original video/Chat results and inactiveNative recovery binding. Then one meaningful
+normal Chat continuation verifies structure and new call provenance together.
+Native originalpaid/refunded12RMB never replayed; newscancapture owneravailability and
+September15>=10BJT originalbill pending.31/37 unchanged; noGitpush/protected7change.
+
 September15 01:01BJT: call-provenance53868ed228ad243d94d2b5b5f3fbcfbbf039ac80
 DEPLOYED once, PID1799120,1789405096.622719→1789405116.0997627; original
 /var/lib/noteai/call-trace-53868ed/deploy/result.json read back, not replayed.

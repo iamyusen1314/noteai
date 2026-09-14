@@ -10272,7 +10272,7 @@ function chatAppendPlanOptions(ev) {
             <div class="chat-plan-full">${chatEsc(opt.body || '')}</div>
             ${issues.length ? `<div class="chat-plan-issues">${issues.map(chatEsc).join('<br>')}</div>` : ''}
             <div class="chat-plan-actions">
-              <button type="button" data-plan-select="${id}">选择并保存</button>
+              <button type="button" data-plan-select="${id}" ${opt.selectable === false ? 'disabled' : ''}>${opt.selectable === false ? '待按要求修改' : '选择并保存'}</button>
               <button type="button" data-plan-toggle="${id}">全文</button>
             </div>
           </div>`;
@@ -10372,7 +10372,7 @@ function chatRenderCanonicalResponse(ev) {
   } else if (ev.fact_update_pending) {
     summary = '更正内容已保留，本次尚未完成新稿。右侧仍是更正前的历史版本，暂不可按新口径发布；继续优化时会使用最新说明。';
   } else if (ev.status === 'constraint_failed') {
-    summary = '本次修改未通过最终约束检查，已保留上一正式版本，未保存新版本。';
+    summary = '这版还没有完全按您的要求整理好，已保留上一正式版本，未保存新版本。';
   } else if (ev.status === 'quality_failed') {
     summary = '本次修改未达到交付质量要求，已保留上一正式版本，未保存新版本。';
   } else if (ev.status === 'unchanged') {

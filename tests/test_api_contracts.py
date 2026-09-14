@@ -1802,7 +1802,7 @@ class ApiContractTests(unittest.TestCase):
             api._memory.build_memory_prompt = original_memory_prompt
 
     def test_public_chat_start_reuses_matching_saved_score_without_new_inference(self):
-        row = {"id":"note-root", "title":"初始标题", "body":"初始正文", "domain":"美食", "score":68.0, "grade":"良好", "version":1}
+        row = {"id":"note-root", "title":"初始标题", "body":"初始正文", "domain":"美食", "score":68.0, "grade":"良好", "version":1, "parent_id":None}
         for score, body, expected in ((68.0,"初始正文",68.0), (0.0,"初始正文",0.0),
                                       (None,"初始正文",None), (68.0,"改动正文",None)):
             with self.subTest(score=score, body=body), mock.patch.object(api, "_fetch_user_note", return_value={**row,"score":score}), \
@@ -3234,7 +3234,8 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("必点/招牌菜：小青龙乌冬、汤泡饭", session["fact_context"])
         self.assertIn("营业时间：周一至周日 11:00-22:00", session["fact_context"])
         self.assertIn("人均80元", session["generate_context"]["original_fact_context"])
-        self.assertIn("本次最新商家确认优先于同一对象、同一时间范围的旧口径", session["fact_context"])
+        self.assertIn("本次最新商家确认优先于旧口径", session["fact_context"])
+        self.assertIn("最新完整回答中更正的门店、套餐和适用日期优先", session["fact_context"])
         self.assertEqual(session["generate_context"]["merchant_confirmations"][0]["source"], "merchant_confirmation")
         self.assertEqual(
             session["generate_context"]["confirmed_supplement_values"]["must_order"],
@@ -4077,7 +4078,9 @@ class ApiContractTests(unittest.TestCase):
              mock.patch.object(api, '_score_directed_second_pass', new=mock.AsyncMock(return_value=
                 (title, body,72,{},'良好',[],True,'已修复'))) as second:
             asyncio.run(api._repair_chat_note_if_needed(title, body, session, '继续优化'))
-        self.assertEqual(second.call_args.kwargs['constraint_context'], constraints)
+        self.assertIn(constraints, second.call_args.kwargs['constraint_context'])
+        self.assertIn('本轮编辑要求（修改指令，不是新增事实来源）', second.call_args.kwargs['constraint_context'])
+        self.assertIn('继续优化', second.call_args.kwargs['constraint_context'])
         with mock.patch.object(api, '_insert_content_with_retention') as save:
             with self.assertRaises(api.HTTPException) as caught:
                 api._save_chat_plan_option_as_note('test', session,

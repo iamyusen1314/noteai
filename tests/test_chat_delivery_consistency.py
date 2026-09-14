@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import unittest
+from unittest.mock import patch, AsyncMock
 from pathlib import Path
 
 
@@ -102,17 +103,135 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         }
 
     @staticmethod
-    def _events():
+    def _events(message="请删掉20分钟、吃不出柴感和半小时，不要保留这些未经提供的说法"):
         async def collect():
             output = []
             async for chunk in api._chat_sse_generator(
-                "s1", "请删掉20分钟、吃不出柴感和半小时，不要保留这些未经提供的说法"
+                "s1", message
             ):
                 if chunk.startswith("data: "):
                     output.append(json.loads(chunk.removeprefix("data: ").strip()))
             return output
 
         return asyncio.run(collect())
+
+    def test_explicit_structure_is_not_inferred_from_negation_or_ranges(self):
+        for message, count in [("请写成三段", 3), ("分成2段，正文不要重复标题", 2),
+                               ("四段正文", 4), ("正文10段", 10)]:
+            with self.subTest(message=message):
+                contract = api._build_chat_turn_constraint_contract(message, "")
+                self.assertEqual(contract["paragraph_count"], count)
+        for message in ("不是三段", "不要写成三段", "无需分成三段", "分成三段以上",
+                        "至少分成三段", "是否分成三段", "三段正文左右", "三到五段",
+                        "请写成三段或四段", "正文三段，保持四段", "三到五段正文", "1—3段正文",
+                        "两或三段正文", "分成3段或5段正文", "11段正文", "二十段正文",
+                        "不能写成三段", "不希望写成三段"):
+            with self.subTest(message=message):
+                self.assertIsNone(api._build_chat_turn_constraint_contract(message, "")["paragraph_count"])
+
+    def test_structure_counts_paragraphs_without_tags_and_strips_only_exact_heading(self):
+        c = api._build_chat_turn_constraint_contract("请分成三段，正文不要重复标题", "")
+        body = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？\n\n#门店 #素材"
+        self.assertFalse(api._chat_turn_constraint_violations("素材笔记", body, c))
+        duplicate = "**素材笔记**\n\n" + body
+        self.assertEqual(api._chat_body_without_title_echo("素材笔记", duplicate, c), body)
+        mention = "素材笔记里介绍了画面。\n\n细节。\n\n问题？"
+        self.assertEqual(api._chat_body_without_title_echo("素材笔记", mention, c), mention)
+        self.assertTrue(api._chat_turn_constraint_violations("素材笔记", "只有一段。", c))
+
+    def test_structure_failure_cannot_save_even_with_high_model_score(self):
+        fake_db = _FakeDB(); api._db = fake_db; self._install_session()
+        async def stream(**_kwargs):
+            yield "content", "已分三段。<note><title>新标题</title><body>只有一段。</body></note>"
+        api._mr.stream_chat = stream
+        api._shape_body_for_delivery = AsyncMock(side_effect=lambda title, body, *_a, **_kw: body)
+        api._repair_chat_note_if_needed = AsyncMock(side_effect=lambda t, b, *_a: (t,b,90,{},"优秀",[],False))
+        api._sanitize_title_for_delivery = lambda title, *_a: title
+        events = self._events("请写成三段")
+        canonical = next(e for e in events if e.get("type") == "canonical_response")
+        self.assertEqual(canonical["status"], "constraint_failed")
+        self.assertFalse(any(sql.startswith("INSERT INTO notes") for sql, _ in fake_db.executed))
+        self.assertFalse(any(e.get("type") == "note_update" for e in events))
+        self.assertEqual(api._mr.stream_chat, stream)
+        self.assertEqual(api._repair_chat_note_if_needed.await_count, 1)
+
+    def test_existing_repair_receives_structure_issues_without_extra_stage(self):
+        self._install_session()
+        session = {**api._chat_sessions["s1"], "_turn_contract": api._build_chat_turn_constraint_contract("请写成三段", "")}
+        session["_turn_constraint_brief"] = api._chat_turn_constraint_brief(session["_turn_contract"])
+        good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
+        with patch.object(api, "_score_generated_note", AsyncMock(return_value=(90, {}, "优秀"))), \
+             patch.object(api, "_generated_quality_issues", side_effect=lambda *a, **kw: []), \
+             patch.object(api, "_delivery_integrity_issues", side_effect=lambda *a, **kw: []), \
+             patch.object(api, "_needs_v04_score_lift", return_value=False), \
+             patch.object(api, "_shape_body_for_delivery", AsyncMock(side_effect=lambda t,b,*a,**kw: b)), \
+             patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda t,*a: t), \
+             patch.object(api._mr, "call", AsyncMock(return_value=f"<note><title>素材笔记</title><body>{good}</body></note>")) as call:
+            result = asyncio.run(api._repair_chat_note_if_needed("素材笔记", "只有一段。", session, "请写成三段"))
+        self.assertEqual(result[1], good, (result, call.await_count))
+        self.assertEqual(call.await_count, 1)
+        self.assertIn("正文应为3段", call.call_args.args[2])
+        self.assertEqual(call.call_args.kwargs["trace_step"], "chat_quality_repair")
+
+    def test_option_structure_survives_reload_and_is_enforced_on_server(self):
+        fake_db = _FakeDB(); api._db = fake_db; self._install_session()
+        session = api._chat_sessions["s1"]
+        request = "请写成三段，正文不要重复标题"
+        turn = {**session, "_turn_contract": api._build_chat_turn_constraint_contract(request, ""), "_turn_user_request": request}
+        raw = "<option id='A'><title>A标题</title><body>只有一段。</body></option><option id='B'><title>B标题</title><body>第一段。\n\n第二段。\n\n第三段。</body></option>"
+        with patch.object(api, "_score_chat_note", AsyncMock(return_value=(90,{},"优秀",[]))), \
+             patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda t,*a: t):
+            options = asyncio.run(api._build_chat_plan_options(turn, raw))
+        restored = api._sanitize_chat_generate_context({"pending_plan_options": options})["pending_plan_options"]
+        self.assertFalse(restored[0]["selectable"])
+        self.assertTrue(restored[1]["selectable"])
+        self.assertEqual(restored[0]["edit_request"], request)
+        restored[0]["selectable"] = True  # Server must not trust a UI flag.
+        with self.assertRaises(api.HTTPException) as error:
+            api._save_chat_plan_option_as_note("s1", session, restored[0], "u1")
+        self.assertEqual(error.exception.status_code, 422)
+        self.assertFalse(any(sql.startswith("INSERT INTO notes") for sql, _ in fake_db.executed))
+
+    def test_score_lift_cannot_replace_a_compliant_draft_with_wrong_structure(self):
+        good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
+        contract = api._build_chat_turn_constraint_contract("请写成三段", "")
+        session = {"domain":"美食", "_turn_contract":contract,
+                   "_turn_constraint_brief":api._chat_turn_constraint_brief(contract)}
+        with patch.object(api, "_score_chat_note", AsyncMock(return_value=(75,{},"良好",["标题偏短"]))), \
+             patch.object(api, "_needs_v04_score_lift", return_value=True), \
+             patch.object(api, "_score_directed_second_pass", AsyncMock(return_value=(
+                 "更高分标题", "却只有一段。", 95, {}, "优秀", [], True, "已提分"))) as second:
+            result = asyncio.run(api._repair_chat_note_if_needed("原标题",good,session,"请写成三段"))
+        self.assertEqual(result[:3], ("原标题",good,75))
+        self.assertEqual(second.await_count, 1)
+
+    def test_post_repair_score_lift_keeps_the_repaired_structure(self):
+        good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
+        contract = api._build_chat_turn_constraint_contract("请写成三段", "")
+        session = {"domain":"美食", "_turn_contract":contract,
+                   "_turn_constraint_brief":api._chat_turn_constraint_brief(contract)}
+        with patch.object(api, "_score_chat_note", AsyncMock(side_effect=[
+                (75,{},"良好",["用户约束未满足：正文应为3段"]), (76,{},"良好",[])])), \
+             patch.object(api, "_needs_v04_score_lift", return_value=True), \
+             patch.object(api, "_shape_body_for_delivery", AsyncMock(side_effect=lambda t,b,*a,**kw: b)), \
+             patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda t,*a: t), \
+             patch.object(api._mr, "call", AsyncMock(return_value=f"<note><title>修复标题</title><body>{good}</body></note>")), \
+             patch.object(api, "_score_directed_second_pass", AsyncMock(return_value=(
+                 "更高分标题", "却只有一段。", 95, {}, "优秀", [], True, "已提分"))) as second:
+            result = asyncio.run(api._repair_chat_note_if_needed("原标题","只有一段。",session,"请写成三段"))
+        self.assertEqual(result[:3], ("修复标题",good,76))
+        self.assertTrue(result[-1])
+        self.assertEqual(second.await_count, 1)
+
+    def test_no_note_with_explicit_structure_is_not_reported_as_done(self):
+        api._db = _FakeDB(); self._install_session()
+        async def stream(**_kwargs):
+            yield "content", "已经整理成三段了。"
+        api._mr.stream_chat = stream
+        events = self._events("请写成三段")
+        canonical = next(e for e in events if e.get("type") == "canonical_response")
+        self.assertEqual(canonical["status"], "no_final_note")
+        self.assertFalse(canonical["saved"])
 
     def test_turn_contract_filters_removed_old_claims_from_fact_source(self):
         contract = api._build_chat_turn_constraint_contract(

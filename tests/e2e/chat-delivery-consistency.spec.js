@@ -1,5 +1,24 @@
 const { test, expect } = require('./offline-fixture');
 
+test('a candidate that misses the current edit request cannot be selected', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  await page.evaluate(() => {
+    document.getElementById('page-chat').style.display = 'block';
+    document.getElementById('chat-no-session').style.display = 'none';
+    document.getElementById('chat-active-area').style.display = 'flex';
+    chatHandleEvent({type: 'plan_options', options: [
+      {id: 'A', title: '待整理草稿', body: '只有一段。', score: 90, selectable: false,
+       quality_issues: ['正文应为3段，当前为1段（不含话题标签）']},
+      {id: 'B', title: '已按要求整理', body: '第一段。\n\n第二段。\n\n第三段。', score: 75, selectable: true},
+    ]});
+  });
+  const blocked = page.locator('[data-plan-option="A"]');
+  await expect(blocked.getByRole('button', {name: '待按要求修改'})).toBeDisabled();
+  await expect(page.locator('[data-plan-option="B"] [data-plan-select]')).toBeEnabled();
+  await blocked.getByRole('button', {name: '全文'}).click();
+  await expect(blocked.locator('.chat-plan-full')).toBeVisible();
+});
+
 
 test('canonical chat response replaces conflicting streamed draft using text-only rendering', async ({ page }) => {
   await page.goto('/NoteAI_Pro_Demo_Framer.html');

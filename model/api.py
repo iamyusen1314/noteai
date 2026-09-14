@@ -18163,20 +18163,65 @@ def _chat_normalize_constraint_text(value: str | None) -> str:
     return re.sub(r"\s+", "", str(value or "")).strip().lower()
 
 
+def _chat_structure_requirements(message: str) -> dict[str, Any]:
+    """Recognize explicit exact paragraph requests, never infer from the industry."""
+    counts = {str(i): i for i in range(1, 11)}
+    counts.update(dict(zip("一二三四五六七八九十", range(1, 11))))
+    counts["两"] = 2
+    exact_counts: set[int] = set()
+    number = r"(10|[1-9一二两三四五六七八九十])"
+    pattern = re.compile(
+        r"(?:分成|分为|改成|改为|写成|整理成|保持|正文(?:为|用|要|是)?)(?:严格|恰好|只)?\s*"
+        + number + r"\s*(?:个)?(?:自然)?段(?:落)?"
+        + r"|(?<![\d一二两三四五六七八九十百零])" + number + r"\s*段正文"
+    )
+    for clause in re.split(r"[，,。；;！？!?\n]", message):
+        for match in pattern.finditer(clause):
+            # Negative, approximate and range expressions are instructions for
+            # the model, not a deterministic exact-count contract.
+            prefix = clause[:match.start()]
+            if re.search(r"不(?:是|要|用|必|需|能|可|想|希望|要求)|无须|无需|别|是否", prefix):
+                continue
+            if re.match(r"(?:以上|以下|以内|左右|或|到|至|[～~—-])", clause[match.end():].strip()):
+                continue
+            if re.search(r"(?:至少|最多|不超过|大约|大概|约|不少于|或|到|至|[～~—-])\s*$", prefix):
+                continue
+            exact_counts.add(counts[match.group(1) or match.group(2)])
+    return {
+        "paragraph_count": next(iter(exact_counts)) if len(exact_counts) == 1 else None,
+        "omit_title_echo": bool(re.search(
+            r"(?:正文|开头)[^，。；\n]{0,10}(?:不要|不应|别|不再)(?:再)?(?:重复|出现|包含)[^，。；\n]{0,4}标题"
+            r"|(?:不要|别)(?:把|将)?标题[^，。；\n]{0,6}(?:重复|放|写)[^，。；\n]{0,4}(?:正文|开头)", message)),
+    }
+
+
+def _chat_body_without_title_echo(title: str, body: str, contract: dict | None) -> str:
+    if not (contract or {}).get("omit_title_echo"):
+        return body
+    lines = str(body or "").strip().splitlines()
+    if len(lines) > 1:
+        first = re.sub(r"^(?:#{1,6}\s+|标题[：:]\s*)", "", lines[0].strip()).strip("* ")
+        if _chat_normalize_constraint_text(first) == _chat_normalize_constraint_text(title):
+            return "\n".join(lines[1:]).lstrip()
+    return body
+
+
 def _build_chat_turn_constraint_contract(
     user_msg: str,
     previous_body: str,
     fact_context: str = "",
 ) -> dict[str, Any]:
-    """Extract only explicit, deterministic per-turn removal requirements."""
+    """Extract explicit per-turn removal and finite structure requirements."""
     message = str(user_msg or "").strip()
     previous = str(previous_body or "")
+    structure = _chat_structure_requirements(message)
     if not message or not _CHAT_REMOVE_INTENT_RE.search(message):
         return {
             "schema": "chat.turn.v1",
             "forbidden_terms": [],
             "protected_terms": [],
             "remove_duration_claims": False,
+            **structure,
         }
 
     candidates: list[str] = []
@@ -18245,6 +18290,7 @@ def _build_chat_turn_constraint_contract(
         "forbidden_terms": forbidden_terms,
         "protected_terms": protected_terms,
         "remove_duration_claims": remove_duration_claims,
+        **structure,
     }
 
 
@@ -18287,6 +18333,14 @@ def _chat_turn_constraint_violations(title: str, body: str, contract: dict | Non
         for match in _CHAT_DURATION_CLAIM_RE.finditer(f"{title}\n{body}"):
             if _chat_normalize_constraint_text(match.group(0)) not in protected:
                 violations.append(f"duration_claim:{match.group(0)}")
+    expected = (contract or {}).get("paragraph_count")
+    if expected:
+        main, _ = _split_body_and_tags(body)
+        actual = len([part for part in re.split(r"\n\s*\n+", main) if part.strip()])
+        if actual != expected:
+            violations.append(f"正文应为{expected}段，当前为{actual}段（不含话题标签）")
+    if _chat_body_without_title_echo(title, body, contract) != body:
+        violations.append("正文开头重复了独立标题")
     return list(dict.fromkeys(violations))
 
 
@@ -18299,6 +18353,10 @@ def _chat_turn_constraint_brief(contract: dict | None) -> str:
         protected = (contract or {}).get("protected_terms") or []
         exception = f"；明确确认保留的例外：{'、'.join(protected)}" if protected else ""
         parts.append(f"最终标题和正文不得保留其他具体时长数字{exception}")
+    if (contract or {}).get("paragraph_count"):
+        parts.append(f"正文恰好{contract['paragraph_count']}段，用空行分隔；话题标签另列，不计入正文段数")
+    if (contract or {}).get("omit_title_echo"):
+        parts.append("标题只放在标题字段，正文开头不重复独立标题")
     return "；".join(parts)
 
 
@@ -18371,6 +18429,8 @@ async def _score_chat_note(
         issues = _generated_quality_issues(title, body, domain, score, feats, source_context)
         issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain, constraint_context=_chat_effective_constraint_brief(session)))
         issues.extend(_body_format_issues(body))
+        issues.extend("用户约束未满足：" + issue for issue in _chat_turn_constraint_violations(
+            title, body, session.get("_turn_contract")))
         return score, feats, grade, issues
     except _public_product.TrialProviderStopped:
         raise
@@ -18463,6 +18523,7 @@ async def _build_chat_plan_options(
     for raw in raw_options[:3]:
         title = _sanitize_title_for_delivery(raw.get("title", ""), fact_source, domain).strip()
         body = (raw.get("body") or "").strip() or current_body
+        body = _chat_body_without_title_echo(title, body, session.get("_turn_contract"))
         if not title or not body:
             continue
         signature = _candidate_signature(title, body)
@@ -18481,7 +18542,8 @@ async def _build_chat_plan_options(
             "grade": grade or (_grade(score) if score is not None else ""),
             "score_delta": delta,
             "quality_issues": issues[:6],
-            "selectable": True,
+            "selectable": not bool(_chat_turn_constraint_violations(title, body, session.get("_turn_contract"))),
+            "edit_request": session.get("_turn_user_request") or "",
             "body_source": "current_note" if not (raw.get("body") or "").strip() else "candidate",
         }
         options.append(option)
@@ -18542,6 +18604,9 @@ async def _repair_chat_note_if_needed(
             route="chat",
             constraint_context=_chat_effective_constraint_brief(session),
         )
+        if _chat_turn_constraint_violations(lifted_title, lifted_body, session.get("_turn_contract")):
+            # A score lift must not discard the current compliant candidate.
+            return title, body, score, feats, grade, issues, False
         if (
             previous_score_f is not None
             and lifted_score is not None
@@ -18562,7 +18627,7 @@ async def _repair_chat_note_if_needed(
         f"{_build_generation_planning_brief(domain, title, fact_source or body, '对话质量修复规划')}\n",
     ]
     if turn_constraint_brief:
-        repair_parts.append(f"【本轮删除约束】\n{turn_constraint_brief}\n\n")
+        repair_parts.append(f"【本轮编辑要求】\n{turn_constraint_brief}\n\n")
     intent_section = _content_intent_brief(
         domain,
         session.get("content_intent"),
@@ -18601,6 +18666,7 @@ async def _repair_chat_note_if_needed(
         repair_shape_hint = "对话优化修复" + (f"；{turn_constraint_brief}" if turn_constraint_brief else "")
         r_body = await _shape_body_for_delivery(r_title, r_body, domain, fact_source, repair_shape_hint,
             constraint_context=_chat_effective_constraint_brief(session))
+        r_body = _chat_body_without_title_echo(r_title, r_body, session.get("_turn_contract"))
         r_score, r_feats, r_grade, r_issues = await _score_chat_note(r_title, r_body, session)
         if r_score is None:
             return title, body, score, feats, grade, issues, False
@@ -18615,6 +18681,7 @@ async def _repair_chat_note_if_needed(
                 not _has_blocking_quality_issues(r_score, r_issues, domain)
                 and (_score_gap_issue_count(r_issues) > 0 or needs_v04_lift_after_repair)
             ):
+                compliant_repair = (r_title, r_body, r_score, r_feats, r_grade, r_issues, True)
                 (
                     r_title,
                     r_body,
@@ -18638,6 +18705,8 @@ async def _repair_chat_note_if_needed(
                     route="chat",
                     constraint_context=_chat_effective_constraint_brief(session),
                 )
+                if _chat_turn_constraint_violations(r_title, r_body, session.get("_turn_contract")):
+                    return compliant_repair
                 if lifted_score is not None:
                     r_score = lifted_score
                     if (
@@ -18784,7 +18853,9 @@ async def _chat_sse_generator(
         yield f"data: {_json.dumps({'type': 'error', 'error_code': 'chat_internal_error', 'data': '对话服务暂时不可用'}, ensure_ascii=False)}\n\n"
         return
 
-    plan_options = await _build_chat_plan_options(session, full_content)
+    turn_session = {**session, "_turn_contract": turn_contract, "_turn_user_request": user_msg,
+                    "_turn_constraint_brief": _chat_turn_constraint_brief(turn_contract)}
+    plan_options = await _build_chat_plan_options(turn_session, full_content)
     if plan_options:
         session["messages"].append({"role": "assistant", "content": full_content})
         session["pending_plan_options"] = plan_options
@@ -18825,6 +18896,7 @@ async def _chat_sse_generator(
         repair_session["_turn_fact_source"] = fact_source
         repair_session["_turn_constraint_brief"] = turn_constraint_brief
         repair_session["_turn_user_request"] = user_msg
+        repair_session["_turn_contract"] = turn_contract
         yield f"data: {_json.dumps(_safe_process_event('process_update', phase='verify', agent='quality', status_code='note_quality_checked', reason_codes=['quality_gate_checked'], facts={}), ensure_ascii=False)}\n\n"
         new_title, new_body = note_extracted
         new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"),
@@ -18834,6 +18906,7 @@ async def _chat_sse_generator(
             new_title, new_body, session.get("domain", "美食"), fact_source, shape_hint,
             constraint_context=_chat_effective_constraint_brief(repair_session),
         )
+        new_body = _chat_body_without_title_echo(new_title, new_body, turn_contract)
         new_title, new_body, new_score, score_feats, grade_str, quality_issues, repaired = await _repair_chat_note_if_needed(
             new_title, new_body, repair_session, user_msg
         )
@@ -19022,6 +19095,7 @@ async def _chat_sse_generator(
     elif not plan_options:
         turn_contract_active = bool(
             turn_contract.get("forbidden_terms") or turn_contract.get("remove_duration_claims")
+            or turn_contract.get("paragraph_count") or turn_contract.get("omit_title_echo")
             or (session.get("generate_context") or {}).get("pending_fact_update")
         )
         if turn_contract_active:
@@ -19267,6 +19341,7 @@ _SUPPLEMENT_PROMPT_STRING_FIELDS = frozenset({
     "prompt",
 })
 _CHAT_PLAN_STRING_FIELDS = frozenset({
+    "edit_request",
     "body",
     "body_source",
     "grade",
@@ -19720,6 +19795,10 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
         raise HTTPException(status_code=400, detail="候选方案不完整，无法保存")
     if _user_constraint_delivery_issues(f"{title}\n{body}", _chat_effective_constraint_brief(session)):
         raise HTTPException(status_code=422, detail="该候选仍包含您选择不写的内容，请先在本次对话中修改")
+    contract = _build_chat_turn_constraint_contract(
+        option.get("edit_request") or "", session.get("note_body") or "", session.get("fact_context") or "")
+    if _chat_turn_constraint_violations(title, body, contract):
+        raise HTTPException(status_code=422, detail="该候选尚未按本次要求整理好，请先在对话中修改")
     score_raw = option.get("score")
     try:
         score = float(score_raw) if score_raw is not None else None
