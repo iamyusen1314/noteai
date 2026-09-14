@@ -1,3 +1,30 @@
+September14 original media chain completed after normal website OMIT continuation:
+claim841fcbf2-737b-4e1c-84a4-6e9ddab1acb2/usage8d01ca99-3319-4907-959d-a17cd4719068,
+note0fd8dd1b-c07e-48d5-9ad6-e78901fae476.6credits once,refund0/complete1;40responded
+calls (35Haiku,4Sonnet,1Ark),2.8329922RMB actual. Separate OCR0.5credit/0.0018732RMB
+remains separate. Original GET retained privately at media-0453619/owner-check/
+clarified-read-1789371354507609100.json. Final plans70.9/73.1/72.0 still add unsupported
+repeat-visit/sensory/queue details: content quality NOT accepted despite terminal API
+completion. No original replay/refund fabrication. Current task no longer in flight.
+
+Bounded fix: reuse _CONTENT_SOURCE_POLICY in system messages for arbitration,
+three-body generation/dedup repair/shaping/report repair; clarify existing facts take
+priority over examples, sensory slots and length targets. Existing seven-industry
+Prompt text, model routing, complete sources and acceptance standard unchanged.
+Six source-bound Python3.11 regressions pass. First test invocation resolved old image
+api via inherited search path; failure log preserved, corrected runner asserts actual
+/workspace/model/api.py, not an implementation rollback or test weakening.
+Image/video split2ef7fff and this fix are next combined candidate, not in live045 yet.
+
+Native bill launcher4e89f01 now saved, NOT executed/prepared, at
+/var/lib/noteai/native-80b01ea/bill-launcher-4e89f01. Native scriptSHA
+0a3d1ebbff1ec4db57126054c3a5279546288449b4efaf27e3fd56daf3e68a0f,
+existing templateSHAd3ce53c1742ca2d31f3225b43d0e8bd0a5db4f643f76e5950d17e4e1b3836fae.
+First oversized command stayed disabled before dispatch; one shortened transfer
+succeeded with matching readback. No provider request/business write/schedule created.
+Next prepare after final API version settles, Sep15after10BJT original bill only.
+Readiness30/37 unchanged; no Item34/protected-path/Gitpush changes.
+
 September14 image/video capability split is locally verified, not deployed yet.
 Image and video now have separate server checks/status/UI; video requires explicit
 NOTEAI_PUBLIC_VIDEO_ENABLED=1 in addition to existing media readiness. Closed video

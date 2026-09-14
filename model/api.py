@@ -3144,6 +3144,10 @@ _CONTENT_SOURCE_POLICY = (
     "行业规则、用户偏好、专家意见和当前候选稿只指导表达，不是新增事实来源。"
     "先从原素材选取可以支撑的细节再组织文案，不得以专家或候选之间重复同一说法作为证据。"
     "缺少细节时用已有素材展开取舍和叙事；需要补充的事实列为建议，不编成已经发生的体验。"
+    "此边界优先于写作清单、示例、目标字数和风格要求：这些要求中的口感、火候、复购、亲测、"
+    "使用效果等信息槽位仅在原来源支持时填写，示例中的人物经历不能移植到当前作者。"
+    "可以保留用户明确描述的感受和经历，但不能把相似商品的常识或画面联想写成作者实测。"
+    "没有依据的槽位用可见细节、已有信息的取舍或明确的条件建议替代，不为凑字数补造细节。"
 )
 
 
@@ -3162,7 +3166,7 @@ async def _agent_arbitrate(
     system = (base
               .replace("{domain}", domain or "通用")
               .replace("2026年06月23日", _today)
-              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}")  # 动态更新日期
+              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n{_CONTENT_SOURCE_POLICY}")  # 动态更新日期
     phase_strategy_labels = _plan_strategy_labels(domain)
     phase_planning_brief = _build_generation_planning_brief(domain, note_title, source_context, "诊断标题规划")
 
@@ -3394,6 +3398,7 @@ async def _agent_arbitrate(
             f"{_get_checklist(domain)}\n\n"
             "必须按该方向的信息顺序写，不得复用其它方案结构。\n"
             "只输出完整正文，不要解释。"
+            f"\n\n{_CONTENT_SOURCE_POLICY}"
         )
         usr_retry = (
             f"{base_ctx}\n\n"
@@ -3426,6 +3431,7 @@ async def _agent_arbitrate(
             f"【结构】必须按「{style_name}」的信息顺序写，不得复用其它方案结构。\n"
             f"【格式】只输出一篇正文，不要标题，不要方案一/方案二/方案三，不要分隔线，不要“标题/正文/修复方案”等说明文字。\n"
             f"直接输出完整正文，不要任何说明文字。"
+            f"\n\n{_CONTENT_SOURCE_POLICY}"
         )
         usr_body = f"{base_ctx}\n\n【本方案标题】{title}\n\n请按「{style_name}」风格撰写与标题配套的完整正文："
         try:
@@ -10413,6 +10419,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         "不得新增未提供的价格、人均、营业时间、排队时长、楼层等结构化事实；"
         "不得解释，不得输出标题或方案说明。"
         + _generation_memory_context(memory_context)
+        + f"\n\n{_CONTENT_SOURCE_POLICY}"
     )
     user = (
         f"标题：{title}\n"
@@ -10648,7 +10655,7 @@ async def _repair_diagnosis_report_facts(
     system = (_runtime_prompt("agent_arbitrate_system", domain)
               .replace("{domain}", domain or "通用")
               .replace("2026年06月23日", datetime.now().strftime("%Y年%m月%d日"))
-              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}")
+              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n{_CONTENT_SOURCE_POLICY}")
     user = (
         "仅修订以下诊断报告中的事实越界，保留完整诊断、可执行建议与行业规则。\n"
         "不生成标题或方案正文，不把未核实信息改成确定事实；需要补充的信息明确标注待核实。\n"

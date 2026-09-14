@@ -2531,11 +2531,13 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(calls[0][0], "arbitrate")
         self.assertEqual(calls[0][3]["max_tokens"], 4096)
         self.assertIn(source_context, calls[0][2])
+        self.assertIn(api._CONTENT_SOURCE_POLICY, calls[0][1])
         bodies_calls = [call for call in calls if "请按「" in call[2] or "请重新生成一篇「" in call[2]]
         self.assertGreaterEqual(len(bodies_calls), 3)
         for call in bodies_calls:
             self.assertIn(source_context, call[2])
             self.assertIn(api._CONTENT_SOURCE_POLICY, call[2])
+            self.assertIn(api._CONTENT_SOURCE_POLICY, call[1])
             self.assertEqual(call[3]["max_tokens"], 4096)
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
 
@@ -3515,6 +3517,7 @@ class ApiContractTests(unittest.TestCase):
                 self.assertEqual(call.call_args.args[0], "arbitrate")
                 self.assertIn(source, call.call_args.args[2])
                 self.assertIn("998元含票。", call.call_args.args[2])
+                self.assertIn(api._CONTENT_SOURCE_POLICY, call.call_args.args[1])
         with mock.patch.object(api._mr, "call", new=mock.AsyncMock(side_effect=RuntimeError("UNKNOWN"))) as call:
             with self.assertRaisesRegex(RuntimeError, "UNKNOWN"):
                 asyncio.run(api._repair_diagnosis_report_facts("998元含票。", "春节入住。", "旅行", source))
@@ -3711,6 +3714,21 @@ class ApiContractTests(unittest.TestCase):
             asyncio.run(api._shape_body_for_delivery("酒店怎么选", "简短正文", "旅行", source))
         self.assertEqual(call.await_count, 1)
         self.assertIn(source, call.call_args.args[2])
+        self.assertIn(api._CONTENT_SOURCE_POLICY, call.call_args.args[1])
+
+    def test_body_shape_preserves_observation_and_explicit_experience_as_distinct_sources(self):
+        sources = (
+            "原照片：白碗里是汤面，海鲜铺在面上。作者没有描述尝味或到店次数。",
+            "作者原话：我上周来过两次，汤底浓郁。照片：海鲜铺在白碗汤面上。",
+        )
+        for source in sources:
+            with self.subTest(source=source), mock.patch.object(api._mr, "call",
+                    new=mock.AsyncMock(return_value="围绕原素材组织的隔离测试正文。")) as call:
+                asyncio.run(api._shape_body_for_delivery("海鲜汤面", "简短候选", "美食", source))
+            self.assertEqual(call.await_count, 1)
+            self.assertIn(source, call.call_args.args[2])
+            self.assertIn("可以保留用户明确描述的感受和经历", call.call_args.args[1])
+            self.assertIn("示例中的人物经历不能移植到当前作者", call.call_args.args[1])
 
     def test_fact_repair_accepts_lower_telemetry_but_rejects_higher_fabrication(self):
         source = "酒店地址在番禺区汉溪大道东299号，美团评分4.7，￥929起/晚。"
