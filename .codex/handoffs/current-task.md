@@ -1,3 +1,29 @@
+September14 23:46BJT: publicvideo API d0ee6b6 remains image292482; web-onlyad084c53c766c7e0927b6c97a5aa4fa44e81db4d deployed1789400522.9651976.
+Only product-app.js changed to86f6c65188777f02a6af6c762d502ab90fc88d1a0ce1c1cde3e6f709785fd7dc;
+index e9f207 remains. Normal publichistory readback shows original1704charvideo and
+needs_confirmation notice; highestscore label now truthful. Original3drafts
+quality_failed=false but2/3 retain editorial issues; no completequality acceptance.
+Browser openedone normalchat1a2e21ca-21de-43cb-b623-f5442c65c287 at15:43:31.989952UTC,
+originalnote unchanged; storedcover_analysis exactlyoriginalvideo1704chars SHA
+c6e76cc42538c5a7614fe432d1f42a4d3ab4439e582f649edc69f75b284d9596,
+originalsourceconstraints/reportwarning retained.0media/model calls toopenchat.
+One normalrewrite nowIN_PROGRESS throughthissession:3paragraphs/nohotelname/no
+price/materialview/notpretendpersonalstay/naturalendingquestion; readoriginalresult,
+never repost. This verifiescontext use, not anotherhotel phrase-onlytrial. Old
+welcometext still sayscoveranalysis forreusedmaterialfield; minorwording remains.
+SameNativeactivation4febf1b9-fdbe-4ed0-9ba5-973c04fbca55 remainsNOT_ACTIVE.
+Prepared CASd88→cc95e3f07e5f2b26c0bff82f8d09a8a7e00bf402cfcd3157b3a494e5b85d1c30;
+webad084c5/dropf4af3ff verified. Newsolelauncher
+/var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-d0ee6b6.py SHA
+30fd9ac187b40c680a0987817cb47ae225cca6c8b44337c928fd49f4e403978e.
+Priorprepared-before-d0ee6b6.json preserved; refreshedwithoutactivation/order/DDL/
+provider/businesswrite; Payment/Canary/binding/SQLunchanged. Original12RMB already
+paid/refunded, no replay. Localprivateartifacts/media-ad084c5; originalnextdaybill
+September15>=10BJT and duplicatecallbacknewscan remain distinctpending tasks.
+Next: reconcile originalvideoChat output/credits/cost, continue existingAdmincost
+per-call trace display gap byminimalexistingpage/query reuse.31/37 unchanged.
+NoGitpush or protected7change.
+
 September14 23:39BJT full original57.3s owner video now completed and released.
 API/web d0ee6b60a823a3494046ef6b9b457f2c995d3293, image2924825e823fc1ac0279baccf0f09f4fb20ccc185f347c86ceb62f113f84f60f,
 realPython3.11.15/linuxamd64. Sole formal-ark-video-capacity-20260914-01 completed
