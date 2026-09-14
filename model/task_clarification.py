@@ -39,6 +39,7 @@ QUESTION_CONTRACT = """
 地址等整套资料，不向用户说“事实校验失败/证据不足”。不能为了填满问题而提问。
 未澄清的内容不要先写成事实。商家回答是本次确认，不是外部独立核验或永久记忆。
 source_id只能选本次提供的素材编号，系统会取回原文，不需要你重新抄写引用。
+必须逐字复制素材索引中以s_开头的键，不要填写“素材A”、序号或自行编造编号。
 """
 
 
@@ -110,9 +111,12 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
             source_id = item.get("source_id")
             if source_id is not None:
                 references = opinion.get("clarification_sources", {})
-                quote = references.get(source_id) if isinstance(source_id, str) and isinstance(references, dict) else None
-                if not isinstance(quote, str) or quote not in source:
-                    statuses.append("invalid_source_reference")
+                quote = references.get(source_id.strip()) if isinstance(source_id, str) and isinstance(references, dict) else None
+                if not isinstance(quote, str):
+                    statuses.append("unknown_source_id")
+                    continue
+                if quote not in source:
+                    statuses.append("referenced_text_outside_source")
                     continue
             question = item.get("question")
             obj = str(item.get("object") or "").strip()
@@ -140,6 +144,7 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                 "time_range": time_range, "required": item.get("required") is True,
                 "options": [v for v in options if isinstance(v, str) and 0 < len(v) <= 80][:3]})
     if execution.get():
+        execution.get()["question_parse_statuses"] = statuses
         # Only fixed reason codes/counts; no question, quote, prompt or response text.
         print(json.dumps({"event_code": "clarification_parse", "phase": "existing_content_expert",
             "status": ",".join(sorted(set(statuses))) or ("questions_ready" if questions else "no_valid_question"),
@@ -205,6 +210,27 @@ def pause(prepared, opinions, *, source, merchant="", completed_steps=()):
     claim = context["claim"]
     questions = questions_from_opinions(opinions, source, merchant)
     if not questions:
+        errors = set(context.get("question_parse_statuses", [])) - {"no_question_needed", "already_answered_or_duplicate"}
+        if errors:
+            # A formatting/matching defect is a system failure, not a question
+            # for the merchant. Keep this private completed stage for repair;
+            # do not spend the remaining pipeline fabricating a completed note.
+            snapshot = _json({"expert_preparation": {"prepared": prepared,
+                "opinions": opinions, "parse_statuses": sorted(errors),
+                "completed_steps": list(completed_steps)}})
+            if len(snapshot.encode()) <= 2_000_000:
+                now = idempotency._iso()
+                with db.transaction(write=True) as tx:
+                    content_retention.assert_user_writable_with_storage(tx, claim["user_id"])
+                    row = idempotency._owned_row(tx, claim)
+                    if not row or row["status"] != "running" or row["lease_token_hash"] != idempotency._sha256(claim["lease_token"]):
+                        raise HTTPException(409, "原任务状态已更新，请读取原任务")
+                    _settled_calls(tx, row["usage_id"])
+                    tx.execute("INSERT INTO chat_sessions(id,user_id,domain,local_time,messages_json,user_prefs_json,"
+                               "iteration_count,generate_ctx_json,created_at,updated_at) VALUES(?,?,?,?,?,?,0,?,?,?)",
+                               (row["id"], row["user_id"], prepared["domain"], prepared.get("local_time", ""),
+                                "[]", "{}", snapshot, now, now))
+            raise HTTPException(502, "这一步的信息整理未完成，本次没有生成完整笔记。")
         return
     task = {"schema": 1, "operation": claim["operation"], "status": "waiting_for_input",
             "version": 1, "prepared": prepared, "questions": questions, "answers": [],

@@ -1,5 +1,33 @@
 # NoteAI Internal Production Readiness Handoff
 
+Current September14: API255746a/image dcd5e2d98904410d37f19ede2a348c01b93a7a27989c3a8ccb1d59057dc63c7f
+deployed at1789356936.0825882 (11:35:36BJT), CIDdcd8d178be8a16e85b54c17cf43e63e9af7227b636fdc5a57763609297f2b534.
+Archive39a55de21a33d5a92dccffc5c121b90b48e57c0621621c81044db1a12202fdc5,
+build1667475 and deploy1667706 each ran once; original result at
+/var/lib/noteai/clarification-255746a/deploy/result.json, exact candidate stopped.
+Web4c/Admin/model/env/locations unchanged. Fourth real claim541bd45a-650e-421c-b384-d454270af4bc,
+usagec004a3e0-95bd-4029-87ea-2a335b69c2fb created03:36:18.772313UTC completed:
+charge1/refund0/complete1,8credits. CloudAssistant94–95:34responded calls,
+30Haiku/50316in/12458out/RMB0.788242 plus4Sonnet/24180in/13709out/RMB1.947225,
+totalRMB2.735467 exact/complete usage. Original result score77 still includes menu
+uncertainty and inferred serving/quantity claims; NOT a clarification/quality pass.
+Reason invalid_source_reference; raw ID was not retained. Do not infer why it differed.
+No active call remains in that original request, no replay during owner Codex reset.
+
+Next local correction distinguishes unknown ID from original-text mismatch, explicitly
+specifies the emitted key, excludes internal/memory text from diagnosis source index,
+and retains a rejected expert stage privately in existing chat storage before stopping
+remaining generation. This is a system failure with the existing single refund, not
+merchant waiting or a fabricated completed note; valid waiting/resume stays unchanged.
+Real first-ASGI to waiting to POST free/omit/unknown to prepared arbitration/save/GET
+now passes against isolated Gateway HTTP: same usage/8charge1/refund0/one note,
+no original expert/media rerun, full answer transmitted, omitted fields absent and
+pending marker retained, duplicate409/no calls. Invalid-metadata stage also passes:
+3original calls/cost links, private raw+references retained, zero arbitration, refund1.
+Python3.11 network-none2 tests pass; no real continuation pass yet. Native config
+applied DISABLED; public media recovery/video and Native scan/refund/bill still pending.
+Readiness30/37 unchanged; no Gitpush or protected-path change.
+
 September14 11:32BJT: original3e test6f7b734f-c1d9-43c6-8f8e-13861afbe4bf /
 usage0aba01d8-9469-4a80-a6c3-c2bfae9c18dc (created03:23:18.532380UTC) is sealed
 FAILED, charge1/refund1/complete0,8credits refunded once. CloudAssistant87 fixed

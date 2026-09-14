@@ -1183,15 +1183,16 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             "status": "running", "complete_applied": 0, "refund_applied": 0,
         })
 
-    def _run_capacity(self,legacy):
+    def _run_capacity(self,legacy, source=None, extra_questions=(), invalid_reference=False):
         import ast, copy, os, httpx
         from contextlib import ExitStack
         from unittest import mock
         uid='synthetic-capacity-owner'
         self._create_user(uid)
         db.execute("UPDATE public_trial_budget SET enabled=1,policy_mode='owner_metered' WHERE id=?",(api._public_product.BUDGET_ID,))
-        source='蓝猫咖啡店9月双人套餐198元，包含饮品。'
+        source=source or '蓝猫咖啡店9月双人套餐198元，包含饮品。'
         questions=[{'field':'drink_count','question':'这个双人套餐一共包含几杯饮品？','source_quote':'包含饮品','object':'双人套餐','time_range':'9月','required':False,'options':[]}]
+        questions.extend(extra_questions)
         requests=[];stops=[]
         auxiliary_ready = asyncio.Event()
         auxiliary_count = 0
@@ -1218,7 +1219,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                 reference_json = supplied.split('【本次素材索引：只用于定位澄清问题，不是新增事实】\n', 1)[1]
                 references = json.loads(reference_json)
                 source_id = next(key for key, value in references.items() if value == source)
-                questions[0]['source_id'] = source_id
+                questions[0]['source_id'] = 's_nonexistent' if invalid_reference else source_id
                 questions[0]['source_quote'] = '模型改写，不应由商家解决逐字匹配'
             raw=('<title>蓝猫咖啡店双人套餐</title><body>商家原始素材</body><clarifications>'+json.dumps(questions,ensure_ascii=False)+'</clarifications>') if content else '<keyword_tip>咖啡套餐</keyword_tip><tag_recommendation>咖啡</tag_recommendation><user_angle>确认套餐内容后决定</user_angle><hook>介绍已知套餐</hook>'
             return httpx.Response(200,json={'protocol_version':api._mr._cgp.PROTOCOL_VERSION,'text_blocks':[raw],
@@ -1268,7 +1269,18 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         self.assertEqual(len(calls),3)
         self.assertTrue(all(r['state']=='responded' and r['http_status']==200 and r['usage_record_id']==row['usage_id'] and r['model_usage_record_id'] for r in calls),calls)
         self.assertEqual(db.fetchone('SELECT count(*) n FROM usage_records WHERE user_id=?',(uid,))['n'],1)
-        if legacy:
+        if invalid_reference:
+            self.assertEqual((row['status'], row['refund_applied']), ('failed', 1))
+            self.assertEqual(events[-1]['type'], 'error')
+            saved=db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?', (row['id'],))
+            private=json.loads(saved['generate_ctx_json'])['expert_preparation']
+            self.assertEqual(private['parse_statuses'], ['unknown_source_id'])
+            self.assertEqual(len(private['opinions']), 4)
+            content=next(o for o in private['opinions'] if o.get('role')=='内容专家')
+            self.assertIn('s_nonexistent', content['raw'])
+            self.assertTrue(content['clarification_sources'])
+            self.assertNotIn('s_nonexistent', json.dumps(events))
+        elif legacy:
             self.assertEqual(sorted(r['max_tokens'] for r in requests),[2048,2048,4096])
             self.assertEqual(sorted(stops),['end_turn','max_tokens','max_tokens'])
             self.assertEqual((row['status'],row['refund_applied']),('failed',1))
@@ -1282,7 +1294,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             self.assertEqual(events[-1]['session_id'],row['id'])
             restored=api._clarification.read(uid,row['id'])
             self.assertEqual(restored['status'],'waiting_for_input')
-            self.assertEqual(len(restored['questions']),1)
+            self.assertEqual(len(restored['questions']),len(questions))
             saved=db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?',(row['id'],uid))
             prepared=json.loads(saved['generate_ctx_json'])['task_continuation']['prepared']
             self.assertEqual(prepared['source_material'],'【商家原始素材】\n'+source)
@@ -1293,6 +1305,130 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
 
     def test_current_16000_limits_save_original_claim_waiting_without_refund(self):self._run_capacity(False)
 
+    def test_invalid_question_metadata_retains_private_experts_without_arbitration(self):
+        self._run_capacity(False, invalid_reference=True)
+
+
+    def test_original_waiting_resumes_through_real_pipeline_once(self):
+        import os, httpx
+        from contextlib import ExitStack
+        from unittest import mock
+        SOURCE = '蓝猫咖啡店9月双人套餐198元，包含饮品。甜点品类尚未定，停车优惠另议。'
+        TITLE = '蓝猫咖啡店双人套餐怎么点更明白'
+        ANSWER = ('套餐包含2杯拿铁，热饮不加糖。门店位于北京路商圈，营业时间为每日10:00-20:00。'
+                  '到店可以先核对套餐内容，再决定是否点单。两杯饮品属于同一双人套餐，不是每人各两杯。'
+                  '我希望文字说清每份套餐的内容，不要自行推断甜点、停车优惠或额外赠送。'
+                  '以下是本次活动的完整说明，全部仅适用于蓝猫咖啡店9月双人套餐，不适用于其他门店或日期。' +
+                  '饮品数量已经确认，不必再次询问；未知项目不要写成事实，原素材与这段回答都应完整保留。' * 6)
+        BODY = ('蓝猫咖啡店的双人套餐怎么点更明白？9月这份套餐198元，包含2杯拿铁，热饮不加糖。'
+                '想找朋友一起喝咖啡，可以先从这份已确认的清单看起，不需要被没有说明的搭配带着走。'
+                '两杯饮品合在同一份套餐里，点单时把数量核对清楚，会更容易按自己的口味做决定。\n\n'
+                '门店位于北京路商圈，营业时间为每日10:00-20:00。拿铁是这次套餐已确认的饮品，'
+                '如果平时喝咖啡的习惯不一样，不妨先问清出品安排，再决定是不是自己想喝的那一杯。'
+                '已经写明的套餐内容可以作为点单参考，没有说明的项目就先留空，不需要替商家添加承诺。\n\n'
+                '约朋友见面时，把门店、时间和这份套餐的清单一起发过去，沟通起来会更直接。'
+                '到店前可以再核对当日安排，选适合自己的时间慢慢聊。收藏这份说明，点单时记得对照数量。'
+                '你更习惯和朋友一起点套餐，还是各选各的口味？欢迎在评论里聊聊。\n'
+                '#蓝猫咖啡店 #北京路咖啡 #拿铁 #双人套餐 #咖啡探店 #朋友聚会')
+        RAW = f'<title>{TITLE}</title><body>{BODY}</body><variants></variants><rationale>沿用完整商家说明，不补写未确认项目。</rationale>'
+        self._run_capacity(False, source=SOURCE, extra_questions=[
+            {"field":"dessert_type","question":"双人套餐的甜点品类需要写进笔记吗？","source_quote":"甜点品类尚未定","object":"双人套餐","time_range":"9月","required":False},
+            {"field":"parking_offer","question":"这次门店停车优惠具体是什么？","source_quote":"停车优惠另议","object":"蓝猫咖啡店","time_range":"9月","required":True}])
+        uid = 'synthetic-capacity-owner'
+        before = dict(db.fetchone('SELECT * FROM idempotency_requests WHERE user_id=?', (uid,)))
+        sid, usage_id = before['id'], before['usage_id']
+        saved = json.loads(db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?', (sid,))['generate_ctx_json'])
+        task = saved['task_continuation']; prepared = task['prepared']
+        first_physical = {r['id'] for r in db.fetchall('SELECT id FROM public_trial_calls WHERE user_id=?', (uid,))}
+        questions = {q['field']: q for q in task['questions']}
+        answers = [
+            {'question_id':questions['drink_count']['question_id'],'status':'confirmed','answer':ANSWER},
+            {'question_id':questions['dessert_type']['question_id'],'status':'omitted','answer':''},
+            {'question_id':questions['parking_offer']['question_id'],'status':'unknown','answer':''}]
+        calls = []
+        async def gateway_http(request):
+            payload=json.loads(request.content);calls.append(payload)
+            self.assertLessEqual(len(calls),12, 'synthetic response cannot start an unbounded repair loop')
+            self.assertNotIn('自然澄清，沿用本次商家信息',payload['system'], 'original expert must not rerun')
+            user=payload['messages'][-1]['content']
+            self.assertIn(ANSWER,user)
+            self.assertIn('所有标题、方案及后续优化都不得写入此项',user)
+            self.assertIn('用户暂不确定',user)
+            usage={'input_tokens':1000,'output_tokens':1000,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}
+            base={'protocol_version':api._mr._cgp.PROTOCOL_VERSION}
+            if request.url.path == api._mr._cgp.STREAM_PATH:
+                self.assertEqual(payload['model'],api._mr.CLAUDE_SONNET)
+                self.assertEqual(payload['thinking_budget'],10000)
+                ndjson='\n'.join(json.dumps({**base,**e},ensure_ascii=False) for e in [
+                    {'type':'content','text':RAW}, {'type':'usage','model':payload['model'],'stop_reason':'end_turn','usage':usage}, {'type':'done'}])+'\n'
+                return httpx.Response(200,content=ndjson,headers={'Content-Type':'application/x-ndjson'})
+            self.assertEqual(request.url.path,api._mr._cgp.MESSAGES_PATH)
+            text=BODY if '文案交付编辑' in payload['system'] else RAW
+            return httpx.Response(200,json={**base,'text_blocks':[text], 'model':payload['model'],'stop_reason':'end_turn','usage':usage})
+
+        features={'body_len':len(BODY),'tag_count':6,'body_cta_count':2,'body_has_price':1,'body_has_address':1,'body_has_hours':1,'body_has_must_order':1}
+        state={'active':{t:{'model':api._mr.CLAUDE_HAIKU if t!='arbitrate' else api._mr.CLAUDE_SONNET,'enabled':True,'max_tokens':16000} for t in api._mr._runtime_config.TASKS}}
+        async def resume_and_read():
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api.app),base_url='http://isolated') as client:
+                headers={'Origin':'https://noteaipro.com','X-Request-ID':'synthetic-original-resume'}
+                payload={'session_id':sid,'task_version':task['version'],'task_answers':answers,'message':'按本次说明继续'}
+                response=await client.post('/chat/message',headers=headers,json=payload)
+                self.assertEqual(response.status_code,200,response.text)
+                events=[json.loads(v.removeprefix('data: ').strip()) for v in response.text.split('\n\n') if v.startswith('data: ')]
+                self.assertEqual(events[-1]['type'],'complete',events)
+                complete=events[-1]
+                readback=await client.get('/chat/tasks/'+sid,headers={'Origin':'https://noteaipro.com'})
+                self.assertEqual(readback.status_code,200,readback.text)
+                stored_result=readback.json()['result']
+                transport_fields={'transport_schema_version','operation','trace_id','seq','server_ts','elapsed_ms','stage_elapsed_ms','terminal','outcome','schema_version'}
+                self.assertEqual(stored_result,{k:v for k,v in complete.items() if k not in transport_fields})
+                self.assertTrue(complete['terminal']); self.assertEqual(complete['outcome'],'success')
+                count=len(calls)
+                duplicate=await client.post('/chat/message',headers=headers,json=payload)
+                self.assertEqual(duplicate.status_code,409,duplicate.text)
+                self.assertEqual(len(calls),count)
+                return events,complete
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch.dict(os.environ,{'NOTEAI_TASK_CLARIFICATION_ENABLED':'1','NOTEAI_PUBLIC_PRODUCT':'1','NOTEAI_PUBLIC_ORIGINS':'https://noteaipro.com','NOTEAI_MODEL_CONFIG_ENABLED':'1','NOTEAI_FACT_SEARCH':'0','NOTEAI_CLAUDE_TRANSPORT':'gateway','NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH':'synthetic-config-1','NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH':'synthetic-key-1'}))
+            transport=api._mr.GatewayClaudeTransport(base_url='https://gateway.example.invalid',key_id='synthetic-key',secret='synthetic-only-secret',http_transport=httpx.MockTransport(gateway_http))
+            stack.enter_context(mock.patch.object(api._mr,'get_claude_transport',return_value=transport))
+            stack.enter_context(mock.patch.object(api._mr._runtime_config,'read',return_value=state))
+            stack.enter_context(mock.patch.object(api._public_product,'authenticated_user',new=mock.AsyncMock(return_value={'id':uid})))
+            api.app.dependency_overrides[api._auth.get_current_user]=lambda:{'id':uid}
+            stack.callback(api.app.dependency_overrides.clear)
+            stack.enter_context(mock.patch.object(api.asyncio,'sleep',new=mock.AsyncMock()))
+            # Numeric scorer/model artifacts are isolated. Semantic/grounding functions,
+            # title/body shaping, candidate selector, pipeline and persistence are real.
+            stack.enter_context(mock.patch.object(api,'_predict',return_value=(80.0,features)))
+            stack.enter_context(mock.patch.object(api,'_score_generated_note',new=mock.AsyncMock(return_value=(80.0,features,'优秀'))))
+            stack.enter_context(mock.patch.object(api,'_v04_publishable_probability',return_value=None))
+            stack.enter_context(mock.patch.object(api,'get_v04_preference_ranker',return_value=None))
+            for name in ('_gent_content','_gent_growth','_gent_user','_kimi_video_understand','_kimi_image_understand'):
+                if hasattr(api,name):
+                    stack.enter_context(mock.patch.object(api,name,new=mock.AsyncMock(side_effect=AssertionError('replayed '+name))))
+            events,result=asyncio.run(resume_and_read())
+        self.assertEqual(events[0]['type'],'clarification_acknowledged')
+        self.assertFalse(events[0]['charged_again'])
+        self.assertEqual(result['continuation_session_id'],sid)
+        self.assertEqual(result['saved_note_id'],sid)
+        self.assertEqual(result['saved_note_version'],1)
+        self.assertEqual(result['merchant_confirmations'][0]['answer'],ANSWER)
+        self.assertEqual(result['pending_confirmation'],[questions['parking_offer']['question']])
+        self.assertIn('2杯拿铁',result['note_body'])
+        for text in [result['note_title'],result['note_body'],*result['title_variants']]:
+            self.assertNotIn('甜点',text);self.assertNotIn('停车',text)
+        self.assertIn(SOURCE,result['fact_context']);self.assertIn(ANSWER,result['fact_context'])
+        final=dict(db.fetchone('SELECT * FROM idempotency_requests WHERE id=?',(sid,)))
+        self.assertEqual((final['usage_id'],final['status'],final['credits_used'],final['charge_applied'],final['refund_applied'],final['complete_applied']),(usage_id,'completed',8,1,0,1))
+        self.assertEqual(db.fetchone('SELECT count(*) n FROM usage_records WHERE user_id=?',(uid,))['n'],1)
+        notes=[dict(n) for n in db.fetchall('SELECT id,title,body FROM notes WHERE user_id=?',(uid,))]
+        self.assertEqual(notes,[{'id':sid,'title':result['note_title'],'body':result['note_body']}])
+        stored=json.loads(db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?',(sid,))['generate_ctx_json'])['task_continuation']
+        self.assertEqual(stored['prepared'],prepared)
+        linked=[dict(r) for r in db.fetchall('SELECT id,state,http_status,usage_record_id,model_usage_record_id FROM public_trial_calls WHERE user_id=?',(uid,))]
+        self.assertEqual(len(linked),len(first_physical)+len(calls))
+        self.assertTrue(all(r['state']=='responded' and r['http_status']==200 and r['usage_record_id']==usage_id and r['model_usage_record_id'] for r in linked),linked)
+        print('SYNTHETIC_ASGI_RESUME',json.dumps({'first_experts':3,'resume_physical':len(calls),'same_usage':True,'credits':8,'charge':1,'refund':0,'notes':1,'pending':1,'duplicate_rejected':True}),flush=True)
 
 if __name__ == "__main__":
     unittest.main()

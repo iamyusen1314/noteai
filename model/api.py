@@ -2993,6 +2993,7 @@ async def _agent_content(
     note_title: str, desc: str, domain: str,
     weaknesses: list, dk: dict,
     agent_context: str = "",
+    clarification_source: str | None = None,
 ) -> dict:
     # 从 prompts.json 加载 system prompt，注入品类和品类知识
     base = _runtime_prompt("agent_content_system", domain)
@@ -3017,7 +3018,8 @@ async def _agent_content(
         + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
-    source_index, references = _clarification.source_references((desc or "") + "\n" + agent_context)
+    source_index, references = _clarification.source_references(
+        (desc or "") if clarification_source is None else clarification_source)
     raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user + source_index, max_tokens=4096)
     return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
@@ -3522,7 +3524,8 @@ async def _run_five_agents(
             "progress": 32,
         })
         task_specs = [
-            (_agent_content(note.note_title, note.desc, note.domain, weaknesses, dk, agent_context), "内容专家", 0),
+            (_agent_content(note.note_title, note.desc, note.domain, weaknesses, dk, agent_context,
+                clarification_source=fact_source_context), "内容专家", 0),
             (_agent_visual(note.domain, visual_score, cover_feats, dk), "视觉专家", 1),
             (_agent_growth(note.note_title, note.desc, note.domain, timing, dk, agent_context), "增长专家", 2),
             (_agent_user(note.note_title, note.desc, note.domain, semantic_feats, weaknesses, dk, agent_context), "用户专家", 3),
