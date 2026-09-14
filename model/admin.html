@@ -399,8 +399,8 @@ input,select,textarea{font-family:inherit}
     <div class="card" style="margin-bottom:20px">
       <div class="section-title">业务模型路由</div>
       <p>同等权益使用同一正式业务链，赠送与购买来源不决定输出质量。保留积分、并发和实际成本记录；旧临时金额门槛已取消。下方设置当前已接入的业务路由，训练与评分产物仍为独立模块。</p>
-      <p>原产品分工：Claude Haiku 负责诊断、生成及语义分析，Claude Sonnet 负责仲裁与对话，Kimi 为原备用路径。当前公开版本统一使用 Kimi；Claude 的既有实现仍保留，但未纳入本公开实例可发布路由。</p>
-      <p>现有 Claude 为 owner 个人 API 账户；其公开地区条款不覆盖当前中国内地商家场景，暂不启用该通道。历史 Gateway 接入成功保留，不要求专属批准函。此页不会自动发起模型调用。</p>
+      <p>既定业务分工：Claude Haiku 负责诊断、生成及语义分析，Claude Sonnet 负责仲裁与对话，Kimi 保留为可配置路径；豆包负责素材理解。各入口实际使用的模型以下方生效配置和调用记录为准。</p>
+      <p>Claude 沿用 owner 个人 API 账户及既有 Gateway。Owner 已决定保留该架构并接受已披露风险，这不代表供应商资格批准。指定模型不可用时如实报错，不静默替换；刷新本页不会发起模型调用。</p>
       <div id="supplier-view" aria-live="polite"></div>
       <label for="mc-scope">配置范围</label><select id="mc-scope" class="form-input" onchange="loadModelConfig()"><option value="production">当前公开 API</option><option value="test">隔离测试配置（不进入生产路由）</option></select>
       <div id="mc-state" role="status"></div><div id="mc-routes"></div>
