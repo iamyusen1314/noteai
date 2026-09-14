@@ -3759,6 +3759,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div style="font-size:11px;font-weight:700;color:var(--holo-mid);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">
             <i data-lucide="sparkles" style="width:11px;height:11px;vertical-align:-1px;margin-right:4px"></i>AI 综合诊断
           </div>
+          <div id="diagnosisFactNotice" role="status" style="display:none;color:var(--warning,#F59E0B);margin-bottom:10px;white-space:pre-line"></div>
           <div id="aiDiagnosisText"></div>
         </div>
         <div id="agentResultsList">
@@ -3898,6 +3899,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 
     <!-- ══ 生成爆文结果（仅生成模式） ══ -->
     <div id="genReportBody" style="display:none">
+      <div id="generationSaveNotice" role="status" style="display:none;margin-bottom:16px;color:var(--warning)"></div>
 
       <!-- 对话优化入口 -->
       <div id="chatEntryBanner" style="
@@ -6182,6 +6184,10 @@ async function startGeneration() {
     return;
   }
 
+  const identitySnapshot = _chatIdentitySnapshot();
+  const requestToken = _authToken;
+  const identityMatches = () => _chatIdentityMatches(identitySnapshot) && _authToken === requestToken;
+  if (!requestToken || !identityMatches()) { openAuthModal('login'); return; }
   _isGenerateMode = true;
   _generateResult = null;
   _genStreamActive = true;
@@ -6191,6 +6197,7 @@ async function startGeneration() {
   try { coverImages = await Promise.all(_genCoverImages.map(img => privateImageInput(img.dataURL))); }
   catch (error) { _genStreamActive = false; _setGenerationSubmitBusy(false); showToast(error.message); return; }
 
+  if (!identityMatches()) { _genStreamActive = false; _setGenerationSubmitBusy(false); return; }
   let _resolveGen, _rejectGen;
   _diagnosePromise = new Promise((res, rej) => { _resolveGen = res; _rejectGen = rej; });
 
@@ -6200,7 +6207,7 @@ async function startGeneration() {
     try {
       const resp = await fetch(API_BASE + '/generate/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authHeader() },
+        headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, Authorization: 'Bearer ' + requestToken },
         body: JSON.stringify({
           domain,
           brief,
@@ -6213,6 +6220,7 @@ async function startGeneration() {
         }),
       });
       streamGuard.connected();
+      if (!identityMatches()) { _resolveGen(); return; }
       if (resp.status === 402) {
         const errData = await resp.json().catch(() => ({}));
         _generateResult = { _error: true, _quota: true };
@@ -6237,10 +6245,11 @@ async function startGeneration() {
         terminalTypes: ['complete', 'error'],
         onEvent: ev => {
           streamGuard.event();
-          _handleGenStreamEvent(ev);
+          if (identityMatches()) _handleGenStreamEvent(ev, identityMatches);
         },
       });
       const terminal = streamResult.terminalEvent;
+      if (!identityMatches()) { _resolveGen(); return; }
       if (terminal?.type === 'complete') {
         streamGuard.finish();
         _generateResult = terminal;
@@ -6256,7 +6265,7 @@ async function startGeneration() {
           fact_source_decision: terminal.fact_source_decision || null,
         });
         // Save only the canonical terminal result; streamed drafts never enter storage.
-        await autoSaveGeneratedNote(_generateResult);
+        await autoSaveGeneratedNote(_generateResult, identitySnapshot, requestToken);
       } else if (terminal?.type === 'error') {
         streamGuard.finish();
         const errMsg = terminal.message || '生成失败，请稍后重试';
@@ -6269,6 +6278,7 @@ async function startGeneration() {
       }
       _resolveGen();
     } catch(err) {
+      if (!identityMatches()) { _resolveGen(); return; }
       console.error('[NoteAI] stream error:', err);
       const message = SSE_OUTCOME_UNKNOWN.generate;
       _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
@@ -6282,7 +6292,7 @@ async function startGeneration() {
   })();
 
   showToast(`🪄 已发起生成（${coverImages.length} 张图），正在跳转…`);
-  setTimeout(() => { if (_genStreamActive) showPage('live'); }, 800);
+  setTimeout(() => { if (identityMatches() && _genStreamActive) showPage('live'); }, 800);
 }
 
 // keep legacy variable declaration removed (was re-declared below)
@@ -6375,7 +6385,8 @@ function appendSafeProcessCard(containerId, ev, extraClass = '') {
   container.scrollTop = container.scrollHeight;
 }
 
-function _handleGenStreamEvent(ev) {
+function _handleGenStreamEvent(ev, identityMatches = () => true) {
+  if (!identityMatches()) return;
   switch (ev.type) {
     case 'fact_enrichment':
       _handleAnalyzeStreamEvent(ev);
@@ -6525,7 +6536,7 @@ function _handleGenStreamEvent(ev) {
       break;
     }
     case 'final_score': {
-      agentDone(4, '1.0');
+      agentDone(4, '');
       addBubble('仲裁专家', `V0.4 模型复核：${ev.score} 分（${ev.grade}）`, 4, 10, 12);
       setLive3DScore(ev.score);
       setProgress(ev.progress || 95, `评分 ${ev.score} 分，即将跳转…`);
@@ -6547,7 +6558,7 @@ function _handleGenStreamEvent(ev) {
       }
       showToast('⚠ ' + errMsg);
       // Navigate to the generation report after a short delay to show the error state.
-      setTimeout(async () => { _isGenerateMode = true; showPage('report'); await populateReport(); }, 2000);
+      setTimeout(async () => { if (!identityMatches()) return; _isGenerateMode = true; showPage('report'); await populateReport(); }, 2000);
       break;
     }
     case 'complete': {
@@ -6558,8 +6569,9 @@ function _handleGenStreamEvent(ev) {
       setProgress(100, '生成完成！');
       completeLive3D();
       setTimeout(() => {
+        if (!identityMatches()) return;
         showToast('✅ 爆文生成完成！正在跳转至报告…');
-        setTimeout(async () => { _isGenerateMode = true; showPage('report'); await populateReport(); }, 1200);
+        setTimeout(async () => { if (!identityMatches()) return; _isGenerateMode = true; showPage('report'); await populateReport(); }, 1200);
       }, 600);
       break;
     }
@@ -6655,7 +6667,7 @@ function _handleAnalyzeStreamEvent(ev) {
     case 'diagnosis_plan_scored': {
       const scoreText = ev.score == null ? '待复核' : `${ev.score} 分`;
       const issues = (ev.issues || []).slice(0, 2).join('；');
-      addBubble('质量复核', `${ev.title || '方案'}：${scoreText}${issues ? '\n需关注：' + issues : '\n已通过交付复核'}`, 4, 0, 0);
+      addBubble('质量复核', `${ev.title || '方案'}：${scoreText}${issues ? '\n需关注：' + issues : '\n当前方案复核完成，等待整体验证'}`, 4, 0, 0);
       if (ev.score != null) setLive3DScore(ev.score);
       if (ev.progress) setProgress(ev.progress, '方案质量复核中…');
       break;
@@ -6664,6 +6676,12 @@ function _handleAnalyzeStreamEvent(ev) {
     case 'final_explanation': {
       appendSafeProcessCard('bubbleArea', ev, ev.type === 'final_explanation' ? 'is-final' : '');
       if (ev.progress) setProgress(ev.progress, PROCESS_STATUS_TEXT[ev.status_code] || '');
+      break;
+    }
+    case 'quality_warning': {
+      if (ev.scope === 'diagnosis_report') {
+        addBubble('系统', ev.message || '诊断说明中部分事实待确认，候选正文继续复核。', 4, 0, 0);
+      }
       break;
     }
     case 'error': {
@@ -6689,7 +6707,7 @@ function _handleAnalyzeStreamEvent(ev) {
       const tl7dot = document.getElementById('tl7')?.querySelector('.tl-dot');
       if (tl7dot) tl7dot.textContent = '✓';
       setProgress(100, '诊断完成！');
-      agentDone(4, '1.0');
+      agentDone(4, '');
       completeLive3D();
       setTimeout(() => {
         showToast('✅ 诊断完成！正在跳转至报告…');
@@ -7192,6 +7210,15 @@ async function populateReport() {
     const text  = document.getElementById('aiDiagnosisText');
     if (block && text) { text.textContent = d.ai_diagnosis; block.style.display = 'block'; }
   }
+  const factNotice = document.getElementById('diagnosisFactNotice');
+  if (factNotice) {
+    const issues = Array.isArray(d.report_quality_issues) ? d.report_quality_issues : [];
+    const needsConfirmation = d.report_quality_status === 'needs_confirmation';
+    factNotice.textContent = needsConfirmation
+      ? '分析已完成，以下报告事实需确认后再采用；各候选正文仍按各自质量结果展示。\n' + issues.join('\n')
+      : '';
+    factNotice.style.display = needsConfirmation ? 'block' : 'none';
+  }
   } catch(e) { console.error('[report §2 diagnosis]', e); }
 
 	  // § 3 专家意见
@@ -7356,6 +7383,11 @@ async function populateGenerateReport() {
 
   if (_diagnosePromise) await _diagnosePromise;
   const d = _generateResult;
+  const saveNotice = document.getElementById('generationSaveNotice');
+  if (saveNotice) {
+    saveNotice.textContent = d?._save_message || '';
+    saveNotice.style.display = d?._save_message ? 'block' : 'none';
+  }
   renderProviderAnswer(d?.fact_enrichment, document.querySelector('#page-report .report-page'), 'report-provider-answer');
   if (!completeProductResult(d)) {
     document.getElementById("chatEntryBanner").style.display="none";
@@ -7847,6 +7879,7 @@ async function startChatFromDiagnosis() {
       diagnosis_composite_score: _diagnoseResult.composite_score,
       grade:            _diagnoseResult.grade,
       ai_diagnosis:     _diagnoseResult.ai_diagnosis,
+      improvement_plan: _diagnoseResult.improvement_plan,
       weaknesses:       _diagnoseResult.weaknesses,
       expert_opinions:  _diagnoseResult.expert_opinions,
       suggested_titles: _diagnoseResult.suggested_titles,
@@ -7858,6 +7891,9 @@ async function startChatFromDiagnosis() {
       fact_source_policy: _diagnoseResult.fact_source_policy || intentPayload.fact_source_policy,
       intent_contract: _diagnoseResult.intent_contract || null,
       fact_source_decision: _diagnoseResult.fact_source_decision || null,
+      fact_enrichment: _diagnoseResult.fact_enrichment || null,
+      report_quality_status: _diagnoseResult.report_quality_status || 'not_checked',
+      report_quality_issues: _diagnoseResult.report_quality_issues || [],
       supplement_prompts: _diagnoseResult.supplement_prompts || [],
     } : {};
 
@@ -9422,6 +9458,14 @@ function _chatIdentityMatches(snapshot) {
 
 function chatClearUserState() {
   _chatUserStateEpoch += 1;
+  _generateResult = null;
+  _diagnoseResult = null;
+  const generatedReport = document.getElementById('genReportBody');
+  if (generatedReport) generatedReport.style.display = 'none';
+  ['genMainTitle', 'genBodyText', 'genVariantsList', 'genTagsList', 'genCoverText', 'genAgentText', 'genAgentResultsList', 'bubbleArea'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = '';
+  });
   if (_chatRequestAbortController) {
     _chatRequestAbortController.abort();
     _chatRequestAbortController = null;
@@ -11500,39 +11544,45 @@ async function requestAccountDeletion() {
    触发时机：/generate/stream 收到 complete 事件后
    条件：用户已登录（有 _authToken）
 ═══════════════════════════════════════════════════════════ */
-async function autoSaveGeneratedNote(genResult) {
-  if (!_authToken || !genResult || genResult._error) return;
+async function autoSaveGeneratedNote(genResult, identitySnapshot, requestToken) {
+  const identityMatches = () => _chatIdentityMatches(identitySnapshot) && _authToken === requestToken;
+  if (!requestToken || !identityMatches() || !genResult || genResult._error || genResult._save_status) return;
+  genResult._save_status = 'saving';
   try {
     const res = await fetch(API_AUTH + '/notes', {
       method: 'POST',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      headers: { Authorization: 'Bearer ' + requestToken, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title:  genResult.note_title  || '',
-        body:   genResult.note_body   || '',
-        domain: genResult._domain     || '美食',
-        score:  genResult.ces_percentile || null,
-        grade:  genResult.grade       || '',
+        title: genResult.note_title || '',
+        body: genResult.note_body || '',
+        domain: genResult._domain || '美食',
+        score: genResult.ces_percentile ?? null,
+        grade: genResult.grade || '',
         source: 'generate',
       }),
     });
-    if (res.ok) {
-      const d = await res.json();
-      genResult._saved_note_id = d.id;
-      genResult._saved_note_version = d.version || 1;
-      _handleGenStreamEvent({
-        type: 'process_update', schema_version: 'process.v1', phase: 'save', agent: 'system',
-        status_code: 'generation_saved', reason_codes: ['note_version_saved'],
-        facts: { saved: true, version: genResult._saved_note_version }, progress: 100,
-      });
-      // 生成后提示用户可追踪发布效果（非阻断，3秒后显示）
-      setTimeout(() => {
-        if (_authToken) {
-          showToast(PUBLIC_PRODUCT ? '笔记已保存，可在笔记库查看和继续优化；跟踪尚未开放' : '💡 笔记已保存到笔记库。发布后可在对应版本卡片追踪真实表现');
-        }
-      }, 3000);
+    if (!res.ok) throw new Error('Save response not confirmed');
+    const d = await res.json();
+    if (typeof d.id !== 'string' || !d.id || !Number.isInteger(d.version) || d.version < 1) {
+      throw new Error('Save receipt incomplete');
     }
-  } catch(e) {
-    // 保存失败不影响主流程，静默处理
+    genResult._save_status = 'saved';
+    genResult._saved_note_id = d.id;
+    genResult._saved_note_version = d.version;
+    if (!identityMatches()) return;
+    _handleGenStreamEvent({
+      type: 'process_update', schema_version: 'process.v1', phase: 'save', agent: 'system',
+      status_code: 'generation_saved', reason_codes: ['note_version_saved'],
+      facts: { saved: true, version: d.version }, progress: 100,
+    }, identityMatches);
+    setTimeout(() => {
+      if (identityMatches()) showToast('笔记已保存，可在笔记库查看和继续优化');
+    }, 3000);
+  } catch (error) {
+    // POST /notes is not idempotent: an uncertain response must not be resent.
+    genResult._save_status = 'unknown';
+    genResult._save_message = '文案已生成，保存结果尚未确认。请先查看笔记库，避免重复保存；当前文案仍可复制。';
+    if (identityMatches()) showToast(genResult._save_message);
   }
 }
 

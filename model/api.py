@@ -2584,6 +2584,8 @@ _INPUT_DIAGNOSTICS_SCHEMA = {
 }
 _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "ai_diagnosis": "string",
+    "report_quality_status": "string",
+    "report_quality_issues": ("list", "string"),
     "ces_percentile": "number",
     "composite_score": "number",
     "constraint_contract": _CONSTRAINT_CONTRACT_SCHEMA,
@@ -3063,12 +3065,22 @@ async def _agent_user(
 
 # ── Agent 5: 仲裁专家 ────────────────────────────────────────────
 
+_CONTENT_SOURCE_POLICY = (
+    "【素材与建议的使用边界】用户原文保留其实际表达；图片/视频观察只支持可见、可听的内容，"
+    "不能证明作者未描述的亲身经历、味觉、使用效果或商家的可选服务。"
+    "行业规则、用户偏好、专家意见和当前候选稿只指导表达，不是新增事实来源。"
+    "先从原素材选取可以支撑的细节再组织文案，不得以专家或候选之间重复同一说法作为证据。"
+    "缺少细节时用已有素材展开取舍和叙事；需要补充的事实列为建议，不编成已经发生的体验。"
+)
+
+
 async def _agent_arbitrate(
     note_title: str, domain: str,
     percentile: float, grade: str,
     opinions: list[dict],
     source_context: str = "",
     emit: ProgressEmitter | None = None,
+    analysis_context: str = "",
 ) -> dict:
     from datetime import datetime as _dt_now
     _today = _dt_now.now().strftime("%Y年%m月%d日")
@@ -3081,7 +3093,7 @@ async def _agent_arbitrate(
     phase_strategy_labels = _plan_strategy_labels(domain)
     phase_planning_brief = _build_generation_planning_brief(domain, note_title, source_context, "诊断标题规划")
 
-    opinion_block = ""
+    opinion_block = "专家意见均为分析和写作建议，不是作者经历或新的商家事实。\n"
     titles_pool: list[str] = []
     body_candidate = ""
 
@@ -3110,6 +3122,8 @@ async def _agent_arbitrate(
 
     # ── 阶段1：生成诊断 + 三个标题（不含正文，避免 Claude 偷懒复用） ──
     user_phase1 = (
+        f"{_CONTENT_SOURCE_POLICY}\n"
+        f"【表达约束与辅助分析；不新增事实】\n{analysis_context}\n"
         f"笔记标题：{note_title or '（无）'}\n"
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
         f"内容专家候选（未经核验，不是用户原文或事实来源）：{body_candidate or '（无候选）'}\n"
@@ -3242,6 +3256,8 @@ async def _agent_arbitrate(
     base_planning_brief = _build_generation_planning_brief(domain, note_title, source_context, "三方案正文总规划")
 
     base_ctx = (
+        f"{_CONTENT_SOURCE_POLICY}\n"
+        f"【表达约束与辅助分析；不新增事实】\n{analysis_context}\n"
         f"原始笔记标题：{note_title}\n"
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
         f"内容专家候选（未经核验，不是事实来源）：{body_candidate or '（无候选）'}\n"
@@ -3438,6 +3454,7 @@ async def _run_five_agents(
     semantic_feats: dict,
     agent_context: str = "",
     emit: ProgressEmitter | None = None,
+    fact_source_context: str | None = None,
 ) -> dict:
     dk = _get_dk(note.domain)
     await _emit_progress(emit, {
@@ -3508,11 +3525,10 @@ async def _run_five_agents(
         "label": "仲裁专家正在综合专家意见与事实边界…",
         "progress": 62,
     })
-    arbitration_context = note.desc
-    if agent_context:
-        arbitration_context += "\n\n【补充上下文（不计入正文评分）】\n" + agent_context
+    arbitration_context = note.desc if fact_source_context is None else fact_source_context
     arbitration = await _agent_arbitrate(
         note.note_title, note.domain, percentile, grade, opinions, arbitration_context, emit=emit,
+        analysis_context=agent_context,
     )
     arbitration["expert_opinions"] = [
         _normalize_expert_opinion(
@@ -6080,6 +6096,8 @@ class AnalyzeResponse(BaseModel):
     market_timing: MarketTiming | None = Field(default=None, description="市场时机特征")
     weaknesses: list[WeaknessItem] = Field(description="拖分项（LightGBM识别）")
     ai_diagnosis: str = Field(description="Claude整体诊断")
+    report_quality_status: str = Field(default="not_checked", description="诊断说明的事实确认状态，不代表候选正文质量或模型分数")
+    report_quality_issues: list[str] = Field(default_factory=list, description="诊断说明中需要确认的信息；候选正文继续独立复核")
     suggested_titles: list[str] = Field(description="Claude改写标题建议（3条）")
     suggested_title_scores: list[float | None] = Field(default=[], description="每个建议标题经辅助模型预测的 CES 分位")
     suggested_plans: list[dict] = Field(default=[], description="三套完整改写方案，每套含 title+body")
@@ -10265,8 +10283,9 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"{_quality_expression_brief(canonical)}\n"
         f"当前表达问题：{'；'.join(readability_issues + integrity_issues + structure_issues) if (readability_issues or integrity_issues or structure_issues) else '无'}\n"
         f"{safe_brief}\n\n"
+        f"{_CONTENT_SOURCE_POLICY}\n"
         f"完整只读事实依据（保留原有条件与未知项，不从价格推导房型权益或入住容量）：\n{source_context or '未提供更多事实'}\n\n"
-        "请重写下面正文，只输出正文+标签，不能有Markdown标题、方案编号、解释文字：\n"
+        "请修订下面待核对的候选正文（不是事实来源），只输出正文+标签，不能有Markdown标题、方案编号、解释文字：\n"
         f"{shaped}"
     )
     try:
@@ -10383,12 +10402,25 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         if any((m.group(1) or m.group(2)) not in source_nightly for part in claims for m in nightly.finditer(part)):
             issues.append("将未注明每晚的价格绑定为房晚价，结构化事实不能编造")
         ticket_pattern = r"(?:含|包含|赠送).{0,15}(?:门票|票)"
-        ticket_evidence = [line for line in re.split(r"[。！？\n；;]", src)
-                           if any(re.search(ticket_pattern, clause) and "部分" not in clause
-                                  for clause in assertions(line))]
+        def ticket_claims(value: str) -> list[str]:
+            clauses = []
+            for clause in assertions(value):
+                # A pricing variable names a possible bundle, not a confirmed
+                # entitlement. Mask only that noun phrase, on both sides of
+                # the comparison; other promises in the same clause remain.
+                clause = re.sub(
+                    r"((?:价格|报价|房价)(?:会)?(?:随|根据)[^，,。；;\n]{0,24}?)"
+                    r"(?:含票组合|包含的门票套餐)"
+                    r"(?=[^，,。；;\n]{0,12}(?:变化|变动|不同))",
+                    r"\1组合条件", clause,
+                )
+                if re.search(ticket_pattern, clause) and "部分" not in clause:
+                    clauses.append(clause)
+            return clauses
+
+        ticket_evidence = [(line, ticket_claims(line)) for line in re.split(r"[。！？\n；;]", src)]
         for part in re.split(r"[。！？\n；;]", out):
-            ticket_clauses = [clause for clause in assertions(part)
-                              if re.search(ticket_pattern, clause) and "部分" not in clause]
+            ticket_clauses = ticket_claims(part)
             if not ticket_clauses:
                 continue
             amounts = {re.search(r"\d+", m.group()).group() for m in _PRICE_FACT_RE.finditer(part)}
@@ -10399,8 +10431,8 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             if not any(all(amount in line for amount in amounts)
                        and all(room in line for room in room_scopes)
                        and any(bool(re.search(r"(?:不含|不包含|不赠送).{0,15}(?:门票|票)", clause)) == negative
-                               for clause in assertions(line) if re.search(ticket_pattern, clause))
-                       for line in ticket_evidence):
+                               for clause in source_clauses)
+                       for line, source_clauses in ticket_evidence):
                 issues.append("将价格或房型与未核验的含票/不含票权益绑定，结构化事实不能编造")
     source_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(src)}
     output_prices = {re.search(r"\d+", match.group()).group() for match in _PRICE_FACT_RE.finditer(factual_out)}
@@ -10464,6 +10496,7 @@ def _annotate_expert_fact_risks(opinions: list[dict], source_context: str, domai
 async def _repair_diagnosis_report_facts(
     diagnosis: str, plan: str, domain: str, source_context: str,
     emit: ProgressEmitter | None = None,
+    review_issues: list[str] | None = None,
 ) -> tuple[str, str]:
     """Repair only an unsupported report, once, using the original arbiter route.
 
@@ -10501,6 +10534,17 @@ async def _repair_diagnosis_report_facts(
         raise
     repaired_diagnosis, repaired_plan = _xtag(raw or "", "diagnosis").strip(), _xtag(raw or "", "plan").strip()
     remaining = _structured_fact_boundary_issues(f"{repaired_diagnosis}\n{repaired_plan}", source_context, domain)
+    if repaired_diagnosis and repaired_plan and remaining and review_issues is not None:
+        # A complete, confirmed diagnosis can explain uncertainties without
+        # cancelling the still-required candidate scoring and refinement.
+        # Provider UNKNOWN and incomplete model output remain hard failures.
+        review_issues.extend(issue for issue in remaining if issue not in review_issues)
+        await _emit_progress(emit, {
+            "type": "quality_warning", "scope": "diagnosis_report",
+            "message": "诊断说明中部分事实待确认，继续复核三套候选正文。",
+            "issues": list(review_issues),
+        })
+        return repaired_diagnosis, repaired_plan
     if not repaired_diagnosis or not repaired_plan or remaining:
         # Preserve the actual candidate in the authenticated original SSE only.
         # It is neither a completed report nor a successful persisted diagnosis.
@@ -11359,8 +11403,9 @@ async def _score_directed_second_pass(
         f"{_qobj.revision_objective_brief(domain, style_hint or '交付质量二修')}\n\n"
         f"{_get_quality_contract(domain)}\n\n"
         f"{_get_feature_governance_brief(domain)}\n\n"
-        f"{_build_generation_planning_brief(domain, title, source_context or body, style_hint or '交付质量二修')}\n"
+        f"{_build_generation_planning_brief(domain, title, source_context or '未提供原始来源', style_hint or '交付质量二修')}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
+        f"{_CONTENT_SOURCE_POLICY}\n"
         f"{_quality_expression_brief(domain)}\n\n"
         f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
     )
@@ -11371,12 +11416,12 @@ async def _score_directed_second_pass(
         "本轮只修以下最高优先级问题：\n"
         + "\n".join(f"- {item}" for item in repair_items[:8])
         + "\n\n写作要求：\n"
-        "- 保留原稿中真实有效的事实和用户表达，不要重写成模板口吻。\n"
+        "- 回查原始素材后保留有依据的细节和用户表达；当前候选稿不能自证真实，不要重写成模板口吻。\n"
         f"- 标题优先补克制推荐信号和具体对象，控制在{_TITLE_TARGET_TEXT}。\n"
         "- 正文按品类目标字数重排，删掉重复铺陈，保留能帮助用户决策的信息。\n"
         "- 标签数量按品类目标输出，不要只堆泛标签。\n\n"
         f"已核验事实/用户原始信息：\n{source_context or '未提供更多事实；缺失字段必须用安全表达，不能编造。'}\n\n"
-        f"当前标题：{title}\n当前正文：\n{body}"
+        f"待核对候选标题：{title}\n待核对候选正文（不是事实来源）：\n{body}"
     )
 
     try:
@@ -15372,6 +15417,7 @@ async def _run_analyze_pipeline(
     extra_image_context = ""
     fact_context = ""
     fact_source_decision: dict = {}
+    report_quality_issues: list[str] = []
     await _emit_progress(emit, {
         "type": "stage",
         "stage": "accepted",
@@ -15558,11 +15604,15 @@ async def _run_analyze_pipeline(
 
         # 7. Five-agent diagnosis through unified Claude/Kimi router
         if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("MOONSHOT_API_KEY"):
+            delivery_source_context = "\n\n".join(
+                p for p in [req.desc, extra_image_context, fact_context, intent_brief] if p
+            )
             agent_result = await _run_five_agents(
                 note, percentile, grade, weaknesses, features,
                 timing, visual_score, cover_feats, semantic_feats,
                 agent_context=agent_context,
                 emit=emit,
+                fact_source_context=delivery_source_context,
             )
             diagnosis = agent_result.get("diagnosis", "")
             suggested_titles = agent_result.get("titles", [])
@@ -15572,14 +15622,12 @@ async def _run_analyze_pipeline(
             dispute = agent_result.get("dispute", "")
             expert_opinions = agent_result.get("expert_opinions", [])
             model_label = "claude-routed-5-agents"
-            delivery_source_context = "\n\n".join(
-                p for p in [req.desc, fact_context, intent_brief] if p
-            )
             expert_opinions = _annotate_expert_fact_risks(
                 expert_opinions, delivery_source_context, req.domain,
             )
             diagnosis, plan = await _repair_diagnosis_report_facts(
                 diagnosis, plan, req.domain, delivery_source_context, emit=emit,
+                review_issues=report_quality_issues,
             )
 
             # ── 每个方案的标题+正文做旧评分器遥测与可解释质量复核 ──────
@@ -15769,6 +15817,7 @@ async def _run_analyze_pipeline(
     report_fact_issues = _structured_fact_boundary_issues(
         f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
     )
+    report_quality_issues = list(dict.fromkeys(report_quality_issues + report_fact_issues))
     plan_fact_issues = [_structured_fact_boundary_issues(
         f"{item.get('title', '')}\n{item.get('body', '')}", delivery_fact_context, req.domain,
     ) for item in plans_scored]
@@ -15777,17 +15826,16 @@ async def _run_analyze_pipeline(
         suggested_body = next((item["body"] for item in plans_scored
                                if item.get("body") and not item.get("quality_failed")), "")
     shared_body_fact_issues = _structured_fact_boundary_issues(suggested_body, delivery_fact_context, req.domain)
-    if report_fact_issues or final_plan_fact_issues or shared_body_fact_issues:
+    if final_plan_fact_issues or shared_body_fact_issues:
         if not billing_managed:
             _billing.refund_operation_charge(
                 user["id"], "analyze", billing_charge, "诊断事实复核失败退回权益",
             )
         raise HTTPException(status_code=422, detail={
             "code": "DIAGNOSIS_FACT_UNVERIFIED",
-            "message": "诊断或方案包含未获来源支持的事实，本次未交付为合格结果。",
-            "issues": list(dict.fromkeys(report_fact_issues + final_plan_fact_issues + shared_body_fact_issues)),
-            "components": {"report": report_fact_issues,
-                           "plans": {str(index + 1): issues for index, issues in enumerate(plan_fact_issues) if issues},
+            "message": "候选正文包含未获来源支持的事实，本次未交付为合格结果。",
+            "issues": list(dict.fromkeys(final_plan_fact_issues + shared_body_fact_issues)),
+            "components": {"plans": {str(index + 1): issues for index, issues in enumerate(plan_fact_issues) if issues},
                            "shared_body": shared_body_fact_issues},
         })
     if not suggested_body:
@@ -15864,6 +15912,8 @@ async def _run_analyze_pipeline(
                                       if k in MarketTiming.model_fields}) if timing else None,
         weaknesses=weaknesses,
         ai_diagnosis=diagnosis,
+        report_quality_status="needs_confirmation" if report_quality_issues else "checked",
+        report_quality_issues=report_quality_issues,
         suggested_titles=suggested_titles,
         suggested_title_scores=title_scores,
         suggested_plans=plans_scored,
@@ -15972,16 +16022,17 @@ async def _run_analyze_pipeline(
     # 仅已通过事实复核且保存成功的诊断计入成长记录。
     try:
         import datetime as _dt_ana, uuid as _uuid_ana
-        _insert_growth_record(
-            user_id=user["id"],
-            note_id=saved_note_id,
-            domain=req.domain or "美食",
-            score=round(percentile, 1),
-            grade=grade,
-            action="analyze",
-            recorded_at=_dt_ana.datetime.now(_dt_ana.timezone.utc).isoformat(),
-        )
-        _memory.check_and_record_achievements(user["id"], percentile, "analyze")
+        if not report_quality_issues:
+            _insert_growth_record(
+                user_id=user["id"],
+                note_id=saved_note_id,
+                domain=req.domain or "美食",
+                score=round(percentile, 1),
+                grade=grade,
+                action="analyze",
+                recorded_at=_dt_ana.datetime.now(_dt_ana.timezone.utc).isoformat(),
+            )
+            _memory.check_and_record_achievements(user["id"], percentile, "analyze")
     except Exception as exc:
         _log_internal_failure("analyze_persistence", exc, phase="save_growth")
 
@@ -16792,7 +16843,7 @@ async def _generate_pipeline_stream(
         "ces_percentile":  round(final_score, 1),
         "grade":           grade_str,
         "visual_score":    visual_score,
-        "cover_analysis":  vis_result.get("_image_desc", "")[:200] if cover_image else "",
+        "cover_analysis":  vis_result.get("_image_desc", "") if cover_image else "",
         "market_timing":   timing_obj.model_dump() if timing_obj else None,
         "feature_hits":    feature_hits,
         "quality_issues":  quality_issues,
@@ -17404,7 +17455,17 @@ def _build_chat_system_prompt(session: dict) -> str:
         # Cover / image analysis
         cover_analysis = gen_ctx.get("cover_analysis") or gen_ctx.get("image_desc") or ""
         if cover_analysis:
-            parts.append(f"封面图分析：{cover_analysis[:300]}")
+            parts.append(f"封面图分析：{cover_analysis}")
+
+        # Prior analysis remains advice, not newly verified merchant facts.
+        for key, label in (("ai_diagnosis", "原诊断分析"), ("improvement_plan", "原优化建议")):
+            if gen_ctx.get(key):
+                parts.append(f"{label}（分析建议，不是新增事实来源）：{gen_ctx[key]}")
+        for weakness in gen_ctx.get("weaknesses") or []:
+            parts.append(f"原诊断待改进项：{weakness.get('label', '')}；{weakness.get('suggestion', '')}")
+        if gen_ctx.get("report_quality_issues"):
+            parts.append("原报告待确认项（不得作为已确认事实写入成稿）：" +
+                         "；".join(gen_ctx["report_quality_issues"]))
 
         # Expert opinions from the 5-agent pipeline
         opinions: list[dict] = gen_ctx.get("expert_opinions", [])
@@ -18534,6 +18595,9 @@ _CHAT_PREFERENCE_FIELDS = frozenset({
     "tone",
 })
 _CHAT_CONTEXT_STRING_FIELDS = frozenset({
+    "ai_diagnosis",
+    "improvement_plan",
+    "report_quality_status",
     "cover_analysis",
     "content_intent",
     "current_grade",
@@ -18549,11 +18613,13 @@ _CHAT_CONTEXT_NUMBER_FIELDS = frozenset({
     "selected_plan_score",
 })
 _CHAT_CONTEXT_STRING_LIST_FIELDS = frozenset({
+    "report_quality_issues",
     "selected_plan_quality_issues",
     "title_variants",
     "user_constraints",
 })
 _CHAT_CONTEXT_MAPPING_SCHEMAS = {
+    "weaknesses": ("list", _WEAKNESS_SCHEMA),
     "constraint_contract": _CONSTRAINT_CONTRACT_SCHEMA,
     "fact_enrichment": _FACT_ENRICHMENT_SCHEMA,
     "intent_contract": _INTENT_CONTRACT_SCHEMA,
@@ -19187,6 +19253,7 @@ async def chat_start(
         if isinstance(gen_ctx, dict):
             issue_candidates.extend(gen_ctx.get("quality_issues") or [])
             issue_candidates.extend(gen_ctx.get("selected_plan_quality_issues") or [])
+            issue_candidates.extend(gen_ctx.get("report_quality_issues") or [])
             selected_idx = gen_ctx.get("selected_plan_index")
             plans = gen_ctx.get("suggested_plans") or []
             if isinstance(selected_idx, int) and isinstance(plans, list) and 0 <= selected_idx < len(plans):
@@ -19276,7 +19343,12 @@ async def chat_start(
     except Exception:
         inherited_fact_context = ""
     session_generate_context = {
-        "cover_analysis":  (gen_ctx.get("cover_analysis") or "")[:200],
+        "cover_analysis":  gen_ctx.get("cover_analysis") or "",
+        "ai_diagnosis": gen_ctx.get("ai_diagnosis") or "",
+        "improvement_plan": gen_ctx.get("improvement_plan") or "",
+        "weaknesses": gen_ctx.get("weaknesses") or [],
+        "report_quality_status": gen_ctx.get("report_quality_status") or "not_checked",
+        "report_quality_issues": gen_ctx.get("report_quality_issues") or [],
         "expert_opinions": _public_expert_opinions(gen_ctx.get("expert_opinions") or []),
         "feature_hits":    gen_ctx.get("feature_hits") or {},
         "title_variants":  (gen_ctx.get("title_variants") or [])[:3],

@@ -152,3 +152,63 @@ test('opening an unscored note clears the previous artifact gauge', async ({page
   await expect(page.locator('#chat-score-grade')).toHaveText('暂无已保存评分');
   expect(await page.locator('#chat-gauge-fill').evaluate(el => Number(el.style.strokeDashoffset))).toBeCloseTo(2*Math.PI*23, 2);
 });
+
+test('generation saves only its original account once and preserves a zero score', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const result = await page.evaluate(async () => {
+    _authUser = {id: 'synthetic-generation-owner'}; _authToken = 'synthetic-only';
+    const identity = _chatIdentitySnapshot();
+    const generated = {note_title: '原素材标题', note_body: '原素材正文', ces_percentile: 0};
+    let requests = 0, sent;
+    window.fetch = async (_url, init) => { requests++; sent = JSON.parse(init.body);
+      return new Response(JSON.stringify({id: 'synthetic-note', version: 1}), {status: 200}); };
+    await autoSaveGeneratedNote(generated, identity, 'synthetic-only');
+    await autoSaveGeneratedNote(generated, identity, 'synthetic-only');
+    return {requests, score: sent.score, status: generated._save_status, id: generated._saved_note_id};
+  });
+  expect(result).toEqual({requests: 1, score: 0, status: 'saved', id: 'synthetic-note'});
+});
+
+for (const responseCase of ['disconnect', 'server_error', 'incomplete_receipt']) {
+  test(`generation preserves content and does not repeat uncertain save: ${responseCase}`, async ({ page }) => {
+    await page.goto('/NoteAI_Pro_Demo_Framer.html');
+    const result = await page.evaluate(async (responseCase) => {
+      _authUser = {id: 'synthetic-generation-owner'}; _authToken = 'synthetic-only';
+      const identity = _chatIdentitySnapshot();
+      const generated = {note_title: '保留标题', note_body: '保留正文'};
+      let requests = 0;
+      window.fetch = async () => {
+        requests++;
+        if (responseCase === 'disconnect') throw new TypeError('synthetic disconnect');
+        return new Response('{}', {status: responseCase === 'server_error' ? 500 : 200});
+      };
+      await autoSaveGeneratedNote(generated, identity, 'synthetic-only');
+      await autoSaveGeneratedNote(generated, identity, 'synthetic-only');
+      return {requests, body: generated.note_body, status: generated._save_status,
+        saved: !!generated._saved_note_id, message: generated._save_message};
+    }, responseCase);
+    expect(result).toMatchObject({requests: 1, body: '保留正文', status: 'unknown', saved: false});
+    expect(result.message).toContain('先查看笔记库');
+    await expect(page.locator('#bubbleArea')).not.toContainText('生成结果已保存');
+  });
+}
+
+test('a changed account cannot save or receive a delayed generation result', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const result = await page.evaluate(async () => {
+    _authUser = {id: 'synthetic-generation-owner'}; _authToken = 'synthetic-a';
+    const identity = _chatIdentitySnapshot();
+    let requests = 0;
+    window.fetch = async () => { requests++; return new Response('{}'); };
+    _generateResult = {note_title: 'PRIVATE_SENTINEL', note_body: '旧账户素材'};
+    document.getElementById('genMainTitle').textContent = 'PRIVATE_SENTINEL';
+    chatClearUserState();
+    _authUser = {id: 'synthetic-other-owner'}; _authToken = 'synthetic-b';
+    await autoSaveGeneratedNote({note_title:'PRIVATE_SENTINEL', note_body:'旧账户素材'}, identity, 'synthetic-a');
+    _handleGenStreamEvent({type: 'complete'}, () => _chatIdentityMatches(identity));
+    return {requests, generated: _generateResult};
+  });
+  expect(result).toEqual({requests: 0, generated: null});
+  await expect(page.locator('#genMainTitle')).not.toContainText('PRIVATE_SENTINEL');
+  await expect(page.locator('#genReportBody')).toBeHidden();
+});

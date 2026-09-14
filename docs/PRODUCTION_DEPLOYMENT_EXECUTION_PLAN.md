@@ -1,5 +1,18 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 owner update: prioritize the full actual product chain, not more isolated
+hotel-ticket tests. Natural clarification/resumption is authorized within the existing
+conversation/task/material mechanisms: preserve completed stages, scope answers to
+merchant/package/time, distinguish merchant confirmation from external verification,
+and avoid repeat OCR/full-operation deductions. API8e is live; original food02 reached
+complete with41actual calls/2.6190124RMB/6credits once, but human content quality still
+fails on unsupported experiences. This is not a product pass. Current local chain/
+save/context corrections and exact original results are at Handoff top. Clarification
+requires actual paused-state persistence/atomic resume; existing charged chat UI alone
+is insufficient. Native12RMB owner scan/refund/next-day bill, media recovery/video and
+all previous unfinished tasks remain in scope. No Item34 or migration replay.
+
+
 September14 current: hotel10 and first owner-image diagnosis failed factual quality,
 each6credit refund verified, actual model costs retained. Ark original OCR succeeded
 with real image/text,0.5credit; its completed response/merge must be reused, not replayed.

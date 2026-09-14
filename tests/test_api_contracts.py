@@ -7,6 +7,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from contextlib import ExitStack
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -1793,6 +1794,33 @@ class ApiContractTests(unittest.TestCase):
                 self.assertEqual(api._chat_sessions[resp.session_id]["current_score"], expected)
                 api._chat_sessions.pop(resp.session_id)
 
+    def test_diagnosis_context_survives_chat_persistence_and_reaches_prompt_as_advice(self):
+        context = {
+            "current_score": 72.4,
+            "ai_diagnosis": "DIAGNOSIS_SENTINEL 保留真实感受。",
+            "improvement_plan": "PLAN_SENTINEL 调整叙事顺序。",
+            "cover_analysis": "画面观察" * 100 + "COVER_END_SENTINEL",
+            "weaknesses": [{"feature": "body_len", "label": "正文结构", "suggestion": "建议分段"}],
+            "report_quality_status": "needs_confirmation",
+            "report_quality_issues": ["REPORT_ISSUE_SENTINEL 尚待确认"],
+            "fact_context": "SOURCE_SENTINEL 原素材只提供汤浓料足。",
+        }
+        with mock.patch.object(api, "_persist_chat_session"), \
+             mock.patch.object(api, "_get_user_learn", return_value={}):
+            response = asyncio.run(api.chat_start(api.ChatStartInput(note_title="乌冬面",
+                note_body="原素材只提供汤浓料足。", domain="美食", generate_context=context), user={"id":"u1"}))
+            session = api._chat_sessions.pop(response.session_id)
+        persisted = api._sanitize_chat_generate_context(session["generate_context"])
+        for key in ("ai_diagnosis", "improvement_plan", "cover_analysis", "weaknesses", "report_quality_status", "report_quality_issues"):
+            self.assertEqual(persisted[key], context[key])
+        session["generate_context"] = persisted
+        prompt = api._build_chat_system_prompt(session)
+        for marker in ("DIAGNOSIS_SENTINEL", "PLAN_SENTINEL", "COVER_END_SENTINEL", "REPORT_ISSUE_SENTINEL", "SOURCE_SENTINEL", "建议分段"):
+            self.assertIn(marker, prompt)
+        self.assertIn("分析建议，不是新增事实来源", prompt)
+        self.assertEqual(session["fact_context"], context["fact_context"])
+        self.assertNotIn("DIAGNOSIS_SENTINEL", session["fact_context"])
+
     def test_chat_start_prefers_selected_plan_score_over_original_diagnosis_score(self):
         original_sessions = dict(api._chat_sessions)
         original_get_user_learn = api._get_user_learn
@@ -2439,12 +2467,14 @@ class ApiContractTests(unittest.TestCase):
                     "<plan>分别测试数据、场景、反差三种角度。</plan>"
                     "<dispute>数据派和情绪派都可行。</dispute>"
                 )
-            if "数据/结果型" in system:
+            if "决策信息型" in system:
                 return "人均58元的蟹黄拌面，蟹黄量给得很足，排队20分钟也值。点赞收藏，下次按这个点。"
-            if "场景/情绪型" in system:
+            if "菜品种草型" in system:
                 return "下班路过这家小店，热气一上来就很治愈，蟹黄裹住面条特别香。点赞收藏，想吃面时直接来。"
-            if "反向/颠覆型" in system:
+            if "避坑决策型" in system:
                 return "本来以为是普通面馆，没想到蟹黄香气和小馄饨都很稳，反差感很强。点赞收藏，别错过。"
+            if route == "diagnosis":
+                raise AssertionError("unmatched synthetic diagnosis body request")
             return ""
 
         try:
@@ -2481,6 +2511,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertGreaterEqual(len(bodies_calls), 3)
         for call in bodies_calls:
             self.assertIn(source_context, call[2])
+            self.assertIn(api._CONTENT_SOURCE_POLICY, call[2])
             self.assertEqual(call[3]["max_tokens"], 4096)
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
 
@@ -3357,6 +3388,28 @@ class ApiContractTests(unittest.TestCase):
         for text in ("春节适用998元起套餐。", "建议春节入住998元含票套餐。"):
             self.assertTrue(api._structured_fact_boundary_issues(text, source, "旅行"), text)
 
+    def test_ticket_price_variables_are_not_entitlement_evidence(self):
+        source = ("松林大床房套餐1200元起，具体价格会根据房型和包含的门票套餐有所不同。"
+                  "部分套餐含门票，具体权益待确认。")
+        for text in (
+            "松林大床房套餐1200元起（具体价格随房型及含票组合变化，以当日确认为准）。",
+            "1200元起须同步保留价格随房型及含票组合变化的限定，不得写成固定套餐价。",
+            "套餐价格会随房型和门票组合变化，预订时需确认套餐是否包含门票。",
+        ):
+            self.assertFalse(api._structured_fact_boundary_issues(text, source, "旅行"), text)
+        for text in (
+            "松林大床房1200元起套餐含门票。",
+            "1200元起不含门票，价格随房型及含票组合变化。",
+            "1200元起含门票，具体组合以当日为准。",
+            "价格随房型及含票组合变化并赠送门票。",
+            "松林大床房套餐1200元，价格随房型及含票组合变化。",
+        ):
+            self.assertTrue(api._structured_fact_boundary_issues(text, source, "旅行"), text)
+        # The conditional phrase cannot legitimize a promise even when the
+        # source uses the exact same shorthand as the generated report.
+        self.assertTrue(api._structured_fact_boundary_issues(
+            "1200元起套餐含门票。", "1200元起，价格随房型及含票组合变化。", "旅行"))
+
     def test_diagnosis_report_repair_keeps_full_source_and_has_one_attempt(self):
         source = "酒店998元起，房型与门票绑定未知。\n" + "原事实明细。" * 1000 + "尾部约束：不得推定含票。"
         good = ("原文缺少具体房型的可核验权益。", "建议核实春节是否适用，并补充具体房型与套餐权益。")
@@ -3494,6 +3547,69 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(event["original_diagnosis"], "每晚998元。")
         self.assertEqual(event["repair_status"], "response_unavailable")
         self.assertEqual(event["diagnosis"], "")
+
+    def test_report_uncertainty_continues_all_candidates_and_persists_notice(self):
+        bodies = ["乌冬面98元，原图展示白碗里的汤面。" + suffix for suffix in
+                  ("先介绍画面。", "再描述已提供的口感。", "保留实际价格。")]
+        agents = {"diagnosis": "可补充188元的依据。", "plan": "先核对已提供的素材。",
+                  "titles": ["一碗乌冬面", "图里的乌冬面", "乌冬面的细节"],
+                  "plans": [{"title": title, "body": body} for title, body in zip(
+                      ["一碗乌冬面", "图里的乌冬面", "乌冬面的细节"], bodies)],
+                  "body": bodies[0], "expert_opinions": []}
+        req = api.AnalyzeInput(note_title="一碗乌冬面", desc="乌冬面98元，原图展示白碗里的汤面。",
+                               domain="美食", local_time="2026091408")
+        with ExitStack() as stack:
+            def patch(target, name, value):
+                return stack.enter_context(mock.patch.object(target, name, value))
+            patch(api._billing, "check_and_deduct", mock.Mock(return_value={}))
+            refund = patch(api._billing, "refund_operation_charge", mock.Mock())
+            patch(api, "_maybe_enrich_facts", mock.AsyncMock(return_value=None))
+            patch(api, "_compute_market_timing_for_delivery", mock.Mock(return_value=None))
+            patch(api, "compute_semantic_features", mock.Mock(return_value={}))
+            patch(api, "_predict", mock.Mock(return_value=(68.0, {})))
+            patch(api, "_find_weaknesses", mock.Mock(return_value=[]))
+            patch(api, "_MEM0_AVAILABLE", False)
+            patch(api._memory, "build_memory_prompt", mock.Mock(return_value="原偏好"))
+            growth = patch(api, "_insert_growth_record", mock.Mock())
+            achievements = patch(api._memory, "check_and_record_achievements", mock.Mock())
+            patch(api, "_run_five_agents", mock.AsyncMock(return_value=agents))
+            call = patch(api._mr, "call", mock.AsyncMock(return_value=
+                "<diagnosis>可补充188元的依据。</diagnosis><plan>保留原素材，其余事实需要确认。</plan>"))
+            patch(api, "_shape_body_for_delivery", mock.AsyncMock(side_effect=lambda title, body, *a: body))
+            score = patch(api, "_score_generated_note", mock.AsyncMock(return_value=(80.0, {}, "优秀")))
+            patch(api, "_generated_quality_issues", mock.Mock(return_value=[]))
+            patch(api, "_delivery_integrity_issues", mock.Mock(return_value=[]))
+            patch(api, "_needs_v04_score_lift", mock.Mock(return_value=False))
+            patch(api, "_log_analysis", mock.Mock())
+            writes = patch(api, "_insert_content_with_retention", mock.Mock())
+            response = asyncio.run(api.analyze(req, user={"id": "u1"}, request_id=None))
+            self.assertEqual(score.await_count, 3)
+            self.assertEqual(call.await_count, 1)
+            self.assertEqual(response.report_quality_status, "needs_confirmation")
+            self.assertTrue(response.report_quality_issues)
+            self.assertEqual(len(response.suggested_plans), 3)
+            self.assertFalse(any(p["quality_failed"] for p in response.suggested_plans))
+            self.assertEqual(response.suggested_body, bodies[0])
+            self.assertEqual(response.ces_percentile, 68.0)
+            self.assertTrue(response.diagnosis_id and response.saved_note_id)
+            self.assertEqual(writes.call_count, 2)
+            stored = json.loads(writes.call_args_list[1].args[1][7])
+            self.assertEqual(stored["report_quality_status"], "needs_confirmation")
+            self.assertEqual(stored["report_quality_issues"], response.report_quality_issues)
+            refund.assert_not_called()
+            growth.assert_not_called()
+            achievements.assert_not_called()
+
+    def test_report_warning_cannot_swallow_incomplete_or_unknown_model_result(self):
+        for output in ("<diagnosis>只有诊断</diagnosis>", RuntimeError("UNKNOWN")):
+            review = []
+            call = mock.AsyncMock(side_effect=output) if isinstance(output, Exception) else mock.AsyncMock(return_value=output)
+            with mock.patch.object(api._mr, "call", call):
+                with self.assertRaises((HTTPException, RuntimeError)):
+                    asyncio.run(api._repair_diagnosis_report_facts(
+                        "人均188元。", "需要调整内容。", "美食", "原价格98元。", review_issues=review))
+            self.assertEqual(review, [])
+            self.assertEqual(call.await_count, 1)
 
     def test_hotel_price_ranges_do_not_borrow_qualifiers_or_invent_capacity(self):
         source = "狩猎房969元起/晚；亲子房1965元起。部分房型含门票，具体绑定未知。"

@@ -1,5 +1,84 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 08:55 Beijing — owner prioritizes the whole chain; original food02 completed
+
+Current owner priority: deliver the full material/model/diagnosis/generation/chat/
+save/cost chain. Do not run another hotel test solely for ticket-phrase rules.
+Owner also authorizes natural fact clarification in the existing task/dialogue:
+reuse prior material/answers, scope merchant confirmations by store/package/time,
+allow correction/unknown/omit, pause without failure, resume affected steps without
+re-OCR or a second full-operation charge. System parsing/matching defects remain
+engineering work, not questions delegated to the merchant. No new task platform.
+This is active engineering, not a completed clarification feature.
+
+API8e/image dfe2c7fb remains deployed, publicweb4d and Admin unchanged. Original
+hotel11 is FAILED, no complete: claimbca7c72e/usagee90cbb56,6credits refunded once,
+13 actual calls(11Haiku/2Sonnet),1.671712RMB. C original business-analyze-11/reconcile.json
+read00:27:42.896314UTC verifies original charge/refund, no replay. Failure remains
+report price/ticket-condition classification; original/repaired reports are retained.
+
+Original food02 completed once at00:29:37.207160UTC, result
+/var/lib/noteai/fact-scope-8e11580/media-owner-check/chain-result.json and SSE
+sha256 df9baf32b4b5c04a9f8e783953f917d657798184d100a1db1e037bea5f8004c9.
+Claimf4ece620-e927-4500-bcc8-189ee5dc0ade, usagead44e424-72ef-4875-9182-a58119f96f43;
+6credit chargeonce/refund0, wallet2993.5. Originalreconcile.json read00:48:46.301250UTC:
+41 physical calls(36Haiku/4Sonnet/1Ark260428),2.6190124RMB actual exact-price/complete
+usage;138821milliCNY is reserve, not settledcost. OCR/merge originals reused, not replayed.
+Saved note1c49d7d7-104e-4be9-9a62-d6679eed685e and diagnosis4b7933de-a433-4d70-8d30-3fd1c867665d.
+Inputscore47.2, candidates72.4/68.3/73.3. Despite APIcomplete, actual bodies invent
+unprovided eating experiences/options; this is NOT human-quality acceptance.
+No inference from high scores or HTTP200 to whole-product completion.
+Private candidatec16b2583dd0335633a448b40ccd77443e0d49fa6e0eeaee7790ee7b9894a33a3
+uses8e at127.0.0.1:18080. Old private4d candidate was stopped only after terminal
+claims were read. Public media/payment staydisabled. Native owner DMS freshread
+08:28:41BJT confirms15targettables/allowner+TRIGGER privileges/10RLS; no DDLwritten.
+
+Local API/HTML changes preserve report uncertainty visibly while still rejecting
+failed final bodies and UNKNOWN, carry diagnosis/facts/complete cover context to
+chat, distinguish original material from model advice, and make generation saving
+owner/epoch/token-bound with honest uncertain-save display and no blind resubmit.
+Original industry Prompts/model selection remain unchanged. Targeted Python3.11
+context/warning3tests and five offline browser save/isolation cases pass. Broader
+six-case source regression now passes (0.528s). The original distinct-body fixture
+failed on both8e and current code because it matched retired style names; only
+its three synthetic style matches were corrected, original assertions retained.
+Logs: ~/.codex/tmp/noteai-chain-source-regression-20260914-fixed.log and
+noteai-generation-save-isolation-20260914.log; independent baseline comparison
+at ~/.codex/tmp/noteai-arbitrate-mock-ejozpeh6/. Readiness30/37 unchanged. Seven protected paths untouched,
+no Gitpush/Item34 action. Next: finish exact regression and checkpoint; implement
+same-task clarification using existing chat/idempotency/persistence, then scoped
+candidate rollout/full-chain real validation. Native and media recovery/video remain.
+
+
+## September14 08:16 Beijing — scoped API8e11580 deployed; original hotel11 in progress
+
+API-only source8e11580d8757a0b7565d59958c1643105fdac6e2 is deployed as
+sha256:dfe2c7fb0a73bf71b89d633e04c84d3ddff8cf72cc0f99a3cd4977a7295bd87a.
+C /var/lib/noteai/fact-scope-8e11580/build/build-result.json verifies Python3.11.15,
+Linuxamd64 and13 exact source/import bindings; deploy/result.json is
+DEPLOYED_API_ONLY at1789344977.7462847 (08:16:17.746284BJT). Publicweb4d7781f,
+Admin, env hashes and model routing unchanged. Public HTTPS status200 confirms
+registration/AI open, payment/media closed. No provider calls or business writes
+by rollout. Prior4d image/config and original deployment script remain recoverable.
+Original package e2610a69 was uploaded once; initial SDK-import transfer failed
+before build and corrected once. Build was not repeated. Deployer original607fcf04
+is retained; exact reviewed rollback-drain correction a04c1171 is deployed.
+Two command-wrapper failures (Python quoting, then resulting hash mismatch) occurred
+before launching any deployment, and remain in CloudAssistant results38/39.
+Corrected durable launch1639541 ran once. Failure recovery now drains ingress again
+before restarting a prior API, and stops recovery if requests have not settled.
+
+Fresh hotel11 uses the unchanged hotel10 input/client except original request/path
+and actual8e image: request formal-claude-meituan-20260914-11, hostPID1640249,
+launch1789345033.1785805, clientSHA
+bf9299b355c3e1a057b9a6a6321c123e5e07e886d474a242a0bfe3e122bca778.
+Read original C business-analyze-11/result.json/SSE/ledgers before next action;
+no replay or success claim. Old hotel10 and food01 remain failed/refunded history.
+Next: assess hotel11, then new food analysis using retained original OCR/merge,
+without re-OCR/remerge. Native two-phase capture assembly and media result recovery
+remain independent implementation work. Item34 is unchanged/LAST_KNOWN here;
+Readiness30/37, seven protected paths untouched, no Git push.
+
 ## September14 hotel10 and original Ark image — real outcomes; scoped API correction
 
 4d7781f API54564f67/publicweb4d remains deployed; no migration, Admin, Payment,
