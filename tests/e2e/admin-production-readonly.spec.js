@@ -42,6 +42,25 @@ const overview = {
   },
 };
 
+test('usage details distinguish unknown costs and loaded Prompt snapshots from actual model records', async ({ page }) => {
+  await page.goto('/model/admin.html');
+  const content = await page.evaluate(() => renderAdminCallDetails({status:'available', calls:[
+    {binding:'physical_call', state:'unknown', requested_model:'doubao-seed-2-0-lite-260428',
+      modality:'video_audio', model:null, known_cost_rmb:null, loaded_prompt_versions:[]},
+    {binding:'historical_model_record_only', state:'not_recorded',model:'<img src=x onerror=alert(1)>',
+      known_cost_rmb:0.1,loaded_prompt_versions:[{key:'creator.travel',source:'code_fallback',version:null,sha256:'a'.repeat(64)}]},
+    {binding:'physical_call',state:'responded',model:'unpriced-model',known_cost_rmb:0,
+      pricing_status:'unpriced',usage_status:'incomplete',loaded_prompt_versions:[]},
+  ]}));
+  await page.locator('body').evaluate((el, html) => { el.innerHTML = html; }, content);
+  await expect(page.locator('body')).toContainText('已知模型成本 待核实');
+  await expect(page.locator('body')).toContainText('调用时已加载的版本快照');
+  await expect(page.locator('body')).toContainText('具体专家阶段未记录');
+  await expect(page.locator('body')).toContainText('历史模型账目：未关联物理调用');
+  await expect(page.locator('body img')).toHaveCount(0);
+  expect(content).not.toContain('¥0.000000');
+});
+
 
 test('production Admin advertises read-only mode and disables mutation controls', async ({ page }) => {
   const writes = [];

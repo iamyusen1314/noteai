@@ -891,6 +891,32 @@ function adminLedgerLabel(labels, value, fallback) {
   return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : fallback;
 }
 
+function renderAdminCallDetails(detail) {
+  if (!detail || detail.status !== 'available') return '<div>调用明细暂不可读取，请检查服务状态或查询权限。</div>';
+  const calls = Array.isArray(detail.calls) ? detail.calls : [];
+  if (!calls.length) return '<div>没有保留可关联的调用明细；不据此推断费用为零。</div>';
+  const number = (v) => v === null || v === undefined || !Number.isFinite(Number(v)) ? '未知' : String(Number(v));
+  const states = {dispatched:'已派发，结果待确认', responded:'收到响应（不等于业务成功）', unknown:'结果未知，待核实', not_recorded:'历史未记录派发状态'};
+  const modalities = {text:'文字', image:'图片', video:'视频', audio:'音频', video_audio:'视频与音轨'};
+  return '<p>按实际账务关联显示，不按时间猜测绑定。Prompt 为调用时已加载的版本快照，不能据此推断该次调用的全部独占内容；具体专家阶段未记录。</p>'
+    + (detail.truncated ? '<p>明细较多：各类仅显示前100条，以下内容不是完整调用合计。</p>' : '')
+    + calls.map((c, i) => {
+      const prompts = Array.isArray(c.loaded_prompt_versions) ? c.loaded_prompt_versions : [];
+      const costKnown = c.known_cost_rmb !== null && c.known_cost_rmb !== undefined && Number.isFinite(Number(c.known_cost_rmb))
+        && (Number(c.known_cost_rmb) > 0 || (c.pricing_status === 'exact' && c.usage_status === 'complete'));
+      const cost = costKnown ? '¥' + Number(c.known_cost_rmb).toFixed(6) : '待核实';
+      return `<div style="border-top:1px solid var(--border);padding:10px 0;white-space:normal">
+        <b>第 ${i + 1} 条 · ${esc(c.model || '实际模型未确认')}</b>
+        <div>${esc(c.binding === 'physical_call' ? '物理调用已关联' : '历史模型账目：未关联物理调用')} · ${esc(adminLedgerLabel(states,c.state,'状态未知'))}</div>
+        <div>${esc(adminLedgerTime(c.created_at))} · 请求模型 ${esc(c.requested_model || '未记录')} · ${esc(adminLedgerLabel(modalities,c.modality,'模态未记录'))}</div>
+        <div>业务入口 ${esc(c.route || '未记录')} · 配置版本 ${esc(number(c.model_config_revision))} · HTTP ${esc(number(c.http_status))}</div>
+        <div>输入 ${esc(number(c.input_tokens))} · 缓存读 ${esc(number(c.cache_read_input_tokens))} · 缓存写 ${esc(number(c.cache_write_input_tokens))} · 音频 ${esc(number(c.audio_input_tokens))} · 音频缓存 ${esc(number(c.audio_cache_read_input_tokens))} · 未分类输入 ${esc(number(c.unclassified_input_tokens))} · 输出 ${esc(number(c.output_tokens))}</div>
+        <div>已知模型成本 ${esc(cost)} · 计价 ${esc(c.pricing_status || '未记录')} · 用量 ${esc(c.usage_status || '未记录')} · 原计价币种 ${esc(c.price_currency || '未知')} · 计价版本 ${esc(c.price_version || '未记录')}</div>
+        <details><summary>已加载 Prompt 版本（${prompts.length}项）</summary>${prompts.length ? prompts.map(p => `<div>${esc(p.key)} · ${esc(p.source)} · 版本 ${esc(number(p.version))} · SHA256 ${esc(p.sha256 || '未记录')}</div>`).join('') : '<div>本次未保留版本快照，不代表没有使用 Prompt。</div>'}</details>
+      </div>`;
+    }).join('');
+}
+
 function renderAdminUsageLedger(rows) {
   const safeRows = Array.isArray(rows) ? rows.slice(0, 20) : [];
   if (!safeRows.length) {
@@ -913,7 +939,7 @@ function renderAdminUsageLedger(rows) {
       <td>${fmtTokens(tokensIn + tokensOut)}<div style="font-size:11px;color:var(--text-muted)">入 ${fmtTokens(tokensIn)} / 出 ${fmtTokens(tokensOut)}</div></td>
       <td style="white-space:nowrap">总计费 ${credits.toFixed(1)} 积分</td>
       <td style="white-space:nowrap">¥${cost.toFixed(4)}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
-    </tr>`;
+    </tr><tr><td colspan="6"><details><summary>查看本次调用、Prompt 版本与成本依据</summary>${renderAdminCallDetails(row?.call_details)}</details></td></tr>`;
   }).join('');
 }
 

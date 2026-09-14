@@ -627,6 +627,72 @@ def _admin_quota_snapshot(sub: Optional[dict], wallet: float) -> dict:
     }
 
 
+def _admin_call_provenance(raw):
+    """Only version identifiers, never provider payloads or Prompt content."""
+    import re
+    try:
+        value = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        value = {}
+    if not isinstance(value, dict):
+        value = {}
+    def identifier(v, limit=160):
+        return v if isinstance(v, str) and re.fullmatch(r"[\w./:-]{1," + str(limit) + "}", v) else None
+    prompts = []
+    versions = value.get("prompts")
+    if isinstance(versions, dict):
+        for key, item in list(versions.items())[:80]:
+            if not identifier(key) or not isinstance(item, dict):
+                continue
+            sha = item.get("sha256")
+            prompts.append({"key": key,
+                "source": item.get("source") if item.get("source") in ("managed_prompts", "code_fallback") else "unknown",
+                "version": item.get("version") if type(item.get("version")) is int else None,
+                "sha256": sha if isinstance(sha, str) and re.fullmatch(r"[0-9a-f]{64}", sha) else None})
+    return {"requested_model": identifier(value.get("model")),
+            "route": value.get("route") if value.get("route") in (
+                "/analyze/stream", "/generate/stream", "/chat/message", "/extract-screenshot", "/validate-ocr") else None,
+            "modality": value.get("modality") if value.get("modality") in ("text", "image", "video", "audio", "video_audio") else None,
+            "model_config_revision": value.get("model_config_revision") if type(value.get("model_config_revision")) is int else None,
+            "loaded_prompt_versions": prompts}
+
+
+def _admin_usage_call_details(user_id, usage_id):
+    # Bind both branches through this user's usage record. Old rows are not
+    # assigned a physical call by timestamp or inferred from a model name.
+    fields = ("provider,model,input_tokens,unclassified_input_tokens,cache_read_input_tokens,"
+              "audio_input_tokens,audio_cache_read_input_tokens,cache_write_input_tokens,output_tokens,"
+              "known_cost_rmb,pricing_status,usage_status,price_currency,price_version,usd_cny")
+    linked = db.fetchall(
+        "SELECT c.id AS call_id,c.model_usage_record_id,c.created_at,c.state,c.http_status,c.provenance_json,"
+        + ",".join("m." + key for key in fields.split(",")) +
+        " FROM public_trial_calls c JOIN usage_records u ON u.id=c.usage_record_id AND u.user_id=c.user_id"
+        " LEFT JOIN model_usage_records m ON m.id=c.model_usage_record_id AND m.usage_record_id=u.id"
+        " WHERE u.user_id=? AND u.id=? ORDER BY c.created_at,c.id LIMIT 101", (user_id, usage_id))
+    legacy = db.fetchall(
+        "SELECT m.id AS model_usage_record_id,m.recorded_at AS created_at,"
+        + ",".join("m." + key for key in fields.split(",")) +
+        " FROM model_usage_records m JOIN usage_records u ON u.id=m.usage_record_id"
+        " WHERE u.user_id=? AND u.id=? AND NOT EXISTS"
+        " (SELECT 1 FROM public_trial_calls c WHERE c.model_usage_record_id=m.id AND c.usage_record_id=u.id AND c.user_id=u.user_id)"
+        " ORDER BY m.recorded_at,m.id LIMIT 101", (user_id, usage_id))
+    calls = []
+    for row in linked[:100]:
+        item = dict(row)
+        item.update(_admin_call_provenance(item.pop("provenance_json", None)))
+        item["binding"] = "physical_call"
+        calls.append(item)
+    for row in legacy[:100]:
+        item = dict(row)
+        item.update({"binding": "historical_model_record_only", "state": "not_recorded",
+                     "loaded_prompt_versions": []})
+        calls.append(item)
+    return {"status": "available", "calls": calls,
+            "truncated": len(linked) > 100 or len(legacy) > 100,
+            "prompt_scope": "loaded_versions_at_call_not_exclusive_prompt_content",
+            "stage_scope": "business_route_only_role_not_recorded"}
+
+
 @admin_app.get("/admin/users/{user_id}")
 async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """用户详情（不含笔记全文）。"""
@@ -656,9 +722,17 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin
         (user_id, month_start))
 
     recent_usage = db.fetchall(
-        "SELECT operation,source,cost_rmb,credits_used,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
+        "SELECT id,operation,source,cost_rmb,credits_used,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
         "FROM usage_records WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
         (user_id,))
+
+    recent_usage = [dict(r) for r in recent_usage]
+    for row in recent_usage:
+        try:
+            row["call_details"] = _admin_usage_call_details(user_id, row["id"])
+        except Exception:
+            # A missing query permission is unavailable, never an empty success.
+            row["call_details"] = {"status": "unavailable", "calls": [], "truncated": False}
 
     credit_txns = db.fetchall(
         "SELECT type,amount,balance_after,description,paid_rmb,package_id,recorded_at "

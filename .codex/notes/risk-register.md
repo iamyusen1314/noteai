@@ -1,3 +1,9 @@
+September15 00:00BJT: video→Chat realv2 saved/costssettled, contentquality stillpartial
+(titleduplicated/bodystructure/ambiguousexperience).No newArk call. ExistingAdmin
+percallcost view nowlocal/PG16tested; scoped6columnSELECTproductiongrantverified,
+noownercredentialassignedtoservice. Do not reapplyoldfullrolebootstrap. Adminonly
+candidate/release pending atHandoff; publicAPI/web/Nativebindingsunchanged.
+
 September14 23:39BJT: fullvideo normal pipeline completed and API/webd0 released;
 report remains needs_confirmation, modelscore75 not contentquality acceptance.
 34physicalcalls4.0016064CNY/6credits once; failedattemptcosts and originalFilesUNKNOWN

@@ -1,3 +1,33 @@
+September15 00:00BJT: real public video→Chat completed, not replayed. Originalsession
+1a2e21ca-21de-43cb-b623-f5442c65c287, claim32dce1e9-ce2d-41dc-b4dc-66999167cd70,
+usage0fa9ddb6-543b-447b-85ea-f9b9562acb7a completed15:47:21.578990UTC;
+6Claude calls1.17222CNY,3credits charge1/complete1/refund0;0newArk/media calls.
+Public v2 saved/displayed73.99→74;ownerbalance2897.5. No hotelname/price, video
+scenes/voice information used, naturalendingquestion present. Remainingquality:
+body duplicates title, structure differsfrom3paragraph request, one experience
+sentence remains ambiguous;2existing qualitywarnings. Do not call this fullquality
+acceptance or repeatedly rerun the samevideo to chase wording. Originalreport/AV
+and all prior failures/costs remain; history/context readback verified above.
+
+ExistingAdmin cost detail gap now implemented locally: userdetail recentusage IDs
+join exactphysicalcall links+modelusage; unknown remainsnull, unlinkedhistory honest;
+whitelisted Prompt identifiers/version/hash only, no content/Secret/materialURL.
+UI expands actualmodels, requestmodel, modality, token/cache/audio/cost/status and
+loadedversion snapshots; route isbusinessentry, not inferredexpertstage. No model
+requests whenviewing.5Python3.11 tests+1offlinebrowser+isolatedPG16 actualAdminrole
+PASS (linked audio/unknown/legacy/otheruser exclusion/request_hash andwritesdenied).
+ExactproductionAdmin role initially missing6columns. ExistingDMSnoteai_admin owner
+executed ONLY atomicDOhash3ca78e29fcfbd34221a4211221fee0d7016d3071c5193f6585b2eb9ffef437dc
+addingSELECT(id,user_id,usage_record_id,model_usage_record_id,state,http_status)
+onpublic.public_trial_calls tonoteai_admin_runtime; originalcreated_at/provenance
+kept. DMSsuccess9ms + freshreadbackall8true.0businessDML/newroles/providerrequests.
+Privateapply/only-new-columnsrollback at/Users/openclaw/.codex/tmp/noteai-admin-usage-20260914/.
+Existingrolebootstrap declaration updated forfutureprovisioning; DO NOT run whole
+bootstrap onproduction (its oldreset/revoke behavior would remove neweropsgrants).
+Next: readonlyreview, exactAdmin-onlycandidate onexistinge0bimage3e40c576..., runtime
+query/permission regression, scopedAdmin/webrollout. PublicAPI d0/webad andNative
+inactivepreparedcc95 staybound; no newpayment/order/observation.31/37 unchanged.
+
 September14 23:46BJT: publicvideo API d0ee6b6 remains image292482; web-onlyad084c53c766c7e0927b6c97a5aa4fa44e81db4d deployed1789400522.9651976.
 Only product-app.js changed to86f6c65188777f02a6af6c762d502ab90fc88d1a0ce1c1cde3e6f709785fd7dc;
 index e9f207 remains. Normal publichistory readback shows original1704charvideo and

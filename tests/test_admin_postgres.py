@@ -49,6 +49,8 @@ class AdminPostgresContractTests(unittest.TestCase):
         "payment_settlement_summaries",
     }
     COLUMN_SELECT = {
+        "public_trial_calls": {"id", "user_id", "usage_record_id", "model_usage_record_id",
+                               "state", "http_status", "created_at", "provenance_json"},
         "users": {
             "id",
             "username",

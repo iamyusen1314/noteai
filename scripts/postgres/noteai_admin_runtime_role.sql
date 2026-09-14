@@ -103,6 +103,12 @@ GRANT SELECT ON
     payment_settlement_summaries
 TO noteai_admin_runtime;
 
+-- Content-free accounting links for the existing per-user usage detail.
+GRANT SELECT (
+    id, user_id, usage_record_id, model_usage_record_id, state, http_status,
+    created_at, provenance_json
+) ON public_trial_calls TO noteai_admin_runtime;
+
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
     REVOKE ALL PRIVILEGES ON TABLES FROM noteai_admin_runtime;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
