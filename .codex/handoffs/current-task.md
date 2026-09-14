@@ -1,3 +1,18 @@
+September15 00:32BJT: Admin runtime17913b1/image03866c1a remains healthy; static
+web1cbc5b9207da9fe4dbdf66a6ae737abae3d9896f deployed once1789403074.3131366
+(web-layout.py SHA3ca60e91f21fc26d62d7fbf0f948441e666e9ff7c66657a9144d27aa8adab67f).
+OnlyAdminindex changed to9b471cd935c13e139af71eb036f08d02725ae353ab14bc5b6e756d2c0d838dd6;
+previouswebb9 retained, no service restart or Native binding change. Existingowner
+login/userdetail verified: video34calls/4.0016064CNY/audio358 and chat6calls/1.17222CNY,
+2897.5credits; actual nested Prompt disclosure shows semantic_features version8/hash.
+Desktop/mobile offline layout and actual browser expansion PASS. Modelpage confirms
+Claude realroutes, Ark exact260428/image+video open, Kimi noactiveentry, no live
+provider probe; stale static Kimi-only explanation removed. Currentprompt snapshots
+are cumulative request-loaded versions, not exclusive per-call expert provenance;
+that concrete previously requested gap is next in progress. Historical rows remain
+unchanged. PublicAPI d0/webad, sameinactiveNative af442/30fd and Item34COMPLETE remain.
+No production model call/business DML inthisAdminverification,31/37 unchanged.
+
 September15 00:18BJT: Admin scoped release COMPLETED at1789402687.3466291; runtime17913b15e8bde82040ac5b1ebaca601a31281315/image03866c1a28d8b26874c8c7611682f5251b0007cee832ab682436a88018e344b1; publicAdminwebb9da4063d4c1971809767133772780305fb92487. ExactrunPID1793262/script2e019895, candidate+liveownerreadonly query PASS,2sourcefiles/2webfiles, newdrop415f7cc410a12b747faac1428881ce247925fb5b53485b2f6e5ea986a0fe8579. Native SAMEinactiveactivation4febf1b9-fdbe-4ed0-9ba5-973c04fbca55 preserved; onlyprepared.admin_image updated cc95→af4420c83c74c43e732155229ce01ba3b236d31d807ab949f635cb2c3cf9a8f1, originalbackup retained. Solelauncher30fdunchanged; noorder/DDL/provider/businesswrite. API d0/publicwebad/config/envs unchanged and healthy. Exactreadonlycandidate stopped/logsretained. Existingownerbrowserverification inprogress; no deployment replay.31/37 unchanged.
 
 September15 00:18BJT: Admin usage details source17913b15e8bde82040ac5b1ebaca601a31281315 built once on API-C image03866c1a28d8b26874c8c7611682f5251b0007cee832ab682436a88018e344b1, Python3.11.15/linuxamd64; onlyAdmin base3e40,2runtime files. PublicAPI/web unchanged. Firststage stopped on oldimageHTML mismatch; verified saved e0 hostsource used to complete absentHTML, no service change. Missing-usage tokens nowUNKNOWN; targetedbrowserPASS. Static stale Kimi-only/Claude-disabled explanation corrected separately inwebb9da4063d4c1971809767133772780305fb92487, noimage rebuild. FinalAdmin deployscript2e019895170f05eb1bab3791ff09e5037e5451926aad499c7a57003727535894 staged NOT_RUN at/var/lib/noteai/admin-17913b1/deploy.py. It holds SAMEinactiveNative control.lock, verifies originalcc95prepared and onlyupdatesadmin_image afterAdmin-only release; preserves oldprepared onrollback. No newNativeactivation/order/DDL/provider. Next: solecontrolledAdmincandidate+release, actualownerbrowsercostreadback.31/37 unchanged.

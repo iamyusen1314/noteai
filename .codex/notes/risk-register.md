@@ -1,3 +1,18 @@
+September15 00:32BJT: Admin runtime17913b1/image03866c1a remains healthy; static
+web1cbc5b9207da9fe4dbdf66a6ae737abae3d9896f deployed once1789403074.3131366
+(web-layout.py SHA3ca60e91f21fc26d62d7fbf0f948441e666e9ff7c66657a9144d27aa8adab67f).
+OnlyAdminindex changed to9b471cd935c13e139af71eb036f08d02725ae353ab14bc5b6e756d2c0d838dd6;
+previouswebb9 retained, no service restart or Native binding change. Existingowner
+login/userdetail verified: video34calls/4.0016064CNY/audio358 and chat6calls/1.17222CNY,
+2897.5credits; actual nested Prompt disclosure shows semantic_features version8/hash.
+Desktop/mobile offline layout and actual browser expansion PASS. Modelpage confirms
+Claude realroutes, Ark exact260428/image+video open, Kimi noactiveentry, no live
+provider probe; stale static Kimi-only explanation removed. Currentprompt snapshots
+are cumulative request-loaded versions, not exclusive per-call expert provenance;
+that concrete previously requested gap is next in progress. Historical rows remain
+unchanged. PublicAPI d0/webad, sameinactiveNative af442/30fd and Item34COMPLETE remain.
+No production model call/business DML inthisAdminverification,31/37 unchanged.
+
 September15 00:00BJT: video→Chat realv2 saved/costssettled, contentquality stillpartial
 (titleduplicated/bodystructure/ambiguousexperience).No newArk call. ExistingAdmin
 percallcost view nowlocal/PG16tested; scoped6columnSELECTproductiongrantverified,
