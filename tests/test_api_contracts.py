@@ -3677,6 +3677,28 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api._repair_diagnosis_report_facts("998元含票。", "春节入住。", "旅行", source))
             self.assertEqual(call.await_count, 1)
 
+    def test_diagnosis_experts_keep_output_capacity_and_source(self):
+        source = "开头画面。" * 500 + "末段口播保留。"
+        dk = api._get_dk("旅行")
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="<opinion>按原素材分析。</opinion>")) as call:
+            asyncio.run(api._agent_content("标题", source, "旅行", [], dk))
+            asyncio.run(api._agent_visual("旅行", 70, {}, dk))
+            asyncio.run(api._agent_growth("标题", source, "旅行", None, dk))
+            asyncio.run(api._agent_user("标题", source, "旅行", {}, [], dk))
+        self.assertEqual(call.await_count, 4)
+        for item in call.call_args_list:
+            self.assertEqual(item.args[0], "diagnosis")
+            self.assertEqual(item.kwargs["max_tokens"], 16000)
+        for index in (0, 2, 3):
+            self.assertIn(source, call.call_args_list[index].args[2])
+
+    def test_video_observation_survives_diagnosis_history_without_internal_fields(self):
+        text = "0–10秒：画面文字。\n" + "口播与场景观察。" * 100 + "50–57秒：结尾信息。"
+        clean = api._sanitize_persisted_diagnosis({"video_analysis": text})
+        self.assertEqual(clean["video_analysis"], text)
+        self.assertEqual(api._sanitize_persisted_diagnosis({"video_analysis": text, "internal_request": "secret"}), {})
+        self.assertIn("video_analysis", api.AnalyzeResponse.model_fields)
+
     def test_food_experts_receive_media_fact_rule_without_replacing_source(self):
         source = "龙虾乌冬198r，汤底浓郁。"
         dk = api._get_dk("美食")

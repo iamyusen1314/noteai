@@ -1,3 +1,10 @@
+September14 23:20BJT: real full-video Ark succeeded with audio cost, but formal
+Claude experts hit actual max_tokens4096 twice; business failed/refunded once.
+General expert capacity and full observation report retention fixed locally,
+not yet publicvideo/complete quality acceptance. Original successful Ark prose
+not retained by olddiagnosis, cannot reconstruct as evidence; oldFilesUNKNOWN
+unchanged. Exact requests/cost/candidate and next boundedverification at Handoff.
+
 September14 23:07BJT: local Responses/private-OSS continuation and atomic same-media
 no-replay protection passed Python3.11/PG16; not yet real media success. Original
 Files upload UNKNOWN and costs remain unknown, no state cleared. Explicit scoped

@@ -2341,6 +2341,7 @@ _PERSISTED_DIAGNOSIS_ROOT_FIELDS = frozenset({
     "grade",
     "improvement_plan",
     "input_diagnostics",
+    "video_analysis",
     "intent_contract",
     "market_timing",
     "model_used",
@@ -2674,6 +2675,7 @@ _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "grade": "string",
     "improvement_plan": "string",
     "input_diagnostics": _INPUT_DIAGNOSTICS_SCHEMA,
+    "video_analysis": "string",
     "intent_contract": _INTENT_CONTRACT_SCHEMA,
     "market_timing": ("nullable", _MARKET_TIMING_SCHEMA),
     "model_used": "string",
@@ -3041,7 +3043,7 @@ async def _agent_content(
     )
     source_index, references = _clarification.source_references(
         (desc or "") if clarification_source is None else clarification_source)
-    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user + source_index, max_tokens=4096)
+    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user + source_index, max_tokens=16000)
     return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
 
@@ -3069,7 +3071,7 @@ async def _agent_visual(
         f"封面视觉得分：{visual_score}/100\n"
         f"视觉特征数据（辅助视觉14维）：\n{feat_lines or '无特征数据'}"
     )
-    raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=16000)
     return {"role": "视觉专家", "raw": raw}
 
 
@@ -3105,7 +3107,7 @@ async def _agent_growth(
         + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"【实时热词数据】\n{timing_text}"
     )
-    raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=16000)
     return {"role": "增长专家", "raw": raw}
 
 
@@ -3135,7 +3137,7 @@ async def _agent_user(
         + (f"互动引导语数量：{cta:.0f}\n" if cta is not None else "")
         + (f"互动性表达密度：{stance:.2f}\n" if stance is not None else "")
     )
-    raw = await _mr.call("diagnosis", system, user_ctx, max_tokens=4096)
+    raw = await _mr.call("diagnosis", system, user_ctx, max_tokens=16000)
     return {"role": "用户专家", "raw": raw}
 
 
@@ -6230,6 +6232,7 @@ class MarketTiming(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
+    video_analysis: str = Field(default="", description="完整视频音画素材理解；模型观察而非外部事实认证")
     ces_percentile: float = Field(description="预测CES分位（0-100）")
     composite_score: float = Field(default=0.0, description="综合得分（当前为旧评分器遥测；v0.4-composite上线后替换）")
     grade: str = Field(description="等级：优秀/良好/待改进/需优化")
@@ -15845,7 +15848,7 @@ async def _run_analyze_pipeline(
                 await _emit_progress(emit, {
                     "type": "stage",
                     "stage": "video",
-                    "label": "正在理解视频画面内容…",
+                    "label": "正在理解完整视频画面与音轨…",
                     "progress": 12,
                 })
                 video_desc = await _kimi_video_understand(
@@ -15857,6 +15860,10 @@ async def _run_analyze_pipeline(
                 if not video_desc or len(video_desc.strip()) < 20:
                     raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
                 video_desc_for_library = video_desc
+                # Deliver the completed observation before downstream experts;
+                # normal SSE consumers can retain it even if a later stage fails.
+                await _emit_progress(emit, {"type": "video_analysis", "content": video_desc,
+                    "media_ref": req.video_file_id, "progress": 18})
                 base_desc = (req.desc or "").strip()
                 merged_desc = (
                     (base_desc + "\n\n" if base_desc else "")
@@ -16367,6 +16374,7 @@ async def _run_analyze_pipeline(
         fact_source_policy=normalized_fact_policy,
         fact_source_decision=fact_source_decision,
         input_diagnostics=input_diagnostics,
+        video_analysis=video_desc_for_library or "",
         supplement_prompts=supplement_prompts,
         fact_context=_clarified_fact_context(prepared, prepared.get("confirmation", "")) if prepared else fact_context,
         merchant_confirmations=prepared.get("merchant_confirmations", []) if prepared else [],

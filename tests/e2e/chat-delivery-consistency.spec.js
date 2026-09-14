@@ -364,3 +364,24 @@ for(const outcome of ['failed','changed-session','changed-owner']) {
     }
   });
 }
+
+test('diagnosis retains complete video observation and clears it for text-only reports', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const observation = '0–10秒：门口画面。\n' + '字幕与口播观察。'.repeat(100) + '50–57秒：结尾信息。<img src=x onerror=alert(1)>';
+  await page.evaluate(async text => {
+    _isGenerateMode = false;
+    _diagnosePromise = null;
+    _diagnoseResult = {video_analysis: text, ai_diagnosis: '依据素材诊断', features: {}, suggested_plans: []};
+    showPage('report');
+    await populateReport();
+  }, observation);
+  await page.locator('#diagnosisVideoCard summary').click();
+  await expect(page.locator('#diagnosisVideoText')).toHaveText(observation);
+  await expect(page.locator('#diagnosisVideoText img')).toHaveCount(0);
+  await page.evaluate(async () => {
+    _diagnoseResult = {ai_diagnosis: '文本报告', features: {}, suggested_plans: []};
+    await populateReport();
+  });
+  await expect(page.locator('#diagnosisVideoCard')).toBeHidden();
+  await expect(page.locator('#diagnosisVideoText')).toHaveText('');
+});

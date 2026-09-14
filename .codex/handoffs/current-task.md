@@ -1,3 +1,31 @@
+September14 23:20BJT real video Responses transport works; downstream diagnosis
+failed honestly. Private21b3acb/c7eaf468 image built Python3.11.15; original media
+GET206 verified using scoped URL without logging it. New normal request
+formal-ark-video-responses-20260914-01,claimc59152e3-dda9-4959-b9c5-87683e799e3e,
+usagef1f9047f-93f4-4fdc-949e-61d1e32d5476 ran15:09:38–15:11:45UTC.
+Ark exact260428 COMPLETE:46092 nonaudio-input+358audio+1184output tokens,
+actual catalogue cost0.0527094CNY. FourClaudeHaiku calls followed; total5models
+0.6097764CNY recorded. Actual originallogs:2end_turn,2max_tokens; error
+CLAUDE_OUTPUT_INCOMPLETE.6credits charged1/refunded1/complete0,not success.
+No in-flight business remains. Old FilesUNKNOWN/IDNULL/ark_updated_at unchanged.
+Canonical private /var/lib/noteai/video-responses-20260914/{events.jsonl,
+business-result.json,candidate.cid}; local /Users/openclaw/.codex/tmp/noteai-media-21b3acb/.
+Original successful Ark prose was not retained by this diagnosis version, and
+same-task chat_session is absent; do not claim old prose recovered or reconstruct it.
+
+Concrete general repair now local: four diagnosis experts previously hardcapped4096
+regardless Admin16000; use existing16000 capacity, unchanged models/Prompts/full
+contexts/noauto-retry/end_turn success boundary. Full video observation emitted
+before experts and retained in existing AnalyzeResponse/history video_analysis;
+original report adds escaped text-only observation card, text-only report clears it.
+Generation's existing media card is truthfully titled material understanding.
+4 targeted Python3.11 tests+1 offline browser test PASS; initial history fixture
+hit intentional raw-key fail-closed rule, fixture corrected without loosening rule.
+Next: exact next API+web candidate retaining21b changes, finite new normal business
+verification of the confirmed output-cap repair. Previous attempts remain failed,
+not replayed or relabeled; oldlost material prose cannot be invented. PublicAPI352b,
+web05af/video0/Admin unchanged;31/37 and Nativeinactive d88 unchanged. NoGitpush.
+
 September14 23:07BJT minimal video continuation implemented locally:
 exact doubao-seed-2-0-lite-260428 now uses official Responses input_video,
 storefalse/full original AV/2fps; images retain Chat. Existing private OSS may
