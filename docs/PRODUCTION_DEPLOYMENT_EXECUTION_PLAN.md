@@ -1,5 +1,10 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 18:20BJT scoped APIa3dd45a is DEPLOYED; web3dce194 retained.
+Quality05 original request is IN_PROGRESS, new expert-source repair only, no OCR replay.
+Exact artifact/launcher/result identities at Handoff top. Read original result before
+any new execution; Native/Item34 schedules and public flags unchanged.
+
 September14 current: API/web3dce194 actually deployed,8f41 rollback retained.
 Normal merchant correction and same-chat refresh verified: current saved answer and
 version restored, one3credit charge, no recognition/generation replay. New quality04
