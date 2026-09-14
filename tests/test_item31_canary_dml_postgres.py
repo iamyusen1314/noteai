@@ -121,6 +121,38 @@ class CanaryDmlPostgresTests(unittest.TestCase):
         self.capture.rolled_back(b)
         self.assertEqual(self.capture.finish(admission_closed=True)["write_mutations_by_table"], {})
 
+    def test_dms_single_statement_is_atomic_and_removal_is_capture_bound(self):
+        from deploy.production.native_capture import dms_transaction
+        for statement in dml.removal_sql(list(self.targets)):
+            self.owner.execute(statement)
+        statements = [s.as_string() for s in dml.installation_sql(self.activation, self.targets)]
+        args = dict(owner='postgres', database='noteai_local')
+        # DMS autocommit must roll back the whole installation on any DDL failure.
+        broken = dms_transaction(statements + ['SELECT missing_transport_column'], self.activation, **args)
+        with self.assertRaises(psycopg.errors.UndefinedColumn):
+            self.owner.execute(broken)
+        self.assertIsNone(self.owner.execute(
+            "SELECT to_regprocedure('public.noteai_item31_canary_dml_notice()')").fetchone()[0])
+        self.assertEqual(self.owner.execute("SELECT count(*) FROM pg_trigger WHERE "
+            "tgname='noteai_item31_canary_dml_notice'").fetchone()[0], 0)
+        # The production identity guard is retained; local fixture has another owner.
+        with self.assertRaisesRegex(psycopg.errors.RaiseException, 'owner identity mismatch'):
+            self.owner.execute(dms_transaction(statements, self.activation))
+        self.owner.execute(dms_transaction(statements, self.activation, **args))
+        binding = self.begin()
+        self.writer.execute("INSERT INTO payment_orders VALUES(1,'local-only',1)")
+        self.commit(binding)
+        self.assertEqual(self.capture.finish(admission_closed=True)['write_mutations_by_table'],
+                         {'payment_orders': 1, 'payment_events': 1})
+        remove = [s.as_string() for s in dml.removal_sql(list(self.targets))]
+        with self.assertRaisesRegex(psycopg.errors.RaiseException, 'capture identity mismatch'):
+            self.owner.execute(dms_transaction(remove, str(uuid.uuid4()), removal=True, **args))
+        self.assertEqual(self.owner.execute("SELECT count(*) FROM pg_trigger WHERE "
+            "tgname='noteai_item31_canary_dml_notice'").fetchone()[0], 2)
+        self.owner.execute(dms_transaction(remove, self.activation, removal=True, **args))
+        self.assertIsNone(self.owner.execute(
+            "SELECT to_regprocedure('public.noteai_item31_canary_dml_notice()')").fetchone()[0])
+
     def test_writer_business_failure_rolls_back_before_commit(self):
         db, _ = local_contract()
         writer = dml.CanaryWriter(self.capture,

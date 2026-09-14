@@ -1,3 +1,22 @@
+September14 Native bill preparation now also generates install-dms.sql/remove-dms.sql
+from the original collector statements as one atomic DO, with owner/database and
+current capture guards. It does not apply SQL or change original trade files.
+Isolated PG16 confirms complete rollback on a middle DDL error, actual captured DML,
+wrong owner/capture refusal and correct removal. Original test invocation used the
+image entrypoint working directory and could not import tests; preserved, explicit
+Python entrypoint/source paths pass. Current revision is local pending staged-file
+update; no prepare/install/provider request. DMS statement timeout must be set/read
+on its session before execution; in-DO configuration alone is not timing proof.
+
+New media quality claim4bd9ee20-5d0e-463f-8742-e5d41c37a017/usagef75697f7-c9e8-4aee-bc7c-fc20de877cb4
+paused for optional store/extra-seafood questions, NOT repeated price. Normal public
+UI selected OMIT twice at2026-09-14T08:00:05Z; same original task resumed,6credits
+once and no repeat OCR. Current operation is in flight; keep API alive and read original.
+QUESTION_CONTRACT already lives in content-expert system and forbids optional new
+selling-point questions; do not misdiagnose missing system placement or rewrite it.
+Observed later quality step reintroduced price despite arbiter respecting constraint;
+trace general downstream constraint propagation, not a material-specific price patch.
+
 September14 15:46BJT scoped API/web1338f65 is deployed, not merely packaged.
 API42e6663e52da3b0d39816e671477896c4e0b0d4fe32cc1dd80c8b02b5b0bd320;
 web /var/www/noteai-public/1338f65, JS30f26cee08abb6a0bc8341466d05e9e1071b5c362ca7fa0a0a67b86883a90427.

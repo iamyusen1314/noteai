@@ -355,6 +355,30 @@ def bill_originals_intact(meta):
         assert digest((original / name).read_bytes()) == expected, 'original_trade_evidence_changed'
 
 
+def dms_transaction(statements, activation, *, removal=False,
+                    owner='noteai_admin', database='noteai'):
+    """Transport existing collector DDL as one atomic DMS statement."""
+    assert str(uuid.UUID(activation)) == activation
+    literal = lambda value: "'" + str(value).replace("'", "''") + "'"
+    lines = ["DO $noteai$", "BEGIN",
+        "  IF current_user <> " + literal(owner) + " OR current_database() <> " + literal(database) +
+        " THEN RAISE EXCEPTION 'owner identity mismatch'; END IF;",
+        "  PERFORM set_config('lock_timeout','5s',true);",
+        "  PERFORM set_config('statement_timeout','30s',true);"]
+    if removal:
+        lines.append("  IF position(" + literal(activation) +
+            " in pg_get_functiondef('public.noteai_item31_canary_dml_notice()'::regprocedure))=0"
+            " THEN RAISE EXCEPTION 'capture identity mismatch'; END IF;")
+    else:
+        lines.append("  IF to_regprocedure('public.noteai_item31_canary_dml_notice()') IS NOT NULL"
+            " OR EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='noteai_item31_canary_dml_notice')"
+            " THEN RAISE EXCEPTION 'existing capture must be reconciled'; END IF;")
+    for statement in statements:
+        assert '$noteai$' not in statement
+        lines.append('  EXECUTE ' + literal(statement) + ';')
+    return '\n'.join(lines + ['END', '$noteai$;', ''])
+
+
 def prepare_bill():
     trade = Path('/var/lib/noteai/native-80b01ea/trade')
     assert ROOT == trade.parent / 'bill-20260914' and not ROOT.exists()
@@ -394,6 +418,8 @@ def prepare_bill():
     code="import collect_item31_canary_dml as d,json;b="+repr(binding)+";print(json.dumps({'install':[s.as_string() for s in d.installation_sql(b['activation'],b['targets'])],'remove':[s.as_string() for s in d.removal_sql(list(b['targets']))]}))"
     for phase, statements in api_read(code).items():
         (ROOT/(phase+'.sql')).write_text("BEGIN;\nSET LOCAL lock_timeout='5s';\nSET LOCAL statement_timeout='30s';\n"+'\n'.join(s.rstrip(';')+';' for s in statements)+'\nCOMMIT;\n')
+        (ROOT/(phase+'-dms.sql')).write_text(dms_transaction(
+            statements, binding['activation'], removal=phase=='remove'))
     raw=PAYMENT_UNIT.read_bytes();(ROOT/'before/payment.service').write_bytes(raw)
     unchanged={str(p):digest(p.read_bytes()) for p in (API_UNIT,API_DROP,*PROXIES,BOUND_ENV,Path('/etc/noteai/public-account.env'),Path('/etc/noteai/payment.env'))}
     evidence={name:digest((trade/name).read_bytes()) for name in ('binding.json','closed.json','final-readback.json','work/canary-dml.jsonl.incomplete')}
