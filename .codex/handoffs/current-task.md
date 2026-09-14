@@ -1,3 +1,30 @@
+September15 07:26BJT: owner is available to scan; new Native capture is NOW ACTIVE,
+not the prior refunded order. Same preparedactivation4febf1b9-fdbe-4ed0-9ba5-973c04fbca55,
+launcher /var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-b214b3d.py
+SHAb6340a7b36ba3f15d6101ed6e730488176f7903ddfc2ac63aa27f37b2055e088 ranONCE,
+PID1847959,start1789428195,expiry1789431795; active.json1789428203.8287196.
+APIcid d31970c80d161a2a1eecae338170cbfd208dbfcb65f3781eee99a31dd7368b96,
+Paymentcid34e9c3e7eb94a54235734286f96913747295b63161f2790f5297b97203c944e7.
+CurrentAPIb214/Payment15d/Admin538/runtime models unchanged; publicwebb214 and
+Adminstatica4f do not require newbinding. DMSnoteai_admin normal session verified:
+priororder1e2acc0a has payment succeeded/rights reversed/refunded1200; nootherownerorders,
+collector0/functionabsent before install. Original prepared install-dms.sql4aa099bb
+executedonce/committed; same4feb15trigger/function installation verified byactivate.
+Initial host-read diagnostics failed beforebusinesswrites (one syntax/quotednested
+query issue; APIpaymentread commandfailed, not interpreted as absentdata). Used existing
+DMSowner readback to establishactualbusinessstate; no oldgrant/oldorder replay.
+New normal publicowner checkout clicked once aftershowing¥12/30credits:
+order81ab3757-2440-49b5-ad90-6a445ffbcac8, providerlive/wechat_native, awaitingownerSCAN.
+QRshown viaactualpage screenshot; no QR/rawcheckout/token inGit. Do notcreateanother.
+Next only read original callback/audit, allowfirstpostcommit503 then naturalprovider
+redelivery; prove duplicate without duplicatecash/credits. Then exactsameorderoperator
+query-payment/fullrefund once/readback, closeoriginalrunner, sealjournal beforeAPIstop,
+restoreconfigs and execute existing remove-dms.sql8c44adb2; verify15triggers/functiongone.
+New Sep15order bill earliestSep16>=10BJT; original Sep14order billSep15>=10 remains
+separate frozenfc4f49f and unstarted. Current31/37, noGitpush/Item34/protected7changes.
+Private currentlocalreadbacks: /Users/openclaw/.codex/tmp/noteai-native-scan-20260915;
+canonicalhost /var/lib/noteai/native-6c9221e/trade. Preserveoriginalfailedread diagnostics.
+
 September15 01:35BJT: Admin static wallet-source correction a4f30fab7e9f92421e3ca835786a57831dd93829
 DEPLOYED once1789407102.6959434 via existing web-only atomic/rollback pattern,
 script97d4fa70c68e5d76d82014c2bfca9fa44448938f45ff05cc015a70b99c3e3173.
