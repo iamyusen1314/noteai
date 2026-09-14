@@ -1,3 +1,22 @@
+September14 19:15BJT: web7cec89cea45d53a2c47463aea61adc2949b489fd actually DEPLOYED,
+originalPID1744001 completed1789384218.1895194; public JS06e1e0e508a1fa65d5081b8ea27131e1457053ef96beb3b9af3302ed7e8d8829.
+/var/lib/noteai/chat-7cec89c/web-result.json, rollbackweb3dce194 retained;
+API1c94/48a unchanged, no provider or DB writes during static release. Normal browser
+loads old2ca38110 confirmation then switches to a83b6458: old confirmation absent,
+new sessiond1600d80-c1de-4785-8ca1-5b34e1652c1b belongs to chosen note, confirmed_count0,
+no other tea facts; read11:13:40UTC. No old merchant answer submitted.
+A single normal 3credit Chat rewrite has now been submitted in that session to verify
+omitted price reaches final delivery; NO new OCR/diagnose. Read original claim before
+any next model call; request message and hash lookup remain in live cOps context.
+
+Native PREPARED only: before activation, web binding updated to7cec with exact service/
+config/binding hashes unchanged. Original prepared-before-web-7cec89c.json preserved
+SHA4af0cb26624eb48d1cc090ef9c9438da63592d1f78bed7e1e9e66fbf7d59e564.
+Update1789384318.0729115, no capture/DDL/neworder/provider. Sameactivation4febf1b9,
+49f5075 launcher retained; owner availability question for new12RMB scan remains
+unanswered. Old12RMB already paid/refunded, next-day bill still separate/unstarted.
+Readiness30/37 unchanged, Item34 untouched and no Git push.
+
 September14 normal browser check found an actual same-owner note-switch bug:
 new /chat/start uses the chosen note only, but library entry retained the old Chat
 DOM, merchant-confirmation button and attachments; stale buttons could submit old
