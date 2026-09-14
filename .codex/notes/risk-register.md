@@ -1,5 +1,14 @@
 # Risk Register
 
+September14 15:46BJT actual API/web1338f65 is deployed. Successful OCR/recovery and
+completed40-call diagnosis do not prove content quality: prior final plans invented
+sensory/repeat-visit/queue facts. Common factual-source policy is now also in system
+messages for arbitration/body/shaping/repair, without changing industry Prompt text
+or lowering acceptance. New same-material validation is in progress; original failure
+and cost remain. Publicimage/video/payment closed pending their real verification.
+Next-day bill launcher is staged; active Item34 occupies the app's sole per-thread
+heartbeat slot. No bill automation exists, and Item34 has not been modified.
+
 September14 media recovery candidate: original screenshot result is private and
 owner-bound; metadata only in original claim. Disconnect/commit-ack-loss recovery,
 no UNKNOWN refund, cleanup-before-cascade and async owner/batch isolation now pass

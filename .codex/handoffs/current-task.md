@@ -1,3 +1,33 @@
+September14 15:46BJT scoped API/web1338f65 is deployed, not merely packaged.
+API42e6663e52da3b0d39816e671477896c4e0b0d4fe32cc1dd80c8b02b5b0bd320;
+web /var/www/noteai-public/1338f65, JS30f26cee08abb6a0bc8341466d05e9e1071b5c362ca7fa0a0a67b86883a90427.
+Existing C built exact hash-verified deltas once; Python3.11.15/Linuxamd64 and17
+runtime file/import checks passed. API045/web045 retained compatible rollback.
+No0028 replay, model/env/Admin/Payment/Tracking change. Public image/video/payment
+remain closed. Original build/deploy/web results are under /var/lib/noteai/media-1338f65.
+Old private045 candidate was stopped; --rm auto-removal caused post-stop inspect
+failure BEFORE deploy launch. Absence/current API were reconciled, then one deployment
+finished. Preserve original failure; no blind second launch.
+
+New quality validation formal-ark-media-quality-20260914-01 uses the same original
+image and saved OCR/merge, with existing no-price selection. Initial PID1709302
+failed on host-only file path inside container before dispatch: empty response and
+FileNotFoundError. Actual idempotency_requests read confirms claim absent. Incorrect
+first read used nonexistent generation_request_claims (UndefinedTable); corrected
+to actual implementation table, no grant/mutation. Original files are unchanged.
+Host now embeds saved merge in private client; corrected PID1710476 at1789372541
+uses SAME original request key, files chain-transport-*/transport-* in owner-check.
+ClientSHA54b4c2a85000c3aac4e76e6f6a87d98b6339665481070de587a78fe5bde584b6.
+Read original transport result before any action; no duplicate OCR/request/charge.
+
+Native bill remains STAGED, intentionally not prepared while API may still change.
+prepare pins actual API CID/config/web; install temporary collector only immediately
+before run, not overnight. Single DMS DO transport must use the new bill activation,
+not old trade UUID. Sep15>=10BJT only. App rejected new heartbeat: this thread already
+has the original active Item34 automation; no second automation was created and no
+Item34 schedule changed. Next-day automatic continuation is NOT YET ARRANGED.
+Readiness30/37 unchanged; no Gitpush or protected-path changes.
+
 September14 original media chain completed after normal website OMIT continuation:
 claim841fcbf2-737b-4e1c-84a4-6e9ddab1acb2/usage8d01ca99-3319-4907-959d-a17cd4719068,
 note0fd8dd1b-c07e-48d5-9ad6-e78901fae476.6credits once,refund0/complete1;40responded

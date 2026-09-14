@@ -1,5 +1,14 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 15:46BJT API/web1338f65 deployed: source-priority correction plus separate
+image/video capabilities. Original045 rollback retained, publicmedia/payment still
+closed pending real verification. Current original validation and exact artifacts at
+Handoff top; never repeat OCR or a started analysis on missing client output alone.
+Native next-day bill remains staged; prepare/temporary DMS collector immediately
+before the single Sep15after10BJT run against then-current API. Current app allows one
+active heartbeat per thread; Item34 occupies it and is unchanged. Bill automatic
+continuation is not yet configured; do not claim a scheduled run from intended time.
+
 September14 next API/frontend candidate separates image/video capability; only the
 verified modality may open. Existing media flag controls images; video additionally
 requires NOTEAI_PUBLIC_VIDEO_ENABLED=1. Server rejects direct video references when
@@ -135,8 +144,10 @@ Current Native implementation is two short captures for the SAME12RMB owner orde
    Normal API creates one original-price starter order; owner sees12RMB and pays.
    Exact callbacks/queries/refund are captured. Check refund succeeded, order
    refunded, entitlement reversed and refunded_fen1200; CLI ok alone is insufficient.
-   Close ingress/admission, drain original work, stop API/operator first, Payment
-   last, read original sealed journal, revoke only temporary DDL/permissions.
+   Close ingress/admission and drain original work/operator. The historical API-first
+   shutdown failed; keep the API network namespace alive while stopping Payment and
+   reading its sealed original journal, then restore API. Revoke only temporary DDL/
+   permissions. Bill mode never restarts the ordinary API at all.
 2. WeChat's real daily bill becomes available after10:00BJT on the following day:
    https://pay.wechatpay.cn/doc/v3/merchant/4013071218 . Do not try same-day bill or
    call instantaneous query a completed reconciliation. Bind new short A_bill/R/
