@@ -23,7 +23,7 @@ import urllib.error
 import uuid
 
 ROOT = Path('/var/lib/noteai/native-6c9221e/trade')
-API_IMAGE = 'sha256:48a478ecc80f850687463f4c7c77d603224683cf54e1ca5e3a53c08dd31724f9'
+API_IMAGE = 'sha256:6d4bfdc4e81e31b6c214ac0d43d159b814b1de6b4da4936516c5ea1f634a02a2'
 PAYMENT_IMAGE = 'sha256:15d15189ea5c414933b20d84ef7889b0cd3a6b8faca9439f1f05fc264cc81584'
 CANARY_IMAGE = 'sha256:35097f4f4c5912f23de5affcf2d38958fff7c85270eee42ff50f7972e21bdf14'
 USER_ID = '61d63b05-17eb-47d5-b19e-fb7eab297299'
@@ -35,7 +35,7 @@ PROXIES = [Path('/etc/nginx/noteai-' + n + '-proxy.conf') for n in ('account', '
 BOUND_ENV = Path('/var/lib/noteai/wechat-native-20260913/candidate-config/canary-bound.env')
 HASHES = {
     str(API_UNIT): '46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6',
-    str(API_DROP): '46f7ebc897c00ca7b8406e5182835f30b9d780c9e45832dfe6b48fd6ed5d2185',
+    str(API_DROP): '3b1a365fae0d4fdd14bfc3c649d07aa4970fa32bade5afb52571460f4cac74fc',
     str(PAYMENT_UNIT): '40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb',
     str(BOUND_ENV): '861cc4be3dec07a5c20c1f271f87a566ab91bb61e4c3049add5e641d6db0f9bf',
     '/etc/noteai/public-account.env': '49690b5c2e4aa1612eae64c13adaead84ee80ec0fd7b399040bb275e062ecd8d',

@@ -9,6 +9,7 @@ async function openApp(page) {
       pollMs: 10,
     };
   });
+  await page.route('**/synthetic-api/billing/plan', route => route.fulfill({json:{total_available_credits:11.5}}));
   await page.goto('/NoteAI_Pro_Demo_Framer.html');
   await expect(page).toHaveTitle(/NoteAI Pro/);
   await page.evaluate(() => {
@@ -83,6 +84,7 @@ test.describe('SSE warning-only guard', () => {
     await expect.poll(() => page.evaluate(() => _diagnosisStreamActive)).toBe(false);
     await expect(page.locator('[data-sse-warning="analyze"]')).toHaveCount(0);
     await expect(page.locator('#diagnoseSubmitBtn')).toBeEnabled();
+    await expect(page.locator('#nav-credits-display')).toHaveText('11.5积分');
   });
 
   test('generate warns before first event and treats clean EOF without terminal as outcome unknown', async ({ page }) => {
@@ -168,6 +170,7 @@ test.describe('SSE warning-only guard', () => {
     await page.evaluate(() => startGeneration());
 
     await expect.poll(() => page.evaluate(() => _generateResult?.type || '')).toBe('complete');
+    await expect(page.locator('#nav-credits-display')).toHaveText('11.5积分');
     await expect.poll(() => page.evaluate(() => __sseRequestCounts['/generate/stream'] || 0)).toBe(1);
     await expect.poll(() => page.evaluate(() => _generateResult?._outcome_unknown || false)).toBe(false);
   });
@@ -239,6 +242,7 @@ test.describe('original task clarification', () => {
     expect(submitted.session_id).toBe('a1111111-1111-4111-8111-111111111111');
     expect(submitted).not.toHaveProperty('image_base64');
     expect(await page.evaluate(()=>__clarifyCounts.save)).toBe(0);
+    await expect(page.locator('#nav-credits-display')).toHaveText('11.5积分');
   });
 
   test('waiting is terminal transport but never a successful product result', async ({page}) => {

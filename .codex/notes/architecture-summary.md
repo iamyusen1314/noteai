@@ -1,3 +1,8 @@
+September14 20:32BJT: API97d live, original diagnosis completed; formal Ark+Claude
+chain and once-only accounting verified, content-quality gap retained. Canonical
+industry selectors and truthful ledger balance UI are the next minimal rollout.
+Exact original result/source/native-preparation bindings at Handoff top.
+
 September14 20:05BJT: public image diagnosis completed with Ark+Claude, original
 merchant clarification/resume and once-only accounting. API1c94/web557 remain live.
 A concrete missing arbitration-context path is being corrected locally; this is

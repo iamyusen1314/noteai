@@ -1,3 +1,8 @@
+September14 20:32BJT: final97d public diagnosis still contains unsupported sensory
+details despite completed pipeline; no quality-pass or Readiness credit. Separate
+confirmed frontend defects (old industry choices, stale/rounded/account-crossing
+balance display) repaired and offline verified; next scoped rollout at Handoff top.
+
 September14: completed public image diagnosis exposed a structural arbitration
 handoff gap: stored dispute rejected unsupported sensory claims, but those decisions
 were omitted from draft/edit calls. Local fix carries separate editorial context

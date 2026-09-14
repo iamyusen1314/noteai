@@ -1,3 +1,47 @@
+September14 20:32BJT: original97d public diagnosis COMPLETE at12:20:06.953624UTC,
+claim7ca12f42-a250-4e74-a6e4-7cd28acc7f89, usageba909ddb-98c3-47b6-9010-0ac47540a89a;
+6credits charge1/complete1/refund0. Saveddiagnosis466bb1a7-062a-498e-8823-bf6e6a942d71,
+note13b15f13-1491-4aa2-9462-900e2f03c152;27 complete/exact model rows
+(22Haiku,4Sonnet,1Ark), CNY2.7409312 at retained tariff/FX basis. Private original
+/var/lib/noteai/media-97d1fc8/public-diagnosis-final.json,
+SHA61b0b98ed9c7576c34ed78e3f756edabf469645500dc45ed5147ab47ba2da4e1.
+Public full chain/storage/accounting completed; bestscore72.8 is NOT content-quality
+acceptance: unsupported sensory details remain. No further same-material repetition.
+
+Next minimal candidate: three diagnosis selectors + OCR request use canonical7
+already used by generation/Prompt; unsupported OCR domain asks selection and lateOCR
+cannot overwrite explicit choice. No industry Prompt body rewrite. Ledger-backed
+balance refresh covers normal terminals/clarification/recovery, decimals/zero/unknown,
+usage-report failure and old-account/late-response isolation.23 affected browser tests,
+12 unchanged account-isolation tests,1 built strict-CSP test,11 Python3.11/amd64 offline
+media/Native checks pass. Earlier two new UI tests failed because synthetic page did
+not expose controls; fixtures corrected, failures retained. Logs under private
+~/.codex/tmp/noteai-native-ack-5qg9k4wy/industry-*. No production deployment of this
+candidate yet. Local Native pins updated to97d/currentdrop; remoteprepared still old,
+must bind final rollout before activation. Original12RMB paid/refunded; newscan
+availability unanswered; no neworder/capture/DDL. Authorized video file still absent.
+Item34 original21:36 schedule unchanged;Readiness30/37;no Gitpush.
+
+September14 20:17BJT: API97d1fc84202641151e9ab75574a83c3e40b06aea DEPLOYED,
+image6d4bfdc4e81e31b6c214ac0d43d159b814b1de6b4da4936516c5ea1f634a02a2.
+OriginalbuildPID1752683 complete1789387930.8019013; deployPID1752954 complete
+1789388008.3538475; originalresults /var/lib/noteai/media-97d1fc8/{build/build-result.json,deploy/result.json}.
+Python3.11.15/amd64/18runtime hashes verified; exact closed candidate stopped,
+1c94/48a rollback retained. CurrentAPI drop3b1a365fae0d4fdd14bfc3c649d07aa4970fa32bade5afb52571460f4cac74fc;
+image1/video0 flags preserved;web557/Admin/env/model unchanged,0provider/businesswrites.
+
+One NEW normal public screenshot diagnosis IN_FLIGHT after actual repair:
+claim7ca12f42-a250-4e74-a6e4-7cd28acc7f89,usageba909ddb-98c3-47b6-9010-0ac47540a89a,
+payloadf18bb1203bb0a33064a31dcdf91d893e47e37d669f3fcea66b088d4b90a2749f,
+created12:14:52.943791UTC,6credits charge1; same original savedOCR/media, new
+merchant-visibility choice OMIT, no old task replay/newOCR. Read this original result
+before any next call/deploy. Native same4feb inactive, oldprepared1ccaa3e8faef4310de5a9713fb00f1182b86d25e71cfbb8eb477e967952a092a
+stillbinds48a; local launcher updated to6d4/currentdrop and must refresh preactivation
+backups before later use. No neworder/DDL. Frozen original nextdaybill unchanged.
+Video requires an owner-authorized real audio-bearing file; path question now pending.
+No footage fabricated; oldtiny fixtures prove protocol only. Image success is not video
+acceptance. Item34 original21:36 schedule preserved;Readiness30/37;no Gitpush.
+
 September14 20:12BJT: arbitration propagation repair passed26 affected Python3.11
 Linuxamd64 offline regressions (editorial-r5.log, network none/source readonly).
 Real functions verify three plans retain dispute; outer editors receive repaired

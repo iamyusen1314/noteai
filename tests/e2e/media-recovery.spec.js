@@ -5,7 +5,7 @@ async function openOwner(page) {
   await page.evaluate(()=>{
     _authUser={id:'synthetic-media-owner',username:'marked-media-test'};
     _authVerifiedOwnerId=_authUser.id;_authToken='synthetic-local-token';
-    resetScreenshot();showPage('upload');
+    resetScreenshot();authUpdateNav();showPage('upload');
   });
 }
 
@@ -34,6 +34,7 @@ test('media recovery reads original objects and never merges an appended batch o
     localStorage.setItem(mediaReferenceKey(_authUser.id),JSON.stringify(rows));
     window.__mediaCalls=[];
     window.fetch=async(url,options={})=>{
+      if (String(url).endsWith('/billing/plan')) return new Response(JSON.stringify({total_available_credits:10.5}));
       __mediaCalls.push(options.method||'GET');
       const key=new Headers(options.headers).get('X-Request-ID');
       return new Response(JSON.stringify({tasks:[{status:'completed',result_available:true,result:{type:'B',body:'合成画面',cover_desc:'合成画面',ocr_request_id:key}}]}));
@@ -43,6 +44,7 @@ test('media recovery reads original objects and never merges an appended batch o
   await page.getByRole('button',{name:'读取原素材结果（不重复识别）',exact:true}).click();
   await expect(page.getByRole('button',{name:'继续整理已识别内容',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>__mediaCalls)).toEqual(['GET','GET','GET']);
+  await expect(page.locator('#nav-credits-display')).toHaveText('10.5积分');
   await page.evaluate(()=>{chatClearUserState();_authUser={id:'synthetic-other'};_authVerifiedOwnerId=_authUser.id;offerMediaRecovery();});
   expect(await page.locator('[data-media-recovery]').count()).toBe(0);
   expect(await page.evaluate(()=>_ssImages.length)).toBe(0);
@@ -122,4 +124,50 @@ test('image release leaves both video upload entries closed',async({page})=>{
     return writes;
   });
   expect(calls).toBe(0);
+});
+
+
+test('all diagnosis entries use the formal industries and late OCR preserves an explicit choice',async({page})=>{
+  await openOwner(page);
+  const lists=await page.evaluate(()=>['inputDomainSS','inputDomainVideo','inputDomain','genDomain'].map(id=>Array.from(document.getElementById(id).options).map(o=>o.value).filter(Boolean)));
+  for(const values of lists) expect(values).toEqual(['美食','旅行','穿搭','美妆','家居','健身','母婴']);
+  await page.locator('.input-type', {hasText:'截图上传'}).click();
+  await page.evaluate(()=>{_applyScreenshotDomain('运动');document.getElementById('screenshot-result').style.display='block';});
+  await expect(page.locator('#inputDomainSS')).toHaveValue('');
+  await page.selectOption('#inputDomainSS','健身');
+  await page.evaluate(()=>_applyScreenshotDomain('美食'));
+  await expect(page.locator('#inputDomainSS')).toHaveValue('健身');
+  await page.evaluate(()=>{resetScreenshot();_applyScreenshotDomain('美妆');});
+  await expect(page.locator('#inputDomainSS')).toHaveValue('美妆');
+});
+
+test('balance shows fractional and zero values even when usage report fails, unknown never becomes zero',async({page})=>{
+  await openOwner(page);
+  await page.evaluate(async()=>{
+    _authVerifiedOwnerId=null; // Existing authenticated password-login path.
+    window.fetch=async url=>String(url).endsWith('/billing/plan') ? new Response(JSON.stringify({total_available_credits:8.5})) : new Response('{}',{status:503});
+    await loadBillingPlan();
+  });
+  await expect(page.locator('#nav-credits-display')).toHaveText('8.5积分');
+  await page.evaluate(async()=>{window.fetch=async()=>new Response(JSON.stringify({total_available_credits:0}));await refreshCreditBalance();});
+  await expect(page.locator('#nav-credits-display')).toHaveText('0积分');
+  await expect(page.locator('#nav-credits-display')).toBeVisible();
+  await page.evaluate(async()=>{window.fetch=async()=>new Response(JSON.stringify({tasks:[]}));await refreshCreditBalance();});
+  await expect(page.locator('#nav-credits-display')).toHaveText('积分待更新');
+});
+
+test('late balance responses cannot overwrite a later ledger read or another account',async({page})=>{
+  await openOwner(page);
+  const result=await page.evaluate(async()=>{
+    let release;window.fetch=()=>new Promise(resolve=>release=()=>resolve(new Response(JSON.stringify({total_available_credits:99}))));
+    const old=refreshCreditBalance();
+    window.fetch=async()=>new Response(JSON.stringify({total_available_credits:6.5}));await refreshCreditBalance();
+    release();await old;const newer=document.getElementById('nav-credits-display').textContent;
+    window.fetch=()=>new Promise(resolve=>release=()=>resolve(new Response(JSON.stringify({total_available_credits:88}))));
+    const pending=refreshCreditBalance();chatClearUserState();const cleared=document.getElementById('nav-credits-display').textContent;
+    _authUser={id:'synthetic-other'};_authVerifiedOwnerId=_authUser.id;_authToken='synthetic-other-token';
+    window.fetch=async()=>new Response(JSON.stringify({total_available_credits:3}));await refreshCreditBalance();
+    release();await pending;return {newer,cleared,current:document.getElementById('nav-credits-display').textContent};
+  });
+  expect(result).toEqual({newer:'6.5积分',cleared:'',current:'3积分'});
 });

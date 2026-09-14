@@ -3164,11 +3164,12 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <!-- 领域选择 -->
         <div style="margin-top:12px">
           <label style="font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px">内容领域</label>
-          <select id="inputDomainSS" style="width:100%;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;cursor:pointer">
-            <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
-            <option value="运动">运动</option><option value="学习">学习</option><option value="职场">职场</option>
-            <option value="情感">情感</option><option value="宠物">宠物</option><option value="健康">健康</option>
-          </select>
+          <select id="inputDomainSS" onchange="_screenshotDomainManuallySelected=true" style="width:100%;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;cursor:pointer">
+            <option value="" disabled>请选择内容领域</option>
+              <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
+              <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
+              <option value="母婴">母婴</option>
+            </select>
         </div>
       </div>
 
@@ -3222,10 +3223,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div style="margin-top:14px">
           <label style="font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px">内容领域</label>
           <select id="inputDomainVideo" style="width:100%;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;cursor:pointer">
-            <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
-            <option value="运动">运动</option><option value="学习">学习</option><option value="职场">职场</option>
-            <option value="情感">情感</option><option value="宠物">宠物</option><option value="健康">健康</option>
-          </select>
+              <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
+              <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
+              <option value="母婴">母婴</option>
+            </select>
         </div>
       </div>
 
@@ -3262,8 +3263,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
               style="width:100%;background:var(--surf-3);border:1px solid var(--border);border-radius:var(--r-sm);
                      padding:12px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;cursor:pointer">
               <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
-              <option value="运动">运动</option><option value="学习">学习</option><option value="职场">职场</option>
-              <option value="情感">情感</option><option value="宠物">宠物</option><option value="健康">健康</option>
+              <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
+              <option value="母婴">母婴</option>
             </select>
           </div>
           <div>
@@ -6552,6 +6553,7 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
       break;
     }
     case 'error': {
+      refreshCreditBalance();
       if (_genWaitInterval) { clearInterval(_genWaitInterval); _genWaitInterval = null; }
       const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
       const errMsg = quotaDetail
@@ -6570,6 +6572,7 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
       break;
     }
     case 'complete': {
+      refreshCreditBalance();
       if (_genWaitInterval) { clearInterval(_genWaitInterval); _genWaitInterval = null; }
       stepDone(7);
       const tl7dot = document.getElementById('tl7')?.querySelector('.tl-dot');
@@ -6693,6 +6696,7 @@ function _handleAnalyzeStreamEvent(ev) {
       break;
     }
     case 'error': {
+      refreshCreditBalance();
       _diagnosisStreamActive = false;
       const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
       const errMsg = quotaDetail
@@ -6710,6 +6714,7 @@ function _handleAnalyzeStreamEvent(ev) {
       break;
     }
     case 'complete': {
+      refreshCreditBalance();
       _diagnosisStreamActive = false;
       for (let i = 0; i < 8; i++) stepDone(i);
       const tl7dot = document.getElementById('tl7')?.querySelector('.tl-dot');
@@ -6858,7 +6863,8 @@ async function prepareDiagnosis() {
     const ssBodyOnly = (_screenshotExtracted?.body || '').replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
     const ssTags = _normalizeSsTags(_screenshotExtracted?.tags || '');
     desc = _joinSsBodyAndTags(ssBodyOnly, ssTags);
-    domain = (document.getElementById('inputDomainSS')?.value || _screenshotExtracted?.domain || '美食');
+    domain = document.getElementById('inputDomainSS')?.value || '';
+    if (!domain) { showToast('请先选择本次笔记的内容领域，再开始诊断'); return; }
     // 纯图片情况：没有文字内容但有视觉描述，允许诊断（视觉描述已在 body 里）
     if (!title && !desc) {
       showToast('图片中未识别到笔记文字，将直接进行视觉内容诊断');
@@ -9553,6 +9559,12 @@ function chatBeginNoteContext() {
 
 function chatClearUserState() {
   _chatUserStateEpoch += 1;
+  _billingBalanceRevision += 1;
+  window._lastUsageData = null;
+  const creditBadge = document.getElementById('nav-credits-display');
+  if (creditBadge) { creditBadge.textContent = ''; creditBadge.style.display = 'none'; }
+  const profileBalance = document.getElementById('profile-credits-bal');
+  if (profileBalance) profileBalance.textContent = '待更新';
   resetScreenshot(false);
   document.querySelectorAll('[data-media-recovery]').forEach(el => el.remove());
   document.querySelectorAll("[data-task-clarification], [data-task-recovery]").forEach(el => el.remove());
@@ -9897,6 +9909,7 @@ function chatHandleEvent(ev) {
       chatUpdateLearn(ev.prefs || {});
       break;
     case 'error':
+      refreshCreditBalance();
       chatAppendAi('⚠️ ' + (ev.data || '未知错误'));
       break;
     case 'done': {
@@ -9937,6 +9950,7 @@ function rememberTaskReference(task, identity) {
   localStorage.setItem(taskReferenceKey(identity.ownerId), JSON.stringify({session_id:task.session_id,operation:task.operation}));
 }
 function showTaskClarification(task) {
+  refreshCreditBalance();
   _isGenerateMode = task.operation === 'generate';
   _genStreamActive = false; _diagnosisStreamActive = false;
   _setGenerationSubmitBusy(false); updateDiagnosisSubmitState();
@@ -9991,6 +10005,7 @@ function renderTaskClarification(task) {
       const response = await fetch(API_BASE + '/chat/tasks/' + encodeURIComponent(task.session_id), {headers:{Authorization:'Bearer '+token}});
       const state = await response.json(); if (!valid()) return;
       if (!response.ok) throw Error(typeof state.detail === 'string' ? state.detail : '暂时无法读取原任务');
+      if (state.status !== 'completed') refreshCreditBalance();
       if (state.status === 'waiting_for_input' && state.version === task.version) {
         busy = false; uncertain = false; enable(true); message.textContent='原任务仍等待这次回答，可以继续填写。';
       } else if (state.status === 'waiting_for_input') {
@@ -10025,7 +10040,8 @@ function renderTaskClarification(task) {
       const streamed = await consumeJsonSse(response,{terminalTypes:['complete','error','clarification_required'],onEvent:event => {
         if (!valid()) return;
         if(event.type === 'clarification_acknowledged') message.textContent=event.message;
-        else if(event.type === 'complete' || event.type === 'error') return;
+        else if(event.type === 'error') { refreshCreditBalance(); return; }
+        else if(event.type === 'complete') return;
         else if(task.operation === 'generate') _handleGenStreamEvent(event,valid);
         else _handleAnalyzeStreamEvent(event);
       }});
@@ -10072,6 +10088,7 @@ async function finishClarifiedTask(result, task, identity, token, recovered) {
     notice.textContent='其余内容已完成。以下核心内容仍待你确认，当前版本不能视为整篇可直接发布：'+pending.join('；');
     document.getElementById('page-report')?.prepend(notice);
   }
+  refreshCreditBalance();
   showToast(recovered ? '已读回原任务结果，没有重新生成或扣分' : '已按本次说明完成接续');
 }
 async function restorePendingTaskClarification() {
@@ -12161,6 +12178,18 @@ function _normalizeSsTags(value) {
   return tags.join(' ');
 }
 
+let _screenshotDomainManuallySelected = false;
+
+function _supportedScreenshotDomain(value) {
+  const domain = String(value || '').trim();
+  return Array.from(document.getElementById('genDomain')?.options || []).some(option => option.value === domain) ? domain : '';
+}
+
+function _applyScreenshotDomain(value) {
+  const select = document.getElementById('inputDomainSS');
+  if (select && !_screenshotDomainManuallySelected) select.value = _supportedScreenshotDomain(value);
+}
+
 function _splitSsBodyAndTags(body, explicitTags = '') {
   const text = String(body || '').trim();
   const inlineTags = _normalizeSsTags(text.match(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g) || []);
@@ -12520,7 +12549,7 @@ function offerMediaRecovery(message = '有已提交的素材，可以读取原�
         const next=document.createElement('button');next.type='button';next.textContent='继续整理已识别内容';
         next.addEventListener('click',async()=>{if(!_chatIdentityMatches(identity))return;next.disabled=true;await _tryFinalizeCurrentScreenshotBatch();});card.appendChild(next);
       }
-      if (_chatIdentityMatches(identity)) text.textContent='已读取原识别结果，素材无需重传；未再次识别或扣分';
+      if (_chatIdentityMatches(identity)) { text.textContent='已读取原识别结果，素材无需重传；未再次识别或扣分'; refreshCreditBalance(); }
     } catch(error) { if(_chatIdentityMatches(identity)) text.textContent=error.message; }
     finally { if(_chatIdentityMatches(identity)) button.disabled=false; }
   });card.appendChild(button);
@@ -12630,6 +12659,7 @@ async function _ocrImages(imagesToOcr) {
   if (loadingEl && _ssOcrInFlight === 0) loadingEl.style.display = 'none';
   _updateScreenshotOcrUi();
   await _tryFinalizeCurrentScreenshotBatch();
+  if (valid()) refreshCreditBalance();
 }
 
 // Claude Haiku 鉴别 Agent：对所有 OCR 结果去重、验证、重组
@@ -12670,7 +12700,7 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
       title:  d.title  || '',
       body:   splitValidated.body,
       tags:   splitValidated.tags,
-      domain: d.domain || '美食',
+      domain: _supportedScreenshotDomain(d.domain),
       _validated: d.validated,
       _charCount: d.char_count || _bodyCharCountWithoutSsTags(splitValidated.body),
     };
@@ -12683,7 +12713,7 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
     if (titleDisp) titleDisp.textContent = d.title || '（未识别到标题）';
     if (bodyDisp)  bodyDisp.textContent  = (_screenshotExtracted.body || '').slice(0, 120) + ((_screenshotExtracted.body||'').length > 120 ? '…' : '');
     if (tagsDisp)  tagsDisp.textContent  = _screenshotExtracted.tags || '（未识别到话题）';
-    if (d.domain) { const sel = document.getElementById('inputDomainSS'); if (sel) sel.value = d.domain; }
+    _applyScreenshotDomain(d.domain);
 
     const charInfo = d.char_count ? `${d.char_count} 字` : '';
     if (statusEl) statusEl.textContent = d.validated
@@ -12801,7 +12831,7 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
 
   // 领域
   const domainCounts = {};
-  valid.forEach(d => { if (d.domain) domainCounts[d.domain] = (domainCounts[d.domain]||0)+1; });
+  valid.forEach(d => { const domain = _supportedScreenshotDomain(d.domain); if (domain) domainCounts[domain] = (domainCounts[domain]||0)+1; });
   const mergedDomain = Object.entries(domainCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
 
   // 如果只有纯图片没有文字，允许诊断但提示用户补充文字
@@ -12829,7 +12859,7 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
     bodyPreview + ((mergedBody || finalBody).length > 120 ? '…' : '');
   const tagsDisplay = document.getElementById('ss-tags-display');
   if (tagsDisplay) tagsDisplay.textContent = mergedTags || '（未识别到话题）';
-  if (mergedDomain) { const sel = document.getElementById('inputDomainSS'); if (sel) sel.value = mergedDomain; }
+  _applyScreenshotDomain(mergedDomain);
 
   // 状态栏：按情况显示不同说明
   const statusEl = document.getElementById('ss-ocr-status');
@@ -12851,6 +12881,8 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
 }
 
 function resetScreenshot(forgetReferences = true) {
+  _screenshotDomainManuallySelected = false;
+  _applyScreenshotDomain('');
   if (forgetReferences && _authVerifiedOwnerId) {localStorage.removeItem(mediaReferenceKey(_authVerifiedOwnerId));document.querySelectorAll('[data-media-recovery]').forEach(el=>el.remove());}
   _ssImages = [];
   _ssOcrCache = new Map();
@@ -13453,19 +13485,47 @@ function fmtTokens(n) {
   return String(Math.round(n));
 }
 
+// Balance comes from the ledger-backed plan, independently of usage-report availability.
+let _billingBalanceRevision = 0;
+async function refreshCreditBalance() {
+  if (!_authToken || !_chatOwnerId()) return null;
+  const identity = _chatIdentitySnapshot(), token = _authToken, revision = ++_billingBalanceRevision;
+  const current = () => revision === _billingBalanceRevision && _authToken === token && _chatIdentityMatches(identity);
+  const render = value => {
+    const nav = document.getElementById('nav-credits-display');
+    if (nav) { nav.textContent = value === null ? '积分待更新' : value + '积分'; nav.style.display = 'inline'; }
+    const profile = document.getElementById('profile-credits-bal');
+    if (profile) profile.textContent = value === null ? '待更新' : value + ' 积分';
+  };
+  try {
+    const response = await fetch(API_AUTH + '/billing/plan', {headers: {Authorization: 'Bearer ' + token}});
+    if (!response.ok) throw new Error('balance unavailable');
+    const plan = await response.json();
+    if (!current()) return null;
+    const raw = plan.total_available_credits ?? plan.credits_balance;
+    const balance = raw === undefined || raw === null || raw === '' ? NaN : Number(raw);
+    if (!Number.isFinite(balance)) throw new Error('balance unknown');
+    render(String(balance));
+    return plan;
+  } catch {
+    if (current()) render(null);
+    return null;
+  }
+}
+
 /* 加载套餐 + 用量（成长档案调用）*/
 async function loadBillingPlan() {
   if (!_authToken) return;
   const billingIdentity = _chatIdentitySnapshot(), billingToken = _authToken;
   try {
-    const [planRes, usageRes] = await Promise.all([
-      fetch(API_AUTH + '/billing/plan',      { headers: authHeader() }),
+    const balanceRequest = _billingBalanceRevision + 1;
+    const [plan, usageRes] = await Promise.all([
+      refreshCreditBalance(),
       fetch(API_AUTH + '/billing/usage?days=30', { headers: authHeader() }),
     ]);
-    if (!planRes.ok || !usageRes.ok) return;
-    const plan  = await planRes.json();
+    if (!plan || !usageRes.ok) return;
     const usage = await usageRes.json();
-    if (_authToken !== billingToken || !_chatIdentityMatches(billingIdentity)) return;
+    if (_authToken !== billingToken || !_chatIdentityMatches(billingIdentity) || balanceRequest !== _billingBalanceRevision) return;
     // 先缓存，供 quota bars 和 toggleUsageDetail 使用
     window._lastUsageData = usage;
 
@@ -13596,13 +13656,7 @@ async function loadBillingPlan() {
     if (credUsEl) credUsEl.textContent = (usage.total_credits || 0).toFixed(1) + ' 积分';
     if (credBalEl) credBalEl.textContent = Number(plan.total_available_credits ?? plan.credits_balance ?? 0).toFixed(1) + ' 积分';
 
-    // 导航栏
-    const navCred = document.getElementById('nav-credits-display');
-    if (navCred) {
-      const navCredits = Number(plan.total_available_credits ?? plan.credits_balance ?? 0);
-      navCred.textContent = navCredits.toFixed(0) + '积分';
-      navCred.style.display = navCredits > 0 ? 'inline' : 'none';
-    }
+
 
   } catch(e) { console.error('billing load error', e); }
 }

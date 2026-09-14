@@ -105,6 +105,12 @@ test('original public product works under strict script CSP with OTP and dynamic
   await expect(page.locator('#chatEntryBanner')).toBeHidden();
   await page.evaluate(()=>{showPage('upload');switchMode('diagnose');});
   await expect(page.locator('#manual-form')).toBeVisible();
+  await page.evaluate(()=>{_publicStatus={image_open:true,video_open:false};_authUser={id:'synthetic-csp-owner',contract_accepted:true};_authToken='synthetic-csp-token';_authVerifiedOwnerId=_authUser.id;syncProductUI();});
+  await page.locator('.input-type',{hasText:'截图上传'}).click();
+  await page.evaluate(()=>{document.getElementById('screenshot-result').style.display='block';_applyScreenshotDomain('美食');});
+  await page.locator('#inputDomainSS').selectOption('健身');
+  await page.evaluate(()=>_applyScreenshotDomain('旅行'));
+  await expect(page.locator('#inputDomainSS')).toHaveValue('健身');
   await page.setViewportSize({width:390,height:844});
   await expect(page.locator('footer a[href="https://beian.miit.gov.cn/"]')).toBeVisible();
   expect(errors).toEqual([]);
