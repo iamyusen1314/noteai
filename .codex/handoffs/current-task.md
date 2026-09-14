@@ -1,3 +1,28 @@
+September14 19:34BJT continuation: original normal Chat claim08c5f095 completed
+11:16:44.524462UTC, usage281b813f, savedv2 dbd40e51-a165-4d24-842f-aa39952e63bf.
+No price/198/unrelated tea facts in delivered title/body;3credits once,9 responded
+Claude calls CNY1.385041 actual; score68.4 is not excellent-quality acceptance.
+Private read /var/lib/noteai/chat-7cec89c/rewrite-read-1789384607717605407.json
+SHAca6f9c5d8dfdc4b5320da19d8fb873847a8b50baa4fd52eda03c02a22fe1dfc1.
+Original saved OCR/diagnosis were not replayed. Current owner balance2933.
+
+Image configuration actually enabled on sameAPI1c94/48a, PID1746260 completed
+1789385256.3058383, /var/lib/noteai/chat-7cec89c/image-enable/result.json.
+Newdrop46f7ebc897c00ca7b8406e5182835f30b9d780c9e45832dfe6b48fd6ed5d2185;
+images true/video false/payments false/tracking false. Existing envs/model/Admin
+unchanged; exact candidate stopped. Anonymous legitimate-Origin POST to upload,
+extract andvalidate all401. No provider/business writes during config activation.
+Public image upload then exposed actual browser CSP defect: fetch(data:) to Blob
+is forbidden by connect-src self, causing immediate Failed to fetch. Nginx public
+access logging is off, so no fabricated zero-request access-log claim. Production
+CSP matches local Chromium reproduction. Minimal local byte conversion preserves
+CSP/auth/cache;23 related browser checks pass(image-csp-r1.log). New web-only
+candidate ready, not deployed yet. Do not replay489c image-enable script.
+Native prepared activation4febf1b9 remains inactive; after web release update
+pre-activation backup/pins to image-open drop and finalweb, preserve oldprepared,
+activation/binding/SQL. Existing bill fc4f49f remains untouched. Owner new12RMB scan
+availability remains unanswered; no neworder/capture/DDL. Readiness30/37 unchanged.
+
 September14 19:15BJT: web7cec89cea45d53a2c47463aea61adc2949b489fd actually DEPLOYED,
 originalPID1744001 completed1789384218.1895194; public JS06e1e0e508a1fa65d5081b8ea27131e1457053ef96beb3b9af3302ed7e8d8829.
 /var/lib/noteai/chat-7cec89c/web-result.json, rollbackweb3dce194 retained;

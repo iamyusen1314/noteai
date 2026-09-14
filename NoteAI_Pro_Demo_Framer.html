@@ -6776,7 +6776,9 @@ async function privateImageInput(value) {
       const raw = value.startsWith('data:') ? value.split(',')[1] : value;
       const prefix = atob(raw.slice(0, 24));
       const mime = prefix.startsWith('\x89PNG') ? 'image/png' : prefix.startsWith('RIFF') ? 'image/webp' : 'image/jpeg';
-      const blob = await (await fetch('data:' + mime + ';base64,' + raw)).blob();
+      // Decode local bytes without a network fetch: production connect-src is self.
+      const bytes = Uint8Array.from(atob(raw), char => char.charCodeAt(0));
+      const blob = new Blob([bytes], {type:mime});
       if (!valid()) throw new Error('账户已切换，停止上传原图片');
       const form = new FormData();
       form.append('file', blob, 'material.' + ({'image/png':'png','image/webp':'webp','image/jpeg':'jpg'}[mime]));

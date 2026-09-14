@@ -1,3 +1,5 @@
+September14 image release: actual connect-src self exposed local data-URL fetch failure before upload. Minimal Blob byte conversion is browser-tested; frontend rollout and public upload confirmation remain pending. Image API flag open, video/payment closed. No CSP expansion. Native pre-activation recovery baseline must preserve image-open config.
+
 September14 same-owner Chat switch retained old merchant-confirmation controls. Fixed locally with conversation binding/late-response isolation; no contaminated model request was submitted. Actual web verification pending; original reports/media retained. Native new capture prepared only, no new order/DDL. See Handoff top.
 
 September14 local correction: source presence previously let explicitly omitted price

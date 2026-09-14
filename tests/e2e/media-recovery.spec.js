@@ -33,19 +33,40 @@ test('media recovery reads original objects and never merges an appended batch o
   expect(await page.evaluate(()=>_ssImages.length)).toBe(0);
 });
 
-test('account switch while image bytes load prevents upload under the new account',async({page})=>{
+test('account switch while original image upload completes rejects its result',async({page})=>{
   await openOwner(page);
   const result=await page.evaluate(async()=>{
-    let release;const loaded=new Promise(r=>release=r);let writes=0;
+    let release;const loaded=new Promise(r=>release=r);const tokens=[];
     window.fetch=async(url,options={})=>{
-      if(String(url).startsWith('data:'))return {blob:async()=>{await loaded;return new Blob(['synthetic']);}};
-      writes++;return new Response(JSON.stringify({media_ref:'11111111-1111-4111-8111-111111111111'}));
+      tokens.push(new Headers(options.headers).get('Authorization'));
+      await loaded;return new Response(JSON.stringify({media_ref:'11111111-1111-4111-8111-111111111111'}));
     };
     const pending=privateImageInput('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB').catch(e=>e.message);
     await Promise.resolve();chatClearUserState();_authUser={id:'synthetic-other'};_authVerifiedOwnerId=_authUser.id;_authToken='synthetic-other-token';release();
-    return {message:await pending,writes};
+    return {message:await pending,tokens};
   });
-  expect(result.writes).toBe(0);expect(result.message).toContain('账户已切换');
+  expect(result.tokens).toEqual(['Bearer synthetic-local-token']);expect(result.message).toContain('账户已切换');
+});
+
+test('private image upload preserves bytes under production connect-src without data fetch or duplicate upload',async({page})=>{
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=','base64');
+  const uploads=[];
+  await page.route('**/synthetic-api/upload-image',async route=>{
+    const request=route.request();uploads.push(request);
+    expect(request.headers().authorization).toBe('Bearer synthetic-local-token');
+    expect(request.postDataBuffer().includes(png)).toBe(true);
+    await route.fulfill({json:{media_ref:'11111111-1111-4111-8111-111111111111'}});
+  });
+  await openOwner(page);
+  const result=await page.evaluate(async data=>{
+    window.__imageCspViolations=[];
+    document.addEventListener('securitypolicyviolation',event=>__imageCspViolations.push(event.blockedURI));
+    const policy=document.createElement('meta');policy.httpEquiv='Content-Security-Policy';policy.content="connect-src 'self'";document.head.appendChild(policy);
+    return Promise.all([privateImageInput(data),privateImageInput(data)]);
+  },'data:image/png;base64,'+png.toString('base64'));
+  expect(result).toEqual(['11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111']);
+  expect(uploads).toHaveLength(1);
+  expect(await page.evaluate(()=>__imageCspViolations)).toEqual([]);
 });
 
 test('changed screenshot batch is preserved while old result GET is pending',async({page})=>{

@@ -35,7 +35,7 @@ PROXIES = [Path('/etc/nginx/noteai-' + n + '-proxy.conf') for n in ('account', '
 BOUND_ENV = Path('/var/lib/noteai/wechat-native-20260913/candidate-config/canary-bound.env')
 HASHES = {
     str(API_UNIT): '46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6',
-    str(API_DROP): '1a7bb993d53080eb819e29742508ac8450293effbfba01dcea5ea5573cfc192b',
+    str(API_DROP): '46f7ebc897c00ca7b8406e5182835f30b9d780c9e45832dfe6b48fd6ed5d2185',
     str(PAYMENT_UNIT): '40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb',
     str(BOUND_ENV): '861cc4be3dec07a5c20c1f271f87a566ab91bb61e4c3049add5e641d6db0f9bf',
     '/etc/noteai/public-account.env': '49690b5c2e4aa1612eae64c13adaead84ee80ec0fd7b399040bb275e062ecd8d',
