@@ -1,3 +1,42 @@
+September14 22:18BJT original352b chat47a1ba99 COMPLETE14:10:02.041835UTC,
+usageafd2acda-8fcf-4769-94c5-ef65038aac6f;3credits charge1/complete1/refund0,
+v3note29f014a4-6259-40e9-a9fa-0ea0fd61c23a saved14:10:01.812052UTC.
+SixClaude complete/exact rows, known tariffCNY0.963634 (retainedUSD/FX7 basis),
+ownerUI balance2906.5. Actual DB body preserves3paragraphs and optionalbag wording;
+DOM snapshot whitespace is not evidence of lost paragraphs. Final natural-question
+request still not followed and strong styling assertions remain: partial editorial
+improvement, not full content-quality acceptance. No new context leakage found;
+no further phrase-only repair/replay. Private canonical
+/var/lib/noteai/media-352bdb0/public-fashion-chat-final.json
+SHAae5d6701ef0e83c5babd6cef95e97b72f553cdd19c0315c4f5271255c2fc6f01.
+
+Owner has now supplied/authorized Desktop notei测试视频.mp4 for realDoubao testing:
+57.307s/51257367bytes/HEVC1080x1920/AACstereo44.1kHz,
+SHA4ada21a43f2f6b9b4a506b609ce89f70f2a2324fd01caec3f580fc11f17b40d2.
+NEXT IN PROGRESS: preserve fullAV, transfer via existingprivateOSS, exact352b
+loopbackcandidate with video1, verifyactual3.11HEVCdecode and >46MiB ArkFiles path,
+then normalowner business result/credits/cost and public rollout if verified.
+Production video remains closed; no new providerrequest or video business yet.
+Native sameinactive d88 preparation and original12RMB paid/fullrefund unchanged;
+nextscanavailability stillpending, originalbillSep15>=10BJT. Readiness31/37.
+
+September14 22:05BJT built352bdb0 API candidate DEPLOYED after Item34 safety closure.
+Original deployPID1770330 launch1789394661.4365282/completed1789394672.9832249;
+result /var/lib/noteai/media-352bdb0/deploy/result.json,
+stateDEPLOYED_CHAT_EDIT_CONTEXT_API_ONLY. Runtimeimageb6f4f9944d1a70084dfffb90a8909e54291d02e5214e311f26857bc465577e26;
+API-dropc88f7f125ae27fc2069776acd3b5751a13e716d77042cfc58cdcc7cad7083de1.
+ee473d9 rollback retained; web05af/Admin/env/model/locations unchanged; exactprivate
+candidate stopped.0provider/businesswrites in deployment. No build/upload replay.
+Same inactive Native4feb CAS updated1789394793.0649323: prepared
+d88eaa85520f67aaf637db51296221fd5ea2f8e917150963c78bb1fa284120e7;
+previous1083 savedprepared-before-352bdb0.json, samebinding73a/sameactivation/SQL.
+Launcher /var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-352bdb0.py
+SHAf59cce0390cc3d91e939ae3841864207def62509748d1d657bd6ad11a44046e4;
+backup1-public-product-352bdb0.conf. No Nativeactivation/order/DDL.
+NEXT: one new narrow normalUI chat edit validation on existing owner fashion note;
+original66a stayscompleted. Original12RMB paid+fullyrefunded, no repeatpayment/refund.
+Readiness31/37 from separately completedItem34, not this candidate. NoGitpush.
+
 September14 22:00BJT Item34 generation2 COMPLETE under the existing DoD/validator.
 Original3d completed2026-09-14T13:53:22.270280UTC; post snapshot13:53:28.268806UTC,
 attemptb8011c72-3e2b-4c39-940d-4d367c195321/run490a9216-ddd1-4828-b238-720b79d0862d.
