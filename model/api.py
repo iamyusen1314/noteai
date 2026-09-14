@@ -2960,6 +2960,7 @@ async def _agent_content(
         f"标题（{len(note_title or '')}字）：{note_title or '（无标题）'}\n"
         f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
         + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
+        + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
     raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
@@ -3023,6 +3024,7 @@ async def _agent_growth(
         f"标题：{note_title or '（无）'}\n"
         f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
         + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
+        + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"【实时热词数据】\n{timing_text}"
     )
     raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
@@ -3050,6 +3052,7 @@ async def _agent_user(
         f"标题：{note_title or '（无）'}\n"
         f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
         + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
+        + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"语义特征：情感强度={emo:.2f} 共情度={emp:.2f} 修辞水平={rhet:.2f}\n"
         + (f"互动引导语数量：{cta:.0f}\n" if cta is not None else "")
         + (f"互动性表达密度：{stance:.2f}\n" if stance is not None else "")
@@ -3091,6 +3094,15 @@ async def _agent_arbitrate(
         opinion_block += f"\n【{role}】（置信度：{conf or '未知'}）\n{op_text}\n"
         if suggestions:
             opinion_block += f"建议：{suggestions}\n"
+        fact_risks = _structured_fact_boundary_issues(
+            f"{op_text}\n{suggestions}", source_context, domain,
+        )
+        if fact_risks:
+            opinion_block += (
+                "【上述专家意见的事实风险】" + "；".join(dict.fromkeys(fact_risks))
+                + "。原意见保留供分析，但不是事实来源。仲裁和正文只能采用原始事实边界，"
+                "其余保留为待核实事项，不能把专家建议转成已核实事实。\n"
+            )
         if role == "内容专家":
             # 提取候选标题，先粗提取，后面统一用 _clean_title 清洗（在函数定义后处理）
             titles_pool = [t.strip() for t in _xtag(raw, "titles").splitlines() if t.strip()]
@@ -3428,7 +3440,6 @@ async def _run_five_agents(
     emit: ProgressEmitter | None = None,
 ) -> dict:
     dk = _get_dk(note.domain)
-
     await _emit_progress(emit, {
         "type": "stage",
         "stage": "agents",
@@ -7932,6 +7943,7 @@ _PRICE_FACT_RE = re.compile(
     r"(?:¥|￥)?\s*\d{2,5}\s*(?:元|块|rmb|RMB)"
     r"(?:\s*(?:起|/晚|/人|每晚|一晚|左右|以内|以上))?"
     r"|(?:¥|￥)\s*\d{2,5}\s*(?:起|/晚|/人|每晚|一晚)?"
+    r"|(?<![A-Za-z0-9])\d{2,5}\s*r(?![A-Za-z0-9])"
     r")",
     re.I,
 )
@@ -9597,6 +9609,9 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
         f"- 当前可用到店决策事实：{facts_text}\n"
         "- 写法要求：只有已核验事实才能自然拆进「适合谁去」「怎么点」「什么时候去」等语境；禁止写成信息栏，也禁止写门店页/公示占位句。\n"
         "- 标题里的数字优先用菜品数量、套餐人数、图片数量等已知事实；不要用虚构人均。\n"
+        "- 图像只证明可见外观，不能从奶白汤色推定骨汤、昆布、龙虾头等原料或熬制方法；"
+        "原文未提供的配方、火候、鲜活状态与亲尝细节不能补写为事实。保留原有体验与画面，"
+        "需要店家或作者补充的内容作为待核实建议，不能为扩字数变成既成经历。\n"
         "- 正文目标按创作方向变化：真实种草型重画面与体验，决策转化型重真实到店信息，清单攻略型重多素材覆盖；不要输出Markdown标题。"
     )
 
@@ -10270,6 +10285,41 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
     return compacted
 
 
+def _fact_assertions(value: str, *, only_explicit_rejections: bool = False) -> list[str]:
+    """Exclude explicitly rejected quotations, without endorsing replacement claims."""
+    quote_re = re.compile(r'“[^”\n]*”|「[^」\n]*」|"[^"\n]*"')
+
+    def quotation(match):
+        before = re.split(r"[。！？\n；;，,]|但是|然而|不过", value[:match.start()])[-1]
+        after = value[match.end():]
+        rejected_before = re.search(
+            r"(?:不能|不得|不要|不应)(?:把|将|写成|宣称|声称|承诺|写|说)\s*$|"
+            r"(?:误写|错写)(?:成|为)?\s*$", before,
+        )
+        rejected_after = re.match(
+            r"\s*(?:是(?:误写|错写|错误)(?=$|[。，,；;\n])|(?:缺乏|缺少)(?:事实)?依据|"
+            r"(?:应|需要|必须)改为(?=\s*[“「\"])|(?:不能|不得)(?:当成|作为)(?:已核实)?事实|"
+            r"写成(?:确定|已确认|已核验)(?:权益|事实)[，,]?\s*(?:缺乏|缺少)(?:事实)?依据)", after,
+        )
+        return "" if rejected_before or rejected_after else match.group()
+
+    # Mask the whole rejected quote before splitting punctuation inside it.
+    unquoted = quote_re.sub(quotation, value)
+    parts = [part.strip() for part in re.split(
+        r"[。！？\n；;，,]|但是|但|然而|不过|并且|而且|且", unquoted,
+    ) if part.strip()]
+    if only_explicit_rejections:
+        # "Is a ten-minute queue worthwhile?" still asserts the queue duration.
+        # Only an explicit rejection of the claim removes that factual premise.
+        return [part for part in parts if not re.match(
+            r"^(?:[-*•]\s*)?(?:不要|不能|不得|不应)(?:承诺|宣称|声称|写成)", part,
+        )]
+    return [part for part in parts if not re.search(
+        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|[吗呢]\s*$|"
+        r"需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|"
+        r"不能|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可)", part)]
+
+
 def _structured_fact_boundary_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
     """Guard only structured facts. Do not block narrative details such as feelings or scene description."""
     out = text or ""
@@ -10283,10 +10333,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     if canonical == "旅行":
         # Compare definite claims: a question or a stated unknown is not
         # evidence that the venue has the queried property.
-        def assertions(value: str) -> list[str]:
-            return [part.strip() for part in re.split(r"[。！？\n；;，,]|但是|但|然而|不过", value)
-                    if part.strip() and not re.search(
-                        r"(?:未确认|未核验|未知|未提供|不确定|是否|哪些|何种|含不含|[吗呢]\s*$|需确认|需要确认|要先确认|建议.{0,12}确认|确认.{0,12}(?:是否|含|接驳)|不能|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可)", part)]
+        assertions = _fact_assertions
 
         claims, evidence = assertions(out), assertions(src)
         factual_out = "\n".join(claims)
@@ -10295,7 +10342,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             number = re.search(r"\d+", match.group())
             suffix = match.group()[number.end():] + value[match.end():match.end() + 2]
             return bool(re.search(r"起价(?:为|是|：|:)?\s*$", value[:match.start()])
-                        or re.match(r"\s*(?:元|块|rmb)?\s*(?:/晚|每晚|一晚|/人)?\s*起", suffix, re.I))
+                        or re.match(r"\s*(?:元|块|rmb|r)?\s*(?:/晚|每晚|一晚|/人)?\s*起", suffix, re.I))
 
         for part in claims:
             for match in _PRICE_FACT_RE.finditer(part):
@@ -10378,9 +10425,10 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         _BUSINESS_HOURS_RE.search(src) or (canonical != "旅行" and _BUSINESS_TIME_RANGE_RE.search(src))
     ):
         issues.append("出现未提供的营业时间数字，结构化事实不能编造")
-    if _QUEUE_TIME_RE.search(out) and not _QUEUE_TIME_RE.search(src):
+    factual_premises = "\n".join(_fact_assertions(out, only_explicit_rejections=True)) if canonical == "旅行" else out
+    if _QUEUE_TIME_RE.search(factual_premises) and not _QUEUE_TIME_RE.search(src):
         issues.append("出现未提供的排队/等位时长数字，结构化事实不能编造")
-    if _UNVERIFIED_RATING_BACKING_RE.search(out) and not _UNVERIFIED_RATING_BACKING_RE.search(src):
+    if _UNVERIFIED_RATING_BACKING_RE.search(factual_premises) and not _UNVERIFIED_RATING_BACKING_RE.search(src):
         issues.append("出现未提供的五星/满分/榜单背书，结构化事实不能编造")
     if _UNVERIFIED_HOLIDAY_SCENE_RE.search(factual_out) and not _UNVERIFIED_HOLIDAY_SCENE_RE.search(src):
         issues.append("出现未提供的节假日/时令场景，结构化事实不能编造")
@@ -10394,7 +10442,29 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     return issues
 
 
-async def _repair_diagnosis_report_facts(diagnosis: str, plan: str, domain: str, source_context: str) -> tuple[str, str]:
+def _annotate_expert_fact_risks(opinions: list[dict], source_context: str, domain: str) -> list[dict]:
+    """Keep original expert views visible, with unsupported advice explicitly marked."""
+    result = []
+    for original in opinions:
+        item = dict(original)
+        for key in ("opinion", "impact", "reason"):
+            value = item.get(key)
+            if isinstance(value, str) and _structured_fact_boundary_issues(value, source_context, domain):
+                item[key] = "【原专家意见：相关事实待核实，不应直接采用】" + value
+        if isinstance(item.get("suggestions"), list):
+            item["suggestions"] = [
+                "【原建议：相关事实待核实，不应直接采用】" + value
+                if isinstance(value, str) and _structured_fact_boundary_issues(value, source_context, domain)
+                else value for value in item["suggestions"]
+            ]
+        result.append(item)
+    return result
+
+
+async def _repair_diagnosis_report_facts(
+    diagnosis: str, plan: str, domain: str, source_context: str,
+    emit: ProgressEmitter | None = None,
+) -> tuple[str, str]:
     """Repair only an unsupported report, once, using the original arbiter route.
 
     Titles, candidate bodies and expert opinions are not regenerated here. The
@@ -10417,10 +10487,32 @@ async def _repair_diagnosis_report_facts(diagnosis: str, plan: str, domain: str,
         f"【需修正的问题】\n" + "\n".join(dict.fromkeys(issues))
         + "\n仅输出完整的 <diagnosis>...</diagnosis><plan>...</plan>，不得省略原有无争议的分析和建议。"
     )
-    raw = await _mr.call("arbitrate", system, user, max_tokens=4096)
+    try:
+        raw = await _mr.call("arbitrate", system, user, max_tokens=4096)
+    except Exception:
+        await _emit_progress(emit, {
+            "type": "diagnosis_report_unverified",
+            "quality_status": "unverified",
+            "diagnosis": "", "plan": "",
+            "original_diagnosis": diagnosis, "original_plan": plan,
+            "issues": list(dict.fromkeys(issues)),
+            "repair_status": "response_unavailable",
+        })
+        raise
     repaired_diagnosis, repaired_plan = _xtag(raw or "", "diagnosis").strip(), _xtag(raw or "", "plan").strip()
     remaining = _structured_fact_boundary_issues(f"{repaired_diagnosis}\n{repaired_plan}", source_context, domain)
     if not repaired_diagnosis or not repaired_plan or remaining:
+        # Preserve the actual candidate in the authenticated original SSE only.
+        # It is neither a completed report nor a successful persisted diagnosis.
+        await _emit_progress(emit, {
+            "type": "diagnosis_report_unverified",
+            "quality_status": "unverified",
+            "diagnosis": repaired_diagnosis,
+            "plan": repaired_plan,
+            "original_diagnosis": diagnosis,
+            "original_plan": plan,
+            "issues": remaining or ["报告修复未完整返回"],
+        })
         raise HTTPException(status_code=422, detail={
             "code": "DIAGNOSIS_FACT_UNVERIFIED",
             "message": "诊断报告一次事实修复后仍未通过，本次未交付为合格结果。",
@@ -15483,8 +15575,11 @@ async def _run_analyze_pipeline(
             delivery_source_context = "\n\n".join(
                 p for p in [req.desc, fact_context, intent_brief] if p
             )
+            expert_opinions = _annotate_expert_fact_risks(
+                expert_opinions, delivery_source_context, req.domain,
+            )
             diagnosis, plan = await _repair_diagnosis_report_facts(
-                diagnosis, plan, req.domain, delivery_source_context,
+                diagnosis, plan, req.domain, delivery_source_context, emit=emit,
             )
 
             # ── 每个方案的标题+正文做旧评分器遥测与可解释质量复核 ──────

@@ -1,5 +1,15 @@
 # Risk Register
 
+September14 after owner recharge: EIP/NAT connectivity restored and exact4d API/web
+deployed. Hotel10 and original-image analyze01 failed fact validation and refunded6
+each; their actual model costs1.752555/1.3274834RMB remain. OCR alone completed with
+real Ark260428 input/output and0.5credit/0.0017982RMB. Original198r source was missed
+by the price parser; expert advice also propagated unverified facts. Scoped API
+correction is local pending actual quality verification, not a production pass.
+Publicmedia/payment remain disabled. OCR result disconnect recovery is a concrete
+remaining storage/cancellation gap; video and Native closed-loop verification remain.
+The earlier arrears block below is historical. Exact state/paths at Handoff top.
+
 September14 03:05BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.
 Actual EIP console shows website and NAT both arrears-locked/throttled1Kbps;
 local TLS/health/bindings/80+443rules are correct. Owner recharge is required,

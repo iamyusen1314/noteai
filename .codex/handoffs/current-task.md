@@ -1,5 +1,60 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 hotel10 and original Ark image — real outcomes; scoped API correction
+
+4d7781f API54564f67/publicweb4d remains deployed; no migration, Admin, Payment,
+Tracking or model-route change. Hotel10 failed DIAGNOSIS_FACT_UNVERIFIED, no complete.
+C business-analyze-10/reconcile.json confirms claim ed7d161a/usage69403aca;
+6 credits refunded once,19 actual model calls (17Haiku/2Sonnet),1.752555RMB recorded.
+Original SSE proves unverified park/room-ticket claims in expert advice and candidate
+bodies. Final repaired report was not retained, so its exact text cannot be inferred.
+The earlier refund-window query ended before the wallet refund row by39ms; fresh
+original-costs-readback.json includes e394edbb refund6 at23:30:54.951753UTC. No new
+refund was issued and the original readback remains intact.
+
+Private owner media candidate0c20a547 uses the exact same54564f67 image on127.0.0.1:18080,
+media1 only there; publicmedia remains0. Existing owner fixture70f874e5 was uploaded
+normally once and reused. Original OCR formal-ark-screenshot-20260914-01 completed
+at23:34:15.999704UTC using doubao-seed-2-0-lite-260428; actual picture/text read,
+0.5 credits,1 call/2103input+149output tokens,0.0017982RMB recorded. No substitute
+or sample response. Original owner-only JSON and media reference remain outside Git.
+Original merge succeeded without a second OCR charge/call. New food analyze01 failed
+DIAGNOSIS_FACT_UNVERIFIED at23:47:52UTC; claim1395ab1a/usage14265cc1,6refunded once,
+20 actual calls(17Haiku/2Sonnet/1Ark),1.3274834RMB recorded. Wallet2999.5; original
+gift3000 remains single. Cost reserves are not settlements; OSS/runtime fees unknown.
+All original media files/results/SSE and cost readback are under C
+/var/lib/noteai/native-media-4d7781f/media-owner-check/. Initial chain launcher had
+a Python quoting error before dispatch; corrected once, original OCR never replayed.
+
+Confirmed local defect: original OCR/merge preserved198r; shared price parser did
+not recognize r/R, falsely treating198元 as an unseen amount. API correction adds
+bounded shorthand recognition and preserves starting-price qualifiers. Explicitly
+rejected report quotes no longer count as affirmative facts; promotion of claims,
+replacement fabrications and question premises remain rejected. Original expert
+advice stays visible with risk labels; unsupported advice is marked before arbitration.
+Food experts had proposed unknown cooking ingredients, then body previews asserted
+them. Existing food fact brief now distinguishes visible appearance/actual reported
+experience from unprovided recipe/fire/freshness; supplied to three text experts and
+existing arbitration/body paths, without rewriting canonical industry Prompts.
+Twelve focused contracts pass in network-none Linuxamd64/Python3.11.15, including
+true/false fact claims, r/R versus model-name boundaries, original Prompt/context
+preservation, single repair failure and original SSE retention; local log
+~/.codex/tmp/noteai-hotel-report-scope-20260914-ready.log. No Secrets/provider calls.
+Failed report candidates (and original reports if repair fails) remain in the same
+authenticated SSE, never complete. API/test changes await candidate build and real
+quality validation; passing syntax/contracts is not content-quality acceptance.
+
+Next: finish scoped regressions, checkpoint/build API-only successor with honest
+source binding, stop only settled private candidate, verify hotel/new food request.
+Do not re-OCR or remerge consumed sources: reuse preserved original merged response.
+Media public recovery still needs durable original-result readback after disconnect;
+hash-only completed OCR is currently unrecoverable and cancellation can refund before
+result persistence. Fix via existing idempotency/private storage/retention, no new
+platform. Video/audio real chain and Native canary/owner12RMB scan/refund/next-day bill
+remain pending. WeChat encrypted config is already applied disabled; no key re-entry.
+Item34 current runtime not reread here, original schedule is LAST_KNOWN; no observation
+change/replay. Readiness30/37 unchanged. All seven protected paths remain untouched.
+
 ## September14 owner recharge — network restored; exact4d build resumes
 
 Owner confirms recharge. Existing website EIP39.108.66.93 and NAT47.106.77.147

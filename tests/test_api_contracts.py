@@ -3385,6 +3385,116 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api._repair_diagnosis_report_facts("998元含票。", "春节入住。", "旅行", source))
             self.assertEqual(call.await_count, 1)
 
+    def test_food_experts_receive_media_fact_rule_without_replacing_source(self):
+        source = "龙虾乌冬198r，汤底浓郁。"
+        dk = api._get_dk("美食")
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="<opinion>保留原有画面。</opinion>")) as call:
+            asyncio.run(api._agent_content("乌冬面", source, "美食", [], dk, "原有约束"))
+            asyncio.run(api._agent_growth("乌冬面", source, "美食", None, dk, "原有约束"))
+            asyncio.run(api._agent_user("乌冬面", source, "美食", {}, [], dk, "原有约束"))
+        self.assertEqual(call.await_count, 3)
+        for item in call.call_args_list:
+            self.assertIn(source, item.args[2])
+            self.assertIn("原有约束", item.args[2])
+            self.assertIn("图像只证明可见外观", item.args[2])
+            self.assertIn("不能为扩字数变成既成经历", item.args[2])
+
+    def test_screenshot_r_price_remains_factual_evidence(self):
+        for amount in ("198r", "198R", "198rmb", "198 RMB"):
+            source = "龙虾乌冬面 " + amount + "有点贵，但很好吃。"
+            with self.subTest(amount=amount):
+                self.assertTrue(api._source_has_price_evidence(source))
+                self.assertFalse(api._structured_fact_boundary_issues("198元一碗，值不值需要结合实际分量判断。", source, "美食"))
+                self.assertTrue(api._structured_fact_boundary_issues("98元一碗。", source, "美食"))
+        for value in ("型号RTX198R", "转速198rpm", "198reviews"):
+            self.assertFalse(api._PRICE_FACT_RE.search(value))
+        for source in ("房价998r起。", "房价998R起。"):
+            self.assertTrue(api._structured_fact_boundary_issues("房价998元。", source, "旅行"))
+            self.assertFalse(api._structured_fact_boundary_issues("房价998元起。", source, "旅行"))
+
+    def test_travel_report_rejected_quotes_keep_claim_scope(self):
+        source = "酒店998元起，房型与门票绑定未知。部分服务预约时段9:30-18:30。"
+        for text in (
+            '“营业时间9:30-18:30”是误写，应改为部分服务预约时段。',
+            '不能把“酒店位于园区内，步行到景区”当成已核实事实。',
+            '原文把“998元含票”写成确定权益，缺乏依据。',
+            '“998元含票”应改为“998元起，具体票务权益待核实”。',
+            '不要承诺排队10分钟。不能宣称五星酒店。',
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(api._structured_fact_boundary_issues(text, source, "旅行"))
+        for text in (
+            '建议标题改成“998元含票住园区内”。',
+            '“998元含票”应改为“969元含票”。',
+            '酒店位于园区内且不能取消订单。',
+            '不能取消订单，而且酒店位于园区内。',
+            '酒店位于园区内，具体以酒店为准。',
+            '“酒店位于园区内，步行到景区”是本次卖点。',
+            '“酒店位于园区内”应改为标题卖点。',
+            '“998元含票”必须改为海报主标题。',
+            '排队10分钟是否值得？',
+            '这家五星酒店是否适合亲子家庭？',
+            '排队10分钟不能取消订单。',
+            '“酒店位于园区内”是错误？不，这是酒店最大优势。',
+            '“酒店位于园区内”是错误案例中的正确部分。',
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(api._structured_fact_boundary_issues(text, source, "旅行"))
+
+    def test_unverified_expert_advice_is_preserved_and_marked_in_public_result(self):
+        original = [{"role": "内容专家", "opinion": "酒店位于园区内。",
+                     "suggestions": ["补充998元含票的优势。", "补充可核验的房型信息。"]}]
+        marked = api._annotate_expert_fact_risks(original, "酒店998元起，门票绑定未知。", "旅行")
+        self.assertEqual(original[0]["opinion"], "酒店位于园区内。")
+        self.assertIn("相关事实待核实", marked[0]["opinion"])
+        self.assertIn("不应直接采用", marked[0]["suggestions"][0])
+        self.assertEqual(marked[0]["suggestions"][1], original[0]["suggestions"][1])
+        public = api._public_expert_opinions(marked)
+        self.assertIn("相关事实待核实", public[0]["opinion"])
+        self.assertIn("不应直接采用", public[0]["suggestions"][0])
+
+    def test_arbiter_receives_original_expert_advice_with_fact_risk_annotation(self):
+        source = "酒店地址汉溪大道东299号，园区位置未知。酒店998元起，门票绑定未知。"
+        raw = "<opinion>酒店位于园区内。</opinion><suggestions>补充998元含票的优势。</suggestions>"
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(side_effect=RuntimeError("captured_first_call"))) as call:
+            with self.assertRaisesRegex(RuntimeError, "captured_first_call"):
+                asyncio.run(api._agent_arbitrate("酒店如何选", "旅行", 70, "良好",
+                    [{"role": "内容专家", "raw": raw}], source))
+        self.assertEqual(call.await_count, 1)
+        prompt = call.call_args.args[2]
+        self.assertIn(source, prompt)
+        self.assertIn("补充998元含票的优势。", prompt)
+        self.assertIn("上述专家意见的事实风险", prompt)
+        self.assertIn("不是事实来源", prompt)
+
+    def test_failed_report_keeps_original_and_repaired_candidate_in_same_sse(self):
+        output = "<diagnosis>酒店位于园区内。</diagnosis><plan>998元含票。</plan>"
+        emit = mock.AsyncMock()
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=output)) as call:
+            with self.assertRaises(HTTPException) as failure:
+                asyncio.run(api._repair_diagnosis_report_facts(
+                    "每晚998元。", "含票。", "旅行", "酒店998元起，票务绑定未知。", emit=emit))
+        self.assertEqual(failure.exception.detail["code"], "DIAGNOSIS_FACT_UNVERIFIED")
+        self.assertEqual(call.await_count, 1)
+        self.assertEqual(emit.await_count, 1)
+        event = emit.call_args.args[0]
+        self.assertEqual(event["type"], "diagnosis_report_unverified")
+        self.assertEqual(event["quality_status"], "unverified")
+        self.assertEqual(event["diagnosis"], "酒店位于园区内。")
+        self.assertEqual(event["original_diagnosis"], "每晚998元。")
+        self.assertTrue(event["issues"])
+        emit.reset_mock()
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(side_effect=RuntimeError("UNKNOWN"))) as call:
+            with self.assertRaisesRegex(RuntimeError, "UNKNOWN"):
+                asyncio.run(api._repair_diagnosis_report_facts(
+                    "每晚998元。", "含票。", "旅行", "酒店998元起，票务绑定未知。", emit=emit))
+        self.assertEqual(call.await_count, 1)
+        self.assertEqual(emit.await_count, 1)
+        event = emit.call_args.args[0]
+        self.assertEqual(event["original_diagnosis"], "每晚998元。")
+        self.assertEqual(event["repair_status"], "response_unavailable")
+        self.assertEqual(event["diagnosis"], "")
+
     def test_hotel_price_ranges_do_not_borrow_qualifiers_or_invent_capacity(self):
         source = "狩猎房969元起/晚；亲子房1965元起。部分房型含门票，具体绑定未知。"
         for text in ("价格从969元起到1965元。", "两个大人带一个小娃这个档位足够。"):

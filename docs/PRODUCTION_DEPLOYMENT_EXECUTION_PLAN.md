@@ -1,5 +1,14 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 current: hotel10 and first owner-image diagnosis failed factual quality,
+each6credit refund verified, actual model costs retained. Ark original OCR succeeded
+with real image/text,0.5credit; its completed response/merge must be reused, not replayed.
+Scoped API-only correction addresses r/R price evidence, report quote scope and expert
+advice provenance; build/real quality checks follow. Exact original results, costs,
+candidate and recovery gaps are at Handoff top. This does not replace Native capture,
+owner12RMB scan/full refund/next-day bill or remaining video/recovery work. Production
+4dweb/API remains media/payment disabled; no migration or fixed Item34 artifact change.
+
 September14 07:25BJT: owner recharge has restored original EIP/network access.
 4d7781f API/public web is now deployed with media/payment disabled; Admin unchanged.
 Original permission/import failure and pre-switch script failure were corrected;
