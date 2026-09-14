@@ -1,5 +1,12 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 Native bill implementation is local/isolatedPG16 verified. Use existing
+native_capture.py prepare-bill/run-bill/close-bill for original Sep14 order, no earlier
+than Sep15 10BJT. Preserve original trade binding/context/action ledger and UNKNOWN
+journal; only new capture/R and only Payment lifecycle, current API CID remains alive.
+No callback/new order/refund; full bill digest/actual reconciliation required. Do not
+run old trade launcher. Current actual source and deployment state at Handoff top.
+
 September14 15:03BJT media0453619 API63c8/web045 deployed,0028verified. Compatible
 API98/web98 rollback retained; no source/secret/cost/Tracking bypass. Exact original
 results and browser readback at Handoff top. Publicmedia still requires live verification.

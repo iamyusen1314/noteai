@@ -1,3 +1,31 @@
+September14 media recovery live check succeeded on the same0453619 image, private
+loopback18082/CID8f29031bcf0ff60bc4d0cafaf0adcda647bc77a2a559117b44b38a9253537283.
+New authorized OCR keyformal-ark-media-recovery-20260914-01 is distinct from old OCR,
+claim9a6908d7-4f21-4aec-978b-693382499852/usage07f75c67-8e23-4717-84f3-f4a84b3c0693.
+One real Ark260428 call2234in/148out,0.0018732RMB exact/complete;0.5credits once,
+refund0/complete1. Two original GET reads equal saved response exactly, no extra
+provider call/charge; private metadata reference present. Originals under
+/var/lib/noteai/media-0453619/owner-check/{ocr-*,verified-result.json}; raw result not
+in Git/public downloads. New full original-food chain formal-ark-media-chain-20260914-01
+startedPID1702856 at1789370200.8361206, combines this new saved OCR then analyzes;
+do not resubmit. Original food02/OCR historical results remain untouched. Publicmedia
+stays closed pending actual chain/quality; actual browser fresh page restores owner.
+Owner was asked only for an existing approved video path; no indexed real video is
+available, fake tiny.mp4 is not acceptance. Other independent work continues.
+
+Next-day Native bill local implementation now in existing native_capture.py:
+prepare-bill/run-bill/close-bill use same original12RMB order/create_context/action
+ledger and new capture/R, actual current API CID as unchanged network owner;
+callback/relay/ordering0, only Payment start/stop/restore. No request before Sep15
+10BJT, no new trade/refund/retry. Original UNKNOWN trade journal is separately pinned.
+Review fixed umask traversal, API-drift cleanup and in-flight operator UNKNOWN recording;
+original binding SHA/ledger are checked, never replaced with an empty ledger. Six
+Python3.11/isolatedPG16 tests pass including same-order two captures/time/flags and
+shutdown/isolation cases. Current code is LOCAL, not uploaded/applied or scheduled;
+next deploy this existing launcher/template and prepare against latest actual state,
+then actual bill at its time. This does not repair original DML/dedup gaps or increase
+Readiness30/37. No Gitpush/protected-path/Item34 changes.
+
 September14 15:03BJT media0453619 API+web are deployed, original schema0028 verified.
 API63c8beaba9db8cc41b9658341cb8353c877c971c457d3e14fa0f152128ab63f3;
 web /var/www/noteai-public/0453619, JS7d5bfe02d611182d99c4e3ec7359646c6d78c6e6934c55ffaa1c8eee84f1de8b.

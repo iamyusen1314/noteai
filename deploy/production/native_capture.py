@@ -4,6 +4,8 @@ Prepare renders the existing collector SQL. The database owner applies that SQL
 separately. Start temporarily binds the current API and Payment to one capture;
 close drains them, seals the original journal, and restores the saved units.
 The existing payment_canary_executor remains the only operator entry point.
+prepare-bill/run-bill/close-bill retain the original order and action ledger; only
+Payment is temporarily started after next-day bill availability. API is unchanged.
 """
 from pathlib import Path
 import ast
@@ -323,10 +325,212 @@ def close():
     return result
 
 
+def bill_binding(original, directory, activation, run_id):
+    """New capture of the original order, never a second create authorization."""
+    assert original['provider'] == 'wechatpay_direct' and original['user_id'] == USER_ID
+    assert original['app_id'] == APP_ID and original['reconciliation_run_id'] is None
+    assert str(uuid.UUID(activation)) == activation and str(uuid.UUID(run_id)) == run_id
+    assert activation != original['activation']
+    result = json.loads(json.dumps(original))
+    result.update(activation=activation, work_directory=str(directory), reconciliation_run_id=run_id)
+    result['targets']['payment_reconciliation_runs'] = ['id', run_id]
+    result['targets']['payment_reconciliation_items'] = ['run_id', run_id]
+    assert result['create_context'] == original['create_context']
+    assert result['idempotency_key_hash'] == original['idempotency_key_hash']
+    return result
+
+
+def bill_originals_intact(meta):
+    current = inspect('noteai-api-c')
+    assert current['Id'] == meta['api_container'] and current['Image'] == meta['api_image'] and current['State']['Running']
+    for path, expected in meta['unchanged_files'].items():
+        assert digest(Path(path).read_bytes()) == expected, 'original_configuration_changed'
+    assert config_hash() == meta['config_hash']
+    assert str(Path('/var/www/noteai-public/current').resolve()) == meta['web']
+    assert inspect('noteai-admin-c')['Image'] == meta['admin_image']
+    for name, expected in meta['original_action_ledger'].items():
+        assert digest((Path('/var/lib/noteai/payment-canary-actions')/name).read_bytes())==expected, 'original_action_record_changed'
+    original = Path(meta['trade_directory'])
+    for name, expected in meta['original_evidence'].items():
+        assert digest((original / name).read_bytes()) == expected, 'original_trade_evidence_changed'
+
+
+def prepare_bill():
+    trade = Path('/var/lib/noteai/native-80b01ea/trade')
+    assert ROOT == trade.parent / 'bill-20260914' and not ROOT.exists()
+    assert run(['systemctl','show','noteai-payment.service','-p','ActiveState','--value']).strip() in (b'inactive', b'failed')
+    assert run(['systemctl','show','noteai-payment.service','-p','Job','--value']).strip() in (b'', b'0')
+    assert not run(['docker','ps','-aq','--filter','name=^/noteai-payment$']).strip()
+    for path in (PAYMENT_UNIT, BOUND_ENV):
+        assert digest(path.read_bytes()) == HASHES[str(path)]
+    original_bytes=(trade/'binding.json').read_bytes()
+    assert digest(original_bytes)==json.loads((trade/'prepared.json').read_text())['binding_sha256']
+    original = json.loads(original_bytes)
+    ledger=Path('/var/lib/noteai/payment-canary-actions')
+    import stat
+    lm=ledger.lstat();assert stat.S_ISDIR(lm.st_mode) and lm.st_uid==999 and stat.S_IMODE(lm.st_mode)==0o700
+    ledger_entries={p.name:digest(p.read_bytes()) for p in ledger.glob('*.json') if p.is_file() and not p.is_symlink()}
+    assert ledger_entries, 'original_action_ledger_missing'
+    assert json.loads((trade/'closed.json').read_text())['state'] == 'SERVICES_RESTORED_COLLECTOR_REMOVAL_PENDING'
+    # Current app role reads its original order only, without owner credentials.
+    order_id = '1e2acc0a-ebf6-4830-9cd3-e1bccfa4a8a6'
+    code = "import db,json;r=db.fetchone(\"SELECT id,user_id,provider,payment_status,refund_status,refunded_fen,amount_fen,idempotency_key_hash FROM payment_orders WHERE id=?\",(" + repr(order_id) + ",));print(json.dumps(dict(r or {})))"
+    order = api_read(code)
+    assert order['user_id'] == USER_ID and order['provider'] == 'wechatpay_direct' and order['amount_fen'] == 1200
+    assert order['idempotency_key_hash'] == original['idempotency_key_hash']
+    assert order['payment_status']=='succeeded' and order['refund_status']=='refunded' and order['refunded_fen']==1200
+    assert api_read("import db,json;print(json.dumps({'n':db.fetchone(\"SELECT count(*) n FROM pg_trigger WHERE tgname='noteai_item31_canary_dml_notice'\")['n']}))")['n'] == 0
+    current = inspect('noteai-api-c')
+    assert current['State']['Running']
+    for image in (PAYMENT_IMAGE, CANARY_IMAGE):
+        info = json.loads(run(['docker','image','inspect',image]))[0]
+        assert info['Architecture'] == 'amd64' and info['Os'] == 'linux'
+    ROOT.mkdir(mode=0o711)
+    os.chmod(ROOT,0o711)  # umask077 must not prevent the runtime UID traversing.
+    (ROOT/'before').mkdir(mode=0o700)
+    work=ROOT/'work';work.mkdir(mode=0o700);os.chown(work,999,999)
+    binding=bill_binding(original,work,str(uuid.uuid4()),str(uuid.uuid4()))
+    save(ROOT/'binding.json',binding);os.chmod(ROOT/'binding.json',0o644)
+    code="import collect_item31_canary_dml as d,json;b="+repr(binding)+";print(json.dumps({'install':[s.as_string() for s in d.installation_sql(b['activation'],b['targets'])],'remove':[s.as_string() for s in d.removal_sql(list(b['targets']))]}))"
+    for phase, statements in api_read(code).items():
+        (ROOT/(phase+'.sql')).write_text("BEGIN;\nSET LOCAL lock_timeout='5s';\nSET LOCAL statement_timeout='30s';\n"+'\n'.join(s.rstrip(';')+';' for s in statements)+'\nCOMMIT;\n')
+    raw=PAYMENT_UNIT.read_bytes();(ROOT/'before/payment.service').write_bytes(raw)
+    unchanged={str(p):digest(p.read_bytes()) for p in (API_UNIT,API_DROP,*PROXIES,BOUND_ENV,Path('/etc/noteai/public-account.env'),Path('/etc/noteai/payment.env'))}
+    evidence={name:digest((trade/name).read_bytes()) for name in ('binding.json','closed.json','final-readback.json','work/canary-dml.jsonl.incomplete')}
+    meta={'mode':'bill','order_id':order_id,'bill_date':'2026-09-14','activation':binding['activation'],
+          'binding_sha256':digest((ROOT/'binding.json').read_bytes()),'trade_directory':str(trade),
+          'original_evidence':evidence,'original_action_ledger':ledger_entries,'api_image':current['Image'],'api_container':current['Id'],
+          'unchanged_files':unchanged,'config_hash':config_hash(),'admin_image':inspect('noteai-admin-c')['Image'],
+          'web':str(Path('/var/www/noteai-public/current').resolve()),
+          'backups':{str(PAYMENT_UNIT):{'file':'payment.service','sha256':digest(raw)}},'at':time.time()}
+    save(ROOT/'prepared.json',meta)
+    return {'state':'BILL_PREPARED_NOT_ACTIVATED','activation':binding['activation'],'order_id':order_id,'provider_requests':0,'business_writes':0}
+
+
+def bill_environment(meta, binding, starts):
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    available=datetime.strptime(meta['bill_date'],'%Y-%m-%d').replace(tzinfo=ZoneInfo('Asia/Shanghai'))+timedelta(days=1,hours=10)
+    assert starts >= int(available.timestamp()), 'bill_not_available_before_next_day_10BJT'
+    assert binding['reconciliation_run_id'] and binding['activation'] == meta['activation']
+    return {'NOTEAI_PAYMENT_CANARY_ENABLED':'1','NOTEAI_PAYMENT_CANARY_ACTION':'reconcile',
+       'NOTEAI_PAYMENT_CANARY_PROVIDER':'wechatpay_direct','NOTEAI_PAYMENT_CANARY_ORDER_ID':meta['order_id'],
+       'NOTEAI_PAYMENT_CANARY_BILL_DATE':meta['bill_date'],'NOTEAI_PAYMENT_CANARY_ACTIVATION_ID':meta['activation'],
+       'NOTEAI_PAYMENT_CANARY_USER_ID_SHA256':identity('payment-canary-user-v1',USER_ID),
+       'NOTEAI_PAYMENT_CANARY_SUBJECT_HASH':identity('noteai-payment-subject-v1',USER_ID),
+       'NOTEAI_PAYMENT_CANARY_AMOUNT_FEN':'1200','NOTEAI_PAYMENT_CANARY_OWNER_TEST_ASSERTION':'ITEM31-OWNER-CONTROLLED-TEST-ORDER',
+       'NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH':str(starts),'NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH':str(starts+3600),
+       'NOTEAI_ITEM31_DML_BINDING_FILE':str(ROOT/'binding.json'),'NOTEAI_ITEM31_DML_BINDING_SHA256':meta['binding_sha256'],
+       'NOTEAI_PAYMENT_ORDERING_ENABLED':'0','NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED':'0','NOTEAI_PAYMENT_CALLBACK_ENABLED':'0',
+       'NOTEAI_PAYMENT_ORDER_PROVIDERS':'wechatpay_direct','NOTEAI_PAYMENT_CALLBACK_PROVIDERS':'wechatpay_direct',
+       'PGOPTIONS':'-c default_transaction_read_only=off -c statement_timeout=10000 -c lock_timeout=5000'}
+
+
+def close_bill():
+    if (ROOT/'closed.json').exists():
+        return json.loads((ROOT/'closed.json').read_text())
+    meta,before=originals()
+    result={'state':'UNKNOWN','at':time.time()}
+    try:
+        try:
+            bill_originals_intact(meta)
+        except Exception as drift:
+            result['original_state_drift']=type(drift).__name__
+        operators=run(['docker','ps','-q','--filter','label=com.noteai.native-operator='+meta['activation']]).strip()
+        if operators:
+            result['reason']='operator_still_running_read_original_result'
+            return result
+        # Restore Payment even after API/config drift. Never touch the API;
+        # a lost namespace may make the original journal UNKNOWN, not reusable.
+        run(['systemctl','stop','noteai-payment.service'],60)
+        try:
+            result['journal']=journal_readback()
+        except Exception as exc:
+            result['journal']={'status':'UNKNOWN','error_type':type(exc).__name__}
+        put(PAYMENT_UNIT,before[PAYMENT_UNIT]);run(['systemctl','daemon-reload'])
+        assert PAYMENT_UNIT.read_bytes()==before[PAYMENT_UNIT]
+        result['payment_restored']=True
+        if 'original_state_drift' not in result:
+            bill_originals_intact(meta)
+            result['state']='BILL_PAYMENT_RESTORED_COLLECTOR_REMOVAL_PENDING'
+        return result
+    finally:
+        save(ROOT/('closed.json' if result['state']!='UNKNOWN' else 'close-unknown-'+str(time.time_ns())+'.json'),result)
+
+
+def run_bill():
+    meta,before=originals();assert meta['mode']=='bill'
+    binding=json.loads((ROOT/'binding.json').read_text())
+    assert digest((ROOT/'binding.json').read_bytes())==meta['binding_sha256']
+    assert not (ROOT/'started.json').exists()
+    bill_originals_intact(meta)
+    assert PAYMENT_UNIT.read_bytes()==before[PAYMENT_UNIT]
+    assert not run(['docker','ps','-aq','--filter','name=^/noteai-payment$']).strip()
+    ready=api_read("import db,json;r=db.fetchone(\"SELECT count(*) n FROM pg_trigger WHERE tgname='noteai_item31_canary_dml_notice' AND NOT tgisinternal\");f=db.fetchone(\"SELECT pg_get_functiondef('public.noteai_item31_canary_dml_notice()'::regprocedure) body\");print(json.dumps({'n':r['n'],'matches':"+repr(meta['activation'])+" in f['body']}))")
+    assert ready=={'n':15,'matches':True}
+    starts=int(time.time());env=bill_environment(meta,binding,starts)
+    with (ROOT/'input.env').open('x') as f:
+        f.write(''.join(k+'='+v+'\n' for k,v in env.items()));f.flush();os.fsync(f.fileno())
+    template=(Path(__file__).with_name('systemd')/'noteai-payment-canary-capture.service.template').read_text()
+    for key,value in {'NOTEAI_PAYMENT_CALLBACK_ENABLED':'0','NOTEAI_ITEM31_ENV_FILE':str(ROOT/'input.env'),
+       'NOTEAI_ITEM31_BINDING_FILE':str(ROOT/'binding.json'),'NOTEAI_ITEM31_WORK_DIRECTORY':str(ROOT/'work'),
+       'NOTEAI_PAYMENT_IMAGE':PAYMENT_IMAGE,'NOTEAI_API_CONTAINER':meta['api_container']}.items():
+        template=template.replace('@@'+key+'@@',value)
+    assert '@@' not in template
+    save(ROOT/'started.json',{'starts':starts,'expires':starts+3600,'at':time.time()})
+    try:
+        put(PAYMENT_UNIT,template.encode());run(['systemctl','daemon-reload']);run(['systemctl','start','--no-block','noteai-payment.service'])
+        for _ in range(60):
+            try:
+                current=inspect('noteai-payment')
+                if current['State']['Running'] and current['Image']==PAYMENT_IMAGE and api_read("import json,urllib.request;op=urllib.request.build_opener(urllib.request.ProxyHandler({}));print(json.dumps({'status':op.open('http://127.0.0.1:8002/health/live',timeout=3).status}))")['status']==200:
+                    break
+            except Exception:
+                pass
+            time.sleep(1)
+        else:
+            raise RuntimeError('bill_broker_not_ready')
+        bill_originals_intact(meta)
+        save(ROOT/'active.json',{'state':'BILL_ACTIVE_NO_CALLBACK','at':time.time(),'api_container':meta['api_container']})
+        name='noteai-native-bill-'+meta['activation']
+        args=['docker','run','--rm','--pull=never','--name='+name,'--cidfile='+str(ROOT/'operator.cid'),
+           '--label=com.noteai.native-operator='+meta['activation'],'--network=container:'+meta['api_container'],
+           '--read-only','--user=999:999','--cap-drop=ALL','--security-opt=no-new-privileges:true',
+           '--memory=256m','--cpus=0.25','--pids-limit=64','--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=128m,mode=1777',
+           '--env-file='+str(BOUND_ENV),'--env-file='+str(ROOT/'input.env'),
+           '--mount=type=bind,src='+str(ROOT/'binding.json')+',dst='+str(ROOT/'binding.json')+',readonly',
+           '--mount=type=bind,src='+str(ROOT/'work')+',dst='+str(ROOT/'work'),
+           '--mount=type=bind,src=/var/lib/noteai/payment-canary-actions,dst=/var/lib/noteai/payment-canary-actions',
+           '--entrypoint=/usr/local/bin/python',CANARY_IMAGE,'-EsB','/app/model/payment_canary_executor.py','reconcile','wechatpay_direct',meta['bill_date']]
+        with (ROOT/'operator-result.json').open('xb') as out,(ROOT/'operator.stderr').open('xb') as err:
+            completed=subprocess.run(args,stdout=out,stderr=err,timeout=1200)
+            out.flush();os.fsync(out.fileno())
+        save(ROOT/'operator-exited.json',{'exit_code':completed.returncode,'at':time.time()})
+        # Failed/UNKNOWN operator results still seal their original capture;
+        # no second execution, callback, query-payment or refund is dispatched.
+        return close_bill()
+    except BaseException as exc:
+        save(ROOT/('run-error-'+str(time.time_ns())+'.json'),
+             {'state':'UNKNOWN','error_type':type(exc).__name__,'at':time.time()})
+        close_bill()
+        raise
+
+
 def main():
     assert socket.gethostname() == 'noteai-api-c' and os.geteuid() == 0
     os.umask(0o077)
     helpers()
+    global ROOT
+    if sys.argv[1:] in (['prepare-bill'], ['run-bill'], ['close-bill']):
+        ROOT = Path('/var/lib/noteai/native-80b01ea/bill-20260914')
+        if sys.argv[1:] == ['prepare-bill']:
+            result = prepare_bill()
+        else:
+            lock = (ROOT / 'control.lock').open('a')
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = run_bill() if sys.argv[1:] == ['run-bill'] else close_bill()
+        print(json.dumps(result), flush=True)
+        return
     if sys.argv[1:] == ['prepare']:
         result = prepare()
     elif sys.argv[1:] == ['run']:

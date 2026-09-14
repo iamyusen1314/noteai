@@ -839,3 +839,88 @@ class NativeCaptureShutdownTests(unittest.TestCase):
                 restore.assert_called_once_with(before)
                 self.assertEqual({p:p.read_bytes() for p in paths},before)
                 self.assertEqual(json.loads((root/'closed.json').read_text()),result)
+
+class NativeBillCaptureTests(unittest.TestCase):
+    def test_bill_reuses_trade_context_without_mutating_unknown_history(self):
+        from deploy.production import native_capture as launcher
+        trade={'activation':str(uuid.uuid4()),'provider':'wechatpay_direct','user_id':launcher.USER_ID,
+            'app_id':launcher.APP_ID,'idempotency_key_hash':'original-key','create_context':{'activation_identity_sha256':'original-trade'},
+            'work_directory':'old','reconciliation_run_id':None,'targets':{
+            'payment_orders':['idempotency_key_hash','original-key'],
+            'payment_reconciliation_runs':['id','no-reconcile'], 'payment_reconciliation_items':['id','no-reconcile']}}
+        original=json.dumps(trade,sort_keys=True)
+        with tempfile.TemporaryDirectory() as temp:
+            p=Path(temp)/'old.incomplete';p.write_bytes(b'original UNKNOWN journal')
+            before=p.read_bytes();run_id=str(uuid.uuid4())
+            bill=launcher.bill_binding(trade,Path(temp)/'bill',str(uuid.uuid4()),run_id)
+            self.assertEqual(bill['create_context'],trade['create_context'])
+            self.assertEqual(bill['targets']['payment_orders'],trade['targets']['payment_orders'])
+            self.assertEqual(bill['targets']['payment_reconciliation_items'],['run_id',run_id])
+            self.assertEqual(json.dumps(trade,sort_keys=True),original)
+            self.assertEqual(p.read_bytes(),before)
+            with self.assertRaises(AssertionError):
+                launcher.bill_binding(trade,Path(temp),trade['activation'],run_id)
+
+    def test_bill_window_and_flags_do_not_authorize_payment_or_early_bill(self):
+        from deploy.production import native_capture as launcher
+        from zoneinfo import ZoneInfo
+        starts=int(datetime(2026,9,15,10,tzinfo=ZoneInfo('Asia/Shanghai')).timestamp())
+        meta={'bill_date':'2026-09-14','order_id':'original-order','activation':'original-bill','binding_sha256':'original-binding'}
+        binding={'activation':'original-bill','reconciliation_run_id':str(uuid.uuid4())}
+        with self.assertRaises(AssertionError): launcher.bill_environment(meta,binding,starts-1)
+        env=launcher.bill_environment(meta,binding,starts)
+        self.assertEqual(env['NOTEAI_PAYMENT_CANARY_ACTION'],'reconcile')
+        self.assertEqual(env['NOTEAI_PAYMENT_CANARY_ORDER_ID'],'original-order')
+        self.assertEqual(int(env['NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH'])-starts,3600)
+        for flag in ('NOTEAI_PAYMENT_ORDERING_ENABLED','NOTEAI_PAYMENT_CALLBACK_ENABLED','NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED'):
+            self.assertEqual(env[flag],'0')
+        with self.assertRaises(AssertionError): launcher.bill_environment(meta,{**binding,'reconciliation_run_id':None},starts)
+
+    def test_bill_close_preserves_api_and_original_unknown_and_blocks_live_operator(self):
+        from deploy.production import native_capture as launcher
+        for active in (False,True):
+            with self.subTest(active=active),tempfile.TemporaryDirectory() as temp,ExitStack() as stack:
+                root=Path(temp);payment=root/'payment.service';payment.write_bytes(b'temporary')
+                meta={'activation':'original-bill'};before={payment:b'original'}
+                stack.enter_context(mock.patch.multiple(launcher,ROOT=root,PAYMENT_UNIT=payment))
+                stack.enter_context(mock.patch.object(launcher,'originals',return_value=(meta,before)))
+                intact=stack.enter_context(mock.patch.object(launcher,'bill_originals_intact'))
+                commands=[]
+                def run(args,*unused):
+                    commands.append(args)
+                    if args[:2]==['docker','ps']:return b'operator' if active else b''
+                    if args[:2]==['systemctl','stop']:self.assertEqual(args[-1],'noteai-payment.service')
+                    self.assertNotIn('noteai-api.service',args)
+                    return b''
+                stack.enter_context(mock.patch.object(launcher,'run',side_effect=run,create=True))
+                stack.enter_context(mock.patch.object(launcher,'put',side_effect=lambda p,b:p.write_bytes(b),create=True))
+                stack.enter_context(mock.patch.object(launcher,'journal_readback',return_value={'status':'UNKNOWN'}))
+                if active:
+                    result=launcher.close_bill();self.assertEqual(result['state'],'UNKNOWN')
+                    self.assertEqual(result['reason'],'operator_still_running_read_original_result')
+                    self.assertEqual(len(list(root.glob('close-unknown-*.json'))),1)
+                    self.assertEqual(payment.read_bytes(),b'temporary');self.assertFalse((root/'closed.json').exists())
+                    self.assertFalse(any(c[0]=='systemctl' for c in commands))
+                else:
+                    result=launcher.close_bill();self.assertEqual(result['journal'],{'status':'UNKNOWN'})
+                    self.assertEqual(result['state'],'BILL_PAYMENT_RESTORED_COLLECTOR_REMOVAL_PENDING')
+                    self.assertEqual(payment.read_bytes(),b'original');self.assertEqual(intact.call_count,2)
+                    n=len(commands);self.assertEqual(launcher.close_bill(),result);self.assertEqual(len(commands),n)
+
+    def test_bill_cleanup_after_api_drift_restores_payment_without_touching_api(self):
+        from deploy.production import native_capture as launcher
+        with tempfile.TemporaryDirectory() as temp,ExitStack() as stack:
+            root=Path(temp);payment=root/'payment.service';payment.write_bytes(b'temporary')
+            stack.enter_context(mock.patch.multiple(launcher,ROOT=root,PAYMENT_UNIT=payment))
+            stack.enter_context(mock.patch.object(launcher,'originals',return_value=({'activation':'bill'},{payment:b'original'})))
+            stack.enter_context(mock.patch.object(launcher,'bill_originals_intact',side_effect=AssertionError('api_drift')))
+            commands=[]
+            def run(args,*unused):
+                commands.append(args);self.assertNotIn('noteai-api.service',args);return b''
+            stack.enter_context(mock.patch.object(launcher,'run',side_effect=run,create=True))
+            stack.enter_context(mock.patch.object(launcher,'put',side_effect=lambda p,b:p.write_bytes(b),create=True))
+            stack.enter_context(mock.patch.object(launcher,'journal_readback',side_effect=RuntimeError('lost_network')))
+            result=launcher.close_bill()
+            self.assertEqual(result['state'],'UNKNOWN');self.assertTrue(result['payment_restored'])
+            self.assertEqual(result['journal']['status'],'UNKNOWN');self.assertEqual(payment.read_bytes(),b'original')
+            self.assertEqual(len(list(root.glob('close-unknown-*.json'))),1)
