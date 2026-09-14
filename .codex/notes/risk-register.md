@@ -1,3 +1,10 @@
+September15 01:01BJT: call-level provenance53868ed is now deployed to API/Admin.
+Old records remain cumulative; true per-call production metadata awaits next meaningful
+business request. Compatible previous images/configs and same inactive Native binding
+retained; deployment/readback/browser passed without provider or business DML. Current
+chat paragraph/title handling is a confirmed cross-industry delivery gap, next in progress.
+Video model chain succeeded but output quality is not yet full acceptance;31/37 unchanged.
+
 September15 00:48BJT: per-physical-call task/step and exact managed-template
 attribution implemented locally in existing API/router/Prompt/provenance path;
 Claude request.call_state, Kimi httpx.extensions and Ark admission metadata remain

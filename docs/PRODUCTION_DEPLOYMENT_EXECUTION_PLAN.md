@@ -1,3 +1,26 @@
+September15 01:01BJT: call-provenance53868ed228ad243d94d2b5b5f3fbcfbbf039ac80
+DEPLOYED once, PID1799120,1789405096.622719→1789405116.0997627; original
+/var/lib/noteai/call-trace-53868ed/deploy/result.json read back, not replayed.
+API65d663fbd598e09dec27e2d435deef6c233051ab28602a0a07d1a6a00d4d6951;
+Admin783f336ad88ff6a8ae9db4c3448f8ea783bf5ca3b62122303dc32e37781c2307;
+Adminweb /var/www/noteai-admin/53868ed. Readonly candidates and live historical
+cost/permission checks PASS; exact two candidates stopped/logs retained. Browser
+owner login/userdetail PASS, old6callChat still1.17222CNY/2897.5credits and explicitly
+historical cumulative Prompt snapshots, never backfilled as exact expert steps.
+Publicwebad084c5, route/model/env configuration unchanged;0provider/0businessDML.
+New API drop bfe3be2c3129b905153d55e289dbe4e22068f5521b141dc50fdc38fc79e4dce3;
+Admindrop b17989b597a8b724d69222a8e0755ba600342a6cfa396f05a36ba47822cd49ce.
+SAME inactiveNativeactivation4febf1b9-fdbe-4ed0-9ba5-973c04fbca55 retained,
+prepared f79a5b7f031637af923192b78b001911885e9dd5efa7914cc3dd9b06099edcc1;
+solecurrentlauncher /var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-53868ed.py
+SHA06ede933d39254b018e501eeb3195378d505a33ff900d74ad581de1778ef1c9d.
+Original launchers/prepared/config backups remain for recovery. No neworder/payment/
+0025/Item34 changes.31/37 unchanged. New actual request provenance verification
+will join next meaningful business test, not repeat original media. Next independent
+concrete gap: chat currently ignores explicit paragraph count/title-in-body constraints
+in its final checks; inspect and minimally reuse existing turn-contract repair path.
+Native duplicatecallback owner scan and September15>=10BJT originalbill still pending.
+
 September15 00:53BJT: scoped call-trace53868ed228ad243d94d2b5b5f3fbcfbbf039ac80
 built once onAPI-C PID1797595,1789404468.9943686→1789404481.0267575.
 APIimage65d663fbd598e09dec27e2d435deef6c233051ab28602a0a07d1a6a00d4d6951
