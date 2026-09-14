@@ -6561,8 +6561,8 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
         break;
       }
       showToast('⚠ ' + errMsg);
-      // Navigate to the generation report after a short delay to show the error state.
-      setTimeout(async () => { if (!identityMatches()) return; _isGenerateMode = true; showPage('report'); await populateReport(); }, 2000);
+      // Stay with this operation's error and inputs. Loading report history here
+      // can show an older diagnosis as though it were this generation's result.
       break;
     }
     case 'complete': {

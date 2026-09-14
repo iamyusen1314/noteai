@@ -1,5 +1,7 @@
 # NoteAI Production Deployment Execution Plan
 
+Current September14 10:50: original first-generation failure is confirmed expert max_tokens truncation (2048 each), not 0027 or DB pause. Preserve original failed/refunded request and actual RMB0.300489 cost. API31c24cc is live; scoped successor removes legacy local expert caps using active formal route capacity and fixes stale-report error navigation. No migration replay, role expansion, Item34 change or automatic model retry. See current Handoff for exact records.
+
 September14 clarification implementation uses existing chat/idempotency, not a new
 queue or charge. Release scope: current-source API5 modules plus task_clarification,
 original CSP-bundled frontend, exact GET /chat/tasks and UUID detail, and existing
@@ -8,7 +10,9 @@ NOTEAI_TASK_CLARIFICATION_ENABLED=1. Preserve Admin/Payment/Tracking bindings.
 Scope/actual verification and source checkpoint are at Handoff top. If waiting tasks
 exist, disable new pauses on compatible code while preserving reads/resume; old8e
 cannot safely consume waiting contexts. No forced failed/replay or rollback of CHECK.
-Real owner interaction and result/cost readback follow isolated tests; not yet deployed.
+Runtime31c24cc/API52a2 and original web are deployed at10:22:25BJT;0027 exact hash
+readback succeeded10:14BJT. Original owner UI clarification test/result/cost readback
+is in progress. Follow Handoff top for original operation IDs; no resubmit.
 Native/media/full-chain work remains; no new hotel-ticket-only test.
 
 September14 owner update: prioritize the full actual product chain, not more isolated

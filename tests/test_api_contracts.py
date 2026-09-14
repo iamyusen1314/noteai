@@ -146,6 +146,30 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(events[0]["type"], "complete")
         self.assertEqual(events[0]["outcome"], "success")
 
+    def test_stream_failure_logs_safe_type_without_private_payload(self):
+        import io
+        from contextlib import redirect_stderr
+
+        async def run():
+            async def source():
+                if False:
+                    yield ""
+                raise TypeError("synthetic private material and credential must not leak")
+            return [json.loads(chunk.removeprefix("data: ")) async for chunk in
+                    api._timed_sse_stream(source(), operation="generate", success_types={"complete"})]
+
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            events = asyncio.run(run())
+        event = json.loads(stderr.getvalue())
+        self.assertEqual(set(event), {"event_code", "error_code", "phase"})
+        self.assertEqual(event["event_code"], "sse_stream")
+        self.assertEqual(event["error_code"], "typeerror")
+        self.assertRegex(event["phase"], r"^generate:api\.py:_timed_sse_stream:[0-9]+$")
+        self.assertEqual(events[0]["error_code"], "stream_internal_error")
+        self.assertEqual(events[0]["outcome"], "error")
+        self.assertNotIn("synthetic private", json.dumps(events) + stderr.getvalue())
+
     def test_idempotent_stream_aclose_after_complete_does_not_refund(self):
         claim = {"request_id": "safe-test-id"}
 

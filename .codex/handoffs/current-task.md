@@ -1,5 +1,98 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 10:50 Beijing — first generation failure identified; targeted repair underway
+
+Original claim f75cf017/usage a1801c6d is sealed failed/refunded once. CloudAssistant72/74
+read original model logs: Haiku completions end_turn/1473 output tokens, then two
+max_tokens/2048 outputs. All three calls cost-linked:15082input/5569output, exact
+RMB0.300489. The two expert outputs were truncated by their legacy2048 caps;
+CLAUDE_OUTPUT_INCOMPLETE correctly prevented arbitration. This was not a database
+pause failure or a provider login failure. Actual routes revision0 are enabled,
+Haiku diagnosis/content/semantic and Sonnet arbitrate/chat, each max16000.
+Correction to intermediate hypothesis: model_router.call defaults thinking=False;
+there was no thinking-budget competition in those calls. Existing mode is retained.
+
+Root changes three generation experts to the existing formal16000 route ceiling
+(still constrained by active admin configuration and metered on actual usage),
+retains non-end_turn rejection/no automatic retry, and adds safe exception class/
+code-position logging. Original UI no longer jumps to an unrelated old report after
+new-generation failure. Independent first-ASGI SQLite/PG16 and no-question P3-path
+checks passed; no production model request replay. Final targeted regression PASSED: actual first-ASGI/three-expert/router/Gateway
+MockTransport/real credit-cost ledger reproduces old two max_tokens failures with
+one refund, while new ceiling yields waiting on the same claim/usage without refund
+or retry. Both cases retain the real two-call concurrency limit. Existing4 completion/
+mode/safe-error checks and1 browser stale-report test pass. One initial legacy fixture
+returned too early (2 admissions); corrected HTTP timing, not business safeguards.
+Scoped API/web successor is in progress. Current LIVE remains31c24cc/image52a2;
+0027 already applied and is not rerun. Other roles, Item34 and seven protected paths
+remain unchanged. Readiness30/37. Native and media recovery/video remain unfinished.
+
+## September14 10:38 Beijing — first real clarification test failed; original result preserved
+
+Normal owner UI generated once at02:25:28.624107UTC, originalclaim
+f75cf017-11d8-4ba3-b6e1-a99346578cd8 / usagea1801c6d-7bcd-4a6c-bf44-112b34f4f338.
+CloudAssistant65–68 confirms failed/charge1/refund1/complete0,8walletcredits refunded
+once; three physical calls responded HTTP200 and all have model cost links. No
+chat pause session persisted; no new result/arbiter. Raw timed SSE wrapper swallowed
+exception class, so existing logs cannot identify root cause. Actual app role has
+chat INSERT/UPDATE; no chat RLS policy. Do not mislabel this as missing privilege or
+repeat the originalrequest. Precise fee aggregation remains next readback.
+
+Current API31c24cc remains live. Root local corrections (NOT YET DEPLOYED): existing
+safe_failure_event logs stream exception type only (no payload/Secret), merchant-facing
+system-error text, and removal of failed-generation automatic jump to old history.
+Python3.11 network-none2 error/terminal tests and browser1 stale-report regression pass.
+Independent real first-ASGI/three-expert/SQLite test (only physical model boundary
+mocked) pauses correctly; does not prove production success. PG16 equivalent is in
+progress to locate actual environment difference. No second model test submitted.
+Continue root-cause correction + same normal UI chain, then Native/media independently.
+
+## September14 10:25 Beijing — clarification API + original product live; owner UI test in progress
+
+Runtime source31c24cc01cbdab59a9aa11c7811ac1ed5a54054c, API image
+sha256:52a2af5292cb912c7f360732849b5093a056b0b0bd01cc25be2bddf24e99405d;
+Python3.11.15 Linuxamd64, actual source/import bindings checked. Existing base8e
+image dfe2c7fb and publicweb4d retained. Source archive9ad9565aef4fd72aeacc4afa65d8bb318bef59ceda4d2138add823d4c96ddcf9
+uploaded/built once. C /var/lib/noteai/clarification-31c24cc/build/build-result.json
+BUILT_NOT_DEPLOYED is historical build output; deployment now separately verified.
+
+Original owner DMS single0027 transaction succeeded at2026-09-14T10:13:53.936779+08:00;
+readback10:14:56.780561 confirms schema27, migration SHA
+bec4e646a259cf13b83ccdf44b44e12eab1121a6d5a3211f7d1e316c977cbc20,
+15 originalclaims,0active,originalACL unchanged. Atomic wrapper verified original
+row digest/ACL unchanged before adding the original schema_migrations row. No new
+table/column/grant or money movement. Original26 and0026 retained; no replay.
+The earlier app-role ledger ProgrammingError had no SQLSTATE and an unparameterized
+LIKE percent; it did NOT establish a permission denial. Owner readback is authoritative.
+
+C deploy-launch PID1655925 at1789352534.24555; result
+/var/lib/noteai/clarification-31c24cc/deploy/result.json confirms
+DEPLOYED_CLARIFICATION_API_AND_ORIGINAL_WEB at1789352545.0698311 (10:22:25BJT).
+Current API CID67b77bf4ac6c182836614ece451a6ef64b56b073c9256ab43eb3f66d0a2462dd;
+web /var/www/noteai-public/31c24cc. Only exact GET /chat/tasks + UUID detail appended
+in actual locations (SHA3c6c712f303df8b711c8e0162dd78992bf89858f40aaeba980fc4f6efb840ad3).
+Clarification flag1 is scoped to API service ExecStart. Admin e0/CIDed82b468, private
+owner8e media c16b2583 at18080, all three env files and model config unchanged;
+Payment remains disabled/absent. Private18081 candidate stopped by exactCID after
+success. Root deploy.py SHA31e63bb1b7cd3d12c71f8a98737e7c0fb6690933fe4bb596d8b1722a89df3c96
+retains a verified candidate until recovery completes; independent5 AST/mock failure
+checks pass. First two transfer attempts failed BEFORE deploy launch: application
+object-key validation then SDK StreamBodyReader.read argument TypeError; raw exact
+artifact SDK path/read() fixed. Original failed CloudAssistant59/61 logs retained.
+No duplicate upload/build/deploy or provider request occurred in those attempts.
+
+Final independent2 SQLite/Python3.11 real-persistence checks passed: merchant fields
+saved before diagnosis complete; same claim/usage, original text retained, no duplicate
+charge, completed experts skipped. Log ~/.codex/tmp/noteai-diagnosis-metadata-final-pu_1c0l6/verification.log.
+Current in-app original owner member_43fea885ae4344588152 session remains usable.
+At10:25 a SINGLE normal UI generation was submitted with clearly marked private
+restaurant test material (two conflicting package cards); no original OCR/oldattempt
+replay. Read original task/result before any further submission. Task interaction and
+actual quality/cost verification are IN_PROGRESS, not yet claimed passed.
+Readiness30/37 unchanged; Item34 remains latest recorded/LAST_KNOWN, no action on it.
+Seven protected paths untouched; no Gitpush. Native and publicmedia recovery/video
+remain active independent unfinished work.
+
 ## September14 10:00 Beijing — same-task clarification implemented; scoped release in progress
 
 Owner's natural clarification decision is implemented in the existing generation/

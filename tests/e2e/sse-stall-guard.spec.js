@@ -308,3 +308,21 @@ test('merchant correction opens existing dialogue editor with the complete prior
   expect(await page.evaluate(()=>__correction[0].supplement_values.confirmation_q1)).toBe('更正：不包含门票，仅9月周末有效，平日不适用。');
   expect(await page.evaluate(()=>__correction[0].useCurrentAttachments)).toBe(false);
 });
+
+test('failed new generation preserves its inputs and never opens an older report', async ({page}) => {
+  await openApp(page);
+  await page.evaluate(() => {
+    showPage('upload'); switchMode('generate');
+    _diagnoseResult={title:'Older unrelated diagnosis',score:73,plans:[]};
+    window.__oldReportLoads=0; populateReport=async()=>{__oldReportLoads++;};
+    __installSseMock('/generate/stream', {chunks:[{data:'data: {"type":"error","error_code":"stream_internal_error","message":"本次处理遇到系统问题，暂未得到结果。"}\n\n'}]});
+  });
+  await page.locator('#genBrief').fill('Private marked restaurant test material');
+  await page.locator('#generateSubmitBtn').click();
+  await expect.poll(()=>page.evaluate(()=>_generateResult?._error)).toBe(true);
+  await page.waitForTimeout(2200);
+  expect(await page.evaluate(()=>__oldReportLoads)).toBe(0);
+  await expect(page.locator('#page-report')).not.toBeVisible();
+  await expect(page.locator('#genBrief')).toHaveValue('Private marked restaurant test material');
+  expect(await page.evaluate(()=>__sseRequestCounts['/generate/stream'])).toBe(1);
+});

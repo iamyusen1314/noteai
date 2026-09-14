@@ -1119,6 +1119,109 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             "status": "running", "complete_applied": 0, "refund_applied": 0,
         })
 
+    def _run_capacity(self,legacy):
+        import ast, copy, os, httpx
+        from contextlib import ExitStack
+        from unittest import mock
+        uid='synthetic-capacity-owner'
+        self._create_user(uid)
+        db.execute("UPDATE public_trial_budget SET enabled=1,policy_mode='owner_metered' WHERE id=?",(api._public_product.BUDGET_ID,))
+        source='蓝猫咖啡店9月双人套餐198元，包含饮品。'
+        questions=[{'field':'drink_count','question':'这个双人套餐一共包含几杯饮品？','source_quote':'包含饮品','object':'双人套餐','time_range':'9月','required':False,'options':[]}]
+        requests=[];stops=[]
+        auxiliary_ready = asyncio.Event()
+        auxiliary_count = 0
+        async def gateway_http(request):
+            nonlocal auxiliary_count
+            self.assertEqual(request.method,'POST')
+            self.assertEqual(request.url.path,api._mr._cgp.MESSAGES_PATH)
+            body=json.loads(request.content);requests.append(body)
+            self.assertEqual(body['model'],api._mr.CLAUDE_HAIKU)
+            self.assertIsNone(body['thinking_budget'])
+            self.assertEqual(body['temperature'],0.7)
+            content='自然澄清，沿用本次商家信息' in body['system']
+            # Keep the real two-call concurrency limit. Content returns first;
+            # both auxiliary requests are then in flight before either fails.
+            if not content:
+                auxiliary_count += 1
+                if auxiliary_count == 2:
+                    auxiliary_ready.set()
+                await asyncio.wait_for(auxiliary_ready.wait(), 5)
+            enough=body['max_tokens'] >= (2048 if content else 4096)
+            stop='end_turn' if enough else 'max_tokens';stops.append(stop)
+            raw=('<title>蓝猫咖啡店双人套餐</title><body>商家原始素材</body><clarifications>'+json.dumps(questions,ensure_ascii=False)+'</clarifications>') if content else '<keyword_tip>咖啡套餐</keyword_tip><tag_recommendation>咖啡</tag_recommendation><user_angle>确认套餐内容后决定</user_angle><hook>介绍已知套餐</hook>'
+            return httpx.Response(200,json={'protocol_version':api._mr._cgp.PROTOCOL_VERSION,'text_blocks':[raw],
+                'model':body['model'],'stop_reason':stop,'usage':{'input_tokens':1000,'output_tokens':1500 if content else (2500 if enough else body['max_tokens']),
+                'cache_read_input_tokens':0,'cache_creation_input_tokens':0}})
+        async def post():
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api.app),base_url='http://isolated') as client:
+                response=await client.post('/generate/stream',headers={'Origin':'https://noteaipro.com','X-Request-ID':'capacity-first-'+('legacy' if legacy else 'current')},
+                    json={'domain':'美食','brief':source,'merchant_name':'蓝猫咖啡店','fact_source_policy':'skip'})
+            self.assertEqual(response.status_code,200,response.text)
+            return [json.loads(v.removeprefix('data: ').strip()) for v in response.text.split('\n\n') if v.startswith('data: ')]
+        state={'active':{task:{'model':api._mr.CLAUDE_HAIKU if task!='arbitrate' else api._mr.CLAUDE_SONNET,'enabled':True,'max_tokens':16000} for task in api._mr._runtime_config.TASKS}}
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch.dict(os.environ,{'NOTEAI_TASK_CLARIFICATION_ENABLED':'1','NOTEAI_PUBLIC_PRODUCT':'1',
+                'NOTEAI_PUBLIC_ORIGINS':'https://noteaipro.com','NOTEAI_MODEL_CONFIG_ENABLED':'1','NOTEAI_FACT_SEARCH':'0',
+                'NOTEAI_CLAUDE_TRANSPORT':'gateway','NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH':'synthetic-config-1','NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH':'synthetic-key-1'}))
+            transport=api._mr.GatewayClaudeTransport(base_url='https://gateway.example.invalid',key_id='synthetic-key',secret='synthetic-only-secret',http_transport=httpx.MockTransport(gateway_http))
+            stack.enter_context(mock.patch.object(api._mr,'get_claude_transport',return_value=transport))
+            stack.enter_context(mock.patch.object(api._mr._runtime_config,'read',return_value=state))
+            stack.enter_context(mock.patch.object(api._public_product,'authenticated_user',new=mock.AsyncMock(return_value={'id':uid})))
+            api.app.dependency_overrides[api._auth.get_current_user]=lambda:{'id':uid}
+            stack.callback(api.app.dependency_overrides.clear)
+            stack.enter_context(mock.patch.object(api,'_compute_market_timing_for_delivery',return_value=None))
+            stack.enter_context(mock.patch.object(api.asyncio,'sleep',new=mock.AsyncMock()))
+            arb=stack.enter_context(mock.patch.object(api._mr,'stream',side_effect=AssertionError('must pause or fail before arbitration')))
+            if legacy:
+                tree=ast.parse(Path(api.__file__).read_text())
+                for name,limit in (('_gent_content',4096),('_gent_growth',2048),('_gent_user',2048)):
+                    function=copy.deepcopy(next(n for n in tree.body if isinstance(n,ast.AsyncFunctionDef) and n.name==name))
+                    changed=0
+                    for node in ast.walk(function):
+                        if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and isinstance(node.func.value,ast.Name) and node.func.value.id=='_mr' and node.func.attr=='call':
+                            kw=next(k for k in node.keywords if k.arg=='max_tokens');kw.value=ast.Constant(limit);changed+=1
+                    self.assertEqual(changed,1)
+                    module=ast.fix_missing_locations(ast.Module(body=[function],type_ignores=[]));namespace={}
+                    exec(compile(module,'synthetic_legacy_limit_only','exec'),api.__dict__,namespace)
+                    stack.enter_context(mock.patch.object(api,name,new=namespace[name]))
+            events=asyncio.run(post())
+            self.assertEqual(arb.call_count,0)
+        self.assertEqual(len(requests),3)
+        self.assertEqual(len({r['operation_id'] for r in requests}),3)
+        row=dict(db.fetchone('SELECT id,usage_id,status,credits_used,charge_applied,refund_applied,complete_applied FROM idempotency_requests WHERE user_id=?',(uid,)))
+        self.assertEqual(row['credits_used'],8)
+        self.assertEqual(row['charge_applied'],1)
+        self.assertEqual(row['complete_applied'],0)
+        calls=[dict(r) for r in db.fetchall('SELECT state,http_status,usage_record_id,model_usage_record_id FROM public_trial_calls WHERE user_id=?',(uid,))]
+        self.assertEqual(len(calls),3)
+        self.assertTrue(all(r['state']=='responded' and r['http_status']==200 and r['usage_record_id']==row['usage_id'] and r['model_usage_record_id'] for r in calls),calls)
+        self.assertEqual(db.fetchone('SELECT count(*) n FROM usage_records WHERE user_id=?',(uid,))['n'],1)
+        if legacy:
+            self.assertEqual(sorted(r['max_tokens'] for r in requests),[2048,2048,4096])
+            self.assertEqual(sorted(stops),['end_turn','max_tokens','max_tokens'])
+            self.assertEqual((row['status'],row['refund_applied']),('failed',1))
+            self.assertEqual(events[-1]['type'],'error')
+            self.assertEqual(db.fetchone('SELECT count(*) n FROM chat_sessions')['n'],0)
+        else:
+            self.assertEqual([r['max_tokens'] for r in requests],[16000]*3)
+            self.assertEqual(stops,['end_turn']*3)
+            self.assertEqual((row['status'],row['refund_applied']),('waiting_for_input',0))
+            self.assertEqual(events[-1]['type'],'clarification_required')
+            self.assertEqual(events[-1]['session_id'],row['id'])
+            restored=api._clarification.read(uid,row['id'])
+            self.assertEqual(restored['status'],'waiting_for_input')
+            self.assertEqual(len(restored['questions']),1)
+            saved=db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?',(row['id'],uid))
+            prepared=json.loads(saved['generate_ctx_json'])['task_continuation']['prepared']
+            self.assertEqual(prepared['source_material'],'【商家原始素材】\n'+source)
+            self.assertEqual(len(prepared['opinions']),4)
+        print('SYNTHETIC_GATEWAY_FIRST_GENERATE',json.dumps({'legacy_limits':legacy,'state':row['status'],'charge':1,'credits':8,'refund':row['refund_applied'],'calls':len(calls),'cost_linked':True,'retries':0}),flush=True)
+
+    def test_legacy_limits_are_known_truncation_and_refund_once(self):self._run_capacity(True)
+
+    def test_current_16000_limits_save_original_claim_waiting_without_refund(self):self._run_capacity(False)
+
 
 if __name__ == "__main__":
     unittest.main()

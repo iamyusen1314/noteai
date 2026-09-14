@@ -869,12 +869,21 @@ async def _timed_sse_stream(
             yield f"data: {_json.dumps(wrapped, ensure_ascii=False, default=str)}\n\n"
             if wrapped["terminal"]:
                 return
-    except Exception:
+    except Exception as exc:
         if not terminal_seen:
+            # Code coordinates only: never log exception text, locals or source lines.
+            phase = operation
+            trace = exc.__traceback__
+            while trace is not None:
+                code = trace.tb_frame.f_code
+                if Path(code.co_filename).parent == Path(__file__).parent:
+                    phase = f"{operation}:{Path(code.co_filename).name}:{code.co_name}:{trace.tb_lineno}"
+                trace = trace.tb_next
+            _log_internal_failure("sse_stream", exc, phase=phase)
             error = timing.wrap({
                 "type": "error",
                 "error_code": "stream_internal_error",
-                "message": "SSE stream terminated unexpectedly",
+                "message": "本次处理遇到系统问题，暂未得到结果。已输入的素材仍保留。",
             })
             yield f"data: {_json.dumps(error, ensure_ascii=False)}\n\n"
         return
@@ -4051,7 +4060,9 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
             f"领域：{domain}\n\n"
             f"注意：创作者未补充具体数字和地址，价格/地址/时间请用【xxx】占位，不要编造数字。"
         )
-    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user, max_tokens=4096)
+    # Complete expert output uses the formal route capacity, including questions.
+    # The active model configuration may lower this ceiling; usage is metered.
+    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user, max_tokens=16000)
     return {"role": "内容专家", "raw": raw}
 
 
@@ -4092,7 +4103,7 @@ async def _gent_growth(
         user = f"【图片视觉】{image_desc}\n【真实信息（价格/地址等事实）】{brief}\n领域：{domain}\n【热词数据】{timing_text}"
     else:
         user = f"【图片视觉】{image_desc}\n领域：{domain}\n【热词数据】{timing_text}"
-    raw = await _mr.call("content_gen", system, user, max_tokens=2048)
+    raw = await _mr.call("content_gen", system, user, max_tokens=16000)
     return {"role": "增长专家", "raw": raw}
 
 
@@ -4109,7 +4120,7 @@ async def _gent_user(domain: str, brief: str | None, dk: dict, image_desc: str, 
         user = f"品类：{domain}\n【图片视觉】{image_desc}\n【创作者真实信息（价格/地址等）】{brief}"
     else:
         user = f"品类：{domain}\n【图片视觉】{image_desc}"
-    raw = await _mr.call("content_gen", system, user, max_tokens=2048)
+    raw = await _mr.call("content_gen", system, user, max_tokens=16000)
     return {"role": "用户专家", "raw": raw}
 
 
@@ -16476,7 +16487,8 @@ async def _generate_pipeline_stream(
                 role, agent_idx = pending.pop(task)
                 try:
                     result = task.result()
-                except Exception:
+                except Exception as exc:
+                    _log_internal_failure("generate", exc, phase=f"stream_expert_{agent_idx}")
                     expert_failed = True
                     result = {"role": role, "raw": ""}
                 opinions.append(result)
