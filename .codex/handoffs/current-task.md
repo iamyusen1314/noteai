@@ -1,5 +1,55 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 11:10 Beijing — generation completes; clarification interaction still incomplete
+
+New original claim8d5e2cea-5f5c-458c-81f0-54bddb65338f / usage7ae982ac-ad88-4b40-ace8-021a4a7ef6d8
+created03:02:37.389845UTC completed once:charge1/refund0/complete1,8credits.
+CloudAssistant81:29 responded calls,4Sonnet/24286in/15319out/RMB2.118501 plus
+25Haiku/48519in/10967out/RMB0.723478 = RMB2.841979 exact/complete usage.
+UI saved a real generated note, score74. The repaired output capacity and full
+Sonnet route work. This is NOT a clarification/quality pass: no question appeared,
+no paused session, result instead told readers to ask which menu version applies;
+body also infers unconfirmed serving/satiety. No oldattempt replay or manual score.
+
+Actual enabled flag=true and module/app source verified. Original content raw was
+not persisted, so exact parse rejection cannot be reconstructed. Independent source
+review found the added protocol ambiguous ('no questions => empty array') beside
+original XML; root clarifies preserving XML and appending an explicit tagged array.
+Local NOT DEPLOYED parser compatibility accepts fenced/tagged or whole JSON question
+lists and a single questions/clarifications wrapper, with original strict source/
+object checks. Fixed reason-code/count-only diagnostics retain no private raw text.
+Python3.11 network-none JSON-wrapper/source-isolation and first-ASGI ledger
+regressions passed2. Current compatibility rollout is in progress. Do not call this a proven historical JSON
+root cause. Safe original result is complete; next scoped parser rollout and one
+new natural question/free-answer/resume test. Readiness30/37 unchanged.
+
+Media read-only review confirmed existing result-hash-only/cancellation recovery
+and payload reference/role binding gaps; minimum implementation must persist full
+media stage and join cancellation before ledger terminal, reuse private payload
+storage, extend original reference scope rather than add a queue. Publicmedia stays
+disabled pending actual durable recovery/video tests. Native config remains applied
+DISABLED; owner scan/full-refund/next-day bill still not executed. Continue these
+independent authorized tasks after current shared API operation settles.
+
+## September14 11:03 Beijing — 4c0c1ac deployed; new normal-page test in flight
+
+API/image2bdcf14520b56545cd34122a0466d2463dfbf22174d0c8a0b129519cb4a3c489
+and original web4c0c1ac are live (deployment at1789354799.1797297,10:59:59BJT).
+Archive69a0c0f2d4c4fb38c58d308d9bca0b93941aab815640ee0385f53895dc9c9e8e
+uploaded once; build1661330 completed1789354738.639399; deployment1661575
+completed and stopped exact18081 candidate. API CID5b3b94ae5a84d31ae16e613e97e706e77c4a93d371e432d28d2e97be617b4910;
+Admin original CIDed82b468/image3e40c576 unchanged, model config/envs unchanged;
+locations3c6c712f unchanged; no SQL migration, no provider call during deployment.
+C root /var/lib/noteai/clarification-4c0c1ac retains build/deploy/result.json and old31.
+Public JS syntax checked; original owner session recovered normally after reload.
+
+A new normal UI generation was submitted around11:03 with the same clearly marked
+private synthetic restaurant material to verify the fixed output limit and natural
+clarification. Read original current claim/result before any further submission.
+Oldf75cf017 failure is not retried/reclassified. No new OCR, Payment, Tracking or
+Admin action. This remains IN_PROGRESS; Readiness30/37, no Gitpush. Continue same
+page free answer/resume and original credit/cost readback, then Native/media.
+
 ## September14 10:50 Beijing — first generation failure identified; targeted repair underway
 
 Original claim f75cf017/usage a1801c6d is sealed failed/refunded once. CloudAssistant72/74

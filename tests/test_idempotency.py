@@ -77,6 +77,39 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             clarification.execution.reset(marker)
         return claim, waiting.exception.event, opinion, source
 
+    def test_clarification_json_wrappers_keep_source_checks_and_hide_private_logs(self):
+        import task_clarification as clarification
+        import io
+        from contextlib import redirect_stderr
+        source = "蓝猫店9月双人套餐198元，饮品另有口径。"
+        item = {"field": "drink_inclusion", "question": "这个双人套餐是否包含饮品？",
+                "source_quote": "饮品另有口径", "object": "双人套餐", "time_range": "9月"}
+        outputs = []
+        log = io.StringIO()
+        marker = clarification.execution.set({"claim": "synthetic-only"})
+        try:
+            with redirect_stderr(log):
+                for payload in ([item], {"questions": [item]}, {"clarifications": [item]}):
+                    raw = '<clarifications>```json\n' + json.dumps(payload, ensure_ascii=False) + '\n```</clarifications>'
+                    outputs.append(clarification.questions_from_opinions(
+                        [{"role": "内容专家", "raw": raw}], source, "蓝猫店"))
+                # A whole JSON response can be recovered without interpreting
+                # arbitrary prose as a question or relaxing source ownership.
+                for raw in (json.dumps([item]), '```json\n' + json.dumps({"questions": [item]}) + '\n```'):
+                    outputs.append(clarification.questions_from_opinions(
+                        [{"role": "内容专家", "raw": raw}], source, "蓝猫店"))
+                invalid = {**item, "source_quote": "不存在的另一商家套餐"}
+                rejected = clarification.questions_from_opinions([{"role": "内容专家",
+                    "raw": '<clarifications>' + json.dumps([invalid]) + '</clarifications>'}], source, "蓝猫店")
+        finally:
+            clarification.execution.reset(marker)
+        self.assertTrue(all(output == outputs[0] for output in outputs))
+        self.assertEqual(len(outputs[0]), 1)
+        self.assertEqual(rejected, [])
+        self.assertIn('source_quote_mismatch', log.getvalue())
+        for private in (source, item['question'], item['source_quote'], '蓝猫店'):
+            self.assertNotIn(private, log.getvalue())
+
     def test_clarification_resume_concurrent_answers_keep_original_charge(self):
         import task_clarification as clarification
         claim, event, _, _ = self._waiting_task()

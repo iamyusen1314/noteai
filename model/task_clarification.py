@@ -11,6 +11,7 @@ import json
 import os
 import re
 import secrets
+import sys
 from datetime import timedelta
 
 from fastapi import HTTPException
@@ -27,8 +28,9 @@ KEY = "task_continuation"
 QUESTION_CONTRACT = """
 【自然澄清，沿用本次商家信息】
 先充分使用原文、完整素材观察和本次商家已回答的信息。仅当真实缺失或
-冲突会影响关键文案时，在原输出末尾附加 <clarifications>JSON数组</clarifications>。
-无须提问时输出空数组。最多3问，每问结构：
+冲突会影响关键文案时提出问题。保留原任务要求的XML输出结构，并在末尾始终
+附加 <clarifications>JSON数组</clarifications>；无须提问时也必须写成
+<clarifications>[]</clarifications>，不要把整份回复改成裸JSON。最多3问，每问结构：
 {"field":"稳定的英文字段名","question":"指出具体不确定点的商家用语问题",
  "source_quote":"引发问题的原素材短句（必须原样引用）","object":"具体门店/套餐对象",
  "time_range":"原文明确的适用时间，未知留空","required":false,"options":["可选的简短回答"]}
@@ -57,21 +59,30 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
     """Only source-anchored questions from the existing content expert call."""
     answered_ids = {item["question_id"] for item in answered}
     questions = []
+    statuses = []
     for opinion in opinions:
         if opinion.get("role") != "内容专家":
             continue
         tag = re.search(r"<clarifications>\s*(.*?)\s*</clarifications>",
-                        str(opinion.get("raw") or ""), re.S)
-        if not tag:
-            continue
+                        str(opinion.get("raw") or ""), re.S | re.I)
         try:
-            items = json.loads(tag.group(1))
+            payload = (tag.group(1) if tag else str(opinion.get("raw") or "")).strip()
+            # Formatting wrappers are not a missing merchant fact.
+            fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", payload, re.S | re.I)
+            items = json.loads(fenced.group(1) if fenced else payload)
+            if isinstance(items, dict) and set(items) in ({"questions"}, {"clarifications"}):
+                items = next(iter(items.values()))
         except (ValueError, TypeError):
+            statuses.append("invalid_question_json" if tag else "no_question_tag")
             continue  # Malformed model metadata must not invent a user question.
         if not isinstance(items, list):
+            statuses.append("invalid_question_list")
             continue
+        if not items:
+            statuses.append("no_question_needed")
         for item in items[:3]:
             if not isinstance(item, dict):
+                statuses.append("invalid_question_fields")
                 continue
             field = item.get("field")
             quote = item.get("source_quote")
@@ -82,9 +93,13 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                     or not isinstance(question, str) or not 4 <= len(question) <= 250
                     or any(term in question for term in ("事实校验", "证据不足", "HTTP", "解析失败"))
                     or (obj and obj not in source)):
+                statuses.append("source_quote_mismatch" if isinstance(quote, str) and quote not in source
+                                else "object_mismatch" if obj and obj not in source
+                                else "invalid_question_fields")
                 continue
             qid = hashlib.sha256((merchant + "\0" + obj + "\0" + field).encode()).hexdigest()[:24]
             if qid in answered_ids or any(q["question_id"] == qid for q in questions):
+                statuses.append("already_answered_or_duplicate")
                 continue
             time_range = str(item.get("time_range") or "").strip()
             if time_range and time_range not in source:
@@ -96,6 +111,12 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                 "source_quote": quote, "merchant": merchant, "object": obj,
                 "time_range": time_range, "required": item.get("required") is True,
                 "options": [v for v in options if isinstance(v, str) and 0 < len(v) <= 80][:3]})
+    if execution.get():
+        # Only fixed reason codes/counts; no question, quote, prompt or response text.
+        print(json.dumps({"event_code": "clarification_parse", "phase": "existing_content_expert",
+            "status": ",".join(sorted(set(statuses))) or ("questions_ready" if questions else "no_valid_question"),
+            "item_count": len(questions)}),
+            file=sys.stderr, flush=True)
     return questions[:3]
 
 
