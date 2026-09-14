@@ -4150,12 +4150,14 @@ class AccountSecurityComplianceTests(unittest.TestCase):
             improvement_plan="H12 公开计划",
             model_used="offline",
             fact_enrichment=disabled,
+            expert_opinions_basis="pre_clarification",
         )
         raw = response.model_dump()
         persisted = api._sanitize_persisted_diagnosis(raw)
-        self.assertEqual(len(raw), 30)
+        self.assertEqual(set(raw), set(api.AnalyzeResponse.model_fields))
         self.assertEqual(set(persisted), set(raw))
         self.assertEqual(persisted["fact_enrichment"], disabled)
+        self.assertEqual(persisted["expert_opinions_basis"], "pre_clarification")
 
     def test_h12_dynamic_public_label_maps_are_bounded_across_lifecycle(self):
         valid_map = {

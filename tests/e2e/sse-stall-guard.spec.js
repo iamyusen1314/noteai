@@ -252,6 +252,48 @@ test.describe('original task clarification', () => {
     await expect(page.locator('#diagnoseSubmitBtn')).not.toHaveAttribute('aria-busy','true');
   });
 
+  test('completed diagnosis keeps original result through history refresh and restores the exact input version', async ({page}) => {
+    await openClarification(page,'analyze');
+    await page.evaluate(()=>{
+      const fallback=window.fetch.bind(window);
+      const did='d1111111-1111-4111-8111-111111111111',nid='b1111111-1111-4111-8111-111111111111';
+      window.__reportResult={diagnosis_id:did,saved_note_id:nid,ces_percentile:71.2,composite_score:71.2,grade:'良好',
+        ai_diagnosis:'原任务的完整诊断',suggested_titles:['画面方案一','画面方案二','画面方案三'],
+        suggested_plans:[1,2,3].map(i=>({title:'画面方案'+i,body:'原任务方案正文'+i,ces_percentile:73+i})),
+        expert_opinions:[{role:'内容专家',opinion:'原素材的内容分析'}],weaknesses:[],features:{},pending_confirmation:[]};
+      window.__historyDetailReads=0;
+      window.fetch=async(url,opts={})=>{
+        const path=String(url);
+        if(path.includes('/diagnoses?')) return Response.json({total:1,diagnoses:[{id:did,note_title:'原素材标题',domain:'美食',ces_percentile:71.2,created_at:'2026-09-14T08:00:00Z'}]});
+        if(path.endsWith('/diagnoses/'+did)) {
+          __historyDetailReads++;
+          if(__historyDetailReads===3) return Response.json({detail:'temporarily unavailable'},{status:503});
+          // Old diagnosis JSON is empty, but original owned note metadata exists.
+          return Response.json({diagnosis_id:did,saved_note_id:nid,note_title:'原素材标题',note_version_group:{versions:[
+            {id:'different-version',body:'后续改写不能冒充原文'},{id:nid,body:'原任务上传的真实素材正文'}]}});
+        }
+        return fallback(url,opts);
+      };
+      return finishClarifiedTask(__reportResult,__clarifyState,_chatIdentitySnapshot(),_authToken,true);
+    });
+    await expect(page.locator('#scoreRingNum')).toHaveText('71');
+    await expect(page.locator('#bodyOriginal')).toHaveText('原任务上传的真实素材正文');
+    await expect(page.locator('#bodySuggested')).toContainText('原任务方案正文');
+    await expect(page.locator('#detail-meta')).not.toContainText('undefined');
+    expect(await page.evaluate(()=>__historyDetailReads)).toBe(1);
+    await page.locator('#diag-card-d1111111-1111-4111-8111-111111111111').click();
+    await expect(page.locator('#scoreRingNum')).toHaveText('71');
+    await expect(page.locator('#detail-note-title')).toHaveText('原素材标题');
+    expect(await page.evaluate(()=>_diagnoseResult.suggested_plans.length)).toBe(3);
+    expect(await page.evaluate(()=>_diagnoseResult.ces_percentile)).toBe(71.2);
+    await page.locator('#diag-card-d1111111-1111-4111-8111-111111111111').click();
+    await expect(page.locator('#detail-note-title')).toHaveText('原素材标题');
+    await expect(page.locator('#scoreRingNum')).toHaveText('71');
+    await expect(page.locator('#bodyOriginal')).toHaveText('原任务上传的真实素材正文');
+    expect(await page.evaluate(()=>__clarifyCounts.resume)).toBe(0);
+    expect(await page.evaluate(()=>__clarifyCounts.save)).toBe(0);
+  });
+
   test('unknown submission never retries; original readback determines whether editing is possible', async ({page}) => {
     await openClarification(page);
     await page.evaluate(()=>{__clarifyMode='disconnect';});

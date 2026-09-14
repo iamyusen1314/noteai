@@ -1,3 +1,34 @@
+September14 current scope: original12RMB order remains PAID then fully REFUNDED;
+owner latest payment message does not authorize replay. Same-order next-day bill
+launcher fc4f49f is now staged at /var/lib/noteai/native-80b01ea/bill-launcher-fc4f49f,
+SHAa68085c709da5dd7304a69fa3bc8aed80d78e2b2da3c39614d1ca61b33539cf3.
+No prepare/collector/provider request. New standalone schedule awaits owner answer;
+app rejected duplicate heartbeat, original Item34 unchanged.
+
+Original media claim4bd9ee20-5d0e-463f-8742-e5d41c37a017 now COMPLETED, not in flight.
+Private original result: /var/lib/noteai/media-1338f65/owner-check/
+clarified-read-1789373127644082491.json.32respondedcalls:27Haiku75114in/11985out
+0.945273RMB;4Sonnet31950in/11204out1.84737RMB;1Ark1916in/54out0.001344RMB;
+total2.793987RMB actual,6credits once/refund0/complete1. Scores71.2/68.3/68.5 do NOT
+prove quality: postprocessing restored omitted price and unsupported sensory claims.
+Exact private1338 candidate stopped and auto-removal verified at1789373577.78009;
+public1338 API/web remain live, no task replay or second OCR.
+
+Current LOCAL fix carries original constraints, hidden-merchant choice and complete
+same-task confirmations separately through diagnosis/generation/selector/repair.
+Fact-bearing templates cannot override these instructions; existing fact checks,
+model routing and seven-industry Prompt text remain. Actual report blank cause:
+expert_opinions_basis missing from strict persisted schema rejected whole response.
+Schema/provenance fixed; old empty report can read exact same owner/completed task
+result without historical writes or model calls. UI preserves complete result on
+history refresh/failure and restores exact original note version, not latest rewrite.
+11Python3.11/Linuxamd64 isolated regressions pass (r4);6offlineChromium pass (r3).
+Initial mixed-test DB/old mock signatures and score-ring rounding assertion failures
+preserved; no product protection weakened. Final hidden-merchant + complete resume followup2tests also pass (r5).
+Next checkpoint then scoped API/web candidate build/deploy/read original.
+No migration, provider call, public media/payment opening, Item34 change or Gitpush;
+Readiness30/37 unchanged. Video acceptance still needs an owner-approved real file.
+
 September14 Native bill preparation now also generates install-dms.sql/remove-dms.sql
 from the original collector statements as one atomic DO, with owner/database and
 current capture guards. It does not apply SQL or change original trade files.

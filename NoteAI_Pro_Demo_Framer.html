@@ -7353,6 +7353,10 @@ async function populateReport() {
       }
     }
     bodyCard.style.display = 'block';
+  } else {
+    if (sharedBEl) sharedBEl.textContent = '';
+    if (sharedHEl) sharedHEl.textContent = '';
+    if (bodyCard) bodyCard.style.display = 'none';
   }
   } catch(e) { console.error('[report §4 titles]', e); }
 
@@ -9997,7 +10001,26 @@ async function finishClarifiedTask(result, task, identity, token, recovered) {
   result._domain = task.domain;
   if(result.saved_note_id) { result._saved_note_id=result.saved_note_id;result._saved_note_version=result.saved_note_version || 1;result._save_status='saved'; }
   _isGenerateMode = task.operation === 'generate';
-  if(_isGenerateMode) _generateResult=result; else _diagnoseResult=result;
+  if(_isGenerateMode) _generateResult=result;
+  else {
+    _diagnosePromise=null;
+    if(result.diagnosis_id) {
+      try {
+        const response=await fetch(API_AUTH+'/diagnoses/'+encodeURIComponent(result.diagnosis_id),{headers:{Authorization:'Bearer '+token}});
+        if(response.ok) {
+          const detail=await response.json();
+          if(detail.diagnosis_id===result.diagnosis_id) {
+            result._inputTitle=detail.note_title || '';
+            result._inputDesc=diagnosisOriginalBody(detail);
+            result.note_version_group=detail.note_version_group;
+            result.created_at=detail.created_at;
+          }
+        }
+      } catch { /* Keep the completed result when its metadata read fails. */ }
+    }
+    if (!_chatIdentityMatches(identity) || _authToken !== token) return;
+    _diagnoseResult=result;
+  }
   localStorage.removeItem(taskReferenceKey(identity.ownerId));
   document.querySelectorAll('[data-task-clarification]').forEach(el=>el.remove());
   showPage('report'); await populateReport();
@@ -10847,11 +10870,14 @@ async function initReportPage() {
 	    if (!_authToken && historyLogin) historyLogin.style.display = 'none';
 	    if (!_authToken && historySection) historySection.style.display = 'none';
 	    await populateReport();
-	    if (_isGenerateMode) {
-	      if (_authToken) await loadDiagnosisHistory(true);
-	      return;
+	    // A list refresh must not replace the completed task with an older or
+	    // incomplete detail response. History remains explicitly selectable.
+	    _currentDiagId = _isGenerateMode ? null : (_diagnoseResult?.diagnosis_id || null);
+	    if (!_isGenerateMode) {
+	      renderDiagnosisHeader(_diagnoseResult);
 	    }
-	    if (!_authToken) return;
+	    if (_authToken) await loadDiagnosisHistory(true);
+	    return;
 	  }
 
 	  await loadDiagnosisHistory(true);
@@ -10945,7 +10971,26 @@ async function loadDiagnosisHistory(reset = false) {
 
 function loadMoreDiagnoses() { loadDiagnosisHistory(false); }
 
+function diagnosisOriginalBody(data) {
+  const id=data.saved_note_id || data._saved_note_id;
+  const original=data.note_version_group?.versions?.find(note=>note.id===id);
+  return original ? (original.body || '') : (data.desc || '');
+}
+
+function completeDiagnosisDetail(data) {
+  return !!data && Number.isFinite(data.composite_score ?? data.ces_percentile)
+    && typeof data.ai_diagnosis==='string' && Array.isArray(data.suggested_titles);
+}
+
+function renderDiagnosisHeader(data) {
+  document.getElementById('detail-note-title').textContent=data.note_title || data._inputTitle || '本次诊断';
+  const score=data.composite_score ?? data.ces_percentile;
+  document.getElementById('detail-meta').textContent=(data._domain || data.domain || '')+' · 综合 '+(Number.isFinite(score)?score.toFixed(1):'未取得')+' · '+_fmtLocalTime(data.created_at);
+}
+
 async function openDiagDetail(diagId) {
+  const identity=_chatIdentitySnapshot(), token=_authToken;
+  const previous=_diagnoseResult?.diagnosis_id===diagId && completeDiagnosisDetail(_diagnoseResult) ? _diagnoseResult : null;
   _currentDiagId = diagId;
 
   // 高亮选中卡片
@@ -10979,19 +11024,23 @@ async function openDiagDetail(diagId) {
   if (delBtn) delBtn.onclick = () => deleteDiagnosis(diagId);
 
   try {
-    const res  = await fetch(`${API_AUTH}/diagnoses/${diagId}`, { headers: authHeader() });
-    if (!res.ok) { showToast('加载失败'); return; }
-    const d = await res.json();
+    const res  = await fetch(`${API_AUTH}/diagnoses/${diagId}`, { headers: {Authorization:'Bearer '+token} });
+    if (!_chatIdentityMatches(identity) || _authToken!==token || _currentDiagId!==diagId) return;
+    if (!res.ok) throw Error('原报告暂时无法读取');
+    let d = await res.json();
+    if (!_chatIdentityMatches(identity) || _authToken!==token || _currentDiagId!==diagId) return;
+    if(d.diagnosis_id!==diagId || !completeDiagnosisDetail(d)) {
+      if (!previous) throw Error('这份历史报告详情不完整，未重新诊断或扣分');
+      d=previous;
+      showToast('历史详情读取不完整，保留本次已完成报告');
+    }
 
-    document.getElementById('detail-note-title').textContent = d.note_title || '（无标题）';
-    const _dispScore = (d.composite_score ?? d.ces_percentile)?.toFixed(1);
-    document.getElementById('detail-meta').textContent =
-      `${d._domain || ''} · 综合 ${_dispScore} · ${_fmtLocalTime(d.created_at)}`;
+    renderDiagnosisHeader(d);
     document.getElementById('reportMeta').textContent = '';
 
     // 注入 _inputTitle / _inputDesc / _domain 供 populateReport 使用
-    d._inputTitle = d.note_title || '';
-    d._inputDesc  = d.desc || '';
+    d._inputTitle = d.note_title || d._inputTitle || '';
+    d._inputDesc  = diagnosisOriginalBody(d) || d._inputDesc || '';
     d._domain     = d._domain || d.domain || '';
     d._saved_note_id = d.saved_note_id || d._saved_note_id || null;
 
@@ -11005,8 +11054,10 @@ async function openDiagDetail(diagId) {
     // 滚动到详情区
     document.getElementById('diag-detail-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch(e) {
-    console.error('openDiagDetail error:', e?.message, e?.stack);
-    showToast('加载报告失败：' + (e?.message || '未知错误，请查看控制台'));
+    if (!_chatIdentityMatches(identity) || _authToken!==token || _currentDiagId!==diagId) return;
+    if(previous) { _diagnoseResult=previous;await populateReport();renderDiagnosisHeader(previous); }
+    else document.getElementById('diag-detail-section').style.display='none';
+    showToast(e?.message || '原报告暂时无法读取，未重新诊断或扣分');
   }
 }
 

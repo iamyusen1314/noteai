@@ -214,6 +214,44 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             clarification.read("merchant-a", claim["request_id"])
         self.assertEqual(deleted.exception.status_code, 404)
 
+    def test_completed_diagnosis_recovers_exact_original_read_only_and_respects_ownership(self):
+        from unittest import mock
+        from uuid import uuid4
+        uid='marked-report-owner';self._create_user(uid)
+        claim=self._claim(uid,'marked-report-recovery',operation='analyze')
+        sid=claim['request_id'];nid=str(uuid4());did=str(uuid4());now=idempotency._iso()
+        result=api.AnalyzeResponse(ces_percentile=71.2,composite_score=71.2,grade='良好',
+            features={},weaknesses=[],ai_diagnosis='已完成原任务诊断',suggested_titles=['原方案标题'],
+            suggested_body='原方案正文',improvement_plan='原改进计划',model_used='synthetic',
+            diagnosis_id=did,saved_note_id=nid,expert_opinions_basis='pre_clarification').model_dump()
+        result.update(type='complete',continuation_session_id=sid,private_transport='must-not-escape')
+        task={'operation':'analyze','status':'completed','result':result}
+        original_json=json.dumps({'task_continuation':task},ensure_ascii=False)
+        api._insert_content_with_retention('INSERT INTO notes(id,user_id,title,body,domain,source,created_at) VALUES(?,?,?,?,?,?,?)',
+            (nid,uid,'原素材标题','原素材正文','美食','analyze',now),'note',nid,uid,created_at=now)
+        api._insert_content_with_retention('INSERT INTO saved_diagnoses(id,user_id,note_title,domain,diagnosis_json,created_at) VALUES(?,?,?,?,?,?)',
+            (did,uid,'原素材标题','美食','{}',now),'diagnosis',did,uid,created_at=now)
+        db.execute('INSERT INTO chat_sessions(id,user_id,note_id,domain,generate_ctx_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+            (sid,uid,nid,'美食',original_json,now,now))
+        db.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1 WHERE id=?",(sid,))
+        with mock.patch.object(api._mr,'call',new=mock.AsyncMock(side_effect=AssertionError('read must not call model'))):
+            recovered=asyncio.run(api.get_diagnosis(did,{'id':uid}))
+        self.assertEqual(recovered['ces_percentile'],71.2)
+        self.assertEqual(recovered['desc'],'原素材正文')
+        self.assertEqual(recovered['expert_opinions_basis'],'pre_clarification')
+        self.assertNotIn('private_transport',recovered)
+        self.assertNotIn('must-not-escape',json.dumps(recovered))
+        self.assertEqual(db.fetchone('SELECT diagnosis_json FROM saved_diagnoses WHERE id=?',(did,))['diagnosis_json'],'{}')
+        self.assertEqual(db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?',(sid,))['generate_ctx_json'],original_json)
+        with self.assertRaises(HTTPException) as denied:asyncio.run(api.get_diagnosis(did,{'id':'different-owner'}))
+        self.assertEqual(denied.exception.status_code,404)
+        result['diagnosis_id']='other-report'
+        db.execute('UPDATE chat_sessions SET generate_ctx_json=? WHERE id=?',(json.dumps({'task_continuation':task}),sid))
+        self.assertNotIn('ces_percentile',asyncio.run(api.get_diagnosis(did,{'id':uid})))
+        db.execute('UPDATE chat_sessions SET generate_ctx_json=? WHERE id=?',(original_json,sid))
+        db.execute('UPDATE content_retention SET deleted_at=? WHERE content_id=?',(now,nid))
+        self.assertNotIn('ces_percentile',asyncio.run(api.get_diagnosis(did,{'id':uid})))
+
     def test_clarification_no_duplicate_questions_or_cross_merchant_access(self):
         import task_clarification as clarification
         claim, event, opinion, source = self._waiting_task()
@@ -1381,6 +1419,8 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             self.assertIn('原问题范围仅用于定位问题',user)
             self.assertIn('所有标题、方案及后续优化都不得写入此项',user)
             self.assertIn('用户暂不确定',user)
+            self.assertIn(ANSWER,payload['system'])
+            self.assertIn('所有标题、方案及后续优化都不得写入此项',payload['system'])
             usage={'input_tokens':1000,'output_tokens':1000,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}
             base={'protocol_version':api._mr._cgp.PROTOCOL_VERSION}
             if request.url.path == api._mr._cgp.STREAM_PATH:

@@ -3163,6 +3163,8 @@ class ApiContractTests(unittest.TestCase):
         original_insert_content = api._insert_content_with_retention
         captured_notes = []
         captured_agent_contexts = []
+        captured_delivery_constraints = []
+        captured_shape_constraints = []
         fact_calls = []
 
         video_observation = ("视频里拍到芝士焗小青龙、红烧乳鸽和万博门店环境。" * 45
@@ -3196,6 +3198,7 @@ class ApiContractTests(unittest.TestCase):
         async def fake_run_agents(note, *_args, **_kwargs):
             captured_notes.append(note)
             captured_agent_contexts.append(_kwargs.get("agent_context", ""))
+            captured_delivery_constraints.append(_kwargs.get("constraint_context", ""))
             bodies = [
                 "先看决策信息：长禧家珑厨在广州番禺万博商圈，人均98元，营业时间11:00-22:00。芝士焗小青龙是招牌，红烧乳鸽适合分享。点赞收藏。#广州美食 #番禺美食 #粤菜 #万博探店 #小青龙",
                 "这版从菜品种草切入：芝士焗小青龙上桌有热度，红烧乳鸽皮脆肉嫩，适合想吃粤菜的人。地址在广州番禺万博商圈，人均98元。点赞收藏。#广州美食 #番禺美食 #粤菜 #万博美食 #探店",
@@ -3216,6 +3219,7 @@ class ApiContractTests(unittest.TestCase):
             }
 
         async def fake_shape(_title, body, *_args, **_kwargs):
+            captured_shape_constraints.append(_kwargs.get("constraint_context", ""))
             return body
 
         async def fake_score(_title, _body, *_args, **_kwargs):
@@ -3285,10 +3289,20 @@ class ApiContractTests(unittest.TestCase):
                     video_file_id="vid-ok",
                 ),
             ]
+            for req in requests:
+                req.user_constraints = ['本次不写品牌名称，保留原素材边界']
+            requests[2].user_constraints = []
+            requests[2].merchant_visibility = '不展示商家'
             responses = [
                 asyncio.run(api.analyze(req, user={"id": "u1"}))
                 for req in requests
             ]
+            self.assertEqual(len(captured_delivery_constraints), 3)
+            self.assertEqual(len(captured_shape_constraints), 9)
+            for context in captured_delivery_constraints[:2] + captured_shape_constraints[:6]:
+                self.assertIn('本次不写品牌名称，保留原素材边界', context)
+            for context in captured_delivery_constraints[2:] + captured_shape_constraints[6:]:
+                self.assertIn('商家/品牌展示策略：不展示商家', context)
             self.assertEqual(api._insert_growth_record.call_count, 3)
             for response, call in zip(responses, api._insert_growth_record.call_args_list):
                 self.assertEqual(call.kwargs["note_id"], response.saved_note_id)
@@ -3715,6 +3729,76 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(call.await_count, 1)
         self.assertIn(source, call.call_args.args[2])
         self.assertIn(api._CONTENT_SOURCE_POLICY, call.call_args.args[1])
+
+    def test_delivery_editors_keep_task_constraints_separate_from_facts(self):
+        source = "门店套餐249元。图片只有门头和餐桌，未说明个人尝味经历。"
+        constraints = api._user_constraints_brief(['本次不写价格或价格评价', '不写门店名称'], '测试交付')
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value='围绕照片安排正文。')) as call, \
+             mock.patch.object(api, '_insert_safe_fact_line', side_effect=AssertionError('unconstrained fact insertion')):
+            asyncio.run(api._shape_body_for_delivery('门店画面', '短文', '美食', source,
+                                                     constraint_context=constraints))
+        self.assertIn(constraints, call.call_args.args[1])
+        self.assertIn(source, call.call_args.args[2])
+        self.assertNotIn('用户写作偏好与历史参考', call.call_args.args[1])
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(
+                return_value='<diagnosis>围绕画面组织。</diagnosis><plan>补清结构。</plan>')) as call:
+            asyncio.run(api._repair_diagnosis_report_facts('套餐198元。', '说明套餐。', '美食', source,
+                                                           constraint_context=constraints))
+        self.assertIn(constraints, call.call_args.args[1])
+        self.assertIn(source, call.call_args.args[2])
+        # Existing fact-bearing title templates must not override arbitrary choices.
+        title = '敏感混干皮防晒，上粉底不搓泥'
+        self.assertNotIn('79', api._sanitize_title_for_delivery(title, '防晒79元', '美妆', constraints))
+        for title in ('敏感混干皮通勤防晒，清爽成膜很稳', '唇膏日常颜色分享'):
+            self.assertEqual(api._sanitize_title_for_delivery(title, '', '美妆', constraints), title)
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(side_effect=RuntimeError('known failed compression'))), \
+             mock.patch.object(api, '_fallback_title_under_limit', side_effect=AssertionError('fact template')):
+            long_title = '只说素材中的门店画面而不增加未知的细节或商品价格'
+            self.assertEqual(asyncio.run(api._fit_title_limit(long_title, '', '美食', constraint_context=constraints)), long_title)
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value='按原画面说明动作。')), \
+             mock.patch.object(api, '_append_missing_fitness_source_actions', side_effect=AssertionError('unrequested action')):
+            body=asyncio.run(api._shape_body_for_delivery('动作展示', '原画面说明', '健身', '热身5分钟',
+                constraint_context='本次不写热身，不催赞或收藏'))
+        self.assertNotIn('热身', body)
+        self.assertNotIn('收藏', body)
+
+    def test_generation_selection_preserves_constraints_without_adding_source_facts(self):
+        constraints='不写价格和收藏引导'
+        title, body='本次只围绕门店画面说明', '按画面认识这家门店。'
+        with mock.patch.object(api, '_insert_safe_fact_line', side_effect=AssertionError('unrequested source fact')), \
+             mock.patch.object(api, '_fallback_title_under_limit', side_effect=AssertionError('fact template')), \
+             mock.patch.object(api, '_score_generated_note', new=mock.AsyncMock(return_value=(74, {}, '良好'))), \
+             mock.patch.object(api, '_v04_publishable_probability', return_value=None), \
+             mock.patch.object(api, 'get_v04_preference_ranker', return_value=None):
+            result=asyncio.run(api._select_best_generation_candidate([{'title':title,'body':body}],
+                domain='美食', local_time='2026091416', source_context='套餐249元', constraint_context=constraints))
+        self.assertEqual(result['selected']['title'], title)
+        self.assertEqual(result['selected']['body'], body)
+
+    def test_second_pass_carries_constraints_and_does_not_apply_unaware_fact_templates(self):
+        source = '原素材套餐249元，门店名称蓝猫；本次未说明用餐口感。'
+        constraints = api._user_constraints_brief(['不写价格及店名'], '本次测试')
+        title, body = '围绕门店画面整理创作思路', '按实际画面组织内容。'
+        with mock.patch.object(api, '_try_deterministic_score_lift', new=mock.AsyncMock(
+                side_effect=AssertionError('template cannot interpret user constraints'))) as deterministic, \
+             mock.patch.object(api._mr, 'call', new=mock.AsyncMock(
+                return_value=f'<note><title>{title}</title><body>{body}</body></note>')) as call, \
+             mock.patch.object(api, '_generated_quality_issues', return_value=[]), \
+             mock.patch.object(api, '_delivery_integrity_issues', return_value=[]), \
+             mock.patch.object(api, '_v04_generation_lift_instructions', return_value=['补清信息结构']), \
+             mock.patch.object(api, '_score_generated_note', new=mock.AsyncMock(return_value=(74, {'body_len':300}, '良好'))), \
+             mock.patch.object(api, '_fit_title_limit', new=mock.AsyncMock(return_value=title)) as fit, \
+             mock.patch.object(api, '_shape_body_for_delivery', new=mock.AsyncMock(return_value=body)) as shape:
+            result = asyncio.run(api._score_directed_second_pass(title, body, '美食', '2026091416',
+                source_context=source, current_score=68, current_features={'body_len':300},
+                current_issues=[], constraint_context=constraints))
+        deterministic.assert_not_called()
+        self.assertEqual(call.await_count, 1)
+        self.assertIn(constraints, call.call_args.args[1])
+        self.assertIn(source, call.call_args.args[2])
+        self.assertEqual(fit.call_args.kwargs['constraint_context'], constraints)
+        self.assertEqual(shape.call_args.kwargs['constraint_context'], constraints)
+        self.assertTrue(result[6], result[7])
 
     def test_body_shape_preserves_observation_and_explicit_experience_as_distinct_sources(self):
         sources = (
@@ -6495,7 +6579,7 @@ class ApiContractTests(unittest.TestCase):
             {"origin": "variant_repaired", "title": "广州酒店筛选清单", "body": source,
              "variants": ["广州住宿先看房型"]},
         ]
-        async def fit(title, *_args):
+        async def fit(title, *_args, **_kwargs):
             return title
 
         with mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(80, {}, "优秀"))), \

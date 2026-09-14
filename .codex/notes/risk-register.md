@@ -1,5 +1,12 @@
 # Risk Register
 
+September14 report/constraint correction is local pending scoped release: empty
+history was caused by a missing allowed response field, not missing model output.
+Read-only exact-task recovery preserves originals/ownership/deletion. Current32-call
+media result still fails content-quality review; constraints lost after arbitration
+and fact-bearing templates could restore omitted content. Generic propagation now
+verified offline; live quality must still be checked, no false acceptance.
+
 September14 15:46BJT actual API/web1338f65 is deployed. Successful OCR/recovery and
 completed40-call diagnosis do not prove content quality: prior final plans invented
 sensory/repeat-visit/queue facts. Common factual-source policy is now also in system

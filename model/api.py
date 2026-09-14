@@ -2664,6 +2664,7 @@ _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "dimension_scores": ("list", _REPORT_DIMENSION_SCHEMA),
     "dispute": "string",
     "expert_opinions": "expert_opinions",
+    "expert_opinions_basis": "string",
     "fact_enrichment": ("nullable", _FACT_ENRICHMENT_SCHEMA),
     "fact_source_decision": _FACT_SOURCE_DECISION_SCHEMA,
     "feature_groups": ("list", _REPORT_FEATURE_GROUP_SCHEMA),
@@ -3158,6 +3159,7 @@ async def _agent_arbitrate(
     source_context: str = "",
     emit: ProgressEmitter | None = None,
     analysis_context: str = "",
+    constraint_context: str = "",
 ) -> dict:
     from datetime import datetime as _dt_now
     _today = _dt_now.now().strftime("%Y年%m月%d日")
@@ -3258,7 +3260,8 @@ async def _agent_arbitrate(
         try:
             shortened = await _mr.call(
                 "semantic",
-                f"你是标题压缩专家。将用户提供的小红书标题压缩到{_TITLE_PLATFORM_MAX}字以内，保留核心信息（地点/价格/菜品/情绪/决策价值），语义完整，可直接使用。只输出压缩后的标题，不要任何说明。",
+                f"你是标题压缩专家。将用户提供的小红书标题压缩到{_TITLE_PLATFORM_MAX}字以内，保留核心信息（地点/价格/菜品/情绪/决策价值），语义完整，可直接使用。只输出压缩后的标题，不要任何说明。"
+                + ("\n\n" + constraint_context if constraint_context else ""),
                 f"原标题（{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_PLATFORM_MAX}字，优先{_TITLE_TARGET_TEXT}：",
                 max_tokens=256,
             )
@@ -3312,7 +3315,7 @@ async def _agent_arbitrate(
     used_titles = {t for t in plan_titles if t}
     pool_iter = iter([t for t in titles_pool if t and t not in used_titles])
     plan_titles = [t or next(pool_iter, "") for t in plan_titles]
-    plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context)
+    plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context, constraint_context)
     plan_title_meta = [
         _title_delivery_meta(raw_plan_titles[i] or plan_titles[i], plan_titles[i], _title_readability_issues(plan_titles[i], domain))
         for i in range(3)
@@ -3467,7 +3470,7 @@ async def _agent_arbitrate(
         raw_body = body_results[i]
         # titles_pool 已在上方并行清洗完毕，直接取
         fallback_t = titles_pool[i] if len(titles_pool) > i else ""
-        final_title = _sanitize_title_for_delivery(title or fallback_t, source_context, domain)
+        final_title = _sanitize_title_for_delivery(title or fallback_t, source_context, domain, constraint_context)
         body = raw_body.strip() if isinstance(raw_body, str) and raw_body.strip() else ""
         fallback_used = False
         if not body:
@@ -3481,7 +3484,8 @@ async def _agent_arbitrate(
             # turn the same unverified content into three independent results.
             body = ""
         if body:
-            body = await _shape_body_for_delivery(final_title, body, domain, source_context, style_name)
+            body = await _shape_body_for_delivery(final_title, body, domain, source_context, style_name,
+                **({'constraint_context': constraint_context} if constraint_context else {}))
         if body and not _is_distinct_body(body, accepted_bodies):
             body = ""
             fallback_used = False
@@ -3536,6 +3540,7 @@ async def _run_five_agents(
     fact_source_context: str | None = None,
     prepared_opinions: list | None = None,
     clarification_prepared: dict | None = None,
+    constraint_context: str = "",
 ) -> dict:
     dk = _get_dk(note.domain)
     if prepared_opinions is not None:
@@ -3621,6 +3626,7 @@ async def _run_five_agents(
     arbitration = await _agent_arbitrate(
         note.note_title, note.domain, percentile, grade, opinions, arbitration_context, emit=emit,
         analysis_context=agent_context,
+        **({'constraint_context': constraint_context} if constraint_context else {}),
     )
     arbitration["expert_opinions"] = [
         _normalize_expert_opinion(
@@ -3991,6 +3997,7 @@ def _make_plan_titles_distinct(
     titles: list[str],
     domain: str | None,
     source_context: str | None = None,
+    constraint_context: str = "",
 ) -> list[str]:
     labels = _plan_strategy_labels(domain)
     out: list[str] = []
@@ -3998,9 +4005,9 @@ def _make_plan_titles_distinct(
     for idx in range(3):
         label = labels[idx]
         raw_title = titles[idx] if idx < len(titles) else ""
-        title = _sanitize_title_for_delivery(raw_title, source_context, domain)
+        title = _sanitize_title_for_delivery(raw_title, source_context, domain, constraint_context)
         key = _title_distinct_key(title)
-        if not title or key in seen:
+        if (not title or key in seen) and not constraint_context:
             for option in _plan_title_fallback_options(domain, label, title or raw_title, source_context):
                 candidate = _sanitize_title_for_delivery(_fallback_title_under_limit(option), source_context, domain)
                 cand_key = _title_distinct_key(candidate)
@@ -4008,7 +4015,7 @@ def _make_plan_titles_distinct(
                     title = candidate
                     key = cand_key
                     break
-        if key in seen:
+        if key in seen and not constraint_context:
             suffix = str(idx + 1)
             title = _fallback_title_under_limit(f"{_compact_title_core(title, source_context)}{suffix}版")
             key = _title_distinct_key(title)
@@ -4165,6 +4172,7 @@ async def _gent_arbitrate(
     prev_score: float | None = None,
     fact_context: str | None = None,
     memory_context: str = "",
+    constraint_context: str = "",
 ) -> dict:
     round_hint = ""
     if fix_items:
@@ -4238,7 +4246,7 @@ async def _gent_arbitrate(
         f"【创作者真实信息/事实边界】\n{fact_text}\n\n"
         f"{blocks}"
     )
-    raw = await _mr.call("arbitrate", system, user, thinking=True, max_tokens=16000)
+    raw = await _mr.call("arbitrate", (system) + ("\n\n" + constraint_context if constraint_context else ""), user, thinking=True, max_tokens=16000)
 
     title = _xtag(raw, "title")
     body = _xtag(raw, "body")
@@ -4251,7 +4259,7 @@ async def _gent_arbitrate(
         repair_user = (user + "\n\n【一次结构修复】前次已返回，但缺少完整的<title>或<body>。"
                        "请依据上方完整素材与行业规则重新完成仲裁，保留必要分析，并输出完整title/body。"
                        "下方仅为待修复的模型草稿，不能作为事实来源。\n" + raw)
-        raw2 = await _mr.call("arbitrate", system, repair_user, thinking=True, max_tokens=16000)
+        raw2 = await _mr.call("arbitrate", (system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=16000)
         title, body = _xtag(raw2, "title"), _xtag(raw2, "body")
         variants = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
         rationale = _xtag(raw2, "rationale")
@@ -4263,12 +4271,12 @@ async def _gent_arbitrate(
 
     # 小红书标题交付安全线：优先语义压缩，避免半句截断。
     if title and len(title) > _TITLE_DELIVERY_MAX:
-        title = await _fit_title_limit(title, body, domain, memory_context)
+        title = await _fit_title_limit(title, body, domain, memory_context, constraint_context=constraint_context)
     if title:
-        title = _sanitize_title_for_delivery(title, fact_context, domain)
-    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context) if len(v) > _TITLE_DELIVERY_MAX else v, fact_context, domain) for v in variants]
+        title = _sanitize_title_for_delivery(title, fact_context, domain, constraint_context=constraint_context)
+    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context, constraint_context=constraint_context) if len(v) > _TITLE_DELIVERY_MAX else v, fact_context, domain, constraint_context=constraint_context) for v in variants]
     if body:
-        body = await _shape_body_for_delivery(title, body, domain, fact_context, "爆文生成", memory_context)
+        body = await _shape_body_for_delivery(title, body, domain, fact_context, "爆文生成", memory_context, constraint_context=constraint_context)
 
     return {"title": title, "body": body, "variants": variants, "rationale": rationale}
 
@@ -4330,6 +4338,7 @@ async def _generate_quality_challenger_candidate(
     current_body: str,
     candidate_index: int = 0,
     memory_context: str = "",
+    constraint_context: str = "",
 ) -> dict | None:
     """Generate an alternate draft for V0.4 candidate selection."""
     if _generation_candidate_count(domain) <= 1:
@@ -4365,7 +4374,7 @@ async def _generate_quality_challenger_candidate(
         "不要用编号大纲，不要写占位符，不要为了评分机械重复关键词。"
     )
     try:
-        raw = await _mr.call("content_gen", system, user, thinking=False, max_tokens=2600)
+        raw = await _mr.call("content_gen", (system) + ("\n\n" + constraint_context if constraint_context else ""), user, thinking=False, max_tokens=2600)
     except Exception as exc:
         if isinstance(exc, _public_product.TrialProviderStopped):
             raise
@@ -4376,10 +4385,10 @@ async def _generate_quality_challenger_candidate(
     if not title or not body:
         return None
     variants = [v.strip() for v in _xtag(raw, "variants").splitlines() if v.strip()][:3]
-    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, canonical, memory_context), brief, canonical)
-    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优", memory_context)
+    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, canonical, memory_context, constraint_context=constraint_context), brief, canonical, constraint_context=constraint_context)
+    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优", memory_context, constraint_context=constraint_context)
     variants = [
-        _sanitize_title_for_delivery(await _fit_title_limit(v, body, canonical, memory_context), brief, canonical)
+        _sanitize_title_for_delivery(await _fit_title_limit(v, body, canonical, memory_context, constraint_context=constraint_context), brief, canonical, constraint_context=constraint_context)
         for v in variants
     ]
     return {
@@ -4687,6 +4696,7 @@ async def _run_generation_agents(
     cover_images: list[str] | None = None,
     user_tier: str = "free",           # 用户套餐，决定深度分析图片数
     memory_context: str = "",
+    constraint_context: str = "",
 ) -> dict:
     """
     Pipeline:
@@ -4810,6 +4820,7 @@ async def _run_generation_agents(
         prev_score=pre_score,
         fact_context=brief or "",
         memory_context=memory_context,
+        constraint_context=constraint_context,
     )
     title, body = arb.get("title", ""), arb.get("body", "")
     print(f"[gen] P3-arbitrate done in {_time.time()-_t0:.0f}s title_len={len(title)} body_len={len(body)}", file=sys.stderr, flush=True)
@@ -4851,7 +4862,7 @@ async def _run_generation_agents(
             f"删掉重复修饰和多余铺垫，直接输出压缩后的正文，不要加任何说明：\n\n{body}"
         )
         try:
-            trimmed = await _mr.call("content_gen", trim_sys, trim_usr, thinking=False, max_tokens=4096)
+            trimmed = await _mr.call("content_gen", (trim_sys) + ("\n\n" + constraint_context if constraint_context else ""), trim_usr, thinking=False, max_tokens=4096)
             if trimmed and len(trimmed) < len(body):
                 body = trimmed.strip()
                 arb["body"] = body
@@ -4876,7 +4887,7 @@ async def _run_generation_agents(
             + body
         )
         try:
-            rhythmed = await _mr.call("content_gen", burst_sys, burst_usr, thinking=False, max_tokens=4096)
+            rhythmed = await _mr.call("content_gen", (burst_sys) + ("\n\n" + constraint_context if constraint_context else ""), burst_usr, thinking=False, max_tokens=4096)
             if rhythmed and rhythmed.strip():
                 body = rhythmed.strip()
                 arb["body"] = body
@@ -4902,6 +4913,7 @@ async def _run_generation_agents(
             current_body=body,
             candidate_index=cand_idx,
             memory_context=memory_context,
+            constraint_context=constraint_context,
         )
         if challenger:
             _remember_generation_candidate(
@@ -4921,6 +4933,7 @@ async def _run_generation_agents(
                 timing=timing,
                 cover_feats=cover_feats or None,
                 source_context=brief or "",
+                constraint_context=constraint_context,
             )
             selected_early = early_selection.get("selected") or {}
             selection_meta = _selection_meta_payload(early_selection)
@@ -5002,6 +5015,7 @@ async def _run_generation_agents(
                 fix_items=repair_items, prev_score=percentile,
                 fact_context=brief or "",
                 memory_context=memory_context,
+                constraint_context=constraint_context,
             )
             t_new = arb_next.get("title", "").strip()
             b_new = arb_next.get("body", "").strip()
@@ -5060,6 +5074,7 @@ async def _run_generation_agents(
             current_grade=grade,
             current_issues=quality_issues,
             route="arbitrate",
+            constraint_context=constraint_context,
         )
         if lifted_score is not None:
             if score_lift_repaired:
@@ -5074,7 +5089,9 @@ async def _run_generation_agents(
             score_lift_reason,
         )
 
-    final_compacted_body = _compact_body_to_delivery_limit(_insert_safe_fact_line(body or "", domain, brief or ""), domain)
+    final_compacted_body = _compact_body_to_delivery_limit(
+        (body or "") if constraint_context else _insert_safe_fact_line(body or "", domain, brief or ""),
+        domain, constraint_context=constraint_context)
     if final_compacted_body and final_compacted_body != body:
         body = final_compacted_body
         try:
@@ -5111,6 +5128,7 @@ async def _run_generation_agents(
                 timing=timing,
                 cover_feats=cover_feats or None,
                 source_context=brief or "",
+                constraint_context=constraint_context,
             )
             selected_final = final_selection.get("selected") or {}
             selection_meta = _selection_meta_payload(final_selection)
@@ -7604,7 +7622,7 @@ def _fallback_title_under_limit(title: str) -> str:
     return title
 
 
-async def _fit_title_limit(title: str, body: str, domain: str, memory_context: str = "") -> str:
+async def _fit_title_limit(title: str, body: str, domain: str, memory_context: str = "", constraint_context: str = "") -> str:
     """Keep XHS titles under the delivery-safe limit without semantic chopping."""
     title = _clean_generated_title(title)
     if len(title) <= _TITLE_DELIVERY_MAX:
@@ -7620,16 +7638,19 @@ async def _fit_title_limit(title: str, body: str, domain: str, memory_context: s
         )
         shortened = await _mr.call(
             "semantic",
-            f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_PLATFORM_MAX}字以内的中文标题。" + _generation_memory_context(memory_context),
+            f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_PLATFORM_MAX}字以内的中文标题。" + _generation_memory_context(memory_context)
+            + ("\n\n" + constraint_context if constraint_context else ""),
             prompt,
             max_tokens=80,
         )
         shortened = _clean_generated_title(shortened.splitlines()[0] if shortened else "")
         if 6 <= len(shortened) <= _TITLE_DELIVERY_MAX:
             return shortened
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception:
-        pass
-    return _fallback_title_under_limit(title)
+        _public_product.assert_result_known()
+    return title if constraint_context else _fallback_title_under_limit(title)
 
 
 def _generated_quality_issues(
@@ -8473,8 +8494,14 @@ def _quality_expression_brief(domain: str | None = None) -> str:
     )
 
 
-def _sanitize_title_for_delivery(title: str, source_context: str | None = None, domain: str | None = None) -> str:
+def _sanitize_title_for_delivery(title: str, source_context: str | None = None, domain: str | None = None,
+                                 constraint_context: str = "") -> str:
     text = _clean_generated_title(title)
+    if constraint_context:
+        # Template substitutions cannot interpret arbitrary user instructions.
+        # Keep formatting cleanup; constrained semantic edits belong to the model
+        # that receives the same contract, followed by the existing quality checks.
+        return text
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     src = source_context or ""
     if not src or not _UNVERIFIED_HOLIDAY_SCENE_RE.search(src):
@@ -10355,23 +10382,24 @@ def _ensure_delivery_cta(body: str, domain: str | None = None) -> str:
     return (main + ("\n" + tags if tags else "")).strip()
 
 
-def _compact_body_to_delivery_limit(body: str, domain: str | None) -> str:
+def _compact_body_to_delivery_limit(body: str, domain: str | None, constraint_context: str = "") -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     max_body = _quality_body_max(canonical)
     if not max_body:
         return body or ""
-    text = _ensure_delivery_cta(body or "", domain)
+    text = (body or "") if constraint_context else _ensure_delivery_cta(body or "", domain)
     main, tags = _split_body_and_tags(text)
     if _body_content_len_without_tags(text) <= max_body:
         return text
 
-    compact_main = _fit_delivery_cta_under_limit(main, domain, max_body)
+    compact_main = (_truncate_sentences_to_content_limit(main, max_body) if constraint_context
+                    else _fit_delivery_cta_under_limit(main, domain, max_body))
     return (compact_main + ("\n" + tags if tags else "")).strip()
 
 
-async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "") -> str:
+async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "", constraint_context: str = "") -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
-    shaped = _insert_safe_fact_line(body or "", domain, source_context)
+    shaped = (body or "") if constraint_context else _insert_safe_fact_line(body or "", domain, source_context)
     if not shaped.strip() or canonical not in _DOMAIN_QUALITY_TARGETS:
         return shaped
 
@@ -10398,8 +10426,8 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         or (floor and body_len < floor)
     )
     if not needs_shape:
-        compacted = _compact_body_to_delivery_limit(shaped, domain)
-        if canonical == "健身":
+        compacted = _compact_body_to_delivery_limit(shaped, domain, constraint_context)
+        if canonical == "健身" and not constraint_context:
             compacted = _append_missing_fitness_source_actions(compacted, source_context)
         return compacted
 
@@ -10419,6 +10447,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         "不得新增未提供的价格、人均、营业时间、排队时长、楼层等结构化事实；"
         "不得解释，不得输出标题或方案说明。"
         + _generation_memory_context(memory_context)
+        + ("\n\n" + constraint_context if constraint_context else "")
         + f"\n\n{_CONTENT_SOURCE_POLICY}"
     )
     user = (
@@ -10437,14 +10466,17 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         repaired = await _mr.call("content_gen", system, user, thinking=False, max_tokens=4096)
         repaired = (repaired or "").strip()
         if repaired and not _body_format_issues(repaired):
-            compacted = _compact_body_to_delivery_limit(_insert_safe_fact_line(repaired, domain, source_context), domain)
-            if canonical == "健身":
+            compacted = _compact_body_to_delivery_limit(
+                repaired if constraint_context else _insert_safe_fact_line(repaired, domain, source_context), domain, constraint_context)
+            if canonical == "健身" and not constraint_context:
                 compacted = _append_missing_fitness_source_actions(compacted, source_context)
             return compacted
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception:
-        pass
-    compacted = _compact_body_to_delivery_limit(shaped, domain)
-    if canonical == "健身":
+        _public_product.assert_result_known()
+    compacted = _compact_body_to_delivery_limit(shaped, domain, constraint_context)
+    if canonical == "健身" and not constraint_context:
         compacted = _append_missing_fitness_source_actions(compacted, source_context)
     return compacted
 
@@ -10642,6 +10674,7 @@ async def _repair_diagnosis_report_facts(
     diagnosis: str, plan: str, domain: str, source_context: str,
     emit: ProgressEmitter | None = None,
     review_issues: list[str] | None = None,
+    constraint_context: str = "",
 ) -> tuple[str, str]:
     """Repair only an unsupported report, once, using the original arbiter route.
 
@@ -10655,7 +10688,7 @@ async def _repair_diagnosis_report_facts(
     system = (_runtime_prompt("agent_arbitrate_system", domain)
               .replace("{domain}", domain or "通用")
               .replace("2026年06月23日", datetime.now().strftime("%Y年%m月%d日"))
-              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n{_CONTENT_SOURCE_POLICY}")
+              + f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n{constraint_context}\n\n{_CONTENT_SOURCE_POLICY}")
     user = (
         "仅修订以下诊断报告中的事实越界，保留完整诊断、可执行建议与行业规则。\n"
         "不生成标题或方案正文，不把未核实信息改成确定事实；需要补充的信息明确标注待核实。\n"
@@ -10882,14 +10915,18 @@ async def _score_generation_delivery_candidate(
     timing: dict | None,
     cover_feats: dict | None,
     source_context: str | None,
+    constraint_context: str = "",
 ) -> dict:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
     raw_title = str(candidate.get("title") or "").strip()
     raw_body = str(candidate.get("body") or "").strip()
-    title = _sanitize_title_for_delivery(await _fit_title_limit(raw_title, raw_body, canonical), source_context, canonical) if raw_title else ""
-    title = _fallback_title_under_limit(title)
-    body = _compact_body_to_delivery_limit(_insert_safe_fact_line(raw_body, canonical, source_context or ""), canonical)
-    if canonical == "健身":
+    title = _sanitize_title_for_delivery(await _fit_title_limit(raw_title, raw_body, canonical, constraint_context=constraint_context), source_context, canonical, constraint_context=constraint_context) if raw_title else ""
+    if not constraint_context:
+        title = _fallback_title_under_limit(title)
+    body = _compact_body_to_delivery_limit(
+        raw_body if constraint_context else _insert_safe_fact_line(raw_body, canonical, source_context or ""),
+        canonical, constraint_context=constraint_context)
+    if canonical == "健身" and not constraint_context:
         body = _append_missing_fitness_source_actions(body, source_context)
     score, features, grade = await _score_generated_note(title, body, canonical, local_time, timing, cover_feats)
     issues = _generated_quality_issues(title, body, canonical, score, features, source_context)
@@ -10927,6 +10964,7 @@ async def _select_best_generation_candidate(
     timing: dict | None = None,
     cover_feats: dict | None = None,
     source_context: str | None = None,
+    constraint_context: str = "",
 ) -> dict:
     """Score and select the best generated note candidate with V0.4 runtime signals."""
     deduped: list[dict] = []
@@ -10949,6 +10987,7 @@ async def _select_best_generation_candidate(
             timing=timing,
             cover_feats=cover_feats,
             source_context=source_context,
+            constraint_context=constraint_context,
         )
         for candidate in deduped
     ]
@@ -11438,6 +11477,7 @@ async def _score_directed_second_pass(
     current_grade: str | None = None,
     current_issues: list[str] | None = None,
     route: str = "arbitrate",
+    constraint_context: str = "",
 ) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool, str]:
     """One delivery-oriented rewrite for acceptable drafts below the reference line.
 
@@ -11496,6 +11536,14 @@ async def _score_directed_second_pass(
     if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_repair:
         return title, body, score, features, grade or _grade(score), issues, False, "存在硬质量问题，交给硬修复链路"
 
+    if constraint_context:
+        # Feature-only candidate builders add source facts without seeing user
+        # choices. Continue the normal model repair with the explicit contract.
+        deterministic = (title, body, score, features, grade, issues, False, '')
+    else:
+        deterministic = await _try_deterministic_score_lift(
+            title, body, domain, local_time, timing=timing, cover_feats=cover_feats,
+            source_context=source_context, score=score, features=features, issues=issues)
     (
         det_title,
         det_body,
@@ -11505,18 +11553,7 @@ async def _score_directed_second_pass(
         det_issues,
         det_repaired,
         det_reason,
-    ) = await _try_deterministic_score_lift(
-        title,
-        body,
-        domain,
-        local_time,
-        timing=timing,
-        cover_feats=cover_feats,
-        source_context=source_context,
-        score=score,
-        features=features,
-        issues=issues,
-    )
+    ) = deterministic
     if det_repaired:
         title, body, score, features, grade, issues = (
             det_title,
@@ -11550,6 +11587,7 @@ async def _score_directed_second_pass(
         f"{_get_feature_governance_brief(domain)}\n\n"
         f"{_build_generation_planning_brief(domain, title, source_context or '未提供原始来源', style_hint or '交付质量二修')}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
+        f"{constraint_context}\n\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
         f"{_quality_expression_brief(domain)}\n\n"
         f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
@@ -11581,11 +11619,14 @@ async def _score_directed_second_pass(
             return title, body, score, features, grade or _grade(score), issues, False, "二修未返回完整笔记"
 
         cand_title = _sanitize_title_for_delivery(
-            await _fit_title_limit(cand_title, cand_body, domain),
+            await _fit_title_limit(cand_title, cand_body, domain,
+                **({'constraint_context': constraint_context} if constraint_context else {})),
             source_context,
             domain,
+            constraint_context,
         )
-        cand_body = await _shape_body_for_delivery(cand_title, cand_body.strip(), domain, source_context, style_hint or "交付质量二修")
+        cand_body = await _shape_body_for_delivery(cand_title, cand_body.strip(), domain, source_context, style_hint or "交付质量二修",
+            **({'constraint_context': constraint_context} if constraint_context else {}))
         cand_score, cand_features, cand_grade = await _score_generated_note(
             cand_title, cand_body, domain, local_time, timing, cover_feats or None
         )
@@ -14006,12 +14047,24 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
     if not row or not _retention_visible("diagnosis", diag_id, user["id"]):
         raise HTTPException(status_code=404, detail="诊断记录不存在")
     data = _sanitize_persisted_diagnosis(_jlib.loads(row["diagnosis_json"]))
+    if not data:
+        original = _clarification.completed_diagnosis_result(user["id"], diag_id)
+        if original:
+            # Task results also contain transport metadata. Project only the
+            # existing public contract; do not relax arbitrary-input filtering.
+            data = _sanitize_persisted_diagnosis({
+                key: original[key] for key in _PERSISTED_DIAGNOSIS_SCHEMAS if key in original
+            })
     data["diagnosis_id"] = diag_id
     data["note_title"]   = row["note_title"]
     data["_domain"]      = row["domain"]
     data["created_at"]   = row["created_at"]
     root_note_id = data.get("saved_note_id") or data.get("_saved_note_id")
     data["note_version_group"] = _build_note_version_group_for_root(root_note_id, user["id"])
+    versions = (data["note_version_group"] or {}).get("versions", [])
+    original_note = next((note for note in versions if note.get("id") == root_note_id), None)
+    if original_note:
+        data["desc"] = original_note.get("body") or ""
     return data
 
 
@@ -15797,6 +15850,11 @@ async def _run_analyze_pipeline(
 
         # 7. Five-agent diagnosis through unified Claude/Kimi router
         if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("MOONSHOT_API_KEY"):
+            delivery_constraint_context = "\n\n".join(p for p in (
+                _user_constraints_brief(normalized_constraints, "AI诊断完整交付"),
+                intent_brief if normalized_visibility == "不展示商家" else "",
+                (prepared or {}).get("confirmation", ""),
+            ) if p)
             delivery_source_context = "\n\n".join(
                 p for p in [req.desc, extra_image_context, fact_context, intent_brief] if p
             )
@@ -15831,6 +15889,7 @@ async def _run_analyze_pipeline(
                 fact_source_context=delivery_source_context,
                 prepared_opinions=prepared["opinions"] if prepared else None,
                 clarification_prepared=clarification_prepared,
+                constraint_context=delivery_constraint_context,
             )
             diagnosis = agent_result.get("diagnosis", "")
             suggested_titles = agent_result.get("titles", [])
@@ -15846,6 +15905,7 @@ async def _run_analyze_pipeline(
             diagnosis, plan = await _repair_diagnosis_report_facts(
                 diagnosis, plan, req.domain, delivery_source_context, emit=emit,
                 review_issues=report_quality_issues,
+                constraint_context=delivery_constraint_context,
             )
 
             # ── 每个方案的标题+正文做旧评分器遥测与可解释质量复核 ──────
@@ -15853,7 +15913,8 @@ async def _run_analyze_pipeline(
             suggested_plans_scored: list[dict] = []
             for plan_item in suggested_plans_raw:
                 raw_plan_title = plan_item.get("raw_title") or plan_item.get("title") or ""
-                t = _sanitize_title_for_delivery(plan_item.get("title") or "", delivery_source_context, req.domain)
+                t = _sanitize_title_for_delivery(plan_item.get("title") or "", delivery_source_context, req.domain,
+                    delivery_constraint_context)
                 b = (plan_item.get("body") or "").strip()
                 t, b, _ = _apply_user_constraint_hard_guards(t, b, req.note_title, req.user_constraints)
                 t_score = None
@@ -15864,7 +15925,8 @@ async def _run_analyze_pipeline(
                 score_lift_reason = ""
                 if t and b:
                     try:
-                        b = await _shape_body_for_delivery(t, b, req.domain, delivery_source_context, "AI诊断方案质量复核")
+                        b = await _shape_body_for_delivery(t, b, req.domain, delivery_source_context, "AI诊断方案质量复核",
+                            **({'constraint_context': delivery_constraint_context} if delivery_constraint_context else {}))
                         score_raw, plan_features, _plan_grade = await _score_generated_note(
                             t,
                             b,
@@ -15906,6 +15968,7 @@ async def _run_analyze_pipeline(
                                 current_grade=_plan_grade,
                                 current_issues=quality_issues,
                                 route="arbitrate",
+                                constraint_context=delivery_constraint_context,
                             )
                             if lifted_score is not None:
                                 score_raw = lifted_score
@@ -16135,6 +16198,7 @@ async def _run_analyze_pipeline(
         ai_diagnosis=diagnosis,
         report_quality_status="needs_confirmation" if report_quality_issues else "checked",
         report_quality_issues=report_quality_issues,
+        expert_opinions_basis="pre_clarification" if prepared else "",
         suggested_titles=suggested_titles,
         suggested_title_scores=title_scores,
         suggested_plans=plans_scored,
@@ -16390,6 +16454,7 @@ async def _generate_pipeline_stream(
     user_id: str | None = None,
     memory_context: str = "",
     prepared: dict | None = None,
+    constraint_context: str = "",
 ) -> AsyncGenerator[dict, None]:
     """Streaming version of generate pipeline — yields SSE event dicts."""
     dk = _get_dk(domain)
@@ -16676,16 +16741,16 @@ async def _generate_pipeline_stream(
     content_parts: list[str] = []
     # P3 仲裁：Claude Sonnet + extended thinking，覆盖完整笔记生成
     async for chunk_text in _public_model_content_chunks(
-        _mr.stream("arbitrate", arb_system, arb_user, thinking=True, max_tokens=16000)
+        _mr.stream("arbitrate", (arb_system) + ("\n\n" + constraint_context if constraint_context else ""), arb_user, thinking=True, max_tokens=16000)
     ):
         content_parts.append(chunk_text)
 
     arb_raw = "".join(content_parts)
     title = _xtag(arb_raw, "title")
     body  = _xtag(arb_raw, "body")
-    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context), brief, domain) if title else ""
+    title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) if title else ""
     raw_variants = [v.strip() for v in _xtag(arb_raw, "variants").splitlines() if v.strip()][:3]
-    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_variants]
+    variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) for v in raw_variants]
     rationale = _xtag(arb_raw, "rationale")
 
     if not title or not body:
@@ -16694,11 +16759,11 @@ async def _generate_pipeline_stream(
         repair_user = (arb_user + "\n\n【一次结构修复】前次已返回，但缺少完整的<title>或<body>。"
                        "请依据上方完整素材与行业规则重新完成仲裁，保留必要分析，并输出完整title/body。"
                        "下方仅为待修复的模型草稿，不能作为事实来源。\n" + arb_raw)
-        raw2 = await _mr.call("arbitrate", arb_system, repair_user, thinking=True, max_tokens=16000)
+        raw2 = await _mr.call("arbitrate", (arb_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=16000)
         title, body = _xtag(raw2, "title"), _xtag(raw2, "body")
-        title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context), brief, domain) if title else ""
+        title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) if title else ""
         raw_v2 = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
-        variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_v2]
+        variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) for v in raw_v2]
         rationale = _xtag(raw2, "rationale")
     if not title or not body:
         yield {
@@ -16709,7 +16774,7 @@ async def _generate_pipeline_stream(
         }
         return
 
-    body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成", memory_context)
+    body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成", memory_context, constraint_context=constraint_context)
     stream_selection_candidates: list[dict] = []
     stream_selection_meta: dict = {}
 
@@ -16747,6 +16812,7 @@ async def _generate_pipeline_stream(
             current_body=body,
             candidate_index=cand_idx,
             memory_context=memory_context,
+            constraint_context=constraint_context,
         )
         if challenger:
             _remember_stream_candidate(
@@ -16766,6 +16832,7 @@ async def _generate_pipeline_stream(
                 timing=timing,
                 cover_feats=cover_feats or None,
                 source_context=brief or "",
+                constraint_context=constraint_context,
             )
             selected_early = early_selection.get("selected") or {}
             stream_selection_meta = _selection_meta_payload(early_selection)
@@ -16797,7 +16864,7 @@ async def _generate_pipeline_stream(
         try:
             trimmed = await _mr.call(
                 "content_gen",
-                "你是文字编辑专家，在不改变语气的前提下压缩小红书笔记正文字数。" + _generation_memory_context(memory_context),
+                ("你是文字编辑专家，在不改变语气的前提下压缩小红书笔记正文字数。" + _generation_memory_context(memory_context)) + ("\n\n" + constraint_context if constraint_context else ""),
                 f"压缩到{max_b}字以内（不含标签行），保留：{keep_hint_s}。直接输出，不加说明：\n\n{body}",
                 thinking=False,
                 max_tokens=4096,
@@ -16819,7 +16886,7 @@ async def _generate_pipeline_stream(
 
     for q_round in range(3):
         try:
-            title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context), brief, domain)
+            title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context)
             final_score, final_feats, grade_str = await _score_generated_note(
                 title, body, domain, local_time, timing, cover_feats or None
             )
@@ -16882,12 +16949,12 @@ async def _generate_pipeline_stream(
             f"创作者真实信息/约束：{brief or '未提供更多真实信息，不能编造价格/地址/时间；缺失处应自然提醒补充，不要乱写。'}"
         )
         try:
-            raw_fix = await _mr.call("arbitrate", repair_system, repair_user, thinking=True, max_tokens=6000)
+            raw_fix = await _mr.call("arbitrate", (repair_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=6000)
             t_fix = _xtag(raw_fix, "title")
             b_fix = _xtag(raw_fix, "body")
             raw_fix_variants = [v.strip() for v in _xtag(raw_fix, "variants").splitlines() if v.strip()][:3]
             if t_fix and b_fix:
-                title = _sanitize_title_for_delivery(await _fit_title_limit(t_fix, b_fix, domain, memory_context), brief, domain)
+                title = _sanitize_title_for_delivery(await _fit_title_limit(t_fix, b_fix, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context)
                 body = await _shape_body_for_delivery(
                     title,
                     b_fix.strip(),
@@ -16895,8 +16962,9 @@ async def _generate_pipeline_stream(
                     brief,
                     "流式爆文质量修复",
                     memory_context,
+                    constraint_context=constraint_context,
                 )
-                variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context), brief, domain) for v in raw_fix_variants]
+                variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) for v in raw_fix_variants]
                 rationale = _xtag(raw_fix, "rationale")
                 _remember_stream_candidate(
                     f"refine_round_{q_round + 1}",
@@ -16962,6 +17030,7 @@ async def _generate_pipeline_stream(
             current_grade=grade_str,
             current_issues=quality_issues,
             route="arbitrate",
+            constraint_context=constraint_context,
         )
         if lifted_score is not None:
             final_score = lifted_score
@@ -16980,7 +17049,9 @@ async def _generate_pipeline_stream(
                 "progress": 95,
             }
 
-    final_compacted_body = _compact_body_to_delivery_limit(_insert_safe_fact_line(body or "", domain, brief or ""), domain)
+    final_compacted_body = _compact_body_to_delivery_limit(
+        (body or "") if constraint_context else _insert_safe_fact_line(body or "", domain, brief or ""),
+        domain, constraint_context=constraint_context)
     if final_compacted_body and final_compacted_body != body:
         body = final_compacted_body
         try:
@@ -17017,6 +17088,7 @@ async def _generate_pipeline_stream(
                 timing=timing,
                 cover_feats=cover_feats or None,
                 source_context=brief or "",
+                constraint_context=constraint_context,
             )
             selected_final = final_selection.get("selected") or {}
             stream_selection_meta = _selection_meta_payload(final_selection)
@@ -17410,6 +17482,10 @@ async def generate_stream_endpoint(
             user_tier=user_tier,
             user_id=user["id"],
             memory_context=_memory.build_memory_prompt(user["id"], domain=req.domain),
+            constraint_context="\n\n".join(p for p in (
+                _user_constraints_brief(normalized_constraints, "AI生成完整交付"),
+                intent_brief if normalized_visibility == "不展示商家" else "",
+            ) if p),
         ):
             if event.get("type") == "complete":
                 event["fact_enrichment"] = fact_enrichment
@@ -17546,6 +17622,10 @@ async def generate(
                     cover_images=images,
                     user_tier=user_tier,
                     memory_context=_memory.build_memory_prompt(user["id"], domain=req.domain),
+                    constraint_context="\n\n".join(p for p in (
+                        _user_constraints_brief(normalized_constraints, "AI生成完整交付"),
+                        intent_brief if normalized_visibility == "不展示商家" else "",
+                    ) if p),
                 ),
                 timeout=660.0
             )
@@ -19820,7 +19900,16 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                 timing=prepared["timing"], cover_image=None, cover_feats=prepared["cover_feats"],
                 visual_score=prepared["visual_score"], local_time=prepared["local_time"],
                 user_tier=prepared["user_tier"], user_id=user["id"],
-                memory_context=prepared["memory_context"], prepared=prepared)
+                memory_context=prepared["memory_context"], prepared=prepared,
+                constraint_context="\n\n".join(p for p in (
+                    _user_constraints_brief(prepared.get("metadata", {}).get("user_constraints"), "AI生成完整交付"),
+                    _content_intent_brief(prepared["domain"],
+                        prepared.get("metadata", {}).get("content_intent"), "不展示商家",
+                        prepared.get("metadata", {}).get("merchant_name"),
+                        prepared.get("metadata", {}).get("fact_source_policy"), "AI生成完整交付")
+                    if _normalize_merchant_visibility(prepared.get("metadata", {}).get("merchant_visibility")) == "不展示商家" else "",
+                    confirmation,
+                ) if p))
             async for event in stream:
                 if event.get("type") == "complete":
                     event.update(prepared.get("metadata", {}))

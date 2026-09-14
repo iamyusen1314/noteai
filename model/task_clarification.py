@@ -223,6 +223,34 @@ def read(user_id, session_id):
         return public_state(row, task)
 
 
+def completed_diagnosis_result(user_id, diagnosis_id):
+    """Read the exact original result when an older report projection was empty."""
+    matches = []
+    with db.transaction(write=False) as tx:
+        rows = tx.fetchall(
+            "SELECT c.id,c.note_id,c.generate_ctx_json FROM chat_sessions c "
+            "JOIN idempotency_requests r ON r.id=c.id AND r.user_id=c.user_id "
+            "WHERE c.user_id=? AND r.operation='analyze' AND r.status='completed' "
+            "AND c.generate_ctx_json LIKE ?", (user_id, '%' + diagnosis_id + '%'))
+        for row in rows:
+            try:
+                task = json.loads(row['generate_ctx_json'] or '{}').get(KEY, {})
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(task, dict) or task.get('status') != 'completed' or task.get('operation') != 'analyze':
+                continue
+            result = task.get('result')
+            if (not isinstance(result, dict) or result.get('diagnosis_id') != diagnosis_id
+                    or not row['note_id'] or result.get('saved_note_id') != row['note_id']):
+                continue
+            if (not tx.fetchone("SELECT id FROM notes WHERE id=? AND user_id=?", (row['note_id'], user_id))
+                    or content_retention.status('note', row['note_id'], user_id, tx)['state'] != 'active'):
+                continue
+            matches.append(result)
+    # Ambiguous historical linkage is not permission to choose a different task.
+    return matches[0] if len(matches) == 1 else None
+
+
 def pause(prepared, opinions, *, source, merchant="", completed_steps=()):
     context = execution.get()
     if not context:
