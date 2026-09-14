@@ -1,5 +1,14 @@
 # Risk Register
 
+September14 Native payment/refund truth is verified, but the original DML capture
+is incomplete: Payment hung in shutdown and exited137 at the30s Docker deadline.
+Original incomplete journal has only start+9registrations; no sealed tail. Keep it
+UNKNOWN, never reconstruct notifications or replay the paid/refunded order. Original
+API restored healthy, Payment absent, temporarycollector removed and independently
+verified. Real duplicate callback and next-day reconciliation remain specific gaps.
+No Item31 score increase. Offline shutdown repair proceeds with unrelated media and
+clarification work; transaction/result originals and hashes are at Handoff top.
+
 September14 clarification recovery uses original private chat context/paid claim.
 Known risks addressed locally: duplicate submit before media conversion, correction
 of the wrong same-field package, loss of omit/unknown/source across chat, and missing

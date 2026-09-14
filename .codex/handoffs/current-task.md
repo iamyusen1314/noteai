@@ -1,3 +1,45 @@
+September14 13:40BJT Native real trade completed, not Item31 terminal acceptance.
+Source80b01ea Payment62ffa/canary35097 with launcher7a5f482 activated once at
+13:21:47 for owner61d63b05, A_trade780a4cc2-bae5-4d9f-88e5-9f88e114fe35.
+Original order1e2acc0a-ebf6-4830-9cd3-e1bccfa4a8a6: owner paid12RMB; verified
+callback13:27:06 granted30credits once. One query-payment returned succeeded/
+already_succeeded with no second grant. One full original refund submitted13:35:35,
+real refund callback13:35:42 marked succeeded/refunded/reversed; cash+1200/-1200fen,
+rights+30000/-30000milli each once. Refunddbf240b6-05e9-402a-a468-c5c24e669473,
+provider refund identity present; wallet2999.5 ->2969.5, total_purchased30 ->0.
+No second order/gift/refund. Provider operations: create1, query1, refund1; automatic
+retries0. Merchant fees remain unknown until actual bill; not recorded as0.
+
+Original close restored APIce image51f46b9a and web99/Admin unchanged at13:36:56;
+current API CIDe335069f91b4682fb7e595f581715753d1ffc45d2b598889806110cba6b93412 healthy.
+Payment container absent. However Payment shutdown waited then exited137 after30s;
+original journal is UNKNOWN: only start1+registered9, no rows/commits/end. Preserve
+canary-dml.jsonl.incomplete1614B SHAa129d93f7e10efb24e2af4b695b105f5a76324daeba5a718042a6a484214656f.
+Do not resume LISTEN, synthesize missing DML, or replay this trade for acceptance.
+The exact temporary15triggers+function were removed atomically by original DBowner;
+independent DMS read13:40:08 confirms0triggers/function absent and refund terminal.
+No privileges were added. Original API read of refund detail was denied as designed;
+DBowner read used instead, no expansion. Initial read-script quoting error occurred
+before execution; corrected. First CLI preflight Docker max-file1 failed before
+entrypoint; corrected to2, preflight exited0 with provider0; preserve both results.
+
+Private originals: /var/lib/noteai/native-80b01ea/trade/{binding.json,input.env,
+paid-readback.json,refund-readback.json,final-readback.json,closed.json,payment-stop.log,
+operator-query-payment/result.json,operator-submit-refund/result.json,work/}.
+No raw credential or callback body was exported. Local exact DMS SQL remains
+/Users/openclaw/.codex/tmp/noteai-native-trade-780a4cc2/; removalDO SHA
+540fb14eabfb9146ff81d47fd0407808f0d9915cdd881aa558aec4f9f979bc9d.
+Next fix/reproduce collector shutdown offline; do not replay the original transaction.
+A real duplicate callback is not yet evidenced (query confirmation is different).
+September15 after10BJT, reconcile real September14 bill for SAME order/create_context
+in a separate short capture, original action ledger, no new order/refund. Both DML
+completeness and duplicate callback gaps remain explicit; Readiness30/37 unchanged.
+Independent clarification context/history display correction and media durable-result
+recovery/video continue. Current dirty code is not deployed into the finished capture.
+Item34 actual13:14:27 read: generation2/checking_7d/T0 unchanged/active_attemptNULL;
+original evening task retained, no replay or fixed artifact change. No Gitpush or
+protected-path changes.
+
 September14 13:15BJT Native: checkpoint80b01ea Payment image62ffa056101ca1b573253364ed7d094abcb5d25e7c756e8e051ad65ce607b8e8
 and canary35097f4f4c5912f23de5affcf2d38958fff7c85270eee42ff50f7972e21bdf14
 built once on existing API-C. Original build-result FAILED after Payment validation

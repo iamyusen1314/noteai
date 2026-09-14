@@ -1,5 +1,15 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 13:40BJT Native original12RMB order paid and fully refunded;30credits
+once granted/once reversed. Original services restored and temporary15trigger/function
+removed, owner readback confirms absence. Original capture remains UNKNOWN after
+Payment shutdown exit137; do not fill missing DML or replay trade. Actual callback
+and query are distinct; real duplicate callback still missing. Next-day Sep14 bill
+is available Sep15 after10BJT: same original order/create_context, separate short
+capture and original action ledger, no new trade. Fix shutdown offline first.
+Current source, identifiers, preserved originals and exact readbacks are at Handoff
+top. This supersedes prior no-activation statements below; Readiness30/37 unchanged.
+
 Native current execution: deploy/production/native_capture.py binds current APIce
 without rebuilding, Payment62ffa/canary35097 from80b01ea. Prepare/SQL installation
 precede the explicit one-hour trade run; expiry/close restores exact saved units
