@@ -78,6 +78,8 @@ class AdminUsageStatsTests(unittest.TestCase):
         usage_id = db.fetchone("SELECT id FROM usage_records WHERE user_id='u-high'")['id']
         provenance = json.dumps({'model':'doubao-seed-2-0-lite-260428', 'route':'/generate/stream',
             'modality':'video_audio', 'model_config_revision':2, 'cookie':'SECRET_SENTINEL',
+            'task':'media_understanding','step':'video_audio_understanding','prompt_scope':'call_templates',
+            'instruction_role':'user','instruction_sha256':'b'*64,'instruction_text':'SECRET_SENTINEL','missing_prompt_keys':[],
             'prompts':{'creator.travel':{'source':'managed_prompts','version':7,'sha256':'a'*64,'content':'SECRET_SENTINEL'}}})
         for call_id, state in [('linked-call','responded'), ('unknown-call','unknown')]:
             db.execute('INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) VALUES(?,?,?,?,?,?,?,?,?)',
@@ -91,6 +93,11 @@ class AdminUsageStatsTests(unittest.TestCase):
         linked = next(c for c in detail['calls'] if c.get('call_id')=='linked-call')
         unknown = next(c for c in detail['calls'] if c.get('call_id')=='unknown-call')
         self.assertEqual(linked['audio_input_tokens'],30)
+        self.assertEqual(linked['step'],'video_audio_understanding')
+        self.assertEqual(linked['prompt_scope'],'call_templates')
+        self.assertEqual(linked['instruction_role'],'user')
+        self.assertEqual(linked['instruction_sha256'],'b'*64)
+        self.assertEqual(admin_server._admin_call_provenance('{}')['prompt_scope'],'request_snapshot')
         self.assertGreater(linked['known_cost_rmb'],0)
         self.assertEqual(linked['loaded_prompt_versions'][0]['version'],7)
         self.assertIsNone(unknown['model'])

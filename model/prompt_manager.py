@@ -106,6 +106,30 @@ def request_versions() -> dict:
     return {key: dict(value) for key, value in current.used.items()} if current is not None else {}
 
 
+def call_provenance(task: str, prompt: str | None, *, step: str = "",
+                    prompt_keys: tuple[str, ...] | None = None,
+                    domain: str | None = None, prompt_role: str = "system") -> dict:
+    """Copy only identifiers/hashes for one call; never retain its input text.
+
+    Explicit keys identify managed templates used by this call (which can live
+    in either message role). An empty tuple means code instructions only. None
+    preserves the older cumulative snapshot without claiming exact attribution.
+    Each request owns this detached dict, including concurrently running experts.
+    The instruction hash covers the final composed string, not all user context.
+    """
+    versions = request_versions()
+    exact = prompt_keys is not None
+    keys = tuple(dict.fromkeys(prompt_keys)) if exact else tuple(versions)
+    return {
+        "task": task, "step": step or None, "prompt_domain": domain,
+        "prompt_scope": "call_templates" if exact else "request_snapshot",
+        "prompts": {key: dict(versions[key]) for key in keys if key in versions},
+        "missing_prompt_keys": [key for key in keys if key not in versions],
+        "instruction_role": prompt_role,
+        "instruction_sha256": _content_sha256(prompt) if isinstance(prompt, str) else None,
+    }
+
+
 def reload() -> int:
     """强制刷新缓存，返回加载的 prompt 数量。"""
     global _cache_ts

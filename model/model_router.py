@@ -35,6 +35,7 @@ import httpx
 import public_product as _public_product
 import model_runtime_config as _runtime_config
 import claude_gateway_protocol as _cgp
+import prompt_manager as _prompts
 
 # ── 模型常量 ──────────────────────────────────────────────────────
 CLAUDE_SONNET  = "claude-sonnet-4-6"
@@ -1753,6 +1754,7 @@ async def _call_model_with_retries(
     max_tokens: int,
     operation_id: str = "",
     absolute_deadline: float | None = None,
+    provenance: dict | None = None,
 ) -> str:
     operation_id = operation_id or _new_operation_id()
     attempts = 1 if _public_product.enabled() else MODEL_RETRY_ATTEMPTS
@@ -1767,6 +1769,7 @@ async def _call_model_with_retries(
                             _call_claude(
                                 model_id, system, user, thinking, max_tokens,
                                 operation_id=operation_id,
+                                provenance=provenance,
                             ),
                             timeout=_claude_timeout_seconds(task, thinking, max_tokens),
                         )
@@ -1781,6 +1784,7 @@ async def _call_model_with_retries(
                             _call_claude(
                                 model_id, system, user, thinking, max_tokens,
                                 operation_id=operation_id,
+                                provenance=provenance,
                             ),
                             absolute_deadline,
                             unstructured_cancel_usage_audit_required=True,
@@ -1794,6 +1798,7 @@ async def _call_model_with_retries(
                     async with sem:
                         result = await _call_kimi(
                             model_id, system, user, thinking, max_tokens,
+                            provenance=provenance,
                         )
                 else:
                     await _await_with_gateway_deadline(
@@ -1805,6 +1810,7 @@ async def _call_model_with_retries(
                         result = await _await_with_gateway_deadline(
                             _call_kimi(
                                 model_id, system, user, thinking, max_tokens,
+                                provenance=provenance,
                             ),
                             absolute_deadline,
                         )
@@ -1852,6 +1858,7 @@ async def _call_claude(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 1200,
     operation_id: str = "",
+    provenance: dict | None = None,
 ) -> str:
     operation_id = operation_id or _new_operation_id()
     thinking_budget = None
@@ -1861,6 +1868,7 @@ async def _call_claude(
         model=model, max_tokens=max_tokens, system=system,
         messages=({"role": "user", "content": user},), operation_id=operation_id,
         temperature=None if thinking else 0.7, thinking_budget=thinking_budget,
+        call_state={"provenance": provenance},
     )
     complete = False
     failure = None
@@ -1886,6 +1894,7 @@ async def _call_claude(
 async def _call_kimi(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 1200,
+    provenance: dict | None = None,
 ) -> str:
     key = os.environ.get("MOONSHOT_API_KEY", "")
     payload: dict = {
@@ -1904,6 +1913,7 @@ async def _call_kimi(
         r = await client.post(
             KIMI_API_URL, json=payload,
             headers={"Authorization": f"Bearer {key}"},
+            extensions={"noteai_provenance": provenance},
         )
         r.raise_for_status()
         data = r.json()
@@ -1916,8 +1926,12 @@ async def _call_kimi(
 async def call(
     task: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 1200,
+    *, trace_step: str = "", prompt_keys: tuple[str, ...] | None = None,
+    prompt_domain: str | None = None,
 ) -> str:
     """路由到对应模型；Claude 仅在确认未调用 provider 时走 fallback。"""
+    provenance = _prompts.call_provenance(task, system, step=trace_step,
+        prompt_keys=prompt_keys, domain=prompt_domain)
     routing = dict(TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
     if _public_product.enabled():
         routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
@@ -1941,6 +1955,7 @@ async def call(
                 task, model_id, system, user, thinking, max_tokens,
                 operation_id=operation_id,
                 absolute_deadline=absolute_deadline,
+                provenance=provenance,
             )
         except Exception as exc:
             if isinstance(exc, _public_product.TrialProviderStopped):
@@ -2027,6 +2042,7 @@ async def _stream_claude(
     history: list[dict] | None = None,
     operation_id: str = "",
     absolute_deadline: float | None = None,
+    provenance: dict | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """流式调用 Claude，yield ('thinking', text) 或 ('content', text)。"""
     messages = _claude_history(history, user)
@@ -2042,6 +2058,7 @@ async def _stream_claude(
         operation_id=operation_id,
         temperature=None if thinking else 0.7,
         thinking_budget=thinking_budget,
+        call_state={"provenance": provenance},
     )
     transport_stream = _claude_transport_stream(
         model,
@@ -2061,6 +2078,7 @@ async def _stream_kimi(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 16000,
     history: list[dict] | None = None,
+    provenance: dict | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """流式调用 Kimi，yield ('thinking', text) 或 ('content', text)。"""
     key = os.environ.get("MOONSHOT_API_KEY", "")
@@ -2084,6 +2102,7 @@ async def _stream_kimi(
         async with client.stream(
             "POST", KIMI_API_URL, json=payload,
             headers={"Authorization": f"Bearer {key}"},
+            extensions={"noteai_provenance": provenance},
         ) as resp:
             resp.raise_for_status()
             final_usage = None
@@ -2113,10 +2132,14 @@ async def stream(
     task: str, system: str, user: str,
     thinking: bool = True, max_tokens: int = 16000,
     history: list[dict] | None = None,
+    *, trace_step: str = "", prompt_keys: tuple[str, ...] | None = None,
+    prompt_domain: str | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """路由到流式接口；Claude 仅在零输出且确认未调用 provider 时 fallback。
     yield: ('thinking', text) | ('content', text)
     """
+    provenance = _prompts.call_provenance(task, system, step=trace_step,
+        prompt_keys=prompt_keys, domain=prompt_domain)
     routing = dict(TASK_ROUTING.get(task, {"primary": KIMI_TEXT, "fallback": []}))
     if _public_product.enabled():
         routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
@@ -2137,9 +2160,10 @@ async def stream(
             primary, system, user, thinking, max_tokens, history,
             operation_id=operation_id,
             absolute_deadline=absolute_deadline,
+            provenance=provenance,
         )
         if primary.startswith("claude")
-        else _stream_kimi(primary, system, user, thinking, max_tokens, history)
+        else _stream_kimi(primary, system, user, thinking, max_tokens, history, provenance=provenance)
     )
     try:
         try:
@@ -2192,6 +2216,7 @@ async def stream(
                     _call_claude(
                         fb_model, system, user, thinking=False, max_tokens=max_tokens,
                         operation_id=operation_id,
+                        provenance=provenance,
                     ),
                     absolute_deadline,
                     unstructured_cancel_usage_audit_required=True,
@@ -2201,6 +2226,7 @@ async def stream(
                 result = await _await_with_gateway_deadline(
                     _call_kimi(
                         fb_model, system, user, thinking=False, max_tokens=max_tokens,
+                        provenance=provenance,
                     ),
                     absolute_deadline,
                 )
@@ -2229,15 +2255,19 @@ async def stream_chat(
     user_content,          # str 或 list（多模态）
     thinking: bool = True,
     max_tokens: int = 16000,
+    *, trace_step: str = "", prompt_keys: tuple[str, ...] | None = None,
+    prompt_domain: str | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """Chat 专用流式接口，直接透传 Kimi 兼容的 messages 列表。
     对于 Claude：Kimi messages 格式 (system/user/assistant) 可直接用。
     yield: ('thinking', text) | ('content', text)
     """
+    provenance = _prompts.call_provenance("chat", system, step=trace_step,
+        prompt_keys=prompt_keys, domain=prompt_domain)
     if _public_product.enabled():
         selected_model, max_tokens = _runtime_config.resolve("chat", CLAUDE_SONNET, max_tokens)
         iterator = (_stream_claude if selected_model.startswith("claude") else _stream_kimi)(
-            selected_model, system, user_content, thinking, max_tokens, history)
+            selected_model, system, user_content, thinking, max_tokens, history, provenance=provenance)
         try:
             async for event in iterator:
                 yield event
@@ -2276,6 +2306,7 @@ async def stream_chat(
         operation_id=operation_id,
         temperature=None if thinking else 0.7,
         thinking_budget=thinking_budget,
+        call_state={"provenance": provenance},
     )
 
     emitted = False
@@ -2314,6 +2345,7 @@ async def stream_chat(
                     CLAUDE_HAIKU, system, user_text,
                     thinking=False, max_tokens=min(max_tokens, 4096),
                     operation_id=operation_id,
+                    provenance=provenance,
                 ),
                 absolute_deadline,
                 unstructured_cancel_usage_audit_required=True,
@@ -2336,7 +2368,11 @@ def call_claude_sync(
     temperature: float | None = None,
     thinking_budget: int | None = None,
     first_text_block: bool = False,
+    trace_step: str = "", prompt_keys: tuple[str, ...] | None = None,
+    prompt_domain: str | None = None,
 ) -> str:
+    provenance = _prompts.call_provenance("semantic", system, step=trace_step,
+        prompt_keys=prompt_keys, domain=prompt_domain)
     operation_id = _new_operation_id()
     if _public_product.enabled():
         model, max_tokens = _runtime_config.resolve("semantic", model, max_tokens)
@@ -2349,7 +2385,7 @@ def call_claude_sync(
             payload["temperature"] = temperature if temperature is not None else 0.6
         with _public_product.kimi_client(timeout=KIMI_TIMEOUT) as client:
             response = client.post(KIMI_API_URL, json=payload, headers={
-                "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")})
+                "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")}, extensions={"noteai_provenance": provenance})
             response.raise_for_status()
             result = response.json()
             _record_kimi_usage(selected_model, result.get("usage"),
@@ -2363,6 +2399,7 @@ def call_claude_sync(
         operation_id=operation_id,
         temperature=temperature,
         thinking_budget=thinking_budget,
+        call_state={"provenance": provenance},
     )
     complete = False
     failure = None
@@ -2409,7 +2446,9 @@ def call_claude_sync(
         _finish_claude_call(request, complete=complete, error=failure)
 
 
-def call_semantic_sync(system: str, user: str, max_tokens: int = 300) -> str:
+def call_semantic_sync(system: str, user: str, max_tokens: int = 300, *,
+                       trace_step: str = "semantic_features",
+                       prompt_keys: tuple[str, ...] | None = None) -> str:
     """在线程池（asyncio.to_thread）中同步调用 Claude Haiku 做语义评分。"""
     return call_claude_sync(
         model=CLAUDE_HAIKU,
@@ -2417,6 +2456,7 @@ def call_semantic_sync(system: str, user: str, max_tokens: int = 300) -> str:
         system=system,
         messages=[{"role": "user", "content": user}],
         temperature=0.3,
+        trace_step=trace_step, prompt_keys=prompt_keys,
     )
 
 

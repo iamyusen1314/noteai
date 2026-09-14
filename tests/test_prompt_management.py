@@ -85,6 +85,56 @@ class PromptBaselineTests(unittest.TestCase):
             prompt_manager.release_request(token)
         self.assertEqual(prompt_manager.request_versions(), {})
 
+    def test_parallel_calls_keep_exact_templates_and_composed_instruction_hash(self):
+        prompt_manager.apply_versioned_baseline()
+        snapshot = prompt_manager.capture_request()
+        token = prompt_manager.bind_request(snapshot)
+        calls = []
+        class Transport:
+            async def create_message(_self, request):
+                calls.append(request)
+                await asyncio.sleep(0)
+                return api._mr.ClaudeMessageResult(("<opinion>ok</opinion>",),
+                    usage={"input_tokens":2,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},
+                    model=request.model, stop_reason="end_turn")
+        async def run():
+            await asyncio.gather(
+                api._agent_content("标题", "素材", "美食", [], {}, "本次回答"),
+                api._agent_growth("标题", "素材", "旅行", None, {}, "不同商家"),
+            )
+        try:
+            with mock.patch.object(api._mr, "get_claude_transport", return_value=Transport()), \
+                 mock.patch.object(api._mr, "claude_transport_mode", return_value="local"), \
+                 mock.patch.object(api._mr._public_product, "enabled", return_value=True), \
+                 mock.patch.object(api._mr._runtime_config, "resolve", side_effect=lambda task, model, maximum:(model,maximum)), \
+                 mock.patch.object(api._mr, "_record_request_claude_usage"), \
+                 mock.patch.object(api._mr, "_finish_claude_call"):
+                asyncio.run(run())
+            self.assertEqual(len(calls), 2)
+            for request, key, domain in zip(calls, ("agent_content_system", "agent_growth_system"), ("美食", "旅行")):
+                trace = request.call_state["provenance"]
+                self.assertEqual(set(trace["prompts"]), {key})
+                self.assertEqual(trace["prompt_domain"], domain)
+                self.assertEqual(trace["task"], "diagnosis")
+                self.assertEqual(trace["prompt_scope"], "call_templates")
+                self.assertEqual(trace["instruction_sha256"], hashlib.sha256(request.system.encode()).hexdigest())
+                self.assertEqual(trace["prompts"][key]["version"], snapshot.rows[key]["version"])
+                self.assertNotIn(request.system, json.dumps(trace, ensure_ascii=False))
+            old = json.dumps(calls[0].call_state["provenance"], sort_keys=True)
+            prompt_manager.get("chat_system")
+            snapshot.used["agent_content_system"]["version"] = 999
+            self.assertEqual(json.dumps(calls[0].call_state["provenance"], sort_keys=True), old)
+            inline = prompt_manager.call_provenance("diagnosis", "code instructions", prompt_keys=())
+            self.assertEqual(inline["prompts"], {})
+            self.assertEqual(inline["prompt_scope"], "call_templates")
+            legacy = prompt_manager.call_provenance("diagnosis", "instructions")
+            self.assertEqual(legacy["prompt_scope"], "request_snapshot")
+            self.assertIn("chat_system", legacy["prompts"])
+            missing = prompt_manager.call_provenance("diagnosis", "instructions", prompt_keys=("not_loaded",))
+            self.assertEqual(missing["missing_prompt_keys"], ["not_loaded"])
+        finally:
+            prompt_manager.release_request(token)
+
     def test_new_request_bypasses_cache_without_changing_inflight_snapshot(self):
         prompt_manager.apply_versioned_baseline()
         first = prompt_manager.capture_request()
@@ -143,7 +193,9 @@ class PromptBaselineTests(unittest.TestCase):
              mock.patch.object(api, "_generation_candidate_count", return_value=2):
             asyncio.run(run())
         self.assertGreaterEqual(len(calls), 5)
-        self.assertEqual(sum(brief in user for _, user in calls), 5)
+        # Delivery shaping now makes additional calls; every stage must retain
+        # the full source rather than counting exactly five old entry calls.
+        self.assertTrue(all(brief in user for _, user in calls))
         for system, user in calls:
             self.assertIn(memory, system)
             self.assertIn("不构成本次", system)

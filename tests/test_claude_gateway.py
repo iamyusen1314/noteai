@@ -1397,6 +1397,40 @@ class GatewayClaudeTransportTests(unittest.TestCase):
             temperature=0.7,
         )
 
+    def test_router_stream_chat_and_sync_keep_per_call_trace_out_of_gateway_body(self):
+        requests = []
+        class Transport:
+            async def stream_message(_self, request):
+                requests.append(request)
+                yield model_router.ClaudeStreamEvent('content', 'ok')
+                yield model_router.ClaudeStreamEvent('usage', usage=_complete_usage(input_tokens=2,output_tokens=1),
+                    model=request.model, stop_reason='end_turn')
+            def create_message_sync(_self, request):
+                requests.append(request)
+                return model_router.ClaudeMessageResult(('ok',), _complete_usage(input_tokens=2,output_tokens=1), request.model, 'end_turn')
+        async def run():
+            for factory in (
+                lambda: model_router.stream('arbitrate','arb system','source',thinking=False,prompt_keys=(),trace_step='generation_arbitration'),
+                lambda: model_router.stream_chat('chat system',[],'source',thinking=False,prompt_keys=(),trace_step='chat_response'),
+            ):
+                self.assertEqual([x async for x in factory()], [('content','ok')])
+        with mock.patch.object(model_router, 'get_claude_transport', return_value=Transport()), \
+             mock.patch.object(model_router, 'claude_transport_mode', return_value='local'), \
+             mock.patch.object(model_router._public_product, 'enabled', return_value=True), \
+             mock.patch.object(model_router._runtime_config, 'resolve', side_effect=lambda task,model,maximum:(model,maximum)), \
+             mock.patch.object(model_router, '_record_request_claude_usage'), \
+             mock.patch.object(model_router, '_finish_claude_call'):
+            asyncio.run(run())
+            model_router.call_semantic_sync('semantic system','source',prompt_keys=())
+        self.assertEqual([r.call_state['provenance']['task'] for r in requests], ['arbitrate','chat','semantic'])
+        self.assertEqual([r.call_state['provenance']['step'] for r in requests], ['generation_arbitration','chat_response','semantic_features'])
+        self.assertEqual(len({id(r.call_state['provenance']) for r in requests}), 3)
+        for request in requests:
+            body = json.loads(model_router.GatewayClaudeTransport._body(request))
+            self.assertNotIn('provenance',body)
+            self.assertNotIn('call_state',body)
+            self.assertEqual(body['system'],request.system)
+
     def test_sync_async_and_ndjson_stream_are_signed_and_normalized(self):
         requests = []
 

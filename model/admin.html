@@ -900,7 +900,8 @@ function renderAdminCallDetails(detail) {
   const number = (v) => v === null || v === undefined || !Number.isFinite(Number(v)) ? '未知' : String(Number(v));
   const states = {dispatched:'已派发，结果待确认', responded:'收到响应（不等于业务成功）', unknown:'结果未知，待核实', not_recorded:'历史未记录派发状态'};
   const modalities = {text:'文字', image:'图片', video:'视频', audio:'音频', video_audio:'视频与音轨'};
-  return '<p>按实际账务关联显示，不按时间猜测绑定。Prompt 为调用时已加载的版本快照，不能据此推断该次调用的全部独占内容；具体专家阶段未记录。</p>'
+  const steps = {semantic_features:'语义特征分析', diagnosis_content:'诊断：内容专家', diagnosis_visual:'诊断：视觉专家', diagnosis_growth:'诊断：增长专家', diagnosis_user:'诊断：用户专家', diagnosis_arbitration:'诊断仲裁', diagnosis_title_compression:'诊断标题压缩', diagnosis_body_distinctness:'诊断方案去重', diagnosis_plan_body:'诊断方案正文', diagnosis_fact_repair:'诊断事实修正', generation_visual:'生成：视觉专家', generation_content:'生成：内容专家', generation_growth:'生成：增长专家', generation_user:'生成：用户专家', generation_arbitration:'生成仲裁', generation_arbitration_format_repair:'生成结构修正', generation_challenger:'生成候选比较', generation_body_compression:'生成正文压缩', generation_body_rhythm:'生成正文节奏', generation_quality_repair:'生成质量修正', title_compression:'标题压缩', delivery_body_shaping:'交付正文整理', delivery_quality_revision:'交付质量修订', legacy_diagnosis:'原诊断同步入口', ocr_text_merge:'截图文字合并', chat_quality_repair:'对话质量修正', chat_response:'对话回复', video_audio_understanding:'视频与原音轨理解', image_understanding:'图片理解'};
+  return '<p>按实际账务关联显示，不按时间猜测绑定。本次模板归属与历史累计快照分别标注；指令校验值覆盖实际合成的系统或素材指令，不代表完整用户上下文，也不显示原文。</p>'
     + (detail.truncated ? '<p>明细较多：各类仅显示前100条，以下内容不是完整调用合计。</p>' : '')
     + calls.map((c, i) => {
       const prompts = Array.isArray(c.loaded_prompt_versions) ? c.loaded_prompt_versions : [];
@@ -908,14 +909,21 @@ function renderAdminCallDetails(detail) {
         && (Number(c.known_cost_rmb) > 0 || (c.pricing_status === 'exact' && c.usage_status === 'complete'));
       const cost = costKnown ? '¥' + Number(c.known_cost_rmb).toFixed(6) : '待核实';
       const token = (v) => c.usage_status === 'usage_missing' ? '未知' : number(v);
+      const exactPrompts = c.prompt_scope === 'call_templates';
+      const missingKeys = Array.isArray(c.missing_prompt_keys) ? c.missing_prompt_keys : [];
       return `<div style="border-top:1px solid var(--border);padding:10px 0;white-space:normal">
         <b>第 ${i + 1} 条 · ${esc(c.model || '实际模型未确认')}</b>
         <div>${esc(c.binding === 'physical_call' ? '物理调用已关联' : '历史模型账目：未关联物理调用')} · ${esc(adminLedgerLabel(states,c.state,'状态未知'))}</div>
         <div>${esc(adminLedgerTime(c.created_at))} · 请求模型 ${esc(c.requested_model || '未记录')} · ${esc(adminLedgerLabel(modalities,c.modality,'模态未记录'))}</div>
         <div>业务入口 ${esc(c.route || '未记录')} · 配置版本 ${esc(number(c.model_config_revision))} · HTTP ${esc(number(c.http_status))}</div>
+        <div>步骤 ${esc(steps[c.step] || c.step || '历史未记录')} · 路由任务 ${esc(c.task || '历史未记录')} · 行业 ${esc(c.prompt_domain || '未记录或不适用')}</div>
         <div>输入 ${esc(token(c.input_tokens))} · 缓存读 ${esc(token(c.cache_read_input_tokens))} · 缓存写 ${esc(token(c.cache_write_input_tokens))} · 音频 ${esc(token(c.audio_input_tokens))} · 音频缓存 ${esc(token(c.audio_cache_read_input_tokens))} · 未分类输入 ${esc(token(c.unclassified_input_tokens))} · 输出 ${esc(token(c.output_tokens))}${c.usage_status === 'usage_incomplete' ? ' · 用量不完整，零值分项尚未确认' : ''}</div>
         <div>已知模型成本 ${esc(cost)} · 计价 ${esc(c.pricing_status || '未记录')} · 用量 ${esc(c.usage_status || '未记录')} · 原计价币种 ${esc(c.price_currency || '未知')} · 计价版本 ${esc(c.price_version || '未记录')}</div>
-        <details><summary>已加载 Prompt 版本（${prompts.length}项）</summary>${prompts.length ? prompts.map(p => `<div>${esc(p.key)} · ${esc(p.source)} · 版本 ${esc(number(p.version))} · SHA256 ${esc(p.sha256 || '未记录')}</div>`).join('') : '<div>本次未保留版本快照，不代表没有使用 Prompt。</div>'}</details>
+        <details><summary>${exactPrompts ? '本次使用的 Prompt 模板' : '历史累计 Prompt 快照'}（${prompts.length}项）</summary>${prompts.length ? prompts.map(p => `<div>${esc(p.key)} · ${esc(p.source)} · 版本 ${esc(number(p.version))} · SHA256 ${esc(p.sha256 || '未记录')}</div>`).join('') : `<div>${exactPrompts && !missingKeys.length ? '本步骤使用代码内置指令，无独立管理模板。' : '未保留模板版本，不能推断没有使用 Prompt。'}</div>`}
+          ${missingKeys.length ? `<div>模板版本未记录：${missingKeys.map(esc).join('、')}</div>` : ''}
+          <div>${c.instruction_role === 'user' ? '素材指令' : '系统指令'} SHA256：${esc(c.instruction_sha256 || '历史未记录')}</div>
+          ${exactPrompts ? '' : '<div>累计快照不代表该次调用的独占模板归属。</div>'}
+        </details>
       </div>`;
     }).join('');
 }

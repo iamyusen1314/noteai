@@ -58,8 +58,8 @@ test('usage details distinguish unknown costs and loaded Prompt snapshots from a
   ]}));
   await page.locator('body').evaluate((el, html) => { el.innerHTML = html; }, content);
   await expect(page.locator('body')).toContainText('已知模型成本 待核实');
-  await expect(page.locator('body')).toContainText('调用时已加载的版本快照');
-  await expect(page.locator('body')).toContainText('具体专家阶段未记录');
+  await expect(page.locator('body')).toContainText('本次模板归属与历史累计快照分别标注');
+  await expect(page.locator('body')).toContainText('步骤 历史未记录');
   await expect(page.locator('body')).toContainText('历史模型账目：未关联物理调用');
   await expect(page.locator('body img')).toHaveCount(0);
   expect(content).not.toContain('¥0.000000');
@@ -67,6 +67,26 @@ test('usage details distinguish unknown costs and loaded Prompt snapshots from a
   expect(content).not.toContain('输出 0');
 });
 
+
+test('new call trace shows exact step and instruction role without upgrading historical snapshots', async ({ page }) => {
+  await page.goto('/model/admin.html');
+  const content = await page.evaluate(() => renderAdminCallDetails({status:'available',calls:[
+    {model:'doubao-seed-2-0-lite-260428', task:'media_understanding',step:'video_audio_understanding',
+      prompt_scope:'call_templates',instruction_role:'user',instruction_sha256:'b'.repeat(64),loaded_prompt_versions:[]},
+    {model:'claude-haiku-4-5-20251001',task:'diagnosis',step:'diagnosis_content',prompt_domain:'旅行',
+      prompt_scope:'call_templates',instruction_role:'system',instruction_sha256:'a'.repeat(64),
+      loaded_prompt_versions:[{key:'agent_content_system',source:'managed_prompts',version:8,sha256:'c'.repeat(64)}]},
+  ]}));
+  await page.locator('body').evaluate((el, html) => { el.innerHTML=html; }, content);
+  await expect(page.locator('body')).toContainText('步骤 视频与原音轨理解');
+  await expect(page.locator('body')).toContainText('步骤 诊断：内容专家');
+  await page.getByText('本次使用的 Prompt 模板（0项）',{exact:true}).click();
+  await expect(page.locator('body')).toContainText('本步骤使用代码内置指令');
+  await expect(page.locator('body')).toContainText('素材指令 SHA256：'+'b'.repeat(64));
+  await page.getByText('本次使用的 Prompt 模板（1项）',{exact:true}).click();
+  await expect(page.locator('body')).toContainText('agent_content_system');
+  await expect(page.locator('body')).toContainText('行业 旅行');
+});
 
 test('user usage Prompt disclosure stays clickable inside the scrolling detail modal', async ({ page }) => {
   await page.goto('/model/admin.html');
@@ -83,7 +103,7 @@ test('user usage Prompt disclosure stays clickable inside the scrolling detail m
     await page.setViewportSize({width,height:900});
     const outer = page.getByText('查看本次调用、Prompt 版本与成本依据',{exact:true});
     if (width === 1280) await outer.click();
-    const inner = page.getByText('已加载 Prompt 版本（1项）',{exact:true});
+    const inner = page.getByText('历史累计 Prompt 快照（1项）',{exact:true});
     await inner.click();
     await expect(page.locator('#um-content')).toContainText('creator.travel');
     const box = await inner.boundingBox();

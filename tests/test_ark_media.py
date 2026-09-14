@@ -1,3 +1,4 @@
+import hashlib
 import io
 import contextlib
 import json
@@ -340,6 +341,12 @@ class ArkMediaTests(unittest.TestCase):
             self.assertNotIn('messages',sent)
             self.assertEqual(sent['input'][0]['content'][0]['fps'],2)
             self.assertEqual(sent['input'][0]['content'][0]['type'],'input_video')
+            trace = reserve.call_args.kwargs['provenance']
+            self.assertEqual(trace['step'], 'video_audio_understanding')
+            self.assertEqual(trace['instruction_role'], 'user')
+            self.assertEqual(trace['instruction_sha256'], hashlib.sha256('完整音画'.encode()).hexdigest())
+            self.assertEqual(trace['prompts'], {})
+            self.assertNotIn('provenance', sent)
             self.assertEqual(actions,['usage','response'])
             self.assertEqual(usage.call_args.kwargs['audio_input_tokens'],250)
             self.assertEqual(usage.call_args.kwargs['audio_cache_read_tokens'],50)

@@ -650,6 +650,13 @@ def _admin_call_provenance(raw):
                 "version": item.get("version") if type(item.get("version")) is int else None,
                 "sha256": sha if isinstance(sha, str) and re.fullmatch(r"[0-9a-f]{64}", sha) else None})
     return {"requested_model": identifier(value.get("model")),
+            "task": identifier(value.get("task"), 64),
+            "step": identifier(value.get("step"), 80),
+            "prompt_domain": identifier(value.get("prompt_domain"), 24),
+            "prompt_scope": value.get("prompt_scope") if value.get("prompt_scope") in ("call_templates", "request_snapshot") else "request_snapshot",
+            "missing_prompt_keys": [key for key in (value.get("missing_prompt_keys") or [])[:80] if identifier(key)] if isinstance(value.get("missing_prompt_keys"), list) else [],
+            "instruction_role": value.get("instruction_role") if value.get("instruction_role") in ("system", "user") else None,
+            "instruction_sha256": value.get("instruction_sha256") if isinstance(value.get("instruction_sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", value["instruction_sha256"]) else None,
             "route": value.get("route") if value.get("route") in (
                 "/analyze/stream", "/generate/stream", "/chat/message", "/extract-screenshot", "/validate-ocr") else None,
             "modality": value.get("modality") if value.get("modality") in ("text", "image", "video", "audio", "video_audio") else None,

@@ -362,7 +362,8 @@ def _reserve(request: httpx.Request) -> str:
             raise ValueError()
     except (ValueError, TypeError, AttributeError):
         raise TrialProviderStopped("PUBLIC_TRIAL_REQUEST_OUT_OF_SCOPE") from None
-    return _reserve_payload(payload, RESERVE_MILLI_CNY)
+    return _reserve_payload({**payload, "modality": "text"}, RESERVE_MILLI_CNY,
+                            provenance=request.extensions.get("noteai_provenance"))
 
 
 def _check_pending_media(tx, user_id, media):
@@ -395,7 +396,7 @@ def assert_media_result_known(media):
         _check_pending_media(tx, current.user_id, media)
 
 
-def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
+def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, provenance=None):
     import db
     import billing
     import prompt_manager
@@ -442,10 +443,13 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
         tx.execute("UPDATE public_trial_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
                    (reserve, BUDGET_ID))
         if metered:
-            provenance = json.dumps({"model": payload["model"], "route": current.route,
+            call_trace = provenance if isinstance(provenance, dict) else {
+                "prompt_scope": "request_snapshot", "prompts": prompt_manager.request_versions()}
+            provenance_json = json.dumps({"model": payload["model"], "route": current.route,
                 "operation": parent["operation"], "entitlement_source": parent["source"],
                 "model_config_revision": (current.model_config or {}).get("active_revision"),
-                "prompts": prompt_manager.request_versions(),
+                **{key: call_trace.get(key) for key in ("task", "step", "prompt_domain",
+                    "prompt_scope", "prompts", "missing_prompt_keys", "instruction_role", "instruction_sha256")},
                 "fact_observation": current.fact_observation,
                 "provider": ("claude" if payload["model"].startswith("claude") else
                              "doubao" if payload["model"] == "doubao-seed-2-0-lite-260428" else "kimi"),
@@ -454,7 +458,7 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
                 "operation_id": payload.get("operation_id"),
                 "max_tokens": payload.get("max_tokens")}, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "
-                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now,usage_id,provenance))
+                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now,usage_id,provenance_json))
         else:
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at) "
                        "VALUES(?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now))
@@ -521,9 +525,10 @@ def _reserve_claude_once(request, body):
     input_rate = max(price[k] or 0 for k in ("input", "cache_write_5m", "cache_write_1h"))
     reserve = math.ceil((max(200000, len(body)) * input_rate + request.max_tokens * price["output"])
                         * price["usd_cny"] / 1000)
-    return _reserve_payload({"model": request.model, "max_tokens": request.max_tokens,
+    return _reserve_payload({"model": request.model, "max_tokens": request.max_tokens, "modality": "text",
                              "operation_id": request.operation_id}, reserve,
-                            call_id=request.operation_id, require_metered=True)
+                            call_id=request.operation_id, require_metered=True,
+                            provenance=request.call_state.get("provenance"))
 
 
 def admit_claude_sync(request, body):

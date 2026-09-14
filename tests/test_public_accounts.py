@@ -574,6 +574,35 @@ class PublicProductTests(unittest.TestCase):
             max_tokens=1200, messages=({'role':'user','content':'isolated fixture'},),
             operation_id=model_router._new_operation_id())
 
+    def test_per_call_metadata_uses_local_channel_and_existing_admission_record(self):
+        import httpx, model_router, prompt_manager
+        self.metered_usage()
+        trace = prompt_manager.call_provenance('semantic', 'system fixture',
+            step='semantic_features', prompt_keys=())
+        request = self.claude_request()
+        request.call_state['provenance'] = trace
+        body = model_router.GatewayClaudeTransport._body(request)
+        self.assertNotIn(b'provenance', body)
+        self.assertNotIn(b'semantic_features', body)
+        self.product.admit_claude_sync(request, body)
+        saved = json.loads(db.fetchone('SELECT provenance_json FROM public_trial_calls WHERE id=?',
+                                      (request.operation_id,))[0])
+        self.assertEqual(saved['step'], 'semantic_features')
+        self.assertEqual(saved['instruction_sha256'], trace['instruction_sha256'])
+        self.assertEqual(saved['prompts'], {})
+        self.product._record_response(request.operation_id, None, not_dispatched=True)
+        kimi_request = httpx.Request('POST', self.product.ENDPOINT, json=self.payload(),
+            extensions={'noteai_provenance': trace})
+        self.assertNotIn(b'provenance', kimi_request.content)
+        call_id = self.product._reserve(kimi_request)
+        saved = json.loads(db.fetchone('SELECT provenance_json FROM public_trial_calls WHERE id=?', (call_id,))[0])
+        self.assertEqual(saved['task'], 'semantic')
+        self.assertEqual(saved['prompt_scope'], 'call_templates')
+        self.assertEqual(saved['modality'], 'text')
+        self.product._record_response(call_id, None, not_dispatched=True)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM public_trial_calls')[0], 2)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM model_usage_records')[0], 0)
+
     def test_claude_operation_has_one_actual_usage_link_and_shared_slots(self):
         import model_router
         usage_id = self.metered_usage()
@@ -598,6 +627,7 @@ class PublicProductTests(unittest.TestCase):
         import asyncio, threading
         self.metered_usage()
         request = self.claude_request()
+        request.call_state['provenance'] = {'step':'cancelled_fixture','prompt_scope':'call_templates','prompts':{}}
         entered, release = threading.Event(), threading.Event()
         reserve = self.product._reserve_claude_once
         def blocked(*args):
@@ -626,6 +656,7 @@ class PublicProductTests(unittest.TestCase):
         self.assertNotIn('sent', request.call_state)
         row = db.fetchone('SELECT state,http_status FROM public_trial_calls WHERE id=?', (request.operation_id,))
         self.assertEqual(tuple(row), ('responded', None))
+        self.assertEqual(json.loads(db.fetchone('SELECT provenance_json FROM public_trial_calls WHERE id=?', (request.operation_id,))[0])['step'], 'cancelled_fixture')
 
     def test_call_terminal_compare_and_set_never_overwrites_unknown(self):
         self.metered_usage()
@@ -808,9 +839,11 @@ class PublicProductPostgresTests(unittest.TestCase):
             billing.clear_active_usage(); billing.record_free_usage(self.user['id'],'score')
             marker=self.product._invocation.set(self.product.Invocation(self.user['id'],f'pg-mixed-{i}'))
             try:
+                trace={'task':'semantic','step':f'isolated_step_{i}','prompt_scope':'call_templates','prompts':{}}
                 if i % 2:
                     request=model_router.ClaudeMessageRequest(model=model_router.CLAUDE_HAIKU,max_tokens=1200,
-                        messages=({'role':'user','content':'isolated'},),operation_id=model_router._new_operation_id())
+                        messages=({'role':'user','content':'isolated'},),operation_id=model_router._new_operation_id(),
+                        call_state={'provenance':trace})
                     transport=model_router.GatewayClaudeTransport(base_url='https://gateway.example.invalid',
                         key_id='isolated-key',secret='isolated-secret',http_transport=httpx.MockTransport(upstream))
                     result=transport.create_message_sync(request)
@@ -819,7 +852,8 @@ class PublicProductPostgresTests(unittest.TestCase):
                     model_router._finish_claude_call(request,complete=True)
                     return request.operation_id
                 with self.product.kimi_client(transport=httpx.MockTransport(upstream)) as client:
-                    result=client.post(self.product.ENDPOINT,json={'model':'kimi-k2.6','max_tokens':100,'messages':[{'content':'isolated'}]})
+                    result=client.post(self.product.ENDPOINT,json={'model':'kimi-k2.6','max_tokens':100,'messages':[{'content':'isolated'}]},
+                        extensions={'noteai_provenance':trace})
                 call_id=result.extensions['noteai_call_id']
                 for _ in range(2): model_router._record_kimi_usage('kimi-k2.6',result.json()['usage'],physical_call_id=call_id)
                 return call_id
@@ -833,6 +867,10 @@ class PublicProductPostgresTests(unittest.TestCase):
         self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE state='responded' AND model_usage_record_id IS NOT NULL")[0],4)
         self.assertEqual(db.fetchone('SELECT COUNT(DISTINCT model_usage_record_id) FROM public_trial_calls')[0],4)
         self.assertGreater(db.fetchone('SELECT reserved_milli_cny FROM public_trial_budget')[0],50000)
+
+        traces=[json.loads(row[0]) for row in db.fetchall('SELECT provenance_json FROM public_trial_calls')]
+        self.assertEqual({p['step'] for p in traces},{f'isolated_step_{i}' for i in range(4)})
+        self.assertTrue(all(p['prompt_scope']=='call_templates' and p['prompts']=={} for p in traces))
 
     def test_pg16_global_concurrency_and_ceiling_at_application_role(self):
         import threading, httpx, time

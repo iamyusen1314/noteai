@@ -1,3 +1,23 @@
+September15 00:48BJT: per-physical-call task/step and exact managed-template
+attribution implemented locally in existing API/router/Prompt/provenance path;
+Claude request.call_state, Kimi httpx.extensions and Ark admission metadata remain
+local, not provider payloads.30APIcallsite annotations; AST excluding metadata is
+identical toprechangeAPI. Final composed instruction SHA+role retained without text;
+parallel snapshots detached, code-only distinct from cumulative/unknown, historical
+rows never rewritten. Admin existingdetail displays those distinctions and stages.
+No modelroute/Prompttext/credit/no-replay/DBschema changes. Python3.11 networknone
+regression97/98 initially passed; singleoldtest expected exactly5sourcecalls but
+prechangebaseline also had7. Corrected torequire complete source inEVERYcall and
+rerunPASS; effective98checks. Initialnewfake response missingusage correctlyrejected,
+fixturecompleted without weakeningcompletion.3offlinebrowserchecksPASS. Actual
+isolatedPG16.14 fourClaude/Kimiconcurrentcalls:unique step/binding,maximum2inflight,
+actualcostonce, no old moneycap PASS. PriorlocalPGdatabase0025checksumconflict retained;
+freshlocal noteai_call_trace_20260915 used, no productionmigration. Two realreadonly
+reviews no remainingblock. Currentcode NOT_DEPLOYED; next exactAPI+Admincandidate on
+existinghost/images, preserve publicwebad and sameinactiveNative recoverybindings.
+Native original12RMB paid/refunded;nextdaybillSeptember15>=10BJT/newscancapturepending.
+Item34COMPLETE31/37 unchanged, no newproviderrequests or productionDML thisbatch.
+
 September15 00:32BJT: Admin runtime17913b1/image03866c1a remains healthy; static
 web1cbc5b9207da9fe4dbdf66a6ae737abae3d9896f deployed once1789403074.3131366
 (web-layout.py SHA3ca60e91f21fc26d62d7fbf0f948441e666e9ff7c66657a9144d27aa8adab67f).

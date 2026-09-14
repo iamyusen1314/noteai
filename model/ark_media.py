@@ -172,6 +172,10 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
     public_product.assert_result_known()
     call_id = str(uuid.uuid4())
     deadline = time.monotonic() + 90
+    import prompt_manager
+    provenance = prompt_manager.call_provenance("media_understanding", prompt,
+        step="video_audio_understanding" if audio_possible else "image_understanding",
+        prompt_keys=(), prompt_role="user")
     # Conservative reservation only; owner_metered never uses it as a money cap.
     reserve = int((262144 * (27 if audio_possible else 1.8) + max_tokens * 10.8) / 1000) + 1
     while True:
@@ -179,7 +183,7 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
             public_product._reserve_payload({"model": MODEL, "max_tokens": max_tokens,
                 "provider": "doubao", "modality": "video_audio" if audio_possible else "image",
                 **({"media": media} if media is not None else {})},
-                reserve, call_id=call_id, require_metered=True)
+                reserve, call_id=call_id, require_metered=True, provenance=provenance)
             break
         except public_product._SlotsBusy:
             if time.monotonic() >= deadline:

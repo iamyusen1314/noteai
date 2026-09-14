@@ -495,6 +495,7 @@ def compute_semantic_features(title: str, desc: str) -> dict:
             system="你是小红书笔记语义分析专家，只返回JSON，不要解释。",
             user=prompt,
             max_tokens=120,
+            trace_step='semantic_features', prompt_keys=('semantic_features',),
         )
         # 清理 markdown 代码块
         if "```" in raw:
@@ -3043,7 +3044,7 @@ async def _agent_content(
     )
     source_index, references = _clarification.source_references(
         (desc or "") if clarification_source is None else clarification_source)
-    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user + source_index, max_tokens=16000)
+    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user + source_index, max_tokens=16000, trace_step='diagnosis_content', prompt_keys=('agent_content_system',), prompt_domain=domain)
     return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
 
@@ -3071,7 +3072,7 @@ async def _agent_visual(
         f"封面视觉得分：{visual_score}/100\n"
         f"视觉特征数据（辅助视觉14维）：\n{feat_lines or '无特征数据'}"
     )
-    raw = await _mr.call("diagnosis", system, user, max_tokens=16000)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=16000, trace_step='diagnosis_visual', prompt_keys=('agent_visual_system',), prompt_domain=domain)
     return {"role": "视觉专家", "raw": raw}
 
 
@@ -3107,7 +3108,7 @@ async def _agent_growth(
         + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"【实时热词数据】\n{timing_text}"
     )
-    raw = await _mr.call("diagnosis", system, user, max_tokens=16000)
+    raw = await _mr.call("diagnosis", system, user, max_tokens=16000, trace_step='diagnosis_growth', prompt_keys=('agent_growth_system',), prompt_domain=domain)
     return {"role": "增长专家", "raw": raw}
 
 
@@ -3137,7 +3138,7 @@ async def _agent_user(
         + (f"互动引导语数量：{cta:.0f}\n" if cta is not None else "")
         + (f"互动性表达密度：{stance:.2f}\n" if stance is not None else "")
     )
-    raw = await _mr.call("diagnosis", system, user_ctx, max_tokens=16000)
+    raw = await _mr.call("diagnosis", system, user_ctx, max_tokens=16000, trace_step='diagnosis_user', prompt_keys=('agent_user_system',), prompt_domain=domain)
     return {"role": "用户专家", "raw": raw}
 
 
@@ -3241,7 +3242,7 @@ async def _agent_arbitrate(
         + "<plan>下一步优化策略，3-5条</plan>\n"
         + "<dispute>专家分歧与取舍</dispute>\n"
     )
-    raw1 = await _mr.call("arbitrate", system, user_phase1, max_tokens=4096)
+    raw1 = await _mr.call("arbitrate", system, user_phase1, max_tokens=4096, trace_step='diagnosis_arbitration', prompt_keys=('agent_arbitrate_system',), prompt_domain=domain)
     await _emit_progress(emit, {
         "type": "expert_opinion",
         "role": "仲裁专家",
@@ -3287,6 +3288,7 @@ async def _agent_arbitrate(
                 + ("\n\n" + constraint_context if constraint_context else ""),
                 f"完整原素材（与编辑分析分开）：{source_context}\n\n{editorial_context}\n\n候选原标题（不是事实来源，{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_PLATFORM_MAX}字，优先{_TITLE_TARGET_TEXT}：",
                 max_tokens=256,
+                trace_step='diagnosis_title_compression', prompt_keys=(), prompt_domain=domain,
             )
             shortened = shortened.strip().strip('"').strip("'")
             if shortened and len(shortened) <= _TITLE_DELIVERY_MAX and len(shortened) >= 6:
@@ -3430,7 +3432,7 @@ async def _agent_arbitrate(
             f"请重新生成一篇「{style_name}」完整正文，必须与上面正文明显不同："
         )
         try:
-            result = await _mr.call("diagnosis", sys_retry, usr_retry, max_tokens=4096)
+            result = await _mr.call("diagnosis", sys_retry, usr_retry, max_tokens=4096, trace_step='diagnosis_body_distinctness', prompt_keys=(), prompt_domain=domain)
             return _extract_generated_body(result)
         except _public_product.TrialProviderStopped:
             raise
@@ -3459,7 +3461,7 @@ async def _agent_arbitrate(
         usr_body = f"{base_ctx}\n\n【本方案标题】{title}\n\n请按「{style_name}」风格撰写与标题配套的完整正文："
         try:
             # Complete structured Chinese output needs room beyond the former1200 cap.
-            result = await _mr.call("diagnosis", sys_body, usr_body, max_tokens=4096)
+            result = await _mr.call("diagnosis", sys_body, usr_body, max_tokens=4096, trace_step='diagnosis_plan_body', prompt_keys=(), prompt_domain=domain)
             return _extract_generated_body(result)
         except _public_product.TrialProviderStopped:
             raise
@@ -4075,7 +4077,7 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
         f"【品类视觉知识·{domain}】\n{dk.get('visual', '')}"
     )
 
-    raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=2048)
+    raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=2048, trace_step='generation_visual', prompt_keys=('gent_visual_system',), prompt_domain=domain)
     return {"role": "视觉专家", "raw": raw, "_image_desc": description}
 
 
@@ -4121,7 +4123,7 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
     # The active model configuration may lower this ceiling; usage is metered.
     original = (_clarification.execution.get() or {}).get("source_material") or brief or ""
     source_index, references = _clarification.source_references(original + "\n" + image_desc)
-    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user + source_index, max_tokens=16000)
+    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user + source_index, max_tokens=16000, trace_step='generation_content', prompt_keys=('gent_content_system',), prompt_domain=domain)
     return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
 
@@ -4162,7 +4164,7 @@ async def _gent_growth(
         user = f"【图片视觉】{image_desc}\n【真实信息（价格/地址等事实）】{brief}\n领域：{domain}\n【热词数据】{timing_text}"
     else:
         user = f"【图片视觉】{image_desc}\n领域：{domain}\n【热词数据】{timing_text}"
-    raw = await _mr.call("content_gen", system, user, max_tokens=16000)
+    raw = await _mr.call("content_gen", system, user, max_tokens=16000, trace_step='generation_growth', prompt_keys=('gent_growth_system',), prompt_domain=domain)
     return {"role": "增长专家", "raw": raw}
 
 
@@ -4179,7 +4181,7 @@ async def _gent_user(domain: str, brief: str | None, dk: dict, image_desc: str, 
         user = f"品类：{domain}\n【图片视觉】{image_desc}\n【创作者真实信息（价格/地址等）】{brief}"
     else:
         user = f"品类：{domain}\n【图片视觉】{image_desc}"
-    raw = await _mr.call("content_gen", system, user, max_tokens=16000)
+    raw = await _mr.call("content_gen", system, user, max_tokens=16000, trace_step='generation_user', prompt_keys=('gent_user_system',), prompt_domain=domain)
     return {"role": "用户专家", "raw": raw}
 
 
@@ -4268,7 +4270,7 @@ async def _gent_arbitrate(
         f"【创作者真实信息/事实边界】\n{fact_text}\n\n"
         f"{blocks}"
     )
-    raw = await _mr.call("arbitrate", (system) + ("\n\n" + constraint_context if constraint_context else ""), user, thinking=True, max_tokens=16000)
+    raw = await _mr.call("arbitrate", (system) + ("\n\n" + constraint_context if constraint_context else ""), user, thinking=True, max_tokens=16000, trace_step='generation_arbitration', prompt_keys=('gent_arbitrate_system',), prompt_domain=domain)
 
     title = _xtag(raw, "title")
     body = _xtag(raw, "body")
@@ -4281,7 +4283,7 @@ async def _gent_arbitrate(
         repair_user = (user + "\n\n【一次结构修复】前次已返回，但缺少完整的<title>或<body>。"
                        "请依据上方完整素材与行业规则重新完成仲裁，保留必要分析，并输出完整title/body。"
                        "下方仅为待修复的模型草稿，不能作为事实来源。\n" + raw)
-        raw2 = await _mr.call("arbitrate", (system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=16000)
+        raw2 = await _mr.call("arbitrate", (system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=16000, trace_step='generation_arbitration_format_repair', prompt_keys=('gent_arbitrate_system',), prompt_domain=domain)
         title, body = _xtag(raw2, "title"), _xtag(raw2, "body")
         variants = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
         rationale = _xtag(raw2, "rationale")
@@ -4396,7 +4398,7 @@ async def _generate_quality_challenger_candidate(
         "不要用编号大纲，不要写占位符，不要为了评分机械重复关键词。"
     )
     try:
-        raw = await _mr.call("content_gen", (system) + ("\n\n" + constraint_context if constraint_context else ""), user, thinking=False, max_tokens=2600)
+        raw = await _mr.call("content_gen", (system) + ("\n\n" + constraint_context if constraint_context else ""), user, thinking=False, max_tokens=2600, trace_step='generation_challenger', prompt_keys=(), prompt_domain=canonical)
     except Exception as exc:
         if isinstance(exc, _public_product.TrialProviderStopped):
             raise
@@ -4884,7 +4886,7 @@ async def _run_generation_agents(
             f"删掉重复修饰和多余铺垫，直接输出压缩后的正文，不要加任何说明：\n\n{body}"
         )
         try:
-            trimmed = await _mr.call("content_gen", (trim_sys) + ("\n\n" + constraint_context if constraint_context else ""), trim_usr, thinking=False, max_tokens=4096)
+            trimmed = await _mr.call("content_gen", (trim_sys) + ("\n\n" + constraint_context if constraint_context else ""), trim_usr, thinking=False, max_tokens=4096, trace_step='generation_body_compression', prompt_keys=(), prompt_domain=domain)
             if trimmed and len(trimmed) < len(body):
                 body = trimmed.strip()
                 arb["body"] = body
@@ -4909,7 +4911,7 @@ async def _run_generation_agents(
             + body
         )
         try:
-            rhythmed = await _mr.call("content_gen", (burst_sys) + ("\n\n" + constraint_context if constraint_context else ""), burst_usr, thinking=False, max_tokens=4096)
+            rhythmed = await _mr.call("content_gen", (burst_sys) + ("\n\n" + constraint_context if constraint_context else ""), burst_usr, thinking=False, max_tokens=4096, trace_step='generation_body_rhythm', prompt_keys=(), prompt_domain=domain)
             if rhythmed and rhythmed.strip():
                 body = rhythmed.strip()
                 arb["body"] = body
@@ -7708,6 +7710,7 @@ async def _fit_title_limit(title: str, body: str, domain: str, memory_context: s
             + ("\n\n" + constraint_context if constraint_context else ""),
             (f"完整原素材（不是下方候选正文）：{source_context}\n\n{editorial_context}\n\n" if editorial_context else "") + prompt,
             max_tokens=80,
+            trace_step='title_compression', prompt_keys=(), prompt_domain=domain,
         )
         shortened = _clean_generated_title(shortened.splitlines()[0] if shortened else "")
         if 6 <= len(shortened) <= _TITLE_DELIVERY_MAX:
@@ -10543,7 +10546,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"{shaped}"
     )
     try:
-        repaired = await _mr.call("content_gen", system, user, thinking=False, max_tokens=4096)
+        repaired = await _mr.call("content_gen", system, user, thinking=False, max_tokens=4096, trace_step='delivery_body_shaping', prompt_keys=(), prompt_domain=domain)
         repaired = (repaired or "").strip()
         if repaired and not _body_format_issues(repaired):
             compacted = _compact_body_to_delivery_limit(
@@ -10779,7 +10782,7 @@ async def _repair_diagnosis_report_facts(
         + "\n仅输出完整的 <diagnosis>...</diagnosis><plan>...</plan>，不得省略原有无争议的分析和建议。"
     )
     try:
-        raw = await _mr.call("arbitrate", system, user, max_tokens=4096)
+        raw = await _mr.call("arbitrate", system, user, max_tokens=4096, trace_step='diagnosis_fact_repair', prompt_keys=('agent_arbitrate_system',), prompt_domain=domain)
     except Exception:
         await _emit_progress(emit, {
             "type": "diagnosis_report_unverified",
@@ -11742,7 +11745,7 @@ async def _score_directed_second_pass(
     )
 
     try:
-        raw = await _mr.call(route, system, user, thinking=True, max_tokens=6000)
+        raw = await _mr.call(route, system, user, thinking=True, max_tokens=6000, trace_step='delivery_quality_revision', prompt_keys=(), prompt_domain=domain)
         cand_title = _xtag(raw, "title")
         cand_body = _xtag(raw, "body")
         if not cand_title or not cand_body:
@@ -11919,6 +11922,7 @@ def _call_claude(prompt: str) -> tuple[str, list[str], str, str]:
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
         first_text_block=True,
+        trace_step='legacy_diagnosis', prompt_keys=(),
     )
     return _parse_response(raw)
 
@@ -14009,7 +14013,7 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
     user_prompt = "\n\n---\n\n".join(blocks)
 
     try:
-        raw = await _mr.call("semantic", system, user_prompt, max_tokens=8192)
+        raw = await _mr.call("semantic", system, user_prompt, max_tokens=8192, trace_step='ocr_text_merge', prompt_keys=())
         import re as _re2, json as _j2
         m = _re2.search(r'\{[\s\S]*\}', raw)
         if m:
@@ -16899,7 +16903,7 @@ async def _generate_pipeline_stream(
     content_parts: list[str] = []
     # P3 仲裁：Claude Sonnet + extended thinking，覆盖完整笔记生成
     async for chunk_text in _public_model_content_chunks(
-        _mr.stream("arbitrate", (arb_system) + ("\n\n" + constraint_context if constraint_context else ""), arb_user, thinking=True, max_tokens=16000)
+        _mr.stream("arbitrate", (arb_system) + ("\n\n" + constraint_context if constraint_context else ""), arb_user, thinking=True, max_tokens=16000, trace_step='generation_arbitration', prompt_keys=('gent_arbitrate_system',), prompt_domain=domain)
     ):
         content_parts.append(chunk_text)
 
@@ -16917,7 +16921,7 @@ async def _generate_pipeline_stream(
         repair_user = (arb_user + "\n\n【一次结构修复】前次已返回，但缺少完整的<title>或<body>。"
                        "请依据上方完整素材与行业规则重新完成仲裁，保留必要分析，并输出完整title/body。"
                        "下方仅为待修复的模型草稿，不能作为事实来源。\n" + arb_raw)
-        raw2 = await _mr.call("arbitrate", (arb_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=16000)
+        raw2 = await _mr.call("arbitrate", (arb_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=16000, trace_step='generation_arbitration_format_repair', prompt_keys=('gent_arbitrate_system',), prompt_domain=domain)
         title, body = _xtag(raw2, "title"), _xtag(raw2, "body")
         title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) if title else ""
         raw_v2 = [v.strip() for v in _xtag(raw2, "variants").splitlines() if v.strip()][:3]
@@ -17026,6 +17030,7 @@ async def _generate_pipeline_stream(
                 f"压缩到{max_b}字以内（不含标签行），保留：{keep_hint_s}。直接输出，不加说明：\n\n{body}",
                 thinking=False,
                 max_tokens=4096,
+                trace_step='generation_body_compression', prompt_keys=(), prompt_domain=domain,
             )
             if trimmed and len(trimmed) < len(body):
                 body = trimmed.strip()
@@ -17107,7 +17112,7 @@ async def _generate_pipeline_stream(
             f"创作者真实信息/约束：{brief or '未提供更多真实信息，不能编造价格/地址/时间；缺失处应自然提醒补充，不要乱写。'}"
         )
         try:
-            raw_fix = await _mr.call("arbitrate", (repair_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=6000)
+            raw_fix = await _mr.call("arbitrate", (repair_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=6000, trace_step='generation_quality_repair', prompt_keys=(), prompt_domain=domain)
             t_fix = _xtag(raw_fix, "title")
             b_fix = _xtag(raw_fix, "body")
             raw_fix_variants = [v.strip() for v in _xtag(raw_fix, "variants").splitlines() if v.strip()][:3]
@@ -18587,7 +18592,7 @@ async def _repair_chat_note_if_needed(
         "请输出修复后的可交付版本。"
     )
     try:
-        raw = await _mr.call("chat", repair_system, repair_user, thinking=True, max_tokens=6000)
+        raw = await _mr.call("chat", repair_system, repair_user, thinking=True, max_tokens=6000, trace_step='chat_quality_repair', prompt_keys=(), prompt_domain=domain)
         repaired = _extract_note_from_response(raw)
         if not repaired:
             return title, body, score, feats, grade, issues, False
@@ -18768,6 +18773,7 @@ async def _chat_sse_generator(
                 user_content=user_content,
                 thinking=use_thinking,
                 max_tokens=max_tok,
+                trace_step='chat_response', prompt_keys=('chat_system',), prompt_domain=session.get("domain", "美食"),
             )
         ):
             full_content += chunk_text
