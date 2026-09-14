@@ -1,3 +1,11 @@
+September14 Native preparation found an exact pre-write implementation mismatch:
+Payment retains original systemd failed/exit137, Job empty, no container, new trade
+root absent. bcc1d3e preparePID1742772 stopped in check_original BEFORE capture/SQL
+or provider action; original prepare.log retained. Existing check now accepts stopped
+inactive/failed only with no systemd job and no container; does not reset failure.
+Eight isolated Python3.11 launcher tests pass (launcher-r2.log). Retry only preparation
+with corrected source after verifying absent trade directory; no old order replay.
+
 September14 19:01BJT continuation: API1c94a2624e6a639968aaa71ed84061a0e066dd02
 DEPLOYED; actual48a478ecc80f850687463f4c7c77d603224683cf54e1ca5e3a53c08dd31724f9.
 OriginalbuildPID1741280 completed1789383379.741678; deployPID1741557 completed

@@ -874,6 +874,24 @@ del PG
 
 
 class NativeCapturePreparationTests(unittest.TestCase):
+    def test_stopped_failure_is_preserved_but_job_or_container_blocks_prepare(self):
+        from deploy.production import native_capture as launcher
+        for state, job, container, allowed in ((b'failed', b'', b'', True),
+                (b'inactive', b'', b'', True), (b'active', b'', b'cid', False),
+                (b'failed', b'91', b'', False), (b'failed', b'', b'cid', False)):
+            with self.subTest(state=state, job=job, container=container), ExitStack() as stack:
+                stack.enter_context(mock.patch.object(launcher, 'HASHES', {}))
+                stack.enter_context(mock.patch.object(launcher, 'inspect', return_value={'Image': launcher.API_IMAGE}, create=True))
+                def run(args, *unused):
+                    self.assertNotIn('reset-failed', args)
+                    if args[0] == 'systemctl': return state if 'ActiveState' in args else job
+                    if args[1] == 'ps': return container
+                    return json.dumps([{'Architecture': 'amd64', 'Os': 'linux'}]).encode()
+                stack.enter_context(mock.patch.object(launcher, 'run', side_effect=run, create=True))
+                if allowed: launcher.check_original()
+                else:
+                    with self.assertRaises(AssertionError): launcher.check_original()
+
     def test_prepare_renders_atomic_owner_sql_without_starting_capture(self):
         from deploy.production import native_capture as launcher
         with tempfile.TemporaryDirectory() as temp, ExitStack() as stack:

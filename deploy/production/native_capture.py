@@ -80,7 +80,10 @@ def check_original():
     for path, expected in HASHES.items():
         assert digest(Path(path).read_bytes()) == expected, path
     assert inspect('noteai-api-c')['Image'] == API_IMAGE
-    assert run(['systemctl', 'show', 'noteai-payment.service', '-p', 'ActiveState', '--value']).strip() == b'inactive'
+    # A completed, stopped prior capture can retain systemd's failure status.
+    # Preserve that history; absence of a job/container is independently required.
+    assert run(['systemctl', 'show', 'noteai-payment.service', '-p', 'ActiveState', '--value']).strip() in (b'inactive', b'failed')
+    assert run(['systemctl', 'show', 'noteai-payment.service', '-p', 'Job', '--value']).strip() in (b'', b'0')
     assert not run(['docker', 'ps', '-aq', '--filter', 'name=^/noteai-payment$']).strip()
     for image in (API_IMAGE, PAYMENT_IMAGE, CANARY_IMAGE):
         info = json.loads(run(['docker', 'image', 'inspect', image]))[0]
