@@ -1,3 +1,10 @@
+September14 23:39BJT: fullvideo normal pipeline completed and API/webd0 released;
+report remains needs_confirmation, modelscore75 not contentquality acceptance.
+34physicalcalls4.0016064CNY/6credits once; failedattemptcosts and originalFilesUNKNOWN
+remain. Realfrontendreadback verifies videoopen/ownerhistory, paymentsclosed.
+Readonlyreviewfound fullobservation omitted by diagnosis→Chat;minimalexisting-field
+handoff fix2offlinechecksPASS, web-onlypublish/currentNativebinding next atHandoff.
+
 September14 23:20BJT: real full-video Ark succeeded with audio cost, but formal
 Claude experts hit actual max_tokens4096 twice; business failed/refunded once.
 General expert capacity and full observation report retention fixed locally,

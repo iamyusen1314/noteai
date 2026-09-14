@@ -1,3 +1,38 @@
+September14 23:39BJT full original57.3s owner video now completed and released.
+API/web d0ee6b60a823a3494046ef6b9b457f2c995d3293, image2924825e823fc1ac0279baccf0f09f4fb20ccc185f347c86ceb62f113f84f60f,
+realPython3.11.15/linuxamd64. Sole formal-ark-video-capacity-20260914-01 completed
+15:30:09.106880UTC; claim086f0c9f-a033-4279-97c9-642ec8d4ab40,
+usagef5cae508-8341-42e3-a384-dd58cf43c583.34physicalcalls (Ark260428+ClaudeHaiku4.5/
+Sonnet4.6), recordedactual4.0016064CNY;6credits charge1/complete1/refund0.
+Ark fullvideo has46092nonaudio+358audio+1109output,0.0523044CNY. No FilesPOST/
+reupload: originalmedia19fc357f/ref+SHA reused, old FilesUNKNOWN remains unchanged.
+Original failed tasks/refunds/costs preserved. Original Files fees UNKNOWN_NOT_ZERO.
+Diagnosis d89f1edb-138c-4c07-b405-59ad21d25d39; savednote
+c02688c1-cc68-482d-a007-111c1461fc0e. Three drafts71.1/73.8/75, but whole report
+needs_confirmation (unsupported comparative/backing statements); pipeline success
+is NOT full content-quality acceptance. Do not repeat hotel phrase-only trials.
+Full source observation1704chars retained via original event and report/history;
+spot-checked main visual scenes/subtitles against original local frames, not an
+independent audit of every spoken claim. Private originalevents74480bytes SHA
+72e2c962fe0e3878f69c95c9346af9e9dbd5cf8190874742cf97f0d94d3d4604.
+Canonical /var/lib/noteai/video-capacity-20260914; localprivate
+/Users/openclaw/.codex/tmp/noteai-media-d0ee6b6/. Raw outcome-2 cloud-output truncated;
+use canonical full events and final-plans/ledger-terminal projections, not truncated JSON.
+Reviewed deploy8dd5f993... ran oncePID1786938, complete1789400116.0457706;
+API drop f4af3ff716e271832fdd0bd429e77805c2ada06e6f0645bc8dc2f32b315577b5,
+web/var/www/noteai-public/d0ee6b6;2staticfilesonly;Admin/model/env/routehashunchanged.
+Public browser showsvideoopen andownerbalance2900.5, normalnotehistoryrestored;
+payment/Trackingclosed. Exact completed private candidate stopped after logsave.
+Old21b/352b private candidates already safelystopped, originalunknownuploadretained.
+Next in progress: finish publicreport/history verification and minimal web-only
+video_analysis→existingcover_analysis Chat handoff (found by readonlyreview),
+truthful highest-score label;2targetofflinebrowserchecks PASS. No media replay/
+newbackend/model; finalwebsource separatefromAPI. Then refresh SAME inactiveNative
+prepared d88/activation4feb against newdrop/finalweb, no neworder or activation.
+Original12RMB payment/fullrefund preserved; duplicatecallback capture needsowner
+scan availability; originalnext-daybill September15>=10BJT remains pending.
+Item34COMPLETE31/37 unchanged; no newautomation or protected7changes, noGitpush.
+
 September14 23:20BJT real video Responses transport works; downstream diagnosis
 failed honestly. Private21b3acb/c7eaf468 image built Python3.11.15; original media
 GET206 verified using scoped URL without logging it. New normal request

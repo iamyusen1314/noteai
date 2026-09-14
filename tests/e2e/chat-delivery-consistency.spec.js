@@ -385,3 +385,31 @@ test('diagnosis retains complete video observation and clears it for text-only r
   await expect(page.locator('#diagnosisVideoCard')).toBeHidden();
   await expect(page.locator('#diagnosisVideoText')).toHaveText('');
 });
+
+test('video diagnosis continues through existing chat context without recognizing media again', async ({ page }) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const observation = '0秒画面与声音。' + '完整观察。'.repeat(200) + '57秒结尾。';
+  const requests = await page.evaluate(async text => {
+    _authUser = {id: 'video-context-owner'};
+    _authToken = 'synthetic';
+    _authVerifiedOwnerId = 'video-context-owner';
+    _diagnoseResult = {saved_note_id: 'video-note', video_analysis: text,
+      report_quality_status: 'needs_confirmation', report_quality_issues: ['套餐需确认'],
+      merchant_name: '测试店', user_constraints: ['不写价格']};
+    _noteDetailData = {id: 'video-note', title: '视频草稿', body: '原正文', domain: '旅行', score: 75};
+    const calls = [];
+    window.fetch = async (url, init) => {
+      calls.push({url: String(url), method: init?.method || 'GET', body: JSON.parse(init?.body || '{}')});
+      return new Response(JSON.stringify({session_id: 'video-context-session'}), {status: 200});
+    };
+    await startChatFromDiagnosis();
+    return calls;
+  }, observation);
+  const starts = requests.filter(r => r.url.endsWith('/chat/start'));
+  expect(starts).toHaveLength(1);
+  expect(starts[0].body.generate_context.cover_analysis).toBe(observation);
+  expect(starts[0].body.generate_context.report_quality_status).toBe('needs_confirmation');
+  expect(starts[0].body.generate_context.user_constraints).toEqual(['不写价格']);
+  expect(starts[0].body.note_id).toBe('video-note');
+  expect(requests.filter(r => /upload|analyze|generate|chat\/message/.test(r.url))).toHaveLength(0);
+});
