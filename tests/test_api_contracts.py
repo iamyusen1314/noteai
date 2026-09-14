@@ -3085,16 +3085,26 @@ class ApiContractTests(unittest.TestCase):
                 response,original=start('root')
                 self.assertEqual(response.current_score,73)
                 self.assertEqual(response.confirmed_facts,[fact,omit])
+                self.assertIn('已恢复这篇笔记的商家确认',response.welcome)
+                self.assertNotIn('专家',response.welcome)
+                self.assertNotIn('封面',response.welcome)
+                self.assertNotIn('笔记已生成',response.welcome)
+                with mock.patch.object(api,'_runtime_prompt',return_value='测试行业对话规则'):
+                    prompt=api._build_chat_system_prompt(original)
+                self.assertIn(api._CONTENT_SOURCE_POLICY,prompt)
+                self.assertIn('正文不是独立事实来源',prompt)
                 self.assertEqual(original['user_constraints'],['不写价格'])
                 self.assertEqual(original['merchant_name'],'蓝猫店')
                 self.assertEqual(original['merchant_visibility'],'不展示商家')
                 self.assertNotIn('prepared',original['generate_context'])
                 self.assertNotIn('OTHER_MERCHANT',original['fact_context'])
                 api._merge_supplement_values_into_session(original,{'confirmation_drink':'更正：1杯拿铁，9月周末适用'})
+                self.assertTrue(original['generate_context']['pending_fact_update'])
                 conn.execute("INSERT INTO chat_sessions VALUES(?,?,?,?,?,?)",('corrected','owner',
                     'child','美食',json.dumps(original['generate_context']),'2026-09-02'))
                 _,child=start('child')
                 self.assertIn('1杯拿铁',child['fact_context'])
+                self.assertTrue(child['generate_context']['pending_fact_update'])
                 self.assertNotIn('2杯拿铁',child['fact_context'])
                 self.assertEqual(child['generate_context']['original_fact_context'],'原素材198元')
                 api._merge_supplement_values_into_session(child,{'confirmation_drink':'再次更正：3杯拿铁，仅9月周末'})
@@ -6632,6 +6642,73 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(title, "上一版标题")
         self.assertEqual(score, 76.0)
         self.assertTrue(any("对话改写分数低于当前版本" in issue for issue in issues), issues)
+
+    def test_corrected_facts_survive_lower_score_and_restart_without_old_draft_fallback(self):
+        session={"domain":"美食","local_time":"2026091412","current_score":76,
+            "note_title":"旧标题","note_body":"2杯茶，9月每天", "fact_context":"原资料",
+            "generate_context":{},"supplement_prompts":[]}
+        api._merge_supplement_values_into_session(session,{"package_inclusions":"1杯茶，仅9月周末"})
+        saved=api._sanitize_chat_generate_context(json.loads(json.dumps(session['generate_context'])))
+        session['generate_context']=saved
+        with mock.patch.object(api,'_score_chat_note',new=mock.AsyncMock(return_value=(
+                71,{},'良好',[]))), \
+             mock.patch.object(api,'_needs_v04_score_lift',return_value=True), \
+             mock.patch.object(api,'_score_directed_second_pass',new=mock.AsyncMock(return_value=(
+                '新标题','1杯茶，仅9月周末',71,{},'良好',[],False,'no_gain'))), \
+             mock.patch.object(api,'_chat_previous_note_payload',new=mock.AsyncMock()) as old:
+            for _ in range(2):
+                result=asyncio.run(api._repair_chat_note_if_needed('新标题','1杯茶，仅9月周末',session,'继续优化'))
+                self.assertEqual(result[1],'1杯茶，仅9月周末')
+                self.assertEqual(result[2],71)
+            old.assert_not_called()
+        self.assertTrue(saved['pending_fact_update'])
+
+    def test_unsaved_merchant_correction_stops_before_model_call(self):
+        session={"user_id":"owner","domain":"美食","note_id":"note",
+            "note_title":"旧标题","note_body":"旧正文","generate_context":{},"supplement_prompts":[]}
+        api._chat_sessions['unsaved-correction']=session
+        async def collect():
+            return [e async for e in api._chat_sse_generator('unsaved-correction','按补充优化',
+                supplement_values={'price':'198元'})]
+        try:
+            with mock.patch.object(api,'_persist_chat_session',return_value=False), \
+                 mock.patch.object(api._db,'fetchone',return_value=None), \
+                 mock.patch.object(api._mr,'stream_chat') as model:
+                with self.assertRaises(HTTPException) as stopped:asyncio.run(collect())
+                self.assertEqual(stopped.exception.status_code,503)
+                model.assert_not_called()
+                self.assertTrue(session['generate_context']['pending_fact_update'])
+        finally:api._chat_sessions.pop('unsaved-correction',None)
+
+    def test_read_ordinary_chat_is_owned_readonly_and_not_a_durable_task_fallback(self):
+        conn=sqlite3.connect(':memory:');conn.row_factory=sqlite3.Row
+        conn.executescript("CREATE TABLE chat_sessions(id TEXT,user_id TEXT,note_id TEXT,generate_ctx_json TEXT);"
+            "CREATE TABLE idempotency_requests(id TEXT);")
+        context={"pending_fact_update":True,"merchant_confirmations":[
+            {"question_id":"one","status":"confirmed","answer":"1杯","revision":4}],
+            "original_fact_context":"PRIVATE_SOURCE"}
+        conn.execute('INSERT INTO chat_sessions VALUES(?,?,?,?)',('chat','owner','note',json.dumps(context)))
+        note={'id':'note','title':'旧标题','body':'旧正文','score':76,'grade':'优秀','version':1}
+        try:
+            with mock.patch.object(api._db,'fetchone',side_effect=lambda sql,args=():conn.execute(sql,args).fetchone()), \
+                 mock.patch.object(api,'_read_media_task',new=mock.AsyncMock(return_value=None)), \
+                 mock.patch.object(api,'_fetch_user_note',return_value=note) as owned, \
+                 mock.patch.object(api._clarification,'read',side_effect=HTTPException(404,'original')) as original:
+                result=asyncio.run(api.read_chat_task('chat',user={'id':'owner'}))
+                self.assertEqual(result['type'],'chat_state')
+                self.assertEqual(result['confirmed_facts'][0]['answer'],'1杯')
+                self.assertTrue(result['fact_update_pending'])
+                self.assertNotIn('PRIVATE_SOURCE',json.dumps(result))
+                owned.assert_called_once_with('note','owner')
+                with self.assertRaises(HTTPException) as other:
+                    asyncio.run(api.read_chat_task('chat',user={'id':'other'}))
+                self.assertEqual(other.exception.status_code,404)
+                owned.side_effect=HTTPException(404,'deleted')
+                with self.assertRaises(HTTPException):asyncio.run(api.read_chat_task('chat',user={'id':'owner'}))
+                conn.execute("INSERT INTO idempotency_requests VALUES('chat')")
+                with self.assertRaises(HTTPException):asyncio.run(api.read_chat_task('chat',user={'id':'owner'}))
+                original.assert_called_once_with('owner','chat')
+        finally:conn.close()
 
     def test_generation_selector_prefers_clean_candidate_over_issue_penalty(self):
         original_score_candidate = api._score_generation_delivery_candidate

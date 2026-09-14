@@ -8075,6 +8075,9 @@ def _merge_supplement_values_into_session(session: dict, supplement_values: dict
         return {}
 
     generate_context = dict(session.get("generate_context") or {})
+    generate_context["pending_fact_update"] = True
+    generate_context.pop("pending_plan_options", None)
+    session.pop("pending_plan_options", None)
     base = generate_context.get("original_fact_context")
     if base is None:
         base = session.get("fact_context") or ""
@@ -8089,7 +8092,8 @@ def _merge_supplement_values_into_session(session: dict, supplement_values: dict
             "answer": value, "status": "confirmed", "source": "merchant_confirmation",
             "merchant": prior.get("merchant", merchant), "object": str(prior.get("object") or question.get("object") or "本次内容"),
             "time_range": str(prior.get("time_range") or question.get("time_range") or "仅本次，未声明长期有效"),
-            "confirmed_at": _now_iso(), "revision": len(records) + 1})
+            "confirmed_at": _now_iso(), "revision": max(
+                [int(r.get("revision") or 0) for r in records] + [0]) + 1})
     latest = {record["question_id"]: record for record in records}
     lines = [base, "【本次最新商家确认优先于旧口径；历史仅留存，不是外部核验或永久记忆】",
              "原问题范围仅用于定位；最新完整回答中更正的门店、套餐和适用日期优先。保留关键适用条件，不将限时事实泛化为长期承诺，不用回答时间推断活动日期。"]
@@ -17886,6 +17890,7 @@ def _build_chat_system_prompt(session: dict) -> str:
     )
     prompt_parts = [
         chat_base.replace("{domain}", domain),
+        f"\n\n{_CONTENT_SOURCE_POLICY}\n",
         f"\n\n【当前笔记】\n品类：{domain}  |  评分：{score_str}\n标题：{title}\n正文：\n{body}\n",
         f"\n【统一质量契约】\n{_get_quality_contract(domain)}\n",
         f"\n【62维特征治理】\n{_get_feature_governance_brief(domain)}\n",
@@ -17901,7 +17906,7 @@ def _build_chat_system_prompt(session: dict) -> str:
         prompt_parts.append(f"\n【已提供的事实与本次商家确认；按各条来源区分】\n{session.get('fact_context')}\n")
     prompt_parts.append(
         "\n【对话分数与版本口径】\n"
-        "- 【当前笔记】中的标题、正文和评分是当前会话的权威最终稿。\n"
+        "- 【当前笔记】中的标题、正文和评分标识当前保存版本；正文不是独立事实来源，若与最新商家确认冲突必须更正。\n"
         "- 历史对话里曾出现的方案A/B/C如果没有被后端保存为 note_update，只是未最终评分的草稿，不要把草稿分数当成最终分数。\n"
         "- 用户问“这版/当前版分数”时，以当前评分为准；不要把当前版称为原版。\n"
         "- 用户问“诊断方案A/B/C分数”时，只能引用诊断上下文里的选中方案分数或明确说明该草稿未最终评分。\n"
@@ -18317,6 +18322,12 @@ async def _repair_chat_note_if_needed(
     if score is None:
         return title, body, score, feats, grade, issues, False
     previous_score = session.get("current_score")
+    if ((session.get("generate_context") or {}).get("pending_fact_update")
+            or session.get("_turn_constraint_brief")):
+        # A changed fact/explicit deletion makes the old score incomparable.
+        # Absolute quality checks still apply; an older, conflicting draft
+        # cannot win just because it earned more points before the correction.
+        previous_score = None
     try:
         previous_score_f = float(previous_score) if previous_score is not None else None
     except Exception:
@@ -18364,6 +18375,7 @@ async def _repair_chat_note_if_needed(
     repair_parts = [
         "你是小红书对话优化质量审核官。用户刚要求修改笔记，但当前版本未达交付标准。",
         "你必须在尊重用户意图的前提下修复质量问题，不能解释，不能输出XML以外内容。\n\n",
+        f"{_CONTENT_SOURCE_POLICY}\n\n",
         f"{_get_quality_contract(domain)}\n\n",
         f"{_get_feature_governance_brief(domain)}\n\n",
         f"{_build_generation_planning_brief(domain, title, fact_source or body, '对话质量修复规划')}\n",
@@ -18482,7 +18494,21 @@ async def _chat_sse_generator(
         return
     merged_supplements = _merge_supplement_values_into_session(session, supplement_values)
     if merged_supplements:
-        _persist_chat_session(session_id)
+        if not _persist_chat_session(session_id):
+            # A lost write acknowledgement is reconciled against this same
+            # session. Do not spend model calls before the correction is durable.
+            try:
+                row = _db.fetchone("SELECT generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?",
+                                   (session_id, session.get("user_id") or ""))
+                stored = _sanitize_chat_generate_context(_json.loads(row["generate_ctx_json"] or "{}")) if row else {}
+                expected = session.get("generate_context") or {}
+                durable = all(stored.get(k) == expected.get(k) for k in
+                              ("merchant_confirmations", "fact_context", "pending_fact_update"))
+                durable = durable and not stored.get("pending_plan_options")
+            except Exception:
+                durable = False
+            if not durable:
+                raise HTTPException(503, "本次说明尚未保存，请稍后继续；尚未开始优化")
 
     # ── Image analysis (Kimi Vision) ────────────────────────────────
     image_analysis: str = ""
@@ -18704,6 +18730,7 @@ async def _chat_sse_generator(
                 canonical_status = "save_failed"
 
         if canonical_status == "saved":
+            session.setdefault("generate_context", {})["pending_fact_update"] = False
             # Growth/memory writes are best-effort follow-up records. A failure
             # here must not hide an already committed canonical note version.
             try:
@@ -18747,6 +18774,8 @@ async def _chat_sse_generator(
             + (
                 "说明：以上版本已完成后端评分、最终约束检查并保存，后续问答以此为准。"
                 if saved
+                else "说明：本轮没有保存新版本。商家更正尚未同步到旧稿；后续必须使用最新确认，旧稿仅保留历史。"
+                if (session.get("generate_context") or {}).get("pending_fact_update")
                 else "说明：本轮没有保存新版本，后续问答继续以上一正式版本为准。"
             )
         )
@@ -18799,10 +18828,12 @@ async def _chat_sse_generator(
             "saved_note_id": canonical_note_id,
             "saved_note_version": canonical_version,
             "turn_constraint": turn_contract,
+            "fact_update_pending": bool((session.get("generate_context") or {}).get("pending_fact_update")),
         }
     elif not plan_options:
         turn_contract_active = bool(
             turn_contract.get("forbidden_terms") or turn_contract.get("remove_duration_claims")
+            or (session.get("generate_context") or {}).get("pending_fact_update")
         )
         if turn_contract_active:
             previous_score = session.get("current_score")
@@ -18821,10 +18852,11 @@ async def _chat_sse_generator(
                 "saved_note_id": previous_note_id,
                 "saved_note_version": previous_version,
                 "turn_constraint": turn_contract,
+                "fact_update_pending": bool((session.get("generate_context") or {}).get("pending_fact_update")),
             }
             session["messages"].append({
                 "role": "assistant",
-                "content": "【系统记录：本轮未形成可保存的最终笔记，继续保留上一正式版本。】",
+                "content": "【系统记录：本轮未形成新稿；商家最新确认优先，旧稿未同步时仅保留历史。】",
             })
         else:
             session["messages"].append({"role": "assistant", "content": full_content})
@@ -19075,6 +19107,7 @@ _CHAT_CONTEXT_INPUT_KEYS = (
     | frozenset({
         "confirmed_supplement_values",
         "merchant_confirmations",
+        "pending_fact_update",
         "expert_opinions",
         "expert_opinions_basis",
         "feature_hits",
@@ -19202,6 +19235,10 @@ def _sanitize_chat_generate_context(value: Any) -> dict[str, Any]:
     safe: dict[str, Any] = {}
     for key, item in value.items():
         normalized, _tokens, _compact = _normalized_internal_key(key)
+        if normalized == "pending_fact_update":
+            if isinstance(item, bool):
+                safe[normalized] = item
+            continue
         if normalized in _CHAT_CONTEXT_STRING_FIELDS:
             if isinstance(item, str):
                 safe[normalized] = item
@@ -19556,6 +19593,7 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
     session["note_version"] = next_version
     session["note_title"] = title
     session["note_body"] = body
+    session.setdefault("generate_context", {})["pending_fact_update"] = False
     if score is not None:
         session["current_score"] = score
 
@@ -19628,6 +19666,7 @@ class ChatSelectPlanInput(BaseModel):
 def _saved_note_chat_context(note_row: dict, user_id: str) -> dict:
     """Recover business context only along this owner's selected note ancestry."""
     source_keys = {"merchant_confirmations", "original_fact_context", "fact_context",
+                   "pending_fact_update",
         "fact_enrichment", "confirmed_supplement_values", "user_constraints",
         "merchant_visibility", "merchant_name", "fact_source_policy", "content_intent"}
     visited = set()
@@ -19793,6 +19832,7 @@ async def chat_start(
     except Exception:
         inherited_fact_context = ""
     session_generate_context = {
+        "pending_fact_update": gen_ctx.get("pending_fact_update") is True,
         "merchant_confirmations": _sanitize_chat_generate_context({"merchant_confirmations":gen_ctx.get("merchant_confirmations") or []}).get("merchant_confirmations", []),
         "cover_analysis":  gen_ctx.get("cover_analysis") or "",
         "ai_diagnosis": gen_ctx.get("ai_diagnosis") or "",
@@ -19865,9 +19905,17 @@ async def chat_start(
     if from_generate:
         misses = [k for k, v in gen_ctx.get("feature_hits", {}).items() if not v]
         miss_str = f"\n\n当前未达标特征：**{', '.join(misses[:4])}**" if misses else ""
+        context_hints = []
+        if gen_ctx.get("merchant_confirmations"):
+            context_hints.append("已恢复这篇笔记的商家确认，可在下方查看或纠正。")
+        if gen_ctx.get("expert_opinions"):
+            context_hints.append("已载入原有专家分析，作为本次优化参考。")
+        if gen_ctx.get("cover_analysis"):
+            context_hints.append("已载入原有封面分析。")
+        context_hint = "\n".join(context_hints)
         welcome = (
-            f"笔记已生成，初始评分 **{score_str}**（{grade}）{pref_hint}。{miss_str}\n\n"
-            f"我已了解生成时各专家的分析意见和封面信息。\n\n"
+            f"已载入当前笔记，当前评分 **{score_str}**（{grade}）{pref_hint}。{miss_str}\n\n"
+            f"{context_hint}\n\n"
             f"告诉我你的修改想法，比如：\n"
             f"- 「这篇感觉太广告了，帮我改得接地气一点」\n"
             f"- 「标题不够吸引人，重新想几个」\n"
@@ -19920,6 +19968,19 @@ async def read_chat_task(session_id: str, user: dict = Depends(_auth.get_current
     media = await _read_media_task(user['id'], session_id)
     if media is not None:
         return media
+    if not _db.fetchone("SELECT id FROM idempotency_requests WHERE id=?", (session_id,)):
+        row = _db.fetchone("SELECT note_id,generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?",
+                          (session_id, user["id"]))
+        if not row or not row["note_id"]:
+            raise HTTPException(404, "原对话不存在或不属于当前账号")
+        note = _fetch_user_note(row["note_id"], user["id"])
+        context = _sanitize_chat_generate_context(_json.loads(row["generate_ctx_json"] or "{}"))
+        return {"type": "chat_state", "session_id": session_id, "note_id": note["id"],
+                "title": note["title"], "body": note["body"], "version": note["version"],
+                "current_score": note["score"], "grade": note["grade"],
+                "confirmed_facts": list({r["question_id"]: r for r in context.get("merchant_confirmations", [])}.values()),
+                "supplement_prompts": context.get("supplement_prompts") or [],
+                "fact_update_pending": context.get("pending_fact_update") is True}
     return _clarification.read(user["id"], session_id)
 
 

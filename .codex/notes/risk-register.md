@@ -1,3 +1,10 @@
+September14 current:8f41 API+web deployed; ordinary correction savedv2/once3credits,
+1.01626RMB actual; facts quantity/date updated, remaining inferred claims are not
+quality acceptance. Refresh-confirmation recovery and avoiding stale high-score
+fallback now locally fixed. Pending correction persists across failed attempts;
+no model before durable confirmation or exact readback. Original payment remains
+refunded, no replay. Current release/verification details at Handoff top.
+
 September14 current correction risk: quality03 failed and refunded credits; actual
 provider cost2.2056242RMB retained. A low-scoring length defect bypassed the existing
 one-pass repair; local fix now uses that same bounded pass, without weakening final

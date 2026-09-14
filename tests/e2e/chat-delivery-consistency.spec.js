@@ -247,3 +247,45 @@ test('library chat restores its own confirmation without importing another uploa
   await expect(page.locator('#chat-messages')).toContainText('本笔记商家');
   await expect(page.locator('#chat-messages')).not.toContainText('OTHER_MERCHANT_SENTINEL');
 });
+
+test('ordinary chat refresh reads persisted corrections once without replaying a task', async ({page}) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const result=await page.evaluate(async()=>{
+    _authUser={id:'restore-owner'};_authToken='synthetic';_authVerifiedOwnerId='restore-owner';
+    localStorage.setItem('noteai_chat_session',JSON.stringify({ownerUserId:'restore-owner',sessionId:'original-session',noteId:'old-note',noteTitle:'旧标题',noteBody:'旧缓存',score:75,version:1,savedAt:Date.now()}));
+    const calls=[];
+    window.fetch=async(url,init)=>{calls.push({url:String(url),method:init?.method||'GET'});return new Response(JSON.stringify({type:'chat_state',session_id:'original-session',note_id:'new-note',title:'已保存更正',body:'最新说明1杯',version:2,current_score:71,grade:'良好',fact_update_pending:true,confirmed_facts:[{question_id:'drink',question:'套餐含几杯？',merchant:'自测店',object:'双人套餐',time_range:'9月',answer:'1杯，仅周末',status:'confirmed'}]}),{status:200});};
+    await chatRestoreSession();return {calls,session:_chatSessionId,note:_chatParentNoteId};
+  });
+  expect(result.calls).toHaveLength(1);expect(result.calls[0].method).toBe('GET');
+  expect(result.calls[0].url).toContain('/chat/tasks/original-session');
+  expect(result.session).toBe('original-session');expect(result.note).toBe('new-note');
+  await expect(page.locator('#chat-note-scroll')).toContainText('最新说明1杯');
+  await expect(page.locator('#chat-messages')).toContainText('更正前的历史版本');
+  await page.evaluate(()=>showPage('chat'));
+  await page.getByRole('button',{name:'查看或纠正本次商家确认',exact:true}).click();
+  await expect(page.getByPlaceholder('填写更正后的完整说明')).toHaveValue('1杯，仅周末');
+});
+
+for(const outcome of ['failed','changed-session','changed-owner']) {
+  test(`chat restore ${outcome} does not replay or attach corrections to another context`,async({page})=>{
+    await page.goto('/NoteAI_Pro_Demo_Framer.html');
+    const result=await page.evaluate(async(mode)=>{
+      _authUser={id:'restore-owner'};_authToken='synthetic';_authVerifiedOwnerId='restore-owner';
+      localStorage.setItem('noteai_chat_session',JSON.stringify({ownerUserId:'restore-owner',sessionId:'original-session',noteTitle:'原缓存',noteBody:'旧正文',score:75,version:1,savedAt:Date.now()}));
+      const calls=[];
+      window.fetch=async(url,init)=>{calls.push(init?.method||'GET');
+        if(mode==='changed-session')_chatSessionId='another-session';
+        if(mode==='changed-owner'){_authUser={id:'other-owner'};_authToken='other';}
+        return new Response(JSON.stringify({type:'chat_state',note_id:'wrong-note',title:'LATE_PRIVATE',body:'LATE_PRIVATE',confirmed_facts:[{question_id:'drink',question:'LATE_PRIVATE',answer:'PRIVATE'}]}),{status:mode==='failed'?503:200});};
+      await chatRestoreSession();return {calls,session:_chatSessionId};
+    },outcome);
+    expect(result.calls).toEqual(['GET']);
+    await expect(page.locator('#chat-messages')).not.toContainText('LATE_PRIVATE');
+    await expect(page.locator('#chat-note-scroll')).not.toContainText('LATE_PRIVATE');
+    if(outcome==='failed') {
+      await expect(page.locator('#chat-messages')).toContainText('不会重新生成或扣分');
+      await expect(page.locator('#chat-send-btn')).toBeDisabled();
+    }
+  });
+}

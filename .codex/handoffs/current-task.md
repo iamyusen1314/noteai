@@ -1,3 +1,54 @@
+September14 17:57BJT current continuation: normal correction on live8f41 COMPLETED.
+Session24868937-810f-4bcb-9648-c926cf950305; claim3c1259f6-908c-4797-b627-61ada65175a4;
+usage dd5fa659-fc1c-4d32-a1b5-12c41a0f1f68; saved note2ca38110-a94c-4134-a9e2-c05c7453c9c2
+v2,parent original6a426f5a; ended09:44:58UTC. Charge1/refund0/complete1,3credits once,
+original8credit generation unchanged.11responded calls:9Haiku10900in/756out0.10276RMB;
+2Sonnet13290in/6042out0.9135RMB; total1.01626actual. No OCR/whole generation replay.
+Private final and scoped readback: /var/lib/noteai/media-8f41e98/correction-final-1789379195004640136.json.
+Quantity/date correction appears in saved v2 and retained answers; omitted noodle
+relationship stays omitted.75.18score is not unconditional content quality approval:
+new text still infers shared-drink consumption/ordering behavior. No real merchant
+changed; all this is explicitly NoteAI private selftest. Refresh reads2948credits.
+
+LOCAL next scoped fix: refresh only restored local note snapshot and lost correction
+button. Existing GET/chat/tasks now also returns same-owner ordinary chat/active note
+and safe confirmed facts; frontend restores once, identity/session guards, no POST,
+no models on refresh. Persisted pending_fact_update prevents old high-scoring draft
+fallback after changed facts, including later turns/restart. New note must pass same
+absolute checks; marker clears only after actual save. A correction persistence
+failure now reconciles original session before any model call. Previous candidate
+options invalidated on changed facts; revision advances from maximum existing value.
+Common source policy is now included in Chat and its existing repair, correcting an
+omitted instruction path. Welcome states only actually restored context; completion
+refreshes billing with identity guard. No industry asset/model-role changes.
+10Python3.11 targeted contracts plus1durability failure test pass. Offline browser
+25passed, two older auth fixtures blocked by their synthetic upload before Chat;
+fixture now tests intended401/403 without uploading: both pass (auth-recovery-r5).
+27browser cases total passed across original run plus focused corrections; next deploy.
+Current live remains8f41 until next original deploy result; no quality04 issued.
+Original12RMB paid/refunded order not repeated. Bill/realduplicatecallback, video and
+Item34 remain separate outstanding paths; Readiness30/37 unchanged; no Gitpush.
+
+September14 17:43BJT current: 8f41e98eed92969e493a52207bc26c6eba449b59 API AND
+original web are actually deployed, superseding the LOCAL next-action below.
+API image d82f837233c0077b1e7f3c998181024fe971e068fcfc17e3124d1c079c5c712c;
+web /var/www/noteai-public/8f41e98, product JS SHA
+ d9f966d6c44eef5a5d65727e86f44dd501fff9b90280780f56a4b8c3dcef82bf.
+Original build/deploy/web results read back under /var/lib/noteai/media-8f41e98;
+build PID1727000 completed1789378457.680673; deploy PID1727258 completed1789378527.1717355;
+web PID1728161 completed1789378599.479926. Python3.11.15/Linuxamd64 and18 runtime
+hashes verified. Rollback882 API/e22web retained, Admin/env/model config unchanged.
+No migration/payment/Tracking action. Original12RMB test order remains fully refunded.
+
+Normal website existing selftest note's library-to-chat now restores original
+confirmed answer and omitted question. Root submitted ONE correction at17:43BJT
+through the existing normal form: marked private selftest, two teas to one and
+scope narrowed to September14 lunch; second unknown dish relationship stays omitted.
+Current operation IN_FLIGHT: read original current chat/result/cost, do not resubmit
+or create another session. Prior generation8credits and historical false details
+remain unchanged; no complete-generation/recognition replay intended. No quality04
+request issued. Readiness30/37, Item35NOT_REQUIRED, no Gitpush/protected path changes.
+
 September14 17:34BJT continuation: quality03 is FAILED, not in flight; no replay.
 Original claim6dd1ad5e-a0fc-4758-b52b-240984d05786/usagecc607ed0-2acb-485c-8119-2403725d6182:
 charge1/refund1/complete0;6credits restored.25respondedcalls, actual2.2056242RMB

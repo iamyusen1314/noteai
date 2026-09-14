@@ -9860,6 +9860,7 @@ function chatHandleEvent(ev) {
       chatAppendAi('⚠️ ' + (ev.data || '未知错误'));
       break;
     case 'done': {
+      loadBillingPlan();
       _chatSearchActive = false;
       const _si = document.getElementById('chatSearchIndicator');
       if (_si) _si.remove();
@@ -10293,6 +10294,8 @@ function chatRenderCanonicalResponse(ev) {
   let summary = '';
   if (ev.saved) {
     summary = `已完成最终校验并保存为 v${version || '?'}${score !== null ? `，评分 ${formatScoreValue(score)} 分` : ''}。右侧当前笔记与正式保存版本一致。`;
+  } else if (ev.fact_update_pending) {
+    summary = '更正内容已保留，本次尚未完成新稿。右侧仍是更正前的历史版本，暂不可按新口径发布；继续优化时会使用最新说明。';
   } else if (ev.status === 'constraint_failed') {
     summary = '本次修改未通过最终约束检查，已保留上一正式版本，未保存新版本。';
   } else if (ev.status === 'quality_failed') {
@@ -11951,7 +11954,7 @@ function chatSaveSessionToStorage() {
   }));
 }
 
-function chatRestoreSession() {
+async function chatRestoreSession() {
   const verifiedOwnerId = _authVerifiedOwnerId;
   const raw = localStorage.getItem('noteai_chat_session');
   if (!raw) return;
@@ -11975,19 +11978,50 @@ function chatRestoreSession() {
   }
   _chatParentNoteId = stored.noteId || null;
 
-  // 直接恢复 UI 状态，不发额外请求
-  // 若 session 已失效，用户发第一条消息时 404 → _recreateChatSession 自动重建
+  // Cache restores the preview only. Read the original session before continuing;
+  // never create a replacement session while recovering persisted confirmations.
   _chatSessionId = stored.sessionId;
+  _chatBusy = true;
   document.getElementById('chat-no-session').style.display  = 'none';
   document.getElementById('chat-active-area').style.display = 'flex';
   const sendBtn = document.getElementById('chat-send-btn');
-  sendBtn.disabled = false; sendBtn.style.opacity = '1';
+  sendBtn.disabled = true; sendBtn.style.opacity = '.5';
   if (stored.noteTitle) {
     const grade = stored.score ? (stored.score >= 70 ? '优秀' : stored.score >= 55 ? '良好' : '待改进') : '';
     _chatIterCount = _numOrNull(stored.version) || 1;
     chatUpdateNote(stored.noteTitle, stored.noteBody || '', stored.score || null, grade, { version: _chatIterCount, initial: true });
   }
-  chatAppendAi('已恢复上次对话 ✓  可继续优化，或点击「重新生成」开启新笔记。');
+  const identity = _chatIdentitySnapshot(), token = _authToken, sessionId = stored.sessionId;
+  const stillCurrent = () => _chatIdentityMatches(identity) && _authToken === token && _chatSessionId === sessionId;
+  try {
+    const response = await fetch(API_AUTH + '/chat/tasks/' + encodeURIComponent(sessionId), {headers: authHeader()});
+    if (!stillCurrent()) return;
+    if (!response.ok) throw new Error(`原对话读取失败（${response.status}）`);
+    const state = await response.json();
+    if (!stillCurrent()) return;
+    if (state.type !== 'chat_state') {
+      if (state.type === 'clarification_required') {
+        _chatBusy = false;
+        if (state.status === 'completed' && state.result) finishClarifiedTask(state.result,state,identity,token,true);
+        else showTaskClarification(state);
+        return;
+      }
+      throw new Error('原对话结果尚未恢复');
+    }
+    _chatParentNoteId = state.note_id;
+    _chatIterCount = _numOrNull(state.version) || 1;
+    chatUpdateNote(state.title,state.body,state.current_score,state.grade,{version:_chatIterCount,initial:true});
+    chatAppendAi(state.fact_update_pending
+      ? '已恢复商家更正。当前笔记仍是更正前的历史版本；继续优化会使用最新说明。'
+      : '已恢复上次对话与商家确认，可继续优化。');
+    chatAppendSupplementPrompts(state.supplement_prompts || []);
+    chatAppendConfirmedFacts(state.confirmed_facts || []);
+    _chatBusy = false;
+    sendBtn.disabled = false; sendBtn.style.opacity = '1';
+    chatSaveSessionToStorage();
+  } catch (error) {
+    if (stillCurrent()) chatAppendAi(`${error.message}。已保留原会话，请刷新后读取；不会重新生成或扣分。`);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -13374,6 +13408,7 @@ function fmtTokens(n) {
 /* 加载套餐 + 用量（成长档案调用）*/
 async function loadBillingPlan() {
   if (!_authToken) return;
+  const billingIdentity = _chatIdentitySnapshot(), billingToken = _authToken;
   try {
     const [planRes, usageRes] = await Promise.all([
       fetch(API_AUTH + '/billing/plan',      { headers: authHeader() }),
@@ -13382,6 +13417,7 @@ async function loadBillingPlan() {
     if (!planRes.ok || !usageRes.ok) return;
     const plan  = await planRes.json();
     const usage = await usageRes.json();
+    if (_authToken !== billingToken || !_chatIdentityMatches(billingIdentity)) return;
     // 先缓存，供 quota bars 和 toggleUsageDetail 使用
     window._lastUsageData = usage;
 

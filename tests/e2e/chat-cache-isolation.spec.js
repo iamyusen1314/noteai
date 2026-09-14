@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./offline-fixture');
 
 const OWNER_A = { id: 'synthetic-owner-a', username: 'synthetic_a' };
 const OWNER_B = { id: 'synthetic-owner-b', username: 'synthetic_b' };
@@ -21,18 +21,27 @@ function storedChat(ownerUserId = OWNER_A.id, savedAt = Date.now()) {
 
 async function installBackendRouter(page, handler) {
   const requests = [];
-  await page.route('http://127.0.0.1:8000/**', async route => {
+  const routeHandler = async route => {
     const request = route.request();
     const url = new URL(request.url());
+    url.pathname = url.pathname.replace(/^\/synthetic-api/, '');
     requests.push({ method: request.method(), path: url.pathname });
     const handled = await handler?.(route, request, url);
     if (handled) return;
+    if (url.pathname === '/chat/tasks/synthetic-session-a' && request.method() === 'GET') {
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+        type:'chat_state',session_id:'synthetic-session-a',note_id:'synthetic-note-a',
+        title:SENTINEL,body:'private synthetic body',current_score:66,grade:'良好',version:2,confirmed_facts:[]})});
+      return;
+    }
     if (url.pathname.startsWith('/billing/') && request.method() === 'GET') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
       return;
     }
     await route.abort('blockedbyclient');
-  });
+  };
+  await page.route('**/synthetic-api/**', routeHandler);
+  await page.route('http://127.0.0.1:8000/**', routeHandler);
   return requests;
 }
 
@@ -223,7 +232,7 @@ for (const status of [401, 403]) {
     });
     await openWithCache(page, null, null);
     await seedActiveChat(page);
-    await page.evaluate(() => chatSendMessage({ text: 'synthetic no-AI security probe' }));
+    await page.evaluate(() => chatSendMessage({ text: 'synthetic no-AI security probe', useCurrentAttachments: false }));
     await expectChatCleared(page);
     expect(requests.filter(r => r.path === '/chat/message')).toHaveLength(1);
     expectNoPaidOrMutationRequests(requests);
