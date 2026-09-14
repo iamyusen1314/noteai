@@ -1,3 +1,11 @@
+September14 current production: API1c94/48a with existing Ark260428 and private OSS
+now allows images only; web557d6bb restores original product upload under strictCSP
+and separates OCR prose from tags. Public registration/text/image remain available,
+video/Tracking/publicpayment closed; Admin unchanged. Real publicOCR and original
+read recovery passed. Formal image diagnosis is now in flight; latest identities,
+actual costs and Native preactivation baseline are at Handoff top. Older rollout/
+network locks below are historical states, not current dispatch instructions.
+
 # Architecture Summary
 
 September14 03:05BJT: e0b84d4 API/Admin/web deployed;0026 committed/verified.

@@ -1,3 +1,25 @@
+September14 19:47BJT current: web557d6bb985c1aebbf39a6a0d329c9aa96dc722fc
+DEPLOYED, PID1748881 completed1789386150.139891, JS6900ffb89ef3fe70bc36fb1a851439600dcbded752207951c9f32dec8e2c6496;
+/var/lib/noteai/chat-557d6bb/web-result.json; rollback6a retained. Original public
+image result restored in normal browser: text/visual retained, no fabricated tags,
+no reupload/OCR/charge. Owner-scoped read1789386269 still exactly1media/1Ark cost
+from the original screenshot. Native preactivationweb updated to557d at1789386213.646753,
+oldprepared SHAaba2bebd130c4b4442909a55adcaf0ec7e7b9cb25e6e6cde71786c43085831b3
+retained; same4feb binding and image-open recovery, no capture/neworder/DDL.
+
+Current meaningful next regression is now IN_FLIGHT: normal public screenshot
+Diagnosis on API1c94, using saved OCR/fcea media, no newOCR/merge. Originalclaim
+c3af553c-74f0-4e41-ba59-a13f01b5e0d1, usage32dd348d-e31b-475d-b35d-003ce44b4cf2,
+payload aec531d21dedb90aa905ffded9794da2ef626388e68d54a105056c4d88891212,
+created11:45:51.670525UTC,6credit charge1,complete0/refund0 at11:46:28UTC.
+Normal visible input uses original screenshot facts/no new merchant assertion;
+this validates public upload→existing OCR→multimodal/full diagnostic delivery on
+currentAPI, not a quality06 private-executor replay. Original browser remains live;
+read original claim/result/cost, do not restart/redeploy/replay in-flight task.
+Public image open/video/payment/tracking closed; Readiness30/37 unchanged.
+Owner NEW12RMB scan availability unanswered; original12RMB paid/refunded, nextday
+billSep15 and Item34 existing21:36Sep14 remain separate. No Gitpush.
+
 September14 19:42BJT: web6a37865a0500b52be5f667a7a280bec5c30735af DEPLOYED,
 PID1748087 completed1789385822.2895527, JS e8011f564690398fbb3dc813c12945c19af425b1e8e95b97520ce902ff372173;
 /var/lib/noteai/chat-6a37865/web-result.json; rollback7cec retained, API1c94/48a unchanged.
