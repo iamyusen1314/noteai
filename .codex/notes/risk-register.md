@@ -1,3 +1,9 @@
+September15 01:35BJT: wallet chart nowlivea4f30fa; runtimeunchanged. Original bill
+has not prepared/started, oldimages present. Earliest realbill10BJT; newdedupcapture
+awaitsownerscan. Video/Chat exactresult/charge/provenance verified, no newmediarequest.
+API low-impact terminology changes tested but deliberately staged fornextnecessary
+runtime release; no claim they arealready live. No newacceptance score or automation.
+
 September15 01:28BJT: b214 Chat realv3 saved and browser/DB/credits/callledgers agree.
 Explicit3paragraph/title constraints now satisfied; original AV context unchanged and
 no repeatedrecognition. Call-level steps/templates are now observed inrealproduction,

@@ -1,3 +1,26 @@
+September15 01:35BJT: Admin static wallet-source correction a4f30fab7e9f92421e3ca835786a57831dd93829
+DEPLOYED once1789407102.6959434 via existing web-only atomic/rollback pattern,
+script97d4fa70c68e5d76d82014c2bfca9fa44448938f45ff05cc015a70b99c3e3173.
+CurrentAdminweb /var/www/noteai-admin/a4f30fa, onlyJS221b2064762abcbcf5de3401b6d53c016f2b1d4644f75fbf8a4c12f95ecbd0f2;
+old538web retained. Admin538image783/APIb214imageb286/publicwebb214 unchanged,
+no restart/no provider/no businesswrites; livepublic asset hash readbackPASS.
+Owner actualcall-detail UI had already verifiedv3/6calls0.997297CNY/templates before
+this one-label release. Reload returns normalAdminlogin (inputs empty), so fresh
+postreload authenticatedchart was not claimed verified; no credentialreset/accesschange.
+API material/quotawording and aggregate provenance descriptors in a4f remain NOT_DEPLOYED,
+to bundle nextnecessaryruntime release, no business-chain blocker.
+At2026-09-14T17:34:33.004470UTC, original bill directory
+/var/lib/noteai/native-80b01ea/bill-20260914 absent; no prepared/started/operator/closed
+or unknown-file records. Existing originalPayment62ffa056 andcanary35097f4 images
+presentlinux/amd64. Frozenfc4f49f bill launcher remains staged, notexecuted; it captures
+then-currentAPI/Admin/web when prepare later, no code rebind needed for b214. Earliest
+providerbill2026-09-15T02:00UTC/10BJT. Newcapture4feb stillinactive/noownernewscan;
+original paid/refunded12RMB never replayed. No newautomation. Currentvideo→diagnosis→Chat
+andcostAdmin stage delivered; remainingNative realdedup requires owner scan andbilltime.
+31/37 unchanged. Privatewallet release result /Users/openclaw/.codex/tmp/noteai-wallet-label-a4f30fa;
+v3/cost/browser andbillpresence at /Users/openclaw/.codex/tmp/noteai-chat-structure-b214b3d.
+NoGitpush/protected7changes. Public/Admin/browser preserved; no modelrequest in flight.
+
 September15 01:31BJT: terminology/provenance-descriptor cleanup passed20 existing
 Admin/Chat checks in Python3.11/networknone. Initial test invocation used the wrong
 SQLite envvar and stoppedbeforetests; corrected NOTEAI_SQLITE_PATH with dotenvdisabled.
