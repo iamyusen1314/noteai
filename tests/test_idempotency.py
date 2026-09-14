@@ -110,6 +110,37 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         for private in (source, item['question'], item['source_quote'], '蓝猫店'):
             self.assertNotIn(private, log.getvalue())
 
+    def test_clarification_source_reference_resolves_original_and_scopes_time(self):
+        import task_clarification as clarification
+        source = "蓝猫店9月双人套餐198元，茶饮两杯。\n蓝猫店10月双人套餐198元，茶饮另点。"
+        marker = clarification.execution.set({"claim": {"request_id": "task-a"}, "merchant": "蓝猫店"})
+        try:
+            index, references = clarification.source_references(source)
+            items = [{"field": "drink_inclusion", "question": "这个双人套餐是否包含茶饮？",
+                      "source_id": ref, "source_quote": "模型概述不能代替原文", "object": "双人套餐",
+                      "time_range": "9月" if "9月" in value else "10月"}
+                     for ref, value in references.items()]
+            opinion = {"role": "内容专家", "clarification_sources": references,
+                       "raw": '<clarifications>' + json.dumps(items) + '</clarifications>'}
+            questions = clarification.questions_from_opinions([opinion], source, "蓝猫店")
+            self.assertEqual(len(questions), 2)
+            self.assertNotEqual(questions[0]['question_id'], questions[1]['question_id'])
+            self.assertEqual([q['source_quote'] for q in questions], list(references.values()))
+            self.assertEqual(clarification.questions_from_opinions([opinion], source, "蓝猫店", questions), [])
+            # A real reference from another operation cannot resolve in this map.
+            other_marker = clarification.execution.set({"claim": {"request_id": "task-b"}, "merchant": "红猫店"})
+            try:
+                _, other = clarification.source_references(source)
+            finally:
+                clarification.execution.reset(other_marker)
+            self.assertTrue(set(references).isdisjoint(other))
+            self.assertEqual(clarification.questions_from_opinions(
+                [{**opinion, 'clarification_sources': other}], source, "红猫店"), [])
+            self.assertEqual(clarification.questions_from_opinions([opinion], "其他商家套餐", "红猫店"), [])
+            self.assertTrue(all(ref in index for ref in references))
+        finally:
+            clarification.execution.reset(marker)
+
     def test_clarification_resume_concurrent_answers_keep_original_charge(self):
         import task_clarification as clarification
         claim, event, _, _ = self._waiting_task()
@@ -1182,6 +1213,13 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                 await asyncio.wait_for(auxiliary_ready.wait(), 5)
             enough=body['max_tokens'] >= (2048 if content else 4096)
             stop='end_turn' if enough else 'max_tokens';stops.append(stop)
+            if content:
+                supplied = body['messages'][-1]['content']
+                reference_json = supplied.split('【本次素材索引：只用于定位澄清问题，不是新增事实】\n', 1)[1]
+                references = json.loads(reference_json)
+                source_id = next(key for key, value in references.items() if value == source)
+                questions[0]['source_id'] = source_id
+                questions[0]['source_quote'] = '模型改写，不应由商家解决逐字匹配'
             raw=('<title>蓝猫咖啡店双人套餐</title><body>商家原始素材</body><clarifications>'+json.dumps(questions,ensure_ascii=False)+'</clarifications>') if content else '<keyword_tip>咖啡套餐</keyword_tip><tag_recommendation>咖啡</tag_recommendation><user_angle>确认套餐内容后决定</user_angle><hook>介绍已知套餐</hook>'
             return httpx.Response(200,json={'protocol_version':api._mr._cgp.PROTOCOL_VERSION,'text_blocks':[raw],
                 'model':body['model'],'stop_reason':stop,'usage':{'input_tokens':1000,'output_tokens':1500 if content else (2500 if enough else body['max_tokens']),

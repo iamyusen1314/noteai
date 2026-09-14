@@ -32,12 +32,13 @@ QUESTION_CONTRACT = """
 附加 <clarifications>JSON数组</clarifications>；无须提问时也必须写成
 <clarifications>[]</clarifications>，不要把整份回复改成裸JSON。最多3问，每问结构：
 {"field":"稳定的英文字段名","question":"指出具体不确定点的商家用语问题",
- "source_quote":"引发问题的原素材短句（必须原样引用）","object":"具体门店/套餐对象",
+ "source_id":"引发问题的本次素材编号","object":"原素材中的具体门店/套餐名称（原样使用，未写明则留空）",
  "time_range":"原文明确的适用时间，未知留空","required":false,"options":["可选的简短回答"]}
 已有答案、选择不写或暂不确定的同一问题不要重复询问。普通润色、程序解析
 错误、外部查询失败和没有必要写入的细节不能交给用户排错。不要笼统索取价格、
 地址等整套资料，不向用户说“事实校验失败/证据不足”。不能为了填满问题而提问。
 未澄清的内容不要先写成事实。商家回答是本次确认，不是外部独立核验或永久记忆。
+source_id只能选本次提供的素材编号，系统会取回原文，不需要你重新抄写引用。
 """
 
 
@@ -53,6 +54,26 @@ def enabled():
 
 def question_contract():
     return QUESTION_CONTRACT if execution.get() else ""
+
+
+def source_references(source):
+    """References belong to this expert invocation, never to model-authored text."""
+    context = execution.get()
+    if not context:
+        return "", {}
+    claim = context.get("claim")
+    scope = str(claim.get("request_id") or "") if isinstance(claim, dict) else ""
+    scope += "\0" + str(context.get("merchant") or "")
+    references = {}
+    for line in str(source or "").splitlines():
+        line = line.strip()
+        for start in range(0, len(line), 300):
+            part = line[start:start + 300]
+            if len(part) >= 2:
+                key = "s_" + hashlib.sha256((scope + "\0" + part).encode()).hexdigest()[:16]
+                references[key] = part
+    return ("\n\n【本次素材索引：只用于定位澄清问题，不是新增事实】\n" +
+            json.dumps(references, ensure_ascii=False), references)
 
 
 def questions_from_opinions(opinions, source, merchant="", answered=()):
@@ -86,6 +107,13 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                 continue
             field = item.get("field")
             quote = item.get("source_quote")
+            source_id = item.get("source_id")
+            if source_id is not None:
+                references = opinion.get("clarification_sources", {})
+                quote = references.get(source_id) if isinstance(source_id, str) and isinstance(references, dict) else None
+                if not isinstance(quote, str) or quote not in source:
+                    statuses.append("invalid_source_reference")
+                    continue
             question = item.get("question")
             obj = str(item.get("object") or "").strip()
             if (not isinstance(field, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", field)
@@ -97,13 +125,13 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                                 else "object_mismatch" if obj and obj not in source
                                 else "invalid_question_fields")
                 continue
-            qid = hashlib.sha256((merchant + "\0" + obj + "\0" + field).encode()).hexdigest()[:24]
-            if qid in answered_ids or any(q["question_id"] == qid for q in questions):
-                statuses.append("already_answered_or_duplicate")
-                continue
             time_range = str(item.get("time_range") or "").strip()
             if time_range and time_range not in source:
                 time_range = ""
+            qid = hashlib.sha256((merchant + "\0" + obj + "\0" + field + "\0" + time_range).encode()).hexdigest()[:24]
+            if qid in answered_ids or any(q["question_id"] == qid for q in questions):
+                statuses.append("already_answered_or_duplicate")
+                continue
             options = item.get("options")
             if not isinstance(options, list):
                 options = []
@@ -264,7 +292,7 @@ def resume(user_id, session_id, version, answers):
 def answer_context(task):
     latest = {a["question_id"]: a for a in task["answers"]}
     lines = ["【本次商家确认；仅适用于本任务，不是外部独立核验或长期偏好】",
-             "本段对相同对象的旧口径有优先权；旧专家草稿是待修正建议，不是事实。"]
+             "本次最新商家确认优先于同一对象、同一时间范围的旧口径；历史仅留存，旧专家草稿不是事实。"]
     for q in task["questions"]:
         a = latest.get(q["question_id"])
         if not a:

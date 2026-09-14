@@ -1,6 +1,6 @@
 # NoteAI Production Deployment Execution Plan
 
-Current September14 10:50: original first-generation failure is confirmed expert max_tokens truncation (2048 each), not 0027 or DB pause. Preserve original failed/refunded request and actual RMB0.300489 cost. API31c24cc is live; scoped successor removes legacy local expert caps using active formal route capacity and fixes stale-report error navigation. No migration replay, role expansion, Item34 change or automatic model retry. See current Handoff for exact records.
+Current September14 11:17: API3e660f2/imagea11f223e and web4c0c1ac are deployed; original0027 is already applied. Expert capacity and safe SSE navigation fixes are live. Prior8d5e generation completed with29 real calls/RMB2.841979/8credits once, but did not pause and is not a quality/clarification pass. Parser protocol/format compatibility and private-safe fixed reason codes are now live; a new normal-page clarification test is in flight. Read its original result before any further submit. No migration replay, role expansion, Item34 change or automatic model retry. See current Handoff for exact artifact, claim and rollback records; Native/media work remains.
 
 September14 clarification implementation uses existing chat/idempotency, not a new
 queue or charge. Release scope: current-source API5 modules plus task_clarification,

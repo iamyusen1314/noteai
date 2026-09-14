@@ -3017,8 +3017,9 @@ async def _agent_content(
         + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
-    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user, max_tokens=4096)
-    return {"role": "内容专家", "raw": raw}
+    source_index, references = _clarification.source_references((desc or "") + "\n" + agent_context)
+    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user + source_index, max_tokens=4096)
+    return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
 
 # ── Agent 2: 视觉专家 ─────────────────────────────────────────────
@@ -4062,8 +4063,10 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
         )
     # Complete expert output uses the formal route capacity, including questions.
     # The active model configuration may lower this ceiling; usage is metered.
-    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user, max_tokens=16000)
-    return {"role": "内容专家", "raw": raw}
+    original = (_clarification.execution.get() or {}).get("source_material") or brief or ""
+    source_index, references = _clarification.source_references(original + "\n" + image_desc)
+    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user + source_index, max_tokens=16000)
+    return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
 
 # ── Generation Agent 3: 增长策略 ──────────────────────────────────
@@ -8035,7 +8038,7 @@ def _merge_supplement_values_into_session(session: dict, supplement_values: dict
             "time_range": str(prior.get("time_range") or question.get("time_range") or "仅本次，未声明长期有效"),
             "confirmed_at": _now_iso(), "revision": len(records) + 1})
     latest = {record["question_id"]: record for record in records}
-    lines = [base, "【本次商家确认；对同一对象的旧口径优先，不是外部核验或永久记忆】"]
+    lines = [base, "【本次最新商家确认优先于同一对象、同一时间范围的旧口径；历史仅留存，不是外部核验或永久记忆】"]
     supplement_lines = [
         f"- 门店：{item.get('merchant') or '本任务对象'}；对象：{item.get('object') or '本次内容'}；"
         f"时间：{item.get('time_range') or '仅本次'}；{item.get('question') or _supplement_fact_label(item.get('field'))}：" + (
@@ -16416,7 +16419,7 @@ async def _generate_pipeline_stream(
                     for r in deep_results_s[1:] if isinstance(r, (str, dict))
                 ]
             else:
-                vis_result    = {"_image_desc": brief or domain}
+                vis_result    = {"role": "视觉专家", "raw": "<opinion>未上传图片，沿用文字素材</opinion>", "_image_desc": ""}
                 extra_deep_s  = []
 
             # Match the synchronous pipeline: all submitted images keep full observations.
@@ -16438,7 +16441,7 @@ async def _generate_pipeline_stream(
                 image_desc = f"【主图】\n{image_desc}\n\n【其余{len(all_extra_s)}张素材图】\n" + "\n".join(all_extra_s)
             vis_result = {**vis_result, "_image_desc": image_desc}
 
-            scene = _xtag_any(vis_result.get("raw", ""), "scene", "image_desc") or image_desc[:80]
+            scene = _xtag_any(vis_result.get("raw", ""), "scene", "image_desc") or image_desc[:80] or "未上传图片，沿用文字素材"
             hooks = _xtag_any(vis_result.get("raw", ""), "hooks", "inspiration")
             yield {
                 "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,

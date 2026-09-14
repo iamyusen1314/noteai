@@ -1,5 +1,35 @@
 # NoteAI Internal Production Readiness Handoff
 
+September14 11:32BJT: original3e test6f7b734f-c1d9-43c6-8f8e-13861afbe4bf /
+usage0aba01d8-9469-4a80-a6c3-c2bfae9c18dc (created03:23:18.532380UTC) is sealed
+FAILED, charge1/refund1/complete0,8credits refunded once. CloudAssistant87 fixed
+reason code source_quote_mismatch proves proposed questions were rejected by the
+literal-source check; raw quote was not retained, so its exact difference is unknown.
+CloudAssistant88:6responded calls,5Haiku/25683in/10431out/RMB0.544866 and1Sonnet/
+7898in/4798out/RMB0.669648 = RMB1.214514 exact/complete usage. No new pausedsession.
+Future correction uses the same content call with task/merchant-bound source IDs;
+server resolves original text, no fuzzy matching or additional lookup model. Existing
+quote-only data remains supported, old identities/results unchanged. New question IDs
+include verified time scope; latest merchant corrections explicitly override the old
+same-object/time wording. No-image generation no longer calls text instructions a
+visual observation. Isolated Python3.11/network-none source-isolation and original
+first-ASGI/router/three-call/one-charge pause regressions pass2. Full targeted
+regression13 also passed; scoped API successor pending. First test-container import
+failed because its read-only source had no writable SQLite path; corrected the
+isolated /tmp path, not production or business code. This is not a real clarification pass.
+
+Current September14 11:17BJT: API parser successor3e660f2 is DEPLOYED, original
+web remains4c0c1ac. Imagea11f223ecc4d55264e7bce0d4348b75b3480d67bdbfae253d4c47367e7462c86,
+CID154de359a83e94e5263d73ca1240960f844d4706cf664a745310d74d8a7956e0.
+Archivefaea308e5d9f727907656c5edd85315577fa1ec1c72009c7adc6f2678980c530 uploaded once;
+build1664314 completed1789355750.7361774; deployment1664564 completed1789355817.2161584.
+CloudAssistant86 read original /var/lib/noteai/clarification-3e660f2/deploy/result.json:
+DEPLOYED_CLARIFICATION_PARSER_API_ONLY; exact18081 candidate stopped. No migration,
+Admin/model/env/route change. Prior4c/31 artifacts retained. New normal-page synthetic
+restaurant generation now IN_FLIGHT; read its original claim before any further
+submission. Old8d5e completed result and all costs remain unchanged. Next verify
+natural question/free answer/same-task continuation/ledger, then Native and media.
+
 ## September14 11:10 Beijing — generation completes; clarification interaction still incomplete
 
 New original claim8d5e2cea-5f5c-458c-81f0-54bddb65338f / usage7ae982ac-ad88-4b40-ace8-021a4a7ef6d8

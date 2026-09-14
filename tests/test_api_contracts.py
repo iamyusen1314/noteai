@@ -3117,7 +3117,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("必点/招牌菜：小青龙乌冬、汤泡饭", session["fact_context"])
         self.assertIn("营业时间：周一至周日 11:00-22:00", session["fact_context"])
         self.assertIn("人均80元", session["generate_context"]["original_fact_context"])
-        self.assertIn("对同一对象的旧口径优先", session["fact_context"])
+        self.assertIn("本次最新商家确认优先于同一对象、同一时间范围的旧口径", session["fact_context"])
         self.assertEqual(session["generate_context"]["merchant_confirmations"][0]["source"], "merchant_confirmation")
         self.assertEqual(
             session["generate_context"]["confirmed_supplement_values"]["must_order"],
