@@ -1,3 +1,22 @@
+September14 18:34BJT current: quality05 COMPLETED, not content-quality acceptance.
+Claim9c139e5e-9192-4620-8eb4-5225bccfa2db, usagea9430882-48ec-4669-aaee-2f26da53443f:
+charge1/refund0/complete1,6credits once;23responded calls,2.671361RMB actual.
+18Haiku64526in/13692out0.930902;4Sonnet29775in/10608out1.739115;
+1Ark1916in/54out0.001344. Original result completed1789381544.4946716,
+SSE0cf0e9bafbafaa009e405f1c9f1292ba6b6fc522e48f6cd3ded3d20efa41ccd5;
+private /var/lib/noteai/media-a3dd45a/owner-check/quality-read-1789381954113858146.json.
+Saved diagnosisbad38233-8ec7-416f-9315-32579cbcf953/notea83b6458-548e-4e78-b0a7-0b7ecac35d51.
+Scores63.3/71.7/65.5; one final plan restored omitted price and other plans added
+unsupported cooking/experience details. No new quality06: trace deterministic final
+constraint/fallback paths first. Exacta76acc5f candidate stopped/auto-removed1789382002.8791838.
+APIa3dd45a/web3dce194 remain live, publicmedia/video/payment closed;30/37 unchanged.
+Admin actual runtime read10:24UTC confirmed Ark/Claude dynamic cost aggregates with
+explicit historical unknowns (25/28 strict actual, actual_margin_readyFalse); existing
+Admine0b84d4 already contains those modules. Admin browser remains login, not UI-verified.
+Original12RMB paid/refunded once; remaining Native realduplicatecallback and next-day
+bill are distinct. Next local work prepares default-off, exact-canary one-time failure
+ACK after verified normal commit for genuine provider redelivery; no old order replay.
+
 September14 18:20BJT current: a3dd45a3b399190154bd9c07e7bbdee54ea5640c API
 DEPLOYED, imagef5a4e9d1dec3e2a1189b7d5a62ddd2ece59613c6a22bf467fd6f391aad42fbed.
 Original buildPID1734802 completed1789381075.7028086; deployPID1735091 completed

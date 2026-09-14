@@ -1,3 +1,10 @@
+September14 18:34BJT: APIa3dd45a/web3dce194 live. Quality05 confirms execution and
+once-only accounting, but final omitted-price/unsupported-detail defects remain;
+source policy alone did not resolve this. Original result/cost retained, exact private
+candidate stopped. Do not infer quality from checked or model scores, or repeat the
+same material without a concrete new implementation hypothesis. Native original
+payment/refund complete; duplicate notification and next-day bill remain distinct.
+
 September14 current:3dce194 API/web live; same-chat correction refresh verified.
 Quality04 full chain/once-charge29calls is confirmed, content-quality gap persists.
 Experts themselves requested unsupported experiential expansion; common source/advice
