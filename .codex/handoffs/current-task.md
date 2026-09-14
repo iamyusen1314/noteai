@@ -1,3 +1,29 @@
+September14 20:59BJT API-only b09e69073b09697c993c7e8eb569becabe5ac0cf DEPLOYED,
+image64a4e8582490c02b2984e4c4689181c338cd2a4ccf9f610dbb8b19d285842928.
+OriginalbuildPID1759749 complete1789390498.6954246;deployPID1759985 complete
+1789390555.807977. Results /var/lib/noteai/media-b09e690/{build/build-result.json,deploy/result.json}.
+Python3.11.15/amd64/18filechecks, exact candidate stopped.05af API rollback retained;
+web05af/Admin/env/model/locations unchanged; no build/deploy model or business writes.
+API-drop55641a0ee51f993486dd738b44ef49ab7c938ea4004db1557c5efba0eebef8f6.
+
+Same inactive Native4feb prepared CAS updated1789390656.4937503; no prepare/replay:
+prepared0411bdca21c70768f48032636cf677e1526fea46c43fcf33b78e767ac1118d3f,
+launcher /var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-b09e690.py
+SHA6377922d8cbf1cf43d025add8e8bf184ae6b5d5abe5ba190327d151fd47efcb0.
+Oldprepared333 retained prepared-before-b09e690.json; new drop backup
+1-public-product-b09e690.conf; web05af/samebinding/SQL/activation preserved.
+Original12RMB order remains paid and fully refunded; newscan availability unanswered.
+
+NEW normal public GENERATE underway: original fixture fashion_petite_commute_001
+from quality/preference_task_pool.v01.seed.json, clearly identified as product test
+brief, not real merchant inventory. Owner account normalUI, three-outfit list/OMIT,
+no images/upload/XHS request. Claim113152a0-569f-48fe-a7db-c7b342b69f1c,
+payloadb2dfca23d80cfdaf6a0adbcfe5e2db7dfc601e9bcc45142d38062fe0849c3be5,
+usageadb57398-9aa9-4786-8a78-0659d6d00273, created12:58:19.057318UTC,
+8credits charge1; read original result before any new action/restart. No repeat lobster
+sample. Video still requires an authorized audio-bearing file; question pending.
+Item34 original Sep14 21:36 schedule unchanged. Readiness30/37; noGitpush.
+
 September14 20:55BJT source-priority repair READY_TO_APPLY, production remains05af.
 Existing second-pass editor may identify an actually removed unsupported old span;
 selection preserves that correction despite lower telemetry only with existing hard
