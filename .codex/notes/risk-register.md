@@ -1,3 +1,10 @@
+September14 22:00BJT: Item34 generation2 original24h/3d and managed controls now
+meet the existing validator;31/37, no earlier failures rewritten. Original temporary
+SELECT restored after each phase;3d grant connection loss was reconciled NOT_APPLIED
+before recovery. No unresolved DB operation, no ongoing sampler or automation.
+XHS actual incremental fees remain unknown;35/100 reserved. Formal product/chat,
+video and WeChat payment closure remain independent pending work; see Handoff top.
+
 September14 21:31BJT: actual chat saved77.47 but missed freeform editing requirements;
 full current request was absent in downstream shaping and sentence truncation flattened
 paragraphs. Minimal local fix and7 offline regressions pass; real current candidate

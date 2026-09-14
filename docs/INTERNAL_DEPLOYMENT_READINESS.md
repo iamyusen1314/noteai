@@ -1,16 +1,20 @@
 # NoteAI Internal Deployment Readiness
 
-## Current owner scope — September 12
+## Current owner scope — September 14
 
-The owner authorizes restoring the real product and bounded free usage, with
-payments closed. Item35 professional signatures are withdrawn from release
-requirements and dispatch; the original unsigned control remains historical,
-with no DONE credit. There are30verified controls,7active incomplete controls and
-1withdrawn requirement (current30/37; historical30/38). Item numbers and frozen
-Evidence are unchanged. Full commercial `--require public` is still incomplete;
-it is not a prerequisite for this separately authorized incremental free release.
-ICP is complete: 粤ICP备2026135207号-1. Earlier snapshots and “public prohibited”
-statements below describe their historical scope, not the current authorization.
+Current Readiness is **31/37**:31verified controls,6active incomplete controls and
+1withdrawn requirement (Item35 NOT_REQUIRED, no credit). Item34 generation2 passed
+its existing complete validator after the original qualified24h and real3d stage,
+including original configuration/ACL restoration and managed controls. No historical
+Item1–30 was rerun; old failed observations remain unchanged.
+
+The current owner authorization covers the formal product with equal quality for
+equivalent granted and purchased rights, original Admin operations, and WeChat-first
+integration. Public payment activation still requires its real delivery/payment
+closure; Alipay is DEFERRED/DISABLED. Existing product deployment and quality work
+continue independently of this acceptance count. ICP is complete:
+粤ICP备2026135207号-1. Current deployment/remaining work is at the Handoff top.
+Earlier snapshots and scope restrictions below are retained historical records.
 
 
 Task: `PROD-FIRST-LAUNCH-INTERNAL-READINESS-GATE-001`

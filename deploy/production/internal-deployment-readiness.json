@@ -16417,7 +16417,7 @@
         {
           "id": "tracking_real_and_promotion",
           "title": "Tracking real-note 24h/3d proof and managed promotion",
-          "status": "unverified",
+          "status": "verified",
           "observation_generation": 2,
           "observation_authorization": {
             "authorization_checkpoint": "11074c6147cc4acebb3b72c2470fe25debe49c0e",
@@ -16434,8 +16434,7 @@
               "ref": "deploy/production/evidence/production-tracking-observation-audit-20260903.json"
             }
           ],
-          "blocker": "Generation2 established by existing owner CAS and independent readback at2026-09-11T13:34:10.891601Z, initial4/2/2, original target UPDATE1/newadmissions0. Published corrected4cc image87b9 reads the owned note successfully with normal initialization; oldg0/g1 failures and0020 remain sealed. New24h and3d are not yet due; scheduled unique same-task continuation September12/14 at21:36Beijing. Current managed cycle health/resource/restart/singleton verified, remaining controls/run identities incomplete. Readiness remains unverified; no old-window replay or terminal credit.",
-          "next_task": "PROD-XHS-TRACKING-REAL-XHS-CANARY-001"
+          "verification_summary": "Generation2 original24h and3d real single-admission stages succeeded within approved windows; original T0/image/failed history preserved.3d completed2026-09-14T13:53:22.270280Z, original durable cleanup/configuration restore verified, original ACL independently restored. Existing full Item34 validator passed2026-09-14T14:00:25.717571Z. Canonical records real6-table8-distinct g2 and combined16 history; automation deleted after completion."
         },
         {
           "id": "legal_provider_approval",

@@ -1831,8 +1831,8 @@
   "recovery_observation": {
     "schema": "noteai.item34.tracking_observation.v1",
     "item": 34,
-    "status": "24H_SAMPLE_SUCCEEDED_ACL_RESTORED_3D_PENDING",
-    "readiness_credit": false,
+    "status": "VERIFIED",
+    "readiness_credit": true,
     "previous_observation_sha256": "115b8916c6b7eb828f4cd654b175a3b9fbb4be754286ad9b68149d1dc37b670f",
     "observation_generation": 2,
     "observation_binding": {
@@ -1903,7 +1903,20 @@
         "source": "Original generation2 24h native DB snapshot and successful attempt. Original host final result failed in cleanup; no provider replay, timestamp change or replacement snapshot.",
         "source_journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3"
       },
-      "checkpoint_3d": null,
+      "checkpoint_3d": {
+        "metrics": {
+          "comments": 2,
+          "likes": 4,
+          "saves": 2
+        },
+        "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+        "attempt_identity_sha256": "b7aced9c2ffb5060eb41efe7b994d3b9df61c195cf75531608deb990164bac73",
+        "observation_binding_sha256": "820021a3b76df257fceb539ad68b5e3c6c17ae29c7a7fb7180afceca3111c14f",
+        "observed_at": "2026-09-14T13:53:28.268806+00:00",
+        "managed_track_identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+        "source": "Original generation2 3d native post snapshot and durable VERIFIED result; no replay or backfill.",
+        "source_journal_sha256": "a51bcd816049e8f385654844565370de617aa542199a123ce873d3eca43a2403"
+      },
       "actual_provider_attempts": [
         {
           "identity_sha256": "0d501421f68efb29060705ffc5d9b658b99acd0510d84a440cadc53943faaf4d",
@@ -1939,12 +1952,58 @@
           "physical_http_requests": 3,
           "initialization_requests": 2,
           "detail_requests": 1,
-          "source_journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3"
+          "source_journal_sha256": "3a402fc17150aef76664ca92b9572430bb18dbc9c34e0e8d818f01af1c5866f3",
+          "observation_generation": 2,
+          "observation_binding_sha256": "820021a3b76df257fceb539ad68b5e3c6c17ae29c7a7fb7180afceca3111c14f"
+        },
+        {
+          "run_identity_sha256": "84ede2d9faaaa6429e73a9626508d89501b4b5e94783785f47baa431d2ae79a7",
+          "canonical_stage": "3d",
+          "persisted_stage": "7d",
+          "admitted_at": "2026-09-14T13:53:20.951505+00:00",
+          "completed_at": "2026-09-14T13:53:22.270280+00:00",
+          "automatic_retry_count": 0,
+          "crawler_events_inserted": 1,
+          "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+          "training_eligible": false,
+          "score_window": "3d",
+          "growth_action": "url_crawl_3d",
+          "memory_window": "3d",
+          "memory_content_sha256": "b9c623e9c3eb6ea7a37f468dd0617385ac5ef6562d4e3a29e7eb83dfe81e0abc",
+          "identity_sha256": "b7aced9c2ffb5060eb41efe7b994d3b9df61c195cf75531608deb990164bac73",
+          "status": "succeeded",
+          "ledger_readback": "VERIFIED",
+          "actual_supplier_call": true,
+          "call_count": 1,
+          "worker_mode": "once",
+          "round_limit": 1,
+          "run_provider_calls": 1,
+          "due_candidate_count_before": 1,
+          "due_target_match": true,
+          "force_used": false,
+          "other_row_mutations": 0,
+          "outcome_unknown_count_before": 0,
+          "outcome_unknown_count_after": 0,
+          "runtime_quiescent_before": true,
+          "runtime_quiescent_after": true,
+          "configuration_transition_used": true,
+          "configuration_row_mutations": 2,
+          "configuration_restored": true,
+          "managed_track_identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+          "observation_generation": 2,
+          "observation_binding_sha256": "820021a3b76df257fceb539ad68b5e3c6c17ae29c7a7fb7180afceca3111c14f",
+          "source_journal_sha256": "a51bcd816049e8f385654844565370de617aa542199a123ce873d3eca43a2403",
+          "physical_http_requests": 3,
+          "initialization_requests": 2,
+          "detail_requests": 1
         }
       ],
       "manual_fill_used": false,
       "backfill_used": false,
-      "early_credit": false
+      "early_credit": false,
+      "continuity_break_count": 0,
+      "interruptions": [],
+      "continuity_basis": "Original generation2 T0/initial binding and original unique 24h/3d attempts, ordered within approved windows; no reset/backfill/replay. Existing plan later-binding rule does not require managed service or row to cover all72h. Scheduled one-shot stops and resolved pre-dispatch DMS connection loss are retained as operations history, not substituted samples."
     },
     "owner_open_observation": {
       "status": "VERIFIED",
@@ -2037,7 +2096,21 @@
       "tracked_notes_update_count": 1,
       "new_rows_created": 0,
       "provider_admissions": 0,
-      "temporary_grant_performed": false
+      "temporary_grant_performed": false,
+      "initial_production_write_set": {
+        "tables": [
+          "tracked_notes"
+        ],
+        "rows_by_table": {
+          "tracked_notes": 1
+        },
+        "row_mutations": 1,
+        "out_of_contract_row_mutations": 0,
+        "ledger_readback": "VERIFIED_INITIAL_CAS_NOT_TERMINAL",
+        "ledger_readback_sha256": "5d4edb5f33ffd6e07bfa2e72822962867069911daa0278022be73c72517b586f",
+        "basis": "One original target UPDATE by existing0020 function. No new attempts, settings, migration, growth or memory rows; future terminal write set is not yet actual.",
+        "scope": "initial owner CAS only; actual 24h deltas are retained under phase_24h_reconciliation.actual_write_audit/config_transitions; terminal cumulative accounting pending"
+      }
     },
     "generation_migration": {
       "path": "model/migrations/postgres/0020_tracking_observation_generation.sql",
@@ -2055,17 +2128,25 @@
     },
     "actual_production_write_set": {
       "tables": [
-        "tracked_notes"
+        "crawler_events",
+        "growth_records",
+        "system_settings",
+        "tracked_notes",
+        "tracking_provider_attempts",
+        "user_memories"
       ],
       "rows_by_table": {
-        "tracked_notes": 1
+        "tracked_notes": 1,
+        "tracking_provider_attempts": 2,
+        "growth_records": 1,
+        "user_memories": 1,
+        "crawler_events": 2,
+        "system_settings": 1
       },
-      "row_mutations": 1,
+      "row_mutations": 8,
       "out_of_contract_row_mutations": 0,
-      "ledger_readback": "VERIFIED_INITIAL_CAS_NOT_TERMINAL",
-      "ledger_readback_sha256": "5d4edb5f33ffd6e07bfa2e72822962867069911daa0278022be73c72517b586f",
-      "basis": "One original target UPDATE by existing0020 function. No new attempts, settings, migration, growth or memory rows; future terminal write set is not yet actual.",
-      "scope": "initial owner CAS only; actual 24h deltas are retained under phase_24h_reconciliation.actual_write_audit/config_transitions; terminal cumulative accounting pending"
+      "ledger_readback": "VERIFIED",
+      "ledger_readback_sha256": "19a186f54c0b39a4ed93528ad5d92658def8cfcf432806c82b686af118851462"
     },
     "host_binding": {
       "path": "/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/generation2/observation-binding.json",
@@ -2082,7 +2163,7 @@
       "executor_3d_not_before": "2026-09-14T13:34:10.891601+00:00"
     },
     "managed_promotion": {
-      "status": "INCOMPLETE",
+      "status": "VERIFIED",
       "singleton_winner_count": 1,
       "resource_controls": "PASS",
       "restart_controls": "PASS",
@@ -2098,7 +2179,7 @@
       "completed_cycle_restored": true,
       "journal": "/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/managed-4cc77f4-entrypoint/managed.host.jsonl",
       "journal_sha256": "1f7f86f8ebb3002aa1d3102d5f8425406dd5a53b2184741754c74385b9ba3fb1",
-      "remaining": "24h temporary ACL must be restored; 3d due September14 and final full DoD/accounting remain pending. Original cleanup identity failure preserved; exact exited container removed with logs retained.",
+      "remaining": "None for this approved Item34 observation; original24h cleanup failure and delayed ACL recovery remain in phase_24h_reconciliation.",
       "current_host_controls": {
         "at": "2026-09-11T13:49:15.706962+00:00",
         "before": {
@@ -2174,11 +2255,13 @@
           "form_saved": false
         }
       },
-      "alert_delivery_basis": "Reuse original accepted monitoring_alerting notification test; current same-rule target, severity, threshold, evaluation, all-day schedule and notification group reread. Period60s and namespace are LAST_KNOWN from original acceptance, not exposed in current UI. No test notification or rule change."
+      "alert_delivery_basis": "Reuse original accepted monitoring_alerting notification test; current same-rule target, severity, threshold, evaluation, all-day schedule and notification group reread. Period60s and namespace are LAST_KNOWN from original acceptance, not exposed in current UI. No test notification or rule change.",
+      "final_runtime_quiescent": true,
+      "current_preflight_sha256": "c9c85938c43957d93f802a3aef9caf86915c60050511ca93905248972ca4f033"
     },
-    "provider_admissions": 1,
+    "provider_admissions": 2,
     "automatic_retry_count": 0,
-    "terminal_finalized_at": null,
+    "terminal_finalized_at": "2026-09-14T14:00:14.533555+00:00",
     "sampling_windows": {
       "24h_not_before": "2026-09-12T13:34:10.891601+00:00",
       "24h_completion_and_snapshot_strictly_before": "2026-09-14T13:34:10.891601+00:00",
@@ -2232,18 +2315,26 @@
     },
     "scheduler": {
       "id": "noteai-item34-generation2",
-      "status": "ACTIVE",
-      "next_run_at": 1789393052000,
-      "last_run_at": 1789220182215,
+      "status": "DELETED_AFTER_BOTH_STAGES",
+      "next_run_at": null,
+      "last_run_at": 1789393077248,
       "rrule": "RRULE:FREQ=WEEKLY;BYDAY=SA,MO;BYHOUR=13;BYMINUTE=36;BYSECOND=0;COUNT=2",
       "kind": "heartbeat",
       "target_thread_id": "01a079a4-1c05-7d21-a98a-2d418cdd20c9",
-      "next_utc": "2026-09-14T13:37:32+00:00",
-      "next_beijing": "2026-09-14T21:37:32+08:00",
-      "readback_basis": "Current local scheduler row; heartbeat runs not represented in automation_runs table"
+      "next_utc": null,
+      "next_beijing": null,
+      "readback_basis": "Original automation tool delete returned deleted after real3d success, exact runtime cleanup and owner ACL restore; no replacement automation.",
+      "last_scheduled_continuation": {
+        "status": "ACTIVE",
+        "next_run_at": 1789393052000,
+        "last_run_at": 1789220182215,
+        "next_utc": "2026-09-14T13:37:32+00:00",
+        "next_beijing": "2026-09-14T21:37:32+08:00"
+      },
+      "deletion_result": "deleted"
     },
     "cost": {
-      "cumulative_repair_reserved_cny": 32,
+      "cumulative_repair_reserved_cny": 35,
       "cumulative_cap_cny": 100,
       "actual_incremental": "UNKNOWN_NOT_ZERO",
       "repair_physical_requests": 11,
@@ -2251,14 +2342,14 @@
       "repair_detail_requests": 3,
       "old_pre_authorization_diagnostic_calls": 1,
       "old_tracking_admissions": 2,
-      "generation2_tracking_admissions": 1,
+      "generation2_tracking_admissions": 2,
       "batch04_physical_requests": 0,
-      "generation2_physical_requests": 3,
-      "generation2_initialization_requests": 2,
-      "generation2_detail_requests": 1
+      "generation2_physical_requests": 6,
+      "generation2_initialization_requests": 4,
+      "generation2_detail_requests": 2
     },
     "managed_tracking_row_started": true,
-    "provider_calls": 1,
+    "provider_calls": 2,
     "phase_24h_reconciliation": {
       "original_host_terminal": [
         {
@@ -2475,6 +2566,315 @@
       "next_run_at_unchanged": 1789393052000,
       "last_run_at_unchanged": 1789220182215,
       "readiness_credit": false
+    },
+    "production_preparation_20260907": {
+      "runtime_config_migration": {
+        "version": "0019_xhs_tracking_runtime_config.sql",
+        "ledger_source_sha256": "bad6b9df591aba93a6f636c3185d955062a878ce9ed2a92d6c1dff5e5c267a6f",
+        "ledger_exact_count": 1,
+        "search_path_binding": true,
+        "rls_contract_exact": true,
+        "policy_name": "noteai_xhs_tracking_config_read_v1",
+        "production_policy_count": 1,
+        "policy_contract_count": 1,
+        "policy_qual_readback": "((CURRENT_USER = 'noteai_xhs_tracking'::name) AND (is_secret = 0) AND (key = ANY (ARRAY['crawler_config'::text, 'xhs_collection_safety'::text])))",
+        "policy_qual_readback_sha256": "0b9f96f9d27f4213c57554297af0d3111f7885ea2f0b0fb8dc9bbe91648e7af0",
+        "schema_migrations_insert_count": 0,
+        "business_row_mutations": 0,
+        "path": "model/migrations/postgres/0019_xhs_tracking_runtime_config.sql",
+        "sha256": "bad6b9df591aba93a6f636c3185d955062a878ce9ed2a92d6c1dff5e5c267a6f",
+        "production_status": "VERIFIED",
+        "ledger_readback": "VERIFIED",
+        "ledger_readback_sha256": "1186f2d2c0ae312cfda2a91271d03f6cd4f58735603994c21c1add514fdff617",
+        "readback_basis": "Original0019 application remains historical; generation2 performs no migration. Same policy/RLS and exact0019/0020 ledgers reread by owner2026-09-14T21:57:57.321093+08:00.",
+        "current_catalog_readback_sha256": "9535035fed1810645bbc2641a3def847189f2938a55efd7cb2b333004a733865"
+      }
+    },
+    "authorized_auxiliary_effects": {
+      "authorization_checkpoint": "11074c6147cc4acebb3b72c2470fe25debe49c0e",
+      "authorization_plan_sha256": "e77d033a5c25392f48d66a6bf2ed3e6331727728915386a1634d2d4921a24162",
+      "execution_record_ref": ".codex/handoffs/current-task.md",
+      "authentication": [],
+      "policy_ddl": {
+        "operation": "VERIFY_EXISTING_0019_0020",
+        "readback": "USE_EXISTING_MIGRATION_RECORDS"
+      },
+      "temporary_attempts_select": [
+        {
+          "stage": "24h",
+          "grant_added": true,
+          "original_acl_restored": true,
+          "original_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+          "restored_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c"
+        },
+        {
+          "stage": "3d",
+          "grant_added": true,
+          "original_acl_restored": true,
+          "original_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c",
+          "restored_acl_sha256": "1eb70c04eb6ea3530e78fa3f9c7dc3ab64e780150ef4d299fde8294141b8fa7c"
+        }
+      ],
+      "safety_flag": {
+        "key": "xhs_collection_safety",
+        "outcome": "NOT_NEEDED",
+        "actual_committed_row_mutations": 0
+      },
+      "unexpected_effects": []
+    },
+    "combined_production_write_set": {
+      "rows_by_table": {
+        "schema_migrations": 2,
+        "tracked_notes": 1,
+        "tracking_provider_attempts": 4,
+        "crawler_events": 6,
+        "system_settings": 1,
+        "growth_records": 1,
+        "user_memories": 1
+      },
+      "distinct_rows": 16,
+      "provider_admissions": 4,
+      "ledger_readback": "VERIFIED",
+      "basis": "Sealed g0/g1 plus original generation2 target/attempt/effect records; global crawler_events6 confirmed by owner readback21:57:57. Source migration rows2 reused; no repeated migration or historical reclassification.",
+      "source_catalog_readback_sha256": "9535035fed1810645bbc2641a3def847189f2938a55efd7cb2b333004a733865",
+      "projection_sha256": "209af633b02cf71f02bbade8ead1a666c844a5720c233d782a6dcec9e9b62e3f",
+      "source_terminal_effects_ledger_sha256": "343b0b173c5424e201999b2edb95896e07245c97a52d8993b5e1942396161df4"
+    },
+    "phase_3d_reconciliation": {
+      "original_journal_sha256": "a51bcd816049e8f385654844565370de617aa542199a123ce873d3eca43a2403",
+      "original_journal_bytes": 23922,
+      "original_final_result": {
+        "admitted_at": "2026-09-14T13:53:20.951505+00:00",
+        "attempt_count_24h": 1,
+        "attempt_count_7d": 1,
+        "attempt_identity_sha256": "b7aced9c2ffb5060eb41efe7b994d3b9df61c195cf75531608deb990164bac73",
+        "automatic_retry_count": 0,
+        "canonical_stage": "3d",
+        "checkpoint": "3d",
+        "checkpoint_observed_at": "2026-09-14T13:53:28.268806+00:00",
+        "completed_at": "2026-09-14T13:53:22.270280+00:00",
+        "crawler_events_inserted": 1,
+        "growth_action": "url_crawl_3d",
+        "growth_records_inserted": 1,
+        "immutable_artifact_sha256": "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703",
+        "item": 34,
+        "managed_transition": {
+          "configuration_row_mutations": 2,
+          "restored": true,
+          "used": true
+        },
+        "memory_content_sha256": "b9c623e9c3eb6ea7a37f468dd0617385ac5ef6562d4e3a29e7eb83dfe81e0abc",
+        "memory_window": "3d",
+        "metrics": {
+          "comments": 2,
+          "likes": 4,
+          "saves": 2
+        },
+        "note_id": "6a7954010000000026034707",
+        "object_identity_sha256": "6128a4717577754309f3ccd6c0ce532560e3a37f2b716a75239100062eadaa55",
+        "observation_binding_sha256": "820021a3b76df257fceb539ad68b5e3c6c17ae29c7a7fb7180afceca3111c14f",
+        "observation_started_at": "2026-09-11T13:34:10.891601+00:00",
+        "other_tracked_notes_row_mutations": 0,
+        "outcome_unknown_count": 0,
+        "persisted_stage": "7d",
+        "production_wrapper": "deploy/production/execute_item34_tracking.py",
+        "provider_calls": 1,
+        "readiness_credit": false,
+        "run_identity_sha256": "84ede2d9faaaa6429e73a9626508d89501b4b5e94783785f47baa431d2ae79a7",
+        "runtime_quiescent": true,
+        "schema": "noteai.item34.tracking_checkpoint_receipt.v1",
+        "score_window": "3d",
+        "secret_values_recorded": false,
+        "status": "VERIFIED",
+        "terminal_effects_ledger_sha256": "343b0b173c5424e201999b2edb95896e07245c97a52d8993b5e1942396161df4",
+        "track_identity_sha256": "78b00bae804098f7583cdbbe6d071f9d993ad899dfc4bf244d9b351dba56f5e4",
+        "training_eligible": false,
+        "user_memories_inserted": 1,
+        "worker_argv": [
+          "python",
+          "crawler_worker.py",
+          "--once",
+          "--limit",
+          "1"
+        ],
+        "worker_invocation_count": 1
+      },
+      "worker_result": {
+        "attempted": 1,
+        "claimed": 1,
+        "collected": 1,
+        "failed": 0,
+        "released": 0,
+        "total": 1
+      },
+      "worker_run": {
+        "attempted": 1,
+        "automatic_retry_count": 0,
+        "collected": 1,
+        "failed": 0,
+        "run_id": "490a9216-ddd1-4828-b238-720b79d0862d",
+        "worker_argv": [
+          "python",
+          "crawler_worker.py",
+          "--once",
+          "--limit",
+          "1"
+        ],
+        "worker_invocation_count": 1
+      },
+      "http_observations": [
+        {
+          "at": "2026-09-14T13:53:21.111710+00:00",
+          "phase": "dispatch",
+          "request_body_bytes": 0,
+          "request_kind": "dsl",
+          "sequence": 1
+        },
+        {
+          "at": "2026-09-14T13:53:21.282489+00:00",
+          "phase": "response",
+          "request_kind": "dsl",
+          "response_bytes": 59828,
+          "response_diagnostics": {
+            "http_status": 200,
+            "payload_kind": "non_json"
+          },
+          "sequence": 1
+        },
+        {
+          "at": "2026-09-14T13:53:21.523210+00:00",
+          "phase": "dispatch",
+          "request_body_bytes": 0,
+          "request_kind": "session",
+          "sequence": 2
+        },
+        {
+          "at": "2026-09-14T13:53:21.690718+00:00",
+          "phase": "response",
+          "request_kind": "session",
+          "response_bytes": 616,
+          "response_diagnostics": {
+            "business_code": 0,
+            "business_code_kind": "integer",
+            "http_status": 200,
+            "message_present": true,
+            "message_tags": [],
+            "nested_business_code_kind": "absent",
+            "payload_kind": "object",
+            "success_state": "true"
+          },
+          "sequence": 2
+        },
+        {
+          "at": "2026-09-14T13:53:22.008694+00:00",
+          "phase": "dispatch",
+          "request_body_bytes": 201,
+          "request_kind": "detail",
+          "sequence": 3
+        },
+        {
+          "at": "2026-09-14T13:53:22.218232+00:00",
+          "phase": "response",
+          "request_kind": "detail",
+          "response_bytes": 8313,
+          "response_diagnostics": {
+            "business_code": 0,
+            "business_code_kind": "integer",
+            "http_status": 200,
+            "message_present": true,
+            "message_tags": [],
+            "nested_business_code_kind": "absent",
+            "payload_kind": "object",
+            "success_state": "true"
+          },
+          "sequence": 3
+        }
+      ],
+      "config_transitions": [
+        {
+          "event": "transition_result",
+          "phase": "activate",
+          "recorded_at": "2026-09-14T13:53:14.296802+00:00",
+          "result": {
+            "after_config_present": true,
+            "after_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+            "before_config_present": false,
+            "before_config_sha256": null,
+            "collection_suspended": false,
+            "configuration_mutations": 1,
+            "crawler_enabled": true,
+            "other_configuration_mutations": 0,
+            "phase": "activate",
+            "transition_id": "6baf49c3dbe7dc81eabb7095b39a16c669bc0501c6e61ff3555fd5cb4a5cce11"
+          }
+        },
+        {
+          "event": "transition_result",
+          "phase": "restore",
+          "recorded_at": "2026-09-14T13:53:30.478104+00:00",
+          "result": {
+            "after_config_present": false,
+            "after_config_sha256": null,
+            "before_config_present": true,
+            "before_config_sha256": "26b3426b2593763c96d0890b4a77a0bbf66d13fc512b0c6b138a23c290f30a2a",
+            "collection_suspended": false,
+            "configuration_mutations": 1,
+            "crawler_enabled": false,
+            "other_configuration_mutations": 0,
+            "phase": "restore",
+            "transition_id": "6baf49c3dbe7dc81eabb7095b39a16c669bc0501c6e61ff3555fd5cb4a5cce11"
+          }
+        }
+      ],
+      "temporary_attempts_select": {
+        "initial_request_outcome": "DMS_CONNECTION_LOST",
+        "initial_request_reconciled": "NOT_APPLIED",
+        "reconciled_at": "2026-09-14T21:51:48.310989+08:00",
+        "original_acl": "{noteai_admin=arwdDxt/noteai_admin,noteai_xhs_tracking=ar/noteai_admin}",
+        "grant_sql_sha256": "a2d9871c59e7d46123ff992e9fe68935cd9c1d8cf20de7c7446cd94f1ec06b30",
+        "grant_statements_submitted": 2,
+        "committed_grants": 1,
+        "revoke_sql_sha256": "b28cdfa162f135ebc58a288bb0cc10482c04bc36b3f376174a96eefbe5090501",
+        "revoke_statements_submitted": 1,
+        "final_readback_at": "2026-09-14T21:54:48.127146+08:00",
+        "original_acl_restored": true,
+        "app_select": false,
+        "readback_sha256": "c3af74f6d46af133790e0672f861ac1e0f2886361ea6fcdd7c3ce3139c7b39cf"
+      },
+      "launch_intent_sha256": "01b89d0ec913cbc0d7962d154bba3c302a11a259f20fc350f55cac8898bed959",
+      "current_catalog_readback_sha256": "9535035fed1810645bbc2641a3def847189f2938a55efd7cb2b333004a733865",
+      "new_provider_requests_after_original_attempt": 0,
+      "secret_values_recorded": false,
+      "original_pre_snapshot_at": "2026-09-14T13:53:11.968276+00:00",
+      "original_post_snapshot_at": "2026-09-14T13:53:28.268806+00:00",
+      "actual_write_audit": {
+        "crawler_events_inserted": 1,
+        "growth_records_inserted": 1,
+        "other_system_settings_row_mutations": 0,
+        "other_tracked_notes_row_mutations": 0,
+        "out_of_contract_row_mutations": 0,
+        "system_settings_row_mutations": 1,
+        "target_tracked_notes_distinct_rows": 1,
+        "tracking_provider_attempts_inserted": 1,
+        "user_memories_inserted": 1
+      },
+      "terminal_effects": {
+        "growth_action": "url_crawl_3d",
+        "growth_record_count": 1,
+        "ledger_sha256": "343b0b173c5424e201999b2edb95896e07245c97a52d8993b5e1942396161df4",
+        "memory_content_sha256": "b9c623e9c3eb6ea7a37f468dd0617385ac5ef6562d4e3a29e7eb83dfe81e0abc",
+        "memory_window": "3d",
+        "score_window": "3d",
+        "training_eligible": false,
+        "user_memory_count": 1
+      },
+      "global_crawler_event_counts": {
+        "before": 5,
+        "after": 6,
+        "generation2_24h_delta": 1,
+        "generation2_3d_delta": 1
+      },
+      "scope_basis": "Original journal retains full pre/post snapshots; canonical records only outcome, actual deltas, effects and hashes. Global event counts remain global and include old failures."
     }
   }
 }

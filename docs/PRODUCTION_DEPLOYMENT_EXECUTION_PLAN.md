@@ -1,3 +1,33 @@
+September14 22:00BJT Item34 generation2 COMPLETE under the existing DoD/validator.
+Original3d completed2026-09-14T13:53:22.270280UTC; post snapshot13:53:28.268806UTC,
+attemptb8011c72-3e2b-4c39-940d-4d367c195321/run490a9216-ddd1-4828-b238-720b79d0862d.
+24h original027be64b completedSep12 13:44:42.890012UTC/snapshot13:44:48.933013UTC;
+both approved windows met,1admission each/0automaticretry,6physicalHTTP total
+(4normalinitialization+2detail). Initial/24h/3d metrics4likes/2saves/2comments.
+Original T0/binding/87b9 image and sealedg0/g1/0020 untouched; no reobservation.
+3d durable result VERIFIED13:53:32.485570UTC:config restored,exact container gone,
+no activeattempt/unknown. Memory/growth each1,3dwindow/trainingfalse. Originaljournal
+/var/lib/noteai/item34-image-build-20260906/xhs-repair-20260911/generation2/g2-3d.host.jsonl
+23922B SHAa51bcd816049e8f385654844565370de617aa542199a123ce873d3eca43a2403.
+Private original24h/3d logs and reviewed scripts retained in existing Downloads root.
+Initial DMSgrant connection loss resolved by reconnect+readonly21:51:48:NOT_APPLIED;
+then one committed limitedgrant. Revoke succeeded; independentowner21:54:48.127146BJT
+confirms originalACL/appSELECTfalse/complete/activeNULL. No unresolved DB outcome.
+Original0019/0020/policy/RLS and globalcounts reread21:57:57.321093BJT. Final g2write
+set6tables/8distinct; combinedold+new16distinct,4historicalTracking admissions.
+Original24hcleanup/revoke failures remain historical; no failed record relabeled.
+Existing validate_item34_tracking_evidence passed14:00:25.717571UTC/errors[];
+Readiness31/37,Item35unscored. Originalnoteai-item34-generation2 automation DELETED
+through tool after bothstages and safetyrestore; no replacement task/schedule.
+XHS cumulative reserve35/100,actualincrementUNKNOWN_NOT_ZERO,historynotreset.
+
+NEXT IN PROGRESS: resume built352bdb0 API-only deployment/currentchat fix, preserving
+web05af/Admin and ee473d9 rollback. No new upload/build of completed candidate.
+Then CAS same inactive Native1083 preparation to actual deployedAPI/drop; original
+12RMBpayment/fullrefund remain COMPLETE and must not repeat. New Native scan
+availability/authorized video file pending; original next-daybillSep15>=10BJT.
+No Gitpush. Sevenprotectedpaths unchanged. Latest implementation detail below.
+
 September14 21:33BJT SAFE HANDOFF TO THE ORIGINAL21:37:32 Item34 generation2 HEARTBEAT.
 Latest engineering candidate source352bdb0f4bf8c2475ea7f4f3ac53a9fa3c27ea10 is now
 BUILT_NOT_DEPLOYED on API-C, buildPID1766207 launched1789392672.628476;
