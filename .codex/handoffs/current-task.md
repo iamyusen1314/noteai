@@ -1,5 +1,34 @@
 # NoteAI Internal Production Readiness Handoff
 
+Current live API707f263/imagef82eea4dbe6a229ba6b9ba62d83321310360c3c93ce964db5d36bec053e55b3c,
+CID53cc73f37c64c68f6c5ca84fcef63d0a6651529f38bc288821360fa912ed01d0.
+CloudAssistant97–100: archive402edfa522d00a3e5236e1ab2c2cca5e700f41e613476471e2feb6d085bec820
+uploaded once, originalbuild1671955 completed1789358659.6968937, deploy1672257
+completed1789358737.5964952 (12:05:37BJT). Exact18081 candidate stopped;
+web4c/Admin/model/env/locations unchanged. APIunitSHA d1da3ae315eabe4154ff5eba43d786263e2f11bfe4fc2c574cae1370ddf3ba8e.
+
+Original707 normal-page claim6a426f5a-0dd5-415e-828c-813da38366b4,
+usage2f3234ca-0049-4f4c-a9bb-f590ff04fad0 created04:07:03.282550UTC is
+WAITING_FOR_INPUT,version1,charge1/refund0/complete0,8credits,3responded calls,
+one private chat session. No answer/resume yet; never resubmit a new generation.
+CloudAssistant101–102 read the original synthetic-test metadata: beverage_inclusion
+correctly cited two VALID original keys as a comma-separated source_id; the single-key
+lookup rejected this as unknown_source_id while the optional noodle_variety question
+survived. Root cause is now proven, not guessed invalid credentials/ID fabrication.
+Current minimal local successor accepts bounded source_ids arrays and legacy comma
+strings only when ALL keys and original quotes match this original expert invocation.
+It preserves old question identities and stores both original quotes. General question
+instructions prioritize actual key conflicts and avoid inventing absent dish variants;
+industry Prompts are unchanged. Python3.11/network-none4 targeted regressions pass:
+all-reference matching, source/time isolation, actual ASGI prepared resume and invalid
+metadata retention/refund. Initial run used the image entrypoint working directory
+and could not import tests; explicit Python entrypoint fixed test invocation only.
+Next publish scoped parser, CAS-add the omitted original
+question to this unanswered waiting task with version increment, then normal-page reply
+and original-result/usage readback. No rerun of the three experts or whole-charge.
+Native applied-DISABLED/scan-refund-bill and media recovery/video remain in progress.
+Readiness30/37 unchanged; no Gitpush, protected paths or Item34 changes.
+
 Current September14: API255746a/image dcd5e2d98904410d37f19ede2a348c01b93a7a27989c3a8ccb1d59057dc63c7f
 deployed at1789356936.0825882 (11:35:36BJT), CIDdcd8d178be8a16e85b54c17cf43e63e9af7227b636fdc5a57763609297f2b534.
 Archive39a55de21a33d5a92dccffc5c121b90b48e57c0621621c81044db1a12202fdc5,

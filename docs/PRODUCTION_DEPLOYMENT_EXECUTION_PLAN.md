@@ -1,6 +1,15 @@
 # NoteAI Production Deployment Execution Plan
 
-Current September14: API255746a/image dcd5e2d9 and web4c0c1ac are live. Original0027 remains applied. Fourth original541bd45a completed34calls/RMB2.735467/8credits once but clarification was rejected as invalid_source_reference, so it is not a quality/clarification pass. No replay. Next scoped API correction retains rejected expert preparation in existing private chat storage, stops unnecessary downstream generation on system metadata failure, and uses only actual diagnosis sources. First-ASGI/free-answer/omit/unknown/prepared-resume/save/duplicate protection and existing13 regressions pass offline. Exact source/artifacts/results are in current Handoff. Native/media work remains; no Item34 or role changes.
+Current September14: API707f263 and web4c0c1ac are live;0027 remains applied.
+Original707 claim6a426f5a is waiting,3 settled expert calls/8credits charged once.
+Original private metadata proves the required beverage question was omitted because
+it cites two valid source keys in one string. Minimal parser successor accepts all
+exact references; no fuzzy search or extra model call. After scoped API rollout,
+CAS-restore only this original omitted question on the unanswered waiting task,
+increment its version, preserve original prepared/usage/questions, then reply through
+the normal page and verify no repeated expert/whole-charge. Current source/results,
+rollback bindings and independent Native/media next actions remain in Handoff.
+No Item34/role/migration replay or terminal Readiness change.
 
 September14 clarification implementation uses existing chat/idempotency, not a new
 queue or charge. Release scope: current-source API5 modules plus task_clarification,

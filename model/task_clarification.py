@@ -32,13 +32,16 @@ QUESTION_CONTRACT = """
 附加 <clarifications>JSON数组</clarifications>；无须提问时也必须写成
 <clarifications>[]</clarifications>，不要把整份回复改成裸JSON。最多3问，每问结构：
 {"field":"稳定的英文字段名","question":"指出具体不确定点的商家用语问题",
- "source_id":"引发问题的本次素材编号","object":"原素材中的具体门店/套餐名称（原样使用，未写明则留空）",
+ "source_ids":["引发问题的本次素材编号，可列出冲突双方"],"object":"原素材中的具体门店/套餐名称（原样使用，未写明则留空）",
  "time_range":"原文明确的适用时间，未知留空","required":false,"options":["可选的简短回答"]}
 已有答案、选择不写或暂不确定的同一问题不要重复询问。普通润色、程序解析
 错误、外部查询失败和没有必要写入的细节不能交给用户排错。不要笼统索取价格、
 地址等整套资料，不向用户说“事实校验失败/证据不足”。不能为了填满问题而提问。
+优先询问影响价格、包含内容或核心卖点的实际冲突。原文已给出菜名和数量时，
+按这个颗粒度写，不主动扩成未出现的口味、规格、同款/变体等选择；不必要的
+细节直接省略，不用提问来创造新卖点。
 未澄清的内容不要先写成事实。商家回答是本次确认，不是外部独立核验或永久记忆。
-source_id只能选本次提供的素材编号，系统会取回原文，不需要你重新抄写引用。
+source_ids只能选本次提供的素材编号，系统会取回原文，不需要你重新抄写引用。
 必须逐字复制素材索引中以s_开头的键，不要填写“素材A”、序号或自行编造编号。
 """
 
@@ -108,16 +111,24 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                 continue
             field = item.get("field")
             quote = item.get("source_quote")
-            source_id = item.get("source_id")
-            if source_id is not None:
+            source_ids = item.get("source_ids", item.get("source_id"))
+            source_quotes = []
+            if source_ids is not None:
                 references = opinion.get("clarification_sources", {})
-                quote = references.get(source_id.strip()) if isinstance(source_id, str) and isinstance(references, dict) else None
-                if not isinstance(quote, str):
+                # A conflict can cite both original entries. Accept the legacy
+                # comma-separated form, but every key must belong to this call.
+                if isinstance(source_ids, str):
+                    source_ids = [v.strip() for v in source_ids.split(",")]
+                if (not isinstance(source_ids, list) or not 1 <= len(source_ids) <= 3
+                        or not isinstance(references, dict)
+                        or any(not isinstance(v, str) or v.strip() not in references for v in source_ids)):
                     statuses.append("unknown_source_id")
                     continue
-                if quote not in source:
+                source_quotes = [references[v.strip()] for v in source_ids]
+                if any(not isinstance(v, str) or not 2 <= len(v) <= 300 or v not in source for v in source_quotes):
                     statuses.append("referenced_text_outside_source")
                     continue
+                quote = source_quotes[0]
             question = item.get("question")
             obj = str(item.get("object") or "").strip()
             if (not isinstance(field, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", field)
@@ -142,6 +153,7 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
             questions.append({"question_id": qid, "field": field, "question": question,
                 "source_quote": quote, "merchant": merchant, "object": obj,
                 "time_range": time_range, "required": item.get("required") is True,
+                "source_quotes": source_quotes or [quote],
                 "options": [v for v in options if isinstance(v, str) and 0 < len(v) <= 80][:3]})
     if execution.get():
         execution.get()["question_parse_statuses"] = statuses

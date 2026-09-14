@@ -141,6 +141,32 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         finally:
             clarification.execution.reset(marker)
 
+    def test_clarification_conflict_preserves_both_exact_source_references(self):
+        import task_clarification as clarification
+        source = "9月蓝猫店双人套餐198元，茶饮两杯。\n9月蓝猫店双人套餐198元，茶饮另点。"
+        marker = clarification.execution.set({"claim": {"request_id": "conflict-task"}, "merchant": "蓝猫店"})
+        try:
+            _, refs = clarification.source_references(source)
+            keys = list(refs)
+            item = {"field": "drink_inclusion", "question": "198元套餐是否包含两杯茶饮？",
+                    "object": "双人套餐198元", "time_range": "9月", "required": True}
+            def parse(reference):
+                return clarification.questions_from_opinions([{"role": "内容专家",
+                    "clarification_sources": refs, "raw": '<clarifications>' +
+                    json.dumps([{**item, **reference}]) + '</clarifications>'}], source, "蓝猫店")
+            legacy = parse({"source_id": ", ".join(keys)})
+            current = parse({"source_ids": keys})
+            self.assertEqual(legacy, current)
+            self.assertEqual(len(current), 1)
+            self.assertEqual(current[0]['source_quotes'], list(refs.values()))
+            # Existing single-source question identities do not change.
+            self.assertEqual(current[0]['question_id'], parse({"source_id": keys[0]})[0]['question_id'])
+            self.assertEqual(parse({"source_ids": [keys[0], "s_foreign"]}), [])
+            self.assertEqual(parse({"source_id": keys[0] + ", s_foreign"}), [])
+            self.assertEqual(parse({"source_ids": []}), [])
+        finally:
+            clarification.execution.reset(marker)
+
     def test_clarification_resume_concurrent_answers_keep_original_charge(self):
         import task_clarification as clarification
         claim, event, _, _ = self._waiting_task()
