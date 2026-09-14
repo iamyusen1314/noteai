@@ -5063,6 +5063,7 @@ async def _run_generation_agents(
 
     score_lift_repaired = False
     score_lift_reason = ""
+    repair_metadata: dict = {}
     if (
         title and body
         and (
@@ -5095,6 +5096,7 @@ async def _run_generation_agents(
             current_issues=quality_issues,
             route="arbitrate",
             constraint_context=constraint_context,
+            repair_metadata=repair_metadata,
         )
         if lifted_score is not None:
             if score_lift_repaired:
@@ -5108,6 +5110,8 @@ async def _run_generation_agents(
             arb.get("variants", []),
             score_lift_reason,
         )
+
+    repaired_signature = _candidate_signature(title, body) if score_lift_repaired else None
 
     final_compacted_body = _compact_body_to_delivery_limit(
         (body or "") if constraint_context else _insert_safe_fact_line(body or "", domain, brief or ""),
@@ -5149,6 +5153,7 @@ async def _run_generation_agents(
                 cover_feats=cover_feats or None,
                 source_context=brief or "",
                 constraint_context=constraint_context,
+                source_corrections=repair_metadata.get("source_corrections"),
             )
             selected_final = final_selection.get("selected") or {}
             selection_meta = _selection_meta_payload(final_selection)
@@ -5159,6 +5164,13 @@ async def _run_generation_agents(
                 features = selected_final.get("features") or features
                 grade = selected_final.get("grade") or _grade(percentile)
                 quality_issues = selected_final.get("quality_issues", quality_issues)
+                if score_lift_repaired and (_candidate_signature(title, body) != repaired_signature
+                        or (repair_metadata.get("source_corrections") and not final_selection.get("source_corrections_retained"))):
+                    if final_selection.get("source_corrections_retained"):
+                        score_lift_reason = "最终选稿保留编辑标注的来源删除（非独立事实核验）"
+                    else:
+                        score_lift_repaired = False
+                        score_lift_reason = "最终采用其他候选，未将先前二修标为最终稿修复"
                 if "variants" in selected_final:
                     arb["variants"] = selected_final["variants"]
                 if "rationale" in selected_final:
@@ -11026,6 +11038,7 @@ async def _select_best_generation_candidate(
     cover_feats: dict | None = None,
     source_context: str | None = None,
     constraint_context: str = "",
+    source_corrections: list[str] | None = None,
 ) -> dict:
     """Score and select the best generated note candidate with V0.4 runtime signals."""
     deduped: list[dict] = []
@@ -11078,16 +11091,23 @@ async def _select_best_generation_candidate(
                     item.get("ranker_win_rate"),
                 )
     viable = [item for item in scored if not item.get("blocking")]
+    # A later selector must not undo the existing editor's applied correction
+    # merely for higher telemetry. This remains a ranking signal, not certification.
+    corrections = list(dict.fromkeys(source_corrections or []))[:8]
+    source_clean = [item for item in viable if not any(
+        span in re.sub(r"\s+", "", "\n".join([item['title'], item['body'], *(item.get('variants') or [])]))
+        for span in corrections)] if corrections else []
+    eligible = source_clean or viable
     ready_clean = [
-        item for item in viable
+        item for item in eligible
         if float(item.get("score") or 0.0) >= _GENERATION_DELIVERY_TARGET
         and not item.get("quality_issues")
     ]
     ready_any = [
-        item for item in viable
+        item for item in eligible
         if float(item.get("score") or 0.0) >= _GENERATION_DELIVERY_TARGET
     ]
-    clean_any = [item for item in viable if not item.get("quality_issues")]
+    clean_any = [item for item in eligible if not item.get("quality_issues")]
     if ready_clean:
         pool = ready_clean
     elif ready_any and clean_any:
@@ -11098,7 +11118,7 @@ async def _select_best_generation_candidate(
         ]
         pool = ready_any + close_clean if close_clean else ready_any
     else:
-        pool = ready_any or clean_any or viable or scored
+        pool = ready_any or clean_any or eligible or scored
     selected = max(
         pool,
         key=lambda item: (
@@ -11113,6 +11133,8 @@ async def _select_best_generation_candidate(
         "candidates": scored,
         "candidate_count": len(scored),
         "viable_count": len(viable),
+        "source_correction_count": len(corrections),
+        "source_corrections_retained": bool(corrections and source_clean),
         "used_ranker": any(item.get("ranker_win_rate") is not None for item in scored),
     }
 
@@ -11145,6 +11167,8 @@ def _selection_meta_payload(selection: dict) -> dict:
         "candidate_count": int(selection.get("candidate_count") or 0),
         "viable_count": int(selection.get("viable_count") or 0),
         "used_ranker": bool(selection.get("used_ranker")),
+        "source_correction_count": int(selection.get("source_correction_count") or 0),
+        "source_corrections_retained": bool(selection.get("source_corrections_retained")),
         "selected_origin": selected.get("origin", ""),
         "selected_title": selected.get("title", ""),
         "selected_score": round(float(selected.get("score") or 0.0), 1) if selected else None,
@@ -11568,6 +11592,7 @@ async def _score_directed_second_pass(
     route: str = "arbitrate",
     constraint_context: str = "",
     editorial_context: str = "",
+    repair_metadata: dict | None = None,
 ) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool, str]:
     """One delivery-oriented rewrite for acceptable drafts below the reference line.
 
@@ -11757,6 +11782,8 @@ async def _score_directed_second_pass(
             )
         )
         if acceptable:
+            if repair_metadata is not None:
+                repair_metadata["source_corrections"] = source_corrections
             reason = (
                 f"二修采纳：{score:.1f}→{cand_score:.1f}，"
                 f"命中特征{old_hits}→{new_hits}，非分数问题{_score_gap_issue_count(issues)}→{_score_gap_issue_count(cand_issues)}"
@@ -17108,6 +17135,7 @@ async def _generate_pipeline_stream(
 
     score_lift_repaired = False
     score_lift_reason = ""
+    repair_metadata: dict = {}
     if (
         title and body
         and (
@@ -17147,6 +17175,7 @@ async def _generate_pipeline_stream(
             current_issues=quality_issues,
             route="arbitrate",
             constraint_context=constraint_context,
+            repair_metadata=repair_metadata,
         )
         if lifted_score is not None:
             final_score = lifted_score
@@ -17164,6 +17193,8 @@ async def _generate_pipeline_stream(
                 "issues": [score_lift_reason],
                 "progress": 95,
             }
+
+    repaired_signature = _candidate_signature(title, body) if score_lift_repaired else None
 
     final_compacted_body = _compact_body_to_delivery_limit(
         (body or "") if constraint_context else _insert_safe_fact_line(body or "", domain, brief or ""),
@@ -17205,6 +17236,7 @@ async def _generate_pipeline_stream(
                 cover_feats=cover_feats or None,
                 source_context=brief or "",
                 constraint_context=constraint_context,
+                source_corrections=repair_metadata.get("source_corrections"),
             )
             selected_final = final_selection.get("selected") or {}
             stream_selection_meta = _selection_meta_payload(final_selection)
@@ -17217,6 +17249,13 @@ async def _generate_pipeline_stream(
                 final_feats = selected_final.get("features") or final_feats
                 grade_str = selected_final.get("grade") or _grade(final_score)
                 quality_issues = selected_final.get("quality_issues", quality_issues)
+                if score_lift_repaired and (_candidate_signature(title, body) != repaired_signature
+                        or (repair_metadata.get("source_corrections") and not final_selection.get("source_corrections_retained"))):
+                    if final_selection.get("source_corrections_retained"):
+                        score_lift_reason = "最终选稿保留编辑标注的来源删除（非独立事实核验）"
+                    else:
+                        score_lift_repaired = False
+                        score_lift_reason = "最终采用其他候选，未将先前二修标为最终稿修复"
                 yield {
                     "type": "selector_selected",
                     "origin": selected_final.get("origin"),

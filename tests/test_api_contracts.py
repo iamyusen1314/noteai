@@ -6992,10 +6992,10 @@ class ApiContractTests(unittest.TestCase):
         old_body = "酒店在园区内，适合2大2小。"
         old_variants = ["998元每晚含门票"]
 
-        async def fit(title, *_args):
+        async def fit(title, *_args, **_kwargs):
             return title
 
-        async def shape(_title, body, *_args):
+        async def shape(_title, body, *_args, **_kwargs):
             return body
 
         async def initial_stream(*_args, **_kwargs):
@@ -7050,10 +7050,10 @@ class ApiContractTests(unittest.TestCase):
         title = "广州酒店房型选择清单"
         unsafe_variant = "998元每晚含门票"
 
-        async def fit(value, *_args):
+        async def fit(value, *_args, **_kwargs):
             return value
 
-        async def shape(_title, body, *_args):
+        async def shape(_title, body, *_args, **_kwargs):
             return body
 
         async def initial_stream(*_args, **_kwargs):
@@ -7078,7 +7078,7 @@ class ApiContractTests(unittest.TestCase):
                  mock.patch.object(api._mr, "stream", new=initial_stream), \
                  mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=f"<title>{title}</title><body>{source}</body><variants></variants>")) as call, \
                  mock.patch.object(api, "_fit_title_limit", new=fit), \
-                 mock.patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda value, *_args: value), \
+                 mock.patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda value, *_args, **_kwargs: value), \
                  mock.patch.object(api, "_shape_body_for_delivery", new=shape), \
                  mock.patch.object(api, "_generation_candidate_count", return_value=1), \
                  mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(80, {}, "优秀"))), \
@@ -7145,6 +7145,79 @@ class ApiContractTests(unittest.TestCase):
         meta = api._selection_meta_payload(selection)
         self.assertEqual(meta["selected_origin"], "ranked")
         self.assertNotIn("body", meta["candidates"][0])
+
+    def test_generation_final_selector_preserves_source_repair_in_both_entrypoints(self):
+        title = "蓝白配色通勤穿搭清单"
+        claim = "我连续穿了三个月也没褪色"
+        clean = "蓝色棉质T恤搭配白色短裙，蓝白配色适合日常通勤。"
+        old = clean + claim
+        async def fit(value, *_args, **_kwargs):
+            return value
+        async def shape(_title, body, *_args, **_kwargs):
+            return body
+        async def stream(*_args, **_kwargs):
+            yield "content", f"<title>{title}</title><body>{old}</body><variants>{claim if variant_restored else ''}</variants>"
+        async def score(_title, body, *_args, **_kwargs):
+            return (95 if claim in body else 75), {}, "良好"
+        async def repair(*_args, repair_metadata=None, **_kwargs):
+            repair_metadata["source_corrections"] = [claim]
+            return title, clean, 75, {}, "良好", [], True, "来源删除（非独立事实核验）"
+        for streaming, variant_restored in ((False, False), (True, False), (False, True), (True, True)):
+            async def run():
+                if streaming:
+                    return [event async for event in api._generate_pipeline_stream(
+                        "穿搭", clean, None, None, {}, None, "2026091421", user_id="marked-test",
+                        constraint_context="不展示商家",
+                    )][-1]
+                return await api._run_generation_agents(
+                    "穿搭", None, clean, "2026091421", None, None, {}, constraint_context="不展示商家")
+            with self.subTest(streaming=streaming, variant_restored=variant_restored), ExitStack() as stack:
+                stack.enter_context(mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})))
+                stack.enter_context(mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})))
+                stack.enter_context(mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})))
+                stack.enter_context(mock.patch.object(api, "_gent_arbitrate", new=mock.AsyncMock(return_value={"title": title, "body": old, "variants": [claim] if variant_restored else []})))
+                stack.enter_context(mock.patch.object(api._mr, "stream", new=stream))
+                stack.enter_context(mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=f"<title>{title}</title><body>{old}</body>")))
+                stack.enter_context(mock.patch.object(api, "_fit_title_limit", new=fit))
+                stack.enter_context(mock.patch.object(api, "_shape_body_for_delivery", new=shape))
+                stack.enter_context(mock.patch.object(api, "_generation_candidate_count", return_value=1))
+                stack.enter_context(mock.patch.object(api, "_score_generated_note", new=score))
+                stack.enter_context(mock.patch.object(api, "compute_semantic_features", return_value={}))
+                stack.enter_context(mock.patch.object(api, "_predict", return_value=(95, {})))
+                stack.enter_context(mock.patch.object(api, "_generated_quality_issues", side_effect=lambda *_args: []))
+                stack.enter_context(mock.patch.object(api, "_delivery_integrity_issues", side_effect=lambda *_args, **_kwargs: []))
+                stack.enter_context(mock.patch.object(api, "_body_format_issues", return_value=[]))
+                stack.enter_context(mock.patch.object(api, "_needs_v04_score_lift", return_value=True))
+                second = stack.enter_context(mock.patch.object(api, "_score_directed_second_pass", new=mock.AsyncMock(side_effect=repair)))
+                stack.enter_context(mock.patch.object(api, "_v04_publishable_probability", return_value=None))
+                stack.enter_context(mock.patch.object(api, "get_v04_preference_ranker", return_value=None))
+                stack.enter_context(mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()))
+                result = asyncio.run(run())
+            self.assertEqual(second.await_count, 1)
+            self.assertEqual(result["note_body" if streaming else "body"], old if variant_restored else clean)
+            self.assertEqual(result["selection_meta"]["source_corrections_retained"], not variant_restored)
+            self.assertEqual(result["score_lift_repaired"], not variant_restored)
+            self.assertFalse(result.get("quality_failed"))
+
+    def test_generation_source_priority_does_not_override_final_shape_or_hard_failure(self):
+        claim = "我连续穿了三个月也没褪色"
+        for blocked, restored, expected in ((False, False, "corrected"), (True, False, "old"), (False, "body", "old"), (False, "variants", "old")):
+            async def score(candidate, **_kwargs):
+                old = candidate["origin"] == "old"
+                return {**candidate, "body": claim if old or restored == "body" else "蓝色T恤搭配白色短裙",
+                        "variants": [claim] if restored == "variants" else [],
+                        "score": 95 if old else 75, "selector_score": 95 if old else 75,
+                        "features": {}, "grade": "良好", "quality_issues": [],
+                        "blocking": blocked and not old}
+            with self.subTest(blocked=blocked, restored=restored), \
+                 mock.patch.object(api, "_score_generation_delivery_candidate", new=score), \
+                 mock.patch.object(api, "get_v04_preference_ranker", return_value=None):
+                result = asyncio.run(api._select_best_generation_candidate(
+                    [{"origin": "old", "title": "旧稿", "body": claim},
+                     {"origin": "corrected", "title": "改稿", "body": "蓝白搭配"}],
+                    domain="穿搭", local_time="2026091421", source_corrections=[claim]))
+            self.assertEqual(result["selected"]["origin"], expected)
+            self.assertEqual(result["source_corrections_retained"], expected == "corrected")
 
     def test_generation_selector_keeps_ready_clean_candidate_above_ranker_preference(self):
         original_score_candidate = api._score_generation_delivery_candidate

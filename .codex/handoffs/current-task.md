@@ -1,3 +1,34 @@
+September14 21:13BJT original b09 public fashion GENERATE COMPLETE13:04:17.515786UTC:
+claim113152a0-569f-48fe-a7db-c7b342b69f1c,usageadb57398-9aa9-4786-8a78-0659d6d00273,
+8credits charge1/complete1/refund0; normal UI balance2912.5. Note
+c14ef449-58bc-4834-86b8-27102287e588 saved13:04:20.327060UTC,score75.3.
+27 complete/exact rows:23Haiku+4Sonnet,CNY2.715391 under retained tariff/FX.
+No image/Ark request because text-only brief. Three outfits and given unit prices
+present; unknown jeans price omitted. No invented own wearing history. Overconfident
+styling claims and dense paragraph remain quality limitations; not full acceptance.
+Original private result /var/lib/noteai/media-b09e690/public-fashion-final.json,
+SHAc855d091c1734dc63ae244c3d0d58adc95bbe2e0152a222cfa1a81940fadc44d.
+UI private ~/.codex/tmp/noteai-media-b09e690/fashion-result-ui.txt,
+SHAca81b55292328ce296379de6e8d460fb58e94211e84f5b9ec3307f2e991a76b8.
+First read incorrectly assumed every generate creates clarification session; read-only
+assertion failed before file write. Actual unpaused flow saves via client POST /notes;
+canonical note and model/credit records verified, no request repeated. Full original
+SSE selection metadata is not retained in that session path; do not fabricate it.
+
+Current minimal selector follow-through READY_TO_APPLY: applied source deletion
+metadata passes through sync+stream generation into existing final selector. Priority
+is checked after final shape/score against title/body/variants among viable candidates.
+No hard checks removed; no new provider call. Final repaired flag/reason tracks actual
+selected output; old higher-score candidate cannot silently undo this priority.
+11 targeted tests passed; 2 old mocks updated for existing constraint_context; first
+new test exceeded Python nested-block limit and used ExitStack. r3 network-none
+fixture attempted fake-key SDK path without network; full stub added and targeted
+r4 verification passed (both entries/four cases). Earlier logs preserved in source-selection-r*.log.
+Next finish regression/API-only rollout; preserve web05af and b09 rollback. Native
+prepared0411 remains inactive; refresh binding only after actual newAPI. Existing
+video file/new Native scan questions unanswered; no new order/DDL. Original Item34
+21:36 unchanged. Readiness30/37, noGitpush.
+
 September14 20:59BJT API-only b09e69073b09697c993c7e8eb569becabe5ac0cf DEPLOYED,
 image64a4e8582490c02b2984e4c4689181c338cd2a4ccf9f610dbb8b19d285842928.
 OriginalbuildPID1759749 complete1789390498.6954246;deployPID1759985 complete

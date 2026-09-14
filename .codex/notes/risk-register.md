@@ -1,3 +1,10 @@
+September14 21:13BJT: source deletion priority now prepared through final generation
+selector, including variants, with truthful repair metadata; remains editorial ranking
+not independent fact certification. Real fashion generation stored/charged correctly,
+but overconfident styling and dense formatting remain; score75.3 does not close quality.
+Unpaused generate keeps saved note/cost records but lacks full server-retained SSE
+selection report; current original preserved privately, no replay for metadata.
+
 September14 20:55BJT: current source-priority candidate retains source deletions as
 editorial ranking only; source substring absence is not independent truth proof.
 No quality acceptance from model score alone. Original title supplied; existing
