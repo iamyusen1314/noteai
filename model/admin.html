@@ -127,6 +127,8 @@ input,select,textarea{font-family:inherit}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:20px}
 .modal-close{position:absolute;top:16px;right:18px;background:none;border:none;
   cursor:pointer;font-size:18px;color:var(--text-muted)}
+#user-modal summary{width:fit-content;max-width:100%;cursor:pointer}
+#user-modal details{overflow-wrap:anywhere}
 
 /* ── Progress bar ── */
 .progress-track{height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
@@ -531,7 +533,7 @@ input,select,textarea{font-family:inherit}
 
 <!-- ── User Detail Modal ───────────────────────────────────────────── -->
 <div class="modal-backdrop" id="user-modal">
-  <div class="modal" style="width:620px">
+  <div class="modal" style="width:1180px">
     <button class="modal-close" onclick="closeModal('user-modal')">✕</button>
     <div class="modal-title" id="um-title">用户详情</div>
     <div id="um-content"></div>

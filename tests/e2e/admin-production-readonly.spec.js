@@ -68,6 +68,31 @@ test('usage details distinguish unknown costs and loaded Prompt snapshots from a
 });
 
 
+test('user usage Prompt disclosure stays clickable inside the scrolling detail modal', async ({ page }) => {
+  await page.goto('/model/admin.html');
+  await page.evaluate(() => {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('um-content').innerHTML = '<div style="overflow-x:auto"><table style="min-width:820px"><tbody>' + renderAdminUsageLedger([
+      {operation:'analyze',source:'credit',model_names:'claude:claude-haiku-4-5-20251001,doubao:doubao-seed-2-0-lite-260428',
+        call_details:{status:'available',calls:[{model:'claude-haiku-4-5-20251001',
+          loaded_prompt_versions:[{key:'creator.travel',source:'code_fallback',version:null,sha256:'a'.repeat(64)}]}]}},
+    ]) + '</tbody></table></div>';
+    openModal('user-modal');
+  });
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({width,height:900});
+    const outer = page.getByText('查看本次调用、Prompt 版本与成本依据',{exact:true});
+    if (width === 1280) await outer.click();
+    const inner = page.getByText('已加载 Prompt 版本（1项）',{exact:true});
+    await inner.click();
+    await expect(page.locator('#um-content')).toContainText('creator.travel');
+    const box = await inner.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    await inner.click();
+  }
+});
+
 test('production Admin advertises read-only mode and disables mutation controls', async ({ page }) => {
   const writes = [];
   await page.route('https://cdnjs.cloudflare.com/**', route => route.abort('blockedbyclient'));
