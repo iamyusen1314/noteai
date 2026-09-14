@@ -1,3 +1,25 @@
+September15 callback repair is LOCAL/TESTED, NOT_DEPLOYED: preserve raw notification
+hashes and separately bind the full RSA-verified/AES-decrypted WeChat resource plus
+event/provider/app/prod/business-time to a versioned semantic SHA. Fresh callbacks
+may differ in ciphertext/serialization while exact business facts remain equal;
+changed amount/object/payer/time is rejected. Queries and historical NULL events
+retain their original raw-byte rule; no historical backfill. Additive0029 adds only
+nullable event_semantic_sha256 plus immutable guard; existing0018guards/RLS/roles
+remain. Existing Payment table SELECT/INSERT suffice; no newUPDATE privilege.
+INFO callback audit now uses existingUvicorn handler and optionally includes semantic
+SHA; collision log contains only known field names/digests. Logging failure preserves
+ACK. Current live collision's changed field remains unproven; no oldPASS conversion.
+Python3.11 networknone126payment/adapter/canary checksPASS; fresh isolatedPG16.14
+8payment/role/immutability/runtime checksPASS; final3real-handler/digest regressions
+PASS. Initial wrapper failedbeforetests(entrypoint), fixture used obsoletewechat
+callbackdomain, and freshPGfixture createdrolesaftercurrentmigrations; corrected
+those exact setup errors, no productionconnection/providercalls. Samevalue model,
+Prompt/credits/freequality policy untouched. Code: db, direct_payment_gateways,
+payment_contract/runtime/canary_executor, existingtests and0029. Next reuse existing
+API-C bounded two-role build (Payment+canary), apply/read0029 before anynewruntime,
+keep existingAPI/Admin/publicweb and oldclosedcaptures intact. Publicpaymentsclosed,
+31/37unchanged. Native originalbilltime and failedredelivery are still outstanding.
+
 September15 07:40BJT: new order81ab3757-2440-49b5-ad90-6a445ffbcac8 is PAID AND FULLY REFUNDED,
 not awaiting scan. Owner paid1200fen; wallet2894.5->2924.5->2894.5. Existing operator35097
 query-payment/submit-refund/query-refund each ranonce, each provider_operation_count1,

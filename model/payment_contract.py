@@ -13,6 +13,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import logging
 import re
 import uuid
 from abc import ABC, abstractmethod
@@ -25,6 +26,9 @@ from zoneinfo import ZoneInfo
 import billing
 import content_retention
 import db
+
+
+_LOGGER = logging.getLogger("uvicorn.error.payment")
 
 
 def transaction_options(transaction_factory=None) -> dict:
@@ -313,6 +317,9 @@ class CallbackEvent:
     app_id: str
     data: dict[str, Any]
     provider_name: str = "adapay"
+    # Set only by the direct adapter after verifying and decrypting the full
+    # WeChat resource. Queries/legacy events retain their raw-byte identity.
+    authenticated_payload_sha256: str | None = None
 
 
 def _now() -> datetime:
@@ -1181,6 +1188,16 @@ def _apply_subscription_entitlement(
     return ledger_id
 
 
+def _event_semantic_sha256(event: CallbackEvent) -> str | None:
+    """Accept only a fingerprint from the authenticated WeChat boundary."""
+    value = event.authenticated_payload_sha256
+    if value is None:
+        return None
+    if event.provider_name != "wechatpay_direct" or not _SHA256_RE.fullmatch(value):
+        raise PaymentContractError("PAYMENT_CALLBACK_BINDING_INVALID")
+    return value
+
+
 def _record_event(
     tx: db.Transaction,
     event: CallbackEvent,
@@ -1193,23 +1210,45 @@ def _record_event(
         event.provider_event_id,
     )
     payload_sha256 = hashlib.sha256(raw_data).hexdigest()
+    semantic_sha256 = _event_semantic_sha256(event)
     signature_sha256 = hashlib.sha256(signature.encode("ascii")).hexdigest()
     app_id_hash = _app_id_hash(event.app_id, event.provider_name)
     existing = tx.fetchone(
-        "SELECT id,event_type,payload_sha256,app_id_hash,"
+        "SELECT id,event_type,payload_sha256,event_semantic_sha256,app_id_hash,"
         "prod_mode,provider_created_at,duplicate_delivery_count "
         "FROM payment_events "
         "WHERE provider_event_id_hash=?",
         (event_hash,),
     )
     if existing is not None:
-        if (
-            existing["event_type"] != event.event_type
-            or existing["payload_sha256"] != payload_sha256
-            or existing["app_id_hash"] != app_id_hash
-            or int(existing["prod_mode"]) != (1 if event.prod_mode else 0)
-            or int(existing["provider_created_at"]) != event.created_time
-        ):
+        # Old rows have no semantic fingerprint. Keep their original strict
+        # byte identity; never backfill a fingerprint from a later notification.
+        comparison = {
+            "event_type": existing["event_type"] != event.event_type,
+            "app_id_hash": existing["app_id_hash"] != app_id_hash,
+            "prod_mode": int(existing["prod_mode"]) != (1 if event.prod_mode else 0),
+            "provider_created_at": int(existing["provider_created_at"]) != event.created_time,
+        }
+        stored_semantic = existing["event_semantic_sha256"]
+        if stored_semantic is not None:
+            comparison["event_semantic_sha256"] = stored_semantic != semantic_sha256
+        else:
+            comparison["payload_sha256"] = existing["payload_sha256"] != payload_sha256
+        differences = [field for field, changed in comparison.items() if changed]
+        if differences:
+            # Only field names and digests; no raw body, business identifiers,
+            # headers, decrypted customer data or signatures enter the log.
+            try:
+                _LOGGER.warning("payment_callback_collision %s", json.dumps({
+                    "event_identity_sha256": event_hash,
+                    "changed_fields": differences,
+                    "stored_payload_sha256": existing["payload_sha256"],
+                    "received_payload_sha256": payload_sha256,
+                    "stored_semantic_sha256": stored_semantic,
+                    "received_semantic_sha256": semantic_sha256,
+                }, sort_keys=True, separators=(",", ":")))
+            except Exception:
+                pass
             raise PaymentContractError("PAYMENT_EVENT_ID_COLLISION")
         tx.execute(
             "UPDATE payment_events SET duplicate_delivery_count="
@@ -1220,15 +1259,16 @@ def _record_event(
     event_row_id = str(uuid.uuid4())
     tx.execute(
         "INSERT INTO payment_events("
-        "id,provider_event_id_hash,event_type,payload_sha256,"
+        "id,provider_event_id_hash,event_type,payload_sha256,event_semantic_sha256,"
         "signature_sha256,app_id_hash,prod_mode,provider_created_at,"
         "duplicate_delivery_count,processing_state,reason_code,received_at"
-        ") VALUES(?,?,?,?,?,?,?,?,0,'accepted','pending',?)",
+        ") VALUES(?,?,?,?,?,?,?,?,?,0,'accepted','pending',?)",
         (
             event_row_id,
             event_hash,
             event.event_type,
             payload_sha256,
+            semantic_sha256,
             signature_sha256,
             app_id_hash,
             1 if event.prod_mode else 0,

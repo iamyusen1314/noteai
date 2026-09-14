@@ -1153,6 +1153,12 @@ CREATE TABLE IF NOT EXISTS payment_events (
                                  length(signature_sha256)=64
                                  AND signature_sha256 NOT GLOB '*[^0-9a-f]*'
                              ),
+    event_semantic_sha256    TEXT CHECK (
+                                 event_semantic_sha256 IS NULL OR (
+                                     length(event_semantic_sha256)=64
+                                     AND event_semantic_sha256 NOT GLOB '*[^0-9a-f]*'
+                                 )
+                             ),
     app_id_hash              TEXT NOT NULL CHECK (
                                  length(app_id_hash)=64
                                  AND app_id_hash NOT GLOB '*[^0-9a-f]*'
@@ -2341,6 +2347,15 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
                 "PRAGMA table_info(payment_events)"
             ).fetchall()
         }
+        if "event_semantic_sha256" not in payment_event_cols:
+            conn.execute(
+                "ALTER TABLE payment_events ADD COLUMN event_semantic_sha256 TEXT "
+                "CHECK (event_semantic_sha256 IS NULL OR ("
+                "length(event_semantic_sha256)=64 AND "
+                "event_semantic_sha256 NOT GLOB '*[^0-9a-f]*'))"
+            )
+        elif payment_event_cols["event_semantic_sha256"] != "TEXT":
+            raise RuntimeError("invalid payment event semantic column blocks startup")
         if "duplicate_delivery_count" not in payment_event_cols:
             conn.execute(
                 "ALTER TABLE payment_events ADD COLUMN "
@@ -2354,6 +2369,12 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
             )
         conn.executescript(
             """
+CREATE TRIGGER IF NOT EXISTS payment_events_semantic_immutable_v1
+BEFORE UPDATE OF event_semantic_sha256 ON payment_events
+BEGIN
+    SELECT RAISE(ABORT,'payment event identity is immutable');
+END;
+
 DROP TRIGGER IF EXISTS payment_events_transition_v1;
 CREATE TRIGGER payment_events_transition_v1
 BEFORE UPDATE ON payment_events

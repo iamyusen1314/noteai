@@ -64,9 +64,9 @@ class PaymentPostgresContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.old_database_url = os.environ.get("DATABASE_URL")
         os.environ["DATABASE_URL"] = os.environ["NOTEAI_TEST_POSTGRES_URL"]
-        cls.first_apply = db.apply_postgres_migrations()
-        cls.second_apply = db.apply_postgres_migrations()
         cls.conn = db.get_conn()
+        # Later additive migrations grant scoped columns to these pre-existing
+        # production roles. The disposable fixture must create them first too.
         for role in cls.ROLES:
             cls.conn.execute(f"DROP ROLE IF EXISTS {role}")
             cls.conn.execute(
@@ -74,6 +74,9 @@ class PaymentPostgresContractTests(unittest.TestCase):
                 "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
             )
             cls.conn.execute(f"GRANT USAGE ON SCHEMA public TO {role}")
+        cls.conn.commit()
+        cls.first_apply = db.apply_postgres_migrations()
+        cls.second_apply = db.apply_postgres_migrations()
         for function in cls.TRIGGER_FUNCTIONS:
             cls.conn.execute(
                 f"REVOKE ALL ON FUNCTION public.{function} FROM PUBLIC"
@@ -265,20 +268,22 @@ class PaymentPostgresContractTests(unittest.TestCase):
         *,
         label: str = "event",
         state: str = "processed",
+        semantic: str | None = None,
     ) -> str:
         event_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{label}:{self.user_id}"))
         self.conn.execute(
             "INSERT INTO payment_events("
             "id,provider_event_id_hash,event_type,payload_sha256,"
-            "signature_sha256,app_id_hash,prod_mode,provider_created_at,"
+            "signature_sha256,event_semantic_sha256,app_id_hash,prod_mode,provider_created_at,"
             "processing_state,reason_code,order_id,received_at,processed_at"
-            ") VALUES(%s,%s,'payment.succeeded',%s,%s,%s,0,1785052800,"
+            ") VALUES(%s,%s,'payment.succeeded',%s,%s,%s,%s,0,1785052800,"
             "%s,'payment_applied',%s,%s,%s)",
             (
                 event_id,
                 self.digest(f"provider:{label}:{self.user_id}"),
                 self.digest(f"payload:{label}"),
                 self.digest(f"signature:{label}"),
+                semantic,
                 self.digest("app:test"),
                 state,
                 order_id,
@@ -287,6 +292,35 @@ class PaymentPostgresContractTests(unittest.TestCase):
             ),
         )
         return event_id
+
+    def test_semantic_identity_is_additive_immutable_and_not_runtime_editable(self):
+        order_id = self.insert_order()
+        legacy = self.event(order_id, label="legacy-null")
+        current = self.event(order_id, label="semantic", semantic="a" * 64)
+        self.assertIsNone(self.conn.execute(
+            "SELECT event_semantic_sha256 FROM payment_events WHERE id=%s",
+            (legacy,)).fetchone()["event_semantic_sha256"])
+        for event_id, value in ((legacy, "a" * 64), (current, None), (current, "b" * 64)):
+            self.conn.execute("SAVEPOINT semantic_immutable")
+            with self.assertRaises(Exception):
+                self.conn.execute("UPDATE payment_events SET event_semantic_sha256=%s WHERE id=%s",
+                                  (value, event_id))
+            self.conn.execute("ROLLBACK TO SAVEPOINT semantic_immutable")
+        privileges = self.conn.execute(
+            "SELECT has_column_privilege('noteai_payment','payment_events',"
+            "'event_semantic_sha256','SELECT') AS can_read,"
+            "has_column_privilege('noteai_payment','payment_events',"
+            "'event_semantic_sha256','INSERT') AS can_insert,"
+            "has_column_privilege('noteai_payment','payment_events',"
+            "'event_semantic_sha256','UPDATE') AS can_update").fetchone()
+        self.assertEqual(dict(privileges), {"can_read": True, "can_insert": True, "can_update": False})
+        self.conn.execute("SET LOCAL ROLE noteai_payment")
+        self.conn.execute("UPDATE payment_events SET duplicate_delivery_count=duplicate_delivery_count+1 WHERE id=%s",
+                          (current,))
+        self.conn.execute("RESET ROLE")
+        self.assertEqual(self.conn.execute(
+            "SELECT event_semantic_sha256,duplicate_delivery_count FROM payment_events WHERE id=%s",
+            (current,)).fetchone()["duplicate_delivery_count"], 1)
 
     def test_apply_twice_sha_ledger_and_schema(self):
         self.assertTrue(

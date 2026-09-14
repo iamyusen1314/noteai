@@ -4,6 +4,7 @@ import importlib
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -646,7 +647,7 @@ class PaymentRuntimeTests(unittest.TestCase):
             "NOTEAI_WECHATPAY_PLATFORM_VERIFIER_ID": "0123456789ABCDEF",
             "NOTEAI_WECHATPAY_PLATFORM_PUBLIC_KEY_B64": provider_public_b64,
             "NOTEAI_WECHATPAY_CALLBACK_URL": (
-                "https://api.noteaipro.cn/payments/wechat/callback"
+                "https://noteaipro.com/payments/wechat/callback"
             ),
             "NOTEAI_WECHATPAY_PROD_MODE": "1",
             "NOTEAI_ALIPAY_APP_ID": "2026000000000001",
@@ -1038,6 +1039,31 @@ class PaymentRuntimeTests(unittest.TestCase):
             logger_failure = client.post("/payments/wechat/callback", **request)
         self.assertEqual(logger_failure.status_code, 200)
         self.assertEqual(logger_failure.json(), first.json())
+
+    def test_callback_audit_reaches_default_uvicorn_stderr(self):
+        audit = {
+            "schema": "noteai.item31.direct_callback_digest.v1",
+            "provider": "wechatpay_direct", "event_type": "payment.succeeded",
+            "callback_identity_sha256": "a" * 64,
+            "callback_payload_sha256": "b" * 64,
+            "signature_input_sha256": "c" * 64,
+            "signature_scheme": "WECHATPAY2-SHA256-RSA2048",
+            "event_semantic_sha256": "d" * 64,
+        }
+        code = ("import logging.config;from uvicorn.config import LOGGING_CONFIG;"
+                "logging.config.dictConfig(LOGGING_CONFIG);import payment_runtime;"
+                "payment_runtime._log_direct_callback_audit(" + repr(
+                    {"ok": True, "duplicate": True, "callback_audit": audit}) + ")")
+        completed = subprocess.run([sys.executable, "-c", code], capture_output=True,
+            text=True, timeout=20, env={
+                "PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(MODEL_DIR),
+                "PYTHON_DOTENV_DISABLED": "1", "PYTHONDONTWRITEBYTECODE": "1",
+                "DATABASE_URL": "", "NOTEAI_SQLITE_PATH": str(Path(self.temp.name) / "log.db"),
+            })
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn('payment_callback_audit {', completed.stderr)
+        self.assertIn('"duplicate_delivery":true', completed.stderr)
+        self.assertIn('"event_semantic_sha256":"' + "d" * 64 + '"', completed.stderr)
 
     def test_direct_callback_rejects_mock_mode_in_nonproduction(self):
         env = {

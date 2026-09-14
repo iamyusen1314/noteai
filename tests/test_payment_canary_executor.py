@@ -197,6 +197,9 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
                     "refund_column_update": True,
                     "event_column_present": True,
                     "event_column_update": True,
+                    "semantic_select": True,
+                    "semantic_insert": True,
+                    "semantic_update": False,
                 },
                 {"required_privileges": True},
             ),
@@ -317,6 +320,9 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
                 "refund_column_update": True,
                 "event_column_present": True,
                 "event_column_update": True,
+                "semantic_select": True,
+                "semantic_insert": True,
+                "semantic_update": False,
             },
             {"required_privileges": True},
         )
@@ -334,6 +340,9 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
             (1, {"refund_column_update": False}),
             (1, {"event_column_present": False}),
             (1, {"event_column_update": False}),
+            (1, {"semantic_select": False}),
+            (1, {"semantic_insert": False}),
+            (1, {"semantic_update": True}),
             (2, {"required_privileges": False}),
         ):
             rows = [dict(row) for row in exact]

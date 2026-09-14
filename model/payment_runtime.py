@@ -22,7 +22,9 @@ import payment_adapter_runtime
 import payment_contract
 
 
-_LOGGER = logging.getLogger("noteai.payment")
+# Use the existing server handler/level. A standalone logger's INFO records
+# disappear under Uvicorn's default configuration, including callback digests.
+_LOGGER = logging.getLogger("uvicorn.error.payment")
 _TRUE_VALUES = {"1", "true", "yes"}
 _CALLBACK_PROVIDERS = {"adapay", "wechatpay_direct", "alipay_direct"}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -413,7 +415,8 @@ def _log_direct_callback_audit(result: object) -> bool:
             "signature_input_sha256",
             "signature_scheme",
         }
-        if not isinstance(audit, dict) or set(audit) != expected:
+        if not isinstance(audit, dict) or set(audit) not in (
+                expected, expected | {"event_semantic_sha256"}):
             return False
         provider = audit.get("provider")
         if (
@@ -431,6 +434,10 @@ def _log_direct_callback_audit(result: object) -> bool:
                 )
             )
         ):
+            return False
+        if "event_semantic_sha256" in audit and (
+                provider != "wechatpay_direct" or
+                _SHA256_RE.fullmatch(str(audit["event_semantic_sha256"] or "")) is None):
             return False
         record = {
             field: audit[field]
@@ -450,6 +457,8 @@ def _log_direct_callback_audit(result: object) -> bool:
             else "NEEDS_MANUAL"
         )
         record["duplicate_delivery"] = result.get("duplicate") is True
+        if "event_semantic_sha256" in audit:
+            record["event_semantic_sha256"] = audit["event_semantic_sha256"]
         encoded = json.dumps(
             record,
             ensure_ascii=True,

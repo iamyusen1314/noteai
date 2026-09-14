@@ -180,7 +180,7 @@ def _callback_audit(
         + b"\0"
         + event.provider_event_id.encode("utf-8")
     ).hexdigest()
-    return {
+    record = {
         "schema": "noteai.item31.direct_callback_digest.v1",
         "provider": event.provider_name,
         "event_type": event.event_type,
@@ -189,6 +189,9 @@ def _callback_audit(
         "signature_input_sha256": callback.signature_input_sha256,
         "signature_scheme": signature_scheme,
     }
+    if event.authenticated_payload_sha256 is not None:
+        record["event_semantic_sha256"] = event.authenticated_payload_sha256
+    return record
 
 
 class DirectPaymentTransport(Protocol):
@@ -2358,6 +2361,23 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
                 if event_type == "refund.succeeded"
                 else notification_created_time
             )
+        # Ciphertext, encryption nonce and HTTP serialization may change on a
+        # genuine redelivery. Bind the complete authenticated plaintext (not
+        # just the smaller ledger data map), event and business time instead.
+        semantic = {
+            "provider": self.provider_name,
+            "event_id": _opaque(outer.get("id"), "event_id"),
+            "event_type": outer_type,
+            "created_time": created_time,
+            "app_id": self._app_id,
+            "prod_mode": self._prod_mode,
+            "resource": provider,
+        }
+        semantic_raw = json.dumps(semantic, sort_keys=True, separators=(",", ":"),
+                                  ensure_ascii=True, allow_nan=False).encode("ascii")
+        semantic_sha256 = hashlib.sha256(
+            b"noteai-wechat-event-semantics-v1\0" + semantic_raw
+        ).hexdigest()
         return AuthenticatedDirectCallback(
             event=payment_contract.CallbackEvent(
                 provider_event_id=_opaque(outer.get("id"), "event_id"),
@@ -2367,6 +2387,7 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
                 app_id=self._app_id,
                 data=data,
                 provider_name=self.provider_name,
+                authenticated_payload_sha256=semantic_sha256,
             ),
             raw_body=raw,
             signature=signature,

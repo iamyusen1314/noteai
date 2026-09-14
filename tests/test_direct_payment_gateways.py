@@ -10,6 +10,7 @@ import tempfile
 import unittest
 import zipfile
 from datetime import datetime, timezone
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qsl, urlencode
@@ -827,15 +828,16 @@ class DirectPaymentGatewayTests(unittest.TestCase):
             ):
                 self.wechat.create_refund(refund("wechatpay_direct"))
 
-    def _wechat_callback(self, provider_body, event_type):
+    def _wechat_callback(self, provider_body, event_type, *,
+                         resource_nonce="0123456789ab", pretty=False):
         provider_body = dict(provider_body)
         if event_type in {"TRANSACTION.SUCCESS", "REFUND.SUCCESS"}:
             provider_body.setdefault("success_time", "2026-09-05T01:59:59Z")
-        resource_nonce = "0123456789ab"
         associated = "transaction"
         ciphertext = AESGCM(b"synthetic-api-v3-key-material-00").encrypt(
             resource_nonce.encode(),
-            json.dumps(provider_body, separators=(",", ":")).encode(),
+            json.dumps(provider_body, sort_keys=pretty,
+                       indent=2 if pretty else None, separators=(",", ":")).encode(),
             associated.encode(),
         )
         outer = {
@@ -849,7 +851,8 @@ class DirectPaymentGatewayTests(unittest.TestCase):
                 "associated_data": associated,
             },
         }
-        raw = json.dumps(outer, separators=(",", ":")).encode()
+        raw = json.dumps(outer, sort_keys=pretty, indent=2 if pretty else None,
+                         separators=(",", ":")).encode()
         timestamp = "1788573600"
         nonce = "header-nonce-001"
         signature = self.wechat_private.sign(
@@ -897,6 +900,92 @@ class DirectPaymentGatewayTests(unittest.TestCase):
             hashlib.sha256(signature_input).hexdigest(),
         )
         self.assertNotIn("provider_payment_001", repr(callback))
+
+    def test_wechat_reencrypted_notification_is_idempotent_without_losing_facts(self):
+        old_db_path = db._DB_PATH
+        old_database_url = os.environ.pop("DATABASE_URL", None)
+        temp = tempfile.TemporaryDirectory()
+        try:
+            db._DB_PATH = Path(temp.name) / "callback-identity.db"
+            db.init_db()
+            billing.clear_active_usage()
+            now = datetime.fromtimestamp(1788573600, tz=timezone.utc)
+            db.execute("INSERT INTO users(id,username,email,password_hash,password_salt,created_at) "
+                       "VALUES(?,?,?,?,?,?)", ("u-redelivery", "redelivery", "test@example.invalid",
+                                             "hash", "salt", now.isoformat()))
+            billing.get_subscription("u-redelivery")
+            created = payment_contract.create_order(
+                "u-redelivery", "credit_package", "starter",
+                idempotency_key="synthetic-redelivery-identity", app_id="wxSyntheticApp01",
+                prod_mode=True, provider_name="wechatpay_direct", now=now)
+            row = db.fetchone("SELECT * FROM payment_orders WHERE id=?", (created["id"],))
+            body = {"appid": "wxSyntheticApp01", "mchid": "1900000109",
+                    "out_trade_no": row["merchant_order_no"],
+                    "transaction_id": "synthetic-payment-identity", "trade_state": "SUCCESS",
+                    "amount": {"total": 1200, "currency": "CNY"},
+                    "payer": {"openid": "private-synthetic-payer"}}
+            raw, headers, now = self._wechat_callback(body, "TRANSACTION.SUCCESS")
+            first = self.wechat.process_callback(raw, headers, now=now)
+            again, again_headers, _ = self._wechat_callback(
+                body, "TRANSACTION.SUCCESS", resource_nonce="abcdefghijkl", pretty=True)
+            self.assertNotEqual(raw, again)
+            second = self.wechat.process_callback(again, again_headers, now=now)
+            self.assertTrue(first["ok"])
+            self.assertFalse(first["duplicate"])
+            self.assertTrue(second["duplicate"])
+            self.assertNotEqual(first["callback_audit"]["callback_payload_sha256"],
+                                second["callback_audit"]["callback_payload_sha256"])
+            self.assertEqual(first["callback_audit"]["event_semantic_sha256"],
+                             second["callback_audit"]["event_semantic_sha256"])
+            before = dict(db.fetchone("SELECT * FROM payment_events"))
+            self.assertEqual(before["payload_sha256"], hashlib.sha256(raw).hexdigest())
+            self.assertEqual(before["duplicate_delivery_count"], 1)
+            self.assertEqual(len(before["event_semantic_sha256"]), 64)
+            self.assertEqual(db.fetchone("SELECT balance FROM credits WHERE user_id=?",
+                                         ("u-redelivery",))["balance"], 30)
+            for changed in (
+                {**body, "amount": {"total": 1300, "currency": "CNY"}},
+                {**body, "transaction_id": "different-payment"},
+                {**body, "out_trade_no": "different-order"},
+                {**body, "payer": {"openid": "different-payer"}},
+                {**body, "success_time": "2026-09-05T01:59:58Z"},
+            ):
+                bad, bad_headers, _ = self._wechat_callback(changed, "TRANSACTION.SUCCESS")
+                with self.subTest(changed=list(changed)), self.assertRaisesRegex(
+                        payment_contract.PaymentContractError, "PAYMENT_EVENT_ID_COLLISION"):
+                    self.wechat.process_callback(bad, bad_headers, now=now)
+            self.assertEqual(dict(db.fetchone("SELECT * FROM payment_events")), before)
+            for table in ("payment_cash_ledger", "payment_entitlement_ledger", "credit_transactions"):
+                self.assertEqual(db.fetchone("SELECT count(*) n FROM " + table)["n"], 1)
+            for value in (None, "a" * 64):
+                with self.assertRaises(Exception):
+                    db.execute("UPDATE payment_events SET event_semantic_sha256=?", (value,))
+
+            # Old executors may still insert NULL during a compatible rollback.
+            # They must never acquire a new identity from a later notification.
+            callback = self.wechat.authenticate_callback(raw, headers, now=now)
+            legacy = replace(callback.event, provider_event_id="legacy-event",
+                             authenticated_payload_sha256=None)
+            options = dict(expected_app_id="wxSyntheticApp01", expected_prod_mode=True,
+                           expected_provider_name="wechatpay_direct", now=now)
+            payment_contract.process_authenticated_callback(legacy, raw, callback.signature, **options)
+            with self.assertRaisesRegex(payment_contract.PaymentContractError,
+                                        "PAYMENT_EVENT_ID_COLLISION"):
+                payment_contract.process_authenticated_callback(
+                    replace(legacy, authenticated_payload_sha256=callback.event.authenticated_payload_sha256),
+                    again, callback.signature, **options)
+            legacy_row = db.fetchone("SELECT * FROM payment_events WHERE id<>?", (before["id"],))
+            self.assertIsNone(legacy_row["event_semantic_sha256"])
+            with self.assertRaises(Exception):
+                db.execute("UPDATE payment_events SET event_semantic_sha256=? WHERE id=?",
+                           ("a" * 64, legacy_row["id"]))
+            self.assertEqual(len(self.wechat_transport.calls), 0)
+        finally:
+            billing.clear_active_usage()
+            db._DB_PATH = old_db_path
+            if old_database_url is not None:
+                os.environ["DATABASE_URL"] = old_database_url
+            temp.cleanup()
 
     def test_wechat_refund_callback_maps_canonical_event(self):
         raw, headers, now = self._wechat_callback(

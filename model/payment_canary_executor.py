@@ -472,7 +472,13 @@ def _database_role_ok() -> bool:
             "AND column_name='duplicate_delivery_count') "
             "AS event_column_present,"
             "has_column_privilege(current_user,'public.payment_events',"
-            "'duplicate_delivery_count','UPDATE') AS event_column_update"
+            "'duplicate_delivery_count','UPDATE') AS event_column_update,"
+            "has_column_privilege(current_user,'public.payment_events',"
+            "'event_semantic_sha256','SELECT') AS semantic_select,"
+            "has_column_privilege(current_user,'public.payment_events',"
+            "'event_semantic_sha256','INSERT') AS semantic_insert,"
+            "has_column_privilege(current_user,'public.payment_events',"
+            "'event_semantic_sha256','UPDATE') AS semantic_update"
         )
         privileges = db.fetchone(
             "SELECT "
@@ -556,6 +562,9 @@ def _database_role_ok() -> bool:
         and schema["refund_column_update"] is True
         and schema["event_column_present"] is True
         and schema["event_column_update"] is True
+        and schema["semantic_select"] is True
+        and schema["semantic_insert"] is True
+        and schema["semantic_update"] is False
         and privileges["required_privileges"] is True
     )
 
