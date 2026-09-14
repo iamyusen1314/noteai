@@ -1,3 +1,17 @@
+September15 00:53BJT: scoped call-trace53868ed228ad243d94d2b5b5f3fbcfbbf039ac80
+built once onAPI-C PID1797595,1789404468.9943686→1789404481.0267575.
+APIimage65d663fbd598e09dec27e2d435deef6c233051ab28602a0a07d1a6a00d4d6951
+(base292482,5files);Adminimage783f336ad88ff6a8ae9db4c3448f8ea783bf5ca3b62122303dc32e37781c2307
+(base03866,2files). ActualPython3.11.15/linuxamd64 imports/hashchecksPASS,
+networknone/no externalprovider; no newresource. OnlyAdminJSchanges
+c439327ed2196aa4f4a249916d453bc69a5c95bc0b91828d5a147733e847a617.
+Remote /var/lib/noteai/call-trace-53868ed/build containsoriginaldurablebuildlog/result;
+local /Users/openclaw/.codex/tmp/noteai-call-trace-20260915. Deployscript staged
+NOT_RUN at /var/lib/noteai/call-trace-53868ed/deploy.py SHA
+3e783645b9db2c4ad26451140bed125171f6ebd3247f16adbf8fce8089a6db93.
+Next solecontrolledAPI/Adminrelease withreadonlycandidates and sameinactiveNative
+backup/launcherrefresh. No publicweb/payment/modelconfig/0025/Item34change;31/37.
+
 September15 00:48BJT: per-physical-call task/step and exact managed-template
 attribution implemented locally in existing API/router/Prompt/provenance path;
 Claude request.call_state, Kimi httpx.extensions and Ark admission metadata remain
