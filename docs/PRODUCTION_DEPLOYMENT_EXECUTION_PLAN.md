@@ -1,3 +1,36 @@
+September14 21:33BJT SAFE HANDOFF TO THE ORIGINAL21:37:32 Item34 generation2 HEARTBEAT.
+Latest engineering candidate source352bdb0f4bf8c2475ea7f4f3ac53a9fa3c27ea10 is now
+BUILT_NOT_DEPLOYED on API-C, buildPID1766207 launched1789392672.628476;
+original build completed1789392676.7269676. CandidateAPI image
+sha256:b6f4f9944d1a70084dfffb90a8909e54291d02e5214e311f26857bc465577e26.
+Runtime Python3.11.15/linuxamd64/18files verified; build0provider/0businesswrites.
+Original result /var/lib/noteai/media-352bdb0/build/build-result.json.
+Current production remains APIee473d9/imagebec724f160f967858629a7eb8eecf3769e3b6f9f8668d5f60b196170c95d5fa1;
+drop3bee1961e46154eb7df19de1b16e1e64ead371ac2717ad8f180daac8a3fbd0db,
+web05af/Admin/env unchanged. No deployment/model call remains in flight.
+Localprivate candidate ~/.codex/tmp/noteai-media-352bdb0:
+api73695cb34fcee9248ceeb108b0a347d3ad42c9383332f6021b0e55b1045c7fa8,
+build2783debd64d5b86828caf64917a419ae110f03644c601ac0e0d36c0032ddda92,
+stage161e2f301589d4be52677062b6656d57bbf2af35a29dde757fa351aab656123e.
+DO NOT rerun stage-build.py: its original exclusive build already succeeded.
+API-only deploy.py locally prepared NOT uploaded/run,
+SHAeb116758f021ffbed080db60c7be77da730a3a144d939d6150710da7e213f51d;
+base is actualee, recovery retains that image, protects currentweb/Admin/env.
+After original Item34 stage safely finishes, continue candidate deployment using
+existing durable launch/result flow, then CAS same inactive Native prepared1083
+binding to the actual new API/drop before any future capture. Do not prepare anew.
+Then a new narrowly scoped chat edit check should test this concrete fix; original
+66a is completed and must not replay. Video/private source and next Native scan
+availability remain pending; next-day original bill is September15>=10BJT.
+
+Original automation viewed/read-only21:33: stillACTIVE,correctgeneration2/target,
+COUNT2 SA/MO13:36 rule. Actual storednext remains21:37:32BJT/13:37:32UTC as noted
+below; this running turn must end for scheduler dispatch. No new automation/sampling,
+no Item34 state claim beyond prior LAST_KNOWN. Original heartbeat must first read
+current F/ownerACL/journal, then execute only eligible original3d or reconcile an
+already-started attempt. No blanket program-complete claim: independent formal
+product work above stays pending after the scheduled stage. Readiness30/37;noGitpush.
+
 September14 21:31BJT chat edit-context fix READY_TO_APPLY (not yet deployed).
 Original ee473d9 chat66a2996a-f0e8-4c30-88a9-dbb5d892caab COMPLETE13:18:21.500480UTC;
 usage988dc06b-888b-42c4-b5da-c373c7b47584,3credits charge1/complete1/refund0.
