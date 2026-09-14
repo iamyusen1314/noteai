@@ -1,7 +1,26 @@
+September14 13:15BJT Native: checkpoint80b01ea Payment image62ffa056101ca1b573253364ed7d094abcb5d25e7c756e8e051ad65ce607b8e8
+and canary35097f4f4c5912f23de5affcf2d38958fff7c85270eee42ff50f7972e21bdf14
+built once on existing API-C. Original build-result FAILED after Payment validation
+because canary check included unused payment_runtime; preserve original failure.
+Independent actual canary imports/four hashes/owner binding/Python3.11.15 validated
+without rebuilding, at /var/lib/noteai/native-80b01ea/payment-canary-validation-result.json.
+Archive5e9470c51a9bd11dfd20ef3f5481b5a5d31709e03984a7a466f9ab58b9855cf2;
+original buildPID1679948. New deploy/production/native_capture.py reuses existing
+helpers, collector and full Payment template: prepare exact one-owner binding/SQL,
+run bounded capture, restore originals and separately read sealed journal. Stop
+success alone never proves capture completeness. Read-only review corrected
+partial-stop timeout recovery and confirmed-dead-runner close; no activation yet.
+Payment remains inactive, APIce/web99/Admin unchanged. Next prepare host inputs,
+apply exact existing collector SQL with DB owner, then <=1h Native trade capture;
+owner scan/full refund and next-day bill still pending. No provider requests or
+business writes in this build stage. Readiness30/37 unchanged; no Gitpush/protected
+path/Item34 change. Media durable result recovery and general content quality
+corrections remain independent next work, not replaced by Native.
+
 # NoteAI Internal Production Readiness Handoff
 
 September14 Native implementation: actual noteai_payment connection succeeded;
-all39 reviewed SELECT/UPDATE column permissions are present, users row-lock UPDATE
+all reviewed SELECT/UPDATE column permissions are present, users row-lock UPDATE
 permission is absent as intended. Original callback code nevertheless used users
 FOR UPDATE, a real execution gap hidden by prior superuser fixtures. Current minimal
 fix uses the same canonical advisory user fence in the three Payment paths, requires

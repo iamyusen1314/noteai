@@ -1,5 +1,12 @@
 # NoteAI Production Deployment Execution Plan
 
+Native current execution: deploy/production/native_capture.py binds current APIce
+without rebuilding, Payment62ffa/canary35097 from80b01ea. Prepare/SQL installation
+precede the explicit one-hour trade run; expiry/close restores exact saved units
+and reads original sealed journal separately. Owner-only12RMB scan/refund; next-day
+bill remains a separate same-order capture. Current host preparation, hashes and
+actual state are recorded at Handoff top; no production activation claimed.
+
 Current September14: APIce6ade7 and web99c9ed8 are live;0027 remains applied.
 Original707 claim6a426f5a now completed with one8credit charge, sameusage and note;
 3 calls before answer/10 after; exact recorded modelcostRMB1.392293. Free answer,
