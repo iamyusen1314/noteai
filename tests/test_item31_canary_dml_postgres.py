@@ -449,7 +449,7 @@ class CanaryPaymentFlowPostgresTests(unittest.TestCase):
             raise RuntimeError("isolated PG16 socket required")
         # Current migrations reference these runtime roles. They are inert
         # fixtures in the explicitly isolated cluster, not production accounts.
-        for role in ("noteai_app", "noteai_admin_runtime"):
+        for role in ("noteai_app", "noteai_admin_runtime", "noteai_payment"):
             attributes = cls.admin.execute(
                 "SELECT rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,"
                 "rolinherit,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=%s",
@@ -532,7 +532,7 @@ class CanaryPaymentFlowPostgresTests(unittest.TestCase):
             capture = dml.CanaryCapture(listener, owner, activation=activation,
                                        targets=targets, provider=provider, journal=path)
             try:
-                yield dml.CanaryWriter(capture, self.connect, self.db.Transaction)
+                yield dml.CanaryWriter(capture, getattr(self, "writer_connect", self.connect), self.db.Transaction)
                 result = capture.finish(admission_closed=True)
                 self.assertEqual(result["status"], "CAPTURE_COMPLETE_NOT_TERMINAL")
                 self.assertEqual(dml.read_journal(path, **capture.context), result)
@@ -545,6 +545,91 @@ class CanaryPaymentFlowPostgresTests(unittest.TestCase):
                 for statement in dml.removal_sql(list(targets)):
                     owner.execute(statement)
                 owner.close()
+
+    def payment_role(self):
+        """Actual original column ACL, on an inert role in this disposable DB."""
+        role = "noteai_payment"
+        owner = self.connect()
+        ident = psycopg.sql.Identifier(role)
+        root = Path(__file__).resolve().parents[1]
+        import re
+        sources = [root / "scripts/postgres/noteai_production_runtime_roles.sql",
+                   root / "model/migrations/postgres/0018_direct_payment_providers.sql"]
+        owner.execute(psycopg.sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(ident))
+        for source in sources:
+            for statement in re.findall(r"\bGRANT\b[^;]*\bTO noteai_payment;", source.read_text()):
+                owner.execute(statement.replace("TO noteai_payment;", "TO " + role + ";"))
+        self.assertFalse(owner.execute(
+            "SELECT has_any_column_privilege(%s,'public.users','UPDATE')", (role,)
+        ).fetchone()[0])
+        def cleanup():
+            owner.execute(psycopg.sql.SQL("DROP OWNED BY {}").format(ident))
+            owner.close()
+        self.addCleanup(cleanup)
+        def connect():
+            connection = self.connect()
+            connection.execute(psycopg.sql.SQL("SET ROLE {}").format(ident))
+            return connection
+        return connect
+
+    def test_original_payment_column_role_completes_payment_and_refund(self):
+        role_connect = self.payment_role()
+        original_stage = self.stage
+        @contextmanager
+        def with_role(provider, targets):
+            # API creates the order; every later Payment writer uses its real
+            # column ACL, including callbacks, duplicate deliveries and refund.
+            self.writer_connect = (self.connect if targets["payment_orders"][0]
+                                   == "idempotency_key_hash" else role_connect)
+            try:
+                with original_stage(provider, targets) as writer:
+                    yield writer
+            finally:
+                del self.writer_connect
+        with mock.patch.object(self, "stage", with_role):
+            self.test_both_direct_provider_payment_duplicate_and_unused_refund_transactions()
+
+    def test_payment_readonly_user_fence_observes_concurrent_deletion(self):
+        role_connect = self.payment_role()
+        owner = self.connect()
+        self.addCleanup(owner.close)
+        uid = "local_fence_" + uuid.uuid4().hex
+        owner.execute("INSERT INTO users(id,username,password_hash,password_salt,created_at) "
+                      "VALUES(%s,%s,'synthetic','synthetic',%s)",
+                      (uid, uid, datetime.now(timezone.utc).isoformat()))
+        owner.execute("BEGIN")
+        import content_retention
+        content_retention.assert_user_writable_with_storage(self.db.Transaction(owner, True), uid)
+        owner.execute("UPDATE users SET deletion_requested_at=%s WHERE id=%s",
+                      (datetime.now(timezone.utc).isoformat(), uid))
+        ready = threading.Event()
+        results = []
+        def waiting_payment():
+            with role_connect() as connection:
+                connection.execute("BEGIN")
+                connection.execute("SET LOCAL statement_timeout='5s'")
+                # Fix a prior statement snapshot as in callback event admission.
+                connection.execute("SELECT id FROM users WHERE id=%s", (uid,))
+                ready.set()
+                try:
+                    self.payment._payment_user_fence(self.db.Transaction(connection, True), uid)
+                    results.append("incorrectly_allowed")
+                except ValueError:
+                    results.append("deletion_observed")
+                finally:
+                    connection.rollback()
+        worker = threading.Thread(target=waiting_payment)
+        worker.start()
+        self.assertTrue(ready.wait(3))
+        owner.commit()
+        worker.join(6)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(results, ["deletion_observed"])
+        with role_connect() as connection:
+            connection.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
+            with self.assertRaisesRegex(self.payment.PaymentContractError, "ISOLATION_UNSUPPORTED"):
+                self.payment._payment_user_fence(self.db.Transaction(connection, True), uid)
+            connection.rollback()
 
     def test_both_direct_provider_payment_duplicate_and_unused_refund_transactions(self):
         payment = self.payment

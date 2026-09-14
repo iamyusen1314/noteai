@@ -363,6 +363,21 @@ def _app_id_hash(app_id: str, provider_name: str = "adapay") -> str:
     return _hash(f"noteai-{_provider_name(provider_name)}-app-v1", app_id)
 
 
+def _payment_user_fence(tx: db.Transaction, user_id: str, *, allow_deletion_requested=False):
+    # Payment has SELECT-only access to users. The canonical advisory fence is
+    # also taken by account deletion; READ COMMITTED makes the following read
+    # see a deletion that committed while this transaction waited for the fence.
+    # Do not grant users UPDATE just to satisfy SELECT ... FOR UPDATE.
+    if tx.postgres and tx.fetchone(
+        "SELECT current_setting('transaction_isolation') AS isolation"
+    )["isolation"] != "read committed":
+        raise PaymentContractError("PAYMENT_USER_FENCE_ISOLATION_UNSUPPORTED")
+    return content_retention.lock_user_write_fence_with_storage(
+        tx, str(user_id), lock_row=False,
+        allow_deletion_requested=allow_deletion_requested,
+    )
+
+
 def _lock_financial_subject(
     tx: db.Transaction,
     user_id: str | None,
@@ -371,11 +386,7 @@ def _lock_financial_subject(
     if not user_id:
         return
     try:
-        content_retention.lock_user_write_fence_with_storage(
-            tx,
-            str(user_id),
-            allow_deletion_requested=True,
-        )
+        _payment_user_fence(tx, str(user_id), allow_deletion_requested=True)
     except ValueError:
         # A completed deletion can remove the user while preserving immutable
         # financial rows. The callback must still record cash truth and route
@@ -1041,7 +1052,7 @@ def _apply_credit_entitlement(
     item = _catalog_item(row["product_kind"], row["product_id"])
     milli = int(item["entitlement_milli"])
     amount = _credits(milli)
-    content_retention.assert_user_writable_with_storage(tx, user_id)
+    _payment_user_fence(tx, user_id)
     tx.execute(
         "INSERT INTO credits(user_id,balance,total_purchased,total_used,updated_at) "
         "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
@@ -1118,7 +1129,7 @@ def _apply_subscription_entitlement(
     user_id = row["user_id"]
     if not user_id:
         raise PaymentContractError("PAYMENT_ENTITLEMENT_ACCOUNT_MISSING")
-    content_retention.assert_user_writable_with_storage(tx, user_id)
+    _payment_user_fence(tx, user_id)
     paid = tx.fetchone(
         "SELECT id FROM subscriptions WHERE user_id=? AND is_active=1 "
         "AND tier<>'free' LIMIT 1"

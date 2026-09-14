@@ -457,7 +457,8 @@ def _database_role_ok() -> bool:
             "SELECT current_user AS current_role,session_user AS session_role,"
             "current_setting('transaction_read_only') AS transaction_read_only,"
             "current_setting('default_transaction_read_only') "
-            "AS default_transaction_read_only"
+            "AS default_transaction_read_only,"
+            "current_setting('transaction_isolation') AS transaction_isolation"
         )
         schema = db.fetchone(
             "SELECT EXISTS(SELECT 1 FROM information_schema.columns "
@@ -550,6 +551,7 @@ def _database_role_ok() -> bool:
         and row["session_role"] == "noteai_payment"
         and row["transaction_read_only"] == "off"
         and row["default_transaction_read_only"] == "off"
+        and row["transaction_isolation"] == "read committed"
         and schema["refund_column_present"] is True
         and schema["refund_column_update"] is True
         and schema["event_column_present"] is True

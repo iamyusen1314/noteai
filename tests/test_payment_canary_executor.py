@@ -190,6 +190,7 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
                     "session_role": "noteai_payment",
                     "transaction_read_only": "off",
                     "default_transaction_read_only": "off",
+                    "transaction_isolation": "read committed",
                 },
                 {
                     "refund_column_present": True,
@@ -309,6 +310,7 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
                 "session_role": "noteai_payment",
                 "transaction_read_only": "off",
                 "default_transaction_read_only": "off",
+                "transaction_isolation": "read committed",
             },
             {
                 "refund_column_present": True,
@@ -327,6 +329,7 @@ class PaymentCanaryExecutorTests(unittest.TestCase):
 
         for index, mutation in (
             (0, {"default_transaction_read_only": "on"}),
+            (0, {"transaction_isolation": "repeatable read"}),
             (1, {"refund_column_present": False}),
             (1, {"refund_column_update": False}),
             (1, {"event_column_present": False}),

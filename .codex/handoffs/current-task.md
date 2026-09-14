@@ -1,5 +1,22 @@
 # NoteAI Internal Production Readiness Handoff
 
+September14 Native implementation: actual noteai_payment connection succeeded;
+all39 reviewed SELECT/UPDATE column permissions are present, users row-lock UPDATE
+permission is absent as intended. Original callback code nevertheless used users
+FOR UPDATE, a real execution gap hidden by prior superuser fixtures. Current minimal
+fix uses the same canonical advisory user fence in the three Payment paths, requires
+READ COMMITTED, preserves deleted-account cash truth and blocks entitlement grant.
+API order creation/deletion retain their original row locks; no users grant/DDL.
+Isolated PG16 original column-role payment+duplicate+refund and concurrent deletion
+tests pass, plus existing executor tests18 total. Initial unique-role fixture hit
+RLS name binding; corrected to the actual inert noteai_payment role in disposable DB.
+One combined runner import required writable /tmp SQLite fixture; no product change.
+Native role readback retained at /var/lib/noteai/wechat-native-20260913/
+native-column-read-result.json. No real order/provider/write/service mutation.
+Build only affected Payment/canary successors next; currentAPIce/web99 remain live.
+Full Native binding/launcher and media-result recovery/video remain implementation,
+not terminal acceptance. Readiness30/37 unchanged, no protected path or Gitpush.
+
 September14 12:30–12:40BJT current: original clarification claim/usage6a426f5a /
 2f3234ca COMPLETED,version3,one saved note with the same6a426f5a UUID.
 Actual free answer + omit + prepared resumption succeeded; browser reload restored
