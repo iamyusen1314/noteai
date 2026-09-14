@@ -1,3 +1,5 @@
+September14 same-owner Chat switch retained old merchant-confirmation controls. Fixed locally with conversation binding/late-response isolation; no contaminated model request was submitted. Actual web verification pending; original reports/media retained. Native new capture prepared only, no new order/DDL. See Handoff top.
+
 September14 local correction: source presence previously let explicitly omitted price
 return in final drafts. Existing constraint/final checks now enforce supported explicit
 omissions; Chat no longer loses the contract when shaping/repairing/selecting.41offline

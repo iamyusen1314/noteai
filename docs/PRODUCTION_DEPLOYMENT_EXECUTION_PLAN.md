@@ -1,3 +1,25 @@
+September14 normal browser check found an actual same-owner note-switch bug:
+new /chat/start uses the chosen note only, but library entry retained the old Chat
+DOM, merchant-confirmation button and attachments; stale buttons could submit old
+answers to the new session. No new model/answer submission was made. Local fix clears
+only Chat context, binds starts/restore/cards/file callbacks to conversation epoch,
+blocks switch during a paid in-flight request, and refuses unrelated-generation
+recreation. Original OCR/reports/history remain.44 offline browser regressions passed
+(chat-switch-r2.log); final UI-only migration label cleanup names current material
+understanding instead of stale Kimi Vision. No API/image rebuild needed; web release next.
+
+Native new capture PREPARED_NOT_ACTIVATED, activation4febf1b9-fdbe-4ed0-9ba5-973c04fbca55,
+binding73a78323a99f0155c2a3bd0063a539c582d0d45b2a31179a1ac44ef32b693224,
+preparePID1743171 completed1789383855.0309868. Script existing directory
+/var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-49f5075.py,
+SHAcae6665a2de1478805b0d3496497f59fd7bce794d6ec6b003f9c7b5c0c78b4e0.
+Trade /var/lib/noteai/native-6c9221e/trade. install-dms.sql7404B SHA4aa099bb6ed258e7f1864c27021ca64a8825a1c3448118b847a0e333cc0da366;
+remove-dms.sql1896B SHA8c44adb2863f2d2d1d1b1b0955c3aed87fab094939844f8623b72f8f1d5270df.
+No DDL/capture/order/provider call started. Owner asked whether available for a NEW
+12RMB scan/refund, no reply yet. After web-only update, refresh this PRE-ACTIVATION
+web binding with old prepared.json retained and all config/binding hashes unchanged.
+Do not change an active capture; no previous12RMB replay.30/37 unchanged.
+
 September14 Native preparation found an exact pre-write implementation mismatch:
 Payment retains original systemd failed/exit137, Job empty, no container, new trade
 root absent. bcc1d3e preparePID1742772 stopped in check_original BEFORE capture/SQL

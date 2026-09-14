@@ -4329,7 +4329,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     </div>
 
     <div class="tech-dim-panel" id="tdim-1">
-      <div class="tech-group-label">封面视觉特征 · 14 个特征 <span class="tech-paper-badge" style="background:rgba(0,212,255,0.1);color:#00D4FF;border-color:rgba(0,212,255,0.2)">Kimi Vision 分析</span></div>
+      <div class="tech-group-label">封面视觉特征 · 14 个特征 <span class="tech-paper-badge" style="background:rgba(0,212,255,0.1);color:#00D4FF;border-color:rgba(0,212,255,0.2)">素材理解模型分析</span></div>
       <div class="feat-grid" id="fg-visual"></div>
     </div>
 
@@ -7894,7 +7894,8 @@ async function ensureDiagnosisRootNote(note) {
 async function startChatFromDiagnosis() {
   if (!_noteDetailData) return;
   if (!_authToken) { openAuthModal('login'); return; }
-  const identitySnapshot = _chatIdentitySnapshot();
+  if (!chatBeginNoteContext()) return;
+  const identitySnapshot = _chatConversationSnapshot();
   const note = _noteDetailData;
   showPage('chat');
 
@@ -7907,7 +7908,7 @@ async function startChatFromDiagnosis() {
 
   try {
     const rootNoteId = await ensureDiagnosisRootNote(note);
-    if (!_chatIdentityMatches(identitySnapshot)) return;
+    if (!_chatConversationMatches(identitySnapshot)) return;
     _chatParentNoteId = rootNoteId || _chatParentNoteId;
     const constraints = Array.isArray(_diagnoseResult?.user_constraints) && _diagnoseResult.user_constraints.length
       ? _diagnoseResult.user_constraints
@@ -7964,6 +7965,7 @@ async function startChatFromDiagnosis() {
         generate_context: diagCtx,  // 传诊断上下文给 AI
       }),
     });
+    if (!_chatConversationMatches(identitySnapshot)) return;
     if (res.status === 401 || res.status === 403) {
       chatHandleAuthFailure();
       throw new Error('请先登录后开始对话优化');
@@ -7973,7 +7975,9 @@ async function startChatFromDiagnosis() {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
-    if (!_chatIdentityMatches(identitySnapshot)) return;
+    if (!_chatConversationMatches(identitySnapshot)) return;
+    _chatBusy = false;
+    document.getElementById('chat-input').disabled = false;
     _chatSessionId = data.session_id;
 
     document.getElementById('chat-no-session').style.display  = 'none';
@@ -7989,7 +7993,7 @@ async function startChatFromDiagnosis() {
     chatAppendConfirmedFacts(data.confirmed_facts || []);
     chatSaveSessionToStorage();
   } catch(e) {
-    showToast('启动对话失败：' + e.message);
+    if (_chatConversationMatches(identitySnapshot)) showToast('启动对话失败：' + e.message);
   }
 }
 
@@ -9173,7 +9177,7 @@ const FEAT_DATA = {
     { code:'cover_has_text',         name:'是否有文字叠加', desc:'关键词文字贴片提升内容辨识度' },
     { code:'cover_text_prominence',  name:'文字突出程度', desc:'过多文字使封面杂乱，适度为宜' },
     { code:'cover_composition_score',name:'构图评分',     desc:'三分法构图、主体突出是高质封面关键' },
-    { code:'cover_aesthetic_score',  name:'美学评分',     desc:'整体视觉吸引力，由 Kimi Vision 打分' },
+    { code:'cover_aesthetic_score',  name:'美学评分',     desc:'整体视觉吸引力，由当前素材理解模型评估' },
     { code:'cover_emotion_intensity',name:'情绪强度',     desc:'封面传递的情绪越强，记忆点越深' },
     { code:'cover_visual_clarity',   name:'视觉清晰度',   desc:'背景简洁、主体突出使封面更易消费' },
   ],
@@ -9360,6 +9364,7 @@ let _chatIterCount   = 0;
 let _chatSearchActive = false;   // true while model is doing web searches
 let _chatRequestAbortController = null;
 let _chatUserStateEpoch = 0;
+let _chatContextEpoch = 0;
 
 /* ── Entry point: called from "开始对话优化" button ── */
 async function startChatOptimization() {
@@ -9369,7 +9374,8 @@ async function startChatOptimization() {
     document.getElementById("scoreRingNum").textContent="--";
     renderReportLifecycle(null); showToast('⚠️ 请先生成笔记，再开始对话优化'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
-  const identitySnapshot = _chatIdentitySnapshot();
+  if (!chatBeginNoteContext()) return;
+  const identitySnapshot = _chatConversationSnapshot();
 
   // ── 强制清空旧会话状态，确保不与上一次笔记混淆 ──
   _chatSessionId    = null;
@@ -9401,6 +9407,7 @@ async function startChatOptimization() {
         generate_context: generateContext,
       }),
     });
+    if (!_chatConversationMatches(identitySnapshot)) return;
     if (res.status === 401 || res.status === 403) {
       chatHandleAuthFailure();
       throw new Error('请先登录后开始对话优化');
@@ -9410,7 +9417,9 @@ async function startChatOptimization() {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
-    if (!_chatIdentityMatches(identitySnapshot)) return;
+    if (!_chatConversationMatches(identitySnapshot)) return;
+    _chatBusy = false;
+    document.getElementById('chat-input').disabled = false;
     _chatSessionId = data.session_id;
 
     document.getElementById('chat-no-session').style.display  = 'none';
@@ -9428,7 +9437,7 @@ async function startChatOptimization() {
     chatSaveSessionToStorage();
 
   } catch(e) {
-    showToast('启动对话失败：' + e.message);
+    if (_chatConversationMatches(identitySnapshot)) showToast('启动对话失败：' + e.message);
   }
 }
 
@@ -9444,8 +9453,8 @@ function initChatPage() {
 /* ── 无感 Session 自动恢复（服务器重启后 session 丢失时调用） ── */
 async function _recreateChatSession() {
   const d = _generateResult;
-  if (!d || d._error) return false;
-  const identitySnapshot = _chatIdentitySnapshot();
+  if (!d || d._error || !d._saved_note_id || d._saved_note_id !== _chatParentNoteId) return false;
+  const identitySnapshot = _chatConversationSnapshot();
   try {
     const headers = { 'Content-Type': 'application/json', ...(_authToken ? authHeader() : {}) };
     const constraints = Array.isArray(d.user_constraints) && d.user_constraints.length
@@ -9473,7 +9482,7 @@ async function _recreateChatSession() {
     }
     if (!res.ok) return false;
     const data = await res.json();
-    if (!_chatIdentityMatches(identitySnapshot)) return false;
+    if (!_chatConversationMatches(identitySnapshot)) return false;
     _chatSessionId = data.session_id;
     return true;
   } catch { return false; }
@@ -9509,6 +9518,35 @@ function _chatIdentityMatches(snapshot) {
   return !!snapshot?.ownerId
     && snapshot.ownerId === _chatOwnerId()
     && snapshot.epoch === _chatUserStateEpoch;
+}
+
+function _chatConversationSnapshot() {
+  return { ..._chatIdentitySnapshot(), contextEpoch: _chatContextEpoch,
+    sessionId: _chatSessionId, token: _authToken };
+}
+function _chatConversationMatches(snapshot) {
+  return _chatIdentityMatches(snapshot) && snapshot.contextEpoch === _chatContextEpoch
+    && snapshot.sessionId === _chatSessionId && snapshot.token === _authToken;
+}
+function chatBeginNoteContext() {
+  if (_chatRequestAbortController) {
+    showToast('当前优化正在处理，请等原结果返回后再切换笔记。');
+    return false;
+  }
+  _chatContextEpoch += 1;
+  _chatSessionId = null; _chatParentNoteId = null; _chatIterCount = 0;
+  _chatBusy = true; _chatAiBubble = null; _chatAiText = ''; _chatSearchActive = false;
+  _chatAttachImage = null; _chatAttachFiles = [];
+  localStorage.removeItem('noteai_chat_session');
+  document.getElementById('chat-messages').innerHTML = '';
+  const input = document.getElementById('chat-input');
+  input.value = ''; input.disabled = true; input.style.height = 'auto';
+  const send = document.getElementById('chat-send-btn');
+  send.disabled = true; send.style.opacity = '.4';
+  chatRenderAttachPreview();
+  document.getElementById('chat-no-session').style.display = 'flex';
+  document.getElementById('chat-active-area').style.display = 'none';
+  return true;
 }
 
 function chatClearUserState() {
@@ -9578,12 +9616,12 @@ function chatHandleFileSelect(input) {
   if (PUBLIC_PRODUCT && !publicImageOpen() && Array.from(input.files || []).some(f => f.type.startsWith('image/'))) { input.value=''; showToast('图片理解尚未开放，当前可使用文字附件'); return; }
   const files = Array.from(input.files);
   input.value = '';
-  const stateEpoch = _chatUserStateEpoch;
+  const stateEpoch = _chatUserStateEpoch, contextEpoch = _chatContextEpoch;
   files.forEach(f => {
     if (f.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = e => {
-        if (stateEpoch !== _chatUserStateEpoch) return;
+        if (stateEpoch !== _chatUserStateEpoch || contextEpoch !== _chatContextEpoch) return;
         _chatAttachImage = { base64: e.target.result.split(',')[1], dataURL: e.target.result, name: f.name };
         chatRenderAttachPreview();
       };
@@ -9591,7 +9629,7 @@ function chatHandleFileSelect(input) {
     } else {
       const reader = new FileReader();
       reader.onload = e => {
-        if (stateEpoch !== _chatUserStateEpoch) return;
+        if (stateEpoch !== _chatUserStateEpoch || contextEpoch !== _chatContextEpoch) return;
         _chatAttachFiles.push({ name: f.name, text: e.target.result });
         chatRenderAttachPreview();
       };
@@ -9761,7 +9799,7 @@ function chatHandleEvent(ev) {
       const ind = document.createElement('div');
       ind.id = 'chatImageAnalyzing';
       ind.style.cssText = 'font-size:12px;color:var(--holo-mid);padding:6px 12px;background:rgba(123,97,255,0.08);border:1px solid rgba(123,97,255,0.2);border-radius:8px;margin:4px 0;display:flex;align-items:center;gap:6px';
-      ind.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> Kimi Vision 正在深度解析图片…';
+      ind.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> 素材理解模型正在解析图片…';
       document.getElementById('chat-messages').appendChild(ind);
       chatScrollBottom();
       break;
@@ -10055,10 +10093,10 @@ async function restorePendingTaskClarification() {
 
 function chatAppendConfirmedFacts(facts) {
   if (!Array.isArray(facts) || !facts.length) return;
-  const identity=_chatIdentitySnapshot();
+  const identity=_chatConversationSnapshot();
   const button=document.createElement('button');button.type='button';button.textContent='查看或纠正本次商家确认';
   button.addEventListener('click',()=>{
-    if(!_chatIdentityMatches(identity))return;
+    if(!_chatConversationMatches(identity))return;
     button.remove();
     chatAppendSupplementPrompts(facts.map(f=>({field:'confirmation_'+f.question_id.replace(/:/g,'__'),label:f.question || '本次说明',
       prompt:'原问题范围：'+([f.merchant,f.object,f.time_range].filter(Boolean).join(' · ') || '仅本次内容'),value:f.answer || '',action_text:'填写更正后的完整说明'})));
@@ -10072,6 +10110,7 @@ function chatAppendSupplementPrompts(prompts, task = null) {
   if (task) return renderTaskClarification(task);
   const items = Array.isArray(prompts) ? prompts.filter(p => p && (p.label || p.prompt)).slice(0, 4) : [];
   if (!items.length) return;
+  const conversation = _chatConversationSnapshot();
   const wrap = document.createElement('div');
   wrap.className = 'chat-supplement-card';
   const itemField = (item, idx) => String(item.field || `field_${idx}`).replace(/[^\w-]/g, '') || `field_${idx}`;
@@ -10103,6 +10142,7 @@ function chatAppendSupplementPrompts(prompts, task = null) {
   document.getElementById('chat-messages').appendChild(wrap);
   wrap.querySelectorAll('[data-supplement-idx]').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (!_chatConversationMatches(conversation)) return;
       const row = wrap.querySelector(`[data-supplement-row="${btn.dataset.supplementIdx}"]`);
       row?.classList.add('is-open');
       btn.textContent = '填写中';
@@ -10111,6 +10151,7 @@ function chatAppendSupplementPrompts(prompts, task = null) {
     });
   });
   wrap.querySelector('[data-supplement-submit]')?.addEventListener('click', async () => {
+    if (!_chatConversationMatches(conversation)) return;
     const values = {};
     const labels = {};
     wrap.querySelectorAll('[data-supplement-field]').forEach(input => {
@@ -10143,6 +10184,7 @@ function chatAppendSupplementPrompts(prompts, task = null) {
     else {wrap.classList.remove('is-submitted');wrap.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=false);if(status)status.textContent='本次未完成，回答仍保留，可检查提示后修改。';}
   });
   wrap.querySelector('[data-supplement-skip]')?.addEventListener('click', () => {
+    if (!_chatConversationMatches(conversation)) return;
     chatSendMessage({text:'先不补充这些信息；本次不要写这些未确定的项目，继续优化其余内容。',useCurrentAttachments:false});
   });
   chatScrollBottom();
@@ -11867,7 +11909,8 @@ async function autoSaveGeneratedNote(genResult, identitySnapshot, requestToken) 
 async function startChatFromLibrary() {
   if (!_noteDetailData) return;
   if (!_authToken) { openAuthModal('login'); return; }
-  const identitySnapshot = _chatIdentitySnapshot();
+  if (!chatBeginNoteContext()) return;
+  const identitySnapshot = _chatConversationSnapshot();
   const note = _noteDetailData;
   closeNoteDetail();
   showPage('chat');
@@ -11891,6 +11934,7 @@ async function startChatFromLibrary() {
         ...intentPayload,
       }),
     });
+    if (!_chatConversationMatches(identitySnapshot)) return;
     if (res.status === 401 || res.status === 403) {
       chatHandleAuthFailure();
       throw new Error('请先登录后开始对话优化');
@@ -11900,7 +11944,9 @@ async function startChatFromLibrary() {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
-    if (!_chatIdentityMatches(identitySnapshot)) return;
+    if (!_chatConversationMatches(identitySnapshot)) return;
+    _chatBusy = false;
+    document.getElementById('chat-input').disabled = false;
     _chatSessionId    = data.session_id;
     _chatIterCount    = _numOrNull(note._saved_note_version || note.version) || 1;
     // 记住这条笔记的 id，后续 chat 保存版本链时用作 parent_id
@@ -11921,7 +11967,7 @@ async function startChatFromLibrary() {
     // Bug3: 保存 session 到 localStorage
     chatSaveSessionToStorage();
   } catch(e) {
-    showToast('启动对话失败：' + e.message);
+    if (_chatConversationMatches(identitySnapshot)) showToast('启动对话失败：' + e.message);
   }
 }
 
@@ -11991,8 +12037,8 @@ async function chatRestoreSession() {
     _chatIterCount = _numOrNull(stored.version) || 1;
     chatUpdateNote(stored.noteTitle, stored.noteBody || '', stored.score || null, grade, { version: _chatIterCount, initial: true });
   }
-  const identity = _chatIdentitySnapshot(), token = _authToken, sessionId = stored.sessionId;
-  const stillCurrent = () => _chatIdentityMatches(identity) && _authToken === token && _chatSessionId === sessionId;
+  const identity = _chatConversationSnapshot(), token = _authToken, sessionId = stored.sessionId;
+  const stillCurrent = () => _chatConversationMatches(identity) && _authToken === token && _chatSessionId === sessionId;
   try {
     const response = await fetch(API_AUTH + '/chat/tasks/' + encodeURIComponent(sessionId), {headers: authHeader()});
     if (!stillCurrent()) return;

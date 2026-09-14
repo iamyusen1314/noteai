@@ -248,6 +248,81 @@ test('library chat restores its own confirmation without importing another uploa
   await expect(page.locator('#chat-messages')).not.toContainText('OTHER_MERCHANT_SENTINEL');
 });
 
+test('switching library notes clears old facts and rejects detached confirmation cards', async ({page}) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const result = await page.evaluate(async () => {
+    _authUser={id:'same-owner'};_authToken='synthetic';_authVerifiedOwnerId='same-owner';
+    _chatSessionId='old-session';_chatParentNoteId='old-note';
+    const facts=[{question_id:'drink',question:'旧店套餐饮品？',merchant:'OLD_MERCHANT',answer:'旧套餐1杯'}];
+    chatAppendConfirmedFacts(facts);
+    const oldButton=document.querySelector('#chat-messages button');
+    oldButton.click();
+    const oldCard=document.querySelector('#chat-messages .chat-supplement-card');
+    const oldSubmit=oldCard.querySelector('[data-supplement-submit]');
+    _chatAttachImage={base64:'old-private',dataURL:'data:image/png;base64,AA',name:'old.png'};
+    _chatAttachFiles=[{name:'old.txt',text:'OLD_PRIVATE'}];
+    document.getElementById('chat-input').value='OLD_UNSENT';
+    const calls=[];
+    window.fetch=async (url,init={})=>{calls.push({url:String(url),body:init.body});return new Response(JSON.stringify({session_id:'new-session',current_score:73,grade:'良好',welcome:'新笔记已就绪',confirmed_facts:[]}));};
+    _noteDetailData={id:'new-note',title:'新笔记',body:'新正文',domain:'美食',version:1};
+    await startChatFromLibrary();
+    oldButton.click();oldSubmit.click();oldCard.querySelector('[data-supplement-skip]').click();
+    await Promise.resolve();
+    return {calls,session:_chatSessionId,note:_chatParentNoteId,busy:_chatBusy,image:_chatAttachImage,files:_chatAttachFiles};
+  });
+  expect(result.calls).toHaveLength(1);
+  expect(JSON.parse(result.calls[0].body).note_id).toBe('new-note');
+  expect(result).toMatchObject({session:'new-session',note:'new-note',busy:false,image:null,files:[]});
+  await expect(page.locator('#chat-messages')).not.toContainText('OLD_MERCHANT');
+  await expect(page.locator('#chat-messages')).not.toContainText('旧套餐');
+  await expect(page.getByRole('button',{name:'查看或纠正本次商家确认'})).toHaveCount(0);
+  await expect(page.locator('#chat-input')).toHaveValue('');
+  await expect(page.locator('#chat-send-btn')).toBeEnabled();
+});
+
+test('late old restore and reverse starts cannot overwrite the latest note context', async ({page}) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const result=await page.evaluate(async()=>{
+    _authUser={id:'same-owner'};_authToken='synthetic';_authVerifiedOwnerId='same-owner';
+    localStorage.setItem('noteai_chat_session',JSON.stringify({ownerUserId:'same-owner',sessionId:'old-session',noteId:'old-note',noteTitle:'旧缓存',savedAt:Date.now()}));
+    const pending=[];
+    window.fetch=(url,init={})=>new Promise(resolve=>pending.push({url:String(url),body:init.body,resolve}));
+    const restore=chatRestoreSession();
+    _noteDetailData={id:'first-note',title:'第一篇',body:'第一正文',version:1};
+    const first=startChatFromLibrary();
+    _noteDetailData={id:'latest-note',title:'最后一篇',body:'最后正文',version:1};
+    const latest=startChatFromLibrary();
+    pending[0].resolve(new Response(JSON.stringify({type:'chat_state',session_id:'old-session',note_id:'old-note',title:'OLD_RESTORE',body:'OLD_PRIVATE',confirmed_facts:[{question_id:'old',answer:'OLD_PRIVATE'}]})));
+    await restore;
+    pending[2].resolve(new Response(JSON.stringify({session_id:'latest-session',current_score:73,welcome:'最后一篇就绪',confirmed_facts:[]})));
+    await latest;
+    pending[1].resolve(new Response(JSON.stringify({session_id:'first-session',current_score:72,welcome:'LATE_START',confirmed_facts:[]})));
+    await first;
+    return {session:_chatSessionId,note:_chatParentNoteId,busy:_chatBusy,calls:pending.length};
+  });
+  expect(result).toEqual({session:'latest-session',note:'latest-note',busy:false,calls:3});
+  await expect(page.locator('#chat-messages')).not.toContainText('OLD_PRIVATE');
+  await expect(page.locator('#chat-messages')).not.toContainText('LATE_START');
+  await expect(page.locator('#chat-note-scroll')).toContainText('最后一篇');
+  await expect(page.locator('#chat-send-btn')).toBeEnabled();
+});
+
+test('in-flight paid chat is preserved and cannot recreate from another generation', async ({page}) => {
+  await page.goto('/NoteAI_Pro_Demo_Framer.html');
+  const result=await page.evaluate(async()=>{
+    _authUser={id:'same-owner'};_authToken='synthetic';_authVerifiedOwnerId='same-owner';
+    _chatSessionId='live-session';_chatParentNoteId='library-note';_chatBusy=true;
+    _chatRequestAbortController=new AbortController();
+    _generateResult={_saved_note_id:'other-note',note_title:'UNRELATED',note_body:'OTHER_PRIVATE'};
+    let calls=0;window.fetch=async()=>{calls++;return new Response('{}');};
+    _noteDetailData={id:'new-note',title:'新笔记',body:'新正文'};
+    await startChatFromLibrary();
+    const recreated=await _recreateChatSession();
+    return {calls,recreated,session:_chatSessionId,aborted:_chatRequestAbortController.signal.aborted};
+  });
+  expect(result).toEqual({calls:0,recreated:false,session:'live-session',aborted:false});
+});
+
 test('ordinary chat refresh reads persisted corrections once without replaying a task', async ({page}) => {
   await page.goto('/NoteAI_Pro_Demo_Framer.html');
   const result=await page.evaluate(async()=>{
