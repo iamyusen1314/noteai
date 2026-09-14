@@ -1,3 +1,17 @@
+September14 local followup: targeted source-conflict correction now includes the
+actual code-built knowledge/checklist/planning fragments used by diagnosis three-body
+and generation arbitration, plus second-pass/readability/rhythm instructions. They
+no longer require fabricated sensory detail, signature-dish identity or example dishes.
+Seven-industry prompts.json assets and model responsibilities remain unchanged;
+this corrects contradictory runtime instructions, not historical Prompt provenance.
+Six source-bound regressions pass with real instruction composition retained (only
+model/score boundaries mocked), including long sources and low-rhythm repair path.
+Local log: noteai-source-repair-instructions-r2.log. Capacity6SQLite+1PG16 already pass.
+Current production e22 hashes independently match the candidate base for api,
+private_storage,prompt_composer,task_clarification. Next build/deploy only changed
+API modules on existing C, retain e22 rollback/web. No repeated quality-02, payment,
+collector, migration or Item34 action. Readiness30/37 unchanged.
+
 September14 current quality-02 is COMPLETED, private candidate already stopped.
 Original claim125f78e8-85bd-4c43-9962-3a021d9bf9a6/usageb844f6bf-f7a1-4b73-b98b-6df204bf2710;
 diagnosisdf5fa078-b2db-4b3e-b483-c37131a6d95c/note983feebf-bd4e-4595-80e0-44dde0a777f0.

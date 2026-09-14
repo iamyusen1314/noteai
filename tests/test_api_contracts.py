@@ -2539,6 +2539,9 @@ class ApiContractTests(unittest.TestCase):
             self.assertIn(api._CONTENT_SOURCE_POLICY, call[2])
             self.assertIn(api._CONTENT_SOURCE_POLICY, call[1])
             self.assertEqual(call[3]["max_tokens"], 4096)
+            for unsupported in ('必点招牌菜感官描述', '围绕火候、口感、分量',
+                                '正文必须出现「必点」', '主菜亮点→口感/火候', '这口很记人'):
+                self.assertNotIn(unsupported, call[1] + call[2])
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
 
     def test_plan_title_distinct_repair_handles_duplicate_titles(self):
@@ -3789,7 +3792,9 @@ class ApiContractTests(unittest.TestCase):
              mock.patch.object(api, '_fit_title_limit', new=mock.AsyncMock(return_value=title)) as fit, \
              mock.patch.object(api, '_shape_body_for_delivery', new=mock.AsyncMock(return_value=body)) as shape:
             result = asyncio.run(api._score_directed_second_pass(title, body, '美食', '2026091416',
-                source_context=source, current_score=68, current_features={'body_len':300},
+                source_context=source, current_score=68, current_features={
+                    'body_len':300, 'plad_sentence_burstiness':0.2, 'avg_sentence_len':90,
+                    'body_has_must_order':0},
                 current_issues=[], constraint_context=constraints))
         deterministic.assert_not_called()
         self.assertEqual(call.await_count, 1)
@@ -3799,7 +3804,8 @@ class ApiContractTests(unittest.TestCase):
         # Earlier mocks hid unconditional demands to manufacture sensory claims.
         combined=call.call_args.args[1]+'\n'+call.call_args.args[2]
         for unsupported in ('图片只提供场景和感官细节','火候、口感、分量、出品稳定度',
-                            '优先补具体菜品、口感层次','必须绑定具体菜品写「必点/招牌/推荐」'):
+                            '优先补具体菜品、口感层次','必须绑定具体菜品写「必点/招牌/推荐」',
+                            '这口很记人','例如龙虾乌冬、海胆甜虾丼、鱼生拼盘'):
             self.assertNotIn(unsupported,combined)
         self.assertIn('不能证明味道、温度、火候',combined)
         self.assertEqual(fit.call_args.kwargs['constraint_context'], constraints)

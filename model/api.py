@@ -4518,7 +4518,7 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
     elif avg_slen > 80:
         items.append(
             f"【句子太均匀太长】平均句长{avg_slen:.0f}字，但句子对比度极低（burstiness不足），严重扣分！"
-            "必须在每段长句（40-70字）后面插入一个6-12字的短句，例如「适合收藏。」「这口很记人。」「记得收藏。」"
+            "必须在每段长句（40-70字）后面插入一个6-12字的短句，例如「适合收藏。」「按需选择。」「记得收藏。」"
             "目标：长句（50-70字）+ 短句（6-12字）交替出现，让长短反差拉开"
         )
 
@@ -4528,7 +4528,7 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
         items.append(
             f"【句子节奏单调】长短对比度只有{sent_burst:.2f}（目标≥0.65），说明所有句子长度差不多，节奏感极差！"
             "解决方法：每隔一段长描述（50-80字）必须插入1-2个极短句（5-12字）："
-            "「适合收藏。」「这口很记人。」「适合收藏。」这类短句打破均匀节奏"
+            "「适合收藏。」「按需选择。」「适合收藏。」这类短句打破均匀节奏"
         )
 
     # ── Phrasal repetition (key words must repeat — affects plad_phrasal_repetition) ──
@@ -8409,7 +8409,7 @@ def _human_readability_issues(body: str, domain: str | None = None) -> list[str]
     issues: list[str] = []
     if any(phrase in quality_text for phrase in _LOW_QUALITY_PHRASES):
         if canonical == "美食":
-            issues.append("文案存在模板化/夸张表达，建议改成更具体的口感、火候、分量和适合人群")
+            issues.append("文案存在模板化/夸张表达，改用来源中已有的可见细节和作者原有评价，不新增感官体验")
         else:
             issues.append("文案存在模板化/夸张表达，建议改成更具体的步骤、场景、限制条件和适合人群")
     repeated = _LOW_QUALITY_REPEAT_RE.findall(quality_text)
@@ -11205,7 +11205,7 @@ def _score_directed_repair_items(
 
     if canonical == "美食":
         if not features.get("body_has_must_order", 0):
-            items.insert(0, "美食二修要自然写出一个具体推荐对象，例如龙虾乌冬、海胆甜虾丼、鱼生拼盘等，不能只写泛泛好吃")
+            items.insert(0, "美食二修只整理来源中实际出现的菜品和作者评价，不借用示例菜名，不为命中推荐关键词新增招牌、人气或爆款身份")
         if not features.get("title_has_pos_emotion", 0):
             items.insert(0, "标题用真实菜品、价格、场景或清单价值补钩子；不要套用「这家很稳/值得冲/闭眼冲」")
 
