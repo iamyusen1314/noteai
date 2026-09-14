@@ -15303,9 +15303,9 @@ async def billing_tiers():
             "credit_value": _billing.CREDIT_VALUE,
             "topup_packages": _billing.list_credit_packages(),
             "credit_policy": (
-                "优先扣当前套餐周期积分，不足部分扣充值积分；付费套餐为"
+                "优先扣当前套餐周期积分，不足部分扣钱包积分；付费套餐为"
                 "一次性30天周期，不在月初重置且不自动续费；免费套餐按"
-                "自然月刷新，充值积分长期有效。"
+                "自然月刷新，钱包积分长期有效。"
             )}
 
 
@@ -20181,7 +20181,7 @@ async def chat_start(
         if gen_ctx.get("expert_opinions"):
             context_hints.append("已载入原有专家分析，作为本次优化参考。")
         if gen_ctx.get("cover_analysis"):
-            context_hints.append("已载入原有封面分析。")
+            context_hints.append("已载入原有素材理解结果。")
         context_hint = "\n".join(context_hints)
         welcome = (
             f"已载入当前笔记，当前评分 **{score_str}**（{grade}）{pref_hint}。{miss_str}\n\n"

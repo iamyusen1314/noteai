@@ -1403,7 +1403,7 @@ async function loadUsage() {
     backgroundColor:'transparent',
     legend:{bottom:0,textStyle:{color:'#A0A0B8',fontSize:11}},
     series:[{type:'pie',radius:['40%','70%'],center:['50%','45%'],
-      data:d.by_source.map(s=>({name:{subscription:'套餐积分',mixed:'套餐+充值',credits:'充值积分',free:'免费',refunded:'已退款'}[s.source]||s.source,value:s.count,
+      data:d.by_source.map(s=>({name:ADMIN_LEDGER_SOURCE_LABELS[s.source]||s.source,value:s.count,
         itemStyle:{color:{subscription:'#7B61FF',credits:'#00D4FF',free:'#606078'}[s.source]||'#606078'}})),
       label:{color:'#F0F0F8',fontSize:11},
     }],

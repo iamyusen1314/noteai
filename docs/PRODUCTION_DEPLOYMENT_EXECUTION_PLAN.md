@@ -1,3 +1,52 @@
+September15 01:31BJT: terminology/provenance-descriptor cleanup passed20 existing
+Admin/Chat checks in Python3.11/networknone. Initial test invocation used the wrong
+SQLite envvar and stoppedbeforetests; corrected NOTEAI_SQLITE_PATH with dotenvdisabled.
+No production connection or newmodelrequest. Admin wallet-chart text is a static-only
+release; API material/quotawording and aggregate descriptor correction will travel with
+the next necessary runtime release, do not rebuild healthy services for these labels.
+
+September15 01:28BJT: real normal video Chat on deployed API b214b3d completed
+once17:21:00.979576→17:22:42.653996UTC, claim285d3279-848d-4cf5-9a63-96f5204b3457,
+usage37a25939-cfc9-414a-a71d-c257bab28a9a. Original session1a2e21ca-21de-43cb-b623-f5442c65c287
+saved v3 note80623331-f9d3-429c-85e3-5b2628569d72; exact3paragraphs, no title echo,
+question ending, bodySHA433ce2999009ab2ccd5a144a55f047019a77fdebca3cf8ec10ac3bc7898e9bd1
+matches both visible copies and database. Score73.99→76.122938, 2qualityhints remain;
+this verifies delivery structure, not an independent claim that every merchant fact
+or overall quality acceptance passed. Full1704char AV observation unchanged/c6e76cc4;
+0newArk.6Claude calls(2Sonnet4.6/4Haiku4.5),29818in/5657out,0.997297CNY actual;
+charge1/complete1/refund0,3credits once,2897.5→2894.5. Admin actualbrowser/detail now
+shows precise chat_response/body_shaping/semantic_features/quality_revision steps,
+call_templates/sourceversions/instructionSHAs; chat_system managedv6/39a25b19,
+semantic_features bindings separate, code-only steps no invented template. Historical
+cumulative snapshots remain unchanged. Private original results at
+/Users/openclaw/.codex/tmp/noteai-chat-structure-b214b3d/chat-{original,cost}-readback.json
+and browser-verification.json; no raw media/output/token inGit.
+Remaining small terminology fixes now local: sourcepie uses existing wallet labels,
+Chat says material understanding, API quota sayswallet, aggregate provenance descriptors
+point toper-call records. No account/billing/Prompt/provider change. Scope to bundle in
+next scoped release; b214API/538Admin remainactualuntil separately verified. Original
+12RMB paid/refunded retained, nextdaybillSeptember15>=10BJT and newscanavailability
+stillpending; no replacement order/automation/observation.31/37 unchanged.
+
+September15 01:20BJT: final Chat structure b214b3dbbc6d1d653579fa2ca2bda1fceb8895f4
+DEPLOYED, APIimageb28628d69d5d8d4802677f8fb0f01f54fd3e9f36010a246cda28a90548805e2a,
+publicweb /var/www/noteai-public/b214b3d, JS6fa266391fe95191dab9c1de90612cdd64138674087c5cdc1269406597c0b93d.
+API-filec9e130ed96a21bd642790e76b45cffa78179ad9bcd7bb0cbd09643d92cfe4086;
+Python3.11.15/linuxamd64 build1802941 complete1789406288.7880528. Deployment1803202
+ranonce1789406346.0247555→1789406360.6397424, originalresult read and exactcandidate
+stopped. Admin538/image783 unchanged. Priorb317 imageb3ea88 built once but NOT_DEPLOYED,
+retained; b214 additionally recognizes actual prior message “正文分3段”, samefinite
+negative/range boundaries.15Chat/Python cases rerunPASS;21browser checks unchanged.
+CurrentAPIdrop f25390aa331276026f32581715c4b09444f17bfbef84f8806f4d3b84d4eb941b;
+SAMEinactiveNativeprepared622a2281646023362688834105ba20f00d7b165f6de4d24c24f663adccf6df8c,
+solelauncher /var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-b214b3d.py
+SHAb6340a7b36ba3f15d6101ed6e730488176f7903ddfc2ac63aa27f37b2055e088;
+activation4feb unchanged; oldAPI/web/prepared/launchers retained. Model/env/Item34,
+original paid/refunded12RMB unchanged.0provider/0businessDML inrelease. Next normal
+existingvideoChat continuation verifies actual structure/provenance/cost; no Ark replay.
+Localprivate /Users/openclaw/.codex/tmp/noteai-chat-structure-b214b3d;
+remote /var/lib/noteai/chat-structure-b214b3d.31/37, noGitpush/protected7changes.
+
 September15 01:14BJT: bounded cross-industry Chat structure correction is local,
 NOT_DEPLOYED. Existing turn contract recognizes explicit1–10 exact paragraph counts,
 rejects negative/range/ambiguous expressions, excludes hashtags, and removes only an

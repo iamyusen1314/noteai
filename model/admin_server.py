@@ -696,8 +696,8 @@ def _admin_usage_call_details(user_id, usage_id):
         calls.append(item)
     return {"status": "available", "calls": calls,
             "truncated": len(linked) > 100 or len(legacy) > 100,
-            "prompt_scope": "loaded_versions_at_call_not_exclusive_prompt_content",
-            "stage_scope": "business_route_only_role_not_recorded"}
+            "prompt_scope": "per_call_record",
+            "stage_scope": "per_call_when_recorded"}
 
 
 @admin_app.get("/admin/users/{user_id}")

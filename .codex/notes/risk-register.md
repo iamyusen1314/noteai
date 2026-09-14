@@ -1,3 +1,11 @@
+September15 01:28BJT: b214 Chat realv3 saved and browser/DB/credits/callledgers agree.
+Explicit3paragraph/title constraints now satisfied; original AV context unchanged and
+no repeatedrecognition. Call-level steps/templates are now observed inrealproduction,
+not onlylocaltests.6Claude calls0.997297CNY/3credits once.2qualityhints stillretained;
+modelscore76.12 is not independent merchant-fact/overall acceptance. Wallet/source and
+material-understanding wording corrections local, tobundle nextrelease. Original
+Native12RMB paid/refunded, nextdaybill and ownernewscan remainactualdependencies.
+
 September15 01:01BJT: call-level provenance53868ed is now deployed to API/Admin.
 Old records remain cumulative; true per-call production metadata awaits next meaningful
 business request. Compatible previous images/configs and same inactive Native binding
