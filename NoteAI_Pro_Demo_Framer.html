@@ -5337,7 +5337,7 @@ async function acceptProductContract() {
     _authUser.contract_accepted=true; syncProductUI(); loadBillingPlan(); showPage('upload');
   } catch(err) { showToast(err.message); }
 }
-function completeProductResult(result) { return !!result && !result._error && !result._outcome_unknown; }
+function completeProductResult(result) { return !!result && !result._error && !result._outcome_unknown && !result._waiting_for_input; }
 function requireProductConsent() {
   if (!PUBLIC_PRODUCT) return true;
   if (_authUser && !_authUser.phone_verified) { showToast('当前账户尚未验证手机号。请通过手机验证码登录，或联系支持完成原账户绑定'); return false; }
@@ -5653,7 +5653,7 @@ async function consumeJsonSse(response, {terminalTypes, onEvent}) {
     }
   }
   return terminalEvent
-    ? {terminalEvent, outcome: terminalEvent.type === 'error' ? 'error' : 'success'}
+    ? {terminalEvent, outcome: terminalEvent.type === 'error' ? 'error' : terminalEvent.type === 'clarification_required' ? 'awaiting_input' : 'success'}
     : {terminalEvent: null, outcome: 'outcome_unknown'};
 }
 
@@ -6242,7 +6242,7 @@ async function startGeneration() {
       }
       if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
       const streamResult = await consumeJsonSse(resp, {
-        terminalTypes: ['complete', 'error'],
+        terminalTypes: ['complete', 'error', 'clarification_required'],
         onEvent: ev => {
           streamGuard.event();
           if (identityMatches()) _handleGenStreamEvent(ev, identityMatches);
@@ -6266,6 +6266,10 @@ async function startGeneration() {
         });
         // Save only the canonical terminal result; streamed drafts never enter storage.
         await autoSaveGeneratedNote(_generateResult, identitySnapshot, requestToken);
+      } else if (terminal?.type === 'clarification_required') {
+        streamGuard.finish();
+        _generateResult = {_waiting_for_input:true, session_id:terminal.session_id};
+        showTaskClarification(terminal);
       } else if (terminal?.type === 'error') {
         streamGuard.finish();
         const errMsg = terminal.message || '生成失败，请稍后重试';
@@ -6779,10 +6783,25 @@ async function privateImageInput(value) {
   return await _privateImageInputs.get(key);
 }
 
+let _diagnosisPreparing = false;
 async function startDiagnosis() {
+  // Material conversion can yield before the stream is created. Keep a single
+  // submit owner across that interval, too, rather than issuing two paid claims.
+  if (_diagnosisPreparing || _diagnosisStreamActive) return;
+  _diagnosisPreparing = true;
+  try { await prepareDiagnosis(); }
+  finally { _diagnosisPreparing = false; }
+}
+
+async function prepareDiagnosis() {
   if (!requirePublicCapability("ai_open")) return;
   if (PUBLIC_PRODUCT && !requireProductConsent()) return;
   if (_diagnosisStreamActive) return;
+  const identitySnapshot = _chatIdentitySnapshot(), requestToken = _authToken;
+  const identityMatches = () => identitySnapshot.ownerId
+    ? _chatIdentityMatches(identitySnapshot) && _authToken === requestToken
+    : !PUBLIC_PRODUCT && _authToken === requestToken;
+
   _isGenerateMode = false;
   const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
 
@@ -6856,6 +6875,7 @@ async function startDiagnosis() {
   } catch (error) { showToast(error.message); return; }
 
   // ── 完整 AI 诊断流（含约束条件 + 多图 + 真实 agent 事件）────────────
+  if (!identityMatches()) return;
   _diagnoseResult = null;
   _diagnosisStreamActive = true;
   updateDiagnosisSubmitState();
@@ -6884,6 +6904,7 @@ async function startDiagnosis() {
           body: JSON.stringify(analyzeBody),
         });
         streamGuard.connected();
+        if (!identityMatches()) { resolve(); return; }
         if (resp.status === 402) {
           const errData = await resp.json().catch(() => ({}));
           _diagnosisStreamActive = false;
@@ -6911,13 +6932,14 @@ async function startDiagnosis() {
         }
         if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
         const streamResult = await consumeJsonSse(resp, {
-          terminalTypes: ['complete', 'error'],
+          terminalTypes: ['complete', 'error', 'clarification_required'],
           onEvent: ev => {
             streamGuard.event();
-            _handleAnalyzeStreamEvent(ev);
+            if (identityMatches()) _handleAnalyzeStreamEvent(ev);
           },
         });
         const terminal = streamResult.terminalEvent;
+        if (!identityMatches()) { resolve(); return; }
         streamGuard.finish();
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
@@ -6936,6 +6958,9 @@ async function startDiagnosis() {
             intent_contract: ev.intent_contract || null,
             fact_source_decision: ev.fact_source_decision || null,
           });
+        } else if (terminal?.type === 'clarification_required') {
+          _diagnoseResult = {_waiting_for_input:true, session_id:terminal.session_id};
+          showTaskClarification(terminal);
         } else if (terminal?.type === 'error') {
           _diagnoseResult = {
             _error: true,
@@ -6949,6 +6974,7 @@ async function startDiagnosis() {
         }
         resolve();
       } catch(err) {
+        if (!identityMatches()) { resolve(); return; }
         console.error('[NoteAI] analyze stream error:', err);
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
@@ -6963,7 +6989,7 @@ async function startDiagnosis() {
   });
 
   showToast('🔍 诊断任务已创建，正在跳转至处理进度…');
-  setTimeout(() => { if (_diagnosisStreamActive) showPage('live'); }, 800);
+  setTimeout(() => { if (identityMatches() && _diagnosisStreamActive) showPage('live'); }, 800);
 }
 
 /* ── Report population ──────────────────────────────────────── */
@@ -7892,6 +7918,8 @@ async function startChatFromDiagnosis() {
       intent_contract: _diagnoseResult.intent_contract || null,
       fact_source_decision: _diagnoseResult.fact_source_decision || null,
       fact_enrichment: _diagnoseResult.fact_enrichment || null,
+      fact_context: _diagnoseResult.fact_context || "",
+      merchant_confirmations: _diagnoseResult.merchant_confirmations || [],
       report_quality_status: _diagnoseResult.report_quality_status || 'not_checked',
       report_quality_issues: _diagnoseResult.report_quality_issues || [],
       supplement_prompts: _diagnoseResult.supplement_prompts || [],
@@ -7933,6 +7961,7 @@ async function startChatFromDiagnosis() {
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
     chatAppendSupplementPrompts(data.supplement_prompts || []);
+    chatAppendConfirmedFacts(data.confirmed_facts || []);
     chatSaveSessionToStorage();
   } catch(e) {
     showToast('启动对话失败：' + e.message);
@@ -9370,6 +9399,7 @@ async function startChatOptimization() {
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
     chatAppendSupplementPrompts(data.supplement_prompts || []);
+    chatAppendConfirmedFacts(data.confirmed_facts || []);
     chatSaveSessionToStorage();
 
   } catch(e) {
@@ -9458,6 +9488,7 @@ function _chatIdentityMatches(snapshot) {
 
 function chatClearUserState() {
   _chatUserStateEpoch += 1;
+  document.querySelectorAll("[data-task-clarification], [data-task-recovery]").forEach(el => el.remove());
   _generateResult = null;
   _diagnoseResult = null;
   const generatedReport = document.getElementById('genReportBody');
@@ -9635,7 +9666,7 @@ async function chatSendMessage(options = {}) {
     streamGuard.connected();
 
     // 首次请求和 session 重建后的重试都必须经过同一套认证/配额检查。
-    if (await handleChatAccessFailure(resp)) return;
+    if (await handleChatAccessFailure(resp)) return 'rejected';
 
     // 404 = session 丢失（服务器重启）→ 无感重建 session，重试一次
     if (resp.status === 404) {
@@ -9654,12 +9685,12 @@ async function chatSendMessage(options = {}) {
       }
     }
 
-    if (await handleChatAccessFailure(resp)) return;
+    if (await handleChatAccessFailure(resp)) return 'rejected';
 
     const conflictMessage = await paidRequest409Message(resp);
     if (conflictMessage) {
       chatAppendAi('⚠️ ' + conflictMessage);
-      return;
+      return 'conflict';
     }
 
     // 其他非 200 错误 → 显示错误信息
@@ -9667,7 +9698,7 @@ async function chatSendMessage(options = {}) {
       let errDetail = `HTTP ${resp.status}`;
       try { const j = await resp.json(); errDetail = j.detail || j.message || errDetail; } catch {}
       chatAppendAi('⚠️ 服务器错误：' + errDetail + '\n如问题持续，请刷新页面后重新生成笔记。');
-      return;
+      return resp.status >= 500 ? 'outcome_unknown' : 'rejected';
     }
 
     const streamResult = await consumeJsonSse(resp, {
@@ -9679,8 +9710,10 @@ async function chatSendMessage(options = {}) {
     });
     if (streamResult.terminalEvent) streamGuard.finish();
     else chatAppendAi('⚠️ ' + SSE_OUTCOME_UNKNOWN.chat);
+    return streamResult.outcome;
   } catch(e) {
     if (e.name !== 'AbortError') chatAppendAi('⚠️ ' + SSE_OUTCOME_UNKNOWN.chat);
+    return 'outcome_unknown';
   } finally {
     streamGuard.finish();
     if (_chatRequestAbortController === requestController) {
@@ -9830,7 +9863,158 @@ function chatAppendAi(text) {
   document.getElementById('chat-messages').appendChild(d);
   chatScrollBottom();
 }
-function chatAppendSupplementPrompts(prompts) {
+function taskReferenceKey(ownerId) { return 'noteai_task_reference_' + ownerId; }
+function rememberTaskReference(task, identity) {
+  if (!_chatIdentityMatches(identity)) return;
+  localStorage.setItem(taskReferenceKey(identity.ownerId), JSON.stringify({session_id:task.session_id,operation:task.operation}));
+}
+function showTaskClarification(task) {
+  _isGenerateMode = task.operation === 'generate';
+  _genStreamActive = false; _diagnosisStreamActive = false;
+  _setGenerationSubmitBusy(false); updateDiagnosisSubmitState();
+  if (_genWaitInterval) { clearInterval(_genWaitInterval); _genWaitInterval = null; }
+  if (!document.getElementById('page-live')?.classList.contains('active')) showPage('live');
+  const heading = document.querySelector('#page-live .live-header h1');
+  if (heading) heading.textContent = '补充后继续原任务';
+  setProgress(54, '素材和已完成分析已保留，等你补充');
+  rememberTaskReference(task, _chatIdentitySnapshot());
+  chatAppendSupplementPrompts([], task);
+}
+function renderTaskClarification(task) {
+  const identity = _chatIdentitySnapshot(), token = _authToken;
+  const valid = () => _chatIdentityMatches(identity) && _authToken === token;
+  if (!token || !valid()) return;
+  document.querySelectorAll('[data-task-clarification]').forEach(el => el.remove());
+  const wrap = document.createElement('div'); wrap.className = 'chat-supplement-card';
+  wrap.dataset.taskClarification = task.session_id;
+  const answers = new Map((task.answers || []).map(a => [a.question_id,a]));
+  wrap.innerHTML = `<div class="chat-supplement-title">把这几处说明白，我就继续完成笔记</div>
+    <div class="chat-supplement-sub">原素材无需重传，已完成的识别不再执行，也不会再次扣整单积分。回答只用于本次内容。</div>
+    ${(task.questions || []).map(q => {
+      const answer = answers.get(q.question_id);
+      return `<div class="chat-supplement-row is-open" data-question-id="${chatEsc(q.question_id)}">
+        <label><strong>${chatEsc(q.question)}</strong><br>
+        <span>${chatEsc([q.merchant,q.object,q.time_range].filter(Boolean).join(' · ') || '仅本次内容')}</span><br>
+        <textarea aria-label="${chatEsc(q.question)}" maxlength="4000" rows="3" style="width:100%;color:inherit;background:transparent" data-task-answer>${chatEsc(answer?.answer || '')}</textarea></label>
+        <div>${(q.options || []).map(option => `<button type="button" data-task-option="${chatEsc(option)}">${chatEsc(option)}</button>`).join('')}</div>
+        <select aria-label="${chatEsc(q.question)}处理方式" data-task-status>
+          <option value="confirmed">填写我的回答</option><option value="unknown">暂不确定</option><option value="omitted">这项不写</option>
+        </select></div>`;
+    }).join('')}
+    <button type="button" data-task-submit>按这些说明继续</button>
+    <button type="button" data-task-readback>核实原任务状态</button>
+    <p data-task-message role="status"></p>`;
+  const message = wrap.querySelector('[data-task-message]');
+  wrap.querySelectorAll('[data-question-id]').forEach(row => {
+    const prior = answers.get(row.dataset.questionId);
+    if (prior) row.querySelector('[data-task-status]').value = prior.status;
+    row.querySelectorAll('[data-task-option]').forEach(button => button.addEventListener('click', () => {
+      row.querySelector('textarea').value = button.dataset.taskOption;
+      row.querySelector('select').value = 'confirmed';
+    }));
+  });
+  let busy = task.status !== 'waiting_for_input', uncertain = task.status !== 'waiting_for_input';
+  const enable = value => wrap.querySelectorAll('textarea,select,button:not([data-task-readback])').forEach(el => {el.disabled = !value;});
+  enable(!busy);
+  if (busy) message.textContent='原任务状态：'+task.status+'。请先核实原结果，不重复发起。';
+  wrap.querySelector('[data-task-readback]').addEventListener('click', async () => {
+    if (!valid()) return;
+    try {
+      const response = await fetch(API_BASE + '/chat/tasks/' + encodeURIComponent(task.session_id), {headers:{Authorization:'Bearer '+token}});
+      const state = await response.json(); if (!valid()) return;
+      if (!response.ok) throw Error(typeof state.detail === 'string' ? state.detail : '暂时无法读取原任务');
+      if (state.status === 'waiting_for_input' && state.version === task.version) {
+        busy = false; uncertain = false; enable(true); message.textContent='原任务仍等待这次回答，可以继续填写。';
+      } else if (state.status === 'completed' && state.result) {
+        await finishClarifiedTask(state.result, task, identity, token, true);
+      } else { message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。'; }
+    } catch(error) { if(valid()) message.textContent=error.message; }
+  });
+  wrap.querySelector('[data-task-submit]').addEventListener('click', async () => {
+    if (busy || uncertain || !valid()) return;
+    const submitted = [...wrap.querySelectorAll('[data-question-id]')].map(row => ({question_id:row.dataset.questionId,
+      status:row.querySelector('select').value,answer:row.querySelector('textarea').value.trim()}));
+    if (submitted.some(a => a.status === 'confirmed' && !a.answer)) { message.textContent='请填写回答，也可以选“暂不确定”或“这项不写”。'; return; }
+    busy=true;enable(false);message.textContent='正在保存回答并接续原任务…';
+    try {
+      const response = await fetch(API_BASE + '/chat/message', {method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,'X-Request-ID':createPaidRequestId('clarify')},
+        body:JSON.stringify({session_id:task.session_id,task_version:task.version,task_answers:submitted,message:'按本次说明继续'})});
+      if (!valid()) return;
+      if (!response.ok) {
+        const error = await response.json().catch(()=>({}));
+        if (response.status >= 500 || response.status === 409) uncertain=true;
+        else {busy=false;enable(true);}
+        message.textContent=(typeof error.detail === 'string' ? error.detail : '回答状态尚未确认') + (uncertain ? '，请先核实原任务状态。' : '');return;
+      }
+      const streamed = await consumeJsonSse(response,{terminalTypes:['complete','error','clarification_required'],onEvent:event => {
+        if (!valid()) return;
+        if(event.type === 'clarification_acknowledged') message.textContent=event.message;
+        else if(event.type === 'complete' || event.type === 'error') return;
+        else if(task.operation === 'generate') _handleGenStreamEvent(event,valid);
+        else _handleAnalyzeStreamEvent(event);
+      }});
+      if (!valid()) return;
+      if(streamed.terminalEvent?.type === 'complete') await finishClarifiedTask(streamed.terminalEvent,task,identity,token,false);
+      else { uncertain=true; message.textContent='本次结果尚未完成确认。原素材和回答已保留，请先核实原任务状态，不重复提交。'; }
+    } catch(error) { if(valid()) {uncertain=true;message.textContent='连接中断，原任务可能仍在处理。请先核实原任务状态，不重复提交。';} }
+  });
+  document.getElementById('bubbleArea')?.appendChild(wrap);
+  return wrap;
+}
+async function finishClarifiedTask(result, task, identity, token, recovered) {
+  if (!_chatIdentityMatches(identity) || _authToken !== token) return;
+  result._domain = task.domain;
+  if(result.saved_note_id) { result._saved_note_id=result.saved_note_id;result._saved_note_version=result.saved_note_version || 1;result._save_status='saved'; }
+  _isGenerateMode = task.operation === 'generate';
+  if(_isGenerateMode) _generateResult=result; else _diagnoseResult=result;
+  localStorage.removeItem(taskReferenceKey(identity.ownerId));
+  document.querySelectorAll('[data-task-clarification]').forEach(el=>el.remove());
+  showPage('report'); await populateReport();
+  if (!_chatIdentityMatches(identity)) return;
+  const pending=result.pending_confirmation || [];
+  if(pending.length) {
+    const notice=document.createElement('p');notice.dataset.taskRecovery='pending';notice.setAttribute('role','status');
+    notice.textContent='其余内容已完成。以下核心内容仍待你确认，当前版本不能视为整篇可直接发布：'+pending.join('；');
+    document.getElementById('page-report')?.prepend(notice);
+  }
+  showToast(recovered ? '已读回原任务结果，没有重新生成或扣分' : '已按本次说明完成接续');
+}
+async function restorePendingTaskClarification() {
+  if (!_authVerifiedOwnerId || _authVerifiedOwnerId !== _chatOwnerId() || !_authToken) return;
+  const identity=_chatIdentitySnapshot(), token=_authToken;
+  try {
+    const pointer=JSON.parse(localStorage.getItem(taskReferenceKey(identity.ownerId)) || 'null');
+    const path=pointer?.session_id ? '/chat/tasks/'+encodeURIComponent(pointer.session_id) : '/chat/tasks';
+    const response=await fetch(API_BASE+path,{headers:{Authorization:'Bearer '+token}});
+    if(!response.ok || !_chatIdentityMatches(identity) || _authToken !== token) return;
+    const data=await response.json();if(!_chatIdentityMatches(identity) || _authToken !== token) return;
+    const task=pointer ? data : data.tasks?.[0]; if(!task) return;
+    const banner=document.createElement('div');banner.className='chat-supplement-card';banner.dataset.taskRecovery=task.session_id;
+    const button=document.createElement('button');button.type='button';button.textContent=task.status==='waiting_for_input'?'有一篇笔记等你补充，继续原任务':'查看上次任务结果';
+    button.addEventListener('click',()=>{if(!_chatIdentityMatches(identity))return;banner.remove();
+      if(task.status==='completed' && task.result) finishClarifiedTask(task.result,task,identity,token,true);
+      else showTaskClarification(task);});banner.appendChild(button);
+    (document.getElementById('page-upload') || document.body).prepend(banner);
+  } catch { /* Read-only recovery failure must not create another task. */ }
+}
+
+function chatAppendConfirmedFacts(facts) {
+  if (!Array.isArray(facts) || !facts.length) return;
+  const identity=_chatIdentitySnapshot();
+  const button=document.createElement('button');button.type='button';button.textContent='查看或纠正本次商家确认';
+  button.addEventListener('click',()=>{
+    if(!_chatIdentityMatches(identity))return;
+    button.remove();
+    chatAppendSupplementPrompts(facts.map(f=>({field:'confirmation_'+f.question_id.replace(/:/g,'__'),label:f.question || '本次说明',
+      prompt:[f.merchant,f.object,f.time_range].filter(Boolean).join(' · '),value:f.answer || '',action_text:'填写更正后的完整说明'})));
+    const card=document.querySelector('#chat-messages .chat-supplement-card:last-child');
+    if(card) {card.querySelector('.chat-supplement-title').textContent='更新本次说明';card.querySelector('.chat-supplement-sub').textContent='已填写原回答，无需再次确认。更正后按原对话优化规则更新当前笔记；不会重新识别素材或扣一次整单生成积分。';card.querySelectorAll('[data-supplement-row]').forEach(row=>row.classList.add('is-open'));}
+  });
+  document.getElementById('chat-messages')?.appendChild(button);
+}
+
+function chatAppendSupplementPrompts(prompts, task = null) {
+  if (task) return renderTaskClarification(task);
   const items = Array.isArray(prompts) ? prompts.filter(p => p && (p.label || p.prompt)).slice(0, 4) : [];
   if (!items.length) return;
   const wrap = document.createElement('div');
@@ -9838,7 +10022,7 @@ function chatAppendSupplementPrompts(prompts) {
   const itemField = (item, idx) => String(item.field || `field_${idx}`).replace(/[^\w-]/g, '') || `field_${idx}`;
   wrap.innerHTML = `
     <div class="chat-supplement-title">补充真实信息后，优化会更稳</div>
-    <div class="chat-supplement-sub">这些不是已核验事实。请在卡片里补充，提交后我会作为事实边界自然融入；暂时没有也会避开编造。</div>
+    <div class="chat-supplement-sub">请按本次门店和活动的真实情况填写。我会保留适用条件；暂时没有的信息可以不写。</div>
     <div class="chat-supplement-list">
       ${items.map((item, idx) => `
         <div class="chat-supplement-row" data-supplement-row="${idx}">
@@ -9848,10 +10032,10 @@ function chatAppendSupplementPrompts(prompts) {
           </div>
           <button type="button" data-supplement-idx="${idx}">补充</button>
           <label class="chat-supplement-field">
-            <input type="text"
+            <textarea rows="3" maxlength="4000"
               data-supplement-field="${chatEsc(itemField(item, idx))}"
               data-supplement-label="${chatEsc(item.label || item.field || '补充信息')}"
-              placeholder="${chatEsc(item.action_text || `填写${item.label || '补充信息'}`)}">
+              placeholder="${chatEsc(item.action_text || `填写${item.label || '补充信息'}`)}">${chatEsc(item.value || '')}</textarea>
           </label>
         </div>
       `).join('')}
@@ -9871,7 +10055,7 @@ function chatAppendSupplementPrompts(prompts) {
       field?.focus();
     });
   });
-  wrap.querySelector('[data-supplement-submit]')?.addEventListener('click', () => {
+  wrap.querySelector('[data-supplement-submit]')?.addEventListener('click', async () => {
     const values = {};
     const labels = {};
     wrap.querySelectorAll('[data-supplement-field]').forEach(input => {
@@ -9888,20 +10072,23 @@ function chatAppendSupplementPrompts(prompts) {
       return;
     }
     wrap.classList.add('is-submitted');
-    wrap.querySelectorAll('button,input').forEach(el => { el.disabled = true; });
+    wrap.querySelectorAll('button,input,textarea').forEach(el => { el.disabled = true; });
     if (status) status.textContent = '已提交，正在基于补充事实优化...';
     const displayText = Object.entries(values)
       .map(([field, value]) => `${labels[field] || field}：${value}`)
       .join('\n');
-    chatSendMessage({
+    const outcome = await chatSendMessage({
       text: '我已补充真实信息，请基于这些事实继续优化一版。',
       displayText: `补充真实信息：\n${displayText}`,
       supplement_values: values,
       useCurrentAttachments: false,
     });
+    if(outcome === 'success') {if(status)status.textContent='本次说明已用于当前优化结果。';}
+    else if(outcome === 'outcome_unknown' || outcome === 'conflict') {if(status)status.textContent='原对话结果需核实，请勿重复提交；本次填写内容已保留。';}
+    else {wrap.classList.remove('is-submitted');wrap.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=false);if(status)status.textContent='本次未完成，回答仍保留，可检查提示后修改。';}
   });
   wrap.querySelector('[data-supplement-skip]')?.addEventListener('click', () => {
-    chatSendQuick('先不补充这些信息，请在不编造事实的前提下继续优化');
+    chatSendMessage({text:'先不补充这些信息；本次不要写这些未确定的项目，继续优化其余内容。',useCurrentAttachments:false});
   });
   chatScrollBottom();
 }
@@ -10225,6 +10412,7 @@ async function authRestoreSession() {
     authUpdateNav();
     loadBillingPlan();
     chatRestoreSession();
+    restorePendingTaskClarification();
     return true;
   } catch(e) {
     if (_authToken === tokenBeingVerified) authClearLocalSession();
@@ -11638,6 +11826,7 @@ async function startChatFromLibrary() {
     chatUpdateLearn(data.user_prefs || {});
     chatAppendAi(data.welcome);
     chatAppendSupplementPrompts(data.supplement_prompts || []);
+    chatAppendConfirmedFacts(data.confirmed_facts || []);
 
     // Bug3: 保存 session 到 localStorage
     chatSaveSessionToStorage();

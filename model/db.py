@@ -693,6 +693,47 @@ def _upgrade_sqlite_original_video(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA foreign_keys=ON")
 
 
+def _upgrade_sqlite_task_clarification(conn: sqlite3.Connection) -> None:
+    """Preserve all old claims, media digests, FKs and triggers on SQLite."""
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='idempotency_requests'").fetchone()
+    if not row or ("waiting_for_input" in row[0] and "idempotency_clarification_state_check" in row[0]):
+        return
+    old = row[0]
+    schema = old.replace("'running', 'completed', 'failed'", "'running', 'waiting_for_input', 'completed', 'failed'")
+    if schema == old and "waiting_for_input" not in old:
+        raise RuntimeError("unrecognized original idempotency state constraint")
+    if "idempotency_clarification_state_check" not in schema:
+        end = schema.rfind(")")
+        schema = schema[:end] + """, CONSTRAINT idempotency_clarification_state_check
+            CHECK (status <> 'waiting_for_input' OR (
+                operation IN ('analyze','generate') AND usage_id IS NOT NULL
+                AND usage_created=1 AND charge_applied=1
+                AND complete_applied=0 AND refund_applied=0))""" + schema[end:]
+    extras = list(conn.execute("SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL AND (tbl_name='idempotency_requests' AND type IN ('index','trigger') OR type='trigger' AND sql LIKE '%idempotency_requests%')"))
+    columns = ",".join('"' + r[1].replace('"', '""') + '"' for r in conn.execute("PRAGMA table_info(idempotency_requests)"))
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        for kind, name, statement in extras:
+            if kind == "trigger":
+                conn.execute('DROP TRIGGER "' + name.replace('"', '""') + '"')
+        conn.execute(schema.replace("idempotency_requests", "idempotency_clarification_upgrade", 1))
+        conn.execute(f"INSERT INTO idempotency_clarification_upgrade({columns}) SELECT {columns} FROM idempotency_requests")
+        conn.execute("DROP TABLE idempotency_requests")
+        conn.execute("ALTER TABLE idempotency_clarification_upgrade RENAME TO idempotency_requests")
+        for kind, name, statement in extras:
+            conn.execute(statement)
+        if conn.execute("PRAGMA foreign_key_check").fetchone():
+            raise RuntimeError("task history foreign-key mismatch")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+
+
 def _install_sqlite_ark_media_guards(conn: sqlite3.Connection) -> None:
     conn.execute('SAVEPOINT ark_guard_install')
     try:
@@ -1598,7 +1639,7 @@ CREATE TABLE IF NOT EXISTS idempotency_requests (
     key_hash             TEXT NOT NULL,
     payload_hash         TEXT NOT NULL,
     status               TEXT NOT NULL DEFAULT 'running'
-                         CHECK (status IN ('running', 'completed', 'failed')),
+                         CHECK (status IN ('running', 'waiting_for_input', 'completed', 'failed')),
     lease_token_hash     TEXT NOT NULL,
     lease_expires_at     TEXT NOT NULL,
     usage_id             TEXT,
@@ -1622,6 +1663,11 @@ CREATE TABLE IF NOT EXISTS idempotency_requests (
     failed_at            TEXT,
     ocr_result_hash      TEXT,
     ocr_merge_key_hash   TEXT,
+    CONSTRAINT idempotency_clarification_state_check
+        CHECK (status <> 'waiting_for_input' OR (
+            operation IN ('analyze','generate') AND usage_id IS NOT NULL
+            AND usage_created=1 AND charge_applied=1
+            AND complete_applied=0 AND refund_applied=0)),
     UNIQUE(user_id, operation, key_hash)
 );
 CREATE INDEX IF NOT EXISTS idx_idempotency_status_lease
@@ -2221,6 +2267,7 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
         """)
         _upgrade_sqlite_trial_usage(conn)
         _upgrade_sqlite_original_video(conn)
+        _upgrade_sqlite_task_clarification(conn)
         ocr_columns = {r[1] for r in conn.execute('PRAGMA table_info(idempotency_requests)')}
         for name in ('ocr_result_hash', 'ocr_merge_key_hash'):
             if name not in ocr_columns:

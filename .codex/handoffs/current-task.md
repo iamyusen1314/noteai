@@ -1,5 +1,51 @@
 # NoteAI Internal Production Readiness Handoff
 
+## September14 10:00 Beijing — same-task clarification implemented; scoped release in progress
+
+Owner's natural clarification decision is implemented in the existing generation/
+diagnosis/chat/session and idempotency paths. Existing content expert asks up to3
+source-anchored business questions, not a new provider call. Store completed media,
+expert outputs and original claim in private chat context; waiting is neither failure
+nor completion. Answers CAS-resume the original usage/charge; no second full charge,
+media re-upload or repeat completed experts. Unknown original calls prevent resume.
+Original-question identity preserves store/package/time, including same-field
+multiple packages; corrections retain earlier omit/unknown constraints. Answers are
+merchant confirmation, never external verification or automatically permanent memory.
+Original product page supports options/free text/omit/unknown, owner-bound refresh
+readback and late correction through existing dialogue. Source/advice and original
+note text stay distinct. Known duplicate-click interval during material conversion
+was fixed. Saved result links existing note retention, so deletion removes access.
+
+Changed: original HTML; api/db/idempotency/public_product; small task_clarification
+helper; additive0027 CHECK extension; two exact GET task routes in existing nginx
+locations; existing API/idempotency/browser tests. No new queue/table/grant or
+validator platform. Python3.11 Linuxamd64 network-none ledger33 pass; UI22 pass;
+followup exact-question UI1 pass. Full41 regression exposed diagnosis sanitizer
+missing new merchant fields; fixed and targeted4 pass. Independent8 focused
+scope/source/SQLite compatibility +2 actual prepared-pipeline skip cases pass.
+Original failed logs retained in ~/.codex/tmp/noteai-clarification-*20260914*.log;
+agent checks /tmp/noteai-clarification-review-38zbvbko/. Final saved-history metadata
+check remains in progress; no local test is production quality acceptance.
+
+CloudAssistant55 read at1789350829.4299638: actual publicAPI8e/dfe2c7fb,Admin e0/3e40c576,
+private8e media c16b2583, Payment absent; no running/waiting claims,5 historical
+UNKNOWN provider rows retained. App-role schema ledger query denied; do not infer
+migration state from that. Actual original status CHECK still running/completed/failed;
+0027 not applied by this work. Correct actual nginx paths: /etc/nginx/nginx.conf,
+/etc/nginx/noteai-account.locations.conf, web /var/www/noteai-public/current.
+API drop hash31583c3b886de83e166c2d490d6913f396b844449d1b4efdefb5f95741aeaf4c.
+No new provider call, deployment, SQL mutation or Gitpush in this batch yet.
+Readiness30/37; Item34 unchanged/LAST_KNOWN, protected seven untouched.
+
+Next in progress: final source/history regression, checkpoint + exact API/web build,
+owner0027 preflight/apply/readback using existing migration, private real owner
+clarification/resume chain then scoped publication. Preserve original8e/4d artifacts.
+Once a task pauses, rollback by disabling NEW pauses on compatible new API while
+keeping original task reads/resume; never revert to old8e until original tasks settle,
+never shrink CHECK/delete waiting context or replay. Native applied-disabled config,
+owner12RMB scan/refund/next-day bill and publicmedia durable result/video work remain
+active independent work; no return to hotel-only phrase loops.
+
 ## September14 08:55 Beijing — owner prioritizes the whole chain; original food02 completed
 
 Current owner priority: deliver the full material/model/diagnosis/generation/chat/

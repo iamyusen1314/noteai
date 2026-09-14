@@ -2,6 +2,12 @@
 
 ## Current execution control
 
+September14 owner prioritizes the complete product chain and authorizes natural
+fact clarification/resumption in existing tasks/dialogue. Preserve completed media
+and charges, scope answers by merchant/object/time, support corrections/omit/unknown;
+do not make users debug parser defects or repeat hotel-only phrase tests. Current
+implementation, compatible rollback and pending Native/media work: Handoff/plan top.
+
 September13 owner authorizes restoring the confirmed original product/media/cost
 capabilities on current production and WeChat-first payment delivery. Grant3000
 test credits through existing Admin operations to the already confirmed owner

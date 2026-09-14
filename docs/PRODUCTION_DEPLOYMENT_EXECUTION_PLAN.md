@@ -1,5 +1,16 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 clarification implementation uses existing chat/idempotency, not a new
+queue or charge. Release scope: current-source API5 modules plus task_clarification,
+original CSP-bundled frontend, exact GET /chat/tasks and UUID detail, and existing
+migration0027 (status CHECK only; no extra permissions). Apply0027 before enabling
+NOTEAI_TASK_CLARIFICATION_ENABLED=1. Preserve Admin/Payment/Tracking bindings.
+Scope/actual verification and source checkpoint are at Handoff top. If waiting tasks
+exist, disable new pauses on compatible code while preserving reads/resume; old8e
+cannot safely consume waiting contexts. No forced failed/replay or rollback of CHECK.
+Real owner interaction and result/cost readback follow isolated tests; not yet deployed.
+Native/media/full-chain work remains; no new hotel-ticket-only test.
+
 September14 owner update: prioritize the full actual product chain, not more isolated
 hotel-ticket tests. Natural clarification/resumption is authorized within the existing
 conversation/task/material mechanisms: preserve completed stages, scope answers to

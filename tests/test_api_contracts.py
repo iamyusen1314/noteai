@@ -3007,6 +3007,62 @@ class ApiContractTests(unittest.TestCase):
             if result is not None:
                 api._chat_sessions.pop(result.session_id, None)
 
+    def test_merchant_correction_keeps_original_scope_and_does_not_become_preference(self):
+        session = {"domain":"美食", "merchant_name":"蓝猫店", "note_id":"original-note", "generate_context":{
+            "original_fact_context":"原素材里的环境说明", "merchant_confirmations":[{
+                "question_id":"original-question", "field":"package_inclusions", "question":"套餐包含什么？",
+                "merchant":"蓝猫店", "object":"9月双人套餐", "time_range":"9月周末",
+                "status":"confirmed", "answer":"包含门票", "source":"merchant_confirmation", "revision":1}]},
+            "fact_context":"原素材里的环境说明", "supplement_prompts":[], "user_prefs":{}}
+        api._merge_supplement_values_into_session(session,{"package_inclusions":"更正：不含门票，9月周末有效，平日不适用。"})
+        records=session["generate_context"]["merchant_confirmations"]
+        self.assertEqual(len(records),2)
+        self.assertEqual(records[1]["question_id"],"original-question")
+        self.assertEqual(records[1]["time_range"],"9月周末")
+        self.assertEqual(records[0]["answer"],"包含门票")
+        self.assertNotIn("包含门票",session["fact_context"])
+        self.assertIn("平日不适用",session["fact_context"])
+        self.assertEqual(session["user_prefs"],{})
+        safe=api._sanitize_chat_generate_context(session["generate_context"])
+        self.assertEqual(safe["merchant_confirmations"],records)
+        other={"domain":"美食","merchant_name":"另一门店","fact_context":"另一门店原素材","generate_context":{},"supplement_prompts":[]}
+        api._merge_supplement_values_into_session(other,{"price":"200元一份"})
+        self.assertNotIn("蓝猫店",other["fact_context"])
+        self.assertNotIn("9月周末",other["fact_context"])
+
+    def test_merchant_correction_targets_exact_package_and_preserves_omission(self):
+        session = {"merchant_name":"蓝猫店", "domain":"美食", "generate_context":{
+            "original_fact_context":"原门店环境", "merchant_confirmations":[
+                {"question_id":"two", "field":"price", "merchant":"蓝猫店", "object":"双人套餐",
+                 "time_range":"9月", "status":"confirmed", "answer":"198元"},
+                {"question_id":"four", "field":"price", "merchant":"蓝猫店", "object":"四人套餐",
+                 "time_range":"9月", "status":"confirmed", "answer":"398元"},
+                {"question_id":"drinks", "field":"drinks", "merchant":"蓝猫店", "object":"赠饮",
+                 "status":"omitted", "answer":""}]}, "supplement_prompts":[]}
+        with self.assertRaises(HTTPException) as ambiguous:
+            api._merge_supplement_values_into_session(session, {"price":"208元"})
+        self.assertEqual(ambiguous.exception.status_code,422)
+        api._merge_supplement_values_into_session(session, {"confirmation_two":"208元，9月周末有效"})
+        latest={r["question_id"]:r for r in session["generate_context"]["merchant_confirmations"]}
+        self.assertEqual(latest["two"]["object"],"双人套餐")
+        self.assertEqual(latest["four"]["answer"],"398元")
+        self.assertIn("赠饮",session["fact_context"])
+        self.assertIn("不得写入或暗示",session["fact_context"])
+
+    def test_clarified_source_keeps_material_but_not_prompt_memory_or_expert_advice(self):
+        for prepared in [
+            {"pipeline":"generate_stream", "source_material":"【商家原始素材】蓝猫套餐198元",
+             "image_desc":"画面有海鲜乌冬", "brief":"INTERNAL_INTENT_PROMPT",
+             "memory_context":"PRIVATE_MEMORY", "opinions":[{"raw":"UNVERIFIED_ADVICE"}], "metadata":{}},
+            {"pipeline":"analyze", "source_material":"【商家原始素材】蓝猫套餐198元",
+             "extra_image_context":"画面有海鲜乌冬", "agent_context":"INTERNAL_INTENT_PROMPT PRIVATE_MEMORY",
+             "opinions":[{"raw":"UNVERIFIED_ADVICE"}]}]:
+            context=api._clarified_fact_context(prepared,"【本次商家确认】9月有效")
+            for kept in ("蓝猫套餐198元","画面有海鲜乌冬","9月有效"):
+                self.assertIn(kept,context)
+            for private in ("INTERNAL_INTENT_PROMPT","PRIVATE_MEMORY","UNVERIFIED_ADVICE"):
+                self.assertNotIn(private,context)
+
     def test_chat_structured_supplements_merge_into_fact_context(self):
         session = {
             "note_title": "广州粤菜聚餐",
@@ -3019,7 +3075,7 @@ class ApiContractTests(unittest.TestCase):
                 {"field": "must_order", "label": "补充必点"},
                 {"field": "business_hours", "label": "补充营业时间"},
             ],
-            "fact_context": "- 价格/人均：人均80元\n- 位置/地址：北京路商圈",
+            "fact_context": "价格/人均：人均80元\n- 位置/地址：北京路商圈",
             "generate_context": {},
         }
         merged = api._merge_supplement_values_into_session(
@@ -3030,20 +3086,22 @@ class ApiContractTests(unittest.TestCase):
                 "business_hours": "周一至周日 11:00-22:00",
             },
         )
-        self.assertEqual(merged["price"], "人均100元")
+        self.assertEqual(merged["price"], "100元")
         self.assertEqual(merged["must_order"], "小青龙乌冬、汤泡饭")
         self.assertEqual(merged["business_hours"], "周一至周日 11:00-22:00")
-        self.assertIn("- 价格/人均：人均100元", session["fact_context"])
-        self.assertIn("- 必点/招牌菜：小青龙乌冬、汤泡饭", session["fact_context"])
-        self.assertIn("- 营业时间：周一至周日 11:00-22:00", session["fact_context"])
-        self.assertNotIn("人均80元", session["fact_context"])
+        self.assertIn("价格/人均：100元", session["fact_context"])
+        self.assertIn("必点/招牌菜：小青龙乌冬、汤泡饭", session["fact_context"])
+        self.assertIn("营业时间：周一至周日 11:00-22:00", session["fact_context"])
+        self.assertIn("人均80元", session["generate_context"]["original_fact_context"])
+        self.assertIn("对同一对象的旧口径优先", session["fact_context"])
+        self.assertEqual(session["generate_context"]["merchant_confirmations"][0]["source"], "merchant_confirmation")
         self.assertEqual(
             session["generate_context"]["confirmed_supplement_values"]["must_order"],
             "小青龙乌冬、汤泡饭",
         )
         prompt = api._build_chat_system_prompt(session)
-        self.assertIn("【已核验事实边界】", prompt)
-        self.assertIn("价格/人均：人均100元", prompt)
+        self.assertIn("【已提供的事实与本次商家确认；按各条来源区分】", prompt)
+        self.assertIn("价格/人均：100元", prompt)
         self.assertIn("必点/招牌菜：小青龙乌冬、汤泡饭", prompt)
         self.assertIn("营业时间：周一至周日 11:00-22:00", prompt)
         msg = api.ChatMessageInput(

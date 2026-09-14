@@ -81,6 +81,7 @@ import billing as _billing
 import content_retention as _retention
 import security_redaction as _redaction
 import idempotency as _idempotency
+import task_clarification as _clarification
 import durable_ai as _durable_ai
 import private_storage as _private_storage
 import payment_contract as _payment
@@ -820,8 +821,9 @@ class _SSETimingEnvelope:
             self.stage_key = stage_key
             self.stage_started_at = now
         self.seq += 1
-        terminal = event_type in self.success_types or event_type == "error"
-        outcome = "success" if event_type in self.success_types else ("error" if event_type == "error" else "in_progress")
+        terminal = event_type in self.success_types or event_type in {"error", "clarification_required"}
+        outcome = ("awaiting_input" if event_type == "clarification_required" else
+                   "success" if event_type in self.success_types else ("error" if event_type == "error" else "in_progress"))
         wrapped = dict(event)
         wrapped.update({
             "transport_schema_version": self.transport_schema_version,
@@ -918,16 +920,19 @@ def _paid_request_claim(
         "in_progress": "IDEMPOTENCY_IN_PROGRESS",
         "completed": "IDEMPOTENCY_COMPLETED",
         "failed": "IDEMPOTENCY_FAILED",
+        "waiting_for_input": "IDEMPOTENCY_WAITING_FOR_INPUT",
     }
     messages = {
         "conflict": "该请求标识已用于不同内容",
         "in_progress": "相同请求正在处理中",
         "completed": "相同请求已完成；当前版本不回放原始结果",
         "failed": "相同请求已失败并完成退款；请使用新的请求标识重试",
+        "waiting_for_input": "素材和已完成分析已保留，请回答原任务中的问题后继续",
     }
     raise HTTPException(status_code=409, detail={
         "code": codes.get(state, "IDEMPOTENCY_IN_PROGRESS"),
         "status": state,
+        "session_id": claim.get("session_id"),
         "message": messages.get(state, messages["in_progress"]),
         "failure_code": claim.get("failure_code") or "" if state == "failed" else "",
     })
@@ -954,7 +959,12 @@ async def _idempotent_sse_stream(
                     event_type = str(event.get("type") or "") if isinstance(event, dict) else ""
                 except Exception:
                     event_type = ""
-            if event_type in success_types:
+            if event_type == "clarification_required":
+                state = _clarification.read(claim["user_id"], claim["request_id"])
+                if state["status"] != "waiting_for_input":
+                    raise RuntimeError("clarification pause not persisted")
+                terminal_seen = True
+            elif event_type in success_types:
                 _public_product.assert_result_known()
                 if not _idempotency.mark_completed(claim, confirm_existing=True):
                     _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
@@ -992,6 +1002,31 @@ async def _emit_progress(emit: ProgressEmitter | None, event: dict[str, Any]) ->
         await emit(event)
     except Exception:
         pass
+
+
+async def _clarification_stream(stream, claim, merchant=""):
+    context = {"claim": claim, "merchant": merchant} if claim and _clarification.enabled() else None
+    iterator = stream.__aiter__()
+    try:
+        while True:
+            # Never leave a ContextVar token across a yield: SSE generators can
+            # be closed by a different ASGI task after a terminal/disconnect.
+            marker = _clarification.execution.set(context)
+            paused = False
+            try:
+                event = await anext(iterator)
+            except StopAsyncIteration:
+                return
+            except _clarification.WaitingForInput as waiting:
+                event = 'data: ' + _json.dumps(waiting.event, ensure_ascii=False) + '\n\n'
+                paused = True
+            finally:
+                _clarification.execution.reset(marker)
+            yield event
+            if paused:
+                return
+    finally:
+        await iterator.aclose()
 
 
 _PROCESS_PHASES = frozenset({"observe", "evidence", "decide", "verify", "save"})
@@ -2590,6 +2625,14 @@ _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "composite_score": "number",
     "constraint_contract": _CONSTRAINT_CONTRACT_SCHEMA,
     "content_intent": "string",
+    "merchant_name": "string",
+    "merchant_visibility": "string",
+    "fact_source_policy": "string",
+    "fact_context": "string",
+    "pending_confirmation": ("list", "string"),
+    "merchant_confirmations": ("list", {"question_id":"string", "field":"string", "question":"string",
+        "answer":"string", "status":"string", "source":"string", "merchant":"string", "object":"string",
+        "time_range":"string", "confirmed_at":"string", "revision":"number"}),
     "diagnosis_id": "nullable_string",
     "dimension_scores": ("list", _REPORT_DIMENSION_SCHEMA),
     "dispute": "string",
@@ -2965,7 +3008,7 @@ async def _agent_content(
         + (f"{_safe_fact_delivery_brief(domain, desc)}\n" if _DOMAIN_ALIASES.get(domain or "", domain) == "美食" else "")
         + f"可解释特征弱项（按交付影响排序）：\n{content_issues or '暂无明显弱项'}"
     )
-    raw = await _mr.call("diagnosis", system, user, max_tokens=4096)
+    raw = await _mr.call("diagnosis", system + _clarification.question_contract(), user, max_tokens=4096)
     return {"role": "内容专家", "raw": raw}
 
 
@@ -3455,69 +3498,81 @@ async def _run_five_agents(
     agent_context: str = "",
     emit: ProgressEmitter | None = None,
     fact_source_context: str | None = None,
+    prepared_opinions: list | None = None,
+    clarification_prepared: dict | None = None,
 ) -> dict:
     dk = _get_dk(note.domain)
-    await _emit_progress(emit, {
-        "type": "stage",
-        "stage": "agents",
-        "label": "四位诊断专家正在独立分析真实输入…",
-        "progress": 32,
-    })
-    task_specs = [
-        (_agent_content(note.note_title, note.desc, note.domain, weaknesses, dk, agent_context), "内容专家", 0),
-        (_agent_visual(note.domain, visual_score, cover_feats, dk), "视觉专家", 1),
-        (_agent_growth(note.note_title, note.desc, note.domain, timing, dk, agent_context), "增长专家", 2),
-        (_agent_user(note.note_title, note.desc, note.domain, semantic_feats, weaknesses, dk, agent_context), "用户专家", 3),
-    ]
-    pending = {
-        asyncio.create_task(coro): (fallback_role, agent_idx)
-        for coro, fallback_role, agent_idx in task_specs
-    }
+    if prepared_opinions is not None:
+        opinions = prepared_opinions
+    else:
+        await _emit_progress(emit, {
+            "type": "stage",
+            "stage": "agents",
+            "label": "四位诊断专家正在独立分析真实输入…",
+            "progress": 32,
+        })
+        task_specs = [
+            (_agent_content(note.note_title, note.desc, note.domain, weaknesses, dk, agent_context), "内容专家", 0),
+            (_agent_visual(note.domain, visual_score, cover_feats, dk), "视觉专家", 1),
+            (_agent_growth(note.note_title, note.desc, note.domain, timing, dk, agent_context), "增长专家", 2),
+            (_agent_user(note.note_title, note.desc, note.domain, semantic_feats, weaknesses, dk, agent_context), "用户专家", 3),
+        ]
+        pending = {
+            asyncio.create_task(coro): (fallback_role, agent_idx)
+            for coro, fallback_role, agent_idx in task_specs
+        }
 
-    opinions: list[dict] = []
-    progress = 36
-    stage_failure = None
-    while pending:
-        done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            fallback_role, agent_idx = pending.pop(task)
-            try:
-                result = task.result()
-            except Exception as exc:
-                if _public_product.enabled():
-                    # Finish reading the already-started peers before leaving
-                    # the stage. A missing necessary expert is not a zero-score
-                    # opinion and must not proceed to arbitration as success.
-                    stage_failure = exc
-                    current = _public_product._invocation.get()
-                    if current is not None and not current.failure:
-                        current.failure = "PUBLIC_MODEL_STAGE_FAILED"
-                    continue
-                if isinstance(exc, _public_product.TrialProviderStopped):
-                    raise
-                _log_internal_failure(
-                    "provider",
-                    exc,
-                    phase="diagnosis_agent",
-                    attempt=agent_idx,
-                )
-                result = {
-                    "role": fallback_role,
-                    "raw": (
-                        f"<opinion>{fallback_role}暂时不可用</opinion>"
-                        "<confidence>0</confidence>"
-                    ),
-                }
-            if isinstance(result, dict):
-                opinions.append(result)
-                role = result.get("role") or fallback_role
-                raw = result.get("raw") or ""
-                progress = min(progress + 6, 58)
-                await _emit_progress(emit, _agent_event_payload(role, raw, agent_idx, progress))
+        opinions: list[dict] = []
+        progress = 36
+        stage_failure = None
+        while pending:
+            done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                fallback_role, agent_idx = pending.pop(task)
+                try:
+                    result = task.result()
+                except Exception as exc:
+                    if _public_product.enabled():
+                        # Finish reading the already-started peers before leaving
+                        # the stage. A missing necessary expert is not a zero-score
+                        # opinion and must not proceed to arbitration as success.
+                        stage_failure = exc
+                        current = _public_product._invocation.get()
+                        if current is not None and not current.failure:
+                            current.failure = "PUBLIC_MODEL_STAGE_FAILED"
+                        continue
+                    if isinstance(exc, _public_product.TrialProviderStopped):
+                        raise
+                    _log_internal_failure(
+                        "provider",
+                        exc,
+                        phase="diagnosis_agent",
+                        attempt=agent_idx,
+                    )
+                    result = {
+                        "role": fallback_role,
+                        "raw": (
+                            f"<opinion>{fallback_role}暂时不可用</opinion>"
+                            "<confidence>0</confidence>"
+                        ),
+                    }
+                if isinstance(result, dict):
+                    opinions.append(result)
+                    role = result.get("role") or fallback_role
+                    raw = result.get("raw") or ""
+                    progress = min(progress + 6, 58)
+                    await _emit_progress(emit, _agent_event_payload(role, raw, agent_idx, progress))
 
-    if stage_failure is not None:
-        _public_product.assert_result_known()
-        raise _public_product.TrialProviderStopped("PUBLIC_MODEL_STAGE_FAILED") from None
+        if stage_failure is not None:
+            _public_product.assert_result_known()
+            raise _public_product.TrialProviderStopped("PUBLIC_MODEL_STAGE_FAILED") from None
+
+
+        if clarification_prepared is not None:
+            context = _clarification.execution.get() or {}
+            _clarification.pause({**clarification_prepared, "opinions": opinions}, opinions,
+                source=fact_source_context or note.desc, merchant=context.get("merchant", ""),
+                completed_steps=("素材理解", "事实检索", "原笔记评分", "四位专家分析"))
 
     await _emit_progress(emit, {
         "type": "stage",
@@ -3996,7 +4051,7 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
             f"领域：{domain}\n\n"
             f"注意：创作者未补充具体数字和地址，价格/地址/时间请用【xxx】占位，不要编造数字。"
         )
-    raw = await _mr.call("content_gen", system, user, max_tokens=4096)
+    raw = await _mr.call("content_gen", system + _clarification.question_contract(), user, max_tokens=4096)
     return {"role": "内容专家", "raw": raw}
 
 
@@ -6112,6 +6167,12 @@ class AnalyzeResponse(BaseModel):
     user_constraints: list[str] = Field(default=[], description="本次采纳的用户约束条件")
     constraint_contract: dict = Field(default_factory=dict, description="用户约束执行契约")
     content_intent: str = Field(default="真实种草型", description="本次采用的笔记类型/创作方向")
+    merchant_name: str = ""
+    merchant_visibility: str = "auto"
+    fact_source_policy: str = "auto"
+    fact_context: str = ""
+    merchant_confirmations: list[dict] = Field(default_factory=list)
+    pending_confirmation: list[str] = Field(default_factory=list)
     intent_contract: dict = Field(default_factory=dict, description="创作方向与事实源执行契约")
     fact_source_decision: dict = Field(default_factory=dict, description="事实源是否调用及原因")
     input_diagnostics: dict = Field(default_factory=dict, description="输入审计：原始正文、评分正文与视觉上下文长度")
@@ -7880,7 +7941,10 @@ def _clean_supplement_value(value: object, label: str) -> str:
         "",
         text,
     ).strip()
-    return _clean_fact_context_value(text, label)[:160]
+    if len(text) > 4000:
+        raise HTTPException(422, "补充内容最多4000字，请保留完整适用条件后再提交")
+    # Preserve price units, exclusions and scope. "100元" does not imply 人均.
+    return text
 
 
 def _remove_replaced_fact_lines(source_context: str | None, labels: set[str]) -> list[str]:
@@ -7911,11 +7975,29 @@ def _merge_supplement_values_into_session(session: dict, supplement_values: dict
 
     normalized: dict[str, str] = {}
     label_by_field: dict[str, str] = {}
+    records = list((session.get("generate_context") or {}).get("merchant_confirmations") or [])
+    latest = {r["question_id"]: r for r in records}
+    merchant = session.get("merchant_name") or ""
+    prior_by_field = {}
     for raw_field, raw_value in supplement_values.items():
-        field = re.sub(r"[^a-zA-Z0-9_]+", "", str(raw_field or "")).strip()
+        raw_field = str(raw_field or "")
+        if raw_field.startswith("confirmation_"):
+            matches = [r for qid, r in latest.items()
+                       if "confirmation_" + qid.replace(":", "__") == raw_field]
+            if len(matches) != 1:
+                raise HTTPException(422, "这条说明没有对应原问题，请重新打开本次商家确认")
+            field, prior = raw_field, matches[0]
+        else:
+            field = re.sub(r"[^a-zA-Z0-9_]+", "", raw_field).strip()
+            matches = [r for r in latest.values() if r.get("field") == field
+                       and r.get("merchant", "") == merchant]
+            if len(matches) > 1:
+                raise HTTPException(422, "有多个套餐的同类信息，请在对应套餐的问题中填写更正")
+            prior = matches[0] if matches else {}
         if not field:
             continue
-        label = _supplement_fact_label(field, prompt_by_field.get(field))
+        prior_by_field[field] = prior
+        label = prior.get("question") or _supplement_fact_label(field, prompt_by_field.get(field))
         value = _clean_supplement_value(raw_value, label)
         if not value:
             continue
@@ -7925,20 +8007,39 @@ def _merge_supplement_values_into_session(session: dict, supplement_values: dict
     if not normalized:
         return {}
 
-    replaced_labels = set(label_by_field.values())
-    lines = _remove_replaced_fact_lines(session.get("fact_context"), replaced_labels)
+    generate_context = dict(session.get("generate_context") or {})
+    base = generate_context.get("original_fact_context")
+    if base is None:
+        base = session.get("fact_context") or ""
+    generate_context["original_fact_context"] = base
+    scope = _idempotency.payload_hash({"merchant": merchant, "domain": session.get("domain"),
+                                      "note": session.get("note_id") or "this_session"})[:24]
+    for field, value in normalized.items():
+        question = prompt_by_field.get(field, {})
+        prior = prior_by_field[field]
+        records.append({"question_id": prior.get("question_id") or scope + ":" + field, "field": prior.get("field") or field,
+            "question": prior.get("question") or question.get("prompt") or label_by_field[field],
+            "answer": value, "status": "confirmed", "source": "merchant_confirmation",
+            "merchant": prior.get("merchant", merchant), "object": str(prior.get("object") or question.get("object") or "本次内容"),
+            "time_range": str(prior.get("time_range") or question.get("time_range") or "仅本次，未声明长期有效"),
+            "confirmed_at": _now_iso(), "revision": len(records) + 1})
+    latest = {record["question_id"]: record for record in records}
+    lines = [base, "【本次商家确认；对同一对象的旧口径优先，不是外部核验或永久记忆】"]
     supplement_lines = [
-        f"- {label_by_field[field]}：{value}"
-        for field, value in normalized.items()
+        f"- 门店：{item.get('merchant') or '本任务对象'}；对象：{item.get('object') or '本次内容'}；"
+        f"时间：{item.get('time_range') or '仅本次'}；{item.get('question') or _supplement_fact_label(item.get('field'))}：" + (
+            item['answer'] if item.get('status') == 'confirmed' else
+            '用户选择不写此项；标题、方案和后续优化均不得写入或暗示。' if item.get('status') == 'omitted' else
+            '用户暂不确定；本次不写成事实，核心内容仍待确认，不再重复问。')
+        for item in latest.values()
     ]
     if supplement_lines:
-        lines.append("【用户补充事实】")
         lines.extend(supplement_lines)
     session["fact_context"] = "\n".join(lines).strip()
-    confirmed = dict(session.get("confirmed_supplement_values") or {})
+    confirmed = dict(session.get("confirmed_supplement_values") or generate_context.get("confirmed_supplement_values") or {})
     confirmed.update(normalized)
     session["confirmed_supplement_values"] = confirmed
-    generate_context = dict(session.get("generate_context") or {})
+    generate_context["merchant_confirmations"] = records
     generate_context["fact_context"] = session["fact_context"]
     generate_context["confirmed_supplement_values"] = confirmed
     session["generate_context"] = generate_context
@@ -15385,6 +15486,7 @@ async def _run_analyze_pipeline(
     emit: ProgressEmitter | None = None,
     billing_charge: dict | None = None,
     billing_managed: bool = False,
+    prepared: dict | None = None,
 ) -> AnalyzeResponse:
     if billing_charge is None:
         billing_charge = _billing.check_and_deduct(user["id"], "analyze")
@@ -15426,193 +15528,239 @@ async def _run_analyze_pipeline(
     })
     fact_enrichment: dict | None = None
     # 记录附加图和视频的额外用量
-    if req.extra_images:
+    if not prepared and req.extra_images:
         for _ in req.extra_images[:9]:
             _billing.record_auxiliary_usage(user["id"], "extra_image")
-    if req.video_file_id:
+    if not prepared and req.video_file_id:
         _billing.record_auxiliary_usage(user["id"], "video_analyze")
     try:
-        # 1. Cover extraction (IO + optional vision call)
-        visual_score = None
-        cover_feats: dict = {}
-        if req.cover_image:
-            await _emit_progress(emit, {
-                "type": "stage",
-                "stage": "cover",
-                "label": "正在提取封面视觉评分特征…",
-                "progress": 8,
-            })
-            visual_score, cover_feats = await _await_media_worker(
-                _extract_cover, req.cover_image, True
-            )
+        if prepared is not None:
+            original_desc = prepared["original_desc"]
+            video_desc_for_library = prepared["video_desc_for_library"]
+            video_duration_sec = prepared["video_duration_sec"]
+            video_frames_extracted = prepared["video_frames_extracted"]
+            video_frames_to_ai = prepared["video_frames_to_ai"]
+            visual_score = prepared["visual_score"]
+            cover_feats = prepared["cover_feats"]
+            extra_image_context = prepared["extra_image_context"]
+            fact_enrichment = prepared["fact_enrichment"]
+            fact_context = prepared["fact_context"]
+            fact_source_decision = prepared["fact_source_decision"]
+            timing = prepared["timing"]
+            semantic_feats = prepared["semantic_feats"]
+            percentile = prepared["percentile"]
+            features = prepared["features"]
+            grade = prepared["grade"]
+            agent_context = prepared["agent_context"]
+            note = NoteInput(note_title=req.note_title, desc=req.desc, local_time=req.local_time, domain=req.domain)
+            weaknesses = [WeaknessItem(**w) for w in prepared["weaknesses"]]
+        else:
+            # 1. Cover extraction (IO + optional vision call)
+            visual_score = None
+            cover_feats: dict = {}
+            if req.cover_image:
+                await _emit_progress(emit, {
+                    "type": "stage",
+                    "stage": "cover",
+                    "label": "正在提取封面视觉评分特征…",
+                    "progress": 8,
+                })
+                visual_score, cover_feats = await _await_media_worker(
+                    _extract_cover, req.cover_image, True
+                )
 
-        # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
-        if req.video_file_id:
-            video_meta = await _await_media_worker(_get_video_meta, req.video_file_id, user["id"])
-            if not video_meta:
-                raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
-            video_duration_sec = float(video_meta.get("duration_sec", 0) or 0)
-            video_frames_extracted = None if video_meta.get("original_video") else len(video_meta.get("frames", []) or [])
-            video_frames_to_ai = None if video_meta.get("original_video") else _video_send_count(video_duration_sec, video_frames_extracted)
-            await _emit_progress(emit, {
-                "type": "stage",
-                "stage": "video",
-                "label": "正在理解视频画面内容…",
-                "progress": 12,
-            })
-            video_desc = await _kimi_video_understand(
-                req.video_file_id,
+            # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
+            if req.video_file_id:
+                video_meta = await _await_media_worker(_get_video_meta, req.video_file_id, user["id"])
+                if not video_meta:
+                    raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传视频后再诊断")
+                video_duration_sec = float(video_meta.get("duration_sec", 0) or 0)
+                video_frames_extracted = None if video_meta.get("original_video") else len(video_meta.get("frames", []) or [])
+                video_frames_to_ai = None if video_meta.get("original_video") else _video_send_count(video_duration_sec, video_frames_extracted)
+                await _emit_progress(emit, {
+                    "type": "stage",
+                    "stage": "video",
+                    "label": "正在理解视频画面内容…",
+                    "progress": 12,
+                })
+                video_desc = await _kimi_video_understand(
+                    req.video_file_id,
+                    req.domain,
+                    req.desc or None,
+                    user_id=user["id"], meta=video_meta,
+                )
+                if not video_desc or len(video_desc.strip()) < 20:
+                    raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
+                video_desc_for_library = video_desc
+                base_desc = (req.desc or "").strip()
+                merged_desc = (
+                    (base_desc + "\n\n" if base_desc else "")
+                    + "【视频画面内容（AI 解读）】\n"
+                    + video_desc
+                )
+                req = req.model_copy(update={"desc": merged_desc})
+
+            # 额外内容图片（最多9张）：并行调用视觉模型识别，描述拼入 desc 上下文
+            if req.extra_images:
+                imgs_to_analyze = req.extra_images[:9]
+                await _emit_progress(emit, {
+                    "type": "stage",
+                    "stage": "extra_images",
+                    "label": f"正在识别 {len(imgs_to_analyze)} 张内容图…",
+                    "progress": 14,
+                })
+                extra_tasks = [
+                    _await_media_worker(_kimi_vision_quick, img_b64, req.domain or "通用", None)
+                    for img_b64 in imgs_to_analyze
+                ]
+                extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
+                if any(not isinstance(result, str) or len(result.strip()) <= 3 for result in extra_results):
+                    raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续诊断，请稍后重试")
+                extra_descs = [
+                    f"图{i+1}：{r}" for i, r in enumerate(extra_results)
+                    if isinstance(r, str) and len(r) > 3
+                ]
+                if extra_descs:
+                    extra_image_context = "【其他内容图片描述】\n" + "\n".join(extra_descs)
+                    agent_context_parts.append(extra_image_context)
+
+            if intent_brief:
+                agent_context_parts.append(intent_brief)
+
+            # 联网事实补全：由创作方向和商家展示策略路由；无明确商家/不需要事实时跳过。
+            fact_enrichment = await _maybe_enrich_facts(
                 req.domain,
-                req.desc or None,
-                user_id=user["id"], meta=video_meta,
+                req.note_title,
+                req.desc,
+                content_intent=req.content_intent,
+                merchant_visibility=req.merchant_visibility,
+                merchant_name=req.merchant_name,
+                fact_source_policy=req.fact_source_policy,
             )
-            if not video_desc or len(video_desc.strip()) < 20:
-                raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证诊断质量，请重新上传或稍后重试")
-            video_desc_for_library = video_desc
-            base_desc = (req.desc or "").strip()
-            merged_desc = (
-                (base_desc + "\n\n" if base_desc else "")
-                + "【视频画面内容（AI 解读）】\n"
-                + video_desc
-            )
-            req = req.model_copy(update={"desc": merged_desc})
+            fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
+            fact_context = _facts.format_fact_context(fact_enrichment)
+            if fact_context:
+                agent_context_parts.append(fact_context)
+            if fact_enrichment and fact_enrichment.get("enabled"):
+                await _emit_progress(emit, {
+                    "type": "fact_enrichment",
+                    "provider": fact_enrichment.get("provider"),
+                    "query": fact_enrichment.get("query"),
+                    "facts": fact_enrichment.get("facts", {}),
+                    "entities": fact_enrichment.get("entities", []),
+                    "status": fact_enrichment.get("status"), "error_code": fact_enrichment.get("error_code"),
+                    "observed_at": fact_enrichment.get("observed_at"), "calls": fact_enrichment.get("calls"),
+                    "provider_response": fact_enrichment.get("provider_response"),
+                    "sources": fact_enrichment.get("sources", [])[:3],
+                    "confidence": fact_enrichment.get("confidence", 0),
+                    "cached": fact_enrichment.get("cached", False),
+                    "progress": 18,
+                })
 
-        # 额外内容图片（最多9张）：并行调用视觉模型识别，描述拼入 desc 上下文
-        if req.extra_images:
-            imgs_to_analyze = req.extra_images[:9]
+            # 2. Market timing (SQLite read, fast)
+            timing = _compute_market_timing_for_delivery(req.note_title, req.desc, req.domain)
+
+            # 3. Semantic features via Kimi
             await _emit_progress(emit, {
                 "type": "stage",
-                "stage": "extra_images",
-                "label": f"正在识别 {len(imgs_to_analyze)} 张内容图…",
-                "progress": 14,
+                "stage": "semantic",
+                "label": "正在计算语义特征与用户感知信号…",
+                "progress": 22,
             })
-            extra_tasks = [
-                _await_media_worker(_kimi_vision_quick, img_b64, req.domain or "通用", None)
-                for img_b64 in imgs_to_analyze
-            ]
-            extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
-            if any(not isinstance(result, str) or len(result.strip()) <= 3 for result in extra_results):
-                raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续诊断，请稍后重试")
-            extra_descs = [
-                f"图{i+1}：{r}" for i, r in enumerate(extra_results)
-                if isinstance(r, str) and len(r) > 3
-            ]
-            if extra_descs:
-                extra_image_context = "【其他内容图片描述】\n" + "\n".join(extra_descs)
-                agent_context_parts.append(extra_image_context)
+            semantic_feats = await asyncio.to_thread(
+                compute_semantic_features, req.note_title, req.desc
+            )
 
-        if intent_brief:
-            agent_context_parts.append(intent_brief)
-
-        # 联网事实补全：由创作方向和商家展示策略路由；无明确商家/不需要事实时跳过。
-        fact_enrichment = await _maybe_enrich_facts(
-            req.domain,
-            req.note_title,
-            req.desc,
-            content_intent=req.content_intent,
-            merchant_visibility=req.merchant_visibility,
-            merchant_name=req.merchant_name,
-            fact_source_policy=req.fact_source_policy,
-        )
-        fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
-        fact_context = _facts.format_fact_context(fact_enrichment)
-        if fact_context:
-            agent_context_parts.append(fact_context)
-        if fact_enrichment and fact_enrichment.get("enabled"):
+            # 4. LightGBM prediction
+            note = NoteInput(
+                note_title=req.note_title,
+                desc=req.desc,
+                local_time=req.local_time,
+                domain=req.domain,
+            )
+            percentile, features = _predict(
+                note,
+                timing_feats=timing,
+                cover_feats=cover_feats or None,
+                semantic_feats=semantic_feats,
+            )
+            grade = _grade(percentile)
             await _emit_progress(emit, {
-                "type": "fact_enrichment",
-                "provider": fact_enrichment.get("provider"),
-                "query": fact_enrichment.get("query"),
-                "facts": fact_enrichment.get("facts", {}),
-                "entities": fact_enrichment.get("entities", []),
-                "status": fact_enrichment.get("status"), "error_code": fact_enrichment.get("error_code"),
-                "observed_at": fact_enrichment.get("observed_at"), "calls": fact_enrichment.get("calls"),
-                "provider_response": fact_enrichment.get("provider_response"),
-                "sources": fact_enrichment.get("sources", [])[:3],
-                "confidence": fact_enrichment.get("confidence", 0),
-                "cached": fact_enrichment.get("cached", False),
-                "progress": 18,
+                "type": "diagnosis_score",
+                "score": round(percentile, 1),
+                "grade": grade,
+                "progress": 28,
             })
 
-        # 2. Market timing (SQLite read, fast)
-        timing = _compute_market_timing_for_delivery(req.note_title, req.desc, req.domain)
+            # 5. Weakness diagnosis
+            weaknesses = _find_weaknesses(features, req.domain)
+            if cover_feats:
+                for hint in _cover_weaknesses(cover_feats, visual_score or 100):
+                    weaknesses.append(WeaknessItem(
+                        feature=hint["feature"],
+                        label=hint["label"],
+                        value=round(cover_feats.get(hint["feature"], 0) or 0, 3),
+                        benchmark=0.6,
+                        suggestion=hint["suggestion"],
+                    ))
 
-        # 3. Semantic features via Kimi
-        await _emit_progress(emit, {
-            "type": "stage",
-            "stage": "semantic",
-            "label": "正在计算语义特征与用户感知信号…",
-            "progress": 22,
-        })
-        semantic_feats = await asyncio.to_thread(
-            compute_semantic_features, req.note_title, req.desc
-        )
+            # 6. mem0 user history
+            memories: list[dict] = []
+            if _MEM0_AVAILABLE:
+                try:
+                    memories = mem0_recall(user["id"], query=f"{req.domain} 笔记优化", top_k=3)
+                except Exception:
+                    pass
+            local_memory_prompt = _memory.build_memory_prompt(user["id"], domain=req.domain)
 
-        # 4. LightGBM prediction
-        note = NoteInput(
-            note_title=req.note_title,
-            desc=req.desc,
-            local_time=req.local_time,
-            domain=req.domain,
-        )
-        percentile, features = _predict(
-            note,
-            timing_feats=timing,
-            cover_feats=cover_feats or None,
-            semantic_feats=semantic_feats,
-        )
-        grade = _grade(percentile)
-        await _emit_progress(emit, {
-            "type": "diagnosis_score",
-            "score": round(percentile, 1),
-            "grade": grade,
-            "progress": 28,
-        })
-
-        # 5. Weakness diagnosis
-        weaknesses = _find_weaknesses(features, req.domain)
-        if cover_feats:
-            for hint in _cover_weaknesses(cover_feats, visual_score or 100):
-                weaknesses.append(WeaknessItem(
-                    feature=hint["feature"],
-                    label=hint["label"],
-                    value=round(cover_feats.get(hint["feature"], 0) or 0, 3),
-                    benchmark=0.6,
-                    suggestion=hint["suggestion"],
-                ))
-
-        # 6. mem0 user history
-        memories: list[dict] = []
-        if _MEM0_AVAILABLE:
-            try:
-                memories = mem0_recall(user["id"], query=f"{req.domain} 笔记优化", top_k=3)
-            except Exception:
-                pass
-        local_memory_prompt = _memory.build_memory_prompt(user["id"], domain=req.domain)
-
-        # 约束条件 + 本地长期记忆注入（加入 note.desc 开头，让所有 agents 都能读到）
-        constraint_brief = _user_constraints_brief(req.user_constraints, "AI诊断")
-        if constraint_brief:
-            agent_context_parts.append(constraint_brief)
-        if local_memory_prompt:
-            agent_context_parts.append("【用户长期偏好/记忆】\n" + local_memory_prompt)
-        if memories:
-            mem_lines = "\n".join(f"- {m.get('memory', '')}" for m in memories if m.get("memory"))
-            if mem_lines:
-                agent_context_parts.append("【外部记忆召回】\n" + mem_lines)
-        agent_context = "\n\n".join(p for p in agent_context_parts if p)
+            # 约束条件 + 本地长期记忆注入（加入 note.desc 开头，让所有 agents 都能读到）
+            constraint_brief = _user_constraints_brief(req.user_constraints, "AI诊断")
+            if constraint_brief:
+                agent_context_parts.append(constraint_brief)
+            if local_memory_prompt:
+                agent_context_parts.append("【用户长期偏好/记忆】\n" + local_memory_prompt)
+            if memories:
+                mem_lines = "\n".join(f"- {m.get('memory', '')}" for m in memories if m.get("memory"))
+                if mem_lines:
+                    agent_context_parts.append("【外部记忆召回】\n" + mem_lines)
+            agent_context = "\n\n".join(p for p in agent_context_parts if p)
 
         # 7. Five-agent diagnosis through unified Claude/Kimi router
         if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("MOONSHOT_API_KEY"):
             delivery_source_context = "\n\n".join(
                 p for p in [req.desc, extra_image_context, fact_context, intent_brief] if p
             )
+            clarification_prepared = {
+                "pipeline": "analyze", "domain": req.domain, "local_time": req.local_time,
+                "request": req.model_dump(mode="json", exclude={"cover_image", "extra_images", "video_file_id"}),
+                "weaknesses": [w.model_dump() for w in weaknesses],
+                "original_desc": original_desc,
+                "source_material": "【商家原始素材】\n" + req.note_title + "\n" + original_desc,
+                "video_desc_for_library": video_desc_for_library,
+                "video_duration_sec": video_duration_sec,
+                "video_frames_extracted": video_frames_extracted,
+                "video_frames_to_ai": video_frames_to_ai,
+                "visual_score": visual_score,
+                "cover_feats": cover_feats,
+                "extra_image_context": extra_image_context,
+                "fact_enrichment": fact_enrichment,
+                "fact_context": fact_context,
+                "fact_source_decision": fact_source_decision,
+                "timing": timing,
+                "semantic_feats": semantic_feats,
+                "percentile": percentile,
+                "features": features,
+                "grade": grade,
+                "agent_context": agent_context,
+            }
             agent_result = await _run_five_agents(
                 note, percentile, grade, weaknesses, features,
                 timing, visual_score, cover_feats, semantic_feats,
                 agent_context=agent_context,
                 emit=emit,
                 fact_source_context=delivery_source_context,
+                prepared_opinions=prepared["opinions"] if prepared else None,
+                clarification_prepared=clarification_prepared,
             )
             diagnosis = agent_result.get("diagnosis", "")
             suggested_titles = agent_result.get("titles", [])
@@ -15763,6 +15911,8 @@ async def _run_analyze_pipeline(
             expert_opinions = []
             model_label = CLAUDE_MODEL
 
+    except _clarification.WaitingForInput:
+        raise
     except HTTPException:
         if not billing_managed:
             _billing.refund_operation_charge(
@@ -15795,7 +15945,8 @@ async def _run_analyze_pipeline(
     composite = round(percentile, 1)
 
     import hashlib as _hashlib
-    note_hash = _hashlib.sha256(f"{req.note_title}|{req.desc}".encode()).hexdigest()[:16]
+    scored_desc = prepared["request"]["desc"] if prepared else req.desc
+    note_hash = _hashlib.sha256(f"{req.note_title}|{scored_desc}".encode()).hexdigest()[:16]
     _log_analysis(note_hash, req.domain, percentile, composite, timing)
 
     title_scores   = suggested_title_scores if 'suggested_title_scores' in locals() else []
@@ -15813,7 +15964,7 @@ async def _run_analyze_pipeline(
                 _plan["title_needs_refine"] = _plan["title_meta"]["needs_refine"]
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
-    delivery_fact_context = "\n\n".join(p for p in [req.desc, fact_context, intent_brief] if p)
+    delivery_fact_context = "\n\n".join(p for p in [req.desc, extra_image_context, fact_context, intent_brief] if p)
     report_fact_issues = _structured_fact_boundary_issues(
         f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
     )
@@ -15867,7 +16018,7 @@ async def _run_analyze_pipeline(
         "input_mode": req.input_mode or "",
         "ocr_char_count": req.ocr_char_count,
         "original_desc_len": len(original_desc),
-        "scored_desc_len": len(req.desc or ""),
+        "scored_desc_len": len(scored_desc or ""),
         "feature_body_len": float(features.get("body_len", 0) or 0),
         "feature_body_main_len": float(features.get("commercial_body_main_char_len", features.get("body_len", 0)) or 0),
         "extra_image_context_len": len(extra_image_context or ""),
@@ -15878,7 +16029,7 @@ async def _run_analyze_pipeline(
         "merchant_name": req.merchant_name,
         "fact_source_policy": req.fact_source_policy,
     }
-    if req.video_file_id:
+    if req.video_file_id or video_desc_for_library:
         input_diagnostics.update({
             "video_duration_sec": video_duration_sec,
             "video_frames_extracted": video_frames_extracted,
@@ -15927,15 +16078,21 @@ async def _run_analyze_pipeline(
         constraint_contract=constraint_contract,
         content_intent=normalized_intent,
         intent_contract=intent_contract,
+        merchant_name=normalized_merchant,
+        merchant_visibility=normalized_visibility,
+        fact_source_policy=normalized_fact_policy,
         fact_source_decision=fact_source_decision,
         input_diagnostics=input_diagnostics,
         supplement_prompts=supplement_prompts,
+        fact_context=_clarified_fact_context(prepared, prepared.get("confirmation", "")) if prepared else fact_context,
+        merchant_confirmations=prepared.get("merchant_confirmations", []) if prepared else [],
+        pending_confirmation=prepared.get("pending_confirmation", []) if prepared else [],
     )
 
     # 登录用户同步保存诊断原文为笔记库根版本，后续对话优化挂在这条版本链下。
     try:
         note_title_for_save = (req.note_title or "").strip() or "（无标题）"
-        if req.video_file_id and video_desc_for_library:
+        if video_desc_for_library:
             note_body_for_save = _video_library_note_body(
                 original_desc,
                 video_desc_for_library,
@@ -15944,7 +16101,7 @@ async def _run_analyze_pipeline(
                 frames_to_ai=video_frames_to_ai,
             )
         else:
-            note_body_for_save = (req.desc or "").strip()
+            note_body_for_save = (original_desc if prepared else req.desc or "").strip()
         if not note_body_for_save:
             note_body_for_save = note_title_for_save
         note_id = str(_uuid.uuid4())
@@ -16049,6 +16206,8 @@ async def analyze(
     claim = _paid_request_claim(
         request_id, user_id=user["id"], operation="analyze", payload=req
     )
+    marker = _clarification.execution.set({"claim": claim, "merchant": req.merchant_name or ""}
+        if claim and _clarification.enabled() else None)
     try:
         result = await _run_analyze_pipeline(
             req,
@@ -16056,10 +16215,14 @@ async def analyze(
             billing_charge=(claim or {}).get("charge"),
             billing_managed=bool(claim),
         )
+    except _clarification.WaitingForInput as waiting:
+        return JSONResponse(waiting.event, status_code=202)
     except BaseException:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         raise
+    finally:
+        _clarification.execution.reset(marker)
     if claim and not _idempotency.mark_completed(claim, confirm_existing=True):
         _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         raise HTTPException(status_code=503, detail={
@@ -16099,6 +16262,8 @@ async def analyze_stream_endpoint(
                 payload["type"] = "complete"
                 payload["progress"] = 100
                 await queue.put(payload)
+            except _clarification.WaitingForInput as waiting:
+                await queue.put(waiting.event)
             except HTTPException as exc:
                 detail = exc.detail
                 msg = detail if isinstance(detail, str) else _json.dumps(detail, ensure_ascii=False)
@@ -16132,7 +16297,7 @@ async def analyze_stream_endpoint(
 
     return StreamingResponse(
         _timed_sse_stream(
-            _idempotent_sse_stream(_sse(), claim, success_types={"complete"}),
+            _idempotent_sse_stream(_clarification_stream(_sse(), claim, req.merchant_name or ""), claim, success_types={"complete"}),
             operation="analyze",
             success_types={"complete"},
         ),
@@ -16154,6 +16319,7 @@ async def _generate_pipeline_stream(
     user_tier: str = "free",
     user_id: str | None = None,
     memory_context: str = "",
+    prepared: dict | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Streaming version of generate pipeline — yields SSE event dicts."""
     dk = _get_dk(domain)
@@ -16161,181 +16327,204 @@ async def _generate_pipeline_stream(
     observed_deep_image_count = 0
     observed_frame_count = 0
 
-    # ── P1: Visual ──────────────────────────────────────────────────
-    if video_file_id:
-        _video_meta = await _await_media_worker(_get_video_meta, video_file_id, user_id)
-        has_frames = bool(_video_meta)
-        if not has_frames:
-            raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传后再生成")
-        yield {"type": "stage", "stage": "p1", "label": "视觉分析师正在解读视频画面…", "progress": 8}
-        if has_frames:
-            _vmeta     = _video_meta or {}
-            n_total_f  = len(_vmeta["frames"])
-            dur_f      = _vmeta.get("duration_sec", n_total_f)
-            n_send_f   = int(math.ceil(dur_f * 2)) if _vmeta.get("original_video") else _video_send_count(dur_f, n_total_f)
-            observed_frame_count = None if _vmeta.get("original_video") else n_send_f
-            yield {"type": "video_analyzing",
-                   "label": f"分析完整原视频（{dur_f:.0f}s，画面按2fps处理，保留原音轨）…"}
-        video_desc = (
-            await _kimi_video_understand(
-                video_file_id,
-                domain,
-                brief,
-                user_id=user_id, meta=_video_meta,
-            )
-            if has_frames
-            else ""
-        )
-        if not video_desc or len(video_desc.strip()) < 20:
-            raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证生成质量，请重新上传或稍后重试")
-
-        vis_result = {
-            "role": "视觉专家",
-            "raw": f"<scene>{video_desc}</scene><hooks></hooks>",
-            "_image_desc": video_desc,
-        }
-        image_desc = vis_result["_image_desc"]
-        _vm2 = _video_meta or {}
-        n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
-        yield {
-            "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
-            "content": video_desc[:120],
-            "detail": f"使用{d2:.0f}s原视频与原音轨，画面按2fps处理；预览帧不代表模型输入",
-            "progress": 22,
-        }
+    if prepared is not None:
+        image_desc = prepared["image_desc"]
+        vis_result = prepared["vis_result"]
+        opinions = prepared["opinions"]
     else:
-        # 多图深度分析：根据 user_tier 决定深度分析图片数
-        all_imgs_s   = (cover_images or ([cover_image] if cover_image else []))[:9]
-        deep_limit_s = _DEEP_IMG_LIMITS.get(user_tier, 1)
-        deep_imgs_s  = all_imgs_s[:deep_limit_s]
-        brief_imgs_s = all_imgs_s[deep_limit_s:]
-        total_imgs_s = len(all_imgs_s)
-        observed_image_count = total_imgs_s
-        observed_deep_image_count = len(deep_imgs_s)
+        # ── P1: Visual ──────────────────────────────────────────────────
+        if video_file_id:
+            _video_meta = await _await_media_worker(_get_video_meta, video_file_id, user_id)
+            has_frames = bool(_video_meta)
+            if not has_frames:
+                raise HTTPException(status_code=422, detail="视频素材已失效或未上传成功，请重新上传后再生成")
+            yield {"type": "stage", "stage": "p1", "label": "视觉分析师正在解读视频画面…", "progress": 8}
+            if has_frames:
+                _vmeta     = _video_meta or {}
+                n_total_f  = len(_vmeta["frames"])
+                dur_f      = _vmeta.get("duration_sec", n_total_f)
+                n_send_f   = int(math.ceil(dur_f * 2)) if _vmeta.get("original_video") else _video_send_count(dur_f, n_total_f)
+                observed_frame_count = None if _vmeta.get("original_video") else n_send_f
+                yield {"type": "video_analyzing",
+                       "label": f"分析完整原视频（{dur_f:.0f}s，画面按2fps处理，保留原音轨）…"}
+            video_desc = (
+                await _kimi_video_understand(
+                    video_file_id,
+                    domain,
+                    brief,
+                    user_id=user_id, meta=_video_meta,
+                )
+                if has_frames
+                else ""
+            )
+            if not video_desc or len(video_desc.strip()) < 20:
+                raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证生成质量，请重新上传或稍后重试")
 
-        label_suffix = f"（{total_imgs_s} 张素材，{len(deep_imgs_s)} 张深度分析）" if total_imgs_s > 1 else ""
-        yield {"type": "stage", "stage": "p1", "label": f"视觉分析师正在解读素材{label_suffix}…", "progress": 10}
-
-        # 深度分析：深度图片并行
-        if deep_imgs_s:
-            deep_tasks_s = [
-                _gent_visual(img, domain, brief, dk) if i == 0
-                else _await_media_worker(_kimi_vision_understand, img, domain, brief)
-                for i, img in enumerate(deep_imgs_s)
-            ]
-            deep_results_s = await asyncio.gather(*deep_tasks_s, return_exceptions=True)
-            if not isinstance(deep_results_s[0], dict) or any(not isinstance(result, (str, dict)) or not (
-                result.strip() if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
-            ) for result in deep_results_s):
-                raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
-            vis_result = deep_results_s[0] if isinstance(deep_results_s[0], dict) else {"_image_desc": brief or domain}
-            extra_deep_s = [
-                r if isinstance(r, str) else r.get("_image_desc", "")
-                for r in deep_results_s[1:] if isinstance(r, (str, dict))
-            ]
-        else:
-            vis_result    = {"_image_desc": brief or domain}
-            extra_deep_s  = []
-
-        # Match the synchronous pipeline: all submitted images keep full observations.
-        brief_descs_s: list[str] = []
-        if brief_imgs_s:
-            brief_tasks_s = [_await_media_worker(_kimi_vision_understand, img, domain, brief) for img in brief_imgs_s]
-            brief_res_s   = await asyncio.gather(*brief_tasks_s, return_exceptions=True)
-            if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_res_s):
-                raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
-            brief_descs_s = [r for r in brief_res_s if isinstance(r, str) and len(r) > 5]
-
-        image_desc = vis_result.get("_image_desc", brief or domain)
-        # 合并所有图描述
-        all_extra_s = (
-            [f"图{i+2}（深度）：{d}" for i, d in enumerate(extra_deep_s) if d] +
-            [f"图{len(deep_imgs_s)+i+1}（轻量）：{d}" for i, d in enumerate(brief_descs_s)]
-        )
-        if all_extra_s:
-            image_desc = f"【主图】\n{image_desc}\n\n【其余{len(all_extra_s)}张素材图】\n" + "\n".join(all_extra_s)
-        vis_result = {**vis_result, "_image_desc": image_desc}
-
-        scene = _xtag_any(vis_result.get("raw", ""), "scene", "image_desc") or image_desc[:80]
-        hooks = _xtag_any(vis_result.get("raw", ""), "hooks", "inspiration")
-        yield {
-            "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
-            "content": scene[:120],
-            "detail": ("标题钩子：" + hooks[:60]) if hooks else f"已分析 {total_imgs_s} 张图片",
-            "progress": 22,
-        }
-
-    yield _safe_process_event(
-        "process_update",
-        phase="observe",
-        agent="visual",
-        status_code="material_observed",
-        reason_codes=["material_observed"],
-        facts={
-            "image_count": observed_image_count,
-            "deep_image_count": observed_deep_image_count,
-            "frame_count": observed_frame_count,
-            "video_input": "original_audio_video_2fps" if video_file_id else None,
-        },
-        progress=22,
-    )
-
-    # ── P2: Three agents staggered-start to avoid rate-limit burst ──
-    yield {"type": "stage", "stage": "p2", "label": "三位创作专家并行创作中…", "progress": 30}
-    opinions: list[dict] = [vis_result]
-
-    # Stagger task creation by 1.5s each so three calls don't all hit Moonshot at once
-    t_content = asyncio.create_task(_gent_content(domain, brief, dk, image_desc, memory_context))
-    await asyncio.sleep(1.5)
-    t_growth  = asyncio.create_task(_gent_growth(domain, brief, timing, dk, image_desc, memory_context))
-    await asyncio.sleep(1.5)
-    t_user    = asyncio.create_task(_gent_user(domain, brief, dk, image_desc, memory_context))
-
-    p2_tasks = [
-        (t_content, "内容创作师", 1),
-        (t_growth,  "增长策略师", 2),
-        (t_user,    "用户心理师", 3),
-    ]
-    pending: dict = {task: (role, idx) for task, role, idx in p2_tasks}
-    base_progress = 35
-    while pending:
-        done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            role, agent_idx = pending.pop(task)
-            try:
-                result = task.result()
-            except Exception:
-                _public_product.assert_result_known()
-                result = {"role": role, "raw": ""}
-            opinions.append(result)
-            raw = result.get("raw", "")
-            if role == "内容创作师":
-                snippet = _xtag_any(raw, "title", "draft_title") or "内容方向分析完成"
-                body_preview = _xtag_any(raw, "body", "draft_body")
-                detail = (body_preview[:80] + "…") if body_preview else ""
-            elif role == "增长策略师":
-                snippet = _xtag_any(raw, "keywords", "keyword_tip") or "关键词分析中"
-                tags_raw = _xtag_any(raw, "tags", "tag_recommendation")
-                detail = tags_raw[:60] if tags_raw else ""
-            else:
-                snippet = _xtag_any(raw, "hook", "user_angle") or "情感钩子分析中"
-                cta_raw = _xtag_any(raw, "cta", "hook")
-                detail = cta_raw.split("\n")[0][:60] if cta_raw else ""
-            base_progress = min(base_progress + 8, 52)
+            vis_result = {
+                "role": "视觉专家",
+                "raw": f"<scene>{video_desc}</scene><hooks></hooks>",
+                "_image_desc": video_desc,
+            }
+            image_desc = vis_result["_image_desc"]
+            _vm2 = _video_meta or {}
+            n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
             yield {
-                "type": "expert_opinion", "role": role, "agent_idx": agent_idx,
-                "content": snippet[:120], "detail": detail, "progress": base_progress,
+                "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
+                "content": video_desc[:120],
+                "detail": f"使用{d2:.0f}s原视频与原音轨，画面按2fps处理；预览帧不代表模型输入",
+                "progress": 22,
+            }
+        else:
+            # 多图深度分析：根据 user_tier 决定深度分析图片数
+            all_imgs_s   = (cover_images or ([cover_image] if cover_image else []))[:9]
+            deep_limit_s = _DEEP_IMG_LIMITS.get(user_tier, 1)
+            deep_imgs_s  = all_imgs_s[:deep_limit_s]
+            brief_imgs_s = all_imgs_s[deep_limit_s:]
+            total_imgs_s = len(all_imgs_s)
+            observed_image_count = total_imgs_s
+            observed_deep_image_count = len(deep_imgs_s)
+
+            label_suffix = f"（{total_imgs_s} 张素材，{len(deep_imgs_s)} 张深度分析）" if total_imgs_s > 1 else ""
+            yield {"type": "stage", "stage": "p1", "label": f"视觉分析师正在解读素材{label_suffix}…", "progress": 10}
+
+            # 深度分析：深度图片并行
+            if deep_imgs_s:
+                deep_tasks_s = [
+                    _gent_visual(img, domain, brief, dk) if i == 0
+                    else _await_media_worker(_kimi_vision_understand, img, domain, brief)
+                    for i, img in enumerate(deep_imgs_s)
+                ]
+                deep_results_s = await asyncio.gather(*deep_tasks_s, return_exceptions=True)
+                if not isinstance(deep_results_s[0], dict) or any(not isinstance(result, (str, dict)) or not (
+                    result.strip() if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
+                ) for result in deep_results_s):
+                    raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
+                vis_result = deep_results_s[0] if isinstance(deep_results_s[0], dict) else {"_image_desc": brief or domain}
+                extra_deep_s = [
+                    r if isinstance(r, str) else r.get("_image_desc", "")
+                    for r in deep_results_s[1:] if isinstance(r, (str, dict))
+                ]
+            else:
+                vis_result    = {"_image_desc": brief or domain}
+                extra_deep_s  = []
+
+            # Match the synchronous pipeline: all submitted images keep full observations.
+            brief_descs_s: list[str] = []
+            if brief_imgs_s:
+                brief_tasks_s = [_await_media_worker(_kimi_vision_understand, img, domain, brief) for img in brief_imgs_s]
+                brief_res_s   = await asyncio.gather(*brief_tasks_s, return_exceptions=True)
+                if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_res_s):
+                    raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
+                brief_descs_s = [r for r in brief_res_s if isinstance(r, str) and len(r) > 5]
+
+            image_desc = vis_result.get("_image_desc", brief or domain)
+            # 合并所有图描述
+            all_extra_s = (
+                [f"图{i+2}（深度）：{d}" for i, d in enumerate(extra_deep_s) if d] +
+                [f"图{len(deep_imgs_s)+i+1}（轻量）：{d}" for i, d in enumerate(brief_descs_s)]
+            )
+            if all_extra_s:
+                image_desc = f"【主图】\n{image_desc}\n\n【其余{len(all_extra_s)}张素材图】\n" + "\n".join(all_extra_s)
+            vis_result = {**vis_result, "_image_desc": image_desc}
+
+            scene = _xtag_any(vis_result.get("raw", ""), "scene", "image_desc") or image_desc[:80]
+            hooks = _xtag_any(vis_result.get("raw", ""), "hooks", "inspiration")
+            yield {
+                "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
+                "content": scene[:120],
+                "detail": ("标题钩子：" + hooks[:60]) if hooks else f"已分析 {total_imgs_s} 张图片",
+                "progress": 22,
             }
 
-    yield _safe_process_event(
-        "process_update",
-        phase="evidence",
-        agent="specialists",
-        status_code="expert_evidence_ready",
-        reason_codes=["multi_agent_evidence"],
-        facts={"agent_count": len(opinions)},
-        progress=54,
-    )
+        yield _safe_process_event(
+            "process_update",
+            phase="observe",
+            agent="visual",
+            status_code="material_observed",
+            reason_codes=["material_observed"],
+            facts={
+                "image_count": observed_image_count,
+                "deep_image_count": observed_deep_image_count,
+                "frame_count": observed_frame_count,
+                "video_input": "original_audio_video_2fps" if video_file_id else None,
+            },
+            progress=22,
+        )
+
+        # ── P2: Three agents staggered-start to avoid rate-limit burst ──
+        yield {"type": "stage", "stage": "p2", "label": "三位创作专家并行创作中…", "progress": 30}
+        opinions: list[dict] = [vis_result]
+
+        # Stagger task creation by 1.5s each so three calls don't all hit Moonshot at once
+        t_content = asyncio.create_task(_gent_content(domain, brief, dk, image_desc, memory_context))
+        await asyncio.sleep(1.5)
+        t_growth  = asyncio.create_task(_gent_growth(domain, brief, timing, dk, image_desc, memory_context))
+        await asyncio.sleep(1.5)
+        t_user    = asyncio.create_task(_gent_user(domain, brief, dk, image_desc, memory_context))
+
+        p2_tasks = [
+            (t_content, "内容创作师", 1),
+            (t_growth,  "增长策略师", 2),
+            (t_user,    "用户心理师", 3),
+        ]
+        pending: dict = {task: (role, idx) for task, role, idx in p2_tasks}
+        base_progress = 35
+        expert_failed = False
+        while pending:
+            done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                role, agent_idx = pending.pop(task)
+                try:
+                    result = task.result()
+                except Exception:
+                    expert_failed = True
+                    result = {"role": role, "raw": ""}
+                opinions.append(result)
+                raw = result.get("raw", "")
+                if role == "内容创作师":
+                    snippet = _xtag_any(raw, "title", "draft_title") or "内容方向分析完成"
+                    body_preview = _xtag_any(raw, "body", "draft_body")
+                    detail = (body_preview[:80] + "…") if body_preview else ""
+                elif role == "增长策略师":
+                    snippet = _xtag_any(raw, "keywords", "keyword_tip") or "关键词分析中"
+                    tags_raw = _xtag_any(raw, "tags", "tag_recommendation")
+                    detail = tags_raw[:60] if tags_raw else ""
+                else:
+                    snippet = _xtag_any(raw, "hook", "user_angle") or "情感钩子分析中"
+                    cta_raw = _xtag_any(raw, "cta", "hook")
+                    detail = cta_raw.split("\n")[0][:60] if cta_raw else ""
+                base_progress = min(base_progress + 8, 52)
+                yield {
+                    "type": "expert_opinion", "role": role, "agent_idx": agent_idx,
+                    "content": snippet[:120], "detail": detail, "progress": base_progress,
+                }
+
+        _public_product.assert_result_known()
+        if expert_failed:
+            raise HTTPException(502, "必要的创作步骤没有完成，原结果保留；未跳过专家继续交付")
+        yield _safe_process_event(
+            "process_update",
+            phase="evidence",
+            agent="specialists",
+            status_code="expert_evidence_ready",
+            reason_codes=["multi_agent_evidence"],
+            facts={"agent_count": len(opinions)},
+            progress=54,
+        )
+
+
+        context = _clarification.execution.get() or {}
+        _clarification.pause({
+            "pipeline": "generate_stream", "domain": domain, "brief": brief,
+            "timing": timing, "cover_feats": cover_feats, "visual_score": visual_score,
+            "local_time": local_time, "user_tier": user_tier,
+            "memory_context": memory_context, "image_desc": image_desc,
+            "source_material": context.get("source_material", ""),
+            "vis_result": vis_result, "opinions": opinions,
+            "had_cover": bool(cover_image),
+            "metadata": context.get("metadata", {}),
+        }, opinions, source=(brief or "") + "\n" + image_desc,
+           merchant=context.get("merchant", ""), completed_steps=("素材理解", "专家分析"))
 
     # ── Pre-P3: Score draft ──────────────────────────────────────────
     pre_fix_items: list[str] = []
@@ -16843,7 +17032,7 @@ async def _generate_pipeline_stream(
         "ces_percentile":  round(final_score, 1),
         "grade":           grade_str,
         "visual_score":    visual_score,
-        "cover_analysis":  vis_result.get("_image_desc", "") if cover_image else "",
+        "cover_analysis":  vis_result.get("_image_desc", ""),
         "market_timing":   timing_obj.model_dump() if timing_obj else None,
         "feature_hits":    feature_hits,
         "quality_issues":  quality_issues,
@@ -17128,6 +17317,15 @@ async def generate_stream_endpoint(
                     phase="cover_feature_extraction",
                 )
 
+        context = _clarification.execution.get()
+        if context is not None:
+            context["source_material"] = "【商家原始素材】\n" + (req.brief or "")
+            context["metadata"] = {"fact_enrichment": fact_enrichment,
+                "user_constraints": normalized_constraints, "constraint_contract": constraint_contract,
+                "content_intent": normalized_intent, "intent_contract": intent_contract,
+                "merchant_name": normalized_merchant, "merchant_visibility": normalized_visibility,
+                "fact_source_policy": normalized_fact_policy,
+                "fact_source_decision": (fact_enrichment or {}).get("decision", {})}
         async for event in _generate_pipeline_stream(
             domain=req.domain,
             brief=enriched_brief,
@@ -17148,6 +17346,9 @@ async def generate_stream_endpoint(
                 event["user_constraints"] = normalized_constraints
                 event["constraint_contract"] = constraint_contract
                 event["content_intent"] = normalized_intent
+                event["merchant_name"] = normalized_merchant
+                event["merchant_visibility"] = normalized_visibility
+                event["fact_source_policy"] = normalized_fact_policy
                 event["intent_contract"] = intent_contract
                 event["fact_source_decision"] = fact_source_decision
                 event["supplement_prompts"] = _supplement_prompts_from_quality_issues(
@@ -17162,7 +17363,7 @@ async def generate_stream_endpoint(
 
     return StreamingResponse(
         _timed_sse_stream(
-            _idempotent_sse_stream(_sse(), claim, success_types={"complete"}),
+            _idempotent_sse_stream(_clarification_stream(_sse(), claim, normalized_merchant), claim, success_types={"complete"}),
             operation="generate",
             success_types={"complete"},
         ),
@@ -17182,6 +17383,17 @@ async def generate(
     Given an image (and optional brief), generates an optimized note hitting
     the composite delivery objective and auxiliary feature signals.
     """
+    if _clarification.enabled() and isinstance(request_id, str) and request_id.strip():
+        response = await generate_stream_endpoint(req, user, request_id)
+        async for chunk in response.body_iterator:
+            event = _json.loads(chunk.removeprefix("data: ").strip())
+            if event.get("type") == "clarification_required":
+                return JSONResponse(event, status_code=202)
+            if event.get("type") == "complete":
+                return GenerateResponse(**event)
+            if event.get("type") == "error":
+                raise HTTPException(422, event)
+        raise HTTPException(503, "原任务结果需要核实，请读取原任务")
     normalized_constraints = _normalize_user_constraints(req.user_constraints)
     normalized_intent = _normalize_content_intent(req.content_intent)
     normalized_visibility = _normalize_merchant_visibility(req.merchant_visibility)
@@ -17517,7 +17729,7 @@ def _build_chat_system_prompt(session: dict) -> str:
     if supplement_section:
         prompt_parts.append(f"\n{supplement_section}\n")
     if session.get("fact_context"):
-        prompt_parts.append(f"\n【已核验事实边界】\n{session.get('fact_context')}\n")
+        prompt_parts.append(f"\n【已提供的事实与本次商家确认；按各条来源区分】\n{session.get('fact_context')}\n")
     prompt_parts.append(
         "\n【对话分数与版本口径】\n"
         "- 【当前笔记】中的标题、正文和评分是当前会话的权威最终稿。\n"
@@ -18003,7 +18215,7 @@ async def _repair_chat_note_if_needed(
     if constraint_section:
         repair_parts.append(f"{constraint_section}\n\n")
     if session.get("fact_context"):
-        repair_parts.append(f"【已核验事实边界】\n{session.get('fact_context')}\n\n")
+        repair_parts.append(f"【已提供的事实与本次商家确认；按各条来源区分】\n{session.get('fact_context')}\n\n")
     repair_parts.append(
         f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
     )
@@ -18125,7 +18337,7 @@ async def _chat_sse_generator(
         yield f"data: {_json.dumps({'type': 'image_analyzed', 'analysis': image_analysis}, ensure_ascii=False)}\n\n"
 
     use_thinking = _should_use_thinking(user_msg)
-    signal = _detect_learning_signal(user_msg)
+    signal = None if supplement_values else _detect_learning_signal(user_msg)
     turn_contract = _build_chat_turn_constraint_contract(
         user_msg,
         session.get("note_body", ""),
@@ -18602,6 +18814,7 @@ _CHAT_CONTEXT_STRING_FIELDS = frozenset({
     "content_intent",
     "current_grade",
     "fact_context",
+    "original_fact_context",
     "fact_source_policy",
     "merchant_name",
     "merchant_visibility",
@@ -18692,6 +18905,7 @@ _CHAT_CONTEXT_INPUT_KEYS = (
     | frozenset(_CHAT_CONTEXT_MAPPING_SCHEMAS)
     | frozenset({
         "confirmed_supplement_values",
+        "merchant_confirmations",
         "expert_opinions",
         "feature_hits",
         "mascots",
@@ -18867,6 +19081,13 @@ def _sanitize_chat_generate_context(value: Any) -> dict[str, Any]:
         if normalized == "pending_plan_options":
             safe[normalized] = _sanitize_chat_plan_options(item)
             continue
+        if normalized == "merchant_confirmations":
+            fields = {"question_id", "field", "question", "answer", "status", "source", "merchant", "object", "time_range", "confirmed_at", "revision"}
+            if isinstance(item, list):
+                safe[normalized] = [{**{k:v for k,v in record.items() if k in fields and isinstance(v,(str,int))},
+                    "source":"merchant_confirmation"} for record in item if isinstance(record,dict)
+                    and record.get("status") in {"confirmed","omitted","unknown"} and isinstance(record.get("question_id"),str)]
+            continue
         if normalized == "confirmed_supplement_values":
             if (
                 isinstance(item, dict)
@@ -19019,6 +19240,9 @@ def _persist_chat_session(session_id: str) -> bool:
                 )
                 if not writable or writable["deletion_requested_at"]:
                     return False
+                existing = tx.fetchone("SELECT id FROM idempotency_requests WHERE id=?", (session_id,))
+                if existing:
+                    return False  # Continuations have their own owner/lease CAS, never this upsert.
                 tx.execute(sql, params)
         else:
             _db.execute(sql, params)
@@ -19071,6 +19295,7 @@ def _load_chat_session_from_db(session_id: str) -> Optional[dict]:
             "fact_source_policy": fact_source_policy,
             "intent_contract": _content_intent_contract_payload(row["domain"], content_intent, merchant_visibility, merchant_name, fact_source_policy),
             "supplement_prompts": gen_ctx.get("supplement_prompts") or [],
+            "confirmed_supplement_values": gen_ctx.get("confirmed_supplement_values") or {},
             "fact_context": gen_ctx.get("fact_context", ""),
             "pending_plan_options": gen_ctx.get("pending_plan_options") or [],
         }
@@ -19208,6 +19433,7 @@ class ChatStartResponse(BaseModel):
     grade:         str = ""
     user_prefs:    dict = {}
     supplement_prompts: list[dict] = Field(default_factory=list)
+    confirmed_facts: list[dict] = Field(default_factory=list)
 
 
 class ChatMessageInput(BaseModel):
@@ -19216,6 +19442,8 @@ class ChatMessageInput(BaseModel):
     image_base64: str | None = None   # base64-encoded image (jpg/png/webp)
     file_text:    str | None = None   # extracted text from uploaded file
     supplement_values: dict[str, str] | None = Field(default=None, description="用户在补充事实卡片中确认的结构化事实")
+    task_version: int | None = Field(default=None, ge=1)
+    task_answers: list[dict] | None = None
 
 
 class ChatSelectPlanInput(BaseModel):
@@ -19343,6 +19571,7 @@ async def chat_start(
     except Exception:
         inherited_fact_context = ""
     session_generate_context = {
+        "merchant_confirmations": _sanitize_chat_generate_context({"merchant_confirmations":gen_ctx.get("merchant_confirmations") or []}).get("merchant_confirmations", []),
         "cover_analysis":  gen_ctx.get("cover_analysis") or "",
         "ai_diagnosis": gen_ctx.get("ai_diagnosis") or "",
         "improvement_plan": gen_ctx.get("improvement_plan") or "",
@@ -19372,6 +19601,7 @@ async def chat_start(
         session_generate_context["fact_enrichment"] = gen_ctx["fact_enrichment"]
     if isinstance(gen_ctx.get("market_timing"), dict):
         session_generate_context["market_timing"] = gen_ctx["market_timing"]
+    session_generate_context["original_fact_context"] = inherited_fact_context.split("【本次商家确认", 1)[0]
 
     _chat_sessions[sid] = {
         "note_title":       req.note_title,
@@ -19436,7 +19666,111 @@ async def chat_start(
         grade=grade,
         user_prefs=user_prefs,
         supplement_prompts=supplement_prompts,
+        confirmed_facts=list({item["question_id"]: item for item in session_generate_context.get("merchant_confirmations", [])}.values()),
     )
+
+
+@app.get("/chat/tasks")
+async def pending_chat_tasks(user: dict = Depends(_auth.get_current_user)):
+    rows = _db.fetchall("SELECT c.id FROM chat_sessions c JOIN idempotency_requests i "
+                        "ON i.id=c.id AND i.user_id=c.user_id WHERE c.user_id=? "
+                        "AND i.status='waiting_for_input' ORDER BY c.updated_at DESC LIMIT 20", (user["id"],))
+    return {"tasks": [_clarification.read(user["id"], row["id"]) for row in rows]}
+
+
+@app.get("/chat/tasks/{session_id}")
+async def read_chat_task(session_id: str, user: dict = Depends(_auth.get_current_user)):
+    return _clarification.read(user["id"], session_id)
+
+
+def _clarified_fact_context(prepared, confirmation):
+    """Carry material, observed media and sourced data; exclude model advice/memory."""
+    material = prepared.get("source_material") or ""
+    if prepared.get("pipeline") == "generate_stream":
+        observed = prepared.get("image_desc") or ""
+        external = _facts.format_fact_context(prepared.get("metadata", {}).get("fact_enrichment"))
+    else:
+        observed = "\n\n".join(p for p in (
+            prepared.get("video_desc_for_library"), prepared.get("extra_image_context")) if p)
+        external = prepared.get("fact_context") or ""
+    return "\n\n".join(p for p in (material,
+        "【素材观察（AI识别，未作外部独立核验）】\n" + observed if observed else "",
+        external, confirmation) if p)
+
+
+async def _resume_clarified_task(req: ChatMessageInput, user: dict):
+    if req.task_version is None or req.image_base64 or req.file_text:
+        raise HTTPException(422, "请在原问题中回答；原素材已保留，无需重新上传")
+    claim, task = _clarification.resume(user["id"], req.session_id, req.task_version, req.task_answers)
+    prepared = task["prepared"]
+    confirmation = _clarification.answer_context(task)
+    async def events():
+        _billing.activate_usage(claim["charge"]["usage_id"])
+        yield 'data: ' + _json.dumps({"type": "clarification_acknowledged", "session_id": req.session_id,
+            "version": task["version"], "message": "已按本次说明更新：" + "；".join(
+                (a["answer"][:120] if a["status"] == "confirmed" else "这项不写" if a["status"] == "omitted" else "这项暂不确定，先完成其余内容")
+                for a in task["answers"] if a["revision"] == task["version"]) + "。继续沿用原素材。",
+            "answers": task["answers"], "charged_again": False}, ensure_ascii=False) + '\n\n'
+        if prepared["pipeline"] == "generate_stream":
+            stream = _generate_pipeline_stream(domain=prepared["domain"],
+                brief=(prepared.get("brief") or "") + "\n\n" + confirmation,
+                timing=prepared["timing"], cover_image=None, cover_feats=prepared["cover_feats"],
+                visual_score=prepared["visual_score"], local_time=prepared["local_time"],
+                user_tier=prepared["user_tier"], user_id=user["id"],
+                memory_context=prepared["memory_context"], prepared=prepared)
+            async for event in stream:
+                if event.get("type") == "complete":
+                    event.update(prepared.get("metadata", {}))
+                    event.update({"fact_context": _clarified_fact_context(prepared, confirmation),
+                        "merchant_confirmations": task["answers"], "pending_confirmation": _clarification.pending_confirmation(task),
+                        "continuation_session_id": req.session_id, "continuation_version": task["version"]})
+                    _clarification.save_result(claim, event)
+                yield 'data: ' + _json.dumps(event, ensure_ascii=False, default=str) + '\n\n'
+        elif prepared["pipeline"] == "analyze":
+            original = AnalyzeInput(**prepared["request"])
+            original = original.model_copy(update={"desc": original.desc + "\n\n" + confirmation})
+            resumed = {**prepared, "agent_context": prepared["agent_context"] + "\n\n" + confirmation,
+                "confirmation": confirmation, "merchant_confirmations": task["answers"],
+                "pending_confirmation": _clarification.pending_confirmation(task)}
+            queue: asyncio.Queue = asyncio.Queue()
+            async def emit(event):
+                await queue.put(event)
+            async def run():
+                try:
+                    result = await _run_analyze_pipeline(original, user, emit=emit,
+                        billing_charge=claim["charge"], billing_managed=True, prepared=resumed)
+                    event = result.model_dump()
+                    event.update({key: prepared["request"].get(key) for key in
+                        ("merchant_name", "merchant_visibility", "fact_source_policy")})
+                    event.update({"type": "complete", "merchant_confirmations": task["answers"],
+                        "pending_confirmation": _clarification.pending_confirmation(task),
+                        "continuation_session_id": req.session_id, "continuation_version": task["version"],
+                        "fact_context": _clarified_fact_context(prepared, confirmation)})
+                    _clarification.save_result(claim, event)
+                    await queue.put(event)
+                except Exception:
+                    await queue.put({"type": "error", "message": "本次接续未完成，原素材和回答已保留，请查看任务状态。"})
+                finally:
+                    await queue.put(None)
+            runner = asyncio.create_task(run())
+            try:
+                while True:
+                    event = await queue.get()
+                    if event is None:
+                        break
+                    yield 'data: ' + _json.dumps(event, ensure_ascii=False, default=str) + '\n\n'
+            finally:
+                if not runner.done():
+                    runner.cancel()
+                    try:
+                        await runner
+                    except asyncio.CancelledError:
+                        pass
+        else:
+            raise RuntimeError("unknown continuation pipeline")
+    return StreamingResponse(_timed_sse_stream(_idempotent_sse_stream(events(), claim, success_types={"complete"}),
+        operation=claim["operation"], success_types={"complete"}), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.post("/chat/message")
@@ -19445,6 +19779,12 @@ async def chat_message(
     user: dict = Depends(_auth.get_current_user),
     request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
 ):
+    original = _db.fetchone("SELECT id FROM idempotency_requests WHERE id=? AND user_id=?",
+                            (req.session_id, user["id"]))
+    if original:
+        return await _resume_clarified_task(req, user)
+    if req.task_answers is not None:
+        raise HTTPException(404, "任务不存在或不属于当前账号")
     # 先查内存，没有则从 SQLite 恢复（服务重启后无感续聊）
     if req.session_id not in _chat_sessions:
         recovered = _load_chat_session_from_db(req.session_id)
@@ -19505,6 +19845,8 @@ async def chat_select_plan(
     req: ChatSelectPlanInput,
     user: dict = Depends(_auth.get_current_user),
 ):
+    if _db.fetchone("SELECT id FROM idempotency_requests WHERE id=?", (req.session_id,)):
+        raise HTTPException(409, "请先读取并完成原任务，再选择最终方案")
     if req.session_id not in _chat_sessions:
         recovered = _load_chat_session_from_db(req.session_id)
         if recovered:

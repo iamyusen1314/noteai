@@ -42,6 +42,7 @@ EXACT_ROUTES = frozenset({
     ("POST", "/analyze/stream"), ("POST", "/generate/stream"),
     ("POST", "/chat/start"), ("POST", "/chat/message"),
     ("POST", "/chat/select-plan"),
+    ("GET", "/chat/tasks"),
 })
 PAID_ROUTES = {"/analyze/stream", "/generate/stream", "/chat/message", "/extract-screenshot", "/validate-ocr"}
 MEDIA_UPLOAD_ROUTES = {"/upload-image", "/upload-video"}
@@ -69,6 +70,8 @@ def wechat_configured(*, callback: bool = False) -> bool:
 
 
 def allowed_route(method: str, path: str) -> bool:
+    if method == "GET" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
+        return True
     if method == "POST" and media_enabled() and path in MEDIA_UPLOAD_ROUTES | {"/extract-screenshot", "/validate-ocr"}:
         return True
     if (method, path) in EXACT_ROUTES:

@@ -29,7 +29,7 @@ import content_retention
 
 
 IDEMPOTENCY_HEADER = "X-Request-ID"
-IDEMPOTENCY_STATES = frozenset({"running", "completed", "failed"})
+IDEMPOTENCY_STATES = frozenset({"running", "waiting_for_input", "completed", "failed"})
 FAILURE_CODES = frozenset({
     "lease_expired",
     "request_failed",
@@ -334,6 +334,7 @@ def claim_and_charge(
                 status = "running"
             return {
                 "state": "in_progress" if status == "running" else status,
+                "session_id": existing["id"] if status == "waiting_for_input" else None,
                 "failure_code": str(existing.get("failure_code") or "")
                 if status == "failed" else "",
             }
@@ -463,12 +464,22 @@ def settle_expired_requests_for_account_deletion_with_storage(
     lock = " FOR UPDATE" if tx.postgres else ""
     rows = tx.fetchall(
         "SELECT * FROM idempotency_requests "
-        "WHERE user_id=? AND status='running' ORDER BY created_at,id" + lock,
+        "WHERE user_id=? AND status IN ('running','waiting_for_input') ORDER BY created_at,id" + lock,
         (user_id,),
     )
     settled = 0
     for row in rows:
         current = dict(row)
+        if current["status"] == "waiting_for_input":
+            import task_clarification
+            try:
+                task_clarification._settled_calls(tx, current["usage_id"])
+            except HTTPException:
+                raise ValueError("原任务结果还需核实，请稍后再删除账号") from None
+            _fail_running_request_in_transaction(tx, current, failure_code="cancelled_waiting",
+                                                 now_iso=now_iso)
+            settled += 1
+            continue
         lease_expires_at = _parse_lease_clock(current.get("lease_expires_at"))
         if lease_expires_at is None or lease_expires_at > current_time:
             raise ValueError("有正在处理的请求，请等待完成后重试删除")

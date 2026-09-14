@@ -59,6 +59,146 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             payload=payload or {"domain": "美食", "content": "payload-a"},
         )
 
+    def _waiting_task(self, uid="merchant-a", key="clarification-test-key"):
+        import task_clarification as clarification
+        self._create_user(uid)
+        claim = self._claim(uid, key, operation="generate")
+        source = "蓝猫店双人套餐198元，门票另有组合，9月活动。"
+        opinion = {"role": "内容专家", "raw": '<clarifications>' + json.dumps([{
+            "field": "package_inclusions", "question": "198元的双人套餐包含门票吗？",
+            "source_quote": "双人套餐198元，门票另有组合", "object": "双人套餐",
+            "time_range": "9月", "required": True, "options": ["包含", "不包含"]}], ensure_ascii=False) + '</clarifications>'}
+        marker = clarification.execution.set({"claim": claim})
+        try:
+            with self.assertRaises(clarification.WaitingForInput) as waiting:
+                clarification.pause({"domain": "美食", "local_time": "", "image_desc": "原图片完整观察"},
+                    [opinion], source=source, merchant="蓝猫店", completed_steps=["素材理解"])
+        finally:
+            clarification.execution.reset(marker)
+        return claim, waiting.exception.event, opinion, source
+
+    def test_clarification_resume_concurrent_answers_keep_original_charge(self):
+        import task_clarification as clarification
+        claim, event, _, _ = self._waiting_task()
+        answers = [{"question_id": event["questions"][0]["question_id"], "status": "confirmed", "answer": "9月双人套餐不含门票，门票另购；只适用于蓝猫店。"}]
+        def run(_):
+            try:
+                return clarification.resume("merchant-a", claim["request_id"], 1, answers)
+            except HTTPException as exc:
+                return exc.status_code
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(run, range(8)))
+        owners = [r for r in results if isinstance(r, tuple)]
+        self.assertEqual(len(owners), 1)
+        self.assertEqual(results.count(409), 7)
+        next_claim, task = owners[0]
+        self.assertEqual(next_claim["charge"]["usage_id"], claim["charge"]["usage_id"])
+        self.assertEqual(db.fetchone("SELECT COUNT(*) n FROM usage_records")["n"], 1)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) n FROM idempotency_requests")["n"], 1)
+        self.assertFalse(idempotency.mark_completed(claim))
+        self.assertFalse(idempotency.mark_failed_and_refund(claim))
+        clarification.save_result(next_claim, {"note_title": "真实剩余内容", "note_body": "不含门票", "ces_percentile": 72})
+        self.assertTrue(idempotency.mark_completed(next_claim, confirm_existing=True))
+        recovered = clarification.read("merchant-a", claim["request_id"])
+        self.assertEqual(recovered["status"], "completed")
+        self.assertEqual(recovered["answers"][0]["source"], "merchant_confirmation")
+        self.assertNotIn("prepared", recovered)
+        self.assertNotIn("lease_token", recovered)
+
+    def test_clarification_saved_result_obeys_original_note_deletion_and_atomicity(self):
+        from unittest import mock
+        import task_clarification as clarification
+        claim, event, _, _ = self._waiting_task()
+        resumed, task = clarification.resume("merchant-a", claim["request_id"], 1,
+            [{"question_id": event["questions"][0]["question_id"], "status": "omitted"}])
+        result = {"note_title":"原任务结果", "note_body":"只写明确的内容。", "ces_percentile":72}
+        with mock.patch.object(clarification.content_retention, "_record_content_with_storage", side_effect=RuntimeError("synthetic storage failure")):
+            with self.assertRaises(RuntimeError): clarification.save_result(resumed, dict(result))
+        self.assertEqual(db.fetchone("SELECT COUNT(*) n FROM notes")["n"], 0)
+        self.assertEqual(clarification.read("merchant-a", claim["request_id"])["status"], "running")
+        clarification.save_result(resumed, dict(result))
+        session = db.fetchone("SELECT note_id FROM chat_sessions WHERE id=?", (claim["request_id"],))
+        self.assertEqual(session["note_id"], claim["request_id"])
+        db.execute("UPDATE content_retention SET deleted_at=? WHERE content_id=?", (idempotency._iso(), claim["request_id"]))
+        with self.assertRaises(HTTPException) as deleted:
+            clarification.read("merchant-a", claim["request_id"])
+        self.assertEqual(deleted.exception.status_code, 404)
+
+    def test_clarification_no_duplicate_questions_or_cross_merchant_access(self):
+        import task_clarification as clarification
+        claim, event, opinion, source = self._waiting_task()
+        answers = [{"question_id": event["questions"][0]["question_id"], "status": "omitted"}]
+        next_claim, task = clarification.resume("merchant-a", claim["request_id"], 1, answers)
+        self.assertEqual(clarification.questions_from_opinions([opinion], source, "蓝猫店", task["answers"]), [])
+        self.assertIn("所有标题、方案", clarification.answer_context(task))
+        self.assertEqual(clarification.pending_confirmation(task), [])
+        self._create_user("merchant-b")
+        with self.assertRaises(HTTPException) as denied:
+            clarification.read("merchant-b", claim["request_id"])
+        self.assertEqual(denied.exception.status_code, 404)
+        with self.assertRaises(HTTPException):
+            clarification.resume("merchant-b", claim["request_id"], 1, answers)
+        self.assertEqual(len(clarification.questions_from_opinions([opinion], source, "另一门店", task["answers"])), 1)
+
+    def test_clarification_free_answer_is_not_truncated_unknown_core_stays_pending(self):
+        import task_clarification as clarification
+        claim, event, _, _ = self._waiting_task()
+        question = event["questions"][0]
+        task = {"questions": [question], "answers": [], "version": 1}
+        text = "具体说明：" + "只适用于本门店本月活动，不含其它套餐。" * 40
+        answer = clarification._answer_update(task, [{"question_id": question["question_id"], "status": "confirmed", "answer": text}])
+        task["answers"].extend(answer)
+        self.assertIn(text, clarification.answer_context(task))
+        task["version"] = 2
+        task["answers"].extend(clarification._answer_update(task, [{"question_id": question["question_id"], "status": "unknown"}]))
+        self.assertNotIn(text, clarification.answer_context(task))
+        self.assertEqual(clarification.pending_confirmation(task), [question["question"]])
+        task["version"] = 3
+        correction = "更正：只在9月周末有效，不含门票。"
+        task["answers"].extend(clarification._answer_update(task, [{"question_id": question["question_id"], "status": "confirmed", "answer": correction}]))
+        self.assertIn(correction, clarification.answer_context(task))
+        self.assertNotIn(text, clarification.answer_context(task))
+        self.assertEqual(len(task["answers"]), 3)  # immutable prior answers stay private history
+
+    def test_clarification_waiting_stream_is_not_failure_or_complete(self):
+        import task_clarification as clarification
+        claim, event, _, _ = self._waiting_task()
+        async def stream():
+            yield "data: " + json.dumps(event, ensure_ascii=False) + "\n\n"
+        async def collect():
+            return [chunk async for chunk in api._timed_sse_stream(
+                api._idempotent_sse_stream(stream(), claim, success_types={"complete"}),
+                operation="generate", success_types={"complete"})]
+        chunks = asyncio.run(collect())
+        result = json.loads(chunks[0][6:])
+        self.assertTrue(result["terminal"])
+        self.assertEqual(result["outcome"], "awaiting_input")
+        row = db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],))
+        self.assertEqual((row["status"], row["complete_applied"], row["refund_applied"]), ("waiting_for_input", 0, 0))
+        self.assertEqual(self._claim("merchant-a", "clarification-test-key", operation="generate")["session_id"], claim["request_id"])
+
+    def test_clarification_unknown_original_call_blocks_resume_and_account_deletion(self):
+        import task_clarification as clarification
+        claim, event, _, _ = self._waiting_task()
+        db.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id) VALUES(?,?,?,?,?,?,?,?)",
+                   ("unknown-call", "website-free-product-20260912", "merchant-a", "a"*64, "unknown", 1, "2026-09-14", claim["charge"]["usage_id"]))
+        with self.assertRaises(HTTPException):
+            clarification.resume("merchant-a", claim["request_id"], 1, [{"question_id": event["questions"][0]["question_id"], "status": "omitted"}])
+        with self.assertRaises(ValueError):
+            with db.transaction(write=True) as tx:
+                idempotency.settle_expired_requests_for_account_deletion_with_storage(tx, "merchant-a")
+        self.assertEqual(clarification.read("merchant-a", claim["request_id"])["status"], "waiting_for_input")
+
+    def test_clarification_account_deletion_cancels_waiting_once_without_expiring_lease(self):
+        claim, event, _, _ = self._waiting_task()
+        with db.transaction(write=True) as tx:
+            count = idempotency.settle_expired_requests_for_account_deletion_with_storage(tx, "merchant-a")
+        self.assertEqual(count, 1)
+        with db.transaction(write=True) as tx:
+            self.assertEqual(idempotency.settle_expired_requests_for_account_deletion_with_storage(tx, "merchant-a"), 0)
+        row = db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],))
+        self.assertEqual((row["status"], row["refund_applied"], row["failure_code"]), ("failed", 1, "cancelled_waiting"))
+
     def test_sqlite_schema_initialization_is_idempotent_and_digest_only(self):
         db.init_db()
         db.init_db()

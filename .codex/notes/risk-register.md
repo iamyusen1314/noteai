@@ -1,5 +1,13 @@
 # Risk Register
 
+September14 clarification recovery uses original private chat context/paid claim.
+Known risks addressed locally: duplicate submit before media conversion, correction
+of the wrong same-field package, loss of omit/unknown/source across chat, and missing
+diagnosis history fields. Scope/final regression/deployment state is at Handoff top.
+0027 extends CHECK only. Existing waiting tasks require compatible recovery code;
+rollback cannot delete state or blindly revert to pre-clarification API. Historical
+UNKNOWN calls remain unresolved, no automatic retry. Readiness30/37 unchanged.
+
 September14 after owner recharge: EIP/NAT connectivity restored and exact4d API/web
 deployed. Hotel10 and original-image analyze01 failed fact validation and refunded6
 each; their actual model costs1.752555/1.3274834RMB remain. OCR alone completed with
