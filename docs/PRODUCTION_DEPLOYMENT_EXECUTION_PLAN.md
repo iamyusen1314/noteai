@@ -1,5 +1,11 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 16:42BJT e22d978 API/web deployed; compatible1338 rollback retained.
+Original report restored via exact-task read-only recovery, no historical writes.
+New private quality-02 is in flight; read original result/usage, review actual content
+and clean up exact private candidate after completion. Public media/payment closed;
+no model/Tracking/0028 changes. Native original order/bill schedule state: Handoff top.
+
 September14 15:46BJT API/web1338f65 deployed: source-priority correction plus separate
 image/video capabilities. Original045 rollback retained, publicmedia/payment still
 closed pending real verification. Current original validation and exact artifacts at

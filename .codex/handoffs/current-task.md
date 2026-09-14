@@ -1,3 +1,28 @@
+September14 16:42BJT current: e22d9785b61764bb4e55c0c5397a34a76a9e9825 is now
+DEPLOYED API+web, superseding the local-only/current1338 statements below.
+API sha256:aeda5c1ff328ce3ebf831ef19d25adb1eae1180bf78fc556283e35ad1da3efbc;
+web /var/www/noteai-public/e22d978; product JS
+sha256:ea7bc8555768210896073281dd1ad0ef8e00b7e4c82237af5002010c919e1182.
+Original /var/lib/noteai/media-e22d978 build/deploy/web results confirm Python3.11.15,
+Linuxamd64,17 runtime files/imports, exact API/web switch. Build PID1715814 completed
+1789374762.8140216; deploy PID1716132 completed1789374847.1065018; web1789374882.8381646.
+Compatible1338 API/web retained. No migration, model/env/Admin/Payment/Tracking change.
+Normal public browser now reads the original completed report: original47.7 score,
+original text, all three plans and pre-clarification expert provenance. Original
+quality failure/cost preserved; reading did not regenerate or charge.
+
+New bounded quality validation formal-ark-media-quality-20260914-02 was started ONCE
+at1789375334.2896717, PID1718022, using exact e22 image on private loopback18082.
+/var/lib/noteai/media-e22d978/owner-check contains original launch/candidate/result;
+client SHA2278ae88d3e55ed8acbbe160fbcf9da1683023dca242a3303c4d006b38c01f62.
+Same owner/material/saved OCR+merge and established omission answers; no new OCR or
+merge request. Formal analysis may include its normal media/model calls. Current
+state IN_FLIGHT: read original result/claim/accounting, never repost on disconnect.
+Public image/video/payment/tracking remain closed. Stop only exact private candidate
+after original task settles. Video still lacks approved representative real material.
+Native original12RMB paid/refunded unchanged; fc4f49f bill staged, no prepare/run or
+new schedule. Item34 unchanged. Readiness30/37, no Gitpush/protected-path changes.
+
 September14 current scope: original12RMB order remains PAID then fully REFUNDED;
 owner latest payment message does not authorize replay. Same-order next-day bill
 launcher fc4f49f is now staged at /var/lib/noteai/native-80b01ea/bill-launcher-fc4f49f,

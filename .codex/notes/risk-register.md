@@ -1,5 +1,11 @@
 # Risk Register
 
+September14 16:42BJT e22 report/constraint correction is deployed and original report
+readback works without regeneration. New same-material quality-02 is IN_FLIGHT on an
+exact private image candidate; public media/payment remain closed. Earlier local-only
+and current1338 notes below are historical. Do not infer quality from model scores;
+read original result and accounting before candidate cleanup or any next batch.
+
 September14 report/constraint correction is local pending scoped release: empty
 history was caused by a missing allowed response field, not missing model output.
 Read-only exact-task recovery preserves originals/ownership/deletion. Current32-call
