@@ -1,3 +1,8 @@
+September14 20:40BJT: original API+web05af4b0 deployed; image/text/account functions
+remain open, video/payment/Tracking remain closed. Original OCR recovery and accurate
+2920.5credit display verified. Same inactive Native preparation preserves newAPI/web
+for recovery; no re-created capture. Exact runtime hashes at Handoff top.
+
 September14 20:32BJT: API97d live, original diagnosis completed; formal Ark+Claude
 chain and once-only accounting verified, content-quality gap retained. Canonical
 industry selectors and truthful ledger balance UI are the next minimal rollout.

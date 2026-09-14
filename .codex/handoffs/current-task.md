@@ -1,3 +1,32 @@
+September14 20:40BJT current deployment: API/web05af4b0250d8f795f0f4647499837bc83e2f220c
+DEPLOYED. API image5ab062cff52514d48c37aaeeb430b009584c7f7708db73423174c5b565fbf361;
+buildPID1756228 complete1789389224.7296674,deployPID1756563 complete1789389331.457589;
+originalresults /var/lib/noteai/media-05af4b0/{build/build-result.json,deploy/result.json}.
+Python3.11.15/amd64/18runtime hashes verified; candidate stopped;97d rollback retained.
+WebPID1757484 complete1789389422.5257819, same root/web-result.json;previous557 retained.
+Index142f1d9b087e46234f7fb485f504795032848fe715a252e4020029e07f860aa8,
+JS59c79be8df8ceca1f332bbb182c20681665f672cb184cdcc8aa6229bdebcc096,
+events46d927a1f25afcfb6b1f16b5f961175103609e80eb1424e3a0ccb749977e5eec.
+Normalized web diff is canonical7 inputs/new selection handler plus previously
+unpublished truthful media-model label; other event-number differences are builder
+index shifts. Browser verified normal manual/screenshot canonical7, originalOCR
+read-only recovery, ledger2920.5credits, no page errors. No new model/charge.
+Image open;video/Tracking/payment remainclosed. Admin/env/model config unchanged.
+
+Same inactive Native4feb prepared bound to ACTUAL05af API/web at1789389528.916296,
+prepared333cf8e266abf3f25d723184bcdce6813c34dac08891dc3c9e01df13fed2173a,
+drop8daf5abbc33b3dbeb559ef28e5b77cf719e64e62b95251025fa245d6d1ad9fbf.
+Launcher /var/lib/noteai/native-6c9221e/launcher-bcc1d3e/native_capture-05af4b0.py
+SHA69bf78a58e23ef9da2178196101662990037cced1942893395c1b8ad688cef7e;
+same template/binding/SQL/activation; oldprepared1ccaa3 retained as prepared-before-05af4b0.json
+and oldbackup retained. Newbackup1-public-product-05af4b0.conf; originalsbefore read
+verified after atomicCAS. No activecapture/order/DDL. Original12RMB paid/refunded,
+realduplicate notification stillrequires newowner scan; original nextdaybill Sep15.
+Authorized audio-bearing video path question remains unanswered. Item34 original
+Sep14 21:36 task unchanged; no earlysample. Readiness30/37, noGitpush.
+Next: bounded review of existing final factual checks (no same-material repeats),
+then genuine video/Native tests when their specific owner inputs arrive.
+
 September14 20:32BJT: original97d public diagnosis COMPLETE at12:20:06.953624UTC,
 claim7ca12f42-a250-4e74-a6e4-7cd28acc7f89, usageba909ddb-98c3-47b6-9010-0ac47540a89a;
 6credits charge1/complete1/refund0. Saveddiagnosis466bb1a7-062a-498e-8823-bf6e6a942d71,

@@ -1,3 +1,11 @@
+September14 20:40BJT: API+originalweb05af4b0 DEPLOYED; canonical7 and ledger-balance
+UI verified in normal browser. Original97d diagnosis completed/27modelrows/6credits
+once, content-quality gap retained. Same inactive Native4feb launcher now binds
+05af API/web/current recovery config; no order/DDL or provider request. Next real
+Native duplicate callback awaits owner scan; original nextday bill Sep15; audio
+video requires an authorized file. Exact hashes/results/rollback and next action at
+Handoff top. Original Item34 21:36 continuation unchanged; Readiness30/37.
+
 September14 19:47BJT current: web557d6bb985c1aebbf39a6a0d329c9aa96dc722fc
 DEPLOYED, PID1748881 completed1789386150.139891, JS6900ffb89ef3fe70bc36fb1a851439600dcbded752207951c9f32dec8e2c6496;
 /var/lib/noteai/chat-557d6bb/web-result.json; rollback6a retained. Original public
