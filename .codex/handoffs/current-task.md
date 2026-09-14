@@ -1,3 +1,29 @@
+September14 19:42BJT: web6a37865a0500b52be5f667a7a280bec5c30735af DEPLOYED,
+PID1748087 completed1789385822.2895527, JS e8011f564690398fbb3dc813c12945c19af425b1e8e95b97520ce902ff372173;
+/var/lib/noteai/chat-6a37865/web-result.json; rollback7cec retained, API1c94/48a unchanged.
+Normal public screenshot upload and Ark recognition now COMPLETE: mediafcea7ed7-27f4-40b4-b5d8-7e651dbca5cc,
+claim2d891280-e3ea-46b7-9e69-28651bd5b6ba, usage7ba0bcc4-08fd-4bf4-bd0a-072d6dab52f6,
+completed11:38:53.172740UTC. One Doubao260428 call,2103in/148out,CNY0.0017946 exact,
+0.5credits charge1/refund0/complete1. Private read /var/lib/noteai/chat-6a37865/public-image-read-1789386064594765881.json
+SHAcfb028c6b8eb464da756471805072f769ee3e8aece797a75ebd04a426042b373.
+Image bytes/text/visual returned in original UI; no full diagnosis replay. Before this
+new call, owner-scoped read after11:29 confirmed no media/model rows from CSP failure.
+
+Public UI also revealed deterministic topic parsing defect: no # in prose caused
+whole sentences to become topics. Local fix extracts only actual inline# tags while
+preserving explicit tag arrays; six media-browser checks pass(image-tags-r1.log).
+Next web-only patch then restore this ORIGINAL recognition; no newOCR orcharge.
+Built strict-CSP suite now passes2/2 after correcting historical media text and loading
+existing Native JS in offline route fixture; failures/build logs retained. Initial
+non-product build left oldJS and was caught by hash before upload; product build used.
+
+Native sameprepared4febf1b9 updated1789385903.6359823 to image-open46f7drop/web6a;
+new launcher existingdirectory/native_capture-image-open.py SHA0219a3f84b272de4f96725f144388de4cf8a857315ebc31674a7e8bd9e245f4a.
+Oldprepared preserved SHA5fceee35c0dd6cb6c475138730662b45f914de30656940bfee8090e343721af7;
+activation/binding/SQL unchanged, noDDL/capture/provider/neworder. Finalweb patch
+requires only prepared.web refresh before activation. Original billfc4f49f untouched.
+30/37 unchanged; Item34 original21:36BJT schedule not altered; no Gitpush.
+
 September14 19:34BJT continuation: original normal Chat claim08c5f095 completed
 11:16:44.524462UTC, usage281b813f, savedv2 dbd40e51-a165-4d24-842f-aa39952e63bf.
 No price/198/unrelated tea facts in delivered title/body;3credits once,9 responded

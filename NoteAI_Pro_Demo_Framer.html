@@ -12163,7 +12163,7 @@ function _normalizeSsTags(value) {
 
 function _splitSsBodyAndTags(body, explicitTags = '') {
   const text = String(body || '').trim();
-  const inlineTags = _normalizeSsTags(text);
+  const inlineTags = _normalizeSsTags(text.match(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g) || []);
   const cleanBody = text
     .replace(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g, '')
     .replace(/[ \t]+\n/g, '\n')

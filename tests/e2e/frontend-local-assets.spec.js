@@ -38,7 +38,7 @@ test('original public product works under strict script CSP with OTP and dynamic
     if (url.pathname === '/dist/runtime-config.js') return route.fulfill({
       contentType:'application/javascript',body:`window.NOTEAI_API_BASE=${JSON.stringify(baseURL + '/synthetic-api')};window.NOTEAI_PUBLIC_PRODUCT=true;`,
     });
-    if (['/assets/product-app.js','/assets/product-events.js'].includes(url.pathname)) {
+    if (['/assets/product-app.js','/assets/product-events.js','/assets/payment-native.js'].includes(url.pathname)) {
       return route.fulfill({path:path.resolve('dist'+url.pathname),contentType:'application/javascript'});
     }
     if (/^(\/dist)?\/assets\/(vendor|landing)\/[a-zA-Z0-9_.-]+$/.test(url.pathname)) {
@@ -71,8 +71,9 @@ test('original public product works under strict script CSP with OTP and dynamic
   });
   await page.getByRole('button',{name:'动态套餐入口'}).click();
   await expect(page.locator('#page-pricing')).toHaveClass(/active/);
-  await expect(page.locator('#public-pricing-notice')).toContainText('不能购买');
-  await expect(page.locator('#free-plan-mix')).toContainText('图片与视频暂未开放');
+  await expect(page.locator('#public-pricing-notice')).toContainText('支付暂未开放');
+  await expect(page.locator('#free-plan-mix')).toContainText('图片暂未开放');
+  await expect(page.locator('#free-plan-mix')).toContainText('视频暂未开放');
   await expect(page.locator('#free-plan-mix')).not.toContainText('8张');
   for (const button of await page.locator('#pricing-content button[data-product-action="handleUpgrade"]').all()) {
     await expect(button).toBeDisabled();

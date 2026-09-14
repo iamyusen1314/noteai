@@ -9,6 +9,21 @@ async function openOwner(page) {
   });
 }
 
+test('restored screenshot keeps prose and visual description out of topic tags',async({page})=>{
+  await openOwner(page);
+  const result=await page.evaluate(()=>{
+    const body='合成商品说明，白碗放在木桌上。\n【配图视觉描述】奶白汤色。';
+    const img={dataURL:'11111111-1111-4111-8111-111111111111',recovered:true};
+    _ssImages=[img];_ssOcrCache.set(img.dataURL,{type:'A',title:'合成截图',body,tags:[]});
+    _mergeAndShowOcrResults();
+    return {plain:_screenshotExtracted,mixed:_splitSsBodyAndTags('正文保留 #美食[话题]# #探店',['美食','合成标签'])};
+  });
+  expect(result.plain.body).toBe('合成商品说明，白碗放在木桌上。\n【配图视觉描述】奶白汤色。');
+  expect(result.plain.tags).toBe('');
+  await expect(page.locator('#ss-tags-display')).toHaveText('（未识别到话题）');
+  expect(result.mixed).toEqual({body:'正文保留',tags:'#美食 #探店 #合成标签'});
+});
+
 test('media recovery reads original objects and never merges an appended batch on refresh',async({page})=>{
   await openOwner(page);
   await page.evaluate(async()=>{
