@@ -1,3 +1,57 @@
+September14 23:07BJT minimal video continuation implemented locally:
+exact doubao-seed-2-0-lite-260428 now uses official Responses input_video,
+storefalse/full original AV/2fps; images retain Chat. Existing private OSS may
+provide one scoped600s GET using the same IMDSv2 role (explicit private_oss config),
+without new public ACL, credentials, Files upload or original state reset.
+Original media19fc357f UNKNOWN Files upload/fee is preserved; original failed claim
+has charge1/refund1/modelcalls0. New URL inference is a separate normal user task,
+not an upload retry or old success. No signed URL/credential enters logs or provenance.
+Existing public_trial_calls provenance binds ref+SHA+transport; budget-row-lock
+admission blocks same-owner same-material unknown/in-flight inference across request
+IDs/reuploads/transports. Nonterminal Responses200 staysUNKNOWN even with settled
+usage; only actual complete output is delivered. No schema migration.
+24 targeted Python3.11/linuxamd64 offline tests PASS; actual SDK presign GET/path/TTL
+verified (598–600seconds due timestamp flooring). Isolated PostgreSQL16.14 app-role
+concurrency PASS: one admission/one blocked, unknown newref blocked, otherowner
+isolated, provenance rewrite denied; zero model requests. No production DB change.
+Sources: official volcengine-python-sdk Responses input_video/usage/output schemas;
+volcengine/OpenViking docs/zh/guides/01-configuration.md audio/video260428 example.
+Next in progress: checkpoint/build exact3runtime-file API layer on existing352b image,
+private loopback candidate with URL transport, original-object readback then new
+normal-owner video request. Preserve productionAPI352b/web05af/video0 and old private
+candidate until outcome reconciled. No public video/quality acceptance yet;31/37.
+Native original12RMB paid/refunded and sameinactive d88 preserved; refresh bindings
+only when actual public API/web changes. No Gitpush/protected-path changes.
+
+September14 22:43BJT video original request formal-ark-video-20260914-01 FAILED
+at14:27:22.286769UTC; claim7919a16e-4fa6-43d9-9f58-6f2a556f2dee,
+usage655fb6f6-5abd-4c29-a91e-db1ad0c1db77.6credits charge1/refund1/complete0;
+modelrows0/modelcalls0. Legacy usage1.45CNY is an estimate, not confirmed cost;
+unknown Files upload/storage/preprocess cost remains UNKNOWN_NOT_ZERO.
+Original upload media19fc357f retains ark_stateUNKNOWN/file_idNULL,
+claim4dff5631-4da6-46e6-9377-6ae8893c7697,expire_at1789482362;
+no inferred WriteTimeout: old log only preserves arkmediaerror/phaseanalyze.
+Three bounded original Files GETs (shape inspection and one SDK-header hypothesis)
+returned200/rootJSONnull, not a usable list and not proof of absence. Last at
+1789396940.7815852,requestID02178939694089615b00b15f7b15a122bee0bef9a7107583488ab;
+no Files GET-ID/DELETE, no secondPOST/modelcall, no state reset.
+Private originals at /var/lib/noteai/video-20260914/{business-result.json,
+files-readback-01.json,files-readback-shape.json,files-readback-sdk-headers.json};
+local copy under /Users/openclaw/.codex/tmp/noteai-video-20260914/.
+Private352b/video1 candidate remains only for original readback;publicvideo0.
+
+Local minimal repair: ark_media upload logs safe exception class, actual phase,
+HTTP receipt and known file identity before any failed persistence; lost ACK/CAS
+cannot erase original error or cause anotherPOST. Future filenames reuse existing
+ark_claim_id for reconciliation; official Files failed state now readable.
+Existing15adapter tests pass onPython3.11/linuxamd64/networknone; initial isolated
+runner setup failures (missing source, incorrect localDBenv) retained as test setup,
+not product failure. No migration, production deployment or historical state edits.
+Next: verify Files-vs-Chat video input contract and safe original recovery; evaluate
+short-lived privateOSS reading without reupload/replay. Not video quality accepted.
+API352b/web05af/Nativeinactive d88 and paid/refunded original12RMB order preserved.
+Item34 COMPLETE31/37 unchanged. NoGitpush; protected7 untouched.
+
 September14 22:26BJT real video chain in progress, originalrequest
 formal-ark-video-20260914-01, PID1774289 launched1789395949.624559.
 Exact352b privateAPI candidate onloopback18082/video1; publicAPI/drop/video0 unchanged.

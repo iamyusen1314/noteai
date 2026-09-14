@@ -1,6 +1,6 @@
 """Ark Seed 2.0 material understanding; no text-route or entitlement fallback.
 
-Wire contract: official Ark Chat Completions and Files APIs (2026-09-13).
+Wire contract: official Ark Chat Completions, Responses and Files APIs.
 Only model identity and numeric usage cross the billing boundary. Payloads,
 credentials, reasoning and response bodies must not be logged by this adapter.
 """
@@ -11,6 +11,7 @@ import io
 import json
 import os
 import re
+import sys
 import time
 import uuid
 
@@ -20,6 +21,7 @@ from PIL import Image
 MODEL = "doubao-seed-2-0-lite-260428"
 BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
 CHAT_URL = BASE_URL + "/chat/completions"
+RESPONSES_URL = BASE_URL + "/responses"
 PRICE_VERSION = "ark-official-2026-09-13-lite-260428"
 MAX_REQUEST_BYTES = 64 * 1024 * 1024
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -102,16 +104,15 @@ def video_part(payload: bytes, *, mime: str, fps: float = 1.0) -> dict:
     if not payload or len(payload) > 50 * 1024 * 1024 or not .2 <= fps <= 5:
         raise ArkMediaError("ARK_VIDEO_REQUIRES_FILES")
     # The complete original video, including its audio track, is transmitted.
-    return {"type": "video_url", "video_url": {
-        "url": "data:" + mime + ";base64," + base64.b64encode(payload).decode(), "fps": fps,
-    }}
+    return {"type": "input_video", "video_url":
+        "data:" + mime + ";base64," + base64.b64encode(payload).decode(), "fps": fps}
 
 
 def file_video_part(file_id: str, *, fps: float = 1.0) -> dict:
     if not _FILE_ID.fullmatch(file_id) or not .2 <= fps <= 5:
         raise ArkMediaError("ARK_FILE_REFERENCE_INVALID")
     # Files preprocessing already fixes fps and the audio-capable model.
-    return {"type": "video_url", "video_url": {"file_id": file_id}}
+    return {"type": "input_video", "file_id": file_id}
 
 
 def _headers() -> dict:
@@ -136,14 +137,32 @@ def _stop(code: str):
 
 def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
          audio_possible: bool = False, json_output: bool = False, transport=None) -> str:
+    return _complete(prompt, parts, max_tokens=max_tokens, audio_possible=audio_possible,
+                     json_output=json_output, transport=transport)
+
+
+def video(prompt: str, parts: list[dict], *, max_tokens: int = 8192, media: dict | None = None, transport=None) -> str:
+    """Full audio/video via the documented Responses input_video contract."""
+    if not parts or any(not isinstance(part, dict) or part.get("type") != "input_video" for part in parts):
+        raise ArkMediaError("ARK_VIDEO_INVALID")
+    return _complete(prompt, parts, max_tokens=max_tokens, audio_possible=True,
+                     responses=True, media=media, transport=transport)
+
+
+def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
+              audio_possible: bool, json_output: bool = False, responses: bool = False,
+              media: dict | None = None, transport=None) -> str:
     """One physical inference. Record even a truncated response before failing."""
     import public_product
     import model_router
     if not prompt or not parts or type(max_tokens) is not int or not 1 <= max_tokens <= 32768:
         raise ArkMediaError("ARK_INPUT_INVALID")
-    payload = {"model": MODEL, "messages": [{"role": "user", "content": [
+    payload = ({"model": MODEL, "input": [{"role": "user", "content": [
+        *parts, {"type": "input_text", "text": prompt}]}],
+        "max_output_tokens": max_tokens, "store": False, "thinking": {"type": "disabled"}, "stream": False}
+        if responses else {"model": MODEL, "messages": [{"role": "user", "content": [
         *parts, {"type": "text", "text": prompt}]}],
-        "max_tokens": max_tokens, "thinking": {"type": "disabled"}, "stream": False}
+        "max_tokens": max_tokens, "thinking": {"type": "disabled"}, "stream": False})
     if json_output:
         payload["response_format"] = {"type": "json_object"}
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
@@ -158,7 +177,8 @@ def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
     while True:
         try:
             public_product._reserve_payload({"model": MODEL, "max_tokens": max_tokens,
-                "provider": "doubao", "modality": "video_audio" if audio_possible else "image"},
+                "provider": "doubao", "modality": "video_audio" if audio_possible else "image",
+                **({"media": media} if media is not None else {})},
                 reserve, call_id=call_id, require_metered=True)
             break
         except public_product._SlotsBusy:
@@ -168,7 +188,7 @@ def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
     status = None
     try:
         with _client(transport=transport) as client:
-            response = client.post(CHAT_URL, content=encoded,
+            response = client.post(RESPONSES_URL if responses else CHAT_URL, content=encoded,
                                    headers={**headers, "Content-Type": "application/json"})
             status = response.status_code
             if status != 200:
@@ -180,10 +200,17 @@ def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
             actual_model = data.get("model") if isinstance(data.get("model"), str) else "unknown"
             if not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,100}", actual_model):
                 actual_model = "unknown"
-            dimensions = usage_dimensions(data, audio_possible=audio_possible)
+            usage = data.get("usage")
+            meter_data = {"usage": {"prompt_tokens": usage.get("input_tokens"),
+                "completion_tokens": usage.get("output_tokens"),
+                "prompt_tokens_details": usage.get("input_tokens_details")}} if responses and isinstance(usage, dict) else data
+            dimensions = usage_dimensions(meter_data, audio_possible=audio_possible)
             model_router._record_usage("doubao", actual_model,
                 physical_call_id=call_id, **dimensions)
-            public_product._record_response(call_id, status)
+            nonterminal = responses and data.get("status") not in {"completed", "incomplete", "failed"}
+            public_product._record_response(call_id, status, **({"unknown": True} if nonterminal else {}))
+            if nonterminal:
+                _stop("ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY")
     except public_product.TrialProviderStopped:
         # HTTP failures already have a known terminal. Accounting failures
         # remain dispatched/unconfirmed for reconciliation; never re-dispatch.
@@ -195,6 +222,23 @@ def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
         _stop("ARK_MODEL_IDENTITY_MISMATCH")
     if dimensions["usage_status"] != "complete":
         _stop("ARK_USAGE_INCOMPLETE")
+    if responses:
+        if data.get("status") != "completed" or data.get("error") or data.get("incomplete_details"):
+            _stop("ARK_OUTPUT_INCOMPLETE")
+        output = data.get("output")
+        if not isinstance(output, list) or any(not isinstance(item, dict) or item.get("type") not in {"message", "reasoning"} for item in output):
+            _stop("ARK_OUTPUT_INCOMPLETE")
+        messages = [item for item in output if item.get("type") == "message"]
+        if len(messages) != 1 or messages[0].get("role") != "assistant" or messages[0].get("status") != "completed" or messages[0].get("partial") is True:
+            _stop("ARK_OUTPUT_INCOMPLETE")
+        content = messages[0].get("content")
+        if not isinstance(content, list) or not content or any(not isinstance(item, dict) or
+                item.get("type") != "output_text" or not isinstance(item.get("text"), str) for item in content):
+            _stop("ARK_OUTPUT_EMPTY")
+        result = "\n".join(item["text"] for item in content).strip()
+        if not result:
+            _stop("ARK_OUTPUT_EMPTY")
+        return result
     choices = data.get("choices")
     if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict) or choices[0].get("finish_reason") != "stop":
         _stop("ARK_OUTPUT_INCOMPLETE")
@@ -205,7 +249,8 @@ def chat(prompt: str, parts: list[dict], *, max_tokens: int = 4096,
     return content.strip()
 
 
-def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, expire_at: int | None = None, transport=None) -> str:
+def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, expire_at: int | None = None,
+                 upload_ref: str | None = None, transport=None) -> str:
     """Caller must durably claim the media upload before invoking this once.
 
     persist records returned ID/status before any later inference. On an unknown
@@ -217,32 +262,65 @@ def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, expire
     expire_at = expire_at if expire_at is not None else int(time.time()) + 86410
     if type(expire_at) is not int or not int(time.time()) + 86400 <= expire_at <= int(time.time()) + 30 * 86400:
         raise ArkMediaError("ARK_FILE_EXPIRY_INVALID")
+    if upload_ref is not None and (not isinstance(upload_ref, str) or
+            not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", upload_ref)):
+        raise ArkMediaError("ARK_FILE_UPLOAD_REFERENCE_INVALID")
     known_id = None
     terminal_saved = False
+    started = time.monotonic()
+    phase, status = "transport", None
+    def record_failure(exc, failure_phase):
+        # Fixed concepts only. Never serialize exception text/request/response.
+        import security_redaction
+        event = security_redaction.safe_failure_event("provider", exc,
+            provider="doubao", phase="ark_file_upload_" + failure_phase,
+            http_status=status, duration_ms=round((time.monotonic() - started) * 1000))
+        event["response_received"] = status is not None
+        if upload_ref:
+            event["upload_ref"] = upload_ref
+        if known_id:
+            event["file_id"] = known_id
+        try:
+            print(json.dumps(event), file=sys.stderr, flush=True)
+        except (OSError, ValueError):
+            # A broken log sink must not prevent the durable unknown write.
+            pass
     try:
         with _client(transport=transport) as client:
             response = client.post(BASE_URL + "/files", headers=headers,
                 data={"purpose": "user_data", "expire_at": str(expire_at),
                       "preprocess_configs[video][fps]": str(fps),
                       "preprocess_configs[video][model]": MODEL},
-                files={"file": ("material" + {"video/mp4": ".mp4", "video/quicktime": ".mov", "video/x-msvideo": ".avi"}[mime], payload, mime)})
+                files={"file": ("material" + ("-" + upload_ref if upload_ref else "") +
+                    {"video/mp4": ".mp4", "video/quicktime": ".mov", "video/x-msvideo": ".avi"}[mime], io.BytesIO(payload), mime)})
+            status = response.status_code
             if response.status_code != 200:
                 rejected = response.status_code in {400, 401, 403, 404, 413, 415, 422, 429}
+                phase = "persist_result"
                 persist({"state": "failed" if rejected else "unknown", "http_status": response.status_code})
                 terminal_saved = True
+                phase = "response_status"
                 raise ArkMediaError("ARK_FILE_HTTP_" + str(response.status_code))
+            phase = "response_decode"
             data = response.json()
             file_id = data.get("id") if isinstance(data, dict) else None
             if not isinstance(file_id, str) or not _FILE_ID.fullmatch(file_id):
                 raise ArkMediaError("ARK_FILE_IDENTITY_UNCONFIRMED")
             known_id = file_id
+            phase = "persist_result"
             persist({"state": "uploaded", "file_id": file_id, "model": MODEL})
             return file_id
     except BaseException as exc:
+        record_failure(exc, phase)
         if not terminal_saved:
             # Keep a returned identifier even when its first durable write had
             # an uncertain outcome. It is the only exact readback reference.
-            persist({"state": "unknown", **({"file_id": known_id} if known_id else {})})
+            try:
+                persist({"state": "unknown", **({"file_id": known_id} if known_id else {})})
+            except BaseException as persist_exc:
+                # The first write may have committed. Keep its identity in the
+                # existing durable log and preserve both failure classifications.
+                record_failure(persist_exc, "persist_unknown")
         if isinstance(exc, ArkMediaError):
             raise
         raise ArkMediaError("ARK_FILE_UPLOAD_UNKNOWN_NO_REPLAY") from None
@@ -279,7 +357,7 @@ def read_file_state(file_id: str, *, transport=None) -> str:
         if response.status_code != 200:
             raise ArkMediaError("ARK_FILE_STATUS_HTTP_" + str(response.status_code))
         data = response.json()
-        if data.get("id") != file_id or data.get("status") not in {"active", "processing", "error"}:
+        if not isinstance(data, dict) or data.get("id") != file_id or data.get("status") not in {"active", "processing", "failed", "error"}:
             raise ArkMediaError("ARK_FILE_IDENTITY_OR_STATE_UNCONFIRMED")
         return data["status"]
 

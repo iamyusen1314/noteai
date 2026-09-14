@@ -365,6 +365,36 @@ def _reserve(request: httpx.Request) -> str:
     return _reserve_payload(payload, RESERVE_MILLI_CNY)
 
 
+def _check_pending_media(tx, user_id, media):
+    # Called under the existing budget lock at admission, and read-only before
+    # source signing/upload. A different request/ref cannot replay the same bytes.
+    pending_media = tx.fetchall("SELECT provenance_json FROM public_trial_calls WHERE user_id=? "
+        "AND (state IN ('dispatched','unknown') OR "
+        "(state='responded' AND http_status=200 AND model_usage_record_id IS NULL))", (user_id,))
+    for pending_row in pending_media:
+        try:
+            prior = json.loads(pending_row['provenance_json'])
+        except (TypeError, ValueError):
+            raise TrialProviderStopped("PUBLIC_MEDIA_RESULT_UNCONFIRMED_NO_REPLAY") from None
+        if not isinstance(prior, dict):
+            raise TrialProviderStopped("PUBLIC_MEDIA_RESULT_UNCONFIRMED_NO_REPLAY")
+        if prior.get('provider') != 'doubao' and prior.get('model') != 'doubao-seed-2-0-lite-260428':
+            continue
+        binding = prior.get('media')
+        if not isinstance(binding, dict) or binding.get('ref') == media['ref'] or binding.get('sha256') == media['sha256']:
+            raise TrialProviderStopped("PUBLIC_MEDIA_RESULT_UNCONFIRMED_NO_REPLAY")
+
+
+def assert_media_result_known(media):
+    import db
+    current = _invocation.get()
+    assert_result_known()
+    if current is None:
+        raise TrialProviderStopped("PUBLIC_TRIAL_REQUIRES_USER_REQUEST")
+    with db.transaction(write=False) as tx:
+        _check_pending_media(tx, current.user_id, media)
+
+
 def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
     import db
     import billing
@@ -376,6 +406,12 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
     now = datetime.now(timezone.utc).isoformat()
     call_id = call_id or str(uuid.uuid4())
     request_hash = hashlib.sha256((current.user_id + ":" + current.request_id).encode()).hexdigest()
+    media = payload.get("media")
+    if media is not None and (not isinstance(media, dict) or set(media) != {"ref", "sha256", "transport"}
+            or not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", str(media.get("ref", "")))
+            or not re.fullmatch(r"[0-9a-f]{64}", str(media.get("sha256", "")))
+            or media.get("transport") not in {"inline", "ark_file", "private_oss"}):
+        raise TrialProviderStopped("PUBLIC_MEDIA_REFERENCE_INVALID")
     with db.transaction(write=True) as tx:
         lock = " FOR UPDATE" if tx.postgres else ""
         budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?" + lock, (BUDGET_ID,))
@@ -398,6 +434,8 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
                 raise TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED_NO_REPLAY")
         if tx.fetchone("SELECT id FROM public_trial_calls WHERE request_hash=? AND state='unknown' LIMIT 1", (request_hash,)):
             raise TrialProviderStopped("PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
+        if media is not None:
+            _check_pending_media(tx, current.user_id, media)
         # At most two physical calls may be in flight in the entire public scope.
         if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= 2:
             raise _SlotsBusy()
@@ -412,6 +450,7 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False):
                 "provider": ("claude" if payload["model"].startswith("claude") else
                              "doubao" if payload["model"] == "doubao-seed-2-0-lite-260428" else "kimi"),
                 "modality": payload.get("modality"),
+                **({"media": media} if media is not None else {}),
                 "operation_id": payload.get("operation_id"),
                 "max_tokens": payload.get("max_tokens")}, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "

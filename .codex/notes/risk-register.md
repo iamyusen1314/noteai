@@ -1,3 +1,16 @@
+September14 23:07BJT: local Responses/private-OSS continuation and atomic same-media
+no-replay protection passed Python3.11/PG16; not yet real media success. Original
+Files upload UNKNOWN and costs remain unknown, no state cleared. Explicit scoped
+600s signed GET goes only server→Ark, never logs/Git/client; originalprivate ACL
+unchanged. Exact implementation/validation and next candidate at Handoff top.
+
+September14 22:43BJT: original video failed before recorded model inference;
+6credits refunded once. Files upload remains UNKNOWN without ID;3 bounded GETs
+returned200/null, not proof of no upload. No repeatPOST or flag reset. Diagnostic
+loss and officialfailed readback compatibility fixed locally/15Python3.11 tests;
+publicvideo remains closed. Originalupload fees unknown, estimatedusage is notactual.
+Current original identity, readback requestID and next implementation at Handoff top.
+
 September14 22:00BJT: Item34 generation2 original24h/3d and managed controls now
 meet the existing validator;31/37, no earlier failures rewritten. Original temporary
 SELECT restored after each phase;3d grant connection loss was reconciled NOT_APPLIED

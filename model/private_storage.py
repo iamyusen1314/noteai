@@ -372,8 +372,12 @@ class AliyunOssObjectBackend(ObjectBackend):
         bucket: str,
         key_prefix: str = "noteai-private",
         kms_key_id: str | None = None,
+        signing_client: Any = None,
+        region: str = "",
     ):
         self.client = client
+        self.signing_client = signing_client
+        self.region = region
         self.bucket = _bucket(bucket)
         self.key_prefix = str(key_prefix or "").strip().strip("/")
         if not re.fullmatch(r"[a-z0-9][a-z0-9/_-]{0,62}", self.key_prefix):
@@ -382,6 +386,28 @@ class AliyunOssObjectBackend(ObjectBackend):
 
     def _remote_key(self, key: str) -> str:
         return f"{self.key_prefix}/{_object_key(key)}"
+
+    def video_read_url(self, reference: MediaReference) -> str:
+        """Ten-minute GET for one verified original; bucket ACL stays private."""
+        import alibabacloud_oss_v2 as oss
+        from urllib.parse import urlsplit
+        if self.signing_client is None or not re.fullmatch(r'cn-[a-z0-9-]{2,32}', self.region):
+            raise ObjectStorageUnavailable('PRIVATE_VIDEO_SIGNING_UNAVAILABLE')
+        key = _media_key(reference.id, reference.subject_hash, 'video')
+        if reference.purpose != 'video' or hashlib.sha256(key.encode()).hexdigest() != reference.object_key_hash:
+            raise MediaReferenceUnavailable()
+        remaining = int((datetime.fromisoformat(reference.expires_at) - _utc()).total_seconds())
+        if remaining < 600:
+            raise MediaReferenceUnavailable('PRIVATE_VIDEO_EXPIRING')
+        result = self.signing_client.presign(oss.GetObjectRequest(bucket=self.bucket,
+            key=self._remote_key(key)), expires=timedelta(seconds=600))
+        url = result.url
+        parsed = urlsplit(url)
+        if (parsed.scheme != 'https' or parsed.netloc != f'{self.bucket}.oss-{self.region}.aliyuncs.com'
+                or parsed.path != '/' + self._remote_key(key) or getattr(result, 'method', None) != 'GET'
+                or getattr(result, 'signed_headers', None) or not parsed.query):
+            raise ObjectStorageUnavailable('PRIVATE_VIDEO_SIGNING_INVALID')
+        return url
 
     @staticmethod
     def _status(exc: BaseException) -> int | None:
@@ -1309,20 +1335,35 @@ def understand_original_video(reference: MediaReference, body: bytes, prompt: st
     public_product.assert_result_known()
     if not ark_media.configured():
         raise ark_media.ArkMediaError('ARK_NOT_CONFIGURED')
+    media = {'ref':reference.id, 'sha256':reference.content_sha256, 'transport':'inline'}
+    public_product.assert_media_result_known(media)
     # Keep JSON overhead well under Ark's64MiB request limit, preserving all bytes.
     if len(body) <= 46 * 1024 * 1024:
-        return ark_media.chat(prompt, [ark_media.video_part(body, mime=reference.content_type, fps=2.0)],
-                              audio_possible=True, max_tokens=8192)
+        return ark_media.video(prompt, [ark_media.video_part(body, mime=reference.content_type, fps=2.0)],
+                               max_tokens=8192, media=media)
     row = db.fetchone('SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?',
                       (reference.id, reference.subject_hash))
     if not row or row['state'] != 'ready' or row['expires_at'] <= _utc().isoformat():
         raise MediaReferenceUnavailable()
     state = row['ark_state']
+    if os.environ.get('NOTEAI_ARK_VIDEO_INPUT', 'files') == 'private_oss' and state in {'none', 'failed', 'unknown'}:
+        # This is a separately metered inference, never another Files upload.
+        # An old upload can stay UNKNOWN with its retention/cost record intact;
+        # a prior Files inference must be known before this transport is usable.
+        if row['ark_call_hash'] is not None:
+            raise MediaReferenceUnavailable('ARK_FILE_PENDING_OR_UNKNOWN_NO_REPLAY')
+        backend = get_object_backend()
+        if not isinstance(backend, AliyunOssObjectBackend):
+            raise ObjectStorageUnavailable('PRIVATE_VIDEO_SIGNING_UNAVAILABLE')
+        url = backend.video_read_url(reference)
+        return ark_media.video(prompt, [{'type':'input_video','video_url':url,'fps':2.0}],
+            max_tokens=8192, media={**media, 'transport':'private_oss'})
     now = _utc().isoformat()
     if state == 'none':
         expires_at = int(time.time()) + 86410
+        upload_ref = str(uuid.uuid4())
         _ark_update(reference.id, reference.subject_hash, 'none', {'ark_state':'uploading',
-            'ark_claim_id':str(uuid.uuid4()), 'ark_model':ark_media.MODEL,
+            'ark_claim_id':upload_ref, 'ark_model':ark_media.MODEL,
             'ark_expires_at':expires_at, 'ark_updated_at':now})
         def persist(result):
             values = {'ark_state':result['state'], 'ark_updated_at':_utc().isoformat()}
@@ -1330,7 +1371,7 @@ def understand_original_video(reference: MediaReference, body: bytes, prompt: st
                 values['ark_file_id'] = result['file_id']
             _ark_update(reference.id, reference.subject_hash, 'uploading', values)
         ark_media.upload_video(body, mime=reference.content_type, persist=persist, fps=2.0,
-                               expire_at=expires_at)
+                               expire_at=expires_at, upload_ref=upload_ref)
         row = db.fetchone('SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?',
                           (reference.id, reference.subject_hash))
         state = row['ark_state']
@@ -1346,8 +1387,8 @@ def understand_original_video(reference: MediaReference, body: bytes, prompt: st
     _ark_update(reference.id, reference.subject_hash, 'active',
                 {'ark_state':'inference','ark_call_hash':call_hash,'ark_updated_at':_utc().isoformat()})
     try:
-        result = ark_media.chat(prompt, [ark_media.file_video_part(row['ark_file_id'])],
-                               audio_possible=True, max_tokens=8192)
+        result = ark_media.video(prompt, [ark_media.file_video_part(row['ark_file_id'])],
+                                 max_tokens=8192, media={**media, 'transport':'ark_file'})
     except BaseException:
         # A response may have incurred cost even on failure. Only completed
         # physical-call records release this file for a distinct operation.
@@ -1756,6 +1797,16 @@ def configure_from_environment() -> bool:
         config.connect_timeout = 5
         config.readwrite_timeout = 30
         client = oss.Client(config)
+        signing_client = None
+        if os.environ.get('NOTEAI_ARK_VIDEO_INPUT', 'files') == 'private_oss':
+            # Same temporary ECS role; only URL signing uses the external host.
+            # Normal object reads/writes remain on the internal HTTPS endpoint.
+            signing_config = oss.config.load_default()
+            signing_config.credentials_provider = provider
+            signing_config.region = region
+            signing_config.endpoint = f'https://oss-{normalized_region}.aliyuncs.com'
+            signing_config.use_internal_endpoint = False
+            signing_client = oss.Client(signing_config)
     except BaseException as exc:
         raise RuntimeError("private OSS client initialization failed") from exc
     selected = AliyunOssObjectBackend(
@@ -1763,6 +1814,8 @@ def configure_from_environment() -> bool:
         bucket=bucket,
         key_prefix=os.environ.get("NOTEAI_OSS_KEY_PREFIX", "noteai-private"),
         kms_key_id=os.environ.get("NOTEAI_OSS_KMS_KEY_ID") or None,
+        signing_client=signing_client,
+        region=normalized_region,
     )
     configure_object_backend(selected, key_epoch=epoch)
     durable_ai.configure_payload_store(
