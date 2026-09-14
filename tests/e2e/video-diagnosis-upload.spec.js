@@ -81,7 +81,7 @@ test('preflight and upload stay gated, then ready shows honest small-file size',
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ file_id: 'video-ready', filename: 'tiny.mp4', size: 3, duration_sec: 2, frames: 1 }),
+      body: JSON.stringify({ file_id: 'video-ready', filename: 'tiny.mp4', size: 3, duration_sec: 2, frames: 1, video_input: 'original_audio_video', analysis_fps: 2, audio_preserved: true }),
     });
   });
   await openVideoApp(page);
@@ -97,7 +97,7 @@ test('preflight and upload stay gated, then ready shows honest small-file size',
   await expect.poll(() => uploadRequests).toBe(1);
   await expect.poll(() => page.evaluate(() => _diagVideoState)).toBe('uploading');
   await expect(page.locator('#diagnoseSubmitBtn')).toBeDisabled();
-  await expect(page.locator('#diagVideoStageLabel')).toContainText('上传并提取关键帧');
+  await expect(page.locator('#diagVideoStageLabel')).toContainText('保存完整视频与原有音轨');
   await expect(page.locator('#diagVideoSizeText')).not.toContainText('0.0 MB');
 
   releaseUpload();
@@ -106,6 +106,8 @@ test('preflight and upload stay gated, then ready shows honest small-file size',
   await expect(page.locator('#diagnoseSubmitBtn')).toBeEnabled();
   await expect(page.locator('#diagVideoFileSize')).toContainText('3 B');
   await expect(page.locator('#diagVideoFileSize')).not.toContainText('0 MB');
+  await expect(page.locator('#diagVideoFileSize')).toContainText('完整音画已保存');
+  await expect(page.locator('#diagVideoFileSize')).not.toContainText('1 帧已提取');
   expect(await page.evaluate(() => _diagVideoFileId)).toBe('video-ready');
   expect(uploadRequests).toBe(1);
 });

@@ -1,3 +1,27 @@
+September14 22:26BJT real video chain in progress, originalrequest
+formal-ark-video-20260914-01, PID1774289 launched1789395949.624559.
+Exact352b privateAPI candidate onloopback18082/video1; publicAPI/drop/video0 unchanged.
+Owner original49MiB video transferred once to privateOSS and matchingfullhash saved;
+actualPython3.11/cv2HEVC30fps/1719frames decoded. Initial transfer helper passed size
+into SDK read() that accepts no argument: TypeError before file write,0provider;
+corrected to existing bounded iter_bytes, originalfailure retained, no newcandidate.
+Normal authenticated POST /upload-video succeeded200; mediaref
+19fc357f-59e4-449e-a0ca-1536435d9b4b,57.3s/original_audio_video/audio_preservedtrue.
+One normal analyze/stream dispatched with sameowner6credit rules, domain旅行,
+no externalmerchantlookup; originalfullAV→ArkFiles2fps→formalClaude chain.
+Read originalevents/result/claim before any resubmit or container/service action:
+/var/lib/noteai/video-20260914/{events.jsonl,business-result.json,business-launch.json}.
+ClientSHA c895a54311360e4724f0022eeb0e7ace0fbe62ff7132a834955b738231865dc7.
+Unknown result/Files state is not permission to reupload or retry.
+
+Local originalUI now truthfully distinguishes savedfullAV/2fps from1localpreview;
+removed unacceptedWebM claim and oldKimi fallback text. Six existing browser
+regressions passed; one expectedoldlabel failure fixed by updating actualresponse
+fixture and expectation, then targeted1passed. No publicvideo acceptance yet.
+Next: originalvideo result+audio cost+downstream/normalbrowser proof, then scoped
+video+web activation and sameinactiveNative binding refresh if realvalidationpasses.
+Item34 COMPLETE31/37/history and originalNativepaid/refund remain unchanged.
+
 September14 22:18BJT original352b chat47a1ba99 COMPLETE14:10:02.041835UTC,
 usageafd2acda-8fcf-4769-94c5-ef65038aac6f;3credits charge1/complete1/refund0,
 v3note29f014a4-6259-40e9-a9fa-0ea0fd61c23a saved14:10:01.812052UTC.

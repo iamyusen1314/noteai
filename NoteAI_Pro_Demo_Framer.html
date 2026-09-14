@@ -3186,8 +3186,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div id="diagVideoHint" style="text-align:center;padding:12px 0">
             <i data-lucide="video" style="width:28px;height:28px;margin-bottom:8px;display:block;margin-inline:auto;color:var(--accent)"></i>
             <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">点击或拖拽上传视频</div>
-            <div style="font-size:12px;color:var(--text-muted)">支持 MP4 · MOV · AVI · WebM · 最长 90 秒 · 最大 100 MB</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">AI 自动提取关键帧，分析视频内容作为诊断依据</div>
+            <div style="font-size:12px;color:var(--text-muted)">支持 MP4 · MOV · AVI · 最长 90 秒 · 最大 100 MB</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">保留完整原视频与原有音轨，结合画面、口播和时间点进行理解</div>
           </div>
 
           <!-- 上传中 -->
@@ -3213,7 +3213,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
                 onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">移除</button>
             </div>
             <div style="margin-top:8px;padding:8px 10px;background:rgba(0,153,255,0.08);border-radius:8px;font-size:11px;color:var(--accent);font-weight:500">
-              ✓ 视频已上传并提取关键帧，诊断时将进行画面理解
+              ✓ 完整原视频及原有音轨已保存，诊断时将按每秒 2 帧结合声音理解
             </div>
           </div>
         </div>
@@ -6111,7 +6111,9 @@ async function _uploadVideoFile(file) {
 
     document.getElementById('genVideoFileName').textContent = _genVideoFileName;
     const durTxt = data.duration_sec ? `${data.duration_sec}s · ` : '';
-    const frameTxt = data.frames ? `${data.frames} 帧已提取` : '';
+    const frameTxt = data.video_input === 'original_audio_video'
+      ? '完整音画已保存 · 分析采样 2 帧/秒'
+      : (data.frames ? `${data.frames} 张预览帧` : '');
     document.getElementById('genVideoFileSize').textContent =
       `${(_genVideoFileSize / 1024 / 1024).toFixed(1)} MB · ${durTxt}${frameTxt}`;
     _setGenVideoState('done');
@@ -6448,7 +6450,7 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
       const vpb = document.getElementById('videoProcBubble');
       if (vpb) {
         const t = vpb.querySelector('#videoProcText');
-        if (t) t.innerHTML = `<span style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px">⟳</span>${ev.label || 'Kimi 正在解读视频…'}`;
+        if (t) t.innerHTML = `<span style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px">⟳</span>${ev.label || '正在理解视频画面与声音…'}`;
       }
       break;
     }
@@ -12327,7 +12329,7 @@ function updateDiagnosisSubmitState() {
     } else if (_diagVideoState === 'uploading') {
       disabled = true;
       label = '视频上传处理中…';
-      title = '正在上传视频并提取关键帧';
+      title = '正在保存完整视频与原有音轨';
     } else if (_diagVideoState !== 'ready' || !_diagVideoFileId) {
       disabled = true;
       label = _diagVideoState === 'error' ? '请重新上传视频' : '请先上传视频';
@@ -12982,7 +12984,7 @@ function _setDiagVideoState(state, options = {}) {
   if (preview)   preview.style.display   = state === 'ready' ? 'block' : 'none';
   if (stageEl) stageEl.textContent = state === 'preflight'
     ? '正在检查视频格式与时长…'
-    : '正在上传并提取关键帧…';
+    : '正在保存完整视频与原有音轨…';
   if (sizeEl) sizeEl.textContent = _diagVideoFileName
     ? `已选择：${_formatDiagVideoBytes(_diagVideoFileSize)}`
     : '';
@@ -13049,7 +13051,9 @@ async function _uploadDiagVideoFile(file) {
     _diagVideoFileSize = Number(data.size) || file.size;
     document.getElementById('diagVideoFileName').textContent = _diagVideoFileName;
     const durTxt  = data.duration_sec ? `${data.duration_sec}s · ` : '';
-    const frameTxt= data.frames ? `${data.frames} 帧已提取` : '';
+    const frameTxt = data.video_input === 'original_audio_video'
+      ? '完整音画已保存 · 分析采样 2 帧/秒'
+      : (data.frames ? `${data.frames} 张预览帧` : '');
     document.getElementById('diagVideoFileSize').textContent =
       `${_formatDiagVideoBytes(_diagVideoFileSize)} · ${durTxt}${frameTxt}`;
     _setDiagVideoState('ready');
