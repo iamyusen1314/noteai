@@ -505,6 +505,10 @@ async def wechatpay_callback(request: Request):
         _log_direct_callback_audit(result)
         if result.get("code"):
             _LOGGER.warning("payment_callback_manual code=%s", str(result["code"]))
+        runtime = getattr(request.app.state, "item31_canary_runtime", None)
+        if runtime is not None and runtime.reserve_wechat_ack_failure(result):
+            _LOGGER.info("item31_wechat_ack_fault_reserved")
+            raise HTTPException(status_code=503, detail="PAYMENT_CANARY_ACK_DELIVERY_TEST")
         return {"code": "SUCCESS", "message": "成功"}
 
 

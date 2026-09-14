@@ -33,6 +33,59 @@ from tests.test_item31_canary_dml_postgres import ENABLED
 from tools import collect_item31_canary_dml as dml
 
 
+class CanaryAckFaultTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name)
+        self.activation = str(uuid.uuid4())
+        self.runtime = object.__new__(dml.CanaryRuntime)
+        self.runtime.role = "payment"
+        self.runtime.binding = {"provider": "wechatpay_direct", "activation": self.activation,
+            "work_directory": str(self.directory), "reconciliation_run_id": None}
+        self.runtime.database = mock.Mock()
+        self.runtime.database.fetchone.return_value = {"id": str(uuid.uuid4()),
+            "payment_status": "succeeded", "entitlement_status": "applied"}
+        self.runtime.scope = mock.Mock()
+        self.runtime._admission_check = mock.Mock()
+        self.result = {"ok": True, "duplicate": False, "order_id": str(uuid.uuid4()),
+            "callback_audit": {"provider": "wechatpay_direct", "event_type": "payment.succeeded",
+                "callback_identity_sha256": "a" * 64, "callback_payload_sha256": "b" * 64}}
+        patcher = mock.patch.dict(os.environ, {"NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE": self.activation})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_one_fault_for_concurrent_and_recreated_helpers(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            outcomes = list(pool.map(lambda _: self.runtime.reserve_wechat_ack_failure(self.result), range(4)))
+        self.assertEqual(outcomes.count(True), 1)
+        second = object.__new__(dml.CanaryRuntime)
+        second.__dict__.update(self.runtime.__dict__)
+        self.assertFalse(second.reserve_wechat_ack_failure(self.result))
+        marker = self.directory / "wechat-ack-failure-once.json"
+        self.assertEqual(marker.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(json.loads(marker.read_text())["state"], "FAULT_RESERVED")
+
+    def test_wrong_scope_and_nonpayment_results_do_not_reserve(self):
+        for change in ({"duplicate": True}, {"ok": False}, {"code": "UNKNOWN"}, {"ignored": True},
+                       {"callback_audit": {**self.result["callback_audit"], "event_type": "refund.succeeded"}}):
+            self.assertFalse(self.runtime.reserve_wechat_ack_failure({**self.result, **change}))
+        with mock.patch.dict(os.environ, {"NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE": ""}):
+            self.assertFalse(self.runtime.reserve_wechat_ack_failure(self.result))
+        self.runtime.scope.validate_order.side_effect = ValueError("wrong order")
+        self.assertFalse(self.runtime.reserve_wechat_ack_failure(self.result))
+        self.assertFalse((self.directory / "wechat-ack-failure-once.json").exists())
+
+    def test_uncertain_file_write_is_not_retried(self):
+        with mock.patch.object(dml.os, "fsync", side_effect=OSError("isolated test failure")):
+            self.assertFalse(self.runtime.reserve_wechat_ack_failure(self.result))
+        marker = self.directory / "wechat-ack-failure-once.json"
+        original = marker.read_bytes()
+        self.assertFalse(self.runtime.reserve_wechat_ack_failure(self.result))
+        self.assertEqual(marker.read_bytes(), original)
+
+
 @unittest.skipUnless(ENABLED, "explicit isolated PG16 container required")
 class RuntimeCanaryPostgresTests(unittest.TestCase):
     setUpClass = classmethod(PG.setUpClass.__func__)
@@ -216,6 +269,42 @@ class RuntimeCanaryPostgresTests(unittest.TestCase):
                 self.assertEqual(self.stage_counts["payment_cash_ledger"], 1)
                 self.assertEqual(self.stage_counts["payment_entitlement_ledger"], 1)
                 self.assertEqual(self.db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"], 30)
+
+    def test_wechat_committed_callback_fault_then_duplicate_has_one_entitlement(self):
+        provider = "wechatpay_direct"
+        with ExitStack() as stack:
+            uid, token, key, key_hash, targets, app_id, env = self.subject(provider)
+            gateway = mock.Mock()
+            gateway.create_payment.side_effect = lambda request: self.pending(request, provider, app_id)
+            self.configure(stack, provider, app_id, env, gateway)
+            with self.stage(provider, targets) as writer:
+                scope = self.scope(writer, uid, key, key_hash, app_id, provider)
+                runtime = object.__new__(dml.CanaryRuntime)
+                runtime.role, runtime.database, runtime.scope = "payment", self.db, scope
+                runtime.binding = {"activation": writer.capture.context["activation"], "provider": provider,
+                    "work_directory": str(writer.capture.path.parent), "reconciliation_run_id": None}
+                self.runtime.app.state.item31_canary_runtime = runtime
+                stack.enter_context(mock.patch.dict(os.environ, {
+                    "NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE": runtime.binding["activation"]}))
+                created = self.post_order(provider, token, key)
+                self.assertEqual(created.status_code, 200, created.text)
+                row = self.db.fetchone("SELECT * FROM payment_orders WHERE id=?", (created.json()["order"]["id"],))
+                path, raw, headers = self.signed_callback(provider, row)
+                first = self.callbacks.post(path, content=raw, headers=headers)
+                self.assertEqual(first.status_code, 503, first.text)
+                self.assertEqual(first.json()["detail"], "PAYMENT_CANARY_ACK_DELIVERY_TEST")
+                self.assertEqual(self.db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"], 30)
+                # Same authenticated provider fixture; production must receive a
+                # genuine provider redelivery, never replay these fixture bytes.
+                second = self.callbacks.post(path, content=raw, headers=headers)
+                self.assertEqual(second.status_code, 200, second.text)
+                self.assertEqual(self.db.fetchone("SELECT balance FROM credits WHERE user_id=?", (uid,))["balance"], 30)
+                duplicate = self.db.fetchone("SELECT duplicate_delivery_count FROM payment_events WHERE order_id=?", (row["id"],))
+                self.assertEqual(duplicate["duplicate_delivery_count"], 1)
+                gateway.create_payment.assert_called_once()
+            self.assertEqual(self.stage_counts["payment_cash_ledger"], 1)
+            self.assertEqual(self.stage_counts["payment_entitlement_ledger"], 1)
+            self.assertEqual(self.stage_counts["payment_events"], 3)
 
     def test_real_startup_shutdown_binds_standard_api_payment_and_executor_entry(self):
         # Exercise the actual ASGI startup/shutdown hooks. Only unrelated model/

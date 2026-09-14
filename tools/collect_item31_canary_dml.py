@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import stat
@@ -488,6 +489,76 @@ class CanaryRuntime:
                 or not int(starts) <= time.time() <= int(expires)
                 or not 0 < int(expires) - int(starts) <= 3600):
             raise ValueError("item31 action window closed")
+
+    def reserve_wechat_ack_failure(self, result):
+        """Consume one explicit canary ACK fault AFTER a verified payment commit.
+
+        A durable reservation does not prove delivery of the failed ACK. Existing
+        or uncertain markers are never removed/retried; normal payments still ACK.
+        Capture recovery remains forbidden by the original journal's O_EXCL.
+        """
+        if (self.role != "payment" or self.binding["provider"] != "wechatpay_direct"
+                or self.binding.get("reconciliation_run_id") is not None
+                or os.environ.get("NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE") != self.binding["activation"]
+                or result.get("ok") is not True or result.get("duplicate") is not False
+                or any(result.get(k) for k in ("code", "ignored", "already_terminal"))):
+            return False
+        directory_fd = descriptor = None
+        try:
+            self._admission_check()
+            audit = result.get("callback_audit") or {}
+            if (audit.get("provider") != "wechatpay_direct"
+                    or audit.get("event_type") != "payment.succeeded"
+                    or any(not re.fullmatch(r"[0-9a-f]{64}", str(audit.get(k, "")))
+                           for k in ("callback_identity_sha256", "callback_payload_sha256"))):
+                return False
+            order = self.database.fetchone("SELECT * FROM payment_orders WHERE id=?", (result.get("order_id"),))
+            self.scope.validate_order(order)
+            if order["payment_status"] != "succeeded" or order["entitlement_status"] != "applied":
+                return False
+            directory = Path(self.binding["work_directory"])
+            metadata = os.lstat(directory)
+            directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+            opened = os.fstat(directory_fd)
+            if (not stat.S_ISDIR(opened.st_mode) or stat.S_IMODE(opened.st_mode) != 0o700
+                    or opened.st_uid != os.geteuid() or opened.st_gid != os.getegid()
+                    or (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino)):
+                raise ValueError("private ACK test directory required")
+            # One basename per capture, not one per incoming provider event.
+            descriptor = os.open("wechat-ack-failure-once.json",
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                0o600, dir_fd=directory_fd)
+            created = os.fstat(descriptor)
+            if (not stat.S_ISREG(created.st_mode) or stat.S_IMODE(created.st_mode) != 0o600
+                    or created.st_uid != os.geteuid() or created.st_gid != os.getegid()
+                    or created.st_nlink != 1):
+                raise ValueError("private ACK marker required")
+            record = {"activation": self.binding["activation"], "state": "FAULT_RESERVED",
+                "order_identity_sha256": hashlib.sha256(order["id"].encode()).hexdigest(),
+                "callback_identity_sha256": audit["callback_identity_sha256"],
+                "callback_payload_sha256": audit["callback_payload_sha256"], "at": time.time()}
+            data = memoryview(json.dumps(record, sort_keys=True, allow_nan=False).encode())
+            while data:
+                count = os.write(descriptor, data)
+                if count <= 0:
+                    raise OSError("short ACK marker write")
+                data = data[count:]
+            os.fsync(descriptor)
+            os.fsync(directory_fd)
+            return True
+        except FileExistsError:
+            return False
+        except Exception:
+            # Do not turn a test-storage failure into indefinite callback errors.
+            logging.getLogger(__name__).warning("item31_wechat_ack_fault_not_injected_unknown")
+            return False
+        finally:
+            for fd in (descriptor, directory_fd):
+                if fd is not None:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        logging.getLogger(__name__).warning("item31_wechat_ack_marker_close_unknown")
 
     def close(self, *, clean=True):
         try:

@@ -1,3 +1,18 @@
+September14 local Native continuation: existing Payment/CanaryRuntime now supports
+one default-off ACK-failure reservation, enabled only by the exact capture activation.
+It runs after authenticated succeeded payment COMMIT and exact owner/order validation;
+one fixed O_EXCL/fsynced private marker permits only one503, duplicate/unknown/refund
+cannot consume it, marker failure ACKs normally. No raw callback/signature retained.
+Python3.11/isolatedPG16 verifies first503 then genuine-signature fixture duplicate200,
+cash/rights once, counter+1; normal both-provider routes and original startup/shutdown
+still pass. Six tests passed; final private file checks three tests pass. Initial run
+failed before runtime tests because old384MiB testPG was OOM-killed; log retained.
+Fresh network-none768MiB PG16 passed. Artifacts: .codex/tmp/noteai-native-ack-5qg9k4wy
+under owner CODEX_HOME, test-r1/r2/r3.log. This is LOCAL, no actual second notification,
+new order or deployed Payment claimed. Original12RMB order/refund remains untouched.
+Next: prepare a new, explicitly marked owner-paid canary with existing launcher and
+corrected Payment-before-network-owner shutdown. Public/payment/Readiness unchanged.
+
 September14 18:34BJT current: quality05 COMPLETED, not content-quality acceptance.
 Claim9c139e5e-9192-4620-8eb4-5225bccfa2db, usagea9430882-48ec-4669-aaee-2f26da53443f:
 charge1/refund0/complete1,6credits once;23responded calls,2.671361RMB actual.
