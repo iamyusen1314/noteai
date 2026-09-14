@@ -1,3 +1,9 @@
+September14 20:05BJT: public image diagnosis completed with Ark+Claude, original
+merchant clarification/resume and once-only accounting. API1c94/web557 remain live.
+A concrete missing arbitration-context path is being corrected locally; this is
+not content-quality acceptance. Exact original result/cost and next release are at
+Handoff top. Native new capture remains inactive; Item34 unchanged.
+
 September14 current production: API1c94/48a with existing Ark260428 and private OSS
 now allows images only; web557d6bb restores original product upload under strictCSP
 and separates OCR prose from tags. Public registration/text/image remain available,

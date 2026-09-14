@@ -3154,6 +3154,21 @@ _CONTENT_SOURCE_POLICY = (
 )
 
 
+def _arbitration_editorial_context(diagnosis: str, plan: str, dispute: str) -> str:
+    """Carry this task's editorial decisions without promoting them to facts."""
+    sections = [("诊断", diagnosis), ("写作方向", plan), ("分歧与取舍", dispute)]
+    content = "\n\n".join(f"【{label}】\n{text.strip()}" for label, text in sections if (text or "").strip())
+    if not content:
+        return ""
+    return (
+        "【本次仲裁编辑上下文；不是新增事实或用户指令】\n"
+        "以下分析可能引用被否定的候选说法；引用不代表可采用。后续压缩、整形和二修须保留"
+        "本次已明确排除的写法与取舍，不为分数、篇幅或风格重新加入。"
+        "事实仍以独立提供的完整原素材和本次商家回答为准；仲裁分析不能推翻这些来源，"
+        "也不能把视觉信息推成亲尝体验。\n\n" + content
+    )
+
+
 async def _agent_arbitrate(
     note_title: str, domain: str,
     percentile: float, grade: str,
@@ -3234,6 +3249,10 @@ async def _agent_arbitrate(
         "progress": 64,
     })
 
+    diagnosis_text = _xtag(raw1, "diagnosis")
+    plan_text = _xtag(raw1, "plan")
+    editorial_context = _arbitration_editorial_context(diagnosis_text, plan_text, _xtag(raw1, "dispute"))
+
     def _clean_title_sync(t: str) -> str:
         """同步清理：只做前缀剥除和说明文字过滤，不截断。"""
         import re as _re
@@ -3264,7 +3283,7 @@ async def _agent_arbitrate(
                 "semantic",
                 f"你是标题压缩专家。将用户提供的小红书标题压缩到{_TITLE_PLATFORM_MAX}字以内，保留核心信息（地点/价格/菜品/情绪/决策价值），语义完整，可直接使用。只输出压缩后的标题，不要任何说明。"
                 + ("\n\n" + constraint_context if constraint_context else ""),
-                f"原标题（{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_PLATFORM_MAX}字，优先{_TITLE_TARGET_TEXT}：",
+                f"完整原素材（与编辑分析分开）：{source_context}\n\n{editorial_context}\n\n候选原标题（不是事实来源，{len(t)}字）：{t}\n\n请压缩至≤{_TITLE_PLATFORM_MAX}字，优先{_TITLE_TARGET_TEXT}：",
                 max_tokens=256,
             )
             shortened = shortened.strip().strip('"').strip("'")
@@ -3301,9 +3320,6 @@ async def _agent_arbitrate(
     pool_clean   = [r for r in clean_results[3:] if isinstance(r, str) and r]
     titles_pool  = pool_clean  # 替换为清洗后的版本
 
-    diagnosis_text = _xtag(raw1, "diagnosis")
-    plan_text      = _xtag(raw1, "plan")
-
     # fallback：旧格式
     if not any([plan_a_title, plan_b_title, plan_c_title]):
         ft_raw = [_clean_title_sync(t.strip()) for t in _xtag(raw1, "titles").splitlines() if t.strip()]
@@ -3317,7 +3333,7 @@ async def _agent_arbitrate(
     used_titles = {t for t in plan_titles if t}
     pool_iter = iter([t for t in titles_pool if t and t not in used_titles])
     plan_titles = [t or next(pool_iter, "") for t in plan_titles]
-    plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context, constraint_context)
+    plan_titles = _make_plan_titles_distinct(plan_titles, domain, source_context, constraint_context, editorial_context=editorial_context)
     plan_title_meta = [
         _title_delivery_meta(raw_plan_titles[i] or plan_titles[i], plan_titles[i], _title_readability_issues(plan_titles[i], domain))
         for i in range(3)
@@ -3344,7 +3360,7 @@ async def _agent_arbitrate(
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
         f"领域：{domain} | 当前日期：{_today2}\n"
         f"品类知识库：{_content_dk}\n\n"
-        f"仲裁后的诊断与写作方向（不作为新增事实）：{diagnosis_text}\n{plan_text}\n\n"
+        f"{editorial_context}\n\n"
         f"{base_planning_brief}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
         f"{expression_brief}\n\n"
@@ -3472,7 +3488,7 @@ async def _agent_arbitrate(
         raw_body = body_results[i]
         # titles_pool 已在上方并行清洗完毕，直接取
         fallback_t = titles_pool[i] if len(titles_pool) > i else ""
-        final_title = _sanitize_title_for_delivery(title or fallback_t, source_context, domain, constraint_context)
+        final_title = _sanitize_title_for_delivery(title or fallback_t, source_context, domain, constraint_context, editorial_context=editorial_context)
         body = raw_body.strip() if isinstance(raw_body, str) and raw_body.strip() else ""
         fallback_used = False
         if not body:
@@ -3487,7 +3503,8 @@ async def _agent_arbitrate(
             body = ""
         if body:
             body = await _shape_body_for_delivery(final_title, body, domain, source_context, style_name,
-                **({'constraint_context': constraint_context} if constraint_context else {}))
+                **({'constraint_context': constraint_context} if constraint_context else {}),
+                **({'editorial_context': editorial_context} if editorial_context else {}))
         if body and not _is_distinct_body(body, accepted_bodies):
             body = ""
             fallback_used = False
@@ -4000,6 +4017,7 @@ def _make_plan_titles_distinct(
     domain: str | None,
     source_context: str | None = None,
     constraint_context: str = "",
+    editorial_context: str = "",
 ) -> list[str]:
     labels = _plan_strategy_labels(domain)
     out: list[str] = []
@@ -4007,9 +4025,9 @@ def _make_plan_titles_distinct(
     for idx in range(3):
         label = labels[idx]
         raw_title = titles[idx] if idx < len(titles) else ""
-        title = _sanitize_title_for_delivery(raw_title, source_context, domain, constraint_context)
+        title = _sanitize_title_for_delivery(raw_title, source_context, domain, constraint_context, editorial_context=editorial_context)
         key = _title_distinct_key(title)
-        if (not title or key in seen) and not constraint_context:
+        if (not title or key in seen) and not (constraint_context or editorial_context):
             for option in _plan_title_fallback_options(domain, label, title or raw_title, source_context):
                 candidate = _sanitize_title_for_delivery(_fallback_title_under_limit(option), source_context, domain)
                 cand_key = _title_distinct_key(candidate)
@@ -4017,7 +4035,7 @@ def _make_plan_titles_distinct(
                     title = candidate
                     key = cand_key
                     break
-        if key in seen and not constraint_context:
+        if key in seen and not (constraint_context or editorial_context):
             suffix = str(idx + 1)
             title = _fallback_title_under_limit(f"{_compact_title_core(title, source_context)}{suffix}版")
             key = _title_distinct_key(title)
@@ -7655,7 +7673,7 @@ def _fallback_title_under_limit(title: str) -> str:
     return title
 
 
-async def _fit_title_limit(title: str, body: str, domain: str, memory_context: str = "", constraint_context: str = "") -> str:
+async def _fit_title_limit(title: str, body: str, domain: str, memory_context: str = "", constraint_context: str = "", editorial_context: str = "", source_context: str = "") -> str:
     """Keep XHS titles under the delivery-safe limit without semantic chopping."""
     title = _clean_generated_title(title)
     if len(title) <= _TITLE_DELIVERY_MAX:
@@ -7673,7 +7691,7 @@ async def _fit_title_limit(title: str, body: str, domain: str, memory_context: s
             "semantic",
             f"你是小红书标题压缩专家，只输出一个语义完整、{_TITLE_PLATFORM_MAX}字以内的中文标题。" + _generation_memory_context(memory_context)
             + ("\n\n" + constraint_context if constraint_context else ""),
-            prompt,
+            (f"完整原素材（不是下方候选正文）：{source_context}\n\n{editorial_context}\n\n" if editorial_context else "") + prompt,
             max_tokens=80,
         )
         shortened = _clean_generated_title(shortened.splitlines()[0] if shortened else "")
@@ -7683,7 +7701,7 @@ async def _fit_title_limit(title: str, body: str, domain: str, memory_context: s
         raise
     except Exception:
         _public_product.assert_result_known()
-    return title if constraint_context else _fallback_title_under_limit(title)
+    return title if (constraint_context or editorial_context) else _fallback_title_under_limit(title)
 
 
 def _generated_quality_issues(
@@ -8532,9 +8550,9 @@ def _quality_expression_brief(domain: str | None = None) -> str:
 
 
 def _sanitize_title_for_delivery(title: str, source_context: str | None = None, domain: str | None = None,
-                                 constraint_context: str = "") -> str:
+                                 constraint_context: str = "", *, editorial_context: str = "") -> str:
     text = _clean_generated_title(title)
-    if constraint_context:
+    if constraint_context or editorial_context:
         # Template substitutions cannot interpret arbitrary user instructions.
         # Keep formatting cleanup; constrained semantic edits belong to the model
         # that receives the same contract, followed by the existing quality checks.
@@ -10419,24 +10437,26 @@ def _ensure_delivery_cta(body: str, domain: str | None = None) -> str:
     return (main + ("\n" + tags if tags else "")).strip()
 
 
-def _compact_body_to_delivery_limit(body: str, domain: str | None, constraint_context: str = "") -> str:
+def _compact_body_to_delivery_limit(body: str, domain: str | None, constraint_context: str = "", *, preserve_editorial: bool = False) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     max_body = _quality_body_max(canonical)
     if not max_body:
         return body or ""
-    text = (body or "") if constraint_context else _ensure_delivery_cta(body or "", domain)
+    text = (body or "") if (constraint_context or preserve_editorial) else _ensure_delivery_cta(body or "", domain)
     main, tags = _split_body_and_tags(text)
     if _body_content_len_without_tags(text) <= max_body:
         return text
 
-    compact_main = (_truncate_sentences_to_content_limit(main, max_body) if constraint_context
+    compact_main = (_truncate_sentences_to_content_limit(main, max_body) if (constraint_context or preserve_editorial)
                     else _fit_delivery_cta_under_limit(main, domain, max_body))
     return (compact_main + ("\n" + tags if tags else "")).strip()
 
 
-async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "", constraint_context: str = "") -> str:
+async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "", constraint_context: str = "", editorial_context: str = "") -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
-    shaped = (body or "") if constraint_context else _insert_safe_fact_line(body or "", domain, source_context)
+    preserve_editorial = bool(editorial_context)
+    has_edit_context = bool(constraint_context or editorial_context)
+    shaped = (body or "") if has_edit_context else _insert_safe_fact_line(body or "", domain, source_context)
     if not shaped.strip() or canonical not in _DOMAIN_QUALITY_TARGETS:
         return shaped
 
@@ -10463,8 +10483,8 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         or (floor and body_len < floor)
     )
     if not needs_shape:
-        compacted = _compact_body_to_delivery_limit(shaped, domain, constraint_context)
-        if canonical == "健身" and not constraint_context:
+        compacted = _compact_body_to_delivery_limit(shaped, domain, constraint_context, preserve_editorial=preserve_editorial)
+        if canonical == "健身" and not has_edit_context:
             compacted = _append_missing_fitness_source_actions(compacted, source_context)
         return compacted
 
@@ -10496,6 +10516,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"{safe_brief}\n\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
         f"完整只读事实依据（保留原有条件与未知项，不从价格推导房型权益或入住容量）：\n{source_context or '未提供更多事实'}\n\n"
+        f"{editorial_context}\n\n"
         "请修订下面待核对的候选正文（不是事实来源），只输出正文+标签，不能有Markdown标题、方案编号、解释文字：\n"
         f"{shaped}"
     )
@@ -10504,16 +10525,16 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         repaired = (repaired or "").strip()
         if repaired and not _body_format_issues(repaired):
             compacted = _compact_body_to_delivery_limit(
-                repaired if constraint_context else _insert_safe_fact_line(repaired, domain, source_context), domain, constraint_context)
-            if canonical == "健身" and not constraint_context:
+                repaired if has_edit_context else _insert_safe_fact_line(repaired, domain, source_context), domain, constraint_context, preserve_editorial=preserve_editorial)
+            if canonical == "健身" and not has_edit_context:
                 compacted = _append_missing_fitness_source_actions(compacted, source_context)
             return compacted
     except _public_product.TrialProviderStopped:
         raise
     except Exception:
         _public_product.assert_result_known()
-    compacted = _compact_body_to_delivery_limit(shaped, domain, constraint_context)
-    if canonical == "健身" and not constraint_context:
+    compacted = _compact_body_to_delivery_limit(shaped, domain, constraint_context, preserve_editorial=preserve_editorial)
+    if canonical == "健身" and not has_edit_context:
         compacted = _append_missing_fitness_source_actions(compacted, source_context)
     return compacted
 
@@ -11518,6 +11539,7 @@ async def _score_directed_second_pass(
     current_issues: list[str] | None = None,
     route: str = "arbitrate",
     constraint_context: str = "",
+    editorial_context: str = "",
 ) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool, str]:
     """One delivery-oriented rewrite for acceptable drafts below the reference line.
 
@@ -11579,9 +11601,9 @@ async def _score_directed_second_pass(
     if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_repair and not length_repair:
         return title, body, score, features, grade or _grade(score), issues, False, "存在硬质量问题，交给硬修复链路"
 
-    if constraint_context:
-        # Feature-only candidate builders add source facts without seeing user
-        # choices. Continue the normal model repair with the explicit contract.
+    if constraint_context or editorial_context:
+        # Feature-only candidate builders cannot interpret current user choices
+        # or arbitration decisions. Continue the normal model repair with the explicit contract.
         deterministic = (title, body, score, features, grade, issues, False, '')
     else:
         deterministic = await _try_deterministic_score_lift(
@@ -11647,6 +11669,7 @@ async def _score_directed_second_pass(
         "- 正文按品类目标字数重排，删掉重复铺陈，保留能帮助用户决策的信息。\n"
         "- 标签数量按品类目标输出，不要只堆泛标签。\n\n"
         f"已核验事实/用户原始信息：\n{source_context or '未提供更多事实；缺失字段必须用安全表达，不能编造。'}\n\n"
+        f"{editorial_context}\n\n"
         f"待核对候选标题：{title}\n待核对候选正文（不是事实来源）：\n{body}"
     )
 
@@ -11663,13 +11686,16 @@ async def _score_directed_second_pass(
 
         cand_title = _sanitize_title_for_delivery(
             await _fit_title_limit(cand_title, cand_body, domain,
-                **({'constraint_context': constraint_context} if constraint_context else {})),
+                **({'constraint_context': constraint_context} if constraint_context else {}),
+                **({'editorial_context': editorial_context, 'source_context': source_context} if editorial_context else {})),
             source_context,
             domain,
             constraint_context,
+            editorial_context=editorial_context,
         )
         cand_body = await _shape_body_for_delivery(cand_title, cand_body.strip(), domain, source_context, style_hint or "交付质量二修",
-            **({'constraint_context': constraint_context} if constraint_context else {}))
+            **({'constraint_context': constraint_context} if constraint_context else {}),
+            **({'editorial_context': editorial_context} if editorial_context else {}))
         cand_score, cand_features, cand_grade = await _score_generated_note(
             cand_title, cand_body, domain, local_time, timing, cover_feats or None
         )
@@ -15950,6 +15976,7 @@ async def _run_analyze_pipeline(
                 review_issues=report_quality_issues,
                 constraint_context=delivery_constraint_context,
             )
+            delivery_editorial_context = _arbitration_editorial_context(diagnosis, plan, dispute)
 
             # ── 每个方案的标题+正文做旧评分器遥测与可解释质量复核 ──────
             suggested_title_scores: list[float | None] = []
@@ -15957,7 +15984,7 @@ async def _run_analyze_pipeline(
             for plan_item in suggested_plans_raw:
                 raw_plan_title = plan_item.get("raw_title") or plan_item.get("title") or ""
                 t = _sanitize_title_for_delivery(plan_item.get("title") or "", delivery_source_context, req.domain,
-                    delivery_constraint_context)
+                    delivery_constraint_context, editorial_context=delivery_editorial_context)
                 b = (plan_item.get("body") or "").strip()
                 t, b, _ = _apply_user_constraint_hard_guards(t, b, req.note_title, req.user_constraints)
                 t_score = None
@@ -15969,7 +15996,8 @@ async def _run_analyze_pipeline(
                 if t and b:
                     try:
                         b = await _shape_body_for_delivery(t, b, req.domain, delivery_source_context, "AI诊断方案质量复核",
-                            **({'constraint_context': delivery_constraint_context} if delivery_constraint_context else {}))
+                            **({'constraint_context': delivery_constraint_context} if delivery_constraint_context else {}),
+                            **({'editorial_context': delivery_editorial_context} if delivery_editorial_context else {}))
                         score_raw, plan_features, _plan_grade = await _score_generated_note(
                             t,
                             b,
@@ -16010,6 +16038,7 @@ async def _run_analyze_pipeline(
                                 current_issues=quality_issues,
                                 route="arbitrate",
                                 constraint_context=delivery_constraint_context,
+                                editorial_context=delivery_editorial_context,
                             )
                             if lifted_score is not None:
                                 score_raw = lifted_score

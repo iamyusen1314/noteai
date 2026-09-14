@@ -2474,8 +2474,14 @@ class ApiContractTests(unittest.TestCase):
     def test_agent_arbitrate_generates_distinct_plan_bodies(self):
         original_call = api._mr.call
         original_sleep = api.asyncio.sleep
+        original_shape = api._shape_body_for_delivery
+        shapes = []
         calls = []
         source_context = "完整原始素材" * 300 + "尾部约束：不提供接驳服务，不含门票。"
+
+        async def capture_shape(*args, **kwargs):
+            shapes.append((args, kwargs))
+            return await original_shape(*args, **kwargs)
 
         async def fake_sleep(_seconds):
             return None
@@ -2504,6 +2510,7 @@ class ApiContractTests(unittest.TestCase):
         try:
             api._mr.call = fake_call
             api.asyncio.sleep = fake_sleep
+            api._shape_body_for_delivery = capture_shape
             result = asyncio.run(api._agent_arbitrate(
                 "南京西路蟹黄面",
                 "美食",
@@ -2523,6 +2530,7 @@ class ApiContractTests(unittest.TestCase):
         finally:
             api._mr.call = original_call
             api.asyncio.sleep = original_sleep
+            api._shape_body_for_delivery = original_shape
 
         bodies = [p["body"] for p in result["plans"]]
         self.assertEqual(len(bodies), 3)
@@ -2540,11 +2548,19 @@ class ApiContractTests(unittest.TestCase):
             self.assertIn(api._CONTENT_SOURCE_POLICY, call[1])
             self.assertNotIn("这是一篇内容专家候选正文", call[2])
             self.assertIn("标题缺少清晰角度", call[2])
+            self.assertIn("数据派和情绪派都可行。", call[2])
+            self.assertIn("不是新增事实或用户指令", call[2])
             self.assertEqual(call[3]["max_tokens"], 4096)
             for unsupported in ('必点招牌菜感官描述', '围绕火候、口感、分量',
                                 '正文必须出现「必点」', '主菜亮点→口感/火候', '这口很记人'):
                 self.assertNotIn(unsupported, call[1] + call[2])
         self.assertFalse(any(body == "这是一篇内容专家候选正文，不应该被三个方案直接复用。" for body in bodies))
+
+        self.assertEqual(len(shapes), 3)
+        for args, kwargs in shapes:
+            self.assertEqual(args[3], source_context)
+            self.assertIn("数据派和情绪派都可行。", kwargs["editorial_context"])
+            self.assertNotIn("数据派和情绪派都可行。", kwargs.get("constraint_context", ""))
 
     def test_plan_title_distinct_repair_handles_duplicate_titles(self):
         titles = api._make_plan_titles_distinct(
@@ -3245,6 +3261,9 @@ class ApiContractTests(unittest.TestCase):
         original_quality = api._generated_quality_issues
         original_integrity = api._delivery_integrity_issues
         original_needs_lift = api._needs_v04_score_lift
+        original_report_repair = api._repair_diagnosis_report_facts
+        original_second_pass = api._score_directed_second_pass
+        editorial_calls = []
         original_memory_prompt = api._memory.build_memory_prompt
         original_memory_achievement = api._memory.check_and_record_achievements
         original_log = api._log_analysis
@@ -3304,11 +3323,19 @@ class ApiContractTests(unittest.TestCase):
                 ],
                 "plan": "按决策、菜品、避坑三方向输出。",
                 "body": bodies[0],
-                "dispute": "",
+                "dispute": "保留本次取舍，不从候选稿补造现场体验。",
                 "expert_opinions": [{"role": "内容专家", "raw": "ok"}],
             }
 
+        async def fake_report_repair(*args, **kwargs):
+            return "修后的诊断方向", "修后的写作方案"
+
+        async def fake_second_pass(title, body, *_args, **kwargs):
+            editorial_calls.append((kwargs["source_context"], kwargs["constraint_context"], kwargs["editorial_context"]))
+            return title, body, kwargs["current_score"], kwargs["current_features"], kwargs["current_grade"], [], False, ""
+
         async def fake_shape(_title, body, *_args, **_kwargs):
+            editorial_calls.append((_args[1], _kwargs.get("constraint_context", ""), _kwargs.get("editorial_context", "")))
             captured_shape_constraints.append(_kwargs.get("constraint_context", ""))
             return body
 
@@ -3349,7 +3376,9 @@ class ApiContractTests(unittest.TestCase):
             api._score_generated_note = fake_score
             api._generated_quality_issues = lambda *_args, **_kwargs: []
             api._delivery_integrity_issues = lambda *_args, **_kwargs: []
-            api._needs_v04_score_lift = lambda *_args, **_kwargs: False
+            api._needs_v04_score_lift = lambda *_args, **_kwargs: True
+            api._repair_diagnosis_report_facts = fake_report_repair
+            api._score_directed_second_pass = fake_second_pass
             api._memory.build_memory_prompt = lambda user_id, **kwargs: "用户偏好：文案自然，少模板。"
             api._memory.check_and_record_achievements = lambda *_args, **_kwargs: None
             api._log_analysis = lambda *_args, **_kwargs: None
@@ -3387,6 +3416,15 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api.analyze(req, user={"id": "u1"}))
                 for req in requests
             ]
+            self.assertEqual(len(editorial_calls), 18)
+            for source, constraints, editorial in editorial_calls:
+                self.assertIn("修后的诊断方向", editorial)
+                self.assertIn("修后的写作方案", editorial)
+                self.assertIn("保留本次取舍", editorial)
+                self.assertNotIn("三入口统一进入五 agent 诊断", editorial)
+                self.assertNotIn("按决策、菜品、避坑三方向", editorial)
+                self.assertNotIn("修后的", source + constraints)
+                self.assertNotIn("先看决策信息：", source)
             self.assertEqual(len(captured_delivery_constraints), 3)
             self.assertEqual(len(captured_shape_constraints), 9)
             for context in captured_delivery_constraints[:2] + captured_shape_constraints[:6]:
@@ -3455,6 +3493,8 @@ class ApiContractTests(unittest.TestCase):
             api._generated_quality_issues = original_quality
             api._delivery_integrity_issues = original_integrity
             api._needs_v04_score_lift = original_needs_lift
+            api._repair_diagnosis_report_facts = original_report_repair
+            api._score_directed_second_pass = original_second_pass
             api._memory.build_memory_prompt = original_memory_prompt
             api._memory.check_and_record_achievements = original_memory_achievement
             api._log_analysis = original_log
@@ -3870,6 +3910,7 @@ class ApiContractTests(unittest.TestCase):
     def test_second_pass_carries_constraints_and_does_not_apply_unaware_fact_templates(self):
         source = '原素材套餐249元，门店名称蓝猫；本次未说明用餐口感。'
         constraints = api._user_constraints_brief(['不写价格及店名'], '本次测试')
+        editorial = api._arbitration_editorial_context('诊断取舍', '写作方向', '候选稿中的亲尝并非素材，勿采用。')
         title, body = '围绕门店画面整理创作思路', '按实际画面组织内容。'
         with mock.patch.object(api, '_try_deterministic_score_lift', new=mock.AsyncMock(
                 side_effect=AssertionError('template cannot interpret user constraints'))) as deterministic, \
@@ -3884,7 +3925,7 @@ class ApiContractTests(unittest.TestCase):
                 source_context=source, current_score=68, current_features={
                     'body_len':300, 'plad_sentence_burstiness':0.2, 'avg_sentence_len':90,
                     'body_has_must_order':0},
-                current_issues=[], constraint_context=constraints))
+                current_issues=[], constraint_context=constraints, editorial_context=editorial))
         deterministic.assert_not_called()
         self.assertEqual(call.await_count, 1)
         self.assertIn(constraints, call.call_args.args[1])
@@ -3899,7 +3940,58 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn('不能证明味道、温度、火候',combined)
         self.assertEqual(fit.call_args.kwargs['constraint_context'], constraints)
         self.assertEqual(shape.call_args.kwargs['constraint_context'], constraints)
+        self.assertIn(editorial, call.call_args.args[2])
+        self.assertEqual(fit.call_args.kwargs['editorial_context'], editorial)
+        self.assertEqual(fit.call_args.kwargs['source_context'], source)
+        self.assertEqual(shape.call_args.kwargs['editorial_context'], editorial)
+        self.assertEqual(shape.call_args.args[3], source)
         self.assertTrue(result[6], result[7])
+
+    def test_editorial_context_reaches_actual_editors_without_creating_extra_calls(self):
+        source = '画面中有蓝色外套；未提供实际保暖体验。'
+        editorial = api._arbitration_editorial_context('保留可见颜色', '围绕穿搭场景', '不能采用候选稿中的实测保暖断言。')
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value='蓝色外套的日常搭配思路')) as call:
+            asyncio.run(api._fit_title_limit('蓝色外套的日常搭配思路以及更多不同场景的组合介绍', '', '穿搭', editorial_context=editorial, source_context=source))
+            self.assertIn(editorial, call.call_args.args[2])
+            self.assertIn(source, call.call_args.args[2])
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value='只介绍画面中的外套。')) as call:
+            asyncio.run(api._shape_body_for_delivery('蓝色外套', '短文', '穿搭', source, editorial_context=editorial))
+            self.assertEqual(call.await_count, 1)
+            self.assertIn(source, call.call_args.args[2])
+            self.assertIn(editorial, call.call_args.args[2])
+        # Supplying editorial context must not itself create another model step.
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock()) as call:
+            result = asyncio.run(api._fit_title_limit('蓝色外套搭配', '', '穿搭', editorial_context=editorial))
+            self.assertEqual(result, '蓝色外套搭配')
+            result = asyncio.run(api._shape_body_for_delivery('蓝色外套', '', '穿搭', source, editorial_context=editorial))
+            self.assertEqual(result, '')
+            call.assert_not_called()
+
+    def test_editorial_only_decisions_are_not_overwritten_by_fact_templates(self):
+        editorial = api._arbitration_editorial_context('只写观察', '不扩写已排除的字段', '此稿不放价格和促销引导。')
+        title = '敏感混干皮防晒，上粉底不搓泥'
+        self.assertEqual(api._sanitize_title_for_delivery(title, '防晒79元', '美妆', editorial_context=editorial), title)
+        with mock.patch.object(api, '_plan_title_fallback_options', side_effect=AssertionError('unaware title template')):
+            self.assertEqual(api._make_plan_titles_distinct([title]*3, '美妆', '防晒79元', editorial_context=editorial), [title]*3)
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value='仅记录本次画面。')) as call, \
+             mock.patch.object(api, '_insert_safe_fact_line', side_effect=AssertionError('unaware source insertion')), \
+             mock.patch.object(api, '_ensure_delivery_cta', side_effect=AssertionError('unaware CTA')):
+            body = asyncio.run(api._shape_body_for_delivery(title, '短文', '美妆', '防晒79元', editorial_context=editorial))
+            self.assertEqual(body, '仅记录本次画面。')
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(side_effect=RuntimeError('known error'))), \
+             mock.patch.object(api, '_fallback_title_under_limit', side_effect=AssertionError('unaware fallback')):
+            long_title = '只说素材中的门店画面而不增加未知的细节或商品价格'
+            self.assertEqual(asyncio.run(api._fit_title_limit(long_title, '', '美妆', editorial_context=editorial)), long_title)
+        with mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value='<note><title>画面</title><body>已有素材</body></note>')) as call, \
+             mock.patch.object(api, '_try_deterministic_score_lift', new=mock.AsyncMock(side_effect=AssertionError('unaware score template'))) as det, \
+             mock.patch.object(api, '_generated_quality_issues', return_value=[]), \
+             mock.patch.object(api, '_delivery_integrity_issues', return_value=[]), \
+             mock.patch.object(api, '_shape_body_for_delivery', new=mock.AsyncMock(return_value='已有素材')), \
+             mock.patch.object(api, '_score_generated_note', new=mock.AsyncMock(return_value=(74, {'body_len':300}, '良好'))):
+            asyncio.run(api._score_directed_second_pass('原画面', '已有素材', '美食', '2026091420', source_context='图片原观察',
+                current_score=68, current_features={'body_len':300, 'body_has_must_order':0}, editorial_context=editorial))
+            det.assert_not_called()
+            self.assertEqual(call.await_count, 1)
 
     def test_explicit_omission_differs_from_source_presence(self):
         source = '套餐249元，赠送茶饮；门店旧标语很方便。'

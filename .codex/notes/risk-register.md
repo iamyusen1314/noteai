@@ -1,3 +1,10 @@
+September14: completed public image diagnosis exposed a structural arbitration
+handoff gap: stored dispute rejected unsupported sensory claims, but those decisions
+were omitted from draft/edit calls. Local fix carries separate editorial context
+without elevating model opinions into facts; current final result is preserved and
+not quality-accepted. Normal OMIT clarification/resume and once-only charge verified.
+No new provider call until the concrete repair is verified; Handoff top has identities.
+
 September14 current: image upload CSP fix is deployed and real public Ark recognition succeeded once with exact cost/0.5credit. Original screenshot topic parsing incorrectly treated prose without # as tags; minimal local fix passes, final web rollout and original-result-only recovery next. No new model request needed. Native inactive baseline now preserves image-open configuration.
 
 September14 image release: actual connect-src self exposed local data-URL fetch failure before upload. Minimal Blob byte conversion is browser-tested; frontend rollout and public upload confirmation remain pending. Image API flag open, video/payment closed. No CSP expansion. Native pre-activation recovery baseline must preserve image-open config.

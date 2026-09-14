@@ -1,3 +1,37 @@
+September14 20:12BJT: arbitration propagation repair passed26 affected Python3.11
+Linuxamd64 offline regressions (editorial-r5.log, network none/source readonly).
+Real functions verify three plans retain dispute; outer editors receive repaired
+report; title/shape/second-pass/nested editors preserve original facts separately;
+unaware automatic source/title/score templates cannot overwrite editorial choices.
+No added stage or quota relaxation. API candidate next, not yet built/deployed.
+Earlier runner errors were private-dir UID/capability and SQLite path configuration;
+resolved with user501 and isolated NOTEAI_SQLITE_PATH, old logs retained.
+
+September14 20:05BJT: original public image diagnosis is COMPLETE, not in flight.
+claimc3af553c-74f0-4e41-ba59-a13f01b5e0d1 /usage32dd348d-e31b-475d-b35d-003ce44b4cf2
+completed11:52:20.586904UTC;6credits charge1/complete1/refund0. Saveddiagnosis
+d65053dc-1a90-4a42-bb55-a212287f0945, savednotecca2f25a-6647-4e99-b365-51c543f5ccf0.
+Normal merchant clarification selected OMIT for name/address and price servings;
+same task resumed without repeat OCR or whole charge.28 calls complete/exact:
+23Haiku +4Sonnet +1Ark, totalCNY2.8055684 using retained price/FX basis. Original
+private report/model ledger /var/lib/noteai/chat-557d6bb/public-diagnosis-final.json
+SHAefdf6c714213bec0b78f8f2affe6ddc707d2bf0a6189e4ed5a9e8d01fbeda770.
+This proves public image→full formal model chain→clarification→saved result/accounting,
+NOT content-quality acceptance. Finalbest70 still includes unsupported sensory claims.
+
+Concrete root gap: stored dispute explicitly excludes unsupported first-hand sensory
+claims, but _agent_arbitrate omitted dispute from three drafts; subsequent shaping/
+second pass also lost all arbitration. Local minimal fix now passes this task's
+complete diagnosis/plan/dispute as separate editorial_context throughout existing
+editors; repaired report is used by outer edits. Sources/owner hard constraints remain
+separate, no added model step or industry Prompt rewrite. Targeted tests in progress;
+first invocation failed test import path before execution, no provider request.
+API1c94/image48a remains live with images1/video0;web557/Admin unchanged. No new
+Nativeorder/capture/DDL. Owner new12RMB scan availability remains unanswered; original
+12RMB already paid/refunded, billSep15 not yet due. Item34 original21:36 remains
+untouched; Readiness30/37, no Gitpush. Next: finish source propagation regression,
+controlled API-only candidate and a meaningful current-path validation; no old replay.
+
 September14 19:47BJT current: web557d6bb985c1aebbf39a6a0d329c9aa96dc722fc
 DEPLOYED, PID1748881 completed1789386150.139891, JS6900ffb89ef3fe70bc36fb1a851439600dcbded752207951c9f32dec8e2c6496;
 /var/lib/noteai/chat-557d6bb/web-result.json; rollback6a retained. Original public
