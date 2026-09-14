@@ -1,3 +1,35 @@
+September14 21:31BJT chat edit-context fix READY_TO_APPLY (not yet deployed).
+Original ee473d9 chat66a2996a-f0e8-4c30-88a9-dbb5d892caab COMPLETE13:18:21.500480UTC;
+usage988dc06b-888b-42c4-b5da-c373c7b47584,3credits charge1/complete1/refund0.
+Saved v2 note8a31aa9a-f560-4752-86ae-c95e6aed2ff9,score77.473;6Claude model rows,
+known tariff CNY1.032906,0unknown cost rows. Canonical private read saved13:27:31UTC:
+/var/lib/noteai/media-ee473d9/public-fashion-chat-final.json,
+SHA15c737088c30c4c59d6b6d7e5d26bf865ac4a00420816166e00f6527fb2424d5.
+Despite saved result/once-only accounting, final repair lost paragraph separation
+and optional-suggestion wording: NOT accepted for editing compliance, no replay.
+Minimal API fix carries full current user editing request through existing shape/
+repair/second-pass, separately from facts and without persisting a new session field.
+Sentence compaction preserves whitespace paragraph separators within existing limits.
+7 targeted Python3.11/amd64/network-none tests pass including final-save-before-event,
+source separation, next-turn isolation and length/punctuation edge. Independent
+readonly review caught punctuation budget overflow; fixed before release. Existing
+SSE test mock needed fourth positional constraint arg; r3 failure/r4 pass preserved.
+Private logs ~/.codex/tmp/noteai-native-ack-5qg9k4wy/chat-edit-context-r{1,2,3,4}.log.
+
+SCHEDULING: unique original generation2 heartbeat remains ACTIVE, correct original
+thread/project. Actual saved next_run_at1789393052000 = September14 21:37:32BJT /
+13:37:32UTC (rule13:36 plus saved offset). Installed scheduler defers while this
+thread is running and rechecks about60s. Finish atomic work and yield BEFORE that
+time; do not create another automation, early-sample, or edit the original schedule.
+Cloud Item34 remains LAST_KNOWN13:14:27BJT checking_7d/activeattemptNULL until original
+entry reads it. Preserve originalT0/image/executor; do not infer success from schedule.
+After original scheduled stage safely ends, continue this candidate's API-only
+rollout and a new narrow chat edit validation (not original66a replay), then other
+outstanding formal-product work. Native1083 stays inactive; next API switch requires
+same-preparation CAS update before any Native activation. Original12RMB payment and
+full refund remain complete; newscan availability and authorized video file pending.
+No new order/DDL/provider call in this local fix. Readiness30/37; noGitpush.
+
 September14 21:17BJT API-only ee473d9b7fa9d20460d5d4c1f40248a6060fe7e0 DEPLOYED,
 imagebec724f160f967858629a7eb8eecf3769e3b6f9f8668d5f60b196170c95d5fa1;
 buildPID1763102 complete1789391628.7522554,deployPID1763303 complete1789391679.3703046.

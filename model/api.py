@@ -10398,18 +10398,25 @@ def _truncate_sentences_to_content_limit(text: str, limit: int) -> str:
     raw = (text or "").strip()
     if _plain_content_len(raw) <= limit:
         return raw
-    units = [unit.strip() for unit in re.findall(r"[^。！？\n]+[。！？]?", raw) if unit.strip()]
     kept: list[str] = []
     length = 0
-    for unit in units:
+    cursor = 0
+    for match in re.finditer(r"[^。！？\n]+[。！？]?", raw):
+        unit = match.group().strip()
+        if not unit:
+            continue
         unit_len = _plain_content_len(unit)
         if kept and length + unit_len > limit:
             break
         if not kept and unit_len > limit:
             unit = _truncate_to_content_limit(unit, limit)
             unit_len = _plain_content_len(unit)
-        kept.append(unit)
+        # Keep original paragraph separators when shortening at a sentence boundary.
+        # Whitespace carries no content length and must not flatten user formatting.
+        separator = "".join(ch for ch in raw[cursor:match.start()] if ch.isspace()) if kept else ""
+        kept.append((separator if "\n" in separator else "") + unit)
         length += unit_len
+        cursor = match.end()
     return ("".join(kept).strip() or _truncate_to_content_limit(raw, limit)).rstrip("，,、；;：: ")
 
 
@@ -18315,6 +18322,8 @@ def _chat_effective_constraint_brief(session: dict) -> str:
     return "\n\n".join(part for part in (
         _user_constraints_brief(session.get("user_constraints") or context.get("user_constraints"), "对话完整交付"),
         session.get("_turn_constraint_brief") or "",
+        ("【本轮编辑要求（修改指令，不是新增事实来源）】\n" + session["_turn_user_request"])
+        if session.get("_turn_user_request") else "",
         # This context already contains latest answers scoped to this task.
         (session.get("fact_context") or context.get("fact_context") or "")
         if context.get("merchant_confirmations") else "",
@@ -18472,6 +18481,7 @@ async def _repair_chat_note_if_needed(
     session: dict,
     user_msg: str,
 ) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool]:
+    session = {**session, "_turn_user_request": user_msg}
     score, feats, grade, issues = await _score_chat_note(title, body, session)
     domain = session.get("domain", "美食")
     fact_source = session.get("_turn_fact_source") or session.get("fact_context") or session.get("note_body", "")
@@ -18800,6 +18810,7 @@ async def _chat_sse_generator(
         repair_session = dict(session)
         repair_session["_turn_fact_source"] = fact_source
         repair_session["_turn_constraint_brief"] = turn_constraint_brief
+        repair_session["_turn_user_request"] = user_msg
         yield f"data: {_json.dumps(_safe_process_event('process_update', phase='verify', agent='quality', status_code='note_quality_checked', reason_codes=['quality_gate_checked'], facts={}), ensure_ascii=False)}\n\n"
         new_title, new_body = note_extracted
         new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"),

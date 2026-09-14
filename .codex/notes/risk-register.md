@@ -1,3 +1,9 @@
+September14 21:31BJT: actual chat saved77.47 but missed freeform editing requirements;
+full current request was absent in downstream shaping and sentence truncation flattened
+paragraphs. Minimal local fix and7 offline regressions pass; real current candidate
+verification remains pending. Score is not content acceptance. Exact original result,
+cost, runtime and original21:37:32 scheduled Item34 continuation at Handoff top.
+
 September14 21:13BJT: source deletion priority now prepared through final generation
 selector, including variants, with truthful repair metadata; remains editorial ranking
 not independent fact certification. Real fashion generation stored/charged correctly,

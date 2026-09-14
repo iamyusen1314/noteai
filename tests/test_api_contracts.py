@@ -1886,6 +1886,8 @@ class ApiContractTests(unittest.TestCase):
             api._persist_chat_session = original_persist
 
     def test_chat_note_update_is_emitted_after_version_save(self):
+        request = "每套独立一段，段间留空行；未确认细节只作可选建议，不编亲身经历。"
+        seen = []
         original_db = api._db
         original_sessions = dict(api._chat_sessions)
         original_stream_chat = api._mr.stream_chat
@@ -1919,9 +1921,14 @@ class ApiContractTests(unittest.TestCase):
             yield "content", "<note><title>新版标题</title><body>新版正文 #上海美食</body></note>"
 
         async def fake_repair(title, body, session, user_msg):
+            self.assertEqual(session["_turn_user_request"], request)
+            self.assertEqual(user_msg, request)
             return title, body, 72.0, {}, "良好", [], False
 
-        async def fake_shape(title, body, domain, fact_source, route):
+        async def fake_shape(title, body, domain, fact_source, route, **kwargs):
+            seen.append(kwargs)
+            self.assertIn(request, kwargs["constraint_context"])
+            self.assertNotIn(request, fact_source)
             return body
 
         fake_db = FakeDB()
@@ -1944,13 +1951,13 @@ class ApiContractTests(unittest.TestCase):
             api._mr.stream_chat = fake_stream_chat
             api._repair_chat_note_if_needed = fake_repair
             api._shape_body_for_delivery = fake_shape
-            api._sanitize_title_for_delivery = lambda title, fact_source, domain: title
+            api._sanitize_title_for_delivery = lambda title, fact_source, domain, *args, **kwargs: title
             api._memory.check_and_record_achievements = lambda user_id, score, action: []
             api._memory.add_context = lambda *args, **kwargs: None
 
             async def run():
                 events = []
-                async for chunk in api._chat_sse_generator("s1", "帮我重写一版"):
+                async for chunk in api._chat_sse_generator("s1", request):
                     if not chunk.startswith("data: "):
                         continue
                     events.append(json.loads(chunk.removeprefix("data: ").strip()))
@@ -1958,6 +1965,8 @@ class ApiContractTests(unittest.TestCase):
 
             events = asyncio.run(run())
             note_update = next(ev for ev in events if ev.get("type") == "note_update")
+            self.assertTrue(seen)
+            self.assertNotIn("_turn_user_request", api._chat_sessions["s1"])
             saved_note_id = note_update.get("saved_note_id")
             inserted_notes = [
                 params for sql, params in fake_db.executed
@@ -3910,7 +3919,9 @@ class ApiContractTests(unittest.TestCase):
 
     def test_second_pass_carries_constraints_and_does_not_apply_unaware_fact_templates(self):
         source = '原素材套餐249元，门店名称蓝猫；本次未说明用餐口感。'
-        constraints = api._user_constraints_brief(['不写价格及店名'], '本次测试')
+        request = '每套独立一段，段间留空行；未确认的细节只作可选建议，不编亲身经历。'
+        constraints = api._chat_effective_constraint_brief({
+            'user_constraints':['不写价格及店名'], '_turn_user_request':request})
         editorial = api._arbitration_editorial_context('诊断取舍', '写作方向', '候选稿中的亲尝并非素材，勿采用。')
         title, body = '围绕门店画面整理创作思路', '按实际画面组织内容。'
         with mock.patch.object(api, '_try_deterministic_score_lift', new=mock.AsyncMock(
@@ -3931,6 +3942,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(call.await_count, 1)
         self.assertIn(constraints, call.call_args.args[1])
         self.assertIn(source, call.call_args.args[2])
+        self.assertIn(request, constraints)
         # Keep the actual source/score-generated repair instructions in this test.
         # Earlier mocks hid unconditional demands to manufacture sensory claims.
         combined=call.call_args.args[1]+'\n'+call.call_args.args[2]
@@ -6735,6 +6747,9 @@ class ApiContractTests(unittest.TestCase):
         original_score = api._score_chat_note
         original_second_pass = api._score_directed_second_pass
         calls = []
+        request = "每套独立一段，段间留空行；保留原价。未确认的细节只作可选建议，不编亲身经历。"
+        session = {"domain": "美妆", "local_time": "2026062812",
+                   "fact_context": "肤质：混干敏感皮\n产品：粉底液 色号：01"}
 
         low_features = {
             "commercial_fact_density": 0.52,
@@ -6774,12 +6789,8 @@ class ApiContractTests(unittest.TestCase):
                 api._repair_chat_note_if_needed(
                     "混干皮粉底液",
                     "这支粉底液挺适合日常。#美妆 #粉底液",
-                    {
-                        "domain": "美妆",
-                        "local_time": "2026062812",
-                        "fact_context": "肤质：混干敏感皮\n产品：粉底液 色号：01",
-                    },
-                    "帮我优化得更像真实分享",
+                    session,
+                    request,
                 )
             )
         finally:
@@ -6792,6 +6803,25 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(issues, [])
         self.assertEqual(len(calls), 1)
         self.assertIn("肤质：混干敏感皮", calls[0][4]["source_context"])
+
+        self.assertIn(request, calls[0][4]["constraint_context"])
+        self.assertNotIn(request, calls[0][4]["source_context"])
+        self.assertNotIn("_turn_user_request", session)
+        self.assertNotIn(request, api._chat_effective_constraint_brief(session))
+
+    def test_sentence_compaction_keeps_paragraphs_within_content_budget(self):
+        kept = "第一套保留原价。\n\n第二套仅作可选建议。\n\n第三套不补未知价格。"
+        raw = kept + "\n\n额外一句超过本次长度限制。"
+        limit = api._plain_content_len(kept)
+        result = api._truncate_sentences_to_content_limit(raw, limit)
+        self.assertEqual(result, kept)
+        self.assertLessEqual(api._plain_content_len(
+            api._truncate_sentences_to_content_limit("甲。！？\n\n乙。\n\n丙。", 4)), 4)
+        self.assertEqual(len(result.split("\n\n")), 3)
+        self.assertLessEqual(api._plain_content_len(result), limit)
+        self.assertEqual(api._truncate_sentences_to_content_limit(kept, limit), kept)
+        self.assertLessEqual(api._plain_content_len(
+            api._truncate_sentences_to_content_limit("第一句很长而且没有中途标点", 5)), 5)
 
     def test_chat_quality_repair_reverts_score_regression(self):
         original_score = api._score_chat_note
