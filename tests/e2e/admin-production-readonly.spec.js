@@ -51,6 +51,10 @@ test('usage details distinguish unknown costs and loaded Prompt snapshots from a
       known_cost_rmb:0.1,loaded_prompt_versions:[{key:'creator.travel',source:'code_fallback',version:null,sha256:'a'.repeat(64)}]},
     {binding:'physical_call',state:'responded',model:'unpriced-model',known_cost_rmb:0,
       pricing_status:'unpriced',usage_status:'incomplete',loaded_prompt_versions:[]},
+    {binding:'physical_call',state:'responded',model:'missing-usage-model',known_cost_rmb:0,
+      pricing_status:'usage_missing',usage_status:'usage_missing',input_tokens:0,output_tokens:0,
+      cache_read_input_tokens:0,cache_write_input_tokens:0,audio_input_tokens:0,
+      audio_cache_read_input_tokens:0,unclassified_input_tokens:0,loaded_prompt_versions:[]},
   ]}));
   await page.locator('body').evaluate((el, html) => { el.innerHTML = html; }, content);
   await expect(page.locator('body')).toContainText('已知模型成本 待核实');
@@ -59,6 +63,8 @@ test('usage details distinguish unknown costs and loaded Prompt snapshots from a
   await expect(page.locator('body')).toContainText('历史模型账目：未关联物理调用');
   await expect(page.locator('body img')).toHaveCount(0);
   expect(content).not.toContain('¥0.000000');
+  expect(content).not.toContain('输入 0');
+  expect(content).not.toContain('输出 0');
 });
 
 

@@ -905,12 +905,13 @@ function renderAdminCallDetails(detail) {
       const costKnown = c.known_cost_rmb !== null && c.known_cost_rmb !== undefined && Number.isFinite(Number(c.known_cost_rmb))
         && (Number(c.known_cost_rmb) > 0 || (c.pricing_status === 'exact' && c.usage_status === 'complete'));
       const cost = costKnown ? '¥' + Number(c.known_cost_rmb).toFixed(6) : '待核实';
+      const token = (v) => c.usage_status === 'usage_missing' ? '未知' : number(v);
       return `<div style="border-top:1px solid var(--border);padding:10px 0;white-space:normal">
         <b>第 ${i + 1} 条 · ${esc(c.model || '实际模型未确认')}</b>
         <div>${esc(c.binding === 'physical_call' ? '物理调用已关联' : '历史模型账目：未关联物理调用')} · ${esc(adminLedgerLabel(states,c.state,'状态未知'))}</div>
         <div>${esc(adminLedgerTime(c.created_at))} · 请求模型 ${esc(c.requested_model || '未记录')} · ${esc(adminLedgerLabel(modalities,c.modality,'模态未记录'))}</div>
         <div>业务入口 ${esc(c.route || '未记录')} · 配置版本 ${esc(number(c.model_config_revision))} · HTTP ${esc(number(c.http_status))}</div>
-        <div>输入 ${esc(number(c.input_tokens))} · 缓存读 ${esc(number(c.cache_read_input_tokens))} · 缓存写 ${esc(number(c.cache_write_input_tokens))} · 音频 ${esc(number(c.audio_input_tokens))} · 音频缓存 ${esc(number(c.audio_cache_read_input_tokens))} · 未分类输入 ${esc(number(c.unclassified_input_tokens))} · 输出 ${esc(number(c.output_tokens))}</div>
+        <div>输入 ${esc(token(c.input_tokens))} · 缓存读 ${esc(token(c.cache_read_input_tokens))} · 缓存写 ${esc(token(c.cache_write_input_tokens))} · 音频 ${esc(token(c.audio_input_tokens))} · 音频缓存 ${esc(token(c.audio_cache_read_input_tokens))} · 未分类输入 ${esc(token(c.unclassified_input_tokens))} · 输出 ${esc(token(c.output_tokens))}${c.usage_status === 'usage_incomplete' ? ' · 用量不完整，零值分项尚未确认' : ''}</div>
         <div>已知模型成本 ${esc(cost)} · 计价 ${esc(c.pricing_status || '未记录')} · 用量 ${esc(c.usage_status || '未记录')} · 原计价币种 ${esc(c.price_currency || '未知')} · 计价版本 ${esc(c.price_version || '未记录')}</div>
         <details><summary>已加载 Prompt 版本（${prompts.length}项）</summary>${prompts.length ? prompts.map(p => `<div>${esc(p.key)} · ${esc(p.source)} · 版本 ${esc(number(p.version))} · SHA256 ${esc(p.sha256 || '未记录')}</div>`).join('') : '<div>本次未保留版本快照，不代表没有使用 Prompt。</div>'}</details>
       </div>`;
