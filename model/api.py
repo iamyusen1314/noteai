@@ -11523,6 +11523,34 @@ async def _try_deterministic_score_lift(
     )
 
 
+def _applied_source_corrections(raw: str, original: str, revised: str, source: str) -> list[str]:
+    """Use the existing editor's explicit removals as a ranking signal, not factual certification.
+
+    The editor must quote an actual old span which is absent from both the supplied
+    source and the final shaped draft. Malformed/self-invented declarations cannot
+    override the normal score/quality selection; no additional provider call is made.
+    """
+    try:
+        entries = _json.loads(_xtag(raw, "source_corrections") or "[]")
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(entries, list) or len(entries) > 8:
+        return []
+    normalize = lambda value: re.sub(r"\s+", "", value or "")
+    old, new, facts = map(normalize, (original, revised, source))
+    applied = []
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("reason") != "unsupported_by_source":
+            continue
+        claim = entry.get("claim")
+        if not isinstance(claim, str) or not 6 <= len(claim) <= 240:
+            continue
+        span = normalize(claim)
+        if 6 <= len(span) <= 240 and span in old and span not in new and span not in facts and span not in applied:
+            applied.append(span)
+    return applied
+
+
 async def _score_directed_second_pass(
     title: str,
     body: str,
@@ -11655,7 +11683,12 @@ async def _score_directed_second_pass(
         f"{constraint_context}\n\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
         f"{_quality_expression_brief(domain)}\n\n"
-        f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
+        f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>\n"
+        '在note后附<source_corrections>JSON数组</source_corrections>。只记录本轮确实删除的、'
+        '原始素材与商家回答均未支持的具体断言（含亲身经历、感官或经营事实），'
+        '不是润色、字数优化或删除已提供信息。每项格式：'
+        '{"claim":"逐字摘录旧稿中被删除的具体断言","reason":"unsupported_by_source"}。'
+        '最多8项，没有则返回[]；不得为了采纳而虚报更正。'
     )
     user = (
         f"品类：{domain}\n"
@@ -11710,10 +11743,14 @@ async def _score_directed_second_pass(
         new_hits = _score_lift_hit_count(cand_title, cand_body, cand_features, cand_score, domain)
         score_gain = cand_score - score
         issue_gain = _score_gap_issue_count(issues) - _score_gap_issue_count(cand_issues)
+        source_corrections = _applied_source_corrections(
+            raw, f"{title}\n{body}", f"{cand_title}\n{cand_body}", source_context or "",
+        )
         acceptable = (
             not _has_blocking_quality_issues(cand_score, cand_issues, domain)
             and (
                 fact_repair
+                or (bool(source_corrections) and issue_gain >= 0)
                 or score_gain >= 0.2
                 or (cand_score >= score and issue_gain > 0 and new_hits >= old_hits)
                 or (cand_score >= score and _score_gap_issue_count(cand_issues) < _score_gap_issue_count(issues))
@@ -11724,6 +11761,8 @@ async def _score_directed_second_pass(
                 f"二修采纳：{score:.1f}→{cand_score:.1f}，"
                 f"命中特征{old_hits}→{new_hits}，非分数问题{_score_gap_issue_count(issues)}→{_score_gap_issue_count(cand_issues)}"
             )
+            if source_corrections:
+                reason += f"；优先保留编辑标注的{len(source_corrections)}处来源删除（非独立事实核验）"
             return cand_title, cand_body, cand_score, cand_features, cand_grade, cand_issues, True, reason
         if det_repaired:
             return title, body, score, features, grade or _grade(score), issues, True, det_reason
@@ -15925,7 +15964,7 @@ async def _run_analyze_pipeline(
                 (prepared or {}).get("confirmation", ""),
             ) if p)
             delivery_source_context = "\n\n".join(
-                p for p in [req.desc, extra_image_context, fact_context, intent_brief] if p
+                p for p in [f"用户原始标题：{req.note_title}", req.desc, extra_image_context, fact_context, intent_brief] if p
             )
             clarification_prepared = {
                 "pipeline": "analyze", "domain": req.domain, "local_time": req.local_time,
@@ -16167,7 +16206,7 @@ async def _run_analyze_pipeline(
                 _plan["title_needs_refine"] = _plan["title_meta"]["needs_refine"]
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
-    delivery_fact_context = "\n\n".join(p for p in [req.desc, extra_image_context, fact_context, intent_brief] if p)
+    delivery_fact_context = "\n\n".join(p for p in [f"用户原始标题：{req.note_title}", req.desc, extra_image_context, fact_context, intent_brief] if p)
     report_fact_issues = _structured_fact_boundary_issues(
         f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
     )

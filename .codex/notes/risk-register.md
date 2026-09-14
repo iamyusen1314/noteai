@@ -1,3 +1,8 @@
+September14 20:55BJT: current source-priority candidate retains source deletions as
+editorial ranking only; source substring absence is not independent truth proof.
+No quality acceptance from model score alone. Original title supplied; existing
+hard checks retained; different-industry real output review remains next.
+
 September14 20:32BJT: final97d public diagnosis still contains unsupported sensory
 details despite completed pipeline; no quality-pass or Readiness credit. Separate
 confirmed frontend defects (old industry choices, stale/rounded/account-crossing

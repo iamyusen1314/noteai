@@ -1,3 +1,17 @@
+September14 20:55BJT source-priority repair READY_TO_APPLY, production remains05af.
+Existing second-pass editor may identify an actually removed unsupported old span;
+selection preserves that correction despite lower telemetry only with existing hard
+quality checks and no increase in non-score issues. This is an editor ranking signal,
+NOT independent factual certification. Original user title now included in source
+context; no extra provider call, no industry Prompt rewrite, no food-specific rule.
+9 targeted Python3.11/amd64 isolated tests pass, including full shared entrypoint
+source propagation, invalid declarations, hard failures and unchanged score behavior.
+Earlier r1 import-alias failure and r2 test double old/candidate conflation retained;
+fixed _json, normalized minimum span and distinct test results. Private logs:
+~/.codex/tmp/noteai-native-ack-5qg9k4wy/source-priority-r{1,2,3}.log.
+Next API-only controlled build/deploy, then different-industry current business test;
+no replay of completed lobster/Native actions. Readiness30/37; noGitpush.
+
 September14 20:40BJT: API+originalweb05af4b0 DEPLOYED; canonical7 and ledger-balance
 UI verified in normal browser. Original97d diagnosis completed/27modelrows/6credits
 once, content-quality gap retained. Same inactive Native4feb launcher now binds

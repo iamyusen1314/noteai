@@ -3417,7 +3417,8 @@ class ApiContractTests(unittest.TestCase):
                 for req in requests
             ]
             self.assertEqual(len(editorial_calls), 18)
-            for source, constraints, editorial in editorial_calls:
+            for index, (source, constraints, editorial) in enumerate(editorial_calls):
+                self.assertIn(f"用户原始标题：{requests[index // 6].note_title}", source)
                 self.assertIn("修后的诊断方向", editorial)
                 self.assertIn("修后的写作方案", editorial)
                 self.assertIn("保留本次取舍", editorial)
@@ -4090,6 +4091,52 @@ class ApiContractTests(unittest.TestCase):
             self.assertIn(source, call.call_args.args[2])
             self.assertIn("可以保留用户明确描述的感受和经历", call.call_args.args[1])
             self.assertIn("示例中的人物经历不能移植到当前作者", call.call_args.args[1])
+
+    def test_second_pass_prefers_applied_source_removal_without_relaxing_delivery_checks(self):
+        title = "蓝白搭配适合普通日常"
+        source = "用户素材：蓝色棉质T恤，白色短裙。"
+        claim = "我连续穿了三个月也没褪色"
+        old_body = source + claim + "。"
+        clean = "蓝色棉质T恤搭配白色短裙，蓝白配色清爽。"
+        declaration = json.dumps([{"claim": claim, "reason": "unsupported_by_source"}], ensure_ascii=False)
+        cases = [
+            (declaration, source, clean, 75, [], True),
+            ("[]", source, clean, 75, [], False),
+            (declaration, source + claim, clean, 75, [], False),
+            (declaration, source, old_body, 75, [], False),
+            (declaration, source, clean, 40, [], False),
+            (declaration, source, clean, 90, ["正文包含占位符"], False),
+            (declaration, source, clean, 75, ["缺少标签", "标题不自然"], False),
+        ]
+        for metadata, facts, final_body, score, candidate_issues, accepted in cases:
+            with self.subTest(score=score, accepted=accepted, final_body=final_body, facts=facts), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=
+                     f"<note><title>{title}</title><body>{clean}</body></note><source_corrections>{metadata}</source_corrections>")) as call, \
+                 mock.patch.object(api, "_fit_title_limit", new=mock.AsyncMock(return_value=title)), \
+                 mock.patch.object(api, "_shape_body_for_delivery", new=mock.AsyncMock(return_value=final_body)), \
+                 mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(score, {"body_len": 300}, "良好"))), \
+                 mock.patch.object(api, "_generated_quality_issues", side_effect=[[], list(candidate_issues)]), \
+                 mock.patch.object(api, "_v04_generation_lift_instructions", return_value=[]):
+                result = asyncio.run(api._score_directed_second_pass(title, old_body, "穿搭", "2026091420",
+                    source_context=facts, editorial_context="保留来源，不能推断长期穿着结果。",
+                    current_score=80, current_features={"body_len": 300}, current_issues=["缺少标签"]))
+                self.assertEqual(result[6], accepted, result)
+                self.assertEqual(result[1], final_body if accepted else old_body)
+                self.assertEqual(call.await_count, 1)
+                if accepted:
+                    self.assertIn("来源删除", result[7])
+                    self.assertIn("非独立事实核验", result[7])
+
+    def test_editor_source_removal_metadata_is_bounded_and_cannot_invent_old_claims(self):
+        claim = "没有来源的完整经历描述"
+        def raw(entries):
+            return "<source_corrections>" + json.dumps(entries, ensure_ascii=False) + "</source_corrections>"
+        entry = {"claim": claim, "reason": "unsupported_by_source"}
+        for entries in ({"claim": claim}, [entry] * 9, [{"claim": "其他从未出现的断言", "reason": "unsupported_by_source"}],
+                        [{"claim": claim, "reason": "style"}], [{"claim": "短语", "reason": "unsupported_by_source"}], [{"claim": "     汤", "reason": "unsupported_by_source"}]):
+            self.assertEqual(api._applied_source_corrections(raw(entries), claim, "修正正文", "素材"), [])
+        self.assertEqual(api._applied_source_corrections("<source_corrections>invalid</source_corrections>", claim, "", ""), [])
+        self.assertEqual(api._applied_source_corrections(raw([entry, entry]), claim, "修正正文", "素材"), [claim])
 
     def test_fact_repair_accepts_lower_telemetry_but_rejects_higher_fabrication(self):
         source = "酒店地址在番禺区汉溪大道东299号，美团评分4.7，￥929起/晚。"
