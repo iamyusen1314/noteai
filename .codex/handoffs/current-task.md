@@ -1,3 +1,23 @@
+September14 image/video capability split is locally verified, not deployed yet.
+Image and video now have separate server checks/status/UI; video requires explicit
+NOTEAI_PUBLIC_VIDEO_ENABLED=1 in addition to existing media readiness. Closed video
+rejects both upload and direct existing video_file_id before dispatch/charge. Chat's
+old unconditional public-image rejection is fixed.29Python3.11 isolated product tests
+and4Chromium tests pass; initial fixture failures preserved in local logs (missing
+payload store and blocked existing payment JS), no runtime protections weakened.
+The cancellation regression now checks saved successful result/no refund/no replay,
+matching deployed045 behavior. No new migration/credentials or Item34 changes.
+
+Original full-image chain initial400 was confirmed pre-dispatch (both claim keys
+absent), then client request header corrected without redoing OCR. Same analysis key
+formal-ark-media-chain-20260914-01 reached WAITING_FOR_INPUT at1789370600.1303587,
+session841fcbf2-737b-4e1c-84a4-6e9ddab1acb2; original responses retained privately.
+Material/facts/scoring/four experts completed. Formal website restored this exact task;
+selected optional price OMIT (no merchant fact invented), submitted once through normal
+UI. Resume now in progress: read original result/accounting, do not submit again or
+restart API until settled. Native bill preparation remains next independent work;
+public media/payment still closed, Readiness30/37 unchanged.
+
 September14 media recovery live check succeeded on the same0453619 image, private
 loopback18082/CID8f29031bcf0ff60bc4d0cafaf0adcda647bc77a2a559117b44b38a9253537283.
 New authorized OCR keyformal-ark-media-recovery-20260914-01 is distinct from old OCR,

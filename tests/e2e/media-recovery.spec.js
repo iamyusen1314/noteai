@@ -61,3 +61,29 @@ test('changed screenshot batch is preserved while old result GET is pending',asy
   await expect(page.locator('[data-media-recovery]')).toContainText('当前素材已变化');
   expect(await page.evaluate(()=>_ssImages[0].dataURL)).toBe('new-synthetic-material');
 });
+
+
+test('image release leaves both video upload entries closed',async({page})=>{
+  await page.addInitScript(()=>{window.NOTEAI_PUBLIC_PRODUCT=true;});
+  await openOwner(page);
+  await page.evaluate(()=>{
+    _publicStatus={image_open:true,video_open:false,media_open:false};
+    _authUser.contract_accepted=true;syncProductUI();
+  });
+  await expect(page.locator('#screenshotInput')).toBeEnabled();
+  await expect(page.locator('#genCoverInput')).toBeEnabled();
+  await expect(page.locator('#diagVideoInput')).toBeDisabled();
+  await expect(page.locator('#genVideoInput')).toBeDisabled();
+  expect(await page.locator('#chat-file-input').getAttribute('accept')).toContain('image/png');
+  expect(await page.locator('#free-plan-mix').innerText()).toContain('视频暂未开放');
+  await page.locator('#chat-file-input').setInputFiles({name:'synthetic-image.png',mimeType:'image/png',
+    buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=','base64')});
+  await expect.poll(()=>page.evaluate(()=>_chatAttachImage?.name)).toBe('synthetic-image.png');
+  const calls=await page.evaluate(async()=>{
+    let writes=0;window.fetch=async()=>{writes++;throw Error('unexpected video transport');};
+    await _uploadVideoFile(new File(['synthetic'],'unused.mp4',{type:'video/mp4'}));
+    await _uploadDiagVideoFile(new File(['synthetic'],'unused.mp4',{type:'video/mp4'}));
+    return writes;
+  });
+  expect(calls).toBe(0);
+});

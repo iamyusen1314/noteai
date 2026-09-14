@@ -5265,6 +5265,8 @@ document.addEventListener('click', event => {
 });
 const PUBLIC_PRODUCT = window.NOTEAI_PUBLIC_PRODUCT === true;
 let _publicStatus = null;
+function publicImageOpen() { return (_publicStatus?.image_open ?? _publicStatus?.media_open) === true; }
+function publicVideoOpen() { return (_publicStatus?.video_open ?? _publicStatus?.media_open) === true; }
 const PUBLIC_PRODUCT_CONTRACT = 'free-product-2026-09-12';
 async function refreshPublicStatus() {
   if (!PUBLIC_PRODUCT) return;
@@ -5278,7 +5280,7 @@ async function refreshPublicStatus() {
   status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。诊断6 / 生成8 / 深度重写3 / 快速对话1积分。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    (_publicStatus?.media_open ? '图片和视频音画理解已开放，按同等账户权益执行。' : '图片和视频暂未开放。') + '外部笔记跟踪暂未开放。' + (_publicStatus?.payment_open ? '微信支付已开放，支付宝暂未开放。' : '公众收款暂未开放。');
+    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + '外部笔记跟踪暂未开放。' + (_publicStatus?.payment_open ? '微信支付已开放，支付宝暂未开放。' : '公众收款暂未开放。');
   syncPublicAuthAvailability();
   syncProductUI();
   refreshNativeCapabilities();
@@ -5297,15 +5299,15 @@ function syncPublicAuthAvailability() {
   document.getElementById('auth-submit-btn').disabled = !open;
 }
 function requirePublicCapability(key) {
-  if (!PUBLIC_PRODUCT || _publicStatus?.[key]) return true;
+  if (!PUBLIC_PRODUCT || (key === 'image_open' ? publicImageOpen() : key === 'video_open' ? publicVideoOpen() : _publicStatus?.[key])) return true;
   showToast(key === 'registration_open' ? '短信注册尚未开放；请稍后再试，或通过页脚联系支持' : '此项服务尚未开放；可先浏览原工作台、套餐与说明');
   return false;
 }
 function syncProductUI() {
   const pricing = document.getElementById('pricing-content');
   const freeMix = document.getElementById('free-plan-mix');
-  const mediaOpen = _publicStatus?.media_open === true;
-  if (freeMix) freeMix.textContent = mediaOpen ? '✓ 或生成1次；图片/视频按本人账户权益使用' : '✓ 或文字生成1次；图片与视频暂未开放';
+  const imageOpen = publicImageOpen(), videoOpen = publicVideoOpen();
+  if (freeMix) freeMix.textContent = '✓ 或生成1次；' + (imageOpen ? '图片按本人账户权益使用' : '图片暂未开放') + (videoOpen ? '；视频音画理解已开放' : '；视频暂未开放');
   if (pricing && !pricing.querySelector('#public-pricing-notice')) {
     const notice = document.createElement('p');
     notice.id = 'public-pricing-notice';
@@ -5316,15 +5318,17 @@ function syncProductUI() {
   document.getElementById('product-consent').style.display = _authUser && !_authUser.contract_accepted ? 'block' : 'none';
   document.querySelectorAll('.input-type').forEach(el => {
     if (el.querySelector('.input-type-label')?.textContent !== '手动填写') {
-      const allowed = mediaOpen && /图片|截图|视频/.test(el.querySelector('.input-type-label')?.textContent || '');
+      const label = el.querySelector('.input-type-label')?.textContent || '';
+      const allowed = /视频/.test(label) ? videoOpen : /图片|截图/.test(label) && imageOpen;
       el.setAttribute('aria-disabled', String(!allowed)); el.title=allowed ? '' : '此项输入尚未开放';
     }
   });
   document.querySelectorAll('input[type="file"]').forEach(el => {
-    if (el.id === 'chat-file-input') el.accept=mediaOpen ? 'image/jpeg,image/png,image/webp,.txt,.md,.json,.csv' : '.txt,.md,.json,.csv';
-    else el.disabled=!mediaOpen;
+    if (el.id === 'chat-file-input') el.accept=imageOpen ? 'image/jpeg,image/png,image/webp,.txt,.md,.json,.csv' : '.txt,.md,.json,.csv';
+    else el.disabled= /Video/i.test(el.id) ? !videoOpen : !imageOpen;
   });
-  ['genCoverInput','genVideoInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=mediaOpen ? '' : 'none';});
+  ['genCoverInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=imageOpen ? '' : 'none';});
+  ['genVideoInput','diagVideoInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=videoOpen ? '' : 'none';});
   // Existing profile actions keep their real scope; deletion/export are support requests.
   nativeSyncControls();
 }
@@ -5705,8 +5709,8 @@ function renderPricingConfig(cfg) {
     screenshot: { label: '截图识别', unit: '张', desc: '独立截图 OCR/识别功能按张扣除', color: '#22C55E' },
   };
   if (PUBLIC_PRODUCT) {
-    ops.analyze.desc = _publicStatus?.media_open ? '文字、真实图片和视频音画素材进入完整诊断链路' : '手动文字输入进入真实诊断链路';
-    if (!_publicStatus?.media_open) delete ops.screenshot;
+    ops.analyze.desc = publicVideoOpen() ? '文字、真实图片和视频音画素材进入完整诊断链路' : publicImageOpen() ? '文字与真实图片进入完整诊断链路；视频暂未开放' : '手动文字输入进入真实诊断链路';
+    if (!publicImageOpen()) delete ops.screenshot;
     ops.chat_fast = { label: '快速对话', unit: '轮', desc: '真实文字对话，每轮1积分', color: '#22C55E' };
   }
   const tierCards = pricingTierOrder(tiers).map(tier => {
@@ -5731,7 +5735,7 @@ function renderPricingConfig(cfg) {
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/${price > 0 ? '30天' : '月'}</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断${cAnalyze}次 / 爆文${cGenerate}次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮${PUBLIC_PRODUCT && !_publicStatus?.media_open ? '；图片与视频暂未开放' : ` / 截图${cScreenshot}张`}</div>
+          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮${PUBLIC_PRODUCT && !publicImageOpen() ? '；图片暂未开放' : ` / 截图${cScreenshot}张`}</div>
           ${features}
         </div>
         <button ${productActionAttributes(tier === 'free' ? 'openAuthModal' : 'handleUpgrade', tier === 'free' ? 'register' : tier)} style="width:100%;padding:11px;border-radius:12px;border:${isRecommended ? 'none' : `1px solid ${tier === 'free' ? 'var(--border)' : 'rgba(123,97,255,0.4)'}`};background:${isRecommended ? 'linear-gradient(135deg,#7B61FF,#FF6FD8)' : (tier === 'free' ? 'var(--surf-2)' : 'rgba(123,97,255,0.08)')};color:${isRecommended ? '#fff' : (tier === 'free' ? 'var(--text)' : accent)};cursor:pointer;font-size:13px;font-weight:700">${tier === 'free' ? '免费开始' : '暂不可购买'}</button>
@@ -5819,7 +5823,7 @@ function goToDiagnose(tabEl) {
 }
 
 function selectType(el, type) {
-  if (PUBLIC_PRODUCT && type !== '手动填写' && (!/图片|截图|视频/.test(type) || !requirePublicCapability('media_open'))) { showToast('此项输入尚未开放'); return; }
+  if (PUBLIC_PRODUCT && type !== '手动填写' && (!/图片|截图|视频/.test(type) || !requirePublicCapability(/视频/.test(type) ? 'video_open' : 'image_open'))) { showToast('此项输入尚未开放'); return; }
   const previousType = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
   if (previousType === '视频上传' && type !== '视频上传'
       && (_diagVideoState === 'preflight' || _diagVideoState === 'uploading')) {
@@ -6045,7 +6049,7 @@ function _setGenVideoState(state) {
 }
 
 async function _uploadVideoFile(file) {
-  if (PUBLIC_PRODUCT && !requirePublicCapability("media_open")) return;
+  if (PUBLIC_PRODUCT && !requirePublicCapability("video_open")) return;
   const errEl = document.getElementById('genVideoError');
   if (errEl) errEl.style.display = 'none';
 
@@ -9567,7 +9571,7 @@ function chatHandleAuthFailure() {
 }
 
 function chatHandleFileSelect(input) {
-  if (PUBLIC_PRODUCT && Array.from(input.files || []).some(f => f.type.startsWith('image/'))) { input.value=''; showToast('当前仅接受文字附件'); return; }
+  if (PUBLIC_PRODUCT && !publicImageOpen() && Array.from(input.files || []).some(f => f.type.startsWith('image/'))) { input.value=''; showToast('图片理解尚未开放，当前可使用文字附件'); return; }
   const files = Array.from(input.files);
   input.value = '';
   const stateEpoch = _chatUserStateEpoch;
@@ -12821,6 +12825,7 @@ function _setDiagVideoState(state, options = {}) {
 }
 
 async function _uploadDiagVideoFile(file) {
+  if (PUBLIC_PRODUCT && !requirePublicCapability("video_open")) return;
   const attempt = ++_diagVideoAttempt;
   _diagVideoFileId = null;
   _diagVideoFileName = file?.name || '';
@@ -13361,7 +13366,7 @@ async function loadBillingPlan() {
         chat_rewrite: { label:'对话深度重写', credits:3 },
         screenshot: { label:'截图识别', credits:0.5 },
       };
-      if (PUBLIC_PRODUCT) { opCosts.chat_fast={label:'快速对话',credits:1}; if (!_publicStatus?.media_open) delete opCosts.screenshot; }
+      if (PUBLIC_PRODUCT) { opCosts.chat_fast={label:'快速对话',credits:1}; if (!publicImageOpen()) delete opCosts.screenshot; }
       const opCostHTML = Object.entries(opCosts).map(([key, info]) => {
         const meta = opMeta[key] || { label: info.label || key, accent: 'var(--holo-mid)', unit: '次' };
         const credits = Number(info.credits || 0);

@@ -1,5 +1,12 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 next API/frontend candidate separates image/video capability; only the
+verified modality may open. Existing media flag controls images; video additionally
+requires NOTEAI_PUBLIC_VIDEO_ENABLED=1. Server rejects direct video references when
+closed. No migration/new service; current045 remains live until controlled switch.
+Original live image task is being resumed through the public UI after optional-price
+OMIT; verify its original result/credits/costs before restart. Handoff holds identity.
+
 September14 Native bill implementation is local/isolatedPG16 verified. Use existing
 native_capture.py prepare-bill/run-bill/close-bill for original Sep14 order, no earlier
 than Sep15 10BJT. Preserve original trade binding/context/action ledger and UNKNOWN

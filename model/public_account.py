@@ -54,7 +54,9 @@ def service_status() -> dict:
         # The async public endpoint fills this from real local readiness.
         "payment_open": False,
         "ai_open": public_product.available(),
-        "media_open": public_product.media_enabled(),
+        "media_open": public_product.image_enabled() and public_product.video_enabled(),
+        "image_open": public_product.image_enabled(),
+        "video_open": public_product.video_enabled(),
         "free_monthly_credits": 12,
         "fast_chat_credits": 1 if product_enabled() else 0,
         "tracking_open": False,

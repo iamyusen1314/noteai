@@ -8,6 +8,8 @@ const staticPaths = new Set([
   '/model/admin.html',
   '/assets/vendor/echarts-5.4.3.min.js',
   '/assets/vendor/lucide-1.27.0.min.js',
+  '/assets/vendor/qrcode-generator-2.0.4.js',
+  '/assets/payment-native.js',
   '/assets/landing/v04-quality-engine.png',
 ]);
 

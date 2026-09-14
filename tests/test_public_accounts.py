@@ -162,6 +162,10 @@ class PublicProductTests(unittest.TestCase):
         self.client = TestClient(api.app, headers={'Origin':'https://noteaipro.com',
             'Authorization':'Bearer '+self.token})
         self.marker = public_product._invocation.set(public_product.Invocation(self.user['id'],'trial-request-123'))
+        import durable_ai
+        previous_store = durable_ai.get_payload_store()
+        durable_ai.configure_payload_store(durable_ai.InMemoryPayloadStore())
+        self.addCleanup(durable_ai.configure_payload_store, previous_store)
 
     def tearDown(self):
         self.product._invocation.reset(self.marker)
@@ -311,7 +315,7 @@ class PublicProductTests(unittest.TestCase):
             self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls c JOIN model_usage_records m ON m.id=c.model_usage_record_id WHERE m.provider='doubao'")[0],2)
 
 
-    def test_ark_cancel_joins_one_physical_call_before_refund(self):
+    def test_ark_cancel_joins_one_physical_call_and_preserves_completed_response(self):
         import asyncio, base64, io, threading, httpx, ark_media
         from PIL import Image
         self.metered_usage()
@@ -342,7 +346,12 @@ class PublicProductTests(unittest.TestCase):
             asyncio.run(run())
         self.assertEqual(len(calls),1)
         row=db.fetchone("SELECT usage_id,status,refund_applied FROM idempotency_requests WHERE operation='screenshot'")
-        self.assertEqual((row['status'],row['refund_applied']),('failed',1))
+        self.assertEqual((row['status'],row['refund_applied']),('completed',0))
+        recovered = self.client.get('/chat/tasks?operation=screenshot',
+            headers={'X-Request-ID':'isolated-cancel-ocr'})
+        self.assertTrue(recovered.json()['tasks'][0]['result_available'])
+        self.assertEqual(recovered.json()['tasks'][0]['result']['model_used'],ark_media.MODEL)
+        self.assertEqual(len(calls),1)
         usage=db.fetchone('SELECT actual_model_cost_rmb,model_calls FROM usage_records WHERE id=?',(row['usage_id'],))
         self.assertGreater(usage['actual_model_cost_rmb'],0)
         self.assertEqual(usage['model_calls'],1)
@@ -357,10 +366,39 @@ class PublicProductTests(unittest.TestCase):
         scope={'type':'http','method':'POST','path':'/upload-video','raw_path':b'/upload-video',
                'headers':[(b'origin',b'https://noteaipro.com'),(b'content-type',b'multipart/form-data; boundary=offline')],
                'query_string':b'', 'server':('test',80),'client':('127.0.0.1',1000),'scheme':'http','http_version':'1.1'}
-        with mock.patch.object(self.product,'media_enabled',return_value=True):
+        with mock.patch.object(self.product,'media_enabled',return_value=True), mock.patch.object(self.product,'video_enabled',return_value=True):
             asyncio.run(PublicAccountBoundary(forbidden)(scope,receive,send))
         self.assertEqual(reads,[])
         self.assertEqual(sent[0]['status'],401)
+
+    def test_image_release_does_not_open_video_upload_or_existing_video_reference(self):
+        import asyncio, ark_media
+        from public_account import PublicAccountBoundary
+        self.metered_usage()
+        with mock.patch.dict(os.environ,{'NOTEAI_PUBLIC_MEDIA_ENABLED':'1','NOTEAI_PUBLIC_VIDEO_ENABLED':'0','NOTEAI_ARK_API_KEY':'isolated-only'}), \
+             mock.patch.object(api._private_storage,'object_backend_configured',return_value=True):
+            status=public.service_status()
+            self.assertTrue(status['image_open']);self.assertFalse(status['video_open']);self.assertFalse(status['media_open'])
+            self.assertTrue(self.product.allowed_route('POST','/upload-image'))
+            reads=[];sent=[]
+            async def receive():reads.append(1);raise AssertionError('closed video body read')
+            async def send(message):sent.append(message)
+            async def handler(*args):raise AssertionError('closed video handler')
+            scope={'type':'http','method':'POST','path':'/upload-video','raw_path':b'/upload-video',
+                'headers':[], 'query_string':b'', 'server':('test',80),'client':('127.0.0.1',1),'scheme':'http','http_version':'1.1'}
+            asyncio.run(PublicAccountBoundary(handler)(scope,receive,send))
+            self.assertEqual(sent[0]['status'],404);self.assertEqual(reads,[])
+            before=db.fetchone('SELECT count(*) FROM usage_records')[0]
+            with mock.patch.object(ark_media,'chat',side_effect=AssertionError('unopened provider')):
+                for path in ('/analyze/stream','/generate/stream','/chat/message'):
+                    response=self.client.post(path,headers={'X-Request-ID':'closed-video-reference-01'},json={
+                        'video_file_id':'11111111-1111-4111-8111-111111111111'})
+                    self.assertEqual(response.status_code,422,response.text)
+                    self.assertIn('视频',response.text)
+            self.assertEqual(db.fetchone('SELECT count(*) FROM usage_records')[0],before)
+            self.assertEqual(db.fetchone('SELECT count(*) FROM idempotency_requests')[0],0)
+            with mock.patch.dict(os.environ,{'NOTEAI_PUBLIC_VIDEO_ENABLED':'1'}):
+                self.assertTrue(self.product.video_enabled());self.assertTrue(self.product.allowed_route('POST','/upload-video'))
 
     def payload(self):
         return {'model':'kimi-k2.6','max_tokens':100,'messages':[{'role':'user','content':'自有测试文本'}]}

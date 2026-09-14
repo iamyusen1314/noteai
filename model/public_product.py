@@ -49,12 +49,21 @@ MEDIA_UPLOAD_ROUTES = {"/upload-image", "/upload-video"}
 MEDIA_PAYLOAD_ROUTES = {"/analyze/stream", "/generate/stream", "/chat/message", "/extract-screenshot", "/validate-ocr"}
 
 
-def media_enabled() -> bool:
+def image_enabled() -> bool:
     import ark_media
     import private_storage
     return (enabled() and os.environ.get("NOTEAI_PUBLIC_MEDIA_ENABLED", "0") == "1"
             and ark_media.configured() and private_storage.object_backend_configured())
 
+
+def video_enabled() -> bool:
+    return image_enabled() and os.environ.get("NOTEAI_PUBLIC_VIDEO_ENABLED", "0") == "1"
+
+
+def media_enabled() -> bool:
+    # Shared authentication, bounded body and concurrency path; capability
+    # checks below remain modality-specific.
+    return image_enabled() or video_enabled()
 
 
 def enabled() -> bool:
@@ -72,7 +81,9 @@ def wechat_configured(*, callback: bool = False) -> bool:
 def allowed_route(method: str, path: str) -> bool:
     if method == "GET" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
         return True
-    if method == "POST" and media_enabled() and path in MEDIA_UPLOAD_ROUTES | {"/extract-screenshot", "/validate-ocr"}:
+    if method == "POST" and image_enabled() and path in {"/upload-image", "/extract-screenshot", "/validate-ocr"}:
+        return True
+    if method == "POST" and video_enabled() and path == "/upload-video":
         return True
     if (method, path) in EXACT_ROUTES:
         return True
@@ -154,8 +165,10 @@ async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None
                 raise HTTPException(403, "当前仅开放微信支付")
             # Media and Tracking retain their concrete validation/deployment boundaries.
             # Facts use the existing intent/entity decision, never a gift/free downgrade.
-            if not media_enabled() and any(payload.get(k) for k in ("cover_image", "cover_images", "extra_images", "image_base64", "video_file_id")):
-                raise HTTPException(422, "当前免费体验支持文字输入；图片和视频尚未开放")
+            if not image_enabled() and any(payload.get(k) for k in ("cover_image", "cover_images", "extra_images", "image_base64")):
+                raise HTTPException(422, "图片输入尚未开放，当前可使用文字输入")
+            if not video_enabled() and payload.get("video_file_id"):
+                raise HTTPException(422, "视频音画理解尚未开放，请使用当前已开放的输入方式")
 
         context = Invocation(user["id"], request_id or str(uuid.uuid4()), route=path)
         if path in PAID_ROUTES and os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") == "1":
