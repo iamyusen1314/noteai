@@ -775,7 +775,9 @@ def process_due_account_deletions(
         try:
             import durable_ai
             import private_storage
+            import idempotency
 
+            idempotency.delete_user_responses(user_id, store=payload_store, now=current)
             durable_ai.delete_user_payloads(
                 user_id,
                 store=payload_store,
@@ -811,6 +813,8 @@ def process_due_account_deletions(
             if not request:
                 continue
             if durable_ai.has_ready_user_payloads(tx, user_id):
+                continue
+            if idempotency.has_ready_user_responses(tx, user_id):
                 continue
             if private_storage.has_ready_user_media(tx, user_id):
                 continue

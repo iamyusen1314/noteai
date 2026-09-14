@@ -118,6 +118,126 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
             now=now or self.now,
         )
 
+    def test_original_media_response_survives_commit_ack_loss_without_recharge(self):
+        import idempotency
+        self.create_user('ocr-owner')
+        claim = idempotency.claim_and_charge(user_id='ocr-owner', operation='screenshot',
+            request_id='original-ocr-key', payload={'image_base64':'media:opaque'})
+        result = {'type':'B','cover_desc':'测试红色招牌','body':'测试红色招牌','ocr_request_id':'original-ocr-key'}
+        original = idempotency.mark_completed
+        def lost_ack(*args, **kwargs):
+            self.assertTrue(original(*args, **kwargs))
+            raise RuntimeError('synthetic_commit_ack_lost')
+        with mock.patch.object(idempotency, 'mark_completed', side_effect=lost_ack):
+            idempotency.complete_media_response(claim, result, kind='screenshot_extract', ocr_result=result)
+        row = db.fetchone('SELECT * FROM idempotency_requests WHERE id=?', (claim['request_id'],))
+        self.assertNotIn('测试红色招牌', row['response_ref_json'])
+        self.assertEqual((row['status'],row['complete_applied'],row['refund_applied']), ('completed',1,0))
+        self.assertEqual(idempotency.read_media_response('ocr-owner',claim['request_id'])['result'],result)
+        self.assertIsNone(idempotency.read_media_response('other-owner',claim['request_id']))
+        duplicate = idempotency.claim_and_charge(user_id='ocr-owner', operation='screenshot',
+            request_id='original-ocr-key', payload={'image_base64':'media:opaque'})
+        self.assertEqual(duplicate['state'],'completed')
+        self.assertEqual(db.fetchone('SELECT count(*) n FROM usage_records WHERE user_id=?',('ocr-owner',))['n'],1)
+        orphan = private_storage.reconcile_orphans(prefix='v1/payload/result', now=self.now+timedelta(days=2))
+        self.assertEqual(orphan['orphan_count'],0)
+        with self.assertRaises(Exception):
+            db.execute('DELETE FROM idempotency_requests WHERE id=?',(claim['request_id'],))
+        for changes in ({'state':None,'deleted_at':self.now.isoformat()}, {'raw':'private-extra'}):
+            edited=json.loads(row['response_ref_json'])
+            if 'raw' in changes: del edited['size_bytes']
+            edited.update(changes)
+            with self.assertRaises(Exception):
+                db.execute('UPDATE idempotency_requests SET response_ref_json=? WHERE id=?',
+                           (json.dumps(edited),claim['request_id']))
+        idempotency.delete_user_responses('ocr-owner')
+        self.assertFalse(idempotency.read_media_response('ocr-owner',claim['request_id'])['result_available'])
+        db.execute('DELETE FROM idempotency_requests WHERE id=?',(claim['request_id'],))
+
+    def test_media_unknown_and_storage_outage_preserve_original_charge(self):
+        import idempotency, base64
+        from PIL import Image
+        from fastapi import HTTPException
+        self.create_user('ocr-unknown')
+        data=io.BytesIO();Image.new('RGB',(300,200),'red').save(data,'PNG')
+        request=api.ScreenshotExtractInput(image_base64=base64.b64encode(data.getvalue()).decode())
+        def unknown(*args,**kwargs):
+            claim=db.fetchone("SELECT * FROM idempotency_requests WHERE user_id='ocr-unknown'")
+            db.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id) "
+                       "VALUES(?,'website-free-product-20260912',?,?,'unknown',1,?,?)",
+                       (str(uuid.uuid4()),'ocr-unknown','a'*64,self.now.isoformat(),claim['usage_id']))
+            raise api._public_product.TrialProviderStopped('ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY')
+        with mock.patch.object(api._ark_media,'chat',side_effect=unknown) as provider:
+            with self.assertRaises(HTTPException) as stopped:
+                asyncio.run(api.extract_screenshot(request,user={'id':'ocr-unknown'},request_id='unknown-original'))
+        self.assertEqual(stopped.exception.status_code,503)
+        self.assertEqual(provider.call_count,1)
+        row=dict(db.fetchone("SELECT * FROM idempotency_requests WHERE user_id='ocr-unknown'"))
+        self.assertEqual((row['status'],row['refund_applied']),('running',0))
+        with db.transaction(write=True) as tx, self.assertRaises(idempotency.ResultRecoveryRequired):
+            idempotency.settle_expired_requests_for_account_deletion_with_storage(tx,'ocr-unknown',
+                now=datetime.now(timezone.utc)+timedelta(days=1))
+        self.create_user('ocr-store')
+        claim=idempotency.claim_and_charge(user_id='ocr-store',operation='screenshot',request_id='store-original',payload={'test':'local'})
+        with mock.patch.object(self.payload_store,'put',side_effect=RuntimeError('synthetic storage unavailable')):
+            with self.assertRaises(idempotency.ResultRecoveryRequired):
+                idempotency.complete_media_response(claim,{'body':'synthetic'},kind='screenshot_extract')
+        read=idempotency.read_media_response('ocr-store',claim['request_id'])
+        self.assertEqual(read['result_state'],'recovery_required')
+        with self.assertRaises(idempotency.ResultRecoveryRequired):
+            idempotency.mark_failed_and_refund(claim)
+        row=db.fetchone('SELECT * FROM idempotency_requests WHERE id=?',(claim['request_id'],))
+        self.assertEqual((row['status'],row['refund_applied']),('running',0))
+
+    def test_media_read_outage_is_explicit_without_reinference(self):
+        from fastapi import HTTPException
+        import idempotency
+        self.create_user('ocr-read')
+        claim=idempotency.claim_and_charge(user_id='ocr-read',operation='screenshot',request_id='read-original',payload={'test':'local'})
+        idempotency.complete_media_response(claim,{'body':'synthetic'},kind='screenshot_extract')
+        with mock.patch.object(self.payload_store,'get',side_effect=RuntimeError('private exception must not leak')), \
+             mock.patch.object(api._ark_media,'chat',side_effect=AssertionError('read must not infer')):
+            with self.assertRaises(HTTPException) as stopped:
+                asyncio.run(api.read_chat_task(claim['request_id'],user={'id':'ocr-read'}))
+        self.assertEqual(stopped.exception.status_code,503)
+        self.assertEqual(stopped.exception.detail['session_id'],claim['request_id'])
+        self.assertNotIn('private exception',str(stopped.exception.detail))
+
+    def test_media_disconnect_finishes_original_result_and_free_merge(self):
+        import idempotency, threading, base64
+        from PIL import Image
+        self.create_user('ocr-disconnect')
+        data=io.BytesIO();Image.new('RGB',(300,200),'red').save(data,'PNG')
+        request=api.ScreenshotExtractInput(image_base64=base64.b64encode(data.getvalue()).decode())
+        started=threading.Event();release=threading.Event()
+        def recognize(*args,**kwargs):
+            started.set();self.assertTrue(release.wait(10))
+            return json.dumps({'type':'B','title':'','body':'','domain':'美食','cover_desc':'测试红色招牌'})
+        async def workflow():
+            with mock.patch.object(api._ark_media,'chat',side_effect=recognize) as model:
+                task=asyncio.create_task(api.extract_screenshot(request,user={'id':'ocr-disconnect'},request_id='ocr-disconnect-key'))
+                self.assertTrue(await asyncio.to_thread(started.wait,10))
+                task.cancel();release.set()
+                with self.assertRaises(asyncio.CancelledError):await task
+                self.assertEqual(model.call_count,1)
+            read=await api.pending_chat_tasks(user={'id':'ocr-disconnect'},request_id='ocr-disconnect-key',operation='screenshot')
+            original=read['tasks'][0]
+            self.assertTrue(original['result_available'])
+            self.assertNotIn('_image_bytes',original['result'])
+            self.assertEqual((await api.read_chat_task(original['session_id'],user={'id':'ocr-disconnect'}))['result'],original['result'])
+            merge=api.ValidateOcrInput(ocr_results=[original['result']],ocr_request_ids=['ocr-disconnect-key'])
+            with mock.patch.object(api._mr,'call',side_effect=AssertionError('pure image merge must not infer')):
+                merged=await api.validate_ocr(merge,user={'id':'ocr-disconnect'})
+                self.assertTrue(merged['is_photo_only'])
+                with self.assertRaises(HTTPException) as duplicate:await api.validate_ocr(merge,user={'id':'ocr-disconnect'})
+                self.assertEqual(duplicate.exception.status_code,409)
+            rows=[dict(r) for r in db.fetchall('SELECT * FROM idempotency_requests WHERE user_id=?',('ocr-disconnect',))]
+            self.assertEqual(len(rows),2)
+            self.assertEqual(sum(r['credits_used'] for r in rows),0.5)
+            self.assertTrue(all(r['status']=='completed' and not r['refund_applied'] for r in rows))
+        from fastapi import HTTPException
+        asyncio.run(workflow())
+
     def test_schema_and_migration_are_content_free_and_grant_free(self):
         conn = db.get_conn()
         try:
@@ -305,7 +425,7 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
 
         self.create_user("image-owner")
         source = io.BytesIO()
-        Image.new("RGBA", (4, 3), (255, 0, 0, 128)).save(
+        Image.new("RGBA", (300, 200), (255, 0, 0, 128)).save(
             source,
             format="PNG",
             pnginfo=None,
@@ -336,7 +456,7 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
         self.assertEqual(reference.content_type, "image/jpeg")
         with Image.open(io.BytesIO(body)) as restored:
             self.assertEqual(restored.mode, "RGB")
-            self.assertEqual(restored.size, (4, 3))
+            self.assertEqual(restored.size, (300, 200))
             self.assertEqual(len(restored.getexif()), 0)
 
     def test_streamed_upload_enforces_limit_before_unbounded_read(self):

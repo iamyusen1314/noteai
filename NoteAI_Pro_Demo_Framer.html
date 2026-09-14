@@ -6763,6 +6763,8 @@ async function privateImageInput(value) {
   if (!value) return null;
   const owner = _authVerifiedOwnerId || _authUser?.id;
   if (!owner || !_authToken) throw new Error('请先登录后上传图片');
+  const identity=_chatIdentitySnapshot(), token=_authToken;
+  const valid=()=>_chatIdentityMatches(identity) && _authToken===token;
   if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(value)) return value;
   const key = owner + ':' + value;
   if (!_privateImageInputs.has(key)) {
@@ -6771,16 +6773,19 @@ async function privateImageInput(value) {
       const prefix = atob(raw.slice(0, 24));
       const mime = prefix.startsWith('\x89PNG') ? 'image/png' : prefix.startsWith('RIFF') ? 'image/webp' : 'image/jpeg';
       const blob = await (await fetch('data:' + mime + ';base64,' + raw)).blob();
+      if (!valid()) throw new Error('账户已切换，停止上传原图片');
       const form = new FormData();
       form.append('file', blob, 'material.' + ({'image/png':'png','image/webp':'webp','image/jpeg':'jpg'}[mime]));
-      const response = await fetch(API_BASE + '/upload-image', {method:'POST',headers:authHeader(),body:form});
+      const response = await fetch(API_BASE + '/upload-image', {method:'POST',headers:{Authorization:'Bearer '+token},body:form});
       const result = await response.json();
       if (!response.ok || !result.media_ref) throw new Error(typeof result.detail === 'string' ? result.detail : '图片私有存储未确认，请查看原上传状态');
-      if ((_authVerifiedOwnerId || _authUser?.id) !== owner) throw new Error('账户已切换，停止使用原图片');
+      if (!valid()) throw new Error('账户已切换，停止使用原图片');
       return result.media_ref;
     })());
   }
-  return await _privateImageInputs.get(key);
+  const stored=await _privateImageInputs.get(key);
+  if (!valid()) throw new Error('账户已切换，停止使用原图片');
+  return stored;
 }
 
 let _diagnosisPreparing = false;
@@ -6854,8 +6859,8 @@ async function prepareDiagnosis() {
       desc = `【图片视觉诊断，无文字内容】共上传 ${_ssImages.length} 张图片`;
     }
     // 所有图片都作为 cover/extra_images 供视觉分析
-    if (_ssImages.length > 0) coverB64 = _ssImages[0].dataURL.split(',')[1] || null;
-    extraImages = _ssImages.slice(1, 9).map(img => img.dataURL.split(',')[1] || '').filter(Boolean);
+    if (_ssImages.length > 0) coverB64 = _ssImages[0].mediaRef || _ssImages[0].dataURL.split(',')[1] || null;
+    extraImages = _ssImages.slice(1, 9).map(img => img.mediaRef || img.dataURL.split(',')[1] || '').filter(Boolean);
 
   } else if (selectedLabel === '视频上传') {
     if (_diagVideoState !== 'ready' || !_diagVideoFileId) { showToast('请先上传视频文件'); return; }
@@ -9500,6 +9505,8 @@ function _chatIdentityMatches(snapshot) {
 
 function chatClearUserState() {
   _chatUserStateEpoch += 1;
+  resetScreenshot(false);
+  document.querySelectorAll('[data-media-recovery]').forEach(el => el.remove());
   document.querySelectorAll("[data-task-clarification], [data-task-recovery]").forEach(el => el.remove());
   _generateResult = null;
   _diagnoseResult = null;
@@ -10433,6 +10440,7 @@ async function authRestoreSession() {
     loadBillingPlan();
     chatRestoreSession();
     restorePendingTaskClarification();
+    offerMediaRecovery();
     return true;
   } catch(e) {
     if (_authToken === tokenBeingVerified) authClearLocalSession();
@@ -12259,7 +12267,7 @@ function _renderSsThumbs() {
     const status = err ? 'failed' : (cached ? 'done' : meta.status || 'pending');
     return `
     <div class="ss-thumb-item ${i===0?'is-primary':''} is-${status}" title="图${i+1}（${_ssStatusLabel(status)}）">
-      <img src="${img.dataURL}">
+      ${img.recovered ? '<span>原素材已保留</span>' : `<img src="${img.dataURL}">`}
       <div class="ss-thumb-index">${i===0?'图1':('图'+(i+1))}</div>
       <div class="ss-thumb-status is-${status}">${escapeHtml(status === 'recognizing' ? `识别图${i+1}` : _ssStatusLabel(status))}</div>
       <button ${productActionAttributes('_removeSsImage',i)}
@@ -12273,6 +12281,10 @@ function _renderSsThumbs() {
 
 function _removeSsImage(idx) {
   const removed = _ssImages.splice(idx, 1)[0];
+  if (removed?.ocrRequestId && _authVerifiedOwnerId) {
+    const rows=savedMediaReferences().filter(r=>r.key!==removed.ocrRequestId && r.kind!=='merge');
+    localStorage.setItem(mediaReferenceKey(_authVerifiedOwnerId),JSON.stringify(rows));
+  }
   if (removed) _ssOcrCache.delete(removed.dataURL);
   if (removed) _ssOcrErrors.delete(removed.dataURL);
   if (removed) _ssOcrStatus.delete(removed.dataURL);
@@ -12306,9 +12318,86 @@ function _tryFinalizeCurrentScreenshotBatch() {
   return trackedPromise;
 }
 
+// Store only owner-scoped opaque references; never media bytes or model output.
+function mediaReferenceKey(ownerId) { return 'noteai_media_references_' + ownerId; }
+function savedMediaReferences(identity = _chatIdentitySnapshot()) {
+  if (!_chatIdentityMatches(identity) || _authVerifiedOwnerId !== identity.ownerId) return [];
+  try {
+    const rows = JSON.parse(localStorage.getItem(mediaReferenceKey(identity.ownerId)) || '[]');
+    return Array.isArray(rows) ? rows.filter(r => typeof r.key === 'string' && /^(?:[0-9a-f-]{36}|ocr-merge-[0-9a-f]{64})$/.test(r.key)
+      && ['extract','merge'].includes(r.kind) && (r.kind === 'merge' || /^[0-9a-f-]{36}$/.test(r.mediaRef))).slice(-10) : [];
+  } catch { return []; }
+}
+function rememberMediaReference(row, identity) {
+  if (!_chatIdentityMatches(identity)) return;
+  const rows=savedMediaReferences(identity).filter(r => r.key !== row.key && (row.kind !== 'merge' || r.kind !== 'merge'));
+  rows.push({key:row.key,kind:row.kind,mediaRef:row.mediaRef || null});
+  localStorage.setItem(mediaReferenceKey(identity.ownerId),JSON.stringify(rows.slice(-10)));
+}
+async function readOriginalMedia(key, identity = _chatIdentitySnapshot()) {
+  const token=_authToken;
+  if (!token || !_chatIdentityMatches(identity)) throw new Error('请登录原账号读取素材结果');
+  const response=await fetch(API_BASE+'/chat/tasks?operation=screenshot',
+    {headers:{Authorization:'Bearer '+token,'X-Request-ID':key}});
+  const data=await response.json();
+  if (!_chatIdentityMatches(identity) || _authToken !== token) throw new Error('账号已切换，已停止读取原素材');
+  if (!response.ok) throw new Error(data.detail?.message || (typeof data.detail === 'string' ? data.detail : '原结果暂时无法读取，请稍后读取同一任务'));
+  const task=data.tasks?.[0];
+  if (!task?.result_available) throw new Error(task?.result_state === 'expired_or_deleted' ? '原结果已到期或删除，未重新识别'
+    : task?.status === 'failed' ? '原识别已停止，未重新提交或扣分' : '原任务结果尚未确认，请稍后读取；不会自动重新识别');
+  return task.result;
+}
+function offerMediaRecovery(message = '有已提交的素材，可以读取原结果继续使用') {
+  const identity=_chatIdentitySnapshot();
+  if (!savedMediaReferences(identity).length) return;
+  document.querySelectorAll('[data-media-recovery]').forEach(el => el.remove());
+  const card=document.createElement('div');card.dataset.mediaRecovery='true';card.className='chat-supplement-card';
+  const text=document.createElement('p');text.textContent=message;card.appendChild(text);
+  const button=document.createElement('button');button.type='button';button.textContent='读取原素材结果（不重复识别）';
+  button.addEventListener('click', async()=>{
+    if (!_chatIdentityMatches(identity)) return;
+    button.disabled=true;
+    try {
+      if (_ssOcrInFlight || _ssOcrValidating) throw new Error('当前请求仍在处理，请稍后读取');
+      const revision=_ssOcrRevision, snapshot=_ssImageSnapshot();
+      const rows=savedMediaReferences(identity), images=rows.filter(r=>r.kind==='extract');
+      if (_ssImages.some(img => !images.some(r=>r.key===img.ocrRequestId))) throw new Error('请先保留或清空当前另一组素材，再读取原结果');
+      const results=[];
+      for (const row of images) results.push([row,await readOriginalMedia(row.key,identity)]);
+      const merge=rows.find(r=>r.kind==='merge'), expectedMerge=await ocrMergeRequestKey(results.map(r=>r[1]));
+      if (!_chatIdentityMatches(identity)) return;
+      if (!_isCurrentSsBatch(revision,snapshot)) throw new Error('当前素材已变化，已保留当前组；请稍后读取原结果');
+      _invalidateSsAggregateState();
+      _ssImages=results.map(([row,d])=>({dataURL:row.mediaRef,mediaRef:row.mediaRef,ocrRequestId:row.key,name:'原素材',recovered:true}));
+      results.forEach(([row,d])=>{_ssOcrCache.set(row.mediaRef,d);_ssOcrErrors.delete(row.mediaRef);});
+      _renderSsThumbs();
+      if (merge?.key===expectedMerge) {
+        if (!await _validateAndMergeOcr(results.map(r=>r[1]),_ssOcrRevision,_ssImageSnapshot(),true)) return;
+      }
+      else if (images.length===1 && (results[0][1].body || '').length<=500) _mergeAndShowOcrResults();
+      else {
+        const next=document.createElement('button');next.type='button';next.textContent='继续整理已识别内容';
+        next.addEventListener('click',async()=>{if(!_chatIdentityMatches(identity))return;next.disabled=true;await _tryFinalizeCurrentScreenshotBatch();});card.appendChild(next);
+      }
+      if (_chatIdentityMatches(identity)) text.textContent='已读取原识别结果，素材无需重传；未再次识别或扣分';
+    } catch(error) { if(_chatIdentityMatches(identity)) text.textContent=error.message; }
+    finally { if(_chatIdentityMatches(identity)) button.disabled=false; }
+  });card.appendChild(button);
+  (document.getElementById('page-upload') || document.body).prepend(card);
+}
+async function ocrMergeRequestKey(results) {
+  const sources=results.map(r=>r.ocr_request_id).filter(Boolean).sort();
+  if (!sources.length) throw new Error('请使用原截图识别结果');
+  const canonical='['+sources.map(value=>JSON.stringify(value)).join(', ')+']';
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical));
+  return 'ocr-merge-'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 // 只对传入的图片列表 OCR（避免重复），完成后更新合并结果
 async function _ocrImages(imagesToOcr) {
   if (!imagesToOcr || imagesToOcr.length === 0) return;
+  const identity=_chatIdentitySnapshot();
+  const valid=()=>_chatIdentityMatches(identity);
   const loadingEl = document.getElementById('screenshot-loading');
   let quotaModalShown = false;
   _ssOcrInFlight += imagesToOcr.length;
@@ -12318,15 +12407,19 @@ async function _ocrImages(imagesToOcr) {
   _updateScreenshotOcrUi();
 
   await Promise.allSettled(imagesToOcr.map(img =>
-    privateImageInput(img.dataURL).then(mediaRef => fetch(API_BASE + '/extract-screenshot', {
+    privateImageInput(img.mediaRef || img.dataURL).then(mediaRef => {
+      if (!valid()) throw new Error('账号已切换');
+      img.mediaRef=mediaRef;img.ocrRequestId ||= crypto.randomUUID();
+      rememberMediaReference({key:img.ocrRequestId,kind:'extract',mediaRef},identity);
+      return fetch(API_BASE + '/extract-screenshot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader(), 'X-Request-ID': (img.ocrRequestId ||= crypto.randomUUID()) },
       body: JSON.stringify({ image_base64: mediaRef }),
-	    })).then(r => {
-	      if (!_ssImages.includes(img)) return;
+	    });}).then(r => {
+	      if (!valid() || !_ssImages.includes(img)) return;
 	      if (r.status === 402) {
 	        return r.json().catch(() => ({})).then(errData => {
-	          if (!_ssImages.includes(img)) return;
+	          if (!valid() || !_ssImages.includes(img)) return;
 	          const reason = '截图识别积分不足';
 	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
@@ -12348,15 +12441,16 @@ async function _ocrImages(imagesToOcr) {
 	      }
 	      if (!r.ok) {
 	        return r.json().catch(() => ({})).then(err => {
-	          if (!_ssImages.includes(img)) return;
-	          const reason = err.detail || `HTTP ${r.status}`;
+	          if (!valid() || !_ssImages.includes(img)) return;
+	          if ([409,500,502,503,504].includes(r.status)) throw new Error('原请求结果待核实');
+	          const reason = err.detail?.message || (typeof err.detail === 'string' ? err.detail : `HTTP ${r.status}`);
 	          _ssOcrErrors.set(img.dataURL, reason);
 	          _ssOcrCache.set(img.dataURL, null);
 	          _setSsImageStatus(img, 'failed', reason);
 	        });
 	      }
 	      return r.json().then(d => {
-	        if (!_ssImages.includes(img)) return;
+	        if (!valid() || !_ssImages.includes(img)) return;
 	        // A/C 识别文字，B 识别图片视觉描述；本次上传的每张图都必须识别成功才允许后续诊断。
 	        if (d.title || d.body || d.cover_desc) {
 	          _ssOcrErrors.delete(img.dataURL);
@@ -12369,18 +12463,28 @@ async function _ocrImages(imagesToOcr) {
 	          _setSsImageStatus(img, 'failed', reason);
 	        }
 	      });
-	    }).catch(err => {
-	      if (!_ssImages.includes(img)) return;
-	      const reason = err?.message || '网络请求失败';
+	    }).catch(async err => {
+	      if (!valid() || !_ssImages.includes(img)) return;
+	      if (img.ocrRequestId) {
+        try {
+          const d=await readOriginalMedia(img.ocrRequestId,identity);
+          if (!valid() || !_ssImages.includes(img)) return;
+          _ssOcrCache.set(img.dataURL,d);_ssOcrErrors.delete(img.dataURL);_setSsImageStatus(img,'done','已恢复原识别',d);return;
+        } catch (readError) { err=readError; }
+      }
+      const reason = err?.message || '网络请求失败';
+      offerMediaRecovery(reason);
 	      _ssOcrErrors.set(img.dataURL, reason);
 	      _ssOcrCache.set(img.dataURL, null);
 	      _setSsImageStatus(img, 'failed', reason);
 	    }).finally(() => {
+	      if (!valid()) return;
 	      _renderSsThumbs();
 	      _updateScreenshotOcrUi();
 	    })
 	  ));
 
+  if (!valid()) return;
   _ssOcrInFlight = Math.max(0, _ssOcrInFlight - imagesToOcr.length);
   if (loadingEl && _ssOcrInFlight === 0) loadingEl.style.display = 'none';
   _updateScreenshotOcrUi();
@@ -12388,7 +12492,7 @@ async function _ocrImages(imagesToOcr) {
 }
 
 // Claude Haiku 鉴别 Agent：对所有 OCR 结果去重、验证、重组
-async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, imageSnapshot = _ssImageSnapshot()) {
+async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, imageSnapshot = _ssImageSnapshot(), readOnly = false) {
   if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
   const loadingEl = document.getElementById('screenshot-loading');
   const statusEl  = document.getElementById('ss-ocr-status');
@@ -12399,21 +12503,23 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
   _updateScreenshotOcrUi();
 
   try {
-    const res = await fetch(API_BASE + '/validate-ocr', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeader(), 'X-Request-ID': crypto.randomUUID() },
-      body: JSON.stringify({ ocr_results: ocrResults, ocr_request_ids: ocrResults.map(r => r.ocr_request_id).filter(Boolean) }),
-    });
-    if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
-    if (res.status === 401) {
-      openAuthModal('login');
-      throw new Error('请先登录后进行截图识别');
+    const identity=_chatIdentitySnapshot(), token=_authToken, key=await ocrMergeRequestKey(ocrResults);
+    if (!_chatIdentityMatches(identity) || _authToken!==token || !_isCurrentSsBatch(revision,imageSnapshot)) return false;
+    let d;
+    if (savedMediaReferences(identity).some(r=>r.key===key)) d=await readOriginalMedia(key,identity);
+    else {
+      if (readOnly) throw new Error('当前素材还没有对应的合并结果，请点击继续整理；读取操作未发起处理');
+      rememberMediaReference({key,kind:'merge'},identity);
+      try {
+        const res=await fetch(API_BASE+'/validate-ocr', {method:'POST',
+          headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,'X-Request-ID':key},
+          body:JSON.stringify({ocr_results:ocrResults,ocr_request_ids:ocrResults.map(r=>r.ocr_request_id).filter(Boolean)})});
+        const value=await res.json();
+        if (!res.ok) throw new Error(value.detail?.message || (typeof value.detail==='string'?value.detail:'原合并结果待核实'));
+        d=value;
+      } catch { d=await readOriginalMedia(key,identity); }
     }
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.detail || `截图文字合并失败（HTTP ${res.status}）`);
-    }
-    const d = await res.json();
+    if (!_chatIdentityMatches(identity)) return false;
     if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
 
     if (loadingEl) loadingEl.style.display = 'none';
@@ -12448,7 +12554,7 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
     return true;
   } catch(e) {
     if (!_isCurrentSsBatch(revision, imageSnapshot)) return false;
-    console.error('_validateAndMergeOcr error:', e);
+    offerMediaRecovery(e.message || '原合并结果尚未确认');
     // Keep per-image OCR for recovery, but never promote a failed merge.
     _screenshotExtracted = null;
     _ssMergedRevision = null;
@@ -12603,7 +12709,8 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
   return true;
 }
 
-function resetScreenshot() {
+function resetScreenshot(forgetReferences = true) {
+  if (forgetReferences && _authVerifiedOwnerId) {localStorage.removeItem(mediaReferenceKey(_authVerifiedOwnerId));document.querySelectorAll('[data-media-recovery]').forEach(el=>el.remove());}
   _ssImages = [];
   _ssOcrCache = new Map();
   _ssOcrErrors = new Map();

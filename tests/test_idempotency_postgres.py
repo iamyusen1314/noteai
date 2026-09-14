@@ -10,6 +10,7 @@ import os
 import sys
 import unittest
 import uuid
+from unittest import mock
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -24,6 +25,45 @@ if str(MODEL_DIR) not in sys.path:
 db = importlib.import_module("db")
 idempotency = importlib.import_module("idempotency")
 billing = importlib.import_module("billing")
+
+
+from tests.test_item31_canary_dml_postgres import CanaryPaymentFlowPostgresTests as LocalPG, ENABLED
+
+
+@unittest.skipUnless(ENABLED, 'explicit isolated PG16 socket required')
+class MediaResponsePostgresTests(unittest.TestCase):
+    setUpClass = classmethod(LocalPG.setUpClass.__func__)
+    tearDownClass = classmethod(LocalPG.tearDownClass.__func__)
+    connect = LocalPG.connect
+
+    def test_private_response_is_atomic_immutable_and_removed_before_cascade(self):
+        import durable_ai
+        import json
+        store = durable_ai.InMemoryPayloadStore()
+        with mock.patch.dict(os.environ, {'DATABASE_URL':'postgresql:///isolated?host=/var/run/postgresql'}), \
+             mock.patch.object(db, 'get_conn', self.connect):
+            uid = 'synthetic-response-' + uuid.uuid4().hex
+            db.execute("INSERT INTO users(id,username,email,password_hash,password_salt,created_at) VALUES(?,?,?,'fake','fake','2026-09-14T00:00:00+00:00')",
+                       (uid,uid,uid+'@example.invalid'))
+            claim = idempotency.claim_and_charge(user_id=uid,operation='screenshot',request_id='local-original',payload={'image':'synthetic'})
+            value = {'body':'合成测试文字','ocr_request_id':'local-original'}
+            idempotency.complete_media_response(claim,value,kind='screenshot_extract',ocr_result=value,store=store)
+            row = dict(db.fetchone('SELECT * FROM idempotency_requests WHERE id=?',(claim['request_id'],)))
+            self.assertEqual(idempotency.read_media_response(uid,claim['request_id'],store=store)['result'],value)
+            with self.assertRaises(Exception):
+                db.execute('DELETE FROM users WHERE id=?',(uid,))
+            edited=json.loads(row['response_ref_json']);edited['content_sha256']='a'*64
+            with self.assertRaises(Exception):
+                db.execute('UPDATE idempotency_requests SET response_ref_json=? WHERE id=?',(json.dumps(edited),claim['request_id']))
+            edited=json.loads(row['response_ref_json']);edited.update(state=None,deleted_at='2026-09-14T00:00:00+00:00')
+            with self.assertRaises(Exception):
+                db.execute('UPDATE idempotency_requests SET response_ref_json=? WHERE id=?',(json.dumps(edited),claim['request_id']))
+            with self.connect() as conn:
+                allowed=conn.execute("SELECT has_column_privilege('noteai_app','idempotency_requests','response_ref_json','SELECT') r,has_column_privilege('noteai_app','idempotency_requests','response_ref_json','UPDATE') w,has_table_privilege('noteai_app','idempotency_requests','DELETE') d").fetchone()
+            self.assertTrue(allowed['r'] and allowed['w']);self.assertFalse(allowed['d'])
+            idempotency.delete_user_responses(uid,store=store)
+            self.assertFalse(idempotency.read_media_response(uid,claim['request_id'],store=store)['result_available'])
+            db.execute('DELETE FROM users WHERE id=?',(uid,))
 
 
 @unittest.skipUnless(

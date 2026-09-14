@@ -182,6 +182,21 @@ async def _await_media_worker(function, *args, **kwargs):
         raise
 
 
+async def _await_media_completion(coroutine):
+    """Join parsing, result persistence and the original charge after disconnect."""
+    worker = asyncio.create_task(coroutine)
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        while not worker.done():
+            try:
+                await asyncio.shield(worker)
+            except asyncio.CancelledError:
+                continue
+        worker.result()
+        raise
+
+
 def _original_video_metadata(payload: bytes | None = None, *, path: str | None = None) -> dict:
     import cv2
     if path is None:
@@ -938,6 +953,9 @@ def _paid_request_claim(
         "failed": "相同请求已失败并完成退款；请使用新的请求标识重试",
         "waiting_for_input": "素材和已完成分析已保留，请回答原任务中的问题后继续",
     }
+    if operation == 'screenshot':
+        messages['completed'] = '原截图请求已完成，请读取原识别结果，无需再次上传或扣费'
+        messages['in_progress'] = '原截图请求仍在处理中，请读取原任务状态，不重复识别'
     raise HTTPException(status_code=409, detail={
         "code": codes.get(state, "IDEMPOTENCY_IN_PROGRESS"),
         "status": state,
@@ -13605,81 +13623,96 @@ async def extract_screenshot(
             _idempotency.mark_failed_and_refund(claim, failure_code='request_failed')
         else:
             _billing.refund_operation_charge(user['id'], 'screenshot', billing_charge, '截图识别失败自动退回')
-    """用实际素材理解模型提取截图标题、正文和话题标签。"""
-    prompt = (
-        "请分析这张图片，判断它属于哪种类型，并提取对应内容：\n\n"
-        "类型说明：\n"
-        "  A（完整笔记截图）：包含配图 + 标题/正文文字，如手机截图\n"
-        "  B（纯内容图片）：菜品/环境/产品/人物照片，没有笔记文字\n"
-        "  C（纯文字截图）：只有标题和正文文字，无配图\n\n"
-        "严格按以下 JSON 格式返回，不要添加任何其他内容：\n"
-        "{\n"
-        '  "type": "A" 或 "B" 或 "C",\n'
-        '  "title": "笔记标题（B类型填空字符串）",\n'
-        '  "body": "正文内容，不要包含话题标签（B类型填空字符串）",\n'
-        '  "tags": ["截图中识别到的话题标签，如 #广州美食；没有则返回空数组"],\n'
-        '  "domain": "美食/旅行/穿搭/运动/学习/职场/情感/宠物/健康",\n'
-        '  "cover_desc": "图片视觉描述：主体元素、色调光线、构图氛围，40-80字（C类型填空字符串）"\n'
-        "}\n"
-        "注意：1）话题必须放入 tags，不要混入 body；2）B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
-    )
+    async def finish():
+        """用实际素材理解模型提取截图标题、正文和话题标签。"""
+        prompt = (
+            "请分析这张图片，判断它属于哪种类型，并提取对应内容：\n\n"
+            "类型说明：\n"
+            "  A（完整笔记截图）：包含配图 + 标题/正文文字，如手机截图\n"
+            "  B（纯内容图片）：菜品/环境/产品/人物照片，没有笔记文字\n"
+            "  C（纯文字截图）：只有标题和正文文字，无配图\n\n"
+            "严格按以下 JSON 格式返回，不要添加任何其他内容：\n"
+            "{\n"
+            '  "type": "A" 或 "B" 或 "C",\n'
+            '  "title": "笔记标题（B类型填空字符串）",\n'
+            '  "body": "正文内容，不要包含话题标签（B类型填空字符串）",\n'
+            '  "tags": ["截图中识别到的话题标签，如 #广州美食；没有则返回空数组"],\n'
+            '  "domain": "美食/旅行/穿搭/运动/学习/职场/情感/宠物/健康",\n'
+            '  "cover_desc": "图片视觉描述：主体元素、色调光线、构图氛围，40-80字（C类型填空字符串）"\n'
+            "}\n"
+            "注意：1）话题必须放入 tags，不要混入 body；2）B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
+        )
+        try:
+            image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
+            raw_bytes = _read_image_input(req.image_base64)
+            raw = await _await_media_worker(_ark_media.chat, prompt,
+                [_ark_media.image_part(raw_bytes)],
+                max_tokens=8192, json_output=True)
+            import re as _re
+            m = _re.search(r'\{[\s\S]*\}', raw)
+            if not m:
+                raise ValueError("无法解析返回内容")
+            result = _json.loads(m.group(0))
+            if not isinstance(result, dict) or result.get("error") or not any(
+                isinstance(result.get(k), str) and result[k].strip() for k in ("title", "body", "cover_desc")
+            ):
+                raise ValueError("screenshot_recognition_incomplete")
+
+            if (result.get('type', 'A') not in ('A', 'B', 'C') or
+                    any(not isinstance(result.get(k, ''), (str, type(None))) for k in
+                        ('title', 'body', 'domain', 'cover_desc')) or not (
+                    result.get('tags') is None or isinstance(result.get('tags'), str) or
+                    isinstance(result.get('tags'), list) and all(isinstance(t, str) for t in result['tags']))):
+                raise ValueError('screenshot_result_fields_invalid')
+            result = {k: result[k] for k in ('type','title','body','tags','domain','cover_desc') if k in result}
+
+            img_type = result.get("type", "A")
+            body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
+            result["body"] = body_main
+            result["tags"] = tags
+
+            # B类型（纯图片）：cover_desc 拼入 body 作为视觉上下文，不需要文字内容
+            if img_type == "B":
+                cover_desc = result.get("cover_desc", "")
+                result["title"] = result.get("title") or ""
+                result["body"]  = f"【封面图视觉描述】{cover_desc}" if cover_desc else ""
+                result["is_photo_only"] = True
+
+            # A类型（完整截图）：cover_desc + body 合并
+            elif img_type == "A" and result.get("cover_desc"):
+                result["body"] = (result.get("body") or "") + \
+                    f"\n\n【配图视觉描述】{result['cover_desc']}"
+
+            result["_media_type"] = media_type
+            result['model_used'] = _ark_media.MODEL
+            if claim:
+                result['ocr_request_id'] = str(request_id)
+                await _await_media_worker(_idempotency.complete_media_response, claim, result, kind='screenshot_extract',
+                    source_ids=[str(request_id)], ocr_result=result)
+            return result
+        except _idempotency.ResultRecoveryRequired:
+            raise HTTPException(503, {'code':'MEDIA_RESULT_RECOVERY_REQUIRED',
+                'message':'原识别结果正在恢复，请读取原任务，不要重新识别。'}) from None
+        except (_public_product.TrialProviderStopped, _ark_media.ArkMediaError) as exc:
+            refund()
+            code = str(exc)
+            raise HTTPException(502, {"code":code if re.fullmatch(r"[A-Z0-9_]{1,80}",code) else "MEDIA_PROVIDER_UNCONFIRMED",
+                                      "message":"素材理解未能完整确认，本次已停止；请查看原任务结果，不重复提交。"}) from None
+        except asyncio.CancelledError:
+            refund()
+            raise
+        except HTTPException:
+            refund()
+            raise
+        except Exception as e:
+            _log_internal_failure("provider", e, phase="extract_screenshot")
+            refund()
+            raise HTTPException(status_code=500, detail="截图解析服务暂时不可用")
     try:
-        image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
-        raw_bytes = _read_image_input(req.image_base64)
-        raw = await _await_media_worker(_ark_media.chat, prompt,
-            [_ark_media.image_part(raw_bytes)],
-            max_tokens=8192, json_output=True)
-        import re as _re
-        m = _re.search(r'\{[\s\S]*\}', raw)
-        if not m:
-            raise ValueError("无法解析返回内容")
-        result = _json.loads(m.group(0))
-        if not isinstance(result, dict) or result.get("error") or not any(
-            isinstance(result.get(k), str) and result[k].strip() for k in ("title", "body", "cover_desc")
-        ):
-            raise ValueError("screenshot_recognition_incomplete")
-
-        img_type = result.get("type", "A")
-        body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
-        result["body"] = body_main
-        result["tags"] = tags
-
-        # B类型（纯图片）：cover_desc 拼入 body 作为视觉上下文，不需要文字内容
-        if img_type == "B":
-            cover_desc = result.get("cover_desc", "")
-            result["title"] = result.get("title") or ""
-            result["body"]  = f"【封面图视觉描述】{cover_desc}" if cover_desc else ""
-            result["is_photo_only"] = True
-
-        # A类型（完整截图）：cover_desc + body 合并
-        elif img_type == "A" and result.get("cover_desc"):
-            result["body"] = (result.get("body") or "") + \
-                f"\n\n【配图视觉描述】{result['cover_desc']}"
-
-        result["_media_type"] = media_type
-        result["_image_bytes"] = image_bytes
-        result['model_used'] = _ark_media.MODEL
-        if claim:
-            result['ocr_request_id'] = str(request_id)
-            if not _idempotency.mark_completed(claim, confirm_existing=True, ocr_result=result):
-                raise HTTPException(503, '原截图结果完成状态未确认，请勿重复提交')
-        return result
-    except (_public_product.TrialProviderStopped, _ark_media.ArkMediaError) as exc:
-        refund()
-        code = str(exc)
-        raise HTTPException(502, {"code":code if re.fullmatch(r"[A-Z0-9_]{1,80}",code) else "MEDIA_PROVIDER_UNCONFIRMED",
-                                  "message":"素材理解未能完整确认，本次已停止；请查看原任务结果，不重复提交。"}) from None
-    except asyncio.CancelledError:
-        refund()
-        raise
-    except HTTPException:
-        refund()
-        raise
-    except Exception as e:
-        _log_internal_failure("provider", e, phase="extract_screenshot")
-        refund()
-        raise HTTPException(status_code=500, detail="截图解析服务暂时不可用")
-
+        return await _await_media_completion(finish())
+    except _idempotency.ResultRecoveryRequired:
+        raise HTTPException(503, {'code':'MEDIA_RESULT_RECOVERY_REQUIRED',
+            'message':'原识别结果尚待恢复，请读取原任务，不要再次上传或识别。'}) from None
 
 class ValidateOcrInput(BaseModel):
     ocr_results: list[dict] = Field(min_length=1, max_length=9)
@@ -13696,15 +13729,24 @@ async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_cur
     claim = _paid_request_claim(key, user_id=user['id'], operation='screenshot', payload=req, included_ocr_ids=sources) if sources else None
     if not claim:
         _billing.record_free_usage(user['id'], 'screenshot')
+    async def finish():
+        try:
+            result = await _validate_ocr_impl(req, user)
+            if claim:
+                await _await_media_worker(_idempotency.complete_media_response, claim, result, kind='screenshot_merge', source_ids=sources)
+            return result
+        except _idempotency.ResultRecoveryRequired:
+            raise HTTPException(503, {'code':'MEDIA_RESULT_RECOVERY_REQUIRED',
+                'message':'原合并结果正在恢复，请读取原任务，不要重新识别。'}) from None
+        except BaseException:
+            if claim:
+                _idempotency.mark_failed_and_refund(claim, failure_code='request_failed')
+            raise
     try:
-        result = await _validate_ocr_impl(req, user)
-        if claim and not _idempotency.mark_completed(claim, confirm_existing=True):
-            raise HTTPException(503, '截图合并完成状态未确认，请勿重复提交')
-        return result
-    except BaseException:
-        if claim:
-            _idempotency.mark_failed_and_refund(claim, failure_code='request_failed')
-        raise
+        return await _await_media_completion(finish())
+    except _idempotency.ResultRecoveryRequired:
+        raise HTTPException(503, {'code':'MEDIA_RESULT_RECOVERY_REQUIRED',
+            'message':'原识别结果尚待恢复，请读取原任务，不要再次上传或识别。'}) from None
 
 
 async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
@@ -13790,6 +13832,8 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
                 "char_count": d.get("char_count") or _body_content_len_without_tags(body_main),
                 "validated":  True,
             }
+    except _public_product.TrialProviderStopped:
+        raise
     except Exception as e:
         _log_internal_failure("provider", e, phase="validate_ocr")
 
@@ -19701,7 +19745,18 @@ async def chat_start(
 
 
 @app.get("/chat/tasks")
-async def pending_chat_tasks(user: dict = Depends(_auth.get_current_user)):
+async def pending_chat_tasks(user: dict = Depends(_auth.get_current_user),
+                             request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+                             operation: str | None = None):
+    if isinstance(request_id, str):
+        if operation != 'screenshot':
+            raise HTTPException(422, '请选择原截图请求')
+        key = _idempotency.normalize_request_id(request_id)
+        row = _db.fetchone("SELECT id FROM idempotency_requests WHERE user_id=? AND operation='screenshot' AND key_hash=?",
+                           (user['id'], _idempotency._sha256(key)))
+        if not row:
+            raise HTTPException(404, '原截图任务不存在或不属于当前账号')
+        return {'tasks': [await _read_media_task(user['id'], row['id'])]}
     rows = _db.fetchall("SELECT c.id FROM chat_sessions c JOIN idempotency_requests i "
                         "ON i.id=c.id AND i.user_id=c.user_id WHERE c.user_id=? "
                         "AND i.status='waiting_for_input' ORDER BY c.updated_at DESC LIMIT 20", (user["id"],))
@@ -19710,7 +19765,18 @@ async def pending_chat_tasks(user: dict = Depends(_auth.get_current_user)):
 
 @app.get("/chat/tasks/{session_id}")
 async def read_chat_task(session_id: str, user: dict = Depends(_auth.get_current_user)):
+    media = await _read_media_task(user['id'], session_id)
+    if media is not None:
+        return media
     return _clarification.read(user["id"], session_id)
+
+
+async def _read_media_task(user_id, session_id):
+    try:
+        return await asyncio.to_thread(_idempotency.read_media_response, user_id, session_id)
+    except Exception:
+        raise HTTPException(503, {'code':'MEDIA_RESULT_RECOVERY_REQUIRED','session_id':session_id,
+            'message':'原结果暂时无法读取，请稍后读取同一任务；不会再次识别或扣分。'}) from None
 
 
 def _clarified_fact_context(prepared, confirmation):

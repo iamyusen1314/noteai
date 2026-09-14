@@ -1,5 +1,20 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 14:24BJT actual publication: scoped clarification98ab070 API image
+0ce1436b64f42f9fc04040093b989bac25d494f0954088515200f7d648fe5e0d and web98ab070
+are live; oldAPIce/web99 retained for compatible rollback. Model/env/Admin/payment
+flags unchanged. Original deploy and web readbacks/Handoff identify the exact files.
+The statements below naming ce/web99 as current are historical after this release.
+Media response persistence/0028 and browser readback are a separate local candidate:
+23storage+PG16 and8OCR/static regressions,3Chromium race/recovery cases passed.
+Before release: build exact candidate with readable runtime source files, backup and
+apply additive0028 through original owner, verify original history/ACL scope, then
+private candidate health and API/frontend controlled switch. No historical OCR
+response backfill; UNKNOWN remains original-reconcile-only, never provider replay.
+Public media requires actual end-to-end quality/cost verification after deployment;
+video representative material/path remains a separate concrete verification gap.
+
+
 Current closure correction (September14, local regression verified): after closing
 entry/admission and draining original actions/operators, KEEP the API container that
 owns Payment's network alive. Stop Payment and read its sealed original journal first;

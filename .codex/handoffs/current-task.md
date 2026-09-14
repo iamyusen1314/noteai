@@ -1,3 +1,37 @@
+September14 14:24BJT clarification correction98ab070 is now deployed: API image
+0ce1436b64f42f9fc04040093b989bac25d494f0954088515200f7d648fe5e0d;
+web /var/www/noteai-public/98ab070, public JS f3abd01458837e967b240844f77710f243f9a68e7a8789515df499f922850f16.
+Read original deploy/result.json and web-result.json; API/env/model/Admin unchanged
+except scoped API source; frontend copy differs only product-app.js. Original owner
+browser reload still reads existing notes. No provider calls/business writes in
+release, no Item34 or payment switch. Rollback APIce51f46b9a/web99c9ed8 retained.
+Private root /var/lib/noteai/clarification-98ab070: source archive359410B SHA
+4e2b856acc497f0e00d273168bd940cc214bfccda7edc41bb929e7b258d9e4db uploaded once.
+Original download short-read assertion and incorrect archive-count assertion stopped
+before building; reused hash-confirmed original. First build copied0600 source into
+nonroot image: actual import validation failed. Preserved build/result+image d0fa21;
+corrected identical source modes0644 in build-readable, built once there and verified
+Python3.11.15/Linuxamd64/runtime hashes/imports. BuildPID1692820; deployPID1693416
+finished, exact private candidate stopped. Never claim original failed image passed.
+
+Current NEXT media-response work is LOCAL, not in deployed98ab070.
+It reuses original screenshot claims/private payload storage, additive0028 metadata,
+whole-response cancellation protection and GET readback; no new queue/platform.
+SQLite and isolatedPG16 verify complete/commit-ack-loss/owner isolation/cleanup;
+UNKNOWN accounting and storage outage preserve original charge and need reconcile,
+not automatic retry/refund. Browser normal OCR handler isolated disconnect reads
+same result; reload performs GET only, account switch clears recovered state.
+Owner-scoped local storage contains opaque keys/media references only. Review also
+identified/fixed async account-switch windows in upload/merge and appended-source
+readback inadvertently starting merge; final regression now passes. Existing Python3.11
+OSS/credential SDK versions were added only to isolated test image (network-disabled
+test run):23storage+PG16,8OCR/static regressions and3actual Chromium race/recovery
+tests pass. Old4x3 upload fixture adjusted to current minimum300x200, no product
+size protection weakened.0028NOT_APPLIED;
+public media remains closed until actual full chain/quality verification. Video
+full chain and Native next-day same-order bill remain independent next work.
+Readiness30/37 unchanged; no Gitpush or protected-path changes.
+
 September14 13:50BJT next local fixes verified, not deployed. Native shutdown root
 cause reproduced on an isolated Docker internal network: stop shared-network API
 owner removed follower eth0/routes; original PG connection/pg_notify still blocked

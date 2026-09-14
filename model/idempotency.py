@@ -334,7 +334,7 @@ def claim_and_charge(
                 status = "running"
             return {
                 "state": "in_progress" if status == "running" else status,
-                "session_id": existing["id"] if status == "waiting_for_input" else None,
+                "session_id": existing["id"] if status == "waiting_for_input" or operation == 'screenshot' else None,
                 "failure_code": str(existing.get("failure_code") or "")
                 if status == "failed" else "",
             }
@@ -422,6 +422,9 @@ def _fail_running_request_in_transaction(
     failure_code: str,
     now_iso: str,
 ) -> None:
+    if current.get('failure_code') == 'result_store_unknown':
+        raise ResultRecoveryRequired('MEDIA_RESULT_RECOVERY_REQUIRED')
+    assert_media_calls_settled(tx, current)
     charge = {
         "usage_id": current.get("usage_id"),
         "subscription_id": current.get("charged_subscription_id"),
@@ -519,6 +522,7 @@ def settle_expired_requests_for_account_deletion_with_storage(
 
 def mark_completed(
     context: dict[str, Any] | None, *, confirm_existing: bool = False, ocr_result: dict | None = None,
+    response_reference=None,
 ) -> bool:
     if not context or context.get("state") != "owner":
         return False
@@ -546,16 +550,198 @@ def mark_completed(
             return False
         if current.get("status") == "completed" and current.get("complete_applied"):
             return bool(confirm_existing and not current.get("refund_applied") and
-                        (ocr_result is None or current.get('ocr_result_hash') == payload_hash(ocr_result)))
+                        (ocr_result is None or current.get('ocr_result_hash') == payload_hash(ocr_result)) and
+                        (response_reference is None or current.get('response_ref_json') ==
+                         response_reference_json(response_reference, current)))
         if current.get("status") != "running" or current.get("lease_token_hash") != lease_digest:
             return False
         if ocr_result is not None and current['operation'] != 'screenshot':
             raise ValueError('OCR result requires original screenshot admission')
         extra = ',ocr_result_hash=?' if ocr_result is not None else ''
-        tx.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1,"
+        response_values = ()
+        if response_reference is not None:
+            assert_media_calls_settled(tx, current)
+            extra += ',response_ref_json=?'
+            response_values = (response_reference_json(response_reference, current),)
+        tx.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1,failure_code='',"
                    "completed_at=?,updated_at=?" + extra + " WHERE id=?",
-                   (now, now, *((payload_hash(ocr_result),) if ocr_result is not None else ()), context['request_id']))
+                   (now, now, *((payload_hash(ocr_result),) if ocr_result is not None else ()),
+                    *response_values, context['request_id']))
     return True
+
+
+class ResultRecoveryRequired(RuntimeError):
+    """The original media call/result must be reconciled, never repeated."""
+
+
+def assert_media_calls_settled(tx, current):
+    if current.get('operation') == 'screenshot' and tx.fetchone(
+        "SELECT id FROM public_trial_calls WHERE usage_record_id=? AND "
+        "(state IN ('dispatched','unknown') OR (state='responded' AND http_status=200 "
+        "AND model_usage_record_id IS NULL)) LIMIT 1", (current.get('usage_id'),),
+    ):
+        raise ResultRecoveryRequired('MEDIA_CALL_RESULT_UNCONFIRMED')
+
+
+def response_reference_json(reference, current):
+    """Only opaque metadata belongs in the original request ledger."""
+    import durable_ai
+    from dataclasses import asdict
+    if not isinstance(reference, durable_ai.PayloadReference):
+        raise ValueError('invalid response reference')
+    values = asdict(reference)
+    values.pop('created')
+    if (current['operation'] != 'screenshot' or reference.operation_id != current['id']
+            or reference.subject_hash != operation_subject_hash(current['user_id'])
+            or reference.id != durable_ai.payload_reference_id_for(current['id'], 'result')
+            or reference.purpose != 'result' or reference.schema_version != 1
+            or reference.state not in ('ready', 'deleted', 'expired')
+            or reference.encryption_mode != 'provider_managed'
+            or any(type(values[name]) is not int for name in ('size_bytes', 'item_count', 'schema_version'))
+            or not 0 < reference.size_bytes <= 1024 * 1024 or reference.item_count != 1):
+        raise ValueError('response reference binding mismatch')
+    for name in ('subject_hash', 'object_key_hash', 'content_sha256', 'key_epoch_hash'):
+        value = values[name]
+        if not isinstance(value, str) or len(value) != 64 or any(c not in '0123456789abcdef' for c in value):
+            raise ValueError('invalid response reference hash')
+    clocks = {}
+    for name in ('created_at', 'ready_at', 'expires_at'):
+        clock = datetime.fromisoformat(values[name])
+        if clock.tzinfo is None:
+            raise ValueError('response reference clock missing timezone')
+        clocks[name] = clock
+    if not clocks['created_at'] <= clocks['ready_at'] < clocks['expires_at']:
+        raise ValueError('response reference clocks out of order')
+    if reference.state == 'ready' and reference.deleted_at is not None:
+        raise ValueError('ready response cannot be deleted')
+    if reference.state != 'ready' and not reference.deleted_at:
+        raise ValueError('response cleanup clock missing')
+    if reference.deleted_at is not None:
+        deleted = datetime.fromisoformat(reference.deleted_at)
+        if deleted.tzinfo is None or deleted < clocks['ready_at']:
+            raise ValueError('invalid response cleanup clock')
+    return json.dumps(values, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+
+def response_reference_from_row(row):
+    import durable_ai
+    current = dict(row)
+    raw = current.get('response_ref_json')
+    if not isinstance(raw, str) or len(raw) > 4096:
+        raise ValueError('invalid response metadata')
+    values = json.loads(raw)
+    fields = set(durable_ai.PayloadReference.__dataclass_fields__) - {'created'}
+    if not isinstance(values, dict) or set(values) != fields:
+        raise ValueError('invalid response metadata fields')
+    reference = durable_ai.PayloadReference(**values, created=False)
+    if response_reference_json(reference, current) != raw:
+        raise ValueError('noncanonical response metadata')
+    return reference
+
+
+def complete_media_response(context, result, *, kind, source_ids=(), ocr_result=None, store=None):
+    """Persist the original successful result, then atomically complete its claim.
+
+    A missing commit acknowledgement never deletes an object or refunds a
+    successful physical call. The original owner read can confirm that commit.
+    """
+    import durable_ai
+    if not context or context.get('state') != 'owner' or context['operation'] != 'screenshot':
+        raise ValueError('original screenshot claim required')
+    if kind not in ('screenshot_extract', 'screenshot_merge') or not isinstance(result, dict):
+        raise ValueError('invalid media result kind')
+    if any(k in result for k in ('_image_bytes', 'image_base64', 'authorization', 'cookie', 'token')):
+        raise ValueError('raw media or credentials cannot enter response payload')
+    body = json.dumps({'schema_version': 1, 'kind': kind, 'claim_id': context['request_id'],
+        'operation': context['operation'], 'request_payload_hash': context['payload_hash'],
+        'source_ids': list(source_ids), 'result': result}, ensure_ascii=False,
+        sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    if len(body) > 1024 * 1024:
+        raise ValueError('media result too large')
+    selected = store or durable_ai.get_payload_store()
+    try:
+        with db.transaction(write=True) as tx:
+            content_retention.assert_user_writable_with_storage(tx, context['user_id'])
+            row = _owned_row(tx, context)
+            current = dict(row or {})
+            if (any(current.get(k) != context.get(k) for k in ('user_id','operation','key_hash','payload_hash'))
+                    or current.get('lease_token_hash') != _sha256(context['lease_token'])
+                    or current.get('refund_applied') or current.get('status') not in ('running','completed')):
+                raise ResultRecoveryRequired('MEDIA_RESULT_BINDING_UNCONFIRMED')
+            assert_media_calls_settled(tx, current)
+            if current['status'] == 'running':
+                # A storage/commit outage is not a refundable provider failure.
+                # Keep this marker through lease expiry until original reconcile.
+                tx.execute("UPDATE idempotency_requests SET failure_code='result_store_unknown' WHERE id=?", (current['id'],))
+        reference = selected.put(operation_id=context['request_id'], user_id=context['user_id'],
+            purpose='result', payload=body, item_count=1, ttl_seconds=durable_ai.RESULT_TTL_SECONDS)
+        if not mark_completed(context, confirm_existing=True, ocr_result=ocr_result,
+                              response_reference=reference):
+            raise ResultRecoveryRequired('MEDIA_RESULT_COMMIT_UNCONFIRMED')
+    except Exception:
+        # Reconcile one original commit; no second put, inference or charge.
+        try:
+            row = db.fetchone('SELECT * FROM idempotency_requests WHERE id=? AND user_id=?',
+                              (context['request_id'], context['user_id']))
+            if (row and row['status'] == 'completed' and row['complete_applied'] and not row['refund_applied']
+                    and row['payload_hash'] == context['payload_hash']
+                    and (ocr_result is None or row['ocr_result_hash'] == payload_hash(ocr_result))
+                    and selected.get(response_reference_from_row(row), user_id=context['user_id']) == body):
+                return result
+        except Exception:
+            pass
+        raise ResultRecoveryRequired('MEDIA_RESULT_RECOVERY_REQUIRED') from None
+    return result
+
+
+def read_media_response(user_id, claim_id, *, store=None):
+    import durable_ai
+    row = db.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=? AND operation='screenshot'",
+                      (claim_id, user_id))
+    if not row:
+        return None
+    current = dict(row)
+    reply = {'session_id': current['id'], 'kind': 'media', 'status': current['status'],
+             'result_available': False, 'result': None}
+    if current['failure_code'] == 'result_store_unknown':
+        reply['result_state'] = 'recovery_required'
+    if current['status'] == 'completed' and current['response_ref_json']:
+        reference = response_reference_from_row(current)
+        if reference.state != 'ready' or datetime.fromisoformat(reference.expires_at) <= _now():
+            reply['result_state'] = 'expired_or_deleted'
+            return reply
+        payload = json.loads((store or durable_ai.get_payload_store()).get(reference, user_id=user_id))
+        if (payload.get('claim_id') != current['id'] or payload.get('request_payload_hash') != current['payload_hash']
+                or payload.get('operation') != 'screenshot' or payload.get('schema_version') != 1
+                or payload.get('kind') not in ('screenshot_extract', 'screenshot_merge')):
+            raise ResultRecoveryRequired('MEDIA_RESULT_BINDING_MISMATCH')
+        reply.update(kind=payload['kind'], result_available=True, result=payload['result'])
+    return reply
+
+
+def has_ready_user_responses(tx, user_id):
+    state = "response_ref_json::jsonb->>'state'" if tx.postgres else "json_extract(response_ref_json,'$.state')"
+    return bool(tx.fetchone("SELECT 1 FROM idempotency_requests WHERE user_id=? "
+                            f"AND response_ref_json IS NOT NULL AND {state}='ready' LIMIT 1", (user_id,)))
+
+
+def delete_user_responses(user_id, *, store=None, now=None):
+    import durable_ai
+    from dataclasses import replace
+    selected = store or durable_ai.get_payload_store()
+    rows = db.fetchall('SELECT * FROM idempotency_requests WHERE user_id=? AND response_ref_json IS NOT NULL', (user_id,))
+    for row in rows:
+        current = dict(row)
+        reference = response_reference_from_row(current)
+        if reference.state != 'ready':
+            continue
+        if not selected.delete(reference, user_id=user_id):
+            raise durable_ai.PayloadUnavailable('MEDIA_RESPONSE_DELETE_UNCONFIRMED')
+        with db.transaction(write=True) as tx:
+            content_retention.lock_user_write_fence_with_storage(tx, user_id, allow_deletion_requested=True)
+            tx.execute('UPDATE idempotency_requests SET response_ref_json=? WHERE id=? AND user_id=? AND response_ref_json=?',
+                (response_reference_json(replace(reference, state='deleted', deleted_at=_iso(now)), current),
+                 current['id'], user_id, current['response_ref_json']))
 
 
 def mark_failed_and_refund(
@@ -584,6 +770,7 @@ def mark_failed_and_refund(
             return False
         if current.get("status") != "running" or current.get("lease_token_hash") != lease_digest:
             return False
+        assert_media_calls_settled(tx, current)
         _fail_running_request_in_transaction(
             tx,
             current,

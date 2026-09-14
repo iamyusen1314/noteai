@@ -693,6 +693,48 @@ def _upgrade_sqlite_original_video(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA foreign_keys=ON")
 
 
+def _install_sqlite_response_reference_guards(conn: sqlite3.Connection) -> None:
+    # The original claim owns only opaque metadata, never the media/result body.
+    conn.executescript("""
+CREATE INDEX IF NOT EXISTS idx_idempotency_response_reference
+ON idempotency_requests(json_extract(response_ref_json,'$.id')) WHERE response_ref_json IS NOT NULL;
+CREATE TRIGGER IF NOT EXISTS noteai_response_reference_insert
+BEFORE INSERT ON idempotency_requests WHEN NEW.response_ref_json IS NOT NULL
+BEGIN SELECT RAISE(ABORT,'response requires completed original claim'); END;
+CREATE TRIGGER IF NOT EXISTS noteai_response_reference_update
+BEFORE UPDATE OF response_ref_json ON idempotency_requests WHEN NEW.response_ref_json IS NOT OLD.response_ref_json
+BEGIN
+ SELECT CASE WHEN NEW.response_ref_json IS NULL OR length(NEW.response_ref_json)>4096
+  OR NOT json_valid(NEW.response_ref_json) THEN RAISE(ABORT,'invalid response metadata') END;
+ SELECT CASE WHEN NEW.operation<>'screenshot' OR NEW.status<>'completed'
+  OR NEW.complete_applied<>1 OR NEW.refund_applied<>0
+  OR json_extract(NEW.response_ref_json,'$.operation_id') IS NOT NEW.id
+  OR json_extract(NEW.response_ref_json,'$.purpose') IS NOT 'result'
+  OR (SELECT count(*) FROM json_each(NEW.response_ref_json))<>16
+  OR EXISTS(SELECT 1 FROM json_each(NEW.response_ref_json) WHERE key NOT IN
+   ('id','operation_id','subject_hash','purpose','object_key_hash','content_sha256',
+    'size_bytes','item_count','schema_version','encryption_mode','key_epoch_hash','state',
+    'expires_at','created_at','ready_at','deleted_at'))
+  THEN RAISE(ABORT,'invalid response binding') END;
+ SELECT CASE WHEN OLD.response_ref_json IS NULL AND (
+  json_extract(NEW.response_ref_json,'$.state') IS NOT 'ready'
+  OR json_extract(NEW.response_ref_json,'$.deleted_at') IS NOT NULL)
+  THEN RAISE(ABORT,'invalid initial response state') END;
+ SELECT CASE WHEN OLD.response_ref_json IS NOT NULL AND (
+  json_remove(NEW.response_ref_json,'$.state','$.deleted_at')<>json_remove(OLD.response_ref_json,'$.state','$.deleted_at')
+  OR json_extract(OLD.response_ref_json,'$.state') IS NOT 'ready'
+  OR json_extract(NEW.response_ref_json,'$.state') IS NULL
+  OR json_extract(NEW.response_ref_json,'$.state') NOT IN ('deleted','expired')
+  OR json_extract(NEW.response_ref_json,'$.deleted_at') IS NULL)
+  THEN RAISE(ABORT,'immutable response reference') END;
+END;
+CREATE TRIGGER IF NOT EXISTS noteai_response_reference_delete
+BEFORE DELETE ON idempotency_requests WHEN OLD.response_ref_json IS NOT NULL
+AND json_extract(OLD.response_ref_json,'$.state')='ready'
+BEGIN SELECT RAISE(ABORT,'private response cleanup required'); END;
+""")
+
+
 def _upgrade_sqlite_task_clarification(conn: sqlite3.Connection) -> None:
     """Preserve all old claims, media digests, FKs and triggers on SQLite."""
     row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='idempotency_requests'").fetchone()
@@ -1663,6 +1705,7 @@ CREATE TABLE IF NOT EXISTS idempotency_requests (
     failed_at            TEXT,
     ocr_result_hash      TEXT,
     ocr_merge_key_hash   TEXT,
+    response_ref_json    TEXT,
     CONSTRAINT idempotency_clarification_state_check
         CHECK (status <> 'waiting_for_input' OR (
             operation IN ('analyze','generate') AND usage_id IS NOT NULL
@@ -2269,9 +2312,10 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
         _upgrade_sqlite_original_video(conn)
         _upgrade_sqlite_task_clarification(conn)
         ocr_columns = {r[1] for r in conn.execute('PRAGMA table_info(idempotency_requests)')}
-        for name in ('ocr_result_hash', 'ocr_merge_key_hash'):
+        for name in ('ocr_result_hash', 'ocr_merge_key_hash', 'response_ref_json'):
             if name not in ocr_columns:
                 conn.execute(f'ALTER TABLE idempotency_requests ADD COLUMN {name} TEXT')
+        _install_sqlite_response_reference_guards(conn)
         _install_sqlite_ark_media_guards(conn)
         payment_refund_cols = {
             str(row[1]): str(row[2]).upper()

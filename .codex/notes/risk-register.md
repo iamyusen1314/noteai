@@ -1,5 +1,13 @@
 # Risk Register
 
+September14 media recovery candidate: original screenshot result is private and
+owner-bound; metadata only in original claim. Disconnect/commit-ack-loss recovery,
+no UNKNOWN refund, cleanup-before-cascade and async owner/batch isolation now pass
+isolated tests.0028 remains NOT_APPLIED and public media remains closed. An outage
+before private storage/result registration is confirmed remains recovery_required;
+GET does not infer, charge or invent a background reconciliation. No historical
+result backfill or price/Prompt rewrite. Exact live/local versions at Handoff top.
+
 September14 Native payment/refund truth is verified, but the original DML capture
 is incomplete: Payment hung in shutdown and exited137 at the30s Docker deadline.
 Original incomplete journal has only start+9registrations; no sealed tail. Keep it

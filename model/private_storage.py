@@ -1476,6 +1476,15 @@ def reconcile_orphans(
             f"SELECT 1 FROM {table} WHERE id=?",
             (reference_id,),
         )
+        if not exists and table == 'ai_payload_refs':
+            field = "response_ref_json::jsonb->>'id'" if db.using_postgres() else "json_extract(response_ref_json,'$.id')"
+            exists = db.fetchone(f"SELECT 1 FROM idempotency_requests WHERE response_ref_json IS NOT NULL AND {field}=?",
+                                 (reference_id,))
+            if not exists:
+                # A completed object may precede an uncertain DB commit. Keep
+                # precisely its original running claim's object for reconcile.
+                exists = any(durable_ai.payload_reference_id_for(row['id'], 'result') == reference_id
+                    for row in db.fetchall("SELECT id FROM idempotency_requests WHERE operation='screenshot' AND status='running'"))
         if exists:
             continue
         orphan_count += 1
