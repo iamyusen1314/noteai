@@ -22,9 +22,9 @@ import urllib.request
 import urllib.error
 import uuid
 
-ROOT = Path('/var/lib/noteai/native-80b01ea/trade')
-API_IMAGE = 'sha256:51f46b9a5ec522841379c97a6564c3f5b6ef02ee6b4b93cb85e6ab257d907589'
-PAYMENT_IMAGE = 'sha256:62ffa056101ca1b573253364ed7d094abcb5d25e7c756e8e051ad65ce607b8e8'
+ROOT = Path('/var/lib/noteai/native-6c9221e/trade')
+API_IMAGE = 'sha256:48a478ecc80f850687463f4c7c77d603224683cf54e1ca5e3a53c08dd31724f9'
+PAYMENT_IMAGE = 'sha256:15d15189ea5c414933b20d84ef7889b0cd3a6b8faca9439f1f05fc264cc81584'
 CANARY_IMAGE = 'sha256:35097f4f4c5912f23de5affcf2d38958fff7c85270eee42ff50f7972e21bdf14'
 USER_ID = '61d63b05-17eb-47d5-b19e-fb7eab297299'
 APP_ID = 'wxfa4405963601a505'
@@ -35,7 +35,7 @@ PROXIES = [Path('/etc/nginx/noteai-' + n + '-proxy.conf') for n in ('account', '
 BOUND_ENV = Path('/var/lib/noteai/wechat-native-20260913/candidate-config/canary-bound.env')
 HASHES = {
     str(API_UNIT): '46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6',
-    str(API_DROP): '4862ef72c0735c329a1967b766e1112b1e96e860c7a9b3fd28533b44f2a83d67',
+    str(API_DROP): '1a7bb993d53080eb819e29742508ac8450293effbfba01dcea5ea5573cfc192b',
     str(PAYMENT_UNIT): '40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb',
     str(BOUND_ENV): '861cc4be3dec07a5c20c1f271f87a566ab91bb61e4c3049add5e641d6db0f9bf',
     '/etc/noteai/public-account.env': '49690b5c2e4aa1612eae64c13adaead84ee80ec0fd7b399040bb275e062ecd8d',
@@ -131,6 +131,8 @@ def prepare():
         text = 'BEGIN;\nSET LOCAL lock_timeout=\'5s\';\nSET LOCAL statement_timeout=\'30s\';\n'
         text += '\n'.join(s.rstrip(';') + ';' for s in statements) + '\nCOMMIT;\n'
         (ROOT / (phase + '.sql')).write_text(text)
+        (ROOT / (phase + '-dms.sql')).write_text(dms_transaction(
+            statements, binding['activation'], removal=phase == 'remove'))
     paths = [API_UNIT, API_DROP, PAYMENT_UNIT, *PROXIES]
     backups = {}
     for index, path in enumerate(paths):
@@ -227,6 +229,7 @@ def activate():
         'NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH': str(starts + 3600),
         'NOTEAI_ITEM31_DML_BINDING_FILE': str(ROOT / 'binding.json'),
         'NOTEAI_ITEM31_DML_BINDING_SHA256': meta['binding_sha256'],
+        'NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE': meta['activation'],
         'NOTEAI_PAYMENT_ORDERING_ENABLED': '1', 'NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED': '1',
         'NOTEAI_PAYMENT_ORDER_PROVIDERS': 'wechatpay_direct',
         'NOTEAI_PAYMENT_CALLBACK_PROVIDERS': 'wechatpay_direct',
@@ -448,6 +451,7 @@ def bill_environment(meta, binding, starts):
        'NOTEAI_PAYMENT_CANARY_NOT_BEFORE_EPOCH':str(starts),'NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH':str(starts+3600),
        'NOTEAI_ITEM31_DML_BINDING_FILE':str(ROOT/'binding.json'),'NOTEAI_ITEM31_DML_BINDING_SHA256':meta['binding_sha256'],
        'NOTEAI_PAYMENT_ORDERING_ENABLED':'0','NOTEAI_PAYMENT_CALLBACK_RELAY_ENABLED':'0','NOTEAI_PAYMENT_CALLBACK_ENABLED':'0',
+       'NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE':'',
        'NOTEAI_PAYMENT_ORDER_PROVIDERS':'wechatpay_direct','NOTEAI_PAYMENT_CALLBACK_PROVIDERS':'wechatpay_direct',
        'PGOPTIONS':'-c default_transaction_read_only=off -c statement_timeout=10000 -c lock_timeout=5000'}
 

@@ -873,6 +873,89 @@ finally:
 del PG
 
 
+class NativeCapturePreparationTests(unittest.TestCase):
+    def test_prepare_renders_atomic_owner_sql_without_starting_capture(self):
+        from deploy.production import native_capture as launcher
+        with tempfile.TemporaryDirectory() as temp, ExitStack() as stack:
+            parent = Path(temp)
+            root = parent / 'trade'
+            paths = [parent / name for name in ('api.service', 'api.conf', 'payment.service', 'proxy.conf')]
+            for path in paths:
+                path.write_text('existing ' + path.name)
+            web = parent / 'web'; web.mkdir()
+            stack.enter_context(mock.patch.multiple(launcher, ROOT=root, API_UNIT=paths[0],
+                API_DROP=paths[1], PAYMENT_UNIT=paths[2], PROXIES=[paths[3]]))
+            check = stack.enter_context(mock.patch.object(launcher, 'check_original'))
+            stack.enter_context(mock.patch.object(launcher.os, 'chown'))
+            stack.enter_context(mock.patch.object(launcher, 'Path', side_effect=lambda value:
+                web if str(value) == '/var/www/noteai-public/current' else Path(value)))
+            stack.enter_context(mock.patch.object(launcher, 'config_hash', return_value='unchanged-config', create=True))
+            stack.enter_context(mock.patch.object(launcher, 'inspect', return_value={'Image': 'unchanged-admin'}, create=True))
+            def sql_read(code):
+                binding = json.loads((root / 'binding.json').read_text())
+                self.assertIn('installation_sql', code)
+                return {'install': [x.as_string() for x in dml.installation_sql(binding['activation'], binding['targets'])],
+                    'remove': [x.as_string() for x in dml.removal_sql(list(binding['targets']))]}
+            stack.enter_context(mock.patch.object(launcher, 'api_read', side_effect=sql_read))
+            result = launcher.prepare()
+            self.assertEqual(result['state'], 'PREPARED_NOT_ACTIVATED')
+            binding = json.loads((root / 'binding.json').read_text())
+            for phase in ('install', 'remove'):
+                text = (root / (phase + '-dms.sql')).read_text()
+                self.assertTrue(text.startswith('DO $noteai$'))
+                self.assertEqual(text.count('DO $noteai$'), 1)
+                self.assertIn(binding['activation'], text)
+                self.assertIn("current_user <> 'noteai_admin'", text)
+                self.assertTrue((root / (phase + '.sql')).exists())
+            self.assertIn('existing capture must be reconciled', (root / 'install-dms.sql').read_text())
+            self.assertIn('capture identity mismatch', (root / 'remove-dms.sql').read_text())
+            self.assertFalse((root / 'started.json').exists())
+            with self.assertRaises(AssertionError):
+                launcher.prepare()
+            self.assertEqual(json.loads((root / 'binding.json').read_text()), binding)
+            self.assertEqual(check.call_count, 2)
+
+    def test_activate_binds_once_only_ack_to_exact_capture_and_restores_ingress(self):
+        from deploy.production import native_capture as launcher
+        with tempfile.TemporaryDirectory() as temp, ExitStack() as stack:
+            root = Path(temp)
+            paths = [root / name for name in ('api.service', 'api.conf', 'payment.service')]
+            before = {p: b'original unit' for p in paths}
+            before[paths[1]] = ('[Service]\nExecStart=/usr/bin/docker run --name=noteai-api-c ' + launcher.API_IMAGE + '\n').encode()
+            activation = str(uuid.uuid4())
+            binding = {'activation': activation}
+            (root / 'binding.json').write_text(json.dumps(binding))
+            meta = {'activation': activation, 'binding_sha256': launcher.digest((root / 'binding.json').read_bytes()),
+                'config_hash': 'unchanged'}
+            stack.enter_context(mock.patch.multiple(launcher, ROOT=root, API_UNIT=paths[0], API_DROP=paths[1], PAYMENT_UNIT=paths[2]))
+            stack.enter_context(mock.patch.object(launcher, 'check_original'))
+            stack.enter_context(mock.patch.object(launcher, 'originals', return_value=(meta, before)))
+            stack.enter_context(mock.patch.object(launcher, 'idle', return_value=True, create=True))
+            stack.enter_context(mock.patch.object(launcher, 'api_read', side_effect=[{'n': 15, 'matches': True}, {'ready': True}]))
+            stack.enter_context(mock.patch.object(launcher, 'drain'))
+            stack.enter_context(mock.patch.object(launcher, 'run', return_value=b'', create=True))
+            stack.enter_context(mock.patch.object(launcher, 'health', create=True))
+            stack.enter_context(mock.patch.object(launcher, 'config_hash', return_value='unchanged', create=True))
+            stack.enter_context(mock.patch.object(launcher, 'put', side_effect=lambda p,b: p.write_bytes(b), create=True))
+            stack.enter_context(mock.patch.object(launcher.subprocess, 'run', return_value=mock.Mock(
+                returncode=0, stdout=json.dumps([{'State': {'Running': True}}]).encode())))
+            stack.enter_context(mock.patch.object(launcher, 'inspect', side_effect=lambda name:
+                {'Image': launcher.API_IMAGE if name == 'noteai-api-c' else launcher.PAYMENT_IMAGE, 'Id': name}, create=True))
+            restore = stack.enter_context(mock.patch.object(launcher, 'restore_ingress'))
+            result = launcher.activate()
+            env = dict(line.split('=', 1) for line in (root / 'input.env').read_text().splitlines())
+            self.assertEqual(env['NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE'], activation)
+            self.assertEqual(env['NOTEAI_PAYMENT_CANARY_ACTIVATION_ID'], activation)
+            self.assertEqual(env['NOTEAI_PAYMENT_CANARY_AMOUNT_FEN'], '1200')
+            self.assertIn(launcher.PAYMENT_IMAGE, paths[2].read_text())
+            self.assertIn(launcher.API_IMAGE, paths[1].read_text())
+            self.assertIn(str(root / 'input.env'), paths[2].read_text())
+            self.assertEqual(result['state'], 'ACTIVE_OWNER_ONLY')
+            restore.assert_called_once_with(before)
+            with self.assertRaises(AssertionError):
+                launcher.activate()
+
+
 class NativeCaptureShutdownTests(unittest.TestCase):
     def test_network_owner_remains_until_broker_seals_even_for_unknown_journal(self):
         from deploy.production import native_capture as launcher
@@ -958,6 +1041,7 @@ class NativeBillCaptureTests(unittest.TestCase):
         binding={'activation':'original-bill','reconciliation_run_id':str(uuid.uuid4())}
         with self.assertRaises(AssertionError): launcher.bill_environment(meta,binding,starts-1)
         env=launcher.bill_environment(meta,binding,starts)
+        self.assertEqual(env['NOTEAI_ITEM31_WECHAT_ACK_FAILURE_ONCE'],'')
         self.assertEqual(env['NOTEAI_PAYMENT_CANARY_ACTION'],'reconcile')
         self.assertEqual(env['NOTEAI_PAYMENT_CANARY_ORDER_ID'],'original-order')
         self.assertEqual(int(env['NOTEAI_PAYMENT_CANARY_EXPIRES_EPOCH'])-starts,3600)

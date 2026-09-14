@@ -1,3 +1,21 @@
+September14 19:01BJT continuation: API1c94a2624e6a639968aaa71ed84061a0e066dd02
+DEPLOYED; actual48a478ecc80f850687463f4c7c77d603224683cf54e1ca5e3a53c08dd31724f9.
+OriginalbuildPID1741280 completed1789383379.741678; deployPID1741557 completed
+1789383440.7412999. Results /var/lib/noteai/media-1c94a26/build/build-result.json
+and deploy/result.json; exact temporary candidate stopped, a3 rollback retained.
+18runtime hashes/Python3.11.15/amd64 verified; web3dce194/Admin/config unchanged,
+0provider/DDL/business writes during rollout. Public media/payment still closed;
+no live quality acceptance inferred. DropSHA1a7bb993d53080eb819e29742508ac8450293effbfba01dcea5ea5573cfc192b.
+
+Existing Native launcher now locally binds new trade directory native-6c9221e/trade,
+actual deployedAPI48a and builtPayment15d15189, reuses originaloperator35097.
+Generates existing atomic DMS install/remove, scopes one ACK503 to exact activation,
+keeps bill ACK disabled and corrected Payment-before-API closure. Seven Python3.11
+isolated launcher tests pass, no production capture/new order started. Frozen fc4f49f
+original next-day bill package stays unchanged. Original12RMB paid/refunded once;
+new genuine duplicate notification and complete capture need a new owner-scanned
+12RMB canary, not original-order replay. Readiness30/37 unchanged; no Git push.
+
 September14 current local API correction: existing constraint contract now distinguishes
 explicit omissions from source-supported facts, checks all candidates/final versions,
 and carries the same choices through Chat shaping/second pass/save. A higher score
