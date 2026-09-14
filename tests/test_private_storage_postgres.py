@@ -136,6 +136,75 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
     def digest(value: str) -> str:
         return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
+    def test_media_recovery_waits_for_original_transaction_before_cleanup(self):
+        import concurrent.futures
+        import threading
+        from contextlib import contextmanager
+        from datetime import datetime, timezone
+        from unittest import mock
+        import content_retention
+        import private_storage
+
+        self.conn.rollback()
+        user_id = str(uuid.uuid4())
+        clock = datetime.now(timezone.utc)
+        db.execute('INSERT INTO users(id,username,email,password_hash,password_salt,created_at) VALUES(?,?,?,?,?,?)',
+                   (user_id,'commit-'+user_id,user_id+'@example.com','hash','salt',clock.isoformat()))
+        original_transaction = db.transaction
+        original_fence = content_retention.lock_user_write_fence_with_storage
+        pending_conn = db.get_conn()
+        pending_conn.execute('BEGIN')
+        recovering = threading.Event()
+        locked = threading.Event()
+        calls = 0
+        backend = private_storage.InMemoryObjectBackend()
+
+        @contextmanager
+        def lost_before_commit_finished(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                yield db.Transaction(pending_conn, True)
+                raise RuntimeError('synthetic_ack_lost_while_transaction_still_pending')
+            with original_transaction(*args, **kwargs) as tx:
+                yield tx
+
+        def observed_fence(*args, **kwargs):
+            if kwargs.get('allow_deletion_requested'):
+                recovering.set()
+                result = original_fence(*args, **kwargs)
+                locked.set()
+                return result
+            return original_fence(*args, **kwargs)
+
+        private_storage.configure_object_backend(backend, key_epoch='isolated-commit-race')
+        try:
+            with mock.patch.object(db, 'transaction', side_effect=lost_before_commit_finished), \
+                    mock.patch.object(content_retention, 'lock_user_write_fence_with_storage', side_effect=observed_fence), \
+                    mock.patch.object(backend, 'delete', wraps=backend.delete) as delete, \
+                    concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(private_storage.store_media_bytes, user_id,
+                    purpose='image', content_type='image/jpeg', payload=b'isolated-original',
+                    item_count=1, now=clock)
+                try:
+                    self.assertTrue(recovering.wait(timeout=10))
+                    self.assertFalse(locked.wait(timeout=0.2))
+                    self.assertFalse(future.done())
+                    delete.assert_not_called()
+                    # The original row is still invisible to a separate reader.
+                    self.assertEqual(db.fetchone('SELECT count(*) n FROM private_media_refs WHERE subject_hash=?',
+                        (private_storage.idempotency.operation_subject_hash(user_id),))['n'], 0)
+                finally:
+                    pending_conn.commit()
+                ref = future.result(timeout=10)
+                self.assertTrue(locked.is_set())
+                delete.assert_not_called()
+                self.assertEqual(private_storage.load_media_bytes(ref.id,user_id=user_id)[1],b'isolated-original')
+        finally:
+            pending_conn.rollback()
+            pending_conn.close()
+            private_storage.reset_object_backend()
+
     def operation(self, label: str, *, subject_hash: str | None = None) -> str:
         operation_id = str(uuid.uuid5(uuid.NAMESPACE_URL, label))
         subject = subject_hash or self.digest(f"subject:{label}")

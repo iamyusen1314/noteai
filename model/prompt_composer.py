@@ -378,6 +378,9 @@ def _agent_output_contract(role: str, domain: str | None = None) -> str:
         "<suggestions>列3条修改动作，按优先级排列，必须能直接执行。</suggestions>\n"
         "<confidence>0.00-1.00</confidence>\n"
         "不要输出营销口号，不要编造未提供事实。"
+        "未提供的感官、配方、使用效果或亲身经历，不是当前稿必须补齐的缺陷。"
+        "修改动作先整理已有材料；待核实事项只能写成条件建议或向用户提问，"
+        "不能要求下游直接补写为当前稿的卖点或实测经历。"
     )
 
 

@@ -431,19 +431,30 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
         from contextlib import contextmanager
         self.create_user('media-ack-owner')
         original=db.transaction
+        attempts=0
         @contextmanager
         def lost_ack(*args,**kwargs):
+            nonlocal attempts
+            attempts+=1
+            current=attempts
             with original(*args,**kwargs) as tx:
                 yield tx
-            raise RuntimeError('synthetic_commit_ack_loss')
+            if current==1:
+                raise RuntimeError('synthetic_commit_ack_loss')
         with mock.patch.object(db,'transaction',side_effect=lost_ack), \
                 mock.patch.object(self.backend,'delete',wraps=self.backend.delete) as delete:
             ref=private_storage.store_media_bytes('media-ack-owner',purpose='image',content_type='image/jpeg',
                 payload=self.jpeg(),item_count=1,now=self.now)
             delete.assert_not_called()
         self.assertEqual(private_storage.load_media_bytes(ref.id,user_id='media-ack-owner')[1],self.jpeg())
+        attempts=0
+        original_fence=importlib.import_module('content_retention').lock_user_write_fence_with_storage
+        def unavailable_recovery(*args,**kwargs):
+            if kwargs.get('allow_deletion_requested'):
+                raise RuntimeError('reconcile_lock_unavailable')
+            return original_fence(*args,**kwargs)
         with mock.patch.object(db,'transaction',side_effect=lost_ack), \
-                mock.patch.object(db,'fetchone',side_effect=RuntimeError('reconcile_unavailable')), \
+                mock.patch('content_retention.lock_user_write_fence_with_storage',side_effect=unavailable_recovery), \
                 mock.patch.object(self.backend,'delete',wraps=self.backend.delete) as delete:
             with self.assertRaises(private_storage.ObjectStorageUnavailable) as raised:
                 private_storage.store_media_bytes('media-ack-owner',purpose='image',content_type='image/jpeg',

@@ -1,3 +1,12 @@
+September14 current:3dce194 API/web live; same-chat correction refresh verified.
+Quality04 full chain/once-charge29calls is confirmed, content-quality gap persists.
+Experts themselves requested unsupported experiential expansion; common source/advice
+boundary is now corrected locally without altering industry assets. Private media
+commit-unknown compensation now waits on original user fence before reading absence;
+isolatedPG16 proves delayed original commit preserves ready bytes. No production SQL
+or new acceptance credit. Exact result, cost, retained failures and next scoped release
+at Handoff top; publicmedia/video/payment remain closed.
+
 September14 current:8f41 API+web deployed; ordinary correction savedv2/once3credits,
 1.01626RMB actual; facts quantity/date updated, remaining inferred claims are not
 quality acceptance. Refresh-confirmation recovery and avoiding stale high-score

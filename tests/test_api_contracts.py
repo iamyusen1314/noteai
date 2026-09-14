@@ -3636,6 +3636,8 @@ class ApiContractTests(unittest.TestCase):
             asyncio.run(api._agent_user("乌冬面", source, "美食", {}, [], dk, "原有约束"))
         self.assertEqual(call.await_count, 3)
         for item in call.call_args_list:
+            self.assertIn(api._CONTENT_SOURCE_POLICY, item.args[1])
+            self.assertIn("不是当前稿必须补齐的缺陷", item.args[1])
             self.assertIn(source, item.args[2])
             self.assertIn("原有约束", item.args[2])
             self.assertIn("图像只证明可见外观", item.args[2])

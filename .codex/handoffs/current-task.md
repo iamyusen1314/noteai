@@ -1,3 +1,27 @@
+September14 current: quality04 COMPLETED, no replay. Original claim7308e9ad-4c16-4676-90c2-c4aac9ae9acb,
+usage708246a2-61e4-4258-a348-b36b783116c8: charge1/refund0/complete1,6credits once;
+29responded calls,2.4848752RMB actual (24Haiku58013in/11362out0.803761;
+4Sonnet29941in/10009out1.679706;1Ark2047in/50out0.0014082). No repeated OCR/merge.
+Original final1789380457.581386, SSE1f50cc505cbef8f893506ce7e0df75c1973e07afa15dabc85b06ca7f5bf65ec6;
+private /var/lib/noteai/media-3dce194/owner-check/quality-read-1789380619696911791.json.
+Saved diagnosis85d55817-6c62-414e-b5f6-158f35e9acd8/note1a0decd4-e82d-47e7-9c23-238dd82efc64.
+Final scores70.1/64.7/68.9. Full model/credit chain completes, but output still adds
+unprovided taste/consumption/ordering facts; checked/HTTP success is not human quality
+acceptance. Exact private5be02bf6 candidate stopped/auto-removed1789380703.4448862;
+public3dce194 API/web unchanged. Original12RMB order paid/refunded once, bill outstanding.
+
+Next LOCAL fix: common source policy now reaches Content/Growth/User expert systems;
+shared expert advice contract no longer requires missing sensory/recipe/experience
+slots to be filled as facts. Original seven industry assets/routes are unchanged.
+Media commit recovery now reacquires original user fence before reading absence or
+compensating, preserving bytes while the original transaction can still commit.
+27offline Python3.11 checks pass; isolatedPG16 delayed-original-commit race passes:
+recovery waits, row becomes visible, object is not deleted. PG test first missed its
+temporary SQLite path; second reused cluster role cleanup was rejected due to other
+test databases. Fresh network-nonePG16 instance passed; prior failures retained.
+No production SQL/provider/Item34 action in those tests. Scoped build/deploy next;
+public media/video/payment closed; Readiness30/37 unchanged, no Gitpush.
+
 September14 18:02BJT current: original website3dce194 refresh has now been verified
 in the browser. Same24868937 session restored savedv2 and latest1cup/Sept14 answer;
 omitted second question blank,2948credits, no new chat/model/charge. Original correction

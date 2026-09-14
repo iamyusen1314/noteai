@@ -3023,6 +3023,7 @@ async def _agent_content(
         f"{_get_feature_governance_brief(domain)}\n\n"
         f"【品类知识库·{domain}】\n{dk.get('content', '')}"
         f"{_agent_output_contract('内容专家', domain)}"
+        f"\n\n{_CONTENT_SOURCE_POLICY}"
     )
 
     content_issues = "\n".join(
@@ -3080,7 +3081,7 @@ async def _agent_growth(
 ) -> dict:
     base = _runtime_prompt("agent_growth_system", domain)
     system = base.replace("{domain}", domain or "通用") + \
-        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类增长知识库·{domain}】\n{dk.get('growth', '')}{_agent_output_contract('增长专家', domain)}"
+        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类增长知识库·{domain}】\n{dk.get('growth', '')}{_agent_output_contract('增长专家', domain)}\n\n{_CONTENT_SOURCE_POLICY}"
 
     if timing:
         matched = "、".join(timing.get("matched_keywords", [])[:8]) or "无"
@@ -3116,7 +3117,7 @@ async def _agent_user(
 ) -> dict:
     base = _runtime_prompt("agent_user_system", domain)
     system = base.replace("{domain}", domain or "通用") + \
-        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类用户洞察·{domain}】\n{dk.get('user', '')}{_agent_output_contract('用户专家', domain)}"
+        f"\n\n{_get_quality_contract(domain)}\n\n{_get_feature_governance_brief(domain)}\n\n【品类用户洞察·{domain}】\n{dk.get('user', '')}{_agent_output_contract('用户专家', domain)}\n\n{_CONTENT_SOURCE_POLICY}"
 
     emo = semantic_feats.get("semantic_emotional_intensity", 0.5)
     emp = semantic_feats.get("semantic_empathetic_engagement", 0.5)

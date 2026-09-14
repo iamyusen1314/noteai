@@ -1,5 +1,16 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 current: API/web3dce194 actually deployed,8f41 rollback retained.
+Normal merchant correction and same-chat refresh verified: current saved answer and
+version restored, one3credit charge, no recognition/generation replay. New quality04
+completed and reconciled29calls/2.4848752RMB/6credits once; original private result and
+exact stopped candidate at Handoff top. Content still has unsupported experiential
+details. Next scoped API fix connects source limits to expert advice and serializes
+upload commit recovery;27offline/1isolatedPG16 checks passed, not deployed yet.
+Original12RMB WeChat paid and fully refunded once; no repeat payment/refund/order.
+Native bill stays staged for Sep15after10BJT, not scheduled. Existing Item34 unique
+continuation remains unchanged; do not sample early/recreate it. Readiness30/37.
+
 September14 16:42BJT e22d978 API/web deployed; compatible1338 rollback retained.
 Original report restored via exact-task read-only recovery, no historical writes.
 New private quality-02 is in flight; read original result/usage, review actual content

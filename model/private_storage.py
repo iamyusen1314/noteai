@@ -1150,9 +1150,16 @@ def store_media_bytes(
         if not created:
             raise
         # COMMIT can succeed even when the client loses its acknowledgement.
-        # Reconcile this exact reference before deleting a possibly live object.
+        # A missing row is inconclusive while the original transaction can still
+        # commit. Reacquire its user fence before reading the exact reference.
         try:
-            recorded = db.fetchone("SELECT * FROM private_media_refs WHERE id=?", (reference_id,))
+            with db.transaction(write=True) as recovery_tx:
+                content_retention.lock_user_write_fence_with_storage(
+                    recovery_tx, user_id, lock_row=False, allow_deletion_requested=True,
+                )
+                recorded = recovery_tx.fetchone(
+                    "SELECT * FROM private_media_refs WHERE id=?", (reference_id,),
+                )
         except BaseException as reconcile_exc:
             raise ObjectStorageUnavailable("PRIVATE_MEDIA_COMMIT_UNCONFIRMED") from reconcile_exc
         if recorded is not None:
