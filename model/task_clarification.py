@@ -187,11 +187,19 @@ def _load(tx, user_id, session_id, lock=False):
 
 def public_state(row, task):
     # Never expose prepared inputs, expert raw responses, leases or internal prompts.
+    result = task.get("result")
+    if (task.get("status") == "completed" and task.get("answers")
+            and (task.get("prepared") or {}).get("pipeline") in {"generate_stream", "analyze"}
+            and isinstance(result, dict)):
+        # Older completed tasks predate the provenance field. Derive it only in
+        # this response; keep the persisted result and original opinions intact.
+        result = dict(result)
+        result.setdefault("expert_opinions_basis", "pre_clarification")
     return {"type": "clarification_required", "session_id": row["id"],
         "operation": task["operation"], "status": task["status"], "version": task["version"],
         "domain": row["domain"], "questions": task["questions"], "answers": task.get("answers", []),
         "message": "素材和已完成的分析已保留。补充下面的信息后，我会接着完成这篇笔记。",
-        "completed_steps": task.get("completed_steps", []), "result": task.get("result"),
+        "completed_steps": task.get("completed_steps", []), "result": result,
         "pending_confirmation": pending_confirmation(task), "charged_again": False}
 
 
@@ -330,12 +338,13 @@ def resume(user_id, session_id, version, answers):
 def answer_context(task):
     latest = {a["question_id"]: a for a in task["answers"]}
     lines = ["【本次商家确认；仅适用于本任务，不是外部独立核验或长期偏好】",
-             "本次最新商家确认优先于同一对象、同一时间范围的旧口径；历史仅留存，旧专家草稿不是事实。"]
+             "本次最新商家确认优先于旧口径；历史仅留存，旧专家草稿不是事实。",
+             "下列原问题范围仅用于定位问题；回答明确更正的门店、套餐和适用日期优先。正文及标题须保留影响内容的适用条件，不得将限时活动泛化为长期承诺，也不得用回答时间推断活动日期。"]
     for q in task["questions"]:
         a = latest.get(q["question_id"])
         if not a:
             continue
-        scope = f"门店：{a['merchant'] or '本任务对象'}；套餐/对象：{a['object'] or '本次内容'}；时间：{a['time_range'] or '仅本次，未声明长期有效'}"
+        scope = f"原问题范围：门店：{a['merchant'] or '本任务对象'}；套餐/对象：{a['object'] or '本次内容'}；时间：{a['time_range'] or '仅本次，未声明长期有效'}"
         action = a["answer"] if a["status"] == "confirmed" else (
             "用户选择不写此项；所有标题、方案及后续优化都不得写入此项，也不能换种说法暗示。"
             if a["status"] == "omitted" else "用户暂不确定；不再重复问，本次不写成事实。核心卖点相关部分待确认，其余继续完成。")

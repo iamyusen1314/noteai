@@ -38,7 +38,8 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("结果确认中：生成连接已结束，最终结果尚未确认", HTML)
         self.assertIn("结果确认中：对话连接已结束，最终结果尚未确认", HTML)
         self.assertGreaterEqual(HTML.count("outcome: 'outcome_unknown'"), 4)
-        self.assertIn("terminalTypes: ['complete', 'error']", HTML)
+        self.assertIn("terminalTypes: ['complete', 'error', 'clarification_required']", HTML)
+        self.assertIn("terminalEvent.type === 'clarification_required' ? 'awaiting_input'", HTML)
         self.assertIn("terminalTypes: ['done', 'error']", HTML)
         self.assertNotIn("reader.cancel('stall-timeout')", HTML)
 
@@ -215,7 +216,7 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("if (!_isGenerateMode && _diagnosePromise)", HTML)
         self.assertIn("? completeProductResult(_generateResult)", HTML)
         self.assertIn("if (_isGenerateMode)", HTML)
-        self.assertIn("await autoSaveGeneratedNote(_generateResult)", HTML)
+        self.assertIn("await autoSaveGeneratedNote(_generateResult, identitySnapshot, requestToken)", HTML)
         self.assertIn("_isGenerateMode = true; showPage('report'); await populateReport();", HTML)
         self.assertNotIn("\n              autoSaveGeneratedNote(_generateResult);\n", HTML)
 
@@ -230,7 +231,7 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("payload.supplement_values = supplementValues", HTML)
         self.assertIn("supplement_values: values", HTML)
         self.assertIn("useCurrentAttachments: false", HTML)
-        self.assertIn("先不补充这些信息，请在不编造事实的前提下继续优化", HTML)
+        self.assertIn("先不补充这些信息；本次不要写这些未确定的项目，继续优化其余内容。", HTML)
         self.assertIn("const PROCESS_STATUS_TEXT", HTML)
         self.assertIn("function appendSafeProcessCard", HTML)
         self.assertIn("case 'final_explanation':", HTML)

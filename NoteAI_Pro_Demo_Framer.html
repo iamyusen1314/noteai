@@ -7250,7 +7250,7 @@ async function populateReport() {
 	  // § 3 专家意见
 	  try {
 	  if (d.expert_opinions && d.expert_opinions.length) {
-	    renderAgentResults(d.expert_opinions, d.dispute || '');
+	    renderAgentResults(d.expert_opinions, d.dispute || '', d.expert_opinions_basis);
 	  } else {
 	    renderAgentResults([], '');
 	  }
@@ -7537,6 +7537,8 @@ async function populateGenerateReport() {
   }
 
   // 专家创作意见
+  const previousExpertResults = document.getElementById('genAgentResultsList');
+  if (previousExpertResults) previousExpertResults.innerHTML = '';
   if (d.expert_opinions && d.expert_opinions.length) {
     const _GEN_AGENT_META = {
       '视觉分析师': { color:'#0099FF', bg:'rgba(0,153,255,0.12)',  icon:'eye' },
@@ -7547,7 +7549,7 @@ async function populateGenerateReport() {
     };
     const gl = document.getElementById('genAgentResultsList');
     if (gl) {
-      gl.innerHTML = d.expert_opinions.map(op => {
+      gl.innerHTML = expertOpinionHistoryNotice(d.expert_opinions_basis) + d.expert_opinions.map(op => {
         const role = op.role || '';
         const opinion = op.opinion || '';
         const rationale = op.reason || op.impact || '';
@@ -7627,7 +7629,13 @@ function renderAgentEvidenceItem(item) {
     </li>`;
 }
 
-function renderAgentResults(opinions, dispute) {
+function expertOpinionHistoryNotice(basis) {
+  return basis === 'pre_clarification'
+    ? '<div class="report-empty-note">以下是商家回答前的专家分析，保留供参考；最新补充说明及其适用时间以本次商家确认为准。</div>'
+    : '';
+}
+
+function renderAgentResults(opinions, dispute, basis = '') {
 	  const list = document.getElementById('agentResultsList');
 	  if (!list) return;
 	  if (!opinions || !opinions.length) {
@@ -7637,7 +7645,7 @@ function renderAgentResults(opinions, dispute) {
 	    return;
 	  }
 
-  list.innerHTML = opinions.map(op => {
+  list.innerHTML = expertOpinionHistoryNotice(basis) + opinions.map(op => {
     const role = op.role || '';
     const opinion = op.opinion || '';
     const evidence = Array.isArray(op.evidence) ? op.evidence : [];
@@ -7911,6 +7919,7 @@ async function startChatFromDiagnosis() {
       improvement_plan: _diagnoseResult.improvement_plan,
       weaknesses:       _diagnoseResult.weaknesses,
       expert_opinions:  _diagnoseResult.expert_opinions,
+      expert_opinions_basis: _diagnoseResult.expert_opinions_basis || '',
       suggested_titles: _diagnoseResult.suggested_titles,
       user_constraints: _diagnoseResult.user_constraints || constraints,
       constraint_contract: _diagnoseResult.constraint_contract || null,
@@ -9897,7 +9906,7 @@ function renderTaskClarification(task) {
       const answer = answers.get(q.question_id);
       return `<div class="chat-supplement-row is-open" data-question-id="${chatEsc(q.question_id)}">
         <label><strong>${chatEsc(q.question)}</strong><br>
-        <span>${chatEsc([q.merchant,q.object,q.time_range].filter(Boolean).join(' · ') || '仅本次内容')}</span><br>
+        <span>原问题范围：${chatEsc([q.merchant,q.object,q.time_range].filter(Boolean).join(' · ') || '仅本次内容')}</span><br>
         <textarea aria-label="${chatEsc(q.question)}" maxlength="4000" rows="3" style="width:100%;color:inherit;background:transparent" data-task-answer>${chatEsc(answer?.answer || '')}</textarea></label>
         <div>${(q.options || []).map(option => `<button type="button" data-task-option="${chatEsc(option)}">${chatEsc(option)}</button>`).join('')}</div>
         <select aria-label="${chatEsc(q.question)}处理方式" data-task-status>
@@ -10017,7 +10026,7 @@ function chatAppendConfirmedFacts(facts) {
     if(!_chatIdentityMatches(identity))return;
     button.remove();
     chatAppendSupplementPrompts(facts.map(f=>({field:'confirmation_'+f.question_id.replace(/:/g,'__'),label:f.question || '本次说明',
-      prompt:[f.merchant,f.object,f.time_range].filter(Boolean).join(' · '),value:f.answer || '',action_text:'填写更正后的完整说明'})));
+      prompt:'原问题范围：'+([f.merchant,f.object,f.time_range].filter(Boolean).join(' · ') || '仅本次内容'),value:f.answer || '',action_text:'填写更正后的完整说明'})));
     const card=document.querySelector('#chat-messages .chat-supplement-card:last-child');
     if(card) {card.querySelector('.chat-supplement-title').textContent='更新本次说明';card.querySelector('.chat-supplement-sub').textContent='已填写原回答，无需再次确认。更正后按原对话优化规则更新当前笔记；不会重新识别素材或扣一次整单生成积分。';card.querySelectorAll('[data-supplement-row]').forEach(row=>row.classList.add('is-open'));}
   });

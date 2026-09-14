@@ -1,3 +1,28 @@
+September14 13:50BJT next local fixes verified, not deployed. Native shutdown root
+cause reproduced on an isolated Docker internal network: stop shared-network API
+owner removed follower eth0/routes; original PG connection/pg_notify still blocked
+past6s despite3s server timeout. Keeping owner until notification completed took0.01s.
+Disposable test containers/network removed. native_capture.close now drains ingress/
+actions, keeps API namespace owner while Payment seals and original journal reads,
+then stops/restores API. Original trade journal remains unchanged UNKNOWN. Isolated
+PG16 same-order two-capture test passes with idle API proxy retained through broker
+close, plus launcher COMPLETE/UNKNOWN recovery regression. No new production action.
+
+Clarification: model/api.py and task_clarification.py preserve latest complete
+merchant answer/time over old question labels; old completed results derive historical
+expert provenance only on read, without rewriting stored bytes. Original frontend
+shows that history in diagnosis/generation, carries it into chat and clears stale
+labels for ordinary/empty next results. Six Python3.11 isolated cases include actual
+ASGI pipeline resume, one charge, duplicate rejection, old-result read and persisted/
+reloaded chat context.18frontend checks pass after updating three stale assertions
+already failing on HEAD for prior waiting/save/omit changes. Actual isolated browser
+on localhost5197 verifies free answer/omit -> normal report and history-label isolation
+PASS; no production calls. These are mechanism/regression results, not content quality
+or media acceptance. Public owner page read original order as fully refunded; fresh
+website remains available. Next candidate integrates these bounded corrections; media
+result persistence/disconnect recovery and video full-chain are next, no whole-task
+replay or Item34 change. Native next-day bill/real duplicate/DML gaps remain below.
+
 September14 13:40BJT Native real trade completed, not Item31 terminal acceptance.
 Source80b01ea Payment62ffa/canary35097 with launcher7a5f482 activated once at
 13:21:47 for owner61d63b05, A_trade780a4cc2-bae5-4d9f-88e5-9f88e114fe35.

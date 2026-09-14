@@ -1,5 +1,12 @@
 # NoteAI Production Deployment Execution Plan
 
+Current closure correction (September14, local regression verified): after closing
+entry/admission and draining original actions/operators, KEEP the API container that
+owns Payment's network alive. Stop Payment and read its sealed original journal first;
+only then stop/restore API and ingress. Docker stop of namespace owner removes the
+follower route; the previous API-first rule below is superseded for future execution.
+This cannot repair the original incomplete trade journal. No original action replay.
+
 September14 13:40BJT Native original12RMB order paid and fully refunded;30credits
 once granted/once reversed. Original services restored and temporary15trigger/function
 removed, owner readback confirms absence. Original capture remains UNKNOWN after

@@ -187,7 +187,8 @@ def restore_ingress(before):
 
 
 def journal_readback():
-    # Offline read of the original bytes after all peers and broker have exited.
+    # Offline read after admitted actions and broker exit. The idle API network
+    # owner may still exist; it cannot append to the broker's sealed file.
     # Restored services alone never prove a sealed, complete capture.
     code = ("from pathlib import Path;import json,collect_item31_canary_dml as d;"
             "b=json.loads(Path(" + repr(str(ROOT / 'binding.json')) + ").read_text());"
@@ -293,11 +294,18 @@ def close():
     result = {'state': 'UNKNOWN', 'at': time.time()}
     try:
         drain()
-        # Never stop the broker before its actual API/operator peers exit.
+        # Ingress is closed and requests are drained. The API container owns
+        # Payment's network namespace: keep it alive until the broker has sent
+        # its final database notification and sealed. Stopping the owner first
+        # removes the follower's route even though its process is still alive.
         operators = run(['docker', 'ps', '-q', '--filter', 'label=com.noteai.native-operator=' + meta['activation']]).strip()
         assert not operators, 'operator_still_running'
-        run(['systemctl', 'stop', 'noteai-api.service'], 60)
         run(['systemctl', 'stop', 'noteai-payment.service'], 60)
+        try:
+            result['journal'] = journal_readback()
+        except Exception as exc:
+            result['journal'] = {'status': 'UNKNOWN', 'error_type': type(exc).__name__}
+        run(['systemctl', 'stop', 'noteai-api.service'], 60)
         for path in (API_UNIT, API_DROP, PAYMENT_UNIT):
             put(path, before[path])
         run(['systemctl', 'daemon-reload'])
@@ -310,10 +318,6 @@ def close():
         for path in (API_UNIT, API_DROP, PAYMENT_UNIT):
             assert path.read_bytes() == before[path]
         result['state'] = 'SERVICES_RESTORED_COLLECTOR_REMOVAL_PENDING'
-        try:
-            result['journal'] = journal_readback()
-        except Exception as exc:
-            result['journal'] = {'status': 'UNKNOWN', 'error_type': type(exc).__name__}
     finally:
         save(ROOT / ('closed.json' if result['state'] != 'UNKNOWN' else 'close-unknown-' + str(int(time.time())) + '.json'), result)
     return result

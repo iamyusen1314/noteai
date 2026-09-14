@@ -706,8 +706,10 @@ finally:
                 headers['Wechatpay-Signature'] = base64.b64encode(self.fixture.wechat_private.sign((headers['Wechatpay-Timestamp'] + '\n' + headers['Wechatpay-Nonce'] + '\n').encode() + body + b'\n', padding.PKCS1v15(), hashes.SHA256())).decode()
                 result = self.callbacks.post(route, content=body, headers=headers)
                 self.assertEqual(result.status_code, 200, result.text)
-                api_runtime.close()
                 broker1.close()
+                # The drained API may still own Payment's network namespace.
+                # Closing the broker must safely disconnect this idle proxy.
+                api_runtime.close()
                 self.assertEqual(dml.read_journal(root / 'day1/canary-dml.jsonl', **broker1.capture.context), broker1.result)
                 self.assertEqual(broker1.result['status'], 'CAPTURE_COMPLETE_NOT_TERMINAL')
                 for sql in dml.removal_sql(list(targets)):
@@ -780,3 +782,60 @@ finally:
 
 # Imported fixture class is not another test suite in this module.
 del PG
+
+
+class NativeCaptureShutdownTests(unittest.TestCase):
+    def test_network_owner_remains_until_broker_seals_even_for_unknown_journal(self):
+        from deploy.production import native_capture as launcher
+        for journal in ({'status':'COMPLETE'}, {'status':'UNKNOWN'}):
+            with self.subTest(journal=journal), tempfile.TemporaryDirectory() as temp, ExitStack() as stack:
+                root = Path(temp)
+                paths = [root / name for name in ('api.service','api.conf','payment.service')]
+                before = {p: ('original '+p.name).encode() for p in paths}
+                for p in paths:
+                    p.write_bytes(b'temporary capture unit')
+                web = root / 'web'
+                web.mkdir()
+                state = {'network_owner':True,'payment':True,'drained':False,'read':False}
+                stack.enter_context(mock.patch.multiple(launcher, ROOT=root,
+                    API_UNIT=paths[0],API_DROP=paths[1],PAYMENT_UNIT=paths[2]))
+                stack.enter_context(mock.patch.object(launcher,'originals',return_value=(
+                    {'activation':'synthetic-local','admin_image':'unchanged-admin','web':str(web)},before)))
+                stack.enter_context(mock.patch.object(launcher,'Path',side_effect=lambda value:
+                    web if str(value)=='/var/www/noteai-public/current' else Path(value)))
+                def drain():
+                    state['drained']=True
+                def run(args,*unused):
+                    if args[:2] == ['docker','ps']:
+                        return ''
+                    if args[:2] == ['systemctl','stop']:
+                        self.assertTrue(state['drained'])
+                        if args[-1] == 'noteai-payment.service':
+                            self.assertTrue(state['network_owner'],'lost PG connection before sealing')
+                            state['payment']=False
+                        else:
+                            self.assertTrue(state['read'],'owner stopped before original journal read')
+                            state['network_owner']=False
+                    if args[:2] == ['systemctl','start']:
+                        state['network_owner']=True
+                    return ''
+                def read():
+                    self.assertFalse(state['payment'])
+                    self.assertTrue(state['network_owner'])
+                    state['read']=True
+                    return journal
+                stack.enter_context(mock.patch.object(launcher,'drain',side_effect=drain))
+                stack.enter_context(mock.patch.object(launcher,'run',side_effect=run,create=True))
+                stack.enter_context(mock.patch.object(launcher,'journal_readback',side_effect=read))
+                stack.enter_context(mock.patch.object(launcher,'put',side_effect=lambda p,b:p.write_bytes(b),create=True))
+                stack.enter_context(mock.patch.object(launcher,'health',create=True))
+                restore = stack.enter_context(mock.patch.object(launcher,'restore_ingress'))
+                stack.enter_context(mock.patch.object(launcher,'inspect',side_effect=lambda name:
+                    {'Image':launcher.API_IMAGE if name=='noteai-api-c' else 'unchanged-admin'},create=True))
+                result = launcher.close()
+                self.assertEqual(result['state'],'SERVICES_RESTORED_COLLECTOR_REMOVAL_PENDING')
+                self.assertEqual(result['journal'],journal)
+                self.assertTrue(state['network_owner'])
+                restore.assert_called_once_with(before)
+                self.assertEqual({p:p.read_bytes() for p in paths},before)
+                self.assertEqual(json.loads((root/'closed.json').read_text()),result)

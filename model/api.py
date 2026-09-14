@@ -6180,6 +6180,7 @@ class AnalyzeResponse(BaseModel):
     model_used: str = Field(description="使用的AI模型")
     dispute: str = Field(default="", description="专家分歧说明")
     expert_opinions: list[dict] = Field(default=[], description="各专家结构化公开诊断意见")
+    expert_opinions_basis: str = ""
     fact_enrichment: dict | None = Field(default=None, description="联网事实补全结果（若启用）")
     user_constraints: list[str] = Field(default=[], description="本次采纳的用户约束条件")
     constraint_contract: dict = Field(default_factory=dict, description="用户约束执行契约")
@@ -8041,9 +8042,10 @@ def _merge_supplement_values_into_session(session: dict, supplement_values: dict
             "time_range": str(prior.get("time_range") or question.get("time_range") or "仅本次，未声明长期有效"),
             "confirmed_at": _now_iso(), "revision": len(records) + 1})
     latest = {record["question_id"]: record for record in records}
-    lines = [base, "【本次最新商家确认优先于同一对象、同一时间范围的旧口径；历史仅留存，不是外部核验或永久记忆】"]
+    lines = [base, "【本次最新商家确认优先于旧口径；历史仅留存，不是外部核验或永久记忆】",
+             "原问题范围仅用于定位；最新完整回答中更正的门店、套餐和适用日期优先。保留关键适用条件，不将限时事实泛化为长期承诺，不用回答时间推断活动日期。"]
     supplement_lines = [
-        f"- 门店：{item.get('merchant') or '本任务对象'}；对象：{item.get('object') or '本次内容'}；"
+        f"- 原问题范围：门店：{item.get('merchant') or '本任务对象'}；对象：{item.get('object') or '本次内容'}；"
         f"时间：{item.get('time_range') or '仅本次'}；{item.get('question') or _supplement_fact_label(item.get('field'))}：" + (
             item['answer'] if item.get('status') == 'confirmed' else
             '用户选择不写此项；标题、方案和后续优化均不得写入或暗示。' if item.get('status') == 'omitted' else
@@ -17681,6 +17683,8 @@ def _build_chat_system_prompt(session: dict) -> str:
 
     if gen_ctx:
         parts: list[str] = []
+        if gen_ctx.get("merchant_confirmations"):
+            parts.append("本次商家确认中的原问题范围仅用于定位；最新完整回答中明确的门店、套餐和适用日期优先。不得用回答时间推断活动日期，历史分析不得覆盖商家的回答。")
 
         # Cover / image analysis
         cover_analysis = gen_ctx.get("cover_analysis") or gen_ctx.get("image_desc") or ""
@@ -17700,7 +17704,9 @@ def _build_chat_system_prompt(session: dict) -> str:
         # Expert opinions from the 5-agent pipeline
         opinions: list[dict] = gen_ctx.get("expert_opinions", [])
         if opinions:
-            parts.append("生成时各专家意见：")
+            parts.append("商家回答前的专家分析（历史建议，不能覆盖最新商家确认）："
+                         if gen_ctx.get("expert_opinions_basis") == "pre_clarification"
+                         else "生成时各专家意见：")
             for op in opinions:
                 role = op.get("role", "专家")
                 summary = op.get("opinion") or op.get("summary") or ""
@@ -18925,6 +18931,7 @@ _CHAT_CONTEXT_INPUT_KEYS = (
         "confirmed_supplement_values",
         "merchant_confirmations",
         "expert_opinions",
+        "expert_opinions_basis",
         "feature_hits",
         "mascots",
         "pending_plan_options",
@@ -19092,6 +19099,10 @@ def _sanitize_chat_generate_context(value: Any) -> dict[str, Any]:
             continue
         if normalized == "expert_opinions":
             safe[normalized] = _public_expert_opinions(item)
+            continue
+        if normalized == "expert_opinions_basis":
+            if item == "pre_clarification":
+                safe[normalized] = item
             continue
         if normalized == "supplement_prompts":
             safe[normalized] = _sanitize_supplement_prompts(item)
@@ -19597,6 +19608,7 @@ async def chat_start(
         "report_quality_status": gen_ctx.get("report_quality_status") or "not_checked",
         "report_quality_issues": gen_ctx.get("report_quality_issues") or [],
         "expert_opinions": _public_expert_opinions(gen_ctx.get("expert_opinions") or []),
+        "expert_opinions_basis": "pre_clarification" if gen_ctx.get("expert_opinions_basis") == "pre_clarification" else "",
         "feature_hits":    gen_ctx.get("feature_hits") or {},
         "title_variants":  (gen_ctx.get("title_variants") or [])[:3],
         "current_score": current_score,
@@ -19740,6 +19752,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                 if event.get("type") == "complete":
                     event.update(prepared.get("metadata", {}))
                     event.update({"fact_context": _clarified_fact_context(prepared, confirmation),
+                        "expert_opinions_basis": "pre_clarification",
                         "merchant_confirmations": task["answers"], "pending_confirmation": _clarification.pending_confirmation(task),
                         "continuation_session_id": req.session_id, "continuation_version": task["version"]})
                     _clarification.save_result(claim, event)
@@ -19761,6 +19774,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                     event.update({key: prepared["request"].get(key) for key in
                         ("merchant_name", "merchant_visibility", "fact_source_policy")})
                     event.update({"type": "complete", "merchant_confirmations": task["answers"],
+                        "expert_opinions_basis": "pre_clarification",
                         "pending_confirmation": _clarification.pending_confirmation(task),
                         "continuation_session_id": req.session_id, "continuation_version": task["version"],
                         "fact_context": _clarified_fact_context(prepared, confirmation)})

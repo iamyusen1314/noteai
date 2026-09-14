@@ -424,7 +424,8 @@ class CanaryRuntime:
 
     An orderly Payment shutdown first closes the broker to all new/active peers,
     then seals only a complete capture. Stop API/operator admission and let their
-    admitted actions finish before stopping Payment. Open action EOF is UNKNOWN.
+    admitted actions finish before stopping Payment. Keep any container owning
+    Payment's network alive until sealing completes. Open action EOF is UNKNOWN.
     Resolver references stay installed until process exit; no default fallback.
     """
 

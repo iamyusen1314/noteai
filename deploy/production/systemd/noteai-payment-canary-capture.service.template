@@ -3,7 +3,8 @@ Description=NoteAI bounded Native callback capture (explicit launcher only)
 # Full temporary unit replacement, not a drop-in: dependency directives cannot
 # be removed by assigning empty lists in a drop-in. Restore the saved original
 # unit after capture is sealed. Launcher starts API namespace first, then this
-# broker before API readiness; stops API/operator peers before this broker.
+# broker before API readiness. At closure, drain ingress/API and stop operators;
+# retain the API network owner until this broker seals, then stop the API.
 Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target

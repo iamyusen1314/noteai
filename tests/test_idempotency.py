@@ -1344,7 +1344,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         ANSWER = ('套餐包含2杯拿铁，热饮不加糖。门店位于北京路商圈，营业时间为每日10:00-20:00。'
                   '到店可以先核对套餐内容，再决定是否点单。两杯饮品属于同一双人套餐，不是每人各两杯。'
                   '我希望文字说清每份套餐的内容，不要自行推断甜点、停车优惠或额外赠送。'
-                  '以下是本次活动的完整说明，全部仅适用于蓝猫咖啡店9月双人套餐，不适用于其他门店或日期。' +
+                  '以下是本次活动的完整说明，全部仅适用于蓝猫咖啡店2026年9月双人套餐，不适用于其他门店或日期。' +
                   '饮品数量已经确认，不必再次询问；未知项目不要写成事实，原素材与这段回答都应完整保留。' * 6)
         BODY = ('蓝猫咖啡店的双人套餐怎么点更明白？9月这份套餐198元，包含2杯拿铁，热饮不加糖。'
                 '想找朋友一起喝咖啡，可以先从这份已确认的清单看起，不需要被没有说明的搭配带着走。'
@@ -1378,6 +1378,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             self.assertNotIn('自然澄清，沿用本次商家信息',payload['system'], 'original expert must not rerun')
             user=payload['messages'][-1]['content']
             self.assertIn(ANSWER,user)
+            self.assertIn('原问题范围仅用于定位问题',user)
             self.assertIn('所有标题、方案及后续优化都不得写入此项',user)
             self.assertIn('用户暂不确定',user)
             usage={'input_tokens':1000,'output_tokens':1000,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}
@@ -1439,6 +1440,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         self.assertEqual(result['saved_note_id'],sid)
         self.assertEqual(result['saved_note_version'],1)
         self.assertEqual(result['merchant_confirmations'][0]['answer'],ANSWER)
+        self.assertEqual(result['expert_opinions_basis'],'pre_clarification')
         self.assertEqual(result['pending_confirmation'],[questions['parking_offer']['question']])
         self.assertIn('2杯拿铁',result['note_body'])
         for text in [result['note_title'],result['note_body'],*result['title_variants']]:
@@ -1451,6 +1453,30 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         self.assertEqual(notes,[{'id':sid,'title':result['note_title'],'body':result['note_body']}])
         stored=json.loads(db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?',(sid,))['generate_ctx_json'])['task_continuation']
         self.assertEqual(stored['prepared'],prepared)
+        # Read a pre-field completed task without rewriting its historical bytes.
+        legacy = json.loads(db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?',(sid,))['generate_ctx_json'])
+        legacy['task_continuation']['result'].pop('expert_opinions_basis')
+        legacy_bytes = json.dumps(legacy, ensure_ascii=False)
+        db.execute('UPDATE chat_sessions SET generate_ctx_json=? WHERE id=?',(legacy_bytes,sid))
+        import task_clarification as clarification
+        restored = clarification.read(uid,sid)['result']
+        self.assertEqual(restored['expert_opinions_basis'],'pre_clarification')
+        self.assertEqual(db.fetchone('SELECT generate_ctx_json FROM chat_sessions WHERE id=?',(sid,))['generate_ctx_json'],legacy_bytes)
+        chat = asyncio.run(api.chat_start(api.ChatStartInput(note_title=restored['note_title'],
+            note_body=restored['note_body'], note_id=sid, domain='美食', local_time='2030-01-01',
+            generate_context=restored), user={'id':uid}))
+        api._chat_sessions.pop(chat.session_id)
+        session = api._load_chat_session_from_db(chat.session_id)
+        self.assertIsNotNone(session)
+        context = session['generate_context']
+        self.assertEqual(context['expert_opinions_basis'],'pre_clarification')
+        self.assertEqual(context['merchant_confirmations'][0]['answer'],ANSWER)
+        prompt = api._build_chat_system_prompt(session)
+        self.assertIn('最新完整回答中明确的门店、套餐和适用日期优先',prompt)
+        self.assertIn(ANSWER,prompt)
+        # An ordinary result is not mislabelled by this compatibility read path.
+        ordinary = dict(legacy['task_continuation'], answers=[])
+        self.assertNotIn('expert_opinions_basis',clarification.public_state({'id':sid,'domain':'美食'},ordinary)['result'])
         linked=[dict(r) for r in db.fetchall('SELECT id,state,http_status,usage_record_id,model_usage_record_id FROM public_trial_calls WHERE user_id=?',(uid,))]
         self.assertEqual(len(linked),len(first_physical)+len(calls))
         self.assertTrue(all(r['state']=='responded' and r['http_status']==200 and r['usage_record_id']==usage_id and r['model_usage_record_id'] for r in linked),linked)
