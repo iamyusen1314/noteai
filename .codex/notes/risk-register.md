@@ -1,3 +1,29 @@
+September15 07:40BJT: new order81ab3757-2440-49b5-ad90-6a445ffbcac8 is PAID AND FULLY REFUNDED,
+not awaiting scan. Owner paid1200fen; wallet2894.5->2924.5->2894.5. Existing operator35097
+query-payment/submit-refund/query-refund each ranonce, each provider_operation_count1,
+automatic_retry0. Refund5db11376-6396-43bf-b72a-cc2fcdd72d6a succeeded; cash+1200/-1200,
+rights+30000/-30000 eachonce. Public original order now visibly says full original-route
+refund. Actual first callback HTTP503; subsequent natural notifications400 with
+PAYMENT_EVENT_ID_COLLISION. Do not count this as passing duplicate delivery: original
+payment event duplicate_delivery_count0. INFO callback audit absent in Dockerlogs;
+fault marker proves reservation only. Existing comparison excludes signature/header
+hashes; exact changed field among body/type/app/prod/time is NOT_YET_RETAINED, no guess.
+Independent readonly review reproduced same authenticated event with changed JSON
+serialization causingcollision; safe handling and logging need a focused repair.
+Original launcher close requestedonce; runner exited and closed.json1789429059.9254286
+shows SERVICES_RESTORED_COLLECTOR_REMOVAL_PENDING with journal CAPTURE_COMPLETE_NOT_TERMINAL,
+writeSHA02313fbaabf19190ab60877ccd6f3f7e64750362ea023a9b5f47198304292de9.
+Mutations: orders6/events8/cash2/credits2/credit_transactions2/positions2/rights2/refunds4.
+Original same4feb remove-dms8c44adb2 committedonce9ms; DMSfresh07:38:50BJT verifies
+collectortriggers0/functionabsent and fullrefund/unchangedwallet. APIb214/Admin538 and
+publicwebb214/Adminweba4f restored/preserved by originalclose; no other business changed.
+Private results at /Users/openclaw/.codex/tmp/noteai-native-scan-20260915; original host
+/var/lib/noteai/native-6c9221e/trade closed, NEVER rerun activation or these actions.
+Next: fix truthful callback logging and exact duplicate-event handling with focused
+regression; preserve this failure and no synthetic replay. Neworderbill earliestSep16
+10BJT; oldSep14orderbill Sep15>=10BJT remains separate, unstarted. Fees unknown until
+actualbill, not zero. Publicpaymentsremainclosed,31/37 unchanged,Item34/protected7intact.
+
 September15 01:35BJT: wallet chart nowlivea4f30fa; runtimeunchanged. Original bill
 has not prepared/started, oldimages present. Earliest realbill10BJT; newdedupcapture
 awaitsownerscan. Video/Chat exactresult/charge/provenance verified, no newmediarequest.
