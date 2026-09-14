@@ -247,12 +247,24 @@ def runtime_services():
         "NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH", "NOTEAI_CLAUDE_GATEWAY_HMAC_KEY_ID",
         "NOTEAI_CLAUDE_GATEWAY_HMAC_SECRET")) and os.environ.get("NOTEAI_CLAUDE_TRANSPORT") == "gateway"
     import ark_media
+    import private_storage
+    media_reason = (
+        "尚未配置素材理解模型的服务端凭据或精确版本"
+        if not ark_media.configured() else
+        "私有素材存储尚未就绪"
+        if not private_storage.object_backend_configured() else
+        "图片入口已开放；视频入口已开放，实际核验见最近调用记录"
+        if video_enabled() else
+        "图片入口已开放；视频入口尚未开放，实际核验见最近调用记录"
+        if image_enabled() else
+        "模型与私有存储已配置；公开图片及视频入口尚未开放，最近调用仅代表对应任务结果"
+    )
     rows = [
         {"id":"doubao", "name":"Doubao Seed 2.0 Lite 0428", "group":"media_models",
          "model":ark_media.MODEL, "role":"图片、视频及视频原音轨的素材理解，完整观察进入现有行业Prompt和Claude任务",
          "business":["screenshot", "image_understanding", "video_audio_understanding", "cover_analysis", "chat_image"],
          "configured":ark_media.configured(), "enabled":media_enabled(),
-         "reason":"需精确模型与私有存储就绪；不会用文件名、封面或文字描述替代真实素材"},
+         "reason":media_reason},
         {"id": "kimi", "name": "Kimi K2.6", "group": "generation_models",
          "role": "Kimi 文字任务按当前已发布模型路由执行；素材理解单独由豆包负责",
          "business": tasks["kimi"], "configured": bool(os.environ.get("MOONSHOT_API_KEY")),

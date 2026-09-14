@@ -1,3 +1,10 @@
+September14 local correction: source presence previously let explicitly omitted price
+return in final drafts. Existing constraint/final checks now enforce supported explicit
+omissions; Chat no longer loses the contract when shaping/repairing/selecting.41offline
+checks passed, live verification pending. This does not certify every semantic or sensory
+claim. Native6c Payment built only; actual duplicate notification remains outstanding.
+Public API also needs existing80b payment fence fix before next live canary; no new DDL.
+
 September14 18:34BJT: APIa3dd45a/web3dce194 live. Quality05 confirms execution and
 once-only accounting, but final omitted-price/unsupported-detail defects remain;
 source policy alone did not resolve this. Original result/cost retained, exact private

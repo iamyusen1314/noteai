@@ -2364,6 +2364,7 @@ _CONSTRAINT_CONTRACT_SCHEMA = {
         "keep_title": "bool",
         "keep_cover": "bool",
         "publish_time": "string",
+        "omit_price": "bool",
     },
     "goals": {
         "follow_growth": "bool",
@@ -4986,7 +4987,7 @@ async def _run_generation_agents(
             print(f"[gen] P4-refine round={round_idx} score={pct_new:.1f}", file=sys.stderr, flush=True)
             quality_issues = _generated_quality_issues(title, body, domain, pct_new, feat_new, brief or "")
             quality_issues.extend(_delivery_integrity_issues(
-                f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []),
+                f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []), constraint_context=constraint_context
             ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
             # 只在新分数更高时才更新最佳内容（防止模型退化被采纳）
@@ -5106,7 +5107,7 @@ async def _run_generation_agents(
             grade = _grade(percentile)
             quality_issues = _generated_quality_issues(title, body, domain, percentile, features, brief or "")
             quality_issues.extend(_delivery_integrity_issues(
-                f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []),
+                f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []), constraint_context=constraint_context
             ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception:
@@ -5156,7 +5157,7 @@ async def _run_generation_agents(
             _log_internal_failure("generate", exc, phase="selector_final")
 
     quality_issues = list(dict.fromkeys(quality_issues + _delivery_integrity_issues(
-        f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []),
+        f"{title}\n{body}", brief or "", domain, title_variants=arb.get("variants", []), constraint_context=constraint_context
     )))
     feature_hits = {
         **_feature_hits_for_generation(title, features, percentile, domain, body=body),
@@ -6340,6 +6341,10 @@ def _constraint_flags(constraints: list[str] | None) -> dict[str, bool]:
         "goal_commerce": "目标：带货" in joined,
         "focus_interaction": "重点优化：互动率" in joined,
         "focus_exposure": "重点优化：曝光量" in joined,
+        "omit_price": any(re.search(
+            r"(?:不写|不要(?:再)?(?:写|提)|不提|省略|略去|删除|去掉)"
+            r"(?:任何|具体|本次|相关|有关|实际|关于|的|\s)*"
+            r"(?:价格(?!评价|判断|比较)|价钱|金额|售价|报价|人均|费用|定价)", item) for item in normalized),
     }
 
 
@@ -6352,6 +6357,7 @@ def _constraint_contract_payload(constraints: list[str] | None) -> dict:
             "keep_title": flags["keep_title"],
             "keep_cover": flags["keep_cover"],
             "publish_time": "18:00" if flags["fixed_publish_18"] else "",
+            "omit_price": flags["omit_price"],
         },
         "goals": {
             "follow_growth": flags["goal_follow"],
@@ -6707,6 +6713,8 @@ def _user_constraints_brief(constraints: list[str] | None, surface: str) -> str:
         lines.append("- 硬规则：不改封面。不得建议换封面、重拍或更换主图；只能建议保留现封面基础上的裁切、文字、排序、亮度或信息层级微调。")
     if flags["fixed_publish_18"]:
         lines.append("- 硬规则：固定发布时间为18:00。所有发布时机、节奏建议和增长判断都必须围绕18:00，不得推荐其他发布时间。")
+    if flags["omit_price"]:
+        lines.append("- 硬规则：本次标题、正文和备选方案省略价格及价格评价；原素材包含价格也不能重新写回。")
     if flags["goal_follow"]:
         lines.append("- 目标：涨粉。内容要给读者一个关注账号的理由，突出持续价值、账号人设、系列感和可期待的后续内容。")
     if flags["goal_commerce"]:
@@ -6724,6 +6732,26 @@ def _merge_user_constraints_into_text(text: str | None, constraints: list[str] |
     if not brief:
         return base
     return f"{brief}\n\n{base}" if base else brief
+
+
+def _user_constraint_delivery_issues(text: str, constraint_context: str = "") -> list[str]:
+    """Check explicit omissions separately from whether a fact has a source.
+
+    Reuse the existing user-choice brief and literal-deletion parser. Do not
+    interpret merchant facts, expert prose or historical answers as new choices.
+    Unstructured preferences remain model instructions, not claimed coverage.
+    """
+    choices = re.findall(r"^- 已选约束：(.+)$", constraint_context or "", re.MULTILINE)
+    if not choices:
+        return []
+    flags = _constraint_flags(choices)
+    issues = []
+    if flags["omit_price"] and (_PRICE_FACT_RE.search(text or "") or _PRICE_VALUE_CLAIM_RE.search(text or "")):
+        issues.append("用户约束未满足：本次要求省略价格及价格评价，请在全部标题和正文中去除")
+    contract = _build_chat_turn_constraint_contract("；".join(choices), text or "")
+    if _chat_turn_constraint_violations("", text, contract):
+        issues.append("用户约束未满足：仍包含本次明确要求删除的原文内容")
+    return issues
 
 
 def _apply_user_constraint_hard_guards(
@@ -10416,7 +10444,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
     max_body = _quality_body_max(canonical)
     floor = _quality_body_target_floor(canonical)
     readability_issues = _human_readability_issues(shaped, canonical)
-    integrity_issues = _delivery_integrity_issues(f"{title}\n{shaped}", source_context, domain)
+    integrity_issues = _delivery_integrity_issues(f"{title}\n{shaped}", source_context, domain, constraint_context=constraint_context)
     structure_issues: list[str] = []
     if canonical == "母婴" and _substantive_paragraph_count(shaped) < 3:
         structure_issues.append("母婴正文需要拆成3段：流程、观察/安抚边界、适合/不适合")
@@ -10830,12 +10858,15 @@ def _home_replicability_density_issues(text: str, source_context: str | None, do
 
 def _delivery_integrity_issues(
     text: str, source_context: str | None, domain: str | None = None,
-    *, title_variants: list[str] | None = None,
+    *, title_variants: list[str] | None = None, constraint_context: str = "",
 ) -> list[str]:
     issues = _structured_fact_boundary_issues(text, source_context, domain)
+    issues.extend(_user_constraint_delivery_issues(text, constraint_context))
     for index, variant in enumerate(title_variants or [], 1):
         issues.extend(f"备选标题{index}：{issue}" for issue in
                       _structured_fact_boundary_issues(variant, source_context, domain))
+        issues.extend(f"备选标题{index}：{issue}" for issue in
+                      _user_constraint_delivery_issues(variant, constraint_context))
     issues.extend(_fitness_source_action_coverage_issues(text, source_context, domain))
     issues.extend(_fitness_unverified_result_issues(text, source_context, domain))
     issues.extend(_travel_hotel_fact_density_issues(text, source_context, domain))
@@ -10849,7 +10880,7 @@ def _has_blocking_quality_issues(score: float, issues: list[str], domain: str | 
     # A high telemetry score never makes an unsupported factual claim deliverable.
     fatal_markers = (
         "标题为空", "正文为空", "质量复核失败", "占位符", "内部格式",
-        "结构化事实不能编造",
+        "结构化事实不能编造", "用户约束未满足",
     )
     return any(any(marker in issue for marker in fatal_markers) for issue in issues)
 
@@ -10940,7 +10971,7 @@ async def _score_generation_delivery_candidate(
     score, features, grade = await _score_generated_note(title, body, canonical, local_time, timing, cover_feats)
     issues = _generated_quality_issues(title, body, canonical, score, features, source_context)
     issues.extend(_delivery_integrity_issues(
-        f"{title}\n{body}", source_context or "", canonical, title_variants=candidate.get("variants", []),
+        f"{title}\n{body}", source_context or "", canonical, title_variants=candidate.get("variants", []), constraint_context=constraint_context
     ))
     issues.extend(_body_format_issues(body))
     issues = _filter_quality_issues_for_content_intent(
@@ -11505,14 +11536,14 @@ async def _score_directed_second_pass(
             title, body, domain, local_time, timing, cover_feats or None
         )
         issues = _generated_quality_issues(title, body, domain, score, features, source_context)
-        issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain))
+        issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain, constraint_context=constraint_context))
         issues.extend(_body_format_issues(body))
         issues = _filter_quality_issues_for_content_intent(issues, domain, source_context)
     else:
         for issue in _generated_quality_issues(title, body, domain, score, features, source_context):
             if issue not in issues:
                 issues.append(issue)
-        for issue in _delivery_integrity_issues(f"{title}\n{body}", source_context, domain):
+        for issue in _delivery_integrity_issues(f"{title}\n{body}", source_context, domain, constraint_context=constraint_context):
             if issue not in issues:
                 issues.append(issue)
         for issue in _body_format_issues(body):
@@ -11538,7 +11569,7 @@ async def _score_directed_second_pass(
         )
     )
     action_coverage_block = any("遗漏已提供动作" in issue for issue in issues)
-    fact_repair = any("结构化事实不能编造" in issue for issue in issues)
+    fact_repair = any("结构化事实不能编造" in issue or "用户约束未满足" in issue for issue in issues)
     # A fact defect still needs the bounded repair when the same draft also has
     # a short title or another quality defect. There is no separate hard-repair
     # caller for diagnosis plans; returning early used to strand those drafts.
@@ -11585,7 +11616,7 @@ async def _score_directed_second_pass(
         if item not in repair_items:
             repair_items.insert(0, item)
     if fact_repair:
-        repair_items = [issue for issue in issues if "结构化事实不能编造" in issue] + repair_items
+        repair_items = [issue for issue in issues if "结构化事实不能编造" in issue or "用户约束未满足" in issue] + repair_items
     if not repair_items:
         repair_items = ["围绕当前品类补强标题钩子、核心词聚焦、正文实用信息、互动引导和标签组合"]
 
@@ -11643,7 +11674,7 @@ async def _score_directed_second_pass(
             cand_title, cand_body, domain, local_time, timing, cover_feats or None
         )
         cand_issues = _generated_quality_issues(cand_title, cand_body, domain, cand_score, cand_features, source_context)
-        cand_issues.extend(_delivery_integrity_issues(f"{cand_title}\n{cand_body}", source_context, domain))
+        cand_issues.extend(_delivery_integrity_issues(f"{cand_title}\n{cand_body}", source_context, domain, constraint_context=constraint_context))
         cand_issues.extend(_body_format_issues(cand_body))
         cand_issues = _filter_quality_issues_for_content_intent(cand_issues, domain, source_context)
 
@@ -15949,7 +15980,7 @@ async def _run_analyze_pipeline(
                         )
                         t_score = round(score_raw, 1)
                         quality_issues = _generated_quality_issues(t, b, req.domain, score_raw, plan_features, delivery_source_context)
-                        quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", delivery_source_context, req.domain))
+                        quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", delivery_source_context, req.domain, constraint_context=delivery_constraint_context))
                         quality_issues.extend(_body_format_issues(b))
                         quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
                         quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
@@ -15997,7 +16028,7 @@ async def _run_analyze_pipeline(
                                     )
                                     t_score = round(score_raw, 1)
                                     quality_issues = _generated_quality_issues(t, b, req.domain, score_raw, plan_features, delivery_source_context)
-                                    quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", delivery_source_context, req.domain))
+                                    quality_issues.extend(_delivery_integrity_issues(f"{t}\n{b}", delivery_source_context, req.domain, constraint_context=delivery_constraint_context))
                                     quality_issues.extend(_body_format_issues(b))
                                     quality_issues = _filter_quality_issues_for_content_intent(quality_issues, req.domain, delivery_source_context)
                                     quality_failed = _has_blocking_quality_issues(score_raw, quality_issues, req.domain)
@@ -16115,19 +16146,26 @@ async def _run_analyze_pipeline(
     plan_fact_issues = [_structured_fact_boundary_issues(
         f"{item.get('title', '')}\n{item.get('body', '')}", delivery_fact_context, req.domain,
     ) for item in plans_scored]
+    final_constraint_context = _user_constraints_brief(req.user_constraints, "诊断最终方案")
+    for item, issues in zip(plans_scored, plan_fact_issues):
+        issues.extend(_user_constraint_delivery_issues(
+            f"{item.get('title', '')}\n{item.get('body', '')}", final_constraint_context))
     final_plan_fact_issues = [issue for issues in plan_fact_issues for issue in issues]
     if plans_scored:
         suggested_body = next((item["body"] for item in plans_scored
                                if item.get("body") and not item.get("quality_failed")), "")
     shared_body_fact_issues = _structured_fact_boundary_issues(suggested_body, delivery_fact_context, req.domain)
+    shared_body_fact_issues.extend(_user_constraint_delivery_issues(suggested_body, final_constraint_context))
     if final_plan_fact_issues or shared_body_fact_issues:
         if not billing_managed:
             _billing.refund_operation_charge(
                 user["id"], "analyze", billing_charge, "诊断事实复核失败退回权益",
             )
+        constraint_failed = any("用户约束未满足" in issue for issue in final_plan_fact_issues + shared_body_fact_issues)
         raise HTTPException(status_code=422, detail={
-            "code": "DIAGNOSIS_FACT_UNVERIFIED",
-            "message": "候选正文包含未获来源支持的事实，本次未交付为合格结果。",
+            "code": "DIAGNOSIS_CONSTRAINT_UNSATISFIED" if constraint_failed else "DIAGNOSIS_FACT_UNVERIFIED",
+            "message": ("部分方案仍包含您选择不写的内容，本次没有保存新报告。" if constraint_failed
+                        else "候选正文包含未获来源支持的事实，本次未交付为合格结果。"),
             "issues": list(dict.fromkeys(final_plan_fact_issues + shared_body_fact_issues)),
             "components": {"plans": {str(index + 1): issues for index, issues in enumerate(plan_fact_issues) if issues},
                            "shared_body": shared_body_fact_issues},
@@ -16902,7 +16940,7 @@ async def _generate_pipeline_stream(
             )
             quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats, brief or "")
             quality_issues.extend(_delivery_integrity_issues(
-                f"{title}\n{body}", brief or "", domain, title_variants=variants,
+                f"{title}\n{body}", brief or "", domain, title_variants=variants, constraint_context=constraint_context
             ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception as exc:
@@ -17075,7 +17113,7 @@ async def _generate_pipeline_stream(
             )
             quality_issues = _generated_quality_issues(title, body, domain, final_score, final_feats, brief or "")
             quality_issues.extend(_delivery_integrity_issues(
-                f"{title}\n{body}", brief or "", domain, title_variants=variants,
+                f"{title}\n{body}", brief or "", domain, title_variants=variants, constraint_context=constraint_context
             ))
             quality_issues = _filter_quality_issues_for_content_intent(quality_issues, domain, brief or "")
         except Exception:
@@ -17122,7 +17160,7 @@ async def _generate_pipeline_stream(
             _log_internal_failure("generate", exc, phase="stream_selector_final")
 
     quality_issues = list(dict.fromkeys(quality_issues + _delivery_integrity_issues(
-        f"{title}\n{body}", brief or "", domain, title_variants=variants,
+        f"{title}\n{body}", brief or "", domain, title_variants=variants, constraint_context=constraint_context
     )))
     feature_hits = _feature_hits_for_generation(title, final_feats, final_score, domain, body=body)
 
@@ -18165,6 +18203,17 @@ def _chat_authoritative_note_version(session: dict) -> int | None:
     return iteration + 1
 
 
+def _chat_effective_constraint_brief(session: dict) -> str:
+    context = session.get("generate_context") or {}
+    return "\n\n".join(part for part in (
+        _user_constraints_brief(session.get("user_constraints") or context.get("user_constraints"), "对话完整交付"),
+        session.get("_turn_constraint_brief") or "",
+        # This context already contains latest answers scoped to this task.
+        (session.get("fact_context") or context.get("fact_context") or "")
+        if context.get("merchant_confirmations") else "",
+    ) if part)
+
+
 async def _score_chat_note(
     title: str,
     body: str,
@@ -18191,7 +18240,7 @@ async def _score_chat_note(
         )
         source_context = "\n\n".join(part for part in [intent_source, fact_source] if part)
         issues = _generated_quality_issues(title, body, domain, score, feats, source_context)
-        issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain))
+        issues.extend(_delivery_integrity_issues(f"{title}\n{body}", source_context, domain, constraint_context=_chat_effective_constraint_brief(session)))
         issues.extend(_body_format_issues(body))
         return score, feats, grade, issues
     except _public_product.TrialProviderStopped:
@@ -18361,6 +18410,7 @@ async def _repair_chat_note_if_needed(
             current_grade=grade,
             current_issues=issues,
             route="chat",
+            constraint_context=_chat_effective_constraint_brief(session),
         )
         if (
             previous_score_f is not None
@@ -18417,9 +18467,10 @@ async def _repair_chat_note_if_needed(
         if not repaired:
             return title, body, score, feats, grade, issues, False
         r_title, r_body = repaired
-        r_title = _sanitize_title_for_delivery(r_title, fact_source, domain)
+        r_title = _sanitize_title_for_delivery(r_title, fact_source, domain, _chat_effective_constraint_brief(session))
         repair_shape_hint = "对话优化修复" + (f"；{turn_constraint_brief}" if turn_constraint_brief else "")
-        r_body = await _shape_body_for_delivery(r_title, r_body, domain, fact_source, repair_shape_hint)
+        r_body = await _shape_body_for_delivery(r_title, r_body, domain, fact_source, repair_shape_hint,
+            constraint_context=_chat_effective_constraint_brief(session))
         r_score, r_feats, r_grade, r_issues = await _score_chat_note(r_title, r_body, session)
         if r_score is None:
             return title, body, score, feats, grade, issues, False
@@ -18455,6 +18506,7 @@ async def _repair_chat_note_if_needed(
                     current_grade=r_grade,
                     current_issues=r_issues,
                     route="chat",
+                    constraint_context=_chat_effective_constraint_brief(session),
                 )
                 if lifted_score is not None:
                     r_score = lifted_score
@@ -18643,10 +18695,12 @@ async def _chat_sse_generator(
         repair_session["_turn_constraint_brief"] = turn_constraint_brief
         yield f"data: {_json.dumps(_safe_process_event('process_update', phase='verify', agent='quality', status_code='note_quality_checked', reason_codes=['quality_gate_checked'], facts={}), ensure_ascii=False)}\n\n"
         new_title, new_body = note_extracted
-        new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"))
+        new_title = _sanitize_title_for_delivery(new_title, fact_source, session.get("domain", "美食"),
+            _chat_effective_constraint_brief(repair_session))
         shape_hint = "对话优化" + (f"；{turn_constraint_brief}" if turn_constraint_brief else "")
         new_body = await _shape_body_for_delivery(
-            new_title, new_body, session.get("domain", "美食"), fact_source, shape_hint
+            new_title, new_body, session.get("domain", "美食"), fact_source, shape_hint,
+            constraint_context=_chat_effective_constraint_brief(repair_session),
         )
         new_title, new_body, new_score, score_feats, grade_str, quality_issues, repaired = await _repair_chat_note_if_needed(
             new_title, new_body, repair_session, user_msg
@@ -18664,6 +18718,8 @@ async def _chat_sse_generator(
             )
             repaired = True
         constraint_violations = _chat_turn_constraint_violations(new_title, new_body, turn_contract)
+        quality_issues.extend(_user_constraint_delivery_issues(
+            f"{new_title}\n{new_body}", _chat_effective_constraint_brief(repair_session)))
         quality_blocking = (
             new_score is None or _has_blocking_quality_issues(new_score, quality_issues, session.get("domain", "美食"))
         )
@@ -19530,6 +19586,8 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
     body = (option.get("body") or "").strip()
     if not title or not body:
         raise HTTPException(status_code=400, detail="候选方案不完整，无法保存")
+    if _user_constraint_delivery_issues(f"{title}\n{body}", _chat_effective_constraint_brief(session)):
+        raise HTTPException(status_code=422, detail="该候选仍包含您选择不写的内容，请先在本次对话中修改")
     score_raw = option.get("score")
     try:
         score = float(score_raw) if score_raw is not None else None

@@ -1,3 +1,23 @@
+September14 current local API correction: existing constraint contract now distinguishes
+explicit omissions from source-supported facts, checks all candidates/final versions,
+and carries the same choices through Chat shaping/second pass/save. A higher score
+cannot override omission; a corrected draft may score lower but still must meet normal
+quality limits. Old contract payloads remain readable. This covers recognized explicit
+price/literal removals; arbitrary preferences/semantic factual fidelity are not falsely
+certified. No seven-industry Prompt edits or extra model stages. Admin media reason now
+distinguishes missing credentials/storage from configured-but-closed public entries.
+41targeted Python3.11 offline checks passed; earlier three Chat fixture signature errors
+and one nonexistent test-module selection corrected, failed logs retained. Paths under
+/Users/openclaw/.codex/tmp/noteai-native-ack-5qg9k4wy/constraints-r1..r4.log.
+Next API candidate also includes the existing80b01ea payment fence fix: current public
+API inherited pre80b payment_contract a264f46c, while actual Payment already usesdf23b9a.
+This is a source integration gap to close before the next canary, not a new migration.
+
+Native6c9221e Payment is actually BUILT_NOT_DEPLOYED: image15d15189ea5c414933b20d84ef7889b0cd3a6b8faca9439f1f05fc264cc81584,
+originalbuildPID1739924 completed1789382765.9877017, Python3.11.15/4runtime hashes passed.
+Result /var/lib/noteai/native-6c9221e/build/build-result.json; provider0/business0.
+No new capture/order started. Original80b payment/operator images and bill launcher retained.
+
 September14 local Native continuation: existing Payment/CanaryRuntime now supports
 one default-off ACK-failure reservation, enabled only by the exact capture activation.
 It runs after authenticated succeeded payment COMMIT and exact owner/order validation;

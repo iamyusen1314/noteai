@@ -3901,6 +3901,63 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(shape.call_args.kwargs['constraint_context'], constraints)
         self.assertTrue(result[6], result[7])
 
+    def test_explicit_omission_differs_from_source_presence(self):
+        source = '套餐249元，赠送茶饮；门店旧标语很方便。'
+        constraints = api._user_constraints_brief(['不写价格及价格评价', '删除“旧标语”'], '本次测试')
+        self.assertTrue(api._constraint_contract_payload(['不写价格'])['hard_rules']['omit_price'])
+        self.assertFalse(api._constraint_flags(['不要写错价格，按原价249元保留'])['omit_price'])
+        self.assertFalse(api._constraint_flags(['不写价格评价，保留具体售价'])['omit_price'])
+        current_contract = api._constraint_contract_payload(['不写价格'])
+        self.assertEqual(api._sanitize_public_schema_value(current_contract, api._CONSTRAINT_CONTRACT_SCHEMA), current_contract)
+        old_contract = {**current_contract, 'hard_rules':{'keep_title':False,'keep_cover':False,'publish_time':''}}
+        self.assertEqual(api._sanitize_public_schema_value(old_contract, api._CONSTRAINT_CONTRACT_SCHEMA), old_contract)
+        self.assertTrue(api._user_constraint_delivery_issues(source, constraints))
+        self.assertTrue(api._user_constraint_delivery_issues('很划算的一餐', constraints))
+        self.assertFalse(api._user_constraint_delivery_issues('围绕海鲜与汤面介绍。', constraints))
+        self.assertFalse(api._user_constraint_delivery_issues(source, ''))
+        # These are allowed-source facts but excluded from this particular output.
+        issues = api._delivery_integrity_issues('海鲜汤面', source, '美食',
+            title_variants=['套餐249元'], constraint_context=constraints)
+        self.assertTrue(any('备选标题1：用户约束未满足' in issue for issue in issues))
+        self.assertTrue(api._has_blocking_quality_issues(99, issues, '美食'))
+
+    def test_second_pass_never_uses_score_to_override_explicit_omission(self):
+        constraints = api._user_constraints_brief(['不写价格及价格评价'], '本次测试')
+        source = '原素材海鲜汤面249元。'
+        old_title, old_body = '原素材中的海鲜汤面', '汤面套餐249元。'
+        good_body = '围绕原素材介绍海鲜与汤面。'
+        for body, score, expected in ((old_body, 99, False), (good_body, 72, True), ('', 99, False)):
+            with self.subTest(expected=expected, body=body), \
+                 mock.patch.object(api._mr, 'call', new=mock.AsyncMock(return_value=
+                    f'<note><title>{old_title}</title><body>{body}</body></note>')) as call, \
+                 mock.patch.object(api, '_generated_quality_issues', return_value=[]), \
+                 mock.patch.object(api, '_score_generated_note', new=mock.AsyncMock(return_value=(score, {'body_len':300}, '良好'))), \
+                 mock.patch.object(api, '_fit_title_limit', new=mock.AsyncMock(return_value=old_title)), \
+                 mock.patch.object(api, '_shape_body_for_delivery', new=mock.AsyncMock(return_value=body)):
+                result = asyncio.run(api._score_directed_second_pass(old_title, old_body, '美食', '2026091418',
+                    source_context=source, current_score=80, current_features={'body_len':300},
+                    current_issues=[], constraint_context=constraints))
+            self.assertEqual(call.await_count, 1)
+            self.assertEqual(result[6], expected, result[7])
+            self.assertEqual(api._has_blocking_quality_issues(result[2], result[5], '美食'), not expected)
+
+    def test_chat_omission_survives_second_pass_and_old_option_selection(self):
+        session = {'domain':'美食', 'user_constraints':['不写价格及价格评价'],
+            'fact_context':'原套餐249元', 'generate_context':{}, 'current_score':80}
+        title, body = '围绕原素材整理汤面信息', '只介绍已经提供的海鲜汤面。'
+        constraints = api._chat_effective_constraint_brief(session)
+        with mock.patch.object(api, '_score_chat_note', new=mock.AsyncMock(return_value=(72, {}, '良好', ['标题偏短']))), \
+             mock.patch.object(api, '_score_directed_second_pass', new=mock.AsyncMock(return_value=
+                (title, body,72,{},'良好',[],True,'已修复'))) as second:
+            asyncio.run(api._repair_chat_note_if_needed(title, body, session, '继续优化'))
+        self.assertEqual(second.call_args.kwargs['constraint_context'], constraints)
+        with mock.patch.object(api, '_insert_content_with_retention') as save:
+            with self.assertRaises(api.HTTPException) as caught:
+                api._save_chat_plan_option_as_note('test', session,
+                    {'title':title,'body':'旧候选套餐249元','score':99}, 'isolated-user')
+        self.assertEqual(caught.exception.status_code,422)
+        save.assert_not_called()
+
     def test_second_pass_repairs_low_scoring_length_defect_once_and_keeps_final_checks(self):
         original_title = '这是一条超出二十字限制需要语义压缩的真实标题'
         original_body = '当前正文偏短，只有原素材。'

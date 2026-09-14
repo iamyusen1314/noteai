@@ -1,5 +1,12 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 next scoped API candidate: omission checks now reach original diagnosis,
+generation and Chat final delivery; existing payment user-fence fix also needs copying
+into API (Payment already has it).41offline checks passed; source/cost history unchanged.
+Native6c9221e Payment image15d15189 built and validated, not deployed/activated. Next
+canary reuses native_capture and normal owner payment; original12RMB is already refunded.
+No second-order completion, duplicate notification or bill acceptance is claimed.
+
 September14 18:34BJT quality05 complete/reconciled:23calls/2.671361RMB/6credits once;
 exact private candidate stopped. Sourcea3dd45a API/web3dce194 remain current. Model
 execution success is not content acceptance: omitted price returned in final plan.

@@ -186,7 +186,8 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         async def fake_stream_chat(**_kwargs):
             yield "content", "已完成。<note><title>新标题</title><body>只保留真实菜品体验。</body></note>"
 
-        async def clean_shape(title, body, domain, fact_source, route):
+        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context=""):
+            self.assertIn("不得", constraint_context)
             return body
 
         async def fake_repair(title, body, session, user_msg, **_kwargs):
@@ -242,7 +243,8 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         async def fake_stream_chat(**_kwargs):
             yield "content", "已删除旧说法。<note><title>新标题</title><body>只保留真实菜品体验。</body></note>"
 
-        async def clean_shape(title, body, domain, fact_source, route):
+        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context=""):
+            self.assertIn("不得", constraint_context)
             self.assertNotIn("20分钟", fact_source)
             self.assertNotIn("吃不出柴感", fact_source)
             self.assertNotIn("半小时", fact_source)
@@ -283,7 +285,8 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         async def fake_stream_chat(**_kwargs):
             yield "content", "已完成。<note><title>新标题</title><body>只保留真实菜品体验。</body></note>"
 
-        async def clean_shape(title, body, domain, fact_source, route):
+        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context=""):
+            self.assertIn("不得", constraint_context)
             return body
 
         async def fake_repair(title, body, session, user_msg, **_kwargs):
