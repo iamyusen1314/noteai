@@ -18171,7 +18171,7 @@ def _chat_structure_requirements(message: str) -> dict[str, Any]:
     exact_counts: set[int] = set()
     number = r"(10|[1-9一二两三四五六七八九十])"
     pattern = re.compile(
-        r"(?:分成|分为|改成|改为|写成|整理成|保持|正文(?:为|用|要|是)?)(?:严格|恰好|只)?\s*"
+        r"(?:分成|分为|改成|改为|写成|整理成|保持|正文(?:为|用|要|是|分)?)(?:严格|恰好|只)?\s*"
         + number + r"\s*(?:个)?(?:自然)?段(?:落)?"
         + r"|(?<![\d一二两三四五六七八九十百零])" + number + r"\s*段正文"
     )

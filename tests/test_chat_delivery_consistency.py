@@ -117,7 +117,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
 
     def test_explicit_structure_is_not_inferred_from_negation_or_ranges(self):
         for message, count in [("请写成三段", 3), ("分成2段，正文不要重复标题", 2),
-                               ("四段正文", 4), ("正文10段", 10)]:
+                               ("四段正文", 4), ("正文10段", 10), ("正文分3段，结尾留一个自然的问题", 3)]:
             with self.subTest(message=message):
                 contract = api._build_chat_turn_constraint_contract(message, "")
                 self.assertEqual(contract["paragraph_count"], count)
