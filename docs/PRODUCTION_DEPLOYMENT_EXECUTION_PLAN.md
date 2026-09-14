@@ -1,5 +1,14 @@
 # NoteAI Production Deployment Execution Plan
 
+September14 15:03BJT media0453619 API63c8/web045 deployed,0028verified. Compatible
+API98/web98 rollback retained; no source/secret/cost/Tracking bypass. Exact original
+results and browser readback at Handoff top. Publicmedia still requires live verification.
+
+September14 14:58BJT update: media0453619 image built on existing C,0028 applied once
+and independently verified: original20rows/ACL unchanged, references0. Exact artifacts,
+private backup and failed original legacy-Docker build are at Handoff top. Next controlled
+API/web switch uses compatible API98/web98 rollback; no schema rollback/backfill.
+
 September14 14:24BJT actual publication: scoped clarification98ab070 API image
 0ce1436b64f42f9fc04040093b989bac25d494f0954088515200f7d648fe5e0d and web98ab070
 are live; oldAPIce/web99 retained for compatible rollback. Model/env/Admin/payment

@@ -3,7 +3,8 @@
 September14 media recovery candidate: original screenshot result is private and
 owner-bound; metadata only in original claim. Disconnect/commit-ack-loss recovery,
 no UNKNOWN refund, cleanup-before-cascade and async owner/batch isolation now pass
-isolated tests.0028 remains NOT_APPLIED and public media remains closed. An outage
+isolated tests.0028 applied/independently verified September14 14:58BJT; original
+20rows/ACL unchanged. API/web0453619 now deployed; public media remains closed pending live verification. An outage
 before private storage/result registration is confirmed remains recovery_required;
 GET does not infer, charge or invent a background reconciliation. No historical
 result backfill or price/Prompt rewrite. Exact live/local versions at Handoff top.

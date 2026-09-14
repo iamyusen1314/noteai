@@ -1,3 +1,36 @@
+September14 15:03BJT media0453619 API+web are deployed, original schema0028 verified.
+API63c8beaba9db8cc41b9658341cb8353c877c971c457d3e14fa0f152128ab63f3;
+web /var/www/noteai-public/0453619, JS7d5bfe02d611182d99c4e3ec7359646c6d78c6e6934c55ffaa1c8eee84f1de8b.
+Original deployPID1699711 finished, deploy/result.json and web-result.json successful,
+exact private health candidate stopped. API98/web98 retained compatible rollback;
+no env/model/Admin/Payment/Tracking changes or provider calls. Original IAB tab hit
+ERR_CONNECTION_CLOSED then its error-page navigation was blocked by browser tool;
+fresh same-browser page loaded actual site and restored owner2970rounded credits.
+Local public GET is200; mistyped /api/public/status returned404 (real route /public/status),
+not a service outage. No credential/session reset. Next actual original-owner media
+verification uses same live image on private loopback only, public media remains closed.
+Next-day Native bill wiring and real video/audio material remain independent work.
+Readiness30/37 unchanged; no Gitpush or protected-path changes.
+
+September14 14:58BJT media0453619 candidate built,0028 applied and independently verified.
+Exact API image63c8beaba9db8cc41b9658341cb8353c877c971c457d3e14fa0f152128ab63f3,
+Python3.11.15/Linuxamd64/17runtime files. API98/web98 remain live pending switch.
+Archive406892B SHAe9cbd0fe2b0a649d27bcec828e3a6c87931b0cffe0b1c76d1162e7f8ae12eb17
+uploaded once. Existing Docker rejected COPY --chmod before image build; preserved
+original build/result. Same source files0644, plain COPY in build-compatible succeeded
+PID1698304; no repeat upload or new Builder. Private root /var/lib/noteai/media-0453619.
+Original20claim rows backed up/read verified in pre0028-backup.json,27627B,
+SHA73e77e909d4d1fe9c7023ab2c79089aeda6be786c54b69accd7197086156af2c; no rawdata export.
+Original app ledger read denied before backup; used scoped claims backup and owner
+ledger read instead, no grant/repeated denied query. Owner DMS single atomic0028
+DO succeeded; independent14:58:53 read:28versions,exact SQL SHA
+b344b1eb3719babc8b66f7b89f3fb76bc5d2d500dd9031c02253d304804a89f3,20rows,
+active0,references0,column/guard present. Original history MD5 excluding nullable new
+column4f51f6fe5b740c496441e75f2fb742ca and table ACL unchanged. No historical backfill.
+Next: scoped API/private candidate/health/compatible rollback then original web JS;
+publicmedia still closed pending actual chain verification. Do not rerun0028/build.
+Readiness30/37 unchanged; payment/Item34 unchanged; no Gitpush/protected-path changes.
+
 September14 14:24BJT clarification correction98ab070 is now deployed: API image
 0ce1436b64f42f9fc04040093b989bac25d494f0954088515200f7d648fe5e0d;
 web /var/www/noteai-public/98ab070, public JS f3abd01458837e967b240844f77710f243f9a68e7a8789515df499f922850f16.
