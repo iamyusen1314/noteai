@@ -1,3 +1,38 @@
+September14 current quality-02 is COMPLETED, private candidate already stopped.
+Original claim125f78e8-85bd-4c43-9962-3a021d9bf9a6/usageb844f6bf-f7a1-4b73-b98b-6df204bf2710;
+diagnosisdf5fa078-b2db-4b3e-b483-c37131a6d95c/note983feebf-bd4e-4595-80e0-44dde0a777f0.
+No clarification repeat, charge1/refund0/complete1,6credits once.24responded calls:
+19Haiku64292in/11821out0.863779RMB;4Sonnet28969in/10514out1.712319RMB;
+1Ark1916in/54out0.001344RMB;total2.577442RMB actual. Private final SSE/response is
+/var/lib/noteai/media-e22d978/owner-check/transport-complete-private.json;
+accounting quality-read-1789376093085054749.json. Original first account reader wrongly
+assumed a clarification record always exists; it failed read-only. Correct reader
+keeps no-clarification404 distinct from actual completed claim. No extra request.
+Candidate0a145d50ef8f6af964850ab57d5c3bd9b9898f0f64384a3a82296150278a7d50
+stopped/auto-removed at1789376192.9683926; public API untouched.
+
+Scores70.6/69.4/69.5 are NOT quality acceptance: final text still invented taste,
+temperature and signature-dish claims. Proven local causes: free-form constraints
+above40chars were silently discarded, and automatic score/style repair instructions
+still demanded sensory/recipe slots without source. Current LOCAL corrections
+preserve free-form requirements, reject oversized inputs explicitly, remove proven
+forced-fact instructions and limit the public image contract to visible observations.
+Seven-industry Prompt assets/model routes unchanged; no new paid batch until corrected
+candidate is built and deployed. e22 API/web is still the actual production version.
+
+Separate local upload protection now reuses existing user fence and private_media_refs
+for default200objects/1GiB per-account ready-object capacity before PUT; expired but
+unconfirmed bytes still count. Bounded upload maintenance only removes caller's own
+expired image/ark_state=none with no unfinished claim/linked UNKNOWN operation.
+COMMIT acknowledgement loss now reconciles exact original reference before cleanup;
+unknown readback preserves bytes.6isolatedSQLite recovery tests and1separate-connection
+PG16 concurrency/expiry query pass; first wrong SQLite env and missing fixture roles
+failures retained.3constraint tests and6source/editing tests pass. Read-only live role
+noteai_app confirms existing SELECT links/operation status and UPDATE media state/
+deleted_at permissions; no new grants. Local PG test is not production role acceptance.
+Native original order still refunded; real duplicate callback and next-day bill remain
+separate gaps. No bill schedule/collector/request added, Item34 and30/37 unchanged.
+
 September14 16:42BJT current: e22d9785b61764bb4e55c0c5397a34a76a9e9825 is now
 DEPLOYED API+web, superseding the local-only/current1338 statements below.
 API sha256:aeda5c1ff328ce3ebf831ef19d25adb1eae1180bf78fc556283e35ad1da3efbc;

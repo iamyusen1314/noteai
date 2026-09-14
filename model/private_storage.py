@@ -66,6 +66,25 @@ class MediaReferenceUnavailable(PrivateStorageError):
         super().__init__(code, "Private media reference unavailable")
 
 
+class MediaCapacityExceeded(PrivateStorageError):
+    def __init__(self):
+        super().__init__("PRIVATE_MEDIA_CAPACITY_EXCEEDED", "Private media capacity reached")
+
+
+def _assert_media_capacity(storage, subject_hash: str, size_bytes: int) -> None:
+    """The caller holds the existing account write fence across PUT and INSERT."""
+    count_limit = _bounded_int(int(os.environ.get("NOTEAI_MEDIA_MAX_OBJECTS_PER_USER", "200")),
+                               "media object limit", 1, 10000)
+    byte_limit = _bounded_int(int(os.environ.get("NOTEAI_MEDIA_MAX_BYTES_PER_USER", str(1024 ** 3))),
+                              "media byte limit", MAX_IMAGE_BYTES, 100 * 1024 ** 3)
+    row = storage.fetchone(
+        "SELECT count(*) n,COALESCE(sum(size_bytes),0) bytes FROM private_media_refs "
+        "WHERE subject_hash=? AND state='ready'", (subject_hash,))
+    # An elapsed TTL alone does not prove that the physical object was removed.
+    if int(row["n"]) >= count_limit or int(row["bytes"]) + size_bytes > byte_limit:
+        raise MediaCapacityExceeded()
+
+
 @dataclass(frozen=True)
 class StoredObject:
     key: str = field(repr=False)
@@ -1087,14 +1106,7 @@ def store_media_bytes(
         key_epoch_hash=epoch_hash,
     )
     selected = backend or get_object_backend()
-    created = selected.put_if_absent(
-        key,
-        body,
-        content_type=normalized_type,
-        metadata=metadata,
-    )
-    if not created:
-        raise ObjectStorageUnavailable("PRIVATE_MEDIA_REFERENCE_CONFLICT")
+    created = False
     reference = MediaReference(
         id=reference_id,
         subject_hash=subject_hash,
@@ -1117,6 +1129,15 @@ def store_media_bytes(
             import content_retention
 
             content_retention.assert_user_writable_with_storage(tx, user_id)
+            _assert_media_capacity(tx, subject_hash, len(body))
+            created = selected.put_if_absent(
+                key,
+                body,
+                content_type=normalized_type,
+                metadata=metadata,
+            )
+            if not created:
+                raise ObjectStorageUnavailable("PRIVATE_MEDIA_REFERENCE_CONFLICT")
             tx.execute(
                 "INSERT INTO private_media_refs("
                 "id,subject_hash,purpose,content_type,object_key_hash,content_sha256,"
@@ -1126,6 +1147,18 @@ def store_media_bytes(
                 reference.database_values(),
             )
     except BaseException:
+        if not created:
+            raise
+        # COMMIT can succeed even when the client loses its acknowledgement.
+        # Reconcile this exact reference before deleting a possibly live object.
+        try:
+            recorded = db.fetchone("SELECT * FROM private_media_refs WHERE id=?", (reference_id,))
+        except BaseException as reconcile_exc:
+            raise ObjectStorageUnavailable("PRIVATE_MEDIA_COMMIT_UNCONFIRMED") from reconcile_exc
+        if recorded is not None:
+            if _media_reference_from_row(recorded).database_values() == reference.database_values():
+                return reference
+            raise ObjectStorageUnavailable("PRIVATE_MEDIA_COMMIT_UNCONFIRMED")
         try:
             removed = selected.delete(key)
         except BaseException as cleanup_exc:
@@ -1405,9 +1438,40 @@ def expire_media(
     limit: int = 50,
     now: datetime | None = None,
     backend: ObjectBackend | None = None,
+    user_id: str | None = None,
 ) -> int:
     bounded = _bounded_int(limit, "limit", 1, 100)
     current_iso = _utc(now).isoformat()
+    if user_id is not None:
+        # Upload maintenance only touches this account's expired image bytes.
+        # It never calls a provider, cleans videos or retries unknown operations.
+        import content_retention
+
+        subject_hash = idempotency.operation_subject_hash(user_id)
+        with db.transaction(write=True) as tx:
+            content_retention.assert_user_writable_with_storage(tx, user_id)
+            if tx.fetchone("SELECT 1 FROM idempotency_requests WHERE user_id=? "
+                           "AND status NOT IN ('completed','failed') LIMIT 1", (user_id,)):
+                return 0
+            rows = tx.fetchall(
+                "SELECT m.* FROM private_media_refs m WHERE m.subject_hash=? "
+                "AND m.purpose='image' AND m.ark_state='none' AND m.state='ready' "
+                "AND m.expires_at<=? AND NOT EXISTS (SELECT 1 FROM ai_operation_media_refs l "
+                "JOIN ai_operations o ON o.id=l.operation_id WHERE l.media_ref_id=m.id "
+                "AND o.status NOT IN ('succeeded','failed','cancelled')) "
+                "ORDER BY m.expires_at,m.id LIMIT ?" + (" FOR UPDATE OF m" if tx.postgres else ""),
+                (subject_hash, current_iso, bounded))
+            selected = backend or get_object_backend()
+            for row in rows:
+                reference = _media_reference_from_row(row)
+                key = _media_key(reference.id, subject_hash, reference.purpose)
+                if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+                    raise ObjectStorageUnavailable("PRIVATE_MEDIA_KEY_MISMATCH")
+                if not selected.delete(key):
+                    raise ObjectStorageUnavailable("PRIVATE_MEDIA_DELETE_FAILED")
+                tx.execute("UPDATE private_media_refs SET state='expired',deleted_at=? WHERE id=?",
+                           (current_iso, reference.id))
+            return len(rows)
     rows = db.fetchall(
         "SELECT * FROM private_media_refs "
         "WHERE state='ready' AND expires_at<=? ORDER BY expires_at,id LIMIT ?",

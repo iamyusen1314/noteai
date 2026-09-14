@@ -3785,7 +3785,6 @@ class ApiContractTests(unittest.TestCase):
                 return_value=f'<note><title>{title}</title><body>{body}</body></note>')) as call, \
              mock.patch.object(api, '_generated_quality_issues', return_value=[]), \
              mock.patch.object(api, '_delivery_integrity_issues', return_value=[]), \
-             mock.patch.object(api, '_v04_generation_lift_instructions', return_value=['补清信息结构']), \
              mock.patch.object(api, '_score_generated_note', new=mock.AsyncMock(return_value=(74, {'body_len':300}, '良好'))), \
              mock.patch.object(api, '_fit_title_limit', new=mock.AsyncMock(return_value=title)) as fit, \
              mock.patch.object(api, '_shape_body_for_delivery', new=mock.AsyncMock(return_value=body)) as shape:
@@ -3796,6 +3795,13 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(call.await_count, 1)
         self.assertIn(constraints, call.call_args.args[1])
         self.assertIn(source, call.call_args.args[2])
+        # Keep the actual source/score-generated repair instructions in this test.
+        # Earlier mocks hid unconditional demands to manufacture sensory claims.
+        combined=call.call_args.args[1]+'\n'+call.call_args.args[2]
+        for unsupported in ('图片只提供场景和感官细节','火候、口感、分量、出品稳定度',
+                            '优先补具体菜品、口感层次','必须绑定具体菜品写「必点/招牌/推荐」'):
+            self.assertNotIn(unsupported,combined)
+        self.assertIn('不能证明味道、温度、火候',combined)
         self.assertEqual(fit.call_args.kwargs['constraint_context'], constraints)
         self.assertEqual(shape.call_args.kwargs['constraint_context'], constraints)
         self.assertTrue(result[6], result[7])
@@ -6821,6 +6827,18 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(payload["hard_rules"]["publish_time"], "18:00")
         self.assertTrue(payload["goals"]["commerce_conversion"])
         self.assertTrue(payload["goals"]["exposure"])
+
+    def test_freeform_constraints_survive_without_keyword_goal_conversion(self):
+        long_choice='本次不展示门店名称或商圈，不扩展现有菜品种类和数量，也不再次询问这些已作出的选择。保留素材里的真实描述。'
+        negative='不要把目标：涨粉当成这次的目标，我需要准确说明服务内容'
+        values=api._normalize_user_constraints([long_choice, negative])
+        self.assertEqual(values,[long_choice,negative])
+        self.assertIn(long_choice,api._user_constraints_brief(values,'诊断'))
+        self.assertFalse(api._constraint_flags(values)['goal_follow'])
+        for invalid in [['x'*513],['x']*21]:
+            with self.assertRaises(HTTPException) as raised:
+                api._normalize_user_constraints(invalid)
+            self.assertEqual(raised.exception.status_code,400)
 
     def test_user_constraints_brief_and_hard_guard_are_enforced(self):
         constraints = ["不改标题", "不改封面", "重点优化：互动率"]

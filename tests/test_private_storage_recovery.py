@@ -368,6 +368,91 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
             0,
         )
 
+    def test_media_capacity_counts_uncleaned_objects_before_any_put(self):
+        self.create_user('capacity-owner')
+        self.create_user('capacity-other')
+        def upload(user, payload=None):
+            return private_storage.store_media_bytes(user, purpose='image', content_type='image/jpeg',
+                payload=payload or self.jpeg(), item_count=1, now=self.now - timedelta(days=2))
+        with mock.patch.dict(os.environ, {'NOTEAI_MEDIA_MAX_OBJECTS_PER_USER':'1'}):
+            upload('capacity-owner')
+            # Recreating the backend binding does not reset the persistent allowance.
+            private_storage.configure_object_backend(self.backend, key_epoch='isolated-test-epoch-1')
+            with mock.patch.object(self.backend, 'put_if_absent', wraps=self.backend.put_if_absent) as put:
+                with self.assertRaises(private_storage.MediaCapacityExceeded):
+                    upload('capacity-owner')
+                put.assert_not_called()
+            upload('capacity-other')
+        with mock.patch.dict(os.environ, {'NOTEAI_MEDIA_MAX_BYTES_PER_USER':str(private_storage.MAX_IMAGE_BYTES)}):
+            with mock.patch.object(self.backend, 'put_if_absent', wraps=self.backend.put_if_absent) as put:
+                with self.assertRaises(private_storage.MediaCapacityExceeded):
+                    upload('capacity-owner', b'x' * private_storage.MAX_IMAGE_BYTES)
+                put.assert_not_called()
+
+    def test_scoped_image_expiry_preserves_other_users_videos_and_failed_deletes(self):
+        self.create_user('expiry-owner')
+        self.create_user('expiry-other')
+        def image(user):
+            return private_storage.store_media_bytes(user, purpose='image', content_type='image/jpeg',
+                payload=self.jpeg(), item_count=1, now=self.now - timedelta(days=2))
+        mine=image('expiry-owner');other=image('expiry-other')
+        video=self.store_video('expiry-owner', now=self.now - timedelta(days=2))
+        with mock.patch.object(self.backend, 'delete', return_value=False):
+            with self.assertRaises(private_storage.ObjectStorageUnavailable):
+                private_storage.expire_media(user_id='expiry-owner', now=self.now)
+        self.assertEqual(db.fetchone('SELECT state FROM private_media_refs WHERE id=?',(mine.id,))['state'],'ready')
+        with mock.patch.dict(os.environ, {'NOTEAI_MEDIA_MAX_OBJECTS_PER_USER':'2'}):
+            with self.assertRaises(private_storage.MediaCapacityExceeded):
+                image('expiry-owner')
+        self.assertEqual(private_storage.expire_media(user_id='expiry-owner', now=self.now),1)
+        for ref in (other,video):
+            self.assertEqual(db.fetchone('SELECT state FROM private_media_refs WHERE id=?',(ref.id,))['state'],'ready')
+        with mock.patch.dict(os.environ, {'NOTEAI_MEDIA_MAX_OBJECTS_PER_USER':'2'}):
+            image('expiry-owner')
+
+    def test_scoped_expiry_preserves_waiting_and_unknown_operations(self):
+        self.create_user('expiry-job')
+        media=private_storage.store_media_bytes('expiry-job', purpose='image', content_type='image/jpeg',
+            payload=self.jpeg(), item_count=1, now=self.now)
+        job=durable_ai.admit_job(user_id='expiry-job', operation='analyze', request_id='expiry-job-test',
+            payload={'content':'analyze','media_refs':[media.id]}, now=self.now, store=self.payload_store)
+        claim_id=db.fetchone('SELECT idempotency_request_id FROM ai_operation_admissions WHERE operation_id=?',
+                             (job['operation_id'],))['idempotency_request_id']
+        db.execute("UPDATE idempotency_requests SET status='waiting_for_input' WHERE id=?",(claim_id,))
+        self.assertEqual(db.fetchone('SELECT status FROM idempotency_requests WHERE id=?',(claim_id,))['status'],'waiting_for_input')
+        self.assertEqual(private_storage.expire_media(user_id='expiry-job', now=self.now+timedelta(days=2)),0)
+        db.execute("UPDATE idempotency_requests SET status='completed' WHERE id=?",(claim_id,))
+        self.assertEqual(db.fetchone('SELECT status FROM idempotency_requests WHERE id=?',(claim_id,))['status'],'completed')
+        db.execute("UPDATE ai_operations SET status='outcome_unknown' WHERE id=?",(job['operation_id'],))
+        self.assertEqual(private_storage.expire_media(user_id='expiry-job', now=self.now+timedelta(days=2)),0)
+        self.assertEqual(db.fetchone('SELECT state FROM private_media_refs WHERE id=?',(media.id,))['state'],'ready')
+
+    def test_media_commit_ack_loss_preserves_registered_bytes(self):
+        from contextlib import contextmanager
+        self.create_user('media-ack-owner')
+        original=db.transaction
+        @contextmanager
+        def lost_ack(*args,**kwargs):
+            with original(*args,**kwargs) as tx:
+                yield tx
+            raise RuntimeError('synthetic_commit_ack_loss')
+        with mock.patch.object(db,'transaction',side_effect=lost_ack), \
+                mock.patch.object(self.backend,'delete',wraps=self.backend.delete) as delete:
+            ref=private_storage.store_media_bytes('media-ack-owner',purpose='image',content_type='image/jpeg',
+                payload=self.jpeg(),item_count=1,now=self.now)
+            delete.assert_not_called()
+        self.assertEqual(private_storage.load_media_bytes(ref.id,user_id='media-ack-owner')[1],self.jpeg())
+        with mock.patch.object(db,'transaction',side_effect=lost_ack), \
+                mock.patch.object(db,'fetchone',side_effect=RuntimeError('reconcile_unavailable')), \
+                mock.patch.object(self.backend,'delete',wraps=self.backend.delete) as delete:
+            with self.assertRaises(private_storage.ObjectStorageUnavailable) as raised:
+                private_storage.store_media_bytes('media-ack-owner',purpose='image',content_type='image/jpeg',
+                    payload=self.jpeg('other'),item_count=1,now=self.now)
+            self.assertEqual(raised.exception.code,'PRIVATE_MEDIA_COMMIT_UNCONFIRMED')
+            delete.assert_not_called()
+        self.assertEqual(db.fetchone('SELECT count(*) n FROM private_media_refs')["n"],2)
+        self.assertEqual(len(self.backend._objects),2)
+
     def test_owner_bound_media_cross_node_load_and_bundle_integrity(self):
         self.create_user("media-owner")
         reference = self.store_video("media-owner")

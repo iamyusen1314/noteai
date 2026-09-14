@@ -27,9 +27,14 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.old_database_url = os.environ.get("DATABASE_URL")
         os.environ["DATABASE_URL"] = os.environ["NOTEAI_TEST_POSTGRES_URL"]
+        # Later additive migrations grant to the pre-existing runtime roles.
+        cls.conn = db.get_conn()
+        for role in ("noteai_app", "noteai_admin_runtime"):
+            cls.conn.execute(f"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='{role}') "
+                             f"THEN CREATE ROLE {role} NOLOGIN; END IF; END $$")
+        cls.conn.commit()
         cls.first_apply = db.apply_postgres_migrations()
         cls.second_apply = db.apply_postgres_migrations()
-        cls.conn = db.get_conn()
         for role in (
             "noteai_app",
             "noteai_ai_worker",
@@ -38,6 +43,9 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
             "noteai_xhs_tracking",
             "noteai_xhs_trends",
         ):
+            exists = cls.conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone()
+            if exists:
+                cls.conn.execute(f"DROP OWNED BY {role}")
             cls.conn.execute(f"DROP ROLE IF EXISTS {role}")
             cls.conn.execute(
                 f"CREATE ROLE {role} NOLOGIN NOSUPERUSER NOCREATEDB "
@@ -89,6 +97,40 @@ class PrivateStoragePostgresContractTests(unittest.TestCase):
 
     def tearDown(self):
         self.conn.rollback()
+
+    def test_media_capacity_serializes_separate_connections_before_put(self):
+        import concurrent.futures
+        import threading
+        from datetime import datetime, timedelta, timezone
+        from unittest import mock
+        import private_storage
+        self.conn.rollback()
+        user_id = str(uuid.uuid4())
+        clock = datetime.now(timezone.utc) - timedelta(days=2)
+        db.execute('INSERT INTO users(id,username,email,password_hash,password_salt,created_at) VALUES(?,?,?,?,?,?)',
+                   (user_id,'quota-'+user_id,user_id+'@example.com','hash','salt',clock.isoformat()))
+        backend=private_storage.InMemoryObjectBackend()
+        private_storage.configure_object_backend(backend,key_epoch='isolated-capacity')
+        barrier=threading.Barrier(2)
+        def upload():
+            barrier.wait(timeout=10)
+            try:
+                return private_storage.store_media_bytes(user_id,purpose='image',content_type='image/jpeg',
+                    payload=b'isolated-image',item_count=1,now=clock).id
+            except private_storage.MediaCapacityExceeded:
+                return 'limited'
+        try:
+            with mock.patch.dict(os.environ,{'NOTEAI_MEDIA_MAX_OBJECTS_PER_USER':'1'}), \
+                    mock.patch.object(backend,'put_if_absent',wraps=backend.put_if_absent) as put:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                    results=list(pool.map(lambda _:upload(),range(2)))
+                self.assertEqual(results.count('limited'),1)
+                self.assertEqual(put.call_count,1)
+                self.assertEqual(len(backend._objects),1)
+            # Exercise the PostgreSQL scoped/locked expiry query too.
+            self.assertEqual(private_storage.expire_media(user_id=user_id),1)
+        finally:
+            private_storage.reset_object_backend()
 
     @staticmethod
     def digest(value: str) -> str:

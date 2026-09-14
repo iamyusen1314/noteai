@@ -1,5 +1,11 @@
 # Risk Register
 
+September14 quality-02 confirms transport and once-only accounting, not content quality.
+Automatic repair instructions still demanded unsupported sensory facts; long free-form
+choices were silently discarded. Corrected locally, not in livee22. Storage capacity
+and commit-ack-loss protections are locally verified; production noteai_app already
+has the narrowly needed query/state privileges. Current scope/results at Handoff top.
+
 September14 16:42BJT e22 report/constraint correction is deployed and original report
 readback works without regeneration. New same-material quality-02 is IN_FLIGHT on an
 exact private image candidate; public media/payment remain closed. Earlier local-only

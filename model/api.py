@@ -3876,7 +3876,7 @@ def _plan_strategy_blueprint(domain: str | None) -> list[tuple[str, str]]:
     by_domain: dict[str, list[tuple[str, str]]] = {
         "美食": [
             ("决策信息型", "①开头直接回答值不值得去，写清谁适合去 ②信息顺序固定为：结论→位置/人均/评分/营业等事实→点单建议→适合人群 ③语气克制、信息密度高，不靠夸张情绪撑内容 ④结尾含「点赞」「收藏」互动引导"),
-            ("菜品种草型", "①开头围绕一个招牌/推荐菜建立记忆点 ②信息顺序固定为：主菜亮点→口感/火候→搭配菜→到店决策句 ③必须自然出现「推荐/招牌/必点」中的至少1个词 ④结尾含「点赞」「收藏」互动引导"),
+            ("菜品种草型", "①开头围绕来源中的具体菜品建立记忆点 ②依次组织已有的画面、作者描述的感受和取舍理由，不要求补齐口感或火候 ③推荐只表达作者已有评价，不新增招牌身份或用餐经历 ④自然邀请读者交流或收藏"),
             ("避坑决策型", "①开头写适合谁/不适合谁，不编造真实差评 ②信息顺序固定为：适合谁与不适合谁→怎么点→什么时候去→收藏理由 ③用决策建议制造价值，不写虚假的踩雷经历 ④结尾含「点赞」「收藏」互动引导"),
         ],
         "旅行": [
@@ -4419,7 +4419,7 @@ def _v04_generation_lift_instructions(
     fact_density = features.get("commercial_fact_density")
     if fact_density is not None and float(fact_density) < 0.68:
         items.append(
-            f"商业事实密度偏低（{float(fact_density):.2f}）：每段补1个可验证或可执行细节，优先用步骤/材料/尺寸/动作/肤质/场景/取舍理由，不编造价格和经历"
+            f"商业事实密度偏低（{float(fact_density):.2f}）：整理原来源已有的具体信息，合并空泛重复段落；不要求每段新增事实，不补写未提供的属性、经历或效果"
         )
 
     specificity = features.get("commercial_specificity")
@@ -4431,17 +4431,17 @@ def _v04_generation_lift_instructions(
     slot_coverage = features.get("commercial_domain_slot_coverage")
     if slot_coverage is not None and float(slot_coverage) < 0.82:
         items.append(
-            f"行业槽位覆盖不足（{float(slot_coverage):.2f}）：按当前品类补齐核心槽位，但价格/时间/功效/个人经历只引用事实源，缺失时给确认方式"
+            f"行业槽位覆盖不足（{float(slot_coverage):.2f}）：只组织来源实际包含的行业信息；缺少的槽位不等于写作必须补齐，也不能改写成已发生的体验"
         )
 
     actionability = features.get("commercial_actionability")
     if actionability is not None and float(actionability) < 0.90:
         items.append(
-            f"行动指导不够（{float(actionability):.2f}）：加入可照做的顺序、选择标准、适合/不适合人群和收藏理由"
+            f"行动指导不够（{float(actionability):.2f}）：用已有信息解释读者如何取舍；可提出明确标为建议的选择方式，不虚构商家的做法或作者经历"
         )
 
     domain_item = {
-        "美食": "美食提质：围绕1-2个招牌/推荐菜写清点单顺序、口感判断和适合人群；高德事实可用时自然写地址/营业，缺失时不要写页面兜底句",
+        "美食": "美食提质：围绕来源中的具体菜品组织可见画面和作者已描述的感受，用信息顺序和取舍理由增强可读性；不另补口感、火候、温度或稳定度；地址/营业只引用已提供内容",
         "旅行": "旅行提质：按路线/酒店/景点取舍写；酒店酒旅稿前120字保留起价/评分/位置/交通权益中的至少3项，再补体力节奏、预算确认方式和注意事项",
         "穿搭": "穿搭提质：补身材/场合、单品材质或版型、颜色比例、复用公式；价格缺失时写按实际链接/门店为准，禁止穿出165、多五厘米、秒变170等身高承诺",
         "美妆": "美妆提质：补肤质、用量、手法、妆效边界和适合/不适合；色号/价格缺失时不占位，不写虚假实测",
@@ -4469,7 +4469,7 @@ def _v04_generation_lift_instructions(
         if not features.get("body_has_hours", 0):
             slot_items.append("餐饮商业槽位缺营业时间：仅在事实源或用户提供营业时间时自然写进到店建议；缺失时不要写占位句")
         if not features.get("body_has_must_order", 0):
-            slot_items.append("餐饮商业槽位缺必点/招牌：必须绑定具体菜品写「必点/招牌/推荐」之一，不要只泛写好吃")
+            slot_items.append("餐饮推荐表达：来源中确有正向评价时，可针对对应菜品表达推荐；招牌、人气和必点不是可凭空补出的商家事实，不为命中关键词强写")
     elif canonical == "旅行":
         if not features.get("body_has_transport", 0):
             slot_items.append("旅行商业槽位缺交通/路线：写清地铁/步行/接驳/自驾/路线取舍；事实源缺失时写出发前按地图确认")
@@ -4500,7 +4500,7 @@ def _v04_generation_lift_instructions(
     return deduped[:6]
 
 
-def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美食") -> list[str]:
+def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美食", source_context: str | None = None) -> list[str]:
     """Domain-aware fix instructions for the arbitrate agent. Priority: high-impact body fixes first."""
     canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
     items: list[str] = []
@@ -4555,7 +4555,7 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
             "必须压缩重复铺陈，只保留最能转化的场景钩子、核心卖点、真实决策信息和互动结尾"
         )
 
-    for lift_item in _v04_generation_lift_instructions(features, canonical):
+    for lift_item in _v04_generation_lift_instructions(features, canonical, source_context=source_context):
         if lift_item not in items:
             items.append(lift_item)
 
@@ -4574,13 +4574,13 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
                 "正文缺预订/排队决策信息：只有用户或事实源提供订位/排队证据时才写；缺失时不要默认写提前预订"
             )
         if not features.get("body_has_must_order", 0):
-            items.append("正文缺必点/招牌菜词——必须出现「必点」「必吃」「招牌」「推荐」「人气」「爆款」中至少1个，搭配具体菜品名")
+            items.append("正文推荐表达不足：整理作者对具体菜品已有的评价；没有来源时不新增招牌、人气或爆款身份，不强制出现营销词")
         if not features.get("body_has_price", 0):
             items.append(
                 "正文缺价格关键词：只有创作者或事实源提供人均/套餐价时才写；未核验时不要写价格占位句，也不能编造人均"
             )
         if blen < body_floor:
-            items.append(f"正文太短（当前{blen}字），扩展到{body_target_text}，优先补具体菜品、口感层次、适合人群和收藏理由")
+            items.append(f"正文太短（当前{blen}字），扩展到{body_target_text}，整理已有菜品描述、可见画面、作者原有感受及读者取舍；不为凑字数新增感官断言")
     elif canonical == "旅行":
         if not features.get("body_has_price", 0):
             items.append("正文缺预算信息：若事实源提供则写总花费/人均预算；未提供时写「预算按实际交通和住宿为准」，不得编造金额")
@@ -4807,7 +4807,7 @@ async def _run_generation_agents(
                 cover_feats=cover_feats or None,
                 semantic_feats=None,
             )
-            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain)
+            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain, source_context=brief)
             print(f"[gen] P3-pre-score draft={pre_score:.1f} fixes={len(pre_fix_items)}", file=sys.stderr, flush=True)
         except Exception:
             pass
@@ -5003,7 +5003,7 @@ async def _run_generation_agents(
                 break
 
             # 构建针对性改进指令
-            fix_items = _build_fix_instructions(features, weaknesses, domain=domain)
+            fix_items = _build_fix_instructions(features, weaknesses, domain=domain, source_context=brief)
             repair_items = quality_issues + fix_items
             if not repair_items:
                 repair_items = _v04_generation_lift_instructions(features, domain, percentile, brief or "")
@@ -6291,31 +6291,35 @@ _CONSTRAINT_ORDER = [
 
 
 def _normalize_user_constraints(constraints: list[str] | None) -> list[str]:
-    """Normalize frontend constraint chips into canonical labels used by all AI paths."""
+    """Normalize known chips without dropping or reinterpreting free-form choices."""
     if not constraints:
         return []
+    if len(constraints) > 20:
+        raise HTTPException(400, "本次写作要求最多20条，请合并后再提交")
     found: set[str] = set()
     extras: list[str] = []
     for raw in constraints:
         text = re.sub(r"\s+", " ", str(raw or "")).strip()
         if not text:
             continue
+        if len(text) > 512:
+            raise HTTPException(400, "单条写作要求最多512字，请精简后再提交；尚未开始处理")
         compact = text.replace(" ", "")
-        if "不改标题" in compact:
+        if compact == "不改标题":
             found.add("不改标题")
-        elif "不改封面" in compact:
+        elif compact == "不改封面":
             found.add("不改封面")
-        elif "固定发布时间" in compact and "18" in compact:
+        elif compact == "固定发布时间18:00":
             found.add("固定发布时间 18:00")
-        elif "涨粉" in compact:
+        elif compact in {"涨粉", "目标：涨粉"}:
             found.add("目标：涨粉")
-        elif "带货" in compact:
+        elif compact in {"带货", "目标：带货"}:
             found.add("目标：带货")
-        elif "互动率" in compact:
+        elif compact in {"互动率", "重点优化：互动率"}:
             found.add("重点优化：互动率")
-        elif "曝光量" in compact:
+        elif compact in {"曝光量", "重点优化：曝光量"}:
             found.add("重点优化：曝光量")
-        elif len(text) <= 40:
+        else:
             extras.append(text)
     ordered = [item for item in _CONSTRAINT_ORDER if item in found]
     for item in extras:
@@ -6326,7 +6330,7 @@ def _normalize_user_constraints(constraints: list[str] | None) -> list[str]:
 
 def _constraint_flags(constraints: list[str] | None) -> dict[str, bool]:
     normalized = _normalize_user_constraints(constraints)
-    joined = "；".join(normalized)
+    joined = set(normalized)
     return {
         "keep_title": "不改标题" in joined,
         "keep_cover": "不改封面" in joined,
@@ -8430,9 +8434,9 @@ def _quality_expression_brief(domain: str | None = None) -> str:
         return (
             "【表达质量要求】\n"
             "- 禁止模板化夸张词：骨头都能嚼碎、筷子都夹不住、根本停不下来、直冲脑门、一口入魂、绝了、没朋友、天花板、值哭。\n"
-            "- 推荐词必须服务具体证据：可以写必点、招牌、推荐、适合收藏；少用很稳、值得冲、第一选择这类泛化结论。\n"
-            "- 用可感知证据替代爆词：火候、口感、分量、出品稳定度、点单顺序、适合人群、到店决策信息。\n"
-            "- 不要编造朋友反应、个人经历、排队数字、适用人数、五星/满分背书或未提供的节假日场景；停车、地铁口、步行距离等到店便利表达可自然保留。"
+            "- 推荐只表达作者已经提供的评价；招牌、人气、出品稳定度需要对应来源，不能从图片或菜品常识推定。\n"
+            "- 用原文和画面中已有的细节替代泛词。图片支持颜色、形状、摆放等可见内容；未被作者描述的味道、温度、口感与烹饪做法不补写。\n"
+            "- 不要编造朋友反应、个人经历、排队数字、适用人数、五星/满分背书或未提供的节假日场景；停车、地铁口、步行距离也只保留来源已提供的信息。"
         )
     if canonical == "旅行":
         return (
@@ -11183,7 +11187,7 @@ def _score_directed_repair_items(
         if issue not in items:
             items.append(issue)
 
-    weakness_items = _build_fix_instructions(features, _find_weaknesses(features, canonical), domain=canonical)
+    weakness_items = _build_fix_instructions(features, _find_weaknesses(features, canonical), domain=canonical, source_context=source_context)
     if seed_without_visible_merchant and canonical == "美食":
         weakness_items = _filter_quality_issues_for_content_intent(weakness_items, canonical, source_context)
     for item in weakness_items:
@@ -16678,7 +16682,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time, domain=domain,
             )
             pre_score, pre_feats = _predict(draft_note, timing_feats=timing, cover_feats=cover_feats or None)
-            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain)
+            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain, source_context=brief)
             yield {"type": "pre_score", "score": round(pre_score, 1), "fixes": pre_fix_items[:3], "progress": 58}
         except Exception:
             pass
@@ -16920,7 +16924,7 @@ async def _generate_pipeline_stream(
         if q_round == 2:
             break
 
-        fix_items = _build_fix_instructions(final_feats, _find_weaknesses(final_feats, domain), domain=domain)
+        fix_items = _build_fix_instructions(final_feats, _find_weaknesses(final_feats, domain), domain=domain, source_context=brief)
         repair_items = quality_issues + fix_items
         if not repair_items:
             repair_items = _v04_generation_lift_instructions(final_feats, domain, final_score, brief or "")
@@ -17326,13 +17330,20 @@ async def upload_image(
         except OSError:
             pass
     try:
-        reference = _private_storage.store_media_bytes(
+        try:
+            await _await_media_worker(_private_storage.expire_media, user_id=user["id"], limit=20)
+        except (_private_storage.PrivateStorageError, ValueError) as exc:
+            # Failed cleanup keeps occupying capacity; it cannot grant more space.
+            _log_internal_failure("image_file", exc, phase="expired_cleanup")
+        reference = await _await_media_worker(_private_storage.store_media_bytes,
             user["id"],
             purpose="image",
             content_type="image/jpeg",
             payload=body,
             item_count=1,
         )
+    except _private_storage.MediaCapacityExceeded as exc:
+        raise HTTPException(429, "暂存素材空间已满，已到期素材清理后可继续上传；如持续出现请联系客服。已保存报告不受影响。") from exc
     except (_private_storage.PrivateStorageError, ValueError) as exc:
         _log_internal_failure("image_file", exc, phase="private_store")
         raise HTTPException(status_code=503, detail="图片素材保存失败") from exc
@@ -17366,6 +17377,8 @@ async def upload_video(file: UploadFile = File(...), user: dict = Depends(_auth.
         mime = {".mp4":"video/mp4", ".mov":"video/quicktime", ".avi":"video/x-msvideo"}[suffix]
         reference = await _await_media_worker(_private_storage.store_media_bytes, user['id'],
             purpose="video", content_type=mime, payload=original, item_count=1)
+    except _private_storage.MediaCapacityExceeded as exc:
+        raise HTTPException(429, "暂存素材空间已满，请等待到期素材清理或联系客服。已保存报告不受影响。") from exc
     except (ValueError, _private_storage.PrivateStorageError) as exc:
         _log_internal_failure("video_file", exc, phase="original_store")
         raise HTTPException(422, "原视频读取或保存未完成，请检查格式、90秒/100MB限制；没有用封面代替") from None
