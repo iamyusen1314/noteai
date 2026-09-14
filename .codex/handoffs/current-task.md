@@ -1,5 +1,32 @@
 # NoteAI Internal Production Readiness Handoff
 
+Current live APIce6ade7/image51f46b9a5ec522841379c97a6564c3f5b6ef02ee6b4b93cb85e6ab257d907589,
+CID4eb94ab5a64dcb56325d7cda2d017fe4d877bab72ef8dccf51b88b299dc7de26.
+CloudAssistant104–107: private archive6acf7a5696d6c34164e4418bc6398165780a02b78f75383ed2ebd16a897c93fe
+uploaded once (250938 bytes); build1674804 completed1789359618.686515;
+deploy1675028 completed1789359669.6125503. API only; web4c/Admin/env/model/locations
+unchanged, exact18081 candidate stopped, original707 rollback retained.
+Original claim6a426f5a/usage2f3234ca remains the same. Program repair of its saved raw
+questions passed row locks/CAS/no-answer/no-unsettled-call checks: only questions and
+version1→2 changed; old question unchanged, required beverage question restored.
+BeforeSHA0e65470d4a3e340a3337790a4ad5d5ae2960625dd5a9d0dac5a331e8c34713a6,
+afterSHA78f2bec0c44a0bc83c7adf843b12a5c2096ff815022d813d170cc73872e68da7.
+Private host backup and original result: /var/lib/noteai/clarification-ce6ade7/waiting-repair.json
+and waiting-repair-result.json. Initial read-only preview had a Python string-newline
+syntax error before DB access; corrected code, no business replay.
+Browser refresh/login restoration and original task link displayed both questions.
+Root submitted ONE synthetic free answer (198 includes2tea/oldmenuB unused,Sep2026
+lunch only) and omitted optional noodle-variant detail. Actual page acknowledged and
+continued prepared arbitration. This resume is IN_FLIGHT; read original result only.
+No terminal/quality pass yet. Local frontend cover-stale and changed-question-version
+readback fixes passed actual isolated CUA browser checks using the original page and
+existing synthetic clarification fixture: existing free answer/omit remained after
+new question version, and previous cover text cleared/hidden for the next no-image
+result. Fixture is private localhost5197, no production identity/provider requests.
+These UI changes are not yet deployed; ce API image does not include UI changes.
+Original production reply remains running, actual acknowledged answer and follow-on
+Sonnet arbitration/draft visible. Do not create a second generation.
+
 Current live API707f263/imagef82eea4dbe6a229ba6b9ba62d83321310360c3c93ce964db5d36bec053e55b3c,
 CID53cc73f37c64c68f6c5ca84fcef63d0a6651529f38bc288821360fa912ed01d0.
 CloudAssistant97–100: archive402edfa522d00a3e5236e1ab2c2cca5e700f41e613476471e2feb6d085bec820

@@ -7486,6 +7486,9 @@ async function populateGenerateReport() {
   if (d.cover_analysis) {
     document.getElementById('genCoverText').textContent = d.cover_analysis;
     document.getElementById('genCoverCard').style.display = 'block';
+  } else {
+    document.getElementById('genCoverText').textContent = '';
+    document.getElementById('genCoverCard').style.display = 'none';
   }
 
   // 特征命中
@@ -9925,6 +9928,14 @@ function renderTaskClarification(task) {
       if (!response.ok) throw Error(typeof state.detail === 'string' ? state.detail : '暂时无法读取原任务');
       if (state.status === 'waiting_for_input' && state.version === task.version) {
         busy = false; uncertain = false; enable(true); message.textContent='原任务仍等待这次回答，可以继续填写。';
+      } else if (state.status === 'waiting_for_input') {
+        const drafts = new Map([...wrap.querySelectorAll('[data-question-id]')].map(row =>
+          [row.dataset.questionId, {answer:row.querySelector('textarea').value,status:row.querySelector('select').value}]));
+        const refreshed = renderTaskClarification(state);
+        refreshed?.querySelectorAll('[data-question-id]').forEach(row => {
+          const draft = drafts.get(row.dataset.questionId);
+          if (draft) {row.querySelector('textarea').value=draft.answer;row.querySelector('select').value=draft.status;}
+        });
       } else if (state.status === 'completed' && state.result) {
         await finishClarifiedTask(state.result, task, identity, token, true);
       } else { message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。'; }
