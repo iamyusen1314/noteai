@@ -1,3 +1,29 @@
+September14 17:20BJT actual deployment readback: 882a763 API is DEPLOYED at
+1789377417.5478654, image0af22757443fa0110fe00c1ceb054e0b35a6a73e0f86107bab07db75282b623b.
+Original deploy/result.json confirms web e22 retained, Admin/model config/envs unchanged,
+exact preflight candidate stopped,0provider calls/0business writes. e22 API remains rollback.
+New quality03 launcher started ONCE PID1724411 at1789377503.429446; request
+formal-ark-media-quality-20260914-03 at /var/lib/noteai/media-882a763/owner-check.
+Same owner, original image, saved OCR/merge and all3existing requirements; no new
+OCR/merge. Read original result then exact claim/cost/credit. Do not replay original
+quality01/02. Readiness30/37 unchanged.
+
+September14 17:18BJT continuation: 882a763 source was built once on existing API-C,
+original image4116f64de06edfb89b30adac51c9d5074cab4939f8a91cc95024fa070fab6bd9.
+Original build result FAILED/build_api was actually post-build file-read failure:
+non-root image check raised PermissionError on prompt_composer.py. Original logs,
+image and failure preserved at /var/lib/noteai/media-882a763/build. No secret/network
+was used by the isolated check. Reused built image, corrected only the three
+non-secret source file modes to0444, retained noteai runtime user and exact source.
+Separate build-recovery-result.json confirms Python3.11.15/Linuxamd64,18 runtime
+file hashes and imports; image0af22757443fa0110fe00c1ceb054e0b35a6a73e0f86107bab07db75282b623b.
+No repeated upload/full build. API-only deploy started ONCE PID1723467 at1789377406;
+read original /var/lib/noteai/media-882a763/deploy/result.json, never blind-relaunch.
+Deploy script1c8650ca869aad967b508a57669e826b2b8307f9996fa21931ba42a841fa40b2
+retains e22 web/rollback, Admin/Payment/env/model routes. quality03 prepared, NOT
+issued yet; only after deployment readback. Original12RMB order remains fully
+refunded, no new order/refund. Readiness30/37 unchanged.
+
 September14 local followup: targeted source-conflict correction now includes the
 actual code-built knowledge/checklist/planning fragments used by diagnosis three-body
 and generation arbitration, plus second-pass/readability/rhythm instructions. They
