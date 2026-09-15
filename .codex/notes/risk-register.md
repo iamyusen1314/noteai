@@ -6,8 +6,12 @@ approval fields are not an owner signature. Missing approval fails before host,
 Secret or durable admission. A start-time race after slow host checks and the old
 same-day-only completion check were fixed;100 isolated tests and an independent
 read-only review passed. Old Sep7/HOLD/Item34 remain unchanged. Private Git recovery
-has a verified remote clone with Actions disabled/zero runs, plus local and ORICO
-bundles; the four model/report assets have separate checked copies. Private runtime
+has a verified remote clone with Actions disabled, plus local and ORICO bundles;
+later readback found3 platform Dependabot runs and10 automatic PRs despite disabled
+Actions. No project CI/deployment ran; close those unmerged backup-only PRs and
+archive the private recovery repository after final sync. Future sync must restore
+archive immediately after the named-branch push. The four model/report assets have
+separate checked copies. Private runtime
 results/DB/Secret/user media are outside those archives; full production disaster
 recovery is not claimed. Item36 now has all four price components and China-site
 VAT basis, but usage, future discounts and owner recurring-cost decision remain.

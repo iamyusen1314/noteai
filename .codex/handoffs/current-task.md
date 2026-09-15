@@ -38,7 +38,15 @@ Item32新的prospective计划和Item36完整费用方案。新生产请求及新
 - 专用私有恢复仓库 `https://github.com/iamyusen1314/noteai-private-recovery-20260915`
   已建为PRIVATE，push前Actions disabled、hooks0，只推指定分支3eeb84a，未配置部署连接。
   使用GIT_LFS_SKIP_PUSH=1，不推其它refs或LFS实字节；原公开origin及其upstream不变。
-  私有远端已重新bare clone并核对HEAD/fsck通过，Actions运行总数0。
+  私有远端已重新bare clone并核对HEAD/fsck通过。首次即时读回Actions记录0；随后发现
+  GitHub平台3条`dynamic/dependabot/dependabot-updates`已完成，生成10个未合并PR；
+  它们不是项目CI，仓库deployments0/hooks0，原备份分支未被bot改动。禁用Actions没有阻止
+  这类平台依赖检查，不能继续宣称总运行记录0。本轮收尾关闭这10个自动PR，并在最终push后
+  将专用私有备份仓库归档为只读，保持原文件和历史，不删除dependabot配置或合并更新。
+  GitHub归档行为依据：https://docs.github.com/en/repositories/archiving-a-github-repository/archiving-repositories 。
+  后续受控私有同步先检查仍PRIVATE/Actions disabled，再临时unarchive、只推指定分支、
+  立即恢复archive并读回；不得把此私有备份重新接入部署。最新同步/归档/异盘结果统一索引
+  `/Users/openclaw/.codex/backups/noteai/latest-recovery.json`，初始3eeb及后续bundle均保留。
   原CI对codex/** push及现有PR触发，Render五服务Blueprint checksPass且远端实际绑定部分未知；
   不将hooks0等同所有集成已排除。当前以私有副本完成恢复性同步，公开发布推送另核部署绑定。
 - 七保护路径在当前分支可达历史出现次数均0。242增量1428个Git blob的四类高置信Secret模式
