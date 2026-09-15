@@ -6,6 +6,21 @@
 Item32新的prospective计划和Item36完整费用方案。新生产请求及新增长期费用按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September15 当前明确授权（首次时间读回13:11:36UTC）
+Owner已批准本次Item32唯一只读Trends successor：2026-09-15 14:00–15:00UTC，
+dispatch严格早于14:40UTC；先核对原任务和fresh0/34，最多34 admissions、零自动重试、
+DB只读证明及必要原结果恢复。不得提前/晚于窗口启动，失窗不自动改期或造后继。
+当前plan已绑定AUTHORIZED，确认时间13:11:36UTC，SHA256
+`a86b55be4093db3123d3e18b0fd6f6fccbb92520b098efd3bff8a7d6a0670fe8`；尚未生产派发。
+真实Item32 terminal和原internal rollback满足后接续Item33；不得同UTC桶消耗新34次。
+
+Owner同时批准原VPC双区标准公网ALB＋双EIP及真实持续费用：ALB0.125元/h，
+LCU0.042元/LCUh，双EIP共0.040元/h，首档出流量0.80元/GB；265.26/月仅指定情景。
+不采纳旧300元管理预算/80–90%自动停增流建议，不为费用预警自动中断正常用户服务。
+Item33及必要前置满足且确需实施后才创建，购前配置/报价一致性仍需实测；
+资源种类、数量、规格或计费方式实质变化才集中说明，不扩展任意采购。
+原5ce旧窗口归属和实际prepare→最终恢复读回避让不变。范围内步骤不重复请求批准。
+
 ## 恢复基线与部署
 - 唯一 worktree `/Users/openclaw/Desktop/noteai`；分支 `codex/quality-stabilization-real-chain`。
   新窗口实际接管HEAD `3eeb84a7edda7334c214c07bb735f6d0a3362bcc`，领先242/落后0；
@@ -75,9 +90,9 @@ Item32新的prospective计划和Item36完整费用方案。新生产请求及新
 | Item | 实际状态 | 依赖及下一动作 |
 |---|---|---|
 | 31 | blocked；原5ce支付/自然重复回调/全退完成 | Sep16读取原Sep15账单+独立capture及原terminal validator；由旧窗口唯一任务执行，无新订单/退款 |
-| 32 | blocked / PREPARED_NOT_EXECUTABLE | source3ebc9c5本地prospective绑定已完成/100离线PASS；Sep15 14:00–15:00UTC、dispatch<14:40候选窗口及具名授权待owner，PENDING先拒绝，旧Sep7不可运行 |
+| 32 | blocked / PREPARED_NOT_EXECUTABLE | source3ebc9c5本地prospective绑定已完成/100离线PASS；Sep15 14:00–15:00UTC、dispatch<14:40窗口已获owner批准，等待窗口及fresh前置，旧Sep7不可运行 |
 | 33 | unverified | 等真实Item32 terminal及internal rollback；再按原managed promotion执行，不套用Sep7/8历史时间 |
-| 36 | unverified | capacity100/Item34已具备，Item33尚缺；C/F私网候选及rollback已准备，最后ALB实测0；新四项含税报价已齐、长期费用待owner，尚无资源创建 |
+| 36 | unverified | capacity100/Item34已具备，Item33尚缺；C/F私网候选及rollback已准备，最后ALB实测0；指定四项费用已获批准、等Item33及临执行前置，尚无资源创建 |
 | 37 | unverified | real AI、31、36满足后做原完整商业链联合验收；现Admin契约已同步 |
 | 38 | unverified | 依赖37的accepted ingress/ramp；官网/API/Admin已公开不等于该终态，不重复DNS切换 |
 
@@ -118,19 +133,12 @@ S3独立存模型资产，CF管理table/role，不是Bedrock。Gateway60168e1及
 
 已有授权覆盖既定产品修复/必要回归/既有资源受控发布恢复、owner测试权益与正常模型费用、
 本次原单对账和清理；新窗口已恢复普通工程执行。新增长期资源/订阅/充值/合同/越界权限不在费用授权内。
-- Item32待决定：是否授权唯一新只读Trends successor，新的明确UTC窗口，fresh used0/remaining34，
-  一轮最多34 provider admissions/UTC桶、0自动重试、既有合法身份、隔离结果与DB零写证明/安全清理。
-  已提出2026-09-15 14:00–15:00UTC（北京时间22–23），dispatch严格早于14:40；这只是候选窗口，
-  尚未获批准，fresh配额尚未生产实测。完整请求/费用/前置/UNKNOWN恢复见
-  `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md`，已一次性向owner请求完整范围确认。
-  旧两身份/旧Sep7 plan不可重放；未创建新运行身份、admission或生产调用，失窗不自动改期。
-- Item36待决定：是否启用原VPC双区公网标准ALB＋双EIP的持续计费方案及相应费用范围。
-  新窗口Sep15约12:36UTC同账户报价：ALB0.125元/h、LCU0.042元/LCUh、双EIP2×0.020元/h，
-  CDT大陆出流量分档0.80/0.75/0.70/0.65元/GB，中国站含增值税；折扣以下单页且无锁价期。
-  744h固定保有122.76；平均2LCU+100GB情景265.26，非固定月费/上限。
-  完整组成/720与744情景/旧入口关系/恢复建议见`docs/ITEM36_CURRENT_COST_PROPOSAL_20260915.md`。
-  已单独请求owner决定当前单价/300元月度管理预算（非账单硬上限）及恢复范围，尚未批准/创建。
-  不挪用模型测试费用，不在Item32/33依赖未关闭时空置新资源计费。
+- Item32已批准：唯一Sep15 14:00–15:00UTC窗口，dispatch<14:40，34/0及DB只读/原恢复。
+  当前执行中准备：原API-F元数据、来源包及后续fresh前置；真实quota还不能从本地计划推定。
+  完整范围见`docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md`。旧两身份/旧Sep7包不重放。
+- Item36已批准：原方案与上述实际持续费，按用量如实记录/报告，不设置旧模型金额门槛，
+  不因费用预警自动停服。完整价格依据及当前owner决定见`docs/ITEM36_CURRENT_COST_PROPOSAL_20260915.md`。
+  不提前空转计费；Item33及临执行真实unit/SG/TLS/报价绑定仍是前置。
 - 高德待外部办理：适用企业认证/技术服务许可；保留现有Key/历史成功，不猜故障、不自动购买年费。
   现个人认证/无许可已在原页只读核实；认证`https://console.amap.com/dev/user/permission`，
   许可`https://lbs.amap.com/upgrade#business`；详情及工单入口见Item36方案，不阻断无关工作。
@@ -179,10 +187,10 @@ STAGED_NOT_PREPARED；未来结果root `/var/lib/noteai/native-9d62f98/bill-2026
 
 下一阶段待办（仅登记，未设计/实现/加入37项）：**根据AI视觉建议和用户素材生成封面**。
 
-下一实际动作：等待已发出的Item32具名窗口确认和Item36单独长期费用决定；Item32获得确认后
-按原fresh前置执行，真实terminal及既有internal rollback满足后在不同UTC桶接续Item33。
-Item31只接收旧窗口Sep16原5ce账单结果；32/33及费用条件关闭后实施36，31/36满足后继续37→38。
-本地准备已完成，不因checkpoint自行新增任务、重放素材或DNS切换。尚未收到上述两项确认。
+下一实际动作：准备已批准Item32的最终只读源码包及原API-F读回，在14:00UTC后按原完整
+fresh前置执行唯一一轮。真实terminal后接续Item33；其原host接线/source与真实费用兼容
+正在本地准备，不能用离线结果补终态。Item31只接收旧窗口Sep16原5ce账单；依赖满足后
+继续36→37→38。Item36实际费用已获批，不再重复询问；资源未创建。
 
 ---
 # Historical continuation notes — retain facts; follow CURRENT EXECUTION CONTROL above

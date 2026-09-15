@@ -2,6 +2,17 @@
 
 ## Current execution control
 
+September15 owner explicitly approves the single Item32 prospective run on
+2026-09-15 14:00–15:00UTC, dispatch strictly before14:40UTC, fresh0/34,
+maximum34 admissions, zero automatic retry, old identities sealed, DB read-only
+proof and necessary recovery. No late dispatch or automatic successor reschedule.
+Actual terminal acceptance permits the existing Item33 continuation. Owner also
+approves the quoted original-VPC dual-zone Standard public ALB plus two EIPs and
+actual continuing charges, only when Item33 and other prerequisites make creation
+necessary. No CNY300 cap or automatic service interruption for cost warnings;
+material resource/configuration changes require a scoped explanation. Original
+noteai-5ce remains exclusively in the old thread. Details at Handoff top.
+
 September15 new-window owner explicitly resumes ordinary engineering and existing
 scoped authorizations in this same worktree. The old-window stop below applies only
 to that old window. New-window work owns recovery/synchronization, a prospective

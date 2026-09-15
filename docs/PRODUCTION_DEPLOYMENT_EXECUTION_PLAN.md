@@ -1,3 +1,14 @@
+September15 owner authorization received (first current-time readback13:11:36UTC):
+Item32 single successor is approved for14:00–15:00UTC today, dispatch strictly
+before14:40, fresh0/34, maximum34, zero retry, DB-read-only proof and original-result
+recovery. Actual qualifying terminal permits existing Item33 continuation in a
+later UTC bucket. Approved original-VPC dual-zone Standard public ALB/twoEIPs fees
+are actual usage at0.125 ALB/hour,0.042 LCU/hour,0.040 twoEIPs/hour and0.80 first-tier
+GB; no300 budget or automatic cost-warning service interruption. Create only when
+Item33 and actual implementation prerequisites are met. Original5ce ownership and
+prepare→final-readback non-concurrency remain. Current approved plan SHA and exact
+progress at Handoff CURRENT; older pending-approval text below is history.
+
 September15 new-window takeover: owner explicitly resumes ordinary engineering and existing scoped authorizations in the original worktree. Actual takeover HEAD3eeb84a/ahead242; the original public origin remains unchanged. Recovery/synchronization, a prospective Item32 scope and complete Item36 pricing proceed independently. The old window alone retains noteai-5ce; shared runtime/schema/ACL changes must not overlap its actual prepare through confirmed close/final-readback. Item32 still needs its new named production window authorization; Item36 recurring resources need a separate cost decision. Current ownership, evidence and remaining six Items are at `.codex/handoffs/current-task.md` → CURRENT EXECUTION CONTROL. Older dated instructions below are historical where they conflict.
 
 Current concrete proposals: `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md` specifies

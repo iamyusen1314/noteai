@@ -1,12 +1,16 @@
 # Item32：新的只读 Trends 执行提案
 
-状态：**LOCALLY_PREPARED_AUTHORIZATION_PENDING / 尚未获得本次具名生产执行授权**。
+状态：**AUTHORIZED_AWAITING_WINDOW_AND_FRESH_PREFLIGHT / 已获本次具名授权，尚未派发**。
+
+Owner确认首次时间读回为2026-09-15T13:11:36+00:00，明确批准下述9月15日14:00–15:00UTC、
+dispatch严格早于14:40的一次范围及必要恢复；真实终态满足后接续Item33。
+当前仅绑定真实授权字段并准备原host读回/私有包，不能提前执行或跨窗启动。
 
 这是新窗口的执行范围与时间提案，不是可运行 JSON、生产调度或新 admission。
 本次只读核查基于工作树 HEAD `3eeb84a7edda7334c214c07bb735f6d0a3362bcc`；
 不改变 Readiness 31/37、旧两身份、原 Sep7 plan 或任何既有生产状态。
 
-## 1. 已有授权与本次仍缺的决定
+## 1. 已有授权与本次确认
 
 - 本次 owner 新窗口接管明确授权继续普通工程和既有范围内的本地准备，
   并要求先核对生产授权、在确实缺失时集中给出完整范围与时间。
@@ -19,8 +23,8 @@
 - Sep6 历史批准的是 Sep7 UTC 桶、23:40Z 前 dispatch、Sep8 UTC 前结束。
   该窗口已经过期，历史“立即继续”不再调度本次工作。
 
-本次只需确认下文**一个窗口、一轮请求、现有隔离执行和安全恢复**的完整范围。
-不需要重新确认 Claude、产品链、既有 owner 测试权益或 Item34。
+下文一个窗口、一轮请求、现有隔离执行和安全恢复现已获owner明确确认；
+前述“缺少具名授权”是批准前事实，不再阻断此范围。无需再逐技术步骤请求批准。
 
 ## 2. 可确认的窗口
 
@@ -88,8 +92,9 @@ validator 修复时间绑定；该旧包没有被覆盖，也不能当成包含�
   原 executor 拒绝旧 v1 plan，现有 terminal validator 指向新的 prospective 文件。
 - 四个时间字段唯一来自该 plan；executor 和独立 terminal 检查 UTC 格式、同桶、
   开始/截止/结束排序及至少 20 分钟结束余量，不再每次改代码中的日期常量。
-- 该 plan 的 `authorization` 目前为 `PENDING`，`confirmed_at_utc` 和
-  `approved_scope_sha256` 都是 null。实际执行须先通过它，才允许创建 work root、
+- 该 plan 的 `authorization` 已由真实owner确认改为 `AUTHORIZED`，
+  `confirmed_at_utc` 记录首次确认时间读回，`approved_scope_sha256`绑定既定范围。
+  实际执行须先通过它，才允许创建 work root、
   接触 host/Secret、容器或 admission；terminal 也拒绝 PENDING。
   真正收到 owner 确认后才记录确认时间和批准范围 SHA。SHA 绑定除 authorization
   以外的整份计划，防止改日期、来源或范围后沿用旧批准；它不是 owner 数字签名。
@@ -102,7 +107,7 @@ validator 修复时间绑定；该旧包没有被覆盖，也不能当成包含�
 
 实际确认后只补真实授权字段及最终 plan/package SHA 绑定，按 allowlist 保存/上传
 匹配源码并做 fresh preflight；不需要重建/切换 API、Admin 或 public web 镜像。
-若窗口失效，必须保留授权 PENDING，另行提出未来窗口，不能伪造确认或自动改期。
+若窗口失效，保留真实授权与原窗口记录并停止启动；另行提出未来窗口，不能倒填或自动改期。
 
 ### fresh 生产前置与唯一启动
 
@@ -140,7 +145,7 @@ validator 修复时间绑定；该旧包没有被覆盖，也不能当成包含�
   Item32 消耗完的同一 UTC 桶 dispatch。本提案只授权 Item32；Item33 的真实日期和
   现有执行授权要按当时依赖核对，不暗中并入第二轮供应商请求。
 
-## 6. 一次性确认文本
+## 6. 已获确认的原范围文本
 
 > 我授权在 2026-09-15 14:00–15:00 UTC（北京时间 22:00–23:00），最晚严格早于
 > 14:40 UTC dispatch，按本提案在原 API-F 执行唯一一轮 Item32 只读 Trends

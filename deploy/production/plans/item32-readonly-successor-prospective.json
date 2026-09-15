@@ -76,8 +76,8 @@
   "provider_calls_dispatched": 0,
   "cloud_resources_started": 0,
   "authorization": {
-    "status": "PENDING",
-    "confirmed_at_utc": null,
-    "approved_scope_sha256": null
+    "status": "AUTHORIZED",
+    "confirmed_at_utc": "2026-09-15T13:11:36+00:00",
+    "approved_scope_sha256": "f3413552799226914af34cd2554e5955a8a7bc51be4bbdb00680c5956ffe88de"
   }
 }
