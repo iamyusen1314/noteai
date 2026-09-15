@@ -1,3 +1,15 @@
+September15 — Item32 当前源码准备包已更新并保留旧包：
+/Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-49c5bff.tar.gz
+SHA b4acaabc3a8b05f4cceb903c7973db0e9f931aab5f3553b8cd42cb464d6bc1d9，130636 bytes。
+9 个 Git 文件逐字核对，含三文件 runtime overlay 修复；不是可执行生产包，旧计划仍拒绝。
+API 候选继续固定 0590286，不包含该 Item32 准备提交，不因文档提交重建。
+
+镜像修复：Docker import 实际丢弃 ArgsEscaped，精确配置检查已阻止发布。
+当前沿用原导出层，恢复完整 Config 后重新校验 RootFS、文件、权限与扩展属性；
+唯一进程 PID1896491，脚本 SHA df7337fe34fdb36a754e386b44c18cc4e53332d1d2807a083168512b7b349792。
+只读原 flatten-preserved/result.json 与 build-repaired/build-result.json 后决定下一步。
+所有原失败目录保留，尚未切换线上 API11718/public5991/Admin4870。
+
 September15 — independentItem32 localruntime binding candidate implemented in existing
 executor: fixedcurrent adapter/security_redaction/hot_keywords SHA; threeROfile mounts
 plus onlytaskstoreRW. Frozenimagehashcheck separate from effectiveoverlayimport/hash.
