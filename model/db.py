@@ -2316,6 +2316,8 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
     ON user_contract_acceptances(contract_version,privacy_accepted_at);
         """)
         _upgrade_sqlite_trial_usage(conn)
+        from amap_quota import SQLITE_SCHEMA as amap_quota_schema
+        conn.executescript(amap_quota_schema)
         _upgrade_sqlite_original_video(conn)
         _upgrade_sqlite_task_clarification(conn)
         ocr_columns = {r[1] for r in conn.execute('PRAGMA table_info(idempotency_requests)')}

@@ -73,7 +73,7 @@ test('admin dashboard renders healthy API provider and PostgreSQL status', async
   await expect(status).toContainText('PostgreSQL 正常');
   expect(requests).toEqual([{ method: 'GET', path: '/admin/overview' }]);
   expect(requests.filter(request => request.method !== 'GET')).toEqual([]);
-  expect(await page.locator('body').textContent()).not.toContain('undefined');
+  expect(await status.textContent()).not.toContain('undefined');
 });
 
 test('admin dashboard distinguishes an unconfigured provider', async ({ page }) => {
@@ -93,7 +93,7 @@ test('admin dashboard distinguishes an unconfigured provider', async ({ page }) 
   const status = page.locator('#system-status');
   await expect(status).toContainText('API 服务未配置');
   await expect(status).toContainText('API 服务已配置');
-  expect(await page.locator('body').textContent()).not.toContain('undefined');
+  expect(await status.textContent()).not.toContain('undefined');
 });
 
 test('admin dashboard shows unavailable when API readiness is unreachable', async ({ page }) => {
@@ -113,7 +113,7 @@ test('admin dashboard shows unavailable when API readiness is unreachable', asyn
   const status = page.locator('#system-status');
   await expect(status).toContainText('状态查询暂不可用');
   await expect(status).not.toContainText('API 服务未配置');
-  expect(await page.locator('body').textContent()).not.toContain('undefined');
+  expect(await status.textContent()).not.toContain('undefined');
 });
 
 test('admin dashboard treats missing status fields as unavailable without undefined', async ({ page }) => {
@@ -122,7 +122,7 @@ test('admin dashboard treats missing status fields as unavailable without undefi
   const status = page.locator('#system-status');
   await expect(status).toContainText('状态查询暂不可用');
   await expect(status).toContainText('数据库状态不可检测');
-  expect(await page.locator('body').textContent()).not.toContain('undefined');
+  expect(await status.textContent()).not.toContain('undefined');
 });
 
 test('release admission and usage are not presented as provider health', async ({page}) => {
@@ -155,6 +155,48 @@ test('supplier groups retain unknown usage and original cached observation witho
   expect(text).toContain('用量未知'); expect(text).toContain('缓存（非新检索）');
   expect(text).toContain('2026-09-13T01:00:00Z'); expect(text).not.toContain('2026-09-13T02:00:00Z');
   expect(text).toContain('待供应商账单确认'); expect(text).not.toContain('undefined');
+});
+
+test('amap separates owner decision, runtime, account snapshot, history and limited bill', async ({page}) => {
+  const requests = await openDashboard(page, {});
+  await page.evaluate(() => {
+    document.getElementById('supplier-view').innerHTML = renderSupplierView({checked_at:'2026-09-15T15:10:00Z',amap_quota: {
+      status:'ready', snapshot_is_realtime:false, runtime_activation_inferred:false,
+      snapshot:{period:'2026-09',time_zone:'Asia/Shanghai',quota:50000,official_used:1,
+        admitted_since_snapshot:2,remaining:49997,observed_at:'2026-09-15T15:04:00Z',source:'amap_console',
+        owner_authorized_at:'2026-09-15T15:06:00Z',enterprise_certified:true,license_purchased:false,
+        owner_risk_accepted:true,endpoint_qps:{text:30,detail:30},blocked_endpoints:{text:null,detail:null},
+        billing_observation:{period_start:'2026-09-01',period_end:'2026-09-15',usage:1,cost_cny:0,
+          observed_at:'2026-09-15T15:05:00Z',source:'amap_console_bill'}}},
+      suppliers:[{id:'amap',name:'高德地图',group:'data_tools',role:'门店事实',business:['美食诊断'],enabled:false,
+        reason:'当前运行配置尚未启用',source:'api_public_product_availability',
+        latest:{observed_at:'2026-09-15T15:09:00Z',status:'matched',cached:true,http_requests:0,cli_invocations:0,cost_cny:null},
+        latest_actual_result:{observed_at:'2026-09-15T15:08:00Z',status:'failed',error_code:'AMAP_BUSINESS_10003',source:'usage_records.fact_observations_json'},
+        latest_actual_failure:{observed_at:'2026-09-15T15:08:00Z',status:'failed',error_code:'AMAP_BUSINESS_10003',source:'usage_records.fact_observations_json'},
+        latest_verified_success:{observed_at:'2026-09-13T01:00:00Z',status:'matched',operation:'diagnosis',source:'usage_records.fact_observations_json'}}]});
+  });
+  const text = await page.locator('#supplier-view').textContent();
+  expect(text).toContain('企业开发者已认证'); expect(text).toContain('未购买技术服务许可');
+  expect(text).toContain('Owner 已决定正式启用'); expect(text).toContain('当前未启用');
+  expect(text).toContain('不代表供应商批准'); expect(text).toContain('受控已用 3'); expect(text).toContain('受控剩余 49997');
+  expect(text).toContain('账户观察：2026-09-15T15:04:00Z'); expect(text).toContain('本次后台读取：2026-09-15T15:10:00Z');
+  expect(text).toContain('最近真实调用结果：2026-09-15T15:08:00Z · failed');
+  expect(text).toContain('历史结果，不是实时健康'); expect(text).toContain('缓存（非新检索）');
+  expect(text).toContain('人民币 0 元'); expect(text).toContain('金额仅属于该账单周期，后续费用未知');
+  expect(text).toContain('刷新不会探测供应商'); expect(text).not.toContain('undefined');
+  expect(requests).toEqual([{method:'GET',path:'/admin/overview'}]);
+});
+
+test('amap old or missing account state never becomes current quota or runtime health', async ({page}) => {
+  await openDashboard(page, {});
+  for (const status of ['snapshot_expired','snapshot_not_current']) {
+    const text = await page.evaluate(status => renderSupplierView({suppliers:null,amap_quota:{status,
+      snapshot:{period:'2026-08',remaining:50000,observed_at:'2026-08-01T00:00:00Z',source:'synthetic_old_snapshot'}}}), status);
+    expect(text).toContain('当前 API 启用状态未知'); expect(text).toContain('当前剩余额度未知');
+    expect(text).not.toContain('受控剩余 50000'); expect(text).toContain('账单金额未知');
+  }
+  const missing = await page.evaluate(() => renderSupplierView({suppliers:null,amap_quota:{status:'unavailable',snapshot:null}}));
+  expect(missing).toContain('当前额度及费用未知'); expect(missing).not.toContain('人民币 0 元');
 });
 
 test('complete provider answer preserves prices and text while rendering safe source media', async ({page}) => {

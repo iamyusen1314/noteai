@@ -186,9 +186,14 @@ def _fact_usage_history():
     result = {}
     for provider, rows in grouped.items():
         rows.sort(key=lambda item: item.get("observed_at") or item.get("persisted_at") or "", reverse=True)
-        success = next((item for item in rows if item["status"] == "matched" and not item["cached"]
-                        and any(type(item.get(key)) is int and item[key] > 0 for key in ("http_requests", "cli_invocations"))), None)
-        result[provider] = {"latest": rows[0], "latest_verified_success": success, "count": len(rows)}
+        actual = [item for item in rows if not item["cached"]
+                  and any(type(item.get(key)) is int and item[key] > 0
+                          for key in ("http_requests", "cli_invocations"))]
+        success = next((item for item in actual if item["status"] == "matched"), None)
+        failure = next((item for item in actual if item["status"] in {"failed", "partial"}), None)
+        result[provider] = {"latest": rows[0], "latest_actual_result": actual[0] if actual else None,
+                            "latest_verified_success": success, "latest_actual_failure": failure,
+                            "count": len(rows)}
     return result, "task_observations_and_legacy" if complete else "partial_or_unavailable"
 
 
@@ -204,6 +209,13 @@ async def _fetch_api_ai_readiness() -> dict:
     result = _unavailable_api_ai_status()
     result.update(checked_at=datetime.now(timezone.utc).isoformat(),
                   upstream_probed=False, recent_usage=[], usage_source="model_usage_records")
+    try:
+        import amap_quota
+        result["amap_quota"] = amap_quota.read_status(storage=db)
+    except Exception:
+        result["amap_quota"] = {"status": "unavailable", "reason": "AMAP_QUOTA_STATE_UNAVAILABLE",
+                                "snapshot": None, "snapshot_is_realtime": False,
+                                "runtime_activation_inferred": False}
     try:
         rows = db.fetchall(
             "SELECT provider,model,recorded_at AS last_recorded_at,usage_status,pricing_status,call_count,known_cost "
@@ -263,7 +275,9 @@ async def _fetch_api_ai_readiness() -> dict:
                 supplier["reason"] = "当前业务调用总开关关闭；此状态不代表供应商故障"
             observations = fact_history.get(supplier.get("id"), {})
             supplier["latest"] = observations.get("latest")
+            supplier["latest_actual_result"] = observations.get("latest_actual_result")
             supplier["latest_verified_success"] = observations.get("latest_verified_success")
+            supplier["latest_actual_failure"] = observations.get("latest_actual_failure")
             supplier["recorded_observations"] = observations.get("count")
             supplier["source"] = "api_public_product_availability"
             if supplier.get("group") == "data_tools":

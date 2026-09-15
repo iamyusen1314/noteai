@@ -22,6 +22,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
+import amap_quota
 
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -37,13 +38,55 @@ class FactProviderError(RuntimeError):
         super().__init__(code)
 
 
+def _amap_unavailable_reason(code):
+    if code == "AMAP_MONTHLY_QUOTA_EXHAUSTED":
+        return "高德本月共享额度已用尽，暂不发起新的高德查询；已有资料和其他功能可继续使用，核实官方新额度后恢复。"
+    business_code = str(code).removeprefix("AMAP_BUSINESS_")
+    if code == "AMAP_PROVIDER_ACCESS_RESTRICTED" or business_code in amap_quota.AUTH_CODES | amap_quota.ACCOUNT_CODES:
+        return "高德未允许本次查询，已按实际限制暂停受影响的接口；已有资料和其他功能可继续使用。"
+    if code == "AMAP_QPS_LIMIT_REACHED" or business_code in amap_quota.QPS_CODES:
+        return "高德查询暂时达到并发速率限制，本次未发起新查询；已有资料和其他功能可继续使用。"
+    if str(code).startswith("AMAP_QUOTA_"):
+        return "高德当前官方额度记录尚待核实，暂不发起新的高德查询；已有资料和其他功能可继续使用。"
+    return ""
+
+
 def _fact_get(client, url, *, params):
+    endpoint = amap_quota.ENDPOINT_URLS.get(url)
+    admission = None
+    if endpoint is not None:
+        try:
+            admission = amap_quota.admit(endpoint)
+        except amap_quota.AmapQuotaError as exc:
+            raise FactProviderError(exc.code) from None
     trace = _READ_TRACE.get()
     if trace is not None:
         trace["http_requests"] += 1
-    response = client.get(url, params=params)
+    try:
+        response = client.get(url, params=params)
+    except Exception:
+        if admission is not None:
+            try:
+                amap_quota.finish(admission, status="unknown")
+            except amap_quota.AmapQuotaError as exc:
+                raise FactProviderError(exc.code) from None
+        raise
     if trace is not None:
         trace["last_http_status"] = response.status_code
+    if admission is not None:
+        try:
+            payload = response.json()
+        except (ValueError, TypeError):
+            payload = None
+        code = str(payload.get("infocode", "")) if isinstance(payload, dict) else ""
+        code = code if re.fullmatch(r"\d{5}", code) else None
+        known = str(payload.get("status", "")) if isinstance(payload, dict) else ""
+        outcome = ("succeeded" if 200 <= response.status_code < 300 and known == "1" else
+                   "failed" if response.status_code >= 400 or known == "0" else "unknown")
+        try:
+            amap_quota.finish(admission, status=outcome, http_status=response.status_code, business_code=code)
+        except amap_quota.AmapQuotaError as exc:
+            raise FactProviderError(exc.code) from None
     response.raise_for_status()
     return response
 
@@ -836,7 +879,7 @@ def _search_serpapi(query: str) -> list[dict]:
 
 
 def _search_amap(
-    query: str, *, max_detail_requests: int = 3,
+    query: str, *, max_detail_requests: int = 1,
 ) -> list[dict]:
     key = os.environ.get("AMAP_WEB_KEY", "")
     if not key:
@@ -865,7 +908,7 @@ def _search_amap(
     ranked_pois.sort(key=lambda item: _amap_poi_rank(item, keyword, query), reverse=True)
 
     enriched_pois: list[dict] = []
-    detail_limit = max(0, min(3, int(max_detail_requests))) if len(ranked_pois) == 1 else 0
+    detail_limit = max(0, min(1, int(max_detail_requests))) if len(ranked_pois) == 1 else 0
     with httpx.Client(timeout=_TIMEOUT_SECONDS) as client:
         for poi in ranked_pois[:detail_limit]:
             detail = _amap_fetch_v5_detail(client, key, _amap_scalar(poi.get("id")))
@@ -1379,6 +1422,11 @@ def enrich_content_facts(domain: str | None, title: str | None, text: str | None
     if result.get("cached"):
         trace["partial_errors"] = list((result.get("calls") or {}).get("partial_errors") or [])
     result["calls"] = trace
+    if selected == "amap":
+        reasons = [_amap_unavailable_reason(code) for code in
+                   [result.get("error_code"), *trace["partial_errors"]]]
+        if any(reasons):
+            result["reason"] = next(reason for reason in reasons if reason)
     status = ("disabled" if not result.get("enabled") else "failed" if result.get("error") else
               "partial" if trace["partial_errors"] else "matched" if result.get("facts") or result.get("entities") else "no_matching_facts")
     result["status"] = status
@@ -1463,12 +1511,14 @@ def format_fact_context(enrichment: dict | None) -> str:
     if not enrichment:
         return ""
     if enrichment.get("error"):
-        return "【事实检索未完成】对象或数据未核实，不得编造地址、价格、评分或营业时间；请明确提示需要补充/确认的信息。"
+        return ("【事实检索未完成】" + str(enrichment.get("reason") or "") +
+                "对象或数据未核实，不得编造地址、价格、评分或营业时间；请明确提示需要补充/确认的信息。")
     if not enrichment.get("facts") and not enrichment.get("entities"):
         return ""
     facts = enrichment.get("facts") or {}
     lines = [
         "【联网事实补全】",
+        *([str(enrichment["reason"])] if enrichment.get("reason") else []),
         f"查询：{enrichment.get('query', '')}",
         f"事实源：{enrichment.get('provider', '')}；读取时间：{enrichment.get('observed_at', '未记录')}",
         f"置信度：{enrichment.get('confidence', 0)}；来源数量：{len(enrichment.get('sources') or [])}",

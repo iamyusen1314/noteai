@@ -6,6 +6,47 @@
 Item32新的prospective计划和Item36完整费用方案。新生产请求及新增长期费用按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September15 Item32修复后唯一执行：HOLD，不重试（15:33UTC）
+已批准修复包fac5dd0通过唯一入口执行，Cloud Assistant `t-sz06x5j1u363bpc`。
+wrapper started `15:30:12.332222UTC`，admission `15:30:15.699693UTC`，
+done `15:30:19.355192UTC` exit2；全部在批准窗口内。原admission实际记录同Sep15桶
+used_before0/remaining34、最多34、no_replay=true/automatic_retry_count0；实际provider_calls1、
+outcome_unknown_count0、status=HOLD。原attempt实际为failed/remote_business_error；
+worker receipt为exit1、trends_provider_attempt_evidence_incomplete，不臆断为登录失效或HTTP错误。
+源码路径与原日志表明前后DB只读probe均通过后抛worker_failed；日志production_db_writes0，
+但失败路径未持久化完整前后probe JSON，也未生成四份验收Evidence，不能补造完整零写证明。
+原run为`/var/lib/noteai/item32-readonly-successor/run-5j_lntvp`，store139264bytes/
+SHA8138165dcbf7347743adf353332021b073d8c127ece6d4662eb10a3957b27adf，
+admission SHA520c6b8f7bab194caceac80d2bb1f790842e58bfe4ff333027c3a72ac83cd874；
+worker receipt641bytes/SHAd6152dd33d61ea83dd0c8901fb0bea3bfa1077a5a9ccbc4b0e73102cc587974f。
+新dispatch.log275bytes/SHA6cf9b2a70bf08e1c916390bc482ef3490d74f115ef650cf2d03b8367e75b825a。
+15:32:55UTC只读回执`t-sz06x5jalazb75s`确认父子1257680/1257682已退出，
+本次容器与`/run/noteai-item32-*`为空，unit仍inactive/dead/disabled；原store/receipt保留，
+candidate/export不存在符合失败路径，readback UNKNOWN_HOLD/readiness_credit=false。
+本次`noteai-item32`续执行已删除；不新建后继、不自动改期、不重放该身份。
+Item32未验收，Item33真实执行与Item36资源创建前置未满足，Readiness仍31/37。
+原noteai-5ce仍旧线程独占，Sep16 02:01:30UTC，最后核对ACTIVE/last_runNULL。
+最终只读回执`t-sz06x5jm8x1rd34`在15:36:33UTC确认三原task labels和固定Trends容器空，
+unit与两前驱admission/result/store及原79e四记录SHA全部未变；此次homefeed一调用，
+15:30:17.244221→15:30:17.491654UTC，原store状态idle/session_blocked0，snapshot0。
+六份原记录按原canonical字节重建并全部匹配主机SHA，另附真实失败读回摘要，分别保存在
+`/Users/openclaw/.codex/tmp/noteai-item32-prospective-20260915/repaired-dispatch-20260915T153012Z/`
+及ORICO `20260915-repaired-item32-hold`；原139264byte store仍仅原host保留，未声称有第二副本。
+
+## 高德本地上线版本完成（15:34UTC，尚未部署）
+Owner确认共享额度仅NoteAI使用。原正式决定真实消息时间为2026-09-15T15:01:50.358Z。
+每个物理HTTP前统一持久占额；两Key/多实例共享，UNKNOWN不返还，零自动重试。
+只影响高德新查询的月额/接口限制，不设Beta/白名单/用户试用次数；原授权跨月有效，
+实际新月官方快照才能恢复额度，旧鉴权拒绝跨月保留。新0031仅两表及其最小API/Admin权限，
+没有更改旧表/default ACL或封存V5清单。后台独立显示认证、业务开关、历史实际来源、
+月额/官方观察与保守剩余、实际账单观察或未知费用、许可未购及owner风险接受。
+52/52 quota+原fact regression、独立PG16 ACL2/2、Admin10/10及页面9/9通过；
+最终Admin真实helper三次SELECT合同1/1通过，最终review无blocking。失败历史保留在
+`docs/AMAP_SHARED_QUOTA_PREPARATION_20260915.md`。局部测试容器已清理，无生产调用。
+当前C原api.env有原AMAP_WEB_KEY，正式public-account.env及正式API仍无Key；
+等待现有DMS数据库登录恢复后应用0031+真实官方快照，再部署受保护的正式API/Admin并绑定原Key。
+旧镜像回滚必须恢复原无Key正式环境，保留所有额度记录。不是等待许可购买或正式开放再批准。
+
 ## September15 高德正式启用决定与实施（15:03UTC开始）
 Owner明确批准高德正式业务对正常权益用户启用，使用现有账户月度共享额度；
 不采购技术服务许可/流量包/并发包/订阅/充值，不自动产生超额付費，不设白名单/Beta/到期关闭。

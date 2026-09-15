@@ -1,3 +1,15 @@
+September15 15:33UTC current: the single approved repaired Item32 run actually
+started15:30:12UTC and exited2 at15:30:19UTC. Fresh Sep15 admission0/34 passed;
+one failed remote_business_error attempt, unknown0, auto-retry0, HOLD/no_replay.
+Both original read-only DB probes passed according to the sealed source path and
+log, but the failure did not persist full probe JSON or four terminal artifacts.
+Do not claim Item32 acceptance or proceed with Item33/ALB creation. The Item32
+continuation was deleted; original records/store/receipt remain. Original5ce is
+unchanged. Amap independent work continues under the explicit owner decision.
+Shared-quota52/52, independent PostgreSQL ACL2/2, Admin10/10 and page9/9 passed;
+default grants on only the two new tables are revoked before the precise runtime
+allowlist. DMS login, actual0031/snapshot rollout and real chain remain pending.
+
 September15 latest: Owner explicitly authorizes FORMAL Amap service for normal
 entitled users within current shared monthly quota, accepts no purchased licence,
 and supersedes the internal pending-purchase hold. Console now verifies enterprise

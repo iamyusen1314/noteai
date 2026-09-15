@@ -1,3 +1,14 @@
+September15 15:36UTC actual outcome supersedes dispatch wording below: the repaired
+Item32 once-run started15:30:12UTC, fresh0/34, one homefeed attempt failed with
+remote_business_error, unknown0/retry0, HOLD/no_replay. Original read-only probes
+passed on the sealed execution path, but full terminal Evidence was not generated.
+All three task labels, fixed Trends container and temporary directories are empty;
+the paused unit and predecessor SHA bindings are unchanged. Original records remain,
+the Item32 continuation is deleted, and Item33/ALB creation prerequisites remain open.
+Amap shared-quota and Admin changes passed local focused tests and review; next is
+the scoped0031/snapshot/API+Admin rollout and real formal-user chain, once the existing
+DMS login is restored. No new licence, model budget gate or formal-enable approval.
+
 September15 latest: Owner explicitly authorizes FORMAL Amap service for normal
 entitled users within current shared monthly quota, accepts no purchased licence,
 and supersedes the internal pending-purchase hold. Console now verifies enterprise
