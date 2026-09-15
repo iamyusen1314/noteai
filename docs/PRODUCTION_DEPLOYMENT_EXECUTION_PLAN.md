@@ -1,3 +1,20 @@
+September15 13:13BJT — scoped remaining-state reconciliation completed:
+C eth0=10.42.10.44/API f070 CIDf35df066…04de, originalbaseunitSHA46010368…77e6 plus
+drop83a570ff…6643；F eth0=10.42.11.166/API CID843a9748…ee05/image dd955f9e…fd53、
+unitSHAf591f43b…b936仍与原fixture一致。两API active/running/enabled，
+Job空/NeedDaemonReload=no；C Payment disabled/inactive、F Payment not-found。
+只是读取这四个命名单元/精确Docker状态/IP，没有调度/供应商/业务变更。
+13:08BJT深圳ALB列表实测0（非LAST_KNOWN），原VPC的C/F ALB交换机仍可选。
+原公网IPv4标准版双区报价显示ALB0.125元/小时＋0.042元/LCU；双EIP/流量另计，
+税/最终折扣/有效期/有限流量上限仍待采购时明确，不采用旧149.04为当前报价。
+没有保存配置单/接受合同/创建资源；私有浏览读回位于noteai-item36-current-api-c-f070ed6。
+Readiness仅修正32/33过期Sep7/8调度文字及36当前只读事实，status/evidence/dependencies不变。
+Item32 current49c候选不是生产可执行绑定，不执行successor；Item33等真实32前置；
+Item36新增持续资源需owner另决；Item37/38等原真实依赖，不重复公开DNS切换。
+原noteai-5ce ACTIVE/同对话已再次读回，未来运行时动态绑定当前版本；
+本轮余下微信步骤等待Sep16>=10BJT原账单时点，无需新订单、扫码或退款。
+目前未发现其他脱离这些依赖的具体已授权实现缺口；不新建任务或制造重复验证。
+
 September15 — Item36/37独立准备已补齐，未执行网络/数据库变更：
 现有renderer适配当前API-C真实drop-in（空ExecStart重置、已加载sha256镜像、
 精确PGOPTIONS off/10000/5000和已审核公开状态字面量），不放宽旧API-F。
