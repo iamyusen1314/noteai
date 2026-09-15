@@ -1,3 +1,43 @@
+September15 08:22BJT: CURRENT Native candidate is ACTIVE awaiting owner scan;
+unique order5ce31ca0-e42d-4a86-bee5-d1bb4bea8757,1200fen/30credits, normalowner UI
+createdonce under activation3e65becf-5a7a-4139-aab4-a60f93d86c3a. DO NOT createanother.
+Public browser shows newQR/pending; owner prompted to scan this NEWorder, old81ab
+alreadyfullrefunded. Operator notrun yet; no new query/refund until originalpayment
+readback. Payment source9d/imageb1d4ac2d7c989244f50eb067360e933301e54980a2b24344a9241266be5de930,
+canaryab12191b69f49c5c6a564c67542207df8b96b1fa3d22ef0a95b7acdb08b3a8a1 unchanged.
+Publicweb-only2dfd4d295ac86e4d42ca91e2ad76740a37d23344 deployed1789431365.3218157,
+asset payment-native.js1920c7475fbc007dd3db400a0b2ef7b2db4df4aba97db95a0112028ff77f30f8,
+onlythatfile changed; oldb214web retained. APIb214/Admin538/Adminweba4f unchanged.
+Existing refunded browser session still returned originalorder on first live check;
+not claimed new-session-transition browserPASS. Independent same authenticatedowner
+IABtab7 successfully displayed amount confirmation then unique5ceQR. Keep original
+IAB5 oldrefund intact, no storageclear/tokentransfer/oldcreate replay.
+Currenthost /var/lib/noteai/native-9d62f98/trade-web2dfd4d2;
+launcher /var/lib/noteai/native-9d62f98/native_capture-2dfd4d2.py
+SHA885f6a717ee5d3f6209bf958689e8e4dd609871a997a638d6fadeba8c7a1d3cb;
+originaltemplate d3ce53c1742ca2d31f3225b43d0e8bd0a5db4f643f76e5950d17e4e1b3836fae.
+Prepare captures actualpublicweb2df; sameinstallSQL ee69b670b56cad14e438dce0b167a098f3a7ec34df47d26c94e85c31a535226f committedonce11ms.
+PID1858339/start1789431466,active1789431474.4685407,expiry1789435066=
+2026-09-15T01:17:46UTC / September15 09:17:46BJT; originalrunner handlesexpiry/close,
+no auto operator/retry/newautomation. APIcidc0b63758105014e53babfed13e7f58a8c64dfd31e3b21b08f3a9f97d3bb18c57,
+Paymentcidbac3b6da80dd4b3adecd3d482346a460ab4cac3864be3b6f3c36fd7a362923c3.
+Sameorder operator-invocation.py staged at currenthost, SHAead90fac3b4a4ed0c90df7ba66214c95f3e52c0ff07054f29d3213de26fb1104.
+It preserves originalaction ledger/one-action admission/result/CID checks; only new
+activation/order/image/root bound. Run query-payment/submit-refund/query-refund only
+when appropriate and neverrepeat UNKNOWN. Newcomplete authenticatedevent SHA logging
+must prove naturalredelivery alongside rawdigest changes/effectonce, no syntheticreplay.
+After verification/refund: originallauncher close/readback, then samecurrent remove-dms
+73c2291b542cf8925ad54b6edca5d63dc2a7eeaad25c86b2138dc123663c44cb andverifytriggers0.
+Prior emptycapture4fc permanentlyclosed: DMS08:14 confirmscollector0, old7event digest
+unchanged; exact4fc orderquery0. EmptyjournalUNKNOWN retained, no acceptance credit.
+New5ce bill earliestSeptember16 10BJT; prior81ab billseparate sameavailability;
+oldSep14order1e2acc bill frozenfc4f49f remains earliestTODAY10BJT, notexecutedyet.
+Privateallnewmaterial /Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98.
+Readiness31/37, publicpaymentstillclosed, Item34untouched, noGitpush/protected7changes.
+Required next manual action is owner scan5ce only; all downstream technical actions
+and fullsameorder refund alreadyauthorized. Monetary/provider feesremainactual/unknown,
+notzero; no new modelcall/otheruserwrites in this batch.
+
 September15 08:13BJT: Payment/canary source9d62f98 built on existing API-C resources,
 Python3.11.15 linux/amd64 and loaded source hashes verified. Payment image
 b1d4ac2d7c989244f50eb067360e933301e54980a2b24344a9241266be5de930;
