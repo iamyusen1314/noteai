@@ -646,6 +646,294 @@ class Item35Item36EvidenceGateTests(unittest.TestCase):
         payload["costs"]["billing_readback_sha256"] = billing_sha
         return payload
 
+    def item36_actual_usage_payload(self, *, hours=744, lcu=2):
+        payload = self.item36_payload()
+        alb = payload["alb"]
+        alb["hostname"] = gate.ITEM36_CURRENT_API_HOSTNAME
+        alb["certificate_dns_names"] = [gate.ITEM36_CURRENT_API_HOSTNAME]
+        alb["configuration_readback"]["response_sha256"] = (
+            gate._item36_configuration_response_sha256(alb)
+        )
+        probe = payload["health_routing"]["controlled_probe"]
+        for key in ("hostname", "sni_hostname", "host_header"):
+            probe[key] = gate.ITEM36_CURRENT_API_HOSTNAME
+        probe["response_sha256"] = gate._item36_probe_response_sha256(probe, alb)
+        configuration = {
+            "vpc_identity_sha256": alb["vpc_identity_sha256"],
+            "region": "cn-shenzhen",
+            "zones": ["cn-shenzhen-c", "cn-shenzhen-f"],
+            "alb_count": 1,
+            "edition": "Standard",
+            "ip_version": "IPv4",
+            "network_type": "Internet",
+            "eip_count": 2,
+            "eip_isp": "BGP",
+            "eip_charge_type": "PayByTraffic",
+            "shared_bandwidth": False,
+            "api_hostname": gate.ITEM36_CURRENT_API_HOSTNAME,
+        }
+        costs = payload["costs"]
+        for field in (
+            "approved_monthly_ceiling_cny",
+            "approved_variable_egress_ceiling_cny",
+            "quote_valid_until",
+        ):
+            costs.pop(field)
+        costs["authorization_mode"] = gate.ITEM36_ACTUAL_USAGE_MODE
+        quote_path = self.root / costs["quote_artifact_path"]
+        quote = json.loads(quote_path.read_text(encoding="utf-8"))
+        quote.pop("valid_until")
+        quote.update({
+            "schema": gate.ITEM36_CURRENT_QUOTE_SCHEMA,
+            "pricing_validity": "CURRENT_DISPLAY_NO_LOCK",
+            "pricing_basis_hours": hours,
+            "vat_included": True,
+            "resource_configuration": configuration,
+            "public_egress_pricing": {
+                "billing": "CDT",
+                "usage_scope": "SUM_TWO_EIPS_OUTBOUND",
+                "free_allowance_assumed_gb": 0,
+                "tiers": [
+                    {"upper_tb": 10, "unit_price_cny": 0.8},
+                    {"upper_tb": 50, "unit_price_cny": 0.75},
+                    {"upper_tb": 150, "unit_price_cny": 0.7},
+                    {"upper_tb": None, "unit_price_cny": 0.65},
+                ],
+            },
+            "source_artifact_path": "deploy/production/evidence/quote-source.txt",
+        })
+        quote["source_artifact_sha256"] = self.artifact(
+            quote["source_artifact_path"], "synthetic current China-site quote only"
+        )
+        for item in quote["components"]:
+            if item["service"] == "alb_lcu":
+                item["quantity"] = lcu
+            item["estimated_monthly_cny"] = (
+                hours * item["quantity"] * item["unit_price_cny"]
+            )
+        quote["estimated_monthly_cny"] = sum(
+            item["estimated_monthly_cny"] for item in quote["components"]
+        )
+        quote["variable_egress"]["estimated_usage"] = 100.0
+        quote["variable_egress"]["estimated_cost_cny"] = 80.0
+        costs["components"] = [
+            {"service": item["service"], "estimated_monthly_cny": item["estimated_monthly_cny"]}
+            for item in quote["components"]
+        ]
+        costs["estimated_monthly_cny"] = quote["estimated_monthly_cny"]
+        costs["estimated_variable_egress_cny"] = 80.0
+        costs["variable_egress"] = quote["variable_egress"].copy()
+        approval_path = self.root / costs["approval_artifact_path"]
+        approval = json.loads(approval_path.read_text(encoding="utf-8"))
+        for field in (
+            "approved_monthly_ceiling_cny",
+            "approved_variable_egress_ceiling_cny",
+            "quote_valid_until",
+        ):
+            approval.pop(field)
+        approval.update({
+            "schema": gate.ITEM36_ACTUAL_USAGE_APPROVAL_SCHEMA,
+            "authorization_mode": gate.ITEM36_ACTUAL_USAGE_MODE,
+            "cost_triggered_service_actions": "NONE",
+            "resource_configuration": configuration.copy(),
+            "source_artifact_path": "deploy/production/evidence/owner-source.txt",
+        })
+        approval["source_artifact_sha256"] = self.artifact(
+            approval["source_artifact_path"],
+            "synthetic owner instruction: original scope, actual continuing cost, no cost stop",
+        )
+        costs["purchase_readback"] = {
+            "observed_at": "2026-09-07T08:59:00+08:00",
+            "source_artifact_path": "deploy/production/evidence/purchase-source.txt",
+        }
+        costs["purchase_readback"]["source_artifact_sha256"] = self.artifact(
+            costs["purchase_readback"]["source_artifact_path"],
+            "synthetic pre-create readback: same approved prices and configuration",
+        )
+        self.save_item36_current_costs(payload, quote, approval, refresh_recheck=True)
+        return payload
+
+    def save_item36_current_costs(self, payload, quote, approval, *, refresh_recheck=False):
+        costs = payload["costs"]
+        quote_sha = self.artifact(costs["quote_artifact_path"], json.dumps(quote))
+        costs["quote_sha256"] = quote_sha
+        approval["quote_sha256"] = quote_sha
+        costs["approval_artifact_sha256"] = self.artifact(
+            costs["approval_artifact_path"], json.dumps(approval)
+        )
+        if refresh_recheck:
+            costs["purchase_readback"]["pricing_sha256"] = gate._canonical_object_sha256({
+                key: quote[key] for key in (
+                    "components", "variable_egress", "public_egress_pricing",
+                    "pricing_basis_hours", "vat_included",
+                )
+            })
+            costs["purchase_readback"]["resource_configuration_sha256"] = (
+                gate._canonical_object_sha256(quote["resource_configuration"])
+            )
+
+    def read_item36_current_costs(self, payload):
+        return tuple(
+            json.loads((self.root / payload["costs"][field]).read_text(encoding="utf-8"))
+            for field in ("quote_artifact_path", "approval_artifact_path")
+        )
+
+    def test_item36_actual_usage_accepts_current_host_and_hourly_scenarios(self):
+        for hours, lcu in ((720, 1), (744, 2), (744, 5), (720, 0.1), (744, 0)):
+            with self.subTest(hours=hours, lcu=lcu):
+                payload = self.item36_actual_usage_payload(hours=hours, lcu=lcu)
+                self.assertNotIn("approved_monthly_ceiling_cny", payload["costs"])
+                self.assertNotIn("quote_valid_until", payload["costs"])
+                self.assertEqual(
+                    gate.validate_item36_alb_evidence(
+                        self.write(gate.ITEM36_ALB_EVIDENCE, payload),
+                        root=self.root, now=self.now,
+                    ),
+                    [],
+                )
+
+    def test_item36_actual_usage_keeps_real_billing_above_old_scenario(self):
+        payload = self.item36_actual_usage_payload()
+        costs = payload["costs"]
+        billing = json.loads((self.root / costs["billing_readback_path"]).read_text())
+        for line in billing["line_items"]:
+            line["actual_incurred_cny"] = 1000.0
+        billing["actual_incurred_cny"] = 4000.0
+        costs["actual_incurred_cny_to_observed_at"] = 4000.0
+        costs["actual_variable_egress_cny_to_observed_at"] = 1000.0
+        costs["billing_readback_sha256"] = self.artifact(
+            costs["billing_readback_path"], json.dumps(billing)
+        )
+        self.assertEqual(
+            gate.validate_item36_alb_evidence(
+                self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+            ), [],
+        )
+        billing["resource_scope_identity_sha256"] = "f" * 64
+        costs["billing_readback_sha256"] = self.artifact(
+            costs["billing_readback_path"], json.dumps(billing)
+        )
+        self.assertIn(
+            "Item36 recurring-cost approval missing",
+            gate.validate_item36_alb_evidence(
+                self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+            ),
+        )
+
+    def test_item36_actual_usage_rejects_reintroduced_caps_or_expiry(self):
+        for record, key, value in (
+            ("costs", "approved_monthly_ceiling_cny", 300),
+            ("costs", "approved_variable_egress_ceiling_cny", None),
+            ("costs", "quote_valid_until", None),
+            ("approval", "approved_monthly_ceiling_cny", 300),
+            ("approval", "cost_triggered_service_actions", "STOP_AT_90_PERCENT"),
+            ("quote", "valid_until", "2026-09-10T10:00:00+08:00"),
+        ):
+            with self.subTest(record=record, key=key):
+                payload = self.item36_actual_usage_payload()
+                quote, approval = self.read_item36_current_costs(payload)
+                {"costs": payload["costs"], "quote": quote, "approval": approval}[record][key] = value
+                self.save_item36_current_costs(payload, quote, approval)
+                self.assertIn(
+                    "Item36 recurring-cost approval missing",
+                    gate.validate_item36_alb_evidence(
+                        self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+                    ),
+                )
+
+    def test_item36_actual_usage_requires_untampered_owner_quote_and_purchase_sources(self):
+        for source in ("approval", "quote", "purchase_readback"):
+            with self.subTest(source=source):
+                payload = self.item36_actual_usage_payload()
+                quote, approval = self.read_item36_current_costs(payload)
+                record = {"approval": approval, "quote": quote,
+                          "purchase_readback": payload["costs"]["purchase_readback"]}[source]
+                (self.root / record["source_artifact_path"]).write_text("changed synthetic source")
+                self.assertIn(
+                    "Item36 recurring-cost approval missing",
+                    gate.validate_item36_alb_evidence(
+                        self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+                    ),
+                )
+
+    def test_item36_actual_usage_rechecks_same_prices_before_creation(self):
+        for field, value in (
+            ("observed_at", "2026-09-07T09:01:00+08:00"),
+            ("observed_at", "2026-09-05T08:00:00+08:00"),
+            ("pricing_sha256", "f" * 64),
+            ("resource_configuration_sha256", "f" * 64),
+        ):
+            with self.subTest(field=field, value=value):
+                payload = self.item36_actual_usage_payload()
+                payload["costs"]["purchase_readback"][field] = value
+                self.assertIn(
+                    "Item36 recurring-cost approval missing",
+                    gate.validate_item36_alb_evidence(
+                        self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+                    ),
+                )
+
+    def test_item36_actual_usage_binds_original_resource_scope_and_tariffs(self):
+        for changed in ("vpc", "edition", "vat", "free_traffic", "tariff", "unit_price"):
+            with self.subTest(changed=changed):
+                payload = self.item36_actual_usage_payload()
+                quote, approval = self.read_item36_current_costs(payload)
+                if changed in ("vpc", "edition"):
+                    key, value = (("vpc_identity_sha256", "9" * 64)
+                                  if changed == "vpc" else ("edition", "WAF"))
+                    quote["resource_configuration"][key] = value
+                    approval["resource_configuration"][key] = value
+                elif changed == "vat":
+                    quote["vat_included"] = False
+                elif changed == "free_traffic":
+                    quote["public_egress_pricing"]["free_allowance_assumed_gb"] = 20
+                elif changed == "unit_price":
+                    quote["components"][0]["unit_price_cny"] = 0.147
+                    for item in quote["components"]:
+                        item["estimated_monthly_cny"] = (
+                            quote["pricing_basis_hours"] * item["quantity"] * item["unit_price_cny"]
+                        )
+                    quote["estimated_monthly_cny"] = sum(
+                        item["estimated_monthly_cny"] for item in quote["components"]
+                    )
+                    payload["costs"]["estimated_monthly_cny"] = quote["estimated_monthly_cny"]
+                    payload["costs"]["components"] = [
+                        {"service": item["service"], "estimated_monthly_cny": item["estimated_monthly_cny"]}
+                        for item in quote["components"]
+                    ]
+                else:
+                    quote["public_egress_pricing"]["tiers"][0]["unit_price_cny"] = 0
+                self.save_item36_current_costs(payload, quote, approval, refresh_recheck=True)
+                self.assertIn(
+                    "Item36 recurring-cost approval missing",
+                    gate.validate_item36_alb_evidence(
+                        self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+                    ),
+                )
+
+    def test_item36_actual_usage_rejects_wrong_host_and_legacy_schema_downgrade(self):
+        payload = self.item36_actual_usage_payload()
+        payload["alb"]["certificate_dns_names"] = [gate.ITEM36_API_HOSTNAME]
+        payload["alb"]["configuration_readback"]["response_sha256"] = (
+            gate._item36_configuration_response_sha256(payload["alb"])
+        )
+        self.assertIn(
+            "Item36 ALB/TLS configuration mismatch",
+            gate.validate_item36_alb_evidence(
+                self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+            ),
+        )
+        payload = self.item36_actual_usage_payload()
+        quote, approval = self.read_item36_current_costs(payload)
+        approval["schema"] = gate.ITEM36_COST_APPROVAL_SCHEMA
+        self.save_item36_current_costs(payload, quote, approval)
+        self.assertIn(
+            "Item36 recurring-cost approval missing",
+            gate.validate_item36_alb_evidence(
+                self.write(gate.ITEM36_ALB_EVIDENCE, payload), root=self.root, now=self.now
+            ),
+        )
+
     def test_item36_requires_tls_fresh_health_activation_and_cost_gate(self):
         payload = self.item36_payload()
         control = self.write(gate.ITEM36_ALB_EVIDENCE, payload)

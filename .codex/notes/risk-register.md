@@ -7,6 +7,16 @@ superseded. Local Item33/36 compatibility work must reflect current sources,
 .com ingress and truthful unknown fees without inventing caps or quote expiry.
 No new resource yet; only original5ce old-window bill/recovery remains scheduled.
 
+13:33UTC update: Item32 authorized source and unique logging wrapper are staged
+on API-F, hashes and pure source/plan validation verified; no supplier/DB/service
+action yet. Actual0/34 is still a fresh prerequisite. Log/done absence after a
+dispatch is UNKNOWN, never a reason to submit another invocation. Item33 current
+unit/overlay compatibility and host callbacks are locally verified, but actual
+eight-table distinct-row/transaction capture and complete host entry remain
+required. No synthetic capture, net-count substitution or reuse of5ce collector.
+Item36 no longer requires invented cost caps/locked expiry or old.cn TLS; actual
+purchase/fees and current F application/configuration readiness remain necessary.
+
 September15 new-window takeover: ordinary engineering resumes under the owner's explicit handoff instruction. Original noteai-5ce remains in the old window; shared runtime/schema/ACL changes cannot overlap its actual prepare→confirmed close/final-readback. Fresh GitHub metadata shows the original repository is PUBLIC; ordinary origin push is not a private recovery method and Render deployment bindings remain partly LAST_KNOWN. Git-only recovery must distinguish LFS/model bytes and private host results. Item32's new named production window, Item36 recurring cost and Amap applicable licence remain real independent external conditions. Readiness31/37, Item34 generation2 VERIFIED and Item35 NOT_REQUIRED remain unchanged; retained video quality hints are not a reason to replay completed tests. Exact recovery results and ownership are at Handoff CURRENT EXECUTION CONTROL.
 
 September15 source3ebc9c5: Item32 prospective PENDING plan now drives both existing

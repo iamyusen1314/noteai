@@ -9,6 +9,16 @@ Item33 and actual implementation prerequisites are met. Original5ce ownership an
 prepare→final-readback non-concurrency remain. Current approved plan SHA and exact
 progress at Handoff CURRENT; older pending-approval text below is history.
 
+13:33UTC preparation: authorized79e1e35 ten-file package is verified on API-F via
+existing private OSS/IMDSv2 role,177406bytes/SHA2d3e2d49…b6c124. Host Python3.11.6
+and approved plan read-only validation passed. Original successor root absent;
+provider0/DB0/service0, fresh quota remains an execution-time prerequisite.
+Exact host directory, unique dispatch-once wrapper and original receipts are in
+Handoff CURRENT. Item33 local current-source/unit callbacks+gate115 isolated tests
+passed, but real eight-table DML capture/full production entry remains missing.
+Item36 current actual-use/no-cost-stop/.com compatibility28 isolated tests passed;
+no ALB/EIP resource exists from this work. None of these checks grants readiness.
+
 September15 new-window takeover: owner explicitly resumes ordinary engineering and existing scoped authorizations in the original worktree. Actual takeover HEAD3eeb84a/ahead242; the original public origin remains unchanged. Recovery/synchronization, a prospective Item32 scope and complete Item36 pricing proceed independently. The old window alone retains noteai-5ce; shared runtime/schema/ACL changes must not overlap its actual prepare through confirmed close/final-readback. Item32 still needs its new named production window authorization; Item36 recurring resources need a separate cost decision. Current ownership, evidence and remaining six Items are at `.codex/handoffs/current-task.md` → CURRENT EXECUTION CONTROL. Older dated instructions below are historical where they conflict.
 
 Current concrete proposals: `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md` specifies

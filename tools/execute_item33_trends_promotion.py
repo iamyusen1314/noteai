@@ -23,9 +23,18 @@ UNIT_NAME = "noteai-xhs-trends.service"
 SUSPENDED_UNIT_SHA256 = (
     "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6"
 )
-PROMOTED_UNIT_SHA256 = (
+LEGACY_PROMOTED_UNIT_SHA256 = (
     "13d777c7705cc1dbc539c3dad3e034ba0ce5226b038e355d91bd3a440e565f8c"
 )
+PROMOTED_UNIT_SHA256 = (
+    "0a1c100462e62e9043ef0b73d81a8b12b85bd684b90c9e1d3a24e0a705fb88ff"
+)
+RUNTIME_OVERLAY_ROOT = Path("/var/lib/noteai/xhs-trends-runtime/1be2fde")
+RUNTIME_OVERLAY_SHA256 = {
+    "model/spider_xhs_http.py": "360a43f781e55e2c529387e70ef7be3b5f47a716bf6ede56d3daaaefa9b6bea1",
+    "model/security_redaction.py": "c5fc02966035a01012a1a35b7005f3a62a72602c042e98dbad707029ca56f451",
+    "model/hot_keywords.py": "77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d",
+}
 PROVIDER_REQUEST_LIMIT = 34
 ENDPOINTS = ("homefeed", "search_recommend", "search_notes")
 AUTHORIZATION_SCHEMA = "noteai.item33.execution_authorization.v1"
@@ -53,6 +62,31 @@ class Item33ExecutionError(RuntimeError):
     def __init__(self, code: str):
         self.code = str(code)
         super().__init__(self.code)
+
+
+def render_managed_unit(suspended: bytes) -> bytes:
+    """Prepare the original singleton with the three accepted read-only sources.
+
+    Pure byte transformation: no filesystem writes, host calls or new run. The
+    unmodified suspended bytes remain the exact rollback, including the image.
+    """
+    if hashlib.sha256(suspended).hexdigest() != SUSPENDED_UNIT_SHA256:
+        raise Item33ExecutionError("suspended_unit_binding")
+    source = suspended.decode("utf-8")
+    anchor = " --env-file=/etc/noteai/xhs-trends.env"
+    suspended_flag = "NOTEAI_XHS_COLLECTION_SUSPENDED=1"
+    if source.count(anchor) != 1 or source.count(suspended_flag) != 1:
+        raise Item33ExecutionError("suspended_unit_shape")
+    mounts = "".join(
+        f" --mount=type=bind,src={RUNTIME_OVERLAY_ROOT / name},dst=/app/{name},readonly"
+        for name in RUNTIME_OVERLAY_SHA256
+    )
+    candidate = source.replace(anchor, mounts + anchor).replace(
+        suspended_flag, "NOTEAI_XHS_COLLECTION_SUSPENDED=0"
+    ).encode("utf-8")
+    if hashlib.sha256(candidate).hexdigest() != PROMOTED_UNIT_SHA256:
+        raise Item33ExecutionError("promoted_unit_binding")
+    return candidate
 
 
 def _mapping(value: Any, code: str) -> Mapping[str, Any]:
@@ -729,10 +763,12 @@ __all__ = [
     "AUTHORIZATION_SCHEMA",
     "ENDPOINTS",
     "Item33ExecutionError",
+    "LEGACY_PROMOTED_UNIT_SHA256",
     "PROMOTED_UNIT_SHA256",
     "PROVIDER_REQUEST_LIMIT",
     "RESULT_SCHEMA",
     "SUSPENDED_UNIT_SHA256",
     "UNIT_NAME",
     "execute_item33_promotion",
+    "render_managed_unit",
 ]

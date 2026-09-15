@@ -4,7 +4,17 @@
 
 Owner确认首次时间读回为2026-09-15T13:11:36+00:00，明确批准下述9月15日14:00–15:00UTC、
 dispatch严格早于14:40的一次范围及必要恢复；真实终态满足后接续Item33。
-当前仅绑定真实授权字段并准备原host读回/私有包，不能提前执行或跨窗启动。
+当前批准包已在API-F准备并通过主机纯读取验证，不能提前执行或跨窗启动。
+
+13:33UTC前准备完成：源码commit `79e1e35`，十文件包177406bytes，SHA
+`2d3e2d49c2f2e67d987544b885c6411bf12e71195fadff18db48c8a3e1b6c124`。
+私有OSS上传及原F角色internal Get成功，host目录
+`/var/lib/noteai/item32-successor-package-20260915-79e1e35`；原unit/前驱未变、successor root不存在。
+主机Python3.11.6与approved `_load_plan`通过，尚无provider请求/DB连接。
+窗口内唯一入口为该目录`dispatch-once.py`（SHA8556e082…4916f1），用`python3 -E -B`，
+带O_EXCL的started/child/done及0600日志；它不替代原executor唯一admission。
+断线只读原日志/结果/PID，不再次提交；退出0仍要四份真实Evidence通过原validator。
+本机私有包/入口/回执位于`/Users/openclaw/.codex/tmp/noteai-item32-prospective-20260915/`。
 
 这是新窗口的执行范围与时间提案，不是可运行 JSON、生产调度或新 admission。
 本次只读核查基于工作树 HEAD `3eeb84a7edda7334c214c07bb735f6d0a3362bcc`；
@@ -142,8 +152,9 @@ validator 修复时间绑定；该旧包没有被覆盖，也不能当成包含�
   `production-item32-database-zero-write-proof.json`、
   `production-item32-xhs-trends-readonly-verified.json`；不预先制作通过结果。
 - Item33 只能在实际 Item32 terminal 和 internal rollback 满足后接续，且不得在
-  Item32 消耗完的同一 UTC 桶 dispatch。本提案只授权 Item32；Item33 的真实日期和
-  现有执行授权要按当时依赖核对，不暗中并入第二轮供应商请求。
+  Item32 消耗完的同一 UTC 桶 dispatch。Owner当前确认支持按原范围接续Item33；
+  此窄窗只运行Item32。Item33真实日期、fresh配额及原依赖另按实际核对，
+  不在本轮暗中并入第二轮请求；本地host callbacks仍缺完整真实DML capture来源。
 
 ## 6. 已获确认的原范围文本
 

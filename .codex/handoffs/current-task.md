@@ -21,6 +21,38 @@ Item33及必要前置满足且确需实施后才创建，购前配置/报价一�
 资源种类、数量、规格或计费方式实质变化才集中说明，不扩展任意采购。
 原5ce旧窗口归属和实际prepare→最终恢复读回避让不变。范围内步骤不重复请求批准。
 
+## 当前窗口前准备结果（September15 13:33UTC）
+- 批准记录commit `79e1e35ba7c25a6233fc3bb1891dc81d9a14e8aa`；Item32唯一包从该已提交
+  来源生成，未混入同时进行的Item33/36本地修改。十文件/177406bytes，SHA
+  `2d3e2d49c2f2e67d987544b885c6411bf12e71195fadff18db48c8a3e1b6c124`；本机原prospective
+  目录及ORICO都有同字节副本。原PENDING包、1be2fde包和所有历史结果保留。
+- 私有OSS已上传`noteai-private/admin-public/20260913/noteai-item32-authorized-79e1e35.tar.gz`，
+  ACL明确private。API-F既有RAM角色经IMDSv2/固定旧SDK镜像/internal Get一次成功，
+  没有扩权。host准备目录`/var/lib/noteai/item32-successor-package-20260915-79e1e35`，
+  root0700、十源码文件root单链接0444；13:27:52.593563UTC十SHA全部匹配。
+- API-F13:18:10UTC只读元数据：原Trends inactive/dead/disabled、unit SHA3ed7e555…e3b6，
+  固定及三类Item32容器为空；原两admission/diagnostic result SHA未变，successor root不存在。
+  13:31:01UTC主机Python3.11.6及原`_load_plan`纯读取验证通过；没有调用execute/preflight。
+- 私有薄入口`dispatch-once.py`位于上述host准备目录，3863bytes、SHA
+  `8556e082cfc0581ff529088afcdccd3fe568b93870830c3e92dd2ff5964916f1`，13:33:46UTC已落盘，
+  **未运行**。窗口内唯一调用`python3 -E -B <stage>/dispatch-once.py`，不得用-O。
+  它仅补O_EXCL持久日志、真实parent/child PID及done，不替代原executor/admission。
+  source/plan/十文件/F/root和两次时间检查先行；原executor仍负责fresh0/34、900s和清理。
+  断线只读同目录dispatch-started/child/done/log、原任务label及`--readback-only`，不重提交。
+  外层退出0仍需四份原Evidence和terminal validator，不能直接计分。
+- 四次Cloud Assistant回执依次为`t-sz06x579ulavd34`（元数据）、`t-sz06x584uciledc`（源码）、
+  `t-sz06x58f3xhrb40`（主机绑定）、`t-sz06x58ny7szj7k`（薄入口）。均provider0/DB0/service0；
+  此时不能声称fresh配额已通过。私有本机结果在`noteai-item32-prospective-20260915`。
+- Item33本地现有controller/validator兼容真实Item32三overlay来源，旧历史分支保留；
+  新host callbacks仅promote/rollback/reapply，精确F身份/原unit CAS/持久动作标记/启动前同桶
+  检查，UNKNOWN不重放。完整生产入口仍缺真实八表distinct-row/txid DML capture，不能用净行数
+  或离线夹具填通过；见`docs/ITEM33_CURRENT_PROMOTION_PREPARATION_20260915.md`。
+  两项实际费用可为真实非负分值或UNKNOWN，其余原零新资源/支付限制不变。
+- Item36现有validator兼容本轮actual-use/no-cost-stop、当前.com和真实无锁价报价，保留旧v1。
+  原健康/TLS/身份/账单/恢复条件不减；F仍需当前正式产品及自身配置候选，不能仅私网绑定旧应用。
+  对应115项Item32/33隔离回归、28项Item36隔离检查通过；Item33独立复核无剩余阻断。
+  所有上述均为本地准备，不把六个尚未terminal项目提前计分。Item32 executor及approved plan不变。
+
 ## 恢复基线与部署
 - 唯一 worktree `/Users/openclaw/Desktop/noteai`；分支 `codex/quality-stabilization-real-chain`。
   新窗口实际接管HEAD `3eeb84a7edda7334c214c07bb735f6d0a3362bcc`，领先242/落后0；

@@ -1,5 +1,10 @@
 import copy
+import hashlib
+import json
+import os
+import stat
 import sys
+import tempfile
 import traceback
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -13,6 +18,7 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 import execute_item33_trends_promotion as executor
+import item33_trends_host_actions as host_actions
 
 
 NOW = datetime(2026, 9, 8, 0, 10, tzinfo=timezone.utc)
@@ -596,6 +602,192 @@ class Item33TrendsPromotionExecutorTests(unittest.TestCase):
         self.assert_code(
             "run_identity", lambda: self.invoke(run_identity_sha256="ABC")
         )
+
+
+class Item33HostActionPreparationTests(unittest.TestCase):
+    def suspended(self):
+        return (ROOT / "deploy/production/systemd/noteai-xhs-trends.service.template").read_bytes().replace(
+            b"@@NOTEAI_XHS_IMAGE@@",
+            b"sha256:a78f4753591fd824ef3e4cfd8ed229c32542d1ac50d3c8c03b529e71fd01f8ec",
+        )
+
+    def dependencies(self):
+        return Item33TrendsPromotionExecutorTests().dependencies()
+
+    def test_renderer_preserves_exact_rollback_and_adds_only_three_readonly_mounts(self):
+        original = self.suspended()
+        self.assertEqual(hashlib.sha256(original).hexdigest(), executor.SUSPENDED_UNIT_SHA256)
+        candidate = executor.render_managed_unit(original)
+        self.assertEqual(hashlib.sha256(candidate).hexdigest(), executor.PROMOTED_UNIT_SHA256)
+        self.assertEqual(candidate.count(b"--mount=type=bind,"), 3)
+        self.assertEqual(candidate.count(b",readonly"), 3)
+        self.assertIn(b"Restart=no\n", candidate)
+        self.assertIn(b"python market_timing_worker.py --daemon --interval 360", candidate)
+        self.assertEqual(self.suspended(), original)
+        with self.assertRaisesRegex(executor.Item33ExecutionError, "suspended_unit_binding"):
+            executor.render_managed_unit(original + b"\n")
+
+    def test_missing_dependency_or_same_bucket_stops_before_host_or_state(self):
+        with mock.patch.object(executor, "_load_verified_dependencies", side_effect=executor.Item33ExecutionError("dependency_unverified")), mock.patch.object(
+            host_actions, "_run", side_effect=AssertionError("host forbidden")
+        ):
+            with self.assertRaisesRegex(executor.Item33ExecutionError, "dependency_unverified"):
+                host_actions.Item33HostUnitActions(dependencies=self.dependencies())
+        with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+            host_actions, "_run", side_effect=AssertionError("host forbidden")
+        ):
+            with self.assertRaisesRegex(executor.Item33ExecutionError, "utc_budget_not_available"):
+                host_actions.Item33HostUnitActions(dependencies=self.dependencies(),
+                    clock=lambda: datetime(2026, 9, 7, 23, 59, tzinfo=timezone.utc))
+
+    def test_host_identity_accepts_only_exact_api_f_instance(self):
+        with mock.patch.object(host_actions, "_imds", side_effect=["test-token", host_actions.EXPECTED_INSTANCE_ID]) as imds:
+            host_actions._assert_host_identity()
+            self.assertEqual(imds.call_args_list, [
+                mock.call("/latest/api/token", method="PUT",
+                    headers={"X-aliyun-ecs-metadata-token-ttl-seconds": "60"}),
+                mock.call("/latest/meta-data/instance-id",
+                    headers={"X-aliyun-ecs-metadata-token": "test-token"}),
+            ])
+        with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+            host_actions.os, "geteuid", return_value=0
+        ), mock.patch.object(host_actions, "_imds", side_effect=["test-token", "i-wz9j36od3nf2b1uw7bvg"]), mock.patch.object(
+            host_actions, "_regular", side_effect=AssertionError("file forbidden")
+        ), mock.patch.object(host_actions, "_run", side_effect=AssertionError("unit forbidden")):
+            actions = host_actions.Item33HostUnitActions(dependencies=self.dependencies(), clock=lambda: NOW)
+            with self.assertRaisesRegex(executor.Item33ExecutionError, "host_identity"):
+                actions.promote_unit({"unit_name": executor.UNIT_NAME,
+                    "run_identity_sha256": RUN_IDENTITY, "automatic_retry_limit": 0})
+
+    def test_exclusive_marker_syncs_file_then_parent_and_cannot_overwrite(self):
+        sync = os.fsync
+        events = []
+
+        def observed_sync(descriptor):
+            events.append("directory" if stat.S_ISDIR(os.fstat(descriptor).st_mode) else "file")
+            sync(descriptor)
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(host_actions.os, "fsync", side_effect=observed_sync):
+            path = Path(directory) / "started.json"
+            host_actions._exclusive(path, b"original")
+            self.assertEqual(events, ["file", "directory"])
+            with self.assertRaises(FileExistsError):
+                host_actions._exclusive(path, b"replacement")
+            self.assertEqual(path.read_bytes(), b"original")
+            self.assertEqual(events, ["file", "directory"])
+
+    @unittest.skipUnless(os.geteuid() == 0, "host metadata checks run in the isolated root test container")
+    def test_real_unit_callbacks_keep_action_markers_and_never_replay(self):
+        self.exercise_actions()
+
+    @unittest.skipUnless(os.geteuid() == 0, "host metadata checks run in the isolated root test container")
+    def test_unknown_reload_keeps_changed_unit_and_refuses_second_promotion(self):
+        self.exercise_actions(fail_reload=True)
+
+    @unittest.skipUnless(os.geteuid() == 0, "host metadata checks run in the isolated root test container")
+    def test_reapply_in_next_bucket_is_rejected_before_start(self):
+        self.exercise_actions(reapply_next_day=True)
+
+    @unittest.skipUnless(os.geteuid() == 0, "host metadata checks run in the isolated root test container")
+    def test_promotion_crossing_midnight_during_reload_keeps_unknown_and_does_not_start(self):
+        self.exercise_actions(cross_during_reload="promotion")
+
+    @unittest.skipUnless(os.geteuid() == 0, "host metadata checks run in the isolated root test container")
+    def test_reapply_crossing_midnight_during_reload_keeps_unknown_and_does_not_start(self):
+        self.exercise_actions(cross_during_reload="reapply")
+
+    def exercise_actions(self, *, fail_reload=False, reapply_next_day=False, cross_during_reload=None):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            unit = root / executor.UNIT_NAME
+            original = self.suspended()
+            unit.write_bytes(original)
+            unit.chmod(0o644)
+            overlay = root / "runtime"
+            overlay.mkdir(mode=0o700)
+            (overlay / "model").mkdir(mode=0o700)
+            for name in executor.RUNTIME_OVERLAY_SHA256:
+                path = overlay / name
+                path.write_bytes((ROOT / name).read_bytes())
+                path.chmod(0o444)
+            action_root = root / "actions"
+            now = [NOW]
+            commands = []
+
+            def run(argv):
+                commands.append(argv)
+                if "FragmentPath" in argv:
+                    return str(unit).encode()
+                if "DropInPaths" in argv:
+                    return b""
+                if fail_reload and argv == ["systemctl", "daemon-reload"]:
+                    raise executor.Item33ExecutionError("host_action_outcome_unknown")
+                if argv == ["systemctl", "daemon-reload"] and (
+                    (cross_during_reload == "promotion" and commands.count(argv) == 1)
+                    or (cross_during_reload == "reapply" and commands.count(argv) == 3)
+                ):
+                    now[0] = NOW + timedelta(days=1)
+                return b""
+
+            # Only filesystem metadata and action sequencing use temporary real
+            # files. Every host command/dependency is isolated and synthetic.
+            with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+                host_actions, "UNIT_PATH", unit
+            ), mock.patch.object(host_actions, "ACTION_ROOT", action_root), mock.patch.object(
+                host_actions, "_run", side_effect=run
+            ), mock.patch.object(host_actions, "_assert_host_identity"):
+                actions = host_actions.Item33HostUnitActions(dependencies=self.dependencies(), clock=lambda: now[0])
+                with mock.patch.object(executor, "RUNTIME_OVERLAY_ROOT", overlay):
+                    actions._assert_overlays()
+                # Renderer stays bound to the canonical production mount paths.
+                with mock.patch.object(actions, "_assert_overlays"):
+                    promotion = {"unit_name": executor.UNIT_NAME, "run_identity_sha256": RUN_IDENTITY,
+                        "automatic_retry_limit": 0, "cycle_authorization": {
+                            "run_identity_sha256": RUN_IDENTITY, "bucket_key": NOW.date().isoformat(),
+                            "provider_request_limit": 34, "automatic_retry_limit": 0}}
+                    recovery = {key: value for key, value in promotion.items() if key != "cycle_authorization"}
+                    if fail_reload:
+                        with self.assertRaisesRegex(executor.Item33ExecutionError, "host_action_outcome_unknown"):
+                            actions.promote_unit(promotion)
+                        self.assertTrue((action_root / "promotion.started.json").exists())
+                        self.assertFalse((action_root / "promotion.applied.json").exists())
+                        with self.assertRaises(executor.Item33ExecutionError):
+                            actions.promote_unit(promotion)
+                        self.assertEqual(commands.count(["systemctl", "daemon-reload"]), 1)
+                        return
+                    if cross_during_reload == "promotion":
+                        with self.assertRaisesRegex(executor.Item33ExecutionError, "start_bucket_expired"):
+                            actions.promote_unit(promotion)
+                        self.assertTrue((action_root / "promotion.started.json").exists())
+                        self.assertFalse((action_root / "promotion.applied.json").exists())
+                        self.assertEqual(unit.read_bytes(), executor.render_managed_unit(original))
+                        self.assertEqual(commands.count(["systemctl", "enable", "--now", executor.UNIT_NAME]), 0)
+                        return
+                    self.assertEqual(actions.promote_unit(promotion)["status"], "applied")
+                    self.assertEqual(unit.read_bytes(), executor.render_managed_unit(original))
+                    self.assertEqual(actions.rollback_unit(recovery)["status"], "applied")
+                    self.assertEqual(unit.read_bytes(), original)
+                    if reapply_next_day:
+                        now[0] = NOW + timedelta(days=1)
+                        with self.assertRaisesRegex(executor.Item33ExecutionError, "reapply_bucket_or_rollback_binding"):
+                            actions.reapply_unit(recovery)
+                        self.assertEqual(commands.count(["systemctl", "enable", "--now", executor.UNIT_NAME]), 1)
+                        return
+                    if cross_during_reload == "reapply":
+                        with self.assertRaisesRegex(executor.Item33ExecutionError, "start_bucket_expired"):
+                            actions.reapply_unit(recovery)
+                        self.assertTrue((action_root / "reapply.started.json").exists())
+                        self.assertFalse((action_root / "reapply.applied.json").exists())
+                        self.assertEqual(unit.read_bytes(), executor.render_managed_unit(original))
+                        self.assertEqual(commands.count(["systemctl", "enable", "--now", executor.UNIT_NAME]), 1)
+                        return
+                    self.assertEqual(actions.reapply_unit(recovery)["status"], "applied")
+                    self.assertEqual(unit.read_bytes(), executor.render_managed_unit(original))
+                    with self.assertRaises(executor.Item33ExecutionError):
+                        actions.reapply_unit(recovery)
+                    self.assertEqual(commands.count(["systemctl", "enable", "--now", executor.UNIT_NAME]), 2)
+                    self.assertEqual((action_root / "suspended-unit.rollback").read_bytes(), original)
+                    self.assertEqual(json.loads((action_root / "promotion.started.json").read_text())["status"], "STARTED_UNKNOWN")
 
 
 if __name__ == "__main__":

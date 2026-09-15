@@ -243,7 +243,13 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
             )
 
     def test_pending_plan_rejected_before_any_host_secret_or_admission_action(self):
-        plan = ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json"
+        canonical = ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json"
+        pending = json.loads(canonical.read_text())
+        pending["authorization"] = {
+            "status": "PENDING", "confirmed_at_utc": None, "approved_scope_sha256": None,
+        }
+        plan = self.root / "pending-synthetic-only.json"
+        plan.write_text(json.dumps(pending))
         with mock.patch.object(successor.os, "geteuid", return_value=0), mock.patch.object(
             successor, "_ensure_work_root", side_effect=AssertionError("state forbidden")
         ), mock.patch.object(successor, "_run", side_effect=AssertionError("host forbidden")), mock.patch.object(

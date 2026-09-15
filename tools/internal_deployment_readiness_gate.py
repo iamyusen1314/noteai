@@ -232,6 +232,9 @@ ITEM33_SUSPENDED_UNIT_SHA256 = (
 ITEM33_PROMOTED_UNIT_SHA256 = (
     "13d777c7705cc1dbc539c3dad3e034ba0ce5226b038e355d91bd3a440e565f8c"
 )
+ITEM33_EFFECTIVE_PROMOTED_UNIT_SHA256 = (
+    "0a1c100462e62e9043ef0b73d81a8b12b85bd684b90c9e1d3a24e0a705fb88ff"
+)
 ITEM33_ALLOWED_WRITE_TABLES = {
     "xhs_trends_runs",
     "xhs_trends_service_state",
@@ -337,9 +340,13 @@ ITEM35_APPROVAL_SCOPE_PATHS = {
 ITEM36_ALB_EVIDENCE_SCHEMA = "noteai.item36.alb_tls.v1"
 ITEM36_COST_APPROVAL_SCHEMA = "noteai.item36.recurring_cost_approval.v1"
 ITEM36_COST_QUOTE_SCHEMA = "noteai.item36.aliyun_cost_quote.v1"
+ITEM36_ACTUAL_USAGE_APPROVAL_SCHEMA = "noteai.item36.recurring_cost_approval.v2"
+ITEM36_CURRENT_QUOTE_SCHEMA = "noteai.item36.aliyun_cost_quote.v2"
+ITEM36_ACTUAL_USAGE_MODE = "ACTUAL_USAGE_CONTINUING"
 ITEM36_BILLING_READBACK_SCHEMA = "noteai.item36.aliyun_billing_readback.v1"
 ITEM36_MAX_EVIDENCE_AGE = timedelta(hours=36)
 ITEM36_API_HOSTNAME = "api.noteaipro.cn"
+ITEM36_CURRENT_API_HOSTNAME = "api.noteaipro.com"
 ITEM36_ALB_EVIDENCE = (
     "deploy/production/evidence/production-item36-alb-tls-verified.json"
 )
@@ -2166,7 +2173,7 @@ def validate_item33_trends_promotion_evidence(
     if observed_at is None or observed_at > current:
         errors.append("Item33 observation clock invalid")
 
-    item32_terminal, _item32_sha256 = _read_json_artifact(
+    item32_terminal, item32_sha256 = _read_json_artifact(
         ITEM32_TRENDS_EVIDENCE,
         ITEM32_TRENDS_EVIDENCE_SCHEMA,
         root=root,
@@ -2183,6 +2190,38 @@ def validate_item33_trends_promotion_evidence(
         errors.append("Item33 Item32 terminal bucket binding missing")
 
     release = payload.get("release_binding")
+    release_keys = {
+        "outer_executor_ref", "outer_executor_sha256", "source_sha256",
+        "image_config_sha256", "registry_manifest_sha256",
+        "suspended_unit_sha256", "promoted_unit_sha256",
+    }
+    effective_keys = {
+        "image_source_sha256", "runtime_overlay_sha256", "item32_terminal_sha256",
+    }
+    effective_release = _keys_exact(release, release_keys | effective_keys)
+    item32_execution = (
+        item32_terminal.get("execution") if isinstance(item32_terminal, dict) else None
+    )
+    item32_sources = (
+        item32_execution.get("source_sha256") if isinstance(item32_execution, dict) else None
+    )
+    expected_sources = ITEM32_EXPECTED_SOURCE_SHA256
+    promoted_unit_sha = ITEM33_PROMOTED_UNIT_SHA256
+    inherited_release_valid = item32_sources in (None, ITEM32_EXPECTED_SOURCE_SHA256)
+    if effective_release:
+        expected_sources = ITEM32_EFFECTIVE_SOURCE_SHA256
+        promoted_unit_sha = ITEM33_EFFECTIVE_PROMOTED_UNIT_SHA256
+        inherited_release_valid = bool(
+            release.get("item32_terminal_sha256") == item32_sha256
+            and _sha256(item32_sha256)
+            and item32_sources == ITEM32_EFFECTIVE_SOURCE_SHA256
+            and release.get("image_source_sha256") == ITEM32_IMAGE_SOURCE_SHA256
+            and release.get("runtime_overlay_sha256") == ITEM32_RUNTIME_OVERLAY_SHA256
+            and not validate_item32_trends_evidence(
+                {"evidence": [{"kind": "path", "ref": ITEM32_TRENDS_EVIDENCE}]},
+                root=root, now=current,
+            )
+        )
     executor_sha = None
     executor_path = root / ITEM33_TRENDS_PROMOTION_EXECUTOR
     try:
@@ -2190,30 +2229,20 @@ def validate_item33_trends_promotion_evidence(
     except OSError:
         pass
     if (
-        not _keys_exact(
-            release,
-            {
-                "outer_executor_ref",
-                "outer_executor_sha256",
-                "source_sha256",
-                "image_config_sha256",
-                "registry_manifest_sha256",
-                "suspended_unit_sha256",
-                "promoted_unit_sha256",
-            },
-        )
+        not (effective_release or _keys_exact(release, release_keys))
+        or not inherited_release_valid
         or release.get("outer_executor_ref")
         != ITEM33_TRENDS_PROMOTION_EXECUTOR
         or not _sha256(executor_sha)
         or release.get("outer_executor_sha256") != executor_sha
-        or release.get("source_sha256") != ITEM32_EXPECTED_SOURCE_SHA256
+        or release.get("source_sha256") != expected_sources
         or release.get("image_config_sha256") != ITEM32_EXPECTED_CONFIG_SHA256
         or release.get("registry_manifest_sha256")
         != ITEM32_EXPECTED_MANIFEST_SHA256
         or release.get("suspended_unit_sha256")
         != ITEM33_SUSPENDED_UNIT_SHA256
         or release.get("promoted_unit_sha256")
-        != ITEM33_PROMOTED_UNIT_SHA256
+        != promoted_unit_sha
     ):
         errors.append("Item33 release binding mismatch")
 
@@ -2592,7 +2621,7 @@ def validate_item33_trends_promotion_evidence(
         )
         or (isinstance(preserved, dict) and preserved.get("snapshot_sha256") != snapshot_sha)
         or recovery.get("reapplied_promoted_unit_sha256")
-        != ITEM33_PROMOTED_UNIT_SHA256
+        != promoted_unit_sha
         or not _exact_int(recovery.get("manual_start_count"), 1)
         or recovery.get("restart_policy") != "no"
         or same_bucket != {
@@ -2825,10 +2854,13 @@ def validate_item33_trends_promotion_evidence(
         or cost.get("currency") != "CNY"
         or not _exact_int(cost.get("xhs_provider_requests"), request_count)
         or any(
+            cost.get(field) != "UNKNOWN"
+            and not (_exact_int(cost.get(field)) and cost[field] >= 0)
+            for field in ("provider_fee_fen", "incremental_cloud_cost_fen")
+        )
+        or any(
             not _exact_int(cost.get(field), 0)
             for field in (
-                "provider_fee_fen",
-                "incremental_cloud_cost_fen",
                 "postpaid_resources_started",
                 "postpaid_resources_running",
                 "new_recurring_resource_count",
@@ -3584,6 +3616,118 @@ def validate_item35_approval_evidence(
     return errors
 
 
+def _item36_current_cost_terms_valid(
+    costs: dict[str, Any],
+    approval: Any,
+    quote: Any,
+    alb: Any,
+    *,
+    approved_at: datetime | None,
+    resource_created_at: datetime | None,
+    root: Path,
+) -> bool:
+    """Bind the current actual-use approval without inventing a spend cap."""
+
+    if not all(isinstance(value, dict) for value in (approval, quote, alb)):
+        return False
+    configuration = {
+        "vpc_identity_sha256": alb.get("vpc_identity_sha256"),
+        "region": "cn-shenzhen",
+        "zones": ["cn-shenzhen-c", "cn-shenzhen-f"],
+        "alb_count": 1,
+        "edition": "Standard",
+        "ip_version": "IPv4",
+        "network_type": "Internet",
+        "eip_count": 2,
+        "eip_isp": "BGP",
+        "eip_charge_type": "PayByTraffic",
+        "shared_bandwidth": False,
+        "api_hostname": ITEM36_CURRENT_API_HOSTNAME,
+    }
+    egress_pricing = {
+        "billing": "CDT",
+        "usage_scope": "SUM_TWO_EIPS_OUTBOUND",
+        "free_allowance_assumed_gb": 0,
+        "tiers": [
+            {"upper_tb": 10, "unit_price_cny": 0.80},
+            {"upper_tb": 50, "unit_price_cny": 0.75},
+            {"upper_tb": 150, "unit_price_cny": 0.70},
+            {"upper_tb": None, "unit_price_cny": 0.65},
+        ],
+    }
+    recheck = costs.get("purchase_readback")
+    if not _keys_exact(
+        recheck,
+        {
+            "observed_at", "pricing_sha256", "resource_configuration_sha256",
+            "source_artifact_path", "source_artifact_sha256",
+        },
+    ):
+        return False
+    recheck_at = _evidence_clock(recheck.get("observed_at"))
+    pricing = {
+        "components": quote.get("components"),
+        "variable_egress": quote.get("variable_egress"),
+        "public_egress_pricing": quote.get("public_egress_pricing"),
+        "pricing_basis_hours": quote.get("pricing_basis_hours"),
+        "vat_included": quote.get("vat_included"),
+    }
+    current_unit_prices = {
+        item["service"]: item["unit_price_cny"]
+        for item in quote.get("components", [])
+        if isinstance(item, dict) and "service" in item and "unit_price_cny" in item
+    }
+    source_paths = []
+    for record in (approval, quote, recheck):
+        source_path = record.get("source_artifact_path")
+        source_sha = record.get("source_artifact_sha256")
+        if (
+            not isinstance(source_path, str)
+            or not source_path.startswith("deploy/production/evidence/")
+            or not _sha256(source_sha)
+            or source_sha == hashlib.sha256(b"").hexdigest()
+            or _actual_file_sha256(source_path, root=root) != source_sha
+        ):
+            return False
+        source_paths.append(source_path)
+    variable = quote.get("variable_egress")
+    return (
+        len(set(source_paths)) == len(source_paths)
+        and not set(source_paths) & {
+            costs.get("approval_artifact_path"),
+            costs.get("quote_artifact_path"),
+            costs.get("billing_readback_path"),
+        }
+        and approval.get("authorization_mode") == ITEM36_ACTUAL_USAGE_MODE
+        and approval.get("cost_triggered_service_actions") == "NONE"
+        and _canonical_object_sha256(approval.get("resource_configuration"))
+        == _canonical_object_sha256(configuration)
+        and _canonical_object_sha256(quote.get("resource_configuration"))
+        == _canonical_object_sha256(configuration)
+        and quote.get("pricing_validity") == "CURRENT_DISPLAY_NO_LOCK"
+        and quote.get("vat_included") is True
+        and current_unit_prices == {
+            "alb_instance": 0.125, "alb_lcu": 0.042, "public_eip": 0.020,
+        }
+        and _canonical_object_sha256(quote.get("public_egress_pricing"))
+        == _canonical_object_sha256(egress_pricing)
+        and isinstance(variable, dict)
+        and _finite_number(variable.get("unit_price_cny"))
+        and variable["unit_price_cny"] == 0.8
+        and _finite_number(variable.get("estimated_usage"))
+        # This is a first-tier estimate, not a limit on actual billable usage.
+        and 0 <= variable["estimated_usage"] <= 10000
+        and approved_at is not None
+        and resource_created_at is not None
+        and recheck_at is not None
+        and approved_at <= recheck_at <= resource_created_at
+        and recheck_at >= resource_created_at - ITEM36_MAX_EVIDENCE_AGE
+        and recheck.get("pricing_sha256") == _canonical_object_sha256(pricing)
+        and recheck.get("resource_configuration_sha256")
+        == _canonical_object_sha256(configuration)
+    )
+
+
 def validate_item36_alb_evidence(
     control: dict[str, Any],
     *,
@@ -3600,6 +3744,13 @@ def validate_item36_alb_evidence(
     )
     if payload is None:
         return errors
+    actual_usage_approval = (
+        isinstance(payload.get("costs"), dict)
+        and payload["costs"].get("authorization_mode") == ITEM36_ACTUAL_USAGE_MODE
+    )
+    api_hostname = (
+        ITEM36_CURRENT_API_HOSTNAME if actual_usage_approval else ITEM36_API_HOSTNAME
+    )
     if not _keys_exact(
         payload,
         {
@@ -3726,13 +3877,13 @@ def validate_item36_alb_evidence(
             or not _exact_int(alb.get("listener_port"), 443)
             or not _exact_int(alb.get("dual_zone_count"), 2)
             or alb.get("tls_verification") != "PASS"
-            or alb.get("hostname") != ITEM36_API_HOSTNAME
+            or alb.get("hostname") != api_hostname
             or alb.get("certificate_status") != "ISSUED"
             or not _sha256(certificate_sha256)
             or not isinstance(certificate_names, list)
             or any(not isinstance(value, str) for value in certificate_names)
             or len(certificate_names) != len(set(certificate_names))
-            or ITEM36_API_HOSTNAME not in certificate_names
+            or api_hostname not in certificate_names
         ):
             errors.append("Item36 ALB/TLS configuration mismatch")
         not_after = _evidence_clock(alb.get("certificate_not_after"))
@@ -3954,9 +4105,9 @@ def validate_item36_alb_evidence(
             or probe.get("connection_mode") != "pre_dns_ip_override"
             or probe.get("endpoint_identity_sha256")
             not in (alb.get("public_eip_identity_sha256s", []) if isinstance(alb, dict) else [])
-            or probe.get("hostname") != ITEM36_API_HOSTNAME
-            or probe.get("sni_hostname") != ITEM36_API_HOSTNAME
-            or probe.get("host_header") != ITEM36_API_HOSTNAME
+            or probe.get("hostname") != api_hostname
+            or probe.get("sni_hostname") != api_hostname
+            or probe.get("host_header") != api_hostname
             or probe.get("path") != "/health/ready"
             or not _exact_int(probe.get("status_code"), 200)
             or probe.get("tls_verified") is not True
@@ -4410,12 +4561,18 @@ def validate_item36_alb_evidence(
         variable_egress = costs.get("variable_egress")
         approval, actual_approval_sha = _read_json_artifact(
             costs.get("approval_artifact_path"),
-            ITEM36_COST_APPROVAL_SCHEMA,
+            (
+                ITEM36_ACTUAL_USAGE_APPROVAL_SCHEMA
+                if actual_usage_approval else ITEM36_COST_APPROVAL_SCHEMA
+            ),
             root=root,
         )
         quote, actual_quote_sha = _read_json_artifact(
             costs.get("quote_artifact_path"),
-            ITEM36_COST_QUOTE_SCHEMA,
+            (
+                ITEM36_CURRENT_QUOTE_SCHEMA
+                if actual_usage_approval else ITEM36_COST_QUOTE_SCHEMA
+            ),
             root=root,
         )
         billing, actual_billing_sha = _read_json_artifact(
@@ -4521,6 +4678,26 @@ def validate_item36_alb_evidence(
             "alb_lcu": "lcu_hour",
             "public_eip": "ip_hour",
         }
+        retired_cost_fields = {
+            "approved_monthly_ceiling_cny",
+            "approved_variable_egress_ceiling_cny",
+            "quote_valid_until",
+        } if actual_usage_approval else set()
+        current_cost_fields = (
+            {"authorization_mode", "purchase_readback"}
+            if actual_usage_approval else set()
+        )
+        current_approval_fields = {
+            "authorization_mode", "cost_triggered_service_actions",
+            "resource_configuration", "source_artifact_path",
+            "source_artifact_sha256",
+        } if actual_usage_approval else set()
+        current_quote_fields = {
+            "pricing_validity", "vat_included", "public_egress_pricing",
+            "resource_configuration", "source_artifact_path",
+            "source_artifact_sha256",
+        } if actual_usage_approval else set()
+        pricing_hours = quote.get("pricing_basis_hours") if isinstance(quote, dict) else None
         terminal_components_by_name = (
             {
                 item["service"]: float(item["estimated_monthly_cny"])
@@ -4571,31 +4748,38 @@ def validate_item36_alb_evidence(
                     "billing_readback_sha256",
                     "components",
                     "variable_egress",
-                },
+                } - retired_cost_fields | current_cost_fields,
             )
             or costs.get("owner_recurring_cost_approved") is not True
             or not _sha256(costs.get("quote_sha256"))
             or actual_quote_sha != costs.get("quote_sha256")
-            or not _finite_number(approved_ceiling)
-            or approved_ceiling <= 0
-            or not _finite_number(approved_egress_ceiling)
-            or approved_egress_ceiling <= 0
+            or (
+                not actual_usage_approval
+                and (
+                    not _finite_number(approved_ceiling)
+                    or approved_ceiling <= 0
+                    or not _finite_number(approved_egress_ceiling)
+                    or approved_egress_ceiling <= 0
+                )
+            )
             or not _finite_number(estimated)
             or estimated <= 0
-            or estimated > approved_ceiling
+            or (not actual_usage_approval and estimated > approved_ceiling)
             or not _finite_number(estimated_egress)
             or estimated_egress < 0
-            or estimated_egress > approved_egress_ceiling
+            or (not actual_usage_approval and estimated_egress > approved_egress_ceiling)
             or not _finite_number(actual_incurred)
             or actual_incurred < 0
-            or actual_incurred
-            > approved_ceiling + approved_egress_ceiling
+            or (
+                not actual_usage_approval
+                and actual_incurred > approved_ceiling + approved_egress_ceiling
+            )
             or not _finite_number(actual_egress)
             or actual_egress < 0
-            or actual_egress > approved_egress_ceiling
+            or (not actual_usage_approval and actual_egress > approved_egress_ceiling)
             or not math.isfinite(billing_fixed_total)
             or billing_fixed_total < 0
-            or billing_fixed_total > approved_ceiling
+            or (not actual_usage_approval and billing_fixed_total > approved_ceiling)
             or not math.isclose(
                 float(actual_egress), billing_egress, abs_tol=0.01
             )
@@ -4646,10 +4830,10 @@ def validate_item36_alb_evidence(
             )
             or approved_at is None
             or quote_observed_at is None
-            or quote_valid_until is None
+            or (not actual_usage_approval and quote_valid_until is None)
             or resource_created_at is None
             or not quote_observed_at <= approved_at <= resource_created_at
-            or not resource_created_at <= quote_valid_until
+            or (not actual_usage_approval and not resource_created_at <= quote_valid_until)
             or not isinstance(approval, dict)
             or not _keys_exact(
                 approval,
@@ -4664,14 +4848,19 @@ def validate_item36_alb_evidence(
                     "quote_observed_at",
                     "quote_valid_until",
                     "secret_values_recorded",
-                },
+                } - retired_cost_fields | current_approval_fields,
             )
             or actual_approval_sha != costs.get("approval_artifact_sha256")
             or approval.get("status") != "APPROVED"
             or _evidence_clock(approval.get("approved_at")) != approved_at
-            or approval.get("approved_monthly_ceiling_cny") != approved_ceiling
-            or approval.get("approved_variable_egress_ceiling_cny")
-            != approved_egress_ceiling
+            or (
+                not actual_usage_approval
+                and (
+                    approval.get("approved_monthly_ceiling_cny") != approved_ceiling
+                    or approval.get("approved_variable_egress_ceiling_cny")
+                    != approved_egress_ceiling
+                )
+            )
             or not isinstance(approval_scope, list)
             or len(approval_scope) != 4
             or any(not isinstance(value, str) for value in approval_scope)
@@ -4679,8 +4868,11 @@ def validate_item36_alb_evidence(
             or approval.get("quote_sha256") != costs.get("quote_sha256")
             or _evidence_clock(approval.get("quote_observed_at"))
             != quote_observed_at
-            or _evidence_clock(approval.get("quote_valid_until"))
-            != quote_valid_until
+            or (
+                not actual_usage_approval
+                and _evidence_clock(approval.get("quote_valid_until"))
+                != quote_valid_until
+            )
             or approval.get("secret_values_recorded") is not False
             or _has_sensitive_evidence_key(approval)
             or not isinstance(quote, dict)
@@ -4698,14 +4890,19 @@ def validate_item36_alb_evidence(
                     "variable_egress",
                     "estimated_monthly_cny",
                     "secret_values_recorded",
-                },
+                } - ({"valid_until"} if actual_usage_approval else set())
+                | current_quote_fields,
             )
             or quote.get("provider") != "aliyun"
             or quote.get("region") != "cn-shenzhen"
             or quote.get("currency") != "CNY"
             or _evidence_clock(quote.get("observed_at")) != quote_observed_at
-            or _evidence_clock(quote.get("valid_until")) != quote_valid_until
-            or not _exact_int(quote.get("pricing_basis_hours"), 720)
+            or (
+                not actual_usage_approval
+                and _evidence_clock(quote.get("valid_until")) != quote_valid_until
+            )
+            or not _exact_int(pricing_hours)
+            or pricing_hours not in ((720, 744) if actual_usage_approval else (720,))
             or not isinstance(quote_components, list)
             or len(quote_components) != 3
             or len(quote_component_names) != len(quote_components)
@@ -4723,20 +4920,31 @@ def validate_item36_alb_evidence(
                         "estimated_monthly_cny",
                     },
                 )
-                or not _exact_int(
-                    item.get("quantity"),
-                    expected_quantities.get(item.get("service")),
+                or (
+                    not (
+                        _finite_number(item.get("quantity"))
+                        and item["quantity"] >= 0
+                    )
+                    if actual_usage_approval and item.get("service") == "alb_lcu"
+                    else not _exact_int(
+                        item.get("quantity"),
+                        expected_quantities.get(item.get("service")),
+                    )
                 )
                 or item.get("unit") != expected_units.get(item.get("service"))
                 or not _finite_number(item.get("unit_price_cny"))
                 or item["unit_price_cny"] <= 0
                 or not _finite_number(item.get("estimated_monthly_cny"))
-                or item["estimated_monthly_cny"] <= 0
+                or (
+                    item["estimated_monthly_cny"] < 0
+                    if actual_usage_approval and item.get("service") == "alb_lcu"
+                    else item["estimated_monthly_cny"] <= 0
+                )
                 or not math.isclose(
                     float(item["estimated_monthly_cny"]),
                     float(item["unit_price_cny"])
-                    * int(item["quantity"])
-                    * 720,
+                    * float(item["quantity"])
+                    * pricing_hours,
                     abs_tol=0.01,
                 )
                 for item in quote_components
@@ -4812,6 +5020,13 @@ def validate_item36_alb_evidence(
             or billing.get("secret_values_recorded") is not False
             or _has_sensitive_evidence_key(billing)
         )
+        if actual_usage_approval and not costs_invalid:
+            costs_invalid = not _item36_current_cost_terms_valid(
+                costs, approval, quote, alb,
+                approved_at=approved_at,
+                resource_created_at=resource_created_at,
+                root=root,
+            )
     if costs_invalid:
         errors.append("Item36 recurring-cost approval missing")
     if payload.get("secret_values_recorded") is not False:

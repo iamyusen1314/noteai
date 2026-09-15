@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -393,8 +394,96 @@ class Item33TrendsEvidenceGateTests(unittest.TestCase):
         quality["run_snapshot_size_bytes"] = len(raw)
         self.payload["recovery"]["preserved"]["snapshot_sha256"] = sha256
 
+    def use_effective_item32_release(self):
+        # Reuse the complete Item32 fixture, including its real-source ledger
+        # and approved synthetic plan; a source-only stub is not acceptance.
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "_item32_evidence_fixture", ROOT / "tests/test_item32_trends_evidence_gate.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        fixture = module.Item32TrendsEvidenceGateTests()
+        fixture.setUp()
+        try:
+            self.assertEqual(fixture.validate(), [])
+            shutil.copytree(fixture.root, self.root, dirs_exist_ok=True)
+        finally:
+            fixture.tearDown()
+        item32_path = self.root / gate.ITEM32_TRENDS_EVIDENCE
+        self.item32_terminal = json.loads(item32_path.read_text())
+        self.payload["release_binding"].update(
+            source_sha256=dict(gate.ITEM32_EFFECTIVE_SOURCE_SHA256),
+            image_source_sha256=dict(gate.ITEM32_IMAGE_SOURCE_SHA256),
+            runtime_overlay_sha256=dict(gate.ITEM32_RUNTIME_OVERLAY_SHA256),
+            item32_terminal_sha256=hashlib.sha256(item32_path.read_bytes()).hexdigest(),
+            promoted_unit_sha256=gate.ITEM33_EFFECTIVE_PROMOTED_UNIT_SHA256,
+        )
+        self.payload["recovery"]["reapplied_promoted_unit_sha256"] = (
+            gate.ITEM33_EFFECTIVE_PROMOTED_UNIT_SHA256
+        )
+
     def test_accepts_real_cycle_baseline_fill_and_singleton_recovery(self):
         self.assertEqual(self.validate(), [])
+
+    def test_accepts_effective_item32_sources_and_exact_overlay_managed_unit(self):
+        self.use_effective_item32_release()
+        self.assertEqual(self.validate(), [])
+
+    def test_effective_release_requires_fully_accepted_item32(self):
+        self.use_effective_item32_release()
+        self.item32_terminal["execution"]["automatic_retry_count"] = 1
+        path = self.root / gate.ITEM32_TRENDS_EVIDENCE
+        path.write_text(json.dumps(self.item32_terminal))
+        self.payload["release_binding"]["item32_terminal_sha256"] = hashlib.sha256(
+            path.read_bytes()).hexdigest()
+        self.assertIn("Item33 release binding mismatch", self.validate())
+
+    def test_effective_release_rejects_inherited_source_hash_or_unit_drift(self):
+        self.use_effective_item32_release()
+        original = json.loads(json.dumps(self.payload["release_binding"]))
+        for key, value in (
+            ("item32_terminal_sha256", "0" * 64),
+            ("image_source_sha256", gate.ITEM32_EFFECTIVE_SOURCE_SHA256),
+            ("runtime_overlay_sha256", {}),
+            ("source_sha256", gate.ITEM32_EXPECTED_SOURCE_SHA256),
+            ("promoted_unit_sha256", gate.ITEM33_PROMOTED_UNIT_SHA256),
+        ):
+            with self.subTest(key=key):
+                self.payload["release_binding"] = {**original, key: value}
+                self.assertIn("Item33 release binding mismatch", self.validate())
+
+    def test_effective_release_cannot_omit_binding_or_reapply_legacy_unit(self):
+        self.use_effective_item32_release()
+        release = self.payload["release_binding"]
+        for key in ("image_source_sha256", "runtime_overlay_sha256", "item32_terminal_sha256"):
+            release.pop(key)
+        release["source_sha256"] = gate.ITEM32_EXPECTED_SOURCE_SHA256
+        release["promoted_unit_sha256"] = gate.ITEM33_PROMOTED_UNIT_SHA256
+        self.assertIn("Item33 release binding mismatch", self.validate())
+        self.use_effective_item32_release()
+        self.payload["recovery"]["reapplied_promoted_unit_sha256"] = gate.ITEM33_PROMOTED_UNIT_SHA256
+        self.assertIn("Item33 Trends-only rollback/no-replay mismatch", self.validate())
+
+    def test_cost_accepts_actual_nonzero_or_explicit_unknown_without_new_resources(self):
+        for provider, cloud in (("UNKNOWN", "UNKNOWN"), (125, 23), (0, "UNKNOWN")):
+            with self.subTest(provider=provider, cloud=cloud):
+                self.payload["cost"].update(provider_fee_fen=provider, incremental_cloud_cost_fen=cloud)
+                self.assertEqual(self.validate(), [])
+
+    def test_cost_rejects_ambiguous_unknown_invalid_amount_or_new_resource(self):
+        for key, value in (
+            ("provider_fee_fen", None), ("provider_fee_fen", "unknown"),
+            ("provider_fee_fen", True), ("incremental_cloud_cost_fen", -1),
+            ("incremental_cloud_cost_fen", 0.5), ("new_recurring_resource_count", 1),
+            ("postpaid_resources_running", "UNKNOWN"), ("payment_actions", 1),
+        ):
+            with self.subTest(key=key, value=value):
+                previous = self.payload["cost"][key]
+                self.payload["cost"][key] = value
+                self.assertIn("Item33 cost/resource boundary mismatch", self.validate())
+                self.payload["cost"][key] = previous
 
     def test_rejects_cycle_in_item32_terminal_utc_bucket(self):
         item32_path = self.root / gate.ITEM32_TRENDS_EVIDENCE
