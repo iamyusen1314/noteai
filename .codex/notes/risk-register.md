@@ -1,5 +1,17 @@
 September15 new-window takeover: ordinary engineering resumes under the owner's explicit handoff instruction. Original noteai-5ce remains in the old window; shared runtime/schema/ACL changes cannot overlap its actual prepare→confirmed close/final-readback. Fresh GitHub metadata shows the original repository is PUBLIC; ordinary origin push is not a private recovery method and Render deployment bindings remain partly LAST_KNOWN. Git-only recovery must distinguish LFS/model bytes and private host results. Item32's new named production window, Item36 recurring cost and Amap applicable licence remain real independent external conditions. Readiness31/37, Item34 generation2 VERIFIED and Item35 NOT_REQUIRED remain unchanged; retained video quality hints are not a reason to replay completed tests. Exact recovery results and ownership are at Handoff CURRENT EXECUTION CONTROL.
 
+September15 source3ebc9c5: Item32 prospective PENDING plan now drives both existing
+executor and terminal window checks. Owner confirmation remains absent; local
+approval fields are not an owner signature. Missing approval fails before host,
+Secret or durable admission. A start-time race after slow host checks and the old
+same-day-only completion check were fixed;100 isolated tests and an independent
+read-only review passed. Old Sep7/HOLD/Item34 remain unchanged. Private Git recovery
+has a verified remote clone with Actions disabled/zero runs, plus local and ORICO
+bundles; the four model/report assets have separate checked copies. Private runtime
+results/DB/Secret/user media are outside those archives; full production disaster
+recovery is not claimed. Item36 now has all four price components and China-site
+VAT basis, but usage, future discounts and owner recurring-cost decision remain.
+
 September15 Item32: corrected a local mismatch between three runtime overlays and old terminal source validation. Frozen image, effective runtime and Item33 legacy sources remain distinct.90 isolated tests passed; canonical Sep7/HOLD unchanged and unusable for a new run. No successor dispatched or new identity, no readiness credit. Current package is local preparation only.
 
 September15 current: API f070/public059/Admin4870 are deployed. Full video-note and formal video generation/Chat engineering paths passed real requests with original charge/cost/source records; latest Chat has three retained quality hints and an ambiguous scene-location relationship requiring merchant review, not a claim of unqualified fact/marketing success. Memory propagation/saved-note approval fix passed 23 isolated checks and original library recovery. Supplier observations are now persisted independently of downstream model completion and displayed with dated sources; unknown fees remain unknown. Amap individual certification/no applicable technical licence remains the actually verified external gap; no annual purchase authorized. CurrentC private-bind preparation preserves public nginx loopback; no network apply or new resource. Readiness31/37 and original Native next-day bill followup unchanged.

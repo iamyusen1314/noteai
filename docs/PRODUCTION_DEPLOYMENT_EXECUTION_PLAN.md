@@ -4,7 +4,13 @@ Current concrete proposals: `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md` spec
 the proposed September15 14:00–15:00UTC window, dispatch before14:40, fresh0/34,
 34 maximum admissions, zero retry, read-only DB probes and original-result recovery.
 Authorization remains pending; expired Sep7 files/identities stay sealed. Existing
-executor/terminal prospective binding is being prepared locally with fail-closed pending authorization.
+executor/terminal prospective binding is locally complete at source3ebc9c5, with
+PENDING rejected before state/host/Secret/admission, final-start deadline recheck
+and actual execution/terminal narrow-window enforcement.100 Python3.11 network-none
+Item32/33 tests passed; independent review found no remaining blocker. The original
+test launcher cwd/import failure and correction are retained in the proposal.
+The10-file PENDING package is177379bytes/SHA c1ab92d52b7999bbbddb26d1b8a8ffbc56b684520e25f63fd2d04f23582ebdb3,
+saved locally and on ORICO, not uploaded to production; exact path at Handoff top.
 `docs/ITEM36_CURRENT_COST_PROPOSAL_20260915.md` now covers ALB/LCU/twoEIPs/CDT/VAT,
 720/744h scenarios, existing-public-ingress relationship and restoration scope.
 Current744h/average2LCU/100GB is CNY265.26, not a fixed bill or spending ceiling.

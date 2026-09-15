@@ -38,6 +38,7 @@ Item32新的prospective计划和Item36完整费用方案。新生产请求及新
 - 专用私有恢复仓库 `https://github.com/iamyusen1314/noteai-private-recovery-20260915`
   已建为PRIVATE，push前Actions disabled、hooks0，只推指定分支3eeb84a，未配置部署连接。
   使用GIT_LFS_SKIP_PUSH=1，不推其它refs或LFS实字节；原公开origin及其upstream不变。
+  私有远端已重新bare clone并核对HEAD/fsck通过，Actions运行总数0。
   原CI对codex/** push及现有PR触发，Render五服务Blueprint checksPass且远端实际绑定部分未知；
   不将hooks0等同所有集成已排除。当前以私有副本完成恢复性同步，公开发布推送另核部署绑定。
 - 七保护路径在当前分支可达历史出现次数均0。242增量1428个Git blob的四类高置信Secret模式
@@ -66,7 +67,7 @@ Item32新的prospective计划和Item36完整费用方案。新生产请求及新
 | Item | 实际状态 | 依赖及下一动作 |
 |---|---|---|
 | 31 | blocked；原5ce支付/自然重复回调/全退完成 | Sep16读取原Sep15账单+独立capture及原terminal validator；由旧窗口唯一任务执行，无新订单/退款 |
-| 32 | blocked / PREPARED_NOT_EXECUTABLE | source1be2fde旧准备保持；新窗口提案Sep15 14:00–15:00UTC、dispatch<14:40，具名授权待owner；prospective本地绑定准备进行中，旧Sep7不可运行 |
+| 32 | blocked / PREPARED_NOT_EXECUTABLE | source3ebc9c5本地prospective绑定已完成/100离线PASS；Sep15 14:00–15:00UTC、dispatch<14:40候选窗口及具名授权待owner，PENDING先拒绝，旧Sep7不可运行 |
 | 33 | unverified | 等真实Item32 terminal及internal rollback；再按原managed promotion执行，不套用Sep7/8历史时间 |
 | 36 | unverified | capacity100/Item34已具备，Item33尚缺；C/F私网候选及rollback已准备，最后ALB实测0；新四项含税报价已齐、长期费用待owner，尚无资源创建 |
 | 37 | unverified | real AI、31、36满足后做原完整商业链联合验收；现Admin契约已同步 |
@@ -78,6 +79,25 @@ SHA256 `e78fc888333279845ddb9cfbe862ebe1c4ca1ff2346f3f5503df3058bb3f8b3c`；
 原24h/3d完成、每阶段admission1/retry0；3d Sep14 13:53:22.270280UTC，原validator
 Sep14 14:00:25.717571UTC errors=[]；恢复/撤权/容器清理已核实，原自动化已删除。
 顶层旧失败仍属历史；不重置T0/0020/固定产物、不重放。Item35 NOT_REQUIRED，不算通过。
+
+## 新窗口Item32本地成果（source3ebc9c5）
+修改现有`tools/execute_item32_readonly_trends_successor.py`和
+`tools/internal_deployment_readiness_gate.py`，三个既有Item32测试文件及新增
+`deploy/production/plans/item32-readonly-successor-prospective.json`；范围说明在Item32提案。
+四时间字段唯一来自plan；PENDING在work-root/host/Secret/admission前拒绝，实际确认后才记录
+真实确认时间与范围SHA（不是owner数字签名）。原v1/Sep7拒绝且原文件不变；34/0重试、
+原work-root/O_EXCL/两前驱封存、source绑定、DB零写和Item33不同UTC桶约束保持。
+修复实际窄窗缺口：最后host检查后紧邻启动再次校时；超窗start0/HOLD且不重放；
+实际collection/attempt/terminal不得越过批准结束时刻。未创建真实身份/admission、未访问生产。
+验证：既有Python3.11只读容器/network-none，Item32三组+Item33两组最终100/100 PASS；
+首次镜像ENTRYPOINT改变cwd导致5模块ImportError、未执行用例，明确entrypoint/PYTHONPATH后修正。
+独立真实只读审查发现并核实修复启动前时间竞态，最终无剩余阻断；git diff --check通过。
+原Item34和Sep7 canonical SHA再次一致；37 active/31 verified及六个剩余项不变。
+新10文件PENDING私有源码包逐字匹配source3ebc9c5并存异盘：
+`/Users/openclaw/.codex/tmp/noteai-item32-prospective-20260915/noteai-item32-prospective-3ebc9c5-pending.tar.gz`，
+177,379 bytes，SHA256 `c1ab92d52b7999bbbddb26d1b8a8ffbc56b684520e25f63fd2d04f23582ebdb3`。
+未上传生产，原1be2fde/49c包不变。批准前不得把PENDING改AUTHORIZED；批准后只补真实字段、
+生成并同步最终绑定包，进入原fresh前置。失窗不自动移到次日或另造身份。
 
 ## 长期决定与待owner决定
 Claude保留，个人账户事实/owner风险接受不冒充供应商批准；正常API-C→Render Singapore
@@ -143,13 +163,18 @@ STAGED_NOT_PREPARED；未来结果root `/var/lib/noteai/native-9d62f98/bill-2026
 - 原账单最终清理：`/Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98/old-sep14-final-readback.json`
   SHA751973c8…cff9；5ce原trade证据与唯一未来入口见上一节。
 - Item32准备：`/Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-1be2fde.tar.gz`
-  SHA2e597b9e…39797（10个源码文件，旧49c包保留）；当前code1be2fde，历史plan仍拒绝执行。
+  SHA2e597b9e…39797（原10源码文件，旧49c包保留）；最新source3ebc9c5 PENDING包见上节，均非已批准执行包。
 - Item36：`/Users/openclaw/.codex/tmp/noteai-item36-current-api-c-f070ed6/` 内C/F读回、candidate/rollback、
   ALB列表及报价；当前私网绑定未apply。现行DoD/状态：`deploy/production/internal-deployment-readiness.json`。
 - 原实现/供应商分工：`.codex/notes/architecture-summary.md`；风险：`.codex/notes/risk-register.md`；
   现行实施细节：`docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md`；Admin原契约：`docs/FIRST_LAUNCH_UI_ADMIN_CONTRACT.md`。
 
 下一阶段待办（仅登记，未设计/实现/加入37项）：**根据AI视觉建议和用户素材生成封面**。
+
+下一实际动作：等待已发出的Item32具名窗口确认和Item36单独长期费用决定；Item32获得确认后
+按原fresh前置执行，真实terminal及既有internal rollback满足后在不同UTC桶接续Item33。
+Item31只接收旧窗口Sep16原5ce账单结果；32/33及费用条件关闭后实施36，31/36满足后继续37→38。
+本地准备已完成，不因checkpoint自行新增任务、重放素材或DNS切换。尚未收到上述两项确认。
 
 ---
 # Historical continuation notes — retain facts; follow CURRENT EXECUTION CONTROL above
