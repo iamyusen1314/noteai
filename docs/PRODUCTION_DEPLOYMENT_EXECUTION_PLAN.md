@@ -1,3 +1,43 @@
+September15 08:41BJT: current order5ce31ca0-e42d-4a86-bee5-d1bb4bea8757 is PAID,
+FULLY REFUNDED AND CAPTURE CLOSED. No scan/neworder/replay is needed. Source9d Payment
+b1d4ac2d7c989244f50eb067360e933301e54980a2b24344a9241266be5de930 and canary
+ab12191b69f49c5c6a564c67542207df8b96b1fa3d22ef0a95b7acdb08b3a8a1 actually passed
+natural callback redelivery: first503 (single approved ACK fault), then200;
+same authenticated event and complete semantic SHA5d133c71ff2591fd300001be0e661702d4450f13874bbdf27e75a6984227a7d8,
+different rawbody digests, duplicate_delivery_count1, no duplicate rights. This proves
+safe semantic dedup, not the exact transport field/re-encryption cause. Historical81ab
+400/duplicate0 and earlier failures remain unchanged. Private paid-callback-readback.json
+SHA375376ca6587604d29e4930af53ddc28262ec184eb8c4cc114363cbfcdfd84c7.
+Current operator query-payment/submit-refund/query-refund each ranonce, count1/retry0;
+no provider replay. Original UIcreate plus3operator calls=4app provider operations;
+future bill not yet executed. Refund a34463d7-1e87-4a7b-91df-bb2a75286540 succeeded1200fen,
+real refund callback and query agree. Cash+1200/-1200, rights+30000/-30000 eachonce;
+wallet2894.5->2924.5->2894.5. Public originalorder displays full original-route refund.
+Three actual testorders cumulatively paid36yuan/refunded36yuan; provider fees remain
+unknown until actual bills, never0 by assumption. No new model calls in this stage.
+Original3e65 runner closed1789432458.5761166, CAPTURE_COMPLETE_NOT_TERMINAL;
+sealed DML SHA b5599c09ac1840b814abedd4cd9737d8bad29b9392a5656e51463f8446ceae93.
+Mutations orders6/events9/cash2/credits2/credit_transactions2/positions2/rights2/refunds4.
+Exact current remove-dms SHA73c2291b542cf8925ad54b6edca5d63dc2a7eeaad25c86b2138dc123663c44cb
+executedonce11ms. Independent DMS08:40:11BJT: triggers0/functionabsent; financial
+readback includes paymentduplicate1 plus separate querypayment/queryrefund events.
+Host final-readback.json at1789432881.340205 SHA4c596dfc419d835c8d997a3f4f3cb147d6784cb28e2d1c29c4e6c77b3c70d530:
+RESTORED_COLLECTOR_REMOVED, APIb214 imageb28628d6 running/healthPASS,
+Admin538 image783f336a running, publicweb2dfd4d2, originalfiles/config preserved;
+Paymentcontainer and all currentoperator containers absent. No pending cleanup.
+Current host /var/lib/noteai/native-9d62f98/trade-web2dfd4d2 is sealed, never rerun.
+Private readbacks remain /Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98;
+paid-final-runtime-result.txt,paid-collector-removed.txt,operators-final.json,
+callback-before-close.json preserve actual results, not public/Git private records.
+Next prepare current5ce same-order bill binding using existing launcher only;
+next-day availability September16 >=10:00BJT (02:00UTC). Do not call old hardcoded
+bill branch of native_capture-2dfd4d2.py. Existing oldSep14 1e2acc frozenfc4f49f bill
+entry remains separate, earliest TODAY10BJT, not yet executed. Preserve separate
+capture journals; no false continuity or fabricated reconciliation. No terminal
+Evidence created until actual same-order bill/DML and existing validator pass.
+Readiness remains31/37, publicpaymentsclosed; Item34 COMPLETE/history untouched;
+no Gitpush or protected7 changes. Earlier awaiting-scan paragraphs are historical.
+
 September15 08:22BJT: CURRENT Native candidate is ACTIVE awaiting owner scan;
 unique order5ce31ca0-e42d-4a86-bee5-d1bb4bea8757,1200fen/30credits, normalowner UI
 createdonce under activation3e65becf-5a7a-4139-aab4-a60f93d86c3a. DO NOT createanother.

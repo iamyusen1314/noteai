@@ -1,3 +1,5 @@
+September15 08:41BJT: current5ce Native payment, natural duplicate1, fullrefund and queryrefund verified; original3e65 capture sealed, all15temporarytriggers/function removed, services restored. Old81ab collision remains failed history. Same-order next-day bill and terminal DML/validator stillpending; publicpaymentsclosed,31/37unchanged. No owner scan/credential action currentlyneeded. See Handoff top for exact current results and separate old/new bill dates.
+
 September15 08:22BJT: new5ce/3e65 Native test is awaiting owner scan on9d Payment+2df web. Original81ab fullyrefunded; empty4fc closed/collectorremoved/noorder. Currentcollector removal pending until original3e65close, expiry09:17:46BJT; next-day bills remain separate. See Handoff top for exact no-replay bindings.
 
 September15 callback fix9d builds and0029 are verified; oldsevenevent records and0018guard unchanged. NewPayment booted but no neworder: frontend terminalcanary lock identified and fixed locally with fresh-read/distinct-server-key checks. Emptycapture4fc safely closed; emptyjournal remains UNKNOWN, no acceptance credit. See Handoff top for exact revisions and remaining newscan/bills.
