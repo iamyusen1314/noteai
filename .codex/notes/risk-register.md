@@ -1,3 +1,23 @@
+September15 latest: Owner explicitly authorizes FORMAL Amap service for normal
+entitled users within current shared monthly quota, accepts no purchased licence,
+and supersedes the internal pending-purchase hold. Console now verifies enterprise
+developer, not licensed; old individual status is history. Search group50000/month,
+current1 used,30QPS; official overage can consume packs/balance. Enforce per-HTTP
+shared durable admission before enabling; no purchases, paid overage, Beta/whitelist
+or supplier-bypass. Backend provenance/quota/actual-status work is in progress.
+Item32 wrapper staged/read-only verified15:02UTC; unique current-thread continuation
+verified for15:30UTC, dispatch<16:10. Exact receipts and current instructions above
+historical sections in Handoff; original5ce and Item36 prerequisites unchanged.
+
+September15 14:40UTC repair preparation: fac5dd0 authorized package180680bytes,
+SHA729cafcbc15e725dc41aa69c6f919c0fa045328f2d17ca6d0a1e2b8e0fc37694, privately
+staged on original API-F with all ten source hashes matching. No repaired dispatch,
+provider call, DB connection or service/resource change. Original79e records/root/
+lock remain. New private once-wrapper10048bytes/SHA bedaf2b…e065c passed8 isolated
+tests and independent final review. Fresh actual quota and terminal DB proof are
+still execution-time requirements; local success does not grant readiness. Latest
+host/wrapper/scheduler facts and separate recovery scopes are at Handoff top.
+
 September15 14:23:33UTC NEW explicit owner confirmation: one repaired Item32
 attempt in15:30–16:30UTC today, dispatch strictly before16:10UTC, fresh actual
 same-day0/34, maximum34 admissions/zero automatic retry, original DB-read-only

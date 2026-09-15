@@ -2,6 +2,21 @@
 
 ## Current execution control
 
+September15 owner authorizes formally enabling Amap for normal NoteAI users
+within the existing shared monthly quota. Owner reports that enterprise
+certification is complete; verify the current account certification, API access
+and available quota in the existing Amap console before recording them as verified.
+Owner accepts the disclosed absence of a technical-service licence; this replaces
+only the internal hold awaiting a purchase decision, not actual provider approval.
+Use the existing configured integration. Do not purchase licences or quota
+packages, enable automatic paid overage, or limit this formal scope to a whitelist
+trial. Respect actual authorization denials and service suspensions; retain source
+provenance and UNKNOWN fees when not confirmed. Exhaustion of the shared quota
+stops only Amap queries, not unrelated product services. Preserve the earlier
+individual-certification observations as dated history. The approved Item32
+15:30–16:30UTC window and original noteai-5ce ownership/operation isolation remain
+unchanged. Current console facts and implementation state belong in Handoff CURRENT.
+
 September15 14:23:33UTC owner explicitly approves one repaired Item32 attempt
 in15:30–16:30UTC today, dispatch strictly before16:10UTC, same-day fresh0/34,
 maximum34 admissions, zero automatic retry, original DB-read-only probes and

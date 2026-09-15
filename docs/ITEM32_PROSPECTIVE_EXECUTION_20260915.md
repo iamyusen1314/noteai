@@ -8,6 +8,13 @@ Owner已于本轮确认选择“批准此新窗口唯一一次”，首次时间
 本地123/123聚焦回归、独立review和PENDING拒绝验证通过。下文“待确认”段保留
 批准前提案原文；不再阻断此次已确认范围，仍不授权自动重试或任何新后继。
 
+新包源码fac5dd0、180680bytes/SHA729cafcbc15e725dc41aa69c6f919c0fa045328f2d17ca6d0a1e2b8e0fc37694。
+14:40:19UTC原API-F私有暂存成功，十文件SHA全部匹配；原失败/root/lock保留，尚无新派发。
+15:02:05UTC新dispatch-repair-once.py入口暂存、compile与纯读取preflight/_load_plan通过；
+唯一noteai-item32续执行真实调度为Sep15 15:30UTC、本窗口，COUNT1；严格<16:10才启动。
+准确准备目录、入口SHA、原始回执和恢复索引见Handoff顶部。新wrapper8/8测试及独立审查通过；
+这不证明fresh DB配额或Item32终态。原5ce真实调度仍为Sep16 02:01:30UTC/旧窗口，未运行。
+
 实际started2026-09-15T14:02:18.304253Z、done14:02:19.828477Z；源码检查容器成功，
 随后无网络browser/import检查exit1，原executor为command_failed/exit2。原主机14:08读回
 只有executor.lock，无admission/run，父子进程已退出，临时容器均已清理，原unit和两前驱

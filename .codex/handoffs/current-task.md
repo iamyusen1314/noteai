@@ -6,6 +6,53 @@
 Item32新的prospective计划和Item36完整费用方案。新生产请求及新增长期费用按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September15 高德正式启用决定与实施（15:03UTC开始）
+Owner明确批准高德正式业务对正常权益用户启用，使用现有账户月度共享额度；
+不采购技术服务许可/流量包/并发包/订阅/充值，不自动产生超额付費，不设白名单/Beta/到期关闭。
+这是owner正式启用决定及风险接受，不是高德已授予经营许可。仅等待owner购买决定的内部
+停用安排已被取代；实际鉴权/明确访问限制仍尊重。额度耗尽只暂停受影响的高德新查询，
+官方额度实际恢复后恢复；保留门店/分店/字段来源、不编造未知。后台刷新不触发供应商。
+控制台实际首页现为企业开发者、未取得技术服务使用许可、已创建2个Key；此前个人认证为历史。
+当前基础搜索共享月额50000，关键字当月1/当日0，其余搜索接口0，相关接口30QPS；
+不能按多个Key重复额度。Sep1–Sep15账单基础搜索计费用量1、显示金额0，但后续费用不能推定0。
+官方计费说明明确月额超出后可耗流量包/余额，故必须实现物理HTTP前持久共享admission；
+不能假定余额0或超量公告一定拒绝请求。正常链路及Admin分栏最小接线正在进行，尚未声明上线。
+本决定不改变Item32/36或原微信唯一任务，接续Item32开窗执行优先不漏窗。
+
+## Item32唯一入口就绪与本窗口续执行（15:02UTC）
+Cloud Assistant`t-sz06x5gjjxiavi8`在`2026-09-15T15:02:05.560740+00:00`确认
+`/var/lib/noteai/item32-repair-package-20260915-fac5dd0/dispatch-repair-once.py`
+10048bytes/SHA bedaf2b…e065c、compile、原失败/source只读preflight及canonical `_load_plan`全部通过。
+仅入口暂存，production_dispatches0/provider0/DB0/admissions0；freshDBquota_checked=false。
+**窗口内唯一命令**：`python3 -E -B /var/lib/noteai/item32-repair-package-20260915-fac5dd0/dispatch-repair-once.py`。
+用原F云助手足够超时；不运行79e旧入口，不使用-O，断线先读本新stage原记录，不重新提交。
+已登记唯一`noteai-item32`续执行至本thread `01a0a50d-985c-7140-9db2-3bde812717bd`，
+COUNT1；真实scheduler next_run1789486200000=Sep15 15:30:00UTC，last_runNULL。
+启动严格<16:10/完成<16:30，同桶fresh0/34、最多34/重试0与必要恢复不变。
+失败/明确终态/失窗后删除此Item32续执行；不自动改期、不归档本任务、不触碰5ce。
+若本任务届时正在高德独立工作，先接续这一已批准的唯一窗口，不另建请求或忽略窗口。
+
+## 修复包当前准备（September15 14:40UTC；尚未派发）
+- 源码`fac5dd0abe89fcd1574c4f5cc2ae144fdd2adb0b`包含已确认新plan和导入修复；
+  `4187161`只增加独立Item33本地捕获部件，不替换已绑定包。
+- 私有OSS在owner恢复现有登录后上传成功，明确private ACL；同对象此前两次网络失败
+  没有生产业务调用。API-F既有角色/internal Get回执`t-sz06x5eliytxatc`，
+  `2026-09-15T14:40:19.916116+00:00`确认十文件全部SHA匹配、180680bytes、包SHA
+  `729cafcbc15e725dc41aa69c6f919c0fa045328f2d17ca6d0a1e2b8e0fc37694`。
+  新目录`/var/lib/noteai/item32-repair-package-20260915-fac5dd0`，STAGED_NOT_EXECUTED。
+  原79e四记录/原ROOT/executor.lock保留；此准备provider0/DB0/service0/new-resource0，
+  **fresh实际DB quota0/34仍是到窗执行前置，不声称已取得DB证明**。
+- 新私有wrapper10048bytes、SHA`bedaf2b561476898576cc97990fae75f366cce686bf1d1ed720545364b4e065c`，
+  8/8隔离测试与独立最终字节/源码/计划/原记录审查通过。唯一Popen、两次窗口检查、
+  四记录O_EXCL0600/fsync、原安全锁可用性读回；异常/断线只读原结果，不重跑wrapper。
+- 包/manifest/导入实验/入口及测试/原失败限定记录均有本机和ORICO逐字节一致副本。
+  Git历史、外部模型资产和私有运行记录分别恢复；Git不含后两者的全量生产数据。
+  本轮最终Git恢复与私有同步结果以`/Users/openclaw/.codex/backups/noteai/latest-recovery.json`
+  为准确索引；原public origin不推送，既有private recovery仅受控具名分支同步并立即归档。
+- 14:43UTC真实scheduler只读确认原noteai-5ce仍ACTIVE/旧thread、
+  next_run1789524090000=Sep16 02:01:30UTC、last_runNULL/runs0；当前Item32旧调度已不存在。
+  原旧线程快照idle，未进入bill prepare；没有复制/搬迁/提前运行/修改其调度。
+
 ## September15 新窗口已获唯一一次授权（14:23:33UTC）
 Owner通过当前确认问题明确选择“批准此新窗口唯一一次”。批准修复后一次：
 **Sep15 15:30–16:30UTC／北京时间23:30–次日00:30**，启动严格早于
@@ -19,7 +66,7 @@ Owner通过当前确认问题明确选择“批准此新窗口唯一一次”。
 首次扩展121测试中3条synthetic fixture绑定旧executor SHA而失败，仅改临时副本后通过；
 最终123包含8条诊断与browser/DBprobe边界验证。实际原a78f失败stderr仍不可恢复。
 下列“下一次待确认”是本次新确认前的提案历史；此处明确授权覆盖它的具名范围。
-下一步：从本轮已提交源码打新私有包、准备绑定原失败/原lock的独立唯一日志入口，
+下一步：原F独立唯一日志入口暂存与纯读取校验已完成；
 15:30UTC到窗后再次fresh核时/旧任务/host/DB配额，再按批准范围唯一执行。
 
 ## September15 唯一实际执行失败与安全读回（14:08UTC）
