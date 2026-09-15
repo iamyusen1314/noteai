@@ -107,12 +107,16 @@ async function nativeStartCheckout(kind,id) {
     const canary=_nativeCapability.canary_checkout;if(canary && fen!==canary.amount_fen)throw Error('自测范围与正式套餐金额不一致');
     let original=nativeReadStorage();
     if(original && original.attempted){
-      _nativeCheckout=original;await nativeRecoverOriginal(false);
+      _nativeCheckout=original;const refreshed=await nativeRecoverOriginal(false);
       if(owner!==_authUser?.id || token!==_authToken)return;
       const old=original.order;
-      const newPurchaseAllowed=!original.canary && old && (['failed','closed'].includes(old.payment_status) ||
+      const canaryFinished=old && ((['failed','closed'].includes(old.payment_status) && old.refund_status==='none') ||
+        (old.refund_status==='refunded' && old.refunded_fen===old.amount_fen && old.entitlement_status==='reversed'));
+      const newCanaryIdentity=typeof canary?.idempotency_key==='string' && canary.idempotency_key.length>0 && canary.idempotency_key!==original.key;
+      const newPurchaseAllowed=refreshed && old && (original.canary ?
+        canaryFinished && newCanaryIdentity : (['failed','closed'].includes(old.payment_status) ||
         (old.payment_status==='succeeded' && old.entitlement_status==='applied') ||
-        (old.refund_status==='refunded' && old.refunded_fen===old.amount_fen));
+        (old.refund_status==='refunded' && old.refunded_fen===old.amount_fen)));
       if(!newPurchaseAllowed){if(old)nativeRenderOrder(original);else showToast('原订单待核实，请勿重复下单');return;}
     }
     const value={user_id:_authUser.id,product_kind:kind,product_id:id,amount_fen:fen,
@@ -191,6 +195,7 @@ async function nativeRecoverOriginal(show) {
     value.order=order;nativeSaveStorage(value);if(value.user_id!==_authUser?.id || generation!==_nativeViewGeneration)return;
     const state=nativeOrderState(order);const el=document.getElementById('native-order-state');if(el)el.textContent=state.text;
     if(show || state.terminal){nativeRenderOrder(value);if(state.terminal)loadBillingPlan();}
+    return true;
   }catch(e){if(show && value.user_id===_authUser?.id)showToast(e.message||'订单读取失败');}
   finally{_nativeReadBusy=false;}
 }

@@ -18,5 +18,30 @@ const value=()=>({user_id:'owner-A',product_kind:'credit_package',product_id:'st
  {const {c,dialogs}=make();let release,catalogs=0;c.fetch=async(url)=>{if(url.endsWith('/payments/capabilities'))return await new Promise(r=>release=r);catalogs++;throw Error('unexpected subsequent fetch');};const pending=c.nativeStartCheckout('credit_package','starter');c.nativeClearSession();c._authUser={id:'owner-B'};c._authToken='synthetic-token-B';release(json({ordering_available:true,providers:['wechatpay_direct'],canary_checkout:null}));await pending;assert.equal(catalogs,0);assert.equal(dialogs.length,0);results.push('account-switch-during-capability-read-stops-preparation PASS');}
  {const {c,dialogs}=make();let release;c.fetch=async(url)=>url.endsWith('/payments/capabilities')?json({ordering_available:true,providers:['wechatpay_direct'],canary_checkout:null}):await new Promise(r=>release=r);const pending=c.nativeStartCheckout('credit_package','starter');while(!release)await Promise.resolve();c.nativeClearSession();c._authUser={id:'owner-B'};c._authToken='synthetic-token-B';release(json({topup_packages:[{id:'starter',name:'Synthetic starter',price_rmb:12}]}));await pending;assert.equal(dialogs.length,0);results.push('account-switch-during-catalog-read-stops-preparation PASS');}
  {const {c}=make();const qr=c.qrcode(0,'M');qr.addData('weixin://wxpay/bizpayurl?pr=SyntheticOnly','Byte');qr.make();assert.ok(qr.getModuleCount()>20);assert.equal(typeof qr.isDark(0,0),'boolean');results.push('local-vendor-synthetic-QR-matrix PASS');}
+ for(const scenario of ['refunded-new','closed-new','same-key','paid','pending','partial','unreversed','no-canary','empty-key','read-failed','read-busy']) {
+  const {c,storage,dialogs}=make();
+  const order={...base,payment_status:'succeeded',entitlement_status:'reversed',refund_status:'refunded',refunded_fen:1200};
+  if(scenario==='closed-new')Object.assign(order,{payment_status:'closed',entitlement_status:'pending',refund_status:'none',refunded_fen:0});
+  if(scenario==='paid')Object.assign(order,{entitlement_status:'applied',refund_status:'none',refunded_fen:0});
+  if(scenario==='pending')order.refund_status='pending';
+  if(scenario==='partial')order.refunded_fen=600;
+  if(scenario==='unreversed')order.entitlement_status='applied';
+  const original={...value(),attempted:true,order};c.nativeSaveStorage(original);
+  if(scenario==='read-busy')set(c,'_nativeReadBusy',true);
+  const canary={product_kind:'credit_package',product_id:'starter',amount_fen:1200,idempotency_key:scenario==='same-key'?original.key:scenario==='empty-key'?'':'synthetic-new-activation'};
+  let posts=0;
+  c.fetch=async(url,opt)=>{
+   if(opt?.method==='POST'){posts++;throw Error('no automatic submission');}
+   if(url.endsWith('/payments/capabilities'))return json({ordering_available:true,providers:['wechatpay_direct'],canary_checkout:scenario==='no-canary'?null:canary});
+   if(url.endsWith('/billing/tiers'))return json({topup_packages:[{id:'starter',name:'Synthetic starter',price_rmb:12}]});
+   if(url.endsWith('/payments/orders/'+base.id)){if(scenario==='read-failed')throw Error('unavailable');return json(order);}
+   throw Error('unexpected URL');
+  };
+  await c.nativeStartCheckout('credit_package','starter');
+  const allowed=['refunded-new','closed-new'].includes(scenario);
+  assert.equal(dialogs.filter(d=>d.title==='核对订单').length,allowed?1:0,scenario);
+  assert.equal(posts,0,scenario);assert.equal(JSON.parse(storage.get('noteai-native:owner-A')).key,original.key,scenario);
+  results.push('canary-original-'+scenario+' PASS');
+ }
  console.log(JSON.stringify(results,null,2));
 })().catch(e=>{console.error(e);process.exit(1);});

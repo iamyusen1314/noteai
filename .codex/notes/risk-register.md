@@ -1,3 +1,5 @@
+September15 callback fix9d builds and0029 are verified; oldsevenevent records and0018guard unchanged. NewPayment booted but no neworder: frontend terminalcanary lock identified and fixed locally with fresh-read/distinct-server-key checks. Emptycapture4fc safely closed; emptyjournal remains UNKNOWN, no acceptance credit. See Handoff top for exact revisions and remaining newscan/bills.
+
 September15 07:40BJT: new order81ab3757-2440-49b5-ad90-6a445ffbcac8 is PAID AND FULLY REFUNDED,
 not awaiting scan. Owner paid1200fen; wallet2894.5->2924.5->2894.5. Existing operator35097
 query-payment/submit-refund/query-refund each ranonce, each provider_operation_count1,

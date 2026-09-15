@@ -1,3 +1,36 @@
+September15 08:13BJT: Payment/canary source9d62f98 built on existing API-C resources,
+Python3.11.15 linux/amd64 and loaded source hashes verified. Payment image
+b1d4ac2d7c989244f50eb067360e933301e54980a2b24344a9241266be5de930;
+canary ab12191b69f49c5c6a564c67542207df8b96b1fa3d22ef0a95b7acdb08b3a8a1.
+Initial build made root0600 source unreadable to UID999; preserve failed image2fce7ce5
+and result. Corrected only source file mode0644, original code SHA unchanged, r2PASS.
+0029 f1dc5fd58fdc9774c8b4f9801a78319d4678b5042f8c765da608458d75cd55fd
+APPLIED once13ms; DMS08:05:20+08 independently confirms 7original events unchanged,
+canonical original-fields MD5 2f6034d8189ba1aae5a9c8f8548fd12c, allnewhashNULL,
+original0018guard MD5 ed20daea6f1c4aba949648f47563b30a unchanged; newguardpresent,
+Payment SELECT/INSERT true UPDATE false. Newcanary actual-role preflightPASS,
+0provider/0businesswrites. Private7rowbackup reconstructed and digestverified beforeDDL.
+DMS split END-semicolon formats were cancelled beforeexecute; exact SQL bytes carried
+inside existing singleDO format, wrapper7d4c8fd46493cec3ec8d7176b84e2a504fe4cfff27de9f50e33434ca6ad1677c.
+Newcapture4fc05d86-72f0-41ff-840b-8af1b937a401 did boot corrected Payment, APIb214 unchanged.
+Original helper missing sibling unit template failed BEFOREstarted/drain; oldrunner/log
+preserved under prestart-failure-missing-template, samebinding resumed only after oldPID
+exited/originalconfigs/workempty verified and exact originaltemplate d3ce53c1 copied.
+SuccessfulPID1856106 active1789430974; no neworder was submitted: prior terminalcanary
+in browser blocked nexttest. Closed same runner, services restored1789431118.1091993;
+emptyjournal remains UNKNOWN, not fabricated complete. Exact4fc removeSQLc8f5b357
+committed11ms; no runtime/oldpayment replay. Historical closed4feb/81ab stay unchanged.
+Frontend minimal repair now requires fresh successful original-order readback and
+server-provided distinct canary key, plus oldclosed/failed or fullrefund+reversedrights.
+Cachedterminal/readerror/readbusy/samekey/paid-unrefunded/partialrefund cannot unlock.
+21existing NativeUI casesPASS; no automaticPOST, oldkey retained until actualnewsubmit.
+Next web-only controlledrelease of assets/payment-native.js (API/Admin/models unchanged),
+then prepare newcapture against currentweb using alreadybuilt9d Payment/canary.
+Private results /Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98; host
+/var/lib/noteai/native-9d62f98. All failedbuild/prestart/emptycapture facts retained.
+Readiness31/37; Item34 untouched. Publicpaymentsclosed; no Gitpush. Stillneed actual
+newscan/natural duplicate success and original-order next-day reconciliation.
+
 September15 callback repair is LOCAL/TESTED, NOT_DEPLOYED: preserve raw notification
 hashes and separately bind the full RSA-verified/AES-decrypted WeChat resource plus
 event/provider/app/prod/business-time to a versioned semantic SHA. Fresh callbacks
