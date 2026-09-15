@@ -15,6 +15,9 @@ dispatch严格早于14:40的一次范围及必要恢复；真实终态满足后�
 带O_EXCL的started/child/done及0600日志；它不替代原executor唯一admission。
 断线只读原日志/结果/PID，不再次提交；退出0仍要四份真实Evidence通过原validator。
 本机私有包/入口/回执位于`/Users/openclaw/.codex/tmp/noteai-item32-prospective-20260915/`。
+本窗口唯一一次续执行`noteai-item32`已登记，调度器真实next_run为Sep15 14:00:00UTC；
+届时重新核时/原任务/日志/配额，满足才由同一入口启动一次。失窗或失败不自动改期。
+原旧窗口`noteai-5ce` Sep16 02:01:30UTC安排未变，二者不是两条对账。
 
 这是新窗口的执行范围与时间提案，不是可运行 JSON、生产调度或新 admission。
 本次只读核查基于工作树 HEAD `3eeb84a7edda7334c214c07bb735f6d0a3362bcc`；

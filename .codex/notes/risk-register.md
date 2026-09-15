@@ -5,7 +5,9 @@ late dispatch, automatic successor or duplicate bill. Owner explicitly rejects
 cost-warning interruption of normal service; former300/80–90% suggestions are
 superseded. Local Item33/36 compatibility work must reflect current sources,
 .com ingress and truthful unknown fees without inventing caps or quote expiry.
-No new resource yet; only original5ce old-window bill/recovery remains scheduled.
+No new resource yet; original5ce old-window bill/recovery remains unchanged.
+The current window alone has a one-time approved Item32 continuation atSep15
+14:00UTC, noteai-item32; actual scheduler time verified, no duplicate request.
 
 13:33UTC update: Item32 authorized source and unique logging wrapper are staged
 on API-F, hashes and pure source/plan validation verified; no supplier/DB/service

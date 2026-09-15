@@ -22,6 +22,14 @@ Item33及必要前置满足且确需实施后才创建，购前配置/报价一�
 原5ce旧窗口归属和实际prepare→最终恢复读回避让不变。范围内步骤不重复请求批准。
 
 ## 当前窗口前准备结果（September15 13:33UTC）
+- 已创建本窗口唯一一次Item32续执行 `noteai-item32`，名称“NoteAI Item32 已批准窗口唯一执行”，
+  target=`01a0a50d-985c-7140-9db2-3bde812717bd`。调度器只读确认
+  next_run_at=`1789480800000`，即 **September15 14:00:00UTC/22:00:00北京时间**；COUNT1，
+  ACTIVE、last_run_at=NULL、runs=[]。这是同一已批准Item32启动的本窗口续执行，不是另一轮请求。
+  结束/明确失败/失窗后删除该Item32续执行；不自动改期，不归档本窗口，不动原5ce。
+  原`noteai-5ce`同轮只读确认仍指向旧窗口、Sep16 02:01:30UTC、last_run_at=NULL/runs=[]。
+  现在停止的唯一原因是批准窗口尚未开始；到时沿上述唯一入口继续，非checkpoint自动停工。
+  本机和Codex须保持运行；官方行为依据 https://learn.chatgpt.com/docs/automations?surface=app 。
 - 批准记录commit `79e1e35ba7c25a6233fc3bb1891dc81d9a14e8aa`；Item32唯一包从该已提交
   来源生成，未混入同时进行的Item33/36本地修改。十文件/177406bytes，SHA
   `2d3e2d49c2f2e67d987544b885c6411bf12e71195fadff18db48c8a3e1b6c124`；本机原prospective
@@ -122,7 +130,7 @@ Item33及必要前置满足且确需实施后才创建，购前配置/报价一�
 | Item | 实际状态 | 依赖及下一动作 |
 |---|---|---|
 | 31 | blocked；原5ce支付/自然重复回调/全退完成 | Sep16读取原Sep15账单+独立capture及原terminal validator；由旧窗口唯一任务执行，无新订单/退款 |
-| 32 | blocked / PREPARED_NOT_EXECUTABLE | source3ebc9c5本地prospective绑定已完成/100离线PASS；Sep15 14:00–15:00UTC、dispatch<14:40窗口已获owner批准，等待窗口及fresh前置，旧Sep7不可运行 |
+| 32 | AUTHORIZED_AWAITING_WINDOW_AND_FRESH_PREFLIGHT；未terminal | 批准包79e1e35与唯一日志入口已在原F准备；本窗口noteai-item32 Sep15 14:00UTC续执行，dispatch<14:40；fresh0/34尚待实测，旧Sep7不可运行 |
 | 33 | unverified | 等真实Item32 terminal及internal rollback；再按原managed promotion执行，不套用Sep7/8历史时间 |
 | 36 | unverified | capacity100/Item34已具备，Item33尚缺；C/F私网候选及rollback已准备，最后ALB实测0；指定四项费用已获批准、等Item33及临执行前置，尚无资源创建 |
 | 37 | unverified | real AI、31、36满足后做原完整商业链联合验收；现Admin契约已同步 |
