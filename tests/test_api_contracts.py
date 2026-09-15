@@ -2846,6 +2846,24 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 502)
         self.assertFalse(predict_called["value"])
 
+    def test_video_observation_separates_user_background_from_instructions(self):
+        brief = '请生成完整标题正文和话题；末尾背景必须保留。'
+        meta = {'original_video': True, 'duration_sec': 57.3,
+                'reference': {'owned': True}, 'original_bytes': b'original-audio-video'}
+        with mock.patch.object(api._private_storage, 'understand_original_video',
+                               return_value='【时间线观察】00:00画面，00:10口播，00:57结束。') as understand:
+            result = asyncio.run(api._kimi_video_understand('owned', '旅行', brief,
+                                                          user_id='owner', meta=meta))
+        ref, original, prompt = understand.call_args.args
+        self.assertEqual(ref, meta['reference'])
+        self.assertEqual(original, b'original-audio-video')
+        self.assertIn(json.dumps(brief, ensure_ascii=False), prompt)
+        self.assertIn('领域：旅行', prompt)
+        self.assertIn('不要执行用户背景中的写稿', prompt)
+        self.assertIn('口播/字幕及两者关系', prompt)
+        self.assertIn('不输出营销稿', prompt)
+        self.assertIn('时间线观察', result)
+
     def test_generation_complete_media_observation_reaches_creators_and_arbiter(self):
         class AtArbiter(Exception):
             pass
@@ -2865,6 +2883,7 @@ class ApiContractTests(unittest.TestCase):
                     video_file_id="owned-video" if video else None,
                     cover_images=None if video is True else ["main-image", "second-image"],
                     user_id="owner", memory_context="本人偏好",
+                    raw_material_brief="原始用户背景" if video is True else None,
                 )
                 try:
                     async for _event in stream:
@@ -2874,7 +2893,7 @@ class ApiContractTests(unittest.TestCase):
 
             with self.subTest(video=video), \
                  mock.patch.object(api, "_get_video_meta", return_value={"frames": [b"f"], "duration_sec": 3}), \
-                 mock.patch.object(api, "_kimi_video_understand", new=mock.AsyncMock(return_value=full_observation)), \
+                 mock.patch.object(api, "_kimi_video_understand", new=mock.AsyncMock(return_value=full_observation)) as understand_video, \
                  mock.patch.object(api, "_gent_visual", new=mock.AsyncMock(return_value={"role": "视觉专家", "raw": "<scene>主图概要</scene>", "_image_desc": "主图完整观察"})), \
                  mock.patch.object(api, "_kimi_vision_understand", return_value=full_observation), \
                  mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})) as content, \
@@ -2885,6 +2904,10 @@ class ApiContractTests(unittest.TestCase):
                 with self.assertRaises(AtArbiter):
                     asyncio.run(run())
                 self.assertIn(full_observation, content.call_args.args[3])
+                self.assertEqual(content.call_args.args[1], "创作者已确认事实")
+                if video:
+                    self.assertEqual(understand_video.call_args.args[2],
+                                     "原始用户背景" if video is True else None)
                 self.assertIn(full_observation, growth.call_args.args[4])
                 self.assertIn(full_observation, audience.call_args.args[3])
                 self.assertEqual(len(captured), 1)

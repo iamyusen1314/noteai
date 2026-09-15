@@ -1,3 +1,42 @@
+September15 11:17BJT — complete video-note diagnosis is now persisted on live4870.
+Exact continuation join links diagnosis b71eadb6-2804-4734-bb81-cecfe7624277 to
+claim21c0ced8-381d-4e07-8208-732390bf94e7 and usagec1240226-df8b-4cfb-93fd-215deae2c4ff:
+completed, charge1/refund0,6credits once, one matchingpayload. Original title/body
+exactly equal savednote1603e580; separate cover/video retained, score_scope complete.
+Ark260428 audio tokens358 confirms fullvideo audio; usage36calls/304618in/31976out/
+recordedcostRMB4.6696338, ClaudeHaiku/Sonnet+Ark. Report48.1/best72.3 remains
+needs_confirmation; not declared quality fullypassed. Both brand/price omitted via
+same-task clarification, preserved original completedmedia and charge.
+
+Formal video-generation through realpublic UI submitted once11:02BJT, claim
+9cc76499-8b94-4b2c-bf25-2f62bc1e13f1/usage2461b1a8-c1fd-4df3-9f3b-743390b38632.
+Returned real73score/threeplans/body, but Ark observation had marketinginstructions
+from enrichedbrief and returned draft/firstperson claims. Preserve original result;
+no retry of thisidentity, no qualitypass. Fix rawusercontext vs Claudecreativebrief,
+strict time/source observation instructions; originalaudio pipeline unchanged.
+Also fixes stale previousdiagnosis header/deletehandler on newgeneration and explicit
+bodylength memory feedback. Combined with bdec8e7 screenshotdedup/source/negativefeedback.
+Local Python3.11networknone3pipeline+1resume+1memory and9pureJS checks PASS; independent
+readonlyreview found no lostenrichedClaudecontext or preparedmediareplay. No schema,
+coreindustryPrompt,modelroute,Admin orpayment change. Next API/public-only compatible
+successor rollout from4870, newbounded realgeneration to validate thisspecificfix,
+then optimize/history/cost and actualscreenshot sourceverification. Current31/37.
+
+Raw/private readback stays outsideGit in noteai-video-note-4870b4b. Initial diagnostics
+read attempted Adminrole without saved_diagnoses SELECT, then APIimage lacked newer
+Adminhelper; both readonlyfailures retained. Split existingAPIread/Admincostread
+succeeded without newGRANT. Fullhost result retained; Cloudassistant24KB output can
+truncate middle, use compact host-derived summary for finalcall counts, not clippedlist.
+
+September15 10:55BJT current delta: 4870API/Admin/web and additive0030 are deployed;
+do not reapply. Completevideo ownerUI task is in progress after same-task brand/price
+omission, media retained,6credits once. Separate formalvideo-generation stillrequired.
+Screenshot content-dedup/longtail/photoonlyoriginal separation + negativefeedbackmemory
+fixes are LOCAL successor, tested8JS+6Python3.11. Waitsafeoriginalresult, then minimal
+API/web rollout; Admin/runtime0030/sharedmodelrouting unchanged. Existing5cebill unique
+heartbeat noteai-5ce nextactualSep16 10:01:30BJT/02:01:30UTC, original7498f3 launcher,
+no neworder/pay/refund. Exact status/knownissues/versions at Handofftop.
+
 September15 10:34BJT — video-note/API/Admin/web4870b4b actually DEPLOYED.
 API imagea882e6c85030869d6bea167d42dc6102cf933eef6fe987d23060ee123cb878af;
 Adminb8acbc67f31c454b5739d1bd0e4dd3d05c97fc0c6d8b59c68742784c390e258b;
@@ -4164,11 +4203,3 @@ load-balancer health dependencies and must not be called by these probes.
 6. `PROD-XHS-ROLL-001` — separately bounded XHS process start and allowed
    database-write list while external collection stays suspended.
 7. ALB, TLS, DNS and public/real-provider smoke remain later approvals.
-September15 10:55BJT current delta: 4870API/Admin/web and additive0030 are deployed;
-do not reapply. Completevideo ownerUI task is in progress after same-task brand/price
-omission, media retained,6credits once. Separate formalvideo-generation stillrequired.
-Screenshot content-dedup/longtail/photoonlyoriginal separation + negativefeedbackmemory
-fixes are LOCAL successor, tested8JS+6Python3.11. Waitsafeoriginalresult, then minimal
-API/web rollout; Admin/runtime0030/sharedmodelrouting unchanged. Existing5cebill unique
-heartbeat noteai-5ce nextactualSep16 10:01:30BJT/02:01:30UTC, original7498f3 launcher,
-no neworder/pay/refund. Exact status/knownissues/versions at Handofftop.

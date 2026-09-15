@@ -27,6 +27,10 @@ class PromptBaselineTests(unittest.TestCase):
                          {'type':'rejection','pref_key':'title_style','pref_value':'陈述句标题'})
         self.assertEqual(api._detect_learning_signal('标题不错，但太长了'),
                          {'type':'rejection','pref_key':'title_length','pref_value':'更短标题'})
+        self.assertEqual(api._detect_learning_signal('正文太长了，标题不错'),
+                         {'type':'rejection','pref_key':'body_length','pref_value':'更短正文'})
+        self.assertEqual(api._detect_learning_signal('标题不错，但正文太短了'),
+                         {'type':'rejection','pref_key':'body_length','pref_value':'信息更完整的正文'})
         self.assertIsNone(api._detect_learning_signal('我不太满意'))
         self.assertEqual(api._detect_learning_signal('这版不错'), {'type':'approval'})
 

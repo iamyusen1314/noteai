@@ -3366,7 +3366,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div class="upload-flow-step" style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
           <div style="font-size:20px;margin-bottom:6px">📸</div>
           <div style="font-size:12px;font-weight:700;color:var(--holo-mid);margin-bottom:4px">① 上传素材</div>
-          <div style="font-size:11px;color:var(--text-muted)">照片 / 截图</div>
+          <div style="font-size:11px;color:var(--text-muted)">照片 / 截图 / 视频</div>
         </div>
         <div class="upload-flow-step" style="background:rgba(123,97,255,0.06);border:1px solid rgba(123,97,255,0.15);border-radius:var(--r-md);padding:14px 16px;text-align:center">
           <div style="font-size:20px;margin-bottom:6px">🤖</div>
@@ -3484,7 +3484,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
                     onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">移除</button>
                 </div>
                 <div style="margin-top:8px;padding:8px 10px;background:rgba(255,149,0,0.08);border-radius:8px;font-size:11px;color:#ff9500;font-weight:500">
-                  ✓ 视频已上传，AI 将在生成时深度解读画面内容
+                  ✓ 视频已上传，AI 将在生成时结合画面与原音轨理解素材
                 </div>
               </div>
             </div>
@@ -5815,7 +5815,7 @@ function switchMode(mode) {
     if (sub)   sub.textContent   = '上传截图 / 填写完整图文或视频笔记，5 位 AI 专家从 124 维复合质量特征找出问题并给出改写方案';
   } else {
     if (title) title.textContent = 'AI 生成爆文';
-    if (sub)   sub.textContent   = '上传素材照片，AI 逆推爆文特征，直接输出可发布的标题、正文和话题标签';
+    if (sub)   sub.textContent   = '上传照片、视频或填写简报，结合真实素材生成标题、正文和话题；待确认内容会明确提示';
   }
   // 同步全局状态
   _isGenerateMode = !isDiag;
@@ -6345,7 +6345,7 @@ async function startGeneration() {
     }
   })();
 
-  showToast(`🪄 已发起生成（${coverImages.length} 张图），正在跳转…`);
+  showToast(`🪄 已发起生成（${coverImages.length} 张图${videoRef ? '＋视频音画' : ''}），正在跳转…`);
   setTimeout(() => { if (identityMatches() && _genStreamActive) showPage('live'); }, 800);
 }
 
@@ -7497,6 +7497,7 @@ function copyText(elId) {
 
 /* ── Generation report populate ─────────────────────────────── */
 async function populateGenerateReport() {
+  renderGenerationHeader(_generateResult);
   // 立即切换视图：隐藏诊断Demo，显示生成区块（含loading状态）
   const diagBody = document.getElementById('diagReportBody');
   const genBody  = document.getElementById('genReportBody');
@@ -7511,6 +7512,7 @@ async function populateGenerateReport() {
 
   if (_diagnosePromise) await _diagnosePromise;
   const d = _generateResult;
+  renderGenerationHeader(d);
   const saveNotice = document.getElementById('generationSaveNotice');
   if (saveNotice) {
     saveNotice.textContent = d?._save_message || '';
@@ -11142,6 +11144,16 @@ function renderDiagnosisHeader(data) {
   document.getElementById('detail-note-title').textContent=data.note_title || data._inputTitle || '本次诊断';
   const score=data.composite_score ?? data.ces_percentile;
   document.getElementById('detail-meta').textContent=(data._domain || data.domain || '')+(data.input_diagnostics?.score_scope === 'partial_input' ? ' · 素材分析（输入不完整）' : ' · 综合 '+(Number.isFinite(score)?score.toFixed(1):'未取得'))+' · '+_fmtLocalTime(data.created_at);
+}
+
+function renderGenerationHeader(data) {
+  _currentDiagId = null;
+  document.getElementById('detail-note-title').textContent = data?.note_title || '本次生成';
+  const score = data?.ces_percentile;
+  document.getElementById('detail-meta').textContent = (data?._domain || data?.domain || '')
+    + ' · 视频或图文素材生成' + (Number.isFinite(score) ? ' · 项目评分 ' + score.toFixed(1) : '');
+  const delBtn = document.getElementById('detail-delete-btn');
+  if (delBtn) { delBtn.onclick = null; delBtn.style.display = 'none'; }
 }
 
 async function openDiagDetail(diagId) {

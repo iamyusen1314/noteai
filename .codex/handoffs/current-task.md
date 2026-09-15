@@ -1,3 +1,33 @@
+September15 11:17BJT — complete video-note diagnosis is now persisted on live4870.
+Exact continuation join links diagnosis b71eadb6-2804-4734-bb81-cecfe7624277 to
+claim21c0ced8-381d-4e07-8208-732390bf94e7 and usagec1240226-df8b-4cfb-93fd-215deae2c4ff:
+completed, charge1/refund0,6credits once, one matchingpayload. Original title/body
+exactly equal savednote1603e580; separate cover/video retained, score_scope complete.
+Ark260428 audio tokens358 confirms fullvideo audio; usage36calls/304618in/31976out/
+recordedcostRMB4.6696338, ClaudeHaiku/Sonnet+Ark. Report48.1/best72.3 remains
+needs_confirmation; not declared quality fullypassed. Both brand/price omitted via
+same-task clarification, preserved original completedmedia and charge.
+
+Formal video-generation through realpublic UI submitted once11:02BJT, claim
+9cc76499-8b94-4b2c-bf25-2f62bc1e13f1/usage2461b1a8-c1fd-4df3-9f3b-743390b38632.
+Returned real73score/threeplans/body, but Ark observation had marketinginstructions
+from enrichedbrief and returned draft/firstperson claims. Preserve original result;
+no retry of thisidentity, no qualitypass. Fix rawusercontext vs Claudecreativebrief,
+strict time/source observation instructions; originalaudio pipeline unchanged.
+Also fixes stale previousdiagnosis header/deletehandler on newgeneration and explicit
+bodylength memory feedback. Combined with bdec8e7 screenshotdedup/source/negativefeedback.
+Local Python3.11networknone3pipeline+1resume+1memory and9pureJS checks PASS; independent
+readonlyreview found no lostenrichedClaudecontext or preparedmediareplay. No schema,
+coreindustryPrompt,modelroute,Admin orpayment change. Next API/public-only compatible
+successor rollout from4870, newbounded realgeneration to validate thisspecificfix,
+then optimize/history/cost and actualscreenshot sourceverification. Current31/37.
+
+Raw/private readback stays outsideGit in noteai-video-note-4870b4b. Initial diagnostics
+read attempted Adminrole without saved_diagnoses SELECT, then APIimage lacked newer
+Adminhelper; both readonlyfailures retained. Split existingAPIread/Admincostread
+succeeded without newGRANT. Fullhost result retained; Cloudassistant24KB output can
+truncate middle, use compact host-derived summary for finalcall counts, not clippedlist.
+
 September15 10:55BJT continuation — 4870 remains live; original complete-video diagnosis
 submitted ONCE through public owner UI (title/body/independent5s-frame cover/57.3s full
 originalaudio/video, domain旅行, keepcover+interaction). Current owner balance2894.5→

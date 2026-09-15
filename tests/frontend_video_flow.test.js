@@ -88,6 +88,19 @@ test('diagnosis chat keeps complete video and independent cover observations',()
   assert.ok(source('startChatFromDiagnosis').includes('cover_analysis:   diagnosisMediaContext(_diagnoseResult)'));
 });
 
+test('new generation clears old diagnosis title and destructive target',()=>{
+  const elements={'detail-note-title':{textContent:'旧诊断'},'detail-meta':{textContent:'综合 48.1'},
+    'detail-delete-btn':{onclick:()=>{throw Error('old deletion');},style:{display:'block'}}};
+  const c=context({_currentDiagId:'old-diagnosis',document:{getElementById:id=>elements[id]}});
+  c.load('renderGenerationHeader');
+  c.renderGenerationHeader({note_title:'本次生成标题',_domain:'旅行',ces_percentile:73});
+  assert.equal(c._currentDiagId,null);assert.equal(elements['detail-note-title'].textContent,'本次生成标题');
+  assert.ok(elements['detail-meta'].textContent.includes('73.0'));
+  assert.equal(elements['detail-delete-btn'].onclick,null);assert.equal(elements['detail-delete-btn'].style.display,'none');
+  c.renderGenerationHeader(null);assert.equal(elements['detail-note-title'].textContent,'本次生成');
+  assert.ok(!elements['detail-meta'].textContent.includes('73'));
+});
+
 test('duplicate screenshot selections preserve one recognition and completed aggregate',async()=>{
   let calls=0, invalidations=0;
   const c=context({_ssFileSelectionRevision:0,_ssOcrRevision:1,_ssImages:[],_ssOcrCache:new Map(),
