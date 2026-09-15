@@ -1,4 +1,17 @@
-September15 owner closes this batch: current execution ownership, verified deployment, remaining six Items and the sole original noteai-5ce bill schedule are consolidated at `.codex/handoffs/current-task.md` → CURRENT EXECUTION CONTROL. Old window stops ordinary development/tests/deployments; only that already scheduled bill/recovery remains. No new feature, provider request, migration, cloud purchase or duplicate automation for handoff. Older dated instructions below are historical where they conflict.
+September15 new-window takeover: owner explicitly resumes ordinary engineering and existing scoped authorizations in the original worktree. Actual takeover HEAD3eeb84a/ahead242; the original public origin remains unchanged. Recovery/synchronization, a prospective Item32 scope and complete Item36 pricing proceed independently. The old window alone retains noteai-5ce; shared runtime/schema/ACL changes must not overlap its actual prepare through confirmed close/final-readback. Item32 still needs its new named production window authorization; Item36 recurring resources need a separate cost decision. Current ownership, evidence and remaining six Items are at `.codex/handoffs/current-task.md` → CURRENT EXECUTION CONTROL. Older dated instructions below are historical where they conflict.
+
+Current concrete proposals: `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md` specifies
+the proposed September15 14:00–15:00UTC window, dispatch before14:40, fresh0/34,
+34 maximum admissions, zero retry, read-only DB probes and original-result recovery.
+Authorization remains pending; expired Sep7 files/identities stay sealed. Existing
+executor/terminal prospective binding is being prepared locally with fail-closed pending authorization.
+`docs/ITEM36_CURRENT_COST_PROPOSAL_20260915.md` now covers ALB/LCU/twoEIPs/CDT/VAT,
+720/744h scenarios, existing-public-ingress relationship and restoration scope.
+Current744h/average2LCU/100GB is CNY265.26, not a fixed bill or spending ceiling.
+Recurring-cost approval remains pending; no resources created. Git3eeb84a recovery
+is saved locally, on ORICO and in a dedicated private repository with Actions
+disabled; models are in a separate verified allowlist archive, private runtime
+results remain at original locations. Exact manifests and limits at Handoff top.
 
 September15 — Item32 current recovery preparation saved at source1be2fde:
 /Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-1be2fde.tar.gz

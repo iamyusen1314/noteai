@@ -2,6 +2,15 @@
 
 ## Current execution control
 
+September15 new-window owner explicitly resumes ordinary engineering and existing
+scoped authorizations in this same worktree. The old-window stop below applies only
+to that old window. New-window work owns recovery/synchronization, a prospective
+Item32 proposal and complete Item36 pricing; no old Sep7 dispatch or new recurring
+resource is authorized by preparation alone. The original noteai-5ce task remains
+owned by thread01a079a4-1c05-7d21-a98a-2d418cdd20c9. Avoid shared runtime/schema/ACL
+changes only during its actual prepare through confirmed close/final-readback.
+Current evidence, ownership and exact external decisions remain at Handoff top.
+
 September15 owner closes this batch for a new-window handoff. This old thread stops
 ordinary development/builds/tests; retain only read access and existing noteai-5ce
 bill follow-up on September16. Do not duplicate or immediately run it. Current

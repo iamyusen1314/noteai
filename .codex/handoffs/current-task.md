@@ -1,15 +1,19 @@
-# CURRENT EXECUTION CONTROL — September15 owner closes this batch
+# CURRENT EXECUTION CONTROL — September15 new window takes over closeout
 
-本入口替代下面历史段落的“立即继续普通开发”调度。旧窗口停止普通开发、构建和新测试；
-只保留查阅及原 `noteai-5ce` 对账续执行。新窗口未创建，不声称已移交或新建任务。
-新窗口接管原工作树、既有授权及下列精确剩余项，不重跑历史37项或已完成业务。
+本窗口收到owner明确接管指令，承接原工作树、既有普通工程授权及下列精确剩余项。
+旧窗口停止普通开发、构建和新测试，只保留查阅及原 `noteai-5ce` 对账续执行；
+该限制不是新窗口的全局暂停。历史已完成业务不重跑；本轮先推进私有恢复/受控同步、
+Item32新的prospective计划和Item36完整费用方案。新生产请求及新增长期费用按下面具名边界决定。
+新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
 ## 恢复基线与部署
 - 唯一 worktree `/Users/openclaw/Desktop/noteai`；分支 `codex/quality-stabilization-real-chain`。
-  接管核查HEAD `c0d51af2f14e2ef633387e50a4ac21bffdfde555`；本次仅文档恢复commit为其后继，
-  新窗口使用真实HEAD，不回退。远端和upstream `origin/codex/quality-stabilization-real-chain`
+  新窗口实际接管HEAD `3eeb84a7edda7334c214c07bb735f6d0a3362bcc`，领先242/落后0；
+  无tracked修改，只有下列七条受保护untracked。使用真实后继，不回退。
+  远端和upstream `origin/codex/quality-stabilization-real-chain`
   均只读核实为 `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29`，核查时领先241/落后0；
-  文档commit后领先242。未push；本轮未检查并批准累计提交的部署触发，因此不批量推送。
+  文档commit后领先242。新窗口fresh GitHub只读确认origin为PUBLIC，不能作为私有恢复目的地。
+  原分支push与现有PR会触发CI，Render完整远端部署绑定仍未fresh核清；不盲推公开origin。
 - 交接读回 OBSERVED_AT：2026-09-15T14:27:15.828293+08:00。API `f070ed6` image
   `6733bb5fe842502204cebb480ac8a51461ef5d5c05961754decc17428e5b8be0`；
   public `/var/www/noteai-public/0590286`；Admin运行源码/网页均 `4870b4b`。
@@ -23,6 +27,28 @@
   `.codex/item26-source-manifest-executor.sh`；`.codex/item26-source-manifest-readback.sh`；
   `.codex/item26-source-manifest-recovery-executor.sh`；
   `tests/test_stage_item26_manual_cost_stop_helper_v2.py`；`tools/stage_item26_manual_cost_stop_helper_v2.py`。
+
+## 新窗口恢复与同步（September15）
+- 交接3eeb84a完整分支Git bundle已创建并独立bare restore/HEAD/fsck通过：
+  `/Users/openclaw/.codex/backups/noteai/20260915-takeover-3eeb84a/noteai-3eeb84a.bundle`，
+  13,010,310 bytes，SHA256 `48d35298ab79e60acae76374b35f05f249e411eee82a9297fd5f5431aaf33ae4`。
+  相同字节已存独立物理卷 `/Volumes/ORICO/NoteAI-Private-Recovery/20260915-takeover-3eeb84a/`；
+  从异盘bundle恢复至本机APFS的HEAD/fsck通过。直接在ORICO解包会产生AppleDouble `._`
+  文件并导致Git fsck失败；失败目录保留，恢复应从bundle到兼容文件系统，不用该解包目录。
+- 专用私有恢复仓库 `https://github.com/iamyusen1314/noteai-private-recovery-20260915`
+  已建为PRIVATE，push前Actions disabled、hooks0，只推指定分支3eeb84a，未配置部署连接。
+  使用GIT_LFS_SKIP_PUSH=1，不推其它refs或LFS实字节；原公开origin及其upstream不变。
+  原CI对codex/** push及现有PR触发，Render五服务Blueprint checksPass且远端实际绑定部分未知；
+  不将hooks0等同所有集成已排除。当前以私有副本完成恢复性同步，公开发布推送另核部署绑定。
+- 七保护路径在当前分支可达历史出现次数均0。242增量1428个Git blob的四类高置信Secret模式
+  扫描只命中两版测试用不完整PEM标记（正文4字符，非实际密钥）；不是完整安全审计或绝对无Secret保证。
+- 三个生产V0.4模型实字节、train report和原manifest单独allowlist归档，同目录
+  `noteai-v04-model-assets.tar.gz`；488,059 bytes，SHA256
+  `c5834013d065091d7f5f9ed22d20bf37070aa39d03a6ef12764778bb0dfb1677`。
+  三模型及report逐项SHA匹配，异盘同字节；Git bundle/私有Git只含模型和历史素材的LFS指针。
+- 私有运行结果：索引中8个精确本机文件存在、均0600，当前Item36目录0700；只核对元数据。
+  它们仍在原本机/host路径，host与OSS本轮未fresh读回；没有把这些文件、用户素材、Secret或生产DB
+  装入Git/模型包，不能将此次源码恢复声称为完整生产灾备。恢复manifest/扫描摘要/元数据索引在上述本机backup目录。
 
 ## 已交付能力与实际验证边界
 原官网/OTP账户/owner Admin继续可用；完整视频笔记共用标题、正文、独立封面、行业及约束。
@@ -40,9 +66,9 @@
 | Item | 实际状态 | 依赖及下一动作 |
 |---|---|---|
 | 31 | blocked；原5ce支付/自然重复回调/全退完成 | Sep16读取原Sep15账单+独立capture及原terminal validator；由旧窗口唯一任务执行，无新订单/退款 |
-| 32 | blocked / PREPARED_NOT_EXECUTABLE | source1be2fde三overlay/terminal对齐、90项原离线PASS；旧Sep7窗口封存过期。需新生产授权与未来prospective plan，不能运行旧包 |
+| 32 | blocked / PREPARED_NOT_EXECUTABLE | source1be2fde旧准备保持；新窗口提案Sep15 14:00–15:00UTC、dispatch<14:40，具名授权待owner；prospective本地绑定准备进行中，旧Sep7不可运行 |
 | 33 | unverified | 等真实Item32 terminal及internal rollback；再按原managed promotion执行，不套用Sep7/8历史时间 |
-| 36 | unverified | capacity100/Item34已具备，Item33尚缺；现C/F私网候选及rollback已准备，ALB实测0；持续费用决定后补精确SG/TLS/listener实施 |
+| 36 | unverified | capacity100/Item34已具备，Item33尚缺；C/F私网候选及rollback已准备，最后ALB实测0；新四项含税报价已齐、长期费用待owner，尚无资源创建 |
 | 37 | unverified | real AI、31、36满足后做原完整商业链联合验收；现Admin契约已同步 |
 | 38 | unverified | 依赖37的accepted ingress/ramp；官网/API/Admin已公开不等于该终态，不重复DNS切换 |
 
@@ -63,14 +89,23 @@ S3独立存模型资产，CF管理table/role，不是Bedrock。Gateway60168e1及
 微信首发，支付宝DEFERRED/DISABLED；Item35内部专业签署门禁取消，实际外部条件/用户隐私仍遵守。
 
 已有授权覆盖既定产品修复/必要回归/既有资源受控发布恢复、owner测试权益与正常模型费用、
-本次原单对账和清理；交接期间仅执行后者。新增长期资源/订阅/充值/合同/越界权限不在费用授权内。
+本次原单对账和清理；新窗口已恢复普通工程执行。新增长期资源/订阅/充值/合同/越界权限不在费用授权内。
 - Item32待决定：是否授权唯一新只读Trends successor，新的明确UTC窗口，fresh used0/remaining34，
   一轮最多34 provider admissions/UTC桶、0自动重试、既有合法身份、隔离结果与DB零写证明/安全清理。
-  旧两身份/旧Sep7 plan不可重放；本次交接不创建新身份、不指定未经批准的运行日期。
+  已提出2026-09-15 14:00–15:00UTC（北京时间22–23），dispatch严格早于14:40；这只是候选窗口，
+  尚未获批准，fresh配额尚未生产实测。完整请求/费用/前置/UNKNOWN恢复见
+  `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md`，已一次性向owner请求完整范围确认。
+  旧两身份/旧Sep7 plan不可重放；未创建新运行身份、admission或生产调用，失窗不自动改期。
 - Item36待决定：是否启用原VPC双区公网标准ALB＋双EIP的持续计费方案及相应费用范围。
-  Sep15报价只有ALB0.125元/小时＋0.042元/LCU；EIP/流量另计，非完整报价/费用上限。
-  新窗口需在购买前取得最终完整报价与owner长期费用决定，不将模型测试费用授权挪用。
+  新窗口Sep15约12:36UTC同账户报价：ALB0.125元/h、LCU0.042元/LCUh、双EIP2×0.020元/h，
+  CDT大陆出流量分档0.80/0.75/0.70/0.65元/GB，中国站含增值税；折扣以下单页且无锁价期。
+  744h固定保有122.76；平均2LCU+100GB情景265.26，非固定月费/上限。
+  完整组成/720与744情景/旧入口关系/恢复建议见`docs/ITEM36_CURRENT_COST_PROPOSAL_20260915.md`。
+  已单独请求owner决定当前单价/300元月度管理预算（非账单硬上限）及恢复范围，尚未批准/创建。
+  不挪用模型测试费用，不在Item32/33依赖未关闭时空置新资源计费。
 - 高德待外部办理：适用企业认证/技术服务许可；保留现有Key/历史成功，不猜故障、不自动购买年费。
+  现个人认证/无许可已在原页只读核实；认证`https://console.amap.com/dev/user/permission`，
+  许可`https://lbs.amap.com/upgrade#business`；详情及工单入口见Item36方案，不阻断无关工作。
 
 ## 唯一微信续执行与窗口归属
 `noteai-5ce` / “NoteAI 原5ce订单次日账单核对” / ACTIVE / heartbeat；
@@ -92,7 +127,9 @@ STAGED_NOT_PREPARED；未来结果root `/var/lib/noteai/native-9d62f98/bill-2026
 旧Sep14账单另在 `/var/lib/noteai/native-80b01ea/bill-20260914/final-readback.json`，
 其最终清理证据已具备；不要只看较早closed.json里的COLLECTOR_REMOVAL_PENDING而重跑清理。
 
-当前尚无新窗口ID，保留原任务，不尝试搬迁/复制。旧窗口只拥有这次账单执行、恢复及必要结果文档commit；
+本窗口已接管，保留原任务，不尝试搬迁/复制。已通过read_thread读到原线程idle，
+通过automation view及本机配置核对原noteai-5ce为ACTIVE且仍绑定原thread，未运行/修改调度。
+旧窗口只拥有这次账单执行、恢复及必要结果文档commit；
 新窗口拥有后续普通工程，先通过read_thread读取上述旧thread和原结果，再接收共享Handoff的结果。
 从原prepare开始到close/final-readback确认期间，新窗口不得并发切API/Admin/Payment/public web/nginx、数据库schema/ACL
 或修改其绑定文件；无需新锁/新receipt。原结果封存后旧窗口删除该唯一自动化并报告，普通开发继续停止。
