@@ -1,3 +1,25 @@
+September15 — independentItem32 localruntime binding candidate implemented in existing
+executor: fixedcurrent adapter/security_redaction/hot_keywords SHA; threeROfile mounts
+plus onlytaskstoreRW. Frozenimagehashcheck separate from effectiveoverlayimport/hash.
+Metadata/content checks precede Secret/env/container creation. Fourteen executor tests
+and9offlineflowmocksPASS; simulatedlogs are NOTreal calls. OriginalSep7plan/HOLD/window
+unchanged; oldplan continuesrejected, no successor/identity/admission/provider action.
+Runtime candidate/package remains PREPARED_NOT_EXECUTABLE until prospective canonical
+plan+terminalbinding+realwindow authorization align. No new gate/validator added.
+
+059flatten initialcheckfailed beforeexport because ArgsEscaped true was wronglyrejected;
+corrected launcher preserves/fullcompares thatflag and extensionattributes; original
+failure retained, no deploymentyet. OriginalliveAPI11718/web5991/Admin4870 unchanged.
+
+September15 — 059 buildFAILED at secondCOPY: Docker maxdepthexceeded,
+base11718 has124layers/1,137,072,769bytes; existinghostfree21,814,145,024bytes.
+No059deployment occurred, liveAPI11718/web5991 unchanged. Originalbuild-result/log
+retained. Localflatten-build.py uses neverstarted networknone image-only containers,
+no runtimecredentials; restores fullDockerConfig and comparesrootfilesystem bytes,
+ownership/modes before repaired candidate. Failedbuild retained; build-repaired only
+after successfulparity; no dependencyinstall/newresource. Next dispatchonce and read
+originalflatten/build outcomes, not blindretry. Private rootnoteai-video-note-0590286.
+
 September15 — successor05902868bb66be6763bd991c15bd9a852eecfbdc uploadedonce,
 BUILD_DISPATCHED PID1894518. Local/privatehostroot noteai-video-note-0590286;
 stageSHA17a37963f9f392371eb6bfab8f7f12925283b604a5f7346454569b39d9692c22,
@@ -250,7 +272,7 @@ Current authorized task comparison (history preserved, no old replay):
 | Original user memory | Actualnegative/mixed Chat did not save falseapproval; contextlinkedtochildnote; cd91 | Preserve taskfacts/source, verify affectedrepair after rollout |
 | Fact clarification | Free answer/omit/resume/correction proof exists | Keep same completedmedia/charge, regression with new complete input |
 | Item31 Native-first | Paid/fullrefund/naturalcallback5ce passed; oldSep14 billmatched | Same5ce billSep16 + separatejournal + existingterminalvalidator |
-| Item32 | Oldidentitiessealed; successornotexecuted, oldSep7windowexpired | Current-source successor prep only; no oldpackage execution |
+| Item32 | Oldidentitiessealed; current three-file runtime overlay prepared/offline23checks | Future canonical bindings/window required; no live successor or oldpackage execution |
 | Item33 | No qualifying Trends terminalcycle | True successor/managedcycle dependency; not globalblock |
 | Item34 | generation2 COMPLETE, originalautomationdeleted | Preservefixedartifacts/evidence; no replay |
 | Item35 | NOT_REQUIRED/withdrawn | Historicalunsignedfacts unchanged, no score |

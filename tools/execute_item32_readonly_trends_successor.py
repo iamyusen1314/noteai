@@ -111,6 +111,11 @@ IMAGE_SOURCE_CONTAINER_PATHS = {
 }
 ADAPTER_SOURCE_REF = "model/spider_xhs_http.py"
 ADAPTER_CONTAINER_PATH = "/app/model/spider_xhs_http.py"
+# Current-source preparation only: frozen canonical plan/window must be rebound
+# explicitly before execution. The original image hashes remain distinct.
+RUNTIME_OVERLAY_SHA256 = {'model/spider_xhs_http.py': '360a43f781e55e2c529387e70ef7be3b5f47a716bf6ede56d3daaaefa9b6bea1', 'model/security_redaction.py': 'c5fc02966035a01012a1a35b7005f3a62a72602c042e98dbad707029ca56f451', 'model/hot_keywords.py': '77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d'}
+RUNTIME_OVERLAY_CONTAINER_PATHS = {name: "/app/" + name for name in RUNTIME_OVERLAY_SHA256}
+
 SIGNER_ASSET_CONTAINER_PATH = "/app/model/vendor/spider_xhs/xhs_main_260411.js"
 EXPECTED_SIGNER_ASSET_SHA256 = (
     "723dc6ef64836b0998aa4ba85796e2ffd99bfb20f222d69adcbcf66ea589292d"
@@ -990,11 +995,28 @@ def _assert_adapter_source(path: Path) -> None:
         raise Item32Error("adapter_source_metadata")
 
 
+def _runtime_overlay_paths(adapter_path: Path) -> dict[str, Path]:
+    return {name: adapter_path if name == ADAPTER_SOURCE_REF else adapter_path.parent / Path(name).name
+            for name in RUNTIME_OVERLAY_SHA256}
+
+
+def _assert_runtime_overlay_sources(adapter_path: Path) -> None:
+    for name, path in _runtime_overlay_paths(adapter_path).items():
+        _assert_adapter_source(path)
+        if _sha256_bytes(path.read_bytes()) != RUNTIME_OVERLAY_SHA256[name]:
+            raise Item32Error("runtime_overlay_source_binding")
+
+
+def _runtime_overlay_mounts(adapter_path: Path) -> list[str]:
+    return [arg for name, path in _runtime_overlay_paths(adapter_path).items()
+            for arg in ("--mount", f"type=bind,src={path},dst={RUNTIME_OVERLAY_CONTAINER_PATHS[name]},readonly")]
+
+
 def _preflight_host(
     plan: dict[str, Any], adapter_path: Path
 ) -> dict[str, Any]:
     _validated_export_account()
-    _assert_adapter_source(adapter_path)
+    _assert_runtime_overlay_sources(adapter_path)
     if _sha256_bytes(adapter_path.read_bytes()) != plan["adapter_overlay_sha256"]:
         raise Item32Error("adapter_source_binding")
     fragment = _run(
@@ -1033,7 +1055,6 @@ def _preflight_host(
         raise Item32Error("image_binding")
     paths = [
         *IMAGE_SOURCE_CONTAINER_PATHS.values(),
-        ADAPTER_CONTAINER_PATH,
         SIGNER_ASSET_CONTAINER_PATH,
     ]
     source_check_name = f"noteai-item32-source-{uuid.uuid4().hex[:12]}"
@@ -1055,11 +1076,6 @@ def _preflight_host(
                 "--pids-limit=32",
                 "--memory=128m",
                 "--cpus=0.25",
-                "--mount",
-                (
-                    f"type=bind,src={adapter_path},"
-                    f"dst={ADAPTER_CONTAINER_PATH},readonly"
-                ),
                 "--entrypoint=sha256sum",
                 IMAGE,
                 *paths,
@@ -1078,15 +1094,18 @@ def _preflight_host(
         ):
             raise Item32Error("image_source_binding")
     if (
-        actual.get(ADAPTER_CONTAINER_PATH) != plan["adapter_overlay_sha256"]
-        or actual.get(SIGNER_ASSET_CONTAINER_PATH)
+        actual.get(SIGNER_ASSET_CONTAINER_PATH)
         != EXPECTED_SIGNER_ASSET_SHA256
     ):
         raise Item32Error("browser_source_binding")
 
     browser_check_name = f"noteai-item32-browser-{uuid.uuid4().hex[:12]}"
     browser_check = (
-        "import hashlib,json,spider_xhs_http as x;"
+        "import hashlib,json,pathlib,spider_xhs_http as x,hot_keywords;"
+        "from security_redaction import sanitize_xhs_response_diagnostics,xhs_response_diagnostics;"
+        "expected=" + repr(RUNTIME_OVERLAY_SHA256) + ";"
+        "actual={n:hashlib.sha256(pathlib.Path('/app',n).read_bytes()).hexdigest() for n in expected};"
+        "assert actual==expected;"
         "p=x.VENDOR_DIR/'xhs_main_260411.js';"
         "u=x.BROWSER_USER_AGENT;"
         "print(json.dumps({'ua_sha256':hashlib.sha256(u.encode()).hexdigest(),"
@@ -1111,11 +1130,7 @@ def _preflight_host(
                 "--pids-limit=32",
                 "--memory=128m",
                 "--cpus=0.25",
-                "--mount",
-                (
-                    f"type=bind,src={adapter_path},"
-                    f"dst={ADAPTER_CONTAINER_PATH},readonly"
-                ),
+                *_runtime_overlay_mounts(adapter_path),
                 "--workdir=/app/model",
                 "--entrypoint=python",
                 IMAGE,
@@ -1143,6 +1158,7 @@ def _preflight_host(
         "registry_manifest_sha256": EXPECTED_MANIFEST_SHA256,
         "registry_manifest_provenance": plan["registry_manifest_provenance"],
         "adapter_overlay_sha256": plan["adapter_overlay_sha256"],
+        "runtime_overlay_sha256": dict(RUNTIME_OVERLAY_SHA256),
         "user_agent_sha256": plan["browser_binding"]["user_agent_sha256"],
         "signer_asset_sha256": EXPECTED_SIGNER_ASSET_SHA256,
         "user_agent_exact_match": True,
@@ -1261,6 +1277,7 @@ def _create_collection_container(
     adapter_path: Path,
     container_registry: dict[str, str],
 ) -> tuple[str, str, Path]:
+    _assert_runtime_overlay_sources(adapter_path)
     task_dir = run_dir / "task-store"
     task_dir.mkdir(mode=0o700)
     os.chown(task_dir, 999, 999)
@@ -1306,11 +1323,7 @@ def _create_collection_container(
         "--env=NOTEAI_MARKET_TIMING_SNAPSHOT_PATH=/task/snapshot.json",
         "--mount",
         f"type=bind,src={task_dir},dst=/task",
-        "--mount",
-        (
-            f"type=bind,src={adapter_path},"
-            f"dst={ADAPTER_CONTAINER_PATH},readonly"
-        ),
+        *_runtime_overlay_mounts(adapter_path),
         "--workdir=/app/model",
         IMAGE,
         "python",
@@ -1338,14 +1351,15 @@ def _create_collection_container(
             or environment.get("NOTEAI_SQLITE_PATH") != "/task/noteai.db"
             or environment.get("NOTEAI_HOT_KEYWORD_DB_PATH")
             != "/task/hot_keywords.db"
-            or len(mounts) != 2
+            or len(mounts) != 1 + len(RUNTIME_OVERLAY_SHA256)
             or {
                 (mount.get("Destination"), mount.get("Source"), mount.get("RW"))
                 for mount in mounts
             }
             != {
                 ("/task", str(task_dir), True),
-                (ADAPTER_CONTAINER_PATH, str(adapter_path), False),
+                *((RUNTIME_OVERLAY_CONTAINER_PATHS[name], str(path), False)
+                  for name, path in _runtime_overlay_paths(adapter_path).items()),
             }
             or any(
                 mount.get("Destination") == "/var/run/docker.sock"

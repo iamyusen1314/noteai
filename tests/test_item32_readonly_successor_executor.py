@@ -127,14 +127,15 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                 execution_finished_at="2026-09-07T00:05:00+00:00",
             )
 
-    def test_committed_plan_binds_executor_adapter_and_hold_closure(self):
+    def test_frozen_plan_rejects_current_runtime_until_prospective_binding(self):
         plan = ROOT / "deploy/production/plans/item32-readonly-successor-20260907.json"
-        loaded, digest = successor._load_plan(
-            plan,
-            ROOT / "tools/execute_item32_readonly_trends_successor.py",
-            ROOT / "model/spider_xhs_http.py",
-            ROOT / successor.HOLD_EVIDENCE_REF,
-        )
+        original = plan.read_bytes()
+        with self.assertRaisesRegex(successor.Item32Error, "plan_binding"):
+            successor._load_plan(plan, ROOT / "tools/execute_item32_readonly_trends_successor.py",
+                ROOT / "model/spider_xhs_http.py", ROOT / successor.HOLD_EVIDENCE_REF)
+        loaded = json.loads(original)
+        digest = hashlib.sha256(original).hexdigest()
+        self.assertEqual(plan.read_bytes(), original)
         self.assertEqual(loaded["schema"], successor.PLAN_SCHEMA)
         self.assertEqual(
             loaded["browser_binding"]["user_agent"],
@@ -399,7 +400,7 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
         self.assertEqual(verified["call_dates"], ["2026-09-05", "2026-09-06"])
         self.assertEqual(database.read_bytes(), store_raw)
 
-    def test_collection_mounts_only_task_store_and_exact_adapter_overlay(self):
+    def test_collection_mounts_only_task_store_and_exact_runtime_overlays(self):
         run_dir = self.root / "run"
         runtime_dir = self.root / "runtime"
         adapter = self.root / "spider_xhs_http.py"
@@ -430,7 +431,8 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                             },
                             "Mounts": [
                                 {"Destination": "/task", "Source": str(task_dir), "RW": True},
-                                {"Destination": successor.ADAPTER_CONTAINER_PATH, "Source": str(adapter), "RW": False},
+                                *[{"Destination":successor.RUNTIME_OVERLAY_CONTAINER_PATHS[n],"Source":str(p),"RW":False}
+                                  for n,p in successor._runtime_overlay_paths(adapter).items()],
                             ],
                             "HostConfig": {
                                 "ReadonlyRootfs": True,
@@ -443,7 +445,9 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
             return completed(args)
 
         registry = {}
-        with mock.patch.object(successor, "_run", side_effect=fake_run), mock.patch.object(successor.os, "chown"):
+        with mock.patch.object(successor, "_run", side_effect=fake_run), mock.patch.object(successor.os, "chown"), \
+             mock.patch.object(successor, "_assert_runtime_overlay_sources"):
+
             _name, actual_id, cookie_env = successor._create_collection_container(
                 run_dir, runtime_dir, "[]", adapter, registry
             )
@@ -456,6 +460,27 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
         )
         self.assertNotIn("DATABASE_URL", "\n".join(create))
         self.assertFalse(cookie_env.exists())
+
+    def test_current_runtime_files_are_fixed_and_missing_or_changed_fails_before_container(self):
+        adapter = self.root / "spider_xhs_http.py"
+        for name,path in successor._runtime_overlay_paths(adapter).items():
+            path.write_bytes((ROOT/name).read_bytes())
+        with mock.patch.object(successor,"_assert_adapter_source"):
+            successor._assert_runtime_overlay_sources(adapter)
+            (self.root/"security_redaction.py").write_text("changed")
+            with self.assertRaises(successor.Item32Error):
+                successor._assert_runtime_overlay_sources(adapter)
+        mounts=successor._runtime_overlay_mounts(adapter)
+        self.assertEqual(mounts.count("--mount"),3)
+        self.assertTrue(all(x.endswith(",readonly")for x in mounts if x!="--mount"))
+        with mock.patch.object(successor,"_write_env")as secret, mock.patch.object(successor,"_run")as run, \
+             mock.patch.object(successor,"_assert_adapter_source"):
+            with self.assertRaisesRegex(successor.Item32Error,"runtime_overlay_source_binding"):
+                successor._create_collection_container(self.root/"run",self.root/"runtime","[]",adapter,{})
+            (self.root/"security_redaction.py").unlink()
+            with self.assertRaises(FileNotFoundError):
+                successor._create_collection_container(self.root/"run",self.root/"runtime","[]",adapter,{})
+            secret.assert_not_called();run.assert_not_called()
 
     def test_predecessor_rejection_happens_before_secret_or_provider_setup(self):
         lock = os.open(self.root / "lock", os.O_RDWR | os.O_CREAT, 0o600)
