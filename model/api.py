@@ -4102,7 +4102,7 @@ def _generation_memory_context(memory_context: str) -> str:
     return (
         "\n\n【用户写作偏好与历史参考】\n"
         "以下记忆仅用于风格和历史参考，不构成本次商家、价格、地址、功效等事实依据；"
-        "与本次素材或硬约束冲突时，以本次已确认信息为准。\n"
+        "与本次素材、硬约束或本轮明确编辑要求冲突时，以本次已确认信息和本轮要求为准。\n"
         + memory_context
     )
 
@@ -5114,6 +5114,7 @@ async def _run_generation_agents(
             route="arbitrate",
             constraint_context=constraint_context,
             repair_metadata=repair_metadata,
+            memory_context=memory_context,
         )
         if lifted_score is not None:
             if score_lift_repaired:
@@ -11626,6 +11627,7 @@ async def _score_directed_second_pass(
     constraint_context: str = "",
     editorial_context: str = "",
     repair_metadata: dict | None = None,
+    memory_context: str = "",
 ) -> tuple[str, str, float | None, dict[str, float], str, list[str], bool, str]:
     """One delivery-oriented rewrite for acceptable drafts below the reference line.
 
@@ -11687,7 +11689,7 @@ async def _score_directed_second_pass(
     if has_blocking and not title_readability_only_block and not action_coverage_block and not fact_repair and not length_repair:
         return title, body, score, features, grade or _grade(score), issues, False, "存在硬质量问题，交给硬修复链路"
 
-    if constraint_context or editorial_context:
+    if constraint_context or editorial_context or memory_context:
         # Feature-only candidate builders cannot interpret current user choices
         # or arbitration decisions. Continue the normal model repair with the explicit contract.
         deterministic = (title, body, score, features, grade, issues, False, '')
@@ -11739,6 +11741,7 @@ async def _score_directed_second_pass(
         f"{_build_generation_planning_brief(domain, title, source_context or '未提供原始来源', style_hint or '交付质量二修')}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n\n"
         f"{constraint_context}\n\n"
+        f"{_generation_memory_context(memory_context)}\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
         f"{_quality_expression_brief(domain)}\n\n"
         f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>\n"
@@ -11777,6 +11780,7 @@ async def _score_directed_second_pass(
 
         cand_title = _sanitize_title_for_delivery(
             await _fit_title_limit(cand_title, cand_body, domain,
+                **({'memory_context': memory_context} if memory_context else {}),
                 **({'constraint_context': constraint_context} if constraint_context else {}),
                 **({'editorial_context': editorial_context, 'source_context': source_context} if editorial_context else {})),
             source_context,
@@ -11785,6 +11789,7 @@ async def _score_directed_second_pass(
             editorial_context=editorial_context,
         )
         cand_body = await _shape_body_for_delivery(cand_title, cand_body.strip(), domain, source_context, style_hint or "交付质量二修",
+            **({'memory_context': memory_context} if memory_context else {}),
             **({'constraint_context': constraint_context} if constraint_context else {}),
             **({'editorial_context': editorial_context} if editorial_context else {}))
         cand_score, cand_features, cand_grade = await _score_generated_note(
@@ -17285,6 +17290,7 @@ async def _generate_pipeline_stream(
             route="arbitrate",
             constraint_context=constraint_context,
             repair_metadata=repair_metadata,
+            memory_context=memory_context,
         )
         if lifted_score is not None:
             final_score = lifted_score
@@ -18082,6 +18088,30 @@ def _update_user_learn(user_id: str, prefs: dict[str, str]):
         pass
 
 
+def _chat_memory_context(session: dict) -> str:
+    # Reuse the owner-scoped snapshot already recalled for this turn. Re-reading
+    # memory at each editing step would alter access counters and decay weights.
+    prefs = session.get("user_prefs") or {}
+    parts = ["\n".join(f"  - {k}：{v}" for k, v in prefs.items())]
+    parts.append(str(session.get("mem_prompt") or ""))
+    return "\n".join(part for part in parts if part)
+
+
+def _chat_approved_saved_title(session: dict, signal: dict | None) -> str:
+    if not signal or signal.get("type") != "approval":
+        return ""
+    note_id = session.get("_last_note_id") or session.get("note_id")
+    if not note_id or not session.get("user_id"):
+        return ""
+    try:
+        note = _fetch_user_note(note_id, session["user_id"])
+    except Exception:
+        return ""  # Unconfirmed ownership/version must not create a preference.
+    if (note["title"] != session.get("note_title") or note["body"] != session.get("note_body")):
+        return ""
+    return str(note["title"] or "")
+
+
 def _build_chat_system_prompt(session: dict) -> str:
     domain = session.get("domain", "美食")
     title  = session.get("note_title", "")
@@ -18092,10 +18122,6 @@ def _build_chat_system_prompt(session: dict) -> str:
         session.get("user_constraints") or (session.get("generate_context") or {}).get("user_constraints"),
         "对话优化",
     )
-
-    user_prefs = session.get("user_prefs", {})
-    pref_lines = [f"  - {k}：{v}" for k, v in user_prefs.items()]
-    pref_section = "\n".join(pref_lines) if pref_lines else "  (暂无记录，继续对话后将自动学习)"
 
     dk = _get_dk(domain)
     intent_section = _content_intent_brief(
@@ -18201,10 +18227,8 @@ def _build_chat_system_prompt(session: dict) -> str:
     prompt_parts.extend([
         f"{gen_section}\n",
         f"【品类知识库·{domain}】\n{dk.get('content', '')}\n{dk.get('user', '')}\n\n",
-        f"【用户偏好（越用越懂你）】\n{pref_section}\n\n",
+        _generation_memory_context(_chat_memory_context(session)),
     ])
-    if session.get("mem_prompt"):
-        prompt_parts.append(f"【用户记忆（跨会话积累）】\n{session.get('mem_prompt','')}\n\n")
     return "".join(prompt_parts)
 
 
@@ -18254,6 +18278,9 @@ def _detect_learning_signal(user_msg: str) -> dict | None:
             return {"type": "rejection", "pref_key": pk, "pref_value": pv}
     # Explicit negative or mixed feedback must not teach the current draft as approved.
     if re.search(r"不(?:太|是很|怎么|够)?(?:喜欢|满意|可以|好)|不行|不好|但[是]?|不过", user_msg):
+        return None
+    # Polite requests/questions are not approval of either the old or future draft.
+    if re.search(r"[？?]|能否|能不能|可不可以|是否|(?:可以|请|麻烦|帮我|希望).{0,20}(?:改|写|调整|优化|删|合并|分成|生成)", user_msg):
         return None
     for kw in approval_kw:
         if kw in user_msg:
@@ -18693,6 +18720,7 @@ async def _repair_chat_note_if_needed(
     domain = session.get("domain", "美食")
     fact_source = session.get("_turn_fact_source") or _chat_fact_source_for_turn(session, session.get("_turn_contract"))
     turn_constraint_brief = str(session.get("_turn_constraint_brief") or "").strip()
+    memory_context = _chat_memory_context(session)
     if score is None:
         return title, body, score, feats, grade, issues, False
     previous_score = session.get("current_score")
@@ -18735,6 +18763,7 @@ async def _repair_chat_note_if_needed(
             current_issues=issues,
             route="chat",
             constraint_context=_chat_effective_constraint_brief(session),
+            memory_context=memory_context,
         )
         if _chat_turn_constraint_violations(lifted_title, lifted_body, session.get("_turn_contract")):
             # A score lift must not discard the current compliant candidate.
@@ -18757,6 +18786,7 @@ async def _repair_chat_note_if_needed(
         f"{_get_quality_contract(domain)}\n\n",
         f"{_get_feature_governance_brief(domain)}\n\n",
         f"{_build_generation_planning_brief(domain, title, fact_source or body, '对话质量修复规划')}\n",
+        _generation_memory_context(memory_context),
     ]
     if turn_constraint_brief:
         repair_parts.append(f"【本轮编辑要求】\n{turn_constraint_brief}\n\n")
@@ -18797,7 +18827,7 @@ async def _repair_chat_note_if_needed(
         r_title = _sanitize_title_for_delivery(r_title, fact_source, domain, _chat_effective_constraint_brief(session))
         repair_shape_hint = "对话优化修复" + (f"；{turn_constraint_brief}" if turn_constraint_brief else "")
         r_body = await _shape_body_for_delivery(r_title, r_body, domain, fact_source, repair_shape_hint,
-            constraint_context=_chat_effective_constraint_brief(session))
+            constraint_context=_chat_effective_constraint_brief(session), memory_context=memory_context)
         r_body = _chat_body_without_title_echo(r_title, r_body, session.get("_turn_contract"))
         r_score, r_feats, r_grade, r_issues = await _score_chat_note(r_title, r_body, session)
         if r_score is None:
@@ -18836,6 +18866,7 @@ async def _repair_chat_note_if_needed(
                     current_issues=r_issues,
                     route="chat",
                     constraint_context=_chat_effective_constraint_brief(session),
+                    memory_context=memory_context,
                 )
                 if _chat_turn_constraint_violations(r_title, r_body, session.get("_turn_contract")):
                     return compliant_repair
@@ -18917,6 +18948,8 @@ async def _chat_sse_generator(
 
     use_thinking = _should_use_thinking(user_msg)
     signal = None if supplement_values else _detect_learning_signal(user_msg)
+    # Feedback refers to the saved note the user saw, never a not-yet-generated draft.
+    approved_note_title = _chat_approved_saved_title(session, signal)
     turn_contract = _build_chat_turn_constraint_contract(
         user_msg,
         session.get("note_body", ""),
@@ -19038,6 +19071,7 @@ async def _chat_sse_generator(
         new_body = await _shape_body_for_delivery(
             new_title, new_body, session.get("domain", "美食"), fact_source, shape_hint,
             constraint_context=_chat_effective_constraint_brief(repair_session),
+            memory_context=_chat_memory_context(repair_session),
         )
         new_body = _chat_body_without_title_echo(new_title, new_body, turn_contract)
         new_title, new_body, new_score, score_feats, grade_str, quality_issues, repaired = await _repair_chat_note_if_needed(
@@ -19268,9 +19302,9 @@ async def _chat_sse_generator(
             # 同步到 user_memories
             _memory.upsert_style(user_id, pk, pv)
             yield f"data: {_json.dumps({'type': 'learning', 'message': f'已记录：{pv}', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
-        elif signal["type"] == "approval" and note_extracted:
+        elif signal["type"] == "approval" and approved_note_title:
             new_prefs: dict[str, str] = {}
-            cur_title = session.get("note_title", "")
+            cur_title = approved_note_title
             if "？" in cur_title:
                 new_prefs["title_style"] = "疑问句标题"
             tl = len(cur_title)

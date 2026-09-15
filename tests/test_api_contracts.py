@@ -4020,6 +4020,7 @@ class ApiContractTests(unittest.TestCase):
 
     def test_second_pass_carries_constraints_and_does_not_apply_unaware_fact_templates(self):
         source = '原素材套餐249元，门店名称蓝猫；本次未说明用餐口感。'
+        memory = '本人历史风格：短句自然，旧店信息不可作为本次事实。'
         request = '每套独立一段，段间留空行；未确认的细节只作可选建议，不编亲身经历。'
         constraints = api._chat_effective_constraint_brief({
             'user_constraints':['不写价格及店名'], '_turn_user_request':request})
@@ -4038,10 +4039,14 @@ class ApiContractTests(unittest.TestCase):
                 source_context=source, current_score=68, current_features={
                     'body_len':300, 'plad_sentence_burstiness':0.2, 'avg_sentence_len':90,
                     'body_has_must_order':0},
-                current_issues=[], constraint_context=constraints, editorial_context=editorial))
+                current_issues=[], constraint_context=constraints, editorial_context=editorial, memory_context=memory))
         deterministic.assert_not_called()
         self.assertEqual(call.await_count, 1)
         self.assertIn(constraints, call.call_args.args[1])
+        self.assertIn(memory, call.call_args.args[1])
+        self.assertNotIn(memory, call.call_args.args[2])
+        self.assertEqual(fit.call_args.kwargs['memory_context'], memory)
+        self.assertEqual(shape.call_args.kwargs['memory_context'], memory)
         self.assertIn(source, call.call_args.args[2])
         self.assertIn(request, constraints)
         # Keep the actual source/score-generated repair instructions in this test.
@@ -7300,10 +7305,11 @@ class ApiContractTests(unittest.TestCase):
                 if streaming:
                     return [event async for event in api._generate_pipeline_stream(
                         "穿搭", clean, None, None, {}, None, "2026091421", user_id="marked-test",
-                        constraint_context="不展示商家",
+                        constraint_context="不展示商家", memory_context="本人偏好：保持自然口语",
                     )][-1]
                 return await api._run_generation_agents(
-                    "穿搭", None, clean, "2026091421", None, None, {}, constraint_context="不展示商家")
+                    "穿搭", None, clean, "2026091421", None, None, {}, constraint_context="不展示商家",
+                    memory_context="本人偏好：保持自然口语")
             with self.subTest(streaming=streaming, variant_restored=variant_restored), ExitStack() as stack:
                 stack.enter_context(mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})))
                 stack.enter_context(mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})))
@@ -7327,6 +7333,7 @@ class ApiContractTests(unittest.TestCase):
                 stack.enter_context(mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()))
                 result = asyncio.run(run())
             self.assertEqual(second.await_count, 1)
+            self.assertEqual(second.call_args.kwargs['memory_context'], '本人偏好：保持自然口语')
             self.assertEqual(result["note_body" if streaming else "body"], old if variant_restored else clean)
             self.assertEqual(result["selection_meta"]["source_corrections_retained"], not variant_restored)
             self.assertEqual(result["score_lift_repaired"], not variant_restored)

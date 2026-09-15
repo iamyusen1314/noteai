@@ -1,3 +1,21 @@
+September15 — 059真实浏览验证完成：原截图2d891280恢复后原文/画面观察分开；
+再次选同一PNG保持1/9和原结果，期间新增screenshot claim为0，原0.5积分仅扣一次。
+同视频Chat新claime8b8a913-5c8a-426e-bc9e-2557b2d9503e已完成04:40:42.615321Z，
+usage1b27e5fc、保存note6339a56b v3；标题保持、3个正文段落，原2010字音画来源保留。
+6次Claude/36304输入9102输出/费用RMB1.385762；无Ark/无音视频重复计量，3积分一次，
+余额2866.5。项目评分76.65656，仍3质量提示，遗漏互动问句且自助台位置仍应商家核对；
+不将工程通过写成事实/营销质量无缺口，不追加同素材反复提分。
+私有原结果/来源/页面：noteai-video-note-0590286/{verification-original-readback.json,
+screenshot-reuse-readback.json}（host），local同目录verification-readback/source-ocr-readback/
+screenshot-reuse-browser/chat-v3-browser。原历史、账单定时、Item34不变。
+独立记忆缺口已LOCAL修复：Chat与生成的整理/二修传相同owner记忆快照，记忆不作事实；
+本轮编辑要求优先。礼貌请求不当approval，只有本人已保存且当前可见标题正文匹配才学习
+该旧稿偏好，绝不推断用户喜欢未来/失败稿。复用原模块，无新表/供应商/框架。
+23项Python3.11隔离验证PASS，覆盖两生成入口、首轮/repair/二修、跨用户/行业隔离、
+真实笔记绑定；首次3项仅旧fake_shape签名不相容已修正，失败保留。
+下一动作：仅API一个文件受控后继，web/Admin/配置不变；不将该LOCAL修复冒充059。
+Readiness31/37不变，完整任务当前对照表维持原位置。
+
 September15 12:36BJT — 0590286 API/public部署成功（原PID1897855，1789446998.4291975）。
 API image de2b59f5e6b84c894295a43fda2b6ee65b4e3ab417d105f880e303b8fc6a7545，
 public /var/www/noteai-public/0590286，drop SHA728ea6a500387009cb20ce47d7b1db125bbd008fed54d3b0281aaf912c3406e8。

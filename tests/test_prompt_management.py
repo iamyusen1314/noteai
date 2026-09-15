@@ -33,6 +33,9 @@ class PromptBaselineTests(unittest.TestCase):
                          {'type':'rejection','pref_key':'body_length','pref_value':'信息更完整的正文'})
         self.assertIsNone(api._detect_learning_signal('我不太满意'))
         self.assertEqual(api._detect_learning_signal('这版不错'), {'type':'approval'})
+        for message in ('可以把正文改成三段吗？', '可以合并成三段', '这版不错，帮我改个标题',
+                        '是否可以写得更自然', '你觉得这个标题好吗？'):
+            self.assertIsNone(api._detect_learning_signal(message), message)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

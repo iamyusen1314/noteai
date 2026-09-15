@@ -164,12 +164,14 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         session["_turn_constraint_brief"] = api._chat_turn_constraint_brief(session["_turn_contract"])
         session["generate_context"] = {"cover_analysis":"[00:10]原音画；未确认房内关系"}
         session["fact_context"] = "本次商家确认：不写价格"
+        session["mem_prompt"] = "本人历史偏好：自然口语"
+        session["user_prefs"] = {"title_style": "陈述句"}
         good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
         with patch.object(api, "_score_generated_note", AsyncMock(return_value=(90, {}, "优秀"))), \
              patch.object(api, "_generated_quality_issues", side_effect=lambda *a, **kw: []), \
              patch.object(api, "_delivery_integrity_issues", side_effect=lambda *a, **kw: []), \
              patch.object(api, "_needs_v04_score_lift", return_value=False), \
-             patch.object(api, "_shape_body_for_delivery", AsyncMock(side_effect=lambda t,b,*a,**kw: b)), \
+             patch.object(api, "_shape_body_for_delivery", AsyncMock(side_effect=lambda t,b,*a,**kw: b)) as shape, \
              patch.object(api, "_sanitize_title_for_delivery", side_effect=lambda t,*a: t), \
              patch.object(api._mr, "call", AsyncMock(return_value=f"<note><title>素材笔记</title><body>{good}</body></note>")) as call:
             result = asyncio.run(api._repair_chat_note_if_needed("素材笔记", "只有一段。", session, "请写成三段"))
@@ -179,6 +181,12 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         self.assertEqual(call.call_args.kwargs["trace_step"], "chat_quality_repair")
         self.assertIn("[00:10]原音画；未确认房内关系",call.call_args.args[1])
         self.assertIn("本次商家确认",call.call_args.args[1])
+        self.assertIn(session["mem_prompt"], call.call_args.args[1])
+        self.assertIn("不构成本次", call.call_args.args[1])
+        self.assertIn("本轮明确编辑要求", call.call_args.args[1])
+        self.assertIn(session["mem_prompt"], shape.call_args.kwargs['memory_context'])
+        self.assertIn("陈述句", shape.call_args.kwargs['memory_context'])
+        self.assertNotIn(session["mem_prompt"], call.call_args.args[2])
 
     def test_option_structure_survives_reload_and_is_enforced_on_server(self):
         fake_db = _FakeDB(); api._db = fake_db; self._install_session()
@@ -203,7 +211,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
         contract = api._build_chat_turn_constraint_contract("请写成三段", "")
         session = {"domain":"美食", "_turn_contract":contract,
-                   "_turn_constraint_brief":api._chat_turn_constraint_brief(contract)}
+                   "_turn_constraint_brief":api._chat_turn_constraint_brief(contract), "mem_prompt":"本人偏好标记"}
         with patch.object(api, "_score_chat_note", AsyncMock(return_value=(75,{},"良好",["标题偏短"]))), \
              patch.object(api, "_needs_v04_score_lift", return_value=True), \
              patch.object(api, "_score_directed_second_pass", AsyncMock(return_value=(
@@ -211,12 +219,13 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
             result = asyncio.run(api._repair_chat_note_if_needed("原标题",good,session,"请写成三段"))
         self.assertEqual(result[:3], ("原标题",good,75))
         self.assertEqual(second.await_count, 1)
+        self.assertEqual(second.call_args.kwargs['memory_context'], '本人偏好标记')
 
     def test_post_repair_score_lift_keeps_the_repaired_structure(self):
         good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
         contract = api._build_chat_turn_constraint_contract("请写成三段", "")
         session = {"domain":"美食", "_turn_contract":contract,
-                   "_turn_constraint_brief":api._chat_turn_constraint_brief(contract)}
+                   "_turn_constraint_brief":api._chat_turn_constraint_brief(contract), "mem_prompt":"修复后偏好标记"}
         with patch.object(api, "_score_chat_note", AsyncMock(side_effect=[
                 (75,{},"良好",["用户约束未满足：正文应为3段"]), (76,{},"良好",[])])), \
              patch.object(api, "_needs_v04_score_lift", return_value=True), \
@@ -229,6 +238,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         self.assertEqual(result[:3], ("修复标题",good,76))
         self.assertTrue(result[-1])
         self.assertEqual(second.await_count, 1)
+        self.assertEqual(second.call_args.kwargs['memory_context'], '修复后偏好标记')
 
     def test_no_note_with_explicit_structure_is_not_reported_as_done(self):
         api._db = _FakeDB(); self._install_session()
@@ -239,6 +249,54 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         canonical = next(e for e in events if e.get("type") == "canonical_response")
         self.assertEqual(canonical["status"], "no_final_note")
         self.assertFalse(canonical["saved"])
+
+    def test_one_owner_memory_snapshot_reaches_initial_chat_and_shape(self):
+        captured = []
+        async def stream(**kwargs):
+            captured.append(kwargs)
+            yield "content", "<note><title>素材笔记</title><body>第一段。\n\n第二段。\n\n第三段。</body></note>"
+        api._mr.stream_chat = stream
+        api._sanitize_title_for_delivery = lambda t,*a: t
+        api._repair_chat_note_if_needed = AsyncMock(side_effect=lambda t,b,*a:(t,b,90,{},"优秀",[],False))
+        api._shape_body_for_delivery = AsyncMock(side_effect=lambda t,b,*a,**kw:b)
+        for uid, domain, marker in [('u1','美食','餐饮本人偏好尾部'), ('u2','美妆','美妆另一用户偏好')]:
+            api._db = _FakeDB(); self._install_session()
+            api._chat_sessions['s1'].update(user_id=uid, domain=domain, user_prefs={'tone':uid+'语气'})
+            with patch.object(api._memory, 'build_memory_prompt', return_value=marker) as recall:
+                self._events('请合并成3个自然段')
+                recall.assert_called_once_with(uid, domain=domain)
+            self.assertIn(marker, captured[-1]['system'])
+            self.assertIn(uid+'语气', captured[-1]['system'])
+            self.assertIn(marker, api._shape_body_for_delivery.call_args.kwargs['memory_context'])
+            self.assertNotIn(marker, api._shape_body_for_delivery.call_args.args[3])
+        self.assertNotIn('餐饮本人偏好尾部',captured[-1]['system'])
+
+    def test_approval_learns_only_the_existing_note_not_a_future_draft(self):
+        api._db = _FakeDB(); self._install_session()
+        original = '这是一条用户已经看到的陈述标题'
+        api._chat_sessions['s1']['note_title'] = original
+        async def stream(**_kwargs):
+            yield "content", "<note><title>未来生成的疑问句标题你喜欢吗？</title><body>未通过的新稿。</body></note>"
+        api._mr.stream_chat = stream
+        api._shape_body_for_delivery = AsyncMock(side_effect=lambda t,b,*a,**kw:b)
+        api._sanitize_title_for_delivery = lambda t,*a:t
+        api._repair_chat_note_if_needed = AsyncMock(side_effect=lambda t,b,*a:(t,b,None,{},'',[],False))
+        with patch.object(api, '_update_user_learn') as learn, \
+             patch.object(api._memory, 'sync_from_user_learn'), \
+             patch.object(api, '_fetch_user_note', return_value={
+                 'title':original,'body':api._chat_sessions['s1']['note_body']}):
+            self._events('这版不错')
+        learn.assert_called_once_with('u1', {'title_length':f'{len(original)}字标题'})
+
+    def test_unconfirmed_saved_note_cannot_teach_approval(self):
+        session = {'user_id':'u1','note_id':'bound-note','note_version':999,
+                   'note_title':'可见标题','note_body':'可见正文'}
+        for row in ({'title':'其他标题','body':'可见正文'}, {'title':'可见标题','body':'旧正文'}):
+            with patch.object(api, '_fetch_user_note', return_value=row) as fetch:
+                self.assertEqual(api._chat_approved_saved_title(session, {'type':'approval'}), '')
+                fetch.assert_called_once_with('bound-note','u1')
+        with patch.object(api, '_fetch_user_note', side_effect=api.HTTPException(404,'not owned')):
+            self.assertEqual(api._chat_approved_saved_title(session, {'type':'approval'}), '')
 
     def test_turn_contract_filters_removed_old_claims_from_fact_source(self):
         contract = api._build_chat_turn_constraint_contract(
@@ -312,7 +370,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         async def fake_stream_chat(**_kwargs):
             yield "content", "已完成。<note><title>新标题</title><body>只保留真实菜品体验。</body></note>"
 
-        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context=""):
+        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context="", memory_context=""):
             self.assertIn("不得", constraint_context)
             return body
 
@@ -369,7 +427,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         async def fake_stream_chat(**_kwargs):
             yield "content", "已删除旧说法。<note><title>新标题</title><body>只保留真实菜品体验。</body></note>"
 
-        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context=""):
+        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context="", memory_context=""):
             self.assertIn("不得", constraint_context)
             self.assertNotIn("20分钟", fact_source)
             self.assertNotIn("吃不出柴感", fact_source)
@@ -411,7 +469,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         async def fake_stream_chat(**_kwargs):
             yield "content", "已完成。<note><title>新标题</title><body>只保留真实菜品体验。</body></note>"
 
-        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context=""):
+        async def clean_shape(title, body, domain, fact_source, route, *, constraint_context="", memory_context=""):
             self.assertIn("不得", constraint_context)
             return body
 
