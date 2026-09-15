@@ -62,6 +62,17 @@ Owner通过当前确认问题明确选择“批准此新窗口唯一一次”。
 - 原失败5文件已分别存本机与ORICO限定目录且SHA一致，未混入Git、Secret或业务DB；
   详见私有`original-dispatch-20260915T140218Z/external-copy-manifest.json`。
 
+## Item33独立本地捕获部件（September15）
+新增`tools/item33_trends_dml_capture.py`、对应`tests/test_item33_trends_dml_capture.py`及
+`docs/ITEM33_DML_CAPTURE_PREPARATION_20260915.md`，仅SQL生成/八表稳定行摘要与真实txid聚合。
+实际PG16原0003/0004/0011 schema、network-none只读容器经Unix socket验证13/13通过，
+独立review无本地准备阻断；临时测试容器/volume均已清理。未连接生产、未复用5ce身份。
+固定输出NOT_TERMINAL/UNKNOWN、readiness_credit=false；不能把局部errors=[]升为验收。
+丢失同一行的重复UPDATE通知可能不改变distinct计数，已加真实负边界用例并明确continuity
+仍未证明；sender_pid不能独立排除已登记writer自己发伪通知。真实writer/source/事务注册、
+持续LISTEN及journal封口、fresh可达ACL/trigger/FK和业务DDL事实仍需接线，可能影响
+source/overlay/unit绑定；没有手填零写或恢复内部签署门禁。部署必须等原Item32依赖和5ce避让。
+
 ## September15 当前明确授权（首次时间读回13:11:36UTC）
 Owner已批准本次Item32唯一只读Trends successor：2026-09-15 14:00–15:00UTC，
 dispatch严格早于14:40UTC；先核对原任务和fresh0/34，最多34 admissions、零自动重试、

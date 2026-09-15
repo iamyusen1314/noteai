@@ -1,5 +1,12 @@
 # Item33 当前本地准备 — 2026-09-15
 
+## September15后续本地进展
+
+八表SQL生成与distinct-row/真实txid聚合部件已实现，13项真实PG16隔离测试及独立review通过。
+详见`docs/ITEM33_DML_CAPTURE_PREPARATION_20260915.md`。这补充下文“尚未实现collector”的
+部分工作；仍没有生产listener/事务hook/持续journal与封口，不将聚合部件当完整collector。
+实际writer/source绑定、fresh覆盖和DDL事实仍缺，不连接生产或复用5ce。
+
 ## 当前结论
 
 本轮完成原 Item33 controller 的 unit renderer、三个实际宿主动作 callback 和对应隔离测试。
