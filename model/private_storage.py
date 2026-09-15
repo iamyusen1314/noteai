@@ -1261,6 +1261,29 @@ def media_refs_for_operation(operation_id: str) -> list[MediaReference]:
     return [_media_reference_from_row(row) for row in rows]
 
 
+def match_ready_image(user_id: str, reference_ids: Iterable[str], payload: bytes) -> MediaReference | None:
+    """Reuse only this owner's candidate whose normalized bytes still verify."""
+    identifiers = list(dict.fromkeys(str(uuid.UUID(str(value))) for value in reference_ids))
+    if len(identifiers) > 9:
+        raise MediaReferenceUnavailable("PRIVATE_MEDIA_REFERENCE_INVALID")
+    subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
+    digest = hashlib.sha256(payload).hexdigest()
+    current_iso = _utc().isoformat()
+    for reference_id in identifiers:
+        row = db.fetchone("SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?",
+                          (reference_id, subject_hash))
+        if not row:
+            raise MediaReferenceUnavailable()
+        reference = _media_reference_from_row(row)
+        if reference.purpose != "image" or reference.state != "ready" or reference.expires_at <= current_iso:
+            raise MediaReferenceUnavailable()
+        if reference.content_sha256 == digest and reference.size_bytes == len(payload):
+            verified, original = load_media_bytes(reference_id, user_id=user_id, purpose="image")
+            if original == payload:
+                return verified
+    return None
+
+
 def load_media_bytes(
     reference_id: str,
     *,

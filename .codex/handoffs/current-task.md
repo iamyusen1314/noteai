@@ -1,3 +1,25 @@
+September15 — corrected formal video generation dbe288b1 completed03:55:17Z,
+API11718be/web5991f88. Saved v1 sameclaim/note, score75/qualityissues[], one8credit
+charge,27actualrespondedcalls/130748in/26083out/RMB2.6756215/audio358. Browser refresh
+and library restore exactnote+2010char AVsource verified. One actualChat continuation
+6834bb88 completed03:59:16Z, usagecbe2190b, sessionc539b6f2, savedchildc4b62bcf v2;
+one3creditcharge/refund0,6Claude calls/RMB0.898289/noArk. Ownerbalance2869.5.
+V2 NOT quality-unqualified success: score74.37/oneissue, fourparagraphs despite request
+three; room-location relationship overclaimed. Originalresults privatelyretained at
+noteai-video-note-11718be/generation-chat-{original,cost}-readback.json on API-C and
+local chat-{original,cost}-readback.txt. No replay/extraOCR/payment.
+Minimum successor nowLOCAL: Chat initialprompt had AV but downstream repair/options
+lost it; unified labelledsource preserves AVtimestamps/negations. Existing structure
+contract now recognizes 合并成, keeps finalconstraintguard. Screenshot legacyvisual
+suffix projected out of originalprose without rewriting hashedresponse; newtext_body
+separate. Existingupload-image compares <=9 ownerrefs and verifiesnormalizedbytes to
+reuse originalOCR afterrefresh. No newroute/schema/ACL/model/framework.
+13pureJS +21Python3.11isolated tests PASS; firstimageentrypoint invocation failed before
+tests, then2fixture-only mismatches corrected; truefailures retained in toolhistory.
+Next controlledAPI/publicdeployment from current11718/5991, then screenshotreuse and
+one explicit repair verification using samevideo context (no reidentification).
+Readiness31/37unchanged;0030/Admin4870/Item34/Native originalbilltimer unchanged.
+
 September15 11:56BJT — web5991f88 deployed1789443995.7331495, API11718be
 4779d4dc unchanged; exactpublicassets and compatibleoldroot retained in private
 noteai-video-note-5991f88. Realbrowser confirms generation constraints[] while hidden
@@ -213,11 +235,11 @@ Current authorized task comparison (history preserved, no old replay):
 | Task | Actual state / version or basis | Specific next work |
 |---|---|---|
 | Complete video-note diagnosis | Live4870 then cd91; b71 originalvideo+title/body+cover saved,6credits once | Quality report needs_confirmation retained; no same-task replay |
-| Video material generation | Formal9cc real26calls/8credits/savedv1; Ark creativeprose defect fixedcd91 | Finish current durable-source savefix, onecorrected generation then library optimization |
+| Video material generation | Corrected dbe v1 saved75/27calls/8credits, library+Chat readback; API11718/web5991 | Publish downstream AV/paragraph repair and verify one continuation |
 | Seven industries / model route | Existing restored templates and formal Claude/Ark provenance retained | Necessary affected regression/quality; no claim allindustryquality complete |
 | Screenshot merge/dedup | Existing recovery/once-charge real proof retained | Verify multi-image merge/source correspondence in currentUI |
 | Admin/entitlements/cost | Live4870 actualsupplierhistory, percall models/steps/cost available | Verify newformal generation exactnote/usage association; freefees stillunknownwithoutbasis |
-| Original user memory | Negativefeedback and explicitbodylength handling fixed/livecd91; isolation tests passed | Preserve taskfacts separately; actualChat negativefeedback path remains verification |
+| Original user memory | Actualnegative/mixed Chat did not save falseapproval; contextlinkedtochildnote; cd91 | Preserve taskfacts/source, verify affectedrepair after rollout |
 | Fact clarification | Free answer/omit/resume/correction proof exists | Keep same completedmedia/charge, regression with new complete input |
 | Item31 Native-first | Paid/fullrefund/naturalcallback5ce passed; oldSep14 billmatched | Same5ce billSep16 + separatejournal + existingterminalvalidator |
 | Item32 | Oldidentitiessealed; successornotexecuted, oldSep7windowexpired | Current-source successor prep only; no oldpackage execution |

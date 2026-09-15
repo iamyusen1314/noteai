@@ -25,6 +25,9 @@ class _FakeDB:
         self.note_version = note_version
         self.executed = []
 
+    def fetchall(self, sql, params=()):
+        return []  # Legacy note fixture has no persisted media/task context.
+
     def fetchone(self, sql, params=()):
         if "FROM chat_sessions" in sql and params == ("historic",):
             return {
@@ -116,7 +119,7 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         return asyncio.run(collect())
 
     def test_explicit_structure_is_not_inferred_from_negation_or_ranges(self):
-        for message, count in [("请写成三段", 3), ("分成2段，正文不要重复标题", 2),
+        for message, count in [("请写成三段", 3), ("合并成3个自然段",3), ("分成2段，正文不要重复标题", 2),
                                ("四段正文", 4), ("正文10段", 10), ("正文分3段，结尾留一个自然的问题", 3)]:
             with self.subTest(message=message):
                 contract = api._build_chat_turn_constraint_contract(message, "")
@@ -142,12 +145,12 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
     def test_structure_failure_cannot_save_even_with_high_model_score(self):
         fake_db = _FakeDB(); api._db = fake_db; self._install_session()
         async def stream(**_kwargs):
-            yield "content", "已分三段。<note><title>新标题</title><body>只有一段。</body></note>"
+            yield "content", "已分三段。<note><title>新标题</title><body>第一段。\n\n第二段。\n\n第三段。\n\n独立提问？</body></note>"
         api._mr.stream_chat = stream
         api._shape_body_for_delivery = AsyncMock(side_effect=lambda title, body, *_a, **_kw: body)
         api._repair_chat_note_if_needed = AsyncMock(side_effect=lambda t, b, *_a: (t,b,90,{},"优秀",[],False))
         api._sanitize_title_for_delivery = lambda title, *_a: title
-        events = self._events("请写成三段")
+        events = self._events("请合并成3个自然段")
         canonical = next(e for e in events if e.get("type") == "canonical_response")
         self.assertEqual(canonical["status"], "constraint_failed")
         self.assertFalse(any(sql.startswith("INSERT INTO notes") for sql, _ in fake_db.executed))
@@ -159,6 +162,8 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         self._install_session()
         session = {**api._chat_sessions["s1"], "_turn_contract": api._build_chat_turn_constraint_contract("请写成三段", "")}
         session["_turn_constraint_brief"] = api._chat_turn_constraint_brief(session["_turn_contract"])
+        session["generate_context"] = {"cover_analysis":"[00:10]原音画；未确认房内关系"}
+        session["fact_context"] = "本次商家确认：不写价格"
         good = "画面介绍。\n\n细节介绍。\n\n你关注哪一点？"
         with patch.object(api, "_score_generated_note", AsyncMock(return_value=(90, {}, "优秀"))), \
              patch.object(api, "_generated_quality_issues", side_effect=lambda *a, **kw: []), \
@@ -172,6 +177,8 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         self.assertEqual(call.await_count, 1)
         self.assertIn("正文应为3段", call.call_args.args[2])
         self.assertEqual(call.call_args.kwargs["trace_step"], "chat_quality_repair")
+        self.assertIn("[00:10]原音画；未确认房内关系",call.call_args.args[1])
+        self.assertIn("本次商家确认",call.call_args.args[1])
 
     def test_option_structure_survives_reload_and_is_enforced_on_server(self):
         fake_db = _FakeDB(); api._db = fake_db; self._install_session()

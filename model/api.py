@@ -34,7 +34,7 @@ import lightgbm as lgb
 import numpy as np
 import uvicorn
 import anyio
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Header, Request
 from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
@@ -13827,6 +13827,20 @@ def _split_ocr_body_and_tags(body: str | None, explicit_tags: Any = None) -> tup
     return body_main.strip(), tags
 
 
+def _ocr_original_body(result: dict) -> str:
+    """Project text without changing the hashed, recoverable OCR response."""
+    if result.get("type") == "B" or result.get("is_photo_only"):
+        return ""
+    if isinstance(result.get("text_body"), str):
+        return result["text_body"]
+    body = result.get("body") or ""
+    observation = result.get("cover_desc")
+    suffix = "\n\n【配图视觉描述】" + observation if observation else ""
+    if result.get("type", "A") == "A" and suffix and body.endswith(suffix):
+        return body[:-len(suffix)]
+    return body
+
+
 @app.post("/extract-screenshot")
 async def extract_screenshot(
     req: ScreenshotExtractInput,
@@ -13886,6 +13900,7 @@ async def extract_screenshot(
             img_type = result.get("type", "A")
             body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
             result["body"] = body_main
+            result["text_body"] = "" if img_type == "B" else body_main
             result["tags"] = tags
 
             # B类型（纯图片）：cover_desc 拼入 body 作为视觉上下文，不需要文字内容
@@ -13975,25 +13990,26 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
     if not results:
         raise HTTPException(status_code=400, detail="无 OCR 结果")
     if any(not all(isinstance(r.get(k, ""), (str, type(None))) for k in
-                   ("type", "title", "body", "domain", "cover_desc")) or not (
+                   ("type", "title", "body", "text_body", "domain", "cover_desc")) or not (
                    isinstance(r.get("tags"), (str, type(None))) or isinstance(r.get("tags"), list)
                    and all(isinstance(tag, str) for tag in r["tags"])) for r in results):
         raise HTTPException(422, "截图文字字段格式无效")
-    if sum(len(str(r.get(k) or "")) for r in results for k in
-           ("title", "body", "tags", "cover_desc")) > 24000:
+    if sum(max(len(str(r.get("body") or "")), len(str(r.get("text_body") or ""))) +
+           sum(len(str(r.get(k) or "")) for k in ("title", "tags", "cover_desc")) for r in results) > 24000:
         raise HTTPException(413, "截图文字超过单次处理范围，请拆分笔记；未截断内容")
     if all(r.get("type") == "B" and str(r.get("cover_desc") or "").strip() for r in results):
         observations = "\n\n".join(f"【图{i+1}视觉观察】{r['cover_desc']}" for i, r in enumerate(results))
-        return {"title": "", "body": observations, "tags": "", "domain": results[0].get("domain") or "美食",
+        return {"title": "", "body": observations, "text_body": "", "tags": "", "domain": results[0].get("domain") or "美食",
                 "char_count": 0, "validated": False, "is_photo_only": True}
 
     # 单张且内容质量合理（<500字）直接返回，不需要 agent
-    if len(results) == 1 and len((results[0].get("body") or "")) < 500:
+    if len(results) == 1 and len(_ocr_original_body(results[0])) < 500:
         r = results[0]
-        body_main, tags = _split_ocr_body_and_tags(r.get("body"), r.get("tags"))
+        body_main, tags = _split_ocr_body_and_tags(_ocr_original_body(r), r.get("tags"))
         return {
             "title":  r.get("title", ""),
             "body":   body_main,
+            "text_body": body_main,
             "tags":   tags,
             "domain": r.get("domain", "美食"),
             "char_count": _body_content_len_without_tags(body_main),
@@ -14005,7 +14021,7 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
     for i, r in enumerate(results):
         img_type = r.get("type", "A")
         title    = (r.get("title") or "").strip()
-        body, tags = _split_ocr_body_and_tags(r.get("body"), r.get("tags"))
+        body, tags = _split_ocr_body_and_tags(_ocr_original_body(r), r.get("tags"))
         cover    = (r.get("cover_desc") or "").strip()
         if title or body or tags:
             t_label = f"【图{i+1} 类型:{img_type}】\n"
@@ -14044,9 +14060,10 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
             return {
                 "title":      (d.get("title") or "").strip(),
                 "body":       body_main,
+                "text_body": body_main,
                 "tags":       tags,
                 "domain":     d.get("domain") or "美食",
-                "char_count": d.get("char_count") or _body_content_len_without_tags(body_main),
+                "char_count": _body_content_len_without_tags(body_main),
                 "validated":  True,
             }
     except _public_product.TrialProviderStopped:
@@ -17512,10 +17529,14 @@ async def _stream_upload_to_temp(
 async def upload_image(
     file: UploadFile = File(...),
     user: dict = Depends(_auth.get_current_user),
+    existing_media_refs: list[str] = Form(default=[]),
 ):
     """Normalize one owner-bound image and persist it without metadata."""
     if not _private_storage.object_backend_configured():
         raise HTTPException(status_code=503, detail="私有素材存储暂不可用")
+    candidates = existing_media_refs if isinstance(existing_media_refs, list) else []
+    if len(candidates) > 9:
+        raise HTTPException(422, "一次最多核对9张本人素材")
     filename = file.filename or "image.jpg"
     suffix = Path(filename).suffix.lower() or ".jpg"
     declared_type = str(file.content_type or "").lower()
@@ -17573,6 +17594,12 @@ async def upload_image(
         except OSError:
             pass
     try:
+        reference = await _await_media_worker(_private_storage.match_ready_image,
+            user["id"], candidates, body) if candidates else None
+        if reference is not None:
+            return {"media_ref": reference.id, "filename": filename,
+                    "original_size": original_size, "stored_size": reference.size_bytes,
+                    "width": width, "height": height, "expires_at": reference.expires_at}
         try:
             await _await_media_worker(_private_storage.expire_media, user_id=user["id"], limit=20)
         except (_private_storage.PrivateStorageError, ValueError) as exc:
@@ -18267,7 +18294,7 @@ def _chat_structure_requirements(message: str) -> dict[str, Any]:
     exact_counts: set[int] = set()
     number = r"(10|[1-9一二两三四五六七八九十])"
     pattern = re.compile(
-        r"(?:分成|分为|改成|改为|写成|整理成|保持|正文(?:为|用|要|是|分)?)(?:严格|恰好|只)?\s*"
+        r"(?:分成|分为|改成|改为|写成|整理成|合并成|合并为|保持|正文(?:为|用|要|是|分)?)(?:严格|恰好|只)?\s*"
         + number + r"\s*(?:个)?(?:自然)?段(?:落)?"
         + r"|(?<![\d一二两三四五六七八九十百零])" + number + r"\s*段正文"
     )
@@ -18411,8 +18438,17 @@ def _chat_filter_source_for_turn_contract(source: str, contract: dict | None) ->
 
 
 def _chat_fact_source_for_turn(session: dict, contract: dict | None) -> str:
-    source = session.get("fact_context") or session.get("note_body", "")
-    return _chat_filter_source_for_turn_contract(source, contract)
+    context = session.get("generate_context") or {}
+    facts = session.get("fact_context") or context.get("fact_context") or ""
+    media = context.get("cover_analysis") or context.get("image_desc") or ""
+    parts = []
+    if facts:
+        parts.append("【已提供事实与本次商家确认；保留各条来源】\n" + _chat_filter_source_for_turn_contract(facts, contract))
+    if media:
+        parts.append("【原素材理解；画面/口播观察，非独立经营承诺核验】\n" + media)
+    if not parts:
+        parts.append(_chat_filter_source_for_turn_contract(session.get("note_body", ""), contract))
+    return "\n\n".join(parts)
 
 
 def _chat_turn_constraint_violations(title: str, body: str, contract: dict | None) -> list[str]:
@@ -18512,7 +18548,7 @@ async def _score_chat_note(
             timing=None,
             cover_feats=None,
         )
-        fact_source = session.get("_turn_fact_source") or session.get("fact_context") or session.get("note_body", "")
+        fact_source = session.get("_turn_fact_source") or _chat_fact_source_for_turn(session, session.get("_turn_contract"))
         intent_source = _content_intent_brief(
             domain,
             session.get("content_intent"),
@@ -18606,7 +18642,7 @@ async def _build_chat_plan_options(
     if not raw_options:
         return []
     domain = session.get("domain", "美食")
-    fact_source = session.get("fact_context") or session.get("note_body", "")
+    fact_source = _chat_fact_source_for_turn(session, session.get("_turn_contract"))
     current_body = session.get("note_body", "")
     current_score = session.get("current_score")
     try:
@@ -18655,7 +18691,7 @@ async def _repair_chat_note_if_needed(
     session = {**session, "_turn_user_request": user_msg}
     score, feats, grade, issues = await _score_chat_note(title, body, session)
     domain = session.get("domain", "美食")
-    fact_source = session.get("_turn_fact_source") or session.get("fact_context") or session.get("note_body", "")
+    fact_source = session.get("_turn_fact_source") or _chat_fact_source_for_turn(session, session.get("_turn_contract"))
     turn_constraint_brief = str(session.get("_turn_constraint_brief") or "").strip()
     if score is None:
         return title, body, score, feats, grade, issues, False
@@ -18737,8 +18773,8 @@ async def _repair_chat_note_if_needed(
     constraint_section = _user_constraints_brief(session.get("user_constraints"), "对话优化质量修复")
     if constraint_section:
         repair_parts.append(f"{constraint_section}\n\n")
-    if session.get("fact_context"):
-        repair_parts.append(f"【已提供的事实与本次商家确认；按各条来源区分】\n{session.get('fact_context')}\n\n")
+    if fact_source:
+        repair_parts.append(f"{fact_source}\n\n")
     repair_parts.append(
         f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>"
     )
@@ -18950,7 +18986,8 @@ async def _chat_sse_generator(
         return
 
     turn_session = {**session, "_turn_contract": turn_contract, "_turn_user_request": user_msg,
-                    "_turn_constraint_brief": _chat_turn_constraint_brief(turn_contract)}
+                    "_turn_constraint_brief": _chat_turn_constraint_brief(turn_contract),
+                    "_turn_fact_source": _chat_fact_source_for_turn(session, turn_contract)}
     plan_options = await _build_chat_plan_options(turn_session, full_content)
     if plan_options:
         session["messages"].append({"role": "assistant", "content": full_content})

@@ -1305,6 +1305,40 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(result['model_used'],api._ark_media.MODEL)
         refund.assert_not_called()
 
+    def test_ocr_legacy_projection_preserves_hash_and_exact_original_marker(self):
+        import copy
+        observation = "第一行画面\n第二行画面"
+        original = {"type": "A", "body": "原文【配图视觉描述】这是真实引用\n\n【配图视觉描述】" + observation,
+                    "cover_desc": observation, "tags": []}
+        saved = copy.deepcopy(original)
+        with mock.patch.object(api._mr, "call", side_effect=AssertionError("no model needed")):
+            result = asyncio.run(api._validate_ocr_impl(api.ValidateOcrInput(ocr_results=[original]), {"id":"owner"}))
+        self.assertEqual(result["text_body"], "原文【配图视觉描述】这是真实引用")
+        self.assertEqual(result["body"], result["text_body"])
+        self.assertEqual(original, saved)
+        unmatched = {"type":"A", "body":"正文\n【配图视觉描述】原文未附加", "cover_desc":"不同观察"}
+        self.assertEqual(api._ocr_original_body(unmatched), unmatched["body"])
+        self.assertEqual(api._ocr_original_body({"body":"legacy", "text_body":"explicit"}), "explicit")
+
+    def test_chat_source_reaches_repairs_and_exact_merge_paragraph_instruction(self):
+        session = {"note_body":"旧稿不能替代素材", "fact_context":"本次商家确认：不写价格",
+                   "generate_context":{"cover_analysis":"[00:20]画面是走廊；口播没有说房内"}}
+        source = api._chat_fact_source_for_turn(session, {})
+        self.assertIn("[00:20]", source)
+        self.assertIn("本次商家确认", source)
+        self.assertIn("非独立经营承诺核验", source)
+        self.assertNotIn("旧稿", source)
+        contract = api._chat_structure_requirements("请只改正文，合并成3个自然段，话题另列")
+        self.assertEqual(contract["paragraph_count"], 3)
+        for wording in ("不要合并成3段", "合并成3段以上", "合并成3段或4段"):
+            self.assertIsNone(api._chat_structure_requirements(wording)["paragraph_count"])
+        raw = "00:10/10秒处，未确认在房间内"
+        preserved = api._chat_fact_source_for_turn({"generate_context":{"image_desc":raw}},
+            {"remove_duration_claims":True,"forbidden_terms":["房间"]})
+        self.assertIn(raw,preserved)
+        self.assertTrue(api._chat_turn_constraint_violations("标题","甲\n\n乙\n\n丙\n\n丁\n\n#话题",contract))
+        self.assertFalse(api._chat_turn_constraint_violations("标题","甲\n\n乙\n\n丙\n\n#话题",contract))
+
     def test_ocr_body_and_tags_are_separated_for_scoring(self):
         body, tags = api._split_ocr_body_and_tags(
             "点都德红米肠推荐。#广州美食 #北京路早茶[话题]#",

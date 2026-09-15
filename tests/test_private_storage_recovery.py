@@ -555,6 +555,29 @@ class PrivateStorageRecoveryContractTests(unittest.TestCase):
             self.assertEqual(restored.size, (300, 200))
             self.assertEqual(len(restored.getexif()), 0)
 
+    def test_image_upload_reuses_only_verified_owner_normalized_input(self):
+        from PIL import Image
+        from starlette.datastructures import Headers, UploadFile
+        self.create_user("image-owner")
+        self.create_user("other-owner")
+        def upload(color, owner="image-owner", refs=None):
+            raw=io.BytesIO(); Image.new("RGB",(300,200),color).save(raw,"PNG");raw.seek(0)
+            file=UploadFile(file=raw,filename="same-name.png",headers=Headers({"content-type":"image/png"}))
+            return asyncio.run(api.upload_image(file,{"id":owner},refs or []))
+        first=upload("red")
+        before=db.fetchone("SELECT COUNT(*) AS n FROM private_media_refs")["n"]
+        same=upload("red",refs=[first["media_ref"]])
+        self.assertEqual(same["media_ref"],first["media_ref"])
+        self.assertEqual(db.fetchone("SELECT COUNT(*) AS n FROM private_media_refs")["n"],before)
+        different=upload("blue",refs=[first["media_ref"]])
+        self.assertNotEqual(different["media_ref"],first["media_ref"])
+        with self.assertRaises(api.HTTPException):
+            upload("red",owner="other-owner",refs=[first["media_ref"]])
+        reference,body=private_storage.load_media_bytes(first["media_ref"],user_id="image-owner",purpose="image")
+        self.backend.delete(private_storage._media_key(reference.id, reference.subject_hash, reference.purpose))
+        with self.assertRaises(private_storage.PrivateStorageError):
+            private_storage.match_ready_image("image-owner",[reference.id],body)
+
     def test_streamed_upload_enforces_limit_before_unbounded_read(self):
         from fastapi import HTTPException
         from starlette.datastructures import Headers, UploadFile

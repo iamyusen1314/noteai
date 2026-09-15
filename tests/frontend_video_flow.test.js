@@ -176,7 +176,7 @@ test('screenshot aggregation retains long text and separates photo observations'
     _applyScreenshotDomain(){},_renderScreenshotImageSummaries(){},updateDiagnosisSubmitState(){},showToast(){},
     _supportedScreenshotDomain:d=>d,
   });
-  c.load('_normalizeSsTags','_splitSsBodyAndTags','_bodyCharCountWithoutSsTags','_mergeAndShowOcrResults');
+  c.load('screenshotOriginalBody','_normalizeSsTags','_splitSsBodyAndTags','_bodyCharCountWithoutSsTags','_mergeAndShowOcrResults');
   const set=values=>{c._ssImages=values.map((_,i)=>({dataURL:String(i)}));c._ssOcrCache=new Map(values.map((v,i)=>[String(i),v]));};
   set([{type:'C',body:'甲乙',domain:'旅行'},{type:'A',title:'原文',body:'甲乙丙丁',domain:'旅行'},
     {type:'C',body:'末尾独有信息',domain:'旅行'},{type:'B',cover_desc:'画面是绿树',domain:'旅行'}]);
@@ -188,6 +188,11 @@ test('screenshot aggregation retains long text and separates photo observations'
   assert.equal(c._screenshotExtracted.text_body,'');assert.equal(c._screenshotExtracted._charCount,0);
   assert.equal(c._screenshotExtracted.is_photo_only,true);
   assert.ok(c._screenshotExtracted.body.includes('画面是绿树'));assert.ok(c._screenshotExtracted.body.includes('画面是房间'));
+  const legacy={type:'A',title:'原标题',body:'原正文\n\n【配图视觉描述】绿树与房间',cover_desc:'绿树与房间',domain:'旅行'};
+  const untouched=JSON.stringify(legacy);set([legacy]);c._mergeAndShowOcrResults();
+  assert.equal(c._screenshotExtracted.text_body,'原正文');assert.equal(c._screenshotExtracted._charCount,3);
+  assert.equal(JSON.stringify(legacy),untouched); // Original recovery hash remains valid.
+  assert.equal(c.screenshotOriginalBody({...legacy,body:'正文中引用【配图视觉描述】绿树与房间，然后接续原文'}),'正文中引用【配图视觉描述】绿树与房间，然后接续原文');
 });
 
 test('photo-only screenshot diagnosis submits empty original prose and real media',async()=>{
@@ -207,9 +212,25 @@ test('photo-only screenshot diagnosis submits empty original prose and real medi
     fetch:async(url,options)=>{payload=JSON.parse(options.body);return {status:401};},
     openAuthModal(){},setTimeout(){},
   });
-  c.load('_normalizeSsTags','_joinSsBodyAndTags','diagnosisUsesVideo','startDiagnosis','prepareDiagnosis');
+  c.load('screenshotOriginalBody','_normalizeSsTags','_joinSsBodyAndTags','diagnosisUsesVideo','startDiagnosis','prepareDiagnosis');
   await c.startDiagnosis();await c._diagnosePromise;
   assert.equal(payload.note_title,'');assert.equal(payload.desc,'');
   assert.equal(payload.ocr_char_count,0);
   assert.equal(payload.cover_image,'original-image');assert.equal(payload.domain,'旅行');
+});
+
+
+test('reselected recovered screenshot matches normalized owner ref without new OCR identity',async()=>{
+  let ocr=0, uploads=0;
+  const original={dataURL:'stored-ref',mediaRef:'stored-ref',ocrRequestId:'original-paid-id',recovered:true};
+  const result={type:'A',body:'原文',model_used:'original-model'};
+  const c=context({_ssFileSelectionRevision:0,_ssOcrRevision:1,_ssImages:[original],_ssOcrCache:new Map([['stored-ref',result]]),
+    _screenshotExtracted:{body:'原文'},FileReader:class{readAsDataURL(f){this.onload({target:{result:f.bytes}});}},
+    _chatIdentitySnapshot:()=>({id:'owner'}),_chatIdentityMatches:()=>true,showToast(){},
+    privateImageInput:async(value,refs)=>{uploads++;assert.deepEqual([...refs],['stored-ref']);return 'stored-ref';},
+    _ocrImages:()=>{ocr++;},_invalidateSsAggregateState:()=>{throw Error('original result invalidated');},
+  });c.load('_addSsFiles');await c._addSsFiles([{type:'image/png',name:'renamed.png',bytes:'raw-png'}]);
+  assert.equal(uploads,1);assert.equal(ocr,0);assert.equal(c._ssImages.length,1);
+  assert.equal(c._ssImages[0],original);assert.equal(c._ssOcrCache.get('stored-ref'),result);
+  assert.equal(original.ocrRequestId,'original-paid-id');
 });

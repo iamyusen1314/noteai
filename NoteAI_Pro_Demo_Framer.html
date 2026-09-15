@@ -6832,14 +6832,15 @@ function formatLocalTime() {
 }
 
 const _privateImageInputs = new Map();
-async function privateImageInput(value) {
+async function privateImageInput(value, existingMediaRefs = []) {
   if (!value) return null;
   const owner = _authVerifiedOwnerId || _authUser?.id;
   if (!owner || !_authToken) throw new Error('请先登录后上传图片');
   const identity=_chatIdentitySnapshot(), token=_authToken;
   const valid=()=>_chatIdentityMatches(identity) && _authToken===token;
   if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(value)) return value;
-  const key = owner + ':' + value;
+  const candidates = [...new Set(existingMediaRefs)].slice(0, 9);
+  const key = owner + ':' + value + ':' + candidates.join(',');
   if (!_privateImageInputs.has(key)) {
     _privateImageInputs.set(key, (async () => {
       const raw = value.startsWith('data:') ? value.split(',')[1] : value;
@@ -6851,6 +6852,7 @@ async function privateImageInput(value) {
       if (!valid()) throw new Error('账户已切换，停止上传原图片');
       const form = new FormData();
       form.append('file', blob, 'material.' + ({'image/png':'png','image/webp':'webp','image/jpeg':'jpg'}[mime]));
+      candidates.forEach(ref => form.append('existing_media_refs', ref));
       const response = await fetch(API_BASE + '/upload-image', {method:'POST',headers:{Authorization:'Bearer '+token},body:form});
       const result = await response.json();
       if (!response.ok || !result.media_ref) throw new Error(typeof result.detail === 'string' ? result.detail : '图片私有存储未确认，请查看原上传状态');
@@ -6925,9 +6927,8 @@ async function prepareDiagnosis() {
       return;
     }
     title  = _screenshotExtracted?.title  || '';
-    // 去掉视觉描述附加内容（【配图/封面图视觉描述】xxx），只保留笔记正文
-    const ssBodyOnly = (_screenshotExtracted.is_photo_only ? '' :
-      (_screenshotExtracted.text_body ?? _screenshotExtracted.body ?? '')).replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
+    // Use the original-text projection; do not erase marker-like words from real prose.
+    const ssBodyOnly = screenshotOriginalBody(_screenshotExtracted).trim();
     const ssTags = _normalizeSsTags(_screenshotExtracted?.tags || '');
     desc = _joinSsBodyAndTags(ssBodyOnly, ssTags);
     domain = document.getElementById('inputDomainSS')?.value || '';
@@ -12338,12 +12339,25 @@ function _bodyCharCountWithoutSsTags(body) {
   return String(body || '').replace(/#[^\s#，,、；;\n]+(?:\[话题\])?#?/g, '').replace(/\s+/g, '').length;
 }
 
+function screenshotOriginalBody(d) {
+  if (!d || d.type === 'B' || d.is_photo_only) return '';
+  if (typeof d.text_body === 'string') return d.text_body;
+  const body = d.body || '';
+  // Legacy extract results append this exact observation. Preserve the stored
+  // result (and its recovery hash); separate it only in the display/input view.
+  const suffix = d.cover_desc ? '\n\n【配图视觉描述】' + d.cover_desc : '';
+  return (d.type === 'A' || !d.type) && suffix && body.endsWith(suffix)
+    ? body.slice(0, -suffix.length) : body;
+}
+
 function _summarizeScreenshotResult(d) {
   if (!d) return '';
   const parts = [];
   if (d.title) parts.push(`标题：${d.title}`);
-  const body = d.body || d.cover_desc || d.image_desc || d.visual_desc || '';
-  if (body) parts.push(body);
+  const body = screenshotOriginalBody(d);
+  if (body) parts.push(`原文：${body}`);
+  const observation = d.cover_desc || d.image_desc || d.visual_desc || (d.is_photo_only ? d.body : '');
+  if (observation) parts.push(`画面观察：${observation}`);
   const tags = _normalizeSsTags(d.tags || '');
   if (tags) parts.push(`话题：${tags}`);
   if (d.domain) parts.push(`领域：${d.domain}`);
@@ -12528,11 +12542,32 @@ async function _addSsFiles(files) {
   if (selectionRevision !== _ssFileSelectionRevision || collectionRevision !== _ssOcrRevision) return;
 
   const seen = new Set(_ssImages.map(img => img.dataURL));
-  const unique = loaded.filter(img => {
+  let unique = loaded.filter(img => {
     if (seen.has(img.dataURL)) return false;
     seen.add(img.dataURL);
     return true;
-  }).slice(0, remain);
+  });
+  // Recovered references have no local bytes. Match the normalized model input
+  // through private storage before assigning any new paid OCR request identity.
+  const restored = _ssImages.filter(img => img.mediaRef && _ssOcrCache.has(img.dataURL));
+  if (restored.length && unique.length) {
+    const identity = _chatIdentitySnapshot();
+    showToast('正在核对已保存素材，相同图片会沿用原识别结果');
+    try {
+      const fresh = [];
+      const refs = restored.map(img => img.mediaRef);
+      for (const img of unique) {
+        img.mediaRef = await privateImageInput(img.dataURL, refs);
+        if (!_chatIdentityMatches(identity) || selectionRevision !== _ssFileSelectionRevision || collectionRevision !== _ssOcrRevision) return;
+        if (!refs.includes(img.mediaRef)) fresh.push(img);
+      }
+      unique = fresh;
+    } catch (err) {
+      if (_chatIdentityMatches(identity)) showToast(err.message || '素材核对未完成，未发起新的识别');
+      return;
+    }
+  }
+  unique = unique.slice(0, remain);
   if (!unique.length) { showToast('这些图片已在本次素材中，已保留原识别结果'); return; }
   unique.forEach(img => _setSsImageStatus(img, 'pending', '等待识别'));
   _ssImages.push(...unique);
@@ -12609,7 +12644,7 @@ function _tryFinalizeCurrentScreenshotBatch() {
   if (_ssMergeRevision === revision && _ssMergePromise) return _ssMergePromise;
 
   const validCached = imageSnapshot.map(img => _ssOcrCache.get(img.dataURL)).filter(Boolean);
-  const totalBodyLen = validCached.reduce((sum, result) => sum + (result.body || '').length, 0);
+  const totalBodyLen = validCached.reduce((sum, result) => sum + screenshotOriginalBody(result).length, 0);
   _ssMergeRevision = revision;
   const mergeTask = validCached.length > 1 || totalBodyLen > 500
     ? _validateAndMergeOcr(validCached, revision, imageSnapshot)
@@ -12948,9 +12983,9 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
     (d.title || '').length > (best || '').length ? (d.title || '') : best, '');
 
   // 正文和话题分轨：正文去重，话题单独去重，避免话题被计入正文字数后又丢失。
-  const textParts = textSources.map(d => _splitSsBodyAndTags(d.body || '', d.tags || ''));
+  const textParts = textSources.map(d => _splitSsBodyAndTags(screenshotOriginalBody(d), d.tags || ''));
   const allBodies = textParts.map(d => d.body).filter(Boolean);
-  const mergedTags = _normalizeSsTags(valid.map(d => _splitSsBodyAndTags(d.body || '', d.tags || '').tags).join(' '));
+  const mergedTags = _normalizeSsTags(valid.map(d => _splitSsBodyAndTags(screenshotOriginalBody(d), d.tags || '').tags).join(' '));
   const dedupedBodies = [];
   for (const b of allBodies) {
     if (dedupedBodies.some(ex => ex.includes(b))) continue;
