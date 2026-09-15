@@ -6,12 +6,68 @@
 Item32新的prospective计划和Item36完整费用方案。新生产请求及新增长期费用按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September15 新窗口已获唯一一次授权（14:23:33UTC）
+Owner通过当前确认问题明确选择“批准此新窗口唯一一次”。批准修复后一次：
+**Sep15 15:30–16:30UTC／北京时间23:30–次日00:30**，启动严格早于
+**16:10UTC／北京时间次日00:10**，fresh同UTC桶实测0/34、最多34 admissions、
+自动重试0、原DB只读probe/Trends采集/必要恢复，无新模型请求、订阅或云资源。
+失窗或再失败不自动改期；不重放79e失败入口或两历史provider身份。
+原WORK_ROOT/executor.lock及原失败记录保留。新canonical plan现已绑定此授权；
+原a86b批准plan在Git79e、原host包及私有original-authorized-plan.json仍为原字节。
+修复executor SHA992b967d…c3a6abd，123/123聚焦回归及独立只读review通过；
+新PENDING提案曾被_load_plan以plan_not_authorized拒绝，确认前未执行。
+首次扩展121测试中3条synthetic fixture绑定旧executor SHA而失败，仅改临时副本后通过；
+最终123包含8条诊断与browser/DBprobe边界验证。实际原a78f失败stderr仍不可恢复。
+下列“下一次待确认”是本次新确认前的提案历史；此处明确授权覆盖它的具名范围。
+下一步：从本轮已提交源码打新私有包、准备绑定原失败/原lock的独立唯一日志入口，
+15:30UTC到窗后再次fresh核时/旧任务/host/DB配额，再按批准范围唯一执行。
+
+## September15 唯一实际执行失败与安全读回（14:08UTC）
+- 本次79e1e35包只提交一次，Cloud Assistant `t-sz06x5b7jxmob28`；
+  started=`2026-09-15T14:02:18.304253+00:00`，done=`14:02:19.828477+00:00`，
+  exit2，`ITEM32_EXECUTION_REJECTED code=command_failed automatic_retry_count=0`。
+  原入口/plan/包/started/child/done/log全部封存，不再次提交或删除原work root。
+- 14:08:16UTC原主机只读回执`t-sz06x5bqpq0969s`：source检查容器exit0，随后
+  browser/import检查容器exit1，二者destroy；父/子PID1253945/1253947均已退出。
+  原root仅executor.lock，无admission/run；三任务labels及固定Trends容器为空。
+  原unit inactive/dead/disabled及SHA3ed7e555…e3b6、两前驱admission和diagnostic result
+  SHA均未变。没有额外清理或服务恢复动作。
+- 原绑定源码控制流与事件共同证明停在读取Secret/DB probe之前，provider admissions0、
+  collection未启动；**fresh DB quota0/34尚未证明，前后DB零写Evidence未生成**。
+  不能用“未到DB”替代完整Item32验收。原stderr已被旧_run丢弃，不能冒充取得原错误详情。
+- 原执行器`--readback-only`回执`t-sz06x5bt4ny0wsg`为UNKNOWN_HOLD、
+  no_replay=true/readiness_credit=false/runtime_state=NOT_READ；这个结果与无admission一致。
+  本轮noteai-item32一次续执行已通过app删除；没有后继调度，原noteai-5ce未改。
+- 四份原dispatch记录已按主机SHA重建逐字节匹配，私有目录
+  `/Users/openclaw/.codex/tmp/noteai-item32-prospective-20260915/original-dispatch-20260915T140218Z/`；
+  `failure-readback-summary.json`保留事件、依据和边界。源包仍为原79e1e35，不现场换包重试。
+- 下一步只做对应导入失败和安全诊断的本地修复/验证；如需再次生产尝试，必须提交新的
+  明确未来窗口及一次范围供owner确认，不使用本次已经执行的授权。Item33/36/37/38依赖
+  尚未关闭，Readiness仍31/37；既有ALB费用授权有效，但创建条件未到。
+
+## 下一次Item32提案（尚未批准，不自动派发）
+- 明确新窗口为 **Sep15 15:30–16:30UTC／北京时间23:30–次日00:30**，dispatch严格早于
+  **16:10UTC／次日00:10**。仍为同Sep15 UTC桶fresh实测0/34、一轮最多34 admissions、
+  自动重试0、原DB只读与结果恢复；原79e失败不会被抹掉或作为再次运行的授权。
+- 单独PENDING JSON：`deploy/production/plans/item32-readonly-successor-repair-proposal.json`；
+  原canonical approved JSON SHAa86b55be…0fe8未变。完整范围在
+  `docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md`的“下一次待确认范围”。
+- 唯一可接受的后续身份方式仍使用原固定WORK_ROOT/executor.lock；先绑定79e原done/log
+  SHA和退出事实，root必须仅有原安全lock、无admission/run/export/相关容器。
+  不删除/迁移root、不修改原记录、不重放旧请求。新批准后才能生成最终scope/新独立
+  O_EXCL外层记录；失窗或再失败不自动生成后继。任何UNKNOWN只读原结果。
+- 本地复现使用已有ff030f5镜像+绑定三overlay/signer，原readonly无网检查exit1，
+  8MiB私有tmpfs+明确本地SQLite路径修复后exit0、SQLite327680bytes；这不是原a78f
+  stderr恢复。原exact_match字符串正确，未更换UA/signer/内存/供应商权限。
+- 原失败5文件已分别存本机与ORICO限定目录且SHA一致，未混入Git、Secret或业务DB；
+  详见私有`original-dispatch-20260915T140218Z/external-copy-manifest.json`。
+
 ## September15 当前明确授权（首次时间读回13:11:36UTC）
 Owner已批准本次Item32唯一只读Trends successor：2026-09-15 14:00–15:00UTC，
 dispatch严格早于14:40UTC；先核对原任务和fresh0/34，最多34 admissions、零自动重试、
 DB只读证明及必要原结果恢复。不得提前/晚于窗口启动，失窗不自动改期或造后继。
 当前plan已绑定AUTHORIZED，确认时间13:11:36UTC，SHA256
-`a86b55be4093db3123d3e18b0fd6f6fccbb92520b098efd3bff8a7d6a0670fe8`；尚未生产派发。
+`a86b55be4093db3123d3e18b0fd6f6fccbb92520b098efd3bff8a7d6a0670fe8`；已唯一派发，结果见上段。
 真实Item32 terminal和原internal rollback满足后接续Item33；不得同UTC桶消耗新34次。
 
 Owner同时批准原VPC双区标准公网ALB＋双EIP及真实持续费用：ALB0.125元/h，
@@ -130,7 +186,7 @@ Item33及必要前置满足且确需实施后才创建，购前配置/报价一�
 | Item | 实际状态 | 依赖及下一动作 |
 |---|---|---|
 | 31 | blocked；原5ce支付/自然重复回调/全退完成 | Sep16读取原Sep15账单+独立capture及原terminal validator；由旧窗口唯一任务执行，无新订单/退款 |
-| 32 | AUTHORIZED_AWAITING_WINDOW_AND_FRESH_PREFLIGHT；未terminal | 批准包79e1e35与唯一日志入口已在原F准备；本窗口noteai-item32 Sep15 14:00UTC续执行，dispatch<14:40；fresh0/34尚待实测，旧Sep7不可运行 |
+| 32 | ORIGINAL_PREFLIGHT_FAILED；REPAIR_RUN_AUTHORIZED；未terminal | 原79e失败记录封存；修复992b源码123测试通过；新owner批准Sep15 15:30–16:30UTC、dispatch<16:10，fresh0/34尚待实测，准备新唯一包/入口，不自动重试 |
 | 33 | unverified | 等真实Item32 terminal及internal rollback；再按原managed promotion执行，不套用Sep7/8历史时间 |
 | 36 | unverified | capacity100/Item34已具备，Item33尚缺；C/F私网候选及rollback已准备，最后ALB实测0；指定四项费用已获批准、等Item33及临执行前置，尚无资源创建 |
 | 37 | unverified | real AI、31、36满足后做原完整商业链联合验收；现Admin契约已同步 |

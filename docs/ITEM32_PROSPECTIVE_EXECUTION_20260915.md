@@ -1,6 +1,52 @@
 # Item32：新的只读 Trends 执行提案
 
-状态：**AUTHORIZED_AWAITING_WINDOW_AND_FRESH_PREFLIGHT / 已获本次具名授权，尚未派发**。
+状态：**原79e预检失败已封存；修复后新窗口已获唯一一次授权，尚未启动**。
+
+Owner已于本轮确认选择“批准此新窗口唯一一次”，首次时间读回14:23:33UTC。
+生效范围为下述15:30–16:30UTC、dispatch<16:10的一次；canonical plan已绑定
+新确认时间、scope及修复executor SHA992b967d…c3a6abd。原批准plan/包/失败记录保留。
+本地123/123聚焦回归、独立review和PENDING拒绝验证通过。下文“待确认”段保留
+批准前提案原文；不再阻断此次已确认范围，仍不授权自动重试或任何新后继。
+
+实际started2026-09-15T14:02:18.304253Z、done14:02:19.828477Z；源码检查容器成功，
+随后无网络browser/import检查exit1，原executor为command_failed/exit2。原主机14:08读回
+只有executor.lock，无admission/run，父子进程已退出，临时容器均已清理，原unit和两前驱
+SHA未变。绑定源码与原事件证明未进入Secret/DBprobe/供应商采集；admissions0，
+**fresh DB quota未证明，DB零写Evidence未生成**。原stderr未保存，不能声称原错误细节已恢复。
+原--readback-only为UNKNOWN_HOLD/no_replay/readiness_credit=false；当前一次续执行已删除。
+原入口、包、plan、四原始dispatch记录封存；之后仅本地修复，任何再执行须新具名窗口授权。
+以下14:00–15:00UTC授权与窗口前准备保留为本次历史，不是再次提交指令。
+
+## 下一次待确认范围（PENDING；不自动执行）
+
+这不是原失败入口的重试授权。修复提案另存
+`deploy/production/plans/item32-readonly-successor-repair-proposal.json`，授权字段为空，
+原79e1e35批准plan及host包保持原字节。拟请owner只确认以下一次范围：
+
+| 条件 | 新提案 |
+| --- | --- |
+| 开始窗口 | **2026-09-15 15:30–16:30UTC**，北京时间 **9月15日23:30–9月16日00:30** |
+| 启动截止 | **严格早于16:10UTC／北京时间9月16日00:10**；实际结束严格早于16:30UTC |
+| 请求配额 | 同Sep15 UTC桶fresh实际0/34；一轮最多34 admissions，自动重试0；不足或未知就停止，不补调用 |
+| 来源/任务 | 原API-F、原固定image/三overlay/合法XHS会话，仍仅Trends只读采样；不新建账户或更换旧身份 |
+| 修复范围 | 无网导入检查使用8MiB私有tmpfs承接本地SQLite初始化；固定phase/returncode/错误类别日志，不输出Secret/原stderr |
+| DB范围 | 仍为原两个BEGIN READ ONLY probe；采集容器无生产DATABASE_URL；无生产业务写、schema/ACL更改 |
+| 恢复范围 | 同原固定WORK_ROOT和executor.lock；保留原79e started/child/done/log及两历史admission。新外层只追加一次O_EXCL记录；绝不删除/迁移root、改旧记录或重放请求 |
+| 费用/资源 | 既有Trends请求和网络实际增量费按原口径记录，未知不填0；无模型推理、新订阅或长期云资源；不挪用ALB授权 |
+
+新批准后先绑定实际确认时间、最终executor SHA和scope SHA；保留旧plan恢复副本，再将
+新批准内容置于原canonical plan位置供同一terminal validator核对。生成的独立包与外层入口
+须绑定原失败done/log SHA、退出事实及原root仅安全executor.lock。出现任何admission/run、
+export、原进程、相关容器、来源/前驱变化即停止只读，不绕过原fresh host/quota/DB检查。
+独立新外层记录只标本次新授权的调用，不是新的业务root或旧provider身份重放。
+
+原noteai-5ce依然由旧窗口在Sep16 02:01:30UTC唯一执行。本窗口结束早于该安排；实际
+仍须核对其prepare状态，如已进入prepare→close/final-readback则避让相关共享变更。
+失窗、失去fresh条件或再次失败均不自动改期。真正四份原Evidence通过才能接续Item33；
+若本提案成功于Sep15桶，Item33仍须不同UTC桶及其他原前置。Item36费用授权已具备，
+不提前创建ALB/EIP；Item31/37/38和Readiness不因提案或本地测试计分。
+
+以下为原14:00–15:00UTC授权及历史准备：
 
 Owner确认首次时间读回为2026-09-15T13:11:36+00:00，明确批准下述9月15日14:00–15:00UTC、
 dispatch严格早于14:40的一次范围及必要恢复；真实终态满足后接续Item33。

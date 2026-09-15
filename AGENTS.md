@@ -2,6 +2,23 @@
 
 ## Current execution control
 
+September15 14:23:33UTC owner explicitly approves one repaired Item32 attempt
+in15:30–16:30UTC today, dispatch strictly before16:10UTC, same-day fresh0/34,
+maximum34 admissions, zero automatic retry, original DB-read-only probes and
+necessary recovery. Preserve the failed79e outer invocation/old provider identities
+and original work root/lock. New canonical source/plan binds this confirmation;
+no late dispatch, automatic successor or expanded resource scope. Older failed-run
+and pending-approval paragraphs below are history where they conflict. Exact
+prepared package, unique outer entry and state are at Handoff CURRENT.
+
+September15 14:08UTC actual outcome: the single approved Item32 dispatch failed
+before admission in the network-none browser/import preflight. Original records
+and identities are sealed, no retry or new window is approved. Readiness31/37;
+fresh DB quota/proof was not reached. The current one-time noteai-item32 automation
+was deleted; original noteai-5ce remains exclusively in the old thread. Continue
+the concrete local repair and other independent authorized work. Exact original
+readback and the next prospective proposal are at Handoff CURRENT.
+
 September15 owner explicitly approves the single Item32 prospective run on
 2026-09-15 14:00–15:00UTC, dispatch strictly before14:40UTC, fresh0/34,
 maximum34 admissions, zero automatic retry, old identities sealed, DB read-only

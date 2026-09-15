@@ -1,5 +1,6 @@
 import hashlib
 import fcntl
+import io
 import json
 import os
 import sqlite3
@@ -8,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timezone
+from contextlib import ExitStack, redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -31,6 +33,89 @@ TEST_WINDOW = {
 
 def completed(args, stdout=b"", returncode=0):
     return subprocess.CompletedProcess(args, returncode, stdout, b"")
+
+
+class Item32CommandDiagnosticTests(unittest.TestCase):
+    def test_failure_keeps_stable_error_and_only_fixed_diagnostic_fields(self):
+        private = "cookie-value https://private.invalid/path secret-module /private/source.py"
+        result = subprocess.CompletedProcess(["private-command", private], 1,
+            private.encode(), ("ModuleNotFoundError: " + private).encode())
+        output = io.StringIO()
+        with mock.patch.object(successor.subprocess, "run", return_value=result) as run, redirect_stderr(output):
+            with self.assertRaises(successor.Item32CommandError) as caught:
+                successor._run(result.args, phase="RUNTIME_OVERLAY_CHECK")
+        self.assertEqual(str(caught.exception), "command_failed")
+        expected = {"event": "item32_host_command_failed", "phase": "RUNTIME_OVERLAY_CHECK",
+            "returncode": 1, "stderr_category": "PYTHON_IMPORT_ERROR_PATTERN"}
+        self.assertEqual(caught.exception.diagnostic, expected)
+        self.assertEqual(json.loads(output.getvalue()), expected)
+        self.assertNotIn(private, repr(caught.exception))
+        self.assertNotIn(private, output.getvalue())
+        self.assertEqual(run.call_count, 1)
+
+    def test_fixed_categories_do_not_copy_exception_or_provider_content(self):
+        cases = (
+            (b"SyntaxError: private-syntax", "PYTHON_SYNTAX_ERROR_PATTERN"),
+            (b"ImportError: private-module", "PYTHON_IMPORT_ERROR_PATTERN"),
+            (b"PermissionError: private-path", "PYTHON_PERMISSION_ERROR_PATTERN"),
+            (b"sqlite3.OperationalError: unable to open database file /private", "SQLITE_OPEN_ERROR_PATTERN"),
+            (b"sqlite3.OperationalError: attempt to write a readonly database /private", "SQLITE_READ_ONLY_PATTERN"),
+            (b"sqlite3.OperationalError: read-only file system /private", "READ_ONLY_FILESYSTEM_PATTERN"),
+            (b"Cannot connect to the Docker daemon at private-address", "DOCKER_DAEMON_UNAVAILABLE_PATTERN"),
+            (b'invalid mount config for type "bind": /private', "DOCKER_MOUNT_ERROR_PATTERN"),
+            (b"authorization=private cookie=private https://private.invalid", "UNCLASSIFIED"),
+        )
+        for raw, expected in cases:
+            with self.subTest(category=expected), mock.patch.object(successor.subprocess, "run",
+                return_value=subprocess.CompletedProcess(["private"], 1, b"private-stdout", raw)
+            ) as run, redirect_stderr(io.StringIO()) as output:
+                with self.assertRaisesRegex(successor.Item32Error, "^command_failed$"):
+                    successor._run(["private"])
+                diagnostic = json.loads(output.getvalue())
+                self.assertEqual(diagnostic["stderr_category"], expected)
+                self.assertEqual(diagnostic["phase"], "HOST_COMMAND")
+                self.assertNotIn("private", output.getvalue())
+                self.assertEqual(run.call_count, 1)
+
+    def test_merged_output_remains_private_and_returncode_does_not_claim_oom(self):
+        result = subprocess.CompletedProcess(["private"], 137,
+            b"cookie=private https://private.invalid", None)
+        with mock.patch.object(successor.subprocess, "run", return_value=result) as run, redirect_stderr(io.StringIO()) as output:
+            with self.assertRaises(successor.Item32CommandError):
+                successor._run(["private"], stderr_to_stdout=True, phase="DB_BEFORE_PROBE")
+        diagnostic = json.loads(output.getvalue())
+        self.assertEqual(diagnostic["returncode"], 137)
+        self.assertEqual(diagnostic["stderr_category"], "UNCLASSIFIED")
+        self.assertNotIn("private", output.getvalue())
+        self.assertEqual(run.call_count, 1)
+
+    def test_success_and_unchecked_cleanup_keep_original_silent_behavior(self):
+        for returncode, check in ((0, True), (1, False)):
+            result = subprocess.CompletedProcess(["private"], returncode, b"private", b"private")
+            with self.subTest(returncode=returncode), mock.patch.object(successor.subprocess, "run", return_value=result) as run, redirect_stderr(io.StringIO()) as output:
+                self.assertIs(successor._run(["private"], check=check), result)
+                self.assertEqual(output.getvalue(), "")
+                self.assertEqual(run.call_count, 1)
+
+    def test_dynamic_phase_is_rejected_before_command_without_echo(self):
+        with mock.patch.object(successor.subprocess, "run", side_effect=AssertionError("command forbidden")) as run, redirect_stderr(io.StringIO()) as output:
+            with self.assertRaisesRegex(successor.Item32Error, "^command_phase$"):
+                successor._run(["unused"], phase="private https://private.invalid")
+            run.assert_not_called()
+            self.assertEqual(output.getvalue(), "")
+
+    def test_main_preserves_exit_two_and_original_command_failed_line(self):
+        result = subprocess.CompletedProcess(["private"], 1, b"private", b"private")
+        with mock.patch.object(successor.subprocess, "run", return_value=result) as run, mock.patch.object(
+            successor, "execute", side_effect=lambda *_args: successor._run(["private"], phase="RUNTIME_OVERLAY_CHECK")
+        ), redirect_stderr(io.StringIO()) as output:
+            self.assertEqual(successor.main(["--plan", "unused", "--adapter", "unused", "--hold-evidence", "unused"]), 2)
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(json.loads(lines[0])["phase"], "RUNTIME_OVERLAY_CHECK")
+        self.assertEqual(lines[1], "ITEM32_EXECUTION_REJECTED code=command_failed automatic_retry_count=0")
+        self.assertNotIn("private", output.getvalue())
+        self.assertEqual(run.call_count, 1)
 
 
 class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
@@ -242,9 +327,18 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                 now=datetime(2026, 9, 8, 0, 0, tzinfo=timezone.utc),
             )
 
-    def test_pending_plan_rejected_before_any_host_secret_or_admission_action(self):
+    def synthetic_prospective_plan(self):
         canonical = ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json"
-        pending = json.loads(canonical.read_text())
+        plan = json.loads(canonical.read_text())
+        # The deployed plan keeps its original executor binding. Tests exercise
+        # the local candidate using only temporary, explicitly synthetic copies.
+        plan["outer_executor_sha256"] = hashlib.sha256(
+            (ROOT / "tools/execute_item32_readonly_trends_successor.py").read_bytes()
+        ).hexdigest()
+        return plan
+
+    def test_pending_plan_rejected_before_any_host_secret_or_admission_action(self):
+        pending = self.synthetic_prospective_plan()
         pending["authorization"] = {
             "status": "PENDING", "confirmed_at_utc": None, "approved_scope_sha256": None,
         }
@@ -263,7 +357,7 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
         })
 
     def test_prospective_window_and_scope_approval_are_bound_without_code_dates(self):
-        plan = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())
+        plan = self.synthetic_prospective_plan()
         plan["authorization"] = {
             "status": "AUTHORIZED", "confirmed_at_utc": "2026-09-15T12:00:00+00:00",
             "approved_scope_sha256": successor._approval_scope_sha256(plan),
@@ -299,7 +393,7 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                 successor._plan_window({**original, field: value})
 
     def test_future_confirmation_cannot_authorize_a_future_window(self):
-        plan = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())
+        plan = self.synthetic_prospective_plan()
         for field in ("not_before_utc", "bucket_date_utc", "dispatch_deadline_utc", "must_finish_before_utc"):
             plan["admission"][field] = plan["admission"][field].replace("2026-09-15", "2099-09-15")
         plan["authorization"] = {
@@ -523,6 +617,89 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
         self.assertEqual(verified["call_dates"], ["2026-09-05", "2026-09-06"])
         self.assertEqual(database.read_bytes(), store_raw)
 
+    def test_browser_preflight_initialization_uses_only_bounded_disposable_sqlite(self):
+        plan = self.synthetic_prospective_plan()
+        unit = self.root / "synthetic-unit"
+        unit.write_bytes(b"synthetic suspended unit")
+        captured = []
+        source_commands = []
+
+        def fake_run(args, **kwargs):
+            phase = kwargs.get("phase")
+            if phase == "UNIT_FRAGMENT_READBACK":
+                return completed(args, str(unit).encode())
+            if phase == "TASK_CONTAINER_READBACK":
+                return completed(args)
+            if phase == "IMAGE_INSPECT":
+                return completed(args, json.dumps([{"Id": successor.IMAGE, "Config": {
+                    "Labels": {"com.noteai.runtime.role": "xhs-http"},
+                    "Entrypoint": ["/app/scripts/docker_entrypoint.sh"], "Cmd": ["/bin/false"],
+                }}]).encode())
+            if phase == "IMAGE_SOURCE_CHECK":
+                source_commands.append(args)
+                rows = [f"{plan['image_source_sha256'][name]}  {path}"
+                    for name, path in successor.IMAGE_SOURCE_CONTAINER_PATHS.items()]
+                rows.append(f"{successor.EXPECTED_SIGNER_ASSET_SHA256}  {successor.SIGNER_ASSET_CONTAINER_PATH}")
+                return completed(args, ("\n".join(rows) + "\n").encode())
+            if phase == "RUNTIME_OVERLAY_CHECK":
+                captured.append(args)
+                raise successor.Item32Error("synthetic_browser_command_captured")
+            raise AssertionError("unexpected synthetic host command")
+
+        with ExitStack() as stack:
+            for name in ("_validated_export_account", "_assert_runtime_overlay_sources",
+                         "_assert_trends_unit_suspended", "_assert_fixed_trends_container_absent",
+                         "_remove_container"):
+                stack.enter_context(mock.patch.object(successor, name))
+            stack.enter_context(mock.patch.object(successor, "EXPECTED_UNIT_SHA256", hashlib.sha256(unit.read_bytes()).hexdigest()))
+            stack.enter_context(mock.patch.object(successor, "_run", side_effect=fake_run))
+            with self.assertRaisesRegex(successor.Item32Error, "synthetic_browser_command_captured"):
+                successor._preflight_host(plan, ROOT / successor.ADAPTER_SOURCE_REF)
+        self.assertEqual(len(captured), 1)
+        args = captured[0]
+        self.assertIn("--network=none", args)
+        self.assertIn("--read-only", args)
+        self.assertIn("--user=999:999", args)
+        self.assertIn("--tmpfs=/tmp/item32-import:rw,nosuid,nodev,noexec,size=8m,mode=0700,uid=999,gid=999", args)
+        self.assertEqual([arg for arg in args if arg.startswith("--env=")],
+            ["--env=DATABASE_URL=", "--env=NOTEAI_SQLITE_PATH=/tmp/item32-import/noteai.db"])
+        self.assertFalse(any("--env-file" in arg for arg in args))
+        self.assertEqual(len(source_commands), 1)
+        self.assertFalse(any("item32-import" in arg or "DATABASE_URL" in arg for arg in source_commands[0]))
+        mounts = [args[index + 1] for index, arg in enumerate(args) if arg == "--mount"]
+        self.assertEqual(len(mounts), len(successor.RUNTIME_OVERLAY_SHA256))
+        self.assertTrue(all(mount.endswith(",readonly") for mount in mounts))
+        compile(args[-1], "<synthetic-browser-check>", "exec")
+
+    def test_db_probes_keep_original_connection_env_without_browser_tmpfs(self):
+        # Synthetic command receipts only: no connection or subprocess runs.
+        result = {"server_enforced_read_only": True, "write_count": 0,
+            "tuple_write_count": 0, "write_tables": [], "xid_assigned": False,
+            "transaction_rolled_back": True, "readback_query_sha256": successor.DB_PROBE_QUERYSET_SHA256,
+            "secret_values_recorded": False, "active_or_manual_count": 0,
+            "session_blocked_count": 0, "today_attempt_count": 0,
+            "session_identity_sha256": "a" * 64}
+        calls = []
+
+        def fake_run(args, **kwargs):
+            calls.append((args, kwargs))
+            return completed(args, json.dumps(result).encode())
+
+        with mock.patch.object(successor, "_run", side_effect=fake_run), mock.patch.object(
+            successor, "_remove_registered_container"
+        ):
+            for phase in ("before", "after"):
+                successor._run_db_probe(self.root, "", phase, {})
+                self.assertFalse((self.root / f"db-{phase}.env").exists())
+        self.assertEqual(len(calls), 2)
+        for (args, kwargs), phase in zip(calls, ("before", "after")):
+            self.assertEqual(kwargs["phase"], {"before": "DB_BEFORE_PROBE", "after": "DB_AFTER_PROBE"}[phase])
+            self.assertIn("--network=bridge", args)
+            self.assertIn("--read-only", args)
+            self.assertEqual(args[args.index("--env-file") + 1], str(self.root / f"db-{phase}.env"))
+            self.assertFalse(any("item32-import" in arg or arg.startswith("--env=DATABASE_URL=")
+                or arg.startswith("--env=NOTEAI_SQLITE_PATH=") for arg in args))
+
     def test_collection_mounts_only_task_store_and_exact_runtime_overlays(self):
         run_dir = self.root / "run"
         runtime_dir = self.root / "runtime"
@@ -582,6 +759,9 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
             create,
         )
         self.assertNotIn("DATABASE_URL", "\n".join(create))
+        self.assertNotIn("item32-import", "\n".join(create))
+        self.assertIn("--env=NOTEAI_SQLITE_PATH=/task/noteai.db", create)
+        self.assertIn("--network=bridge", create)
         self.assertFalse(cookie_env.exists())
 
     def test_current_runtime_files_are_fixed_and_missing_or_changed_fails_before_container(self):

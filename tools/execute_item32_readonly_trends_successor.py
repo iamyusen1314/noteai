@@ -269,13 +269,51 @@ def _identity(namespace: str, value: str) -> str:
     return _sha256_bytes(f"noteai-item32:{namespace}:{value}".encode("utf-8"))
 
 
+_COMMAND_PHASES = frozenset({
+    "HOST_COMMAND",
+    "UNIT_FRAGMENT_READBACK", "UNIT_STATE_READBACK",
+    "FIXED_CONTAINER_READBACK", "TASK_CONTAINER_READBACK",
+    "IMAGE_INSPECT", "IMAGE_SOURCE_CHECK", "RUNTIME_OVERLAY_CHECK",
+    "DB_BEFORE_PROBE", "DB_AFTER_PROBE",
+    "COLLECTION_CREATE", "COLLECTION_INSPECT", "COLLECTION_START",
+    "CONTAINER_REMOVE", "CONTAINER_CLEANUP_READBACK",
+})
+_COMMAND_DIAGNOSTIC_PATTERNS = (
+    ("PYTHON_SYNTAX_ERROR_PATTERN", rb"(?m)^(?:SyntaxError|IndentationError):"),
+    ("PYTHON_IMPORT_ERROR_PATTERN", rb"(?m)^(?:ModuleNotFoundError|ImportError):"),
+    ("PYTHON_PERMISSION_ERROR_PATTERN", rb"(?m)^PermissionError:"),
+    ("SQLITE_OPEN_ERROR_PATTERN", rb"(?m)^sqlite3\.OperationalError: unable to open database file"),
+    ("SQLITE_READ_ONLY_PATTERN", rb"(?m)^sqlite3\.OperationalError: attempt to write a readonly database"),
+    ("READ_ONLY_FILESYSTEM_PATTERN", rb"(?i)read-only file system"),
+    ("DOCKER_DAEMON_UNAVAILABLE_PATTERN", rb"(?i)cannot connect to the docker daemon"),
+    ("DOCKER_MOUNT_ERROR_PATTERN", rb"(?i)invalid mount config for type"),
+)
+
+
+class Item32CommandError(Item32Error):
+    """Original stable error plus fixed diagnostics; never retain command output."""
+
+    def __init__(self, phase: str, returncode: int, category: str):
+        super().__init__("command_failed")
+        self.diagnostic = {
+            "event": "item32_host_command_failed",
+            "phase": phase,
+            "returncode": returncode,
+            # A matched pattern is a diagnostic clue, not an asserted root cause.
+            "stderr_category": category,
+        }
+
+
 def _run(
     args: list[str],
     *,
     timeout: int = 30,
     check: bool = True,
     stderr_to_stdout: bool = False,
+    phase: str = "HOST_COMMAND",
 ) -> subprocess.CompletedProcess[bytes]:
+    if phase not in _COMMAND_PHASES:
+        raise Item32Error("command_phase")
     completed = subprocess.run(
         args,
         stdout=subprocess.PIPE,
@@ -284,7 +322,14 @@ def _run(
         check=False,
     )
     if check and completed.returncode != 0:
-        raise Item32Error("command_failed")
+        raw = completed.stdout if stderr_to_stdout else completed.stderr
+        category = next((name for name, pattern in _COMMAND_DIAGNOSTIC_PATTERNS
+            if re.search(pattern, raw or b"")), "UNCLASSIFIED")
+        error = Item32CommandError(phase, completed.returncode, category)
+        # Do not log argv, exception text, paths, modules, URLs or output bytes.
+        # Existing outer invocation logging owns persistence and no-replay.
+        print(json.dumps(error.diagnostic, sort_keys=True), file=sys.stderr, flush=True)
+        raise error
     return completed
 
 
@@ -945,9 +990,10 @@ def _update_admission(
 def _remove_container(name: str) -> None:
     if not name:
         return
-    _run(["docker", "rm", "-f", name], check=False)
+    _run(["docker", "rm", "-f", name], check=False, phase="CONTAINER_REMOVE")
     remaining = _run(
-        ["docker", "ps", "-aq", "--filter", f"name=^/{name}$"]
+        ["docker", "ps", "-aq", "--filter", f"name=^/{name}$"],
+        phase="CONTAINER_CLEANUP_READBACK",
     ).stdout.strip()
     if remaining:
         raise Item32Error("container_cleanup")
@@ -976,7 +1022,8 @@ def _cleanup_registered_containers(registry: dict[str, str]) -> None:
                 "-aq",
                 "--filter",
                 "label=com.noteai.task=item32-readonly-successor",
-            ]
+            ],
+            phase="TASK_CONTAINER_READBACK",
         ).stdout.strip()
     except Exception:
         remaining = b"UNKNOWN"
@@ -1010,7 +1057,8 @@ def _assert_trends_unit_suspended() -> None:
             "-p",
             "UnitFileState",
             "--no-pager",
-        ]
+        ],
+        phase="UNIT_STATE_READBACK",
     ).stdout.decode("utf-8")
     properties: dict[str, str] = {}
     for row in raw.splitlines():
@@ -1028,7 +1076,8 @@ def _assert_trends_unit_suspended() -> None:
 
 def _assert_fixed_trends_container_absent() -> None:
     if _run(
-        ["docker", "ps", "-aq", "--filter", "name=^/noteai-xhs-trends$"]
+        ["docker", "ps", "-aq", "--filter", "name=^/noteai-xhs-trends$"],
+        phase="FIXED_CONTAINER_READBACK",
     ).stdout.strip():
         raise Item32Error("trends_container_present")
 
@@ -1071,7 +1120,8 @@ def _preflight_host(
     if _sha256_bytes(adapter_path.read_bytes()) != plan["adapter_overlay_sha256"]:
         raise Item32Error("adapter_source_binding")
     fragment = _run(
-        ["systemctl", "show", UNIT, "-p", "FragmentPath", "--value"]
+        ["systemctl", "show", UNIT, "-p", "FragmentPath", "--value"],
+        phase="UNIT_FRAGMENT_READBACK",
     ).stdout.decode().strip()
     if not fragment or _sha256_bytes(Path(fragment).read_bytes()) != EXPECTED_UNIT_SHA256:
         raise Item32Error("unit_binding")
@@ -1089,10 +1139,11 @@ def _preflight_host(
                 "-aq",
                 "--filter",
                 f"label=com.noteai.task={label}",
-            ]
+            ],
+            phase="TASK_CONTAINER_READBACK",
         ).stdout.strip():
             raise Item32Error("item32_container_present")
-    inspected = json.loads(_run(["docker", "image", "inspect", IMAGE]).stdout)[0]
+    inspected = json.loads(_run(["docker", "image", "inspect", IMAGE], phase="IMAGE_INSPECT").stdout)[0]
     if (
         inspected.get("Id") != IMAGE
         or ((inspected.get("Config") or {}).get("Labels") or {}).get(
@@ -1132,6 +1183,7 @@ def _preflight_host(
                 *paths,
             ],
             timeout=60,
+            phase="IMAGE_SOURCE_CHECK",
         ).stdout.decode()
     finally:
         _remove_container(source_check_name)
@@ -1181,6 +1233,11 @@ def _preflight_host(
                 "--pids-limit=32",
                 "--memory=128m",
                 "--cpus=0.25",
+                # Real imports initialize only this bounded, disposable SQLite
+                # database. No production DB URL or host-writable mount exists.
+                "--tmpfs=/tmp/item32-import:rw,nosuid,nodev,noexec,size=8m,mode=0700,uid=999,gid=999",
+                "--env=DATABASE_URL=",
+                "--env=NOTEAI_SQLITE_PATH=/tmp/item32-import/noteai.db",
                 *_runtime_overlay_mounts(adapter_path),
                 "--workdir=/app/model",
                 "--entrypoint=python",
@@ -1190,6 +1247,7 @@ def _preflight_host(
                 browser_check,
             ],
             timeout=60,
+            phase="RUNTIME_OVERLAY_CHECK",
         ).stdout
     finally:
         _remove_container(browser_check_name)
@@ -1262,6 +1320,7 @@ def _run_db_probe(
             ],
             timeout=60,
             stderr_to_stdout=True,
+            phase={"before": "DB_BEFORE_PROBE", "after": "DB_AFTER_PROBE"}[phase],
         )
         lines = [line for line in completed.stdout.decode("utf-8").splitlines() if line]
         if len(lines) != 1:
@@ -1383,12 +1442,12 @@ def _create_collection_container(
     ]
     container_id = ""
     try:
-        container_id = _run(command, timeout=60).stdout.decode().strip()
+        container_id = _run(command, timeout=60, phase="COLLECTION_CREATE").stdout.decode().strip()
         if re.fullmatch(r"[0-9a-f]{64}", container_id) is None:
             raise Item32Error("container_identity")
         container_registry[name] = container_id
         inspection = json.loads(
-            _run(["docker", "inspect", container_id]).stdout
+            _run(["docker", "inspect", container_id], phase="COLLECTION_INSPECT").stdout
         )[0]
         environment = {}
         for item in (inspection.get("Config") or {}).get("Env") or []:
@@ -2258,13 +2317,14 @@ def _execute_locked(
                 timeout=900,
                 check=False,
                 stderr_to_stdout=True,
+                phase="COLLECTION_START",
             )
             worker_output = completed.stdout
         except subprocess.TimeoutExpired as exc:
             timed_out = True
             worker_output = bytes(exc.output or b"")
         inspection = json.loads(
-            _run(["docker", "inspect", container_name]).stdout
+            _run(["docker", "inspect", container_name], phase="COLLECTION_INSPECT").stdout
         )[0]
         exit_code = int(((inspection.get("State") or {}).get("ExitCode") or 0))
         _record_worker_receipt(
@@ -2298,7 +2358,8 @@ def _execute_locked(
         if exit_code != 0:
             raise Item32Error("worker_failed")
         if _run(
-            ["docker", "ps", "-aq", "--filter", "label=com.noteai.task=item32-readonly-successor"]
+            ["docker", "ps", "-aq", "--filter", "label=com.noteai.task=item32-readonly-successor"],
+            phase="TASK_CONTAINER_READBACK",
         ).stdout.strip():
             raise Item32Error("container_cleanup")
         attempts_readback, unknown_readback = _attempt_count(

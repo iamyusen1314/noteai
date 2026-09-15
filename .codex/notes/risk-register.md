@@ -1,3 +1,26 @@
+September15 14:23:33UTC NEW explicit owner confirmation: one repaired Item32
+attempt in15:30–16:30UTC today, dispatch strictly before16:10UTC, fresh actual
+same-day0/34, maximum34 admissions/zero automatic retry, original DB-read-only
+probes and recovery. Preserve the failed79e invocation and original root/lock;
+new canonical plan binds992b executor and this scope. Original approved bytes
+remain sealed in Git79e/host/private copy. No automatic successor or late start.
+123 focused tests and independent review passed; no repaired production dispatch
+yet. Older awaiting-approval wording below describes the period before this new
+confirmation. Original5ce and ALB resource prerequisites remain unchanged.
+
+September15 14:08UTC actual result supersedes the awaiting-window text below:
+the sole79e1e35 invocation started14:02:18UTC and failed14:02:19UTC with
+command_failed/exit2. Original Docker events locate source-check exit0 followed
+by the network-none browser/import check exit1; both removed. Original PIDs are
+gone, only executor.lock remains, no admission/run or task containers. Bound source
+flow proves no Secret/DB probe or supplier collection reached; fresh DB quota and
+Item32 DB evidence were NOT established. Original --readback-only is UNKNOWN_HOLD,
+readiness_credit=false/no_replay=true. Original records are sealed and byte-hash
+matched privately; no replay/production retry. The one-time noteai-item32 continuation
+was deleted; original old-window noteai-5ce is unchanged. Local concrete import
+failure/secret-free diagnostic repair continues; any later production attempt needs
+a new explicit window approval. Item33/36/37/38 and31/37 remain unchanged.
+
 September15 current authorization: Item32's named14–15UTC/<14:40 window and
 Item36's specified original resources/current actual-use charges are approved.
 Fresh host/quota/DB-read-only and actual Item32 terminal remain necessary; no
