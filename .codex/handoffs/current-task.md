@@ -2,9 +2,64 @@
 
 本窗口收到owner明确接管指令，承接原工作树、既有普通工程授权及下列精确剩余项。
 旧窗口停止普通开发、构建和新测试，只保留查阅及原 `noteai-5ce` 对账续执行；
-该限制不是新窗口的全局暂停。历史已完成业务不重跑；本轮先推进私有恢复/受控同步、
-Item32新的prospective计划和Item36完整费用方案。新生产请求及新增长期费用按下面具名边界决定。
+该限制不是新窗口的全局暂停。历史已完成业务不重跑；私有恢复/受控同步与Item36报价已完成；Item32本次唯一执行为HOLD，
+高德正式启用已部署。新的Item32生产请求不由历史授权自动延伸；其余按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
+
+## 高德当前生产状态（September15 17:32UTC：已正式启用）
+第四独立controller4987feba0c021826a727af57173a416f75b768066f3472a8ba38feeb8c7210cd
+经3项局部验证及独立只读review后，`t-sz06x5ti86vnp4w`实际返回
+DEPLOYED_AMAP_GUARD_AND_FORMAL_ENV。原正式startup、实际quota/ACL、角色隔离、
+公开flags及三处ingress恢复检查全部通过；两个只读probe已按exact CID清理。
+原结果字节SHAc0fc0e3c0dfdcb00948336e61197fade63cf8b37ca04cff179e8647ff1713711。
+只读`t-sz06x5tou183rwg`再次确认16个预期绑定、两真实CID/image、三proxy、原Payment状态、
+全部静态资产及新配额状态。controller业务写/供应商调用0仅限本次操作，不代表全账户历史。
+
+- source：4768ee1c7b691976a95508163c6c87f8a89bad48。
+- API image：sha256:f727a9be8182c75c7de22a9b8aa9f1b985171b4862c59c3955de57ca9cc932cb；
+  CID81b6733fd31f4c96b53c0d4e15c4d2a50ab6962132246be325aaf0777356d1fd。
+- Admin image：sha256:6c8cf57978929f2db5cb731a74a063d2b4de965176c252ef251b546a3122236d；
+  CIDd9b7f9d6c43d83b17090a17590f50eaf9aaa336f353ca9ceee38735c6b22f783。
+- Admin web：/var/www/noteai-admin/4768ee1，仅appjs变化，SHA477a0f5066bf30cd2b669ee27fce0977fdda9e5ca8f5e3d9aca5ab521606f363。
+- Public web：/var/www/noteai-public/0590286-amap-enabled-20260915；原0590286树保留。
+  `t-sz06x5ttz9j1kao`仅删除“高德公开检索当前尚未启用。”39个UTF8字节，其他文件不变。
+  index279517B/SHA c2f8f3bc9497515c7ea7ae87728df2a7c14d149e19e4860aacc429e9e00cfc3e。
+  17:32:31UTC公网HTTPS读取首页及Admin appjs均匹配实际SHA；这不是全产品质量验收。
+
+正式API角色noteai_app/defaultROoff，原Key已绑定，amap.enabled=true；Admin角色
+noteai_admin_runtime/defaultROoff，Key为空。两者共享配额读回ready，企业认证true、
+许可未购买、owner已接受风险、独占NoteAI使用。Sep2026同一basic_search桶50000，
+官方基线1＋新admission0，保守剩余49999，text/detail各30QPS，不能按两个Key重复计算。
+官方快照观察15:12UTC，16:24:41UTC控制台再次见相同50000/1；供应商统计截止时间未知，
+不能称实时官方用量。月周期为北京时间Sep1–Oct1；新月须实际官方额度恢复快照。
+账单仅Sep1–15已观察一调用/显示0元；后续实际费用未知，不填0，不影响来源记录。
+没有Beta/白名单/许可购买门禁、采购、超额付费放行或其他正常权益变化。
+
+17:32UTC正式用户页与Admin页仍显示登录表单。DMS已登录/0031已应用，但它不是NoteAI用户/Admin会话。
+已提出的两个登录请求保持待答，不重复索要密码、验证码、密钥或重置身份。
+登录后直接用已确认owner用户61d63b05-17eb-47d5-b19e-fb7eab297299完成一条正式美食生成：
+广州陶陶居(正佳广场店)，按实际分店匹配/高德text及detail/字段来源/行业Prompt/模型/用户结果/
+正常8积分与真实成本、后台来源和月额记录验证；未知事实沿原交互确认。无额外供应商探活、无历史素材重跑。
+当前新增高德/模型业务请求尚未发起，不能称用户全链路或实时供应商健康已验证。正式启用授权已落实，
+后续验收不再需要“正式开放”或购买许可确认。
+
+恢复入口仅本次/var/lib/noteai/amap-formal-4768ee1/deploy_controller_readonly_probe.py
+及deploy-readonly-probe原记录；必要恢复先patch_public_index_after_probe.py rollback恢复原公开树，
+再本controller --action recover，先撤正式Key，再旧Admin/API镜像及Admin静态，恢复三proxy。
+保留0031/所有admissions与失败历史。当前release-preconditions-probe.json恢复截止18:00UTC，
+controller要求开始时至少10分钟余量；后续时点必须现场核对5ce、保留旧输入并作新的真实恢复绑定，
+不能直接运行过期入口。下方“C尚未切换”与三次失败是历史，不重放0031/F封口或任何父执行。
+
+原5ce仍归旧任务01a079a4-1c05-7d21-a98a-2d418cdd20c9，Sep16 02:01:30UTC唯一执行，
+17:25:33UTCcompact仍notLoaded/上一turn completed，无prepare。其原入口在实际prepare时
+应绑定本节当前API/Admin/public/F实际状态，不能复用f070/4870旧基线；不复制任务/订单/退款/业务。
+原Payment inactive/dead、容器不存在、原账单seal SHA及配置保持。
+本轮结束前只提交本窗口4个owned文档/HTML路径；七个受保护路径保持未读未改未stage。
+Git恢复最新准确SHA、ORICO外部bundle恢复fsck、私有归档仓库同步与明确metadata副本以
+/Users/openclaw/.codex/backups/noteai/latest-recovery.json实际记录为准；不推公开origin。
+模型4文件资产另有独立备份；私有metadata不是生产DB/Secret/用户素材完整恢复副本。
+Readiness仍31/37；Item32 HOLD阻断真实33与ALB36创建，31账单等待原5ce，37/38沿真实前置继续。
+Item34 VERIFIED、35 NOT_REQUIRED保持；支付宝与下一阶段封面生成继续延期。
 
 ## September15 Item32修复后唯一执行：HOLD，不重试（15:33UTC）
 已批准修复包fac5dd0通过唯一入口执行，Cloud Assistant `t-sz06x5j1u363bpc`。
@@ -33,6 +88,72 @@ unit与两前驱admission/result/store及原79e四记录SHA全部未变；此次
 `/Users/openclaw/.codex/tmp/noteai-item32-prospective-20260915/repaired-dispatch-20260915T153012Z/`
 及ORICO `20260915-repaired-item32-hold`；原139264byte store仍仅原host保留，未声称有第二副本。
 
+## 高德生产准备进展（September15 17:10UTC，C尚未切换）
+第三个独立候选修复4943302b…6d96c1经只读独立review后暂存（两段t-sz06x5rrdpbjb40/t-sz06x5rsqzwwf0g），
+执行`t-sz06x5ruhhiy7eo`为FAILED/readonly_candidate_api，cleanup api_exact_candidate_already_removed；
+未进入drain或正式切换，controller范围provider/business写0。原三次失败均封存，不重放。
+本地源码定位正式账户启动显式要求default_transaction_read_only=off，故真正只读候选与正式startup合同冲突；
+这是源码原因定位，不冒充已保留的原stderr。下一步将候选验证明确限于只读额度/权限/路由，
+正式实例仍按原完整startup校验启动，通过后才恢复入口；不放宽正式数据库/账号安全校验。
+17:07:25UTC原5ce任务仍notLoaded/上一turn completed，原归属和时间不变。
+实际只读`t-sz06x5sb6d05bls`确认16绑定/原API与Admin CID和镜像/三proxy/网页全部未变，
+Payment inactive/dead且无容器，候选8ea4dedf…b25dd5真实create/start后exit3/destroy，现已不存在。
+第三次result原字节SHAd563a16fa7c898a5e019d92a53b5389ab1964b83b16d8881e955b01fe1d67c8c。
+17:15:24UTC原5ce状态再次确认未prepare；新的高德操作前置release-preconditions-probe.json
+SHAbaa60e7fd89f20bef1334df591d6eec99a24ef2df5a96a5497267cbb290a0919，恢复截止18:00UTC，
+`t-sz06x5siob9lqtc`仅暂存成功；旧17:30输入保留。这属于既有高德实施，不是新的Item32授权/窗口。
+首页独立工具patch_public_index_after_probe.py SHAab2fc793…d10775已由`t-sz06x5snn1o1qf4`
+仅暂存，绑定deploy-readonly-probe成功及上述新前置；尚未运行或更改公开页。
+第四入口4987feba…210cd已在独立复核无阻断后以`t-sz06x5ti86vnp4w`单次启动，当前终态待读回；
+候选仅固定600秒的只读probe，无HTTP或startup声称；原正式切换/完整startup/恢复函数未改。
+17:25:33UTC再次核对原5ce旧任务无prepare，仍独占原时间与业务。
+原失败纯诊断`t-sz06x5p9a601xxc`确认Admin实际镜像引用1次/API2次；正式Key内存准备PASS。
+后续纯解析确认两个candidate argv PASS，但实际Admin入口在两个include文件，非nginx主文件直连；
+只读绑定admin-public SHA8065f420387cd38ed56e4ec8649e6f17811912c57b756c60ffd827633441a078、
+admin-proxy SHAc51698160fa7a0d67d3922f04bee17671fb2b1c75c6316a8a1ba422613e062a4，后者http127.0.0.1:8001。
+独立修复controller40f5e59…591fd00保留原失败，增加第三个既有proxy，未新建网络资源。
+修复执行`t-sz06x5q3zolro5c`仍为FAILED/readonly_candidates/candidate_not_readonly_or_has_key；
+仅API候选已启动并清尾，尚未Admin候选、drain或正式切换，控制器provider/business写0。
+16:53:48UTC`t-sz06x5qib1olibk`真实确认16绑定SHA及原API/Admin CID未变，candidates[]。
+只读原连接元数据确认API DSN显式default_transaction_read_only=off覆盖PGOPTIONS；
+Admin无DSN显式options，两个正式运行时Key都为空。该诊断未连接DB、未输出DSN/凭据。
+两个失败目录均保留、不重放；正在修正候选专用RAM只读配置，正式env/drop及原配额不动。
+C首次controller执行`t-sz06x5owzqwzcw0`为FAILED/preflight/RuntimeError，provider/business写0。
+16:37:05UTC原结果只读`t-sz06x5p0mvhlds0`：已留backup-index/before/started/result，
+尚无change-plan/candidate；API/Admin原CID、14绑定文件SHA全部未变，未进入drain/服务切换。
+原deploy目录/回执保留，不重新调用原deploy。正在只读定位replace_drop/formal_environment的准确失败条件。
+F修复`t-sz06x5nqyn5q6f4`在16:22:58.860477UTC真实PASS：同一原镜像，重启1次，
+唯一AMAP环境为空，其余配置/挂载/flags/Trends均保持，Secret原文件未改，provider/DB写0。
+新CID4388e9e23545adf61572694dda328ec1974ce6efba1453b0f02ae7d3c49c6380；
+新drop SHA7eea553d874623ebc32079f0d4e04d4dacac47630f015ac5e7499316a6ea4cb1。
+原F拒绝回执保留，不能重放；新结果原字节SHAda2e5a08659d83174e53df38b15941545f9d641b6b515f939e89b1425cfcca0d。
+16:24:41UTC再次读取官方共享月额度50000/已用1，provider统计截至时间未知；owner确认仅NoteAI使用。
+DMS0031已唯一原子执行成功；16:32:06UTC完整只读31分段读回：ledger31，0031原SHA58673d89…5de445，
+原30条ledger及原表metadata MD5均不变；仅两个新表及最小列权限，bucket1/official_used1/admitted0/attempt0。
+完整实际JSON `.../noteai-amap-formal-20260915/schema-readback.json` SHA40264f325ba38ee327f2a211b79c69ee869c30a06ff59b424c11bf5790d2135f。
+新C双镜像与固定部署controller已准备，尚未切换；当前仍无新增高德/模型请求。
+16:32:58UTC核对原5ce旧任务notLoaded/上一turn completed，无prepare/inflight；本次C变更与恢复截止17:30UTC。
+Owner已恢复DMS现有noteai_admin数据库登录。真实单查询元数据在16:07:55UTC取得：
+DB noteai、ledger30、ledger MD5 `71c6b2949f5801f5344000e887bec9d3`，旧表metadata MD5
+`3ce8486fbb969e5eb1cc87a47a4e84a7`，0031对象尚不存在；原JSON保存在私有schema-prep/preflight.json。
+DMS对大字段截断，最终用同一只读CTE的160字符分段重组完整JSON；这是0031应用前基线，后续真实结果见上。
+C实际Docker28.3.3/legacy构建路径已确认，现API镜像已有OSS SDK1.3.2/credentials1.0.10。
+`t-sz06x5mtc6j39xc`仅从原private OSS取两已批准代码包，11文件逐字校验，2个Get，
+临时SDK容器已移除；无provider/DB/service变更。原F专用SDK镜像不在C，未尝试拉取，
+改用已实测存在的C原API镜像作独立SDK容器；原两个源码/静态包字节不变。
+C原CID/源码绑定后，source4768ee1双镜像离线构建成功、导入与配置检查通过：
+API `sha256:f727a9be8182c75c7de22a9b8aa9f1b985171b4862c59c3955de57ca9cc932cb`，
+Admin `sha256:6c8cf57978929f2db5cb731a74a063d2b4de965176c252ef251b546a3122236d`。
+这是BUILT_NOT_DEPLOYED，实际C仍f070ed6/4870b4b，公开web0590286；没有高德/模型调用。
+F内部旧容器原Key非空，首次封口预检`t-sz06x5meman0oao`以env_duplicate在变更前拒绝。
+后续只读确认原CID/unit SHA未变，ROOT/drop均不存在，provider/DB/service变更0。
+原5组重复非Secret环境配置及实际Python生效值已留存，scheduler实际0。
+旧拒绝脚本封存；新独立修复使用原文件RAM过滤Key+sealed memfd和固定launcher，
+保留非AMAP环境的原顺序/重复/实际行为，再置唯一空Key；不改原凭据文件。
+F封口与0031真实基线已完成，下一步为C受控切换及正式用户业务验证。
+首页旧“高德公开检索当前尚未启用”尾句将在实际启用后做单处静态同步，不整包覆盖旧页面。
+原5ce最新compact状态notLoaded/上一turn completed，仍由旧线程独占；没有进入prepare。
+
 ## 高德本地上线版本完成（15:34UTC，尚未部署）
 Owner确认共享额度仅NoteAI使用。原正式决定真实消息时间为2026-09-15T15:01:50.358Z。
 每个物理HTTP前统一持久占额；两Key/多实例共享，UNKNOWN不返还，零自动重试。
@@ -44,7 +165,7 @@ Owner确认共享额度仅NoteAI使用。原正式决定真实消息时间为202
 最终Admin真实helper三次SELECT合同1/1通过，最终review无blocking。失败历史保留在
 `docs/AMAP_SHARED_QUOTA_PREPARATION_20260915.md`。局部测试容器已清理，无生产调用。
 当前C原api.env有原AMAP_WEB_KEY，正式public-account.env及正式API仍无Key；
-等待现有DMS数据库登录恢复后应用0031+真实官方快照，再部署受保护的正式API/Admin并绑定原Key。
+现有DMS数据库登录已恢复；按上段实际前置应用0031+真实官方快照，再部署正式API/Admin并绑定原Key。
 旧镜像回滚必须恢复原无Key正式环境，保留所有额度记录。不是等待许可购买或正式开放再批准。
 
 ## September15 高德正式启用决定与实施（15:03UTC开始）

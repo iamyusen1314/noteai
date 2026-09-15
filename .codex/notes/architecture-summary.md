@@ -1,3 +1,36 @@
+September15 17:32UTC CURRENT: Amap is formally enabled on source4768 API-C and
+Admin; source snapshots, shared quota and existing Key binding are live. API image
+f727a9be…932cb / Admin6c8cf579…2236d, Admin static4768; public0590286-amap-enabled-20260915
+changes only the old disabled sentence. Actual runtime/source/ACL/ingress/HTTPS
+hash readback passed, all probe containers removed, Payment unchanged. Shared
+September quota50000, official snapshot1 + admitted0 = conservative49999 remaining;
+30QPS text/detail, two Keys share one account. Enterprise confirmed; licence not
+purchased and owner risk accepted. No purchase/overage/Beta gate. Historic observed
+Sep1–15 bill displays0; future fees unknown. Supplier/model business calls have not
+been issued for this rollout; real user-to-result and authenticated Admin UI checks
+await the already-requested existing owner logins. Do not label deployment health
+as end-to-end quality. Recovery must restore original public symlink before the
+current controller removes Key and restores old images; retain0031/all counters.
+Current recovery window and exact5ce binding are at Handoff top. Readiness31/37,
+Item32 HOLD/33+36 blocked and original5ce ownership remain unchanged. Older dated
+states below are history, not replay instructions.
+
+September15 17:10UTC: all three Amap C candidate/preflight failures are preserved;
+formal C API/Admin have not been switched. The truly read-only API candidate
+conflicts with the existing production startup requirement for a writable account
+role. The next correction uses an explicit read-only quota/ACL probe container,
+without HTTP or startup claims; formal services keep the original full startup
+validation before ingress resumes. F keyless and the once-applied0031 remain valid.
+Exact actual results and pending normal owner/Admin login are at Handoff top.
+
+September15 16:37UTC: production0031 now contains two shared Amap quota tables and
+one official September baseline50000/used1; the original30 migration rows and old
+table metadata are unchanged. API-F keeps the original dd955 image, now with one
+empty AMAP_WEB_KEY after the verified16:22:58 restart; no provider/DB writes.
+API-C remains f070ed6 and Admin4870/public0590286: the new4768 dual-image release
+stopped at preflight before candidates or service changes. Its records are retained;
+the exact remaining parser correction and formal enablement are at Handoff top.
+
 September15 handoff: permanent Claude/Render/AWS, exact Ark260428 multimedia, equal-entitlement quality, industry Prompt/material/memory and WeChat-first/Alipay-deferred decisions are retained. Current runtime and verification scope/last-known cloud boundaries are indexed at Handoff CURRENT EXECUTION CONTROL. No architecture or runtime change in this documentation-only closeout.
 
 September15 current: API f070ed6 deployed on the existing API-C; public web0590286 and Admin4870 unchanged. Owner memory now survives generation/Chat repair and explicit approval is bound to the owner’s saved visible note. Original video/history/credits restore after refresh; no new model request for deployment verification. Exact image/drop and rollback at Handoff top; older runtime labels below are historical.

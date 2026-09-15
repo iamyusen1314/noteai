@@ -1,3 +1,40 @@
+September15 17:32UTC CURRENT: Amap is formally enabled on source4768 API-C and
+Admin; source snapshots, shared quota and existing Key binding are live. API image
+f727a9be…932cb / Admin6c8cf579…2236d, Admin static4768; public0590286-amap-enabled-20260915
+changes only the old disabled sentence. Actual runtime/source/ACL/ingress/HTTPS
+hash readback passed, all probe containers removed, Payment unchanged. Shared
+September quota50000, official snapshot1 + admitted0 = conservative49999 remaining;
+30QPS text/detail, two Keys share one account. Enterprise confirmed; licence not
+purchased and owner risk accepted. No purchase/overage/Beta gate. Historic observed
+Sep1–15 bill displays0; future fees unknown. Supplier/model business calls have not
+been issued for this rollout; real user-to-result and authenticated Admin UI checks
+await the already-requested existing owner logins. Do not label deployment health
+as end-to-end quality. Recovery must restore original public symlink before the
+current controller removes Key and restores old images; retain0031/all counters.
+Current recovery window and exact5ce binding are at Handoff top. Readiness31/37,
+Item32 HOLD/33+36 blocked and original5ce ownership remain unchanged. Older dated
+states below are history, not replay instructions.
+
+September15 17:10UTC: all three Amap C candidate/preflight failures are preserved;
+formal C API/Admin have not been switched. The truly read-only API candidate
+conflicts with the existing production startup requirement for a writable account
+role. The next correction uses an explicit read-only quota/ACL probe container,
+without HTTP or startup claims; formal services keep the original full startup
+validation before ingress resumes. F keyless and the once-applied0031 remain valid.
+Exact actual results and pending normal owner/Admin login are at Handoff top.
+
+September15 16:37UTC current: Amap owner formal activation/risk acceptance is unchanged;
+there is no licence-purchase gate. F now runs its original image with a uniquely
+empty Amap Key, after one verified restart and zero provider/DB writes. Production
+0031 committed once; real metadata reads ledger31, original30 ledger and old-table
+metadata unchanged, one shared50000 bucket with official1/admitted0/attempt0 and
+only intended runtime column grants. The first C release stopped during preflight
+after backups, before candidates or runtime mutation; all14 bound file hashes and
+original API/Admin CIDs are unchanged. Preserve the failed release records and
+diagnose its pure configuration parser before a separately recorded correction.
+Full normal owner business and Admin UI verification still require existing user
+sessions; the pending login requests do not revoke formal activation authority.
+
 September15 15:33UTC current: the single approved repaired Item32 run actually
 started15:30:12UTC and exited2 at15:30:19UTC. Fresh Sep15 admission0/34 passed;
 one failed remote_business_error attempt, unknown0, auto-retry0, HOLD/no_replay.
