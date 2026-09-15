@@ -1823,7 +1823,7 @@ class ApiContractTests(unittest.TestCase):
             "current_score": 72.4,
             "ai_diagnosis": "DIAGNOSIS_SENTINEL 保留真实感受。",
             "improvement_plan": "PLAN_SENTINEL 调整叙事顺序。",
-            "cover_analysis": "画面观察" * 100 + "COVER_END_SENTINEL",
+            "cover_analysis": "【视频音画观察】" + "视频观察" * 100 + "VIDEO_END_SENTINEL\n【用户独立封面观察】" + "画面观察" * 100 + "COVER_END_SENTINEL",
             "weaknesses": [{"feature": "body_len", "label": "正文结构", "suggestion": "建议分段"}],
             "report_quality_status": "needs_confirmation",
             "report_quality_issues": ["REPORT_ISSUE_SENTINEL 尚待确认"],
@@ -1839,7 +1839,7 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(persisted[key], context[key])
         session["generate_context"] = persisted
         prompt = api._build_chat_system_prompt(session)
-        for marker in ("DIAGNOSIS_SENTINEL", "PLAN_SENTINEL", "COVER_END_SENTINEL", "REPORT_ISSUE_SENTINEL", "SOURCE_SENTINEL", "建议分段"):
+        for marker in ("DIAGNOSIS_SENTINEL", "PLAN_SENTINEL", "VIDEO_END_SENTINEL", "COVER_END_SENTINEL", "REPORT_ISSUE_SENTINEL", "SOURCE_SENTINEL", "建议分段"):
             self.assertIn(marker, prompt)
         self.assertIn("分析建议，不是新增事实来源", prompt)
         self.assertEqual(session["fact_context"], context["fact_context"])
@@ -3321,6 +3321,8 @@ class ApiContractTests(unittest.TestCase):
 
         async def fake_run_agents(note, *_args, **_kwargs):
             captured_notes.append(note)
+            if len(captured_notes) <= 3:
+                self.assertEqual(_args[0] is None, len(captured_notes) != 3)
             captured_agent_contexts.append(_kwargs.get("agent_context", ""))
             captured_delivery_constraints.append(_kwargs.get("constraint_context", ""))
             bodies = [
@@ -3473,6 +3475,8 @@ class ApiContractTests(unittest.TestCase):
                     refund.assert_called_once()
                 self.assertIn(code, result)
                 self.assertNotIn('"type": "complete"', result)
+                self.assertIn('"score": null', result)
+                self.assertIn('"missing_dimensions": ["独立封面"]', result)
                 api._insert_content_with_retention.assert_not_called()
                 api._insert_growth_record.assert_not_called()
             api._run_five_agents = fake_run_agents

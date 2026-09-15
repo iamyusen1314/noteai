@@ -79,3 +79,11 @@ test('partial score remains unavailable; full score and escaped originals work',
   assert.equal(c.formatScoreValue(null),'–');assert.equal(c.diagnosisDisplayScore({composite_score:74}),74);
   assert.equal(c.escapeHtml('<img src=x>'),'&lt;img src=x&gt;');
 });
+
+test('diagnosis chat keeps complete video and independent cover observations',()=>{
+  const c=context();c.load('diagnosisMediaContext');
+  const value=c.diagnosisMediaContext({video_analysis:'v'.repeat(2000)+'VIDEO_END_SENTINEL',cover_analysis:'c'.repeat(2000)+'COVER_END_SENTINEL'});
+  assert.ok(value.includes('【视频音画观察】'));assert.ok(value.includes('VIDEO_END_SENTINEL'));
+  assert.ok(value.includes('【用户独立封面观察】'));assert.ok(value.endsWith('COVER_END_SENTINEL'));
+  assert.ok(source('startChatFromDiagnosis').includes('cover_analysis:   diagnosisMediaContext(_diagnoseResult)'));
+});

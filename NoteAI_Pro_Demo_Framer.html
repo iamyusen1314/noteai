@@ -6691,9 +6691,15 @@ function _handleAnalyzeStreamEvent(ev) {
     }
     case 'diagnosis_score': {
       stepDone(1); stepActive(2);
-      setProgress(ev.progress || 28, `V0.4 初评分 ${ev.score} 分（${ev.grade || '待评估'}）`);
-      setLive3DScore(ev.score);
-      addBubble('V0.4 评分器', `当前内容初评分 ${ev.score} 分，接下来由多 agent 判断具体可改方向。`, 4, 0, 0);
+      if (_numOrNull(ev.score) === null) {
+        const missing = (ev.missing_dimensions || []).join('、');
+        setProgress(ev.progress || 28, '正在分析已提供的素材，未计算整篇笔记分数');
+        addBubble('素材分析', `尚未提供${missing || '完整笔记信息'}；专家将分析已有素材，不评判缺失的部分。`, 4, 0, 0);
+      } else {
+        setProgress(ev.progress || 28, `V0.4 初评分 ${ev.score} 分（${ev.grade || '待评估'}）`);
+        setLive3DScore(ev.score);
+        addBubble('V0.4 评分器', `当前内容初评分 ${ev.score} 分，接下来由多 agent 判断具体可改方向。`, 4, 0, 0);
+      }
       break;
     }
     case 'expert_opinion': {
@@ -7976,6 +7982,11 @@ async function ensureDiagnosisRootNote(note) {
 }
 
 /* 从诊断报告进入对话优化（携带完整诊断上下文，让 AI 了解弱项） */
+function diagnosisMediaContext(result) {
+  return [result?.video_analysis ? '【视频音画观察】\n' + result.video_analysis : '',
+          result?.cover_analysis ? '【用户独立封面观察】\n' + result.cover_analysis : ''].filter(Boolean).join('\n\n');
+}
+
 async function startChatFromDiagnosis() {
   if (!_noteDetailData) return;
   if (!_authToken) { openAuthModal('login'); return; }
@@ -8015,7 +8026,7 @@ async function startChatFromDiagnosis() {
       diagnosis_composite_score: _diagnoseResult.composite_score,
       grade:            _diagnoseResult.grade,
       ai_diagnosis:     _diagnoseResult.ai_diagnosis,
-      cover_analysis:   _diagnoseResult.video_analysis || _diagnoseResult.cover_analysis || '',
+      cover_analysis:   diagnosisMediaContext(_diagnoseResult),
       improvement_plan: _diagnoseResult.improvement_plan,
       weaknesses:       _diagnoseResult.weaknesses,
       expert_opinions:  _diagnoseResult.expert_opinions,

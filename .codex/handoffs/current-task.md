@@ -1,3 +1,13 @@
+September15 candidate pre-deploy follow-up: diagnosed video+cover observations now both
+continue into Chat with explicit source labels. Partial input emits no whole-note
+initial score and excludes absent-dimension weaknesses/features before expert input
+and arbitration. Original complete input score unchanged. Five pureJS checks and
+three Python3.11 isolated pipeline/Chat tests PASS. First local test invocation used
+the old image entrypoint and failed import-path checks; corrected explicit Python
+entrypoint tests loaded current source and passed. No production/provider effect.
+Next freeze this successor candidate, apply additive0030 with private backup, build
+only API/Admin/web and validate the real owner video flows.
+
 September15 10:07BJT — current combined video/supplier candidate NOT_DEPLOYED.
 Original Sep14order1e2acc bill at frozenfc4f49f completed once, operator matched2rows/
 0discrepancies/retry0; no newpay/refund. Activationf4499684-1eb4-4c19-b3eb-a056bbbd86c8;

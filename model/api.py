@@ -3182,7 +3182,7 @@ def _arbitration_editorial_context(diagnosis: str, plan: str, dispute: str) -> s
 
 async def _agent_arbitrate(
     note_title: str, domain: str,
-    percentile: float, grade: str,
+    percentile: float | None, grade: str,
     opinions: list[dict],
     source_context: str = "",
     emit: ProgressEmitter | None = None,
@@ -3235,7 +3235,7 @@ async def _agent_arbitrate(
         f"用户原始输入/图片视频上下文（事实边界）：{source_context or '（无）'}\n"
         f"内容专家候选（未经核验，不是用户原文或事实来源）：{body_candidate or '（无候选）'}\n"
         f"{_safe_fact_delivery_brief(domain, source_context)}\n"
-        f"领域：{domain or '通用'} | 预测分位：{percentile:.0f}/100（{grade}）\n\n"
+        f"领域：{domain or '通用'} | 预测分位：{f'{percentile:.0f}/100' if percentile is not None else '未评分，原始输入不完整'}（{grade}）\n\n"
         f"{phase_planning_brief}\n"
         f"【四位专家独立诊断】{opinion_block}\n"
         f"【内容专家标题候选（可参考改写，不照抄）】\n"
@@ -3558,7 +3558,7 @@ async def _agent_arbitrate(
 
 async def _run_five_agents(
     note: "NoteInput",
-    percentile: float,
+    percentile: float | None,
     grade: str,
     weaknesses: list,
     features: dict[str, float] | None,
@@ -15809,6 +15809,13 @@ async def _run_analyze_pipeline(
     if not original_input["has_independent_cover"]: missing_dimensions.append("独立封面")
     original_input.update(missing_dimensions=missing_dimensions,
         score_scope="partial_input" if missing_dimensions else "complete_note_input")
+    unavailable_keys = set()
+    if "标题" in missing_dimensions: unavailable_keys.add("title")
+    if "正文" in missing_dimensions: unavailable_keys.update(("body", "semantic", "commercial_facts", "tags"))
+    if "独立封面" in missing_dimensions: unavailable_keys.add("visual")
+    unavailable_groups = set(unavailable_keys)
+    if "正文" in missing_dimensions:
+        unavailable_groups.update(("semantic_naturalness", "commercial_value", "domain_slots"))
     video_desc_for_library = ""
     cover_observation = ""
     video_duration_sec: float | None = None
@@ -15996,8 +16003,9 @@ async def _run_analyze_pipeline(
             grade = _grade(percentile)
             await _emit_progress(emit, {
                 "type": "diagnosis_score",
-                "score": round(percentile, 1),
-                "grade": grade,
+                "score": None if missing_dimensions else round(percentile, 1),
+                "grade": "输入不完整，按已提供内容评估" if missing_dimensions else grade,
+                "missing_dimensions": missing_dimensions,
                 "progress": 28,
             })
 
@@ -16034,6 +16042,11 @@ async def _run_analyze_pipeline(
                     agent_context_parts.append("【外部记忆召回】\n" + mem_lines)
             agent_context = "\n\n".join(p for p in agent_context_parts if p)
 
+        # Absent original dimensions are not evidence of poor user content.
+        weaknesses = [item for item in weaknesses if _report_group_key(item.feature) not in unavailable_groups]
+        expert_features = {key: value for key, value in features.items()
+                           if _report_group_key(key) not in unavailable_groups}
+        expert_semantic = {} if "正文" in missing_dimensions else semantic_feats
         # 7. Five-agent diagnosis through unified Claude/Kimi router
         if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("MOONSHOT_API_KEY"):
             delivery_constraint_context = "\n\n".join(p for p in (
@@ -16069,8 +16082,9 @@ async def _run_analyze_pipeline(
                 "agent_context": agent_context,
             }
             agent_result = await _run_five_agents(
-                note, percentile, grade, weaknesses, features,
-                timing, visual_score, cover_feats, semantic_feats,
+                note, None if missing_dimensions else percentile,
+                "输入不完整，未计算整篇分数" if missing_dimensions else grade, weaknesses, expert_features,
+                timing, visual_score, cover_feats, expert_semantic,
                 agent_context=agent_context,
                 emit=emit,
                 fact_source_context=delivery_source_context,
@@ -16342,13 +16356,6 @@ async def _run_analyze_pipeline(
         visual_score=visual_score,
         timing=timing,
     )
-    unavailable_keys = set()
-    if "标题" in missing_dimensions: unavailable_keys.add("title")
-    if "正文" in missing_dimensions: unavailable_keys.update(("body", "semantic", "commercial_facts", "tags"))
-    if "独立封面" in missing_dimensions: unavailable_keys.add("visual")
-    unavailable_groups = set(unavailable_keys)
-    if "正文" in missing_dimensions:
-        unavailable_groups.update(("semantic_naturalness", "commercial_value", "domain_slots"))
     for dimension in report_meta["dimension_scores"]:
         if dimension["key"] in unavailable_keys:
             dimension.update(score=None, status="locked", summary="本次未提供对应原始输入，未评估该维度。")
@@ -18062,7 +18069,7 @@ def _build_chat_system_prompt(session: dict) -> str:
         # Cover / image analysis
         cover_analysis = gen_ctx.get("cover_analysis") or gen_ctx.get("image_desc") or ""
         if cover_analysis:
-            parts.append(f"封面图分析：{cover_analysis}")
+            parts.append(f"素材观察（按下述来源区分视频与独立图片）：{cover_analysis}")
 
         # Prior analysis remains advice, not newly verified merchant facts.
         for key, label in (("ai_diagnosis", "原诊断分析"), ("improvement_plan", "原优化建议")):
