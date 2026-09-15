@@ -1,3 +1,18 @@
+September15 — Item32 terminal source binding repaired locally after the remaining-state readback:
+The previous “no independent gap” conclusion was superseded by a concrete mismatch:
+executor runtime already mounted three reviewed overlays, but plan/terminal checking still
+expected only the older adapter. The existing executor and validator now distinguish frozen
+image sources from the effective adapter/security_redaction/hot_keywords source set;
+missing, extra, wrong-hash or tampered overlays fail. Item33 legacy release constants remain.
+90 Python3.11 network-none tests passed across Item32 recovery/execution/evidence and Item33;
+first run retained one test assertion failure (missing field correctly rejected as schema,
+not binding mismatch), corrected without weakening validation. Real read-only subagent reviewed.
+Only temporary synthetic fixtures received current source bindings; canonical Sep7 plan,
+HOLD evidence, identities, admission dates and no-replay remain untouched and expired.
+No live successor/new identity/provider request/production write. This is local preparation,
+not terminal readiness; current API f070/web059/Admin4870 and Readiness31/37 unchanged.
+Current source package will be saved alongside the original49c bundle, never overwrite it.
+
 September15 13:13BJT — scoped remaining-state reconciliation completed:
 C eth0=10.42.10.44/API f070 CIDf35df066…04de, originalbaseunitSHA46010368…77e6 plus
 drop83a570ff…6643；F eth0=10.42.11.166/API CID843a9748…ee05/image dd955f9e…fd53、
@@ -365,7 +380,7 @@ Current authorized task comparison (history preserved, no old replay):
 | Original user memory | f070 API deployed;23 isolated checks; original owner library/balance restored | No fresh model test or fabricated approval; current-turn constraints override past preferences |
 | Fact clarification | Free answer/omit/resume/correction proof exists | Keep same completedmedia/charge, regression with new complete input |
 | Item31 Native-first | Paid/fullrefund/naturalcallback5ce passed; oldSep14 billmatched | Same5ce billSep16 + separatejournal + existingterminalvalidator |
-| Item32 | Oldidentitiessealed; current three-file runtime overlay prepared/offline23checks | Future canonical bindings/window required; no live successor or oldpackage execution |
+| Item32 | Old identities sealed; effective three-file source binding aligned in executor/terminal;90 isolated Item32/33 checks | Local recovery package ready; canonical Sep7 remains sealed/expired, future authorized window required; no real successor |
 | Item33 | No qualifying Trends terminalcycle | True successor/managedcycle dependency; not globalblock |
 | Item34 | generation2 COMPLETE, originalautomationdeleted | Preservefixedartifacts/evidence; no replay |
 | Item35 | NOT_REQUIRED/withdrawn | Historicalunsignedfacts unchanged, no score |

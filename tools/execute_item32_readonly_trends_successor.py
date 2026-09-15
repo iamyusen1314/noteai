@@ -405,9 +405,11 @@ def _load_plan(
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise Item32Error("plan_shape") from exc
     adapter_sha256 = _sha256_bytes(adapter_path.read_bytes())
+    if adapter_sha256 != RUNTIME_OVERLAY_SHA256[ADAPTER_SOURCE_REF]:
+        raise Item32Error("plan_binding")
     source_sha256 = {
         **EXPECTED_IMAGE_SOURCE_SHA256,
-        ADAPTER_SOURCE_REF: adapter_sha256,
+        **RUNTIME_OVERLAY_SHA256,
     }
     expected = {
         "schema": PLAN_SCHEMA,

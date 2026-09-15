@@ -203,6 +203,20 @@ ITEM32_EXPECTED_SOURCE_SHA256 = {
         "48073372ef7c490192ff6cff54c326401b14d313d427e705a1a90f9bc17449b4"
     ),
 }
+# Preserve the legacy source contract used by the still-unpromoted Item33.
+# Item32's frozen image and effective three-file overlay are separate facts.
+ITEM32_IMAGE_SOURCE_SHA256 = {
+    key: value for key, value in ITEM32_EXPECTED_SOURCE_SHA256.items()
+    if key != "model/spider_xhs_http.py"
+}
+ITEM32_RUNTIME_OVERLAY_SHA256 = {
+    "model/spider_xhs_http.py": "360a43f781e55e2c529387e70ef7be3b5f47a716bf6ede56d3daaaefa9b6bea1",
+    "model/security_redaction.py": "c5fc02966035a01012a1a35b7005f3a62a72602c042e98dbad707029ca56f451",
+    "model/hot_keywords.py": "77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d",
+}
+ITEM32_EFFECTIVE_SOURCE_SHA256 = {
+    **ITEM32_IMAGE_SOURCE_SHA256, **ITEM32_RUNTIME_OVERLAY_SHA256,
+}
 ITEM33_TRENDS_PROMOTION_EVIDENCE_SCHEMA = (
     "noteai.item33.trends_managed_promotion.v1"
 )
@@ -1200,11 +1214,7 @@ def validate_item32_trends_evidence(
         plan.get("predecessor_closure") if isinstance(plan, dict) else None
     )
     admission_plan = plan.get("admission") if isinstance(plan, dict) else None
-    image_sources = {
-        key: value
-        for key, value in ITEM32_EXPECTED_SOURCE_SHA256.items()
-        if key != "model/spider_xhs_http.py"
-    }
+    image_sources = ITEM32_IMAGE_SOURCE_SHA256
     plan_valid = bool(
         isinstance(plan, dict)
         and _keys_exact(
@@ -1250,7 +1260,7 @@ def validate_item32_trends_evidence(
         == "SEALED_RELEASE_ATTESTATION_PLUS_FRESH_LOCAL_CONFIG_READBACK"
         and plan.get("database_readonly_probe_sha256")
         == ITEM32_EXPECTED_DB_PROBE_SHA256
-        and plan.get("source_sha256") == ITEM32_EXPECTED_SOURCE_SHA256
+        and plan.get("source_sha256") == ITEM32_EFFECTIVE_SOURCE_SHA256
         and plan.get("image_source_sha256") == image_sources
         and _keys_exact(
             browser_binding,
@@ -1415,6 +1425,7 @@ def validate_item32_trends_evidence(
                 "registry_manifest_sha256",
                 "registry_manifest_provenance",
                 "adapter_overlay_sha256",
+                "runtime_overlay_sha256",
                 "user_agent_sha256",
                 "signer_asset_sha256",
                 "user_agent_exact_match",
@@ -1437,7 +1448,9 @@ def validate_item32_trends_evidence(
                     "FRESH_LOCAL_CONFIG_READBACK"
                 )
                 or successor_runtime.get("adapter_overlay_sha256")
-                != ITEM32_EXPECTED_SOURCE_SHA256["model/spider_xhs_http.py"]
+                != ITEM32_RUNTIME_OVERLAY_SHA256["model/spider_xhs_http.py"]
+                or successor_runtime.get("runtime_overlay_sha256")
+                != ITEM32_RUNTIME_OVERLAY_SHA256
                 or successor_runtime.get("user_agent_sha256")
                 != ITEM32_USER_AGENT_SHA256
                 or successor_runtime.get("signer_asset_sha256")

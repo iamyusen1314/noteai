@@ -155,6 +155,29 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                 ROOT / successor.HOLD_EVIDENCE_REF,
             )
 
+    def test_synthetic_plan_binds_effective_sources_without_changing_old_window(self):
+        original_path = ROOT / "deploy/production/plans/item32-readonly-successor-20260907.json"
+        original = original_path.read_bytes()
+        plan = json.loads(original)
+        executor = ROOT / "tools/execute_item32_readonly_trends_successor.py"
+        adapter = ROOT / successor.ADAPTER_SOURCE_REF
+        plan["outer_executor_sha256"] = hashlib.sha256(executor.read_bytes()).hexdigest()
+        plan["adapter_overlay_sha256"] = hashlib.sha256(adapter.read_bytes()).hexdigest()
+        plan["source_sha256"] = {
+            **successor.EXPECTED_IMAGE_SOURCE_SHA256, **successor.RUNTIME_OVERLAY_SHA256,
+        }
+        candidate = self.root / "plan.json"
+        candidate.write_text(json.dumps(plan), encoding="utf-8")
+        loaded, _ = successor._load_plan(
+            candidate, executor, adapter, ROOT / successor.HOLD_EVIDENCE_REF,
+        )
+        self.assertEqual(loaded["source_sha256"], plan["source_sha256"])
+        self.assertEqual(loaded["admission"]["bucket_date_utc"], "2026-09-07")
+        self.assertEqual(original_path.read_bytes(), original)
+        with self.assertRaisesRegex(successor.Item32Error, "utc_budget_not_available"):
+            successor._admission_budget(loaded, {"call_dates": []},
+                now=datetime(2026, 9, 15, tzinfo=timezone.utc))
+
     def test_utc_budget_waits_for_fresh_bucket_and_requires_zero_prior(self):
         plan = {
             "admission": {

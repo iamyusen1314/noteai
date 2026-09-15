@@ -27,9 +27,18 @@ class Item32TrendsEvidenceGateTests(unittest.TestCase):
         self.path.parent.mkdir(parents=True)
         plan_source = ROOT / gate.ITEM32_EXECUTION_PLAN
         plan = json.loads(plan_source.read_text(encoding="utf-8"))
+        # Synthetic source binding only: leave the sealed dated plan untouched.
+        plan["outer_executor_sha256"] = hashlib.sha256(
+            (ROOT / plan["outer_executor"]).read_bytes()
+        ).hexdigest()
+        plan["adapter_overlay_sha256"] = gate.ITEM32_RUNTIME_OVERLAY_SHA256[
+            "model/spider_xhs_http.py"
+        ]
+        plan["image_source_sha256"] = dict(gate.ITEM32_IMAGE_SOURCE_SHA256)
+        plan["source_sha256"] = dict(gate.ITEM32_EFFECTIVE_SOURCE_SHA256)
         plan_target = self.root / gate.ITEM32_EXECUTION_PLAN
         plan_target.parent.mkdir(parents=True, exist_ok=True)
-        plan_target.write_bytes(plan_source.read_bytes())
+        plan_target.write_text(json.dumps(plan), encoding="utf-8")
         self.plan_target = plan_target
         self.plan = plan
         hold_source = ROOT / gate.ITEM32_HOLD_EVIDENCE
@@ -189,9 +198,10 @@ class Item32TrendsEvidenceGateTests(unittest.TestCase):
                         "SEALED_RELEASE_ATTESTATION_PLUS_"
                         "FRESH_LOCAL_CONFIG_READBACK"
                     ),
-                    "adapter_overlay_sha256": gate.ITEM32_EXPECTED_SOURCE_SHA256[
+                    "adapter_overlay_sha256": gate.ITEM32_RUNTIME_OVERLAY_SHA256[
                         "model/spider_xhs_http.py"
                     ],
+                    "runtime_overlay_sha256": dict(gate.ITEM32_RUNTIME_OVERLAY_SHA256),
                     "user_agent_sha256": gate.ITEM32_USER_AGENT_SHA256,
                     "signer_asset_sha256": gate.ITEM32_SIGNER_ASSET_SHA256,
                     "user_agent_exact_match": True,
@@ -347,6 +357,57 @@ class Item32TrendsEvidenceGateTests(unittest.TestCase):
         self.assertIn("Item32 successor predecessor binding mismatch", errors)
         self.assertIn("Item32 successor UTC budget mismatch", errors)
         self.assertIn("Item32 successor runtime binding mismatch", errors)
+
+    def test_runtime_requires_all_and_only_the_three_reviewed_overlays(self):
+        runtime = self.payload["successor"]["runtime_readback"]
+        correct = dict(gate.ITEM32_RUNTIME_OVERLAY_SHA256)
+        mutations = [
+            None,
+            {key: value for key, value in correct.items()
+             if key != "model/security_redaction.py"},
+            {**correct, "model/hot_keywords.py": "0" * 64},
+            {**correct, "model/unreviewed.py": "0" * 64},
+        ]
+        for overlay in mutations:
+            with self.subTest(overlay=overlay):
+                if overlay is None:
+                    runtime.pop("runtime_overlay_sha256", None)
+                else:
+                    runtime["runtime_overlay_sha256"] = overlay
+                expected_error = (
+                    "Item32 successor runtime readback schema mismatch"
+                    if overlay is None else "Item32 successor runtime binding mismatch"
+                )
+                self.assertIn(expected_error, self.validate())
+        runtime["runtime_overlay_sha256"] = correct
+        self.assertEqual(self.validate(), [])
+
+    def test_effective_source_cannot_impersonate_frozen_image_or_omit_overlay(self):
+        mutations = [
+            ("image_source_sha256", {**self.plan["image_source_sha256"],
+             "model/hot_keywords.py": gate.ITEM32_RUNTIME_OVERLAY_SHA256["model/hot_keywords.py"]}),
+            ("source_sha256", {key: value for key, value in self.plan["source_sha256"].items()
+             if key != "model/security_redaction.py"}),
+        ]
+        for field, sources in mutations:
+            with self.subTest(field=field):
+                plan = json.loads(json.dumps(self.plan))
+                plan[field] = sources
+                self.plan_target.write_text(json.dumps(plan), encoding="utf-8")
+                self.payload["execution"]["execution_plan_sha256"] = hashlib.sha256(
+                    self.plan_target.read_bytes()
+                ).hexdigest()
+                self.assertIn("Item32 canonical execution plan binding mismatch", self.validate())
+
+    def test_execution_and_actual_overlay_bytes_must_match_the_plan(self):
+        execution = self.payload["execution"]
+        execution["source_sha256"] = {**self.plan["source_sha256"],
+                                      "model/hot_keywords.py": "0" * 64}
+        self.assertIn("Item32 canonical executor/release binding mismatch", self.validate())
+        execution["source_sha256"] = dict(self.plan["source_sha256"])
+        target = self.root / "model/security_redaction.py"
+        target.write_bytes(target.read_bytes() + b"\n# synthetic tamper\n")
+        self.assertIn("Item32 canonical executor/release binding mismatch", self.validate())
 
     def test_rejects_terminal_before_successor_not_before_boundary(self):
         self.payload["successor"]["budget"]["bucket_date"] = "2026-09-06"
