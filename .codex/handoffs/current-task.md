@@ -1,3 +1,30 @@
+September15 — Item36/37独立准备已补齐，未执行网络/数据库变更：
+现有renderer适配当前API-C真实drop-in（空ExecStart重置、已加载sha256镜像、
+精确PGOPTIONS off/10000/5000和已审核公开状态字面量），不放宽旧API-F。
+当前C私网候选保留127.0.0.1供既有nginx使用，再加单一RFC1918映射；
+image更新只改最终参数，注释/原unit与rollback逐字保留。17项Python3.11离线PASS，
+含旧C/F、重复端口、错误角色/PGOPTIONS/可变image/注入拒绝；真实只读subagent核对。
+实际当前unit源SHA83a570ff…6643；私有候选noteai-item36-current-api-c-f070ed6，
+candidate SHA6bc99fdeb3cc41029ad253228613fcc03f841b9875ff5905646c1b3e7eec8bee，
+rollback SHA83a570ff…6643。10.42.10.44仍为既有核实地址，apply前需fresh IP/SG/ALB绑定；
+当前无apply、无新资源。旧F/Payment准备与7个原路径保持不变。
+FIRST_LAUNCH_UI_ADMIN_CONTRACT复用原0024/增量ACL与测试，现行owner四scope明确，
+旧adjust/评分模型部署/训练/Crawler/Tracking手工重排仍受限；历史read-only验收不改。
+Item37不因文档同步计terminal；Item36网络/报价的真实依赖仍保留。API f070保持不变。
+
+September15 12:50BJT — f070ed6 API-only发布已成功（原PID1900709，1789447847.7795658）。
+实际API image sha256:6733bb5fe842502204cebb480ac8a51461ef5d5c05961754decc17428e5b8be0；
+当前drop SHA83a570ff3e67a03c32c43b3cfad3cb02172ff296301fcb8b8bfd47d023046643。
+只替换api.py（fac0dd04…6e75），Python3.11.15/hash/import/隔离只读候选与切换后健康通过。
+web0590286/Admin4870/模型配置/Payment/原封存Evidence保持不变，只读候选已停止。
+刷新真实前端后本人笔记库恢复原三版本与2866.5积分，无模型请求/业务写入。
+原059 image与drop保留兼容rollback；私有读回noteai-memory-f070ed6/deploy-readback.txt及
+postdeploy-library-browser.txt，host原deploy/result.json。记忆修复现在已部署，下面LOCAL为历史。
+原视频工程验证已完成，质量提示/经营事实待确认仍保留；不重复同素材提分。
+后台最新Claude/Ark与美团历史成功来源已读回；高德适用许可仍缺，不能从历史成功推定已授权。
+原noteai-5ce唯一任务仍ACTIVE，9月16日10:01:30BJT原安排；执行时重新绑定当时运行版本。
+Readiness31/37不变。继续独立Item36当前单元兼容准备及Item37过期只读条款同步，无生产apply。
+
 September15 — 059真实浏览验证完成：原截图2d891280恢复后原文/画面观察分开；
 再次选同一PNG保持1/9和原结果，期间新增screenshot claim为0，原0.5积分仅扣一次。
 同视频Chat新claime8b8a913-5c8a-426e-bc9e-2557b2d9503e已完成04:40:42.615321Z，
@@ -317,16 +344,16 @@ Current authorized task comparison (history preserved, no old replay):
 | Video material generation | dbe v1 saved75;059 same-video Chat v3 saved76.66/3paras,6Claude/RMB1.385762/3credits/noArk | Engineering chain verified; retained3quality hints/merchant review, no score chasing |
 | Seven industries / model route | Existing restored templates and formal Claude/Ark provenance retained | Necessary affected regression/quality; no claim allindustryquality complete |
 | Screenshot merge/dedup | 059 UI original prose/visual source separation and restored same-image dedup passed;0newOCR | Multi-source merge covered by existing offline fixtures; only1distinct approved merchant screenshot used live |
-| Admin/entitlements/cost | Live4870 actualsupplierhistory, percall models/steps/cost available | Verify newformal generation exactnote/usage association; freefees stillunknownwithoutbasis |
-| Original user memory | Existing owner/industry isolation +059 AVcontext restore;23offline checks | Publish local memory propagation/real saved-note approval fix without new provider test |
+| Admin/entitlements/cost | Live4870 supplier history refreshed; dbe/e8b original note, usage, calls and ledger reconciled | Freefees stillunknownwithoutbasis; historical precise-cost gaps retained |
+| Original user memory | f070 API deployed;23 isolated checks; original owner library/balance restored | No fresh model test or fabricated approval; current-turn constraints override past preferences |
 | Fact clarification | Free answer/omit/resume/correction proof exists | Keep same completedmedia/charge, regression with new complete input |
 | Item31 Native-first | Paid/fullrefund/naturalcallback5ce passed; oldSep14 billmatched | Same5ce billSep16 + separatejournal + existingterminalvalidator |
 | Item32 | Oldidentitiessealed; current three-file runtime overlay prepared/offline23checks | Future canonical bindings/window required; no live successor or oldpackage execution |
 | Item33 | No qualifying Trends terminalcycle | True successor/managedcycle dependency; not globalblock |
 | Item34 | generation2 COMPLETE, originalautomationdeleted | Preservefixedartifacts/evidence; no replay |
 | Item35 | NOT_REQUIRED/withdrawn | Historicalunsignedfacts unchanged, no score |
-| Item36 | Currentweb/API/AdminHTTPS and controlledPayment published | Canonical ALB/health/rollback dependency readback; no newresourcepurchase |
-| Item37/38 | Fullcommercialjointacceptance not terminal | ExistingpublicDNS is fact; no obsolete blanketDNS/auth blocker |
+| Item36 | Currentweb/API/AdminHTTPS and controlledPayment verified; currentC bind+exactrollback prepared/17checks | Fresh private IP/ALB/SG/cert binding and quote before canonical apply; no newresourcepurchase |
+| Item37/38 | Fullcommercialjointacceptance not terminal; current Admin scope contract synchronized | Original unmetTrends/Tracking/payment/infrastructure dependencies retained; publicDNS/ownerAdmin already live |
 
 September15 owner combines complete video-note input/diagnosis, independent video-to-generation,
 truthful Amap/Meituan status and retrieval/cost persistence, and completion of existing authorized work.

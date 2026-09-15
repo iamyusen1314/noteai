@@ -1,3 +1,5 @@
+September15 current: API f070ed6 deployed on the existing API-C; public web0590286 and Admin4870 unchanged. Owner memory now survives generation/Chat repair and explicit approval is bound to the owner’s saved visible note. Original video/history/credits restore after refresh; no new model request for deployment verification. Exact image/drop and rollback at Handoff top; older runtime labels below are historical.
+
 September15 current: API/public0590286 deployed; authenticated image/video/formal text paths open. Admin4870 unchanged; payment/Tracking public routes closed. Existing Ark audio/video source is retained through Claude Chat and downstream repair; screenshot original prose separated from observations. Exact active hashes, original results, and remaining checks are at Handoff top. Earlier dated runtime states below are historical.
 
 September14 20:40BJT: original API+web05af4b0 deployed; image/text/account functions

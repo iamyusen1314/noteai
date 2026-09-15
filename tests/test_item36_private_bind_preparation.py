@@ -14,7 +14,72 @@ UNIT = (
 ).encode()
 
 
+def public_api_c_fixture(quoted_option=False):
+    # Synthetic current-template fixture, never evidence of a production readback.
+    template = (Path(__file__).resolve().parents[1] /
+                "deploy/production/systemd/noteai-public-account-api.conf.template").read_bytes()
+    source = template.replace(b"@PUBLIC_ACCOUNT_IMAGE@", b"sha256:" + b"d" * 64)
+    if quoted_option:
+        source = source.replace(
+            b'--env="PGOPTIONS=-c default_transaction_read_only=off -c statement_timeout=10000 -c lock_timeout=5000"',
+            b"'--env=PGOPTIONS=-c default_transaction_read_only=off -c statement_timeout=10000 -c lock_timeout=5000'",
+        ).replace(b"--publish=", "'--env=NOTEAI_AMAP_UNAVAILABLE_REASON=许可尚未取得；其他来源独立使用。' --publish=".encode())
+    return source
+
+
 class Item36PrivateBindPreparationTests(unittest.TestCase):
+    def test_current_api_c_dropin_bind_and_loaded_image_preserve_original(self):
+        for quoted in (False, True):
+            source = public_api_c_fixture(quoted)
+            with self.subTest(quoted=quoted):
+                bound, rollback = self.render(source, address="10.42.10.44")
+                self.assertEqual(rollback, source)
+                self.assertIn(b"--publish=127.0.0.1:8000:8000 --publish=10.42.10.44:8000:8000", bound)
+                self.assertEqual(bound.replace(b" --publish=10.42.10.44:8000:8000", b""), source)
+                old_image = "sha256:" + "d" * 64
+                new_image = "sha256:" + "e" * 64
+                updated, rollback = render_image_update(
+                    bound, expected_sha256=hashlib.sha256(bound).hexdigest(),
+                    expected_image=old_image, candidate_image=new_image,
+                )
+                self.assertEqual(rollback, bound)
+                self.assertEqual(updated.count(new_image.encode()), 1)
+                self.assertIn(("# Render " + old_image).encode(), updated)
+                self.assertEqual(updated.replace(new_image.encode(), old_image.encode()), bound)
+                with self.assertRaises(ValueError):
+                    self.render(bound, address="10.42.10.44")
+
+    def test_current_image_update_rejects_extra_or_unsafe_private_mapping(self):
+        source = public_api_c_fixture(True)
+        for extra in (b"127.0.0.1:8000:8000", b"0.0.0.0:8000:8000", b"8.8.8.8:8000:8000",
+                      b"10.42.10.44:9000:8000", b"10.42.10.44:8000:8000 --publish=10.42.10.45:8000:8000"):
+            bad = source.replace(b"--publish=127.0.0.1:8000:8000",
+                                 b"--publish=127.0.0.1:8000:8000 --publish=" + extra)
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                render_image_update(bad, expected_sha256=hashlib.sha256(bad).hexdigest(),
+                                    expected_image="sha256:" + "d" * 64, candidate_image="sha256:" + "e" * 64)
+
+    def test_current_profile_does_not_broaden_other_units_or_quotes(self):
+        source = public_api_c_fixture(True)
+        for before, after in (
+            (b"--name=noteai-api-c", b"--name=noteai-api-f"),
+            (b"--env=NOTEAI_RUNTIME_ROLE=api", b"--env=NOTEAI_RUNTIME_ROLE=payment"),
+            (b"--env=NOTEAI_PUBLIC_PRODUCT=1", b"--env=NOTEAI_PUBLIC_PRODUCT=0"),
+            (b"--env=NOTEAI_PUBLIC_PRODUCT=1", b"--env=NOTEAI_PUBLIC_PRODUCT=1 --env=NOTEAI_PUBLIC_PRODUCT=0"),
+            (b"lock_timeout=5000", b"lock_timeout=1000"),
+            (b"ExecStart=\n", b"ExecStart=\nExecStart=\n"),
+            (b"ExecStart=\n", b""),
+            (b"--read-only", b"'--name=noteai-api-c' --read-only"),
+            (b"--read-only", b"'--env=UNREVIEWED=value with spaces' --read-only"),
+            (b"--publish=", b"-p0.0.0.0:9000:9000 --publish="),
+            (b"sha256:" + b"d" * 64, b"noteai:latest"),
+            (b"NOTEAI_AMAP_UNAVAILABLE_REASON=", b"NOTEAI_AMAP_UNAVAILABLE_REASON=$EXTRA "),
+        ):
+            with self.subTest(after=after), self.assertRaises(ValueError):
+                self.render(source.replace(before, after))
+        with self.assertRaises(ValueError):
+            self.render(UNIT.replace(b"registry.example.invalid/api@sha256:", b"sha256:"))
+
     def test_actual_api_c_short_options_bind_image_and_payment_with_exact_rollback(self):
         source = (Path(__file__).parent / "fixtures/item36-api-c.service").read_bytes()
         digest = "46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6"
