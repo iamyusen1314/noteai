@@ -22,10 +22,10 @@ import urllib.request
 import urllib.error
 import uuid
 
-ROOT = Path('/var/lib/noteai/native-6c9221e/trade')
-API_IMAGE = 'sha256:bec724f160f967858629a7eb8eecf3769e3b6f9f8668d5f60b196170c95d5fa1'
-PAYMENT_IMAGE = 'sha256:15d15189ea5c414933b20d84ef7889b0cd3a6b8faca9439f1f05fc264cc81584'
-CANARY_IMAGE = 'sha256:35097f4f4c5912f23de5affcf2d38958fff7c85270eee42ff50f7972e21bdf14'
+ROOT = Path('/var/lib/noteai/native-9d62f98/trade-web2dfd4d2')
+API_IMAGE = 'sha256:b28628d69d5d8d4802677f8fb0f01f54fd3e9f36010a246cda28a90548805e2a'
+PAYMENT_IMAGE = 'sha256:b1d4ac2d7c989244f50eb067360e933301e54980a2b24344a9241266be5de930'
+CANARY_IMAGE = 'sha256:ab12191b69f49c5c6a564c67542207df8b96b1fa3d22ef0a95b7acdb08b3a8a1'
 USER_ID = '61d63b05-17eb-47d5-b19e-fb7eab297299'
 APP_ID = 'wxfa4405963601a505'
 API_UNIT = Path('/etc/systemd/system/noteai-api.service')
@@ -35,7 +35,7 @@ PROXIES = [Path('/etc/nginx/noteai-' + n + '-proxy.conf') for n in ('account', '
 BOUND_ENV = Path('/var/lib/noteai/wechat-native-20260913/candidate-config/canary-bound.env')
 HASHES = {
     str(API_UNIT): '46010368ded3db5567bca45afb75f18383ccf23de6aa6d0d99299d87701677e6',
-    str(API_DROP): '3bee1961e46154eb7df19de1b16e1e64ead371ac2717ad8f180daac8a3fbd0db',
+    str(API_DROP): 'f25390aa331276026f32581715c4b09444f17bfbef84f8806f4d3b84d4eb941b',
     str(PAYMENT_UNIT): '40a49dbee82bbb6f617d2ec439b1ab608b980ceea60125a20dc09a83737547bb',
     str(BOUND_ENV): '861cc4be3dec07a5c20c1f271f87a566ab91bb61e4c3049add5e641d6db0f9bf',
     '/etc/noteai/public-account.env': '49690b5c2e4aa1612eae64c13adaead84ee80ec0fd7b399040bb275e062ecd8d',
@@ -386,8 +386,8 @@ def dms_transaction(statements, activation, *, removal=False,
 
 
 def prepare_bill():
-    trade = Path('/var/lib/noteai/native-80b01ea/trade')
-    assert ROOT == trade.parent / 'bill-20260914' and not ROOT.exists()
+    trade = Path('/var/lib/noteai/native-9d62f98/trade-web2dfd4d2')
+    assert ROOT == trade.parent / 'bill-20260915' and not ROOT.exists()
     assert run(['systemctl','show','noteai-payment.service','-p','ActiveState','--value']).strip() in (b'inactive', b'failed')
     assert run(['systemctl','show','noteai-payment.service','-p','Job','--value']).strip() in (b'', b'0')
     assert not run(['docker','ps','-aq','--filter','name=^/noteai-payment$']).strip()
@@ -403,7 +403,7 @@ def prepare_bill():
     assert ledger_entries, 'original_action_ledger_missing'
     assert json.loads((trade/'closed.json').read_text())['state'] == 'SERVICES_RESTORED_COLLECTOR_REMOVAL_PENDING'
     # Current app role reads its original order only, without owner credentials.
-    order_id = '1e2acc0a-ebf6-4830-9cd3-e1bccfa4a8a6'
+    order_id = '5ce31ca0-e42d-4a86-bee5-d1bb4bea8757'
     code = "import db,json;r=db.fetchone(\"SELECT id,user_id,provider,payment_status,refund_status,refunded_fen,amount_fen,idempotency_key_hash FROM payment_orders WHERE id=?\",(" + repr(order_id) + ",));print(json.dumps(dict(r or {})))"
     order = api_read(code)
     assert order['user_id'] == USER_ID and order['provider'] == 'wechatpay_direct' and order['amount_fen'] == 1200
@@ -428,8 +428,8 @@ def prepare_bill():
             statements, binding['activation'], removal=phase=='remove'))
     raw=PAYMENT_UNIT.read_bytes();(ROOT/'before/payment.service').write_bytes(raw)
     unchanged={str(p):digest(p.read_bytes()) for p in (API_UNIT,API_DROP,*PROXIES,BOUND_ENV,Path('/etc/noteai/public-account.env'),Path('/etc/noteai/payment.env'))}
-    evidence={name:digest((trade/name).read_bytes()) for name in ('binding.json','closed.json','final-readback.json','work/canary-dml.jsonl.incomplete')}
-    meta={'mode':'bill','order_id':order_id,'bill_date':'2026-09-14','activation':binding['activation'],
+    evidence={name:digest((trade/name).read_bytes()) for name in ('binding.json','closed.json','final-readback.json','work/canary-dml.jsonl')}
+    meta={'mode':'bill','order_id':order_id,'bill_date':'2026-09-15','activation':binding['activation'],
           'binding_sha256':digest((ROOT/'binding.json').read_bytes()),'trade_directory':str(trade),
           'original_evidence':evidence,'original_action_ledger':ledger_entries,'api_image':current['Image'],'api_container':current['Id'],
           'unchanged_files':unchanged,'config_hash':config_hash(),'admin_image':inspect('noteai-admin-c')['Image'],
@@ -555,7 +555,7 @@ def main():
     helpers()
     global ROOT
     if sys.argv[1:] in (['prepare-bill'], ['run-bill'], ['close-bill']):
-        ROOT = Path('/var/lib/noteai/native-80b01ea/bill-20260914')
+        ROOT = Path('/var/lib/noteai/native-9d62f98/bill-20260915')
         if sys.argv[1:] == ['prepare-bill']:
             result = prepare_bill()
         else:

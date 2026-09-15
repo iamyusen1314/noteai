@@ -1,3 +1,23 @@
+September15 08:44BJT: same5ce next-day bill continuation is STAGED_NOT_PREPARED,
+not a new capture or provider request. Existing tracked deploy/production/native_capture.py
+now binds currenttrade-web2dfd4d2,5ceorder,Sep15billdate,current9dPayment/canary and
+sealed work/canary-dml.jsonl. Host /var/lib/noteai/native-9d62f98/native_capture-bill5ce.py
+SHA7498f3a03733e4215db0c5247de01d77784bd5a0ce2207ed1c1e8692218ced5f, staged1789433071.4395442;
+original trade launcher885f6a71 and oldfc4f49f bill launcher a68085c7 unchanged.
+Existing template d3ce53c1 and final-readback4c596dfc verified before stage; new
+bill-20260915 directory absent. Do not prepare early: originalworkflow binds the
+fresh API CID/config/web/Admin/actionledger immediately before the actual operation.
+After Sep16 10:00BJT/02:00UTC use this sole new sameorderbill entry: fresh prepare-bill,
+read its exact existing DMS install/remove SQL, original run-bill and close/readback,
+then remove only its collector. Callbacks/order creation/ACKfault all off for bill;
+API unchanged, Payment-only temporary activation. No newscan/querypay/refund.
+Four existing Python3.11/networknone bill recovery/context/early-time tests PASS;
+actual Sep16 boundary checked locally rejects 1second early and keeps create/callback
+flags0. Independent readonly diffcheck found no binding inconsistency. No image rebuild,
+no production activation/DDL/provider call for this staging; no new budget or gate.
+Payment/refund/cleanup milestone checkpoint6523f4b preserved; Readiness31/37 unchanged.
+OldSep14 1e2acc bill remains separate at frozenfc4f49f, not covered by this newentry.
+
 September15 08:41BJT: current order5ce31ca0-e42d-4a86-bee5-d1bb4bea8757 is PAID,
 FULLY REFUNDED AND CAPTURE CLOSED. No scan/neworder/replay is needed. Source9d Payment
 b1d4ac2d7c989244f50eb067360e933301e54980a2b24344a9241266be5de930 and canary
