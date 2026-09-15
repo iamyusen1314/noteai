@@ -1,3 +1,22 @@
+September15 12:36BJT — 0590286 API/public部署成功（原PID1897855，1789446998.4291975）。
+API image de2b59f5e6b84c894295a43fda2b6ee65b4e3ab417d105f880e303b8fc6a7545，
+public /var/www/noteai-public/0590286，drop SHA728ea6a500387009cb20ce47d7b1db125bbd008fed54d3b0281aaf912c3406e8。
+实际health/权限边界/0030与共享配置/原Native封存均校验通过，只读候选已停止；
+没有迁移、ACL变更、供应商请求或业务写入。原API11718/web5991保留可恢复。
+原c539b6f2会话浏览器刷新读回同v2和2869.5积分；已提交一次显式素材/三段结构
+修复验证，正在运行，先读原结果，不能重复提交。原OCR读回按钮已点击一次。
+Readiness31/37不变。Item32本地49c准备未进入059镜像，无真实执行。
+
+September15 — candidate059构建已真实通过，部署正在原进程中继续（PID1897855）。
+Docker层深限制已解决：原11718镜像的完整Config与27,423条文件/权限/扩展属性
+核对一致，124层合并为1层，原源码标记保留11718；再应用059两文件修复。
+候选image de2b59f5e6b84c894295a43fda2b6ee65b4e3ab417d105f880e303b8fc6a7545；
+Python3.11.15、实际加载路径和两文件hash检查通过，构建没有供应商请求/业务写入。
+部署脚本SHA465e6688254903e424b1378fcd7fafc6bd966fa3cc6beb422e89bac4a3c4721a；
+先读原deploy/result.json，不重复发起。尚不能将DISPATCHED写成上线成功。
+当前读回保存在仓库外noteai-video-note-0590286/flatten-archive-readback.txt；
+所有原失败保留。下一步：部署结果、原截图恢复去重、同视频上下文接续验证。
+
 September15 — corrected formal video generation dbe288b1 completed03:55:17Z,
 API11718be/web5991f88. Saved v1 sameclaim/note, score75/qualityissues[], one8credit
 charge,27actualrespondedcalls/130748in/26083out/RMB2.6756215/audio358. Browser refresh

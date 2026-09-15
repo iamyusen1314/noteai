@@ -1,3 +1,5 @@
+September15 current: API/public0590286 deployed; authenticated image/video/formal text paths open. Admin4870 unchanged; payment/Tracking public routes closed. Existing Ark audio/video source is retained through Claude Chat and downstream repair; screenshot original prose separated from observations. Exact active hashes, original results, and remaining checks are at Handoff top. Earlier dated runtime states below are historical.
+
 September14 20:40BJT: original API+web05af4b0 deployed; image/text/account functions
 remain open, video/payment/Tracking remain closed. Original OCR recovery and accurate
 2920.5credit display verified. Same inactive Native preparation preserves newAPI/web
