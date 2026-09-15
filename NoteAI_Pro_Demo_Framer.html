@@ -3522,6 +3522,17 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
       </div>
 
+      <div class="constraint-section">
+        <h3><i data-lucide="settings-2"></i>本次创作目标与约束 <span style="font-size:12px;color:var(--text-muted);font-weight:400">（可选）</span></h3>
+        <div class="constraint-tags">
+          <div class="c-tag" onclick="this.classList.toggle('on')">固定发布时间 18:00</div>
+          <div class="c-tag" onclick="this.classList.toggle('on')">目标：涨粉</div>
+          <div class="c-tag" onclick="this.classList.toggle('on')">目标：带货</div>
+          <div class="c-tag" onclick="this.classList.toggle('on')">重点优化：互动率</div>
+          <div class="c-tag" onclick="this.classList.toggle('on')">重点优化：曝光量</div>
+        </div>
+      </div>
+
       <button id="generateSubmitBtn" class="btn btn-lg analyze-btn" onclick="startGeneration()" aria-disabled="false" aria-busy="false"
         style="background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;border:none;
                box-shadow:0 4px 28px rgba(123,97,255,0.4);margin-top:32px">
@@ -5921,8 +5932,9 @@ function shouldAskMerchantBeforeRun(domain, title, text, payload) {
 }
 
 /* ── 读取约束条件 tags ── */
-function getConstraintTags() {
-  return Array.from(document.querySelectorAll('.c-tag.on'))
+function getConstraintTags(mode = 'diagnose') {
+  const section = document.getElementById(mode === 'generate' ? 'section-generate' : 'section-diagnose');
+  return Array.from(section ? section.querySelectorAll('.c-tag.on') : [])
     .map(el => el.textContent.trim())
     .filter(Boolean);
 }
@@ -6221,7 +6233,7 @@ async function startGeneration() {
   const videoRef = _genVideoFileId || null, videoAttempt = _genVideoAttempt;
   const domain = document.getElementById('genDomain')?.value || '美食';
   const brief  = (document.getElementById('genBrief')?.value || '').trim() || null;
-  const constraints = getConstraintTags();
+  const constraints = getConstraintTags('generate');
   const intentPayload = getContentIntentPayload();
 
   if (_genCoverImages.length === 0 && !brief && !_genVideoFileId) {
@@ -8009,9 +8021,9 @@ async function startChatFromDiagnosis() {
     const rootNoteId = await ensureDiagnosisRootNote(note);
     if (!_chatConversationMatches(identitySnapshot)) return;
     _chatParentNoteId = rootNoteId || _chatParentNoteId;
-    const constraints = Array.isArray(_diagnoseResult?.user_constraints) && _diagnoseResult.user_constraints.length
+    const constraints = Array.isArray(_diagnoseResult?.user_constraints)
       ? _diagnoseResult.user_constraints
-      : getConstraintTags();
+      : [];
     const intentPayload = getContentIntentPayload(_diagnoseResult || {});
     const currentScore = _numOrNull(note.score) ?? diagnosisDisplayScore(_diagnoseResult);
     const selectedPlanIndex = note.selected_plan_index ?? null;
@@ -9489,9 +9501,9 @@ async function startChatOptimization() {
 
   try {
     const headers = { 'Content-Type': 'application/json', ...authHeader() };
-    const constraints = Array.isArray(d.user_constraints) && d.user_constraints.length
+    const constraints = Array.isArray(d.user_constraints)
       ? d.user_constraints
-      : getConstraintTags();
+      : [];
     const intentPayload = getContentIntentPayload(d);
     const generateContext = { ...d, user_constraints: constraints, ...intentPayload };
     const res = await fetch(API_AUTH + '/chat/start', {
@@ -9558,9 +9570,9 @@ async function _recreateChatSession() {
   const identitySnapshot = _chatConversationSnapshot();
   try {
     const headers = { 'Content-Type': 'application/json', ...(_authToken ? authHeader() : {}) };
-    const constraints = Array.isArray(d.user_constraints) && d.user_constraints.length
+    const constraints = Array.isArray(d.user_constraints)
       ? d.user_constraints
-      : getConstraintTags();
+      : [];
     const intentPayload = getContentIntentPayload(d);
     const generateContext = { ...d, user_constraints: constraints, ...intentPayload };
     const res = await fetch(API_AUTH + '/chat/start', {

@@ -111,6 +111,44 @@ test('server-saved generation receipt never posts a duplicate note',async()=>{
   assert.equal(result._save_status,'saved');assert.equal(result._saved_note_id,'original-server-note');
 });
 
+test('generation uses only its visible constraints and explicit time choice',()=>{
+  const selections={
+    'section-diagnose':['不改标题','不改封面','固定发布时间 18:00','目标：带货'],
+    'section-generate':[],
+  };
+  const c=context({document:{getElementById:id=>({querySelectorAll:()=>selections[id].map(textContent=>({textContent}))})},
+    formatLocalTime:()=> '2026091512'});
+  c.load('getConstraintTags','formatLocalTimeWithConstraints');
+  assert.deepEqual(Array.from(c.getConstraintTags('generate')),[]);
+  assert.equal(c.formatLocalTimeWithConstraints(c.getConstraintTags('generate')),'2026091512');
+  selections['section-generate']=['重点优化：互动率','固定发布时间 18:00'];
+  assert.deepEqual(Array.from(c.getConstraintTags('generate')),selections['section-generate']);
+  assert.equal(c.formatLocalTimeWithConstraints(c.getConstraintTags('generate')),'2026091518');
+  assert.deepEqual(Array.from(c.getConstraintTags()),selections['section-diagnose']);
+  assert.ok(source('startGeneration').includes("getConstraintTags('generate')"));
+});
+
+test('saved empty constraints survive chat entry and session recovery without hidden form state',async()=>{
+  for (const constraints of [[],undefined]) {
+    const requests=[];
+    const note={_saved_note_id:'owned-note',note_title:'原标题',note_body:'原正文',_domain:'旅行',user_constraints:constraints};
+    const c=context({_generateResult:note,_authToken:'test',_chatParentNoteId:'owned-note',API_AUTH:'',
+      completeProductResult:()=>true,chatBeginNoteContext:()=>true,_chatConversationSnapshot:()=>({}),
+      _chatConversationMatches:()=>true,_numOrNull:Number,localStorage:{removeItem(){}},
+      document:{getElementById:()=>({style:{},focus(){}})},showPage(){},authHeader:()=>({}),
+      getContentIntentPayload:()=>({}),formatLocalTimeWithConstraints:()=> '2026091512',
+      getConstraintTags:()=>{throw Error('hidden diagnosis state read');},
+      fetch:async(_url,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>({session_id:'same-owned-session'})};},
+      chatUpdateNote(){},chatUpdateLearn(){},chatAppendAi(){},chatAppendSupplementPrompts(){},
+      chatAppendConfirmedFacts(){},chatSaveSessionToStorage(){},showToast:msg=>{throw Error(msg);},
+    });
+    c.load('startChatOptimization','_recreateChatSession');
+    await c.startChatOptimization();assert.equal(await c._recreateChatSession(),true);
+    assert.equal(requests.length,2);
+    for (const req of requests) {assert.deepEqual(req.generate_context.user_constraints,[]);assert.equal(req.user_constraints,null);}
+  }
+});
+
 test('duplicate screenshot selections preserve one recognition and completed aggregate',async()=>{
   let calls=0, invalidations=0;
   const c=context({_ssFileSelectionRevision:0,_ssOcrRevision:1,_ssImages:[],_ssOcrCache:new Map(),

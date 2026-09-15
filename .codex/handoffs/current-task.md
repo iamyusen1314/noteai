@@ -1,3 +1,16 @@
+September15 11:43BJT — 11718be API/public actuallyDEPLOYED: APIimage
+4779d4dc2041c4796420373fa45bee56a9c43fff6bdfcf442261a3b394f38f48,
+public11718be, dropa254370cf6249b49895d164b865fe1d188e8de6e65779b663600156500e82319.
+Original deployPID1889722 completed1789443765.083144; readonlycandidate stopped.
+Existing0030/Admin4870/sharedmodels/Nativepreserved; noprovidercall/businessDML.
+Fulloriginalresult at private noteai-video-note-11718be/deploy-readback.txt.
+Further frontend-only defect confirmed: generation reads hidden diagnosis constraint
+choices including default18:00/sales and prior keepcover; Chat emptychoices also
+fell back to hidden form. Minimalfix scopes visible choices per form and respects
+savedempty[] on Chat/resume. Twelve pureJS tests PASS including these request paths.
+Publish compatible web-only delta before corrected realgeneration; noAPIrebuild or
+migration. Rawvideo upload ready but no newmodelrequest yet. Readiness31/37unchanged.
+
 September15 11:35BJT — cd91bc2 API/public successor DEPLOYED, exactAPI image
 f8dfd5c8939ddf4ae8a9a0efbe82cdee00070d0e8f98507c31413b4464ce570c,
 publicwebcd91bc2, drop192c5dc569f187d68b91469ecd6a9fd4b0e7c37eb3de95cc6dbf6593a0322f2b.
