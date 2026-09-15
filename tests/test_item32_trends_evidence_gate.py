@@ -36,6 +36,17 @@ class Item32TrendsEvidenceGateTests(unittest.TestCase):
         ]
         plan["image_source_sha256"] = dict(gate.ITEM32_IMAGE_SOURCE_SHA256)
         plan["source_sha256"] = dict(gate.ITEM32_EFFECTIVE_SOURCE_SHA256)
+        # Authorized only inside this isolated synthetic fixture.
+        plan["admission"].update(
+            not_before_utc="2026-09-07T03:00:00+00:00",
+            bucket_date_utc="2026-09-07",
+            dispatch_deadline_utc="2026-09-07T04:40:00+00:00",
+            must_finish_before_utc="2026-09-07T05:00:00+00:00",
+        )
+        plan["authorization"] = {
+            "status": "AUTHORIZED", "confirmed_at_utc": "2026-09-06T12:00:00+00:00",
+            "approved_scope_sha256": self.approval_digest(plan),
+        }
         plan_target = self.root / gate.ITEM32_EXECUTION_PLAN
         plan_target.parent.mkdir(parents=True, exist_ok=True)
         plan_target.write_text(json.dumps(plan), encoding="utf-8")
@@ -300,8 +311,49 @@ class Item32TrendsEvidenceGateTests(unittest.TestCase):
             now=datetime(2026, 9, 8, tzinfo=timezone.utc),
         )
 
+    @staticmethod
+    def approval_digest(plan):
+        scope = {key: value for key, value in plan.items() if key != "authorization"}
+        return hashlib.sha256(json.dumps(
+            scope, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False,
+        ).encode()).hexdigest()
+
     def test_accepts_one_bounded_real_cycle_with_zero_production_writes(self):
         self.assertEqual(self.validate(), [])
+
+    def test_pending_or_changed_approval_scope_cannot_supply_terminal_credit(self):
+        for pending in (True, False):
+            with self.subTest(pending=pending):
+                plan = json.loads(json.dumps(self.plan))
+                if pending:
+                    plan["authorization"] = {"status": "PENDING", "confirmed_at_utc": None,
+                                             "approved_scope_sha256": None}
+                else:
+                    plan["admission"]["not_before_utc"] = "2026-09-07T02:00:00+00:00"
+                self.plan_target.write_text(json.dumps(plan))
+                self.payload["execution"]["execution_plan_sha256"] = hashlib.sha256(
+                    self.plan_target.read_bytes()).hexdigest()
+                self.assertIn("Item32 canonical execution plan binding mismatch", self.validate())
+
+    def test_same_day_finish_at_or_after_approved_end_is_rejected(self):
+        for finish in ("2026-09-07T05:00:00+00:00", "2026-09-07T05:01:00+00:00"):
+            with self.subTest(finish=finish):
+                self.payload["execution"]["finished_at"] = finish
+                self.payload["observed_at"] = "2026-09-07T05:02:00+00:00"
+                self.assertIn("Item32 approved execution window mismatch", self.validate())
+
+    def test_same_day_start_at_dispatch_deadline_is_rejected(self):
+        self.payload["execution"]["started_at"] = "2026-09-07T04:40:00+00:00"
+        self.payload["execution"]["finished_at"] = "2026-09-07T04:50:00+00:00"
+        self.payload["observed_at"] = "2026-09-07T04:51:00+00:00"
+        self.assertIn("Item32 approved execution window mismatch", self.validate())
+
+    def test_approval_recorded_after_execution_started_is_rejected(self):
+        self.plan["authorization"]["confirmed_at_utc"] = "2026-09-07T03:56:00+00:00"
+        self.plan_target.write_text(json.dumps(self.plan))
+        self.payload["execution"]["execution_plan_sha256"] = hashlib.sha256(
+            self.plan_target.read_bytes()).hexdigest()
+        self.assertIn("Item32 approved execution window mismatch", self.validate())
 
     def test_accepts_labelled_baseline_without_counting_it_as_real(self):
         snapshot = self.root / self.snapshot_ref

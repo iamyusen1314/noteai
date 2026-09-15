@@ -41,7 +41,7 @@ SEALED_ORIGINAL_ADMISSION = SEALED_ORIGINAL_ROOT / "item32-admission.json"
 SEALED_DIAGNOSTIC_ROOT = Path("/var/lib/noteai/item32-xhs-diagnostic")
 SEALED_DIAGNOSTIC_ADMISSION = SEALED_DIAGNOSTIC_ROOT / "admission.json"
 SEALED_DIAGNOSTIC_RESULT = SEALED_DIAGNOSTIC_ROOT / "result.json"
-PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v1"
+PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v2"
 TERMINAL_SCHEMA = "noteai.item32.xhs_trends_readonly.v2"
 HOLD_EVIDENCE_SCHEMA = "noteai.item32.xhs_diagnostic_hold_unknown.v1"
 HOLD_EVIDENCE_REF = (
@@ -63,10 +63,6 @@ EXPECTED_DIAGNOSTIC_ADMISSION_SHA256 = (
 EXPECTED_DIAGNOSTIC_RESULT_SHA256 = (
     "14406787e1064a265ab050b9e7d905752f1144c50498b9f9e281f373b8857382"
 )
-NOT_BEFORE_UTC = "2026-09-07T00:00:00+00:00"
-BUCKET_DATE_UTC = "2026-09-07"
-DISPATCH_DEADLINE_UTC = "2026-09-07T23:40:00+00:00"
-BUCKET_END_UTC = "2026-09-08T00:00:00+00:00"
 RUNTIME_READBACK_MAX_AGE = timedelta(minutes=15)
 SIGNER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -393,6 +389,53 @@ def _read_secret_env(path: Path) -> dict[str, str]:
     return parsed
 
 
+def _plan_window(admission: Any) -> tuple[datetime, datetime, datetime]:
+    if not isinstance(admission, dict):
+        raise Item32Error("plan_window")
+    start = _parse_clock(admission.get("not_before_utc"))
+    deadline = _parse_clock(admission.get("dispatch_deadline_utc"))
+    finish = _parse_clock(admission.get("must_finish_before_utc"))
+    bucket = admission.get("bucket_date_utc")
+    if (
+        start.isoformat() != admission.get("not_before_utc")
+        or deadline.isoformat() != admission.get("dispatch_deadline_utc")
+        or finish.isoformat() != admission.get("must_finish_before_utc")
+        or bucket != start.date().isoformat()
+        or deadline.date() != start.date()
+        or not start < deadline < finish
+        or finish - deadline < timedelta(minutes=20)
+        or finish > start.replace(hour=0, minute=0, second=0, microsecond=0)
+        + timedelta(days=1)
+    ):
+        raise Item32Error("plan_window")
+    return start, deadline, finish
+
+
+def _approval_scope_sha256(plan: dict[str, Any]) -> str:
+    scope = {key: value for key, value in plan.items() if key != "authorization"}
+    return _sha256_bytes(json.dumps(
+        scope, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False,
+    ).encode("utf-8"))
+
+
+def _assert_plan_authorized(plan: dict[str, Any], deadline: datetime) -> None:
+    authorization = plan.get("authorization")
+    if (
+        not isinstance(authorization, dict)
+        or set(authorization) != {"status", "confirmed_at_utc", "approved_scope_sha256"}
+        or authorization.get("status") != "AUTHORIZED"
+    ):
+        raise Item32Error("plan_not_authorized")
+    confirmed = _parse_clock(authorization.get("confirmed_at_utc"))
+    if (
+        confirmed.isoformat() != authorization.get("confirmed_at_utc")
+        or confirmed > datetime.now(timezone.utc)
+        or confirmed >= deadline
+        or authorization.get("approved_scope_sha256") != _approval_scope_sha256(plan)
+    ):
+        raise Item32Error("plan_authorization_binding")
+
+
 def _load_plan(
     path: Path,
     executor_path: Path,
@@ -404,6 +447,9 @@ def _load_plan(
         plan = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise Item32Error("plan_shape") from exc
+    if not isinstance(plan, dict) or plan.get("schema") != PLAN_SCHEMA:
+        raise Item32Error("plan_binding")
+    _, deadline, _ = _plan_window(plan.get("admission"))
     adapter_sha256 = _sha256_bytes(adapter_path.read_bytes())
     if adapter_sha256 != RUNTIME_OVERLAY_SHA256[ADAPTER_SOURCE_REF]:
         raise Item32Error("plan_binding")
@@ -416,6 +462,7 @@ def _load_plan(
         "item": 32,
         "status": "PREPARED_NOT_EXECUTED",
         "readiness_credit": False,
+        "authorization": plan.get("authorization"),
         "outer_executor": (
             "tools/execute_item32_readonly_trends_successor.py"
         ),
@@ -465,10 +512,10 @@ def _load_plan(
         },
         "admission": {
             "work_root": str(WORK_ROOT),
-            "not_before_utc": NOT_BEFORE_UTC,
-            "bucket_date_utc": BUCKET_DATE_UTC,
-            "dispatch_deadline_utc": DISPATCH_DEADLINE_UTC,
-            "must_finish_before_utc": BUCKET_END_UTC,
+            "not_before_utc": plan["admission"]["not_before_utc"],
+            "bucket_date_utc": plan["admission"]["bucket_date_utc"],
+            "dispatch_deadline_utc": plan["admission"]["dispatch_deadline_utc"],
+            "must_finish_before_utc": plan["admission"]["must_finish_before_utc"],
             "current_utc_day_used_required": 0,
             "current_utc_day_remaining_required": 34,
             "provider_requests_planned": 34,
@@ -487,6 +534,7 @@ def _load_plan(
     }
     if not isinstance(plan, dict) or _json_bytes(plan) != _json_bytes(expected):
         raise Item32Error("plan_binding")
+    _assert_plan_authorized(plan, deadline)
     if _sha256_bytes(hold_evidence_path.read_bytes()) != HOLD_EVIDENCE_SHA256:
         raise Item32Error("hold_evidence_digest")
     return plan, _sha256_bytes(raw)
@@ -747,6 +795,7 @@ def _assert_dispatch_window(
     if (
         budget["bucket_date"] != admission["bucket_date_utc"]
         or current.date().isoformat() != budget["bucket_date"]
+        or current < _parse_clock(admission["not_before_utc"])
         or current >= _parse_clock(admission["dispatch_deadline_utc"])
         or current >= _parse_clock(admission["must_finish_before_utc"])
         or runtime_at > current
@@ -1649,6 +1698,12 @@ def _build_artifacts(
         for value in execution_clocks
     ):
         raise Item32Error("execution_bucket")
+    start, deadline, finish = _plan_window(plan["admission"])
+    if (
+        not start <= execution_clocks[0] < deadline
+        or any(not start <= value < finish for value in execution_clocks)
+    ):
+        raise Item32Error("execution_window")
     counts, search_domains, recommend_domains, keyword_count = _snapshot_quality(
         snapshot_raw,
         execution_started_at=run["started_at"],
@@ -2192,6 +2247,9 @@ def _execute_locked(
         admission_created = True
         _assert_trends_unit_suspended()
         _assert_fixed_trends_container_absent()
+        # The final two host checks may consume the remaining dispatch margin.
+        # An admitted but unstarted job stays HOLD if the approved window closes.
+        _assert_dispatch_window(plan, budget, runtime_readback)
         collection_started = True
         timed_out = False
         try:

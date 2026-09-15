@@ -39,6 +39,7 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
         final_cleanup_unknown=False,
         publication_fails=False,
         success_seal_fails=False,
+        dispatch_window_closes=False,
     ):
         work = self.root / "successor"
         export = self.root / "export"
@@ -66,7 +67,7 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
             "call_dates": ["2026-09-05", "2026-09-06"],
         }
         budget = {
-            "bucket_date": successor.BUCKET_DATE_UTC,
+            "bucket_date": "2026-09-07",
             "used_before": 0,
             "remaining_before": 34,
             "planned": 34,
@@ -271,7 +272,9 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
                 )
             )
             stack.enter_context(
-                mock.patch.object(successor, "_assert_dispatch_window")
+                mock.patch.object(successor, "_assert_dispatch_window",
+                    side_effect=[None, successor.Item32Error("dispatch_window")]
+                    if dispatch_window_closes else None)
             )
             stack.enter_context(
                 mock.patch.object(successor, "_assert_trends_unit_suspended")
@@ -330,7 +333,9 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
                 self.root / "hold",
             )
             expected_error = None
-            if post_probe_unknown:
+            if dispatch_window_closes:
+                expected_error = "dispatch_window"
+            elif post_probe_unknown:
                 expected_error = "post_probe_outcome_unknown"
             elif isinstance(attempt_readback, list):
                 expected_error = "terminal_staging"
@@ -349,14 +354,17 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
                     successor.Item32Error, expected_error
                 ):
                     successor.execute(*arguments)
-                first_run = next(work.glob("run-*"))
-                self.assertTrue((first_run / "task-store").is_dir())
+                if dispatch_window_closes:
+                    self.assertEqual(list(work.glob("run-*")), [])
+                else:
+                    first_run = next(work.glob("run-*"))
+                    self.assertTrue((first_run / "task-store").is_dir())
                 self.assertEqual(bool(list(export.iterdir())), success_seal_fails)
                 admission = json.loads(
                     (work / "item32-admission.json").read_text(encoding="utf-8")
                 )
                 self.assertEqual(admission["status"], "HOLD")
-                if post_probe_unknown or publication_fails or success_seal_fails:
+                if post_probe_unknown or publication_fails or success_seal_fails or dispatch_window_closes:
                     with self.assertRaisesRegex(
                         successor.Item32Error, "item32_already_dispatched"
                     ):
@@ -385,6 +393,13 @@ class Item32SuccessorExecuteFlowTests(unittest.TestCase):
         self.assertEqual(len(starts), 1)
         self.assertLess(events.index("db-1"), events.index("container-create"))
         self.assertLess(events.index("container-create"), events.index("start"))
+        self.assertEqual(removals, ["item32-test"])
+        self.assertEqual(list(runtime.iterdir()), [])
+
+    def test_window_closing_during_final_host_checks_never_starts_or_replays(self):
+        events, starts, removals, runtime = self.execute_harness(dispatch_window_closes=True)
+        self.assertEqual(starts, [])
+        self.assertNotIn("SUCCEEDED", events)
         self.assertEqual(removals, ["item32-test"])
         self.assertEqual(list(runtime.iterdir()), [])
 

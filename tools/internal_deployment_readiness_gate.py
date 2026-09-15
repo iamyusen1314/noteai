@@ -140,14 +140,13 @@ ITEM32_REAL_XHS_SOURCES = {
     "mediacrawler",
 }
 ITEM32_SEARCH_RESULT_SOURCES = {"search_phrase", "search_token"}
-ITEM32_SUCCESSOR_BUCKET_DATE = "2026-09-07"
 ITEM32_RUNTIME_READBACK_MAX_AGE = timedelta(minutes=15)
 ITEM32_TRENDS_EVIDENCE = (
     "deploy/production/evidence/"
     "production-item32-xhs-trends-readonly-verified.json"
 )
 ITEM32_EXECUTION_PLAN = (
-    "deploy/production/plans/item32-readonly-successor-20260907.json"
+    "deploy/production/plans/item32-readonly-successor-prospective.json"
 )
 ITEM32_OUTER_EXECUTOR = (
     "tools/execute_item32_readonly_trends_successor.py"
@@ -1142,6 +1141,59 @@ def _validate_item32_snapshot(
     )
 
 
+def _item32_plan_window(admission: Any) -> tuple[datetime, datetime, datetime] | None:
+    if not isinstance(admission, dict):
+        return None
+    start = _evidence_clock(admission.get("not_before_utc"))
+    deadline = _evidence_clock(admission.get("dispatch_deadline_utc"))
+    finish = _evidence_clock(admission.get("must_finish_before_utc"))
+    if (
+        start is None or deadline is None or finish is None
+        or start.isoformat() != admission.get("not_before_utc")
+        or deadline.isoformat() != admission.get("dispatch_deadline_utc")
+        or finish.isoformat() != admission.get("must_finish_before_utc")
+        or admission.get("bucket_date_utc") != start.date().isoformat()
+        or deadline.date() != start.date()
+        or not start < deadline < finish
+        or finish - deadline < timedelta(minutes=20)
+        or finish > start.replace(hour=0, minute=0, second=0, microsecond=0)
+        + timedelta(days=1)
+    ):
+        return None
+    return start, deadline, finish
+
+
+def _item32_plan_authorized(
+    plan: Any, window: tuple[datetime, datetime, datetime] | None, current: datetime,
+) -> datetime | None:
+    if not isinstance(plan, dict) or window is None:
+        return None
+    authorization = plan.get("authorization")
+    if (
+        not _keys_exact(authorization, {"status", "confirmed_at_utc", "approved_scope_sha256"})
+        or authorization.get("status") != "AUTHORIZED"
+    ):
+        return None
+    confirmed = _evidence_clock(authorization.get("confirmed_at_utc"))
+    if (
+        confirmed is None
+        or confirmed.isoformat() != authorization.get("confirmed_at_utc")
+        or confirmed > current
+        or confirmed >= window[1]
+    ):
+        return None
+    scope = {key: value for key, value in plan.items() if key != "authorization"}
+    try:
+        digest = hashlib.sha256(json.dumps(
+            scope, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False,
+        ).encode("utf-8")).hexdigest()
+    except (TypeError, ValueError):
+        return None
+    if authorization.get("approved_scope_sha256") != digest:
+        return None
+    return confirmed
+
+
 def validate_item32_trends_evidence(
     control: dict[str, Any],
     *,
@@ -1214,6 +1266,9 @@ def validate_item32_trends_evidence(
         plan.get("predecessor_closure") if isinstance(plan, dict) else None
     )
     admission_plan = plan.get("admission") if isinstance(plan, dict) else None
+    plan_window = _item32_plan_window(admission_plan)
+    authorization_at = _item32_plan_authorized(plan, plan_window, current)
+    plan_bucket = admission_plan.get("bucket_date_utc") if plan_window else None
     image_sources = ITEM32_IMAGE_SOURCE_SHA256
     plan_valid = bool(
         isinstance(plan, dict)
@@ -1224,6 +1279,7 @@ def validate_item32_trends_evidence(
                 "item",
                 "status",
                 "readiness_credit",
+                "authorization",
                 "outer_executor",
                 "outer_executor_sha256",
                 "adapter_overlay_ref",
@@ -1243,7 +1299,9 @@ def validate_item32_trends_evidence(
                 "cloud_resources_started",
             },
         )
-        and plan.get("schema") == "noteai.item32.readonly_successor_plan.v1"
+        and plan.get("schema") == "noteai.item32.readonly_successor_plan.v2"
+        and authorization_at is not None
+        and plan_window is not None
         and _exact_int(plan.get("item"), 32)
         and plan.get("status") == "PREPARED_NOT_EXECUTED"
         and plan.get("readiness_credit") is False
@@ -1324,10 +1382,10 @@ def validate_item32_trends_evidence(
         and admission_plan
         == {
             "work_root": "/var/lib/noteai/item32-readonly-successor",
-            "not_before_utc": "2026-09-07T00:00:00+00:00",
-            "bucket_date_utc": ITEM32_SUCCESSOR_BUCKET_DATE,
-            "dispatch_deadline_utc": "2026-09-07T23:40:00+00:00",
-            "must_finish_before_utc": "2026-09-08T00:00:00+00:00",
+            "not_before_utc": plan_window[0].isoformat(),
+            "bucket_date_utc": plan_bucket,
+            "dispatch_deadline_utc": plan_window[1].isoformat(),
+            "must_finish_before_utc": plan_window[2].isoformat(),
             "current_utc_day_used_required": 0,
             "current_utc_day_remaining_required": 34,
             "provider_requests_planned": 34,
@@ -1410,7 +1468,7 @@ def validate_item32_trends_evidence(
             )
             or not isinstance(successor_budget.get("bucket_date"), str)
             or successor_budget.get("bucket_date")
-            != ITEM32_SUCCESSOR_BUCKET_DATE
+            != plan_bucket
             or not _exact_int(successor_budget.get("used_before"), 0)
             or not _exact_int(successor_budget.get("remaining_before"), 34)
             or not _exact_int(successor_budget.get("planned"), 34)
@@ -1545,9 +1603,16 @@ def validate_item32_trends_evidence(
             or finished_at is None
             or finished_at.date() != started_at.date()
             or started_at.date().isoformat()
-            != ITEM32_SUCCESSOR_BUCKET_DATE
+            != plan_bucket
         ):
             errors.append("Item32 successor admission clock mismatch")
+        if (
+            plan_window is None or authorization_at is None
+            or started_at is None or finished_at is None
+            or not plan_window[0] <= started_at < plan_window[1]
+            or not authorization_at <= started_at <= finished_at < plan_window[2]
+        ):
+            errors.append("Item32 approved execution window mismatch")
         if plan_valid:
             expected_sources = plan.get("source_sha256")
             actual_sources = execution.get("source_sha256")
@@ -1644,9 +1709,9 @@ def validate_item32_trends_evidence(
                     or finished_at is None
                     or not started_at <= admitted_at <= completed_at <= finished_at
                     or admitted_at.date().isoformat()
-                    != ITEM32_SUCCESSOR_BUCKET_DATE
+                    != plan_bucket
                     or completed_at.date().isoformat()
-                    != ITEM32_SUCCESSOR_BUCKET_DATE
+                    != plan_bucket
                 ):
                     attempts_valid = False
                     break

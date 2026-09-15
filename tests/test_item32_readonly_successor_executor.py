@@ -21,6 +21,14 @@ if str(TOOLS) not in sys.path:
 import execute_item32_readonly_trends_successor as successor
 
 
+TEST_WINDOW = {
+    "not_before_utc": "2026-09-07T00:00:00+00:00",
+    "bucket_date_utc": "2026-09-07",
+    "dispatch_deadline_utc": "2026-09-07T23:40:00+00:00",
+    "must_finish_before_utc": "2026-09-08T00:00:00+00:00",
+}
+
+
 def completed(args, stdout=b"", returncode=0):
     return subprocess.CompletedProcess(args, returncode, stdout, b"")
 
@@ -136,7 +144,7 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
         loaded = json.loads(original)
         digest = hashlib.sha256(original).hexdigest()
         self.assertEqual(plan.read_bytes(), original)
-        self.assertEqual(loaded["schema"], successor.PLAN_SCHEMA)
+        self.assertEqual(loaded["schema"], "noteai.item32.readonly_successor_plan.v1")
         self.assertEqual(
             loaded["browser_binding"]["user_agent"],
             successor.SIGNER_USER_AGENT,
@@ -155,16 +163,22 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                 ROOT / successor.HOLD_EVIDENCE_REF,
             )
 
-    def test_synthetic_plan_binds_effective_sources_without_changing_old_window(self):
+    def test_synthetic_authorized_plan_binds_effective_sources_without_changing_old_plan(self):
         original_path = ROOT / "deploy/production/plans/item32-readonly-successor-20260907.json"
         original = original_path.read_bytes()
-        plan = json.loads(original)
+        plan = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())
+        plan["admission"].update(TEST_WINDOW)
         executor = ROOT / "tools/execute_item32_readonly_trends_successor.py"
         adapter = ROOT / successor.ADAPTER_SOURCE_REF
         plan["outer_executor_sha256"] = hashlib.sha256(executor.read_bytes()).hexdigest()
         plan["adapter_overlay_sha256"] = hashlib.sha256(adapter.read_bytes()).hexdigest()
         plan["source_sha256"] = {
             **successor.EXPECTED_IMAGE_SOURCE_SHA256, **successor.RUNTIME_OVERLAY_SHA256,
+        }
+        plan["authorization"] = {
+            "status": "AUTHORIZED",
+            "confirmed_at_utc": "2026-09-06T12:00:00+00:00",
+            "approved_scope_sha256": successor._approval_scope_sha256(plan),
         }
         candidate = self.root / "plan.json"
         candidate.write_text(json.dumps(plan), encoding="utf-8")
@@ -181,10 +195,10 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
     def test_utc_budget_waits_for_fresh_bucket_and_requires_zero_prior(self):
         plan = {
             "admission": {
-                "not_before_utc": successor.NOT_BEFORE_UTC,
-                "bucket_date_utc": successor.BUCKET_DATE_UTC,
-                "dispatch_deadline_utc": successor.DISPATCH_DEADLINE_UTC,
-                "must_finish_before_utc": successor.BUCKET_END_UTC,
+                "not_before_utc": TEST_WINDOW["not_before_utc"],
+                "bucket_date_utc": TEST_WINDOW["bucket_date_utc"],
+                "dispatch_deadline_utc": TEST_WINDOW["dispatch_deadline_utc"],
+                "must_finish_before_utc": TEST_WINDOW["must_finish_before_utc"],
             }
         }
         predecessor = {"call_dates": ["2026-09-05", "2026-09-06"]}
@@ -228,15 +242,95 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
                 now=datetime(2026, 9, 8, 0, 0, tzinfo=timezone.utc),
             )
 
+    def test_pending_plan_rejected_before_any_host_secret_or_admission_action(self):
+        plan = ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json"
+        with mock.patch.object(successor.os, "geteuid", return_value=0), mock.patch.object(
+            successor, "_ensure_work_root", side_effect=AssertionError("state forbidden")
+        ), mock.patch.object(successor, "_run", side_effect=AssertionError("host forbidden")), mock.patch.object(
+            successor, "_read_secret_env", side_effect=AssertionError("Secret forbidden")
+        ), mock.patch.object(successor, "_create_admission", side_effect=AssertionError("admission forbidden")):
+            with self.assertRaisesRegex(successor.Item32Error, "plan_not_authorized"):
+                successor.execute(plan, ROOT / "tools/execute_item32_readonly_trends_successor.py",
+                    ROOT / successor.ADAPTER_SOURCE_REF, ROOT / successor.HOLD_EVIDENCE_REF)
+        self.assertEqual(json.loads(plan.read_text())["authorization"], {
+            "status": "PENDING", "confirmed_at_utc": None, "approved_scope_sha256": None,
+        })
+
+    def test_prospective_window_and_scope_approval_are_bound_without_code_dates(self):
+        plan = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())
+        plan["authorization"] = {
+            "status": "AUTHORIZED", "confirmed_at_utc": "2026-09-15T12:00:00+00:00",
+            "approved_scope_sha256": successor._approval_scope_sha256(plan),
+        }
+        candidate = self.root / "authorized-synthetic-only.json"
+        candidate.write_text(json.dumps(plan))
+        executor = ROOT / "tools/execute_item32_readonly_trends_successor.py"
+        loaded, _ = successor._load_plan(candidate, executor,
+            ROOT / successor.ADAPTER_SOURCE_REF, ROOT / successor.HOLD_EVIDENCE_REF)
+        budget = successor._admission_budget(loaded, {"call_dates": ["2026-09-05", "2026-09-06"]},
+            now=datetime(2026, 9, 15, 14, 0, tzinfo=timezone.utc))
+        self.assertEqual((budget["bucket_date"], budget["used_before"], budget["remaining_before"]),
+            ("2026-09-15", 0, 34))
+        for now in (datetime(2026, 9, 15, 13, 59, tzinfo=timezone.utc),
+                    datetime(2026, 9, 15, 14, 40, tzinfo=timezone.utc)):
+            with self.assertRaisesRegex(successor.Item32Error, "utc_budget_not_available"):
+                successor._admission_budget(loaded, {"call_dates": []}, now=now)
+        plan["admission"]["not_before_utc"] = "2026-09-15T13:00:00+00:00"
+        candidate.write_text(json.dumps(plan))
+        with self.assertRaisesRegex(successor.Item32Error, "plan_authorization_binding"):
+            successor._load_plan(candidate, executor, ROOT / successor.ADAPTER_SOURCE_REF,
+                ROOT / successor.HOLD_EVIDENCE_REF)
+
+    def test_plan_rejects_non_utc_cross_day_and_insufficient_cleanup_margin(self):
+        original = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())["admission"]
+        for field, value in (
+            ("not_before_utc", "2026-09-15T22:00:00+08:00"),
+            ("bucket_date_utc", "2026-09-16"),
+            ("dispatch_deadline_utc", "2026-09-15T14:41:00+00:00"),
+            ("must_finish_before_utc", "2026-09-16T01:00:00+00:00"),
+        ):
+            with self.subTest(field=field), self.assertRaises(successor.Item32Error):
+                successor._plan_window({**original, field: value})
+
+    def test_future_confirmation_cannot_authorize_a_future_window(self):
+        plan = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())
+        for field in ("not_before_utc", "bucket_date_utc", "dispatch_deadline_utc", "must_finish_before_utc"):
+            plan["admission"][field] = plan["admission"][field].replace("2026-09-15", "2099-09-15")
+        plan["authorization"] = {
+            "status": "AUTHORIZED", "confirmed_at_utc": "2099-09-15T12:00:00+00:00",
+            "approved_scope_sha256": successor._approval_scope_sha256(plan),
+        }
+        candidate = self.root / "future-confirmation-synthetic-only.json"
+        candidate.write_text(json.dumps(plan))
+        with self.assertRaisesRegex(successor.Item32Error, "plan_authorization_binding"):
+            successor._load_plan(candidate, ROOT / "tools/execute_item32_readonly_trends_successor.py",
+                ROOT / successor.ADAPTER_SOURCE_REF, ROOT / successor.HOLD_EVIDENCE_REF)
+
+    def test_artifact_rejects_same_day_execution_outside_approved_window(self):
+        plan = json.loads((ROOT / "deploy/production/plans/item32-readonly-successor-prospective.json").read_text())
+        for start, finish in (
+            ("2026-09-15T13:59:00+00:00", "2026-09-15T14:10:00+00:00"),
+            ("2026-09-15T14:40:00+00:00", "2026-09-15T14:50:00+00:00"),
+            ("2026-09-15T14:10:00+00:00", "2026-09-15T15:00:00+00:00"),
+        ):
+            with self.subTest(start=start, finish=finish), mock.patch.object(
+                successor, "_read_task_result", return_value=({"started_at": start, "completed_at": finish}, [], b"")
+            ), mock.patch.object(successor, "_snapshot_quality", side_effect=AssertionError("quality after window")):
+                with self.assertRaisesRegex(successor.Item32Error, "execution_window"):
+                    successor._build_artifacts(run_dir=self.root, plan=plan, plan_sha256="a"*64,
+                        executor_sha256="b"*64, container_id="c"*64, pre_probe={}, post_probe={},
+                        predecessor={}, budget={"bucket_date": "2026-09-15"}, runtime_readback={})
+
     def test_dispatch_requires_fresh_runtime_readback_and_bucket_margin(self):
         plan = {
             "admission": {
-                "bucket_date_utc": successor.BUCKET_DATE_UTC,
-                "dispatch_deadline_utc": successor.DISPATCH_DEADLINE_UTC,
-                "must_finish_before_utc": successor.BUCKET_END_UTC,
+                "not_before_utc": TEST_WINDOW["not_before_utc"],
+                "bucket_date_utc": TEST_WINDOW["bucket_date_utc"],
+                "dispatch_deadline_utc": TEST_WINDOW["dispatch_deadline_utc"],
+                "must_finish_before_utc": TEST_WINDOW["must_finish_before_utc"],
             }
         }
-        budget = {"bucket_date": successor.BUCKET_DATE_UTC}
+        budget = {"bucket_date": TEST_WINDOW["bucket_date_utc"]}
         successor._assert_dispatch_window(
             plan,
             budget,
