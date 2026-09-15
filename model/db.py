@@ -969,6 +969,7 @@ CREATE TABLE IF NOT EXISTS usage_records (
     model_calls  INTEGER DEFAULT 0,
     model_names  TEXT    DEFAULT '',
     cost_mode    TEXT    DEFAULT 'estimated',
+    fact_observations_json TEXT NOT NULL DEFAULT '[]',
     credits_used REAL    DEFAULT 0,   -- 0=套餐覆盖, >0=积分扣除
     source       TEXT    DEFAULT 'subscription',  -- 'subscription'|'credits'|'free'
     recorded_at  TEXT    NOT NULL
@@ -2483,6 +2484,7 @@ END;
             "model_calls": "ALTER TABLE usage_records ADD COLUMN model_calls INTEGER DEFAULT 0",
             "model_names": "ALTER TABLE usage_records ADD COLUMN model_names TEXT DEFAULT ''",
             "cost_mode": "ALTER TABLE usage_records ADD COLUMN cost_mode TEXT DEFAULT 'estimated'",
+            "fact_observations_json": "ALTER TABLE usage_records ADD COLUMN fact_observations_json TEXT NOT NULL DEFAULT '[]'",
         }
         for col, sql in usage_additions.items():
             if col not in usage_cols:

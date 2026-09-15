@@ -711,6 +711,35 @@ class PublicProductTests(unittest.TestCase):
         self.assertEqual(len(completed),3)
         arbitrate.assert_not_called()
 
+    def test_fact_observation_survives_without_model_and_preserves_accounting(self):
+        import admin_server
+        usage_id = self.metered_usage()
+        before = dict(db.fetchone('SELECT * FROM usage_records WHERE id=?', (usage_id,)))
+        identity = self.product.begin_fact_observation('meituan_travel')
+        result = {'provider':'meituan_travel','observed_at':'2026-09-15T02:00:00+00:00',
+            'status':'matched','facts':{'address':'PRIVATE MATERIAL'},
+            'sources':[{'title':'PRIVATE STORE'}],
+            'calls':{'http_requests':None,'cli_invocations':1,'last_http_status':None}}
+        self.product.record_fact_observation(result, identity)
+        self.product.record_fact_observation(result, identity)
+        after = dict(db.fetchone('SELECT * FROM usage_records WHERE id=?', (usage_id,)))
+        raw = after.pop('fact_observations_json'); before.pop('fact_observations_json')
+        self.assertEqual(before, after)
+        self.assertNotIn('PRIVATE', raw)
+        self.assertEqual(len(json.loads(raw)), 1)
+        self.assertIsNone(json.loads(raw)[0]['cost_cny'])
+        self.assertEqual(db.fetchone('SELECT COUNT(*) FROM public_trial_calls')[0], 0)
+        history, coverage = admin_server._fact_usage_history()
+        self.assertEqual(coverage, 'task_observations_and_legacy')
+        self.assertEqual(history['meituan_travel']['latest_verified_success']['cli_invocations'], 1)
+        self.assertEqual(history['meituan_travel']['count'], 1)
+        with self.assertRaisesRegex(RuntimeError,'ALREADY_RECORDED'):
+            self.product.record_fact_observation({**result,'status':'failed'}, identity)
+        db.execute('UPDATE users SET deletion_requested_at=? WHERE id=?', ('2026-09-15',self.user['id']))
+        with self.assertRaises(ValueError):
+            self.product.begin_fact_observation('meituan_travel')
+        self.assertEqual(db.fetchone('SELECT fact_observations_json FROM usage_records WHERE id=?',(usage_id,))[0],raw)
+
     def test_metered_actual_usage_is_bound_once_without_resetting_old_reserve(self):
         import billing, model_router, httpx
         usage_id = self.metered_usage()

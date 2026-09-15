@@ -202,8 +202,58 @@ def available():
         return False
 
 
-def record_fact_observation(result):
-    """Bind non-content retrieval metadata to the existing business call record."""
+def _persist_fact_observation(observation, observation_id):
+    """One bounded observation on the existing user's task; never a model call."""
+    import billing
+    import db
+    import content_retention
+    current = _invocation.get()
+    usage_id = billing._ACTIVE_USAGE_ID.get()
+    if current is None or not usage_id:
+        return
+    row_value = dict(observation, observation_id=observation_id,
+                     persisted_at=datetime.now(timezone.utc).isoformat(), route=current.route)
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, current.user_id)
+        suffix = " FOR UPDATE" if tx.postgres else ""
+        row = tx.fetchone("SELECT fact_observations_json FROM usage_records WHERE id=? AND user_id=?" + suffix,
+                          (usage_id, current.user_id))
+        if row is None:
+            raise RuntimeError("FACT_USAGE_PARENT_NOT_FOUND")
+        rows = json.loads(row["fact_observations_json"])
+        if not isinstance(rows, list) or any(not isinstance(value, dict) for value in rows):
+            raise RuntimeError("FACT_USAGE_METADATA_INVALID")
+        prior = next((i for i, value in enumerate(rows) if value.get("observation_id") == observation_id), None)
+        if prior is None:
+            if len(rows) >= 32:
+                raise RuntimeError("FACT_USAGE_OBSERVATION_LIMIT")
+            rows.append(row_value)
+        else:
+            if rows[prior].get("status") != "result_pending":
+                old = {key: value for key, value in rows[prior].items() if key != "persisted_at"}
+                new = {key: value for key, value in row_value.items() if key != "persisted_at"}
+                if old != new:
+                    raise RuntimeError("FACT_USAGE_RESULT_ALREADY_RECORDED")
+                return
+            rows[prior] = row_value
+        raw = json.dumps(rows, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+        if len(raw.encode()) > 65536:
+            raise RuntimeError("FACT_USAGE_METADATA_LIMIT")
+        tx.execute("UPDATE usage_records SET fact_observations_json=? WHERE id=? AND user_id=?",
+                   (raw, usage_id, current.user_id))
+
+
+def begin_fact_observation(provider):
+    observation_id = str(uuid.uuid4())
+    _persist_fact_observation({"provider": provider, "status": "result_pending",
+        "observed_at": datetime.now(timezone.utc).isoformat(), "cached": False,
+        "cost_cny": None, "cost_status": "unknown", "http_requests": None,
+        "cli_invocations": None, "dispatch_basis": "retrieval_started_upstream_dispatch_not_yet_confirmed"}, observation_id)
+    return observation_id
+
+
+def record_fact_observation(result, observation_id=None):
+    """Persist retrieval metadata independently of any later model admission."""
     current = _invocation.get()
     if current is None:
         return
@@ -223,13 +273,24 @@ def record_fact_observation(result):
     except ValueError:
         observed_at = None
     current.fact_observation = {
-        "provider": provider, "observed_at": observed_at,
+        "observation_id": observation_id, "provider": provider, "observed_at": observed_at,
         "status": code(result.get("status")), "error_code": code(result.get("error_code")),
         "cached": bool(result.get("cached")), "cost_cny": None,
         "http_requests": counter(calls.get("http_requests")), "cli_invocations": counter(calls.get("cli_invocations")),
         "last_http_status": counter(calls.get("last_http_status")),
         "partial_errors": [item for item in (calls.get("partial_errors") or [])[:8] if code(item)],
     }
+
+    cached_no_call = current.fact_observation["cached"] and calls.get("http_requests") == 0 and calls.get("cli_invocations") == 0
+    current.fact_observation.update(
+        cost_cny=0.0 if cached_no_call else None,
+        cost_status="no_new_retrieval" if cached_no_call else
+            "owner_reported_not_charged_pending_confirmation" if provider == "meituan_travel" else "unknown",
+        source_count=len(result.get("sources") or []),
+        source_identity_sha256=hashlib.sha256(json.dumps(result.get("sources") or [], sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
+        result_identity_sha256=hashlib.sha256(json.dumps({key:result.get(key) for key in ("status","error_code","facts","sources")}, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
+    )
+    _persist_fact_observation(current.fact_observation, observation_id or str(uuid.uuid4()))
 
 
 def runtime_services():
@@ -292,7 +353,9 @@ def public_services():
     for row in runtime_services():
         summary = {key: value for key, value in row.items() if key in fields}
         if row.get("group") == "data_tools":
-            summary["reason"] = "根据业务输入按需查询，缺失信息会明确提示" if row.get("enabled") else "当前未开放该检索来源"
+            summary["reason"] = ("根据业务输入按需查询，缺失信息会明确提示" if row.get("enabled") else
+                row["reason"] if row.get("id") == "amap" and os.environ.get("NOTEAI_AMAP_UNAVAILABLE_REASON") else
+                "当前未开放该检索来源")
         public.append(summary)
     return public
 

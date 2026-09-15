@@ -1599,8 +1599,13 @@ function renderSupplierView(runtime) {
       const last = row.latest;
       const recent = last ? `${last.observed_at || '读取时间未知'} · ${last.status || '结果未知'}${last.cached ? ' · 缓存（非新检索）' : ''}${last.error_code ? ' · ' + last.error_code : ''}` :
         entries && entries.length ? `${entries[0].last_recorded_at} · ${entries[0].model} · 用量${entries[0].usage_status || '状态未知'} / 定价${entries[0].pricing_status || '状态未知'}（历史入账）` : '最近调用未知 / 当前来源暂无记录，不能推断从未接入';
-      const count = last ? `HTTP 请求 ${last.http_requests == null ? '未知' : last.http_requests}；CLI 启动 ${last.cli_invocations == null ? '未知' : last.cli_invocations}；费用 ${last.cost_cny == null ? '待供应商账单确认' : last.cost_cny}` : entries && entries.length ? `历史模型调用记录 ${entries.reduce((sum,item)=>sum+Number(item.call_count || 0),0)} 条；已知成本 ¥${entries.reduce((sum,item)=>sum+Number(item.known_cost || 0),0).toFixed(6)}（不含未定价部分，非供应商账单）` : '调用用量未知；暂无当前来源记录';
-      return `<div class="card"><b>${esc(row.name)}</b><p>${esc(row.role)}</p><p>${row.enabled === true ? '按业务条件启用' : row.enabled === false ? '当前未启用' : '启用状态未知'} · ${esc(row.reason)}</p><p>关联业务：${esc(Array.isArray(row.business) ? row.business.join('、') || '当前无已启用入口' : '查询不可用')}</p><p>最近结果：${esc(recent)}</p><small>${esc(count)}<br>来源：${esc(row.source)}；${esc(row.observation_scope || 'API配置 + 数据库历史记录')}。刷新不会探测供应商。</small></div>`;
+      const verified = row.latest_verified_success;
+      const successLine = verified ? `最近已验证成功：${verified.observed_at || '时间未知'} · ${verified.operation || verified.route || '历史业务'} · ${verified.source}（历史结果，不是实时健康）` : '当前可读来源无已验证成功记录；不代表从未接入';
+      const costLabel = last && last.cost_status === 'no_new_retrieval' ? '复用结果，本次无新检索费用' :
+        last && last.cost_status === 'owner_reported_not_charged_pending_confirmation' ? 'owner说明当前未收费；供应商账单/资费依据待确认' :
+        last && last.cost_cny != null ? `人民币 ${last.cost_cny} 元` : '未知，待供应商账单确认';
+      const count = last ? `HTTP 请求 ${last.http_requests == null ? '未知' : last.http_requests}；CLI 启动 ${last.cli_invocations == null ? '未知' : last.cli_invocations}；费用 ${costLabel}` : entries && entries.length ? `历史模型调用记录 ${entries.reduce((sum,item)=>sum+Number(item.call_count || 0),0)} 条；已知成本 ¥${entries.reduce((sum,item)=>sum+Number(item.known_cost || 0),0).toFixed(6)}（不含未定价部分，非供应商账单）` : '调用用量未知；暂无当前来源记录';
+      return `<div class="card"><b>${esc(row.name)}</b><p>${esc(row.role)}</p><p>${row.enabled === true ? '按业务条件启用' : row.enabled === false ? '当前未启用' : '启用状态未知'} · ${esc(row.reason)}</p><p>关联业务：${esc(Array.isArray(row.business) ? row.business.join('、') || '当前无已启用入口' : '查询不可用')}</p><p>最近结果：${esc(recent)}</p>${group === 'data_tools' ? `<p>${esc(successLine)}</p>` : ''}<small>${esc(count)}<br>来源：${esc(row.source)}；${esc(row.observation_scope || 'API配置 + 数据库历史记录')}。刷新不会探测供应商。</small></div>`;
     }).join('')}</div>`).join('');
 }
 

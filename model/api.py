@@ -2630,6 +2630,13 @@ _MARKET_TIMING_SCHEMA = {
 }
 _INPUT_DIAGNOSTICS_SCHEMA = {
     "input_mode": "string",
+    "original_title": "string",
+    "original_desc": "string",
+    "cover_media_ref": "nullable_string",
+    "video_media_ref": "nullable_string",
+    "has_independent_cover": "bool",
+    "missing_dimensions": ("list", "string"),
+    "score_scope": "string",
     "ocr_char_count": "nullable_integer",
     "original_desc_len": "integer",
     "scored_desc_len": "integer",
@@ -2651,8 +2658,8 @@ _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "ai_diagnosis": "string",
     "report_quality_status": "string",
     "report_quality_issues": ("list", "string"),
-    "ces_percentile": "number",
-    "composite_score": "number",
+    "ces_percentile": "nullable_number",
+    "composite_score": "nullable_number",
     "constraint_contract": _CONSTRAINT_CONTRACT_SCHEMA,
     "content_intent": "string",
     "merchant_name": "string",
@@ -2677,6 +2684,7 @@ _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "improvement_plan": "string",
     "input_diagnostics": _INPUT_DIAGNOSTICS_SCHEMA,
     "video_analysis": "string",
+    "cover_analysis": "string",
     "intent_contract": _INTENT_CONTRACT_SCHEMA,
     "market_timing": ("nullable", _MARKET_TIMING_SCHEMA),
     "model_used": "string",
@@ -6234,9 +6242,10 @@ class MarketTiming(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
+    cover_analysis: str = Field(default="", description="独立封面的实际内容观察，与原始标题正文分开")
     video_analysis: str = Field(default="", description="完整视频音画素材理解；模型观察而非外部事实认证")
-    ces_percentile: float = Field(description="预测CES分位（0-100）")
-    composite_score: float = Field(default=0.0, description="综合得分（当前为旧评分器遥测；v0.4-composite上线后替换）")
+    ces_percentile: float | None = Field(description="预测CES分位（0-100）")
+    composite_score: float | None = Field(default=0.0, description="综合得分（当前为旧评分器遥测；v0.4-composite上线后替换）")
     grade: str = Field(description="等级：优秀/良好/待改进/需优化")
     visual_score: float | None = Field(default=None, description="封面视觉表现力（0-100）")
     features: dict[str, float] = Field(default={}, description="各特征值（用于前端维度计算）")
@@ -9908,18 +9917,20 @@ async def _maybe_enrich_facts(
         except Exception:
             query = ""
         return _disabled_fact_enrichment(decision, query=query)
+    observation_id = await asyncio.to_thread(_public_product.begin_fact_observation, decision.get("provider"))
     try:
         result = await asyncio.to_thread(_facts.enrich_content_facts, domain, query_title, query_text,
                                          provider=decision.get("provider"))
-        import public_product
-        public_product.record_fact_observation(result)
         if result.get("error_code") == "MERCHANT_SELECTION_REQUIRED":
             decision.update(needs_user_supplement=True, supplement_fields=["merchant_name"],
                             supplement_prompt="匹配到多家门店，请确认完整分店名称，不能混用候选门店事实。")
-        result["decision"] = decision
-        return result
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="fact_enrichment")
+        await asyncio.to_thread(_public_product.record_fact_observation, {
+            "provider": decision.get("provider"), "status": "result_unknown",
+            "observed_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            "error_code": "FACT_RETRIEVAL_UNCONFIRMED", "calls": {},
+        }, observation_id)
         return {
             "enabled": False,
             "provider": decision.get("provider") or "error",
@@ -9930,6 +9941,9 @@ async def _maybe_enrich_facts(
             "decision": decision,
             "error_code": _redaction.stable_error_code(exc),
         }
+    await asyncio.to_thread(_public_product.record_fact_observation, result, observation_id)
+    result["decision"] = decision
+    return result
 
 
 def _append_fact_enrichment(text: str | None, enrichment: dict | None) -> str:
@@ -15783,7 +15797,20 @@ async def _run_analyze_pipeline(
         req.domain, normalized_intent, normalized_visibility, normalized_merchant, normalized_fact_policy, "AI诊断"
     )
     original_desc = (req.desc or "").strip()
+    original_input = dict((prepared or {}).get("original_input") or {
+        "original_title": (req.note_title or "").strip(), "original_desc": original_desc,
+        "cover_media_ref": req.cover_image if req.cover_image and re.fullmatch(r"[0-9a-f-]{36}", req.cover_image) else None,
+        "video_media_ref": req.video_file_id,
+        "has_independent_cover": bool(req.cover_image),
+    })
+    missing_dimensions = []
+    if not original_input["original_title"]: missing_dimensions.append("标题")
+    if not original_input["original_desc"]: missing_dimensions.extend(["正文", "话题"])
+    if not original_input["has_independent_cover"]: missing_dimensions.append("独立封面")
+    original_input.update(missing_dimensions=missing_dimensions,
+        score_scope="partial_input" if missing_dimensions else "complete_note_input")
     video_desc_for_library = ""
+    cover_observation = ""
     video_duration_sec: float | None = None
     video_frames_extracted: int | None = None
     video_frames_to_ai: int | None = None
@@ -15815,6 +15842,7 @@ async def _run_analyze_pipeline(
             visual_score = prepared["visual_score"]
             cover_feats = prepared["cover_feats"]
             extra_image_context = prepared["extra_image_context"]
+            cover_observation = prepared.get("cover_observation", "")
             fact_enrichment = prepared["fact_enrichment"]
             fact_context = prepared["fact_context"]
             fact_source_decision = prepared["fact_source_decision"]
@@ -15840,6 +15868,12 @@ async def _run_analyze_pipeline(
                 visual_score, cover_feats = await _await_media_worker(
                     _extract_cover, req.cover_image, True
                 )
+                cover_observation = await _await_media_worker(
+                    _kimi_vision_understand, req.cover_image, req.domain, req.desc or None)
+                if not isinstance(cover_observation, str) or len(cover_observation.strip()) <= 5:
+                    raise HTTPException(status_code=502, detail="独立封面内容理解未完成，本次未忽略封面继续诊断")
+                extra_image_context = "【用户独立封面观察，非视频封面猜测】\n" + cover_observation
+                agent_context_parts.append(extra_image_context)
 
             # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
             if req.video_file_id:
@@ -15868,13 +15902,8 @@ async def _run_analyze_pipeline(
                 # normal SSE consumers can retain it even if a later stage fails.
                 await _emit_progress(emit, {"type": "video_analysis", "content": video_desc,
                     "media_ref": req.video_file_id, "progress": 18})
-                base_desc = (req.desc or "").strip()
-                merged_desc = (
-                    (base_desc + "\n\n" if base_desc else "")
-                    + "【视频画面内容（AI 解读）】\n"
-                    + video_desc
-                )
-                req = req.model_copy(update={"desc": merged_desc})
+                # Observation is source context, never the user's original prose or its score.
+                agent_context_parts.append("【视频音画观察（AI 解读，非用户原文）】\n" + video_desc)
 
             # 额外内容图片（最多9张）：并行调用视觉模型识别，描述拼入 desc 上下文
             if req.extra_images:
@@ -15897,17 +15926,21 @@ async def _run_analyze_pipeline(
                     if isinstance(r, str) and len(r) > 3
                 ]
                 if extra_descs:
-                    extra_image_context = "【其他内容图片描述】\n" + "\n".join(extra_descs)
-                    agent_context_parts.append(extra_image_context)
+                    extra_descriptions = "【其他内容图片描述】\n" + "\n".join(extra_descs)
+                    extra_image_context = "\n\n".join(p for p in (extra_image_context, extra_descriptions) if p)
+                    agent_context_parts.append(extra_descriptions)
 
             if intent_brief:
                 agent_context_parts.append(intent_brief)
+            if missing_dimensions:
+                agent_context_parts.append("【本次输入范围】未提供：" + "、".join(missing_dimensions)
+                    + "。仅分析已提供的素材，不评判未提供的标题/正文/封面；视频观察不是用户原文，建议必须与原文分开。")
 
             # 联网事实补全：由创作方向和商家展示策略路由；无明确商家/不需要事实时跳过。
             fact_enrichment = await _maybe_enrich_facts(
                 req.domain,
                 req.note_title,
-                req.desc,
+                "\n\n".join(p for p in (req.desc, video_desc_for_library, extra_image_context) if p),
                 content_intent=req.content_intent,
                 merchant_visibility=req.merchant_visibility,
                 merchant_name=req.merchant_name,
@@ -16009,13 +16042,14 @@ async def _run_analyze_pipeline(
                 (prepared or {}).get("confirmation", ""),
             ) if p)
             delivery_source_context = "\n\n".join(
-                p for p in [f"用户原始标题：{req.note_title}", req.desc, extra_image_context, fact_context, intent_brief] if p
+                p for p in [f"用户原始标题：{req.note_title}", req.desc, video_desc_for_library, extra_image_context, fact_context, intent_brief] if p
             )
             clarification_prepared = {
                 "pipeline": "analyze", "domain": req.domain, "local_time": req.local_time,
                 "request": req.model_dump(mode="json", exclude={"cover_image", "extra_images", "video_file_id"}),
                 "weaknesses": [w.model_dump() for w in weaknesses],
                 "original_desc": original_desc,
+                "original_input": original_input, "cover_observation": cover_observation,
                 "source_material": "【商家原始素材】\n" + req.note_title + "\n" + original_desc,
                 "video_desc_for_library": video_desc_for_library,
                 "video_duration_sec": video_duration_sec,
@@ -16251,7 +16285,7 @@ async def _run_analyze_pipeline(
                 _plan["title_needs_refine"] = _plan["title_meta"]["needs_refine"]
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
-    delivery_fact_context = "\n\n".join(p for p in [f"用户原始标题：{req.note_title}", req.desc, extra_image_context, fact_context, intent_brief] if p)
+    delivery_fact_context = "\n\n".join(p for p in [f"用户原始标题：{req.note_title}", req.desc, video_desc_for_library, extra_image_context, fact_context, intent_brief] if p)
     report_fact_issues = _structured_fact_boundary_issues(
         f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
     )
@@ -16308,7 +16342,27 @@ async def _run_analyze_pipeline(
         visual_score=visual_score,
         timing=timing,
     )
+    unavailable_keys = set()
+    if "标题" in missing_dimensions: unavailable_keys.add("title")
+    if "正文" in missing_dimensions: unavailable_keys.update(("body", "semantic", "commercial_facts", "tags"))
+    if "独立封面" in missing_dimensions: unavailable_keys.add("visual")
+    unavailable_groups = set(unavailable_keys)
+    if "正文" in missing_dimensions:
+        unavailable_groups.update(("semantic_naturalness", "commercial_value", "domain_slots"))
+    for dimension in report_meta["dimension_scores"]:
+        if dimension["key"] in unavailable_keys:
+            dimension.update(score=None, status="locked", summary="本次未提供对应原始输入，未评估该维度。")
+    for group in report_meta["feature_groups"]:
+        if group["key"] in unavailable_groups:
+            group.update(score=None, status="locked", highlights=[], misses=[])
+    report_meta["top_feature_contributions"] = [item for item in report_meta["top_feature_contributions"]
+        if item.get("group") not in unavailable_groups]
+    weaknesses = [item for item in weaknesses if _report_group_key(item.feature) not in unavailable_groups]
+    reported_percentile = None if missing_dimensions else round(percentile, 1)
+    reported_composite = None if missing_dimensions else composite
+    reported_grade = "输入不完整，按已提供内容评估" if missing_dimensions else grade
     input_diagnostics = {
+        **original_input,
         "input_mode": req.input_mode or "",
         "ocr_char_count": req.ocr_char_count,
         "original_desc_len": len(original_desc),
@@ -16344,9 +16398,9 @@ async def _run_analyze_pipeline(
     )
     _public_product.assert_result_known()
     resp = AnalyzeResponse(
-        ces_percentile=round(percentile, 1),
-        composite_score=composite,
-        grade=grade,
+        ces_percentile=reported_percentile,
+        composite_score=reported_composite,
+        grade=reported_grade,
         visual_score=visual_score,
         features={k: float(v) for k, v in features.items()},
         feature_schema=report_meta["feature_schema"],
@@ -16379,6 +16433,7 @@ async def _run_analyze_pipeline(
         fact_source_decision=fact_source_decision,
         input_diagnostics=input_diagnostics,
         video_analysis=video_desc_for_library or "",
+        cover_analysis=cover_observation,
         supplement_prompts=supplement_prompts,
         fact_context=_clarified_fact_context(prepared, prepared.get("confirmation", "")) if prepared else fact_context,
         merchant_confirmations=prepared.get("merchant_confirmations", []) if prepared else [],
@@ -16388,18 +16443,8 @@ async def _run_analyze_pipeline(
     # 登录用户同步保存诊断原文为笔记库根版本，后续对话优化挂在这条版本链下。
     try:
         note_title_for_save = (req.note_title or "").strip() or "（无标题）"
-        if video_desc_for_library:
-            note_body_for_save = _video_library_note_body(
-                original_desc,
-                video_desc_for_library,
-                duration_sec=video_duration_sec,
-                frames_extracted=video_frames_extracted,
-                frames_to_ai=video_frames_to_ai,
-            )
-        else:
-            note_body_for_save = (original_desc if prepared else req.desc or "").strip()
-        if not note_body_for_save:
-            note_body_for_save = note_title_for_save
+        # The original note and model suggestions/observations remain separate records.
+        note_body_for_save = original_desc
         note_id = str(_uuid.uuid4())
         note_created_at = _now_iso()
         _insert_content_with_retention(
@@ -16411,8 +16456,8 @@ async def _run_analyze_pipeline(
                 note_title_for_save,
                 note_body_for_save,
                 req.domain or "美食",
-                round(percentile, 1),
-                grade,
+                reported_percentile,
+                reported_grade,
                 "diagnose",
                 None,
                 1,
@@ -16448,7 +16493,7 @@ async def _run_analyze_pipeline(
             " VALUES(?,?,?,?,?,?,?,?,?)",
             (diag_id, user["id"],
              req.note_title or "", req.domain or "",
-             round(percentile, 1), composite, grade,
+             reported_percentile, reported_composite, reported_grade,
              _jlib.dumps(
                  _sanitize_persisted_diagnosis(resp.model_dump()),
                  ensure_ascii=False,
@@ -16475,7 +16520,7 @@ async def _run_analyze_pipeline(
     # 仅已通过事实复核且保存成功的诊断计入成长记录。
     try:
         import datetime as _dt_ana, uuid as _uuid_ana
-        if not report_quality_issues:
+        if not report_quality_issues and not missing_dimensions:
             _insert_growth_record(
                 user_id=user["id"],
                 note_id=saved_note_id,
@@ -16657,12 +16702,25 @@ async def _generate_pipeline_stream(
             if not video_desc or len(video_desc.strip()) < 20:
                 raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证生成质量，请重新上传或稍后重试")
 
+            yield {"type": "video_analysis", "content": video_desc,
+                   "media_ref": video_file_id, "progress": 18}
             vis_result = {
                 "role": "视觉专家",
                 "raw": f"<scene>{video_desc}</scene><hooks></hooks>",
                 "_image_desc": video_desc,
             }
             image_desc = vis_result["_image_desc"]
+            accompanying_images = (cover_images or ([cover_image] if cover_image else []))[:9]
+            if accompanying_images:
+                image_results = await asyncio.gather(*[
+                    _await_media_worker(_kimi_vision_understand, image, domain, brief)
+                    for image in accompanying_images], return_exceptions=True)
+                if any(not isinstance(value, str) or len(value.strip()) <= 5 for value in image_results):
+                    raise HTTPException(status_code=502, detail="视频附带图片理解未完成，本次未忽略图片继续生成")
+                observed_image_count = observed_deep_image_count = len(image_results)
+                image_desc = "【视频画面与口播】\n" + video_desc + "\n\n【用户另附图片，非视频原帧】\n" + "\n".join(
+                    f"图片{i+1}：{value}" for i, value in enumerate(image_results))
+                vis_result = {**vis_result, "_image_desc": image_desc}
             _vm2 = _video_meta or {}
             n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
             yield {

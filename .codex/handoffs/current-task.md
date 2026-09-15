@@ -1,3 +1,76 @@
+September15 10:07BJT — current combined video/supplier candidate NOT_DEPLOYED.
+Original Sep14order1e2acc bill at frozenfc4f49f completed once, operator matched2rows/
+0discrepancies/retry0; no newpay/refund. Activationf4499684-1eb4-4c19-b3eb-a056bbbd86c8;
+prepare9db95be4, bindinge8319173; install28b90879 once13ms/remove722a9cfd once11ms.
+Host /var/lib/noteai/native-80b01ea/bill-20260914/final-readback.json at1789437886.4514592
+confirms collectortriggers0/functionabsent, Paymentabsent, exact API CID/web/Admin/config
+unchanged. Original journal SHA8399fc0f17a65159b05e0ef66aaef8ce0dae2811348df8dce4d2104443d2bb1c;
+only payment_reconciliation_runs1 mutation. Operator-resultSHA91d98a7a, closedc067a24a.
+Private full result is in existing /Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98/
+old-sep14-{operator-result,final-readback}.json. This closes oldSep14 bill only;
+5ceSep15 bill remains Sep16>=10BJT, not run/prepared, no bill automation currently.
+Do not merge the old journal into 5ce terminal proof; Readiness31/37 unchanged.
+
+Candidate actual changes: common video/title/body/cover input and preserved drafts;
+identity-bound video upload/late-response guards; original prose separate from all
+media observations; missing dimensions and overall score NULL, no falsegrowth/share/
+zero-baseline improvement. Video+images generation now reads both. Independent cover
+semantic contents also enter diagnosis alongside the original video/audio. Original
+industryPrompt/Claude roles unchanged. Retrieval pending/result metadata lives on the
+same usage_records row, never new model calls or synthetic costs; admin queries both
+new observations and legacy provenance without arbitrary200-model-call cutoff.
+0030 usage fact_observations_json SHA729254a9991fa3deeef732caa13f9770ad3a284db12741c07dbda4884bcb81ef
+is LOCAL ONLY. Isolated PG16.14 ninechecks PASS: exact-columnACL, concurrentappend,
+idempotence, wrongowner/deletionfence, atomicrollback and oldschema compatibility;
+test DB precisely removed, no productionACL inferred. Python3.11/networknone Admin/
+publicaccount/cost/regressions and four pureJS payload/identity/partial-score checks
+PASS; complete cover+video and mixed generation contract rerun2 PASS. No model/provider calls for these
+tests. Production migration/backup/ACL, API/Admin/web build and realUI end-to-end
+combined diagnosis + separate generation/optimization are next, not already passed.
+
+Amap CURRENT browser readback Sep15~10:02BJT /dev/user/info: certified individual,
+no technical service licence. No credentials read or provider call. This is an actual
+external gap, not inferred from prior flags. Official authorization/upgrade require
+company certification/licensing for current commercial use; listed basic annual
+licence50000yuan is not an account quote and not authorized purchase. Existing account
+page is available for owner; do not repeat licence request or claimkeyabsence causes
+all failure. Candidate optional NOTEAI_AMAP_UNAVAILABLE_REASON will carry this dated
+non-sensitive cause while service remains off. Meituan current not-charged statement
+is OWNER_REPORTED, separate from call/source record; costs remainunknown until basis.
+Official sources https://lbs.amap.com/pages/authorization/ and https://lbs.amap.com/upgrade.
+
+Current authorized task comparison (history preserved, no old replay):
+| Task | Actual state / version or basis | Specific next work |
+|---|---|---|
+| Complete video-note diagnosis | Current public2df/APIb214 separates forms; candidate now connected locally | Deploy and real owner full-note test, originalinputs/history/cost |
+| Video material generation | Video/Chat v3 previous real proof is not generation-entry acceptance | Candidate mixedmedia fix; real generation and optimize entry |
+| Seven industries / model route | Existing restored templates and formal Claude/Ark provenance retained | Necessary affected regression/quality; no claim allindustryquality complete |
+| Screenshot merge/dedup | Existing recovery/once-charge real proof retained | Verify multi-image merge/source correspondence in currentUI |
+| Admin/entitlements/cost | Admin538/weba4f actual owner ops and modelcost available | Deploy observations/precise source and cost statuses |
+| Original user memory | Existing user/domain isolation implementation | Confirm actual chain/relevant tests; not equate Item34 memory to wholeproduct |
+| Fact clarification | Free answer/omit/resume/correction proof exists | Keep same completedmedia/charge, regression with new complete input |
+| Item31 Native-first | Paid/fullrefund/naturalcallback5ce passed; oldSep14 billmatched | Same5ce billSep16 + separatejournal + existingterminalvalidator |
+| Item32 | Oldidentitiessealed; successornotexecuted, oldSep7windowexpired | Current-source successor prep only; no oldpackage execution |
+| Item33 | No qualifying Trends terminalcycle | True successor/managedcycle dependency; not globalblock |
+| Item34 | generation2 COMPLETE, originalautomationdeleted | Preservefixedartifacts/evidence; no replay |
+| Item35 | NOT_REQUIRED/withdrawn | Historicalunsignedfacts unchanged, no score |
+| Item36 | Currentweb/API/AdminHTTPS and controlledPayment published | Canonical ALB/health/rollback dependency readback; no newresourcepurchase |
+| Item37/38 | Fullcommercialjointacceptance not terminal | ExistingpublicDNS is fact; no obsolete blanketDNS/auth blocker |
+
+September15 owner combines complete video-note input/diagnosis, independent video-to-generation,
+truthful Amap/Meituan status and retrieval/cost persistence, and completion of existing authorized work.
+Current active implementation uses original HTML/API/Admin/usage paths: shared title/body/independent
+cover with video vs image body media, preserve inputs across modes, separate model observations
+from scored/stored original prose; fix generation upload races and missing-input score display.
+No fresh payment/refund/Item34 replay. At starting HEAD6688aab tracked tree was clean;
+prior5ce financial/capture cleanup is complete, new same-order bill staged forSep16>=10BJT;
+oldSep14 bill dueSep15>=10BJT remains separate. Read-only scheduler audit found NO bill automation,
+only2PAUSED old reminders. Do not claim automatic continuation exists. Main execution handles due
+bill between safe candidate steps; schedule only a single scoped continuation if needed, preserve
+all other automation states. Models/Prompt/entitlements remain formal equal-quality; no old cap.
+Current edits are NOT_DEPLOYED. Three real readonly agents audit media, supplier persistence and
+existing task evidence; main agent alone writes/deploys. Actual task matrix follows as updated.
+
 September15 08:44BJT: same5ce next-day bill continuation is STAGED_NOT_PREPARED,
 not a new capture or provider request. Existing tracked deploy/production/native_capture.py
 now binds currenttrade-web2dfd4d2,5ceorder,Sep15billdate,current9dPayment/canary and

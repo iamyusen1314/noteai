@@ -3088,7 +3088,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div class="section-header-diag">
         <i data-lucide="search" style="color:var(--accent);width:18px;height:18px;flex-shrink:0"></i>
         <span style="font-size:16px;font-weight:700;color:var(--text)">诊断你的笔记</span>
-        <span class="section-badge section-badge-diag">支持截图 · 手动填写</span>
+        <span class="section-badge section-badge-diag">支持截图 · 图文 · 视频笔记</span>
       </div>
 
       <div class="upload-or">选择输入方式</div>
@@ -3103,9 +3103,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div class="input-type-icon"><i data-lucide="video"></i></div>
           <div class="input-type-label">视频上传</div>
         </div>
-        <div class="input-type" onclick="selectType(this,'手动填写')">
+        <div class="input-type" onclick="selectType(this,'填写笔记／上传素材')">
           <div class="input-type-icon"><i data-lucide="pencil"></i></div>
-          <div class="input-type-label">手动填写</div>
+          <div class="input-type-label">填写笔记／上传素材</div>
         </div>
       </div>
 
@@ -3157,14 +3157,14 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div style="font-size:13px;color:var(--text-2);margin-bottom:4px">标题：<strong id="ss-title-display" style="color:var(--text)"></strong></div>
           <div style="font-size:13px;color:var(--text-2);margin-bottom:4px">正文预览：<span id="ss-body-display" style="color:var(--text)"></span></div>
           <div style="font-size:13px;color:var(--text-2)">话题：<span id="ss-tags-display" style="color:var(--text)"></span></div>
-          <div id="ss-confirm-hint" class="ss-ocr-confirm-hint" style="display:none">请确认识别内容是否准确；如有偏差，可删除对应图片重传，或切换到手动填写补充标题/正文/话题。</div>
+          <div id="ss-confirm-hint" class="ss-ocr-confirm-hint" style="display:none">请确认识别内容是否准确；如有偏差，可删除对应图片重传，或切换到填写笔记／上传素材补充标题/正文/话题。</div>
           <div id="ss-image-summary-list" class="ss-image-summary-list" style="display:none"></div>
         </div>
 
         <!-- 领域选择 -->
         <div style="margin-top:12px">
           <label style="font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px">内容领域</label>
-          <select id="inputDomainSS" onchange="_screenshotDomainManuallySelected=true" style="width:100%;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;cursor:pointer">
+          <select id="inputDomainSS" onchange="_screenshotDomainManuallySelected=true;syncDiagnosisDomain(this.value)" style="width:100%;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;cursor:pointer">
             <option value="" disabled>请选择内容领域</option>
               <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
               <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
@@ -3219,20 +3219,19 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
         <input id="diagVideoInput" type="file" accept="video/*" style="display:none" onchange="handleDiagVideoSelect(this)">
         <div id="diagVideoError" style="display:none;margin-top:6px;font-size:12px;color:var(--error);font-weight:500"></div>
-        <!-- 领域选择 -->
-        <div style="margin-top:14px">
-          <label style="font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px">内容领域</label>
-          <select id="inputDomainVideo" style="width:100%;background:var(--surf-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;cursor:pointer">
-              <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
-              <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
-              <option value="母婴">母婴</option>
-            </select>
-        </div>
+
       </div>
 
-      <!-- 手动填写表单 -->
+      <!-- 填写笔记／上传素材表单 -->
       <div id="manual-form" style="display:none;margin-bottom:24px;background:var(--surf-2);border:1px solid rgba(0,153,255,0.15);border-radius:var(--r-lg);padding:24px">
         <div style="display:flex;flex-direction:column;gap:18px">
+          <div>
+            <label for="noteMediaType">笔记正文媒体</label>
+            <select id="noteMediaType" onchange="syncDiagnosisMediaType()" class="merchant-input">
+              <option value="image">图文笔记</option><option value="video">视频笔记</option>
+            </select>
+            <p id="noteInputHint" style="font-size:12px;color:var(--text-muted)">标题、正文与封面为你的原始输入。切换方式会保留已填写内容及素材；仅提交当前选中的正文媒体。</p>
+          </div>
           <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
               <label style="font-size:13px;font-weight:600;color:var(--text-2)">笔记标题</label>
@@ -3259,7 +3258,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           </div>
           <div>
             <label style="font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:8px">内容领域</label>
-            <select id="inputDomain"
+            <select id="inputDomain" onchange="syncDiagnosisDomain(this.value)"
               style="width:100%;background:var(--surf-3);border:1px solid var(--border);border-radius:var(--r-sm);
                      padding:12px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;cursor:pointer">
               <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
@@ -3293,7 +3292,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
               <label style="font-size:13px;font-weight:600;color:var(--text-2)">
-                内容图片 <span style="font-weight:400;color:var(--text-muted)">（可选，AI 读取画面辅助诊断）</span>
+                <span id="diagImagesLabel">正文图片</span> <span style="font-weight:400;color:var(--text-muted)">（视频模式下作为辅助图片，不冒充视频正文）</span>
               </label>
               <span id="diagImgCounter" style="font-size:12px;color:var(--accent);font-weight:600"></span>
             </div>
@@ -5323,7 +5322,7 @@ function syncProductUI() {
   document.getElementById('legal-version').textContent = PUBLIC_PRODUCT_CONTRACT;
   document.getElementById('product-consent').style.display = _authUser && !_authUser.contract_accepted ? 'block' : 'none';
   document.querySelectorAll('.input-type').forEach(el => {
-    if (el.querySelector('.input-type-label')?.textContent !== '手动填写') {
+    if (el.querySelector('.input-type-label')?.textContent !== '填写笔记／上传素材') {
       const label = el.querySelector('.input-type-label')?.textContent || '';
       const allowed = /视频/.test(label) ? videoOpen : /图片|截图/.test(label) && imageOpen;
       el.setAttribute('aria-disabled', String(!allowed)); el.title=allowed ? '' : '此项输入尚未开放';
@@ -5334,7 +5333,9 @@ function syncProductUI() {
     else el.disabled= /Video/i.test(el.id) ? !videoOpen : !imageOpen;
   });
   ['genCoverInput','inputCover','diagImgInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=imageOpen ? '' : 'none';});
-  ['genVideoInput','diagVideoInput'].forEach(id=>{const el=document.getElementById(id);if(el?.parentElement) el.parentElement.style.display=videoOpen ? '' : 'none';});
+  const genVideo = document.getElementById('genVideoInput');
+  if (genVideo?.parentElement) genVideo.parentElement.style.display=videoOpen ? '' : 'none';
+  syncDiagnosisMediaType();
   // Existing profile actions keep their real scope; deletion/export are support requests.
   nativeSyncControls();
 }
@@ -5428,6 +5429,9 @@ async function shareDiagnosisCard(button) {
   if (!diagnosis || diagnosis._error) {
     showToast('请先完成一次诊断，再生成分享卡片');
     return;
+  }
+  if (diagnosis.input_diagnostics?.score_scope === 'partial_input') {
+    showToast('本次仅分析已提供的素材，尚未取得完整笔记评分，暂不生成综合评分卡片'); return;
   }
   const originalText = button?.textContent || '生成并分享卡片';
   if (button) {
@@ -5808,7 +5812,7 @@ function switchMode(mode) {
   const sub   = document.getElementById('uploadPageSub');
   if (isDiag) {
     if (title) title.textContent = '诊断你的笔记';
-    if (sub)   sub.textContent   = '上传截图 / 填写内容，5 位 AI 专家从 124 维复合质量特征找出问题并给出改写方案';
+    if (sub)   sub.textContent   = '上传截图 / 填写完整图文或视频笔记，5 位 AI 专家从 124 维复合质量特征找出问题并给出改写方案';
   } else {
     if (title) title.textContent = 'AI 生成爆文';
     if (sub)   sub.textContent   = '上传素材照片，AI 逆推爆文特征，直接输出可发布的标题、正文和话题标签';
@@ -5828,19 +5832,33 @@ function goToDiagnose(tabEl) {
   setTimeout(() => switchMode('diagnose'), 50);
 }
 
-function selectType(el, type) {
-  if (PUBLIC_PRODUCT && type !== '手动填写' && (!/图片|截图|视频/.test(type) || !requirePublicCapability(/视频/.test(type) ? 'video_open' : 'image_open'))) { showToast('此项输入尚未开放'); return; }
-  const previousType = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
-  if (previousType === '视频上传' && type !== '视频上传'
-      && (_diagVideoState === 'preflight' || _diagVideoState === 'uploading')) {
-    clearDiagVideo();
+function syncDiagnosisDomain(value) {
+  for (const id of ['inputDomain', 'inputDomainSS']) {
+    const el = document.getElementById(id);
+    if (el && Array.from(el.options).some(option => option.value === value)) el.value = value;
   }
+}
+function diagnosisUsesVideo() {
+  return document.querySelector('.input-type.selected .input-type-label')?.textContent !== '截图上传'
+    && document.getElementById('noteMediaType')?.value === 'video';
+}
+function syncDiagnosisMediaType() {
+  const video = diagnosisUsesVideo();
+  document.getElementById('video-diag-form').style.display = video ? 'block' : 'none';
+  const label = document.getElementById('diagImagesLabel');
+  if (label) label.textContent = video ? '辅助图片' : '正文图片';
+  updateDiagnosisSubmitState();
+}
+function selectType(el, type) {
+  if (PUBLIC_PRODUCT && type !== '填写笔记／上传素材' && (!/图片|截图|视频/.test(type) || !requirePublicCapability(/视频/.test(type) ? 'video_open' : 'image_open'))) { showToast('此项输入尚未开放'); return; }
+  const previousType = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
+  if (previousType === '截图上传') syncDiagnosisDomain(document.getElementById('inputDomainSS')?.value || '');
   document.querySelectorAll('.input-type').forEach(e => e.classList.remove('selected'));
   el.classList.add('selected');
-  document.getElementById('manual-form').style.display     = type === '手动填写'   ? 'block' : 'none';
-  document.getElementById('screenshot-form').style.display = type === '截图上传'   ? 'block' : 'none';
-  document.getElementById('video-diag-form').style.display = type === '视频上传'   ? 'block' : 'none';
-  updateDiagnosisSubmitState();
+  if (type === '视频上传') document.getElementById('noteMediaType').value = 'video';
+  document.getElementById('manual-form').style.display = type === '截图上传' ? 'none' : 'block';
+  document.getElementById('screenshot-form').style.display = type === '截图上传' ? 'block' : 'none';
+  syncDiagnosisMediaType();
 }
 
 function selectContentIntent(el) {
@@ -6045,27 +6063,37 @@ function handleGenCoverDrop(e) {
 }());
 
 /* ── 视频上传 ──────────────────────────────────────── */
+let _genVideoState = 'empty';
+let _genVideoAttempt = 0;
 function _setGenVideoState(state) {
+  _genVideoState = state;
   const hint      = document.getElementById('genVideoHint');
   const uploading = document.getElementById('genVideoUploading');
   const preview   = document.getElementById('genVideoPreview');
   if (hint)      hint.style.display      = state === 'empty'     ? 'block' : 'none';
-  if (uploading) uploading.style.display = state === 'uploading' ? 'block' : 'none';
+  if (uploading) uploading.style.display = ['preflight','uploading'].includes(state) ? 'block' : 'none';
   if (preview)   preview.style.display   = state === 'done'      ? 'block' : 'none';
 }
 
 async function _uploadVideoFile(file) {
   if (PUBLIC_PRODUCT && !requirePublicCapability("video_open")) return;
+  const attempt = ++_genVideoAttempt;
+  const identity = _chatIdentitySnapshot(), token = _authToken;
+  const current = () => attempt === _genVideoAttempt && _chatIdentityMatches(identity) && token === _authToken;
+  _genVideoFileId = null;
+  _setGenVideoState('preflight');
   const errEl = document.getElementById('genVideoError');
   if (errEl) errEl.style.display = 'none';
 
   if (!_authToken) {
+    _setGenVideoState('empty');
     openAuthModal('login');
     showToast('请先登录后上传视频素材');
     return;
   }
 
   if (file.size > 100 * 1024 * 1024) {
+    _setGenVideoState('empty');
     if (errEl) { errEl.textContent = '视频超过 100 MB 限制'; errEl.style.display = 'block'; }
     return;
   }
@@ -6080,7 +6108,9 @@ async function _uploadVideoFile(file) {
       vid.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
       vid.src = url;
     });
+    if (!current()) return;
     if (dur && dur > 90) {
+      _setGenVideoState('empty');
       if (errEl) {
         errEl.textContent = `视频时长 ${Math.round(dur)}s，超过 1分30秒上限，请剪短后重新上传`;
         errEl.style.display = 'block';
@@ -6089,6 +6119,7 @@ async function _uploadVideoFile(file) {
     }
   } catch (_) { /* 无法读取时长则交给后端校验 */ }
 
+  if (!current()) return;
   _setGenVideoState('uploading');
   document.getElementById('genVideoUploadPct').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB`;
 
@@ -6098,9 +6129,10 @@ async function _uploadVideoFile(file) {
   try {
     const res = await fetch(`${API_BASE}/upload-video`, {
       method: 'POST',
-      headers: authHeader(),
+      headers: {Authorization: 'Bearer ' + token},
       body: formData,
     });
+    if (!current()) return;
     if (res.status === 401) {
       openAuthModal('login');
       throw new Error('请先登录后上传视频素材');
@@ -6110,6 +6142,8 @@ async function _uploadVideoFile(file) {
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
+    if (!current()) return;
+    if (!data.file_id) throw new Error('视频上传结果无效');
     _genVideoFileId   = data.file_id;
     _genVideoFileName = data.filename || file.name;
     _genVideoFileSize = data.size || file.size;
@@ -6124,6 +6158,7 @@ async function _uploadVideoFile(file) {
     _setGenVideoState('done');
     if (window.lucide) lucide.createIcons();
   } catch (e) {
+    if (!current()) return;
     _genVideoFileId = null;
     _setGenVideoState('empty');
     if (errEl) { errEl.textContent = `上传失败：${e.message}`; errEl.style.display = 'block'; }
@@ -6142,6 +6177,7 @@ function handleGenVideoDrop(e) {
 }
 
 function clearGenVideo(e) {
+  _genVideoAttempt += 1;
   if (e) e.stopPropagation();
   _genVideoFileId   = null;
   _genVideoFileName = '';
@@ -6181,6 +6217,8 @@ async function startGeneration() {
   if (!requirePublicCapability("ai_open")) return;
   if (PUBLIC_PRODUCT && !requireProductConsent()) return;
   if (_genStreamActive) return;
+  if (['preflight','uploading'].includes(_genVideoState)) { showToast('请等待视频上传完成，再开始生成'); return; }
+  const videoRef = _genVideoFileId || null, videoAttempt = _genVideoAttempt;
   const domain = document.getElementById('genDomain')?.value || '美食';
   const brief  = (document.getElementById('genBrief')?.value || '').trim() || null;
   const constraints = getConstraintTags();
@@ -6209,7 +6247,7 @@ async function startGeneration() {
   try { coverImages = await Promise.all(_genCoverImages.map(img => privateImageInput(img.dataURL))); }
   catch (error) { _genStreamActive = false; _setGenerationSubmitBusy(false); showToast(error.message); return; }
 
-  if (!identityMatches()) { _genStreamActive = false; _setGenerationSubmitBusy(false); return; }
+  if (!identityMatches() || videoAttempt !== _genVideoAttempt || videoRef !== (_genVideoFileId || null)) { _genStreamActive = false; _setGenerationSubmitBusy(false); showToast('素材已变更，请检查后重新提交'); return; }
   let _resolveGen, _rejectGen;
   _diagnosePromise = new Promise((res, rej) => { _resolveGen = res; _rejectGen = rej; });
 
@@ -6226,7 +6264,7 @@ async function startGeneration() {
           local_time: formatLocalTimeWithConstraints(constraints),
           cover_images: coverImages.length ? coverImages : null,
           cover_image:  coverImages.length ? coverImages[0] : null,
-          video_file_id: _genVideoFileId || null,
+          video_file_id: videoRef,
           user_constraints: constraints.length ? constraints : null,
           ...intentPayload,
         }),
@@ -6813,7 +6851,7 @@ async function startDiagnosis() {
   if (_diagnosisPreparing || _diagnosisStreamActive) return;
   _diagnosisPreparing = true;
   try { await prepareDiagnosis(); }
-  finally { _diagnosisPreparing = false; }
+  finally { _diagnosisPreparing = false; updateDiagnosisSubmitState(); }
 }
 
 async function prepareDiagnosis() {
@@ -6835,11 +6873,13 @@ async function prepareDiagnosis() {
 
   let title='', desc='', domain='美食', coverB64=null, extraImages=[];
 
-  if (selectedLabel === '手动填写') {
+  if (selectedLabel !== '截图上传') {
     title   = (document.getElementById('inputTitle')?.value  || '').trim();
     desc    = (document.getElementById('inputDesc')?.value   || '').trim();
-    domain  = (document.getElementById('inputDomain')?.value || '美食');
-    if (!title && !desc) { showToast('请先填写标题或正文内容'); return; }
+    domain  = (document.getElementById('inputDomain')?.value || '');
+    if (!domain) { showToast('请选择本次笔记的内容领域'); return; }
+    if (diagnosisUsesVideo() && (_diagVideoState !== 'ready' || !_diagVideoFileId)) { showToast('请先完成视频上传'); return; }
+    if (!title && !desc && !diagnosisUsesVideo() && !_coverBase64 && !_diagImages.length) { showToast('请填写笔记或上传素材'); return; }
     // 封面图 + 内容图：与截图上传保持一致（最多9张，套餐决定深度分析数量）
     coverB64    = _coverBase64 ? _coverBase64.split(',')[1] : null;
     // 内容图片最多取 8 张（后端 extra_images 上限9张，封面已占1张）
@@ -6881,10 +6921,6 @@ async function prepareDiagnosis() {
     if (_ssImages.length > 0) coverB64 = _ssImages[0].mediaRef || _ssImages[0].dataURL.split(',')[1] || null;
     extraImages = _ssImages.slice(1, 9).map(img => img.mediaRef || img.dataURL.split(',')[1] || '').filter(Boolean);
 
-  } else if (selectedLabel === '视频上传') {
-    if (_diagVideoState !== 'ready' || !_diagVideoFileId) { showToast('请先上传视频文件'); return; }
-    domain = (document.getElementById('inputDomainVideo')?.value || '美食');
-    // title/desc 留空，由后端从视频帧提取
   }
 
   if (shouldAskMerchantBeforeRun(domain, title, desc, intentPayload)) {
@@ -6893,10 +6929,19 @@ async function prepareDiagnosis() {
     return;
   }
 
+  const diagnosisVideoMode = diagnosisUsesVideo();
+  const diagnosisVideoRef = diagnosisVideoMode ? _diagVideoFileId : null;
+  const diagnosisVideoAttempt = _diagVideoAttempt;
+  if (constraints.includes('不改标题') && !title) { showToast('尚未提供原始标题，请补充标题或取消“不改标题”'); return; }
+  if (constraints.includes('不改封面') && !coverB64) { showToast('尚未提供独立封面，请补充封面或取消“不改封面”'); return; }
+  updateDiagnosisSubmitState();
   try {
     coverB64 = await privateImageInput(coverB64);
     extraImages = await Promise.all(extraImages.map(privateImageInput));
   } catch (error) { showToast(error.message); return; }
+  if (diagnosisVideoRef && (diagnosisVideoAttempt !== _diagVideoAttempt || diagnosisVideoRef !== _diagVideoFileId)) {
+    showToast('视频已变更，请检查素材后重新提交'); return;
+  }
 
   // ── 完整 AI 诊断流（含约束条件 + 多图 + 真实 agent 事件）────────────
   if (!identityMatches()) return;
@@ -6909,12 +6954,12 @@ async function prepareDiagnosis() {
     local_time:       formatLocalTimeWithConstraints(constraints),
     domain,
     user_id:          _authUser?.id || null,
-    input_mode:       selectedLabel === '截图上传' ? 'screenshot' : (selectedLabel === '视频上传' ? 'video' : 'manual'),
+    input_mode:       selectedLabel === '截图上传' ? 'screenshot' : (diagnosisVideoMode ? 'video' : 'manual'),
     ocr_char_count:   selectedLabel === '截图上传' ? (_screenshotExtracted?._charCount || _bodyCharCountWithoutSsTags(_screenshotExtracted?.body || '')) : null,
     cover_image:      coverB64,
     user_constraints: constraints.length > 0 ? constraints : null,
     extra_images:     extraImages.length  > 0 ? extraImages : null,
-    video_file_id:    selectedLabel === '视频上传' ? (_diagVideoFileId || null) : null,
+    video_file_id:    diagnosisVideoRef,
     ...intentPayload,
   };
   _diagnosePromise = new Promise((resolve, reject) => {
@@ -7168,6 +7213,22 @@ async function populateReport() {
 
   // ── 各节独立渲染，任何一节失败不影响其他节 ──
 
+  let originalInput = document.getElementById('reportOriginalInput');
+  if (!originalInput && diagBody) {
+    originalInput = document.createElement('section'); originalInput.id = 'reportOriginalInput';
+    originalInput.className = 'report-empty-note'; diagBody.prepend(originalInput);
+  }
+  const provided = d.input_diagnostics || {};
+  const missing = Array.isArray(provided.missing_dimensions) ? provided.missing_dimensions : [];
+  if (originalInput) {
+    originalInput.hidden = !Object.prototype.hasOwnProperty.call(provided, 'original_title');
+    originalInput.textContent = '本次原始输入｜标题：' + (provided.original_title || '未提供')
+      + '\n正文：' + (provided.original_desc || '未提供')
+      + '\n独立封面：' + (provided.has_independent_cover ? '已提供' : '未提供')
+      + (provided.video_media_ref ? '；已提供视频正文素材' : '')
+      + (missing.length ? '\n本次未评估：' + missing.join('、') + '。以下为已提供内容的分析及AI建议，不代表完整笔记评分。' : '\n原文与下方AI建议分别保存。');
+    originalInput.style.whiteSpace = 'pre-wrap';
+  }
   // § 0 分数环 + 等级（最重要，放最前，独立 try）
   try {
 	  const pct = Number(d.ces_percentile || 0);
@@ -7175,8 +7236,9 @@ async function populateReport() {
 	  const displayScore = Number.isFinite(compositeNum) && compositeNum > 0
 	    ? Math.min(Math.round(compositeNum), 100)
 	    : pct;
-  updateScoreRing(displayScore);
-  const gi = gradeInfo(displayScore);
+  updateScoreRing(missing.length ? 0 : displayScore);
+  if (missing.length) document.getElementById('scoreRingNum').textContent = '—';
+  const gi = missing.length ? {text:'输入不完整 · 仅评估已提供内容', color:'var(--text-muted)'} : gradeInfo(displayScore);
   const gradeEl = document.getElementById('gradeText');
   if (gradeEl) { gradeEl.textContent = gi.text; gradeEl.style.color = gi.color; }
   const rh1 = document.querySelector('#page-report .report-title h1');
@@ -7290,7 +7352,7 @@ async function populateReport() {
   try {
   const titles  = d.suggested_titles || [];
   const tScores = d.suggested_title_scores || [];
-  const origScore = d.ces_percentile || 0;
+  const origScore = diagnosisDisplayScore(d);
   const origTitle = d._inputTitle || '';
   const hints = ['数据/结果驱动，用具体数字建立信任感', '场景代入+情绪触发，激发用户强烈共鸣', '反差/颠覆预期，制造好奇心，种草潜力最强'];
   const plans     = d.suggested_plans || [];
@@ -7327,7 +7389,7 @@ async function populateReport() {
         const diffCol = diff > 0 ? '#22C55E' : diff < 0 ? '#EF4444' : '#888';
         const star = (!qFailed && i === bestIdx) ? ' ⭐候选中评分最高' : '';
         scoreHtml = ` <span style="font-weight:700;color:${col}">${sc}分</span>`
-                  + ` <span style="color:${diffCol};font-size:11px">(${diffStr})</span>`
+                  + (origScore !== null ? ` <span style="color:${diffCol};font-size:11px">(${diffStr})</span>` : '')
                   + `<span style="color:#F59E0B;font-size:11px">${star}</span>`;
       }
       const qHtml = qFailed
@@ -7809,6 +7871,7 @@ function _isMissingPlanBodyText(body) {
 }
 
 function _numOrNull(value) {
+  if (value == null || value === '') return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
@@ -7821,6 +7884,7 @@ function formatScoreValue(value) {
 }
 
 function diagnosisDisplayScore(d) {
+  if (d?.input_diagnostics?.score_scope === 'partial_input') return null;
   const composite = _numOrNull(d?.composite_score);
   if (composite !== null && composite > 0) return composite;
   return _numOrNull(d?.ces_percentile);
@@ -8489,8 +8553,9 @@ function initCharts() {
   }
 
 	  const dims = Array.isArray(_radarDimensions) && _radarDimensions.length
-	    ? _radarDimensions
+	    ? _radarDimensions.filter(d => d.score != null && Number.isFinite(Number(d.score)))
 	    : null;
+	  if (dims && dims.length < 3) { _radarInstance.clear(); return; }
 	  const indicators = dims
 	    ? dims.map(d => ({ name: d.label || d.key || '维度', max: 100 }))
 	    : [
@@ -8498,10 +8563,10 @@ function initCharts() {
 	        {name:'内容质量',max:100},{name:'标签策略',max:100},{name:'发布策略',max:100}
 	      ];
 	  const noteValues = dims
-	    ? dims.map(d => d.score == null ? 58 : Math.max(0, Math.min(100, Number(d.score))))
+	    ? dims.map(d => Math.max(0, Math.min(100, Number(d.score))))
 	    : (_radarData || [50, 50, 50, 50, 50]);
 	  const benchmarkValues = dims
-	    ? dims.map(d => d.score == null ? 58 : 72)
+	    ? dims.map(() => 72)
 	    : [68,72,71,76,70];
 	  _radarInstance.setOption({
 	    backgroundColor: 'transparent',
@@ -10512,6 +10577,8 @@ function authClearLocalSession() {
   _authVerifiedOwnerId = null;
   localStorage.removeItem('noteai_token');
   chatClearUserState();
+  clearGenVideo();
+  clearDiagVideo();
   authUpdateNav();
 }
 
@@ -11028,12 +11095,12 @@ async function loadDiagnosisHistory(reset = false) {
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
             <span style="font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              ${d.note_title || '（无标题）'}
+              ${escapeHtml(d.note_title || '（无标题）')}
             </span>
             ${isLatest ? '<span style="font-size:10px;padding:1px 7px;border-radius:20px;background:rgba(123,97,255,0.2);border:1px solid rgba(123,97,255,0.4);color:#a78bfa;flex-shrink:0">最新</span>' : ''}
           </div>
           <div style="font-size:12px;color:var(--text-muted)">
-            ${d.domain || ''} · ${d.grade || ''} · ${localTime}
+            ${escapeHtml(d.domain || '')} · ${escapeHtml(d.grade || '')} · ${escapeHtml(localTime)}
           </div>
         </div>
         <div style="color:rgba(123,97,255,0.8);font-size:13px;flex-shrink:0">查看 ›</div>`;
@@ -11056,14 +11123,14 @@ function diagnosisOriginalBody(data) {
 }
 
 function completeDiagnosisDetail(data) {
-  return !!data && Number.isFinite(data.composite_score ?? data.ces_percentile)
+  return !!data && (data.input_diagnostics?.score_scope === 'partial_input' || Number.isFinite(data.composite_score ?? data.ces_percentile))
     && typeof data.ai_diagnosis==='string' && Array.isArray(data.suggested_titles);
 }
 
 function renderDiagnosisHeader(data) {
   document.getElementById('detail-note-title').textContent=data.note_title || data._inputTitle || '本次诊断';
   const score=data.composite_score ?? data.ces_percentile;
-  document.getElementById('detail-meta').textContent=(data._domain || data.domain || '')+' · 综合 '+(Number.isFinite(score)?score.toFixed(1):'未取得')+' · '+_fmtLocalTime(data.created_at);
+  document.getElementById('detail-meta').textContent=(data._domain || data.domain || '')+(data.input_diagnostics?.score_scope === 'partial_input' ? ' · 素材分析（输入不完整）' : ' · 综合 '+(Number.isFinite(score)?score.toFixed(1):'未取得'))+' · '+_fmtLocalTime(data.created_at);
 }
 
 async function openDiagDetail(diagId) {
@@ -11199,7 +11266,7 @@ function _scoreColor(s) {
 }
 
 function trackingStatusMeta(t) {
-  const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待手动填写',complete:'已完成',failed:'采集失败'};
+  const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待填写笔记／上传素材',complete:'已完成',failed:'采集失败'};
   const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)',failed:'var(--error)'};
   return {
     label: statusMap[t?.status] || t?.status || '未追踪',
@@ -12310,7 +12377,9 @@ function updateDiagnosisSubmitState() {
   let disabled = false;
   let label = '开始 AI 诊断（多阶段处理）';
   let title = '';
-  if (_diagnosisStreamActive) {
+  if (_diagnosisPreparing) {
+    disabled = true; label = '正在保存本次素材…';
+  } else if (_diagnosisStreamActive) {
     disabled = true;
     label = 'AI 诊断进行中…';
     title = '当前诊断尚未完成';
@@ -12333,7 +12402,7 @@ function updateDiagnosisSubmitState() {
       label = '正在合并识别内容';
       title = '等待识别结果合并完成';
     }
-  } else if (selectedLabel === '视频上传') {
+  } else if (diagnosisUsesVideo()) {
     if (_diagVideoState === 'preflight') {
       disabled = true;
       label = '正在检查视频…';
@@ -12883,7 +12952,7 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
   } else if (hasText) {
     statusMsg = `✅ ${textSources.length} 张截图识别完成，文字内容已提取`;
   } else if (hasPhotos) {
-    statusMsg = `🖼 ${typeB.length} 张图片已提取视觉描述（未检测到笔记文字，建议在"手动填写"补充标题/正文）`;
+    statusMsg = `🖼 ${typeB.length} 张图片已提取视觉描述（未检测到笔记文字，建议在"填写笔记／上传素材"补充标题/正文）`;
     // 纯图片情况下主动提醒用户
     showToast('📷 上传的是内容图片，已提取视觉描述。如需更精准诊断，请补充笔记标题/正文');
   }
@@ -12925,7 +12994,7 @@ function handleDiagImgDrop(e) {
 }
 
 function _addDiagFiles(files) {
-  // 手动填写模式：封面1张 + 内容图最多8张 = 共9张（与截图上传一致）
+  // 填写笔记／上传素材模式：封面1张 + 内容图最多8张 = 共9张（与截图上传一致）
   const MAX_DIAG_IMGS = 8;
   const remain = MAX_DIAG_IMGS - _diagImages.length;
   if (remain <= 0) { showToast('内容图片最多 8 张（加封面共9张）'); return; }
@@ -13010,6 +13079,8 @@ function _setDiagVideoState(state, options = {}) {
 async function _uploadDiagVideoFile(file) {
   if (PUBLIC_PRODUCT && !requirePublicCapability("video_open")) return;
   const attempt = ++_diagVideoAttempt;
+  const identity = _chatIdentitySnapshot(), token = _authToken;
+  const current = () => attempt === _diagVideoAttempt && _chatIdentityMatches(identity) && token === _authToken;
   _diagVideoFileId = null;
   _diagVideoFileName = file?.name || '';
   _diagVideoFileSize = Number(file?.size) || 0;
@@ -13017,11 +13088,11 @@ async function _uploadDiagVideoFile(file) {
   if (!_authToken) {
     openAuthModal('login');
     showToast('请先登录后上传视频素材');
-    if (attempt === _diagVideoAttempt) _setDiagVideoState('error', { error: '请先登录后上传视频素材' });
+    if (current()) _setDiagVideoState('error', { error: '请先登录后上传视频素材' });
     return;
   }
   if (file.size > 100*1024*1024) {
-    if (attempt === _diagVideoAttempt) _setDiagVideoState('error', { error: '视频超过 100 MB，请压缩后重新上传' });
+    if (current()) _setDiagVideoState('error', { error: '视频超过 100 MB，请压缩后重新上传' });
     return;
   }
   // 前端预检时长
@@ -13032,23 +13103,24 @@ async function _uploadDiagVideoFile(file) {
       v.onloadedmetadata=()=>{URL.revokeObjectURL(url);res(v.duration);};
       v.onerror=()=>{URL.revokeObjectURL(url);res(null);}; v.src=url;
     });
+    if (!current()) return;
     if (dur && dur > 90) {
-      if (attempt === _diagVideoAttempt) {
+      if (current()) {
         _setDiagVideoState('error', { error: `视频时长 ${Math.round(dur)} 秒，超过 90 秒限制` });
       }
       return;
     }
   } catch(_){}
-  if (attempt !== _diagVideoAttempt) return;
+  if (!current()) return;
   _setDiagVideoState('uploading');
   const fd = new FormData(); fd.append('file', file, file.name);
   try {
     const res = await fetch(`${API_BASE}/upload-video`, {
       method:'POST',
-      headers: authHeader(),
+      headers: {Authorization: 'Bearer ' + token},
       body: fd,
     });
-    if (attempt !== _diagVideoAttempt) return;
+    if (!current()) return;
     if (res.status === 401) {
       openAuthModal('login');
       _setDiagVideoState('error', { error: '请先登录后上传视频素材' });
@@ -13056,7 +13128,7 @@ async function _uploadDiagVideoFile(file) {
     }
     if (!res.ok) { const e=await res.json().catch(()=>({detail:res.statusText})); throw new Error(e.detail||res.statusText); }
     const data = await res.json();
-    if (attempt !== _diagVideoAttempt) return;
+    if (!current()) return;
     if (!data?.file_id) throw new Error('视频处理结果无效，请重新上传');
     _diagVideoFileId   = data.file_id;
     _diagVideoFileName = data.filename || file.name;
@@ -13071,7 +13143,7 @@ async function _uploadDiagVideoFile(file) {
     _setDiagVideoState('ready');
     if (window.lucide) lucide.createIcons();
   } catch(e) {
-    if (attempt !== _diagVideoAttempt) return;
+    if (!current()) return;
     _diagVideoFileId = null;
     _setDiagVideoState('error', { error: `上传失败：${e.message}` });
   }
@@ -13404,7 +13476,7 @@ async function loadTrackingList() {
       el.innerHTML = '<div style="color:var(--text-muted);font-size:13px">提交你发布的小红书链接，AI 7天后告诉你实际表现如何。</div>';
       return;
     }
-    const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待手动填写',complete:'已完成',failed:'采集失败'};
+    const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待填写笔记／上传素材',complete:'已完成',failed:'采集失败'};
     const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)',failed:'var(--error)'};
     const evidenceMap = {crawler:'自动采集',manual:'手动回填',screenshot:'截图识别',mixed:'混合证据'};
     el.innerHTML = notes.map(n => `
@@ -13432,7 +13504,7 @@ async function loadTrackingList() {
           <button ${productActionAttributes('openManualFill',n.id)}
             style="margin-top:8px;padding:4px 12px;border-radius:7px;border:1px solid var(--accent);
                    background:rgba(0,153,255,0.08);color:var(--accent);cursor:pointer;font-size:11px;font-weight:600">
-            手动填写互动数据
+            填写笔记／上传素材互动数据
           </button>` : ''}
       </div>`).join('');
   } catch(e) { console.error('tracking load error', e); }
@@ -13761,8 +13833,8 @@ function showQuotaExceededModal(detail) {
 refreshPublicStatus();
 if (PUBLIC_PRODUCT) {
   syncProductUI();
-  const manual=Array.from(document.querySelectorAll('.input-type')).find(el=>el.querySelector('.input-type-label')?.textContent==='手动填写');
-  if(manual) selectType(manual,'手动填写');
+  const manual=Array.from(document.querySelectorAll('.input-type')).find(el=>el.querySelector('.input-type-label')?.textContent==='填写笔记／上传素材');
+  if(manual) selectType(manual,'填写笔记／上传素材');
 }
 </script>
 </body>

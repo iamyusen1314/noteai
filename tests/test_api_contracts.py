@@ -2851,7 +2851,7 @@ class ApiContractTests(unittest.TestCase):
             pass
 
         full_observation = "真实素材观察，需与商家事实核对。" * 100 + "素材末尾标记"
-        for video in (True, False):
+        for video in (True, False, "with_images"):
             captured = []
 
             async def stop_at_arbiter(task, system, user, **kwargs):
@@ -2863,7 +2863,7 @@ class ApiContractTests(unittest.TestCase):
                 stream = api._generate_pipeline_stream(
                     "美食", "创作者已确认事实", None, None, {}, None, "2026091312",
                     video_file_id="owned-video" if video else None,
-                    cover_images=None if video else ["main-image", "second-image"],
+                    cover_images=None if video is True else ["main-image", "second-image"],
                     user_id="owner", memory_context="本人偏好",
                 )
                 try:
@@ -2890,6 +2890,9 @@ class ApiContractTests(unittest.TestCase):
                 self.assertEqual(len(captured), 1)
                 self.assertIn(full_observation, captured[0][2])
                 self.assertIn("不替代商家事实来源", captured[0][2])
+                if video == "with_images":
+                    self.assertIn("用户另附图片，非视频原帧", captured[0][2])
+                    self.assertIn("图片2：", content.call_args.args[3])
 
     def test_generation_failed_media_never_falls_back_to_text(self):
         for media, result, expected_status in (
@@ -3259,6 +3262,8 @@ class ApiContractTests(unittest.TestCase):
         original_video = api._kimi_video_understand
         original_quick = api._kimi_vision_quick
         original_frames = dict(api._video_frames)
+        original_cover = api._extract_cover
+        original_cover_understand = api._kimi_vision_understand
         original_enrich = api._maybe_enrich_facts
         original_append_fact = api._append_fact_enrichment
         original_scheduler = api._SCHEDULER_AVAILABLE
@@ -3367,6 +3372,8 @@ class ApiContractTests(unittest.TestCase):
         try:
             api._billing.check_and_deduct = lambda user_id, op: None
             api._billing.record_free_usage = lambda user_id, op: None
+            api._extract_cover = lambda *_args: (71.0,{})
+            api._kimi_vision_understand = lambda *_args: "独立测试封面中写有明确测试文字与菜品，不是视频自带封面。"
             api._kimi_video_understand = fake_video
             api._kimi_vision_quick = lambda *_args, **_kwargs: "截图里有餐厅门头、芝士焗小青龙和人均98元信息。"
             api._video_frames.clear()
@@ -3416,6 +3423,7 @@ class ApiContractTests(unittest.TestCase):
                     local_time="2026062812",
                     domain="美食",
                     video_file_id="vid-ok",
+                    cover_image="e8319173-9ca6-48b5-986d-b8acde543d2e",
                 ),
             ]
             for req in requests:
@@ -3442,8 +3450,8 @@ class ApiContractTests(unittest.TestCase):
                 self.assertIn('本次不写品牌名称，保留原素材边界', context)
             for context in captured_delivery_constraints[2:] + captured_shape_constraints[6:]:
                 self.assertIn('商家/品牌展示策略：不展示商家', context)
-            self.assertEqual(api._insert_growth_record.call_count, 3)
-            for response, call in zip(responses, api._insert_growth_record.call_args_list):
+            self.assertEqual(api._insert_growth_record.call_count, 1)
+            for response, call in zip([responses[2]], api._insert_growth_record.call_args_list):
                 self.assertEqual(call.kwargs["note_id"], response.saved_note_id)
             api._insert_growth_record.reset_mock()
             api._insert_content_with_retention.reset_mock()
@@ -3492,6 +3500,8 @@ class ApiContractTests(unittest.TestCase):
             api._kimi_vision_quick = original_quick
             api._video_frames.clear()
             api._video_frames.update(original_frames)
+            api._extract_cover = original_cover
+            api._kimi_vision_understand = original_cover_understand
             api._maybe_enrich_facts = original_enrich
             api._append_fact_enrichment = original_append_fact
             api._SCHEDULER_AVAILABLE = original_scheduler
@@ -3514,13 +3524,20 @@ class ApiContractTests(unittest.TestCase):
             api._insert_content_with_retention = original_insert_content
 
         self.assertEqual(len(fact_calls), 7)
-        self.assertNotIn("截图里有餐厅门头", fact_calls[1][2])
+        self.assertIn("截图里有餐厅门头", fact_calls[1][2])
         self.assertIn("视频里拍到芝士焗小青龙", fact_calls[2][2])
         self.assertEqual(len(captured_notes), 6)
         self.assertIn("手动输入", captured_notes[0].desc)
         self.assertNotIn("【其他内容图片描述】", captured_notes[1].desc)
-        self.assertIn("【视频画面内容（AI 解读）】", captured_notes[2].desc)
-        self.assertIn(video_observation, captured_notes[2].desc)
+        self.assertEqual(captured_notes[2].desc, requests[2].desc)
+        self.assertNotIn(video_observation, captured_notes[2].desc)
+        self.assertIn(video_observation, captured_agent_contexts[2])
+        self.assertEqual(responses[2].input_diagnostics["original_desc"], requests[2].desc)
+        self.assertEqual(next(d["score"] for d in responses[2].dimension_scores if d["key"] == "visual"),71.0)
+        self.assertIn("独立测试封面", responses[2].cover_analysis)
+        self.assertIn("独立测试封面", captured_agent_contexts[2])
+        self.assertEqual(responses[2].input_diagnostics["score_scope"],"complete_note_input")
+        self.assertIsNone(responses[0].ces_percentile)
         self.assertIn(video_observation, fact_calls[2][2])
         self.assertEqual(responses[2].input_diagnostics["video_duration_sec"], 3.0)
         self.assertEqual(responses[2].input_diagnostics["video_frames_extracted"], 1)

@@ -135,6 +135,63 @@ def _unavailable_api_ai_status() -> dict:
     }
 
 
+def _fact_usage_history():
+    """Read retrieval observations independently of model completion; no probes."""
+    grouped, seen, complete = {}, set(), True
+    fields = ("observed_at", "status", "error_code", "cached", "cost_cny", "cost_status",
+              "http_requests", "cli_invocations", "last_http_status", "partial_errors",
+              "source_count", "source_identity_sha256", "result_identity_sha256", "route")
+
+    def add(value, persisted_at, source, operation=None):
+        nonlocal complete
+        if not isinstance(value, dict) or not value.get("provider"):
+            return
+        provider = value["provider"]
+        if provider not in {"amap", "meituan_travel", "baidu_map", "tencent_map", "serpapi", "bing", "google_cse"}:
+            return
+        item = {key: value.get(key) for key in fields}
+        item.update(persisted_at=value.get("persisted_at") or persisted_at,
+                    source=source, operation=operation)
+        identity = value.get("observation_id") or json.dumps(
+            {key: value.get(key) for key in fields if key != "route"}, sort_keys=True)
+        key = (provider, identity)
+        if key in seen:
+            return
+        seen.add(key)
+        grouped.setdefault(provider, []).append(item)
+
+    try:
+        for row in db.fetchall("SELECT recorded_at,operation,fact_observations_json FROM usage_records "
+                               "WHERE fact_observations_json IS NOT NULL AND fact_observations_json!='[]' "
+                               "ORDER BY recorded_at DESC"):
+            try:
+                values = json.loads(row["fact_observations_json"])
+                if not isinstance(values, list): raise ValueError()
+                for value in values:
+                    add(value, row["recorded_at"], "usage_records.fact_observations_json", row["operation"])
+            except (TypeError, ValueError):
+                complete = False
+    except Exception:
+        complete = False
+    try:
+        for row in db.fetchall("SELECT created_at,provenance_json FROM public_trial_calls "
+                               "WHERE provenance_json LIKE ? ORDER BY created_at DESC", ('%"fact_observation":%',)):
+            try:
+                value = json.loads(row["provenance_json"])
+                add(value.get("fact_observation"), row["created_at"], "public_trial_calls.provenance_json", value.get("operation"))
+            except (TypeError, ValueError, AttributeError):
+                complete = False
+    except Exception:
+        complete = False
+    result = {}
+    for provider, rows in grouped.items():
+        rows.sort(key=lambda item: item.get("observed_at") or item.get("persisted_at") or "", reverse=True)
+        success = next((item for item in rows if item["status"] == "matched" and not item["cached"]
+                        and any(type(item.get(key)) is int and item[key] > 0 for key in ("http_requests", "cli_invocations"))), None)
+        result[provider] = {"latest": rows[0], "latest_verified_success": success, "count": len(rows)}
+    return result, "task_observations_and_legacy" if complete else "partial_or_unavailable"
+
+
 async def _fetch_api_ai_readiness() -> dict:
     """Read the deployed public API's release state; never probe a paid provider.
 
@@ -160,22 +217,8 @@ async def _fetch_api_ai_readiness() -> dict:
     except Exception:
         result["recent_usage"] = None
         result["usage_source"] = "query_unavailable"
-    fact_history = {}
-    try:
-        rows = db.fetchall("SELECT created_at,provenance_json FROM public_trial_calls ORDER BY created_at DESC LIMIT 200")
-        for record in rows:
-            observed = json.loads(record["provenance_json"]).get("fact_observation")
-            if not isinstance(observed,dict) or not observed.get("provider"):
-                continue
-            provider = observed["provider"]
-            if provider not in fact_history:
-                fact_history[provider] = {key: observed.get(key) for key in (
-                    "observed_at","status","error_code","cached","cost_cny","http_requests",
-                    "cli_invocations","last_http_status","partial_errors")}
-                fact_history[provider]["persisted_at"] = record["created_at"]
-        result["fact_usage_source"] = "latest_observation_in_200_business_model_calls"
-    except Exception:
-        result["fact_usage_source"] = "query_unavailable"
+    fact_history, fact_coverage = _fact_usage_history()
+    result["fact_usage_source"] = fact_coverage
     try:
         async with httpx.AsyncClient(timeout=3.0, follow_redirects=False, trust_env=False) as client:
             response = await client.get("https://noteaipro.com/public/status")
@@ -218,11 +261,16 @@ async def _fetch_api_ai_readiness() -> dict:
             if not public["ai_open"] and supplier.get("group") == "generation_models":
                 supplier["enabled"] = False
                 supplier["reason"] = "当前业务调用总开关关闭；此状态不代表供应商故障"
-            supplier["latest"] = fact_history.get(supplier.get("id"))
+            observations = fact_history.get(supplier.get("id"), {})
+            supplier["latest"] = observations.get("latest")
+            supplier["latest_verified_success"] = observations.get("latest_verified_success")
+            supplier["recorded_observations"] = observations.get("count")
             supplier["source"] = "api_public_product_availability"
             if supplier.get("group") == "data_tools":
-                supplier["observation_scope"] = ("最近随业务模型调用保存的事实观察（最近200条调用内），未覆盖没有后续模型调用的检索；不累加重复保存的观察"
-                    if result["fact_usage_source"] != "query_unavailable" else "事实观察查询不可用，不代表调用量为零")
+                supplier["observation_scope"] = (
+                    "原业务用量中的检索观察，包含后续模型未执行/失败的任务；兼容历史模型附带观察，按观察去重；旧记录未覆盖的调用不可推算"
+                    if fact_coverage == "task_observations_and_legacy" else
+                    "观察来源部分不可读或记录格式异常；显示可读取的历史，不能据此统计全部调用量")
     except Exception:
         result["source_error"] = "public_api_status_unavailable"
     return result

@@ -111,7 +111,7 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("（未识别到话题）", HTML)
         self.assertIn("图${i + 1} 内容", HTML)
         self.assertIn("识别图${i+1}", HTML)
-        self.assertIn("请确认识别内容是否准确；如有偏差，可删除对应图片重传，或切换到手动填写补充标题/正文/话题", HTML)
+        self.assertIn("请确认识别内容是否准确；如有偏差，可删除对应图片重传，或切换到填写笔记／上传素材补充标题/正文/话题", HTML)
         self.assertIn("const total = imgs.length", HTML)
         self.assertIn("ssState.pending > 0", HTML)
         self.assertIn("ssState.failed > 0 || ssState.ok !== ssState.total", HTML)

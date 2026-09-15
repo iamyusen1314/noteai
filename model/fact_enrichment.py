@@ -68,7 +68,7 @@ def runtime_services() -> list[dict]:
         {"id": "amap", "name": "高德地图", "role": "明确餐饮门店的地址、营业时间及可取得的消费信息",
          "business": ["美食诊断", "美食生成"], "configured": bool(os.environ.get("AMAP_WEB_KEY")),
          "enabled": enabled and bool(os.environ.get("AMAP_WEB_KEY")),
-         "reason": "按商家与创作意图按需检索" if enabled and os.environ.get("AMAP_WEB_KEY") else "开关关闭或当前 API 未绑定凭据"},
+         "reason": "按商家与创作意图按需检索" if enabled and os.environ.get("AMAP_WEB_KEY") else (os.environ.get("NOTEAI_AMAP_UNAVAILABLE_REASON", "").strip()[:300] or "开关关闭或当前 API 未绑定凭据")},
         {"id": "meituan_travel", "name": "美团酒旅", "role": "官方酒旅查询；酒店、旅行方案事实补全（不包含零售 OAuth API）",
          "business": ["旅行诊断", "旅行生成"], "configured": bool(_meituan_travel_token()) and _meituan_travel_cli_executable(),
          "enabled": travel["status_code"] == _MEITUAN_TRAVEL_STATUS_READY, "reason": travel["status_code"]},
