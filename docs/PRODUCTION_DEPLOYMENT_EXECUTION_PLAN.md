@@ -1,3 +1,17 @@
+September15 — Item32 current recovery preparation saved at source1be2fde:
+/Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-1be2fde.tar.gz
+SHA256 2e597b9e8c585446d900a5632f34459d6bd40add94d5d316df23025859313797;176093bytes.
+The original nine allowlisted Git files plus the existing terminal validator are byte-matched
+to1be2fde159d944e8ae301f6bd3ff7965151c4e9f (10regularfiles,0444); old49c bundle unchanged.
+This supersedes the earlier package's missing terminal alignment. It does not authorize or
+prepare a new admission: the enclosed historical Sep7 plan still rejects current execution.
+Executor/effective-source/terminal formats are now compatible,90 isolated tests PASS;
+future actual window/plan needs its applicable production authorization. No image rebuild,
+upload, new identity or XHS call. Product remains API f070/web059/Admin4870,Readiness31/37.
+Remaining work is the original Sep16>=10BJT5ce bill task, external Amap licence,
+new-recurring-resource decision for Item36, and unexecuted Item32/33-dependent terminal work.
+No duplicate payment/order/refund, Item34 replay or newly invented task is scheduled.
+
 September15 — Item32 terminal source binding repaired locally after the remaining-state readback:
 The previous “no independent gap” conclusion was superseded by a concrete mismatch:
 executor runtime already mounted three reviewed overlays, but plan/terminal checking still
@@ -11,7 +25,7 @@ Only temporary synthetic fixtures received current source bindings; canonical Se
 HOLD evidence, identities, admission dates and no-replay remain untouched and expired.
 No live successor/new identity/provider request/production write. This is local preparation,
 not terminal readiness; current API f070/web059/Admin4870 and Readiness31/37 unchanged.
-Current source package will be saved alongside the original49c bundle, never overwrite it.
+Current source package is saved alongside the original49c bundle; exact path/hash at the newer entry above.
 
 September15 13:13BJT — scoped remaining-state reconciliation completed:
 C eth0=10.42.10.44/API f070 CIDf35df066…04de, originalbaseunitSHA46010368…77e6 plus
