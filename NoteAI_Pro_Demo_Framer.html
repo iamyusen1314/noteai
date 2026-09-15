@@ -6259,6 +6259,7 @@ async function startGeneration() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, Authorization: 'Bearer ' + requestToken },
         body: JSON.stringify({
+          persist_result: true,
           domain,
           brief,
           local_time: formatLocalTimeWithConstraints(constraints),
@@ -11986,6 +11987,13 @@ async function requestAccountDeletion() {
 async function autoSaveGeneratedNote(genResult, identitySnapshot, requestToken) {
   const identityMatches = () => _chatIdentityMatches(identitySnapshot) && _authToken === requestToken;
   if (!requestToken || !identityMatches() || !genResult || genResult._error || genResult._save_status) return;
+  if (typeof genResult.saved_note_id === 'string' && genResult.saved_note_id
+      && Number.isInteger(genResult.saved_note_version) && genResult.saved_note_version > 0) {
+    genResult._saved_note_id = genResult.saved_note_id;
+    genResult._saved_note_version = genResult.saved_note_version;
+    genResult._save_status = 'saved';
+    return;
+  }
   genResult._save_status = 'saving';
   try {
     const res = await fetch(API_AUTH + '/notes', {

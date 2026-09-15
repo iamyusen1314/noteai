@@ -101,6 +101,16 @@ test('new generation clears old diagnosis title and destructive target',()=>{
   assert.ok(!elements['detail-meta'].textContent.includes('73'));
 });
 
+test('server-saved generation receipt never posts a duplicate note',async()=>{
+  const c=context({_authToken:'test',_chatIdentityMatches:()=>true,
+    fetch:async()=>{throw Error('duplicate note save');}});
+  c.load('autoSaveGeneratedNote');
+  const result={saved_note_id:'original-server-note',saved_note_version:1};
+  await c.autoSaveGeneratedNote(result,{},'test');
+  await c.autoSaveGeneratedNote(result,{},'test');
+  assert.equal(result._save_status,'saved');assert.equal(result._saved_note_id,'original-server-note');
+});
+
 test('duplicate screenshot selections preserve one recognition and completed aggregate',async()=>{
   let calls=0, invalidations=0;
   const c=context({_ssFileSelectionRevision:0,_ssOcrRevision:1,_ssImages:[],_ssOcrCache:new Map(),

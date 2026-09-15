@@ -1,3 +1,33 @@
+September15 11:35BJT — cd91bc2 API/public successor DEPLOYED, exactAPI image
+f8dfd5c8939ddf4ae8a9a0efbe82cdee00070d0e8f98507c31413b4464ce570c,
+publicwebcd91bc2, drop192c5dc569f187d68b91469ecd6a9fd4b0e7c37eb3de95cc6dbf6593a0322f2b.
+Original deployPID1886299 completed1789442598.3346014, readonlycandidate stopped;
+Admin4870/CID/web/sharedrouting/Native/0030 preserved. Local/host private directory
+noteai-video-note-cd91bc2 retains exactbuild/deploy/recovery; Python3.11.15 verified.
+
+Formal firstgeneration9cc completed03:08:42Z;26responded calls/139242in/26300out,
+recordedRMB2.9299788 sums to physicalcalls, audio358, missingprice0, missingPromptkeys0,
+8creditscharge1/refund0. UI originalv1 title/body visible in笔记库 at73.1; resultquality
+notaccepted because earlier Ark observation contained creativeprose. This ordinary
+nonclarification task has no continuation record; do NOT infer a note/usage binding
+from nearesttime. Prior fullvideo diagnosis36callsummary is verified from fullhostfile
+(not Cloudconsole truncated24KB output), sum4.6696338, missingPromptkeys0.
+
+Further real defect: ordinarygeneration's browser-only POST/notes savedtext but lost
+rawbrief/materialsource/constraints on refreshedlibrary Chat. LOCAL minimal fix reuses
+save_result/notes/chat_sessions/originalclaim transaction before complete, returns
+existing saved_note_id/version and prevents duplicatebrowserPOST. persist_result
+capability defaultsfalse for oldclient compatibility; newUI true. Growthrecord stays
+in same transaction, existingachievement check retained. Library restores fullAV plus
+complete initial source context and corrections; no newtable/migration/framework.
+Three SQLitePython3.11 tests + oldresume test +10pureJS PASS; actual isolatedPG16.14
+noteai_generation_context_20260915 verifies1note/1usage/1growth/2sessions/completed/
+charge1/refund0. InitialPGattempt only failed syntheticunmatchedcorrectionquestion;
+legitimatequestionfixture corrected, originalfailedtestDB/log retained. No production
+DB write/providercall in those tests. Realnewvideo upload completed, NOT yet model
+submitted; finish this API/public compatible savefix before singlecorrectedgeneration,
+then refresh→library→optimize and exactnewtask/cost readback. No newpay/refund/Item34.
+
 September15 11:17BJT — complete video-note diagnosis is now persisted on live4870.
 Exact continuation join links diagnosis b71eadb6-2804-4734-bb81-cecfe7624277 to
 claim21c0ced8-381d-4e07-8208-732390bf94e7 and usagec1240226-df8b-4cfb-93fd-215deae2c4ff:

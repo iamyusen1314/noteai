@@ -214,6 +214,83 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
             clarification.read("merchant-a", claim["request_id"])
         self.assertEqual(deleted.exception.status_code, 404)
 
+    def test_regular_generation_persists_media_and_original_claim_once(self):
+        from unittest import mock
+        import task_clarification as clarification
+        uid='normal-generation-owner';self._create_user(uid)
+        claim=self._claim(uid,'normal-generation-key',operation='generate')
+        data={'note_title':'测试旅行标题','note_body':'画面和口播来源分开保存。','ces_percentile':73,
+              'cover_analysis':'00:00 VIDEO_START\n'+('观察'*1500)+'\n00:57 AUDIO_END',
+              'original_fact_context':'用户简报仅本次适用\n【联网事实补全】EXTERNAL_SOURCE_END',
+              'fact_context':'用户简报仅本次适用\n【联网事实补全】EXTERNAL_SOURCE_END',
+              'user_constraints':['不写价格'],'merchant_visibility':'不展示商家'}
+        kwargs={'new_generation':{'domain':'旅行','local_time':''},'record_growth':api._insert_growth_record_with_storage}
+        with mock.patch.object(clarification.content_retention,'_record_content_with_storage',side_effect=RuntimeError('synthetic storage failure')):
+            with self.assertRaises(RuntimeError):clarification.save_result(claim,dict(data),**kwargs)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) n FROM notes')['n'],0)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) n FROM chat_sessions')['n'],0)
+        self.assertEqual(db.fetchone('SELECT status FROM idempotency_requests')['status'],'running')
+        clarification.save_result(claim,data,**kwargs)
+        self.assertTrue(idempotency.mark_completed(claim,confirm_existing=True))
+        with self.assertRaises(HTTPException):clarification.save_result(claim,data,**kwargs)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) n FROM notes')['n'],1)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) n FROM growth_records')['n'],1)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) n FROM usage_records')['n'],1)
+        restored=clarification.read(uid,claim['request_id'])
+        self.assertEqual(restored['questions'],[]);self.assertEqual(restored['status'],'completed')
+        self.assertEqual(restored['result']['saved_note_id'],claim['request_id'])
+        self.assertEqual(restored['result']['cover_analysis'],data['cover_analysis'])
+        with self.assertRaises(HTTPException):clarification.read('foreign-user',claim['request_id'])
+        note=api._fetch_user_note(claim['request_id'],uid)
+        context=api._saved_note_chat_context(note,uid)
+        self.assertEqual(context['cover_analysis'],data['cover_analysis'])
+        self.assertEqual(context['fact_context'],data['fact_context'])
+        self.assertEqual(context['user_constraints'],['不写价格'])
+        self.assertEqual(api._saved_note_chat_context(note,'foreign-user'),{})
+        with mock.patch.object(api,'_get_user_learn',return_value={}):
+            response=asyncio.run(api.chat_start(api.ChatStartInput(note_id=note['id'],note_title=note['title'],
+                note_body=note['body'],domain='旅行'),{'id':uid}))
+        sid=response.session_id;api._chat_sessions.pop(sid,None)
+        session=api._load_chat_session_from_db(sid)
+        self.assertEqual(session['generate_context']['cover_analysis'],data['cover_analysis'])
+        self.assertEqual(session['fact_context'],data['fact_context'])
+        self.assertEqual(session['user_constraints'],['不写价格'])
+        session['generate_context']['merchant_confirmations']=[{'question_id':'drink','field':'drink_count',
+            'question':'包含几杯？','merchant':'测试店','object':'本次套餐','time_range':'本次活动',
+            'status':'confirmed','answer':'2杯','source':'merchant_confirmation','revision':1}]
+        api._merge_supplement_values_into_session(session,{'confirmation_drink':'本次更正：含1杯拿铁'})
+        self.assertIn('EXTERNAL_SOURCE_END',session['fact_context'])
+        self.assertIn('本次更正：含1杯拿铁',session['fact_context'])
+
+    def test_generation_terminal_saves_before_sse_and_keeps_old_client_compatible(self):
+        from unittest import mock
+        async def pipeline(**kwargs):
+            yield {'type':'complete','note_title':'旅行测试','note_body':'来自视频的正式结果。',
+                   'ces_percentile':73,'cover_analysis':'00:03 画面；00:40 口播','quality_issues':[]}
+        for persist in (False,True):
+            uid='terminal-'+str(persist);self._create_user(uid)
+            async def run():
+                response=await api.generate_stream_endpoint(api.GenerateInput(domain='旅行',brief='不写房价',
+                    persist_result=persist),user={'id':uid},request_id='terminal-key-'+str(persist))
+                return [json.loads(c.removeprefix('data: ').strip()) async for c in response.body_iterator if c.startswith('data: ')]
+            with mock.patch.dict('os.environ',{'NOTEAI_TASK_CLARIFICATION_ENABLED':'1'}), \
+                 mock.patch.object(api,'_generate_pipeline_stream',new=pipeline), \
+                 mock.patch.object(api,'_maybe_enrich_facts',new=mock.AsyncMock(return_value=None)), \
+                 mock.patch.object(api,'_compute_market_timing_for_delivery',return_value={}), \
+                 mock.patch.object(api._memory,'build_memory_prompt',return_value=''), \
+                 mock.patch.object(api._memory,'check_and_record_achievements'):
+                terminal=next(e for e in asyncio.run(run()) if e.get('type')=='complete')
+            claim=db.fetchone('SELECT * FROM idempotency_requests WHERE user_id=?',(uid,))
+            self.assertEqual(claim['status'],'completed');self.assertEqual(claim['charge_applied'],1)
+            self.assertEqual(claim['refund_applied'],0)
+            notes=db.fetchall('SELECT id FROM notes WHERE user_id=?',(uid,))
+            if persist:
+                self.assertEqual(terminal['saved_note_id'],claim['id']);self.assertEqual(len(notes),1)
+                self.assertIn('不写房价',terminal['original_fact_context'])
+                self.assertEqual(terminal['cover_analysis'],'00:03 画面；00:40 口播')
+            else:
+                self.assertNotIn('saved_note_id',terminal);self.assertEqual(notes,[])
+
     def test_completed_diagnosis_recovers_exact_original_read_only_and_respects_ownership(self):
         from unittest import mock
         from uuid import uuid4

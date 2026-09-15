@@ -6291,6 +6291,7 @@ class AnalyzeResponse(BaseModel):
 
 
 class GenerateInput(BaseModel):
+    persist_result: bool = Field(default=False, description="客户端支持采用服务端保存回执；兼容旧客户端单独保存笔记")
     domain: str = Field(default="美食", description="内容领域")
     cover_image: str | None = Field(default=None, description="素材图片 base64（单图兼容）")
     cover_images: list[str] | None = Field(default=None, max_length=9, description="多图素材 base64 列表（最多9张）")
@@ -17762,6 +17763,22 @@ async def generate_stream_endpoint(
                     fact_source_policy=normalized_fact_policy,
                     fact_source_decision=fact_source_decision,
                 )
+                event["_domain"] = req.domain
+                event["original_fact_context"] = (
+                    "【本次用户创作简报；不是外部独立核验】\n" + req.brief if req.brief else ""
+                )
+                event["fact_context"] = "\n\n".join(part for part in (
+                    event["original_fact_context"], _facts.format_fact_context(fact_enrichment)
+                ) if part)
+                event["original_fact_context"] = event["fact_context"]
+                if claim and req.persist_result and _clarification.enabled():
+                    await _await_media_worker(_clarification.save_result, claim, event,
+                        new_generation={"domain": req.domain, "local_time": local_time},
+                        record_growth=_insert_growth_record_with_storage)
+                    try:
+                        _memory.check_and_record_achievements(user["id"], event.get("ces_percentile"), "generate")
+                    except Exception as exc:
+                        _log_internal_failure("generate", exc, phase="achievement_after_save")
             yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
@@ -20014,7 +20031,7 @@ class ChatSelectPlanInput(BaseModel):
 
 def _saved_note_chat_context(note_row: dict, user_id: str) -> dict:
     """Recover business context only along this owner's selected note ancestry."""
-    source_keys = {"merchant_confirmations", "original_fact_context", "fact_context",
+    source_keys = {"merchant_confirmations", "original_fact_context", "fact_context", "cover_analysis",
                    "pending_fact_update",
         "fact_enrichment", "confirmed_supplement_values", "user_constraints",
         "merchant_visibility", "merchant_name", "fact_source_policy", "content_intent"}
@@ -20054,7 +20071,7 @@ def _saved_note_chat_context(note_row: dict, user_id: str) -> dict:
                 {key: stored[key] for key in source_keys if key in stored})
             # An empty chat opened by an older client must not hide the original
             # confirmed material. No old score, draft, internal prompt or memory.
-            if (context.get("merchant_confirmations") or context.get("fact_context")
+            if (context.get("merchant_confirmations") or context.get("fact_context") or context.get("cover_analysis")
                     or context.get("confirmed_supplement_values")):
                 return {**context, **constraint_overlay}
             if context.get("user_constraints") and not constraint_overlay:
@@ -20078,8 +20095,8 @@ async def chat_start(
     initial_note_row = _fetch_user_note(initial_note_id, effective_user_id) if initial_note_id else None
     if initial_note_id and not initial_note_row:
         raise HTTPException(status_code=404, detail="笔记不存在或无权访问")
-    gen_ctx = req.generate_context or (
-        _saved_note_chat_context(initial_note_row, effective_user_id) if initial_note_row else {})
+    saved_context = _saved_note_chat_context(initial_note_row, effective_user_id) if initial_note_row else {}
+    gen_ctx = {**saved_context, **(req.generate_context or {})}
     normalized_constraints = _normalize_user_constraints(
         req.user_constraints or gen_ctx.get("user_constraints") or []
     )

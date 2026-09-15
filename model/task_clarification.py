@@ -380,12 +380,27 @@ def answer_context(task):
     return "\n".join(lines)
 
 
-def save_result(claim, result):
-    """Persist the resumed result before announcing completion; CAS old leases out."""
+def save_result(claim, result, *, new_generation=None, record_growth=None):
+    """Persist the original or resumed result before completion; CAS old leases out."""
     with db.transaction(write=True) as tx:
         content_retention.assert_user_writable_with_storage(tx, claim["user_id"])
         current = idempotency._owned_row(tx, claim)
         row, task = _load(tx, claim["user_id"], claim["request_id"], lock=True)
+        if (row is None and new_generation is not None and claim["operation"] == "generate"
+                and current and current["status"] == "running"
+                and current["lease_token_hash"] == idempotency._sha256(claim["lease_token"])
+                and current["usage_id"] == claim["charge"]["usage_id"]
+                and not current["refund_applied"] and not current["complete_applied"]):
+            # Same task storage and server-generated identity, without inventing
+            # questions or a waiting state for an already finished generation.
+            task = {"schema": 1, "operation": "generate", "status": "running", "version": 1,
+                    "questions": [], "answers": [], "completed_steps": ["generation"]}
+            now = idempotency._iso()
+            row = {"id": claim["request_id"], "domain": new_generation["domain"]}
+            tx.execute("INSERT INTO chat_sessions(id,user_id,domain,local_time,messages_json,user_prefs_json,"
+                       "iteration_count,generate_ctx_json,created_at,updated_at) VALUES(?,?,?,?,?,?,0,?,?,?)",
+                       (row["id"], claim["user_id"], row["domain"], new_generation.get("local_time", ""),
+                        "[]", "{}", _json({KEY: task}), now, now))
         if not task or not current or current["status"] != "running" or current["lease_token_hash"] != idempotency._sha256(claim["lease_token"]):
             raise HTTPException(409, "任务结果状态需要核实")
         _settled_calls(tx, current["usage_id"])
@@ -398,13 +413,19 @@ def save_result(claim, result):
                        "VALUES(?,?,?,?,?,?,?,'generate',1,?)", (row["id"], claim["user_id"], title, body,
                         row["domain"], result.get("ces_percentile"), result.get("grade", ""), now))
             content_retention._record_content_with_storage(tx, "note", row["id"], claim["user_id"], created_at=now)
+            if record_growth and result.get("ces_percentile") is not None:
+                record_growth(tx, user_id=claim["user_id"], note_id=row["id"], domain=row["domain"],
+                              score=result["ces_percentile"], grade=result.get("grade", ""), action="generate")
             result.update({"saved_note_id": row["id"], "saved_note_version": 1})
         task["result"] = result
         task["status"] = "completed"
+        encoded = _json({KEY: task})
+        if len(encoded.encode()) > 2_000_000:
+            raise HTTPException(422, "本次生成内容过长，未完成保存")
         saved_note_id = result.get("saved_note_id")
         if not saved_note_id or not tx.fetchone("SELECT id FROM notes WHERE id=? AND user_id=?", (saved_note_id, claim["user_id"])):
             raise HTTPException(409, "原笔记保存状态需要核实")
         tx.execute("UPDATE chat_sessions SET note_id=?,generate_ctx_json=?,updated_at=? WHERE id=? AND user_id=?",
-                   (saved_note_id, _json({KEY: task}), now, row["id"], claim["user_id"]))
+                   (saved_note_id, encoded, now, row["id"], claim["user_id"]))
         tx.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1,completed_at=?,updated_at=? WHERE id=?",
                    (now, now, row["id"]))
