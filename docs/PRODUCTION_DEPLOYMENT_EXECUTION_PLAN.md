@@ -1,3 +1,5 @@
+September15 owner closes this batch: current execution ownership, verified deployment, remaining six Items and the sole original noteai-5ce bill schedule are consolidated at `.codex/handoffs/current-task.md` → CURRENT EXECUTION CONTROL. Old window stops ordinary development/tests/deployments; only that already scheduled bill/recovery remains. No new feature, provider request, migration, cloud purchase or duplicate automation for handoff. Older dated instructions below are historical where they conflict.
+
 September15 — Item32 current recovery preparation saved at source1be2fde:
 /Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-1be2fde.tar.gz
 SHA256 2e597b9e8c585446d900a5632f34459d6bd40add94d5d316df23025859313797;176093bytes.

@@ -2,6 +2,14 @@
 
 ## Current execution control
 
+September15 owner closes this batch for a new-window handoff. This old thread stops
+ordinary development/builds/tests; retain only read access and existing noteai-5ce
+bill follow-up on September16. Do not duplicate or immediately run it. Current
+ownership, exact state, permanent product decisions and remaining authorizations:
+`.codex/handoffs/current-task.md` → CURRENT EXECUTION CONTROL. New-window work must
+not race that original bill prepare/close operation. This overrides earlier “continue
+now” dispatch wording; historical facts and standing product authorization remain.
+
 September14 owner prioritizes the complete product chain and authorizes natural
 fact clarification/resumption in existing tasks/dialogue. Preserve completed media
 and charges, scope answers by merchant/object/time, support corrections/omit/unknown;

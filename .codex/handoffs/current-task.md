@@ -1,3 +1,122 @@
+# CURRENT EXECUTION CONTROL — September15 owner closes this batch
+
+本入口替代下面历史段落的“立即继续普通开发”调度。旧窗口停止普通开发、构建和新测试；
+只保留查阅及原 `noteai-5ce` 对账续执行。新窗口未创建，不声称已移交或新建任务。
+新窗口接管原工作树、既有授权及下列精确剩余项，不重跑历史37项或已完成业务。
+
+## 恢复基线与部署
+- 唯一 worktree `/Users/openclaw/Desktop/noteai`；分支 `codex/quality-stabilization-real-chain`。
+  接管核查HEAD `c0d51af2f14e2ef633387e50a4ac21bffdfde555`；本次仅文档恢复commit为其后继，
+  新窗口使用真实HEAD，不回退。远端和upstream `origin/codex/quality-stabilization-real-chain`
+  均只读核实为 `429b55a7bf652c8a9b4b5f47ca769ea5cba8ef29`，核查时领先241/落后0；
+  文档commit后领先242。未push；本轮未检查并批准累计提交的部署触发，因此不批量推送。
+- 交接读回 OBSERVED_AT：2026-09-15T14:27:15.828293+08:00。API `f070ed6` image
+  `6733bb5fe842502204cebb480ac8a51461ef5d5c05961754decc17428e5b8be0`；
+  public `/var/www/noteai-public/0590286`；Admin运行源码/网页均 `4870b4b`。
+  API/Admin active/running、Job空、NeedDaemonReload=no；Payment inactive且容器不存在。
+  原部署PID1900709已退出、result=DEPLOYED_MEMORY_CONTEXT_AND_SAVED_APPROVAL。
+  原trade final=RESTORED_COLLECTOR_REMOVED，SHA4c596dfc…0d530未变；无需安全收尾重放。
+  当前未连接业务DB或重查供应商；已完成SQL/清理依据用原结果，不声称本轮重新验收。
+- 无未提交tracked代码；非敏感代码/测试/准备已commit，私有运行结果/包不入Git。
+  只有以下七条untracked，仍禁止读内容/修改/提交/删除/reset/clean/stash：
+  `.codex/item26-envelope-rotate-promote.sh`；`.codex/item26-envelope-rotate-stage.template.sh`；
+  `.codex/item26-source-manifest-executor.sh`；`.codex/item26-source-manifest-readback.sh`；
+  `.codex/item26-source-manifest-recovery-executor.sh`；
+  `tests/test_stage_item26_manual_cost_stop_helper_v2.py`；`tools/stage_item26_manual_cost_stop_helper_v2.py`。
+
+## 已交付能力与实际验证边界
+原官网/OTP账户/owner Admin继续可用；完整视频笔记共用标题、正文、独立封面、行业及约束。
+原57.3秒owner视频完成豆包音画理解→Claude诊断、独立爆文生成→保存→Chat优化；
+报告/原始素材来源/历史/积分/实际费用相互核对。截图原文与画面观察分开，同图复用0新增OCR；
+多来源排重/合并为原隔离测试覆盖，不冒充多张真实素材验收。七行业沿既有恢复版本及来源索引，
+不把拼接自洽声称为owner最终历史稿全部已证实。素材/记忆传递及已保存稿approval修复已上线。
+后台owner权益/Prompt/模型路由/普通任务原已验证scope保留，旧危险/封存任务不能随意重放。
+美团条件启用、显示Sep14最近成功与原来源；费用仍待依据，免费口述不充当账单。
+高德个人认证/适用技术服务许可缺口是Sep15实际读回；当前未启用有明确原因。
+已知质量提示：视频生成75、优化76.66仍有3提示、遗漏互动问句及自助台位置需商家判断；
+完整诊断needs_confirmation保留。工程可用不等于营销效果/所有行业质量通过；不反复刷高分。
+
+## 当前37项：31/37，六项尚未terminal
+| Item | 实际状态 | 依赖及下一动作 |
+|---|---|---|
+| 31 | blocked；原5ce支付/自然重复回调/全退完成 | Sep16读取原Sep15账单+独立capture及原terminal validator；由旧窗口唯一任务执行，无新订单/退款 |
+| 32 | blocked / PREPARED_NOT_EXECUTABLE | source1be2fde三overlay/terminal对齐、90项原离线PASS；旧Sep7窗口封存过期。需新生产授权与未来prospective plan，不能运行旧包 |
+| 33 | unverified | 等真实Item32 terminal及internal rollback；再按原managed promotion执行，不套用Sep7/8历史时间 |
+| 36 | unverified | capacity100/Item34已具备，Item33尚缺；现C/F私网候选及rollback已准备，ALB实测0；持续费用决定后补精确SG/TLS/listener实施 |
+| 37 | unverified | real AI、31、36满足后做原完整商业链联合验收；现Admin契约已同步 |
+| 38 | unverified | 依赖37的accepted ingress/ramp；官网/API/Admin已公开不等于该终态，不重复DNS切换 |
+
+Item34：canonical `deploy/production/evidence/production-tracking-observation-audit-20260903.json`
+SHA256 `e78fc888333279845ddb9cfbe862ebe1c4ca1ff2346f3f5503df3058bb3f8b3c`；
+`recovery_observation.observation_generation=2/status=VERIFIED/readiness_credit=true`。
+原24h/3d完成、每阶段admission1/retry0；3d Sep14 13:53:22.270280UTC，原validator
+Sep14 14:00:25.717571UTC errors=[]；恢复/撤权/容器清理已核实，原自动化已删除。
+顶层旧失败仍属历史；不重置T0/0020/固定产物、不重放。Item35 NOT_REQUIRED，不算通过。
+
+## 长期决定与待owner决定
+Claude保留，个人账户事实/owner风险接受不冒充供应商批准；正常API-C→Render Singapore
+Gateway→Anthropic Messages，AWS Singapore DynamoDB经Render OIDC做共享nonce/rate/operation/lease；
+S3独立存模型资产，CF管理table/role，不是Bedrock。Gateway60168e1及AWS配置是Sep13已核实记录，
+本次未重读云端，标LAST_KNOWN。豆包精确模型 `doubao-seed-2-0-lite-260428`负责素材理解及视频音轨；
+不取代Claude文字职责。七行业Prompt、截图排重、素材/记忆/澄清接续继续复用原实现。
+同等购买/赠送权益同质量；不恢复50/100元临时模型金额门槛，保留真实成本、积分、限流、幂等。
+微信首发，支付宝DEFERRED/DISABLED；Item35内部专业签署门禁取消，实际外部条件/用户隐私仍遵守。
+
+已有授权覆盖既定产品修复/必要回归/既有资源受控发布恢复、owner测试权益与正常模型费用、
+本次原单对账和清理；交接期间仅执行后者。新增长期资源/订阅/充值/合同/越界权限不在费用授权内。
+- Item32待决定：是否授权唯一新只读Trends successor，新的明确UTC窗口，fresh used0/remaining34，
+  一轮最多34 provider admissions/UTC桶、0自动重试、既有合法身份、隔离结果与DB零写证明/安全清理。
+  旧两身份/旧Sep7 plan不可重放；本次交接不创建新身份、不指定未经批准的运行日期。
+- Item36待决定：是否启用原VPC双区公网标准ALB＋双EIP的持续计费方案及相应费用范围。
+  Sep15报价只有ALB0.125元/小时＋0.042元/LCU；EIP/流量另计，非完整报价/费用上限。
+  新窗口需在购买前取得最终完整报价与owner长期费用决定，不将模型测试费用授权挪用。
+- 高德待外部办理：适用企业认证/技术服务许可；保留现有Key/历史成功，不猜故障、不自动购买年费。
+
+## 唯一微信续执行与窗口归属
+`noteai-5ce` / “NoteAI 原5ce订单次日账单核对” / ACTIVE / heartbeat；
+target_thread=`01a079a4-1c05-7d21-a98a-2d418cdd20c9`（旧窗口，不归档）。
+调度行project_id/execution_environment为空，继承原本机对话；该对话实际cwd为本项目，
+不是独立云任务/新worktree。主机时区Asia/Shanghai；调度器next_run_at=1789524090000，
+即 **2026-09-16 02:01:30UTC / 10:01:30北京时间**；允许边界为当天10:00以后。
+最后读回last_run_at=NULL、automation_runs=[]，未启动，不点击立即运行。
+本机需保持开机、Codex运行及项目/既有工具可用；实际登录失效时仅报具体人工操作。
+官方行为依据：https://learn.chatgpt.com/docs/automations?surface=app （chat任务沿原对话；本地任务需本机/app）。
+
+订单 `5ce31ca0-e42d-4a86-bee5-d1bb4bea8757`；退款 `a34463d7-1e87-4a7b-91df-bb2a75286540`，
+均Sep15，1200分已原路全退。唯一host入口 `/var/lib/noteai/native-9d62f98/native_capture-bill5ce.py`
+SHA256 `7498f3a03733e4215db0c5247de01d77784bd5a0ce2207ed1c1e8692218ced5f`。
+STAGED_NOT_PREPARED；未来结果root `/var/lib/noteai/native-9d62f98/bill-20260915`。
+原trade root `/var/lib/noteai/native-9d62f98/trade-web2dfd4d2`；原final-readback SHA4c596dfc…0d530。
+未来按原prepare-bill现场绑定实际API/CID/web/Admin/config→原精确collector SQL→run-bill一次→
+原结果/close/撤collector/恢复。UNKNOWN只读回及安全恢复，不新建订单/查支付/扫码/退款/回放回调。
+旧Sep14账单另在 `/var/lib/noteai/native-80b01ea/bill-20260914/final-readback.json`，
+其最终清理证据已具备；不要只看较早closed.json里的COLLECTOR_REMOVAL_PENDING而重跑清理。
+
+当前尚无新窗口ID，保留原任务，不尝试搬迁/复制。旧窗口只拥有这次账单执行、恢复及必要结果文档commit；
+新窗口拥有后续普通工程，先通过read_thread读取上述旧thread和原结果，再接收共享Handoff的结果。
+从原prepare开始到close/final-readback确认期间，新窗口不得并发切API/Admin/Payment/public web/nginx、数据库schema/ACL
+或修改其绑定文件；无需新锁/新receipt。原结果封存后旧窗口删除该唯一自动化并报告，普通开发继续停止。
+新窗口不得因未见回复自行启动第二条对账；只读既有action ledger/结果。不保证人工登录永不失效。
+
+## 详细依据索引（私有素材/Secret不入Git）
+- 当前部署/恢复：`/Users/openclaw/.codex/tmp/noteai-memory-f070ed6/handoff-readback.json`、
+  `deploy-readback.txt`、`postdeploy-library-browser.txt`；host `/var/lib/noteai/memory-f070ed6/deploy/`。
+- 视频生成/优化/截图：`/Users/openclaw/.codex/tmp/noteai-video-note-0590286/verification-readback.txt`、
+  `source-ocr-readback.txt`、`chat-v3-browser.txt`；原诊断b71、生成dbe、优化e8b见下面历史身份索引。
+- 原账单最终清理：`/Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98/old-sep14-final-readback.json`
+  SHA751973c8…cff9；5ce原trade证据与唯一未来入口见上一节。
+- Item32准备：`/Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-1be2fde.tar.gz`
+  SHA2e597b9e…39797（10个源码文件，旧49c包保留）；当前code1be2fde，历史plan仍拒绝执行。
+- Item36：`/Users/openclaw/.codex/tmp/noteai-item36-current-api-c-f070ed6/` 内C/F读回、candidate/rollback、
+  ALB列表及报价；当前私网绑定未apply。现行DoD/状态：`deploy/production/internal-deployment-readiness.json`。
+- 原实现/供应商分工：`.codex/notes/architecture-summary.md`；风险：`.codex/notes/risk-register.md`；
+  现行实施细节：`docs/PRODUCTION_DEPLOYMENT_EXECUTION_PLAN.md`；Admin原契约：`docs/FIRST_LAUNCH_UI_ADMIN_CONTRACT.md`。
+
+下一阶段待办（仅登记，未设计/实现/加入37项）：**根据AI视觉建议和用户素材生成封面**。
+
+---
+# Historical continuation notes — retain facts; follow CURRENT EXECUTION CONTROL above
+
 September15 — Item32 current recovery preparation saved at source1be2fde:
 /Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source-1be2fde.tar.gz
 SHA256 2e597b9e8c585446d900a5632f34459d6bd40add94d5d316df23025859313797;176093bytes.
