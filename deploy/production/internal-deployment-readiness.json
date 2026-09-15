@@ -16458,7 +16458,7 @@
             "tracking_real_and_promotion"
           ],
           "evidence": [],
-          "blocker": "ALB listeners, targets and TLS health semantics are not configured or accepted. The latest recorded ALB count is 0 and API-C/F publish only on loopback, so ALB cannot reach them. API-F exact-three NeedDaemonReload mask 7 to 0 is sealed preparation-only Evidence and must not be replayed; terminal state requires fresh post-private-bind NDR. An initial Secret-free executor prototype was independently rejected before production use because its preflight clock, persistent no-replay admission, exact quote binding, canonical readback coverage and rollback identity contract were insufficient; the prototype was removed and gives no credit. Any replacement must directly produce the existing canonical Item36 Evidence shape, pass the existing validator before atomic publication, persist dispatch intent with fixed request identities and seal UNKNOWN without replay. Item36 remains dependency-gated by terminal Item33 and Item34, fresh Aliyun inventory/quote and the ALB/LCU/EIP continuing-cost owner gate. The old CNY149.04/month plus outbound-traffic estimate is reference-only and cannot substitute for a fresh approved quote.",
+          "blocker": "Canonical ALB listeners, both backend targets, TLS/SNI/Host health semantics and current private-bind/rolling rollback are not yet accepted. Scoped public website/API/Admin HTTPS and controlled Native Payment have actually been deployed on existing API-C resources (latest exact runtime/source at Handoff top); this does not prove ALB reachability or Item36 terminal acceptance. Capacity100 and Item34 generation2 are verified; Item33 qualifying Trends cycle remains unresolved. The last ALB inventory was 0 and is LAST_KNOWN until refreshed. API-F exact-three NeedDaemonReload mask7-to0 remains sealed preparation-only evidence, never replay it; obtain fresh post-private-bind readback when that scope executes. Reuse the existing private-bind renderer, canonical evidence and rollback controls; no replacement gate or new platform. Fresh actual ALB/LCU/EIP quote and owner continuing-cost authorization remain required before new billable resources. Old CNY149.04/month is reference-only, not a current approved quote.",
           "next_task": "PROD-FIRST-LAUNCH-ALB-TLS-001"
         },
         {
@@ -16482,7 +16482,7 @@
             "pre_dns_commercial_smoke"
           ],
           "evidence": [],
-          "blocker": "Public cutover is explicitly prohibited until every prerequisite is verified.",
+          "blocker": "Scoped noteaipro.com original product, phone registration and owner Admin publication are owner-authorized and already live; their authorized iterative fixes are not blocked by the full commercial ramp. Canonical Item38 full accepted-ingress cutover/ramp remains unverified and depends on the current Item37 scope and exact provider/DNS/rollback readbacks. Preserve actual published records and prior evidence; do not repeat historical cutover or infer a verified ALB target from current public HTTPS.",
           "next_task": "PROD-FIRST-LAUNCH-DNS-CUTOVER-001"
         }
       ]

@@ -1,3 +1,25 @@
+September15 11:56BJT — web5991f88 deployed1789443995.7331495, API11718be
+4779d4dc unchanged; exactpublicassets and compatibleoldroot retained in private
+noteai-video-note-5991f88. Realbrowser confirms generation constraints[] while hidden
+diagnosis default18/sales remain separate; visibleindustry旅行/explicitrawtestbrief.
+Corrected video generation submitted ONCE03:49:18.222517Z: claimdbe288b1-72a4-455d-9cac-69d5304ad120,
+usage212ded3f-c47d-4bc2-bb33-76afb86d69f2,8creditscharge1/refund0, running.
+Ark nowtime-indexed AVobservations; Claude arbitration underway. Do not start another
+request or mistake intermediate firstpersondrafts for qualitypassed. Next original
+result+source+costreadback, refreshedlibrary/Chat and screenshot recovery.
+
+Item32 current source only package prepared from5991f88 at
+/Users/openclaw/.codex/tmp/noteai-item32-current-source-20260915/noteai-item32-current-source.tar.gz,
+133146bytes/SHA890822cbb17438f05f5cc07fd542809f78373820dd710bc3d41db0663c4f4215.
+Nine allowlisted Git members individuallymatch; PythonASTvalid, noimports/execution.
+Includes currentsecurity_redaction dependency omitted by original adapter-only plan.
+CurrentSourcePackageReady is NOT runtime-ready: existingplan/image overlay bindings
+and futurewindow still require coherent prospectiveupdate, sameWORK_ROOT/nooldreplay.
+Oldarchive/HOLD/time/constants unchanged; no newidentity, request ordeadline assigned.
+Item36/38 existing blocker fields corrected: Item34/capacitydone and scopedpublicHTTPS
+real; canonicalALB/currentprivate-bind/rollingrollback+Item33+freshquote remain gaps.
+Only explanations changed, everyterminalstatus/Readiness unchanged31/37.
+
 September15 11:43BJT — 11718be API/public actuallyDEPLOYED: APIimage
 4779d4dc2041c4796420373fa45bee56a9c43fff6bdfcf442261a3b394f38f48,
 public11718be, dropa254370cf6249b49895d164b865fe1d188e8de6e65779b663600156500e82319.
