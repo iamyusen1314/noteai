@@ -1336,7 +1336,7 @@ class ApiContractTests(unittest.TestCase):
         original_call = api._mr.call
         original_usage = api._billing.record_free_usage
 
-        async def fake_call(task, system, prompt, max_tokens=800):
+        async def fake_call(task, system, prompt, max_tokens=800, **kwargs):
             self.assertIn("话题不要混入正文", system)
             self.assertIn("话题:", prompt)
             return json.dumps({
@@ -1385,7 +1385,7 @@ class ApiContractTests(unittest.TestCase):
         tail = "第九张的地址与营业时间仅在此处"
         text = "原文段落" * 200 + tail
         request = api.ValidateOcrInput(ocr_results=[{"body": text}, {"body": "另一张独有正文"}])
-        async def merge(task, system, prompt, max_tokens):
+        async def merge(task, system, prompt, max_tokens, **kwargs):
             self.assertEqual(task, "semantic")
             self.assertIn(tail, prompt)
             self.assertIn("另一张独有正文", prompt)

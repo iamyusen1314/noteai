@@ -1,3 +1,32 @@
+September15 10:55BJT continuation — 4870 remains live; original complete-video diagnosis
+submitted ONCE through public owner UI (title/body/independent5s-frame cover/57.3s full
+originalaudio/video, domain旅行, keepcover+interaction). Current owner balance2894.5→
+2888.5 once. Real Ark/Claude processing reached clarification; unverified brand/price
+both explicitly OMITTED via same-task UI, resumed without media replay or whole-task
+charge. Three drafts produced; final quality processing still IN_FLIGHT, not accepted.
+Private original browser outputs at noteai-video-note-4870b4b; no private素材 inGit.
+
+Admin browser actual4870 confirms Meituan latestrealmatchedSep14 08:17BJT/analyze/
+public_trial_calls.provenance_json, CLI1/HTTPunknown/feeunknown, historicalnothealth;
+Amap datedlicencegap displayed, noactivation. Chrome sleepingtab needednativeReload,
+not a service/login failure. Newowner diagnosis Arklatest02:46:45Z, Claude02:52:37Z.
+
+Unique original5ce bill heartbeat noteai-5ce ACTIVE created; targetoriginalthread
+01a079a4-1c05-7d21-a98a-2d418cdd20c9, actualnext_run_at1789524090000 = Sep16
+02:01:30UTC/10:01:30BJT; last_run_atNULL. Only oldsame7498f3 launcher and existing
+bill safety/recovery permitted; no newpay/refund/Item34. Prior PAUSEDreminders unchanged.
+
+New LOCAL successor fixes actual screenshot duplicate selection (no duplicateOCR/source
+ID), preserves longer overlapping original text/order after removal, keeps photoonly
+observations out of originalbody and preserves0wordcount. Existing memory feedback now
+checks rejection before approval ("不喜欢疑问句" no longer teaches approval). Eight pureJS
+checks and six isolatedPython3.11/API/Promptmemory tests PASS. InitialDockerSQLitepath
+setupfailed safely onreadonlyrepo, corrected isolated/tmp path; no production/provider.
+Changed HTML/api and existingtests only; no corePrompt/modelroute/schemachange. Notyet
+deployed; waitoriginaltask safety then scopedAPI/web successor. Current31/37unchanged.
+Next: finish/read originaldiagnosis; independent formalvideo-generation+optimize E2E;
+publish screenshot/memory successor and verify actualmulti-image source correspondence.
+
 September15 10:34BJT — video-note/API/Admin/web4870b4b actually DEPLOYED.
 API imagea882e6c85030869d6bea167d42dc6102cf933eef6fe987d23060ee123cb878af;
 Adminb8acbc67f31c454b5739d1bd0e4dd3d05c97fc0c6d8b59c68742784c390e258b;

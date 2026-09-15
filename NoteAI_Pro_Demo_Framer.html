@@ -6913,15 +6913,15 @@ async function prepareDiagnosis() {
     }
     title  = _screenshotExtracted?.title  || '';
     // 去掉视觉描述附加内容（【配图/封面图视觉描述】xxx），只保留笔记正文
-    const ssBodyOnly = (_screenshotExtracted?.body || '').replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
+    const ssBodyOnly = (_screenshotExtracted.is_photo_only ? '' :
+      (_screenshotExtracted.text_body ?? _screenshotExtracted.body ?? '')).replace(/\n*【(配图|封面图)视觉描述】[^\n]*/g, '').trim();
     const ssTags = _normalizeSsTags(_screenshotExtracted?.tags || '');
     desc = _joinSsBodyAndTags(ssBodyOnly, ssTags);
     domain = document.getElementById('inputDomainSS')?.value || '';
     if (!domain) { showToast('请先选择本次笔记的内容领域，再开始诊断'); return; }
-    // 纯图片情况：没有文字内容但有视觉描述，允许诊断（视觉描述已在 body 里）
+    // 视觉观察通过真实图片输入，不冒充用户原始正文。
     if (!title && !desc) {
       showToast('图片中未识别到笔记文字，将直接进行视觉内容诊断');
-      desc = `【图片视觉诊断，无文字内容】共上传 ${_ssImages.length} 张图片`;
     }
     // 所有图片都作为 cover/extra_images 供视觉分析
     if (_ssImages.length > 0) coverB64 = _ssImages[0].mediaRef || _ssImages[0].dataURL.split(',')[1] || null;
@@ -6961,7 +6961,7 @@ async function prepareDiagnosis() {
     domain,
     user_id:          _authUser?.id || null,
     input_mode:       selectedLabel === '截图上传' ? 'screenshot' : (diagnosisVideoMode ? 'video' : 'manual'),
-    ocr_char_count:   selectedLabel === '截图上传' ? (_screenshotExtracted?._charCount || _bodyCharCountWithoutSsTags(_screenshotExtracted?.body || '')) : null,
+    ocr_char_count:   selectedLabel === '截图上传' ? (_screenshotExtracted?._charCount ?? _bodyCharCountWithoutSsTags(_screenshotExtracted?.text_body ?? desc)) : null,
     cover_image:      coverB64,
     user_constraints: constraints.length > 0 ? constraints : null,
     extra_images:     extraImages.length  > 0 ? extraImages : null,
@@ -12485,7 +12485,7 @@ async function _addSsFiles(files) {
   const collectionRevision = _ssOcrRevision;
   const remain = 9 - _ssImages.length;
   if (remain <= 0) { showToast('最多上传 9 张图片'); return; }
-  const toAdd = files.filter(f => f.type.startsWith('image/')).slice(0, remain);
+  const toAdd = files.filter(f => f.type.startsWith('image/')).slice(0, 9);
   if (!toAdd.length) return;
 
   const loaded = await Promise.all(toAdd.map(f => new Promise(res => {
@@ -12495,15 +12495,23 @@ async function _addSsFiles(files) {
   })));
   if (selectionRevision !== _ssFileSelectionRevision || collectionRevision !== _ssOcrRevision) return;
 
-  loaded.forEach(img => _setSsImageStatus(img, 'pending', '等待识别'));
-  _ssImages.push(...loaded);
+  const seen = new Set(_ssImages.map(img => img.dataURL));
+  const unique = loaded.filter(img => {
+    if (seen.has(img.dataURL)) return false;
+    seen.add(img.dataURL);
+    return true;
+  }).slice(0, remain);
+  if (!unique.length) { showToast('这些图片已在本次素材中，已保留原识别结果'); return; }
+  unique.forEach(img => _setSsImageStatus(img, 'pending', '等待识别'));
+  _ssImages.push(...unique);
   _invalidateSsAggregateState();
   _renderSsThumbs();
   _updateScreenshotOcrUi();
 
   // 只对本次新加入的图片 OCR（已识别过的从缓存取），避免重复调接口
-  const newImages = loaded.filter(img => !_ssOcrCache.has(img.dataURL));
+  const newImages = unique.filter(img => !_ssOcrCache.has(img.dataURL));
   if (newImages.length > 0) _ssOcrPromise = _ocrImages(newImages);
+  else _ssOcrPromise = _tryFinalizeCurrentScreenshotBatch();
 }
 
 function _renderSsThumbs() {
@@ -12793,10 +12801,12 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
     _screenshotExtracted = {
       title:  d.title  || '',
       body:   splitValidated.body,
+      text_body: d.is_photo_only ? '' : splitValidated.body,
+      is_photo_only: !!d.is_photo_only,
       tags:   splitValidated.tags,
       domain: _supportedScreenshotDomain(d.domain),
       _validated: d.validated,
-      _charCount: d.char_count || _bodyCharCountWithoutSsTags(splitValidated.body),
+      _charCount: d.char_count ?? _bodyCharCountWithoutSsTags(splitValidated.body),
     };
     _ssMergedRevision = revision;
 
@@ -12809,7 +12819,7 @@ async function _validateAndMergeOcr(ocrResults, revision = _ssOcrRevision, image
     if (tagsDisp)  tagsDisp.textContent  = _screenshotExtracted.tags || '（未识别到话题）';
     _applyScreenshotDomain(d.domain);
 
-    const charInfo = d.char_count ? `${d.char_count} 字` : '';
+    const charInfo = Number.isFinite(d.char_count) ? `${d.char_count} 字` : '';
     if (statusEl) statusEl.textContent = d.validated
       ? `✅ AI 鉴别完成，去重后正文 ${charInfo}（${ocrResults.length} 张图片）`
       : `✅ ${ocrResults.length} 张图片识别合并`;
@@ -12895,11 +12905,11 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
   }
 
   // 按类型分组
-  const typeA = valid.filter(d => d.type === 'A' || (!d.type && (d.title || d.body || d.tags))); // 完整截图
+  const typeA = valid.filter(d => !d.is_photo_only && (d.type === 'A' || (!d.type && (d.title || d.body || d.tags)))); // 完整截图
   const typeB = valid.filter(d => d.type === 'B' || d.is_photo_only);                  // 纯图片
   const typeC = valid.filter(d => d.type === 'C');                                      // 纯文字
 
-  const textSources = [...typeA, ...typeC];  // 有文字的来源
+  const textSources = valid.filter(d => typeA.includes(d) || typeC.includes(d));  // 保留截图顺序
 
   // 标题：最长有效标题
   const mergedTitle = textSources.reduce((best, d) =>
@@ -12911,14 +12921,20 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
   const mergedTags = _normalizeSsTags(valid.map(d => _splitSsBodyAndTags(d.body || '', d.tags || '').tags).join(' '));
   const dedupedBodies = [];
   for (const b of allBodies) {
-    const alreadyCovered = dedupedBodies.some(ex => ex.includes(b) || b.includes(ex));
-    if (!alreadyCovered) dedupedBodies.push(b);
+    if (dedupedBodies.some(ex => ex.includes(b))) continue;
+    const covered = dedupedBodies.findIndex(ex => b.includes(ex));
+    if (covered < 0) dedupedBodies.push(b);
+    else {
+      dedupedBodies[covered] = b;
+      for (let i = dedupedBodies.length - 1; i > covered; i--) {
+        if (b.includes(dedupedBodies[i])) dedupedBodies.splice(i, 1);
+      }
+    }
   }
-  dedupedBodies.sort((a, b) => b.length - a.length);
   const mergedBody = dedupedBodies.join('\n\n');
 
   // 纯图片（B类型）的视觉描述拼入 body 底部
-  const photoBodies = typeB.map(d => d.body || '').filter(Boolean);
+  const photoBodies = typeB.map(d => d.cover_desc || d.body || '').filter(Boolean);
   const finalBody = mergedBody
     ? (mergedBody + (photoBodies.length ? '\n\n' + photoBodies.join('\n') : ''))
     : photoBodies.join('\n\n');
@@ -12935,9 +12951,11 @@ function _mergeAndShowOcrResults(revision = _ssOcrRevision, imageSnapshot = _ssI
   _screenshotExtracted = {
     title: mergedTitle,
     body: finalBody,
+    text_body: mergedBody,
+    is_photo_only: hasPhotos && !hasText,
     tags: mergedTags,
     domain: mergedDomain,
-    _charCount: _bodyCharCountWithoutSsTags(finalBody),
+    _charCount: _bodyCharCountWithoutSsTags(mergedBody),
     _hasText: hasText,
     _hasPhotos: hasPhotos,
     _photoCount: typeB.length,

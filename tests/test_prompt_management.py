@@ -22,6 +22,14 @@ import prompt_manager
 
 
 class PromptBaselineTests(unittest.TestCase):
+    def test_negative_or_mixed_feedback_does_not_learn_approval(self):
+        self.assertEqual(api._detect_learning_signal('不喜欢疑问句'),
+                         {'type':'rejection','pref_key':'title_style','pref_value':'陈述句标题'})
+        self.assertEqual(api._detect_learning_signal('标题不错，但太长了'),
+                         {'type':'rejection','pref_key':'title_length','pref_value':'更短标题'})
+        self.assertIsNone(api._detect_learning_signal('我不太满意'))
+        self.assertEqual(api._detect_learning_signal('这版不错'), {'type':'approval'})
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.original_db_path = db._DB_PATH

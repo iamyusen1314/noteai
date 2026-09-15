@@ -18194,12 +18194,17 @@ def _detect_learning_signal(user_msg: str) -> dict | None:
         "不用疑问句": ("title_style", "陈述句标题"),
         "不喜欢疑问句": ("title_style", "陈述句标题"),
     }
+    for kw, (pk, pv) in rejection_map.items():
+        if kw in user_msg:
+            if kw in ("太长了", "太短了") and "标题" in user_msg:
+                pk, pv = ("title_length", "更短标题" if kw == "太长了" else "信息更完整的标题")
+            return {"type": "rejection", "pref_key": pk, "pref_value": pv}
+    # Explicit negative or mixed feedback must not teach the current draft as approved.
+    if re.search(r"不(?:太|是很|怎么|够)?(?:喜欢|满意|可以|好)|不行|不好|但[是]?|不过", user_msg):
+        return None
     for kw in approval_kw:
         if kw in user_msg:
             return {"type": "approval"}
-    for kw, (pk, pv) in rejection_map.items():
-        if kw in user_msg:
-            return {"type": "rejection", "pref_key": pk, "pref_value": pv}
     return None
 
 

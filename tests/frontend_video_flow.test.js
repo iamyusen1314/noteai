@@ -87,3 +87,68 @@ test('diagnosis chat keeps complete video and independent cover observations',()
   assert.ok(value.includes('【用户独立封面观察】'));assert.ok(value.endsWith('COVER_END_SENTINEL'));
   assert.ok(source('startChatFromDiagnosis').includes('cover_analysis:   diagnosisMediaContext(_diagnoseResult)'));
 });
+
+test('duplicate screenshot selections preserve one recognition and completed aggregate',async()=>{
+  let calls=0, invalidations=0;
+  const c=context({_ssFileSelectionRevision:0,_ssOcrRevision:1,_ssImages:[],_ssOcrCache:new Map(),
+    FileReader:class{readAsDataURL(f){this.onload({target:{result:f.bytes}});}},
+    showToast(){},_setSsImageStatus(){},_renderSsThumbs(){},_updateScreenshotOcrUi(){},
+    _invalidateSsAggregateState(){invalidations++;c._screenshotExtracted=null;},
+    _ocrImages:async imgs=>{calls+=imgs.length;imgs.forEach(i=>c._ssOcrCache.set(i.dataURL,{ocr_request_id:'one'}));c._screenshotExtracted={body:'保留的结果'};},
+  });
+  c.load('_addSsFiles');
+  const f={type:'image/png',name:'test.png',bytes:'same-content'};
+  await c._addSsFiles([f,{...f,name:'another-name.png'}]); await c._ssOcrPromise;
+  assert.equal(c._ssImages.length,1); assert.equal(calls,1);
+  const saved=c._screenshotExtracted;
+  await c._addSsFiles([f]);
+  assert.equal(c._ssImages.length,1); assert.equal(calls,1); assert.equal(invalidations,1);
+  assert.equal(c._screenshotExtracted,saved);
+});
+
+test('screenshot aggregation retains long text and separates photo observations',()=>{
+  const elements={};
+  const c=context({_ssOcrRevision:1,_ssImages:[],_ssOcrCache:new Map(),_ssOcrErrors:new Map(),
+    document:{getElementById:id=>(elements[id] ||= {style:{}})},
+    _ssImageSnapshot:()=>[],_isCurrentSsBatch:()=>true,
+    _getScreenshotRecognitionState:()=>({total:c._ssImages.length,ok:c._ssImages.length,pending:0,failed:0}),
+    _applyScreenshotDomain(){},_renderScreenshotImageSummaries(){},updateDiagnosisSubmitState(){},showToast(){},
+    _supportedScreenshotDomain:d=>d,
+  });
+  c.load('_normalizeSsTags','_splitSsBodyAndTags','_bodyCharCountWithoutSsTags','_mergeAndShowOcrResults');
+  const set=values=>{c._ssImages=values.map((_,i)=>({dataURL:String(i)}));c._ssOcrCache=new Map(values.map((v,i)=>[String(i),v]));};
+  set([{type:'C',body:'甲乙',domain:'旅行'},{type:'A',title:'原文',body:'甲乙丙丁',domain:'旅行'},
+    {type:'C',body:'末尾独有信息',domain:'旅行'},{type:'B',cover_desc:'画面是绿树',domain:'旅行'}]);
+  c._mergeAndShowOcrResults();
+  assert.equal(c._screenshotExtracted.text_body,'甲乙丙丁\n\n末尾独有信息');
+  assert.ok(c._screenshotExtracted.body.includes('画面是绿树'));
+  set([{type:'B',cover_desc:'画面是绿树',domain:'旅行'},{type:'B',cover_desc:'画面是房间',domain:'旅行'}]);
+  c._mergeAndShowOcrResults();
+  assert.equal(c._screenshotExtracted.text_body,'');assert.equal(c._screenshotExtracted._charCount,0);
+  assert.equal(c._screenshotExtracted.is_photo_only,true);
+  assert.ok(c._screenshotExtracted.body.includes('画面是绿树'));assert.ok(c._screenshotExtracted.body.includes('画面是房间'));
+});
+
+test('photo-only screenshot diagnosis submits empty original prose and real media',async()=>{
+  let payload;
+  const c=context({PUBLIC_PRODUCT:true,API_BASE:'',_authToken:'synthetic',_authUser:{id:'owner'},
+    _diagnosisPreparing:false,_diagnosisStreamActive:false,_diagVideoState:'idle',_diagVideoAttempt:0,
+    _screenshotExtracted:{title:'',body:'【图1视觉观察】房间',text_body:'',tags:'',is_photo_only:true,_charCount:0},
+    _ssImages:[{mediaRef:'original-image',dataURL:'not-used'}],_ssOcrPromise:null,
+    document:{getElementById:()=>({value:'旅行'}),querySelector:()=>({textContent:'截图上传'})},
+    requirePublicCapability:()=>true,requireProductConsent:()=>true,
+    _chatIdentitySnapshot:()=>({ownerId:'owner'}),_chatIdentityMatches:()=>true,
+    getConstraintTags:()=>[],getContentIntentPayload:()=>({}),authHeader:()=>({}),
+    _getScreenshotRecognitionState:()=>({total:1,ok:1,failed:0,pending:0}),
+    shouldAskMerchantBeforeRun:()=>false,privateImageInput:async x=>x,
+    updateDiagnosisSubmitState(){},showToast(){},formatLocalTimeWithConstraints:()=> '20260915',
+    createSseWarningGuard:()=>({connected(){},finish(){}}),createPaidRequestId:()=> 'photo-test',
+    fetch:async(url,options)=>{payload=JSON.parse(options.body);return {status:401};},
+    openAuthModal(){},setTimeout(){},
+  });
+  c.load('_normalizeSsTags','_joinSsBodyAndTags','diagnosisUsesVideo','startDiagnosis','prepareDiagnosis');
+  await c.startDiagnosis();await c._diagnosePromise;
+  assert.equal(payload.note_title,'');assert.equal(payload.desc,'');
+  assert.equal(payload.ocr_char_count,0);
+  assert.equal(payload.cover_image,'original-image');assert.equal(payload.domain,'旅行');
+});
