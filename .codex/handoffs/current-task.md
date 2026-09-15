@@ -1,3 +1,39 @@
+September15 10:34BJT — video-note/API/Admin/web4870b4b actually DEPLOYED.
+API imagea882e6c85030869d6bea167d42dc6102cf933eef6fe987d23060ee123cb878af;
+Adminb8acbc67f31c454b5739d1bd0e4dd3d05c97fc0c6d8b59c68742784c390e258b;
+both web roots4870b4b. Existing source4870b4b99b21350f72ed4ba6e1f5f552e925f399.
+Actual Python3.11.15/linuxamd64; networknone image imports/file digests passed.
+Initial staging failed only on inheritedAdmin db.py:a6229d0 differs from Adminlabel;
+actualSHA8f20df75 located, corrected delta resumed safely. Originalfailedstage retained,
+no rebuild/replay of successful actions. Runtime/source/deltas at private
+/Users/openclaw/.codex/tmp/noteai-video-note-4870b4b and host /var/lib/noteai/video-note-4870b4b.
+
+0030 exactSQL729254a9991fa3deeef732caa13f9770ad3a284db12741c07dbda4884bcb81ef
+applied once via originalDMSnoteai_admin14ms; verify11ms: old145usage14columns digest
+12fe5dbf188857e34307b9e121139c01 and29ledger digest8ce16738eae02583e0aff97c99f608b9
+unchanged, newcolumn[]/array/65536bound. NoGRANTneeded: appSELECT/UPDATE true,
+AdminSELECT true/UPDATEfalse. Hostusage fullprivatebackupSHA
+b02093b30c180d45d5a1de5ca8f2d8db7a067da5f775d1a840bc5fbdc8e375c0;
+fullledger/ACL backup localdms0030-before.json. First appledger read correctly denied;
+DMSexistingowner read it, nopermission expansion. Rollback retains additive0030.
+
+Originalcontrolleddeploy ranoncePID1878725 completed1789439663.3515978;
+readonlycandidate oldusage/ACL readback passed; drain/switch/HTTPS assethash passed,
+both exactcandidates stopped; productionAPI/Admin separation intact. API-drop
+ed0af4ff9b8278df80714c7eeb008c2b82f52fdea586646b71ea4cb4a57ef670;
+Admin-dropac8117267a6328204619bd1233f70b0cffca53043c391d1c1f1ed6d3bf6ecf15.
+Modelrouting/sharedenv/Paymentunit/boundenv/sealedNativeevidence unchanged.
+No provider calls/business writes in build/deploy, only0030schema+ledger.
+
+Supplierhistory now actual: Meituan10deduplicatedhistorical observations; latestreal
+matched2026-09-14T00:17:26.094081Z (08:17BJT), CLI1, HTTPunknown, notcache;
+sourcepublic_trial_calls.provenance_json/operationanalyze. This fixes200callcutoff
+hiding knownsuccess; not currenthealth or proofzerocharge. Amap5historicaldisabled,
+latestSep14T04:07:03Z; currentdatedlicencereason injected, no Amapactivation.
+Next IN PROGRESS: actual owner browser combinedvideo/title/body/independentcover,
+then independent formalvideo-generation and optimization, history/credits/cost;
+no more oldpay/refund/Item34actions. Readiness31/37 unchanged, 5cebillSep16>=10BJT.
+
 September15 candidate pre-deploy follow-up: diagnosed video+cover observations now both
 continue into Chat with explicit source labels. Partial input emits no whole-note
 initial score and excludes absent-dimension weaknesses/features before expert input
