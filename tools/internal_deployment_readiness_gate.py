@@ -125,6 +125,15 @@ ITEM34_RUNTIME_CONFIG_POLICY_QUAL_SHA256 = (
     "0b9f96f9d27f4213c57554297af0d3111f7885ea2f0b0fb8dc9bbe91648e7af0"
 )
 ITEM32_TRENDS_EVIDENCE_SCHEMA = "noteai.item32.xhs_trends_readonly.v2"
+ITEM32_V5_EVIDENCE_SCHEMA = "noteai.item32.xhs_trends_readonly.v3"
+ITEM32_V5_EXECUTION_PLAN = "deploy/production/plans/item32-v5-successor-prospective.json"
+ITEM32_V5_CONFIG_SHA256 = "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703"
+ITEM32_V5_MANIFEST_SHA256 = "87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9"
+ITEM32_V5_UPSTREAM_SHA256 = "ede5937cf326c3fe19edbae8e98cecc8dd9b3b5b983a87594f8d262336328fb6"
+ITEM32_V5_OVERLAYS = {
+    "model/spider_xhs_http.py", "model/spider_xhs_v5.py", "model/security_redaction.py",
+    "model/hot_keywords.py", "model/scheduler_a.py", "model/vendor/spider_xhs/v5/trends_bridge.js",
+}
 ITEM32_ATTEMPT_AUDIT_SCHEMA = "noteai.item32.trends_attempt_audit.v1"
 ITEM32_DATABASE_PROOF_SCHEMA = "noteai.item32.production_db_zero_write.v1"
 ITEM32_TRENDS_DOMAINS = {"美食", "旅行", "穿搭", "美妆", "家居", "健身"}
@@ -1201,6 +1210,137 @@ def _item32_plan_authorized(
     return confirmed
 
 
+def _item32_v5_profile_valid(plan: Any, *, root: Path) -> bool:
+    if not isinstance(plan, dict):
+        return False
+    image, overlays = plan.get("image_source_sha256"), plan.get("runtime_overlay_sha256")
+    browser = {
+        "protocol": "pc_v5", "curl_cffi_version": "0.15.0", "node_major": 20,
+        "upstream_manifest_ref": "model/vendor/spider_xhs/v5/upstream.json",
+        "upstream_manifest_sha256": ITEM32_V5_UPSTREAM_SHA256,
+        "cold_initialization": True, "first_homefeed_is_gate": True,
+    }
+    previous = plan.get("previous_successor")
+    if (not isinstance(image, dict) or set(image) != set(ITEM32_IMAGE_SOURCE_SHA256)
+            or not isinstance(overlays, dict) or set(overlays) != ITEM32_V5_OVERLAYS
+            or not all(_sha256(value) for value in [*image.values(), *overlays.values()])
+            or plan.get("source_sha256") != {**image, **overlays}
+            or plan.get("browser_binding") != browser
+            or plan["browser_binding"]["cold_initialization"] is not True
+            or plan["browser_binding"]["first_homefeed_is_gate"] is not True
+            or _actual_file_sha256(browser["upstream_manifest_ref"], root=root) != ITEM32_V5_UPSTREAM_SHA256
+            or plan.get("physical_http_budget") != {"initialization": 2, "collection": 34, "total": 36}
+            or not _keys_exact(plan.get("bounds"), {"cycles", "provider_requests_per_run_max",
+                "provider_requests_per_utc_day_max", "keywords_max", "real_keywords_per_domain_min",
+                "domains", "automatic_retry"})
+            or not _keys_exact(previous, {"work_root", "files", "provider_call_count", "no_replay"})
+            or previous.get("work_root") != "/var/lib/noteai/item32-readonly-successor"
+            or not _exact_int(previous.get("provider_call_count"), 1) or previous.get("no_replay") is not True):
+        return False
+    files = previous.get("files")
+    if not isinstance(files, dict) or len(files) != 11:
+        return False
+    base = previous["work_root"]
+    worker_paths = [name for name in files if isinstance(name, str) and re.fullmatch(
+        re.escape(base) + r"/run-[A-Za-z0-9_-]{1,64}/worker-receipt\.json", name)]
+    if len(worker_paths) != 1:
+        return False
+    run = str(Path(worker_paths[0]).parent)
+    expected = {base + "/item32-admission.json", worker_paths[0], run + "/task-store/hot_keywords.db"}
+    for stage in ("item32-successor-package-20260915-79e1e35", "item32-repair-package-20260915-fac5dd0"):
+        expected.update(f"/var/lib/noteai/{stage}/{name}" for name in
+                        ("dispatch-started.json", "dispatch-child.json", "dispatch-done.json", "dispatch.log"))
+    return set(files) == expected and all(
+        _keys_exact(value, {"bytes", "sha256"}) and _exact_int(value.get("bytes"))
+        and 0 < value["bytes"] <= 64 * 1024 * 1024 and _sha256(value.get("sha256"))
+        for value in files.values())
+
+
+def _item32_v5_physical_valid(physical: Any, summary: Any, attempts: Any,
+                             started_at: datetime | None, finished_at: datetime | None) -> bool:
+    summary_keys = {"initialization_count", "collection_count", "total_count", "total_limit",
+                    "automatic_retry_count", "first_homefeed_is_gate", "worker_receipt_sha256"}
+    expected_counts = {"initialization_count": 2, "collection_count": 34, "total_count": 36,
+                       "total_limit": 36, "automatic_retry_count": 0}
+    if (not _keys_exact(summary, summary_keys)
+            or not _keys_exact(physical, summary_keys | {"observations"})
+            or any(not _exact_int(summary.get(key), count) for key, count in expected_counts.items())
+            or any(not _exact_int(physical.get(key), count) for key, count in expected_counts.items())
+            or summary.get("first_homefeed_is_gate") is not True
+            or physical.get("first_homefeed_is_gate") is not True
+            or not _sha256(summary.get("worker_receipt_sha256"))
+            or {key: physical[key] for key in summary_keys} != summary
+            or not isinstance(attempts, list) or len(attempts) != 34
+            or started_at is None or finished_at is None):
+        return False
+    observations = physical["observations"]
+    if not isinstance(observations, list) or len(observations) != 72:
+        return False
+    kinds = ["dsl", "session", *(["homefeed"] * 10),
+             *[kind for _ in range(12) for kind in ("search_recommend", "search_notes")]]
+    previous_end = started_at
+    diagnostic_keys = {"http_status", "payload_kind", "success_state", "business_code_kind", "business_code",
+                       "nested_business_code_kind", "nested_business_code", "message_present", "message_tags"}
+    for index, kind in enumerate(kinds):
+        dispatch, response = observations[index * 2:index * 2 + 2]
+        if (not isinstance(dispatch, dict) or not isinstance(response, dict)
+                or not {"phase", "request_kind", "sequence", "at"} <= set(dispatch)
+                or set(dispatch) - {"phase", "request_kind", "sequence", "at", "request_body_bytes"}
+                or not {"phase", "request_kind", "sequence", "at", "response_diagnostics"} <= set(response)
+                or set(response) - {"phase", "request_kind", "sequence", "at", "response_bytes", "response_diagnostics"}
+                or dispatch.get("phase") != "dispatch" or response.get("phase") != "response"
+                or any(item.get("request_kind") != kind or not _exact_int(item.get("sequence"), index + 1)
+                       for item in (dispatch, response))):
+            return False
+        first, last = _evidence_clock(dispatch.get("at")), _evidence_clock(response.get("at"))
+        if first is None or last is None or not previous_end <= first <= last <= finished_at:
+            return False
+        previous_end = last
+        for item, key in ((dispatch, "request_body_bytes"), (response, "response_bytes")):
+            if key in item and (not _exact_int(item[key]) or not 0 <= item[key] <= 2 * 1024 * 1024):
+                return False
+        diag = response["response_diagnostics"]
+        if (not isinstance(diag, dict) or set(diag) - diagnostic_keys
+                or not _exact_int(diag.get("http_status")) or not 200 <= diag["http_status"] < 300
+                or not isinstance(diag.get("payload_kind"), str)
+                or diag.get("payload_kind") not in {"non_json", "object", "array", "scalar"}
+                or diag.get("message_tags", []) != []
+                or ("message_present" in diag and type(diag["message_present"]) is not bool)):
+            return False
+        for key, choices in (
+            ("success_state", {"true", "false", "absent", "other"}),
+            ("business_code_kind", {"absent", "null", "integer", "numeric_string", "omitted"}),
+            ("nested_business_code_kind", {"absent", "null", "integer", "numeric_string", "omitted"}),
+        ):
+            if key in diag and (not isinstance(diag[key], str) or diag[key] not in choices):
+                return False
+        for key in ("business_code", "nested_business_code"):
+            if key in diag and not (
+                _exact_int(diag[key]) and abs(diag[key]) <= 999999999
+                or isinstance(diag[key], str) and re.fullmatch(r"-?[0-9]{1,9}", diag[key])
+            ):
+                return False
+        if kind != "dsl":
+            code = diag.get("business_code")
+            code_ok = ((_exact_int(code, 0) and diag.get("business_code_kind") == "integer")
+                       or (type(code) is str and code == "0" and diag.get("business_code_kind") == "numeric_string"))
+            if diag.get("payload_kind") != "object" or diag.get("success_state") != "true" or not code_ok:
+                return False
+        if "nested_business_code" in diag and not (
+            _exact_int(diag["nested_business_code"], 0) or type(diag["nested_business_code"]) is str and diag["nested_business_code"] == "0"
+        ):
+            return False
+        if index >= 2:
+            attempt = attempts[index - 2]
+            if not isinstance(attempt, dict):
+                return False
+            admitted, completed = _evidence_clock(attempt.get("admitted_at")), _evidence_clock(attempt.get("completed_at"))
+            if (attempt.get("endpoint") != kind or attempt.get("status") != "succeeded"
+                    or admitted is None or completed is None or not admitted <= first <= last <= completed):
+                return False
+    return True
+
+
 def validate_item32_trends_evidence(
     control: dict[str, Any],
     *,
@@ -1216,7 +1356,11 @@ def validate_item32_trends_evidence(
         expected_ref=ITEM32_TRENDS_EVIDENCE,
     )
     if payload is None:
-        return errors
+        candidate, _ = _schema_evidence(control, ITEM32_V5_EVIDENCE_SCHEMA, root=root, expected_ref=ITEM32_TRENDS_EVIDENCE)
+        if candidate is None:
+            return errors
+        payload, errors = candidate, []
+    v5 = payload.get("schema") == ITEM32_V5_EVIDENCE_SCHEMA
     if not _keys_exact(
         payload,
         {
@@ -1248,7 +1392,7 @@ def validate_item32_trends_evidence(
     if observed_at is None or observed_at > current:
         errors.append("Item32 real observation clock invalid")
 
-    plan_path = root / ITEM32_EXECUTION_PLAN
+    plan_path = root / (ITEM32_V5_EXECUTION_PLAN if v5 else ITEM32_EXECUTION_PLAN)
     try:
         plan = json.loads(plan_path.read_text(encoding="utf-8"))
         plan_sha256 = hashlib.sha256(plan_path.read_bytes()).hexdigest()
@@ -1276,7 +1420,10 @@ def validate_item32_trends_evidence(
     plan_window = _item32_plan_window(admission_plan)
     authorization_at = _item32_plan_authorized(plan, plan_window, current)
     plan_bucket = admission_plan.get("bucket_date_utc") if plan_window else None
-    image_sources = ITEM32_IMAGE_SOURCE_SHA256
+    image_sources = plan.get("image_source_sha256") if v5 and isinstance(plan, dict) else ITEM32_IMAGE_SOURCE_SHA256
+    overlays = plan.get("runtime_overlay_sha256") if v5 and isinstance(plan, dict) else ITEM32_RUNTIME_OVERLAY_SHA256
+    config_sha = ITEM32_V5_CONFIG_SHA256 if v5 else ITEM32_EXPECTED_CONFIG_SHA256
+    manifest_sha = ITEM32_V5_MANIFEST_SHA256 if v5 else ITEM32_EXPECTED_MANIFEST_SHA256
     plan_valid = bool(
         isinstance(plan, dict)
         and _keys_exact(
@@ -1304,9 +1451,9 @@ def validate_item32_trends_evidence(
                 "bounds",
                 "provider_calls_dispatched",
                 "cloud_resources_started",
-            },
+            } | ({"runtime_overlay_sha256", "physical_http_budget", "previous_successor"} if v5 else set()),
         )
-        and plan.get("schema") == "noteai.item32.readonly_successor_plan.v2"
+        and plan.get("schema") == ("noteai.item32.readonly_successor_plan.v3" if v5 else "noteai.item32.readonly_successor_plan.v2")
         and authorization_at is not None
         and plan_window is not None
         and _exact_int(plan.get("item"), 32)
@@ -1318,37 +1465,39 @@ def validate_item32_trends_evidence(
         and plan.get("adapter_overlay_sha256") == adapter_sha256
         and plan.get("existing_unit_sha256") == ITEM32_EXPECTED_UNIT_SHA256
         and plan.get("existing_image_config_sha256")
-        == ITEM32_EXPECTED_CONFIG_SHA256
+        == config_sha
         and plan.get("existing_registry_manifest_sha256")
-        == ITEM32_EXPECTED_MANIFEST_SHA256
+        == manifest_sha
         and plan.get("registry_manifest_provenance")
         == "SEALED_RELEASE_ATTESTATION_PLUS_FRESH_LOCAL_CONFIG_READBACK"
         and plan.get("database_readonly_probe_sha256")
         == ITEM32_EXPECTED_DB_PROBE_SHA256
-        and plan.get("source_sha256") == ITEM32_EFFECTIVE_SOURCE_SHA256
-        and plan.get("image_source_sha256") == image_sources
-        and _keys_exact(
-            browser_binding,
-            {
-                "user_agent",
-                "user_agent_sha256",
-                "signer_asset_ref",
-                "signer_asset_sha256",
-                "exact_match_required",
-            },
-        )
-        and isinstance(browser_binding.get("user_agent"), str)
-        and hashlib.sha256(
-            browser_binding["user_agent"].encode("utf-8")
-        ).hexdigest()
-        == ITEM32_USER_AGENT_SHA256
-        and browser_binding.get("user_agent_sha256")
-        == ITEM32_USER_AGENT_SHA256
-        and browser_binding.get("signer_asset_ref")
-        == "model/vendor/spider_xhs/xhs_main_260411.js"
-        and browser_binding.get("signer_asset_sha256")
-        == ITEM32_SIGNER_ASSET_SHA256
-        and browser_binding.get("exact_match_required") is True
+        and (_item32_v5_profile_valid(plan, root=root) if v5 else (
+            plan.get("source_sha256") == ITEM32_EFFECTIVE_SOURCE_SHA256
+            and plan.get("image_source_sha256") == image_sources
+            and _keys_exact(
+                browser_binding,
+                {
+                    "user_agent",
+                    "user_agent_sha256",
+                    "signer_asset_ref",
+                    "signer_asset_sha256",
+                    "exact_match_required",
+                },
+            )
+            and isinstance(browser_binding.get("user_agent"), str)
+            and hashlib.sha256(
+                browser_binding["user_agent"].encode("utf-8")
+            ).hexdigest()
+            == ITEM32_USER_AGENT_SHA256
+            and browser_binding.get("user_agent_sha256")
+            == ITEM32_USER_AGENT_SHA256
+            and browser_binding.get("signer_asset_ref")
+            == "model/vendor/spider_xhs/xhs_main_260411.js"
+            and browser_binding.get("signer_asset_sha256")
+            == ITEM32_SIGNER_ASSET_SHA256
+            and browser_binding.get("exact_match_required") is True
+        ))
         and _keys_exact(
             predecessor_plan,
             {
@@ -1388,7 +1537,7 @@ def validate_item32_trends_evidence(
         )
         and admission_plan
         == {
-            "work_root": "/var/lib/noteai/item32-readonly-successor",
+            "work_root": "/var/lib/noteai/item32-v5-successor-20260916" if v5 else "/var/lib/noteai/item32-readonly-successor",
             "not_before_utc": plan_window[0].isoformat(),
             "bucket_date_utc": plan_bucket,
             "dispatch_deadline_utc": plan_window[1].isoformat(),
@@ -1436,7 +1585,7 @@ def validate_item32_trends_evidence(
             "predecessors_unchanged",
             "budget",
             "runtime_readback",
-        },
+        } | ({"previous_successor"} if v5 else set()),
     ):
         errors.append("Item32 successor evidence schema mismatch")
     else:
@@ -1457,7 +1606,7 @@ def validate_item32_trends_evidence(
             or successor.get("diagnostic_result_sha256")
             != ITEM32_DIAGNOSTIC_RESULT_SHA256
             or not _exact_int(
-                successor.get("predecessor_provider_call_count"), 2
+                successor.get("predecessor_provider_call_count"), 3 if v5 else 2
             )
             or successor.get("predecessors_unchanged") is not True
         ):
@@ -1491,10 +1640,8 @@ def validate_item32_trends_evidence(
                 "registry_manifest_provenance",
                 "adapter_overlay_sha256",
                 "runtime_overlay_sha256",
-                "user_agent_sha256",
-                "signer_asset_sha256",
-                "user_agent_exact_match",
-            },
+                } | ({"protocol", "curl_cffi_version", "node_major", "upstream_manifest_sha256"} if v5 else
+                 {"user_agent_sha256", "signer_asset_sha256", "user_agent_exact_match"}),
         ):
             errors.append("Item32 successor runtime readback schema mismatch")
         else:
@@ -1504,25 +1651,43 @@ def validate_item32_trends_evidence(
             if (
                 runtime_observed_at is None
                 or successor_runtime.get("image_config_sha256")
-                != ITEM32_EXPECTED_CONFIG_SHA256
+                != config_sha
                 or successor_runtime.get("registry_manifest_sha256")
-                != ITEM32_EXPECTED_MANIFEST_SHA256
+                != manifest_sha
                 or successor_runtime.get("registry_manifest_provenance")
                 != (
                     "SEALED_RELEASE_ATTESTATION_PLUS_"
                     "FRESH_LOCAL_CONFIG_READBACK"
                 )
-                or successor_runtime.get("adapter_overlay_sha256")
-                != ITEM32_RUNTIME_OVERLAY_SHA256["model/spider_xhs_http.py"]
-                or successor_runtime.get("runtime_overlay_sha256")
-                != ITEM32_RUNTIME_OVERLAY_SHA256
-                or successor_runtime.get("user_agent_sha256")
-                != ITEM32_USER_AGENT_SHA256
-                or successor_runtime.get("signer_asset_sha256")
-                != ITEM32_SIGNER_ASSET_SHA256
-                or successor_runtime.get("user_agent_exact_match") is not True
+                or not isinstance(overlays, dict)
+                or successor_runtime.get("adapter_overlay_sha256") != overlays.get("model/spider_xhs_http.py")
+                or successor_runtime.get("runtime_overlay_sha256") != overlays
+                or (any(successor_runtime.get(key) != value for key, value in {
+                    "protocol": "pc_v5", "curl_cffi_version": "0.15.0", "node_major": 20,
+                    "upstream_manifest_sha256": ITEM32_V5_UPSTREAM_SHA256,
+                }.items()) if v5 else (
+                    successor_runtime.get("user_agent_sha256") != ITEM32_USER_AGENT_SHA256
+                    or successor_runtime.get("signer_asset_sha256") != ITEM32_SIGNER_ASSET_SHA256
+                    or successor_runtime.get("user_agent_exact_match") is not True
+                ))
             ):
                 errors.append("Item32 successor runtime binding mismatch")
+
+    if v5:
+        previous = successor.get("previous_successor") if isinstance(successor, dict) else None
+        expected_previous = None
+        if _item32_v5_profile_valid(plan, root=root):
+            raw = (json.dumps(plan["previous_successor"]["files"], ensure_ascii=False,
+                              sort_keys=True, indent=2) + "\n").encode("utf-8")
+            expected_previous = {"files_sha256": hashlib.sha256(raw).hexdigest(),
+                                 "provider_call_count": 1, "call_date_utc": "2026-09-15", "no_replay": True}
+        if (expected_previous is None or previous != expected_previous
+                or not _exact_int(previous.get("provider_call_count"), 1)
+                or previous.get("no_replay") is not True
+                or plan_bucket == "2026-09-15"
+                or successor.get("work_root_identity_sha256") != hashlib.sha256(
+                    b"noteai-item32:successor-work-root:/var/lib/noteai/item32-v5-successor-20260916").hexdigest()):
+            errors.append("Item32 previous successor closure mismatch")
 
     execution = payload.get("execution")
     started_at: datetime | None = None
@@ -1558,7 +1723,7 @@ def validate_item32_trends_evidence(
                 "endpoint_counts",
                 "attempt_audit_ref",
                 "attempt_audit_sha256",
-            },
+            } | ({"physical_http"} if v5 else set()),
         ):
             errors.append("Item32 execution evidence schema mismatch")
         request_count = execution.get("provider_request_count")
@@ -1737,7 +1902,7 @@ def validate_item32_trends_evidence(
                     "provider_request_limit",
                     "attempts",
                     "secret_values_recorded",
-                },
+                } | ({"physical_http"} if v5 else set()),
             )
             or audit_sha != execution.get("attempt_audit_sha256")
             or audit.get("run_identity_sha256")
@@ -1753,6 +1918,11 @@ def validate_item32_trends_evidence(
             or attempt_endpoints != endpoint_counts
         ):
             errors.append("Item32 provider attempt audit binding mismatch")
+        if v5 and not _item32_v5_physical_valid(
+            audit.get("physical_http") if isinstance(audit, dict) else None,
+            execution.get("physical_http"), attempts, started_at, finished_at,
+        ):
+            errors.append("Item32 physical HTTP/init/collection evidence mismatch")
 
     quality = payload.get("quality")
     if not isinstance(quality, dict):
@@ -2178,6 +2348,14 @@ def validate_item33_trends_promotion_evidence(
         ITEM32_TRENDS_EVIDENCE_SCHEMA,
         root=root,
     )
+    if item32_terminal is None:
+        item32_terminal, item32_sha256 = _read_json_artifact(
+            ITEM32_TRENDS_EVIDENCE, ITEM32_V5_EVIDENCE_SCHEMA, root=root,
+        )
+    # The current Item33 promoted-unit hashes still bind the earlier image.
+    # Reading a v3 bucket does not approve that old unit for the new v5 runtime.
+    if isinstance(item32_terminal, dict) and item32_terminal.get("schema") == ITEM32_V5_EVIDENCE_SCHEMA:
+        errors.append("Item33 v5 promoted runtime binding missing")
     item32_bucket = None
     try:
         item32_bucket_text = item32_terminal["successor"]["budget"][

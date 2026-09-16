@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,15 @@ import internal_deployment_readiness_gate as gate
 
 class Item32TrendsEvidenceGateTests(unittest.TestCase):
     def setUp(self):
+        # Synthetic fixtures bind the checked-out source, never rewrite the
+        # sealed v2 plan or the production gate's historical digest constants.
+        overlays = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+                    for name in gate.ITEM32_RUNTIME_OVERLAY_SHA256}
+        for name, value in (("ITEM32_RUNTIME_OVERLAY_SHA256", overlays),
+                            ("ITEM32_EFFECTIVE_SOURCE_SHA256", {**gate.ITEM32_IMAGE_SOURCE_SHA256, **overlays})):
+            patcher = mock.patch.object(gate, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.ref = (

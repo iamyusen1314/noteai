@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -245,6 +246,58 @@ def sanitize_xhs_http_event(value: Any) -> dict[str, Any]:
     if phase == "response":
         result["response_diagnostics"] = sanitize_xhs_response_diagnostics(value.get("response_diagnostics"))
     return result
+
+
+_TRENDS_REQUEST_KINDS = frozenset({
+    "dsl", "session", "homefeed", "search_recommend", "search_notes",
+})
+_TRENDS_FAILURE_CODES = frozenset({
+    "login_required", "login_or_challenge_required", "server_session_logged_out",
+    "challenge", "cooldown", "access_restricted", "collection_suspended",
+    "runtime_role_not_allowed", "adapter_not_selected", "collection_safety_unavailable",
+    "remote_http_error", "remote_schema_error", "remote_business_error",
+    "remote_non_json", "remote_response_too_large", "network_error",
+    "signer_unavailable", "signer_failed", "signer_invalid_response",
+    "operation_not_allowed", "invalid_session_signing_state",
+    "trends_provider_admission_failed", "trends_provider_finalize_failed",
+    "trends_v5_budget_required", "signer_input_limit", "session_identity_unproven",
+    "signing_context_expired",
+})
+
+
+def sanitize_trends_http_event(value: Any) -> dict[str, Any]:
+    """Trends-only physical observations; keep the Tracking three-call shape intact."""
+    if not isinstance(value, dict):
+        return {}
+    phase, kind, sequence = (value.get(k) for k in ("phase", "request_kind", "sequence"))
+    if (not isinstance(phase, str) or phase not in {"dispatch", "response", "unknown"}
+            or not isinstance(kind, str) or kind not in _TRENDS_REQUEST_KINDS
+            or type(sequence) is not int or not 1 <= sequence <= 36):
+        return {}
+    # Reuse the existing strict timestamp/size/response projection without
+    # widening the separate owned-note observer's allowed operations or budget.
+    projected = sanitize_xhs_http_event({**value, "request_kind": "session", "sequence": 1})
+    if projected:
+        try:
+            if datetime.fromisoformat(projected["at"]).utcoffset() != timezone.utc.utcoffset(None):
+                return {}
+        except ValueError:
+            return {}
+        projected.update(request_kind=kind, sequence=sequence)
+    return projected
+
+
+def sanitize_trends_failure(value: Any) -> dict[str, Any]:
+    """Fixed adapter classification plus response facts; never exception text."""
+    if not isinstance(value, dict):
+        return {}
+    code = value.get("error_code")
+    stage = value.get("stage")
+    return {
+        "error_code": code if isinstance(code, str) and code in _TRENDS_FAILURE_CODES else "adapter_failure_unknown",
+        "stage": stage if isinstance(stage, str) and stage in _TRENDS_REQUEST_KINDS else "preflight",
+        "response_diagnostics": sanitize_xhs_response_diagnostics(value.get("response_diagnostics")),
+    }
 
 
 def safe_failure_event(

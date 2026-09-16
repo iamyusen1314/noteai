@@ -406,6 +406,7 @@ class Item33TrendsEvidenceGateTests(unittest.TestCase):
         spec.loader.exec_module(module)
         fixture = module.Item32TrendsEvidenceGateTests()
         fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
         try:
             self.assertEqual(fixture.validate(), [])
             shutil.copytree(fixture.root, self.root, dirs_exist_ok=True)

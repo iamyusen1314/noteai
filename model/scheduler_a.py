@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, quote, urlparse
 
 import runtime_settings
 from chromium_security import launch_chromium_async
+from security_redaction import sanitize_trends_failure, sanitize_trends_http_event
 
 BASE_DIR = Path(__file__).parent
 
@@ -229,6 +230,8 @@ def sanitize_discovery_diagnostics(value: dict | None) -> dict:
     reason = str(raw_circuit.get("skipped_reason") or "")
     safe["circuit"]["state"] = state if state in _CIRCUIT_STATES else "closed"
     safe["circuit"]["skipped_reason"] = reason if reason in _CIRCUIT_SKIPPED_REASONS else ""
+    if isinstance(raw.get("provider_failure"), dict):
+        safe["provider_failure"] = sanitize_trends_failure(raw["provider_failure"])
     return safe
 
 
@@ -589,6 +592,18 @@ async def scrape_once_http() -> list[dict]:
     def collect() -> ScrapeResults:
         adapter = SpiderXHSHTTPAdapter()
         diagnostics = new_discovery_diagnostics()
+        stage = "preflight"
+        latest_http = {}
+
+        def observe_http(value):
+            nonlocal latest_http
+            safe = sanitize_trends_http_event(value)
+            if safe:
+                latest_http = safe
+                print(json.dumps({"event": "xhs_trends_http_observation", **safe},
+                                 ensure_ascii=False, sort_keys=True), flush=True)
+
+        adapter.http_observer = observe_http
         best: dict[tuple[str, str], dict] = {}
         phrase_rows: list[tuple[str, str, str]] = []
         recommend_rows: list[tuple[str, str]] = []
@@ -606,12 +621,16 @@ async def scrape_once_http() -> list[dict]:
 
         try:
             for channel_id, category in homefeed_targets:
+                stage = "homefeed"
+                latest_http = {}
                 response = adapter.homefeed(category=channel_id, max_pages=1, max_items=20)
                 for title in _extract_note_titles(response.get("items") or []):
                     phrase_rows.extend((phrase, category, "homefeed_phrase") for phrase in _title_phrase_candidates(title))
 
             for seed, category in search_targets:
                 _diagnostic_inc(diagnostics, "targets", "started")
+                stage = "search_recommend"
+                latest_http = {}
                 recommend = adapter.search_recommend(seed)
                 _diagnostic_inc(diagnostics, "recommend", "response_seen")
                 _diagnostic_inc(diagnostics, "recommend", "json_ok")
@@ -620,6 +639,8 @@ async def scrape_once_http() -> list[dict]:
                 _diagnostic_inc(diagnostics, "recommend", "extracted", len(recommended))
                 recommend_rows.extend((keyword, category) for keyword in recommended)
 
+                stage = "search_notes"
+                latest_http = {}
                 search = adapter.search_notes(seed, max_pages=1, max_items=20)
                 _diagnostic_inc(diagnostics, "search", "response_seen")
                 _diagnostic_inc(diagnostics, "search", "json_ok")
@@ -631,6 +652,14 @@ async def scrape_once_http() -> list[dict]:
                     phrase_rows.extend((phrase, category, "search_phrase") for phrase in phrases)
                 _diagnostic_inc(diagnostics, "targets", "completed")
         except XHSAdapterError as exc:
+            diagnostics["provider_failure"] = sanitize_trends_failure({
+                "error_code": exc.code,
+                "stage": getattr(exc, "stage", latest_http.get("request_kind", stage)),
+                "response_diagnostics": exc.diagnostics,
+            })
+            print(json.dumps({"event": "xhs_trends_provider_failure",
+                              **diagnostics["provider_failure"]},
+                             ensure_ascii=False, sort_keys=True), flush=True)
             failure = _direct_http_failure_code(exc.code)
             _diagnostic_add_error(diagnostics, failure)
             diagnostics["circuit"].update({
@@ -644,6 +673,10 @@ async def scrape_once_http() -> list[dict]:
                 ),
             })
             return ScrapeResults([], diagnostics)
+        finally:
+            close = getattr(adapter, "close", None)
+            if callable(close):
+                close()
 
         phrase_counts = Counter(phrase_rows)
         trend_directions = compute_trend_dirs([phrase for phrase, _category, _source in phrase_counts])

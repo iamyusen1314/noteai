@@ -11,6 +11,7 @@ replayed; this executor admits one new identity only after binding both holds.
 from __future__ import annotations
 
 import argparse
+import base64
 import fcntl
 import hashlib
 import json
@@ -42,6 +43,18 @@ SEALED_DIAGNOSTIC_ROOT = Path("/var/lib/noteai/item32-xhs-diagnostic")
 SEALED_DIAGNOSTIC_ADMISSION = SEALED_DIAGNOSTIC_ROOT / "admission.json"
 SEALED_DIAGNOSTIC_RESULT = SEALED_DIAGNOSTIC_ROOT / "result.json"
 PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v2"
+V5_PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v3"
+V5_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260916")
+SEALED_SUCCESSOR_ROOT = Path("/var/lib/noteai/item32-readonly-successor")
+V5_CONFIG_SHA256 = "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703"
+V5_MANIFEST_SHA256 = "87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9"
+V5_UPSTREAM_SHA256 = "ede5937cf326c3fe19edbae8e98cecc8dd9b3b5b983a87594f8d262336328fb6"
+V5_OVERLAY_NAMES = frozenset({
+    "model/spider_xhs_http.py", "model/spider_xhs_v5.py", "model/security_redaction.py",
+    "model/hot_keywords.py", "model/scheduler_a.py", "model/vendor/spider_xhs/v5/trends_bridge.js",
+})
+V5_PHYSICAL_BUDGET = {"initialization": 2, "collection": 34, "total": 36}
+ACTIVE_V5_PLAN: dict[str, Any] | None = None
 TERMINAL_SCHEMA = "noteai.item32.xhs_trends_readonly.v2"
 HOLD_EVIDENCE_SCHEMA = "noteai.item32.xhs_diagnostic_hold_unknown.v1"
 HOLD_EVIDENCE_REF = (
@@ -394,6 +407,7 @@ def _read_secret_env(path: Path) -> dict[str, str]:
     except UnicodeDecodeError as exc:
         raise Item32Error("secret_encoding") from exc
     parsed: dict[str, str] = {}
+    allowed_keys = EXPECTED_ENV_KEYS | ({"NOTEAI_XHS_WEB_SSK_JSON"} if ACTIVE_V5_PLAN is not None else set())
     for row in rows:
         stripped = row.strip()
         if not stripped or stripped.startswith("#"):
@@ -401,16 +415,17 @@ def _read_secret_env(path: Path) -> dict[str, str]:
         if "=" not in stripped:
             raise Item32Error("secret_shape")
         key, value = stripped.split("=", 1)
-        if key in parsed or key not in EXPECTED_ENV_KEYS or not value:
+        if key in parsed or key not in allowed_keys or (not value and key != "NOTEAI_XHS_WEB_SSK_JSON"):
             raise Item32Error("secret_shape")
         parsed[key] = value
-    if set(parsed) != EXPECTED_ENV_KEYS:
+    if not EXPECTED_ENV_KEYS <= set(parsed) or set(parsed) - allowed_keys:
         raise Item32Error("secret_keys")
     try:
         cookies = json.loads(parsed["NOTEAI_XHS_COOKIES_JSON"])
     except (TypeError, ValueError) as exc:
         raise Item32Error("cookie_shape") from exc
-    if not isinstance(cookies, list) or len(cookies) != 2:
+    if (not isinstance(cookies, list) or
+        (not 2 <= len(cookies) <= 128 if ACTIVE_V5_PLAN is not None else len(cookies) != 2)):
         raise Item32Error("cookie_shape")
     names: set[str] = set()
     for cookie in cookies:
@@ -419,18 +434,29 @@ def _read_secret_env(path: Path) -> dict[str, str]:
         name = cookie.get("name")
         value = cookie.get("value")
         if (
-            name not in EXPECTED_COOKIE_NAMES
+            (not isinstance(name, str) or re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name) is None
+             if ACTIVE_V5_PLAN is not None else name not in EXPECTED_COOKIE_NAMES)
             or name in names
             or not isinstance(value, str)
-            or not 8 <= len(value) <= 4096
+            or not (8 if name in EXPECTED_COOKIE_NAMES else 1) <= len(value) <= 4096
             or any(character in value for character in "\r\n;")
             or cookie.get("domain") != ".xiaohongshu.com"
             or cookie.get("path") != "/"
         ):
             raise Item32Error("cookie_shape")
         names.add(name)
-    if names != EXPECTED_COOKIE_NAMES:
+    if not EXPECTED_COOKIE_NAMES <= names or (ACTIVE_V5_PLAN is None and names != EXPECTED_COOKIE_NAMES):
         raise Item32Error("cookie_shape")
+    if ACTIVE_V5_PLAN is not None and parsed.get("NOTEAI_XHS_WEB_SSK_JSON"):
+        try:
+            storage_raw = parsed["NOTEAI_XHS_WEB_SSK_JSON"]
+            storage = json.loads(storage_raw)
+            if (len(storage_raw) > 4096 or not isinstance(storage, dict) or set(storage) != {"xhs-pc-web"}
+                or not isinstance(storage["xhs-pc-web"], str)
+                or not 32 <= len(base64.b64decode(storage["xhs-pc-web"], validate=True)) <= 1024):
+                raise ValueError()
+        except (ValueError, TypeError) as exc:
+            raise Item32Error("signing_storage_shape") from exc
     return parsed
 
 
@@ -492,9 +518,11 @@ def _load_plan(
         plan = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise Item32Error("plan_shape") from exc
-    if not isinstance(plan, dict) or plan.get("schema") != PLAN_SCHEMA:
+    if not isinstance(plan, dict) or plan.get("schema") not in {PLAN_SCHEMA, V5_PLAN_SCHEMA}:
         raise Item32Error("plan_binding")
     _, deadline, _ = _plan_window(plan.get("admission"))
+    if plan["schema"] == V5_PLAN_SCHEMA:
+        _prepare_v5_profile(plan, adapter_path, deadline)
     adapter_sha256 = _sha256_bytes(adapter_path.read_bytes())
     if adapter_sha256 != RUNTIME_OVERLAY_SHA256[ADAPTER_SOURCE_REF]:
         raise Item32Error("plan_binding")
@@ -503,7 +531,7 @@ def _load_plan(
         **RUNTIME_OVERLAY_SHA256,
     }
     expected = {
-        "schema": PLAN_SCHEMA,
+        "schema": plan["schema"],
         "item": 32,
         "status": "PREPARED_NOT_EXECUTED",
         "readiness_credit": False,
@@ -523,7 +551,12 @@ def _load_plan(
         "database_readonly_probe_sha256": DB_PROBE_QUERYSET_SHA256,
         "image_source_sha256": EXPECTED_IMAGE_SOURCE_SHA256,
         "source_sha256": source_sha256,
-        "browser_binding": {
+        "browser_binding": ({
+            "protocol": "pc_v5", "curl_cffi_version": "0.15.0", "node_major": 20,
+            "upstream_manifest_ref": "model/vendor/spider_xhs/v5/upstream.json",
+            "upstream_manifest_sha256": V5_UPSTREAM_SHA256,
+            "cold_initialization": True, "first_homefeed_is_gate": True,
+        } if plan["schema"] == V5_PLAN_SCHEMA else {
             "user_agent": SIGNER_USER_AGENT,
             "user_agent_sha256": _sha256_bytes(SIGNER_USER_AGENT.encode()),
             "signer_asset_ref": (
@@ -531,7 +564,7 @@ def _load_plan(
             ),
             "signer_asset_sha256": EXPECTED_SIGNER_ASSET_SHA256,
             "exact_match_required": True,
-        },
+        }),
         "predecessor_closure": {
             "evidence_ref": HOLD_EVIDENCE_REF,
             "evidence_sha256": HOLD_EVIDENCE_SHA256,
@@ -577,12 +610,60 @@ def _load_plan(
         "provider_calls_dispatched": 0,
         "cloud_resources_started": 0,
     }
+    if plan["schema"] == V5_PLAN_SCHEMA:
+        expected.update(runtime_overlay_sha256=dict(RUNTIME_OVERLAY_SHA256),
+                        physical_http_budget=V5_PHYSICAL_BUDGET,
+                        previous_successor=plan["previous_successor"])
     if not isinstance(plan, dict) or _json_bytes(plan) != _json_bytes(expected):
         raise Item32Error("plan_binding")
     _assert_plan_authorized(plan, deadline)
     if _sha256_bytes(hold_evidence_path.read_bytes()) != HOLD_EVIDENCE_SHA256:
         raise Item32Error("hold_evidence_digest")
     return plan, _sha256_bytes(raw)
+
+
+def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: datetime) -> None:
+    """Select only the already-published v5 image and exact authorized overlays."""
+    global ACTIVE_V5_PLAN, WORK_ROOT, IMAGE, EXPECTED_CONFIG_SHA256, EXPECTED_MANIFEST_SHA256
+    global EXPECTED_IMAGE_SOURCE_SHA256, RUNTIME_OVERLAY_SHA256, RUNTIME_OVERLAY_CONTAINER_PATHS
+    _assert_plan_authorized(plan, deadline)
+    overlays = plan.get("runtime_overlay_sha256")
+    image_sources = plan.get("image_source_sha256")
+    previous = plan.get("previous_successor")
+    if (plan.get("existing_image_config_sha256") != V5_CONFIG_SHA256
+        or plan.get("existing_registry_manifest_sha256") != V5_MANIFEST_SHA256
+        or plan.get("physical_http_budget") != V5_PHYSICAL_BUDGET
+        or not isinstance(overlays, dict) or set(overlays) != V5_OVERLAY_NAMES
+        or not isinstance(image_sources, dict) or set(image_sources) != set(IMAGE_SOURCE_CONTAINER_PATHS)
+        or any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None
+               for value in [*overlays.values(), *image_sources.values()])
+        or not isinstance(previous, dict) or set(previous) != {"work_root", "files", "provider_call_count", "no_replay"}
+        or previous.get("work_root") != str(SEALED_SUCCESSOR_ROOT)
+        or type(previous.get("provider_call_count")) is not int
+        or previous.get("provider_call_count") != 1 or previous.get("no_replay") is not True
+        or not isinstance(previous.get("files"), dict) or len(previous["files"]) != 11):
+        raise Item32Error("plan_binding")
+    roots = (str(SEALED_SUCCESSOR_ROOT) + "/", "/var/lib/noteai/item32-successor-package-20260915-79e1e35/",
+             "/var/lib/noteai/item32-repair-package-20260915-fac5dd0/")
+    for name, binding in previous["files"].items():
+        if (not isinstance(name, str) or not name.startswith(roots) or ".." in Path(name).parts
+            or Path(name).name not in {"dispatch-started.json", "dispatch-child.json", "dispatch-done.json", "dispatch.log",
+                                     "item32-admission.json", "worker-receipt.json", "hot_keywords.db"}
+            or not isinstance(binding, dict) or set(binding) != {"bytes", "sha256"}
+            or type(binding["bytes"]) is not int or not 0 < binding["bytes"] <= 64 * 1024 * 1024
+            or not isinstance(binding["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", binding["sha256"]) is None):
+            raise Item32Error("plan_binding")
+    package = adapter_path.parent.parent
+    for name, digest in overlays.items():
+        if _sha256_bytes((package / name).read_bytes()) != digest:
+            raise Item32Error("runtime_overlay_source_binding")
+    ACTIVE_V5_PLAN = plan
+    WORK_ROOT = V5_WORK_ROOT
+    EXPECTED_CONFIG_SHA256, EXPECTED_MANIFEST_SHA256 = V5_CONFIG_SHA256, V5_MANIFEST_SHA256
+    IMAGE = "sha256:" + V5_CONFIG_SHA256
+    EXPECTED_IMAGE_SOURCE_SHA256 = dict(image_sources)
+    RUNTIME_OVERLAY_SHA256 = dict(overlays)
+    RUNTIME_OVERLAY_CONTAINER_PATHS = {name: "/app/" + name for name in overlays}
 
 
 def _read_regular_file(
@@ -618,7 +699,10 @@ def _read_regular_file(
 def _acquire_predecessor_locks() -> list[int]:
     descriptors: list[int] = []
     try:
-        for root in (SEALED_ORIGINAL_ROOT, SEALED_DIAGNOSTIC_ROOT):
+        roots = (SEALED_ORIGINAL_ROOT, SEALED_DIAGNOSTIC_ROOT)
+        if ACTIVE_V5_PLAN is not None:
+            roots += (SEALED_SUCCESSOR_ROOT,)
+        for root in roots:
             descriptor = os.open(
                 root / "executor.lock", os.O_RDONLY | os.O_NOFOLLOW
             )
@@ -782,7 +866,7 @@ def _verify_predecessors(
         raise Item32Error("predecessor_store_shape")
     original_call_clock = _parse_clock(rows[0][0])
     diagnostic_call_clock = _parse_clock(diagnostic["observed_at"])
-    return {
+    result = {
         "closure_sha256": HOLD_EVIDENCE_SHA256,
         "original_admission_sha256": EXPECTED_ORIGINAL_ADMISSION_SHA256,
         "original_store_sha256": EXPECTED_ORIGINAL_STORE_SHA256,
@@ -793,6 +877,43 @@ def _verify_predecessors(
             diagnostic_call_clock.date().isoformat(),
         ],
     }
+    if ACTIVE_V5_PLAN is not None:
+        previous = _verify_v5_previous(plan["previous_successor"])
+        result["previous_successor"] = previous
+        result["call_dates"].append(previous["call_date_utc"])
+    return result
+
+
+def _verify_v5_previous(binding: dict[str, Any]) -> dict[str, Any]:
+    admission_path = SEALED_SUCCESSOR_ROOT / "item32-admission.json"
+    admission = json.loads(_read_regular_file(admission_path, max_size=65536, root_only=True))
+    run = admission.get("run_directory_name")
+    if (not isinstance(run, str) or re.fullmatch(r"run-[a-zA-Z0-9_-]{1,64}", run) is None
+        or admission.get("status") != "HOLD" or admission.get("provider_calls") != 1
+        or admission.get("outcome_unknown_count") != 0 or admission.get("automatic_retry_count") != 0
+        or admission.get("no_replay") is not True):
+        raise Item32Error("predecessor_shape")
+    expected_paths = {str(admission_path), str(SEALED_SUCCESSOR_ROOT / run / "worker-receipt.json"),
+                      str(SEALED_SUCCESSOR_ROOT / run / "task-store/hot_keywords.db")}
+    for stage in ("item32-successor-package-20260915-79e1e35", "item32-repair-package-20260915-fac5dd0"):
+        expected_paths.update(f"/var/lib/noteai/{stage}/{name}" for name in
+                              ("dispatch-started.json", "dispatch-child.json", "dispatch-done.json", "dispatch.log"))
+    if set(binding["files"]) != expected_paths:
+        raise Item32Error("predecessor_shape")
+    for name, expected in binding["files"].items():
+        raw = _read_regular_file(Path(name), max_size=64 * 1024 * 1024, root_only=not name.endswith("/hot_keywords.db"))
+        if len(raw) != expected["bytes"] or _sha256_bytes(raw) != expected["sha256"]:
+            raise Item32Error("predecessor_digest")
+    database = SEALED_SUCCESSOR_ROOT / run / "task-store/hot_keywords.db"
+    connection = sqlite3.connect(f"file:{database}?mode=ro&immutable=1", uri=True)
+    try:
+        rows = connection.execute("SELECT admitted_at,status FROM xhs_trends_provider_attempts ORDER BY ordinal").fetchall()
+    finally:
+        connection.close()
+    if len(rows) != 1 or rows[0][1] != "failed":
+        raise Item32Error("predecessor_store_shape")
+    return {"files_sha256": _sha256_bytes(_json_bytes(binding["files"])), "provider_call_count": 1,
+            "call_date_utc": _parse_clock(rows[0][0]).date().isoformat(), "no_replay": True}
 
 
 def _admission_budget(
@@ -914,6 +1035,7 @@ def _create_admission(
             "automatic_retry_count": 0,
             "no_replay": True,
             "run_directory_name": run_directory_name,
+            **({"physical_http_budget": dict(V5_PHYSICAL_BUDGET)} if ACTIVE_V5_PLAN is not None else {}),
         }
     )
     try:
@@ -1096,6 +1218,8 @@ def _assert_adapter_source(path: Path) -> None:
 
 
 def _runtime_overlay_paths(adapter_path: Path) -> dict[str, Path]:
+    if ACTIVE_V5_PLAN is not None:
+        return {name: adapter_path.parent.parent / name for name in RUNTIME_OVERLAY_SHA256}
     return {name: adapter_path if name == ADAPTER_SOURCE_REF else adapter_path.parent / Path(name).name
             for name in RUNTIME_OVERLAY_SHA256}
 
@@ -1157,7 +1281,7 @@ def _preflight_host(
         raise Item32Error("image_binding")
     paths = [
         *IMAGE_SOURCE_CONTAINER_PATHS.values(),
-        SIGNER_ASSET_CONTAINER_PATH,
+        "/app/model/vendor/spider_xhs/v5/upstream.json" if ACTIVE_V5_PLAN is not None else SIGNER_ASSET_CONTAINER_PATH,
     ]
     source_check_name = f"noteai-item32-source-{uuid.uuid4().hex[:12]}"
     try:
@@ -1196,10 +1320,9 @@ def _preflight_host(
             source_ref
         ):
             raise Item32Error("image_source_binding")
-    if (
-        actual.get(SIGNER_ASSET_CONTAINER_PATH)
-        != EXPECTED_SIGNER_ASSET_SHA256
-    ):
+    asset_path = "/app/model/vendor/spider_xhs/v5/upstream.json" if ACTIVE_V5_PLAN is not None else SIGNER_ASSET_CONTAINER_PATH
+    asset_sha = V5_UPSTREAM_SHA256 if ACTIVE_V5_PLAN is not None else EXPECTED_SIGNER_ASSET_SHA256
+    if actual.get(asset_path) != asset_sha:
         raise Item32Error("browser_source_binding")
 
     browser_check_name = f"noteai-item32-browser-{uuid.uuid4().hex[:12]}"
@@ -1215,6 +1338,19 @@ def _preflight_host(
         "'asset_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),"
         "'exact_match':('userAgent: \\\"'+u+'\\\"') in p.read_text()}))"
     )
+    if ACTIVE_V5_PLAN is not None:
+        browser_check = (
+            "import hashlib,json,pathlib,subprocess,curl_cffi,spider_xhs_http,spider_xhs_v5 as v,hot_keywords,scheduler_a;"
+            "expected=" + repr(RUNTIME_OVERLAY_SHA256) + ";"
+            "actual={n:hashlib.sha256(pathlib.Path('/app',n).read_bytes()).hexdigest() for n in expected};"
+            "assert actual==expected;v.runtime.verify_assets();"
+            "assert v.trends_budget('{\"initialization\":2,\"collection\":34,\"total\":36}')=="
+            + repr(V5_PHYSICAL_BUDGET) + ";"
+            "version=subprocess.check_output(['node','--version'],timeout=10).decode().strip();"
+            "print(json.dumps({'protocol':'pc_v5','curl_cffi_version':curl_cffi.__version__,"
+            "'node_major':int(version.lstrip('v').split('.')[0]),"
+            "'upstream_manifest_sha256':hashlib.sha256((v.runtime.ROOT/'upstream.json').read_bytes()).hexdigest()}))"
+        )
     try:
         browser_output = _run(
             [
@@ -1231,7 +1367,7 @@ def _preflight_host(
                 "--security-opt=no-new-privileges:true",
                 "--network=none",
                 "--pids-limit=32",
-                "--memory=128m",
+                "--memory=256m" if ACTIVE_V5_PLAN is not None else "--memory=128m",
                 "--cpus=0.25",
                 # Real imports initialize only this bounded, disposable SQLite
                 # database. No production DB URL or host-writable mount exists.
@@ -1255,23 +1391,30 @@ def _preflight_host(
         browser = json.loads(browser_output)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise Item32Error("browser_runtime_binding") from exc
-    if browser != {
+    expected_browser = {
         "ua_sha256": plan["browser_binding"]["user_agent_sha256"],
         "asset_sha256": EXPECTED_SIGNER_ASSET_SHA256,
         "exact_match": True,
-    }:
+    } if ACTIVE_V5_PLAN is None else {
+        "protocol": "pc_v5", "curl_cffi_version": "0.15.0", "node_major": 20,
+        "upstream_manifest_sha256": V5_UPSTREAM_SHA256,
+    }
+    if browser != expected_browser:
         raise Item32Error("browser_runtime_binding")
-    return {
+    result = {
         "observed_at": _utc_now(),
         "image_config_sha256": EXPECTED_CONFIG_SHA256,
         "registry_manifest_sha256": EXPECTED_MANIFEST_SHA256,
         "registry_manifest_provenance": plan["registry_manifest_provenance"],
         "adapter_overlay_sha256": plan["adapter_overlay_sha256"],
         "runtime_overlay_sha256": dict(RUNTIME_OVERLAY_SHA256),
-        "user_agent_sha256": plan["browser_binding"]["user_agent_sha256"],
-        "signer_asset_sha256": EXPECTED_SIGNER_ASSET_SHA256,
-        "user_agent_exact_match": True,
     }
+    if ACTIVE_V5_PLAN is None:
+        result.update(user_agent_sha256=plan["browser_binding"]["user_agent_sha256"],
+                      signer_asset_sha256=EXPECTED_SIGNER_ASSET_SHA256, user_agent_exact_match=True)
+    else:
+        result.update(browser)
+    return result
 
 
 def _write_env(path: Path, key: str, value: str) -> None:
@@ -1285,6 +1428,7 @@ def _run_db_probe(
     db_url: str,
     phase: str,
     container_registry: dict[str, str],
+    evidence_dir: Path | None = None,
 ) -> dict[str, Any]:
     probe_path = run_dir / "db_probe.py"
     db_env = run_dir / f"db-{phase}.env"
@@ -1326,6 +1470,8 @@ def _run_db_probe(
         if len(lines) != 1:
             raise Item32Error("db_probe_output")
         result = json.loads(lines[0])
+        if evidence_dir is not None:
+            _retain_db_probe(evidence_dir, phase, result)
     finally:
         try:
             db_env.unlink(missing_ok=True)
@@ -1349,6 +1495,31 @@ def _run_db_probe(
     ):
         raise Item32Error("production_db_preflight")
     return result
+
+
+def _retain_db_probe(directory: Path, phase: str, result: dict[str, Any]) -> None:
+    """Persist the complete safe probe projection before acceptance can fail.
+
+    Connection details, raw stderr and arbitrary fields never enter this record.
+    A retained rejected observation is not proof that the database was unchanged.
+    """
+    booleans = {"server_enforced_read_only", "xid_assigned", "transaction_rolled_back", "secret_values_recorded"}
+    integers = {"write_count", "tuple_write_count", "active_or_manual_count", "session_blocked_count", "today_attempt_count"}
+    hashes = {"session_identity_sha256", "readback_query_sha256"}
+    keys = booleans | integers | hashes | {"observed_at", "write_tables"}
+    if (phase not in {"before", "after"} or not isinstance(result, dict) or set(result) != keys
+        or any(type(result[name]) is not bool for name in booleans)
+        or any(type(result[name]) is not int for name in integers)
+        or any(not isinstance(result[name], str) or re.fullmatch(r"[0-9a-f]{64}", result[name]) is None for name in hashes)
+        or not isinstance(result["write_tables"], list)
+        or any(not isinstance(name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}", name) is None
+               for name in result["write_tables"])):
+        raise Item32Error("db_probe_output")
+    _parse_clock(result["observed_at"])
+    path = directory / f"database-{phase}-probe.json"
+    if path.exists():
+        raise Item32Error("db_probe_already_recorded")
+    _atomic_write(path, _json_bytes(result), 0o600)
 
 
 def _prior_attempt_count() -> int:
@@ -1386,6 +1557,7 @@ def _create_collection_container(
     cookie_json: str,
     adapter_path: Path,
     container_registry: dict[str, str],
+    signing_storage: str = "",
 ) -> tuple[str, str, Path]:
     _assert_runtime_overlay_sources(adapter_path)
     task_dir = run_dir / "task-store"
@@ -1393,6 +1565,11 @@ def _create_collection_container(
     os.chown(task_dir, 999, 999)
     cookie_env = runtime_dir / "xhs.env"
     _write_env(cookie_env, "NOTEAI_XHS_COOKIES_JSON", cookie_json)
+    if ACTIVE_V5_PLAN is not None:
+        if "\n" in signing_storage or "\r" in signing_storage:
+            raise Item32Error("env_value_shape")
+        _atomic_write(cookie_env, (f"NOTEAI_XHS_COOKIES_JSON={cookie_json}\n"
+                                  f"NOTEAI_XHS_WEB_SSK_JSON={signing_storage}\n").encode(), 0o600)
     name = f"noteai-item32-{uuid.uuid4().hex[:16]}"
     container_registry[name] = ""
     command = [
@@ -1435,6 +1612,9 @@ def _create_collection_container(
         f"type=bind,src={task_dir},dst=/task",
         *_runtime_overlay_mounts(adapter_path),
         "--workdir=/app/model",
+        *(["--env=NOTEAI_XHS_PROTOCOL=pc_v5",
+           '--env=NOTEAI_XHS_V5_BUDGET_JSON={"initialization":2,"collection":34,"total":36}',
+           "--env=DATABASE_URL="] if ACTIVE_V5_PLAN is not None else []),
         IMAGE,
         "python",
         "market_timing_worker.py",
@@ -1456,7 +1636,7 @@ def _create_collection_container(
         mounts = inspection.get("Mounts") or []
         host = inspection.get("HostConfig") or {}
         if (
-            "DATABASE_URL" in environment
+            (bool(environment.get("DATABASE_URL")) if ACTIVE_V5_PLAN is not None else "DATABASE_URL" in environment)
             or not environment.get("NOTEAI_XHS_COOKIES_JSON")
             or environment.get("NOTEAI_SQLITE_PATH") != "/task/noteai.db"
             or environment.get("NOTEAI_HOT_KEYWORD_DB_PATH")
@@ -1481,6 +1661,10 @@ def _create_collection_container(
             or (inspection.get("Config") or {}).get("Cmd")
             != ["python", "market_timing_worker.py", "--once"]
             or inspection.get("Image") != IMAGE
+            or (ACTIVE_V5_PLAN is not None and (
+                environment.get("NOTEAI_XHS_PROTOCOL") != "pc_v5"
+                or environment.get("NOTEAI_XHS_WEB_SSK_JSON") != signing_storage
+                or environment.get("NOTEAI_XHS_V5_BUDGET_JSON") != '{"initialization":2,"collection":34,"total":36}'))
         ):
             raise Item32Error("container_boundary")
         cookie_env.unlink(missing_ok=True)
@@ -1679,6 +1863,18 @@ def _attempt_count(database: Path) -> tuple[int | None, int | None]:
         return None, None
 
 
+def _worker_diagnostic_projectors():
+    # Pure stdlib-only source, bundled beside tools/ and already part of the
+    # runtime overlay binding. Read and compile the same bytes we hash.
+    source = Path(__file__).resolve().parents[1] / "model/security_redaction.py"
+    raw = source.read_bytes()
+    if _sha256_bytes(raw) != RUNTIME_OVERLAY_SHA256["model/security_redaction.py"]:
+        raise Item32Error("worker_diagnostic_source_binding")
+    namespace = {"__name__": "item32_bound_security_redaction", "__file__": str(source)}
+    exec(compile(raw, str(source), "exec"), namespace)
+    return namespace["sanitize_trends_http_event"], namespace["sanitize_trends_failure"]
+
+
 def _record_worker_receipt(
     run_dir: Path,
     raw: bytes,
@@ -1690,7 +1886,11 @@ def _record_worker_receipt(
         raise Item32Error("worker_output_size")
     if any(secret.encode("utf-8") in raw for secret in secret_values if secret):
         raise Item32Error("worker_output_secret_detected")
+    project_http, project_failure = _worker_diagnostic_projectors()
     events: list[dict[str, Any]] = []
+    http_events: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    invalid_http_events = 0
     allowed_event_keys = {
         "event",
         "status",
@@ -1707,7 +1907,20 @@ def _record_worker_receipt(
             value = json.loads(line[start:])
         except (TypeError, ValueError):
             continue
-        if not isinstance(value, dict) or value.get("event") not in {
+        if not isinstance(value, dict):
+            continue
+        if value.get("event") == "xhs_trends_http_observation":
+            safe = project_http(value)
+            if safe and len(http_events) < 72:
+                http_events.append(safe)
+            else:
+                invalid_http_events += 1
+            continue
+        if value.get("event") == "xhs_trends_provider_failure":
+            if len(failures) < 36:
+                failures.append(project_failure(value))
+            continue
+        if value.get("event") not in {
             "trends_run_started",
             "trends_run_succeeded",
             "trends_run_failed",
@@ -1717,12 +1930,46 @@ def _record_worker_receipt(
         events.append(
             {key: value[key] for key in sorted(allowed_event_keys) if key in value}
         )
+    dispatched = {}
+    terminal = {}
+    for value in http_events:
+        sequence, kind = value["sequence"], value["request_kind"]
+        if value["phase"] == "dispatch":
+            if sequence in dispatched or sequence != len(dispatched) + 1:
+                invalid_http_events += 1
+            dispatched[sequence] = kind
+        else:
+            if (sequence in terminal or dispatched.get(sequence) != kind
+                    or (value["phase"] == "response"
+                        and "http_status" not in value["response_diagnostics"])):
+                invalid_http_events += 1
+            terminal[sequence] = value["phase"]
+    initialization_count = sum(kind in {"dsl", "session"} for kind in dispatched.values())
+    collection_count = len(dispatched) - initialization_count
+    initialization_kinds = {
+        kind: sum(actual == kind for actual in dispatched.values())
+        for kind in ("dsl", "session")
+    }
+    if initialization_count > 2 or collection_count > 34 or any(count > 1 for count in initialization_kinds.values()):
+        invalid_http_events += 1
     receipt = {
         "schema": "noteai.item32.worker_receipt.v1",
         "exit_code": int(exit_code),
         "output_sha256": _sha256_bytes(raw),
         "output_size": len(raw),
         "structured_events": events,
+        "physical_http_observations": http_events,
+        "provider_failures": failures,
+        "physical_http_summary": {
+            "initialization_dispatches_observed": initialization_count,
+            "initialization_request_counts": initialization_kinds,
+            "collection_dispatches_observed": collection_count,
+            "response_events_observed": sum(phase == "response" for phase in terminal.values()),
+            "unknown_events_observed": sum(phase == "unknown" for phase in terminal.values()),
+            "unresolved_dispatches_observed": len(set(dispatched) - set(terminal)),
+            "invalid_observations": invalid_http_events,
+            "observation_complete": bool(dispatched) and not invalid_http_events and set(dispatched) == set(terminal),
+        },
         "secret_values_recorded": False,
     }
     _atomic_write(run_dir / "worker-receipt.json", _json_bytes(receipt), 0o600)
@@ -1796,6 +2043,10 @@ def _build_artifacts(
         ],
         "secret_values_recorded": False,
     }
+    physical = None
+    if plan["schema"] == V5_PLAN_SCHEMA:
+        physical = _v5_physical_proof(run_dir, plan, run, attempts)
+        attempt_payload["physical_http"] = physical
     proof_payload = {
         "schema": "noteai.item32.production_db_zero_write.v1",
         "run_identity_sha256": run_hash,
@@ -1821,7 +2072,7 @@ def _build_artifacts(
     _atomic_write(proof_path, _json_bytes(proof_payload))
     endpoint_counts = Counter(row["endpoint"] for row in attempts)
     terminal_payload = {
-        "schema": TERMINAL_SCHEMA,
+        "schema": "noteai.item32.xhs_trends_readonly.v3" if physical is not None else TERMINAL_SCHEMA,
         "item": 32,
         "status": "VERIFIED",
         "readiness_credit": True,
@@ -1843,7 +2094,7 @@ def _build_artifacts(
             "diagnostic_result_sha256": predecessor[
                 "diagnostic_result_sha256"
             ],
-            "predecessor_provider_call_count": 2,
+            "predecessor_provider_call_count": 3 if physical is not None else 2,
             "predecessors_unchanged": True,
             "budget": budget,
             "runtime_readback": runtime_readback,
@@ -1913,6 +2164,14 @@ def _build_artifacts(
         },
         "secret_values_recorded": False,
     }
+    if physical is not None:
+        terminal_payload["successor"]["previous_successor"] = predecessor["previous_successor"]
+        terminal_payload["execution"]["physical_http"] = {
+            "initialization_count": 2, "collection_count": 34, "total_count": 36,
+            "total_limit": 36, "automatic_retry_count": 0,
+            "worker_receipt_sha256": physical["worker_receipt_sha256"],
+            "first_homefeed_is_gate": True,
+        }
     terminal_path = artifact_dir / Path(TERMINAL_REF).name
     _atomic_write(terminal_path, _json_bytes(terminal_payload))
     export_path = run_dir / "item32-evidence.candidate.tar.gz"
@@ -1925,6 +2184,55 @@ def _build_artifacts(
             )
     os.chmod(export_path, 0o600)
     return export_path
+
+
+def _v5_physical_proof(run_dir: Path, plan: dict[str, Any], run: dict[str, Any], attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    raw = (run_dir / "worker-receipt.json").read_bytes()
+    receipt = json.loads(raw)
+    expected_kinds = ["dsl", "session", *ENDPOINT_SEQUENCE]
+    observations = receipt.get("physical_http_observations")
+    if (receipt.get("exit_code") != 0 or receipt.get("provider_failures") != []
+        or receipt.get("secret_values_recorded") is not False
+        or not isinstance(observations, list) or len(observations) != 72
+        or len(attempts) != 34):
+        raise Item32Error("physical_http_evidence")
+    project_http, _ = _worker_diagnostic_projectors()
+    if any(project_http(value) != value for value in observations):
+        raise Item32Error("physical_http_evidence")
+    start, _, finish = _plan_window(plan["admission"])
+    previous_end = _parse_clock(run["started_at"])
+    for index, kind in enumerate(expected_kinds):
+        dispatch, response = observations[index * 2:index * 2 + 2]
+        if (dispatch.get("phase") != "dispatch" or response.get("phase") != "response"
+            or any(item.get("request_kind") != kind or item.get("sequence") != index + 1 for item in (dispatch, response))):
+            raise Item32Error("physical_http_evidence")
+        first, last = _parse_clock(dispatch.get("at")), _parse_clock(response.get("at"))
+        if not start <= previous_end <= first <= last <= _parse_clock(run["completed_at"]) < finish:
+            raise Item32Error("physical_http_window")
+        previous_end = last
+        diagnostics = response.get("response_diagnostics", {})
+        if (type(diagnostics.get("http_status")) is not int or not 200 <= diagnostics["http_status"] < 300
+                or diagnostics.get("message_tags", []) != []):
+            raise Item32Error("physical_http_business_failure")
+        code = diagnostics.get("business_code")
+        code_ok = (type(code) is int and code == 0 and diagnostics.get("business_code_kind") == "integer"
+                   or type(code) is str and code == "0" and diagnostics.get("business_code_kind") == "numeric_string")
+        if kind != "dsl" and (diagnostics.get("payload_kind") != "object"
+                               or diagnostics.get("success_state") != "true"
+                               or not code_ok):
+            raise Item32Error("physical_http_business_failure")
+        if "nested_business_code" in diagnostics and not (
+                type(diagnostics["nested_business_code"]) is int and diagnostics["nested_business_code"] == 0
+                or type(diagnostics["nested_business_code"]) is str and diagnostics["nested_business_code"] == "0"):
+            raise Item32Error("physical_http_business_failure")
+        if index >= 2:
+            attempt = attempts[index - 2]
+            if (attempt["endpoint"] != kind or attempt["status"] != "succeeded"
+                or not _parse_clock(attempt["admitted_at"]) <= first <= last <= _parse_clock(attempt["completed_at"])):
+                raise Item32Error("physical_http_admission_binding")
+    return {"initialization_count": 2, "collection_count": 34, "total_count": 36,
+            "total_limit": 36, "automatic_retry_count": 0, "first_homefeed_is_gate": True,
+            "worker_receipt_sha256": _sha256_bytes(raw), "observations": observations}
 
 
 def _ensure_export_secret_free(export_path: Path, secrets: list[str]) -> None:
@@ -2251,6 +2559,7 @@ def _execute_locked(
     collection_started = False
     admission_created = False
     post_probe_verified = False
+    post_probe_attempted = False
     attempts_readback: int | None = None
     unknown_readback: int | None = None
     candidate: Path | None = None
@@ -2284,6 +2593,7 @@ def _execute_locked(
             secret_values["DATABASE_URL"],
             "before",
             container_registry,
+            run_dir,
         )
         if pre_probe["today_attempt_count"] != budget["used_before"]:
             raise Item32Error("utc_budget_not_available")
@@ -2293,6 +2603,7 @@ def _execute_locked(
             secret_values["NOTEAI_XHS_COOKIES_JSON"],
             adapter_path,
             container_registry,
+            secret_values.get("NOTEAI_XHS_WEB_SSK_JSON", ""),
         )
         container_registry.setdefault(container_name, container_id)
         _assert_dispatch_window(plan, budget, runtime_readback)
@@ -2334,6 +2645,7 @@ def _execute_locked(
             secret_values=[
                 secret_values["DATABASE_URL"],
                 secret_values["NOTEAI_XHS_COOKIES_JSON"],
+                secret_values.get("NOTEAI_XHS_WEB_SSK_JSON", ""),
                 *[
                     str(cookie.get("value") or "")
                     for cookie in json.loads(
@@ -2344,15 +2656,19 @@ def _execute_locked(
         )
         _remove_registered_container(container_registry, container_name)
         container_name = ""
+        post_probe_attempted = True
         post_probe = _run_db_probe(
             runtime_dir,
             secret_values["DATABASE_URL"],
             "after",
             container_registry,
+            run_dir,
         )
-        post_probe_verified = True
         if post_probe["today_attempt_count"] != pre_probe["today_attempt_count"]:
             raise Item32Error("production_attempt_ledger_changed")
+        if post_probe["session_identity_sha256"] != pre_probe["session_identity_sha256"]:
+            raise Item32Error("database_identity_changed")
+        post_probe_verified = True
         if timed_out:
             raise Item32Error("worker_timeout")
         if exit_code != 0:
@@ -2387,6 +2703,7 @@ def _execute_locked(
             [
                 secret_values["DATABASE_URL"],
                 secret_values["NOTEAI_XHS_COOKIES_JSON"],
+                secret_values.get("NOTEAI_XHS_WEB_SSK_JSON", ""),
                 *[
                     str(cookie.get("value") or "")
                     for cookie in json.loads(
@@ -2407,6 +2724,42 @@ def _execute_locked(
     if host_preflight_started or container_registry:
         try:
             _cleanup_registered_containers(container_registry)
+        except Exception:
+            cleanup_failed = True
+    # A rejected worker receipt or failed exact-container removal must not skip
+    # the final read-only observation. Stop known writers first, then probe at
+    # most once; an uncertain probe is retained as UNKNOWN, never retried.
+    if (collection_started and not post_probe_attempted and not cleanup_failed
+            and run_dir is not None and runtime_dir is not None
+            and secret_values.get("DATABASE_URL")):
+        post_probe_attempted = True
+        try:
+            post_probe = _run_db_probe(
+                runtime_dir, secret_values["DATABASE_URL"], "after", container_registry, run_dir,
+            )
+            if post_probe["today_attempt_count"] != pre_probe["today_attempt_count"]:
+                raise Item32Error("production_attempt_ledger_changed")
+            if post_probe["session_identity_sha256"] != pre_probe["session_identity_sha256"]:
+                raise Item32Error("database_identity_changed")
+            post_probe_verified = True
+        except BaseException:
+            post_probe_verified = False
+        try:
+            _cleanup_registered_containers(container_registry)
+        except Exception:
+            cleanup_failed = True
+    if run_dir is not None and run_dir.exists():
+        try:
+            _atomic_write(run_dir / "database-proof-state.json", _json_bytes({
+                "schema": "noteai.item32.retained_db_probe_state.v1",
+                "before_recorded": (run_dir / "database-before-probe.json").is_file(),
+                "after_recorded": (run_dir / "database-after-probe.json").is_file(),
+                "after_attempted": post_probe_attempted,
+                "after_verified": post_probe_verified,
+                "collection_started": collection_started,
+                "automatic_retry_count": 0,
+                "readiness_credit": False,
+            }), 0o600)
         except Exception:
             cleanup_failed = True
     if runtime_dir is not None:
@@ -2448,7 +2801,8 @@ def _execute_locked(
     if not terminal_ready and failure is None and not cleanup_failed:
         failure = Item32Error("terminal_staging")
         failure_traceback = failure.__traceback__
-    elif failure is not None and not collection_started and run_dir is not None:
+    elif (failure is not None and not collection_started and run_dir is not None
+          and not (run_dir / "database-before-probe.json").exists()):
         try:
             shutil.rmtree(run_dir)
         except FileNotFoundError:
@@ -2492,9 +2846,26 @@ def _execute_locked(
             unknown_text = (
                 "UNKNOWN" if unknown_readback is None else str(unknown_readback)
             )
+            physical_text = ""
+            if ACTIVE_V5_PLAN is not None:
+                physical_count: int | str = "UNKNOWN"
+                complete = False
+                try:
+                    receipt = json.loads((run_dir / "worker-receipt.json").read_bytes())
+                    summary = receipt["physical_http_summary"]
+                    initial = summary["initialization_dispatches_observed"]
+                    collected = summary["collection_dispatches_observed"]
+                    if type(initial) is int and type(collected) is int and 0 <= initial <= 2 and 0 <= collected <= 34:
+                        physical_count = initial + collected
+                        complete = summary.get("observation_complete") is True
+                except (OSError, ValueError, TypeError, KeyError):
+                    pass
+                physical_text = f" physical_http_dispatches_observed={physical_count} physical_observation_complete={str(complete).lower()}"
             print(
                 "ITEM32_EXECUTION_HOLD"
-                f" provider_calls={calls_text}"
+                + (f" collection_calls={calls_text}" if ACTIVE_V5_PLAN is not None else f" provider_calls={calls_text}")
+                + physical_text
+                +
                 f" outcome_unknown_count={unknown_text}"
                 f" retained_store_identity_sha256={_identity('retained-store', str(run_dir))}"
                 " automatic_retry_count=0"
@@ -2636,6 +3007,14 @@ def read_retained_result() -> dict[str, Any]:
             except FileNotFoundError:
                 files[label] = {"status": "MISSING_UNKNOWN"}
         result["retained_files"] = files
+        probes = {}
+        for phase in ("before", "after"):
+            try:
+                raw = read_file(run, f"database-{phase}-probe.json", 65536)
+                probes[phase] = {"sha256": _sha256_bytes(raw), "size": len(raw)}
+            except FileNotFoundError:
+                probes[phase] = {"status": "MISSING_UNKNOWN"}
+        result["database_probe_files"] = probes
         if all("sha256" in value for value in files.values()):
             result["status"] = "RETAINED_BYTES_READBACK_ONLY"
         linked_lock = os.stat("executor.lock", dir_fd=root, follow_symlinks=False)
@@ -2651,15 +3030,21 @@ def read_retained_result() -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global WORK_ROOT
     parser = argparse.ArgumentParser()
     parser.add_argument("--readback-only", action="store_true")
+    parser.add_argument("--v5-readback-only", action="store_true")
     parser.add_argument("--plan")
     parser.add_argument("--adapter")
     parser.add_argument("--hold-evidence")
     args = parser.parse_args(argv)
-    if args.readback_only:
+    if args.readback_only or args.v5_readback_only:
         if args.plan or args.adapter or args.hold_evidence:
             parser.error("readback-only does not accept execution inputs")
+        if args.readback_only and args.v5_readback_only:
+            parser.error("select one retained identity")
+        if args.v5_readback_only:
+            WORK_ROOT = V5_WORK_ROOT
         result = read_retained_result()
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "RETAINED_BYTES_READBACK_ONLY" else 2
@@ -2691,6 +3076,7 @@ def main(argv: list[str] | None = None) -> int:
         f" export_path={export_path} export_sha256={_sha256_bytes(raw)}"
         f" export_size={len(raw)} provider_calls=34 automatic_retry_count=0"
         " production_db_writes=0 postpaid_resources_started=0 secret_values_exposed=0"
+        + (" physical_http_count=36 initialization_count=2" if ACTIVE_V5_PLAN is not None else "")
     )
     return 0
 

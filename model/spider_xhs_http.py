@@ -15,6 +15,7 @@ import re
 import secrets
 import subprocess
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -371,6 +372,11 @@ class SpiderXHSHTTPAdapter:
         self.last_response_diagnostics: dict[str, Any] = {}
         self.http_observer = http_observer
         self.last_owned_metrics = None
+        self._trends_v5 = None
+
+    def close(self) -> None:
+        if self._trends_v5 is not None:
+            self._trends_v5.close()
 
     def session_health(self) -> dict[str, Any]:
         return self.credentials.public_health()
@@ -397,6 +403,23 @@ class SpiderXHSHTTPAdapter:
         if method not in {"GET", "POST"}:
             raise XHSAdapterError("operation_not_allowed")
         endpoint = api.partition("?")[0]
+        if (os.environ.get("NOTEAI_XHS_PROTOCOL", "") == "pc_v5"
+                and os.environ.get("NOTEAI_XHS_SERVICE", "") == "trends"):
+            from spider_xhs_v5 import V5Trends
+            import trends_contract
+
+            if self._trends_v5 is None:
+                self._trends_v5 = V5Trends(
+                    credentials=self.credentials, assert_ready=self._assert_ready,
+                    client=self._client, observe=self.http_observer,
+                    budget=os.environ.get("NOTEAI_XHS_V5_BUDGET_JSON", ""),
+                    admit=trends_contract.admit_provider_request,
+                    complete=trends_contract.complete_provider_request,
+                )
+            try:
+                return self._trends_v5.request(method, api, data)
+            finally:
+                self.last_response_diagnostics = self._trends_v5.last_response_diagnostics
         if (method, endpoint) not in _ALLOWED_ENDPOINTS:
             raise XHSAdapterError("operation_not_allowed")
         body = _compact_json(data) if data else ""
@@ -584,6 +607,11 @@ class SpiderXHSHTTPAdapter:
         pages = min(max(int(max_pages), 1), MAX_PAGES)
         limit = min(max(int(max_items), 1), MAX_ITEMS)
         search_id = f"{int(time.time() * 1000):x}{secrets.token_hex(8)}"
+        trends_v5 = (os.environ.get("NOTEAI_XHS_PROTOCOL", "") == "pc_v5"
+                     and os.environ.get("NOTEAI_XHS_SERVICE", "") == "trends")
+        if trends_v5:
+            from spider_xhs_v5 import trends_search_id
+            search_id = trends_search_id()
         items: list[dict[str, Any]] = []
         has_more = False
         for page in range(1, pages + 1):
@@ -606,7 +634,10 @@ class SpiderXHSHTTPAdapter:
                 "image_formats": ["jpg", "webp", "avif"],
             }
             payload = self._request(
-                "POST", "/api/sns/web/v1/search/notes", data=data, needs_rap=True
+                "POST", "/api/sns/web/v2/search/notes" if trends_v5 else "/api/sns/web/v1/search/notes",
+                data=({key: value for key, value in data.items() if key != "filters"}
+                      | {"session_id": str(uuid.uuid4())}) if trends_v5 else data,
+                needs_rap=True,
             )
             response_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
             page_items = response_data.get("items") if isinstance(response_data.get("items"), list) else []

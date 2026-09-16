@@ -122,8 +122,16 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
+        # Candidate-only fixtures use current bytes. Frozen v2 plans and host
+        # packages retain their original bindings and are never rewritten here.
+        self.overlay_patch = mock.patch.object(successor, "RUNTIME_OVERLAY_SHA256", {
+            name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+            for name in successor.RUNTIME_OVERLAY_SHA256
+        })
+        self.overlay_patch.start()
 
     def tearDown(self):
+        self.overlay_patch.stop()
         self.temp.cleanup()
 
     def test_readback_never_creates_state_or_calls_execution_tools(self):
@@ -335,6 +343,10 @@ class Item32ReadonlySuccessorExecutorTests(unittest.TestCase):
         plan["outer_executor_sha256"] = hashlib.sha256(
             (ROOT / "tools/execute_item32_readonly_trends_successor.py").read_bytes()
         ).hexdigest()
+        plan["adapter_overlay_sha256"] = successor.RUNTIME_OVERLAY_SHA256[successor.ADAPTER_SOURCE_REF]
+        plan["source_sha256"] = {**successor.EXPECTED_IMAGE_SOURCE_SHA256, **successor.RUNTIME_OVERLAY_SHA256}
+        plan["admission"].update(not_before_utc="2026-09-15T14:00:00+00:00", bucket_date_utc="2026-09-15",
+                                 dispatch_deadline_utc="2026-09-15T14:40:00+00:00", must_finish_before_utc="2026-09-15T15:00:00+00:00")
         return plan
 
     def test_pending_plan_rejected_before_any_host_secret_or_admission_action(self):
