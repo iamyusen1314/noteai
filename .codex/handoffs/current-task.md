@@ -4,7 +4,58 @@
 旧窗口停止普通开发、构建和新测试；原 `noteai-5ce` 对账已完成并删除调度，旧窗口仅保留查阅；
 该限制不是新窗口的全局暂停。历史已完成业务不重跑；私有恢复/受控同步与Item36报价已完成；Item32本次唯一执行为HOLD，
 高德正式启用已部署且0902来源已修正。Item32按下方最新owner接续授权准备新的有限只读周期；旧失败不重放。
-原账单执行及恢复已安全结束，共享runtime/schema/ACL避让已释放；新窗口承接后续工程及Item31材料收口。
+原账单执行及恢复已安全结束，共享runtime/schema/ACL避让已释放；Item31原链终态已验证计分，继续Item32及实际依赖。
+
+### September16 13:51UTC Item31完成计分；Item32本人保存等待中
+
+**Readiness32/37，未完成仅32、33、36、37、38。** 现有Item31单项validator对真实原链
+候选返回`errors=[]`，整体build_report有效32/37；Item34 generation2与Item35 NOT_REQUIRED原样。
+本次没有新支付/退款/回放回调/账单调用/数据库写入，也没有重复部署或备份。
+
+- 原真实1200fen支付与1200fen全退、自然重复回调未重复赠权、Sep15账单matched/差异0已闭环。
+  五次应用级operation(create/query/submit-refund/query-refund/bill)各一次，自动重试0；不是五次HTTP。
+  费用UNKNOWN；净本金0不代表无手续费。原noteai-5ce调度已删除，无后续触发。
+- 原官方首次批准日期未知，保留`approved_at=null`；现有schema新增仅对真实四能力的兼容分支，
+  以13:41:30UTC原配置摘要/原App绑定核实和同单四能力摘要作为`AUTHENTICATED_LIVE_CAPABILITIES`。
+  不伪造供应商审批，不要求额外批准函。旧APPROVED分支保持。
+- 数据库`succeeded`按真实状态兼容；trade8表29次与bill1表1次独立捕获，以明确来源清单绑定
+  两个原SHA并求和9表30次，不合造原capture。原金额/幂等/重试/资金/副作用要求保持。
+  26项窄隔离测试与独立review通过；真实candidate首次单项校验及一次整体一致性验证通过。
+- canonical SHA `98ee14a80fd9faeacb765d5e557214c73176800aa061577d870ab49b00aa2787`。
+  五份无secret产物在`deploy/production/evidence/`，完整来源/计数/时间/费用边界见
+  `docs/ITEM31_WECHAT_TERMINAL_EVIDENCE_20260916.md`。公众收款仍依原37/38条件，不由单项自动开启。
+- Item32新同源表单已实际开启，本机仅127.0.0.1；`local_session_form_owner.py`
+  SHA `b41f77164960dc9e2b743a66dcc184cfc641f18b3d5ddc2877258d399090ad07`。
+  本人输入长度不再被旧512截断，原字段/ASCII/大小/同源/nonce/单POST/仅密文要求保持；
+  13个无网络合成用例与独立review通过。当前`LOCAL_INTAKE_READY`，未提交、无密文/F绑定/collector。
+  用户正在已有登录页面Network中定位完整Cookie，页面操作逐步指导中；不要重复扫码或读旧会话。
+
+| 未完成项 | 真实下一动作 |
+|---|---|
+|32|Owner本人在新本机隐藏字段安全保存一次；成功后仅传密文到原F，原锁/停机/配置CAS绑定并证明实际进程加载；fresh0/34与新有效窗口满足才正式只读周期，旧身份不重放。|
+|33|等实际32 terminal及internal rollback；用实际UTC桶，既有准备复用。|
+|36|等33及必要前置，按已批准原VPC双区Standard公网ALB+双EIP配置核价后创建，无提前空转或额外采购。|
+|37|real AI与31已具备，仍等36实际链；再做原联合验收。|
+|38|等37及accepted ingress/ramp，现公开网站不替代终态，不无谓切DNS。|
+
+### September16 13:46UTC Item32 owner现场安全保存（进行中）
+
+Owner现明确在电脑前，可本人完成页面上的安全保存；无需再请求相同登录/保存授权。
+现有小红书页面仍显示登录后的“我”，未重新扫码、刷新或请求采集。
+原03:13票据与一次失败保留；本次只准备一个独立新入口，未重跑旧stage。
+
+- 原F冻结helper `559600f6…397a29`核对后，原本期票据过期且原receive未开始得到确认；
+  新外层 `/var/lib/noteai/item32-session-transfer/owner-save-20260916-1346` 使用独立O_EXCL标记。
+  新公开ticket `e3a0a357126f80040b098c9e0415879d`，SHA
+  `cc5da6590209a63a62609530645efac14d0058fd36efe398d9f01aa5b0262c9e`，
+  有效期13:46:58.756547至14:31:58.756547UTC；仅创建原F临时加密接收材料，
+  无XHS请求、DB操作、env修改或worker启动。原票据不延长，不是Item32采集时间窗口。
+- 新本机表单复用已审同源候选，待绑定新ticket与私有输出；不复用旧512字节限制截断新会话。
+  用户本人从已登录请求复制完整Cookie，只粘贴localhost隐藏框并提交一次，不经聊天或终端。
+  此阶段未产生新密文、F未绑定、fresh配额仍待现场只读证明；不能称worker已恢复。
+- 原自动审核拒绝对象仅能从现有记录核实为CUA Terminal app，原理由未留在这些材料，
+  不编造理由；Chrome ERR_BLOCKED_BY_CLIENT是独立原观察，原拒绝阶段仍UNKNOWN。
+  不变更或绕过浏览器保护；若本次再次被拒绝，保留单次阶段/结果并停止该接收入口。
 
 ### September16 13:19–13:24UTC 原5ce账单完成与旧窗口最终交接
 

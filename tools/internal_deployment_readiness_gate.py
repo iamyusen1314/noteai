@@ -3052,6 +3052,144 @@ def validate_item33_trends_promotion_evidence(
     return errors
 
 
+def _item31_live_capability_approval_valid(
+    binding: dict[str, Any],
+    approval: Any,
+    actual_approval_sha: str | None,
+    item: dict[str, Any],
+    observed_at: datetime | None,
+) -> bool:
+    """Bind observed Live capabilities without inventing an approval date."""
+    if not isinstance(approval, dict):
+        return False
+    verified_at = _evidence_clock(binding.get("verified_at"))
+    finished_at = _evidence_clock(item.get("finished_at"))
+    payment = item.get("payment")
+    refund = item.get("refund")
+    reconciliation = item.get("reconciliation")
+    if not all(isinstance(value, dict) for value in (payment, refund, reconciliation)):
+        return False
+    expected_proofs = {
+        "payment_create": payment.get("create_response_sha256"),
+        "asynchronous_callback": payment.get("callback_payload_sha256"),
+        "full_refund": refund.get("response_sha256"),
+        "bill_reconciliation": reconciliation.get("readback_sha256"),
+    }
+    capabilities = approval.get("product_capabilities")
+    return (
+        _keys_exact(binding, {
+            "status", "approved_at", "verification_basis", "verified_at",
+            "artifact_path", "artifact_sha256",
+        })
+        and binding.get("status") == "VERIFIED"
+        and binding.get("approved_at") is None
+        and binding.get("verification_basis") == "AUTHENTICATED_LIVE_CAPABILITIES"
+        and isinstance(binding.get("artifact_path"), str)
+        and binding["artifact_path"].startswith("deploy/production/evidence/")
+        and _sha256(binding.get("artifact_sha256"))
+        and actual_approval_sha == binding["artifact_sha256"]
+        and verified_at is not None
+        and finished_at is not None
+        and observed_at is not None
+        and finished_at <= verified_at <= observed_at
+        and _keys_exact(approval, {
+            "schema", "provider", "status", "approved_at", "verification_basis",
+            "verified_at", "merchant_identity_sha256", "application_identity_sha256",
+            "configuration_readback_sha256", "product_capabilities",
+            "capability_proofs", "secret_values_recorded",
+        })
+        and approval.get("schema") == ITEM31_MERCHANT_APPROVAL_SCHEMA
+        and approval.get("provider") == item.get("name") == "wechatpay_direct"
+        and approval.get("status") == "VERIFIED"
+        and approval.get("approved_at") is None
+        and approval.get("verification_basis") == binding["verification_basis"]
+        and _evidence_clock(approval.get("verified_at")) == verified_at
+        and all(_sha256(approval.get(field)) for field in (
+            "merchant_identity_sha256", "application_identity_sha256",
+            "configuration_readback_sha256",
+        ))
+        and isinstance(capabilities, list)
+        and len(capabilities) == 4
+        and all(isinstance(value, str) for value in capabilities)
+        and set(capabilities) == set(expected_proofs)
+        and all(_sha256(value) for value in expected_proofs.values())
+        and approval.get("capability_proofs") == expected_proofs
+        and payment.get("create_result") == "SUCCEEDED"
+        and payment.get("callback_result") == "SUCCEEDED"
+        and payment.get("signature_verification") == "VERIFIED"
+        and payment.get("signature_scheme") == "WECHATPAY2-SHA256-RSA2048"
+        and refund.get("create_result") == "SUCCEEDED"
+        and refund.get("provider_status") == "refunded"
+        and refund.get("full_refund") is True
+        and reconciliation.get("status") == "MATCHED"
+        and _exact_int(reconciliation.get("discrepancy_count"), 0)
+        and approval.get("secret_values_recorded") is False
+        and not _has_sensitive_evidence_key(approval)
+    )
+
+
+def _item31_multi_capture_manifest_valid(canary: dict[str, Any], *, root: Path) -> bool:
+    """Verify a source manifest; its digest is not an original capture digest."""
+    if not _keys_exact(canary, {
+        "schema", "provider", "environment", "canary_identity_sha256",
+        "started_at", "finished_at", "payment_amount_fen", "payment", "refund",
+        "reconciliation", "write_mutations_by_table", "write_ledger_readback_sha256",
+        "secret_values_recorded", "raw_provider_identifiers_recorded",
+        "write_ledger_readback_kind", "write_ledger_manifest_ref",
+    }) or canary.get("write_ledger_readback_kind") != "MULTI_CAPTURE_MANIFEST":
+        return False
+    manifest, actual_sha = _read_json_artifact(
+        canary.get("write_ledger_manifest_ref"),
+        "noteai.item31.write_capture_manifest.v1",
+        root=root,
+    )
+    if not _keys_exact(manifest, {
+        "schema", "provider", "canary_identity_sha256", "captures",
+        "secret_values_recorded",
+    }):
+        return False
+    canonical_sha = hashlib.sha256(json.dumps(
+        manifest, sort_keys=True, ensure_ascii=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    if (
+        actual_sha != canonical_sha
+        or actual_sha != canary.get("write_ledger_readback_sha256")
+        or manifest.get("provider") != canary.get("provider")
+        or manifest.get("canary_identity_sha256") != canary.get("canary_identity_sha256")
+        or manifest.get("secret_values_recorded") is not False
+        or _has_sensitive_evidence_key(manifest)
+    ):
+        return False
+    captures = manifest.get("captures")
+    if not isinstance(captures, list) or len(captures) != 2:
+        return False
+    original_hashes: set[str] = set()
+    totals: dict[str, int] = {}
+    for phase, capture in zip(("trade", "bill"), captures):
+        if not _keys_exact(capture, {
+            "phase", "original_capture_sha256", "row_mutations_by_table",
+        }):
+            return False
+        original_sha = capture.get("original_capture_sha256")
+        counts = capture.get("row_mutations_by_table")
+        if (
+            capture.get("phase") != phase
+            or not _sha256(original_sha)
+            or original_sha in original_hashes
+            or not isinstance(counts, dict)
+            or not counts
+            or not set(counts).issubset(ITEM31_ALLOWED_WRITE_TABLES)
+            or not all(_exact_int(count) and count > 0 for count in counts.values())
+            or (phase == "bill" and counts != {"payment_reconciliation_runs": 1})
+            or (phase == "trade" and "payment_reconciliation_runs" in counts)
+        ):
+            return False
+        original_hashes.add(original_sha)
+        for table, count in counts.items():
+            totals[table] = totals.get(table, 0) + count
+    return totals == canary.get("write_mutations_by_table")
+
+
 def validate_item31_payment_evidence(
     control: dict[str, Any],
     *,
@@ -3247,6 +3385,10 @@ def validate_item31_payment_evidence(
                 and approval.get("secret_values_recorded") is False
                 and not _has_sensitive_evidence_key(approval)
             )
+            if not approval_valid:
+                approval_valid = _item31_live_capability_approval_valid(
+                    merchant_approval, approval, actual_approval_sha, item, observed_at
+                )
         else:
             approval_path = None
             approval_sha = None
@@ -3289,7 +3431,7 @@ def validate_item31_payment_evidence(
             or payment.get("signature_verification") != "VERIFIED"
             or payment.get("signature_scheme")
             != signature_schemes.get(provider_name)
-            or payment.get("internal_status") != "paid"
+            or payment.get("internal_status") not in ("paid", "succeeded")
             or not _exact_int(payment.get("entitlement_mutation_count"), 1)
             or not _exact_int(payment.get("duplicate_callback_count"))
             or payment["duplicate_callback_count"] < 1
@@ -3414,24 +3556,27 @@ def validate_item31_payment_evidence(
         )
         canary_valid = (
             isinstance(canary, dict)
-            and _keys_exact(
-                canary,
-                {
-                    "schema",
-                    "provider",
-                    "environment",
-                    "canary_identity_sha256",
-                    "started_at",
-                    "finished_at",
-                    "payment_amount_fen",
-                    "payment",
-                    "refund",
-                    "reconciliation",
-                    "write_mutations_by_table",
-                    "write_ledger_readback_sha256",
-                    "secret_values_recorded",
-                    "raw_provider_identifiers_recorded",
-                },
+            and (
+                _keys_exact(
+                    canary,
+                    {
+                        "schema",
+                        "provider",
+                        "environment",
+                        "canary_identity_sha256",
+                        "started_at",
+                        "finished_at",
+                        "payment_amount_fen",
+                        "payment",
+                        "refund",
+                        "reconciliation",
+                        "write_mutations_by_table",
+                        "write_ledger_readback_sha256",
+                        "secret_values_recorded",
+                        "raw_provider_identifiers_recorded",
+                    },
+                )
+                or _item31_multi_capture_manifest_valid(canary, root=root)
             )
             and actual_canary_sha == item.get("canary_audit_sha256")
             and canary.get("provider") == provider_name

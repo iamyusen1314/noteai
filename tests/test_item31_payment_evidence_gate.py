@@ -215,6 +215,247 @@ class Item31PaymentEvidenceGateTests(unittest.TestCase):
     def test_accepts_approved_wechat_owner_live_full_refund_chain(self):
         self.assertEqual(self.validate(), [])
 
+    def live_approval(self):
+        item = self.payload["providers"][0]
+        binding = item["merchant_approval"]
+        path = self.root / binding["artifact_path"]
+        approval = json.loads(path.read_text(encoding="utf-8"))
+        approval.pop("official_readback_sha256")
+        approval.update(
+            status="VERIFIED",
+            approved_at=None,
+            verification_basis="AUTHENTICATED_LIVE_CAPABILITIES",
+            verified_at="2026-09-07T11:00:00+08:00",
+            configuration_readback_sha256=hashlib.sha256(b"synthetic-config-readback").hexdigest(),
+            capability_proofs={
+                "payment_create": item["payment"]["create_response_sha256"],
+                "asynchronous_callback": item["payment"]["callback_payload_sha256"],
+                "full_refund": item["refund"]["response_sha256"],
+                "bill_reconciliation": item["reconciliation"]["readback_sha256"],
+            },
+        )
+        binding.update(
+            approved_at=None,
+            verification_basis=approval["verification_basis"],
+            verified_at=approval["verified_at"],
+        )
+        self.save_approval(approval)
+        return item, approval
+
+    def save_approval(self, approval):
+        binding = self.payload["providers"][0]["merchant_approval"]
+        path = self.root / binding["artifact_path"]
+        path.write_text(json.dumps(approval), encoding="utf-8")
+        binding["artifact_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def test_accepts_live_capabilities_without_inventing_approval_date(self):
+        item, approval = self.live_approval()
+        self.assertIsNone(approval["approved_at"])
+        self.assertIsNone(item["merchant_approval"]["approved_at"])
+        self.assertEqual(self.validate(), [])
+
+    def test_live_capabilities_require_each_same_item_proof(self):
+        _, approval = self.live_approval()
+        original = dict(approval["capability_proofs"])
+        for capability in original:
+            for wrong in (None, "0" * 64):
+                with self.subTest(capability=capability, wrong=wrong):
+                    approval["capability_proofs"] = dict(original)
+                    if wrong is None:
+                        approval["capability_proofs"].pop(capability)
+                    else:
+                        approval["capability_proofs"][capability] = wrong
+                    self.save_approval(approval)
+                    self.assertIn("Item31 merchant/product approval binding missing", self.validate())
+
+    def test_live_capabilities_require_completed_observation_not_forged_approval(self):
+        item, approval = self.live_approval()
+        binding = item["merchant_approval"]
+        original = json.loads(json.dumps(approval))
+        for at in ("2026-09-07T10:04:00+08:00", "2026-09-07T12:01:00+08:00", "2026-09-07T11:00:00"):
+            with self.subTest(verified_at=at):
+                approval = dict(original, verified_at=at)
+                binding["verified_at"] = at
+                self.save_approval(approval)
+                self.assertIn("Item31 merchant/product approval binding missing", self.validate())
+        binding["verified_at"] = original["verified_at"]
+        for target in ("binding", "artifact"):
+            with self.subTest(approved_at=target):
+                approval = dict(original)
+                binding["approved_at"] = None
+                (binding if target == "binding" else approval)["approved_at"] = "2026-09-06T12:00:00+08:00"
+                self.save_approval(approval)
+                self.assertIn("Item31 merchant/product approval binding missing", self.validate())
+        binding["approved_at"] = None
+        approval = dict(original, verified_at="2026-09-07T11:01:00+08:00")
+        self.save_approval(approval)
+        self.assertIn("Item31 merchant/product approval binding missing", self.validate())
+
+    def test_live_capabilities_require_config_identity_and_exact_provider_shape(self):
+        _, approval = self.live_approval()
+        original = json.loads(json.dumps(approval))
+        for field, value in (
+            ("merchant_identity_sha256", None),
+            ("application_identity_sha256", ""),
+            ("configuration_readback_sha256", None),
+            ("provider", "alipay_direct"),
+            ("verification_basis", "OWNER_CONFIRMED"),
+            ("unreviewed_field", True),
+        ):
+            with self.subTest(field=field):
+                approval = dict(original)
+                if value is None:
+                    approval.pop(field)
+                else:
+                    approval[field] = value
+                self.save_approval(approval)
+                self.assertIn("Item31 merchant/product approval binding missing", self.validate())
+
+    def test_live_capabilities_do_not_accept_failed_or_unauthenticated_operations(self):
+        item, _ = self.live_approval()
+        for section, field, wrong in (
+            ("payment", "create_result", "UNKNOWN"),
+            ("payment", "callback_result", "FAILED"),
+            ("payment", "signature_verification", "UNKNOWN"),
+            ("payment", "signature_scheme", "RSA2"),
+            ("refund", "provider_status", "pending"),
+            ("refund", "full_refund", False),
+            ("reconciliation", "status", "MISMATCH"),
+            ("reconciliation", "discrepancy_count", 1),
+        ):
+            with self.subTest(section=section, field=field):
+                original = item[section][field]
+                item[section][field] = wrong
+                self.assertIn("Item31 merchant/product approval binding missing", self.validate())
+                item[section][field] = original
+
+    def test_live_capabilities_keep_original_accounting_and_dml_requirements(self):
+        item, _ = self.live_approval()
+        item["provider_operation_count"] = 6
+        self.payload["net_real_funds_fen"] = 1
+        self.payload["actual_production_write_set"]["out_of_contract_row_mutations"] = 1
+        errors = self.validate()
+        self.assertIn("Item31 bounded provider canary mismatch", errors)
+        self.assertIn("Item31 cumulative full-refund amount mismatch", errors)
+        self.assertIn("Item31 production write-set evidence invalid", errors)
+
+    def save_canary(self, canary):
+        item = self.payload["providers"][0]
+        path = self.root / item["canary_audit_ref"]
+        path.write_text(json.dumps(canary), encoding="utf-8")
+        item["canary_audit_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def capture_manifest(self):
+        item, _ = self.live_approval()
+        item["payment"]["internal_status"] = "succeeded"
+        canary = json.loads((self.root / item["canary_audit_ref"]).read_bytes())
+        canary["payment"] = dict(item["payment"])
+        canary["write_ledger_readback_kind"] = "MULTI_CAPTURE_MANIFEST"
+        canary["write_ledger_manifest_ref"] = "deploy/production/evidence/two-captures.json"
+        trade = dict(canary["write_mutations_by_table"])
+        bill = {"payment_reconciliation_runs": trade.pop("payment_reconciliation_runs")}
+        manifest = {
+            "schema": "noteai.item31.write_capture_manifest.v1",
+            "provider": item["name"],
+            "canary_identity_sha256": item["canary_identity_sha256"],
+            "captures": [
+                {"phase": phase, "original_capture_sha256": hashlib.sha256(phase.encode()).hexdigest(),
+                 "row_mutations_by_table": counts}
+                for phase, counts in (("trade", trade), ("bill", bill))
+            ],
+            "secret_values_recorded": False,
+        }
+        self.save_capture_manifest(canary, manifest)
+        return canary, manifest
+
+    def save_capture_manifest(self, canary, manifest, *, canonical=True):
+        raw = json.dumps(manifest, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode()
+        if not canonical:
+            raw += b"\n"
+        path = self.root / canary["write_ledger_manifest_ref"]
+        path.write_bytes(raw)
+        digest = hashlib.sha256(raw).hexdigest()
+        canary["write_ledger_readback_sha256"] = digest
+        self.save_canary(canary)
+        self.payload["actual_production_write_set"]["ledger_readback_sha256"] = hashlib.sha256(
+            json.dumps([digest], ensure_ascii=True, separators=(",", ":")).encode()
+        ).hexdigest()
+
+    def test_accepts_succeeded_with_original_scalar_capture(self):
+        item = self.payload["providers"][0]
+        item["payment"]["internal_status"] = "succeeded"
+        canary = json.loads((self.root / item["canary_audit_ref"]).read_bytes())
+        canary["payment"] = dict(item["payment"])
+        self.save_canary(canary)
+        self.assertEqual(self.validate(), [])
+
+    def test_accepts_two_original_captures_as_manifest_not_single_capture(self):
+        canary, manifest = self.capture_manifest()
+        self.assertNotIn(canary["write_ledger_readback_sha256"], {
+            capture["original_capture_sha256"] for capture in manifest["captures"]
+        })
+        self.assertEqual(self.validate(), [])
+
+    def test_capture_manifest_requires_both_distinct_originals_in_phase_order(self):
+        canary, manifest = self.capture_manifest()
+        original = json.loads(json.dumps(manifest))
+        for change in ("missing", "extra", "reversed", "duplicate_hash", "missing_hash"):
+            with self.subTest(change=change):
+                manifest = json.loads(json.dumps(original))
+                captures = manifest["captures"]
+                if change == "missing":
+                    captures.pop()
+                elif change == "extra":
+                    captures.append(dict(captures[0]))
+                elif change == "reversed":
+                    captures.reverse()
+                elif change == "duplicate_hash":
+                    captures[1]["original_capture_sha256"] = captures[0]["original_capture_sha256"]
+                else:
+                    captures[0].pop("original_capture_sha256")
+                self.save_capture_manifest(canary, manifest)
+                self.assertIn("Item31 provider canary audit binding mismatch", self.validate())
+
+    def test_capture_manifest_requires_exact_source_scope_counts_and_sum(self):
+        canary, manifest = self.capture_manifest()
+        original = json.loads(json.dumps(manifest))
+        for phase, table, count in (
+            (0, "credits", 2), (0, "credits", True), (0, "credits", 0),
+            (0, "unknown_table", 1), (0, "payment_reconciliation_runs", 1),
+            (1, "payment_reconciliation_runs", 2), (1, "payment_events", 1),
+        ):
+            with self.subTest(phase=phase, table=table, count=count):
+                manifest = json.loads(json.dumps(original))
+                manifest["captures"][phase]["row_mutations_by_table"][table] = count
+                self.save_capture_manifest(canary, manifest)
+                self.assertIn("Item31 provider canary audit binding mismatch", self.validate())
+
+    def test_capture_manifest_requires_same_provider_canary_and_exact_shape(self):
+        canary, manifest = self.capture_manifest()
+        original = json.loads(json.dumps(manifest))
+        for field, value in (("provider", "alipay_direct"), ("canary_identity_sha256", "0" * 64),
+                             ("unreviewed_field", True), ("secret_values_recorded", True)):
+            with self.subTest(field=field):
+                manifest = dict(original, **{field: value})
+                self.save_capture_manifest(canary, manifest)
+                self.assertIn("Item31 provider canary audit binding mismatch", self.validate())
+
+    def test_capture_manifest_requires_exact_canonical_file_and_bound_reference(self):
+        canary, manifest = self.capture_manifest()
+        self.save_capture_manifest(canary, manifest, canonical=False)
+        self.assertIn("Item31 provider canary audit binding mismatch", self.validate())
+        self.save_capture_manifest(canary, manifest)
+        original = dict(canary)
+        for field, value in (
+            ("write_ledger_readback_sha256", "0" * 64),
+            ("write_ledger_readback_kind", "ORIGINAL_CAPTURE"),
+            ("write_ledger_manifest_ref", "deploy/production/evidence/missing.json"),
+            ("write_ledger_manifest_ref", "two-captures.json"),
+        ):
+            with self.subTest(field=field, value=value):
+                self.save_canary(dict(original, **{field: value}))
+                self.assertIn("Item31 provider canary audit binding mismatch", self.validate())
+
     def test_requires_each_starter_credit_write_table(self):
         base_payload = json.loads(json.dumps(self.payload))
         base_audits = {}

@@ -16379,15 +16379,37 @@
         {
           "id": "real_payment_chain",
           "title": "WeChat Native merchant, callback, full refund and reconciliation acceptance; Alipay deferred",
-          "status": "blocked",
+          "status": "verified",
           "dependencies": [
             "payment_internal_runtime",
             "monitoring_alerting"
           ],
-          "evidence": [],
-          "blocker": "September16 original5ce payment/callback/full-refund/bill loop is actually complete: Sep15 bill matched with discrepancy_count0 at13:17:29UTC; original1200fen fully refunded, no new payment/refund. Final13:19:16UTC confirms original Payment restored, exact temporary collector removed and current API/Admin/public/config retained. The existing canonical direct_payment_chain, merchant-approval and canary-audit artifacts are not yet assembled; original single-item validator returns exactly one noteai.item31.direct_payment_chain.v1 evidence object required. Owner Native/AppID confirmation and actual four-capability success are retained; traceable official merchant/product approval summary and accurate approval-time binding remain unrecorded. Original create digests are recovered. This is an evidence-binding gap, not a claim that the merchant is disabled. Historical81ab failure is preserved; Alipay DEFERRED/DISABLED, public payments closed, no terminal credit.",
-          "resume_condition": "New thread assembles existing Item31 evidence from the sealed original3e65 trade capture and faee04b6 bill capture separately, actual original create/callback/refund/ledger/bill records, and a traceable existing official merchant/product approval source with accurate time binding; then runs the existing single-item validator. Do not fabricate approval dates, merge capture identities, request a special approval letter, or replay any order/payment/refund/callback/bill/migration. Original noteai-5ce automation is deleted after successful safe completion; no next run. Enable deliverable WeChat rights only after the existing terminal conditions genuinely pass.",
-          "next_task": "PROD-FIRST-LAUNCH-PAYMENT-REAL-001"
+          "evidence": [
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/production-item31-direct-payment-chain-verified.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/wechatpay_direct-canary-audit.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/wechatpay_direct-merchant-approval.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/wechatpay_direct-original-configuration-identity-20260916.json"
+            },
+            {
+              "kind": "path",
+              "ref": "deploy/production/evidence/wechatpay_direct-write-capture-manifest-20260916.json"
+            },
+            {
+              "kind": "path",
+              "ref": "docs/ITEM31_WECHAT_TERMINAL_EVIDENCE_20260916.md"
+            }
+          ]
         },
         {
           "id": "real_xhs_trends",
@@ -16398,8 +16420,8 @@
             "monitoring_alerting"
           ],
           "evidence": [],
-          "blocker": "September15 new-window prospective preparation is locally complete, not executable without the named owner approval. Existing executor and terminal validator now bind UTC window fields from the PENDING v2 prospective plan; pending authorization is rejected before work-root/host/Secret/admission actions. Final-start deadline and execution/terminal finish-window checks are enforced.100 Python3.11 network-none Item32/33 tests passed and independent read-only review found no remaining blocker. Proposed September15 14:00-15:00UTC, dispatch strictly before14:40; no real approval, fresh quota readback, identity, admission, provider request or readiness credit. Original source1be2fde archive, both predecessor outcomes and immutable September7 plan remain preserved and cannot be replayed. Full scope and recovery: docs/ITEM32_PROSPECTIVE_EXECUTION_20260915.md.",
-          "resume_condition": "Receive actual owner confirmation for the proposed complete scope/window before recording authorization fields and final package hash. Preserve original34/day cap, real-source minima, read-only database, original work root and no-replay. Upload only the bound allowlist package, prove fresh used0/remaining34 and all existing runtime preconditions, then launch at most once inside the approved window. PENDING or expired plans do not run; an expired proposal is not automatically rescheduled. UNKNOWN uses original-result reconciliation and safe cleanup only.",
+          "blocker": "September16 owner authorized normal session recovery and the existing bounded read-only successor, and is now present for the one-time local secure save. Browser login is visible, but the worker session is not yet bound. Original79e failed before supplier request/admission; originalfac5 homefeed request failed with missing business code and remains HOLD. That historical cause is not rewritten as proven account freeze. Original local save was blocked/unconfirmed and produced no ciphertext; its expired ticket and failed identity are sealed. A new unique public ticket (13:46:58-14:31:58UTC) and reviewed localhost-only one-POST form are now ready, with no confirmed ciphertext/F binding/collector. This ticket is not a collection window. Fresh DB quota and the actual execution window remain unproved; no readiness credit.",
+          "resume_condition": "Owner completes the current one-time localhost hidden-field save without sending credentials in chat. On confirmed ciphertext only, receive through the pinned original F bridge, then use existing quiescence/lock/exact env-and-unit CAS and verify the actual execution process loads the new session. Keep old failures/UNKNOWN identities and usage sealed, no automatic retry or quota reset. Separate login/initialization/diagnostic/collection counts truthfully; prove applicable fresh0/34 and bind one current finite window before up to34 admissions plus only the existing bounded initialization scope. Expired or failed identities do not replay; actual account restrictions stop affected calls. Existing scoped authorization is not missing merely because browser login alone is insufficient. Only real domain coverage/data-validity/database-read-only/result-and-recovery terminal evidence permits Item33.",
           "next_task": "PROD-XHS-TRENDS-REAL-SUPPLIER-READONLY-001"
         },
         {

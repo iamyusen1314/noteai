@@ -1,4 +1,18 @@
-September16 14:07BJT CURRENT: Dechu805fc report history is restored and actual
+September16 21:51BJT CURRENT: Item31 original WeChat payment/callback/full-refund/
+bill terminal evidence is verified; readiness32/37, remaining32/33/36/37/38.
+Original1200fen payment and1200fen refund, bill matched/discrepancy0; provider fees
+remain UNKNOWN. The original bill task is closed, collector removed, automation
+deleted and shared runtime isolation released. No new transaction or bill replay.
+Official first-approval date remains unknown; same-chain authenticated capability
+proof and original configuration identity readback are explicitly distinguished
+from supplier approval. Two original DML captures remain separately identified.
+Item32 owner is now present for one secure localhost save; new ticket expires
+14:31:58UTC, old ticket/failed save preserved. Local receiver is ready, but no new
+ciphertext, F session binding or collection is yet confirmed. Existing Amap formal
+state, factual-source/quality/UNKNOWN-cost boundaries and Item34/35 stay intact.
+Details and actual artifact references: Handoff CURRENT and Item31 terminal doc.
+
+September16 14:07BJT HISTORICAL: Dechu805fc report history is restored and actual
 authenticated reload/reopen passed after the c853f29 API-only release06:05:37UTC.
 The narrow guard now blocks unsupported complete copies of five old Prompt title
 examples; original historical bad variants remain unchanged. This is not a broad
