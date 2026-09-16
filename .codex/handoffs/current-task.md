@@ -6,7 +6,7 @@
 高德正式启用已部署且0902来源已修正。Item32按下方最新owner接续授权准备新的有限只读周期；旧失败不重放。
 原账单执行及恢复已安全结束，共享runtime/schema/ACL避让已释放；Item31原链终态已验证计分，继续Item32及实际依赖。
 
-### September16 15:04UTC Item32兼容修复完成；Sep17唯一后续计划已绑定，调度尚未创建
+### September16 15:14UTC Item32新包已在原F验证；Sep17唯一一次续执行已登记
 
 原source92dad86周期仍HOLD，11collection/2init/13HTTP、0UNKNOWN/0retry与原封存不变。
 修复source4e6cb8a仅对search_recommend的success=true/code1000继续验证data.sug_items；
@@ -28,11 +28,26 @@
   共122项在Python3.11断网只读容器通过；其中7项新终态反例由独立agent首次验证。
   私有生成器9项合成测试通过；双方独立review无阻断。最终build_report manifest_valid=true、32/37；
   首次本地导入缺tools路径，补PYTHONPATH=tools后验证通过（无产品改动）。一次测试命令模块名误拼已纠正补验，
-  不属于生产失败。原模型/安全测试36项与工具40项已通过，不重复计为这些122项。
+  不属于生产失败。122项包含相关旧工具的兼容回归；此前模型/安全36项结果复用，未重跑。
 - 原inventory仅复用image/源码/旧11份记录，不能充当当前供应商健康或fresh证明。
-  正在生成14个Git来源文件+manifest的私有源码包并暂存原F；不含env/凭据、用户素材、
-  模型资产或运行数据库。不部署API/Admin/public，不创建资源或额外备份。
-  **尚未创建Sep17调度；须完成真实包暂存与一次调度回读后才记为安排成功。**
+  14个Git来源文件+manifest的源码包已在原F合成并通过wrapper预检：source84f2e6e，
+  stage `/var/lib/noteai/item32-v5-package-20260917-84f2e6e`；153789B，包SHA
+  `188caa1e14530edee8cb7fa1c14456a5197efa93c992895a310c3eda35ff7d29`，wrapper14975B/SHA
+  `6e6d59510fd1c61e1c426f85d81f32c9ba050a5f3a1232af7b7d5ecb53c96471`。
+  原回执 `SOURCE_PACKAGE_STAGED_NOT_EXECUTED`，15成员、旧11+新9原件及host seal/会话摘要匹配；
+  新work和四dispatch标记不存在，新增供应商请求0、生产DB操作0。不含env/凭据、用户素材、
+  模型资产或运行数据库，不部署API/Admin/public或创建资源/额外备份。
+- **15:12:37.218UTC已创建唯一 `noteai-item32-sep17` heartbeat，ACTIVE、COUNT1、归属本任务
+  `01a0a50d-985c-7140-9db2-3bde812717bd`。**工具view与原保存配置已核验；本机CST+0800，
+  保存规则对应Sep17 09:00BJT/01:00UTC。当前只有此一条活动Item32；两条旧paused任务未动，
+  原5ce没有重建。此处确认调度登记，不保证未来登录/机器可用；本地任务需电脑开机/Codex运行。
+  失窗或再次失败只读原结果并停止，不自动增加后继；调度完成/失窗/不可恢复阻断后删除或暂停自身。
+  曾尝试CUA查看Codex内时间，工具拒绝操作该app；未绕过，改用专用自动化工具及已保存配置/实际时区核验。
+  下次时间为保存规则推导，未伪称读取到scheduler内部nextRunAt。
+- 操作入口/完整摘要/唯一执行及readback命令：`docs/ITEM32_SEP17_SINGLE_SUCCESSOR.md`。
+  私有 `noteai-item32-session-recovery-20260917/` 的 `source-staged-result.json`为原合成回执；
+  534B/SHA1ac3e472…673f422；`schedule-readback.json`保留真实工具/配置来源。
+  本机source-only服务已按精确PID结束、监听已消失，临时页关闭；原F控制台留作到时续执行。
 
 14:58:42UTC Admin只读刷新确认高德按业务条件正式启用、企业认证已记录，月共享额度50000、
 受控已用6/剩余49994、两端点QPS30。官方来源仍Sep15 15:12UTC观察；后续5次本系统admission
