@@ -8,20 +8,51 @@ Owner在原窗口明确重新授权三项：正式开放已通过的微信支付
 - 两窗口已互相确认：本旧窗口 `01a079a4-1c05-7d21-a98a-2d418cdd20c9` 独占本批
   API-C/Payment/前台代码发布及Handoff写入；新窗口 `01a0a50d-985c-7140-9db2-3bde812717bd`
   仅保留Sep17原Item32调度。F/其固定包、env、executor及01:00UTC唯一入口不动。
-- 当前实测API仍c853f29/imagecc1da220，CID11b49de9；前台report-amap-0af33d961d7e；
-  Admin6c8cf579未动，Paymentinactive/dead，正式订单与callback relay开关均0。
-  0902正式env及当前已修报告/高德结果保持。原5ce对账已完成并删除自动化，不重建/重放。
+- **本批已部署完成**：API/Payment源码`0e80f33cd1ebeae6a3d52ad395d3e9426d80f99f`；
+  API image `sha256:5f9fe725e6a856d369e10e87b04744318f1c8a8c460b5321262d076115da6e18`，
+  CID `d9165b9da080dc8f4c11feaedd25f7ea1258da16a497e75330c8f59d0678a453`；
+  Payment image `sha256:2e0ed48cd9788406b33968a30120f88dde570d5f986c5ecbffc6a4cf4630fec9`，
+  CID `358cd6f5d0dd9fdde4c7dc77ee6b004be02b706f7c54929940a3303f7b376ce6`。
+  前台最终`d08f7be8f7a028189bb027378b721854d7c66c4d`，路径
+  `/var/www/noteai-public/payment-media-otp-d08f7be8f7a0`。后两行支付旧文案仅静态修正，未重启服务。
+- 微信`ordering_available=true`、仅`wechatpay_direct`、canary=null，正式callback已启用。
+  Payment仅监听API同namespace的127.0.0.1:8002；API无APIv3、Payment无商户签名私钥；
+  原DML binding/ACK故障注入无效且未重建。Payment现在是正式enabled服务，PartOf/After/Requires
+  API并由其Wants启动；今后API发布需保留这一真实状态，不能复用旧“Payment必须inactive”假设。
+  Admin image6c8cf579和运行容器未改；0902 public-account.env仍cb73cf0c…552ab，
+  报告路由、高德/等待澄清状态保持。部署未跑迁移/grant、未调用供应商、未生成订单/退款。
 - 已通过Admin本人详情核对唯一owner UID61d63b05-17eb-47d5-b19e-fb7eab297299，
-  member_43fea885ae4344588152、198****9531；赠送wallet2830.5，3000赠送记录有效。
-  旧同名noteai_19872819531不是该已核实手机账号，不替它增权；后续其他测试账号需owner指定。
-- 本地已修短信可见状态/60秒重发、支付旧canary结束后正常购买准备、全9张完整素材理解；
-  诊断附图原quick已换完整理解，模型/行业/扣额不变。已通过隔离浏览器反馈回归、
-  Node21场景及Python3.11断网7项。另发现会员退款SELECT *超出既有列ACL，最小改为
-  started_at,is_active；隔离PG16的会员/积分包完整现金权益撤回与RLS三项已通过，生产无需新订单/退款或扩大权限。
-  首次隔离fixture缺0029已同步现有迁移后通过，不涉及生产迁移。
-- 本批尚未发布，不把本地结果当上线。私有过程和当前只读摘要：
-  `/Users/openclaw/.codex/tmp/noteai-payment-media-otp-umu59jb6/`。仅源代码/非敏感说明进Git。
-  下一步保存源码、复用既有API/Payment基底构建、当前配置CAS/可恢复发布，再读回正式入口。
+  member_43fea885ae4344588152、198****9531。通过既有赠送流程开通studio至
+  **2026-10-16 23:40 BJT**，来源gift，operation `2633b2d0-be7b-4fca-a410-bbfec01c2838`。
+  保留本周期已用12、钱包2830.5；用户端真实读回套餐余1238/1250、总可用4068.5。
+  没有付费订单或现金收入，未改旧noteai_19872819531账号；未来定向账号由owner明确指定，
+  复用后台赠送/会员操作，不设新的低配路径、不对公众无限发权益。
+- 短信按钮现在有发送中、成功/发送待确认的可见状态和60秒重发倒计时；purpose/手机号
+  绑定、关闭重开及status刷新保留限时，错误不伪报已发送。旧toast被登录modal遮挡的问题已消除。
+  图片已移除free1/studio5等深度分档和误导SSE提示；已接受最多9张均完整理解。
+  诊断附图原quick也换完整理解；Claude/豆包、行业Prompt、扣额和鉴权不改。
+- 同步发现并修复会员退款`SELECT *`超出既有列ACL，只读started_at/is_active即可；
+  API原payment_contract为80b版本，本次同步已有9d已验收重复回调语义支持并加这项最小修复；
+  Payment基底即9d。0029已在生产，本次没有迁移。
+- 验证：Python3.11断网7项（9图跨tier完整上下文/失败停止/诊断与callback readiness）；
+  隔离PG16会员/积分包支付退款和RLS3项；Node21场景（包括结束canary进入正式购买准备）；
+  严格CSP浏览器真实DOM测试包括可见发送提示、倒计时、未知/429/503与切换入口；sh/node/diff检查。
+  首次测试fixture少0029，同步已存在迁移后通过，不是生产失败。旧源码暂存CAS识别API合同80b
+  与Git9d不同，按真实80b生成差异后成功；两次只读脚本转义/容器名错误发生在输出前，无生产变更。
+  公网浏览器已验证微信购买、¥12确认页（未点击创建）、最终开放文案和本人赠送会员/积分。
+  首次新页连接关闭，正常刷新后恢复；未改TLS/网络。未登订单401、业务401、API Admin404。
+  本轮未发送新的生产短信/模型请求；短信成功与倒计时场景为隔离响应测试，部署产物对应同一代码。
+- 原成功release结果`2026-09-16T15:43:07.579387Z`，原云命令t-sz06x94n8si7ytc。
+  精确产物、权限、前后配置及结果：host `/var/lib/noteai/payment-media-otp-20260916/`；
+  `build-result.json`、`privileges.json`、`prepare-result.json`、`deploy-result.json`、
+  `frontend-final-result.json`、`final-readback.json`及`backup/`保留。恢复只用这里当前cc1/0902基线，
+  不能恢复旧密钥或旧5ce临时配置。只读摘要/构建入口/隔离日志对应本机
+  `/Users/openclaw/.codex/tmp/noteai-payment-media-otp-umu59jb6/`。未知增量成本未填0；未新建计费资源。
+  最终API drop SHA45ab2d93…70150、Payment unit88ac325c…09d1d；完整hash在final-readback。
+- 源码恢复commit9494a30、0e80f33、d08f7be均已保存，未Git push；七个受保护路径保持原样。
+  本批三个要求已交付，Readiness仍32/37，不虚计剩余Item。原5ce对账已完成且调度已删除，不重放。
+  Item34 VERIFIED/35 NOT_REQUIRED保持。新窗口仍独占Sep17 Item32及后续已授权独立工程；
+  本旧窗口完成此次精确交付后不自行扩大范围或并发执行新窗口任务。
 
 ## Previous current entry — retained history
 

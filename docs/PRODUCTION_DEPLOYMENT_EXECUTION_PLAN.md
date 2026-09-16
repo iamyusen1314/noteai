@@ -1,5 +1,9 @@
 ## September16 owner scoped formal payment / OTP / complete media release
 
+**已上线**：API/Payment 0e80f33，前台d08f7be；正式微信capabilities可用、callback回环隔离、
+普通未登录访问仍拒绝。短信可见反馈/60秒重发、全9图完整理解和owner赠送studio已生效。
+精确结果、会员操作、回滚当前基线及跨窗口归属见Handoff CURRENT。无新增订单/退款/迁移/供应商请求。
+
 原窗口本批只交付正式WeChat启用、发送提示/60秒重发、owner及定向授权账号完整媒体理解。
 复用已验证Native/退款/对账，不重建测试订单；Alipay延期。新候选只修改对应API/Payment与前台，
 保护0902配置、Admin、当前报告、高德和原Item32 Sep17唯一入口。保留正常积分、最小数据库角色；
