@@ -6,6 +6,53 @@
 高德正式启用已部署。新的Item32生产请求不由历史授权自动延伸；其余按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September16 07:57北京时间：一次正常高德业务的真实结果
+本轮复用owner正式用户及Admin的有效会话，未重置身份、未索取Token，未重复部署或备份。
+唯一生成任务 `f49b9dbc-a125-4517-b5a7-ba7fa94418e4`，原owner用户不变；
+usage `6d5fa8a2-8f7a-41b4-9193-8d4d78725117`。Sep15 23:34:29UTC提交，
+23:39:28.426852UTC completed并自动保存同ID笔记v1《广州正佳陶陶居，出发前必确认这4件事》。
+笔记库及Admin最终19次调用/8积分记录均已实际读回，DMS仅SELECT按task/user精确关联。
+钱包2866.5→2858.5；charge_applied=1、complete_applied=1、refund_applied=0。
+实际Claude Haiku4-5-20251001共16次、Sonnet4-6共3次；模型已知成本分别0.574203/
+1.534491元，合计2.108694元，19条usage complete/pricing exact；这不是供应商最终账单。
+美食内容Prompt实际managed gent_content_system v5/SHA ee070deeb5370ade3dca5262d4faed3acce7fc5e1547f5704dbf97007eb4a84d。
+
+高德并未成功：唯一HTTP在23:34:29.870708UTC返回HTTP200但业务码
+`AMAP_BUSINESS_10013`，官方定义USER_KEY_RECYCLED（Key被删除）。请求明确为
+“广州 陶陶居(正佳广场店) 地址 营业时间 人均 预订”；facts={}、sources=[]、confidence0，
+没有匹配成功的POI/分店地址/营业时间/消费事实，不能把输入店名或模型常识当已验证来源。
+原失败观察 `9f15c6ef-f286-42f0-82a0-67fd1fae7f62` 精确属于上述usage，
+cost_cny=null/cost_status=unknown，后台实际显示失败来源而非“无来源”。
+共享Sep2026桶50000，官方观察1＋本系统准入1，保守剩余49998；text接口持久暂停10013，
+detail无调用；没有自动重试、解除拒绝或换Key。官方控制台07:44仍显示当月1/当日0，统计截止未知，
+不能据此返还本次保守占额。正式启用决定不变，实际供应商拒绝只暂停受影响高德查询。
+
+原任务按三项事实“暂不确定”接续，未重扣整单/未再查高德。报告明确当前稿不可直接发布，
+但正文仍含无来源的“分茶市、午市、晚市，各时段收档时间不同”和具体订位渠道断言，
+这是本次发现的内容缺陷，72.1分不抵消该缺陷。已仅本地补既有事实guard：
+model/api.py两纯helper及美食入口，保留原修订轮次/账务；专用tests/test_food_operating_fact_boundaries.py
+19/19在Python3.11/network-none/readonly通过，root独立本地19/19通过，compile/diff-check通过。
+独立只读review对12个已指出反例12/12通过，最终绑定下述SHA无blocking；未扩大到全项目审计。
+覆盖原坏句、正常核实/条件句、中文问号、unknown/omit/已确认更正、否定与指令不能作证、
+明确字段/括号分店与异店来源隔离，含两条原数字/价格guard回归；不是全中文事实正确性证明。
+候选api.py SHA863fbb53a0474bc9da66b15293fa9c5d6824fa625041d1e6f38624d98b33e862。
+按本轮不重复部署/备份要求保持线上原版本；原稿、19次模型账务、失败记录均保留，
+不为评分重跑素材，未声称修复已上线。有效凭据确认后再接续必要修复发布和真实验收。
+现有生产Key由原api.env内存绑定到 `/etc/noteai/public-account.env`；未发现已更新有效Key的
+明确记录。已集中询问owner原Key是否被删除/替换及是否经原安全配置通道更新，绝不在聊天接收密钥。
+实际凭据恢复须先确认；不清计数、不重放原请求、不用原过期部署/恢复controller作凭据轮换。
+私有本次证据：`/Users/openclaw/.codex/tmp/noteai-amap-formal-20260915/business-acceptance-20260915T233429Z/readback.json`。
+
+Item32本轮仅只读原封存证据：79e预检失败provider0；fac5已真实homefeed1次，
+failed/remote_business_error→worker验收trends_provider_attempt_evidence_incomplete→HOLD。
+原数字业务码及准确HTTP状态未保存在现有回执中，不能断言登录失效/封禁；旧授权已经执行，
+不是仍缺同一次授权。完整RO probe JSON/4份终态Evidence缺失，保持未验收；未重试/改期。
+后续最小技术动作是安全保留允许的错误码/HTTP元数据及失败路径证据，任何新生产请求另核当时有效授权。
+原noteai-5ce在Sep15 23:31:30UTC只读调度核对ACTIVE，next Sep16 02:01:30UTC/
+北京时间10:01:30，last_run=NULL、runs=[]；23:46:47UTC原任务compact仍idle/同一已结束旧turn，
+没有新prepare记录。尚未到时，保留原归属。
+Readiness31/37；Item32仍阻断33/ALB36创建，31等原账单，37/38沿真实前置，34/35状态不变。
+
 ## 高德当前生产状态（September15 17:32UTC：已正式启用）
 第四独立controller4987feba0c021826a727af57173a416f75b768066f3472a8ba38feeb8c7210cd
 经3项局部验证及独立只读review后，`t-sz06x5ti86vnp4w`实际返回

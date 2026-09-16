@@ -10620,6 +10620,162 @@ def _fact_assertions(value: str, *, only_explicit_rejections: bool = False) -> l
         r"不能|不得|不要|不代表|没有证据|无依据|不支持|并非|不是|不在|不可)", part)]
 
 
+def _food_operating_assertions(value: str, *, evidence: bool = False) -> set[tuple[str, str]]:
+    """Small factual families, not a ban on mentioning meals or reservations."""
+    facts: set[tuple[str, str]] = set()
+    booking = r"(?:预订|预定|预约|订位|订座)"
+    channels = r"美团|大众点评|公众号|小程序|官网|微信|电话|来电|致电"
+
+    def claims(part):
+        found = set()
+        shifts = set(re.findall(r"早茶|下午茶|晚茶|早市|茶市|午市|晚市|夜市", part))
+        if len(shifts) > 1 or (shifts and re.search(r"(?:分为|分|设有|提供|营业|开市|供应|开设)", part)):
+            found.update(("hours", "shift:" + shift) for shift in shifts)
+        if re.search(r"(?:收档|收市|打烊|闭店)(?:时间)?[^，,。；;]{0,8}(?:不同|不一)", part):
+            found.add(("hours", "different_closing_times"))
+        asserted_booking = re.search(
+            r"(?:支持|接受|提供|允许|可以|可|能够|能|不能|无法|不可)[^，,。；;]{0,18}" + booking
+            + r"|(?:最好|建议|记得|提前|直接)[^，,。；;]{0,18}" + booking
+            + r"|(?:订位渠道|预订渠道|预约方式|订位方式|预订/排队)\s*[:：]", part)
+        if asserted_booking:
+            negative = bool(re.search(r"(?:不支持|不接受|不提供|不能|无法|不可)[^，,。；;]{0,12}" + booking, part))
+            polarity = "no:" if negative else "yes:"
+            names = {"电话" if name in {"来电", "致电"} else name for name in re.findall(channels, part)}
+            found.update(("booking", polarity + name) for name in names or {"unspecified"})
+        if re.search(r"(?:减少|缩短|节省|避免|免去|不用|无需|不必)[^，,。；;]{0,6}(?:排队|等位|等待)|免排队|免等位", part):
+            found.add(("booking", "less_waiting"))
+        return found
+
+    def supported(fact, evidence):
+        if fact == ("booking", "yes:unspecified"):
+            return any(kind == "booking" and key.startswith("yes:") for kind, key in evidence)
+        return fact in evidence
+
+    # Keep the question mark until after classifying a question. A conditional
+    # channel is an assumption only for its own consequent, never later prose.
+    for sentence in re.findall(r"[^。！？!?；;\n]+[。！？!?；;]?", value or ""):
+        for branch in re.split(r"但是|然而|不过|但", sentence):
+            assumptions = set()
+            for part in re.split(r"[，,]", branch):
+                part = part.strip()
+                if not part:
+                    continue
+                if part.endswith(("？", "?")):
+                    continue
+                part = "；".join(_fact_assertions(part, only_explicit_rejections=True))
+                if re.match(r"^(?:如果|假如|倘若|若|如)(?!何)", part):
+                    assumptions.update(claims(re.sub(r"^(?:如果|假如|倘若|若|如)", "", part)))
+                    continue
+                if re.search(r"[？?]$|是否|能否|可否|可不可以|有没有|吗[。！!]?\s*$|"
+                             r"不确定|未知|待(?:确认|核实)|未(?:确认|核实|核验|提供)|"
+                             r"(?:没有|缺乏|缺少|无)(?:明确)?(?:事实)?(?:证据|依据)|"
+                             r"(?:以|按)[^，,。；;]{0,12}(?:确认|核实)为准|"
+                             r"(?:想|想要|需要)[^，,。；;]{0,10}" + booking + r"(?:的话|时|前)|"
+                             r"(?:先|需要|建议|请|出发前)[^，,。；;]{0,12}(?:确认|核实|询问)|"
+                             r"(?:不要|不得|不应)(?:默认|写|声称|宣称|假设)|不能(?:写|声称|宣称)", part):
+                    continue
+                if evidence and re.search(r"希望|要求|请写|写成|建议|最好|记得|想要|想写|打算", part):
+                    continue
+                facts.update(fact for fact in claims(part) if not supported(fact, assumptions))
+    return facts
+
+
+def _food_operating_fact_issues(text: str, source_context: str | None) -> list[str]:
+    """Use source assertions and the existing answer_context block, not its questions.
+
+    Latest unknown/omit choices invalidate the affected operating field only.
+    They do not forbid its words in questions or conditional verification advice.
+    """
+    evidence: set[tuple[str, str]] = set()
+    question = ""
+    in_confirmation = False
+    source = source_context or ""
+    named = re.search(r"(?:用户补充名称|本次商家|门店名)[:：]([^；;\n]+)", source)
+    target = named.group(1).strip() if named else ""
+    normalize = lambda value: re.sub(r"[\s（）()]", "", value)
+
+    def matching_merchant(value):
+        if not target:
+            return True
+        names = re.findall(r"[\u4e00-\u9fffA-Za-z0-9]{2,24}店", value)
+        return not any(not re.search(r"(?:门店|本店|这家店|该店)$", name)
+                       and normalize(name) not in normalize(target)
+                       and normalize(target) not in normalize(name) for name in names)
+
+    def asked_fact(fact, question):
+        kind, key = fact
+        if kind == "hours":
+            return bool(re.search(r"营业|开放时间|开门|收档|收市|打烊|闭店|早茶|茶市|午市|晚市", question))
+        if re.search(r"(?:减少|缩短|节省|避免|免去|不用|无需)[^。？?]{0,6}(?:排队|等位|等待)", question):
+            return key == "less_waiting"
+        return key != "less_waiting" and bool(re.search(r"订位|订座|预订|预定|预约", question))
+
+    scope_matches = True
+    excluded_section = ""
+    external_section = False
+    for line in source.splitlines():
+        line = line.strip()
+        if not line and excluded_section == "instructions":
+            excluded_section = ""
+        if line.startswith("【本次商家确认"):
+            in_confirmation = True
+            continue
+        if in_confirmation:
+            scope = re.match(r"- 原问题范围：门店：([^；;]+)", line)
+            if scope:
+                merchant = scope.group(1).strip()
+                scope_matches = not target or normalize(merchant) == normalize(target)
+            elif line.startswith("问题："):
+                question = line[len("问题："):]
+            elif line.startswith("当前回答："):
+                answer = line[len("当前回答："):]
+                corrects_target = bool(target and normalize(target) in normalize(answer)
+                                       and re.search(r"更正为|改为|实际门店是", answer))
+                if not scope_matches and not corrects_target:
+                    question = ""
+                    continue
+                evidence = {fact for fact in evidence if not asked_fact(fact, question)}
+                if not answer.startswith(("用户暂不确定", "用户选择不写此项")) and matching_merchant(answer):
+                    evidence.update(_food_operating_assertions(answer, evidence=True))
+                question = ""
+            # Scope, question and instructions are not affirmative evidence.
+            continue
+        if line.startswith("【"):
+            excluded_section = ("untrusted" if re.search(r"专家|草稿|候选|建议", line) else
+                                "instructions" if re.search(r"写作|契约|规则", line) else "")
+            external_section = "联网事实" in line or "事实检索" in line
+            continue
+        if excluded_section or re.match(r"^(?:-\s*)?(?:查询|问题|事实源|置信度|来源|对比历史|历史|示例|要求|任务|建议)[:：]", line):
+            continue
+        entity = re.match(r"对象：(.+)", line)
+        if entity:
+            scope_matches = not target or normalize(entity.group(1)) == normalize(target)
+            continue
+        if not target and not external_section and not re.search(r"希望|要求|请写|写成|建议", line):
+            # The optional merchant field may be empty. Reuse the existing
+            # explicit parenthesized-branch signal in original user material;
+            # never infer the target from an expert or supplier candidate.
+            found, merchant = _merchant_entity_signal("美食", None, line, None)
+            if found and re.search(r"[（(][^（）()]+(?:店|楼|馆)[)）]$", merchant):
+                target = merchant
+        if scope_matches and matching_merchant(line):
+            evidence.update(_food_operating_assertions(line, evidence=True))
+    unsupported = set()
+    for fact in _food_operating_assertions(text):
+        if fact == ("booking", "yes:unspecified") and any(
+            kind == "booking" and key.startswith("yes:") for kind, key in evidence
+        ):
+            continue
+        if fact not in evidence:
+            unsupported.add(fact[0])
+    issues = []
+    if "hours" in unsupported:
+        issues.append("出现未提供或仍待确认的分时段营业/收档制度，结构化事实不能编造")
+    if "booking" in unsupported:
+        issues.append("出现未提供或仍待确认的订位渠道/服务或减少等位承诺，结构化事实不能编造")
+    return issues
+
+
 def _structured_fact_boundary_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
     """Guard only structured facts. Do not block narrative details such as feelings or scene description."""
     out = text or ""
@@ -10724,6 +10880,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     if canonical == "美食" and _BUFFET_VALUE_CLAIM_RE.search(out) and not _source_has_buffet_evidence(src):
         issues.append("出现未提供依据的吃到饱/不限量承诺，结构化事实不能编造")
     if canonical == "美食":
+        issues.extend(_food_operating_fact_issues(out, src))
         unsupported_food_terms = _unsupported_food_dish_expansion_terms(out, src)
         if unsupported_food_terms:
             issues.append(f"套餐/点心拼盘被展开成未提供菜品：{'、'.join(unsupported_food_terms)}")

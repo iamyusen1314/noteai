@@ -1,4 +1,23 @@
-September15 17:32UTC CURRENT: Amap is formally enabled on source4768 API-C and
+September16 07:57BJT CURRENT: the single normal owner food-generation task
+f49b9dbc-a125-4517-b5a7-ba7fa94418e4 completed and auto-saved v1, charged8 once;
+actual Haiku16/Sonnet3 calls cost2.108694 CNY from exact/complete model records.
+Amap's one HTTP200 response was a business failure10013 USER_KEY_RECYCLED, not
+a successful branch match. Facts/sources are empty; provider cost stays UNKNOWN.
+Shared50000 bucket is official1 + admitted1, conservative remaining49998; the
+text endpoint is durably restricted10013, with no retry or credential switching.
+Formal enablement/risk acceptance remain; no licence-purchase hold is reinstated.
+Owner has been asked only whether the original credential was deleted/replaced
+and securely updated. Do not lift the provider denial without actual restoration.
+The saved draft correctly carries pending-core-facts status but still contains
+unsupported nonnumeric opening-period and reservation-channel assertions. This
+is a real content defect; local guard repair now passes19 focused Python3.11
+network-none/read-only tests plus root's19 local tests, compile/diff checks.
+It is not deployed or accepted by score. Preserve original draft/costs/failure evidence; do not regenerate
+the same material. Item32 remains the already-executed one-request HOLD; original
+5ce is ACTIVE for Sep16 02:01:30UTC, last_run NULL as read23:31:30UTC. Exact evidence
+and remaining conditions are in Handoff CURRENT. No deployment/backup was replayed.
+
+September15 17:32UTC HISTORICAL: Amap is formally enabled on source4768 API-C and
 Admin; source snapshots, shared quota and existing Key binding are live. API image
 f727a9be…932cb / Admin6c8cf579…2236d, Admin static4768; public0590286-amap-enabled-20260915
 changes only the old disabled sentence. Actual runtime/source/ACL/ingress/HTTPS
