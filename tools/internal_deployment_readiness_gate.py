@@ -127,6 +127,9 @@ ITEM34_RUNTIME_CONFIG_POLICY_QUAL_SHA256 = (
 ITEM32_TRENDS_EVIDENCE_SCHEMA = "noteai.item32.xhs_trends_readonly.v2"
 ITEM32_V5_EVIDENCE_SCHEMA = "noteai.item32.xhs_trends_readonly.v3"
 ITEM32_V5_EXECUTION_PLAN = "deploy/production/plans/item32-v5-successor-prospective.json"
+ITEM32_V5_SEP17_EXECUTION_PLAN = "deploy/production/plans/item32-v5-sep17-successor-prospective.json"
+ITEM32_V5_SEP16_FINAL_REF = "deploy/production/evidence/production-item32-v5-hold-final-readback-20260916.json"
+ITEM32_V5_SEP16_FINAL_SHA256 = "b7c11b3013849ab1370d96fb36118cc710b02ecb1cd8113f8945ece01b45a4e2"
 ITEM32_V5_CONFIG_SHA256 = "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703"
 ITEM32_V5_MANIFEST_SHA256 = "87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9"
 ITEM32_V5_UPSTREAM_SHA256 = "ede5937cf326c3fe19edbae8e98cecc8dd9b3b5b983a87594f8d262336328fb6"
@@ -1256,6 +1259,24 @@ def _item32_v5_profile_valid(plan: Any, *, root: Path) -> bool:
         for value in files.values())
 
 
+def _item32_sep17_previous_binding(*, root: Path) -> dict[str, Any] | None:
+    try:
+        raw = (root / ITEM32_V5_SEP16_FINAL_REF).read_bytes()
+        if len(raw) != 2386 or hashlib.sha256(raw).hexdigest() != ITEM32_V5_SEP16_FINAL_SHA256:
+            return None
+        seal = json.loads(raw)
+    except (OSError, ValueError):
+        return None
+    base = "/var/lib/noteai/item32-v5-successor-20260916"
+    return {"work_root": base, "package_root": "/var/lib/noteai/item32-v5-package-20260916-92dad86",
+            "status": "HOLD", "call_date_utc": "2026-09-16", "collection_admissions": 11,
+            "initialization_count": 2, "physical_http_count": 13, "outcome_unknown_count": 0,
+            "automatic_retry_count": 0, "no_replay": True, "files": seal["files"],
+            "final_readback": {"ref": ITEM32_V5_SEP16_FINAL_REF,
+                "host_ref": base + "/hold-final-readback.json", "bytes": 2386,
+                "sha256": ITEM32_V5_SEP16_FINAL_SHA256}}
+
+
 def _item32_v5_physical_valid(physical: Any, summary: Any, attempts: Any,
                              started_at: datetime | None, finished_at: datetime | None) -> bool:
     summary_keys = {"initialization_count", "collection_count", "total_count", "total_limit",
@@ -1374,6 +1395,9 @@ def validate_item32_trends_evidence(
             return errors
         payload, errors = candidate, []
     v5 = payload.get("schema") == ITEM32_V5_EVIDENCE_SCHEMA
+    sep17 = v5 and isinstance(payload.get("successor"), dict) and "previous_v5_successor" in payload["successor"]
+    v5_work_root = "/var/lib/noteai/item32-v5-successor-20260917" if sep17 else "/var/lib/noteai/item32-v5-successor-20260916"
+    sep17_previous = _item32_sep17_previous_binding(root=root) if sep17 else None
     if not _keys_exact(
         payload,
         {
@@ -1405,7 +1429,7 @@ def validate_item32_trends_evidence(
     if observed_at is None or observed_at > current:
         errors.append("Item32 real observation clock invalid")
 
-    plan_path = root / (ITEM32_V5_EXECUTION_PLAN if v5 else ITEM32_EXECUTION_PLAN)
+    plan_path = root / (ITEM32_V5_SEP17_EXECUTION_PLAN if sep17 else ITEM32_V5_EXECUTION_PLAN if v5 else ITEM32_EXECUTION_PLAN)
     try:
         plan = json.loads(plan_path.read_text(encoding="utf-8"))
         plan_sha256 = hashlib.sha256(plan_path.read_bytes()).hexdigest()
@@ -1464,11 +1488,16 @@ def validate_item32_trends_evidence(
                 "bounds",
                 "provider_calls_dispatched",
                 "cloud_resources_started",
-            } | ({"runtime_overlay_sha256", "physical_http_budget", "previous_successor"} if v5 else set()),
+            } | ({"runtime_overlay_sha256", "physical_http_budget", "previous_successor"} if v5 else set())
+              | ({"previous_v5_successor"} if sep17 else set()),
         )
         and plan.get("schema") == ("noteai.item32.readonly_successor_plan.v3" if v5 else "noteai.item32.readonly_successor_plan.v2")
         and authorization_at is not None
         and plan_window is not None
+        and (not sep17 or (sep17_previous is not None
+            and json.dumps(plan.get("previous_v5_successor"), sort_keys=True) == json.dumps(sep17_previous, sort_keys=True)
+            and tuple(value.isoformat() for value in plan_window) == (
+                "2026-09-17T01:00:00+00:00", "2026-09-17T01:40:00+00:00", "2026-09-17T02:00:00+00:00")))
         and _exact_int(plan.get("item"), 32)
         and plan.get("status") == "PREPARED_NOT_EXECUTED"
         and plan.get("readiness_credit") is False
@@ -1550,7 +1579,7 @@ def validate_item32_trends_evidence(
         )
         and admission_plan
         == {
-            "work_root": "/var/lib/noteai/item32-v5-successor-20260916" if v5 else "/var/lib/noteai/item32-readonly-successor",
+            "work_root": v5_work_root if v5 else "/var/lib/noteai/item32-readonly-successor",
             "not_before_utc": plan_window[0].isoformat(),
             "bucket_date_utc": plan_bucket,
             "dispatch_deadline_utc": plan_window[1].isoformat(),
@@ -1598,7 +1627,7 @@ def validate_item32_trends_evidence(
             "predecessors_unchanged",
             "budget",
             "runtime_readback",
-        } | ({"previous_successor"} if v5 else set()),
+        } | ({"previous_successor"} if v5 else set()) | ({"previous_v5_successor"} if sep17 else set()),
     ):
         errors.append("Item32 successor evidence schema mismatch")
     else:
@@ -1619,7 +1648,7 @@ def validate_item32_trends_evidence(
             or successor.get("diagnostic_result_sha256")
             != ITEM32_DIAGNOSTIC_RESULT_SHA256
             or not _exact_int(
-                successor.get("predecessor_provider_call_count"), 3 if v5 else 2
+                successor.get("predecessor_provider_call_count"), 14 if sep17 else 3 if v5 else 2
             )
             or successor.get("predecessors_unchanged") is not True
         ):
@@ -1699,8 +1728,15 @@ def validate_item32_trends_evidence(
                 or previous.get("no_replay") is not True
                 or plan_bucket == "2026-09-15"
                 or successor.get("work_root_identity_sha256") != hashlib.sha256(
-                    b"noteai-item32:successor-work-root:/var/lib/noteai/item32-v5-successor-20260916").hexdigest()):
+                    ("noteai-item32:successor-work-root:" + v5_work_root).encode()).hexdigest()):
             errors.append("Item32 previous successor closure mismatch")
+    if sep17:
+        expected_previous_v5 = ({**sep17_previous, "host_final_readback_verified": True,
+                                 "database_readonly_probes_verified": True} if sep17_previous is not None else None)
+        if (expected_previous_v5 is None or plan_bucket != "2026-09-17"
+            or json.dumps(successor.get("previous_v5_successor"), sort_keys=True)
+            != json.dumps(expected_previous_v5, sort_keys=True)):
+            errors.append("Item32 Sep16 v5 HOLD closure mismatch")
 
     execution = payload.get("execution")
     started_at: datetime | None = None

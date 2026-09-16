@@ -45,6 +45,10 @@ SEALED_DIAGNOSTIC_RESULT = SEALED_DIAGNOSTIC_ROOT / "result.json"
 PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v2"
 V5_PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v3"
 V5_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260916")
+V5_SEP17_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260917")
+V5_SEP16_PACKAGE_ROOT = Path("/var/lib/noteai/item32-v5-package-20260916-92dad86")
+V5_SEP16_FINAL_REF = "deploy/production/evidence/production-item32-v5-hold-final-readback-20260916.json"
+V5_SEP16_FINAL_SHA256 = "b7c11b3013849ab1370d96fb36118cc710b02ecb1cd8113f8945ece01b45a4e2"
 SEALED_SUCCESSOR_ROOT = Path("/var/lib/noteai/item32-readonly-successor")
 V5_CONFIG_SHA256 = "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703"
 V5_MANIFEST_SHA256 = "87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9"
@@ -614,6 +618,8 @@ def _load_plan(
         expected.update(runtime_overlay_sha256=dict(RUNTIME_OVERLAY_SHA256),
                         physical_http_budget=V5_PHYSICAL_BUDGET,
                         previous_successor=plan["previous_successor"])
+        if _is_sep17_plan(plan):
+            expected["previous_v5_successor"] = _sep17_previous_binding(adapter_path.parent.parent)
     if not isinstance(plan, dict) or _json_bytes(plan) != _json_bytes(expected):
         raise Item32Error("plan_binding")
     _assert_plan_authorized(plan, deadline)
@@ -654,16 +660,46 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
             or not isinstance(binding["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", binding["sha256"]) is None):
             raise Item32Error("plan_binding")
     package = adapter_path.parent.parent
+    if _is_sep17_plan(plan):
+        expected_window = ("2026-09-17T01:00:00+00:00", "2026-09-17T01:40:00+00:00",
+                           "2026-09-17T02:00:00+00:00")
+        if (tuple(plan["admission"].get(key) for key in
+                  ("not_before_utc", "dispatch_deadline_utc", "must_finish_before_utc")) != expected_window
+            or plan["admission"].get("bucket_date_utc") != "2026-09-17"
+            or _json_bytes(plan.get("previous_v5_successor")) != _json_bytes(_sep17_previous_binding(package))):
+            raise Item32Error("plan_binding")
+    elif "previous_v5_successor" in plan:
+        raise Item32Error("plan_binding")
     for name, digest in overlays.items():
         if _sha256_bytes((package / name).read_bytes()) != digest:
             raise Item32Error("runtime_overlay_source_binding")
     ACTIVE_V5_PLAN = plan
-    WORK_ROOT = V5_WORK_ROOT
+    WORK_ROOT = V5_SEP17_WORK_ROOT if _is_sep17_plan(plan) else V5_WORK_ROOT
     EXPECTED_CONFIG_SHA256, EXPECTED_MANIFEST_SHA256 = V5_CONFIG_SHA256, V5_MANIFEST_SHA256
     IMAGE = "sha256:" + V5_CONFIG_SHA256
     EXPECTED_IMAGE_SOURCE_SHA256 = dict(image_sources)
     RUNTIME_OVERLAY_SHA256 = dict(overlays)
     RUNTIME_OVERLAY_CONTAINER_PATHS = {name: "/app/" + name for name in overlays}
+
+
+def _is_sep17_plan(plan: dict[str, Any] | None) -> bool:
+    return (isinstance(plan, dict) and plan.get("schema") == V5_PLAN_SCHEMA
+            and isinstance(plan.get("admission"), dict)
+            and plan["admission"].get("work_root") == str(V5_SEP17_WORK_ROOT))
+
+
+def _sep17_previous_binding(package: Path) -> dict[str, Any]:
+    raw = (package / V5_SEP16_FINAL_REF).read_bytes()
+    if len(raw) != 2386 or _sha256_bytes(raw) != V5_SEP16_FINAL_SHA256:
+        raise Item32Error("predecessor_final_seal")
+    seal = json.loads(raw)
+    return {"work_root": str(V5_WORK_ROOT), "package_root": str(V5_SEP16_PACKAGE_ROOT),
+            "status": "HOLD", "call_date_utc": "2026-09-16", "collection_admissions": 11,
+            "initialization_count": 2, "physical_http_count": 13, "outcome_unknown_count": 0,
+            "automatic_retry_count": 0, "no_replay": True, "files": seal["files"],
+            "final_readback": {"ref": V5_SEP16_FINAL_REF,
+                "host_ref": str(V5_WORK_ROOT / "hold-final-readback.json"),
+                "bytes": 2386, "sha256": V5_SEP16_FINAL_SHA256}}
 
 
 def _read_regular_file(
@@ -702,6 +738,8 @@ def _acquire_predecessor_locks() -> list[int]:
         roots = (SEALED_ORIGINAL_ROOT, SEALED_DIAGNOSTIC_ROOT)
         if ACTIVE_V5_PLAN is not None:
             roots += (SEALED_SUCCESSOR_ROOT,)
+        if _is_sep17_plan(ACTIVE_V5_PLAN):
+            roots += (V5_WORK_ROOT,)
         for root in roots:
             descriptor = os.open(
                 root / "executor.lock", os.O_RDONLY | os.O_NOFOLLOW
@@ -881,6 +919,10 @@ def _verify_predecessors(
         previous = _verify_v5_previous(plan["previous_successor"])
         result["previous_successor"] = previous
         result["call_dates"].append(previous["call_date_utc"])
+    if _is_sep17_plan(plan):
+        previous, call_dates = _verify_sep16_v5_previous(plan["previous_v5_successor"])
+        result["previous_v5_successor"] = previous
+        result["call_dates"].extend(call_dates)
     return result
 
 
@@ -916,6 +958,91 @@ def _verify_v5_previous(binding: dict[str, Any]) -> dict[str, Any]:
             "call_date_utc": _parse_clock(rows[0][0]).date().isoformat(), "no_replay": True}
 
 
+def _verify_sep16_v5_previous(binding: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Read the one sealed Sep16 HOLD; never repair or replay its ledger."""
+    seal = _read_regular_file(Path(binding["final_readback"]["host_ref"]), max_size=65536, root_only=True)
+    if len(seal) != 2386 or _sha256_bytes(seal) != V5_SEP16_FINAL_SHA256:
+        raise Item32Error("predecessor_final_seal")
+    originals = {}
+    for name, expected in binding["files"].items():
+        path = Path(name)
+        raw = _read_regular_file(path, max_size=64 * 1024 * 1024, root_only=path.name != "hot_keywords.db")
+        if (len(raw) != expected["bytes"] or _sha256_bytes(raw) != expected["sha256"]
+            or oct(stat.S_IMODE(os.lstat(path).st_mode)) != expected["mode"]):
+            raise Item32Error("predecessor_digest")
+        originals[name] = raw
+    admission = json.loads(originals[str(V5_WORK_ROOT / "item32-admission.json")])
+    run_name = admission.get("run_directory_name")
+    if (not isinstance(run_name, str) or re.fullmatch(r"run-[A-Za-z0-9_-]{1,64}", run_name) is None
+        or admission.get("status") != "HOLD" or type(admission.get("provider_calls")) is not int
+        or admission["provider_calls"] != 11 or type(admission.get("outcome_unknown_count")) is not int
+        or admission["outcome_unknown_count"] != 0 or type(admission.get("automatic_retry_count")) is not int
+        or admission["automatic_retry_count"] != 0 or admission.get("no_replay") is not True
+        or admission.get("budget", {}).get("bucket_date") != "2026-09-16"
+        or admission.get("physical_http_budget") != V5_PHYSICAL_BUDGET):
+        raise Item32Error("predecessor_shape")
+    run = V5_WORK_ROOT / run_name
+    database = run / "task-store/hot_keywords.db"
+    if str(database) not in originals:
+        raise Item32Error("predecessor_shape")
+    connection = sqlite3.connect(f"file:{database}?mode=ro&immutable=1", uri=True)
+    try:
+        rows = connection.execute("SELECT ordinal,endpoint,status,admitted_at,admitted_date,completed_at "
+                                  "FROM xhs_trends_provider_attempts ORDER BY ordinal").fetchall()
+    finally:
+        connection.close()
+    if (len(rows) != 11 or any(row[0] != index + 1 or row[1] != ENDPOINT_SEQUENCE[index]
+        or row[2] != ("succeeded" if index < 10 else "failed") or row[4] != "2026-09-16"
+        or _parse_clock(row[3]).date().isoformat() != "2026-09-16"
+        or _parse_clock(row[5]).date().isoformat() != "2026-09-16"
+        or _parse_clock(row[5]) < _parse_clock(row[3]) for index, row in enumerate(rows))):
+        raise Item32Error("predecessor_store_shape")
+    receipt = json.loads(originals[str(run / "worker-receipt.json")])
+    expected_summary = {"initialization_dispatches_observed": 2,
+        "initialization_request_counts": {"dsl": 1, "session": 1}, "collection_dispatches_observed": 11,
+        "response_events_observed": 13, "unknown_events_observed": 0,
+        "unresolved_dispatches_observed": 0, "invalid_observations": 0, "observation_complete": True}
+    observations = receipt.get("physical_http_observations")
+    if (type(receipt.get("exit_code")) is not int or receipt["exit_code"] != 1
+        or receipt.get("secret_values_recorded") is not False
+        or _json_bytes(receipt.get("physical_http_summary")) != _json_bytes(expected_summary)
+        or not isinstance(observations, list) or len(observations) != 26):
+        raise Item32Error("predecessor_worker_shape")
+    first_http, last_http = None, None
+    for index, kind in enumerate(["dsl", "session", *ENDPOINT_SEQUENCE[:11]]):
+        dispatch, response = observations[index * 2:index * 2 + 2]
+        if (dispatch.get("phase") != "dispatch" or response.get("phase") != "response"
+            or any(item.get("request_kind") != kind or type(item.get("sequence")) is not int
+                   or item["sequence"] != index + 1 for item in (dispatch, response))):
+            raise Item32Error("predecessor_worker_shape")
+        first, last = _parse_clock(dispatch.get("at")), _parse_clock(response.get("at"))
+        if (first.date().isoformat() != "2026-09-16" or last.date().isoformat() != "2026-09-16"
+            or first > last or last_http is not None and first < last_http):
+            raise Item32Error("predecessor_worker_shape")
+        first_http = first if first_http is None else first_http
+        last_http = last
+        if index >= 2 and not _parse_clock(rows[index - 2][3]) <= first <= last <= _parse_clock(rows[index - 2][5]):
+            raise Item32Error("predecessor_store_shape")
+    probes = [json.loads(originals[str(run / f"database-{phase}-probe.json")]) for phase in ("before", "after")]
+    for probe in probes:
+        if (any(type(probe.get(key)) is not int or probe[key] != 0 for key in
+                ("write_count", "tuple_write_count", "active_or_manual_count", "session_blocked_count", "today_attempt_count"))
+            or probe.get("server_enforced_read_only") is not True or probe.get("write_tables") != []
+            or probe.get("xid_assigned") is not False or probe.get("transaction_rolled_back") is not True
+            or probe.get("secret_values_recorded") is not False
+            or probe.get("readback_query_sha256") != DB_PROBE_QUERYSET_SHA256
+            or not isinstance(probe.get("session_identity_sha256"), str)
+            or re.fullmatch(r"[0-9a-f]{64}", probe["session_identity_sha256"]) is None):
+            raise Item32Error("predecessor_database_proof")
+    before, after = map(lambda value: _parse_clock(value["observed_at"]), probes)
+    if (probes[0]["session_identity_sha256"] != probes[1]["session_identity_sha256"]
+        or before.date().isoformat() != "2026-09-16" or after.date().isoformat() != "2026-09-16"
+        or not before <= first_http <= last_http <= after <= _parse_clock(json.loads(seal)["at"])):
+        raise Item32Error("predecessor_database_proof")
+    return ({**binding, "host_final_readback_verified": True, "database_readonly_probes_verified": True},
+            [_parse_clock(row[3]).date().isoformat() for row in rows])
+
+
 def _admission_budget(
     plan: dict[str, Any],
     predecessor: dict[str, Any],
@@ -937,7 +1064,7 @@ def _admission_budget(
     prior_used = sum(
         1 for value in predecessor["call_dates"] if value == bucket
     )
-    if prior_used != 0:
+    if prior_used != 0 or (_is_sep17_plan(plan) and any(value >= bucket for value in predecessor["call_dates"])):
         raise Item32Error("utc_budget_not_available")
     return {
         "bucket_date": bucket,
@@ -2094,7 +2221,7 @@ def _build_artifacts(
             "diagnostic_result_sha256": predecessor[
                 "diagnostic_result_sha256"
             ],
-            "predecessor_provider_call_count": 3 if physical is not None else 2,
+            "predecessor_provider_call_count": 14 if _is_sep17_plan(plan) else 3 if physical is not None else 2,
             "predecessors_unchanged": True,
             "budget": budget,
             "runtime_readback": runtime_readback,
@@ -2166,6 +2293,8 @@ def _build_artifacts(
     }
     if physical is not None:
         terminal_payload["successor"]["previous_successor"] = predecessor["previous_successor"]
+        if _is_sep17_plan(plan):
+            terminal_payload["successor"]["previous_v5_successor"] = predecessor["previous_v5_successor"]
         terminal_payload["execution"]["physical_http"] = {
             "initialization_count": 2, "collection_count": 34, "total_count": 36,
             "total_limit": 36, "automatic_retry_count": 0,
@@ -3046,17 +3175,20 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--readback-only", action="store_true")
     parser.add_argument("--v5-readback-only", action="store_true")
+    parser.add_argument("--v5-sep17-readback-only", action="store_true")
     parser.add_argument("--plan")
     parser.add_argument("--adapter")
     parser.add_argument("--hold-evidence")
     args = parser.parse_args(argv)
-    if args.readback_only or args.v5_readback_only:
+    if args.readback_only or args.v5_readback_only or args.v5_sep17_readback_only:
         if args.plan or args.adapter or args.hold_evidence:
             parser.error("readback-only does not accept execution inputs")
-        if args.readback_only and args.v5_readback_only:
+        if sum((args.readback_only, args.v5_readback_only, args.v5_sep17_readback_only)) != 1:
             parser.error("select one retained identity")
         if args.v5_readback_only:
             WORK_ROOT = V5_WORK_ROOT
+        if args.v5_sep17_readback_only:
+            WORK_ROOT = V5_SEP17_WORK_ROOT
         result = read_retained_result()
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "RETAINED_BYTES_READBACK_ONLY" else 2

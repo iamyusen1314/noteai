@@ -1,3 +1,13 @@
+September16 CURRENT: Readiness32/37; Item31 original WeChat chain is VERIFIED and
+its unique bill automation is deleted. Amap formal business and report-history repairs
+are live; no duplicate deployment or backup. Item32 recovered session produced13 real
+HTTP (2init+11collection) before local recommendation code1000 incompatibility; original
+HOLD and zero-write cleanup are sealed. The endpoint-specific repair is committed and
+one Sep17 01:00–02:00UTC successor (dispatch<01:40) is bound to existing owner authority,
+with full Sep16 predecessor proof and new UTC fresh0/34 required. Exact current source,
+package and scheduling stage are at Handoff CURRENT; no old dated dispatch below is
+reactivated. Item33 waits for actual32;36/37/38 follow existing dependencies.
+
 September15 15:36UTC actual outcome supersedes dispatch wording below: the repaired
 Item32 once-run started15:30:12UTC, fresh0/34, one homefeed attempt failed with
 remote_business_error, unknown0/retry0, HOLD/no_replay. Original read-only probes

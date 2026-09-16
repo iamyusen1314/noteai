@@ -1,4 +1,18 @@
-September16 22:40BJT CURRENT: The recovered XHS session completed real session
+September16 CURRENT: Recommendation code1000 compatibility is repaired only for the
+exact Trends endpoint with success=true and usable data.sug_items; original numeric
+code and safe total/usable counts reach the terminal. Other endpoints/Tracking remain
+strict. This does not retrospectively validate the original1490-byte response or
+change its HOLD. A separate authorized Sep17 01:00–02:00UTC plan, dispatch<01:40,
+retains the entire Sep16 predecessor11collection/2init/13HTTP and original zero-write
+proofs. No same-day supplement, reset, replay or automatic reschedule. New UTC fresh0/34
+and actual provider availability remain execution-time conditions. Source preparation
+and scheduling are in progress; no claim that the schedule or Item32 is complete.
+122 profile/flow/gate tests plus independent review passed. Readiness32/37.
+At14:58:42UTC Admin read current controlled Amap remaining49994/50000 using the
+Sep15 official snapshot plus5 subsequent admissions; this is not fresh official billing.
+The formal integration and original saved business remain, with new Amap fees UNKNOWN.
+
+September16 22:40BJT HISTORICAL: The recovered XHS session completed real session
 initialization and10 homefeed responses. The first search_recommend response was
 HTTP200/success=true/integer code1000; local uniform code0 validation rejected it.
 Current upstream7077c88 reads success without that numeric restriction, but the
