@@ -203,7 +203,7 @@ class ReasoningSafetyTests(unittest.TestCase):
         async def fake_repair(title, body, session, user_msg):
             return title, body, 72.0, {}, "良好", [], False
 
-        async def fake_shape(title, body, domain, fact_source, route):
+        async def fake_shape(title, body, domain, fact_source, route, *, constraint_context="", memory_context=""):
             return body
 
         fake_db = FakeDB()
@@ -227,7 +227,7 @@ class ReasoningSafetyTests(unittest.TestCase):
             api._mr.stream_chat = fake_stream_chat
             api._repair_chat_note_if_needed = fake_repair
             api._shape_body_for_delivery = fake_shape
-            api._sanitize_title_for_delivery = lambda title, fact_source, domain: title
+            api._sanitize_title_for_delivery = lambda title, fact_source, domain, constraint_context="": title
             api._memory.check_and_record_achievements = lambda *_args, **_kwargs: []
             api._memory.add_context = lambda *_args, **_kwargs: None
 

@@ -2744,7 +2744,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <button class="nav-tab active" onclick="showPage('landing',this)">首页</button>
     <button class="nav-tab" onclick="goToDiagnose(this)">开始诊断</button>
     <button class="nav-tab" onclick="showPage('live',this)">处理进度</button>
-    <button class="nav-tab" onclick="showPage('report',this)">诊断报告</button>
+    <button class="nav-tab" onclick="showPage('report',this)">报告</button>
     <button class="nav-tab" onclick="showPage('profile',this)">成长档案</button>
     <button class="nav-tab" onclick="showPage('tech',this)">技术引擎</button>
     <button class="nav-tab" onclick="showPage('chat',this)" style="background:linear-gradient(135deg,rgba(123,97,255,0.15),rgba(255,111,216,0.1));border:1px solid rgba(123,97,255,0.25);color:var(--holo-mid)">💬 对话优化</button>
@@ -3648,19 +3648,19 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 <div class="page" id="page-report">
   <div class="report-page">
 
-    <!-- ── 诊断历史列表 ──────────────────────────────────────── -->
+    <!-- ── 报告历史列表 ──────────────────────────────────────── -->
     <div id="diag-history-section" style="margin-bottom:32px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0">
-          <i data-lucide="history" style="width:18px;height:18px;vertical-align:-3px;margin-right:8px"></i>诊断历史
+          <i data-lucide="history" style="width:18px;height:18px;vertical-align:-3px;margin-right:8px"></i>报告历史
         </h2>
         <span id="diag-history-count" style="font-size:12px;color:var(--text-muted)"></span>
       </div>
       <!-- 未登录提示 -->
       <div id="diag-history-login" style="display:none;text-align:center;padding:32px;background:var(--surf-2);border-radius:14px;border:1px solid var(--border)">
         <div style="font-size:32px;margin-bottom:10px">🔒</div>
-        <div style="color:var(--text);font-weight:600;margin-bottom:6px">登录后查看诊断历史</div>
-        <div style="color:var(--text-muted);font-size:13px;margin-bottom:14px">所有诊断报告自动保存，随时回顾</div>
+        <div style="color:var(--text);font-weight:600;margin-bottom:6px">登录后查看报告历史</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:14px">已完成的生成与诊断报告保存在这里，查看不会重新生成或扣分</div>
         <button onclick="openAuthModal('login')" style="padding:8px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600;cursor:pointer">登录</button>
       </div>
       <!-- 历史列表 -->
@@ -5436,7 +5436,7 @@ function showToast(msg) {
 }
 
 async function shareDiagnosisCard(button) {
-  const diagnosis = _diagnoseResult;
+  const diagnosis = reportDiagnosisResult();
   if (!diagnosis || diagnosis._error) {
     showToast('请先完成一次诊断，再生成分享卡片');
     return;
@@ -6207,6 +6207,14 @@ let _diagnosePromise = null;
 let _isGenerateMode  = false;
 let _genStreamActive = false;
 let _diagnosisStreamActive = false;
+// Historical report viewing must not replace a task that is waiting for input.
+let _historyReportSelection = null;
+let _reportSelectionSequence = 0;
+let _reportHistorySequence = 0;
+function clearReportSelection() { _historyReportSelection = null; _reportSelectionSequence += 1; }
+function reportGenerationResult() { return _historyReportSelection?.report_type === 'generate' ? _historyReportSelection.result : _generateResult; }
+function reportDiagnosisResult() { return _historyReportSelection?.report_type === 'analyze' ? _historyReportSelection.result : _diagnoseResult; }
+function reportIsGeneration() { return _historyReportSelection ? _historyReportSelection.report_type === 'generate' : _isGenerateMode; }
 
 function createPaidRequestId(prefix) {
   const randomPart = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
@@ -6251,6 +6259,7 @@ async function startGeneration() {
   const identityMatches = () => _chatIdentityMatches(identitySnapshot) && _authToken === requestToken;
   if (!requestToken || !identityMatches()) { openAuthModal('login'); return; }
   _isGenerateMode = true;
+  clearReportSelection();
   _generateResult = null;
   _genStreamActive = true;
   _setGenerationSubmitBusy(true);
@@ -6885,6 +6894,7 @@ async function prepareDiagnosis() {
     : !PUBLIC_PRODUCT && _authToken === requestToken;
 
   _isGenerateMode = false;
+  clearReportSelection();
   const selectedLabel = document.querySelector('.input-type.selected .input-type-label')?.textContent || '';
 
   // ── 读取约束条件（对所有模式生效）──
@@ -7182,16 +7192,16 @@ function renderMarketTimingEvidence(mt) {
 }
 
 async function populateReport() {
-  if (_isGenerateMode) { return populateGenerateReport(); }
+  if (reportIsGeneration()) { return populateGenerateReport(); }
 
   // 诊断模式：确保诊断区块可见，生成区块隐藏
   const diagBody = document.getElementById('diagReportBody');
   const genBody  = document.getElementById('genReportBody');
 
   // 等待 API 响应
-  try { if (_diagnosePromise) await _diagnosePromise; } catch(e) { /* 诊断失败时继续显示空状态 */ }
+  try { if (!_historyReportSelection && _diagnosePromise) await _diagnosePromise; } catch(e) { /* 诊断失败时继续显示空状态 */ }
 
-  const d = _diagnoseResult;
+  const d = reportDiagnosisResult();
   renderProviderAnswer(d?.fact_enrichment, document.querySelector('#page-report .report-page'), 'report-provider-answer');
 
   // ── 无数据：用内联空状态替换内容（不用 position:absolute，避免高度计算问题）──
@@ -7511,7 +7521,8 @@ function copyText(elId) {
 
 /* ── Generation report populate ─────────────────────────────── */
 async function populateGenerateReport() {
-  renderGenerationHeader(_generateResult);
+  renderGenerationHeader(reportGenerationResult());
+  document.getElementById('shareCardBanner').style.display = 'none';
   // 立即切换视图：隐藏诊断Demo，显示生成区块（含loading状态）
   const diagBody = document.getElementById('diagReportBody');
   const genBody  = document.getElementById('genReportBody');
@@ -7520,12 +7531,12 @@ async function populateGenerateReport() {
 
   // 尚无结果时显示 loading 占位
   const mainTitle = document.getElementById('genMainTitle');
-  if (mainTitle && !_generateResult) {
+  if (mainTitle && !reportGenerationResult()) {
     mainTitle.innerHTML = '<span style="color:var(--text-muted);font-style:italic;font-weight:400">等待真实生成结果…</span>';
   }
 
-  if (_diagnosePromise) await _diagnosePromise;
-  const d = _generateResult;
+  if (!_historyReportSelection && _diagnosePromise) await _diagnosePromise;
+  const d = reportGenerationResult();
   renderGenerationHeader(d);
   const saveNotice = document.getElementById('generationSaveNotice');
   if (saveNotice) {
@@ -7542,10 +7553,11 @@ async function populateGenerateReport() {
   }
 
   // 更新页面标题
+  document.getElementById('chatEntryBanner').style.display = '';
   const h1 = document.querySelector('#page-report .report-title h1');
   if (h1) h1.innerHTML = '<i data-lucide="wand-2"></i>生成报告';
   const meta = document.getElementById('reportMeta');
-  if (meta) meta.textContent = `${d._domain || ''}品类 · AI 生成爆文 · ${new Date().toISOString().slice(0,10)}`;
+  if (meta) meta.textContent = `${d._domain || ''}品类 · AI 生成爆文${d.created_at ? ' · ' + _fmtLocalTime(d.created_at) : ''}`;
 
   // 分数环
   const pct = d.ces_percentile || 0;
@@ -7565,6 +7577,7 @@ async function populateGenerateReport() {
 
   // 标题变体
   const varList = document.getElementById('genVariantsList');
+  if (varList) varList.innerHTML = '';
   if (varList && d.title_variants && d.title_variants.length) {
     varList.innerHTML = d.title_variants.map((v, i) => `
       <div style="display:flex;align-items:center;gap:10px;background:var(--surf-3);border:1px solid var(--border);
@@ -7588,6 +7601,8 @@ async function populateGenerateReport() {
 
   // 话题标签（从 note_body 提取 #话题 ）
   const extractedTags = (d.note_body || '').match(/#[一-龥\w]+/g) || [];
+  document.getElementById('genTagsList').innerHTML = '';
+  document.getElementById('genTagsCard').style.display = 'none';
   if (extractedTags.length) {
     const tagsEl = document.getElementById('genTagsList');
     if (tagsEl) {
@@ -7610,6 +7625,8 @@ async function populateGenerateReport() {
   }
 
   // 特征命中
+  document.getElementById('genFeaturesList').innerHTML = '';
+  document.getElementById('genFeaturesCard').style.display = 'none';
   if (d.feature_hits && Object.keys(d.feature_hits).length) {
     const fl = document.getElementById('genFeaturesList');
     if (fl) {
@@ -7629,6 +7646,9 @@ async function populateGenerateReport() {
   // 市场时机：有数据则渲染，无数据显示说明
   const _genMkCard = document.getElementById('genTimingCard');
   if (!d.market_timing && _genMkCard) {
+    document.getElementById('genTimingCoef').textContent = '—';
+    document.getElementById('genTimingSuggest').style.display = 'none';
+    document.getElementById('genTimingSuggestChips').innerHTML = '';
     const _gNote = document.getElementById('genTimingNote');
     if (_gNote) _gNote.innerHTML = '<span style="color:var(--text-muted);font-size:12px">暂无可解释热词证据。趋势建议只作参考，必须服务真实内容。</span>';
     _genMkCard.style.display = 'block';
@@ -7913,6 +7933,7 @@ function diagnosisDisplayScore(d) {
 }
 
 function diagnosisPlanScore(idx) {
+  const _diagnoseResult = reportDiagnosisResult();
   const planScore = _numOrNull(_diagnoseResult?.suggested_plans?.[idx]?.score);
   if (planScore !== null) return planScore;
   return _numOrNull(_diagnoseResult?.suggested_title_scores?.[idx]);
@@ -7932,6 +7953,7 @@ function copyPlan(idx) {
 }
 
 function loadPlanToChat(idx) {
+  const _diagnoseResult = reportDiagnosisResult();
   const titleEl = document.getElementById('newTitle' + idx);
   const bodyEl  = document.getElementById('rp' + idx + '-body-text');
   const title = titleEl ? titleEl.textContent.trim() : '';
@@ -7953,6 +7975,7 @@ function loadPlanToChat(idx) {
 
 /* 从诊断报告顶部按钮进入：用原版笔记+完整诊断上下文开始对话优化 */
 function startDiagChatOptimization() {
+  const _diagnoseResult = reportDiagnosisResult();
   const d = _diagnoseResult;
   if (!completeProductResult(d)) { showToast('请先完成诊断'); return; }
   _noteDetailData = {
@@ -7967,6 +7990,7 @@ function startDiagChatOptimization() {
 }
 
 async function ensureDiagnosisRootNote(note) {
+  const _diagnoseResult = reportDiagnosisResult();
   const existing = note?.id || _diagnoseResult?._saved_note_id || _diagnoseResult?.saved_note_id || null;
   if (existing) return existing;
   if (!_authToken || !note || (!note.title && !note.body)) return null;
@@ -8004,6 +8028,7 @@ function diagnosisMediaContext(result) {
 }
 
 async function startChatFromDiagnosis() {
+  const _diagnoseResult = reportDiagnosisResult();
   if (!_noteDetailData) return;
   if (!_authToken) { openAuthModal('login'); return; }
   if (!chatBeginNoteContext()) return;
@@ -8468,7 +8493,7 @@ async function hydrateReportLifecycleWithNoteChain(d) {
     if (!res.ok || seq !== _reportLifecycleHydrateSeq) return;
     const data = await res.json();
     const group = findReportNoteGroup(data.groups || [], savedNoteId);
-    if (!group || seq !== _reportLifecycleHydrateSeq || _diagnoseResult !== d) return;
+    if (!group || seq !== _reportLifecycleHydrateSeq || reportDiagnosisResult() !== d) return;
     d.note_version_group = group;
     renderReportLifecycle(d);
   } catch(e) {
@@ -9482,7 +9507,7 @@ let _chatContextEpoch = 0;
 
 /* ── Entry point: called from "开始对话优化" button ── */
 async function startChatOptimization() {
-  const d = _generateResult;
+  const d = reportGenerationResult();
   if (!completeProductResult(d)) {
     document.getElementById("chatEntryBanner").style.display="none";
     document.getElementById("scoreRingNum").textContent="--";
@@ -9566,7 +9591,7 @@ function initChatPage() {
 
 /* ── 无感 Session 自动恢复（服务器重启后 session 丢失时调用） ── */
 async function _recreateChatSession() {
-  const d = _generateResult;
+  const d = reportGenerationResult();
   if (!d || d._error || !d._saved_note_id || d._saved_note_id !== _chatParentNoteId) return false;
   const identitySnapshot = _chatConversationSnapshot();
   try {
@@ -9664,6 +9689,12 @@ function chatBeginNoteContext() {
 }
 
 function chatClearUserState() {
+  clearReportSelection();
+  _reportHistorySequence += 1;
+  _currentDiagId = null;
+  document.getElementById('diag-history-list').innerHTML = '';
+  document.getElementById('diag-history-count').textContent = '';
+  document.getElementById('diag-detail-section').style.display = 'none';
   _chatUserStateEpoch += 1;
   _billingBalanceRevision += 1;
   window._lastUsageData = null;
@@ -10056,6 +10087,7 @@ function rememberTaskReference(task, identity) {
   localStorage.setItem(taskReferenceKey(identity.ownerId), JSON.stringify({session_id:task.session_id,operation:task.operation}));
 }
 function showTaskClarification(task) {
+  clearReportSelection();
   refreshCreditBalance();
   _isGenerateMode = task.operation === 'generate';
   _genStreamActive = false; _diagnosisStreamActive = false;
@@ -10161,6 +10193,7 @@ function renderTaskClarification(task) {
 }
 async function finishClarifiedTask(result, task, identity, token, recovered) {
   if (!_chatIdentityMatches(identity) || _authToken !== token) return;
+  clearReportSelection();
   result._domain = task.domain;
   if(result.saved_note_id) { result._saved_note_id=result.saved_note_id;result._saved_note_version=result.saved_note_version || 1;result._save_status='saved'; }
   _isGenerateMode = task.operation === 'generate';
@@ -10995,7 +11028,7 @@ async function loadTrackingIndex() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   诊断历史
+   报告历史（生成与诊断）
 ═══════════════════════════════════════════════════════════ */
 let _diagHistoryOffset = 0;
 let _diagHistoryTotal  = 0;
@@ -11054,15 +11087,17 @@ async function initReportPage() {
 
 	  await loadDiagnosisHistory(true);
 
-  // 自动展开报告：优先展开本 session 刚完成的诊断，否则展开最新历史记录
+  // A completed history entry is read-only; a waiting task stays independent.
   if (!_currentDiagId) {
-    const idToOpen = _diagnoseResult?.diagnosis_id
-      || document.querySelector('[id^="diag-card-"]')?.id?.replace('diag-card-', '');
-    if (idToOpen) openDiagDetail(idToOpen);
+    const first = document.querySelector('[data-report-id]');
+    if (first) await openReportDetail(first.dataset.reportType, first.dataset.reportId);
   }
 }
 
 async function loadDiagnosisHistory(reset = false) {
+  const identity = _chatIdentitySnapshot(), token = _authToken;
+  const sequence = ++_reportHistorySequence;
+  if (reset) _diagHistoryOffset = 0;
   const loginEl  = document.getElementById('diag-history-login');
   const listEl   = document.getElementById('diag-history-list');
   const countEl  = document.getElementById('diag-history-count');
@@ -11077,8 +11112,12 @@ async function loadDiagnosisHistory(reset = false) {
   if (listEl)  listEl.style.display  = 'flex';
 
   try {
-    const res  = await fetch(`${API_AUTH}/diagnoses?limit=10&offset=${_diagHistoryOffset}`, { headers: authHeader() });
+    const res  = await fetch(`${API_AUTH}/reports?limit=10&offset=${_diagHistoryOffset}`, { headers: {Authorization:'Bearer '+token} });
+    if (!_chatIdentityMatches(identity) || _authToken !== token || sequence !== _reportHistorySequence) return;
+    if (!res.ok) throw new Error('报告历史暂时无法读取');
     const data = await res.json();
+    if (!_chatIdentityMatches(identity) || _authToken !== token || sequence !== _reportHistorySequence) return;
+    if (!Array.isArray(data.reports) || !Number.isInteger(data.total)) throw new Error('报告历史返回不完整');
     _diagHistoryTotal = data.total;
 
     if (reset) listEl.innerHTML = '';
@@ -11087,37 +11126,43 @@ async function loadDiagnosisHistory(reset = false) {
       listEl.innerHTML = `
         <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px">
           <div style="font-size:40px;margin-bottom:12px">📋</div>
-          <div style="font-weight:600;margin-bottom:6px">暂无诊断记录</div>
-          <div style="font-size:13px">去「开始诊断」提交笔记，报告将自动保存在这里</div>
+          <div style="font-weight:600;margin-bottom:6px">暂无已完成报告</div>
+          <div style="font-size:13px">生成或诊断完成后，原报告会保存在这里；等待回答的任务请在原任务继续</div>
           <button ${productActionAttributes('goToDiagnose')} style="margin-top:14px;padding:9px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:13px;font-weight:600;cursor:pointer">去诊断笔记 →</button>
         </div>`;
       if (countEl) countEl.textContent = '';
+      if (moreEl) moreEl.style.display = 'none';
       return;
     }
 
-    if (countEl) countEl.textContent = `共 ${data.total} 次诊断`;
+    if (countEl) countEl.textContent = `共 ${data.total} 份报告`;
 
-    const latestId = data.diagnoses[0]?.id;  // 第一条是最新的
-
-    data.diagnoses.forEach((d, idx) => {
+    data.reports.forEach((d, idx) => {
+      if (!['analyze','generate'].includes(d.report_type) || typeof d.report_id !== 'string') return;
+      const key = `${d.report_type}:${d.report_id}`;
       const localTime = _fmtLocalTime(d.created_at);
       // 用 composite_score（V0.4 已内嵌时机特征，当前等同 ces_percentile），与报告详情分数环保持一致
-      const sc    = d.composite_score ?? d.ces_percentile;
+      const sc    = _numOrNull(d.composite_score ?? d.ces_percentile);
       const col   = sc >= 70 ? '#22C55E' : sc >= 55 ? '#F59E0B' : '#EF4444';
-      const isActive  = (d.id === _currentDiagId);
+      const isActive = _historyReportSelection
+        ? key === `${_historyReportSelection.report_type}:${_historyReportSelection.report_id}`
+        : d.report_type === 'analyze' && d.report_id === _currentDiagId;
       const isLatest  = (idx === 0 && reset && _diagHistoryOffset === 0);
       const card  = document.createElement('div');
-      card.id = `diag-card-${d.id}`;
+      card.id = d.report_type === 'analyze' ? `diag-card-${d.report_id}` : `gen-card-${d.report_id}`;
+      card.dataset.reportType = d.report_type;
+      card.dataset.reportId = d.report_id;
       card.style.cssText = `display:flex;align-items:center;gap:14px;padding:14px 18px;
         background:${isActive ? 'rgba(123,97,255,0.1)' : 'var(--surf-2)'};
         border:1px solid ${isActive ? 'rgba(123,97,255,0.5)' : 'var(--border)'};
         border-radius:14px;cursor:pointer;transition:all .2s`;
-      card.onmouseover = () => { if (d.id !== _currentDiagId) card.style.borderColor='rgba(123,97,255,0.35)'; };
-      card.onmouseout  = () => { if (d.id !== _currentDiagId) card.style.borderColor='var(--border)'; };
-      card.onclick = () => openDiagDetail(d.id);
+      card.onmouseover = () => { if (!card.dataset.active) card.style.borderColor='rgba(123,97,255,0.35)'; };
+      card.onmouseout = () => { if (!card.dataset.active) card.style.borderColor='var(--border)'; };
+      if (isActive) card.dataset.active = 'true';
+      card.onclick = () => openReportDetail(d.report_type, d.report_id);
       card.innerHTML = `
         <div style="width:48px;height:48px;border-radius:50%;border:2.5px solid ${col};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <span style="font-size:14px;font-weight:800;color:${col}">${sc ? sc.toFixed(0) : '--'}</span>
+          <span style="font-size:14px;font-weight:800;color:${col}">${sc !== null ? sc.toFixed(0) : '--'}</span>
         </div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
@@ -11127,17 +11172,19 @@ async function loadDiagnosisHistory(reset = false) {
             ${isLatest ? '<span style="font-size:10px;padding:1px 7px;border-radius:20px;background:rgba(123,97,255,0.2);border:1px solid rgba(123,97,255,0.4);color:#a78bfa;flex-shrink:0">最新</span>' : ''}
           </div>
           <div style="font-size:12px;color:var(--text-muted)">
-            ${escapeHtml(d.domain || '')} · ${escapeHtml(d.grade || '')} · ${escapeHtml(localTime)}
+            ${d.report_type === 'generate' ? '生成报告' : '诊断报告'} · ${escapeHtml(d.domain || '')} · ${escapeHtml(d.grade || '')} · ${escapeHtml(localTime)}
           </div>
         </div>
         <div style="color:rgba(123,97,255,0.8);font-size:13px;flex-shrink:0">查看 ›</div>`;
       listEl.appendChild(card);
     });
 
-    _diagHistoryOffset += data.diagnoses.length;
+    _diagHistoryOffset += data.reports.length;
     if (moreEl) moreEl.style.display = _diagHistoryOffset < _diagHistoryTotal ? 'block' : 'none';
   } catch(e) {
-    console.error('loadDiagnosisHistory error', e);
+    if (_chatIdentityMatches(identity) && _authToken === token && sequence === _reportHistorySequence) {
+      showToast(e?.message || '报告历史暂时无法读取；未重新生成或扣分');
+    }
   }
 }
 
@@ -11165,26 +11212,41 @@ function renderGenerationHeader(data) {
   document.getElementById('detail-note-title').textContent = data?.note_title || '本次生成';
   const score = data?.ces_percentile;
   document.getElementById('detail-meta').textContent = (data?._domain || data?.domain || '')
-    + ' · 视频或图文素材生成' + (Number.isFinite(score) ? ' · 项目评分 ' + score.toFixed(1) : '');
+    + ' · 视频或图文素材生成' + (Number.isFinite(score) ? ' · 项目评分 ' + score.toFixed(1) : '')
+    + (data?.created_at ? ' · ' + _fmtLocalTime(data.created_at) : '');
   const delBtn = document.getElementById('detail-delete-btn');
   if (delBtn) { delBtn.onclick = null; delBtn.style.display = 'none'; }
 }
 
 async function openDiagDetail(diagId) {
+  return openReportDetail('analyze', diagId);
+}
+
+async function openReportDetail(reportType, reportId) {
+  if (!['analyze','generate'].includes(reportType) || typeof reportId !== 'string' || !reportId) return;
   const identity=_chatIdentitySnapshot(), token=_authToken;
-  const previous=_diagnoseResult?.diagnosis_id===diagId && completeDiagnosisDetail(_diagnoseResult) ? _diagnoseResult : null;
-  _currentDiagId = diagId;
+  if (!token) return;
+  const sequence = ++_reportSelectionSequence;
+  const selected = _historyReportSelection;
+  const original = reportType === 'analyze' && _diagnoseResult?.diagnosis_id === reportId
+    && completeDiagnosisDetail(_diagnoseResult) ? _diagnoseResult : null;
+  const previous = selected?.report_type === reportType && selected.report_id === reportId ? selected.result : original;
+  const valid = () => _chatIdentityMatches(identity) && _authToken === token && sequence === _reportSelectionSequence;
+  _currentDiagId = reportType === 'analyze' ? reportId : null;
 
   // 高亮选中卡片
-  document.querySelectorAll('[id^="diag-card-"]').forEach(el => {
-    const id = el.id.replace('diag-card-', '');
-    el.style.background = id === diagId ? 'rgba(123,97,255,0.1)' : 'var(--surf-2)';
-    el.style.borderColor = id === diagId ? 'rgba(123,97,255,0.5)' : 'var(--border)';
+  document.querySelectorAll('[data-report-id]').forEach(el => {
+    const active = el.dataset.reportId === reportId && el.dataset.reportType === reportType;
+    if (active) el.dataset.active = 'true'; else delete el.dataset.active;
+    el.style.background = active ? 'rgba(123,97,255,0.1)' : 'var(--surf-2)';
+    el.style.borderColor = active ? 'rgba(123,97,255,0.5)' : 'var(--border)';
   });
 
   // 显示详情区
   document.getElementById('diag-detail-section').style.display = 'block';
   document.getElementById('detail-note-title').textContent = '加载中…';
+  document.getElementById('diagReportBody').style.display = 'none';
+  document.getElementById('genReportBody').style.display = 'none';
   // 切换报告前重置维度条和评分环，避免残留上一条报告的数据
   document.getElementById('scoreRingNum').textContent = '--';
   const gradeEl = document.getElementById('gradeText');
@@ -11202,22 +11264,28 @@ async function openDiagDetail(diagId) {
 
   // 删除按钮
   const delBtn = document.getElementById('detail-delete-btn');
-  if(PUBLIC_PRODUCT && delBtn) delBtn.style.display='none';
-  if (delBtn) delBtn.onclick = () => deleteDiagnosis(diagId);
+  if (delBtn) {
+    delBtn.style.display = PUBLIC_PRODUCT || reportType === 'generate' ? 'none' : '';
+    delBtn.onclick = reportType === 'analyze' ? () => deleteDiagnosis(reportId) : null;
+  }
 
   try {
-    const res  = await fetch(`${API_AUTH}/diagnoses/${diagId}`, { headers: {Authorization:'Bearer '+token} });
-    if (!_chatIdentityMatches(identity) || _authToken!==token || _currentDiagId!==diagId) return;
+    const res = await fetch(`${API_AUTH}/reports/${reportType}/${encodeURIComponent(reportId)}`, { headers: {Authorization:'Bearer '+token} });
+    if (!valid()) return;
     if (!res.ok) throw Error('原报告暂时无法读取');
-    let d = await res.json();
-    if (!_chatIdentityMatches(identity) || _authToken!==token || _currentDiagId!==diagId) return;
-    if(d.diagnosis_id!==diagId || !completeDiagnosisDetail(d)) {
-      if (!previous) throw Error('这份历史报告详情不完整，未重新诊断或扣分');
+    const envelope = await res.json();
+    if (!valid()) return;
+    if (envelope.report_type !== reportType || envelope.report_id !== reportId) throw Error('报告身份不一致，未更换原任务');
+    let d = envelope.result;
+    const complete = reportType === 'analyze'
+      ? d?.diagnosis_id === reportId && completeDiagnosisDetail(d)
+      : completeProductResult(d) && typeof d.note_title === 'string' && typeof d.note_body === 'string' && !!d.note_body.trim();
+    if (!complete) {
+      if (!previous || !completeProductResult(previous)) throw Error('这份历史报告详情不完整，未重新生成或扣分');
       d=previous;
       showToast('历史详情读取不完整，保留本次已完成报告');
     }
 
-    renderDiagnosisHeader(d);
     document.getElementById('reportMeta').textContent = '';
 
     // 注入 _inputTitle / _inputDesc / _domain 供 populateReport 使用
@@ -11225,28 +11293,33 @@ async function openDiagDetail(diagId) {
     d._inputDesc  = diagnosisOriginalBody(d) || d._inputDesc || '';
     d._domain     = d._domain || d.domain || '';
     d._saved_note_id = d.saved_note_id || d._saved_note_id || null;
-
-    _diagnoseResult = d;
-    _diagnosePromise = null;
-    _isGenerateMode = false;
+    d._saved_note_version = d.saved_note_version || d._saved_note_version || 1;
+    _historyReportSelection = {report_type: reportType, report_id: reportId, result: d};
+    if (reportType === 'analyze') renderDiagnosisHeader(d);
 
     // 用已有渲染逻辑填充报告
     await populateReport();
+    if (!valid()) return;
 
     // 滚动到详情区
     document.getElementById('diag-detail-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch(e) {
-    if (!_chatIdentityMatches(identity) || _authToken!==token || _currentDiagId!==diagId) return;
-    if(previous) { _diagnoseResult=previous;await populateReport();renderDiagnosisHeader(previous); }
-    else document.getElementById('diag-detail-section').style.display='none';
+    if (!valid()) return;
+    if(previous && completeProductResult(previous)) {
+      _historyReportSelection = {report_type: reportType, report_id: reportId, result: previous};
+      await populateReport();
+      if (reportType === 'analyze' && valid()) renderDiagnosisHeader(previous);
+    } else document.getElementById('diag-detail-section').style.display='none';
     showToast(e?.message || '原报告暂时无法读取，未重新诊断或扣分');
   }
 }
 
 function closeDiagDetail() {
+  clearReportSelection();
   _currentDiagId = null;
   document.getElementById('diag-detail-section').style.display = 'none';
-  document.querySelectorAll('[id^="diag-card-"]').forEach(el => {
+  document.querySelectorAll('[data-report-id]').forEach(el => {
+    delete el.dataset.active;
     el.style.background = 'var(--surf-2)';
     el.style.borderColor = 'var(--border)';
   });

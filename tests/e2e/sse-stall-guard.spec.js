@@ -1,5 +1,94 @@
 const { test, expect } = require('./offline-fixture');
 
+async function installReportHistory(page) {
+  await openApp(page);
+  await page.evaluate(() => {
+    const created='2026-09-15T22:00:00Z';
+    const generation={note_title:'已保存的德厨报告',note_body:'历史生成正文，不是后续改写。 #真实素材',
+      ces_percentile:73,grade:'良好',_domain:'美食',saved_note_id:'saved-generation',saved_note_version:1,
+      created_at:created,title_variants:['历史备选标题'],cover_analysis:'历史素材观察',
+      expert_opinions:[{role:'内容创作师',opinion:'历史专家分析原文'}],
+      fact_enrichment:{provider:'amap',status:'no_matching_facts',facts:{},sources:[],calls:{http_requests:1}}};
+    const diagnosis={diagnosis_id:'saved-diagnosis',note_title:'旧诊断报告',ai_diagnosis:'原诊断意见',
+      desc:'原诊断素材',ces_percentile:61,composite_score:61,grade:'良好',domain:'美食',created_at:created,
+      suggested_titles:['方案甲'],suggested_plans:[{title:'方案甲',body:'原诊断方案正文'}],expert_opinions:[],features:{}};
+    window.__reportFixtures={generation,diagnosis};
+    window.__reportRequests=[];
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async(url,opts={})=>{
+      const path=new URL(String(url),location.href).pathname;
+      if(!path.includes('/reports')) return nativeFetch(url,opts);
+      __reportRequests.push({path,method:opts.method || 'GET'});
+      if(path.endsWith('/reports')) return Response.json({total:2,reports:[
+        {report_type:'generate',report_id:'generation-task',note_title:generation.note_title,domain:'美食',ces_percentile:73,created_at:created},
+        {report_type:'analyze',report_id:'saved-diagnosis',note_title:diagnosis.note_title,domain:'美食',ces_percentile:61,created_at:created}]});
+      if(path.endsWith('/reports/generate/generation-task')) {
+        if(window.__delayReport) await new Promise(resolve=>{window.__releaseReport=resolve;});
+        return Response.json({report_type:window.__wrongReportType ? 'analyze' : 'generate',report_id:'generation-task',result:generation});
+      }
+      if(path.endsWith('/reports/analyze/saved-diagnosis')) return Response.json({report_type:'analyze',report_id:'saved-diagnosis',result:diagnosis});
+      return Response.json({detail:'missing'},{status:404});
+    };
+    _generateResult={_waiting_for_input:true,session_id:'waiting-taotao'};
+    _diagnoseResult=null;_diagnosePromise=null;_isGenerateMode=true;
+    showTaskClarification({session_id:'waiting-taotao',operation:'generate',status:'waiting_for_input',version:1,domain:'美食',
+      questions:[{question_id:'hours',question:'本分店营业时间？',merchant:'陶陶居',options:[]}],answers:[]});
+    document.querySelector('[data-task-answer]').value='尚不确定，保留我的输入';
+    window.__waitingPointer=localStorage.getItem(taskReferenceKey(_authUser.id));
+    showPage('report');
+  });
+  await expect(page.locator('#gen-card-generation-task')).toBeVisible();
+  await expect(page.locator('#genBodyText')).toContainText('历史生成正文');
+}
+
+test('report history restores generation after refresh and keeps waiting task and diagnosis independent', async ({page}) => {
+  await installReportHistory(page);
+  await expect(page.getByRole('button', {name:'报告',exact:true})).toBeVisible();
+  await expect(page.locator('#diag-history-list')).toContainText('生成报告');
+  await expect(page.locator('#diag-history-list')).toContainText('诊断报告');
+  await expect(page.locator('#genAgentResultsList')).toContainText('历史专家分析原文');
+  await expect(page.locator('#detail-meta')).toContainText('2026-09-');
+  await expect(page.locator('#detail-delete-btn')).toBeHidden();
+  await page.locator('#diag-card-saved-diagnosis').click();
+  await expect(page.locator('#detail-note-title')).toHaveText('旧诊断报告');
+  await expect(page.locator('#bodyOriginal')).toHaveText('原诊断素材');
+  expect(await page.evaluate(()=>reportDiagnosisResult().diagnosis_id)).toBe('saved-diagnosis');
+  await page.locator('#gen-card-generation-task').click();
+  await expect(page.locator('#genBodyText')).toContainText('历史生成正文');
+  await expect(page.locator('#shareCardBanner')).toBeHidden();
+  expect(await page.evaluate(()=>({
+    task:_generateResult,diagnosis:_diagnoseResult,mode:_isGenerateMode,
+    pointerUnchanged:localStorage.getItem(taskReferenceKey(_authUser.id))===__waitingPointer,
+    answer:document.querySelector('[data-task-answer]').value,
+    methods:[...new Set(__reportRequests.map(r=>r.method))],
+  }))).toEqual({task:{_waiting_for_input:true,session_id:'waiting-taotao'},diagnosis:null,mode:true,
+    pointerUnchanged:true,answer:'尚不确定，保留我的输入',methods:['GET']});
+  await page.reload();
+  await installReportHistory(page);
+  await expect(page.locator('#genAgentResultsList')).toContainText('历史专家分析原文');
+});
+
+test('report history rejects mismatched identity and late responses after a new task or account change', async ({page}) => {
+  await installReportHistory(page);
+  await page.evaluate(async()=>{closeDiagDetail();__wrongReportType=true;await openReportDetail('generate','generation-task');});
+  await expect(page.locator('#diag-detail-section')).toBeHidden();
+  expect(await page.evaluate(()=>_historyReportSelection)).toBeNull();
+  await page.evaluate(()=>{__wrongReportType=false;__delayReport=true;window.__oldRead=openReportDetail('generate','generation-task');});
+  await expect.poll(()=>page.evaluate(()=>typeof __releaseReport)).toBe('function');
+  await page.evaluate(async()=>{
+    clearReportSelection();_generateResult={_waiting_for_input:true,session_id:'new-waiting'};
+    __releaseReport();await __oldRead;
+  });
+  expect(await page.evaluate(()=>({selection:_historyReportSelection,task:_generateResult.session_id})))
+    .toEqual({selection:null,task:'new-waiting'});
+  await page.evaluate(()=>{window.__oldRead=openReportDetail('generate','generation-task');});
+  await expect.poll(()=>page.evaluate(()=>typeof __releaseReport)).toBe('function');
+  await page.evaluate(async()=>{chatClearUserState();_authUser={id:'other-owner'};_authToken='other-token';__releaseReport();await __oldRead;});
+  expect(await page.evaluate(()=>_historyReportSelection)).toBeNull();
+  await expect(page.locator('#diag-history-list')).toBeEmpty();
+  await expect(page.locator('#diag-detail-section')).toBeHidden();
+});
+
 async function openApp(page) {
   await page.addInitScript(() => {
     globalThis.__NOTEAI_SSE_WARNING_THRESHOLDS__ = {
@@ -73,7 +162,7 @@ test.describe('SSE warning-only guard', () => {
         closeDelayMs: 10,
       });
     });
-    await page.locator('.input-type', {hasText: '手动填写'}).click();
+    await page.locator('.input-type', {hasText: '填写笔记／上传素材'}).click();
     await page.locator('#inputTitle').fill('慢连接测试标题');
     await page.locator('#inputDesc').fill('慢连接测试正文');
     await page.evaluate(() => { startDiagnosis(); startDiagnosis(); });
@@ -143,7 +232,7 @@ test.describe('SSE warning-only guard', () => {
         errorAfterBytes: 20,
       });
     });
-    await page.locator('.input-type', {hasText: '手动填写'}).click();
+    await page.locator('.input-type', {hasText: '填写笔记／上传素材'}).click();
     await page.locator('#inputTitle').fill('多字节切片标题');
     await page.locator('#inputDesc').fill('多字节切片正文');
     await page.evaluate(() => startDiagnosis());
@@ -268,13 +357,14 @@ test.describe('original task clarification', () => {
       window.__historyDetailReads=0;
       window.fetch=async(url,opts={})=>{
         const path=String(url);
-        if(path.includes('/diagnoses?')) return Response.json({total:1,diagnoses:[{id:did,note_title:'原素材标题',domain:'美食',ces_percentile:71.2,created_at:'2026-09-14T08:00:00Z'}]});
-        if(path.endsWith('/diagnoses/'+did)) {
+        if(path.includes('/reports?')) return Response.json({total:1,reports:[{report_type:'analyze',report_id:did,note_title:'原素材标题',domain:'美食',ces_percentile:71.2,created_at:'2026-09-14T08:00:00Z'}]});
+        if(path.endsWith('/diagnoses/'+did) || path.endsWith('/reports/analyze/'+did)) {
           __historyDetailReads++;
           if(__historyDetailReads===3) return Response.json({detail:'temporarily unavailable'},{status:503});
           // Old diagnosis JSON is empty, but original owned note metadata exists.
-          return Response.json({diagnosis_id:did,saved_note_id:nid,note_title:'原素材标题',note_version_group:{versions:[
-            {id:'different-version',body:'后续改写不能冒充原文'},{id:nid,body:'原任务上传的真实素材正文'}]}});
+          const result={diagnosis_id:did,saved_note_id:nid,note_title:'原素材标题',note_version_group:{versions:[
+            {id:'different-version',body:'后续改写不能冒充原文'},{id:nid,body:'原任务上传的真实素材正文'}]}};
+          return Response.json(path.includes('/reports/') ? {report_type:'analyze',report_id:did,result} : result);
         }
         return fallback(url,opts);
       };

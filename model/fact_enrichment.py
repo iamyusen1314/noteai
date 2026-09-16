@@ -556,6 +556,7 @@ def _amap_core_terms(keyword: str) -> list[str]:
 
 
 def _amap_poi_matches_keyword(poi: dict, keyword: str) -> bool:
+    name = _amap_scalar(poi.get("name"))
     haystack = _amap_norm(
         " ".join(
             _amap_scalar(poi.get(field))
@@ -565,11 +566,36 @@ def _amap_poi_matches_keyword(poi: dict, keyword: str) -> bool:
     compact_keyword = _amap_norm(keyword)
     if not compact_keyword:
         return True
+    branch = re.fullmatch(r"([^（）()]+)[（(]([^（）()]+)[)）]", keyword.strip())
+    if branch:
+        # A supplier's business descriptor may sit between brand and branch.
+        # Compare those names separately; an address never proves identity.
+        brand, location = map(_amap_norm, branch.groups())
+        named_branch = re.fullmatch(r"([^（）()]+)[（(]([^（）()]+)[)）]", name.strip())
+        if named_branch:
+            actual_brand, actual_location = map(_amap_norm, named_branch.groups())
+            if actual_location != location:
+                return False
+        elif location and haystack.endswith(location):
+            actual_brand = haystack[:-len(location)]
+        else:
+            return False
+        # The query already carries city separately. Remove only its explicit
+        # leading city, and only the same city from the supplier name.
+        for city in sorted(_LOCATION_HINT_WORDS, key=len, reverse=True):
+            if brand.startswith(city):
+                remainder = brand[len(city):]
+                if len(remainder) >= 2 and not _AMAP_GENERIC_SUFFIX_RE.fullmatch(remainder):
+                    brand = remainder
+                    if actual_brand.startswith(city):
+                        actual_brand = actual_brand[len(city):]
+                break
+        if len(brand) < 2:
+            return False
+        descriptors = ("餐厅", "酒家", "饭店", "茶楼", "酒楼", "火锅店", "烤肉店", "咖啡店", "茶餐厅")
+        return actual_brand == brand or any(actual_brand == brand + suffix for suffix in descriptors)
     if compact_keyword in haystack:
         return True
-    branch = re.search(r"[（(]([^（）()]+)[)）]", keyword)
-    if branch and _amap_norm(branch.group(1)) not in haystack:
-        return False
     terms = _amap_core_terms(keyword)
     if not terms:
         return False

@@ -89,6 +89,85 @@ class FactEnrichmentTests(unittest.TestCase):
         for name in ['别家粤菜(万博广晟店)','长禧家.珑厨(东风店)']:
             self.assertFalse(facts._amap_poi_matches_keyword({'name':name,'address':keyword},keyword))
 
+    def test_amap_branch_match_keeps_brand_separate_from_business_descriptor(self):
+        keyword = '广州陶陶居(正佳广场店)'
+        for name in ('陶陶居(正佳广场店)', '陶陶居酒家(正佳广场店)',
+                     '广州陶陶居酒家（正佳广场店）'):
+            with self.subTest(name=name):
+                self.assertTrue(facts._amap_poi_matches_keyword({'name': name}, keyword))
+        for name in ('别家酒家(正佳广场店)', '陶陶居酒家(东风店)',
+                     '陶陶居酒家(新正佳广场店)', '陶陶居酒家(正佳广场店二店)',
+                     '北京陶陶居酒家(正佳广场店)', '假陶陶居酒家(正佳广场店)',
+                     '正佳广场(陶陶居酒家店)'):
+            with self.subTest(name=name):
+                self.assertFalse(facts._amap_poi_matches_keyword(
+                    {'name': name, 'address': keyword}, keyword))
+
+    def _amap_mock_result(self, pois, detail=None):
+        """Provider-shaped fixtures; no real HTTP, quota DB or model calls."""
+        import httpx
+        calls = []
+        def respond(request):
+            calls.append((request.url.path, dict(request.url.params)))
+            rows = pois if request.url.path == '/v3/place/text' else [detail]
+            return httpx.Response(200, json={'status': '1', 'infocode': '10000', 'pois': rows})
+        real_client = httpx.Client
+        with mock.patch.dict(os.environ, {'AMAP_WEB_KEY': 'fixture-not-a-secret', 'NOTEAI_FACT_SEARCH': '1'}), \
+             mock.patch.object(facts, '_authorized_fact_items', return_value=[]), \
+             mock.patch.object(facts, '_cache_ttl_seconds', return_value=0), \
+             mock.patch.object(facts.amap_quota, 'admit', side_effect=lambda endpoint: endpoint) as admit, \
+             mock.patch.object(facts.amap_quota, 'finish') as finish, \
+             mock.patch.object(facts.httpx, 'Client', side_effect=lambda **kw: real_client(
+                 transport=httpx.MockTransport(respond), **kw)):
+            result = facts.enrich_content_facts('美食', '广州陶陶居(正佳广场店)',
+                '门店名：广州陶陶居(正佳广场店)\n只核对本分店公开事实', provider='amap')
+        self.assertEqual(admit.call_count, len(calls))
+        self.assertEqual(finish.call_count, len(calls))
+        return result, calls
+
+    def test_amap_branch_http_query_has_no_fact_suffix_and_same_poi_detail(self):
+        result, calls = self._amap_mock_result(
+            [{'id': 'fixture-A', 'name': '陶陶居酒家(正佳广场店)', 'address': '广州市测试地址'}],
+            {'id': 'fixture-A', 'business': {'cost': '88'}})
+        self.assertEqual([path for path, _ in calls], ['/v3/place/text', '/v5/place/detail'])
+        self.assertEqual(calls[0][1]['keywords'], '广州陶陶居(正佳广场店)')
+        self.assertEqual(calls[0][1]['city'], '广州')
+        self.assertEqual(calls[0][1]['citylimit'], 'true')
+        self.assertEqual(calls[1][1]['id'], 'fixture-A')
+        self.assertEqual(result['status'], 'matched')
+        self.assertFalse(result['cached'])
+        self.assertEqual(result['calls']['http_requests'], 2)
+        self.assertIn('88', result['facts']['price'])
+        self.assertEqual(result['sources'][0]['url'], 'amap://poi/fixture-A')
+
+    def test_amap_branch_multiple_ids_remain_ambiguous_without_detail(self):
+        result, calls = self._amap_mock_result([
+            {'id': 'fixture-A', 'name': '陶陶居(正佳广场店)', 'address': '甲地址'},
+            {'id': 'fixture-B', 'name': '陶陶居酒家(正佳广场店)', 'address': '乙地址'}])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result['error_code'], 'MERCHANT_SELECTION_REQUIRED')
+        self.assertFalse(result['facts'])
+        self.assertFalse(result['entities'])
+
+    def test_amap_empty_or_other_branch_is_not_claimed_as_a_match(self):
+        for pois in ([], [{'id': 'fixture-other', 'name': '陶陶居酒家(东风店)',
+                           'address': '广州陶陶居(正佳广场店)'}]):
+            with self.subTest(pois=pois):
+                result, calls = self._amap_mock_result(pois)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(result['status'], 'no_matching_facts')
+                self.assertFalse(result['facts'])
+                self.assertFalse(result['sources'])
+
+    def test_amap_branch_wrong_detail_id_cannot_supply_facts(self):
+        result, calls = self._amap_mock_result(
+            [{'id': 'fixture-A', 'name': '陶陶居酒家(正佳广场店)', 'address': '甲地址'}],
+            {'id': 'fixture-B', 'business': {'cost': '88'}})
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result['error_code'], 'AMAP_DETAIL_ID_MISMATCH')
+        self.assertFalse(result['facts'])
+        self.assertFalse(result['sources'])
+
     def test_hotel_bullets_keep_names_and_do_not_cross_fill(self):
         items=facts._meituan_travel_items('- **广州甲酒店**：￥399起/晚。\n- **广州乙酒店**：\n酒店地址：广州市天河区乙路2号。')
         self.assertEqual([item['title'] for item in items],['广州甲酒店','广州乙酒店'])

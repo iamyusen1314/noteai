@@ -215,10 +215,21 @@ class FrontendReportStaticTests(unittest.TestCase):
     def test_generation_report_keeps_generate_context(self):
         self.assertIn("if (!_isGenerateMode && _diagnosePromise)", HTML)
         self.assertIn("? completeProductResult(_generateResult)", HTML)
-        self.assertIn("if (_isGenerateMode)", HTML)
+        self.assertIn("if (reportIsGeneration())", HTML)
         self.assertIn("await autoSaveGeneratedNote(_generateResult, identitySnapshot, requestToken)", HTML)
         self.assertIn("_isGenerateMode = true; showPage('report'); await populateReport();", HTML)
         self.assertNotIn("\n              autoSaveGeneratedNote(_generateResult);\n", HTML)
+
+    def test_report_history_reads_both_types_without_replacing_the_active_task(self):
+        self.assertIn("/reports?limit=10&offset=${_diagHistoryOffset}", HTML)
+        self.assertIn("/reports/${reportType}/${encodeURIComponent(reportId)}", HTML)
+        self.assertIn("let _historyReportSelection = null", HTML)
+        detail = HTML.split("async function openReportDetail(", 1)[1].split("function closeDiagDetail()", 1)[0]
+        for assignment in ("_generateResult =", "_diagnoseResult =", "_isGenerateMode =", "_diagnosePromise ="):
+            self.assertNotIn(assignment, detail)
+        self.assertNotIn("localStorage", detail)
+        self.assertNotIn("autoSaveGeneratedNote", detail)
+        self.assertNotIn("POST", detail)
 
     def test_chat_surfaces_supplement_prompts_and_safe_process_timeline(self):
         self.assertIn("function chatAppendSupplementPrompts", HTML)

@@ -14416,6 +14416,121 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
     return data
 
 
+def _generation_report_result(value: dict) -> dict:
+    """Read the saved public generation fields, never prepared inputs or messages."""
+    schemas = {
+        **_PERSISTED_DIAGNOSIS_SCHEMAS,
+        "note_title": "string", "note_body": "string",
+        "title_variants": ("list", "string"), "feature_hits": ("map", "bool"),
+        "quality_issues": ("list", "string"), "original_fact_context": "string",
+        "saved_note_version": "integer", "score_lift_repaired": "bool",
+        "score_lift_reason": "string",
+        "selection_meta": {
+            "candidate_count": "integer", "viable_count": "integer", "used_ranker": "bool",
+            "source_correction_count": "integer", "source_corrections_retained": "bool",
+            "selected_origin": "string", "selected_title": "string",
+            "selected_score": "nullable_number", "selected_selector_score": "nullable_number",
+            "candidates": ("list", {
+                "origin": "string", "title": "string", "score": "number",
+                "selector_score": "number", "blocking": "bool", "issue_count": "integer",
+                "publishable_prob": "nullable_number", "ranker_win_rate": "nullable_number",
+            }),
+        },
+    }
+    result = {}
+    for key, schema in schemas.items():
+        if key in value:
+            safe = _sanitize_public_schema_value(value[key], schema)
+            if safe is not _PUBLIC_SCHEMA_MISSING:
+                result[key] = safe
+    return result
+
+
+def _saved_generation_reports(user_id: str, report_id: str | None = None) -> list[dict]:
+    """Project completed original tasks; a rewrite remains a separate note version."""
+    sql = (
+        "SELECT c.id,c.note_id,c.domain,c.generate_ctx_json,c.created_at,c.updated_at,"
+        "r.completed_at FROM chat_sessions c "
+        "JOIN idempotency_requests r ON r.id=c.id AND r.user_id=c.user_id "
+        "JOIN notes n ON n.id=c.note_id AND n.user_id=c.user_id "
+        "WHERE c.user_id=? AND r.operation='generate' AND r.status='completed' "
+        "AND r.complete_applied=1 AND n.source='generate'"
+    )
+    params = (user_id,)
+    if report_id is not None:
+        sql += " AND c.id=?"
+        params += (report_id,)
+    rows = _db.fetchall(sql, params)
+    reports = []
+    for row in rows:
+        try:
+            context = _json.loads(row["generate_ctx_json"] or "{}")
+            task = context.get(_clarification.KEY) if isinstance(context, dict) else None
+            original = task.get("result") if isinstance(task, dict) else None
+            if (not isinstance(original, dict) or task.get("operation") != "generate"
+                    or task.get("status") != "completed"
+                    or original.get("saved_note_id") != row["note_id"]
+                    or not isinstance(original.get("note_title"), str)
+                    or not isinstance(original.get("note_body"), str)
+                    or not _retention_visible("note", row["note_id"], user_id)):
+                continue
+            result = _generation_report_result(original)
+            if task.get("answers") and (task.get("prepared") or {}).get("pipeline") == "generate_stream":
+                result.setdefault("expert_opinions_basis", "pre_clarification")
+            created_at = row["completed_at"] or row["created_at"]
+            result.update(_domain=row["domain"], created_at=created_at)
+            reports.append({"report_type": "generate", "report_id": row["id"],
+                            "result": result})
+        except (TypeError, ValueError, AttributeError):
+            # An incomplete historical record is not permission to reconstruct it.
+            continue
+    return reports
+
+
+@app.get("/reports")
+async def list_reports(limit: int = 20, offset: int = 0,
+                       user: dict = Depends(_auth.get_current_user)):
+    """Both report types share history, while their original storage stays intact."""
+    if not 1 <= limit <= 100 or offset < 0:
+        raise HTTPException(422, "报告分页参数无效")
+    reports = []
+    for row in _db.fetchall(
+        "SELECT id,note_title,domain,ces_percentile,composite_score,grade,created_at "
+        "FROM saved_diagnoses WHERE user_id=?", (user["id"],)
+    ):
+        if _retention_visible("diagnosis", row["id"], user["id"]):
+            reports.append({"report_type": "analyze", "report_id": row["id"],
+                            **{key: row[key] for key in (
+                                "note_title", "domain", "ces_percentile", "composite_score", "grade", "created_at")},
+                            "saved_note_id": None})
+    for report in _saved_generation_reports(user["id"]):
+        result = report["result"]
+        reports.append({"report_type": "generate", "report_id": report["report_id"],
+                        "note_title": result["note_title"], "domain": result["_domain"],
+                        "ces_percentile": result.get("ces_percentile"),
+                        "composite_score": result.get("composite_score"),
+                        "grade": result.get("grade", ""), "created_at": result["created_at"],
+                        "saved_note_id": result.get("saved_note_id")})
+    reports.sort(key=lambda item: (item["created_at"] or "", item["report_type"], item["report_id"]), reverse=True)
+    return {"reports": reports[offset:offset + limit], "total": len(reports)}
+
+
+@app.get("/reports/{report_type}/{report_id}")
+async def get_report(report_type: str, report_id: str,
+                     user: dict = Depends(_auth.get_current_user)):
+    if report_type == "analyze":
+        result = await get_diagnosis(report_id, user)
+    elif report_type == "generate":
+        rows = _saved_generation_reports(user["id"], report_id)
+        if len(rows) != 1:
+            raise HTTPException(404, "报告不存在或已到保存期限")
+        result = rows[0]["result"]
+        result["note_version_group"] = _build_note_version_group_for_root(result["saved_note_id"], user["id"])
+    else:
+        raise HTTPException(404, "报告类型不存在")
+    return {"report_type": report_type, "report_id": report_id, "result": result}
+
+
 @app.delete("/diagnoses/{diag_id}")
 async def delete_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_user)):
     row = _db.fetchone(
