@@ -11080,17 +11080,47 @@ def _home_replicability_density_issues(text: str, source_context: str | None, do
     return []
 
 
+_FOOD_LEGACY_PROMPT_TITLE_EXAMPLES = (
+    "成都这家火锅为啥排3小时？吃完我懂了",
+    "春熙路巷子里的毛肚，成都人藏了很久的秘密",
+    "以为是网红噱头，人均89元在成都把我整哭了",
+    "成都毛肚火锅人均89元，吃完当场订了明天的位",
+    "成都本地人才知道的排队王，一周去了三次",
+)
+
+
+def _food_prompt_example_reuse_issues(title: str, source_context: str | None, domain: str | None) -> list[str]:
+    """Catch complete legacy prompt examples, not arbitrary place/visit claims.
+
+    The caller supplies the creator brief, not the model's prompt or candidate.
+    Appended provider/expert context cannot make an example original user text.
+    A source match only exempts this copy check; it does not verify that claim.
+    """
+    if _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "") != "美食":
+        return []
+    original = re.split(r"【(?:联网事实补全|事实检索未完成|[^】]*(?:专家|草稿|候选)[^】]*)】", source_context or "", maxsplit=1)[0]
+    normalize = lambda value: re.sub(r"[\W_]+", "", value)
+    output, source = normalize(title or ""), normalize(original)
+    if any(normalize(example) in output and normalize(example) not in source
+           for example in _FOOD_LEGACY_PROMPT_TITLE_EXAMPLES):
+        return ["标题照用了原素材未提供的旧Prompt完整示例，结构化事实不能编造"]
+    return []
+
+
 def _delivery_integrity_issues(
     text: str, source_context: str | None, domain: str | None = None,
     *, title_variants: list[str] | None = None, constraint_context: str = "",
 ) -> list[str]:
     issues = _structured_fact_boundary_issues(text, source_context, domain)
     issues.extend(_user_constraint_delivery_issues(text, constraint_context))
+    issues.extend(_food_prompt_example_reuse_issues((text or "").split("\n", 1)[0], source_context, domain))
     for index, variant in enumerate(title_variants or [], 1):
         issues.extend(f"备选标题{index}：{issue}" for issue in
                       _structured_fact_boundary_issues(variant, source_context, domain))
         issues.extend(f"备选标题{index}：{issue}" for issue in
                       _user_constraint_delivery_issues(variant, constraint_context))
+        issues.extend(f"备选标题{index}：{issue}" for issue in
+                      _food_prompt_example_reuse_issues(variant, source_context, domain))
     issues.extend(_fitness_source_action_coverage_issues(text, source_context, domain))
     issues.extend(_fitness_unverified_result_issues(text, source_context, domain))
     issues.extend(_travel_hotel_fact_density_issues(text, source_context, domain))
