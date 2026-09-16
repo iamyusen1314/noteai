@@ -1,10 +1,68 @@
 # CURRENT EXECUTION CONTROL — September16 report/Amap closeout and Item32 session recovery
 
 本窗口收到owner明确接管指令，承接原工作树、既有普通工程授权及下列精确剩余项。
-旧窗口停止普通开发、构建和新测试，只保留查阅及原 `noteai-5ce` 对账续执行；
+旧窗口停止普通开发、构建和新测试；原 `noteai-5ce` 对账已完成并删除调度，旧窗口仅保留查阅；
 该限制不是新窗口的全局暂停。历史已完成业务不重跑；私有恢复/受控同步与Item36报价已完成；Item32本次唯一执行为HOLD，
 高德正式启用已部署且0902来源已修正。Item32按下方最新owner接续授权准备新的有限只读周期；旧失败不重放。
-新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
+原账单执行及恢复已安全结束，共享runtime/schema/ACL避让已释放；新窗口承接后续工程及Item31材料收口。
+
+### September16 13:19–13:24UTC 原5ce账单完成与旧窗口最终交接
+
+恢复基线沿实际工作树 `/Users/openclaw/Desktop/noteai` /
+`codex/quality-stabilization-real-chain`；本次文档提交父版本 `ea142b4fa3663142e38d0da3db9585f375fbd3e8`，
+提交前相对本地upstream记录领先261（未重新fetch），本次不push。七个受保护untracked路径原样保留。
+
+- 原Sep15订单 `5ce31ca0-e42d-4a86-bee5-d1bb4bea8757` / 原退款
+  `a34463d7-1e87-4a7b-91df-bb2a75286540` 的1200fen支付及全额原路退款保持；
+  本次只续原账单，**无新订单、支付或退款**。21:13北京时间原DMS owner会话实测可用后，
+  原launcher SHA `7498f3a03733e4215db0c5247de01d77784bd5a0ce2207ed1c1e8692218ced5f`
+  唯一执行原Sep15账单：13:17:29UTC `matched`、差异0、账单4行、1次应用级provider operation、
+  自动重试0；不将其说成1次HTTP或4个新订单。实际增量费用未确认，不填0。
+- 原bill activation `faee04b6-d570-4235-a169-c8f653337bb9`，reconciliation
+  `643a9afd-7e1d-4edd-8a04-9bdeb62e3f49`。独立DML capture仅记录
+  `payment_reconciliation_runs:1`；与原trade capture分别封存，不合造capture hash。
+- 13:19:16.463UTC / **21:19:16.463北京时间** final-readback：
+  `BILL_MATCHED_RESTORED_COLLECTOR_REMOVED`，SHA256
+  `0902054f84a2311e5d0a28f6a9d21ee54a6f9be0339cd05a3455a53dbc1e1ef3`。
+  Payment inactive/dead、任务容器不存在、临时15 triggers及function均已原owner撤除；
+  API c853f29/image cc1da220/CID11b49de9、正确0902配置、Admin image6c8cf579及
+  public `report-amap-0af33d961d7e`均保持。未恢复旧API或旧高德Key，无在途账单操作。
+- **原自动化 `noteai-5ce` 已成功删除，没有下次触发。** 原归属旧thread
+  `01a079a4-1c05-7d21-a98a-2d418cdd20c9` / 本机本项目 / Asia/Shanghai；
+  原Sep16到期及Sep17下一调度只是历史，不能再运行或另建替代任务。
+  已向新thread `01a0a50d-985c-7140-9db2-3bde812717bd`交回结果并释放共享操作避让。
+- **Readiness仍31/37。** 既有Item31单项validator实际返回
+  `exactly one noteai.item31.direct_payment_chain.v1 evidence object required`；
+  canonical及既有merchant-approval/canary-audit产物尚未组装，不把账单成功等同terminal通过。
+  原validator3189–3255要求可追溯官方开通摘要、身份/能力及准确`approved_at`绑定；
+  当前有owner Native/AppID完成确认及真实四能力成功，但尚无该官方摘要/时间来源。
+  这是原材料绑定缺口，**不是商户未开通，不要求专属批准函、重签或再做交易**。
+  原create请求/响应/idempotency摘要已从原API journal找回；13:24UTC owner只读核实
+  succeeded/refunded/reversed、1200/1200fen、cash2/entitlement2及matched结果。
+  不再将create摘要或账单列为缺失；其余原schema映射仍需完成，不能提前保证无其他errors。
+- 证据索引：主机 `/var/lib/noteai/native-9d62f98/bill-20260915` 的原
+  `prepared.json`、`work/canary-dml.jsonl`、`operator-result.json`、`closed.json`、`final-readback.json`；
+  本机私有 `/Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98/` 下
+  `bill5ce-final-readback.json`、`bill5ce-operation-readback.json`、
+  `bill5ce-original-create-readback.json`、`bill5ce-ledger-dms-expanded.txt`及原install/remove结果。
+  原UI粘贴SyntaxError发生在prepare代码执行前，后续唯一prepare已成功；补充app-role只读
+  SELECT被拒绝后未扩大权限或重试拒绝请求，改由既有owner只读核实。两项失败记录保留。
+
+| 未完成Item | 当前依赖与下一动作（不重跑已完成动作） |
+|---|---|
+|31|实际原单支付/回调/全退/账单已闭环；新窗口补原官方开通来源及准确时间绑定，组装两份独立capture与原调用摘要，再跑原单项validator；公众收款仍未开放。|
+|32|旧79e/fac5与HOLD封存；最新接续授权已覆盖恢复正常会话及有限只读周期，尚缺实际F会话安全绑定、fresh配额及有效窗口；以本入口11:08北京时间接续记录为准，不沿用Sep15过期窗口。|
+|33|等真实32 terminal及internal rollback；已有本地捕获部件复用。|
+|36|等33及真实unit/SG/TLS/临执行报价绑定；指定双区Standard公网ALB＋双EIP持续费用已有批准，尚未创建，实质变更才需新决定。|
+|37|等real AI、31、36真实前置，再做原联合商业链验收。|
+|38|等37及accepted ingress/ramp；现公开产品不替代该终态，不重复DNS切换。|
+
+Item34仍generation2 VERIFIED/readiness_credit=true；canonical SHA
+`e78fc888333279845ddb9cfbe862ebe1c4ca1ff2346f3f5503df3058bb3f8b3c`及原24h/3d依据见下方
+“当前37项”，本次未改动。长期模型/Prompt/同权益质量/真实成本原则及微信首发、支付宝延期、
+Item35 NOT_REQUIRED保持；普通调用费用授权不扩大长期资源。下一阶段封面生成只登记。
+目前无需owner重复批准已完成账单或既定ALB费用；Item32仅确需本人安全登录时具体提示，
+Item31先查已有官方来源，不虚构批准时间。既有内容质量提示继续由新窗口独立处理。
 
 ### September16 06:07UTC 最新状态摘要（下方同日过程按时间保留）
 
