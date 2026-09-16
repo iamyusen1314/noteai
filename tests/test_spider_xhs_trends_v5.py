@@ -30,7 +30,8 @@ class TrendsV5Tests(unittest.TestCase):
                 httpx.Response(200, json={"success": True, "code": 0, "data": {"user_id": USER}})]
 
     def ok(self):
-        return httpx.Response(200, json={"success": True, "code": 0, "data": {"items": [], "has_more": False}})
+        return httpx.Response(200, json={"success": True, "code": 0, "data": {
+            "items": [{"note_card": {"display_title": "合成美食测试标题"}}], "has_more": False}})
 
     def reader(self, responses, *, real_sign=False, admit=None, complete=None):
         requests, events, admissions, finishes = [], [], [], []
@@ -178,6 +179,59 @@ class TrendsV5Tests(unittest.TestCase):
         with self.assertRaisesRegex(legacy.XHSAdapterError,"signing_context_expired"):
             reader.request("POST",v5.TRENDS_HOME_API,{})
         self.assertEqual(len(sent),3)
+
+    def test_unproven_business_success_stops_first_homefeed_without_followup(self):
+        for payload in ({}, {"success": True}, {"success": "true", "code": 0},
+                        {"success": True, "code": False}, {"success": True, "code": "ok"},
+                        {"success": True, "code": 0, "data": {"code": -3}},
+                        {"success": True, "code": 0, "data": {"message": "access denied FAKE_PRIVATE"}}):
+            with self.subTest(payload_shape=sorted(payload)):
+                reader, sent, events, admitted, completed = self.reader(
+                    self.init()+[httpx.Response(200, json=payload), self.ok()])
+                with self.assertRaises(legacy.XHSAdapterError) as caught:
+                    reader.request("POST", v5.TRENDS_HOME_API, {})
+                self.assertEqual(caught.exception.code, "remote_business_error")
+                self.assertEqual(caught.exception.stage, "homefeed")
+                self.assertEqual(caught.exception.diagnostics["http_status"], 200)
+                if isinstance(payload.get("data"), dict) and "code" in payload["data"]:
+                    self.assertEqual(caught.exception.diagnostics["nested_business_code"], -3)
+                with self.assertRaisesRegex(legacy.XHSAdapterError, "operation_not_allowed"):
+                    reader.request("GET", v5.TRENDS_RECOMMEND_API+"?keyword=test")
+                self.assertEqual((len(sent), admitted), (3, ["homefeed"]))
+                self.assertEqual(completed, [(1, {"outcome": "failed", "error_code": "remote_business_error"})])
+                self.assertNotIn("FAKE_PRIVATE", json.dumps(events))
+
+    def test_first_homefeed_requires_usable_note_data_without_freeze_inference(self):
+        for data in (None, {}, {"items": []}, {"items": [None, {}]},
+                     {"items": [{"note_card": {"display_title": "  "}}]}):
+            with self.subTest(data_shape=type(data).__name__):
+                reader, sent, _, admitted, completed = self.reader(self.init()+[
+                    httpx.Response(200, json={"success": True, "code": 0, "data": data}), self.ok()])
+                with self.assertRaises(legacy.XHSAdapterError) as caught:
+                    reader.request("POST", v5.TRENDS_HOME_API, {})
+                self.assertEqual((caught.exception.code, caught.exception.stage), ("remote_schema_error", "homefeed"))
+                self.assertEqual(caught.exception.diagnostics["business_code"], 0)
+                with self.assertRaisesRegex(legacy.XHSAdapterError, "operation_not_allowed"):
+                    reader.request("POST", v5.TRENDS_HOME_API, {})
+                self.assertEqual((len(sent), admitted), (3, ["homefeed"]))
+                self.assertEqual(completed, [(1, {"outcome": "failed", "error_code": "remote_schema_error"})])
+
+    def test_empty_search_and_numeric_string_zero_remain_valid(self):
+        empty = httpx.Response(200, json={"success": True, "code": "0", "data": {"items": [], "code": "0"}})
+        reader, sent, _, admitted, completed = self.reader(self.init()+[self.ok(), empty, empty])
+        reader.request("POST", v5.TRENDS_HOME_API, {})
+        self.assertEqual(reader.request("GET", v5.TRENDS_RECOMMEND_API+"?keyword=test")["data"]["items"], [])
+        self.assertEqual(reader.request("POST", v5.TRENDS_SEARCH_API, {})["data"]["items"], [])
+        self.assertEqual((len(sent), len(admitted)), (5, 3))
+        self.assertEqual([result for _, result in completed], [{"outcome": "succeeded"}]*3)
+
+    def test_unproven_session_success_prevents_any_collection_admission(self):
+        reader, sent, _, admitted, _ = self.reader([self.init()[0], httpx.Response(200, json={
+            "code": 0, "data": {"user_id": USER}})])
+        with self.assertRaises(legacy.XHSAdapterError) as caught:
+            reader.request("POST", v5.TRENDS_HOME_API, {})
+        self.assertEqual((caught.exception.code, caught.exception.stage), ("remote_business_error", "session"))
+        self.assertEqual((len(sent), admitted), (2, []))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,22 @@
-September16 21:51BJT CURRENT: Item31 original WeChat payment/callback/full-refund/
+September16 22:14BJT CURRENT: Owner secure XHS save has been received and applied
+once on original API-F. At14:07:21UTC the existing image loaded the actual new
+17-cookie session from runtime settings in network-none mode; no XHS requests,
+DB operations or service restarts. Only this ticket temporary private key was
+removed14:14:18UTC; original recovery and failed history remain. This proves
+process configuration loading, not provider availability or fresh DB quota.
+A single prospective14:30–15:30UTC cycle (dispatch strictly before15:10) is bound
+to the actual02:17:00.658UTC owner continuation. Before provider access, existing
+readonly probes must show same-day0/34. Two cold initialization calls are separate
+from at most34 collection admissions, totalHTTP<=36, automatic retry0. First
+homefeed requires explicit business success and usable data before continuation;
+no data does not prove an account freeze.15Trends tests passed;28combined passed
+and2old curl tests remain unverified locally due to absent curl_cffi. Independent
+review found no blocker. Readiness32/37 remains; Item32 still requires real terminal
+evidence. WeChat original task is closed/deleted; Amap is formally enabled under
+existing quota with licence absence accepted by owner and provider fees UNKNOWN.
+Exact source, state and original receipts: Handoff CURRENT.
+
+September16 21:51BJT HISTORICAL: Item31 original WeChat payment/callback/full-refund/
 bill terminal evidence is verified; readiness32/37, remaining32/33/36/37/38.
 Original1200fen payment and1200fen refund, bill matched/discrepancy0; provider fees
 remain UNKNOWN. The original bill task is closed, collector removed, automation

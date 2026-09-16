@@ -388,6 +388,26 @@ class V5Trends(V5Detail):
                     _validate_response(response.status_code, {})
                 raise XHSAdapterError("remote_non_json", diagnostics=meta)
             result = _validate_response(response.status_code, payload)
+            # Trends may continue only on the same explicit business success
+            # required by its terminal evidence; legacy Tracking stays unchanged.
+            code = meta.get("business_code")
+            nested = meta.get("nested_business_code")
+            if (meta.get("success_state") != "true"
+                    or not (type(code) is int and code == 0 or type(code) is str and code == "0")
+                    or meta.get("message_tags", []) != []
+                    or "nested_business_code" in meta and not (
+                        type(nested) is int and nested == 0 or type(nested) is str and nested == "0")):
+                raise XHSAdapterError("remote_business_error", diagnostics=meta)
+            if kind == "homefeed" and self.collection_count == 1:
+                data = result.get("data")
+                items = data.get("items") if isinstance(data, dict) else None
+                cards = [item.get("note_card", item) for item in items if isinstance(item, dict)] if isinstance(items, list) else []
+                if not any(isinstance(card, dict) and any(
+                        isinstance(card.get(key), str) and card[key].strip()
+                        for key in ("display_title", "title")) for card in cards):
+                    # Empty/malformed first feed is insufficient data, not proof
+                    # of an account freeze. Normal empty searches remain valid.
+                    raise XHSAdapterError("remote_schema_error", diagnostics=meta)
             if attempt is not None:
                 finalized = True  # Unknown finalization must never be attempted again.
                 self.complete(attempt, outcome="succeeded")
