@@ -4765,7 +4765,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <div><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">粤ICP备2026135207号</a> ·
     <a href="#" onclick="showPage('legal');return false">协议、隐私、退款与删除申请</a> ·
     <a href="#" onclick="showPage('pricing');return false">套餐与免费额度</a></div>
-  <div>AI生成与诊断建议仅供创作参考，请核对事实；发布或转发时保留AI内容标识。支付暂未开放。</div>
+  <div>AI生成与诊断建议仅供创作参考，请核对事实；发布或转发时保留AI内容标识。支付渠道与开放状态见套餐页。</div>
 </footer>
 
 <!-- 头像选择器弹窗 -->
@@ -14037,7 +14037,7 @@ async function handleTopup(packageId) { return nativeStartCheckout('credit_packa
 /* 积分不足时弹升级引导 */
 function showQuotaExceededModal(detail) {
   const d = normalizeQuotaDetail(detail);
-  if (PUBLIC_PRODUCT) { showToast(`${d.message || '当前账户积分或对应功能权益不足。'} 请在本人账户页核对套餐与赠送余额；支付暂未开放，可继续查看已保存结果。`); return; }
+  if (PUBLIC_PRODUCT) { showToast(`${d.message || '当前账户积分或对应功能权益不足。'} 请在本人账户页核对套餐与赠送余额；${_publicStatus?.payment_open ? '可在套餐页使用已开放的微信支付补充权益。' : '支付暂未开放，可继续查看已保存结果。'}`); return; }
   const opName = OP_NAMES[d.operation] || d.operation || '此功能';
   const ok = confirm(
     `⚠️ ${opName} 积分不足\n\n` +
