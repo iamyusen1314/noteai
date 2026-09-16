@@ -2,6 +2,15 @@
 
 ## Current execution control
 
+September16 owner resumes this original thread only for formal WeChat payment
+enablement, visible SMS send/countdown feedback and full-quality owner/invited
+tester media processing. Existing payment terminal evidence is reused, no new
+order/refund/bill replay. Same entitlements retain the same complete quality chain;
+normal credits/authentication remain. This narrow task supersedes the old-window
+development stop only for these items. The Sep17 Item32 task remains exclusively
+owned by thread01a0a50d-985c-7140-9db2-3bde812717bd; do not change its F bindings.
+Current delivery/deployment and shared-worktree ownership: Handoff CURRENT.
+
 September15 owner authorizes formally enabling Amap for normal NoteAI users
 within the existing shared monthly quota. Owner reports that enterprise
 certification is complete; verify the current account certification, API access

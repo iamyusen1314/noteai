@@ -1,4 +1,29 @@
-# CURRENT EXECUTION CONTROL — September16 report/Amap closeout and Item32 session recovery
+# CURRENT EXECUTION CONTROL — September16 scoped WeChat / SMS / full-quality delivery
+
+Owner在原窗口明确重新授权三项：正式开放已通过的微信支付；短信发送成功/倒计时；
+已确认owner及后续定向授权测试账号完整图片理解。同等权益不因来源或free标签降质，
+正常积分/鉴权继续；不扩大到公众无限使用，不恢复旧临时金额门槛。支付宝继续延期。
+旧窗口停止普通开发规则仅对这三项解除；原32/37及Item34 VERIFIED、35 NOT_REQUIRED不变。
+
+- 两窗口已互相确认：本旧窗口 `01a079a4-1c05-7d21-a98a-2d418cdd20c9` 独占本批
+  API-C/Payment/前台代码发布及Handoff写入；新窗口 `01a0a50d-985c-7140-9db2-3bde812717bd`
+  仅保留Sep17原Item32调度。F/其固定包、env、executor及01:00UTC唯一入口不动。
+- 当前实测API仍c853f29/imagecc1da220，CID11b49de9；前台report-amap-0af33d961d7e；
+  Admin6c8cf579未动，Paymentinactive/dead，正式订单与callback relay开关均0。
+  0902正式env及当前已修报告/高德结果保持。原5ce对账已完成并删除自动化，不重建/重放。
+- 已通过Admin本人详情核对唯一owner UID61d63b05-17eb-47d5-b19e-fb7eab297299，
+  member_43fea885ae4344588152、198****9531；赠送wallet2830.5，3000赠送记录有效。
+  旧同名noteai_19872819531不是该已核实手机账号，不替它增权；后续其他测试账号需owner指定。
+- 本地已修短信可见状态/60秒重发、支付旧canary结束后正常购买准备、全9张完整素材理解；
+  诊断附图原quick已换完整理解，模型/行业/扣额不变。已通过隔离浏览器反馈回归、
+  Node21场景及Python3.11断网7项。另发现会员退款SELECT *超出既有列ACL，最小改为
+  started_at,is_active；隔离PG16的会员/积分包完整现金权益撤回与RLS三项已通过，生产无需新订单/退款或扩大权限。
+  首次隔离fixture缺0029已同步现有迁移后通过，不涉及生产迁移。
+- 本批尚未发布，不把本地结果当上线。私有过程和当前只读摘要：
+  `/Users/openclaw/.codex/tmp/noteai-payment-media-otp-umu59jb6/`。仅源代码/非敏感说明进Git。
+  下一步保存源码、复用既有API/Payment基底构建、当前配置CAS/可恢复发布，再读回正式入口。
+
+## Previous current entry — retained history
 
 本窗口收到owner明确接管指令，承接原工作树、既有普通工程授权及下列精确剩余项。
 旧窗口停止普通开发、构建和新测试；原 `noteai-5ce` 对账已完成并删除调度，旧窗口仅保留查阅；

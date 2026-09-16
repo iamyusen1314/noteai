@@ -26,6 +26,10 @@ test('original public product works under strict script CSP with OTP and dynamic
   const path = require('node:path');
   const errors = [];
   let registrationOpen = true;
+  let smsRequests = 0;
+  let smsDelivery = "sms";
+  let smsStatus = 202;
+  await page.clock.install();
   page.on('pageerror', error => errors.push(error.message));
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
@@ -47,8 +51,9 @@ test('original public product works under strict script CSP with OTP and dynamic
     }
     if (url.pathname === '/synthetic-api/public/status') return route.fulfill({json:{registration_open:registrationOpen,ai_open:true,sms_sign_name:'恒创联众'}});
     if (url.pathname === '/synthetic-api/auth/verification/request') {
+      smsRequests++;
       expect(route.request().postDataJSON()).toEqual({channel:'phone',destination:'13800138000',purpose:'register_phone'});
-      return route.fulfill({status:202,json:{challenge_id:'offline-challenge',expires_in_seconds:600}});
+      return route.fulfill({status:smsStatus,json:smsStatus === 202 ? {challenge_id:'offline-challenge',expires_in_seconds:600,delivery:smsDelivery} : {detail:'发送服务暂不可用'}});
     }
     if (url.pathname.startsWith('/synthetic-api/')) return route.fulfill({status:503,json:{detail:'offline service fixture'}});
     return route.abort();
@@ -63,6 +68,36 @@ test('original public product works under strict script CSP with OTP and dynamic
   await page.locator('#auth-phone').fill('13800138000');
   await page.getByRole('button',{name:'获取验证码',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>_registerPhoneChallenge?.id)).toBe('offline-challenge');
+  await expect(page.locator('#auth-phone-send-status')).toBeVisible();
+  await expect(page.locator('#auth-phone-send-status')).toContainText('验证码已发送');
+  await expect(page.locator('#auth-phone-send')).toHaveText('60秒后重新发送');
+  await expect(page.locator('#auth-phone-send')).toBeDisabled();
+  await page.evaluate(() => { requestRegisterPhoneCode(); refreshPublicStatus(); });
+  expect(smsRequests).toBe(1);
+  await page.locator('#auth-tab-login').click();
+  await expect(page.locator('#auth-phone-send')).toBeDisabled();
+  expect(await page.evaluate(()=>_registerPhoneChallenge)).toBeNull();
+  await page.locator('#auth-tab-register').click();
+  await page.clock.fastForward(61000);
+  await expect(page.locator('#auth-phone-send')).toBeEnabled();
+  smsDelivery = 'sms_unknown';
+  await page.locator('#auth-phone-send').click();
+  await expect(page.locator('#auth-phone-send-status')).toContainText('发送结果尚未确认');
+  await expect(page.locator('#auth-phone-send-status')).not.toContainText('验证码已发送');
+  await page.locator('#auth-modal').getByRole('button',{name:'✕',exact:true}).click();
+  await page.locator('#nav-guest').getByRole('button',{name:'注册',exact:true}).click();
+  await expect(page.locator('#auth-phone-send')).toBeDisabled();
+  await page.clock.fastForward(61000);
+  smsStatus = 429;
+  await page.locator('#auth-phone-send').click();
+  await expect(page.locator('#auth-phone-send-status')).toContainText('请求较频繁');
+  await expect(page.locator('#auth-phone-send')).toBeDisabled();
+  await page.clock.fastForward(61000);
+  smsStatus = 503;
+  await page.locator('#auth-phone-send').click();
+  await expect(page.locator('#auth-phone-send-status')).toContainText('发送服务暂不可用');
+  await expect(page.locator('#auth-phone-send')).toBeEnabled();
+
   await page.locator('#auth-modal').getByRole('button',{name:'✕',exact:true}).click();
   await page.evaluate(()=>{
     const box=document.createElement('div');box.id='dynamic-action-test';

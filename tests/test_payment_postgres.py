@@ -876,7 +876,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
         self.conn.execute("ROLLBACK TO SAVEPOINT unrelated_denied")
         self.conn.execute("RESET ROLE")
 
-    def test_payment_role_runs_provider_isolated_full_cash_lifecycle(self):
+    def _payment_role_cash_lifecycle(self, kind, product):
         now = datetime(2026, 7, 26, 14, 0, tzinfo=timezone.utc)
         user_id = f"role-pay-{uuid.uuid4()}"
         app_id = "app_role_test"
@@ -896,8 +896,8 @@ class PaymentPostgresContractTests(unittest.TestCase):
         billing.get_subscription(user_id)
         order = payment.create_order(
             user_id,
-            "credit_package",
-            "starter",
+            kind,
+            product,
             idempotency_key=f"role-{uuid.uuid4()}",
             app_id=app_id,
             prod_mode=False,
@@ -920,7 +920,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
                 "data": {
                     "id": payment_id,
                     "order_no": order_row["merchant_order_no"],
-                    "pay_amt": "12.00",
+                    "pay_amt": f"{order_row['amount_fen'] / 100:.2f}",
                 },
             },
             separators=(",", ":"),
@@ -977,7 +977,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
                     merchant_refund_no=refund_row["merchant_refund_no"],
                     provider_refund_id=refund_provider_id,
                     status="pending",
-                    amount_fen=1200,
+                    amount_fen=order_row["amount_fen"],
                     response_verified=True,
                 ),
                 now=now + timedelta(minutes=2),
@@ -993,7 +993,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
                         "id": refund_provider_id,
                         "refund_order_no": refund_row["merchant_refund_no"],
                         "payment_id": payment_id,
-                        "refund_amt": "12.00",
+                        "refund_amt": f"{order_row['amount_fen'] / 100:.2f}",
                     },
                 },
                 separators=(",", ":"),
@@ -1021,7 +1021,7 @@ class PaymentPostgresContractTests(unittest.TestCase):
         )
         self.assertEqual(final["entitlement_status"], "reversed")
         self.assertEqual(final["refund_status"], "refunded")
-        self.assertEqual(final["refunded_fen"], 1200)
+        self.assertEqual(final["refunded_fen"], order_row["amount_fen"])
         self.assertEqual(
             db.fetchone(
                 "SELECT SUM(amount_fen) AS total FROM payment_cash_ledger "
@@ -1030,6 +1030,12 @@ class PaymentPostgresContractTests(unittest.TestCase):
             )["total"],
             0,
         )
+
+    def test_payment_role_runs_provider_isolated_full_cash_lifecycle(self):
+        self._payment_role_cash_lifecycle("credit_package", "starter")
+
+    def test_payment_role_refunds_membership_with_scoped_columns(self):
+        self._payment_role_cash_lifecycle("subscription", "growth")
 
 
 @unittest.skipUnless(

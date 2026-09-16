@@ -114,7 +114,7 @@ async function nativeStartCheckout(kind,id) {
         (old.refund_status==='refunded' && old.refunded_fen===old.amount_fen && old.entitlement_status==='reversed'));
       const newCanaryIdentity=typeof canary?.idempotency_key==='string' && canary.idempotency_key.length>0 && canary.idempotency_key!==original.key;
       const newPurchaseAllowed=refreshed && old && (original.canary ?
-        canaryFinished && newCanaryIdentity : (['failed','closed'].includes(old.payment_status) ||
+        canaryFinished && (!canary || newCanaryIdentity) : (['failed','closed'].includes(old.payment_status) ||
         (old.payment_status==='succeeded' && old.entitlement_status==='applied') ||
         (old.refund_status==='refunded' && old.refunded_fen===old.amount_fen)));
       if(!newPurchaseAllowed){if(old)nativeRenderOrder(original);else showToast('原订单待核实，请勿重复下单');return;}

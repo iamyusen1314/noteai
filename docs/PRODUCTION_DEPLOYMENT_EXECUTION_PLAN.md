@@ -1,3 +1,10 @@
+## September16 owner scoped formal payment / OTP / complete media release
+
+原窗口本批只交付正式WeChat启用、发送提示/60秒重发、owner及定向授权账号完整媒体理解。
+复用已验证Native/退款/对账，不重建测试订单；Alipay延期。新候选只修改对应API/Payment与前台，
+保护0902配置、Admin、当前报告、高德和原Item32 Sep17唯一入口。保留正常积分、最小数据库角色；
+会员退款改为已有授权列，不扩大grant。当前部署结果/两窗口操作归属以Handoff CURRENT为准。
+
 September16 CURRENT: Readiness32/37; Item31 original WeChat chain is VERIFIED and
 its unique bill automation is deleted. Amap formal business and report-history repairs
 are live; no duplicate deployment or backup. Item32 recovered session produced13 real

@@ -2971,7 +2971,7 @@ class ApiContractTests(unittest.TestCase):
                  mock.patch.object(api, "_get_video_meta", return_value=None if media == "missing-video" else {"frames": [b"f"], "duration_sec": 3}), \
                  mock.patch.object(api, "_kimi_video_understand", new=mock.AsyncMock(return_value=result)), \
                  mock.patch.object(api, "_gent_visual", new=visual), \
-                 mock.patch.object(api, "_kimi_vision_quick", return_value=""), \
+                 mock.patch.object(api, "_kimi_vision_understand", return_value=""), \
                  mock.patch.object(api, "_gent_content", new=mock.AsyncMock()) as content:
                 with self.assertRaises(HTTPException) as failure:
                     asyncio.run(run())
@@ -3012,11 +3012,11 @@ class ApiContractTests(unittest.TestCase):
             pass
 
         full_extra = "次图真实素材完整观察。" * 100 + "次图末尾不能丢失"
-        for failed in (False, True):
-            for tier in ("free", "growth"):
+        for failed in (False, True, "short"):
+            for tier in ("free", "growth", "studio"):
                 with self.subTest(failed=failed, tier=tier), \
                      mock.patch.object(api, "_gent_visual", new=mock.AsyncMock(return_value={"role": "视觉专家", "raw": "<scene>主图</scene>", "_image_desc": "主图完整观察"})), \
-                     mock.patch.object(api, "_kimi_vision_understand", return_value="" if failed else full_extra), \
+                     mock.patch.object(api, "_kimi_vision_understand", return_value="x" if failed == "short" else "" if failed else full_extra) as understand, \
                      mock.patch.object(api, "_gent_content", new=mock.AsyncMock(return_value={"role": "内容专家", "raw": ""})) as content, \
                      mock.patch.object(api, "_gent_growth", new=mock.AsyncMock(return_value={"role": "增长专家", "raw": ""})), \
                      mock.patch.object(api, "_gent_user", new=mock.AsyncMock(return_value={"role": "用户专家", "raw": ""})), \
@@ -3024,13 +3024,16 @@ class ApiContractTests(unittest.TestCase):
                     with self.assertRaises(HTTPException if failed else AtArbiter) as failure:
                         asyncio.run(api._run_generation_agents(
                             "旅行", "main", "酒店事实", "2026091320", None, None, {},
-                            cover_images=["main", "extra"], user_tier=tier,
+                            cover_images=["main"] + [f"extra-{i}" for i in range(8)], user_tier=tier,
                         ))
+                    self.assertEqual(understand.call_count, 8)
                     if failed:
                         self.assertEqual(failure.exception.status_code, 502)
                         content.assert_not_called()
                         arbitrate.assert_not_called()
                     else:
+                        self.assertIn("图9（深度）", content.call_args.args[3])
+                        self.assertNotIn("轻量", content.call_args.args[3])
                         self.assertIn(full_extra, content.call_args.args[3])
                         self.assertIn(full_extra, arbitrate.call_args.args[1][0]["_image_desc"])
 
@@ -3432,9 +3435,9 @@ class ApiContractTests(unittest.TestCase):
             api._billing.check_and_deduct = lambda user_id, op: None
             api._billing.record_free_usage = lambda user_id, op: None
             api._extract_cover = lambda *_args: (71.0,{})
-            api._kimi_vision_understand = lambda *_args: "独立测试封面中写有明确测试文字与菜品，不是视频自带封面。"
+            api._kimi_vision_understand = lambda image, *_args: ("截图里有餐厅门头、芝士焗小青龙和人均98元信息。" if image == "fake-image-b64" else "独立测试封面中写有明确测试文字与菜品，不是视频自带封面。")
             api._kimi_video_understand = fake_video
-            api._kimi_vision_quick = lambda *_args, **_kwargs: "截图里有餐厅门头、芝士焗小青龙和人均98元信息。"
+            api._kimi_vision_quick = mock.Mock(side_effect=AssertionError("complete diagnosis must not use quick image analysis"))
             api._video_frames.clear()
             api._video_frames["vid-ok"] = {"frames": [b"fake-frame"], "duration_sec": 3.0, "raw_fps": 1.0}
             api._maybe_enrich_facts = fake_enrich

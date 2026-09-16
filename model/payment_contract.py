@@ -2143,7 +2143,7 @@ def _reverse_subscription_entitlement(
     subscription_id = entitlement["subscription_id"] if entitlement else None
     if order["user_id"]:
         subscription = tx.fetchone(
-            "SELECT * FROM subscriptions WHERE id=? AND user_id=?"
+            "SELECT started_at,is_active FROM subscriptions WHERE id=? AND user_id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
             (subscription_id, order["user_id"]),
         )

@@ -2799,8 +2799,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       </div>
       <div id="auth-phone-code-row" style="display:none;gap:8px">
         <input id="auth-phone-code" inputmode="numeric" maxlength="6" placeholder="手机验证码" style="flex:1;min-width:0;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none">
-        <button type="button" onclick="requestRegisterPhoneCode()" style="padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--surf-2);color:var(--text-2);cursor:pointer">获取验证码</button>
+        <button id="auth-phone-send" type="button" onclick="requestRegisterPhoneCode()" style="padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--surf-2);color:var(--text-2);cursor:pointer">获取验证码</button>
       </div>
+      <div id="auth-phone-send-status" role="status" aria-live="polite" style="display:none;color:var(--text-2);font-size:12px;line-height:1.6"></div>
       <input id="auth-password" type="password"  placeholder="密码（至少10位，含两类字符）" style="padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surf-2);color:var(--text);font-size:14px;outline:none" onfocus="this.style.borderColor='rgba(123,97,255,0.5)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')doAuth()">
       <div id="auth-consent-row" style="display:none;flex-direction:column;gap:7px;font-size:11px;color:var(--text-muted);line-height:1.45">
         <label style="display:flex;gap:7px;align-items:flex-start"><input id="auth-privacy-consent" type="checkbox" style="margin-top:2px">我已阅读并同意当前版本的服务条款、隐私与退款说明</label>
@@ -5311,7 +5312,7 @@ function syncPublicAuthAvailability() {
     : _publicStatus
     ? '手机验证码注册和登录暂未开放。你仍可浏览原工作台、套餐与协议；如需帮助请联系页脚客服。'
     : '暂时无法确认短信服务状态，请稍后再试。你仍可浏览原工作台、套餐与协议。';
-  document.querySelector('#auth-phone-code-row button').disabled = !open;
+  syncPhoneCodeSendState();
   document.getElementById('auth-submit-btn').disabled = !open;
 }
 function requirePublicCapability(key) {
@@ -5376,7 +5377,7 @@ async function publicPhoneAuth() {
   const btn = document.getElementById('auth-submit-btn');
   try {
     if (!requirePublicCapability('registration_open')) return;
-    if (!/^1[3-9]\d{9}$/.test(phone) || !_registerPhoneChallenge || _registerPhoneChallenge.destination !== phone || !code)
+    if (!/^1[3-9]\d{9}$/.test(phone) || !_registerPhoneChallenge || _registerPhoneChallenge.destination !== phone || _registerPhoneChallenge.purpose !== phoneCodePurpose() || !code)
       throw new Error('请输入手机号并获取、填写本次验证码');
     if (registering && !document.getElementById('auth-privacy-consent').checked)
       throw new Error('请先阅读并同意当前服务条款与隐私说明');
@@ -6911,7 +6912,7 @@ async function prepareDiagnosis() {
     if (!domain) { showToast('请选择本次笔记的内容领域'); return; }
     if (diagnosisUsesVideo() && (_diagVideoState !== 'ready' || !_diagVideoFileId)) { showToast('请先完成视频上传'); return; }
     if (!title && !desc && !diagnosisUsesVideo() && !_coverBase64 && !_diagImages.length) { showToast('请填写笔记或上传素材'); return; }
-    // 封面图 + 内容图：与截图上传保持一致（最多9张，套餐决定深度分析数量）
+    // 封面图 + 内容图：与截图上传保持一致（最多9张，均作完整素材理解）
     coverB64    = _coverBase64 ? _coverBase64.split(',')[1] : null;
     // 内容图片最多取 8 张（后端 extra_images 上限9张，封面已占1张）
     extraImages = _diagImages.slice(0, 8).map(img => img.dataURL.split(',')[1] || '').filter(Boolean);
@@ -10712,6 +10713,33 @@ function authUpdateNav() {
 let _authTab = 'login';
 const FIRST_LAUNCH_CONTRACT_VERSION = 'first-launch-2026-07-25';
 let _registerPhoneChallenge = null;
+let _phoneCodePending = false;
+let _phoneCodeResendAt = 0;
+let _phoneCodeTimer = null;
+let _phoneCodeNotice = null;
+try { _phoneCodeResendAt = Math.min(Number(sessionStorage.getItem('noteai-sms-resend-at')) || 0, Date.now() + 60000); } catch (_) {}
+function phoneCodePurpose() { return PUBLIC_PRODUCT && _authTab === 'login' ? 'login_phone' : 'register_phone'; }
+function syncPhoneCodeSendState() {
+  const button = document.getElementById('auth-phone-send');
+  const notice = document.getElementById('auth-phone-send-status');
+  if (!button || !notice) return;
+  const seconds = Math.max(0, Math.ceil((_phoneCodeResendAt - Date.now()) / 1000));
+  button.disabled = _phoneCodePending || seconds > 0 || (PUBLIC_PRODUCT && _publicStatus?.registration_open !== true);
+  button.textContent = _phoneCodePending ? '发送中…' : seconds ? `${seconds}秒后重新发送` : '获取验证码';
+  const matches = _phoneCodeNotice && _phoneCodeNotice.phone === document.getElementById('auth-phone').value.trim() && _phoneCodeNotice.purpose === phoneCodePurpose();
+  notice.textContent = matches ? _phoneCodeNotice.message : '';
+  notice.style.display = matches ? 'block' : 'none';
+  if ((_phoneCodePending || seconds) && !_phoneCodeTimer) {
+    _phoneCodeTimer = setInterval(syncPhoneCodeSendState, 250);
+  } else if (!_phoneCodePending && !seconds && _phoneCodeTimer) {
+    clearInterval(_phoneCodeTimer); _phoneCodeTimer = null;
+  }
+}
+function startPhoneCodeCooldown() {
+  _phoneCodeResendAt = Date.now() + 60000;
+  try { sessionStorage.setItem('noteai-sms-resend-at', String(_phoneCodeResendAt)); } catch (_) {}
+}
+document.getElementById('auth-phone').addEventListener('input', syncPhoneCodeSendState);
 let _registerEmailChallenge = null;
 let _verificationMode = 'login_phone';
 let _verificationChallenge = null;
@@ -10752,7 +10780,7 @@ function switchAuthTab(tab) {
   document.getElementById('auth-submit-btn').textContent  = isLogin ? '登录' : '注册并登录';
   document.getElementById('auth-error').style.display = 'none';
   if (PUBLIC_PRODUCT) {
-    _registerPhoneChallenge = null;
+    if (_registerPhoneChallenge?.purpose !== phoneCodePurpose()) _registerPhoneChallenge = null;
     document.getElementById('auth-username').style.display = 'none';
     document.getElementById('auth-password').style.display = 'none';
     ['auth-email-row','auth-email-code-row','auth-recovery-actions'].forEach(id => document.getElementById(id).style.display='none');
@@ -10774,23 +10802,46 @@ async function requestVerification(channel, destination, purpose, headers) {
     body: JSON.stringify({ channel, destination, purpose }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || '验证码请求失败');
+  if (!res.ok) {
+    const error = new Error(data.detail || '验证码请求失败');
+    error.status = res.status;
+    throw error;
+  }
   return data;
 }
 
 async function requestRegisterPhoneCode() {
+  if (_phoneCodePending || Date.now() < _phoneCodeResendAt) return;
   if (!requirePublicCapability("registration_open")) return;
   const phone = document.getElementById('auth-phone').value.trim();
   const errEl = document.getElementById('auth-error');
   if (!/^1[3-9]\d{9}$/.test(phone)) {
     errEl.textContent = '请先输入正确手机号'; errEl.style.display = 'block'; return;
   }
+  const purpose = phoneCodePurpose();
+  _phoneCodePending = true;
+  _phoneCodeNotice = { phone, purpose, message: '正在发送验证码，请稍候…' };
+  errEl.style.display = 'none';
+  syncPhoneCodeSendState();
   try {
-    const data = await requestVerification('phone', phone, PUBLIC_PRODUCT && _authTab === 'login' ? 'login_phone' : 'register_phone');
-    _registerPhoneChallenge = { id: data.challenge_id, destination: phone };
-    showToast('验证码请求已受理');
+    const data = await requestVerification('phone', phone, purpose);
+    startPhoneCodeCooldown();
+    _phoneCodeNotice = { phone, purpose, message: data.delivery === 'sms'
+      ? '验证码已发送，请查看手机短信。验证码10分钟内有效，60秒后可重新发送。'
+      : data.delivery === 'sms_unknown'
+      ? '短信发送结果尚未确认，请先查看手机短信；60秒后可重新发送。'
+      : '验证码请求已受理，请查看手机短信；60秒后可重新发送。' };
+    if (phone === document.getElementById('auth-phone').value.trim() && purpose === phoneCodePurpose()) {
+      _registerPhoneChallenge = { id: data.challenge_id, destination: phone, purpose };
+    }
   } catch (err) {
-    errEl.textContent = err.message; errEl.style.display = 'block';
+    if (!err.status || err.status === 429) startPhoneCodeCooldown();
+    _phoneCodeNotice = { phone, purpose, message: !err.status
+      ? '暂未确认发送结果，请先查看短信，60秒后可重试。'
+      : err.status === 429 ? '请求较频繁，请等待倒计时结束后再试。' : err.message };
+  } finally {
+    _phoneCodePending = false;
+    syncPhoneCodeSendState();
   }
 }
 

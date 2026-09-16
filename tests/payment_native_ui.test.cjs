@@ -38,7 +38,7 @@ const value=()=>({user_id:'owner-A',product_kind:'credit_package',product_id:'st
    throw Error('unexpected URL');
   };
   await c.nativeStartCheckout('credit_package','starter');
-  const allowed=['refunded-new','closed-new'].includes(scenario);
+  const allowed=['refunded-new','closed-new','no-canary'].includes(scenario);
   assert.equal(dialogs.filter(d=>d.title==='核对订单').length,allowed?1:0,scenario);
   assert.equal(posts,0,scenario);assert.equal(JSON.parse(storage.get('noteai-native:owner-A')).key,original.key,scenario);
   results.push('canary-original-'+scenario+' PASS');

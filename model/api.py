@@ -4712,16 +4712,6 @@ def _build_fix_instructions(features: dict, weaknesses: list, domain: str = "美
 
 # ── Generation orchestrator with score-verify loop ───────────────
 
-# 各套餐允许深度分析的图片数量上限
-_DEEP_IMG_LIMITS: dict[str, int] = {
-    "free":     1,   # 免费版：1张深度
-    "pro":      1,   # 创作者版：每次最多3图，1张深度
-    "growth":   2,   # 成长版：每次最多5图，2张深度
-    "pro_plus": 3,   # 专业版：每次最多5图，3张深度
-    "studio":   5,   # 工作室版：每次最多9图，5张深度
-}
-
-
 async def _run_generation_agents(
     domain: str,
     cover_image: str | None,
@@ -4731,7 +4721,7 @@ async def _run_generation_agents(
     visual_score: float | None,
     cover_feats: dict,
     cover_images: list[str] | None = None,
-    user_tier: str = "free",           # 用户套餐，决定深度分析图片数
+    user_tier: str = "free",           # 兼容既有调用；权益来源/套餐不降低已接收素材的理解质量
     memory_context: str = "",
     constraint_context: str = "",
 ) -> dict:
@@ -4745,15 +4735,13 @@ async def _run_generation_agents(
     dk = _get_dk(domain)
 
     # Phase 1: 多图深度视觉分析
-    # 根据套餐决定深度分析图片数；超出部分改用轻量描述（仍传给后续 Agent 作上下文）
-    all_imgs = cover_images or (([cover_image] if cover_image else []))
-    deep_limit = _DEEP_IMG_LIMITS.get(user_tier, 1)
-    deep_imgs   = all_imgs[:deep_limit]     # 套餐内：深度分析
-    brief_imgs  = all_imgs[deep_limit:]     # 超出部分：轻量描述
+    # 已通过输入/权益检查的所有素材使用相同完整理解，不按付款或赠送来源降质。
+    all_imgs = (cover_images or (([cover_image] if cover_image else [])))[:9]
+    deep_imgs = all_imgs
 
     total_imgs = len(all_imgs)
-    print(f"[gen] P1-visual start: total={total_imgs} tier={user_tier} deep_limit={deep_limit} "
-          f"deep={len(deep_imgs)} brief={len(brief_imgs)}", file=sys.stderr, flush=True)
+    print(f"[gen] P1-visual start: total={total_imgs} deep={len(deep_imgs)}",
+          file=sys.stderr, flush=True)
 
     _t0 = _time.time()
     # 深度分析：所有 deep_imgs 并行调用 _gent_visual 或 _kimi_vision_understand
@@ -4765,7 +4753,7 @@ async def _run_generation_agents(
         ]
         deep_results = await asyncio.gather(*deep_tasks, return_exceptions=True)
         if not isinstance(deep_results[0], dict) or any(not isinstance(result, (str, dict)) or not (
-            result.strip() if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
+            len(result.strip()) > 5 if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
         ) for result in deep_results):
             raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
         vis_result = deep_results[0]
@@ -4778,25 +4766,14 @@ async def _run_generation_agents(
         vis_result       = {"_image_desc": brief or domain}
         extra_deep_descs = []
 
-    # 轻量描述：套餐外的图片
-    brief_descs: list[str] = []
-    if brief_imgs:
-        brief_tasks = [_await_media_worker(_kimi_vision_understand, img, domain, brief) for img in brief_imgs]
-        brief_results = await asyncio.gather(*brief_tasks, return_exceptions=True)
-        if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_results):
-            raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
-        brief_descs = [r for r in brief_results if isinstance(r, str) and len(r) > 5]
-
     image_desc = vis_result.get("_image_desc", brief or domain)
     print(f"[gen] P1-visual done in {_time.time()-_t0:.0f}s "
-          f"deep_analyzed={len(deep_imgs)} brief_analyzed={len(brief_descs)}", file=sys.stderr, flush=True)
+          f"deep_analyzed={len(deep_imgs)}", file=sys.stderr, flush=True)
 
     # 合并所有图片描述，让后续所有 Agent 都能看到完整内容
     all_img_descs = []
     if extra_deep_descs:
         all_img_descs.extend([f"图{i+2}（深度）：{d}" for i, d in enumerate(extra_deep_descs)])
-    if brief_descs:
-        all_img_descs.extend([f"图{len(deep_imgs)+i+1}（轻量）：{d}" for i, d in enumerate(brief_descs)])
     if all_img_descs:
         image_desc = (
             f"【主图（深度分析）】\n{image_desc}\n\n"
@@ -4805,7 +4782,7 @@ async def _run_generation_agents(
         )
 
     vis_result = {**vis_result, "_image_desc": image_desc}
-    extra_descs = extra_deep_descs + brief_descs  # 向后兼容变量名
+    extra_descs = extra_deep_descs  # 向后兼容变量名
 
     # Phase 2: three creation agents in parallel
     print(f"[gen] P2-trio start", file=sys.stderr, flush=True)
@@ -16252,7 +16229,7 @@ async def _run_analyze_pipeline(
                     "progress": 14,
                 })
                 extra_tasks = [
-                    _await_media_worker(_kimi_vision_quick, img_b64, req.domain or "通用", None)
+                    _await_media_worker(_kimi_vision_understand, img_b64, req.domain or "通用", req.desc)
                     for img_b64 in imgs_to_analyze
                 ]
                 extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
@@ -17068,11 +17045,9 @@ async def _generate_pipeline_stream(
                 "progress": 22,
             }
         else:
-            # 多图深度分析：根据 user_tier 决定深度分析图片数
-            all_imgs_s   = (cover_images or ([cover_image] if cover_image else []))[:9]
-            deep_limit_s = _DEEP_IMG_LIMITS.get(user_tier, 1)
-            deep_imgs_s  = all_imgs_s[:deep_limit_s]
-            brief_imgs_s = all_imgs_s[deep_limit_s:]
+            # 全部已接收图片使用完整素材理解，套餐/权益来源不影响处理深度。
+            all_imgs_s = (cover_images or ([cover_image] if cover_image else []))[:9]
+            deep_imgs_s = all_imgs_s
             total_imgs_s = len(all_imgs_s)
             observed_image_count = total_imgs_s
             observed_deep_image_count = len(deep_imgs_s)
@@ -17089,7 +17064,7 @@ async def _generate_pipeline_stream(
                 ]
                 deep_results_s = await asyncio.gather(*deep_tasks_s, return_exceptions=True)
                 if not isinstance(deep_results_s[0], dict) or any(not isinstance(result, (str, dict)) or not (
-                    result.strip() if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
+                    len(result.strip()) > 5 if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
                 ) for result in deep_results_s):
                     raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
                 vis_result = deep_results_s[0] if isinstance(deep_results_s[0], dict) else {"_image_desc": brief or domain}
@@ -17101,21 +17076,9 @@ async def _generate_pipeline_stream(
                 vis_result    = {"role": "视觉专家", "raw": "<opinion>未上传图片，沿用文字素材</opinion>", "_image_desc": ""}
                 extra_deep_s  = []
 
-            # Match the synchronous pipeline: all submitted images keep full observations.
-            brief_descs_s: list[str] = []
-            if brief_imgs_s:
-                brief_tasks_s = [_await_media_worker(_kimi_vision_understand, img, domain, brief) for img in brief_imgs_s]
-                brief_res_s   = await asyncio.gather(*brief_tasks_s, return_exceptions=True)
-                if any(not isinstance(result, str) or len(result.strip()) <= 5 for result in brief_res_s):
-                    raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
-                brief_descs_s = [r for r in brief_res_s if isinstance(r, str) and len(r) > 5]
-
             image_desc = vis_result.get("_image_desc", brief or domain)
             # 合并所有图描述
-            all_extra_s = (
-                [f"图{i+2}（深度）：{d}" for i, d in enumerate(extra_deep_s) if d] +
-                [f"图{len(deep_imgs_s)+i+1}（轻量）：{d}" for i, d in enumerate(brief_descs_s)]
-            )
+            all_extra_s = [f"图{i+2}（深度）：{d}" for i, d in enumerate(extra_deep_s) if d]
             if all_extra_s:
                 image_desc = f"【主图】\n{image_desc}\n\n【其余{len(all_extra_s)}张素材图】\n" + "\n".join(all_extra_s)
             vis_result = {**vis_result, "_image_desc": image_desc}
@@ -18001,7 +17964,7 @@ async def generate_stream_endpoint(
     )
     if not claim:
         _billing.check_and_deduct(user["id"], "generate")
-    # 获取用户套餐，用于决定深度分析图片数
+    # 保留既有调用参数；已接收图片的理解深度不再由套餐决定
     user_tier = "free"
     try:
         sub = _billing.get_subscription(user["id"])
@@ -18009,18 +17972,7 @@ async def generate_stream_endpoint(
     except Exception:
         pass
 
-    # 图片数量 vs 套餐限制：超出时通过 SSE 发送友好提示（不阻断，继续生成）
-    deep_limit = _DEEP_IMG_LIMITS.get(user_tier, 1)
-    img_count  = len(cover_images) if cover_images else (1 if cover_image else 0)
-
     async def _sse():
-        # 若图片数超过深度分析上限，先发一条告知事件
-        if img_count > deep_limit:
-            tier_names = {"free": "免费版", "pro": "创作者版", "growth": "成长版", "pro_plus": "专业版", "studio": "工作室版"}
-            tier_name  = tier_names.get(user_tier, user_tier)
-            beyond     = img_count - deep_limit
-            yield f"data: {_json.dumps({'type':'image_quota_notice','total':img_count,'deep_limit':deep_limit,'beyond':beyond,'tier':tier_name,'message':f'您上传了 {img_count} 张图片，{tier_name} 支持 {deep_limit} 张深度分析，其余 {beyond} 张将进行轻量分析。升级套餐可获得更多深度分析次数。'}, ensure_ascii=False)}\n\n"
-
         fact_enrichment = await _maybe_enrich_facts(
             req.domain,
             "",
