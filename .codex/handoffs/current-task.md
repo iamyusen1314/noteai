@@ -1,10 +1,238 @@
-# CURRENT EXECUTION CONTROL — September15 new window takes over closeout
+# CURRENT EXECUTION CONTROL — September16 report/Amap closeout and Item32 session recovery
 
 本窗口收到owner明确接管指令，承接原工作树、既有普通工程授权及下列精确剩余项。
 旧窗口停止普通开发、构建和新测试，只保留查阅及原 `noteai-5ce` 对账续执行；
 该限制不是新窗口的全局暂停。历史已完成业务不重跑；私有恢复/受控同步与Item36报价已完成；Item32本次唯一执行为HOLD，
-高德正式启用已部署。新的Item32生产请求不由历史授权自动延伸；其余按下面具名边界决定。
+高德正式启用已部署且0902来源已修正。Item32按下方最新owner接续授权准备新的有限只读周期；旧失败不重放。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
+
+### September16 06:07UTC 最新状态摘要（下方同日过程按时间保留）
+
+- 德厨云宴805fc原完整生成报告和v1/v2未删除；旧列表只查询diagnoses而漏掉generate。
+  04:39 source0af33d9的只读报告入口已上线，已有owner登录已从历史打开完整报告；
+  查看恢复不生成、不扣积分。owner自己的德厨云宴并行测试按各task/usage单列。
+- 正式高德0902实际业务a474已completed并自动保存，用户报告和Admin对应记录已核对；
+  8积分一次、15次Claude、实际模型成本1.237726元。高德text/detail各一次均10000、
+  单一明确分店来源。受控剩余额度49994/50000依Sep15官方快照加本地admissions计算，
+  不是新的官方对账；高德新增费用UNKNOWN。内容质量局限保留于下方04:56终态。
+- c853f29仅修复未来标题完整复制5条旧Prompt例句，已于06:05:37.969029UTC上线。
+  正式API image cc1da22064447c9325b6e2a162b59b2b983bdec72b1672fb3e39d40a02ce5542，
+  CID11b49de971a6526d335e6370f7d96e1533b85ca4f39f581a62537f2354f2a58b。
+  唯一实际build t-sz06x7p1xpcr85c，deploy t-sz06x7p4okbl2ps；
+  DEPLOYED_TWO_API_SOURCES、forward_restart_count1、provider_requests0、DBwrites0，
+  exact_probe_stopped；原waiting/quota、0902env、Admin、public、报告GET均保持。
+  06:07:11.577038只读t-sz06x7pa6jcdji8确认真实进程源码SHA：api d913c914…836a2、
+  prompt d63b0d3d…209b6，grouped env397271a5…c9f18、正式env cb73cf0c…552ab不变。
+  新drop SHA9a24d6999f80f3b602c8f862c55f6a2adc9277d302bbf63dfb42e61457f011c9；
+  result SHA654db5b2eab24d91c42a396c4a377017bac80470b04e0b39e4a01f7de90e9797。
+  结果root `/var/lib/noteai/prompt-food-example-fix-20260916-0600`，
+  必要恢复目标仍原5f9＋正确0902＋现有report-amap-0af33d961d7e；不恢复旧Key。
+  正式登录刷新后共17报告，已再次点击805fc重开原正文/9图理解/专家意见；
+  原历史错误候选不改写，新修复未重跑模型/高德/用户材料；28项定向测试和独立review通过。
+- 原05–06技术包两源码暂存
+  t-sz06x7o8b74yakg、bind t-sz06x7o9oghdb0g成功；唯一build外层
+  t-sz06x7ob15ameps返回REJECTED_OR_UNKNOWN_READBACK_ONLY，不能写作镜像构建失败。
+  只读t-sz06x7oea4sfbwg在05:57:15.466065核实：build-started/result/log、
+  validation.cid及deploy/started均不存在；原05–06技术窗口已不足10分钟，
+  window返回release_window_or_bill_not_clear。API仍21223464/5f9、0902及报告入口不变。
+  原包封存。06–08UTC独立技术包stage t-sz06x7oyb33ebcw现场观察06:03:29.659743，
+  controller97db7f1a…132d8、manifest f4379fa5…2edda；原源码原位复用、0复制/下载/备份。
+  新bind t-sz06x7ozv41wmbk成功后才实际build/deploy；3项小delta检查与独立review通过。
+  这是既有必要修复部署授权内的API技术窗口，不修改Item32专项窗口或采集授权。
+- Item32浏览器扫码成功但安全保存未产生密文、实际F进程未绑定，collector未启动；
+  03:58已过期的ticket不重放，原79e/fac5及HOLD保留。下一真实周期仍须会话实际绑定、
+  fresh配额/有效新窗口及原只读terminal，不能以离线测试关闭。
+- 原微信任务06:05:09UTC切换前最新compact仍同一completed turn（revision4/notLoaded），没有新的prepare；
+  原任务02:03报告DMS会话失效并释放共享配置。该历史读回不冒充本轮新DMS检测。
+  原noteai-5ce仍唯一归旧线程、现有下一调度Sep17 02:01:49UTC；不复制或立即执行。
+
+下方同日记录描述各时点事实，其中“正在修复/尚未上线/待终态”由以上最新摘要及
+后续真实终态覆盖，不能重启已完成动作。Readiness仍31/37。
+
+## September16 11:08北京时间：Owner接续授权、高德正确来源绑定与Item32新登录（进行中）
+
+本节按最新owner接续指令覆盖下文“新请求需重新询问同一授权”的内部等待：
+owner明确要求恢复原XHS正常登录、保存到实际Item32进程、有限真实验证并完成原只读周期；
+若本UTC日fresh条件不满足，安排唯一有效后续窗口并核实，不重放旧失败/UNKNOWN身份。
+旧账号曾冻结、旧登录已失效是owner当前排查线索；历史fac5缺失业务码的homefeed失败
+仍不能事后改写为已证实冻结。扫码/验证码由owner本人完成，实际冻结/访问限制则停止。
+Sep16约02:47UTC owner确认已扫码；浏览器原user id仍5b299697f7e8b93b4bb558bd，
+正常网页显示登录后的原账号。随后一次正常网页刷新及其浏览器自动请求用于保存会话；
+这些是浏览器登录流量，不计作零供应商流量，也不冒充Item32采集成功。
+新会话尚在安全绑定准备中；collector尚未启动。原两次已用授权/失败身份保持封存。
+
+03:23UTC新增owner反馈：德厨云宴是owner本人并行测试，不能将账户总余额变化
+当作本窗口陶陶居任务的重复扣费。C只读transaction_read_only=on核实：
+`805fc518-ab68-44a6-a5b0-b40879a00050` 是generate/completed，8积分一次；
+原完整result仍在chat_sessions.task_continuation（含expert_opinions/features/cover_analysis等），
+saved_note_id同task，notes原稿v1仍在。`2f37dcda-3954-44d3-b592-a88a30c31618`
+为owner的chat_rewrite/completed、3积分；新note `cb448bcf-d6be-4e93-ab84-3c4c86deae6f`
+为v2/parent原805fc。报告页历史仅GET /diagnoses，没有已完成generate历史读取，
+所以离开内存结果后报告入口消失；尚无原数据删除证据。正在最小修复只读报告历史与
+原结果读回，不重新生成/扣费/改变owner任务，不以笔记正文代替完整报告。
+
+本窗口陶陶居新task `c87dae6c-2065-4e1a-91be-6c82d278c437` 于03:07:48UTC
+唯一提交，usage ed30d9ce-a7c7-492c-9063-27e621389eee；截至03:23仍waiting_for_input，
+8积分一次、complete=0。高德attempt bfd25c8a-0e0b-4c19-964b-f4835224b21d为
+text/HTTP200/business10000/succeeded，但观察878538cd-b935-419d-b15b-a039ce0abd9a
+为no_matching_facts、cached=false；只证明新Key实际可调用，尚未完成门店事实/生成/保存全链。
+03:14已记3次Claude Haiku、模型成本0.184366元，未终态；高德费用UNKNOWN。
+共享bucket quota50000、历史official_used1、admitted_count2，保守剩余49997，
+官方控制台新统计尚未刷新，不把本地数冒充最新官方已用量。三个block为空。
+本地发现同品牌插入“酒家”后缀会漏掉相同显式分店，已最小修复单匹配函数，29/29隔离测试
+及独立review通过；原供应商POI列表未留存，不能认定它已证实就是本次空事实的原因。
+03:36:14.931038UTC追加唯一有界诊断查询（text至多1、detail0、模型0、无重试）：
+同query `广州陶陶居(正佳广场店)` 实际HTTP200/10000返回count1，
+POI `B0FFG2O3RL` 名称 `陶陶居酒家(正佳广场店)`，地址
+`天河路228号正佳广场6层C059铺`，广州市天河区。当前旧adapter_matched_count=0，
+真实新响应与已修复的名称后缀漏匹配一致；不能事后补造03:07旧body。
+主机原记录 `/var/lib/noteai/amap-binding-repair-20260916/poi-shape-once/{started,result}.json`，
+O_EXCL唯一入口，费用UNKNOWN。本次占额另记，不混入原任务成功观察；下次计数读回应核对
+admitted_count3、保守剩余49996。原c87问题中的“天河路230号”不能采信或直接确认为事实。
+
+03:21后XHS安全保存遇到具体新阻断：浏览器原登录有效，新完整会话仅留CUA内存；
+原本机一次性表单唯一提交显示Chrome ERR_BLOCKED_BY_CLIENT，接收进程返回
+LOCAL_INTAKE_UNCONFIRMED_READBACK_ONLY且未产生密文文件，进程已关闭。
+未重试、未绕过浏览器限制、未绑定F、未开始collector。离线合成RSA与Cookie完整加密测试通过，
+实际失败阶段尚不可判定，不把浏览器已登录写成worker已恢复。
+F临时公开ticket 3c73947ef1d9a1d412279ea53852d35d于03:58:15.215712UTC过期；
+私钥只在F /run/noteai-item32-session-transfer/同id/private.pem，原票据/失败记录保留。
+03:29UTC刷新高德官方额度页时CUA调用超时并自动重置了工具内存；浏览器标签与
+XHS登录页仍在，未再次扫码/刷新XHS。此前仅RAM中的会话变量因此已清除，不能沿用旧变量。
+高德刷新实际跳转登录页，旧页面50000/used1/QPS30仅是历史缓存，不是新官方统计。
+已集中询问owner是否方便在电脑完成当前安全保存，未要求聊天发送凭据；其他修复继续。
+03:30UTC现有Admin会话只读刷新成功：清楚分列owner11:00生成34模型/8积分/3.1461元、
+11:11改写3模型/3积分/0.5035元与本窗口11:07生成3模型/8积分/0.1844元；
+11:19另有owner对话反馈1积分。当前总余额不是单任务差额证据。后台查看未发模型/高德请求。
+
+高德绑定已实际修正：
+- F原api.env与原0902候选文件全字节一致；单字段密封传输只把AMAP_WEB_KEY送到C。
+  暂存私有材料/工具在主机 `/var/lib/noteai/amap-binding-repair-20260916`，本机同名私有tmp。
+- 原controller预检误要求公开边界未开放的 `/health/ready`=200，
+  invoke t-sz06x76xc41rytc 在02:42:54UTC止于preflight，配置/重启/供应商调用均0。
+  t-sz06x7757tslgqo证实live200、ready404为现有public boundary，未开放新路由。
+- 独立v2在drain阶段因umask077使目标0644文件成为0600而中止，invoke t-sz06x781dv1gdmo；
+  env变更/重启均0。精确恢复 t-sz06x787bav3yf4 于02:55:43UTC确认
+  PRE_BIND_INGRESS_RECOVERED、原API/CID/env不变。两个原失败结果均保留。
+- v3显式fchmod保留目标mode，3项本地权限/CAS验证及独立review通过。
+  invoke t-sz06x78ij3pp2io 于02:59:20.334894UTC完成 BOUND_SAME_IMAGE_QUOTA_UNCHANGED；
+  结果SHA6602981157b767e2b0e15ee23927fc1ced470579d0fd36d56dd862ba717b8fa7。
+  API仍image f727a9be8182c75c7de22a9b8aa9f1b985171b4862c59c3955de57ca9cc932cb，
+  新CID bd9d81639a3c3c70ace39ded4ef0e37fa3b615b4ad68f6801ced4feaac62ba1a；
+  正式env SHA cb73cf0c5b518972c52187e92abebb55d079726d7f11aa1de0f728fd59c552ab。
+  实际进程已证明与密封0902输入一致，其他环境字节/Admin/网页及用量计数不变；
+  API重启1、keyless恢复0、controller供应商请求0、DB写0，入口已恢复。
+- 03:03:17UTC独立精确CAS仅解除原text 10013标记，状态
+  ORIGINAL_TEXT_10013_RELEASED_AFTER_BINDING_REPAIR；bucket更新1，不清计数、不改旧attempt，
+  不把解除内部旧暂停当供应商健康证明。真实新业务正在沿正式用户页唯一提交验收，
+  保留原f49业务、19模型调用、8积分及旧失败观察；费用UNKNOWN时不填0。
+
+Item32本地新v3已并行补Trends实际v5接线、完整会话、2次冷初始化单列＋最多34采集admissions
+（总HTTP至多36）、零自动重试、精确错误阶段/HTTP/业务码的安全持久化、完整RO证明保存。
+原Tracking/Item34实现与14资产不变。v3 gate聚焦71/71 Python3.11隔离验证通过，仍要求
+真实覆盖/质量/ledger/72HTTP事件/DB只读terminal；不以登录或一次接口成功关闭Item32。
+API-F只读元数据 t-sz06x77tkfua29s 于02:51UTC：原Trends inactive/dead/disabled、无job，
+三个原Item32 label无容器，旧HOLD/store/回执hash未变。其复杂Dockerformat曾错误归类image不存在；
+独立简单读取 t-sz06x78d988jvgg 于02:57:34UTC确认6d5dcf05…30b703镜像实际存在、
+原4cc77f4来源/amd64/xhs-http/entrypoint相符，无需pull或重建；源码hash只读接续中。
+正式新plan窗口要在会话及source准备完成后按实际时钟绑定，原Sep15包不能启动。
+03:39UTC上述18个冻结Item32本地源码/测试及PENDING计划已独立提交
+`6ecf8b317e6e442d14eb9d1d1640811de6b9cacf`，未推送/备份/部署/启动。
+计划SHA9b581413c5ecddbd16423c919638c4009c8fccda9dd9290869f3b1812bc52162，
+尚无有效执行窗口绑定；保留67项executor、71项gate及adapter/session专项验证原记录。
+
+03:49UTC报告/Amap最小修复已冻结在 `0af33d961d7e827588a14763a7288162f8f39a7f`，
+尚未部署。新 `/reports` 与 `/reports/{analyze|generate}/{id}` 仅GET原已完成、本人、
+保留期内完整结果，不重算、不写DB、不扣费；原 `/diagnoses` 保持兼容。
+前端“报告”同时标明诊断/生成，查看历史上下文与当前waiting任务隔离；只补两条nginx GET。
+同包仅修复高德显式分店匹配的有限业务后缀（本次真实“陶陶居酒家”），不得跨分店/借地址匹配。
+后端44项、前端静态19项及浏览器28个独立用例均最终通过（原fixture失败和修复记录保留），
+高德29项隔离验证及两个独立源码review通过。准备仅API三个文件＋public index/app.js＋
+两条nginx GET的受控新发布；保留当前0902env、Admin、其它网页资产、Payment及DB schema/ACL。
+03:45:29.569654UTC Admin新读取：50000共享月额度、official baseline1＋admitted3＝受控已用4，
+剩49996，text/detail未暂停；历史10013仍保留，03:07 no_matching_facts准确展示。
+旧Sep1–15控制台账单0仅属于旧周期，新增调用费用UNKNOWN；刷新后台没有请求供应商。
+03:44UTC原微信compact状态仍idle/同completed turn，prepare未开始；实际发布前再核对冲突。
+04:06UTC本次新修复包已私有暂存，原bind成功；唯一build `t-sz06x7ed6q4he68`
+止于image_validation/command_failed，尚未调用deploy、未改变正式服务。
+隔离实际镜像读回确认候选7a3cf99a…388a的USER noteai/uid999不能读取三个COPY源码：
+root所有、mode0600。这是发布准备/审查遗漏，不能冒充代码验证失败或用户数据删除。
+原包、源码、controller及FAILED结果保留；最小独立permission-repair只把新构建目录内
+三个非敏感源码改0644，父目录仍0700、原USER不变、不重新下载或重跑原build。
+正式C仍bd9d8163/f727、正确0902env；待修正候选真正读回805fc原报告后再切换。
+
+04:25UTC后继实际状态：permission-repair构建 `t-sz06x7f9hscha80` 成功，
+候选image `5f9ab72077e83f10273f116b9b8a1998fc1209a9e693f2024ffd79f1ba41b33c`，
+正常非root USER可加载原三个源码。唯一deploy `t-sz06x7fevq96akg` 在switch_public阶段
+因runtime_env_changed进入恢复，原结果UNKNOWN_NEEDS_RECOVERY，recovery_error为command_failed。
+原因核实为环境项跨key排列变化；存在重复NOTEAI_PUBLIC_MEDIA_ENABLED，
+按每key保留全部有序值核对一致，不能折叠成普通dict或重排同key值。失败记录保持原样。
+实际候选只读probe已读取805fc完整报告：10项字段全部存在、原note相同、versions=[1,2]、
+default_transaction_read_only=on；没有重新生成、供应商请求或DB写入。
+独立恢复 `t-sz06x7g0qr1ymm8` 在04:23:22.700176UTC确认
+ORIGINAL_API_AND_INGRESS_RESTORED；只恢复两个原proxy文件并nginx reload，没有额外API重启。
+当前API CID `671f349d628678b72a863efae44aeeecb6bd4569c2cfbae53bc8b61f13347189`，
+仍原f727镜像、原0590286 public symlink、Admin/Payment不变；public/status实际HTTP200。
+正式env仍cb73cf0c…52ab，旧api.env仍412f6857…c98a，正确0902进程绑定已核实。
+04:25:53UTC `t-sz06x7g8u4qk7b4` fresh恢复基线：idle全0、waiting1、quota原摘要不变，
+runtime每key有序值列表摘要397271a570c4b0041bea6d8e15ed7d378d71b5431447e1a8591f1a73ee7c9f18；
+原只读probe已按精确CID/image停止。主机permission-repair下原deploy/result、
+reopen-grouped-original-result及restored-baseline.json封存。原第一次reopen前置断言
+因错误假设env key唯一而失败，发生在任何修改前，也保留原记录。
+下一步仅修正发布校验并复用现有5f9镜像及已验证静态target完成final-release，
+不重建/下载/备份；当前尚未对外宣告报告入口修复上线。最近04:16UTC原微信仍idle，
+prepare未开始，实际最终共享切换前再读一次原状态。
+
+04:39:14.099276UTC final-release 已真实完成：stage `t-sz06x7hdducy3uo`，
+唯一deploy `t-sz06x7hf767um0w`，状态DEPLOYED_SINGLE_API_PUBLIC_WEB。
+新API CID21223464ca0526d5fd891e2c81a2d22090c465b8d17f303c2187a9d16fbfdb08、
+image5f9，public目标report-amap-0af33d961d7e，source0af33d9；
+formal env、Admin、等待任务、配额不变，provider_requests0、database_writes0、probe精确清理。
+最终controller SHA6e8b0f297e3a7526b4cf7961b67185f2e9a13a5fa2887e3d99383c2b3cd7ddf1，
+manifest SHA06e5039605a2ba6d2b122055440618e9f39f7291ceab0cdc70e112a3fc9c2585；
+5项定向测试及独立delta/短包装复构审查通过；复用既有镜像/静态/恢复文件，0 build/download/backup。
+正式已有owner登录重载后，“报告”显示共16份、805fc原生成报告可从历史卡片重新打开，
+原正文、9张素材理解、专家意见真实显示；原版本1/2此前只读proof存在。
+另发现805fc备选标题A出现“成都本地人才知道的排队王，一周去了三次”，
+当前UI仅渲染result.title_variants，静态列表为空；该句与prompt_composer标题技巧例句完全相同。
+正在只读确认其持久来源及最小后续代码修复，不把报告入口恢复等同原内容质量全部通过。
+04:41UTC按既有授权只提交一个新的正常陶陶居正佳分店位置攻略，用于已修复自动高德链验收，
+旧c87 waiting保留、没有confirm错误230号、没有回放旧identity。实际处理已显示高德04:41:22读取
+地址228号正佳广场6层C059铺/评分4.7/参考110元/10:00-21:30，仍待生成/保存/Admin终态。
+
+04:56UTC终态更新：唯一正常高德task `a4746e80-db35-4221-8def-ef484fcdaa86`，
+usage `170326f0-df46-4154-b5a4-ff57b51f2715`，04:41:22.042752启动、
+04:43:44.655200 completed；charge1/complete1/refund0，8钱包积分，自动notes v1同taskid。
+用户页实际报告《正佳广场6楼陶陶居，导航搜这个名字不迷路》出现，历史共17份；
+Admin实际展开同一条12:41记录，15个物理模型调用全部complete/exact，Haiku14＋Sonnet1，
+入48893/出11591、实际模型成本1.237726元（估算1.28单列），无图片/视频故未调用豆包。
+原高德observation `c5128895-07cf-4a59-96ea-89e38bebfe92` 精确关联该usage，
+matched/cached=false、HTTP2、无partial_errors、费用null/unknown；source_count1。
+同时间窗唯一text6201b6a8…/detailc067aa9e…均HTTP200/business10000，
+attempt表没有task外键，只列时间窗候选，不把共享差额硬归因单task。
+持久实体名称为陶陶居酒家(正佳广场店)，与显式广州陶陶居(正佳广场店)一致；
+flat facts全部与该唯一实体相等：地址228号正佳广场6层C059铺、10:00-21:30、
+人均110、评分4.7、电话020-38373301/3302及菜品评价标签均有原高德来源。
+菜品标签/参考价格属于该次平台观察，不冒充独立菜单/实时价格或全产品质量通过；
+正文便利性等泛化措辞与备选A/C重复没有单独来源验证，不以72.9分消除这些质量边界。
+04:46:04 Admin真实读取：共享50000、official1＋admitted5＝受控已用6、剩49994，
+period Sep1–Oct1 Asia/Shanghai；原official snapshot仍Sep15 15:12，不是假装最新供应商统计。
+最近真实成功与历史10013失败分列，费用“未知，待供应商账单确认”；刷新Admin无外呼。
+只读验收 `t-sz06x7ihuh9u8zk`，04:51:06.804763 DB transaction_read_only=on且rollback完成，
+结果host final-release/postfix-business-a474-result.json，17472B，
+SHA b03bb4a27ad6bdcd18366b011e828208594ab12a2ff99c4da283fec1e249f5e2；
+仅读该文件的摘要 `t-sz06x7ip9jz06io`，未重复SQL/供应商业务。源URI的POI id投影因
+reader误用https路径正则而null（adapter实际amap://poi），不能据此宣称原来源丢失。
+04:57UTC最小Prompt示例污染修复冻结commit `c853f2907de770db4a4980c2b6069e0dee7a7567`：
+仅api.py、prompt_composer.py与新专项测试。移除5条具体样例，用既有交付检查阻止
+主/备选完整复制未由原素材提供的旧例；未增加模型调用/修订次数，不改原805fc历史。
+9新＋19旧定向AST测试通过，独立review无阻断；只处理已证实完整例句复制，
+不声称解决所有异城/经历问题。正在准备只API两源码的必要增量发布，保留已上线报告/
+高德成果与全部原结果，不再跑用户材料/模型/高德，不更换public/Admin/env/schema/ACL。
+
+微信原任务02:53UTC compact仍旧任务idle、同一completed turn；prepare未开始且已释放共享配置。
+本轮未复制对账、不下单/退款/回调，不修改旧任务。其详细当前状态保留紧接下一节。
+Readiness仍31/37；32真实terminal后接33，36按原已批准双区Standard公网ALB＋双EIP范围到需要时创建，37/38依赖不变。
 
 ## September16 10:08北京时间：原账单到时核查与旧窗口交接补充
 

@@ -1,4 +1,53 @@
-September16 09:38BJT CURRENT: formal Amap enablement remains authorized, but the
+September16 14:07BJT CURRENT: API-C runs c853f29, imagecc1da220/CID11b49de9,
+with the two-source legacy Prompt-example copy guard. Actual deploy succeeded
+06:05:37UTC with one forward API restart;06:07 readonly runtime SHA checks passed.
+Correct0902 env/grouped values, existing public report-amap-0af33d961d7e,
+authenticated reports GET, Admin, waiting task and shared quota remain unchanged.
+Probe exactly stopped; provider calls/DB writes0 for the rollout. Existing login
+reloaded17 reports and reopened original Dechu805fc full report after this switch.
+No historical result rewrite, model/material replay, new backup or cloud resource.
+The original05–06 package never started build/deploy because its recovery margin
+expired; preserve its outer rejection and exact no-build readback. The independent
+06–08 technical release reused the same sources and recovery bytes. This does not
+modify Item32's production window/authority. Actual IDs/SHAs/recovery: Handoff top.
+
+September16 12:57BJT HISTORICAL: source0af33d9 report/Amap repair remains live on
+API5f9/21223464 and public report-amap-0af33d961d7e, correct0902 env unchanged.
+The single new Amap business task a474 completed and auto-saved04:43:44UTC,
+actual authenticated report/Admin/readonly task ledger agree. One same-branch
+persisted source supplies all flat facts;15 Claude calls and8 credits settled
+once, actual model cost1.237726 CNY, Amap cost UNKNOWN. Full data/readback scope
+and quality limits are at Handoff CURRENT. c853f29 is the next minimal two-source
+API fix for complete legacy Prompt example copying; not yet deployed. No new
+schema, public/Admin change, model/media replay, supplier call or backup is planned.
+
+September16 12:39BJT HISTORICAL: source0af33d9 report/Amap repair is live on API-C
+image5f9ab720, CID21223464, and public report-amap-0af33d961d7e. Existing0902
+environment cb73cf0c remains unchanged; Admin6c8/4768 and Payment unchanged.
+GET /reports combines retained own completed diagnosis/generation results; the
+two authenticated detail types read original records, with no schema change,
+regeneration or credit charge. Existing login has reopened actual Dechu805fc from
+history and displayed original full fields; v1/v2 are present in the readonly
+projection. Historical incorrect title variant remains original data, under
+separate quality-defect repair. Amap finite business-suffix matching now accepts
+the same explicit branch, and a single new business task at04:41 reads actual
+Taotao Zhengjia facts. Its terminal accounting/quality acceptance remains pending.
+The initial release/recovery failures are preserved; final controlled rollout
+succeeded04:39:14UTC and exactly removed its readonly probe. See Handoff CURRENT.
+
+September16 11:31BJT HISTORICAL: API-C now uses the preserved original0902 Amap Key.
+Image remainsf727a9be, newCIDbd9d8163, current public environment SHA cb73cf0c…552ab;
+only the Amap field changed and actual process equality was proven. Admin6c8 and
+public0590286-amap-enabled remain. New real text request returned10000 but no
+matching facts; formal activation and shared quota controls are live, full business
+acceptance is pending. Necessary report-history/API+web fix is locally in progress:
+generation results already persist in original chat task records, while the report
+page historically listed only saved_diagnoses. Reuse those results without schema
+change or model requests. Recovery must retain current0902 environment, not restore
+the previous stale source or replay older deployment controllers. Exact evidence,
+Item32 session-binding blocker and sole WeChat ownership are at Handoff CURRENT.
+
+September16 09:38BJT HISTORICAL: formal Amap enablement remains authorized, but the
 actual API-C binding is stale. Read-only C source/public env/runtime equality
 checks match C's Jul19 api.env and differ from F's preserved Sep2 api.env, the
 original noteai-rot-0902 intake destination. Sep15 activation selected the wrong

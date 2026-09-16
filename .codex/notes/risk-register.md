@@ -1,4 +1,66 @@
-September16 09:38BJT CURRENT: owner correctly identifies the previously supplied
+September16 14:07BJT CURRENT: Dechu805fc report history is restored and actual
+authenticated reload/reopen passed after the c853f29 API-only release06:05:37UTC.
+The narrow guard now blocks unsupported complete copies of five old Prompt title
+examples; original historical bad variants remain unchanged. This is not a broad
+content-quality pass, and no owner material/model business was replayed.
+APIcc1da220/11b49de9 source and correct0902 environment were read back06:07UTC;
+public/Admin/waiting/quota unchanged, exact probe stopped. The first technical
+package was rejected before build started by the10-minute recovery-margin check,
+not an image-build failure; original records are preserved. The successful new
+06–08 API window does not authorize any Item32 collection.
+Amap a474 actual model cost1.237726 CNY and8 credits settled once; Amap fees still
+UNKNOWN, controlled remaining49994/50000 uses the dated Sep15 official baseline.
+Same-branch facts are traceable, while convenience wording and duplicate A/C
+variants remain stated quality limits. Item32 worker session is still unbound;
+original5ce bill still awaits its own DMS recovery/result. See Handoff CURRENT.
+
+September16 12:57BJT HISTORICAL: the sole repaired Amap business task a474 completed
+04:43:44UTC and saved its original note; authenticated report and Admin both
+confirmed the result. Exact task charge/complete/refund=1/1/0,8 credits,15 complete
+and exactly priced Claude calls,1.237726 CNY. One matched Amap observation links to
+that usage,2 HTTP,one same-branch entity; all persisted flat facts equal its entity
+facts. Shared controlled remaining49994/50000 uses the dated official baseline,
+not a fresh official reconciliation. New Amap fees UNKNOWN. No broad content-quality
+pass: convenience wording lacks a separate source, alternative A/C duplicate,
+and old Dechu variant remains historical. c853f29 fixes future complete legacy
+Prompt-example copying only; two-source API release pending, no material replay.
+
+September16 12:42BJT HISTORICAL: final release succeeded04:39:14UTC, correct0902
+environment/Admin/waiting/quota unchanged. Original Dechu805fc report is now
+accessible through the authenticated history page, full retained content shown.
+Its incorrect Chengdu title variant is confirmed in the original persisted
+result.title_variants, not an HTML fallback; it matches a prompt example. Preserve
+history and repair future candidate validation, without rerunning the owner's
+materials or claiming full content quality. New actual Taotao task a474 is still
+processing after real matched Amap facts; report terminal and costs separately.
+
+September16 12:25BJT historical release recovery: candidate5f9 read the actual Dechu complete
+report and v1/v2 using a read-only DB session. The new report entry is not yet live.
+One deployment encountered an overstrict cross-key environment-order comparison;
+its original UNKNOWN result is retained. Exact grouped values, including ordered
+duplicates, match the original configuration. Original API f727 and public ingress
+were restored at04:23UTC, public/status200, correct0902 binding unchanged. The old
+readonly probe was exactly stopped; idle/waiting/quota remained intact. Continue
+the minimal corrected release using the existing image/static target. No new
+provider calls, generation, charges, database writes, or backup in that recovery.
+
+September16 11:31BJT HISTORICAL: the existing noteai-rot-0902 binding is repaired on
+actual API-C, one same-image restart, other environment bytes and Admin unchanged.
+The new03:07UTC text query returned HTTP200/business10000, but no_matching_facts;
+do not call this completed merchant or content acceptance. Old10013 evidence stays.
+Admin readback03:45UTC confirms conservative quota49996/50000
+(official baseline1 + admissions3); new-call fees UNKNOWN. Refreshing the official console03:29UTC redirected to login; the old
+visible1-used snapshot is not a fresh official reconciliation. Licence not purchased,
+owner accepts risk and formal enablement remains; no purchase or overage is added.
+Owner's concurrent Dechu test explains separate ledger changes. Its generate task
+805fc has the saved complete-result field set and original/v2 notes; the report page
+omitted generate history and exposed only diagnoses. A read-only original-result
+history fix is in progress, without regeneration or new charges. Item32 browser
+login succeeded, but one localhost session-save submission was blocked/unconfirmed,
+no ciphertext/F binding or collector execution followed. Exact IDs and scope are
+in Handoff CURRENT. Prior current paragraphs below are dated history.
+
+September16 09:38BJT HISTORICAL: owner correctly identifies the previously supplied
 noteai-rot-0902. Original hidden intake targeted API-F api.env, whose current
 mtime is Sep2 13:47:44UTC. Original F journal/build identity matches, applied
 exchange1/forward restart1/rollback0 is retained, and current api.env equals
