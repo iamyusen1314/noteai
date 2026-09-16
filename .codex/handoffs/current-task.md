@@ -6,6 +6,56 @@
 高德正式启用已部署。新的Item32生产请求不由历史授权自动延伸；其余按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September16 10:08北京时间：原账单到时核查与旧窗口交接补充
+
+本节是旧窗口原 `noteai-5ce` 的当前结果，覆盖下文“未到时/last_run NULL”等历史状态。
+旧窗口继续停止普通开发、构建和新测试，仅保留查阅及这一个原订单账单任务。
+普通工程归新窗口 `01a0a50d-985c-7140-9db2-3bde812717bd`，不复制账单操作。
+
+- 恢复读回：目录 `/Users/openclaw/Desktop/noteai`，分支 `codex/quality-stabilization-real-chain`，
+  入场HEAD `b3afaaee530fa4ddce46a2e0422836f311418804`；相对本地保存的
+  `origin/codex/quality-stabilization-real-chain` ahead256/behind0，本轮未fetch/push，
+  不将remote-tracking ref冒充远端即时核验。tracked干净，七个受保护路径仍untracked且未读取/修改。
+  本次只追加此交接文档的非发布commit，准确后继SHA以 `git log -1` 读回为准。
+- 当前运行：API/Admin仍为4768ee1源码，image分别 `f727a9be…932cb` / `6c8cf579…2236d`；
+  本次host读回两服务healthy，Payment inactive/dead、无job/容器。
+  Admin网页4768ee1、公共网页0590286-amap-enabled-20260915沿下文Sep15已验证绑定，本次未重验网页。
+- 唯一任务 `noteai-5ce` ACTIVE，仍绑定旧thread `01a079a4-1c05-7d21-a98a-2d418cdd20c9`；
+  本机原项目/Asia-Shanghai，project_id/execution_environment空而继承原对话，不是新云任务。
+  调度器本次last_run=2026-09-16 **02:01:39.381UTC / 10:01:39.381北京时间**；
+  下一次现有调度=2026-09-17 **02:01:49UTC / 10:01:49北京时间**。automation_runs空，
+  不据此否认heartbeat已触发；本轮未修改/复制/立即运行原任务。
+- 10:03:36北京时间API-C只读invoke `t-sz06x73jwzje1hc`：原bill root不存在，
+  原launcher SHA仍 `7498f3a03733e4215db0c5247de01d77784bd5a0ce2207ed1c1e8692218ced5f`，
+  trade seal仍 `4c596dfc419d835c8d997a3f4f3cb147d6784cb28e2d1c29c4e6c77b3c70d530`。
+  DMS现场已登录实例0、登录框账号/密码为空；旧用户名标签不证明会话有效。
+  因无法预先确认原owner安装/撤除collector通道，**prepare未开始**，未装collector、未启Payment，
+  provider请求0/business writes0，无待清理的本次写入。需要owner仅在Chrome DMS原
+  `noteai-prod-postgres`登录 `noteai_admin`；密码只填页面，不重置/新建身份。
+- 原订单 `5ce31ca0-e42d-4a86-bee5-d1bb4bea8757`、退款 `a34463d7-1e87-4a7b-91df-bb2a75286540`
+  及Sep15账单范围不变；结果root仍 `/var/lib/noteai/native-9d62f98/bill-20260915`（尚不存在）。
+  私有本次读回 `/Users/openclaw/.codex/tmp/noteai-native-identity-9d62f98/bill5ce-due-readback.json`。
+  owner登录后在旧窗口续原任务，先重新协调并绑定届时实际版本；已启动/UNKNOWN只读回和恢复。
+  本次未开始，已通知新窗口释放临时共享运行时避让；以后仅实际prepare至确认final-readback期间避让。
+  结果回送新窗口并更新本入口；完成/失败封存且安全恢复后按原要求删除该唯一任务。
+
+六项终态仍未完成，Readiness **31/37**（本轮不重跑验收、不加分）：
+| Item | 当前事实与下一动作 |
+|---|---|
+|31|原支付/全额退款/自然重复回调完成；原5ce账单等待上述DMS登录，随后旧窗口按原入口核对及清理。|
+|32|79e预检失败provider0；fac5原获批修复轮已执行homefeed1并remote_business_error→HOLD。两轮授权已使用，不再待执行；新生产请求需明确新的窗口/范围，先由新窗口完成已有错误元数据缺口修复。|
+|33|未验收；依赖真实32 terminal及internal rollback，现有本地捕获部件复用。|
+|36|未验收；指定双区Standard ALB＋双EIP及实际持续费用已获批准，尚无资源创建；等待33及实际unit/SG/TLS/新鲜报价绑定，规格或费用范围实质变化才另作决定。|
+|37|未验收；等real AI、31、36真实前置后执行原联合商业链验收。|
+|38|未验收；等37及accepted ingress/ramp；现有公开官网不替代终态，不重复DNS切换。|
+
+Item34 canonical本次只读SHA仍 `e78fc888333279845ddb9cfbe862ebe1c4ca1ff2346f3f5503df3058bb3f8b3c`，
+generation2 VERIFIED/readiness_credit=true；原终态依据见下文“当前37项”及canonical路径，不重放。
+Claude/Render/AWS、豆包260428、七行业Prompt/截图排重/素材记忆、同权益同质量、真实成本且
+不复活临时金额门槛、微信首发/支付宝延期/Item35 NOT_REQUIRED均保持，详见“长期决定”及架构索引。
+高德旧凭据接线及未部署事实guard由新窗口继续；视频稿质量提示/Prompt最终历史来源边界仍如实保留，
+不阻断无关工程。下一阶段封面生成只登记，不设计、不加入37项。普通模型费用授权不扩张长期资源范围。
+
 ## September16 09:38北京时间：高德 Key 来源纠正（只读实证）
 Owner指出此前已创建并录入 `noteai-rot-0902`；定向历史查证属实，原本文件
 “Item30 provider attempt sealed; task-only stop and readback (2026-09-03)”明确记录
