@@ -1,4 +1,21 @@
-September16 22:14BJT CURRENT: Owner secure XHS save has been received and applied
+September16 22:40BJT CURRENT: The recovered XHS session completed real session
+initialization and10 homefeed responses. The first search_recommend response was
+HTTP200/success=true/integer code1000; local uniform code0 validation rejected it.
+Current upstream7077c88 reads success without that numeric restriction, but the
+original recommendation body is not retained, so usable recommendations remain
+UNKNOWN. This is not evidence of account freeze or supplier approval. Endpoint-
+specific shape validation and consistent safe evidence handling are being repaired.
+The sole cycle is HOLD:11collection admissions plus2initialization HTTP,13known
+responses,0UNKNOWN,0automatic retries. Both original production probes were
+server-enforced read-only with0writes, no xid and rollback. PGattempt0 must not
+reset the retained isolated11admissions. Current day is no longer fresh0/34.
+14:40:08UTC final readback confirms inactive/dead/disabled unit, no task containers
+or temporary runtime residue, unchanged new session and prior11records. Preserve
+this run and prepare one genuinely new UTC-bucket plan with its predecessor proof;
+no old-identity replay or same-day top-up run. Readiness32/37;33/36/37/38 dependent.
+Exact original hashes and remaining work: Handoff CURRENT and Item32 HOLD doc.
+
+September16 22:14BJT HISTORICAL: Owner secure XHS save has been received and applied
 once on original API-F. At14:07:21UTC the existing image loaded the actual new
 17-cookie session from runtime settings in network-none mode; no XHS requests,
 DB operations or service restarts. Only this ticket temporary private key was

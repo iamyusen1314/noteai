@@ -6,6 +6,35 @@
 高德正式启用已部署且0902来源已修正。Item32按下方最新owner接续授权准备新的有限只读周期；旧失败不重放。
 原账单执行及恢复已安全结束，共享runtime/schema/ACL避让已释放；Item31原链终态已验证计分，继续Item32及实际依赖。
 
+### September16 14:40UTC Item32新会话已真实读取；推荐code1000兼容缺口，原周期HOLD已清尾
+
+**Readiness仍32/37；未完成32、33、36、37、38。** source92dad86的唯一14:30窗口已执行，
+不再是“等待本人保存/未发供应商请求”。新会话实际session成功、首homefeed有效，并有10次homefeed
+HTTP200/code0/success=true；第11采集search_recommend返回HTTP200/success=true/code1000时被本地校验停止。
+原适配器→异常→launcher→worker receipt完整保留阶段/HTTP/业务码，不将其归因账号冻结。
+
+- 本次13物理HTTP=DSL1+session1+11 collection；10homefeed成功、1recommend失败；UNKNOWN0、重试0。
+  14:30:29 before与14:30:45 after原PG probe都强制只读、0写入/0tuple writes、无xid、ROLLBACK完成，
+  同DB身份。生产attempt0不撤销本机隔离store11，今天已不fresh，余23不能启动新完整周期。
+- 14:30:45.413549UTC原wrapper exit2/worker_failed，admission HOLD；原run `run-xu3tvxz7`。
+  原work `/var/lib/noteai/item32-v5-successor-20260916`、stage `/var/lib/noteai/item32-v5-package-20260916-92dad86`
+  均封存。`--v5-readback-only`的UNKNOWN_HOLD仅因没有失败candidate，不能误称供应商结果UNKNOWN。
+- 14:40:08.374695UTC `HOLD_ORIGINAL_11_ADMISSIONS_13_HTTP_RESTORED`，原2386byte最终摘要SHA
+  `b7c11b3013849ab1370d96fb36118cc710b02ecb1cd8113f8945ece01b45a4e2`；
+  unit inactive/dead/disabled、PID0/no job，任务容器及临时runtime目录清空，新会话绑定18f72保持。
+  旧11份记录字节未改；新9份原文件全摘要包含于此最终读回。无额外供应商调用/生产DB操作。
+- 固定上游7077c88推荐端点只读success，并未限制code0。NoteAI三层额外code0检查是本次本地拒绝来源；
+  但原1490B响应未保留raw，不能宣称实际推荐列表有效或官方已定义1000成功。
+  当前进行中的最小代码修复将仅为该endpoint验证success、原码与data.sug_items可用结构，
+  提取限定该列表，持久安全计数与terminal保持一致；其它端点/Tracking不放宽。
+- 新真实周期只能在后续UTC桶；当前按owner接续授权准备唯一有效后续窗口，先完成修复并将本次
+  11admissions/13HTTP及原摘要作为真实前驱封存。不能只换日期/目录绕过旧入口的no-replay保护，
+  不补跑今日23余量，不自动重试旧身份，不重复owner登录/同一授权。
+
+详细准确边界、source入口、原安全证据索引见 `docs/ITEM32_V5_SESSION_CYCLE_HOLD_20260916.md`。
+高德正式业务和德厨报告恢复保持；原微信5ce终态/已删除调度、Item34 VERIFIED和35 NOT_REQUIRED不变。
+下一动作是兼容修复＋严格下一桶计划；33需真实32后才能进入实际managed周期，36等33，不提前采购。
+
 ### September16 14:14UTC Item32本人保存已接收、实际镜像加载已验证；唯一新周期准备中
 
 Owner本人安全保存已完成，回执`SEALED_NOT_RECEIVED`代表本机封存时点；随后原F已
