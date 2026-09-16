@@ -225,6 +225,84 @@ class TrendsV5Tests(unittest.TestCase):
         self.assertEqual((len(sent), len(admitted)), (5, 3))
         self.assertEqual([result for _, result in completed], [{"outcome": "succeeded"}]*3)
 
+    def test_recommend_1000_requires_usable_items_and_preserves_original_code(self):
+        for code in (1000, "1000"):
+            with self.subTest(code=code):
+                payload = {"success": True, "code": code, "data": {"sug_items": [
+                    {"text": "  合成推荐词  "}, {"name": "另一推荐词"}, {"text": " "}, 7]}}
+                reader, sent, events, admitted, completed = self.reader(
+                    self.init() + [self.ok(), httpx.Response(200, json=payload), self.ok()])
+                reader.request("POST", v5.TRENDS_HOME_API, {})
+                self.assertEqual(reader.request("GET", v5.TRENDS_RECOMMEND_API + "?keyword=test"), payload)
+                reader.request("POST", v5.TRENDS_SEARCH_API, {})
+                meta = events[7]["response_diagnostics"]
+                self.assertEqual(meta["business_code"], code)
+                self.assertIs(type(meta["business_code"]), type(code))
+                self.assertEqual(meta["recommendation_items_total"], 4)
+                self.assertEqual(meta["recommendation_items_usable"], 2)
+                self.assertNotIn("合成推荐词", json.dumps(events, ensure_ascii=False))
+                self.assertNotIn("recommendation_items_total", events[-1]["response_diagnostics"])
+                self.assertEqual(len(sent), 5)
+                self.assertEqual(admitted, ["homefeed", "search_recommend", "search_notes"])
+                self.assertEqual([entry[1] for entry in completed], [{"outcome": "succeeded"}] * 3)
+
+    def test_empty_or_malformed_1000_is_schema_failure_without_followup(self):
+        for data in ({}, {"sug_items": []}, {"sug_items": {}},
+                     {"sug_items": [{"text": " "}, {"name": "x"}, "旁支文本"]},
+                     {"sug_items": [{"other": {"text": "旁支文本"}}], "name": "非推荐文本"}):
+            with self.subTest(data=data):
+                reader, sent, events, admitted, completed = self.reader(self.init() + [self.ok(),
+                    httpx.Response(200, json={"success": True, "code": 1000, "data": data})])
+                reader.request("POST", v5.TRENDS_HOME_API, {})
+                with self.assertRaises(legacy.XHSAdapterError) as caught:
+                    reader.request("GET", v5.TRENDS_RECOMMEND_API + "?keyword=test")
+                self.assertEqual(caught.exception.code, "remote_schema_error")
+                self.assertEqual(caught.exception.stage, "search_recommend")
+                self.assertEqual(caught.exception.diagnostics, events[-1]["response_diagnostics"])
+                self.assertEqual(caught.exception.diagnostics["business_code"], 1000)
+                self.assertEqual(completed[-1][1], {"outcome": "failed", "error_code": "remote_schema_error"})
+                with self.assertRaises(legacy.XHSAdapterError):
+                    reader.request("POST", v5.TRENDS_SEARCH_API, {})
+                self.assertEqual(len(sent), 4)
+
+    def test_recommend_1000_does_not_bypass_http_success_or_restriction_checks(self):
+        valid = {"success": True, "code": 1000, "data": {"sug_items": [{"text": "合成推荐词"}]}}
+        cases = [(status, valid) for status in (302, 401, 403, 429, 461, 471, 500)]
+        cases += [(200, {**valid, **changed}) for changed in (
+            {"success": False}, {"success": "true"}, {"code": True}, {"code": 1000.0},
+            {"code": "01000"}, {"code": 1001}, {"msg": "login required"},
+            {"msg": "risk verify"}, {"msg": "access denied"},
+            {"data": {**valid["data"], "code": -3}},
+            {"data": {**valid["data"], "message": "too many requests"}})]
+        for status, payload in cases:
+            with self.subTest(status=status, payload=payload):
+                reader, sent, events, admitted, completed = self.reader(
+                    self.init() + [self.ok(), httpx.Response(status, json=payload)])
+                reader.request("POST", v5.TRENDS_HOME_API, {})
+                with self.assertRaises(legacy.XHSAdapterError):
+                    reader.request("GET", v5.TRENDS_RECOMMEND_API + "?keyword=test")
+                self.assertEqual(completed[-1][1]["outcome"], "failed")
+                self.assertTrue(reader.stopped)
+                self.assertEqual(len(sent), 4)
+
+    def test_1000_is_not_accepted_for_other_endpoints_or_legacy_validation(self):
+        payload = {"success": True, "code": 1000, "data": {
+            "sug_items": [{"text": "合成推荐词"}], "items": [{"title": "合成标题"}], "user_id": USER}}
+        for method, api in (("POST", v5.TRENDS_HOME_API), ("POST", v5.TRENDS_SEARCH_API)):
+            with self.subTest(api=api):
+                reader, sent, events, admitted, completed = self.reader(
+                    self.init() + [httpx.Response(200, json=payload)])
+                with self.assertRaises(legacy.XHSAdapterError):
+                    reader.request(method, api, {})
+                self.assertNotIn("recommendation_items_total", events[-1]["response_diagnostics"])
+        reader, sent, events, admitted, completed = self.reader([
+            self.init()[0], httpx.Response(200, json=payload)])
+        with self.assertRaises(legacy.XHSAdapterError):
+            reader.request("POST", v5.TRENDS_HOME_API, {})
+        self.assertEqual(admitted, [])
+        with self.assertRaises(legacy.XHSAdapterError):
+            legacy._validate_response(200, payload)
+
     def test_unproven_session_success_prevents_any_collection_admission(self):
         reader, sent, _, admitted, _ = self.reader([self.init()[0], httpx.Response(200, json={
             "code": 0, "data": {"user_id": USER}})])

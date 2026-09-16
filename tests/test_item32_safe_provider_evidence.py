@@ -216,6 +216,47 @@ class SafeProviderEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(launcher.Item32Error, "worker_diagnostic_source_binding"):
                 launcher._worker_diagnostic_projectors()
 
+    def test_recommendation_counts_are_paired_typed_and_trends_only(self):
+        value = observation(kind="search_recommend", sequence=13)
+        meta = value["response_diagnostics"]
+        meta.update(business_code=1000, recommendation_items_total=3, recommendation_items_usable=2)
+        projected = safe.sanitize_trends_http_event(value)
+        self.assertEqual(projected["response_diagnostics"]["recommendation_items_total"], 3)
+        self.assertEqual(projected["response_diagnostics"]["recommendation_items_usable"], 2)
+        self.assertNotIn("recommendation_items_total", safe.sanitize_xhs_response_diagnostics(meta))
+        self.assertNotIn("recommendation_items_total", safe.sanitize_trends_http_event(
+            {**value, "request_kind": "homefeed"})["response_diagnostics"])
+        for total, usable in ((True, 1), (3, True), (3.0, 1), (3, "1"), (-1, 0), (1, 2), (3, None)):
+            with self.subTest(total=total, usable=usable):
+                forged = {**meta, "recommendation_items_total": total, "recommendation_items_usable": usable}
+                cleaned = safe.sanitize_xhs_response_diagnostics(forged, recommendations=True)
+                self.assertNotIn("recommendation_items_total", cleaned)
+                self.assertNotIn("recommendation_items_usable", cleaned)
+
+    def test_recommendation_structure_survives_failure_and_worker_receipt_without_text(self):
+        value = observation(kind="search_recommend", sequence=13)
+        value["response_diagnostics"].update(business_code=1000, recommendation_items_total=0,
+                                              recommendation_items_usable=0, recommendation_text=PRIVATE)
+        failure = safe.sanitize_trends_failure({"stage": "search_recommend", "error_code": "remote_schema_error",
+                                               "response_diagnostics": value["response_diagnostics"]})
+        self.assertEqual(failure["response_diagnostics"]["recommendation_items_usable"], 0)
+        receipt = self.receipt([{"event": "xhs_trends_http_observation", **value},
+                                {"event": "xhs_trends_provider_failure", **failure}])
+        self.assertEqual(receipt["provider_failures"], [failure])
+        self.assertEqual(receipt["physical_http_observations"][0]["response_diagnostics"]
+                         ["recommendation_items_total"], 0)
+        self.assertNotIn(PRIVATE, json.dumps(receipt))
+
+    def test_v5_recommend_extraction_uses_only_direct_sug_items_and_preserves_legacy_default(self):
+        payload = {"name": "非推荐旁支", "data": {"sug_items": [
+            {"text": " 合成推荐词 "}, {"text": "合成推荐词"}, {"word": "另一推荐词"},
+            {"name": " "}, {"nested": {"text": "旁支假推荐"}}], "title": "其他标题"}}
+        self.assertEqual(scheduler_a._extract_recommend_keywords(payload, trends_v5=True),
+                         ["合成推荐词", "另一推荐词"])
+        self.assertIn("旁支假推荐", scheduler_a._extract_recommend_keywords(payload))
+        self.assertEqual(scheduler_a._extract_recommend_keywords({"data": {"items": [{"text": "旁支"}]}},
+                                                                  trends_v5=True), [])
+
     def test_known_secret_output_is_rejected_before_any_receipt(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(launcher.Item32Error, "worker_output_secret_detected"):

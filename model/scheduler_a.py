@@ -550,7 +550,10 @@ def _search_discovery_targets() -> list[tuple[str, str]]:
     return targets
 
 
-def _extract_recommend_keywords(payload: object) -> list[str]:
+def _extract_recommend_keywords(payload: object, *, trends_v5: bool = False) -> list[str]:
+    if trends_v5:
+        from spider_xhs_v5 import trends_recommendation_keywords
+        return list(dict.fromkeys(trends_recommendation_keywords(payload)))
     found: list[str] = []
 
     def walk(value: object) -> None:
@@ -634,7 +637,9 @@ async def scrape_once_http() -> list[dict]:
                 recommend = adapter.search_recommend(seed)
                 _diagnostic_inc(diagnostics, "recommend", "response_seen")
                 _diagnostic_inc(diagnostics, "recommend", "json_ok")
-                recommended = _extract_recommend_keywords(recommend)
+                recommended = _extract_recommend_keywords(recommend, trends_v5=(
+                    os.environ.get("NOTEAI_XHS_PROTOCOL", "") == "pc_v5"
+                    and os.environ.get("NOTEAI_XHS_SERVICE", "") == "trends"))
                 _diagnostic_inc(diagnostics, "recommend", "items_raw", len(recommended))
                 _diagnostic_inc(diagnostics, "recommend", "extracted", len(recommended))
                 recommend_rows.extend((keyword, category) for keyword in recommended)

@@ -1280,7 +1280,8 @@ def _item32_v5_physical_valid(physical: Any, summary: Any, attempts: Any,
              *[kind for _ in range(12) for kind in ("search_recommend", "search_notes")]]
     previous_end = started_at
     diagnostic_keys = {"http_status", "payload_kind", "success_state", "business_code_kind", "business_code",
-                       "nested_business_code_kind", "nested_business_code", "message_present", "message_tags"}
+                       "nested_business_code_kind", "nested_business_code", "message_present", "message_tags",
+                       "recommendation_items_total", "recommendation_items_usable"}
     for index, kind in enumerate(kinds):
         dispatch, response = observations[index * 2:index * 2 + 2]
         if (not isinstance(dispatch, dict) or not isinstance(response, dict)
@@ -1320,10 +1321,22 @@ def _item32_v5_physical_valid(physical: Any, summary: Any, attempts: Any,
                 or isinstance(diag[key], str) and re.fullmatch(r"-?[0-9]{1,9}", diag[key])
             ):
                 return False
+        recommendation_keys = {"recommendation_items_total", "recommendation_items_usable"}
+        recommendation_counts_valid = (
+            kind == "search_recommend" and recommendation_keys <= set(diag)
+            and _exact_int(diag["recommendation_items_total"])
+            and _exact_int(diag["recommendation_items_usable"])
+            and 0 <= diag["recommendation_items_usable"] <= diag["recommendation_items_total"])
+        if recommendation_keys & set(diag) and not recommendation_counts_valid:
+            return False
         if kind != "dsl":
             code = diag.get("business_code")
             code_ok = ((_exact_int(code, 0) and diag.get("business_code_kind") == "integer")
                        or (type(code) is str and code == "0" and diag.get("business_code_kind") == "numeric_string"))
+            if recommendation_counts_valid and diag["recommendation_items_usable"] > 0:
+                code_ok = code_ok or (
+                    _exact_int(code, 1000) and diag.get("business_code_kind") == "integer"
+                    or type(code) is str and code == "1000" and diag.get("business_code_kind") == "numeric_string")
             if diag.get("payload_kind") != "object" or diag.get("success_state") != "true" or not code_ok:
                 return False
         if "nested_business_code" in diag and not (

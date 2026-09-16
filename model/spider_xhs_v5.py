@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
-from security_redaction import xhs_response_diagnostics
+from security_redaction import sanitize_xhs_response_diagnostics, xhs_response_diagnostics
 from vendor.spider_xhs.v5 import headers as wire
 from vendor.spider_xhs.v5 import runtime
 from vendor.spider_xhs.v5.state import PcDeviceProfile
@@ -25,6 +25,22 @@ DETAIL_API = "/api/sns/web/v1/feed"
 BASE = "https://edith.xiaohongshu.com"
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _DSL = re.compile(r"function\s+getdss\s*\(\s*\)\s*\{\s*return\s+['\"]([0-9]{13})['\"]")
+
+
+def trends_recommendation_keywords(payload):
+    """Read direct suggestion entries only; never treat sibling metadata as words."""
+    data = payload.get("data") if isinstance(payload, dict) else None
+    items = data.get("sug_items") if isinstance(data, dict) else None
+    found = []
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        for key in ("keyword", "word", "search_word", "name", "text", "title"):
+            value = item.get(key)
+            if isinstance(value, str) and len(value.strip()) >= 2:
+                found.append(value.strip())
+                break
+    return found
 
 
 def session_signing_storage(raw):
@@ -370,6 +386,12 @@ class V5Trends(V5Detail):
             except Exception:
                 payload = None
             meta = xhs_response_diagnostics(response.status_code, payload, json_decoded=payload is not None)
+            if kind == "search_recommend" and isinstance(payload, dict):
+                data = payload.get("data")
+                items = data.get("sug_items") if isinstance(data, dict) else None
+                if isinstance(items, list):
+                    meta.update(recommendation_items_total=len(items),
+                                recommendation_items_usable=len(trends_recommendation_keywords(payload)))
             self.last_response_diagnostics = meta
             self.observe({"phase": "response", "request_kind": kind, "sequence": sequence,
                           "at": datetime.now(timezone.utc).isoformat(), "response_bytes": len(raw),
@@ -387,17 +409,29 @@ class V5Trends(V5Detail):
                 if not 200 <= response.status_code < 300:
                     _validate_response(response.status_code, {})
                 raise XHSAdapterError("remote_non_json", diagnostics=meta)
-            result = _validate_response(response.status_code, payload)
+            code = meta.get("business_code")
+            recommend_1000 = kind == "search_recommend" and (
+                type(code) is int and code == 1000 or type(code) is str and code == "1000")
+            try:
+                result = _validate_response(response.status_code, payload)
+            except XHSAdapterError as exc:
+                # The pinned upstream recommend endpoint uses explicit success;
+                # retain its observed 1000 code and check this endpoint's data.
+                # HTTP, login, challenge and cooldown failures are never bypassed.
+                if not (recommend_1000 and exc.code == "remote_business_error"):
+                    raise
+                result = payload
             # Trends may continue only on the same explicit business success
             # required by its terminal evidence; legacy Tracking stays unchanged.
-            code = meta.get("business_code")
             nested = meta.get("nested_business_code")
             if (meta.get("success_state") != "true"
-                    or not (type(code) is int and code == 0 or type(code) is str and code == "0")
+                    or not (recommend_1000 or type(code) is int and code == 0 or type(code) is str and code == "0")
                     or meta.get("message_tags", []) != []
                     or "nested_business_code" in meta and not (
                         type(nested) is int and nested == 0 or type(nested) is str and nested == "0")):
                 raise XHSAdapterError("remote_business_error", diagnostics=meta)
+            if recommend_1000 and meta.get("recommendation_items_usable", 0) <= 0:
+                raise XHSAdapterError("remote_schema_error", diagnostics=meta)
             if kind == "homefeed" and self.collection_count == 1:
                 data = result.get("data")
                 items = data.get("items") if isinstance(data, dict) else None
@@ -428,6 +462,9 @@ class V5Trends(V5Detail):
                 raise XHSAdapterError("trends_provider_finalize_failed",
                                       diagnostics=self.last_response_diagnostics) from None
             if isinstance(exc, XHSAdapterError):
+                if kind == "search_recommend":
+                    exc.diagnostics = sanitize_xhs_response_diagnostics(
+                        self.last_response_diagnostics, recommendations=True)
                 raise
             raise XHSAdapterError("network_error", diagnostics=self.last_response_diagnostics) from None
 

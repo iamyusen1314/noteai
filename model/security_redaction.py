@@ -196,7 +196,7 @@ def xhs_response_diagnostics(status: int, payload: Any, *, json_decoded: bool = 
     return sanitize_xhs_response_diagnostics(result)
 
 
-def sanitize_xhs_response_diagnostics(value: Any) -> dict[str, Any]:
+def sanitize_xhs_response_diagnostics(value: Any, *, recommendations: bool = False) -> dict[str, Any]:
     """Recheck even exception-supplied metadata at each persistence boundary."""
     if not isinstance(value, dict):
         return {}
@@ -224,6 +224,10 @@ def sanitize_xhs_response_diagnostics(value: Any) -> dict[str, Any]:
     if isinstance(value.get("message_tags"), list):
         result["message_tags"] = sorted({tag for tag in value["message_tags"]
                                          if isinstance(tag, str) and tag in _XHS_MESSAGE_MARKERS})
+    if recommendations:
+        total, usable = (value.get("recommendation_items_" + key) for key in ("total", "usable"))
+        if type(total) is int and type(usable) is int and 0 <= usable <= total:
+            result.update(recommendation_items_total=total, recommendation_items_usable=usable)
     return result
 
 
@@ -284,6 +288,9 @@ def sanitize_trends_http_event(value: Any) -> dict[str, Any]:
         except ValueError:
             return {}
         projected.update(request_kind=kind, sequence=sequence)
+        if phase == "response" and kind == "search_recommend":
+            projected["response_diagnostics"] = sanitize_xhs_response_diagnostics(
+                value.get("response_diagnostics"), recommendations=True)
     return projected
 
 
@@ -296,7 +303,8 @@ def sanitize_trends_failure(value: Any) -> dict[str, Any]:
     return {
         "error_code": code if isinstance(code, str) and code in _TRENDS_FAILURE_CODES else "adapter_failure_unknown",
         "stage": stage if isinstance(stage, str) and stage in _TRENDS_REQUEST_KINDS else "preflight",
-        "response_diagnostics": sanitize_xhs_response_diagnostics(value.get("response_diagnostics")),
+        "response_diagnostics": sanitize_xhs_response_diagnostics(
+            value.get("response_diagnostics"), recommendations=stage == "search_recommend"),
     }
 
 

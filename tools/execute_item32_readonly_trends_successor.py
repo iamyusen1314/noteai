@@ -2217,6 +2217,18 @@ def _v5_physical_proof(run_dir: Path, plan: dict[str, Any], run: dict[str, Any],
         code = diagnostics.get("business_code")
         code_ok = (type(code) is int and code == 0 and diagnostics.get("business_code_kind") == "integer"
                    or type(code) is str and code == "0" and diagnostics.get("business_code_kind") == "numeric_string")
+        recommendation_keys = {"recommendation_items_total", "recommendation_items_usable"}
+        recommendation_counts_valid = (
+            kind == "search_recommend" and recommendation_keys <= set(diagnostics)
+            and type(diagnostics["recommendation_items_total"]) is int
+            and type(diagnostics["recommendation_items_usable"]) is int
+            and 0 <= diagnostics["recommendation_items_usable"] <= diagnostics["recommendation_items_total"])
+        if recommendation_keys & set(diagnostics) and not recommendation_counts_valid:
+            raise Item32Error("physical_http_business_failure")
+        if recommendation_counts_valid and diagnostics["recommendation_items_usable"] > 0:
+            code_ok = code_ok or (
+                type(code) is int and code == 1000 and diagnostics.get("business_code_kind") == "integer"
+                or type(code) is str and code == "1000" and diagnostics.get("business_code_kind") == "numeric_string")
         if kind != "dsl" and (diagnostics.get("payload_kind") != "object"
                                or diagnostics.get("success_state") != "true"
                                or not code_ok):

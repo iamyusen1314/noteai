@@ -116,6 +116,59 @@ class Item32V5EvidenceGateTests(unittest.TestCase):
         self.f.attempt_payload["physical_http"]["observations"][5]["response_diagnostics"]["business_code"] = -100
         self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())
 
+    def test_recommendation_1000_accepts_only_typed_code_with_actual_usable_items(self):
+        diag = self.f.attempt_payload["physical_http"]["observations"][25]["response_diagnostics"]
+        for code, kind in ((1000, "integer"), ("1000", "numeric_string")):
+            with self.subTest(code=code):
+                diag.update(business_code=code, business_code_kind=kind,
+                            recommendation_items_total=2, recommendation_items_usable=1)
+                self.assertEqual(self.validate(), [])
+
+    def test_recommendation_1000_missing_or_empty_items_never_credits_original_failure(self):
+        diag = self.f.attempt_payload["physical_http"]["observations"][25]["response_diagnostics"]
+        diag["business_code"] = 1000
+        self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())
+        diag.update(recommendation_items_total=0, recommendation_items_usable=0)
+        self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())
+
+    def test_recommendation_count_shape_and_business_code_kind_must_match(self):
+        diag = self.f.attempt_payload["physical_http"]["observations"][25]["response_diagnostics"]
+        baseline = dict(diag, business_code=1000, recommendation_items_total=1, recommendation_items_usable=1)
+        for changes in (
+            {"recommendation_items_total": True}, {"recommendation_items_usable": "1"},
+            {"recommendation_items_usable": 1.0}, {"recommendation_items_usable": -1},
+            {"recommendation_items_total": 0}, {"business_code_kind": "numeric_string"},
+            {"business_code": "01000", "business_code_kind": "numeric_string"},
+            {"business_code": 1000.0},
+        ):
+            with self.subTest(changes=changes):
+                diag.clear(); diag.update(baseline); diag.update(changes)
+                self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())
+
+    def test_recommendation_1000_keeps_http_success_restriction_and_nested_guards(self):
+        diag = self.f.attempt_payload["physical_http"]["observations"][25]["response_diagnostics"]
+        baseline = dict(diag, business_code=1000, recommendation_items_total=1, recommendation_items_usable=1)
+        for changes in ({"http_status": 400}, {"success_state": "false"},
+                        {"message_tags": ["login"]}, {"nested_business_code": 1000, "nested_business_code_kind": "integer"}):
+            with self.subTest(changes=changes):
+                diag.clear(); diag.update(baseline); diag.update(changes)
+                self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())
+
+    def test_recommendation_exception_cannot_extend_other_endpoints(self):
+        original = copy.deepcopy(self.f.attempt_payload)
+        for index in (3, 5, 27):
+            for counts in ({}, {"recommendation_items_total": 1, "recommendation_items_usable": 1}):
+                with self.subTest(index=index, counts=counts):
+                    self.f.attempt_payload = copy.deepcopy(original)
+                    self.f.attempt_payload["physical_http"]["observations"][index]["response_diagnostics"].update(
+                        business_code=1000, **counts)
+                    self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())
+
+    def test_zero_code_empty_recommendation_remains_compatible(self):
+        self.f.attempt_payload["physical_http"]["observations"][25]["response_diagnostics"].update(
+            recommendation_items_total=0, recommendation_items_usable=0)
+        self.assertEqual(self.validate(), [])
+
     def test_bool_business_zero_or_retry_count_cannot_pass(self):
         self.f.attempt_payload["physical_http"]["observations"][5]["response_diagnostics"]["business_code"] = False
         self.assertIn("Item32 physical HTTP/init/collection evidence mismatch", self.validate())

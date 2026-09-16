@@ -153,6 +153,60 @@ class V5ProfileTests(unittest.TestCase):
     def test_http200_business_failure_is_not_accepted(self):
         r,run,a=self.proof_fixture();r['physical_http_observations'][3]['response_diagnostics']['business_code']=-3
         with self.assertRaisesRegex(e.Item32Error,'physical_http_business_failure'):self.proof(r,run,a)
+    def test_recommendation_1000_retains_typed_code_and_requires_usable_items(self):
+        for code,kind in ((1000,'integer'),('1000','numeric_string')):
+            with self.subTest(code=code):
+                r,run,a=self.proof_fixture()
+                diag=r['physical_http_observations'][25]['response_diagnostics']
+                diag.update(business_code=code,business_code_kind=kind,
+                            recommendation_items_total=2,recommendation_items_usable=1)
+                result=self.proof(r,run,a)
+                self.assertEqual(result['observations'][25]['response_diagnostics'],diag)
+    def test_recommendation_1000_without_actual_usable_counts_cannot_credit_old_hold(self):
+        for counts in ({},{'recommendation_items_total':0,'recommendation_items_usable':0}):
+            with self.subTest(counts=counts):
+                r,run,a=self.proof_fixture()
+                r['physical_http_observations'][25]['response_diagnostics'].update(business_code=1000,**counts)
+                with self.assertRaisesRegex(e.Item32Error,'physical_http_business_failure'):self.proof(r,run,a)
+        r,run,a=self.proof_fixture();r['exit_code']=1
+        r['physical_http_observations'][25]['response_diagnostics'].update(
+            business_code=1000,recommendation_items_total=1,recommendation_items_usable=1)
+        with self.assertRaisesRegex(e.Item32Error,'physical_http_evidence'):self.proof(r,run,a)
+    def test_recommendation_counts_and_typed_code_fail_closed(self):
+        for changes in (
+            {'recommendation_items_total':True},{'recommendation_items_usable':'1'},
+            {'recommendation_items_usable':1.0},{'recommendation_items_usable':-1},
+            {'recommendation_items_total':0},{'business_code_kind':'numeric_string'},
+            {'business_code':'01000','business_code_kind':'numeric_string'},
+            {'business_code':1000.0},
+        ):
+            with self.subTest(changes=changes):
+                r,run,a=self.proof_fixture()
+                diag=r['physical_http_observations'][25]['response_diagnostics']
+                diag.update(business_code=1000,recommendation_items_total=1,recommendation_items_usable=1)
+                diag.update(changes)
+                with self.assertRaisesRegex(e.Item32Error,'physical_http_(evidence|business_failure)'):self.proof(r,run,a)
+    def test_recommendation_1000_does_not_relax_http_success_restriction_or_nested_errors(self):
+        for changes in ({'http_status':400},{'success_state':'false'},
+                        {'message_tags':['login']},{'nested_business_code':1000,'nested_business_code_kind':'integer'}):
+            with self.subTest(changes=changes):
+                r,run,a=self.proof_fixture()
+                diag=r['physical_http_observations'][25]['response_diagnostics']
+                diag.update(business_code=1000,recommendation_items_total=1,recommendation_items_usable=1)
+                diag.update(changes)
+                with self.assertRaisesRegex(e.Item32Error,'physical_http_business_failure'):self.proof(r,run,a)
+    def test_recommendation_exception_never_applies_to_other_endpoints(self):
+        for index in (3,5,27):
+            for counts in ({},{'recommendation_items_total':1,'recommendation_items_usable':1}):
+                with self.subTest(index=index,counts=counts):
+                    r,run,a=self.proof_fixture()
+                    r['physical_http_observations'][index]['response_diagnostics'].update(business_code=1000,**counts)
+                    with self.assertRaisesRegex(e.Item32Error,'physical_http_(evidence|business_failure)'):self.proof(r,run,a)
+    def test_empty_code_zero_recommendation_keeps_existing_success(self):
+        r,run,a=self.proof_fixture()
+        r['physical_http_observations'][25]['response_diagnostics'].update(
+            recommendation_items_total=0,recommendation_items_usable=0)
+        self.assertEqual(self.proof(r,run,a)['total_count'],36)
     def test_unknown_or_duplicate_physical_event_rejects(self):
         r,run,a=self.proof_fixture();r['physical_http_observations'][5]['phase']='unknown'
         with self.assertRaisesRegex(e.Item32Error,'physical_http_evidence'):self.proof(r,run,a)
