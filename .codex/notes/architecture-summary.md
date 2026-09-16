@@ -1,4 +1,13 @@
-September15 17:32UTC CURRENT: Amap is formally enabled on source4768 API-C and
+September16 09:38BJT CURRENT: formal Amap enablement remains authorized, but the
+actual API-C binding is stale. Read-only C source/public env/runtime equality
+checks match C's Jul19 api.env and differ from F's preserved Sep2 api.env, the
+original noteai-rot-0902 intake destination. Sep15 activation selected the wrong
+host's source; its successful local binding checks did not establish credential
+provenance or provider health. Original10013 pause remains, no replacement Key
+or owner re-entry is needed to investigate/repair this wiring. No runtime change
+occurred in this diagnosis; exact evidence and5ce isolation are at Handoff top.
+
+September15 17:32UTC HISTORICAL: Amap is formally enabled on source4768 API-C and
 Admin; source snapshots, shared quota and existing Key binding are live. API image
 f727a9be…932cb / Admin6c8cf579…2236d, Admin static4768; public0590286-amap-enabled-20260915
 changes only the old disabled sentence. Actual runtime/source/ACL/ingress/HTTPS

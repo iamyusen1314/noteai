@@ -1,4 +1,21 @@
-September16 07:57BJT CURRENT: the single normal owner food-generation task
+September16 09:38BJT CURRENT: owner correctly identifies the previously supplied
+noteai-rot-0902. Original hidden intake targeted API-F api.env, whose current
+mtime is Sep2 13:47:44UTC. Original F journal/build identity matches, applied
+exchange1/forward restart1/rollback0 is retained, and current api.env equals
+that original candidate byte-for-byte. Fresh read-only host comparisons prove formal API-C
+uses the value in C's Jul19 api.env; C source/public-account.env/runtime match
+one another but differ from F's preserved value. The Sep15 controller incorrectly
+selected C's stale source despite the Sep13 note requiring the later F source.
+This is our deployment provenance defect, not missing owner credential input.
+Do not request a new Key/re-entry or assert that0902 was deleted. Old C console
+label is unknown; F's current supplier health is not yet tested. Original10013
+failure/admission/accounting and scoped pause remain until actual binding repair.
+No provider/DB calls, configuration write or service change occurred in these
+readbacks. Reuse existing scoped authority for correct secure F-to-C binding,
+while respecting actual original5ce prepare-through-close isolation. No old
+rotation/deploy controller replay. Exact readbacks and next action: Handoff top.
+
+September16 07:57BJT HISTORICAL: the single normal owner food-generation task
 f49b9dbc-a125-4517-b5a7-ba7fa94418e4 completed and auto-saved v1, charged8 once;
 actual Haiku16/Sonnet3 calls cost2.108694 CNY from exact/complete model records.
 Amap's one HTTP200 response was a business failure10013 USER_KEY_RECYCLED, not

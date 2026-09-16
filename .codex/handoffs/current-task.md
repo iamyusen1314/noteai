@@ -6,6 +6,35 @@
 高德正式启用已部署。新的Item32生产请求不由历史授权自动延伸；其余按下面具名边界决定。
 新窗口只写自己拥有的文件；旧窗口仍独占原账单执行、恢复及必要结果记录。
 
+## September16 09:38北京时间：高德 Key 来源纠正（只读实证）
+Owner指出此前已创建并录入 `noteai-rot-0902`；定向历史查证属实，原本文件
+“Item30 provider attempt sealed; task-only stop and readback (2026-09-03)”明确记录
+Owner supplied noteai-rot-0902，原隐藏录入/加密重绑定目标是API-F `/etc/noteai/api.env`。
+上轮“未发现已更新有效Key记录”与因此询问是否重新录入不准确，本节取代该待答条件；
+不要求owner再次新建或输入Key，不打开凭据值列表，不把10013解释成0902被删除。
+
+实际只读核对：F Invoke `t-sz06x713squ34lc` 01:36:09UTC，原api.env仍有AMAP值，
+mtime为Sep2 13:47:44.992659UTC；F运行时按原正式启用隔离设计为空，CID4388…6380未变。
+C Invoke `t-sz06x7177l7bcow` 01:37:13UTC确认：C api.env的mtime是Jul19 10:03:08UTC，
+其中AMAP值与Sep15 17:27:32写入的public-account.env及当前正式API运行值完全相同；
+这三者与F当前api.env中的AMAP值不同。仅在主机内计算本次比较摘要，无密钥明文输出；
+API CID81b6…d1fd未变，供应商请求/DB操作/配置写/服务变更均0。
+因此上次10013调用使用的是C的旧来源，不是F保存的Sep2新录入值；旧C值的控制台名称
+没有保存，不能擅自命名为0901/0830。F值当前供应商健康本轮未测试。
+
+追加原回执只读 `t-sz06x71k4br8cu8` / `t-sz06x71naqft728`：原F最后重绑定身份
+b21accec…d6098的journal/build均存在且identity匹配，journal为已APPLIED类状态，
+exchange1/forward restart1/rollback0；现存F api.env与原output/candidate.env全字节相等。
+这将现存F来源接回owner原0902录入/加密重绑定链，不是重演原轮换或声称当前供应商健康。
+根因明确：Sep15成功controller的SOURCE_ENV指C本机 `/etc/noteai/api.env`，
+formal_environment及verify_mutable只证明“与该旧来源相等”，没有核对原0902接收链。
+Sep13风险记录已注明C来源早于更换，只能考虑后来的F来源；本次发布遗漏该约束，
+属于本窗口配置来源核对错误，不是owner未提供凭据或新的许可决策缺口。
+后续沿既有授权修正F→C正式绑定，保留失败、月额准入与原业务账务；不以换Key规避配额。
+原10013暂停在实际正确凭据恢复前保留；禁止重放旧轮换/发布controller。
+当前尚未改绑定/重启/解除暂停，未声称业务恢复；微信原5ce仍独占，实际prepare至close期间避让。
+私有只读证据：`/Users/openclaw/.codex/tmp/noteai-amap-key-provenance-20260916/binding-readback.json`。
+
 ## September16 07:57北京时间：一次正常高德业务的真实结果
 本轮复用owner正式用户及Admin的有效会话，未重置身份、未索取Token，未重复部署或备份。
 唯一生成任务 `f49b9dbc-a125-4517-b5a7-ba7fa94418e4`，原owner用户不变；
@@ -38,9 +67,9 @@ model/api.py两纯helper及美食入口，保留原修订轮次/账务；专用t
 候选api.py SHA863fbb53a0474bc9da66b15293fa9c5d6824fa625041d1e6f38624d98b33e862。
 按本轮不重复部署/备份要求保持线上原版本；原稿、19次模型账务、失败记录均保留，
 不为评分重跑素材，未声称修复已上线。有效凭据确认后再接续必要修复发布和真实验收。
-现有生产Key由原api.env内存绑定到 `/etc/noteai/public-account.env`；未发现已更新有效Key的
-明确记录。已集中询问owner原Key是否被删除/替换及是否经原安全配置通道更新，绝不在聊天接收密钥。
-实际凭据恢复须先确认；不清计数、不重放原请求、不用原过期部署/恢复controller作凭据轮换。
+当时仅确认生产Key由C原api.env内存绑定到 `/etc/noteai/public-account.env`，遗漏F的0902
+录入记录；09:38纠正已实证错误来源，原“需要owner再确认录入”条件取消。绝不在聊天接收密钥。
+实际绑定仍待修正；不清计数、不重放原请求、不用原过期部署/恢复controller作凭据轮换。
 私有本次证据：`/Users/openclaw/.codex/tmp/noteai-amap-formal-20260915/business-acceptance-20260915T233429Z/readback.json`。
 
 Item32本轮仅只读原封存证据：79e预检失败provider0；fac5已真实homefeed1次，
