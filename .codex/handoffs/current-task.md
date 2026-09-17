@@ -1,4 +1,56 @@
-# CURRENT EXECUTION CONTROL — September16 scoped WeChat / SMS / full-quality delivery
+# CURRENT EXECUTION CONTROL — September17 Item32唯一周期HOLD，初始化网络结果未知，已恢复
+
+本任务`01a0a50d-985c-7140-9db2-3bde812717bd`沿实际HEAD59f0727执行了唯一Sep17窗口；
+原窗口三项交付已完成并释放共享写入。**Readiness保持32/37，Item32未完成；本次不重试、不自动改期。**
+下方Sep16暂存/待执行表述均为历史。正式微信/API/Payment/前台及高德、报告保持最新已发布状态，
+未来API发布必须保留正式enabled Payment及其API依赖，不能回放旧5ce临时恢复配置。
+
+- 01:02:16.330743UTC原F只读预检：固定wrapper/package/plan、原20份文件及Sep16封存、
+  当前会话18f72、unit3ed7全部匹配；四dispatch marker与新work不存在，四原锁可取得，
+  unit inactive/dead/disabled/PID0，无三类任务容器。云助手保持1800秒超时。
+- 唯一source84f2e6e周期`run-arx52z4k`于01:02:42.067456UTC创建admission，
+  本UTC桶实际fresh0/34；01:03:05.214892UTC outer exit2，原admission HOLD/no_replay。
+  **实际1次初始化DSL请求，0次session、0次collection admissions；初始化结果UNKNOWN1。**
+  DSL dispatch01:02:43.314614，01:03:03.318202记录unknown（约20秒），安全失败
+  `stage=dsl/error_code=network_error/response_diagnostics={}`。没有收到HTTP响应/业务码；
+  未到登录验证、homefeed或推荐端点，不能判断账号冻结、会话过期或本次推荐修复效果。
+  worker事件`trends_provider_attempt_evidence_incomplete`是后续失败状态，不能覆盖原网络错误。
+- admission/log中的provider_calls0和outcome_unknown_count0仅指采集；不能称本次没有供应商请求
+  或全部结果UNKNOWN0。physical observation_complete=true表示dispatch→unknown记录完整，
+  不表示收到响应/结果已知。此前14collection及另2初始化、Sep16原HOLD全部保留；零自动重试。
+- 原生产PG before01:02:41.892668/after01:03:05.048215：同数据库身份、强制只读、
+  write_count/tuple_write_count=0、write_tables=[]、xid=false、ROLLBACK完成，after_verified=true。
+  隔离store无采集行。collection_started=true仅指执行器启动了worker阶段，不代表已发生采集请求。
+- 01:06:56.372948UTC原host封存`HOLD_INITIALIZATION_NETWORK_UNKNOWN_RESTORED`；
+  01:07:56.325119UTC再次只读核对原字节。unit inactive/dead/disabled/PID0、job空，
+  固定容器/三类label空，本周期临时runtime已清，env/unit与前驱20份原件及封存不变。
+  `/run/noteai-item32-session-transfer`是Sep16 13:46:58的原会话传输目录，保留且未读内容，
+  不当成本轮残留删除。实际请求/网络费用UNKNOWN，没有模型请求、采购、API部署或数据库写入。
+- 原root`/var/lib/noteai/item32-v5-successor-20260917`；原stage
+  `/var/lib/noteai/item32-v5-package-20260917-84f2e6e`。四outer标记、admission、
+  worker receipt、store、前后PG proof及database-proof-state均封存；原文件摘要在
+  `deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json`。
+  该文件为host `hold-final-readback.json`原6794字节，SHA
+  `163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1`；非成功四产物。
+  原只读入口的UNKNOWN_HOLD来自缺candidate；实际初始化UNKNOWN1另由receipt证明。
+  原封存中new_provider_requests/new_production_db_operations=0仅指封存读回动作新增量，
+  不能覆盖本周期total_physical_http_dispatches=1及两次原生产只读probe。
+- 唯一`noteai-item32-sep17`已通过专用工具设为**PAUSED**，保存配置复核一致，prompt SHA
+  `e6e24e37e0509c3e47a7f9ce190f554668470195bce712b77d0f8fa867788bda`未改。
+  没有第二次dispatch、剩余34补跑或新后继安排。原5ce已完成/删除，Item34 VERIFIED、35 NOT_REQUIRED保持。
+- 本阶段只更新Handoff、risk、Sep17操作文档、执行计划、Item32 blocker/resume文字及上述一份原安全封存；
+  未改业务源码/固定executor、gate或批准plan（原SHA逐一复核一致）。`build_report`实际通过：
+  manifest_valid=true、internal29/29、public32/37、next_safe_task=null；原6794字节SHA校验和diff检查通过。
+  独立agent只读复核这六个变更文件无阻断，未重复测试或操作生产；原封存字节不改。
+  调度暂停原工具/配置读回另存私有`noteai-item32-session-recovery-20260917/schedule-paused-readback.json`。
+
+下一动作：保留原失败身份与未知初始化，先明确原F至DSL初始化的网络问题；当前没有新的供应商
+诊断/采集请求安排或授权扩展。任何再次真实请求需新的明确有限范围和有效窗口，不能重复使用本次授权。
+离线检查不能解除网络UNKNOWN或替代真实32终态。Item33等真实32与其后fresh managed桶，并补真实V5
+unit/六overlay及writer hook/持续DML collector接线；原Item28历史rollback复用。Item36等33及原前置，
+不提前创建ALB/EIP。37/38继续依赖；无外部条件变化时不制造额外任务或重复部署/备份。
+
+## Previous current entry — September16 scoped WeChat / SMS / full-quality delivery
 
 Owner在原窗口明确重新授权三项：正式开放已通过的微信支付；短信发送成功/倒计时；
 已确认owner及后续定向授权测试账号完整图片理解。同等权益不因来源或free标签降质，

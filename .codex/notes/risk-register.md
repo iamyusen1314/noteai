@@ -1,4 +1,22 @@
-September16 CURRENT: Recommendation code1000 compatibility is repaired only for the
+September17 CURRENT: The sole01:00UTC Item32 successor actually ran after fresh0/34.
+It stopped during the first DSL initialization: one physical request, no response,
+network_error with UNKNOWN1; session/homefeed/recommend and collection admissions0.
+The initialization outcome is unknown even though dispatch-to-unknown observation is
+complete. Admission outcome_unknown_count0 refers only to collection. No HTTP/business
+code exists for this failure; do not infer account freeze, expired login or failure of
+the unexercised recommendation repair. No retry or new successor is scheduled; the
+single heartbeat is PAUSED with unchanged prompt. Before/after production probes prove
+server-enforced readonly/zero writes/no xid/rollback. Original run-arx52z4k and ten
+result files remain on F; final6794-byte seal163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1
+was read back01:07:56UTC. Unit disabled/inactive/PID0, task containers and this cycle's
+temporary runtime are absent, session/unit and20predecessor files unchanged. The older
+Sep16 session-transfer directory remains unread and untouched. Provider/network fees
+UNKNOWN; no model/purchase/deployment. Readiness32/37; actual32 remains prerequisite
+for33/36/37/38. Any further real diagnostics/collection needs a new bounded scope/window;
+do not reinterpret collection0 as permission to replay this used one-shot authorization.
+Current formal enabled Payment/API dependency, Amap and reports remain as deployed.
+
+September16 HISTORICAL: Recommendation code1000 compatibility is repaired only for the
 exact Trends endpoint with success=true and usable data.sug_items; original numeric
 code and safe total/usable counts reach the terminal. Other endpoints/Tracking remain
 strict. This does not retrospectively validate the original1490-byte response or

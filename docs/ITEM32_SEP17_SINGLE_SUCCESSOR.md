@@ -2,6 +2,26 @@
 
 ## 当前状态
 
+**唯一执行已结束：HOLD；调度PAUSED，不得再执行下方历史默认入口。**
+实际run `run-arx52z4k`，admission01:02:42.067456UTC，outer exit2于01:03:05.214892UTC。
+前置真实fresh0/34通过，第一DSL初始化01:02:43.314614发出，约20秒后记录network_error/unknown，
+没有收到HTTP响应或业务码。总物理请求1（初始化DSL1、session0），采集admissions0，
+初始化UNKNOWN1、采集UNKNOWN0、自动重试0。未到homefeed/推荐，不推断账号冻结/登录过期。
+observation_complete=true仅表示dispatch→unknown有完整记录，不表示请求结果已知。
+原PG前后强制只读、0写入、无xid、ROLLBACK均完成。最终01:06:56UTC已恢复清尾，
+01:07:56UTC原host封存摘要读回一致：6794bytes，SHA
+`163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1`。
+原字节：`deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json`；
+host为新work下`hold-final-readback.json`，包含原十份文件摘要、实际安全receipt/计数及PG证据。
+unit/会话/20前驱文件不变，三个任务label与固定容器空，本周期runtime已清。
+Sep16原session-transfer目录保留未读，不作为本次临时目录删除。费用UNKNOWN。
+
+本次一次性授权已经使用，虽然采集0/34，不能再用它启动。无新后继或自动重试；
+后续真实诊断/执行须另有明确有限范围及有效窗口。只读原结果命令仍适用，缺candidate的
+UNKNOWN_HOLD不替代实际初始化UNKNOWN1。Readiness仍32/37；33/36/37/38依赖未关闭。
+
+## 历史准备状态与执行规范（默认dispatch已使用，禁止重放）
+
 Sep16 15:10UTC 已读取原F合成回执：`SOURCE_PACKAGE_STAGED_NOT_EXECUTED`。
 15成员全部匹配，原11份前驱、Sep16新9份原件、原host final seal及会话摘要通过wrapper预检。
 新work root及四个dispatch标记不存在；本次暂存供应商请求0、生产数据库操作0。
