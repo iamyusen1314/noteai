@@ -1,4 +1,149 @@
-# CURRENT EXECUTION CONTROL — September17 Item32唯一周期HOLD，初始化网络结果未知，已恢复
+# CURRENT EXECUTION CONTROL — September17安全保存；交接独立H5／套餐入口／视频积分迭代
+
+Owner要求本窗口现在**仅保存和交接**，不实施新需求、不重跑旧验收、不部署、改价、改余额或停服务。
+新窗口拟负责：完善现有H5移动端；将套餐入口与核心权益前置；核对视频分析在套餐展示、
+分析前提示、服务端扣分和积分流水之间的一致性。本窗口完成checkpoint后释放这些文件的修改权，
+不与新窗口并行修改；这不是对新窗口或线上服务的全面冻结。较早“立即继续”指令不能越过本条。
+
+## 1. 工作树、checkpoint与恢复范围
+
+- 仓库`/Users/openclaw/Desktop/noteai`；分支`codex/quality-stabilization-real-chain`。
+  本次保存前HEAD为`b8ed40bdb780304adb4f22ffbfd8dfe5fd6ab3d3`，已跟踪工作区干净。
+  当前checkpoint仅增加本Handoff、根`AGENTS.md`与`architecture-summary.md`三份交接说明；
+  最终提交由tag **`codex/checkpoint-20260917-h5-plans-video-credits`**及下方manifest定位。
+  先核对新窗口实际HEAD/分支/status；若有合法后继就沿实际状态，不强制切回或覆盖。
+- 本窗口没有待保存的未提交业务源码或未跟踪源码。唯一七个未跟踪路径如下，均属历史受保护成果，
+  **原地保留，未读内容、未hash、未暂存、未复制入本checkpoint**；其恢复责任不能虚称由本bundle覆盖：
+  `.codex/item26-envelope-rotate-promote.sh`、`.codex/item26-envelope-rotate-stage.template.sh`、
+  `.codex/item26-source-manifest-executor.sh`、`.codex/item26-source-manifest-readback.sh`、
+  `.codex/item26-source-manifest-recovery-executor.sh`、
+  `tests/test_stage_item26_manual_cost_stop_helper_v2.py`、`tools/stage_item26_manual_cost_stop_helper_v2.py`。
+  不reset/clean/stash，不把别的窗口的新修改一起提交。
+- 沿已有私有Git bundle机制保存：
+  - 本机：`/Users/openclaw/.codex/backups/noteai/handoff-20260917-h5-plans-video-credits/noteai-handoff-20260917.bundle`
+  - ORICO：`/Volumes/ORICO/NoteAI-Private-Recovery/handoff-20260917-h5-plans-video-credits/noteai-handoff-20260917.bundle`
+  - 同目录`checkpoint.json`记录最终HEAD、bundle SHA/大小、精确refs、工作区边界和恢复验证结果；
+    总入口仍为`/Users/openclaw/.codex/backups/noteai/latest-recovery.json`。以实际manifest结果为准，
+    本段路径本身不冒充保存成功。只包含此分支/tag的已提交Git历史，不收集工作树、私有tmp或用户素材。
+- 恢复到**新的空目录**，不能在当前工作树回滚：先`git bundle verify <上述bundle>`，再
+  `git clone -b codex/quality-stabilization-real-chain <上述bundle> <新的空目录>`；
+  `git -C <新目录> rev-parse HEAD`须等于`checkpoint.json.head`，再`git -C <新目录> fsck --full`。
+  ORICO是exFAT，bundle可存放其上，Git恢复验证在本机APFS新目录进行，避免AppleDouble污染。
+  不执行旧部署/恢复脚本；这是源码恢复，不会恢复线上数据库、凭据或服务状态。
+- 模型资产继续复用Sep15独立`noteai-v04-model-assets.tar.gz`及原
+  `final-amap-closeout-622d1b05e736636f92fff72cbdbee00525a94fe0/separate-recovery-scopes.json`。
+  Git含LFS指针不含完整模型载荷。私有运行结果、会话/凭据及用户资料仍在既有本机/host路径，
+  不打包公开，也没有声称完成这些资料或生产DB的完整灾备。本次不重建旧模型/运行资料备份。
+- 保存前相对**本机缓存**origin为0 behind/273 ahead；该远端引用不是新联网核对。
+  本次不push、不触发CI。已有私有GitHub恢复仓库上次确认停在622d1b0且archived/Actions关闭，
+  属Sep15历史；新checkpoint的新增部分由本机+ORICO承担恢复。后续需要同步时先重新核对
+  远端、CI/部署触发和权限，按既有受控同步授权办理，不能盲推273个提交或假称远端已更新。
+
+## 2. 线上业务与本地版本：已知事实及未知边界
+
+- **已开放微信付费**，支付宝仍DEFERRED/DISABLED。最近完整发布结果时间
+  `2026-09-16T15:43:07.579387Z`；微信`ordering_available=true`、仅`wechatpay_direct`、
+  canary=null、正式callback启用。旧“尚未开放付费”及“Payment必须inactive”结论已过期。
+- API/Payment源码`0e80f33cd1ebeae6a3d52ad395d3e9426d80f99f`；API image
+  `sha256:5f9fe725e6a856d369e10e87b04744318f1c8a8c460b5321262d076115da6e18`；Payment image
+  `sha256:2e0ed48cd9788406b33968a30120f88dde570d5f986c5ecbffc6a4cf4630fec9`。
+  前台`d08f7be8f7a028189bb027378b721854d7c66c4d`，host路径
+  `/var/www/noteai-public/payment-media-otp-d08f7be8f7a0`；Admin保留source4768/image6c8cf579。
+  精确容器、配置摘要与恢复基线见下方原Sep16交付节和host
+  `/var/lib/noteai/payment-media-otp-20260916/{build-result,privileges,prepare-result,deploy-result,frontend-final-result,final-readback}.json`及`backup/`。
+  私有本机记录`/Users/openclaw/.codex/tmp/noteai-payment-media-otp-umu59jb6/`原地保留，不打包。
+- Payment正式enabled，监听API同network namespace的127.0.0.1:8002；
+  `PartOf/After/Requires=noteai-api.service`，`WantedBy=noteai-api.service`。
+  后续发布API必须保留依赖与凭据角色隔离，不能套用旧5ce临时恢复配置。
+  正确0902高德绑定、报告历史读回、完整媒体链继续保留；同等赠送/购买权益同质量，正常鉴权和积分不变。
+- 本次本地差异检查：`0e80f33..b8ed40b`在`model/ assets/ scripts/`无变化；
+  `d08f7be..b8ed40b`在主HTML、assets及前台构建脚本无变化。后续差异是文档、readiness与Item32证据。
+  **源码版本标签代表最小overlay，并不证明整个生产镜像等于该Git树。**本轮没有读取实时生产配置、
+  重新登录或重跑业务，最近读回后的运行漂移/当前健康/实际动态积分配置均未新确认。
+  用户页`https://noteaipro.com`（亦有www），Admin`https://admin.noteaipro.com`。
+
+## 3. 新迭代代码与接口入口（行号基于保存前b8ed40b）
+
+| 范围 | 文件与入口 |
+| --- | --- |
+| H5布局与导航 | `NoteAI_Pro_Demo_Framer.html`：viewport约5；responsive约1099/1280/1392/2378/2463/2720；`showPage`约5406。现有单HTML应用，不新建前端项目。 |
+| 套餐／核心权益 | 同HTML：顶栏套餐积分2765、个人页权益4212、pricing页4602、`loadPricingConfig`5709、`refreshCreditBalance`13798、`loadBillingPlan`13825；`assets/payment-native.js:94`为Native结算入口。 |
+| 账户与套餐读取 | `model/api.py:15567`起：GET `/billing/plan`、`/billing/usage`、`/billing/credits`、`/billing/tiers`；15633 GET `/payments/capabilities`。现行购买沿`payment-native.js`，不要误用仅开发测试可用的`/billing/topup`改余额。 |
+| 视频输入与主流程 | HTML `_uploadVideoFile`6091、`_uploadDiagVideoFile`13299；`model/api.py:17902` POST `/upload-video`、16076 `_run_analyze_pipeline`、17935 POST `/generate/stream`。上传本身不等于已完成诊断／生成或已扣主流程积分。 |
+| 计价、扣额与账本 | `model/billing.py`：OPERATIONS49/62、usage记录464、`check_and_deduct_in_transaction`543、`record_auxiliary_usage`698、原路退额841；`model/idempotency.py:267/419`认领及退款防重；表与连接入口`model/db.py`。 |
+| Admin设置与流水 | `model/admin_server.py:1855` GET `/admin/settings`；765 GET `/admin/users/{user_id}`返回月用量、最近20条usage及钱包流水，1187 GET `/admin/usage-stats`为聚合；946/952为指定用户权益preview/apply。`model/admin.html:1835`设置显示、860视频操作名。最近20条不是全量账本；仅阅读不构成修改客户权益授权。 |
+| 已有测试 | `tests/frontend_video_flow.test.js`、`tests/payment_native_ui.test.cjs`、`tests/e2e/frontend-local-assets.spec.js`（149附近有390×844）、`quota-ui.spec.js`、`admin-production-readonly.spec.js`；`playwright.config.js`目前仅Desktop Chrome project，不能称完整移动端矩阵已验收。 |
+
+## 4. 视频收费规则：实现、依据与待确认严格分开
+
+- **当前源码默认**：`analyze=6`、`generate=8`积分；辅助`video_analyze=0/free=True`，随主流程记录。
+  因此视频诊断/生成不等于免费；当前没有按视频时长分段扣分实现。来源`model/billing.py:49–66`。
+  页面默认也展示6/8并说明视频理解不单独扣充值积分；动态价来自`/billing/tiers`，只列正积分操作。
+- **owner具体价格决定：待确认**。本次定向核对没有找到owner对独立视频价或6/8具体数值的正式确认，
+  不能把代码默认当作新的定价授权。**生产生效配置：待确认**；未新读取生产`billing_config`或tiers响应。
+  不擅自改价，也不把历史单笔收费当作当前全部视频场景的政策证明。
+- `docs/PRICING_COST_MODEL.md`（2026-06-29）中的≤15/30/60/90秒分别0.5/1/1.5/2积分是历史**建议**；
+  同文仍列前置确认和独立按时长扣费为待做。不能直接启用该建议，不能用其中旧模型成本作当前供应商报价。
+- 现有服务端从月额度优先扣主操作C，再从钱包补差：月扣`min(C,月剩余)`、钱包扣`C−月扣`。
+  主usage记录完整`credits_used`，钱包部分另记负向`credit_transactions`，月额度部分更新订阅；
+  辅助video记录0积分。因此钱包流水单独相加不一定等于所有主流程消耗，需与订阅和usage对应核对。
+  辅助`cost=0.17`是代码成本估计，不是实际供应商账单或用户单价；未知费用保持UNKNOWN。
+- 前端请求键`X-Request-ID`与后端同用户/操作的原子认领防重复扣额；旧无请求键客户端保留旧行为。
+  失败按原月额度/钱包来源退回并标记主usage refunded；钱包写退款流水，已发生模型成本保留。
+  `charge_applied/refund_applied`防重复退款。这是代码行为，需在新迭代的隔离用例里核验，不用真实订单重放。
+- 待核差异：本次定向代码阅读未见独立视频积分报价／时长计费确认；前端“**不单独扣充值积分**”
+  比辅助视频全部0积分的实现口径窄。新窗口按账户真实生效配置串起展示→前提示→扣额→usage／月额／钱包流水，
+  再提出最小修复；本轮没有修改这些逻辑。Owner自己测试德厨云宴导致的并发积分变化，不归因于本任务。
+
+## 5. 任务状态、未完成项与文件修改边界
+
+- 当前本任务`01a0a50d-985c-7140-9db2-3bde812717bd`仅完成此交接；新窗口拥有上述H5/套餐/视频积分迭代，
+  本任务交接后不继续改这些源码或共享Handoff。原支付任务`01a079a4-1c05-7d21-a98a-2d418cdd20c9`
+  在本轮专用工具快照为notLoaded/latest turn completed，没有正在进行的原子操作报告。
+  这不是对所有生产worker的实时进程检查；正常线上服务保持运行。
+- 本机调度目录本轮只读核对：`noteai-item32-sep17`为PAUSED，旧`item34-24h-3d-observation`和`noteai-20`
+  亦PAUSED；`noteai-5ce`已删除。该目录没有活动NoteAI自动化；不能据此推断其他host没有服务。
+- Item31原微信账单/退款终态已闭合；不重新付款、退款或创建对账。Item34 generation2 VERIFIED并计分，
+  不重建观察；Item35 NOT_REQUIRED，不记审核通过。Readiness **32/37**，剩余 **32/33/36/37/38**。
+- Item32 Sep17原周期已执行并HOLD/restored：1次DSL初始化物理请求约20秒后network_error/UNKNOWN1，
+  无HTTP响应/上游业务码，session/homefeed/collection均0；原before/after PG只读且0写入、无xid、ROLLBACK。
+  不能写成没有供应商请求，也不能推断冻结/登录失效。唯一授权已消费、调度PAUSED，无新后继。
+  固定F绑定/包/plan/执行器/会话与原结果由原Item32范围封存，新H5窗口不改、不重新执行；
+  下一步真实请求须有新的有限范围/有效窗口，离线成功不是Item32验收。具体原件见下方Sep17节及
+  `deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json`（SHA163eeaca…d3d1）。
+- Item33依赖真实32及相应fresh managed桶和接线；Item36虽已有原VPC双区标准公网ALB+双EIP费用授权，
+  仍等33等前置，不为本增量提前创建。37/38沿真实依赖推进；**这些未完成项不阻断独立H5本地工作**。
+  高德正式启用/0902/共享额度保护保留，许可风险决定不重议。支付宝与AI建议封面生成继续延期。
+- 新窗口只提交自己明确拥有的文件。若原任务后来有新修改，先按具体文件协调；不要把其未提交成果
+  并入本迭代或覆盖。本轮未改七个保护路径、Item32 F、API/Admin/Payment/public、schema/ACL或用户余额。
+
+## 6. 可复用验证与新窗口第一步
+
+本轮验证范围仅限文档diff、版本差异、checkpoint/bundle/恢复；实际保存与恢复通过状态以
+`checkpoint.json`为准，本段不独立证明执行完成。不重跑旧测试、业务请求或验收。
+原Sep16发布已保存断网Python7项、隔离PG16支付/退款/RLS3项、Node21场景及CSP真实DOM结果；
+原Sep17 Item32包122项离线测试与终态证据也直接复用，不能代替新需求变化后的针对性检查。
+
+新迭代可按实际改动选用（**本轮未运行**）：
+
+```sh
+node --test tests/frontend_video_flow.test.js
+node tests/payment_native_ui.test.cjs
+NOTEAI_E2E_OFFLINE=1 npx playwright test tests/e2e/frontend-local-assets.spec.js tests/e2e/quota-ui.spec.js tests/e2e/admin-production-readonly.spec.js --project=chromium
+```
+
+后端现有模块：`tests.test_billing_token_cost`、`tests.test_admin_scoped_operations`、
+`tests.test_api_contracts`、`tests.test_ark_media`、`tests.test_frontend_report_static`。
+沿现有隔离Python3.11环境执行，清空`DATABASE_URL`并以`NOTEAI_SQLITE_PATH`指向临时SQLite；
+不让import初始化工作树数据库，不带生产供应商凭据。`video-diagnosis-upload.spec.js`未列入当前
+`NOTEAI_E2E_OFFLINE`匹配范围，不能声称上述命令覆盖了该专项。
+
+**新窗口第一步**：核对实际cwd/HEAD/status并读本节；保留七个保护路径和Item32封存。
+先定向查看现有H5页面、套餐/权益入口及视频收费链，复用已有用户/Admin会话做必要只读运行配置核对，
+明确生效价与显示差异后制定最小增量。不要从旧远端重建、全面盘点或重复原验收；
+不要把本交接当作自行定价、改客户余额、重放支付或立即部署的命令。具体实施沿新窗口owner任务范围。
+
+## Previous current entry — September17 Item32唯一周期HOLD，初始化网络结果未知，已恢复
 
 本任务`01a0a50d-985c-7140-9db2-3bde812717bd`沿实际HEAD59f0727执行了唯一Sep17窗口；
 原窗口三项交付已完成并释放共享写入。**Readiness保持32/37，Item32未完成；本次不重试、不自动改期。**

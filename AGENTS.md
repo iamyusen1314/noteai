@@ -2,6 +2,18 @@
 
 ## Current execution control
 
+September17 owner requests SAFE SAVE AND HANDOFF ONLY in this thread before a new
+independent H5/mobile, plans/entitlements placement and video-credit consistency
+iteration. Do not implement that iteration here, rerun old acceptance, deploy,
+reprice, adjust balances or stop production. Preserve other tasks' changes and all
+seven protected untracked paths. This thread releases that editing scope after
+the checkpoint; it must not compete with the new window. This is not a global
+development/service freeze. The latest known production evidence confirms formal
+WeChat payments OPEN (Alipay deferred); earlier unpaid/Payment-inactive claims are
+history. Sep17 Item32 is HOLD/restored, its one-shot consumed and heartbeat PAUSED;
+do not replay or change F bindings. Read Handoff CURRENT first for exact versions,
+recovery, file ownership, charging evidence and the new window's starting points.
+
 September16 owner resumes this original thread only for formal WeChat payment
 enablement, visible SMS send/countdown feedback and full-quality owner/invited
 tester media processing. Existing payment terminal evidence is reused, no new

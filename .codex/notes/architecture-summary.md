@@ -1,4 +1,16 @@
-September16 14:07BJT CURRENT: API-C runs c853f29, imagecc1da220/CID11b49de9,
+September17 CURRENT — safe-save/handoff only. Latest recorded production release
+is September16 15:43:07UTC: API/Payment source0e80f33, frontend d08f7be,
+Admin source4768/image6c8cf579 retained. WeChat is formally OPEN, Alipay deferred;
+Payment is enabled in API's network namespace on127.0.0.1:8002 with its API
+service dependencies. The earlier APIcc1/Payment-inactive observations below are
+history. Source labels identify minimal overlays, not a full checkout deployment.
+Local handoff starts at b8ed40b; later local changes in this checkpoint are docs
+only. No production freshness probe is performed for handoff; runtime drift since
+the last release readback is UNKNOWN. Handoff CURRENT contains exact evidence,
+code/credit-ledger entrypoints and independent H5 iteration ownership. This thread
+will not implement or concurrently edit that new scope after safe-save.
+
+September16 14:07BJT HISTORICAL: API-C runs c853f29, imagecc1da220/CID11b49de9,
 with the two-source legacy Prompt-example copy guard. Actual deploy succeeded
 06:05:37UTC with one forward API restart;06:07 readonly runtime SHA checks passed.
 Correct0902 env/grouped values, existing public report-amap-0af33d961d7e,
