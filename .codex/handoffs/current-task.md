@@ -33,16 +33,74 @@ H5/套餐/视频积分范围仍归新窗口，本任务不并行修改；此次�
   3cdd2b5cada5935a6fdea2de16036ea650f46025b9434e83974795f208f4d878（repo与host一致）。
   D1显式分层检查记录2次系统DNS/2TCP/2TLS；另有D2真实无凭据DSL初始化1，其底层连接计在该HTTP诊断内。
   费用UNKNOWN，不回填原失败原因。
-- 当前继续V1，唯一新窗口Sep17 **16:00–17:30UTC（北京次日00:00–01:30），启动<16:55UTC**。
+- 已消耗的V1窗口Sep17 **16:00–17:30UTC（北京次日00:00–01:30），启动<16:55UTC**，下述为原执行记录。
   五原锁+原失败封存+D0/D1/D2真结果，fresh0/34重新证明，首homefeed合并进34；正式上限2初始化+34采集，
   原09:02初始化UNKNOWN1和本次诊断初始化1另计，本UTC日若正式满额则总38物理HTTP/34collection。
-  新固定work `/var/lib/noteai/item32-v5-network-repair-20260917`；最终canonical plan/source/package绑定准备中，
-  尚未正式dispatch；旧heartbeat PAUSED、无新调度。细节在原Item32文档当前计划，checkpoint不是停工条件。
+  新固定work `/var/lib/noteai/item32-v5-network-repair-20260917`；source **11368980f3298de5914788a2ffbb98c79225cbe2**。
+  唯一wrapper已于**2026-09-17T16:05:02.722122UTC**在F启动，16:05:29.306728退出2；不得再运行默认入口。
+  stage `/var/lib/noteai/item32-v5-network-package-20260917-1136898`；wrapper22690B/SHA
+  b75a0c44e571581165f96643efbd1f55b88ac62ec44086bfd0fa49f3a4122127。
+  新plan14615B/SHAa6ebe4148b3719739bff1d17bf27fd69928ff4c71d25de3d921f1e1c7c2a8b6f；
+  源码包164880B/SHA4821db3b053412294b9087c0c0981fd9a52300ab11c1630200a185f2bd331470，
+  19成员host预检通过、会话一致、暂存供应商HTTP/DB操作0。旧heartbeat PAUSED，无新调度。
+  私有包及命令在`/Users/openclaw/.codex/tmp/noteai-item32-network-repair-20260917/package-1136898/`。
+  此包禁止再次执行；真实清尾及后续本地修复见下节，checkpoint不是停工条件。
 - 本地修改：Trends专用传输安全诊断贯通adapter/异常/scheduler/worker/launcher，保留curl errno、最多3层固定分类、
   6个可选时钟和实际响应可知状态；不输出异常原文、地址、Header值、Cookie。原Tracking AST保持。
   新正式profile严格绑定原09:02 UNKNOWN、D0/D1/D2、五原锁/原30文件及原验收，不放宽34+2或DB只读。
   定向离线：模型/脱敏53个不同用例通过；新旧profile/gate组合74/74通过，compile/diffcheck通过，独立审查无模型阻断。
   旧Sep17测试的已过期fixture仅在隔离harness使用原历史授权时间和当前合成源码摘要，未改旧生产plan/窗口。
+
+### V1实际终态与继续修复（16:21UTC封存，未通过Item32）
+
+- 原run `run-67nerwqt` 实际16:05:08.081125–16:05:27.402153；DSL1/session1均有响应，
+  collection **34/34：homefeed10、search_recommend12、search_notes12均succeeded**。
+  总36物理响应、UNKNOWN0、未决0、无供应商failure、retry0。最后recommend HTTP200/code1000且10/10可用，
+  最后search_notes HTTP200/code0。不能再把本次称网络或登录失败。
+- worker exit1，确切拒绝码 `trends_current_run_xhs_evidence_incomplete`；outer exit2。
+  关键词、snapshot、health、freshness及snapshot_evidence五表均0，原发布事务回滚；34请求账本保留。
+  原响应正文/候选未持久保存，receipt未保留逐域诊断，所以本次具体缺域、数量、来源分布**UNKNOWN**；
+  无法从HTTP200或账本重建真实内容，不能离线伪造本次通过，也不能倒改failed。
+- 当前已离线复现的独立代码缺陷：`bound_keyword_rows`先按排名截每域15，可能全部保留单一来源；
+  随后的原验收要求search_result与search_recommend都存在，真实另一来源因此被裁掉。双向样例均复现。
+  本地最小修复仅在实际合格、不同关键词的两来源存在时保留各一，再依原排名补齐；六域/12–15真实词/
+  总90/质量/去重不放宽。该缺陷是否是本次V1唯一原因没有原数据证明，不作追认。
+- 同步补固定安全计数事件：筛选前后6域候选数/来源、实际freshness及来源缺口，事务回滚前输出并由
+  launcher保存；不含候选文字、响应、凭据，不新增原文存储。新修复尚未进入F运行环境。
+- 原F封存 `/var/lib/noteai/item32-v5-network-repair-20260917/final-readback-1136898/final.json`：
+  **31944B / SHA13857aef4ea9ce3e41cef2bbabbf8b8e2b1059792f9772f316ffc2e30a5a284f**；
+  repo逐字原件 `deploy/production/evidence/production-item32-network-repair-final-readback-20260917.json`。
+  16:21:02.077195UTC确认6锁空闲、父子进程关闭、unit inactive/dead/disabled/PID0、任务容器与临时runtime无，
+  会话18f72/unit3ed7及30历史文件不变；前后PG server-enforced readonly/0writes/no xid/rollback、after_verified。
+  两次恢复读取未调用供应商或重跑生产DB probe；控制台输出长度限制通过两段压缩、固定SHA在本机校验保存。
+- 本UTC日真实计数：原DSL UNKNOWN1＋D2诊断DSL1＋V1初始化2/采集34＝**38物理HTTP、34collection**，
+  当前采集桶已用满；更早日期14collection保留。费用UNKNOWN，不涉及模型、购买、用户权益或其他部署。
+  本轮一次完整验证已执行，不能自动再发完整34。继续完成本地修复及一个PENDING后续UTC计划；
+  额外完整生产周期需明确有限确认，未确认前不调度/不暂存运行包。Readiness仍32/37，Item33仍不得激活。
+- 修复验证：来源选择10项新测试、诊断8项新测试、既有事务/暂停用例通过；root最终39项
+  transport→safe provider→launcher receipt组合通过（1.196s，network-none/read-only临时容器）。
+  三处局部均独立审查无阻断，syntax/diffcheck通过；不重复全产品验收。
+  Item33只读代码缺口已更新`docs/ITEM33_CURRENT_PROMOTION_PREPARATION_20260915.md`顶部，未启动服务/写生产。
+
+### 修复完成与待确认的唯一追加周期（Sep17 16:44UTC）
+
+- 来源保留、筛选诊断、launcher安全receipt及8-overlay实际加载绑定均已完成本地修复。
+  新旧profile/gate组合74/74通过；原合法0-byte执行锁的专用校验修复后17项新增复测通过，
+  非空/错误权限/替换inode反例通过；独立最终审查无阻断。通用非空文件校验未放宽。
+  F实际运行仍为已封存source1136898，本地新修复未部署、未调用供应商。
+- 完整canonical PENDING计划已写入
+  `deploy/production/plans/item32-v5-source-retention-prospective.json`：26758B，
+  SHA`731f83d80e09df660b4c41f567057f268b783f910ffdf5d839ceb0b3942f3afd`；
+  待确认范围SHA`36136361d5a92d9b7cd7ff88adffb61e33c86beb5c77898a366e157b9f496041`。
+  实际加载返回`plan_not_authorized`，ACTIVE_V5_PLAN仍空；不是已授权包或已安排任务。
+- 提议唯一追加窗口：**Sep18 00:00–01:30UTC／北京08:00–09:30，启动严格早于00:55UTC／08:55**。
+  原F/6d5镜像/18f72会话、固定新work`/var/lib/noteai/item32-v5-source-retention-20260918`；
+  8份精确overlay，6前驱锁加新独占锁，新UTC桶fresh0/34、保留累计48collection与原UNKNOWN。
+  最多初始化2＋采集34＝36物理HTTP，零自动重试，无额外预读；原六域/12–15合格词/总90/
+  两真实来源/DB只读及完整恢复不变。费用实际或UNKNOWN，不扩展模型、采购或其他部署。
+- 本轮明确授权的一次完整周期已真实消耗，追加周期需一次有限确认。未确认不暂存host运行包、
+  不改旧调度、不新建自动化；失窗/再次失败不自行再排。旧Item32 heartbeat仍PAUSED。
+  只有真实验收通过才关闭Item32；Item33及其后依赖尚不能启动。
 
 ## Previous current entry — September17安全保存；交接独立H5／套餐入口／视频积分迭代
 

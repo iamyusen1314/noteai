@@ -1,5 +1,22 @@
 # Item33 当前本地准备 — 2026-09-15
 
+## September17 16:30UTC定向依赖核对（未启动Item33）
+
+Item32 source1136898已完成36响应/34采集，但本地来源/数量验收失败，原件已封存HOLD；
+它**不是**Item33可用的accepted terminal。后续运行版本应绑定真正通过的来源和八份候选overlay，
+不能把本地修复、网络恢复或当前1136898当作Item32通过。当前仅完成以下只读准备，未改Item33源码/生产：
+
+- Item33 gate仍明确拒绝v3，controller/renderer仍旧a78镜像与三overlay；未来需要独立V5分支，
+  精确绑定实际accepted terminal、6d5镜像、实际overlay集合和managed-unit摘要；保留旧分支历史。
+- 现有`publish_transaction`已把关键词、snapshot、health、freshness、snapshot evidence与run成功
+  放在同一事务；attempt记录在外，可复用。`claim_daily_run`在事务中首次INSERT前才生成run ID，
+  所以writer注册不能只依赖之后才设置的active lease。
+- 八表DML部件已有SQL与非终态聚合，仍缺真实writer事务注册、连续LISTEN journal、关闭封口及
+  CLI实际callback连接；额外instrumentation来源必须单独绑定，不能冒称在Item32 overlay里。
+- 真实前置保持：较Item32通过日更晚UTC的fresh0、unit suspended/无在途、实际最小ACL/trigger/可达表
+  核对、journal覆盖所有目标事务和八表distinct rows、rollback/reapply没有第二周期。它们是工程
+  依赖和事实证明，不是新增owner审核体系。Item36资源创建继续等Item33等必要前置，避免空转计费。
+
 ## September15后续本地进展
 
 八表SQL生成与distinct-row/真实txid聚合部件已实现，13项真实PG16隔离测试及独立review通过。

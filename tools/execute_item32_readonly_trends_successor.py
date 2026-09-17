@@ -47,6 +47,9 @@ V5_PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v3"
 V5_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260916")
 V5_SEP17_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260917")
 V5_NETWORK_WORK_ROOT = Path("/var/lib/noteai/item32-v5-network-repair-20260917")
+V5_SOURCE_RETENTION_WORK_ROOT = Path("/var/lib/noteai/item32-v5-source-retention-20260918")
+V5_NETWORK_FINAL_REF = "deploy/production/evidence/production-item32-network-repair-final-readback-20260917.json"
+V5_NETWORK_FINAL_SHA256 = "13857aef4ea9ce3e41cef2bbabbf8b8e2b1059792f9772f316ffc2e30a5a284f"
 V5_SEP17_FINAL_REF = "deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json"
 V5_SEP17_FINAL_SHA256 = "163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1"
 V5_NETWORK_D0_REF = "deploy/production/evidence/production-item32-network-repair-d0-20260917.json"
@@ -67,6 +70,7 @@ V5_OVERLAY_NAMES = frozenset({
     "model/spider_xhs_http.py", "model/spider_xhs_v5.py", "model/security_redaction.py",
     "model/hot_keywords.py", "model/scheduler_a.py", "model/vendor/spider_xhs/v5/trends_bridge.js",
 })
+V5_SOURCE_RETENTION_OVERLAYS = V5_OVERLAY_NAMES | {"model/trends_contract.py", "model/market_timing_worker.py"}
 V5_PHYSICAL_BUDGET = {"initialization": 2, "collection": 34, "total": 36}
 V5_NETWORK_CLIENT_PREFLIGHT = """from curl_cffi.const import CurlInfo
 client = v.TrendsCurlClient()
@@ -637,10 +641,12 @@ def _load_plan(
         expected.update(runtime_overlay_sha256=dict(RUNTIME_OVERLAY_SHA256),
                         physical_http_budget=V5_PHYSICAL_BUDGET,
                         previous_successor=plan["previous_successor"])
-        if _is_sep17_plan(plan) or _is_network_repair_plan(plan):
+        if _is_sep17_plan(plan) or _uses_network_repair_history(plan):
             expected["previous_v5_successor"] = _sep17_previous_binding(adapter_path.parent.parent)
-        if _is_network_repair_plan(plan):
+        if _uses_network_repair_history(plan):
             expected.update(_network_repair_bindings(adapter_path.parent.parent))
+        if _is_source_retention_plan(plan):
+            expected["previous_v5_full_cycle_hold"] = _source_retention_previous_binding(adapter_path.parent.parent)
     if not isinstance(plan, dict) or _json_bytes(plan) != _json_bytes(expected):
         raise Item32Error("plan_binding")
     _assert_plan_authorized(plan, deadline)
@@ -660,7 +666,8 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
     if (plan.get("existing_image_config_sha256") != V5_CONFIG_SHA256
         or plan.get("existing_registry_manifest_sha256") != V5_MANIFEST_SHA256
         or plan.get("physical_http_budget") != V5_PHYSICAL_BUDGET
-        or not isinstance(overlays, dict) or set(overlays) != V5_OVERLAY_NAMES
+        or not isinstance(overlays, dict) or set(overlays) != (
+            V5_SOURCE_RETENTION_OVERLAYS if _is_source_retention_plan(plan) else V5_OVERLAY_NAMES)
         or not isinstance(image_sources, dict) or set(image_sources) != set(IMAGE_SOURCE_CONTAINER_PATHS)
         or any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None
                for value in [*overlays.values(), *image_sources.values()])
@@ -681,13 +688,22 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
             or not isinstance(binding["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", binding["sha256"]) is None):
             raise Item32Error("plan_binding")
     package = adapter_path.parent.parent
-    if _is_network_repair_plan(plan):
+    if _uses_network_repair_history(plan):
         bindings = _network_repair_bindings(package)
         if (any(_json_bytes(plan.get(key)) != _json_bytes(value) for key, value in bindings.items())
             or _json_bytes(plan.get("previous_v5_successor")) != _json_bytes(_sep17_previous_binding(package))
             or _parse_clock(plan["admission"]["not_before_utc"]) < _parse_clock(bindings["network_repair_preflight"]["diagnostics"]["d2"]["finished_at_utc"])
             or _parse_clock(plan["authorization"]["confirmed_at_utc"]) <= _parse_clock("2026-09-17T01:06:56.372948+00:00")):
             raise Item32Error("plan_binding")
+        if _is_source_retention_plan(plan):
+            previous_cycle = _source_retention_previous_binding(package)
+            if (tuple(plan["admission"].get(key) for key in
+                      ("not_before_utc", "dispatch_deadline_utc", "must_finish_before_utc")) != (
+                        "2026-09-18T00:00:00+00:00", "2026-09-18T00:55:00+00:00", "2026-09-18T01:30:00+00:00")
+                or plan["admission"].get("bucket_date_utc") != "2026-09-18"
+                or _json_bytes(plan.get("previous_v5_full_cycle_hold")) != _json_bytes(previous_cycle)
+                or _parse_clock(plan["authorization"]["confirmed_at_utc"]) <= _parse_clock(previous_cycle["finished_at_utc"])):
+                raise Item32Error("plan_binding")
     elif _is_sep17_plan(plan):
         expected_window = ("2026-09-17T01:00:00+00:00", "2026-09-17T01:40:00+00:00",
                            "2026-09-17T02:00:00+00:00")
@@ -702,7 +718,8 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
         if _sha256_bytes((package / name).read_bytes()) != digest:
             raise Item32Error("runtime_overlay_source_binding")
     ACTIVE_V5_PLAN = plan
-    WORK_ROOT = V5_NETWORK_WORK_ROOT if _is_network_repair_plan(plan) else V5_SEP17_WORK_ROOT if _is_sep17_plan(plan) else V5_WORK_ROOT
+    WORK_ROOT = (V5_SOURCE_RETENTION_WORK_ROOT if _is_source_retention_plan(plan) else
+                 V5_NETWORK_WORK_ROOT if _is_network_repair_plan(plan) else V5_SEP17_WORK_ROOT if _is_sep17_plan(plan) else V5_WORK_ROOT)
     EXPECTED_CONFIG_SHA256, EXPECTED_MANIFEST_SHA256 = V5_CONFIG_SHA256, V5_MANIFEST_SHA256
     IMAGE = "sha256:" + V5_CONFIG_SHA256
     EXPECTED_IMAGE_SOURCE_SHA256 = dict(image_sources)
@@ -720,6 +737,41 @@ def _is_network_repair_plan(plan: dict[str, Any] | None) -> bool:
     return (isinstance(plan, dict) and plan.get("schema") == V5_PLAN_SCHEMA
             and isinstance(plan.get("admission"), dict)
             and plan["admission"].get("work_root") == str(V5_NETWORK_WORK_ROOT))
+
+
+def _is_source_retention_plan(plan: dict[str, Any] | None) -> bool:
+    return (isinstance(plan, dict) and plan.get("schema") == V5_PLAN_SCHEMA
+            and isinstance(plan.get("admission"), dict)
+            and plan["admission"].get("work_root") == str(V5_SOURCE_RETENTION_WORK_ROOT))
+
+
+def _uses_network_repair_history(plan: dict[str, Any] | None) -> bool:
+    return _is_network_repair_plan(plan) or _is_source_retention_plan(plan)
+
+
+def _source_retention_previous_binding(package: Path) -> dict[str, Any]:
+    raw = (package / V5_NETWORK_FINAL_REF).read_bytes()
+    if len(raw) != 31944 or _sha256_bytes(raw) != V5_NETWORK_FINAL_SHA256:
+        raise Item32Error("predecessor_final_seal")
+    seal = json.loads(raw)
+    if (seal["state"] != "V1_FINAL_READBACK_HOLD" or seal["errors"] != []
+        or seal["no_in_flight"] is not True or seal["readiness_credit"] is not False
+        or seal["admission"]["provider_calls"] != 34 or seal["admission"]["outcome_unknown_count"] != 0
+        or seal["retained_store"]["run"]["last_error_code"] != "trends_current_run_xhs_evidence_incomplete"
+        or len(seal["own_files"]) != 12 or len(seal["original_files"]) != 36):
+        raise Item32Error("predecessor_shape")
+    return {"work_root": str(V5_NETWORK_WORK_ROOT),
+        "package_root": "/var/lib/noteai/item32-v5-network-package-20260917-1136898",
+        "source_revision": seal["source_revision"], "run_directory_name": seal["run_directory_name"],
+        "status": "HOLD_CURRENT_RUN_EVIDENCE_INCOMPLETE", "call_date_utc": "2026-09-17",
+        "collection_admissions": 34, "initialization_count": 2, "physical_http_count": 36,
+        "outcome_unknown_count": 0, "automatic_retry_count": 0, "no_replay": True,
+        "worker_error_code": "trends_current_run_xhs_evidence_incomplete",
+        "finished_at_utc": seal["finished_at_utc"], "files": seal["own_files"],
+        "previous_files": seal["original_files"],
+        "final_readback": {"ref": V5_NETWORK_FINAL_REF,
+            "host_ref": str(V5_NETWORK_WORK_ROOT / "final-readback-1136898/final.json"),
+            "bytes": 31944, "sha256": V5_NETWORK_FINAL_SHA256}}
 
 
 def _network_diagnostics_bindings(package: Path) -> dict[str, Any]:
@@ -850,10 +902,12 @@ def _acquire_predecessor_locks() -> list[int]:
         roots = (SEALED_ORIGINAL_ROOT, SEALED_DIAGNOSTIC_ROOT)
         if ACTIVE_V5_PLAN is not None:
             roots += (SEALED_SUCCESSOR_ROOT,)
-        if _is_sep17_plan(ACTIVE_V5_PLAN) or _is_network_repair_plan(ACTIVE_V5_PLAN):
+        if _is_sep17_plan(ACTIVE_V5_PLAN) or _uses_network_repair_history(ACTIVE_V5_PLAN):
             roots += (V5_WORK_ROOT,)
-        if _is_network_repair_plan(ACTIVE_V5_PLAN):
+        if _uses_network_repair_history(ACTIVE_V5_PLAN):
             roots += (V5_SEP17_WORK_ROOT,)
+        if _is_source_retention_plan(ACTIVE_V5_PLAN):
+            roots += (V5_NETWORK_WORK_ROOT,)
         for root in roots:
             descriptor = os.open(
                 root / "executor.lock", os.O_RDONLY | os.O_NOFOLLOW
@@ -884,6 +938,7 @@ def _acquire_predecessor_locks() -> list[int]:
 def _verify_predecessors(
     plan: dict[str, Any],
     hold_evidence_path: Path,
+    *, predecessor_locks: list[int] | None = None,
 ) -> dict[str, Any]:
     closure_raw = hold_evidence_path.read_bytes()
     if _sha256_bytes(closure_raw) != HOLD_EVIDENCE_SHA256:
@@ -1033,15 +1088,97 @@ def _verify_predecessors(
         previous = _verify_v5_previous(plan["previous_successor"])
         result["previous_successor"] = previous
         result["call_dates"].append(previous["call_date_utc"])
-    if _is_sep17_plan(plan) or _is_network_repair_plan(plan):
+    if _is_sep17_plan(plan) or _uses_network_repair_history(plan):
         previous, call_dates = _verify_sep16_v5_previous(plan["previous_v5_successor"])
         result["previous_v5_successor"] = previous
         result["call_dates"].extend(call_dates)
-    if _is_network_repair_plan(plan):
+    if _uses_network_repair_history(plan):
         previous, preflight = _verify_sep17_initialization_hold(plan)
         result["previous_v5_initialization_hold"] = previous
         result["network_repair_preflight"] = preflight
+    if _is_source_retention_plan(plan):
+        if predecessor_locks is None or len(predecessor_locks) != 6:
+            raise Item32Error("predecessor_lock_binding")
+        previous, call_dates = _verify_full_cycle_hold(
+            plan["previous_v5_full_cycle_hold"], lock_descriptor=predecessor_locks[-1])
+        result["previous_v5_full_cycle_hold"] = previous
+        result["call_dates"].extend(call_dates)
     return result
+
+
+def _verify_full_cycle_hold(binding: dict[str, Any], *, lock_descriptor: int) -> tuple[dict[str, Any], list[str]]:
+    raw = _read_regular_file(Path(binding["final_readback"]["host_ref"]), max_size=31944, root_only=True)
+    if len(raw) != 31944 or _sha256_bytes(raw) != V5_NETWORK_FINAL_SHA256:
+        raise Item32Error("predecessor_final_seal")
+    seal = json.loads(raw)
+    originals = {}
+    for name, expected in {**binding["previous_files"], **binding["files"]}.items():
+        path = Path(name)
+        if path == V5_NETWORK_WORK_ROOT / "executor.lock":
+            # This exact predecessor lock is held by _acquire_predecessor_locks.
+            # Its sealed empty bytes must not relax the general nonempty reader.
+            before = os.lstat(path)
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            try:
+                opened = os.fstat(descriptor)
+                held = os.fstat(lock_descriptor)
+                value = os.read(descriptor, 1)
+                after = os.lstat(path)
+                if (not stat.S_ISREG(opened.st_mode) or stat.S_IMODE(opened.st_mode) != 0o600
+                    or opened.st_uid != 0 or opened.st_gid != 0 or opened.st_nlink != 1
+                    or opened.st_size != 0 or value != b""
+                    or any((item.st_dev, item.st_ino, item.st_size, item.st_mtime_ns, item.st_ctime_ns)
+                           != (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns)
+                           for item in (before, after, held))):
+                    raise Item32Error("predecessor_metadata")
+            finally:
+                os.close(descriptor)
+        else:
+            value = _read_regular_file(path, max_size=64 * 1024 * 1024,
+                                       root_only=not name.endswith(("/hot_keywords.db", "/noteai.db")))
+        if (len(value) != expected["bytes"] or _sha256_bytes(value) != expected["sha256"]
+            or oct(stat.S_IMODE(os.lstat(path).st_mode)) != expected["mode"]):
+            raise Item32Error("predecessor_digest")
+        originals[name] = value
+    admission = json.loads(originals[str(V5_NETWORK_WORK_ROOT / "item32-admission.json")])
+    run = V5_NETWORK_WORK_ROOT / binding["run_directory_name"]
+    if (any(type(admission.get(key)) is not type(value) or admission[key] != value
+            for key, value in seal["admission"].items())
+        or admission.get("run_directory_name") != binding["run_directory_name"]
+        or admission.get("budget", {}).get("bucket_date") != "2026-09-17"):
+        raise Item32Error("predecessor_shape")
+    receipt = json.loads(originals[str(run / "worker-receipt.json")])
+    if (receipt.get("physical_http_summary") != seal["worker_receipt"]["physical_http_summary"]
+        or receipt.get("physical_http_observations") != seal["worker_receipt"]["physical_http_observations"]
+        or receipt.get("exit_code") != seal["worker_receipt"]["exit_code"]
+        or receipt.get("provider_failures") != []
+        or receipt.get("secret_values_recorded") is not False):
+        raise Item32Error("predecessor_worker_shape")
+    for phase in ("before", "after"):
+        probe = json.loads(originals[str(run / f"database-{phase}-probe.json")])
+        if _json_bytes(probe) != _json_bytes(seal["database_probes"][phase]):
+            raise Item32Error("predecessor_database_proof")
+    database = run / "task-store/hot_keywords.db"
+    if any(Path(str(database) + suffix).exists() for suffix in ("-wal", "-journal")):
+        raise Item32Error("predecessor_store_shape")
+    connection = sqlite3.connect(f"file:{database}?mode=ro&immutable=1", uri=True)
+    try:
+        connection.execute("PRAGMA query_only=ON")
+        rows = connection.execute("SELECT ordinal,endpoint,status,admitted_at,admitted_date,completed_at "
+                                  "FROM xhs_trends_provider_attempts ORDER BY ordinal").fetchall()
+        runs = connection.execute("SELECT status,provider_attempt_count,last_error_code,snapshot_size FROM xhs_trends_runs").fetchall()
+    finally:
+        connection.close()
+    if (len(rows) != 34 or runs != [("failed", 34, "trends_current_run_xhs_evidence_incomplete", 0)]
+        or any(row[0] != index + 1 or row[1] != ENDPOINT_SEQUENCE[index] or row[2] != "succeeded"
+               or row[4] != "2026-09-17" or _parse_clock(row[3]).date().isoformat() != "2026-09-17"
+               or _parse_clock(row[5]).date().isoformat() != "2026-09-17"
+               or _parse_clock(row[5]) < _parse_clock(row[3]) for index, row in enumerate(rows))
+        or _sha256_bytes(_read_regular_file(database, max_size=64 * 1024 * 1024, root_only=False)) != binding["files"][str(database)]["sha256"]
+        or any(Path(str(database) + suffix).exists() for suffix in ("-wal", "-journal"))):
+        raise Item32Error("predecessor_store_shape")
+    return ({**binding, "host_final_readback_verified": True, "database_readonly_probes_verified": True,
+             "collection_ledger_verified": True}, [_parse_clock(row[3]).date().isoformat() for row in rows])
 
 
 def _verify_sep17_initialization_hold(plan: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -1221,7 +1358,7 @@ def _admission_budget(
     prior_used = sum(
         1 for value in predecessor["call_dates"] if value == bucket
     )
-    if prior_used != 0 or ((_is_sep17_plan(plan) or _is_network_repair_plan(plan)) and any(value >= bucket for value in predecessor["call_dates"])):
+    if prior_used != 0 or ((_is_sep17_plan(plan) or _uses_network_repair_history(plan)) and any(value >= bucket for value in predecessor["call_dates"])):
         raise Item32Error("utc_budget_not_available")
     return {
         "bucket_date": bucket,
@@ -1630,7 +1767,7 @@ def _preflight_host(
             "assert actual==expected;v.runtime.verify_assets();"
             "assert v.trends_budget('{\"initialization\":2,\"collection\":34,\"total\":36}')=="
             + repr(V5_PHYSICAL_BUDGET) + ";"
-            + ("exec(" + repr(V5_NETWORK_CLIENT_PREFLIGHT) + ");" if _is_network_repair_plan(ACTIVE_V5_PLAN) else "") +
+            + ("exec(" + repr(V5_NETWORK_CLIENT_PREFLIGHT) + ");" if _uses_network_repair_history(ACTIVE_V5_PLAN) else "") +
             "version=subprocess.check_output(['node','--version'],timeout=10).decode().strip();"
             "print(json.dumps({'protocol':'pc_v5','curl_cffi_version':curl_cffi.__version__,"
             "'node_major':int(version.lstrip('v').split('.')[0]),"
@@ -2157,7 +2294,8 @@ def _worker_diagnostic_projectors():
         raise Item32Error("worker_diagnostic_source_binding")
     namespace = {"__name__": "item32_bound_security_redaction", "__file__": str(source)}
     exec(compile(raw, str(source), "exec"), namespace)
-    return namespace["sanitize_trends_http_event"], namespace["sanitize_trends_failure"]
+    return (namespace["sanitize_trends_http_event"], namespace["sanitize_trends_failure"],
+            namespace["sanitize_trends_candidate_diagnostics"])
 
 
 def _record_worker_receipt(
@@ -2171,10 +2309,12 @@ def _record_worker_receipt(
         raise Item32Error("worker_output_size")
     if any(secret.encode("utf-8") in raw for secret in secret_values if secret):
         raise Item32Error("worker_output_secret_detected")
-    project_http, project_failure = _worker_diagnostic_projectors()
+    project_http, project_failure, project_candidates = _worker_diagnostic_projectors()
     events: list[dict[str, Any]] = []
     http_events: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
+    candidate_diagnostics: list[dict[str, Any]] = []
+    invalid_candidate_diagnostics = 0
     invalid_http_events = 0
     allowed_event_keys = {
         "event",
@@ -2193,6 +2333,15 @@ def _record_worker_receipt(
         except (TypeError, ValueError):
             continue
         if not isinstance(value, dict):
+            continue
+        if value.get("event") == "xhs_trends_candidate_diagnostics":
+            safe = project_candidates(value)
+            expected_stage = "selection" if not candidate_diagnostics else "evidence_check"
+            if (safe and len(candidate_diagnostics) < 2
+                    and safe.get("stage") == expected_stage):
+                candidate_diagnostics.append(safe)
+            else:
+                invalid_candidate_diagnostics += 1
             continue
         if value.get("event") == "xhs_trends_http_observation":
             safe = project_http(value)
@@ -2245,6 +2394,8 @@ def _record_worker_receipt(
         "structured_events": events,
         "physical_http_observations": http_events,
         "provider_failures": failures,
+        "candidate_diagnostics": candidate_diagnostics,
+        "invalid_candidate_diagnostics": invalid_candidate_diagnostics,
         "physical_http_summary": {
             "initialization_dispatches_observed": initialization_count,
             "initialization_request_counts": initialization_kinds,
@@ -2379,7 +2530,7 @@ def _build_artifacts(
             "diagnostic_result_sha256": predecessor[
                 "diagnostic_result_sha256"
             ],
-            "predecessor_provider_call_count": 14 if _is_sep17_plan(plan) or _is_network_repair_plan(plan) else 3 if physical is not None else 2,
+            "predecessor_provider_call_count": 48 if _is_source_retention_plan(plan) else 14 if _is_sep17_plan(plan) or _is_network_repair_plan(plan) else 3 if physical is not None else 2,
             "predecessors_unchanged": True,
             "budget": budget,
             "runtime_readback": runtime_readback,
@@ -2451,11 +2602,13 @@ def _build_artifacts(
     }
     if physical is not None:
         terminal_payload["successor"]["previous_successor"] = predecessor["previous_successor"]
-        if _is_sep17_plan(plan) or _is_network_repair_plan(plan):
+        if _is_sep17_plan(plan) or _uses_network_repair_history(plan):
             terminal_payload["successor"]["previous_v5_successor"] = predecessor["previous_v5_successor"]
-        if _is_network_repair_plan(plan):
+        if _uses_network_repair_history(plan):
             for key in ("previous_v5_initialization_hold", "network_repair_preflight"):
                 terminal_payload["successor"][key] = predecessor[key]
+        if _is_source_retention_plan(plan):
+            terminal_payload["successor"]["previous_v5_full_cycle_hold"] = predecessor["previous_v5_full_cycle_hold"]
         terminal_payload["execution"]["physical_http"] = {
             "initialization_count": 2, "collection_count": 34, "total_count": 36,
             "total_limit": 36, "automatic_retry_count": 0,
@@ -2486,7 +2639,7 @@ def _v5_physical_proof(run_dir: Path, plan: dict[str, Any], run: dict[str, Any],
         or not isinstance(observations, list) or len(observations) != 72
         or len(attempts) != 34):
         raise Item32Error("physical_http_evidence")
-    project_http, _ = _worker_diagnostic_projectors()
+    project_http, _, _ = _worker_diagnostic_projectors()
     if any(project_http(value) != value for value in observations):
         raise Item32Error("physical_http_evidence")
     start, _, finish = _plan_window(plan["admission"])
@@ -2878,7 +3031,8 @@ def _execute_locked(
         if any(EXPORT_ROOT.glob("item32-evidence-*.tar.gz")):
             raise Item32Error("existing_export_requires_reconciliation")
         predecessor_locks = _acquire_predecessor_locks()
-        predecessor = _verify_predecessors(plan, hold_evidence_path)
+        predecessor = _verify_predecessors(plan, hold_evidence_path, **(
+            {"predecessor_locks": predecessor_locks} if _is_source_retention_plan(plan) else {}))
         budget = _admission_budget(plan, predecessor)
         host_preflight_started = True
         runtime_readback = _preflight_host(plan, adapter_path)
@@ -2985,7 +3139,8 @@ def _execute_locked(
         )
         if attempts_readback != 34 or unknown_readback != 0:
             raise Item32Error("attempt_readback")
-        if _verify_predecessors(plan, hold_evidence_path) != predecessor:
+        if _verify_predecessors(plan, hold_evidence_path, **(
+                {"predecessor_locks": predecessor_locks} if _is_source_retention_plan(plan) else {})) != predecessor:
             raise Item32Error("predecessor_changed")
         executor_sha256 = _sha256_bytes(executor_path.read_bytes())
         candidate = _build_artifacts(
@@ -3338,14 +3493,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--v5-readback-only", action="store_true")
     parser.add_argument("--v5-sep17-readback-only", action="store_true")
     parser.add_argument("--v5-network-repair-readback-only", action="store_true")
+    parser.add_argument("--v5-source-retention-readback-only", action="store_true")
     parser.add_argument("--plan")
     parser.add_argument("--adapter")
     parser.add_argument("--hold-evidence")
     args = parser.parse_args(argv)
-    if args.readback_only or args.v5_readback_only or args.v5_sep17_readback_only or args.v5_network_repair_readback_only:
+    if args.readback_only or args.v5_readback_only or args.v5_sep17_readback_only or args.v5_network_repair_readback_only or args.v5_source_retention_readback_only:
         if args.plan or args.adapter or args.hold_evidence:
             parser.error("readback-only does not accept execution inputs")
-        if sum((args.readback_only, args.v5_readback_only, args.v5_sep17_readback_only, args.v5_network_repair_readback_only)) != 1:
+        if sum((args.readback_only, args.v5_readback_only, args.v5_sep17_readback_only, args.v5_network_repair_readback_only, args.v5_source_retention_readback_only)) != 1:
             parser.error("select one retained identity")
         if args.v5_readback_only:
             WORK_ROOT = V5_WORK_ROOT
@@ -3353,6 +3509,8 @@ def main(argv: list[str] | None = None) -> int:
             WORK_ROOT = V5_SEP17_WORK_ROOT
         if args.v5_network_repair_readback_only:
             WORK_ROOT = V5_NETWORK_WORK_ROOT
+        if args.v5_source_retention_readback_only:
+            WORK_ROOT = V5_SOURCE_RETENTION_WORK_ROOT
         result = read_retained_result()
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "RETAINED_BYTES_READBACK_ONLY" else 2

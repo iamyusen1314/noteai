@@ -20,6 +20,7 @@ from pathlib import Path
 import httpx
 
 import trends_contract
+from security_redaction import sanitize_trends_candidate_diagnostics
 from hot_keywords import (
     BASELINE_EVIDENCE_SOURCE,
     db_status,
@@ -41,12 +42,88 @@ from xhs_acquisition import (
     freshness_overview,
     init_db as init_xhs_acquisition_db,
     mark_server_session_logged_out,
+    normalize_latest_run_source_breakdown,
     record_scrape_freshness,
     xhs_freshness_required,
 )
 
 
 DEFAULT_SNAPSHOT_PATH = Path(__file__).parent / "data" / "market_timing_snapshot.json"
+
+
+def _candidate_domain_counts(rows: list[dict]) -> dict:
+    """Count scheduler candidates without retaining their text in diagnostics."""
+    counts = {domain: {"count": 0, "sources": {}}
+              for domain in trends_contract.REQUIRED_DOMAINS}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        domain = row.get("category") or row.get("domain")
+        if not isinstance(domain, str) or domain not in counts:
+            continue
+        item = counts[domain]
+        item["count"] += 1
+        source = row.get("source")
+        source = source if isinstance(source, str) else "other"
+        item["sources"][source] = item["sources"].get(source, 0) + 1
+    for item in counts.values():
+        breakdown = normalize_latest_run_source_breakdown(item["sources"])
+        item["sources"] = {
+            "search_result": breakdown["search_result"],
+            "search_recommend": breakdown["search_recommend"],
+            "other": breakdown["homefeed"] + breakdown["hot_search"] + breakdown["other"],
+        }
+    return counts
+
+
+def _candidate_diagnostics(input_counts: dict, selected: list[dict], freshness: dict | None = None,
+                           *, collection_blocked: bool = False) -> dict:
+    selected_counts = _candidate_domain_counts(selected)
+    evidence_counts = (freshness or {}).get("latest_run_domain_counts") or {}
+    source_health = (freshness or {}).get("latest_run_domain_source_health") or {}
+    domains = {}
+    for domain in trends_contract.REQUIRED_DOMAINS:
+        original, chosen = input_counts[domain], selected_counts[domain]
+        reasons = []
+        if original["count"] == 0:
+            reasons.append("input_empty")
+        if chosen["count"] == 0:
+            reasons.append("selected_empty")
+        if chosen["count"] < original["count"]:
+            reasons.append("selection_reduced_count")
+        for source in ("search_result", "search_recommend"):
+            if original["sources"][source] > 0 and chosen["sources"][source] == 0:
+                reasons.append("selection_dropped_" + source)
+        evidence_count = None
+        health_ok = None
+        if freshness is not None:
+            observed_count = evidence_counts.get(domain)
+            if type(observed_count) is int and observed_count >= 0:
+                evidence_count = observed_count
+                if evidence_count < trends_contract.MIN_SNAPSHOT_KEYWORDS_PER_DOMAIN:
+                    reasons.append("evidence_below_minimum")
+            else:
+                reasons.append("evidence_count_unavailable")
+            health = source_health.get(domain) or {}
+            if type(health.get("ok")) is bool:
+                health_ok = health["ok"]
+            else:
+                reasons.append("source_health_unavailable")
+            if health_ok is False:
+                reasons.append(health.get("error_code") or "latest_run_source_degraded")
+        domains[domain] = {
+            "input_count": original["count"], "selected_count": chosen["count"],
+            "input_sources": original["sources"], "selected_sources": chosen["sources"],
+            "evidence_count": evidence_count, "source_health_ok": health_ok,
+            "reason_codes": reasons,
+        }
+    freshness_ok = ((freshness or {}).get("overview") or {}).get("ok")
+    return sanitize_trends_candidate_diagnostics({
+        "event": "xhs_trends_candidate_diagnostics",
+        "stage": "selection" if freshness is None else "evidence_check", "domains": domains,
+        "freshness_ok": freshness_ok if type(freshness_ok) is bool else None,
+        "collection_blocked": collection_blocked,
+    })
 
 
 def _truthy_env(name: str, default: str = "0") -> bool:
@@ -164,7 +241,11 @@ async def _run_once_body(
                 extra_error_code="scrape_once_failed",
             )
     if trends_contract.active_run() is not None:
+        input_candidate_counts = _candidate_domain_counts(keywords)
         keywords = trends_contract.bound_keyword_rows(list(keywords))
+        print(json.dumps(_candidate_diagnostics(
+            input_candidate_counts, keywords, collection_blocked=bool(blocked_reason),
+        ), ensure_ascii=False, sort_keys=True), flush=True)
     diagnostic_codes = set(
         discovery_diagnostics.get("diagnostic_error_codes") or []
     )
@@ -236,6 +317,11 @@ async def _run_once_body(
                     for domain in trends_contract.REQUIRED_DOMAINS
                 )
             )
+            # Emit safe facts before a failing publication transaction rolls back.
+            print(json.dumps(_candidate_diagnostics(
+                input_candidate_counts, keywords, xhs_freshness_internal,
+                collection_blocked=bool(blocked_reason),
+            ), ensure_ascii=False, sort_keys=True), flush=True)
             if not xhs_ok:
                 raise trends_contract.TrendsContractError(
                     "trends_current_run_xhs_evidence_incomplete"

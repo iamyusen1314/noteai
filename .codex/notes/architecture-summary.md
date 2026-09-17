@@ -1,4 +1,18 @@
-September17 CURRENT — safe-save/handoff only. Latest recorded production release
+September17 16:30UTC CURRENT — this thread has resumed Item32 only under the
+owner's later staged-repair instruction; H5/plans/video-credit scope stays with
+its separate worktree. Original API-F image6d5/session18f72 remained unchanged.
+One diagnostic DSL and one formal source1136898 cycle recovered actual access:
+DSL/session +34 collection responses, no unknown or retry. The formal cycle then
+failed local per-domain evidence validation and rolled back publication, so
+Item32 remains incomplete. Source-preserving bounded selection and safe per-domain
+diagnostics are completed local fixes only. The eight-overlay Sep18 00:00–01:30UTC
+plan (dispatch before00:55) is saved PENDING with actual unauthorized-load rejection;
+no host package/schedule exists before explicit additional full-cycle confirmation.
+No API-C/Admin/Payment/public web/
+schema/ACL or rights changes were made. Full original facts and final seal13857aef
+are in Handoff CURRENT. This does not reopen this thread's H5 editing scope.
+
+September17 HISTORICAL — safe-save/handoff only. Latest recorded production release
 is September16 15:43:07UTC: API/Payment source0e80f33, frontend d08f7be,
 Admin source4768/image6c8cf579 retained. WeChat is formally OPEN, Alipay deferred;
 Payment is enabled in API's network namespace on127.0.0.1:8002 with its API

@@ -735,7 +735,7 @@ def clear_session_block() -> dict[str, Any]:
 
 
 def bound_keyword_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep at most 15 cleaned candidates for each of the six launch domains."""
+    """Keep ranked, distinct candidates without dropping available search sources."""
     candidates: list[dict[str, Any]] = []
     for raw in rows or []:
         cleaned = hot_keywords.clean_scraped_keyword_row(dict(raw))
@@ -753,19 +753,58 @@ def bound_keyword_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         -int(row.get("search_vol") or 0),
         str(row.get("keyword") or ""),
     ))
+    def required_source(row: dict[str, Any]) -> str:
+        # Match freshness's real-evidence threshold; weak rows cannot reserve
+        # a source slot merely by carrying a source label.
+        if int(row.get("quality_score") or 0) < 55:
+            return ""
+        source = str(row.get("source") or "")
+        if source in {"search_phrase", "search_token"}:
+            return "search_result"
+        return "search_recommend" if source == "search_recommend" else ""
+
     bounded: list[dict[str, Any]] = []
-    counts = {domain: 0 for domain in REQUIRED_DOMAINS}
-    seen: set[tuple[str, str]] = set()
-    for cleaned in candidates:
-        domain = str(cleaned.get("category") or cleaned.get("domain") or "")
-        identity = (domain, str(cleaned.get("keyword") or "").strip())
-        if not identity[1] or identity in seen:
+    for domain in REQUIRED_DOMAINS:
+        ranked = [
+            row for row in candidates
+            if str(row.get("category") or row.get("domain") or "") == domain
+        ]
+        selected: set[int] = set()
+        seen: set[str] = set()
+        for index, row in enumerate(ranked):
+            keyword = str(row.get("keyword") or "").strip()
+            if keyword and keyword not in seen and len(selected) < MAX_KEYWORDS_PER_DOMAIN:
+                selected.add(index)
+                seen.add(keyword)
+        if {required_source(ranked[index]) for index in selected} >= {
+            "search_result", "search_recommend",
+        }:
+            bounded.extend(ranked[index] for index in sorted(selected))
             continue
-        if counts[domain] >= MAX_KEYWORDS_PER_DOMAIN:
-            continue
-        bounded.append(cleaned)
-        seen.add(identity)
-        counts[domain] += 1
+
+        # Reserve two actual, different keywords only when both sources exist.
+        # Selecting the same keyword twice would invent independent coverage.
+        for index, row in enumerate(ranked):
+            source = required_source(row)
+            if not source:
+                continue
+            other = next((
+                other_index for other_index, other_row in enumerate(ranked)
+                if required_source(other_row)
+                and required_source(other_row) != source
+                and other_row["keyword"] != row["keyword"]
+            ), None)
+            if other is None:
+                continue
+            selected = {index, other}
+            seen = {ranked[value]["keyword"] for value in selected}
+            for candidate_index, candidate in enumerate(ranked):
+                keyword = candidate["keyword"]
+                if keyword not in seen and len(selected) < MAX_KEYWORDS_PER_DOMAIN:
+                    selected.add(candidate_index)
+                    seen.add(keyword)
+            break
+        bounded.extend(ranked[index] for index in sorted(selected))
     if len(bounded) > MAX_KEYWORDS_PER_RUN:
         raise TrendsContractError("trends_keyword_limit")
     return bounded

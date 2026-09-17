@@ -273,6 +273,73 @@ _TRENDS_TRANSPORT_CATEGORIES = frozenset({
     "protocol", "json_parse", "os_error", "other",
 })
 
+_TRENDS_CANDIDATE_DOMAINS = ("美食", "旅行", "穿搭", "美妆", "家居", "健身")
+_TRENDS_CANDIDATE_REASONS = frozenset({
+    "input_empty", "selected_empty", "selection_reduced_count",
+    "selection_dropped_search_result", "selection_dropped_search_recommend",
+    "evidence_below_minimum", "evidence_count_unavailable", "source_health_unavailable",
+    "latest_run_no_evidence", "latest_run_search_sources_missing",
+    "latest_run_search_result_missing", "latest_run_search_recommend_missing",
+    "latest_run_source_degraded",
+})
+
+
+def sanitize_trends_candidate_diagnostics(value: Any) -> dict[str, Any]:
+    """Preserve observed per-domain counts, never candidate text or raw payloads."""
+    if not isinstance(value, dict) or value.get("event") != "xhs_trends_candidate_diagnostics":
+        return {}
+    stage = value.get("stage")
+    if not isinstance(stage, str) or stage not in {"selection", "evidence_check"}:
+        return {}
+    freshness_ok, blocked = value.get("freshness_ok"), value.get("collection_blocked")
+    if (freshness_ok is not None and type(freshness_ok) is not bool) or type(blocked) is not bool:
+        return {}
+    if stage == "selection" and freshness_ok is not None:
+        return {}
+    raw_domains = value.get("domains")
+    if not isinstance(raw_domains, dict):
+        return {}
+    domains = {}
+    for domain in _TRENDS_CANDIDATE_DOMAINS:
+        raw = raw_domains.get(domain)
+        if not isinstance(raw, dict):
+            return {}
+        item = {}
+        for key in ("input_count", "selected_count"):
+            count = raw.get(key)
+            if type(count) is not int or not 0 <= count <= 2**31 - 1:
+                return {}
+            item[key] = count
+        for key in ("input_sources", "selected_sources"):
+            sources = raw.get(key)
+            if not isinstance(sources, dict):
+                return {}
+            item[key] = {}
+            for source in ("search_result", "search_recommend", "other"):
+                count = sources.get(source)
+                if type(count) is not int or not 0 <= count <= 2**31 - 1:
+                    return {}
+                item[key][source] = count
+            if sum(item[key].values()) != item[key.replace("sources", "count")]:
+                return {}
+        evidence_count = raw.get("evidence_count")
+        if evidence_count is not None and (type(evidence_count) is not int or not 0 <= evidence_count <= 2**31 - 1):
+            return {}
+        health = raw.get("source_health_ok")
+        if health is not None and type(health) is not bool:
+            return {}
+        if stage == "selection" and (evidence_count is not None or health is not None):
+            return {}
+        item.update(evidence_count=evidence_count, source_health_ok=health)
+        reasons = raw.get("reason_codes")
+        if not isinstance(reasons, list):
+            return {}
+        item["reason_codes"] = sorted({reason for reason in reasons
+            if isinstance(reason, str) and reason in _TRENDS_CANDIDATE_REASONS})
+        domains[domain] = item
+    return {"event": "xhs_trends_candidate_diagnostics", "stage": stage,
+            "freshness_ok": freshness_ok, "collection_blocked": blocked, "domains": domains}
+
 
 def sanitize_trends_transport_diagnostics(value: Any) -> dict[str, Any]:
     """Fixed transport facts only; never exception strings or network addresses."""

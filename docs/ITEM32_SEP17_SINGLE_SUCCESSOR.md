@@ -36,16 +36,17 @@ curl DNS10.138ms、TCP42.449ms、TLS79.178ms、首字节119.437ms、总151.037ms
 历史失败层无法从已丢弃的异常追回；当前原镜像同传输成功，不能据此倒推原错误为某一网络层或账号问题。
 日志不足的原失败不回填猜测；只对新步骤记录分类证据。
 
-### V1 当前有效窗口与执行依据
+### V1 已结束窗口与执行依据（历史执行记录，不得重放）
 
-- 当前实际时钟15:50UTC；诊断前置已完成，决定新的prospective窗口为
+- 当时实际时钟15:50UTC；诊断前置完成后决定的prospective窗口为
   **2026-09-17 16:00–17:30UTC／北京时间9月18日00:00–01:30，启动严格早于16:55UTC**。
   截止至终点35分钟，覆盖原900秒采集加至少20分钟恢复；不在失窗后启动，不重放09:02批次。
 - 授权为owner本次“完成故障定位与恢复”明确指令；当前接续turn开始时间
   `2026-09-17T15:16:30+00:00`用作本授权接收的记录时点，turn
   `01a0aff0-d403-71d3-afa4-4313749d3e65`。它不是此前固定窗口授权，也不伪造额外确认。
 - 新固定work `/var/lib/noteai/item32-v5-network-repair-20260917`；新canonical plan
-  `deploy/production/plans/item32-v5-network-repair-prospective.json`待最终source绑定。
+  `deploy/production/plans/item32-v5-network-repair-prospective.json`已绑定source1136898，
+  plan14615B/SHAa6ebe4148b3719739bff1d17bf27fd69928ff4c71d25de3d921f1e1c7c2a8b6f。
   五个原锁、原所有失败/UNKNOWN、D0/D1/D2原件必须核对；新wrapper独占一次性标记。
 - 正式新周期最多DSL1+session1+34collection=36物理HTTP，零自动重试。先前本日DSL UNKNOWN1与
   本轮诊断DSL成功1均另外记账，若正式冷初始化2+34全部执行，本日合计38物理HTTP、34collection；
@@ -54,6 +55,56 @@ curl DNS10.138ms、TCP42.449ms、TLS79.178ms、首字节119.437ms、总151.037ms
   不另发最小采集；有效后继续原6行业/每域至少12真实词/最多90词的原契约。
 - 本turn内直接推进，**未创建新自动化**；旧heartbeat保持PAUSED。若确因后续实际配额需要跨UTC桶，
   只在真实创建并读回唯一续执行后声称已安排，不无限制造新后继。
+- 唯一正式wrapper已于**16:05:02.722122UTC**启动，16:05:29.306728退出2；**不再运行默认入口**。
+  stage `/var/lib/noteai/item32-v5-network-package-20260917-1136898`；wrapper22690B/SHA
+  `b75a0c44e571581165f96643efbd1f55b88ac62ec44086bfd0fa49f3a4122127`。
+  包164880B/SHA4821db3b053412294b9087c0c0981fd9a52300ab11c1630200a185f2bd331470，
+  manifest SHA478a90a70b7027b363f31ed3dbdaf2631e551529035068c18a708768fa72cb9e；
+  暂存19成员、会话与原件均通过host wrapper预检。源码暂存只写专用stage，未读取业务材料。
+  原HTTP仍20秒；云助手命令超时2700秒用于容纳原900秒周期及清理，非供应商超时加长。
+
+### V1真实结果及本地恢复边界
+
+原run-67nerwqt实际完成DSL1/session1、10homefeed、12recommend、12search_notes；全部36响应，
+collection34 succeeded、UNKNOWN0、retry0、provider_failures空。网络/初始化/业务读取本次均已恢复。
+worker退出1，错误`trends_current_run_xhs_evidence_incomplete`；发布事务回滚，五张业务证据表0，
+34次ledger保留。具体缺域/数量/来源诊断原来未保存，原候选也不在库中，无法离线补回真实词。
+
+16:21:02UTC最终封存通过，6锁/进程/容器/runtime清理完成，原绑定/30历史文件不变，PG前后只读证明完整。
+host：`/var/lib/noteai/item32-v5-network-repair-20260917/final-readback-1136898/final.json`；
+repo：`deploy/production/evidence/production-item32-network-repair-final-readback-20260917.json`；
+31944B/SHA`13857aef4ea9ce3e41cef2bbabbf8b8e2b1059792f9772f316ffc2e30a5a284f`。
+本UTC日含早前原UNKNOWN和D2为38物理HTTP/34采集，不清零、不重放。
+
+本地已复现排名截15会丢必需来源的独立缺陷；修复保留真实不同关键词的两类来源并维持原阈值。
+补筛选前后与实际质量检查的固定安全计数，使未来同类拒绝不会再次只剩汇总错误。
+不把此离线复现倒写成V1已证唯一根因或验收通过。原V1源码/计划/结果均冻结。
+后续完整周期必须新UTC fresh桶，且本轮one-shot已消耗；当前仅准备单个PENDING有限计划，未调度。
+
+### 来源保留修复后的唯一后续提案（PENDING，禁止据此运行）
+
+- 窗口：**2026-09-18 00:00–01:30UTC／北京时间9月18日08:00–09:30**；启动严格早于
+  **00:55UTC／08:55北京时间**，留35分钟完成与恢复。失窗或失败不自动创建另一个周期。
+- 原API-F、原6d5镜像与18f72会话不换；仅使用8份精确源码overlay，含原6份以及实际修复的
+  `model/trends_contract.py`、`model/market_timing_worker.py`。不升级整套爬虫，不重扫登录。
+- 固定新work `/var/lib/noteai/item32-v5-source-retention-20260918`；canonical plan为
+  `deploy/production/plans/item32-v5-source-retention-prospective.json`，授权必须先保持PENDING。
+  已生成26758B/SHA`731f83d80e09df660b4c41f567057f268b783f910ffdf5d839ceb0b3942f3afd`，
+  待确认范围SHA`36136361d5a92d9b7cd7ff88adffb61e33c86beb5c77898a366e157b9f496041`；
+  本机实际加载以`plan_not_authorized`拒绝，确认字段为null，无host暂存/供应商请求。
+  绑定V1原12份文件、原36份前驱/诊断摘要及31944B final seal；六原锁加新独占锁。
+- 重新证明新UTC桶fresh0/34，保留跨日期累计48次collection、原初始化UNKNOWN及全部失败。
+  唯一cycle最多DSL1/session1/collection34＝36物理HTTP，零自动重试；首homefeed包含在34内，
+  无额外网络诊断/额外业务预读。六域、每域至少12真实合格词、最多15，总90及两类实际来源要求不变。
+- 只读生产DB前后probe；结果写本次隔离store，保留计数/原件和必要清理。费用实际记录/UNKNOWN，
+  无模型请求、新资源、订阅、购买、订单、退款、用户权益或C/Admin/Payment/public web部署。
+- 只有owner明确批准这**额外一次完整周期**后才绑定实际确认时间/范围摘要并安排唯一heartbeat；
+  当前原`noteai-item32-sep17`及其余Item32相关旧heartbeat实际均PAUSED，没有声称新调度已创建。
+  若需后续Item33，其真实UTC周期还必须晚于本次最终通过日；离线测试不关闭Item32。
+
+本地修复已完成：来源保留10新用例，安全逐域诊断8新用例，transport/provider/receipt组合39项通过；
+新旧profile/gate组合74/74通过，最后空锁专用校验收口后17项新增复测通过及权限/inode反例通过。
+独立审查无阻断；旧6-overlay profile不接受新8-overlay，未知/缺失来源不伪造合格。
 
 ## 原批次已封存状态（原结果不改）
 

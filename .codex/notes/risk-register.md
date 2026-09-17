@@ -1,4 +1,27 @@
-September17 CURRENT: The sole01:00UTC Item32 successor actually ran after fresh0/34.
+September17 16:21UTC CURRENT: Authorized staged Item32 recovery proved current DNS,
+TCP/TLS and one credential-free DSL read. New formal source1136898/run-67nerwqt
+then received all36 responses (DSL1/session1 +10homefeed/12recommend/12search_notes),
+34collection succeeded, zero unknown/retry/provider failure. Worker failed locally
+with trends_current_run_xhs_evidence_incomplete; publication rolled back and all
+five evidence tables remain empty. Actual per-domain shortages are UNKNOWN because
+old receipt discarded those diagnostics and candidate rows were not retained.
+Do not infer account/network failure or retrospectively pass the cycle.
+Offline reproduction found ranked top15 can discard a required real source; the
+minimal source-retaining selector plus safe pre/post-selection counters are now
+completed locally. They preserve quality/deduplication/6domain/12–15/90 limits and
+are not yet active on F. This is a proven code defect, not a proven sole cause of V1.
+Final seal31944B/SHA13857aef4ea9ce3e41cef2bbabbf8b8e2b1059792f9772f316ffc2e30a5a284f
+confirms six locks free, process/container/runtime closure, unchanged bindings and
+30historical files, plus before/after server-enforced readonly/zero writes/no xid/
+rollback. Repo exact original: production-item32-network-repair-final-readback-20260917.json.
+Sep17 totals38physical HTTP/34collection including original UNKNOWN1 and D2DSL1;
+the bucket and this one complete-cycle authorization are consumed. One
+PENDING later-UTC plan is saved for Sep18 00:00–01:30UTC, dispatch before00:55;
+actual loading rejects plan_not_authorized. No automatic full replay or new schedule
+without explicit bounded confirmation. Readiness32/37; Item33 not active. Formal payments/Amap,
+reports/rights and independent H5 edits are unchanged; provider/network fees UNKNOWN.
+
+September17 01:00UTC HISTORICAL: The sole01:00UTC Item32 successor actually ran after fresh0/34.
 It stopped during the first DSL initialization: one physical request, no response,
 network_error with UNKNOWN1; session/homefeed/recommend and collection admissions0.
 The initialization outcome is unknown even though dispatch-to-unknown observation is

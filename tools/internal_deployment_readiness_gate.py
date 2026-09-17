@@ -130,6 +130,10 @@ ITEM32_V5_EXECUTION_PLAN = "deploy/production/plans/item32-v5-successor-prospect
 ITEM32_V5_SEP17_EXECUTION_PLAN = "deploy/production/plans/item32-v5-sep17-successor-prospective.json"
 ITEM32_V5_NETWORK_EXECUTION_PLAN = "deploy/production/plans/item32-v5-network-repair-prospective.json"
 ITEM32_V5_NETWORK_WORK_ROOT = "/var/lib/noteai/item32-v5-network-repair-20260917"
+ITEM32_V5_SOURCE_RETENTION_WORK_ROOT = "/var/lib/noteai/item32-v5-source-retention-20260918"
+ITEM32_V5_SOURCE_RETENTION_EXECUTION_PLAN = "deploy/production/plans/item32-v5-source-retention-prospective.json"
+ITEM32_V5_NETWORK_FINAL_REF = "deploy/production/evidence/production-item32-network-repair-final-readback-20260917.json"
+ITEM32_V5_NETWORK_FINAL_SHA256 = "13857aef4ea9ce3e41cef2bbabbf8b8e2b1059792f9772f316ffc2e30a5a284f"
 ITEM32_V5_SEP17_FINAL_REF = "deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json"
 ITEM32_V5_SEP17_FINAL_SHA256 = "163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1"
 ITEM32_V5_NETWORK_D0_REF = "deploy/production/evidence/production-item32-network-repair-d0-20260917.json"
@@ -146,6 +150,7 @@ ITEM32_V5_OVERLAYS = {
     "model/spider_xhs_http.py", "model/spider_xhs_v5.py", "model/security_redaction.py",
     "model/hot_keywords.py", "model/scheduler_a.py", "model/vendor/spider_xhs/v5/trends_bridge.js",
 }
+ITEM32_V5_SOURCE_RETENTION_OVERLAYS = ITEM32_V5_OVERLAYS | {"model/trends_contract.py", "model/market_timing_worker.py"}
 ITEM32_ATTEMPT_AUDIT_SCHEMA = "noteai.item32.trends_attempt_audit.v1"
 ITEM32_DATABASE_PROOF_SCHEMA = "noteai.item32.production_db_zero_write.v1"
 ITEM32_TRENDS_DOMAINS = {"美食", "旅行", "穿搭", "美妆", "家居", "健身"}
@@ -1234,7 +1239,9 @@ def _item32_v5_profile_valid(plan: Any, *, root: Path) -> bool:
     }
     previous = plan.get("previous_successor")
     if (not isinstance(image, dict) or set(image) != set(ITEM32_IMAGE_SOURCE_SHA256)
-            or not isinstance(overlays, dict) or set(overlays) != ITEM32_V5_OVERLAYS
+            or not isinstance(overlays, dict) or set(overlays) != (
+                ITEM32_V5_SOURCE_RETENTION_OVERLAYS if isinstance(plan.get("admission"), dict)
+                and plan["admission"].get("work_root") == ITEM32_V5_SOURCE_RETENTION_WORK_ROOT else ITEM32_V5_OVERLAYS)
             or not all(_sha256(value) for value in [*image.values(), *overlays.values()])
             or plan.get("source_sha256") != {**image, **overlays}
             or plan.get("browser_binding") != browser
@@ -1350,6 +1357,34 @@ def _item32_network_repair_bindings(*, root: Path) -> dict[str, Any] | None:
                 "host_ref": "/var/lib/noteai/item32-network-repair-20260917/d0.json",
                 "bytes": len(d0_raw), "sha256": hashlib.sha256(d0_raw).hexdigest(),
                 "finished_at_utc": d0["finished_at_utc"], "diagnostics": diagnostics}}
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _item32_source_retention_previous_binding(*, root: Path) -> dict[str, Any] | None:
+    try:
+        raw = (root / ITEM32_V5_NETWORK_FINAL_REF).read_bytes()
+        if len(raw) != 31944 or hashlib.sha256(raw).hexdigest() != ITEM32_V5_NETWORK_FINAL_SHA256:
+            return None
+        seal = json.loads(raw)
+        if (seal["state"] != "V1_FINAL_READBACK_HOLD" or seal["errors"] != []
+            or seal["no_in_flight"] is not True or seal["readiness_credit"] is not False
+            or seal["admission"]["provider_calls"] != 34 or seal["admission"]["outcome_unknown_count"] != 0
+            or seal["retained_store"]["run"]["last_error_code"] != "trends_current_run_xhs_evidence_incomplete"
+            or len(seal["own_files"]) != 12 or len(seal["original_files"]) != 36):
+            return None
+        return {"work_root": ITEM32_V5_NETWORK_WORK_ROOT,
+            "package_root": "/var/lib/noteai/item32-v5-network-package-20260917-1136898",
+            "source_revision": seal["source_revision"], "run_directory_name": seal["run_directory_name"],
+            "status": "HOLD_CURRENT_RUN_EVIDENCE_INCOMPLETE", "call_date_utc": "2026-09-17",
+            "collection_admissions": 34, "initialization_count": 2, "physical_http_count": 36,
+            "outcome_unknown_count": 0, "automatic_retry_count": 0, "no_replay": True,
+            "worker_error_code": "trends_current_run_xhs_evidence_incomplete",
+            "finished_at_utc": seal["finished_at_utc"], "files": seal["own_files"],
+            "previous_files": seal["original_files"],
+            "final_readback": {"ref": ITEM32_V5_NETWORK_FINAL_REF,
+                "host_ref": ITEM32_V5_NETWORK_WORK_ROOT + "/final-readback-1136898/final.json",
+                "bytes": 31944, "sha256": ITEM32_V5_NETWORK_FINAL_SHA256}}
     except (OSError, ValueError, KeyError, TypeError):
         return None
 
@@ -1472,11 +1507,13 @@ def validate_item32_trends_evidence(
             return errors
         payload, errors = candidate, []
     v5 = payload.get("schema") == ITEM32_V5_EVIDENCE_SCHEMA
+    source_retention = v5 and isinstance(payload.get("successor"), dict) and "previous_v5_full_cycle_hold" in payload["successor"]
     network_repair = v5 and isinstance(payload.get("successor"), dict) and "previous_v5_initialization_hold" in payload["successor"]
     sep17 = v5 and isinstance(payload.get("successor"), dict) and "previous_v5_successor" in payload["successor"]
-    v5_work_root = ITEM32_V5_NETWORK_WORK_ROOT if network_repair else "/var/lib/noteai/item32-v5-successor-20260917" if sep17 else "/var/lib/noteai/item32-v5-successor-20260916"
+    v5_work_root = ITEM32_V5_SOURCE_RETENTION_WORK_ROOT if source_retention else ITEM32_V5_NETWORK_WORK_ROOT if network_repair else "/var/lib/noteai/item32-v5-successor-20260917" if sep17 else "/var/lib/noteai/item32-v5-successor-20260916"
     sep17_previous = _item32_sep17_previous_binding(root=root) if sep17 else None
     network_bindings = _item32_network_repair_bindings(root=root) if network_repair else None
+    full_cycle_binding = _item32_source_retention_previous_binding(root=root) if source_retention else None
     if not _keys_exact(
         payload,
         {
@@ -1508,7 +1545,7 @@ def validate_item32_trends_evidence(
     if observed_at is None or observed_at > current:
         errors.append("Item32 real observation clock invalid")
 
-    plan_path = root / (ITEM32_V5_NETWORK_EXECUTION_PLAN if network_repair else ITEM32_V5_SEP17_EXECUTION_PLAN if sep17 else ITEM32_V5_EXECUTION_PLAN if v5 else ITEM32_EXECUTION_PLAN)
+    plan_path = root / (ITEM32_V5_SOURCE_RETENTION_EXECUTION_PLAN if source_retention else ITEM32_V5_NETWORK_EXECUTION_PLAN if network_repair else ITEM32_V5_SEP17_EXECUTION_PLAN if sep17 else ITEM32_V5_EXECUTION_PLAN if v5 else ITEM32_EXECUTION_PLAN)
     try:
         plan = json.loads(plan_path.read_text(encoding="utf-8"))
         plan_sha256 = hashlib.sha256(plan_path.read_bytes()).hexdigest()
@@ -1569,7 +1606,8 @@ def validate_item32_trends_evidence(
                 "cloud_resources_started",
             } | ({"runtime_overlay_sha256", "physical_http_budget", "previous_successor"} if v5 else set())
               | ({"previous_v5_successor"} if sep17 else set())
-              | ({"previous_v5_initialization_hold", "network_repair_preflight"} if network_repair else set()),
+              | ({"previous_v5_initialization_hold", "network_repair_preflight"} if network_repair else set())
+              | ({"previous_v5_full_cycle_hold"} if source_retention else set()),
         )
         and plan.get("schema") == ("noteai.item32.readonly_successor_plan.v3" if v5 else "noteai.item32.readonly_successor_plan.v2")
         and authorization_at is not None
@@ -1583,6 +1621,11 @@ def validate_item32_trends_evidence(
                     for key, value in network_bindings.items())
             and plan_window[0] >= _evidence_clock(network_bindings["network_repair_preflight"]["diagnostics"]["d2"]["finished_at_utc"])
             and authorization_at > _evidence_clock("2026-09-17T01:06:56.372948+00:00")))
+        and (not source_retention or (network_repair and full_cycle_binding is not None
+            and json.dumps(plan.get("previous_v5_full_cycle_hold"), sort_keys=True) == json.dumps(full_cycle_binding, sort_keys=True)
+            and tuple(value.isoformat() for value in plan_window) == (
+                "2026-09-18T00:00:00+00:00", "2026-09-18T00:55:00+00:00", "2026-09-18T01:30:00+00:00")
+            and authorization_at > _evidence_clock(full_cycle_binding["finished_at_utc"])))
         and _exact_int(plan.get("item"), 32)
         and plan.get("status") == "PREPARED_NOT_EXECUTED"
         and plan.get("readiness_credit") is False
@@ -1713,7 +1756,8 @@ def validate_item32_trends_evidence(
             "budget",
             "runtime_readback",
         } | ({"previous_successor"} if v5 else set()) | ({"previous_v5_successor"} if sep17 else set())
-          | ({"previous_v5_initialization_hold", "network_repair_preflight"} if network_repair else set()),
+          | ({"previous_v5_initialization_hold", "network_repair_preflight"} if network_repair else set())
+          | ({"previous_v5_full_cycle_hold"} if source_retention else set()),
     ):
         errors.append("Item32 successor evidence schema mismatch")
     else:
@@ -1734,7 +1778,7 @@ def validate_item32_trends_evidence(
             or successor.get("diagnostic_result_sha256")
             != ITEM32_DIAGNOSTIC_RESULT_SHA256
             or not _exact_int(
-                successor.get("predecessor_provider_call_count"), 14 if sep17 else 3 if v5 else 2
+                successor.get("predecessor_provider_call_count"), 48 if source_retention else 14 if sep17 else 3 if v5 else 2
             )
             or successor.get("predecessors_unchanged") is not True
         ):
@@ -1834,6 +1878,13 @@ def validate_item32_trends_evidence(
             or any(json.dumps(successor.get(key), sort_keys=True) != json.dumps(value, sort_keys=True)
                    for key, value in expected.items())):
             errors.append("Item32 Sep17 initialization UNKNOWN closure mismatch")
+    if source_retention:
+        expected = ({**full_cycle_binding, "host_final_readback_verified": True,
+                     "database_readonly_probes_verified": True, "collection_ledger_verified": True}
+                    if full_cycle_binding is not None else None)
+        if (expected is None or not network_repair or plan_bucket != "2026-09-18"
+            or json.dumps(successor.get("previous_v5_full_cycle_hold"), sort_keys=True) != json.dumps(expected, sort_keys=True)):
+            errors.append("Item32 prior full-cycle HOLD closure mismatch")
 
     execution = payload.get("execution")
     started_at: datetime | None = None
