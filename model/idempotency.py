@@ -271,6 +271,7 @@ def claim_and_charge(
     request_id: str,
     payload: Any,
     included_ocr_ids: tuple[str, ...] = (),
+    quote_version: str | None = None,
 ) -> dict[str, Any]:
     """Atomically claim a key and apply one paid charge + primary usage row."""
     normalized = normalize_request_id(request_id)
@@ -339,6 +340,10 @@ def claim_and_charge(
                 if status == "failed" else "",
             }
 
+        # Existing keys are resolved first: a later price change must not
+        # hide the original charge or admit a second request. New claims check
+        # the server quote before any debit; a mismatch rolls back the insert.
+        billing.assert_quote_version(quote_version)
         if included_ocr_ids:
             if operation != 'screenshot' or not 1 <= len(included_ocr_ids) <= 9 or len(set(included_ocr_ids)) != len(included_ocr_ids):
                 raise ValueError('invalid included OCR sources')

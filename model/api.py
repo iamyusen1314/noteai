@@ -901,10 +901,12 @@ async def _timed_sse_stream(
                     phase = f"{operation}:{Path(code.co_filename).name}:{code.co_name}:{trace.tb_lineno}"
                 trace = trace.tb_next
             _log_internal_failure("sse_stream", exc, phase=phase)
+            unconfirmed = isinstance(exc, HTTPException) and isinstance(exc.detail, dict) and exc.detail.get("code") == "BILLING_OUTCOME_UNCONFIRMED"
             error = timing.wrap({
                 "type": "error",
-                "error_code": "stream_internal_error",
-                "message": "本次处理遇到系统问题，暂未得到结果。已输入的素材仍保留。",
+                "error_code": "BILLING_OUTCOME_UNCONFIRMED" if unconfirmed else "stream_internal_error",
+                "message": exc.detail["message"] if unconfirmed else "本次处理遇到系统问题，暂未得到结果。已输入的素材仍保留。",
+                **({"billing": {"status": "unconfirmed"}} if unconfirmed else {}),
             })
             yield f"data: {_json.dumps(error, ensure_ascii=False)}\n\n"
         return
@@ -924,10 +926,12 @@ def _paid_request_claim(
     operation: str,
     payload: BaseModel,
     included_ocr_ids: tuple[str, ...] = (),
+    quote_version: str | None = None,
 ) -> dict[str, Any] | None:
     """Claim an optional idempotency key; headerless clients keep old behavior."""
     raw_request_id = request_id if isinstance(request_id, str) else ""
     if not raw_request_id.strip():
+        _billing.assert_quote_version(quote_version)
         return None
     try:
         claim = _idempotency.claim_and_charge(
@@ -936,6 +940,7 @@ def _paid_request_claim(
             request_id=raw_request_id,
             payload=payload.model_dump(mode="json"),
             **({"included_ocr_ids": included_ocr_ids} if included_ocr_ids else {}),
+            **({"quote_version": quote_version} if isinstance(quote_version, str) else {}),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail={
@@ -976,11 +981,36 @@ async def _idempotent_sse_stream(
     claim: dict[str, Any] | None,
     *,
     success_types: set[str] | frozenset[str],
+    unkeyed_charge: dict | None = None,
+    user_id: str | None = None,
+    operation: str | None = None,
 ) -> AsyncGenerator[str, None]:
-    """Finalize/refund a keyed stream without storing or replaying its content."""
+    """Finalize/refund a stream without storing or replaying its content."""
     if not claim:
-        async for chunk in stream:
-            yield chunk
+        settled = False
+        try:
+            async for chunk in stream:
+                event = None
+                if chunk.startswith("data: "):
+                    try:
+                        event = _json.loads(chunk.removeprefix("data: ").strip())
+                    except (ValueError, TypeError):
+                        pass
+                if isinstance(event, dict) and unkeyed_charge:
+                    kind = event.get("type")
+                    if kind in success_types:
+                        _public_product.assert_result_known()
+                        settled = True
+                    elif kind == "error":
+                        _billing.refund_operation_charge(user_id, operation, unkeyed_charge, "AI 请求失败自动退回")
+                        settled = True
+                    if kind in success_types or kind == "error":
+                        event["billing"] = _billing.get_charge_receipt(user_id, operation, unkeyed_charge)
+                        chunk = 'data: ' + _json.dumps(event, ensure_ascii=False) + '\n\n'
+                yield chunk
+        finally:
+            if unkeyed_charge and not settled:
+                _billing.refund_operation_charge(user_id, operation, unkeyed_charge, "AI 请求失败自动退回")
         return
     terminal_seen = False
     try:
@@ -1012,6 +1042,10 @@ async def _idempotent_sse_stream(
             elif event_type == "error":
                 _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
                 terminal_seen = True
+            if event_type in success_types or event_type in {"error", "clarification_required"}:
+                event["billing"] = _billing.get_charge_receipt(
+                    claim["user_id"], claim["operation"], claim.get("charge"), claim["request_id"])
+                chunk = 'data: ' + _json.dumps(event, ensure_ascii=False) + '\n\n'
             yield chunk
     except BaseException as exc:
         if not terminal_seen:
@@ -2659,7 +2693,14 @@ _INPUT_DIAGNOSTICS_SCHEMA = {
     "video_frames_to_ai": "nullable_integer",
     "video_analysis_chars": "integer",
 }
+_BILLING_RECEIPT_SCHEMA = {
+    "usage_id": "string", "request_id": "nullable_string", "operation": "string",
+    "source": "string", "status": "string", "credits_used": "number",
+    "monthly_credits_used": "number", "wallet_credits_used": "number",
+    "refunded_credits": "number",
+}
 _PERSISTED_DIAGNOSIS_SCHEMAS = {
+    "billing": ("nullable", _BILLING_RECEIPT_SCHEMA),
     "ai_diagnosis": "string",
     "report_quality_status": "string",
     "report_quality_issues": ("list", "string"),
@@ -6225,6 +6266,7 @@ class MarketTiming(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
+    billing: dict | None = Field(default=None, description="本次服务端实扣积分回执")
     cover_analysis: str = Field(default="", description="独立封面的实际内容观察，与原始标题正文分开")
     video_analysis: str = Field(default="", description="完整视频音画素材理解；模型观察而非外部事实认证")
     ces_percentile: float | None = Field(description="预测CES分位（0-100）")
@@ -6285,6 +6327,7 @@ class GenerateInput(BaseModel):
 
 
 class GenerateResponse(BaseModel):
+    billing: dict | None = Field(default=None, description="本次服务端实扣积分回执")
     note_title: str = Field(description="生成的笔记标题")
     note_body: str = Field(description="生成的笔记正文（含话题标签）")
     title_variants: list[str] = Field(default=[], description="3个标题变体")
@@ -12130,7 +12173,7 @@ app.add_middleware(
     allow_origins=_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Billing-Quote-Version"],
 )
 app.add_middleware(_public_account.PublicAccountBoundary)
 
@@ -15574,6 +15617,13 @@ async def billing_usage(days: int = 30, user: dict = Depends(_auth.get_current_u
     """近 N 天用量汇总。"""
     return _billing.get_usage_summary(user["id"], days=days)
 
+@app.get("/billing/quote")
+async def billing_quote(operation: str, has_video: bool = False,
+                        user: dict = Depends(_auth.get_current_user)):
+    """Quote existing server charges without reserving or spending credits."""
+    return _billing.get_operation_quote(user["id"], operation, has_video=has_video)
+
+
 @app.get("/billing/credits")
 async def billing_credits(user: dict = Depends(_auth.get_current_user)):
     """积分余额 + 最近消费记录。"""
@@ -15619,8 +15669,10 @@ async def billing_upgrade(body: dict, user: dict = Depends(_auth.get_current_use
 @app.get("/billing/tiers")
 async def billing_tiers():
     """返回所有套餐定义（公开，用于定价页）。"""
-    credit_costs = {op: v["credits"] for op, v in _billing.OPERATIONS.items() if v.get("credits", 0) > 0}
+    operation_costs = _billing.get_operation_costs()
+    credit_costs = {op: v["credits"] for op, v in operation_costs.items()}
     return {"tiers": _billing.TIERS, "credit_costs": credit_costs,
+            "operation_costs": operation_costs, "quote_version": _billing.billing_quote_version(),
             "credit_value": _billing.CREDIT_VALUE,
             "topup_packages": _billing.list_credit_packages(),
             "credit_policy": (
@@ -16795,6 +16847,7 @@ async def _run_analyze_pipeline(
         }) from exc
 
     resp.saved_note_id = saved_note_id
+    resp.billing = _billing.get_charge_receipt(user["id"], "analyze", billing_charge)
 
     # 登录用户自动保存诊断报告（每次诊断一份）
     try:
@@ -16857,24 +16910,28 @@ async def analyze(
     req: AnalyzeInput,
     user: dict = Depends(_auth.get_current_user),
     request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+    quote_version: str | None = Header(None, alias="X-Billing-Quote-Version"),
 ):
     claim = _paid_request_claim(
-        request_id, user_id=user["id"], operation="analyze", payload=req
+        request_id, user_id=user["id"], operation="analyze", payload=req, quote_version=quote_version
     )
+    billing_charge = claim["charge"] if claim else _billing.check_and_deduct(user["id"], "analyze")
     marker = _clarification.execution.set({"claim": claim, "merchant": req.merchant_name or ""}
         if claim and _clarification.enabled() else None)
     try:
         result = await _run_analyze_pipeline(
             req,
             user,
-            billing_charge=(claim or {}).get("charge"),
-            billing_managed=bool(claim),
+            billing_charge=billing_charge,
+            billing_managed=True,
         )
     except _clarification.WaitingForInput as waiting:
         return JSONResponse(waiting.event, status_code=202)
     except BaseException:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        else:
+            _billing.refund_operation_charge(user["id"], "analyze", billing_charge, "AI 诊断失败自动退回")
         raise
     finally:
         _clarification.execution.reset(marker)
@@ -16884,6 +16941,8 @@ async def analyze(
             "code": "COMPLETION_UNCONFIRMED",
             "message": "原任务完成状态未能确认，请查看历史记录；不要重复提交原请求。",
         })
+    if claim and isinstance(result, AnalyzeResponse):
+        result.billing = _billing.get_charge_receipt(user["id"], "analyze", claim["charge"], claim["request_id"])
     return result
 
 
@@ -16892,11 +16951,13 @@ async def analyze_stream_endpoint(
     req: AnalyzeInput,
     user: dict = Depends(_auth.get_current_user),
     request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+    quote_version: str | None = Header(None, alias="X-Billing-Quote-Version"),
 ):
     """SSE endpoint: streams real AI diagnosis progress and final AnalyzeResponse."""
     claim = _paid_request_claim(
-        request_id, user_id=user["id"], operation="analyze", payload=req
+        request_id, user_id=user["id"], operation="analyze", payload=req, quote_version=quote_version
     )
+    billing_charge = claim["charge"] if claim else _billing.check_and_deduct(user["id"], "analyze")
 
     async def _sse():
         queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
@@ -16910,8 +16971,8 @@ async def analyze_stream_endpoint(
                     req,
                     user,
                     emit=emit,
-                    billing_charge=(claim or {}).get("charge"),
-                    billing_managed=bool(claim),
+                    billing_charge=billing_charge,
+                    billing_managed=True,
                 )
                 payload = resp.model_dump()
                 payload["type"] = "complete"
@@ -16952,7 +17013,8 @@ async def analyze_stream_endpoint(
 
     return StreamingResponse(
         _timed_sse_stream(
-            _idempotent_sse_stream(_clarification_stream(_sse(), claim, req.merchant_name or ""), claim, success_types={"complete"}),
+            _idempotent_sse_stream(_clarification_stream(_sse(), claim, req.merchant_name or ""), claim, success_types={"complete"},
+                unkeyed_charge=billing_charge if not claim else None, user_id=user["id"], operation="analyze"),
             operation="analyze",
             success_types={"complete"},
         ),
@@ -17937,6 +17999,7 @@ async def generate_stream_endpoint(
     req: GenerateInput,
     user: dict = Depends(_auth.get_current_user),
     request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+    quote_version: str | None = Header(None, alias="X-Billing-Quote-Version"),
 ):
     """SSE endpoint: streams generation progress including P3 thinking chain."""
     normalized_constraints = _normalize_user_constraints(req.user_constraints)
@@ -17960,10 +18023,9 @@ async def generate_stream_endpoint(
         query = f"{req.brief or ''} {timing_domain}"
         timing = _compute_market_timing_for_delivery("", query, timing_domain)
     claim = _paid_request_claim(
-        request_id, user_id=user["id"], operation="generate", payload=req
+        request_id, user_id=user["id"], operation="generate", payload=req, quote_version=quote_version
     )
-    if not claim:
-        _billing.check_and_deduct(user["id"], "generate")
+    billing_charge = claim["charge"] if claim else _billing.check_and_deduct(user["id"], "generate")
     # 保留既有调用参数；已接收图片的理解深度不再由套餐决定
     user_tier = "free"
     try:
@@ -18059,6 +18121,7 @@ async def generate_stream_endpoint(
                 ) if part)
                 event["original_fact_context"] = event["fact_context"]
                 if claim and req.persist_result and _clarification.enabled():
+                    event["billing"] = _billing.get_charge_receipt(user["id"], "generate", claim["charge"], claim["request_id"])
                     await _await_media_worker(_clarification.save_result, claim, event,
                         new_generation={"domain": req.domain, "local_time": local_time},
                         record_growth=_insert_growth_record_with_storage)
@@ -18070,7 +18133,8 @@ async def generate_stream_endpoint(
 
     return StreamingResponse(
         _timed_sse_stream(
-            _idempotent_sse_stream(_clarification_stream(_sse(), claim, normalized_merchant), claim, success_types={"complete"}),
+            _idempotent_sse_stream(_clarification_stream(_sse(), claim, normalized_merchant), claim, success_types={"complete"},
+                unkeyed_charge=billing_charge if not claim else None, user_id=user["id"], operation="generate"),
             operation="generate",
             success_types={"complete"},
         ),
@@ -18084,6 +18148,7 @@ async def generate(
     req: GenerateInput,
     user: dict = Depends(_auth.get_current_user),
     request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
+    quote_version: str | None = Header(None, alias="X-Billing-Quote-Version"),
 ):
     """
     Reverse-engineer viral content from visual material.
@@ -18091,7 +18156,7 @@ async def generate(
     the composite delivery objective and auxiliary feature signals.
     """
     if _clarification.enabled() and isinstance(request_id, str) and request_id.strip():
-        response = await generate_stream_endpoint(req, user, request_id)
+        response = await generate_stream_endpoint(req, user, request_id, quote_version)
         async for chunk in response.body_iterator:
             event = _json.loads(chunk.removeprefix("data: ").strip())
             if event.get("type") == "clarification_required":
@@ -18117,10 +18182,9 @@ async def generate(
     fact_enrichment: dict | None = None
     fact_source_decision: dict = {}
     claim = _paid_request_claim(
-        request_id, user_id=user["id"], operation="generate", payload=req
+        request_id, user_id=user["id"], operation="generate", payload=req, quote_version=quote_version
     )
-    if not claim:
-        _billing.check_and_deduct(user["id"], "generate")
+    billing_charge = claim["charge"] if claim else _billing.check_and_deduct(user["id"], "generate")
     try:
         # 合并图片列表：优先用 cover_images，兼容旧 cover_image 字段
         images: list[str] = []
@@ -18218,14 +18282,20 @@ async def generate(
     except asyncio.CancelledError:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        else:
+            _billing.refund_operation_charge(user["id"], "generate", billing_charge, "AI 生成失败自动退回")
         raise
     except HTTPException:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        else:
+            _billing.refund_operation_charge(user["id"], "generate", billing_charge, "AI 生成失败自动退回")
         raise
     except Exception as e:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        else:
+            _billing.refund_operation_charge(user["id"], "generate", billing_charge, "AI 生成失败自动退回")
         _log_internal_failure("generate", e, phase="request")
         raise HTTPException(status_code=500, detail="内容生成服务暂时不可用")
 
@@ -18264,6 +18334,8 @@ async def generate(
     except BaseException:
         if claim:
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
+        else:
+            _billing.refund_operation_charge(user["id"], "generate", billing_charge, "AI 生成失败自动退回")
         raise
     if claim and not _idempotency.mark_completed(claim, confirm_existing=True):
         _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
@@ -18271,6 +18343,8 @@ async def generate(
             "code": "COMPLETION_UNCONFIRMED",
             "message": "原任务完成状态未能确认，请查看历史记录；不要重复提交原请求。",
         })
+    response.billing = _billing.get_charge_receipt(user["id"], "generate", billing_charge,
+                                                  claim["request_id"] if claim else None)
     return response
 
 
@@ -20734,6 +20808,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                         "expert_opinions_basis": "pre_clarification",
                         "merchant_confirmations": task["answers"], "pending_confirmation": _clarification.pending_confirmation(task),
                         "continuation_session_id": req.session_id, "continuation_version": task["version"]})
+                    event["billing"] = _billing.get_charge_receipt(user["id"], claim["operation"], claim["charge"], claim["request_id"])
                     _clarification.save_result(claim, event)
                 yield 'data: ' + _json.dumps(event, ensure_ascii=False, default=str) + '\n\n'
         elif prepared["pipeline"] == "analyze":
@@ -20757,6 +20832,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                         "pending_confirmation": _clarification.pending_confirmation(task),
                         "continuation_session_id": req.session_id, "continuation_version": task["version"],
                         "fact_context": _clarified_fact_context(prepared, confirmation)})
+                    event["billing"] = _billing.get_charge_receipt(user["id"], claim["operation"], claim["charge"], claim["request_id"])
                     _clarification.save_result(claim, event)
                     await queue.put(event)
                 except Exception:

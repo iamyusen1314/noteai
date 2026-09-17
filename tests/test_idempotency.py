@@ -1158,7 +1158,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                 user={"id": "u-headerless"},
             ))
             self.assertEqual(result, "headerless-ok")
-            self.assertIn(("analyze", False), calls)
+            self.assertIn(("analyze", True), calls)
 
             generated = asyncio.run(api.generate(
                 api.GenerateInput(domain="美食", brief="简报"),

@@ -171,7 +171,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertNotIn("synthetic private", json.dumps(events) + stderr.getvalue())
 
     def test_idempotent_stream_aclose_after_complete_does_not_refund(self):
-        claim = {"request_id": "safe-test-id"}
+        claim = {"request_id": "safe-test-id", "user_id": "safe-test-user", "operation": "generate", "charge": None}
 
         async def run():
             async def source():
@@ -3432,7 +3432,7 @@ class ApiContractTests(unittest.TestCase):
             }, "良好"
 
         try:
-            api._billing.check_and_deduct = lambda user_id, op: None
+            api._billing.check_and_deduct = lambda user_id, op: {"source": "subscription", "credits_used": 6}
             api._billing.record_free_usage = lambda user_id, op: None
             api._extract_cover = lambda *_args: (71.0,{})
             api._kimi_vision_understand = lambda image, *_args: ("截图里有餐厅门头、芝士焗小青龙和人均98元信息。" if image == "fake-image-b64" else "独立测试封面中写有明确测试文字与菜品，不是视频自带封面。")
@@ -4670,7 +4670,7 @@ class ApiContractTests(unittest.TestCase):
              mock.patch.object(api,'_generate_pipeline_stream',new=pipeline), \
              mock.patch.object(api,'_compute_market_timing_for_delivery',return_value={}), \
              mock.patch.object(api,'_paid_request_claim',return_value=None), \
-             mock.patch.object(api._billing,'check_and_deduct'), \
+             mock.patch.object(api._billing,'check_and_deduct',return_value=None), \
              mock.patch.object(api._billing,'get_subscription',return_value={'tier':'free'}), \
              mock.patch.object(api._memory,'build_memory_prompt',return_value=''):
             events=asyncio.run(run())

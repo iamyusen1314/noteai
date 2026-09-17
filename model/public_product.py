@@ -34,7 +34,7 @@ ENDPOINT = "https://api.moonshot.cn/v1/chat/completions"
 EXACT_ROUTES = frozenset({
     ("POST", "/auth/contracts/accept"),
     ("GET", "/billing/tiers"), ("GET", "/billing/plan"),
-    ("GET", "/billing/usage"), ("GET", "/billing/credits"),
+    ("GET", "/billing/usage"), ("GET", "/billing/credits"), ("GET", "/billing/quote"),
     ("GET", "/notes"), ("POST", "/notes"),
     ("GET", "/diagnoses"), ("GET", "/reports"),
     ("GET", "/profile/growth"), ("GET", "/profile/memories"),

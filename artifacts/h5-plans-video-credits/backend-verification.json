@@ -1,0 +1,165 @@
+{
+  "scope": "H5/plans/video credits incremental backend verification; no production deployment or real model/payment calls",
+  "baseline_commit": "dc6f391a7867c954d23d6a84e9423fbef4ec1fd9",
+  "safety": {
+    "execution": "Existing noteai-media-tests:py311-sdk image; linux/amd64 Python 3.11; --network none --read-only; repository mounted read-only; tmpfs /tmp; DATABASE_URL empty before imports; PYTHON_DOTENV_DISABLED=1; NOTEAI_SQLITE_PATH=/tmp/noteai-*-bootstrap.db; per-test temporary SQLite.",
+    "postgres": "Existing noteai-item31-pg16-socket-20260913 volume mounted as Unix socket read-only, --network none. Fixture verifies PG16 and inet_server_addr IS NULL, creates fresh random synthetic database, applies existing migrations only there, reproduces tracked API table/column grants on existing inert noteai_app role in that new DB, drops the database on completion. No production connection or global role attribute mutation.",
+    "schema_acl_changes_to_product": false,
+    "supplier_calls": 0,
+    "real_order_balance_operations": 0
+  },
+  "final_focused_results": [
+    {
+      "suite": "tests.test_video_credit_consistency",
+      "tests": 20,
+      "result": "PASS",
+      "latest_run": "python-final-targeted.log"
+    },
+    {
+      "suite": "tests.test_billing_token_cost",
+      "tests": 14,
+      "result": "PASS",
+      "latest_run": "python-final-focused.log"
+    },
+    {
+      "suite": "tests.test_idempotency",
+      "tests": 43,
+      "result": "PASS",
+      "latest_run": "python-final-focused.log"
+    },
+    {
+      "suite": "tests.test_frontend_report_static",
+      "tests": 19,
+      "result": "PASS",
+      "latest_run": "python-final-focused.log"
+    },
+    {
+      "suite": "tests.test_api_contracts selected affected tests",
+      "tests": 3,
+      "result": "PASS",
+      "names": [
+        "test_fact_enrichment_survives_generation_terminal_result",
+        "test_idempotent_stream_aclose_after_complete_does_not_refund",
+        "test_analyze_entrypoints_share_v04_agent_fact_memory_chain"
+      ],
+      "latest_runs": [
+        "python-final-focused.log",
+        "python-final-targeted.log"
+      ]
+    },
+    {
+      "suite": "tests.test_video_credit_consistency_postgres",
+      "tests": 3,
+      "result": "PASS",
+      "latest_run": "postgres-billing-regression.log"
+    }
+  ],
+  "unique_final_focused_passes": 99,
+  "postgres_passes": 3,
+  "intermediate_history": [
+    {
+      "run": "billing_token_cost + idempotency",
+      "tests": 57,
+      "failures": 1,
+      "resolution": "New receipt had to be persisted before clarification save_result; repaired, later all 57 pass."
+    },
+    {
+      "run": "python-billing-regression.log",
+      "tests": 325,
+      "failures": 6,
+      "errors": 4,
+      "resolution": "Five tests also fail in original baseline. The other five were changed-contract fixtures/static expectations or duplicate refund call ownership; fixed and rerun narrowly."
+    },
+    {
+      "run": "python-preexisting-failures-baseline.log",
+      "tests": 10,
+      "failures": 3,
+      "errors": 2,
+      "result": "Five original baseline failures reproduced by original API/billing/idempotency/public_product/frontend/test files as read-only overrides."
+    },
+    {
+      "run": "python-final-focused.log",
+      "tests": 97,
+      "failures": 1,
+      "errors": 0,
+      "resolution": "Only analyze fake billing returned None instead of a charge; updated to realistic synthetic charge. That case plus all latest 20 new tests passed in final 21-test run."
+    },
+    {
+      "run": "python-final-targeted.log",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "result": "PASS"
+    }
+  ],
+  "preexisting_failures": [
+    {
+      "suite": "tests.test_api_contracts.ApiContractTests",
+      "name": "test_chat_start_binds_existing_note_for_library_version_chain",
+      "baseline_result": "FAIL/ERROR reproduced",
+      "reason": "Existing FakeDB fixture lacks fetchall used by saved-note context read.",
+      "changed_in_this_iteration": false
+    },
+    {
+      "suite": "tests.test_api_contracts.ApiContractTests",
+      "name": "test_report_uncertainty_continues_all_candidates_and_persists_notice",
+      "baseline_result": "FAIL/ERROR reproduced",
+      "reason": "Existing report fixture lacks current verified candidate delivery fields and receives DIAGNOSIS_PLANS_UNVERIFIED.",
+      "changed_in_this_iteration": false
+    },
+    {
+      "suite": "tests.test_api_contracts.ApiContractTests",
+      "name": "test_food_delivery_dedupes_repeated_amap_fact_sentences",
+      "baseline_result": "FAIL/ERROR reproduced",
+      "reason": "Existing fact-boundary assertion disagrees with current reservation/queue guard.",
+      "changed_in_this_iteration": false
+    },
+    {
+      "suite": "tests.test_api_contracts.ApiContractTests",
+      "name": "test_generation_planning_brief_is_domain_aware",
+      "baseline_result": "FAIL/ERROR reproduced",
+      "reason": "Existing planning-brief assertion expects superseded recommendation wording.",
+      "changed_in_this_iteration": false
+    },
+    {
+      "suite": "tests.test_api_contracts.ApiContractTests",
+      "name": "test_generation_stream_repairs_format_once_and_never_replays_transport_failure",
+      "baseline_result": "FAIL/ERROR reproduced",
+      "reason": "Existing format-repair mock expects only thinking/max_tokens but current code also supplies tracing/prompt fields.",
+      "changed_in_this_iteration": false
+    }
+  ],
+  "verified_contracts": [
+    "Server quote/tiers/charge/receipt/usage agree at deliberately nondefault analyze=7; video remains included, no rate changed.",
+    "New stale quote rejected before charge and claim insert rolls back; existing request key resolves original state even after price changes.",
+    "Public HTTP quote returns 200 only with authentication; anonymous401, public no-key generate/stream400 and ordinary generate404 create no usage; CORS header and nginx quote allowlist tested.",
+    "Six SQLite and eight PostgreSQL concurrent same-key admissions charge exactly once.",
+    "Mixed monthly+wallet charge/refund preserve sources; concurrent refund only once; confirmed failed key cannot recharge, explicitly new key can retry.",
+    "Unknown provider accounting remains charged/unconfirmed without refund or key release; SSE explicitly labels BILLING_OUTCOME_UNCONFIRMED.",
+    "Headerless legacy generation/analyze errors, timeout, incomplete stream, cancellation and response-construction failure refund; these legacy no-key routes are not reachable as current public paid endpoints.",
+    "Successful JSON/SSE/clarification persistence contains receipts; typed receipt sanitizer preserves original diagnosis and real stored diagnosis readback while excluding raw provider payload.",
+    "Modern usage joins original request/charge split; historical mixed split without stored evidence is null, never inferred as zero."
+  ],
+  "commands": [
+    "docker run --rm --platform linux/amd64 --network none --read-only --tmpfs /tmp --entrypoint python -e DATABASE_URL= -e NOTEAI_SQLITE_PATH=/tmp/noteai-final-bootstrap.db -e PYTHONDONTWRITEBYTECODE=1 -e PYTHON_DOTENV_DISABLED=1 -e NOTEAI_API_STARTS_TREND_SCHEDULER=0 -e NOTEAI_DATA_DIR=/tmp/noteai-data -v <worktree>:/workspace:ro -w /workspace noteai-media-tests:py311-sdk -m unittest <suites listed above>",
+    "PG additionally: -e NOTEAI_LOCAL_PG16_CANARY_TEST=1 -v noteai-item31-pg16-socket-20260913:/var/run/postgresql:ro -m unittest tests.test_video_credit_consistency_postgres",
+    "Baseline comparison: git show dc6f391:<original path> to private temporary files; mount each original file read-only over worktree path; run the exact initial 10 failing test names only."
+  ],
+  "files_sha256": {
+    "model/api.py": "5f448c4f9ae3f1742f12144b15037b10a41f46cc1809ea8bae403df4a6c01d0e",
+    "model/billing.py": "06f59f214f66b8e75e27b52dd1f608bdd116d6d640a5f2a1e761db81214dc301",
+    "model/idempotency.py": "93c7c5dd6e0545f8267a4f0a614504542bc9d1244284aac2186feff0ab6cfdc5",
+    "model/public_product.py": "c2a6415481f1fd7710fdf4f536ba72637dcce2d9e8d03c7d682e7fc825b295ff",
+    "tests/test_video_credit_consistency.py": "a27463530c6eae771f4cb7b779e5c37e3b541d6de406fdd3397c64e8027793c3",
+    "tests/test_video_credit_consistency_postgres.py": "8ca631b10c3affd42eb2a677b5efb63fd3b1fba88d7d562b7ca76c014bc27875",
+    "tests/test_api_contracts.py": "2a103bc1b23923b7df62dc488adcc57bc1ed1f0b7ce4a12bfdc6571fd5d8c17f",
+    "tests/test_idempotency.py": "73d9afb3543413851be70a08ba530513c0507724a5f7ec7cb1148a79a8b340c2",
+    "tests/test_frontend_report_static.py": "7d58d5b18aae0c0060e0c59385778e479e4f02e32ab902f793a91a27496a12c7"
+  },
+  "remaining_limits": [
+    "Five API quality/mock assertions already fail in original baseline; entire broad suite is not claimed green.",
+    "No real phone/WeChat device, production PostgreSQL query, real payment, or live provider run in this backend verification.",
+    "Idempotency is same user+operation+key+payload, not global content deduplication across intentionally different keys.",
+    "No deploy; production remains prior baseline until a separately authorized release."
+  ]
+}

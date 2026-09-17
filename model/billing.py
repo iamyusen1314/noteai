@@ -635,6 +635,71 @@ def check_and_deduct_in_transaction(
     }
 
 
+def get_operation_costs() -> dict:
+    """Public user charges from the same registry used at admission."""
+    result = {}
+    for name, config in OPERATIONS.items():
+        included = name in {"video_analyze", "extra_image"}
+        # Auxiliary records are included in their parent even if an old
+        # configuration contains a cost estimate; provider cost is not credits.
+        credits = 0.0 if included or config.get("free") else float(config.get("credits") or 0)
+        result[name] = {"label": config["label"], "credits": credits,
+                        "unit": "request", "included_in": ["analyze", "generate"] if included else []}
+    return result
+
+
+def billing_quote_version() -> str:
+    encoded = json.dumps(get_operation_costs(), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:24]
+
+
+def assert_quote_version(version: str | None) -> None:
+    if isinstance(version, str) and version and version != billing_quote_version():
+        raise HTTPException(409, detail={"code": "BILLING_QUOTE_CHANGED",
+            "message": "当前积分标准已更新，请重新确认本次扣分后提交"})
+
+
+def get_operation_quote(user_id: str, operation: str, *, has_video: bool = False) -> dict:
+    if operation not in {"analyze", "generate", "chat_rewrite", "chat_fast", "screenshot"}:
+        raise HTTPException(400, detail="不支持此操作报价")
+    plan = get_quota_status(user_id)
+    if plan["feature_overrides"].get(operation) is False:
+        raise HTTPException(403, detail="该账号当前未开放此功能")
+    price = get_operation_costs()[operation]
+    credits = price["credits"]
+    monthly = min(credits, plan["monthly_credits_remaining"])
+    wallet = round(credits - monthly, 2)
+    return {"operation": operation, "label": price["label"], "credits": credits,
+            "unit": "request", "has_video": has_video, "video_credits": 0.0,
+            "monthly_credits_used": monthly, "wallet_credits_used": wallet,
+            "can_afford": wallet <= plan["wallet_credits_balance"],
+            "monthly_credits_remaining": plan["monthly_credits_remaining"],
+            "wallet_credits_balance": plan["wallet_credits_balance"],
+            "total_available_credits": plan["total_available_credits"],
+            "quote_version": billing_quote_version(), "charge_timing": "on_admission",
+            "failure_policy": "refund_after_confirmed_failure",
+            "retry_policy": "same_request_id_no_second_charge"}
+
+
+def get_charge_receipt(user_id: str, operation: str, charge: dict | None,
+                       request_id: str | None = None) -> dict | None:
+    """A safe receipt for one existing charge, never a client-supplied amount."""
+    if not charge or not charge.get("usage_id"):
+        return None
+    row = db.fetchone("SELECT source,credits_used FROM usage_records WHERE id=? AND user_id=? AND operation=?",
+                     (charge["usage_id"], user_id, operation))
+    if not row:
+        return None
+    refunded = row["source"] == "refunded"
+    return {"usage_id": charge["usage_id"], "request_id": request_id,
+            "operation": operation, "source": row["source"],
+            "status": "refunded" if refunded else "charged",
+            "credits_used": float(row["credits_used"] or 0),
+            "monthly_credits_used": 0.0 if refunded else float(charge.get("monthly_credits_used") or 0),
+            "wallet_credits_used": 0.0 if refunded else float(charge.get("wallet_credits_used") or 0),
+            "refunded_credits": float(charge.get("credits_used") or 0) if refunded else 0.0}
+
+
 def activate_usage(usage_id: str | None) -> None:
     _ACTIVE_USAGE_ID.set(usage_id or None)
 
@@ -850,6 +915,22 @@ def refund_operation_charge_in_transaction(
         return
     uid = _assert_user(user_id, f"refund_{operation}")
     usage_id = charge.get("usage_id")
+    # Legacy/headerless requests do not have an idempotency row. Fence their
+    # refund with the original usage row so exception/finally paths and
+    # concurrent cleanup cannot refund the same charge twice.
+    if usage_id:
+        lock = " FOR UPDATE" if tx.postgres else ""
+        usage = tx.fetchone("SELECT source FROM usage_records WHERE id=? AND user_id=? AND operation=?" + lock,
+                            (usage_id, uid, operation))
+        if not usage or usage["source"] == "refunded":
+            return
+    if usage_id and operation in {"analyze", "generate"} and tx.fetchone(
+        "SELECT id FROM public_trial_calls WHERE usage_record_id=? AND "
+        "(state IN ('dispatched','unknown') OR (state='responded' AND http_status=200 "
+        "AND model_usage_record_id IS NULL)) LIMIT 1", (usage_id,),
+    ):
+        raise HTTPException(409, detail={"code": "BILLING_OUTCOME_UNCONFIRMED",
+            "message": "原任务处理或扣分状态仍待核实，请查看原任务和积分记录，不要重复提交"})
     source = charge.get("source")
     subscription_id = str(charge.get("subscription_id") or "")
     subscription_period_start = str(charge.get("subscription_period_start") or "")
@@ -1257,12 +1338,11 @@ def get_quota_status(user_id: str) -> dict:
     monthly_used = round(float(sub.get("used_monthly_credits") or 0), 2)
     monthly_remaining = round(max(0.0, monthly_limit - monthly_used), 2)
 
-    operation_costs = {}
-    for op in QUOTA_OPS:
-        credits = float(OPERATIONS[op]["credits"] or 0)
+    operation_costs = get_operation_costs()
+    for op, config in operation_costs.items():
+        credits = config["credits"]
         operation_costs[op] = {
-            "label": OPERATIONS[op]["label"],
-            "credits": credits,
+            **config,
             "max_with_monthly": int(monthly_limit // credits) if credits > 0 else 0,
             "max_with_remaining": int(monthly_remaining // credits) if credits > 0 else 0,
         }
@@ -1345,10 +1425,13 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
 
     # 明细（最近50条）
     detail_rows = db.fetchall(
-        "SELECT operation,source,credits_used,cost_rmb,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at,"
-        "(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=usage_records.id) AS model_detail_count "
-        "FROM usage_records WHERE user_id=? AND recorded_at>=? "
-        "ORDER BY recorded_at DESC LIMIT 50",
+        "SELECT u.id,u.operation,u.source,u.credits_used,u.cost_rmb,u.tokens_in,u.tokens_out,u.model_calls,u.model_names,u.cost_mode,u.recorded_at,"
+        "i.id AS request_id,i.status AS request_status,i.credits_used AS charged_credits,"
+        "i.monthly_credits_used,i.wallet_credits_used,"
+        "(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=u.id) AS model_detail_count "
+        "FROM usage_records u LEFT JOIN idempotency_requests i ON i.usage_id=u.id AND i.user_id=u.user_id "
+        "WHERE u.user_id=? AND u.recorded_at>=? "
+        "ORDER BY u.recorded_at DESC LIMIT 50",
         (user_id, since)
     )
     details = []
@@ -1358,7 +1441,19 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
         display_mode = r["cost_mode"] or "estimated"
         if int(r["model_detail_count"] or 0) == 0 and display_mode == "actual":
             display_mode = "legacy_unverifiable_actual"
+        refunded = r["source"] == "refunded"
+        monthly = r["monthly_credits_used"]
+        wallet = r["wallet_credits_used"]
+        if refunded:
+            monthly = wallet = 0.0
+        elif monthly is None and r["source"] in {"subscription", "credits", "free"}:
+            monthly = float(r["credits_used"] or 0) if r["source"] == "subscription" else 0.0
+            wallet = float(r["credits_used"] or 0) if r["source"] == "credits" else 0.0
         details.append({
+            "usage_id": r["id"], "request_id": r["request_id"],
+            "status": "refunded" if refunded else (r["request_status"] or "recorded"),
+            "monthly_credits_used": monthly, "wallet_credits_used": wallet,
+            "refunded_credits": float(r["charged_credits"] or 0) if refunded and r["request_id"] else None,
             "operation":   op,
             "label":       info.get("label", op),
             "source":      r["source"],
