@@ -661,6 +661,7 @@ async def scrape_once_http() -> list[dict]:
                 "error_code": exc.code,
                 "stage": getattr(exc, "stage", latest_http.get("request_kind", stage)),
                 "response_diagnostics": exc.diagnostics,
+                "transport_diagnostics": getattr(exc, "transport_diagnostics", None),
             })
             print(json.dumps({"event": "xhs_trends_provider_failure",
                               **diagnostics["provider_failure"]},

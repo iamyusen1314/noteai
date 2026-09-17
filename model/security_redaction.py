@@ -268,6 +268,65 @@ _TRENDS_FAILURE_CODES = frozenset({
     "signing_context_expired",
 })
 
+_TRENDS_TRANSPORT_CATEGORIES = frozenset({
+    "timeout", "dns", "connect", "tls", "proxy", "read", "write",
+    "protocol", "json_parse", "os_error", "other",
+})
+
+
+def sanitize_trends_transport_diagnostics(value: Any) -> dict[str, Any]:
+    """Fixed transport facts only; never exception strings or network addresses."""
+    if not isinstance(value, dict):
+        return {}
+    result = {}
+    for key, choices in (
+        ("failure_phase", {"observer_dispatch", "transport", "response_parse",
+                           "observer_response", "response_validation", "finalize"}),
+        ("response_headers_state", {"received", "unknown"}),
+        ("response_body_state", {"complete", "partial", "unknown"}),
+        ("observation_error_category", _TRENDS_TRANSPORT_CATEGORIES),
+    ):
+        item = value.get(key)
+        if isinstance(item, str) and item in choices:
+            result[key] = item
+    for key in ("request_started", "body_limit_exceeded"):
+        if type(value.get(key)) is bool:
+            result[key] = value[key]
+    for key, maximum in (("elapsed_ms", 86400000), ("reported_elapsed_ms", 86400000),
+                         ("response_body_bytes_observed", 2**63 - 1)):
+        item = value.get(key)
+        if type(item) is int and 0 <= item <= maximum:
+            result[key] = item
+    if "reported_elapsed_ms" in value and value["reported_elapsed_ms"] is None:
+        result["reported_elapsed_ms"] = None
+    status = value.get("partial_response_http_status")
+    if type(status) is int and 100 <= status <= 599:
+        result["partial_response_http_status"] = status
+    timings = value.get("curl_timing_ms")
+    if isinstance(timings, dict):
+        result["curl_timing_ms"] = {}
+        for key in ("NAMELOOKUP_TIME", "CONNECT_TIME", "APPCONNECT_TIME",
+                    "PRETRANSFER_TIME", "STARTTRANSFER_TIME", "TOTAL_TIME"):
+            item = timings.get(key)
+            result["curl_timing_ms"][key] = item if type(item) in (int, float) and 0 <= item <= 60000 else None
+    chain = value.get("exception_chain")
+    if isinstance(chain, list):
+        safe_chain = []
+        for item in chain[:3]:
+            if not isinstance(item, dict):
+                continue
+            category, source = item.get("category"), item.get("source")
+            if (not isinstance(category, str) or category not in _TRENDS_TRANSPORT_CATEGORIES
+                    or not isinstance(source, str) or source not in {"curl", "httpx", "python", "unknown"}):
+                continue
+            entry = {"category": category, "source": source}
+            code = item.get("curl_errno")
+            if source == "curl" and type(code) is int and 0 <= code <= 999:
+                entry["curl_errno"] = code
+            safe_chain.append(entry)
+        result["exception_chain"] = safe_chain
+    return result
+
 
 def sanitize_trends_http_event(value: Any) -> dict[str, Any]:
     """Trends-only physical observations; keep the Tracking three-call shape intact."""
@@ -291,6 +350,9 @@ def sanitize_trends_http_event(value: Any) -> dict[str, Any]:
         if phase == "response" and kind == "search_recommend":
             projected["response_diagnostics"] = sanitize_xhs_response_diagnostics(
                 value.get("response_diagnostics"), recommendations=True)
+        transport = sanitize_trends_transport_diagnostics(value.get("transport_diagnostics"))
+        if transport and phase in {"response", "unknown"}:
+            projected["transport_diagnostics"] = transport
     return projected
 
 
@@ -300,12 +362,16 @@ def sanitize_trends_failure(value: Any) -> dict[str, Any]:
         return {}
     code = value.get("error_code")
     stage = value.get("stage")
-    return {
+    result = {
         "error_code": code if isinstance(code, str) and code in _TRENDS_FAILURE_CODES else "adapter_failure_unknown",
         "stage": stage if isinstance(stage, str) and stage in _TRENDS_REQUEST_KINDS else "preflight",
         "response_diagnostics": sanitize_xhs_response_diagnostics(
             value.get("response_diagnostics"), recommendations=stage == "search_recommend"),
     }
+    transport = sanitize_trends_transport_diagnostics(value.get("transport_diagnostics"))
+    if transport:
+        result["transport_diagnostics"] = transport
+    return result
 
 
 def safe_failure_event(

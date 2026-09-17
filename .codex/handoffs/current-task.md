@@ -1,4 +1,50 @@
-# CURRENT EXECUTION CONTROL — September17安全保存；交接独立H5／套餐入口／视频积分迭代
+# CURRENT EXECUTION CONTROL — September17 owner重新授权Item32分阶段诊断、修复及一次新验收
+
+本次owner接续指令明确恢复本任务的Item32工程，不以原单次HOLD或checkpoint为终点。
+起始实际HEAD dc6f391（b8ed40b合法后继），无已跟踪未提交改动；七个保护路径保持。
+H5/套餐/视频积分范围仍归新窗口，本任务不并行修改；此次仅重新取得Item32及其必要说明文件的修改权。
+正式微信支付、高德0902、报告、权益、Item34及现有服务保持，旧失败原件/固定包/调度不重放。
+
+- 授权：既有资源和实际配额内，一次分阶段、低频、有明确目的的网络诊断及对应修复，修复后一次新的
+  完整Item32只读验证。每一外部诊断先写目标、假设、次数/停止条件，再直接执行；无无限重试。
+  确需跨UTC fresh桶则登记并核实唯一后续执行，不倒填旧Sep17窗口。具体新窗口在执行前按时钟/耗时确定。
+- 原批次事实不变：DSL初始化UNKNOWN1、collection0、retry0、清尾完成。已存源码说明DSL为无业务Cookie的GET，
+  不登录/发布，不持久保存返回Cookie；短期DSL仅用于内存签名。供应商访问/安全计数仍可能变化，不称外部零状态。
+  先读原F实际状态/原件，确认没有在途进程/共享锁冲突；新请求依据本次新授权及请求性质，不靠换ID消除UNKNOWN。
+- 初步确定日志缺口：CurlClient为20秒超时；Trends._send将底层异常转成network_error并from None，
+  原记录无底层类型/链，20秒不能确定DNS/连接/TLS/读取哪层。补安全固定枚举和数值诊断，不存异常原文/凭据。
+- 当前分阶段执行计划与每步限额，写入现有`docs/ITEM32_SEP17_SINGLE_SUCCESSOR.md`顶部。
+  云控制台登录当前有效，复用原F入口；不要求小红书重新扫码，尚无账号失效证据。
+  后续真实结果追加本节，不改原HOLD证据。
+- D0 15:35:17UTC真实PASS：五锁空闲、unit/PID/任务容器关闭、原20+10文件/两seal/18f72会话/3ed7unit/6d5镜像不变。
+  安全原件已同步`deploy/production/evidence/production-item32-network-repair-d0-20260917.json`，
+  2895B/SHA6ee589052e1a8b2ed36434a2d97c2448964bc82f60589bfd3c8701e9c026ca48；host原件同摘要。
+- D1 15:38:49UTC真实COMPLETED：host DNS/TCP/TLS为1/31/65ms，原镜像bridge为10/33/80ms，
+  每环境各一次，均正常验证证书、IPv4成功。HTTP0、DB0、未加载业务凭据；进程reaped、精确容器移除、绑定不变。
+  `production-item32-network-repair-d1-20260917.json`为1999B/SHA2fc87837f1aba434db7df2c35a34a4226794246e13db2988fb34ac0d9ac7336c，host读回一致。
+  首次Cloud Assistant提交t-sz06xcojvahivb4因Monaco旧文本残留在Python解析阶段SyntaxError，未进入脚本/网络；
+  修正为全选粘贴并复制逐字比对后才执行唯一实际D1。失败提交保留，不把它记为网络尝试。
+- D0M真实读取现有curl_cffi0.15.0元数据，network-none、无业务env/volume；临时容器已精确移除，HTTP0/DB0。
+  host `/var/lib/noteai/item32-network-repair-20260917/d0m/result.json` 13753B/SHA092127cf6f5c1c1bc075874f265e141e018a1ff00dce179ee6a354fc1a21a42d。
+  已核异常code/可选response、Session curl_infos和六阶段时间字段；库source/hash可追溯。
+  这些证据仅排除当前持续性基础网络故障，不倒推原20秒错误根因，不等于curl DSL或完整Item32通过。
+  D2 15:49:51UTC真实DSL_SHAPE_VERIFIED：HTTP200、完整59828bytes、原getdss形状有效；
+  curl总151.037ms，0session/0collection/retry0、清尾完成，原件1407B/SHA
+  3cdd2b5cada5935a6fdea2de16036ea650f46025b9434e83974795f208f4d878（repo与host一致）。
+  D1显式分层检查记录2次系统DNS/2TCP/2TLS；另有D2真实无凭据DSL初始化1，其底层连接计在该HTTP诊断内。
+  费用UNKNOWN，不回填原失败原因。
+- 当前继续V1，唯一新窗口Sep17 **16:00–17:30UTC（北京次日00:00–01:30），启动<16:55UTC**。
+  五原锁+原失败封存+D0/D1/D2真结果，fresh0/34重新证明，首homefeed合并进34；正式上限2初始化+34采集，
+  原09:02初始化UNKNOWN1和本次诊断初始化1另计，本UTC日若正式满额则总38物理HTTP/34collection。
+  新固定work `/var/lib/noteai/item32-v5-network-repair-20260917`；最终canonical plan/source/package绑定准备中，
+  尚未正式dispatch；旧heartbeat PAUSED、无新调度。细节在原Item32文档当前计划，checkpoint不是停工条件。
+- 本地修改：Trends专用传输安全诊断贯通adapter/异常/scheduler/worker/launcher，保留curl errno、最多3层固定分类、
+  6个可选时钟和实际响应可知状态；不输出异常原文、地址、Header值、Cookie。原Tracking AST保持。
+  新正式profile严格绑定原09:02 UNKNOWN、D0/D1/D2、五原锁/原30文件及原验收，不放宽34+2或DB只读。
+  定向离线：模型/脱敏53个不同用例通过；新旧profile/gate组合74/74通过，compile/diffcheck通过，独立审查无模型阻断。
+  旧Sep17测试的已过期fixture仅在隔离harness使用原历史授权时间和当前合成源码摘要，未改旧生产plan/窗口。
+
+## Previous current entry — September17安全保存；交接独立H5／套餐入口／视频积分迭代
 
 Owner要求本窗口现在**仅保存和交接**，不实施新需求、不重跑旧验收、不部署、改价、改余额或停服务。
 新窗口拟负责：完善现有H5移动端；将套餐入口与核心权益前置；核对视频分析在套餐展示、

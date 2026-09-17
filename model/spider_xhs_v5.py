@@ -7,13 +7,16 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
+import ssl
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
-from security_redaction import sanitize_xhs_response_diagnostics, xhs_response_diagnostics
+from security_redaction import (sanitize_xhs_response_diagnostics, xhs_response_diagnostics,
+                                sanitize_trends_transport_diagnostics)
 from vendor.spider_xhs.v5 import headers as wire
 from vendor.spider_xhs.v5 import runtime
 from vendor.spider_xhs.v5.state import PcDeviceProfile
@@ -76,6 +79,134 @@ class CurlClient:
 
     def close(self):
         self.session.close()
+
+
+def _trends_exception_chain(exc):
+    """Classify a bounded chain without reading any exception message/arguments."""
+    try:
+        from curl_cffi.curl import CurlError
+        from curl_cffi.requests import exceptions as curl_errors
+    except ImportError:
+        CurlError, curl_errors = None, None
+    chain, seen = [], set()
+    while isinstance(exc, BaseException) and id(exc) not in seen and len(chain) < 3:
+        seen.add(id(exc))
+        category, source = "other", "unknown"
+        for cls, name in ((httpx.TimeoutException, "timeout"), (httpx.ProxyError, "proxy"),
+                          (httpx.ConnectError, "connect"), (httpx.ReadError, "read"),
+                          (httpx.WriteError, "write"), (httpx.ProtocolError, "protocol")):
+            if isinstance(exc, cls):
+                category, source = name, "httpx"
+                break
+        if isinstance(exc, json.JSONDecodeError):
+            category, source = "json_parse", "python"
+        elif isinstance(exc, socket.gaierror):
+            category, source = "dns", "python"
+        elif isinstance(exc, ssl.SSLError):
+            category, source = "tls", "python"
+        elif isinstance(exc, TimeoutError):
+            category, source = "timeout", "python"
+        elif isinstance(exc, OSError):
+            category, source = "os_error", "python"
+        entry = {"category": category, "source": source}
+        if CurlError is not None and isinstance(exc, CurlError):
+            entry = {"category": "other", "source": "curl"}
+            for name, category in (("Timeout", "timeout"), ("DNSError", "dns"),
+                                   ("ProxyError", "proxy"), ("SSLError", "tls"),
+                                   ("ConnectionError", "connect")):
+                cls = getattr(curl_errors, name, None)
+                if isinstance(cls, type) and isinstance(exc, cls):
+                    entry["category"] = category
+                    break
+            code = exc.code
+            if isinstance(code, int) and not isinstance(code, bool) and 0 <= code <= 999:
+                entry["curl_errno"] = int(code)
+        chain.append(entry)
+        exc = exc.__cause__ or (None if exc.__suppress_context__ else exc.__context__)
+    return chain
+
+
+_TRENDS_CURL_CLOCKS = ("NAMELOOKUP_TIME", "CONNECT_TIME", "APPCONNECT_TIME",
+                       "PRETRANSFER_TIME", "STARTTRANSFER_TIME", "TOTAL_TIME")
+
+
+def _trends_curl_timings(response):
+    from curl_cffi.const import CurlInfo
+    infos = getattr(response, "infos", None)
+    result = {}
+    for key in _TRENDS_CURL_CLOCKS:
+        seconds = infos.get(getattr(CurlInfo, key)) if isinstance(infos, dict) else None
+        result[key] = round(seconds * 1000, 3) if type(seconds) in (int, float) and 0 <= seconds <= 60 else None
+    return result
+
+
+class TrendsCurlClient(CurlClient):
+    """Same wire options as Tracking; extra in-memory facts only for Trends."""
+    def __init__(self):
+        super().__init__()
+        from curl_cffi.const import CurlInfo
+        self.session.curl_infos = [getattr(CurlInfo, key) for key in _TRENDS_CURL_CLOCKS]
+
+    def request(self, method, url, *, headers, content=None):
+        from curl_cffi.curl import CURL_WRITEFUNC_ERROR
+        chunks, observed, limited = bytearray(), 0, False
+        started = time.monotonic()
+        self.last_transport_diagnostics = {}
+        error, complete, header_state = None, False, "unknown"
+        partial_response_status = None
+        reported_elapsed_ms = None
+        curl_timing_ms = {key: None for key in _TRENDS_CURL_CLOCKS}
+        failure_phase = "transport"
+
+        def collect(chunk):
+            nonlocal observed, limited, header_state
+            observed += len(chunk)
+            header_state = "received"
+            if len(chunks) + len(chunk) > MAX_RESPONSE_BYTES:
+                limited = True
+                return CURL_WRITEFUNC_ERROR
+            chunks.extend(chunk)
+            return len(chunk)
+
+        try:
+            result = self.session.request(
+                method, url, headers=headers, data=content, allow_redirects=False,
+                timeout=20, content_callback=collect, proxies={"all": ""},
+                accept_encoding=wire.DEFAULT_ACCEPT_ENCODING,
+            )
+            curl_timing_ms = _trends_curl_timings(result)
+            header_state, complete = "received", True
+            failure_phase = "response_parse"
+            return httpx.Response(result.status_code, content=bytes(chunks))
+        except Exception as exc:
+            error = exc
+            # Existing curl_cffi 0.15 RequestException optionally carries a
+            # parsed response. Its absence proves neither DNS nor TLS failure.
+            from curl_cffi.requests.exceptions import RequestException
+            if isinstance(exc, RequestException):
+                response = exc.response
+                curl_timing_ms = _trends_curl_timings(response)
+                status = getattr(response, "status_code", None)
+                if type(status) is int and 100 <= status <= 599:
+                    partial_response_status, header_state = status, "received"
+                elapsed = getattr(response, "elapsed", None)
+                if isinstance(elapsed, timedelta) and 0 <= elapsed.total_seconds() <= 86400:
+                    reported_elapsed_ms = int(elapsed.total_seconds() * 1000)
+            raise
+        finally:
+            self.last_transport_diagnostics = sanitize_trends_transport_diagnostics({
+                "request_started": True,
+                "failure_phase": failure_phase,
+                "elapsed_ms": max(0, int((time.monotonic() - started) * 1000)),
+                "response_headers_state": header_state,
+                "response_body_bytes_observed": observed,
+                "response_body_state": "complete" if complete else "partial" if observed else "unknown",
+                "body_limit_exceeded": limited,
+                "exception_chain": _trends_exception_chain(error),
+                "partial_response_http_status": partial_response_status,
+                "reported_elapsed_ms": reported_elapsed_ms,
+                "curl_timing_ms": curl_timing_ms,
+            })
 
 
 class V5Detail:
@@ -374,16 +505,30 @@ class V5Trends(V5Detail):
                 if isinstance(data, dict) else data).encode()
         received = False
         finalized = False
+        request_started = False
+        started = None
+        failure_phase = "observer_dispatch"
+        json_error = None
+        response_bytes = 0
+        body_read = False
         self.last_response_diagnostics = {}
         try:
             self.observe({"phase": "dispatch", "request_kind": kind, "sequence": sequence,
                           "at": datetime.now(timezone.utc).isoformat(), "request_body_bytes": len(body)})
+            failure_phase = "transport"
+            request_started = True
+            started = time.monotonic()
             response = self.client.request(method, url, headers=headers, content=body or None)
             received = True
+            failure_phase = "response_parse"
+            self.last_response_diagnostics = sanitize_xhs_response_diagnostics({"http_status": response.status_code})
             raw = response.content
+            response_bytes = len(raw)
+            body_read = True
             try:
                 payload = response.json()
-            except Exception:
+            except Exception as exc:
+                json_error = exc
                 payload = None
             meta = xhs_response_diagnostics(response.status_code, payload, json_decoded=payload is not None)
             if kind == "search_recommend" and isinstance(payload, dict):
@@ -393,9 +538,11 @@ class V5Trends(V5Detail):
                     meta.update(recommendation_items_total=len(items),
                                 recommendation_items_usable=len(trends_recommendation_keywords(payload)))
             self.last_response_diagnostics = meta
+            failure_phase = "observer_response"
             self.observe({"phase": "response", "request_kind": kind, "sequence": sequence,
                           "at": datetime.now(timezone.utc).isoformat(), "response_bytes": len(raw),
                           "response_diagnostics": meta})
+            failure_phase = "response_validation"
             if response.status_code in {461, 471}:
                 raise XHSAdapterError("access_restricted", diagnostics=meta)
             if len(raw) > MAX_RESPONSE_BYTES:
@@ -443,30 +590,63 @@ class V5Trends(V5Detail):
                     # of an account freeze. Normal empty searches remain valid.
                     raise XHSAdapterError("remote_schema_error", diagnostics=meta)
             if attempt is not None:
+                failure_phase = "finalize"
                 finalized = True  # Unknown finalization must never be attempted again.
                 self.complete(attempt, outcome="succeeded")
             return result
         except Exception as exc:
             self.stopped = True
+            transport = sanitize_trends_transport_diagnostics(
+                getattr(self.client, "last_transport_diagnostics", None)) if request_started else {}
+            if not transport:
+                transport = {
+                    "request_started": request_started,
+                    "elapsed_ms": max(0, int((time.monotonic() - started) * 1000)) if started is not None else 0,
+                    "response_headers_state": "received" if received else "unknown",
+                    "response_body_bytes_observed": response_bytes,
+                    "response_body_state": "complete" if body_read else "unknown",
+                    "body_limit_exceeded": False,
+                }
+            if failure_phase != "transport" or "failure_phase" not in transport:
+                transport["failure_phase"] = failure_phase
+            if not received and "partial_response_http_status" in transport:
+                self.last_response_diagnostics = sanitize_xhs_response_diagnostics({
+                    "http_status": transport["partial_response_http_status"]})
+            if not isinstance(exc, XHSAdapterError):
+                transport["exception_chain"] = _trends_exception_chain(exc)
+            elif exc.code == "remote_non_json" and json_error is not None:
+                transport.update(failure_phase="response_parse", exception_chain=_trends_exception_chain(json_error))
+            transport = sanitize_trends_transport_diagnostics(transport)
             if not received:
-                self.observe({"phase": "unknown", "request_kind": kind, "sequence": sequence,
-                              "at": datetime.now(timezone.utc).isoformat()})
+                try:
+                    self.observe({"phase": "unknown", "request_kind": kind, "sequence": sequence,
+                                  "at": datetime.now(timezone.utc).isoformat(), "transport_diagnostics": transport})
+                except Exception as observer_error:
+                    # Keep the original transport failure; receipt completeness
+                    # still fails closed if this terminal observation is absent.
+                    transport["observation_error_category"] = _trends_exception_chain(observer_error)[0]["category"]
             code = exc.code if isinstance(exc, XHSAdapterError) else "network_error"
             if attempt is not None and not finalized:
                 try:
                     self.complete(attempt, outcome="failed" if received else "outcome_unknown", error_code=code)
-                except Exception:
-                    raise XHSAdapterError("trends_provider_finalize_failed",
-                                          diagnostics=self.last_response_diagnostics) from None
+                except Exception as finalize_error:
+                    error = XHSAdapterError("trends_provider_finalize_failed", diagnostics=self.last_response_diagnostics)
+                    error.transport_diagnostics = sanitize_trends_transport_diagnostics({
+                        **transport, "failure_phase": "finalize", "exception_chain": _trends_exception_chain(finalize_error)})
+                    raise error from None
             if finalized:
-                raise XHSAdapterError("trends_provider_finalize_failed",
-                                      diagnostics=self.last_response_diagnostics) from None
+                error = XHSAdapterError("trends_provider_finalize_failed", diagnostics=self.last_response_diagnostics)
+                error.transport_diagnostics = transport
+                raise error from None
             if isinstance(exc, XHSAdapterError):
+                exc.transport_diagnostics = transport
                 if kind == "search_recommend":
                     exc.diagnostics = sanitize_xhs_response_diagnostics(
                         self.last_response_diagnostics, recommendations=True)
                 raise
-            raise XHSAdapterError("network_error", diagnostics=self.last_response_diagnostics) from None
+            error = XHSAdapterError("network_error", diagnostics=self.last_response_diagnostics)
+            error.transport_diagnostics = transport
+            raise error from None
 
     def request(self, method, api, data=""):
         endpoint = api.split("?", 1)[0]
@@ -489,7 +669,7 @@ class V5Trends(V5Detail):
         try:
             self.assert_ready()
             if self.client is None:
-                self.client = CurlClient()
+                self.client = TrendsCurlClient()
             if self.user_id is None:
                 if self.count:
                     raise XHSAdapterError("operation_not_allowed")

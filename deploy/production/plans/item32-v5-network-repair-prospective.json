@@ -1,0 +1,311 @@
+{
+  "adapter_overlay_ref": "model/spider_xhs_http.py",
+  "adapter_overlay_sha256": "04c94f75ea34cd1d136f0db6808abed35d0c0007081d225a15af20e05fc12d93",
+  "admission": {
+    "bucket_date_utc": "2026-09-17",
+    "current_utc_day_remaining_required": 34,
+    "current_utc_day_used_required": 0,
+    "dispatch_deadline_utc": "2026-09-17T16:55:00+00:00",
+    "must_finish_before_utc": "2026-09-17T17:30:00+00:00",
+    "not_before_utc": "2026-09-17T16:00:00+00:00",
+    "provider_requests_planned": 34,
+    "work_root": "/var/lib/noteai/item32-v5-network-repair-20260917"
+  },
+  "authorization": {
+    "approved_scope_sha256": "73c30c03d650fb666c9a37a0a841c38a830912e43b8b5e81f672fc8ef662ab3e",
+    "confirmed_at_utc": "2026-09-17T15:16:30+00:00",
+    "status": "AUTHORIZED"
+  },
+  "bounds": {
+    "automatic_retry": 0,
+    "cycles": 1,
+    "domains": 6,
+    "keywords_max": 90,
+    "provider_requests_per_run_max": 34,
+    "provider_requests_per_utc_day_max": 34,
+    "real_keywords_per_domain_min": 12
+  },
+  "browser_binding": {
+    "cold_initialization": true,
+    "curl_cffi_version": "0.15.0",
+    "first_homefeed_is_gate": true,
+    "node_major": 20,
+    "protocol": "pc_v5",
+    "upstream_manifest_ref": "model/vendor/spider_xhs/v5/upstream.json",
+    "upstream_manifest_sha256": "ede5937cf326c3fe19edbae8e98cecc8dd9b3b5b983a87594f8d262336328fb6"
+  },
+  "cloud_resources_started": 0,
+  "database_readonly_probe_sha256": "74c665e6361a6f7e9c11637faf7891effad4e98e2a480870ec0af586c39afbb7",
+  "existing_image_config_sha256": "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703",
+  "existing_registry_manifest_sha256": "87b9bf70c7ded691659ca39d3ea2453f9a97dfbdb83c05c44e838c8b0cf417c9",
+  "existing_unit_sha256": "3ed7e555d61c8286ab6d1116d99171d23d073b6a318dbd4890ce3106b976e3b6",
+  "image_source_sha256": {
+    "model/hot_keywords.py": "48073372ef7c490192ff6cff54c326401b14d313d427e705a1a90f9bc17449b4",
+    "model/market_timing_worker.py": "e89be24bd3d32c8283acf4cba3f6586d2d5dff7c2c113377b743897bd0527978",
+    "model/trends_contract.py": "530820f68b1feb67aba0037d76ff9548ac0e629fea1c9854cc3df2048e2f2ca8"
+  },
+  "item": 32,
+  "network_repair_preflight": {
+    "bytes": 2895,
+    "diagnostics": {
+      "d1": {
+        "bytes": 1999,
+        "finished_at_utc": "2026-09-17T15:38:49.548147+00:00",
+        "host_ref": "/var/lib/noteai/item32-network-repair-20260917/d1/result.json",
+        "ref": "deploy/production/evidence/production-item32-network-repair-d1-20260917.json",
+        "sha256": "2fc87837f1aba434db7df2c35a34a4226794246e13db2988fb34ac0d9ac7336c"
+      },
+      "d2": {
+        "bytes": 1407,
+        "finished_at_utc": "2026-09-17T15:49:51.745368+00:00",
+        "host_ref": "/var/lib/noteai/item32-network-repair-20260917/d2/result.json",
+        "ref": "deploy/production/evidence/production-item32-network-repair-d2-20260917.json",
+        "sha256": "3cdd2b5cada5935a6fdea2de16036ea650f46025b9434e83974795f208f4d878"
+      }
+    },
+    "finished_at_utc": "2026-09-17T15:35:17.621003+00:00",
+    "host_ref": "/var/lib/noteai/item32-network-repair-20260917/d0.json",
+    "ref": "deploy/production/evidence/production-item32-network-repair-d0-20260917.json",
+    "sha256": "6ee589052e1a8b2ed36434a2d97c2448964bc82f60589bfd3c8701e9c026ca48"
+  },
+  "outer_executor": "tools/execute_item32_readonly_trends_successor.py",
+  "outer_executor_sha256": "fe58e1e0475a9fa4e93ddebbd818a6631c40faf264968bd1fe5dff4ed916ae55",
+  "physical_http_budget": {
+    "collection": 34,
+    "initialization": 2,
+    "total": 36
+  },
+  "predecessor_closure": {
+    "cumulative_provider_call_count": 2,
+    "diagnostic": {
+      "admission_sha256": "85d370068016ccf72fda32840a0cb58e99be82efb2dee6112c29967f76652561",
+      "automatic_retry_count": 0,
+      "no_replay": true,
+      "outcome_unknown_count": 1,
+      "provider_call_count": 1,
+      "result_sha256": "14406787e1064a265ab050b9e7d905752f1144c50498b9f9e281f373b8857382",
+      "status": "HOLD_UNKNOWN"
+    },
+    "evidence_ref": "deploy/production/evidence/production-item32-xhs-diagnostic-hold-unknown-20260906.json",
+    "evidence_sha256": "7c77706e1d7b7bf7b7c157162f95e2d8f04152f736b25bf8b636dd7225cf9ed9",
+    "original": {
+      "admission_sha256": "8b20840ad5f6e5ec44f14086bfe635ff464c2125bfd76b2cb3b377fa2b48bfd8",
+      "automatic_retry_count": 0,
+      "no_replay": true,
+      "outcome_unknown_count": 0,
+      "provider_call_count": 1,
+      "status": "HOLD",
+      "store_sha256": "10e01542b261719794bdaf67ebbc355a8d2fe66e7448c516b206ad300f6402f8"
+    }
+  },
+  "previous_successor": {
+    "files": {
+      "/var/lib/noteai/item32-readonly-successor/item32-admission.json": {
+        "bytes": 738,
+        "sha256": "520c6b8f7bab194caceac80d2bb1f790842e58bfe4ff333027c3a72ac83cd874"
+      },
+      "/var/lib/noteai/item32-readonly-successor/run-5j_lntvp/task-store/hot_keywords.db": {
+        "bytes": 139264,
+        "sha256": "8138165dcbf7347743adf353332021b073d8c127ece6d4662eb10a3957b27adf"
+      },
+      "/var/lib/noteai/item32-readonly-successor/run-5j_lntvp/worker-receipt.json": {
+        "bytes": 641,
+        "sha256": "d6152dd33d61ea83dd0c8901fb0bea3bfa1077a5a9ccbc4b0e73102cc587974f"
+      },
+      "/var/lib/noteai/item32-repair-package-20260915-fac5dd0/dispatch-child.json": {
+        "bytes": 97,
+        "sha256": "2ba21efb28152f41bfab1e7861a0eb26744418204e93e63d1ca080600af67d1c"
+      },
+      "/var/lib/noteai/item32-repair-package-20260915-fac5dd0/dispatch-done.json": {
+        "bytes": 252,
+        "sha256": "fb5affaed51ecd38f7a96c670899b6c65b2002959af06567b82c6e26ef3d721f"
+      },
+      "/var/lib/noteai/item32-repair-package-20260915-fac5dd0/dispatch-started.json": {
+        "bytes": 534,
+        "sha256": "0f0f87d0a5b503c27b6b78afd942df6634a1cce2a1e0502a1ebe5e9c462dc07d"
+      },
+      "/var/lib/noteai/item32-repair-package-20260915-fac5dd0/dispatch.log": {
+        "bytes": 275,
+        "sha256": "6cf9b2a70bf08e1c916390bc482ef3490d74f115ef650cf2d03b8367e75b825a"
+      },
+      "/var/lib/noteai/item32-successor-package-20260915-79e1e35/dispatch-child.json": {
+        "bytes": 97,
+        "sha256": "68a7c140172b822c7ba9ed7edfebe547b52b449c86db89e3403b89c91231a888"
+      },
+      "/var/lib/noteai/item32-successor-package-20260915-79e1e35/dispatch-done.json": {
+        "bytes": 251,
+        "sha256": "f3f7f5ba8b36cb2ba88acb67fe5d63aac6d14186d903ed05c0e3c373968d26ae"
+      },
+      "/var/lib/noteai/item32-successor-package-20260915-79e1e35/dispatch-started.json": {
+        "bytes": 141,
+        "sha256": "8113a70741d31e4081d3cd96b18e612d31e578964bfc98198eb78a8472e5142a"
+      },
+      "/var/lib/noteai/item32-successor-package-20260915-79e1e35/dispatch.log": {
+        "bytes": 70,
+        "sha256": "fad8666217b83799ad51db234a4faca800789221c18eac6316c607cc7f8e851b"
+      }
+    },
+    "no_replay": true,
+    "provider_call_count": 1,
+    "work_root": "/var/lib/noteai/item32-readonly-successor"
+  },
+  "previous_v5_initialization_hold": {
+    "automatic_retry_count": 0,
+    "call_date_utc": "2026-09-17",
+    "collection_admissions": 0,
+    "collection_outcome_unknown_count": 0,
+    "files": {
+      "/var/lib/noteai/item32-v5-package-20260917-84f2e6e/dispatch-child.json": {
+        "bytes": 97,
+        "mode": "0o600",
+        "sha256": "6f56c1be4d3413ebede91d2e2d2da9d6e557739cd25df52f2f3b18b4c50b8d58"
+      },
+      "/var/lib/noteai/item32-v5-package-20260917-84f2e6e/dispatch-done.json": {
+        "bytes": 252,
+        "mode": "0o600",
+        "sha256": "768fbfc4a38c2ab8d4e622a808ed472642c72fee6286f07d1fa3999552c01444"
+      },
+      "/var/lib/noteai/item32-v5-package-20260917-84f2e6e/dispatch-started.json": {
+        "bytes": 376,
+        "mode": "0o600",
+        "sha256": "4dd8f8ab1606100202d7fd12e650d597b67f91267e11976fe65ee1c74e72dbc4"
+      },
+      "/var/lib/noteai/item32-v5-package-20260917-84f2e6e/dispatch.log": {
+        "bytes": 348,
+        "mode": "0o600",
+        "sha256": "e3aee9dbc47bdafcc3dac11fbac213c88338e7c8f5f62bc30f0d210513c4ef7a"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260917/item32-admission.json": {
+        "bytes": 834,
+        "mode": "0o600",
+        "sha256": "afdf2b8b78ec8eb101a6514c195b9890efc64ffcb834583a952cc3b14a4f671d"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260917/run-arx52z4k/database-after-probe.json": {
+        "bytes": 537,
+        "mode": "0o600",
+        "sha256": "2141b391fb736edd1f076aab48dfa8cf9b7fd8e736b554035fbcc7af75502366"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260917/run-arx52z4k/database-before-probe.json": {
+        "bytes": 537,
+        "mode": "0o600",
+        "sha256": "809515e0e60b5c392b693649952ec003949ead76f89eb932f24f96e07d393176"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260917/run-arx52z4k/database-proof-state.json": {
+        "bytes": 254,
+        "mode": "0o600",
+        "sha256": "9f46cae7b0482c5206eec307b629551104a06cc1929a3a632952d8516b8af079"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260917/run-arx52z4k/task-store/hot_keywords.db": {
+        "bytes": 139264,
+        "mode": "0o644",
+        "sha256": "ac0c006aa9e8720b030b12b9065368620bfe5c2f27190506421b9f2ad0a81522"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260917/run-arx52z4k/worker-receipt.json": {
+        "bytes": 1492,
+        "mode": "0o600",
+        "sha256": "06a03589fa178f804da4f5c589916b7a5e7b6dbaa10709ded3990c1b1b3d9b04"
+      }
+    },
+    "final_readback": {
+      "bytes": 6794,
+      "host_ref": "/var/lib/noteai/item32-v5-successor-20260917/hold-final-readback.json",
+      "ref": "deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json",
+      "sha256": "163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1"
+    },
+    "initialization_count": 1,
+    "initialization_outcome_unknown_count": 1,
+    "no_replay": true,
+    "package_root": "/var/lib/noteai/item32-v5-package-20260917-84f2e6e",
+    "physical_http_count": 1,
+    "status": "HOLD_INITIALIZATION_NETWORK_UNKNOWN_RESTORED",
+    "work_root": "/var/lib/noteai/item32-v5-successor-20260917"
+  },
+  "previous_v5_successor": {
+    "automatic_retry_count": 0,
+    "call_date_utc": "2026-09-16",
+    "collection_admissions": 11,
+    "files": {
+      "/var/lib/noteai/item32-v5-package-20260916-92dad86/dispatch-child.json": {
+        "bytes": 97,
+        "mode": "0o600",
+        "sha256": "6a54cee344d7416e269f781aa352c7c4ccfd508fe55bd2e1e77189d99916d76e"
+      },
+      "/var/lib/noteai/item32-v5-package-20260916-92dad86/dispatch-done.json": {
+        "bytes": 252,
+        "mode": "0o600",
+        "sha256": "758a9f431f3cd1f83e4ac9e7531ec615b5632fdb02e9c1d58f7816a40e10991f"
+      },
+      "/var/lib/noteai/item32-v5-package-20260916-92dad86/dispatch-started.json": {
+        "bytes": 376,
+        "mode": "0o600",
+        "sha256": "aced7a1d1bc1f570655ab77b9303ee5b3f1aa6a96016eacd0a86150fb15a7bad"
+      },
+      "/var/lib/noteai/item32-v5-package-20260916-92dad86/dispatch.log": {
+        "bytes": 350,
+        "mode": "0o600",
+        "sha256": "f56f6676e971d9ea38701a2af772d7d2c6f0a676b746fb7493686943c77275b9"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260916/item32-admission.json": {
+        "bytes": 835,
+        "mode": "0o600",
+        "sha256": "ba7bdfa68bfd6a13677f59e1269ee90f84a1baff74c7a5db13c5644b6a007f48"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260916/run-xu3tvxz7/database-after-probe.json": {
+        "bytes": 537,
+        "mode": "0o600",
+        "sha256": "9286c495c6c89e9f274b63024aa4ccc4ef18759c261ce57f602bfa9eac167530"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260916/run-xu3tvxz7/database-before-probe.json": {
+        "bytes": 537,
+        "mode": "0o600",
+        "sha256": "75400e70a94e11103ce99f0e358eb4934a7121a189c116e902a5cb24dfec257b"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260916/run-xu3tvxz7/task-store/hot_keywords.db": {
+        "bytes": 139264,
+        "mode": "0o644",
+        "sha256": "38ec566db889f9202a5f6f828cb79a0bfbc0d78ee5e8761a2ff3ed90e9afcbc9"
+      },
+      "/var/lib/noteai/item32-v5-successor-20260916/run-xu3tvxz7/worker-receipt.json": {
+        "bytes": 9871,
+        "mode": "0o600",
+        "sha256": "be21b73ee8b6c5050385964e084e1ce362d09a1b47c83520da800f0e6d05fd92"
+      }
+    },
+    "final_readback": {
+      "bytes": 2386,
+      "host_ref": "/var/lib/noteai/item32-v5-successor-20260916/hold-final-readback.json",
+      "ref": "deploy/production/evidence/production-item32-v5-hold-final-readback-20260916.json",
+      "sha256": "b7c11b3013849ab1370d96fb36118cc710b02ecb1cd8113f8945ece01b45a4e2"
+    },
+    "initialization_count": 2,
+    "no_replay": true,
+    "outcome_unknown_count": 0,
+    "package_root": "/var/lib/noteai/item32-v5-package-20260916-92dad86",
+    "physical_http_count": 13,
+    "status": "HOLD",
+    "work_root": "/var/lib/noteai/item32-v5-successor-20260916"
+  },
+  "provider_calls_dispatched": 0,
+  "readiness_credit": false,
+  "registry_manifest_provenance": "SEALED_RELEASE_ATTESTATION_PLUS_FRESH_LOCAL_CONFIG_READBACK",
+  "runtime_overlay_sha256": {
+    "model/hot_keywords.py": "77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d",
+    "model/scheduler_a.py": "2cd8bbd094e0013fb023675618a532715a194afcde684715d5692150524f1f5b",
+    "model/security_redaction.py": "3c4fec05169d7214a2e297a848784a88e7fc5aeef6006670d14c5bd24f394fe2",
+    "model/spider_xhs_http.py": "04c94f75ea34cd1d136f0db6808abed35d0c0007081d225a15af20e05fc12d93",
+    "model/spider_xhs_v5.py": "d76bdc50578c886cdf1451cc03a204bb628c036c6c3da767d8e5e50361885dae",
+    "model/vendor/spider_xhs/v5/trends_bridge.js": "37152cb6c704da670f95df066f0b4e665588610eb1836daaaf05754c5ec81cd7"
+  },
+  "schema": "noteai.item32.readonly_successor_plan.v3",
+  "source_sha256": {
+    "model/hot_keywords.py": "77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d",
+    "model/market_timing_worker.py": "e89be24bd3d32c8283acf4cba3f6586d2d5dff7c2c113377b743897bd0527978",
+    "model/scheduler_a.py": "2cd8bbd094e0013fb023675618a532715a194afcde684715d5692150524f1f5b",
+    "model/security_redaction.py": "3c4fec05169d7214a2e297a848784a88e7fc5aeef6006670d14c5bd24f394fe2",
+    "model/spider_xhs_http.py": "04c94f75ea34cd1d136f0db6808abed35d0c0007081d225a15af20e05fc12d93",
+    "model/spider_xhs_v5.py": "d76bdc50578c886cdf1451cc03a204bb628c036c6c3da767d8e5e50361885dae",
+    "model/trends_contract.py": "530820f68b1feb67aba0037d76ff9548ac0e629fea1c9854cc3df2048e2f2ca8",
+    "model/vendor/spider_xhs/v5/trends_bridge.js": "37152cb6c704da670f95df066f0b4e665588610eb1836daaaf05754c5ec81cd7"
+  },
+  "status": "PREPARED_NOT_EXECUTED"
+}

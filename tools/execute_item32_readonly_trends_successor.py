@@ -46,6 +46,16 @@ PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v2"
 V5_PLAN_SCHEMA = "noteai.item32.readonly_successor_plan.v3"
 V5_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260916")
 V5_SEP17_WORK_ROOT = Path("/var/lib/noteai/item32-v5-successor-20260917")
+V5_NETWORK_WORK_ROOT = Path("/var/lib/noteai/item32-v5-network-repair-20260917")
+V5_SEP17_FINAL_REF = "deploy/production/evidence/production-item32-v5-hold-final-readback-20260917.json"
+V5_SEP17_FINAL_SHA256 = "163eeaca405359bfd20afaf0186133c8be14f71609df41788131d5a3b466d3d1"
+V5_NETWORK_D0_REF = "deploy/production/evidence/production-item32-network-repair-d0-20260917.json"
+V5_NETWORK_D0_HOST = "/var/lib/noteai/item32-network-repair-20260917/d0.json"
+V5_NETWORK_D0_SHA256 = "6ee589052e1a8b2ed36434a2d97c2448964bc82f60589bfd3c8701e9c026ca48"
+V5_NETWORK_D1_SHA256 = "2fc87837f1aba434db7df2c35a34a4226794246e13db2988fb34ac0d9ac7336c"
+V5_NETWORK_D2_SHA256 = "3cdd2b5cada5935a6fdea2de16036ea650f46025b9434e83974795f208f4d878"
+V5_NETWORK_D0M_SHA256 = "092127cf6f5c1c1bc075874f265e141e018a1ff00dce179ee6a354fc1a21a42d"
+V5_SESSION_SHA256 = "18f72f26971be0f578342ea7f8ae6336c7ee66ea67f6e7246b2b7d3866d26f6a"
 V5_SEP16_PACKAGE_ROOT = Path("/var/lib/noteai/item32-v5-package-20260916-92dad86")
 V5_SEP16_FINAL_REF = "deploy/production/evidence/production-item32-v5-hold-final-readback-20260916.json"
 V5_SEP16_FINAL_SHA256 = "b7c11b3013849ab1370d96fb36118cc710b02ecb1cd8113f8945ece01b45a4e2"
@@ -58,6 +68,15 @@ V5_OVERLAY_NAMES = frozenset({
     "model/hot_keywords.py", "model/scheduler_a.py", "model/vendor/spider_xhs/v5/trends_bridge.js",
 })
 V5_PHYSICAL_BUDGET = {"initialization": 2, "collection": 34, "total": 36}
+V5_NETWORK_CLIENT_PREFLIGHT = """from curl_cffi.const import CurlInfo
+client = v.TrendsCurlClient()
+try:
+    assert client.session.curl_infos == [getattr(CurlInfo, key) for key in (
+        'NAMELOOKUP_TIME', 'CONNECT_TIME', 'APPCONNECT_TIME', 'PRETRANSFER_TIME',
+        'STARTTRANSFER_TIME', 'TOTAL_TIME')]
+finally:
+    client.close()
+"""
 ACTIVE_V5_PLAN: dict[str, Any] | None = None
 TERMINAL_SCHEMA = "noteai.item32.xhs_trends_readonly.v2"
 HOLD_EVIDENCE_SCHEMA = "noteai.item32.xhs_diagnostic_hold_unknown.v1"
@@ -618,8 +637,10 @@ def _load_plan(
         expected.update(runtime_overlay_sha256=dict(RUNTIME_OVERLAY_SHA256),
                         physical_http_budget=V5_PHYSICAL_BUDGET,
                         previous_successor=plan["previous_successor"])
-        if _is_sep17_plan(plan):
+        if _is_sep17_plan(plan) or _is_network_repair_plan(plan):
             expected["previous_v5_successor"] = _sep17_previous_binding(adapter_path.parent.parent)
+        if _is_network_repair_plan(plan):
+            expected.update(_network_repair_bindings(adapter_path.parent.parent))
     if not isinstance(plan, dict) or _json_bytes(plan) != _json_bytes(expected):
         raise Item32Error("plan_binding")
     _assert_plan_authorized(plan, deadline)
@@ -660,7 +681,14 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
             or not isinstance(binding["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", binding["sha256"]) is None):
             raise Item32Error("plan_binding")
     package = adapter_path.parent.parent
-    if _is_sep17_plan(plan):
+    if _is_network_repair_plan(plan):
+        bindings = _network_repair_bindings(package)
+        if (any(_json_bytes(plan.get(key)) != _json_bytes(value) for key, value in bindings.items())
+            or _json_bytes(plan.get("previous_v5_successor")) != _json_bytes(_sep17_previous_binding(package))
+            or _parse_clock(plan["admission"]["not_before_utc"]) < _parse_clock(bindings["network_repair_preflight"]["diagnostics"]["d2"]["finished_at_utc"])
+            or _parse_clock(plan["authorization"]["confirmed_at_utc"]) <= _parse_clock("2026-09-17T01:06:56.372948+00:00")):
+            raise Item32Error("plan_binding")
+    elif _is_sep17_plan(plan):
         expected_window = ("2026-09-17T01:00:00+00:00", "2026-09-17T01:40:00+00:00",
                            "2026-09-17T02:00:00+00:00")
         if (tuple(plan["admission"].get(key) for key in
@@ -674,7 +702,7 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
         if _sha256_bytes((package / name).read_bytes()) != digest:
             raise Item32Error("runtime_overlay_source_binding")
     ACTIVE_V5_PLAN = plan
-    WORK_ROOT = V5_SEP17_WORK_ROOT if _is_sep17_plan(plan) else V5_WORK_ROOT
+    WORK_ROOT = V5_NETWORK_WORK_ROOT if _is_network_repair_plan(plan) else V5_SEP17_WORK_ROOT if _is_sep17_plan(plan) else V5_WORK_ROOT
     EXPECTED_CONFIG_SHA256, EXPECTED_MANIFEST_SHA256 = V5_CONFIG_SHA256, V5_MANIFEST_SHA256
     IMAGE = "sha256:" + V5_CONFIG_SHA256
     EXPECTED_IMAGE_SOURCE_SHA256 = dict(image_sources)
@@ -686,6 +714,90 @@ def _is_sep17_plan(plan: dict[str, Any] | None) -> bool:
     return (isinstance(plan, dict) and plan.get("schema") == V5_PLAN_SCHEMA
             and isinstance(plan.get("admission"), dict)
             and plan["admission"].get("work_root") == str(V5_SEP17_WORK_ROOT))
+
+
+def _is_network_repair_plan(plan: dict[str, Any] | None) -> bool:
+    return (isinstance(plan, dict) and plan.get("schema") == V5_PLAN_SCHEMA
+            and isinstance(plan.get("admission"), dict)
+            and plan["admission"].get("work_root") == str(V5_NETWORK_WORK_ROOT))
+
+
+def _network_diagnostics_bindings(package: Path) -> dict[str, Any]:
+    """Completed transport and one DSL-shape diagnostic precede the new formal run."""
+    result, values = {}, {}
+    for name in ("d1", "d2"):
+        ref = f"deploy/production/evidence/production-item32-network-repair-{name}-20260917.json"
+        raw = (package / ref).read_bytes()
+        if not 0 < len(raw) <= 65536:
+            raise Item32Error("network_diagnostic_binding")
+        value = json.loads(raw); values[name] = value
+        if not isinstance(value, dict):
+            raise Item32Error("network_diagnostic_binding")
+        result[name] = {"ref": ref, "host_ref": f"/var/lib/noteai/item32-network-repair-20260917/{name}/result.json",
+                        "bytes": len(raw), "sha256": _sha256_bytes(raw), "finished_at_utc": value["finished_at_utc"]}
+    d1, d2 = values["d1"], values["d2"]
+    delivery = d2.get("result")
+    worker = delivery.get("worker") if isinstance(delivery, dict) else None
+    required = {"schema": "noteai.item32.d2_dsl_once.v1", "state": "D2_COMPLETED",
+        "d0_sha256": V5_NETWORK_D0_SHA256, "d1_result_sha256": V5_NETWORK_D1_SHA256,
+        "d0m_result_sha256": V5_NETWORK_D0M_SHA256, "container_removed": True, "bindings_unchanged": True,
+        "automatic_retry_count": 0, "maximum_dsl_get": 1, "session_requests": 0, "collection_requests": 0,
+        "database_operations": 0, "business_credentials_loaded": False, "readiness_credit": False,
+        "second_dsl_automatically_allowed": False}
+    worker_required = {"schema": "noteai.item32.d2_dsl_worker.v1", "state": "DSL_SHAPE_VERIFIED",
+        "phase": "response_parse", "http_dispatches_observed": 1, "automatic_retry_count": 0,
+        "response_headers_state": "received", "response_body_state": "complete", "dsl_shape_valid": True,
+        "body_limit_exceeded": False, "error_type": "none", "business_credentials_loaded": False,
+        "response_body_saved": False, "response_headers_saved": False, "dsl_value_saved": False}
+    if (result["d1"]["bytes"] != 1999 or result["d1"]["sha256"] != V5_NETWORK_D1_SHA256
+        or result["d2"]["bytes"] != 1407 or result["d2"]["sha256"] != V5_NETWORK_D2_SHA256
+        or d1.get("state") != "D1_COMPLETED" or d1.get("container_removed") is not True
+        or d1.get("bindings_unchanged") is not True or type(d1.get("http_requests")) is not int or d1["http_requests"] != 0
+        or set(d1.get("environments", {})) != {"host", "container"}
+        or any(env.get("state") != "PASSED" or env.get("local_process_reaped") is not True
+               or env.get("observation_complete") is not True for env in d1["environments"].values())
+        or any(type(d2.get(key)) is not type(value) or d2[key] != value for key, value in required.items())
+        or not isinstance(delivery, dict) or delivery.get("local_process_reaped") is not True
+        or not isinstance(worker, dict)
+        or any(type(worker.get(key)) is not type(value) or worker[key] != value for key, value in worker_required.items())
+        or type(worker.get("http_status")) is not int or not 200 <= worker["http_status"] < 300
+        or not _parse_clock(d1["finished_at_utc"]) <= _parse_clock(d2["finished_at_utc"])):
+        raise Item32Error("network_diagnostic_binding")
+    return result
+
+
+def _network_repair_bindings(package: Path) -> dict[str, Any]:
+    """Bind original initialization UNKNOWN independently of the zero collection ledger."""
+    raw = (package / V5_SEP17_FINAL_REF).read_bytes()
+    if len(raw) != 6794 or _sha256_bytes(raw) != V5_SEP17_FINAL_SHA256:
+        raise Item32Error("predecessor_final_seal")
+    seal = json.loads(raw)
+    d0_raw = (package / V5_NETWORK_D0_REF).read_bytes()
+    if len(d0_raw) != 2895 or _sha256_bytes(d0_raw) != V5_NETWORK_D0_SHA256:
+        raise Item32Error("network_preflight_binding")
+    d0 = json.loads(d0_raw)
+    required = {"schema": "noteai.item32.network_repair_d0.v1", "state": "D0_READONLY_PASSED",
+        "host": "noteai-api-f", "source_revision": "84f2e6e6ff97e0559335f3ebadfdccabb9ccd280",
+        "locks_available": 5, "predecessor_files_verified": 20, "sep17_files_verified": 10,
+        "task_containers_absent": True, "no_in_flight": True, "unit_sha256": EXPECTED_UNIT_SHA256,
+        "session_env_sha256": V5_SESSION_SHA256, "sep17_final_readback_sha256": V5_SEP17_FINAL_SHA256,
+        "new_provider_requests": 0, "database_operations": 0, "container_starts": 0,
+        "original_files_modified": False, "raw_log_returned": False, "secret_values_output": False, "errors": []}
+    if (not isinstance(d0, dict) or not 0 < len(d0_raw) <= 65536
+        or any(type(d0.get(key)) is not type(value) or d0[key] != value for key, value in required.items())
+        or not _parse_clock(seal["observed_utc"]) <= _parse_clock(d0["observed_at_utc"]) <= _parse_clock(d0["finished_at_utc"])):
+        raise Item32Error("network_preflight_binding")
+    return {"previous_v5_initialization_hold": {
+        "work_root": str(V5_SEP17_WORK_ROOT), "package_root": "/var/lib/noteai/item32-v5-package-20260917-84f2e6e",
+        "status": "HOLD_INITIALIZATION_NETWORK_UNKNOWN_RESTORED", "call_date_utc": "2026-09-17",
+        "collection_admissions": 0, "collection_outcome_unknown_count": 0,
+        "initialization_count": 1, "initialization_outcome_unknown_count": 1, "physical_http_count": 1,
+        "automatic_retry_count": 0, "no_replay": True, "files": seal["files"],
+        "final_readback": {"ref": V5_SEP17_FINAL_REF, "host_ref": str(V5_SEP17_WORK_ROOT / "hold-final-readback.json"),
+                           "bytes": 6794, "sha256": V5_SEP17_FINAL_SHA256}},
+        "network_repair_preflight": {"ref": V5_NETWORK_D0_REF, "host_ref": V5_NETWORK_D0_HOST,
+            "bytes": len(d0_raw), "sha256": _sha256_bytes(d0_raw), "finished_at_utc": d0["finished_at_utc"],
+            "diagnostics": _network_diagnostics_bindings(package)}}
 
 
 def _sep17_previous_binding(package: Path) -> dict[str, Any]:
@@ -738,8 +850,10 @@ def _acquire_predecessor_locks() -> list[int]:
         roots = (SEALED_ORIGINAL_ROOT, SEALED_DIAGNOSTIC_ROOT)
         if ACTIVE_V5_PLAN is not None:
             roots += (SEALED_SUCCESSOR_ROOT,)
-        if _is_sep17_plan(ACTIVE_V5_PLAN):
+        if _is_sep17_plan(ACTIVE_V5_PLAN) or _is_network_repair_plan(ACTIVE_V5_PLAN):
             roots += (V5_WORK_ROOT,)
+        if _is_network_repair_plan(ACTIVE_V5_PLAN):
+            roots += (V5_SEP17_WORK_ROOT,)
         for root in roots:
             descriptor = os.open(
                 root / "executor.lock", os.O_RDONLY | os.O_NOFOLLOW
@@ -919,11 +1033,54 @@ def _verify_predecessors(
         previous = _verify_v5_previous(plan["previous_successor"])
         result["previous_successor"] = previous
         result["call_dates"].append(previous["call_date_utc"])
-    if _is_sep17_plan(plan):
+    if _is_sep17_plan(plan) or _is_network_repair_plan(plan):
         previous, call_dates = _verify_sep16_v5_previous(plan["previous_v5_successor"])
         result["previous_v5_successor"] = previous
         result["call_dates"].extend(call_dates)
+    if _is_network_repair_plan(plan):
+        previous, preflight = _verify_sep17_initialization_hold(plan)
+        result["previous_v5_initialization_hold"] = previous
+        result["network_repair_preflight"] = preflight
     return result
+
+
+def _verify_sep17_initialization_hold(plan: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    binding, d0 = plan["previous_v5_initialization_hold"], plan["network_repair_preflight"]
+    seal_raw = _read_regular_file(Path(binding["final_readback"]["host_ref"]), max_size=6794, root_only=True)
+    if len(seal_raw) != 6794 or _sha256_bytes(seal_raw) != V5_SEP17_FINAL_SHA256:
+        raise Item32Error("predecessor_final_seal")
+    seal = json.loads(seal_raw)
+    originals = {}
+    for name, expected in binding["files"].items():
+        path = Path(name)
+        raw = _read_regular_file(path, max_size=64 * 1024 * 1024, root_only=path.name != "hot_keywords.db")
+        if (len(raw) != expected["bytes"] or _sha256_bytes(raw) != expected["sha256"]
+            or oct(stat.S_IMODE(os.lstat(path).st_mode)) != expected["mode"]):
+            raise Item32Error("predecessor_digest")
+        originals[name] = raw
+    run = V5_SEP17_WORK_ROOT / seal["admission"]["run_directory_name"]
+    if (json.loads(originals[str(V5_SEP17_WORK_ROOT / "item32-admission.json")]) != seal["admission"]
+        or json.loads(originals[str(run / "worker-receipt.json")]) != seal["worker_receipt"]
+        or any(json.loads(originals[str(run / f"database-{phase}-probe.json")]) != seal["database_probes"][phase]
+               for phase in ("before", "after"))):
+        raise Item32Error("predecessor_shape")
+    connection = sqlite3.connect(f"file:{run / 'task-store/hot_keywords.db'}?mode=ro&immutable=1", uri=True)
+    try:
+        count = connection.execute("SELECT COUNT(*) FROM xhs_trends_provider_attempts").fetchone()[0]
+    finally:
+        connection.close()
+    if count != 0:
+        raise Item32Error("predecessor_store_shape")
+    raw = _read_regular_file(Path(d0["host_ref"]), max_size=65536, root_only=True)
+    if (len(raw) != d0["bytes"] or _sha256_bytes(raw) != d0["sha256"]
+        or _sha256_bytes(_read_regular_file(SECRET_ENV, max_size=65536, root_only=True)) != V5_SESSION_SHA256):
+        raise Item32Error("network_preflight_binding")
+    for evidence in d0["diagnostics"].values():
+        raw = _read_regular_file(Path(evidence["host_ref"]), max_size=65536, root_only=True)
+        if len(raw) != evidence["bytes"] or _sha256_bytes(raw) != evidence["sha256"]:
+            raise Item32Error("network_diagnostic_binding")
+    return ({**binding, "host_final_readback_verified": True, "database_readonly_probes_verified": True},
+            {**d0, "host_readback_verified": True})
 
 
 def _verify_v5_previous(binding: dict[str, Any]) -> dict[str, Any]:
@@ -1064,7 +1221,7 @@ def _admission_budget(
     prior_used = sum(
         1 for value in predecessor["call_dates"] if value == bucket
     )
-    if prior_used != 0 or (_is_sep17_plan(plan) and any(value >= bucket for value in predecessor["call_dates"])):
+    if prior_used != 0 or ((_is_sep17_plan(plan) or _is_network_repair_plan(plan)) and any(value >= bucket for value in predecessor["call_dates"])):
         raise Item32Error("utc_budget_not_available")
     return {
         "bucket_date": bucket,
@@ -1473,6 +1630,7 @@ def _preflight_host(
             "assert actual==expected;v.runtime.verify_assets();"
             "assert v.trends_budget('{\"initialization\":2,\"collection\":34,\"total\":36}')=="
             + repr(V5_PHYSICAL_BUDGET) + ";"
+            + ("exec(" + repr(V5_NETWORK_CLIENT_PREFLIGHT) + ");" if _is_network_repair_plan(ACTIVE_V5_PLAN) else "") +
             "version=subprocess.check_output(['node','--version'],timeout=10).decode().strip();"
             "print(json.dumps({'protocol':'pc_v5','curl_cffi_version':curl_cffi.__version__,"
             "'node_major':int(version.lstrip('v').split('.')[0]),"
@@ -2221,7 +2379,7 @@ def _build_artifacts(
             "diagnostic_result_sha256": predecessor[
                 "diagnostic_result_sha256"
             ],
-            "predecessor_provider_call_count": 14 if _is_sep17_plan(plan) else 3 if physical is not None else 2,
+            "predecessor_provider_call_count": 14 if _is_sep17_plan(plan) or _is_network_repair_plan(plan) else 3 if physical is not None else 2,
             "predecessors_unchanged": True,
             "budget": budget,
             "runtime_readback": runtime_readback,
@@ -2293,8 +2451,11 @@ def _build_artifacts(
     }
     if physical is not None:
         terminal_payload["successor"]["previous_successor"] = predecessor["previous_successor"]
-        if _is_sep17_plan(plan):
+        if _is_sep17_plan(plan) or _is_network_repair_plan(plan):
             terminal_payload["successor"]["previous_v5_successor"] = predecessor["previous_v5_successor"]
+        if _is_network_repair_plan(plan):
+            for key in ("previous_v5_initialization_hold", "network_repair_preflight"):
+                terminal_payload["successor"][key] = predecessor[key]
         terminal_payload["execution"]["physical_http"] = {
             "initialization_count": 2, "collection_count": 34, "total_count": 36,
             "total_limit": 36, "automatic_retry_count": 0,
@@ -3176,19 +3337,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--readback-only", action="store_true")
     parser.add_argument("--v5-readback-only", action="store_true")
     parser.add_argument("--v5-sep17-readback-only", action="store_true")
+    parser.add_argument("--v5-network-repair-readback-only", action="store_true")
     parser.add_argument("--plan")
     parser.add_argument("--adapter")
     parser.add_argument("--hold-evidence")
     args = parser.parse_args(argv)
-    if args.readback_only or args.v5_readback_only or args.v5_sep17_readback_only:
+    if args.readback_only or args.v5_readback_only or args.v5_sep17_readback_only or args.v5_network_repair_readback_only:
         if args.plan or args.adapter or args.hold_evidence:
             parser.error("readback-only does not accept execution inputs")
-        if sum((args.readback_only, args.v5_readback_only, args.v5_sep17_readback_only)) != 1:
+        if sum((args.readback_only, args.v5_readback_only, args.v5_sep17_readback_only, args.v5_network_repair_readback_only)) != 1:
             parser.error("select one retained identity")
         if args.v5_readback_only:
             WORK_ROOT = V5_WORK_ROOT
         if args.v5_sep17_readback_only:
             WORK_ROOT = V5_SEP17_WORK_ROOT
+        if args.v5_network_repair_readback_only:
+            WORK_ROOT = V5_NETWORK_WORK_ROOT
         result = read_retained_result()
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "RETAINED_BYTES_READBACK_ONLY" else 2

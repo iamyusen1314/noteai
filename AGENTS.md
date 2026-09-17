@@ -2,6 +2,18 @@
 
 ## Current execution control
 
+September17 owner resumes this thread specifically to resolve Item32: bounded,
+staged network diagnosis on original API-F, corresponding minimal repair, then
+one new complete readonly validation within a freshly recorded valid window and
+actual quota. State each external diagnostic hypothesis/count/stop before dispatch;
+no per-step reapproval, no unlimited retry. Preserve the original Sep17 DSL
+UNKNOWN1/collection0/retry0 and closure; inspect residual state before new calls.
+Do not infer expired login or upgrade without evidence. H5/plans/video-credit
+scope remains released to the separate window. Preserve formal payment/Amap,
+reports, entitlements, Item34 and seven protected paths. Handoff CURRENT and
+docs/ITEM32_SEP17_SINGLE_SUCCESSOR.md contain the current staged plan; their old
+expired single-window dispatch instructions remain historical and cannot replay.
+
 September17 owner requests SAFE SAVE AND HANDOFF ONLY in this thread before a new
 independent H5/mobile, plans/entitlements placement and video-credit consistency
 iteration. Do not implement that iteration here, rerun old acceptance, deploy,
