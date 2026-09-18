@@ -31,6 +31,7 @@ class H5WorkflowReadModelTests(unittest.TestCase):
         claim = self.claim()
         note_id, report_id = str(uuid4()), str(uuid4())
         self.insert_note(self.user, note_id, '诊断原文', '原正文', 'analyze')
+        db.execute('UPDATE notes SET score=67 WHERE id=?', (note_id,))
         # Actual analyze persistence writes a receipt with usage_id but request_id=None.
         receipt = billing.get_charge_receipt(self.user['id'], 'analyze', claim['charge'])
         result = {'saved_note_id': note_id, 'billing': receipt, 'ai_diagnosis': '原诊断',
@@ -127,7 +128,7 @@ class H5WorkflowReadModelTests(unittest.TestCase):
         self.assertEqual(next(group for group in grouped if group['group_id']==note_id)['latest']['report_ref'],ref)
         versions=asyncio.run(api.note_versions(note_id,self.user))['versions']
         self.assertEqual(versions[0]['report_ref'],ref)
-        growth=asyncio.run(api.profile_growth(self.user))['records'][0]
+        growth=next(r for r in asyncio.run(api.profile_growth(self.user))['records'] if r['note_id']==note_id)
         self.assertTrue(growth['id']); self.assertEqual(growth['note_id'],note_id); self.assertEqual(growth['report_ref'],ref)
 
     def test_generation_task_and_report_recover_original_not_rewrite(self):
@@ -172,7 +173,7 @@ class H5WorkflowReadModelTests(unittest.TestCase):
                    (self.now.isoformat(),'note',note_id))
         with self.assertRaises(HTTPException):self.read(sid)
         self.assertFalse(self.tasks(view='conversations')['conversations'])
-        growth=asyncio.run(api.profile_growth(self.user))['records'][0]
+        growth=next(r for r in asyncio.run(api.profile_growth(self.user))['records'] if r['id']=='saved:'+note_id)
         self.assertIsNone(growth['note_id']); self.assertIsNone(growth['report_ref'])
         self.assertIsNone(next(item for item in asyncio.run(api.list_reports(20,0,self.user))['reports'] if item['report_id']==report_id)['saved_note_id'])
         db.execute('UPDATE saved_diagnoses SET diagnosis_json=? WHERE id=?', ('not-json',report_id))

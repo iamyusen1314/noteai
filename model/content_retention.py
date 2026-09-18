@@ -536,9 +536,11 @@ def delete_note_derivatives_with_storage(
     storage: Any,
     note_id: str,
     user_id: str,
+    *,
+    include_family: bool = True,
 ) -> None:
     """Remove note-linked copies before the canonical note is detached/purged."""
-    family_ids = _note_family_ids_with_storage(storage, note_id, user_id)
+    family_ids = _note_family_ids_with_storage(storage, note_id, user_id) if include_family else [note_id]
     placeholders = ",".join("?" for _ in family_ids)
     storage.execute(
         f"DELETE FROM chat_sessions WHERE user_id=? AND note_id IN ({placeholders})",
@@ -546,7 +548,8 @@ def delete_note_derivatives_with_storage(
     )
     storage.execute(
         f"DELETE FROM user_memories WHERE user_id=? AND memory_type='context' "
-        f"AND (source_note_id IN ({placeholders}) OR source_note_id IS NULL)",
+        f"AND (source_note_id IN ({placeholders})"
+        + (" OR source_note_id IS NULL)" if include_family else ")"),
         (user_id, *family_ids),
     )
 
@@ -684,6 +687,7 @@ def process_due_content_purges(
                     tx,
                     content_id,
                     row["user_id"],
+                    include_family=not bool(row["deleted_at"]),
                 )
                 tx.execute("DELETE FROM growth_records WHERE note_id=?", (content_id,))
                 tx.execute(

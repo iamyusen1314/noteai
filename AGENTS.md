@@ -1,3 +1,5 @@
+September19 owner resumes existing-product integrity repair and affected release: growth, real preferences, achievements, accurate usage/video billing display, own nickname/avatar and existing incomplete entrypoints. Main owns backend/data/Admin/release; H5 task exclusively edits original HTML in its separate product-integrity UI worktree. Exclude rejected/new CL1 visuals. Existing Item32 VERIFIED and sole Item33 schedule/source remain; no repeat completed cycles or payment tests. Current ownership/evidence and next actions: Handoff CURRENT.
+
 # AGENTS.md
 
 ## Current execution control

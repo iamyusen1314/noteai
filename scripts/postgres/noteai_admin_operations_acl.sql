@@ -22,7 +22,8 @@ GRANT INSERT(key,value_json,is_secret,updated_at),UPDATE(value_json,updated_at) 
 GRANT UPDATE(operator_paused,priority,available_at,updated_at) ON ai_operations TO noteai_admin_runtime;
 GRANT UPDATE(state,available_at,lease_owner_hash,lease_expires_at,delivered_at,updated_at) ON ai_operation_outbox TO noteai_admin_runtime;
 GRANT SELECT(operation_id,idempotency_request_id) ON ai_operation_admissions TO noteai_admin_runtime;
-GRANT SELECT(id,user_id,status,refund_applied,complete_applied) ON idempotency_requests TO noteai_admin_runtime;
+-- Join existing usage rows to their business status; no task payload access.
+GRANT SELECT(id,user_id,usage_id,operation,status,refund_applied,complete_applied) ON idempotency_requests TO noteai_admin_runtime;
 GRANT SELECT(operation_id) ON ai_provider_attempts TO noteai_admin_runtime;
 GRANT SELECT(id,operation_id,subject_hash,purpose,state,expires_at) ON ai_payload_refs TO noteai_admin_runtime;
 GRANT SELECT(operator_paused) ON ai_operations TO noteai_ai_dispatcher;

@@ -16,6 +16,7 @@ from fastapi import HTTPException, status
 
 import db
 import content_retention
+import usage_reporting
 
 # ─────────────────────────────────────────────────────────────
 # ① 完整操作注册表（覆盖所有 API Token 消耗点）
@@ -703,6 +704,47 @@ def get_charge_receipt(user_id: str, operation: str, charge: dict | None,
 def activate_usage(usage_id: str | None) -> None:
     _ACTIVE_USAGE_ID.set(usage_id or None)
 
+
+def record_local_step(step: str, outcome: str, *, user_id: str | None = None) -> bool:
+    """Record an executed local step on its active parent, without a new charge.
+
+    Best-effort telemetry cannot change a score/result or expose an exception.
+    False means unrecorded; reporting always describes observed-only coverage.
+    Callers invoke this after the actual success/failure, never for a cache hit.
+    """
+    if step not in usage_reporting.LOCAL_STEPS or outcome not in usage_reporting.LOCAL_OUTCOMES:
+        return False
+    usage_id = _ACTIVE_USAGE_ID.get()
+    if not usage_id:
+        return False
+    try:
+        with db.transaction(write=True) as tx:
+            owner = tx.fetchone("SELECT user_id FROM usage_records WHERE id=?", (usage_id,))
+            if not owner or (user_id is not None and owner["user_id"] != user_id):
+                return False
+            content_retention.assert_user_writable_with_storage(tx, owner["user_id"])
+            suffix = " FOR UPDATE" if tx.postgres else ""
+            row = tx.fetchone("SELECT user_id,fact_observations_json FROM usage_records WHERE id=? AND user_id=?" + suffix,
+                              (usage_id, owner["user_id"]))
+            if not row:
+                return False
+            values = json.loads(row["fact_observations_json"])
+            if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
+                return False
+            if sum(value.get("kind") == "local_step" for value in values) >= 16:
+                return False
+            values.append({"schema": "noteai.local_step.v1", "kind": "local_step",
+                           "step": step, "outcome": outcome, "observation_id": str(uuid.uuid4()),
+                           "persisted_at": _now()})
+            raw = json.dumps(values, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+            if len(raw.encode()) > 65536:
+                return False
+            tx.execute("UPDATE usage_records SET fact_observations_json=? WHERE id=? AND user_id=?",
+                       (raw, usage_id, row["user_id"]))
+        return True
+    except Exception:
+        return False
+
 def upgrade_subscription(user_id: str, tier: str) -> dict:
     _assert_user(user_id, "upgrade")
     if tier not in TIERS:
@@ -1382,24 +1424,32 @@ def get_quota_status(user_id: str) -> dict:
 # ⑩ 用量统计（汇总 + 明细，供前端展示）
 # ─────────────────────────────────────────────────────────────
 
-def get_usage_summary(user_id: str, days: int = 30) -> dict:
+def get_usage_summary(user_id: str, days: int = 30, *, period: str = "rolling_days") -> dict:
     """
     返回两层数据：
     1. 汇总（total_api_cost, total_credits_used, by_operation）
     2. 明细（recent_records，最近50条）
     """
     _assert_user(user_id, "get_usage_summary")
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    window = usage_reporting.reporting_window(period=period, days=days)
+    with db.transaction(write=False) as tx:
+        if tx.postgres:
+            tx.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        return _usage_summary_tx(tx, user_id, window, days)
+
+
+def _usage_summary_tx(tx, user_id, window, days):
+    since, as_of = window["start"], window["as_of"]
 
     # 按操作汇总
-    rows = db.fetchall(
+    rows = tx.fetchall(
         "SELECT operation, COUNT(*) as cnt, "
         "SUM(tokens_in) as total_tokens_in, SUM(tokens_out) as total_tokens_out, "
         "SUM(cost_rmb) as total_cost, SUM(credits_used) as total_credits, "
         "SUM(actual_model_cost_rmb) as actual_model_cost, SUM(model_calls) as model_calls "
-        "FROM usage_records WHERE user_id=? AND recorded_at>=? GROUP BY operation "
+        "FROM usage_records WHERE user_id=? AND recorded_at>=? AND recorded_at<? GROUP BY operation "
         "ORDER BY total_cost DESC",
-        (user_id, since)
+        (user_id, since, as_of)
     )
     by_op = {}
     for r in rows:
@@ -1424,15 +1474,15 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
     total_tokens_out = sum(v["tokens_out"] for v in by_op.values())
 
     # 明细（最近50条）
-    detail_rows = db.fetchall(
+    detail_rows = tx.fetchall(
         "SELECT u.id,u.operation,u.source,u.credits_used,u.cost_rmb,u.tokens_in,u.tokens_out,u.model_calls,u.model_names,u.cost_mode,u.recorded_at,"
         "i.id AS request_id,i.status AS request_status,i.credits_used AS charged_credits,"
         "i.monthly_credits_used,i.wallet_credits_used,"
         "(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=u.id) AS model_detail_count "
         "FROM usage_records u LEFT JOIN idempotency_requests i ON i.usage_id=u.id AND i.user_id=u.user_id "
-        "WHERE u.user_id=? AND u.recorded_at>=? "
+        "WHERE u.user_id=? AND u.recorded_at>=? AND u.recorded_at<? "
         "ORDER BY u.recorded_at DESC LIMIT 50",
-        (user_id, since)
+        (user_id, since, as_of)
     )
     details = []
     for r in detail_rows:
@@ -1469,8 +1519,17 @@ def get_usage_summary(user_id: str, days: int = 30) -> dict:
             "recorded_at": r["recorded_at"],
         })
 
+    report = usage_reporting.project_usage(
+        **usage_reporting.read_reporting_rows(tx, window, user_id=user_id), window=window)
+    subscription = tx.fetchone("SELECT tier,period_start,expires_at FROM subscriptions "
+                               "WHERE user_id=? AND is_active=1 ORDER BY started_at DESC LIMIT 1", (user_id,))
+    for op, value in by_op.items():
+        value.update(report["operation_accounting"].get(op, {}))
     return {
-        "period_days":      days,
+        **report,
+        "subscription_period": usage_reporting.subscription_period(subscription),
+        "period_days":      days if window["kind"] == "rolling_days" else None,
+        "total_api_cost_basis": "legacy_mixed_estimate_and_usage_calculation",
         "total_api_cost":   round(total_cost, 4),
         "total_tokens_in":  int(total_tokens_in),
         "total_tokens_out": int(total_tokens_out),

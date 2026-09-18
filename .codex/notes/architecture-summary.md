@@ -1,3 +1,5 @@
+September19 CURRENT — existing product integrity repair on the original UI/API. Three source-backed helper modules connect retained growth, explicit user preferences and usage/provider/local-step evidence. No new memory framework/schema is planned. H5 functional UI is a separate worktree; root owns API integration/release. Item33/F bindings unchanged. Handoff CURRENT distinguishes code from deployment and live acceptance.
+
 September18 CURRENT — Item32 VERIFIED on original API-F/image6d5/session18f72,
 sourcee7f3345 with8overlays. Actual unique cycle11:30:09–11:30:36UTC:36HTTP(2init+34),
 sixdomains90valid rows, productionDB readonly0writes and full cleanup. Original

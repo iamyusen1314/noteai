@@ -77,6 +77,8 @@ import public_account as _public_account
 import public_product as _public_product
 import ark_media as _ark_media
 import memory as _memory
+import growth_history as _growth_history
+import profile_settings as _profile_settings
 import billing as _billing
 import content_retention as _retention
 import security_redaction as _redaction
@@ -6862,7 +6864,7 @@ def _grade(percentile: float) -> str:
     return "需优化"
 
 
-def _predict(
+def _predict_impl(
     note: NoteInput,
     timing_feats: dict | None = None,
     cover_feats: dict | None = None,
@@ -6938,6 +6940,17 @@ def _predict(
     # still filters through FEATURE_META, but generation quality gates need the
     # semantic / visual / timing values too.
     return score, all_vals
+
+
+def _predict(note, timing_feats=None, cover_feats=None, semantic_feats=None):
+    """Count an actual local scoring execution on its active parent business."""
+    try:
+        result = _predict_impl(note, timing_feats, cover_feats, semantic_feats)
+    except Exception:
+        _billing.record_local_step("local_score", "failed")
+        raise
+    _billing.record_local_step("local_score", "succeeded")
+    return result
 
 
 def _find_weaknesses(features: dict[str, float], domain: str = "") -> list[WeaknessItem]:
@@ -13160,8 +13173,11 @@ async def auth_verification_request(
     user: Optional[dict] = Depends(_auth.get_optional_user),
 ):
     purpose = req.purpose.strip().lower()
-    if _public_account.enabled() and (req.channel != "phone" or purpose not in {"register_phone", "login_phone"}):
-        raise HTTPException(status_code=400, detail="本阶段仅开放手机号注册与登录验证")
+    public_purposes = {"register_phone", "login_phone"}
+    if _public_account.product_enabled():
+        public_purposes.add("password_reset")
+    if _public_account.enabled() and (req.channel != "phone" or purpose not in public_purposes):
+        raise HTTPException(status_code=400, detail="当前仅支持已开放用途的手机验证码；邮箱验证发送尚未接通")
     user_required = purpose == "bind_phone"
     if user_required and not user:
         raise HTTPException(status_code=401, detail="该验证用途需要登录")
@@ -13443,11 +13459,14 @@ def _mask_phone(phone: str) -> str:
 
 @app.put("/auth/avatar")
 async def auth_avatar(body: dict, user: dict = Depends(_auth.get_current_user)):
-    emoji = body.get("emoji", "🌸")
+    try:
+        emoji = _profile_settings.normalize_avatar_emoji(body.get("emoji", "🌸"))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
     with _db.transaction(write=True) as tx:
         _retention.assert_user_writable_with_storage(tx, user["id"])
         tx.execute(
-            "UPDATE users SET avatar_emoji=? WHERE id=?",
+            "UPDATE users SET avatar_emoji=?,avatar_data=NULL WHERE id=?",
             (emoji, user["id"]),
         )
     return {"ok": True, "avatar_emoji": emoji}
@@ -13469,6 +13488,11 @@ async def auth_profile(req: ProfileUpdateInput, user: dict = Depends(_auth.get_c
     """同时更新昵称/emoji头像/图片头像（字段均可选）。"""
     verification_error = None
     try:
+        nickname = _profile_settings.normalize_nickname(req.nickname) if req.nickname is not None else None
+        avatar_emoji = _profile_settings.normalize_avatar_emoji(req.avatar_emoji) if req.avatar_emoji is not None else None
+        avatar_data = _profile_settings.normalize_avatar_data(req.avatar_data) if req.avatar_data is not None else None
+        if avatar_data is not None and avatar_emoji is not None:
+            raise ValueError("请一次选择一种头像")
         with _db.transaction(write=True) as tx:
             _retention.assert_user_writable_with_storage(tx, user["id"])
             verified: list[tuple[str, str]] = []
@@ -13514,9 +13538,6 @@ async def auth_profile(req: ProfileUpdateInput, user: dict = Depends(_auth.get_c
                         challenge_id,
                     )
                 if req.nickname is not None:
-                    nickname = req.nickname.strip()[:20]
-                    if not nickname:
-                        raise ValueError("昵称不能为空")
                     tx.execute(
                         "UPDATE users SET nickname=? WHERE id=?",
                         (nickname, user["id"]),
@@ -13524,16 +13545,12 @@ async def auth_profile(req: ProfileUpdateInput, user: dict = Depends(_auth.get_c
                 if req.avatar_emoji is not None:
                     tx.execute(
                         "UPDATE users SET avatar_emoji=?,avatar_data=NULL WHERE id=?",
-                        (req.avatar_emoji, user["id"]),
+                        (avatar_emoji, user["id"]),
                     )
                 if req.avatar_data is not None:
-                    if not req.avatar_data.startswith("data:image/"):
-                        raise ValueError("avatar_data 必须是 data URL 格式")
-                    if len(req.avatar_data) > 200_000:
-                        raise ValueError("图片太大，请上传 200KB 以内的图片")
                     tx.execute(
                         "UPDATE users SET avatar_data=? WHERE id=?",
-                        (req.avatar_data, user["id"]),
+                        (avatar_data, user["id"]),
                     )
                 if req.phone is not None:
                     _auth.set_verified_phone_with_storage(
@@ -13956,6 +13973,11 @@ def _insert_growth_record_with_storage(
     recorded_at: str | None = None,
     record_id: str | None = None,
 ) -> None:
+    if action not in {"url_track", "url_crawl_3d", "url_crawl_7d"}:
+        return _growth_history.record_saved_note_with_storage(
+            storage, user_id=user_id, note_id=note_id, domain=domain,
+            score=score, grade=grade, action=action,
+            recorded_at=recorded_at, record_id=record_id)
     _assert_api_user_writable(storage, user_id)
     storage.execute(
         "INSERT INTO growth_records("
@@ -13976,7 +13998,7 @@ def _insert_growth_record_with_storage(
 
 def _insert_growth_record(**kwargs: Any) -> None:
     with _api_write_transaction() as tx:
-        _insert_growth_record_with_storage(tx, **kwargs)
+        return _insert_growth_record_with_storage(tx, **kwargs)
 
 
 def _insert_content_with_retention(
@@ -14388,7 +14410,7 @@ def _build_note_version_group_for_root(root_note_id: str | None, user_id: str) -
         "best_score": best.get("score"),
         "best_version": best.get("version"),
         "version_count": len(versions),
-        "score_trend": [round(v["score"], 1) if v.get("score") else None for v in versions],
+        "score_trend": [round(v["score"], 1) if v.get("score") is not None else None for v in versions],
         "versions": versions,
         "latest_at": latest.get("created_at"),
     }
@@ -14408,17 +14430,14 @@ async def save_note(req: SaveNoteInput, user: dict = Depends(_auth.get_current_u
         user["id"],
         created_at=created_at,
     )
-    # 写成长记录
-    if req.score:
-        _insert_growth_record(
-            user_id=user["id"],
-            note_id=nid,
-            domain=req.domain,
-            score=req.score,
-            grade=req.grade,
-            action=req.source,
-        )
-        _memory.check_and_record_achievements(user["id"], req.score, req.source)
+    # Derived history can be projected/repaired from this committed note. Never
+    # tell the user the canonical save failed after it actually succeeded.
+    if req.score is not None:
+        try:
+            _insert_growth_record(user_id=user["id"], note_id=nid, domain=req.domain,
+                score=req.score, grade=req.grade, action=req.source)
+        except Exception as exc:
+            _log_internal_failure("growth", exc, phase="saved_note_projection")
     return {"id": nid, "version": version}
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -14763,7 +14782,7 @@ async def list_notes(
             "best_score":   best.get("score"),
             "best_version": best.get("version"),
             "version_count": len(versions),
-            "score_trend":  [round(v["score"], 1) if v.get("score") else None for v in versions],
+            "score_trend":  [round(v["score"], 1) if v.get("score") is not None else None for v in versions],
             "versions":     versions,
             "latest_at":    latest["created_at"],
         })
@@ -14813,6 +14832,7 @@ async def delete_note(note_id: str, user: dict = Depends(_auth.get_current_user)
                 tx,
                 note_id,
                 user["id"],
+                include_family=False,
             )
             tx.execute("DELETE FROM growth_records WHERE note_id=?", (note_id,))
             tx.execute(
@@ -14836,51 +14856,64 @@ async def delete_note(note_id: str, user: dict = Depends(_auth.get_current_user)
 
 @app.get("/profile/growth")
 async def profile_growth(user: dict = Depends(_auth.get_current_user)):
-    """返回真实成长曲线 + 统计数据。"""
-    rows = _db.fetchall(
-        "SELECT id, note_id, score, grade, domain, action, recorded_at FROM growth_records"
-        " WHERE user_id=? ORDER BY recorded_at ASC",
-        (user["id"],),
-    )
-    records = [dict(r) for r in rows]
+    """Retained user-owned events; reads never fabricate or persist history."""
+    result = _growth_history.project_growth_history(
+        _db, user["id"], is_visible=_retention_visible)
     links = _workflow_note_links(user["id"])
-    for record in records:
-        if not _fetch_user_note(record["note_id"], user["id"]):
-            record["note_id"] = None
+    reports = {(r["report_type"], r["report_id"]): r for r in _workflow_report_rows(user["id"])}
+    for record in result["records"]:
+        note = _fetch_user_note(record["note_id"], user["id"]) if record["note_id"] else None
+        record["note_id"] = note["id"] if note else None
+        record["note_title"] = note["title"] if note else None
+        record["note_version"] = note["version"] if note else None
         record.update(links.get(record["note_id"], _workflow_empty_links()))
+        kind = {"diagnosis": "analyze", "generation": "generate"}.get(record["source_type"])
+        report = reports.get((kind, record["source_id"]))
+        if report:
+            record["note_title"] = record["note_title"] or report.get("note_title")
+            record["report_ref"] = {"report_type": kind, "report_id": report["report_id"], "task_id": report.get("task_id")}
+            if not record["report_refs"]:
+                record["report_refs"] = [record["report_ref"]]
+            record["task_id"] = report.get("task_id")
+    return result
 
-    # 统计
-    scores = [r["score"] for r in records if r["score"]]
-    best = max(scores) if scores else None
-    latest = scores[-1] if scores else None
-    avg = round(sum(scores) / len(scores), 1) if scores else None
-
-    # 品类分布
-    domain_counts: dict = {}
-    for r in records:
-        domain_counts[r["domain"]] = domain_counts.get(r["domain"], 0) + 1
-
-    return {
-        "records": records,
-        "stats": {
-            "total_sessions": len(records),
-            "best_score": best,
-            "latest_score": latest,
-            "avg_score": avg,
-            "domain_distribution": domain_counts,
-        },
-    }
 
 @app.get("/profile/memories")
 async def profile_memories(user: dict = Depends(_auth.get_current_user)):
-    """返回用户记忆列表（用于成长档案展示）。"""
-    memories = _memory.recall(user["id"], limit=30)
-    return {"memories": memories}
+    memories = [m for m in _memory.recall(user["id"], limit=200)
+                if m["memory_type"] in {"style", "preference"}]
+    return {"memories": memories,
+            "preferences": _memory.read_legacy_preference_summary(user["id"])}
+
+
+class MemoryPreferenceUpdate(BaseModel):
+    value: str = Field(min_length=1, max_length=120)
+
+
+@app.patch("/profile/memories/{memory_id}")
+async def profile_memory_update(memory_id: str, req: MemoryPreferenceUpdate,
+                                user: dict = Depends(_auth.get_current_user)):
+    try:
+        memory = _memory.update_preference(user["id"], memory_id, value=req.value)
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from None
+    if memory is None:
+        raise HTTPException(404, detail="偏好不存在或无法编辑")
+    return {"ok": True, "memory": memory}
+
+
+@app.delete("/profile/memories/{memory_id}")
+async def profile_memory_delete(memory_id: str, user: dict = Depends(_auth.get_current_user)):
+    if not _memory.delete_preference(user["id"], memory_id):
+        raise HTTPException(404, detail="偏好不存在或无法删除")
+    return {"ok": True}
+
 
 @app.get("/profile/achievements")
 async def profile_achievements(user: dict = Depends(_auth.get_current_user)):
-    achievements = _memory.recall(user["id"], memory_type="achievement", limit=20)
-    return {"achievements": [m["content"] for m in achievements]}
+    achievements = _memory.recall(user["id"], memory_type="achievement", limit=100)
+    return {"achievements": [m["content"] for m in achievements],
+            "achievement_records": achievements}
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -15728,9 +15761,11 @@ async def billing_plan(user: dict = Depends(_auth.get_current_user)):
     return _billing.get_quota_status(user["id"])
 
 @app.get("/billing/usage")
-async def billing_usage(days: int = 30, user: dict = Depends(_auth.get_current_user)):
+async def billing_usage(days: int = 30, period: str = "rolling_days", user: dict = Depends(_auth.get_current_user)):
     """近 N 天用量汇总。"""
-    return _billing.get_usage_summary(user["id"], days=days)
+    if period not in {"rolling_days", "calendar_month"} or not 1 <= days <= 366:
+        raise HTTPException(400, "用量统计周期无效")
+    return _billing.get_usage_summary(user["id"], days=days, period=period)
 
 @app.get("/billing/quote")
 async def billing_quote(operation: str, has_video: bool = False,
@@ -17377,7 +17412,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time, domain=domain,
             )
             pre_score, pre_feats = _predict(draft_note, timing_feats=timing, cover_feats=cover_feats or None)
-            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain, source_context=brief)
+            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain, source_context="\n\n".join(p for p in (brief, image_desc) if p))
             yield {"type": "pre_score", "score": round(pre_score, 1), "fixes": pre_fix_items[:3], "progress": 58}
         except Exception:
             pass
@@ -17530,7 +17565,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time,
                 timing=timing,
                 cover_feats=cover_feats or None,
-                source_context=brief or "",
+                source_context="\n\n".join(p for p in (brief, image_desc) if p),
                 constraint_context=constraint_context,
             )
             selected_early = early_selection.get("selected") or {}
@@ -17620,7 +17655,7 @@ async def _generate_pipeline_stream(
         if q_round == 2:
             break
 
-        fix_items = _build_fix_instructions(final_feats, _find_weaknesses(final_feats, domain), domain=domain, source_context=brief)
+        fix_items = _build_fix_instructions(final_feats, _find_weaknesses(final_feats, domain), domain=domain, source_context="\n\n".join(p for p in (brief, image_desc) if p))
         repair_items = quality_issues + fix_items
         if not repair_items:
             repair_items = _v04_generation_lift_instructions(final_feats, domain, final_score, brief or "")
@@ -17724,7 +17759,7 @@ async def _generate_pipeline_stream(
             local_time,
             timing=timing,
             cover_feats=cover_feats or None,
-            source_context=brief or "",
+            source_context="\n\n".join(p for p in (brief, image_desc) if p),
             style_hint="流式爆文终稿交付质量二修",
             current_score=final_score,
             current_features=final_feats,
@@ -17792,7 +17827,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time,
                 timing=timing,
                 cover_feats=cover_feats or None,
-                source_context=brief or "",
+                source_context="\n\n".join(p for p in (brief, image_desc) if p),
                 constraint_context=constraint_context,
                 source_corrections=repair_metadata.get("source_corrections"),
             )
@@ -18486,21 +18521,10 @@ def _init_user_learn():
     return
 
 
-def _get_user_learn(user_id: str) -> dict[str, str]:
-    if not _SCHEDULER_AVAILABLE or not user_id:
+def _get_user_learn(user_id: str, domain: str | None = None) -> dict[str, str]:
+    if not user_id:
         return {}
-    try:
-        rows = _db.fetchall(
-            "SELECT pref_key,pref_value FROM user_learn "
-            "WHERE user_id=? ORDER BY confidence DESC",
-            (user_id,),
-        )
-        return _sanitize_chat_preferences({
-            row["pref_key"]: row["pref_value"]
-            for row in rows
-        })
-    except Exception:
-        return {}
+    return _memory.read_preferences(user_id, domain=domain)
 
 
 def _update_user_learn(user_id: str, prefs: dict[str, str]):
@@ -18562,7 +18586,7 @@ def _build_chat_system_prompt(session: dict) -> str:
     title  = session.get("note_title", "")
     body   = session.get("note_body", "")
     score  = session.get("current_score")
-    score_str = f"{score:.1f}分" if score else "未评分"
+    score_str = f"{score:.1f}分" if score is not None else "未评分"
     constraint_section = _user_constraints_brief(
         session.get("user_constraints") or (session.get("generate_context") or {}).get("user_constraints"),
         "对话优化",
@@ -18589,7 +18613,7 @@ def _build_chat_system_prompt(session: dict) -> str:
             parts.append("本次商家确认中的原问题范围仅用于定位；最新完整回答中明确的门店、套餐和适用日期优先。不得用回答时间推断活动日期，历史分析不得覆盖商家的回答。")
 
         # Cover / image analysis
-        cover_analysis = gen_ctx.get("cover_analysis") or gen_ctx.get("image_desc") or ""
+        cover_analysis = "\n\n".join(dict.fromkeys(str(gen_ctx[k]) for k in ("cover_analysis", "image_desc", "video_analysis") if gen_ctx.get(k)))
         if cover_analysis:
             parts.append(f"素材观察（按下述来源区分视频与独立图片）：{cover_analysis}")
 
@@ -18697,40 +18721,8 @@ def _should_use_thinking(user_msg: str) -> bool:
 
 
 def _detect_learning_signal(user_msg: str) -> dict | None:
-    approval_kw = ["好的", "不错", "就这个", "可以", "挺好", "棒", "喜欢", "满意",
-                   "这版好", "就用这个", "很好", "完美", "太好了", "就这样"]
-    rejection_map = {
-        "太广告了": ("tone", "接地气风格"),
-        "不够接地气": ("tone", "接地气风格"),
-        "太正式": ("tone", "接地气风格"),
-        "标题太长": ("title_length", "更短标题"),
-        "标题太短": ("title_length", "信息更完整的标题"),
-        "正文太长": ("body_length", "更短正文"),
-        "正文太短": ("body_length", "信息更完整的正文"),
-        "太多表情": ("emoji", "少用表情"),
-        "表情太多": ("emoji", "少用表情"),
-        "太少表情": ("emoji", "多用表情"),
-        "字数太多": ("body_length", "更短正文"),
-        "太长了": ("body_length", "更短正文"),
-        "太短了": ("body_length", "信息更完整的正文"),
-        "不用疑问句": ("title_style", "陈述句标题"),
-        "不喜欢疑问句": ("title_style", "陈述句标题"),
-    }
-    for kw, (pk, pv) in rejection_map.items():
-        if kw in user_msg:
-            if kw in ("太长了", "太短了") and "标题" in user_msg:
-                pk, pv = ("title_length", "更短标题" if kw == "太长了" else "信息更完整的标题")
-            return {"type": "rejection", "pref_key": pk, "pref_value": pv}
-    # Explicit negative or mixed feedback must not teach the current draft as approved.
-    if re.search(r"不(?:太|是很|怎么|够)?(?:喜欢|满意|可以|好)|不行|不好|但[是]?|不过", user_msg):
-        return None
-    # Polite requests/questions are not approval of either the old or future draft.
-    if re.search(r"[？?]|能否|能不能|可不可以|是否|(?:可以|请|麻烦|帮我|希望).{0,20}(?:改|写|调整|优化|删|合并|分成|生成)", user_msg):
-        return None
-    for kw in approval_kw:
-        if kw in user_msg:
-            return {"type": "approval"}
-    return None
+    preferences = _memory.extract_explicit_preferences(user_msg)
+    return {"type": "explicit_preference", "preferences": preferences} if preferences else None
 
 
 def _extract_note_from_response(text: str) -> tuple[str, str] | None:
@@ -18912,7 +18904,7 @@ def _chat_filter_source_for_turn_contract(source: str, contract: dict | None) ->
 def _chat_fact_source_for_turn(session: dict, contract: dict | None) -> str:
     context = session.get("generate_context") or {}
     facts = session.get("fact_context") or context.get("fact_context") or ""
-    media = context.get("cover_analysis") or context.get("image_desc") or ""
+    media = "\n\n".join(dict.fromkeys(str(context[k]) for k in ("cover_analysis", "image_desc", "video_analysis") if context.get(k)))
     parts = []
     if facts:
         parts.append("【已提供事实与本次商家确认；保留各条来源】\n" + _chat_filter_source_for_turn_contract(facts, contract))
@@ -19393,8 +19385,6 @@ async def _chat_sse_generator(
 
     use_thinking = _should_use_thinking(user_msg)
     signal = None if supplement_values else _detect_learning_signal(user_msg)
-    # Feedback refers to the saved note the user saw, never a not-yet-generated draft.
-    approved_note_title = _chat_approved_saved_title(session, signal)
     turn_contract = _build_chat_turn_constraint_contract(
         user_msg,
         session.get("note_body", ""),
@@ -19403,6 +19393,8 @@ async def _chat_sse_generator(
 
     # This generator runs only after ownership and paid-request replay checks.
     # Refresh on every real turn so restart and in-memory sessions use equal context.
+    session["user_prefs"] = _memory.read_preferences(
+        session.get("user_id") or "", domain=session.get("domain"))
     session["mem_prompt"] = _memory.build_memory_prompt(
         session.get("user_id") or "", domain=session.get("domain")
     )
@@ -19608,8 +19600,8 @@ async def _chat_sse_generator(
             # Growth/memory writes are best-effort follow-up records. A failure
             # here must not hide an already committed canonical note version.
             try:
-                if new_score:
-                    _insert_growth_record(
+                if new_score is not None:
+                    new_ach = _insert_growth_record(
                         user_id=user_id_for_save,
                         note_id=saved_note_id_for_event,
                         domain=session.get("domain", "美食"),
@@ -19621,7 +19613,6 @@ async def _chat_sse_generator(
                         ).isoformat(),
                     )
                     # 成就检测 + 记忆更新
-                    new_ach = _memory.check_and_record_achievements(user_id_for_save, new_score, "chat_optimize")
                     if new_ach:
                         achievement_items = new_ach
                     # 记录上下文记忆（本轮优化摘要）
@@ -19737,29 +19728,22 @@ async def _chat_sse_generator(
             session["messages"].append({"role": "assistant", "content": full_content})
 
     _public_product.assert_result_known()
-    # Handle learning signals
+    # Persist only explicit durable preferences authored by the user. Current
+    # turn instructions already have precedence in the model's user message.
     user_id = session.get("user_id", "")
-    if signal and user_id:
-        if signal["type"] == "rejection":
-            pk, pv = signal["pref_key"], signal["pref_value"]
-            _update_user_learn(user_id, {pk: pv})
-            session.setdefault("user_prefs", {})[pk] = pv
-            # 同步到 user_memories
-            _memory.upsert_style(user_id, pk, pv)
-            yield f"data: {_json.dumps({'type': 'learning', 'message': f'已记录：{pv}', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
-        elif signal["type"] == "approval" and approved_note_title:
-            new_prefs: dict[str, str] = {}
-            cur_title = approved_note_title
-            if "？" in cur_title:
-                new_prefs["title_style"] = "疑问句标题"
-            tl = len(cur_title)
-            if 14 <= tl <= _TITLE_DELIVERY_MAX:
-                new_prefs["title_length"] = f"{tl}字标题"
-            if new_prefs:
-                _update_user_learn(user_id, new_prefs)
-                session.setdefault("user_prefs", {}).update(new_prefs)
-                _memory.sync_from_user_learn(user_id, new_prefs)
-                yield f"data: {_json.dumps({'type': 'learning', 'message': '已记录你喜欢的写作风格', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
+    preferences = [] if supplement_values else _memory.extract_explicit_preferences(
+        user_msg, domain=session.get("domain"))
+    if preferences and user_id:
+        try:
+            saved_preferences = _memory.save_explicit_preferences(
+                user_id, preferences, source_note_id=session.get("_last_note_id") or session.get("note_id"))
+            session["user_prefs"] = _memory.read_preferences(user_id, domain=session.get("domain"))
+        except Exception as exc:
+            _log_internal_failure("memory", exc, phase="explicit_preference_save")
+            yield f"data: {_json.dumps({'type': 'learning', 'status': 'failed', 'message': '本次偏好未能保存；已完成的笔记结果不受影响。'}, ensure_ascii=False)}\n\n"
+        else:
+            if saved_preferences:
+                yield f"data: {_json.dumps({'type': 'learning', 'status': 'saved', 'message': '已保存你明确要求记住的偏好', 'prefs': session['user_prefs']}, ensure_ascii=False)}\n\n"
 
     _public_product.assert_result_known()
     # ── 持久化更新 session ────────────────────────────────────────────
@@ -19887,6 +19871,8 @@ _CHAT_CONTEXT_STRING_FIELDS = frozenset({
     "improvement_plan",
     "report_quality_status",
     "cover_analysis",
+    "video_analysis",
+    "image_desc",
     "content_intent",
     "current_grade",
     "fact_context",
@@ -20449,6 +20435,13 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
             user_id,
             created_at=note_created_at,
         )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _log_internal_failure("chat", exc, phase="select_plan_save")
+        raise HTTPException(status_code=500, detail="保存候选方案失败")
+
+    try:
         if score is not None:
             _insert_growth_record(
                 user_id=user_id,
@@ -20464,11 +20457,8 @@ def _save_chat_plan_option_as_note(session_id: str, session: dict, option: dict,
                 f"选择方案{option.get('id') or ''}保存为v{next_version}：{title[:20]}…，评分{round(score, 1)}分",
                 source_note_id=new_note_id,
             )
-    except HTTPException:
-        raise
     except Exception as exc:
-        _log_internal_failure("chat", exc, phase="select_plan_save")
-        raise HTTPException(status_code=500, detail="保存候选方案失败")
+        _log_internal_failure("growth", exc, phase="selected_note_projection")
 
     session["_last_note_id"] = new_note_id
     session["note_id"] = new_note_id
@@ -20547,7 +20537,7 @@ class ChatSelectPlanInput(BaseModel):
 
 def _saved_note_chat_context(note_row: dict, user_id: str) -> dict:
     """Recover business context only along this owner's selected note ancestry."""
-    source_keys = {"merchant_confirmations", "original_fact_context", "fact_context", "cover_analysis",
+    source_keys = {"merchant_confirmations", "original_fact_context", "fact_context", "cover_analysis", "video_analysis", "image_desc",
                    "pending_fact_update",
         "fact_enrichment", "confirmed_supplement_values", "user_constraints",
         "merchant_visibility", "merchant_name", "fact_source_policy", "content_intent"}
@@ -20588,10 +20578,27 @@ def _saved_note_chat_context(note_row: dict, user_id: str) -> dict:
             # An empty chat opened by an older client must not hide the original
             # confirmed material. No old score, draft, internal prompt or memory.
             if (context.get("merchant_confirmations") or context.get("fact_context") or context.get("cover_analysis")
-                    or context.get("confirmed_supplement_values")):
+                    or context.get("confirmed_supplement_values") or context.get("video_analysis") or context.get("image_desc")):
                 return {**context, **constraint_overlay}
             if context.get("user_constraints") and not constraint_overlay:
                 constraint_overlay = {"user_constraints": context["user_constraints"]}
+        # Ordinary diagnoses may have no clarification/chat session. Recover
+        # only their explicit saved_note_id; never infer a report from its title.
+        for report in _db.fetchall(
+            "SELECT id,diagnosis_json FROM saved_diagnoses WHERE user_id=? AND domain=? ORDER BY created_at DESC",
+            (user_id, note_row["domain"]),
+        ):
+            if not _retention_visible("diagnosis", report["id"], user_id):
+                continue
+            try:
+                data = _json.loads(report["diagnosis_json"] or "{}")
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(data, dict) or (data.get("saved_note_id") or data.get("_saved_note_id")) != note_id:
+                continue
+            context = _sanitize_chat_generate_context({key: data[key] for key in source_keys if key in data})
+            if context:
+                return {**context, **constraint_overlay}
         parent_id = current["parent_id"]
         current = _fetch_user_note(parent_id, user_id) if parent_id else None
     return constraint_overlay
@@ -20703,7 +20710,7 @@ async def chat_start(
         if initial_note_row is not None
         else 1
     )
-    user_prefs = _get_user_learn(effective_user_id) if effective_user_id else {}
+    user_prefs = _get_user_learn(effective_user_id, req.domain) if effective_user_id else {}
 
     # 注入用户记忆（越用越懂你）
     mem_prompt = ""  # Recalled after ownership/entitlement checks on each actual turn.
@@ -21003,7 +21010,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                         "merchant_confirmations": task["answers"], "pending_confirmation": _clarification.pending_confirmation(task),
                         "continuation_session_id": req.session_id, "continuation_version": task["version"]})
                     event["billing"] = _billing.get_charge_receipt(user["id"], claim["operation"], claim["charge"], claim["request_id"])
-                    _clarification.save_result(claim, event)
+                    _clarification.save_result(claim, event, record_growth=_insert_growth_record_with_storage)
                 yield 'data: ' + _json.dumps(event, ensure_ascii=False, default=str) + '\n\n'
         elif prepared["pipeline"] == "analyze":
             original = AnalyzeInput(**prepared["request"])

@@ -35,10 +35,14 @@ EXACT_ROUTES = frozenset({
     ("POST", "/auth/contracts/accept"),
     ("GET", "/billing/tiers"), ("GET", "/billing/plan"),
     ("GET", "/billing/usage"), ("GET", "/billing/credits"), ("GET", "/billing/quote"),
-    ("GET", "/notes"), ("POST", "/notes"),
+    ("GET", "/notes"), ("POST", "/notes"), ("GET", "/notes/tracking"),
+    ("GET", "/account/export"), ("GET", "/account/archive/recovery"),
+    ("POST", "/account/archive/recover"), ("POST", "/auth/sessions/revoke-all"),
+    ("POST", "/auth/password-reset"), ("POST", "/auth/change-password"), ("DELETE", "/account"),
     ("GET", "/diagnoses"), ("GET", "/reports"),
     ("GET", "/profile/growth"), ("GET", "/profile/memories"),
     ("GET", "/profile/achievements"),
+    ("PUT", "/auth/profile"), ("PATCH", "/auth/profile"), ("PUT", "/auth/avatar"),
     ("POST", "/analyze/stream"), ("POST", "/generate/stream"),
     ("POST", "/chat/start"), ("POST", "/chat/message"),
     ("POST", "/chat/select-plan"),
@@ -79,6 +83,8 @@ def wechat_configured(*, callback: bool = False) -> bool:
 
 
 def allowed_route(method: str, path: str) -> bool:
+    if method in {"PATCH", "DELETE"} and re.fullmatch(r"/profile/memories/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
+        return True
     if method == "GET" and re.fullmatch(r"/reports/(?:analyze|generate)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})", path):
         return True
     if method == "GET" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
@@ -99,6 +105,8 @@ def allowed_route(method: str, path: str) -> bool:
             return True
         if method == "GET" and re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
             return True
+    if method == "DELETE" and re.fullmatch(r"/(?:notes|diagnoses)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})", path):
+        return True
     return method == "GET" and bool(re.fullmatch(
         r"/(?:notes|diagnoses)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})(?:/versions)?", path
     ))
@@ -133,7 +141,7 @@ async def authenticated_user(scope):
     user = await run_in_threadpool(auth.get_current_user,
         HTTPAuthorizationCredentials(scheme="Bearer", credentials=token[7:]))
     if not user.get("phone_verified_at"):
-        raise HTTPException(403, "免费试用需要已验证手机号")
+        raise HTTPException(403, "请先验证本人手机号")
     consent = await run_in_threadpool(db.fetchone,
         "SELECT user_id FROM user_contract_acceptances WHERE user_id=? AND contract_version=?",
         (user["id"], CONTRACT_VERSION))
@@ -227,7 +235,7 @@ def _persist_fact_observation(observation, observation_id):
             raise RuntimeError("FACT_USAGE_METADATA_INVALID")
         prior = next((i for i, value in enumerate(rows) if value.get("observation_id") == observation_id), None)
         if prior is None:
-            if len(rows) >= 32:
+            if sum(value.get("kind") != "local_step" for value in rows) >= 32:
                 raise RuntimeError("FACT_USAGE_OBSERVATION_LIMIT")
             rows.append(row_value)
         else:

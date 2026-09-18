@@ -42,6 +42,7 @@ import admin_entitlements as _admin_entitlements
 import admin_prompts as _admin_prompts
 import admin_auth as _aauth
 import billing as _billing
+import usage_reporting as _usage_reporting
 import content_retention as _retention
 import runtime_settings as _settings
 import security_redaction as _redaction
@@ -290,9 +291,20 @@ async def _fetch_api_ai_readiness() -> dict:
     return result
 
 
-def _model_cost_audit_payload(since: str) -> dict:
+def _model_cost_audit_payload(since: str, *, window: dict | None = None) -> dict:
     """Return model/cache totals and strict parent-record coverage."""
-    model_rows = db.fetchall(
+    now = datetime.now(timezone.utc)
+    window = dict(window) if window is not None else _usage_reporting.reporting_window(period="calendar_month", now=now)
+    if since != window["start"]:
+        window.update(kind="explicit_utc_start", start=since)
+    with db.transaction(write=False) as tx:
+        if tx.postgres:
+            tx.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        return _model_cost_audit_tx(tx, since, window)
+
+
+def _model_cost_audit_tx(tx, since, window):
+    model_rows = tx.fetchall(
         "SELECT m.provider,m.model,m.price_currency,m.price_version,COUNT(*) AS calls,"
         "COALESCE(SUM(m.input_tokens),0) AS input_tokens,"
         "COALESCE(SUM(m.unclassified_input_tokens),0) AS unclassified_input_tokens,"
@@ -305,12 +317,12 @@ def _model_cost_audit_payload(since: str) -> dict:
         "COALESCE(SUM(CASE WHEN m.pricing_status='exact' THEN 0 ELSE 1 END),0) AS pricing_gaps,"
         "COALESCE(SUM(CASE WHEN m.usage_status='complete' THEN 0 ELSE 1 END),0) AS usage_gaps "
         "FROM model_usage_records m JOIN usage_records r ON r.id=m.usage_record_id "
-        "WHERE r.recorded_at>=? "
+        "WHERE r.recorded_at>=? AND r.recorded_at<? "
         "GROUP BY m.provider,m.model,m.price_currency,m.price_version "
         "ORDER BY known_cost_rmb DESC,m.provider,m.model",
-        (since,),
+        (since, window["as_of"]),
     )
-    parent = db.fetchone(
+    parent = tx.fetchone(
         "SELECT COUNT(*) AS total_records,"
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='actual' THEN 1 ELSE 0 END),0) AS strict_actual_records,"
         "COALESCE(SUM(CASE WHEN child_count=0 AND cost_mode!='included_in_parent' THEN 1 ELSE 0 END),0) AS legacy_unverifiable_records,"
@@ -319,8 +331,8 @@ def _model_cost_audit_payload(since: str) -> dict:
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='unpriced' THEN 1 ELSE 0 END),0) AS unpriced_records,"
         "COALESCE(SUM(CASE WHEN child_count>0 AND cost_mode='usage_incomplete' THEN 1 ELSE 0 END),0) AS usage_incomplete_records "
         "FROM (SELECT r.id,r.cost_mode,(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=r.id) AS child_count "
-        "FROM usage_records r WHERE r.recorded_at>=?) audited",
-        (since,),
+        "FROM usage_records r WHERE r.recorded_at>=? AND r.recorded_at<?) audited",
+        (since, window["as_of"]),
     )
     total = int(parent["total_records"] or 0)
     strict = int(parent["strict_actual_records"] or 0)
@@ -353,7 +365,17 @@ def _model_cost_audit_payload(since: str) -> dict:
         "pricing_complete": int(row["pricing_gaps"] or 0) == 0,
         "usage_complete": int(row["usage_gaps"] or 0) == 0,
     } for row in model_rows]
+    report = _usage_reporting.project_usage(
+        **_usage_reporting.read_reporting_rows(tx, window), window=window)
+    # Preserve legacy model coverage fields. Explicit unresolved reservations
+    # must nevertheless veto an apparently complete earlier model subtotal.
+    physical = report["accounting"]["physical"]
+    if any(physical[key] for key in ("unknown", "in_flight", "usage_missing", "state_unrecognized")):
+        coverage["actual_margin_ready"] = False
     return {
+        "window": report["window"],
+        "accounting": report["accounting"],
+        "operation_accounting": report["operation_accounting"],
         "by_model": by_model,
         "cache": {
             "read_tokens": sum(item["cache_read_tokens"] + item["audio_cache_read_tokens"] for item in by_model),
@@ -552,6 +574,9 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
             "mrr_basis":       "not_applicable_no_auto_renewal",
         },
         "usage": {
+            "window": audit["window"],
+            "accounting": audit["accounting"],
+            "operation_accounting": audit["operation_accounting"],
             "month_total_cost": api_cost,
             "month_tokens_in":  month_tokens_in,
             "month_tokens_out": month_tokens_out,
@@ -1126,41 +1151,45 @@ async def admin_revenue(days: int = 30, admin: dict = Depends(_aauth.get_admin_u
     }
 
 
-def build_usage_stats_payload(days: int = 30) -> dict:
+def build_usage_stats_payload(days: int = 30, *, period: str = "rolling_days") -> dict:
     """Build the admin usage payload from the same billing rows shown to users."""
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    window = _usage_reporting.reporting_window(period=period, days=days)
+    since = window["start"]
 
     # 按操作类型汇总
     op_rows = db.fetchall(
         "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
         "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
-        "FROM usage_records WHERE recorded_at>=? GROUP BY operation ORDER BY cost DESC",
-        (since,))
+        "FROM usage_records WHERE recorded_at>=? AND recorded_at<? GROUP BY operation ORDER BY cost DESC",
+        (since, window["as_of"]))
 
     # Top10 用户（按成本）
     top_users = db.fetchall(
         "SELECT u.username, r.user_id, COUNT(*) as ops, SUM(r.cost_rmb) as cost, "
         "SUM(r.tokens_in) as tokens_in, SUM(r.tokens_out) as tokens_out "
         "FROM usage_records r JOIN users u ON r.user_id=u.id "
-        "WHERE r.recorded_at>=? GROUP BY r.user_id,u.username ORDER BY cost DESC LIMIT 10",
-        (since,))
+        "WHERE r.recorded_at>=? AND r.recorded_at<? GROUP BY r.user_id,u.username ORDER BY cost DESC LIMIT 10",
+        (since, window["as_of"]))
 
     # 每日操作量
     daily = db.fetchall(
         "SELECT DATE(recorded_at) as day, COUNT(*) as ops, SUM(cost_rmb) as cost, "
         "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
-        "FROM usage_records WHERE recorded_at>=? GROUP BY day ORDER BY day",
-        (since,))
+        "FROM usage_records WHERE recorded_at>=? AND recorded_at<? GROUP BY day ORDER BY day",
+        (since, window["as_of"]))
 
     # 各来源分布（subscription / credits / free）
     source_rows = db.fetchall(
         "SELECT source, COUNT(*) as cnt, SUM(cost_rmb) as cost, "
         "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out "
-        "FROM usage_records WHERE recorded_at>=? GROUP BY source",
-        (since,))
+        "FROM usage_records WHERE recorded_at>=? AND recorded_at<? GROUP BY source",
+        (since, window["as_of"]))
 
-    audit = _model_cost_audit_payload(since)
+    audit = _model_cost_audit_payload(since, window=window)
     return {
+        "window": {**audit["window"], "kind": window["kind"]},
+        "accounting": audit["accounting"],
+        "operation_accounting": audit["operation_accounting"],
         "by_operation": [{"op": r["operation"],
                            "label": _billing.OPERATIONS.get(r["operation"], {}).get("label", r["operation"]),
                            "count": r["cnt"],
@@ -1185,9 +1214,12 @@ def build_usage_stats_payload(days: int = 30) -> dict:
 
 
 @admin_app.get("/admin/usage-stats")
-async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_admin_user)):
+async def admin_usage_stats(days: int = 30, admin: dict = Depends(_aauth.get_admin_user), period: str = "calendar_month"):
     """用量分析。"""
-    return build_usage_stats_payload(days)
+    try:
+        return build_usage_stats_payload(days, period=period)
+    except ValueError:
+        raise HTTPException(400, detail="无效用量统计周期") from None
 
 
 @admin_app.get("/admin/ai-operations")

@@ -261,17 +261,21 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         api._shape_body_for_delivery = AsyncMock(side_effect=lambda t,b,*a,**kw:b)
         for uid, domain, marker in [('u1','美食','餐饮本人偏好尾部'), ('u2','美妆','美妆另一用户偏好')]:
             api._db = _FakeDB(); self._install_session()
-            api._chat_sessions['s1'].update(user_id=uid, domain=domain, user_prefs={'tone':uid+'语气'})
-            with patch.object(api._memory, 'build_memory_prompt', return_value=marker) as recall:
+            api._chat_sessions['s1'].update(user_id=uid, domain=domain, user_prefs={'tone':'过期缓存偏好'})
+            with patch.object(api._memory, 'build_memory_prompt', return_value=marker) as recall, \
+                 patch.object(api._memory, 'read_preferences', side_effect=lambda user_id, **kw: {'tone':user_id+'语气'}) as preferences:
                 self._events('请合并成3个自然段')
                 recall.assert_called_once_with(uid, domain=domain)
+                preferences.assert_called_once_with(uid, domain=domain)
             self.assertIn(marker, captured[-1]['system'])
             self.assertIn(uid+'语气', captured[-1]['system'])
+            self.assertNotIn('过期缓存偏好', captured[-1]['system'])
             self.assertIn(marker, api._shape_body_for_delivery.call_args.kwargs['memory_context'])
             self.assertNotIn(marker, api._shape_body_for_delivery.call_args.args[3])
         self.assertNotIn('餐饮本人偏好尾部',captured[-1]['system'])
+        self.assertNotIn('u1语气',captured[-1]['system'])
 
-    def test_approval_learns_only_the_existing_note_not_a_future_draft(self):
+    def test_approval_alone_cannot_teach_a_long_term_preference(self):
         api._db = _FakeDB(); self._install_session()
         original = '这是一条用户已经看到的陈述标题'
         api._chat_sessions['s1']['note_title'] = original
@@ -282,11 +286,15 @@ class ChatDeliveryConsistencyTests(unittest.TestCase):
         api._sanitize_title_for_delivery = lambda t,*a:t
         api._repair_chat_note_if_needed = AsyncMock(side_effect=lambda t,b,*a:(t,b,None,{},'',[],False))
         with patch.object(api, '_update_user_learn') as learn, \
-             patch.object(api._memory, 'sync_from_user_learn'), \
+             patch.object(api._memory, 'save_explicit_preferences') as save, \
+             patch.object(api._memory, 'sync_from_user_learn') as sync, \
              patch.object(api, '_fetch_user_note', return_value={
                  'title':original,'body':api._chat_sessions['s1']['note_body']}):
-            self._events('这版不错')
-        learn.assert_called_once_with('u1', {'title_length':f'{len(original)}字标题'})
+            events = self._events('这版不错')
+        learn.assert_not_called()
+        save.assert_not_called()
+        sync.assert_not_called()
+        self.assertFalse(any(event.get('type') == 'learning' for event in events))
 
     def test_unconfirmed_saved_note_cannot_teach_approval(self):
         session = {'user_id':'u1','note_id':'bound-note','note_version':999,

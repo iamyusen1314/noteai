@@ -408,11 +408,14 @@ class PublicProductTests(unittest.TestCase):
         self.assertEqual(plan.status_code,200,plan.text)
         self.assertIn('12',plan.text)
         for method,path in [('POST','/payments/orders'),('POST','/billing/topup'),
-                            ('GET','/notes/tracking'),('POST','/notes/track-url'),
+                            ('POST','/notes/track-url'),
                             ('GET','/admin'),('POST','/auth/register'),
                             ('POST','/quick-diagnose'),('GET','/notes/tracking/versions')]:
             with self.subTest(path=path):
                 self.assertEqual(self.client.request(method,path,json={}).status_code,404)
+        tracking = self.client.get('/notes/tracking')
+        self.assertEqual(tracking.status_code, 200)
+        self.assertEqual(tracking.json(), {'notes': []})
         no_id = self.client.post('/generate/stream',json={'fact_source_policy':'skip'})
         self.assertEqual(no_id.status_code,400)
         denied_media = self.client.post('/analyze/stream',headers={'X-Request-ID':'media-test-123'},

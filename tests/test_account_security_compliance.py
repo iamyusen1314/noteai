@@ -2074,7 +2074,7 @@ class AccountSecurityComplianceTests(unittest.TestCase):
             "tone",
         )
 
-    def test_note_delete_removes_version_chain_chat_and_context_copies(self):
+    def test_note_delete_removes_only_selected_version_chat_and_context_copies(self):
         user = self._create_user()
         login = self._login()
         now = datetime.now(timezone.utc).isoformat()
@@ -2090,28 +2090,37 @@ class AccountSecurityComplianceTests(unittest.TestCase):
                 user["id"],
                 created_at=now,
             )
-        db.execute(
-            "INSERT INTO chat_sessions("
-            "id,user_id,note_id,messages_json,created_at,updated_at"
-            ") VALUES(?,?,?,?,?,?)",
-            ("chain-chat", user["id"], "child-note", "[]", now, now),
-        )
-        memory.add_context(
-            user["id"],
-            "linked summary",
-            source_note_id="child-note",
-        )
+        for session_id, note_id in (("root-chat", "root-note"), ("child-chat", "child-note")):
+            db.execute(
+                "INSERT INTO chat_sessions("
+                "id,user_id,note_id,messages_json,created_at,updated_at"
+                ") VALUES(?,?,?,?,?,?)",
+                (session_id, user["id"], note_id, "[]", now, now),
+            )
+            memory.add_context(
+                user["id"],
+                note_id + " linked summary",
+                source_note_id=note_id,
+            )
         response = self.client.delete(
             "/notes/root-note",
             headers={"Authorization": f"Bearer {login['token']}"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(db.fetchone(
-            "SELECT id FROM chat_sessions WHERE id='chain-chat'"
+            "SELECT id FROM chat_sessions WHERE id='root-chat'"
         ))
         self.assertIsNone(db.fetchone(
+            "SELECT id FROM user_memories WHERE source_note_id='root-note'"
+        ))
+        self.assertIsNotNone(db.fetchone(
+            "SELECT id FROM chat_sessions WHERE id='child-chat'"
+        ))
+        self.assertIsNotNone(db.fetchone(
             "SELECT id FROM user_memories WHERE source_note_id='child-note'"
         ))
+        self.assertFalse(content_retention.is_visible("note", "root-note", user["id"]))
+        self.assertTrue(content_retention.is_visible("note", "child-note", user["id"]))
 
     def test_deletion_write_fence_blocks_followup_records(self):
         user = self._create_user()

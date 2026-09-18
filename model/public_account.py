@@ -60,6 +60,7 @@ def service_status() -> dict:
         "free_monthly_credits": 12,
         "fast_chat_credits": 1 if product_enabled() else 0,
         "tracking_open": False,
+        "tracking_read_open": product_enabled(),
         "suppliers": public_product.public_services() if product_enabled() else [],
         "contract_version": contract_version(),
         "support_phone": "18988528731",
@@ -112,7 +113,7 @@ class PublicAccountBoundary:
         )
         if not allowed or scope.get("raw_path", path.encode()) != path.encode():
             return await reject(404, "本阶段未开放此功能")
-        if method == "POST":
+        if method in {"POST", "PUT", "PATCH", "DELETE"}:
             origins = {v for v in os.environ.get("NOTEAI_PUBLIC_ORIGINS", "").split(",") if v}
             origin = headers.get(b"origin", b"").decode("latin1")
             # Public browser writes must originate from the actual HTTPS website.
@@ -142,7 +143,7 @@ class PublicAccountBoundary:
                     return message
                 async with self.media_slots:
                     return await public_product.dispatch(self.app, scope, upload_receive, send, b"", authenticated=authenticated)
-            if headers.get(b"content-type", b"").split(b";", 1)[0].strip() != b"application/json":
+            if method != "DELETE" and headers.get(b"content-type", b"").split(b";", 1)[0].strip() != b"application/json":
                 return await reject(415, "请求格式必须为JSON")
             if media_json:
                 request_id = headers.get(b"x-request-id", b"")
@@ -156,7 +157,7 @@ class PublicAccountBoundary:
                     if message["type"] == "http.disconnect":
                         return
                     body.extend(message.get("body", b""))
-                    if len(body) > (128 * 1024 * 1024 if media_json else (65536 if product_enabled() and not path.startswith("/auth/") else 8192)):
+                    if len(body) > (128 * 1024 * 1024 if media_json else (210000 if path == "/auth/profile" else (65536 if product_enabled() and not path.startswith("/auth/") else 8192))):
                         return await reject(413, "请求过大")
                     if not message.get("more_body", False):
                         break

@@ -319,7 +319,7 @@ input,select,textarea{font-family:inherit}
     <div class="card-grid card-grid-3" id="revenue-stats" style="margin-bottom:20px">
       <div class="stat-card"><div class="stat-label">订阅确认净现金</div><div class="stat-val" id="r-sub" style="color:var(--success)">–</div><div class="stat-sub" id="r-sub-note">仅来自不可变支付现金账本；不按有效套餐人数推算。</div></div>
       <div class="stat-card"><div class="stat-label">积分包确认净现金</div><div class="stat-val" id="r-credits" style="color:var(--info)">–</div></div>
-      <div class="stat-card"><div class="stat-label">综合毛利率（最近30日）</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
+      <div class="stat-card"><div class="stat-label">模型计量差额率（最近30日，未结算）</div><div class="stat-val" id="r-margin" style="color:var(--accent)">–</div></div>
     </div>
     <div class="card" id="revenue-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2">
@@ -332,14 +332,14 @@ input,select,textarea{font-family:inherit}
   <div class="content-area page" id="page-usage">
     <div class="card" id="usage-cost-audit" style="margin-bottom:20px"></div>
     <div class="card-grid card-grid-2" style="margin-bottom:20px">
-      <div class="card"><div class="section-title">各操作调用量（近30天）</div><div id="usage-ops-chart" class="chart-box"></div></div>
-      <div class="card"><div class="section-title">每日操作趋势</div><div id="usage-daily-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">各操作用量记录（UTC自然月）</div><div id="usage-ops-chart" class="chart-box"></div></div>
+      <div class="card"><div class="section-title">每日用量记录趋势（UTC自然月）</div><div id="usage-daily-chart" class="chart-box"></div></div>
     </div>
     <div class="card-grid card-grid-2">
       <div class="card">
         <div class="section-title">高消耗用户 Top10</div>
         <table class="data-table">
-          <thead><tr><th>#</th><th>用户名</th><th>操作次数</th><th>Tokens</th><th>API成本</th></tr></thead>
+          <thead><tr><th>#</th><th>用户名</th><th>用量记录</th><th>已记录 Tokens</th><th>旧口径估算/计量金额</th></tr></thead>
           <tbody id="top-users-tbody"></tbody>
         </table>
       </div>
@@ -757,7 +757,20 @@ function adminIsNonNegativeInteger(value) {
     && value >= 0;
 }
 
-function adminCostCoverage(rawCoverage) {
+function adminKnownCount(value) {
+  return adminIsNonNegativeInteger(value) ? String(value) : '待核实';
+}
+
+function adminKnownMoney(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? `¥${value.toFixed(4)}` : '待核实';
+}
+
+function adminKnownTokens(value) {
+  return adminIsNonNegativeInteger(value) ? fmtTokens(value) : '待核实';
+}
+
+function adminCostCoverage(rawCoverage, accounting = null) {
   const source = rawCoverage && typeof rawCoverage === 'object' && !Array.isArray(rawCoverage)
     ? rawCoverage : null;
   const countFields = [
@@ -792,7 +805,8 @@ function adminCostCoverage(rawCoverage) {
       legacy:0, partial:0, unpriced:0, usageIncomplete:0,
     };
   }
-  const ready = source.actual_margin_ready === true && strict > 0 && strict + included === total;
+  const ready = source.actual_margin_ready === true && strict > 0 && strict + included === total
+    && accounting?.cost?.complete === true;
   return {
     state: total === 0 ? 'empty' : (ready ? 'complete' : 'incomplete'),
     ready,
@@ -826,7 +840,7 @@ function adminCoverageCountsText(coverage, includeAllCategories = true) {
 
 const ADMIN_COST_COVERAGE_EXPLANATION =
   '严格实际 = 具备完整逐模型用量与价格证据的操作记录；' +
-  '历史不可复算 = 逐模型成本审计上线前、缺少完整明细的操作记录，系统不会伪造回填。';
+  '历史不可复算 = 逐模型成本审计上线前、缺少完整明细的操作记录，系统不会伪造回填。供应商实付与全部平台成本尚未核对，不能据此宣称实际毛利。';
 
 function adminCoverageHeadline(coverage, periodLabel, completeText, incompleteText) {
   if (coverage.state === 'unavailable') {
@@ -865,7 +879,7 @@ const ADMIN_LEDGER_SOURCE_LABELS = Object.freeze({
   free:'免费', refunded:'已退款',
 });
 const ADMIN_LEDGER_COST_MODE_LABELS = Object.freeze({
-  actual:'实际成本（以覆盖审计为准）', partial:'部分计价成本', unpriced:'未计价成本',
+  actual:'旧模型计量金额（不证明本条请求完整结算）', partial:'部分计价成本', unpriced:'未计价成本',
   usage_incomplete:'用量不完整', estimated:'估算成本',
   included_in_parent:'附加事件：成本计入主任务，不另计费',
   legacy_unverifiable_actual:'历史不可复算成本',
@@ -941,7 +955,7 @@ function renderAdminUsageLedger(rows) {
     const tokensOut = Math.max(0, Math.round(adminLedgerNumber(row?.tokens_out)));
     const modelCalls = Math.max(0, Math.round(adminLedgerNumber(row?.model_calls)));
     const credits = Math.max(0, adminLedgerNumber(row?.credits_used));
-    const cost = Math.max(0, adminLedgerNumber(row?.cost_rmb));
+    const cost = adminKnownMoney(row?.cost_rmb);
     const models = String(row?.model_names || '').trim() || '无模型明细';
     return `<tr>
       <td style="white-space:nowrap">${esc(adminLedgerTime(row?.recorded_at))}</td>
@@ -949,7 +963,7 @@ function renderAdminUsageLedger(rows) {
       <td>${esc(models)}<div style="font-size:11px;color:var(--text-muted)">${modelCalls} 次模型调用</div></td>
       <td>${fmtTokens(tokensIn + tokensOut)}<div style="font-size:11px;color:var(--text-muted)">入 ${fmtTokens(tokensIn)} / 出 ${fmtTokens(tokensOut)}</div></td>
       <td style="white-space:nowrap">总计费 ${credits.toFixed(1)} 积分</td>
-      <td style="white-space:nowrap">¥${cost.toFixed(4)}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
+      <td style="white-space:nowrap">旧记录金额 ${cost}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
     </tr><tr><td colspan="6"><details><summary>查看本次调用、Prompt 版本与成本依据</summary>${renderAdminCallDetails(row?.call_details)}</details></td></tr>`;
   }).join('');
 }
@@ -1004,7 +1018,7 @@ async function loadDashboard() {
   const r = await aFetch('/admin/overview');
   const d = await r.json();
   const u = d.users, f = d.finance, s = d.system;
-  const coverage = adminCostCoverage(f.coverage);
+  const coverage = adminCostCoverage(f.coverage, d.usage?.accounting);
   document.getElementById('d-total-users').textContent = u.total.toLocaleString();
   document.getElementById('d-today-new').textContent   = `今日新增 ${u.today_new}`;
   document.getElementById('d-revenue').textContent     = `¥${f.total_revenue.toLocaleString()}`;
@@ -1023,7 +1037,7 @@ async function loadDashboard() {
       `本月暂无用量记录，无法计算实际毛利 · ${fmtTokens(f.total_tokens)} tokens`;
   } else if (coverage.ready) {
     document.getElementById('d-margin').textContent =
-      `实际毛利 ${adminFiniteNumber(f.margin_pct).toFixed(1)}% · 本月${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
+      `模型计量差额率（未结算） ${adminFiniteNumber(f.margin_pct).toFixed(1)}% · 本月${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
   } else {
     document.getElementById('d-margin').textContent =
       `本月成本覆盖不完整，毛利仅供参考 · ${dashboardCoverage} · ${fmtTokens(f.total_tokens)} tokens`;
@@ -1312,7 +1326,7 @@ async function confirmEntitlement() {
 async function loadRevenue() {
   const r = await aFetch('/admin/revenue');
   const d = await r.json();
-  const coverage = adminCostCoverage(d.coverage);
+  const coverage = adminCostCoverage(d.coverage, d.accounting);
   const dailyCash = Array.isArray(d.daily_cash) ? d.daily_cash : [];
   const dailyApiCost = Array.isArray(d.daily_api_cost) ? d.daily_api_cost : [];
   const subRevenue = adminFiniteNumber(d.subscription_net_cash);
@@ -1333,7 +1347,7 @@ async function loadRevenue() {
   const revenueHeadline = adminCoverageHeadline(
     coverage,
     '最近30日',
-    '可按实际成本口径查看毛利',
+    '仅为模型计量口径，供应商账单与平台总成本仍待核对',
     '不可宣称实际毛利',
   );
   const revenueCounts = adminCoverageCountsText(coverage);
@@ -1346,40 +1360,55 @@ async function loadRevenue() {
   _renderLineChart('cost-chart', dailyApiCost.map(row=>String(row?.day||'')), dailyApiCost.map(row=>adminFiniteNumber(row?.cost)), 'API成本(¥)', '#F59E0B');
 }
 
+function adminAccountingSummary(accounting, window) {
+  if (!accounting || !window) return '详细用量证据暂不可用';
+  const n = adminKnownCount, money = adminKnownMoney;
+  const a = accounting, c = a.cost || {};
+  const period = window.timezone !== 'UTC' ? '统计时区待核实' : window.kind === 'calendar_month' ? 'UTC自然月' : window.kind === 'rolling_days' ? 'UTC滚动周期' : 'UTC统计周期待核实';
+  return `统计 ${esc(window.start || '待核实')} 至 ${esc(window.as_of || '待核实')}（${period}，按业务记录开始时间）<br/>` +
+    `业务记录 ${n(a.business?.recorded)} 条 · 已完成 ${n(a.business?.completed)} · 失败 ${n(a.business?.failed)} · 等待补充 ${n(a.business?.waiting_for_input)} · 状态未记录 ${n(a.business?.status_unknown)}<br/>` +
+    `逐模型用量 ${n(a.models?.usage_records)} 条 · 供应商请求预留 ${n(a.physical?.recorded)} 条（不等于实际 HTTP 次数）<br/>` +
+    `已记录请求：结果未知 ${n(a.physical?.unknown)} · 进行中 ${n(a.physical?.in_flight)} · 用量缺失 ${n(a.physical?.usage_missing)}<br/>` +
+    `本地步骤：${a.local_steps?.status === 'not_recorded' ? '历史没有步骤明细' : '仅统计已有执行记录，不能代表缺失的历史'}<br/>` +
+    `已知模型计量成本 ${money(c.known_calculated_rmb)} · 手工记录 ${money(c.manual_cost_rmb)} · 仅估算 ${money(c.estimated_only_rmb)} · 未知 ${n(c.unknown_records)} 条 · 供应商实付 ${money(c.supplier_bill_paid_rmb)} · 平台总成本 ${money(c.platform_total_rmb)}`;
+}
+
+function adminUsageTooltip(op) {
+  return `${esc(op?.label || '')}<br/>用量记录：${adminKnownCount(op?.count)} 条<br/>已记录 Tokens：${adminKnownTokens(op?.total_tokens)}<br/>旧口径估算/计量合计：${adminKnownMoney(op?.cost)}（非供应商账单）`;
+}
+
 /* ── Usage ────────────────────────────────────────────────────────── */
 async function loadUsage() {
   const auditEl = document.getElementById('usage-cost-audit');
   try {
-  const r = await aFetch('/admin/usage-stats');
+  const r = await aFetch('/admin/usage-stats?period=calendar_month');
   if (!r.ok) throw new Error('usage stats request failed');
   const d = await r.json();
-  const coverage = adminCostCoverage(d.coverage);
+  const coverage = adminCostCoverage(d.coverage, d.accounting);
   const usageHeadline = adminCoverageHeadline(
     coverage,
-    '最近30日',
-    '可使用实际毛利',
+    'UTC自然月',
+    '仅为模型计量口径，非结算费用',
     '不可宣称实际毛利',
   );
   const usageCounts = adminCoverageCountsText(coverage);
   const byModel = Array.isArray(d.by_model) ? d.by_model : [];
   const modelSummary = byModel.map(model => {
-    const tokens = adminFiniteNumber(model?.input_tokens)
-      + adminFiniteNumber(model?.cache_read_tokens)
-      + adminFiniteNumber(model?.cache_write_tokens)
-      + adminFiniteNumber(model?.unclassified_input_tokens)
-      + adminFiniteNumber(model?.audio_input_tokens)
-      + adminFiniteNumber(model?.audio_cache_read_tokens)
-      + adminFiniteNumber(model?.output_tokens);
-    return `${esc(model?.model || '未知模型')} ${fmtTokens(tokens)} / ¥${adminFiniteNumber(model?.known_cost_rmb).toFixed(4)}`;
+    const tokenParts = ['input_tokens', 'cache_read_tokens', 'cache_write_tokens',
+      'unclassified_input_tokens', 'audio_input_tokens', 'audio_cache_read_tokens', 'output_tokens'].map(key => model?.[key]);
+    const tokens = tokenParts.every(adminIsNonNegativeInteger)
+      ? tokenParts.reduce((sum, value) => sum + value, 0) : null;
+    return `${esc(model?.model || '未知模型')} 已记录 ${adminKnownTokens(tokens)} tokens / 已知计量 ${adminKnownMoney(model?.known_cost_rmb)}`;
   }).join('；') || '暂无逐模型明细';
   auditEl.innerHTML = `
-    <div class="section-title">最近30日模型成本审计覆盖</div>
+    <div class="section-title">UTC自然月模型用量与成本证据</div>
     <div style="font-size:13px;color:${coverage.ready?'var(--success)':'var(--warning)'}">${usageHeadline}</div>
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
       ${usageCounts ? `${usageCounts}<br/>` : ''}
       ${ADMIN_COST_COVERAGE_EXPLANATION}<br/>
+      ${adminAccountingSummary(d.accounting, d.window)}<br/>
       模型：${modelSummary}<br/>
-      缓存读取 ${fmtTokens(d.cache?.read_tokens)} · 缓存写入 ${fmtTokens(d.cache?.write_tokens)}
+      已记录缓存读取 ${adminKnownTokens(d.cache?.read_tokens)} · 已记录缓存写入 ${adminKnownTokens(d.cache?.write_tokens)}
     </div>`;
   const opsChart = echarts.init(document.getElementById('usage-ops-chart'));
   opsChart.setOption({
@@ -1388,16 +1417,16 @@ async function loadUsage() {
       formatter: params => {
         const idx = params?.[0]?.dataIndex ?? 0;
         const op = d.by_operation[idx] || {};
-        return `${op.label || ''}<br/>调用：${op.count || 0} 次<br/>Tokens：${fmtTokens(op.total_tokens || 0)}<br/>成本：¥${(op.cost || 0).toFixed(4)}`;
+        return adminUsageTooltip(op);
       }},
     xAxis:{type:'category',data:d.by_operation.map(o=>o.label),axisLabel:{fontSize:10,color:'#A0A0B8',rotate:30}},
     yAxis:{type:'value',axisLabel:{fontSize:10,color:'#A0A0B8'}},
     series:[{type:'bar',data:d.by_operation.map(o=>o.count),barMaxWidth:30,
       itemStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'#7B61FF'},{offset:1,color:'#FF6FD8'}]},borderRadius:[4,4,0,0]}}],
   });
-  _renderLineChart('usage-daily-chart', d.daily_trend.map(r=>r.day), d.daily_trend.map(r=>r.ops), '操作次数', '#7B61FF');
+  _renderLineChart('usage-daily-chart', d.daily_trend.map(r=>r.day), d.daily_trend.map(r=>r.ops), '用量记录条数', '#7B61FF');
   document.getElementById('top-users-tbody').innerHTML = d.top_users.map((u,i)=>`
-    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${u.ops}</td><td>${fmtTokens(u.tokens || 0)}</td><td style="color:var(--warning)">¥${u.cost.toFixed(4)}</td></tr>`).join('');
+    <tr><td>${i+1}</td><td>${esc(u.username)}</td><td>${adminKnownCount(u.ops)}</td><td>${adminKnownTokens(u.tokens)}</td><td style="color:var(--warning)">${adminKnownMoney(u.cost)}</td></tr>`).join('');
   const srcChart = echarts.init(document.getElementById('source-chart'));
   srcChart.setOption({
     backgroundColor:'transparent',

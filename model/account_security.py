@@ -194,8 +194,10 @@ def issue_verification(
         raise ValueError("验证用途与渠道不匹配")
     normalized_destination = _contact(normalized_channel, destination)
     if os.environ.get("NOTEAI_OTP_MODE", "disabled") in sms_delivery.LIVE_MODES:
-        if normalized_channel != "phone" or normalized_purpose not in {"register_phone", "login_phone"}:
-            raise VerificationDeliveryUnavailable("本阶段仅开放手机号注册与登录验证")
+        if normalized_channel != "phone":
+            raise VerificationDeliveryUnavailable("邮箱验证码发送服务尚未启用")
+        if normalized_purpose not in {"register_phone", "login_phone", "password_reset"}:
+            raise VerificationDeliveryUnavailable("当前仅开放手机注册、登录和密码重置验证")
         return _issue_live_sms(normalized_destination, normalized_purpose, requester_fingerprint)
     destination_hash = _digest(normalized_channel, normalized_destination)
     requester_hash = (
