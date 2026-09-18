@@ -250,6 +250,7 @@ body {
 .nav-tab:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 .nav-tab.active { background: rgba(255,255,255,0.08); color: var(--text); font-weight: 600; }
 .nav-right { display: flex; gap: 12px; align-items: center; }
+.nav-mobile-control, .nav-mobile-label { display: none; }
 @media(max-width:720px){
   .nav {
     height: 58px;
@@ -271,6 +272,31 @@ body {
     border-radius: 8px;
     font-size: 13px;
   }
+}
+@media(max-width:900px){
+  .nav { height:auto; min-height:60px; padding:8px 12px; gap:8px; flex-wrap:wrap; align-content:flex-start; max-height:100vh; max-height:100dvh; overflow-y:auto; overscroll-behavior:contain; }
+  .page { padding-top:60px; }
+  .nav-logo { flex:1; min-width:0; }
+  .nav-logo-icon { flex-shrink:0; }
+  .nav-logo-text { white-space:nowrap; }
+  .nav-logo-sub { display:none; }
+  .nav-mobile-control { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:6px 10px; flex-shrink:0; color:var(--text); background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:8px; cursor:pointer; font:inherit; font-size:13px; }
+  .nav-mobile-control svg { width:16px; height:16px; }
+  .nav-mobile-control:focus-visible, .nav button:focus-visible { outline:2px solid var(--holo-mid); outline-offset:2px; }
+  .nav-tabs, .nav-right { display:none; }
+  .nav.nav-mobile-open { padding-bottom:calc(12px + env(safe-area-inset-bottom,0px)); }
+  .nav-mobile-open .nav-tabs { display:flex; flex:0 0 100%; flex-direction:column; align-items:stretch; gap:4px; padding-top:8px; border-top:1px solid var(--border); }
+  .nav-mobile-open .nav-tab { min-height:44px; border-radius:8px; text-align:left; white-space:normal; }
+  .nav-mobile-open .nav-right { display:block; flex:0 0 100%; min-width:0; margin-left:0; padding-top:8px; border-top:1px solid var(--border); }
+  #nav-user { width:100%; flex-wrap:wrap; gap:8px !important; }
+  #nav-user button, #nav-guest button { min-height:40px; white-space:nowrap; }
+  #nav-user [data-nav-page="library"] { flex:0 0 auto; }
+  #nav-profile-link { min-width:0; max-width:100%; flex:1 1 150px; }
+  #nav-avatar { flex:0 0 22px; }
+  #nav-username { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  #nav-user [data-nav-page="pricing"] { flex:1 1 auto; }
+  .nav-mobile-label { display:inline; }
+  .nav-mobile-open #nav-guest .btn-ghost { display:inline-flex; }
 }
 
 /* ═══════════════════════════════════════════════
@@ -2744,7 +2770,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 <body>
 
 <!-- ═══════════════════════════ NAV ═══════════════════════════ -->
-<nav class="nav">
+<nav class="nav" id="main-navigation" aria-label="主导航">
   <a class="nav-logo" href="#" onclick="showPage('landing')">
     <div class="nav-logo-icon">N</div>
     <div>
@@ -2752,16 +2778,18 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <div class="nav-logo-sub">小红书智能诊断平台</div>
     </div>
   </a>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('landing',this)">首页</button>
-    <button class="nav-tab" onclick="goToDiagnose(this)">开始诊断</button>
-    <button class="nav-tab" onclick="showPage('live',this)">处理进度</button>
-    <button class="nav-tab" onclick="showPage('report',this)">报告</button>
-    <button class="nav-tab" onclick="showPage('profile',this)">成长档案</button>
-    <button class="nav-tab" onclick="showPage('tech',this)">技术引擎</button>
-    <button class="nav-tab" onclick="showPage('chat',this)" style="background:linear-gradient(135deg,rgba(123,97,255,0.15),rgba(255,111,216,0.1));border:1px solid rgba(123,97,255,0.25);color:var(--holo-mid)">💬 对话优化</button>
+  <button class="nav-mobile-control" data-nav-page="pricing" onclick="showPage('pricing')">套餐</button>
+  <button class="nav-mobile-control" id="nav-menu-toggle" aria-expanded="false" aria-controls="nav-main-pages nav-account-actions" aria-label="展开主导航" onclick="toggleMobileNavigation()"><i data-lucide="menu" aria-hidden="true"></i><span id="nav-menu-label">菜单</span></button>
+  <div class="nav-tabs" id="nav-main-pages">
+    <button class="nav-tab active" data-nav-page="landing" aria-current="page" onclick="showPage('landing',this)">首页</button>
+    <button class="nav-tab" data-nav-page="upload" onclick="goToDiagnose(this)">开始诊断</button>
+    <button class="nav-tab" data-nav-page="live" onclick="showPage('live',this)">处理进度</button>
+    <button class="nav-tab" data-nav-page="report" onclick="showPage('report',this)">报告</button>
+    <button class="nav-tab" data-nav-page="profile" onclick="showPage('profile',this)">成长档案</button>
+    <button class="nav-tab" data-nav-page="tech" onclick="showPage('tech',this)">技术引擎</button>
+    <button class="nav-tab" data-nav-page="chat" onclick="showPage('chat',this)" style="background:linear-gradient(135deg,rgba(123,97,255,0.15),rgba(255,111,216,0.1));border:1px solid rgba(123,97,255,0.25);color:var(--holo-mid)">💬 对话优化</button>
   </div>
-  <div class="nav-right">
+  <div class="nav-right" id="nav-account-actions">
     <!-- 未登录状态 -->
     <div id="nav-guest" style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="openAuthModal('login')">登录</button>
@@ -2770,11 +2798,12 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <!-- 已登录状态 -->
     <div id="nav-user" style="display:none;gap:10px;align-items:center">
       <button class="nav-utility-link" data-nav-page="library" onclick="showPage('library')" style="background:none;border:1px solid transparent;cursor:pointer;font-size:13px;color:var(--text-2);padding:4px 8px;border-radius:8px;transition:all .15s">📚 笔记库</button>
-      <button onclick="showPage('profile')" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;color:var(--text)">
+      <button id="nav-profile-link" data-nav-page="profile" onclick="showPage('profile')" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;color:var(--text)">
         <span id="nav-avatar" style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;overflow:hidden;font-size:16px">🌸</span>
         <span id="nav-username">用户</span>
       </button>
       <button class="nav-utility-link" data-nav-page="pricing" onclick="showPage('pricing')" title="套餐与积分" style="display:flex;align-items:center;gap:4px;background:none;border:1px solid transparent;cursor:pointer;font-size:12px;color:var(--text-muted);padding:4px 6px;border-radius:6px;transition:all .15s">
+        <span class="nav-mobile-label">套餐与积分</span>
         <span id="nav-credits-display" style="display:none;font-size:11px;font-weight:700;color:var(--holo-mid)"></span>
         💎
       </button>
@@ -5409,6 +5438,45 @@ async function publicPhoneAuth() {
 }
 
 /* ── Page System ───────────────────────────────────────────── */
+function setMobileNavigation(open, returnFocus = false) {
+  const nav=document.getElementById('main-navigation'),toggle=document.getElementById('nav-menu-toggle');
+  if(!nav || !toggle)return;
+  const wasOpen=nav.classList.contains('nav-mobile-open');
+  open=!!open && window.matchMedia('(max-width:900px)').matches;
+  nav.classList.toggle('nav-mobile-open',open);
+  toggle.setAttribute('aria-expanded',String(open));
+  toggle.setAttribute('aria-label',open?'收起主导航':'展开主导航');
+  document.getElementById('nav-menu-label').textContent=open?'收起':'菜单';
+  if(open){
+    const current=nav.querySelector('.nav-tabs [aria-current="page"], .nav-right [aria-current="page"]');
+    (current || nav.querySelector('.nav-tab'))?.focus();
+  } else {
+    nav.scrollTop=0;
+    if(wasOpen && returnFocus && window.matchMedia('(max-width:900px)').matches)toggle.focus();
+  }
+}
+function toggleMobileNavigation() {
+  const nav=document.getElementById('main-navigation');
+  setMobileNavigation(!nav?.classList.contains('nav-mobile-open'),true);
+}
+document.addEventListener('pointerdown',event=>{
+  const nav=document.getElementById('main-navigation');
+  if(nav?.classList.contains('nav-mobile-open') && !nav.contains(event.target))setMobileNavigation(false);
+});
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && document.getElementById('main-navigation')?.classList.contains('nav-mobile-open')){
+    event.preventDefault();setMobileNavigation(false,true);
+  }
+});
+document.getElementById('main-navigation').addEventListener('focusout',event=>{
+  if(event.relatedTarget && !event.currentTarget.contains(event.relatedTarget))setMobileNavigation(false);
+});
+document.getElementById('main-navigation').addEventListener('click',event=>{
+  if(event.target.closest('.nav-right button'))setMobileNavigation(false);
+});
+window.addEventListener('resize',()=>{
+  if(!window.matchMedia('(max-width:900px)').matches)setMobileNavigation(false);
+});
 let _pricingReturnPage = 'upload';
 function returnFromPricing() { showPage(_pricingReturnPage); }
 async function openCreditRecords() {
@@ -5421,12 +5489,18 @@ async function openCreditRecords() {
   detail?.scrollIntoView({block:'start',behavior:'smooth'});
 }
 function showPage(name, tabEl) {
+  const mobileNavWasOpen=document.getElementById('main-navigation')?.classList.contains('nav-mobile-open');
+  setMobileNavigation(false);
   const previous=document.querySelector('.page.active')?.id?.replace('page-','');
   if(name==='pricing' && previous && previous!=='pricing')_pricingReturnPage=previous;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('[data-nav-page]').forEach(t => t.classList.toggle('is-active', t.dataset.navPage === name));
+  document.querySelectorAll('[data-nav-page]').forEach(t => {
+    const active=t.dataset.navPage===name;
+    t.classList.toggle('is-active',active);
+    if(active)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');
+  });
   if (tabEl) tabEl.classList.add('active');
   else {
     const map = {landing:0,upload:1,live:2,report:3,profile:4,tech:5,chat:6};
@@ -5447,6 +5521,12 @@ function showPage(name, tabEl) {
   if (PUBLIC_PRODUCT) syncProductUI();
   if (name === 'library') initLibraryPage();
   if (name === 'legal') loadProductDisclosure();
+  if(mobileNavWasOpen){
+    const page=document.getElementById('page-'+name);
+    const target=[...page.querySelectorAll('h1,h2,h3')].find(el=>el.getClientRects().length && getComputedStyle(el).visibility!=='hidden') || page;
+    if(!target.hasAttribute('tabindex'))target.setAttribute('tabindex','-1');
+    target.focus({preventScroll:true});
+  }
 }
 
 /* ── Toast ─────────────────────────────────────────────────── */
@@ -5539,7 +5619,7 @@ async function shareDiagnosisCard(button) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#77728f';
     ctx.font = '400 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.fillText(new Date().toLocaleDateString('zh-CN'), 88, 1340);
+    ctx.fillText(reportTimeLabel(diagnosis), 88, 1340);
     ctx.textAlign = 'right';
     ctx.fillText('noteaipro.com · AI生成内容', 992, 1340);
 
@@ -7454,12 +7534,7 @@ async function populateReport() {
 	  if (diagChatEntry) diagChatEntry.style.display = 'block';
 	  renderReportLifecycle(d);
 	  hydrateReportLifecycleWithNoteChain(d);
-	  const metaEl = document.getElementById('reportMeta');
-  if (metaEl) {
-    const now = new Date();
-    const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    metaEl.textContent = `${d._inputTitle||'你的笔记'} · ${d._domain||''}品类 · ${ds}`;
-  }
+	  renderDiagnosisMetadata(d);
   } catch(e) { console.error('[report §0 score]', e); }
 
   // § 1 市场时机卡片
@@ -7732,7 +7807,7 @@ async function populateGenerateReport() {
   const h1 = document.querySelector('#page-report .report-title h1');
   if (h1) h1.innerHTML = '<i data-lucide="wand-2"></i>生成报告';
   const meta = document.getElementById('reportMeta');
-  if (meta) meta.textContent = `${d._domain || ''}品类 · AI 生成爆文${d.created_at ? ' · ' + _fmtLocalTime(d.created_at) : ''}`;
+  if (meta) meta.textContent = `${d._domain || ''}品类 · AI 生成爆文 · ${reportTimeLabel(d)}`;
 
   // 分数环
   const pct = d.ces_percentile || 0;
@@ -11332,6 +11407,40 @@ function _fmtLocalTime(utcStr) {
   } catch { return utcStr.slice(0, 16).replace('T', ' '); }
 }
 
+function reportRecordedTime(data) {
+  const value=data?.created_at;
+  if(typeof value!=='string' || !/^\d{4}-\d{2}-\d{2}(?:[T ]|$)/.test(value) || !Number.isFinite(new Date(value).getTime()))return '';
+  return _fmtLocalTime(value);
+}
+function reportTimeLabel(data) {
+  const time=reportRecordedTime(data);
+  return time ? '报告记录时间 '+time : '报告时间未记录';
+}
+function renderDiagnosisMetadata(data) {
+  const meta=document.getElementById('reportMeta');
+  if(meta)meta.textContent=`${data._inputTitle || data.note_title || '你的笔记'} · ${data._domain || data.domain || ''}品类 · ${reportTimeLabel(data)}`;
+}
+function syncFreshReportRecordedTime(reports) {
+  if(_historyReportSelection)return false;
+  const type=_isGenerateMode?'generate':'analyze',result=_isGenerateMode?_generateResult:_diagnoseResult;
+  if(!completeProductResult(result) || reportRecordedTime(result))return false;
+  // Generation report IDs are the server receipt's original request ID, never a title or note guess.
+  const id=type==='analyze'?result.diagnosis_id:(result.billing?.operation==='generate'?result.billing.request_id:null);
+  if(typeof id!=='string' || !id || !Array.isArray(reports))return false;
+  const matches=reports.filter(row=>row.report_type===type && row.report_id===id && reportRecordedTime(row));
+  if(matches.length!==1)return false;
+  result.created_at=matches[0].created_at;
+  if(document.getElementById('page-report')?.classList.contains('active')){
+    if(type==='analyze'){renderDiagnosisHeader(result);renderDiagnosisMetadata(result);}
+    else {
+      renderGenerationHeader(result);
+      const meta=document.getElementById('reportMeta');
+      if(meta)meta.textContent=`${result._domain || ''}品类 · AI 生成爆文 · ${reportTimeLabel(result)}`;
+    }
+  }
+  return true;
+}
+
 async function initReportPage() {
 	  _diagHistoryOffset = 0;
 	  const listEl = document.getElementById('diag-history-list');
@@ -11417,6 +11526,7 @@ async function loadDiagnosisHistory(reset = false) {
     const data = await res.json();
     if (!_chatIdentityMatches(identity) || _authToken !== token || sequence !== _reportHistorySequence) return;
     if (!Array.isArray(data.reports) || !Number.isInteger(data.total)) throw new Error('报告历史返回不完整');
+    syncFreshReportRecordedTime(data.reports);
     _diagHistoryTotal = data.total;
 
     if (reset) listEl.innerHTML = '';
@@ -11503,7 +11613,7 @@ function completeDiagnosisDetail(data) {
 function renderDiagnosisHeader(data) {
   document.getElementById('detail-note-title').textContent=data.note_title || data._inputTitle || '本次诊断';
   const score=data.composite_score ?? data.ces_percentile;
-  document.getElementById('detail-meta').textContent=(data._domain || data.domain || '')+(data.input_diagnostics?.score_scope === 'partial_input' ? ' · 素材分析（输入不完整）' : ' · 综合 '+(Number.isFinite(score)?score.toFixed(1):'未取得'))+' · '+_fmtLocalTime(data.created_at);
+  document.getElementById('detail-meta').textContent=(data._domain || data.domain || '')+(data.input_diagnostics?.score_scope === 'partial_input' ? ' · 素材分析（输入不完整）' : ' · 综合 '+(Number.isFinite(score)?score.toFixed(1):'未取得'))+' · '+reportTimeLabel(data);
 }
 
 function renderGenerationHeader(data) {
@@ -11512,7 +11622,7 @@ function renderGenerationHeader(data) {
   const score = data?.ces_percentile;
   document.getElementById('detail-meta').textContent = (data?._domain || data?.domain || '')
     + ' · 视频或图文素材生成' + (Number.isFinite(score) ? ' · 项目评分 ' + score.toFixed(1) : '')
-    + (data?.created_at ? ' · ' + _fmtLocalTime(data.created_at) : '');
+    + ' · ' + reportTimeLabel(data);
   const delBtn = document.getElementById('detail-delete-btn');
   if (delBtn) { delBtn.onclick = null; delBtn.style.display = 'none'; }
 }
@@ -14248,11 +14358,13 @@ function billingUsageAccountingRows(accounting) {
     ['业务记录', billingUsageValue(a.business?.recorded, 0, ' 条'), billingUsageStatusCounts(a.business)],
     ['辅助事件', billingUsageValue(a.auxiliary?.recorded, 0, ' 条'), '计入主流程 ' + billingUsageValue(a.auxiliary?.included_in_parent, 0, ' 条') + '；成本不重复相加；旧记录的逐条父子关联可能未保存'],
     ['模型用量记录', billingUsageValue(a.models?.usage_records, 0, ' 条'), '计价或用量不完整 ' + billingUsageValue(a.models?.pricing_or_usage_incomplete, 0, ' 条') + ' · 缺供应商请求关联 ' + billingUsageValue(a.models?.without_physical_binding, 0, ' 条')],
-    ['供应商请求预留记录', billingUsageValue(a.physical?.recorded, 0, ' 条'), '已响应 ' + billingUsageValue(a.physical?.responded) + ' · 进行中 ' + billingUsageValue(a.physical?.in_flight) + ' · 结果未知 ' + billingUsageValue(a.physical?.unknown) + ' · 缺用量 ' + billingUsageValue(a.physical?.usage_missing) + ' · 未发出或未确认 ' + billingUsageValue(a.physical?.not_dispatched_or_unconfirmed) + '；实际 HTTP 请求次数 ' + billingUsageValue(a.physical?.actual_http_requests)],
+    ['供应商请求预留记录', billingUsageValue(a.physical?.recorded, 0, ' 条'), '预留记录状态：已记录终态 ' + billingUsageValue(a.physical?.responded) + ' · 处理中 ' + billingUsageValue(a.physical?.in_flight) + ' · 结果未知 ' + billingUsageValue(a.physical?.unknown) + ' · 其他未识别 ' + billingUsageValue(a.physical?.state_unrecognized)
+      + '\n记录完整性（与状态重叠）：未记录有效 HTTP 状态 ' + billingUsageValue(a.physical?.not_dispatched_or_unconfirmed) + ' · 缺模型用量关联 ' + billingUsageValue(a.physical?.usage_missing) + '（未关联模型用量记录，不代表 Token 不完整）'
+      + '\n实际 HTTP 请求次数 ' + billingUsageValue(a.physical?.actual_http_requests)],
     ['模型内部步骤记录', '仅统计已有请求预留日志', (Object.entries(a.internal_model_steps?.by_step || {}).map(([key, value]) => billingUsageStepName(key) + '：' + billingUsageValue(value, 0, ' 条记录')).join('；') || '未记录，不能据此判断未执行') + '；缺步骤信息 ' + billingUsageValue(a.internal_model_steps?.without_step_metadata, 0, ' 条')],
     ['本地内部步骤', localLabel, Object.entries(local.by_step || {}).map(([key, value]) => billingUsageStepName(key) + '：成功 ' + billingUsageValue(value?.succeeded, 0, ' 条') + '，失败 ' + billingUsageValue(value?.failed, 0, ' 条')).join('；') || '没有独立日志，不显示为 0 次'],
   ];
-  return rows.map(([label, count, detail]) => `<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="font-size:13px;color:var(--text-2)">${escapeHtml(label)}</span><span style="font-size:12px;color:var(--text-muted);text-align:right">${escapeHtml(count)}</span><div style="grid-column:1/-1;font-size:10px;color:var(--text-muted);line-height:1.5">${escapeHtml(detail)}</div></div>`).join('');
+  return rows.map(([label, count, detail]) => `<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="font-size:13px;color:var(--text-2)">${escapeHtml(label)}</span><span style="font-size:12px;color:var(--text-muted);text-align:right">${escapeHtml(count)}</span><div style="grid-column:1/-1;font-size:10px;color:var(--text-muted);line-height:1.5">${escapeHtml(detail).replace(/\n/g,'<br>')}</div></div>`).join('');
 }
 
 async function loadBillingPlan() {

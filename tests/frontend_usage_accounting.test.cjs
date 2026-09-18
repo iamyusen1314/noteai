@@ -30,7 +30,7 @@ function usage() {return {
   subscription_period:{kind:'stored_subscription_period',start:'2026-08-28T10:20:30Z',end:'2026-09-27T10:20:30Z',timezone:'UTC'},
   accounting:{business:{recorded:7,completed:2,failed:1,refunded:0,waiting_for_input:1,running:1,status_unknown:2},
     auxiliary:{recorded:3,included_in_parent:3},models:{usage_records:20,without_physical_binding:0,pricing_or_usage_incomplete:2},
-    physical:{recorded:22,responded:19,in_flight:1,unknown:2,usage_missing:1,not_dispatched_or_unconfirmed:0,count_basis:'public_trial_call_reservations',actual_http_requests:null},
+    physical:{recorded:22,responded:19,in_flight:1,unknown:2,state_unrecognized:0,usage_missing:1,not_dispatched_or_unconfirmed:0,count_basis:'public_trial_call_reservations',actual_http_requests:null},
     internal_model_steps:{by_step:{video_audio_understanding:1},without_step_metadata:2},local_steps:{status:'not_recorded',by_step:{},provider_http_requests:0},
     cost:{known_calculated_rmb:1.23,estimated_only_rmb:.45,unknown_records:2,complete:false,basis:'provider_usage_times_recorded_price',supplier_bill_paid_rmb:null}},
   total_tokens:2000,total_credits:14.5,total_api_cost:987654,
@@ -70,11 +70,45 @@ test('calendar-month request and actual UTC window stay separate from paid right
   for(const item of ['本月 UTC 自然月','2026-09-01 00:00:00','2026-10-01 00:00:00','2026-09-19 03:14:15','当前已记录权益周期','2026-08-28 10:20:30','2026-09-27 10:20:30'])assert.ok(text.includes(item),item);
   assert.ok(!text.includes('1900-01-01'));
 });
-test('business records, completion, physical calls and local steps have distinct truthful units',async()=>{
+test('business records, completion, supplier reservations and local steps have distinct truthful units',async()=>{
   const f=fixture();await f.c.loadBillingPlan();const text=f.rendered();
-  for(const item of ['业务记录','7 条','完成 2','供应商请求预留记录','22 条','结果未知 2','实际 HTTP 请求次数 待核','视频音画理解：1 条记录','未记录，不能据此判断未执行','没有独立日志，不显示为 0 次'])assert.ok(text.includes(item),item);
+  for(const item of ['业务记录','7 条','完成 2','供应商请求预留记录','22 条','预留记录状态','已记录终态 19','处理中 1','结果未知 2','其他未识别 0','记录完整性（与状态重叠）','未记录有效 HTTP 状态 0','缺模型用量关联 1','实际 HTTP 请求次数 待核','视频音画理解：1 条记录','未记录，不能据此判断未执行','没有独立日志，不显示为 0 次'])assert.ok(text.includes(item),item);
   assert.ok(!text.includes('0次表示本月尚未触发'));
   assert.ok(!text.includes('7次'));
+});
+test('reservation terminal states and overlapping completeness gaps do not become extra requests or added cost',async()=>{
+  const f=fixture(),u=usage();
+  // Seven reservation records have one terminal/in-flight/unknown state each.
+  // Missing HTTP status and missing model associations describe those same records.
+  u.accounting.physical={recorded:7,responded:3,in_flight:1,unknown:2,state_unrecognized:1,
+    not_dispatched_or_unconfirmed:5,usage_missing:4,count_basis:'public_trial_call_reservations',actual_http_requests:null};
+  u.accounting.cost.known_calculated_rmb=83.7313;u.accounting.cost.estimated_only_rmb=3.04;
+  u.total_api_cost=86.7713;
+  const before=JSON.stringify(u);f.c.fetch=async()=>({ok:true,json:async()=>u});await f.c.loadBillingPlan();
+  const text=f.get('profile-quota-bars').innerHTML;
+  const reservation=text.slice(text.indexOf('供应商请求预留记录'),text.indexOf('模型内部步骤记录'));
+  assert.match(reservation,/>7 条</);
+  assert.match(reservation,/预留记录状态[^；]*已记录终态 3[^；]*处理中 1[^；]*结果未知 2[^；]*其他未识别 1/);
+  assert.match(reservation,/记录完整性（与状态重叠）[^；]*未记录有效 HTTP 状态 5[^；]*缺模型用量关联 4/);
+  assert.match(reservation,/实际 HTTP 请求次数 待核/);
+  const [stateLine,completenessLine,requestLine]=reservation.split('<br>');
+  assert.doesNotMatch(stateLine,/缺模型用量关联|未记录有效 HTTP 状态/);
+  assert.match(completenessLine,/未关联模型用量记录，不代表 Token 不完整/);
+  assert.match(requestLine,/实际 HTTP 请求次数 待核/);
+  assert.doesNotMatch(reservation,/已响应|未发出或未确认|缺用量|(?:16|9) 条/);
+  assert.match(text,/已知计量 ¥83\.7313/);assert.match(text,/仅估算 ¥3\.0400/);
+  assert.doesNotMatch(text,/86\.7713/);assert.match(f.get('profile-cost-total').textContent,/^¥83\.7313/);
+  assert.equal(JSON.stringify(u),before,'rendering must not rewrite or sum server accounting values');
+});
+test('missing reservation completeness and unknown-state counts remain unknown while recorded zero stays zero',async()=>{
+  for(const value of [undefined,null,0]){
+    const f=fixture(),u=usage();u.accounting.physical.state_unrecognized=value;
+    u.accounting.physical.not_dispatched_or_unconfirmed=value;u.accounting.physical.usage_missing=value;
+    f.c.fetch=async()=>({ok:true,json:async()=>u});await f.c.loadBillingPlan();
+    const text=f.get('profile-quota-bars').innerHTML,expected=value===0?'0':'待核';
+    for(const label of ['其他未识别','未记录有效 HTTP 状态','缺模型用量关联'])assert.ok(text.includes(label+' '+expected),label);
+    assert.match(text,/实际 HTTP 请求次数 待核/);
+  }
 });
 test('known calculated and estimated costs remain distinct from unknown and paid supplier bills',async()=>{
   const f=fixture();await f.c.loadBillingPlan();const text=f.rendered();
