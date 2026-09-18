@@ -1,4 +1,12 @@
-September17 16:21UTC CURRENT: Authorized staged Item32 recovery proved current DNS,
+September18 04:57:25UTC CURRENT: Owner's explicit one-cycle confirmation arrived
+after the proposed00:55 dispatch deadline and01:30 end. Do not backdate, reuse the
+expired package, or reinterpret this as unlimited successors. No dispatch occurred.
+The same unused cycle's proposed06:30–08:00UTC window (dispatch before07:25) needs
+only the changed time confirmed; preserve the accepted bounded scope, old48 calls,
+UNKNOWN, original read-only/quality requirements and actual fresh-bucket check.
+No supplier requests, host staging or new schedule for this time change yet.
+
+September17 16:21UTC HISTORICAL: Authorized staged Item32 recovery proved current DNS,
 TCP/TLS and one credential-free DSL read. New formal source1136898/run-67nerwqt
 then received all36 responses (DSL1/session1 +10homefeed/12recommend/12search_notes),
 34collection succeeded, zero unknown/retry/provider failure. Worker failed locally

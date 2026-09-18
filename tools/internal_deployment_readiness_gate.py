@@ -1624,7 +1624,7 @@ def validate_item32_trends_evidence(
         and (not source_retention or (network_repair and full_cycle_binding is not None
             and json.dumps(plan.get("previous_v5_full_cycle_hold"), sort_keys=True) == json.dumps(full_cycle_binding, sort_keys=True)
             and tuple(value.isoformat() for value in plan_window) == (
-                "2026-09-18T00:00:00+00:00", "2026-09-18T00:55:00+00:00", "2026-09-18T01:30:00+00:00")
+                "2026-09-18T06:30:00+00:00", "2026-09-18T07:25:00+00:00", "2026-09-18T08:00:00+00:00")
             and authorization_at > _evidence_clock(full_cycle_binding["finished_at_utc"])))
         and _exact_int(plan.get("item"), 32)
         and plan.get("status") == "PREPARED_NOT_EXECUTED"

@@ -1,5 +1,23 @@
 # Item32 — September17 唯一后续执行
 
+## September18当前：同一追加周期的时间变更待确认
+
+Owner已明确回复“明确授权，开始吧”；本turn首次实际clock为Sep18 **04:57:25UTC／北京12:57:25**，
+已晚于旧提案00:55启动截止及01:30结束。旧包没有执行，不倒填、不将范围确认自动延伸为失窗启动。
+旧PENDING计划及修复源码保存在7ba4403；旧plan26758B/SHA
+`731f83d80e09df660b4c41f567057f268b783f910ffdf5d839ceb0b3942f3afd`。以下旧00点窗口仅为历史。
+
+拟仅变更同一未执行周期的时间为**Sep18 06:30–08:00UTC／北京14:30–16:00，启动严格早于07:25UTC／15:25**。
+保留原F/6d5/18f72/8overlay和原固定Sep18目录，最多2初始化＋34采集、零自动重试、无额外预读，
+旧48collection/UNKNOWN封存；新UTC桶fresh0/34现场重证，六域/12–15真实合格词/总90/
+两真实来源/DB只读与恢复要求不变，费用按实际或UNKNOWN。无额外采购、模型或其他部署。
+时间变更仍PENDING，不创建新任务、不暂存host包、不发供应商请求。旧Item32相关heartbeat实际全部PAUSED。
+新的canonical仍为`deploy/production/plans/item32-v5-source-retention-prospective.json`，26758B/SHA
+`db2238d307e2a729b552ff12a4ea6ce6533b0f4c9429828d698f6f78c5a444c3`；待确认范围SHA
+`b941fa4cdb071b8a8c26e00ed47e815e9d18f97f18ad0fd3b3449bbf0ada65c1`。
+PENDING实际加载拒绝；20项定向profile/gate测试通过，含旧窗重签拒绝和新起止边界。
+这里只改三时间与outer源码绑定，业务修复、8overlay、原seal及限额均保持。
+
 ## 当前恢复计划 — September17 15:16UTC之后的新owner授权
 
 本节新增授权来自owner“完成故障定位与恢复”接续消息；原01:00窗口及其HOLD不改变、不重放。
@@ -81,7 +99,7 @@ repo：`deploy/production/evidence/production-item32-network-repair-final-readba
 不把此离线复现倒写成V1已证唯一根因或验收通过。原V1源码/计划/结果均冻结。
 后续完整周期必须新UTC fresh桶，且本轮one-shot已消耗；当前仅准备单个PENDING有限计划，未调度。
 
-### 来源保留修复后的唯一后续提案（PENDING，禁止据此运行）
+### 来源保留修复后的原后续提案（已过窗口，禁止据此运行）
 
 - 窗口：**2026-09-18 00:00–01:30UTC／北京时间9月18日08:00–09:30**；启动严格早于
   **00:55UTC／08:55北京时间**，留35分钟完成与恢复。失窗或失败不自动创建另一个周期。

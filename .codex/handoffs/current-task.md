@@ -1,4 +1,33 @@
-# CURRENT EXECUTION CONTROL — September17 owner重新授权Item32分阶段诊断、修复及一次新验收
+# CURRENT EXECUTION CONTROL — September18追加周期授权已收到，原提议窗口已过
+
+Owner回复“明确授权，开始吧”后，本turn首次实际时钟为**2026-09-18 04:57:25UTC／北京时间12:57:25**。
+这晚于原提议00:55UTC启动截止及01:30UTC结束。未倒填确认、未加载或运行旧包；旧PENDING计划
+26758B/SHA731f83d80e09df660b4c41f567057f268b783f910ffdf5d839ceb0b3942f3afd保存在提交7ba4403中。
+本次是同一尚未执行的追加周期，不是再增加一个周期。Owner明确确认的请求范围保留；
+因原约束禁止失窗启动或自动改期，先完成新的有效时间绑定，再仅集中确认时间变更。
+
+新的待确认窗口：**2026-09-18 06:30–08:00UTC／北京时间14:30–16:00，启动严格早于07:25UTC／15:25**。
+原API-F/镜像/会话、8份overlay、固定Sep18 work、2初始化＋34采集、零自动重试、fresh0/34、
+旧48collection及UNKNOWN封存、六域真实来源/质量、生产DB只读和恢复范围全部保持。
+此处时间变更仍PENDING；没有新自动化或host包，未发供应商请求，也尚未现场证明本日fresh。
+当前修复checkpoint为7ba44035a8a529306ae38b2fc7f6653f52057219；后续精确计划/验证结果追加此节。
+
+- 时间变更已完成本地绑定：canonical仍26758B，SHA
+  `db2238d307e2a729b552ff12a4ea6ce6533b0f4c9429828d698f6f78c5a444c3`；
+  待确认范围SHA`b941fa4cdb071b8a8c26e00ed47e815e9d18f97f18ad0fd3b3449bbf0ada65c1`。
+  仅三时间字段及outer executor源码摘要改变，8份overlay与全部旧证据/限额无变化。
+  授权字段仍PENDING/null/null，实际load返回plan_not_authorized且ACTIVE为空。
+- 定向profile/gate共20/20通过（2.909s，原py311-sdk镜像，network-none/read-only）。
+  新用例覆盖旧窗口重签仍拒绝、06:30可启动、07:25严格拒绝及PENDING拒绝。
+  首次独立测试缺tools模块路径导致导入失败；仅在命令加PYTHONPATH=/workspace/tools后通过，
+  未为测试失败改产品或安装依赖。syntax/diffcheck及独立窗口/绑定审查完成后提交。
+  复用命令：`docker run --rm --pull=never --platform linux/amd64 --network none --read-only
+  --tmpfs /tmp:rw,nosuid,nodev,size=64m -v /Users/openclaw/Desktop/noteai:/workspace:ro -w /workspace
+  -e DATABASE_URL= -e NOTEAI_SQLITE_PATH=/tmp/item32-window-tests.db -e PYTHONDONTWRITEBYTECODE=1
+  -e PYTHONPATH=/workspace/tools --entrypoint python3 noteai-media-tests:py311-sdk -B -m unittest
+  tests.test_item32_source_retention_profile tests.test_item32_source_retention_evidence_gate`。
+
+## September17已完成的分阶段诊断、一次新验收与修复记录
 
 本次owner接续指令明确恢复本任务的Item32工程，不以原单次HOLD或checkpoint为终点。
 起始实际HEAD dc6f391（b8ed40b合法后继），无已跟踪未提交改动；七个保护路径保持。

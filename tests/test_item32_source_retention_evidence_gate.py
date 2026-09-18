@@ -20,7 +20,7 @@ class SourceRetentionEvidenceTests(unittest.TestCase):
             if isinstance(value, dict): return {k: shift(v) for k, v in value.items()}
             if isinstance(value, list): return [shift(v) for v in value]
             if isinstance(value, str) and value.startswith(("2026-09-17T", "2026-09-18T")):
-                return (datetime.fromisoformat(value).astimezone(timezone.utc) + timedelta(hours=7)).isoformat()
+                return (datetime.fromisoformat(value).astimezone(timezone.utc) + timedelta(hours=13, minutes=30)).isoformat()
             return "2026-09-18" if value == "2026-09-17" else value
         f.payload, f.attempt_payload, f.proof_payload = map(shift, (f.payload, f.attempt_payload, f.proof_payload))
         f.payload["successor"].update(history)
@@ -35,8 +35,8 @@ class SourceRetentionEvidenceTests(unittest.TestCase):
                                             for n in gate.ITEM32_V5_SOURCE_RETENTION_OVERLAYS}
         f.plan["source_sha256"] = {**f.plan["image_source_sha256"], **f.plan["runtime_overlay_sha256"]}
         f.plan["admission"].update(work_root=gate.ITEM32_V5_SOURCE_RETENTION_WORK_ROOT,
-            not_before_utc="2026-09-18T00:00:00+00:00", bucket_date_utc="2026-09-18",
-            dispatch_deadline_utc="2026-09-18T00:55:00+00:00", must_finish_before_utc="2026-09-18T01:30:00+00:00")
+            not_before_utc="2026-09-18T06:30:00+00:00", bucket_date_utc="2026-09-18",
+            dispatch_deadline_utc="2026-09-18T07:25:00+00:00", must_finish_before_utc="2026-09-18T08:00:00+00:00")
         f.plan_target = f.root / gate.ITEM32_V5_SOURCE_RETENTION_EXECUTION_PLAN
         f.payload["successor"].update(predecessor_provider_call_count=48,
             work_root_identity_sha256=hashlib.sha256(("noteai-item32:successor-work-root:" + gate.ITEM32_V5_SOURCE_RETENTION_WORK_ROOT).encode()).hexdigest(),
@@ -46,7 +46,7 @@ class SourceRetentionEvidenceTests(unittest.TestCase):
         f.payload["execution"]["source_sha256"] = dict(f.plan["source_sha256"])
         self.rebind()
 
-    def rebind(self, *, status="AUTHORIZED", at="2026-09-17T16:22:00+00:00"):
+    def rebind(self, *, status="AUTHORIZED", at="2026-09-18T05:00:00+00:00"):
         f = self.f
         f.plan["authorization"] = {"status": status, "confirmed_at_utc": at if status == "AUTHORIZED" else None,
             "approved_scope_sha256": f.approval_digest(f.plan) if status == "AUTHORIZED" else None}
@@ -57,7 +57,7 @@ class SourceRetentionEvidenceTests(unittest.TestCase):
         f = self.f
         f.rewrite_bound_artifact(f.attempt_ref, f.attempt_payload, f.payload["execution"])
         f.path.write_text(json.dumps(f.payload))
-        return gate.validate_item32_trends_evidence(f.control, root=f.root, now=datetime(2026, 9, 18, 2, tzinfo=timezone.utc))
+        return gate.validate_item32_trends_evidence(f.control, root=f.root, now=datetime(2026, 9, 18, 8, 30, tzinfo=timezone.utc))
 
     def test_future_full_contract_accepts_only_with_eight_sources_and_prior_thirty_four(self):
         self.assertEqual(self.validate(), [])
@@ -76,6 +76,12 @@ class SourceRetentionEvidenceTests(unittest.TestCase):
         self.rebind(); self.assertIn("Item32 canonical execution plan binding mismatch", self.validate())
         self.f.payload["successor"]["predecessor_provider_call_count"] = 14
         self.assertIn("Item32 successor predecessor binding mismatch", self.validate())
+
+    def test_expired_window_cannot_be_reapproved_as_current_success(self):
+        self.f.plan["admission"].update(not_before_utc="2026-09-18T00:00:00+00:00",
+            dispatch_deadline_utc="2026-09-18T00:55:00+00:00", must_finish_before_utc="2026-09-18T01:30:00+00:00")
+        self.rebind(at="2026-09-17T16:22:00+00:00")
+        self.assertIn("Item32 canonical execution plan binding mismatch", self.validate())
 
     def test_prior_full_cycle_counts_and_each_record_are_not_replaceable(self):
         original = copy.deepcopy(self.f.plan["previous_v5_full_cycle_hold"])

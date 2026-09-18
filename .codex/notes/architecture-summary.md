@@ -1,4 +1,12 @@
-September17 16:30UTC CURRENT — this thread has resumed Item32 only under the
+September18 04:57:25UTC CURRENT — owner explicitly confirmed the one additional
+Item32 cycle, but the proposed00:55 dispatch deadline/01:30 end had already passed.
+No stale dispatch, provider call, host package or new schedule. The same unused
+cycle is being rebound locally to06:30–08:00UTC, dispatch before07:25, pending only
+explicit confirmation of the changed time. All request/quota/read-only/source and
+recovery limits remain unchanged. The expired PENDING original is preserved in
+7ba4403; original production configuration is untouched. Handoff CURRENT controls.
+
+September17 16:30UTC HISTORICAL — this thread has resumed Item32 only under the
 owner's later staged-repair instruction; H5/plans/video-credit scope stays with
 its separate worktree. Original API-F image6d5/session18f72 remained unchanged.
 One diagnostic DSL and one formal source1136898 cycle recovered actual access:
