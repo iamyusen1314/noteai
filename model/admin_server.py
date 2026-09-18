@@ -603,6 +603,13 @@ async def admin_overview(admin: dict = Depends(_aauth.get_admin_user)):
 # P2-A 用户管理
 # ══════════════════════════════════════════════════════════════════════════
 
+def _admin_user_month_projection(tx, window, user_id):
+    report = _usage_reporting.project_usage(
+        **_usage_reporting.read_reporting_rows(tx, window, user_id=user_id), window=window)
+    return {"month_window": report["window"], "month_accounting": report["accounting"],
+            "month_operation_accounting": report["operation_accounting"]}
+
+
 @admin_app.get("/admin/users")
 async def admin_users(
     page: int = 1, page_size: int = 20,
@@ -625,50 +632,56 @@ async def admin_users(
 
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
-    total = db.fetchone(
-        f"SELECT COUNT(u.id) as c FROM users u "
-        f"LEFT JOIN subscriptions s ON u.id=s.user_id AND s.is_active=1 {where_sql}",
-        tuple(params)
-    )["c"]
+    window = _usage_reporting.reporting_window(period="calendar_month")
+    with db.transaction(write=False) as tx:
+        if tx.postgres:
+            tx.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        else:
+            tx.execute("PRAGMA query_only=ON")
+        total = tx.fetchone(
+            f"SELECT COUNT(u.id) as c FROM users u "
+            f"LEFT JOIN subscriptions s ON u.id=s.user_id AND s.is_active=1 {where_sql}",
+            tuple(params)
+        )["c"]
 
-    rows = db.fetchall(
-        f"""SELECT u.id, u.username, u.email, u.phone, u.nickname,
-                   u.avatar_emoji, u.created_at, u.last_login,
-                   s.tier as tier,
-                   COALESCE(s.expires_at,'') as expires_at,
-                   COALESCE(cr.balance,0) as credits
-            FROM users u
-            LEFT JOIN subscriptions s ON u.id=s.user_id AND s.is_active=1
-            LEFT JOIN credits cr ON u.id=cr.user_id
-            {where_sql}
-            ORDER BY u.created_at DESC
-            LIMIT ? OFFSET ?""",
-        tuple(params) + (page_size, offset)
-    )
+        rows = tx.fetchall(
+            f"""SELECT u.id, u.username, u.email, u.phone, u.nickname,
+                       u.avatar_emoji, u.created_at, u.last_login,
+                       s.tier as tier,
+                       COALESCE(s.expires_at,'') as expires_at,
+                       COALESCE(cr.balance,0) as credits
+                FROM users u
+                LEFT JOIN subscriptions s ON u.id=s.user_id AND s.is_active=1
+                LEFT JOIN credits cr ON u.id=cr.user_id
+                {where_sql}
+                ORDER BY u.created_at DESC
+                LIMIT ? OFFSET ?""",
+            tuple(params) + (page_size, offset)
+        )
 
-    # 本月用量次数
-    month_start = datetime.now(timezone.utc).replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
-    users_out = []
-    for r in rows:
-        usage = db.fetchone(
-            "SELECT COUNT(*) as cnt, COALESCE(SUM(cost_rmb),0) as cost, "
-            "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
-            "FROM usage_records WHERE user_id=? AND recorded_at>=?",
-            (r["id"], month_start))
-        public_user = dict(r)
-        public_user.pop("phone", None)
-        public_user.pop("email", None)
-        users_out.append({
-            **public_user,
-            "phone_masked": _mask_phone_admin(r["phone"] or ""),
-            "email_masked": _mask_email_admin(r["email"] or ""),
-            "month_ops":    usage["cnt"],
-            "month_cost":   round(usage["cost"] or 0, 4),
-            "month_tokens": int((usage["tokens_in"] or 0) + (usage["tokens_out"] or 0)),
-        })
+        # 本月用量次数
+        month_start = window["start"]
+        users_out = []
+        for r in rows:
+            usage = tx.fetchone(
+                "SELECT COUNT(*) as cnt, COALESCE(SUM(cost_rmb),0) as cost, "
+                "COALESCE(SUM(tokens_in),0) as tokens_in, COALESCE(SUM(tokens_out),0) as tokens_out "
+                "FROM usage_records WHERE user_id=? AND recorded_at>=?",
+                (r["id"], month_start))
+            public_user = dict(r)
+            public_user.pop("phone", None)
+            public_user.pop("email", None)
+            users_out.append({
+                **public_user,
+                **_admin_user_month_projection(tx, window, r["id"]),
+                "phone_masked": _mask_phone_admin(r["phone"] or ""),
+                "email_masked": _mask_email_admin(r["email"] or ""),
+                "month_ops":    usage["cnt"],
+                "month_cost":   round(usage["cost"] or 0, 4),
+                "month_tokens": int((usage["tokens_in"] or 0) + (usage["tokens_out"] or 0)),
+            })
 
-    return {"total": total, "page": page, "page_size": page_size, "users": users_out}
+        return {"total": total, "page": page, "page_size": page_size, "users": users_out}
 
 
 def _mask_phone_admin(phone: str) -> str:
@@ -751,19 +764,20 @@ def _admin_call_provenance(raw):
             "loaded_prompt_versions": prompts}
 
 
-def _admin_usage_call_details(user_id, usage_id):
+def _admin_usage_call_details(user_id, usage_id, *, storage=None):
+    storage = storage if storage is not None else db
     # Bind both branches through this user's usage record. Old rows are not
     # assigned a physical call by timestamp or inferred from a model name.
     fields = ("provider,model,input_tokens,unclassified_input_tokens,cache_read_input_tokens,"
               "audio_input_tokens,audio_cache_read_input_tokens,cache_write_input_tokens,output_tokens,"
               "known_cost_rmb,pricing_status,usage_status,price_currency,price_version,usd_cny")
-    linked = db.fetchall(
+    linked = storage.fetchall(
         "SELECT c.id AS call_id,c.model_usage_record_id,c.created_at,c.state,c.http_status,c.provenance_json,"
         + ",".join("m." + key for key in fields.split(",")) +
         " FROM public_trial_calls c JOIN usage_records u ON u.id=c.usage_record_id AND u.user_id=c.user_id"
         " LEFT JOIN model_usage_records m ON m.id=c.model_usage_record_id AND m.usage_record_id=u.id"
         " WHERE u.user_id=? AND u.id=? ORDER BY c.created_at,c.id LIMIT 101", (user_id, usage_id))
-    legacy = db.fetchall(
+    legacy = storage.fetchall(
         "SELECT m.id AS model_usage_record_id,m.recorded_at AS created_at,"
         + ",".join("m." + key for key in fields.split(",")) +
         " FROM model_usage_records m JOIN usage_records u ON u.id=m.usage_record_id"
@@ -790,71 +804,82 @@ def _admin_usage_call_details(user_id, usage_id):
 @admin_app.get("/admin/users/{user_id}")
 async def admin_user_detail(user_id: str, admin: dict = Depends(_aauth.get_admin_user)):
     """用户详情（不含笔记全文）。"""
-    user = db.fetchone(
-        "SELECT id,username,email,phone,nickname,avatar_emoji,created_at,last_login "
-        "FROM users WHERE id=?",
-        (user_id,),
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    user = dict(user)
-    phone_masked = _mask_phone_admin(user.pop("phone", "") or "")
-    email_masked = _mask_email_admin(user.pop("email", "") or "")
+    window = _usage_reporting.reporting_window(period="calendar_month")
+    with db.transaction(write=False) as tx:
+        if tx.postgres:
+            tx.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        else:
+            tx.execute("PRAGMA query_only=ON")
+        user = tx.fetchone(
+            "SELECT id,username,email,phone,nickname,avatar_emoji,created_at,last_login "
+            "FROM users WHERE id=?",
+            (user_id,),
+        )
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        user = dict(user)
+        phone_masked = _mask_phone_admin(user.pop("phone", "") or "")
+        email_masked = _mask_email_admin(user.pop("email", "") or "")
 
-    sub = db.fetchone(
-        "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1 "
-        "ORDER BY started_at DESC LIMIT 1", (user_id,))
-    credits_row = db.fetchone("SELECT * FROM credits WHERE user_id=?", (user_id,))
+        sub = tx.fetchone(
+            "SELECT * FROM subscriptions WHERE user_id=? AND is_active=1 "
+            "ORDER BY started_at DESC LIMIT 1", (user_id,))
+        credits_row = tx.fetchone("SELECT * FROM credits WHERE user_id=?", (user_id,))
 
-    month_start = datetime.now(timezone.utc).replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        month_start = window["start"]
 
-    usage_rows = db.fetchall(
-        "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, SUM(credits_used) as creds, "
-        "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
-        "FROM usage_records WHERE user_id=? AND recorded_at>=? GROUP BY operation",
-        (user_id, month_start))
+        usage_rows = tx.fetchall(
+            "SELECT operation, COUNT(*) as cnt, SUM(cost_rmb) as cost, SUM(credits_used) as creds, "
+            "SUM(tokens_in) as tokens_in, SUM(tokens_out) as tokens_out, SUM(model_calls) as model_calls "
+            "FROM usage_records WHERE user_id=? AND recorded_at>=? GROUP BY operation",
+            (user_id, month_start))
 
-    recent_usage = db.fetchall(
-        "SELECT id,operation,source,cost_rmb,credits_used,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
-        "FROM usage_records WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
-        (user_id,))
+        recent_usage = tx.fetchall(
+            "SELECT id,operation,source,cost_rmb,credits_used,tokens_in,tokens_out,model_calls,model_names,cost_mode,recorded_at "
+            "FROM usage_records WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
+            (user_id,))
 
-    recent_usage = [dict(r) for r in recent_usage]
-    for row in recent_usage:
-        try:
-            row["call_details"] = _admin_usage_call_details(user_id, row["id"])
-        except Exception:
-            # A missing query permission is unavailable, never an empty success.
-            row["call_details"] = {"status": "unavailable", "calls": [], "truncated": False}
+        recent_usage = [dict(r) for r in recent_usage]
+        for row in recent_usage:
+            tx.execute("SAVEPOINT admin_call_details")
+            try:
+                row["call_details"] = _admin_usage_call_details(user_id, row["id"], storage=tx)
+            except Exception:
+                # A missing query permission is unavailable, never an empty success.
+                tx.execute("ROLLBACK TO SAVEPOINT admin_call_details")
+                row["call_details"] = {"status": "unavailable", "calls": [], "truncated": False}
+            finally:
+                tx.execute("RELEASE SAVEPOINT admin_call_details")
 
-    credit_txns = db.fetchall(
-        "SELECT type,amount,balance_after,description,paid_rmb,package_id,recorded_at "
-        "FROM credit_transactions WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
-        (user_id,))
+        credit_txns = tx.fetchall(
+            "SELECT type,amount,balance_after,description,paid_rmb,package_id,recorded_at "
+            "FROM credit_transactions WHERE user_id=? ORDER BY recorded_at DESC LIMIT 20",
+            (user_id,))
 
-    # 笔记统计（不含全文）
-    notes_stat = db.fetchone(
-        "SELECT COUNT(id) as cnt, AVG(score) as avg_score, MAX(score) as max_score "
-        "FROM notes WHERE user_id=?", (user_id,))
+        # 笔记统计（不含全文）
+        notes_stat = tx.fetchone(
+            "SELECT COUNT(id) as cnt, AVG(score) as avg_score, MAX(score) as max_score "
+            "FROM notes WHERE user_id=?", (user_id,))
 
-    return {
-        "user":          {
-            **user,
-            "phone_masked": phone_masked,
-            "email_masked": email_masked,
-        },
-        "subscription":  dict(sub) if sub else {"tier": None, "is_active": 0},
-        "credits":       dict(credits_row) if credits_row else {"balance": 0},
-        "quota":         _admin_quota_snapshot(
-            dict(sub) if sub else None,
-            float(credits_row["balance"] or 0) if credits_row else 0,
-        ),
-        "month_usage":   [dict(r) for r in usage_rows],
-        "recent_usage":  [dict(r) for r in recent_usage],
-        "credit_txns":   [dict(r) for r in credit_txns],
-        "notes_stat":    dict(notes_stat) if notes_stat else {},
-    }
+        return {
+            **_admin_user_month_projection(tx, window, user_id),
+            "user":          {
+                **user,
+                "phone_masked": phone_masked,
+                "email_masked": email_masked,
+            },
+            "subscription":  dict(sub) if sub else {"tier": None, "is_active": 0},
+            "credits":       dict(credits_row) if credits_row else {"balance": 0},
+            "quota":         _admin_quota_snapshot(
+                dict(sub) if sub else None,
+                float(credits_row["balance"] or 0) if credits_row else 0,
+            ),
+            "month_usage":   [dict(r) for r in usage_rows],
+            "recent_usage":  [dict(r) for r in recent_usage],
+            "credit_txns":   [dict(r) for r in credit_txns],
+            "notes_stat":    dict(notes_stat) if notes_stat else {},
+        }
+
 
 
 class UserAdjustInput(BaseModel):

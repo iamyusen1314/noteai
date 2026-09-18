@@ -302,7 +302,7 @@ input,select,textarea{font-family:inherit}
       <table class="data-table">
         <thead><tr>
           <th>用户名</th><th>手机/邮箱</th><th>套餐</th><th>注册时间</th>
-          <th>本月操作记录<br/><small>含附加事件</small></th><th>Tokens</th><th>本月已记录成本<br/><small>含估算，非供应商账单</small></th><th>积分余额</th><th>操作</th>
+          <th>本月操作记录<br/><small>业务与附加事件分列</small></th><th>已记录 Tokens</th><th>本月模型成本证据<br/><small>已知与估算分列，非供应商账单</small></th><th>积分余额</th><th>操作</th>
         </tr></thead>
         <tbody id="users-tbody"></tbody>
       </table>
@@ -771,6 +771,41 @@ function adminRecordedCostBreakdown(accounting) {
   return `已知模型计量 ${adminKnownMoney(cost.known_calculated_rmb)} · 手工记录 ${adminKnownMoney(cost.manual_cost_rmb)} · 仅估算 ${adminKnownMoney(cost.estimated_only_rmb)}`;
 }
 
+function adminMonthCostEvidence(accounting) {
+  const cost = accounting?.cost;
+  if (!cost || typeof cost !== 'object') return '成本证据待核实';
+  return adminRecordedCostBreakdown(accounting) + ` · 成本待核记录 ${adminKnownCount(cost.unknown_records)} 条 · `
+    + (cost.complete === true ? '模型用量已完整记录，非供应商账单' : '模型成本仍待核实，不能据已知部分判断总额');
+}
+
+function adminMonthTokenEvidence(accounting) {
+  const m = accounting?.models;
+  if (!m || !['recorded', 'partial'].includes(m.token_coverage)) return '未保留逐模型 Tokens 明细，待核实';
+  const total = adminIsNonNegativeInteger(m.tokens_in) && adminIsNonNegativeInteger(m.tokens_out)
+    ? m.tokens_in + m.tokens_out : null;
+  return `${m.token_coverage === 'partial' ? '部分已记录' : '已记录'} ${adminKnownTokens(total)}`;
+}
+
+function adminMonthOperationCards(operations) {
+  if (!operations || typeof operations !== 'object' || Array.isArray(operations)) return '本月操作证据待核实';
+  const rows = Object.entries(operations);
+  if (!rows.length) return '本月暂无操作记录';
+  const labels = {completed:'完成', failed:'失败', refunded:'已退回', running:'处理中', waiting_for_input:'待补充', status_unknown:'状态待核'};
+  return rows.map(([operation, item]) => {
+    const statuses = item?.status_counts;
+    const present = statuses && typeof statuses === 'object' && !Array.isArray(statuses);
+    const count = present && Object.values(statuses).every(adminIsNonNegativeInteger)
+      ? Object.values(statuses).reduce((total, value) => total + value, 0) : null;
+    const statusText = Object.entries(labels).map(([key, label]) => `${label} ${adminKnownCount(present && !Object.hasOwn(statuses, key) ? 0 : statuses?.[key])}`).join(' · ');
+    const kind = item?.kind === 'auxiliary_event' ? '附加事件' : item?.kind === 'business_operation' ? '业务记录' : '记录类型待核';
+    const included = count > 0 && item?.kind === 'auxiliary_event' && item?.included_in_parent_records === count;
+    const costText = included ? '成本计入主任务，不在本条另列金额'
+      : adminRecordedCostBreakdown({cost:item}) + ' · '
+        + (item?.cost_complete === true ? '模型用量已完整记录，非供应商账单' : '成本仍待核实，不据已知部分判断总额');
+    return `<div style="background:var(--surf-2);border-radius:8px;padding:6px 10px;font-size:12px">${esc(adminLedgerLabel(ADMIN_LEDGER_OPERATION_LABELS, operation, operation))}：${esc(kind)} ${adminKnownCount(count)} 条<br/>${esc(statusText)}<br/>${esc(costText)}</div>`;
+  }).join('');
+}
+
 function adminKnownTokens(value) {
   return adminIsNonNegativeInteger(value) ? fmtTokens(value) : '待核实';
 }
@@ -948,6 +983,15 @@ function renderAdminCallDetails(detail) {
     }).join('');
 }
 
+function adminUsageCostEvidence(row) {
+  const money = adminKnownMoney(row?.cost_rmb);
+  if (row?.cost_mode === 'included_in_parent') return '成本计入主任务，不在本条另列金额';
+  if (row?.cost_mode === 'partial') return `已记录部分 ${money} · 总额待核实`;
+  if (row?.cost_mode === 'estimated') return `仅估算 ${money} · 非供应商账单`;
+  if (row?.cost_mode === 'actual') return `已记录计量 ${money} · 非供应商账单`;
+  return '费用待核实';
+}
+
 function renderAdminUsageLedger(rows) {
   const safeRows = Array.isArray(rows) ? rows.slice(0, 20) : [];
   if (!safeRows.length) {
@@ -969,7 +1013,7 @@ function renderAdminUsageLedger(rows) {
       ? `${adminKnownTokens(tokensIn + tokensOut)}<div style="font-size:11px;color:var(--text-muted)">已记录：入 ${adminKnownTokens(tokensIn)} / 出 ${adminKnownTokens(tokensOut)}；不证明用量完整</div>`
       : `待核实<div style="font-size:11px;color:var(--text-muted)">${row?.cost_mode === 'included_in_parent' ? '计入主任务，本条没有独立明细' : '未保留独立明细，不能据此判断实际为零'}</div>`;
     const credits = Math.max(0, adminLedgerNumber(row?.credits_used));
-    const cost = adminKnownMoney(row?.cost_rmb);
+    const cost = adminUsageCostEvidence(row);
     const models = String(row?.model_names || '').trim() || '模型名称未记录';
     return `<tr>
       <td style="white-space:nowrap">${esc(adminLedgerTime(row?.recorded_at))}</td>
@@ -977,7 +1021,7 @@ function renderAdminUsageLedger(rows) {
       <td>${esc(models)}<div style="font-size:11px;color:var(--text-muted)">${esc(modelCountText)}</div></td>
       <td>${tokensText}</td>
       <td style="white-space:nowrap">总计费 ${credits.toFixed(1)} 积分</td>
-      <td style="white-space:nowrap">旧记录金额 ${cost}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
+      <td style="white-space:nowrap">${esc(cost)}<div style="font-size:11px;color:var(--text-muted)">${esc(costMode)}</div></td>
     </tr><tr><td colspan="6"><details><summary>查看本次调用、Prompt 版本与成本依据</summary>${renderAdminCallDetails(row?.call_details)}</details></td></tr>`;
   }).join('');
 }
@@ -1162,89 +1206,126 @@ async function loadAiOperationsSummary() {
 
 /* ── Users ────────────────────────────────────────────────────────── */
 let _userTotal = 0;
+let _usersLoadSequence = 0, _userDetailSequence = 0;
 async function loadUsers() {
+  const sequence = ++_usersLoadSequence, token = _adminToken, page = _userPage;
+  _userTotal = null;
+  document.getElementById('user-total').textContent = '正在读取用户列表…';
+  document.getElementById('page-info').textContent = '加载中';
+  document.getElementById('users-tbody').innerHTML = '<tr><td colspan="9">正在读取用户列表…</td></tr>';
   _userSearch = document.getElementById('user-search').value;
   _userTierFilter = document.getElementById('user-tier-filter').value;
   const params = new URLSearchParams({page:_userPage, page_size:15, search:_userSearch, tier:_userTierFilter});
-  const r = await aFetch(`/admin/users?${params}`);
-  const d = await r.json();
-  _userTotal = d.total;
-  document.getElementById('user-total').textContent = `共 ${d.total} 位用户`;
-  document.getElementById('page-info').textContent = `第 ${_userPage} 页（共 ${Math.ceil(d.total/15)} 页）`;
-  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
-  document.getElementById('users-tbody').innerHTML = d.users.map(u => `
-    <tr>
-      <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
-      <td style="font-size:12px">${esc(u.phone_masked||u.email_masked||'–')}</td>
-      <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier||'无有效订阅')}</span></td>
-      <td style="font-size:12px;color:var(--text-muted)">${esc((u.created_at||'').slice(0,10))}</td>
-      <td>${adminKnownCount(u.month_ops)}</td>
-      <td>${fmtTokens(u.month_tokens || 0)}</td>
-      <td style="color:var(--warning)">${adminKnownMoney(u.month_cost)}</td>
-      <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
-      <td><button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="user-detail">详情</button></td>
-    </tr>`).join('');
+  try {
+    const r = await aFetch(`/admin/users?${params}`);
+    if (!r.ok) throw new Error('user_list_http_failed');
+    const d = await r.json();
+    if (sequence !== _usersLoadSequence || token !== _adminToken) return;
+    if (!d || !adminIsNonNegativeInteger(d.total) || !Array.isArray(d.users)
+        || !d.users.every(u => u && typeof u.id === 'string' && typeof u.username === 'string'))
+      throw new Error('user_list_shape_failed');
+    _userTotal = d.total;
+    const monthWindow = d.users?.[0]?.month_window;
+    const monthPeriod = monthWindow?.timezone === 'UTC' && monthWindow?.kind === 'calendar_month'
+      ? `UTC 自然月 ${monthWindow.start || '待核实'} 至 ${monthWindow.as_of || '待核实'}（按业务记录开始时间）`
+      : '本月统计时窗待核实';
+    document.getElementById('user-total').textContent = `共 ${d.total} 位用户 · ${monthPeriod}`;
+    document.getElementById('page-info').textContent = `第 ${page} 页（共 ${Math.ceil(d.total/15)} 页）`;
+    const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
+    document.getElementById('users-tbody').innerHTML = d.users.map(u => `
+      <tr>
+        <td><div style="font-weight:600">${esc(u.username)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.nickname||'')}</div></td>
+        <td style="font-size:12px">${esc(u.phone_masked||u.email_masked||'–')}</td>
+        <td><span class="badge ${tierBadge(u.tier)}">${esc({free:'免费',pro:'创作者',growth:'成长',pro_plus:'专业',studio:'工作室'}[u.tier]||u.tier||'无有效订阅')}</span></td>
+        <td style="font-size:12px;color:var(--text-muted)">${esc((u.created_at||'').slice(0,10))}</td>
+        <td>业务 ${adminKnownCount(u.month_accounting?.business?.recorded)} 条 · 附加事件 ${adminKnownCount(u.month_accounting?.auxiliary?.recorded)} 条</td>
+        <td>${esc(adminMonthTokenEvidence(u.month_accounting))}</td>
+        <td style="color:var(--warning)">${esc(adminMonthCostEvidence(u.month_accounting))}</td>
+        <td style="color:var(--info)">${(u.credits||0).toFixed(1)}</td>
+        <td><button class="btn btn-ghost btn-sm" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-admin-action="user-detail">详情</button></td>
+      </tr>`).join('');
+  } catch (_) {
+    if (sequence !== _usersLoadSequence || token !== _adminToken) return;
+    document.getElementById('user-total').textContent = '用户列表读取失败，请重新读取；未确认本次数据';
+    document.getElementById('page-info').textContent = '读取失败';
+    document.getElementById('users-tbody').innerHTML = '<tr><td colspan="9">用户列表读取失败，不能据此判断记录为零。</td></tr>';
+  }
 }
 function searchUsers() { _userPage=1; loadUsers(); }
 function prevPage() { if(_userPage>1){_userPage--;loadUsers();} }
 function nextPage() { if(_userPage*15<_userTotal){_userPage++;loadUsers();} }
 
 async function showUser(uid) {
-  const r = await aFetch(`/admin/users/${uid}`);
-  const d = await r.json();
-  const u = d.user, sub = d.subscription, cr = d.credits||{balance:0}, quota = d.quota;
-  document.getElementById('um-title').textContent = `用户详情 — ${u.username}`;
-  const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
-  document.getElementById('um-content').innerHTML = `
-    <div class="card-grid card-grid-2" style="margin-bottom:16px">
-      <div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">基本信息</div>
-        <div style="font-size:13px;line-height:2">
-          ID: <code style="font-size:11px">${esc(u.id)}</code><br>
-          邮箱: ${esc(u.email_masked||'–')}<br>
-          手机: ${esc(u.phone_masked||'–')}<br>
-          注册: ${esc((u.created_at||'').slice(0,10))}<br>
-          最后登录: ${esc((u.last_login||'').slice(0,16).replace('T',' ')||'–')}
+  const sequence = ++_userDetailSequence, token = _adminToken;
+  document.getElementById('um-title').textContent = '用户详情 — 加载中';
+  document.getElementById('um-content').textContent = '正在读取本次用户详情…';
+  openModal('user-modal');
+  try {
+    const r = await aFetch(`/admin/users/${encodeURIComponent(uid)}`);
+    if (!r.ok) throw new Error('user_detail_http_failed');
+    const d = await r.json();
+    if (sequence !== _userDetailSequence || token !== _adminToken) return;
+    if (!d || d.user?.id !== uid || typeof d.user?.username !== 'string'
+        || !d.subscription || typeof d.subscription !== 'object' || Array.isArray(d.subscription)
+        || !Array.isArray(d.recent_usage) || !Array.isArray(d.credit_txns))
+      throw new Error('user_detail_shape_failed');
+    const u = d.user, sub = d.subscription, cr = d.credits||{balance:0}, quota = d.quota;
+    document.getElementById('um-title').textContent = `用户详情 — ${u.username}`;
+    const tierBadge = t => ({free:'badge-free',pro:'badge-pro',growth:'badge-pro',pro_plus:'badge-pro-plus',studio:'badge-pro-plus'}[t]||'badge-free');
+    document.getElementById('um-content').innerHTML = `
+      <div class="card-grid card-grid-2" style="margin-bottom:16px">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">基本信息</div>
+          <div style="font-size:13px;line-height:2">
+            ID: <code style="font-size:11px">${esc(u.id)}</code><br>
+            邮箱: ${esc(u.email_masked||'–')}<br>
+            手机: ${esc(u.phone_masked||'–')}<br>
+            注册: ${esc((u.created_at||'').slice(0,10))}<br>
+            最后登录: ${esc((u.last_login||'').slice(0,16).replace('T',' ')||'–')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
+          <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier||'无有效订阅；钱包独立保留')}</span></div>
+          <div style="font-size:13px;margin-top:6px">本周期已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
+          <div style="font-size:13px;margin-top:6px">钱包积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
+          <div style="font-size:13px;margin-top:6px">套餐周期额度: <b>${quota?.monthly_limit == null ? '待核对' : Number(quota.monthly_limit).toFixed(1)}</b>；剩余: <b>${quota?.monthly_remaining == null ? '周期待正常业务核对/续期' : Number(quota.monthly_remaining).toFixed(1)}</b></div>
+          <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
         </div>
       </div>
-      <div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">套餐与积分</div>
-        <div><span class="badge ${tierBadge(sub.tier)}">${esc({free:'免费版',pro:'创作者版',growth:'成长版',pro_plus:'专业版',studio:'工作室版'}[sub.tier]||sub.tier||'无有效订阅；钱包独立保留')}</span></div>
-        <div style="font-size:13px;margin-top:6px">本周期已用套餐积分: <b>${Number(sub.used_monthly_credits||0).toFixed(1)}</b></div>
-        <div style="font-size:13px;margin-top:6px">钱包积分余额: <b style="color:var(--info)">${(cr.balance||0).toFixed(1)}</b></div>
-        <div style="font-size:13px;margin-top:6px">套餐周期额度: <b>${quota?.monthly_limit == null ? '待核对' : Number(quota.monthly_limit).toFixed(1)}</b>；剩余: <b>${quota?.monthly_remaining == null ? '周期待正常业务核对/续期' : Number(quota.monthly_remaining).toFixed(1)}</b></div>
-        <div style="font-size:12px;color:var(--text-muted)">累计购买: ${(cr.total_purchased||0).toFixed(1)} | 已用: ${(cr.total_used||0).toFixed(1)}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">本月用量证据</div>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:8px">${adminAccountingSummary(d.month_accounting, d.month_window)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+        ${adminMonthOperationCards(d.month_operation_accounting)}
       </div>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">本月用量</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-      ${(d.month_usage||[]).map(op=>`<div style="background:var(--surf-2);border-radius:8px;padding:6px 10px;font-size:12px">
-        ${esc(op.operation)}: <b>${op.cnt}</b>次 / ${fmtTokens((op.tokens_in||0)+(op.tokens_out||0))} / ¥${(op.cost||0).toFixed(4)}</div>`).join('')}
-    </div>
-    <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
-      以下两类账本分别记录操作用量与钱包积分变化，不是一一对应关系；这里只显示各自最近 20 条，不代表完整历史。
-      用量中的“总计费积分”包含套餐周期积分与钱包积分，钱包账本只记录钱包余额变化。
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条用量</div>
-    <div style="overflow-x:auto;margin-bottom:16px">
-      <table class="data-table" style="min-width:820px">
-        <thead><tr><th>时间</th><th>操作/来源</th><th>模型</th><th>已记录 Tokens</th><th>总计费积分</th><th>旧记录金额（含估算）</th></tr></thead>
-        <tbody data-testid="admin-usage-ledger">${renderAdminUsageLedger(d.recent_usage)}</tbody>
-      </table>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条钱包积分变动</div>
-    <div style="overflow-x:auto;margin-bottom:16px">
-      <table class="data-table" style="min-width:720px">
-        <thead><tr><th>时间</th><th>变动类型</th><th>钱包变化</th><th>说明</th><th>现金/积分包</th></tr></thead>
-        <tbody data-testid="admin-credit-ledger">${renderAdminCreditLedger(d.credit_txns)}</tbody>
-      </table>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${[['adjust_credits','试用 / 赠送积分'],['set_membership','会员有效期'],['set_features','功能权限']].map(([action,label])=>`<button class="btn btn-ghost btn-sm" data-capability="entitlement_management" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-username="${esc(u.username)}" data-entitlement-action="${action}" data-admin-action="entitlement">${label}</button>`).join('')}
-    </div>`;
-  applyAdminCapabilities();
-  openModal('user-modal');
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
+        以下两类账本分别记录操作用量与钱包积分变化，不是一一对应关系；这里只显示各自最近 20 条，不代表完整历史。
+        用量中的“总计费积分”包含套餐周期积分与钱包积分，钱包账本只记录钱包余额变化。
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条用量</div>
+      <div style="overflow-x:auto;margin-bottom:16px">
+        <table class="data-table" style="min-width:820px">
+          <thead><tr><th>时间</th><th>操作/来源</th><th>模型</th><th>已记录 Tokens</th><th>总计费积分</th><th>费用记录与完整性</th></tr></thead>
+          <tbody data-testid="admin-usage-ledger">${renderAdminUsageLedger(d.recent_usage)}</tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">最近 20 条钱包积分变动</div>
+      <div style="overflow-x:auto;margin-bottom:16px">
+        <table class="data-table" style="min-width:720px">
+          <thead><tr><th>时间</th><th>变动类型</th><th>钱包变化</th><th>说明</th><th>现金/积分包</th></tr></thead>
+          <tbody data-testid="admin-credit-ledger">${renderAdminCreditLedger(d.credit_txns)}</tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">管理操作</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${[['adjust_credits','试用 / 赠送积分'],['set_membership','会员有效期'],['set_features','功能权限']].map(([action,label])=>`<button class="btn btn-ghost btn-sm" data-capability="entitlement_management" data-user-id="${esc(encodeURIComponent(String(u.id||'')))}" data-username="${esc(u.username)}" data-entitlement-action="${action}" data-admin-action="entitlement">${label}</button>`).join('')}
+      </div>`;
+    applyAdminCapabilities();
+  } catch (_) {
+    if (sequence !== _userDetailSequence || token !== _adminToken) return;
+    document.getElementById('um-title').textContent = '用户详情 — 读取失败';
+    document.getElementById('um-content').textContent = '本次用户详情读取失败，请重新读取；未确认本次数据。';
+  }
 }
 
 let _entitlement = null;
