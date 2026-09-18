@@ -12131,6 +12131,9 @@ async function initProfilePage() {
   const real=document.getElementById('profile-real-content'),login=document.getElementById('profile-login-prompt');
   if(!token){if(real)real.style.display='none';if(login)login.style.display='flex';return;}
   if(real)real.style.display='block';if(login)login.style.display='none';_profileMemoryState=null;
+  const avatar=document.getElementById('profile-avatar-display');
+  if(current() && _authVerifiedOwnerId===identity.ownerId)renderAvatar(avatar,_authUser.avatar_data,_authUser.avatar_emoji,'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
+  else avatar?.replaceChildren();
   ['profile-stat-sessions','profile-stat-improvement','profile-stat-best'].forEach(id=>profileText(id,'–'));
   ['profile-trend-chart','profile-memories-list','profile-achievements-list','profile-notes-preview'].forEach(id=>profileRegionError(id,'正在读取…'));
   profileText('profile-trend-summary','');profileText('profile-domain-tags','');

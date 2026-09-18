@@ -35,13 +35,13 @@ function fixture(overrides={}) {
     '/notes?limit=3':{notes:[{id:'one',title:'合成笔记',score:0}],total:1},
     '/notes/tracking':{notes:[]},
   };
-  const c=vm.createContext({console,document:{getElementById:get,createElement:tag=>new Element(tag)},_authToken:'token-a',_authUser:{id:'owner-a',username:'alpha',nickname:'Alpha'},epoch:1,API_AUTH:'https://synthetic.invalid',PUBLIC_PRODUCT:true,_publicStatus:{tracking_open:false},
+  const c=vm.createContext({console,document:{getElementById:get,createElement:tag=>new Element(tag)},_authToken:'token-a',_authUser:{id:'owner-a',username:'alpha',nickname:'Alpha'},_authVerifiedOwnerId:'owner-a',epoch:1,API_AUTH:'https://synthetic.invalid',PUBLIC_PRODUCT:true,_publicStatus:{tracking_open:false},
     showToast:m=>toasts.push(m),authUpdateNav(){},openAuthModal(){},confirm:()=>true,escapeHtml:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),productActionAttributes:()=>'',
     fetch:async(url,options={})=>{const path=url.replace('https://synthetic.invalid','');calls.push({path,options});return overrides[path]?overrides[path](options,c):response(data[path]);},
   });
   c._chatIdentitySnapshot=()=>({ownerId:c._authUser?.id,epoch:c.epoch});c._chatIdentityMatches=s=>!!s?.ownerId&&s.ownerId===c._authUser?.id&&s.epoch===c.epoch;
   vm.runInContext(profile+'\n'+avatars+'\n'+tracking+'\n'+renderAvatar,c);
-  return {c,get,data,calls,toasts,switchOwner(){c._authToken='token-b';c._authUser={id:'owner-b',username:'beta',nickname:'Beta'};c.epoch++;c.clearProfileUserState();}};
+  return {c,get,data,calls,toasts,switchOwner(){c._authToken='token-b';c._authUser={id:'owner-b',username:'beta',nickname:'Beta'};c._authVerifiedOwnerId='owner-b';c.epoch++;c.clearProfileUserState();}};
 }
 test('all inline scripts still parse',()=>{for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))if(m[1].trim())new vm.Script(m[1]);});
 test('closed tracking is never fetched; independent real sections including zero render',async()=>{const f=fixture();await Promise.all([f.c.initProfilePage(),f.c.loadTrackingList()]);assert(!f.calls.some(r=>r.path==='/notes/tracking'));assert.equal(f.get('profile-stat-sessions').textContent,'3');assert.equal(f.get('profile-stat-improvement').textContent,'2');assert.equal(f.get('profile-stat-best').textContent,'0.0');assert.match(f.get('profile-notes-preview').innerHTML,/>0\.0</);assert.equal(f.get('profile-memories-list').children.length,8);assert.match(f.get('profile-achievements-list').textContent,/首次评分/);});
@@ -151,4 +151,28 @@ test('old-epoch network rejection cannot clear a reintroduced same-token session
   let reject;const pending=new Promise((_,fail)=>{reject=fail;});const f=fixture({'/auth/me':()=>pending}),run=installProfileAuthRestore(f),restoring=f.c.authRestoreSession();
   f.c.authClearLocalSession();f.c._authToken='token-a';f.c._authUser={id:'owner-b',username:'beta'};reject(Error('old network failure'));
   assert.equal(await restoring,false);assert.equal(f.c._authToken,'token-a');assert.equal(f.c._authUser.id,'owner-b');assert.equal(run.resumed.length,0);
+});
+
+test('loading profile immediately uses the verified current emoji instead of the cleared default',async()=>{
+  const late=deferred(),f=fixture({'/auth/me':()=>late.promise});f.c._authUser.avatar_emoji='🐱';f.get('profile-avatar-display').textContent='🌸';
+  const read=f.c.initProfilePage();assert.equal(f.get('profile-avatar-display').textContent,'🐱');
+  late.resolve(response({...f.c._authUser}));await read;assert.equal(f.get('profile-avatar-display').textContent,'🐱');
+});
+test('loading profile preserves the verified current image avatar',async()=>{
+  const late=deferred(),f=fixture({'/auth/me':()=>late.promise});f.c._authUser.avatar_data='data:image/png;base64,c3ludGhldGlj';f.c._authUser.avatar_emoji='🐱';
+  const read=f.c.initProfilePage();assert.equal(f.get('profile-avatar-display').children[0].src,f.c._authUser.avatar_data);
+  late.resolve(response({...f.c._authUser}));await read;assert.equal(f.get('profile-avatar-display').children[0].src,f.c._authUser.avatar_data);
+});
+test('loading profile without a verified owner clears a pre-existing avatar to a neutral placeholder',async()=>{
+  for(const verified of [null,'another-owner']){
+    const late=deferred(),f=fixture({'/auth/me':()=>late.promise});f.c._authVerifiedOwnerId=verified;f.c._authUser.avatar_emoji='🐱';f.get('profile-avatar-display').textContent='🌸';
+    const read=f.c.initProfilePage();assert.equal(f.get('profile-avatar-display').textContent,'');assert.equal(f.get('profile-avatar-display').children.length,0);
+    late.resolve(response({...f.c._authUser}));await read;
+  }
+});
+test('late previous-owner profile response cannot replace the newly verified loading avatar',async()=>{
+  const late=deferred();let calls=0;const f=fixture({'/auth/me':()=>++calls===1?late.promise:response({id:'owner-b',username:'beta',nickname:'Beta',avatar_emoji:'🐟'})});
+  f.c._authUser.avatar_emoji='🐱';const first=f.c.initProfilePage();assert.equal(f.get('profile-avatar-display').textContent,'🐱');
+  f.switchOwner();f.c._authUser.avatar_emoji='🐟';const second=f.c.initProfilePage();assert.equal(f.get('profile-avatar-display').textContent,'🐟');
+  late.resolve(response({id:'owner-a',username:'alpha',nickname:'Alpha',avatar_emoji:'🐱'}));await Promise.all([first,second]);assert.equal(f.get('profile-avatar-display').textContent,'🐟');
 });
