@@ -5238,6 +5238,7 @@ function syncProductUI() {
     }
   });
   document.querySelectorAll('input[type="file"]').forEach(el => {
+    if (el.id === 'avatar-file-input') return;
     if (el.id === 'chat-file-input') el.accept=imageOpen ? 'image/jpeg,image/png,image/webp,.txt,.md,.json,.csv' : '.txt,.md,.json,.csv';
     else el.disabled= /Video/i.test(el.id) ? !videoOpen : !imageOpen;
   });
@@ -10715,24 +10716,29 @@ function authClearLocalSession() {
 
 async function authRestoreSession() {
   const tokenBeingVerified = _authToken;
-  if (!tokenBeingVerified) {
+  const epochBeingVerified = _chatUserStateEpoch;
+  const clearUnrestoredSession = () => {
     authClearLocalSession();
+    if (document.getElementById('page-profile')?.classList.contains('active')) initProfilePage();
+  };
+  if (!tokenBeingVerified) {
+    clearUnrestoredSession();
     return false;
   }
   try {
     const response = await fetch(API_AUTH + '/auth/me', {
       headers: { Authorization: 'Bearer ' + tokenBeingVerified },
     });
-    if (_authToken !== tokenBeingVerified) return false;
+    if (_authToken !== tokenBeingVerified || _chatUserStateEpoch !== epochBeingVerified) return false;
     if (!response.ok) {
-      authClearLocalSession();
+      clearUnrestoredSession();
       return false;
     }
     const user = await response.json();
-    if (_authToken !== tokenBeingVerified) return false;
+    if (_authToken !== tokenBeingVerified || _chatUserStateEpoch !== epochBeingVerified) return false;
     const verifiedOwnerId = _chatOwnerId(user);
     if (!verifiedOwnerId) {
-      authClearLocalSession();
+      clearUnrestoredSession();
       return false;
     }
     const previousOwnerId = _chatOwnerId();
@@ -10744,9 +10750,15 @@ async function authRestoreSession() {
     chatRestoreSession();
     restorePendingTaskClarification();
     offerMediaRecovery();
+    // The profile may have opened while /auth/me was still resolving its owner.
+    if (!previousOwnerId && _authToken === tokenBeingVerified
+        && document.getElementById('page-profile')?.classList.contains('active')) {
+      initProfilePage();
+      loadTrackingList();
+    }
     return true;
   } catch(e) {
-    if (_authToken === tokenBeingVerified) authClearLocalSession();
+    if (_authToken === tokenBeingVerified && _chatUserStateEpoch === epochBeingVerified) clearUnrestoredSession();
     return false;
   }
 }
@@ -11635,6 +11647,17 @@ function trackingForVersionGroup(group) {
     .sort((a, b) => String(b.submitted_at || '').localeCompare(String(a.submitted_at || '')))[0] || null;
 }
 
+function librarySourceLabel(source) {
+  switch (source) {
+    case 'manual': return '手动保存';
+    case 'analyze':
+    case 'diagnose': return '诊断原稿';
+    case 'generate': return 'AI生成';
+    case 'chat': return '对话优化';
+    default: return '来源未记录';
+  }
+}
+
 function renderLibraryLifecycleStrip(group) {
   const versions = group.versions || [group.latest].filter(Boolean);
   const latest = group.latest || versions[versions.length - 1] || {};
@@ -11643,7 +11666,7 @@ function renderLibraryLifecycleStrip(group) {
   const meta = trackingStatusMeta(tracking);
   const scoreTrend = (group.score_trend || []).filter(s => s !== null && s !== undefined);
   const delta = scoreTrend.length >= 2 ? +(scoreTrend[scoreTrend.length - 1] - scoreTrend[0]).toFixed(1) : null;
-  const sourceLabel = { diagnose:'诊断原稿', generate:'AI生成', chat:'对话优化', manual:'手动保存' }[first.source] || '初始版本';
+  const sourceLabel = librarySourceLabel(first.source);
   const trackingValue = tracking ? meta.label : '未绑定';
   const learningValue = tracking && (tracking.actual_ces != null || tracking.status === 'complete')
     ? '已可校准'
@@ -11694,7 +11717,7 @@ function buildGroupCard(group) {
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--text-muted);background:var(--surf-2);padding:2px 8px;border-radius:20px">
-          ${vCount > 1 ? `最新版本 · 共${vCount}个版本` : 'AI生成 v1'}
+          ${vCount > 1 ? `最新版本 · 共${vCount}个版本` : `${librarySourceLabel(latest.source)} v${latest.version || 1}`}
         </span>
         <span style="font-size:11px;color:var(--text-muted)">${date} · ${latest.domain}</span>
       </div>
@@ -11721,7 +11744,7 @@ function buildGroupCard(group) {
   versions.forEach((v, idx) => {
     const isLatestV = (idx === versions.length - 1);
     const col = _scoreColor(v.score);
-	    const srcLabel = { generate:'AI生成', chat:'对话优化', manual:'手动' }[v.source] || v.source;
+	    const srcLabel = librarySourceLabel(v.source);
 	    const card = document.createElement('div');
 	    card.className = 'library-version-card';
 	    card.style.cssText = `min-width:220px;max-width:260px;border:${isLatestV ? '2px solid rgba(123,97,255,0.6)' : '1px solid var(--border)'};border-radius:12px;padding:14px;background:${isLatestV ? 'rgba(123,97,255,0.06)' : 'var(--surf-2)'};flex-shrink:0`;
