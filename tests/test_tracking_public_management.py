@@ -107,9 +107,50 @@ class TrackingPublicManagementTests(unittest.TestCase):
         for payload in ({'likes': -1}, {'saves': 2147483648}, {'comments': 'invalid'},
                         {'views': -1}, {'evidence_source': 'crawler'}):
             with self.subTest(payload=payload):
-                self.assertEqual(self.fill(tid, payload=payload).status_code, 422)
+                self.assertEqual(self.fill(tid, payload={'likes': 0, 'saves': 0, 'comments': 0, **payload}).status_code, 422)
                 self.assertEqual(self.row(tid), before)
                 self.assertEqual(self.counts(), counts)
+
+    def test_public_manual_fill_requires_explicit_integer_counts_without_writes(self):
+        tid, _ = self.tracking()
+        before, counts = self.row(tid), self.counts()
+        valid = {'likes': 0, 'saves': 0, 'comments': 0}
+        invalid = [{}] + [{k: v for k, v in valid.items() if k != missing} for missing in valid]
+        invalid += [{**valid, key: value} for key in valid for value in (True, False, 0.0, 1.5, '0', None)]
+        invalid += [{**valid, 'views': value} for value in (True, False, 0.0, 1.5, '0')]
+        for payload in invalid:
+            with self.subTest(payload=payload):
+                response = self.fill(tid, payload=payload)
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertEqual(self.row(tid), before)
+                self.assertEqual(self.counts(), counts)
+        headers = {**self.headers(), 'Content-Type': 'application/json'}
+        response = self.client.post('/notes/tracking/'+tid+'/fill', headers=headers, content=b'')
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(self.row(tid), before)
+        self.assertEqual(self.counts(), counts)
+
+    def test_public_manual_fill_all_explicit_zero_is_valid_with_optional_integer_views(self):
+        for optional in ({}, {'views': None}, {'views': 0}):
+            with self.subTest(optional=optional):
+                tid, _ = self.tracking()
+                response = self.fill(tid, payload={'likes': 0, 'saves': 0, 'comments': 0, **optional})
+                self.assertEqual(response.status_code, 200, response.text)
+                row = self.row(tid)
+                self.assertEqual((row['likes_7d'], row['saves_7d'], row['comments_7d']), (0, 0, 0))
+                self.assertEqual(row['evidence_source'], 'manual')
+
+    def test_public_manual_fill_validation_follows_auth_and_nonpublic_defaults_remain(self):
+        tid, _ = self.tracking()
+        response = self.client.post('/notes/tracking/'+tid+'/fill',
+                                    headers={'Origin': self.headers()['Origin']}, json={})
+        self.assertEqual(response.status_code, 401, response.text)
+        db.execute('DELETE FROM user_contract_acceptances WHERE user_id=?', (self.owner,))
+        self.assertEqual(self.fill(tid, payload={}).status_code, 403)
+        with mock.patch.dict(fixture.os.environ, {'NOTEAI_PUBLIC_PRODUCT': '0', 'NOTEAI_PUBLIC_ACCOUNT_ONLY': '0'}):
+            response = self.fill(tid, payload={})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(self.row(tid)['likes_7d'], 0)
 
     def test_manual_effect_failure_rolls_back_the_entire_existing_transaction(self):
         tid, _ = self.tracking()
