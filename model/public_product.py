@@ -36,6 +36,7 @@ EXACT_ROUTES = frozenset({
     ("GET", "/billing/tiers"), ("GET", "/billing/plan"),
     ("GET", "/billing/usage"), ("GET", "/billing/credits"), ("GET", "/billing/quote"),
     ("GET", "/notes"), ("POST", "/notes"), ("GET", "/notes/tracking"),
+    ("POST", "/notes/track-url"),
     ("GET", "/account/export"), ("GET", "/account/archive/recovery"),
     ("POST", "/account/archive/recover"), ("POST", "/auth/sessions/revoke-all"),
     ("POST", "/auth/password-reset"), ("POST", "/auth/change-password"), ("DELETE", "/account"),
@@ -83,6 +84,10 @@ def wechat_configured(*, callback: bool = False) -> bool:
 
 
 def allowed_route(method: str, path: str) -> bool:
+    if method in {"GET", "DELETE"} and re.fullmatch(r"/notes/tracking/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
+        return True
+    if method == "POST" and re.fullmatch(r"/notes/tracking/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/fill", path):
+        return True
     if method in {"PATCH", "DELETE"} and re.fullmatch(r"/profile/memories/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
         return True
     if method == "GET" and re.fullmatch(r"/reports/(?:analyze|generate)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})", path):
@@ -164,6 +169,8 @@ async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None
         request_id = headers.get(b"x-request-id", b"").decode("ascii", errors="ignore")
         if path in PAID_ROUTES and not re.fullmatch(r"[A-Za-z0-9_-]{8,100}", request_id):
             raise HTTPException(400, "请携带有效请求标识，避免重复扣额")
+        if path == "/notes/track-url" and not body:
+            raise HTTPException(403, "当前仅开放手工录入表现，自动采集尚未开放")
         if body:
             try:
                 payload = json.loads(body)
@@ -171,6 +178,8 @@ async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None
                 raise HTTPException(400, "请求格式无效")
             if not isinstance(payload, dict):
                 raise HTTPException(400, "请求格式无效")
+            if path == "/notes/track-url" and payload.get("collection_mode") != "manual":
+                raise HTTPException(403, "当前仅开放手工录入表现，自动采集尚未开放")
             if path == "/payments/orders" and payload.get("provider") not in (None, "wechatpay_direct"):
                 raise HTTPException(403, "当前仅开放微信支付")
             # Media and Tracking retain their concrete validation/deployment boundaries.

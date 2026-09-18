@@ -61,6 +61,8 @@ def service_status() -> dict:
         "fast_chat_credits": 1 if product_enabled() else 0,
         "tracking_open": False,
         "tracking_read_open": product_enabled(),
+        "tracking_manual_open": product_enabled(),
+        "tracking_delete_open": product_enabled(),
         "suppliers": public_product.public_services() if product_enabled() else [],
         "contract_version": contract_version(),
         "support_phone": "18988528731",

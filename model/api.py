@@ -14971,6 +14971,7 @@ async def profile_achievements(user: dict = Depends(_auth.get_current_user)):
 # ═══════════════════════════════════════════════════════════════════════
 
 class TrackUrlInput(BaseModel):
+    collection_mode: Literal["automatic", "manual"] = "automatic"
     xhs_url:        str = Field(min_length=1, max_length=2048)
     domain:         str = Field(default="美食", min_length=1, max_length=32)
     published_at:   Optional[str] = None  # 用户填写的发布时间（ISO格式或空）
@@ -15035,6 +15036,11 @@ def _tracking_duplicate_error(exc: BaseException) -> bool:
 @app.post("/notes/track-url")
 async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_user)):
     """提交小红书笔记 URL 开始追踪。"""
+    manual = req.collection_mode == "manual"
+    if manual and (not (req.source_note_id or req.source_note_version_id) or
+                   (req.source_note_id and req.source_note_version_id and
+                    req.source_note_id != req.source_note_version_id)):
+        raise HTTPException(status_code=422, detail="请关联本人的一篇已保存笔记")
     try:
         url, note_id = _tracking_contract.normalize_xhs_note_url(req.xhs_url)
         published_at = _tracking_contract.parse_published_at(req.published_at)
@@ -15069,6 +15075,10 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
         domain = req.domain or _tracking_row_value(note_row, "domain", "美食")
         if predicted_ces is None:
             predicted_ces = _tracking_row_value(note_row, "score")
+        if manual:
+            note_title = _tracking_row_value(note_row, "title", "")
+            domain = _tracking_row_value(note_row, "domain", "美食")
+            predicted_ces = _tracking_row_value(note_row, "score")
     if req.source_session_id:
         sess = _db.fetchone(
             "SELECT id FROM chat_sessions WHERE id=? AND user_id=?",
@@ -15076,10 +15086,13 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
         )
         if not sess:
             raise HTTPException(status_code=404, detail="关联对话不存在或无权访问")
-    next_check_at = _tracking_next_check_at(published_at, hours=24)
+    next_check_at = None if manual else _tracking_next_check_at(published_at, hours=24)
+    status = "needs_manual" if manual else "pending"
     try:
         with _api_write_transaction() as tx:
             _assert_api_user_writable(tx, user["id"])
+            if manual and _retention.status("note", source_note_id, user["id"], storage=tx)["state"] != "active":
+                raise HTTPException(status_code=404, detail="关联笔记不存在或无权访问")
             duplicate = tx.fetchone(
                 "SELECT id FROM tracked_notes WHERE user_id=? "
                 "AND (xhs_url=? OR xhs_note_id=?)",
@@ -15097,8 +15110,8 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
                 (
                     tid, user["id"], source_note_id, source_root_note_id,
                     req.source_session_id, url, note_id, note_title, domain,
-                    predicted_ces, published_at, now, next_check_at, "pending",
-                    "", None, "", 0, 1,
+                    predicted_ces, published_at, now, next_check_at, status,
+                    "manual" if manual else "", None, "", 0, 1,
                 ),
             )
     except HTTPException:
@@ -15112,12 +15125,12 @@ async def track_url(req: TrackUrlInput, user: dict = Depends(_auth.get_current_u
         raise
     return {
         "id": tid,
-        "status": "pending",
+        "status": status,
         "note_title": note_title,
         "source_note_id": source_note_id,
         "source_root_note_id": source_root_note_id,
         "next_check_at": next_check_at,
-        "message": "已开始追踪，24小时后首次采集数据",
+        "message": "已建立手工表现记录，请填写本人实际数据；未经平台核验" if manual else "已开始追踪，24小时后首次采集数据",
     }
 
 @app.get("/notes/tracking")
