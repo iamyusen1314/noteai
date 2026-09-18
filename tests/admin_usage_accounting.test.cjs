@@ -337,7 +337,7 @@ test('calendar period is explicit and an unrecognized timezone is not labelled U
 test('actual page uses correct overview contract and avoids supplier-settled or per-record completeness claims', () => {
   assert.match(source('loadDashboard'), /adminCostCoverage\(f\.coverage, d\.usage\?\.accounting\)/);
   assert.match(source('loadUsage'), /adminUsageTooltip\(op\)/);
-  assert.match(source('renderAdminUsageLedger'), /adminKnownMoney\(row\?\.cost_rmb\)/);
+  assert.match(source('renderAdminUsageLedger'), /adminUsageCostEvidence\(row\)/);
   assert.match(html, /旧模型计量金额（不证明本条请求完整结算）/);
   assert.match(html, /模型计量差额率（最近30日，未结算）/);
   assert.doesNotMatch(html, /综合毛利率（最近30日）/);
