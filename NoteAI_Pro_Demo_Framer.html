@@ -12156,7 +12156,7 @@ function renderProfileLoopInsights(growth, notes, tracking, mems) {
   const memories=Array.isArray(mems?.memories)?mems.memories:null;
   const preferences=Array.isArray(mems?.preferences)?mems.preferences:[];
   const cards=[
-    ['诊断与优化记录',records?records.length+' 条记录':growth?.error?'读取失败':'待读取','不同笔记与版本独立记录，不推算整体提升'],
+    ['成长记录',records?records.length+' 条记录':growth?.error?'读取失败':'待读取','不同笔记与版本独立记录，不推算整体提升'],
     ['作品资产',versions===null?(notes?.error?'读取失败':'待读取'):versions+' 个版本','已保存的笔记版本'],
     ['发布后表现记录',tracking?.unavailable?'暂未开放':tracked?tracked.filter(t=>t.status==='complete'||t.actual_ces!=null).length+'/'+tracked.length+' 已完成':tracking?.error?'读取失败':'待读取',tracking?.unavailable?'当前不采集外部表现':'按来源区分；用户录入未经平台核验'],
     ['已保存记忆',memories?memories.length+' 条记忆'+(preferences.length?' · '+preferences.length+' 项偏好':''):mems?.error?'读取失败':'待读取','偏好、上下文与成就按实际记录展示'],
