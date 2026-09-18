@@ -1,4 +1,17 @@
-September18 11:11:25UTC CURRENT: Owner confirms time change for the same unused
+September18 CURRENT: Item32 real cycle e7f3345/run-4gbceax8 VERIFIED after original
+four-artifact semantic gate errors=[]; readiness33/37. Actual11:30:09–11:30:36UTC,
+2init+34collection/36responses, unknown0/retry0; six domains15 each with both real
+sources. Original DB before/after readonly0writes/noXID/rollback and seven-lock/
+process/container/runtime cleanup prove closure;48old records+V1seal unchanged.
+Old initialization UNKNOWN1 and V1 failure remain historical facts. Current success
+proves the new path, not the old failure's sole root cause. Today's34 allocation is
+consumed despite production DBtoday0 under isolation. Fees UNKNOWN, no purchases.
+Original heartbeat PAUSED; no default replay or new32 cycle. Item33 localV5/DML
+wiring now proceeds under existing scope; later UTC fresh bucket required, not yet
+scheduled. Payment/Amap/reports/rights/Item34/H5/seven paths preserved. Exact evidence
+and restore-only entrypoints: Handoff CURRENT.
+
+September18 11:11:25UTC HISTORICAL: Owner confirms time change for the same unused
 cycle11:30–13:00UTC/start<12:25. No new cycle, retry, purchase or scheduler. Exact
 new canonical loads and20 targeted time/contract tests pass;11 private-helper
 tests pass. Original heartbeat remains PAUSED, expired packages remain sealed.

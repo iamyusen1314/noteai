@@ -1,6 +1,16 @@
 # Item32 — September17 唯一后续执行
 
-## September18 11:11:25UTC当前确认
+## September18真实终态：VERIFIED，唯一周期已消费
+
+固定sourcee7f3345、原F/image6d5/session18f72/8overlay，于11:30:09–11:30:36UTC实际完成。
+初始化2＋采集34＝36响应，UNKNOWN0/重试0；六域各15且保留真实搜索/推荐来源，原质量契约通过。
+原DBbefore/after均只读零写/无XID/rollback，final证实7锁/PID/容器/临时文件清尾和原48＋seal不变。
+四原artifact已保存并经原验收器校验errors=[]，canonical Readiness33/37。精确路径/hash见Handoff CURRENT。
+Sep18已使用34，生产DB计数0不能再作为fresh。本周期默认入口不得重放；原heartbeat PAUSED，没有新Item32。
+原UNKNOWN及旧V1失败保持；本次通过不能追溯证明旧失败唯一原因。下一步沿现有授权继续Item33本地接线及
+更晚UTC fresh桶准备，当前无Item33生产排程，费用仍UNKNOWN。下方各旧提案/执行入口均只作历史。
+
+## September18 11:11:25UTC授权历史
 
 Owner已确认同一个尚未执行周期的新窗口 **11:30–13:00UTC／北京19:30–21:00，启动<12:25UTC／20:25**。
 原heartbeat保持PAUSED，本线程到窗直接执行唯一入口；没有新定时任务。

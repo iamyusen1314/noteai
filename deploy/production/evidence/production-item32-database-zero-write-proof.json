@@ -1,0 +1,15 @@
+{
+  "after_observed_at": "2026-09-18T11:30:36.247894+00:00",
+  "before_observed_at": "2026-09-18T11:30:13.263258+00:00",
+  "readback_query_sha256": "74c665e6361a6f7e9c11637faf7891effad4e98e2a480870ec0af586c39afbb7",
+  "run_identity_sha256": "bdd6da52198557663a30688e4d26796dcd3329ede86ca9c33557da8aabd983aa",
+  "schema": "noteai.item32.production_db_zero_write.v1",
+  "secret_values_recorded": false,
+  "server_enforced_read_only": true,
+  "session_identity_sha256": "9bfd1d0c09216b2f62f6eea6630b42edfdfb2fafb35daa9fb20439770cffc215",
+  "transaction_rolled_back": true,
+  "tuple_write_count": 0,
+  "write_count": 0,
+  "write_tables": [],
+  "xid_assigned": false
+}

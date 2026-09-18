@@ -1,4 +1,12 @@
-September18 11:11:25UTC CURRENT — owner confirms the same unused cycle at
+September18 CURRENT — Item32 VERIFIED on original API-F/image6d5/session18f72,
+sourcee7f3345 with8overlays. Actual unique cycle11:30:09–11:30:36UTC:36HTTP(2init+34),
+sixdomains90valid rows, productionDB readonly0writes and full cleanup. Original
+four artifact gate passes; readiness33/37. API-C/Admin/Payment/Amap/public web
+not deployed or changed. Same heartbeat PAUSED and consumed default cannot replay.
+Item33 must now adapt managed V5 source and real DML instrumentation; laterUTC
+bucket required, no production promotion scheduled. H5 work remains separate.
+
+September18 11:11:25UTC HISTORICAL — owner confirms the same unused cycle at
 11:30–13:00UTC/start<12:25. Canonical AUTHORIZED SHA08ac5f6f…, full loader and20
 targeted time/contract tests pass; original eight business overlays/budget unchanged.
 New private helper copies bind the evening confirmation/window,11 isolated tests

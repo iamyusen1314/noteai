@@ -2,6 +2,16 @@
 
 ## Current execution control
 
+September18 actual Item32 sourcee7f3345 cycle is now VERIFIED:11:30:09–11:30:36UTC,
+2 initialization plus34 collection,36 responses, zero UNKNOWN/retry, six domains
+15 each, original four-artifact gate PASS and complete readonly/cleanup proof.
+Readiness33/37; exact originals and restore-only paths are at Handoff CURRENT.
+This one-shot and Sep18 quota are consumed; no default replay or new Item32 cycle.
+Heartbeat remains PAUSED. Continue existing-authorized Item33 local V5/DML wiring;
+its production cycle needs a later UTC fresh bucket and complete live prerequisites,
+not the old a78/three-overlay entry. No Item33 production schedule exists yet.
+Preserve old UNKNOWN/failures, formal services, H5 ownership and protected paths.
+
 September18 owner explicitly confirms the same still-unexecuted Item32 cycle in
 11:30–13:00UTC (Beijing19:30–21:00), dispatch strictly before12:25UTC. Confirmation
 observed11:11:25UTC. Original06:30 window was missed due to our schedule timezone

@@ -1,4 +1,56 @@
-# CURRENT EXECUTION CONTROL — September18晚间同一周期已确认；原调度保持暂停、到窗直接执行
+# CURRENT EXECUTION CONTROL — September18 Item32真实VERIFIED；接续Item33本地接线
+
+**Item32已通过，Readiness33/37；余33、36、37、38。** 原始四artifact已完整保存并经
+`validate_item32_trends_evidence`实际校验errors=[]；canonical更新后原readiness gate返回
+internal29/29、public33/37，仅Item33为当前可推进项。不是凭exit0或HTTP成功计分，不代表全产品质量通过。
+
+- 实际固定source`e7f33456465632448974b435d3e56ddd73865740`，原F/6d5镜像/18f72会话及8overlay；
+  云助手原执行`t-sz06xfn05renj0g`，`run-4gbceax8`。唯一dispatch
+  **11:30:09.295282→11:30:36.472865UTC／北京19:30:09→19:30:36**，exit0，严格在授权窗口内。
+  admission11:30:13.448072，worker11:30:14.580122→11:30:34.579534。
+- 真实DSL1/session1＋homefeed10/recommend12/search_notes12，共36physical HTTP/34collection，
+  36响应、UNKNOWN0、unresolved0、invalid0、自动重试0。recommend12均保留原业务码int1000且真实可用数据。
+  Sep18本周期额度已消耗34；生产DB今日计数仍0是隔离只读的结果，**绝不能据此再称fresh或再跑**。
+  旧48采集和初始化UNKNOWN原样保留，累计采集82；不重放旧身份或默认入口。
+- 六域各15/共90有效关键词，真实search_result/recommend分别：美食2/13、旅行2/13、穿搭3/12、
+  美妆1/14、家居1/14、健身1/14；source_health全部true/freshness true，质量/来源/数量原门槛全通过。
+  本次支持来源保留修复及真实发布成功；旧V1没有输入/分域原证据，仍不能证明它当时的唯一根因。
+- 原PGbefore11:30:13.263258、after11:30:36.247894：同身份/查询SHA，server-enforced readonly、
+  writes0/tuple0/noXID/rollback，after_verified=true。final11:33:35.951011确认7把锁可SH、父子PID无、
+  unit inactive/dead/disabled/PID0、任务容器及本周期临时runtime无，会话/unit未改；48旧文件＋V1seal
+  前后SHA全等。正式API-C/Admin/Payment/高德/前台/用户权益无改动；没有新模型/采购，供应商和网络费UNKNOWN。
+
+## 原始证据、恢复与当前文件边界
+
+原F stage`/var/lib/noteai/item32-v5-source-retention-package-20260918-e7f3345`、work
+`/var/lib/noteai/item32-v5-source-retention-20260918`保持。**默认dispatch已消费，不再运行。**
+恢复只用包内wrapper`--readback-only`、executor`--v5-source-retention-readback-only`及原封存文件；
+缺失或UNKNOWN不补调用。原heartbeat`noteai-item32-sep17`保持PAUSED，无新自动化。
+
+| 原证据（均deploy/production/evidence/） | bytes | SHA256 |
+| --- | ---: | --- |
+| production-item32-xhs-trends-readonly-verified.json | 27540 | 1456a938acba00a12a9b547dd13e4054ef89b4bca05597363808007be28eb584 |
+| production-item32-xhs-trends-attempt-audit.json | 37762 | 78ab1cbc2bf93b134c8e79d1442b56839fff771b78fb240c66c36693d9be84b7 |
+| production-item32-xhs-trends-snapshot.json | 26075 | 9cbdf5661de4f6e33be4640bdb12e02c65ba1bcf86de61f5d27d082105970a06 |
+| production-item32-database-zero-write-proof.json | 664 | b8de0d43b1ced1dd357e8f76ec75cd3b50f8cf93606e9301c7cb7d18a6c088f8 |
+| production-item32-source-retention-final-readback-20260918.json | 39697 | 43e447e5300fe04fdd6a337dee7de67c64f8bd5e6394bcbc48be6abc2ca5cd6e |
+
+host原导出`/home/ecs-assist-user/item32-evidence-20260918T113036Z-ca8ff01ca43c4e18844b2477abc1223b.tar.gz`
+12101B/SHA`7a097855aa130bdae745a7cdaf6f40bb368e5cceff92b85123951d89c9b9b37d`；私有本地完整原包与
+4JSON在`/Users/openclaw/.codex/tmp/noteai-item32-network-repair-20260917/evening-window-20260918/success-export-import/`。
+独立final reader17项离线测试/审查通过，安全final及4原artifact逐字SHA验证并独立复核真实数据。
+Cloud Assistant长输出24575B截断，改只读原final四片取回；两条readback-only UI提交迟滞时未重发，
+后续final reader实际包含保留结果读回。原12101B导出仅一次读取；本机桥因浏览器空闲预连接排队，
+关闭页面后原POST完成、server exit0，实际5文件完整验证；未重传或创建v2。所有本机桥及临时页面已关闭。
+
+当前接续：Item33 V5 renderer/host和其gate兼容正在本地实施，writer事务/listener/journal/callback仍需接线。
+真实32通过及原internal rollback已满足既有授权依赖，不重复申请Item32周期；Item33必须更晚UTC fresh桶，
+最早Sep19 00:00UTC／北京08:00只是下界，**尚无生产排程或可执行完整CLI**。完成接线/定向测试和
+现场前置后再确定有效窗口；不直接运行旧a78/三overlay方案。36原双区ALB＋双EIP费用授权保留，待33等前置，
+不提前创建。34 VERIFIED、35 NOT_REQUIRED、原微信31终态复用；H5/套餐/视频积分归独立worktree，七保护路径不动。
+本checkpoint只提交本线程32原件/canonical/说明；并行33代码由各代理明确持有，不混入本次32 checkpoint。
+
+# September18晚间授权与暂存记录（已执行完成，禁止重放）
 
 Owner明确选择“同意新时间，执行同一周期”，实际确认观察于**Sep18 11:11:25UTC**。
 唯一窗口 **11:30–13:00UTC／北京19:30–21:00，启动严格早于12:25UTC／20:25**。
@@ -11,7 +63,23 @@ outer executor SHA`2a10995d9dd56e88a4701d28cead7085ca99357bd21fb6096a6b8b72b0fc8
 20项定向profile/gate通过2.977s；包含早于11:30拒绝、12:25严格拒绝及两过期窗口拒绝。
 前两轮测试有旧06:31样本、旧synthetic observation08:30导致失败，仅修正fixture时间后通过，未放宽验收。
 私有四helper新副本在原private root的`evening-window-20260918/`；只改package确认/窗口、
-template确认字面量及staging派生SHA，原件保留；11项隔离测试0.802s通过。新固定包/真实结果随后追加。
+template确认字面量及staging派生SHA，原件保留；11项隔离测试0.802s通过。
+
+### September18 11:26UTC晚间包原F暂存完成，尚未启动
+
+固定源码`e7f33456465632448974b435d3e56ddd73865740`；stage
+`/var/lib/noteai/item32-v5-source-retention-package-20260918-e7f3345`。
+archive175124B/SHA`2d4d3b7eaa9cf04188133d9bd10368f1e55363b2e952896a8caecde978990d33`；
+manifest SHA`190add9b637f99f8d435297337f61cfafad0ad7928e1042c1b7cd0ab3bef6daa`；
+wrapper35379B/SHA`64614480b98f3df12d1924a583d238e32d4d19f1f82996f32631e2cdebbc9ebb`。
+15源码分片及唯一组装命令均成功，20文件/8overlay与Git逐字一致，原48历史文件/原seal与会话预检通过。
+原始stage回执及repo `deploy/production/evidence/production-item32-source-retention-evening-stage-20260918.json`
+为534B/SHA`bc9aeb3a7464338b9afd9eb3f15bcd050e17f00c511238353a585daf9a1bb384`。
+暂存供应商HTTP0/DB操作0，dispatch_started=false；现场fresh仍由到窗唯一executor核验。
+分片1的UI等待超时后读取原成功回执，没有重发；分片10粘贴检查未通过时未提交，重新聚焦读回全文一致才提交。
+独立包审查无阻断。本地暂存server已停止，临时源页已关闭，原F控制台唯一入口已准备，外层超时2700秒。
+11:30前不点击执行；本线程到窗直接执行一次。执行之后默认入口永久禁重放，仅原wrapper及executor的readback-only。
+后续文档提交不替换固定执行包；旧0c268d9包/过期窗口和原UNKNOWN保持。
 
 ## September18原触发故障与未执行证明（已解决排程原因；不补跑过期包）
 
