@@ -2,6 +2,16 @@
 
 ## Current execution control
 
+September18 owner explicitly confirms the same unused additional Item32 cycle in
+06:30–08:00UTC (Beijing14:30–16:00), dispatch strictly before07:25UTC. Actual
+confirmation observed05:06:29UTC. Original00:00 window expired without dispatch;
+preserve it as history. Use the source-retention plan with original API-F/image/
+session, eight bound overlays, fresh0/34, at most2 initialization plus34 collection
+HTTP, zero automatic retry, old48 collection and UNKNOWN preserved, original
+quality/readonly/cleanup requirements. Prepare and verify one continuation only;
+no late dispatch or automatic extra cycle. Current package and actual state:
+Handoff CURRENT. No repeated approval for these scoped technical steps.
+
 September17 owner resumes this thread specifically to resolve Item32: bounded,
 staged network diagnosis on original API-F, corresponding minimal repair, then
 one new complete readonly validation within a freshly recorded valid window and

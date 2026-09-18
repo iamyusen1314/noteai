@@ -1,4 +1,11 @@
-September18 04:57:25UTC CURRENT: Owner's explicit one-cycle confirmation arrived
+September18 05:06:29UTC CURRENT: Owner explicitly confirms the changed06:30–08:00UTC
+window, dispatch before07:25, for the same one unused cycle. Canonical authorized
+scope and local loader verified; fresh0/34, actual runtime/readonly/quality and
+cleanup still require execution-time evidence. No early/late dispatch, automatic
+retry, old identity replay or extra successor. Preparing one verified continuation
+does not itself pass Item32. Original48collection/UNKNOWN and live services preserved.
+
+September18 04:57:25UTC HISTORICAL: Owner's explicit one-cycle confirmation arrived
 after the proposed00:55 dispatch deadline and01:30 end. Do not backdate, reuse the
 expired package, or reinterpret this as unlimited successors. No dispatch occurred.
 The same unused cycle's proposed06:30–08:00UTC window (dispatch before07:25) needs

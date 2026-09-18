@@ -12,9 +12,9 @@
     "work_root": "/var/lib/noteai/item32-v5-source-retention-20260918"
   },
   "authorization": {
-    "approved_scope_sha256": null,
-    "confirmed_at_utc": null,
-    "status": "PENDING"
+    "approved_scope_sha256": "b941fa4cdb071b8a8c26e00ed47e815e9d18f97f18ad0fd3b3449bbf0ada65c1",
+    "confirmed_at_utc": "2026-09-18T05:06:29+00:00",
+    "status": "AUTHORIZED"
   },
   "bounds": {
     "automatic_retry": 0,

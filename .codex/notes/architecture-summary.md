@@ -1,4 +1,11 @@
-September18 04:57:25UTC CURRENT — owner explicitly confirmed the one additional
+September18 05:06:29UTC CURRENT — owner explicitly confirmed the changed time for
+the same unused Item32 cycle:06:30–08:00UTC, dispatch before07:25. Canonical is now
+AUTHORIZED (26846B/SHAf5008ce7…), exact local loading passes. Prepare frozen package,
+original API-F preflight and one verified continuation; no early provider dispatch.
+All original request/source/readonly/quality/recovery bounds remain unchanged.
+No host package or schedule is claimed until actually verified. Handoff CURRENT.
+
+September18 04:57:25UTC HISTORICAL — owner explicitly confirmed the one additional
 Item32 cycle, but the proposed00:55 dispatch deadline/01:30 end had already passed.
 No stale dispatch, provider call, host package or new schedule. The same unused
 cycle is being rebound locally to06:30–08:00UTC, dispatch before07:25, pending only
