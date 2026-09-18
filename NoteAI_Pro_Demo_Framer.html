@@ -2471,6 +2471,15 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   .x-sec-inner{padding:0 24px} .x-compare{padding:100px 0}
   .upload-page,.live-page,.report-page,.profile-page{padding:48px 24px}
   .report-grid,.profile-grid{grid-template-columns:1fr}
+  /* Keep the existing mobile column from creating implicit columns via span 2. */
+  #page-profile .profile-grid>.profile-card{grid-column:1/-1!important;min-width:0}
+  #page-profile .profile-card h3{flex-wrap:wrap}
+  #page-profile .profile-info{min-width:0;max-width:100%}
+  #page-profile .memory-item{overflow-wrap:anywhere}
+  #profile-usage-by-op{overflow-x:auto;overscroll-behavior-x:contain}
+  #profile-usage-by-op>div{min-width:560px}
+  #profile-usage-recent>div{flex-wrap:wrap}
+  #profile-usage-recent>div>span:first-child{flex:1 0 100%!important;overflow-wrap:anywhere}
   .rewrite-pair,.dispute-compare{grid-template-columns:1fr}
   .timing-evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .arena{padding:22px}
@@ -3344,6 +3353,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
       </div>
 
+      <div id="analyze-billing-preview" role="status" style="margin:16px 0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surf-1);font-size:13px;line-height:1.7;overflow-wrap:anywhere">提交前读取服务端扣分；完整视频音画分析按当前主操作标准计费。</div>
       <button id="diagnoseSubmitBtn" class="btn btn-primary btn-lg analyze-btn" onclick="startDiagnosis()" disabled aria-busy="false"
         style="background:linear-gradient(135deg,#0099FF,#0070CC);color:#fff;border:none;box-shadow:0 4px 24px rgba(0,153,255,0.3)">
         <i data-lucide="search"></i> <span class="diagnose-btn-label">请先上传截图</span>
@@ -3534,6 +3544,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </div>
       </div>
 
+      <div id="generate-billing-preview" role="status" style="margin:16px 0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surf-1);font-size:13px;line-height:1.7;overflow-wrap:anywhere">提交前读取服务端扣分；完整视频音画分析按当前主操作标准计费。</div>
       <button id="generateSubmitBtn" class="btn btn-lg analyze-btn" onclick="startGeneration()" aria-disabled="false" aria-busy="false"
         style="background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;border:none;
                box-shadow:0 4px 28px rgba(123,97,255,0.4);margin-top:32px">
@@ -3648,6 +3659,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-report">
   <div class="report-page">
+    <div id="report-billing-receipt" role="status" style="display:none;margin:16px 0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surf-1);font-size:13px;line-height:1.7;overflow-wrap:anywhere"></div>
 
     <!-- ── 报告历史列表 ──────────────────────────────────────── -->
     <div id="diag-history-section" style="margin-bottom:32px">
@@ -4147,8 +4159,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         <div class="profile-tags" id="profile-domain-tags"></div>
       </div>
       <div class="profile-stats">
-        <div class="p-stat"><div class="p-stat-num" id="profile-stat-sessions">–</div><div class="p-stat-label">累计优化次数</div></div>
-        <div class="p-stat"><div class="p-stat-num" id="profile-stat-improvement" style="color:var(--success)">–</div><div class="p-stat-label">最大分值提升</div></div>
+        <div class="p-stat"><div class="p-stat-num" id="profile-stat-sessions">–</div><div class="p-stat-label">成长记录数</div></div>
+        <div class="p-stat"><div class="p-stat-num" id="profile-stat-improvement" style="color:var(--success)">–</div><div class="p-stat-label">有效评分记录</div></div>
         <div class="p-stat"><div class="p-stat-num" id="profile-stat-best" style="color:var(--holo-mid)">–</div><div class="p-stat-label">历史最高分</div></div>
       </div>
     </div>
@@ -4601,124 +4613,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-pricing" style="padding-top:60px;min-height:100vh">
   <div id="pricing-content" style="max-width:1000px;margin:0 auto;padding:48px 24px">
-	    <div class="pricing-hero" style="text-align:center;margin-bottom:48px">
-      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
-      <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
-      <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣当前套餐周期积分，不足部分再扣充值积分。规则公开，账单可查。</p>
-    </div>
-    <!-- 套餐卡片 -->
-	    <div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">
-      <!-- 免费版 -->
-	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">免费版</div>
-        <div style="font-size:38px;font-weight:800;color:var(--text);margin-bottom:4px">¥0</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">12积分/月</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>最多 AI诊断 <b>2次</b></div>
-          <div id="free-plan-mix"><span style="color:var(--success);margin-right:6px">✓</span>或爆文生成 <b>1次</b> + 截图 <b>8张</b></div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>7天在线存档 + 7天恢复期</div>
-        </div>
-        <button onclick="openAuthModal('register')" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer;font-size:13px;font-weight:600">免费开始</button>
-      </div>
-      <!-- 创作者版 -->
-	      <div class="pricing-card pricing-card-featured" style="background:linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06));border:1.5px solid rgba(123,97,255,0.35);border-radius:16px;padding:22px 18px;position:relative">
-	        <div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">进阶套餐</div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">创作者版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥99</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">260积分/30天</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断43次 / 爆文32次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写86轮 / 截图520张</div>
-          <div><span style="color:var(--holo-mid);margin-right:6px">◆</span>参考组合：14诊断 + 20爆文 + 5重写 = 259积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>付费创建归档在账户存在期间无产品到期日</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>AI记忆学习偏好</div>
-        </div>
-        <button data-product-action="handleUpgrade" data-product-args='["pro"]' style="width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
-      </div>
-      <!-- 成长版 -->
-	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:22px 18px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase;margin-bottom:12px">成长版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥199</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">560积分/30天</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断93次 / 爆文70次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写186轮 / 截图1120张</div>
-          <div><span style="color:#22C55E;margin-right:6px">◆</span>参考组合：30诊断 + 45爆文 + 6重写 = 558积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>适合稳定更新账号</div>
-        </div>
-        <button data-product-action="handleUpgrade" data-product-args='["growth"]' style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(34,197,94,0.38);background:rgba(34,197,94,0.08);color:#22C55E;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
-      </div>
-      <!-- 专业版 -->
-	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:22px 18px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">专业版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥299</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">900积分/30天</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断150次 / 爆文112次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写300轮 / 截图1800张</div>
-          <div><span style="color:#FFD700;margin-right:6px">◆</span>参考组合：50诊断 + 70爆文 + 13重写 = 899积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>最多3/4调度槽位给优先队列（非完成时效承诺）</div>
-        </div>
-        <button data-product-action="handleUpgrade" data-product-args='["pro_plus"]' style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(123,97,255,0.4);background:rgba(123,97,255,0.08);color:var(--holo-mid);cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
-      </div>
-      <!-- 工作室版 -->
-	      <div class="pricing-card" style="background:var(--surf-1);border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:22px 18px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#00D4FF;text-transform:uppercase;margin-bottom:12px">工作室版</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥399</span><span style="font-size:13px;color:var(--text-muted)">/30天</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">1250积分/30天</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
-          <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断208次 / 爆文156次</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>或重写416轮 / 截图2500张</div>
-          <div><span style="color:#00D4FF;margin-right:6px">◆</span>参考组合：80诊断 + 90爆文 + 10重写 = 1230积分</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>单一 NoteAI 主账号运营多个小红书账号</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>最多3/4调度槽位给优先队列（非完成时效承诺）</div>
-          <div><span style="color:var(--success);margin-right:6px">✓</span>专属客服支持</div>
-        </div>
-        <button data-product-action="handleUpgrade" data-product-args='["studio"]' style="width:100%;padding:11px;border-radius:12px;border:1px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.08);color:#00D4FF;cursor:pointer;font-size:13px;font-weight:700">暂不可购买</button>
-      </div>
-    </div>
-	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
-      <b style="color:var(--text)">如何理解“99元 / 260积分”：</b>260积分是当前30天套餐周期内可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
-    </div>
-
-    <!-- 扣分标准 -->
-	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
-        <div>
-          <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">功能扣分标准</h3>
-          <p style="font-size:13px;color:var(--text-2);margin:0">所有用户按同一标准扣分，不因套餐不同改变单次功能价格。</p>
-        </div>
-        <div style="font-size:12px;color:var(--text-muted)">扣费顺序：套餐周期积分 → 充值积分 → 余额不足提示</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">
-	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:var(--holo-mid)">6积分</b><br><span style="color:var(--text)">AI深度诊断</span><br><span style="font-size:11px;color:var(--text-muted)">截图/手动/视频入口进入完整诊断链路</span></div>
-	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#FF6FD8">8积分</b><br><span style="color:var(--text)">AI爆文生成</span><br><span style="font-size:11px;color:var(--text-muted)">V0.4规划、生成、评分与二修链路</span></div>
-	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#00D4FF">3积分</b><br><span style="color:var(--text)">对话深度重写</span><br><span style="font-size:11px;color:var(--text-muted)">进入高质量优化/改稿模式时扣除</span></div>
-	        <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px"><b style="font-size:20px;color:#22C55E">0.5积分</b><br><span style="color:var(--text)">截图识别</span><br><span style="font-size:11px;color:var(--text-muted)">独立截图 OCR/识别功能按张扣除</span></div>
-      </div>
-      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
-        视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。
-      </div>
-    </div>
-
-    <!-- 积分充值 -->
-	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
-      <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
-      <p style="font-size:13px;color:var(--text-2);margin-bottom:18px">充值积分长期有效。当前套餐周期积分用完后，系统会自动补扣充值积分；每条账单都会显示来源。</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
-	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["starter"]' style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">30积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥12</div><div style="font-size:11px;color:var(--text-muted)">约5次诊断 / 3次爆文</div></div>
-	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["creator"]' style="background:linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04));border:1px solid rgba(123,97,255,0.25);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">100积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥39</div><div style="font-size:11px;color:var(--text-muted)">约16次诊断 / 12次爆文</div></div>
-	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["growth"]' style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">300积分</div><div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥109</div><div style="font-size:11px;color:var(--text-muted)">约50次诊断 / 37次爆文</div></div>
-	        <div class="topup-card" data-product-action="handleTopup" data-product-args='["studio"]' style="background:var(--surf-2);border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:border-color .15s" onmouseover="this.style.borderColor='rgba(0,212,255,0.5)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:20px;font-weight:800;color:var(--text)">800积分</div><div style="font-size:16px;font-weight:700;color:#00D4FF">¥279</div><div style="font-size:11px;color:var(--text-muted)">约133次诊断 / 100次爆文</div></div>
-      </div>
-    </div>
-	    <div class="billing-info-card billing-commitment" style="text-align:center;padding:20px;background:rgba(123,97,255,0.04);border-radius:12px;border:1px solid rgba(123,97,255,0.1);font-size:13px;color:var(--text-2)">
-      <b style="color:var(--text)">透明承诺</b>：套餐不做虚假无限；用户侧明确扣分，平台侧按实际供应商账单和 token 消耗核算成本，优先保证 AI 诊断和爆文生成质量。
-    </div>
+    <p role="status">正在读取当前套餐与扣分标准…</p>
   </div>
 </div><!-- /page-pricing -->
 
@@ -5266,7 +5161,7 @@ function productActionAttributes(action, ...args) {
 document.addEventListener('click', event => {
   const target = event.target.closest('[data-product-action]');
   if (!target) return;
-  const actions = {openAuthModal, handleUpgrade, handleTopup, removeGenImage, showPage,
+  const actions = {openAuthModal, handleUpgrade, handleTopup, removeGenImage, showPage, returnFromPricing, openProfileReport,
     goToDiagnose, chatRemoveAttachImage, chatRemoveAttachFile, startChatFromNote,
     trackNoteFromLibrary, openNoteDetail, copyNoteToClipboard, _removeSsImage,
     removeDiagImage, openManualFill,
@@ -5287,6 +5182,7 @@ function publicVideoOpen() { return (_publicStatus?.video_open ?? _publicStatus?
 const PUBLIC_PRODUCT_CONTRACT = 'free-product-2026-09-12';
 async function refreshPublicStatus() {
   if (!PUBLIC_PRODUCT) return;
+  const wasTrackingReadable=profileTrackingAvailable();
   try {
     const response = await fetch(API_BASE + '/public/status', { cache: 'no-store' });
     if (!response.ok) throw new Error('status unavailable');
@@ -5294,13 +5190,14 @@ async function refreshPublicStatus() {
   } catch (_) { _publicStatus = null; }
   const status = document.getElementById('public-product-status');
   status.style.display = 'block';
-  status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。诊断6 / 生成8 / 深度重写3 / 快速对话1积分。同等权益不因赠送或购买来源降质。' +
+  status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。各功能扣分以套餐页和提交前服务端报价为准。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + '外部笔记跟踪暂未开放。' + (_publicStatus?.payment_open ? '微信支付已开放，支付宝暂未开放。' : '公众收款暂未开放。');
+    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + (_publicStatus?.tracking_open ? '外部笔记跟踪已开放。' : _publicStatus?.tracking_read_open ? '可查看本人已有追踪结果；新增追踪暂未开放。' : '外部笔记跟踪暂未开放。') + (_publicStatus?.payment_open ? '微信支付已开放，支付宝暂未开放。' : '公众收款暂未开放。');
   syncPublicAuthAvailability();
   syncProductUI();
   refreshNativeCapabilities();
+  if(wasTrackingReadable!==profileTrackingAvailable() && _authToken && document.querySelector('.page.active')?.id==='page-profile')loadTrackingList();
 }
 function syncPublicAuthAvailability() {
   if (!PUBLIC_PRODUCT) return;
@@ -5348,7 +5245,7 @@ function syncProductUI() {
   const genVideo = document.getElementById('genVideoInput');
   if (genVideo?.parentElement) genVideo.parentElement.style.display=videoOpen ? '' : 'none';
   syncDiagnosisMediaType();
-  // Existing profile actions keep their real scope; deletion/export are support requests.
+  // Preserve existing action locations; each endpoint enforces its own permissions.
   nativeSyncControls();
 }
 async function acceptProductContract() {
@@ -5403,7 +5300,20 @@ async function publicPhoneAuth() {
 }
 
 /* ── Page System ───────────────────────────────────────────── */
+let _pricingReturnPage = 'upload';
+function returnFromPricing() { showPage(_pricingReturnPage); }
+async function openCreditRecords() {
+  if (!_authToken) { openAuthModal('login'); return; }
+  const token=_authToken,owner=_authUser?.id;
+  showPage('profile');await loadBillingPlan();
+  if(token!==_authToken || owner!==_authUser?.id)return;
+  const detail=document.getElementById('profile-usage-detail');
+  if(detail && detail.style.display==='none')toggleUsageDetail();
+  detail?.scrollIntoView({block:'start',behavior:'smooth'});
+}
 function showPage(name, tabEl) {
+  const previous=document.querySelector('.page.active')?.id?.replace('page-','');
+  if(name==='pricing' && previous && previous!=='pricing')_pricingReturnPage=previous;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -5421,7 +5331,7 @@ function showPage(name, tabEl) {
   if (name === 'live')    startLiveAnimation();
   if (name === 'report')  { initCharts(); initReportPage(); }
   if (name === 'profile') { initProfileCharts(); initProfilePage(); loadBillingPlan(); loadTrackingList(); }
-  if (name === 'pricing') { loadPricingConfig(); }
+  if (name === 'pricing') { loadPricingConfig(true); }
   if (name === 'landing') initHeroAnimation();
   if (name === 'tech')    initTechPage();
   if (name === 'chat')    initChatPage();
@@ -5605,10 +5515,13 @@ const IDEMPOTENCY_409_TEXT = Object.freeze({
   IDEMPOTENCY_FAILED: '相同任务已失败并完成退款。确认账单状态后可重新发起。',
 });
 
-async function paidRequest409Message(response) {
+async function paidRequest409Message(response, submission) {
   if (!response || response.status !== 409) return null;
   const payload = await response.json().catch(() => ({}));
   const detail = payload && typeof payload.detail === 'object' ? payload.detail : {};
+  if (detail.code === 'IDEMPOTENCY_WAITING_FOR_INPUT' && detail.session_id) return restoreWaitingPaidSubmission(detail, submission);
+  if (detail.code === 'BILLING_QUOTE_CHANGED') { finishPaidSubmission(submission); return '扣分标准已更新，本次未提交。请重新确认服务端报价。'; }
+  if (['IDEMPOTENCY_COMPLETED','IDEMPOTENCY_FAILED'].includes(detail.code)) finishPaidSubmission(submission);
   return IDEMPOTENCY_409_TEXT[detail.code]
     || '任务状态暂时无法确认，请不要重复提交，稍后到历史记录或笔记库确认。';
 }
@@ -5689,9 +5602,7 @@ function pricingEsc(v) {
   return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 }
 function pricingMax(credits, unitCost) {
-  credits = Number(credits || 0);
-  unitCost = Number(unitCost || 0);
-  return unitCost > 0 ? Math.floor(credits / unitCost) : 0;
+  return typeof credits==='number' && Number.isFinite(credits) && credits>=0 && typeof unitCost==='number' && Number.isFinite(unitCost) && unitCost>0 ? Math.floor(credits/unitCost) : '待核';
 }
 function pricingTierAccent(tier) {
   return {
@@ -5716,7 +5627,9 @@ async function loadPricingConfig(force = false) {
     renderPricingConfig(cfg);
     _pricingConfigLoaded = true;
   } catch (err) {
-    console.warn('[pricing] use static fallback', err);
+    _pricingConfigLoaded = false;
+    root.innerHTML = '<div class="billing-info-card" role="status"><h2>暂时无法读取当前套餐</h2><p>价格和扣分标准尚未确认，请稍后重试。原任务与素材保留在当前页面。</p><button class="btn btn-primary" '+productActionAttributes('loadPricingConfig',true)+'>重新读取</button></div>';
+    console.warn('[pricing] current catalog unavailable', err);
   }
 }
 function renderPricingConfig(cfg) {
@@ -5724,6 +5637,7 @@ function renderPricingConfig(cfg) {
   if (!root) return;
   const tiers = cfg.tiers || {};
   const costs = cfg.credit_costs || {};
+  const operationCosts = cfg.operation_costs || {};
   const ops = {
     analyze: { label: 'AI深度诊断', unit: '次', desc: '截图/手动/视频入口进入完整诊断链路', color: 'var(--holo-mid)' },
     generate: { label: 'AI爆文生成', unit: '次', desc: 'V0.4规划、生成、评分与二修链路', color: '#FF6FD8' },
@@ -5733,12 +5647,13 @@ function renderPricingConfig(cfg) {
   if (PUBLIC_PRODUCT) {
     ops.analyze.desc = publicVideoOpen() ? '文字、真实图片和视频音画素材进入完整诊断链路' : publicImageOpen() ? '文字与真实图片进入完整诊断链路；视频暂未开放' : '手动文字输入进入真实诊断链路';
     if (!publicImageOpen()) delete ops.screenshot;
-    ops.chat_fast = { label: '快速对话', unit: '轮', desc: '真实文字对话，每轮1积分', color: '#22C55E' };
+    ops.chat_fast = { label: '快速对话', unit: '轮', desc: '按本次服务端标准扣分', color: '#22C55E' };
   }
+  ops.video_analyze = { label:'视频分析',unit:'次',desc:'随诊断或生成处理，不按时长另计；主流程仍按上方标准扣分',color:'#00D4FF' };
   const tierCards = pricingTierOrder(tiers).map(tier => {
     const t = tiers[tier] || {};
-    const monthly = Number(t.monthly_credits || 0);
-    const price = Number(t.price || 0);
+    const monthly = billingUsageNumber(t.monthly_credits);
+    const price = billingUsageNumber(t.price);
     const accent = pricingTierAccent(tier);
     const isRecommended = tier === 'pro';
     const cAnalyze = pricingMax(monthly, costs.analyze);
@@ -5746,15 +5661,15 @@ function renderPricingConfig(cfg) {
     const cRewrite = pricingMax(monthly, costs.chat_rewrite);
     const cScreenshot = pricingMax(monthly, costs.screenshot);
     const publicFreeFeatures = ['验证手机号后使用免费额度', '真实文字诊断、生成及对话优化', '额度用尽后提示，不自动购买'];
-    const features = (PUBLIC_PRODUCT && tier === 'free' ? publicFreeFeatures : (t.features || [])).slice(0, 3).map(f =>
+    const features = (PUBLIC_PRODUCT && tier === 'free' ? publicFreeFeatures : (t.features || [])).map(f =>
       `<div><span style="color:var(--success);margin-right:6px">✓</span>${pricingEsc(f)}</div>`
     ).join('');
     return `
 	      <div class="pricing-card ${isRecommended ? 'pricing-card-featured' : ''}" style="background:${isRecommended ? 'linear-gradient(135deg,rgba(123,97,255,0.1),rgba(0,212,255,0.06))' : 'var(--surf-1)'};border:${isRecommended ? '1.5px solid rgba(123,97,255,0.35)' : `1px solid ${tier === 'studio' ? 'rgba(0,212,255,0.25)' : 'var(--border)'}`};border-radius:16px;padding:22px 18px;position:relative">
 	        ${isRecommended ? '<div class="pricing-badge" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7B61FF,#FF6FD8);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap">进阶套餐</div>' : ''}
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${accent};text-transform:uppercase;margin-bottom:12px">${pricingEsc(t.name || tier)}</div>
-        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/30天' : ''}</span></div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly.toFixed(monthly % 1 ? 1 : 0)}积分/${price > 0 ? '30天' : '月'}</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:38px;font-weight:800;color:var(--text)">¥${price===null?'待核':price.toLocaleString()}</span><span style="font-size:13px;color:var(--text-muted)">${price > 0 ? '/30天' : ''}</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px">${monthly===null?'待核':String(monthly)}积分/${price > 0 ? '30天' : '月'} · ${price > 0 ? '一次性购买，不自动续费' : '免费周期额度'}</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:12px;color:var(--text-2);line-height:1.55">
           <div><span style="color:var(--success);margin-right:6px">✓</span>单项最多：诊断${cAnalyze}次 / 爆文${cGenerate}次</div>
           <div><span style="color:var(--success);margin-right:6px">✓</span>或重写${cRewrite}轮${PUBLIC_PRODUCT && !publicImageOpen() ? '；图片暂未开放' : ` / 截图${cScreenshot}张`}</div>
@@ -5765,22 +5680,23 @@ function renderPricingConfig(cfg) {
   }).join('');
   const opCards = Object.entries(ops).map(([key, op]) => `
 	    <div class="credit-op-card" style="background:var(--surf-2);border-radius:10px;padding:14px">
-      <b style="font-size:20px;color:${op.color}">${Number(costs[key] || 0)}积分</b><br>
+      <b style="font-size:20px;color:${op.color}">${key === 'video_analyze' ? '额外 ' : ''}${billingUsageNumber(operationCosts[key]?.credits ?? costs[key])!==null ? (operationCosts[key]?.credits ?? costs[key])+'积分 / '+op.unit : '待确认'}</b><br>
       <span style="color:var(--text)">${op.label}</span><br>
       <span style="font-size:11px;color:var(--text-muted)">${op.desc}</span>
     </div>`).join('');
   const topups = (cfg.topup_packages || []).map(p => {
-    const credits = Number(p.credits || 0);
+    const credits = billingUsageNumber(p.credits);
     return `
-	      <div class="topup-card" ${productActionAttributes('handleTopup',p.id)} style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s" onmouseover="this.style.borderColor='rgba(123,97,255,0.4)'" onmouseout="this.style.borderColor='${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'}'">
-        <div style="font-size:20px;font-weight:800;color:var(--text)">${credits.toFixed(credits % 1 ? 1 : 0)}积分</div>
-        <div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥${Number(p.price_rmb || 0).toLocaleString()}</div>
+	      <div class="topup-card" ${productActionAttributes('handleTopup',p.id)} style="background:${p.recommended ? 'linear-gradient(135deg,rgba(123,97,255,0.08),rgba(0,212,255,0.04))' : 'var(--surf-2)'};border-radius:12px;padding:14px;text-align:center;cursor:pointer;border:1px solid ${p.recommended ? 'rgba(123,97,255,0.25)' : 'var(--border)'};transition:border-color .15s">
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${credits===null?'待核':String(credits)}积分</div>
+        <div style="font-size:16px;font-weight:700;color:var(--holo-mid)">¥${billingUsageNumber(p.price_rmb)===null?'待核':p.price_rmb.toLocaleString()}</div>
         <div style="font-size:11px;color:var(--text-muted)">约${pricingMax(credits, costs.analyze)}次诊断 / ${pricingMax(credits, costs.generate)}次爆文</div>
       </div>`;
   }).join('');
-  const pro = tiers.pro || {};
+  const pro = tiers.pro;
   root.innerHTML = `
 	    <div class="pricing-hero" style="text-align:center;margin-bottom:48px">
+      <button ${productActionAttributes('returnFromPricing')} class="btn btn-ghost btn-sm" style="margin-bottom:12px">返回原操作</button>
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);text-transform:uppercase;margin-bottom:12px">透明定价</div>
       <h1 style="font-size:36px;font-weight:800;color:var(--text);margin-bottom:12px">为高质量生成设计的清晰定价</h1>
       <p style="font-size:16px;color:var(--text-2)">所有付费功能统一按积分扣费：先扣当前套餐周期积分，不足部分再扣充值积分。规则公开，账单可查。</p>
@@ -5788,7 +5704,7 @@ function renderPricingConfig(cfg) {
     </div>
 	    <div class="pricing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:14px;margin-bottom:24px">${tierCards}</div>
 	    <div class="billing-info-card" style="background:rgba(123,97,255,0.05);border:1px solid rgba(123,97,255,0.16);border-radius:14px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--text-2);line-height:1.7">
-      <b style="color:var(--text)">如何理解“${Number(pro.price || 99)}元 / ${Number(pro.monthly_credits || 260)}积分”：</b>${Number(pro.monthly_credits || 260)}积分是本月可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
+      <b style="color:var(--text)">如何理解“${billingUsageNumber(pro?.price)===null?'待核':pro.price}元 / ${billingUsageNumber(pro?.monthly_credits)===null?'待核':pro.monthly_credits}积分”：</b>${billingUsageNumber(pro?.monthly_credits)===null?'待核':pro.monthly_credits}积分是本周期可自由使用的创作额度，不绑定固定次数。可以全部用于 AI诊断，也可以混合用于爆文生成、对话重写和截图识别；每次扣多少，按下方标准执行。
     </div>
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
@@ -5796,7 +5712,7 @@ function renderPricingConfig(cfg) {
         <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：套餐周期积分 → 充值积分 → 余额不足提示')}</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">${opCards}</div>
-      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频理解当前不单独扣充值积分，随 AI诊断/爆文生成主流程记录平台成本；如果未来按时长单独计费，会在上传前明示并二次确认。</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频分析包含在完整诊断或生成中；上传不扣主流程积分。每次提交先读取服务端报价，受理时扣分；确认失败后按原来源退回。网络超时请先核实原任务与积分记录，勿另建重复任务。</div>
     </div>
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
@@ -5808,6 +5724,7 @@ function renderPricingConfig(cfg) {
     </div>`;
   if (typeof lucide !== 'undefined') lucide.createIcons();
   if (PUBLIC_PRODUCT) syncProductUI();
+  if (typeof refreshNativeCapabilities === 'function') refreshNativeCapabilities();
 }
 
 /* ── Upload mode switcher ───────────────────────────────────── */
@@ -6224,6 +6141,129 @@ function createPaidRequestId(prefix) {
   return `${prefix || 'paid'}-${randomPart}`;
 }
 
+
+// Retained server quotes, exact pending identities and actual receipts. No client prices.
+let _billingQuoteBusy = false;
+async function confirmBillingQuote(operation, hasVideo) {
+  if (_billingQuoteBusy) return null;
+  const token=_authToken, owner=_authUser?.id;
+  if (!token || !owner) { openAuthModal('login'); return null; }
+  _billingQuoteBusy=true;
+  const preview=document.getElementById(operation+'-billing-preview');
+  if (preview) preview.textContent='正在核对当前服务端扣分…';
+  try {
+    const response=await fetch(API_AUTH+'/billing/quote?operation='+encodeURIComponent(operation)+'&has_video='+String(!!hasVideo),{headers:authHeader(),cache:'no-store'});
+    const quote=await response.json();
+    if (token!==_authToken || owner!==_authUser?.id) return null;
+    if (!response.ok) throw Error(typeof quote.detail === 'string' ? quote.detail : '暂时无法确认当前扣分，请稍后重试');
+    if (!Number.isFinite(quote.credits) || quote.credits < 0 || !quote.quote_version) throw Error('服务端报价不完整，尚未提交任务');
+    const description=(operation==='analyze'?'本次完整诊断':'本次爆文生成')+'：'+quote.credits+' 积分 / 次'+
+      (hasVideo ? '，其中视频理解额外 '+quote.video_credits+' 积分；不按视频时长另计' : '')+'。';
+    if (preview) preview.textContent=description+'先扣周期积分，不足部分扣充值积分。';
+    if (!quote.can_afford) { showQuotaExceededModal({operation,credits_needed:quote.credits,monthly_credits_remaining:quote.monthly_credits_remaining,credits_balance:quote.wallet_credits_balance,message:'当前可用积分不足，本次尚未提交。'}); return null; }
+    const accepted=await new Promise(resolve=>{
+      const dialog=document.createElement('dialog');dialog.id='billing-quote-dialog';
+      dialog.style.cssText='box-sizing:border-box;margin:auto;max-width:480px;width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--border);border-radius:16px;padding:24px;background:var(--surf-1);color:var(--text);line-height:1.7';
+      const heading=document.createElement('h2');heading.textContent='确认本次扣分';
+      const summary=document.createElement('p');summary.textContent=description;
+      const policy=document.createElement('p');policy.textContent='受理时扣除：周期 '+quote.monthly_credits_used+' + 充值 '+quote.wallet_credits_used+' 积分。确认失败后按原来源退回；网络超时先核实原任务，沿用原编号重试不会重复扣分。';
+      const actions=document.createElement('div');actions.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:16px';
+      const finish=value=>{dialog.close();dialog.remove();resolve(value);};
+      const cancel=document.createElement('button');cancel.className='btn btn-ghost';cancel.textContent='返回修改';cancel.addEventListener('click',()=>finish(false));
+      const submit=document.createElement('button');submit.className='btn btn-primary';submit.id='billing-quote-confirm';submit.textContent='确认并提交 · '+quote.credits+' 积分';submit.addEventListener('click',()=>finish(true));
+      actions.append(cancel,submit);dialog.append(heading,summary,policy,actions);dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false);});document.body.append(dialog);dialog.showModal();
+    });
+    return accepted && token===_authToken && owner===_authUser?.id ? quote : null;
+  } catch(error) { if(token===_authToken && owner===_authUser?.id) { if(preview)preview.textContent=error.message;showToast(error.message); } return null; }
+  finally { _billingQuoteBusy=false; }
+}
+async function paidSubmissionIdentity(operation, body, quote) {
+  const owner=_authUser?.id, token=_authToken;
+  // Local time may advance while a timed-out submission is being verified.
+  const fingerprintBody={...body};delete fingerprintBody.local_time;
+  const bytes=new TextEncoder().encode(JSON.stringify(fingerprintBody));
+  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(n=>n.toString(16).padStart(2,'0')).join('');
+  if(owner!==_authUser?.id || token!==_authToken)throw Error('账户已切换，未提交');
+  const storageKey='noteai-paid-pending:'+owner+':'+operation+':'+hash;
+  let previous;try {previous=JSON.parse(sessionStorage.getItem(storageKey)||'null');}catch(_){}
+  if(previous?.requestId && previous?.quoteVersion) {
+    if(previous.localTime !== undefined) body.local_time=previous.localTime;
+    const preview=document.getElementById(operation+'-billing-preview');
+    if(preview)preview.textContent='正在核实原提交，沿用原任务编号；不会作为新任务再次扣分。原实扣以积分记录为准。';
+    return {...previous,storageKey};
+  }
+  if (!quote) return null;
+  const value={requestId:createPaidRequestId(operation),quoteVersion:quote.quote_version,localTime:body.local_time,storageKey};
+  // Persist before dispatch; failure to save must not allow an untracked paid request.
+  sessionStorage.setItem(storageKey,JSON.stringify(value));
+  return value;
+}
+function pendingPaidSubmissions(operation) {
+  const prefix='noteai-paid-pending:'+_authUser?.id+':'+operation+':';
+  const pending=[];
+  for(let index=0;index<sessionStorage.length;index++) {
+    const key=sessionStorage.key(index);if(!key?.startsWith(prefix))continue;
+    try {const value=JSON.parse(sessionStorage.getItem(key));if(value?.requestId)pending.push(value);}catch(_){}
+  }
+  return pending;
+}
+async function preparePaidSubmission(operation,body) {
+  const token=_authToken,owner=_authUser?.id;
+  const existing=await paidSubmissionIdentity(operation,body,null);
+  if(token!==_authToken || owner!==_authUser?.id)return null;
+  if(existing) {
+    const accepted=confirm('原提交结果尚需核实：'+existing.requestId+'。\n沿用原任务编号核实，不会作为新任务再次扣分，也不要求补充余额。\n确定：核实原任务；取消：返回查看报告或积分记录。');
+    return accepted ? existing : null;
+  }
+  const pending=pendingPaidSubmissions(operation);
+  if(pending.length && !confirm('本账户还有尚未确认结果的提交：'+pending.map(item=>item.requestId).join('、')+'。\n刷新后重新上传的素材可能取得新编号，不能自动当作原任务重试。请先在报告或积分记录核实。\n只有这是另一项新任务时才点确定；下一步会单独确认新任务扣分。'))return null;
+  const quote=await confirmBillingQuote(operation,!!body.video_file_id);
+  if(!quote || token!==_authToken || owner!==_authUser?.id)return null;
+  return paidSubmissionIdentity(operation,body,quote);
+}
+function bindPaidSubmissionReceipt(submission, receipt) {
+  if(!submission?.storageKey || !receipt?.request_id)return;
+  submission.serverRequestId=receipt.request_id;
+  sessionStorage.setItem(submission.storageKey,JSON.stringify(submission));
+}
+function finishPendingTaskReceipt(receipt) {
+  if(!receipt?.request_id || !['analyze','generate'].includes(receipt.operation))return;
+  pendingPaidSubmissions(receipt.operation).filter(value=>value.serverRequestId===receipt.request_id).forEach(finishPaidSubmission);
+}
+async function restoreWaitingPaidSubmission(detail, submission) {
+  const identity=_chatIdentitySnapshot(),token=_authToken;
+  bindPaidSubmissionReceipt(submission,{request_id:detail.session_id});
+  try {
+    const response=await fetch(API_BASE+'/chat/tasks/'+encodeURIComponent(detail.session_id),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    const task=await response.json();
+    if(token!==_authToken || !_chatIdentityMatches(identity))return '账户已切换，已停止显示原任务。';
+    if(!response.ok || task.session_id!==detail.session_id)throw Error('原任务暂时无法读取');
+    if(task.status==='completed' && task.result) await finishClarifiedTask(task.result,task,identity,token,true);
+    else {
+      const waiting={_waiting_for_input:true,session_id:task.session_id,billing:task.billing};
+      if(task.operation==='generate') _generateResult=waiting;else _diagnoseResult=waiting;
+      showTaskClarification(task);
+    }
+    if(submission)submission.restoredTask=true;
+    return '已读取原任务，请在处理进度中继续；未再次扣整单积分。';
+  } catch (_) { return '原任务正在等待补充，但暂时无法读取。原编号已保留，请稍后核实，不要重新提交。'; }
+}
+function finishPaidSubmission(submission) { if(submission?.storageKey)sessionStorage.removeItem(submission.storageKey); }
+function renderBillingReceipt(receipt) {
+  const el=document.getElementById('report-billing-receipt');if(!el)return;
+  el.replaceChildren();
+  if(receipt?.status==='unconfirmed') {
+    el.style.display='block';el.textContent='本次扣分或退回尚待核实，请保留原任务编号并查看积分记录，勿另建重复任务。';return;
+  }
+  if(!receipt) {el.style.display='none';return;}
+  const known=value=>typeof value==='number' && Number.isFinite(value);
+  const amount=value=>known(value)?String(value):'未记录';
+  el.style.display='block';
+  const text=document.createElement('span');
+  text.textContent=(receipt.status==='refunded'?'已按原来源退回 '+amount(receipt.refunded_credits)+' 积分；净扣分 ':'本次实际扣分 ')+amount(receipt.credits_used)+' 积分 · 周期 '+amount(receipt.monthly_credits_used)+' + 充值 '+amount(receipt.wallet_credits_used)+'。';
+  const link=document.createElement('button');link.className='btn btn-ghost btn-sm';link.textContent='核对积分记录';link.addEventListener('click',openCreditRecords);el.append(text,link);
+}
+
 function _setGenerationSubmitBusy(isBusy) {
   const btn = document.getElementById('generateSubmitBtn');
   if (!btn) return;
@@ -6237,7 +6277,7 @@ function _setGenerationSubmitBusy(isBusy) {
 async function startGeneration() {
   if (!requirePublicCapability("ai_open")) return;
   if (PUBLIC_PRODUCT && !requireProductConsent()) return;
-  if (_genStreamActive) return;
+  if (_genStreamActive || _billingQuoteBusy) return;
   if (['preflight','uploading'].includes(_genVideoState)) { showToast('请等待视频上传完成，再开始生成'); return; }
   const videoRef = _genVideoFileId || null, videoAttempt = _genVideoAttempt;
   const domain = document.getElementById('genDomain')?.value || '美食';
@@ -6273,14 +6313,7 @@ async function startGeneration() {
   let _resolveGen, _rejectGen;
   _diagnosePromise = new Promise((res, rej) => { _resolveGen = res; _rejectGen = rej; });
 
-  (async () => {
-    const streamGuard = createSseWarningGuard('generate', '爆文生成');
-    const paidRequestId = createPaidRequestId('generate');
-    try {
-      const resp = await fetch(API_BASE + '/generate/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, Authorization: 'Bearer ' + requestToken },
-        body: JSON.stringify({
+  const generateBody = {
           persist_result: true,
           domain,
           brief,
@@ -6290,11 +6323,24 @@ async function startGeneration() {
           video_file_id: videoRef,
           user_constraints: constraints.length ? constraints : null,
           ...intentPayload,
-        }),
+        };
+  let submission;
+  try { submission=await preparePaidSubmission('generate',generateBody); }
+  catch(error) { _genStreamActive=false;_setGenerationSubmitBusy(false);showToast(error.message);_resolveGen();return; }
+  if(!submission || !identityMatches()) { _genStreamActive=false;_setGenerationSubmitBusy(false);_resolveGen();return; }
+  (async () => {
+    const streamGuard = createSseWarningGuard('generate', '爆文生成');
+    const paidRequestId = submission.requestId;
+    try {
+      const resp = await fetch(API_BASE + '/generate/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, 'X-Billing-Quote-Version': submission.quoteVersion, Authorization: 'Bearer ' + requestToken },
+        body: JSON.stringify(generateBody),
       });
       streamGuard.connected();
       if (!identityMatches()) { _resolveGen(); return; }
       if (resp.status === 402) {
+        finishPaidSubmission(submission);
         const errData = await resp.json().catch(() => ({}));
         _generateResult = { _error: true, _quota: true };
         showToast('爆文生成积分不足，请查看当前免费额度');
@@ -6302,13 +6348,15 @@ async function startGeneration() {
         _resolveGen(); return;
       }
       if (resp.status === 401) {
+        finishPaidSubmission(submission);
         _generateResult = { _error: true };
         showToast('⚠ 请先登录后使用 AI 爆文生成');
         openAuthModal('login');
         _resolveGen(); return;
       }
-      const conflictMessage = await paidRequest409Message(resp);
+      const conflictMessage = await paidRequest409Message(resp, submission);
       if (conflictMessage) {
+        if(submission.restoredTask) {showToast(conflictMessage);_resolveGen();return;}
         _generateResult = { _error: true, _errMsg: conflictMessage, _idempotency409: true };
         showToast('⚠ ' + conflictMessage);
         _resolveGen(); return;
@@ -6324,6 +6372,7 @@ async function startGeneration() {
       const terminal = streamResult.terminalEvent;
       if (!identityMatches()) { _resolveGen(); return; }
       if (terminal?.type === 'complete') {
+        finishPaidSubmission(submission);
         streamGuard.finish();
         _generateResult = terminal;
         _generateResult._domain     = domain;
@@ -6341,12 +6390,14 @@ async function startGeneration() {
         await autoSaveGeneratedNote(_generateResult, identitySnapshot, requestToken);
       } else if (terminal?.type === 'clarification_required') {
         streamGuard.finish();
-        _generateResult = {_waiting_for_input:true, session_id:terminal.session_id};
+        bindPaidSubmissionReceipt(submission,terminal.billing);
+        _generateResult = {_waiting_for_input:true, session_id:terminal.session_id, billing:terminal.billing};
         showTaskClarification(terminal);
       } else if (terminal?.type === 'error') {
+        if (terminal.billing?.status === 'refunded') finishPaidSubmission(submission);
         streamGuard.finish();
         const errMsg = terminal.message || '生成失败，请稍后重试';
-        _generateResult = { _error: true, _errMsg: errMsg };
+        _generateResult = { _error: true, _errMsg: errMsg, billing: terminal.billing };
         showToast('⚠ ' + errMsg);
       } else {
         const message = SSE_OUTCOME_UNKNOWN.generate;
@@ -6993,19 +7044,24 @@ async function prepareDiagnosis() {
     video_file_id:    diagnosisVideoRef,
     ...intentPayload,
   };
+  let submission;
+  try { submission=await preparePaidSubmission('analyze',analyzeBody); }
+  catch(error) { _diagnosisStreamActive=false;updateDiagnosisSubmitState();showToast(error.message);return; }
+  if(!submission || !identityMatches()) { _diagnosisStreamActive=false;updateDiagnosisSubmitState();return; }
   _diagnosePromise = new Promise((resolve, reject) => {
     (async () => {
       const streamGuard = createSseWarningGuard('analyze', 'AI 诊断');
-      const paidRequestId = createPaidRequestId('analyze');
+      const paidRequestId = submission.requestId;
       try {
         const resp = await fetch(API_BASE + '/analyze/stream', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, ...authH },
+          headers: { 'Content-Type': 'application/json', 'X-Request-ID': paidRequestId, 'X-Billing-Quote-Version': submission.quoteVersion, ...authH },
           body: JSON.stringify(analyzeBody),
         });
         streamGuard.connected();
         if (!identityMatches()) { resolve(); return; }
         if (resp.status === 402) {
+          finishPaidSubmission(submission);
           const errData = await resp.json().catch(() => ({}));
           _diagnosisStreamActive = false;
           updateDiagnosisSubmitState();
@@ -7015,6 +7071,7 @@ async function prepareDiagnosis() {
           resolve(); return;
         }
         if (resp.status === 401) {
+          finishPaidSubmission(submission);
           _diagnosisStreamActive = false;
           updateDiagnosisSubmitState();
           _diagnoseResult = { _error: true };
@@ -7022,8 +7079,9 @@ async function prepareDiagnosis() {
           openAuthModal('login');
           resolve(); return;
         }
-        const conflictMessage = await paidRequest409Message(resp);
+        const conflictMessage = await paidRequest409Message(resp, submission);
         if (conflictMessage) {
+          if(submission.restoredTask) {_diagnosisStreamActive=false;updateDiagnosisSubmitState();showToast(conflictMessage);resolve();return;}
           _diagnosisStreamActive = false;
           updateDiagnosisSubmitState();
           _diagnoseResult = { _error: true, _errMsg: conflictMessage, _idempotency409: true };
@@ -7044,6 +7102,7 @@ async function prepareDiagnosis() {
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
         if (terminal?.type === 'complete') {
+          finishPaidSubmission(submission);
           const ev = terminal;
           _diagnoseResult = ev;
           _diagnoseResult._inputTitle = title;
@@ -7059,13 +7118,16 @@ async function prepareDiagnosis() {
             fact_source_decision: ev.fact_source_decision || null,
           });
         } else if (terminal?.type === 'clarification_required') {
-          _diagnoseResult = {_waiting_for_input:true, session_id:terminal.session_id};
+          bindPaidSubmissionReceipt(submission,terminal.billing);
+          _diagnoseResult = {_waiting_for_input:true, session_id:terminal.session_id, billing:terminal.billing};
           showTaskClarification(terminal);
         } else if (terminal?.type === 'error') {
+          if (terminal.billing?.status === 'refunded') finishPaidSubmission(submission);
           _diagnoseResult = {
             _error: true,
             _quota: terminal.status_code === 402,
-            _errMsg: terminal.message || 'AI 诊断失败'
+            _errMsg: terminal.message || 'AI 诊断失败',
+            billing: terminal.billing
           };
         } else {
           const message = SSE_OUTCOME_UNKNOWN.analyze;
@@ -7193,6 +7255,7 @@ function renderMarketTimingEvidence(mt) {
 }
 
 async function populateReport() {
+  renderBillingReceipt((reportIsGeneration() ? reportGenerationResult() : reportDiagnosisResult())?.billing);
   if (reportIsGeneration()) { return populateGenerateReport(); }
 
   // 诊断模式：确保诊断区块可见，生成区块隐藏
@@ -7522,6 +7585,7 @@ function copyText(elId) {
 
 /* ── Generation report populate ─────────────────────────────── */
 async function populateGenerateReport() {
+  renderBillingReceipt(reportGenerationResult()?.billing);
   renderGenerationHeader(reportGenerationResult());
   document.getElementById('shareCardBanner').style.display = 'none';
   // 立即切换视图：隐藏诊断Demo，显示生成区块（含loading状态）
@@ -9690,6 +9754,9 @@ function chatBeginNoteContext() {
 }
 
 function chatClearUserState() {
+  renderBillingReceipt(null);
+  clearProfileUserState();
+  resetBillingUsageState('待更新',true);
   clearReportSelection();
   _reportHistorySequence += 1;
   _currentDiagId = null;
@@ -10194,6 +10261,7 @@ function renderTaskClarification(task) {
 }
 async function finishClarifiedTask(result, task, identity, token, recovered) {
   if (!_chatIdentityMatches(identity) || _authToken !== token) return;
+  finishPendingTaskReceipt(result.billing);
   clearReportSelection();
   result._domain = task.domain;
   if(result.saved_note_id) { result._saved_note_id=result.saved_note_id;result._saved_note_version=result.saved_note_version || 1;result._save_status='saved'; }
@@ -10685,7 +10753,8 @@ async function authRestoreSession() {
 function renderAvatar(el, avatarData, avatarEmoji, imgStyle) {
   if (!el) return;
   if (avatarData && avatarData.startsWith('data:image/')) {
-    el.innerHTML = `<img src="${avatarData}" style="${imgStyle || 'width:100%;height:100%;object-fit:cover;border-radius:inherit'}">`;
+    const image=document.createElement('img');image.src=avatarData;image.alt='用户头像';
+    image.style.cssText=imgStyle || 'width:100%;height:100%;object-fit:cover;border-radius:inherit';el.replaceChildren(image);
   } else {
     el.innerHTML = '';
     el.textContent = avatarEmoji || '🌸';
@@ -11115,6 +11184,17 @@ async function initReportPage() {
 	    try { await _diagnosePromise; } catch(e) {}
 	  }
 
+  const currentResult=_isGenerateMode ? _generateResult : _diagnoseResult;
+  renderBillingReceipt(currentResult?.billing);
+  if (currentResult?._error || currentResult?._outcome_unknown || currentResult?._waiting_for_input) {
+    if (!currentResult.billing) {
+      const receipt=document.getElementById('report-billing-receipt');
+      if(receipt) {receipt.style.display='block';receipt.textContent=currentResult._errMsg || '本次未完成，请核对原任务与积分记录。';}
+    }
+    await loadDiagnosisHistory(true);
+    return;
+  }
+
 	  const hasFreshReport = _isGenerateMode
 	    ? completeProductResult(_generateResult)
 	    : completeProductResult(_diagnoseResult);
@@ -11316,7 +11396,7 @@ async function openReportDetail(reportType, reportId) {
   // 删除按钮
   const delBtn = document.getElementById('detail-delete-btn');
   if (delBtn) {
-    delBtn.style.display = PUBLIC_PRODUCT || reportType === 'generate' ? 'none' : '';
+    delBtn.style.display = reportType === 'generate' ? 'none' : '';
     delBtn.onclick = reportType === 'analyze' ? () => deleteDiagnosis(reportId) : null;
   }
 
@@ -11376,20 +11456,54 @@ function closeDiagDetail() {
   });
 }
 
+function accountActionStart(action) {
+  const identity = _chatIdentitySnapshot(), token = _authToken;
+  if (!token || !identity.ownerId) { showToast('请先登录'); return null; }
+  const pending = accountActionStart.pending || (accountActionStart.pending = new Map());
+  const key = JSON.stringify([identity.ownerId, identity.epoch, action]);
+  if (pending.has(key)) { showToast('请求正在处理，请勿重复提交'); return null; }
+  const context = {
+    token,
+    current: () => _chatIdentityMatches(identity) && _authToken === token,
+    release: () => { if (pending.get(key) === context) pending.delete(key); },
+  };
+  pending.set(key, context);
+  return context;
+}
+
+async function accountActionJSON(response, failureMessage) {
+  let data;
+  try { data = await response.json(); }
+  catch { throw new Error(response.ok ? '服务器返回的数据无法读取' : failureMessage + '（' + response.status + '）'); }
+  if (!response.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : failureMessage + '（' + response.status + '）');
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('服务器返回的数据格式不完整');
+  return data;
+}
+
 async function deleteDiagnosis(diagId) {
-  if (!confirm('确认删除这条诊断记录？')) return;
+  if (typeof diagId !== 'string' || !diagId) return;
+  const action = accountActionStart('delete-diagnosis:' + diagId);
+  if (!action) return;
+  let deleted = false;
   try {
-    const res = await fetch(`${API_AUTH}/diagnoses/${diagId}`, {
-      method: 'DELETE', headers: authHeader(),
+    if (!confirm('确认删除这条诊断记录？') || !action.current()) return;
+    const response = await fetch(API_AUTH + '/diagnoses/' + encodeURIComponent(diagId), {
+      method: 'DELETE', headers: { Authorization: 'Bearer ' + action.token }, cache: 'no-store',
     });
-    if (res.ok) {
-      showToast('✅ 已删除');
-      closeDiagDetail();
-      _diagHistoryOffset = 0;
-      document.getElementById('diag-history-list').innerHTML = '';
-      await loadDiagnosisHistory(true);
-    }
-  } catch(e) { showToast('删除失败'); }
+    if (!action.current()) return;
+    const data = await accountActionJSON(response, '删除失败');
+    if (!action.current()) return;
+    if (data.ok !== true) throw new Error(typeof data.detail === 'string' ? data.detail : '服务器未确认删除成功');
+    deleted = true;
+    if (_currentDiagId === diagId) closeDiagDetail();
+    _diagHistoryOffset = 0;
+    const list = document.getElementById('diag-history-list');
+    if (list) list.innerHTML = '';
+    showToast('✅ 已删除');
+    await loadDiagnosisHistory(true);
+  } catch (err) {
+    if (action.current()) showToast(deleted ? '记录已删除，列表刷新失败，请重新打开记录' : '删除失败或结果未确认：' + (err?.message || '连接中断') + '。请先核对记录，不会自动重试');
+  } finally { action.release(); }
 }
 
 async function loadLibrary(reset = false) {
@@ -11631,267 +11745,259 @@ function closeNoteDetail() {
 /* ═══════════════════════════════════════════════════════════
    PROFILE — 真实成长档案
 ═══════════════════════════════════════════════════════════════ */
-function renderProfileLoopInsights(growth, notes, tracking, mems) {
-  const el = document.getElementById('profile-loop-insights');
-  if (!el) return;
-  const records = Array.isArray(growth?.records) ? growth.records : [];
-  const scoreValues = records.map(r => Number(r.score)).filter(Number.isFinite);
-  const first = scoreValues[0];
-  const latest = scoreValues[scoreValues.length - 1];
-  const delta = scoreValues.length >= 2 ? +(latest - first).toFixed(1) : null;
-  const noteTotal = Number(notes?.total ?? notes?.notes?.length ?? 0);
-  const tracked = Array.isArray(tracking?.notes) ? tracking.notes : [];
-  const completed = tracked.filter(t => t.status === 'complete' || t.actual_ces != null).length;
-  const linked = tracked.filter(t => t.source_note_id || t.source_root_note_id).length;
-  const memories = Array.isArray(mems?.memories) ? mems.memories : [];
-  const lastAction = records[records.length - 1]?.action || '';
-  const insightCards = [
-    {
-      label: '预测与优化',
-      value: delta === null ? '等待连续记录' : `${delta >= 0 ? '+' : ''}${delta}分`,
-      note: delta === null ? '至少两次诊断/优化后显示趋势' : `最近动作：${lastAction || '优化记录'}`,
-      color: delta === null ? 'var(--text-muted)' : (delta >= 0 ? 'var(--success)' : 'var(--warning)'),
-    },
-    {
-      label: '作品资产',
-      value: `${noteTotal} 个版本`,
-      note: noteTotal ? '每篇从诊断、方案到对话版本归档' : '生成或诊断后自动入库',
-      color: 'var(--holo-mid)',
-    },
-    {
-      label: '真实校准',
-      value: tracked.length ? `${completed}/${tracked.length} 已完成` : '待绑定追踪',
-      note: linked ? `${linked} 条已关联笔记版本` : '发布后从笔记库绑定链接',
-      color: tracked.length ? 'var(--accent)' : 'var(--text-muted)',
-    },
-    {
-      label: 'Hermes 学习',
-      value: memories.length ? `${memories.length} 条记忆` : '等待信号',
-      note: completed ? '真实表现可回流为训练/偏好证据' : '对话偏好先沉淀，真实表现后校准',
-      color: memories.length ? 'var(--success)' : 'var(--holo-mid)',
-    },
-  ];
-  el.innerHTML = insightCards.map(card => `
-    <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 13px;min-width:0">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">${escapeHtml(card.label)}</div>
-      <div style="font-size:17px;font-weight:900;color:${card.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(card.value)}</div>
-      <div style="font-size:11px;color:var(--text-2);line-height:1.45;margin-top:5px">${escapeHtml(card.note)}</div>
-    </div>
-  `).join('');
+let _profileReadSequence = 0;
+let _profileMemoryState = null;
+let _profileViewState = null;
+let _profileTrackingReadSequence = 0;
+let _profileMutationSequence = 0;
+let _profileSavedRevision = 0;
+let _profileMutationPending = false;
+function profileIdentityCurrent(identity, token) {
+  return _chatIdentityMatches(identity) && _authToken === token;
 }
-
-async function initProfilePage() {
-  const realContent   = document.getElementById('profile-real-content');
-  const loginPrompt   = document.getElementById('profile-login-prompt');
-  if (!_authToken) {
-    if (realContent)  realContent.style.display  = 'none';
-    if (loginPrompt)  loginPrompt.style.display  = 'flex';
-    return;
-  }
-  if (loginPrompt)  loginPrompt.style.display  = 'none';
-  if (realContent)  realContent.style.display  = 'block';
-
-  // 用户信息（从 /auth/me 取最新数据，包含 nickname）
-  const freshMe = await fetch(API_AUTH + '/auth/me', { headers: authHeader() }).then(r=>r.json()).catch(()=>_authUser||{});
-  if (freshMe.avatar_emoji) { _authUser = {...(_authUser||{}), ...freshMe}; authUpdateNav(); }
-  const profileAv = document.getElementById('profile-avatar-display');
-  renderAvatar(profileAv, freshMe.avatar_data, freshMe.avatar_emoji,
-    'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
-  document.getElementById('profile-nickname-display').textContent = freshMe.nickname || freshMe.username || '';
-  const since = freshMe.created_at ? freshMe.created_at.slice(0,10) : '';
-  document.getElementById('profile-since-display').textContent = `@${freshMe.username}  ·  注册于 ${since}`;
-  // 脱敏手机号显示
-  const phoneDisplay = document.getElementById('profile-phone-display');
-  const bindArea = document.getElementById('profile-bind-phone-area');
-  const bindPhoneButton = document.getElementById('profile-bind-phone-btn');
-  if (bindArea) bindArea.style.display = 'flex';
-  if (freshMe.phone_masked) {
-    phoneDisplay.textContent = '📱 ' + freshMe.phone_masked;
-    phoneDisplay.style.display = 'block';
-    if (bindPhoneButton) bindPhoneButton.style.display = 'none';
+async function profileReadJSON(path, token, options = {}) {
+  const response = await fetch(API_AUTH + path, {cache:'no-store', ...options, headers:{Authorization:'Bearer '+token, ...(options.headers || {})}});
+  if (!response.ok) throw new Error(response.status === 401 ? '登录已失效，请重新登录' : '读取失败（'+response.status+'），请稍后重试');
+  let data;
+  try { data = await response.json(); } catch { throw new Error('服务器返回的数据无法读取，请稍后重试'); }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('服务器返回的数据格式不完整');
+  return data;
+}
+function profileText(id, text) { const el=document.getElementById(id);if(el)el.textContent=text; }
+function profileRegionError(id, message) {
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=message;el.setAttribute('role','status');
+}
+function clearProfileUserState() {
+  ++_profileReadSequence;++_profileTrackingReadSequence;++_profileMutationSequence;_profileMutationPending=false;_profileMemoryState=null;_profileViewState=null;
+  ['profile-trend-chart','profile-trend-summary','profile-loop-insights','profile-memories-list',
+    'profile-achievements-list','profile-notes-preview','profile-domain-tags','profile-tracking-list',
+    'profile-nickname-display','profile-since-display','profile-phone-display'].forEach(id=>profileText(id,''));
+  ['profile-stat-sessions','profile-stat-improvement','profile-stat-best'].forEach(id=>profileText(id,'–'));
+  renderAvatar(document.getElementById('profile-avatar-display'),null,'🌸');
+  const content=document.getElementById('profile-real-content');if(content)content.style.display='none';
+  closeAvatarPicker();cancelNicknameEdit();
+  const nicknameInput=document.getElementById('profile-nickname-input');if(nicknameInput)nicknameInput.value='';
+}
+function profileFiniteScore(record) {
+  return typeof record?.score === 'number' && Number.isFinite(record.score);
+}
+function profileScoreKind(record) {
+  return ['prediction','performance'].includes(record?.score_kind) ? record.score_kind : 'legacy';
+}
+function profileRecordDescription(record) {
+  const kind={prediction:'预测评分',performance:'发布后实际表现',legacy:'历史评分（类型未记录）'}[profileScoreKind(record)];
+  const origin=record.record_origin==='recoverable'||record.persisted===false ? '可恢复记录 · 尚未归档'
+    : record.record_origin==='recovered' ? '已恢复记录' : '已记录';
+  const title=record.note_title || record.title || record.domain || '历史记录';
+  const time=record.source_recorded_at || record.recorded_at || '';
+  const version=record.note_version != null ? ' · v'+record.note_version : '';
+  const source=[record.source_type,record.source_id || record.note_id || record.id].filter(Boolean).join(' / ');
+  return title+version+' · '+kind+' · '+origin+(time?' · '+time:'')+(source?' · 来源 '+source:'')+
+    (record.recovered_at?' · 恢复于 '+record.recovered_at:'');
+}
+function renderProfileGrowth(growth) {
+  if (!Array.isArray(growth.records)) throw new Error('成长记录格式不完整');
+  const records=growth.records, scored=records.filter(profileFiniteScore);
+  profileText('profile-stat-sessions',String(records.length));
+  profileText('profile-stat-improvement',String(scored.length));
+  const predictions=scored.filter(r=>profileScoreKind(r)==='prediction');
+  const legacy=scored.filter(r=>profileScoreKind(r)==='legacy');
+  const comparable=predictions.length ? predictions : legacy;
+  profileText('profile-stat-best',comparable.length ? Math.max(...comparable.map(r=>r.score)).toFixed(1) : '–');
+  const bestLabel=document.getElementById('profile-stat-best')?.nextElementSibling;
+  if(bestLabel)bestLabel.textContent=predictions.length||!legacy.length?'预测最高分':'历史最高分（类型未记录）';
+  const chart=document.getElementById('profile-trend-chart');
+  const recs=scored.slice(-15);
+  chart.style.cssText='width:100%;margin-top:8px';
+  if(!recs.length) {
+    chart.textContent=records.length?'现有记录未提供可展示的评分。':'暂无成长记录；完成诊断或优化后在这里查看。';
+    profileText('profile-trend-summary',records.length?'评分未提供':'暂无记录');
   } else {
-    phoneDisplay.style.display = 'none';
-    if (bindPhoneButton) bindPhoneButton.style.display = 'inline-block';
-  }
-
-  try {
-    // 成长数据
-	    const [growthRes, memRes, achRes, notesRes, trackingRes] = await Promise.all([
-	      fetch(`${API_AUTH}/profile/growth`,       { headers: authHeader() }),
-	      fetch(`${API_AUTH}/profile/memories`,     { headers: authHeader() }),
-	      fetch(`${API_AUTH}/profile/achievements`, { headers: authHeader() }),
-	      fetch(`${API_AUTH}/notes?limit=3`,        { headers: authHeader() }),
-	      fetch(`${API_AUTH}/notes/tracking`,       { headers: authHeader() }).catch(() => ({ json: async () => ({ notes: [] }) })),
-	    ]);
-	    const growth = await growthRes.json();
-	    const mems   = await memRes.json();
-	    const achs   = await achRes.json();
-	    const notes  = await notesRes.json();
-	    const tracking = await trackingRes.json();
-
-    // 统计
-    const stats = growth.stats;
-    document.getElementById('profile-stat-sessions').textContent    = stats.total_sessions || 0;
-    document.getElementById('profile-stat-best').textContent        = stats.best_score ? stats.best_score.toFixed(1) : '–';
-	    const scores = growth.records.map(r => r.score);
-	    const improvement = scores.length >= 2 ? (Math.max(...scores) - Math.min(...scores)).toFixed(1) : '–';
-	    document.getElementById('profile-stat-improvement').textContent = improvement !== '–' ? '+' + improvement : '–';
-	    renderProfileLoopInsights(growth, notes, tracking, mems);
-
-    // 趋势图：带坐标轴、分数标注、日期标注
-    const chartEl = document.getElementById('profile-trend-chart');
-    if (growth.records.length > 0) {
-      const recs = growth.records.slice(-15);
-      const allScores = recs.map(r => r.score);
-      const minS = Math.max(0,  Math.min(...allScores) - 8);
-      const maxS = Math.min(100, Math.max(...allScores) + 8);
-      const range = maxS - minS || 1;
-
-      // SVG 画布尺寸
-      const W = 820, H = 160;
-      const padL = 36, padR = 12, padT = 28, padB = 32;
-      const chartW = W - padL - padR;
-      const chartH = H - padT - padB;
-      const n = recs.length;
-      const step = n > 1 ? chartW / (n - 1) : chartW;
-
-      // 坐标转换
-      const cx = i => padL + (n > 1 ? i * step : chartW / 2);
-      const cy = s => padT + chartH - ((s - minS) / range) * chartH;
-
-      // 折线点
-      const pts = recs.map((r, i) => ({ x: cx(i), y: cy(r.score), s: r.score, r }));
-
-      // 平滑贝塞尔控制点
-      function bezierCmd(points) {
-        let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
-        for (let i = 1; i < points.length; i++) {
-          const prev = points[i - 1], cur = points[i];
-          const cpx = (prev.x + cur.x) / 2;
-          d += ` C ${cpx.toFixed(1)} ${prev.y.toFixed(1)}, ${cpx.toFixed(1)} ${cur.y.toFixed(1)}, ${cur.x.toFixed(1)} ${cur.y.toFixed(1)}`;
-        }
-        return d;
-      }
-      const linePath = bezierCmd(pts);
-
-      // 渐变填充路径（封闭到底部）
-      const fillPath = linePath
-        + ` L ${pts[pts.length-1].x.toFixed(1)} ${(padT+chartH).toFixed(1)}`
-        + ` L ${pts[0].x.toFixed(1)} ${(padT+chartH).toFixed(1)} Z`;
-
-      // 70分参考线
-      const ref70y = cy(70);
-      const showRef = ref70y > padT && ref70y < padT + chartH;
-
-      // Y轴刻度（3条）
-      const yTicks = [maxS, Math.round((minS + maxS) / 2), minS];
-
-      // 数据点颜色
-      const ptColor = s => s >= 70 ? '#22C55E' : s >= 55 ? '#F59E0B' : '#EF4444';
-
-      chartEl.style.cssText = 'width:100%;margin-top:8px';
-      chartEl.innerHTML = `
-        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:180px;overflow:visible" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#7B61FF" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="#7B61FF" stop-opacity="0.02"/>
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          <!-- 背景网格横线 -->
-          ${yTicks.map(t => `
-            <line x1="${padL}" y1="${cy(t).toFixed(1)}" x2="${W-padR}" y2="${cy(t).toFixed(1)}"
-                  stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
-            <text x="${padL-6}" y="${cy(t).toFixed(1)}" text-anchor="end" dominant-baseline="middle"
-                  font-size="10" fill="rgba(255,255,255,0.35)">${Math.round(t)}</text>
-          `).join('')}
-
-          <!-- 70分参考线 -->
-          ${showRef ? `
-            <line x1="${padL}" y1="${ref70y.toFixed(1)}" x2="${W-padR}" y2="${ref70y.toFixed(1)}"
-                  stroke="rgba(34,197,94,0.5)" stroke-width="1" stroke-dasharray="5,4"/>
-            <text x="${padL+4}" y="${(ref70y-5).toFixed(1)}" font-size="9" fill="rgba(34,197,94,0.7)">70分</text>
-          ` : ''}
-
-          <!-- 渐变填充 -->
-          <path d="${fillPath}" fill="url(#scoreGrad)"/>
-
-          <!-- 折线 -->
-          <path d="${linePath}" fill="none" stroke="#7B61FF" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
-
-          <!-- 数据点 + 标签 -->
-          ${pts.map((p, i) => {
-            const col = ptColor(p.s);
-            const dateStr = (p.r.recorded_at||'').slice(5,10);
-            const labelY = p.y - 12;
-            return `
-              <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5"
-                      fill="${col}" stroke="#1a1a2e" stroke-width="2"/>
-              <text x="${p.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle"
-                    font-size="11" font-weight="700" fill="${col}">${Math.round(p.s)}</text>
-              <text x="${p.x.toFixed(1)}" y="${(padT+chartH+16).toFixed(1)}" text-anchor="middle"
-                    font-size="9" fill="rgba(255,255,255,0.35)">${dateStr}</text>
-            `;
-          }).join('')}
+    const groups=[['prediction','预测评分','#7B61FF'],['performance','发布后实际表现','#22C55E'],['legacy','历史评分（类型未记录）','#F59E0B']];
+    chart.innerHTML=groups.map(([kind,label,color])=>{
+      const points=recs.filter(r=>profileScoreKind(r)===kind);if(!points.length)return '';
+      const W=820,H=160,padL=36,padR=12,padT=28,padB=32,chartW=W-padL-padR,chartH=H-padT-padB;
+      const min=Math.max(0,Math.min(...points.map(r=>r.score))-8),max=Math.min(100,Math.max(...points.map(r=>r.score))+8),range=max-min||1;
+      const cy=score=>padT+chartH-(score-min)/range*chartH;
+      const ticks=[max,Math.round((min+max)/2),min];
+      return '<div style="font-size:12px;color:var(--text-2);margin-top:10px">'+label+' · 各笔记与版本独立记录</div>'+`
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:180px;overflow:visible" role="img" aria-label="${label}独立评分记录" xmlns="http://www.w3.org/2000/svg">
+          ${ticks.map(t=>`<line x1="${padL}" y1="${cy(t)}" x2="${W-padR}" y2="${cy(t)}" stroke="rgba(255,255,255,.06)"/><text x="${padL-6}" y="${cy(t)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="rgba(255,255,255,.5)">${Math.round(t)}</text>`).join('')}
+          ${points.map((record,i)=>{const x=padL+(points.length>1?i*chartW/(points.length-1):chartW/2),y=cy(record.score);return `<circle cx="${x}" cy="${y}" r="4.5" fill="${color}" stroke="#1a1a2e" stroke-width="2"><title>${escapeHtml(profileRecordDescription(record))}</title></circle><text x="${x}" y="${y-12}" text-anchor="middle" font-size="11" fill="${color}">${record.score.toFixed(1)}</text><text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.5)">${escapeHtml(String(record.source_recorded_at||record.recorded_at||'').slice(5,10))}</text>`;}).join('')}
         </svg>`;
-
-      const first = allScores[0], last = allScores[allScores.length - 1];
-      const diff = +(last - first).toFixed(1);
-      document.getElementById('profile-trend-summary').textContent =
-        diff >= 0 ? `↑ 提升 ${diff} 分` : `↓ 下降 ${Math.abs(diff)} 分`;
-    } else {
-      chartEl.style.cssText = 'height:120px;display:flex;align-items:center;justify-content:center';
-      chartEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center">暂无数据，开始诊断或对话优化后会自动记录</div>';
-    }
-
-    // 记忆
-    const memList = document.getElementById('profile-memories-list');
-    if (mems.memories.length > 0) {
-      memList.innerHTML = mems.memories.slice(0,6).map(m => {
-        const typeIcon = { style:'🎨', preference:'💡', achievement:'🏆', context:'📝' }[m.memory_type] || '🧠';
-        return `<div class="memory-item"><div class="memory-item-label">${typeIcon} ${m.memory_type}</div><div class="memory-item-text">${m.content}</div></div>`;
-      }).join('');
-    } else {
-      memList.innerHTML = '<div style="color:var(--text-muted);font-size:13px">多次对话优化后，AI 会自动记住你的写作风格和偏好</div>';
-    }
-
-    // 成就
-    const achList = document.getElementById('profile-achievements-list');
-    if (achs.achievements.length > 0) {
-      achList.innerHTML = achs.achievements.map(a =>
-        `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf-2);border-radius:10px;font-size:13px;color:var(--text)">${a}</div>`
-      ).join('');
-    } else {
-      achList.innerHTML = '<div style="color:var(--text-muted);font-size:13px">完成第一次优化并突破分数里程碑后，成就会出现在这里</div>';
-    }
-
-    // 笔记预览
-    const notesPreview = document.getElementById('profile-notes-preview');
-    if (notes.notes && notes.notes.length > 0) {
-      notesPreview.innerHTML = notes.notes.map(n =>
-        `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div style="font-size:13px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.title}</div>
-          ${n.score ? `<div style="font-size:12px;font-weight:700;color:${n.score>=70?'#22C55E':n.score>=55?'#F59E0B':'#EF4444'};margin-left:8px;flex-shrink:0">${n.score.toFixed(1)}</div>` : ''}
-        </div>`
-      ).join('');
-    }
-
-    // 品类标签
-    const tagsEl = document.getElementById('profile-domain-tags');
-    if (stats.domain_distribution) {
-      tagsEl.innerHTML = Object.entries(stats.domain_distribution)
-        .sort((a,b) => b[1]-a[1]).slice(0,3)
-        .map(([d,c]) => `<span class="p-tag p-tag-red">${d} (${c}次)</span>`).join('');
-    }
-  } catch(e) {
-    console.error('profile load error', e);
+    }).join('');
+    profileText('profile-trend-summary','最近 '+recs.length+' 条评分 · 不跨笔记计算提升');
   }
+  if(records.length)chart.innerHTML+='<details style="font-size:12px;color:var(--text-2);line-height:1.7"><summary>查看记录来源</summary>'+records.map(r=>{
+    const ref=r.report_ref;
+    const canOpen=ref&&['analyze','generate'].includes(ref.report_type)&&typeof ref.report_id==='string'&&!!ref.report_id;
+    return '<div style="padding:8px 0;overflow-wrap:anywhere">'+escapeHtml(profileRecordDescription(r))+' · '+(profileFiniteScore(r)?r.score.toFixed(1)+'分':'评分未提供')+(canOpen?' <button class="btn btn-ghost btn-sm" '+productActionAttributes('openProfileReport',ref.report_type,ref.report_id)+'>查看关联报告</button>':'')+'</div>';
+  }).join('')+'</details>';
+  const counts=growth.stats?.domain_distribution;
+  const tags=document.getElementById('profile-domain-tags');tags.innerHTML='';
+  if(counts && typeof counts==='object')tags.innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([d,c])=>'<span class="p-tag p-tag-red">'+escapeHtml(d)+' ('+escapeHtml(String(c))+'条)</span>').join('');
+}
+async function openProfileReport(reportType,reportId) {
+  const state=_profileViewState;
+  if(!state||!profileIdentityCurrent(state.identity,state.token))return;
+  const record=state.values.growth?.records?.find(r=>r.report_ref?.report_type===reportType&&r.report_ref?.report_id===reportId);
+  if(!record||!['analyze','generate'].includes(reportType))return;
+  showPage('report');
+  await openReportDetail(reportType,reportId);
+}
+function renderProfileLoopInsights(growth, notes, tracking, mems) {
+  const el=document.getElementById('profile-loop-insights');if(!el)return;
+  const records=Array.isArray(growth?.records)?growth.records:null;
+  const versions=typeof notes?.total==='number'?notes.total:Array.isArray(notes?.notes)?notes.notes.length:null;
+  const tracked=Array.isArray(tracking?.notes)?tracking.notes:null;
+  const memories=Array.isArray(mems?.memories)?mems.memories:null;
+  const preferences=Array.isArray(mems?.preferences)?mems.preferences:[];
+  const cards=[
+    ['诊断与优化记录',records?records.length+' 条记录':growth?.error?'读取失败':'待读取','不同笔记与版本独立记录，不推算整体提升'],
+    ['作品资产',versions===null?(notes?.error?'读取失败':'待读取'):versions+' 个版本','已保存的笔记版本'],
+    ['真实校准',tracking?.unavailable?'暂未开放':tracked?tracked.filter(t=>t.status==='complete'||t.actual_ces!=null).length+'/'+tracked.length+' 已完成':tracking?.error?'读取失败':'待读取',tracking?.unavailable?'当前不采集外部表现':'仅展示实际返回的追踪结果'],
+    ['已保存记忆',memories?memories.length+' 条记忆'+(preferences.length?' · '+preferences.length+' 项偏好':''):mems?.error?'读取失败':'待读取','偏好、上下文与成就按实际记录展示'],
+  ];
+  el.innerHTML=cards.map(([label,value,note])=>'<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 13px;min-width:0"><div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">'+escapeHtml(label)+'</div><div style="font-size:17px;font-weight:900;color:var(--text);overflow-wrap:anywhere">'+escapeHtml(value)+'</div><div style="font-size:11px;color:var(--text-2);line-height:1.45;margin-top:5px">'+escapeHtml(note)+'</div></div>').join('');
+}
+function profileMemoryEditable(memory, identity) {
+  return memory?.editable===true && ['style','preference'].includes(memory.memory_type) &&
+    typeof memory.id==='string' && !!memory.id && typeof memory.preference_key==='string' && !!memory.preference_key &&
+    (!memory.user_id || String(memory.user_id)===identity.ownerId);
+}
+function profileMemoryDeletable(memory, identity) {
+  return memory?.deletable===true && ['style','preference'].includes(memory.memory_type) &&
+    typeof memory.id==='string' && !!memory.id && typeof memory.preference_key==='string' && !!memory.preference_key &&
+    (!memory.user_id || String(memory.user_id)===identity.ownerId);
+}
+function profileMemoryValue(memory) {
+  if(typeof memory.value==='string')return memory.value;
+  const content=String(memory.content||''),prefix=memory.preference_key+':';
+  return content.startsWith(prefix)?content.slice(prefix.length):content;
+}
+function renderProfileMemories(data, identity, token) {
+  if(!Array.isArray(data.memories)||data.preferences!=null&&!Array.isArray(data.preferences))throw new Error('记忆列表格式不完整');
+  if(data.memories.some(m=>m.user_id && String(m.user_id)!==identity.ownerId))throw new Error('记忆账户不匹配，请重新登录');
+  const preferences=Array.isArray(data.preferences)?data.preferences:[];
+  const list=document.getElementById('profile-memories-list');list.replaceChildren();
+  _profileMemoryState={identity,token,memories:data.memories};
+  const view=_profileViewState;if(view&&view.token===token&&view.identity.ownerId===identity.ownerId){view.values.mems=data;renderProfileLoopInsights(view.values.growth,view.values.notes,view.values.tracking,data);}
+  if(!data.memories.length&&!preferences.length){list.textContent='暂无已保存记忆或长期偏好；不会把临时建议当作你的偏好。';return;}
+  for(const memory of data.memories){
+    const row=document.createElement('div');row.className='memory-item';row.dataset.profileMemoryId=String(memory.id||'');
+    const label=document.createElement('div');label.className='memory-item-label';label.textContent=({style:'写作偏好',preference:'内容偏好',achievement:'成就',context:'任务上下文'})[memory.memory_type]||'历史记忆';
+    const content=document.createElement('div');content.className='memory-item-text';content.textContent=String(memory.content||'');row.append(label,content);
+    const source=memory.source_text||(typeof memory.source==='string'?memory.source:memory.source?.label||memory.source?.type);
+    if(memory.domain||source){const meta=document.createElement('div');meta.style.cssText='font-size:11px;color:var(--text-muted);margin-top:6px;overflow-wrap:anywhere';meta.textContent=[memory.domain?'领域：'+memory.domain:'',source?'来源：'+source:''].filter(Boolean).join(' · ');row.append(meta);}
+    if(profileMemoryEditable(memory,identity)||profileMemoryDeletable(memory,identity)){
+      const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
+      const edit=document.createElement('button');edit.className='btn btn-ghost btn-sm';edit.textContent='修改偏好';edit.dataset.profileMemoryEdit=memory.id;edit.addEventListener('click',()=>openProfileMemoryEditor(memory.id,row));
+      const remove=document.createElement('button');remove.className='btn btn-ghost btn-sm';remove.textContent='删除偏好';remove.dataset.profileMemoryDelete=memory.id;remove.addEventListener('click',()=>{if(confirm('删除这条已保存偏好？历史笔记和报告将保留。'))changeProfileMemory(memory.id,null);});if(profileMemoryEditable(memory,identity))actions.append(edit);if(profileMemoryDeletable(memory,identity))actions.append(remove);row.append(actions);
+    }
+    list.append(row);
+  }
+  for(const preference of preferences){
+    const row=document.createElement('div');row.className='memory-item';
+    const label=document.createElement('div');label.className='memory-item-label';label.textContent='已保存偏好 · 旧版记录';
+    const content=document.createElement('div');content.className='memory-item-text';content.textContent=String(preference.content ?? preference.value ?? '');
+    const source=document.createElement('div');source.style.cssText='font-size:11px;color:var(--text-muted);margin-top:6px';source.textContent='来源：'+String(preference.source||'legacy_user_learn')+(preference.updated_at?' · '+preference.updated_at:'');
+    row.append(label,content,source);list.append(row);
+  }
+}
+function openProfileMemoryEditor(id, row) {
+  const state=_profileMemoryState,memory=state?.memories.find(m=>m.id===id);
+  if(!state||!profileIdentityCurrent(state.identity,state.token)||!profileMemoryEditable(memory,state.identity))return;
+  if(row.querySelector('[data-profile-memory-value]'))return;
+  const input=document.createElement('input');input.value=profileMemoryValue(memory);input.dataset.profileMemoryValue=id;input.setAttribute('aria-label','修改已保存偏好');input.style.cssText='width:100%;padding:10px;margin-top:10px;background:var(--surf-2);color:var(--text);border:1px solid var(--border);border-radius:8px';
+  const save=document.createElement('button');save.className='btn btn-primary btn-sm';save.textContent='保存偏好';save.dataset.profileMemorySave=id;save.addEventListener('click',()=>changeProfileMemory(id,input.value));row.append(input,save);input.focus();
+}
+function profileMemoryUncertain(state,error) {
+  state.uncertain=true;
+  const list=document.getElementById('profile-memories-list');
+  let notice=list.querySelector('[data-profile-memory-recheck]');
+  if(!notice){notice=document.createElement('div');notice.dataset.profileMemoryRecheck='true';list.append(notice);}
+  notice.replaceChildren();
+  const message=document.createElement('p');message.setAttribute('role','status');message.textContent='偏好操作结果需核实：'+error.message+'。输入仍保留；请先重新读取当前偏好，不要重复提交。';
+  const read=document.createElement('button');read.type='button';read.className='btn btn-ghost btn-sm';read.textContent='重新读取偏好';
+  read.addEventListener('click',async()=>{
+    if(_profileMemoryState!==state||!profileIdentityCurrent(state.identity,state.token))return;
+    read.disabled=true;
+    try{const data=await profileReadJSON('/profile/memories',state.token);if(_profileMemoryState===state&&profileIdentityCurrent(state.identity,state.token))renderProfileMemories(data,state.identity,state.token);}
+    catch(error){if(_profileMemoryState===state&&profileIdentityCurrent(state.identity,state.token)){message.textContent='读取未成功：'+error.message+'。原输入仍保留。';read.disabled=false;}}
+  });
+  notice.append(message,read);
+}
+async function changeProfileMemory(id, value) {
+  const state=_profileMemoryState,memory=state?.memories.find(m=>m.id===id);
+  if(!state||!profileIdentityCurrent(state.identity,state.token)||!(value===null?profileMemoryDeletable(memory,state.identity):profileMemoryEditable(memory,state.identity))||state.busy)return false;
+  if(state.uncertain){showToast('请先重新读取当前偏好，核实上次操作结果');return false;}
+  if(value!==null && !String(value).trim()){showToast('偏好不能为空');return false;}
+  state.busy=true;
+  const current=()=>_profileMemoryState===state && profileIdentityCurrent(state.identity,state.token);
+  try{
+    const options={method:value===null?'DELETE':'PATCH',headers:{'Content-Type':'application/json'}};
+    if(value!==null)options.body=JSON.stringify({value:String(value).trim()});
+    const result=await profileReadJSON('/profile/memories/'+encodeURIComponent(id),state.token,options);
+    if(!current())return false;
+    if(result.ok!==true)throw new Error('服务器未确认保存，请重新读取核实');
+    const data=await profileReadJSON('/profile/memories',state.token);if(!current())return false;
+    renderProfileMemories(data,state.identity,state.token);showToast(value===null?'偏好已删除':'偏好已更新');return true;
+  }catch(error){if(current()){profileMemoryUncertain(state,error);showToast(error.message);}return false;}
+  finally{state.busy=false;}
+}
+async function initProfilePage() {
+  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_profileReadSequence;
+  const current=()=>sequence===_profileReadSequence && profileIdentityCurrent(identity,token);
+  const real=document.getElementById('profile-real-content'),login=document.getElementById('profile-login-prompt');
+  if(!token){if(real)real.style.display='none';if(login)login.style.display='flex';return;}
+  if(real)real.style.display='block';if(login)login.style.display='none';_profileMemoryState=null;
+  ['profile-stat-sessions','profile-stat-improvement','profile-stat-best'].forEach(id=>profileText(id,'–'));
+  ['profile-trend-chart','profile-memories-list','profile-achievements-list','profile-notes-preview'].forEach(id=>profileRegionError(id,'正在读取…'));
+  profileText('profile-trend-summary','');profileText('profile-domain-tags','');
+  const values={growth:null,notes:null,tracking:null,mems:null};
+  _profileViewState={identity,token,values};
+  const insights=()=>renderProfileLoopInsights(values.growth,values.notes,values.tracking,values.mems);insights();
+  async function region(path,id,render){
+    try{const savedRevision=_profileSavedRevision;const data=await profileReadJSON(path,token);if(!current())return;render(data,savedRevision);}
+    catch(error){if(current()){
+      profileRegionError(id,error.message);
+      const target=document.getElementById(id),retry=document.createElement('button');
+      retry.type='button';retry.className='btn btn-ghost btn-sm';retry.textContent='重新读取';
+      retry.style.marginLeft='8px';retry.addEventListener('click',async()=>{if(!current())return;retry.disabled=true;await region(path,id,render);});
+      target?.append(retry);
+      const key={'/profile/growth':'growth','/profile/memories':'mems','/notes?limit=3':'notes'}[path];if(key)values[key]={error:true};
+    }}
+    finally{if(current())insights();}
+  }
+  const jobs=[
+    region('/auth/me','profile-since-display',(me,savedRevision)=>{
+      if(me.id!=null && String(me.id)!==identity.ownerId)throw new Error('账户信息不匹配，请重新登录');
+      if(typeof me.username!=='string')throw new Error('账户资料格式不完整');
+      // A read started before a successful save may carry the old nickname/avatar.
+      if(savedRevision!==_profileSavedRevision)me={...me,nickname:_authUser?.nickname,avatar_data:_authUser?.avatar_data,avatar_emoji:_authUser?.avatar_emoji};
+      _authUser={...(_authUser||{}),...me};authUpdateNav();
+      renderAvatar(document.getElementById('profile-avatar-display'),me.avatar_data,me.avatar_emoji,'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
+      profileText('profile-nickname-display',me.nickname||me.username);
+      profileText('profile-since-display','@'+me.username+(me.created_at?' · 注册于 '+me.created_at.slice(0,10):''));
+      const phone=document.getElementById('profile-phone-display');phone.textContent=me.phone_masked?'📱 '+me.phone_masked:'';phone.style.display=me.phone_masked?'block':'none';
+      const bind=document.getElementById('profile-bind-phone-btn');if(bind)bind.style.display=me.phone_masked?'none':'inline-block';
+    }),
+    region('/profile/growth','profile-trend-chart',data=>{renderProfileGrowth(data);values.growth=data;}),
+    region('/profile/memories','profile-memories-list',data=>{renderProfileMemories(data,identity,token);values.mems=data;}),
+    region('/profile/achievements','profile-achievements-list',data=>{
+      if(!Array.isArray(data.achievements))throw new Error('成就列表格式不完整');
+      const list=document.getElementById('profile-achievements-list');list.innerHTML=data.achievements.map(item=>'<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf-2);border-radius:10px;font-size:13px;color:var(--text)">'+escapeHtml(typeof item==='string'?item:item?.name||item?.title||item?.content||'')+'</div>').join('');
+      if(!data.achievements.length)list.textContent='暂无已记录成就；完成评分里程碑后在这里查看。';
+    }),
+    region('/notes?limit=3','profile-notes-preview',data=>{
+      if(!Array.isArray(data.notes))throw new Error('笔记列表格式不完整');values.notes=data;
+      const list=document.getElementById('profile-notes-preview');list.innerHTML=data.notes.map(n=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(n.title||'未命名笔记')+'</div>'+(profileFiniteScore(n)?'<div style="font-size:12px;font-weight:700;color:var(--text-2);margin-left:8px">'+n.score.toFixed(1)+'</div>':'')+'</div>').join('');
+      if(!data.notes.length)list.textContent='暂无已保存笔记。';
+    }),
+  ];
+  if(!profileTrackingAvailable()){values.tracking={unavailable:true};profileText('profile-tracking-list','外部笔记跟踪暂未开放；已保存笔记仍可查看和优化。');insights();}
+  await Promise.allSettled(jobs);
 }
 
 /* 联系方式验证与账户安全 */
@@ -12025,66 +12131,94 @@ async function saveChangePwd() {
 }
 
 async function revokeAllSessions() {
-  if (PUBLIC_PRODUCT) { showToast('请通过 ecfine@163.com 联系支持办理本人数据导出、恢复或会话撤销'); return; }
-  if (!confirm('撤销全部设备上的登录会话？当前设备也会退出。')) return;
+  const action = accountActionStart('revoke-sessions');
+  if (!action) return;
   try {
-    const res = await fetch(API_AUTH + '/auth/sessions/revoke-all', {
-      method: 'POST', headers: authHeader(),
+    if (!confirm('撤销全部设备上的登录会话？当前设备也会退出。') || !action.current()) return;
+    const response = await fetch(API_AUTH + '/auth/sessions/revoke-all', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + action.token, 'Content-Type':'application/json' }, body:'{}', cache: 'no-store',
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '撤销失败');
+    if (!action.current()) return;
+    const data = await accountActionJSON(response, '撤销失败');
+    if (!action.current()) return;
+    if (data.ok !== true) throw new Error(typeof data.detail === 'string' ? data.detail : '服务器未确认撤销成功');
     authClearLocalSession();
     showPage('landing');
     showToast('全部会话已撤销');
-  } catch (err) { showToast(err.message); }
+  } catch (err) {
+    if (action.current()) showToast('撤销失败或结果未确认：' + (err?.message || '连接中断') + '。请重新登录核实，不会自动重试');
+  } finally { action.release(); }
 }
 
 async function exportAccountData() {
-  if (PUBLIC_PRODUCT) { showToast('请通过 ecfine@163.com 联系支持办理本人数据导出、恢复或会话撤销'); return; }
+  const action = accountActionStart('export');
+  if (!action) return;
+  let objectUrl = null, link = null;
   try {
-    const res = await fetch(API_AUTH + '/account/export', { headers: authHeader() });
-    if (!res.ok) {
-      const data = await res.json(); throw new Error(data.detail || '导出失败');
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = 'noteai-account-export.json';
-    document.body.appendChild(link); link.click(); link.remove();
-    URL.revokeObjectURL(url);
+    const response = await fetch(API_AUTH + '/account/export', {
+      headers: { Authorization: 'Bearer ' + action.token }, cache: 'no-store',
+    });
+    if (!action.current()) return;
+    const data = await accountActionJSON(response, '导出失败');
+    if (!action.current()) return;
+    if (typeof data.exported_at !== 'string' || !data.account || typeof data.account !== 'object' || Array.isArray(data.account)
+        || !data.archives || typeof data.archives !== 'object' || Array.isArray(data.archives)) throw new Error('账户导出数据不完整，未下载');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    if (!action.current()) return;
+    objectUrl = URL.createObjectURL(blob);
+    link = document.createElement('a');
+    link.href = objectUrl; link.download = 'noteai-account-export.json';
+    if (!action.current()) return;
+    document.body.appendChild(link);
+    link.click();
     showToast('账户数据已导出');
-  } catch (err) { showToast(err.message); }
+  } catch (err) {
+    if (action.current()) showToast('导出失败：' + (err?.message || '连接中断') + '；未自动重试');
+  } finally {
+    if (link) link.remove();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    action.release();
+  }
 }
 
 async function recoverArchivedContent() {
-  if (PUBLIC_PRODUCT) { showToast('请通过 ecfine@163.com 联系支持办理本人数据导出、恢复或会话撤销'); return; }
+  const action = accountActionStart('recover-archive');
+  if (!action) return;
+  let recoveryRequested = false, recoveryConfirmed = false;
   try {
     const response = await fetch(API_AUTH + '/account/archive/recovery', {
-      headers: authHeader(),
+      headers: { Authorization: 'Bearer ' + action.token }, cache: 'no-store',
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || '读取恢复列表失败');
-    const items = data.items || [];
+    if (!action.current()) return;
+    const data = await accountActionJSON(response, '读取恢复列表失败');
+    if (!action.current()) return;
+    if (!Array.isArray(data.items) || data.items.some(item => !item || !['note', 'diagnosis'].includes(item.content_type) || typeof item.content_id !== 'string' || !item.content_id)) throw new Error('恢复列表数据不完整');
+    const items = data.items;
     if (!items.length) { showToast('当前没有处于恢复期的归档'); return; }
     const menu = items.map((item, index) =>
       `${index + 1}. ${item.content_type === 'note' ? '笔记' : '诊断'}：${item.label || item.content_id}`
     ).join('\n');
     const choice = Number(prompt(`输入要恢复的序号：\n${menu}`));
-    if (!Number.isInteger(choice) || choice < 1 || choice > items.length) return;
+    if (!action.current() || !Number.isInteger(choice) || choice < 1 || choice > items.length) return;
     const selected = items[choice - 1];
+    recoveryRequested = true;
     const recovered = await fetch(API_AUTH + '/account/archive/recover', {
       method: 'POST',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content_type: selected.content_type,
-        content_id: selected.content_id,
-      }),
+      headers: { Authorization: 'Bearer ' + action.token, 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ content_type: selected.content_type, content_id: selected.content_id }),
     });
-    const result = await recovered.json();
-    if (!recovered.ok) throw new Error(result.detail || '恢复失败');
-    showToast('归档已恢复7天');
-    initProfilePage();
-  } catch (err) { showToast(err.message); }
+    if (!action.current()) return;
+    const result = await accountActionJSON(recovered, '恢复失败');
+    if (!action.current()) return;
+    if (result.ok !== true) throw new Error(typeof result.detail === 'string' ? result.detail : '服务器未确认恢复成功');
+    recoveryConfirmed = true;
+    showToast('归档已恢复');
+    await initProfilePage();
+  } catch (err) {
+    if (action.current()) showToast(recoveryConfirmed ? '归档已恢复，页面刷新失败，请重新打开成长档案'
+      : (recoveryRequested ? '恢复失败或结果未确认：' : '读取恢复列表失败：') + (err?.message || '连接中断') + '。请先核对归档，不会自动重试');
+  } finally { action.release(); }
 }
 
 async function requestAccountDeletion() {
@@ -13393,7 +13527,6 @@ const _AVATAR_EMOJIS = [
 ];
 
 function openAvatarPicker() {
-  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   const grid = document.getElementById('avatar-picker-grid');
   grid.innerHTML = '';
@@ -13414,7 +13547,7 @@ function openAvatarPicker() {
 function closeAvatarPicker() {
   document.getElementById('avatar-picker-modal').style.display = 'none';
   // 重置上传预览
-  _pendingAvatarData = null;
+  _pendingAvatarData = null;_pendingAvatarIdentity=null;_pendingAvatarToken=null;++_avatarSelectionSequence;
   const preview = document.getElementById('avatar-upload-preview');
   const hint    = document.getElementById('avatar-upload-hint');
   const btn     = document.getElementById('avatar-upload-btn');
@@ -13423,9 +13556,13 @@ function closeAvatarPicker() {
   if (hint)    hint.style.display    = 'block';
   if (btn)     btn.style.display     = 'none';
   if (input)   input.value = '';
+  const image=document.getElementById('avatar-upload-img');if(image)image.removeAttribute('src');
+  if(btn){btn.disabled=false;btn.textContent='✅ 使用这张图片';}
 }
 
 let _pendingAvatarData = null;  // Canvas 压缩后的 base64，待确认保存
+let _pendingAvatarIdentity = null, _pendingAvatarToken = null, _avatarSelectionSequence = 0;
+let _nicknameEditIdentity = null, _nicknameEditToken = null;
 
 /* 将图片文件裁剪成正方形并压缩到指定尺寸 */
 function compressImageToSquare(file, size = 160, quality = 0.88) {
@@ -13465,9 +13602,12 @@ function handleAvatarDrop(event) {
 async function processAvatarFile(file) {
   if (!file.type.startsWith('image/')) { showToast('请上传图片文件'); return; }
   if (file.size > 10 * 1024 * 1024) { showToast('图片不能超过 10MB'); return; }
+  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_avatarSelectionSequence;
+  if(!token||!identity.ownerId)return;
   try {
     const dataUrl = await compressImageToSquare(file, 160, 0.88);
-    _pendingAvatarData = dataUrl;
+    if(!profileIdentityCurrent(identity,token)||sequence!==_avatarSelectionSequence)return;
+    _pendingAvatarData = dataUrl;_pendingAvatarIdentity=identity;_pendingAvatarToken=token;
 
     const imgEl   = document.getElementById('avatar-upload-img');
     const preview = document.getElementById('avatar-upload-preview');
@@ -13478,67 +13618,51 @@ async function processAvatarFile(file) {
     hint.style.display    = 'none';
     btn.style.display     = 'block';
   } catch(e) {
-    showToast('图片处理失败：' + e.message);
+    if(profileIdentityCurrent(identity,token)&&sequence===_avatarSelectionSequence)showToast('图片处理失败：' + e.message);
   }
 }
 
+async function submitProfileUpdate(patch, identity, token, onSuccess) {
+  if(!token||!profileIdentityCurrent(identity,token))return false;
+  if(_profileMutationPending){showToast('资料正在保存，请等待当前结果');return false;}
+  _profileMutationPending=true;const sequence=++_profileMutationSequence;
+  const current=()=>sequence===_profileMutationSequence&&profileIdentityCurrent(identity,token);
+  try {
+    const data=await profileReadJSON('/auth/profile',token,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
+    if(!current())return false;
+    if(data.ok!==true)throw new Error('服务器未确认保存，请重新读取资料核实');
+    onSuccess(data);++_profileSavedRevision;return true;
+  } catch(error) {if(current())showToast('保存未确认：'+error.message);return false;}
+  finally {if(current())_profileMutationPending=false;}
+}
 async function saveUploadedAvatar() {
-  if (!_pendingAvatarData || !_authToken) return;
-  const btn = document.getElementById('avatar-upload-btn');
-  btn.disabled = true; btn.textContent = '保存中…';
-  try {
-    const res = await fetch(API_AUTH + '/auth/profile', {
-      method: 'PUT',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ avatar_data: _pendingAvatarData }),
-    });
-    const d = await res.json();
-    if (d.ok) {
-      if (_authUser) { _authUser.avatar_data = _pendingAvatarData; }
-      const profileAv = document.getElementById('profile-avatar-display');
-      renderAvatar(profileAv, _pendingAvatarData, null,
-        'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
-      authUpdateNav();
-      closeAvatarPicker();
-      showToast('头像已更新！');
-    } else {
-      showToast(d.detail || '保存失败');
-    }
-  } catch(e) {
-    showToast('保存失败：' + e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = '✅ 使用这张图片';
-  }
+  const avatarData=_pendingAvatarData,identity=_pendingAvatarIdentity,token=_pendingAvatarToken;
+  if(!avatarData||!profileIdentityCurrent(identity,token))return false;
+  const btn=document.getElementById('avatar-upload-btn');btn.disabled=true;btn.textContent='保存中…';
+  try {return await submitProfileUpdate({avatar_data:avatarData},identity,token,data=>{
+    const saved=typeof data.avatar_data==='string'?data.avatar_data:avatarData;
+    _authUser={..._authUser,avatar_data:saved};
+    renderAvatar(document.getElementById('profile-avatar-display'),saved,_authUser.avatar_emoji,'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
+    authUpdateNav();closeAvatarPicker();showToast('头像已更新');
+  });}finally{if(profileIdentityCurrent(identity,token)){btn.disabled=false;btn.textContent='✅ 使用这张图片';}}
 }
-
 async function pickAvatar(emoji) {
-  if (!_authToken) return;
-  try {
-    const res = await fetch(API_AUTH + '/auth/profile', {
-      method: 'PUT',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ avatar_emoji: emoji }),  // 后端会同时清除 avatar_data
-    });
-    const d = await res.json();
-    if (d.ok) {
-      if (_authUser) { _authUser.avatar_emoji = emoji; _authUser.avatar_data = null; }
-      const profileAv = document.getElementById('profile-avatar-display');
-      renderAvatar(profileAv, null, emoji, 'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
-      authUpdateNav();
-      closeAvatarPicker();
-      showToast('头像已更新 ' + emoji);
-    }
-  } catch(e) {
-    showToast('更新失败：' + e.message);
-  }
+  const identity=_chatIdentitySnapshot(),token=_authToken;
+  if(!token)return false;
+  return submitProfileUpdate({avatar_emoji:emoji},identity,token,data=>{
+    const saved=typeof data.avatar_emoji==='string'?data.avatar_emoji:emoji;
+    _authUser={..._authUser,avatar_emoji:saved,avatar_data:null};
+    renderAvatar(document.getElementById('profile-avatar-display'),null,saved,'width:100%;height:100%;object-fit:cover;border-radius:20px;display:block');
+    authUpdateNav();closeAvatarPicker();showToast('头像已更新');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
    昵称内联编辑
 ═══════════════════════════════════════════════════════════ */
 function startNicknameEdit() {
-  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
+  _nicknameEditIdentity=_chatIdentitySnapshot();_nicknameEditToken=_authToken;
   const cur = document.getElementById('profile-nickname-display').textContent;
   document.getElementById('profile-nickname-input').value = cur;
   document.getElementById('profile-nickname-display').parentElement.style.display = 'none';
@@ -13548,6 +13672,7 @@ function startNicknameEdit() {
 }
 
 function cancelNicknameEdit() {
+  _nicknameEditIdentity=null;_nicknameEditToken=null;
   const editRow = document.getElementById('profile-nickname-edit');
   const displayRow = editRow && editRow.previousElementSibling;
   if (editRow && editRow.style.display !== 'none') {
@@ -13557,28 +13682,15 @@ function cancelNicknameEdit() {
 }
 
 async function saveNickname() {
-  const input = document.getElementById('profile-nickname-input');
-  const nickname = (input?.value || '').trim();
-  if (!nickname) { showToast('昵称不能为空'); return; }
-  try {
-    const res = await fetch(API_AUTH + '/auth/profile', {
-      method: 'PUT',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname }),
-    });
-    const d = await res.json();
-    if (d.ok) {
-      if (_authUser) _authUser.nickname = d.nickname;
-      document.getElementById('profile-nickname-display').textContent = d.nickname;
-      authUpdateNav();
-      cancelNicknameEdit();
-      showToast('昵称已更新：' + d.nickname);
-    } else {
-      showToast('更新失败');
-    }
-  } catch(e) {
-    showToast('更新失败：' + e.message);
-  }
+  const identity=_nicknameEditIdentity,token=_nicknameEditToken;
+  if(!profileIdentityCurrent(identity,token))return false;
+  const nickname=(document.getElementById('profile-nickname-input')?.value||'').trim();
+  if(!nickname||nickname.length>20){showToast('昵称需为1至20个字符');return false;}
+  return submitProfileUpdate({nickname},identity,token,data=>{
+    if(typeof data.nickname!=='string'||!data.nickname.trim())throw new Error('昵称保存结果不完整，请重新读取核实');
+    _authUser={..._authUser,nickname:data.nickname};profileText('profile-nickname-display',data.nickname);
+    authUpdateNav();cancelNicknameEdit();showToast('昵称已更新：'+data.nickname);
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -13611,7 +13723,7 @@ let _trackingLinkedTitle  = '';
 let _trackingLinkedSessionId = null;
 
 function openTrackUrlModal() {
-  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
+  if (PUBLIC_PRODUCT && !_publicStatus?.tracking_open) { showToast('当前可查看本人已有追踪结果；新增追踪暂未开放'); return; }
   if (!_authToken) { openAuthModal('login'); return; }
   document.getElementById('track-url-modal').style.display = 'flex';
   document.getElementById('track-url-input').value = '';
@@ -13683,17 +13795,31 @@ async function submitTrackUrl() {
   }
 }
 
+function profileTrackingAvailable() {
+  return _publicStatus?.tracking_read_open===true || (_publicStatus?.tracking_open!==false && (!PUBLIC_PRODUCT || _publicStatus?.tracking_open===true));
+}
+function updateProfileTrackingInsights(data, identity, token) {
+  const state=_profileViewState;
+  if(!state||state.token!==token||state.identity.ownerId!==identity.ownerId||!profileIdentityCurrent(identity,token))return;
+  state.values.tracking=data;
+  renderProfileLoopInsights(state.values.growth,state.values.notes,data,state.values.mems);
+}
 async function loadTrackingList() {
-  if (PUBLIC_PRODUCT) { const el=document.getElementById('profile-tracking-list'); if(el) el.textContent='外部笔记跟踪尚未开放；已保存笔记可以继续查看和优化。'; return; }
-  if (!_authToken) return;
+  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_profileTrackingReadSequence;
+  const current=()=>profileIdentityCurrent(identity,token)&&sequence===_profileTrackingReadSequence;
+  if(!profileTrackingAvailable()){profileText('profile-tracking-list','外部笔记跟踪暂未开放；已保存笔记可以继续查看和优化。');updateProfileTrackingInsights({unavailable:true},identity,token);return;}
+  if(!token)return;
+  profileText('profile-tracking-list','正在读取追踪记录…');
   try {
-    const res = await fetch(API_AUTH + '/notes/tracking', { headers: authHeader() });
-    const d   = await res.json();
+    const d=await profileReadJSON('/notes/tracking',token);
+    if(!current())return;
+    if(!Array.isArray(d.notes))throw new Error('追踪列表格式不完整');
+    updateProfileTrackingInsights(d,identity,token);
     const el  = document.getElementById('profile-tracking-list');
     if (!el) return;
     const notes = d.notes || [];
     if (notes.length === 0) {
-      el.innerHTML = '<div style="color:var(--text-muted);font-size:13px">提交你发布的小红书链接，AI 7天后告诉你实际表现如何。</div>';
+      el.textContent = PUBLIC_PRODUCT && !_publicStatus?.tracking_open ? '暂无已有追踪记录。当前仅开放查看本人历史结果，新增追踪暂未开放。' : '暂无追踪记录，可通过原入口提交已发布笔记链接。';
       return;
     }
     const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待填写笔记／上传素材',complete:'已完成',failed:'采集失败'};
@@ -13720,14 +13846,14 @@ async function loadTrackingList() {
           ${n.confidence_label ? `<span>${escapeHtml(n.confidence_label)}置信度</span>` : ''}
           <span>${n.submitted_at?.slice(0,10)||'–'} · ${escapeHtml(n.domain)}</span>
         </div>
-        ${(n.status === 'needs_manual' || n.status === 'failed') ? `
+        ${(!PUBLIC_PRODUCT || _publicStatus?.tracking_open) && (n.status === 'needs_manual' || n.status === 'failed') ? `
           <button ${productActionAttributes('openManualFill',n.id)}
             style="margin-top:8px;padding:4px 12px;border-radius:7px;border:1px solid var(--accent);
                    background:rgba(0,153,255,0.08);color:var(--accent);cursor:pointer;font-size:11px;font-weight:600">
             填写笔记／上传素材互动数据
           </button>` : ''}
       </div>`).join('');
-  } catch(e) { console.error('tracking load error', e); }
+  } catch(e) {if(current()){profileRegionError('profile-tracking-list',e.message);updateProfileTrackingInsights({error:true},identity,token);}}
 }
 
 let _manualFillId = null;
@@ -13822,212 +13948,208 @@ async function refreshCreditBalance() {
 }
 
 /* 加载套餐 + 用量（成长档案调用）*/
-async function loadBillingPlan() {
-  if (!_authToken) return;
-  const billingIdentity = _chatIdentitySnapshot(), billingToken = _authToken;
-  try {
-    const balanceRequest = _billingBalanceRevision + 1;
-    const [plan, usageRes] = await Promise.all([
-      refreshCreditBalance(),
-      fetch(API_AUTH + '/billing/usage?days=30', { headers: authHeader() }),
-    ]);
-    if (!plan || !usageRes.ok) return;
-    const usage = await usageRes.json();
-    if (_authToken !== billingToken || !_chatIdentityMatches(billingIdentity) || balanceRequest !== _billingBalanceRevision) return;
-    // 先缓存，供 quota bars 和 toggleUsageDetail 使用
-    window._lastUsageData = usage;
+let _billingUsageReadSequence = 0;
 
-    // ── 套餐信息 ──
+function billingUsageNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function billingUsageValue(value, digits = 0, suffix = '') {
+  const number = billingUsageNumber(value);
+  return number === null ? '待核' : number.toFixed(digits) + suffix;
+}
+
+function billingUsageTime(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return '待核';
+  const explicit = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : value + 'Z';
+  const stamp = new Date(explicit);
+  return Number.isNaN(stamp.valueOf()) ? '待核' : stamp.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function billingUsageCost(cost, included = false) {
+  if (included) return '计入主流程，勿重复相加';
+  if (!cost || typeof cost !== 'object') return '成本待核';
+  const known = billingUsageNumber(cost.known_calculated_rmb);
+  const manual = billingUsageNumber(cost.manual_cost_rmb);
+  const estimated = billingUsageNumber(cost.estimated_only_rmb);
+  const unknown = billingUsageNumber(cost.unknown_records);
+  const parts = [known === null ? '已知计量成本待核' : '已知计量 ¥' + known.toFixed(4)];
+  if (manual !== null && manual > 0) parts.push('人工登记 ¥' + manual.toFixed(4));
+  if (estimated !== null && estimated > 0) parts.push('仅估算 ¥' + estimated.toFixed(4));
+  if (cost.complete !== true || (unknown !== null && unknown > 0)) {
+    parts.push(unknown === null ? '未完整核实' : '待核 ' + unknown + ' 条');
+  }
+  return parts.join(' · ');
+}
+
+function billingUsageCostValue(cost) {
+  const known = billingUsageNumber(cost?.known_calculated_rmb);
+  const unknown = billingUsageNumber(cost?.unknown_records);
+  return (known === null ? '待核' : '¥' + known.toFixed(4))
+    + (known !== null && (cost?.complete !== true || (unknown !== null && unknown > 0)) ? ' · 待核' : '');
+}
+
+function billingUsageOperationCost(row) {
+  return {known_calculated_rmb:row.known_calculated_rmb, manual_cost_rmb:row.manual_cost_rmb,
+    estimated_only_rmb:row.estimated_only_rmb, complete:row.cost_complete};
+}
+
+function billingUsageStepName(key) {
+  return {local_score:'本地评分', semantic_features:'语义特征', video_audio_understanding:'视频音画理解',
+    ocr_text_merge:'截图文字合并', chat_quality_repair:'对话质量复核', chat_response:'对话回复',
+    delivery_body_shaping:'正文整理', delivery_quality_revision:'交付质量修订',
+    diagnosis_arbitration:'诊断综合评估', diagnosis_content:'诊断内容分析', diagnosis_body_distinctness:'诊断正文去重',
+    diagnosis_fact_repair:'诊断事实复核', diagnosis_growth:'诊断增长分析', diagnosis_plan_body:'诊断修改方案',
+    diagnosis_title_compression:'诊断标题精简', diagnosis_user:'诊断读者分析', diagnosis_visual:'诊断视觉分析',
+    generation_arbitration:'生成综合评估', generation_arbitration_format_repair:'生成格式整理',
+    generation_body_compression:'生成正文精简', generation_body_rhythm:'生成正文节奏', generation_challenger:'生成备选方案',
+    generation_content:'生成内容创作', generation_growth:'生成增长分析', generation_quality_repair:'生成质量复核',
+    generation_user:'生成读者分析', generation_visual:'生成视觉分析', legacy_diagnosis:'历史诊断', title_compression:'标题精简'}[key] || '其他已记录步骤';
+}
+
+function resetBillingUsageState(message = '待核实', collapse = false) {
+  _billingUsageReadSequence += 1;
+  window._lastUsageData = null;
+  window._billingUsageIdentity = null;
+  for (const id of ['profile-plan-info', 'profile-quota-bars', 'profile-usage-by-op', 'profile-usage-recent']) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = message;
+  }
+  for (const id of ['profile-cost-total', 'profile-token-total', 'profile-credits-used-total', 'profile-credits-bal']) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '待核';
+  }
+  if (collapse) {
+    const detail = document.getElementById('profile-usage-detail');
+    const button = document.getElementById('profile-usage-toggle');
+    if (detail) detail.style.display = 'none';
+    if (button) button.textContent = '▼ 查看各功能用量明细';
+  }
+}
+
+function billingUsageStatusCounts(status, sparse = false) {
+  const labels = sparse ? {completed:'完成', failed:'失败', refunded:'已退回', waiting_for_input:'待补充', running:'处理中', status_unknown:'状态待核'}
+    : {completed:'完成', failed:'失败', refunded:'已退回', waiting_for_input:'待补充', running:'处理中', status_unknown:'状态待核'};
+  const present = status && typeof status === 'object' && !Array.isArray(status);
+  return Object.entries(labels).map(([key, label]) => label + ' '
+    + billingUsageValue(present && sparse && !Object.hasOwn(status, key) ? 0 : status?.[key])).join(' · ');
+}
+
+function billingUsageAccountingRows(accounting) {
+  const a = accounting || {};
+  const local = a.local_steps || {};
+  const localLabel = local.status === 'not_recorded' ? '未记录，不能据此判断未执行'
+    : local.status === 'partially_recorded' ? '仅部分步骤有记录，不代表全部执行次数' : '记录状态待核';
+  const rows = [
+    ['业务记录', billingUsageValue(a.business?.recorded, 0, ' 条'), billingUsageStatusCounts(a.business)],
+    ['辅助事件', billingUsageValue(a.auxiliary?.recorded, 0, ' 条'), '计入主流程 ' + billingUsageValue(a.auxiliary?.included_in_parent, 0, ' 条') + '；成本不重复相加；旧记录的逐条父子关联可能未保存'],
+    ['模型用量记录', billingUsageValue(a.models?.usage_records, 0, ' 条'), '计价或用量不完整 ' + billingUsageValue(a.models?.pricing_or_usage_incomplete, 0, ' 条') + ' · 缺供应商请求关联 ' + billingUsageValue(a.models?.without_physical_binding, 0, ' 条')],
+    ['供应商请求预留记录', billingUsageValue(a.physical?.recorded, 0, ' 条'), '已响应 ' + billingUsageValue(a.physical?.responded) + ' · 进行中 ' + billingUsageValue(a.physical?.in_flight) + ' · 结果未知 ' + billingUsageValue(a.physical?.unknown) + ' · 缺用量 ' + billingUsageValue(a.physical?.usage_missing) + ' · 未发出或未确认 ' + billingUsageValue(a.physical?.not_dispatched_or_unconfirmed) + '；实际 HTTP 请求次数 ' + billingUsageValue(a.physical?.actual_http_requests)],
+    ['模型内部步骤记录', '仅统计已有请求预留日志', (Object.entries(a.internal_model_steps?.by_step || {}).map(([key, value]) => billingUsageStepName(key) + '：' + billingUsageValue(value, 0, ' 条记录')).join('；') || '未记录，不能据此判断未执行') + '；缺步骤信息 ' + billingUsageValue(a.internal_model_steps?.without_step_metadata, 0, ' 条')],
+    ['本地内部步骤', localLabel, Object.entries(local.by_step || {}).map(([key, value]) => billingUsageStepName(key) + '：成功 ' + billingUsageValue(value?.succeeded, 0, ' 条') + '，失败 ' + billingUsageValue(value?.failed, 0, ' 条')).join('；') || '没有独立日志，不显示为 0 次'],
+  ];
+  return rows.map(([label, count, detail]) => `<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="font-size:13px;color:var(--text-2)">${escapeHtml(label)}</span><span style="font-size:12px;color:var(--text-muted);text-align:right">${escapeHtml(count)}</span><div style="grid-column:1/-1;font-size:10px;color:var(--text-muted);line-height:1.5">${escapeHtml(detail)}</div></div>`).join('');
+}
+
+async function loadBillingPlan() {
+  resetBillingUsageState(_authToken ? '正在核实套餐与用量…' : '登录后查看套餐与用量', !_authToken);
+  if (!_authToken) return false;
+  const identity = _chatIdentitySnapshot(), token = _authToken, sequence = _billingUsageReadSequence;
+  const current = () => sequence === _billingUsageReadSequence && token === _authToken && _chatIdentityMatches(identity);
+  try {
+    const [plan, response] = await Promise.all([
+      refreshCreditBalance(),
+      fetch(API_AUTH + '/billing/usage?period=calendar_month', {cache:'no-store', headers:{Authorization:'Bearer ' + token}}),
+    ]);
+    if (!current()) return false;
+    if (!plan || !response.ok) throw new Error('billing unavailable');
+    const usage = await response.json();
+    if (!current()) return false;
+    if (!usage || usage.window?.kind !== 'calendar_month' || usage.window?.timezone !== 'UTC'
+        || usage.window?.basis !== 'usage_record_started_at' || !usage.accounting
+        || typeof usage.by_operation !== 'object' || Array.isArray(usage.by_operation) || usage.by_operation === null) {
+      throw new Error('usage contract unavailable');
+    }
+    window._lastUsageData = usage;
+    window._billingUsageIdentity = identity;
+    const e = escapeHtml;
+    const period = usage.subscription_period || {};
+    const periodLabel = {free_calendar_month:'免费自然月权益', stored_subscription_period:'当前已记录权益周期'}[period.kind] || '权益周期待核';
     const planEl = document.getElementById('profile-plan-info');
     if (planEl) {
-      const cols = { free:'var(--text-muted)', pro:'var(--holo-mid)', growth:'#22C55E', pro_plus:'#FFD700', studio:'#00D4FF' };
-      const col  = cols[plan.tier] || 'var(--text)';
-      planEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:16px;font-weight:800;color:${col}">${plan.tier_name}</span>
-          ${plan.price > 0 ? `<span style="font-size:11px;background:rgba(123,97,255,0.1);color:var(--holo-mid);padding:2px 8px;border-radius:10px">¥${plan.price}/30天</span>` : ''}
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-          本周期始于 ${plan.period_start?.slice(0,10)||'–'} · 到期 ${plan.expires_at?.slice(0,10)||'–'}
-        </div>`;
+      const color = {free:'var(--text-muted)', pro:'var(--holo-mid)', growth:'#22C55E', pro_plus:'#FFD700', studio:'#00D4FF'}[plan.tier] || 'var(--text)';
+      planEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px;font-weight:800;color:${color}">${e(plan.tier_name || '套餐待核')}</span>${billingUsageNumber(plan.price) > 0 ? `<span style="font-size:11px;background:rgba(123,97,255,0.1);color:var(--holo-mid);padding:2px 8px;border-radius:10px">套餐标价 ¥${e(String(plan.price))}</span>` : ''}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${e(periodLabel)}：${e(billingUsageTime(period.start))} 至 ${e(billingUsageTime(period.end))}（${period.timezone === 'UTC' ? 'UTC' : '时区待核'}）</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">账号权益到期：${e(billingUsageTime(period.account_expires_at))} UTC</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">用量统计：本月 UTC 自然月，${e(billingUsageTime(usage.window.start))} 至 ${e(billingUsageTime(usage.window.end))}（UTC）<br>截至 ${e(billingUsageTime(usage.window.as_of))} UTC；按用量记录开始时间归属，与权益周期分开。</div>`;
     }
-
-    // ── 套餐周期积分进度 + 功能扣分标准 ──
-    const barsEl = document.getElementById('profile-quota-bars');
-    if (barsEl) {
-      const monthlyTotal = Number(plan.monthly_credits || 0);
-      const monthlyUsed = Number(plan.monthly_credits_used || 0);
-      const monthlyRemaining = Number(plan.monthly_credits_remaining || 0);
-      const walletBalance = Number(plan.wallet_credits_balance ?? plan.credits_balance ?? 0);
-      const totalAvailable = Number(plan.total_available_credits ?? (monthlyRemaining + walletBalance));
-      const pct = monthlyTotal > 0 ? Math.min(100, Math.round(monthlyUsed / monthlyTotal * 100)) : 0;
-      const opMeta = {
-        analyze:      { label: 'AI 深度诊断', accent: '#7B61FF', unit: '次' },
-        generate:     { label: 'AI 爆文生成',  accent: '#FF6FD8', unit: '次' },
-        chat_rewrite: { label: '对话深度重写', accent: '#00D4FF', unit: '轮' },
-        screenshot:   { label: '截图识别',      accent: '#22C55E', unit: '张' },
-      };
-      const opCosts = plan.operation_costs || {
-        analyze: { label:'AI深度诊断', credits:6 },
-        generate: { label:'AI爆文生成', credits:8 },
-        chat_rewrite: { label:'对话深度重写', credits:3 },
-        screenshot: { label:'截图识别', credits:0.5 },
-      };
-      if (PUBLIC_PRODUCT) { opCosts.chat_fast={label:'快速对话',credits:1}; if (!publicImageOpen()) delete opCosts.screenshot; }
-      const opCostHTML = Object.entries(opCosts).map(([key, info]) => {
-        const meta = opMeta[key] || { label: info.label || key, accent: 'var(--holo-mid)', unit: '次' };
-        const credits = Number(info.credits || 0);
-        const remainCount = credits > 0 ? Math.floor(totalAvailable / credits) : 0;
-        return `
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px">
-            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:4px">
-              <span style="font-size:13px;font-weight:700;color:var(--text)">${meta.label}</span>
-              <span style="font-size:13px;font-weight:800;color:${meta.accent}">${credits}积分</span>
-            </div>
-            <div style="font-size:10px;color:var(--text-muted);line-height:1.45">当前可用积分约可使用 ${remainCount}${meta.unit}</div>
-          </div>`;
-      }).join('');
-
-      // ── 免费操作（无配额，显示本月使用次数 + 成本）──
-      const freeMeta = {
-        score:        { label: '快速评分',   cost: '成本监控', desc: '每次诊断自动调用' },
-        diagnose:     { label: '内容诊断',   cost: '成本监控', desc: '完整诊断时调用' },
-        chat_fast:    { label: '对话反馈',   cost: '成本监控', desc: '短消息、确认类对话' },
-        extra_image:  { label: '附加内容图', cost: '成本监控', desc: '多图诊断时每张图' },
-        video_analyze:{ label: '视频解析',   cost: '成本监控', desc: '视频诊断/生成时调用' },
-      };
-      const byOp = window._lastUsageData?.by_operation || {};
-      if (PUBLIC_PRODUCT) { delete freeMeta.chat_fast; delete freeMeta.extra_image; delete freeMeta.video_analyze; }
-      const freeRows = Object.entries(freeMeta).map(([key, meta]) => {
-        const d = byOp[key] || { count: 0, cost_rmb: 0 };
-        return `
-          <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
-                      padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-            <div>
-              <span style="font-size:13px;color:var(--text-2)">${meta.label}</span>
-              <span style="font-size:10px;color:var(--text-muted);margin-left:6px">${meta.desc}</span>
-            </div>
-            <span style="font-size:12px;color:var(--text-muted);text-align:right">${d.count} 次</span>
-            <span style="font-size:12px;color:var(--text-muted);text-align:right;min-width:56px">¥${d.cost_rmb.toFixed(4)}</span>
-          </div>`;
-      }).join('');
-
-      barsEl.innerHTML = `
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
-            <div>
-              <div style="font-size:13px;font-weight:800;color:var(--text)">当前套餐周期积分</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${plan.credit_policy || '优先扣当前套餐周期积分，不足部分扣充值积分。'}</div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:16px;font-weight:900;color:var(--holo-mid)">${monthlyRemaining.toFixed(1)}</div>
-              <div style="font-size:10px;color:var(--text-muted)">剩余 / 共 ${monthlyTotal.toFixed(1)}</div>
-            </div>
-          </div>
-          <div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#7B61FF,#FF6FD8);border-radius:4px;transition:width .6s ease;min-width:${pct>0?'4px':'0'}"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--text-muted)">
-            <span>已用 ${monthlyUsed.toFixed(1)} 积分</span>
-            <span>充值积分 ${walletBalance.toFixed(1)} · 总可用 ${totalAvailable.toFixed(1)}</span>
-          </div>
-        </div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">
-          功能扣分标准
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px">
-          ${opCostHTML}
-        </div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-top:16px;margin-bottom:4px">
-          主流程内部步骤（已包含在诊断或生成积分中）
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">
-          这些步骤不提供独立调用入口，平台仍核算实际API费用。0次表示本月尚未触发（例如：直接使用"爆文生成"不会触发"内容诊断"）。
-        </div>
-        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:4px 14px">
-          <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-            <span style="font-size:10px;color:var(--text-muted);font-weight:600">功能</span>
-            <span style="font-size:10px;color:var(--text-muted);text-align:right">本月次数</span>
-            <span style="font-size:10px;color:var(--text-muted);text-align:right;min-width:56px">平台成本</span>
-          </div>
-          ${freeRows}
-        </div>`;
+    const bars = document.getElementById('profile-quota-bars');
+    const total = billingUsageNumber(plan.monthly_credits), used = billingUsageNumber(plan.monthly_credits_used);
+    const available = billingUsageNumber(plan.total_available_credits);
+    const pct = total !== null && used !== null && total > 0 ? Math.max(0, Math.min(100, used / total * 100)) : null;
+    const costs = plan.operation_costs && typeof plan.operation_costs === 'object' ? {...plan.operation_costs} : {};
+    if (!costs.video_analyze) costs.video_analyze = {label:'视频辅助理解', credits:null};
+    const opMeta = {analyze:['AI 深度诊断','#7B61FF'], generate:['AI 爆文生成','#FF6FD8'], chat_rewrite:['对话深度重写','#00D4FF'], chat_fast:['快速对话','#22C55E'], video_analyze:['视频辅助理解','#00D4FF'], screenshot:['截图识别','#22C55E']};
+    const opCards = Object.entries(costs).map(([key, info]) => {
+      const [label, color] = opMeta[key] || [info.label || key, 'var(--holo-mid)'];
+      const credits = billingUsageNumber(info.credits);
+      const included = Array.isArray(info.included_in) && info.included_in.length > 0;
+      const hint = included && credits === 0 ? '已包含在主操作中，不单独扣分'
+        : credits !== null && credits > 0 && available !== null ? '当前积分约可使用 ' + Math.floor(available / credits) + ' 次；以提交前报价为准' : '以服务端提交前报价为准';
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:700;color:var(--text)">${e(label)}</span><span style="font-size:13px;font-weight:800;color:${color}">${credits === null ? '扣分待核' : e(String(credits)) + '积分'}</span></div><div style="font-size:10px;color:var(--text-muted);line-height:1.45">${e(hint)}</div></div>`;
+    }).join('');
+    if (bars) bars.innerHTML = `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px"><div><div style="font-size:13px;font-weight:800;color:var(--text)">当前套餐周期积分</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${e(plan.credit_policy || '权益扣分规则待核')}</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:900;color:var(--holo-mid)">${billingUsageValue(plan.monthly_credits_remaining, 2)}</div><div style="font-size:10px;color:var(--text-muted)">剩余 / 共 ${billingUsageValue(total, 2)}</div></div></div><div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;width:${pct === null ? 0 : pct}%;background:linear-gradient(90deg,#7B61FF,#FF6FD8);border-radius:4px;transition:width .6s ease"></div></div><div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--text-muted)"><span>已用 ${billingUsageValue(used, 2)} 积分</span><span>钱包积分 ${billingUsageValue(plan.wallet_credits_balance, 2)} · 总可用 ${billingUsageValue(available, 2)}</span></div></div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">功能扣分标准</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px">${opCards}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-top:16px;margin-bottom:4px">用量记录口径与主流程内部步骤</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">业务记录、辅助事件、模型用量、供应商请求分别统计，不能相加当作完成次数。${e(billingUsageCost(usage.accounting.cost))}；按供应商用量与记录价格计算，不是供应商账单实付。完整性仅针对模型用量；外部数据费用未对账，平台总成本待核。</div><div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:4px 14px">${billingUsageAccountingRows(usage.accounting)}</div>`;
+    const summary = {
+      'profile-cost-total':[billingUsageCostValue(usage.accounting.cost), '本月已知计量成本（非实付）'],
+      'profile-token-total':[billingUsageNumber(usage.total_tokens) === null ? '待核' : fmtTokens(usage.total_tokens), '本月已记录 Tokens'],
+      'profile-credits-used-total':[billingUsageValue(usage.total_credits, 2, ' 积分'), '本月记录净扣积分'],
+      'profile-credits-bal':[billingUsageValue(available, 2, ' 积分'), '当前可用积分'],
+    };
+    for (const [id, [value, label]] of Object.entries(summary)) {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = value; if (el.nextElementSibling) el.nextElementSibling.textContent = label; }
     }
+    renderUsageDetail();
+    return true;
+  } catch (error) {
+    if (current()) resetBillingUsageState('套餐或用量暂时读取失败，请重新打开成长档案重试。', false);
+    return false;
+  }
+}
 
-    // ── 总消耗摘要 ──
-    const costEl    = document.getElementById('profile-cost-total');
-    const tokenEl   = document.getElementById('profile-token-total');
-    const credUsEl  = document.getElementById('profile-credits-used-total');
-    const credBalEl = document.getElementById('profile-credits-bal');
-    if (costEl)   costEl.textContent   = '¥' + (usage.total_api_cost  || 0).toFixed(4);
-    if (tokenEl)  tokenEl.textContent  = fmtTokens(usage.total_tokens || 0);
-    if (credUsEl) credUsEl.textContent = (usage.total_credits || 0).toFixed(1) + ' 积分';
-    if (credBalEl) credBalEl.textContent = Number(plan.total_available_credits ?? plan.credits_balance ?? 0).toFixed(1) + ' 积分';
-
-
-
-  } catch(e) { console.error('billing load error', e); }
+function renderUsageDetail() {
+  const usage = window._lastUsageData;
+  if (!usage || !window._billingUsageIdentity || !_chatIdentityMatches(window._billingUsageIdentity)) return;
+  const e = escapeHtml;
+  const byOp = document.getElementById('profile-usage-by-op');
+  if (byOp) {
+    const rows = Object.entries(usage.by_operation).map(([key, row]) => {
+      const auxiliary = row.kind === 'auxiliary_event';
+      const count = row.count_basis === 'usage_records' ? billingUsageValue(row.count, 0, ' 条记录') : '记录口径待核';
+      const cost = billingUsageOperationCost(row);
+      const included = auxiliary && billingUsageNumber(row.count) !== null && row.included_in_parent_records === row.count;
+      return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:7px 10px;background:var(--surf-2);border-radius:8px;font-size:12px"><span style="color:var(--text-2)">${e(row.label || key)}<br><small>${e(auxiliary ? '辅助事件' : row.kind === 'business_operation' ? '业务记录' : '记录类型待核')}</small></span><span style="color:var(--text-muted);text-align:right">${e(count)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? '待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-2);text-align:right">${e(included ? '计入主流程' : billingUsageCostValue(cost))}</span><span style="color:var(--holo-mid);text-align:right">${billingUsageValue(row.credits_used, 2, '积分')}</span><small style="grid-column:1/-1;color:var(--text-muted)">${e(billingUsageStatusCounts(row.status_counts, true) + '；' + billingUsageCost(cost, included) + '；供应商请求记录 ' + billingUsageValue(row.physical_records) + '，模型用量记录 ' + billingUsageValue(row.model_usage_records))}</small></div>`;
+    }).join('');
+    byOp.innerHTML = `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;padding:4px 10px;font-size:10px;color:var(--text-muted);font-weight:700"><span>功能</span><span style="text-align:right">记录</span><span style="text-align:right">已记录 Tokens</span><span style="text-align:right">计量成本（非实付）</span><span style="text-align:right">净扣积分</span></div>${rows || '<div style="color:var(--text-muted);font-size:13px;padding:8px">此统计窗口没有用量记录；不代表内部步骤未执行。</div>'}`;
+  }
+  const recent = document.getElementById('profile-usage-recent');
+  if (recent) recent.innerHTML = Array.isArray(usage.recent_records) ? usage.recent_records.slice(0, 10).map(row => {
+    const source = {subscription:'套餐', mixed:'混合', credits:'钱包', refunded:'已退回', free:'未扣积分'}[row.source] || '来源待核';
+    const split = '周期 ' + billingUsageValue(row.monthly_credits_used, 2) + ' / 钱包 ' + billingUsageValue(row.wallet_credits_used, 2);
+    const debit = row.source === 'refunded' ? '净扣 ' + billingUsageValue(row.credits_used, 2) + ' · 已退 ' + billingUsageValue(row.refunded_credits, 2) : '净扣 ' + billingUsageValue(row.credits_used, 2);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px"><span style="color:var(--text-2);flex:1">${e(row.label || row.operation || '用量记录')}<br><small>${e(debit + ' 积分 · ' + split)}</small>${row.request_id ? `<br><small>任务 ${e(row.request_id)}</small>` : ''}</span><span style="color:var(--text-muted)">${e(billingUsageTime(row.recorded_at))} UTC</span><span style="color:var(--text-muted);font-weight:600;text-align:right">${e(source)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? 'Tokens待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-muted);text-align:right">${e(billingUsageCostValue(row.cost))}</span></div>`;
+  }).join('') || '<div style="color:var(--text-muted);font-size:12px">此统计窗口暂无记录</div>' : '最近记录待核';
 }
 
 function toggleUsageDetail() {
-  const detail = document.getElementById('profile-usage-detail');
-  const btn    = document.getElementById('profile-usage-toggle');
-  const open   = detail.style.display !== 'none';
-  if (open) {
-    detail.style.display = 'none';
-    btn.textContent = '▼ 查看各功能用量明细';
-    return;
-  }
-  detail.style.display = 'block';
-  btn.textContent = '▲ 收起明细';
-  const usage = window._lastUsageData;
-  if (!usage) return;
-
-  // 按操作类型汇总表格
-  const byOpEl = document.getElementById('profile-usage-by-op');
-  if (byOpEl && usage.by_operation) {
-    const rows = Object.entries(usage.by_operation)
-      .sort((a,b) => b[1].cost_rmb - a[1].cost_rmb)
-      .map(([, d]) => `
-        <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;
-                    align-items:center;padding:7px 10px;background:var(--surf-2);border-radius:8px;font-size:12px">
-          <span style="color:var(--text-2)">${d.label}</span>
-          <span style="color:var(--text-muted);text-align:right">${d.count}次</span>
-          <span style="color:var(--text-muted);text-align:right">${fmtTokens(d.total_tokens || 0)}</span>
-          <span style="color:var(--text-2);text-align:right">¥${d.cost_rmb.toFixed(4)}</span>
-          <span style="color:${d.credits_used>0?'var(--holo-mid)':'var(--text-muted)'};text-align:right">
-            ${d.credits_used>0 ? d.credits_used.toFixed(1)+'积分' : (d.is_free?'免费':'–')}
-          </span>
-        </div>`).join('');
-    byOpEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;padding:4px 10px;font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">
-        <span>功能</span><span style="text-align:right">次数</span><span style="text-align:right">Tokens</span><span style="text-align:right">API成本</span><span style="text-align:right">积分</span>
-      </div>
-      ${rows || '<div style="color:var(--text-muted);font-size:13px;padding:8px">本月暂无用量</div>'}`;
-  }
-
-  // 最近10条
-  const recentEl = document.getElementById('profile-usage-recent');
-  if (recentEl && usage.recent_records) {
-    recentEl.innerHTML = usage.recent_records.slice(0,10).map(r => {
-      const dt = r.recorded_at?.slice(0,16).replace('T',' ') || '';
-      const srcMeta = {
-        subscription: { label:'套餐', color:'var(--success)' },
-        mixed: { label:'混合', color:'var(--holo-mid)' },
-        credits: { label:'充值', color:'var(--warning)' },
-        refunded: { label:'退款', color:'var(--text-muted)' },
-        free: { label:'免费', color:'var(--text-muted)' },
-      }[r.source] || { label:r.source || '免费', color:'var(--text-muted)' };
-      return `
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px">
-          <span style="color:var(--text-2);flex:1">${r.label}</span>
-          <span style="color:var(--text-muted)">${dt}</span>
-          <span style="color:${srcMeta.color};font-weight:600;width:34px;text-align:right">${srcMeta.label}</span>
-          <span style="color:var(--text-muted);width:42px;text-align:right">${fmtTokens(r.total_tokens || 0)}</span>
-          <span style="color:var(--text-muted);width:52px;text-align:right">¥${r.cost_rmb?.toFixed(4)||'0'}</span>
-        </div>`;
-    }).join('') || '<div style="color:var(--text-muted);font-size:12px">暂无记录</div>';
-  }
+  const detail = document.getElementById('profile-usage-detail'), button = document.getElementById('profile-usage-toggle');
+  if (!detail || !button) return;
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  button.textContent = open ? '▼ 查看各功能用量明细' : '▲ 收起明细';
+  if (!open) renderUsageDetail();
 }
 
 /* 复用正式订单、原价与同一权益入账链。 */
@@ -14037,7 +14159,7 @@ async function handleTopup(packageId) { return nativeStartCheckout('credit_packa
 /* 积分不足时弹升级引导 */
 function showQuotaExceededModal(detail) {
   const d = normalizeQuotaDetail(detail);
-  if (PUBLIC_PRODUCT) { showToast(`${d.message || '当前账户积分或对应功能权益不足。'} 请在本人账户页核对套餐与赠送余额；${_publicStatus?.payment_open ? '可在套餐页使用已开放的微信支付补充权益。' : '支付暂未开放，可继续查看已保存结果。'}`); return; }
+
   const opName = OP_NAMES[d.operation] || d.operation || '此功能';
   const ok = confirm(
     `⚠️ ${opName} 积分不足\n\n` +

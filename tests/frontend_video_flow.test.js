@@ -16,8 +16,13 @@ function source(name) {
   throw Error('Incomplete function '+name);
 }
 function context(extra={}) {
-  const c = vm.createContext({console, Promise, ...extra});
+  const c = vm.createContext({console, Promise, window:{}, _historyReportSelection:null, _reportSelectionSequence:0,
+    confirmBillingQuote:async()=>({credits:6,quote_version:'test-quote'}),
+    paidSubmissionIdentity:async()=>({requestId:'single-test',quoteVersion:'test-quote'}),
+    preparePaidSubmission:async()=>({requestId:'single-test',quoteVersion:'test-quote'}),
+    finishPaidSubmission(){}, ...extra});
   c.load = (...names) => names.forEach(n=>vm.runInContext(source(n), c));
+  c.load('clearReportSelection','reportGenerationResult');
   return c;
 }
 test('normal combined note submits all original fields once during image persistence', async()=>{

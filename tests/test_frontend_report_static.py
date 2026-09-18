@@ -20,8 +20,11 @@ class FrontendReportStaticTests(unittest.TestCase):
 
     def test_paid_ai_entry_points_send_unique_request_ids(self):
         self.assertIn("function createPaidRequestId", HTML)
-        self.assertIn("createPaidRequestId('generate')", HTML)
-        self.assertIn("createPaidRequestId('analyze')", HTML)
+        self.assertIn("createPaidRequestId(operation)", HTML)
+        self.assertIn("preparePaidSubmission('generate',", HTML)
+        self.assertIn("preparePaidSubmission('analyze',", HTML)
+        self.assertIn("sessionStorage.setItem(storageKey,JSON.stringify(value))", HTML)
+        self.assertIn("if(previous?.requestId && previous?.quoteVersion)", HTML)
         self.assertIn("createPaidRequestId('chat')", HTML)
         self.assertIn("createPaidRequestId('chat-recovered')", HTML)
         self.assertGreaterEqual(HTML.count("'X-Request-ID': paidRequestId"), 4)
@@ -130,7 +133,7 @@ class FrontendReportStaticTests(unittest.TestCase):
         self.assertIn("开始 AI 诊断（多阶段处理）", HTML)
         self.assertIn('id="generateSubmitBtn"', HTML)
         self.assertIn("function _setGenerationSubmitBusy(isBusy)", HTML)
-        self.assertIn("if (_genStreamActive) return;", HTML)
+        self.assertIn("if (_genStreamActive || _billingQuoteBusy) return;", HTML)
         self.assertIn("if (_diagnosisStreamActive) return;", HTML)
         self.assertIn("_setGenerationSubmitBusy(true)", HTML)
         self.assertIn("_setGenerationSubmitBusy(false)", HTML)

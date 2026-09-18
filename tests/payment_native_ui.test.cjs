@@ -8,6 +8,11 @@ const json=x=>({ok:true,json:async()=>x});
 const set=(c,name,value)=>{c.__value=value;vm.runInContext(name+'=__value',c);};
 const value=()=>({user_id:'owner-A',product_kind:'credit_package',product_id:'starter',amount_fen:1200,key:'synthetic-native-original',canary:true,attempted:false});
 (async()=>{const results=[];
+ for (const [ua,expected] of [['Desktop Browser','desktop'],['iPhone Mobile','mobile'],['iPhone MicroMessenger','wechat']]) {
+  const {c}=make();c.navigator={userAgent:ua};assert.equal(c.nativePaymentEnvironment(),expected);
+  const hint=c.nativePaymentHint();assert.match(hint,/Native/);if(expected!=='desktop'){assert.match(hint,/不能在本机直接拉起/);assert.match(hint,/JSAPI 和 H5 支付尚未接入/);}results.push('payment-environment-'+expected+' PASS');
+ }
+
  {const {c,renders}=make(),v=value();v.attempted=true;v.order={...base};set(c,'_nativeCheckout',v);c.fetch=async()=>json({...base,payment_status:'succeeded',entitlement_status:'applied'});await c.nativeRecoverOriginal(false);assert.equal(v.order.payment_status,'succeeded');assert.equal(renders.length,1);results.push('plain-detail-response-readback PASS');}
  {const {c,storage}=make(),v=value();let posts=0;c.fetch=async(url,options)=>{if(options?.method==='POST'){posts++;throw Error('synthetic connection lost');}return json({orders:[]});};await c.nativeSubmitCheckout(v);await c.nativeSubmitCheckout(v);assert.equal(posts,1);assert.equal(JSON.parse(storage.get('noteai-native:owner-A')).attempted,true);results.push('UNKNOWN-double-submit-one-POST PASS');}
  {const {c,renders}=make(),v=value();let release,posts=0;c.fetch=(url,options)=>{if(options?.method==='POST'){posts++;throw Error('must not post');}return new Promise(r=>release=r);};const pending=c.nativeSubmitCheckout(v);c.nativeClearSession();c._authUser={id:'owner-B'};c._authToken='synthetic-token-B';release(json({orders:[]}));await pending;assert.equal(posts,0);assert.equal(renders.length,0);results.push('account-switch-before-dispatch-no-POST PASS');}

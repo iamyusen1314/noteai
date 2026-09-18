@@ -7,6 +7,16 @@ let _nativeTimer = null;
 let _nativeReadBusy = false;
 let _nativeViewGeneration = 0;
 const NATIVE_UUID = /^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/;
+function nativePaymentEnvironment() {
+  const ua=typeof navigator === 'undefined' ? '' : navigator.userAgent || '';
+  if (/MicroMessenger/i.test(ua)) return 'wechat';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ? 'mobile' : 'desktop';
+}
+function nativePaymentHint() {
+  const env=nativePaymentEnvironment();
+  return env==='desktop' ? '当前使用微信 Native 扫码支付，请用手机微信扫描本页面二维码；支付宝暂未开放。' :
+    (env==='wechat' ? '微信内置浏览器' : '手机浏览器')+'当前只能展示 Native 支付二维码，不能在本机直接拉起支付。请在电脑或另一屏幕打开本站并登录同一账户，再用微信扫码；也可由另一台已登录付款微信的手机扫码。不保证长按识别可用，JSAPI 和 H5 支付尚未接入；H5 已申请，待审核通过后更新。';
+}
 function nativeMoney(fen) { return '¥' + (Number(fen) / 100).toFixed(2); }
 function nativeOrderState(order) {
   if (order.refund_status === 'refunded' && order.refunded_fen === order.amount_fen)
@@ -54,17 +64,20 @@ function nativeAllowed(kind,id) {
 }
 function nativeSyncControls() {
   const notice=document.getElementById('public-pricing-notice');
-  if(notice) notice.textContent='免费账户每月12积分。赠送与购买同等权益使用同一正式流程，开放情况见服务状态。'+
+  if(notice) notice.textContent='赠送与购买同等权益使用同一正式流程，开放情况见服务状态。'+
     (_nativeCapability?.canary_checkout ? '当前仅向已授权本人开放原价微信自测订单，公众收款尚未开放。' :
-      _nativeCapability?.ordering_available ? '已验证的微信支付可用；支付宝暂未开放。' : '支付暂未开放，现有账户权益正常使用。');
+      _nativeCapability?.ordering_available ? '微信扫码支付已开放；支付宝暂未开放。' : '支付暂未开放，现有账户权益正常使用。');
   document.querySelectorAll('[data-product-action="handleUpgrade"],[data-product-action="handleTopup"]').forEach(el=>{
     let args=[];try{args=JSON.parse(el.dataset.productArgs||'[]');}catch(_){}
     const kind=el.dataset.productAction==='handleUpgrade'?'subscription':'credit_package';
     const open=nativeAllowed(kind,args[0]);
-    el.setAttribute('aria-disabled',String(!open));el.title=open?'微信支付，付款前显示金额':'此套餐当前未开放购买';
-    if(el.tagName==='BUTTON'){el.disabled=!open;el.textContent=open?'微信购买':'暂不可购买';}
+    el.setAttribute('aria-disabled',String(!open));el.title=open?nativePaymentHint():'此套餐当前未开放购买';
+    if(el.tagName==='BUTTON'){el.disabled=!open;el.textContent=open?(nativePaymentEnvironment()==='desktop'?'微信扫码购买':'查看扫码购买方式'):'暂不可购买';}
   });
   const pricing=document.getElementById('pricing-content');
+  if(pricing && !document.getElementById('native-payment-environment')) {
+    const note=document.createElement('p');note.id='native-payment-environment';note.className='billing-preview';note.textContent=nativePaymentEnvironment()==='desktop' ? '微信 Native：用手机微信扫描电脑上的付款二维码。' : '当前为 Native 扫码支付，手机本机不能直接拉起付款；请另屏展示二维码后扫码。创建订单前可查看完整说明。';pricing.prepend(note);
+  }
   if(pricing && !document.getElementById('native-order-history')) {
     const button=document.createElement('button');button.id='native-order-history';button.type='button';
     button.textContent='查看本人支付订单';button.addEventListener('click',nativeShowOrders);pricing.append(button);
@@ -80,7 +93,7 @@ function nativeClearSession() {
 }
 function nativeDialog(title,body) {
   nativeCloseCheckout();const dialog=document.createElement('dialog');dialog.id='native-checkout-dialog';
-  dialog.style.cssText='box-sizing:border-box;max-width:520px;width:90vw;max-height:85vh;overflow:auto;overflow-wrap:anywhere;border-radius:16px;padding:24px;background:var(--surf-1);color:var(--text);border:1px solid var(--border)';
+  dialog.style.cssText='box-sizing:border-box;margin:auto;max-width:520px;width:90vw;max-height:85dvh;overflow:auto;overflow-wrap:anywhere;border-radius:16px;padding:24px;background:var(--surf-1);color:var(--text);border:1px solid var(--border)';
   const heading=document.createElement('h2');heading.textContent=title;
   const close=document.createElement('button');close.className='btn btn-ghost';close.textContent='关闭';close.addEventListener('click',nativeCloseCheckout);
   body.querySelectorAll('button').forEach(button=>{button.className='btn btn-primary';button.type='button';});
@@ -123,6 +136,7 @@ async function nativeStartCheckout(kind,id) {
       key:canary?.idempotency_key||('native-'+crypto.randomUUID()),canary:!!canary,attempted:false};
     const body=document.createElement('div');const text=document.createElement('p');
     text.textContent=(product.name||id)+' · '+nativeMoney(fen)+' · 微信支付'+(kind==='subscription'?'，一次性30天，不自动续费':'');body.append(text);
+    const environment=document.createElement('p');environment.id='native-checkout-environment';environment.textContent=nativePaymentHint();body.append(environment);
     if(canary){const note=document.createElement('p');note.textContent=canary.notice;body.append(note);}
     const confirm=document.createElement('button');confirm.textContent='确认创建 '+nativeMoney(fen)+' 支付二维码';
     confirm.addEventListener('click',()=>nativeSubmitCheckout(value));body.append(confirm);nativeDialog('核对订单',body);
@@ -170,9 +184,12 @@ function nativeRenderOrder(value) {
     const canvas=document.createElement('canvas');canvas.width=canvas.height=(count+8)*cell;canvas.style.cssText='max-width:100%;height:auto';canvas.setAttribute('aria-label','微信支付二维码，金额'+nativeMoney(order.amount_fen));
     const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.fillStyle='#000';
     for(let y=0;y<count;y++)for(let x=0;x<count;x++)if(qr.isDark(y,x))context.fillRect((x+4)*cell,(y+4)*cell,cell,cell);
-    body.append(canvas);const tip=document.createElement('p');tip.textContent='请用微信扫码，并在手机上再次核对商户和金额。';body.append(tip);
+    body.append(canvas);const tip=document.createElement('p');tip.textContent=nativePaymentHint()+' 请在付款微信上再次核对商户和金额。';body.append(tip);
   }else if(!state.terminal && order.payment_status!=='succeeded'){
     const note=document.createElement('p');note.textContent='原二维码不在当前会话中；请勿重复下单，联系客服核实原订单。';body.append(note);
+  }
+  if(order.payment_status==='succeeded' && order.entitlement_status==='applied' && typeof returnFromPricing==='function') {
+    const back=document.createElement('button');back.textContent='权益已到账，返回原任务';back.addEventListener('click',()=>{nativeCloseCheckout();returnFromPricing();});body.append(back);
   }
   const read=document.createElement('button');read.textContent='刷新原订单状态';read.addEventListener('click',()=>nativeRecoverOriginal(true));body.append(read);
   nativeDialog(value.canary?'本人授权的微信支付自测':'微信支付订单',body);
