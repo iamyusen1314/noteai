@@ -24,6 +24,8 @@ SOURCE_REF = 'tools/item33_trends_capture_teardown.py'
 PROOF_REF = 'deploy/production/evidence/production-item33-trends-capture-teardown.json'
 SCHEMA = 'noteai.item33.capture_teardown.v1'
 EXECUTION_SCHEMA = 'noteai.item33.capture_teardown_execution.v1'
+RECOVERY_SCHEMA = 'noteai.item33.pre_cycle_recovery.v1'
+RECOVERY_EXECUTION_SCHEMA = 'noteai.item33.pre_cycle_recovery_execution.v1'
 FACT_KEYS = {'schema','observed_at','bucket_key','database_role','catalog','catalog_sha256',
              'server_enforced_read_only','xid_assigned','production_database_writes','provider_calls','transaction_rolled_back'}
 
@@ -119,11 +121,95 @@ def render_pre_cycle_cleanup_sql(*, config: dict, installed_catalog: dict, opera
     return _render_removal_sql(config, installed_catalog['catalog'], operator_role, pre_cycle=True)
 
 
-def _render_removal_sql(config, before, operator_role, *, pre_cycle=False):
+def _own_capture_objects(value, config):
+    """Identify only our exact objects; unrelated invalid ACL/FK facts stay raw."""
+    require(isinstance(value, dict) and set(value) == catalog.CATALOG_KEYS)
+    targets = catalog.targets_from(config)
+    expected_body = hashlib.sha256(dml.function_body(config['activation_id'], targets, mutation_counts=True).encode()).hexdigest()
+    require(expected_body == config['installed_definition_sha256'])
+    expected_function = dict(schema='public', name=dml.FUNCTION, arguments='', language='plpgsql',
+        security_definer=False, config=['search_path=pg_catalog'], body_sha256=expected_body, kind='f', result='trigger')
+    require([row for row in value['functions'] if row['name'] == dml.FUNCTION] == [expected_function])
+    require(next(row for row in value['functions'] if row['name'] == dml.FUNCTION)['security_definer'] is False)
+    rows = [row for row in value['triggers'] if row['function'] == dml.FUNCTION or row['name'] in (dml.TRIGGER, dml.TRIGGER+'_truncate')]
+    require(len(rows) == 2 * len(targets))
+    seen = set()
+    for row in rows:
+        require(row['table'] in targets and type(row['type']) is int and row['type'] in (29, 32))
+        name = dml.TRIGGER + ('_truncate' if row['type'] == 32 else '')
+        target = targets[row['table']]
+        expected = dict(table=row['table'], name=name, enabled='O', internal=False, type=row['type'],
+            function_schema='public', function=dml.FUNCTION, function_builtin=False, security_definer=False,
+            arguments_hex=('{' + ','.join(target.key_columns) + '}\0' + target.group + '\0').encode().hex(),
+            constraint_type=None, definition_sha256=row['definition_sha256'], when_expression=None, column_filter='',
+            transition_old=None, transition_new=None, deferrable=False, initially_deferred=False)
+        dml._sha(row['definition_sha256'])
+        require(row == expected and (row['table'], name) not in seen)
+        require(all(row[key] is False for key in ('internal','function_builtin','security_definer','deferrable','initially_deferred')))
+        seen.add((row['table'], name))
+    require(seen == {(table, dml.TRIGGER+suffix) for table in targets for suffix in ('','_truncate')})
+
+
+def validate_install_execution(execution, *, config, installation_sql_sha256, operator_role):
+    """Original COMMITTED installation, never a fabricated successful config."""
+    runtime.validate_config(config); dml._sha(installation_sql_sha256)
+    require(isinstance(execution, dict) and set(execution) == {'schema','status','activation_identity_sha256',
+        'operator_role','sql_sha256','started_at','committed_at','control_plane_ddl_count','outcome_unknown_count'})
+    require(execution['schema'] == 'noteai.item33.capture_install_execution.v1' and execution['status'] == 'COMMITTED'
+        and execution['activation_identity_sha256'] == config['activation_identity_sha256']
+        and execution['operator_role'] == operator_role and execution['sql_sha256'] == installation_sql_sha256)
+    require(type(execution['control_plane_ddl_count']) is int and execution['control_plane_ddl_count'] == 2*len(config['coverage'])+1
+        and type(execution['outcome_unknown_count']) is int and execution['outcome_unknown_count'] == 0)
+    require(_clock(execution['started_at']) <= _clock(execution['committed_at']))
+
+
+def render_failed_install_cleanup_sql(*, config, installed_catalog, install_execution,
+                                     installation_sql_sha256, operator_role):
+    """Recovery only; accepts real invalid non-capture facts without editing them.
+
+    The caller proves the original suspended unit and absence of workers and
+    collectors. Observations may be later than the original activation day;
+    SQL still locks and checks that original bucket and all active work.
+    """
+    validate_install_execution(install_execution, config=config,
+        installation_sql_sha256=installation_sql_sha256, operator_role=operator_role)
+    _facts(installed_catalog, installed_catalog['bucket_key'])
+    require(_clock(install_execution['committed_at']) <= _clock(installed_catalog['observed_at']))
+    return _render_removal_sql(config, installed_catalog['catalog'], operator_role, pre_cycle=True, own_objects_only=True)
+
+
+def build_failed_install_recovery(*, config, before, after, install_execution, installation_sql_sha256,
+                                 execution, source_sha256):
+    """Actual removal evidence only; never a cycle seal or readiness credit."""
+    require(isinstance(execution, dict) and set(execution) == {'schema','status','activation_identity_sha256',
+        'operator_role','sql_sha256','started_at','committed_at','control_plane_ddl_count','outcome_unknown_count'})
+    script = render_failed_install_cleanup_sql(config=config, installed_catalog=before, install_execution=install_execution,
+        installation_sql_sha256=installation_sql_sha256, operator_role=execution['operator_role'])
+    require(execution['schema'] == RECOVERY_EXECUTION_SCHEMA and execution['status'] == 'COMMITTED'
+        and execution['activation_identity_sha256'] == config['activation_identity_sha256']
+        and execution['sql_sha256'] == hashlib.sha256(script.encode()).hexdigest()
+        and type(execution['control_plane_ddl_count']) is int and execution['control_plane_ddl_count'] == 2*len(config['coverage'])+1
+        and type(execution['outcome_unknown_count']) is int and execution['outcome_unknown_count'] == 0)
+    _facts(after, after['bucket_key'])
+    require(_clock(before['observed_at']) <= _clock(execution['started_at']) <= _clock(execution['committed_at']) <= _clock(after['observed_at']))
+    require(after['catalog'] == _without_capture(before['catalog']))
+    dml._sha(source_sha256)
+    return dict(schema=RECOVERY_SCHEMA, state='PRE_CYCLE_CAPTURE_REMOVED', readiness_credit=False,
+        activation_identity_sha256=config['activation_identity_sha256'], original_bucket_key=config['bucket_key'],
+        configuration_sha256=hashlib.sha256(encoded(config)).hexdigest(), installation_sql_sha256=installation_sql_sha256,
+        install_execution=copy.deepcopy(install_execution), execution=copy.deepcopy(execution),
+        before=copy.deepcopy(before), after=copy.deepcopy(after), source_ref=SOURCE_REF, source_sha256=source_sha256)
+
+
+def _render_removal_sql(config, before, operator_role, *, pre_cycle=False, own_objects_only=False):
     operator_role = dml._identifier(operator_role)
     require(operator_role != dml.WRITER_ROLE)
     targets = catalog.targets_from(config)
-    catalog.validate_catalog(before, config=config)
+    if own_objects_only:
+        require(pre_cycle is True)
+        _own_capture_objects(before, config)
+    else:
+        catalog.validate_catalog(before, config=config)
     body = dml.function_body(config['activation_id'], targets, mutation_counts=True)
     function = next(item for item in before['functions'] if item['schema'] == 'public' and item['name'] == dml.FUNCTION)
     triggers = [item for item in before['triggers'] if item['function_schema'] == 'public' and item['function'] == dml.FUNCTION]

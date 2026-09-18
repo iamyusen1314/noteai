@@ -35,7 +35,8 @@ SOURCE_ROOT = ACTION_ROOT / 'source'
 CAPTURE_ROOT = ACTION_ROOT / 'capture'
 OUTER_ROOT = ACTION_ROOT / 'outer'
 EVIDENCE_PREFIX = 'deploy/production/evidence/'
-PHASES = ('prepare-install','finalize-config','rehearse','prepare-teardown','finalize-teardown','normal')
+RECOVERY_PHASES = ('prepare-recovery','finalize-recovery')
+PHASES = ('prepare-install','finalize-config','rehearse','prepare-teardown','finalize-teardown','normal',*RECOVERY_PHASES)
 BASIS = 'Owner Sep13 formal 37-item delivery; Sep15 and later after real Item32 continue Item33; no new resources'
 PREDECESSOR_ROOTS = tuple(Path('/var/lib/noteai') / name for name in (
     'item32-readonly','item32-xhs-diagnostic','item32-readonly-successor','item32-v5-successor-20260916',
@@ -251,6 +252,35 @@ class HostPorts:
             'formal_managed_container_count':host['formal_container_count'],'rollback_artifact_retained':True,
             'rollback_artifact_sha256':sha(rollback)}
     def action_raw(self,phase):return actions._regular(ACTION_ROOT/(phase+'.applied.json'),mode=0o600)
+    def recovery_host(self):
+        """Original suspended host, including failed collector records, read only."""
+        import subprocess
+        actions._assert_host_identity();host_reader._image(actions._run)
+        expected={'FragmentPath':str(actions.UNIT_PATH),'DropInPaths':'','LoadState':'loaded',
+            'ActiveState':'inactive','SubState':'dead','UnitFileState':'disabled','MainPID':'0','ControlPID':'0'}
+        labels={*host_reader.TASK_LABELS,*(path.name for path in PREDECESSOR_ROOTS),
+            'item33-trends-inspection','item33-trends-capture'}
+        def stopped():
+            unit=host_reader._unit(actions._run)
+            require(all(unit.get(key)==value for key,value in expected.items()),'item33_recovery_unit')
+            require(sha(actions._regular(actions.UNIT_PATH,mode=0o644))==controller.SUSPENDED_UNIT_SHA256,'item33_recovery_unit')
+            host_reader._session_digest(actions._run)
+            require(not host_reader._inventory(actions._run,label='com.noteai.service=noteai-xhs-trends')
+                and not host_reader._inventory(actions._run,name='noteai-xhs-trends'),'item33_recovery_worker')
+            require(all(not host_reader._inventory(actions._run,label='com.noteai.task='+name) for name in labels)
+                and not host_reader._inventory(actions._run,name='noteai-item33-trends-capture'),'item33_recovery_container')
+            # pgrep returns only PIDs; no process arguments or raw logs are read.
+            processes=subprocess.run(['pgrep','-f',r'(^|/|[[:space:]])(market_timing_worker\.py|item33_trends_runtime_capture\.py)([[:space:]]|$)'],
+                capture_output=True,check=False,timeout=10,env={'PATH':'/usr/bin:/bin'})
+            require(processes.returncode==1 and processes.stdout==b'','item33_recovery_process')
+            return unit
+        first=stopped();require(stopped()==first,'item33_recovery_host_changed')
+        return dict(schema='noteai.item33.pre_cycle_recovery_host.v1',host='noteai-api-f',observed_at=self.current().isoformat(),
+            activation_identity_sha256=self.plan['activation_identity_sha256'],unit_sha256=controller.SUSPENDED_UNIT_SHA256,
+            session_env_sha256=host_reader.SESSION_SHA256,unit_active='inactive',unit_sub='dead',unit_enabled='disabled',
+            worker_count=0,collector_count=0,task_container_count=0,inspection_container_count=0,
+            capture_service_failure_present=os.path.lexists(CAPTURE_ROOT/'service-failure.json'),
+            observation_provider_calls=0,observation_database_connections=0,observation_mutations=0,secret_values_recorded=False)
 
 
 class Outer:
@@ -259,7 +289,8 @@ class Outer:
     def _window(self,phase):
         now=self.current();start=clock(self.plan['starts_at']);cutoff=clock(self.plan['dispatch_before']);end=clock(self.plan['ends_at'])
         require(clock(self.plan['recorded_at'])<=now,'item33_clock')
-        if phase in ('prepare-install','finalize-config'):require(start-timedelta(minutes=15)<=now<cutoff,'item33_prepare_window')
+        if phase in RECOVERY_PHASES:require(start-timedelta(minutes=15)<=now,'item33_recovery_not_installed')
+        elif phase in ('prepare-install','finalize-config'):require(start-timedelta(minutes=15)<=now<cutoff,'item33_prepare_window')
         elif phase=='rehearse':require(start<=now<cutoff and now+timedelta(minutes=35)<=end,'item33_dispatch_window')
         elif phase=='normal':require(start<=now<end,'item33_normal_window')
         else:require(start<=now and now.date().isoformat()==self.plan['bucket_key'],'item33_cleanup_bucket')
@@ -270,6 +301,8 @@ class Outer:
         value=self.store.value('finalize-config.facts.json');self.ports.configure(value['config']);return value['config']
     def run(self,phase):
         require(phase in PHASES,'item33_phase');self._window(phase)
+        if phase not in RECOVERY_PHASES:
+            require(not any(self.store.exists(name+'.started.json') for name in RECOVERY_PHASES),'item33_recovery_no_resume')
         require(not self.store.exists(phase+'.started.json'),'item33_once_readback_only')
         marker={'phase':phase,'state':'STARTED_UNKNOWN','started_at':self.current().isoformat(),
             'activation_identity_sha256':self.plan['activation_identity_sha256'],'source_sha256':sha(containers.canonical(self.sources))}
@@ -292,6 +325,47 @@ class Outer:
         require(value['sql_sha256']==sha(value['sql'].encode()),'item33_install_sql')
         self.store.json('prepare-install.facts.json',value);self.store.put('install.sql',value['sql'].encode())
         return {'state':value['state'],'sql_sha256':value['sql_sha256'],'control_plane_ddl_count':value['control_plane_ddl_count']}
+    def _recovery_inputs(self):
+        self._prior('prepare-install');prepared=self.store.value('prepare-install.facts.json')
+        require(sha(self.store.read('install.sql'))==prepared['sql_sha256'],'item33_recovery_install_sql')
+        config=runtime_cli.initial_config(self.plan)
+        receipt=containers.safe_json(self.ports.read_capture('operator-install-execution.json'))
+        teardown.validate_install_execution(receipt,config=config,installation_sql_sha256=prepared['sql_sha256'],operator_role=self.plan['operator_role'])
+        require(clock(self.plan['starts_at'])-timedelta(minutes=15)<=clock(receipt['started_at'])
+            <=clock(receipt['committed_at'])<clock(self.plan['dispatch_before']) and clock(receipt['committed_at'])<=self.current(),
+            'item33_recovery_install_time')
+        return config,receipt,prepared
+    def prepare_recovery(self):
+        config,receipt,prepared=self._recovery_inputs()
+        # Only a failed/unknown configuration or rehearsal; no terminal bypass.
+        failed=False
+        for phase in ('finalize-config','rehearse'):
+            if self.store.exists(phase+'.started.json'):
+                failed=failed or not self.store.exists(phase+'.result.json') or self.store.value(phase+'.result.json')['state']=='UNKNOWN_READBACK_ONLY'
+        require(failed and not (self.store.exists('rehearse.result.json') and self.store.value('rehearse.result.json')['state']=='COMPLETED'),
+            'item33_recovery_not_pre_cycle_failure')
+        host=self.ports.recovery_host()
+        before=self.ports.readonly('catalog',phase='recovery-before')
+        host_after=self.ports.recovery_host()
+        script=teardown.render_failed_install_cleanup_sql(config=config,installed_catalog=before,install_execution=receipt,
+            installation_sql_sha256=prepared['sql_sha256'],operator_role=self.plan['operator_role'])
+        self.store.json('recovery-before.host.json',host);self.store.json('recovery-before.host-after.json',host_after)
+        self.store.json('recovery-before.catalog.json',before);self.store.json('recovery-install-execution.json',receipt)
+        self.store.put('pre-cycle-recovery.sql',script.encode())
+        return dict(state='PRE_CYCLE_RECOVERY_SQL_PREPARED_NOT_EXECUTED',readiness_credit=False,sql_sha256=sha(script.encode()),
+            control_plane_ddl_count=2*len(config['coverage'])+1,original_bucket_key=config['bucket_key'])
+    def finalize_recovery(self):
+        self._prior('prepare-recovery');config,receipt,prepared=self._recovery_inputs()
+        require(receipt==self.store.value('recovery-install-execution.json'),'item33_recovery_install_changed')
+        before=self.store.value('recovery-before.catalog.json')
+        execution=containers.safe_json(self.ports.read_capture('operator-pre-cycle-recovery-execution.json'))
+        require(execution.get('sql_sha256')==sha(self.store.read('pre-cycle-recovery.sql')),'item33_recovery_execution')
+        host=self.ports.recovery_host();after=self.ports.readonly('catalog',phase='recovery-after');host_after=self.ports.recovery_host()
+        proof=teardown.build_failed_install_recovery(config=config,before=before,after=after,install_execution=receipt,
+            installation_sql_sha256=prepared['sql_sha256'],execution=execution,source_sha256=self.sources[teardown.SOURCE_REF])
+        self.store.json('recovery-after.host.json',host);self.store.json('recovery-after.host-after.json',host_after)
+        self.store.json('recovery-after.catalog.json',after);self.store.json('pre-cycle-recovery.json',proof)
+        return dict(state=proof['state'],readiness_credit=False,recovery_sha256=sha(encoded(proof)))
     def finalize_config(self):
         self._prior('prepare-install');prepared=self.store.value('prepare-install.facts.json')
         receipt=containers.safe_json(self.ports.read_capture('operator-install-execution.json'))

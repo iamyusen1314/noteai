@@ -51,7 +51,62 @@ def proof_fixture():
     return proof,raw,journal
 
 
+def install_receipt(config, before):
+    at=datetime.fromisoformat(before['observed_at'])-timedelta(seconds=2)
+    return dict(schema='noteai.item33.capture_install_execution.v1',status='COMMITTED',
+        activation_identity_sha256=config['activation_identity_sha256'],operator_role='postgres',sql_sha256='d'*64,
+        started_at=at.isoformat(),committed_at=(at+timedelta(seconds=1)).isoformat(),
+        control_plane_ddl_count=2*len(config['coverage'])+1,outcome_unknown_count=0)
+
+
+def failed_cleanup(config,before):
+    return teardown.render_failed_install_cleanup_sql(config=config,installed_catalog=before,
+        install_execution=install_receipt(config,before),installation_sql_sha256='d'*64,operator_role='postgres')
+
+
 class TeardownPureTests(unittest.TestCase):
+    def test_failed_install_recovery_keeps_invalid_facts_and_allows_later_utc(self):
+        config=runtime_fx.config_fixture();before=catalog_fx.catalog_fixture(config)['before']
+        config['bucket_key']=(datetime.fromisoformat(before['observed_at'])-timedelta(days=1)).date().isoformat()
+        config['catalog_before_sha256']='0'*64
+        before['catalog']['privileges'][0]['delete']=True
+        before['catalog_sha256']=catalog.digest(before['catalog']);original=copy.deepcopy(before)
+        with self.assertRaises(ValueError):catalog.validate_catalog(before['catalog'],config=config)
+        script=failed_cleanup(config,before)
+        self.assertIn(config['bucket_key'],script);self.assertEqual(before,original)
+        after=copy.deepcopy(before);after['catalog']=teardown._without_capture(before['catalog'])
+        after['catalog_sha256']=catalog.digest(after['catalog'])
+        start=datetime.fromisoformat(before['observed_at'])+timedelta(seconds=1)
+        after['observed_at']=(start+timedelta(seconds=2)).isoformat()
+        execution=install_receipt(config,before)|dict(schema=teardown.RECOVERY_EXECUTION_SCHEMA,
+            sql_sha256=runtime.sha(script.encode()),started_at=start.isoformat(),committed_at=(start+timedelta(seconds=1)).isoformat())
+        proof=teardown.build_failed_install_recovery(config=config,before=before,after=after,install_execution=install_receipt(config,before),
+            installation_sql_sha256='d'*64,execution=execution,source_sha256='a'*64)
+        self.assertEqual(proof['state'],'PRE_CYCLE_CAPTURE_REMOVED');self.assertIs(proof['readiness_credit'],False)
+        self.assertNotEqual(proof['original_bucket_key'],proof['after']['bucket_key'])
+        after['catalog']['privileges'][0]['delete']=False;after['catalog_sha256']=catalog.digest(after['catalog'])
+        with self.assertRaises(ValueError):teardown.build_failed_install_recovery(config=config,before=before,after=after,
+            install_execution=install_receipt(config,before),installation_sql_sha256='d'*64,execution=execution,source_sha256='a'*64)
+
+    def test_failed_install_never_accepts_wrong_own_objects_or_unknown_install(self):
+        config=runtime_fx.config_fixture();before=catalog_fx.catalog_fixture(config)['before']
+        for defect in ('activation','function_security','arguments','when','column','transition','duplicate','missing','bool'):
+            value=copy.deepcopy(before)
+            if defect=='activation':value['catalog']['functions'][0]['body_sha256']='f'*64
+            elif defect=='function_security':value['catalog']['functions'][0]['security_definer']=True
+            elif defect=='arguments':value['catalog']['triggers'][0]['arguments_hex']=''
+            elif defect=='when':value['catalog']['triggers'][0]['when_expression']='f'*64
+            elif defect=='column':value['catalog']['triggers'][0]['column_filter']='1'
+            elif defect=='transition':value['catalog']['triggers'][0]['transition_old']='old'
+            elif defect=='duplicate':value['catalog']['triggers'].append(copy.deepcopy(value['catalog']['triggers'][0]))
+            elif defect=='missing':value['catalog']['triggers'].pop()
+            else:value['catalog']['triggers'][0]['internal']=0
+            value['catalog_sha256']=catalog.digest(value['catalog'])
+            with self.subTest(defect=defect),self.assertRaises(ValueError):failed_cleanup(config,value)
+        receipt=install_receipt(config,before);receipt['status']='UNKNOWN'
+        with self.assertRaises(ValueError):teardown.render_failed_install_cleanup_sql(config=config,installed_catalog=before,
+            install_execution=receipt,installation_sql_sha256='d'*64,operator_role='postgres')
+
     def test_only_exact_activation_objects_drop_inside_guarded_transaction(self):
         seal,journal=sealed()
         script=teardown.render_teardown_sql(seal=seal,journal=journal,operator_role='postgres')
@@ -172,4 +227,37 @@ class TeardownPostgresTests(unittest.TestCase):
             installed_catalog=self.seal['catalog_proof']['after'],operator_role='postgres')
         with self.assertRaises(psycopg.Error):owner.execute(script)
         owner.rollback()
+        self.assertEqual(len([x for x in self.fx.read()['catalog']['triggers'] if x['function']==dml.FUNCTION]),2*len(self.seal['coverage']))
+
+    def _recover_invalid(self,sql):
+        self.fx.fx.owner.execute(sql);before=self.fx.read()
+        with self.assertRaises(ValueError):catalog.validate_catalog(before['catalog'],config=self.fx.config)
+        self.fx.fx.owner.execute(failed_cleanup(self.fx.config,before))
+        after=self.fx.read()
+        self.assertEqual(after['catalog'],teardown._without_capture(before['catalog']))
+
+    def test_failed_install_with_actual_unexpected_acl_drops_only_own_objects(self):
+        self._recover_invalid('GRANT DELETE ON hot_keywords TO noteai_xhs_trends')
+
+    def test_failed_install_with_actual_unexpected_fk_drops_only_own_objects(self):
+        self._recover_invalid('ALTER TABLE xhs_trends_provider_attempts ADD CONSTRAINT item33_fixture_cascade '
+            'FOREIGN KEY (run_id) REFERENCES xhs_trends_runs(id) ON UPDATE CASCADE')
+
+    def test_failed_install_cleanup_rejects_global_admission_and_keeps_all_objects(self):
+        import psycopg,uuid
+        owner=self.fx.fx.owner;before=self.fx.read();script=failed_cleanup(self.fx.config,before)
+        owner.execute("INSERT INTO xhs_trends_runs(id,bucket_key,status,lease_token_hash,lease_fence,lease_expires_at,started_at,completed_at) "
+            "VALUES(%s,'2000-01-01','failed',%s,1,now()+interval '1 minute',now(),now())",(self.fx.fx.run_id,'f'*64))
+        owner.execute("INSERT INTO xhs_trends_provider_attempts(id,run_id,ordinal,endpoint,status,admitted_at,admitted_date) "
+            "VALUES(%s,%s,1,'search_notes','admitted','2000-01-01','2000-01-01')",(str(uuid.uuid4()),self.fx.fx.run_id))
+        with self.assertRaises(psycopg.Error):owner.execute(script)
+        owner.rollback()
+        self.assertEqual(self.fx.read()['catalog'],before['catalog'])
+
+    def test_failed_install_cleanup_changed_trigger_fails_without_partial_drop(self):
+        import psycopg
+        before=self.fx.read();script=failed_cleanup(self.fx.config,before)
+        self.fx.fx.owner.execute('ALTER TABLE hot_keywords DISABLE TRIGGER '+dml.TRIGGER)
+        with self.assertRaises(psycopg.Error):self.fx.fx.owner.execute(script)
+        self.fx.fx.owner.rollback()
         self.assertEqual(len([x for x in self.fx.read()['catalog']['triggers'] if x['function']==dml.FUNCTION]),2*len(self.seal['coverage']))

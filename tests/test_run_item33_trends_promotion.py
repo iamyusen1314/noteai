@@ -33,6 +33,7 @@ class Ports:
         def call(auth):self.calls.append(name);return {'action':name}
         return call
     def resource_inventory(self):return {'bound_original_host_verified':True,'synthetic_sha256':'a'*64}
+    def recovery_host(self):self.calls.append('recovery_host');return {'synthetic_stopped':True}
     def managed_runtime(self,database,host):return {'synthetic_runtime':True}
     def configure(self,value):self.calls.append('configure')
     def readonly(self,mode,**kwargs):
@@ -178,6 +179,90 @@ class OuterTests(unittest.TestCase):
         self.store.json('prepare-install.result.json',{'state':'UNKNOWN_READBACK_ONLY'})
         with self.assertRaises(outer.OuterError):self.runner.run('finalize-config')
         self.assertEqual(self.ports.calls,[])
+
+    def recovery_inputs(self):
+        from tests.test_item33_trends_capture_catalog import catalog_fixture
+        self.runner.run('prepare-install')
+        receipt={'schema':'noteai.item33.capture_install_execution.v1','status':'COMMITTED',
+            'activation_identity_sha256':self.plan['activation_identity_sha256'],'operator_role':self.plan['operator_role'],
+            'sql_sha256':self.store.value('prepare-install.facts.json')['sql_sha256'],'control_plane_ddl_count':29,
+            'outcome_unknown_count':0,'started_at':self.now.isoformat(),'committed_at':self.now.isoformat()}
+        self.ports.captured['operator-install-execution.json']=outer.encoded(receipt)
+        self.store.json('finalize-config.started.json',{'state':'STARTED_UNKNOWN'})
+        self.store.json('finalize-config.result.json',{'state':'UNKNOWN_READBACK_ONLY'})
+        self.now+=timedelta(days=1)
+        config=outer.runtime_cli.initial_config(self.plan)
+        # The existing synthetic builder verifies its construction-day clock;
+        # this fixture then supplies a later actual observation of the same objects.
+        config['bucket_key']=datetime.now(timezone.utc).date().isoformat()
+        before=catalog_fixture(config)['before']
+        before.update(observed_at=self.now.isoformat(),bucket_key=self.now.date().isoformat())
+        before['catalog']['privileges'][0]['delete']=True
+        before['catalog_sha256']=outer.teardown.catalog.digest(before['catalog'])
+        after=copy.deepcopy(before);after['catalog']=outer.teardown._without_capture(before['catalog'])
+        after['catalog_sha256']=outer.teardown.catalog.digest(after['catalog'])
+        after['observed_at']=(self.now+timedelta(seconds=3)).isoformat()
+        old=self.ports.readonly
+        def readonly(mode,**kwargs):
+            if mode!='catalog':return old(mode,**kwargs)
+            self.ports.calls.append((mode,kwargs['phase']))
+            return before if kwargs['phase']=='recovery-before' else after
+        self.ports.readonly=readonly
+        return before,after
+
+    def test_cross_day_failed_install_recovery_has_no_config_retry_cycle_or_credit(self):
+        before,after=self.recovery_inputs()
+        result=self.runner.run('prepare-recovery')
+        self.assertEqual(result['result']['state'],'PRE_CYCLE_RECOVERY_SQL_PREPARED_NOT_EXECUTED')
+        self.assertFalse(result['result']['readiness_credit'])
+        self.assertEqual(self.store.value('recovery-before.catalog.json'),before)
+        receipt={'schema':outer.teardown.RECOVERY_EXECUTION_SCHEMA,'status':'COMMITTED',
+            'activation_identity_sha256':self.plan['activation_identity_sha256'],'operator_role':self.plan['operator_role'],
+            'sql_sha256':outer.sha(self.store.read('pre-cycle-recovery.sql')),'control_plane_ddl_count':29,'outcome_unknown_count':0,
+            'started_at':(self.now+timedelta(seconds=1)).isoformat(),'committed_at':(self.now+timedelta(seconds=2)).isoformat()}
+        self.ports.captured['operator-pre-cycle-recovery-execution.json']=outer.encoded(receipt)
+        self.now+=timedelta(seconds=4)
+        result=self.runner.run('finalize-recovery')
+        self.assertEqual(result['result']['state'],'PRE_CYCLE_CAPTURE_REMOVED');self.assertFalse(result['result']['readiness_credit'])
+        self.assertEqual(self.store.value('pre-cycle-recovery.json')['after'],after)
+        self.assertEqual([call for call in self.ports.calls if isinstance(call,tuple) and call[0]=='catalog'],
+            [('catalog','recovery-before'),('catalog','recovery-after')])
+        self.assertNotIn('start_ready',self.ports.calls);self.assertNotIn(('cycle','cycle'),self.ports.calls)
+        self.assertNotIn(('finalize-config','finalize-config'),self.ports.calls)
+        with self.assertRaisesRegex(outer.OuterError,'once_readback_only'):self.runner.run('prepare-recovery')
+        self.now=outer.clock(self.plan['starts_at'])
+        with self.assertRaisesRegex(outer.OuterError,'recovery_no_resume'):self.runner.run('rehearse')
+        self.assertFalse(self.store.exists('terminal-candidate.json'))
+
+    def test_recovery_requires_actual_stop_and_no_completed_cycle(self):
+        self.recovery_inputs()
+        def unsafe():raise outer.OuterError('live_worker')
+        self.ports.recovery_host=unsafe
+        with self.assertRaises(outer.OuterError):self.runner.run('prepare-recovery')
+        self.assertNotIn(('catalog','recovery-before'),self.ports.calls);self.assertFalse(self.store.exists('pre-cycle-recovery.sql'))
+        self.assertEqual(self.store.value('prepare-recovery.result.json')['state'],'UNKNOWN_READBACK_ONLY')
+
+    def test_recovery_does_not_bypass_successful_rehearsal_teardown(self):
+        self.recovery_inputs();self.mark('rehearse')
+        with self.assertRaises(outer.OuterError):self.runner.run('prepare-recovery')
+        self.assertNotIn('recovery_host',self.ports.calls)
+
+    def test_recovery_host_accepts_retained_failure_but_rejects_live_pid_or_capture(self):
+        import subprocess
+        ports=outer.HostPorts.__new__(outer.HostPorts);ports.plan=self.plan;ports.current=lambda:self.now
+        unit={'FragmentPath':str(outer.actions.UNIT_PATH),'DropInPaths':'','LoadState':'loaded',
+            'ActiveState':'inactive','SubState':'dead','UnitFileState':'disabled','MainPID':'0','ControlPID':'0'}
+        with mock.patch.object(outer.actions,'_assert_host_identity'),mock.patch.object(outer.host_reader,'_image'),mock.patch.object(
+            outer.host_reader,'_unit',return_value=unit),mock.patch.object(outer.actions,'_regular',return_value=b'fixed'),mock.patch.object(
+            outer.controller,'SUSPENDED_UNIT_SHA256',outer.sha(b'fixed')),mock.patch.object(outer.host_reader,'_session_digest'),mock.patch.object(
+            outer.host_reader,'_inventory',return_value=[]) as inventory,mock.patch.object(subprocess,'run',return_value=SimpleNamespace(returncode=1,stdout=b'')) as processes,mock.patch.object(
+            outer.os.path,'lexists',return_value=True):
+            result=ports.recovery_host();self.assertTrue(result['capture_service_failure_present']);self.assertEqual(result['worker_count'],0)
+            processes.return_value=SimpleNamespace(returncode=0,stdout=b'123\n')
+            with self.assertRaisesRegex(outer.OuterError,'recovery_process'):ports.recovery_host()
+            processes.return_value=SimpleNamespace(returncode=1,stdout=b'')
+            inventory.side_effect=lambda run,**kw:['a'*64] if kw.get('label')=='com.noteai.task=item33-trends-capture' else []
+            with self.assertRaisesRegex(outer.OuterError,'recovery_container'):ports.recovery_host()
 
 
 @unittest.skipUnless(os.geteuid()==0,'isolated root metadata fixture')

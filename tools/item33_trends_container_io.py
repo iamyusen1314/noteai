@@ -31,6 +31,7 @@ COLLECTOR_NAME='noteai-item33-trends-capture'
 MODES={'preflight','catalog','cycle','prepare-install','finalize-config','prepare-teardown','finalize-teardown'}
 PHASES={'preflight':'preflight','catalog':'catalog','prepare-install':'prepare-install','finalize-config':'finalize-config',
     'prepare-teardown':'prepare-teardown','finalize-teardown':'finalize-teardown',
+    'recovery-before':'catalog','recovery-after':'catalog',
     'cycle':'cycle','promoted':'cycle','rollback':'cycle','final':'cycle','normal':'cycle'}
 MAX_OUTPUT=4*1024*1024
 INSPECT='{"id":{{json .Id}},"name":{{json .Name}},"image":{{json .Image}},"running":{{json .State.Running}},"exit_code":{{json .State.ExitCode}},"oom":{{json .State.OOMKilled}},"task":{{json (index .Config.Labels "com.noteai.task")}},"activation":{{json (index .Config.Labels "com.noteai.activation")}}}'

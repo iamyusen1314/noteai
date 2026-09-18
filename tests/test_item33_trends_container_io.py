@@ -125,6 +125,46 @@ class ContainerIOTests(unittest.TestCase):
         self.assertEqual(len(self.commands('create')), 1)
         self.assertEqual((self.records / 'preflight-started.json').read_bytes(), original)
 
+    def test_two_recovery_catalog_phases_preserve_old_failure_and_each_run_once(self):
+        self.fake.exit_code = 1
+        self.fake.output = b'{"state":"READONLY_INSPECTION_FAILED","stage":"catalog","error_code":"item33_readonly_failed"}'
+        with self.assertRaises(io.ContainerIOError):self.helper.run_readonly('catalog')
+        original = {path.name: path.read_bytes() for path in self.records.iterdir()}
+        self.fake.exit_code = 0
+        self.fake.output = b'{"state":"ACTUAL_CATALOG_READONLY","provider_calls":0}'
+        for phase in ('recovery-before', 'recovery-after'):
+            self.assertEqual(self.helper.run_readonly('catalog', phase=phase,
+                bucket_key='2026-09-19')['state'], 'ACTUAL_CATALOG_READONLY')
+            with self.assertRaises(FileExistsError):self.helper.run_readonly('catalog', phase=phase)
+            self.assertEqual(json.loads((self.records / (phase+'-result.json')).read_bytes())['phase'], phase)
+        self.assertEqual(len(self.commands('create')), 3)
+        self.assertTrue(all(options['timeout'] == 90 for _, options in self.commands('start')))
+        self.assertTrue(all('--wait-cycle' not in argv for argv, _ in self.commands('create')))
+        for name, raw in original.items():self.assertEqual((self.records / name).read_bytes(), raw)
+
+    def test_recovery_phases_cannot_select_business_or_other_readonly_modes(self):
+        for phase in ('recovery-before', 'recovery-after'):
+            for mode in ('cycle', 'prepare-install', 'finalize-config', 'preflight'):
+                with self.subTest(phase=phase, mode=mode), self.assertRaisesRegex(io.ContainerIOError,'probe_mode'):
+                    self.helper.run_readonly(mode, phase=phase)
+        self.assertFalse(self.fake.commands)
+
+    def test_catalog_recovery_observes_later_day_without_normal_catalog_validation(self):
+        import item33_trends_runtime_cli as cli
+        from tests.test_item33_trends_runtime_cli import plan_fixture
+        plan = plan_fixture()
+        actual_time = datetime(2026, 9, 20, 1, tzinfo=timezone.utc)
+        observed = {'schema': 'noteai.item33.capture_catalog_facts.v1',
+                    'bucket_key': actual_time.date().isoformat(), 'observed_at': actual_time.isoformat(),
+                    'catalog': {'unmatched_definition': True}, 'provider_calls': 0}
+        with patch.object(cli.catalog, 'read_catalog_facts', return_value=observed) as read, \
+                patch.object(cli.catalog, 'validate_catalog', side_effect=AssertionError('normal validation not recovery')):
+            result = cli.inspect('catalog', connection=object(), plan=plan,
+                bucket_key=plan['bucket_key'], current=lambda:actual_time)
+        self.assertEqual(result, observed)
+        self.assertEqual(read.call_args.kwargs['config']['bucket_key'], '2026-09-19')
+        self.assertEqual(read.call_args.kwargs['now'], actual_time)
+
     def test_unknown_create_preserves_start_claim_and_never_replays(self):
         self.fake.create_unknown = True
         with self.assertRaisesRegex(io.ContainerIOError, 'command_unknown') as error:
