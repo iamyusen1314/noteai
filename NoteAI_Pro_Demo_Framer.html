@@ -2506,6 +2506,10 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   #page-profile .profile-grid>.profile-card{grid-column:1/-1!important;min-width:0}
   #page-profile .profile-card h3{flex-wrap:wrap}
   #page-profile .profile-info{min-width:0;max-width:100%}
+  #profile-nickname-display,#profile-since-display{min-width:0;overflow-wrap:anywhere}
+  #profile-edit-btn{flex-shrink:0}
+  #profile-nickname-edit{flex-wrap:wrap}
+  #profile-nickname-input{min-width:0;max-width:100%}
   #page-profile .memory-item{overflow-wrap:anywhere}
   #profile-usage-by-op{overflow-x:auto;overscroll-behavior-x:contain}
   #profile-usage-by-op>div{min-width:560px}
@@ -3786,7 +3790,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 	    <div class="report-grid">
       <!-- Radar -->
       <div class="report-card">
-        <h2><i data-lucide="hexagon"></i>五维雷达评分</h2>
+        <h2><i data-lucide="hexagon"></i>维度雷达评分</h2>
         <div id="radarChart"></div>
       </div>
       <!-- Dimension bars -->
@@ -8755,6 +8759,39 @@ async function hydrateReportLifecycleWithNoteChain(d) {
   }
 }
 
+function reportTrackingPresentation(savedNoteId) {
+  const manual=_publicStatus?.tracking_manual_open===true;
+  const automatic=_publicStatus?.tracking_open===true;
+  const readable=_publicStatus?.tracking_read_open===true || automatic;
+  const closed=_publicStatus?.tracking_manual_open===false && _publicStatus?.tracking_open===false && _publicStatus?.tracking_read_open===false;
+  const guidance=manual?'可从笔记库关联本人已发布笔记并手工记录；未经平台核验'+(_publicStatus?.tracking_open===false?'；自动采集当前未开放':'')
+    :automatic?'可从笔记库关联本人已发布笔记；处理情况以实际记录为准'
+    :readable?(_publicStatus?.tracking_manual_open===false?'当前仅查看已有记录；新增手工记录暂未开放':'已开放历史记录读取；手工记录开放状态待核实')
+    :closed?'当前表现记录入口未开放':'表现记录开放状态待核实';
+  const snapshot=_reportTrackingSnapshot;
+  const current=snapshot && snapshot.revision===_trackingReadRevision && profileIdentityCurrent(snapshot.identity,snapshot.token);
+  const rows=current && savedNoteId?snapshot.notes.filter(row=>row.source_note_id===savedNoteId && (!row.user_id || String(row.user_id)===snapshot.identity.ownerId)):[];
+  let value=!savedNoteId?'需关联已保存笔记':current?'当前版本尚无关联记录':'关联状态待读取';
+  let note=guidance,tone='var(--text-muted)';
+  if(rows.length>1){
+    value=`已关联 ${rows.length} 条表现记录`;
+    note='请到成长档案逐条查看；手工录入数据未经平台核验';
+    tone='var(--accent)';
+  } else if(rows.length===1){
+    const row=rows[0],isManual=row.evidence_source==='manual' || row.manual_filled===true || row.manual_filled===1;
+    const score=typeof row.actual_ces==='number' && Number.isFinite(row.actual_ces)?row.actual_ces:null;
+    const status={pending:'等待采集',checking_24h:'已记录采集结果',checking_7d:'采集中',needs_manual:'待录入互动数据',complete:'已完成',failed:'处理失败'}[row.status] || '状态待核实';
+    value=score!==null?`${isManual?'手工表现评分':'已记录表现评分'} ${formatScoreValue(score)}分`:status;
+    note=isManual?'用户录入，未经平台核验；录入时间不等同发布后第7天'
+      :row.evidence_source==='crawler'?'历史采集记录；按已保存来源与状态展示':'来源未记录，不能据此确认平台表现';
+    tone='var(--accent)';
+  }
+  return {
+    tracking:{title:'发布后表现',value,note,tone},
+    learning:{title:'Hermes 学习',value:'以实际记忆为准',note:'成长档案可查看已保存记忆；表现记录不代表已完成学习',tone:'var(--holo-mid)'},
+  };
+}
+
 function renderReportLifecycle(d) {
   const card = document.getElementById('reportLifecycleCard');
   const scoreEl = document.getElementById('report-loop-score');
@@ -8771,6 +8808,7 @@ function renderReportLifecycle(d) {
   const bestPlanScore = mergedScores.length ? Math.max(...mergedScores) : null;
   const bestPlanIdx = [0,1,2].find(i => (planScores[i] ?? titleScores[i]) === bestPlanScore);
   const savedNoteId = d._saved_note_id || d.saved_note_id || null;
+  const trackingPresentation = reportTrackingPresentation(savedNoteId);
   const scoreText = displayScore !== null ? `${formatScoreValue(displayScore)}分` : '待评分';
   const versionGroup = d.note_version_group || d.noteVersionGroup || null;
   const versions = Array.isArray(versionGroup?.versions) ? versionGroup.versions : [];
@@ -8805,18 +8843,8 @@ function renderReportLifecycle(d) {
       note: versionNote,
       tone: latestScore !== null ? scoreColor(latestScore) : (savedNoteId ? 'var(--success)' : 'var(--warning)'),
     },
-    {
-      title: '真实表现',
-      value: '发布后绑定链接',
-      note: '24h / 7d 追踪会校准预测',
-      tone: 'var(--accent)',
-    },
-    {
-      title: 'Hermes 学习',
-      value: '等待表现回流',
-      note: '沉淀偏好、有效动作和失败模式',
-      tone: 'var(--holo-mid)',
-    },
+    trackingPresentation.tracking,
+    trackingPresentation.learning,
   ];
   stepsEl.innerHTML = steps.map(step => `
     <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 12px;min-width:0">
@@ -11379,11 +11407,12 @@ function initLibraryPage() {
 }
 
 async function loadTrackingIndex() {
-  const context=trackingRequestContext(),sequence=++_trackingIndexReadSequence;
+  const context=trackingRequestContext(),sequence=++_trackingIndexReadSequence,revision=_trackingReadRevision,snapshotSequence=++_reportTrackingSnapshotSequence;
+  _reportTrackingSnapshot=null;
   if(!context || !profileTrackingAvailable()){_trackingBySourceNote=new Map();return;}
   try {
     const data=await profileReadJSON('/notes/tracking',context.token);
-    if(!context.current() || sequence!==_trackingIndexReadSequence)return;
+    if(!context.current() || sequence!==_trackingIndexReadSequence || revision!==_trackingReadRevision)return;
     if(!Array.isArray(data.notes))throw new Error('追踪列表格式不完整');
     const next=new Map();
     data.notes.forEach(row=>{
@@ -11393,8 +11422,9 @@ async function loadTrackingIndex() {
       if(!old || String(row.submitted_at || '')>String(old.submitted_at || ''))next.set(key,row);
     });
     _trackingBySourceNote=next;
+    rememberReportTrackingSnapshot(data.notes,context.identity,context.token,revision,snapshotSequence);
   } catch(error) {
-    if(context.current() && sequence===_trackingIndexReadSequence){_trackingBySourceNote=new Map();showToast('追踪状态暂未读取，请稍后重新查看');}
+    if(context.current() && sequence===_trackingIndexReadSequence && revision===_trackingReadRevision){_trackingBySourceNote=new Map();showToast('追踪状态暂未读取，请稍后重新查看');}
   }
 }
 
@@ -14042,7 +14072,12 @@ let _trackingUnknownActions=new Set();
 let _trackingFillDrafts=new Map();
 let _trackingDetailSequence=new Map();
 let _trackingReadRevision=0;
-function invalidateTrackingReads() {++_trackingReadRevision;++_profileTrackingReadSequence;++_trackingIndexReadSequence;}
+let _reportTrackingSnapshot=null;
+let _reportTrackingSnapshotSequence=0;
+function invalidateTrackingReads() {++_trackingReadRevision;++_profileTrackingReadSequence;++_trackingIndexReadSequence;++_reportTrackingSnapshotSequence;_reportTrackingSnapshot=null;}
+function rememberReportTrackingSnapshot(notes,identity,token,revision=_trackingReadRevision,sequence=_reportTrackingSnapshotSequence) {
+  if(sequence===_reportTrackingSnapshotSequence && revision===_trackingReadRevision && profileIdentityCurrent(identity,token) && Array.isArray(notes))_reportTrackingSnapshot={identity,token,revision,notes:notes.map(row=>({...row}))};
+}
 const TRACKING_METRIC_MAX=2147483647;
 function trackingValidId(id) {return typeof id==='string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id);}
 function trackingCanonicalURL(value) {
@@ -14203,7 +14238,8 @@ function renderTrackingRows(notes) {
   }).join('');
 }
 async function loadTrackingList() {
-  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_profileTrackingReadSequence,revision=++_trackingReadRevision;
+  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_profileTrackingReadSequence,revision=++_trackingReadRevision,snapshotSequence=++_reportTrackingSnapshotSequence;
+  _reportTrackingSnapshot=null;
   const current=()=>profileIdentityCurrent(identity,token)&&sequence===_profileTrackingReadSequence&&revision===_trackingReadRevision;
   if(!profileTrackingAvailable()){profileText('profile-tracking-list','外部笔记跟踪暂未开放；已保存笔记可以继续查看和优化。');updateProfileTrackingInsights({unavailable:true},identity,token);return;}
   if(!token)return;
@@ -14211,7 +14247,7 @@ async function loadTrackingList() {
   try {
     const data=await profileReadJSON('/notes/tracking',token);if(!current())return;
     if(!Array.isArray(data.notes))throw new Error('追踪列表格式不完整');
-    updateProfileTrackingInsights(data,identity,token);renderTrackingRows(data.notes);
+    rememberReportTrackingSnapshot(data.notes,identity,token,revision,snapshotSequence);updateProfileTrackingInsights(data,identity,token);renderTrackingRows(data.notes);
   } catch(error){if(current()){profileRegionError('profile-tracking-list',error.message);updateProfileTrackingInsights({error:true},identity,token);}}
 }
 
