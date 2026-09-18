@@ -297,6 +297,8 @@ body {
   #nav-user [data-nav-page="pricing"] { flex:1 1 auto; }
   .nav-mobile-label { display:inline; }
   .nav-mobile-open #nav-guest .btn-ghost { display:inline-flex; }
+  #track-url-modal { overflow-y:auto; padding:12px 0; }
+  #track-url-modal > div { max-height:calc(100dvh - 24px); overflow-y:auto; padding:24px 20px !important; }
 }
 
 /* ═══════════════════════════════════════════════
@@ -4222,8 +4224,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
         </h3>
         <div id="profile-tracking-list">
           <div style="color:var(--text-muted);font-size:13px">
-            发布小红书笔记后提交链接，7天后 AI 采集真实点赞/收藏数，
-            计算实际表现并与预测分对比，帮你发现什么在你的账号上真正有效。
+            关联本人已保存的笔记与发布链接，记录点赞、收藏、评论等实际录入值，
+            再与预测评分对照。手工记录未经平台核验；自动采集当前未开放。
           </div>
         </div>
       </div>
@@ -4734,14 +4736,15 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 </div>
 
 <!-- 追踪URL弹窗 -->
-<div id="track-url-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+<div id="track-url-modal" role="dialog" aria-modal="true" aria-labelledby="track-url-title" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
   <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:28px 32px;width:440px;max-width:92vw;position:relative">
     <button onclick="closeTrackUrlModal()" style="position:absolute;top:16px;right:18px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted)">✕</button>
-    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">追踪我发布的小红书笔记</div>
-    <div style="font-size:12px;color:var(--text-2);margin-bottom:18px">提交链接后，系统将在 24h 和 7 天后采集真实互动数据，与你的预测分对比。</div>
+    <div id="track-url-title" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">追踪我发布的小红书笔记</div>
+    <div id="track-url-description" style="font-size:12px;color:var(--text-2);margin-bottom:18px">关联本人笔记后手工录入互动数据，未经平台核验。自动采集当前未开放。</div>
+    <div id="track-url-source" style="font-size:12px;color:var(--text-2);margin-bottom:12px;overflow-wrap:anywhere"></div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div>
-        <label style="font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">小红书笔记链接 *</label>
+        <label for="track-url-input" style="font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">小红书笔记链接 *</label>
         <input id="track-url-input" type="url" placeholder="https://www.xiaohongshu.com/explore/..."
           style="width:100%;background:var(--surf-2);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;
                  color:var(--text);font-size:13px;outline:none"
@@ -4763,7 +4766,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
             onfocus="this.style.borderColor='rgba(0,153,255,0.5)'" onblur="this.style.borderColor='var(--border)'">
         </div>
       </div>
-      <div id="track-url-error" style="color:var(--error);font-size:12px;display:none"></div>
+      <div id="track-url-error" role="status" style="color:var(--error);font-size:12px;display:none"></div>
+      <button id="track-url-verify" class="btn btn-ghost btn-sm" style="display:none" onclick="verifyTrackingSubmission()">核对已提交记录</button>
       <button onclick="submitTrackUrl()" id="track-url-btn"
         style="padding:11px;border-radius:12px;border:none;cursor:pointer;font-size:14px;font-weight:700;
                background:linear-gradient(135deg,#0099FF,#0070CC);color:#fff;margin-top:4px">
@@ -5196,7 +5200,7 @@ document.addEventListener('click', event => {
   const actions = {openAuthModal, handleUpgrade, handleTopup, removeGenImage, showPage, returnFromPricing, openProfileReport,
     goToDiagnose, chatRemoveAttachImage, chatRemoveAttachFile, startChatFromNote,
     trackNoteFromLibrary, openNoteDetail, copyNoteToClipboard, _removeSsImage,
-    removeDiagImage, openManualFill,
+    removeDiagImage, openManualFill, openTrackingDetail, deleteTrackingRecord,
     copyText: text => navigator.clipboard.writeText(String(text)).then(()=>showToast('已复制，请保留AI内容标识'))};
   const action = actions[target.dataset.productAction];
   if (!Object.prototype.hasOwnProperty.call(actions, target.dataset.productAction)) return;
@@ -5317,7 +5321,7 @@ async function loadProductDisclosure() {
 
 async function refreshPublicStatus() {
   if (!PUBLIC_PRODUCT) return;
-  const wasTrackingReadable=profileTrackingAvailable();
+  const wasTrackingReadable=JSON.stringify([profileTrackingAvailable(),trackingManualAvailable(),trackingDeleteAvailable()]);
   try {
     const response = await fetch(API_BASE + '/public/status', { cache: 'no-store' });
     if (!response.ok) throw new Error('status unavailable');
@@ -5328,11 +5332,11 @@ async function refreshPublicStatus() {
   status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。各功能扣分以套餐页和提交前服务端报价为准。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + (_publicStatus?.tracking_open ? '外部笔记跟踪已开放。' : _publicStatus?.tracking_read_open ? '可查看本人已有追踪结果；新增追踪暂未开放。' : '外部笔记跟踪暂未开放。') + '付款状态见套餐页与服务说明中的当前查询结果。';
+    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + (trackingManualAvailable() ? '可关联本人笔记并手工记录互动数据，未经平台核验；自动采集暂未开放。' : _publicStatus?.tracking_open ? '外部笔记跟踪已开放。' : _publicStatus?.tracking_read_open ? '可查看本人已有追踪结果；新增追踪暂未开放。' : '外部笔记跟踪暂未开放。') + '付款状态见套餐页与服务说明中的当前查询结果。';
   syncPublicAuthAvailability();
   syncProductUI();
   refreshNativeCapabilities();
-  if(wasTrackingReadable!==profileTrackingAvailable() && _authToken && document.querySelector('.page.active')?.id==='page-profile')loadTrackingList();
+  if(wasTrackingReadable!==JSON.stringify([profileTrackingAvailable(),trackingManualAvailable(),trackingDeleteAvailable()]) && _authToken && document.querySelector('.page.active')?.id==='page-profile')loadTrackingList();
 }
 function syncPublicAuthAvailability() {
   if (!PUBLIC_PRODUCT) return;
@@ -9943,6 +9947,7 @@ function chatClearUserState() {
   closeChangePwd();
   renderBillingReceipt(null);
   clearProfileUserState();
+  clearTrackingUserState();
   resetBillingUsageState('待更新',true);
   clearReportSelection();
   _reportHistorySequence += 1;
@@ -11363,6 +11368,10 @@ let _libraryOffset = 0;
 let _libraryTotal  = 0;
 let _noteDetailData = null;
 let _trackingBySourceNote = new Map();
+let _trackingIndexReadSequence = 0;
+let _libraryReadSequence = 0;
+let _librarySelectableNotes = new Map();
+let _libraryIdentity = null;
 
 function initLibraryPage() {
   _libraryOffset = 0;
@@ -11370,23 +11379,22 @@ function initLibraryPage() {
 }
 
 async function loadTrackingIndex() {
-  if (PUBLIC_PRODUCT) return;
-  _trackingBySourceNote = new Map();
-  if (!_authToken) return;
+  const context=trackingRequestContext(),sequence=++_trackingIndexReadSequence;
+  if(!context || !profileTrackingAvailable()){_trackingBySourceNote=new Map();return;}
   try {
-    const res = await fetch(API_AUTH + '/notes/tracking', { headers: authHeader() });
-    if (!res.ok) return;
-    const d = await res.json();
-    (d.notes || []).forEach(t => {
-      [t.source_note_id, t.source_root_note_id].filter(Boolean).forEach(key => {
-        const existing = _trackingBySourceNote.get(key);
-        if (!existing || String(t.submitted_at || '') > String(existing.submitted_at || '')) {
-          _trackingBySourceNote.set(key, t);
-        }
-      });
+    const data=await profileReadJSON('/notes/tracking',context.token);
+    if(!context.current() || sequence!==_trackingIndexReadSequence)return;
+    if(!Array.isArray(data.notes))throw new Error('追踪列表格式不完整');
+    const next=new Map();
+    data.notes.forEach(row=>{
+      const key=row.source_note_id;
+      if(!key)return;
+      const old=next.get(key);
+      if(!old || String(row.submitted_at || '')>String(old.submitted_at || ''))next.set(key,row);
     });
-  } catch(e) {
-    console.warn('tracking index load failed', e);
+    _trackingBySourceNote=next;
+  } catch(error) {
+    if(context.current() && sequence===_trackingIndexReadSequence){_trackingBySourceNote=new Map();showToast('追踪状态暂未读取，请稍后重新查看');}
   }
 }
 
@@ -11785,32 +11793,36 @@ async function deleteDiagnosis(diagId) {
 }
 
 async function loadLibrary(reset = false) {
-  if (!_authToken) {
-    document.getElementById('library-login-prompt').style.display = 'block';
-    document.getElementById('library-grid').style.display  = 'none';
-    document.getElementById('library-empty').style.display = 'none';
+  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_libraryReadSequence;
+  const current=()=>profileIdentityCurrent(identity,token)&&sequence===_libraryReadSequence;
+  if (!token || !identity.ownerId) {
+    document.getElementById('library-login-prompt').style.display='block';
+    document.getElementById('library-grid').style.display='none';
+    document.getElementById('library-empty').style.display='none';
     return;
   }
-  document.getElementById('library-login-prompt').style.display = 'none';
+  document.getElementById('library-login-prompt').style.display='none';
+  const offset=reset?0:_libraryOffset;
   try {
-    const res = await fetch(`${API_AUTH}/notes?grouped=true&limit=12&offset=${_libraryOffset}`, { headers: authHeader() });
-    const data = await res.json();
+    const data=await profileReadJSON(`/notes?grouped=true&limit=12&offset=${offset}`,token);
+    if(!current())return;
+    if(!Array.isArray(data.groups)||!Number.isInteger(data.total))throw new Error('笔记列表格式不完整');
     await loadTrackingIndex();
-    _libraryTotal = data.total;
-    const grid = document.getElementById('library-grid');
-    if (reset) grid.innerHTML = '';
-    if (data.total === 0 && reset) {
-      document.getElementById('library-empty').style.display = 'block';
-      grid.style.display = 'none';
-      return;
+    if(!current())return;
+    _libraryTotal=data.total;_libraryIdentity={identity,token};
+    const grid=document.getElementById('library-grid');
+    if(reset){grid.innerHTML='';_librarySelectableNotes=new Map();}
+    if(data.total===0&&reset){
+      document.getElementById('library-empty').style.display='block';grid.style.display='none';return;
     }
-    document.getElementById('library-empty').style.display = 'none';
-    grid.style.display = 'flex';
-    (data.groups || []).forEach(group => grid.appendChild(buildGroupCard(group)));
-    _libraryOffset += (data.groups || []).length;
-    document.getElementById('library-load-more').style.display =
-      _libraryOffset < _libraryTotal ? 'block' : 'none';
-  } catch(e) { showToast('加载笔记库失败'); }
+    document.getElementById('library-empty').style.display='none';grid.style.display='flex';
+    data.groups.forEach(group=>{
+      (group.versions || [group.latest]).filter(Boolean).forEach(note=>_librarySelectableNotes.set(note.id,note));
+      grid.appendChild(buildGroupCard(group));
+    });
+    _libraryOffset=offset+data.groups.length;
+    document.getElementById('library-load-more').style.display=_libraryOffset<_libraryTotal?'block':'none';
+  } catch(error) {if(current())showToast(error.message || '加载笔记库失败');}
 }
 
 function _scoreColor(s) {
@@ -11819,7 +11831,7 @@ function _scoreColor(s) {
 }
 
 function trackingStatusMeta(t) {
-  const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待填写笔记／上传素材',complete:'已完成',failed:'采集失败'};
+  const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待录入互动数据',complete:'已完成',failed:'采集失败'};
   const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)',failed:'var(--error)'};
   return {
     label: statusMap[t?.status] || t?.status || '未追踪',
@@ -11833,10 +11845,10 @@ function renderLibraryTrackingBadge(noteId) {
     return `<div style="font-size:10px;color:var(--text-muted);border:1px dashed var(--border);border-radius:8px;padding:5px 7px;margin-bottom:8px">未绑定追踪 · 发布后可绑定真实表现</div>`;
   }
   const meta = trackingStatusMeta(t);
-  const actual = t.actual_ces != null ? ` · 实际 ${Number(t.actual_ces).toFixed(1)}` : '';
+  const actual = typeof t.actual_ces==='number' && Number.isFinite(t.actual_ces) ? ` · 表现评分 ${t.actual_ces.toFixed(1)}` : '';
   const confidence = t.confidence_label ? ` · ${escapeHtml(t.confidence_label)}置信` : '';
   return `<div style="font-size:10px;color:${meta.color};background:rgba(0,153,255,0.06);border:1px solid rgba(0,153,255,0.18);border-radius:8px;padding:5px 7px;margin-bottom:8px">
-    📡 ${escapeHtml(meta.label)}${actual}${confidence}
+    📡 ${escapeHtml(meta.label)}${actual}${confidence}${t.evidence_source==='manual'?' · 用户录入，未经平台核验':''}
   </div>`;
 }
 
@@ -11888,13 +11900,13 @@ function renderLibraryLifecycleStrip(group) {
   const sourceLabel = librarySourceLabel(first.source);
   const trackingValue = tracking ? meta.label : '未绑定';
   const learningValue = tracking && (tracking.actual_ces != null || tracking.status === 'complete')
-    ? '已可校准'
-    : '等待真实表现';
+    ? (tracking.evidence_source==='manual'?'手工记录已完成':'已有表现记录')
+    : '等待表现记录';
   const items = [
     { label:'起点', value:sourceLabel, note:first.created_at ? first.created_at.slice(0,10) : '已归档', color:'var(--text-2)' },
     { label:'版本', value:`v${latest.version || versions.length || 1}`, note:delta !== null ? `分数${delta >= 0 ? '+' : ''}${delta}` : `${versions.length || 1} 个版本`, color:_scoreColor(latest.score) },
-    { label:'追踪', value:trackingValue, note:tracking ? '真实链接已接入' : '发布后绑定链接', color:tracking ? meta.color : 'var(--text-muted)' },
-    { label:'回流', value:learningValue, note:'写入成长档案与 Hermes 记忆', color:tracking && tracking.training_eligible ? 'var(--success)' : 'var(--holo-mid)' },
+    { label:'追踪', value:trackingValue, note:tracking ? (tracking.evidence_source==='manual'?'用户录入，未经平台核验':'按记录来源展示') : '发布后绑定链接', color:tracking ? meta.color : 'var(--text-muted)' },
+    { label:'回流', value:learningValue, note:'完成情况以实际记录为准', color:tracking && tracking.training_eligible ? 'var(--success)' : 'var(--holo-mid)' },
   ];
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin:10px 0 2px">
     ${items.map(item => `
@@ -11992,7 +12004,8 @@ function buildGroupCard(group) {
 
   // 展开/收起逻辑
   let expanded = false;
-  header.onclick = () => {
+  header.onclick = event => {
+    if(event.target.closest('button,a,[data-product-action]'))return;
     if (vCount <= 1) { openNoteDetail(latest); return; }
     expanded = !expanded;
     panel.style.display = expanded ? 'block' : 'none';
@@ -12075,7 +12088,7 @@ function profileScoreKind(record) {
   return ['prediction','performance'].includes(record?.score_kind) ? record.score_kind : 'legacy';
 }
 function profileRecordDescription(record) {
-  const kind={prediction:'预测评分',performance:'发布后实际表现',legacy:'历史评分（类型未记录）'}[profileScoreKind(record)];
+  const kind=record.action==='url_track'?'用户录入表现的计算评分，未经平台核验':{prediction:'预测评分',performance:'发布后表现（来源见记录）',legacy:'历史评分（类型未记录）'}[profileScoreKind(record)];
   const origin=record.record_origin==='recoverable'||record.persisted===false ? '可恢复记录 · 尚未归档'
     : record.record_origin==='recovered' ? '已恢复记录' : '已记录';
   const title=record.note_title || record.title || record.domain || '历史记录';
@@ -12145,7 +12158,7 @@ function renderProfileLoopInsights(growth, notes, tracking, mems) {
   const cards=[
     ['诊断与优化记录',records?records.length+' 条记录':growth?.error?'读取失败':'待读取','不同笔记与版本独立记录，不推算整体提升'],
     ['作品资产',versions===null?(notes?.error?'读取失败':'待读取'):versions+' 个版本','已保存的笔记版本'],
-    ['真实校准',tracking?.unavailable?'暂未开放':tracked?tracked.filter(t=>t.status==='complete'||t.actual_ces!=null).length+'/'+tracked.length+' 已完成':tracking?.error?'读取失败':'待读取',tracking?.unavailable?'当前不采集外部表现':'仅展示实际返回的追踪结果'],
+    ['发布后表现记录',tracking?.unavailable?'暂未开放':tracked?tracked.filter(t=>t.status==='complete'||t.actual_ces!=null).length+'/'+tracked.length+' 已完成':tracking?.error?'读取失败':'待读取',tracking?.unavailable?'当前不采集外部表现':'按来源区分；用户录入未经平台核验'],
     ['已保存记忆',memories?memories.length+' 条记忆'+(preferences.length?' · '+preferences.length+' 项偏好':''):mems?.error?'读取失败':'待读取','偏好、上下文与成就按实际记录展示'],
   ];
   el.innerHTML=cards.map(([label,value,note])=>'<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 13px;min-width:0"><div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">'+escapeHtml(label)+'</div><div style="font-size:17px;font-weight:900;color:var(--text);overflow-wrap:anywhere">'+escapeHtml(value)+'</div><div style="font-size:11px;color:var(--text-2);line-height:1.45;margin-top:5px">'+escapeHtml(note)+'</div></div>').join('');
@@ -14010,107 +14023,139 @@ async function saveNickname() {
 /* ═══════════════════════════════════════════════════════════
    URL 追踪系统 — 前端
 ═══════════════════════════════════════════════════════════ */
-/* 从笔记库卡片快捷追踪（已知 note_id，预填信息）*/
-function trackNoteFromLibrary(noteId, noteTitle, domain, predictedCes) {
-  if (!_authToken) { openAuthModal('login'); return; }
-  // 打开追踪弹窗并预填 note 信息
-  openTrackUrlModal();
-  // 存储关联 note_id，提交时一起发送
-  _trackingLinkedNoteId = noteId;
-  _trackingLinkedTitle  = noteTitle;
-  _trackingLinkedSessionId = _chatSessionId || null;
-  // 提示用户填 URL
-  const hint = document.getElementById('track-url-input');
-  if (hint) {
-    hint.placeholder = `请粘贴「${noteTitle.slice(0,15)}…」发布后的小红书链接`;
-    hint.focus();
-  }
-  if (predictedCes) {
-    const cesInput = document.getElementById('track-url-ces');
-    if (cesInput) cesInput.value = predictedCes;
-  }
-  const domainSel = document.getElementById('track-url-domain');
-  if (domainSel && domain) domainSel.value = domain;
-}
-let _trackingLinkedNoteId = null;
-let _trackingLinkedTitle  = '';
-let _trackingLinkedSessionId = null;
-
-function openTrackUrlModal() {
-  if (PUBLIC_PRODUCT && !_publicStatus?.tracking_open) { showToast('当前可查看本人已有追踪结果；新增追踪暂未开放'); return; }
-  if (!_authToken) { openAuthModal('login'); return; }
-  document.getElementById('track-url-modal').style.display = 'flex';
-  document.getElementById('track-url-input').value = '';
-  document.getElementById('track-url-error').style.display = 'none';
-  document.getElementById('track-url-ces').value = '';
-  setTimeout(() => document.getElementById('track-url-input').focus(), 100);
-}
-function closeTrackUrlModal() {
-  document.getElementById('track-url-modal').style.display = 'none';
-  // 重置关联 note_id
-  _trackingLinkedNoteId = null; _trackingLinkedTitle = ''; _trackingLinkedSessionId = null;
-  const inp = document.getElementById('track-url-input');
-  if (inp) inp.placeholder = 'https://www.xiaohongshu.com/explore/...';
-}
-async function submitTrackUrl() {
-  if (!_authToken) return;
-  let url      = document.getElementById('track-url-input').value.trim();
-  const domain = document.getElementById('track-url-domain').value;
-  const ces    = parseFloat(document.getElementById('track-url-ces').value) || null;
-  const errEl  = document.getElementById('track-url-error');
-  const btn    = document.getElementById('track-url-btn');
-  if (!url) { errEl.textContent = '请输入笔记链接'; errEl.style.display = 'block'; return; }
-  try {
-    const parsed = new URL(url);
-    const hostAllowed = ['www.xiaohongshu.com', 'xiaohongshu.com'].includes(parsed.hostname.toLowerCase());
-    const noteMatch = parsed.pathname.match(/^\/(?:explore|discovery\/item)\/([0-9a-f]{24})\/?$/i);
-    if (parsed.protocol !== 'https:' || !hostAllowed || parsed.username || parsed.password || parsed.port || !noteMatch) {
-      throw new Error('invalid');
-    }
-    url = `https://www.xiaohongshu.com/explore/${noteMatch[1].toLowerCase()}`;
-  } catch (_) {
-    errEl.textContent = '请粘贴 HTTPS 小红书完整笔记链接（暂不支持短链）';
-    errEl.style.display = 'block';
-    return;
-  }
-  btn.disabled = true; btn.textContent = '提交中…';
-  try {
-    const body = {
-      xhs_url:       url,
-      domain,
-      predicted_ces: ces,
-      note_title:    _trackingLinkedTitle || undefined,
-      source_note_id: _trackingLinkedNoteId || undefined,
-      source_note_version_id: _trackingLinkedNoteId || undefined,
-      source_session_id: _trackingLinkedSessionId || undefined,
-    };
-    const res = await fetch(API_AUTH + '/notes/track-url', {
-      method: 'POST',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const d = await res.json();
-    if (res.status === 409) { errEl.textContent = '该笔记已在追踪中'; errEl.style.display = 'block'; return; }
-    if (!res.ok) { errEl.textContent = d.detail || '提交失败'; errEl.style.display = 'block'; return; }
-    const linkedNoteId = _trackingLinkedNoteId;
-    const linkedTitle = _trackingLinkedTitle;
-    closeTrackUrlModal();
-    const linkedMsg = linkedTitle ? `「${linkedTitle.slice(0,15)}」已关联追踪` : '追踪已开始';
-    showToast(`✅ ${linkedMsg}，24小时后首次采集数据`);
-    loadTrackingList();
-    if (linkedNoteId) {
-      _libraryOffset = 0;
-      loadLibrary(true);
-    }
-  } catch(e) {
-    errEl.textContent = '网络错误：' + e.message; errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false; btn.textContent = '开始追踪';
-  }
-}
-
 function profileTrackingAvailable() {
   return _publicStatus?.tracking_read_open===true || (_publicStatus?.tracking_open!==false && (!PUBLIC_PRODUCT || _publicStatus?.tracking_open===true));
+}
+function trackingManualAvailable() {return _publicStatus?.tracking_manual_open===true;}
+function trackingDeleteAvailable() {return _publicStatus?.tracking_delete_open===true || !PUBLIC_PRODUCT;}
+function trackingRequestContext() {
+  const identity=_chatIdentitySnapshot(),token=_authToken;
+  if(!token || !identity.ownerId)return null;
+  return {identity,token,current:()=>profileIdentityCurrent(identity,token)};
+}
+let _trackingLinkedNoteId=null;
+let _trackingLinkedTitle='';
+let _trackingLinkedSessionId=null;
+let _trackingModalContext=null;
+let _trackingRecords=new Map();
+let _trackingUnknownActions=new Set();
+let _trackingFillDrafts=new Map();
+let _trackingDetailSequence=new Map();
+let _trackingReadRevision=0;
+function invalidateTrackingReads() {++_trackingReadRevision;++_profileTrackingReadSequence;++_trackingIndexReadSequence;}
+const TRACKING_METRIC_MAX=2147483647;
+function trackingValidId(id) {return typeof id==='string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id);}
+function trackingCanonicalURL(value) {
+  try {
+    const url=new URL(value),match=url.pathname.match(/^\/(?:explore|discovery\/item)\/([0-9a-f]{24})\/?$/i);
+    if(url.protocol!=='https:' || !['www.xiaohongshu.com','xiaohongshu.com'].includes(url.hostname.toLowerCase()) || url.username || url.password || url.port || !match)return null;
+    return 'https://www.xiaohongshu.com/explore/'+match[1].toLowerCase();
+  } catch {return null;}
+}
+function trackingMetric(value, optional=false) {
+  const text=String(value ?? '').trim();
+  if(optional && text==='')return null;
+  if(!/^\d+$/.test(text))throw new Error('请填写明确的非负整数；未知浏览量留空，不要填0');
+  const number=Number(text);
+  if(!Number.isSafeInteger(number) || number>TRACKING_METRIC_MAX)throw new Error('互动数据需为0至2147483647的整数');
+  return number;
+}
+function trackingError(message) {
+  const el=document.getElementById('track-url-error');el.textContent=message;el.style.display='block';
+}
+function trackingModalCurrent(context) {return context && context===_trackingModalContext && context.current();}
+function clearTrackingUserState() {
+  invalidateTrackingReads();closeTrackUrlModal();_trackingRecords=new Map();_trackingUnknownActions=new Set();_trackingFillDrafts=new Map();_trackingDetailSequence=new Map();
+  _trackingBySourceNote=new Map();++_trackingIndexReadSequence;++_libraryReadSequence;
+  _libraryIdentity=null;_librarySelectableNotes=new Map();_libraryOffset=0;_noteDetailData=null;
+  document.getElementById('library-grid')?.replaceChildren();closeNoteDetail();
+}
+function trackNoteFromLibrary(noteId, noteTitle, domain, predictedCes) {
+  if(!_authToken){openAuthModal('login');return;}
+  if(trackingManualAvailable()){
+    const note=_librarySelectableNotes.get(noteId);
+    if(!_libraryIdentity || !profileIdentityCurrent(_libraryIdentity.identity,_libraryIdentity.token) || !note){showToast('请重新打开笔记库，选择本人的笔记版本');return;}
+    openTrackUrlModal(note);return;
+  }
+  openTrackUrlModal({id:noteId,title:noteTitle,domain,score:predictedCes});
+}
+function openTrackUrlModal(note=null) {
+  if(!_authToken){openAuthModal('login');return;}
+  const manual=trackingManualAvailable();
+  if(PUBLIC_PRODUCT && !manual){showToast('手工表现记录暂未开放；自动采集当前不可用');return;}
+  if(manual && (!note || !trackingValidId(note.id))){showPage('library');showToast('请在笔记库选择具体笔记版本，再点“追踪效果”');return;}
+  const context=trackingRequestContext();if(!context)return;
+  _trackingModalContext={...context,manual,noteId:note?.id || null,uncertain:false};
+  _trackingLinkedNoteId=note?.id || null;_trackingLinkedTitle=note?.title || '';_trackingLinkedSessionId=null;
+  document.getElementById('track-url-modal').style.display='flex';
+  document.getElementById('track-url-input').value='';
+  document.getElementById('track-url-input').placeholder='https://www.xiaohongshu.com/explore/...';
+  document.getElementById('track-url-error').style.display='none';
+  document.getElementById('track-url-verify').style.display='none';
+  profileText('track-url-source',note?'关联笔记：'+(note.title || '未命名笔记')+(note.version!=null?' · v'+note.version:''):'');
+  profileText('track-url-description',manual?'本人手工录入互动数据，未经平台核验。先建立记录，再填写数据；自动采集当前未开放。':'提交链接后按当前服务支持的采集任务处理，状态以记录为准。');
+  const domain=document.getElementById('track-url-domain'),score=document.getElementById('track-url-ces');
+  domain.disabled=manual;score.disabled=manual;
+  if(note?.domain && ![...domain.options].some(option=>option.value===note.domain)){
+    const option=document.createElement('option');option.value=note.domain;option.textContent=note.domain;domain.appendChild(option);
+  }
+  domain.value=note?.domain || '美食';score.value=typeof note?.score==='number'&&Number.isFinite(note.score)?String(note.score):'';
+  score.placeholder=manual?'原笔记未记录评分':'例：72.5';
+  const button=document.getElementById('track-url-btn');button.disabled=false;button.textContent=manual?'建立手工表现记录':'开始追踪';
+  document.getElementById('track-url-input').focus();
+}
+function closeTrackUrlModal() {
+  document.getElementById('track-url-modal').style.display='none';_trackingModalContext=null;
+  _trackingLinkedNoteId=null;_trackingLinkedTitle='';_trackingLinkedSessionId=null;
+  const input=document.getElementById('track-url-input');if(input){input.value='';input.placeholder='https://www.xiaohongshu.com/explore/...';}
+}
+async function submitTrackUrl() {
+  const context=_trackingModalContext;
+  if(!trackingModalCurrent(context))return;
+  if(context.manual && !trackingManualAvailable()){trackingError('手工表现记录当前不可用，请稍后查看');return;}
+  if(context.uncertain){trackingError('上次提交结果未确认，请先核对已提交记录');return;}
+  const url=trackingCanonicalURL(document.getElementById('track-url-input').value.trim());
+  if(!url){trackingError('请粘贴 HTTPS 小红书完整笔记链接（暂不支持短链）');return;}
+  if(context.manual && !trackingValidId(context.noteId)){trackingError('请先从笔记库选择本人具体笔记版本');return;}
+  const action=accountActionStart('tracking-create');if(!action)return;
+  const button=document.getElementById('track-url-btn');button.disabled=true;button.textContent='提交中…';
+  let confirmedRejection=false;
+  try {
+    const body=context.manual?{collection_mode:'manual',source_note_id:context.noteId,xhs_url:url}:{xhs_url:url,domain:document.getElementById('track-url-domain').value,predicted_ces:document.getElementById('track-url-ces').value===''?null:Number(document.getElementById('track-url-ces').value),source_note_id:context.noteId || undefined,note_title:_trackingLinkedTitle || undefined};
+    const response=await fetch(API_AUTH+'/notes/track-url',{method:'POST',headers:{Authorization:'Bearer '+context.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!trackingModalCurrent(context))return;
+    confirmedRejection=response.status>=400 && response.status<500;
+    const data=await accountActionJSON(response,'建立记录失败');
+    if(!trackingModalCurrent(context))return;
+    if(!trackingValidId(data.id) || (context.manual && (data.status!=='needs_manual' || data.source_note_id!==context.noteId || data.next_check_at!==null)))throw new Error('服务器未返回可核对的记录');
+    closeTrackUrlModal();showToast(context.manual?'已建档，请到成长档案录入互动数据；未经平台核验':'追踪记录已建立，请查看真实状态');
+    await loadTrackingList();
+    if(context.current() && document.querySelector('.page.active')?.id==='page-library')await loadLibrary(true);
+  } catch(error) {
+    if(trackingModalCurrent(context)){
+      if(!confirmedRejection){context.uncertain=true;context.submittedURL=url;document.getElementById('track-url-verify').style.display='block';}
+      trackingError((error.message || '连接中断')+(confirmedRejection?'':'。结果未确认，请先核对；不会自动重发'));
+    }
+  } finally {
+    action.release();
+    if(trackingModalCurrent(context)){button.disabled=context.uncertain;button.textContent=context.manual?'建立手工表现记录':'开始追踪';}
+  }
+}
+async function verifyTrackingSubmission() {
+  const context=_trackingModalContext;if(!trackingModalCurrent(context) || !context.uncertain)return;
+  try {
+    const data=await profileReadJSON('/notes/tracking',context.token);
+    if(!trackingModalCurrent(context))return;
+    if(!Array.isArray(data.notes))throw new Error('追踪列表格式不完整');
+    const matching=data.notes.filter(row=>trackingCanonicalURL(row.xhs_url)===context.submittedURL && row.source_note_id===context.noteId);
+    if(matching.length===1 && trackingValidId(matching[0].id)){
+      closeTrackUrlModal();showToast('已核对到此前提交的记录，没有重复创建');await loadTrackingList();
+      if(context.current() && document.querySelector('.page.active')?.id==='page-library')await loadLibrary(true);
+    } else if(matching.length===0){
+      context.uncertain=false;document.getElementById('track-url-verify').style.display='none';document.getElementById('track-url-btn').disabled=false;
+      trackingError('当前未找到此笔记的提交记录。请核对后决定是否重新提交，系统不会自动重发。');
+    } else trackingError('返回记录无法唯一核对，请稍后重新读取');
+  } catch(error){if(trackingModalCurrent(context))trackingError('暂时无法核对：'+error.message);}
 }
 function updateProfileTrackingInsights(data, identity, token) {
   const state=_profileViewState;
@@ -14118,89 +14163,145 @@ function updateProfileTrackingInsights(data, identity, token) {
   state.values.tracking=data;
   renderProfileLoopInsights(state.values.growth,state.values.notes,data,state.values.mems);
 }
+function trackingCanFill(row) {
+  return (!!row && (trackingManualAvailable() || !PUBLIC_PRODUCT) && ['needs_manual','failed'].includes(row.status) && row.provider_attempt_state!=='in_progress');
+}
+function trackingNumber(value) {return typeof value==='number' && Number.isFinite(value)?String(value):'未记录';}
+function trackingManualNotice(row) {return row.evidence_source==='manual' || row.manual_filled ? '用户录入，未经平台核验；录入时间不等同发布后第7天' : '';}
+function trackingViewsDescription(row) {
+  let facts;try{facts=typeof row.insights_json==='string'?JSON.parse(row.insights_json):row.insights_json;}catch{facts=null;}
+  const metrics=facts?.schema_version==='performance_score_v1'?facts.metrics:null;
+  const matches=typeof row.views_est==='number' && Number.isFinite(row.views_est) && metrics?.views_est===row.views_est;
+  let label='浏览量（来源未记录）';
+  if(matches && metrics.views_estimated===true)label='浏览量（系统估算，非平台实测）';
+  if(matches && metrics.views_estimated===false)label=trackingManualNotice(row)?'浏览量（用户录入，未经平台核验）':'浏览量（按记录来源展示）';
+  return [label,trackingNumber(row.views_est)];
+}
+function renderTrackingRows(notes) {
+  const el=document.getElementById('profile-tracking-list');if(!el)return;
+  _trackingRecords=new Map(notes.filter(row=>trackingValidId(row.id)).map(row=>[row.id,row]));
+  if(!notes.length){el.textContent=trackingManualAvailable()?'暂无已有追踪记录。可从笔记库选择已发布的本人笔记，建立手工表现记录。':PUBLIC_PRODUCT && !_publicStatus?.tracking_open?'暂无已有追踪记录。当前仅开放查看本人历史结果，新增追踪暂未开放。':'暂无追踪记录，可通过原入口提交已发布笔记链接。';return;}
+  const statusMap={pending:'等待采集',checking_24h:'已记录采集结果',checking_7d:'采集中',needs_manual:'待录入互动数据',complete:'已完成',failed:'采集失败'};
+  el.innerHTML=notes.map(row=>{
+    const id=row.id,valid=trackingValidId(id),manual=trackingManualNotice(row),unknown=_trackingUnknownActions.has(id);
+    const button=(action,label)=>`<button ${productActionAttributes(action,id)} class="btn btn-ghost btn-sm">${label}</button>`;
+    return `<div style="background:var(--surf-2);border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px"><strong style="font-size:13px;overflow-wrap:anywhere">${escapeHtml(row.note_title || '未获取标题')}</strong><span style="font-size:11px;color:var(--text-muted)">${escapeHtml(statusMap[row.status] || '状态未识别')}</span></div>
+      <div style="font-size:11px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap">
+        <span>${row.source_note_id?'已关联笔记版本':'外部链接追踪'}</span><span>预测分 ${trackingNumber(row.predicted_ces)}</span><span>表现评分 ${trackingNumber(row.actual_ces)}</span>
+        <span>点赞 ${trackingNumber(row.likes_7d ?? row.likes_24h)}</span><span>收藏 ${trackingNumber(row.saves_7d ?? row.saves_24h)}</span>
+        <span>${escapeHtml(row.confidence_label?'置信度：'+row.confidence_label:'置信度未记录')}</span><span>建档：${escapeHtml(row.submitted_at || '未记录')}</span>
+      </div>
+      ${manual?`<p style="font-size:11px;color:var(--text-muted);margin:8px 0">${manual}</p>`:''}
+      ${unknown?'<p role="status" style="font-size:12px">上次操作结果未确认，请先查看详情核对；不会自动重发。</p>':''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        ${valid?button('openTrackingDetail','查看详情 / 核对'):''}
+        ${valid&&!unknown&&trackingCanFill(row)?button('openManualFill','录入互动数据'):''}
+        ${valid&&!unknown&&trackingDeleteAvailable()&&row.provider_attempt_state!=='in_progress'?button('deleteTrackingRecord','删除追踪记录'):''}
+      </div><div id="tracking-detail-${valid?id:'invalid'}" hidden style="font-size:12px;line-height:1.8;overflow-wrap:anywhere;margin-top:8px"></div>
+    </div>`;
+  }).join('');
+}
 async function loadTrackingList() {
-  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_profileTrackingReadSequence;
-  const current=()=>profileIdentityCurrent(identity,token)&&sequence===_profileTrackingReadSequence;
+  const identity=_chatIdentitySnapshot(),token=_authToken,sequence=++_profileTrackingReadSequence,revision=++_trackingReadRevision;
+  const current=()=>profileIdentityCurrent(identity,token)&&sequence===_profileTrackingReadSequence&&revision===_trackingReadRevision;
   if(!profileTrackingAvailable()){profileText('profile-tracking-list','外部笔记跟踪暂未开放；已保存笔记可以继续查看和优化。');updateProfileTrackingInsights({unavailable:true},identity,token);return;}
   if(!token)return;
   profileText('profile-tracking-list','正在读取追踪记录…');
   try {
-    const d=await profileReadJSON('/notes/tracking',token);
-    if(!current())return;
-    if(!Array.isArray(d.notes))throw new Error('追踪列表格式不完整');
-    updateProfileTrackingInsights(d,identity,token);
-    const el  = document.getElementById('profile-tracking-list');
-    if (!el) return;
-    const notes = d.notes || [];
-    if (notes.length === 0) {
-      el.textContent = PUBLIC_PRODUCT && !_publicStatus?.tracking_open ? '暂无已有追踪记录。当前仅开放查看本人历史结果，新增追踪暂未开放。' : '暂无追踪记录，可通过原入口提交已发布笔记链接。';
-      return;
+    const data=await profileReadJSON('/notes/tracking',token);if(!current())return;
+    if(!Array.isArray(data.notes))throw new Error('追踪列表格式不完整');
+    updateProfileTrackingInsights(data,identity,token);renderTrackingRows(data.notes);
+  } catch(error){if(current()){profileRegionError('profile-tracking-list',error.message);updateProfileTrackingInsights({error:true},identity,token);}}
+}
+
+let _manualFillId=null;
+async function openManualFill(trackId) {
+  const context=trackingRequestContext(),row=_trackingRecords.get(trackId);
+  if(!context || !trackingValidId(trackId) || !trackingCanFill(row)){showToast('此记录当前不可手工录入，请重新读取状态');return;}
+  if(_trackingUnknownActions.has(trackId)){showToast('请先查看详情核对上次操作');return;}
+  _manualFillId=trackId;
+  try {
+    const draft=_trackingFillDrafts.get(trackId) || {};
+    const fields=[['likes','填写本人实际点赞数（用户录入，未经平台核验）：'],['saves','填写本人实际收藏数：'],['comments','填写本人实际评论数：'],['views','实际浏览量（可选，未知请留空，不要填0）：']];
+    for(const [key,label] of fields){
+      const value=prompt(label,draft[key] ?? '');if(value===null || !context.current())return;
+      draft[key]=value;_trackingFillDrafts.set(trackId,draft);
     }
-    const statusMap = {pending:'等待采集',checking_24h:'24h已采集',checking_7d:'7天采集中',needs_manual:'待填写笔记／上传素材',complete:'已完成',failed:'采集失败'};
-    const statusCol = {pending:'var(--text-muted)',checking_24h:'var(--info)',checking_7d:'var(--warning)',needs_manual:'var(--warning)',complete:'var(--success)',failed:'var(--error)'};
-    const evidenceMap = {crawler:'自动采集',manual:'手动回填',screenshot:'截图识别',mixed:'混合证据'};
-    el.innerHTML = notes.map(n => `
-      <div style="background:var(--surf-2);border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-            ${n.note_title ? escapeHtml(n.note_title.slice(0,40)) : '未获取标题'}
-          </div>
-          <span style="font-size:10px;font-weight:700;color:${statusCol[n.status]||'var(--text-muted)'};
-                       background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:8px;flex-shrink:0;margin-left:8px">
-            ${statusMap[n.status]||n.status}
-          </span>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap">
-          ${n.source_note_id ? `<span style="color:var(--accent)">已关联笔记版本</span>` : '<span>外部链接追踪</span>'}
-          ${n.predicted_ces != null ? `<span>预测 <b>${Number(n.predicted_ces).toFixed(1)}</b>分</span>` : ''}
-          ${n.actual_ces != null ? `<span style="color:var(--success)">实际 <b>${Number(n.actual_ces).toFixed(1)}</b>分</span>` : ''}
-          ${n.likes_7d != null ? `<span>👍 ${n.likes_7d}</span>` : n.likes_24h != null ? `<span>👍 ${n.likes_24h}（24h）</span>` : ''}
-          ${n.saves_7d != null ? `<span>⭐ ${n.saves_7d}</span>` : ''}
-          ${n.evidence_source ? `<span>${evidenceMap[n.evidence_source] || escapeHtml(n.evidence_source)}</span>` : ''}
-          ${n.confidence_label ? `<span>${escapeHtml(n.confidence_label)}置信度</span>` : ''}
-          <span>${n.submitted_at?.slice(0,10)||'–'} · ${escapeHtml(n.domain)}</span>
-        </div>
-        ${(!PUBLIC_PRODUCT || _publicStatus?.tracking_open) && (n.status === 'needs_manual' || n.status === 'failed') ? `
-          <button ${productActionAttributes('openManualFill',n.id)}
-            style="margin-top:8px;padding:4px 12px;border-radius:7px;border:1px solid var(--accent);
-                   background:rgba(0,153,255,0.08);color:var(--accent);cursor:pointer;font-size:11px;font-weight:600">
-            填写笔记／上传素材互动数据
-          </button>` : ''}
-      </div>`).join('');
-  } catch(e) {if(current()){profileRegionError('profile-tracking-list',e.message);updateProfileTrackingInsights({error:true},identity,token);}}
+    const values=[trackingMetric(draft.likes),trackingMetric(draft.saves),trackingMetric(draft.comments),trackingMetric(draft.views,true)];
+    if(context.current())await submitManualFill(trackId,...values);
+  } catch(error){if(context.current())showToast(error.message);}
 }
-
-let _manualFillId = null;
-function openManualFill(trackId) {
-  _manualFillId = trackId;
-  const likes    = prompt('点赞数：'); if(likes===null) return;
-  const saves    = prompt('收藏数：'); if(saves===null) return;
-  const comments = prompt('评论数：'); if(comments===null) return;
-  const views    = prompt('浏览量（可选，不填则系统估算）：');
-  submitManualFill(trackId, parseInt(likes)||0, parseInt(saves)||0, parseInt(comments)||0, parseInt(views)||null);
+async function submitManualFill(trackId,likes,saves,comments,views=null) {
+  const row=_trackingRecords.get(trackId);
+  if(!trackingValidId(trackId) || !trackingCanFill(row) || _trackingUnknownActions.has(trackId)){showToast('请先核对记录状态，当前不可重复录入');return;}
+  try {likes=trackingMetric(likes);saves=trackingMetric(saves);comments=trackingMetric(comments);views=trackingMetric(views,true);} catch(error){showToast(error.message);return;}
+  const action=accountActionStart('tracking-write:'+trackId);if(!action)return;
+  invalidateTrackingReads();
+  let confirmedRejection=false;
+  try {
+    const response=await fetch(API_AUTH+'/notes/tracking/'+encodeURIComponent(trackId)+'/fill',{method:'POST',headers:{Authorization:'Bearer '+action.token,'Content-Type':'application/json'},body:JSON.stringify({likes,saves,comments,views,evidence_source:'manual'})});
+    if(!action.current())return;
+    confirmedRejection=response.status>=400 && response.status<500;
+    const data=await accountActionJSON(response,'录入失败');if(!action.current())return;
+    if(data.ok!==true)throw new Error('服务器未确认录入成功');
+    invalidateTrackingReads();_trackingFillDrafts.delete(trackId);_trackingRecords.set(trackId,{...row,status:'complete',evidence_source:'manual'});
+    showToast('已保存用户录入数据，未经平台核验；表现评分 '+trackingNumber(data.actual_ces));
+    await loadTrackingList();
+    if(action.current()&&document.querySelector('.page.active')?.id==='page-library')await loadLibrary(true);
+  } catch(error){if(action.current()){
+    invalidateTrackingReads();
+    if(!confirmedRejection)_trackingUnknownActions.add(trackId);
+    showToast((error.message || '连接中断')+'。请查看详情核对，不会自动重试');renderTrackingRows([..._trackingRecords.values()]);
+  }} finally {action.release();}
 }
-async function submitManualFill(trackId, likes, saves, comments, views = null) {
-  const res = await fetch(`${API_AUTH}/notes/tracking/${trackId}/fill`, {
-    method:'POST', headers:{...authHeader(),'Content-Type':'application/json'},
-    body: JSON.stringify({likes, saves, comments, views, evidence_source:'manual'}),
-  });
-  const d = await res.json();
-  if (d.ok) {
-    showToast(`✅ 实际 CES: ${d.actual_ces}分 · ${d.confidence_label || '中'}置信`);
-    loadTrackingList();
-    _libraryOffset = 0;
-    loadLibrary(true);
-  }
-  else showToast('填写失败：' + (d.detail||''));
+async function openTrackingDetail(trackId) {
+  const context=trackingRequestContext();if(!context || !trackingValidId(trackId) || !profileTrackingAvailable())return;
+  const sequence=(_trackingDetailSequence.get(trackId)||0)+1,revision=_trackingReadRevision;_trackingDetailSequence.set(trackId,sequence);
+  ++_profileTrackingReadSequence;
+  const current=()=>context.current()&&_trackingDetailSequence.get(trackId)===sequence&&revision===_trackingReadRevision;
+  const target=document.getElementById('tracking-detail-'+trackId);if(!target)return;
+  target.hidden=false;target.textContent='正在读取此记录…';
+  try {
+    const response=await fetch(API_AUTH+'/notes/tracking/'+encodeURIComponent(trackId),{headers:{Authorization:'Bearer '+context.token},cache:'no-store'});
+    if(!current())return;
+    if(response.status===404){_trackingUnknownActions.delete(trackId);_trackingRecords.delete(trackId);target.textContent='记录不存在、已删除或无权访问。';const refresh=document.createElement('button');refresh.className='btn btn-ghost btn-sm';refresh.textContent='刷新追踪列表';refresh.addEventListener('click',()=>{if(context.current())loadTrackingList();});target.appendChild(refresh);return;}
+    const row=await accountActionJSON(response,'读取详情失败');if(!current())return;
+    if(row.id!==trackId)throw new Error('返回记录与当前选择不一致');
+    _trackingUnknownActions.delete(trackId);_trackingRecords.set(trackId,row);
+    renderTrackingRows([..._trackingRecords.values()]);
+    const detail=document.getElementById('tracking-detail-'+trackId);if(!detail)return;
+    detail.hidden=false;
+    const items=[['记录',row.id],['关联笔记版本',row.source_note_id || '未关联'],['状态',trackingStatusMeta(row).label],['记录创建时间',row.submitted_at || '未记录'],['最近记录时间',row.completed_at || row.last_checked_at || '未记录'],['点赞',trackingNumber(row.likes_7d ?? row.likes_24h)],['收藏',trackingNumber(row.saves_7d ?? row.saves_24h)],['评论',trackingNumber(row.comments_7d ?? row.comments_24h)],trackingViewsDescription(row),['表现评分',trackingNumber(row.actual_ces)],['证据来源',trackingManualNotice(row) || row.evidence_source || '未记录'],['置信度',row.confidence_label || '未记录']];
+    detail.replaceChildren();items.forEach(([label,value])=>{const line=document.createElement('div');line.textContent=label+'：'+value;detail.appendChild(line);});
+    const url=trackingCanonicalURL(row.xhs_url);
+    if(url){const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='打开已发布笔记';detail.appendChild(link);}
+  } catch(error){if(current()){const el=document.getElementById('tracking-detail-'+trackId);if(el){el.hidden=false;el.textContent=error.message;}}}
 }
-
-// ESC 关闭追踪弹窗
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    const tm = document.getElementById('track-url-modal');
-    if (tm && tm.style.display !== 'none') closeTrackUrlModal();
-  }
-}, {capture: false});
+async function deleteTrackingRecord(trackId) {
+  const row=_trackingRecords.get(trackId);
+  if(!trackingValidId(trackId) || !row || !trackingDeleteAvailable() || row.provider_attempt_state==='in_progress' || _trackingUnknownActions.has(trackId)){showToast('当前不可删除，请先查看详情核对状态');return;}
+  const action=accountActionStart('tracking-write:'+trackId);if(!action)return;
+  invalidateTrackingReads();
+  let confirmedRejection=false;
+  try {
+    if(!confirm('删除这条追踪记录？此操作不会删除原笔记，也不会撤销已记录的成长或记忆。') || !action.current())return;
+    const response=await fetch(API_AUTH+'/notes/tracking/'+encodeURIComponent(trackId),{method:'DELETE',headers:{Authorization:'Bearer '+action.token}});
+    if(!action.current())return;
+    confirmedRejection=response.status>=400&&response.status<500;
+    const data=await accountActionJSON(response,'删除失败');if(!action.current())return;
+    if(data.ok!==true)throw new Error('服务器未确认删除成功');
+    invalidateTrackingReads();_trackingFillDrafts.delete(trackId);_trackingRecords.delete(trackId);showToast('追踪记录已删除，原笔记保留');await loadTrackingList();
+    if(action.current()&&document.querySelector('.page.active')?.id==='page-library')await loadLibrary(true);
+  } catch(error){if(action.current()){
+    invalidateTrackingReads();
+    if(!confirmedRejection)_trackingUnknownActions.add(trackId);
+    showToast((error.message || '连接中断')+'。请查看详情核对，不会自动重试');renderTrackingRows([..._trackingRecords.values()]);
+  }} finally {action.release();}
+}
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && document.getElementById('track-url-modal')?.style.display!=='none')closeTrackUrlModal();
+});
 
 /* ═══════════════════════════════════════════════════════════
    计费系统 — 前端
