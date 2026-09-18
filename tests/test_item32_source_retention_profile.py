@@ -20,8 +20,8 @@ class SourceRetentionProfileTests(unittest.TestCase):
         self.f = f = prior.V5ProfileTests()
         f.setUp(); self.addCleanup(f.tearDown)
         f.plan["admission"].update(work_root=str(e.V5_SOURCE_RETENTION_WORK_ROOT),
-            not_before_utc="2026-09-18T06:30:00+00:00", bucket_date_utc="2026-09-18",
-            dispatch_deadline_utc="2026-09-18T07:25:00+00:00", must_finish_before_utc="2026-09-18T08:00:00+00:00")
+            not_before_utc="2026-09-18T11:30:00+00:00", bucket_date_utc="2026-09-18",
+            dispatch_deadline_utc="2026-09-18T12:25:00+00:00", must_finish_before_utc="2026-09-18T13:00:00+00:00")
         f.plan["runtime_overlay_sha256"] = {n: hashlib.sha256((ROOT / n).read_bytes()).hexdigest()
                                             for n in e.V5_SOURCE_RETENTION_OVERLAYS}
         f.plan["source_sha256"] = {**f.plan["image_source_sha256"], **f.plan["runtime_overlay_sha256"]}
@@ -31,7 +31,7 @@ class SourceRetentionProfileTests(unittest.TestCase):
         self.authorize()
 
     def authorize(self):
-        self.f.plan["authorization"] = {"status": "AUTHORIZED", "confirmed_at_utc": "2026-09-18T05:00:00+00:00",
+        self.f.plan["authorization"] = {"status": "AUTHORIZED", "confirmed_at_utc": "2026-09-18T11:11:25+00:00",
             "approved_scope_sha256": e._approval_scope_sha256(self.f.plan)}
 
     def test_exact_new_root_eight_overlays_and_all_prior_calls_remain_bound(self):
@@ -69,7 +69,7 @@ class SourceRetentionProfileTests(unittest.TestCase):
             self.f.plan = copy.deepcopy(baseline); self.f.plan["runtime_overlay_sha256"].pop(name); self.authorize()
             with self.assertRaisesRegex(e.Item32Error, "plan_binding"): self.f.load()
         self.f.plan = copy.deepcopy(baseline)
-        self.f.plan["admission"]["dispatch_deadline_utc"] = "2026-09-18T07:26:00+00:00"; self.authorize()
+        self.f.plan["admission"]["dispatch_deadline_utc"] = "2026-09-18T12:26:00+00:00"; self.authorize()
         with self.assertRaisesRegex(e.Item32Error, "plan_binding"): self.f.load()
 
     def test_old_profile_still_rejects_the_eight_overlay_scope(self):
@@ -79,17 +79,20 @@ class SourceRetentionProfileTests(unittest.TestCase):
         with self.assertRaisesRegex(e.Item32Error, "plan_binding"): self.f.load()
 
     def test_expired_window_remains_rejected_even_with_its_own_scope_digest(self):
-        self.f.plan["admission"].update(not_before_utc="2026-09-18T00:00:00+00:00",
-            dispatch_deadline_utc="2026-09-18T00:55:00+00:00", must_finish_before_utc="2026-09-18T01:30:00+00:00")
-        self.authorize()
-        self.f.plan["authorization"]["confirmed_at_utc"] = "2026-09-17T16:22:00+00:00"
-        with self.assertRaisesRegex(e.Item32Error, "plan_binding"): self.f.load()
+        for start, deadline, finish in (("00:00", "00:55", "01:30"), ("06:30", "07:25", "08:00")):
+            with self.subTest(start=start):
+                self.f.plan["admission"].update(not_before_utc=f"2026-09-18T{start}:00+00:00",
+                    dispatch_deadline_utc=f"2026-09-18T{deadline}:00+00:00",
+                    must_finish_before_utc=f"2026-09-18T{finish}:00+00:00")
+                self.authorize()
+                self.f.plan["authorization"]["confirmed_at_utc"] = "2026-09-17T16:22:00+00:00"
+                with self.assertRaisesRegex(e.Item32Error, "plan_binding"): self.f.load()
 
     def test_new_dispatch_start_is_inclusive_and_deadline_is_exclusive(self):
         self.f.load()
         previous = {"call_dates": ["2026-09-17"] * 34}
-        for clock, allowed in (("06:29:59", False), ("06:30:00", True),
-                               ("07:24:59", True), ("07:25:00", False)):
+        for clock, allowed in (("11:29:59", False), ("11:30:00", True),
+                               ("12:24:59", True), ("12:25:00", False)):
             with self.subTest(clock=clock):
                 now = datetime.fromisoformat(f"2026-09-18T{clock}+00:00")
                 budget = {"bucket_date": "2026-09-18"}
@@ -107,11 +110,11 @@ class SourceRetentionProfileTests(unittest.TestCase):
         self.f.load()
         previous = {"call_dates": ["2026-09-06"] * 2 + ["2026-09-15"] + ["2026-09-16"] * 11 + ["2026-09-17"] * 34}
         self.assertEqual(len(previous["call_dates"]), 48)
-        actual = e._admission_budget(self.f.plan, previous, now=datetime.fromisoformat("2026-09-18T06:31:00+00:00"))
+        actual = e._admission_budget(self.f.plan, previous, now=datetime.fromisoformat("2026-09-18T11:31:00+00:00"))
         self.assertEqual((actual["used_before"], actual["remaining_before"]), (0, 34))
         previous["call_dates"].append("2026-09-18")
         with self.assertRaisesRegex(e.Item32Error, "utc_budget_not_available"):
-            e._admission_budget(self.f.plan, previous, now=datetime.fromisoformat("2026-09-18T06:31:00+00:00"))
+            e._admission_budget(self.f.plan, previous, now=datetime.fromisoformat("2026-09-18T11:31:00+00:00"))
 
     def test_all_six_prior_locks_include_consumed_full_cycle(self):
         roots = []

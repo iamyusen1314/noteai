@@ -2,6 +2,16 @@
 
 ## Current execution control
 
+September18 owner explicitly confirms the same still-unexecuted Item32 cycle in
+11:30–13:00UTC (Beijing19:30–21:00), dispatch strictly before12:25UTC. Confirmation
+observed11:11:25UTC. Original06:30 window was missed due to our schedule timezone
+error; original F readback at11:08 proves no dispatch markers/work, not a fresh-DB
+quota proof. Original heartbeat is PAUSED; do not recreate it or run expired0c268d9.
+Bind the same original F/image/session/eight overlays and unchanged2+34/zero-retry/
+fresh0/34/readonly/quality/cleanup scope to this new confirmed window, then execute
+once in this thread at the actual clock. Preserve old48/UNKNOWN and all other
+production/H5/protected-file boundaries. Handoff CURRENT has evidence and package.
+
 September18 owner explicitly confirms the same unused additional Item32 cycle in
 06:30–08:00UTC (Beijing14:30–16:00), dispatch strictly before07:25UTC. Actual
 confirmation observed05:06:29UTC. Original00:00 window expired without dispatch;

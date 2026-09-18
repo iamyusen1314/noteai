@@ -5,15 +5,15 @@
     "bucket_date_utc": "2026-09-18",
     "current_utc_day_remaining_required": 34,
     "current_utc_day_used_required": 0,
-    "dispatch_deadline_utc": "2026-09-18T07:25:00+00:00",
-    "must_finish_before_utc": "2026-09-18T08:00:00+00:00",
-    "not_before_utc": "2026-09-18T06:30:00+00:00",
+    "dispatch_deadline_utc": "2026-09-18T12:25:00+00:00",
+    "must_finish_before_utc": "2026-09-18T13:00:00+00:00",
+    "not_before_utc": "2026-09-18T11:30:00+00:00",
     "provider_requests_planned": 34,
     "work_root": "/var/lib/noteai/item32-v5-source-retention-20260918"
   },
   "authorization": {
-    "approved_scope_sha256": "b941fa4cdb071b8a8c26e00ed47e815e9d18f97f18ad0fd3b3449bbf0ada65c1",
-    "confirmed_at_utc": "2026-09-18T05:06:29+00:00",
+    "approved_scope_sha256": "76dd8363e842b14b4fac8967bb79a74362ec8a1a6e164745b21ea8c2bca27fa7",
+    "confirmed_at_utc": "2026-09-18T11:11:25+00:00",
     "status": "AUTHORIZED"
   },
   "bounds": {
@@ -69,7 +69,7 @@
     "sha256": "6ee589052e1a8b2ed36434a2d97c2448964bc82f60589bfd3c8701e9c026ca48"
   },
   "outer_executor": "tools/execute_item32_readonly_trends_successor.py",
-  "outer_executor_sha256": "abfce7ec839b621d2873ebf1f288896b6c5a729a63f712c4c300b6edc68d3efe",
+  "outer_executor_sha256": "2a10995d9dd56e88a4701d28cead7085ca99357bd21fb6096a6b8b72b0fc857f",
   "physical_http_budget": {
     "collection": 34,
     "initialization": 2,

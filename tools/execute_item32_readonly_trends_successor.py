@@ -699,7 +699,7 @@ def _prepare_v5_profile(plan: dict[str, Any], adapter_path: Path, deadline: date
             previous_cycle = _source_retention_previous_binding(package)
             if (tuple(plan["admission"].get(key) for key in
                       ("not_before_utc", "dispatch_deadline_utc", "must_finish_before_utc")) != (
-                        "2026-09-18T06:30:00+00:00", "2026-09-18T07:25:00+00:00", "2026-09-18T08:00:00+00:00")
+                        "2026-09-18T11:30:00+00:00", "2026-09-18T12:25:00+00:00", "2026-09-18T13:00:00+00:00")
                 or plan["admission"].get("bucket_date_utc") != "2026-09-18"
                 or _json_bytes(plan.get("previous_v5_full_cycle_hold")) != _json_bytes(previous_cycle)
                 or _parse_clock(plan["authorization"]["confirmed_at_utc"]) <= _parse_clock(previous_cycle["finished_at_utc"])):

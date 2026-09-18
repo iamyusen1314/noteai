@@ -1,4 +1,47 @@
-# CURRENT EXECUTION CONTROL — September18唯一追加周期及新时间已明确授权
+# CURRENT EXECUTION CONTROL — September18晚间同一周期已确认；原调度保持暂停、到窗直接执行
+
+Owner明确选择“同意新时间，执行同一周期”，实际确认观察于**Sep18 11:11:25UTC**。
+唯一窗口 **11:30–13:00UTC／北京19:30–21:00，启动严格早于12:25UTC／20:25**。
+这是同一尚未执行周期的时间变更，原2初始化＋34采集/零重试/原F/镜像/会话/8overlay/
+fresh0/34/只读/质量/恢复范围全部不变。原heartbeat保持PAUSED，本线程到窗实际执行，不另建唤醒。
+canonical现已AUTHORIZED，26846B/SHA`08ac5f6fa017273f29bbefe9554dd20800c618ff30523a7f25ee6797f9c42fc9`；
+scope SHA`76dd8363e842b14b4fac8967bb79a74362ec8a1a6e164745b21ea8c2bca27fa7`，
+outer executor SHA`2a10995d9dd56e88a4701d28cead7085ca99357bd21fb6096a6b8b72b0fc857f`。
+本地完整load_plan通过，八份业务overlay/历史绑定及请求限额逐字保持。
+20项定向profile/gate通过2.977s；包含早于11:30拒绝、12:25严格拒绝及两过期窗口拒绝。
+前两轮测试有旧06:31样本、旧synthetic observation08:30导致失败，仅修正fixture时间后通过，未放宽验收。
+私有四helper新副本在原private root的`evening-window-20260918/`；只改package确认/窗口、
+template确认字面量及staging派生SHA，原件保留；11项隔离测试0.802s通过。新固定包/真实结果随后追加。
+
+## September18原触发故障与未执行证明（已解决排程原因；不补跑过期包）
+
+Owner询问定时未开始；本次实际时钟11:06:02UTC／北京19:06:02，已过07:25启动截止。
+原线程准备结束至本次询问没有定时执行回合。此前“已安排14:30”的报告仅核实配置保存，
+未核实调度器计算的真实触发时刻，核验不充分。当前应用对该日期限定规则走UTC解析，
+将14:30解释为14:30UTC／北京时间22:30；静态函数及离线复现证据后续追加，不把它说成调度运行日志。
+
+精确离线复现已完成：安装包原`EI→pI→fI`及其原RRule依赖，在Asia/Shanghai下以原created_at
+或updated_at输入均计算`2026-09-18T14:30:00Z`／北京22:30，单次无随机延迟。私有证据
+`/Users/openclaw/.codex/tmp/noteai-item32-network-repair-20260917/scheduler-timezone-repro-20260918.json`
+5621B/SHA`63a62809103a7503c6e8827f97f3c208b557e0a8b3bcab8087f650e630b7a100`；
+没有执行应用主模块、调度或读取内部DB，故不宣称读取了内部nextRunAt。晚间新时间/包绑定独立审查无阻断。
+
+- 原F一次只读于11:08:08.494370UTC返回 **NOT_DISPATCHED**：四个dispatch标记与固定work均不存在，
+  wrapper及534B原暂存回执的摘要保持。安全原件
+  `deploy/production/evidence/production-item32-missed-window-readback-20260918.json`。
+  本次检查供应商HTTP0、DB操作0；没有运行默认入口，没有初始化或消耗本周期采集。
+  原48采集/UNKNOWN不变；生产实时fresh配额仍未查询，不以文件缺席代替fresh证明。
+- 原heartbeat `noteai-item32-sep17` 已原位暂停，工具成功及配置PAUSED读回核实；
+  updated_at11:07:30.592UTC，3130B/SHA`8f4e609a20812fa7d96a11fb37918ac24038e21ef0c67c09ef52d25d5c39eb16`。
+  未新建或改期；过期canonical/源码0c268d9/host固定包保留历史，AUTHORIZED字段不准许过窗执行。
+- 当时下一步时间提案（**已于11:11:25确认，当前以顶部为准**）：同一个未执行周期改为Sep18 **11:30–13:00UTC／北京19:30–21:00，
+  启动严格早于12:25UTC／20:25**。沿原F/镜像/会话/8overlay/固定work，现场fresh0/34，最多2初始化＋34采集，
+  零自动重试，原领域/真实来源/质量、DB前后只读、隔离结果及必要恢复不变，无新采购/模型/其他部署。
+  Owner原授权明确禁止失窗启动及自动改期，故只需集中确认这个时间变更；原调用范围不重新申请。
+  确认后精确重绑计划/执行器/验收时间并定向验证，在本线程实际窗口内执行唯一入口，避免再依赖未核实时区的唤醒。
+  未确认、失窗或失败不补跑；Item32仍未通过，Readiness32/37，Item33未启动。
+
+## September18 05:06授权与05:22准备（已过期历史，不可执行）
 
 Owner已确认“同意新时间，执行唯一周期”，实际确认观察于**2026-09-18 05:06:29UTC**。
 批准窗口为**Sep18 06:30–08:00UTC／北京14:30–16:00，启动严格早于07:25UTC／15:25**。

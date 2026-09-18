@@ -1,4 +1,21 @@
-September18 05:06:29UTC CURRENT — owner explicitly confirmed the changed time for
+September18 11:11:25UTC CURRENT — owner confirms the same unused cycle at
+11:30–13:00UTC/start<12:25. Canonical AUTHORIZED SHA08ac5f6f…, full loader and20
+targeted time/contract tests pass; original eight business overlays/budget unchanged.
+New private helper copies bind the evening confirmation/window,11 isolated tests
+pass; old helpers/package retained. Original heartbeat stays PAUSED. This thread
+will dispatch once at the actual window after live fresh/runtime/readonly checks.
+No extra cycle or scheduler; completion still requires actual full acceptance.
+
+September18 11:08UTC HISTORICAL — the06:30UTC Item32 cycle did not dispatch: one
+original-F readonly check verified all four dispatch markers and work absent,
+wrapper/staging receipt unchanged, probe supplierHTTP0/DB0. Same heartbeat paused
+and verified at11:07:30UTC. The date-qualified rule used the app's UTC fallback,
+making14:30 mean22:30 Beijing; saved config was incorrectly treated as sufficient
+schedule verification. Do not run the expired authorized package. Proposed same
+unused cycle11:30–13:00UTC/start<12:25 is PENDING time confirmation, no new schedule.
+Full bounds and original evidence stay unchanged. Handoff CURRENT controls.
+
+September18 05:06:29UTC HISTORICAL — owner explicitly confirmed the changed time for
 the same unused Item32 cycle:06:30–08:00UTC, dispatch before07:25. Canonical is now
 AUTHORIZED (26846B/SHAf5008ce7…), exact local loading passes. Frozen source0c268d9
 package is staged on original API-F;20 members/8 overlays and original session/seals

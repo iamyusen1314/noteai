@@ -1,4 +1,21 @@
-September18 05:06:29UTC CURRENT: Owner explicitly confirms the changed06:30–08:00UTC
+September18 11:11:25UTC CURRENT: Owner confirms time change for the same unused
+cycle11:30–13:00UTC/start<12:25. No new cycle, retry, purchase or scheduler. Exact
+new canonical loads and20 targeted time/contract tests pass;11 private-helper
+tests pass. Original heartbeat remains PAUSED, expired packages remain sealed.
+Actual fresh0/34, runtime and readonly/quality/cleanup still need live evidence.
+All formal payment/Amap/reports/entitlements/H5 and seven protected paths unchanged.
+
+September18 11:08UTC HISTORICAL: Scheduling timezone interpretation was wrong. The
+date-qualified single occurrence takes UTC fallback in the installed app;14:30
+means22:30 Beijing. Configuration persistence did not establish the intended
+next fire time. Original-F readonly check proves this cycle NOT_DISPATCHED, no
+dispatch markers/work, original wrapper/receipt intact; no new supplier/DB calls.
+Expired heartbeat paused and verified. Do not blame user sleep/login or XHS with
+no evidence. No late dispatch. Same unused cycle11:30–13:00UTC/start<12:25 is only
+a proposed time change, PENDING owner confirmation; no new schedule or live package.
+Original48/UNKNOWN, full acceptance and all production boundaries are preserved.
+
+September18 05:06:29UTC HISTORICAL: Owner explicitly confirms the changed06:30–08:00UTC
 window, dispatch before07:25, for the same one unused cycle. Canonical authorized
 scope and local loader verified; fresh0/34, actual runtime/readonly/quality and
 cleanup still require execution-time evidence. No early/late dispatch, automatic
