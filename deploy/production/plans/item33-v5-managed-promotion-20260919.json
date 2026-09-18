@@ -1,0 +1,47 @@
+{
+  "accepted_source_sha256": {
+    "model/hot_keywords.py": "77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d",
+    "model/market_timing_worker.py": "ad5eb9d65cbe7b1b4919d388770260af8b490bd1ab72d52e32ee6a927f831e1f",
+    "model/scheduler_a.py": "2cd8bbd094e0013fb023675618a532715a194afcde684715d5692150524f1f5b",
+    "model/security_redaction.py": "09e31604f6d52d7fb101b38c1856d9388b6ce5e1612cc2c67095344ce725f694",
+    "model/spider_xhs_http.py": "04c94f75ea34cd1d136f0db6808abed35d0c0007081d225a15af20e05fc12d93",
+    "model/spider_xhs_v5.py": "d76bdc50578c886cdf1451cc03a204bb628c036c6c3da767d8e5e50361885dae",
+    "model/trends_contract.py": "5ee865bad89fa8a96b3f0c35f02e2412958f07bf87ba158bab5796ba7da12a3c",
+    "model/vendor/spider_xhs/v5/trends_bridge.js": "37152cb6c704da670f95df066f0b4e665588610eb1836daaaf05754c5ec81cd7"
+  },
+  "activation_id": "3b89fd1b-2162-4386-9548-e7529ac956df",
+  "activation_identity_sha256": "fd005a99a83ac513489692497b9e4391f65e41e4fae6e2cafe3d83507acc443f",
+  "authorization_basis": "Owner Sep13 formal 37-item delivery; Sep15 and later after real Item32 continue Item33; no new resources",
+  "authorization_kind": "standing_follow_on",
+  "bucket_key": "2026-09-19",
+  "dispatch_before": "2026-09-19T01:35:00+00:00",
+  "ends_at": "2026-09-19T02:30:00+00:00",
+  "host_instance_id": "i-wz9bgztwf1tiakww2ops",
+  "image_config_sha256": "6d5dcf058c5a0990ba7df3103f63e414de69b62b0ec3481c08490d66ae30b703",
+  "instrumentation_sha256": {
+    "scripts/render_run_market_timing.sh": "893533532eee48a5fae136b15f93c44de81ba0996540b52d82e219cfbca57e4e",
+    "tools/item33_trends_dml_capture.py": "5ebbde0b35c0da33c2104a158add3e732734301194163aace30a30a9126e1fb7",
+    "tools/item33_trends_runtime_capture.py": "e4b89f209538c20dd2adde083cfe7e431e45300603e15a4014361dfd9f6b684b"
+  },
+  "limits": {
+    "automatic_retry": 0,
+    "collection": 34,
+    "cycles": 1,
+    "initialization": 2
+  },
+  "operator_role": "noteai_admin",
+  "recorded_at": "2026-09-18T13:21:15.928096+00:00",
+  "schema": "noteai.item33.runtime_plan.v1",
+  "scope_notes": [
+    "Original API-F only; no new cloud resources or purchases.",
+    "Item32 Sep18 allocation consumed; fresh Sep19 bucket must be proven live.",
+    "Inspectors use enforced read-only transactions; managed Trends may write only its existing eight-table contract.",
+    "Temporary capture installation/removal control-plane DDL is separate from zero business DDL; preserve billing/payment/authentication and all unrelated services.",
+    "UNKNOWN retains original phase/actions for readback; no automatic replay or second cycle.",
+    "Provider/network fees UNKNOWN until actual accounting evidence.",
+    "Original normal daemon handoff requires true full cycle, cleanup and teardown, not a single HTTP success."
+  ],
+  "source_revision": "94d101b2cd48a3c5d83235083cc715de245b3e34",
+  "starts_at": "2026-09-19T01:00:00+00:00",
+  "status": "AUTHORIZED"
+}

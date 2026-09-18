@@ -1,6 +1,20 @@
 # Item33 八表 DML 部件 — 2026-09-15
 
-## 已完成范围
+## September18 当前增量
+
+现已补齐writer真实BEGIN/事务身份登记、计数提交通知、持续LISTEN、fsync journal、start/end
+barrier、封口后的独立catalog及连接/线程关闭证明，并新增仅本次activation的安装/拆除和
+PRE_CYCLE恢复SQL。94d101b已补齐完整catalog拒绝时仅撤销本activation的独立恢复，
+35项teardown/outer及3项IO恢复测试通过。原F仅暂存56源码/11运行文件，未安装捕获或执行业务；
+唯一Sep19 08:45北京续执行已核实，09:00–10:30周期且启动<09:35，现场fresh和原验收仍待证明。
+八份accepted Item32业务源码不变，额外两份hook及launcher独立绑定。
+实际实现、定向测试及仍未执行的生产边界以
+`docs/ITEM33_CURRENT_PROMOTION_PREPARATION_20260915.md`顶部为准。
+本地通过不等于真实八表写入/正式Item33通过；没有触碰Item31/5ce或Item34。
+
+以下September15内容保留当时边界，未实现的表述不再代表最新本地实现。
+
+## September15 已完成范围
 
 新增 `tools/item33_trends_dml_capture.py` 与对应测试，提供纯 SQL 生成、真实事务通知记录的
 去重/聚合和原 Item33 八表/atomic-publish 合同子集检查。模块没有连接选择、生产 CLI、

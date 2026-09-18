@@ -1,0 +1,57 @@
+{
+  "schema": "noteai.item33.automation-config-readback.v1",
+  "observed_at_utc": "2026-09-18T13:42:57.353840+00:00",
+  "automation_view": {
+    "id": "noteai-item33-sep19",
+    "is_error": false,
+    "result": "Rendered automation card in the app.",
+    "next_run_at_not_returned": true
+  },
+  "config_ref": "/Users/openclaw/.codex/automations/noteai-item33-sep19/automation.toml",
+  "config_bytes": 2984,
+  "config_sha256": "db366d9ec588ad949da892917f63de26d70e3c544d07348547795cfcf8fe5ee5",
+  "id": "noteai-item33-sep19",
+  "name": "NoteAI Item33 Sep19 唯一受控验收",
+  "kind": "heartbeat",
+  "status": "ACTIVE",
+  "rrule": "RRULE:FREQ=YEARLY;COUNT=1;BYMONTH=9;BYMONTHDAY=19;BYHOUR=0;BYMINUTE=45;BYSECOND=0",
+  "target_thread_id": "01a0a50d-985c-7140-9db2-3bde812717bd",
+  "created_at_ms": 1789738907873,
+  "created_at_utc": "2026-09-18T13:41:47.873000+00:00",
+  "created_at_beijing": "2026-09-18T21:41:47.873000+08:00",
+  "prompt_checks": {
+    "wake_time": true,
+    "cycle_window": true,
+    "strict_cutoff": true,
+    "source_revision": true,
+    "manifest": true,
+    "plan": true,
+    "no_unknown_replay": true,
+    "pause_after_terminal_or_missed_window": true
+  },
+  "existing_configs": [
+    {
+      "id": "item34-24h-3d-observation",
+      "status": "PAUSED"
+    },
+    {
+      "id": "noteai-20",
+      "status": "PAUSED"
+    },
+    {
+      "id": "noteai-item32-sep17",
+      "status": "PAUSED"
+    },
+    {
+      "id": "noteai-item33-sep19",
+      "status": "ACTIVE"
+    }
+  ],
+  "only_active_automation_is_this_item33": true,
+  "candidate_wake_utc": "2026-09-19T00:45:00Z",
+  "candidate_wake_beijing": "2026-09-19T08:45:00+08:00",
+  "candidate_wake_source": "Existing installed-app pure-function computation; not internal persisted nextRunAt",
+  "internal_database_read": false,
+  "automation_mutated_by_reviewer": false,
+  "production_access_by_reviewer": false
+}

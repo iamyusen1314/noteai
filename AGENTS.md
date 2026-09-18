@@ -7,9 +7,12 @@ September18 actual Item32 sourcee7f3345 cycle is now VERIFIED:11:30:09–11:30:3
 15 each, original four-artifact gate PASS and complete readonly/cleanup proof.
 Readiness33/37; exact originals and restore-only paths are at Handoff CURRENT.
 This one-shot and Sep18 quota are consumed; no default replay or new Item32 cycle.
-Heartbeat remains PAUSED. Continue existing-authorized Item33 local V5/DML wiring;
-its production cycle needs a later UTC fresh bucket and complete live prerequisites,
-not the old a78/three-overlay entry. No Item33 production schedule exists yet.
+Item32 heartbeat remains PAUSED. Item33 source94d101b is now staged on original F,
+provider/DB operations0 and unit unchanged. One verified heartbeat noteai-item33-sep19
+prepares September19 00:45UTC (08:45Beijing); window01:00–02:30UTC, dispatch strictly
+before01:35UTC. Live fresh0/34 and all original prerequisites are mandatory. Use the
+bound source/manifest and recovery phases at Handoff CURRENT, never old a78 entries.
+This is not Item33 acceptance; no late dispatch, retry or automatically added cycle.
 Preserve old UNKNOWN/failures, formal services, H5 ownership and protected paths.
 
 September18 owner explicitly confirms the same still-unexecuted Item32 cycle in

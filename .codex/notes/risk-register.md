@@ -6,10 +6,14 @@ process/container/runtime cleanup prove closure;48old records+V1seal unchanged.
 Old initialization UNKNOWN1 and V1 failure remain historical facts. Current success
 proves the new path, not the old failure's sole root cause. Today's34 allocation is
 consumed despite production DBtoday0 under isolation. Fees UNKNOWN, no purchases.
-Original heartbeat PAUSED; no default replay or new32 cycle. Item33 localV5/DML
-wiring now proceeds under existing scope; later UTC fresh bucket required, not yet
-scheduled. Payment/Amap/reports/rights/Item34/H5/seven paths preserved. Exact evidence
-and restore-only entrypoints: Handoff CURRENT.
+Original32 heartbeat PAUSED; no default replay or new32 cycle. Item33 source94d
+staged on originalF with provider0/DB0/unit unchanged. The exact PRE_CYCLE recovery
+gap is fixed and tested; real capture/cleanup/normal handoff still need validation.
+One ACTIVE noteai-item33-sep19 heartbeat is verified for Sep19 00:45UTC preparation,
+01:00–02:30UTC cycle/start<01:35. Pure scheduler computation is not internal nextRunAt;
+host/Codex must stay running. Late wakeup cannot dispatch or auto-reschedule.
+Payment/Amap/reports/rights/Item34/H5/seven paths preserved. Exact source, plan,
+recovery and remaining production acceptance: Handoff CURRENT.
 
 September18 11:11:25UTC HISTORICAL: Owner confirms time change for the same unused
 cycle11:30–13:00UTC/start<12:25. No new cycle, retry, purchase or scheduler. Exact

@@ -3,8 +3,11 @@ sourcee7f3345 with8overlays. Actual unique cycle11:30:09–11:30:36UTC:36HTTP(2i
 sixdomains90valid rows, productionDB readonly0writes and full cleanup. Original
 four artifact gate passes; readiness33/37. API-C/Admin/Payment/Amap/public web
 not deployed or changed. Same heartbeat PAUSED and consumed default cannot replay.
-Item33 must now adapt managed V5 source and real DML instrumentation; laterUTC
-bucket required, no production promotion scheduled. H5 work remains separate.
+Item33 source94d101b managed V5/DML/precise recovery is staged on originalF,
+provider0/DB0/unit unchanged. Unique noteai-item33-sep19 heartbeat verified ACTIVE,
+Sep19 00:45UTC prepare;01:00–02:30UTC cycle/start<01:35, fresh0/34 live required.
+No capture installed or promotion yet; Handoff CURRENT binds artifacts/recovery.
+H5 work remains separate.
 
 September18 11:11:25UTC HISTORICAL — owner confirms the same unused cycle at
 11:30–13:00UTC/start<12:25. Canonical AUTHORIZED SHA08ac5f6f…, full loader and20

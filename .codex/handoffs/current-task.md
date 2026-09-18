@@ -1,4 +1,4 @@
-# CURRENT EXECUTION CONTROL — September18 Item32真实VERIFIED；接续Item33本地接线
+# CURRENT EXECUTION CONTROL — September18 Item32真实VERIFIED；Item33源码已暂存、唯一续执行已核实
 
 **Item32已通过，Readiness33/37；余33、36、37、38。** 原始四artifact已完整保存并经
 `validate_item32_trends_evidence`实际校验errors=[]；canonical更新后原readiness gate返回
@@ -25,7 +25,7 @@ internal29/29、public33/37，仅Item33为当前可推进项。不是凭exit0或
 原F stage`/var/lib/noteai/item32-v5-source-retention-package-20260918-e7f3345`、work
 `/var/lib/noteai/item32-v5-source-retention-20260918`保持。**默认dispatch已消费，不再运行。**
 恢复只用包内wrapper`--readback-only`、executor`--v5-source-retention-readback-only`及原封存文件；
-缺失或UNKNOWN不补调用。原heartbeat`noteai-item32-sep17`保持PAUSED，无新自动化。
+缺失或UNKNOWN不补调用。原heartbeat`noteai-item32-sep17`保持PAUSED，无新增Item32自动化。
 
 | 原证据（均deploy/production/evidence/） | bytes | SHA256 |
 | --- | ---: | --- |
@@ -43,12 +43,47 @@ Cloud Assistant长输出24575B截断，改只读原final四片取回；两条rea
 后续final reader实际包含保留结果读回。原12101B导出仅一次读取；本机桥因浏览器空闲预连接排队，
 关闭页面后原POST完成、server exit0，实际5文件完整验证；未重传或创建v2。所有本机桥及临时页面已关闭。
 
-当前接续：Item33 V5 renderer/host和其gate兼容正在本地实施，writer事务/listener/journal/callback仍需接线。
-真实32通过及原internal rollback已满足既有授权依赖，不重复申请Item32周期；Item33必须更晚UTC fresh桶，
-最早Sep19 00:00UTC／北京08:00只是下界，**尚无生产排程或可执行完整CLI**。完成接线/定向测试和
-现场前置后再确定有效窗口；不直接运行旧a78/三overlay方案。36原双区ALB＋双EIP费用授权保留，待33等前置，
-不提前创建。34 VERIFIED、35 NOT_REQUIRED、原微信31终态复用；H5/套餐/视频积分归独立worktree，七保护路径不动。
-本checkpoint只提交本线程32原件/canonical/说明；并行33代码由各代理明确持有，不混入本次32 checkpoint。
+当前接续：**Item33已完成源码接线与原F暂存，尚未安装数据库捕获或启动生产周期，不计通过。**
+源码checkpoint `94d101b2cd48a3c5d83235083cc715de245b3e34`包含完整outer与最小恢复修复；
+旧`b291bd2`及私有`source-package-b291bd2`封存未使用，从未暂存。安装成功但catalog不合验收时，
+现有独立PRE_CYCLE恢复仅撤销本activation对象；35项teardown/outer测试（含8真实PG）及
+3项IO恢复测试通过，独立审查无阻断。原Item32八overlay/执行器不变。详细操作及测试见
+`docs/ITEM33_CURRENT_PROMOTION_PREPARATION_20260915.md`，本地测试不替生产计分。
+
+- 原F stage `/var/lib/noteai/item33-source-staging-20260918-94d101b`，source root
+  `/var/lib/noteai/item33-trends-promotion/source`。唯一43条源码暂存命令全部成功，无重发；
+  56源码/11运行文件、19模块纯stdlib加载、两项原依赖实核通过。archive486607B/SHA
+  `42764f02849f5405d02fdeb3c1a7a524a59db1e91707c5cc46ceab71d81785e5`；manifest6652B/SHA
+  `f89077be2a5065fe8c87bb5ce51649ccdefbbc17baadb1897074360854de41c7`。
+- 原host `source-staged-result.json`一次只读取回原字节，repo安全原件
+  `deploy/production/evidence/production-item33-source-staged-20260918.json`：999B/SHA
+  `f7c7b71ba786f477db337e6487fdc4bbffa19a406f3f1f0d8dc97b752939622e`。
+  state=SOURCE_STAGED_NOT_EXECUTED，provider_calls0/database_operations0/unit_changed=false，collector未启动。
+  原DMS两条catalog SELECT及F依赖probe是先前只读准备，不能据此宣称fresh或已安装capture。
+- 正式计划`deploy/production/plans/item33-v5-managed-promotion-20260919.json`：2939B/SHA
+  `50c2ff3ce72eaefec407c3e32206d59b5de9b264fb4389497b6585cbd7acbb79`，记录13:21:15.928096UTC。
+  基于真实32通过后的既有Item33接续授权，不伪造新owner确认。唯一窗口 **Sep19 01:00–02:30UTC／
+  北京09:00–10:30，启动严格早于01:35UTC／09:35**，准备从00:45UTC／08:45开始。
+  必须现场证明更晚UTC桶fresh0/34；最多2初始化＋34采集、零自动重试，managed八表写入与
+  临时29项控制面DDL各自如实证明；检查器只读。完成13原件、拆除、正常daemon交接及原gate才计分。
+- 唯一heartbeat **`noteai-item33-sep19` ACTIVE**，实际创建13:41:47.873UTC，绑定当前thread
+  `01a0a50d-985c-7140-9db2-3bde812717bd`；工具create/view及配置读回已核，其他3项均PAUSED。
+  原配置2984B/SHA`db366d9ec588ad949da892917f63de26d70e3c544d07348547795cfcf8fe5ee5`；
+  安全核对投影`production-item33-continuation-scheduled-20260918.json`1886B/SHA
+  `ba361570565996e480d1f077089ace4d0336ff8c2af37fea69ed702bdf649944`。
+  安装应用原纯调度函数实算唯一唤醒 **Sep19 00:45UTC／北京08:45**、无jitter；这是计算与保存证据，
+  不是读取内部nextRunAt或实际触发。Codex及本机必须保持运行；失窗不启动、不自动另排，终态/失窗暂停该项。
+- 固定CLI `source/tools/run_item33_trends_promotion.py PHASE --source-manifest-sha256`带上述manifest；
+  依次prepare-install、真实DMS安装COMMIT原回执、finalize-config、rehearse、prepare-teardown、
+  真实DMS拆除回执、finalize-teardown、normal。未知只读原结果，禁止重发；前周期失败用
+  prepare-recovery/实际精确撤销/finalize-recovery；已开始业务周期不得套用零采集清理。
+  本机源码桥已停止、临时源页关闭；原F与DMS独立SQLConsole保留给续执行，原支付SQL页保持。
+
+恢复点`834eb09`保存32原件/canonical；`b291bd2`保存33主实现，`94d101b`保存6文件恢复修复。
+本线程仅提交明确持有的33文件/安全证据/当前交接；本轮最后文档checkpoint由Git实际后继确定，
+不会改变生产固定source94d绑定。现有私有原包、Git与原F已暂存源码复用，不重复备份或push。
+36原双区ALB＋双EIP费用授权保留，待33等前置，不提前创建；34 VERIFIED、35 NOT_REQUIRED，
+原微信31终态复用；H5/套餐/视频积分归独立worktree，七保护路径、正式支付/高德/报告/权益均不动。
 
 # September18晚间授权与暂存记录（已执行完成，禁止重放）
 

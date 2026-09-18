@@ -1,5 +1,143 @@
 # Item33 当前本地准备 — 2026-09-15
 
+## September18 当前：源码94d已在原F暂存，唯一续执行已核实
+
+源码checkpoint `94d101b2cd48a3c5d83235083cc715de245b3e34`补齐安装后、正式周期前的独立恢复。
+旧`b291bd2`私有包封存未使用；最后恢复检查发现完整catalog失败会阻断原拆除，修复只允许精确
+原activation/body/28trigger撤销，并保留NOWAIT/0run/0admission/无在途及UNKNOWN限制。
+35项teardown/outer测试通过（含8项真实PG）、新增3项IO恢复测试通过；独立审查无阻断。
+初始fixture时钟/输入错误修正后通过，未放宽真实验收。正常terminal仍要求完整catalog、seal、
+3连接关闭、拆除和normal handoff。Item32八份accepted业务源码和执行器未改。
+
+私有`source-package-94d101b`在无Git、无psycopg、network-none/readonly/tmpfs环境逐字校验，
+19固定模块和原依赖loader通过。原F43条唯一暂存命令成功、无重发，56源码/11运行文件核验通过；
+archive486607B/SHA`42764f02849f5405d02fdeb3c1a7a524a59db1e91707c5cc46ceab71d81785e5`，
+source manifest6652B/SHA`f89077be2a5065fe8c87bb5ce51649ccdefbbc17baadb1897074360854de41c7`。
+stage为`/var/lib/noteai/item33-source-staging-20260918-94d101b`，实际原回执999B/SHA
+`f7c7b71ba786f477db337e6487fdc4bbffa19a406f3f1f0d8dc97b752939622e`已一次只读取回repo
+`deploy/production/evidence/production-item33-source-staged-20260918.json`。
+**仅源码暂存：供应商0、DB操作0、unit不变、collector未启动，Item33尚未通过。**
+
+当前plan2939B/SHA`50c2ff3ce72eaefec407c3e32206d59b5de9b264fb4389497b6585cbd7acbb79`，
+recorded_at13:21:15.928096UTC；原私有13:04计划保留历史，同activation未执行。
+既有Item33接续授权下，唯一窗口 **Sep19 01:00–02:30UTC／北京09:00–10:30**，
+启动严格早于 **01:35UTC／09:35**，准备从00:45UTC／08:45开始。现场必须fresh0/34，
+最多2初始化＋34采集、零自动重试。Sep18的Item32消耗34不能因DBtoday0而重置。
+
+唯一heartbeat `noteai-item33-sep19`已于13:41:47.873UTC创建ACTIVE，绑定原线程；工具view及
+原配置2984B/SHA`db366d9ec588ad949da892917f63de26d70e3c544d07348547795cfcf8fe5ee5`读回核实，
+其他3项均PAUSED。安全投影在`production-item33-continuation-scheduled-20260918.json`。
+原应用纯调度函数算得Sep19 00:45UTC／北京08:45唯一唤醒，无jitter；未读取内部nextRunAt，
+未声称已触发。保持本机和Codex运行；晚于截止不启动、不自动改期，终态/失窗暂停该任务。
+本机源码桥已关闭，原F与DMS会话保留；原支付SQLConsole、H5 scope及所有正式服务不变。
+
+### 同一受控入口的实际操作顺序
+
+固定入口为`/var/lib/noteai/item33-trends-promotion/source/tools/run_item33_trends_promotion.py`，
+每次带`--source-manifest-sha256`实际固定值；只用原F和原DMS已登录noteai_admin会话。
+
+1. 核真实时钟、固定源码、原Item32封存与七锁、原3ed7 suspended unit/18f72会话、无旧在途。
+   00:45前只读准备；`prepare-install`只导出SQL和真实catalog，不执行DDL或供应商请求。
+2. 在独立DMS SQLConsole执行**原install.sql完整事务一次**，保留实际执行记录/成功COMMIT与
+   操作开始和完成观察时刻；未知不填写COMMITTED或重发。将实际回执O_EXCL保存为
+   `capture/operator-install-execution.json`，再运行`finalize-config`。
+3. 到01:00且严格早于01:35时仅运行一次`rehearse`，云助手外层超时应容纳35分钟及恢复。
+   collector READY及实际fresh0/34后才promote；本周期最多2初始化＋34采集，物理HTTP和admission
+   独立记录、零自动重试。真实source/质量/SQL/事务journal及单例rollback/reapply全部满足才向下。
+4. `prepare-teardown`只导出原SQL；DMS实际执行29项精确DROP事务后保存原回执
+   `capture/operator-teardown-execution.json`，再`finalize-teardown`。确认3连接关闭、collector无残留，
+   才`normal`交接同八源码的正常daemon；同桶只读skip，不多采一轮。
+5. 保存host生成的13份原件和terminal candidate原字节，逐份bytes/SHA验证并运行原Item33 gate。
+   `TERMINAL_CANDIDATE_ASSEMBLED_NOT_GATE_CREDITED`不是Item33通过；真实通过后才更新canonical分数。
+
+### 安装后前周期失败的独立恢复（94d已验证）
+
+`prepare-recovery`只允许原COMMITTED安装回执及SQL绑定、实际unit已停/worker0/collector0，
+读取真实`recovery-before` catalog，导出`outer/pre-cycle-recovery.sql`；原失败记录保留。
+SQL只对本activation的函数/body及28个trigger做精确核对、NOWAIT锁、原桶run/admission0和全局无
+running/UNKNOWN检查，29项DROP无CASCADE、无业务DELETE/ACL改变。其他ACL/FK不合验收不阻断撤销本对象。
+任何对象身份漂移、活动或未知不伪造清理成功。恢复可跨日，真实观察日期与原activation桶分别保留。
+
+DMS真实成功后回执为`capture/operator-pre-cycle-recovery-execution.json`，schema
+`noteai.item33.pre_cycle_recovery_execution.v1`、status COMMITTED、activation_identity_sha256、
+operator_role、sql_sha256、真实started_at/committed_at、control_plane_ddl_count29、outcome_unknown_count0。
+`finalize-recovery`读取独立after，要求实际catalog等于before去掉本capture对象，才记
+`PRE_CYCLE_CAPTURE_REMOVED`且readiness_credit=false；存在恢复marker即不得再走rehearse/normal。
+已经开始过业务周期而没有完整seal的失败不适用零采集恢复：只读原action/IO/数据库与实际停态，
+处理具体未决状态，不重跑周期或冒充终态。一般UNKNOWN只用`readback-only`及原件读取。
+
+## September18 12:50UTC工程收口（仍未生产安装/采集）
+
+Item32原件与`834eb09`恢复点复用，Readiness仍33/37。Item33完整主机入口及源码包正在收口；
+**尚未创建定时续执行，尚未安装捕获、promotion、生产写入或供应商请求。** 今日剩余34额度为0，
+新的正式周期只能在Sep19或更晚UTC fresh桶。未来计划时点不等同已经安排或启动。
+
+已完成并定向验证的组件：
+
+- Controller/host/actions/teardown：V5真实来源继承、原子单例切换、一次rollback/reapply与同桶
+  normal handoff；66项组合通过，后续stdlib拆除改稿11项通过（含4真实PG和无site-packages加载）。
+  原F系统Python3.11.6确实无psycopg，纯验证已消除该主机依赖；数据库检查复用原6d5镜像。
+- 事务捕获与catalog：36项组合通过；后补线程存活/已知失败清尾拒绝，禁止以seal替代close。
+  只在无表/列写权限、无直接EXECUTE的禁止表上保留既有不可达保护trigger；八张可写表的
+  trigger/函数/FK/表达式路径仍严格核验。单列INSERT权限反例真实PG通过，未更改任何生产ACL。
+- Preflight8项及DB周期读回9项真实PG通过；物理HTTP reader11项、Item33 gate合计57个不同
+  用例通过。HTTP与实际34条admission绑定，初始化独立计数；Item32函数AST未改。
+- Collector service8项、真实事实组装14项通过；before READY先验证实际catalog，封口后必须
+  3连接关闭/无线程未知/无failure文件/collector容器0。pure terminal assembler7项通过原Item33
+  gate的完整合成证据用例；这些仍是本地测试，不是生产验收。
+- Container IO15项加安全失败保留2项通过，并实测Linux memfd seals；仅原Trends DATABASE_URL
+  在内存传给检查/collector，不传Cookie或SSK，不落日志。Docker行为为注入测试，未在F运行。
+- Runtime CLI8项通过，含2项真实隔离PG安装/失窗事务回滚；单次cycle最多61次只读状态观察，
+  每30秒一次，成功后读原周期，失败/needs_manual/多run即停。这些是DB观察，不是业务重试。
+  测试先有重复模块类型、已有crawler_events fixture冲突，修正测试接线后通过；没有生产重试。
+
+原F仅增加一次host依赖只读probe：`12:42:25.716046UTC`、Python3.11.6、psycopg=false，
+供应商0/DB0/服务变更0，原件投影见`production-item33-host-python-readonly-20260918.json`。
+加上原DMS两条catalog SELECT，仍没有DDL/ACL/业务数据变更。所有本任务隔离PG容器与卷已清理。
+
+生产源码包只带Item33代码及两项已接受依赖的有限原件；本地原rollback Git单项校验errors=[]已
+固定成`item33-dependency-validation.json`（SHA1dd9cc4a…18d039），F逐字重核原证据/validator/source，
+Item32仍运行原四artifact语义校验。不会在F复制整个仓库、Git历史或重跑全部37项。
+
+安装后任何前周期失败都有精确activation/body/trigger guard的PRE_CYCLE拆除SQL，要求run/admission0；
+正式周期后只有真实seal/catalog/close证明才能生成终态拆除。控制面安装/拆除DDL单独计数，
+不得混入业务DDL0；其他支付/媒体保护及普通用户服务保持。
+
+## September18 12:05UTC阶段历史（工程进行中，未启动生产周期）
+
+Item32已在source `e7f3345`、原F/6d5镜像/八overlay上真实通过，原终态SHA
+`1456a938acba00a12a9b547dd13e4054ef89b4bca05597363808007be28eb584`，checkpoint `834eb09`。
+今日Sep18隔离采集消耗34，即使生产DB今日0也不能再次称fresh。Item33需更晚UTC桶，
+最早Sep19 00:00UTC仅为下界；当前没有可执行完整CLI、生产排程或新增周期。
+
+已完成本地组件：
+
+- V5 controller/host actions：绑定原accepted终态、6d5/87b9镜像及八份源码；验收activation
+  与daemon首次INSERT时生成的真实run身份分开。保留原入口allowlist及原3ed7 suspended unit
+  CAS恢复，旧legacy分支保留。39项隔离测试通过，独立源码审查未发现阻断。
+- 真实PG16 preflight：专属角色/表列序列ACL、外schema写权限、UTC fresh ledger及server-enforced
+  readonly/noXID/rollback；8项真实PG16隔离测试通过。capture范围与业务DDL证明仍单独处理。
+- 真实PG16 cycle reader：同一REPEATABLE READ READ ONLY事务核对真实run/34attempt identities、
+  snapshot原字节摘要及原六域质量/两来源规则，输出实际health/freshness和ledger；缺失物理HTTP、
+  DML、DDL、重试证据不填0或true。9项真实PG16测试通过（含非UTC会话还原），测试资源已清理。
+- V5 gate原29项＋新10项局部测试通过，仍在接真实journal/seal；此局部结果不是最终gate放行。
+
+仍在实施：writer BEGIN后登记/ACK、持续LISTEN与fsync journal/count封口、真实触发器/规则/FK
+可达范围核对、安全HTTP日志投影、实际host/DB/collector callbacks及终态组装。instrumented unit
+仅限验收UTC桶；必须在封口及同桶rollback/reapply后，以同镜像/八源码恢复正常launcher并真实读回，
+才能作为长期managed服务交付，不把验收临时hook跨日拒绝当作正式服务完成。
+
+原DMS现有登录读到DB时刻20:05:09.668902+08／12:05:09.668902UTC，执行唯一系统catalog SELECT成功：noteai_admin、PG160013、
+public CREATE=true、八表owner成员可管理、已存在Item33函数0。安全准备证据在
+`deploy/production/evidence/production-item33-control-plane-readonly-preparation-20260918.json`。
+无DDL/ACL/业务数据修改、无供应商调用；这不证明runtime角色fresh、capture安装或Item33终态。
+原支付SQLConsole保留，使用独立新SQLConsole 1；正式微信/高德/报告/权益与H5 worktree均未改动。
+后续第二次只读函数目录查询发现两份既有媒体保护trigger函数；body摘要与原迁移0026/0028逐字一致，
+security-definer=false。其原代码只校验NEW/OLD、无DML；正式catalog仍需核真实绑定/返回类型及可达性。
+不因这些已知保护函数而移除权限、停用保护或把全库重审加为新门禁。实际安全元数据同上证据。
+
+以下旧日期状态保留历史，由本节与Handoff CURRENT覆盖。
+
 ## September17 16:30UTC定向依赖核对（未启动Item33）
 
 Item32 source1136898已完成36响应/34采集，但本地来源/数量验收失败，原件已封存HOLD；
