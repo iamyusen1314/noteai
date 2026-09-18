@@ -64,9 +64,8 @@ function nativeAllowed(kind,id) {
 }
 function nativeSyncControls() {
   const notice=document.getElementById('public-pricing-notice');
-  if(notice) notice.textContent='赠送与购买同等权益使用同一正式流程，开放情况见服务状态。'+
-    (_nativeCapability?.canary_checkout ? '当前仅向已授权本人开放原价微信自测订单，公众收款尚未开放。' :
-      _nativeCapability?.ordering_available ? '微信扫码支付已开放；支付宝暂未开放。' : '支付暂未开放，现有账户权益正常使用。');
+  if(notice) notice.textContent='赠送与购买同等权益使用同一正式流程。'+
+    (typeof productPaymentDisclosureText==='function' ? productPaymentDisclosureText(_nativeCapability) : '付款状态暂无法确认，请以结算页当前查询结果为准。');
   document.querySelectorAll('[data-product-action="handleUpgrade"],[data-product-action="handleTopup"]').forEach(el=>{
     let args=[];try{args=JSON.parse(el.dataset.productArgs||'[]');}catch(_){}
     const kind=el.dataset.productAction==='handleUpgrade'?'subscription':'credit_package';
@@ -82,6 +81,7 @@ function nativeSyncControls() {
     const button=document.createElement('button');button.id='native-order-history';button.type='button';
     button.textContent='查看本人支付订单';button.addEventListener('click',nativeShowOrders);pricing.append(button);
   }
+  if(typeof renderProductFacts==='function')renderProductFacts();
 }
 function nativeCloseCheckout() {
   clearTimeout(_nativeTimer);_nativeTimer=null;++_nativeViewGeneration;

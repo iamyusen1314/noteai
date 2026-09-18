@@ -2461,6 +2461,9 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .dot-red{background:var(--error)} .dot-amber{background:var(--warning)} .dot-blue{background:var(--accent)}
 /* responsive */
 @media(max-width:900px){
+  #avatar-picker-modal>div{box-sizing:border-box;min-width:0;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto}
+  #avatar-picker-grid{grid-template-columns:repeat(auto-fit,minmax(44px,1fr))!important;min-width:0}
+  #avatar-picker-grid>button{min-width:0;max-width:100%;min-height:44px}
   .x-display{font-size:clamp(44px,10vw,72px);letter-spacing:-2.5px}
   .x-screen-body{grid-template-columns:1fr}
   .x-feat-in{grid-template-columns:1fr;gap:48px}
@@ -4622,30 +4625,30 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-legal" style="padding-top:60px;min-height:100vh">
   <div style="max-width:860px;margin:0 auto;padding:48px 24px">
-    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);margin-bottom:10px">版本 <span id="legal-version">first-launch-2026-07-25</span></div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--holo-mid);margin-bottom:10px">版本 <span id="legal-version">当前披露待核实</span></div>
     <h1 style="font-size:34px;color:var(--text);margin:0 0 10px">服务、隐私、留存与退款说明</h1>
-    <p style="color:var(--text-2);line-height:1.8">以下为已实现的产品合同。当前免费体验使用 Kimi 国内API处理你主动提交的创作文本；不收取真实款项，不自动订阅。</p>
+    <p id="legal-current-summary" style="color:var(--text-2);line-height:1.8">正在读取当前服务披露；支付、处理路由及退款条件尚未确认。历史协议接受记录不作为当前运行状态的证明。</p>
     <div style="display:grid;gap:14px;margin-top:28px">
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">账户安全</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">手机号在首次绑定、手机注册、验证码登录和找回密码前必须验证。验证邮箱可作为备用找回渠道。修改或重置密码会撤销全部会话；验证码测试适配器禁止用于生产。</p>
+        <p id="legal-account-facts" style="color:var(--text-2);line-height:1.8;margin:0">正在读取账户恢复与联系方式验证说明。</p>
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">归档、恢复与导出</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">免费创建的笔记、诊断与版本在线保留7天，随后可恢复7天；滚动备份在到期后30天内清理。付费期间创建的归档在账户存在期间无产品到期日，降级不会删除，并可导出。临时原始媒体、供应商原始响应、普通日志及依法留存的财务/安全记录不属于归档导出。</p>
+        <p id="legal-retention-facts" style="color:var(--text-2);line-height:1.8;margin:0">正在读取归档留存、恢复与导出说明。</p>
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">隐私与跨境</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">系统按最小必要原则处理账户、创作和安全审计数据。Claude 路径可能把必要文本从中国境内阿里云发送到新加坡 Gateway；默认先在境内处理图片，只发送必要文本。当前公开免费实例只使用境内 Kimi API，不启用上述跨境路径。阿里云号码认证及短信服务处理注册登录所需手机号与验证码，账户信息不发送给模型。</p>
+        <p id="legal-privacy-facts" style="color:var(--text-2);line-height:1.8;margin:0">当前素材、文字模型路由与跨境披露尚未确认；不据旧协议推定仅使用境内模型。</p>
       </section>
       <section class="billing-info-card" style="padding:22px;background:var(--surf-1);border:1px solid var(--border);border-radius:14px">
         <h2 style="font-size:18px;color:var(--text);margin:0 0 10px">退款与账户删除</h2>
-        <p style="color:var(--text-2);line-height:1.8;margin:0">真实支付网关尚未启用，因此当前不得收取真实款项。未来退款必须原路退回并与订单、回调和账本核对。可通过 ecfine@163.com 提交账户注销、数据导出或删除申请，我们核验本人身份后处理；主存储处理期限不超过24小时，滚动备份不超过30天，依法必须保留的记录除外。</p>
+        <p id="legal-refund-facts" style="color:var(--text-2);line-height:1.8;margin:0">付款状态与退款条件待核实。本人账户注销仍需原密码与确认，清理期限以服务端回执为准。</p>
       </section>
     </div>
     <div id="product-consent" style="display:none;margin-top:20px">
-      <label><input id="product-consent-checkbox" type="checkbox">我同意本页服务和隐私说明，主动提交的创作文本交由Kimi国内API处理。</label>
-      <button onclick="acceptProductContract()">确认并继续免费使用</button>
+      <label><input id="product-consent-checkbox" type="checkbox">我同意服务和隐私说明；协议接受记录沿用原版本，处理路由以当前披露和任务记录为准。</label>
+      <button onclick="acceptProductContract()">确认并继续使用</button>
     </div>
     <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
       <button onclick="showPage('landing')" style="padding:10px 16px;border-radius:9px;border:1px solid var(--border);background:var(--surf-2);color:var(--text);cursor:pointer">返回首页</button>
@@ -5180,6 +5183,109 @@ let _publicStatus = null;
 function publicImageOpen() { return (_publicStatus?.image_open ?? _publicStatus?.media_open) === true; }
 function publicVideoOpen() { return (_publicStatus?.video_open ?? _publicStatus?.media_open) === true; }
 const PUBLIC_PRODUCT_CONTRACT = 'free-product-2026-09-12';
+let _productDisclosure = null;
+let _productDisclosureAttempted = false;
+let _productDisclosurePending = null;
+function productPaymentDisclosureText(capability) {
+  const nativeRead = typeof _nativeCapabilityRead !== 'undefined' && _nativeCapabilityRead > 0;
+  const explicit = arguments.length > 0;
+  const value = explicit ? capability : nativeRead ? _nativeCapability : null;
+  const disclosure = !explicit && !nativeRead ? _productDisclosure : null;
+  const providers = value?.providers ?? disclosure?.payment_providers;
+  const enabled = value?.ordering_available ?? disclosure?.payment_enabled;
+  const status = disclosure?.payment_status;
+  const validProviders = (!disclosure || disclosure.payment_status_source === 'local_payment_capabilities')
+    && Array.isArray(providers) && providers.every(provider => typeof provider === 'string' && !!provider);
+  let text = '付款状态暂无法确认；请以当前结算页查询结果为准。';
+  if (validProviders && enabled === true && providers.length && (!disclosure || status === 'available')) {
+    if (value?.canary_checkout) {
+      const canary = value.canary_checkout;
+      if (providers.includes('wechatpay_direct') && ['subscription','credit_package'].includes(canary.product_kind)
+          && typeof canary.product_id === 'string' && canary.product_id.trim()) text = '仅本人授权的微信 Native 自测订单可下单，不能据此认定公众收款已开放。';
+    } else {
+      text = providers.includes('wechatpay_direct') ? '微信 Native 扫码支付当前可下单。'
+        : '服务端报告付款渠道可用；本页面对应购买入口仍待核实。';
+    }
+  } else if (validProviders && enabled === false && !providers.length && (!disclosure || status === 'unavailable')) {
+    text = '当前查询结果为不可下单；现有账户权益仍按账户记录使用。';
+  }
+  return text + '本页使用 Native 扫码流程；微信 H5 已申请、待审核，JSAPI 尚未接入，不能在手机本机直接拉起支付。';
+}
+function productRouteDisclosureText() {
+  const data = _productDisclosure;
+  if (!data) return '当前处理路由与跨境披露尚未确认，请查看服务说明中的查询状态；不据旧协议推定仅使用境内模型。';
+  const privacy = data.privacy || {};
+  const routes = Array.isArray(privacy.model_routes) ? privacy.model_routes.filter(route => route && typeof route.name === 'string' && ['generation_models','media_models'].includes(route.group)) : [];
+  const routeText = routes.length ? routes.map(route => route.name + (route.enabled === true ? '（配置已开放）' : route.enabled === false ? '（配置未开放）' : '（配置状态未记录）')).join('、') : '模型路由暂未返回';
+  const material = typeof privacy.material_processing === 'string' ? privacy.material_processing : '素材处理方式尚未确认';
+  const contexts = {submitted_creation_content:'主动提交的创作内容',selected_media_or_media_observations:'所选素材或素材观察',explicit_creator_preferences:'明确保存且适用的创作者偏好',current_task_context:'当前任务上下文'};
+  const contextText = Array.isArray(privacy.ai_context_data) ? privacy.ai_context_data.map(key=>contexts[key]).filter(Boolean).join('、') : '';
+  const credentialText = privacy.authentication_credentials_in_ai_context === false ? '认证凭据不进入模型上下文。' : '认证凭据的处理披露尚未确认。';
+  const crossBorder = data.cross_border?.possible_route === 'Alibaba_China_to_Claude_Gateway_Singapore'
+    ? '必要文本及适用偏好可能经阿里云中国境内传至 Claude Gateway 新加坡。' : '当前跨境路径尚未确认。';
+  return '已发布模型配置：' + routeText + '。' + material + '。' + (contextText ? '适用上下文包括' + contextText + '。' : '') + credentialText + crossBorder +
+    '上述为已发布配置说明，不是单次任务实际调用证明；以对应任务和用量记录为准。';
+}
+function productAuthDisclosureText() {
+  if(!_productDisclosure)return '当前处理路由及跨境披露待核实，请查看服务说明；不据旧协议推定仅使用境内模型。';
+  const names={doubao:'豆包素材',kimi:'Kimi文字',claude:'Claude文字'};
+  const routes=Array.isArray(_productDisclosure.privacy?.model_routes)?_productDisclosure.privacy.model_routes:[];
+  const summary=routes.filter(route=>route&&Object.prototype.hasOwnProperty.call(names,route.id)).map(route=>names[route.id]+(route.enabled===true?'（配置开放）':route.enabled===false?'（配置未开放）':'（配置待核）')).join('、');
+  const crossBorder=_productDisclosure.cross_border?.possible_route==='Alibaba_China_to_Claude_Gateway_Singapore'
+    ? '必要文本与适用偏好可能经境内至Claude新加坡。' : '当前跨境路径待核实。';
+  return '已发布配置：'+(summary||'路由待核实')+'，不代表单次任务调用。'+crossBorder+'详情见服务说明；历史接受记录不视作新的单独跨境同意。';
+}
+function renderProductFacts() {
+  const setText = (id,text) => { const el=document.getElementById(id);if(el)el.textContent=text; };
+  const data = _productDisclosure;
+  setText('legal-version',data ? data.disclosure_version + ' · 查询时间 ' + data.observed_at : '当前披露待核实');
+  setText('legal-current-summary',data ? '以下为服务端当前公开披露，范围：正式产品。协议接受版本 ' + data.acceptance_version + ' 沿用原记录；历史接受记录不证明当前运行状态，也不构成新的单独跨境同意。'
+    : '当前服务披露读取未完成或无法确认。独立付款查询见下方；处理路由及退款条件待核实。旧协议编号不作为当前运行状态的证明，不会自动重试。');
+  setText('legal-account-facts',data ? '手机号用于支持的注册、验证码登录和密码重置流程；实际短信发送能力以当前服务状态为准。修改或重置密码会撤销全部会话。' +
+    (data.contact_verification?.email_status === 'delivery_adapter_not_connected' ? '邮箱验证码发送尚未接通，请使用已验证手机号处理账户恢复。' : '邮箱恢复的当前可用性待核实。')
+    : '账户恢复与联系方式验证的当前披露待核实；请使用页面中已开放的本人账户操作。');
+  const retention=data?.retention;
+  const duration=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0 ? value : null;
+  const active=duration(retention?.free_active_hours),recovery=duration(retention?.free_recovery_hours),backup=duration(retention?.rolling_backup_clear_within_days);
+  setText('legal-retention-facts',retention && active!==null && recovery!==null && backup!==null
+    ? '免费创建的归档在线保留 ' + active + ' 小时，随后可恢复 ' + recovery + ' 小时；滚动备份在到期后 ' + backup + ' 天内清理。' +
+      (retention.paid_created_archives==='no_product_expiry_while_account_exists'?'付费期间创建的归档在账户存在期间无产品到期日。':'付费归档有效期待核实。') +
+      (retention.downgrade_deletes_paid_archives===false?'降级不会删除上述付费归档。':'') + '可导出本人归档；临时原始媒体、供应商原始响应、普通日志及依法留存的财务/安全记录不属于归档导出。'
+    : '归档留存与恢复期限暂无法确认，请以服务端当前说明及本人归档状态为准。');
+  setText('legal-privacy-facts',productRouteDisclosureText());
+  const refund=data?.refund;
+  const refundText=refund?.policy==='full_unused_entitlement_only'
+    ? '当前退款规则：所购权益未消耗时，可申请全额原路退款；是否符合条件及退款结果以原订单核验为准。'
+    : '当前退款条件尚未确认，请联系支持核实原订单；不据未知规则承诺退款。';
+  const settlement=refund?.settlement==='original_channel_and_order_ledger_reconciliation'?'退款按原渠道并与原订单账本核对，申请不代表到账。':'';
+  const renewal=refund?.auto_renewal===false?'不自动续费。':'自动续费状态待核实。';
+  const amount=refund?.amount_basis==='server_order_quote'?'实际付款金额以服务端订单报价为准。':'';
+  setText('legal-refund-facts',productPaymentDisclosureText() + refundText + settlement + renewal + amount +
+    '本人账户注销仍需原密码与确认；访问撤销及数据清理以注销回执返回的期限为准，依法必须保留的记录除外。');
+  setText('public-pricing-notice','赠送与购买同等权益使用同一正式流程。' + productPaymentDisclosureText());
+  const authStatus=document.getElementById('public-auth-status');
+  if(authStatus?.dataset.smsNotice!==undefined)authStatus.textContent=authStatus.dataset.smsNotice + ' ' + productAuthDisclosureText();
+}
+async function loadProductDisclosure() {
+  if (_productDisclosureAttempted) return _productDisclosurePending;
+  _productDisclosureAttempted=true;
+  _productDisclosurePending=(async()=>{
+    try {
+      const response=await fetch(API_BASE+'/legal/contracts',{cache:'no-store'});
+      if(!response.ok)throw new Error('disclosure response unavailable');
+      const data=await response.json();
+      if(!data || typeof data!=='object' || Array.isArray(data) || data.scope!=='formal_product'
+        || data.disclosure_version!=='product-disclosure-2026-09-19' || typeof data.acceptance_version!=='string' || !data.acceptance_version
+        || data.acceptance_record_policy!=='historical_acceptances_unchanged_not_proof_of_current_runtime'
+        || typeof data.observed_at!=='string' || !Number.isFinite(Date.parse(data.observed_at))
+        || data.privacy?.route_basis!=='published_runtime_configuration_not_per_task_call_evidence')throw new Error('current disclosure contract missing');
+      _productDisclosure=data;
+    } catch (_) { _productDisclosure=null; }
+    renderProductFacts();
+  })();
+  return _productDisclosurePending;
+}
+
 async function refreshPublicStatus() {
   if (!PUBLIC_PRODUCT) return;
   const wasTrackingReadable=profileTrackingAvailable();
@@ -5193,7 +5299,7 @@ async function refreshPublicStatus() {
   status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。各功能扣分以套餐页和提交前服务端报价为准。同等权益不因赠送或购买来源降质。' +
     (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
     (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + (_publicStatus?.tracking_open ? '外部笔记跟踪已开放。' : _publicStatus?.tracking_read_open ? '可查看本人已有追踪结果；新增追踪暂未开放。' : '外部笔记跟踪暂未开放。') + (_publicStatus?.payment_open ? '微信支付已开放，支付宝暂未开放。' : '公众收款暂未开放。');
+    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + (_publicStatus?.tracking_open ? '外部笔记跟踪已开放。' : _publicStatus?.tracking_read_open ? '可查看本人已有追踪结果；新增追踪暂未开放。' : '外部笔记跟踪暂未开放。') + '付款状态见套餐页与服务说明中的当前查询结果。';
   syncPublicAuthAvailability();
   syncProductUI();
   refreshNativeCapabilities();
@@ -5209,6 +5315,8 @@ function syncPublicAuthAvailability() {
     : _publicStatus
     ? '手机验证码注册和登录暂未开放。你仍可浏览原工作台、套餐与协议；如需帮助请联系页脚客服。'
     : '暂时无法确认短信服务状态，请稍后再试。你仍可浏览原工作台、套餐与协议。';
+  notice.dataset.smsNotice=notice.textContent;
+  notice.textContent += ' ' + productAuthDisclosureText();
   syncPhoneCodeSendState();
   document.getElementById('auth-submit-btn').disabled = !open;
 }
@@ -5225,10 +5333,10 @@ function syncProductUI() {
   if (pricing && !pricing.querySelector('#public-pricing-notice')) {
     const notice = document.createElement('p');
     notice.id = 'public-pricing-notice';
-    notice.textContent = '免费账户每月12积分（北京时间每月1日08:00刷新）。赠送与购买同等权益使用同一正式流程。素材与业务开放状态见页面顶部；支付及笔记跟踪尚未开放，下列付费套餐不能购买。';
+    notice.textContent = '赠送与购买同等权益使用同一正式流程。付款状态暂无法确认。';
     pricing.prepend(notice);
   }
-  document.getElementById('legal-version').textContent = PUBLIC_PRODUCT_CONTRACT;
+  if(typeof renderProductFacts==='function')renderProductFacts();
   document.getElementById('product-consent').style.display = _authUser && !_authUser.contract_accepted ? 'block' : 'none';
   document.querySelectorAll('.input-type').forEach(el => {
     if (el.querySelector('.input-type-label')?.textContent !== '填写笔记／上传素材') {
@@ -5264,7 +5372,7 @@ function requireProductConsent() {
   if (_authUser && !_authUser.phone_verified) { showToast('当前账户尚未验证手机号。请通过手机验证码登录，或联系支持完成原账户绑定'); return false; }
   if (_authUser?.contract_accepted) return true;
   if (!_authToken) openAuthModal('login');
-  else { showPage('legal'); showToast('请先确认当前免费产品服务与隐私说明'); }
+  else { showPage('legal'); showToast('请先确认现有服务与隐私说明'); }
   return false;
 }
 async function publicPhoneAuth() {
@@ -5338,6 +5446,7 @@ function showPage(name, tabEl) {
   if (name === 'chat')    initChatPage();
   if (PUBLIC_PRODUCT) syncProductUI();
   if (name === 'library') initLibraryPage();
+  if (name === 'legal') loadProductDisclosure();
 }
 
 /* ── Toast ─────────────────────────────────────────────────── */
@@ -10872,7 +10981,7 @@ function switchAuthTab(tab) {
     document.getElementById('auth-phone').placeholder='已验证或准备注册的手机号';
     document.getElementById('auth-cross-border-consent').closest('label').style.display='none';
     document.getElementById('auth-privacy-consent').closest('label').lastChild.textContent=
-      '我已阅读并同意账户及免费创作服务条款、隐私与退款说明；主动提交的创作文本由Kimi国内API处理';
+      '我已阅读并同意现有服务条款、隐私与退款说明；协议接受记录沿用原版本，当前处理路由见下方披露';
     document.getElementById('auth-submit-btn').textContent=isLogin ? '验证码登录' : '免费注册并登录';
     syncPublicAuthAvailability();
   }
@@ -14266,6 +14375,7 @@ function showQuotaExceededModal(detail) {
 
 refreshPublicStatus();
 if (PUBLIC_PRODUCT) {
+  loadProductDisclosure();
   syncProductUI();
   const manual=Array.from(document.querySelectorAll('.input-type')).find(el=>el.querySelector('.input-type-label')?.textContent==='填写笔记／上传素材');
   if(manual) selectType(manual,'填写笔记／上传素材');
