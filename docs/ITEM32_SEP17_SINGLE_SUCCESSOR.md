@@ -7,8 +7,34 @@ Owner明确选择“同意新时间，执行唯一周期”，实际确认观察
 现有canonical已AUTHORIZED，26846B/SHA
 `f5008ce71ecbcfc0d3c421122d49bea60532bb148f04e2f630d2a333a001ef63`；
 scope仍`b941fa4cdb071b8a8c26e00ed47e815e9d18f97f18ad0fd3b3449bbf0ada65c1`。
-完整本地plan加载通过；下一步固定包/现场预检/唯一续执行。生产fresh与实际终态尚未发生，不能计分。
+完整本地plan加载通过；固定包/现场预检/唯一续执行均已完成准备。生产fresh与实际终态尚未发生，不能计分。
 沿下方相同2＋34、零自动重试、8overlay、旧48/UNKNOWN、原质量/DB只读及恢复边界；不重复申请技术步骤。
+
+### 05:22UTC实际登记与执行入口
+
+冻结源码0c268d9db6145fd3fff31295d5891ea9bec32e10；原F固定目录
+`/var/lib/noteai/item32-v5-source-retention-package-20260918-0c268d9`。
+唯一 `dispatch-once.py` 35379B/SHA
+`0e057467ce5259c592b81a3b98fe816b6a0b07c10661fa26e85d9036a8698547`；
+源码包175114B/SHA`3bf962b711144c9b9ce3044825b3416c0098a55cc34e54f4ea9e2abe98364894`。
+20成员/8overlay/原封存记录与18f72会话预检通过，10项helper测试及独立审查无阻断。
+16条暂存命令均完成，首chunk UI等待超时只读原成功结果、没有重发；未运行默认入口。
+原始暂存回执已独立读回，repo `deploy/production/evidence/production-item32-source-retention-stage-20260918.json`
+534B/SHA`e021ce04c7aa80ced529e758a1ad464a7753fe1eeb1ddb8c94cf9b946758afc7`；
+新work/标记不存在，供应商HTTP0/DB操作0，本地暂存server关闭。
+
+原heartbeat `noteai-item32-sep17` 原位更新ACTIVE，仍归原线程01a0a50d-985c-7140-9db2-3bde812717bd；
+**仅Sep18北京14:30／06:30UTC触发一次，启动<15:25／07:25UTC。** update/view/本地配置核验完成；
+只有这一条Item32启用，未新增第二任务。配置updated_at05:20:42.265UTC，3130B/SHAdc4c7986…9a63；
+日期限定单次规则与实际CST+0800一致，工具没有内部next_run_at返回，不宣称已实际触发。
+本机和Codex须届时运行；原PAUSED任务配置私有原件及全部精确摘要见Handoff CURRENT。
+
+到窗后 `python3 -E -B /var/lib/noteai/item32-v5-source-retention-package-20260918-0c268d9/dispatch-once.py`
+仅一次，外层2700秒，供应商20秒不变。先核现场时钟/摘要/fresh0/34/进程/锁/绑定。
+若标记/work已存在、在途或UNKNOWN，只运行 `--readback-only` 或executor
+`--v5-source-retention-readback-only`；不再次默认执行。结束暂停同一heartbeat，失败/失窗不自动新增周期。
+原六域、12–15真实合格词/域、两来源、质量55、总90和DB前后只读/零写入/恢复验收全部保留；
+仅在真实验收通过后关闭Item32，随后按既有依赖接续Item33。准备完成尚不计分。
 
 ### 04:57时过期与时间变更准备记录（历史）
 

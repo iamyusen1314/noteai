@@ -2,8 +2,14 @@ September18 05:06:29UTC CURRENT: Owner explicitly confirms the changed06:30–08
 window, dispatch before07:25, for the same one unused cycle. Canonical authorized
 scope and local loader verified; fresh0/34, actual runtime/readonly/quality and
 cleanup still require execution-time evidence. No early/late dispatch, automatic
-retry, old identity replay or extra successor. Preparing one verified continuation
-does not itself pass Item32. Original48collection/UNKNOWN and live services preserved.
+retry, old identity replay or extra successor. At05:22UTC frozen source0c268d9 is
+staged/preflight verified on original F; original receipt534B/SHAe021ce04… read back
+exactly, provider HTTP0/DB0 and dispatch/work absent. Same heartbeat was updated
+ACTIVE for one Sep18 06:30UTC occurrence; tool/config persistence verified, not
+actual triggering or execution-time fresh quota. Local host/Codex must be running;
+late wakeup must not dispatch after07:25 or automatically create another cycle.
+This does not itself pass Item32. Original48collection/UNKNOWN and live services
+preserved. Exact package/config hashes and readback-only recovery: Handoff CURRENT.
 
 September18 04:57:25UTC HISTORICAL: Owner's explicit one-cycle confirmation arrived
 after the proposed00:55 dispatch deadline and01:30 end. Do not backdate, reuse the

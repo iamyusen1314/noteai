@@ -8,10 +8,43 @@ Owner已确认“同意新时间，执行唯一周期”，实际确认观察于
   26846B/SHA`f5008ce71ecbcfc0d3c421122d49bea60532bb148f04e2f630d2a333a001ef63`；
   已确认范围SHA`b941fa4cdb071b8a8c26e00ed47e815e9d18f97f18ad0fd3b3449bbf0ada65c1`。
   确认时点05:06:29＋原已审范围绑定，本地完整load_plan通过，但这不是生产准入或采集结果。
-- 当前继续固定源码包、原F现场预检及唯一续执行登记；实际创建成功、读回后才报告已安排。
+- 固定源码包、原F现场预检及唯一续执行登记现已完成，实际证据如下。
   06:30前不启动供应商请求；fresh0/34、原锁/进程/绑定/模块、只读DB证明均在执行前现场核对。
   原失败/UNKNOWN/48次历史采集不重放；最多2初始化＋34采集，零自动重试，失败或失窗不自动再排。
   本条无需逐步重新确认；仅原指定范围实施，其他生产服务/权益/保护路径保持。
+
+## September18 05:22UTC实际准备与唯一续执行
+
+- 冻结执行源码 **0c268d9db6145fd3fff31295d5891ea9bec32e10**；后续文档提交不替换此包。
+  原F stage为 `/var/lib/noteai/item32-v5-source-retention-package-20260918-0c268d9`。
+  `dispatch-once.py` 35379B/SHA`0e057467ce5259c592b81a3b98fe816b6a0b07c10661fa26e85d9036a8698547`；
+  `item32-v5-source.tar.gz` 175114B/SHA`3bf962b711144c9b9ce3044825b3416c0098a55cc34e54f4ea9e2abe98364894`；
+  manifest SHA`b677a170837d313d9aaaeff08ef8a9992d0b5d23d311830158f5d5182299434d`。
+- 实际16条源码暂存命令均成功：19份指定Git源码/安全证据＋manifest共20成员、8份overlay。
+  host逐项hash及wrapper预检通过，原V1自有12件＋此前36件、原seal、18f72会话绑定一致；
+  新work和dispatch标记均不存在。首chunk的UI等待超时后读取原成功结果，未重发该命令。
+  **未调用默认dispatch，供应商HTTP0、数据库操作0。** 本地10项helper测试通过，固定包独立审查无阻断。
+- 原始host回执 `<stage>/source-staged-result.json` 与repo
+  `deploy/production/evidence/production-item32-source-retention-stage-20260918.json`
+  均534B/SHA`e021ce04c7aa80ced529e758a1ad464a7753fe1eeb1ddb8c94cf9b946758afc7`。
+  后续host只读读回再次证明摘要、root0600/nlink1及未启动；不是重复预检或采集。
+  私有包保存在 `/Users/openclaw/.codex/tmp/noteai-item32-network-repair-20260917/source-retention-package-0c268d9/`；
+  本地暂存server已停止、临时源页面已关闭，原F控制台页保留。无生产服务重启/部署。
+- **原任务 `noteai-item32-sep17` 已原位更新为ACTIVE**，名称“NoteAI Item32 Sep18 唯一只读续执行”，
+  仍归线程 `01a0a50d-985c-7140-9db2-3bde812717bd`；唯一触发为**Sep18北京14:30／06:30UTC**，
+  严格沿07:25UTC启动截止，无第二条任务或自动改期。update成功、view及配置读回已核；
+  全部现有配置中仅此一条Item32为ACTIVE，其他原PAUSED任务未改。
+  原任务配置3130B/SHA`dc4c7986e0722204fef527e42fe669c27be9949079fe7ebc07be9f4a3fa79a63`，
+  updated_at为05:20:42.265UTC。日期限定单次规则、实际本机CST+0800及目标06:30UTC一致；
+  工具未返回内部next_run_at，故这里只证明配置已保存，不声称实际触发已发生。届时本机及Codex须保持运行。
+  原PAUSED配置原件保存在私有根目录的 `heartbeat-sep17-before-sep18-update.toml`，
+  4060B/SHA`beb95adcb9495cf37697fe522be069b782222df9ce63fe4b0296291b6df1a523`，仅作历史、不可重放。
+- 到窗后仅执行一次 `python3 -E -B <stage>/dispatch-once.py`；云助手外层超时2700秒，供应商20秒不变。
+  先核时钟、固定摘要及现场状态；已有标记/work/在途或UNKNOWN时只用wrapper `--readback-only`
+  和executor `--v5-source-retention-readback-only` 读取原结果，禁止再次默认dispatch。
+  现场fresh0/34、六旧锁＋新独占锁、原运行模块/会话、生产DB前后只读、真实六域/两来源/质量和恢复
+  均仍需真实验收。完成后暂停同一heartbeat；失败或失窗不新增周期。
+  **Item32尚未通过，Readiness32/37，Item33及依赖资源仍未启动。** 本记录不改变H5窗口修改边界。
 
 ## 04:57时原窗口过期与新时间准备（历史，不再等待同一授权）
 
