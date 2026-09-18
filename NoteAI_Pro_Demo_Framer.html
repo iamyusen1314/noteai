@@ -9754,6 +9754,8 @@ function chatBeginNoteContext() {
 }
 
 function chatClearUserState() {
+  closeVerificationModal();
+  closeChangePwd();
   renderBillingReceipt(null);
   clearProfileUserState();
   resetBillingUsageState('待更新',true);
@@ -10852,7 +10854,7 @@ function switchAuthTab(tab) {
     if (_registerPhoneChallenge?.purpose !== phoneCodePurpose()) _registerPhoneChallenge = null;
     document.getElementById('auth-username').style.display = 'none';
     document.getElementById('auth-password').style.display = 'none';
-    ['auth-email-row','auth-email-code-row','auth-recovery-actions'].forEach(id => document.getElementById(id).style.display='none');
+    ['auth-email-row','auth-email-code-row'].forEach(id => document.getElementById(id).style.display='none');
     document.getElementById('auth-phone-row').style.display='block';
     document.getElementById('auth-phone-code-row').style.display='flex';
     document.getElementById('auth-phone').placeholder='已验证或准备注册的手机号';
@@ -11015,14 +11017,31 @@ async function doAuth() {
   }
 }
 
+function verificationFlowContext() {
+  const token = _authToken, ownerId = _chatOwnerId(), epoch = _chatUserStateEpoch;
+  const mode = _verificationMode, version = openVerificationModal.version;
+  return { mode, current: () => token === _authToken && ownerId === _chatOwnerId()
+    && epoch === _chatUserStateEpoch && mode === _verificationMode && version === openVerificationModal.version
+    && document.getElementById('verification-modal').style.display !== 'none' };
+}
+
+function verificationFlowError(message) {
+  const error = document.getElementById('verification-error');
+  error.textContent = message; error.style.display = 'block';
+}
+
 function openVerificationModal(mode) {
+  if (!['login_phone', 'password_reset'].includes(mode)) return;
+  openVerificationModal.version = (openVerificationModal.version || 0) + 1;
   _verificationMode = mode;
   _verificationChallenge = null;
   const reset = mode === 'password_reset';
+  const channel = document.getElementById('verification-channel');
+  if (PUBLIC_PRODUCT || !reset) channel.value = 'phone';
   document.getElementById('verification-modal-title').textContent = reset ? '找回密码' : '手机验证码登录';
-  document.getElementById('verification-channel').style.display = reset ? 'block' : 'none';
+  channel.style.display = reset && !PUBLIC_PRODUCT ? 'block' : 'none';
   document.getElementById('verification-new-password').style.display = reset ? 'block' : 'none';
-  document.getElementById('verification-destination').placeholder = reset ? '已验证手机号或邮箱' : '已验证手机号';
+  document.getElementById('verification-destination').placeholder = reset && !PUBLIC_PRODUCT ? '已验证手机号或邮箱' : '已验证手机号';
   document.getElementById('verification-destination').value = '';
   document.getElementById('verification-code').value = '';
   document.getElementById('verification-new-password').value = '';
@@ -11031,67 +11050,95 @@ function openVerificationModal(mode) {
 }
 
 function closeVerificationModal() {
+  openVerificationModal.version = (openVerificationModal.version || 0) + 1;
   document.getElementById('verification-modal').style.display = 'none';
   _verificationChallenge = null;
+  ['verification-destination','verification-code','verification-new-password'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('verification-error').textContent = '';
 }
 
 async function requestRecoveryCode() {
-  const channel = _verificationMode === 'login_phone'
-    ? 'phone' : document.getElementById('verification-channel').value;
+  const context = verificationFlowContext();
+  if (!context.current()) return;
+  if (requestRecoveryCode.pending) { verificationFlowError('验证码请求正在处理中，请勿重复提交'); return; }
+  const channel = PUBLIC_PRODUCT || context.mode === 'login_phone' ? 'phone' : document.getElementById('verification-channel').value;
   const destination = document.getElementById('verification-destination').value.trim();
-  const errEl = document.getElementById('verification-error');
+  if (channel === 'phone' && !/^1[3-9]\d{9}$/.test(destination)) { verificationFlowError('请先输入正确的已验证手机号'); return; }
+  if (channel === 'phone' && Date.now() < _phoneCodeResendAt) {
+    verificationFlowError('请等待 ' + Math.ceil((_phoneCodeResendAt - Date.now()) / 1000) + ' 秒后再获取验证码'); return;
+  }
+  requestRecoveryCode.pending = context;
+  _verificationChallenge = null;
+  verificationFlowError('正在发送验证码，请稍候…');
   try {
-    const data = await requestVerification(channel, destination, _verificationMode);
-    _verificationChallenge = { id: data.challenge_id, channel, destination };
-    showToast('验证码请求已受理');
+    const data = await requestVerification(channel, destination, context.mode);
+    if (channel === 'phone') startPhoneCodeCooldown();
+    if (!context.current()) return;
+    if (data?.accepted !== true || typeof data.challenge_id !== 'string' || !data.challenge_id) throw new Error('服务器未确认验证码请求');
+    const currentChannel = PUBLIC_PRODUCT || context.mode === 'login_phone' ? 'phone' : document.getElementById('verification-channel').value;
+    if (destination !== document.getElementById('verification-destination').value.trim() || channel !== currentChannel) {
+      verificationFlowError('联系方式已变化，请核对后重新获取验证码'); return;
+    }
+    _verificationChallenge = { id: data.challenge_id, channel, destination, purpose: context.mode };
+    document.getElementById('verification-error').style.display = 'none';
+    showToast(data.delivery === 'sms_unknown' ? '短信发送结果尚未确认，请先查看短信；不会自动重发' : '验证码请求已受理，请查看' + (channel === 'phone' ? '手机短信' : '邮箱'));
   } catch (err) {
-    errEl.textContent = err.message; errEl.style.display = 'block';
+    if (channel === 'phone' && (!err.status || err.status === 429)) startPhoneCodeCooldown();
+    if (context.current()) verificationFlowError(err.status === 429 ? '请求较频繁，请等待60秒后再试'
+      : !err.status ? '暂未确认发送结果，请先查看短信；不会自动重发，60秒后可手动重试'
+      : (err.message || '验证码请求失败'));
+  } finally {
+    if (requestRecoveryCode.pending === context) requestRecoveryCode.pending = null;
   }
 }
 
 async function submitVerificationFlow() {
-  const errEl = document.getElementById('verification-error');
+  const context = verificationFlowContext();
+  if (!context.current()) return;
+  if (submitVerificationFlow.pending) { verificationFlowError('请求正在处理中，请勿重复提交'); return; }
   const code = document.getElementById('verification-code').value.trim();
-  if (!_verificationChallenge || !code) {
-    errEl.textContent = '请先获取并输入验证码'; errEl.style.display = 'block'; return;
+  const challenge = _verificationChallenge;
+  const channel = PUBLIC_PRODUCT || context.mode === 'login_phone' ? 'phone' : document.getElementById('verification-channel').value;
+  const destination = document.getElementById('verification-destination').value.trim();
+  if (!challenge || !code || challenge.purpose !== context.mode || challenge.channel !== channel || challenge.destination !== destination) {
+    verificationFlowError('请为当前手机号和用途重新获取并输入验证码'); return;
   }
+  const newPassword = document.getElementById('verification-new-password').value;
+  if (context.mode === 'password_reset' && (newPassword.length < 10 || newPassword.length > 128)) {
+    verificationFlowError('新密码须为10至128位，并包含两类字符'); return;
+  }
+  submitVerificationFlow.pending = context;
+  document.getElementById('verification-error').style.display = 'none';
+  let response = null;
   try {
-    if (_verificationMode === 'login_phone') {
-      const res = await fetch(API_AUTH + '/auth/login/otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: _verificationChallenge.destination,
-          challenge_id: _verificationChallenge.id,
-          code,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || '验证码登录失败');
-      authAcceptSession(data);
-      closeVerificationModal();
-      closeAuthModal();
-      showToast('登录成功');
-      return;
-    }
-    const newPassword = document.getElementById('verification-new-password').value;
-    if (newPassword.length < 10) throw new Error('新密码至少10位，并包含两类字符');
-    const res = await fetch(API_AUTH + '/auth/password-reset', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        channel: _verificationChallenge.channel,
-        destination: _verificationChallenge.destination,
-        challenge_id: _verificationChallenge.id,
-        code,
-        new_password: newPassword,
-      }),
+    response = await fetch(API_AUTH + (context.mode === 'login_phone' ? '/auth/login/otp' : '/auth/password-reset'), {
+      method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(context.mode === 'login_phone'
+        ? { phone: destination, challenge_id: challenge.id, code }
+        : { channel, destination, challenge_id: challenge.id, code, new_password: newPassword }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '密码重置失败');
-    closeVerificationModal();
-    openAuthModal('login');
-    showToast('密码已重置，请重新登录');
+    if (!context.current()) return;
+    const data = await accountActionJSON(response, context.mode === 'login_phone' ? '验证码登录失败' : '密码重置失败');
+    if (!context.current()) return;
+    if (context.mode === 'login_phone') {
+      if (typeof data.token !== 'string' || !data.token || !data.user?.id) throw new Error('登录响应不完整');
+      authAcceptSession(data);
+      closeVerificationModal(); closeAuthModal(); showToast('登录成功');
+    } else {
+      if (data.ok !== true) throw new Error(typeof data.detail === 'string' ? data.detail : '服务器未确认密码重置成功');
+      closeVerificationModal();
+      authClearLocalSession();
+      openAuthModal('login');
+      showToast('密码已重置，全部会话已撤销，请重新验证码登录');
+    }
   } catch (err) {
-    errEl.textContent = err.message; errEl.style.display = 'block';
+    if (context.current()) {
+      const uncertain = !response || response.status >= 500 || response.ok;
+      if (uncertain) _verificationChallenge = null;
+      verificationFlowError(uncertain ? '操作结果未确认，请通过手机验证码登录核实；不会自动重试。' + (err?.message || '') : (err?.message || '操作失败'));
+    }
+  } finally {
+    if (submitVerificationFlow.pending === context) submitVerificationFlow.pending = null;
   }
 }
 async function doLogout() {
@@ -12054,6 +12101,7 @@ async function savePhone() {
 }
 
 function openBindEmail() {
+  if(PUBLIC_PRODUCT){showToast('邮箱验证码发送尚未接通，请使用已验证手机号处理账户恢复');return;}
   document.getElementById('profile-bind-email-form').style.display = 'flex';
   document.getElementById('profile-email-input').focus();
 }
@@ -12064,6 +12112,7 @@ function closeBindEmail() {
   _profileEmailChallenge = null;
 }
 async function requestProfileEmailCode() {
+  if(PUBLIC_PRODUCT){showToast('邮箱验证码发送尚未接通，请使用已验证手机号处理账户恢复');return;}
   const email = document.getElementById('profile-email-input').value.trim();
   if (!email.includes('@')) { showToast('邮箱格式不正确'); return; }
   try {
@@ -12073,6 +12122,7 @@ async function requestProfileEmailCode() {
   } catch (err) { showToast(err.message); }
 }
 async function saveEmail() {
+  if(PUBLIC_PRODUCT){showToast('邮箱验证码发送尚未接通，请使用已验证手机号处理账户恢复');return;}
   const email = document.getElementById('profile-email-input').value.trim();
   const code = document.getElementById('profile-email-code').value.trim();
   if (!_profileEmailChallenge || _profileEmailChallenge.destination !== email || !code) {
@@ -12098,7 +12148,7 @@ async function saveEmail() {
 }
 
 function openChangePwd() {
-  if (PUBLIC_PRODUCT) { showToast('此功能本阶段未开放；可通过 ecfine@163.com 联系支持'); return; }
+  if (PUBLIC_PRODUCT) { openVerificationModal('password_reset'); return; }
   document.getElementById('profile-change-pwd-form').style.display = 'flex';
   document.getElementById('pwd-old').value = '';
   document.getElementById('pwd-new').value = '';
@@ -12107,27 +12157,31 @@ function openChangePwd() {
 }
 function closeChangePwd() {
   document.getElementById('profile-change-pwd-form').style.display = 'none';
+  ['pwd-old','pwd-new','pwd-new2'].forEach(id => { document.getElementById(id).value = ''; });
 }
 async function saveChangePwd() {
-  const oldP = document.getElementById('pwd-old').value;
-  const newP = document.getElementById('pwd-new').value;
-  const newP2 = document.getElementById('pwd-new2').value;
-  if (!oldP) { showToast('请输入当前密码'); return; }
-  if (newP.length < 10) { showToast('新密码至少10位，并包含两类字符'); return; }
-  if (newP !== newP2) { showToast('两次密码不一致'); return; }
+  const oldPassword = document.getElementById('pwd-old').value;
+  const newPassword = document.getElementById('pwd-new').value;
+  const repeatPassword = document.getElementById('pwd-new2').value;
+  if (!oldPassword) { showToast('请输入当前密码'); return; }
+  if (newPassword.length < 10 || newPassword.length > 128) { showToast('新密码须为10至128位，并包含两类字符'); return; }
+  if (newPassword !== repeatPassword) { showToast('两次密码不一致'); return; }
+  const action = accountActionStart('change-password');
+  if (!action) return;
   try {
-    const res = await fetch(API_AUTH + '/auth/change-password', {
-      method: 'POST',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ old_password: oldP, new_password: newP }),
+    const response = await fetch(API_AUTH + '/auth/change-password', {
+      method:'POST', cache:'no-store', headers:{Authorization:'Bearer ' + action.token, 'Content-Type':'application/json'},
+      body:JSON.stringify({old_password:oldPassword,new_password:newPassword}),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '修改失败');
-    authClearLocalSession();
-    closeChangePwd();
-    openAuthModal('login');
-    showToast('密码修改成功，请重新登录');
-  } catch (err) { showToast(err.message); }
+    if (!action.current()) return;
+    const data = await accountActionJSON(response, '修改失败');
+    if (!action.current()) return;
+    if (data.ok !== true) throw new Error(typeof data.detail === 'string' ? data.detail : '服务器未确认修改成功');
+    closeChangePwd(); authClearLocalSession(); openAuthModal('login');
+    showToast('密码修改成功，全部会话已撤销，请重新登录');
+  } catch (err) {
+    if (action.current()) showToast('修改失败或结果未确认：' + (err?.message || '连接中断') + '。请通过手机验证码登录核实，不会自动重试');
+  } finally { action.release(); }
 }
 
 async function revokeAllSessions() {
@@ -12222,32 +12276,47 @@ async function recoverArchivedContent() {
 }
 
 async function requestAccountDeletion() {
-  if (PUBLIC_PRODUCT) { window.location.href='mailto:ecfine@163.com?subject=NoteAI账户注销或数据删除申请'; showToast('请发送申请邮件，我们核验本人身份后处理；此操作尚未删除账户'); return; }
-  const password = prompt('请先导出数据，再输入当前密码确认删除账户：');
-  if (!password || !confirm('确认提交？账户访问会立即撤销。')) return;
+  const action = accountActionStart('delete-account');
+  if (!action) return;
+  let objectUrl = null, link = null, deletionConfirmed = false, exportDownloaded = false, deletionNotice = '';
   try {
-    const res = await fetch(API_AUTH + '/account', {
-      method: 'DELETE',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, include_final_export: true }),
+    const password = prompt('请先导出数据，再输入当前密码确认删除账户：');
+    if (!password || !action.current() || !confirm('确认提交？账户访问会立即撤销。') || !action.current()) return;
+    const response = await fetch(API_AUTH + '/account', {
+      method:'DELETE', cache:'no-store', headers:{Authorization:'Bearer ' + action.token, 'Content-Type':'application/json'},
+      body:JSON.stringify({password,include_final_export:true}),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '删除请求失败');
-    if (data.final_export) {
-      const blob = new Blob(
-        [JSON.stringify(data.final_export, null, 2)],
-        { type: 'application/json' },
-      );
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url; link.download = 'noteai-final-account-export.json';
-      document.body.appendChild(link); link.click(); link.remove();
-      URL.revokeObjectURL(url);
+    if (!action.current()) return;
+    const data = await accountActionJSON(response, '删除请求失败');
+    if (!action.current()) return;
+    if (data.ok !== true) throw new Error(typeof data.detail === 'string' ? data.detail : '服务器未确认账户删除成功');
+    deletionConfirmed = true;
+    const deadlines = [];
+    if (typeof data.primary_delete_by === 'string') deadlines.push('主数据删除期限：' + data.primary_delete_by);
+    if (typeof data.backup_clear_by === 'string') deadlines.push('备份清除期限：' + data.backup_clear_by);
+    deletionNotice = '注销申请已提交，账户访问已撤销。' + (deadlines.length === 2
+      ? '按返回期限删除：' + deadlines.join('；') : '删除期限未完整返回，请联系支持核实');
+    const finalExport = data.final_export;
+    if (!finalExport || typeof finalExport.exported_at !== 'string' || !finalExport.account || typeof finalExport.account !== 'object'
+        || Array.isArray(finalExport.account) || !finalExport.archives || typeof finalExport.archives !== 'object' || Array.isArray(finalExport.archives)) throw new Error('最终导出数据未完整返回');
+    const blob = new Blob([JSON.stringify(finalExport,null,2)], {type:'application/json'});
+    if (!action.current()) return;
+    objectUrl = URL.createObjectURL(blob);
+    link = document.createElement('a'); link.href=objectUrl; link.download='noteai-final-account-export.json';
+    if (!action.current()) return;
+    document.body.appendChild(link); link.click(); exportDownloaded=true;
+  } catch (err) {
+    if (action.current() && !deletionConfirmed) showToast('账户删除失败或结果未确认：' + (err?.message || '连接中断') + '。请先核实账户状态，不会自动重试');
+  } finally {
+    if (link) link.remove();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    if (deletionConfirmed && action.current()) {
+      authClearLocalSession(); showPage('landing');
+      showToast(deletionNotice + (exportDownloaded ? '。最终账户数据已导出'
+        : '。最终数据导出未完成；请联系 ecfine@163.com 核实，勿重复提交注销'));
     }
-    authClearLocalSession();
-    showPage('landing');
-    showToast('账户删除请求已提交');
-  } catch (err) { showToast(err.message); }
+    action.release();
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
