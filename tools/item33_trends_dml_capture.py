@@ -17,9 +17,6 @@ import re
 from typing import Mapping
 import uuid
 
-from psycopg import sql
-
-
 FUNCTION = "noteai_item33_trends_dml_notice"
 TRIGGER = "noteai_item33_trends_dml_notice"
 WRITER_ROLE = "noteai_xhs_trends"
@@ -112,6 +109,8 @@ def schema_guard_sql(targets: Mapping[str, TableTarget]):
 
     This is a key-shape guard only; it does not certify actual ACL/reachability.
     """
+    from psycopg import sql
+
     coverage = _coverage(targets)
     checks = []
     for table, target in coverage.items():
@@ -133,18 +132,7 @@ def schema_guard_sql(targets: Mapping[str, TableTarget]):
         sql.SQL("\n").join(checks))
 
 
-def installation_sql(activation: str, targets: Mapping[str, TableTarget]) -> list:
-    """Render independent Item33 triggers; never execute or replace an object.
-
-    Missing writer transaction binding raises, including writes caused by nested
-    triggers. Only the exact session role is observed; that role/ACL and all
-    reachable relations must be independently verified before installation.
-    """
-    channel = channel_for(activation)
-    coverage = _coverage(targets)
-    digest = coverage_sha256(targets)
-    statements = [schema_guard_sql(targets), sql.SQL("""
-CREATE FUNCTION public.{function}() RETURNS trigger
+FUNCTION_SQL_TEMPLATE = """CREATE FUNCTION public.{function}() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog AS $notice$
 DECLARE old_item jsonb; new_item jsonb; old_key jsonb; new_key jsonb;
         nonce text; run_hash text; old_hash text; new_hash text;
@@ -189,6 +177,7 @@ BEGIN
     succeeded := TG_TABLE_NAME='xhs_trends_runs' AND TG_OP='UPDATE'
       AND new_item->>'status'='succeeded' AND old_item->>'status' IS DISTINCT FROM 'succeeded';
   END IF;
+  {counter}
   PERFORM pg_notify({channel}, json_build_object(
     'kind','mutation','activation',{activation},'coverage_sha256',{coverage},
     'nonce',nonce,'run_identity_sha256',run_hash,'pid',pg_backend_pid(),
@@ -196,9 +185,44 @@ BEGIN
     'table',TG_TABLE_NAME,'op',TG_OP,'old_row_sha256',old_hash,'new_row_sha256',new_hash,
     'scope_violation',violation,'run_succeeded',coalesce(succeeded,false))::text);
   RETURN NULL;
-END $notice$;
-""").format(function=sql.Identifier(FUNCTION), role=sql.Literal(WRITER_ROLE),
-             activation=sql.Literal(activation), channel=sql.Literal(channel), coverage=sql.Literal(digest))]
+END $notice$;"""
+
+COUNTER_SQL = """
+  IF coalesce(current_setting('noteai.item33_mutation_count',true),'') !~ '^[0-9]{1,5}$'
+     OR current_setting('noteai.item33_mutation_count',true)::integer >= 32768 THEN
+    RAISE EXCEPTION 'item33 mutation count binding missing';
+  END IF;
+  PERFORM set_config('noteai.item33_mutation_count',
+    (current_setting('noteai.item33_mutation_count',true)::integer + 1)::text,true);
+"""
+
+def function_sql_text(activation, targets, *, mutation_counts=False):
+    if type(mutation_counts) is not bool: raise ValueError("mutation count mode")
+    values = dict(function='"' + FUNCTION + '"', role="'" + WRITER_ROLE + "'",
+        activation="'" + _uuid(activation) + "'", channel="'" + channel_for(activation) + "'",
+        coverage="'" + coverage_sha256(targets) + "'", counter=COUNTER_SQL if mutation_counts else "")
+    return FUNCTION_SQL_TEMPLATE.format(**values)
+
+def function_body(activation, targets, *, mutation_counts=False):
+    return function_sql_text(activation, targets, mutation_counts=mutation_counts).split("$notice$")[1]
+
+
+def installation_sql(activation: str, targets: Mapping[str, TableTarget], *,
+                     mutation_counts: bool = False) -> list:
+    """Render independent Item33 triggers; never execute or replace an object.
+
+    Missing writer transaction binding raises, including writes caused by nested
+    triggers. Only the exact session role is observed; that role/ACL and all
+    reachable relations must be independently verified before installation.
+    """
+    from psycopg import sql
+
+    if type(mutation_counts) is not bool:
+        raise ValueError("mutation count mode")
+    channel = channel_for(activation)
+    coverage = _coverage(targets)
+    digest = coverage_sha256(targets)
+    statements = [schema_guard_sql(targets), sql.SQL(function_sql_text(activation, targets, mutation_counts=mutation_counts))]
     for table, target in coverage.items():
         for level, operations, suffix in (("ROW", "INSERT OR UPDATE OR DELETE", ""),
                                           ("STATEMENT", "TRUNCATE", "_truncate")):
@@ -213,6 +237,8 @@ END $notice$;
 
 def removal_sql(targets: Mapping[str, TableTarget]) -> list:
     """Render only; the runner must first bind installed definitions/activation."""
+    from psycopg import sql
+
     coverage = _coverage(targets)
     return [sql.SQL("DROP TRIGGER {trigger} ON public.{table}").format(
         trigger=sql.Identifier(TRIGGER + suffix), table=sql.Identifier(table))
@@ -220,22 +246,34 @@ def removal_sql(targets: Mapping[str, TableTarget]) -> list:
         sql.SQL("DROP FUNCTION public.{}()").format(sql.Identifier(FUNCTION))]
 
 
-def binding_sql(activation: str, nonce: str, run_identity_sha256: str) -> list:
+def binding_sql(activation: str, nonce: str, run_identity_sha256: str, *,
+                mutation_counts: bool = False) -> list:
     """SET LOCAL only: execute in an explicit writer BEGIN, then register metadata.
 
     The caller must register returned actual pid/txid before yielding business
     SQL. Calling in autocommit loses the local binding and later DML fails.
     """
+    from psycopg import sql
+
+    if type(mutation_counts) is not bool:
+        raise ValueError("mutation count mode")
     values = (_uuid(activation), _uuid(nonce), _sha(run_identity_sha256))
-    return [sql.SQL("SELECT set_config('noteai.item33_activation',{},true),"
+    statements = [sql.SQL("SELECT set_config('noteai.item33_activation',{},true),"
                     "set_config('noteai.item33_transaction',{},true),"
                     "set_config('noteai.item33_run_sha256',{},true)").format(
-                        *(sql.Literal(value) for value in values)),
-            sql.SQL("SELECT pg_backend_pid(),pg_current_xact_id()::text")]
+                        *(sql.Literal(value) for value in values))]
+    if mutation_counts:
+        statements.append(sql.SQL("SELECT set_config('noteai.item33_mutation_count','0',true)"))
+    statements.append(sql.SQL("SELECT pg_backend_pid(),pg_current_xact_id()::text"))
+    return statements
 
 
-def completion_sql(activation: str, binding: dict):
+def completion_sql(activation: str, binding: dict, *, mutation_counts: bool = False):
     """A bound commit notice queued before COMMIT; rollback delivers no notice."""
+    from psycopg import sql
+
+    if type(mutation_counts) is not bool:
+        raise ValueError("mutation count mode")
     _validate_binding(binding)
     payload = json.dumps({"kind": "commit", **binding}, sort_keys=True, separators=(",", ":"))
     return sql.SQL("""DO $complete$ BEGIN
@@ -245,11 +283,21 @@ def completion_sql(activation: str, binding: dict):
     OR current_setting('noteai.item33_transaction',true) IS DISTINCT FROM {nonce}
     OR current_setting('noteai.item33_run_sha256',true) IS DISTINCT FROM {run_hash}
   THEN RAISE EXCEPTION 'item33 writer transaction changed'; END IF;
+  {counter_guard}
   PERFORM pg_notify({channel},{payload}); END $complete$;""").format(
         role=sql.Literal(WRITER_ROLE), pid=sql.Literal(binding["pid"]), txid=sql.Literal(binding["txid"]),
         activation=sql.Literal(_uuid(activation)), nonce=sql.Literal(binding["nonce"]),
         run_hash=sql.Literal(binding["run_identity_sha256"]),
-        channel=sql.Literal(channel_for(activation)), payload=sql.Literal(payload))
+        channel=sql.Literal(channel_for(activation)),
+        counter_guard=sql.SQL("""
+  IF coalesce(current_setting('noteai.item33_mutation_count',true),'') !~ '^[0-9]{1,5}$'
+     OR current_setting('noteai.item33_mutation_count',true)::integer > 32768 THEN
+    RAISE EXCEPTION 'item33 mutation count binding missing';
+  END IF;
+""" if mutation_counts else ""),
+        payload=(sql.SQL("({}::jsonb || jsonb_build_object('mutation_count',"
+                         "current_setting('noteai.item33_mutation_count',true)::integer))::text").format(
+                             sql.Literal(payload)) if mutation_counts else sql.Literal(payload)))
 
 
 def _validate_binding(binding: dict) -> None:
@@ -264,16 +312,20 @@ def _validate_binding(binding: dict) -> None:
 
 
 def aggregate_records(records: list[dict], *, activation: str,
-                      targets: Mapping[str, TableTarget], run_identity_sha256: str) -> dict:
+                      targets: Mapping[str, TableTarget], run_identity_sha256: str,
+                      require_mutation_count: bool = False) -> dict:
     """Aggregate trusted transport records, never certify a production capture.
 
     `registered`/`rollback` come from the separate durable writer protocol.
     Notifications add `sender_pid` from PostgreSQL's actual notification object,
     never from its payload. Missing registrations/terminals and duplicate or
-    unbound events remain UNKNOWN. A missing individual mutation or a forged
-    notice from the already-bound backend is not detectable by aggregation;
+    unbound events remain UNKNOWN. Legacy mode cannot detect a missing individual mutation. Counted mode
+    compares the transaction-local trigger counter with delivered mutations. A forged
+    notice from the already-bound backend still requires source/transport trust;
     actual writer-source binding and continuous capture remain prerequisites.
     """
+    if type(require_mutation_count) is not bool:
+        raise ValueError("mutation count mode")
     context = (_uuid(activation), coverage_sha256(targets), _sha(run_identity_sha256))
     coverage = _coverage(targets)
     unknown = {"status": "UNKNOWN", "unproven": list(UNPROVEN), "readiness_credit": False}
@@ -299,8 +351,15 @@ def aggregate_records(records: list[dict], *, activation: str,
                 raise ValueError("writer mismatch")
             if kind in {"commit", "rollback"}:
                 expected = {"kind", *binding} | ({"sender_pid"} if kind == "commit" else set())
+                if kind == "commit" and require_mutation_count:
+                    expected.add("mutation_count")
                 if set(record) != expected or (kind == "commit" and record["sender_pid"] != binding["pid"]):
                     raise ValueError("terminal binding")
+                if kind == "commit" and require_mutation_count:
+                    count = record.get("mutation_count")
+                    if (type(count) is not int or not 0 <= count <= 32768
+                            or count != sum(row["nonce"] == nonce for row in rows)):
+                        raise ValueError("committed mutation count mismatch")
                 if kind == "rollback" and any(row["nonce"] == nonce for row in rows):
                     raise ValueError("rolled back notification")
                 closed.add(nonce)

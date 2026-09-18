@@ -1,0 +1,58 @@
+{
+  "control_id": "internal_failure_rollback",
+  "evidence_ref": "deploy/production/evidence/production-internal-failure-rollback-verified-20260814.json",
+  "evidence_sha256": "429b41e4e7be1549181bed195623718ce65d2d052257ea176da99e266fa598f8",
+  "manifest_evidence": [
+    {
+      "kind": "git",
+      "ref": "40d8fa29ebf1dcb9af8f475528a94e1cf8322874"
+    },
+    {
+      "kind": "path",
+      "ref": "deploy/production/evidence/production-internal-failure-rollback-verified-20260814.json"
+    },
+    {
+      "kind": "path",
+      "ref": "deploy/production/internal_failure_rollback.py"
+    },
+    {
+      "kind": "path",
+      "ref": "tools/render_item28_internal_failure_rollback_request_v1.py"
+    },
+    {
+      "kind": "path",
+      "ref": "tools/verify_internal_failure_rollback_evidence.py"
+    }
+  ],
+  "schema": "noteai.item33.dependency_validation.v1",
+  "secret_values_recorded": false,
+  "source_binding": {
+    "branch": "codex/quality-stabilization-real-chain",
+    "current_release_revision": "c9b9ac423033f3c54cbe7ecf67cef63508934896",
+    "executed_executor_bytes": 41841,
+    "executed_executor_sha256": "2c37bb2b79df4260fba7624091fd245e3543647d4db9eecf525492b560675ca7",
+    "executed_renderer_sha256": "df81e4e52ed1b23f92665c6e9980b3b0c328b8e211777bb7dcb894fd5e28686c",
+    "execution_source_revision": "40d8fa29ebf1dcb9af8f475528a94e1cf8322874",
+    "executor_ref": "deploy/production/internal_failure_rollback.py",
+    "initial_preflight_revision": "5b856a4b90ceca960754d21e95492a23ae33e08c",
+    "predecessor_acceptances": {
+      "item25": "e456faeea90f4139068cefce7486af863a86b52f8f160f951a007955531ffdb6",
+      "item26": "4285231c59a111056426c643aac0764a1d7c32904caf46eacf555188d082a7b8",
+      "item27": "a42a6fe6bd0aebfb6856fac9ea01da1043a054e67c9fae3987b8608e3342a077"
+    },
+    "release_identity_sha256": "20fae7fd4f585966706736fcac3da2198c7d175cbb8f099cf792bf3fa2b22066",
+    "renderer_ref": "tools/render_item28_internal_failure_rollback_request_v1.py",
+    "target_identity_sha256": "2c60d4bafae921961150894da54a7465cbfb9b9f6e8a8ed235e7dd07b50a7f4d",
+    "unit_fragment_sha256": "f591f43b0377402dbc026c4e7f5eee08bc8b884fd9e3523fe775fa5a8f0bb936",
+    "verifier_ref": "tools/verify_internal_failure_rollback_evidence.py",
+    "volatile_dropin_sha256": "d9fc435118b567a4ef1ea28ab25d7358f0f98e77f83c52e04514b4cb44433305"
+  },
+  "status": "VERIFIED",
+  "terminal_acceptance_sha256": "55363294b82f21c6c0fd000e8dcf08f481775a2f63b2a9dd733056ffb4f85c9c",
+  "validated_at": "2026-09-18T12:35:12.894419+00:00",
+  "validation_command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools python3 -B: validate_manifest_evidence(control.evidence, root=original_git_checkout)",
+  "validation_environment": "local_original_git_checkout",
+  "validation_errors": [],
+  "validator_ref": "tools/verify_internal_failure_rollback_evidence.py",
+  "validator_sha256": "ec174116b85d57ab61e4b9520e42a31c910b4bfa6ad1bd173c6bb3c41da7d54c"
+}

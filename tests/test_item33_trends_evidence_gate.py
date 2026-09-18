@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -404,6 +405,15 @@ class Item33TrendsEvidenceGateTests(unittest.TestCase):
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        # This synthetic legacy image copies the current worker/contract bytes.
+        # Bind those fixture bytes rather than treating them as frozen production.
+        image_sources = {
+            name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+            for name in gate.ITEM32_IMAGE_SOURCE_SHA256
+        }
+        patcher = mock.patch.object(gate, "ITEM32_IMAGE_SOURCE_SHA256", image_sources)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         fixture = module.Item32TrendsEvidenceGateTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)

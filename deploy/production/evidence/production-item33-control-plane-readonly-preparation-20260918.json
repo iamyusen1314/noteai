@@ -1,0 +1,56 @@
+{
+  "schema": "noteai.item33.control_plane_readonly_preparation.v1",
+  "state": "PREPARATION_ONLY",
+  "readiness_credit": false,
+  "source": "existing Alibaba DMS authenticated SQLConsole 1 result",
+  "observed_at": "2026-09-18T12:05:09.668902+00:00",
+  "database_role": "noteai_admin",
+  "database_name": "noteai",
+  "server_version_num": 160013,
+  "public_schema_create": true,
+  "trends_tables_owned_via_membership": 8,
+  "existing_item33_functions": 0,
+  "queries_executed": 2,
+  "query_kind": "SELECT system catalogs and current identity only",
+  "provider_requests": 0,
+  "schema_or_acl_changes": 0,
+  "business_data_changes": 0,
+  "capture_installed": false,
+  "runtime_trends_acl_verified": false,
+  "server_enforced_readonly_verified": false,
+  "secret_values_recorded": false,
+  "function_followup": {
+    "result_observed_at": "2026-09-18T12:16:47+00:00",
+    "result_clock_source": "local UTC clock after original DMS result readback",
+    "query_scope": "public functions executable by noteai_xhs_trends; names, language, kind, arguments, definer flag and body hash only; LIMIT 65",
+    "rows_returned": 2,
+    "functions": [
+      {
+        "name": "noteai_guard_ark_media_v1",
+        "language": "plpgsql",
+        "security_definer": false,
+        "kind": "f",
+        "arguments": "",
+        "body_sha256": "fed9e570817da74d21a51c41a1fe7480f139f742886b3a979ed008477ec82afe",
+        "matching_source": "model/migrations/postgres/0026_multimodal_usage.sql",
+        "source_body_hash_matches": true
+      },
+      {
+        "name": "noteai_guard_response_reference_v1",
+        "language": "plpgsql",
+        "security_definer": false,
+        "kind": "f",
+        "arguments": "",
+        "body_sha256": "ff0a29026abcf4e066f93f677ecde3fac8ed7d2bb5dff27ec1ee0a604d5c3b9c",
+        "matching_source": "model/migrations/postgres/0028_media_response_recovery.sql",
+        "source_body_hash_matches": true
+      }
+    ],
+    "limitation": "Exact original local source returns trigger and only validates NEW/OLD; current trigger attachment/return type and complete reachability remain for actual capture catalog preflight."
+  },
+  "limitations": [
+    "Current DMS session and control-plane ownership are observed; no production capture install was attempted.",
+    "This is not the fresh Trends runtime-role, quota, trigger-reachability or cycle preflight.",
+    "Original payment SQLConsole was preserved; the query used a new separate SQLConsole 1 tab."
+  ]
+}

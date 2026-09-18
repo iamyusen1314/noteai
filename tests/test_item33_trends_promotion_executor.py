@@ -737,7 +737,14 @@ class Item33HostActionPreparationTests(unittest.TestCase):
                 host_actions, "_run", side_effect=run
             ), mock.patch.object(host_actions, "_assert_host_identity"):
                 actions = host_actions.Item33HostUnitActions(dependencies=self.dependencies(), clock=lambda: now[0])
-                with mock.patch.object(executor, "RUNTIME_OVERLAY_ROOT", overlay):
+                with mock.patch.object(executor, "RUNTIME_OVERLAY_ROOT", overlay), mock.patch.object(
+                    executor, "RUNTIME_OVERLAY_SHA256", {
+                        name: hashlib.sha256((overlay / name).read_bytes()).hexdigest()
+                        for name in executor.RUNTIME_OVERLAY_SHA256
+                    }
+                ):
+                    # This fixture tests filesystem metadata with current source
+                    # bytes. The renderer above separately pins the old release.
                     actions._assert_overlays()
                 # Renderer stays bound to the canonical production mount paths.
                 with mock.patch.object(actions, "_assert_overlays"):
@@ -790,5 +797,476 @@ class Item33HostActionPreparationTests(unittest.TestCase):
                     self.assertEqual(json.loads((action_root / "promotion.started.json").read_text())["status"], "STARTED_UNKNOWN")
 
 
+class Item33V5PromotionTests(unittest.TestCase):
+    now = datetime(2026, 9, 19, 0, 10, tzinfo=timezone.utc)
+    activation = "a" * 64
+
+    def dependencies(self):
+        value = Item33TrendsPromotionExecutorTests().dependencies()
+        value["real_xhs_trends"].update(
+            evidence_sha256=executor.V5_ITEM32_TERMINAL_SHA256,
+            terminal_bucket_date="2026-09-18", runtime_profile=executor.V5_PROFILE)
+        return value
+
+    def capture(self):
+        return {
+            "source_sha256": {name: str(index) * 64 for index, name in enumerate(executor.V5_CAPTURE_TOOLS, 1)},
+            "launcher_sha256": hashlib.sha256(executor.V5_CAPTURE_LAUNCHER).hexdigest(),
+            "configuration_sha256": "c" * 64,
+            "activation_identity_sha256": self.activation,
+        }
+
+    def retime(self, value):
+        return json.loads(json.dumps(value).replace("2026-09-08", "2026-09-19"))
+
+    def cycle(self):
+        value = self.retime(Item33TrendsPromotionExecutorTests().cycle())
+        value["activation_identity_sha256"] = self.activation
+        observations, attempts = [], []
+        kinds = ["dsl", "session", *(["homefeed"] * 10),
+                 *[kind for _ in range(12) for kind in ("search_recommend", "search_notes")]]
+        for index, kind in enumerate(kinds, 1):
+            metadata = {"request_kind": kind, "sequence": index, "at": self.now.isoformat()}
+            observations.extend([
+                {**metadata, "phase": "dispatch"},
+                {**metadata, "phase": "response", "response_diagnostics": {
+                    "http_status": 200, "payload_kind": "non_json" if kind == "dsl" else "object",
+                    "success_state": "absent" if kind == "dsl" else "true",
+                    "business_code_kind": "integer", "business_code": 0, "message_tags": []}},
+            ])
+            if index > 2:
+                attempts.append({"attempt_identity_sha256": hashlib.sha256(str(index).encode()).hexdigest(),
+                    "ordinal": index - 2, "endpoint": kind, "status": "succeeded",
+                    "admitted_at": self.now.isoformat(), "completed_at": self.now.isoformat()})
+        value["attempts"] = attempts
+        value["physical_http"] = {
+            "initialization_count": 2, "collection_count": 34, "total_count": 36, "total_limit": 36,
+            "automatic_retry_count": 0, "first_homefeed_is_gate": True,
+            "worker_receipt_sha256": "b" * 64, "observations": observations}
+        return value
+
+    def state(self, phase):
+        value = self.retime(Item33TrendsPromotionExecutorTests().state(phase))
+        value.update(activation_identity_sha256=self.activation, run_identity_sha256=RUN_IDENTITY)
+        if phase != "rollback":
+            value["unit_sha256"] = executor.V5_PROMOTED_UNIT_SHA256
+        return value
+
+    def action(self, phase):
+        value = Item33TrendsPromotionExecutorTests().action(phase)
+        for key in ("before_unit_sha256", "after_unit_sha256"):
+            if value[key] == executor.PROMOTED_UNIT_SHA256:
+                value[key] = executor.V5_PROMOTED_UNIT_SHA256
+        return value
+
+    def invoke(self, *, cycle=None, now=None, actual_run_argument=None, capture=None, state_override=None):
+        calls, authorizations = [], []
+        def callback(name, result):
+            def read(*args):
+                calls.append(name)
+                authorizations.extend(args)
+                return result
+            return read
+        options = {"activation_identity_sha256": self.activation,
+                   "capture_binding": capture or self.capture()}
+        if actual_run_argument is not None:
+            options["run_identity_sha256"] = actual_run_argument
+        with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()):
+            try:
+                result = executor.execute_item33_promotion(
+                    dependencies=self.dependencies(), **options,
+                    read_preflight=callback("preflight", self.retime(Item33TrendsPromotionExecutorTests().preflight())),
+                    read_single_cycle=callback("cycle", self.cycle() if cycle is None else cycle),
+                    promote_unit=callback("promotion", self.action("promotion")),
+                    read_promoted=callback("promoted", state_override or self.state("promoted")),
+                    rollback_unit=callback("rollback", self.action("rollback")),
+                    read_rollback=callback("rollback_readback", self.state("rollback")),
+                    reapply_unit=callback("reapply", self.action("reapply")),
+                    read_final=callback("final", self.state("final")), clock=lambda: now or self.now)
+            except executor.Item33ExecutionError as exc:
+                exc.calls = calls
+                raise
+        return result, calls, authorizations
+
+    def test_renderer_pins_actual_image_eight_sources_capture_and_original_entrypoint(self):
+        import shlex
+        original = Item33HostActionPreparationTests().suspended()
+        rendered = executor.render_managed_unit(original, runtime_profile=executor.V5_PROFILE)
+        self.assertEqual(hashlib.sha256(rendered).hexdigest(), executor.V5_PROMOTED_UNIT_SHA256)
+        self.assertEqual(rendered.count(b"--mount=type=bind,"), 13)
+        self.assertEqual(rendered.count(b",readonly"), 13)
+        self.assertNotIn(b"--entrypoint", rendered)
+        self.assertEqual(rendered.count(executor.V5_IMAGE_CONFIG_SHA256.encode()), 2)
+        line = next(line for line in rendered.decode().splitlines() if line.startswith("ExecStart="))
+        arguments = shlex.split(line.removeprefix("ExecStart="))
+        self.assertEqual(arguments[-1], "/app/scripts/render_run_market_timing.sh")
+        budget = next(value.split("=", 2)[2] for value in arguments if value.startswith("--env=NOTEAI_XHS_V5_BUDGET_JSON="))
+        self.assertEqual(json.loads(budget), {"initialization": 2, "collection": 34, "total": 36})
+        for name in executor.V5_RUNTIME_OVERLAY_SHA256:
+            self.assertEqual(sum(f"dst=/app/{name},readonly" in item for item in arguments), 1)
+        self.assertEqual(hashlib.sha256(original).hexdigest(), executor.SUSPENDED_UNIT_SHA256)
+        self.assertIn(b"Restart=no", rendered)
+        self.assertIn(b"python market_timing_worker.py --healthcheck", rendered)
+
+    def test_complete_cycle_observes_run_after_activation_and_keeps_one_rehearsal(self):
+        result, calls, authorizations = self.invoke()
+        self.assertEqual(result["run_identity_sha256"], RUN_IDENTITY)
+        self.assertEqual(result["activation_identity_sha256"], self.activation)
+        self.assertNotIn("run_identity_sha256", result["authorization"])
+        self.assertEqual(result["authorization"]["physical_http_limit"], 36)
+        self.assertEqual(calls, ["preflight", "promotion", "cycle", "promoted", "rollback", "rollback_readback", "reapply", "final"])
+        self.assertEqual(result["action_counts"], {"cycle": 1, "promotion": 1, "rollback": 1, "reapply": 1, "automatic_retry": 0})
+        self.assertTrue(all(item["activation_identity_sha256"] == self.activation for item in authorizations))
+
+    def test_preselected_run_and_same_item32_bucket_stop_before_actions(self):
+        for kwargs, code in (({"actual_run_argument": RUN_IDENTITY}, "run_identity_must_be_observed"),
+                             ({"now": self.now - timedelta(days=1)}, "utc_budget_not_available")):
+            with self.subTest(code=code), self.assertRaises(executor.Item33ExecutionError) as caught:
+                self.invoke(**kwargs)
+            self.assertEqual(caught.exception.code, code)
+            self.assertEqual(caught.exception.calls, [])
+
+    def test_different_activation_cannot_supply_actual_cycle(self):
+        value = self.cycle()
+        value["activation_identity_sha256"] = "d" * 64
+        with self.assertRaises(executor.Item33ExecutionError) as caught:
+            self.invoke(cycle=value)
+        self.assertEqual(caught.exception.code, "cycle")
+        self.assertEqual(caught.exception.calls[-2:], ["rollback", "rollback_readback"])
+        self.assertNotIn("reapply", caught.exception.calls)
+
+    def test_missing_initialization_unknown_response_and_duplicate_attempt_fail(self):
+        for mutation in ("init", "unknown", "duplicate", "wrong_endpoint"):
+            value = self.cycle()
+            if mutation == "init": value["physical_http"]["initialization_count"] = 0
+            if mutation == "unknown": value["physical_http"]["observations"][1]["phase"] = "unknown"
+            if mutation == "duplicate": value["attempts"][1]["attempt_identity_sha256"] = value["attempts"][0]["attempt_identity_sha256"]
+            if mutation == "wrong_endpoint": value["attempts"][0]["endpoint"] = "search_notes"
+            with self.subTest(mutation=mutation), self.assertRaises(executor.Item33ExecutionError) as caught:
+                self.invoke(cycle=value)
+            self.assertEqual(caught.exception.code, "cycle_physical_http")
+            self.assertEqual(caught.exception.calls.count("rollback"), 1)
+            self.assertNotIn("reapply", caught.exception.calls)
+
+    def test_old_promoted_image_readback_is_not_accepted_as_v5(self):
+        state = self.state("promoted")
+        state["unit_sha256"] = executor.PROMOTED_UNIT_SHA256
+        with self.assertRaises(executor.Item33ExecutionError) as caught:
+            self.invoke(state_override=state)
+        self.assertEqual(caught.exception.code, "promoted_readback")
+        self.assertNotIn("reapply", caught.exception.calls)
+
+    def test_readback_run_cannot_change_after_durable_cycle(self):
+        state = self.state("promoted")
+        state["run_identity_sha256"] = "f" * 64
+        with self.assertRaises(executor.Item33ExecutionError) as caught:
+            self.invoke(state_override=state)
+        self.assertEqual(caught.exception.code, "promoted_readback")
+
+    def test_capture_launcher_hash_and_profile_shape_fail_before_preflight(self):
+        value = self.capture()
+        value["launcher_sha256"] = "d" * 64
+        with self.assertRaises(executor.Item33ExecutionError) as caught:
+            self.invoke(capture=value)
+        self.assertEqual(caught.exception.code, "capture_binding")
+        self.assertEqual(caught.exception.calls, [])
+        with self.assertRaisesRegex(executor.Item33ExecutionError, "runtime_profile_binding"):
+            executor.render_managed_unit(Item33HostActionPreparationTests().suspended(), runtime_profile="unbound")
+
+    def normal_fixture(self):
+        prior = self.invoke()[0]
+        preserved = {"run_count": 1, "attempt_count": 34, "snapshot_count": 1,
+                     "run_sha256": "1" * 64, "attempt_ledger_sha256": "2" * 64, "snapshot_sha256": "3" * 64}
+        raw = b'{"synthetic_seal":true}'
+        readback = {"schema": "noteai.item33.normal_readback.v1", "activation_identity_sha256": self.activation,
+            "run_identity_sha256": RUN_IDENTITY, "bucket_key": self.now.date().isoformat(), "observed_at": self.now.isoformat(),
+            "unit_sha256": executor.V5_NORMAL_UNIT_SHA256, "preserved": preserved,
+            "final": {"active": "active", "sub": "running", "enabled": "enabled", "collection_suspended": False,
+                      "formal_unit_count": 1, "formal_container_count": 1, "process_count": 1, "health": "ready"},
+            "same_bucket": {"bucket_key": self.now.date().isoformat(), "new_run_delta": 0, "provider_call_delta": 0},
+            "capture_receipt_sha256": hashlib.sha256(raw).hexdigest(), "teardown_sha256": hashlib.sha256(b"synthetic teardown").hexdigest(),
+            "capture_close": {**{prefix+"_ref": "deploy/production/evidence/production-item33-trends-"+name+".json" for prefix,name in
+                (("service_result","capture-service-result"),("close","capture-service-close"),("host","normal-host-readback"))},
+                **{prefix+"_sha256":"a"*64 for prefix in ("service_result","close","host")}}, "secret_values_recorded": False}
+        action = self.action("reapply")
+        action.update(phase="normal_handoff", before_unit_sha256=executor.V5_PROMOTED_UNIT_SHA256,
+                      after_unit_sha256=executor.V5_NORMAL_UNIT_SHA256, started_at=self.now.isoformat(), completed_at=self.now.isoformat())
+        return prior, preserved, raw, readback, action
+
+    def test_normal_records_action_times_separately_from_later_readback(self):
+        prior,preserved,raw,readback,action=self.normal_fixture()
+        action['started_at']=(self.now+timedelta(seconds=1)).isoformat()
+        action['completed_at']=(self.now+timedelta(seconds=2)).isoformat()
+        readback['observed_at']=(self.now+timedelta(seconds=3)).isoformat()
+        ticks=iter((self.now,self.now,self.now+timedelta(seconds=3),self.now+timedelta(seconds=4)))
+        with mock.patch.object(executor,'_load_verified_dependencies',return_value=self.dependencies()), mock.patch.object(
+            executor,'_validate_capture_seal',return_value={}),mock.patch.object(executor,'_validate_teardown',return_value={}):
+            value=executor.execute_item33_normal_handoff(dependencies=self.dependencies(),previous_result=prior,preserved=preserved,
+                capture_seal_raw=raw,capture_journal=b'synthetic journal',teardown_raw=b'synthetic teardown',
+                handoff_unit=lambda _:action,read_normal=lambda:readback,clock=lambda:next(ticks))
+        self.assertEqual(value['started_at'],action['started_at']);self.assertEqual(value['completed_at'],action['completed_at'])
+        self.assertEqual(value['observed_at'],readback['observed_at']);self.assertNotEqual(value['completed_at'],value['observed_at'])
+        self.assertEqual(value['capture_close'],readback['capture_close'])
+
+    def test_invalid_teardown_prevents_the_unit_callback(self):
+        prior,preserved,raw,readback,action=self.normal_fixture();handoff=mock.Mock(return_value=action)
+        with mock.patch.object(executor,'_load_verified_dependencies',return_value=self.dependencies()), mock.patch.object(
+            executor,'_validate_capture_seal',return_value={}):
+            with self.assertRaisesRegex(executor.Item33ExecutionError,'normal_teardown_unverified'):
+                executor.execute_item33_normal_handoff(dependencies=self.dependencies(),previous_result=prior,preserved=preserved,
+                    capture_seal_raw=raw,capture_journal=b'synthetic journal',teardown_raw=b'synthetic teardown',
+                    handoff_unit=handoff,read_normal=lambda:readback,clock=lambda:self.now)
+        handoff.assert_not_called()
+
+    def test_normal_renderer_has_eight_sources_and_original_allowed_command(self):
+        original = Item33HostActionPreparationTests().suspended()
+        normal = executor.render_managed_unit(original, runtime_profile=executor.V5_PROFILE, normal=True)
+        self.assertEqual(hashlib.sha256(normal).hexdigest(), executor.V5_NORMAL_UNIT_SHA256)
+        self.assertEqual(normal.count(b"--mount=type=bind,"), 8)
+        self.assertIn(b"python market_timing_worker.py --daemon --interval 360", normal)
+        self.assertNotIn(b"capture", normal)
+        self.assertNotIn(b"--entrypoint", normal)
+        capture = executor.render_managed_unit(original, runtime_profile=executor.V5_PROFILE)
+        self.assertEqual(hashlib.sha256(capture).hexdigest(), executor.V5_PROMOTED_UNIT_SHA256)
+
+    def test_normal_handoff_requires_real_seal_verifier_before_one_action(self):
+        prior, preserved, raw, readback, action = self.normal_fixture()
+        handoff = mock.Mock(return_value=action)
+        # This isolates orchestration only; production C verifier is independently
+        # tested against the actual row-count journal and catalog contract.
+        with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+            executor, "_validate_capture_seal", return_value={}) as verifier, mock.patch.object(executor, "_validate_teardown", return_value={}):
+            value = executor.execute_item33_normal_handoff(dependencies=self.dependencies(), previous_result=prior,
+                preserved=preserved, capture_seal_raw=raw, capture_journal=b"synthetic journal", teardown_raw=b"synthetic teardown",
+                handoff_unit=handoff, read_normal=lambda: readback, clock=lambda: self.now)
+        verifier.assert_called_once_with(prior["capture_binding"], RUN_IDENTITY, self.now.date().isoformat(), raw, b"synthetic journal")
+        handoff.assert_called_once()
+        self.assertEqual(value["normal_unit_sha256"], executor.V5_NORMAL_UNIT_SHA256)
+        self.assertEqual(value["preserved"], preserved)
+        self.assertEqual(value["readback_sha256"], hashlib.sha256(executor._normal_json_bytes(readback)).hexdigest())
+        self.assertTrue(executor._normal_json_bytes(readback).endswith(b"\n"))
+        self.assertEqual(prior["final_readback"]["unit_sha256"], executor.V5_PROMOTED_UNIT_SHA256)
+
+    def test_unsealed_capture_never_restarts_and_unknown_handoff_is_not_replayed(self):
+        prior, preserved, raw, readback, action = self.normal_fixture()
+        handoff = mock.Mock(return_value=action)
+        with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()):
+            with self.assertRaisesRegex(executor.Item33ExecutionError, "normal_capture_unverified"):
+                executor.execute_item33_normal_handoff(dependencies=self.dependencies(), previous_result=prior,
+                    preserved=preserved, capture_seal_raw=raw, capture_journal=b"synthetic journal", teardown_raw=b"synthetic teardown",
+                    handoff_unit=handoff, read_normal=lambda: readback, clock=lambda: self.now)
+        handoff.assert_not_called()
+        handoff.side_effect = RuntimeError("synthetic unknown")
+        with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+            executor, "_validate_capture_seal", return_value={}), mock.patch.object(executor, "_validate_teardown", return_value={}):
+            with self.assertRaisesRegex(executor.Item33ExecutionError, "normal_handoff_outcome_unknown"):
+                executor.execute_item33_normal_handoff(dependencies=self.dependencies(), previous_result=prior,
+                    preserved=preserved, capture_seal_raw=raw, capture_journal=b"synthetic journal", teardown_raw=b"synthetic teardown",
+                    handoff_unit=handoff, read_normal=lambda: readback, clock=lambda: self.now)
+        handoff.assert_called_once()
+
+    def test_normal_readback_cannot_hide_extra_request_or_changed_snapshot(self):
+        for mutation in ("request", "snapshot"):
+            prior, preserved, raw, readback, action = self.normal_fixture()
+            readback = copy.deepcopy(readback)
+            if mutation == "request": readback["same_bucket"]["provider_call_delta"] = 1
+            else: readback["preserved"]["snapshot_sha256"] = "f" * 64
+            with self.subTest(mutation=mutation), mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+                executor, "_validate_capture_seal", return_value={}), mock.patch.object(executor, "_validate_teardown", return_value={}):
+                with self.assertRaisesRegex(executor.Item33ExecutionError, "normal_readback"):
+                    executor.execute_item33_normal_handoff(dependencies=self.dependencies(), previous_result=prior,
+                        preserved=preserved, capture_seal_raw=raw, capture_journal=b"synthetic journal", teardown_raw=b"synthetic teardown",
+                        handoff_unit=lambda _: action, read_normal=lambda: readback, clock=lambda: self.now)
+
+    @unittest.skipUnless(os.geteuid() == 0, "isolated root metadata fixture")
+    def test_normal_host_cas_restart_once_and_midnight_stops_before_restart(self):
+        for cross_midnight in (False, True):
+            with self.subTest(cross_midnight=cross_midnight), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                unit = root / executor.UNIT_NAME
+                original = Item33HostActionPreparationTests().suspended()
+                unit.write_bytes(executor.render_managed_unit(original, runtime_profile=executor.V5_PROFILE))
+                unit.chmod(0o644)
+                action_root = root / "actions"
+                action_root.mkdir(mode=0o700)
+                for name, value in {
+                    "promotion.started.json": {"activation_identity_sha256": self.activation, "bucket_key": self.now.date().isoformat()},
+                    "reapply.applied.json": {"activation_identity_sha256": self.activation, "status": "APPLIED_REQUIRES_STATE_READBACK"},
+                }.items():
+                    path = action_root / name
+                    path.write_bytes(executor._normal_json_bytes(value)); path.chmod(0o600)
+                (action_root / "suspended-unit.rollback").write_bytes(original)
+                (action_root / "suspended-unit.rollback").chmod(0o600)
+                commands, now = [], [self.now]
+                def run(argv):
+                    commands.append(argv)
+                    if "FragmentPath" in argv: return str(unit).encode()
+                    if cross_midnight and argv == ["systemctl", "daemon-reload"]: now[0] = self.now + timedelta(days=1)
+                    return b""
+                binding = self.capture()
+                auth = {"unit_name": executor.UNIT_NAME, "activation_identity_sha256": self.activation,
+                    "run_identity_sha256": RUN_IDENTITY, "bucket_key": self.now.date().isoformat(),
+                    "capture_binding": binding, "capture_receipt_sha256": "f" * 64, "teardown_sha256": "e" * 64, "automatic_retry_limit": 0}
+                with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+                    actions := host_actions, "UNIT_PATH", unit), mock.patch.object(actions, "ACTION_ROOT", action_root), mock.patch.object(
+                    actions, "_run", side_effect=run), mock.patch.object(actions, "_assert_host_identity"):
+                    host = actions.Item33HostUnitActions(dependencies=self.dependencies(), capture_binding=binding, clock=lambda: now[0])
+                    with mock.patch.object(host, "_assert_overlays"), mock.patch.object(host, "_assert_normal_capture"):
+                        if cross_midnight:
+                            with self.assertRaisesRegex(executor.Item33ExecutionError, "start_bucket_expired"): host.normal_handoff_once(auth)
+                        else:
+                            host.normal_handoff_once(auth)
+                            with self.assertRaises(executor.Item33ExecutionError): host.normal_handoff_once(auth)
+                    self.assertTrue((action_root / "normal_handoff.started.json").exists())
+                    self.assertEqual((action_root / "normal_handoff.applied.json").exists(), not cross_midnight)
+                    self.assertEqual(commands.count(["systemctl", "restart", executor.UNIT_NAME]), 0 if cross_midnight else 1)
+                    self.assertFalse(any("enable" in command for command in commands))
+                    self.assertEqual(hashlib.sha256(unit.read_bytes()).hexdigest(), executor.V5_NORMAL_UNIT_SHA256)
+
+    @unittest.skipUnless(os.geteuid() == 0, "isolated root metadata fixture")
+    def test_v5_host_actions_keep_activation_and_exact_original_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            unit = root / executor.UNIT_NAME
+            original = Item33HostActionPreparationTests().suspended()
+            unit.write_bytes(original)
+            unit.chmod(0o644)
+            commands = []
+            def run(argv):
+                commands.append(argv)
+                if "FragmentPath" in argv: return str(unit).encode()
+                return b""
+            binding = self.capture()
+            promotion = {"unit_name": executor.UNIT_NAME, "activation_identity_sha256": self.activation,
+                "automatic_retry_limit": 0, "capture_binding": binding,
+                "cycle_authorization": {"activation_identity_sha256": self.activation,
+                    "bucket_key": self.now.date().isoformat(), "provider_request_limit": 34,
+                    "automatic_retry_limit": 0, "runtime_profile": executor.V5_PROFILE,
+                    "initialization_limit": 2, "physical_http_limit": 36, "capture_binding": binding}}
+            recovery = {key: value for key, value in promotion.items() if key != "cycle_authorization"}
+            with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+                host_actions, "UNIT_PATH", unit), mock.patch.object(host_actions, "ACTION_ROOT", root / "actions"), mock.patch.object(
+                host_actions, "_run", side_effect=run), mock.patch.object(host_actions, "_assert_host_identity"):
+                actions = host_actions.Item33HostUnitActions(dependencies=self.dependencies(), capture_binding=binding, clock=lambda: self.now)
+                with mock.patch.object(actions, "_assert_overlays") as overlays, mock.patch.object(actions, "_assert_capture") as capture:
+                    actions.promote_unit(promotion)
+                    self.assertEqual(hashlib.sha256(unit.read_bytes()).hexdigest(), executor.V5_PROMOTED_UNIT_SHA256)
+                    actions.rollback_unit(recovery)
+                    self.assertEqual(unit.read_bytes(), original)
+                    actions.reapply_unit(recovery)
+                    self.assertEqual(hashlib.sha256(unit.read_bytes()).hexdigest(), executor.V5_PROMOTED_UNIT_SHA256)
+                    self.assertEqual(overlays.call_count, 2)
+                    self.assertEqual(capture.call_args_list, [mock.call(promotion), mock.call(recovery)])
+                    with self.assertRaises(executor.Item33ExecutionError): actions.reapply_unit(recovery)
+                marker = json.loads((root / "actions/promotion.started.json").read_text())
+                self.assertEqual(marker["activation_identity_sha256"], self.activation)
+                self.assertNotIn("run_identity_sha256", marker)
+                self.assertEqual((root / "actions/suspended-unit.rollback").read_bytes(), original)
+                self.assertEqual(commands.count(["systemctl", "enable", "--now", executor.UNIT_NAME]), 2)
+                self.assertEqual(commands.count(["systemctl", "disable", "--now", executor.UNIT_NAME]), 1)
+
+    @unittest.skipUnless(os.geteuid() == 0, "isolated root metadata fixture")
+    def test_v5_nested_source_and_capture_metadata_reject_symlink_or_changed_files(self):
+        import socket
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            overlay = root / "runtime"
+            overlay.mkdir(mode=0o700)
+            capture_root = root / "capture"
+            capture_root.mkdir(mode=0o700)
+            binding = self.capture()
+            config = {
+                "schema": "noteai.item33.runtime_capture_config.v1", "bucket_key": self.now.date().isoformat(),
+                "activation_identity_sha256": self.activation, "socket_path": "/run/noteai-item33/capture.sock",
+                "accepted_source_sha256": executor.V5_RUNTIME_OVERLAY_SHA256,
+                "instrumentation_sha256": {**binding["source_sha256"], executor.V5_CAPTURE_LAUNCHER_PATH: binding["launcher_sha256"]},
+            }
+            raw = json.dumps(config).encode()
+            (capture_root / "runtime-config.json").write_bytes(raw)
+            (capture_root / "runtime-config.json").chmod(0o444)
+            binding["configuration_sha256"] = hashlib.sha256(raw).hexdigest()
+            for name in [*executor.V5_RUNTIME_OVERLAY_SHA256, *executor.V5_CAPTURE_TOOLS, executor.V5_CAPTURE_LAUNCHER_PATH]:
+                path = overlay / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                parent = path.parent
+                while parent != overlay:
+                    parent.chmod(0o700)
+                    parent = parent.parent
+                if name in executor.V5_RUNTIME_OVERLAY_SHA256:
+                    content = (ROOT / name).read_bytes()
+                elif name == executor.V5_CAPTURE_LAUNCHER_PATH:
+                    content = executor.V5_CAPTURE_LAUNCHER
+                else:
+                    content = b"# isolated source fixture\n"
+                    binding["source_sha256"][name] = hashlib.sha256(content).hexdigest()
+                path.write_bytes(content)
+                path.chmod(0o555 if name == executor.V5_CAPTURE_LAUNCHER_PATH else 0o444)
+            config["instrumentation_sha256"] = {**binding["source_sha256"], executor.V5_CAPTURE_LAUNCHER_PATH: binding["launcher_sha256"]}
+            raw = json.dumps(config).encode()
+            (capture_root / "runtime-config.json").write_bytes(raw)
+            binding["configuration_sha256"] = hashlib.sha256(raw).hexdigest()
+            connection = socket.socket(socket.AF_UNIX)
+            connection.bind(str(capture_root / "capture.sock"))
+            os.chown(capture_root / "capture.sock", 999, 999)
+            (capture_root / "capture.sock").chmod(0o600)
+            try:
+                with mock.patch.object(executor, "_load_verified_dependencies", return_value=self.dependencies()), mock.patch.object(
+                    executor, "V5_RUNTIME_OVERLAY_ROOT", overlay), mock.patch.object(executor, "V5_CAPTURE_ROOT", capture_root):
+                    actions = host_actions.Item33HostUnitActions(dependencies=self.dependencies(), capture_binding=binding, clock=lambda: self.now)
+                    actions._assert_overlays()
+                    actions._assert_capture({"capture_binding": binding})
+                    bridge = overlay / "model/vendor/spider_xhs/v5/trends_bridge.js"
+                    backup = bridge.read_bytes()
+                    bridge.unlink()
+                    bridge.symlink_to(ROOT / "model/vendor/spider_xhs/v5/trends_bridge.js")
+                    with self.assertRaises(OSError): actions._assert_overlays()
+                    bridge.unlink()
+                    bridge.write_bytes(backup + b"\n")
+                    bridge.chmod(0o444)
+                    with self.assertRaisesRegex(executor.Item33ExecutionError, "runtime_overlay_binding"):
+                        actions._assert_overlays()
+                    (capture_root / "capture.sock").chmod(0o666)
+                    with self.assertRaisesRegex(executor.Item33ExecutionError, "capture_socket"):
+                        actions._assert_capture({"capture_binding": binding})
+            finally:
+                connection.close()
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(os.environ.get('NOTEAI_ITEM33_DEPENDENCY_RECEIPT'), 'explicit frozen local validation receipt fixture')
+class Item33SourcePackageDependencyTests(unittest.TestCase):
+    def test_actual_dependencies_validate_without_git_or_unrelated_manifest_evidence(self):
+        import internal_deployment_readiness_gate as gate
+        refs=set()
+        original_bytes,original_text=Path.read_bytes,Path.read_text
+        def track_bytes(path):
+            if path.is_relative_to(ROOT): refs.add(path.relative_to(ROOT))
+            return original_bytes(path)
+        def track_text(path,*args,**kwargs):
+            if path.is_relative_to(ROOT): refs.add(path.relative_to(ROOT))
+            return original_text(path,*args,**kwargs)
+        manifest=gate.load_manifest(ROOT/executor.CANONICAL_MANIFEST_REF)
+        control=next(c for layer in manifest['layers'] for c in layer['controls'] if c['id']=='real_xhs_trends')
+        with mock.patch.object(Path,'read_bytes',track_bytes),mock.patch.object(Path,'read_text',track_text):
+            self.assertEqual(gate.validate_item32_trends_evidence(control,root=ROOT),[])
+        receipt=Path(os.environ['NOTEAI_ITEM33_DEPENDENCY_RECEIPT']).read_bytes()
+        self.assertEqual(hashlib.sha256(receipt).hexdigest(),executor.DEPENDENCY_VALIDATION_SHA256)
+        validation=json.loads(receipt)
+        refs.update(map(Path,(executor.CANONICAL_MANIFEST_REF,validation['evidence_ref'],validation['validator_ref'])))
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for ref in refs:
+                path=root/ref;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((ROOT/ref).read_bytes())
+            proof=root/executor.DEPENDENCY_VALIDATION_REF;proof.write_bytes(receipt)
+            self.assertFalse((root/'.git').exists())
+            with mock.patch.object(executor,'ROOT',root),mock.patch.object(gate,'validate_manifest',side_effect=AssertionError('full manifest forbidden')),mock.patch('subprocess.run',side_effect=AssertionError('git/commands forbidden')):
+                valid=executor._load_verified_dependencies()
+                self.assertEqual(valid['real_xhs_trends']['runtime_profile'],executor.V5_PROFILE)
+                self.assertTrue(valid['internal_failure_rollback']['verified'])
+                for ref in (executor.DEPENDENCY_VALIDATION_REF,validation['evidence_ref'],validation['validator_ref'],'deploy/production/evidence/production-item32-xhs-trends-attempt-audit.json'):
+                    path=root/ref;original=path.read_bytes();path.write_bytes(original+b' ')
+                    with self.subTest(ref=ref),self.assertRaisesRegex(executor.Item33ExecutionError,'dependency_unverified'):executor._load_verified_dependencies()
+                    path.write_bytes(original)

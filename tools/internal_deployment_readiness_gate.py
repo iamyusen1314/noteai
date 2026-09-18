@@ -261,6 +261,33 @@ ITEM33_PROMOTED_UNIT_SHA256 = (
 ITEM33_EFFECTIVE_PROMOTED_UNIT_SHA256 = (
     "0a1c100462e62e9043ef0b73d81a8b12b85bd684b90c9e1d3a24e0a705fb88ff"
 )
+ITEM33_V5_PROMOTED_UNIT_SHA256 = "0a613724bb4f30fd914a8463ecb1ae866661941468757e5dc03ffefbc1eaa87e"
+ITEM33_V5_LAUNCHER_SHA256 = "893533532eee48a5fae136b15f93c44de81ba0996540b52d82e219cfbca57e4e"
+ITEM33_V5_CAPTURE_TOOLS = {
+    "tools/item33_trends_runtime_capture.py", "tools/item33_trends_dml_capture.py",
+}
+ITEM33_V5_CAPTURE_EVIDENCE = "deploy/production/evidence/production-item33-trends-capture-seal.json"
+ITEM33_V5_CAPTURE_JOURNAL = "deploy/production/evidence/production-item33-trends-dml-journal.jsonl"
+ITEM33_V5_HTTP_RECEIPT = "deploy/production/evidence/production-item33-trends-worker-http-receipt.json"
+ITEM33_V5_NORMAL_UNIT_SHA256 = "94da6db2f3746e6fb74d3447757bb80cec546512e2116b2713124ccbc8cda47f"
+ITEM33_V5_NORMAL_ACTION = "deploy/production/evidence/production-item33-trends-normal-handoff-action.json"
+ITEM33_V5_NORMAL_READBACK = "deploy/production/evidence/production-item33-trends-normal-handoff-readback.json"
+ITEM33_V5_CAPTURE_TEARDOWN = "deploy/production/evidence/production-item33-trends-capture-teardown.json"
+ITEM33_V5_CAPTURE_CLOSE_REFS = {
+    "service_result": "deploy/production/evidence/production-item33-trends-capture-service-result.json",
+    "close": "deploy/production/evidence/production-item33-trends-capture-service-close.json",
+    "host": "deploy/production/evidence/production-item33-trends-normal-host-readback.json",
+}
+ITEM33_V5_RUNTIME_OVERLAY_SHA256 = {
+    "model/hot_keywords.py": "77ff2a7e6b279d35a65f1dc497d32c92cc3bf46c061f0e42229dc42e3b81fc6d",
+    "model/market_timing_worker.py": "ad5eb9d65cbe7b1b4919d388770260af8b490bd1ab72d52e32ee6a927f831e1f",
+    "model/scheduler_a.py": "2cd8bbd094e0013fb023675618a532715a194afcde684715d5692150524f1f5b",
+    "model/security_redaction.py": "09e31604f6d52d7fb101b38c1856d9388b6ce5e1612cc2c67095344ce725f694",
+    "model/spider_xhs_http.py": "04c94f75ea34cd1d136f0db6808abed35d0c0007081d225a15af20e05fc12d93",
+    "model/spider_xhs_v5.py": "d76bdc50578c886cdf1451cc03a204bb628c036c6c3da767d8e5e50361885dae",
+    "model/trends_contract.py": "5ee865bad89fa8a96b3f0c35f02e2412958f07bf87ba158bab5796ba7da12a3c",
+    "model/vendor/spider_xhs/v5/trends_bridge.js": "37152cb6c704da670f95df066f0b4e665588610eb1836daaaf05754c5ec81cd7",
+}
 ITEM33_ALLOWED_WRITE_TABLES = {
     "xhs_trends_runs",
     "xhs_trends_service_state",
@@ -2489,6 +2516,242 @@ def _validate_item33_snapshot(
     )
 
 
+def _item33_v5_capture_valid(
+    binding: Any, cycle: Any, writes: Any, *, root: Path, observed_at: Any = None,
+) -> bool:
+    """Bind the managed writer's independent, counted journal to this cycle."""
+    if (not _keys_exact(binding, {
+            "source_sha256", "launcher_sha256", "configuration_sha256",
+            "activation_identity_sha256", "receipt_ref", "receipt_sha256",
+        }) or not isinstance(cycle, dict) or not isinstance(writes, dict)
+        or not isinstance(writes.get("distinct_rows_touched_by_table"), dict)
+        or any(not _exact_int(value) for value in writes["distinct_rows_touched_by_table"].values())
+        or not _keys_exact(binding.get("source_sha256"), ITEM33_V5_CAPTURE_TOOLS)
+        or any(not _sha256(value) or _actual_file_sha256(name, root=root) != value
+               for name, value in binding["source_sha256"].items())
+        or binding.get("launcher_sha256") != ITEM33_V5_LAUNCHER_SHA256
+        or not _sha256(binding.get("configuration_sha256"))
+        or not _sha256(binding.get("activation_identity_sha256"))
+        or binding.get("activation_identity_sha256") != cycle.get("activation_identity_sha256")
+        or cycle.get("activation_identity_sha256") == cycle.get("run_identity_sha256")
+        or binding.get("receipt_ref") != ITEM33_V5_CAPTURE_EVIDENCE
+        or not _sha256(binding.get("receipt_sha256"))):
+        return False
+    seal, seal_sha = _read_json_artifact(
+        ITEM33_V5_CAPTURE_EVIDENCE, "noteai.item33.runtime_capture_seal.v1", root=root,
+    )
+    if (seal is None or seal_sha != binding["receipt_sha256"]
+        or _has_sensitive_evidence_key(seal)
+        or seal.get("activation_identity_sha256") != cycle["activation_identity_sha256"]
+        or seal.get("run_identity_sha256") != cycle.get("run_identity_sha256")
+        or seal.get("bucket_key") != cycle.get("bucket_key")
+        or seal.get("config_sha256") != binding["configuration_sha256"]
+        or seal.get("accepted_source_sha256") != ITEM33_V5_RUNTIME_OVERLAY_SHA256
+        or seal.get("instrumentation_sha256") != {
+            **binding["source_sha256"],
+            "scripts/render_run_market_timing.sh": binding["launcher_sha256"],
+        }):
+        return False
+    journal = seal.get("journal")
+    if (not isinstance(journal, dict) or journal.get("ref") != ITEM33_V5_CAPTURE_JOURNAL
+        or not _verify_path(ITEM33_V5_CAPTURE_JOURNAL, root=root)):
+        return False
+    try:
+        # Import the reviewed local verifier, never a module named by evidence.
+        import item33_trends_runtime_capture as capture
+        import item33_trends_dml_capture as dml
+        import item33_trends_capture_catalog as catalog
+        for module, ref in ((capture, "tools/item33_trends_runtime_capture.py"),
+                            (dml, "tools/item33_trends_dml_capture.py")):
+            if hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() != binding["source_sha256"][ref]:
+                return False
+        proof = seal.get("catalog_proof")
+        if (not isinstance(proof, dict) or proof.get("source_ref") != catalog.SOURCE_REF
+            or proof.get("source_sha256") != _actual_file_sha256(catalog.SOURCE_REF, root=root)
+            or proof.get("source_sha256") != hashlib.sha256(Path(catalog.__file__).read_bytes()).hexdigest()):
+            return False
+        clocks = [_evidence_clock(value) for value in (
+            proof["before"]["observed_at"], cycle.get("started_at"), cycle.get("completed_at"),
+            proof["after"]["observed_at"], observed_at)]
+        if None in clocks or clocks != sorted(clocks):
+            return False
+        raw = (root / ITEM33_V5_CAPTURE_JOURNAL).read_bytes()
+        if (not 0 < len(raw) <= 16 * 1024 * 1024
+            or not _exact_int(journal.get("bytes"), len(raw))
+            or journal.get("sha256") != hashlib.sha256(raw).hexdigest()):
+            return False
+        aggregate = capture.verify_capture_artifacts(seal, raw)
+        if not isinstance(aggregate, dict) or dml.cycle_contract_errors(
+            aggregate, request_count=cycle.get("provider_request_count"),
+            keyword_count=writes.get("distinct_rows_touched_by_table", {}).get("hot_keywords"),
+        ):
+            return False
+        if (any(aggregate.get(key) != writes.get(key) for key in (
+                "out_of_contract_row_mutations", "delete_rows", "truncate_count",
+                "forbidden_table_mutations", "atomic_publish"))
+            or {name: aggregate["distinct_rows_touched_by_table"].get(name)
+                for name in ITEM33_ALLOWED_WRITE_TABLES} != writes.get("distinct_rows_touched_by_table")):
+            return False
+    except (ImportError, OSError, AttributeError, KeyError, TypeError, ValueError):
+        return False
+    return True
+
+
+def _item33_v5_capture_closed_valid(item: dict, cycle: dict, seal: dict, teardown: dict, *, root: Path, terminal_at) -> bool:
+    """Original collector/host facts must prove cleanup, not just a valid seal."""
+    binding = item.get("capture_close")
+    if not _keys_exact(binding, {name + suffix for name in ITEM33_V5_CAPTURE_CLOSE_REFS for suffix in ("_ref", "_sha256")}):
+        return False
+    try:
+        facts = {}
+        for name, ref in ITEM33_V5_CAPTURE_CLOSE_REFS.items():
+            if binding[name + "_ref"] != ref or not _verify_path(ref, root=root):
+                return False
+            raw = (root / ref).read_bytes()
+            if not 0 < len(raw) <= 65536 or hashlib.sha256(raw).hexdigest() != binding[name + "_sha256"]:
+                return False
+            facts[name] = json.loads(raw, object_pairs_hook=_json_object_without_duplicate_keys)
+            if not isinstance(facts[name], dict) or _has_sensitive_evidence_key(facts[name]):
+                return False
+        result, closed, host = (facts[name] for name in ("service_result", "close", "host"))
+        common = {"activation_identity_sha256": cycle["activation_identity_sha256"],
+                  "configuration_sha256": seal["config_sha256"], "bucket_key": cycle["bucket_key"]}
+        if (not _keys_exact(result, {"schema", "state", *common, "observed_at", "run_identity_sha256",
+                "capture_seal_sha256", "provider_calls", "schema_changes", "secret_values_recorded"})
+            or result["schema"] != "noteai.item33.capture_service_result.v1" or result["state"] != "SEALED"
+            or result["run_identity_sha256"] != cycle["run_identity_sha256"]
+            or result["capture_seal_sha256"] != item["capture_receipt_sha256"]
+            or any(result[key] != value or closed.get(key) != value for key, value in common.items())
+            or any(not _exact_int(result[key], 0) for key in ("provider_calls", "schema_changes"))
+            or result["secret_values_recorded"] is not False
+            or not _keys_exact(closed, {*common, "state", "connection_count", "observed_at", "secret_values_recorded"})
+            or closed["state"] != "CONNECTIONS_CLOSED" or not _exact_int(closed["connection_count"], 3)
+            or closed["secret_values_recorded"] is not False):
+            return False
+        host_body = {key: value for key, value in host.items() if key != "canonical_sha256"}
+        if (host.get("canonical_sha256") != hashlib.sha256(json.dumps(host_body,
+                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+            or host.get("schema") != "noteai.item33.host_facts.v1" or host.get("phase") != "normal"
+            or host.get("host") != "noteai-api-f"
+            or host.get("activation_identity_sha256") != cycle["activation_identity_sha256"]
+            or host.get("unit_sha256") != ITEM33_V5_NORMAL_UNIT_SHA256
+            or host.get("unit_active") != "active" or host.get("unit_sub") != "running"
+            or host.get("unit_enabled") != "enabled" or host.get("collection_suspended") is not False
+            or host.get("startup_healthcheck_succeeded") is not True
+            or host.get("capture_service_failure_present") is not False or host.get("secret_values_recorded") is not False
+            or any(not _exact_int(host.get(key), 1) for key in ("formal_unit_count", "formal_container_count", "process_count"))
+            or any(not _exact_int(host.get(key), 0) for key in (
+                "capture_container_count", "task_container_count", "inspection_container_count",
+                "runtime_directory_count", "stage_directory_count", "temporary_unit_count", "temporary_dropin_count",
+                "observation_provider_calls", "observation_database_connections", "observation_mutations"))):
+            return False
+        sequence = [_evidence_clock(value) for value in (cycle["completed_at"], seal["catalog_proof"]["after"]["observed_at"], result["observed_at"],
+            closed["observed_at"], teardown["execution"]["started_at"], teardown["after"]["observed_at"],
+            item["started_at"], item["completed_at"], host["observed_at"])]
+        return (None not in sequence and sequence == sorted(sequence) and sequence[-1] <= terminal_at
+            and all(clock.date().isoformat() == cycle["bucket_key"] for clock in sequence))
+    except (OSError, KeyError, TypeError, ValueError):
+        return False
+
+
+def _item33_v5_normal_handoff_valid(payload: dict, *, root: Path) -> bool:
+    """Keep the instrumented recovery trace and verify its one normal-unit CAS."""
+    item, cycle, recovery = (payload.get(key) for key in ("normal_handoff", "cycle", "recovery"))
+    keys = {"status", "started_at", "completed_at", "observed_at", "activation_identity_sha256",
+        "run_identity_sha256", "capture_receipt_sha256", "before_unit_sha256", "normal_unit_sha256",
+        "image_config_sha256", "runtime_overlay_sha256", "mutation_count", "other_unit_actions",
+        "restart_policy", "same_bucket", "preserved", "final", "action_ref", "action_sha256",
+        "readback_ref", "readback_sha256", "teardown_ref", "teardown_sha256", "capture_close"}
+    if (not _keys_exact(item, keys) or not isinstance(cycle, dict) or not isinstance(recovery, dict)
+        or not isinstance(payload.get("release_binding"), dict)):
+        return False
+    capture = payload["release_binding"].get("capture_binding")
+    if not isinstance(capture, dict):
+        return False
+    try:
+        start, finish, observed = (_evidence_clock(item[key]) for key in ("started_at", "completed_at", "observed_at"))
+        original_final = _evidence_clock(payload["readbacks"]["final"]["observed_at"])
+        terminal_at = _evidence_clock(payload["observed_at"])
+        seal, seal_sha = _read_json_artifact(
+            ITEM33_V5_CAPTURE_EVIDENCE, "noteai.item33.runtime_capture_seal.v1", root=root,
+        )
+        catalog_after = _evidence_clock(seal["catalog_proof"]["after"]["observed_at"]) if seal else None
+        if (None in (start, finish, observed, original_final, terminal_at)
+            or catalog_after is None or seal_sha != capture.get("receipt_sha256") or catalog_after > start
+            or not original_final <= start <= finish <= observed <= terminal_at
+            or any(clock.date().isoformat() != cycle.get("bucket_key") for clock in (start, finish, observed))
+            or item["status"] != "VERIFIED"
+            or item["activation_identity_sha256"] != cycle.get("activation_identity_sha256")
+            or item["run_identity_sha256"] != cycle.get("run_identity_sha256")
+            or item["capture_receipt_sha256"] != capture.get("receipt_sha256")
+            or item["before_unit_sha256"] != ITEM33_V5_PROMOTED_UNIT_SHA256
+            or item["normal_unit_sha256"] != ITEM33_V5_NORMAL_UNIT_SHA256
+            or item["image_config_sha256"] != ITEM32_V5_CONFIG_SHA256
+            or item["runtime_overlay_sha256"] != ITEM33_V5_RUNTIME_OVERLAY_SHA256
+            or not _exact_int(item["mutation_count"], 1) or not _exact_int(item["other_unit_actions"], 0)
+            or item["restart_policy"] != "no"
+            or item["action_ref"] != ITEM33_V5_NORMAL_ACTION
+            or item["readback_ref"] != ITEM33_V5_NORMAL_READBACK
+            or item["teardown_ref"] != ITEM33_V5_CAPTURE_TEARDOWN):
+            return False
+        teardown, teardown_sha = _read_json_artifact(
+            ITEM33_V5_CAPTURE_TEARDOWN, "noteai.item33.capture_teardown.v1", root=root,
+        )
+        if (teardown is None or teardown_sha != item["teardown_sha256"]
+            or _has_sensitive_evidence_key(teardown)):
+            return False
+        import item33_trends_capture_teardown as removal
+        source_sha = _actual_file_sha256(removal.SOURCE_REF, root=root)
+        if (not _sha256(source_sha) or teardown.get("source_sha256") != source_sha
+            or source_sha != hashlib.sha256(Path(removal.__file__).read_bytes()).hexdigest()):
+            return False
+        removal.verify_teardown_proof(teardown,
+            seal_raw=(root / ITEM33_V5_CAPTURE_EVIDENCE).read_bytes(),
+            journal=(root / ITEM33_V5_CAPTURE_JOURNAL).read_bytes(), source_sha256=source_sha)
+        teardown_at = _evidence_clock(teardown["after"]["observed_at"])
+        if teardown_at is None or teardown_at > start:
+            return False
+        if not _item33_v5_capture_closed_valid(item, cycle, seal, teardown, root=root, terminal_at=terminal_at):
+            return False
+        # JSON comparison preserves bool-versus-integer distinctions in nested
+        # factual readbacks; source and identity hashes above are exact strings.
+        def same(left, right):
+            return json.dumps(left, sort_keys=True, allow_nan=False) == json.dumps(right, sort_keys=True, allow_nan=False)
+        same_bucket = {"bucket_key": cycle["bucket_key"], "new_run_delta": 0, "provider_call_delta": 0}
+        if (not same(item["same_bucket"], same_bucket)
+            or not same(item["preserved"], recovery.get("preserved"))
+            or not same(item["final"], recovery.get("final"))):
+            return False
+        if not _verify_path(ITEM33_V5_NORMAL_ACTION, root=root):
+            return False
+        raw = (root / ITEM33_V5_NORMAL_ACTION).read_bytes()
+        if not 0 < len(raw) <= 65536 or hashlib.sha256(raw).hexdigest() != item["action_sha256"]:
+            return False
+        action = json.loads(raw, object_pairs_hook=_json_object_without_duplicate_keys)
+        expected_action = {"phase": "normal_handoff", "status": "APPLIED_REQUIRES_STATE_READBACK",
+            "activation_identity_sha256": cycle["activation_identity_sha256"],
+            "run_identity_sha256": cycle["run_identity_sha256"], "bucket_key": cycle["bucket_key"],
+            "before_unit_sha256": ITEM33_V5_PROMOTED_UNIT_SHA256,
+            "after_unit_sha256": ITEM33_V5_NORMAL_UNIT_SHA256, "observed_at": item["started_at"],
+            "completed_at": item["completed_at"], "capture_receipt_sha256": item["capture_receipt_sha256"],
+            "teardown_sha256": item["teardown_sha256"]}
+        if not same(action, expected_action):
+            return False
+        readback, readback_sha = _read_json_artifact(
+            ITEM33_V5_NORMAL_READBACK, "noteai.item33.normal_readback.v1", root=root, max_bytes=65536,
+        )
+        expected_readback = {"schema": "noteai.item33.normal_readback.v1",
+            "activation_identity_sha256": cycle["activation_identity_sha256"],
+            "run_identity_sha256": cycle["run_identity_sha256"], "bucket_key": cycle["bucket_key"],
+            "observed_at": item["observed_at"], "unit_sha256": ITEM33_V5_NORMAL_UNIT_SHA256,
+            "preserved": item["preserved"], "final": item["final"], "same_bucket": same_bucket,
+            "capture_receipt_sha256": item["capture_receipt_sha256"], "teardown_sha256": item["teardown_sha256"],
+            "capture_close": item["capture_close"], "secret_values_recorded": False}
+        return readback_sha == item["readback_sha256"] and same(readback, expected_readback)
+    except (ImportError, OSError, AttributeError, KeyError, TypeError, ValueError):
+        return False
+
+
 def validate_item33_trends_promotion_evidence(
     control: dict[str, Any],
     *,
@@ -2505,6 +2768,8 @@ def validate_item33_trends_promotion_evidence(
     )
     if payload is None:
         return errors
+    # Only V5 terminal evidence adds the independently preserved normal handoff.
+    preliminary_item32, _ = _read_json_artifact(ITEM32_TRENDS_EVIDENCE, ITEM32_V5_EVIDENCE_SCHEMA, root=root)
     if not _keys_exact(
         payload,
         {
@@ -2523,7 +2788,7 @@ def validate_item33_trends_promotion_evidence(
             "cleanup",
             "cost",
             "secret_values_recorded",
-        },
+        } | ({"normal_handoff"} if preliminary_item32 is not None else set()),
     ):
         errors.append("Item33 terminal evidence schema mismatch")
     if _has_sensitive_evidence_key(payload):
@@ -2549,10 +2814,7 @@ def validate_item33_trends_promotion_evidence(
         item32_terminal, item32_sha256 = _read_json_artifact(
             ITEM32_TRENDS_EVIDENCE, ITEM32_V5_EVIDENCE_SCHEMA, root=root,
         )
-    # The current Item33 promoted-unit hashes still bind the earlier image.
-    # Reading a v3 bucket does not approve that old unit for the new v5 runtime.
-    if isinstance(item32_terminal, dict) and item32_terminal.get("schema") == ITEM32_V5_EVIDENCE_SCHEMA:
-        errors.append("Item33 v5 promoted runtime binding missing")
+    v5 = isinstance(item32_terminal, dict) and item32_terminal.get("schema") == ITEM32_V5_EVIDENCE_SCHEMA
     item32_bucket = None
     try:
         item32_bucket_text = item32_terminal["successor"]["budget"][
@@ -2573,7 +2835,9 @@ def validate_item33_trends_promotion_evidence(
     effective_keys = {
         "image_source_sha256", "runtime_overlay_sha256", "item32_terminal_sha256",
     }
-    effective_release = _keys_exact(release, release_keys | effective_keys)
+    effective_release = _keys_exact(
+        release, release_keys | effective_keys | ({"capture_binding"} if v5 else set()),
+    )
     item32_execution = (
         item32_terminal.get("execution") if isinstance(item32_terminal, dict) else None
     )
@@ -2581,9 +2845,31 @@ def validate_item33_trends_promotion_evidence(
         item32_execution.get("source_sha256") if isinstance(item32_execution, dict) else None
     )
     expected_sources = ITEM32_EXPECTED_SOURCE_SHA256
+    expected_config = ITEM32_EXPECTED_CONFIG_SHA256
+    expected_manifest = ITEM32_EXPECTED_MANIFEST_SHA256
     promoted_unit_sha = ITEM33_PROMOTED_UNIT_SHA256
     inherited_release_valid = item32_sources in (None, ITEM32_EXPECTED_SOURCE_SHA256)
-    if effective_release:
+    if v5:
+        expected_sources = {**ITEM32_IMAGE_SOURCE_SHA256, **ITEM33_V5_RUNTIME_OVERLAY_SHA256}
+        expected_config = ITEM32_V5_CONFIG_SHA256
+        expected_manifest = ITEM32_V5_MANIFEST_SHA256
+        promoted_unit_sha = ITEM33_V5_PROMOTED_UNIT_SHA256
+        inherited_release_valid = bool(
+            effective_release
+            and _sha256(promoted_unit_sha)
+            and release.get("item32_terminal_sha256") == item32_sha256
+            and _sha256(item32_sha256)
+            and item32_sources == expected_sources
+            and item32_execution.get("image_config_sha256") == expected_config
+            and item32_execution.get("registry_manifest_sha256") == expected_manifest
+            and release.get("image_source_sha256") == ITEM32_IMAGE_SOURCE_SHA256
+            and release.get("runtime_overlay_sha256") == ITEM33_V5_RUNTIME_OVERLAY_SHA256
+            and not validate_item32_trends_evidence(
+                {"evidence": [{"kind": "path", "ref": ITEM32_TRENDS_EVIDENCE}]},
+                root=root, now=current,
+            )
+        )
+    elif effective_release:
         expected_sources = ITEM32_EFFECTIVE_SOURCE_SHA256
         promoted_unit_sha = ITEM33_EFFECTIVE_PROMOTED_UNIT_SHA256
         inherited_release_valid = bool(
@@ -2611,9 +2897,9 @@ def validate_item33_trends_promotion_evidence(
         or not _sha256(executor_sha)
         or release.get("outer_executor_sha256") != executor_sha
         or release.get("source_sha256") != expected_sources
-        or release.get("image_config_sha256") != ITEM32_EXPECTED_CONFIG_SHA256
+        or release.get("image_config_sha256") != expected_config
         or release.get("registry_manifest_sha256")
-        != ITEM32_EXPECTED_MANIFEST_SHA256
+        != expected_manifest
         or release.get("suspended_unit_sha256")
         != ITEM33_SUSPENDED_UNIT_SHA256
         or release.get("promoted_unit_sha256")
@@ -2643,6 +2929,8 @@ def validate_item33_trends_promotion_evidence(
         "endpoint_counts",
         "attempts",
     }
+    if v5:
+        cycle_keys.update({"physical_http", "activation_identity_sha256"})
     started_at = completed_at = lease_expires_at = None
     request_count = None
     attempts: Any = None
@@ -2687,6 +2975,11 @@ def validate_item33_trends_promotion_evidence(
             and endpoints.get("search_recommend", 0) > 0
             and endpoints.get("search_notes", 0) > 0
         )
+        if v5:
+            counts_valid = counts_valid and _exact_int(request_count, 34)
+            endpoints_valid = endpoints_valid and endpoints == {
+                "homefeed": 10, "search_recommend": 12, "search_notes": 12,
+            }
         if (
             not _sha256(cycle.get("run_identity_sha256"))
             or cycle.get("source") != "real_xhs"
@@ -2759,6 +3052,28 @@ def validate_item33_trends_promotion_evidence(
                 or observed_endpoint_counts != endpoints
             ):
                 errors.append("Item33 provider-attempt ledger mismatch")
+
+    if v5:
+        physical = cycle.get("physical_http") if isinstance(cycle, dict) else None
+        summary = (
+            {key: value for key, value in physical.items() if key != "observations"}
+            if isinstance(physical, dict) else None
+        )
+        if not _item32_v5_physical_valid(physical, summary, attempts, started_at, completed_at):
+            errors.append("Item33 V5 physical HTTP evidence mismatch")
+        receipt, receipt_sha = _read_json_artifact(
+            ITEM33_V5_HTTP_RECEIPT, "noteai.item33.worker_http_receipt.v1", root=root,
+        )
+        try:
+            import item33_trends_http_readback as http_readback
+            receipt_valid = (receipt is not None and isinstance(physical, dict)
+                and receipt_sha == physical.get("worker_receipt_sha256")
+                and not _has_sensitive_evidence_key(receipt)
+                and http_readback.verify_worker_receipt(receipt, cycle))
+        except (ImportError, OSError, TypeError, ValueError, RuntimeError):
+            receipt_valid = False
+        if not receipt_valid:
+            errors.append("Item33 V5 worker HTTP receipt mismatch")
 
     quality = payload.get("quality_snapshot")
     published_counts = derived_real_counts = None
@@ -2849,8 +3164,10 @@ def validate_item33_trends_promotion_evidence(
         or promotion.get("unit_name") != "noteai-xhs-trends.service"
         or promotion.get("container_name") != "noteai-xhs-trends"
         or promotion.get("database_role") != "noteai_xhs_trends"
-        or promotion.get("argv")
-        != ["python", "market_timing_worker.py", "--daemon", "--interval", "360"]
+        or promotion.get("argv") != (
+            ["/app/scripts/render_run_market_timing.sh"] if v5 else
+            ["python", "market_timing_worker.py", "--daemon", "--interval", "360"]
+        )
         or not _keys_exact(before, {"active", "sub", "enabled", "collection_suspended", "formal_container_count"})
         or before != {
             "active": "inactive",
@@ -2966,6 +3283,7 @@ def validate_item33_trends_promotion_evidence(
         or reapplied_at is None
         or observed_at is None
         or not completed_at <= rollback_started <= rollback_completed <= reapplied_at <= observed_at
+        or (v5 and (started_at is None or reapplied_at.date() != started_at.date()))
         or rollback_final != {
             "active": "inactive",
             "sub": "dead",
@@ -3071,6 +3389,14 @@ def validate_item33_trends_promotion_evidence(
         }
     ):
         errors.append("Item33 production write-set mismatch")
+
+    if v5 and not _item33_v5_capture_valid(
+        release.get("capture_binding") if isinstance(release, dict) else None,
+        cycle, writes, root=root, observed_at=payload.get("observed_at"),
+    ):
+        errors.append("Item33 V5 independent capture binding mismatch")
+    if v5 and not _item33_v5_normal_handoff_valid(payload, root=root):
+        errors.append("Item33 V5 normal managed handoff mismatch")
 
     readbacks = payload.get("readbacks")
     preflight = readbacks.get("preflight") if isinstance(readbacks, dict) else None
@@ -3227,7 +3553,7 @@ def validate_item33_trends_promotion_evidence(
             },
         )
         or cost.get("currency") != "CNY"
-        or not _exact_int(cost.get("xhs_provider_requests"), request_count)
+        or not _exact_int(cost.get("xhs_provider_requests"), 36 if v5 else request_count)
         or any(
             cost.get(field) != "UNKNOWN"
             and not (_exact_int(cost.get(field)) and cost[field] >= 0)

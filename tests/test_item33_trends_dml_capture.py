@@ -104,18 +104,18 @@ class Item33DmlPostgresTests(unittest.TestCase):
             for statement in dml.installation_sql(self.activation, self.targets):
                 self.owner.execute(statement)
 
-    def begin(self):
+    def begin(self, *, counted=False):
         self.writer.execute("BEGIN")
         nonce = str(uuid.uuid4())
-        for statement in dml.binding_sql(self.activation, nonce, self.run_hash):
+        for statement in dml.binding_sql(self.activation, nonce, self.run_hash, mutation_counts=counted):
             cursor = self.writer.execute(statement)
         pid, txid = cursor.fetchone()
         binding = dict(nonce=nonce, run_identity_sha256=self.run_hash, pid=pid, txid=txid)
         self.records.append({"kind": "registered", **binding})
         return binding
 
-    def commit(self, binding):
-        self.writer.execute(dml.completion_sql(self.activation, binding))
+    def commit(self, binding, *, counted=False):
+        self.writer.execute(dml.completion_sql(self.activation, binding, mutation_counts=counted))
         self.writer.execute("COMMIT")
         # Test-only transport: actual sender PID comes from Notify, not payload.
         # The production continuous listener/registration/seal is not implemented here.
@@ -131,9 +131,9 @@ class Item33DmlPostgresTests(unittest.TestCase):
                 break
         self.assertTrue(received_commit)
 
-    def result(self, records=None):
+    def result(self, records=None, *, counted=False):
         return dml.aggregate_records(self.records if records is None else records,
-            activation=self.activation, targets=self.targets, run_identity_sha256=self.run_hash)
+            activation=self.activation, targets=self.targets, run_identity_sha256=self.run_hash, require_mutation_count=counted)
 
     def claim(self):
         binding = self.begin()
@@ -192,6 +192,41 @@ class Item33DmlPostgresTests(unittest.TestCase):
             self.attempt_sql()
             self.commit(binding)
         self.publish(**publish_options)
+
+    def enable_counted(self):
+        for statement in dml.removal_sql(self.targets): self.owner.execute(statement)
+        for statement in dml.installation_sql(self.activation, self.targets, mutation_counts=True): self.owner.execute(statement)
+
+    def test_counted_commit_detects_one_lost_mutation_and_duplicate_or_false_count(self):
+        self.enable_counted(); binding = self.begin(counted=True)
+        self.writer.execute("INSERT INTO hot_keywords(keyword,captured_at) VALUES('hidden','time')")
+        self.writer.execute("UPDATE hot_keywords SET search_vol=1")
+        self.commit(binding, counted=True)
+        self.assertEqual(self.records[-1]["mutation_count"], 2)
+        self.assertEqual(self.result(counted=True)["status"], "ROW_CAPTURE_AGGREGATED_NOT_TERMINAL")
+        for defect in ("lost", "duplicate", "bool", "wrong", "missing"):
+            rows = copy.deepcopy(self.records)
+            if defect == "lost": rows.pop(1)
+            elif defect == "duplicate": rows.insert(1, copy.deepcopy(rows[1]))
+            elif defect == "bool": rows[-1]["mutation_count"] = True
+            elif defect == "missing": rows[-1].pop("mutation_count")
+            else: rows[-1]["mutation_count"] = 1
+            with self.subTest(defect=defect): self.assertEqual(self.result(rows, counted=True)["status"], "UNKNOWN")
+
+    def test_counted_savepoint_and_outer_rollback_keep_only_committed_count(self):
+        self.enable_counted(); binding = self.begin(counted=True)
+        self.writer.execute("INSERT INTO hot_keywords(keyword,captured_at) VALUES('keep','time')")
+        self.writer.execute("SAVEPOINT discard")
+        self.writer.execute("UPDATE hot_keywords SET search_vol=9")
+        self.writer.execute("ROLLBACK TO SAVEPOINT discard")
+        self.commit(binding, counted=True)
+        self.assertEqual(self.records[-1]["mutation_count"], 1)
+        binding = self.begin(counted=True)
+        self.writer.execute("UPDATE hot_keywords SET search_vol=8")
+        self.writer.execute("ROLLBACK")
+        self.records.append({"kind": "rollback", **binding})
+        self.assertEqual(list(self.listener.notifies(timeout=.05)), [])
+        self.assertEqual(self.result(counted=True)["write_mutations_by_table"], {"hot_keywords": 1})
 
     def test_real_schema_counts_distinct_rows_and_atomic_transaction(self):
         self.full_cycle()
