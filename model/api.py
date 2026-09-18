@@ -12980,23 +12980,73 @@ async def market_timing_freshness(user: dict = Depends(_auth.get_current_user)):
 async def legal_contracts():
     """Versioned product disclosures; professional legal sign-off is separate."""
     if _public_account.enabled():
+        product = _public_account.product_enabled()
+        services = _public_product.public_services() if product else []
+        capability = None
+        if product:
+            try:
+                capability = await payment_capabilities(user=None)
+            except Exception:
+                # A local readiness failure is not evidence that payments were
+                # never opened. Do not infer an invoice or send provider calls.
+                pass
+        providers = capability.get("providers", []) if capability else None
+        if os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "").strip() == "1":
+            providers = []
+        models = [row for row in services if row.get("group") in {"generation_models", "media_models"}]
         return {
             "version": _public_account.contract_version(),
-            "scope": "free_product" if _public_account.product_enabled() else "website_and_accounts",
+            "acceptance_version": _public_account.contract_version(),
+            "acceptance_record_policy": "historical_acceptances_unchanged_not_proof_of_current_runtime",
+            "disclosure_version": "product-disclosure-2026-09-19",
+            "observed_at": _now_iso(),
+            "scope": "formal_product" if product else "website_and_accounts",
             "operator": "易事快（广州）咨询服务有限公司",
             "website": "https://noteaipro.com",
             "privacy": {
-                "purposes": ["phone_verification", "account_access", "security_and_support"],
-                "data": ["phone", "session", "verification_result", "consent", "security_metadata"],
+                "purposes": ["phone_verification", "account_access", "security_and_support"] +
+                    (["user_requested_creation", "archive_export", "billing"] if product else []),
+                "data": ["phone", "session", "verification_result", "consent", "security_metadata"] +
+                    (["submitted_creation_material", "saved_preferences", "usage_records"] if product else []),
                 "sms_provider": "阿里云号码认证及短信服务及其通信合作方",
-                "hosting": "阿里云中国境内",
-                "account_data_sent_to_ai_providers": False,
-                "submitted_creation_text_sent_to_kimi": _public_account.product_enabled(),
-                "ai_provider": "月之暗面 Kimi 国内API" if _public_account.product_enabled() else None,
+                "account_hosting": "阿里云中国境内",
+                "authentication_credentials_in_ai_context": False,
+                "ai_context_data": ["submitted_creation_content", "selected_media_or_media_observations",
+                                    "explicit_creator_preferences", "current_task_context"] if product else [],
+                "model_routes": models,
+                "route_basis": "published_runtime_configuration_not_per_task_call_evidence",
+                "material_processing": "豆包境内理解图片、视频及原音轨；按业务需要将必要文本与适用偏好交由已发布文字模型路由处理" if product else None,
+            },
+            "cross_border": {
+                "possible_route": "Alibaba_China_to_Claude_Gateway_Singapore" if product else None,
+                "policy": "minimum_necessary_text_only",
+                "historical_acceptance_is_new_consent": False,
+                "professional_confirmation_required": False,
+            },
+            "retention": {
+                "free_active_hours": 168, "free_recovery_hours": 168,
+                "rolling_backup_clear_within_days": 30,
+                "paid_created_archives": "no_product_expiry_while_account_exists",
+                "downgrade_deletes_paid_archives": False,
+                "primary_account_deletion_within_hours": 24,
+            },
+            "payment_enabled": bool(providers) if providers is not None else (None if product else False),
+            "payment_status": "available" if providers else "unavailable" if providers is not None or not product else "unknown",
+            "payment_providers": providers if product else [],
+            "payment_status_source": "local_payment_capabilities" if product else "account_only_scope",
+            "refund": {
+                "policy": capability.get("refund_policy") if capability else (None if product else "not_applicable"),
+                "settlement": "original_channel_and_order_ledger_reconciliation",
+                "auto_renewal": False,
+                "amount_basis": "server_order_quote",
+            },
+            "contact_verification": {
+                "phone_reset_supported": product,
+                "verified_email_recovery_fallback": False,
+                "email_status": "delivery_adapter_not_connected",
             },
             "deletion_contact": "ecfine@163.com",
             "support_phone": "18988528731",
-            "payment_enabled": False,
             "account_registration_free": True,
         }
     return {
@@ -20724,6 +20774,8 @@ async def chat_start(
         "pending_fact_update": gen_ctx.get("pending_fact_update") is True,
         "merchant_confirmations": _sanitize_chat_generate_context({"merchant_confirmations":gen_ctx.get("merchant_confirmations") or []}).get("merchant_confirmations", []),
         "cover_analysis":  gen_ctx.get("cover_analysis") or "",
+        "image_desc": gen_ctx.get("image_desc") or "",
+        "video_analysis": gen_ctx.get("video_analysis") or "",
         "ai_diagnosis": gen_ctx.get("ai_diagnosis") or "",
         "improvement_plan": gen_ctx.get("improvement_plan") or "",
         "weaknesses": gen_ctx.get("weaknesses") or [],

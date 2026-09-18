@@ -59,6 +59,51 @@ class ProductIntegrityPipelineTests(TestCase):
         self.assertIn('SYNTHETIC_VIDEO_CONTEXT', api._chat_fact_source_for_turn(session, {}))
         self.assertIn('SYNTHETIC_VIDEO_CONTEXT', api._build_chat_system_prompt(session))
 
+    def test_chat_start_persists_and_reloads_exact_owned_diagnosis_media_context(self):
+        self.prompt_dependencies()
+        for field in ('video_analysis', 'image_desc'):
+            with self.subTest(field=field):
+                note_id = self.note(source='analyze')
+                unrelated_id = self.note(source='analyze')
+                marker = 'OWNED_SOURCE_' + field
+                stamp = self.now.isoformat()
+                for owner, linked_note, observation in (
+                    (self.owner, note_id, marker),
+                    (self.owner, unrelated_id, 'UNRELATED_NOTE_SOURCE'),
+                    (self.other, note_id, 'FOREIGN_OWNER_SOURCE'),
+                ):
+                    report_id = str(uuid4())
+                    api._insert_content_with_retention(
+                        'INSERT INTO saved_diagnoses(id,user_id,note_title,domain,ces_percentile,composite_score,grade,diagnosis_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)',
+                        (report_id, owner, '离线真实保存标题', '美食', 73, 73, '良好',
+                         json.dumps({'saved_note_id': linked_note, field: observation}), stamp),
+                        'diagnosis', report_id, owner, created_at=stamp)
+                payload = {'note_id': note_id, 'note_title': '离线真实保存标题',
+                           'note_body': '离线原素材正文', 'domain': '美食'}
+                sessions_before = db.fetchone('SELECT COUNT(*) AS n FROM chat_sessions')['n']
+                denied = self.client.post('/chat/start', headers=self.headers(self.other), json=payload)
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(db.fetchone('SELECT COUNT(*) AS n FROM chat_sessions')['n'], sessions_before)
+                response = self.client.post('/chat/start', headers=self.headers(), json=payload)
+                self.assertEqual(response.status_code, 200, response.text)
+                sid = response.json()['session_id']
+                self.addCleanup(api._chat_sessions.pop, sid, None)
+                stored = db.fetchone('SELECT user_id,note_id,generate_ctx_json FROM chat_sessions WHERE id=?', (sid,))
+                self.assertEqual((stored['user_id'], stored['note_id']), (self.owner, note_id))
+                self.assertEqual(json.loads(stored['generate_ctx_json'])[field], marker)
+                api._chat_sessions.pop(sid)
+                restored = api._load_chat_session_from_db(sid)
+                self.assertIsNotNone(restored)
+                self.assertEqual(restored['generate_context'][field], marker)
+                prompt = api._build_chat_system_prompt(restored)
+                self.assertIn(marker, prompt)
+                self.assertIn(marker, api._chat_fact_source_for_turn(restored, {}))
+                for unrelated in ('UNRELATED_NOTE_SOURCE', 'FOREIGN_OWNER_SOURCE'):
+                    self.assertNotIn(unrelated, stored['generate_ctx_json'])
+                    self.assertNotIn(unrelated, prompt)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) AS n FROM usage_records')['n'], 0)
+        self.assertEqual(db.fetchone('SELECT COUNT(*) AS n FROM growth_records')['n'], 0)
+
     def test_actual_predict_success_and_failure_record_only_the_executed_local_step(self):
         sentinel = object()
         with mock.patch.object(api, '_predict_impl', return_value=sentinel) as compute, \
