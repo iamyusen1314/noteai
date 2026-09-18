@@ -20,6 +20,35 @@ crawler = importlib.import_module("crawler")
 
 
 class PerformanceScoringTests(unittest.TestCase):
+    def test_explicit_views_preserve_zero_and_values_below_interaction_total(self):
+        for views in (0, 1, 5):
+            with self.subTest(views=views):
+                self.assertEqual(perf.estimate_views(domain='美食', likes=8, saves=3, comments=1,
+                                                     explicit_views=views), (views, False))
+                score = perf.score_performance(domain='美食', likes=8, saves=3, comments=1,
+                                               views=views, evidence_source='manual')
+                self.assertEqual(score.views_est, views)
+                self.assertFalse(score.views_estimated)
+                self.assertEqual(score.insights['metrics']['views_est'], views)
+                self.assertFalse(score.insights['metrics']['views_estimated'])
+                self.assertGreaterEqual(score.actual_ces, 0)
+                self.assertLessEqual(score.actual_ces, 100)
+
+    def test_only_missing_views_use_existing_estimate(self):
+        self.assertEqual(perf.estimate_views(domain='美食', likes=0, saves=0, comments=0,
+                                             explicit_views=None), (100, True))
+        score = perf.score_performance(domain='美食', likes=0, saves=0, comments=0,
+                                       views=None, evidence_source='manual')
+        self.assertEqual(score.views_est, 100)
+        self.assertTrue(score.views_estimated)
+
+    def test_invalid_explicit_views_are_not_silently_estimated(self):
+        for value in (-1, True, False, 0.0, 1.5, '0'):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    perf.estimate_views(domain='美食', likes=0, saves=0, comments=0,
+                                        explicit_views=value)
+
     def test_manual_tracking_score_reports_confidence_and_training_flag(self):
         score = perf.score_performance(
             domain="美食",

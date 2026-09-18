@@ -15264,7 +15264,8 @@ async def fill_tracking_data(
             tx,
             user["id"],
             "context",
-            f"真实表现追踪：{title[:24]}，7天实际{score.actual_ces:.1f}分，"
+            f"用户录入表现：{title[:24]}，计算评分{score.actual_ces:.1f}分（未经平台核验），"
+            f"录入时间{now}，"
             f"{score.confidence_label}置信度，强项{score.insights.get('strongest_signal')}，"
             f"短板{score.insights.get('weakest_signal')}",
             importance=0.5,
@@ -15281,7 +15282,7 @@ async def fill_tracking_data(
         "confidence": score.confidence,
         "confidence_label": score.confidence_label,
         "training_eligible": score.training_eligible,
-        "message": f"真实 CES 分位：{score.actual_ces:.1f}",
+        "message": f"用户录入表现的计算评分：{score.actual_ces:.1f}（未经平台核验）",
     }
 
 @app.delete("/notes/tracking/{track_id}")

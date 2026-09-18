@@ -1,4 +1,5 @@
 """Provider-free Tracking management through the real public API boundary."""
+import json
 import re
 from unittest import mock
 import unittest
@@ -139,6 +140,30 @@ class TrackingPublicManagementTests(unittest.TestCase):
                 row = self.row(tid)
                 self.assertEqual((row['likes_7d'], row['saves_7d'], row['comments_7d']), (0, 0, 0))
                 self.assertEqual(row['evidence_source'], 'manual')
+                metrics = json.loads(row['insights_json'])['metrics']
+                self.assertEqual(row['views_est'], 0 if optional.get('views') == 0 else 100)
+                self.assertEqual(metrics['views_est'], row['views_est'])
+                self.assertIs(metrics['views_estimated'], optional.get('views') is None)
+
+    def test_manual_fill_memory_records_source_time_and_calculation_without_seven_day_claim(self):
+        nid = self.note()
+        created = self.manual_create(nid).json()
+        stamp = self.now.isoformat()
+        with mock.patch.object(api, '_now_iso', return_value=stamp):
+            response = self.fill(created['id'], payload={'likes': 0, 'saves': 0, 'comments': 0, 'views': 0})
+        self.assertEqual(response.status_code, 200, response.text)
+        memory = db.fetchone('SELECT * FROM user_memories WHERE user_id=?', (self.owner,))
+        self.assertEqual(memory['source_note_id'], nid)
+        for fragment in ('用户录入表现', '计算评分', '未经平台核验', '录入时间'+stamp):
+            self.assertIn(fragment, memory['content'])
+        for fragment in ('7天实际', '真实表现追踪'):
+            self.assertNotIn(fragment, memory['content'])
+        self.assertIn('未经平台核验', response.json()['message'])
+        self.assertNotIn('真实 CES', response.json()['message'])
+        detail = self.client.get('/notes/tracking/'+created['id'], headers=self.headers()).json()
+        self.assertEqual(detail['views_est'], 0)
+        self.assertEqual(detail['evidence_source'], 'manual')
+        self.assertFalse(json.loads(detail['insights_json'])['metrics']['views_estimated'])
 
     def test_public_manual_fill_validation_follows_auth_and_nonpublic_defaults_remain(self):
         tid, _ = self.tracking()

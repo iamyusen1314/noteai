@@ -101,8 +101,10 @@ def estimate_views(
     comments: int,
     explicit_views: int | None = None,
 ) -> tuple[int, bool]:
-    if explicit_views and explicit_views > 0:
-        return max(int(explicit_views), likes + saves + comments, 1), False
+    if explicit_views is not None:
+        if type(explicit_views) is not int or explicit_views < 0:
+            raise ValueError("explicit_views must be a non-negative integer")
+        return explicit_views, False
     bench = _benchmarks(domain)
     candidates = [
         int(likes / max(bench["like_rate"], 0.001)) if likes else 0,
