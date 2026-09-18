@@ -984,6 +984,7 @@ async def _idempotent_sse_stream(
     unkeyed_charge: dict | None = None,
     user_id: str | None = None,
     operation: str | None = None,
+    announce_task: bool = False,
 ) -> AsyncGenerator[str, None]:
     """Finalize/refund a stream without storing or replaying its content."""
     if not claim:
@@ -1014,6 +1015,16 @@ async def _idempotent_sse_stream(
         return
     terminal_seen = False
     try:
+        if announce_task:
+            # The durable identity is the existing paid claim, not an SSE trace.
+            # Announce only after admission/charge succeeded; this is not a job queue.
+            yield 'data: ' + _json.dumps({
+                "type": "task_created", "task_id": claim["request_id"],
+                "operation": claim["operation"], "status": "running",
+                "can_cancel": False, "can_retry": False,
+                "billing": _billing.get_charge_receipt(
+                    claim["user_id"], claim["operation"], claim.get("charge"), claim["request_id"]),
+            }, ensure_ascii=False) + '\n\n'
         async for chunk in stream:
             event_type = ""
             if chunk.startswith("data: "):
@@ -14537,33 +14548,117 @@ def _saved_generation_reports(user_id: str, report_id: str | None = None) -> lis
     return reports
 
 
-@app.get("/reports")
-async def list_reports(limit: int = 20, offset: int = 0,
-                       user: dict = Depends(_auth.get_current_user)):
-    """Both report types share history, while their original storage stays intact."""
-    if not 1 <= limit <= 100 or offset < 0:
-        raise HTTPException(422, "报告分页参数无效")
+def _workflow_report_rows(user_id: str) -> list[dict]:
+    """Join only stored identities; a title, timestamp or note ancestor is not a link."""
+    claims = [dict(row) for row in _db.fetchall(
+        "SELECT id,operation,usage_id FROM idempotency_requests "
+        "WHERE user_id=? AND operation IN ('analyze','generate')", (user_id,))]
+    by_usage: dict[tuple, list[str]] = {}
+    for claim in claims:
+        if claim["usage_id"]:
+            by_usage.setdefault((claim["operation"], claim["usage_id"]), []).append(claim["id"])
+    # Older clarification results can predate persisted billing receipts. Their
+    # explicit diagnosis_id + saved_note_id is a link; similar content is not.
+    continuations: dict[str, list[dict]] = {}
+    for row in _db.fetchall(
+        "SELECT c.id,c.note_id,c.generate_ctx_json FROM chat_sessions c "
+        "JOIN idempotency_requests r ON r.id=c.id AND r.user_id=c.user_id "
+        "WHERE c.user_id=? AND r.operation='analyze' AND r.status='completed' AND r.complete_applied=1",
+        (user_id,)):
+        try:
+            task = _json.loads(row["generate_ctx_json"] or "{}").get(_clarification.KEY, {})
+            result = task.get("result")
+            if (task.get("operation") == "analyze" and task.get("status") == "completed"
+                    and isinstance(result, dict) and isinstance(result.get("diagnosis_id"), str)
+                    and row["note_id"] and result.get("saved_note_id") == row["note_id"]
+                    and _fetch_user_note(row["note_id"], user_id)):
+                continuations.setdefault(result["diagnosis_id"], []).append(
+                    {"task_id": row["id"], "note_id": row["note_id"]})
+        except (TypeError, ValueError, AttributeError):
+            continue
     reports = []
     for row in _db.fetchall(
-        "SELECT id,note_title,domain,ces_percentile,composite_score,grade,created_at "
-        "FROM saved_diagnoses WHERE user_id=?", (user["id"],)
+        "SELECT id,note_title,domain,ces_percentile,composite_score,grade,created_at,diagnosis_json "
+        "FROM saved_diagnoses WHERE user_id=?", (user_id,)
     ):
-        if _retention_visible("diagnosis", row["id"], user["id"]):
-            reports.append({"report_type": "analyze", "report_id": row["id"],
-                            **{key: row[key] for key in (
-                                "note_title", "domain", "ces_percentile", "composite_score", "grade", "created_at")},
-                            "saved_note_id": None})
-    for report in _saved_generation_reports(user["id"]):
+        if not _retention_visible("diagnosis", row["id"], user_id):
+            continue
+        try:
+            data = _sanitize_persisted_diagnosis(_json.loads(row["diagnosis_json"] or "{}"))
+        except (TypeError, ValueError):
+            data = {}
+        note_id = data.get("saved_note_id") or data.get("_saved_note_id")
+        note_id = note_id if _fetch_user_note(note_id, user_id) else None
+        receipt = data.get("billing") or {}
+        linked = by_usage.get(("analyze", receipt.get("usage_id")), [])
+        legacy = continuations.get(row["id"], [])
+        if len(legacy) == 1 and (not note_id or note_id == legacy[0]["note_id"]):
+            note_id = legacy[0]["note_id"]
+            linked = list(set(linked + [legacy[0]["task_id"]]))
+        reports.append({"report_type": "analyze", "report_id": row["id"],
+                        **{key: row[key] for key in (
+                            "note_title", "domain", "ces_percentile", "composite_score", "grade", "created_at")},
+                        "saved_note_id": note_id,
+                        "task_id": linked[0] if len(linked) == 1 else None})
+    for report in _saved_generation_reports(user_id):
         result = report["result"]
         reports.append({"report_type": "generate", "report_id": report["report_id"],
                         "note_title": result["note_title"], "domain": result["_domain"],
                         "ces_percentile": result.get("ces_percentile"),
                         "composite_score": result.get("composite_score"),
                         "grade": result.get("grade", ""), "created_at": result["created_at"],
-                        "saved_note_id": result.get("saved_note_id")})
+                        "saved_note_id": result.get("saved_note_id"), "task_id": report["report_id"]})
     reports.sort(key=lambda item: (item["created_at"] or "", item["report_type"], item["report_id"]), reverse=True)
-    return {"reports": reports[offset:offset + limit], "total": len(reports)}
+    return reports
 
+
+def _workflow_conversations(user_id: str) -> list[dict]:
+    """Ordinary saved chats, bound to this exact retained note version only."""
+    rows = _db.fetchall(
+        "SELECT c.id,c.note_id,c.domain,c.created_at,c.updated_at,n.title,n.version "
+        "FROM chat_sessions c JOIN notes n ON n.id=c.note_id AND n.user_id=c.user_id "
+        "WHERE c.user_id=? AND NOT EXISTS(SELECT 1 FROM idempotency_requests r WHERE r.id=c.id) "
+        "ORDER BY c.updated_at DESC,c.id DESC", (user_id,))
+    return [{"session_id": row["id"], "note_id": row["note_id"], "note_title": row["title"],
+             "note_version": row["version"], "domain": row["domain"],
+             "created_at": row["created_at"], "updated_at": row["updated_at"]}
+            for row in rows if _retention_visible("note", row["note_id"], user_id)]
+
+
+def _workflow_note_links(user_id: str, reports: list[dict] | None = None) -> dict[str, dict]:
+    reports = _workflow_report_rows(user_id) if reports is None else reports
+    links: dict[str, dict] = {}
+    for report in reports:
+        note_id = report.get("saved_note_id")
+        if note_id:
+            item = links.setdefault(note_id, {"report_refs": [], "chat_session_id": None})
+            item["report_refs"].append({"report_type": report["report_type"], "report_id": report["report_id"],
+                                        "task_id": report.get("task_id")})
+    for chat in _workflow_conversations(user_id):
+        item = links.setdefault(chat["note_id"], {"report_refs": [], "chat_session_id": None})
+        if item["chat_session_id"] is None:
+            item["chat_session_id"] = chat["session_id"]
+    for item in links.values():
+        item["report_ref"] = item["report_refs"][0] if len(item["report_refs"]) == 1 else None
+        item["task_id"] = (item["report_ref"] or {}).get("task_id")
+    return links
+
+
+def _workflow_empty_links() -> dict:
+    return {"report_ref": None, "report_refs": [], "task_id": None, "chat_session_id": None}
+
+
+@app.get("/reports")
+async def list_reports(limit: int = 20, offset: int = 0,
+                       user: dict = Depends(_auth.get_current_user)):
+    """Both report types share history, while their original storage stays intact."""
+    if not 1 <= limit <= 100 or offset < 0:
+        raise HTTPException(422, "报告分页参数无效")
+    reports = _workflow_report_rows(user["id"])
+    links = _workflow_note_links(user["id"], reports)
+    for report in reports:
+        report["chat_session_id"] = links.get(report.get("saved_note_id"), {}).get("chat_session_id")
+    return {"reports": reports[offset:offset + limit], "total": len(reports)}
 
 @app.get("/reports/{report_type}/{report_id}")
 async def get_report(report_type: str, report_id: str,
@@ -14578,7 +14673,12 @@ async def get_report(report_type: str, report_id: str,
         result["note_version_group"] = _build_note_version_group_for_root(result["saved_note_id"], user["id"])
     else:
         raise HTTPException(404, "报告类型不存在")
-    return {"report_type": report_type, "report_id": report_id, "result": result}
+    links = _workflow_note_links(user["id"]).get(result.get("saved_note_id"), _workflow_empty_links())
+    own_ref = next((ref for ref in links["report_refs"]
+                    if ref["report_type"] == report_type and ref["report_id"] == report_id), {})
+    return {"report_type": report_type, "report_id": report_id, "result": result,
+            "saved_note_id": result.get("saved_note_id"), "task_id": own_ref.get("task_id"),
+            "chat_session_id": links["chat_session_id"]}
 
 
 @app.delete("/diagnoses/{diag_id}")
@@ -14613,6 +14713,9 @@ async def list_notes(
             for r in rows
             if _retention_visible("note", r["id"], user["id"])
         ]
+        links = _workflow_note_links(user["id"])
+        for note in visible:
+            note.update(links.get(note["id"], _workflow_empty_links()))
         return {"notes": visible[offset:offset + limit], "total": len(visible)}
 
     # ── Grouped mode ────────────────────────────────────────────
@@ -14627,6 +14730,10 @@ async def list_notes(
         for r in all_rows
         if _retention_visible("note", r["id"], user["id"])
     }
+
+    links = _workflow_note_links(user["id"])
+    for note in all_notes.values():
+        note.update(links.get(note["id"], _workflow_empty_links()))
 
     # 2. 找每条笔记的根节点
     def find_root(note_id: str) -> str:
@@ -14683,6 +14790,9 @@ async def note_versions(note_id: str, user: dict = Depends(_auth.get_current_use
         if _retention_visible("note", row["id"], user["id"]):
             versions.append(dict(row))
         current_id = row["parent_id"]
+    links = _workflow_note_links(user["id"])
+    for note in versions:
+        note.update(links.get(note["id"], _workflow_empty_links()))
     return {"versions": versions}
 
 @app.delete("/notes/{note_id}")
@@ -14728,11 +14838,16 @@ async def delete_note(note_id: str, user: dict = Depends(_auth.get_current_user)
 async def profile_growth(user: dict = Depends(_auth.get_current_user)):
     """返回真实成长曲线 + 统计数据。"""
     rows = _db.fetchall(
-        "SELECT score, grade, domain, action, recorded_at FROM growth_records"
+        "SELECT id, note_id, score, grade, domain, action, recorded_at FROM growth_records"
         " WHERE user_id=? ORDER BY recorded_at ASC",
         (user["id"],),
     )
     records = [dict(r) for r in rows]
+    links = _workflow_note_links(user["id"])
+    for record in records:
+        if not _fetch_user_note(record["note_id"], user["id"]):
+            record["note_id"] = None
+        record.update(links.get(record["note_id"], _workflow_empty_links()))
 
     # 统计
     scores = [r["score"] for r in records if r["score"]]
@@ -17014,7 +17129,8 @@ async def analyze_stream_endpoint(
     return StreamingResponse(
         _timed_sse_stream(
             _idempotent_sse_stream(_clarification_stream(_sse(), claim, req.merchant_name or ""), claim, success_types={"complete"},
-                unkeyed_charge=billing_charge if not claim else None, user_id=user["id"], operation="analyze"),
+                unkeyed_charge=billing_charge if not claim else None, user_id=user["id"], operation="analyze",
+                announce_task=True),
             operation="analyze",
             success_types={"complete"},
         ),
@@ -18134,7 +18250,8 @@ async def generate_stream_endpoint(
     return StreamingResponse(
         _timed_sse_stream(
             _idempotent_sse_stream(_clarification_stream(_sse(), claim, normalized_merchant), claim, success_types={"complete"},
-                unkeyed_charge=billing_charge if not claim else None, user_id=user["id"], operation="generate"),
+                unkeyed_charge=billing_charge if not claim else None, user_id=user["id"], operation="generate",
+                announce_task=True),
             operation="generate",
             success_types={"complete"},
         ),
@@ -20709,19 +20826,71 @@ async def chat_start(
     )
 
 
+def _workflow_task_state(row: dict, user_id: str, reports: list[dict] | None = None) -> dict:
+    """Read an existing claim. Never resume, settle, refund or extend its lease."""
+    row = dict(row)
+    reports = _workflow_report_rows(user_id) if reports is None else reports
+    matches = [item for item in reports if item.get("task_id") == row["id"]
+               and item["report_type"] == row["operation"]]
+    report = matches[0] if len(matches) == 1 else None
+    status = row["status"]
+    if status == "running":
+        lease = _idempotency._parse_lease_clock(row.get("lease_expires_at"))
+        unknown = _db.fetchone(
+            "SELECT id FROM public_trial_calls WHERE usage_record_id=? AND "
+            "(state='unknown' OR (state='responded' AND http_status=200 AND model_usage_record_id IS NULL)) LIMIT 1",
+            (row.get("usage_id"),))
+        if unknown or lease is None or lease <= _idempotency._now():
+            status = "outcome_unknown"
+    ref = ({"report_type": report["report_type"], "report_id": report["report_id"], "task_id": row["id"]}
+           if report else None)
+    return {"type": "task_state", "task_id": row["id"], "operation": row["operation"],
+            "status": status, "recorded_status": row["status"],
+            "note_title": report["note_title"] if report else None,
+            "note_id": report["saved_note_id"] if report else None, "report_ref": ref,
+            "created_at": row["created_at"], "updated_at": row["updated_at"],
+            "billing": _billing.get_charge_receipt(user_id, row["operation"], row, row["id"]),
+            "can_cancel": False, "can_retry": status == "failed" and bool(row.get("refund_applied")),
+            "can_resume": status == "waiting_for_input", "durable_execution": False}
+
+
 @app.get("/chat/tasks")
 async def pending_chat_tasks(user: dict = Depends(_auth.get_current_user),
                              request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER),
-                             operation: str | None = None):
+                             operation: str | None = None, view: str | None = None,
+                             note_id: str | None = None, limit: int = 20, offset: int = 0):
+    if not 1 <= limit <= 100 or offset < 0:
+        raise HTTPException(422, "任务分页参数无效")
+    if view not in {None, "activity", "conversations"}:
+        raise HTTPException(422, "任务视图不存在")
     if isinstance(request_id, str):
-        if operation != 'screenshot':
-            raise HTTPException(422, '请选择原截图请求')
-        key = _idempotency.normalize_request_id(request_id)
-        row = _db.fetchone("SELECT id FROM idempotency_requests WHERE user_id=? AND operation='screenshot' AND key_hash=?",
-                           (user['id'], _idempotency._sha256(key)))
+        if operation not in {'screenshot', 'analyze', 'generate'} or view is not None:
+            raise HTTPException(422, '请选择原任务类型')
+        try:
+            key = _idempotency.normalize_request_id(request_id)
+        except ValueError as exc:
+            raise HTTPException(422, '原任务标识无效') from exc
+        row = _db.fetchone("SELECT id FROM idempotency_requests WHERE user_id=? AND operation=? AND key_hash=?",
+                           (user['id'], operation, _idempotency._sha256(key)))
         if not row:
-            raise HTTPException(404, '原截图任务不存在或不属于当前账号')
-        return {'tasks': [await _read_media_task(user['id'], row['id'])]}
+            raise HTTPException(404, '原任务不存在或不属于当前账号')
+        return {'tasks': [await read_chat_task(row['id'], user)]}
+    if view == "conversations":
+        if note_id and not _fetch_user_note(note_id, user["id"]):
+            raise HTTPException(404, "原笔记不存在或不属于当前账号")
+        chats = _workflow_conversations(user["id"])
+        links = _workflow_note_links(user["id"])
+        chats = [{**chat, "report_ref": links.get(chat["note_id"], {}).get("report_ref")}
+                 for chat in chats if not note_id or chat["note_id"] == note_id]
+        return {"conversations": chats[offset:offset + limit], "total": len(chats)}
+    if view == "activity":
+        rows = _db.fetchall("SELECT * FROM idempotency_requests WHERE user_id=? "
+                            "AND operation IN ('analyze','generate') ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?",
+                            (user["id"], limit, offset))
+        total = _db.fetchone("SELECT COUNT(*) AS n FROM idempotency_requests WHERE user_id=? "
+                             "AND operation IN ('analyze','generate')", (user["id"],))["n"]
+        reports = _workflow_report_rows(user["id"])
+        return {"tasks": [_workflow_task_state(row, user["id"], reports) for row in rows], "total": total}
     rows = _db.fetchall("SELECT c.id FROM chat_sessions c JOIN idempotency_requests i "
                         "ON i.id=c.id AND i.user_id=c.user_id WHERE c.user_id=? "
                         "AND i.status='waiting_for_input' ORDER BY c.updated_at DESC LIMIT 20", (user["id"],))
@@ -20733,21 +20902,46 @@ async def read_chat_task(session_id: str, user: dict = Depends(_auth.get_current
     media = await _read_media_task(user['id'], session_id)
     if media is not None:
         return media
-    if not _db.fetchone("SELECT id FROM idempotency_requests WHERE id=?", (session_id,)):
-        row = _db.fetchone("SELECT note_id,generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?",
-                          (session_id, user["id"]))
-        if not row or not row["note_id"]:
-            raise HTTPException(404, "原对话不存在或不属于当前账号")
-        note = _fetch_user_note(row["note_id"], user["id"])
+    claim = _db.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?", (session_id, user["id"]))
+    if claim:
+        if claim["operation"] not in {"analyze", "generate"}:
+            raise HTTPException(404, "原任务不存在或不属于当前账号")
+        state = _workflow_task_state(claim, user["id"])
+        task_row = _db.fetchone("SELECT generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?", (session_id, user["id"]))
+        if task_row:
+            try:
+                context = _json.loads(task_row["generate_ctx_json"] or "{}")
+            except (TypeError, ValueError):
+                context = {}
+            task = context.get(_clarification.KEY) if isinstance(context, dict) else None
+            if (isinstance(task, dict) and type(task.get("version")) is int and task["version"] > 0
+                    and task.get("operation") == claim["operation"] and isinstance(task.get("questions"), list)):
+                original = _clarification.read(user["id"], session_id)
+                return {**original, **{key: value for key, value in state.items() if key != "type"}}
+        if state["status"] == "waiting_for_input":
+            # An incomplete old continuation cannot truthfully offer resumption.
+            state.update(status="outcome_unknown", can_resume=False)
+        return state
+    row = _db.fetchone("SELECT note_id,generate_ctx_json,messages_json,created_at,updated_at "
+                        "FROM chat_sessions WHERE id=? AND user_id=?", (session_id, user["id"]))
+    if not row or not row["note_id"]:
+        raise HTTPException(404, "原对话不存在或不属于当前账号")
+    note = _fetch_user_note(row["note_id"], user["id"])
+    if not note:
+        raise HTTPException(404, "原笔记不存在或已到保存期限")
+    try:
         context = _sanitize_chat_generate_context(_json.loads(row["generate_ctx_json"] or "{}"))
-        return {"type": "chat_state", "session_id": session_id, "note_id": note["id"],
-                "title": note["title"], "body": note["body"], "version": note["version"],
-                "current_score": note["score"], "grade": note["grade"],
-                "confirmed_facts": list({r["question_id"]: r for r in context.get("merchant_confirmations", [])}.values()),
-                "supplement_prompts": context.get("supplement_prompts") or [],
-                "fact_update_pending": context.get("pending_fact_update") is True}
-    return _clarification.read(user["id"], session_id)
-
+        messages = _sanitize_chat_messages(_json.loads(row["messages_json"] or "[]"))
+    except (TypeError, ValueError):
+        context, messages = {}, []
+    links = _workflow_note_links(user["id"]).get(note["id"], _workflow_empty_links())
+    return {"type": "chat_state", "session_id": session_id, "note_id": note["id"],
+            "title": note["title"], "body": note["body"], "version": note["version"], "domain": note["domain"],
+            "current_score": note["score"], "grade": note["grade"], "messages": messages,
+            "created_at": row["created_at"], "updated_at": row["updated_at"], "report_ref": links["report_ref"],
+            "confirmed_facts": list({r["question_id"]: r for r in context.get("merchant_confirmations", [])}.values()),
+            "supplement_prompts": context.get("supplement_prompts") or [],
+            "fact_update_pending": context.get("pending_fact_update") is True}
 
 async def _read_media_task(user_id, session_id):
     try:

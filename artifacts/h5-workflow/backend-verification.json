@@ -1,0 +1,83 @@
+{
+  "scope": "H5 workflow read-only projections and admitted SSE task identity; baseline aa95e328a116e4a9d7c6e02ab34864d49971579d",
+  "recorded_at": "2026-09-18T13:06:02.573841+00:00",
+  "status": {
+    "code_complete": true,
+    "targeted_tests_pass": true,
+    "deployed": false,
+    "online_verified": false
+  },
+  "files_sha256": {
+    "model/api.py": "c2740d94f7d0c775587c33302ce3b53064a117336a67e7ab3d2b3bca7da7dac6",
+    "tests/test_h5_workflow_read_model.py": "7694c084c4f48b11c615a60fe94ef156b0b8598e2bd1a7f84c7a7cd558ad7118",
+    "tests/test_h5_workflow_read_model_postgres.py": "661c6905e826bbe4ffb99dc6d974371b99f6e381608d64a733e7f3ad6d9cbc27",
+    "artifacts/h5-workflow/backend-contract-fixtures.json": "12e5af407d79d2c452bb6a4851992ad2c087e6025a20f2afde12d44a8bec5f8c"
+  },
+  "final_suite_results": [
+    {
+      "suite": "tests.test_h5_workflow_read_model",
+      "passed": 14,
+      "source": "/tmp/noteai-h5-workflow-final-sqlite.log"
+    },
+    {
+      "suite": "tests.test_report_history",
+      "passed": 16,
+      "source": "/tmp/noteai-h5-workflow-final-sqlite.log"
+    },
+    {
+      "suite": "tests.test_video_credit_consistency",
+      "passed": 20,
+      "source": "/tmp/noteai-h5-workflow-tests.log",
+      "note": "Passed after task_created and GET projection implementation; subsequent edits were confined to read-side historical linkage and new-test fixtures."
+    },
+    {
+      "suite": "tests.test_idempotency",
+      "passed": 43,
+      "source": "/tmp/noteai-h5-workflow-tests.log",
+      "note": "Passed after task_created and GET projection implementation; no later edits to charging/SSE/idempotency behavior."
+    },
+    {
+      "suite": "tests.test_h5_workflow_read_model_postgres",
+      "passed": 1,
+      "source": "/tmp/noteai-h5-workflow-final-pg.log"
+    }
+  ],
+  "unique_passed": 94,
+  "initial_intermediate_result": {
+    "tests_run": 107,
+    "passed": 105,
+    "errors": 2,
+    "note": "An imported ReportHistoryTests class duplicated 16 already included cases. Two new workflow fixture failures: invalid synthetic budget FK and old generation fixture missing continuation version. Budget fixture corrected; incomplete old continuation now safely exposes only task_state/report_ref. Latest affected suites passed 30/30."
+  },
+  "coverage": [
+    "Same paid task readable by server task ID and original client X-Request-ID without writing, model calls, admission or new credits.",
+    "Running versus lease-expired/physical unknown distinguished; no cancellation claim; retry allowed only confirmed failed/refunded.",
+    "Actual analyze receipt usage_id maps exactly to original task even when persisted request_id is null. Receiptless old clarification links require exact stored diagnosis_id and saved_note_id.",
+    "Reports, notes, note version ancestry endpoint, growth records, and ordinary chat sessions expose exact owner/version links; no title/time/ancestor matching.",
+    "Ordinary chats exclude clarification sessions and expose only sanitized user/assistant text; no chat/start on reads.",
+    "Public HTTP boundary: GET available/authenticated/no-store; foreign/missing IDs404; cancel, DELETE task and durable job APIs remain unavailable.",
+    "SSE task_created emitted only after successful original claim and receipt, before pipeline events; trace_id remains separate.",
+    "PG16 single new disposable database verifies new joins, SELECT projections and existing API role privileges; no schema/ACL changes to product."
+  ],
+  "commands": [
+    "docker run --rm --platform linux/amd64 --network none --read-only --tmpfs /tmp --entrypoint python -e DATABASE_URL= -e NOTEAI_SQLITE_PATH=/tmp/noteai-workflow-bootstrap.db -e PYTHONDONTWRITEBYTECODE=1 -e PYTHON_DOTENV_DISABLED=1 -e NOTEAI_API_STARTS_TREND_SCHEDULER=0 -e NOTEAI_DATA_DIR=/tmp/noteai-data -v /Users/openclaw/Desktop/noteai-h5-20260917:/workspace:ro -w /workspace noteai-media-tests:py311-sdk -m unittest tests.test_h5_workflow_read_model tests.test_report_history tests.test_video_credit_consistency tests.test_idempotency",
+    "Final changed read-side cases: same network-none command, -m unittest tests.test_h5_workflow_read_model tests.test_report_history (30 passed).",
+    "PG: same network-none command, add -e NOTEAI_LOCAL_PG16_CANARY_TEST=1 -v noteai-item31-pg16-socket-20260913:/var/run/postgresql:ro and -m unittest tests.test_h5_workflow_read_model_postgres (1 passed)."
+  ],
+  "safety": {
+    "production_access": false,
+    "paid_provider_calls": 0,
+    "real_payment_or_user_balance_actions": 0,
+    "new_dependencies": 0,
+    "public_route_or_schema_changes": false,
+    "database": "Per-test temporary SQLite; PG fixture creates a fresh random DB, validates local PG16 Unix socket, grants existing inert API role only in that new DB, then drops only that DB."
+  },
+  "remaining_limits": [
+    "Existing request-bound SSE is not a persistent background job or durable event replay. Refresh reads the recorded task; unknown does not auto-resubmit or guarantee completion.",
+    "No business cancellation endpoint. can_cancel is false.",
+    "Historical records without an exact stored ID/usage relationship remain unlinked; no reconstruction by matching titles/times.",
+    "Ordinary chat recovery lists only chats bound to an existing retained note version; historical unsaved chats without note_id are not recoverable through this API.",
+    "Native WeChat QR payment unchanged; mobile/WeChat H5 direct payment is not integrated.",
+    "No production deployment, external payment/model call or true-device validation performed by this subtask."
+  ]
+}

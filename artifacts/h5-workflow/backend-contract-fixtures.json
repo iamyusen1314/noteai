@@ -1,0 +1,448 @@
+{
+  "provenance": "Synthetic temporary SQLite only. No real users, provider calls or orders.",
+  "client_request_id": "workflow-original",
+  "server_task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+  "diagnosis_report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+  "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+  "chat_session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273",
+  "GET /chat/tasks?view=activity": {
+    "tasks": [
+      {
+        "type": "task_state",
+        "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+        "operation": "analyze",
+        "status": "completed",
+        "recorded_status": "completed",
+        "note_title": "诊断原文",
+        "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "report_ref": {
+          "report_type": "analyze",
+          "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+          "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+        },
+        "created_at": "2026-09-18T13:04:30.268472+00:00",
+        "updated_at": "2026-09-18T13:04:30.318806+00:00",
+        "billing": {
+          "usage_id": "3877564b-0f6d-44e6-8033-4504c8405b71",
+          "request_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+          "operation": "analyze",
+          "source": "subscription",
+          "status": "charged",
+          "credits_used": 6.0,
+          "monthly_credits_used": 6.0,
+          "wallet_credits_used": 0.0,
+          "refunded_credits": 0.0
+        },
+        "can_cancel": false,
+        "can_retry": false,
+        "can_resume": false,
+        "durable_execution": false
+      },
+      {
+        "type": "task_state",
+        "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+        "operation": "generate",
+        "status": "completed",
+        "recorded_status": "completed",
+        "note_title": "原生成标题",
+        "note_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+        "report_ref": {
+          "report_type": "generate",
+          "report_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+          "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+        },
+        "created_at": "2026-09-18T13:04:30.210722+00:00",
+        "updated_at": "2026-09-18T13:04:30.210722+00:00",
+        "billing": null,
+        "can_cancel": false,
+        "can_retry": false,
+        "can_resume": false,
+        "durable_execution": false
+      }
+    ],
+    "total": 2
+  },
+  "GET /chat/tasks/{server_task_id}": {
+    "type": "task_state",
+    "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+    "operation": "analyze",
+    "status": "completed",
+    "recorded_status": "completed",
+    "note_title": "诊断原文",
+    "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+    "report_ref": {
+      "report_type": "analyze",
+      "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+      "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+    },
+    "created_at": "2026-09-18T13:04:30.268472+00:00",
+    "updated_at": "2026-09-18T13:04:30.318806+00:00",
+    "billing": {
+      "usage_id": "3877564b-0f6d-44e6-8033-4504c8405b71",
+      "request_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+      "operation": "analyze",
+      "source": "subscription",
+      "status": "charged",
+      "credits_used": 6.0,
+      "monthly_credits_used": 6.0,
+      "wallet_credits_used": 0.0,
+      "refunded_credits": 0.0
+    },
+    "can_cancel": false,
+    "can_retry": false,
+    "can_resume": false,
+    "durable_execution": false
+  },
+  "GET /chat/tasks?operation=analyze + original X-Request-ID": {
+    "tasks": [
+      {
+        "type": "task_state",
+        "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+        "operation": "analyze",
+        "status": "completed",
+        "recorded_status": "completed",
+        "note_title": "诊断原文",
+        "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "report_ref": {
+          "report_type": "analyze",
+          "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+          "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+        },
+        "created_at": "2026-09-18T13:04:30.268472+00:00",
+        "updated_at": "2026-09-18T13:04:30.318806+00:00",
+        "billing": {
+          "usage_id": "3877564b-0f6d-44e6-8033-4504c8405b71",
+          "request_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+          "operation": "analyze",
+          "source": "subscription",
+          "status": "charged",
+          "credits_used": 6.0,
+          "monthly_credits_used": 6.0,
+          "wallet_credits_used": 0.0,
+          "refunded_credits": 0.0
+        },
+        "can_cancel": false,
+        "can_retry": false,
+        "can_resume": false,
+        "durable_execution": false
+      }
+    ]
+  },
+  "GET /chat/tasks?view=conversations&note_id={note_id}": {
+    "conversations": [
+      {
+        "session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273",
+        "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "note_title": "诊断原文",
+        "note_version": 1,
+        "domain": "美食",
+        "created_at": "2026-09-18T13:04:30.210722+00:00",
+        "updated_at": "2026-09-18T13:04:30.210722+00:00",
+        "report_ref": {
+          "report_type": "analyze",
+          "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+          "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+        }
+      }
+    ],
+    "total": 1
+  },
+  "GET /chat/tasks/{chat_session_id}": {
+    "type": "chat_state",
+    "session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273",
+    "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+    "title": "诊断原文",
+    "body": "原正文",
+    "version": 1,
+    "domain": "美食",
+    "current_score": 73.2,
+    "grade": "良好",
+    "messages": [
+      {
+        "role": "user",
+        "content": "合成问题"
+      },
+      {
+        "role": "assistant",
+        "content": "合成回复"
+      }
+    ],
+    "created_at": "2026-09-18T13:04:30.210722+00:00",
+    "updated_at": "2026-09-18T13:04:30.210722+00:00",
+    "report_ref": {
+      "report_type": "analyze",
+      "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+      "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+    },
+    "confirmed_facts": [],
+    "supplement_prompts": [],
+    "fact_update_pending": false
+  },
+  "GET /reports": {
+    "reports": [
+      {
+        "report_type": "generate",
+        "report_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+        "note_title": "原生成标题",
+        "domain": "美食",
+        "ces_percentile": 73.2,
+        "composite_score": null,
+        "grade": "良好",
+        "created_at": "2026-09-18T13:04:30.210722+00:00",
+        "saved_note_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+        "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+        "chat_session_id": null
+      },
+      {
+        "report_type": "analyze",
+        "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+        "note_title": "诊断原文",
+        "domain": "美食",
+        "ces_percentile": 67.0,
+        "composite_score": 67.0,
+        "grade": "良好",
+        "created_at": "2026-09-18T13:04:30.210722+00:00",
+        "saved_note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+        "chat_session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273"
+      }
+    ],
+    "total": 2
+  },
+  "GET /reports/analyze/{diagnosis_report_id}": {
+    "report_type": "analyze",
+    "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+    "result": {
+      "billing": {
+        "usage_id": "3877564b-0f6d-44e6-8033-4504c8405b71",
+        "request_id": null,
+        "operation": "analyze",
+        "source": "subscription",
+        "status": "charged",
+        "credits_used": 6.0,
+        "monthly_credits_used": 6.0,
+        "wallet_credits_used": 0.0,
+        "refunded_credits": 0.0
+      },
+      "ai_diagnosis": "原诊断",
+      "ces_percentile": 67.0,
+      "composite_score": 67.0,
+      "grade": "良好",
+      "saved_note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+      "suggested_titles": [],
+      "diagnosis_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+      "note_title": "诊断原文",
+      "_domain": "美食",
+      "created_at": "2026-09-18T13:04:30.210722+00:00",
+      "note_version_group": {
+        "group_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "latest": {
+          "id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+          "title": "诊断原文",
+          "body": "原正文",
+          "domain": "美食",
+          "score": 73.2,
+          "grade": "良好",
+          "source": "analyze",
+          "version": 1,
+          "parent_id": null,
+          "created_at": "2026-09-18T13:04:30.210722+00:00"
+        },
+        "best_score": 73.2,
+        "best_version": 1,
+        "version_count": 1,
+        "score_trend": [
+          73.2
+        ],
+        "versions": [
+          {
+            "id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+            "title": "诊断原文",
+            "body": "原正文",
+            "domain": "美食",
+            "score": 73.2,
+            "grade": "良好",
+            "source": "analyze",
+            "version": 1,
+            "parent_id": null,
+            "created_at": "2026-09-18T13:04:30.210722+00:00"
+          }
+        ],
+        "latest_at": "2026-09-18T13:04:30.210722+00:00"
+      },
+      "desc": "原正文"
+    },
+    "saved_note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+    "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03",
+    "chat_session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273"
+  },
+  "GET /notes?grouped=true": {
+    "groups": [
+      {
+        "group_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "latest": {
+          "id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+          "title": "诊断原文",
+          "body": "原正文",
+          "domain": "美食",
+          "score": 73.2,
+          "grade": "良好",
+          "source": "analyze",
+          "version": 1,
+          "parent_id": null,
+          "created_at": "2026-09-18T13:04:30.210722+00:00",
+          "report_refs": [
+            {
+              "report_type": "analyze",
+              "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+              "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+            }
+          ],
+          "chat_session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273",
+          "report_ref": {
+            "report_type": "analyze",
+            "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+            "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+          },
+          "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+        },
+        "best_score": 73.2,
+        "best_version": 1,
+        "version_count": 1,
+        "score_trend": [
+          73.2
+        ],
+        "versions": [
+          {
+            "id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+            "title": "诊断原文",
+            "body": "原正文",
+            "domain": "美食",
+            "score": 73.2,
+            "grade": "良好",
+            "source": "analyze",
+            "version": 1,
+            "parent_id": null,
+            "created_at": "2026-09-18T13:04:30.210722+00:00",
+            "report_refs": [
+              {
+                "report_type": "analyze",
+                "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+                "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+              }
+            ],
+            "chat_session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273",
+            "report_ref": {
+              "report_type": "analyze",
+              "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+              "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+            },
+            "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+          }
+        ],
+        "latest_at": "2026-09-18T13:04:30.210722+00:00"
+      },
+      {
+        "group_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+        "latest": {
+          "id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+          "title": "原生成标题",
+          "body": "原生成正文",
+          "domain": "美食",
+          "score": 73.2,
+          "grade": "良好",
+          "source": "generate",
+          "version": 1,
+          "parent_id": null,
+          "created_at": "2026-09-18T13:04:30.210722+00:00",
+          "report_refs": [
+            {
+              "report_type": "generate",
+              "report_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+              "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+            }
+          ],
+          "chat_session_id": null,
+          "report_ref": {
+            "report_type": "generate",
+            "report_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+            "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+          },
+          "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+        },
+        "best_score": 73.2,
+        "best_version": 1,
+        "version_count": 1,
+        "score_trend": [
+          73.2
+        ],
+        "versions": [
+          {
+            "id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+            "title": "原生成标题",
+            "body": "原生成正文",
+            "domain": "美食",
+            "score": 73.2,
+            "grade": "良好",
+            "source": "generate",
+            "version": 1,
+            "parent_id": null,
+            "created_at": "2026-09-18T13:04:30.210722+00:00",
+            "report_refs": [
+              {
+                "report_type": "generate",
+                "report_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+                "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+              }
+            ],
+            "chat_session_id": null,
+            "report_ref": {
+              "report_type": "generate",
+              "report_id": "3620b24c-767a-4108-bf83-1569d1a48a4f",
+              "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+            },
+            "task_id": "3620b24c-767a-4108-bf83-1569d1a48a4f"
+          }
+        ],
+        "latest_at": "2026-09-18T13:04:30.210722+00:00"
+      }
+    ],
+    "total": 2
+  },
+  "GET /profile/growth": {
+    "records": [
+      {
+        "id": "a5b763ac-d54d-4350-bb18-611dff78224e",
+        "note_id": "386a1cc8-b152-4d4b-be8f-92bb6554af97",
+        "score": 67.0,
+        "grade": "良好",
+        "domain": "美食",
+        "action": "analyze",
+        "recorded_at": "2026-09-18T13:04:30.340246+00:00",
+        "report_refs": [
+          {
+            "report_type": "analyze",
+            "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+            "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+          }
+        ],
+        "chat_session_id": "785a6ee6-7689-4ff6-a074-aafd5ea06273",
+        "report_ref": {
+          "report_type": "analyze",
+          "report_id": "3cca8264-fbc8-439a-a879-c88d6ab58732",
+          "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+        },
+        "task_id": "e7ff846c-0b8e-4823-93ca-18ad759b8d03"
+      }
+    ],
+    "stats": {
+      "total_sessions": 1,
+      "best_score": 67.0,
+      "latest_score": 67.0,
+      "avg_score": 67.0,
+      "domain_distribution": {
+        "美食": 1
+      }
+    }
+  }
+}
