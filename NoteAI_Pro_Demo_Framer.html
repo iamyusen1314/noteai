@@ -6069,9 +6069,10 @@ const GEN_MAX_COUNT = 9;
 const GEN_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 // ── 视频素材状态 ────────────────────────────────────
-let _genVideoFileId   = null;   // Moonshot file_id (上传成功后写入)
+let _genVideoFileId   = null;   // 原视频私有暂存引用（上传成功后写入）
 let _genVideoFileName = '';
 let _genVideoFileSize = 0;
+let _genVideoExpiresAt = null;
 
 /* ── 渲染缩略图网格 ─────────────────────────────── */
 function _renderGenThumbs() {
@@ -6210,6 +6211,7 @@ async function _uploadVideoFile(file) {
   const identity = _chatIdentitySnapshot(), token = _authToken;
   const current = () => attempt === _genVideoAttempt && _chatIdentityMatches(identity) && token === _authToken;
   _genVideoFileId = null;
+  _genVideoExpiresAt = null;
   _setGenVideoState('preflight');
   const errEl = document.getElementById('genVideoError');
   if (errEl) errEl.style.display = 'none';
@@ -6273,7 +6275,10 @@ async function _uploadVideoFile(file) {
     const data = await res.json();
     if (!current()) return;
     if (!data.file_id) throw new Error('视频上传结果无效');
+    const expiresAt=Date.parse(data.expires_at || '');
+    if (!Number.isFinite(expiresAt)) throw new Error('视频暂存期限无法确认，请重新上传');
     _genVideoFileId   = data.file_id;
+    _genVideoExpiresAt = expiresAt;
     _genVideoFileName = data.filename || file.name;
     _genVideoFileSize = data.size || file.size;
 
@@ -6289,6 +6294,7 @@ async function _uploadVideoFile(file) {
   } catch (e) {
     if (!current()) return;
     _genVideoFileId = null;
+    _genVideoExpiresAt = null;
     _setGenVideoState('empty');
     if (errEl) { errEl.textContent = `上传失败：${e.message}`; errEl.style.display = 'block'; }
   }
@@ -6311,6 +6317,7 @@ function clearGenVideo(e) {
   _genVideoFileId   = null;
   _genVideoFileName = '';
   _genVideoFileSize = 0;
+  _genVideoExpiresAt = null;
   const inp = document.getElementById('genVideoInput');
   if (inp) inp.value = '';
   const errEl = document.getElementById('genVideoError');
@@ -6415,6 +6422,24 @@ function resumeLatestPaidSubmission() {
   _activeGeneratePaidRequestId=latest.requestId;
   void watchPaidTask(latest,'generate',_chatIdentitySnapshot(),_authToken);
 }
+function generationVideoExpiryMessage(expiresAt, now=Date.now()) {
+  if(!Number.isFinite(expiresAt))return '当前视频的暂存期限无法确认，请重新上传后再生成；本次尚未扣分。';
+  if(now+5*60*1000>=expiresAt)return '当前视频的暂存已到期或即将到期，请重新上传后再生成；本次尚未扣分。';
+  return '';
+}
+function generationVideoSubmissionMessage(videoFileId) {
+  if(!videoFileId)return '';
+  return videoFileId===_genVideoFileId
+    ? generationVideoExpiryMessage(_genVideoExpiresAt)
+    : '视频素材已变化，请检查后重新上传；本次尚未扣分。';
+}
+function showGenerationVideoSubmissionMessage(message) {
+  if(!message)return false;
+  const errEl=document.getElementById('genVideoError');
+  if(errEl) {errEl.textContent=message;errEl.style.display='block';}
+  showToast(message);
+  return true;
+}
 async function preparePaidSubmission(operation,body) {
   const token=_authToken,owner=_authUser?.id;
   const existing=await paidSubmissionIdentity(operation,body,null);
@@ -6436,6 +6461,7 @@ async function preparePaidSubmission(operation,body) {
       }
     } catch (_) {void watchPaidTask(existing,operation,identity,token);return null;}
   }
+  if(operation==='generate' && showGenerationVideoSubmissionMessage(generationVideoSubmissionMessage(body.video_file_id)))return null;
   const pending=pendingPaidSubmissions(operation);
   if(pending.length) {
     const preview=document.getElementById(operation+'-billing-preview');
@@ -6443,6 +6469,7 @@ async function preparePaidSubmission(operation,body) {
   }
   const quote=await confirmBillingQuote(operation,!!body.video_file_id);
   if(!quote || token!==_authToken || owner!==_authUser?.id)return null;
+  if(operation==='generate' && showGenerationVideoSubmissionMessage(generationVideoSubmissionMessage(body.video_file_id)))return null;
   return paidSubmissionIdentity(operation,body,quote);
 }
 function bindPaidSubmissionReceipt(submission, receipt) {

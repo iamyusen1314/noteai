@@ -8,8 +8,8 @@ function source(name){const match=new RegExp('^(?:async )?function '+name+'\\(',
 function make(extra={}){
  const storage=new Map(),elements=new Map();
  class Element{constructor(tag){this.tagName=tag;this.style={};this.children=[];this.textContent='';}append(...children){this.children.push(...children);for(const e of children)if(e.id)elements.set(e.id,e);}addEventListener(event,fn){this[event]=fn;}showModal(){}close(){}remove(){}replaceChildren(){this.children=[];}}
- const body=new Element('body');const c=vm.createContext({console,window:{},crypto:crypto.webcrypto,TextEncoder,Uint8Array,_authUser:{id:'owner-a'},_authToken:'synthetic-a',_billingQuoteBusy:false,API_AUTH:'https://offline.invalid',API_BASE:'https://offline.invalid',authHeader:()=>({Authorization:'Bearer synthetic'}),showToast(){},openAuthModal(){},showQuotaExceededModal(){},openCreditRecords(){},_chatIdentitySnapshot:()=>({ownerId:'owner-a'}),_chatIdentityMatches:()=>true,readPaidTaskState:async()=>({status:'outcome_unknown',operation:'analyze',task_id:'original-task'}),displayPaidTaskState(){},watchPaidTask(){},sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},document:{getElementById:id=>elements.get(id),createElement:tag=>new Element(tag),body},...extra});
- c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('createPaidRequestId','paidSubmissionIdentity','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
+ const body=new Element('body');const c=vm.createContext({console,window:{},crypto:crypto.webcrypto,TextEncoder,Uint8Array,_authUser:{id:'owner-a'},_authToken:'synthetic-a',_billingQuoteBusy:false,_genVideoFileId:'same-video',_genVideoExpiresAt:Date.now()+86400000,API_AUTH:'https://offline.invalid',API_BASE:'https://offline.invalid',authHeader:()=>({Authorization:'Bearer synthetic'}),showToast(){},openAuthModal(){},showQuotaExceededModal(){},openCreditRecords(){},_chatIdentitySnapshot:()=>({ownerId:'owner-a'}),_chatIdentityMatches:()=>true,readPaidTaskState:async()=>({status:'outcome_unknown',operation:'analyze',task_id:'original-task'}),displayPaidTaskState(){},watchPaidTask(){},sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},document:{getElementById:id=>elements.get(id),createElement:tag=>new Element(tag),body},...extra});
+ c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('createPaidRequestId','paidSubmissionIdentity','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','generationVideoExpiryMessage','generationVideoSubmissionMessage','showGenerationVideoSubmissionMessage','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
 }
 const quote={operation:'analyze',credits:6,video_credits:0,monthly_credits_used:4,wallet_credits_used:2,can_afford:true,quote_version:'server-six'};
 test('unknown retry retains original key, quote version and exact body across hour change; no media stored',async()=>{
@@ -79,6 +79,32 @@ test('a confirmed refunded failure permits one explicit new quoted submission',a
  assert.ok(next?.requestId);assert.notEqual(next.requestId,original.requestId);
  assert.equal(storage.has(original.storageKey),true);
  assert.equal(storage.size,1);
+});
+test('expired video checks original settled task before refusing a fresh quote or POST',async()=>{
+ let originalReads=0,quoted=0,notice='';
+ const {c,storage}=make({_genVideoExpiresAt:Date.now()-86400000,
+   readPaidTaskState:async()=>{originalReads++;return {status:'failed',task_id:'original-task',refund_status:'refunded',billing:{status:'refunded'}};},
+   showToast:message=>{notice=message;}});
+ const original=await c.paidSubmissionIdentity('generate',{video_file_id:'same-video'},quote);
+ c.displayPaidTaskState=(_task,submission)=>c.finishPaidSubmission(submission);
+ c.confirmBillingQuote=async()=>{quoted++;return quote;};
+ const fresh=await c.preparePaidSubmission('generate',{video_file_id:'same-video'});
+ assert.equal(fresh,null);assert.equal(originalReads,1);assert.equal(quoted,0);
+ assert.match(notice,/暂存已到期或即将到期.*重新上传/);
+ assert.equal(storage.has(original.storageKey),false);
+});
+test('video about to expire is blocked before any quote; a sufficiently live upload proceeds',async()=>{
+ let quoted=0;const {c}=make();c.confirmBillingQuote=async()=>{quoted++;return quote;};
+ c._genVideoExpiresAt=Date.now()+2*60*1000;
+ assert.equal(await c.preparePaidSubmission('generate',{video_file_id:'same-video'}),null);assert.equal(quoted,0);
+ c._genVideoExpiresAt=Date.now()+20*60*1000;
+ assert.ok((await c.preparePaidSubmission('generate',{video_file_id:'same-video'}))?.requestId);assert.equal(quoted,1);
+});
+test('video expiry while the quote dialog is open still prevents a paid identity',async()=>{
+ const {c,storage}=make({_genVideoExpiresAt:Date.now()+20*60*1000});
+ c.confirmBillingQuote=async()=>{c._genVideoExpiresAt=Date.now()+2*60*1000;return quote;};
+ assert.equal(await c.preparePaidSubmission('generate',{video_file_id:'same-video'}),null);
+ assert.equal(storage.size,0);
 });
 test('original task lookup is authenticated, read only and bound to its paid request ID',async()=>{
  let request;const {c}=make({fetch:async(url,options)=>{request={url,options};return {ok:true,json:async()=>({tasks:[{task_id:'task-1',operation:'generate',status:'failed',billing:{status:'refunded'}}]})};}});
