@@ -138,6 +138,14 @@ class GenerationCustomerSettlementTests(unittest.TestCase):
         second = idempotency.reconcile_undelivered_generate(
             self.user_id, claim["request_id"], **kwargs)
         self.assertEqual(second["refund_status"], "refunded")
+        for changed in (
+            {"expected_provider_call_id": "another-call"},
+            {"expected_lease_expires_at": "2026-01-01T00:00:00+00:00"},
+            {"expected_credits": 9},
+        ):
+            with self.assertRaises(ValueError):
+                idempotency.reconcile_undelivered_generate(
+                    self.user_id, claim["request_id"], **{**kwargs, **changed})
         self.assertEqual(db.fetchone("SELECT COUNT(*) AS n FROM usage_records WHERE source='refunded'")["n"], 1)
         self.assertEqual(billing.get_quota_status(self.user_id)["total_available_credits"], 12)
         self.assertEqual(db.fetchone("SELECT state FROM public_trial_calls WHERE id='one-original-call'")["state"], "unknown")

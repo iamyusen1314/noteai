@@ -897,8 +897,27 @@ def reconcile_undelivered_generate(
             raise ValueError("original task not found")
         current = dict(row)
         if current["status"] == "failed" and current.get("refund_applied"):
-            if current.get("usage_id") != expected_usage_id:
-                raise ValueError("original usage changed")
+            if (current.get("operation") != "generate"
+                    or current.get("usage_id") != expected_usage_id
+                    or current.get("lease_expires_at") != expected_lease_expires_at
+                    or float(current.get("credits_used") or 0) != float(expected_credits)
+                    or current.get("charge_source") != "subscription"
+                    or not current.get("charge_applied") or current.get("complete_applied")
+                    or current.get("response_ref_json")):
+                raise ValueError("original refunded task changed")
+            usage = tx.fetchone(
+                "SELECT source,credits_used FROM usage_records WHERE id=? AND user_id=? "
+                "AND operation='generate'" + lock, (expected_usage_id, user_id),
+            )
+            calls = tx.fetchall(
+                "SELECT id,state FROM public_trial_calls WHERE user_id=? AND usage_record_id=?",
+                (user_id, expected_usage_id),
+            )
+            if (not usage or usage["source"] != "refunded"
+                    or float(usage["credits_used"] or 0) != 0
+                    or len(calls) != 1 or calls[0]["id"] != expected_provider_call_id
+                    or calls[0]["state"] != "unknown"):
+                raise ValueError("original refunded charge or provider call changed")
             return _failure_settlement_projection(current)
         lease = _parse_lease_clock(current.get("lease_expires_at"))
         if (current["operation"] != "generate" or current["status"] not in {"running", "failed"}
