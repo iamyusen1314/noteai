@@ -9,7 +9,7 @@ function make(extra={}){
  const storage=new Map(),elements=new Map();
  class Element{constructor(tag){this.tagName=tag;this.style={};this.children=[];this.textContent='';}append(...children){this.children.push(...children);for(const e of children)if(e.id)elements.set(e.id,e);}addEventListener(event,fn){this[event]=fn;}showModal(){}close(){}remove(){}replaceChildren(){this.children=[];}}
  const body=new Element('body');const c=vm.createContext({console,window:{},crypto:crypto.webcrypto,TextEncoder,Uint8Array,_authUser:{id:'owner-a'},_authToken:'synthetic-a',_billingQuoteBusy:false,_genVideoFileId:'same-video',_genVideoExpiresAt:Date.now()+86400000,API_AUTH:'https://offline.invalid',API_BASE:'https://offline.invalid',authHeader:()=>({Authorization:'Bearer synthetic'}),showToast(){},openAuthModal(){},showQuotaExceededModal(){},openCreditRecords(){},_chatIdentitySnapshot:()=>({ownerId:'owner-a'}),_chatIdentityMatches:()=>true,readPaidTaskState:async()=>({status:'outcome_unknown',operation:'analyze',task_id:'original-task'}),displayPaidTaskState(){},watchPaidTask(){},sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},document:{getElementById:id=>elements.get(id),createElement:tag=>new Element(tag),body},...extra});
- c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('createPaidRequestId','paidSubmissionIdentity','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','generationVideoExpiryMessage','generationVideoSubmissionMessage','showGenerationVideoSubmissionMessage','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
+ c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('createPaidRequestId','paidSubmissionIdentity','currentPaidSubmission','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','generationVideoExpiryMessage','generationVideoSubmissionMessage','showGenerationVideoSubmissionMessage','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
 }
 const quote={operation:'analyze',credits:6,video_credits:0,monthly_credits_used:4,wallet_credits_used:2,can_afford:true,quote_version:'server-six'};
 test('unknown retry retains original key, quote version and exact body across hour change; no media stored',async()=>{
@@ -146,6 +146,26 @@ test('unresolved task watcher stops after its read limit and retains the paid id
  c.load('watchPaidTask');
  assert.equal(await c.watchPaidTask(submission,'generate',{ownerId:'owner-a'},'synthetic-a'),null);
  assert.equal(reads,2);assert.equal(storage.has(submission.storageKey),true);
+});
+test('late old watcher cannot bind or remove a new request for the same payload',async()=>{
+ let release;const gate=new Promise(resolve=>release=resolve);
+ const {c,storage}=make({fetch:async()=>gate});
+ let nextId=0;c.createPaidRequestId=()=>`generate-${++nextId}`;
+ const body={video_file_id:'same-video'};
+ const old=await c.paidSubmissionIdentity('generate',body,quote);
+ c.PAID_TASK_READ_ATTEMPTS=1;c.PAID_TASK_READ_INTERVAL_MS=0;c._paidTaskWatchers=new Map();
+ c.load('readPaidTaskState','watchPaidTask');
+ const watched=c.watchPaidTask(old,'generate',{ownerId:'owner-a'},'synthetic-a');
+ await Promise.resolve();
+ c.finishPaidSubmission(old);
+ const next=await c.paidSubmissionIdentity('generate',body,quote);
+ assert.notEqual(next.requestId,old.requestId);
+ release({ok:true,json:async()=>({tasks:[{task_id:'old-task',operation:'generate',status:'failed',billing:{status:'refunded'}}]})});
+ assert.equal(await watched,null);
+ c.bindPaidSubmissionReceipt(old,{request_id:'old-task'});
+ c.finishPaidSubmission(old);
+ assert.equal(JSON.parse(storage.get(next.storageKey)).requestId,next.requestId);
+ assert.equal(JSON.parse(storage.get(next.storageKey)).serverRequestId,undefined);
 });
 
 

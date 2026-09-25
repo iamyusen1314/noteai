@@ -6451,7 +6451,7 @@ async function preparePaidSubmission(operation,body) {
     const identity=_chatIdentitySnapshot();
     try {
       const task=await readPaidTaskState(existing,operation,token);
-      if(!_chatIdentityMatches(identity) || token!==_authToken)return null;
+      if(!_chatIdentityMatches(identity) || token!==_authToken || !currentPaidSubmission(existing))return null;
       displayPaidTaskState(task,existing,operation,identity,token);
       if(task.status==='failed' && (task.refund_status==='refunded' || task.billing?.status==='refunded')) {
         // This click is an explicit new intent after the original refund.
@@ -6472,8 +6472,13 @@ async function preparePaidSubmission(operation,body) {
   if(operation==='generate' && showGenerationVideoSubmissionMessage(generationVideoSubmissionMessage(body.video_file_id)))return null;
   return paidSubmissionIdentity(operation,body,quote);
 }
+function currentPaidSubmission(submission) {
+  if(!submission?.storageKey || !submission?.requestId)return false;
+  try {return JSON.parse(sessionStorage.getItem(submission.storageKey) || 'null')?.requestId===submission.requestId;}
+  catch (_) {return false;}
+}
 function bindPaidSubmissionReceipt(submission, receipt) {
-  if(!submission?.storageKey || !receipt?.request_id)return;
+  if(!currentPaidSubmission(submission) || !receipt?.request_id)return;
   submission.serverRequestId=receipt.request_id;
   sessionStorage.setItem(submission.storageKey,JSON.stringify(submission));
 }
@@ -6499,7 +6504,7 @@ async function restoreWaitingPaidSubmission(detail, submission) {
     return '已读取原任务，请在处理进度中继续；未再次扣整单积分。';
   } catch (_) { return '原任务正在等待补充，但暂时无法读取。原编号已保留，请稍后核实，不要重新提交。'; }
 }
-function finishPaidSubmission(submission) { if(submission?.storageKey)sessionStorage.removeItem(submission.storageKey); }
+function finishPaidSubmission(submission) { if(currentPaidSubmission(submission))sessionStorage.removeItem(submission.storageKey); }
 const PAID_TASK_READ_INTERVAL_MS = 5000;
 const PAID_TASK_READ_ATTEMPTS = 12;
 const _paidTaskWatchers = new Map();
@@ -6514,7 +6519,7 @@ function paidTaskStatusText(task, operation) {
   return `原${name}任务状态正在后台核对，页面会继续读取结果。`;
 }
 function displayPaidTaskState(task, submission, operation, identity, token) {
-  if(!_chatIdentityMatches(identity) || _authToken!==token)return true;
+  if(!_chatIdentityMatches(identity) || _authToken!==token || !currentPaidSubmission(submission))return true;
   const message=paidTaskStatusText(task,operation);
   const preview=document.getElementById(operation+'-billing-preview');
   const visible=operation!=='generate' || _activeGeneratePaidRequestId===submission.requestId;
@@ -6553,10 +6558,12 @@ function displayPaidTaskState(task, submission, operation, identity, token) {
   return resolved;
 }
 async function readPaidTaskState(submission, operation, token) {
+  if(!currentPaidSubmission(submission))throw Error('原任务身份已变化');
   const response=await fetch(API_BASE+'/chat/tasks?operation='+encodeURIComponent(operation),{
     headers:{Authorization:'Bearer '+token,'X-Request-ID':submission.requestId},cache:'no-store'});
   if(!response.ok)throw Error('原任务暂时无法读取');
   const data=await response.json();
+  if(!currentPaidSubmission(submission))throw Error('原任务身份已变化');
   const task=Array.isArray(data?.tasks)?data.tasks[0]:null;
   if(!task || task.operation!==operation || !task.task_id)throw Error('原任务状态不完整');
   bindPaidSubmissionReceipt(submission,{request_id:task.task_id});
@@ -6568,11 +6575,12 @@ function watchPaidTask(submission, operation, identity, token) {
   if(_paidTaskWatchers.has(key))return _paidTaskWatchers.get(key);
   const pending=(async()=>{
     for(let attempt=0;attempt<PAID_TASK_READ_ATTEMPTS;attempt++) {
-      if(!_chatIdentityMatches(identity)||_authToken!==token)return null;
+      if(!_chatIdentityMatches(identity)||_authToken!==token||!currentPaidSubmission(submission))return null;
       try {
         const task=await readPaidTaskState(submission,operation,token);
         if(displayPaidTaskState(task,submission,operation,identity,token))return task;
       } catch (_) {
+        if(!currentPaidSubmission(submission))return null;
         if(attempt===0 && _chatIdentityMatches(identity) && _authToken===token) {
           const preview=document.getElementById(operation+'-billing-preview');
           if(preview)preview.textContent='原任务暂时无法读取，页面会继续尝试；不会重新提交或扣分。';
