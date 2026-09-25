@@ -1360,8 +1360,11 @@ def understand_original_video(reference: MediaReference, body: bytes, prompt: st
         raise ark_media.ArkMediaError('ARK_NOT_CONFIGURED')
     media = {'ref':reference.id, 'sha256':reference.content_sha256, 'transport':'inline'}
     public_product.assert_media_result_known(media)
-    # Keep JSON overhead well under Ark's64MiB request limit, preserving all bytes.
-    if len(body) <= 46 * 1024 * 1024:
+    # Honor the configured private-object transport for every video size. The
+    # size limit only selects inline input when private OSS was not selected;
+    # otherwise a small upload could unexpectedly resend megabytes in JSON.
+    private_oss = os.environ.get('NOTEAI_ARK_VIDEO_INPUT', 'files') == 'private_oss'
+    if not private_oss and len(body) <= 46 * 1024 * 1024:
         return ark_media.video(prompt, [ark_media.video_part(body, mime=reference.content_type, fps=2.0)],
                                max_tokens=8192, media=media)
     row = db.fetchone('SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?',
@@ -1369,7 +1372,7 @@ def understand_original_video(reference: MediaReference, body: bytes, prompt: st
     if not row or row['state'] != 'ready' or row['expires_at'] <= _utc().isoformat():
         raise MediaReferenceUnavailable()
     state = row['ark_state']
-    if os.environ.get('NOTEAI_ARK_VIDEO_INPUT', 'files') == 'private_oss' and state in {'none', 'failed', 'unknown'}:
+    if private_oss and state in {'none', 'failed', 'unknown'}:
         # This is a separately metered inference, never another Files upload.
         # An old upload can stay UNKNOWN with its retention/cost record intact;
         # a prior Files inference must be known before this transport is usable.

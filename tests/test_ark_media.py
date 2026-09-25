@@ -64,6 +64,27 @@ class ArkVideoAdmissionTests(unittest.TestCase):
             public_product._invocation.reset(next_marker)
         self.assertEqual(self.db.fetchone('SELECT count(*) FROM public_trial_calls')[0],2)
 
+    def test_explicit_new_generation_after_original_failed_refund_can_use_same_media(self):
+        import idempotency
+        first = idempotency.claim_and_charge(user_id=self.user['id'], operation='generate',
+            request_id='first-explicit-generation', payload={'video_file_id':'synthetic'})
+        original = public_product._reserve_payload(self.payload(), 100, require_metered=True)
+        self.db.execute("UPDATE public_trial_calls SET state='unknown' WHERE id=?", (original,))
+        self.assertTrue(idempotency.mark_failed_and_refund(first, failure_code='stream_failed'))
+        self.assertEqual(self.db.fetchone('SELECT state FROM public_trial_calls WHERE id=?',
+            (original,))['state'], 'unknown')
+        second = idempotency.claim_and_charge(user_id=self.user['id'], operation='generate',
+            request_id='new-explicit-generation', payload={'video_file_id':'synthetic'})
+        marker = public_product._invocation.set(
+            public_product.Invocation(self.user['id'], 'new-explicit-generation'))
+        try:
+            fresh = public_product._reserve_payload(self.payload(), 100, require_metered=True)
+        finally:
+            public_product._invocation.reset(marker)
+        self.assertNotEqual(fresh, original)
+        self.assertNotEqual(second['request_id'], first['request_id'])
+        self.assertEqual(self.db.fetchone('SELECT count(*) AS n FROM public_trial_calls')['n'], 2)
+
     def test_pending_media_and_unsettled_success_both_block_duplicate_inference(self):
         original=public_product._reserve_payload(self.payload(),100,require_metered=True)
         for state,status in [('dispatched',None),('responded',200)]:

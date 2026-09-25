@@ -17,6 +17,7 @@ function source(name) {
 }
 function context(extra={}) {
   const c = vm.createContext({console, Promise, window:{}, _historyReportSelection:null, _reportSelectionSequence:0,
+    reportTimeLabel:()=>'',
     confirmBillingQuote:async()=>({credits:6,quote_version:'test-quote'}),
     paidSubmissionIdentity:async()=>({requestId:'single-test',quoteVersion:'test-quote'}),
     preparePaidSubmission:async()=>({requestId:'single-test',quoteVersion:'test-quote'}),

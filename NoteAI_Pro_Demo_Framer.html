@@ -3607,6 +3607,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
       <h1><i data-lucide="activity"></i>AI 处理进度</h1>
       <div class="progress-track"><div class="progress-fill" id="mainProgress"></div></div>
       <div class="progress-label" id="progressLabel">正在进行 V0.4 复合质量评分…</div>
+      <div id="generation-paid-task-banner" role="status" style="display:none;margin-top:12px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surf-1);font-size:13px;line-height:1.6"></div>
     </div>
 
     <div class="arena" id="arena">
@@ -5528,6 +5529,7 @@ function showPage(name, tabEl) {
   if (name === 'chat')    initChatPage();
   if (PUBLIC_PRODUCT) syncProductUI();
   if (name === 'library') initLibraryPage();
+  if (name === 'upload') resumeLatestPaidSubmission();
   if (name === 'legal') loadProductDisclosure();
   if(mobileNavWasOpen){
     const page=document.getElementById('page-'+name);
@@ -5708,9 +5710,9 @@ const SSE_OUTCOME_UNKNOWN = Object.freeze({
 });
 const IDEMPOTENCY_409_TEXT = Object.freeze({
   IDEMPOTENCY_CONFLICT: '请求标识与已有任务冲突，本次未再次执行。请刷新页面后重新发起。',
-  IDEMPOTENCY_IN_PROGRESS: '相同任务仍在处理中，请等待结果，不要重复提交。',
-  IDEMPOTENCY_COMPLETED: '相同任务已经完成，当前页面暂不能回放结果。请到历史记录或笔记库确认。',
-  IDEMPOTENCY_FAILED: '相同任务已失败并完成退款。确认账单状态后可重新发起。',
+  IDEMPOTENCY_IN_PROGRESS: '原任务仍在处理中，页面正在读取处理进度。',
+  IDEMPOTENCY_COMPLETED: '原任务已经完成，正在读取已保存报告。',
+  IDEMPOTENCY_FAILED: '原任务未完成，页面正在读取积分退回状态。',
 });
 
 async function paidRequest409Message(response, submission) {
@@ -5719,9 +5721,8 @@ async function paidRequest409Message(response, submission) {
   const detail = payload && typeof payload.detail === 'object' ? payload.detail : {};
   if (detail.code === 'IDEMPOTENCY_WAITING_FOR_INPUT' && detail.session_id) return restoreWaitingPaidSubmission(detail, submission);
   if (detail.code === 'BILLING_QUOTE_CHANGED') { finishPaidSubmission(submission); return '扣分标准已更新，本次未提交。请重新确认服务端报价。'; }
-  if (['IDEMPOTENCY_COMPLETED','IDEMPOTENCY_FAILED'].includes(detail.code)) finishPaidSubmission(submission);
   return IDEMPOTENCY_409_TEXT[detail.code]
-    || '任务状态暂时无法确认，请不要重复提交，稍后到历史记录或笔记库确认。';
+    || '原任务状态正在后台核对，页面会继续读取结果。';
 }
 
 // One parser for every paid SSE flow. It handles CRLF, arbitrary UTF-8 byte
@@ -5910,7 +5911,7 @@ function renderPricingConfig(cfg) {
         <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：套餐周期积分 → 充值积分 → 余额不足提示')}</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">${opCards}</div>
-      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频分析包含在完整诊断或生成中；上传不扣主流程积分。每次提交先读取服务端报价，受理时扣分；确认失败后按原来源退回。网络超时请先核实原任务与积分记录，勿另建重复任务。</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频分析包含在完整诊断或生成中；上传不扣主流程积分。每次提交先读取服务端报价，受理时扣分；确认失败后按原来源退回。连接中断时页面会继续读取原任务状态。</div>
     </div>
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
@@ -6322,9 +6323,11 @@ let _generateResult = null;
 let _diagnosePromise = null;
 let _isGenerateMode  = false;
 let _genStreamActive = false;
+let _activeGeneratePaidRequestId = null;
 let _diagnosisStreamActive = false;
 // Historical report viewing must not replace a task that is waiting for input.
 let _historyReportSelection = null;
+let _paidTaskReportRef = null;
 let _reportSelectionSequence = 0;
 let _reportHistorySequence = 0;
 function clearReportSelection() { _historyReportSelection = null; _reportSelectionSequence += 1; }
@@ -6364,7 +6367,7 @@ async function confirmBillingQuote(operation, hasVideo) {
       dialog.style.cssText='box-sizing:border-box;margin:auto;max-width:480px;width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--border);border-radius:16px;padding:24px;background:var(--surf-1);color:var(--text);line-height:1.7';
       const heading=document.createElement('h2');heading.textContent='确认本次扣分';
       const summary=document.createElement('p');summary.textContent=description;
-      const policy=document.createElement('p');policy.textContent='受理时扣除：周期 '+quote.monthly_credits_used+' + 充值 '+quote.wallet_credits_used+' 积分。确认失败后按原来源退回；网络超时先核实原任务，沿用原编号重试不会重复扣分。';
+      const policy=document.createElement('p');policy.textContent='受理时扣除：周期 '+quote.monthly_credits_used+' + 充值 '+quote.wallet_credits_used+' 积分。确认失败后按原来源退回；若连接中断，页面会读取原任务状态，不会自动创建新任务。';
       const actions=document.createElement('div');actions.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:16px';
       const finish=value=>{dialog.close();dialog.remove();resolve(value);};
       const cancel=document.createElement('button');cancel.className='btn btn-ghost';cancel.textContent='返回修改';cancel.addEventListener('click',()=>finish(false));
@@ -6387,7 +6390,7 @@ async function paidSubmissionIdentity(operation, body, quote) {
   if(previous?.requestId && previous?.quoteVersion) {
     if(previous.localTime !== undefined) body.local_time=previous.localTime;
     const preview=document.getElementById(operation+'-billing-preview');
-    if(preview)preview.textContent='正在核实原提交，沿用原任务编号；不会作为新任务再次扣分。原实扣以积分记录为准。';
+    if(preview)preview.textContent='正在读取原任务的处理和积分状态，不会重新扣分。';
     return {...previous,storageKey};
   }
   if (!quote) return null;
@@ -6405,16 +6408,39 @@ function pendingPaidSubmissions(operation) {
   }
   return pending;
 }
+function resumeLatestPaidSubmission() {
+  if(!_authToken || !_authVerifiedOwnerId || _authVerifiedOwnerId!==_chatOwnerId())return;
+  const latest=pendingPaidSubmissions('generate').slice(-1)[0];
+  if(!latest?.requestId)return;
+  _activeGeneratePaidRequestId=latest.requestId;
+  void watchPaidTask(latest,'generate',_chatIdentitySnapshot(),_authToken);
+}
 async function preparePaidSubmission(operation,body) {
   const token=_authToken,owner=_authUser?.id;
   const existing=await paidSubmissionIdentity(operation,body,null);
   if(token!==_authToken || owner!==_authUser?.id)return null;
   if(existing) {
-    const accepted=confirm('原提交结果尚需核实：'+existing.requestId+'。\n沿用原任务编号核实，不会作为新任务再次扣分，也不要求补充余额。\n确定：核实原任务；取消：返回查看报告或积分记录。');
-    return accepted ? existing : null;
+    // An already submitted identity is read only here. Never POST it again to
+    // discover whether the original stream completed or charged the user.
+    if(operation==='generate')_activeGeneratePaidRequestId=existing.requestId;
+    const identity=_chatIdentitySnapshot();
+    try {
+      const task=await readPaidTaskState(existing,operation,token);
+      if(!_chatIdentityMatches(identity) || token!==_authToken)return null;
+      displayPaidTaskState(task,existing,operation,identity,token);
+      if(task.status==='failed' && (task.refund_status==='refunded' || task.billing?.status==='refunded')) {
+        // This click is an explicit new intent after the original refund.
+      } else {
+        if(task.status!=='completed')void watchPaidTask(existing,operation,identity,token);
+        return null;
+      }
+    } catch (_) {void watchPaidTask(existing,operation,identity,token);return null;}
   }
   const pending=pendingPaidSubmissions(operation);
-  if(pending.length && !confirm('本账户还有尚未确认结果的提交：'+pending.map(item=>item.requestId).join('、')+'。\n刷新后重新上传的素材可能取得新编号，不能自动当作原任务重试。请先在报告或积分记录核实。\n只有这是另一项新任务时才点确定；下一步会单独确认新任务扣分。'))return null;
+  if(pending.length) {
+    const preview=document.getElementById(operation+'-billing-preview');
+    if(preview)preview.textContent='此前的任务正在后台核对；本次若是另一项创作，将单独显示服务端扣分标准。';
+  }
   const quote=await confirmBillingQuote(operation,!!body.video_file_id);
   if(!quote || token!==_authToken || owner!==_authUser?.id)return null;
   return paidSubmissionIdentity(operation,body,quote);
@@ -6447,19 +6473,109 @@ async function restoreWaitingPaidSubmission(detail, submission) {
   } catch (_) { return '原任务正在等待补充，但暂时无法读取。原编号已保留，请稍后核实，不要重新提交。'; }
 }
 function finishPaidSubmission(submission) { if(submission?.storageKey)sessionStorage.removeItem(submission.storageKey); }
+const PAID_TASK_READ_INTERVAL_MS = 5000;
+const PAID_TASK_READ_ATTEMPTS = 12;
+const _paidTaskWatchers = new Map();
+function paidTaskStatusText(task, operation) {
+  const name=operation==='generate'?'生成':'诊断';
+  const refunded=task?.billing?.status==='refunded' || task?.refund_status==='refunded';
+  if(task?.status==='completed' && task?.report_ref)return `${name}已完成，原报告已保存。`;
+  if(task?.status==='failed' && refunded)return `${name}未完成，本次积分已按原来源退回。`;
+  if(task?.status==='failed')return `${name}未完成，后台正在核对本次积分退回，状态确定后会更新。`;
+  if(task?.status==='waiting_for_input')return `原${name}任务正在等待补充信息。`;
+  if(task?.status==='running')return `原${name}任务仍在处理，页面正在读取进度。`;
+  return `原${name}任务状态正在后台核对，页面会继续读取结果。`;
+}
+function displayPaidTaskState(task, submission, operation, identity, token) {
+  if(!_chatIdentityMatches(identity) || _authToken!==token)return true;
+  const message=paidTaskStatusText(task,operation);
+  const preview=document.getElementById(operation+'-billing-preview');
+  const visible=operation!=='generate' || _activeGeneratePaidRequestId===submission.requestId;
+  if(visible && preview)preview.textContent=message;
+  if(operation==='generate' && visible) {
+    const banner=document.getElementById('generation-paid-task-banner');
+    if(banner) {banner.textContent=message;banner.style.display='block';}
+    const area=document.getElementById('bubbleArea');
+    let card=document.getElementById('generation-paid-task-status');
+    if(area && !card) {
+      card=document.createElement('div');card.id='generation-paid-task-status';card.className='bubble';
+      card.setAttribute('role','status');card.style.cssText='border:1px solid var(--border);background:var(--surf-1)';
+      area.appendChild(card);
+    }
+    if(card) {
+      card.replaceChildren();
+      const label=document.createElement('div');label.className='bubble-agent';label.textContent='任务状态';
+      const body=document.createElement('div');body.className='bubble-text';body.textContent=message;
+      card.append(label,body);
+      if(task?.status==='completed' && task.report_ref?.report_type==='generate' && task.report_ref?.report_id) {
+        const button=document.createElement('button');button.type='button';button.className='btn btn-ghost btn-sm';
+        button.textContent='查看本次已保存报告';
+        button.addEventListener('click',()=>{if(!_chatIdentityMatches(identity)||_authToken!==token)return;
+          _paidTaskReportRef={report_type:'generate',report_id:task.report_ref.report_id};showPage('report');});
+        card.append(button);
+      }
+    }
+    const billing=task?.billing ? {...task.billing,refund_status:task.refund_status} : null;
+    _generateResult=task?.status==='completed' ? _generateResult
+      : {_error:true,_errMsg:message,billing:billing || {status:'unconfirmed'}};
+    if(document.getElementById('page-report')?.classList.contains('active'))renderBillingReceipt(billing || {status:'unconfirmed'});
+  }
+  const refunded=task?.billing?.status==='refunded' || task?.refund_status==='refunded';
+  const resolved=task?.status==='completed' && !!task.report_ref || task?.status==='failed' && refunded;
+  if(resolved) {finishPaidSubmission(submission);refreshCreditBalance();}
+  return resolved;
+}
+async function readPaidTaskState(submission, operation, token) {
+  const response=await fetch(API_BASE+'/chat/tasks?operation='+encodeURIComponent(operation),{
+    headers:{Authorization:'Bearer '+token,'X-Request-ID':submission.requestId},cache:'no-store'});
+  if(!response.ok)throw Error('原任务暂时无法读取');
+  const data=await response.json();
+  const task=Array.isArray(data?.tasks)?data.tasks[0]:null;
+  if(!task || task.operation!==operation || !task.task_id)throw Error('原任务状态不完整');
+  bindPaidSubmissionReceipt(submission,{request_id:task.task_id});
+  return task;
+}
+function watchPaidTask(submission, operation, identity, token) {
+  if(!submission?.requestId || !token)return Promise.resolve(null);
+  const key=identity.ownerId+':'+operation+':'+submission.requestId;
+  if(_paidTaskWatchers.has(key))return _paidTaskWatchers.get(key);
+  const pending=(async()=>{
+    for(let attempt=0;attempt<PAID_TASK_READ_ATTEMPTS;attempt++) {
+      if(!_chatIdentityMatches(identity)||_authToken!==token)return null;
+      try {
+        const task=await readPaidTaskState(submission,operation,token);
+        if(displayPaidTaskState(task,submission,operation,identity,token))return task;
+      } catch (_) {
+        if(attempt===0 && _chatIdentityMatches(identity) && _authToken===token) {
+          const preview=document.getElementById(operation+'-billing-preview');
+          if(preview)preview.textContent='原任务暂时无法读取，页面会继续尝试；不会重新提交或扣分。';
+        }
+      }
+      if(attempt+1<PAID_TASK_READ_ATTEMPTS)await new Promise(resolve=>setTimeout(resolve,PAID_TASK_READ_INTERVAL_MS));
+    }
+    return null;
+  })().finally(()=>{if(_paidTaskWatchers.get(key)===pending)_paidTaskWatchers.delete(key);});
+  _paidTaskWatchers.set(key,pending);
+  return pending;
+}
 function renderBillingReceipt(receipt) {
   const el=document.getElementById('report-billing-receipt');if(!el)return;
   el.replaceChildren();
   if(receipt?.status==='unconfirmed') {
-    el.style.display='block';el.textContent='本次扣分或退回尚待核实，请保留原任务编号并查看积分记录，勿另建重复任务。';return;
+    el.style.display='block';el.textContent='后台正在核对本次任务和积分，页面会读取原任务结果。';return;
   }
   if(!receipt) {el.style.display='none';return;}
   const known=value=>typeof value==='number' && Number.isFinite(value);
   const amount=value=>known(value)?String(value):'未记录';
   el.style.display='block';
   const text=document.createElement('span');
-  text.textContent=(receipt.status==='refunded'?'已按原来源退回 '+amount(receipt.refunded_credits)+' 积分；净扣分 ':'本次实际扣分 ')+amount(receipt.credits_used)+' 积分 · 周期 '+amount(receipt.monthly_credits_used)+' + 充值 '+amount(receipt.wallet_credits_used)+'。';
-  const link=document.createElement('button');link.className='btn btn-ghost btn-sm';link.textContent='核对积分记录';link.addEventListener('click',openCreditRecords);el.append(text,link);
+  text.textContent=receipt.refund_status==='pending' && receipt.status!=='refunded'
+    ? '本次任务未完成，已占用的积分正在后台核对退回。'
+    : (receipt.status==='refunded'?'已按原来源退回 '+amount(receipt.refunded_credits)+' 积分；净扣分 ':'本次实际扣分 ')+amount(receipt.credits_used)+' 积分 · 周期 '+amount(receipt.monthly_credits_used)+' + 充值 '+amount(receipt.wallet_credits_used)+'。';
+  el.append(text);
+  if(receipt.refund_status!=='pending') {
+    const link=document.createElement('button');link.className='btn btn-ghost btn-sm';link.textContent='查看积分记录';link.addEventListener('click',openCreditRecords);el.append(link);
+  }
 }
 
 function _setGenerationSubmitBusy(isBusy) {
@@ -6526,6 +6642,7 @@ async function startGeneration() {
   try { submission=await preparePaidSubmission('generate',generateBody); }
   catch(error) { _genStreamActive=false;_setGenerationSubmitBusy(false);showToast(error.message);_resolveGen();return; }
   if(!submission || !identityMatches()) { _genStreamActive=false;_setGenerationSubmitBusy(false);_resolveGen();return; }
+  _activeGeneratePaidRequestId=submission.requestId;
   (async () => {
     const streamGuard = createSseWarningGuard('generate', '爆文生成');
     const paidRequestId = submission.requestId;
@@ -6556,7 +6673,8 @@ async function startGeneration() {
       if (conflictMessage) {
         if(submission.restoredTask) {showToast(conflictMessage);_resolveGen();return;}
         _generateResult = { _error: true, _errMsg: conflictMessage, _idempotency409: true };
-        showToast('⚠ ' + conflictMessage);
+        showToast(conflictMessage);
+        if(sessionStorage.getItem(submission.storageKey))void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
         _resolveGen(); return;
       }
       if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
@@ -6594,21 +6712,24 @@ async function startGeneration() {
       } else if (terminal?.type === 'error') {
         if (terminal.billing?.status === 'refunded') finishPaidSubmission(submission);
         streamGuard.finish();
-        const errMsg = terminal.message || '生成失败，请稍后重试';
-        _generateResult = { _error: true, _errMsg: errMsg, billing: terminal.billing };
-        showToast('⚠ ' + errMsg);
+        const message=terminal.status_code===402 ? (terminal.message || '本次积分不足，尚未受理')
+          : '本次生成未完成，正在读取原任务和积分处理结果…';
+        _generateResult = { _error: true, _errMsg: message, billing: terminal.billing };
+        if(terminal.status_code!==402)void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
       } else {
-        const message = SSE_OUTCOME_UNKNOWN.generate;
+        const message = '生成连接已结束，正在读取原任务和积分处理结果…';
         _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
-        showToast('⚠ ' + message);
+        showToast(message);
+        void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
       }
       _resolveGen();
     } catch(err) {
       if (!identityMatches()) { _resolveGen(); return; }
       console.error('[NoteAI] stream error:', err);
-      const message = SSE_OUTCOME_UNKNOWN.generate;
+      const message = '生成连接已结束，正在读取原任务和积分处理结果…';
       _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
-      showToast('⚠ ' + message);
+      showToast(message);
+      void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
       _resolveGen();
     } finally {
       streamGuard.finish();
@@ -6875,7 +6996,7 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
       const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
       const errMsg = quotaDetail
         ? (quotaDetail.message || `${OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足`)
-        : (ev.message || 'AI 生成失败，请稍后重试');
+        : '本次生成未完成，正在读取原任务和积分处理结果…';
       setProgress(0, '⚠ ' + errMsg);
       addBubble('系统', errMsg, 4, 10, 80);
       if (quotaDetail) {
@@ -6883,7 +7004,7 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
         showToast(`⚠ ${quotaDetail.op_label || OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足，请查看本月免费额度`);
         break;
       }
-      showToast('⚠ ' + errMsg);
+      showToast(errMsg);
       // Stay with this operation's error and inputs. Loading report history here
       // can show an older diagnosis as though it were this generation's result.
       break;
@@ -8412,6 +8533,8 @@ function startLiveAnimation() {
     document.getElementById('cf'+i).textContent = '';
   }
   document.getElementById('bubbleArea').innerHTML = '<span style="font-size:12px;color:var(--text-muted);font-weight:500">专家讨论区</span>';
+  const paidBanner=document.getElementById('generation-paid-task-banner');
+  if(paidBanner) {paidBanner.textContent='';paidBanner.style.display='none';}
   document.getElementById('disputeCard').classList.add('hidden');
   setProgress(0, '准备开始…');
 
@@ -9995,6 +10118,8 @@ function chatClearUserState() {
   document.querySelectorAll("[data-task-clarification], [data-task-recovery]").forEach(el => el.remove());
   _generateResult = null;
   _diagnoseResult = null;
+  _activeGeneratePaidRequestId = null;
+  _paidTaskReportRef = null;
   const generatedReport = document.getElementById('genReportBody');
   if (generatedReport) generatedReport.style.display = 'none';
   ['genMainTitle', 'genBodyText', 'genVariantsList', 'genTagsList', 'genCoverText', 'genAgentText', 'genAgentResultsList', 'bubbleArea'].forEach(id => {
@@ -10966,6 +11091,7 @@ async function authRestoreSession() {
     loadBillingPlan();
     chatRestoreSession();
     restorePendingTaskClarification();
+    resumeLatestPaidSubmission();
     offerMediaRecovery();
     // The profile may have opened while /auth/me was still resolving its owner.
     if (!previousOwnerId && _authToken === tokenBeingVerified
@@ -11507,6 +11633,7 @@ async function initReportPage() {
       if(receipt) {receipt.style.display='block';receipt.textContent=currentResult._errMsg || '本次未完成，请核对原任务与积分记录。';}
     }
     await loadDiagnosisHistory(true);
+    if(_paidTaskReportRef) {const exact=_paidTaskReportRef;_paidTaskReportRef=null;await openReportDetail(exact.report_type,exact.report_id);}
     return;
   }
 
@@ -11532,6 +11659,7 @@ async function initReportPage() {
 	  }
 
 	  await loadDiagnosisHistory(true);
+	  if(_paidTaskReportRef) {const exact=_paidTaskReportRef;_paidTaskReportRef=null;await openReportDetail(exact.report_type,exact.report_id);return;}
 
   // A completed history entry is read-only; a waiting task stays independent.
   if (!_currentDiagId) {

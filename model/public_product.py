@@ -458,10 +458,24 @@ def _reserve(request: httpx.Request) -> str:
 def _check_pending_media(tx, user_id, media):
     # Called under the existing budget lock at admission, and read-only before
     # source signing/upload. A different request/ref cannot replay the same bytes.
-    pending_media = tx.fetchall("SELECT provenance_json FROM public_trial_calls WHERE user_id=? "
-        "AND (state IN ('dispatched','unknown') OR "
-        "(state='responded' AND http_status=200 AND model_usage_record_id IS NULL))", (user_id,))
+    pending_media = tx.fetchall(
+        "SELECT p.provenance_json,i.status AS task_status,i.refund_applied,"
+        "i.complete_applied,u.source AS usage_source FROM public_trial_calls p "
+        "LEFT JOIN idempotency_requests i ON i.usage_id=p.usage_record_id "
+        "AND i.user_id=p.user_id LEFT JOIN usage_records u ON u.id=p.usage_record_id "
+        "AND u.user_id=p.user_id WHERE p.user_id=? "
+        "AND (p.state IN ('dispatched','unknown') OR "
+        "(p.state='responded' AND p.http_status=200 AND p.model_usage_record_id IS NULL))",
+        (user_id,))
     for pending_row in pending_media:
+        # A customer can explicitly start a fresh task after a failed,
+        # once-refunded delivery. Preserve the original supplier UNKNOWN/cost
+        # and physical identity; this only releases a same-media admission.
+        if (pending_row['task_status'] == 'failed'
+                and bool(pending_row['refund_applied'])
+                and not bool(pending_row['complete_applied'])
+                and pending_row['usage_source'] == 'refunded'):
+            continue
         try:
             prior = json.loads(pending_row['provenance_json'])
         except (TypeError, ValueError):

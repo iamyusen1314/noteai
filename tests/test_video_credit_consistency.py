@@ -122,15 +122,30 @@ class VideoCreditConsistencyTests(unittest.TestCase):
         db.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id) VALUES(?,?,?,?,?,?,?,?)",
             ("synthetic-call", "website-free-product-20260912", self.user["id"], "synthetic-hash", "unknown", 1, billing._now(), charge["usage_id"]))
 
-    def test_unknown_call_is_not_refunded_or_released_for_retry(self):
+    def test_unknown_supplier_call_keeps_its_cost_but_failed_delivery_refunds_customer(self):
         claim = self.claim()
         self.add_unknown_call(claim["charge"])
-        with self.assertRaises(HTTPException) as stopped:
-            idempotency.mark_failed_and_refund(claim)
-        self.assertEqual(stopped.exception.detail["code"], "BILLING_OUTCOME_UNCONFIRMED")
-        self.assertEqual(self.claim()["state"], "in_progress")
-        self.assertEqual(self.spendable(), 4)
-        self.assertEqual(db.fetchone("SELECT source FROM usage_records WHERE id=?", (claim["charge"]["usage_id"],))["source"], "subscription")
+        self.assertTrue(idempotency.mark_failed_and_refund(claim, failure_code="stream_failed"))
+        self.assertFalse(idempotency.mark_failed_and_refund(claim, failure_code="stream_failed"))
+        self.assertEqual(self.claim()["state"], "failed")
+        self.assertEqual(self.spendable(), 12)
+        self.assertEqual(db.fetchone("SELECT source FROM usage_records WHERE id=?", (claim["charge"]["usage_id"],))["source"], "refunded")
+        self.assertEqual(db.fetchone("SELECT state FROM public_trial_calls WHERE id='synthetic-call'")["state"], "unknown")
+
+    def test_keyed_error_event_preserves_failure_and_receipt_when_supplier_is_unknown(self):
+        claim = self.claim()
+        self.add_unknown_call(claim["charge"])
+        async def run():
+            async def source():
+                yield 'data: {"type":"error","error_code":"video_understanding_failed","message":"视频理解未完成"}\n\n'
+            stream = api._idempotent_sse_stream(source(), claim, success_types={"complete"})
+            return [json.loads(chunk.removeprefix("data: ").strip()) async for chunk in
+                    api._timed_sse_stream(stream, operation="generate", success_types={"complete"})]
+        event = asyncio.run(run())[-1]
+        self.assertEqual(event["error_code"], "video_understanding_failed")
+        self.assertEqual(event["billing"]["status"], "refunded")
+        self.assertEqual(self.spendable(), 12)
+        self.assertEqual(db.fetchone("SELECT state FROM public_trial_calls WHERE id='synthetic-call'")["state"], "unknown")
 
     async def consume_generate(self, events, request_id=None):
         async def pipeline(**kwargs):

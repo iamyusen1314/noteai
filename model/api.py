@@ -963,7 +963,9 @@ def _paid_request_claim(
         "conflict": "该请求标识已用于不同内容",
         "in_progress": "相同请求正在处理中",
         "completed": "相同请求已完成；当前版本不回放原始结果",
-        "failed": "相同请求已失败并完成退款；请使用新的请求标识重试",
+        "failed": ("原任务未完成，本次积分已退回；可重新发起"
+                   if claim.get("refund_status") == "refunded" else
+                   "原任务未完成，后台正在核实本次积分；原素材已保留"),
         "waiting_for_input": "素材和已完成分析已保留，请回答原任务中的问题后继续",
     }
     if operation == 'screenshot':
@@ -972,10 +974,36 @@ def _paid_request_claim(
     raise HTTPException(status_code=409, detail={
         "code": codes.get(state, "IDEMPOTENCY_IN_PROGRESS"),
         "status": state,
+        "task_id": claim.get("task_id"),
+        "refund_status": claim.get("refund_status"),
         "session_id": claim.get("session_id"),
         "message": messages.get(state, messages["in_progress"]),
         "failure_code": claim.get("failure_code") or "" if state == "failed" else "",
     })
+
+
+def _failed_stream_task_event(claim: dict[str, Any]) -> dict[str, Any]:
+    """Read the original task and charge after a failed stream; never settle a GET."""
+    try:
+        state = _idempotency.read_failure_settlement(claim["user_id"], claim["request_id"])
+    except Exception as exc:
+        _log_internal_failure("generation_settlement", exc, phase="failure_readback")
+        state = None
+    refund_status = state.get("refund_status") if isinstance(state, dict) else "unconfirmed"
+    if refund_status == "refunded":
+        message = "本次处理未完成，已退回本次积分；原素材仍保留。"
+    else:
+        message = "本次处理未完成，后台正在核实本次积分；原素材仍保留。"
+    try:
+        receipt = _billing.get_charge_receipt(
+            claim["user_id"], claim["operation"], claim.get("charge"), claim["request_id"])
+    except Exception as exc:
+        _log_internal_failure("generation_settlement", exc, phase="receipt_readback")
+        receipt = None
+    return {"type": "error", "error_code": "request_failed", "message": message,
+            "task_id": claim["request_id"],
+            "task_status": state.get("business_status") if isinstance(state, dict) else "outcome_unknown",
+            "refund_status": refund_status, "billing": receipt}
 
 
 async def _idempotent_sse_stream(
@@ -1043,21 +1071,23 @@ async def _idempotent_sse_stream(
             elif event_type in success_types:
                 _public_product.assert_result_known()
                 if not _idempotency.mark_completed(claim, confirm_existing=True):
-                    _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
                     terminal_seen = True
-                    yield 'data: ' + _json.dumps({
-                        "type": "error",
-                        "error_code": "completion_unconfirmed",
-                        "message": "原任务完成状态未能确认，请查看历史记录；不要重复提交原请求。",
-                    }, ensure_ascii=False) + '\n\n'
+                    _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
+                    event = _failed_stream_task_event(claim)
+                    event["error_code"] = "completion_unconfirmed"
+                    yield 'data: ' + _json.dumps(event, ensure_ascii=False) + '\n\n'
                     return
                 terminal_seen = True
             elif event_type == "error":
-                _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
                 terminal_seen = True
+                _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
             if event_type in success_types or event_type in {"error", "clarification_required"}:
                 event["billing"] = _billing.get_charge_receipt(
                     claim["user_id"], claim["operation"], claim.get("charge"), claim["request_id"])
+                if event_type == "error":
+                    settled = _failed_stream_task_event(claim)
+                    event.update({key: settled[key] for key in
+                                  ("task_id", "task_status", "refund_status", "message")})
                 chunk = 'data: ' + _json.dumps(event, ensure_ascii=False) + '\n\n'
             yield chunk
     except BaseException as exc:
@@ -1067,8 +1097,15 @@ async def _idempotent_sse_stream(
                 if isinstance(exc, (asyncio.CancelledError, GeneratorExit))
                 else "stream_failed"
             )
-            _idempotency.mark_failed_and_refund(claim, failure_code=failure_code)
+            try:
+                _idempotency.mark_failed_and_refund(claim, failure_code=failure_code)
+            except Exception as settlement_exc:
+                _log_internal_failure("generation_settlement", settlement_exc, phase="stream_failure")
             terminal_seen = True
+        if isinstance(exc, Exception):
+            _log_internal_failure("sse_stream", exc, phase=f"{claim['operation']}_source")
+            yield 'data: ' + _json.dumps(_failed_stream_task_event(claim), ensure_ascii=False) + '\n\n'
+            return
         raise
     finally:
         if not terminal_seen:
@@ -20919,6 +20956,7 @@ def _workflow_task_state(row: dict, user_id: str, reports: list[dict] | None = N
            if report else None)
     return {"type": "task_state", "task_id": row["id"], "operation": row["operation"],
             "status": status, "recorded_status": row["status"],
+            "refund_status": _idempotency._refund_status(row),
             "note_title": report["note_title"] if report else None,
             "note_id": report["saved_note_id"] if report else None, "report_ref": ref,
             "created_at": row["created_at"], "updated_at": row["updated_at"],

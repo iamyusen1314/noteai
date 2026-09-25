@@ -951,7 +951,10 @@ def refund_operation_charge_in_transaction(
     operation: str,
     charge: dict | None,
     description: str,
-) -> None:
+    *,
+    defer_unconfirmed: bool = False,
+    confirmed_failed_delivery_request_id: str | None = None,
+) -> dict | None:
     """Refund one charge inside the caller's short transaction."""
     if not charge:
         return
@@ -971,8 +974,50 @@ def refund_operation_charge_in_transaction(
         "(state IN ('dispatched','unknown') OR (state='responded' AND http_status=200 "
         "AND model_usage_record_id IS NULL)) LIMIT 1", (usage_id,),
     ):
-        raise HTTPException(409, detail={"code": "BILLING_OUTCOME_UNCONFIRMED",
-            "message": "原任务处理或扣分状态仍待核实，请查看原任务和积分记录，不要重复提交"})
+        if confirmed_failed_delivery_request_id and operation == "generate":
+            # A supplier's bill and a customer's delivered result are different
+            # facts. This exception is only for the original failed generation,
+            # after its owner has ended execution and the task has no saved note.
+            # The supplier call and its UNKNOWN cost are deliberately untouched.
+            failed = tx.fetchone(
+                "SELECT id FROM idempotency_requests WHERE id=? AND user_id=? "
+                "AND operation='generate' AND usage_id=? AND status='failed' "
+                "AND complete_applied=0 AND refund_applied=0 "
+                "AND response_ref_json IS NULL AND failed_at IS NOT NULL",
+                (confirmed_failed_delivery_request_id, uid, usage_id),
+            )
+            saved = tx.fetchone(
+                "SELECT id FROM notes WHERE id=? AND user_id=?",
+                (confirmed_failed_delivery_request_id, uid),
+            )
+            session = tx.fetchone(
+                "SELECT note_id,generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?",
+                (confirmed_failed_delivery_request_id, uid),
+            )
+            has_session_result = False
+            if session:
+                if session["note_id"]:
+                    has_session_result = True
+                else:
+                    try:
+                        context = json.loads(session["generate_ctx_json"] or "{}")
+                        task = context.get("task_continuation") if isinstance(context, dict) else None
+                        has_session_result = bool(isinstance(task, dict) and (
+                            task.get("status") == "completed" or "result" in task))
+                    except (TypeError, ValueError):
+                        # Corrupt original state is a reconciliation stop.
+                        has_session_result = True
+            admitted = tx.fetchone(
+                "SELECT operation_id FROM ai_operation_admissions WHERE idempotency_request_id=?",
+                (confirmed_failed_delivery_request_id,),
+            )
+            if not failed or saved or has_session_result or admitted:
+                return {"refund_status": "pending", "reason": "delivery_not_proven_failed"}
+        elif defer_unconfirmed:
+            return {"refund_status": "pending", "reason": "provider_outcome_unconfirmed"}
+        else:
+            raise HTTPException(409, detail={"code": "BILLING_OUTCOME_UNCONFIRMED",
+                "message": "原任务处理或扣分状态仍待核实，请查看原任务和积分记录，不要重复提交"})
     source = charge.get("source")
     subscription_id = str(charge.get("subscription_id") or "")
     subscription_period_start = str(charge.get("subscription_period_start") or "")
@@ -1031,7 +1076,8 @@ def refund_operation_charge_in_transaction(
         )
 
 
-def refund_operation_charge(user_id: str, operation: str, charge: dict | None, description: str) -> None:
+def refund_operation_charge(user_id: str, operation: str, charge: dict | None, description: str,
+                            *, defer_unconfirmed: bool = False) -> dict | None:
     """Undo user-facing quota/credit charge when a paid operation fails.
 
     The API may still have real model cost before the failure; that cost remains
@@ -1045,12 +1091,13 @@ def refund_operation_charge(user_id: str, operation: str, charge: dict | None, d
             content_retention.assert_user_writable_with_storage(tx, user_id)
         except ValueError:
             return
-        refund_operation_charge_in_transaction(
+        return refund_operation_charge_in_transaction(
             tx,
             user_id,
             operation,
             charge,
             description,
+            defer_unconfirmed=defer_unconfirmed,
         )
 
 

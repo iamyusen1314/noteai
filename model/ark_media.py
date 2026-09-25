@@ -6,11 +6,14 @@ credentials, reasoning and response bodies must not be logged by this adapter.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 import json
 import os
 import re
+import socket
+import ssl
 import sys
 import time
 import uuid
@@ -149,6 +152,120 @@ def video(prompt: str, parts: list[dict], *, max_tokens: int = 8192, media: dict
                      responses=True, media=media, transport=transport)
 
 
+def _failure_kind(exc: BaseException) -> str:
+    # Never include arbitrary exception names or text in diagnostic output.
+    for cls, label in ((asyncio.CancelledError, "cancelled"), (KeyboardInterrupt, "interrupted"),
+            (SystemExit, "system_exit"), (socket.gaierror, "dns_error"),
+            (ssl.SSLCertVerificationError, "tls_certificate_error"), (ssl.SSLError, "tls_error"),
+            (httpx.ConnectTimeout, "connect_timeout"), (httpx.ConnectError, "connect_error"),
+            (httpx.PoolTimeout, "pool_timeout"), (httpx.WriteTimeout, "write_timeout"),
+            (httpx.WriteError, "write_error"), (httpx.ReadTimeout, "read_timeout"),
+            (httpx.ReadError, "read_error"), (httpx.RemoteProtocolError, "remote_protocol_error"),
+            (httpx.LocalProtocolError, "local_protocol_error"), (httpx.DecodingError, "decoding_error"),
+            (json.JSONDecodeError, "json_decode_error"), (UnicodeError, "unicode_error"),
+            (ValueError, "value_error"), (TypeError, "type_error"), (OSError, "os_error")):
+        if isinstance(exc, cls):
+            return label
+    # HTTPX maps these original httpcore exceptions using `raise ... from exc`.
+    cls = type(exc)
+    core = {"ConnectError": "connect_error", "ConnectTimeout": "connect_timeout",
+        "PoolTimeout": "pool_timeout", "WriteError": "write_error", "WriteTimeout": "write_timeout",
+        "ReadError": "read_error", "ReadTimeout": "read_timeout",
+        "RemoteProtocolError": "remote_protocol_error", "LocalProtocolError": "local_protocol_error"}
+    if cls.__module__.split(".")[0] == "httpcore" and cls.__name__ in core:
+        return core[cls.__name__]
+    return "operation_error"
+
+
+def _failure_chain(exc: BaseException) -> list[str]:
+    chain, seen = [], set()
+    while isinstance(exc, BaseException) and id(exc) not in seen and len(chain) < 6:
+        seen.add(id(exc)); chain.append(_failure_kind(exc))
+        exc = exc.__cause__ if exc.__cause__ is not None else (None if exc.__suppress_context__ else exc.__context__)
+    return chain
+
+
+class _ArkCallDiagnostics:
+    """One call's fixed trace projection; raw trace info is never retained/logged."""
+    def __init__(self, call_id):
+        self.call_id = call_id
+        self.started = time.monotonic()
+        self.phase = "client_setup"
+        self.network_phase = "unobserved"
+        self.post_entered = False
+        self.send_observed = False
+        self.pre_send_failure_observed = False
+        self.headers_received = False
+        self.http_status = None
+        self.trace_events = 0
+        self.last_trace_event = None
+        self.failure_reason = None
+
+    def trace(self, name, info):
+        stages = {"connection.connect_tcp": "connect", "connection.start_tls": "tls",
+            "http11.send_request_headers": "request_send", "http11.send_request_body": "request_send",
+            "http11.receive_response_headers": "response_read", "http11.receive_response_body": "response_read",
+            "http2.send_request_headers": "request_send", "http2.send_request_body": "request_send",
+            "http2.receive_response_headers": "response_read", "http2.receive_response_body": "response_read"}
+        if not isinstance(name, str):
+            return
+        event, _, outcome = name.rpartition(".")
+        if event not in stages or outcome not in {"started", "complete", "failed"}:
+            return
+        self.trace_events += 1
+        self.last_trace_event = name
+        self.network_phase = stages[event]
+        if event in {"connection.connect_tcp", "connection.start_tls"} and outcome == "failed":
+            self.pre_send_failure_observed = True
+        if event.startswith(("http11.send_request_", "http2.send_request_")):
+            self.send_observed = True
+        if event in {"http11.receive_response_headers", "http2.receive_response_headers"} and outcome == "complete":
+            self.headers_received = True
+            value = info.get("return_value") if isinstance(info, dict) else None
+            # Actual httpcore HTTP/1.1 return tuple: version, status, reason, headers, trailing data.
+            if isinstance(value, tuple) and len(value) == 5 and type(value[1]) is int and 100 <= value[1] <= 599:
+                self.http_status = value[1]
+
+    def not_dispatched(self, exc):
+        # A send event is evidence of a possible partial write, even if a later
+        # exception happens to have a connection-related type. Never erase it.
+        if self.send_observed or self.headers_received or self.http_status is not None:
+            return False
+        if not self.post_entered:
+            return True
+        # Opaque/custom transports need not emit trace callbacks. A mapped
+        # ConnectError alone cannot prove where that transport failed.
+        return isinstance(exc, httpx.PoolTimeout) or (
+            self.pre_send_failure_observed and isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout)))
+
+    def log(self, exc, *, phase=None, role="primary"):
+        import security_redaction
+        chain = _failure_chain(exc)
+        network = self.network_phase
+        if "dns_error" in chain and network in {"unobserved", "connect"}:
+            network = "dns"
+        elif any(kind in chain for kind in ("tls_error", "tls_certificate_error")) and network in {"unobserved", "connect", "tls"}:
+            network = "tls"
+        elif network == "unobserved":
+            network = {"connect_error": "connect", "connect_timeout": "connect", "pool_timeout": "pool_wait",
+                "write_error": "request_send", "write_timeout": "request_send", "read_error": "response_read",
+                "read_timeout": "response_read", "remote_protocol_error": "response_read"}.get(chain[0], "unobserved")
+        event = security_redaction.safe_failure_event("provider", provider="doubao",
+            phase="ark_inference_" + (phase or self.phase), http_status=self.http_status,
+            duration_ms=max(0, round((time.monotonic() - self.started) * 1000)))
+        event.update(schema="noteai.ark_media_failure.v1", call_id=self.call_id,
+            error_code="ark_media_" + chain[0], exception_chain=chain, network_phase=network,
+            trace_event_count=self.trace_events, transport_event=self.last_trace_event,
+            failure_reason=self.failure_reason, request_send_observed=self.send_observed,
+            response_headers_received=True if self.headers_received else None,
+            dispatch_state="not_dispatched" if self.not_dispatched(exc) else "unknown",
+            cancellation=not isinstance(exc, Exception), failure_role=role)
+        try:
+            print(json.dumps(event, allow_nan=False), file=sys.stderr, flush=True)
+        except Exception:
+            pass  # Logging failure must never replace durable accounting/cancellation.
+
+
 def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
               audio_possible: bool, json_output: bool = False, responses: bool = False,
               media: dict | None = None, transport=None) -> str:
@@ -190,20 +307,32 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
                 raise public_product.TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
             time.sleep(.25)
     status = None
+    diagnostic = _ArkCallDiagnostics(call_id)
+    def stop(code):
+        diagnostic.failure_reason = code
+        _stop(code)
     try:
         with _client(transport=transport) as client:
+            diagnostic.phase = "transport"
+            diagnostic.post_entered = True
             response = client.post(RESPONSES_URL if responses else CHAT_URL, content=encoded,
-                                   headers={**headers, "Content-Type": "application/json"})
+                                   headers={**headers, "Content-Type": "application/json"},
+                                   extensions={"trace": diagnostic.trace})
             status = response.status_code
+            diagnostic.http_status = status
+            diagnostic.headers_received = True
+            diagnostic.phase = "response_accounting"
             if status != 200:
                 public_product._record_response(call_id, status)
-                _stop("ARK_HTTP_" + str(status))
+                stop("ARK_HTTP_" + str(status))
+            diagnostic.phase = "response_decode"
             data = response.json()
             if not isinstance(data, dict):
                 raise ValueError()
             actual_model = data.get("model") if isinstance(data.get("model"), str) else "unknown"
             if not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,100}", actual_model):
                 actual_model = "unknown"
+            diagnostic.phase = "usage_metering"
             usage = data.get("usage")
             meter_data = {"usage": {"prompt_tokens": usage.get("input_tokens"),
                 "completion_tokens": usage.get("output_tokens"),
@@ -212,45 +341,58 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
             model_router._record_usage("doubao", actual_model,
                 physical_call_id=call_id, **dimensions)
             nonterminal = responses and data.get("status") not in {"completed", "incomplete", "failed"}
+            diagnostic.phase = "response_accounting"
             public_product._record_response(call_id, status, **({"unknown": True} if nonterminal else {}))
             if nonterminal:
-                _stop("ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY")
-    except public_product.TrialProviderStopped:
-        # HTTP failures already have a known terminal. Accounting failures
-        # remain dispatched/unconfirmed for reconciliation; never re-dispatch.
+                stop("ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY")
+        diagnostic.phase = "model_validation"
+        if actual_model != MODEL:
+            stop("ARK_MODEL_IDENTITY_MISMATCH")
+        diagnostic.phase = "usage_validation"
+        if dimensions["usage_status"] != "complete":
+            stop("ARK_USAGE_INCOMPLETE")
+        diagnostic.phase = "output_validation"
+        if responses:
+            if data.get("status") != "completed" or data.get("error") or data.get("incomplete_details"):
+                stop("ARK_OUTPUT_INCOMPLETE")
+            output = data.get("output")
+            if not isinstance(output, list) or any(not isinstance(item, dict) or item.get("type") not in {"message", "reasoning"} for item in output):
+                stop("ARK_OUTPUT_INCOMPLETE")
+            messages = [item for item in output if item.get("type") == "message"]
+            if len(messages) != 1 or messages[0].get("role") != "assistant" or messages[0].get("status") != "completed" or messages[0].get("partial") is True:
+                stop("ARK_OUTPUT_INCOMPLETE")
+            content = messages[0].get("content")
+            if not isinstance(content, list) or not content or any(not isinstance(item, dict) or
+                    item.get("type") != "output_text" or not isinstance(item.get("text"), str) for item in content):
+                stop("ARK_OUTPUT_EMPTY")
+            result = "\n".join(item["text"] for item in content).strip()
+            if not result:
+                stop("ARK_OUTPUT_EMPTY")
+            return result
+        choices = data.get("choices")
+        if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict) or choices[0].get("finish_reason") != "stop":
+            stop("ARK_OUTPUT_INCOMPLETE")
+        message = choices[0].get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, str) or not content.strip():
+            stop("ARK_OUTPUT_EMPTY")
+        return content.strip()
+
+    except public_product.TrialProviderStopped as exc:
+        # Preserve existing known rejection / unsettled accounting semantics.
+        diagnostic.log(exc)
         raise
-    except BaseException:
-        public_product._record_response(call_id, status, unknown=True)
+    except BaseException as exc:
+        # Persist the original failure first: terminal accounting may also fail.
+        diagnostic.log(exc)
+        try:
+            public_product._record_response(call_id, diagnostic.http_status,
+                unknown=not diagnostic.not_dispatched(exc), not_dispatched=diagnostic.not_dispatched(exc))
+        except BaseException as persist_exc:
+            diagnostic.log(persist_exc, phase="result_persistence", role="terminal_persistence")
+        if not isinstance(exc, Exception):
+            raise  # Cancellation and process interruption retain their type.
         raise public_product.TrialProviderStopped("ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY") from None
-    if actual_model != MODEL:
-        _stop("ARK_MODEL_IDENTITY_MISMATCH")
-    if dimensions["usage_status"] != "complete":
-        _stop("ARK_USAGE_INCOMPLETE")
-    if responses:
-        if data.get("status") != "completed" or data.get("error") or data.get("incomplete_details"):
-            _stop("ARK_OUTPUT_INCOMPLETE")
-        output = data.get("output")
-        if not isinstance(output, list) or any(not isinstance(item, dict) or item.get("type") not in {"message", "reasoning"} for item in output):
-            _stop("ARK_OUTPUT_INCOMPLETE")
-        messages = [item for item in output if item.get("type") == "message"]
-        if len(messages) != 1 or messages[0].get("role") != "assistant" or messages[0].get("status") != "completed" or messages[0].get("partial") is True:
-            _stop("ARK_OUTPUT_INCOMPLETE")
-        content = messages[0].get("content")
-        if not isinstance(content, list) or not content or any(not isinstance(item, dict) or
-                item.get("type") != "output_text" or not isinstance(item.get("text"), str) for item in content):
-            _stop("ARK_OUTPUT_EMPTY")
-        result = "\n".join(item["text"] for item in content).strip()
-        if not result:
-            _stop("ARK_OUTPUT_EMPTY")
-        return result
-    choices = data.get("choices")
-    if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict) or choices[0].get("finish_reason") != "stop":
-        _stop("ARK_OUTPUT_INCOMPLETE")
-    message = choices[0].get("message")
-    content = message.get("content") if isinstance(message, dict) else None
-    if not isinstance(content, str) or not content.strip():
-        _stop("ARK_OUTPUT_EMPTY")
-    return content.strip()
 
 
 def upload_video(payload: bytes, *, mime: str, persist, fps: float = 1.0, expire_at: int | None = None,

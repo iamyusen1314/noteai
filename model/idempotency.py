@@ -335,6 +335,8 @@ def claim_and_charge(
                 status = "running"
             return {
                 "state": "in_progress" if status == "running" else status,
+                "task_id": existing["id"],
+                "refund_status": _refund_status(existing),
                 "session_id": existing["id"] if status == "waiting_for_input" or operation == 'screenshot' else None,
                 "failure_code": str(existing.get("failure_code") or "")
                 if status == "failed" else "",
@@ -426,6 +428,8 @@ def _fail_running_request_in_transaction(
     *,
     failure_code: str,
     now_iso: str,
+    defer_unconfirmed: bool = False,
+    confirmed_failed_delivery: bool = False,
 ) -> None:
     if current.get('failure_code') == 'result_store_unknown':
         raise ResultRecoveryRequired('MEDIA_RESULT_RECOVERY_REQUIRED')
@@ -439,14 +443,26 @@ def _fail_running_request_in_transaction(
         "monthly_credits_used": float(current.get("monthly_credits_used") or 0),
         "wallet_credits_used": float(current.get("wallet_credits_used") or 0),
     }
+    # Mark the original delivery terminal inside this same transaction before
+    # evaluating an UNKNOWN supplier call. A refund remains impossible when a
+    # result was saved; all state rolls back if a later billing check fails.
+    tx.execute("UPDATE idempotency_requests SET status='failed',failure_code=?,"
+               "failed_at=COALESCE(failed_at,?),updated_at=? WHERE id=?",
+               (failure_code, now_iso, now_iso, current["id"]))
     if current.get("charge_applied") and not current.get("refund_applied"):
-        billing.refund_operation_charge_in_transaction(
+        outcome = billing.refund_operation_charge_in_transaction(
             tx,
             str(current.get("user_id") or ""),
             str(current.get("operation") or ""),
             charge,
             "AI 请求失败自动退回",
+            defer_unconfirmed=defer_unconfirmed,
+            confirmed_failed_delivery_request_id=(current["id"] if confirmed_failed_delivery else None),
         )
+        if outcome and outcome.get("refund_status") == "pending":
+            # Preserve the original debit and supplier outcome for a later,
+            # explicit customer settlement; GET remains read-only.
+            return
     tx.execute(
         "UPDATE idempotency_requests SET status='failed',refund_applied=1,"
         "failure_code=?,refunded_at=?,failed_at=?,updated_at=? WHERE id=?",
@@ -470,6 +486,9 @@ def settle_expired_requests_for_account_deletion_with_storage(
     current_time = now or _now()
     now_iso = _iso(current_time)
     lock = " FOR UPDATE" if tx.postgres else ""
+    if tx.fetchone("SELECT id FROM idempotency_requests WHERE user_id=? AND status='failed' "
+                   "AND charge_applied=1 AND refund_applied=0 LIMIT 1", (user_id,)):
+        raise ValueError("原任务结算还需核实，请稍后再删除账号")
     rows = tx.fetchall(
         "SELECT * FROM idempotency_requests "
         "WHERE user_id=? AND status IN ('running','waiting_for_input') ORDER BY created_at,id" + lock,
@@ -771,6 +790,10 @@ def mark_failed_and_refund(
         if not row:
             return False
         current = dict(row)
+        if (any(current.get(key) != context.get(key) for key in
+                ("user_id", "operation", "key_hash", "payload_hash"))
+                or current.get("usage_id") != (context.get("charge") or {}).get("usage_id")):
+            return False
         if current.get("status") == "failed" and current.get("refund_applied"):
             return False
         if current.get("status") != "running" or current.get("lease_token_hash") != lease_digest:
@@ -781,5 +804,160 @@ def mark_failed_and_refund(
             current,
             failure_code=safe_code,
             now_iso=now,
+            defer_unconfirmed=True,
+            confirmed_failed_delivery=(safe_code in {"stream_failed", "request_failed"}),
         )
     return True
+
+
+def _refund_status(current: dict[str, Any]) -> str:
+    if current.get("refund_applied"):
+        return "refunded"
+    if not current.get("charge_applied"):
+        return "not_required"
+    return "pending" if current.get("status") == "failed" else "not_requested"
+
+
+def _failure_settlement_projection(current: dict[str, Any]) -> dict:
+    return {"task_id": current["id"], "business_status": current["status"],
+            "refund_status": _refund_status(current),
+            "failure_code": str(current.get("failure_code") or ""),
+            "refund_applied": bool(current.get("refund_applied")),
+            "can_replay": False}
+
+
+def read_failure_settlement(user_id: str, request_id: str) -> dict | None:
+    """Pure owner read; it never refunds, changes provider records or retries."""
+    row = db.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?",
+                      (request_id, user_id))
+    return _failure_settlement_projection(dict(row)) if row else None
+
+
+def reconcile_failed_request(user_id: str, request_id: str) -> dict | None:
+    """Explicit settlement entry, not a GET side effect or an UNKNOWN override.
+
+    Only a recorded failed delivery can be refunded here. The original billing
+    guard still requires known provider outcomes; unresolved calls stay untouched.
+    """
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+        lock = " FOR UPDATE" if tx.postgres else ""
+        row = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?" + lock,
+                          (request_id, user_id))
+        if not row:
+            return None
+        current = dict(row)
+        if (current["status"] != "failed" or current.get("refund_applied")
+                or current.get("complete_applied") or current.get("response_ref_json")
+                or current.get("failure_code") == "result_store_unknown"):
+            return _failure_settlement_projection(current)
+        if not tx.fetchone("SELECT id FROM usage_records WHERE id=? AND user_id=? AND operation=?",
+                           (current.get("usage_id"), user_id, current["operation"])):
+            return {**_failure_settlement_projection(current), "refund_status": "unavailable"}
+        _fail_running_request_in_transaction(tx, current, failure_code=current["failure_code"],
+                                             now_iso=_iso(), defer_unconfirmed=True)
+        refreshed = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?",
+                                (request_id, user_id))
+        return _failure_settlement_projection(dict(refreshed))
+
+
+def reconcile_undelivered_generate(
+    user_id: str,
+    request_id: str,
+    *,
+    expected_usage_id: str,
+    expected_provider_call_id: str,
+    expected_lease_expires_at: str,
+    expected_credits: float,
+    original_execution_ended: bool,
+) -> dict:
+    """Settle one specifically verified, expired original generation.
+
+    The operator must first prove that the original server work has ended. This
+    explicit maintenance entry is never called by a read route or a scheduler.
+    It never replays the supplier call or changes its UNKNOWN outcome/cost.
+    Every expectation binds the original charge and physical call, so a changed
+    production row stops the entire transaction instead of refunding another
+    request. A delivered note or an admitted durable operation also stops it.
+    """
+    if original_execution_ended is not True:
+        raise ValueError("original execution is not confirmed ended")
+    if not all(isinstance(value, str) and value for value in (
+            user_id, request_id, expected_usage_id, expected_provider_call_id,
+            expected_lease_expires_at)) or expected_credits <= 0:
+        raise ValueError("original settlement identity is incomplete")
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+        lock = " FOR UPDATE" if tx.postgres else ""
+        row = tx.fetchone(
+            "SELECT * FROM idempotency_requests WHERE id=? AND user_id=?" + lock,
+            (request_id, user_id),
+        )
+        if not row:
+            raise ValueError("original task not found")
+        current = dict(row)
+        if current["status"] == "failed" and current.get("refund_applied"):
+            if current.get("usage_id") != expected_usage_id:
+                raise ValueError("original usage changed")
+            return _failure_settlement_projection(current)
+        lease = _parse_lease_clock(current.get("lease_expires_at"))
+        if (current["operation"] != "generate" or current["status"] not in {"running", "failed"}
+                or current.get("usage_id") != expected_usage_id
+                or current.get("lease_expires_at") != expected_lease_expires_at
+                or lease is None or lease > _now()
+                or float(current.get("credits_used") or 0) != float(expected_credits)
+                or current.get("charge_source") != "subscription"
+                or not current.get("charge_applied") or current.get("complete_applied")
+                or current.get("refund_applied") or current.get("response_ref_json")
+                or current.get("failure_code") == "result_store_unknown"):
+            raise ValueError("original task is not an expired undelivered charge")
+        usage = tx.fetchone(
+            "SELECT source,credits_used FROM usage_records "
+            "WHERE id=? AND user_id=? AND operation='generate'" + lock,
+            (expected_usage_id, user_id),
+        )
+        if (not usage or usage["source"] != "subscription"
+                or float(usage["credits_used"] or 0) != float(expected_credits)):
+            raise ValueError("original usage does not match the charge")
+        subscription = tx.fetchone(
+            "SELECT period_start,used_monthly_credits FROM subscriptions "
+            "WHERE id=? AND user_id=?" + lock,
+            (current.get("charged_subscription_id"), user_id),
+        )
+        before_monthly = float(subscription["used_monthly_credits"] or 0) if subscription else -1
+        if (not subscription or subscription["period_start"] != current.get("charged_period_start")
+                or before_monthly + 0.000001 < float(expected_credits)
+                or float(current.get("monthly_credits_used") or 0) != float(expected_credits)
+                or float(current.get("wallet_credits_used") or 0) != 0):
+            raise ValueError("original subscription period cannot restore the exact entitlement")
+        calls = tx.fetchall(
+            "SELECT id,state FROM public_trial_calls WHERE user_id=? AND usage_record_id=?",
+            (user_id, expected_usage_id),
+        )
+        if (len(calls) != 1 or calls[0]["id"] != expected_provider_call_id
+                or calls[0]["state"] != "unknown"):
+            raise ValueError("original physical call changed")
+        if (tx.fetchone("SELECT id FROM notes WHERE id=? AND user_id=?", (request_id, user_id))
+                or tx.fetchone("SELECT id FROM chat_sessions WHERE id=? AND user_id=?", (request_id, user_id))
+                or tx.fetchone("SELECT operation_id FROM ai_operation_admissions "
+                               "WHERE idempotency_request_id=?", (request_id,))):
+            raise ValueError("original result or operation needs separate reconciliation")
+        _fail_running_request_in_transaction(
+            tx, current,
+            failure_code=str(current.get("failure_code") or "stream_failed"),
+            now_iso=_iso(),
+            defer_unconfirmed=True,
+            confirmed_failed_delivery=True,
+        )
+        refreshed = dict(tx.fetchone(
+            "SELECT * FROM idempotency_requests WHERE id=? AND user_id=?",
+            (request_id, user_id),
+        ))
+        if not refreshed["refund_applied"]:
+            raise ValueError("original customer refund is not proven")
+        after = tx.fetchone("SELECT used_monthly_credits FROM subscriptions WHERE id=? AND user_id=?",
+                            (current["charged_subscription_id"], user_id))
+        if (not after or abs(float(after["used_monthly_credits"] or 0)
+                             - (before_monthly - float(expected_credits))) > 0.000001):
+            raise ValueError("original subscription credit restoration is unproven")
+        return _failure_settlement_projection(refreshed)

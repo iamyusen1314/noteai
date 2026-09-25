@@ -8,7 +8,7 @@ function source(name){const match=new RegExp('^(?:async )?function '+name+'\\(',
 function make(extra={}){
  const storage=new Map(),elements=new Map();
  class Element{constructor(tag){this.tagName=tag;this.style={};this.children=[];this.textContent='';}append(...children){this.children.push(...children);for(const e of children)if(e.id)elements.set(e.id,e);}addEventListener(event,fn){this[event]=fn;}showModal(){}close(){}remove(){}replaceChildren(){this.children=[];}}
- const body=new Element('body');const c=vm.createContext({console,window:{},crypto:crypto.webcrypto,TextEncoder,Uint8Array,_authUser:{id:'owner-a'},_authToken:'synthetic-a',_billingQuoteBusy:false,API_AUTH:'https://offline.invalid',authHeader:()=>({Authorization:'Bearer synthetic'}),showToast(){},openAuthModal(){},showQuotaExceededModal(){},openCreditRecords(){},sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},document:{getElementById:id=>elements.get(id),createElement:tag=>new Element(tag),body},...extra});
+ const body=new Element('body');const c=vm.createContext({console,window:{},crypto:crypto.webcrypto,TextEncoder,Uint8Array,_authUser:{id:'owner-a'},_authToken:'synthetic-a',_billingQuoteBusy:false,API_AUTH:'https://offline.invalid',API_BASE:'https://offline.invalid',authHeader:()=>({Authorization:'Bearer synthetic'}),showToast(){},openAuthModal(){},showQuotaExceededModal(){},openCreditRecords(){},_chatIdentitySnapshot:()=>({ownerId:'owner-a'}),_chatIdentityMatches:()=>true,readPaidTaskState:async()=>({status:'outcome_unknown',operation:'analyze',task_id:'original-task'}),displayPaidTaskState(){},watchPaidTask(){},sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},document:{getElementById:id=>elements.get(id),createElement:tag=>new Element(tag),body},...extra});
  c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('createPaidRequestId','paidSubmissionIdentity','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
 }
 const quote={operation:'analyze',credits:6,video_credits:0,monthly_credits_used:4,wallet_credits_used:2,can_afford:true,quote_version:'server-six'};
@@ -56,18 +56,70 @@ test('only proven refund clears pending stream errors; ambiguous errors retain i
 });
 
 
-test('unknown original can be verified after its first charge exhausts balance without a new quote',async()=>{
- let quoted=0,confirmed=0;const {c}=make({confirm:text=>{confirmed++;assert.match(text,/不会作为新任务再次扣分/);return true;},fetch:async()=>{quoted++;throw Error('new quote must not be requested');}});
+test('same pending identity reads the original task and never dispatches or quotes another paid request',async()=>{
+ let quoted=0,read=0,watched=0;const {c,storage}=make({readPaidTaskState:async()=>{read++;return {status:'outcome_unknown',operation:'analyze',task_id:'original-task'};},watchPaidTask:()=>{watched++;},fetch:async()=>{quoted++;throw Error('new quote must not be requested');}});
  const original={video_file_id:'same-video',local_time:'2026091710'};
  const pending=await c.paidSubmissionIdentity('analyze',original,quote);
  const retry={...original,local_time:'2026091711'};
  const restored=await c.preparePaidSubmission('analyze',retry);
- assert.equal(restored.requestId,pending.requestId);assert.deepEqual(retry,original);assert.equal(quoted,0);assert.equal(confirmed,1);
+ assert.equal(restored,null);assert.deepEqual(retry,original);assert.equal(quoted,0);assert.equal(read,1);assert.equal(watched,1);assert.equal(storage.has(pending.storageKey),true);
 });
-test('different material reference warns about unresolved original before allowing any new quote',async()=>{
- let quoted=0;const {c}=make({confirm:text=>{assert.match(text,/重新上传/);return false;},fetch:async()=>{quoted++;throw Error('must not quote');}});
+test('a distinct user intent uses its own quote and request identity while the old task stays retained',async()=>{
+ const {c,storage}=make();let quoted=0;c.confirmBillingQuote=async()=>{quoted++;return quote;};
  await c.paidSubmissionIdentity('analyze',{video_file_id:'original'},quote);
- assert.equal(await c.preparePaidSubmission('analyze',{video_file_id:'new-upload-ref'}),null);assert.equal(quoted,0);
+ const next=await c.preparePaidSubmission('analyze',{video_file_id:'new-upload-ref'});
+ assert.ok(next?.requestId);assert.equal(quoted,1);assert.equal(storage.size,2);
+});
+test('a confirmed refunded failure permits one explicit new quoted submission',async()=>{
+ const {c,storage}=make({readPaidTaskState:async()=>({status:'failed',task_id:'original-task',billing:{status:'refunded'}})});
+ const original=await c.paidSubmissionIdentity('generate',{video_file_id:'same-video'},quote);
+ c.displayPaidTaskState=(_task,submission)=>c.finishPaidSubmission(submission);
+ c.confirmBillingQuote=async()=>quote;
+ const next=await c.preparePaidSubmission('generate',{video_file_id:'same-video'});
+ assert.ok(next?.requestId);assert.notEqual(next.requestId,original.requestId);
+ assert.equal(storage.has(original.storageKey),true);
+ assert.equal(storage.size,1);
+});
+test('original task lookup is authenticated, read only and bound to its paid request ID',async()=>{
+ let request;const {c}=make({fetch:async(url,options)=>{request={url,options};return {ok:true,json:async()=>({tasks:[{task_id:'task-1',operation:'generate',status:'failed',billing:{status:'refunded'}}]})};}});
+ c.load('readPaidTaskState');
+ const submission=await c.paidSubmissionIdentity('generate',{video_file_id:'video'},quote);
+ const task=await c.readPaidTaskState(submission,'generate','synthetic-a');
+ assert.equal(task.task_id,'task-1');assert.match(request.url,/chat\/tasks\?operation=generate$/);
+ assert.equal(request.options.method,undefined);assert.equal(request.options.headers['X-Request-ID'],submission.requestId);
+ assert.equal(request.options.headers.Authorization,'Bearer synthetic-a');
+});
+test('bounded task watcher keeps a pending charge until the server confirms refund',async()=>{
+ const {c,storage}=make();
+ const submission=await c.paidSubmissionIdentity('generate',{video_file_id:'video'},quote);
+ const states=[
+   {status:'outcome_unknown',refund_status:'not_requested'},
+   {status:'failed',refund_status:'pending',billing:{status:'charged'}},
+   {status:'failed',refund_status:'refunded',billing:{status:'refunded'}},
+ ];
+ let reads=0;c.PAID_TASK_READ_ATTEMPTS=3;c.PAID_TASK_READ_INTERVAL_MS=0;c._paidTaskWatchers=new Map();
+ c.setTimeout=resolve=>resolve();
+ c.readPaidTaskState=async()=>{reads++;return states.shift();};
+ c.displayPaidTaskState=(task,paid)=>{
+   const confirmed=task.status==='failed' && task.refund_status==='refunded';
+   if(confirmed)c.finishPaidSubmission(paid);
+   return confirmed;
+ };
+ c.load('watchPaidTask');
+ const task=await c.watchPaidTask(submission,'generate',{ownerId:'owner-a'},'synthetic-a');
+ assert.equal(reads,3);assert.equal(task.refund_status,'refunded');assert.equal(storage.has(submission.storageKey),false);
+ assert.equal(c._paidTaskWatchers.size,0);
+});
+test('unresolved task watcher stops after its read limit and retains the paid identity',async()=>{
+ const {c,storage}=make();
+ const submission=await c.paidSubmissionIdentity('generate',{video_file_id:'video'},quote);
+ let reads=0;c.PAID_TASK_READ_ATTEMPTS=2;c.PAID_TASK_READ_INTERVAL_MS=0;c._paidTaskWatchers=new Map();
+ c.setTimeout=resolve=>resolve();
+ c.readPaidTaskState=async()=>{reads++;return {status:'failed',refund_status:'pending',billing:{status:'charged'}};};
+ c.displayPaidTaskState=()=>false;
+ c.load('watchPaidTask');
+ assert.equal(await c.watchPaidTask(submission,'generate',{ownerId:'owner-a'},'synthetic-a'),null);
+ assert.equal(reads,2);assert.equal(storage.has(submission.storageKey),true);
 });
 
 
