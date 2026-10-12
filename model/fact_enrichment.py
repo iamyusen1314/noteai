@@ -39,6 +39,8 @@ class FactProviderError(RuntimeError):
 
 
 def _amap_unavailable_reason(code):
+    if code == "AMAP_QUOTA_SNAPSHOT_EXPIRED":
+        return "高德共享额度记录已到期，当前额度需由维护核实并续期，暂不发起新的高德查询；已有资料和其他功能可继续使用，本次缺失的检索事实不会编造。"
     if code == "AMAP_MONTHLY_QUOTA_EXHAUSTED":
         return "高德本月共享额度已用尽，暂不发起新的高德查询；已有资料和其他功能可继续使用，核实官方新额度后恢复。"
     business_code = str(code).removeprefix("AMAP_BUSINESS_")
@@ -170,11 +172,12 @@ _LOCATION_HINT_RE = re.compile(
 )
 _ROAD_CONTEXT_PREFIXES = ("路", "街", "大道", "大街", "西路", "东路", "南路", "北路", "中路")
 _TRAVEL_FACT_DOMAINS = {"旅行", "旅游", "酒店", "住宿", "酒旅", "民宿", "出行"}
+from v04_domain_policy import canonical_product_domain
 _AMAP_STORE_NAME_RE = re.compile(
-    r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:旗舰店|总店|分店|万博店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|酒店|民宿|景区|乐园|店|楼))"
+    r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:旗舰店|总店|分店|万博店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|酒店|民宿|景区|乐园|洗浴中心|水疗中心|汤泉馆|按摩馆|按摩店|足浴店|汤泉|水疗|SPA|Spa|spa|足浴|会馆|店|楼))"
 )
 _AMAP_GENERIC_SUFFIX_RE = re.compile(
-    r"(?:旗舰店|总店|分店|万博店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|酒店|民宿|景区|乐园|店|楼)$"
+    r"(?:旗舰店|总店|分店|万博店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|酒店|民宿|景区|乐园|洗浴中心|水疗中心|汤泉馆|按摩馆|按摩店|足浴店|汤泉|水疗|SPA|Spa|spa|足浴|会馆|店|楼)$"
 )
 _FACT_FIELD_LABELS = {
     "address": "位置/地址",
@@ -305,8 +308,9 @@ def _meituan_travel_subprocess_env(home: Path) -> dict[str, str]:
         "NODE_EXTRA_CA_CERTS",
         "SSL_CERT_FILE",
         "SSL_CERT_DIR",
-        "MEITUAN_RAW_JSON",
     }
+    # The pinned CLI's raw-JSON mode skips its nonzero/auth exit handling.
+    # This adapter consumes the prose response and those exit codes together.
     child_env = {name: value for name, value in os.environ.items() if name in allowed_names}
     child_env["HOME"] = str(home)
     child_env["NO_COLOR"] = "1"
@@ -443,14 +447,14 @@ def build_fact_query(domain: str | None, title: str | None, text: str | None) ->
     src = re.sub(r"目前没有提供[^。；\n]*", " ", src)
     src = re.sub(r"请只基于[^。；\n]*", " ", src)
 
-    explicit = re.search(r"(?:店名|门店|餐厅|品牌)[:：]\s*([^\n。；;，,]{2,30})", src)
+    explicit = re.search(r"(?:店名|门店名|门店|商家名|餐厅|品牌)[:：]\s*([^\n。；;，,]{2,30})", src)
     name = explicit.group(1).strip() if explicit else ""
     if not name:
         full_branch = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,40}[（(][^（）()\n]{2,40}[)）])", src)
         if full_branch:
             name = full_branch.group(1)
     if not name:
-        m = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·]{2,24}(?:万博店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|店|楼))", src)
+        m = _AMAP_STORE_NAME_RE.search(src)
         name = m.group(1).strip() if m else ""
     if not name and "珑厨" in src:
         name = "珑厨万博店" if "万博" in src else "珑厨"
@@ -460,7 +464,9 @@ def build_fact_query(domain: str | None, title: str | None, text: str | None) ->
     base = " ".join(part for part in [places, name] if part).strip()
     if not base:
         base = _clean_text(src, 60)
-    suffix = "地址 营业时间 人均 预订" if (domain or "") in {"美食", "餐饮", "食品"} else "价格 地址 时间"
+    canonical = canonical_product_domain(domain)
+    suffix = ("地址 营业时间 人均 预订" if canonical == "美食" else
+              "地址 营业时间 项目 价格 预约" if canonical == "休闲娱乐体验" else "价格 地址 时间")
     return f"{base} {suffix}".strip()
 
 
@@ -806,8 +812,8 @@ def _amap_poi_to_item(poi: dict) -> dict:
 
 def _record_match_score(record: dict, haystack: str, domain: str | None) -> int:
     score = 0
-    rec_domain = str(record.get("domain", "")).strip()
-    if rec_domain and domain and rec_domain not in {domain, "通用"}:
+    rec_domain = canonical_product_domain(record.get("domain")) if record.get("domain") else ""
+    if rec_domain and domain and rec_domain not in {canonical_product_domain(domain), "通用"}:
         score -= 2
 
     names = [record.get("name", ""), record.get("brand", ""), record.get("shop_name", "")]
