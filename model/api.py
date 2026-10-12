@@ -10995,14 +10995,23 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     factual_out = out
     if canonical == "休闲娱乐体验":
         assertions = "\n".join(_fact_assertions(out))
-        medical_assertions = "\n".join(_fact_assertions(out, only_explicit_rejections=True))
+        # One denial cannot negate a separate, affirmative recommendation.
+        medical_assertions = ";\n".join(_fact_assertions(out, only_explicit_rejections=True))
         evidence = "\n".join(_fact_assertions(src))
+        symptom = (r"失眠|睡眠质量(?:不稳定|不好|差)|睡眠障碍|"
+                   r"(?:颈肩|肩颈|颈部|肩部)(?:容易|经常)?(?:僵紧|僵硬|紧绷|酸痛|疼痛)")
+        question_prefix = r"(?<!是否)(?<!可否)(?<!能否)(?<!是否能)(?<!是否可以)(?<!会不会)"
+        question_suffix = r"(?![^。！？!?，,；;\n]{0,24}(?:[吗？?]|需确认|待确认|待核实|尚未确认|不确定))"
+        symptom_claim = (
+            question_prefix + r"(?:适合|适用(?:于)?|推荐给|针对).{0,20}(?:" + symptom + r")" + question_suffix
+            + "|" + question_prefix + r"(?:改善|缓解|解决|调理|修复|提高|提升).{0,8}(?:睡眠质量|睡眠障碍|" + symptom + r")" + question_suffix
+        )
         medical_claim = re.compile(
             r"治疗|治愈|疗效|康复|排毒|祛湿|祛寒|通经络|疏通经络|改善血液循环|"
-            r"(?:治|改善|缓解|解决).{0,8}(?:失眠|颈椎病|疾病|疼痛|腰痛|关节炎)"
+            r"(?:治|改善|缓解|解决).{0,8}(?:失眠|颈椎病|疾病|疼痛|腰痛|关节炎)|" + symptom_claim
         )
         negated_claim = re.compile(
-            r"(?:(?:不能|不得|不要)(?:用于|宣称|承诺)?|不(?:提供|涉及|承诺|用于|具有|具备)|没有|并非|不是|无法|无需|无)"
+            r"(?:(?:不能|不得|不要)(?:用于|宣称|承诺)?|不(?:提供|涉及|承诺|用于|具有|具备)|不(?=适合|适用|推荐给|针对)|没有|并非|不是|无法|无需|无)"
             r"(?:任何)?(?:疾病|医疗|医学|相关|此类){0,2}\s*"
             + "(?:" + medical_claim.pattern + ")"
             + "(?:[和、或及与/\\s]*(?:" + medical_claim.pattern + "))*"

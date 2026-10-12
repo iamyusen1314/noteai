@@ -156,6 +156,35 @@ class LeisureIndustryTests(unittest.TestCase):
                 self.assertTrue(any("项目时长" in issue for issue in api._delivery_integrity_issues(output, source, DOMAIN)))
         self.assertFalse(api._delivery_integrity_issues("按摩是否90分钟，足浴时长需确认。", "", DOMAIN))
 
+    def test_actual_spa_labels_are_not_clinical_but_symptom_recommendations_are_blocked(self):
+        label = "SPA理疗室，工作人员站在理疗床边，展示颂钵理疗；项目称呼为理疗师，不据此认定职业资质。"
+        self.assertEqual(api._normalize_screenshot_domain(DOMAIN, label), DOMAIN)
+        self.assertFalse(api._delivery_integrity_issues(label, label, DOMAIN))
+        for text in (
+            "整套流程适合长期压力积累、睡眠质量不稳定、颈肩容易僵紧的人。",
+            "颂钵项目适合睡眠质量不稳定的人。", "SPA针对颈肩僵紧人群。",
+            "按摩推荐给肩颈经常疼痛的人。", "汤泉可以改善睡眠质量。", "足浴缓解颈肩僵紧。",
+            "不是不适合睡眠质量不稳定的人。", "不是不能改善睡眠质量。",
+            "不承诺改善睡眠质量，但针对颈肩容易僵紧的人。",
+        ):
+            with self.subTest(text=text):
+                # Even a vendor/creator statement is no basis for endorsing a
+                # symptom-specific recommendation in the leisure category.
+                for source in ("只记录SPA空间和金属钵敲击动作。", text):
+                    issues = api._delivery_integrity_issues(text, source, DOMAIN)
+                    self.assertTrue(any("医疗功效" in issue for issue in issues))
+                    self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        for text in (
+            "适合希望暂时放下压力、安排周末休闲的人。", "我觉得休息区很安静，想放空一会儿。",
+            "颂钵理疗、理疗师、理疗床是素材中的项目称呼，不证明医疗资质。",
+            "不适合睡眠质量不稳定的人。", "本项目不用于改善睡眠质量。",
+            "无法缓解颈肩僵紧。", "该项目是否适合睡眠质量不稳定的人？",
+            "这套流程是否可以改善睡眠质量？", "足浴适合颈肩容易僵紧的人吗？",
+            "是否适合睡眠质量不稳定人群需确认。", "我最近睡眠质量不稳定，这次仅记录空间环境。",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(api._delivery_integrity_issues(text, text, DOMAIN))
+
     def test_entitlements_bind_package_scope_service_polarity_and_condition(self):
         for output, source in (
             ("套餐A包含按摩和足浴，不含餐饮。", "套餐A包含按摩和足浴，不含餐饮。"),
