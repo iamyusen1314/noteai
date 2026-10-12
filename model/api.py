@@ -10914,14 +10914,24 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
     factual_out = out
     if canonical == "休闲娱乐体验":
-        assertions = "\n".join(_fact_assertions(out))
+        assertions = "\n".join(_fact_assertions(out, only_explicit_rejections=True))
         evidence = "\n".join(_fact_assertions(src))
         medical_claim = re.compile(
             r"治疗|治愈|疗效|康复|排毒|祛湿|祛寒|通经络|疏通经络|改善血液循环|"
             r"(?:治|改善|缓解|解决).{0,8}(?:失眠|颈椎病|疾病|疼痛|腰痛|关节炎)"
         )
-        if any(not re.search(r"(?:没有|不具备|不提供|不涉及|不承诺|不要|不得|不能|并非|不是|无(?:法|需|任何)?).{0,6}$",
-                             assertions[:match.start()]) for match in medical_claim.finditer(assertions)):
+        negated_claim = re.compile(
+            r"(?:(?:不能|不得|不要)(?:用于|宣称|承诺)?|不(?:提供|涉及|承诺|用于|具有|具备)|没有|并非|不是|无法|无需|无)"
+            r"(?:任何)?(?:疾病|医疗|医学|相关|此类){0,2}\s*"
+            + "(?:" + medical_claim.pattern + ")"
+            + "(?:[和、或及与/\\s]*(?:" + medical_claim.pattern + "))*"
+        )
+        def remove_negated_claim(match):
+            # A double negation still promises efficacy. "无痛" or "无副作用"
+            # never matches the adjacent, explicit negation grammar above.
+            before = assertions[:match.start()]
+            return match.group() if re.search(r"(?:不是|并非|并不|不代表|不能说)\s*$", before) else ""
+        if medical_claim.search(negated_claim.sub(remove_negated_claim, assertions)):
             issues.append("休闲娱乐体验出现治疗或医疗功效，结构化事实不能编造")
         for pattern, label in (
             (r"(?:水温|池温|温度)[^，,。；;\n]{0,8}\d+(?:\.\d+)?\s*(?:℃|度|摄氏)", "水温/温度"),
@@ -14302,7 +14312,7 @@ async def extract_screenshot(
                 raise ValueError('screenshot_result_fields_invalid')
             result = {k: result[k] for k in ('type','title','body','tags','domain','cover_desc') if k in result}
             result["domain"] = _normalize_screenshot_domain(result.get("domain"),
-                str(result.get("title") or "") + "\n" + str(result.get("body") or ""))
+                str(result.get("title") or "") + "\n" + str(result.get("body") or "") + "\n" + str(result.get("cover_desc") or ""))
 
             img_type = result.get("type", "A")
             body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
@@ -14418,7 +14428,7 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
         raise HTTPException(413, "截图文字超过单次处理范围，请拆分笔记；未截断内容")
     if all(r.get("type") == "B" and str(r.get("cover_desc") or "").strip() for r in results):
         observations = "\n\n".join(f"【图{i+1}视觉观察】{r['cover_desc']}" for i, r in enumerate(results))
-        domains = {_normalize_screenshot_domain(r.get("domain")) for r in results}
+        domains = {_normalize_screenshot_domain(r.get("domain"), str(r.get("cover_desc") or "")) for r in results}
         domains.discard("")
         return {"title": "", "body": observations, "text_body": "", "tags": "", "domain": next(iter(domains)) if len(domains) == 1 else "",
                 "char_count": 0, "validated": False, "is_photo_only": True}

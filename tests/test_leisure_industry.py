@@ -113,12 +113,15 @@ class LeisureIndustryTests(unittest.TestCase):
     def test_structured_facts_and_medical_claims_are_blocking(self):
         src = "项目：按摩60分钟。价格：128元。水温：40度。套餐不含按摩，按摩需另外收费。"
         self.assertFalse(api._structured_fact_boundary_issues("按摩60分钟，价格128元，水温40℃。", src, DOMAIN))
-        for text in ("按摩90分钟", "水温42度", "价格88元", "套餐包含按摩", "没有依据但排毒祛湿", "缓解颈椎病"):
+        for text in ("按摩90分钟", "水温42度", "价格88元", "套餐包含按摩", "没有依据但排毒祛湿", "缓解颈椎病",
+                     "按摩无痛治疗失眠", "无副作用排毒祛湿", "没有副作用排毒祛湿", "不能错过的治疗失眠汤泉",
+                     "不是不能治疗失眠", "不是没有疗效", "不承诺排毒祛湿，但可以治疗颈椎病"):
             with self.subTest(text=text):
                 issues = api._delivery_integrity_issues(text, src, DOMAIN)
                 self.assertTrue(issues, text)
                 self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
-        for text in ("这里只谈休闲放松，没有医疗功效。", "不能治疗失眠，不提供疾病康复。", "不是医院，不承诺排毒祛湿。"):
+        for text in ("这里只谈休闲放松，没有医疗功效。", "不能治疗失眠，不提供疾病康复。", "不是医院，不承诺排毒祛湿。",
+                     "无疗效，无法治疗失眠。", "本项目不用于治疗疾病。"):
             self.assertFalse(api._delivery_integrity_issues(text, "", DOMAIN), text)
         issues = api._delivery_integrity_issues("周末休闲体验", "", DOMAIN, title_variants=["按摩治疗失眠"])
         self.assertTrue(any("备选标题1" in issue for issue in issues))
@@ -197,6 +200,20 @@ class LeisureIndustryTests(unittest.TestCase):
                 self.assertIn("图9真实区域", model.call_args.args[2])
             else:
                 model.assert_not_called()
+
+    def test_photo_only_clinical_observations_do_not_become_leisure(self):
+        image = io.BytesIO()
+        Image.new("RGB", (300, 200), "green").save(image, "PNG")
+        encoded = base64.b64encode(image.getvalue()).decode()
+        for observation, expected in (("医院康复科患者按摩", ""), ("汤泉泡池与休息区", DOMAIN)):
+            reply = {"type": "B", "title": "", "body": "", "tags": [], "domain": "按摩", "cover_desc": observation}
+            with mock.patch.object(api._billing, "check_and_deduct", return_value={"source": "synthetic"}), \
+                 mock.patch.object(api._ark_media, "chat", return_value=json.dumps(reply)):
+                extracted = asyncio.run(api.extract_screenshot(api.ScreenshotExtractInput(image_base64=encoded), user={"id": "offline"}, request_id=None))
+            self.assertEqual(extracted["domain"], expected)
+            for count in (1, 9):
+                merged = asyncio.run(api._validate_ocr_impl(api.ValidateOcrInput(ocr_results=[reply] * count), {"id": "offline"}))
+                self.assertEqual(merged["domain"], expected)
 
     def test_single_and_nine_image_generation_reach_real_prompt_and_output_parsers_with_mock_models(self):
         title = "周末汤泉休闲体验"
