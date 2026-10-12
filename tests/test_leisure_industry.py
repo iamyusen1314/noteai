@@ -129,7 +129,7 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertTrue(any("备选标题1" in issue for issue in issues))
 
     def test_duration_is_bound_to_each_project_and_preserves_units(self):
-        for project in ("洗浴", "汤泉", "SPA", "按摩", "足浴"):
+        for project in ("洗浴", "汗蒸", "桑拿", "汤泉", "SPA", "按摩", "足浴"):
             with self.subTest(project=project):
                 source = f"{project}45分钟。"
                 self.assertFalse(api._delivery_integrity_issues(source, source, DOMAIN))
@@ -155,6 +155,12 @@ class LeisureIndustryTests(unittest.TestCase):
             with self.subTest(output=output):
                 self.assertTrue(any("项目时长" in issue for issue in api._delivery_integrity_issues(output, source, DOMAIN)))
         self.assertFalse(api._delivery_integrity_issues("按摩是否90分钟，足浴时长需确认。", "", DOMAIN))
+        combined = "洗浴中心24小时可进，按摩45分钟需另收费，含自助餐但不含SPA。"
+        self.assertEqual(api._leisure_duration_claims(combined), {("按摩", "2.7E+3")})
+        self.assertFalse(api._delivery_integrity_issues(combined, combined, DOMAIN))
+        for output in ("洗浴24小时。", "按摩24小时。", "桑拿45分钟。"):
+            self.assertTrue(any("项目时长" in issue for issue in api._delivery_integrity_issues(output, combined, DOMAIN)))
+        self.assertIn("按摩45分钟需另收费", api._safe_fact_delivery_brief(DOMAIN, combined))
 
     def test_actual_spa_labels_are_not_clinical_but_symptom_recommendations_are_blocked(self):
         label = "SPA理疗室，工作人员站在理疗床边，展示颂钵理疗；项目称呼为理疗师，不据此认定职业资质。"
@@ -191,6 +197,7 @@ class LeisureIndustryTests(unittest.TestCase):
             ("套餐A含水疗。", "A套餐包含SPA。"),
             ("套餐A不含按摩。", "套餐A不含按摩。"),
             ("套餐A赠送足浴。", "套餐A赠送足疗。"),
+            ("套餐A包含汗蒸，不含桑拿。", "套餐A包含汗蒸，不含桑拿。"),
         ):
             with self.subTest(output=output):
                 self.assertFalse(api._delivery_integrity_issues(output, source, DOMAIN))
@@ -202,6 +209,9 @@ class LeisureIndustryTests(unittest.TestCase):
             ("SPA套餐含按摩。", "洗浴套餐含按摩。"),
             ("套餐A免费提供足浴。", "套餐A包含足浴。"),
             ("套餐A含足浴。", "套餐是否含足浴需确认。"),
+            ("套餐A包含桑拿。", "套餐A包含汗蒸，不含桑拿。"),
+            ("套餐A包含SPA。", "套餐A含自助餐但不含SPA。"),
+            ("包含按摩。", "洗浴中心24小时可进，按摩45分钟需另收费，含自助餐但不含SPA。"),
         ):
             with self.subTest(output=output):
                 self.assertTrue(any("套餐服务权益" in issue for issue in api._delivery_integrity_issues(output, source, DOMAIN)))
@@ -374,7 +384,7 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertIn(f"图{count}的实际休闲区域观察", content_call[2])
 
     def test_exact_scene_labels_are_compatible_without_keyword_reclassification(self):
-        for label in ("KTV", "ktv", "卡拉OK", "酒吧", "Livehouse", "桌游", "密室"):
+        for label in ("洗浴中心", "洗浴汗蒸", "汗蒸", "桑拿", "按摩足疗SPA", "SPA体验", "KTV", "ktv", "卡拉OK", "卡拉OK厅", "酒吧", "清吧", "音乐酒吧"):
             with self.subTest(label=label):
                 self.assertEqual(policy.canonical_product_domain(label), DOMAIN)
                 self.assertEqual(prompts.canonicalize_domain(label), DOMAIN)
@@ -387,6 +397,11 @@ class LeisureIndustryTests(unittest.TestCase):
             prompts.canonicalize_domain("本地生活体验")
         for text in ("餐厅主菜与饮品", "护肤与底妆体验", "普通本地生活记录"):
             self.assertEqual(api._normalize_screenshot_domain("本地生活体验", text), "")
+        for label in ("Livehouse", "LiveHouse", "livehouse", "桌游", "密室", "观演", "手作体验", "运动休闲"):
+            self.assertEqual(policy.canonical_product_domain(label), label)
+            with self.assertRaises(ValueError):
+                prompts.canonicalize_domain(label)
+            self.assertEqual(api._normalize_screenshot_domain(label, "当前独立活动"), "")
 
     def test_shared_general_contract_does_not_require_unprovided_subscene_slots(self):
         for key in ("agent_content_system", "agent_visual_system", "agent_growth_system", "agent_user_system",
@@ -396,12 +411,14 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertIn("公共槽位", preview)
             self.assertIn("行业名不证明任何子场景", preview)
             self.assertIn("综合场所", preview)
-            self.assertIn("自助餐/海鲜可以共存", preview)
+            self.assertIn("自助餐/海鲜及室内休闲娱乐游玩可以共存", preview)
+            self.assertIn("不假定每家都有全部项目", preview)
             self.assertIn("场景不明时写一般真实体验", preview)
             self.assertNotIn("真实洗浴/汤泉/水疗/按摩项目或空间 +", preview)
             self.assertNotIn("不套菜品", preview)
+            self.assertNotRegex(preview, "观演文化|运动休闲|手作体验|桌游|密室|Livehouse|互动游艺")
         for material, expected in (("包房唱歌与话筒画面", "包房唱歌"), ("饮品与音乐舞台", "饮品"),
-                                   ("桌游活动与道具空间", "桌游"), ("汤泉泡池和自助餐", "自助餐")):
+                                   ("洗浴中心室内娱乐游玩空间", "室内娱乐"), ("汤泉泡池和自助餐", "自助餐")):
             bits = api._domain_generation_fact_bits(DOMAIN, material)
             self.assertTrue(any(expected in bit for bit in bits))
         self.assertEqual(api._domain_generation_fact_bits(DOMAIN, "尚未说明具体项目"), ["项目/空间=尚未说明具体项目"])
@@ -410,10 +427,10 @@ class LeisureIndustryTests(unittest.TestCase):
 
     def test_representative_general_scenes_preserve_mock_single_and_nine_generation_outputs(self):
         scenes = (
-            ("综合汤泉", "项目：汤泉与自助餐；空间：泡池与海鲜档口", "汤泉泡池与自助餐海鲜档口是本次相关项目。", "#汤泉体验 #自助餐"),
+            ("洗浴综合项目", "项目：洗浴汗蒸、自助餐与室内娱乐游玩；空间：泡池与海鲜档口及室内娱乐区", "洗浴汗蒸、自助餐海鲜档口与室内娱乐游玩是本次相关项目。", "#洗浴体验 #自助餐"),
+            ("按摩足疗SPA", "项目：按摩、足疗与SPA；空间：休闲按摩区与水疗区域；具体流程未知", "休闲按摩、足疗与SPA是本次已提供项目，具体流程待确认。", "#按摩体验 #足疗SPA"),
             ("包房唱歌", "项目：KTV包房唱歌；空间：包房与话筒", "本次素材只有包房、话筒与唱歌活动。", "#包房唱歌 #KTV"),
             ("饮品音乐", "项目：酒吧饮品与现场音乐；空间：饮品台与舞台", "本次素材包含饮品摆放与音乐舞台。", "#饮品音乐 #酒吧"),
-            ("互动桌游", "项目：桌游；空间：游戏桌与卡牌；流程：参与规则待确认", "素材中是桌游活动的游戏桌与卡牌。", "#桌游体验 #互动活动"),
             ("休闲空间", "空间：普通房间与座椅；具体项目未知", "目前只看到房间与座椅，具体参与项目待确认。", "#空间记录 #休闲体验"),
         )
         for scene, material, narrative, tags in scenes:
@@ -443,8 +460,12 @@ class LeisureIndustryTests(unittest.TestCase):
                     for step, system, user in captures:
                         self.assertIn('行业名不证明任何子场景', system)
                         self.assertIn(f'图片{count}：', user)
-                    if scene == '综合汤泉':
+                    if scene == '洗浴综合项目':
                         self.assertIn('自助餐', result['body'])
+                        self.assertIn('室内娱乐游玩', result['body'])
+                    elif scene == '按摩足疗SPA':
+                        self.assertIn('足疗', result['body'])
+                        self.assertNotRegex(result['title'] + result['body'], '泡汤|泡池|汤泉|唱歌|酒水')
                     else:
                         self.assertNotRegex(result['title'] + result['body'], '泡汤|泡池|按摩|技师|汤泉')
 
@@ -474,7 +495,7 @@ class LeisureIndustryTests(unittest.TestCase):
 
     def test_general_project_aggregate_slots_preserve_all_model_columns(self):
         fixed_columns = tuple(features.COMPOSITE_FEATURE_COLS)
-        for text in ('包房唱歌', '饮品与音乐', '桌游活动', '手作体验', '观演空间', '汤泉与自助餐'):
+        for text in ('洗浴汗蒸与室内娱乐游玩', '按摩足疗SPA', '包房唱歌', '饮品与音乐', '普通休闲空间', '汤泉与自助餐'):
             result = features.build_composite_features(title='真实休闲项目', body=text, domain=DOMAIN)
             self.assertEqual(tuple(result), fixed_columns)
             self.assertEqual(len(result), 124)

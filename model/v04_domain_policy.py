@@ -10,8 +10,8 @@ from collections.abc import Iterable
 LEISURE_DOMAIN = "休闲娱乐体验"
 # Exact legacy/OCR labels only. Matching words in a note never selects a domain.
 LEISURE_DOMAIN_ALIASES = dict.fromkeys(
-    ("休闲娱乐", "洗浴", "汤泉", "温泉体验", "水疗", "SPA", "spa", "Spa", "按摩", "足浴", "足疗",
-     "KTV", "ktv", "卡拉OK", "卡拉ok", "酒吧", "Livehouse", "LiveHouse", "livehouse", "桌游", "密室"),
+    ("休闲娱乐", "洗浴", "洗浴中心", "洗浴汗蒸", "汗蒸", "桑拿", "汤泉", "温泉体验", "水疗", "SPA", "spa", "Spa",
+     "按摩", "足浴", "足疗", "按摩足疗", "按摩足疗SPA", "SPA体验", "KTV", "ktv", "卡拉OK", "卡拉ok", "卡拉OK厅", "酒吧", "清吧", "音乐酒吧"),
     LEISURE_DOMAIN,
 )
 

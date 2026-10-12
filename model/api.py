@@ -3899,7 +3899,7 @@ def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> 
         "休闲娱乐体验": [
             # Summarize supplied material only; these words never select or
             # change the user's domain or imply an unprovided service.
-            ("项目/空间", ("项目/空间", "项目", "活动", "设施", "空间", "门店类型"), ("项目", "活动", "空间", "设施", "包房", "唱歌", "饮品", "音乐", "桌游", "密室", "演出", "手作", "洗浴", "汤泉", "水疗", "SPA", "按摩", "足浴", "泡池", "休息区", "自助餐")),
+            ("项目/空间", ("项目/空间", "项目", "活动", "设施", "空间", "门店类型"), ("项目", "活动", "空间", "设施", "洗浴", "汗蒸", "桑拿", "汤泉", "水疗", "SPA", "按摩", "足浴", "足疗", "泡池", "休息区", "自助餐", "室内娱乐", "游玩", "包房", "唱歌", "饮品", "音乐")),
             ("价格/权益", ("价格/权益", "价格/人均", "价格", "套餐", "权益"), ("元", "价格", "套餐", "包含", "不含", "收费")),
             ("位置/营业", ("位置/营业", "位置/地址", "地址", "营业时间"), ("地址", "商圈", "营业", "地铁")),
             ("流程/预约", ("流程/预约", "参与流程", "流程", "预约", "时长"), ("参与", "入场", "预约", "流程", "时长", "分钟", "小时")),
@@ -10910,8 +10910,8 @@ def _food_operating_fact_issues(text: str, source_context: str | None) -> list[s
     return issues
 
 
-_LEISURE_PROJECT_RE = re.compile(r"洗浴|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗", re.I)
-_LEISURE_SERVICE_RE = re.compile(r"洗浴|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗|泡池|休息区|餐饮|自助餐|过夜", re.I)
+_LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗", re.I)
+_LEISURE_SERVICE_RE = re.compile(r"洗浴|汗蒸|桑拿|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗|泡池|休息区|餐饮|自助餐|过夜", re.I)
 _LEISURE_PACKAGE_RE = re.compile(
     r"(?:套餐|套票|门票)\s*[A-Za-z0-9甲乙丙丁一二三四五六七八九十]+|"
     r"[\u4e00-\u9fffA-Za-z0-9]{1,12}(?:套餐|套票|门票)|套餐|套票|门票"
@@ -10931,12 +10931,15 @@ def _leisure_duration_claims(text: str) -> set[tuple[str | None, str]]:
         if not line.strip() or line.startswith("【"):
             named_project = None
         for part in _fact_assertions(line):
-            label = re.search(r"(?:项目|服务项目|体验项目)\s*[:：]\s*(洗浴|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗)", part, re.I)
+            label = re.search(r"(?:项目|服务项目|体验项目)\s*[:：]\s*(洗浴|汗蒸|桑拿|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗)", part, re.I)
             if label:
                 named_project = _leisure_project_key(label.group(1))
             projects = list(_LEISURE_PROJECT_RE.finditer(part))
             assigned = set()
             for duration in re.finditer(r"(\d+(?:\.\d+)?)\s*(分钟|小时|秒钟|秒)", part):
+                if re.match(r"\s*(?:(?:可|可随时|随时)?(?:进|入场|入内)|营业|开放)", part[duration.end():]):
+                    # Venue access/opening time is not a project's duration.
+                    continue
                 seconds = Decimal(duration.group(1)) * {"分钟": 60, "小时": 3600, "秒钟": 1, "秒": 1}[duration.group(2)]
                 before = [p for p in projects if p.end() <= duration.start() and p.start() not in assigned
                           and duration.start() - p.end() <= 12
@@ -14377,7 +14380,7 @@ async def extract_screenshot(
             '  "cover_desc": "图片视觉描述：主体元素、色调光线、构图氛围，40-80字（C类型填空字符串）"\n'
             "}\n"
             "注意：1）话题必须放入 tags，不要混入 body；2）B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
-            "3）休闲娱乐体验是通用内容领域，按整篇主要创作意图与真实活动识别，覆盖歌唱社交、饮品音乐、互动游艺、观演文化、运动休闲、手作体验、身心休闲及综合场所。洗浴、汤泉、水疗/SPA、休闲按摩/足浴只是部分项目；综合场所真实自助餐也须保留。不能仅因出现饮品、运动、酒店或按摩一词改变美食/健身/旅行等主要意图；医院、诊疗、疾病治疗或康复科文章不因按摩归入休闲。只有普通房间、单个饮品或泡池且主题不明时不能猜行业。"
+            "3）休闲娱乐体验仍是同一通用领域，本轮支持洗浴汗蒸（优先大型洗浴中心综合项目）、按摩足疗SPA、KTV、酒吧，其他独立类别暂不列入。按整篇主要创作意图与真实项目识别；洗浴中心素材中真实存在的按摩SPA、自助餐及室内休闲娱乐游玩保留，不假定每家都有全部项目。不能仅因出现饮品、运动、酒店或按摩一词改变美食/健身/旅行等主要意图；医院、诊疗、疾病治疗或康复科文章不因按摩归入休闲。只有普通房间、单个饮品或泡池且主题不明时不能猜行业。"
         )
         try:
             image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
@@ -14564,7 +14567,7 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
         "2. 提取完整正文，严格去除重复段落，每段只保留一次\n"
         "3. 单独提取话题标签，严格去重；话题不要混入正文\n"
         "4. 配图描述（如「图片展示了...温润...」）不是笔记正文，不要包含\n"
-        "5. 按整篇主要创作意图识别领域；休闲娱乐体验覆盖实际休闲活动与综合场所，包括歌唱社交、饮品音乐、互动游艺、观演文化、运动休闲、手作体验和身心休闲，洗浴/SPA/按摩只是部分项目，相关自助餐等真实文字保留。不能仅凭单个活动词改变美食/健身/旅行等主要意图；医院、诊疗、疾病治疗和康复科不因按摩归入休闲。不能确定则返回空字符串。\n\n"
+        "5. 按整篇主要创作意图识别领域；休闲娱乐体验本轮支持洗浴汗蒸（优先大型洗浴中心综合项目）、按摩足疗SPA、KTV、酒吧，其他独立类别暂不列入。洗浴中心内真实存在的按摩SPA、自助餐与室内休闲娱乐游玩文字保留，不假定全部场所有这些项目。不能仅凭单个活动词改变美食/健身/旅行等主要意图；医院、诊疗、疾病治疗和康复科不因按摩归入休闲。不能确定则返回空字符串。\n\n"
         "严格按JSON返回，不加任何解释：\n"
         "{\"title\":\"唯一标题\",\"body\":\"去重后的完整正文，不含话题\",\"tags\":\"#话题1 #话题2\",\"domain\":\"美食/旅行/穿搭/美妆/家居/健身/母婴/休闲娱乐体验\",\"char_count\":正文实际字数}"
     )
