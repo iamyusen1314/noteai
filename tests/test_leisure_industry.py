@@ -374,14 +374,19 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertIn(f"图{count}的实际休闲区域观察", content_call[2])
 
     def test_exact_scene_labels_are_compatible_without_keyword_reclassification(self):
-        for label in ("本地生活体验", "KTV", "ktv", "卡拉OK", "酒吧", "Livehouse", "桌游", "密室"):
+        for label in ("KTV", "ktv", "卡拉OK", "酒吧", "Livehouse", "桌游", "密室"):
             with self.subTest(label=label):
                 self.assertEqual(policy.canonical_product_domain(label), DOMAIN)
                 self.assertEqual(prompts.canonicalize_domain(label), DOMAIN)
                 self.assertEqual(api._normalize_screenshot_domain(label, "本次真实休闲活动"), DOMAIN)
-        for domain, text in (("美食", "餐厅饮品与自助餐"), ("旅行", "酒店旅行与泳池"),
+        for domain, text in (("美食", "餐厅饮品与自助餐"), ("美妆", "本地生活里的护肤与底妆体验"), ("旅行", "酒店旅行与泳池"),
                              ("健身", "训练计划与运动"), ("未知", "正文提到KTV和按摩")):
             self.assertEqual(api._normalize_screenshot_domain(domain, text), domain if domain != "未知" else "")
+        self.assertEqual(policy.canonical_product_domain("本地生活体验"), "本地生活体验")
+        with self.assertRaises(ValueError):
+            prompts.canonicalize_domain("本地生活体验")
+        for text in ("餐厅主菜与饮品", "护肤与底妆体验", "普通本地生活记录"):
+            self.assertEqual(api._normalize_screenshot_domain("本地生活体验", text), "")
 
     def test_shared_general_contract_does_not_require_unprovided_subscene_slots(self):
         for key in ("agent_content_system", "agent_visual_system", "agent_growth_system", "agent_user_system",
