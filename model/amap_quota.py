@@ -207,7 +207,9 @@ def read_status(*, storage=None):
     """Admin-safe SELECT-only snapshot and conservative local allocation status."""
     result = {"account_scope": ACCOUNT_SCOPE, "service_group": SERVICE_GROUP,
               "snapshot_is_realtime": False, "runtime_activation_inferred": False,
-              "remaining": None, "snapshot": None}
+              "remaining": None, "snapshot": None, "renewal_required": None,
+              "renewal_due_soon": None, "renewal_action": None,
+              "snapshot_refresh_mode": "operator_attested_monthly"}
     try:
         storage = _storage(storage)
         row = _bucket(storage)
@@ -222,9 +224,16 @@ def read_status(*, storage=None):
         snapshot.update(enterprise_certified=True, license_purchased=False, owner_risk_accepted=True,
             exclusive_noteai_use=True, admitted_since_snapshot=row["admitted_count"],
             remaining=row["quota"]-row["official_used"]-row["admitted_count"], endpoint_qps=dict(ENDPOINT_QPS),
-            blocked_endpoints=_restrictions(storage, now), billing_observation=_billing(row["billing_observation_json"]))
+            blocked_endpoints=_restrictions(storage, now), billing_observation=_billing(row["billing_observation_json"]),
+            admission_closes_at=_iso(end-timedelta(seconds=10)))
         result["snapshot"] = snapshot
-        if now >= end:
+        # Match admission's database-clock safety margin, so Admin never reports
+        # ready when a query would already be denied near the month boundary.
+        result["renewal_required"] = now + timedelta(seconds=10) >= end
+        result["renewal_due_soon"] = not result["renewal_required"] and timedelta(0) < end-now <= timedelta(hours=72)
+        result["renewal_action"] = ("verify_and_append_current_month_observation" if now >= end else
+                                    "verify_new_month_observation_at_period_end")
+        if result["renewal_required"]:
             return {**result, "status": "snapshot_expired", "reason": "AMAP_QUOTA_SNAPSHOT_EXPIRED"}
         if now < max(start, observed, authorized):
             return {**result, "status": "snapshot_not_current", "reason": "AMAP_QUOTA_SNAPSHOT_NOT_CURRENT"}

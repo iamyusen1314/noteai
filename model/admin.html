@@ -1725,6 +1725,8 @@ function renderAmapAccountStatus(state, checkedAt) {
   const decision = snapshot.owner_authorized_at ? `Owner 已决定正式启用（${snapshot.owner_authorized_at}）` : 'Owner 启用决定来源未知';
   const risk = snapshot.owner_risk_accepted === true ? 'Owner 已接受已披露的许可风险；不代表供应商批准。' : '许可风险接受记录未知。';
   const current = ['ready','access_restricted'].includes(state.status);
+  const validity = `额度观察有效至 ${snapshot.period_end || '时间未知'}；查询准入于 ${snapshot.admission_closes_at || '时间未知'} 提前停止。`;
+  const renewal = state.renewal_required === true ? (state.renewal_action === 'verify_new_month_observation_at_period_end' ? '查询准入已在月末提前停止；请在新月官方记录出现后核实共享额度、账户及运行 Key 绑定，再通过受控维护入口续期。' : '待维护核实本月官方共享额度、账户及运行 Key 绑定，再通过受控维护入口续期；当前不发起新的高德查询。') : state.renewal_due_soon === true ? '额度记录即将到期；请在新月官方记录出现后核实并续期。' : '新月需重新核实官方共享额度并通过受控维护入口续期；不会自动沿用旧月额度。';
   const used = Number.isInteger(snapshot.official_used) && Number.isInteger(snapshot.admitted_since_snapshot) ? number(snapshot.official_used + snapshot.admitted_since_snapshot) : '未知';
   const quota = current ? `额度 ${number(snapshot.quota)}；受控已用 ${used}（官方观察 ${number(snapshot.official_used)}，观察后本系统获准 HTTP 请求 ${number(snapshot.admitted_since_snapshot)}）；受控剩余 ${number(snapshot.remaining)}` : state.status === 'quota_exhausted' ? '本期受控额度已用尽；不会自动购买或付费超额。' : '当前剩余额度未知；所列账户事实是原观察快照。';
   const endpointNames = {text:'关键字搜索',detail:'详情搜索'};
@@ -1732,7 +1734,7 @@ function renderAmapAccountStatus(state, checkedAt) {
   const bill = snapshot.billing_observation;
   const cost = bill && typeof bill.cost_cny === 'number' && Number.isFinite(bill.cost_cny) && bill.cost_cny >= 0 ? `人民币 ${bill.cost_cny} 元` : '未知';
   const billing = bill ? `控制台账单：${bill.period_start || '起始时间未知'} 至 ${bill.period_end || '结束时间未知'}，计费用量 ${number(bill.usage)}，金额 ${cost}；观察 ${bill.observed_at || '时间未知'}，来源 ${bill.source || '未知'}。金额仅属于该账单周期，后续费用未知。` : '供应商账单金额未知；不能根据剩余免费额度推定费用为零。';
-  return `<div class="supplier-account-status"><p>${esc(certified)}；${esc(license)}。</p><p>${esc(decision)}；实际业务启用以 API 运行状态为准。</p><p>${esc(risk)}</p><p>账户共享基础搜索额度 · ${esc(snapshot.period || '周期未知')}（${esc(snapshot.time_zone || '时区未知')}）：${esc(quota)}</p><p>${esc(endpoints)}</p><p>${esc(billing)}</p><small>账户观察：${esc(snapshot.observed_at || '时间未知')}；来源：${esc(snapshot.source || '未知')}；本次后台读取：${esc(checkedAt || '时间未知')}；额度状态：${esc(state.status || '未知')}。此快照不是实时供应商探测。</small></div>`;
+  return `<div class="supplier-account-status"><p>${esc(certified)}；${esc(license)}。</p><p>${esc(decision)}；实际业务启用以 API 运行状态为准。</p><p>${esc(risk)}</p><p>账户共享基础搜索额度 · ${esc(snapshot.period || '周期未知')}（${esc(snapshot.time_zone || '时区未知')}）：${esc(quota)}</p><p>${esc(validity)}${esc(renewal)}</p><p>${esc(endpoints)}</p><p>${esc(billing)}</p><small>账户观察：${esc(snapshot.observed_at || '时间未知')}；来源：${esc(snapshot.source || '未知')}；本次后台读取：${esc(checkedAt || '时间未知')}；额度状态：${esc(state.status || '未知')}。此快照不是实时供应商探测。</small></div>`;
 }
 
 function renderSupplierView(runtime) {
