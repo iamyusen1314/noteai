@@ -10914,7 +10914,8 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
     factual_out = out
     if canonical == "休闲娱乐体验":
-        assertions = "\n".join(_fact_assertions(out, only_explicit_rejections=True))
+        assertions = "\n".join(_fact_assertions(out))
+        medical_assertions = "\n".join(_fact_assertions(out, only_explicit_rejections=True))
         evidence = "\n".join(_fact_assertions(src))
         medical_claim = re.compile(
             r"治疗|治愈|疗效|康复|排毒|祛湿|祛寒|通经络|疏通经络|改善血液循环|"
@@ -10929,9 +10930,9 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         def remove_negated_claim(match):
             # A double negation still promises efficacy. "无痛" or "无副作用"
             # never matches the adjacent, explicit negation grammar above.
-            before = assertions[:match.start()]
-            return match.group() if re.search(r"(?:不是|并非|并不|不代表|不能说)\s*$", before) else ""
-        if medical_claim.search(negated_claim.sub(remove_negated_claim, assertions)):
+            before = medical_assertions[:match.start()]
+            return match.group() if re.search(r"(?:不可能|不是|并非|并不|不代表|不能说|没有|不能|不得|不要|无法)\s*$", before) else ""
+        if medical_claim.search(negated_claim.sub(remove_negated_claim, medical_assertions)):
             issues.append("休闲娱乐体验出现治疗或医疗功效，结构化事实不能编造")
         for pattern, label in (
             (r"(?:水温|池温|温度)[^，,。；;\n]{0,8}\d+(?:\.\d+)?\s*(?:℃|度|摄氏)", "水温/温度"),

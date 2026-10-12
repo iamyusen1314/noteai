@@ -115,13 +115,15 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertFalse(api._structured_fact_boundary_issues("按摩60分钟，价格128元，水温40℃。", src, DOMAIN))
         for text in ("按摩90分钟", "水温42度", "价格88元", "套餐包含按摩", "没有依据但排毒祛湿", "缓解颈椎病",
                      "按摩无痛治疗失眠", "无副作用排毒祛湿", "没有副作用排毒祛湿", "不能错过的治疗失眠汤泉",
-                     "不是不能治疗失眠", "不是没有疗效", "不承诺排毒祛湿，但可以治疗颈椎病"):
+                     "不是不能治疗失眠", "不是没有疗效", "不可能没有疗效", "没有没有疗效",
+                     "不承诺排毒祛湿，但可以治疗颈椎病"):
             with self.subTest(text=text):
                 issues = api._delivery_integrity_issues(text, src, DOMAIN)
                 self.assertTrue(issues, text)
                 self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
         for text in ("这里只谈休闲放松，没有医疗功效。", "不能治疗失眠，不提供疾病康复。", "不是医院，不承诺排毒祛湿。",
-                     "无疗效，无法治疗失眠。", "本项目不用于治疗疾病。"):
+                     "无疗效，无法治疗失眠。", "本项目不用于治疗疾病。", "套餐是否包含按摩？",
+                     "按摩项目时长是否60分钟？", "水温是否40度？"):
             self.assertFalse(api._delivery_integrity_issues(text, "", DOMAIN), text)
         issues = api._delivery_integrity_issues("周末休闲体验", "", DOMAIN, title_variants=["按摩治疗失眠"])
         self.assertTrue(any("备选标题1" in issue for issue in issues))
