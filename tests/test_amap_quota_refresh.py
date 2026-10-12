@@ -437,6 +437,7 @@ class AmapRefreshSessionTests(unittest.TestCase):
         with refresh.MaintenancePostgresStorage("postgresql:///offline-no-provider").transaction() as tx:
             self.assertTrue(tx.postgres)
         self.assertEqual(connection.commands[0:2], ["BEGIN", "SET TRANSACTION READ ONLY"])
+        self.assertIn("SET LOCAL search_path = pg_catalog, public", connection.commands)
         self.assertIn("COMMIT", connection.commands)
         self.assertTrue(connection.closed)
         self.assertFalse(any(command.startswith(("CREATE", "INSERT", "UPDATE", "DELETE")) for command in connection.commands))

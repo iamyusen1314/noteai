@@ -253,6 +253,10 @@ class MaintenancePostgresStorage:
             connection.execute("BEGIN")
             if not write:
                 connection.execute("SET TRANSACTION READ ONLY")
+            # Scope only this transaction to the original public-schema tables;
+            # a maintenance login's custom search_path must not select a shadow
+            # quota bucket. No database-wide/runtime configuration is changed.
+            connection.execute("SET LOCAL search_path = pg_catalog, public")
             tx = _PostgresTransaction(connection)
             identity = tx.fetchone("SELECT current_user AS role, "
                                    "has_table_privilege(current_user,'public.amap_quota_buckets','SELECT') AS can_read, "
