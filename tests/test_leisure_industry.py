@@ -128,6 +128,56 @@ class LeisureIndustryTests(unittest.TestCase):
         issues = api._delivery_integrity_issues("周末休闲体验", "", DOMAIN, title_variants=["按摩治疗失眠"])
         self.assertTrue(any("备选标题1" in issue for issue in issues))
 
+    def test_duration_is_bound_to_each_project_and_preserves_units(self):
+        for project in ("洗浴", "汤泉", "SPA", "按摩", "足浴"):
+            with self.subTest(project=project):
+                source = f"{project}45分钟。"
+                self.assertFalse(api._delivery_integrity_issues(source, source, DOMAIN))
+                issues = api._delivery_integrity_issues(f"{project}90分钟。", source, DOMAIN)
+                self.assertTrue(any("项目时长" in issue for issue in issues))
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        for output, source in (
+            ("按摩1小时。", "按摩60分钟。"),
+            ("水疗45分钟。", "SPA45分钟。"),
+            ("足浴45分钟。", "足疗45分钟。"),
+            ("60分钟按摩和45分钟足浴。", "按摩60分钟、足浴45分钟。"),
+            ("按摩60分钟。", "服务项目：按摩\n时长：60分钟。"),
+        ):
+            with self.subTest(output=output):
+                self.assertFalse(api._delivery_integrity_issues(output, source, DOMAIN))
+        for output, source in (
+            ("按摩90分钟。", "按摩60分钟，水疗90分钟。"),
+            ("足浴90分钟。", "足浴45分钟。"),
+            ("按摩60分钟、足浴60分钟。", "按摩60分钟、足浴45分钟。"),
+            ("按摩60分钟。", "项目时长60分钟，具体项目未知。"),
+            ("足浴45分钟。", "足浴是否45分钟需确认。"),
+        ):
+            with self.subTest(output=output):
+                self.assertTrue(any("项目时长" in issue for issue in api._delivery_integrity_issues(output, source, DOMAIN)))
+        self.assertFalse(api._delivery_integrity_issues("按摩是否90分钟，足浴时长需确认。", "", DOMAIN))
+
+    def test_entitlements_bind_package_scope_service_polarity_and_condition(self):
+        for output, source in (
+            ("套餐A包含按摩和足浴，不含餐饮。", "套餐A包含按摩和足浴，不含餐饮。"),
+            ("套餐A含水疗。", "A套餐包含SPA。"),
+            ("套餐A不含按摩。", "套餐A不含按摩。"),
+            ("套餐A赠送足浴。", "套餐A赠送足疗。"),
+        ):
+            with self.subTest(output=output):
+                self.assertFalse(api._delivery_integrity_issues(output, source, DOMAIN))
+        for output, source in (
+            ("套餐B包含按摩。", "套餐A包含按摩，套餐B不含按摩。"),
+            ("套餐A包含足浴。", "套餐A不含足浴。"),
+            ("套餐A不含按摩。", "套餐A包含按摩。"),
+            ("套餐B赠送足浴。", "套餐A赠送足浴。"),
+            ("SPA套餐含按摩。", "洗浴套餐含按摩。"),
+            ("套餐A免费提供足浴。", "套餐A包含足浴。"),
+            ("套餐A含足浴。", "套餐是否含足浴需确认。"),
+        ):
+            with self.subTest(output=output):
+                self.assertTrue(any("套餐服务权益" in issue for issue in api._delivery_integrity_issues(output, source, DOMAIN)))
+        self.assertFalse(api._delivery_integrity_issues("套餐A含不含按摩？套餐B是否赠送足浴需确认。", "", DOMAIN))
+
     def test_lookup_failure_and_success_keep_facts_truthful(self):
         failed = facts.format_fact_context({"error": "provider_request_failed", "facts": {}, "provider": "amap"})
         self.assertIn("事实检索未完成", failed)

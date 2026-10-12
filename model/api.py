@@ -10903,6 +10903,86 @@ def _food_operating_fact_issues(text: str, source_context: str | None) -> list[s
     return issues
 
 
+_LEISURE_PROJECT_RE = re.compile(r"洗浴|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗", re.I)
+_LEISURE_SERVICE_RE = re.compile(r"洗浴|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗|泡池|休息区|餐饮|自助餐|过夜", re.I)
+_LEISURE_PACKAGE_RE = re.compile(
+    r"(?:套餐|套票|门票)\s*[A-Za-z0-9甲乙丙丁一二三四五六七八九十]+|"
+    r"[\u4e00-\u9fffA-Za-z0-9]{1,12}(?:套餐|套票|门票)|套餐|套票|门票"
+)
+
+
+def _leisure_project_key(value: str) -> str:
+    return {"spa": "水疗", "足疗": "足浴", "泡汤": "汤泉"}.get(value.lower(), value)
+
+
+def _leisure_duration_claims(text: str) -> set[tuple[str | None, str]]:
+    """Bind each stated duration to its own explicit project, never a number pool."""
+    from decimal import Decimal
+    facts = set()
+    named_project = None
+    for line in (text or "").splitlines():
+        if not line.strip() or line.startswith("【"):
+            named_project = None
+        for part in _fact_assertions(line):
+            label = re.search(r"(?:项目|服务项目|体验项目)\s*[:：]\s*(洗浴|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗)", part, re.I)
+            if label:
+                named_project = _leisure_project_key(label.group(1))
+            projects = list(_LEISURE_PROJECT_RE.finditer(part))
+            assigned = set()
+            for duration in re.finditer(r"(\d+(?:\.\d+)?)\s*(分钟|小时|秒钟|秒)", part):
+                seconds = Decimal(duration.group(1)) * {"分钟": 60, "小时": 3600, "秒钟": 1, "秒": 1}[duration.group(2)]
+                before = [p for p in projects if p.end() <= duration.start() and p.start() not in assigned
+                          and duration.start() - p.end() <= 12
+                          and not re.search(r"\d|[。！？；;]", part[p.end():duration.start()])]
+                after = [p for p in projects if p.start() >= duration.end() and p.start() not in assigned
+                         and p.start() - duration.end() <= 12
+                         and not re.search(r"\d|[。！？；;]", part[duration.end():p.start()])]
+                project = before[-1] if before else after[0] if after else None
+                if project:
+                    assigned.add(project.start())
+                    scope = _leisure_project_key(project.group())
+                elif named_project and re.search(r"(?:项目|服务|体验)?时长\s*[:：]?", part):
+                    scope = named_project
+                elif re.search(r"项目|服务时长|体验时长|体验", part):
+                    scope = None
+                else:
+                    continue
+                facts.add((scope, str(seconds.normalize())))
+    return facts
+
+
+def _leisure_package_key(value: str) -> str:
+    value = re.sub(r"\s", "", value)
+    value = re.sub(r"^(?:本|这份|这款|该)", "", value)
+    reverse = re.fullmatch(r"([A-Za-z0-9甲乙丙丁]+)(套餐|套票|门票)", value)
+    return (reverse.group(2) + reverse.group(1) if reverse else value).lower()
+
+
+def _leisure_entitlement_claims(text: str) -> set[tuple[str | None, str, bool, str]]:
+    """Package scope, service, polarity and complimentary/included condition stay together."""
+    facts = set()
+    named_package = None
+    rights = re.compile(r"不免费提供|不包含|不包括|不赠送|不提供|不含|未含|不享有|免费提供|包含|包括|赠送|享有|含")
+    for line in (text or "").splitlines():
+        if not line.strip() or line.startswith("【"):
+            named_package = None
+        for part in _fact_assertions(line):
+            matches = list(rights.finditer(part))
+            prefix = part[:matches[0].start()] if matches else part
+            packages = list(_LEISURE_PACKAGE_RE.finditer(prefix))
+            if packages:
+                named_package = _leisure_package_key(packages[-1].group())
+            for index, right in enumerate(matches):
+                end = matches[index + 1].start() if index + 1 < len(matches) else len(part)
+                scope_candidates = list(_LEISURE_PACKAGE_RE.finditer(part[:right.start()]))
+                scope = _leisure_package_key(scope_candidates[-1].group()) if scope_candidates else named_package
+                kind = "complimentary" if "赠送" in right.group() or "免费" in right.group() else "included"
+                polarity = not right.group().startswith(("不", "未"))
+                for service in _LEISURE_SERVICE_RE.finditer(part[right.end():end]):
+                    facts.add((scope, _leisure_project_key(service.group()), polarity, kind))
+    return facts
+
+
 def _structured_fact_boundary_issues(text: str, source_context: str | None, domain: str | None = None) -> list[str]:
     """Guard only structured facts. Do not block narrative details such as feelings or scene description."""
     out = text or ""
@@ -10934,19 +11014,13 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             return match.group() if re.search(r"(?:不可能|不是|并非|并不|不代表|不能说|没有|不能|不得|不要|无法)\s*$", before) else ""
         if medical_claim.search(negated_claim.sub(remove_negated_claim, medical_assertions)):
             issues.append("休闲娱乐体验出现治疗或医疗功效，结构化事实不能编造")
-        for pattern, label in (
-            (r"(?:水温|池温|温度)[^，,。；;\n]{0,8}\d+(?:\.\d+)?\s*(?:℃|度|摄氏)", "水温/温度"),
-            (r"\d+(?:\.\d+)?\s*(?:分钟|小时)[^，,。；;\n]{0,8}(?:按摩|水疗|SPA|项目|体验)|(?:按摩|水疗|SPA|项目|体验)[^，,。；;\n]{0,8}\d+(?:\.\d+)?\s*(?:分钟|小时)", "项目时长"),
-        ):
-            def measure_key(value):
-                amount = float(re.search(r"\d+(?:\.\d+)?", value).group())
-                return amount * 60 if "小时" in value else amount
-            known = {measure_key(value) for value in re.findall(pattern, evidence)}
-            if any(measure_key(value) not in known for value in re.findall(pattern, assertions)):
-                issues.append(f"休闲娱乐体验出现未提供的{label}，结构化事实不能编造")
-        package = r"(?<!不)(?:包含|含|赠送|免费提供)[^，,。；;\n]{0,10}(洗浴|汤泉|水疗|SPA|按摩|足浴|餐饮|自助餐|过夜)"
-        known_services = set(re.findall(package, evidence))
-        if set(re.findall(package, assertions)) - known_services:
+        temperature = r"(?:水温|池温|温度)[^，,。；;\n]{0,8}(\d+(?:\.\d+)?)\s*(?:℃|度|摄氏)"
+        known_temperatures = {float(value) for value in re.findall(temperature, evidence)}
+        if {float(value) for value in re.findall(temperature, assertions)} - known_temperatures:
+            issues.append("休闲娱乐体验出现未提供的水温/温度，结构化事实不能编造")
+        if _leisure_duration_claims(out) - _leisure_duration_claims(src):
+            issues.append("休闲娱乐体验出现未提供或与项目不符的项目时长，结构化事实不能编造")
+        if _leisure_entitlement_claims(out) - _leisure_entitlement_claims(src):
             issues.append("休闲娱乐体验出现未核验的套餐服务权益，结构化事实不能编造")
         if _PRICE_VALUE_CLAIM_RE.search(assertions) and not _source_has_price_evidence(evidence):
             issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
