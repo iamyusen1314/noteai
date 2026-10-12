@@ -3899,7 +3899,7 @@ def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> 
         "休闲娱乐体验": [
             # Summarize supplied material only; these words never select or
             # change the user's domain or imply an unprovided service.
-            ("项目/空间", ("项目/空间", "项目", "活动", "设施", "空间", "门店类型"), ("项目", "活动", "空间", "设施", "洗浴", "汗蒸", "桑拿", "汤泉", "水疗", "SPA", "按摩", "足浴", "足疗", "泡池", "休息区", "自助餐", "室内娱乐", "游玩", "包房", "唱歌", "饮品", "音乐")),
+            ("项目/空间", ("项目/空间", "项目", "活动", "设施", "空间", "门店类型"), ("项目", "活动", "空间", "设施", "洗浴", "汗蒸", "桑拿", "干蒸", "湿蒸", "汤泉", "水疗", "SPA", "按摩", "推拿", "沐足", "足浴", "足疗", "泡池", "泳池", "休息区", "大厅", "包房", "自助餐", "早餐", "午餐", "晚餐", "宵夜", "室内娱乐", "游玩", "麻将", "电竞", "PS", "Switch", "桌球", "书吧", "酒廊", "电影院", "桌游", "庭院", "水果", "软饮", "雪糕", "特调饮料", "酒水", "唱歌", "饮品", "音乐")),
             ("价格/权益", ("价格/权益", "价格/人均", "价格", "套餐", "权益"), ("元", "价格", "套餐", "包含", "不含", "收费")),
             ("位置/营业", ("位置/营业", "位置/地址", "地址", "营业时间"), ("地址", "商圈", "营业", "地铁")),
             ("流程/预约", ("流程/预约", "参与流程", "流程", "预约", "时长"), ("参与", "入场", "预约", "流程", "时长", "分钟", "小时")),
@@ -10910,8 +10910,11 @@ def _food_operating_fact_issues(text: str, source_context: str | None) -> list[s
     return issues
 
 
-_LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗", re.I)
-_LEISURE_SERVICE_RE = re.compile(r"洗浴|汗蒸|桑拿|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗|泡池|休息区|餐饮|自助餐|过夜", re.I)
+_LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗", re.I)
+_LEISURE_SERVICE_RE = re.compile(
+    r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗|"
+    r"泡池|休息区|大厅|包房|麻将|电竞|PS|Switch|桌球|书吧|酒廊|电影院|桌游|户外庭院|庭院|"
+    r"餐饮|自助餐|早餐|午餐|晚餐|宵夜|夜宵|水果|软饮|雪糕自助|雪糕|特调饮料|特调饮品|饮料|饮品|酒水|过夜", re.I)
 _LEISURE_PACKAGE_RE = re.compile(
     r"(?:套餐|套票|门票)\s*[A-Za-z0-9甲乙丙丁一二三四五六七八九十]+|"
     r"[\u4e00-\u9fffA-Za-z0-9]{1,12}(?:套餐|套票|门票)|套餐|套票|门票"
@@ -10919,7 +10922,7 @@ _LEISURE_PACKAGE_RE = re.compile(
 
 
 def _leisure_project_key(value: str) -> str:
-    return {"spa": "水疗", "足疗": "足浴", "泡汤": "汤泉"}.get(value.lower(), value)
+    return {"spa": "水疗", "足疗": "足浴", "泡汤": "汤泉", "ps": "PS", "switch": "Switch"}.get(value.lower(), value)
 
 
 def _leisure_duration_claims(text: str) -> set[tuple[str | None, str]]:
@@ -10931,7 +10934,7 @@ def _leisure_duration_claims(text: str) -> set[tuple[str | None, str]]:
         if not line.strip() or line.startswith("【"):
             named_project = None
         for part in _fact_assertions(line):
-            label = re.search(r"(?:项目|服务项目|体验项目)\s*[:：]\s*(洗浴|汗蒸|桑拿|汤泉|泡汤|水疗|SPA|按摩|足浴|足疗)", part, re.I)
+            label = re.search(r"(?:项目|服务项目|体验项目)\s*[:：]\s*(洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗)", part, re.I)
             if label:
                 named_project = _leisure_project_key(label.group(1))
             projects = list(_LEISURE_PROJECT_RE.finditer(part))
@@ -10983,6 +10986,11 @@ def _leisure_entitlement_claims(text: str) -> set[tuple[str | None, str, bool, s
             if packages:
                 named_package = _leisure_package_key(packages[-1].group())
             for index, right in enumerate(matches):
+                if re.search(r"(?:素材|画面|照片|图片|视频|图中|图里)(?:中|里)?(?:实际|可见|主要|还|也)?\s*$", part[:right.start()]):
+                    # Visible content inclusion is not a service entitlement.
+                    # An explicit package immediately before the verb still
+                    # follows the ordinary package-scope checks below.
+                    continue
                 end = matches[index + 1].start() if index + 1 < len(matches) else len(part)
                 scope_candidates = list(_LEISURE_PACKAGE_RE.finditer(part[:right.start()]))
                 scope = _leisure_package_key(scope_candidates[-1].group()) if scope_candidates else named_package
