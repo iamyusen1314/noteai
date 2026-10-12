@@ -1638,6 +1638,11 @@ def compute_market_timing(title: str, desc: str, domain: str) -> dict:
     ][:30]
     domain_top = [k for k in all_top if _is_domain_relevant_keyword(domain, k.get("keyword", ""))]
     matched_set = {k["keyword"] for k in matched}
+    from v04_domain_policy import canonical_product_domain
+    if canonical_product_domain(domain) == "休闲娱乐体验":
+        # This broad content domain can contain unrelated activities. Fresh
+        # industry evidence cannot introduce a project absent from the input.
+        domain_top = [k for k in domain_top if k["keyword"] in matched_set]
 
     def evidence_rows(rows: list[dict], limit: int = 8) -> list[dict]:
         out = []

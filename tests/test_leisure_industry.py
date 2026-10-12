@@ -219,7 +219,7 @@ class LeisureIndustryTests(unittest.TestCase):
         for source in (failed, context):
             brief = api._safe_fact_delivery_brief(DOMAIN, source)
             self.assertIn("不编造", brief)
-            self.assertIn("不证明套餐", brief)
+            self.assertIn("不证明未返回的服务权益", brief)
 
     def test_fixed_model_features_and_existing_trends_contract_are_preserved(self):
         self.assertEqual(len(features.COMPOSITE_FEATURE_COLS), 124)
@@ -372,6 +372,123 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertIn("医疗功效", stream_calls[0][0])
             content_call = next(call for call in calls if call[0] == 'generation_content')
             self.assertIn(f"图{count}的实际休闲区域观察", content_call[2])
+
+    def test_exact_scene_labels_are_compatible_without_keyword_reclassification(self):
+        for label in ("本地生活体验", "KTV", "ktv", "卡拉OK", "酒吧", "Livehouse", "桌游", "密室"):
+            with self.subTest(label=label):
+                self.assertEqual(policy.canonical_product_domain(label), DOMAIN)
+                self.assertEqual(prompts.canonicalize_domain(label), DOMAIN)
+                self.assertEqual(api._normalize_screenshot_domain(label, "本次真实休闲活动"), DOMAIN)
+        for domain, text in (("美食", "餐厅饮品与自助餐"), ("旅行", "酒店旅行与泳池"),
+                             ("健身", "训练计划与运动"), ("未知", "正文提到KTV和按摩")):
+            self.assertEqual(api._normalize_screenshot_domain(domain, text), domain if domain != "未知" else "")
+
+    def test_shared_general_contract_does_not_require_unprovided_subscene_slots(self):
+        for key in ("agent_content_system", "agent_visual_system", "agent_growth_system", "agent_user_system",
+                    "gent_content_system", "gent_visual_system", "gent_growth_system", "gent_user_system",
+                    "gent_arbitrate_system", "agent_arbitrate_system", "chat_system"):
+            preview = prompts.industry_preview(key, DOMAIN, "通用基础模板{domain}").text
+            self.assertIn("公共槽位", preview)
+            self.assertIn("行业名不证明任何子场景", preview)
+            self.assertIn("综合场所", preview)
+            self.assertIn("自助餐/海鲜可以共存", preview)
+            self.assertIn("场景不明时写一般真实体验", preview)
+            self.assertNotIn("真实洗浴/汤泉/水疗/按摩项目或空间 +", preview)
+            self.assertNotIn("不套菜品", preview)
+        for material, expected in (("包房唱歌与话筒画面", "包房唱歌"), ("饮品与音乐舞台", "饮品"),
+                                   ("桌游活动与道具空间", "桌游"), ("汤泉泡池和自助餐", "自助餐")):
+            bits = api._domain_generation_fact_bits(DOMAIN, material)
+            self.assertTrue(any(expected in bit for bit in bits))
+        self.assertEqual(api._domain_generation_fact_bits(DOMAIN, "尚未说明具体项目"), ["项目/空间=尚未说明具体项目"])
+        fallback = api._plan_title_fallback_options(DOMAIN, "避坑取舍型", "休闲活动")
+        self.assertFalse(any("按摩" in title or "套餐" in title for title in fallback))
+
+    def test_representative_general_scenes_preserve_mock_single_and_nine_generation_outputs(self):
+        scenes = (
+            ("综合汤泉", "项目：汤泉与自助餐；空间：泡池与海鲜档口", "汤泉泡池与自助餐海鲜档口是本次相关项目。", "#汤泉体验 #自助餐"),
+            ("包房唱歌", "项目：KTV包房唱歌；空间：包房与话筒", "本次素材只有包房、话筒与唱歌活动。", "#包房唱歌 #KTV"),
+            ("饮品音乐", "项目：酒吧饮品与现场音乐；空间：饮品台与舞台", "本次素材包含饮品摆放与音乐舞台。", "#饮品音乐 #酒吧"),
+            ("互动桌游", "项目：桌游；空间：游戏桌与卡牌；流程：参与规则待确认", "素材中是桌游活动的游戏桌与卡牌。", "#桌游体验 #互动活动"),
+            ("休闲空间", "空间：普通房间与座椅；具体项目未知", "目前只看到房间与座椅，具体参与项目待确认。", "#空间记录 #休闲体验"),
+        )
+        for scene, material, narrative, tags in scenes:
+            for count in (1, 9):
+                with self.subTest(scene=scene, count=count):
+                    captures = []
+                    body = narrative + "\n" + tags + " #周末记录 #场景记录 #真实素材"
+                    raw = f"<title>{scene}真实体验</title><body>{body}</body><variants>{scene}空间记录\n{scene}参与前确认\n{scene}场景取舍</variants><rationale>实际素材</rationale>"
+                    async def fake_call(task, system, user, **kwargs):
+                        captures.append((kwargs.get('trace_step'), system, user))
+                        return raw if task == 'arbitrate' else f"<draft_title>{scene}真实体验</draft_title><draft_body>{body}</draft_body>"
+                    async def shape(_title, value, *_args, **_kwargs):
+                        return value
+                    observations = "\n".join(f"图片{i + 1}：{narrative}" for i in range(count))
+                    with mock.patch.object(api, '_runtime_prompt', return_value='离线基础模板{domain}'), \
+                         mock.patch.object(api._mr, 'call', side_effect=fake_call), \
+                         mock.patch.object(api, '_shape_body_for_delivery', side_effect=shape):
+                        async def run():
+                            content = await api._gent_content(DOMAIN, material, api._get_dk(DOMAIN), observations)
+                            return await api._gent_arbitrate(DOMAIN, [content, {'role': '视觉专家', '_image_desc': observations}], None, [], fact_context=material)
+                        result = asyncio.run(run())
+                    self.assertEqual(result['title'], scene + '真实体验')
+                    self.assertEqual(result['body'], body)
+                    self.assertIn(tags, result['body'])
+                    self.assertEqual(len(result['variants']), 3)
+                    self.assertFalse(api._delivery_integrity_issues(result['title'] + '\n' + result['body'], material, DOMAIN))
+                    for step, system, user in captures:
+                        self.assertIn('行业名不证明任何子场景', system)
+                        self.assertIn(f'图片{count}：', user)
+                    if scene == '综合汤泉':
+                        self.assertIn('自助餐', result['body'])
+                    else:
+                        self.assertNotRegex(result['title'] + result['body'], '泡汤|泡池|按摩|技师|汤泉')
+
+    def test_media_understanding_receives_general_context_in_the_existing_call(self):
+        for helper in (api._kimi_vision_understand, api._kimi_vision_quick):
+            with mock.patch.object(api, '_read_image_input', return_value=b'not-real-image-fixture'), \
+                 mock.patch.object(api._ark_media, 'image_part', return_value={'offline': True}), \
+                 mock.patch.object(api._ark_media, 'chat', return_value='包房与话筒的离线观察') as chat:
+                self.assertEqual(helper('offline-fixture', DOMAIN, 'KTV包房唱歌'), '包房与话筒的离线观察')
+            self.assertEqual(chat.call_count, 1)
+            self.assertIn('行业名不证明任何子场景', chat.call_args.args[0])
+            self.assertIn('KTV包房唱歌', chat.call_args.args[0])
+
+    def test_general_project_aggregate_slots_preserve_all_model_columns(self):
+        fixed_columns = tuple(features.COMPOSITE_FEATURE_COLS)
+        for text in ('包房唱歌', '饮品与音乐', '桌游活动', '手作体验', '观演空间', '汤泉与自助餐'):
+            result = features.build_composite_features(title='真实休闲项目', body=text, domain=DOMAIN)
+            self.assertEqual(tuple(result), fixed_columns)
+            self.assertEqual(len(result), 124)
+            self.assertGreater(result['commercial_domain_slot_count'], 0)
+        self.assertEqual(tuple(features.COMPOSITE_FEATURE_COLS), fixed_columns)
+        self.assertEqual(trends_contract.REQUIRED_DOMAINS, ('美食', '旅行', '穿搭', '美妆', '家居', '健身'))
+
+    def test_fresh_general_domain_keywords_do_not_push_other_scene_topics(self):
+        status = {'has_fresh_domain_data': True, 'domain_keyword_count': 15,
+                  'domain_qualified_keyword_count': 15, 'domain_source_breakdown': {'offline-fixture': 15}}
+        def row(keyword):
+            return {'keyword': keyword, 'vol': 30, 'trend_dir': 0, 'source': 'offline-fixture',
+                    'category': DOMAIN, 'quality_score': 80, 'sample_count': 1, 'evidence_level': 'medium'}
+        leisure_rows = [row('汤泉体验'), row('包房唱歌'), row('酒吧音乐')]
+        food_rows = [row('海鲜砂锅')]
+        def keywords(*_args, **kwargs):
+            return food_rows if kwargs.get('domain') == '美食' else leisure_rows
+        with mock.patch.object(hot_keywords, '_load_domain_stats'), mock.patch.object(hot_keywords, '_DOMAIN_STATS', {}), \
+             mock.patch.object(hot_keywords, 'ensure_fresh_domain_keywords', return_value={'ok': True, 'status': status}), \
+             mock.patch.object(hot_keywords, 'get_top_keywords', side_effect=keywords), \
+             mock.patch.object(hot_keywords, 'compute_trend_peak_distance', return_value=0):
+            unknown = hot_keywords.compute_market_timing('普通休闲空间', '房间与座椅', DOMAIN)
+            ktv = hot_keywords.compute_market_timing('包房唱歌', '话筒与包房', DOMAIN)
+            bar = hot_keywords.compute_market_timing('酒吧音乐', '饮品台与音乐舞台', DOMAIN)
+            food = hot_keywords.compute_market_timing('餐厅记录', '开业信息', '美食')
+        for result in (unknown, ktv, bar):
+            self.assertEqual(result['suggested_keywords'], [])
+            self.assertEqual(result['suggested_keyword_evidence'], [])
+            self.assertIsNone(result['category_avg_ces'])
+            self.assertFalse(result['benchmark_available'])
+        self.assertEqual(ktv['matched_keywords'], ['包房唱歌'])
+        self.assertEqual(bar['matched_keywords'], ['酒吧音乐'])
+        self.assertEqual(food['suggested_keywords'], ['海鲜砂锅'])
 
 
 if __name__ == "__main__":
