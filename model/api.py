@@ -2692,8 +2692,10 @@ _MARKET_TIMING_SCHEMA = {
     "trend_momentum": "number",
     "is_trending_topic": "number",
     "content_freshness": "number",
-    "category_saturation": "number",
-    "category_avg_ces": "number",
+    "category_saturation": "nullable_number",
+    "category_avg_ces": "nullable_number",
+    "benchmark_available": "nullable_bool",
+    "benchmark_note": "nullable_string",
     "keyword_competition": "number",
     "trend_peak_distance": "number",
     "keyword_count": "integer",
@@ -3890,6 +3892,13 @@ def _context_fact_line(source_context: str | None, keywords: tuple[str, ...], li
 
 def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> list[str]:
     specs: dict[str, list[tuple[str, tuple[str, ...], tuple[str, ...]]]] = {
+        "休闲娱乐体验": [
+            ("项目/空间", ("项目/空间", "项目", "设施", "空间", "门店类型"), ("洗浴", "汤泉", "水疗", "SPA", "按摩", "足浴", "泡池", "休息区")),
+            ("价格/权益", ("价格/权益", "价格/人均", "价格", "套餐", "权益"), ("元", "价格", "套餐", "包含", "不含", "收费")),
+            ("位置/营业", ("位置/营业", "位置/地址", "地址", "营业时间"), ("地址", "商圈", "营业", "地铁")),
+            ("流程/预约", ("流程/预约", "流程", "预约", "时长"), ("预约", "更衣", "流程", "时长", "分钟")),
+            ("场景/感受", ("场景/感受", "场景", "作者感受"), ("周末", "休闲", "安静", "我觉得", "我感到")),
+        ],
         "穿搭": [
             ("身材/场合", ("身材/场合", "身材", "体型", "身高体重", "场合"), ("宽肩", "梨形", "小个子", "通勤", "约会", "显高", "显瘦")),
             ("单品/版型", ("单品/版型", "单品", "版型", "材质", "颜色"), ("衬衫", "西装", "牛仔", "半裙", "连衣裙", "外套", "黑白灰", "阔腿")),
@@ -4001,6 +4010,11 @@ def _plan_strategy_blueprint(domain: str | None) -> list[tuple[str, str]]:
     """Return three generation directions that stay universal but respect each domain."""
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     by_domain: dict[str, list[tuple[str, str]]] = {
+        "休闲娱乐体验": [
+            ("决策信息型", "按已核验门店/项目、价格条件、套餐权益、营业与预约写到店选择；缺失项明确待确认，不承诺医疗功效。"),
+            ("休闲体验型", "以素材中真实空间、项目和作者已描述的感受组织体验流程；单图不扩大服务，多图覆盖不同真实区域；不虚构亲测或医疗效果。"),
+            ("避坑取舍型", "围绕项目、时间、预约、套餐包含与额外收费的已知条件做场景取舍；未知项作为确认问题，不编造差评、卫生或技师资质。"),
+        ],
         "美食": [
             ("决策信息型", "①开头直接回答值不值得去，写清谁适合去 ②信息顺序固定为：结论→位置/人均/评分/营业等事实→点单建议→适合人群 ③语气克制、信息密度高，不靠夸张情绪撑内容 ④结尾含「点赞」「收藏」互动引导"),
             ("菜品种草型", "①开头围绕来源中的具体菜品建立记忆点 ②依次组织已有的画面、作者描述的感受和取舍理由，不要求补齐口感或火候 ③推荐只表达作者已有评价，不新增招牌身份或用餐经历 ④自然邀请读者交流或收藏"),
@@ -4109,6 +4123,12 @@ def _plan_title_fallback_options(
             "决策信息型": [f"{core}适合谁练", f"{core}新手可练"],
             "动作计划型": [f"{core}动作计划", f"{core}跟练顺序"],
             "避坑取舍型": [f"{core}避坑取舍", f"{core}替代动作"],
+        }
+    elif canonical == "休闲娱乐体验":
+        by_label = {
+            "决策信息型": [f"{core}到店怎么选", f"{core}预约前确认"],
+            "休闲体验型": [f"{core}休闲体验", f"{core}空间与流程"],
+            "避坑取舍型": [f"{core}场景取舍", f"{core}套餐怎么选"],
         }
     else:
         by_label = {
@@ -4221,7 +4241,9 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
         user = (
             f"【图片视觉观察（可用于润色细节）】\n{image_desc}\n\n"
             f"领域：{domain}\n\n"
-            f"注意：创作者未补充具体数字和地址，价格/地址/时间请用【xxx】占位，不要编造数字。"
+            + ("注意：创作者未补充门店、价格、地址或时间，只写素材中的可见休闲场景；缺失事实不编造，也不写占位数字。"
+               if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验" else
+               "注意：创作者未补充具体数字和地址，价格/地址/时间请用【xxx】占位，不要编造数字。")
         )
     # Complete expert output uses the formal route capacity, including questions.
     # The active model configuration may lower this ceiling; usage is metered.
@@ -6289,8 +6311,10 @@ class MarketTiming(BaseModel):
     trend_momentum: float = Field(default=0.0, description="上升趋势词占比（0-1）")
     is_trending_topic: float = Field(default=0.0, description="是否命中热搜（0/1）")
     content_freshness: float = Field(default=0.0, description="内容新鲜度（0-1）")
-    category_saturation: float = Field(default=0.0, description="品类样本饱和度（0-1）")
-    category_avg_ces: float = Field(default=0.0, description="训练样本中该品类平均表现")
+    category_saturation: float | None = Field(default=0.0, description="品类样本饱和度（0-1）；无基准时未知")
+    category_avg_ces: float | None = Field(default=0.0, description="训练样本中该品类平均表现；无基准时未知")
+    benchmark_available: bool | None = None
+    benchmark_note: str | None = None
     keyword_competition: float = Field(default=0.0, description="关键词竞争度（0-1）")
     trend_peak_distance: float = Field(default=0.0, description="距历史峰值天数，0代表样本不足")
     keyword_count: int = Field(default=0, description="当前热词样本库总条数")
@@ -6691,6 +6715,8 @@ def _merchant_entity_signal(domain: str | None, title: str | None, text: str | N
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "旅行":
         pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:酒店|民宿|客栈|度假村|乐园|景区|营地))"
+    elif canonical == "休闲娱乐体验":
+        pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:洗浴中心|水疗中心|汤泉馆|按摩馆|按摩店|足浴店|汤泉|水疗|SPA|Spa|spa|足浴|会馆))"
     else:
         pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:旗舰店|总店|分店|万博店|广晟店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|店|楼))"
     for match in re.finditer(pattern, src):
@@ -6724,7 +6750,7 @@ def _fact_source_decision(
     has_entity, detected_entity = _merchant_entity_signal(canonical, title, text, merchant)
     entity = merchant or detected_entity
     provider = "none"
-    if canonical == "美食":
+    if canonical in {"美食", "休闲娱乐体验"}:
         provider = "amap"
     elif canonical == "旅行":
         provider = "meituan_travel"
@@ -6744,7 +6770,7 @@ def _fact_source_decision(
     if policy == "skip":
         decision["reason"] = "user_or_ui_skipped_fact_source"
         return decision
-    if canonical not in {"美食", "旅行"}:
+    if canonical not in {"美食", "旅行", "休闲娱乐体验"}:
         decision["reason"] = "domain_has_no_configured_external_fact_source"
         return decision
     if visibility == "不展示商家":
@@ -6754,7 +6780,7 @@ def _fact_source_decision(
         decision["reason"] = "seeding_mode_does_not_need_store_facts"
         return decision
 
-    if canonical == "美食":
+    if canonical in {"美食", "休闲娱乐体验"}:
         if not has_entity:
             decision["reason"] = "missing_confirmed_merchant_name"
             if intent == "决策转化型" or visibility == "展示商家" or policy == "force":
@@ -6764,7 +6790,8 @@ def _fact_source_decision(
             return decision
         if intent == "决策转化型" or visibility == "展示商家" or policy == "force":
             decision["enabled"] = True
-            decision["reason"] = "food_decision_or_visible_merchant"
+            decision["reason"] = ("leisure_decision_or_visible_merchant" if canonical == "休闲娱乐体验"
+                                  else "food_decision_or_visible_merchant")
             return decision
         decision["reason"] = "food_fact_source_not_required_for_intent"
         return decision
@@ -6966,7 +6993,8 @@ def _predict_impl(
         all_vals[c] = v
 
     for c in TIMING_FEATURE_COLS:
-        v = float((timing_feats or {}).get(c, 0.0))
+        # An unknown public benchmark is a neutral numeric input, not a measured zero.
+        v = float((timing_feats or {}).get(c, 0.0) or 0.0)
         x_vals.append(v)
         all_vals[c] = v
 
@@ -8596,6 +8624,13 @@ def _human_readability_issues(body: str, domain: str | None = None) -> list[str]
 
 def _quality_expression_brief(domain: str | None = None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical == "休闲娱乐体验":
+        return (
+            "【休闲娱乐体验表达要求】\n"
+            "- 按洗浴、汤泉、水疗/SPA、按摩/足浴等实际类别写空间、项目、流程和场景取舍，不套菜品或酒店模板。\n"
+            "- 感受只能转述作者已提供的信息；图片只能证明可见画面，不能证明触感、水温、卫生、资质、疗效或亲测。\n"
+            "- 禁止治疗、康复、排毒祛湿、治失眠、缓解疾病等医疗功效，标题、正文、备选标题与话题都要遵守。"
+        )
     if canonical == "美食":
         return (
             "【表达质量要求】\n"
@@ -9905,6 +9940,16 @@ def _safe_fact_line(domain: str | None, source_context: str | None) -> str:
 
 def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical == "休闲娱乐体验":
+        facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "缺少门店/项目核验事实；仅使用现有真实素材，决策必需项明确待确认。"
+        return (
+            "【休闲娱乐体验事实安全策略】\n"
+            f"- 当前可用信息：{facts}\n"
+            "- 高德只补对应门店的已返回事实，不证明套餐项目、技师资质、卫生或体验效果。价格必须保留项目、时长、单位与包含/不包含条件。\n"
+            "- 检索失败时明确没有取得门店事实，不编造地址、价格、营业、预约、项目时长或服务权益；非必要未知项可不写。\n"
+            "- 只写真实休闲体验；不得把按摩/汤泉写成治疗、康复、排毒祛湿或治失眠方案，即使来源有营销功效也不背书。\n"
+            "- 单图不扩大服务，多图覆盖不同实际区域/项目；水温、触感和个人感受需要作者明确提供。"
+        )
     if canonical == "旅行":
         mode = _travel_fact_mode(source_context)
         facts = "；".join(_travel_fact_bits(source_context, max_items=7)) or "按已核验旅行/酒旅事实引用，缺失字段不编造。"
@@ -10618,6 +10663,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
     target = _quality_targets(canonical)
     safe_brief = _safe_fact_delivery_brief(domain, source_context)
     object_hint = {
+        "休闲娱乐体验": "真实项目/空间/体验流程/休闲场景取舍",
         "美食": "真实菜品/门店场景/互动",
         "旅行": "真实酒店/路线/景点/交通/设施",
         "穿搭": "真实单品/身材场景/搭配逻辑",
@@ -10867,6 +10913,32 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
 
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
     factual_out = out
+    if canonical == "休闲娱乐体验":
+        assertions = "\n".join(_fact_assertions(out))
+        evidence = "\n".join(_fact_assertions(src))
+        medical_claim = re.compile(
+            r"治疗|治愈|疗效|康复|排毒|祛湿|祛寒|通经络|疏通经络|改善血液循环|"
+            r"(?:治|改善|缓解|解决).{0,8}(?:失眠|颈椎病|疾病|疼痛|腰痛|关节炎)"
+        )
+        if any(not re.search(r"(?:没有|不具备|不提供|不涉及|不承诺|不要|不得|不能|并非|不是|无(?:法|需|任何)?).{0,6}$",
+                             assertions[:match.start()]) for match in medical_claim.finditer(assertions)):
+            issues.append("休闲娱乐体验出现治疗或医疗功效，结构化事实不能编造")
+        for pattern, label in (
+            (r"(?:水温|池温|温度)[^，,。；;\n]{0,8}\d+(?:\.\d+)?\s*(?:℃|度|摄氏)", "水温/温度"),
+            (r"\d+(?:\.\d+)?\s*(?:分钟|小时)[^，,。；;\n]{0,8}(?:按摩|水疗|SPA|项目|体验)|(?:按摩|水疗|SPA|项目|体验)[^，,。；;\n]{0,8}\d+(?:\.\d+)?\s*(?:分钟|小时)", "项目时长"),
+        ):
+            def measure_key(value):
+                amount = float(re.search(r"\d+(?:\.\d+)?", value).group())
+                return amount * 60 if "小时" in value else amount
+            known = {measure_key(value) for value in re.findall(pattern, evidence)}
+            if any(measure_key(value) not in known for value in re.findall(pattern, assertions)):
+                issues.append(f"休闲娱乐体验出现未提供的{label}，结构化事实不能编造")
+        package = r"(?<!不)(?:包含|含|赠送|免费提供)[^，,。；;\n]{0,10}(洗浴|汤泉|水疗|SPA|按摩|足浴|餐饮|自助餐|过夜)"
+        known_services = set(re.findall(package, evidence))
+        if set(re.findall(package, assertions)) - known_services:
+            issues.append("休闲娱乐体验出现未核验的套餐服务权益，结构化事实不能编造")
+        if _PRICE_VALUE_CLAIM_RE.search(assertions) and not _source_has_price_evidence(evidence):
+            issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
     if canonical == "旅行":
         # Compare definite claims: a question or a stated unknown is not
         # evidence that the venue has the queried property.
@@ -14200,10 +14272,11 @@ async def extract_screenshot(
             '  "title": "笔记标题（B类型填空字符串）",\n'
             '  "body": "正文内容，不要包含话题标签（B类型填空字符串）",\n'
             '  "tags": ["截图中识别到的话题标签，如 #广州美食；没有则返回空数组"],\n'
-            '  "domain": "美食/旅行/穿搭/美妆/家居/健身/母婴；不能确定则返回空字符串",\n'
+            '  "domain": "美食/旅行/穿搭/美妆/家居/健身/母婴/休闲娱乐体验；不能确定则返回空字符串",\n'
             '  "cover_desc": "图片视觉描述：主体元素、色调光线、构图氛围，40-80字（C类型填空字符串）"\n'
             "}\n"
             "注意：1）话题必须放入 tags，不要混入 body；2）B类型（纯图片）也必须按格式返回，cover_desc 必须详细描述图片内容，不要返回 error。"
+            "3）洗浴、汤泉、水疗/SPA、休闲按摩/足浴属于休闲娱乐体验；医院、诊疗、疾病治疗或康复科文章不能仅因按摩一词归入休闲。只有普通房间或泡池且主题不明时不能猜行业。"
         )
         try:
             image_url, media_type, image_bytes = _data_url_from_image_b64(req.image_base64)
@@ -14228,6 +14301,8 @@ async def extract_screenshot(
                     isinstance(result.get('tags'), list) and all(isinstance(t, str) for t in result['tags']))):
                 raise ValueError('screenshot_result_fields_invalid')
             result = {k: result[k] for k in ('type','title','body','tags','domain','cover_desc') if k in result}
+            result["domain"] = _normalize_screenshot_domain(result.get("domain"),
+                str(result.get("title") or "") + "\n" + str(result.get("body") or ""))
 
             img_type = result.get("type", "A")
             body_main, tags = _split_ocr_body_and_tags(result.get("body"), result.get("tags"))
@@ -14282,6 +14357,18 @@ class ValidateOcrInput(BaseModel):
     ocr_results: list[dict] = Field(min_length=1, max_length=9)
     ocr_request_ids: list[str] = Field(default_factory=list, max_length=9)
 
+
+def _normalize_screenshot_domain(value: Any, text: str = "") -> str:
+    """Normalize the model's explicit classification; do not infer from a lone keyword."""
+    try:
+        canonical = _prompt_composer.canonicalize_domain(value if isinstance(value, str) else "")
+    except ValueError:
+        return ""
+    asserted_text = "\n".join(_fact_assertions(text))
+    if canonical == "休闲娱乐体验" and re.search(r"医院|门诊|骨科|中医科|康复科|临床|病历|患者|诊疗", asserted_text):
+        return ""
+    return canonical
+
 @app.post("/validate-ocr")
 async def validate_ocr(req: ValidateOcrInput, user: dict = Depends(_auth.get_current_user),
                        request_id: str | None = Header(None, alias=_idempotency.IDEMPOTENCY_HEADER)):
@@ -14331,7 +14418,9 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
         raise HTTPException(413, "截图文字超过单次处理范围，请拆分笔记；未截断内容")
     if all(r.get("type") == "B" and str(r.get("cover_desc") or "").strip() for r in results):
         observations = "\n\n".join(f"【图{i+1}视觉观察】{r['cover_desc']}" for i, r in enumerate(results))
-        return {"title": "", "body": observations, "text_body": "", "tags": "", "domain": results[0].get("domain") or "美食",
+        domains = {_normalize_screenshot_domain(r.get("domain")) for r in results}
+        domains.discard("")
+        return {"title": "", "body": observations, "text_body": "", "tags": "", "domain": next(iter(domains)) if len(domains) == 1 else "",
                 "char_count": 0, "validated": False, "is_photo_only": True}
 
     # 单张且内容质量合理（<500字）直接返回，不需要 agent
@@ -14343,7 +14432,7 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
             "body":   body_main,
             "text_body": body_main,
             "tags":   tags,
-            "domain": r.get("domain", "美食"),
+            "domain": _normalize_screenshot_domain(r.get("domain"), r.get("title", "") + "\n" + body_main),
             "char_count": _body_content_len_without_tags(body_main),
             "validated": False,
         }
@@ -14368,15 +14457,15 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
 
     system = (
         "你是小红书笔记内容鉴别专家。以下来自同一用户上传的多张截图的OCR识别结果。\n"
-        "同一篇笔记被截成多张图（每张都有菜品照片+同样的文字），导致文字重复出现。\n\n"
+        "同一篇笔记可能被截成多张图，重复文字要去重，不同区域/项目的真实文字要保留。\n\n"
         "你的任务：\n"
         "1. 识别真正唯一的笔记标题（全文只有1个标题）\n"
         "2. 提取完整正文，严格去除重复段落，每段只保留一次\n"
         "3. 单独提取话题标签，严格去重；话题不要混入正文\n"
         "4. 配图描述（如「图片展示了...温润...」）不是笔记正文，不要包含\n"
-        "5. 识别内容领域\n\n"
+        "5. 识别内容领域；洗浴、汤泉、水疗/SPA、休闲按摩/足浴归入休闲娱乐体验；医院、诊疗、疾病治疗和康复科不能仅因按摩一词归入休闲。不能确定则返回空字符串。\n\n"
         "严格按JSON返回，不加任何解释：\n"
-        "{\"title\":\"唯一标题\",\"body\":\"去重后的完整正文，不含话题\",\"tags\":\"#话题1 #话题2\",\"domain\":\"美食/旅行/穿搭/...\",\"char_count\":正文实际字数}"
+        "{\"title\":\"唯一标题\",\"body\":\"去重后的完整正文，不含话题\",\"tags\":\"#话题1 #话题2\",\"domain\":\"美食/旅行/穿搭/美妆/家居/健身/母婴/休闲娱乐体验\",\"char_count\":正文实际字数}"
     )
     user_prompt = "\n\n---\n\n".join(blocks)
 
@@ -14394,7 +14483,7 @@ async def _validate_ocr_impl(req: ValidateOcrInput, user: dict):
                 "body":       body_main,
                 "text_body": body_main,
                 "tags":       tags,
-                "domain":     d.get("domain") or "美食",
+                "domain":     _normalize_screenshot_domain(d.get("domain"), str(d.get("title") or "") + "\n" + body_main),
                 "char_count": _body_content_len_without_tags(body_main),
                 "validated":  True,
             }

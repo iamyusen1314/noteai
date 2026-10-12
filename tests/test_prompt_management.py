@@ -631,7 +631,7 @@ class PromptComposerContractTests(unittest.TestCase):
                 self.assertEqual(len({p["rendered_text"] for p in previews}), 1)
                 continue
             bodies = [p["rendered_text"].split("\n", 1)[1] for p in previews]
-            self.assertEqual(len(set(bodies)), 7, key)
+            self.assertEqual(len(set(bodies)), 8, key)
             for preview in previews:
                 self.assertNotIn("{domain}", preview["rendered_text"])
                 self.assertIn(api._get_quality_contract(preview["domain"]), preview["rendered_text"])

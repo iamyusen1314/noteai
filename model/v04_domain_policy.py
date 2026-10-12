@@ -7,9 +7,16 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 
-CORE_PRODUCT_DOMAINS = ("美食", "旅行", "穿搭", "美妆", "家居", "健身", "母婴")
+LEISURE_DOMAIN = "休闲娱乐体验"
+LEISURE_DOMAIN_ALIASES = dict.fromkeys(
+    ("休闲娱乐", "洗浴", "汤泉", "温泉体验", "水疗", "SPA", "spa", "Spa", "按摩", "足浴", "足疗"),
+    LEISURE_DOMAIN,
+)
+
+CORE_PRODUCT_DOMAINS = ("美食", "旅行", "穿搭", "美妆", "家居", "健身", "母婴", LEISURE_DOMAIN)
 
 PRODUCT_DOMAIN_ALIASES = {
+    **LEISURE_DOMAIN_ALIASES,
     "": "其他",
     "unknown": "其他",
     "Unknown": "其他",

@@ -18,12 +18,13 @@ from typing import Optional
 
 import db
 import content_retention
+from v04_domain_policy import CORE_PRODUCT_DOMAINS, canonical_product_domain
 
 _MAX_CONTEXT_MEMORIES = 3   # 最多注入几条上下文记忆
 _MAX_STYLE_MEMORIES   = 5   # 最多注入几条风格/偏好记忆
 _DECAY_ON_ACCESS      = 0.98  # 每次被注入时轻微衰减（让旧记忆逐渐淡出）
 PREFERENCE_KEYS = frozenset({'tone', 'emoji', 'title_length', 'title_style', 'body_length'})
-PREFERENCE_DOMAINS = frozenset({'美食', '旅行', '穿搭', '美妆', '家居', '健身', '母婴'})
+PREFERENCE_DOMAINS = frozenset(CORE_PRODUCT_DOMAINS)
 _PREFERENCE_SCHEMA = 'noteai.preference.v1'
 
 
@@ -31,6 +32,7 @@ def extract_explicit_preferences(message: str, *, domain: str | None = None) -> 
     """Bounded explicit user statements only; no model or draft inference."""
     if not isinstance(message, str) or len(message) > 4000:
         return []
+    domain = canonical_product_domain(domain) if domain else None
     found = {}
     for clause in re.split(r'[。；;！!\n]', message):
         clause = clause.strip()
@@ -224,6 +226,7 @@ def delete_preference(user_id, memory_id):
 
 def read_preferences(user_id, *, domain=None):
     """Authoritative preferences; a known domain overrides only its own keys."""
+    domain = canonical_product_domain(domain) if domain else None
     with db.transaction() as tx:
         rows = _preference_rows(tx, user_id)
         prefs = {row['pref_key']: row['pref_value'] for row in tx.fetchall(
@@ -379,6 +382,7 @@ def build_memory_prompt(user_id: str, *, domain: str | None = None) -> str:
     """
     if not user_id:
         return ""
+    domain = canonical_product_domain(domain) if domain else None
 
     try:
         with db.transaction(write=True) as tx:

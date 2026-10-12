@@ -1342,9 +1342,24 @@ _LEGACY_STATS_ALIASES: dict[str, str] = {
 def get_domain_stats(domain: str) -> dict:
     """Returns {avg_ces: float, saturation: float} for a domain. Falls back to defaults."""
     _load_domain_stats()
+    from v04_domain_policy import canonical_product_domain
+    canonical = canonical_product_domain(domain)
+    if canonical == "休闲娱乐体验" and canonical not in _DOMAIN_STATS:
+        return {"avg_ces": None, "saturation": None, "benchmark_available": False,
+                "benchmark_note": "暂无该行业表现基准，不能据此判断平均表现或竞争密度。"}
     return _DOMAIN_STATS.get(domain, _DOMAIN_STATS.get(
         _LEGACY_STATS_ALIASES.get(domain, domain), {"avg_ces": 50.0, "saturation": 0.5}
     ))
+
+
+def _category_timing_fields(stats: dict) -> dict:
+    fields = {
+        "category_saturation": None if stats["saturation"] is None else round(stats["saturation"], 3),
+        "category_avg_ces": None if stats["avg_ces"] is None else round(stats["avg_ces"], 1),
+    }
+    if "benchmark_available" in stats:
+        fields.update(benchmark_available=stats["benchmark_available"], benchmark_note=stats["benchmark_note"])
+    return fields
 
 
 # ── Read ──────────────────────────────────────────────────────────────────────
@@ -1586,8 +1601,7 @@ def compute_market_timing(title: str, desc: str, domain: str) -> dict:
             "trend_momentum":      0.0,
             "is_trending_topic":   0.0,
             "content_freshness":   0.0,
-            "category_saturation": round(domain_stats["saturation"], 3),
-            "category_avg_ces":    round(domain_stats["avg_ces"], 1),
+            **_category_timing_fields(domain_stats),
             "keyword_competition": 0.0,
             "trend_peak_distance": 0.0,
             "timing_coefficient":  1.0,
@@ -1650,8 +1664,7 @@ def compute_market_timing(title: str, desc: str, domain: str) -> dict:
             "trend_momentum":      0.0,
             "is_trending_topic":   0.0,
             "content_freshness":   0.5,
-            "category_saturation": round(domain_stats["saturation"], 3),
-            "category_avg_ces":    round(domain_stats["avg_ces"], 1),
+            **_category_timing_fields(domain_stats),
             "keyword_competition": 0.5,
             "trend_peak_distance": 0.0,
             "timing_coefficient":  1.0,
@@ -1739,8 +1752,7 @@ def compute_market_timing(title: str, desc: str, domain: str) -> dict:
         "trend_momentum":      round(trend_momentum, 3),
         "is_trending_topic":   is_trending,
         "content_freshness":   round(content_freshness, 3),
-        "category_saturation": round(domain_stats["saturation"], 3),
-        "category_avg_ces":    round(domain_stats["avg_ces"], 1),
+        **_category_timing_fields(domain_stats),
         "keyword_competition": round(keyword_competition, 3),
         "trend_peak_distance": trend_peak_distance,
         "timing_coefficient":  timing_coefficient,

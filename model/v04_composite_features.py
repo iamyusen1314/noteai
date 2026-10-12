@@ -57,6 +57,12 @@ CTA_WORDS = ("点赞", "收藏", "评论", "私信", "关注", "留言", "码住
 FIRST_PERSON_WORDS = ("我", "我们", "这次", "这家", "这套", "用下来", "试下来", "去之前", "下单前")
 
 DOMAIN_KEYWORDS: dict[str, dict[str, tuple[str, ...]]] = {
+    "休闲娱乐体验": {
+        "project": ("洗浴", "汤泉", "水疗", "SPA", "spa", "按摩", "足浴", "泡池", "休息区"),
+        "process": ("流程", "更衣", "预约", "步骤", "先", "再", "顺序"),
+        "conditions": ("套餐", "包含", "不含", "收费", "价格", "营业", "时长", "地址"),
+        "choice": ("适合", "不适合", "场景", "休闲", "周末", "注意", "确认"),
+    },
     "美食": {
         "price": ("人均", "价格", "套餐", "元", "¥", "￥"),
         "address": ("地址", "位于", "路", "街", "号", "楼", "商场", "地铁", "停车", "导航", "商圈"),
@@ -325,6 +331,10 @@ def _domain_slot_features(text: str, domain: str) -> dict[str, float]:
             if col in out:
                 out[col] = hit
             hit_count += int(hit)
+    elif domain == "休闲娱乐体验":
+        # Existing aggregate signals support the new domain without adding
+        # model columns or pretending it has trained per-domain coefficients.
+        hit_count = sum(_has_any(text, words) for words in slot_map.values())
     total = len(slot_map)
     out["commercial_domain_slot_count"] = float(hit_count)
     out["commercial_domain_missing_slot_count"] = float(max(0, total - hit_count))

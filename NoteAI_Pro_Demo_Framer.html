@@ -2914,7 +2914,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="v4-hero-proof">
       <span><b>100,000+</b> 真实笔记训练/评估</span>
       <span><b>124维</b> 复合质量特征</span>
-      <span><b>7大行业</b> 行业规则分别加载</span>
+      <span><b>8大行业</b> 行业规则分别加载</span>
     </div>
   </div>
   <div class="v4-hero-visual" aria-label="V0.4 AI quality engine visual">
@@ -3004,6 +3004,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
     <div class="v4-industry-card"><i data-lucide="sofa"></i><span>家居家装</span></div>
     <div class="v4-industry-card"><i data-lucide="dumbbell"></i><span>运动健身</span></div>
     <div class="v4-industry-card"><i data-lucide="baby"></i><span>母婴育儿</span></div>
+    <div class="v4-industry-card"><i data-lucide="bath"></i><span>休闲娱乐体验</span></div>
   </div>
 </section>
 
@@ -3216,7 +3217,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
             <option value="" disabled>请选择内容领域</option>
               <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
               <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
-              <option value="母婴">母婴</option>
+              <option value="母婴">母婴</option><option value="休闲娱乐体验">休闲娱乐体验</option>
             </select>
         </div>
       </div>
@@ -3311,7 +3312,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
                      padding:12px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;cursor:pointer">
               <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
               <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
-              <option value="母婴">母婴</option>
+              <option value="母婴">母婴</option><option value="休闲娱乐体验">休闲娱乐体验</option>
             </select>
           </div>
           <div>
@@ -3550,7 +3551,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
                      padding:12px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;cursor:pointer">
               <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
               <option value="美妆">美妆</option><option value="家居">家居</option><option value="健身">健身</option>
-              <option value="母婴">母婴</option>
+              <option value="母婴">母婴</option><option value="休闲娱乐体验">休闲娱乐体验</option>
             </select>
           </div>
 
@@ -4761,6 +4762,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
           <select id="track-url-domain" style="width:100%;background:var(--surf-2);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-size:13px;outline:none">
             <option value="美食">美食</option><option value="旅行">旅行</option><option value="穿搭">穿搭</option>
             <option value="运动">运动</option><option value="学习">学习</option><option value="职场">职场</option>
+            <option value="休闲娱乐体验">休闲娱乐体验</option>
           </select>
         </div>
         <div>
@@ -6037,12 +6039,15 @@ function hasMerchantSignal(domain, title, text, merchantName) {
   if ((domain || '') === '旅行') {
     return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(酒店|民宿|客栈|度假村|乐园|景区|营地)/.test(src);
   }
+  if ((domain || '') === '休闲娱乐体验') {
+    return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(洗浴中心|水疗中心|汤泉馆|按摩馆|按摩店|足浴店|汤泉|水疗|SPA|Spa|spa|足浴|会馆)/.test(src);
+  }
   return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(旗舰店|总店|分店|万博店|广晟店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅)/.test(src);
 }
 
 function shouldAskMerchantBeforeRun(domain, title, text, payload) {
   const d = domain || '美食';
-  if (!['美食', '旅行'].includes(d)) return false;
+  if (!['美食', '旅行', '休闲娱乐体验'].includes(d)) return false;
   if (!payload || payload.merchant_visibility === 'hide') return false;
   const needsFacts = payload.content_intent === '决策转化型' || payload.merchant_visibility === 'show';
   return needsFacts && !hasMerchantSignal(d, title, text, payload.merchant_name);
@@ -7569,6 +7574,7 @@ function renderMarketTimingEvidence(mt) {
   const sourceText = Object.keys(sourceBreakdown).length
     ? Object.entries(sourceBreakdown).map(([k,v]) => `${k}:${v}`).join(' / ')
     : '未知';
+  const leisureEvidenceMissing = mt.benchmark_available === false && stale;
   sourceEl.innerHTML = [
     `<span>数据源：${escapeHtml(mt.data_source_label || '本地热词样本库')}</span>`,
     `<span class="${(stale || pipeline.state === 'evidence_unavailable') ? 'warn' : ''}">管道状态：${escapeHtml(pipelineLabel)}</span>`,
@@ -7577,7 +7583,8 @@ function renderMarketTimingEvidence(mt) {
     `<span>强证据：${escapeHtml(mt.domain_strong_keyword_count ?? 0)} 条</span>`,
     `<span class="${stale ? 'warn' : ''}">最近采集：${escapeHtml(formatTimingCapture(mt.domain_latest_capture || mt.latest_capture))}</span>`,
     `<span class="${xhs.ok ? '' : 'warn'}">${escapeHtml(xhsHealthLabel)}</span>`,
-    `<span>来源分布：${escapeHtml(sourceText)}</span>`
+    `<span>来源分布：${escapeHtml(sourceText)}</span>`,
+    ...(mt.benchmark_available === false ? ['<span class="warn">行业表现基准：暂无证据</span>'] : [])
   ].join('');
 
   const coefficient = Number(mt.timing_coefficient || 1);
@@ -7589,9 +7596,9 @@ function renderMarketTimingEvidence(mt) {
     { label:'数据管道', value:pipelineLabel, help:pipeline.reason || pipeline.worker_hint || '趋势 worker 负责每日采集并生成快照' },
     { label:'XHS health', value:xhsHealthLabel, help:latestHealth.error_summary || latestHealth.error_code || (xhs.ok ? '真实 XHS 新鲜度满足当前要求' : '尚未看到可用真实 XHS freshness 记录') },
     { label:'趋势参考系数', value:'×' + coefficient.toFixed(2), help: stale ? '行业热词未更新，当前停用趋势判断' : '用于解释趋势契合度，不直接乘总分' },
-    { label:'最高搜索量指数', value:Math.round(vol * 100), help:'命中词在本地样本中的相对热度' },
-    { label:'上升趋势占比', value:Math.round(momentum * 100) + '%', help:'命中词中仍在上升的比例' },
-    { label:'竞争度估计', value:Math.round(competition * 100), help:'越高代表同类内容竞争越强' },
+    { label:'最高搜索量指数', value:leisureEvidenceMissing ? '暂无证据' : Math.round(vol * 100), help:'命中词在本地样本中的相对热度' },
+    { label:'上升趋势占比', value:leisureEvidenceMissing ? '暂无证据' : Math.round(momentum * 100) + '%', help:'命中词中仍在上升的比例' },
+    { label:'竞争度估计', value:leisureEvidenceMissing ? '暂无证据' : Math.round(competition * 100), help:'越高代表同类内容竞争越强' },
     { label:'证据质量', value:escapeHtml(mt.domain_strong_keyword_count ?? 0), help:escapeHtml(mt.evidence_quality_note || '按行业相关度、出现次数和来源强度分层') }
   ].map(item => `
     <div class="timing-evidence-item">
@@ -7606,6 +7613,7 @@ function renderMarketTimingEvidence(mt) {
   if (pipeline.worker_hint && stale) {
     formulaEl.textContent += ' 当前未观察到趋势 worker 生成的新鲜行业证据，请启动本地趋势 worker 后重新测试。';
   }
+  if (mt.benchmark_available === false) formulaEl.textContent += ' ' + (mt.benchmark_note || '暂无该行业表现基准。');
 }
 
 async function populateReport() {
@@ -13084,7 +13092,8 @@ function _normalizeSsTags(value) {
 let _screenshotDomainManuallySelected = false;
 
 function _supportedScreenshotDomain(value) {
-  const domain = String(value || '').trim();
+  const raw = String(value || '').trim();
+  const domain = ['休闲娱乐','洗浴','汤泉','温泉体验','水疗','SPA','spa','Spa','按摩','足浴','足疗'].includes(raw) ? '休闲娱乐体验' : raw;
   return Array.from(document.getElementById('genDomain')?.options || []).some(option => option.value === domain) ? domain : '';
 }
 
