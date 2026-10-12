@@ -10913,7 +10913,7 @@ def _food_operating_fact_issues(text: str, source_context: str | None) -> list[s
 _LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗", re.I)
 _LEISURE_SERVICE_RE = re.compile(
     r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗|"
-    r"泡池|休息区|大厅|包房|麻将|电竞|PS|Switch|桌球|书吧|酒廊|电影院|桌游|户外庭院|庭院|"
+    r"泡池|休息区|大厅|包房|麻将|电竞|(?<![A-Za-z])PS(?![A-Za-z])|Switch|桌球|书吧|酒廊|电影院|桌游|户外庭院|庭院|"
     r"餐饮|自助餐|早餐|午餐|晚餐|宵夜|夜宵|水果|软饮|雪糕自助|雪糕|特调饮料|特调饮品|饮料|饮品|酒水|过夜", re.I)
 _LEISURE_PACKAGE_RE = re.compile(
     r"(?:套餐|套票|门票)\s*[A-Za-z0-9甲乙丙丁一二三四五六七八九十]+|"

@@ -240,6 +240,28 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertFalse(api._delivery_integrity_issues("套餐A含不含按摩？套餐B是否赠送足浴需确认。", "", DOMAIN))
         self.assertFalse(api._delivery_integrity_issues("套餐A含不含泳池、包房或早餐？麻将、电竞和酒水需确认。", "", DOMAIN))
 
+    def test_ps_entitlement_is_not_inferred_from_latin_word_substrings(self):
+        cases = (
+            ("cups_leak", "套餐A含PS游戏机。", "套餐A含CUPS（杯具）使用。", True),
+            ("maps_leak", "套餐A含PS游戏机。", "套餐A含Google Maps导览服务。", True),
+            ("apps_leak", "套餐A含PS游戏机。", "套餐A含音乐Apps点歌服务。", True),
+            ("cups_false_rejection", "套餐A含CUPS（杯具）使用。", "套餐A含杯具使用。", False),
+            ("maps_false_rejection", "套餐A含Google Maps导览服务。", "套餐A含地图导览服务。", False),
+            ("explicit_ps", "套餐A含PS游戏机。", "套餐A含PS游戏机。", False),
+            ("lowercase_ps", "套餐A含PS和Switch。", "套餐A含ps和switch。", False),
+            ("existing_ps5_recognition", "套餐A含PS5游戏机。", "套餐A含PS5游戏机。", False),
+            ("negative_ps", "套餐A不含PS游戏机。", "套餐A不含ps游戏机。", False),
+            ("unprovided_ps", "套餐A含PS游戏机。", "套餐A含杯具使用。", True),
+        )
+        for label, output, source, expected_issue in cases:
+            with self.subTest(label=label):
+                issues = api._delivery_integrity_issues(output, source, DOMAIN)
+                self.assertEqual(any("套餐服务权益" in issue for issue in issues), expected_issue)
+                if expected_issue:
+                    self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+                else:
+                    self.assertFalse(issues)
+
     def test_lookup_failure_and_success_keep_facts_truthful(self):
         failed = facts.format_fact_context({"error": "provider_request_failed", "facts": {}, "provider": "amap"})
         self.assertIn("事实检索未完成", failed)
