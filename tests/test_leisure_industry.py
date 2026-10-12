@@ -453,6 +453,20 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertIn('行业名不证明任何子场景', chat.call_args.args[0])
             self.assertIn('KTV包房唱歌', chat.call_args.args[0])
 
+    def test_body_shaping_uses_the_same_general_scene_contract(self):
+        captures = []
+        async def model(_task, system, user, **kwargs):
+            captures.append((system, user, kwargs.get('trace_step')))
+            return '本次只记录普通房间与座椅，参与项目待确认。\n#空间记录 #休闲体验 #真实素材 #场景记录 #周末记录'
+        with mock.patch.object(api._mr, 'call', side_effect=model):
+            result = asyncio.run(api._shape_body_for_delivery('休闲空间记录', '房间与座椅。', DOMAIN, '空间：普通房间与座椅；具体项目未知'))
+        self.assertEqual(len(captures), 1)
+        self.assertEqual(captures[0][2], 'delivery_body_shaping')
+        self.assertIn('行业名不证明任何子场景', captures[0][0])
+        self.assertIn('场景不明时写一般真实体验', captures[0][0])
+        self.assertIn('普通房间与座椅', captures[0][1])
+        self.assertNotRegex(result, '汤泉|泡池|按摩|技师')
+
     def test_general_project_aggregate_slots_preserve_all_model_columns(self):
         fixed_columns = tuple(features.COMPOSITE_FEATURE_COLS)
         for text in ('包房唱歌', '饮品与音乐', '桌游活动', '手作体验', '观演空间', '汤泉与自助餐'):

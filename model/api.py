@@ -10685,6 +10685,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         + _generation_memory_context(memory_context)
         + ("\n\n" + constraint_context if constraint_context else "")
         + f"\n\n{_CONTENT_SOURCE_POLICY}"
+        + ("\n\n" + _prompt_composer._LEISURE_SCENE_POLICY if canonical == "休闲娱乐体验" else "")
     )
     user = (
         f"标题：{title}\n"
