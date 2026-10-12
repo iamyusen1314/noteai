@@ -128,6 +128,8 @@ Admin QA仅抽取原 `renderAmapAccountStatus` 组件到私有file fixture，110
 
 上线前剩余项由原发布方统一安排：安全恢复终结和实际旧构建读回；当前DB-clock/period/end及历史限制；0902运行Key的隐藏内存相等与官方账户/服务组归属；本月真实官方额度和观察材料；原受控维护权限与真实PG续期/幂等/失败读回；NOTEAI_MARKET_TIMING_REQUIRED真实值和新域缺趋势的既有门禁；美团真实授权/额度/CLI与候选安全执行路径；真实模型单图/九图、事实成功/失败与生产PC/H5回归。没有任何新费用或生产操作在本窗口执行，没有本轮上线时间承诺。
 
+最终交接状态：再次用工具核实精确标题/ID后，`send_message_to_thread` 成功返回该聊天ID，完整交接已发送；没有对方已阅读、已纳入构建或已部署的确认。私有回执为 `/Users/openclaw/.codex/tmp/noteai-amap-leisure-20261012/final-handoff-send-receipt.json`。本报告已请求在当前聊天打开（工具返回queued）；没有把该UI请求当作发布或验收证据。
+
 ## 完整可转发交接文字
 
 致“启动NoteAI授权续期发布”（01a0f7cb-70cc-71d3-bd42-2cc75bdae2d3）：当前安全恢复优先，这不是要求立即改动生产，也不是新的部署授权。本窗口按Owner要求在独立worktree修复业务问题，没有改你的目录、进程、数据、生产或冻结恢复输入。
