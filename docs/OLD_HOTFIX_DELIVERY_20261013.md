@@ -1,6 +1,6 @@
 # 旧版小修复交付控制与真实证据
 
-实际核查读回时点：北京时间2026-10-13 02:05。目标10:00前交付；关键真实验收不足时不发布。本文覆盖此前验收记录中已过时的当前状态，历史原件保留。
+实际控制记录时点：北京时间2026-10-13 08:11。目标10:00前交付；关键真实验收不足时不发布。本文覆盖此前验收记录中已过时的当前状态，历史原件保留。
 
 ## 责任与范围
 
@@ -8,7 +8,7 @@ Owner明确授权本窗口完成修复、隔离真实验收、生产部署和恢
 
 只交付高德月度快照、休闲娱乐体验及相关Prompt、直接相关美团授权错误处理。保留旧界面、业务数据库结构、其他业务、账户、支付回调和账务；不含App86、H5大版本、0032–0041或无关重构。恢复使用原镜像及配置、静态指针，不覆盖数据库，不丢弃新业务数据，不转大版本升级。
 
-真实新增付费调用只可使用明确已批准预算。此前150元是提案，未发现批准原件；4040.5积分余额不等于供应商预算。当前新供应商查询0、模型/视觉0；外部模型与检索新增调用费用0，现有云平台运行/命令等增量账单未核实，不能统一宣称全部费用0。
+真实新增付费调用只可使用明确已批准预算。Owner最新原回复已明确批准本轮新增真实视觉／模型累计最多150元，包含内部评分、修复及重试；达到上限即停，无法定价或UNKNOWN不重试。批准记录model-budget-authorization-20261013.json（原问题call_8VO70YBrnbKOhJ8fb1isiK75），原提案pending已被本次批准替代。4040.5积分余额仍不是供应商预算；实际运行累计费用保护、当前价格与下游重试证据仍须核实后才派发。当前新供应商查询0、模型/视觉0；外部模型与检索新增调用费用0，现有云平台运行/命令等增量账单未核实，不能统一宣称全部费用0。
 
 ## 实际运行版本与修复版本
 
@@ -17,14 +17,15 @@ Owner明确授权本窗口完成修复、隔离真实验收、生产部署和恢
 | API旧版 | readonly02九源与d28f79c1702860a54e2e5174b7a569bdcd5707c8一致；镜像35a61b6c37c06539e0053340b17f187458cdb9d912b11302a949c45e315b428c；readonly03仍绑定相同CID | 未载入新修复，旧问题存在 |
 | Admin | 镜像ec4073b394aee0dab724b7da4804e8740702881feb0f6f06a6b217dd6f95c1ef；HTML/composer与API旧基线不同；quality helper与d28一致 | 须使用实际Admin专用最小overlay，不能全文件替换成API版本 |
 | 公共静态 | generation-recovery-d28f79c17028-s2；runtime-config与现有域名配置一致 | 未切换修复静态 |
-| 最新应用修复 | 22a794b2e82c8a159ccb52f09d91fbbfddf867ff，独立codex/amap-leisure-repair-20261012 | 源码和离线验证完成；正式镜像、真依赖运行与上线未完成 |
+| 最新应用修复 | 7ba18e3feedcec5cdca4884a4eb71db2ed204a0b，独立codex/amap-leisure-repair-20261012（继承22a，补PS拉丁词边界） | 源码和离线验证完成；正式镜像、真依赖运行与上线未完成 |
 | 后续候选 | 独立适配7df7b8a879d997aac02a5d8e2f6000f8c39689d8只含前序修复；最新行业规则仍待后续按生产新基线适配 | 不能声称已纳入候选构建或已上线 |
 
 ## 已执行的真实生产只读核查
 
 - readonly02：C c-sz06zu50pavf668、T t-sz06zu50pb2wv7k，17:18:31–33Z，exit2/Dropped0。读取完成但实际Admin不同触发基线HOLD；不是服务故障。API/Admin ready分别HTTP200，公开状态HTTP200；Payment镜像未变且namespace与API一致，错误端口的健康探针无结果，不能写成新的Payment健康通过。
 - readonly03：C c-sz06zu84wqf77cw、T t-sz06zu84wqu6lfk；Describe RequestId 01A13142-BD00-545A-8649-747F2AF4DD4B；17:53:28–30Z，Success/exit0/Dropped0。完整输出2186字节，SHA13256a075642ac163c374f80bb9ef42c32edfb990b8c772a54d9727e810c66c8。
-- 当前进程Key与public-account.env相同，当前whole-public-env与历史v3记录相同，历史v3终态flags吻合；历史给定receipt SHA与此次flat JSON序列化不匹配，原raw/pretty/flat hash语义待核实，noteai-rot-0902标签绑定仍未完成。旧api.env是撤销来源，不再用于比较或配置。
+- readonly03证明当前进程Key与public-account.env相同；readonly04证明当前whole-public-env与历史v3相同、终态flags吻合，历史原raw及pretty存档SHA均匹配可信SHA，flat stdout不同是序列化语义，不是凭据失效。结合原0902标签及F→C源绑定原件，当前使用与历史有效noteai-rot-0902配置一致；未打开含Key值页面，未输出或解密凭据。旧api.env是撤销来源，不再用于比较或配置。
+- readonly04：C c-sz06zub1lz8v7k0/T t-sz06zub1lziusxs，18:26:04–05Z，Success0/Dropped0；Describe RequestId01A1315E-B8BB-52D7-B199-3F93277B66FC，输出SHA242b8b4ed0ed94633d2a73bb7e40b2768daf38defb2ee61c0c22afc6e4df7fa4。三正式CID/镜像、六配置和boot一致；API/Admin live HTTP200，Payment在API namespace正确8002/health/ready HTTP200；公开AI/media/payment true，三unit active/running且Job空。18:26:24Z独立公开产品/Admin/status GET200。以上是现场观测时间，不能当08:11新探针或平台账单全部恢复证明。
 - 维护通道通过真实连接：noteai_admin、预期数据库、TLS/verify-full/CA绑定、READ ONLY、主库、quota SELECT/INSERT与CREATEDB权限均实际观察。只执行SELECT并rollback，业务/配额/schema写入0。
 - queued/running operations及已派发provider均0。running idempotency记录1，创建9月16日、最后更新9月21日，是历史残留；保留，不重播、重置或当作当前运行任务。
 - 无本机缓存postgres镜像。临时只读容器已确认清理，没有停止正式容器。现有RDS新建独立测试库作为备选仍在只读审查，尚未创建。
@@ -45,7 +46,7 @@ Owner明确授权本窗口完成修复、隔离真实验收、生产部署和恢
 
 复用实际12个managed模板（DB内容SHA/version已与源码基线核对）、公共输入/装配、专家/仲裁、整形、标题文案话题解析、质量与事实安全链；新域仅增加场景、体验、决策条件和医疗功效边界。旧7行业56规则块及10保护文件一致；固定124特征不变，设施多少不会刷槽位分。旧模型encoder新域仍归others，没有休闲行业训练/校准证据，不宣称新模型验收。
 
-最新27项定向离线方法PASS，70条实际装配在transport前截停PASS，均非真模型。真实PG16.15的24/24 PASS、0skip原件复用；quota源和0031未变，不重跑已完成测试。真实供应商异常、视觉和整条业务链未完成。
+最新7ba的28项受影响离线方法PASS（新增10个PS/CUPS/maps/apps/中文邻接/PS5/否定边界）；先前22a的70条实际装配在transport前截停PASS且本次装配无改，均非真模型。真实PG16.15的24/24 PASS、0skip原件复用；quota源和0031未变，不重跑已完成测试。真实供应商异常、视觉和整条业务链未完成。
 
 授权test1013实际9张图片：庭院3、泳池3、自助餐2、饮品柜台1；没有视频、SPA/按摩足疗或KTV原像素。不能用旧保存文字、同图场景推测或配套知识冒充缺失素材。原两报告已本人账户只读重开，积分前后4040.5未变，此为旧报告读取，不是修复验收。
 
@@ -57,6 +58,14 @@ Owner明确授权本窗口完成修复、隔离真实验收、生产部署和恢
 4. 只有既有明确预算覆盖时才执行真实检索、视觉、模型与PC/H5保存重开扣分，累计内部调用/重试；新费用不足记录具体阻塞，继续其他工作。
 5. 关键真实验收、生产新鲜基线和数据保留恢复方案全部通过才发布，随后核实真实镜像/source/static及线上真实流程。手机viewport与真机分列。
 
-当前上线条件未满足：没有修复运行构建、尚无真供应商/模型/视觉和修复业务流程，付费预算及部分素材/安全测试通道仍有缺件。10:00目标不取消这些门禁。
+当前上线条件未满足：没有修复运行构建、尚无真供应商/模型/视觉和修复业务流程，部分素材、完整安全测试通道和实际预算保护仍有缺件；150元金额授权已明确。10:00目标不取消这些门禁。
+
+## 实际源阶段与访问阻塞
+
+维护工具5个源文件已在全新独立UUID目录安装：source-stage state SOURCE_STAGED_PLAN_NOT_RUN，2026-10-13T00:06:31.455827Z；固定目录/var/lib/noteai/old-hotfix-7ba-20261013/1b54bb53-3f27-4860-bf60-1c6f5ee7d144/source，rawreceipt SHA f8b5c064766d3f3461d1c23c4bb8a8d5ee03161bf2db6e12a996f43a86dcb061。part1 Cc-sz06zv566do41ds/Tt-sz06zv566ed30u8、part2 Cc-sz06zv5bknxaq68/Tt-sz06zv5bkoh9wxs、final Cc-sz06zv5ey0vpa0w/Tt-sz06zv5ey1d6kg0均Success0/Dropped0。每个official CommandContent与冻结源载体逐字相同。CLI调用、Docker、生产数据库连接、供应商调用均0；只是新临时源目录实际写入，不是plan/apply/镜像/部署。
+
+构建first-part页面提交后ACK仍是原维护final；不以旧ACK声称新源上传成功。独立只读名称查询RequestId01A13297-43B4-5A17-8B25-F891DFF8663A的最新10记录中没有build-source-part1名称，原件保留。随后正常恢复完整RunCommand参数时被redirect error.taobao，浏览器site-safety拒绝并禁止改接口/换浏览器/间接执行绕过。Root停止该通道后续dispatch，已要求Owner方便时手动正常恢复原页面，不能用休息期文字授权取消平台限制。没有新镜像构建或正式部署；三维护动作终态已核。唯一生产责任仍在本窗口，原发布窗口已收到阻塞及零业务变更通告，不得代操作或形成双窗口等待。
+
+下一步IN PROGRESS：仅本地冻结实际绑定只读续期plan、隔离RDS setup与正常鉴权/累计费用hook；通道恢复后先读原状态再完成实际构建与真验收。若10:00仍缺关键验证，不上线且明确报告可用旧d28/API35/AdminEC/Payment2e0基线。
 
 原件根目录：/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012；主要子目录old-hotfix-preflight-02/03、postgres/run4、browser及general-leisure-framework-audit.md。跨窗口发送成功不等于纳入构建，构建不等于生产生效。
