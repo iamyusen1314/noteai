@@ -75,7 +75,9 @@ def _recurring_budget(row):
     if not isinstance(source, str) or not source.startswith(RECURRING_SOURCE):
         return None
     value = json.loads(source[len(RECURRING_SOURCE):])
-    if (not isinstance(value, dict) or set(value) != {"e", "a", "r", "k", "f", "u", "m", "v", "b"}
+    fields = {"e", "a", "r", "k", "f", "u", "m", "v", "b"}
+    if (not isinstance(value, dict) or set(value) not in (fields, fields | {"p"})
+        or ("p" in value and value["p"] != "o")
         or any(not isinstance(value[key], str) or not re.fullmatch(r"[0-9a-f]{64}", value[key])
                for key in ("e", "a", "r", "k"))
         or type(value["v"]) is not int or value["v"] != 50000 or value["v"] != row["quota"]
@@ -87,6 +89,10 @@ def _recurring_budget(row):
         or expiry <= _clock(row["observed_at"])):
         raise ValueError("recurring rights clocks")
     return value
+
+
+def _validity_basis(rights):
+    return "owner_runtime_assumption" if rights.get("p") == "o" else "official_verified"
 
 
 def _recurring_check(row, now, *, environment=None):
@@ -115,10 +121,15 @@ def _recurring_check(row, now, *, environment=None):
         raise AmapQuotaError("AMAP_QUOTA_RECURRING_RIGHTS_EXPIRED")
     try:
         observed = _read_rules_status(rules_status)
+        owner_assumption = _validity_basis(rights) == "owner_runtime_assumption"
+        evidence_field = "validity_evidence_sha256" if owner_assumption else "official_entitlement_artifact_sha256"
         if (observed.get("schema") != "noteai.amap_recurring_rules_status.v1"
             or observed.get("state") != "VERIFIED" or observed.get("source_url") != PUBLIC_RULES_URL
+            or (owner_assumption and (observed.get("validity_basis") != "owner_runtime_assumption"
+                or observed.get("official_validity_verified") is not False
+                or observed.get("official_entitlement_artifact_sha256") is not None))
             or any(observed.get(field) != rights[key] for field, key in (
-                ("entitlement_sha256", "e"), ("official_entitlement_artifact_sha256", "a"),
+                ("entitlement_sha256", "e"), (evidence_field, "a"),
                 ("rules_sha256", "r"), ("valid_from", "f"), ("valid_until", "u")))):
             raise ValueError("rules status unconfirmed")
         observed_at = _clock(observed["observed_at"])
@@ -337,7 +348,11 @@ def read_status(*, storage=None):
                 budget_derived_at=_iso(row["observed_at"]), unmetered_usage_upper_bound=row["official_used"],
                 admitted_in_local_budget=row["admitted_count"], entitlement_valid_from=_iso(rights["f"]),
                 entitlement_valid_until=_iso(rights["u"]), entitlement_sha256=rights["e"],
-                official_entitlement_artifact_sha256=rights["a"], official_rules_sha256=rights["r"])
+                validity_basis=_validity_basis(rights),
+                official_validity_verified=_validity_basis(rights) == "official_verified",
+                validity_evidence_sha256=rights["a"],
+                official_entitlement_artifact_sha256=rights["a"] if _validity_basis(rights) == "official_verified" else None,
+                official_rules_sha256=rights["r"])
             snapshot["admission_closes_at"] = _iso(min(end, _clock(rights["u"]))-timedelta(seconds=10))
             result["snapshot_refresh_mode"] = "finite_recurring_entitlement_maintenance_producer"
         # Match admission's database-clock safety margin, so Admin never reports

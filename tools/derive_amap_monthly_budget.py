@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Prototype finite recurring Amap allowance; no provider calls or installation.
+"""Finite recurring Amap allowance; no provider calls or installation.
 
-A retained, operator-verified official entitlement and current official rules
-must prove the allowance and exact validity dates. Key validity is insufficient.
+A retained official entitlement (v1), or an explicitly identified owner's
+finite runtime assumption (v2), supplies service validity. Only actual current
+official rules supply the monthly cap. Neither proves unknown shared usage or
+guarantees future provider availability. Key validity is insufficient.
 Only the existing maintenance channel may append local budgets. The existing
 console importer is unchanged. This tool neither fetches rights/usage nor claims
 an automatic rules observer or monthly scheduler has been installed.
@@ -31,6 +33,8 @@ from refresh_amap_quota_snapshot import (CommitUnknown,
 FIELDS = {"version", "account_scope", "service_group", "time_zone", "monthly_quota",
           "valid_from", "valid_until", "verified_at", "official_entitlement_sha256",
           "official_rules_sha256", "attestations"}
+OWNER_FIELDS = (FIELDS - {"verified_at", "official_entitlement_sha256"}) | {
+    "recorded_at", "validity_basis", "validity_evidence_sha256"}
 ATTESTATIONS = {"console_account_matches", "key_alias", "key_scope", "enterprise_certified",
     "license_purchased", "owner_risk_accepted", "exclusive_noteai_use", "all_shared_search_metered",
     "metering_continuous_since"}
@@ -50,7 +54,7 @@ def _file_digest(path, limit):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def prepare_entitlement(path, official_entitlement, current_official_rules, *,
+def prepare_entitlement(path, validity_evidence, current_official_rules, *,
                         configured_key, approved_key, observed_key):
     """Validate an attestation, not establish supplier truth from a test file."""
     try:
@@ -59,8 +63,12 @@ def prepare_entitlement(path, official_entitlement, current_official_rules, *,
             raise ValueError()
         value = json.loads(p.read_text())
         attested = value.get("attestations") if isinstance(value, dict) else None
-        if (not isinstance(value, dict) or set(value) != FIELDS or value["version"] != 1
-            or type(value["version"]) is not int or value["account_scope"] != quota.ACCOUNT_SCOPE
+        owner_assumption = isinstance(value, dict) and value.get("version") == 2
+        fields = OWNER_FIELDS if owner_assumption else FIELDS
+        if (not isinstance(value, dict) or set(value) != fields or type(value["version"]) is not int
+            or value["version"] not in {1, 2}
+            or (owner_assumption and value["validity_basis"] != "owner_runtime_assumption")
+            or value["account_scope"] != quota.ACCOUNT_SCOPE
             or value["service_group"] != quota.SERVICE_GROUP or value["time_zone"] != "Asia/Shanghai"
             or type(value["monthly_quota"]) is not int or value["monthly_quota"] != 50000
             or not isinstance(attested, dict) or set(attested) != ATTESTATIONS
@@ -75,7 +83,9 @@ def prepare_entitlement(path, official_entitlement, current_official_rules, *,
         if not (hmac.compare_digest(configured_key.encode(), approved_key.encode())
                 and hmac.compare_digest(configured_key.encode(), observed_key.encode())):
             raise RefreshError("AMAP_RECURRING_KEY_MISMATCH")
-        for key, artifact in (("official_entitlement_sha256", official_entitlement),
+        evidence_field = "validity_evidence_sha256" if owner_assumption else "official_entitlement_sha256"
+        recorded_field = "recorded_at" if owner_assumption else "verified_at"
+        for key, artifact in ((evidence_field, validity_evidence),
                               ("official_rules_sha256", current_official_rules)):
             digest = value[key]
             if not isinstance(digest, str) or len(digest) != 64 or not hmac.compare_digest(
@@ -83,16 +93,21 @@ def prepare_entitlement(path, official_entitlement, current_official_rules, *,
                 raise RefreshError("AMAP_RECURRING_OFFICIAL_ARTIFACT_MISMATCH")
         try:
             start, expiry, verified, metered = (quota._clock(clock) for clock in
-                (value["valid_from"], value["valid_until"], value["verified_at"], attested["metering_continuous_since"]))
+                (value["valid_from"], value["valid_until"], value[recorded_field], attested["metering_continuous_since"]))
         except Exception:
             raise RefreshError("AMAP_RECURRING_RIGHTS_DATES_REQUIRED") from None
         if not timedelta(0) < expiry-start <= timedelta(days=366) or not start <= verified < expiry:
             raise RefreshError("AMAP_RECURRING_RIGHTS_DATES_REQUIRED")
-        value["valid_from"], value["valid_until"], value["verified_at"] = map(quota._iso, (start, expiry, verified))
+        value["valid_from"], value["valid_until"], value[recorded_field] = map(quota._iso, (start, expiry, verified))
         attested["metering_continuous_since"] = quota._iso(metered)
         digest = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         value["entitlement_sha256"] = digest
         value["key_binding_sha256"] = hashlib.sha256(configured_key.encode()).hexdigest()
+        # Added after the legacy digest: existing v1 e/source/binding remain
+        # byte-compatible. An owner receipt is never renamed an official grant.
+        value["validity_basis"] = "owner_runtime_assumption" if owner_assumption else "official_verified"
+        value["validity_evidence_sha256"] = value[evidence_field]
+        value["validity_recorded_at"] = value[recorded_field]
         runtime = {"AMAP_WEB_KEY": configured_key,
             "NOTEAI_AMAP_RECURRING_ENTITLEMENT_SHA256": os.environ.get("NOTEAI_AMAP_RECURRING_ENTITLEMENT_SHA256"),
             "NOTEAI_AMAP_RECURRING_RULES_SHA256": os.environ.get("NOTEAI_AMAP_RECURRING_RULES_SHA256"),
@@ -133,11 +148,9 @@ def produce_month_budget(storage, entitlement, *, apply=False, expected_binding=
             _, old_end, _, _ = quota._validate_bucket(previous)
             now = quota._database_now(tx)
             period, start, end = _calendar(now)
-            if (quota._clock(value["valid_from"]) > start or quota._clock(value["valid_until"]) <= now+timedelta(seconds=10)
-                or quota._clock(value["verified_at"]) > now):
+            if (quota._clock(value["valid_from"]) > now or quota._clock(value["valid_until"]) <= now+timedelta(seconds=10)
+                or quota._clock(value["validity_recorded_at"]) > now):
                 raise RefreshError("AMAP_RECURRING_MONTH_NOT_COVERED")
-            if quota._clock(value["attestations"]["metering_continuous_since"]) > start:
-                raise RefreshError("AMAP_RECURRING_SHARED_METERING_GAP")
             if now + timedelta(seconds=10) >= end:
                 raise RefreshError("AMAP_RECURRING_PERIOD_CLOSING")
             if previous["period"] > period or (previous["period"] < period and old_end > now):
@@ -157,13 +170,22 @@ def produce_month_budget(storage, entitlement, *, apply=False, expected_binding=
                     "remaining": previous["quota"]-previous["official_used"]-previous["admitted_count"],
                     "blocked_endpoints": restrictions, "provider_requests": 0,
                     "evidence_scope": "existing_local_budget" if existing else "existing_console_observation"}
+            # A first partial month keeps its existing actual console reading.
+            # Only a NEW derived month requires full-month validity/metering;
+            # do not backdate an owner's start or replace/reset that old row.
+            if quota._clock(value["valid_from"]) > start:
+                raise RefreshError("AMAP_RECURRING_MONTH_NOT_COVERED")
+            if quota._clock(value["attestations"]["metering_continuous_since"]) > start:
+                raise RefreshError("AMAP_RECURRING_SHARED_METERING_GAP")
             reserve = _risk_reserve(tx, period, start)
             if reserve >= value["monthly_quota"]:
                 raise RefreshError("AMAP_RECURRING_UNCERTAIN_USAGE_EXHAUSTS_BUDGET")
-            metadata = {"e": value["entitlement_sha256"], "a": value["official_entitlement_sha256"],
+            metadata = {"e": value["entitlement_sha256"], "a": value["validity_evidence_sha256"],
                 "r": value["official_rules_sha256"], "k": value["key_binding_sha256"],
                 "f": value["valid_from"], "u": value["valid_until"],
                 "m": value["attestations"]["metering_continuous_since"], "v": value["monthly_quota"], "b": reserve}
+            if value["validity_basis"] == "owner_runtime_assumption":
+                metadata["p"] = "o"  # Fits the unchanged 0031 source <=500 contract.
             source = quota.RECURRING_SOURCE + json.dumps(metadata, sort_keys=True, separators=(",", ":"))
             binding = _binding(source, period)
             if expected_binding is not None and expected_binding != binding:
@@ -194,6 +216,8 @@ def produce_month_budget(storage, entitlement, *, apply=False, expected_binding=
                 "unmetered_usage_upper_bound": reserve, "budget_derived_at": row["observed_at"],
                 "remaining": row["quota"]-reserve, "blocked_endpoints": restrictions,
                 "evidence_scope": "entitlement_derived_local_budget", "provider_requests": 0,
+                "validity_basis": value["validity_basis"],
+                "official_validity_verified": value["validity_basis"] == "official_verified",
                 "billing_current_period": "unknown"}
         return result
     except (RefreshError, CommitUnknown):
@@ -239,7 +263,9 @@ class SafeParser(argparse.ArgumentParser):
 def main(argv=None):
     parser = SafeParser(description=__doc__)
     parser.add_argument("--entitlement", required=True)
-    parser.add_argument("--official-entitlement", required=True)
+    evidence = parser.add_mutually_exclusive_group(required=True)
+    evidence.add_argument("--official-entitlement", help="v1 official validity artifact")
+    evidence.add_argument("--validity-evidence", help="v2 owner runtime-assumption receipt")
     parser.add_argument("--current-official-rules", required=True)
     parser.add_argument("--attempt-state")
     mode = parser.add_mutually_exclusive_group()
@@ -247,9 +273,11 @@ def main(argv=None):
     mode.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     try:
-        prepared = prepare_entitlement(args.entitlement, args.official_entitlement, args.current_official_rules,
+        prepared = prepare_entitlement(args.entitlement, args.official_entitlement or args.validity_evidence, args.current_official_rules,
             configured_key=os.environ.get("AMAP_WEB_KEY"), approved_key=os.environ.get("NOTEAI_AMAP_RECURRING_APPROVED_KEY"),
             observed_key=os.environ.get("NOTEAI_AMAP_OBSERVED_KEY"))
+        if (bool(args.validity_evidence) != (prepared.metadata["validity_basis"] == "owner_runtime_assumption")):
+            raise RefreshError("AMAP_RECURRING_VALIDITY_CHANNEL_MISMATCH")
         storage = MaintenancePostgresStorage(os.environ.get("NOTEAI_AMAP_REFRESH_DSN"))
         result = produce_month_budget(storage, prepared)
         if args.apply and result["status"] != "same_month_noop":

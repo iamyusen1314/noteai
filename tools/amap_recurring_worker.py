@@ -199,7 +199,7 @@ def run_once(storage, *, entitlement_loader, observer, state_store, current_bind
         with storage.transaction(write=False) as tx:
             now = quota._database_now(tx)
         period, _, _ = producer._calendar(now)
-        if quota._clock(prepared.metadata["verified_at"]) > now:
+        if quota._clock(prepared.metadata["validity_recorded_at"]) > now:
             raise RulesUnknown("FINITE_RIGHTS_VERIFICATION_FUTURE")
         verified_policy = _policy(prepared, now, observer, verified=True)
         prepared.runtime["NOTEAI_AMAP_RECURRING_RULES_STATUS_FILE"] = state_store.private_policy(verified_policy)
@@ -277,7 +277,11 @@ def _policy(prepared, now, observer, *, verified, code=None):
     # Key material/digests, raw source JSON, DSN and exception text.
     return {"schema": "noteai.amap_recurring_rules_status.v1", "state": "VERIFIED" if verified else "HOLD",
         "entitlement_sha256": value.get("entitlement_sha256"),
-        "official_entitlement_artifact_sha256": value.get("official_entitlement_sha256"),
+        "validity_basis": value.get("validity_basis"),
+        "official_validity_verified": value.get("validity_basis") == "official_verified",
+        "validity_evidence_sha256": value.get("validity_evidence_sha256"),
+        "official_entitlement_artifact_sha256": value.get("validity_evidence_sha256")
+            if value.get("validity_basis") == "official_verified" else None,
         "rules_sha256": value.get("official_rules_sha256"), "valid_from": value.get("valid_from"),
         "valid_until": value.get("valid_until"), "source_url": quota.PUBLIC_RULES_URL,
         "observed_at": quota._iso(now) if now is not None else None,
