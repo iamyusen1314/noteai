@@ -6040,7 +6040,7 @@ function hasMerchantSignal(domain, title, text, merchantName) {
     return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(酒店|民宿|客栈|度假村|乐园|景区|营地)/.test(src);
   }
   if ((domain || '') === '休闲娱乐体验') {
-    return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(洗浴中心|水疗中心|汤泉馆|按摩馆|按摩店|足浴店|汤泉|水疗|SPA|Spa|spa|足浴|会馆)/.test(src);
+    return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(洗浴中心|水疗中心|汤泉生活|汤泉馆|汗蒸馆|按摩馆|按摩店|足浴店|足疗店|汤泉|水疗|SPA|Spa|spa|足浴|足疗|汗蒸|[Kk][Tt][Vv]|酒吧|清吧|会馆)/.test(src);
   }
   return /[\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(旗舰店|总店|分店|万博店|广晟店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅)/.test(src);
 }
