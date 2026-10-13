@@ -266,6 +266,172 @@ class LeisureIndustryTests(unittest.TestCase):
         contaminated = api._generation_delivery_source_context(DOMAIN, source, before)
         self.assertNotIn("真实打卡体验", json.dumps(api._generation_public_expert_opinions([opinion], contaminated, DOMAIN), ensure_ascii=False))
 
+    def test_spatial_counts_entrance_and_circulation_keep_source_scope(self):
+        unknown = "仅展示庭院、水景座位、室内水池、餐台和饮品柜台；空间数量、入口及动线未知。"
+        for claim in ("双区汤泉攻略。", "2区汤泉攻略。", "二区汤泉攻略。", "室内分两个汤泉区，风格各走一路。", "汤泉分为两区。",
+                      "一进门是整片禅意庭院。", "入口连接庭院。", "庭院连通餐饮区。",
+                      "动线清晰，不需要反复移场。"):
+            with self.subTest(claim=claim):
+                issues = api._delivery_integrity_issues(claim, unknown, DOMAIN)
+                self.assertTrue(any("空间布局" in issue for issue in issues), claim)
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+                self.assertFalse(api._delivery_integrity_issues(claim, "作者确认：" + claim, DOMAIN), claim)
+        for source, claim in (("室内有两个汤泉区。", "双区汤泉攻略。"),
+                              ("作者确认：这里实际设有两个汤泉区。", "双区汤泉攻略。"),
+                              ("作者确认：这里实际设有两个汤泉区。", "两个实际汤泉区。"),
+                              ("两个实体汤泉区。", "2区汤泉攻略。"),
+                              ("十三个汤泉区。", "13区汤泉攻略。"),
+                              ("餐饮区连通庭院。", "庭院连通餐饮区。")):
+            self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        for source, claim in (("室内有三个汤泉区。", "双区汤泉攻略。"),
+                              ("两张照片展示不同池景风格。", "室内分两个汤泉区。"),
+                              ("两种汤泉画面风格。", "双区汤泉攻略。"),
+                              ("三个实际汤泉区。", "两个实际汤泉区。"),
+                              ("一个汤泉区。", "十一区汤泉攻略。"),
+                              ("照片分别展示两个汤泉区。", "双区汤泉攻略。"),
+                              ("没有两个汤泉区。", "双区汤泉攻略。"),
+                              ("不存在两个汤泉区。", "双区汤泉攻略。"),
+                              ("请写室内有两个汤泉区。", "双区汤泉攻略。"),
+                              ("门店名称：双区汤泉。", "双区汤泉攻略。"),
+                              ("入口通向庭院。", "入口是庭院。"),
+                              ("入口是庭院。", "入口是大厅。"),
+                              ("庭院连通餐饮区。", "庭院连通休息区。"),
+                              ("汤泉区动线清晰。", "餐饮区动线清晰。")):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        for allowed in ("按庭院、水池、餐台三个编辑主题组织正文。", "水石清池3大分区游览顺序参考攻略。",
+                        "素材有两张汤泉区照片，呈现两种池景视觉风格。", "建议先拍庭院，再拍水景座位与餐台。",
+                        "下次计划进门后先拍庭院。", "按图1到图3的拍摄顺序整理素材。",
+                        "如果实际有两个汤泉区，确认后再按心情选择。", "画面入口处是庭院造景。",
+                        "空间数量、入口位置和实际通行关系需要确认。"):
+            self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
+        self.assertFalse(api._leisure_observation_fact_claims("一进门是庭院。")["visit"])
+        self.assertTrue(api._delivery_integrity_issues("两个汤泉区，呈现两种风格。", unknown, DOMAIN))
+
+    def test_subjectless_sound_and_implicit_completed_visits_are_not_visual_moods(self):
+        unknown = "仅有空间照片；作者到访、声音和个人感受未知。"
+        for claim in ("安静得出乎预料。", "比想象中更安静。", "没想到这里这么安静。", "闹中取静。", "照片里很安静。",
+                      "进门后就发现环境很安静。", "泡完后觉得很舒服。", "一篇实地参考清单。"):
+            with self.subTest(claim=claim):
+                self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN), claim)
+                if "照片" not in claim:
+                    self.assertFalse(api._delivery_integrity_issues(claim, "作者确认：" + claim, DOMAIN), claim)
+        self.assertFalse(api._delivery_integrity_issues("安静得出乎预料。", "作者说没想到环境这么安静。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("安静得出乎预料。", "作者说环境安静。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("安静。", "照片中环境安静。", DOMAIN))
+        for allowed in ("静谧雅致的画面与暖黄灯光。", "宁静的视觉效果适合留白构图。",
+                        "画面呈现闹中取静的视觉意象。", "图片氛围安静高级。", "都市休闲空间的木调风格。",
+                        "下次计划进门后看看庭院。", "建议先拍庭院再拍餐台。", "计划写实地参考清单。",
+                        "同一次来可以按已确认的项目安排自己的拍摄主题。", "我没有去过，不写亲测。"):
+            self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
+        self.assertTrue(api._delivery_integrity_issues("这次进门后就发现庭院。", "朋友进门后就发现庭院。", DOMAIN))
+
+    def test_food_qualifiers_keep_this_image_field_scope_and_reset(self):
+        unknown = "素材只有海鲜展示和庭院照片；食材状态未知。"
+        unsafe = "图9（深度）：场景：海鲜自助展示\n核心元素：海鲜，银质餐盆，透亮碎冰，精致摆盘，丰富鲜活\n视觉亮点：海鲜餐台"
+        self.assertTrue(api._delivery_integrity_issues(unsafe, unknown, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues(unsafe, "作者确认海鲜鲜活。", DOMAIN))
+        safe, notices = api._leisure_public_fact_text(unsafe, unknown)
+        self.assertNotIn("鲜活", safe)
+        for visible in ("海鲜", "银质餐盆", "透亮碎冰", "精致摆盘"):
+            self.assertIn(visible, safe)
+        self.assertTrue(notices)
+        for visual in ("图1：场景：海鲜展示\n核心元素：银盘\n图2：场景：庭院\n核心元素：鲜活色彩，暖灯",
+                       "场景：海鲜餐台\n核心元素：银盘\n场景：庭院\n核心元素：鲜活色彩，白砂",
+                       "海鲜餐台可见。\n\n庭院的画面鲜活，暖灯清晰。",
+                       "场景：海鲜展示\n核心元素：画面鲜活，精致摆盘，视觉新鲜感"):
+            self.assertFalse(api._delivery_integrity_issues(visual, unknown, DOMAIN), visual)
+            public, notices = api._leisure_public_fact_text(visual, unknown)
+            self.assertEqual(notices, [], visual)
+            self.assertIn("鲜活", public)
+
+    def test_selector_rejects_high_score_unsupported_spatial_candidate(self):
+        candidates = [{"origin": "unsafe", "title": "双区汤泉空间参考", "body": "室内分两个汤泉区，动线清晰。", "variants": ["双区汤泉攻略"]},
+                      {"origin": "visible", "title": "庭院池景素材参考", "body": "按庭院、水池、餐台三个编辑主题组织正文。", "variants": []}]
+        async def fit(title, *_args, **_kwargs):
+            return title
+        with mock.patch.object(api, "_fit_title_limit", side_effect=fit), \
+             mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(95, {}, "优秀"))), \
+             mock.patch.object(api, "_generated_quality_issues", side_effect=lambda *_args, **_kwargs: []), \
+             mock.patch.object(api, "_v04_publishable_probability", return_value=None), \
+             mock.patch.object(api, "get_v04_preference_ranker", return_value=None):
+            result = asyncio.run(api._select_best_generation_candidate(candidates, domain=DOMAIN, local_time="2026101412",
+                source_context="只展示庭院、水池和餐台；布局未知。"))
+        self.assertEqual(result["selected"]["origin"], "visible")
+        self.assertEqual(result["viable_count"], 1)
+
+    def test_stream_quality_repair_restates_only_leisure_fact_policy(self):
+        raw = "<title>庭院素材创作参考</title><body>庭院和水池可见。</body><variants>庭院场景参考</variants><rationale>素材取舍</rationale>"
+        for domain in (DOMAIN, "美食"):
+            captured = []
+            async def model(_task, system, user, **kwargs):
+                if kwargs.get("trace_step") == "generation_quality_repair":
+                    captured.append((system, user))
+                return raw
+            async def stream(*_args, **_kwargs):
+                yield "content", raw
+            async def shape(_title, value, *_args, **_kwargs):
+                return value
+            async def fit(title, *_args, **_kwargs):
+                return title
+            with mock.patch.object(api, "_runtime_prompt", return_value="原始模板{domain}"), \
+                 mock.patch.object(api._mr, "call", side_effect=model), \
+                 mock.patch.object(api._mr, "stream", side_effect=stream), \
+                 mock.patch.object(api, "_fit_title_limit", side_effect=fit), \
+                 mock.patch.object(api, "_shape_body_for_delivery", side_effect=shape), \
+                 mock.patch.object(api, "_generation_candidate_count", return_value=1), \
+                 mock.patch.object(api, "_predict", side_effect=RuntimeError("offline prompt test")), \
+                 mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(95, {}, "优秀"))), \
+                 mock.patch.object(api, "_generated_quality_issues", side_effect=lambda *_args, **_kwargs: ["标题偏短"]), \
+                 mock.patch.object(api, "_needs_v04_score_lift", return_value=False), \
+                 mock.patch.object(api, "_find_weaknesses", return_value=[]), \
+                 mock.patch.object(api, "_build_fix_instructions", return_value=[]), \
+                 mock.patch.object(api._clarification, "pause"), \
+                 mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()):
+                async def run():
+                    generator = api._generate_pipeline_stream(domain, "素材有庭院和水池；实际体验未知。", None,
+                        None, {}, None, "2026101412")
+                    try:
+                        async for _event in generator:
+                            if captured:
+                                break
+                    finally:
+                        await generator.aclose()
+                asyncio.run(run())
+            self.assertTrue(captured, domain)
+            system, user = captured[0]
+            self.assertEqual("【休闲娱乐体验事实安全策略】" in system, domain == DOMAIN)
+            self.assertEqual("【休闲娱乐体验表达要求】" in system, domain == DOMAIN)
+            self.assertEqual("上方当前标题与正文是待修模型草稿" in user, domain == DOMAIN)
+
+    def test_actual_ad_full_report_cannot_pass_the_shared_fact_gate(self):
+        # Exact retained public projection from real saved note5f0811a9; this
+        # offline shadow is regression evidence, never a new live acceptance.
+        source = '【本次用户创作简报；不是外部独立核验】\n本轮素材来自广州水石清池·汤泉生活。作者确认这是含洗浴、水疗、自助餐的大型综合休闲项目；本次9张图仅展示庭院与水景座位、室内水池、海鲜自助展示和饮品柜台。围绕这些真实区域整理一篇可收藏的休闲体验参考，正文覆盖多张相关素材，分清空间与餐饮主题，不用设施数量制造高分。未提供本人温感、味道、卫生、服务体验或疗效，不写亲测。价格、营业时间、票种、时长、具体包含权益、其他配套与分店地址未知；检索返回且对象对应的事实才可引用，失败时说明缺失，不杜撰。不推断每个中心都有SPA、汗蒸、娱乐项目或所有餐次。'
+        title = '水石清池双区汤泉＋禅庭＋海鲜自助攻略'
+        body = '一进门是整片禅意庭院，青松造景配白砾石铺地，朱红小桥架在流水松景里，安静得出乎预料。值得拍照。\n\n室内分两个汤泉区，风格各走一路。暖金柔光汤泉区配星光吊顶，池水清透，石质墙面沉稳，整体偏开阔明亮；暗调奢石汤泉区则是黄铜暖光搭木格栅，深色石材，灯光收敛，氛围更私密内敛，两个汤泉区风格差异明显，同一次来可以感受两种完全不同的汤泉体验。按心情选区。\n\n海鲜自助台铺满碎冰，冰鲜海鲜一整排展开，暖调灯光下摆盘整齐，适合汤泉结束后直接落座用餐，一站解决饭局，不用另找地方。饮品吧台区暖金弧形台面配环形灯带，深色肌理，坐下来趁汤泉结束前点一杯，节奏刚好。\n\n这家适合带家人或朋友半日消磨：禅意庭院打卡拍照，双区汤泉各取风格，海鲜自助收尾，动线清晰，不需要反复移场，对亲子或多人出行比较友好。不带娃的两人组也适合。\n\n有用先收藏，评论区聊聊你的情况。\n#广州汤泉 #水石清池 #双区汤泉 #禅意庭院 #海鲜自助 #广州周末休闲 #广州洗浴'
+        variants = ['水石清池｜双区汤泉＋禅意庭院＋海鲜自助', '广州水石清池｜双区汤泉＋海鲜自助攻略', '水石清池双区汤泉＋海鲜自助半日玩法']
+        cover = '缺少地理区位来源依据，已省略相关建议。\n医疗功效表述不适用休闲内容，已省略相关建议。\n缺少温感/味道/卫生/服务/声音体验来源依据，已省略相关建议。\n【主图】\n核心元素：青松造景，白砾石，黑石板，朱红小桥，侘寂静谧，流水庭院\n爆文角度：广州禅意汤泉庭院打卡攻略\n视觉亮点：红桥嵌在松庭里\n【其余8张素材图】\n图2（深度）：场景：广州水石清池·汤泉暖调静谧的轻奢室内泳池空间\n核心元素：暖金柔光，星光吊顶，静谧池水，石质墙面，奢雅质感，松弛氛围\n情绪基调：精致高级，沉浸享受\n爆文角度：汤泉打卡休闲清单\n视觉亮点：星光沉水泳池\n图3（深度）：藏在都市里的禅意庭院，闹中取静太适合放松\n松景,黑瓦白砂,太湖石,原木立柱,玻璃窗,新中式禅意\n静谧高级，松弛惬意\n黑松禅意枯山水景\n图4（深度）：场景：氛围感满满的海鲜自助区，暖光衬得餐台精致诱人\n核心元素：深棕质感台面，冷鲜海鲜，暖调灯光，石质肌理，餐盘堆叠，静谧高端\n情绪基调：精致高级，沉浸式享食氛围\n爆文角度：水石清池自助逛吃攻略\n图5（深度）：暖调柔光笼罩雅致汤泉室内泡池空间\n温润木色,质感石质,柔光格栅,清透汤泉,整洁雅致,松弛氛围\n广州汤泉休闲好去处\n木格栅汤池氛围感拉满\n图6（深度）：场景：暖光鎏金质感的汤泉休闲吧台空间氛围感拉满\n核心元素：暖金光泽，深色肌理材质，弧形吧台，环形灯带，藏酒陈列，松弛高级感\n情绪基调：精致高级，沉浸享受\n爆文角度：广州汤泉休闲打卡攻略\n视觉亮点：暖金弧形质感吧台\n图7（深度）：场景：暖光包裹的质感室内汤泉，静谧松弛的都市休闲空间\n核心元素：暗调奢石，黄铜暖光，粼粼汤泉，造景山石，温润氛围，整饬整洁\n爆文角度：广州汤泉躺平好去处清单\n视觉亮点：暖光粼粼的质感汤池\n闹中取静\n核心元素：黛瓦红桥，迎客松，白石枯山水，暖光石灯，静谧松弛，新中式质感\n爆文角度：广州汤泉庭院打卡参考\n视觉亮点：红桥映禅意庭院\n图9（深度）：场景：广州水石清池汤泉，海鲜自助区摆满冰鲜海鲜盛宴\n核心元素：冰鲜海鲜，银质餐盆，透亮碎冰，暖光氛围感，精致摆盘，丰富鲜活\n情绪基调：精致奢享，诱人满足\n爆文角度：汤泉海鲜自助打卡攻略\n视觉亮点：满台豪华冰鲜海鲜'
+        opinions = [{'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '缺少地理区位来源依据，已省略相关建议。\n医疗功效表述不适用休闲内容，已省略相关建议。\n缺少价格/收费来源依据，已省略相关建议。', 'opinion': '可见元素：青松造景（修剪整齐的松树群）、白色细砾石铺装地面、黑色石板路径、朱红色小木桥跨越水景、流水景观。\n构图采用纵深视角，红桥作前景焦点，松树和水景层次递进。\n光线为自然日光，营造清晰的影调对比。\n色彩对比明显：深绿松色、白砾石、黑石板、朱红桥色。\n整体呈现日式庭园的简约美学特征，空间开阔但视线引导清晰。', 'reason': '缺少地理区位来源依据，已省略相关建议。\n医疗功效表述不适用休闲内容，已省略相关建议。\n缺少价格/收费来源依据，已省略相关建议。', 'role': '视觉专家', 'suggestions': ['**切入点1：「打卡攻略」角度**', '红桥 + 松庭的视觉焦点\n适合写：庭院具体位置、最佳拍摄角度、光线时段选择、必拍景点组合、到店流程与开放区域。\n读者价值是明确知道怎么去、怎么拍、花多少时间。', '**切入点2：「休闲体验」角度**', '聚焦庭院作为汤泉空间的松弛感受。\n适合写：泡汤前后的庭院散步、视觉氛围如何缓解都市压力、庭院与汤泉的体验链路、适合什么时段来（午后/傍晚/周末）、配套休息空间。']}, {'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '医疗功效表述不适用休闲内容，已省略相关建议。\n缺少相关事实来源依据，已省略相关建议。\n缺少常态或时段客流来源依据，已省略相关建议。\n**发布时机建议**：\n- 当前无新鲜热词数据支撑特定时段优势（时机系数 1.0）\n- **建议**：根据商家实际客流和平台发布规律自主判断，暂无强时机约束', 'opinion': '**核心词融入策略**：\n- **主词**：汤泉、禅意、庭院、广州（地域）、打卡、松弛、海鲜自助\n- **融入位置**：\n- 标题：汤泉、禅意、庭院、海鲜自助（自然组合，无堆砌）\n- 一段：禅意庭院、闹中取静、松弛（场景氛围）\n- 二段：室内水景、汤泉、精致高级（空间体验）\n- 三段：海鲜自助、逛吃（餐饮体验）', 'reason': '医疗功效表述不适用休闲内容，已省略相关建议。\n缺少相关事实来源依据，已省略相关建议。\n缺少常态或时段客流来源依据，已省略相关建议。\n**发布时机建议**：\n- 当前无新鲜热词数据支撑特定时段优势（时机系数 1.0）\n- **建议**：根据商家实际客流和平台发布规律自主判断，暂无强时机约束', 'role': '增长专家', 'suggestions': ['**核心词融入策略**：', '**主词**：汤泉、禅意、庭院、广州（地域）、打卡、松弛、海鲜自助', '**融入位置**：', '标题：汤泉、禅意、庭院、海鲜自助（自然组合，无堆砌）']}, {'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '缺少地理区位来源依据，已省略相关建议。', 'opinion': '从禅意庭院到海鲜自助，每个角落都是松弛感——一篇实地参考清单。', 'reason': '缺少地理区位来源依据，已省略相关建议。', 'role': '用户专家', 'suggestions': []}]
+        issues = api._delivery_integrity_issues(title + "\n" + body, source, DOMAIN, title_variants=variants)
+        self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        self.assertTrue(any("空间布局" in issue for issue in issues))
+        self.assertTrue(any("感官" in issue for issue in issues))
+        self.assertTrue(all(any(f"备选标题{i}：" in issue for issue in issues) for i in range(1, 4)))
+        self.assertTrue(api._leisure_public_fact_issues(cover, source))
+        original = json.dumps(opinions, ensure_ascii=False)
+        public_cover = api._generation_public_visual_summary(cover, source, DOMAIN)
+        public_experts = api._generation_public_expert_opinions(opinions, source, DOMAIN)
+        public_progress = api._generation_public_progress_event({"type": "expert_opinion", "content": cover, "detail": opinions[-1]["opinion"]}, source, DOMAIN)
+        for value in (public_cover, public_experts, public_progress):
+            encoded = json.dumps(value, ensure_ascii=False)
+            for unsupported in ("丰富鲜活", "闹中取静", "实地参考清单"):
+                self.assertNotIn(unsupported, encoded)
+        for visible in ("侘寂静谧", "透亮碎冰", "银质餐盆", "精致摆盘", "暖金柔光", "静谧松弛"):
+            self.assertIn(visible, public_cover)
+        self.assertEqual(json.dumps(opinions, ensure_ascii=False), original)
+        contaminated = api._generation_delivery_source_context(DOMAIN, source, cover + "\n" + body)
+        self.assertTrue(api._delivery_integrity_issues(title + "\n" + body, contaminated, DOMAIN, title_variants=variants))
+
     def test_public_experts_omit_unknown_claims_and_preserve_internal_drafts(self):
         original = [{"role": "视觉专家", "raw": (
             "<scene>庭院有白砂与木桥，位于CBD旁。光线暖黄。</scene>"

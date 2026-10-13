@@ -8649,7 +8649,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
         return (
             "【休闲娱乐体验表达要求】\n"
             "- 按本次实际活动、项目与空间写已有流程和场景取舍，不从行业名推定子场景；综合场所的真实餐饮等相关项目保留，未知场景写一般真实体验。\n"
-            "- 感受只能转述作者已提供的信息；图片只能证明可见画面，不能证明味道、触感、温度、卫生、资质、疗效或亲测。\n"
+            "- 感受只能转述作者已提供的信息；图片只能证明可见画面，不能证明味道、触感、温度、声音、卫生、资质、疗效或亲测。安静得出乎预料等反预期或比较体验也须作者说明。静谧的视觉美学与未来拍摄建议可以保留，不承诺未知设施或动线。\n"
             "- 禁止治疗、康复、排毒祛湿、治失眠、缓解疾病等医疗功效，标题、正文、备选标题与话题都要遵守。"
         )
     if canonical == "美食":
@@ -9968,9 +9968,9 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             f"- 当前可用信息：{facts}\n"
             "- 高德只补对应门店的已返回事实，不证明未返回的服务权益、人员资质、卫生或体验效果。收费必须保留具体项目、时长、单位与包含/不包含条件，不从行业名推定预约或套餐。\n"
             "- 检索失败时明确没有取得门店事实，不编造地址、价格、营业、预约、项目时长或服务权益；非必要未知项可不写。\n"
-            "- 只写本次真实休闲体验；不得将任何项目写成治疗、康复、排毒祛湿或治失眠方案，即使来源有营销功效也不背书。\n"
+            "- 按本次真实素材或作者已确认的体验写作；未确认到访时写素材观察或参考，不替作者宣称亲历。不得将任何项目写成治疗、康复、排毒祛湿或治失眠方案，即使来源有营销功效也不背书。\n"
             "- 单图不扩大服务，多图与综合场所保留不同相关项目；实际餐饮不删除也不推定招牌，温度、味道、触感和个人感受需要作者明确提供。"
-            "\n- 按素材可见区域或编辑主题组织正文，不能据照片断言场所总分区、各区域相互独立或没有声音干扰；可以建议拍摄角度与游览顺序，不把编辑分组当作物理平面布局。"
+            "\n- 按素材可见区域或编辑主题组织正文，不同池景照片不证明两个实际池区。场所分区数量、入口位置、区域连接与动线便利须有作者或对应事实来源；不能据照片断言区域独立、无需转场或没有声音干扰。可以建议拍摄角度与游览顺序，不把编辑分组当作物理平面布局。"
         )
     if canonical == "旅行":
         mode = _travel_fact_mode(source_context)
@@ -10940,6 +10940,109 @@ def _leisure_nonvisual_fact_source(source: str | None) -> str:
     return (source or "").split(_LEISURE_VISUAL_SOURCE_MARKER, 1)[0]
 
 
+def _leisure_observation_blocks(text: str) -> list[str]:
+    """Keep one image/scene's fields together, never carry subjects to another image."""
+    boundary = (r"\n[ \t]*\n|(?=【(?:主图|其余[^】]*素材图)】|"
+                r"图\s*\d+\s*(?:[（(][^）)\n]{0,12}[）)])?[：:])|(?<=\n)(?=场景[：:])")
+    return [part.strip() for part in re.split(boundary, text or "") if part.strip()]
+
+
+def _leisure_spatial_claims(text: str, *, evidence: bool = False) -> set[tuple]:
+    """Only stated facility counts, entrance relations and circulation facts."""
+    number = (r"(?<![\d零一二两三四五六七八九十百])"
+              r"(?:\d{1,3}|[一二两三四五六七八九]?十[一二三四五六七八九]?|[一二两三四五六七八九])"
+              r"(?![\d零一二两三四五六七八九十百])")
+    project = r"汤泉|泡池|泳池|水池|水疗|汗蒸|桑拿|SPA|按摩|足疗|KTV|餐饮|自助餐|休息|娱乐"
+    space = (r"庭院|大厅|前台|水景座位|汤泉区|泡池区|泳池区|水池区|水疗区|汗蒸区|桑拿区|"
+             r"SPA区|按摩区|足疗区|KTV包房|餐饮区|自助餐区|自助区|餐台|饮品柜台|休息区|娱乐区")
+    count = re.compile(
+        r"(?P<n>" + number + r")(?:个|大)?(?:实际|实体)?(?P<p>" + project + r")(?:区(?:域)?|包房)"
+        r"|(?P<dual>双|" + number + r")区(?:实际|实体)?(?P<dp>" + project + r")"
+        r"|(?P<rp>" + project + r")(?:空间|区域)?(?:分为|分成|分|设有|共有|共|有)\s*"
+        r"(?P<rn>" + number + r")(?:个|大)?(?:区(?:域)?|包房)", re.I)
+    entrance = re.compile(
+        r"(?:一?进门(?:后)?|入口(?:处)?)(?:就|便|即)?(?P<relation>是|为|在|位于|通向|连接|紧邻)"
+        r"(?:整片|一片|一个|整个|大片|禅意|新中式){0,3}(?P<space>" + space + r")", re.I)
+    connected = re.compile(
+        r"(?P<first>" + space + r")(?:与|和|到)?(?:区域)?(?:相互|互相)?"
+        r"(?P<relation>紧邻|相邻|连通|互通|直通|连接)(?P<second>" + space + r")", re.I)
+    digits = {ch: index for index, ch in enumerate("零一二三四五六七八九十")}
+    digits.update({"两": 2, "双": 2})
+    facts = set()
+    # Preserve comma-linked spatial scope without changing the common parser.
+    for part in _fact_assertions(re.sub(r"[，,]", "", text)):
+        if re.match(r"^(?:如果|若|假如|假设|倘若)", part):
+            continue
+        if evidence and (re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算", part)
+                or re.match(r"(?:门店|商家|对象)(?:名称|名)?[：:]", part)):
+            continue
+        for match in count.finditer(part):
+            # Counting images/styles/editorial themes does not count facilities.
+            nearby = part[max(0, match.start() - 12):match.end() + 12]
+            if re.search(r"(?:照片|图片|画面|素材|主题|编辑).{0,8}(?:分组|分为|分成)", nearby):
+                continue
+            if evidence and re.search(r"照片|图片|图中|图里|画面|素材", nearby) and not re.search(r"实际|确认|设有|共有", nearby):
+                continue
+            raw_number = match.group("n") or match.group("dual") or match.group("rn")
+            if "十" in raw_number:
+                tens, _, units = raw_number.partition("十")
+                value = digits.get(tens, 1) * 10 + digits.get(units, 0)
+            else:
+                value = int(raw_number) if raw_number.isdigit() else digits[raw_number]
+            scope = (match.group("p") or match.group("dp") or match.group("rp")).upper()
+            positive = not re.search(r"(?:没有|不存在|并不|不是|不设|没|未|无)[^。；;\n]{0,4}$", part[:match.start()])
+            facts.add(("区域数量", scope, value, positive))
+        for match in entrance.finditer(part):
+            if re.search(r"画面|照片|镜头|构图|图片", part[:match.end()]):
+                continue
+            relation = {"是": "首见", "为": "首见", "在": "位于"}.get(match.group("relation"), match.group("relation"))
+            facts.add(("入口关系", relation, match.group("space").upper()))
+        for match in connected.finditer(part):
+            relation = {"紧邻": "相邻", "互通": "连通"}.get(match.group("relation"), match.group("relation"))
+            scopes = (match.group("first").upper(), match.group("second").upper())
+            if relation in {"相邻", "连通", "连接"}:
+                scopes = tuple(sorted(scopes))
+            facts.add(("区域通行", relation, scopes))
+        scopes = tuple(dict.fromkeys(value.upper() for value in re.findall(space, part, re.I))) or ("场所",)
+        for match in re.finditer(r"动线(?:很|非常|十分|整体)?(?P<quality>清晰|顺畅|流畅|合理|简单|好走)", part):
+            facts.add(("动线", scopes, match.group("quality")))
+        for match in re.finditer(r"(?:无需|不用|不需|不必|不需要)(?:反复|来回)?(?P<move>移场|转场|换场|奔波)", part):
+            facts.add(("无需转场", scopes, match.group("move")))
+    return facts
+
+
+def _leisure_contextual_food_claims(text: str, *, evidence: bool = False, observation_context: str = "") -> set[tuple]:
+    """Bind list qualifiers to their preceding food subject in this scene only."""
+    subjects = r"海鲜|生鲜|食材|食品|生蚝|长脚蟹|饮品|酒水|菜品|味道|口感"
+    states = r"鲜美|鲜嫩|新鲜(?!感)|鲜活|好吃|好喝|香甜|清甜|爽口|回甘|不腥|脆嫩|弹牙"
+    facts = set()
+    for block in _leisure_observation_blocks(text):
+        context = observation_context if observation_context and block in observation_context else block
+        offset = context.find(block)
+        structured = bool(re.search(r"(?:场景|核心元素|视觉亮点)[：:]", context))
+        for match in re.finditer(states, block):
+            # Locate the qualifier before the shared parser discards its noun.
+            start = max((m.end() for m in re.finditer(r"[。！？!?；;\n，,]", block[:match.start()])), default=0)
+            end = re.search(r"[。！？!?；;\n，,]", block[match.end():])
+            clause = block[start:match.end() + end.start() if end else len(block)].strip()
+            if not _fact_assertions(clause) or (evidence and re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算", context)):
+                continue
+            prefix = context[:offset + match.start()]
+            if not structured:
+                prefix = re.split(r"[。！？!?；;\n]", prefix)[-1]
+            before = block[max(start, match.start() - 8):match.start()]
+            after = block[match.end():match.end() + 8]
+            if re.search(r"(?:画面|视觉|色彩|颜色|构图|风格)(?:很|更|十分|非常|丰富)?$", before) or re.match(r"(?:的)?(?:画面|视觉|色彩|颜色|构图|风格)", after):
+                continue
+            found = list(re.finditer(subjects, prefix))
+            if not found:
+                continue  # Ordinary reverse syntax is handled by the local family.
+            subject = found[-1].group()
+            polarity = "否" if re.search(r"(?:没有|无|未有|并不|不|没|未)[^，,。；;\n]{0,4}$", before) else "是"
+            facts.add(("味道", subject, match.group(), polarity))
+    return facts
+
+
 def _leisure_visit_claim(part: str) -> tuple | None:
     """Bind explicit completed experience to its speaker/time; plans are not visits."""
     temporal = r"今天|昨日|昨天|前天|昨晚|今晚|上周|上月|去年|这次|本次|此次|\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?"
@@ -10950,7 +11053,10 @@ def _leisure_visit_claim(part: str) -> tuple | None:
         r"|(?P<nominal_actor>" + speaker + r")(?:" + temporal + r")?(?:的|在|于)[^，,。；;\n]{0,30}?"
         r"(?:(?:真实|亲身|实际|亲自|实地)?(?:打卡|到访|探店)(?:体验|经历|记录)|"
         r"(?:真实|亲身|实际|亲自|实地)(?:体验|经历|到店记录))"
-        r"|亲测|实测|(?:这次|本次|此次)(?:到店|到访|探店|打卡)", part)
+        r"|亲测|实测|(?:这次|本次|此次)(?:到店|到访|探店|打卡)"
+        r"|(?:一进门|进门后|走进店内|走进门店|进入店内)(?:就|便)?(?:发现|看到|看见|感到|觉得|感觉)"
+        r"|(?:泡完(?:汤|澡)?|按完(?:摩)?|唱完(?:歌)?)(?:后|之后|出来)?(?:就|便)?(?:发现|看到|感到|觉得|感觉)"
+        r"|实地(?:参考清单|参考攻略|记录)", part)
     if not visit:
         return None
     before = part[:visit.start()]
@@ -10970,9 +11076,11 @@ def _leisure_visit_claim(part: str) -> tuple | None:
     return actor, times, re.sub(r"\s", "", statement)
 
 
-def _leisure_observation_fact_claims(text: str, *, evidence: bool = False) -> dict[str, set[tuple]]:
+def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, observation_context: str = "") -> dict[str, set[tuple]]:
     """Finite claim families, not a general place/entity or truth classifier."""
-    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "crowd", "hours", "rarity", "sensory", "visit")}
+    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "spatial", "crowd", "hours", "rarity", "sensory", "visit")}
+    facts["spatial"].update(_leisure_spatial_claims(text, evidence=evidence))
+    facts["sensory"].update(_leisure_contextual_food_claims(text, evidence=evidence, observation_context=observation_context))
     periods = r"工作日|周末|节假日|平日|白天|早上|上午|中午|下午|晚上|夜间|凌晨|全天|\d{1,2}(?:[:：]\d{2}|点)"
     geography = r"CBD|中央商务区|中心城区|(?:城(?:市)?|市|城区)(?:中心|中央)|城央|闹市|闹区|商圈|市区|城区"
     sensory = (
@@ -11000,6 +11108,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False) -> di
         crowd = re.search(r"无需排队|不用排队|不排队|人不多|人少|客流少|游客少|不拥挤|不挤|人多|客流大|拥挤|高峰|低峰", part)
         times = tuple(re.findall(periods, part))
         visible_frame = bool(re.search(r"照片中|照片里|图中|图里|画面中|画面里|这一帧", part))
+        visual_sound_source = bool(re.search(r"照片|图片|画面|镜头|图中|图里|这一帧|图\s*\d+[（(:：]", part))
         if crowd and not (visible_frame and not times and crowd.group() in {"人少", "人不多", "人多", "游客少"}):
             state = {"人不多": "人少", "客流少": "人少", "游客少": "人少", "不拥挤": "人少", "不挤": "人少", "无需排队": "不排队", "不用排队": "不排队", "客流大": "人多"}.get(crowd.group(), crowd.group())
             facts["crowd"].add((times, state))
@@ -11009,7 +11118,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False) -> di
         if re.search(r"不多见|并不多见|少见|少有|稀缺|罕见|唯一|独一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
             facts["rarity"].add((re.sub(r"\s", "", part),))
         for family, subjects, claims in sensory:
-            if evidence and visible_frame and family == "声音":
+            if evidence and visual_sound_source and family == "声音":
                 # A still frame cannot establish an audible experience, even
                 # if its source caption asserts quietness or absent voices.
                 continue
@@ -11027,8 +11136,23 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False) -> di
                     or re.search(r"(?:没有|未|没|不)(?!但|仅)[^，,。；;\n]{0,4}$", between)) else "是"
                 facts["sensory"].add((family, match.group("subject"), match.group("claim"), polarity))
         quiet = re.search(r"(?P<claim>没有|无|听不到|听不见)(?P<qualifier>[^，,。；;\n]{0,6}?)(?P<subject>人声|噪声|噪音|嘈杂声|吵闹声)", part)
-        if quiet and not (evidence and visible_frame):
+        if quiet and not (evidence and visual_sound_source):
             facts["sensory"].add(("声音", quiet.group("subject"), quiet.group("claim") + quiet.group("qualifier"), "否"))
+        # Subjectless sound experience and surprise/comparison still assert an
+        # audible fact. Explicit visual aesthetics do not establish that fact.
+        visual_style = (bool(re.search(r"画面|视觉|照片|图片|镜头", part))
+                        and bool(re.search(r"美学|意象|效果|构图|色彩|风格|氛围|高级|雅致", part)))
+        for sound in re.finditer(r"安静|不吵|嘈杂|吵闹|喧闹|闹中取静", part):
+            if visual_style or (evidence and visual_sound_source):
+                continue
+            polarity = "否" if re.search(r"(?:没有|并不|不|没|未)[^，,。；;\n]{0,4}$", part[:sound.start()]) else "是"
+            facts["sensory"].add(("声音", "场所", sound.group(), polarity))
+            surprise = re.search(r"出乎(?:预料|意料)|超出预期|没想到|没料到|竟然|居然", part)
+            comparison = re.search(r"比([^，,。；;\n]{1,12}?)(?:更|还|更加)?(?:安静|不吵|嘈杂|吵闹|喧闹)", part)
+            if surprise or comparison or sound.group() == "闹中取静":
+                scope = ("反预期" if surprise else
+                         re.sub(r"想象(?:中|里)?|预想(?:中|里)?|预期", "作者预期", comparison.group(1)) if comparison else "内外对比")
+                facts["sensory"].add(("声音比较", scope, sound.group(), polarity))
         visit = _leisure_visit_claim(part)
         if visit:
             facts["visit"].add(visit)
@@ -11055,10 +11179,10 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False) -> di
     return facts
 
 
-def _leisure_observation_fact_issues(text: str, source: str) -> list[str]:
-    claims = _leisure_observation_fact_claims(text)
+def _leisure_observation_fact_issues(text: str, source: str, *, observation_context: str = "") -> list[str]:
+    claims = _leisure_observation_fact_claims(text, observation_context=observation_context)
     known = _leisure_observation_fact_claims(source, evidence=True)
-    labels = {"location": "地理区位", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历"}
+    labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历"}
     issues = []
     for kind, label in labels.items():
         missing = claims[kind] - known[kind]
@@ -11405,7 +11529,8 @@ def _leisure_public_omission_notices(issues: list[str]) -> list[str]:
             continue
         label = next((value for key, value in (
             ("地理区位", "地理区位"), ("客流", "常态或时段客流"),
-            ("空间布局", "空间布局独立关系"),
+            ("空间布局独立", "空间布局独立关系"),
+            ("空间布局", "空间布局数量/入口/通行或独立关系"),
             ("营业", "营业/开放时段"), ("稀缺", "同城稀缺比较"),
             ("感官", "温感/味道/卫生/服务/声音体验"), ("亲历", "作者亲历"),
             ("价格", "价格/收费"), ("金额", "价格/收费"),
@@ -11416,8 +11541,12 @@ def _leisure_public_omission_notices(issues: list[str]) -> list[str]:
     return list(dict.fromkeys(labels))
 
 
-def _leisure_public_fact_issues(value: str, source_context: str) -> list[str]:
+def _leisure_public_fact_issues(value: str, source_context: str, *, observation_context: str = "") -> list[str]:
     issues = _delivery_integrity_issues(value, source_context, "休闲娱乐体验")
+    if observation_context:
+        issues.extend(_leisure_observation_fact_issues(
+            value, _leisure_nonvisual_fact_source(source_context), observation_context=observation_context,
+        ))
     # Keep comma-linked observation subjects/qualifiers together when deciding
     # whether a public sentence may be retained. Do not dismantle package scopes.
     issues.extend(_leisure_observation_fact_issues(
@@ -11430,24 +11559,28 @@ def _leisure_public_fact_issues(value: str, source_context: str) -> list[str]:
 def _leisure_public_fact_text(value: str, source_context: str) -> tuple[str, list[str]]:
     """Omit unsupported public advice; internal expert drafts remain untouched."""
     retained, notices = [], []
-    for sentence in re.split(r"(?<=[。！？!?；;])|[\r\n]+", value or ""):
-        if not sentence.strip():
-            continue
-        issues = _leisure_public_fact_issues(sentence, source_context)
-        if not issues:
-            retained.append(sentence.strip())
-            continue
-        notices.extend(_leisure_public_omission_notices(issues))
-        # Observation claims can be a separate comma clause alongside genuine
-        # visible details. Keep those details without dismantling rights/scope.
-        if all("休闲娱乐体验出现未提供的地理区位" in issue for issue in issues):
-            clauses = re.split(r"[，,]", sentence)
-            safe = [part.strip() for part in clauses if part.strip()
-                    and not _leisure_public_fact_issues(part, source_context)]
-            candidate = "，".join(safe)
-            if len(safe) < len(clauses) and candidate and not _leisure_public_fact_issues(candidate, source_context):
-                retained.append(candidate)
-    safe = "\n".join(retained)
+    for block in _leisure_observation_blocks(value):
+        block_retained = []
+        for sentence in re.split(r"(?<=[。！？!?；;])|[\r\n]+", block):
+            if not sentence.strip():
+                continue
+            issues = _leisure_public_fact_issues(sentence, source_context, observation_context=block)
+            if not issues:
+                block_retained.append(sentence.strip())
+                continue
+            notices.extend(_leisure_public_omission_notices(issues))
+            # Keep visible list elements while omitting their unsupported food
+            # qualifiers. Do not split package rights or spatial relationships.
+            if all("休闲娱乐体验出现未提供的地理区位" in issue or "感官或效果" in issue for issue in issues):
+                clauses = re.split(r"[，,]", sentence)
+                safe = [part.strip() for part in clauses if part.strip()
+                        and not _leisure_public_fact_issues(part, source_context, observation_context=block)]
+                candidate = "，".join(safe)
+                if len(safe) < len(clauses) and candidate and not _leisure_public_fact_issues(candidate, source_context, observation_context=block):
+                    block_retained.append(candidate)
+        if block_retained:
+            retained.append("\n".join(block_retained))
+    safe = "\n\n".join(retained)
     remaining = _leisure_public_fact_issues(safe, source_context)
     if remaining:
         notices.extend(_leisure_public_omission_notices(remaining))
@@ -18286,6 +18419,9 @@ async def _generate_pipeline_stream(
             "<variants>3个备选标题，每行一个</variants><rationale>一句话说明修复点</rationale>"
             + _generation_memory_context(memory_context)
         )
+        if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验":
+            repair_system += ("\n\n" + _safe_fact_delivery_brief(domain, brief)
+                              + "\n\n" + _quality_expression_brief(domain))
         repair_user = (
             f"品类：{domain}\n"
             f"当前旧评分器遥测：{final_score:.1f}（仅供后台参考，不作为修复目标）\n"
@@ -18294,6 +18430,8 @@ async def _generate_pipeline_stream(
             + f"\n\n当前标题：{title}\n当前正文：\n{body}\n\n"
             f"创作者真实信息/约束：{brief or '未提供更多真实信息，不能编造价格/地址/时间；缺失处应自然提醒补充，不要乱写。'}"
         )
+        if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验":
+            repair_user += "\n上方当前标题与正文是待修模型草稿，不能作为事实来源；专家意见与AI视觉重复也不授权未确认事实。"
         try:
             raw_fix = await _mr.call("arbitrate", (repair_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=6000, trace_step='generation_quality_repair', prompt_keys=(), prompt_domain=domain)
             t_fix = _xtag(raw_fix, "title")
