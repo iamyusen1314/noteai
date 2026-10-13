@@ -171,6 +171,171 @@ class LeisureIndustryTests(unittest.TestCase):
         for domain in OLD_DOMAINS:
             self.assertEqual(api._generation_delivery_source_context(domain, original, visual), original + "\n\n" + visual)
 
+    def test_public_experts_omit_unknown_claims_and_preserve_internal_drafts(self):
+        original = [{"role": "视觉专家", "raw": (
+            "<scene>庭院有白砂与木桥，位于CBD旁。光线暖黄。</scene>"
+            "<hooks>CBD隐藏禅意庭院\n城市禅意空间对比</hooks>"
+        )}, {"role": "用户专家", "opinion": "被闹市包围的休闲场所。", "reason": "白天下午人少。",
+             "suggestions": ["用木桥与庭院作开头。", "宣传周末无需排队。"]}]
+        before = json.dumps(original, ensure_ascii=False)
+        source = "广州，地址与客流时段未知。画面有庭院、白砂、木桥与暖黄光线。"
+        for category in ("洗浴汗蒸", "按摩足疗SPA", "KTV", "酒吧"):
+            with self.subTest(category=category):
+                public = api._generation_public_expert_opinions(original, f"类型：{category}。{source}", DOMAIN)
+                encoded = json.dumps(public, ensure_ascii=False)
+                for unsupported in ("CBD", "闹市", "白天下午人少", "周末无需排队"):
+                    self.assertNotIn(unsupported, encoded)
+                for supported in ("木桥", "光线暖黄", "缺少地理区位来源依据", "缺少常态或时段客流来源依据"):
+                    self.assertIn(supported, encoded)
+                self.assertEqual(public[0]["evidence"], [])
+                self.assertIn("城市禅意空间对比", public[0]["suggestions"])
+        self.assertEqual(json.dumps(original, ensure_ascii=False), before)
+
+    def test_public_experts_keep_source_scope_and_reject_visual_authority(self):
+        opinion = {"role": "视觉专家", "raw": "<scene>庭院有木桥，位于CBD旁。</scene><hooks>CBD旁休闲空间</hooks>"}
+        supported = api._generation_public_expert_opinions([opinion], "商家位于CBD旁。", DOMAIN)
+        self.assertIn("CBD旁", json.dumps(supported, ensure_ascii=False))
+        contaminated = api._generation_delivery_source_context(DOMAIN, "广州，地址未知。", "位于CBD旁。")
+        unknown = api._generation_public_expert_opinions([opinion], contaminated, DOMAIN)
+        self.assertNotIn("CBD", json.dumps(unknown, ensure_ascii=False))
+        self.assertIn("木桥", json.dumps(unknown, ensure_ascii=False))
+
+    def test_public_medical_advice_is_omitted_even_with_repeated_source(self):
+        opinion = {"role": "用户专家", "opinion": "颂钵理疗区有理疗床。", "evidence": ["SPA可以改善睡眠质量。"],
+                   "suggestions": ["推荐给颈肩容易僵紧的人。", "可以按实际空间描述放松氛围。"]}
+        public = api._generation_public_expert_opinions([opinion], "颂钵理疗区有理疗床。SPA可以改善睡眠质量。", DOMAIN)
+        encoded = json.dumps(public, ensure_ascii=False)
+        for unsafe in ("改善睡眠质量", "颈肩容易僵紧"):
+            self.assertNotIn(unsafe, encoded)
+        for safe in ("医疗功效表述不适用休闲内容", "理疗床", "放松氛围"):
+            self.assertIn(safe, encoded)
+        self.assertEqual(public[0]["evidence"], [])
+
+    def test_public_evidence_retains_numeric_telemetry_not_fake_assertions(self):
+        metric = {"label": "正文含地址字样", "source_key": "has_address", "value": 1, "status": "available"}
+        opinions = [{"role": "增长专家", "opinion": "优先展示可见区域。", "evidence": [
+            "这类搭配在广州城区并不多见。", {"agent_text": "CBD旁休闲场所", "value": 1}, metric],
+            "suggestions": ["用庭院和自助餐的真实组合解释读者价值。"]}]
+        public = api._generation_public_expert_opinions(opinions, "广州，位置未知；有庭院与自助餐。", DOMAIN)
+        self.assertEqual(public[0]["evidence"], [metric])
+        for unsafe in ("CBD", "不多见"):
+            self.assertNotIn(unsafe, json.dumps(public, ensure_ascii=False))
+        self.assertIn("同城稀缺比较", public[0]["reason"])
+
+    def test_public_visual_progress_and_saved_context_share_one_boundary(self):
+        source = "广州，位置、时段客流、个人体验未知。"
+        event = {"type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
+                 "content": "庭院有木桥，位于CBD旁。光线暖黄。", "detail": "以CBD隐藏庭院为钩子。", "progress": 22}
+        public = api._generation_public_progress_event(event, source, DOMAIN)
+        cover = api._generation_public_visual_summary(event["content"] + "\n水温舒服。", source, DOMAIN)
+        opinions = api._generation_public_expert_opinions(
+            [{"role": "视觉专家", "opinion": event["content"], "suggestions": [event["detail"]]}], source, DOMAIN)
+        saved = api._sanitize_chat_generate_context({"cover_analysis": cover, "expert_opinions": opinions})
+        for value in (public, saved):
+            encoded = json.dumps(value, ensure_ascii=False)
+            for unsafe in ("CBD", "水温舒服"):
+                self.assertNotIn(unsafe, encoded)
+            for safe in ("木桥", "已省略相关建议"):
+                self.assertIn(safe, encoded)
+        self.assertEqual(event["detail"], "以CBD隐藏庭院为钩子。")
+        self.assertEqual(public["progress"], 22)
+
+    def test_clarified_context_keeps_external_and_confirmation_before_ai_observations(self):
+        material = "【商家原始素材】广州；价格、权益和具体区位未知。"
+        observed = "CBD旁的庭院。套餐A包含SPA。"
+        enrichment = {"provider": "amap", "facts": {"address": "测试街8号"}, "sources": []}
+        external = facts.format_fact_context(enrichment)
+        confirmation = "【本次商家确认】套餐A含按摩，不含SPA；按摩45分钟需另收费。"
+        for pipeline in ("generate_stream", "analyze"):
+            prepared = {"pipeline": pipeline, "source_material": material,
+                        "image_desc": observed, "video_desc_for_library": observed,
+                        "fact_context": external, "metadata": {"fact_enrichment": enrichment}}
+            if pipeline == "generate_stream":
+                prepared["domain"] = DOMAIN
+            else:
+                prepared["request"] = {"domain": DOMAIN}
+            context = api._clarified_fact_context(prepared, confirmation)
+            trusted = api._leisure_nonvisual_fact_source(context)
+            self.assertIn("测试街8号", trusted)
+            self.assertIn(confirmation, trusted)
+            self.assertNotIn("CBD", trusted)
+            self.assertNotIn("套餐A包含SPA", trusted)
+            self.assertIn(observed, context)  # Original observation retained as such.
+            self.assertIn(api._LEISURE_VISUAL_SOURCE_MARKER, context)
+            self.assertTrue(api._delivery_integrity_issues("CBD旁", context, DOMAIN))
+            self.assertTrue(api._delivery_integrity_issues("套餐A包含SPA", context, DOMAIN))
+            self.assertFalse(api._delivery_integrity_issues("地址是测试街8号。", context, DOMAIN))
+            self.assertFalse(api._delivery_integrity_issues(confirmation, context, DOMAIN))
+            public = api._generation_public_expert_opinions([{"role": "视觉专家", "opinion": observed}], context, DOMAIN)
+            self.assertNotIn("CBD", json.dumps(public, ensure_ascii=False))
+            for domain in OLD_DOMAINS:
+                legacy = api._clarified_fact_context({**prepared, "domain": domain}, confirmation)
+                self.assertEqual(legacy, "\n\n".join((material,
+                    "【素材观察（AI识别，未作外部独立核验）】\n" + observed, external, confirmation)))
+
+    def test_public_projection_keeps_questions_negations_and_old_domains_exact(self):
+        source = "未提供位置。"
+        text = "是否在CBD旁需确认？不能根据图片写成CBD旁。没有医疗功效。庭院光线暖黄。"
+        safe, notices = api._leisure_public_fact_text(text, source)
+        self.assertEqual(notices, [])
+        self.assertIn("是否在CBD旁需确认", safe)
+        original = [{"role": "视觉专家", "raw": "<scene>CBD旁的空间</scene><hooks>城市景观</hooks>"}]
+        event = {"type": "expert_opinion", "content": "CBD旁的空间", "detail": "景观", "progress": 22}
+        for domain in OLD_DOMAINS:
+            self.assertEqual(api._generation_public_expert_opinions(original, source, domain), api._public_expert_opinions(original))
+            self.assertEqual(api._generation_public_visual_summary(text, source, domain), text)
+            self.assertIs(api._generation_public_progress_event(event, source, domain), event)
+
+    def test_public_omission_does_not_release_cross_clause_comparisons(self):
+        for claim in ("位于广州城区，这类搭配并不多见。", "工作日下午到店，这里人少。",
+                      "泡池水温，真的很舒服。", "本次亲测，到店体验很好。"):
+            public = api._generation_public_visual_summary(claim + "木桥与暖黄光线可见。", "广州，其余事实未知。", DOMAIN)
+            for unsafe in ("不多见", "这里人少", "真的很舒服", "本次亲测"):
+                self.assertNotIn(unsafe, public)
+            self.assertIn("木桥", public)
+
+    def test_mock_stream_public_previews_preserve_only_internal_raw_drafts(self):
+        captures = []
+        async def model(task, system, user, **kwargs):
+            if kwargs.get("trace_step") == "generation_visual":
+                return "<scene>庭院有木桥，位于CBD旁。光线暖黄。</scene><hooks>CBD隐藏庭院</hooks>"
+            return "<draft_title>庭院休闲</draft_title><draft_body>被闹市包围的休闲空间。</draft_body>"
+        async def stream(task, system, user, **kwargs):
+            captures.append(user)
+            yield "content", "<title>庭院泳池休闲体验</title><body>可见庭院、泳池与自助餐。</body><rationale>以CBD旁作叙事</rationale>"
+        async def shape(_title, value, *_args, **_kwargs):
+            return value
+        with mock.patch.object(api, "_runtime_prompt", return_value="测试基础模板{domain}"), \
+             mock.patch.object(api, "_kimi_vision_understand", return_value="庭院有木桥，位于CBD旁。光线暖黄。"), \
+             mock.patch.object(api._mr, "call", side_effect=model), \
+             mock.patch.object(api._mr, "stream", side_effect=stream), \
+             mock.patch.object(api, "_shape_body_for_delivery", side_effect=shape), \
+             mock.patch.object(api, "_generation_candidate_count", return_value=1), \
+             mock.patch.object(api, "_predict", side_effect=RuntimeError("skip offline artifact scoring")), \
+             mock.patch.object(api._clarification, "pause") as pause, \
+             mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()):
+            async def run():
+                generator = api._generate_pipeline_stream(DOMAIN, "广州；有庭院、泳池与自助餐，具体区位未知。", None,
+                    None, {}, None, "2026101412", cover_images=["mock-image"])
+                events = []
+                try:
+                    async for event in generator:
+                        events.append(event)
+                        if event["type"] == "p3_done":
+                            break
+                finally:
+                    await generator.aclose()
+                return events
+            events = asyncio.run(run())
+        for event in events:
+            if event["type"] in {"expert_opinion", "p3_done"}:
+                encoded = json.dumps(event, ensure_ascii=False)
+                self.assertNotIn("CBD", encoded)
+                self.assertNotIn("闹市", encoded)
+        self.assertIn("CBD隐藏庭院", captures[0])
+        self.assertIn("CBD隐藏庭院", json.dumps(pause.call_args.args[0], ensure_ascii=False))
+        self.assertNotIn("CBD", json.dumps(pause.call_args.args[1], ensure_ascii=False))
+
     def test_claim_families_keep_provided_scope_and_personal_information(self):
         source = "门店在CBD旁。下午人少。下午营业。作者说水温舒服、服务贴心。作者说我泡完很舒服。"
         for claim in ("CBD附近", "下午人少", "下午营业", "水温舒服", "服务贴心", "我泡完很舒服"):

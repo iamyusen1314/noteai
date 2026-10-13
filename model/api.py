@@ -3349,14 +3349,14 @@ async def _agent_arbitrate(
         + "<dispute>专家分歧与取舍</dispute>\n"
     )
     raw1 = await _mr.call("arbitrate", system, user_phase1, max_tokens=4096, trace_step='diagnosis_arbitration', prompt_keys=('agent_arbitrate_system',), prompt_domain=domain)
-    await _emit_progress(emit, {
+    await _emit_progress(emit, _generation_public_progress_event({
         "type": "expert_opinion",
         "role": "仲裁专家",
         "agent_idx": 4,
         "content": (_xtag(raw1, "diagnosis") or "仲裁专家已完成诊断方向汇总。")[:220],
         "detail": (_xtag(raw1, "plan") or "")[:160],
         "progress": 64,
-    })
+    }, source_context, domain))
 
     diagnosis_text = _xtag(raw1, "diagnosis")
     plan_text = _xtag(raw1, "plan")
@@ -3732,7 +3732,9 @@ async def _run_five_agents(
                     role = result.get("role") or fallback_role
                     raw = result.get("raw") or ""
                     progress = min(progress + 6, 58)
-                    await _emit_progress(emit, _agent_event_payload(role, raw, agent_idx, progress))
+                    await _emit_progress(emit, _generation_public_progress_event(
+                        _agent_event_payload(role, raw, agent_idx, progress),
+                        fact_source_context if fact_source_context is not None else note.desc, note.domain))
 
         if stage_failure is not None:
             _public_product.assert_result_known()
@@ -3741,7 +3743,9 @@ async def _run_five_agents(
 
         if clarification_prepared is not None:
             context = _clarification.execution.get() or {}
-            _clarification.pause({**clarification_prepared, "opinions": opinions}, opinions,
+            _clarification.pause({**clarification_prepared, "opinions": opinions},
+                (_generation_public_expert_opinions(opinions, fact_source_context or note.desc, note.domain)
+                 if _DOMAIN_ALIASES.get(note.domain, note.domain) == "休闲娱乐体验" else opinions),
                 source=fact_source_context or note.desc, merchant=context.get("merchant", ""),
                 completed_steps=("素材理解", "事实检索", "原笔记评分", "四位专家分析"))
 
@@ -11266,7 +11270,38 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
 
 
 def _annotate_expert_fact_risks(opinions: list[dict], source_context: str, domain: str) -> list[dict]:
-    """Keep original expert views visible, with unsupported advice explicitly marked."""
+    """Omit unsupported leisure advice; retain the legacy domains' risk labels."""
+    if _DOMAIN_ALIASES.get(domain, domain) == "休闲娱乐体验":
+        result = []
+        for original in _public_expert_opinions(opinions):
+            item = dict(original)
+            notices: list[str] = []
+            for key in ("opinion", "impact", "reason"):
+                item[key], missing = _leisure_public_fact_text(item.get(key, ""), source_context)
+                notices.extend(missing)
+            for key in ("evidence", "suggestions"):
+                retained = []
+                for value in item.get(key, []):
+                    if isinstance(value, dict):
+                        explanatory = "\n".join(str(value.get(k) or "") for k in ("agent_text", "text", "label", "value"))
+                        issues = _leisure_public_fact_issues(explanatory, source_context)
+                        if issues:
+                            notices.extend(_leisure_public_omission_notices(issues))
+                        else:
+                            retained.append(dict(value))
+                    elif isinstance(value, str):
+                        safe, missing = _leisure_public_fact_text(value, source_context)
+                        notices.extend(missing)
+                        if safe:
+                            retained.append(safe)
+                item[key] = retained
+            if notices:
+                item["reason"] = "\n".join(dict.fromkeys(notices)) + ("\n" + item["reason"] if item["reason"] else "")
+                item["impact"] = item["reason"]
+                if not item["opinion"]:
+                    item["opinion"] = "观察与建议中的未支持事实已省略。"
+            result.append(item)
+        return result
     result = []
     for original in opinions:
         item = dict(original)
@@ -11282,6 +11317,97 @@ def _annotate_expert_fact_risks(opinions: list[dict], source_context: str, domai
             ]
         result.append(item)
     return result
+
+
+def _leisure_public_omission_notices(issues: list[str]) -> list[str]:
+    labels = []
+    for issue in issues:
+        if "医疗" in issue or "功效" in issue:
+            labels.append("医疗功效表述不适用休闲内容，已省略相关建议。")
+            continue
+        label = next((value for key, value in (
+            ("地理区位", "地理区位"), ("客流", "常态或时段客流"),
+            ("营业", "营业/开放时段"), ("稀缺", "同城稀缺比较"),
+            ("感官", "温感/味道/卫生/服务体验"), ("亲历", "作者亲历"),
+            ("价格", "价格/收费"), ("金额", "价格/收费"),
+            ("时长", "项目时长"), ("权益", "套餐/项目权益"),
+            ("套餐", "套餐/项目权益"), ("地址", "地址/联系方式"),
+        ) if key in issue), "相关事实")
+        labels.append(f"缺少{label}来源依据，已省略相关建议。")
+    return list(dict.fromkeys(labels))
+
+
+def _leisure_public_fact_issues(value: str, source_context: str) -> list[str]:
+    issues = _delivery_integrity_issues(value, source_context, "休闲娱乐体验")
+    # Keep comma-linked observation subjects/qualifiers together when deciding
+    # whether a public sentence may be retained. Do not dismantle package scopes.
+    issues.extend(_leisure_observation_fact_issues(
+        re.sub(r"[，,]", "", value),
+        re.sub(r"[，,]", "", _leisure_nonvisual_fact_source(source_context)),
+    ))
+    return list(dict.fromkeys(issues))
+
+
+def _leisure_public_fact_text(value: str, source_context: str) -> tuple[str, list[str]]:
+    """Omit unsupported public advice; internal expert drafts remain untouched."""
+    retained, notices = [], []
+    for sentence in re.split(r"(?<=[。！？!?；;])|[\r\n]+", value or ""):
+        if not sentence.strip():
+            continue
+        issues = _leisure_public_fact_issues(sentence, source_context)
+        if not issues:
+            retained.append(sentence.strip())
+            continue
+        notices.extend(_leisure_public_omission_notices(issues))
+        # Observation claims can be a separate comma clause alongside genuine
+        # visible details. Keep those details without dismantling rights/scope.
+        if all("休闲娱乐体验出现未提供的地理区位" in issue for issue in issues):
+            clauses = re.split(r"[，,]", sentence)
+            safe = [part.strip() for part in clauses if part.strip()
+                    and not _leisure_public_fact_issues(part, source_context)]
+            candidate = "，".join(safe)
+            if len(safe) < len(clauses) and candidate and not _leisure_public_fact_issues(candidate, source_context):
+                retained.append(candidate)
+    safe = "\n".join(retained)
+    remaining = _leisure_public_fact_issues(safe, source_context)
+    if remaining:
+        notices.extend(_leisure_public_omission_notices(remaining))
+        safe = ""
+    return safe, list(dict.fromkeys(notices))
+
+
+def _generation_public_expert_opinions(opinions: list[dict], source_context: str, domain: str) -> list[dict]:
+    if _DOMAIN_ALIASES.get(domain, domain) != "休闲娱乐体验":
+        return _public_expert_opinions(opinions)
+    public = []
+    for original in opinions[:8]:
+        item = _public_expert_opinion(original)
+        if not item:
+            continue
+        raw = original.get("raw") if isinstance(original.get("raw"), str) else ""
+        if not _public_expert_evidence(original.get("evidence")) and not _xtag(raw, "evidence"):
+            # Hooks, inspiration and proposed hashtags are advice, not evidence.
+            item["suggestions"] = list(dict.fromkeys(item["suggestions"] + item["evidence"]))[:4]
+            item["evidence"] = []
+        public.append(item)
+    return _annotate_expert_fact_risks(public, source_context, domain)
+
+
+def _generation_public_visual_summary(value: str, source_context: str, domain: str) -> str:
+    if _DOMAIN_ALIASES.get(domain, domain) != "休闲娱乐体验":
+        return value
+    safe, notices = _leisure_public_fact_text(value, source_context)
+    return "\n".join([*notices, safe] if safe else notices)
+
+
+def _generation_public_progress_event(event: dict, source_context: str, domain: str) -> dict:
+    if _DOMAIN_ALIASES.get(domain, domain) != "休闲娱乐体验":
+        return event
+    public = dict(event)
+    for key in ("content", "detail", "title", "rationale"):
+        if isinstance(public.get(key), str):
+            public[key] = _generation_public_visual_summary(public[key], source_context, domain)
+    return public
 
 
 async def _repair_diagnosis_report_facts(
@@ -16806,8 +16932,10 @@ async def _run_analyze_pipeline(
                 video_desc_for_library = video_desc
                 # Deliver the completed observation before downstream experts;
                 # normal SSE consumers can retain it even if a later stage fails.
-                await _emit_progress(emit, {"type": "video_analysis", "content": video_desc,
-                    "media_ref": req.video_file_id, "progress": 18})
+                await _emit_progress(emit, _generation_public_progress_event(
+                    {"type": "video_analysis", "content": video_desc,
+                     "media_ref": req.video_file_id, "progress": 18},
+                    f"{req.note_title}\n{req.desc}", req.domain))
                 # Observation is source context, never the user's original prose or its score.
                 agent_context_parts.append("【视频音画观察（AI 解读，非用户原文）】\n" + video_desc)
 
@@ -17348,8 +17476,8 @@ async def _run_analyze_pipeline(
         fact_source_policy=normalized_fact_policy,
         fact_source_decision=fact_source_decision,
         input_diagnostics=input_diagnostics,
-        video_analysis=video_desc_for_library or "",
-        cover_analysis=cover_observation,
+        video_analysis=_generation_public_visual_summary(video_desc_for_library or "", delivery_fact_context, req.domain),
+        cover_analysis=_generation_public_visual_summary(cover_observation, delivery_fact_context, req.domain),
         supplement_prompts=supplement_prompts,
         fact_context=_clarified_fact_context(prepared, prepared.get("confirmation", "")) if prepared else fact_context,
         merchant_confirmations=prepared.get("merchant_confirmations", []) if prepared else [],
@@ -17630,8 +17758,9 @@ async def _generate_pipeline_stream(
             if not video_desc or len(video_desc.strip()) < 20:
                 raise HTTPException(status_code=502, detail="视频画面理解失败，无法保证生成质量，请重新上传或稍后重试")
 
-            yield {"type": "video_analysis", "content": video_desc,
-                   "media_ref": video_file_id, "progress": 18}
+            yield _generation_public_progress_event(
+                {"type": "video_analysis", "content": video_desc,
+                 "media_ref": video_file_id, "progress": 18}, brief or "", domain)
             vis_result = {
                 "role": "视觉专家",
                 "raw": f"<scene>{video_desc}</scene><hooks></hooks>",
@@ -17651,12 +17780,12 @@ async def _generate_pipeline_stream(
                 vis_result = {**vis_result, "_image_desc": image_desc}
             _vm2 = _video_meta or {}
             n_t2 = len(_vm2.get("frames", [])); d2 = _vm2.get("duration_sec", n_t2); n_s2 = _video_send_count(d2, n_t2)
-            yield {
+            yield _generation_public_progress_event({
                 "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
                 "content": video_desc[:120],
                 "detail": f"使用{d2:.0f}s原视频与原音轨，画面按2fps处理；预览帧不代表模型输入",
                 "progress": 22,
-            }
+            }, brief or "", domain)
         else:
             # 全部已接收图片使用完整素材理解，套餐/权益来源不影响处理深度。
             all_imgs_s = (cover_images or ([cover_image] if cover_image else []))[:9]
@@ -17698,12 +17827,12 @@ async def _generate_pipeline_stream(
 
             scene = _xtag_any(vis_result.get("raw", ""), "scene", "image_desc") or image_desc[:80] or "未上传图片，沿用文字素材"
             hooks = _xtag_any(vis_result.get("raw", ""), "hooks", "inspiration")
-            yield {
+            yield _generation_public_progress_event({
                 "type": "expert_opinion", "role": "视觉分析师", "agent_idx": 0,
                 "content": scene[:120],
                 "detail": ("标题钩子：" + hooks[:60]) if hooks else f"已分析 {total_imgs_s} 张图片",
                 "progress": 22,
-            }
+            }, brief or "", domain)
 
         yield _safe_process_event(
             "process_update",
@@ -17764,10 +17893,10 @@ async def _generate_pipeline_stream(
                     cta_raw = _xtag_any(raw, "cta", "hook")
                     detail = cta_raw.split("\n")[0][:60] if cta_raw else ""
                 base_progress = min(base_progress + 8, 52)
-                yield {
+                yield _generation_public_progress_event({
                     "type": "expert_opinion", "role": role, "agent_idx": agent_idx,
                     "content": snippet[:120], "detail": detail, "progress": base_progress,
-                }
+                }, brief or "", domain)
 
         _public_product.assert_result_known()
         if expert_failed:
@@ -17793,7 +17922,8 @@ async def _generate_pipeline_stream(
             "vis_result": vis_result, "opinions": opinions,
             "had_cover": bool(cover_image),
             "metadata": context.get("metadata", {}),
-        }, opinions, source=(brief or "") + "\n" + image_desc,
+        }, (_generation_public_expert_opinions(opinions, brief or "", domain)
+            if _DOMAIN_ALIASES.get(domain, domain) == "休闲娱乐体验" else opinions), source=(brief or "") + "\n" + image_desc,
            merchant=context.get("merchant", ""), completed_steps=("素材理解", "专家分析"))
 
     # ── Pre-P3: Score draft ──────────────────────────────────────────
@@ -17985,7 +18115,9 @@ async def _generate_pipeline_stream(
         except Exception as exc:
             _log_internal_failure("generate", exc, phase="stream_selector_early")
 
-    yield {"type": "p3_done", "title": title, "rationale": rationale[:120] if rationale else "", "progress": 81}
+    yield _generation_public_progress_event(
+        {"type": "p3_done", "title": title, "rationale": rationale[:120] if rationale else "", "progress": 81},
+        brief or "", domain)
 
     # ── P4: Score ────────────────────────────────────────────────────
     yield {"type": "stage", "stage": "p4", "label": "辅助质量评分验证中…", "progress": 85}
@@ -18323,7 +18455,7 @@ async def _generate_pipeline_stream(
         "ces_percentile":  round(final_score, 1),
         "grade":           grade_str,
         "visual_score":    visual_score,
-        "cover_analysis":  vis_result.get("_image_desc", ""),
+        "cover_analysis":  _generation_public_visual_summary(vis_result.get("_image_desc", ""), brief or "", domain),
         "market_timing":   timing_obj.model_dump() if timing_obj else None,
         "feature_hits":    feature_hits,
         "quality_issues":  quality_issues,
@@ -18331,7 +18463,7 @@ async def _generate_pipeline_stream(
         "score_lift_reason": score_lift_reason,
         "selection_meta": stream_selection_meta,
         "features":        {k: float(v) for k, v in final_feats.items()},
-        "expert_opinions": _public_expert_opinions(opinions),
+        "expert_opinions": _generation_public_expert_opinions(opinions, brief or "", domain),
         "model_used":      _public_product.executed_model_label("claude-routed-5-agents-stream"),
     }
 
@@ -18774,6 +18906,7 @@ async def generate(
         constrained_brief = _merge_user_constraints_into_text(req.brief, normalized_constraints, "AI爆文生成")
         constrained_brief = f"{intent_brief}\n\n{constrained_brief}".strip() if intent_brief else constrained_brief
         enriched_brief = _append_fact_enrichment(constrained_brief, fact_enrichment)
+        public_fact_source = enriched_brief
 
         if req.video_file_id:
             observation = await _kimi_video_understand(req.video_file_id, req.domain, req.brief, user_id=user['id'])
@@ -18867,12 +19000,12 @@ async def generate(
             ces_percentile=result["ces_percentile"],
             grade=result["grade"],
             visual_score=visual_score,
-            cover_analysis=result.get("image_desc", ""),
+            cover_analysis=_generation_public_visual_summary(result.get("image_desc", ""), public_fact_source or "", req.domain),
             market_timing=MarketTiming(**{k: v for k, v in timing.items()
                                           if k in MarketTiming.model_fields}) if timing else None,
             feature_hits=result.get("feature_hits", {}),
             quality_issues=result.get("quality_issues", []),
-            expert_opinions=_public_expert_opinions(result.get("expert_opinions", [])),
+            expert_opinions=_generation_public_expert_opinions(result.get("expert_opinions", []), public_fact_source or "", req.domain),
             fact_enrichment=fact_enrichment,
             selection_meta=result.get("selection_meta", {}),
             user_constraints=normalized_constraints,
@@ -21371,6 +21504,13 @@ def _clarified_fact_context(prepared, confirmation):
         observed = "\n\n".join(p for p in (
             prepared.get("video_desc_for_library"), prepared.get("extra_image_context")) if p)
         external = prepared.get("fact_context") or ""
+    request = prepared.get("request")
+    domain = prepared.get("domain") or (request.get("domain") if isinstance(request, dict) else "") or ""
+    if _DOMAIN_ALIASES.get(domain, domain) == "休闲娱乐体验":
+        # Saved/reopened context must retain external facts and user answers
+        # before the observation marker used by the existing factual guard.
+        return _generation_delivery_source_context(
+            domain, "\n\n".join(p for p in (material, external, confirmation) if p), observed)
     return "\n\n".join(p for p in (material,
         "【素材观察（AI识别，未作外部独立核验）】\n" + observed if observed else "",
         external, confirmation) if p)
