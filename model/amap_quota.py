@@ -11,7 +11,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
+import hashlib
+import hmac
+import os
+from pathlib import Path
 import re
+import stat
 import uuid
 
 
@@ -26,6 +31,103 @@ ERROR_SOURCE = "https://lbs.amap.com/api/webservice/guide/tools/info"
 AUTH_CODES = frozenset({"10001", "10002", "10005", "10006", "10007", "10008", "10009", "10010", "10011", "10012", "10013", "10041", "40002"})
 ACCOUNT_CODES = frozenset({"10003", "10026", "10044", "40000"})
 QPS_CODES = frozenset({"10004", "10014", "10015", "10019", "10020", "10021", "10029"})
+RECURRING_SOURCE = "noteai_recurring_monthly_budget_v1:"
+PUBLIC_RULES_URL = "https://lbs.amap.com/upgrade"
+RULES_MAX_AGE = timedelta(hours=7)
+
+
+def _read_rules_status(path):
+    """Read only bounded root-owned nonsecret metadata, never initialize it."""
+    p = Path(path)
+    if not p.is_absolute():
+        raise ValueError("rules status path")
+    for parent in p.parents:
+        entry = parent.lstat()
+        if (not stat.S_ISDIR(entry.st_mode) or entry.st_uid != 0 or entry.st_gid != 0
+            or stat.S_IMODE(entry.st_mode) & 0o022):
+            raise ValueError("rules status directory")
+    descriptor = os.open(p, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        before = os.fstat(descriptor)
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != 0 or before.st_gid != 0
+            or before.st_nlink != 1 or stat.S_IMODE(before.st_mode) not in {0o600, 0o644}
+            or not 0 < before.st_size < 4096):
+            raise ValueError("rules status file")
+        raw = os.read(descriptor, 4096)
+        after, live = os.fstat(descriptor), p.lstat()
+        if len(raw) != before.st_size or any(getattr(before, key) != getattr(after, key)
+            or getattr(before, key) != getattr(live, key) for key in
+            ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")):
+            raise ValueError("rules status changed")
+        return json.loads(raw)
+    finally:
+        os.close(descriptor)
+
+
+def _recurring_budget(row):
+    """Decode a local allocation, never reinterpret it as a console reading.
+
+    Its internal Key digest never reaches read_status or CLI output. Legacy
+    numeric/time slots represent a conservative unmetered-request reserve and
+    derivation time. Only maintenance may insert these immutable rows.
+    """
+    source = row["source"]
+    if not isinstance(source, str) or not source.startswith(RECURRING_SOURCE):
+        return None
+    value = json.loads(source[len(RECURRING_SOURCE):])
+    if (not isinstance(value, dict) or set(value) != {"e", "a", "r", "k", "f", "u", "m", "v", "b"}
+        or any(not isinstance(value[key], str) or not re.fullmatch(r"[0-9a-f]{64}", value[key])
+               for key in ("e", "a", "r", "k"))
+        or type(value["v"]) is not int or value["v"] != 50000 or value["v"] != row["quota"]
+        or type(value["b"]) is not int or value["b"] != row["official_used"]):
+        raise ValueError("recurring budget")
+    start, expiry, metered = (_clock(value[key]) for key in ("f", "u", "m"))
+    if (not timedelta(0) < expiry-start <= timedelta(days=366)
+        or metered > _clock(row["period_start"]) or start > _clock(row["observed_at"])
+        or expiry <= _clock(row["observed_at"])):
+        raise ValueError("recurring rights clocks")
+    return value
+
+
+def _recurring_check(row, now, *, environment=None):
+    """Every admission requires a configured, finite, matching authorization.
+
+    The Key is compared to the immutable internal binding; no second runtime
+    copy is required. This prototype does not fetch rights or install monitoring.
+    A missing/changed configured identity or rule digest fails shut.
+    """
+    rights = _recurring_budget(row)
+    if rights is None:
+        return None
+    environment = os.environ if environment is None else environment
+    key = environment.get("AMAP_WEB_KEY")
+    entitlement = environment.get("NOTEAI_AMAP_RECURRING_ENTITLEMENT_SHA256")
+    rules = environment.get("NOTEAI_AMAP_RECURRING_RULES_SHA256")
+    rules_status = environment.get("NOTEAI_AMAP_RECURRING_RULES_STATUS_FILE")
+    if not all(isinstance(value, str) and value for value in (key, entitlement, rules, rules_status)):
+        raise AmapQuotaError("AMAP_QUOTA_RECURRING_CONFIGURATION_REQUIRED")
+    if (not hmac.compare_digest(hashlib.sha256(key.encode()).hexdigest(), rights["k"])
+        or entitlement != rights["e"]):
+        raise AmapQuotaError("AMAP_QUOTA_RECURRING_BINDING_CHANGED")
+    if rules != rights["r"]:
+        raise AmapQuotaError("AMAP_QUOTA_RECURRING_RULES_CHANGED")
+    if not _clock(rights["f"]) <= now or now + timedelta(seconds=10) >= _clock(rights["u"]):
+        raise AmapQuotaError("AMAP_QUOTA_RECURRING_RIGHTS_EXPIRED")
+    try:
+        observed = _read_rules_status(rules_status)
+        if (observed.get("schema") != "noteai.amap_recurring_rules_status.v1"
+            or observed.get("state") != "VERIFIED" or observed.get("source_url") != PUBLIC_RULES_URL
+            or any(observed.get(field) != rights[key] for field, key in (
+                ("entitlement_sha256", "e"), ("official_entitlement_artifact_sha256", "a"),
+                ("rules_sha256", "r"), ("valid_from", "f"), ("valid_until", "u")))):
+            raise ValueError("rules status unconfirmed")
+        observed_at = _clock(observed["observed_at"])
+        if not timedelta(0) <= now-observed_at <= RULES_MAX_AGE:
+            raise ValueError("rules status stale or future")
+    except Exception:
+        raise AmapQuotaError("AMAP_QUOTA_RECURRING_RULES_UNCONFIRMED") from None
+    rights["rules_verified_at"] = _iso(observed_at)
+    return rights
 
 # SQLite has no role ACL; this schema is for the existing local initializer only.
 # Production uses 0031 and explicit column grants, never this initializer.
@@ -178,6 +280,7 @@ def _validate_bucket(row):
             if code is None:
                 raise ValueError("restriction clock")
             _clock(until)
+    _recurring_budget(row)
     return start, end, observed, authorized
 
 
@@ -227,6 +330,16 @@ def read_status(*, storage=None):
             blocked_endpoints=_restrictions(storage, now), billing_observation=_billing(row["billing_observation_json"]),
             admission_closes_at=_iso(end-timedelta(seconds=10)))
         result["snapshot"] = snapshot
+        rights = _recurring_budget(row)
+        if rights is not None:
+            snapshot.update(official_used=None, observed_at=None, source=RECURRING_SOURCE.rstrip(":"),
+                source_kind="entitlement_derived_local_budget", official_usage_observed=False,
+                budget_derived_at=_iso(row["observed_at"]), unmetered_usage_upper_bound=row["official_used"],
+                admitted_in_local_budget=row["admitted_count"], entitlement_valid_from=_iso(rights["f"]),
+                entitlement_valid_until=_iso(rights["u"]), entitlement_sha256=rights["e"],
+                official_entitlement_artifact_sha256=rights["a"], official_rules_sha256=rights["r"])
+            snapshot["admission_closes_at"] = _iso(min(end, _clock(rights["u"]))-timedelta(seconds=10))
+            result["snapshot_refresh_mode"] = "finite_recurring_entitlement_maintenance_producer"
         # Match admission's database-clock safety margin, so Admin never reports
         # ready when a query would already be denied near the month boundary.
         result["renewal_required"] = now + timedelta(seconds=10) >= end
@@ -237,6 +350,12 @@ def read_status(*, storage=None):
             return {**result, "status": "snapshot_expired", "reason": "AMAP_QUOTA_SNAPSHOT_EXPIRED"}
         if now < max(start, observed, authorized):
             return {**result, "status": "snapshot_not_current", "reason": "AMAP_QUOTA_SNAPSHOT_NOT_CURRENT"}
+        try:
+            checked_rights = _recurring_check(row, now)
+            if checked_rights is not None:
+                snapshot["rules_verified_at"] = checked_rights["rules_verified_at"]
+        except AmapQuotaError as exc:
+            return {**result, "status": "recurring_hold", "reason": exc.code}
         if not snapshot["remaining"]:
             return {**result, "status": "quota_exhausted", "reason": "AMAP_MONTHLY_QUOTA_EXHAUSTED", "remaining": 0}
         return {**result, "status": "access_restricted" if any(snapshot["blocked_endpoints"].values()) else "ready",
@@ -269,6 +388,7 @@ def admit(endpoint, *, storage=None, attempt_id=None):
                 raise AmapQuotaError("AMAP_QUOTA_SNAPSHOT_NOT_CURRENT")
             if now + timedelta(seconds=10) >= end:
                 raise AmapQuotaError("AMAP_QUOTA_SNAPSHOT_EXPIRED")
+            _recurring_check(row, now)
             if _restrictions(tx, now)[endpoint]:
                 raise AmapQuotaError("AMAP_PROVIDER_ACCESS_RESTRICTED")
             if tx.fetchone("SELECT id FROM amap_quota_attempts WHERE id=?", (identity,)) is not None:

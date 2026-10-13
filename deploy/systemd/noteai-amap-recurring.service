@@ -1,0 +1,22 @@
+[Unit]
+Description=NoteAI finite Amap allowance and public policy maintenance
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/var/lib/noteai/amap-recurring-maintenance/source
+ExecStart=/usr/bin/python3 -E -B /var/lib/noteai/amap-recurring-maintenance/source/recurring_host.py
+Restart=no
+TimeoutStartSec=180
+RuntimeMaxSec=180
+LimitCORE=0
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/noteai/amap-recurring-maintenance/state /var/lib/noteai/amap-recurring-maintenance/public
+StandardOutput=journal
+StandardError=journal

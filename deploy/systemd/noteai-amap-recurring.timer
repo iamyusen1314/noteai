@@ -1,0 +1,11 @@
+[Unit]
+Description=Check finite Amap rights and current public rules every six hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:00:15 Asia/Shanghai
+RandomizedDelaySec=20
+Persistent=true
+Unit=noteai-amap-recurring.service
+
+[Install]
+WantedBy=timers.target
