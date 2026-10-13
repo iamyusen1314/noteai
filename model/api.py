@@ -6584,6 +6584,10 @@ _GENERIC_MERCHANT_NAMES = {
     "这家店", "这家餐厅", "那家店", "门店", "餐厅", "日料店", "火锅店",
     "咖啡店", "茶餐厅", "酒店", "民宿", "商家", "店铺", "小店",
 }
+_GENERIC_LEISURE_MERCHANT_NAMES = {
+    "洗浴中心", "洗浴汗蒸", "汗蒸", "汤泉", "水疗中心", "按摩", "足浴", "足疗",
+    "按摩足疗spa", "spa", "ktv", "酒吧", "清吧",
+}
 
 
 def _normalize_content_intent(value: str | None) -> str:
@@ -6706,28 +6710,29 @@ def _content_intent_brief(
 
 
 def _merchant_entity_signal(domain: str | None, title: str | None, text: str | None, merchant_name: str | None) -> tuple[bool, str]:
+    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    generic_leisure = _GENERIC_LEISURE_MERCHANT_NAMES if canonical == "休闲娱乐体验" else set()
     merchant = _normalize_merchant_name(merchant_name)
-    if merchant:
+    if merchant and merchant.lower() not in generic_leisure:
         return True, merchant
     src = f"{title or ''}\n{text or ''}"
     explicit = re.search(r"(?:店名|门店名|商家名|商家|餐厅|酒店名|民宿名|品牌名|品牌)[:：]\s*([^\n。；;，,]{2,40})", src)
     if explicit:
         candidate = _normalize_merchant_name(explicit.group(1))
-        if candidate:
+        if candidate and candidate.lower() not in generic_leisure:
             return True, candidate
     branch = re.search(r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}[（(][^（）()\n]{2,30}(?:店|楼|馆)[)）])", src)
     if branch:
         return True, _normalize_merchant_name(branch.group(1))
-    canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "旅行":
         pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:酒店|民宿|客栈|度假村|乐园|景区|营地))"
     elif canonical == "休闲娱乐体验":
-        pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:洗浴中心|水疗中心|汤泉馆|按摩馆|按摩店|足浴店|汤泉|水疗|SPA|Spa|spa|足浴|会馆))"
+        pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:洗浴中心|水疗中心|汤泉生活|汤泉馆|汗蒸馆|按摩馆|按摩店|足浴店|足疗店|汤泉|水疗|SPA|Spa|spa|足浴|足疗|汗蒸|[Kk][Tt][Vv]|酒吧|清吧|会馆))"
     else:
         pattern = r"([\u4e00-\u9fa5A-Za-z0-9·.]{2,30}(?:旗舰店|总店|分店|万博店|广晟店|门店|餐厅|酒家|饭店|茶楼|酒楼|火锅店|烤肉店|咖啡店|茶餐厅|店|楼))"
     for match in re.finditer(pattern, src):
         candidate = _normalize_merchant_name(match.group(1))
-        if candidate and candidate not in _GENERIC_MERCHANT_NAMES and not re.fullmatch(r"(?:这家|那家|一家|小众|宝藏).{0,4}(?:店|餐厅|酒店|民宿)", candidate):
+        if candidate and candidate not in _GENERIC_MERCHANT_NAMES and candidate.lower() not in generic_leisure and not re.fullmatch(r"(?:这家|那家|一家|小众|宝藏).{0,4}(?:店|餐厅|酒店|民宿)", candidate):
             return True, candidate
     return False, ""
 

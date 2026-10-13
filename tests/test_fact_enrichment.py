@@ -89,6 +89,26 @@ class FactEnrichmentTests(unittest.TestCase):
         for name in ['别家粤菜(万博广晟店)','长禧家.珑厨(东风店)']:
             self.assertFalse(facts._amap_poi_matches_keyword({'name':name,'address':keyword},keyword))
 
+    def test_leisure_project_query_field_never_becomes_merchant_name(self):
+        # Parser fixtures only; no supplier, quota, model or browser acceptance.
+        for merchant in ('测试洗浴中心', '测试水疗SPA', '测试悦唱KTV',
+                         '测试夜色酒吧', '测试和乐足疗', '水石清池·汤泉生活'):
+            with self.subTest(merchant=merchant):
+                query=facts.build_fact_query('休闲娱乐体验',merchant,'广州')
+                self.assertIn(' 项目 ',query)
+                keyword=facts._amap_keyword_from_query(query)
+                self.assertNotIn(' 项目',keyword)
+                self.assertTrue(facts._amap_poi_matches_keyword({'name':merchant},keyword))
+                self.assertFalse(facts._amap_poi_matches_keyword({'name':'另一家门店','address':merchant},keyword))
+        # Removing an independent query field must preserve those characters
+        # when they are part of the merchant's actual name.
+        for domain,merchant in (('美食','项目咖啡店'),('休闲娱乐体验','项目空间KTV'),
+                                ('美食','清风餐厅'),('旅行','清风酒店')):
+            with self.subTest(domain=domain,merchant=merchant):
+                keyword=facts._amap_keyword_from_query(facts.build_fact_query(domain,merchant,'广州'))
+                self.assertEqual(keyword,merchant)
+                self.assertTrue(facts._amap_poi_matches_keyword({'name':merchant},keyword))
+
     def test_amap_branch_match_keeps_brand_separate_from_business_descriptor(self):
         keyword = '广州陶陶居(正佳广场店)'
         for name in ('陶陶居(正佳广场店)', '陶陶居酒家(正佳广场店)',

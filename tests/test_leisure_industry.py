@@ -95,13 +95,18 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertEqual(decision["provider"], provider)
 
     def test_query_and_exact_merchant_selection_support_leisure_names(self):
-        for merchant in ("清风洗浴中心", "清风汤泉", "清风水疗中心", "清风按摩馆"):
+        for merchant in ("清风洗浴中心", "清风汗蒸馆", "清风汤泉", "水石清池·汤泉生活",
+                         "清风水疗中心", "清风按摩馆", "清风足疗", "清风足浴店",
+                         "清风KTV", "清风Ktv", "清风酒吧", "清风清吧"):
             found, name = api._merchant_entity_signal(DOMAIN, merchant, "", "")
             self.assertTrue(found)
             self.assertEqual(name, merchant)
             query = facts.build_fact_query(DOMAIN, merchant, "广州")
             self.assertIn(merchant, query)
             self.assertIn("预约", query)
+            keyword = facts._amap_keyword_from_query(query)
+            self.assertEqual(keyword, merchant)
+            self.assertTrue(facts._amap_poi_matches_keyword({"name": merchant}, keyword))
             self.assertTrue(facts._amap_poi_matches_keyword({"name": merchant}, merchant))
             self.assertFalse(facts._amap_poi_matches_keyword({"name": "另一家汤泉"}, merchant))
         local = {"domain": "按摩", "name": "清风按摩馆", "facts": {"address": "测试街8号"}}
@@ -109,6 +114,10 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertEqual(facts._record_match_score(local, "清风按摩馆", DOMAIN),
                          facts._record_match_score(canonical, "清风按摩馆", DOMAIN))
         self.assertEqual(facts._record_match_score(local, "另一家按摩馆", DOMAIN), 0)
+        for label in ("洗浴中心", "洗浴汗蒸", "汗蒸", "汤泉", "按摩足疗SPA", "足疗", "SPA", "KTV", "酒吧", "清吧"):
+            self.assertEqual(api._merchant_entity_signal(DOMAIN, "", "", label), (False, ""))
+            for old_domain in ("美食", "旅行"):
+                self.assertEqual(api._merchant_entity_signal(old_domain, "", "", label), (True, label))
 
     def test_structured_facts_and_medical_claims_are_blocking(self):
         src = "项目：按摩60分钟。价格：128元。水温：40度。套餐不含按摩，按摩需另外收费。"
