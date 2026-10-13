@@ -171,6 +171,101 @@ class LeisureIndustryTests(unittest.TestCase):
         for domain in OLD_DOMAINS:
             self.assertEqual(api._generation_delivery_source_context(domain, original, visual), original + "\n\n" + visual)
 
+    def test_sound_and_food_state_grammar_preserves_source_and_polarity(self):
+        unknown = "素材有庭院、泳池、海鲜展示与饮品柜台；声音体验和食材状态未知。"
+        # Actual391 includes the first/last two forms. These are finite source
+        # contracts, not a new model run or human quality labels.
+        claims = ("没有嘈杂人声", "听不到吵闹声", "环境没有噪音", "环境嘈杂", "嘈杂的人声",
+                  "满台鲜活海鲜自助", "鲜活生鲜", "食材新鲜", "新鲜的食品", "海鲜不新鲜")
+        for claim in claims:
+            with self.subTest(claim=claim):
+                issues = api._delivery_integrity_issues(claim, unknown, DOMAIN)
+                self.assertTrue(any("感官" in issue for issue in issues), claim)
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+                self.assertFalse(api._delivery_integrity_issues(claim, claim, DOMAIN), claim)
+        for source, claim in (("食品新鲜", "新鲜的食品"), ("海鲜鲜活", "鲜活海鲜"),
+                              ("人声嘈杂", "嘈杂的人声"), ("海鲜不新鲜", "不新鲜的海鲜")):
+            self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        for source, claim in (("海鲜不新鲜", "海鲜新鲜"), ("海鲜新鲜", "不新鲜的海鲜"),
+                              ("人声嘈杂", "没有嘈杂人声"), ("没有嘈杂人声", "没有人声")):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        for source, claim in (("照片中无人。", "没有人声。"),
+                              ("照片里没有嘈杂人声。", "没有嘈杂人声。"),
+                              ("图中环境安静。", "环境安静。")):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        self.assertFalse(api._delivery_integrity_issues("没有嘈杂人声。", "照片里无人。作者实际听到没有嘈杂人声。", DOMAIN))
+        for visible in ("静谧雅致的画面与暖黄灯光。", "宁静的视觉效果适合留白构图。",
+                        "生鲜展示区与饮品柜台可见。", "海鲜展示照片带来视觉新鲜感。",
+                        "建议背对大厅拍摄，先庭院后餐台。"):
+            self.assertFalse(api._delivery_integrity_issues(visible, unknown, DOMAIN), visible)
+
+    def test_completed_visit_grammar_binds_actor_time_and_affirmation(self):
+        unknown = "素材来自广州水石清池·汤泉生活；未提供作者亲历，不写亲测。"
+        for claim in ("这是我在水石清池的真实打卡体验。", "我的实际探店经历。",
+                      "我们在水石清池的亲身体验。", "我昨天亲自去了水石清池。",
+                      "我这次在水石清池的真实打卡体验。", "我不是没去过水石清池。"):
+            with self.subTest(claim=claim):
+                self.assertTrue(any("亲历" in issue for issue in api._delivery_integrity_issues(claim, unknown, DOMAIN)), claim)
+                self.assertFalse(api._delivery_integrity_issues(claim, claim, DOMAIN), claim)
+        source = "作者说我昨天打卡了水石清池。"
+        self.assertFalse(api._delivery_integrity_issues("我打卡了水石清池。", source, DOMAIN))
+        for prior, claim in ((source, "我今天打卡了水石清池。"),
+                             ("朋友的真实打卡体验。", "我的真实打卡体验。"),
+                             ("朋友亲测过。", "我亲测过。"),
+                             ("我没有去过水石清池。", "我去过水石清池。"),
+                             ("我未亲测。", "我亲测。"),
+                             ("请写我不是没去过水石清池。", "我去过水石清池。")):
+            self.assertTrue(api._delivery_integrity_issues(claim, prior, DOMAIN), (prior, claim))
+        for not_completed in ("我的待打卡攻略。", "我的计划打卡体验。", "我计划去水石清池。",
+                              "以后准备亲测。", "我没有去过水石清池。", "未亲测，不写亲测。",
+                              "我的看图实际体验。", "我是否去过需要确认？"):
+            self.assertFalse(api._leisure_observation_fact_claims(not_completed)["visit"], not_completed)
+            self.assertFalse(api._delivery_integrity_issues(not_completed, unknown, DOMAIN), not_completed)
+
+    def test_spatial_independence_needs_scope_but_editorial_groups_are_not_floorplans(self):
+        unknown = "仅展示庭院、水景座位、泳池、餐饮展示区；没有平面图或区位确认。"
+        for claim in ("餐饮展示区各自独立分区。", "这里有独立包房。", "空间互不干扰。"):
+            self.assertTrue(any("空间布局" in issue for issue in api._delivery_integrity_issues(claim, unknown, DOMAIN)), claim)
+            self.assertFalse(api._delivery_integrity_issues(claim, "作者确认：" + claim, DOMAIN), claim)
+        for source, claim in (("KTV包房独立。", "SPA包房独立。"),
+                              ("没有独立包房。", "独立包房。"),
+                              ("包房独立。", "包房互不干扰。")):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        # A retained '3大分区' could mean three editorial groups. Do not claim
+        # that counting three groups proves the real venue has three sections.
+        for editorial in ("水石清池3大分区游览顺序参考攻略。", "按庭院、泳池、餐饮三个主题组织正文。",
+                          "建议先拍庭院，再拍水景座位与餐台。"):
+            self.assertFalse(api._delivery_integrity_issues(editorial, unknown, DOMAIN), editorial)
+        safe_brief = api._safe_fact_delivery_brief(DOMAIN, unknown)
+        self.assertIn("编辑分组当作物理平面布局", safe_brief)
+        for city in ("城中心禅意汤泉打卡指南", "城市中央的休闲空间", "市中心休闲空间"):
+            self.assertTrue(any("地理区位" in issue for issue in api._delivery_integrity_issues(city, "城市广州，地址未知。", DOMAIN)), city)
+        self.assertFalse(api._delivery_integrity_issues("城中心的休闲空间", "作者确认位于市中心。", DOMAIN))
+
+    def test_actual391_public_fields_use_the_same_grammar_without_fake_provenance(self):
+        source = "本轮素材来自广州水石清池·汤泉生活；仅展示庭院、水景座位、泳池、餐台和飲品柜台。作者亲历、声音体验、食材新鲜度及平面布局未知。"
+        opinion = {"role": "用户专家", "opinion": "庭院与餐台可见。这是我在水石清池的真实打卡体验。",
+                   "reason": "背对大厅，没有嘈杂人声。", "evidence": ["满台鲜活海鲜自助。"],
+                   "suggestions": ["餐饮展示区各自独立分区。", "建议按庭院、泳池、餐饮三个主题组织正文。"]}
+        before = json.dumps(opinion, ensure_ascii=False)
+        public = api._generation_public_expert_opinions([opinion], source, DOMAIN)
+        summary = api._generation_public_visual_summary("城中心禅意汤泉打卡指南。满台鲜活海鲜自助。鲜活生鲜。木桥与暖黄光线可见。", source, DOMAIN)
+        progress = api._generation_public_progress_event({"type": "expert_opinion", "content": opinion["opinion"],
+                                                        "detail": opinion["reason"], "progress": 22}, source, DOMAIN)
+        saved = api._sanitize_chat_generate_context({"cover_analysis": summary, "expert_opinions": public})
+        for value in (public, summary, progress, saved):
+            encoded = json.dumps(value, ensure_ascii=False)
+            for unsupported in ("真实打卡体验", "没有嘈杂人声", "鲜活海鲜", "鲜活生鲜", "城中心", "各自独立分区"):
+                self.assertNotIn(unsupported, encoded)
+            self.assertIn("已省略相关建议", encoded)
+        self.assertIn("三个主题", json.dumps(public, ensure_ascii=False))
+        self.assertIn("木桥与暖黄光线", summary)
+        self.assertIn("空间布局独立关系", json.dumps(public, ensure_ascii=False))
+        self.assertEqual(json.dumps(opinion, ensure_ascii=False), before)
+        # Raw AI repetition must not authorize any of these claims after resume.
+        contaminated = api._generation_delivery_source_context(DOMAIN, source, before)
+        self.assertNotIn("真实打卡体验", json.dumps(api._generation_public_expert_opinions([opinion], contaminated, DOMAIN), ensure_ascii=False))
+
     def test_public_experts_omit_unknown_claims_and_preserve_internal_drafts(self):
         original = [{"role": "视觉专家", "raw": (
             "<scene>庭院有白砂与木桥，位于CBD旁。光线暖黄。</scene>"
