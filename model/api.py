@@ -3895,6 +3895,10 @@ def _context_fact_line(source_context: str | None, keywords: tuple[str, ...], li
 
 
 def _domain_generation_fact_bits(canonical: str, source_context: str | None) -> list[str]:
+    if canonical == "休闲娱乐体验":
+        # Visual material remains in its own writing block, never in the
+        # "current available facts" summary supplied to repairs.
+        source_context = _leisure_nonvisual_fact_source(source_context)
     specs: dict[str, list[tuple[str, tuple[str, ...], tuple[str, ...]]]] = {
         "休闲娱乐体验": [
             # Summarize supplied material only; these words never select or
@@ -4234,7 +4238,9 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
         f"{planning_brief}\n"
         f"{_safe_fact_delivery_brief(domain, brief)}\n\n"
         f"【图片 vs 事实数据规则】价格/地址/时间等事实只能来自创作者说明，不得从图片推测；"
-        f"图片可用于场景/感官/氛围描述。创作者未说明的数字不得占位、不得编造，必须使用上方安全表达。"
+        + ("图片仅用于可见空间、物品、光线和画面风格；AI视觉推断不构成区位、常态客流、味道、温感、卫生、服务或亲历事实。"
+           if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验" else "图片可用于场景/感官/氛围描述。")
+        + "创作者未说明的数字不得占位、不得编造，必须使用上方安全表达。"
     )
 
     if brief:
@@ -10915,6 +10921,77 @@ def _food_operating_fact_issues(text: str, source_context: str | None) -> list[s
     return issues
 
 
+_LEISURE_VISUAL_SOURCE_MARKER = "【AI视觉观察（非事实依据）】"
+
+
+def _generation_delivery_source_context(domain: str, brief: str | None, image_desc: str | None) -> str:
+    """Keep visible material for writing, but separate it from leisure fact authority."""
+    if _GEN_CHECKLIST_ALIASES.get(domain, domain) != "休闲娱乐体验":
+        return "\n\n".join(p for p in (brief, image_desc) if p)
+    return (brief or "") + ("\n\n" + _LEISURE_VISUAL_SOURCE_MARKER + "\n" + image_desc if image_desc else "")
+
+
+def _leisure_nonvisual_fact_source(source: str | None) -> str:
+    return (source or "").split(_LEISURE_VISUAL_SOURCE_MARKER, 1)[0]
+
+
+def _leisure_observation_fact_claims(text: str, *, evidence: bool = False) -> dict[str, set[tuple]]:
+    """Finite claim families, not a general place/entity or truth classifier."""
+    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "crowd", "hours", "rarity", "sensory", "visit")}
+    periods = r"工作日|周末|节假日|平日|白天|早上|上午|中午|下午|晚上|夜间|凌晨|全天|\d{1,2}(?:[:：]\d{2}|点)"
+    geography = r"CBD|中央商务区|中心城区|市中心|城央|闹市|闹区|商圈|市区|城区"
+    sensory = (
+        ("水温", r"水温|池温|泡池温度", r"舒适|舒服|适宜|温热|温暖|温和|暖和|冰凉|清凉|刚刚好|刚好|不烫"),
+        ("味道", r"海鲜|生蚝|长脚蟹|饮品|酒水|菜品|味道|口感", r"鲜美|鲜嫩|新鲜|鲜活|好吃|好喝|香甜|清甜|爽口|回甘|不腥|脆嫩|弹牙"),
+        ("卫生", r"水质|环境|店内|泡池|泳池|水池|餐台|门店|卫生", r"干净|洁净|无菌|卫生合格|卫生有保障|消毒到位|合格|有保障"),
+        ("服务", r"服务|工作人员|技师|按摩师", r"专业|贴心|细致|热情|周到|到位|用心|耐心|手法好"),
+        ("声音", r"隔音|声音|店内|环境", r"安静|不吵|无噪音|隔音好|隔音很好"),
+    )
+    for part in _fact_assertions(text):
+        if evidence and re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算", part):
+            # Writing requests do not establish the requested hard fact.
+            continue
+        for match in re.finditer(r"(?P<place>" + geography + r")(?P<relation>旁边|附近|周边|旁|边|内|里)?", part, re.I):
+            label = match.group("place").upper()
+            relation = match.group("relation") or "位置"
+            relation = "附近" if relation in {"旁边", "附近", "周边", "旁", "边"} else "内部" if relation in {"内", "里"} else relation
+            facts["location"].add((label, relation))
+        for match in re.finditer(r"(?:位于|坐落于|地处|坐标|临近|靠近)\s*([^，,。；;\n]{1,16}(?:区|商圈|广场|路|街|地铁站))", part):
+            location = match.group(1).strip()
+            if not re.search(r"汤泉区|泡池区|泳池区|庭院区|休息区|自助区|取餐区|娱乐区|包房区", location):
+                facts["location"].add((location, "明确区位"))
+        crowd = re.search(r"无需排队|不用排队|不排队|人不多|人少|客流少|游客少|不拥挤|不挤|人多|客流大|拥挤|高峰|低峰", part)
+        times = tuple(re.findall(periods, part))
+        visible_frame = bool(re.search(r"照片中|照片里|图中|图里|画面中|画面里|这一帧", part))
+        if crowd and not (visible_frame and not times and crowd.group() in {"人少", "人不多", "人多", "游客少"}):
+            state = {"人不多": "人少", "客流少": "人少", "游客少": "人少", "不拥挤": "人少", "不挤": "人少", "无需排队": "不排队", "不用排队": "不排队", "客流大": "人多"}.get(crowd.group(), crowd.group())
+            facts["crowd"].add((times, state))
+        if times and re.search(r"营业|开放|开门|闭店|打烊", part):
+            operation = re.search(r"营业|开放|开门|闭店|打烊", part).group()
+            facts["hours"].add((times, operation))
+        if re.search(r"不多见|并不多见|少见|少有|稀缺|罕见|唯一|独一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
+            facts["rarity"].add((re.sub(r"\s", "", part),))
+        for family, subjects, claims in sensory:
+            match = re.search(r"(" + subjects + r")[^，,。；;\n]{0,10}?(" + claims + r")", part)
+            if match:
+                # Picture tidiness is observable; a hygiene guarantee is not.
+                if (family == "卫生" and visible_frame and match.group(1) in {"环境", "店内", "餐台", "门店"}
+                        and match.group(2) in {"干净", "洁净"}):
+                    continue
+                facts["sensory"].add((family, match.group(1), match.group(2)))
+        visit = re.search(r"亲测|实测|我(?:们)?(?:这次|亲自)?(?:去了|来过|泡了|泡完|按完|体验过|喝过|唱过)|这次到店", part)
+        if visit:
+            facts["visit"].add((re.sub(r"\s", "", part[visit.start():]),))
+    return facts
+
+
+def _leisure_observation_fact_issues(text: str, source: str) -> list[str]:
+    claims = _leisure_observation_fact_claims(text)
+    known = _leisure_observation_fact_claims(source, evidence=True)
+    labels = {"location": "地理区位", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历"}
+    return [f"休闲娱乐体验出现未提供的{label}，结构化事实不能编造" for kind, label in labels.items() if claims[kind] - known[kind]]
+
+
 _LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗", re.I)
 _LEISURE_SERVICE_RE = re.compile(
     r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗|"
@@ -11017,10 +11094,16 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
     factual_out = out
     if canonical == "休闲娱乐体验":
+        # AI descriptions can support visible material, never create hard-fact
+        # authority during candidate ranking or repair. The final brief-only
+        # guard remains independent of this partition.
+        src = _leisure_nonvisual_fact_source(src)
         assertions = "\n".join(_fact_assertions(out))
+        factual_out = assertions
         # One denial cannot negate a separate, affirmative recommendation.
         medical_assertions = ";\n".join(_fact_assertions(out, only_explicit_rejections=True))
         evidence = "\n".join(_fact_assertions(src))
+        issues.extend(_leisure_observation_fact_issues(out, src))
         symptom = (r"失眠|睡眠质量(?:不稳定|不好|差)|睡眠障碍|"
                    r"(?:颈肩|肩颈|颈部|肩部)(?:容易|经常)?(?:僵紧|僵硬|紧绷|酸痛|疼痛)")
         question_prefix = r"(?<!是否)(?<!可否)(?<!能否)(?<!是否能)(?<!是否可以)(?<!会不会)"
@@ -16873,6 +16956,11 @@ async def _run_analyze_pipeline(
             delivery_source_context = "\n\n".join(
                 p for p in [f"用户原始标题：{req.note_title}", req.desc, video_desc_for_library, extra_image_context, fact_context, intent_brief] if p
             )
+            if _GEN_CHECKLIST_ALIASES.get(req.domain, req.domain) == "休闲娱乐体验":
+                delivery_source_context = _generation_delivery_source_context(
+                    req.domain, "\n\n".join(p for p in [f"用户原始标题：{req.note_title}", req.desc, fact_context, intent_brief] if p),
+                    "\n\n".join(p for p in [video_desc_for_library, extra_image_context] if p),
+                )
             clarification_prepared = {
                 "pipeline": "analyze", "domain": req.domain, "local_time": req.local_time,
                 "request": req.model_dump(mode="json", exclude={"cover_image", "extra_images", "video_file_id"}),
@@ -17116,6 +17204,11 @@ async def _run_analyze_pipeline(
 
     # suggested_body 只服务旧客户端/共享正文卡片；方案正文必须保留各自结果，不能用它回填。
     delivery_fact_context = "\n\n".join(p for p in [f"用户原始标题：{req.note_title}", req.desc, video_desc_for_library, extra_image_context, fact_context, intent_brief] if p)
+    if _GEN_CHECKLIST_ALIASES.get(req.domain, req.domain) == "休闲娱乐体验":
+        delivery_fact_context = _generation_delivery_source_context(
+            req.domain, "\n\n".join(p for p in [f"用户原始标题：{req.note_title}", req.desc, fact_context, intent_brief] if p),
+            "\n\n".join(p for p in [video_desc_for_library, extra_image_context] if p),
+        )
     report_fact_issues = _structured_fact_boundary_issues(
         f"{diagnosis}\n{plan}", delivery_fact_context, req.domain,
     )
@@ -17719,7 +17812,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time, domain=domain,
             )
             pre_score, pre_feats = _predict(draft_note, timing_feats=timing, cover_feats=cover_feats or None)
-            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain, source_context="\n\n".join(p for p in (brief, image_desc) if p))
+            pre_fix_items = _build_fix_instructions(pre_feats, _find_weaknesses(pre_feats, domain), domain=domain, source_context=_generation_delivery_source_context(domain, brief, image_desc))
             yield {"type": "pre_score", "score": round(pre_score, 1), "fixes": pre_fix_items[:3], "progress": 58}
         except Exception:
             pass
@@ -17872,7 +17965,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time,
                 timing=timing,
                 cover_feats=cover_feats or None,
-                source_context="\n\n".join(p for p in (brief, image_desc) if p),
+                source_context=_generation_delivery_source_context(domain, brief, image_desc),
                 constraint_context=constraint_context,
             )
             selected_early = early_selection.get("selected") or {}
@@ -17962,7 +18055,7 @@ async def _generate_pipeline_stream(
         if q_round == 2:
             break
 
-        fix_items = _build_fix_instructions(final_feats, _find_weaknesses(final_feats, domain), domain=domain, source_context="\n\n".join(p for p in (brief, image_desc) if p))
+        fix_items = _build_fix_instructions(final_feats, _find_weaknesses(final_feats, domain), domain=domain, source_context=_generation_delivery_source_context(domain, brief, image_desc))
         repair_items = quality_issues + fix_items
         if not repair_items:
             repair_items = _v04_generation_lift_instructions(final_feats, domain, final_score, brief or "")
@@ -18066,7 +18159,7 @@ async def _generate_pipeline_stream(
             local_time,
             timing=timing,
             cover_feats=cover_feats or None,
-            source_context="\n\n".join(p for p in (brief, image_desc) if p),
+            source_context=_generation_delivery_source_context(domain, brief, image_desc),
             style_hint="流式爆文终稿交付质量二修",
             current_score=final_score,
             current_features=final_feats,
@@ -18134,7 +18227,7 @@ async def _generate_pipeline_stream(
                 local_time=local_time,
                 timing=timing,
                 cover_feats=cover_feats or None,
-                source_context="\n\n".join(p for p in (brief, image_desc) if p),
+                source_context=_generation_delivery_source_context(domain, brief, image_desc),
                 constraint_context=constraint_context,
                 source_corrections=repair_metadata.get("source_corrections"),
             )

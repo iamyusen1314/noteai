@@ -137,6 +137,71 @@ class LeisureIndustryTests(unittest.TestCase):
         issues = api._delivery_integrity_issues("周末休闲体验", "", DOMAIN, title_variants=["按摩治疗失眠"])
         self.assertTrue(any("备选标题1" in issue for issue in issues))
 
+    def test_actual_unsupported_geography_crowd_and_rarity_are_blocking(self):
+        # Snippets from the retained failed real bath9 output, not gold quality
+        # labels or a claim that this offline test re-ran a model.
+        source = "素材来自广州。分店地址、营业时间与客流时段未知；仅展示庭院、水池、海鲜自助和饮品柜台。"
+        for category in ("洗浴汗蒸", "按摩足疗SPA", "KTV", "酒吧"):
+            for claim in ("广州CBD旁", "藏在市中心的休闲空间", "白天下午人少", "周末无需排队",
+                          "这类搭配在广州城区并不多见", "上午营业", "水温舒服", "海鲜新鲜",
+                          "服务很贴心", "环境安静", "卫生有保障", "我这次泡完很舒服"):
+                with self.subTest(category=category, claim=claim):
+                    issues = api._delivery_integrity_issues(claim, f"本次项目类型：{category}。{source}", DOMAIN)
+                    self.assertTrue(issues, claim)
+                    self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        for claim in ("是否在CBD旁需确认", "下午是否人少需确认", "水温舒服吗？", "不能根据图片写成广州CBD旁",
+                      "图中人少，座位与灯光清晰", "庭院、泳池、自助餐和饮品柜台是本次可见区域"):
+            self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
+        self.assertTrue(api._delivery_integrity_issues("照片中不用排队", source, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("照片中水质干净", source, DOMAIN))
+
+    def test_leisure_ai_observations_cannot_supply_hard_fact_authority(self):
+        original = "广州休闲素材。地址、时段客流和作者温感未知。套餐不含SPA。"
+        visual = "藏在CBD旁的庭院。下午人少。水温舒服，温度40度。套餐包含SPA。"
+        context = api._generation_delivery_source_context(DOMAIN, original, visual)
+        self.assertIn(visual, context)  # Keep pixels' scene material for writing.
+        self.assertEqual(api._leisure_nonvisual_fact_source(context), original + "\n\n")
+        for claim in ("CBD旁", "下午人少", "水温舒服", "水温40度", "套餐包含SPA"):
+            self.assertTrue(api._delivery_integrity_issues(claim, context, DOMAIN), claim)
+        self.assertFalse(api._delivery_integrity_issues("画面里的庭院呈现木调与暖光风格", context, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("套餐不含SPA", context, DOMAIN))
+        safe_brief = api._safe_fact_delivery_brief(DOMAIN, context)
+        self.assertNotIn("CBD旁", safe_brief)
+        self.assertNotIn("下午人少", safe_brief)
+        for domain in OLD_DOMAINS:
+            self.assertEqual(api._generation_delivery_source_context(domain, original, visual), original + "\n\n" + visual)
+
+    def test_claim_families_keep_provided_scope_and_personal_information(self):
+        source = "门店在CBD旁。下午人少。下午营业。作者说水温舒服、服务贴心。作者说我泡完很舒服。"
+        for claim in ("CBD附近", "下午人少", "下午营业", "水温舒服", "服务贴心", "我泡完很舒服"):
+            self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
+        for claim in ("CBD内", "周末人少", "上午人少", "上午营业", "海鲜新鲜", "卫生合格"):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
+        self.assertTrue(api._delivery_integrity_issues("CBD旁", "是否CBD旁需确认", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("CBD旁", "希望写成CBD旁", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("下午人少", "请写下午人少", DOMAIN))
+        issues = api._delivery_integrity_issues("实际可见庭院与餐台", "广州", DOMAIN, title_variants=["市中心休闲攻略"])
+        self.assertTrue(any("备选标题1" in issue for issue in issues))
+
+    def test_leisure_vision_and_content_assembly_close_the_sensory_conflict(self):
+        for function in (api._kimi_vision_understand, api._kimi_vision_quick):
+            with mock.patch.object(api, "_read_image_input", return_value=b"synthetic-local-image"), \
+                 mock.patch.object(api._ark_media, "image_part", return_value={"type": "image"}), \
+                 mock.patch.object(api._ark_media, "chat", return_value="可见木调空间") as model:
+                function("synthetic", DOMAIN, "城市广州，地址未知")
+            prompt = model.call_args.args[0]
+            self.assertIn("空画面不证明常态客流", prompt)
+            self.assertIn("CBD/商圈/市中心", prompt)
+        for domain in (DOMAIN, *OLD_DOMAINS):
+            with mock.patch.object(api, "_runtime_prompt", return_value="原始基础模板{domain}"), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="<draft_title>真实标题</draft_title>")) as model:
+                asyncio.run(api._gent_content(domain, "本次真实文字", api._get_dk(domain), "可见木调空间"))
+            system = model.call_args.args[1]
+            self.assertEqual("图片可用于场景/感官/氛围描述。" in system, domain != DOMAIN)
+            if domain == DOMAIN:
+                self.assertIn("AI视觉推断不构成区位", system)
+                self.assertIn("无需排队", system)
+
     def test_duration_is_bound_to_each_project_and_preserves_units(self):
         for project in ("洗浴", "汗蒸", "桑拿", "干蒸", "湿蒸", "泳池", "游泳", "汤泉", "SPA", "推拿", "按摩", "沐足", "足浴"):
             with self.subTest(project=project):
