@@ -1037,6 +1037,81 @@ class LeisureIndustryTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertFalse(api._delivery_integrity_issues(text, text, DOMAIN))
 
+    def test_actual_spa_named_duration_ranges_keep_identity_and_type(self):
+        # Exact author input from frozen spafoottext.json SHA256 000fa1ba0e99f061649897bf9d34ec4d6c21d1193687db5796d17e5bf72ca635.
+        # The failed isolated candidate was not retained; these are offline
+        # paired expressions, not a reconstruction of its fatal sentence.
+        source = '本例是公开项目资料整理的文字输入，不是本人到店或图片观察。正文不展示商家名、地址或分店。公开品牌资料列出“云足疗A款”时长70–90分钟；另有“云脊疗SPA”，其项目说明提到精油推拿，但没有给该SPA时长或价格。只能把70–90分钟绑定足疗A款，不能移给SPA。“云脊疗SPA”只是真实项目名称，不支持任何脊椎、疾病、睡眠、康复或治疗功效。写成休闲项目选择与确认要点；没有证据证明某套餐同时含两个项目、餐饮或留宿，也没有本人触感、技师或效果信息，缺项明确提示，不编造。'
+        for text in (
+            '云足疗A款时长70–90分钟。', '云足疗A款时长70-90分钟。',
+            '云足疗A款时长70分钟至90分钟。', '足疗A款时长70到90分钟。',
+            '足疗时长70～90分钟。', '云脊疗SPA介绍中提到精油推拿，时长需确认。',
+            '选择足疗A款70–90分钟。', '预约足疗A款70分钟至90分钟。', '可选足疗A款70–90分钟。',
+            '云脊疗SPA只是真实项目名称，不支持任何脊椎、疾病、睡眠、康复或治疗功效。',
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
+                public, issues = api._leisure_public_fact_text(text, source)
+                self.assertFalse(issues)
+                self.assertIn(text.rstrip('。'), public)
+        for text in (
+            '云足疗A款时长70分钟。', '足疗A款90分钟。', '云足疗B款90分钟。',
+            '云足疗B款时长70–90分钟。', '云脊疗SPA时长70–90分钟。',
+            '云脊疗SPA时长90分钟。', '足疗A款时长70分钟起。',
+            '晴足疗A款70-90分钟。', '新云足疗A款70-90分钟。', '云足疗A款90-70分钟。',
+            '选择足疗B款70-90分钟。', '预约晴足疗A款70-90分钟。', '可选足疗A款90分钟。',
+        ):
+            with self.subTest(text=text):
+                issues = api._delivery_integrity_issues(text, source, DOMAIN)
+                self.assertTrue(any('项目时长' in issue for issue in issues))
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        for output, evidence in (
+            ('按摩1-1.5小时。', '按摩60至90分钟。'),
+            ('SPA3600秒到5400秒。', '水疗1小时至1.5小时。'),
+            ('KTV欢唱2–3小时。', '欢唱120-180分钟。'),
+            ('调酒体验45到60分钟。', '调酒体验0.75～1小时。'),
+            ('品酒体验30分钟。', '品酒体验时长30分钟。'),
+            ('足疗A款70–90分钟。', '服务项目：云足疗A款\n时长：70-90分钟。'),
+        ):
+            with self.subTest(output=output, evidence=evidence):
+                self.assertFalse(api._delivery_integrity_issues(output, evidence, DOMAIN))
+        claimed = '足疗A款70-90分钟。'
+        for evidence in (
+            '门店名：甲店\n对象：乙店\n项目：云足疗A款\n时长：70-90分钟。',
+            '另一家门店云足疗A款70-90分钟。', '足疗A款70-90分钟未确认。',
+            '足疗A款是否70-90分钟？', '写作要求：\n足疗A款70-90分钟。',
+            '本次时长未知。\n' + api._LEISURE_VISUAL_SOURCE_MARKER + '\n足疗A款70-90分钟。',
+            '项目：足疗A款未知\n时长：70-90分钟。',
+            '没有足疗A款70-90分钟。',
+            '项目：足疗A款\n时长：50-60分钟。\n项目：足疗B款未知\n时长：70-90分钟。',
+        ):
+            with self.subTest(evidence=evidence):
+                self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues(claimed, evidence, DOMAIN)))
+        ambiguous = '“云足疗A款”70-90分钟，“云足疗B款”70-90分钟。'
+        self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('足疗70-90分钟。', ambiguous, DOMAIN)))
+        self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('建议收藏足疗A款70-90分钟。', '', DOMAIN)))
+        self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('建议欢唱2小时的项目实际时长3小时。', '', DOMAIN)))
+        self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('按摩90-70分钟。', '按摩90-70分钟。', DOMAIN)))
+        self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('KTV欢唱2小时。', 'KTV营业2小时。', DOMAIN)))
+        for text in ('建议在酒吧停留2小时。', '计划安排KTV欢唱2小时。', '洗浴中心24小时可进。'):
+            self.assertFalse(api._leisure_duration_claims(text))
+
+    def test_explicit_medical_denials_do_not_negate_other_affirmed_claims(self):
+        for text in (
+            '云脊疗SPA不支持治疗功效。', '云脊疗SPA不宣称疗效。',
+            '本项目不支持任何脊椎、疾病、睡眠、康复或治疗功效。',
+            'SPA不宣称治疗、康复和改善睡眠质量。',
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(api._delivery_integrity_issues(text, '', DOMAIN))
+        for text in (
+            '云脊疗SPA支持治疗功效。', '云脊疗SPA宣称疗效。',
+            '不是不支持治疗功效。', '并非不宣称疗效。', '不能说不支持康复。',
+            'SPA不支持治疗，但可以改善失眠。', 'SPA不宣称疗效，具有康复效果。',
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(any('医疗功效' in issue for issue in api._delivery_integrity_issues(text, text, DOMAIN)))
+
     def test_entitlements_bind_package_scope_service_polarity_and_condition(self):
         for output, source in (
             ("套餐A包含按摩和足浴，不含餐饮。", "套餐A包含按摩和足浴，不含餐饮。"),

@@ -10985,6 +10985,10 @@ def _leisure_bound_fact_source(source: str | None) -> str:
         requested, directory = False, False
         for line in block.splitlines():
             raw = line.strip()
+            if raw.startswith("【本次商家确认"):
+                scope, requested, directory = True, False, False
+            if re.search(r"(?:服务项目|体验项目|项目)\s*[:：]", raw) and re.search(unknown, raw):
+                retained.append("")  # An unknown project cannot inherit a prior named duration.
             if not raw:
                 requested = False
                 retained.append("")  # Do not join separate source scenes.
@@ -11453,7 +11457,7 @@ def _leisure_observation_fact_issues(text: str, source: str, *, observation_cont
     return issues
 
 
-_LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗", re.I)
+_LEISURE_PROJECT_RE = re.compile(r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗|KTV|欢唱|调酒体验|品酒体验|酒吧项目", re.I)
 _LEISURE_SERVICE_RE = re.compile(
     r"洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗|"
     r"泡池|休息区|大厅|包房|麻将|电竞|(?<![A-Za-z])PS(?![A-Za-z])|Switch|桌球|书吧|酒廊|电影院|桌游|户外庭院|庭院|"
@@ -11468,25 +11472,91 @@ def _leisure_project_key(value: str) -> str:
     return {"spa": "水疗", "足疗": "足浴", "泡汤": "汤泉", "ps": "PS", "switch": "Switch"}.get(value.lower(), value)
 
 
-def _leisure_duration_claims(text: str) -> set[tuple[str | None, str]]:
-    """Bind each stated duration to its own explicit project, never a number pool."""
+def _leisure_duration_claims(text: str, *, project_context: str = "") -> set[tuple[str | None, str]]:
+    """Keep complete ranges and named project identity; aliases never pool numbers."""
     from decimal import Decimal
+    def category(value):
+        return "KTV" if value.lower() == "ktv" or value == "欢唱" else _leisure_project_key(value)
+    def project_key(value):
+        return _LEISURE_PROJECT_RE.sub(lambda m: category(m.group()), re.sub(r"\s", "", value)).lower()
+    names = []
+    for name in re.findall(r'[“「『"]([^”」』"\n]{1,30})[”」』"]|(?:服务项目|体验项目|项目)\s*[:：]\s*([^\n。；;，,]{1,30})', project_context or text):
+        value = next((part.strip() for part in name if part), "")
+        project = _LEISURE_PROJECT_RE.search(value)
+        if (project and re.fullmatch(r"[\w\u4e00-\u9fff]+", value)
+                and not re.search(r"\d\s*(?:分钟|小时|秒)", value) and project_key(value) != project_key(project.group())):
+            names.append(value)
+    def scope_for(part, project):
+        kind = category(project.group())
+        def name_prefix(before):
+            prefix = re.search(r"[A-Za-z\u4e00-\u9fff]{1,12}$", before)
+            prefix = prefix.group() if prefix else ""
+            if (project_key(prefix) == kind.lower()
+                    or re.search(r"(?:选择|预约|可选|绑定|项目|服务|体验|确认|介绍|提供|包含|本店|这里|该|本次|的|为|有|是|分钟|小时|秒钟|秒)$", prefix)):
+                return ""
+            return prefix
+        for name in sorted(set(names), key=len, reverse=True):
+            for match in re.finditer(re.escape(name), part, re.I):
+                if (match.start() <= project.start() and match.end() >= project.end()
+                        and not name_prefix(part[:match.start()])):
+                    return kind + "::" + project_key(name)
+        suffix = re.match(r"\s*((?:[A-Za-z甲乙丙丁]+(?:款|型)?|\d+(?:款|型)))", part[project.end():])
+        prefix = name_prefix(part[:project.start()])
+        if suffix:
+            short = project_key(project.group() + suffix.group(1))
+            aliases = {project_key(name) for name in names
+                       if category(_LEISURE_PROJECT_RE.search(name).group()) == kind and project_key(name).endswith(short)}
+            name = next(iter(aliases)) if not prefix and len(aliases) == 1 else project_key(prefix + project.group() + suffix.group(1))
+            return kind + "::" + name
+        if prefix:
+            return kind + "::" + project_key(prefix + project.group())
+        return kind
+    number = r"\d+(?:\.\d+)?"
+    unit = r"分钟|小时|秒钟|秒"
+    ranges = re.compile(rf"({number})\s*({unit})?\s*(?:[-–—~～]|至|到)\s*({number})\s*({unit})?")
+    singles = re.compile(rf"({number})\s*({unit})")
+    factors = {"分钟": 60, "小时": 3600, "秒钟": 1, "秒": 1}
     facts = set()
     named_project = None
     for line in (text or "").splitlines():
         if not line.strip() or line.startswith("【"):
             named_project = None
+        if re.search(r"(?:服务项目|体验项目|项目)\s*[:：]", line):
+            named_project = None  # Unknown/corrected labels cannot retain an old scope.
         for part in _fact_assertions(line):
-            label = re.search(r"(?:项目|服务项目|体验项目)\s*[:：]\s*(洗浴|汗蒸|桑拿|干蒸|湿蒸|汤泉|泡汤|泳池|游泳|水疗|SPA|推拿|按摩|沐足|足浴|足疗)", part, re.I)
-            if label:
-                named_project = _leisure_project_key(label.group(1))
+            if re.search(r"没有|不存在|未(?:给|注明)|不(?:含|提供).{0,12}(?:分钟|小时|秒)", part):
+                continue
             projects = list(_LEISURE_PROJECT_RE.finditer(part))
+            if re.search(r"(?:服务项目|体验项目|项目)\s*[:：]", part) and projects:
+                named_project = scope_for(part, projects[0])
+            durations = []
+            covered = []
+            for duration in ranges.finditer(part):
+                left_unit, right_unit = duration.group(2) or duration.group(4), duration.group(4) or duration.group(2)
+                if not left_unit:
+                    continue
+                left = Decimal(duration.group(1)) * factors[left_unit]
+                right = Decimal(duration.group(3)) * factors[right_unit]
+                kind = "range:" if left <= right else "invalid_range:"
+                durations.append((duration, kind + str(left.normalize()) + ":" + str(right.normalize())))
+                covered.append((duration.start(), duration.end()))
+            for duration in singles.finditer(part):
+                if any(start <= duration.start() < end for start, end in covered):
+                    continue
+                seconds = Decimal(duration.group(1)) * factors[duration.group(2)]
+                qualifier = re.match(r"\s*(起|以上|以内|以下)", part[duration.end():])
+                durations.append((duration, (qualifier.group(1) + ":" if qualifier else "") + str(seconds.normalize())))
             assigned = set()
-            for duration in re.finditer(r"(\d+(?:\.\d+)?)\s*(分钟|小时|秒钟|秒)", part):
+            for duration, value in sorted(durations, key=lambda item: item[0].start()):
+                prefix = part[:duration.start()]
+                if re.search(r"(?:营业|开放|开门|入场|进场)(?:时间|时长)?\s*[:：为是]?\s*$", prefix):
+                    continue
+                if (re.search(r"(?:计划|建议|预计)(?:在.{0,12})?(?:停留|安排.{0,12}|欢唱|体验)\s*$", prefix)
+                        and not re.search(r"(?:实际|官方|项目|服务)?时长", prefix)):
+                    continue  # A planned stay is not the project's offered duration.
                 if re.match(r"\s*(?:(?:可|可随时|随时)?(?:进|入场|入内)|营业|开放)", part[duration.end():]):
                     # Venue access/opening time is not a project's duration.
                     continue
-                seconds = Decimal(duration.group(1)) * {"分钟": 60, "小时": 3600, "秒钟": 1, "秒": 1}[duration.group(2)]
                 before = [p for p in projects if p.end() <= duration.start() and p.start() not in assigned
                           and duration.start() - p.end() <= 12
                           and not re.search(r"\d|[。！？；;]", part[p.end():duration.start()])]
@@ -11496,15 +11566,35 @@ def _leisure_duration_claims(text: str) -> set[tuple[str | None, str]]:
                 project = before[-1] if before else after[0] if after else None
                 if project:
                     assigned.add(project.start())
-                    scope = _leisure_project_key(project.group())
+                    scope = scope_for(part, project)
                 elif named_project and re.search(r"(?:项目|服务|体验)?时长\s*[:：]?", part):
                     scope = named_project
                 elif re.search(r"项目|服务时长|体验时长|体验", part):
                     scope = None
                 else:
                     continue
-                facts.add((scope, str(seconds.normalize())))
+                facts.add((scope, value))
     return facts
+
+
+def _leisure_duration_supported(claim: tuple[str | None, str], known: set[tuple[str | None, str]]) -> bool:
+    if claim[1].startswith("invalid_range:"):
+        return False
+    if claim in known:
+        return True
+    scope, value = claim
+    if scope is None:
+        return False
+    kind, _, name = scope.partition("::")
+    scoped = {item_scope for item_scope, _ in known if item_scope and item_scope.partition("::")[0] == kind}
+    # A generic category or shortened A/B label may refer to one known project,
+    # but cannot choose between two named projects or change its range type.
+    if len(scoped) != 1:
+        return False
+    target = next(iter(scoped))
+    target_name = target.partition("::")[2]
+    alias = not name or (name.startswith(kind.lower()) and target_name.endswith(name))
+    return alias and (target, value) in known
 
 
 def _leisure_package_key(value: str) -> str:
@@ -11579,8 +11669,8 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             r"(?:治|改善|缓解|解决).{0,8}(?:失眠|颈椎病|疾病|疼痛|腰痛|关节炎)|" + symptom_claim
         )
         negated_claim = re.compile(
-            r"(?:(?:不能|不得|不要)(?:用于|宣称|承诺)?|不(?:提供|涉及|承诺|用于|具有|具备)|不(?=适合|适用|推荐给|针对)|没有|并非|不是|无法|无需|无)"
-            r"(?:任何)?(?:疾病|医疗|医学|相关|此类){0,2}\s*"
+            r"(?:(?:不能|不得|不要)(?:用于|宣称|承诺)?|不(?:提供|涉及|承诺|用于|具有|具备|支持|宣称)|不(?=适合|适用|推荐给|针对)|没有|并非|不是|无法|无需|无)"
+            r"(?:任何)?(?:(?:脊椎|疾病|睡眠|医疗|医学|相关|此类)[、和或及与/\s]*)*"
             + "(?:" + medical_claim.pattern + ")"
             + "(?:[和、或及与/\\s]*(?:" + medical_claim.pattern + "))*"
         )
@@ -11595,7 +11685,10 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         known_temperatures = {float(value) for value in re.findall(temperature, evidence)}
         if {float(value) for value in re.findall(temperature, assertions)} - known_temperatures:
             issues.append("休闲娱乐体验出现未提供的水温/温度，结构化事实不能编造")
-        if _leisure_duration_claims(out) - _leisure_duration_claims(src):
+        duration_source = _leisure_bound_fact_source(src)
+        known_durations = _leisure_duration_claims(duration_source)
+        if any(not _leisure_duration_supported(claim, known_durations)
+               for claim in _leisure_duration_claims(out, project_context=duration_source)):
             issues.append("休闲娱乐体验出现未提供或与项目不符的项目时长，结构化事实不能编造")
         if _leisure_entitlement_claims(out) - _leisure_entitlement_claims(src):
             issues.append("休闲娱乐体验出现未核验的套餐服务权益，结构化事实不能编造")
