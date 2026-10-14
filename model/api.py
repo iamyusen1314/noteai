@@ -10991,7 +10991,7 @@ def _leisure_ktv_light_context(source: str | None, text: str = "") -> bool:
             or re.search(r"(?:主题|行业|主要项目)[^。；;\n]{0,8}(?:未知|待确认|未确认|不确定|不明)", author)):
         return False
     other = r"洗浴|汗蒸|汤泉|泡池|泳池|水疗|SPA|按摩|足疗|足浴|沐足|酒吧|清吧|(?<![A-Za-z])bar(?![A-Za-z])"
-    context = parts(author, only_explicit_rejections=True) + parts(text, only_explicit_rejections=True)
+    context = parts(author, only_explicit_rejections=True)  # Generated text cannot reclassify the author's primary scope.
     return not any(re.search(other, part, re.I) for part in context)
 
 
@@ -11932,7 +11932,8 @@ def _leisure_public_fact_issues(value: str, source_context: str, *, observation_
     # whether a public sentence may be retained. Do not dismantle package scopes.
     issues.extend(_leisure_observation_fact_issues(
         re.sub(r"[，,]", "", value),
-        re.sub(r"[，,]", "", _leisure_nonvisual_fact_source(source_context)),
+        (_leisure_nonvisual_fact_source(source_context) if _leisure_ktv_light_context(source_context)
+         else re.sub(r"[，,]", "", _leisure_nonvisual_fact_source(source_context))),
         observation_context=re.sub(r"[，,]", "", observation_context),
     ))
     return list(dict.fromkeys(issues))

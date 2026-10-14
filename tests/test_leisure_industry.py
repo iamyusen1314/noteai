@@ -175,8 +175,19 @@ class LeisureIndustryTests(unittest.TestCase):
             with self.subTest(source=other):
                 self.assertFalse(api._leisure_ktv_light_context(other))
                 self.assertTrue(api._delivery_integrity_issues("KTV欢唱3小时。", other, DOMAIN))
-        self.assertFalse(api._leisure_ktv_light_context(ktv, "SPA项目60分钟。"))
-        self.assertTrue(api._delivery_integrity_issues("SPA项目60分钟。", ktv, DOMAIN))
+        self.assertTrue(api._leisure_ktv_light_context(ktv, "SPA风格的装修。"))
+        self.assertFalse(api._delivery_integrity_issues("SPA项目60分钟。", ktv, DOMAIN))
+        # Primary scope is fixed by the original author brief in candidate,
+        # repair and public checks; comma normalization must not flip it.
+        comma_source = "本次主题是KTV，不涉及SPA。"
+        comma_copy = "包房各自独立，隔音很好，欢唱3小时。"
+        self.assertTrue(api._leisure_ktv_light_context(comma_source, "洗浴风格的装修。"))
+        self.assertFalse(api._delivery_integrity_issues(comma_copy, comma_source, DOMAIN))
+        self.assertFalse(api._leisure_public_fact_issues(comma_copy, comma_source))
+        self.assertFalse(api._leisure_public_fact_text(comma_copy, comma_source)[1])
+        self.assertIn("KTV轻量", api._quality_expression_brief(DOMAIN, comma_source))
+        self.assertIn("KTV轻量", api._safe_fact_delivery_brief(DOMAIN, comma_source))
+        self.assertFalse(api._leisure_ktv_light_context("洗浴中心含KTV配套。", "KTV聚会。"))
         for hard in ("人均118元。", "位于康定路。", "营业时间18:00-22:00。", "KTV治疗失眠。", "我这次去了KTV。"):
             with self.subTest(hard=hard):
                 self.assertTrue(api._delivery_integrity_issues(hard, ktv, DOMAIN))
@@ -259,10 +270,11 @@ class LeisureIndustryTests(unittest.TestCase):
         for claim in ("餐饮展示区各自独立分区。", "这里有独立包房。", "空间互不干扰。"):
             self.assertTrue(any("空间布局" in issue for issue in api._delivery_integrity_issues(claim, unknown, DOMAIN)), claim)
             self.assertFalse(api._delivery_integrity_issues(claim, "作者确认：" + claim, DOMAIN), claim)
-        for source, claim in (("KTV包房独立。", "SPA包房独立。"),
+        for source, claim in (("洗浴中心内KTV包房独立。", "SPA包房独立。"),
                               ("没有独立包房。", "独立包房。"),
                               ("包房独立。", "包房互不干扰。")):
             self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        self.assertFalse(api._delivery_integrity_issues("SPA包房独立。", "KTV包房独立。", DOMAIN))
         # An explicit facility count remains physical even in a reference
         # guide. Editorial themes and visible-image groupings remain allowed.
         physical = "水石清池3大分区游览顺序参考攻略。"
