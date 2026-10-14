@@ -9992,7 +9992,7 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             "- 检索失败时明确没有取得门店事实，不编造地址、价格、营业、预约、项目时长或服务权益；非必要未知项可不写。\n"
             "- 按本次真实素材或作者已确认的体验写作；未确认到访时写素材观察或参考，不替作者宣称亲历。不得将任何项目写成治疗、康复、排毒祛湿或治失眠方案，即使来源有营销功效也不背书。\n"
             "- 单图不扩大服务，多图与综合场所保留不同相关项目；实际餐饮不删除也不推定招牌，温度、味道、触感和个人感受需要作者明确提供。"
-            "\n- 按素材可见区域或编辑主题组织正文，不同池景照片不证明两个实际池区。场所分区数量、同一建筑、包含、独立、入口、区域连接与动线便利须有本门店作者或对应非视觉事实来源；声音的有无、质感及比较和商务区/位置交通便利也不能从图中推导。未知、否定、写作要求、专家稿或别店资料不得授权肯定事实。可以建议拍摄角度与游览顺序，不把编辑分组当作物理平面布局。"
+            "\n- 允许按可见素材描述不同场景、空间画面风格及少见等主观体验，保留真实餐饮主题。实际设施总数、男女用途、共址/包含/物理独立/入口/通行关系、价格地址权益、声音和商务区/交通便利结论须本门店作者或对应非视觉来源明确，不能由图数或风格推定；未知、否定、写作要求、专家稿或别店资料不得授权这些硬事实。可以建议拍摄角度与游览顺序，不把编辑分组当作设施库存或物理布局。"
             "\n- 图片只证明可见局部纹理和画面风格，不证明材料全范围铺装、原片无滤镜/后期、作者实际到访，或其他浴场的对比结果；这些断言缺源时改写为本图观察。全部主标题与备选标题均须≤20字且自然完整，压缩失败不能作为可发布标题交付。"
         )
     if canonical == "旅行":
@@ -11118,11 +11118,15 @@ def _leisure_spatial_claims(text: str, *, evidence: bool = False, observation_co
             scopes = local or prior or ("场所",)
             visual = bool(re.search(r"画面|照片|图片|镜头|构图|素材|主题|编辑", part))
             actual = bool(re.search(r"实际|实体|作者确认|已确认", part))
-            # A facility noun followed by a real-region count is physical even
-            # when its only claimed distinction is style.
+            # Visual scene/style groups are not facility inventory; named
+            # project counts above and explicit inventories remain guarded.
             generic = re.search(r"(?P<n>" + number + r")(?:个|大)?(?:实际|实体)?(?:分区|区(?:域)?|空间)(?!照片|画面|风格|主题)", part)
             editorial = bool(re.search(r"(?:画面|照片|图片|构图|主题|编辑).{0,8}(?:分组|分为|分成)|(?:编辑|画面|构图)(?:区域|空间)", part))
-            if generic and not editorial and not count.search(part) and not (evidence and visual and not actual):
+            tail = re.split(r"[。；;\n]", context[len(base_prefix) + cursor:])[0]
+            inventory = bool(re.search(r"实际|实体|设有|共有|总数|总共|全覆盖", part + tail))
+            visual_groups = bool(generic and (re.search(r"风格|氛围|配色|构图|视觉", part[generic.end():] + tail)
+                                 or re.search(r"(?:照片|图片|画面)(?:分别)?(?:展示|呈现)", part[:generic.start()])))
+            if generic and not editorial and not (visual_groups and not inventory) and not count.search(part) and not (evidence and visual and not actual):
                 raw = generic.group("n")
                 value = int(raw) if raw.isdigit() else (digits.get(raw.partition("十")[0], 1) * 10 + digits.get(raw.partition("十")[2], 0) if "十" in raw else digits[raw])
                 # Include preceding named facilities when the count refers to
@@ -11343,7 +11347,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
         if times and re.search(r"营业|开放|开门|闭店|打烊", part):
             operation = re.search(r"营业|开放|开门|闭店|打烊", part).group()
             facts["hours"].add((times, operation))
-        if re.search(r"不多见|并不多见|少见|少有|稀缺|罕见|唯一|独一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
+        if re.search(r"唯一|独一家|仅此一家|只有这一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
             facts["rarity"].add((re.sub(r"\s", "", part),))
         for family, subjects, claims in sensory:
             if evidence and visual_sound_source and family == "声音":

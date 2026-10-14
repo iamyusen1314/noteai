@@ -241,7 +241,7 @@ class LeisureIndustryTests(unittest.TestCase):
                           "建议先拍庭院，再拍水景座位与餐台。"):
             self.assertFalse(api._delivery_integrity_issues(editorial, unknown, DOMAIN), editorial)
         safe_brief = api._safe_fact_delivery_brief(DOMAIN, unknown)
-        self.assertIn("编辑分组当作物理平面布局", safe_brief)
+        self.assertIn("编辑分组当作设施库存或物理布局", safe_brief)
         for city in ("城中心禅意汤泉打卡指南", "城市中央的休闲空间", "市中心休闲空间"):
             self.assertTrue(any("地理区位" in issue for issue in api._delivery_integrity_issues(city, "城市广州，地址未知。", DOMAIN)), city)
         self.assertFalse(api._delivery_integrity_issues("城中心的休闲空间", "作者确认位于市中心。", DOMAIN))
@@ -400,12 +400,47 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertTrue(api._delivery_integrity_issues("池底全部铺石材。", context, DOMAIN))
         self.assertFalse(api._delivery_integrity_issues("图中有暖光和石纹。", context, DOMAIN))
 
+    def test_actual849_visible_groups_and_subjective_rarity_remain_deliverable(self):
+        # Exact fields from 35,124-byte retained report, SHA256
+        # 7ed5a9292b1ad8c807a529ff0050725d0ff2209565d1422cb353c289e16cac71.
+        # Latest owner preference permits visual grouping/subjective rarity;
+        # original author brief and candidate telemetry are retained unchanged.
+        actual = {'fact_context': '【本次用户创作简报；不是外部独立核验】\n本轮素材来自水石清池·汤泉生活。城市及分店尚未确认。作者确认这是含洗浴、水疗、自助餐的大型综合休闲项目；本次9张图仅展示庭院与水景座位、室内水池、海鲜自助展示和饮品柜台。围绕这些真实区域整理一篇可收藏的休闲体验参考，正文覆盖多张相关素材，分清空间与餐饮主题，不用设施数量制造高分。未提供本人温感、味道、卫生、服务体验或疗效，不写亲测。价格、营业时间、票种、时长、具体包含权益、其他配套与分店地址未知；检索返回且对象对应的事实才可引用，失败时说明缺失，不杜撰。不推断每个中心都有SPA、汗蒸、娱乐项目或所有餐次。', 'note_title': '松景庭院+星光泳池，水石清池汤泉逛吃攻略', 'note_body': '水石清池·汤泉生活集庭院、室内水景、汤泉和海鲜自助于一处，适合周末把泡汤、用餐、拍照串联成整日行程。\n\n松景庭院｜入场第一眼\n黑松、白砂枯山水、朱红小桥嵌在青石板水景，背景城市玻璃幕墙，传统格局与都市高楼并置同框，是场所辨识度最高的拍照位。\n\n星光泳池与汤泉泡区｜两种空间分开\n室内泳池顶部星光吊顶映照暖金色水面，汤泉泡池用木格栅屏风、叠石造景和暖调漫射光营造东方格调，两处空间视觉风格各自独立，层次感丰富。\n\n海鲜自助台｜汤泉场所里少见的配置\n展示台可见雪蟹、青口贝、刺身等冷鲜品类，暖棕金属台面配柔光灯带，品类视觉丰盛。具体包含餐次、收费和权益绑定条件未确认，建议提前联系门店核实。\n\n吧台区｜泡汤后的收尾位\n弧形台面、暗调饰面、威士忌陈列，暖光氛围感强，适合汤泉结束后慢坐，饮品单与价格待核实。\n\n价格、票种及具体权益建议提前向门店确认。\n\n有用先收藏，评论区聊聊你的情况。\n#水石清池 #汤泉休闲 #新中式美学 #海鲜自助 #庭院景观 #周末打卡 #松景泳池 #一站式体验', 'title_variants': ['水石清池汤泉，庭院+海鲜自助一站打卡', '新中式汤泉藏庭院，水石清池逛吃全攻略', '庭院松景+海鲜自助，水石清池汤泉值得去'], 'selection_meta': {'candidate_count': 4, 'candidates': [{'blocking': False, 'issue_count': 0, 'origin': 'refine_round_1', 'publishable_prob': 0.934, 'ranker_win_rate': 0.402, 'score': 67.5, 'selector_score': 70.56, 'title': '松景庭院+星光泳池，水石清池汤泉逛吃攻略'}, {'blocking': True, 'issue_count': 2, 'origin': 'refine_round_2', 'publishable_prob': 0.969, 'ranker_win_rate': 0.999, 'score': 75.6, 'selector_score': -48.63, 'title': '水石清池·4区全覆盖，汤泉逛吃新攻略'}, {'blocking': True, 'issue_count': 3, 'origin': 'selector_challenger_1', 'publishable_prob': 0.921, 'ranker_win_rate': 0.549, 'score': 67.9, 'selector_score': -59.51, 'title': '水石清池汤泉｜庭院松景+海鲜自助的闹中取静'}, {'blocking': True, 'issue_count': 1, 'origin': 'arbitrate_initial', 'publishable_prob': 0.652, 'ranker_win_rate': 0.051, 'score': 63.3, 'selector_score': -62.3, 'title': '水石清池汤泉全攻略｜庭院+泳池+海鲜自助'}], 'selected_origin': 'refine_round_1', 'selected_score': 67.5, 'selected_selector_score': 70.56, 'selected_title': '松景庭院+星光泳池，水石清池汤泉逛吃攻略', 'source_correction_count': 0, 'source_corrections_retained': False, 'used_ranker': True, 'viable_count': 1}}
+        self.assertEqual(actual["selection_meta"]["selected_origin"], "refine_round_1")
+        self.assertEqual(actual["selection_meta"]["selected_score"], 67.5)
+        self.assertEqual(actual["selection_meta"]["viable_count"], 1)
+        self.assertFalse(api._delivery_integrity_issues(actual["note_title"] + "\n" + actual["note_body"], actual["fact_context"], DOMAIN,
+                                                      title_variants=actual["title_variants"]))
+        public, notices = api._leisure_public_fact_text(actual["note_body"], actual["fact_context"])
+        self.assertIn("两种空间分开", public)
+        self.assertIn("两处空间视觉风格各自独立", public)
+        self.assertIn("汤泉场所里少见", public)
+        self.assertIn("海鲜自助台", public)
+        unknown = "门店名：甲店\n只有空间和餐饮照片；价格、地址、权益及实际设施总数未知。"
+        for soft in ("两个区域风格不同。", "两个区域，风格不同。", "照片分别展示两个区域。", "两种空间分开。", "两处空间视觉风格各自独立。",
+                     "SPA里自助餐少见。", "酒吧这种庭院配置少有。", "KTV里的餐台很罕见。", "汤泉的这种搭配稀缺。",
+                     "这组汤泉搭配不多见。", "按两个编辑主题整理素材。"):
+            self.assertFalse(api._delivery_integrity_issues(soft, unknown, DOMAIN), soft)
+            retained, _ = api._leisure_public_fact_text(soft, unknown)
+            self.assertIn(soft.rstrip("。"), retained.replace("\n", ""))
+        for hard in ("实际设有两个区域，画面风格不同。", "共有4个空间，视觉风格各异。", "4区全覆盖。",
+                     "实际设有4个汤泉区。", "两个汤泉区，呈现两种风格。", "同城唯一组合。", "全城只有这一家。"):
+            self.assertTrue(api._delivery_integrity_issues(hard, unknown, DOMAIN), hard)
+            self.assertTrue(api._delivery_integrity_issues(hard, api._generation_delivery_source_context(DOMAIN, unknown, hard), DOMAIN), hard)
+            self.assertFalse(api._delivery_integrity_issues(hard, "门店名：甲店\n对象：甲店\n" + hard, DOMAIN), hard)
+        for hard in ("价格118元。", "位于康定路。", "门票免费包含SPA。", "治失眠。"):
+            self.assertTrue(api._delivery_integrity_issues(hard, unknown, DOMAIN), hard)
+        self.assertIn("男女用途", api._safe_fact_delivery_brief(DOMAIN, unknown))
+        self.assertIn("非视觉来源明确", api._safe_fact_delivery_brief(DOMAIN, unknown))
+        for domain in OLD_DOMAINS:
+            self.assertNotIn("空间画面风格及少见", api._safe_fact_delivery_brief(domain, unknown))
+
     def test_relation_families_require_same_object_positive_or_negative_sources(self):
         unknown = "门店名：甲店\n仅有庭院、泳池、格栅画面；布局、声音和区位未知。"
         pairs = (
             ("庭院和泳池整合在同一屋檐下。", "庭院和泳池并不同一屋檐下。"),
             ("泡池区以格栅围出独立小角落。", "泡池区没有独立小角落。"),
-            ("泳池区。泡池区。两个区域风格不同。", "泳池区。泡池区。不存在两个区域。"),
+            ("泳池区。泡池区。两个实际区域。", "泳池区。泡池区。不存在两个实际区域。"),
             ("庭院连通餐饮区。", "庭院不连通餐饮区。"),
             ("泳池在休息区内。", "泳池不在休息区内。"),
             ("有风声。", "没有风声。"),
@@ -430,6 +465,7 @@ class LeisureIndustryTests(unittest.TestCase):
                     opposite = negative if claim == positive else positive
                     self.assertTrue(api._delivery_integrity_issues(claim, "作者确认：" + opposite, DOMAIN), (claim, opposite))
         for allowed in ("两类画面风格不同。", "照片里可见原木格栅和蓝调泳池。", "格栅映衬泡池，画面静谧雅致。",
+                        "泳池区。泡池区。两个区域风格不同。", "泳池区与泡池区，两个区域风格不同，开放时段建议确认。",
                         "建议先拍庭院再拍泳池。", "建议确认位置和交通是否便利。", "风声是否轻柔需要确认。"):
             self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
         for source in ("城市：上海。", "图中高楼与庭院可见。", "门店地址：康定路358弄。", "商圈：曹家渡。"):
@@ -451,27 +487,27 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertTrue(api._delivery_integrity_issues("我听到风声。", "朋友听到风声。", DOMAIN))
         self.assertFalse(api._delivery_integrity_issues("泳池在休息区内。", "作者确认休息区内有泳池。", DOMAIN))
         self.assertTrue(api._delivery_integrity_issues("照片里格栅围出独立小角落。", unknown, DOMAIN))
-        self.assertTrue(api._delivery_integrity_issues("照片分别展示两个区域。", unknown, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("照片分别展示两个区域。", unknown, DOMAIN))
 
         for claim in ("泡池区以原木格栅围出独立小角落，具体区域开放时段建议到店确认。",
-                      "泳池区与泡池区，两个区域风格不同，开放时段建议确认。",
                       "室内分两个汤泉区，开放时段待确认。"):
             self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN), claim)
         self.assertTrue(api._delivery_integrity_issues("两个区域，开放时段待确认。", "区域数量未知。", DOMAIN))
 
     def test_spatial_backreferences_stay_in_this_observation_block(self):
         source = "作者确认泳池区和泡池区是两个实际区域。"
-        text = "场景：泳池区。泡池区。两个区域风格不同。"
+        text = "场景：泳池区。泡池区。两个实际区域。"
         self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
         safe, notices = api._leisure_public_fact_text(text, source)
         self.assertFalse(notices)
-        self.assertIn("两个区域", safe)
+        self.assertIn("两个实际区域", safe)
         # A different image cannot provide the missing subject for this image's
         # count, nor can known style groups establish real facility quantities.
-        separate = "图1：场景：泳池区与泡池区\n图2：场景：两个区域风格不同。"
+        separate = "图1：场景：泳池区与泡池区\n图2：场景：两个实际区域。"
         self.assertTrue(api._delivery_integrity_issues(separate, source, DOMAIN))
         self.assertTrue(api._delivery_integrity_issues(text, "泳池区和泡池区呈现两种画面风格。", DOMAIN))
-        self.assertFalse(api._delivery_integrity_issues("汤泉区。两个区域风格不同。", "作者确认实际有两个汤泉区。", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("汤泉区。两个实际区域。", "作者确认实际有两个汤泉区。", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("两个区域风格不同。", "只有图片，区域数量未知。", DOMAIN))
         self.assertFalse(api._delivery_integrity_issues("泳池区和泡池区。这些区域互通。", "泳池区和泡池区互通。", DOMAIN))
         self.assertTrue(api._delivery_integrity_issues("泳池区和泡池区。这些区域互通。", "泳池区和餐饮区互通。", DOMAIN))
         own = "门店名：甲店\n对象：甲店\n泳池区与泡池区。\n对象：乙店\n两个区域。"
@@ -780,11 +816,11 @@ class LeisureIndustryTests(unittest.TestCase):
     def test_public_evidence_retains_numeric_telemetry_not_fake_assertions(self):
         metric = {"label": "正文含地址字样", "source_key": "has_address", "value": 1, "status": "available"}
         opinions = [{"role": "增长专家", "opinion": "优先展示可见区域。", "evidence": [
-            "这类搭配在广州城区并不多见。", {"agent_text": "CBD旁休闲场所", "value": 1}, metric],
+            "这是同城唯一组合。", {"agent_text": "CBD旁休闲场所", "value": 1}, metric],
             "suggestions": ["用庭院和自助餐的真实组合解释读者价值。"]}]
         public = api._generation_public_expert_opinions(opinions, "广州，位置未知；有庭院与自助餐。", DOMAIN)
         self.assertEqual(public[0]["evidence"], [metric])
-        for unsafe in ("CBD", "不多见"):
+        for unsafe in ("CBD", "唯一"):
             self.assertNotIn(unsafe, json.dumps(public, ensure_ascii=False))
         self.assertIn("同城稀缺比较", public[0]["reason"])
 
@@ -856,9 +892,11 @@ class LeisureIndustryTests(unittest.TestCase):
         for claim in ("位于广州城区，这类搭配并不多见。", "工作日下午到店，这里人少。",
                       "泡池水温，真的很舒服。", "本次亲测，到店体验很好。"):
             public = api._generation_public_visual_summary(claim + "木桥与暖黄光线可见。", "广州，其余事实未知。", DOMAIN)
-            for unsafe in ("不多见", "这里人少", "真的很舒服", "本次亲测"):
+            for unsafe in ("广州城区", "这里人少", "真的很舒服", "本次亲测"):
                 self.assertNotIn(unsafe, public)
             self.assertIn("木桥", public)
+            if "不多见" in claim:
+                self.assertIn("不多见", public)
 
     def test_mock_stream_public_previews_preserve_only_internal_raw_drafts(self):
         captures = []
