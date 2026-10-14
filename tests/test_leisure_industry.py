@@ -266,6 +266,157 @@ class LeisureIndustryTests(unittest.TestCase):
         contaminated = api._generation_delivery_source_context(DOMAIN, source, before)
         self.assertNotIn("真实打卡体验", json.dumps(api._generation_public_expert_opinions([opinion], contaminated, DOMAIN), ensure_ascii=False))
 
+    def test_actual_c1f_complete_public_fields_use_shared_fact_families(self):
+        # Exact affected fields from the retained 34,449-byte actual report,
+        # SHA256 ff619f140bbeea27b2acac6a6961c2464d96047ea56619069988bd1bcf1bf858.
+        # Offline regression only; the original paid report stays unchanged.
+        actual = {'fact_context': '【本次用户创作简报；不是外部独立核验】\n本轮素材来自水石清池·汤泉生活。城市及分店尚未确认。作者确认这是含洗浴、水疗、自助餐的大型综合休闲项目；本次9张图仅展示庭院与水景座位、室内水池、海鲜自助展示和饮品柜台。围绕这些真实区域整理一篇可收藏的休闲体验参考，正文覆盖多张相关素材，分清空间与餐饮主题，不用设施数量制造高分。未提供本人温感、味道、卫生、服务体验或疗效，不写亲测。价格、营业时间、票种、时长、具体包含权益、其他配套与分店地址未知；检索返回且对象对应的事实才可引用，失败时说明缺失，不杜撰。不推断每个中心都有SPA、汗蒸、娱乐项目或所有餐次。', 'note_title': '水石清池汤泉｜庭院泳池海鲜一站攻略', 'note_body': '水石清池把新中式禅意庭院、室内泳池、海鲜自助台和酒廊吧台整合在同一屋檐下，适合想一站完成泡浴＋餐饮＋拍照的周末安排。\n\n庭院区是水石清池第一个打卡点，黑松、白沙枯山水、朱红拱桥与青石水景搭暖光宫灯，夜间光影分层清晰，侘寂感强，傍晚入场拍照最出效果。\n\n室内泳池区用暖金星光顶倒映蓝调池水，哑光石质墙面配嵌入式灯带；泡池区以原木格栅围出独立小角落，池边搭禅意置石，两个区域风格不同、可按需选择，具体区域开放时段建议到店确认。\n\n海鲜自助台冰鲜蟹腿、贝类整排陈列在碎冰金属盛器里，视觉陈列丰富，餐期时段和是否包含在门票内建议提前问清楚再决定。\n\n酒廊吧台适合泡完汤后小坐，弧形吧台配环形暖黄灯带和整排酒墙，整体氛围偏沉静，饮品种类待到店确认。\n\n计划去水石清池的，建议出发前确认营业时间、票种价格和各区段的权益范围，避免到场后预期差距，评论区可以聊聊你的行程安排。\n\n#汤泉打卡 #新中式设计 #室内泳池 #海鲜自助 #庭院景观 #周末放松 #城市休闲', 'title_variants': ['水石清池汤泉生活｜泳池海鲜庭院全攻略', '新中式汤泉+海鲜自助一站｜水石清池攻略', '水石清池｜庭院泳池海鲜自助周末怎么玩'], 'cover_analysis': '缺少地理区位来源依据，已省略相关建议。\n医疗功效表述不适用休闲内容，已省略相关建议。\n缺少温感/味道/卫生/服务/声音体验来源依据，已省略相关建议。\n【主图】\n黑松，白砂枯山水，红桥，青石水榭，暖光宫灯，高级静谧\n新中式禅意庭院景观\n\n【其余8张素材图】\n\n图2（深度）：场景：暖光星顶下的静谧室内泳池，氛围感拉满\n核心元素：暖金色星光顶，清透蓝调池水，哑光石质墙面，嵌入式暖光灯，轻奢镜面设计，静谧高级感\n情绪基调：精致高级，沉浸松弛\n爆文角度：水石清池休闲打卡攻略\n视觉亮点：星光顶倒映泳池\n\n核心元素：黑松，白沙枯山水，深灰金属檐顶，原木立柱，侘寂高级感，城市隐世感\n情绪基调：静谧雅致，精致高级\n爆文角度：都市新中式汤泉打卡地\n视觉亮点：松间新中式禅意庭院\n\n图4（深度）：场景：水石清池汤泉，质感海鲜自助餐区氛围感拉满\n核心元素：暗调暖光，粗粝石质，木质餐台，鲜气海鲜，精致摆盘，沉静高级\n情绪基调：精致高级，沉浸享受\n爆文角度：汤泉海鲜自助攻略\n\n图5（深度）：场景：暖调质感汤泉空间，木格格栅衬着氤氲泡池松弛感拉满\n核心元素：暖棕柔光，石材泡池，原木格栅，禅意置石，温润地砖，静谧氛围\n爆文角度：水石清池汤泉打卡指南\n视觉亮点：暖光木格禅意泡池\n\n图6（深度）：场景：暖光环绕的质感汤泉饮品吧台休憩空间\n核心元素：暗调金属肌理，暖黄环形灯带，弧形吧台，整排酒墙，温润氛围感，黄铜质感立柱\n情绪基调：高级沉静，沉浸松弛\n爆文角度：汤泉里的质感酒廊打卡点\n视觉亮点：环形灯带酒墙吧台\n\n图7（深度）：场景：暖光轻奢的室内汤池空间氛围感拉满\n核心元素：深灰大理石，暖金柔光灯，静谧汤池，景观置石，温润质感，松弛氛围\n情绪基调：静谧高级，沉浸疗愈\n爆文角度：汤泉轻奢打卡全攻略\n视觉亮点：暖光环绕的大汤池\n\n图8（深度）：城市高楼间藏着中式禅意庭院汤泉空间\n黑松，红桥，青石水景，和风声的松弛感，雅致侘寂，日光漫洒\n朱红日式小桥\n\n图9（深度）：场景：水石清池海鲜自助台，冰鲜海产满满铺陈超诱人\n核心元素：冰鲜海鲜，金属盛器，碎冰，橙红蟹腿，亮白冰面，高级质感\n情绪基调：精致奢华，满足畅快\n爆文角度：汤泉店海鲜自助图鉴\n视觉亮点：满满豪华海鲜阵容', 'expert_opinions': [{'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '缺少地理区位来源依据，已省略相关建议。\n医疗功效表述不适用休闲内容，已省略相关建议。', 'opinion': '城市商务区内的新中式庭院景观。\n可见元素包括：\n- 景观设计：黑松盆栽、白砂铺装的枯山水区域、红色木质拱桥、青石板水榭结构\n- 照明氛围：暖色宫灯照亮庭院，营造夜间柔和光线\n- 建筑风格：现代建筑与传统中式元素结合，开放式或半开放式庭院布局\n- 色彩基调：黑、白、红、青灰为主，暖光点缀\n- 空间感：纵深感明显，层次分明，视线开阔\n\n素材突出庭院的设计感和静谧氛围，但画面本身不能证明：汤泉水温、泉水成分、卫生标准、是否为真实温泉或循环水、庭院是否为汤泉专属区域或公共景观、实际体验舒适度、营业时段、收费标准、预约流程。', 'reason': '缺少地理区位来源依据，已省略相关建议。\n医疗功效表述不适用休闲内容，已省略相关建议。', 'role': '视觉专家', 'suggestions': ['强调都市人的松弛需求，突出新中式设计如何在商务区创造避世感。\n适合强调地理位置便利性与氛围转换效果，吸引工作日解压的职场人群。', '**设计美学视角**：「新中式庭院怎么做出高级感」—— 拆解黑松、枯山水、红桥、青石、宫灯等元素的搭配逻辑，讨论现代汤泉空间如何融合传统美学。', '**体验决策视角**：「新中式汤泉庭院，适合什么时候去」—— 围绕实际汤泉项目（若素材对应具体商家），讨论夜间庭院氛围、套餐权益、适合人群（朋友小聚、情侣约会、家庭放松）。\n需补充：是否可预约庭院区域、是否需额外费用、餐饮/休息配套、营业时间。']}, {'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '缺少常态或时段客流来源依据，已省略相关建议。\n**发布时机建议**：当前无新鲜热词依据（时机系数1.0，热词为空）。\n建议：\n- **可选补充**：若作者确认营业时间或特定套餐时段，才在正文中绑定\n- **建议发布前确认**：地址、营业时间、价格、预约方式等，补充到文末"实用信息"或评论区，增强可信度', 'opinion': '**核心词融入策略**：\n\n1. **标题层**（已内置方案中）\n- 新中式禅意、庭院、汤泉、泳池、海鲜自助、酒廊\n- 自然服务标题叙事，不额外堆砌\n\n2. **正文自然融入位置**\n- 开场：快速定位"汤泉综合项目"\n- 空间1：庭院景观描写（黑松、白沙、禅意、侘寂）\n- 空间2：室内泳池段落（星光顶、大理石、高级感）\n- 空间3：海鲜自助段落（冰鲜、摆盘、自助形式）\n- 空间4：饮品酒廊段落（酒墙、吧台、休息空间）\n- 结尾：收藏价值 + CTA\n\n3. **禁止做法**\n- 不为热词补充不存在的项目（如图片没有汗蒸、按摩、KTV，不写）\n- 不强行拼接关键词破坏可读性\n- 不用"新品""限时"等虚假热词信号', 'reason': '缺少常态或时段客流来源依据，已省略相关建议。\n**发布时机建议**：当前无新鲜热词依据（时机系数1.0，热词为空）。\n建议：\n- **可选补充**：若作者确认营业时间或特定套餐时段，才在正文中绑定\n- **建议发布前确认**：地址、营业时间、价格、预约方式等，补充到文末"实用信息"或评论区，增强可信度', 'role': '增长专家', 'suggestions': ['**核心词融入策略**：', '**标题层**（已内置方案中）', '新中式禅意、庭院、汤泉、泳池、海鲜自助、酒廊', '自然服务标题叙事，不额外堆砌']}, {'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '缺少地理区位来源依据，已省略相关建议。', 'opinion': '松间庭院、星光泳池、海鲜自助，每个角落都值得收藏。', 'reason': '缺少地理区位来源依据，已省略相关建议。', 'role': '用户专家', 'suggestions': []}], 'features': {'body_cta_count': 1.0, 'body_has_address': 1.0, 'body_has_booking': 0.0, 'body_has_hours': 1.0, 'body_has_must_order': 0.0, 'body_has_price': 1.0, 'body_has_transport': 1.0, 'body_len': 431.0, 'category_avg_ces': 0.0, 'category_saturation': 0.0, 'commercial_actionability': 1.0, 'commercial_ai_probability': 0.0, 'commercial_body_avg_sentence_len': 51.857142857142854, 'commercial_body_char_len': 431.0, 'commercial_body_cta_count': 1.0, 'commercial_body_has_cta': 1.0, 'commercial_body_has_first_person': 0.0, 'commercial_body_low_quality_phrase_count': 0.0, 'commercial_body_main_char_len': 380.0, 'commercial_body_paragraph_count': 6.0, 'commercial_body_price_mentions': 0.0, 'commercial_body_sentence_burstiness': 0.19295549319931088, 'commercial_body_sentence_count': 7.0, 'commercial_body_specific_number_count': 0.0, 'commercial_body_tag_count': 7.0, 'commercial_body_template_phrase_count': 0.0, 'commercial_domain_missing_slot_count': 0.0, 'commercial_domain_slot_count': 4.0, 'commercial_domain_slot_coverage': 1.0, 'commercial_fact_density': 0.5, 'commercial_naturalness_available': 0.0, 'commercial_naturalness_score': 50.0, 'commercial_specificity': 0.25, 'commercial_title_char_len': 17.0, 'commercial_title_has_domain_anchor': 1.0, 'commercial_title_has_number': 0.0, 'commercial_title_has_recommendation': 0.0, 'commercial_title_in_delivery_range': 1.0, 'commercial_title_price_recommendation_join': 0.0, 'commercial_title_template_phrase_count': 0.0, 'commercial_title_unreadable_risk': 0.0, 'content_freshness': 0.0, 'cover_aesthetic_score': 0.0, 'cover_aspect_ratio': 1.7758, 'cover_brightness': 0.4287, 'cover_composition_score': 0.0, 'cover_contrast': 0.2354, 'cover_emotion_intensity': 0.0, 'cover_face_count': 0.0, 'cover_has_face': 0.0, 'cover_has_text': 0.0, 'cover_saturation': 0.2499, 'cover_sharpness': 0.0896, 'cover_text_prominence': 0.0, 'cover_visual_clarity': 0.0, 'cover_warmth': 0.2735, 'domain_baby_age': 0.0, 'domain_baby_materials': 0.0, 'domain_baby_safety': 0.0, 'domain_baby_steps': 0.0, 'domain_beauty_effect': 0.0, 'domain_beauty_price': 0.0, 'domain_beauty_product': 0.0, 'domain_beauty_skin': 0.0, 'domain_encoded': 17.0, 'domain_fashion_fit': 0.0, 'domain_fashion_items': 0.0, 'domain_fashion_logic': 0.0, 'domain_fashion_price': 0.0, 'domain_fitness_action': 0.0, 'domain_fitness_dosage': 0.0, 'domain_fitness_safety': 0.0, 'domain_fitness_target': 0.0, 'domain_food_address': 0.0, 'domain_food_booking': 0.0, 'domain_food_hours': 0.0, 'domain_food_must_order': 0.0, 'domain_food_price': 0.0, 'domain_food_taste_evidence': 0.0, 'domain_home_before_after': 0.0, 'domain_home_budget': 0.0, 'domain_home_items': 0.0, 'domain_home_space': 0.0, 'domain_travel_avoid': 0.0, 'domain_travel_budget': 0.0, 'domain_travel_route': 0.0, 'domain_travel_season': 0.0, 'domain_travel_transport': 0.0, 'is_trending_topic': 0.0, 'keyword_competition': 0.0, 'keyword_search_vol': 0.0, 'plad_avg_sentence_len': 61.57142857142857, 'plad_emoji_density': 0.0, 'plad_immediate_repetition': 0.0, 'plad_interactive_stance': 0.14285714285714285, 'plad_number_ratio': 0.0, 'plad_phrasal_repetition': 0.032710280373831724, 'plad_punctuation_ratio': 0.06904231625835189, 'plad_sentence_burstiness': 0.20467667023425473, 'plad_sentence_count': 7.0, 'plad_ttr': 0.7515923566878981, 'plad_unique_emoji_ratio': 0.0, 'plad_word_burstiness': 0.5625685978790208, 'plad_word_freq_entropy': 6.710070191497884, 'semantic_emotional_intensity': 0.62, 'semantic_empathetic_engagement': 0.75, 'semantic_rhetorical_score': 0.78, 'tag_count': 7.0, 'tag_has_city': 0.0, 'tag_has_food_travel': 1.0, 'time_days_to_holiday': 12.0, 'time_hour': 10.0, 'time_is_weekend': 0.0, 'time_weekday': 2.0, 'title_has_city': 0.0, 'title_has_neg_emotion': 0.0, 'title_has_new_signal': 0.0, 'title_has_number': 0.0, 'title_has_pos_emotion': 0.0, 'title_has_price': 0.0, 'title_has_question': 0.0, 'title_len': 17.0, 'trend_momentum': 0.0, 'trend_peak_distance': 0.0}}
+        source = actual["fact_context"]
+        self.assertIn("城市及分店尚未确认", source)
+        issues = api._delivery_integrity_issues(actual["note_title"] + "\n" + actual["note_body"], source, DOMAIN,
+                                               title_variants=actual["title_variants"])
+        self.assertTrue(any("空间布局" in issue for issue in issues))
+        self.assertTrue(api._has_blocking_quality_issues(73, issues, DOMAIN))
+        cover = api._generation_public_visual_summary(actual["cover_analysis"], source, DOMAIN)
+        opinions = api._generation_public_expert_opinions(actual["expert_opinions"], source, DOMAIN)
+        progress = api._generation_public_progress_event({"type": "expert_opinion", "content": actual["cover_analysis"]}, source, DOMAIN)
+        saved = api._sanitize_chat_generate_context({"cover_analysis": cover, "expert_opinions": opinions})
+        for public in (cover, opinions, progress, saved):
+            encoded = json.dumps(public, ensure_ascii=False)
+            for unsupported in ("和风声", "商务区内", "商务区创造避世感", "地理位置便利性"):
+                self.assertNotIn(unsupported, encoded)
+        for visible in ("原木格栅", "蓝调池水", "黑松", "红桥", "雅致侘寂"):
+            self.assertIn(visible, cover)
+        # Bare visual mood is not automatically a medical treatment claim.
+        self.assertIn("静谧高级", cover)
+        hits = api._generation_public_feature_hits(actual["note_title"], actual["note_body"], actual["features"], 73, DOMAIN, source)
+        self.assertFalse(hits["has_price"])
+        self.assertFalse(hits["has_address"])
+        self.assertTrue(api._feature_hits_for_generation(actual["note_title"], actual["features"], 73, DOMAIN, body=actual["note_body"])["has_price"])
+
+    def test_relation_families_require_same_object_positive_or_negative_sources(self):
+        unknown = "门店名：甲店\n仅有庭院、泳池、格栅画面；布局、声音和区位未知。"
+        pairs = (
+            ("庭院和泳池整合在同一屋檐下。", "庭院和泳池并不同一屋檐下。"),
+            ("泡池区以格栅围出独立小角落。", "泡池区没有独立小角落。"),
+            ("泳池区。泡池区。两个区域风格不同。", "泳池区。泡池区。不存在两个区域。"),
+            ("庭院连通餐饮区。", "庭院不连通餐饮区。"),
+            ("泳池在休息区内。", "泳池不在休息区内。"),
+            ("有风声。", "没有风声。"),
+            ("播放音乐。", "不播放音乐。"),
+            ("风声轻柔。", "风声不轻柔。"),
+            ("位于商务区内。", "不在商务区内。"),
+            ("地理位置便利。", "地理位置不便利。"),
+        )
+        for positive, negative in pairs:
+            for claim in (positive, negative):
+                with self.subTest(claim=claim):
+                    self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN))
+                    own = "门店名：甲店\n对象：甲店\n作者确认：" + claim
+                    self.assertFalse(api._delivery_integrity_issues(claim, own, DOMAIN), claim)
+                    for bad_source in ("门店名：甲店\n对象：乙店\n" + claim,
+                                       "门店名：甲店\n对象：甲店\n对象：不是甲店\n" + claim,
+                                       "门店名：甲店\n写作要求：\n" + claim,
+                                       "门店名：甲店\n对象：甲店\n" + claim.rstrip("。") + "，尚未确认。",
+                                       "门店名：甲店\n如果" + claim,
+                                       "门店名：甲店\n另一家门店" + claim):
+                        self.assertTrue(api._delivery_integrity_issues(claim, bad_source, DOMAIN), bad_source)
+                    opposite = negative if claim == positive else positive
+                    self.assertTrue(api._delivery_integrity_issues(claim, "作者确认：" + opposite, DOMAIN), (claim, opposite))
+        for allowed in ("两类画面风格不同。", "照片里可见原木格栅和蓝调泳池。", "格栅映衬泡池，画面静谧雅致。",
+                        "建议先拍庭院再拍泳池。", "建议确认位置和交通是否便利。", "风声是否轻柔需要确认。"):
+            self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
+        for source in ("城市：上海。", "图中高楼与庭院可见。", "门店地址：康定路358弄。", "商圈：曹家渡。"):
+            self.assertTrue(api._delivery_integrity_issues("地理位置便利。", source, DOMAIN), source)
+        self.assertTrue(api._delivery_integrity_issues("商务区内。", "商务区附近。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("风声比街上更轻柔。", "作者确认有风声。", DOMAIN))
+        for theme in ("KTV音乐空间聚会攻略。", "以音乐为主题整理KTV选歌参考。",
+                      "音乐聚会的曲目选择参考。", "想把音乐内容整理成一份KTV选歌清单。"):
+            self.assertFalse(api._delivery_integrity_issues(theme, unknown, DOMAIN), theme)
+        for sound in ("本店播放音乐。", "在KTV听到音乐。", "音乐声很轻柔。", "本店有音乐。"):
+            self.assertTrue(api._delivery_integrity_issues(sound, unknown, DOMAIN), sound)
+            self.assertFalse(api._delivery_integrity_issues(sound, "作者确认：" + sound, DOMAIN), sound)
+        self.assertTrue(api._delivery_integrity_issues("庭院和泳池在同一屋檐下。", "作者确认这是综合洗浴中心，含庭院和泳池。", DOMAIN))
+
+        for place in ("商务区", "CBD", "市中心", "商圈"):
+            self.assertTrue(api._delivery_integrity_issues("位于" + place + "。", "作者确认靠近" + place + "。", DOMAIN), place)
+            self.assertTrue(api._delivery_integrity_issues("不在" + place + "。", "作者确认位于" + place + "。", DOMAIN), place)
+        self.assertTrue(api._delivery_integrity_issues("白天有风声。", "作者确认晚上有风声。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("我听到风声。", "朋友听到风声。", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("泳池在休息区内。", "作者确认休息区内有泳池。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("照片里格栅围出独立小角落。", unknown, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("照片分别展示两个区域。", unknown, DOMAIN))
+
+        for claim in ("泡池区以原木格栅围出独立小角落，具体区域开放时段建议到店确认。",
+                      "泳池区与泡池区，两个区域风格不同，开放时段建议确认。",
+                      "室内分两个汤泉区，开放时段待确认。"):
+            self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN), claim)
+        self.assertTrue(api._delivery_integrity_issues("两个区域，开放时段待确认。", "区域数量未知。", DOMAIN))
+
+    def test_spatial_backreferences_stay_in_this_observation_block(self):
+        source = "作者确认泳池区和泡池区是两个实际区域。"
+        text = "场景：泳池区。泡池区。两个区域风格不同。"
+        self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
+        safe, notices = api._leisure_public_fact_text(text, source)
+        self.assertFalse(notices)
+        self.assertIn("两个区域", safe)
+        # A different image cannot provide the missing subject for this image's
+        # count, nor can known style groups establish real facility quantities.
+        separate = "图1：场景：泳池区与泡池区\n图2：场景：两个区域风格不同。"
+        self.assertTrue(api._delivery_integrity_issues(separate, source, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues(text, "泳池区和泡池区呈现两种画面风格。", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("汤泉区。两个区域风格不同。", "作者确认实际有两个汤泉区。", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("泳池区和泡池区。这些区域互通。", "泳池区和泡池区互通。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("泳池区和泡池区。这些区域互通。", "泳池区和餐饮区互通。", DOMAIN))
+        own = "门店名：甲店\n对象：甲店\n泳池区与泡池区。\n对象：乙店\n两个区域。"
+        self.assertTrue(api._delivery_integrity_issues(text, own, DOMAIN))
+
+    def test_leisure_media_prompt_clarifies_only_still_image_claims(self):
+        for domain in (DOMAIN, "美食"):
+            with mock.patch.object(api, "_read_image_input", return_value=b"offline-fixture"), \
+                 mock.patch.object(api._ark_media, "image_part", return_value={"offline": True}), \
+                 mock.patch.object(api._ark_media, "chat", return_value="可见光线与池景") as chat:
+                api._kimi_vision_understand("fixture", domain, "材料说明")
+            prompt = chat.call_args.args[0]
+            self.assertEqual("照片不可听" in prompt, domain == DOMAIN)
+            self.assertEqual("实际区域数量" in prompt, domain == DOMAIN)
+            self.assertEqual("温暖治愈/精致高级/活力有趣/沉浸享受" in prompt, domain != DOMAIN)
+            with mock.patch.object(api, "_runtime_prompt", return_value="视觉原模板{domain}"), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="可见光线")) as model:
+                asyncio.run(api._gent_visual(None, domain, "已有材料", {}))
+            self.assertEqual("照片不可听" in model.call_args.args[1], domain == DOMAIN)
+
+    def test_public_fact_checks_do_not_change_legacy_features_or_other_domains(self):
+        source = "门店名：甲店\n地址：康定路358弄。\n价格：人均116元。"
+        features = {"body_has_price": 1, "body_has_address": 1}
+        for body, price, address in (("建议确认票价与分店地址。", False, False),
+                                      ("地址：康定路358弄，人均116元。", True, True),
+                                      ("位于康定路，人均118元。", False, True),
+                                      ("位于南京西路，人均116元。", True, False)):
+            hits = api._generation_public_feature_hits("休闲场景参考攻略", body, features, 73, DOMAIN, source)
+            self.assertEqual((hits["has_price"], hits["has_address"]), (price, address), body)
+        for known, quoted, expected in (("116.5元", "116.9元", False),
+                                        ("116.50元", "116.5元", True),
+                                        ("￥116.5元", "￥116.9元", False),
+                                        ("￥116.50元", "116.5元", True),
+                                        ("116元/人", "116元/晚", False),
+                                        ("116元/人", "116元/人", True)):
+            hits = api._generation_public_feature_hits("休闲场景参考攻略", "价格：" + quoted + "。", features, 73, DOMAIN,
+                                                       "门店名：甲店\n价格：" + known + "。")
+            self.assertEqual(hits["has_price"], expected, (known, quoted))
+        long_address = "广州市天河区珠江新城花城广场东侧某某商业街道123号"
+        self.assertTrue(api._generation_public_feature_hits("休闲场景参考攻略", "地址：" + long_address + "。", features, 73, DOMAIN,
+                                                           "门店名：甲店\n地址：" + long_address)["has_address"])
+        for bad_source in ("门店名：甲店\n对象：乙店\n价格：人均116元。\n地址：康定路358弄。",
+                           "门店名：甲店\n写作要求：\n价格：人均116元。\n地址：康定路358弄。"):
+            hits = api._generation_public_feature_hits("休闲场景参考攻略", "地址：康定路358弄，人均116元。", features, 73, DOMAIN, bad_source)
+            self.assertFalse(hits["has_price"])
+            self.assertFalse(hits["has_address"])
+        for domain in ("美食", "旅行", "穿搭", "母婴", "健身", "美妆", "职场"):
+            self.assertEqual(api._generation_public_feature_hits("标题", "待确认地址和价格", features, 73, domain, ""),
+                             api._feature_hits_for_generation("标题", features, 73, domain, body="待确认地址和价格"))
+        self.assertEqual(features, {"body_has_price": 1, "body_has_address": 1})
+
     def test_actual_amap_location_fields_support_only_same_merchant_exact_places(self):
         # Retained real PARLAY supplier fields assembled through the normal
         # formatter; this offline fixture does not invoke a provider or model.
@@ -275,6 +426,9 @@ class LeisureIndustryTests(unittest.TestCase):
         for claim in ("门店位于康定路358弄陕康里18弄103室。", "位于康定路。", "位于曹家渡商圈。",
                       "地址：康定路358弄陕康里18弄103室。", "高德显示人均116元、评分4.6。"):
             self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
+        public_hits = api._generation_public_feature_hits("PARLAY场景参考攻略", "位于康定路，人均116元。", {"body_has_price": 1, "body_has_address": 1}, 73, DOMAIN, source)
+        self.assertTrue(public_hits["has_price"])
+        self.assertTrue(public_hits["has_address"])
         for claim in ("位于南京西路。", "位于定路。", "临近康定路。", "靠近曹家渡商圈。",
                       "位于曹家商圈。", "CBD旁的酒吧。", "人均118元。"):
             self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
