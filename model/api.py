@@ -4205,7 +4205,16 @@ def _leisure_visual_expression_brief() -> str:
     return ("只描述本图可见内容，不补未出现的其他项目；可写格栅、池景、光线、构图与画面风格。照片不可听，不能补风声、水声、音乐或安静程度。"
             "不同图片或两种画面风格不证明实际区域数量、独立空间、共处一栋建筑、入口或连接关系。"
             "城市及建筑外观不证明商务区、商圈或位置交通便利。创作角度只能建议拍摄与内容主题，不能预设这些未知事实。"
-            "情绪用画面松弛、雅致等视觉表达，不把画面氛围写成作者疗效或亲历感受；实际来源另行对应本门店核对。")
+            "情绪用画面松弛、雅致等视觉表达，不把画面氛围写成作者疗效或亲历感受；实际来源另行对应本门店核对。"
+            "可写局部石纹、木纹、金属色泽和视觉质感，照片不能鉴定理石/黄铜等材料成分，不能确定整个池底/池壁的工程材料覆盖、无滤镜或后期、作者实际入场观察，或与未提供的其他浴场作比较结论。")
+
+
+def _leisure_visual_writing_material(image_desc: str | None) -> str:
+    if not image_desc:
+        return ""
+    return ("\n\n" + _LEISURE_VISUAL_SOURCE_MARKER + "\n"
+            "以下仅为完整可见素材的写作参考；保留颜色、纹理、光线与构图，不授权经营、工程覆盖、拍摄加工、比较或作者到访事实。\n"
+            + image_desc)
 
 
 async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: dict) -> dict:
@@ -4562,7 +4571,8 @@ async def _generate_quality_challenger_candidate(
         return None
     variants = [v.strip() for v in _xtag(raw, "variants").splitlines() if v.strip()][:3]
     title = _sanitize_title_for_delivery(await _fit_title_limit(title, body, canonical, memory_context, constraint_context=constraint_context), brief, canonical, constraint_context=constraint_context)
-    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优", memory_context, constraint_context=constraint_context)
+    body = await _shape_body_for_delivery(title, body, canonical, brief, "爆文多候选择优", memory_context, constraint_context=constraint_context,
+        **({"visual_context": image_desc} if canonical == "休闲娱乐体验" else {}))
     variants = [
         _sanitize_title_for_delivery(await _fit_title_limit(v, body, canonical, memory_context, constraint_context=constraint_context), brief, canonical, constraint_context=constraint_context)
         for v in variants
@@ -8661,6 +8671,7 @@ def _quality_expression_brief(domain: str | None = None) -> str:
             "- 按本次实际活动、项目与空间写已有流程和场景取舍，不从行业名推定子场景；综合场所的真实餐饮等相关项目保留，未知场景写一般真实体验。\n"
             "- 感受只能转述作者已提供的信息；图片只能证明可见画面，不能证明味道、触感、温度、声音、卫生、资质、疗效或亲测。安静得出乎预料等反预期或比较体验也须作者说明。静谧的视觉美学与未来拍摄建议可以保留，不承诺未知设施或动线。\n"
             "- 风声、水声、音乐等声源的有无、质感和比较，同屋檐/包含/独立/连接关系及真实区域数量，商务区与位置交通便利结论都须对应本门店的非视觉来源；未知、否定、写作要求和别店资料不授权肯定事实。\n"
+            "- 可见石纹/色泽/灯光及3处编辑细节可以展开；材料全覆盖、无滤镜/后期、实际入场观察和与未提供其他商家比较必须有对应来源。改写为图片观察，不把读者计划或假想入场写成作者经历。\n"
             "- 禁止治疗、康复、排毒祛湿、治失眠、缓解疾病等医疗功效，标题、正文、备选标题与话题都要遵守。"
         )
     if canonical == "美食":
@@ -9982,6 +9993,7 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
             "- 按本次真实素材或作者已确认的体验写作；未确认到访时写素材观察或参考，不替作者宣称亲历。不得将任何项目写成治疗、康复、排毒祛湿或治失眠方案，即使来源有营销功效也不背书。\n"
             "- 单图不扩大服务，多图与综合场所保留不同相关项目；实际餐饮不删除也不推定招牌，温度、味道、触感和个人感受需要作者明确提供。"
             "\n- 按素材可见区域或编辑主题组织正文，不同池景照片不证明两个实际池区。场所分区数量、同一建筑、包含、独立、入口、区域连接与动线便利须有本门店作者或对应非视觉事实来源；声音的有无、质感及比较和商务区/位置交通便利也不能从图中推导。未知、否定、写作要求、专家稿或别店资料不得授权肯定事实。可以建议拍摄角度与游览顺序，不把编辑分组当作物理平面布局。"
+            "\n- 图片只证明可见局部纹理和画面风格，不证明材料全范围铺装、原片无滤镜/后期、作者实际到访，或其他浴场的对比结果；这些断言缺源时改写为本图观察。全部主标题与备选标题均须≤20字且自然完整，压缩失败不能作为可发布标题交付。"
         )
     if canonical == "旅行":
         mode = _travel_fact_mode(source_context)
@@ -10657,8 +10669,12 @@ def _compact_body_to_delivery_limit(body: str, domain: str | None, constraint_co
     return (compact_main + ("\n" + tags if tags else "")).strip()
 
 
-async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "", constraint_context: str = "", editorial_context: str = "") -> str:
+async def _shape_body_for_delivery(title: str, body: str, domain: str | None, source_context: str | None, style_hint: str = "", memory_context: str = "", constraint_context: str = "", editorial_context: str = "", visual_context: str = "") -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
+    if canonical == "休闲娱乐体验":
+        visual_context = visual_context or ((source_context or "").split(_LEISURE_VISUAL_SOURCE_MARKER, 1)[1]
+                                             if _LEISURE_VISUAL_SOURCE_MARKER in (source_context or "") else "")
+        source_context = _leisure_nonvisual_fact_source(source_context)
     preserve_editorial = bool(editorial_context)
     has_edit_context = bool(constraint_context or editorial_context)
     shaped = (body or "") if has_edit_context else _insert_safe_fact_line(body or "", domain, source_context)
@@ -10723,6 +10739,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"{safe_brief}\n\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
         f"完整只读事实依据（保留原有条件与未知项，不从价格推导房型权益或入住容量）：\n{source_context or '未提供更多事实'}\n\n"
+        + (_leisure_visual_writing_material(visual_context) if canonical == "休闲娱乐体验" else "") +
         f"{editorial_context}\n\n"
         "请修订下面待核对的候选正文（不是事实来源），只输出正文+标签，不能有Markdown标题、方案编号、解释文字：\n"
         f"{shaped}"
@@ -11197,11 +11214,70 @@ def _leisure_visit_claim(part: str) -> tuple | None:
     return actor, times, re.sub(r"\s", "", statement)
 
 
+def _leisure_visual_scope_claims(text: str, *, evidence: bool = False, observation_context: str = "") -> dict[str, set[tuple]]:
+    """Bind visible attributes separately from coverage, process and comparison."""
+    facts = {key: set() for key in ("spatial", "comparison", "provenance", "visit")}
+    surfaces = r"(?:汤泉|泡池|泳池|水池|SPA|KTV)?(?:的)?(?:池壁|池底|池边|墙面|地面|顶面|天花板|扶手|格栅)|汤泉池|泡池|泳池|水池"
+    materials = r"(?:深灰|灰色|黑色|白色|原木)?(?:大理石|理石|石材|瓷砖|木材|实木|黄铜|金属)(?!色|光|纹|质感)"
+    for block in _leisure_observation_blocks(text):
+        context = next((item for item in _leisure_observation_blocks(observation_context) if block in item), block)
+        prefix, cursor = context[:context.find(block)], 0
+        for part in _leisure_relation_assertions(block):
+            offset = block.find(part, cursor)
+            prior = prefix + block[:offset] if offset >= 0 else prefix
+            if offset >= 0:
+                cursor = offset + len(part)
+            if evidence and re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算", part):
+                continue
+            visual_evidence = evidence and bool(re.search(r"照片|图片|画面|视觉|看图|图中|图里|本图|图\s*\d", part))
+            coverage = re.search(r"(?:(?:全(?:部|都)?|均|都)(?:用|由|是|为|采用|铺)|通铺|铺满|全部覆盖|全面铺装)", part)
+            whole = re.search(r"(?:整个|整面|全部|所有)(?:" + surfaces + r")|整池|全池", part)
+            if not coverage and whole:
+                coverage = re.compile(r"用|由|是|为|采用|铺设|铺装|铺就|铺成").search(part, whole.end())
+            if coverage and not visual_evidence:
+                scopes = tuple(sorted(set(re.findall(surfaces, part)) | ({"池体"} if re.search(r"整池|全池", part) else set())))
+                material = tuple(sorted(set(re.findall(materials, part[coverage.start():]))))
+                if scopes and material:
+                    positive = _leisure_relation_positive(part) and not re.search(r"(?:不|未|没有)\s*$", part[:coverage.start()])
+                    facts["spatial"].add(("材料覆盖", scopes, material, positive))
+            # These are claims about another venue/category, not a comparison
+            # between supplied pictures or merely a cold/warm colour contrast.
+            if not visual_evidence:
+                comparison = re.search(r"(?:(?<!对)比|不像|和|与)(?P<object>(?:(?:普通|大众|其他|别家|另一家|常见|传统)[^，,。；;\n]{0,12}?(?:浴场|浴池|泡池|汤泉|酒吧|KTV|SPA|门店)))(?P<result>[^，,。；;\n]{0,24})", part, re.I)
+                if comparison and (part[comparison.start():].startswith(("比", "不像")) or re.search(r"不在一个|不同|不一样|更|完全", comparison.group("result"))):
+                    axis = "纵深" if "纵深" in part else "风格" if re.search(r"调性|风格|不像", part) else re.sub(r"\s", "", part[:comparison.start()])
+                    facts["comparison"].add((comparison.group("object"), axis, re.sub(r"\s", "", comparison.group()), _leisure_relation_positive(part)))
+            process = re.search(r"(?P<negative>不是|并非|不|没有|无|未经|未)(?:靠|依靠|用|使用|加|添加|经过|做)?(?:滤镜|后期|修图|调色)|(?:用|使用|加|添加|经过|做)(?:了)?(?:滤镜|后期|修图|调色)|(?:原片|原图|原相机)(?:直出|拍摄)", part)
+            process_plan = bool(process and re.search(
+                r"(?:建议|计划|准备|打算|下次|以后|未来)[^，,。；;\n]{0,8}(?:拍摄|拍照|修图|调色)|"
+                r"(?:拍摄|拍照|修图|调色)时[^，,。；;\n]{0,8}(?:可以|可|建议)", part[:process.start()])
+                and not re.search(r"这张|原片|原图|已经|本次|这次", part))
+            process_analogy = bool(process and re.search(r"(?:像|如同|仿佛)(?:是)?\s*$", part[:process.start()]))
+            if process and not process_plan and not process_analogy and not re.search(r"滤镜感|后期风格", process.group()):
+                kind = "滤镜" if "滤镜" in process.group() else "后期" if re.search(r"后期|修图|调色", process.group()) else "原片直出"
+                facts["provenance"].add((kind, "未经处理" if process.group("negative") or kind == "原片直出" else "经过处理"))
+            # A completed entry followed by a first-sight observation needs
+            # author provenance. Plain invitations/plans to enter stay outside.
+            view = re.split(r"[。；;\n]", prior)[-1] + part
+            entry = re.search(r"(?:走进|步入|进入)[^，,。；;\n]{2,40}", view)
+            if entry and re.search(r"第一眼|眼前|就(?:发现|看到|看见|感到|觉得)", part) and not re.search(
+                    r"建议|计划|准备|打算|想象|想像|假想|如果|下次|以后|未来|可以|读者|镜头|照片|图片|画面|你", view):
+                actor = re.search(r"(我(?:们)?|作者|本人|朋友)[^，,。；;\n]{0,8}$", view[:entry.start()])
+                who = actor.group(1) if actor else "作者"
+                who = "作者" if who in {"我", "本人", "作者"} else who
+                temporal = r"今天|昨日|昨天|前天|昨晚|今晚|上周|上月|去年|这次|本次|此次|\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?"
+                times = tuple("本次" if value in {"这次", "本次", "此次"} else value for value in re.findall(temporal, view))
+                facts["visit"].add((who, times, re.sub(r"\s", "", re.sub(temporal, "", view[entry.start():]))))
+    return facts
+
+
 def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, observation_context: str = "") -> dict[str, set[tuple]]:
     """Finite claim families, not a general place/entity or truth classifier."""
     if evidence:
         text = _leisure_bound_fact_source(text)
-    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "spatial", "crowd", "hours", "rarity", "sensory", "visit")}
+    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "spatial", "crowd", "hours", "rarity", "sensory", "visit", "comparison", "provenance")}
+    for key, values in _leisure_visual_scope_claims(text, evidence=evidence, observation_context=observation_context).items():
+        facts[key].update(values)
     facts["spatial"].update(_leisure_spatial_claims(text, evidence=evidence, observation_context=observation_context))
     facts["sensory"].update(_leisure_contextual_food_claims(text, evidence=evidence, observation_context=observation_context))
     periods = r"工作日|周末|节假日|平日|白天|早上|上午|中午|下午|晚上|夜间|凌晨|全天|\d{1,2}(?:[:：]\d{2}|点)"
@@ -11354,7 +11430,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
 def _leisure_observation_fact_issues(text: str, source: str, *, observation_context: str = "") -> list[str]:
     claims = _leisure_observation_fact_claims(text, observation_context=observation_context)
     known = _leisure_observation_fact_claims(source, evidence=True)
-    labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历"}
+    labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历", "comparison": "其他商家/类别比较", "provenance": "图像拍摄或加工过程"}
     issues = []
     for kind, label in labels.items():
         missing = claims[kind] - known[kind]
@@ -11983,6 +12059,10 @@ def _delivery_integrity_issues(
     issues.extend(_user_constraint_delivery_issues(text, constraint_context))
     issues.extend(_food_prompt_example_reuse_issues((text or "").split("\n", 1)[0], source_context, domain))
     for index, variant in enumerate(title_variants or [], 1):
+        if _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "") == "休闲娱乐体验":
+            if len(variant) > _TITLE_DELIVERY_MAX:
+                issues.append(f"备选标题{index}：标题超过平台上限（当前{len(variant)}字，最多{_TITLE_PLATFORM_MAX}字），需要语义压缩")
+            issues.extend(f"备选标题{index}：{issue}" for issue in _title_readability_issues(variant, domain))
         issues.extend(f"备选标题{index}：{issue}" for issue in
                       _structured_fact_boundary_issues(variant, source_context, domain))
         issues.extend(f"备选标题{index}：{issue}" for issue in
@@ -11998,6 +12078,10 @@ def _delivery_integrity_issues(
 
 def _has_blocking_quality_issues(score: float, issues: list[str], domain: str | None = None) -> bool:
     if score < _quality_min_acceptable_percentile(domain):
+        return True
+    if _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "") == "休闲娱乐体验" and any(
+        "标题超过平台上限" in issue or ("备选标题" in issue and "标题不自然" in issue) for issue in issues
+    ):
         return True
     # A high telemetry score never makes an unsupported factual claim deliverable.
     fatal_markers = (
@@ -12082,6 +12166,10 @@ async def _score_generation_delivery_candidate(
     canonical = _GEN_CHECKLIST_ALIASES.get(domain, domain)
     raw_title = str(candidate.get("title") or "").strip()
     raw_body = str(candidate.get("body") or "").strip()
+    variants = candidate.get("variants", [])
+    if canonical == "休闲娱乐体验":
+        variants = [_sanitize_title_for_delivery(str(value), source_context, canonical, constraint_context=constraint_context)
+                    for value in variants]
     title = _sanitize_title_for_delivery(await _fit_title_limit(raw_title, raw_body, canonical, constraint_context=constraint_context), source_context, canonical, constraint_context=constraint_context) if raw_title else ""
     if not constraint_context:
         title = _fallback_title_under_limit(title)
@@ -12093,7 +12181,7 @@ async def _score_generation_delivery_candidate(
     score, features, grade = await _score_generated_note(title, body, canonical, local_time, timing, cover_feats)
     issues = _generated_quality_issues(title, body, canonical, score, features, source_context)
     issues.extend(_delivery_integrity_issues(
-        f"{title}\n{body}", source_context or "", canonical, title_variants=candidate.get("variants", []), constraint_context=constraint_context
+        f"{title}\n{body}", source_context or "", canonical, title_variants=variants, constraint_context=constraint_context
     ))
     issues.extend(_body_format_issues(body))
     issues = _filter_quality_issues_for_content_intent(
@@ -12107,6 +12195,7 @@ async def _score_generation_delivery_candidate(
         **candidate,
         "title": title,
         "body": body,
+        **({"variants": variants} if canonical == "休闲娱乐体验" else {}),
         "score": float(score),
         "features": features,
         "grade": grade,
@@ -18454,6 +18543,8 @@ async def _generate_pipeline_stream(
         variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) for v in raw_v2]
         rationale = _xtag(raw2, "rationale")
     if not title or not body:
+        if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验":
+            _log_internal_failure("generate", phase="generation_structure_gate", status="incomplete_structure", item_count=1)
         yield {
             "type": "error",
             "message": "仲裁未返回完整结果，本次未作为合格生成交付。",
@@ -18462,7 +18553,8 @@ async def _generate_pipeline_stream(
         }
         return
 
-    body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成", memory_context, constraint_context=constraint_context)
+    body = await _shape_body_for_delivery(title, body, domain, brief, "爆文生成", memory_context, constraint_context=constraint_context,
+        **({"visual_context": image_desc} if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验" else {}))
     stream_selection_candidates: list[dict] = []
     stream_selection_meta: dict = {}
 
@@ -18643,7 +18735,8 @@ async def _generate_pipeline_stream(
             f"创作者真实信息/约束：{brief or '未提供更多真实信息，不能编造价格/地址/时间；缺失处应自然提醒补充，不要乱写。'}"
         )
         if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验":
-            repair_user += "\n上方当前标题与正文是待修模型草稿，不能作为事实来源；专家意见与AI视觉重复也不授权未确认事实。"
+            repair_user += (_leisure_visual_writing_material(image_desc)
+                            + "\n上方当前标题与正文是待修模型草稿，不能作为事实来源；专家意见与AI视觉重复也不授权未确认事实。")
         try:
             raw_fix = await _mr.call("arbitrate", (repair_system) + ("\n\n" + constraint_context if constraint_context else ""), repair_user, thinking=True, max_tokens=6000, trace_step='generation_quality_repair', prompt_keys=(), prompt_domain=domain)
             t_fix = _xtag(raw_fix, "title")
@@ -18659,6 +18752,7 @@ async def _generate_pipeline_stream(
                     "流式爆文质量修复",
                     memory_context,
                     constraint_context=constraint_context,
+                    **({"visual_context": image_desc} if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验" else {}),
                 )
                 variants = [_sanitize_title_for_delivery(await _fit_title_limit(v, body, domain, memory_context, constraint_context=constraint_context), brief, domain, constraint_context=constraint_context) for v in raw_fix_variants]
                 rationale = _xtag(raw_fix, "rationale")
@@ -18826,6 +18920,10 @@ async def _generate_pipeline_stream(
     feature_hits = _generation_public_feature_hits(title, body, final_feats, final_score, domain, brief or "")
 
     if _has_blocking_quality_issues(final_score, quality_issues, domain):
+        if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验":
+            _log_internal_failure("generate", phase="generation_final_gate", status=("source_fact_boundary"
+                if any("结构化事实不能编造" in issue for issue in quality_issues) else "title_contract"
+                if any("标题超过平台上限" in issue or "备选标题" in issue for issue in quality_issues) else "delivery_quality"), item_count=len(quality_issues))
         yield {
             "type": "error",
             "message": "生成质量未达交付标准，请补充更具体的真实信息后重试",

@@ -298,6 +298,108 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertFalse(hits["has_address"])
         self.assertTrue(api._feature_hits_for_generation(actual["note_title"], actual["features"], 73, DOMAIN, body=actual["note_body"])["has_price"])
 
+    def test_actual_single_refine2_requires_all_title_and_visual_fact_contracts(self):
+        # Exact affected fields from retained actual 31,492-byte report,
+        # SHA256 c6030254713b3589ece72ac27302278f55a31d40317114eb31a9c723f4814e5c. No live replay.
+        actual = {'fact_context': '【本次用户创作简报；不是外部独立核验】\n本轮素材来自水石清池·汤泉生活。城市及分店尚未确认。本轮是水石清池·汤泉生活的一张室内水池素材。只围绕可见水池、石材、灯光、扶手与毛巾陈列组织一个真实空间观察主题。作者未提供泡池水温、亲身触感、卫生、服务或疗效，不写亲测、舒服到睡着、治失眠等。单图不扩展成该店全设施清单，不补SPA、足疗、自助餐权益。地址、营业时间、票价、项目时长和包含条件未提供；只使用真实对应检索字段，缺失需明确。', 'note_title': '水石清池汤泉，3处细节让人当场想收藏', 'note_body': '走进水石清池·汤泉生活，汤泉池区第一眼就不像普通大众浴场。池壁和池底全用深灰理石铺就，纹理沉稳，颗粒感清晰，暖金色氛围光从上方均匀打下，水面折出细碎光斑，散在深灰理石上。深灰配暖金的冷暖对比，和常见白瓷砖浴池完全不在一个调性，整个汤泉池区有种被刻意设计过的层次感，视觉克制，不浮夸。\n\n黄铜扶手沿汤泉池边设置，弧度自然，暖光下透出温润金属光泽。竖向格栅配景石造景，空间纵深感比普通浴场更明显，整排净白毛巾整齐陈列在池边，这3处细节从图片就能直接判断，不是靠滤镜撑起来的质感。\n\n不追热闹氛围、想找视觉干净利落的汤泉池区，水石清池·汤泉生活值得放进候选清单，票价和营业信息建议出发前官方渠道确认。先收藏，有到店体验的朋友欢迎评论区聊聊👇\n\n#汤泉 #质感汤池 #深灰理石 #设计感空间 #松弛感打卡 #汤泉生活 #小众汤泉', 'title_variants': ['水石清池汤泉池区，深灰理石暖金光3处细节太克制', '不像大众浴场，水石清池汤泉3处细节值得收藏', '深灰理石配暖金光，水石清池汤泉池区质感在哪'], 'cover_analysis': '场景：暖光裹住浅泛涟漪的室内汤泡池\n核心元素：深灰理石，暖金氛围光，竖格栅背景，景石造景，黄铜扶手，整排净白毛巾\n情绪基调：暖沉静谧松弛\n爆文角度：质感汤池打卡新选择\n视觉亮点：暖光映满整池', 'expert_opinions': [{'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '医疗功效表述不适用休闲内容，已省略相关建议。', 'opinion': '室内汤泡池特写，深灰理石池壁与池底清晰可见，水面泛起浅涟漪反射暖金色氛围光。\n竖向格栅背景营造纵深感，嵌入景石造景点缀池侧，黄铜扶手沿池边设置便于上下。\n池边整齐摆放净白毛巾，暖色照明均匀覆盖全池，构图呈现沉静、质感的休闲氛围。\n光线柔和不刺眼，材质层次分明（理石纹理、金属光泽、纺织质感），无明显人物活动。', 'reason': '医疗功效表述不适用休闲内容，已省略相关建议。', 'role': '视觉专家', 'suggestions': ['**质感汤池打卡新选择** — 以深灰理石+暖金光为视觉核心，聚焦汤泡池的设计感与松弛氛围，适合寻求"高级感泡汤体验"的读者，突出空间美学而非功效承诺。', '**细节见品质｜洗浴中心的隐藏高级汤区** — 用黄铜扶手、理石铺装、毛巾摆放等细节展现管理与设计用心，面向注重体验品质与卫生细节的消费者，强调"不只是泡汤"的整体感受。']}, {'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '医疗功效表述不适用休闲内容，已省略相关建议。\n缺少常态或时段客流来源依据，已省略相关建议。\n**发布时间建议**：\n- 当前无新鲜热词或平台峰值证据，建议按常规节奏发布\n- 汤泉品类无特殊时间限制；\n- 建议不在商家客流低谷时发布（如平日凌晨），以便评论互动有回应\n- **优先级**：内容质量 > 时间节点；\n此稿已达成交付标准，不必等待热词', 'opinion': '**核心词融入策略**：\n- **"深灰理石+暖金灯光"**：标题开篇即出现，是视觉核心，读者秒懂打卡点\n- **"汤泉"**：品类词，正文首句"走进水石清池·汤泉生活"自然带出，第一个话题标签\n- **"打卡背景"**：行为词，正文中段与适配人群对应，标签"打卡新选择"呼应\n- **"设计感""细节"**：品质词，贯穿正文（黄铜、毛巾、石材、扶手），支撑"认真对待"的核心印象\n\n**避坑**：不强行堆砌"SPA、按摩、自助餐"等未提供项目；\n不补地址、票价、营业时间（用户未提供，缺失不扣重分）', 'reason': '医疗功效表述不适用休闲内容，已省略相关建议。\n缺少常态或时段客流来源依据，已省略相关建议。\n**发布时间建议**：\n- 当前无新鲜热词或平台峰值证据，建议按常规节奏发布\n- 汤泉品类无特殊时间限制；\n- 建议不在商家客流低谷时发布（如平日凌晨），以便评论互动有回应\n- **优先级**：内容质量 > 时间节点；\n此稿已达成交付标准，不必等待热词', 'role': '增长专家', 'suggestions': ['**核心词融入策略**：', '**"深灰理石+暖金灯光"**：标题开篇即出现，是视觉核心，读者秒懂打卡点', '**"汤泉"**：品类词，正文首句"走进水石清池·汤泉生活"自然带出，第一个话题标签']}, {'confidence': 0.0, 'evidence': [], 'evidence_binding': '', 'impact': '', 'opinion': '暖光裹着涟漪，深灰理石配黄铜细节，整排净白毛巾整齐陈列——这样的泡池设计，光看就能感受到空间的用心。', 'reason': '', 'role': '用户专家', 'suggestions': []}], 'selection_meta': {'candidate_count': 4, 'candidates': [{'blocking': False, 'issue_count': 0, 'origin': 'refine_round_2', 'publishable_prob': 0.974, 'ranker_win_rate': 0.993, 'score': 73.5, 'selector_score': 79.24, 'title': '水石清池汤泉，3处细节让人当场想收藏'}, {'blocking': False, 'issue_count': 0, 'origin': 'refine_round_1', 'publishable_prob': 0.967, 'ranker_win_rate': 0.419, 'score': 69.2, 'selector_score': 72.57, 'title': '深灰理石配暖金光，水石清池汤泉值得收藏'}, {'blocking': True, 'issue_count': 2, 'origin': 'arbitrate_initial', 'publishable_prob': 0.974, 'ranker_win_rate': 0.58, 'score': 71.0, 'selector_score': -57.88, 'title': '深灰理石+暖金光｜这家汤泉值得收藏'}, {'blocking': True, 'issue_count': 2, 'origin': 'selector_challenger_1', 'publishable_prob': 0.977, 'ranker_win_rate': 0.009, 'score': 69.5, 'selector_score': -61.65, 'title': '暖金灯光配深灰石｜这个汤泉池质感值得一泡'}], 'selected_origin': 'refine_round_2', 'selected_score': 73.5, 'selected_selector_score': 79.24, 'selected_title': '水石清池汤泉，3处细节让人当场想收藏', 'source_correction_count': 0, 'source_corrections_retained': False, 'used_ranker': True, 'viable_count': 2}}
+        self.assertEqual(actual["selection_meta"]["selected_origin"], "refine_round_2")
+        self.assertEqual(actual["selection_meta"]["selected_score"], 73.5)
+        self.assertEqual([len(value) for value in actual["title_variants"]], [23, 21, 21])
+        issues = api._delivery_integrity_issues(actual["note_title"] + "\n" + actual["note_body"], actual["fact_context"], DOMAIN,
+                                               title_variants=actual["title_variants"])
+        for family in ("空间布局", "作者亲历", "比较", "加工过程", "备选标题1", "备选标题2", "备选标题3"):
+            self.assertTrue(any(family in issue for issue in issues), (family, issues))
+        self.assertTrue(api._has_blocking_quality_issues(73.5, issues, DOMAIN))
+        visible = "图中可见深灰石纹、暖金光、水面反光、金属色扶手、竖格栅、景石与白毛巾陈列，这3处细节适合作为编辑焦点。"
+        self.assertFalse(api._delivery_integrity_issues(visible, actual["fact_context"], DOMAIN))
+        public, notices = api._leisure_public_fact_text(actual["note_body"], actual["fact_context"])
+        for unsupported in ("全用深灰理石", "比普通浴场", "不是靠滤镜", "第一眼就不像"):
+            self.assertNotIn(unsupported, public)
+        self.assertTrue(notices)
+        # A saved score and the original zero issues do not replace this audit.
+        self.assertEqual(actual["selection_meta"]["viable_count"], 2)
+
+    def test_visual_attribute_relations_keep_scope_and_source_polarity(self):
+        unknown = "门店名：甲店\n只有池景照片；作者到访、工程材料、对比资料和拍摄处理未知。"
+        claims = ("池壁和池底全用深灰理石铺就。", "池壁全部采用石材。", "池壁和池底都是大理石。",
+                  "整个泳池都采用大理石。", "整个泳池采用大理石。", "池壁池底铺满理石。", "全池采用石材。", "不像普通大众浴场。",
+                  "空间纵深感比普通浴场更明显。", "和常见白瓷砖浴池完全不在一个调性。",
+                  "不是靠滤镜撑起来的质感。", "没有后期。", "未经后期处理。", "原片直出。", "这张经过后期。",
+                  "走进甲店，池景第一眼就显得雅致。")
+        for claim in claims:
+            with self.subTest(claim=claim):
+                self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN))
+                self.assertFalse(api._delivery_integrity_issues(claim, "门店名：甲店\n对象：甲店\n作者确认：" + claim, DOMAIN))
+                for source in ("门店名：甲店\n对象：乙店\n" + claim, "门店名：甲店\n写作要求：\n" + claim,
+                               "门店名：甲店\n" + claim.rstrip("。") + "，尚未确认。"):
+                    self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (claim, source))
+                self.assertTrue(api._delivery_integrity_issues(claim, api._generation_delivery_source_context(DOMAIN, unknown, claim), DOMAIN))
+        for claim in ("看图就知道池壁池底全用理石。", "看图就知道原片没有滤镜。", "建议收藏这张无滤镜原片。",
+                      "图1比普通浴场更有纵深。", "冷暖对比比普通浴场更明显。", "池壁全由石材铺成。"):
+            self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN), claim)
+        for source, claim in (("看图就知道池壁全用理石。", "池壁全用理石。"),
+                              ("图1比普通浴场更有纵深。", "比普通浴场更有纵深。")):
+            self.assertTrue(api._delivery_integrity_issues(claim, "门店名：甲店\n" + source, DOMAIN))
+        for source, claim in (("池壁全用石材。", "池底全用石材。"), ("池壁并不全用石材。", "池壁全用石材。"),
+                              ("池壁全用石材。", "池壁并不全用石材。"), ("没有后期。", "这张经过后期。"),
+                              ("池壁不全用石材。", "池壁全用石材。"), ("池壁全用石材。", "池壁不全用石材。"),
+                              ("池壁全用石材与瓷砖。", "池壁全用石材。"),
+                              ("这张经过后期。", "没有后期。"), ("比普通浴场更明显。", "比其他酒吧更明显。")):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
+        self.assertFalse(api._delivery_integrity_issues("照片没有滤镜。", "作者确认这张照片没有滤镜。", DOMAIN))
+        for allowed in ("深灰石纹与暖光形成冷暖对比，视觉克制。", "3处编辑细节是扶手、格栅和毛巾陈列。",
+                        "两张图的画面风格不同。", "建议对比其他浴场的照片后再选择。", "下次计划走进甲店，第一眼先看池景。",
+                        "想象走进甲店，眼前是暖光画面。", "当你走进甲店，第一眼可以先留意配色。",
+                        "跟随镜头走进甲店，第一眼看到石纹与灯带。", "画面有电影滤镜感。", "拍摄时可以尝试暖色滤镜。",
+                        "拍摄时可以使用滤镜。", "下次拍摄不加滤镜。", "扶手全是金属色泽。", "池壁全是理石纹理。",
+                        "整个池壁呈现石纹。", "池壁都是石材质感。", "画面像用了滤镜。"):
+            self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
+
+    def test_variant_contract_blocks_without_extra_model_calls_or_truncation(self):
+        variants = ["水石清池汤泉池区，深灰理石暖金光3处细节太克制"]
+        candidate = {"title": "水石清池池景素材与暖光观察参考", "body": "从图片看，可见石纹、水面和暖光。", "variants": variants}
+        async def fit(title, *_args, **_kwargs):
+            return title
+        with mock.patch.object(api, "_fit_title_limit", side_effect=fit) as title_fit, \
+             mock.patch.object(api._mr, "call", new=mock.AsyncMock()) as model, \
+             mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(95, {}, "优秀"))), \
+             mock.patch.object(api, "_generated_quality_issues", return_value=[]), \
+             mock.patch.object(api, "_v04_publishable_probability", return_value=None):
+            scored = asyncio.run(api._score_generation_delivery_candidate(candidate, domain=DOMAIN, local_time="2026101413",
+                                                                          timing=None, cover_feats=None, source_context="只有池景照片。"))
+        self.assertTrue(scored["blocking"])
+        self.assertEqual(scored["variants"], variants)
+        self.assertEqual(title_fit.call_count, 1)  # Main only; no added variant LLM loop.
+        model.assert_not_awaited()
+        self.assertTrue(api._has_blocking_quality_issues(95, api._delivery_integrity_issues("可见灯光。", "", DOMAIN, title_variants=variants), DOMAIN))
+        for domain in ("美食", "旅行", "穿搭", "美妆", "家居", "健身", "母婴"):
+            self.assertFalse(any("标题超过平台上限" in issue for issue in api._delivery_integrity_issues("可见灯光。", "", domain, title_variants=variants)))
+            self.assertFalse(api._has_blocking_quality_issues(95, ["备选标题1：标题超过平台上限"], domain))
+            with mock.patch.object(api, "_fit_title_limit", side_effect=fit), \
+                 mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(95, {}, "优秀"))), \
+                 mock.patch.object(api, "_generated_quality_issues", return_value=[]), \
+                 mock.patch.object(api, "_v04_publishable_probability", return_value=None):
+                old = asyncio.run(api._score_generation_delivery_candidate({"title": "原来明确完整的素材观察", "body": "可见灯光。"},
+                    domain=domain, local_time="2026101413", timing=None, cover_feats=None, source_context="只提供素材。"))
+            self.assertNotIn("variants", old)
+
+    def test_body_shaping_keeps_visual_material_outside_fact_processing(self):
+        brief = "门店名：甲店\n作者到访、材料铺装、声音及价格未知。"
+        image = "图1：深灰石纹、格栅、暖光和白毛巾可见。池底全部铺石材。排队10分钟。"
+        context = api._generation_delivery_source_context(DOMAIN, brief, image)
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value="图中可见石纹、暖光和毛巾。")) as model, \
+             mock.patch.object(api, "_insert_safe_fact_line", wraps=api._insert_safe_fact_line) as clean:
+            asyncio.run(api._shape_body_for_delivery("池景与暖光素材观察", "可见石纹。", DOMAIN, context))
+        user = model.call_args.args[2]
+        self.assertIn(image, user)
+        self.assertIn(api._LEISURE_VISUAL_SOURCE_MARKER, user)
+        authority = user.split("完整只读事实依据", 1)[1].split(api._LEISURE_VISUAL_SOURCE_MARKER, 1)[0]
+        self.assertNotIn("池底全部", authority)
+        for call in clean.call_args_list:
+            self.assertEqual(call.args[2], api._leisure_nonvisual_fact_source(context))
+        self.assertTrue(api._delivery_integrity_issues("池底全部铺石材。", context, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("图中有暖光和石纹。", context, DOMAIN))
+
     def test_relation_families_require_same_object_positive_or_negative_sources(self):
         unknown = "门店名：甲店\n仅有庭院、泳池、格栅画面；布局、声音和区位未知。"
         pairs = (
