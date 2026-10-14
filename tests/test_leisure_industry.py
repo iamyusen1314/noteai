@@ -147,6 +147,9 @@ class LeisureIndustryTests(unittest.TestCase):
                           "服务很贴心", "环境安静", "卫生有保障", "我这次泡完很舒服"):
                 with self.subTest(category=category, claim=claim):
                     issues = api._delivery_integrity_issues(claim, f"本次项目类型：{category}。{source}", DOMAIN)
+                    if category == "KTV" and claim in {"白天下午人少", "周末无需排队", "水温舒服", "海鲜新鲜", "服务很贴心", "环境安静", "卫生有保障"}:
+                        self.assertFalse(issues)  # Owner's primary-KTV light copy policy.
+                        continue
                     self.assertTrue(issues, claim)
                     self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
         for claim in ("是否在CBD旁需确认", "下午是否人少需确认", "水温舒服吗？", "不能根据图片写成广州CBD旁",
@@ -154,6 +157,35 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
         self.assertTrue(api._delivery_integrity_issues("照片中不用排队", source, DOMAIN))
         self.assertTrue(api._delivery_integrity_issues("照片中水质干净", source, DOMAIN))
+        # New KTV policy uses source intent, not the observed failed final
+        # candidate (which was not retained). No model call is replayed here.
+        ktv = "本次主要主题是KTV唱歌聚会，围绕选歌和聚会筹备写作。"
+        copy = "50人聚会，两个包房各自独立。周末人少，隔音很好。欢唱3小时，套餐A含餐饮，排队10分钟。"
+        self.assertTrue(api._leisure_ktv_light_context(ktv))
+        self.assertFalse(api._delivery_integrity_issues(copy, ktv, DOMAIN))
+        public, notices = api._leisure_public_fact_text(copy, ktv)
+        self.assertFalse(notices)
+        self.assertIn("欢唱3小时", public)
+        self.assertIn("套餐A含餐饮", public)
+        for other in ("洗浴中心含KTV配套。", "KTV与按摩足疗SPA综合体验。", "酒吧内提供KTV。",
+                      "KTV与SPA的主要主题未知。", "KTV主题未知。", "如果本次是KTV聚会。",
+                      "门店名：甲店\n对象：乙店\nKTV唱歌聚会。",
+                      "主题未知。\n" + api._LEISURE_VISUAL_SOURCE_MARKER + "\nKTV唱歌聚会。",
+                      "主题未知。\n【联网事实补全】\n对象：KTV门店"):
+            with self.subTest(source=other):
+                self.assertFalse(api._leisure_ktv_light_context(other))
+                self.assertTrue(api._delivery_integrity_issues("KTV欢唱3小时。", other, DOMAIN))
+        self.assertFalse(api._leisure_ktv_light_context(ktv, "SPA项目60分钟。"))
+        self.assertTrue(api._delivery_integrity_issues("SPA项目60分钟。", ktv, DOMAIN))
+        for hard in ("人均118元。", "位于康定路。", "营业时间18:00-22:00。", "KTV治疗失眠。", "我这次去了KTV。"):
+            with self.subTest(hard=hard):
+                self.assertTrue(api._delivery_integrity_issues(hard, ktv, DOMAIN))
+        given = ktv + "\n地址：康定路358号。\n人均116元。\n营业时间18:00-22:00。"
+        self.assertFalse(api._delivery_integrity_issues("位于康定路。人均116元。营业时间18:00-22:00。", given, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("营业时间20:00-24:00。", given, DOMAIN))
+        self.assertIn("KTV轻量", api._safe_fact_delivery_brief(DOMAIN, ktv))
+        self.assertIn("KTV轻量", api._quality_expression_brief(DOMAIN, ktv))
+        self.assertNotIn("KTV轻量", api._quality_expression_brief(DOMAIN, "洗浴中心含KTV配套。"))
 
     def test_leisure_ai_observations_cannot_supply_hard_fact_authority(self):
         original = "广州休闲素材。地址、时段客流和作者温感未知。套餐不含SPA。"
@@ -533,6 +565,8 @@ class LeisureIndustryTests(unittest.TestCase):
         features = {"body_has_price": 1, "body_has_address": 1}
         for body, price, address in (("建议确认票价与分店地址。", False, False),
                                       ("地址：康定路358弄，人均116元。", True, True),
+                                      ("地址在康定路358弄，人均116元。", True, True),
+                                      ("地址在康定路358弄99室，人均116元。", True, False),
                                       ("位于康定路，人均118元。", False, True),
                                       ("位于南京西路，人均116元。", True, False)):
             hits = api._generation_public_feature_hits("休闲场景参考攻略", body, features, 73, DOMAIN, source)
@@ -550,8 +584,9 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertTrue(api._generation_public_feature_hits("休闲场景参考攻略", "地址：" + long_address + "。", features, 73, DOMAIN,
                                                            "门店名：甲店\n地址：" + long_address)["has_address"])
         for bad_source in ("门店名：甲店\n对象：乙店\n价格：人均116元。\n地址：康定路358弄。",
-                           "门店名：甲店\n写作要求：\n价格：人均116元。\n地址：康定路358弄。"):
-            hits = api._generation_public_feature_hits("休闲场景参考攻略", "地址：康定路358弄，人均116元。", features, 73, DOMAIN, bad_source)
+                           "门店名：甲店\n写作要求：\n价格：人均116元。\n地址：康定路358弄。",
+                           "门店名：甲店\n价格：人均116元未知。\n地址：康定路358弄未确认。"):
+            hits = api._generation_public_feature_hits("休闲场景参考攻略", "地址在康定路358弄，人均116元。", features, 73, DOMAIN, bad_source)
             self.assertFalse(hits["has_price"])
             self.assertFalse(hits["has_address"])
         for domain in ("美食", "旅行", "穿搭", "母婴", "健身", "美妆", "职场"):
@@ -786,9 +821,15 @@ class LeisureIndustryTests(unittest.TestCase):
                 public = api._generation_public_expert_opinions(original, f"类型：{category}。{source}", DOMAIN)
                 encoded = json.dumps(public, ensure_ascii=False)
                 for unsupported in ("CBD", "闹市", "白天下午人少", "周末无需排队"):
-                    self.assertNotIn(unsupported, encoded)
+                    if category == "KTV" and unsupported in {"白天下午人少", "周末无需排队"}:
+                        self.assertIn(unsupported, encoded)
+                    else:
+                        self.assertNotIn(unsupported, encoded)
                 for supported in ("木桥", "光线暖黄", "缺少地理区位来源依据", "缺少常态或时段客流来源依据"):
-                    self.assertIn(supported, encoded)
+                    if category == "KTV" and supported == "缺少常态或时段客流来源依据":
+                        self.assertNotIn(supported, encoded)
+                    else:
+                        self.assertIn(supported, encoded)
                 self.assertEqual(public[0]["evidence"], [])
                 self.assertIn("城市禅意空间对比", public[0]["suggestions"])
         self.assertEqual(json.dumps(original, ensure_ascii=False), before)
@@ -1092,7 +1133,8 @@ class LeisureIndustryTests(unittest.TestCase):
         self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('建议收藏足疗A款70-90分钟。', '', DOMAIN)))
         self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('建议欢唱2小时的项目实际时长3小时。', '', DOMAIN)))
         self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('按摩90-70分钟。', '按摩90-70分钟。', DOMAIN)))
-        self.assertTrue(any('项目时长' in issue for issue in api._delivery_integrity_issues('KTV欢唱2小时。', 'KTV营业2小时。', DOMAIN)))
+        self.assertFalse(api._delivery_integrity_issues('KTV欢唱2小时。', 'KTV营业2小时。', DOMAIN))
+        self.assertFalse(api._leisure_duration_claims('KTV营业2小时。'))
         for text in ('建议在酒吧停留2小时。', '计划安排KTV欢唱2小时。', '洗浴中心24小时可进。'):
             self.assertFalse(api._leisure_duration_claims(text))
 

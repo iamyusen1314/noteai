@@ -3460,7 +3460,7 @@ async def _agent_arbitrate(
     _today2 = _dt_now2.now().strftime("%Y年%m月%d日")
     _domain_benchmark = _get_dk(domain)
     _content_dk = _domain_benchmark.get("content", "")
-    expression_brief = _quality_expression_brief(domain)
+    expression_brief = _quality_expression_brief(domain, source_context)
     base_planning_brief = _build_generation_planning_brief(domain, note_title, source_context, "三方案正文总规划")
 
     base_ctx = (
@@ -4541,7 +4541,7 @@ async def _generate_quality_challenger_candidate(
         f"{_get_checklist(canonical)}\n\n"
         f"{_build_generation_planning_brief(canonical, '', brief, '多候选择优候选规划')}\n"
         f"{_safe_fact_delivery_brief(canonical, brief)}\n\n"
-        f"{_quality_expression_brief(canonical)}\n\n"
+        f"{_quality_expression_brief(canonical, brief)}\n\n"
         "严格输出XML：<title>20字以内标题</title><body>完整正文，含话题标签</body>"
         "<variants>3个备选标题，每行一个</variants><rationale>一句话说明差异化策略</rationale>"
         f"{_generation_memory_context(memory_context)}"
@@ -8663,9 +8663,14 @@ def _human_readability_issues(body: str, domain: str | None = None) -> list[str]
     return issues
 
 
-def _quality_expression_brief(domain: str | None = None) -> str:
+def _quality_expression_brief(domain: str | None = None, source_context: str | None = None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "休闲娱乐体验":
+        if _leisure_ktv_light_context(source_context):
+            return ("【KTV轻量创作要求】\n"
+                    "- 围绕唱歌聚会、选歌、空间氛围与筹备建议自然成文，不套用洗浴或SPA的逐项数量、感官、时长和套餐核验清单。\n"
+                    "- 具体价格、地址与营业时间按已提供来源写；不宣称医疗功效，不替作者编造到访或亲测。\n"
+                    "- 保持既有标题、正文和话题要求，全部主标题与备选标题≤20字。")
         return (
             "【休闲娱乐体验表达要求】\n"
             "- 按本次实际活动、项目与空间写已有流程和场景取舍，不从行业名推定子场景；综合场所的真实餐饮等相关项目保留，未知场景写一般真实体验。\n"
@@ -9985,6 +9990,12 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "休闲娱乐体验":
         facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "缺少门店/项目核验事实；仅使用现有真实素材，决策必需项明确待确认。"
+        if _leisure_ktv_light_context(source_context):
+            return ("【KTV轻量事实策略】\n"
+                    f"- 当前可用信息：{facts}\n"
+                    "- 以唱歌聚会与选择建议为主，普通空间、氛围、人数、欢唱时长和餐饮套餐文案不要求逐项补证或反复澄清。\n"
+                    "- 具体价格、地址和营业时间只用已提供来源；未提供时可不写。不宣称医疗功效或虚构作者已到访经历。\n"
+                    "- 保持完整正文和话题，全部主标题与备选标题≤20字且自然完整。")
         return (
             "【休闲娱乐体验事实安全策略】\n"
             f"- 当前可用信息：{facts}\n"
@@ -10734,7 +10745,7 @@ async def _shape_body_for_delivery(title: str, body: str, domain: str | None, so
         f"标题：{title}\n"
         f"风格：{style_hint or '自然种草'}\n"
         f"目标：正文不含标签控制在{target.get('body_target')}，保留{object_hint}，{_tag_target_text(canonical)}标签。\n"
-        f"{_quality_expression_brief(canonical)}\n"
+        f"{_quality_expression_brief(canonical, source_context)}\n"
         f"当前表达问题：{'；'.join(readability_issues + integrity_issues + structure_issues) if (readability_issues or integrity_issues or structure_issues) else '无'}\n"
         f"{safe_brief}\n\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
@@ -10966,6 +10977,22 @@ def _generation_delivery_source_context(domain: str, brief: str | None, image_de
 
 def _leisure_nonvisual_fact_source(source: str | None) -> str:
     return (source or "").split(_LEISURE_VISUAL_SOURCE_MARKER, 1)[0]
+
+
+def _leisure_ktv_light_context(source: str | None, text: str = "") -> bool:
+    """Use only an explicit primary KTV brief, never a mixed venue or AI inference."""
+    author = _leisure_nonvisual_fact_source(source).split("【联网事实补全】", 1)[0]
+    exclusion = r"^(?:不补|不写|不含|不包括|不涉及|不提供|不新增|不是|并非|非|(?:不要|不能|不得|不应)(?:补|写|加入|扩展|涉及|推定|编造))"
+    parts = lambda value, **kw: [part for part in _fact_assertions(value, **kw)
+                               if not re.search(exclusion, part)]
+    affirmed = [part for part in parts(_leisure_bound_fact_source(author))
+                if not re.search(r"如果|假如|假设|倘若|^若", part)]
+    if (not any(re.search(r"(?<![A-Za-z])KTV(?![A-Za-z])|卡拉OK|卡拉[欧O]K", part, re.I) for part in affirmed)
+            or re.search(r"(?:主题|行业|主要项目)[^。；;\n]{0,8}(?:未知|待确认|未确认|不确定|不明)", author)):
+        return False
+    other = r"洗浴|汗蒸|汤泉|泡池|泳池|水疗|SPA|按摩|足疗|足浴|沐足|酒吧|清吧|(?<![A-Za-z])bar(?![A-Za-z])"
+    context = parts(author, only_explicit_rejections=True) + parts(text, only_explicit_rejections=True)
+    return not any(re.search(other, part, re.I) for part in context)
 
 
 def _leisure_bound_fact_source(source: str | None) -> str:
@@ -11440,7 +11467,10 @@ def _leisure_observation_fact_issues(text: str, source: str, *, observation_cont
     known = _leisure_observation_fact_claims(source, evidence=True)
     labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历", "comparison": "其他商家/类别比较", "provenance": "图像拍摄或加工过程"}
     issues = []
+    ktv_light = _leisure_ktv_light_context(source, text + "\n" + observation_context)
     for kind, label in labels.items():
+        if ktv_light and kind not in {"location", "hours", "visit"}:
+            continue
         missing = claims[kind] - known[kind]
         if kind == "visit":
             missing = {fact for fact in missing if not any(fact[0] == item[0] and fact[2] == item[2]
@@ -11644,6 +11674,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         return issues
 
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
+    ktv_light = canonical == "休闲娱乐体验" and _leisure_ktv_light_context(src, out + "\n" + observation_context)
     factual_out = out
     if canonical == "休闲娱乐体验":
         # AI descriptions can support visible material, never create hard-fact
@@ -11681,19 +11712,20 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             return match.group() if re.search(r"(?:不可能|不是|并非|并不|不代表|不能说|不支持|不宣称|没有|不能|不得|不要|无法)\s*$", before) else ""
         if medical_claim.search(negated_claim.sub(remove_negated_claim, medical_assertions)):
             issues.append("休闲娱乐体验出现治疗或医疗功效，结构化事实不能编造")
-        temperature = r"(?:水温|池温|温度)[^，,。；;\n]{0,8}(\d+(?:\.\d+)?)\s*(?:℃|度|摄氏)"
-        known_temperatures = {float(value) for value in re.findall(temperature, evidence)}
-        if {float(value) for value in re.findall(temperature, assertions)} - known_temperatures:
-            issues.append("休闲娱乐体验出现未提供的水温/温度，结构化事实不能编造")
-        duration_source = _leisure_bound_fact_source(src)
-        known_durations = _leisure_duration_claims(duration_source)
-        if any(not _leisure_duration_supported(claim, known_durations)
-               for claim in _leisure_duration_claims(out, project_context=duration_source)):
-            issues.append("休闲娱乐体验出现未提供或与项目不符的项目时长，结构化事实不能编造")
-        if _leisure_entitlement_claims(out) - _leisure_entitlement_claims(src):
-            issues.append("休闲娱乐体验出现未核验的套餐服务权益，结构化事实不能编造")
-        if _PRICE_VALUE_CLAIM_RE.search(assertions) and not _source_has_price_evidence(evidence):
-            issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
+        if not ktv_light:
+            temperature = r"(?:水温|池温|温度)[^，,。；;\n]{0,8}(\d+(?:\.\d+)?)\s*(?:℃|度|摄氏)"
+            known_temperatures = {float(value) for value in re.findall(temperature, evidence)}
+            if {float(value) for value in re.findall(temperature, assertions)} - known_temperatures:
+                issues.append("休闲娱乐体验出现未提供的水温/温度，结构化事实不能编造")
+            duration_source = _leisure_bound_fact_source(src)
+            known_durations = _leisure_duration_claims(duration_source)
+            if any(not _leisure_duration_supported(claim, known_durations)
+                   for claim in _leisure_duration_claims(out, project_context=duration_source)):
+                issues.append("休闲娱乐体验出现未提供或与项目不符的项目时长，结构化事实不能编造")
+            if _leisure_entitlement_claims(out) - _leisure_entitlement_claims(src):
+                issues.append("休闲娱乐体验出现未核验的套餐服务权益，结构化事实不能编造")
+            if _PRICE_VALUE_CLAIM_RE.search(assertions) and not _source_has_price_evidence(evidence):
+                issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
     if canonical == "旅行":
         # Compare definite claims: a question or a stated unknown is not
         # evidence that the venue has the queried property.
@@ -11797,14 +11829,14 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         if unsupported_beauty_markers:
             issues.append(f"美妆出现未提供的试用/功效边界承诺：{'、'.join(unsupported_beauty_markers)}")
     business_hours_like = _BUSINESS_HOURS_RE.search(factual_out)
-    if canonical != "旅行":
+    if canonical != "旅行" and not ktv_light:
         business_hours_like = business_hours_like or _BUSINESS_TIME_RANGE_RE.search(out)
     if business_hours_like and not (
         _BUSINESS_HOURS_RE.search(src) or (canonical != "旅行" and _BUSINESS_TIME_RANGE_RE.search(src))
     ):
         issues.append("出现未提供的营业时间数字，结构化事实不能编造")
     factual_premises = "\n".join(_fact_assertions(out, only_explicit_rejections=True)) if canonical == "旅行" else out
-    if _QUEUE_TIME_RE.search(factual_premises) and not _QUEUE_TIME_RE.search(src):
+    if not ktv_light and _QUEUE_TIME_RE.search(factual_premises) and not _QUEUE_TIME_RE.search(src):
         issues.append("出现未提供的排队/等位时长数字，结构化事实不能编造")
     if _UNVERIFIED_RATING_BACKING_RE.search(factual_premises) and not _UNVERIFIED_RATING_BACKING_RE.search(src):
         issues.append("出现未提供的五星/满分/榜单背书，结构化事实不能编造")
@@ -11815,7 +11847,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         for match in _UNVERIFIED_GROUP_SIZE_RE.finditer(factual_out)
         if match.group(0) not in src and not match.group(0).startswith("1人")
     ]
-    if unsupported_group_sizes:
+    if unsupported_group_sizes and not ktv_light:
         issues.append("出现未提供的人数/适用规模信息，结构化事实不能编造")
     return issues
 
@@ -12515,7 +12547,7 @@ def _generation_public_feature_hits(title: str, body: str, features: dict[str, f
     # A complete field can be quoted exactly even when no safe short-street
     # token can be derived. This does not guess an administrative boundary.
     addresses = re.findall(r"(?m)^(?:[-*•]\s*)?(?:位置/地址|门店地址|地址)\s*[：:]\s*([^\n。；;]+)", source)
-    exact_address = any(re.search(r"(?:(?:门店地址|地址)[：:]\s*|(?:位于|坐落于|地处)\s*)" + re.escape(value)
+    exact_address = any(re.search(r"(?:(?:门店地址|地址)[：:]\s*|(?:地址在|位于|坐落于|地处)\s*)" + re.escape(value)
                                  + r"(?=$|[\n。；;，,])", assertions) for value in addresses)
     hits["has_address"] = bool((locations and locations <= known_locations) or exact_address)
     return hits
@@ -13019,7 +13051,7 @@ async def _score_directed_second_pass(
         f"{constraint_context}\n\n"
         f"{_generation_memory_context(memory_context)}\n"
         f"{_CONTENT_SOURCE_POLICY}\n"
-        f"{_quality_expression_brief(domain)}\n\n"
+        f"{_quality_expression_brief(domain, source_context)}\n\n"
         f"输出格式：<note><title>优先{_TITLE_TARGET_TEXT}标题，平台上限{_TITLE_PLATFORM_MAX}字</title><body>完整正文，含话题标签</body></note>\n"
         '在note后附<source_corrections>JSON数组</source_corrections>。只记录本轮确实删除的、'
         '原始素材与商家回答均未支持的具体断言（含亲身经历、感官或经营事实），'
@@ -18822,7 +18854,7 @@ async def _generate_pipeline_stream(
         )
         if _GEN_CHECKLIST_ALIASES.get(domain, domain) == "休闲娱乐体验":
             repair_system += ("\n\n" + _safe_fact_delivery_brief(domain, brief)
-                              + "\n\n" + _quality_expression_brief(domain))
+                              + "\n\n" + _quality_expression_brief(domain, brief))
         repair_user = (
             f"品类：{domain}\n"
             f"当前旧评分器遥测：{final_score:.1f}（仅供后台参考，不作为修复目标）\n"
