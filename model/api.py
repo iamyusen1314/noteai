@@ -11090,7 +11090,55 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
         ("服务", r"服务|工作人员|技师|按摩师", r"专业|贴心|细致|热情|周到|到位|用心|耐心|手法好"),
         ("声音", r"隔音|声音|人声|噪声|噪音|店内|环境", r"安静|不吵|无噪音|隔音好|隔音很好|嘈杂|吵闹|喧闹"),
     )
-    for part in _fact_assertions(text):
+    field_source = _leisure_nonvisual_fact_source(text) if evidence else text
+    unsupported_field = r"附近|周边|临近|靠近|距离?|CBD|照片|图片|画面|视觉|没有|不是|并非|不在|不属|别家|另一家|其他门店|未知|待确认|待核实|未确认|未核验|未提供|未核实|不确定|可能|疑似"
+    if evidence:
+        target = re.search(r"(?:门店名|商家名)[：:]\s*([^\n。；;，,]{2,60})", field_source.split("【联网事实补全】", 1)[0])
+        normalize_name = lambda value: re.sub(r"[^0-9a-z\u4e00-\u9fa5]+", "", value.lower())
+        retained_lines = []
+        # The normal formatter repeats aggregate fields before object fields.
+        # Only one matching object scope can authorize that aggregate, never any
+        # later matching object among other stores. Brief and supplier stay separate.
+        for block in re.split(r"(?=【联网事实补全】)", field_source):
+            object_names = re.findall(r"(?m)^[ \t]*对象[：:][ \t]*([^\n]+)", block.split("\n来源：", 1)[0])
+            valid_objects = [name for name in object_names if not re.search(unsupported_field, name, re.I)
+                             and _fact_assertions(name) and _fact_assertions(name) == _fact_assertions(name, only_explicit_rejections=True)]
+            same_object = (bool(object_names) and len(valid_objects) == len(object_names) and len({normalize_name(name) for name in valid_objects}) <= 1
+                           and (not target or all(normalize_name(name) == normalize_name(target.group(1)) for name in valid_objects)))
+            field_scope_matches = not block.startswith("【联网事实补全】") or same_object
+            requested, source_directory = False, False
+            for line in block.splitlines():
+                raw = line.strip()
+                if not raw:
+                    requested = False
+                if re.match(r"(?:写作要求|要求|希望|请写|写成|建议|最好|想要|想写|打算)\s*[：:]?", raw):
+                    requested = True
+                entity = re.match(r"对象[：:]\s*(.*)$", raw)
+                if entity:
+                    name = entity.group(1)
+                    field_scope_matches = name in valid_objects and (normalize_name(name) == normalize_name(target.group(1)) if target else same_object)
+                if raw == "来源：" or raw == "来源:":
+                    source_directory = True
+                field = re.match(r"^(?:[-*•]\s*)?(位置/地址|门店地址|地址|商圈)\s*[：:]\s*(.+)$", raw)
+                if field:
+                    assertions = _fact_assertions(raw)
+                    if (requested or source_directory or not field_scope_matches or re.search(unsupported_field, raw, re.I)
+                            or re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算", raw)
+                            or not assertions or assertions != _fact_assertions(raw, only_explicit_rejections=True)):
+                        continue
+                    label, value = field.groups()
+                    value = value.rstrip("。；;")
+                    if label == "商圈":
+                        facts["location"].add((value if value.endswith("商圈") else value + "商圈", "明确区位"))
+                    else:
+                        # Start at the complete field value, never at a 市/区
+                        # inside it or at a guessed administrative boundary.
+                        street = re.match(r"^([^\d\s，,。；;]{2,16}(?:路|街|大道|大街))(?=\d|号|弄|巷|室|$)", value)
+                        if street:
+                            facts["location"].add((street.group(1), "明确区位"))
+                retained_lines.append(line)
+        field_source = "\n".join(retained_lines)
+    for part in _fact_assertions(field_source):
         if evidence and re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算", part):
             # Writing requests do not establish the requested hard fact.
             continue
@@ -11101,10 +11149,10 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
             relation = match.group("relation") or "位置"
             relation = "附近" if relation in {"旁边", "附近", "周边", "旁", "边"} else "内部" if relation in {"内", "里"} else relation
             facts["location"].add((label, relation))
-        for match in re.finditer(r"(?:位于|坐落于|地处|坐标|临近|靠近)\s*([^，,。；;\n]{1,16}(?:区|商圈|广场|路|街|地铁站))", part):
-            location = match.group(1).strip()
+        for match in re.finditer(r"(位于|坐落于|地处|坐标|临近|靠近)\s*([^，,。；;\n]{1,16}(?:区|商圈|广场|路|街|地铁站))", part):
+            location = match.group(2).strip()
             if not re.search(r"汤泉区|泡池区|泳池区|庭院区|休息区|自助区|取餐区|娱乐区|包房区", location):
-                facts["location"].add((location, "明确区位"))
+                facts["location"].add((location, "附近区位" if match.group(1) in {"临近", "靠近"} else "明确区位"))
         crowd = re.search(r"无需排队|不用排队|不排队|人不多|人少|客流少|游客少|不拥挤|不挤|人多|客流大|拥挤|高峰|低峰", part)
         times = tuple(re.findall(periods, part))
         visible_frame = bool(re.search(r"照片中|照片里|图中|图里|画面中|画面里|这一帧", part))

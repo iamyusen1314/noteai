@@ -266,6 +266,51 @@ class LeisureIndustryTests(unittest.TestCase):
         contaminated = api._generation_delivery_source_context(DOMAIN, source, before)
         self.assertNotIn("真实打卡体验", json.dumps(api._generation_public_expert_opinions([opinion], contaminated, DOMAIN), ensure_ascii=False))
 
+    def test_actual_amap_location_fields_support_only_same_merchant_exact_places(self):
+        # Retained real PARLAY supplier fields assembled through the normal
+        # formatter; this offline fixture does not invoke a provider or model.
+        enrichment = {'provider': 'amap', 'query': '上海 PARLAY 地址 营业时间 项目 价格 预约', 'facts': {'address': '康定路358弄陕康里18弄103室', 'business_area': '曹家渡', 'price': '人均116元', 'rating': '高德评分4.6'}, 'entities': [{'name': 'Parlay帕雷餐厅＆运动酒吧(静安店)', 'facts': {'address': '康定路358弄陕康里18弄103室', 'business_area': '曹家渡', 'price': '人均116元', 'rating': '高德评分4.6'}, 'source': '高德地图', 'url': 'amap://poi/B0KDZ1P847'}], 'sources': [{'title': 'Parlay帕雷餐厅＆运动酒吧(静安店)', 'source': '高德地图', 'url': 'amap://poi/B0KDZ1P847'}], 'calls': {'partial_errors': []}}
+        brief = "门店名：Parlay帕雷餐厅运动酒吧(静安店)\n城市：上海。"
+        source = api._generation_delivery_source_context(DOMAIN, api._append_fact_enrichment(brief, enrichment), "")
+        for claim in ("门店位于康定路358弄陕康里18弄103室。", "位于康定路。", "位于曹家渡商圈。",
+                      "地址：康定路358弄陕康里18弄103室。", "高德显示人均116元、评分4.6。"):
+            self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
+        for claim in ("位于南京西路。", "位于定路。", "临近康定路。", "靠近曹家渡商圈。",
+                      "位于曹家商圈。", "CBD旁的酒吧。", "人均118元。"):
+            self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), claim)
+        for unsupported_source in ("地址：康定路附近。", "地址：位于康定路附近。", "地址：距康定路100米。",
+                                   "地址：康定路358弄，待确认。", "地址：可能位于康定路。",
+                                   "地址：康定路，不是本店地址。",
+                                   "地址：康定路未知。", "地址：并非康定路。", "地址：没有康定路。",
+                                   "请写地址：康定路。", "希望地址：康定路。", "地址：照片中位于康定路。"):
+            self.assertTrue(api._delivery_integrity_issues("位于康定路。", brief + "\n" + unsupported_source, DOMAIN), unsupported_source)
+        for unsupported_source in ("商圈：曹家渡附近。", "商圈：曹家渡待确认。", "商圈：曹家渡，待核实。", "请写商圈：曹家渡。"):
+            self.assertTrue(api._delivery_integrity_issues("位于曹家渡商圈。", brief + "\n" + unsupported_source, DOMAIN), unsupported_source)
+        foreign = {**enrichment, "entities": [{"name": "另一家酒吧", "facts": enrichment["facts"]}]}
+        foreign_source = api._append_fact_enrichment(brief, foreign)
+        self.assertTrue(api._delivery_integrity_issues("位于康定路。", foreign_source, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("位于曹家渡商圈。", foreign_source, DOMAIN))
+        no_objects = api._facts.format_fact_context({**enrichment, "entities": []})
+        self.assertTrue(api._delivery_integrity_issues("位于康定路。", brief + "\n\n" + no_objects, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("位于康定路。", no_objects, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("位于康定路。", brief + "\n地址：康定路358弄。", DOMAIN))
+        visual_only = api._generation_delivery_source_context(DOMAIN, brief, api._facts.format_fact_context(enrichment))
+        self.assertTrue(api._delivery_integrity_issues("位于康定路。", visual_only, DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("位于曹家渡商圈。", visual_only, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("位于上海市静安区康定路。", "地址：上海市静安区康定路358弄。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("位于康定路。", "地址：上海市静安区康定路358弄。", DOMAIN))
+        for unsupported_source in (
+            "门店名：甲店\n【联网事实补全】\n地址：康定路358弄\n对象：乙店\n地址：康定路358弄\n对象：甲店\n商圈：曹家渡",
+            "门店名：甲店\n对象：甲店\n商圈：曹家渡\n对象：不是甲店\n地址：康定路358弄",
+            "对象：需要确认\n地址：康定路358弄",
+            "对象：甲店\n地址：康定路358弄\n对象：乙店\n商圈：曹家渡",
+            "门店名：甲店\n写作要求：\n地址：康定路。",
+            "门店名：甲店\n对象：甲店\n来源：\n地址：康定路358弄",
+        ):
+            self.assertTrue(api._delivery_integrity_issues("位于康定路。", unsupported_source, DOMAIN), unsupported_source)
+        self.assertTrue(api._delivery_integrity_issues("位于府中路。", "门店名：甲店\n地址：市府中路123号", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("位于市府中路。", "门店名：甲店\n地址：市府中路123号", DOMAIN))
+
     def test_spatial_counts_entrance_and_circulation_keep_source_scope(self):
         unknown = "仅展示庭院、水景座位、室内水池、餐台和饮品柜台；空间数量、入口及动线未知。"
         for claim in ("双区汤泉攻略。", "2区汤泉攻略。", "二区汤泉攻略。", "室内分两个汤泉区，风格各走一路。", "汤泉分为两区。",
