@@ -11341,7 +11341,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
                 continue
             if evidence and re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算|照片|图片|画面|镜头|图中|图里", part):
                 continue
-            fresh = re.search(r"新开(?:业|张)?(?!展|发|设|通|工|窗|项目|玩法|体验|活动|菜单|课程|包房|区域)|刚(?:刚)?开(?:业|张)|新近开业|最近开业|近期新店", part)
+            fresh = re.search(r"新开(?:业|张)?(?!展|发|设|通|工|窗|项目|玩法|体验|活动|菜单|课程|包房|区域|了?(?:一|两|几|\d+)?(?:瓶|杯))|刚(?:刚)?开(?:业|张)|新近开业|最近开业|近期新店", part)
             if fresh and (fresh.group() != "新开" or re.search(r"店|酒吧|餐厅|汤泉|浴场|水疗|SPA", part, re.I)):
                 facts["opening"].add(("新开", _leisure_relation_positive(part)))
             for date in re.finditer(r"(?P<before>" + opening_date + r")(?:正式|开始)?开(?:业|张)|"
@@ -11349,7 +11349,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
                 facts["opening"].add(("开业日期", date.group("before") or date.group("after"), _leisure_relation_positive(part)))
             if personal_plan:
                 continue
-            for pressure in re.finditer(r"不催场|不会被催走|不会催走|不怕被催走|未被催走|没有被催走|"
+            for pressure in re.finditer(r"不催场|不会被催走|不会催走|不怕被催走|不怕催走|未被催走|没有被催走|"
                                         r"不被催走|不赶客|不赶人|催场|催走|催离|赶客|赶人", part):
                 absent = pressure.group().startswith(("不", "未", "没有"))
                 reversal = re.search(r"(?:(?:并)?不是|并非|并不)\s*$", part[:pressure.start()])
