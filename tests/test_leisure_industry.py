@@ -46,6 +46,91 @@ class LeisureIndustryTests(unittest.TestCase):
         self.stack.close()
         self.temp.cleanup()
 
+    def test_formal_bar_opening_and_stay_claims_reach_existing_fact_gate(self):
+        # These phrases are retained in the actual formal508 DOM, not a
+        # reconstructed model draft or another isolated generation's report.
+        source = ("门店名：Parlay帕雷餐厅运动酒吧(静安店)\n"
+                  "官方介绍仅提供BBQ与酒水；开业及停留制度未知。\n"
+                  "【联网事实补全】\n对象：Parlay帕雷餐厅运动酒吧(静安店)\n"
+                  "人均116元。营业11:00到24:00。")
+        claims = ("静安新开运动酒吧", "静安BBQ酒吧新开", "人均116不催场",
+                  "不用赶点也不怕被催走", "这家BBQ的节奏比一般餐厅宽松",
+                  "适合想从傍晚坐到深夜、边吃边聊不赶场的成年人局",
+                  "想找不催场的BBQ聚餐地，这家值得先存下来")
+        for claim in claims:
+            with self.subTest(claim=claim):
+                issues = api._delivery_integrity_issues(claim, source, DOMAIN)
+                self.assertTrue(any("开业" in issue or "停留" in issue for issue in issues))
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        for variant in ("静安BBQ酒吧新开", "BBQ酒吧不催场"):
+            issues = api._delivery_integrity_issues("BBQ与酒水选择参考。", source, DOMAIN, title_variants=[variant])
+            self.assertTrue(any(issue.startswith("备选标题1：") for issue in issues))
+            self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        public, notices = api._leisure_public_fact_text("本店不催场。节奏轻松。", source)
+        self.assertNotIn("不催场", public)
+        self.assertIn("节奏轻松", public)
+        self.assertTrue(any("停留" in notice for notice in notices))
+
+    def test_leisure_opening_and_stay_keep_source_polarity_and_occasion(self):
+        for source, claim in (("作者确认：本店新开。", "刚开业的酒吧。"),
+                              ("作者确认：本店2026年10月开业。", "开业日期为2026年10月。"),
+                              ("作者确认：本店不催场。", "不会被催走。"),
+                              ("商家确认：本店不限时停留。", "不用赶点。"),
+                              ("作者确认：本店到点必须离场。", "本店到点必须离场。"),
+                              ("商家确认：可从傍晚坐到深夜。", "从傍晚坐到深夜。")):
+            with self.subTest(source=source, claim=claim):
+                self.assertFalse(api._delivery_integrity_issues(claim, source, DOMAIN))
+        for source, claim in (("本店2025年10月开业。", "开业日期为2026年10月。"),
+                              ("本店不是新开的酒吧。", "新开酒吧。"),
+                              ("本店不催场。", "本店不是不催场。"),
+                              ("本店不是不催场。", "本店不催场。"),
+                              ("本店不限时停留。", "本店不是不限时停留。"),
+                              ("本店不是不限时停留。", "本店不限时停留。"),
+                              ("我昨天那一桌未被催走。", "本店不催场。"),
+                              ("我未被催走。", "本店不催场。"),
+                              ("本店不催场。", "本店不限时停留。"),
+                              ("营业11:00到24:00。", "从傍晚坐到深夜。")):
+            with self.subTest(source=source, claim=claim):
+                self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN))
+        for source in ("开业与是否催场未知。", "写作要求：本店新开且不催场。",
+                       "如果本店新开且不催场，可以慢坐。",
+                       "门店名：甲店\n【联网事实补全】\n对象：乙店\n乙店新开且不催场。",
+                       api._generation_delivery_source_context(DOMAIN, "BBQ与酒水。", "本店新开且不催场。")):
+            with self.subTest(source=source):
+                self.assertTrue(api._delivery_integrity_issues("新开酒吧。", source, DOMAIN))
+                self.assertTrue(api._delivery_integrity_issues("本店不催场。", source, DOMAIN))
+
+    def test_leisure_opening_and_stay_preserve_soft_plans_and_ktv_scope(self):
+        source = "仅有空间素材，开业与停留制度未知。"
+        for soft in ("节奏轻松，松弛感少见。", "这是一种新选择，也是我的新发现。",
+                     "运动酒吧开在静安。", "第一次走进运动酒吧的读者可以先整理需求。",
+                     "工作日下班或周末约人。", "我计划不赶场，只选一家店。",
+                     "建议不赶场，只去一家酒吧。", "想慢慢聊，按自己的节奏规划行程。",
+                     "建议先确认是否催场、可停多久。", "不应承诺不催场。", "不写新开酒吧。",
+                     "画面风格比一般餐厅宽松。", "浴场的空间风格少见，节奏轻松。"):
+            with self.subTest(soft=soft):
+                self.assertFalse(api._delivery_integrity_issues(soft, source, DOMAIN))
+        ktv = "本次主题是KTV，作者整理选歌与聚会参考。"
+        self.assertTrue(api._leisure_ktv_light_context(ktv))
+        self.assertFalse(api._delivery_integrity_issues("新开KTV，不催场，不限时停留。", ktv, DOMAIN))
+        for old in OLD_DOMAINS:
+            self.assertFalse(api._structured_fact_boundary_issues("新开门店，不催场。", source, old), old)
+
+    def test_selector_rejects_unsupported_opening_and_stay_despite_high_score(self):
+        candidates = [{"origin": "unsupported", "title": "新开运动酒吧不催场", "body": "不用赶点也不怕被催走。", "variants": []},
+                      {"origin": "sourced", "title": "BBQ与酒水选择参考", "body": "整理BBQ与酒水，按自己的节奏规划行程。", "variants": []}]
+        async def fit(title, *_args, **_kwargs):
+            return title
+        with mock.patch.object(api, "_fit_title_limit", side_effect=fit), \
+             mock.patch.object(api, "_score_generated_note", new=mock.AsyncMock(return_value=(95, {}, "优秀"))), \
+             mock.patch.object(api, "_generated_quality_issues", side_effect=lambda *_args, **_kwargs: []), \
+             mock.patch.object(api, "_v04_publishable_probability", return_value=None), \
+             mock.patch.object(api, "get_v04_preference_ranker", return_value=None):
+            result = asyncio.run(api._select_best_generation_candidate(candidates, domain=DOMAIN, local_time="20261015",
+                source_context="作者整理本店BBQ与酒水；开业及停留制度未知。"))
+        self.assertEqual(result["selected"]["origin"], "sourced")
+        self.assertEqual(result["viable_count"], 1)
+
     def test_classification_and_shared_prompt_layers_cover_every_category(self):
         for category in (*CATEGORIES, "SPA", "足浴", DOMAIN):
             with self.subTest(category=category):

@@ -11310,7 +11310,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
     """Finite claim families, not a general place/entity or truth classifier."""
     if evidence:
         text = _leisure_bound_fact_source(text)
-    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "spatial", "crowd", "hours", "rarity", "sensory", "visit", "comparison", "provenance")}
+    facts: dict[str, set[tuple]] = {key: set() for key in ("location", "spatial", "crowd", "hours", "opening", "stay", "rarity", "sensory", "visit", "comparison", "provenance")}
     for key, values in _leisure_visual_scope_claims(text, evidence=evidence, observation_context=observation_context).items():
         facts[key].update(values)
     facts["spatial"].update(_leisure_spatial_claims(text, evidence=evidence, observation_context=observation_context))
@@ -11324,6 +11324,50 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
         ("服务", r"服务|工作人员|技师|按摩师", r"专业|贴心|细致|热情|周到|到位|用心|耐心|手法好"),
         ("声音", r"隔音|声音|人声|噪声|噪音|店内|环境", r"安静|不吵|无噪音|隔音好|隔音很好|嘈杂|吵闹|喧闹"),
     )
+    # Opening history and venue stay rules are finite hard facts. A relaxed
+    # mood, a reader's itinerary or one table's experience is not a store rule.
+    opening_date = r"\d{4}年(?:\d{1,2}月(?:\d{1,2}日)?)?|\d{1,2}月\d{1,2}日|今年|去年|本月|上月"
+    stay_period = r"早上|上午|中午|下午|傍晚|晚上|夜间|深夜|凌晨"
+    for sentence in re.findall(r"[^。！？!?；;\n]+[。！？!?；;]?", text or ""):
+        if sentence.rstrip().endswith(("？", "?")):
+            continue
+        personal_plan = bool(re.search(r"(?:我(?:们)?|本人)(?:打算|计划|想|准备)|我的(?:计划|行程)", sentence))
+        personal = re.search(r"我(?:们)?(?!店|门店)|本人|作者(?=到店|用餐|体验)|那一桌|这一桌", sentence)
+        occasion = re.search(r"昨天|上次|这次|当晚|那晚|那一桌|这一桌", sentence)
+        scope = (personal.group(), occasion.group() if occasion else "未注明该次时间") if personal else ("本店常态",)
+        stay_context = bool(re.search(r"不催场|催走|催离|赶客|赶人|赶点|停留|不限时|不赶场", sentence))
+        for part in _leisure_relation_assertions(sentence):
+            if re.search(r"(?:不|未|不应)(?:写|宣称|承诺|断言|推断)|待确认|待核实", part):
+                continue
+            if evidence and re.search(r"希望|要求|请写|写成|建议|最好|想要|想写|打算|照片|图片|画面|镜头|图中|图里", part):
+                continue
+            fresh = re.search(r"新开(?:业|张)?(?!展|发|设|通|工|窗|项目|玩法|体验|活动|菜单|课程|包房|区域)|刚(?:刚)?开(?:业|张)|新近开业|最近开业|近期新店", part)
+            if fresh and (fresh.group() != "新开" or re.search(r"店|酒吧|餐厅|汤泉|浴场|水疗|SPA", part, re.I)):
+                facts["opening"].add(("新开", _leisure_relation_positive(part)))
+            for date in re.finditer(r"(?P<before>" + opening_date + r")(?:正式|开始)?开(?:业|张)|"
+                                    r"开(?:业|张)(?:时间|日期)?(?:为|是|于|在|[：:])?\s*(?P<after>" + opening_date + r")", part):
+                facts["opening"].add(("开业日期", date.group("before") or date.group("after"), _leisure_relation_positive(part)))
+            if personal_plan:
+                continue
+            for pressure in re.finditer(r"不催场|不会被催走|不会催走|不怕被催走|未被催走|没有被催走|"
+                                        r"不被催走|不赶客|不赶人|催场|催走|催离|赶客|赶人", part):
+                absent = pressure.group().startswith(("不", "未", "没有"))
+                reversal = re.search(r"(?:(?:并)?不是|并非|并不)\s*$", part[:pressure.start()])
+                facts["stay"].add(("催离", absent == bool(reversal), scope))
+            for limit in re.finditer(r"不限时(?:停留|逗留|坐)?|没有(?:停留|逗留)时间限制|不用赶点|无需赶点|"
+                                     r"(?:停留|逗留)限时|限时(?:停留|逗留)|到点(?:必须|就要|须|需)?(?:离场|离店|清场|走人)", part):
+                unlimited = limit.group().startswith(("不", "没有", "无需"))
+                reversal = re.search(r"(?:(?:并)?不是|并非|并不)\s*$", part[:limit.start()])
+                facts["stay"].add(("停留限时", unlimited == bool(reversal), scope))
+            for span in re.finditer(r"(?:从)?(?P<start>" + stay_period + r")(?:坐|待|停留|逗留)(?:到|至)(?P<end>" + stay_period + r")", part):
+                facts["stay"].add(("停留时段", span.group("start"), span.group("end"), scope))
+            visual_style = bool(re.search(r"视觉|画面|照片|构图|装修|风格|氛围|穿着", part))
+            comparison = re.search(r"比(?P<object>一般餐厅|普通餐厅|其他餐厅|一般酒吧|普通酒吧)(?:更|更加)?宽松", part)
+            if comparison and not visual_style:
+                facts["stay"].add(("停留比较", comparison.group("object"), "宽松", scope))
+            itinerary = bool(re.search(r"只选一家|只去一家|行程|计划|准备|打算", part))
+            if "不赶场" in part and not itinerary and stay_context and re.search(r"本店|这家|这里|停留|不催场|催走|比一般餐厅宽松", sentence):
+                facts["stay"].add(("停留限时", False, scope))
     field_source = text
     if evidence:
         unsupported_field = r"附近|周边|临近|靠近|距离?|CBD|照片|图片|画面|视觉|没有|不是|并非|不在|不属|别家|另一家|其他门店"
@@ -11465,7 +11509,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
 def _leisure_observation_fact_issues(text: str, source: str, *, observation_context: str = "") -> list[str]:
     claims = _leisure_observation_fact_claims(text, observation_context=observation_context)
     known = _leisure_observation_fact_claims(source, evidence=True)
-    labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历", "comparison": "其他商家/类别比较", "provenance": "图像拍摄或加工过程"}
+    labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "opening": "开业时间/新开状态", "stay": "催离/停留限制或保证", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历", "comparison": "其他商家/类别比较", "provenance": "图像拍摄或加工过程"}
     issues = []
     ktv_light = _leisure_ktv_light_context(source, text + "\n" + observation_context)
     for kind, label in labels.items():
@@ -11913,6 +11957,7 @@ def _leisure_public_omission_notices(issues: list[str]) -> list[str]:
             ("空间布局独立", "空间布局独立关系"),
             ("空间布局", "空间布局数量/入口/通行或独立关系"),
             ("营业", "营业/开放时段"), ("稀缺", "同城稀缺比较"),
+            ("开业", "开业时间/新开状态"), ("停留", "催离/停留限制或保证"),
             ("感官", "温感/味道/卫生/服务/声音体验"), ("亲历", "作者亲历"),
             ("价格", "价格/收费"), ("金额", "价格/收费"),
             ("时长", "项目时长"), ("权益", "套餐/项目权益"),
