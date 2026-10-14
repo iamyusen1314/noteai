@@ -11025,10 +11025,10 @@ def _leisure_spatial_claims(text: str, *, evidence: bool = False, observation_co
     space = (r"庭院区?|大厅|前台|水景座位|汤泉区|泡池区?|泳池区?|水池区?|水疗区|汗蒸区|桑拿区|"
              r"SPA区|按摩区|足疗区|KTV包房|包房|餐饮区|海鲜自助台|自助餐区|自助区|餐台|饮品柜台|酒廊吧台|休息区|娱乐区")
     count = re.compile(
-        r"(?P<n>" + number + r")(?:个|大)?(?:实际|实体)?(?P<p>" + project + r")(?:区(?:域)?|包房)"
+        r"(?P<n>" + number + r")(?:个|大)?(?:实际|实体)?(?P<p>" + project + r")(?:分区|区(?:域)?|包房)"
         r"|(?P<dual>双|" + number + r")区(?:实际|实体)?(?P<dp>" + project + r")"
         r"|(?P<rp>" + project + r")(?:空间|区域)?(?:分为|分成|分|设有|共有|共|有)\s*"
-        r"(?P<rn>" + number + r")(?:个|大)?(?:区(?:域)?|包房)", re.I)
+        r"(?P<rn>" + number + r")(?:个|大)?(?:分区|区(?:域)?|包房)", re.I)
     entrance = re.compile(
         r"(?:一?进门(?:后)?|入口(?:处)?)(?:就|便|即)?(?:不|未)?(?P<relation>是|为|在|位于|通向|连接|紧邻)"
         r"(?:整片|一片|一个|整个|大片|禅意|新中式){0,3}(?P<space>" + space + r")", re.I)
@@ -11103,7 +11103,7 @@ def _leisure_spatial_claims(text: str, *, evidence: bool = False, observation_co
             actual = bool(re.search(r"实际|实体|作者确认|已确认", part))
             # A facility noun followed by a real-region count is physical even
             # when its only claimed distinction is style.
-            generic = re.search(r"(?P<n>" + number + r")(?:个|大)?(?:实际|实体)?(?:区(?:域)?|空间)(?!照片|画面|风格|主题)", part)
+            generic = re.search(r"(?P<n>" + number + r")(?:个|大)?(?:实际|实体)?(?:分区|区(?:域)?|空间)(?!照片|画面|风格|主题)", part)
             editorial = bool(re.search(r"(?:画面|照片|图片|构图|主题|编辑).{0,8}(?:分组|分为|分成)|(?:编辑|画面|构图)(?:区域|空间)", part))
             if generic and not editorial and not count.search(part) and not (evidence and visual and not actual):
                 raw = generic.group("n")

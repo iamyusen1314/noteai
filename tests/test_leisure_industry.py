@@ -231,9 +231,13 @@ class LeisureIndustryTests(unittest.TestCase):
                               ("没有独立包房。", "独立包房。"),
                               ("包房独立。", "包房互不干扰。")):
             self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
-        # A retained '3大分区' could mean three editorial groups. Do not claim
-        # that counting three groups proves the real venue has three sections.
-        for editorial in ("水石清池3大分区游览顺序参考攻略。", "按庭院、泳池、餐饮三个主题组织正文。",
+        # An explicit facility count remains physical even in a reference
+        # guide. Editorial themes and visible-image groupings remain allowed.
+        physical = "水石清池3大分区游览顺序参考攻略。"
+        self.assertTrue(api._delivery_integrity_issues(physical, unknown, DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues(physical, "门店名：水石清池\n对象：水石清池\n作者确认：水石清池实际设有3个分区。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues(physical, "门店名：水石清池\n对象：另一家门店\n实际设有3个分区。", DOMAIN))
+        for editorial in ("按庭院、泳池、餐饮三个主题组织正文。", "按3个编辑主题整理素材。", "画面分为3个分组。",
                           "建议先拍庭院，再拍水景座位与餐台。"):
             self.assertFalse(api._delivery_integrity_issues(editorial, unknown, DOMAIN), editorial)
         safe_brief = api._safe_fact_delivery_brief(DOMAIN, unknown)
@@ -497,7 +501,7 @@ class LeisureIndustryTests(unittest.TestCase):
                               ("庭院连通餐饮区。", "庭院连通休息区。"),
                               ("汤泉区动线清晰。", "餐饮区动线清晰。")):
             self.assertTrue(api._delivery_integrity_issues(claim, source, DOMAIN), (source, claim))
-        for allowed in ("按庭院、水池、餐台三个编辑主题组织正文。", "水石清池3大分区游览顺序参考攻略。",
+        for allowed in ("按庭院、水池、餐台三个编辑主题组织正文。", "按3个编辑主题整理素材。", "画面分为3个分组。",
                         "素材有两张汤泉区照片，呈现两种池景视觉风格。", "建议先拍庭院，再拍水景座位与餐台。",
                         "下次计划进门后先拍庭院。", "按图1到图3的拍摄顺序整理素材。",
                         "如果实际有两个汤泉区，确认后再按心情选择。", "画面入口处是庭院造景。",
