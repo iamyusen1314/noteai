@@ -11678,7 +11678,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             # A double negation still promises efficacy. "无痛" or "无副作用"
             # never matches the adjacent, explicit negation grammar above.
             before = medical_assertions[:match.start()]
-            return match.group() if re.search(r"(?:不可能|不是|并非|并不|不代表|不能说|没有|不能|不得|不要|无法)\s*$", before) else ""
+            return match.group() if re.search(r"(?:不可能|不是|并非|并不|不代表|不能说|不支持|不宣称|没有|不能|不得|不要|无法)\s*$", before) else ""
         if medical_claim.search(negated_claim.sub(remove_negated_claim, medical_assertions)):
             issues.append("休闲娱乐体验出现治疗或医疗功效，结构化事实不能编造")
         temperature = r"(?:水温|池温|温度)[^，,。；;\n]{0,8}(\d+(?:\.\d+)?)\s*(?:℃|度|摄氏)"

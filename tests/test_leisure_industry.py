@@ -1107,6 +1107,8 @@ class LeisureIndustryTests(unittest.TestCase):
         for text in (
             '云脊疗SPA支持治疗功效。', '云脊疗SPA宣称疗效。',
             '不是不支持治疗功效。', '并非不宣称疗效。', '不能说不支持康复。',
+            '不支持不宣称疗效。', '不宣称不支持治疗功效。',
+            '不支持不支持治疗功效。', '不宣称不宣称疗效。',
             'SPA不支持治疗，但可以改善失眠。', 'SPA不宣称疗效，具有康复效果。',
         ):
             with self.subTest(text=text):
