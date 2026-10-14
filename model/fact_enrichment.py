@@ -810,6 +810,51 @@ def _amap_poi_to_item(poi: dict) -> dict:
     }
 
 
+def _leisure_amap_item_projection(item: dict, verified_facts: dict | None = None) -> dict:
+    """A POI tag does not establish a leisure menu or review frequency."""
+    if item.get("source") != "高德地图":
+        return item
+    projected = dict(item)
+    safe_facts = {key: value for key, value in (item.get("facts") or {}).items()
+                  if key not in {"must_order", "review_keywords"}}
+    for key in ("must_order", "review_keywords"):
+        if (verified_facts or {}).get(key):
+            safe_facts[key] = verified_facts[key]
+    if "facts" in item:
+        projected["facts"] = safe_facts
+    if "snippet" in item:
+        parts = [str(item.get("title") or item.get("name") or ""),
+                 *[f"{_FACT_FIELD_LABELS[key]}：{value}" for key, value in safe_facts.items()
+                   if key in _FACT_FIELD_LABELS and key != "photos"]]
+        projected["snippet"] = _clean_text(" ".join(part for part in parts if part), 500)
+    return projected
+
+
+def _leisure_amap_cached_projection(result: dict, local_items: list[dict]) -> dict:
+    """Project a legacy cache copy without changing its original evidence."""
+    projected = dict(result)
+    original_entities = result.get("entities") or []
+    verified = {(item.get("title"), item.get("url")): item.get("facts") or {} for item in local_items}
+    entities = [_leisure_amap_item_projection(entity, verified.get((entity.get("name"), entity.get("url"))))
+                for entity in original_entities]
+    if len(original_entities) == 1 and original_entities[0].get("source") == "高德地图":
+        projected["facts"] = entities[0].get("facts") or {}
+    elif result.get("provider") == "amap":
+        projected["facts"] = {key: value for key, value in (result.get("facts") or {}).items()
+                              if key not in {"must_order", "review_keywords"}}
+    projected["entities"] = [entity for entity in entities if entity.get("facts")]
+    facts_by_url = {entity.get("url"): entity.get("facts") for entity in entities if entity.get("url")}
+    sources = []
+    for source in result.get("sources") or []:
+        if source.get("source") == "高德地图" and "snippet" in source:
+            safe = _leisure_amap_item_projection({**source, "facts": facts_by_url.get(source.get("url")) or {}},
+                                                verified.get((source.get("title"), source.get("url"))))
+            source = {**source, "snippet": safe["snippet"]}
+        sources.append(source)
+    projected["sources"] = sources
+    return projected
+
+
 def _record_match_score(record: dict, haystack: str, domain: str | None) -> int:
     score = 0
     rec_domain = canonical_product_domain(record.get("domain")) if record.get("domain") else ""
@@ -1475,20 +1520,35 @@ def _enrich_content_facts(domain: str | None, title: str | None, text: str | Non
         return {"enabled": False, "provider": provider, "query": query, "facts": {}, "sources": [], "confidence": 0.0}
 
     ttl = _cache_ttl_seconds()
-    key = _cache_key(provider, query)
+    leisure = canonical_product_domain(domain) == "休闲娱乐体验"
+    legacy_key = _cache_key(provider, query)
+    key = legacy_key + ":leisure-poi-semantics-v1" if leisure else legacy_key
     now = time.time()
     cached = _CACHE.get(key) if ttl > 0 else None
+    legacy_cached = (_CACHE.get(legacy_key) if leisure and ttl > 0
+                     and not (cached and now - cached[0] < ttl) else None)
+    cached = legacy_cached or cached
     if cached and now - cached[0] < ttl:
-        result = dict(cached[1])
+        # New leisure cache entries already carry the projected semantics.
+        # Legacy entries may have display labels shared with authorized local
+        # records; only current exact-name/URL local facts can reauthorize menus.
+        local = (_authorized_fact_items(domain, title, text, query)
+                 if legacy_cached and "local_verified" in str(cached[1].get("provider", "")) else [])
+        result = (_leisure_amap_cached_projection(cached[1], local)
+                  if legacy_cached else dict(cached[1]))
         result["cached"] = True
         return result
 
     local_items = _authorized_fact_items(domain, title, text, query)
     items = list(local_items)
+    projected_provider_items: list[dict] = []
     search_provider = provider
     try:
         if _search_enabled_for_provider(provider):
             search_provider, provider_items = _search(query, provider)
+            if leisure:
+                provider_items = [_leisure_amap_item_projection(item) for item in provider_items]
+                projected_provider_items = provider_items
             items.extend(provider_items)
     except Exception as exc:
         trace = _READ_TRACE.get()
@@ -1509,6 +1569,12 @@ def _enrich_content_facts(domain: str | None, title: str | None, text: str | Non
     sources = _merge_sources(items)
     entities = [{"name": item.get("title", ""), "facts": extract_facts_from_search_items([item]),
                  "source": item.get("source", ""), "url": item.get("url", "")} for item in items]
+    if leisure:
+        # Only supplier-origin items receive this projection. A local record's
+        # display source can also be named 高德地图 without being a raw POI tag.
+        provider_ids = {id(item) for item in projected_provider_items}
+        entities = [_leisure_amap_item_projection(entity) if id(item) in provider_ids else entity
+                    for item, entity in zip(items, entities)]
     entities = [entity for entity in entities if entity["facts"]]
     target = _clean_hotel_name(str(title or ""))
     named_hotel = provider == "meituan_travel" and re.fullmatch(

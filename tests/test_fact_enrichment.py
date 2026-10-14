@@ -18,6 +18,96 @@ import fact_enrichment as facts  # noqa: E402
 
 
 class FactEnrichmentTests(unittest.TestCase):
+    def test_leisure_amap_tags_do_not_become_menu_or_review_frequency(self):
+        # Retained real BAR fields exposed this source-semantic error. This
+        # controlled supplier reply is offline, not another live query/model.
+        item = facts._amap_poi_to_item({
+            'id': 'fixture-parlay', 'name': 'Parlay帕雷餐厅＆运动酒吧(静安店)',
+            'address': '康定路358弄陕康里18弄103室', 'business_area': '曹家渡',
+            'type': '体育休闲服务;体育休闲服务场所;体育休闲服务场所', 'tag': '肉食者',
+            'biz_ext': {'cost': '116', 'rating': '4.6', 'opentime': '11:00-24:00'},
+            'tel': '02112345678', 'photos': [{}, {}, {}],
+        })
+        original = json.dumps(item, ensure_ascii=False, sort_keys=True)
+        legacy = facts.extract_facts_from_search_items([item])
+        self.assertEqual(legacy['must_order'], '肉食者')
+        self.assertEqual(legacy['review_keywords'], '肉食者')
+        preserved = {key: value for key, value in legacy.items() if key not in {'must_order', 'review_keywords'}}
+        with mock.patch.object(facts, 'fact_search_enabled', return_value=True), \
+             mock.patch.object(facts, '_authorized_fact_items', return_value=[]), \
+             mock.patch.object(facts, '_cache_ttl_seconds', return_value=0), \
+             mock.patch.object(facts, '_search', return_value=('amap', [item])), \
+             mock.patch('httpx.Client.send', side_effect=AssertionError('offline only')):
+            for domain in ('美食', '旅行', '休闲娱乐体验', 'SPA'):
+                with self.subTest(domain=domain):
+                    leisure = domain in {'休闲娱乐体验', 'SPA'}
+                    result = facts.enrich_content_facts(domain, item['title'], '上海', provider='amap')
+                    self.assertEqual(result['status'], 'matched')
+                    self.assertEqual(result['facts'], preserved if leisure else legacy)
+                    self.assertEqual(result['entities'][0]['facts'], result['facts'])
+                    context = facts.format_fact_context(result)
+                    if leisure:
+                        self.assertNotIn('肉食者', context)
+                        self.assertNotIn('必点/招牌菜', result['sources'][0]['snippet'])
+                        self.assertNotIn('评价高频词', result['sources'][0]['snippet'])
+                        # The snippet may not revive either field via regex.
+                        self.assertNotIn('must_order', facts.extract_facts_from_search_items(result['sources']))
+                        self.assertNotIn('review_keywords', facts.extract_facts_from_search_items(result['sources']))
+                        for value in ('康定路358弄陕康里18弄103室', '人均116元', '11:00-24:00', '高德评分4.6'):
+                            self.assertIn(value, context)
+                    else:
+                        self.assertIn('必点/招牌菜：肉食者', context)
+                        self.assertIn('评价高频词：肉食者', context)
+                        self.assertEqual(result['sources'][0]['snippet'], item['snippet'])
+        self.assertEqual(json.dumps(item, ensure_ascii=False, sort_keys=True), original)
+        # A legacy warm cache must be projected without a new query or mutation
+        # of the cache's original Food evidence/observed time/partial status.
+        with mock.patch.object(facts, '_CACHE', {}), \
+             mock.patch.object(facts, 'build_fact_query', return_value='shared-fixture-query'), \
+             mock.patch.object(facts, 'fact_search_enabled', return_value=True), \
+             mock.patch.object(facts, '_authorized_fact_items', return_value=[]), \
+             mock.patch.object(facts, '_cache_ttl_seconds', return_value=60), \
+             mock.patch.object(facts, '_search', return_value=('amap', [item])) as search:
+            first = facts.enrich_content_facts('美食', item['title'], '上海', provider='amap')
+            old_context = facts.format_fact_context(first)
+            cached = facts.enrich_content_facts('休闲娱乐体验', item['title'], '上海', provider='amap')
+            food_again = facts.enrich_content_facts('美食', item['title'], '上海', provider='amap')
+            self.assertEqual(search.call_count, 1)
+            self.assertTrue(cached['cached'])
+            self.assertEqual(cached['observed_at'], first['observed_at'])
+            self.assertEqual(cached['calls']['http_requests'], 0)
+            self.assertEqual(cached['facts'], preserved)
+            self.assertEqual(cached['entities'][0]['facts'], preserved)
+            self.assertNotIn('肉食者', facts.format_fact_context(cached))
+            self.assertNotIn('肉食者', cached['sources'][0]['snippet'])
+            self.assertEqual(facts.format_fact_context(food_again), old_context)
+        # Explicit author/local verified menu data is a different origin; the
+        # new domain still retains real dining in a bar or bathing complex.
+        author = {'title': item['title'], 'source': '高德地图',
+                  'url': 'https://example.invalid/author-verified',
+                  'facts': {'must_order': '作者确认的BBQ拼盘', 'review_keywords': '作者已有评价'}}
+        with mock.patch.object(facts, 'fact_search_enabled', return_value=True), \
+             mock.patch.object(facts, '_authorized_fact_items', return_value=[author]), \
+             mock.patch.object(facts, '_CACHE', {}), \
+             mock.patch.object(facts, '_cache_ttl_seconds', return_value=60), \
+             mock.patch.object(facts, '_search_enabled_for_provider', return_value=False):
+            result = facts.enrich_content_facts('休闲娱乐体验', item['title'], '上海', provider='amap')
+            warm = facts.enrich_content_facts('休闲娱乐体验', item['title'], '上海', provider='amap')
+        self.assertEqual(result['facts']['must_order'], '作者确认的BBQ拼盘')
+        self.assertIn('作者已有评价', facts.format_fact_context(result))
+        self.assertTrue(warm['cached'])
+        self.assertEqual(facts.format_fact_context(warm), facts.format_fact_context(result))
+        with mock.patch.object(facts, '_CACHE', {}), \
+             mock.patch.object(facts, 'build_fact_query', return_value='shared-local-query'), \
+             mock.patch.object(facts, 'fact_search_enabled', return_value=True), \
+             mock.patch.object(facts, '_authorized_fact_items', return_value=[author]), \
+             mock.patch.object(facts, '_cache_ttl_seconds', return_value=60), \
+             mock.patch.object(facts, '_search_enabled_for_provider', return_value=False):
+            first = facts.enrich_content_facts('美食', item['title'], '上海', provider='amap')
+            legacy_local = facts.enrich_content_facts('休闲娱乐体验', item['title'], '上海', provider='amap')
+        self.assertTrue(legacy_local['cached'])
+        self.assertEqual(facts.format_fact_context(legacy_local), facts.format_fact_context(first))
+
     def test_hotel_package_hours_address_and_business_source_keep_their_scope(self):
         answer = ('![酒店图片](https://images.example.invalid/photo.jpg)\n'
             '[**广州长隆酒店**](http://dpurl.cn/hotel-test) 美团豪华型 **美团真实评分4.7** **￥929起/晚** 亲子酒店\n'
