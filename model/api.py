@@ -4249,6 +4249,23 @@ def _generation_memory_context(memory_context: str) -> str:
     )
 
 
+def _generation_clarification_source(brief: str | None, image_desc: str) -> str:
+    """Use current user material and observations, not enriched instructions."""
+    context = _clarification.execution.get() or {}
+    material = context.get("source_material")
+    if isinstance(material, str):
+        prefix = "【商家原始素材】\n"
+        if material.startswith(prefix):
+            material = material[len(prefix):]
+    else:
+        material = brief or ""
+    source = material + "\n" + (image_desc or "")
+    merchant = context.get("merchant")
+    if isinstance(merchant, str) and merchant.strip() and merchant not in source:
+        source = "门店名：" + merchant + "\n" + source
+    return source
+
+
 async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: str, memory_context: str = "") -> dict:
     base = _runtime_prompt("gent_content_system", domain) + _generation_memory_context(memory_context)
     planning_brief = _build_generation_planning_brief(domain, "", brief, "爆文初稿规划")
@@ -4280,8 +4297,7 @@ async def _gent_content(domain: str, brief: str | None, dk: dict, image_desc: st
         )
     # Complete expert output uses the formal route capacity, including questions.
     # The active model configuration may lower this ceiling; usage is metered.
-    original = (_clarification.execution.get() or {}).get("source_material") or brief or ""
-    source_index, references = _clarification.source_references(original + "\n" + image_desc)
+    source_index, references = _clarification.source_references(_generation_clarification_source(brief, image_desc))
     raw = await _mr.call("content_gen", system + _clarification.question_contract(), user + source_index, max_tokens=16000, trace_step='generation_content', prompt_keys=('gent_content_system',), prompt_domain=domain)
     return {"role": "内容专家", "raw": raw, "clarification_sources": references}
 
@@ -18660,7 +18676,7 @@ async def _generate_pipeline_stream(
             "vis_result": vis_result, "opinions": opinions,
             "had_cover": bool(cover_image),
             "metadata": context.get("metadata", {}),
-        }, opinions, source=(brief or "") + "\n" + image_desc,
+        }, opinions, source=_generation_clarification_source(brief, image_desc),
            merchant=context.get("merchant", ""), completed_steps=("素材理解", "专家分析"))
 
     # ── Pre-P3: Score draft ──────────────────────────────────────────

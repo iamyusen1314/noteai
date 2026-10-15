@@ -141,6 +141,66 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         finally:
             clarification.execution.reset(marker)
 
+    def test_generation_clarification_source_excludes_server_header_and_keeps_real_ids(self):
+        import task_clarification as clarification
+        material = "门店名：水石清池·汤泉生活\n本套餐含自助餐。\n套餐自助餐需另付费。"
+        wrapped = "【商家原始素材】\n" + material
+        observed = "图片里有泡池和自助餐台。"
+        context = {"claim": {"request_id": "source-alignment"}, "merchant": "水石清池·汤泉生活",
+                   "source_material": wrapped}
+        marker = clarification.execution.set(context)
+        try:
+            _, old = clarification.source_references(wrapped + "\n" + observed)
+            source = api._generation_clarification_source("意图指令、外部资料和历史记忆", observed)
+            _, current = clarification.source_references(source)
+            self.assertIn("【商家原始素材】", old.values())
+            self.assertNotIn("【商家原始素材】", current.values())
+            self.assertEqual(current, {key: value for key, value in old.items() if value != "【商家原始素材】"})
+            self.assertEqual(source, material + "\n" + observed)
+            self.assertEqual(context["source_material"], wrapped)
+            self.assertNotIn("意图指令", source)
+            # Strip only the known server prefix, not arbitrary later content.
+            context["source_material"] = wrapped + "\n【商家原始素材】\n原文中的后续行"
+            self.assertIn("\n【商家原始素材】\n原文中的后续行", api._generation_clarification_source("", observed))
+        finally:
+            clarification.execution.reset(marker)
+
+    def test_generation_clarification_empty_material_keeps_current_structured_merchant(self):
+        import task_clarification as clarification
+        merchant, observed = "水石清池.汤泉生活", "图片里有泡池和自助餐台。"
+        context = {"claim": {"request_id": "empty-material"}, "merchant": merchant,
+                   "source_material": "【商家原始素材】\n"}
+        marker = clarification.execution.set(context)
+        try:
+            source = api._generation_clarification_source("意图指令和未提供的外部资料", observed)
+            self.assertEqual(source, "门店名：" + merchant + "\n\n" + observed)
+            _, refs = clarification.source_references(source)
+            ref = next(key for key, value in refs.items() if merchant in value)
+            question = {"field": "buffet_inclusion", "question": "本次套餐是否包含自助餐？",
+                        "source_ids": [ref], "object": merchant}
+            opinion = {"role": "内容专家", "clarification_sources": refs,
+                       "raw": "<clarifications>" + json.dumps([question], ensure_ascii=False) + "</clarifications>"}
+            questions = clarification.questions_from_opinions([opinion], source, merchant)
+            self.assertEqual(len(questions), 1)
+            self.assertEqual(questions[0]["object"], merchant)
+            self.assertNotIn("【商家原始素材】", refs.values())
+            self.assertNotIn("意图指令", source)
+            self.assertEqual(context["source_material"], "【商家原始素材】\n")
+            context["source_material"] = ""
+            self.assertNotIn("意图指令", api._generation_clarification_source("意图指令", observed))
+        finally:
+            clarification.execution.reset(marker)
+        marker = clarification.execution.set(None)
+        try:
+            self.assertEqual(api._generation_clarification_source("standalone原文", observed), "standalone原文\n" + observed)
+        finally:
+            clarification.execution.reset(marker)
+        marker = clarification.execution.set({"claim": {"request_id": "legacy-standalone"}})
+        try:
+            self.assertEqual(api._generation_clarification_source("standalone原文", observed), "standalone原文\n" + observed)
+        finally:
+            clarification.execution.reset(marker)
+
     def test_leisure_expert_pipelines_keep_private_question_metadata_until_pause(self):
         import os
         from contextlib import ExitStack
@@ -148,7 +208,9 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         import task_clarification as clarification
 
         merchant = "水石清池·汤泉生活"
-        source = f"门店名：{merchant}\n套餐的自助餐权益尚未确定。"
+        source = f"门店名：{merchant}\n本套餐含自助餐。\n套餐自助餐需另付费。"
+        wrapped = "【商家原始素材】\n" + source
+        enriched = "【本次创作意图】仅本次意图\n【用户约束】仅本次约束\n" + source + "\n【联网事实补全】外部参考事实"
         sentinel = "PRIVATE_CLARIFICATION_RAW_SENTINEL"
         for operation in ("generate", "analyze"):
             with self.subTest(operation=operation):
@@ -157,14 +219,15 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                 claim = self._claim(uid, "leisure-question-" + operation,
                                     payload={"domain": "休闲娱乐体验", "brief": source}, operation=operation)
                 marker = clarification.execution.set({
-                    "claim": claim, "merchant": merchant, "source_material": source,
+                    "claim": claim, "merchant": merchant, "source_material": wrapped,
                 })
                 public_events, private_opinions = [], []
                 try:
                     _, references = clarification.source_references(source)
-                    ref = next(key for key, value in references.items() if "自助餐" in value)
+                    refs = [key for key, value in references.items() if "自助餐" in value]
+                    ref = refs[0]
                     question = {"field": "buffet_inclusion", "question": "本次套餐是否包含自助餐？",
-                                "source_ids": [ref], "object": merchant, "required": True}
+                                "source_ids": refs, "object": merchant, "required": True}
                     raw = (f"<draft_title>汤泉素材选择参考</draft_title><draft_body>素材中的泡池与自助餐台。</draft_body>"
                            f"<private>{sentinel}</private><clarifications>" +
                            json.dumps([question], ensure_ascii=False) + "</clarifications>")
@@ -173,6 +236,11 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                         self.assertEqual(kwargs["trace_step"], "generation_content" if operation == "generate" else "diagnosis_content")
                         self.assertIn("<clarifications>", system)
                         self.assertIn(ref, user)
+                        index = json.loads(user.split("【本次素材索引：只用于定位澄清问题，不是新增事实】\n", 1)[1])
+                        self.assertNotIn("【商家原始素材】", index.values())
+                        self.assertNotIn("仅本次意图", "\n".join(index.values()))
+                        self.assertNotIn("仅本次约束", "\n".join(index.values()))
+                        self.assertNotIn("外部参考事实", "\n".join(index.values()))
                         return raw
 
                     original_pause = clarification.pause
@@ -181,6 +249,9 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                         content = next(item for item in opinions if item.get("role") == "内容专家")
                         self.assertEqual(content["raw"], raw)
                         self.assertEqual(content["clarification_sources"][ref], references[ref])
+                        if operation == "generate":
+                            self.assertEqual(prepared["source_material"], wrapped)
+                            self.assertEqual(kwargs["source"], api._generation_clarification_source(enriched, prepared["image_desc"]))
                         private_opinions.append(content)
                         return original_pause(prepared, opinions, **kwargs)
 
@@ -190,7 +261,7 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                     async def run():
                         if operation == "generate":
                             async for event in api._generate_pipeline_stream(
-                                "休闲娱乐体验", source, None, None, {}, None, "", user_id=uid,
+                                "休闲娱乐体验", enriched, None, None, {}, None, "", user_id=uid,
                             ):
                                 public_events.append(event)
                         else:
@@ -220,14 +291,16 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
                     self.assertEqual(event["status"], "waiting_for_input")
                     self.assertEqual(len(event["questions"]), 1)
                     self.assertEqual(event["questions"][0]["source_quote"], references[ref])
+                    self.assertEqual(event["questions"][0]["source_quotes"], [references[key] for key in refs])
                     self.assertIn(event["questions"][0]["source_quote"], source)
                     self.assertEqual(event["questions"][0]["merchant"], merchant)
                     public = api._generation_public_expert_opinions(private_opinions, source, "休闲娱乐体验")
                     encoded = json.dumps([event, public_events, public], ensure_ascii=False)
                     for private in (sentinel, "clarification_sources", "source_ids", "<clarifications>", "prepared", "lease_token"):
                         self.assertNotIn(private, encoded)
-                    row = db.fetchone("SELECT status,refund_applied,usage_id FROM idempotency_requests WHERE id=?", (claim["request_id"],))
+                    row = db.fetchone("SELECT status,charge_applied,refund_applied,usage_id FROM idempotency_requests WHERE id=?", (claim["request_id"],))
                     self.assertEqual(row["status"], "waiting_for_input")
+                    self.assertEqual(row["charge_applied"], 1)
                     self.assertEqual(row["refund_applied"], 0)
                     self.assertEqual(row["usage_id"], claim["charge"]["usage_id"])
                 finally:
