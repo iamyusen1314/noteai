@@ -2985,6 +2985,45 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api._gent_visual("image", "美食", "有文字简报", {}))
             model_call.assert_not_called()
 
+    def test_generation_visual_uses_formal_capacity_and_preserves_call_contract(self):
+        observation = "原图可见庭院与木桥，末尾观察必须保留。"
+        raw = "<image_desc>庭院与木桥</image_desc><inspiration>三个素材角度</inspiration>"
+        for domain in ("美食", "休闲娱乐体验"):
+            with self.subTest(domain=domain), \
+                 mock.patch.object(api, "_kimi_vision_understand", return_value=observation) as understand, \
+                 mock.patch.object(api, "_runtime_prompt", return_value="基础视觉模板{domain}") as prompt, \
+                 mock.patch.object(api, "_get_quality_contract", return_value="质量契约"), \
+                 mock.patch.object(api, "_get_feature_governance_brief", return_value="特征治理"), \
+                 mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=raw)) as model_call:
+                result = asyncio.run(api._gent_visual("original-image", domain, "作者原简报", {"visual": "品类视觉知识"}))
+                understand.assert_called_once_with("original-image", domain, "作者原简报")
+                prompt.assert_called_once_with("gent_visual_system", domain)
+                model_call.assert_awaited_once()
+                args, kwargs = model_call.call_args
+                self.assertEqual(args[0], "content_gen")
+                self.assertEqual(args[2], f"品类：{domain}\n素材图内容：\n{observation}")
+                self.assertIn(f"基础视觉模板{domain}", args[1])
+                self.assertIn("质量契约\n\n特征治理", args[1])
+                self.assertIn("品类视觉知识", args[1])
+                self.assertEqual(api._leisure_visual_expression_brief() in args[1], domain == "休闲娱乐体验")
+                self.assertEqual(kwargs, {"max_tokens": 16000, "trace_step": "generation_visual",
+                                          "prompt_keys": ("gent_visual_system",), "prompt_domain": domain})
+                self.assertEqual(result, {"role": "视觉专家", "raw": raw, "_image_desc": observation})
+
+    def test_generation_visual_incomplete_response_propagates_without_retry(self):
+        incomplete = api._mr.ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
+        with mock.patch.object(api, "_kimi_vision_understand", return_value="原图完整可见观察") as understand, \
+             mock.patch.object(api, "_runtime_prompt", return_value="基础视觉模板{domain}"), \
+             mock.patch.object(api, "_get_quality_contract", return_value="质量契约"), \
+             mock.patch.object(api, "_get_feature_governance_brief", return_value="特征治理"), \
+             mock.patch.object(api._mr, "call", new=mock.AsyncMock(side_effect=incomplete)) as model_call:
+            with self.assertRaises(api._mr.ClaudeGatewayError) as failure:
+                asyncio.run(api._gent_visual("original-image", "休闲娱乐体验", None, {}))
+            self.assertIs(failure.exception, incomplete)
+            self.assertEqual(failure.exception.code, "CLAUDE_OUTPUT_INCOMPLETE")
+            understand.assert_called_once()
+            model_call.assert_awaited_once()
+
     def test_generation_format_repair_preserves_quality_and_never_promotes_expert_draft(self):
         source = "创作者事实完整上下文。" * 180 + "末尾事实边界"
         draft = [{"role": "内容专家", "raw": "<title>专家候选</title><body>不能充作已仲裁结果</body>"}]

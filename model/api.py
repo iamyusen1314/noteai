@@ -4232,7 +4232,7 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
     if _DOMAIN_ALIASES.get(domain, domain) == "休闲娱乐体验":
         system += "\n" + _leisure_visual_expression_brief()
 
-    raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=2048, trace_step='generation_visual', prompt_keys=('gent_visual_system',), prompt_domain=domain)
+    raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=16000, trace_step='generation_visual', prompt_keys=('gent_visual_system',), prompt_domain=domain)
     return {"role": "视觉专家", "raw": raw, "_image_desc": description}
 
 
