@@ -3743,9 +3743,7 @@ async def _run_five_agents(
 
         if clarification_prepared is not None:
             context = _clarification.execution.get() or {}
-            _clarification.pause({**clarification_prepared, "opinions": opinions},
-                (_generation_public_expert_opinions(opinions, fact_source_context or note.desc, note.domain)
-                 if _DOMAIN_ALIASES.get(note.domain, note.domain) == "休闲娱乐体验" else opinions),
+            _clarification.pause({**clarification_prepared, "opinions": opinions}, opinions,
                 source=fact_source_context or note.desc, merchant=context.get("merchant", ""),
                 completed_steps=("素材理解", "事实检索", "原笔记评分", "四位专家分析"))
 
@@ -18621,8 +18619,7 @@ async def _generate_pipeline_stream(
             "vis_result": vis_result, "opinions": opinions,
             "had_cover": bool(cover_image),
             "metadata": context.get("metadata", {}),
-        }, (_generation_public_expert_opinions(opinions, brief or "", domain)
-            if _DOMAIN_ALIASES.get(domain, domain) == "休闲娱乐体验" else opinions), source=(brief or "") + "\n" + image_desc,
+        }, opinions, source=(brief or "") + "\n" + image_desc,
            merchant=context.get("merchant", ""), completed_steps=("素材理解", "专家分析"))
 
     # ── Pre-P3: Score draft ──────────────────────────────────────────

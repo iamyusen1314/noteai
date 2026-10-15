@@ -141,6 +141,98 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         finally:
             clarification.execution.reset(marker)
 
+    def test_leisure_expert_pipelines_keep_private_question_metadata_until_pause(self):
+        import os
+        from contextlib import ExitStack
+        from unittest import mock
+        import task_clarification as clarification
+
+        merchant = "水石清池·汤泉生活"
+        source = f"门店名：{merchant}\n套餐的自助餐权益尚未确定。"
+        sentinel = "PRIVATE_CLARIFICATION_RAW_SENTINEL"
+        for operation in ("generate", "analyze"):
+            with self.subTest(operation=operation):
+                uid = "leisure-question-" + operation
+                self._create_user(uid)
+                claim = self._claim(uid, "leisure-question-" + operation,
+                                    payload={"domain": "休闲娱乐体验", "brief": source}, operation=operation)
+                marker = clarification.execution.set({
+                    "claim": claim, "merchant": merchant, "source_material": source,
+                })
+                public_events, private_opinions = [], []
+                try:
+                    _, references = clarification.source_references(source)
+                    ref = next(key for key, value in references.items() if "自助餐" in value)
+                    question = {"field": "buffet_inclusion", "question": "本次套餐是否包含自助餐？",
+                                "source_ids": [ref], "object": merchant, "required": True}
+                    raw = (f"<draft_title>汤泉素材选择参考</draft_title><draft_body>素材中的泡池与自助餐台。</draft_body>"
+                           f"<private>{sentinel}</private><clarifications>" +
+                           json.dumps([question], ensure_ascii=False) + "</clarifications>")
+
+                    async def model(_task, system, user, **kwargs):
+                        self.assertEqual(kwargs["trace_step"], "generation_content" if operation == "generate" else "diagnosis_content")
+                        self.assertIn("<clarifications>", system)
+                        self.assertIn(ref, user)
+                        return raw
+
+                    original_pause = clarification.pause
+
+                    def pause(prepared, opinions, **kwargs):
+                        content = next(item for item in opinions if item.get("role") == "内容专家")
+                        self.assertEqual(content["raw"], raw)
+                        self.assertEqual(content["clarification_sources"][ref], references[ref])
+                        private_opinions.append(content)
+                        return original_pause(prepared, opinions, **kwargs)
+
+                    async def emit(event):
+                        public_events.append(event)
+
+                    async def run():
+                        if operation == "generate":
+                            async for event in api._generate_pipeline_stream(
+                                "休闲娱乐体验", source, None, None, {}, None, "", user_id=uid,
+                            ):
+                                public_events.append(event)
+                        else:
+                            await api._run_five_agents(
+                                api.NoteInput(note_title="汤泉素材参考", desc=source, domain="休闲娱乐体验"),
+                                75, "B", [], {}, None, None, {}, {}, emit=emit,
+                                fact_source_context=source, clarification_prepared={"domain": "休闲娱乐体验"},
+                            )
+
+                    with ExitStack() as stack:
+                        stack.enter_context(mock.patch.dict(os.environ, {
+                            "NOTEAI_TASK_CLARIFICATION_ENABLED": "1", "NOTEAI_PUBLIC_PRODUCT": "0",
+                        }))
+                        stack.enter_context(mock.patch.object(api._mr, "call", side_effect=model))
+                        stack.enter_context(mock.patch.object(api, "_runtime_prompt", return_value="本地合成专家模板{domain}"))
+                        stack.enter_context(mock.patch.object(clarification, "pause", side_effect=pause))
+                        stack.enter_context(mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()))
+                        for name, role in (("_gent_growth", "增长专家"), ("_gent_user", "用户专家"),
+                                           ("_agent_visual", "视觉专家"), ("_agent_growth", "增长专家"), ("_agent_user", "用户专家")):
+                            stack.enter_context(mock.patch.object(api, name, new=mock.AsyncMock(
+                                return_value={"role": role, "raw": "<opinion>仅整理已提供素材</opinion>"})))
+                        with self.assertRaises(clarification.WaitingForInput) as waiting:
+                            asyncio.run(run())
+
+                    self.assertEqual(len(private_opinions), 1)
+                    event = waiting.exception.event
+                    self.assertEqual(event["status"], "waiting_for_input")
+                    self.assertEqual(len(event["questions"]), 1)
+                    self.assertEqual(event["questions"][0]["source_quote"], references[ref])
+                    self.assertIn(event["questions"][0]["source_quote"], source)
+                    self.assertEqual(event["questions"][0]["merchant"], merchant)
+                    public = api._generation_public_expert_opinions(private_opinions, source, "休闲娱乐体验")
+                    encoded = json.dumps([event, public_events, public], ensure_ascii=False)
+                    for private in (sentinel, "clarification_sources", "source_ids", "<clarifications>", "prepared", "lease_token"):
+                        self.assertNotIn(private, encoded)
+                    row = db.fetchone("SELECT status,refund_applied,usage_id FROM idempotency_requests WHERE id=?", (claim["request_id"],))
+                    self.assertEqual(row["status"], "waiting_for_input")
+                    self.assertEqual(row["refund_applied"], 0)
+                    self.assertEqual(row["usage_id"], claim["charge"]["usage_id"])
+                finally:
+                    clarification.execution.reset(marker)
+
     def test_clarification_conflict_preserves_both_exact_source_references(self):
         import task_clarification as clarification
         source = "9月蓝猫店双人套餐198元，茶饮两杯。\n9月蓝猫店双人套餐198元，茶饮另点。"
