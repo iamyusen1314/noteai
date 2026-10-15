@@ -8666,9 +8666,11 @@ def _human_readability_issues(body: str, domain: str | None = None) -> list[str]
 def _quality_expression_brief(domain: str | None = None, source_context: str | None = None) -> str:
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "休闲娱乐体验":
-        if _leisure_ktv_light_context(source_context):
-            return ("【KTV轻量创作要求】\n"
-                    "- 围绕唱歌聚会、选歌、空间氛围与筹备建议自然成文，不套用洗浴或SPA的逐项数量、感官、时长和套餐核验清单。\n"
+        if _leisure_ktv_light_context(source_context, include_bar=True):
+            scene = "KTV" if _leisure_ktv_light_context(source_context) else "酒吧"
+            activity = "唱歌聚会、选歌" if scene == "KTV" else "饮品选择、朋友小聚"
+            return (f"【{scene}轻量创作要求】\n"
+                    f"- 围绕{activity}、空间氛围与筹备建议自然成文，不套用洗浴或SPA的逐项数量、感官、时长和套餐核验清单。\n"
                     "- 具体价格、地址与营业时间按已提供来源写；不宣称医疗功效，不替作者编造到访或亲测。\n"
                     "- 保持既有标题、正文和话题要求，全部主标题与备选标题≤20字。")
         return (
@@ -9990,12 +9992,16 @@ def _safe_fact_delivery_brief(domain: str | None, source_context: str | None) ->
     canonical = _GEN_CHECKLIST_ALIASES.get(domain or "", domain or "")
     if canonical == "休闲娱乐体验":
         facts = "；".join(_domain_generation_fact_bits(canonical, source_context)) or "缺少门店/项目核验事实；仅使用现有真实素材，决策必需项明确待确认。"
-        if _leisure_ktv_light_context(source_context):
-            return ("【KTV轻量事实策略】\n"
+        if _leisure_ktv_light_context(source_context, include_bar=True):
+            scene = "KTV" if _leisure_ktv_light_context(source_context) else "酒吧"
+            activity = "唱歌聚会" if scene == "KTV" else "饮品与成年朋友小聚"
+            details = "普通空间、氛围、人数、欢唱时长和餐饮套餐文案" if scene == "KTV" else "普通空间、氛围、人数、活动时长和餐饮文案"
+            bar_note = ("\n- 不补写未提供的开业、停留保证或酒水权益；不鼓励过量饮酒、未成年人饮酒或酒后驾驶。" if scene == "酒吧" else "")
+            return (f"【{scene}轻量事实策略】\n"
                     f"- 当前可用信息：{facts}\n"
-                    "- 以唱歌聚会与选择建议为主，普通空间、氛围、人数、欢唱时长和餐饮套餐文案不要求逐项补证或反复澄清。\n"
+                    f"- 以{activity}与选择建议为主，{details}不要求逐项补证或反复澄清。\n"
                     "- 具体价格、地址和营业时间只用已提供来源；未提供时可不写。不宣称医疗功效或虚构作者已到访经历。\n"
-                    "- 保持完整正文和话题，全部主标题与备选标题≤20字且自然完整。")
+                    "- 保持完整正文和话题，全部主标题与备选标题≤20字且自然完整。" + bar_note)
         return (
             "【休闲娱乐体验事实安全策略】\n"
             f"- 当前可用信息：{facts}\n"
@@ -10979,18 +10985,23 @@ def _leisure_nonvisual_fact_source(source: str | None) -> str:
     return (source or "").split(_LEISURE_VISUAL_SOURCE_MARKER, 1)[0]
 
 
-def _leisure_ktv_light_context(source: str | None, text: str = "") -> bool:
-    """Use only an explicit primary KTV brief, never a mixed venue or AI inference."""
+def _leisure_ktv_light_context(source: str | None, text: str = "", *, include_bar: bool = False) -> bool:
+    """Use explicit primary KTV/bar scope, never a bath venue's optional facility."""
     author = _leisure_nonvisual_fact_source(source).split("【联网事实补全】", 1)[0]
     exclusion = r"^(?:不补|不写|不含|不包括|不涉及|不提供|不新增|不是|并非|非|(?:不要|不能|不得|不应)(?:补|写|加入|扩展|涉及|推定|编造))"
     parts = lambda value, **kw: [part for part in _fact_assertions(value, **kw)
                                if not re.search(exclusion, part)]
     affirmed = [part for part in parts(_leisure_bound_fact_source(author))
                 if not re.search(r"如果|假如|假设|倘若|^若", part)]
-    if (not any(re.search(r"(?<![A-Za-z])KTV(?![A-Za-z])|卡拉OK|卡拉[欧O]K", part, re.I) for part in affirmed)
+    primary = r"(?<![A-Za-z])KTV(?![A-Za-z])|卡拉OK|卡拉[欧O]K"
+    if include_bar:
+        primary += r"|酒吧|清吧|(?<![A-Za-z])bar(?![A-Za-z])"
+    if (not any(re.search(primary, part, re.I) for part in affirmed)
             or re.search(r"(?:主题|行业|主要项目)[^。；;\n]{0,8}(?:未知|待确认|未确认|不确定|不明)", author)):
         return False
-    other = r"洗浴|汗蒸|汤泉|泡池|泳池|水疗|SPA|按摩|足疗|足浴|沐足|酒吧|清吧|(?<![A-Za-z])bar(?![A-Za-z])"
+    other = r"洗浴|汗蒸|汤泉|泡池|泳池|水疗|SPA|按摩|足疗|足浴|沐足"
+    if not include_bar:
+        other += r"|酒吧|清吧|(?<![A-Za-z])bar(?![A-Za-z])"
     context = parts(author, only_explicit_rejections=True)  # Generated text cannot reclassify the author's primary scope.
     return not any(re.search(other, part, re.I) for part in context)
 
@@ -11511,7 +11522,7 @@ def _leisure_observation_fact_issues(text: str, source: str, *, observation_cont
     known = _leisure_observation_fact_claims(source, evidence=True)
     labels = {"location": "地理区位", "spatial": "空间布局数量/入口/通行关系", "crowd": "常态客流或时段客流", "hours": "营业/开放时段", "opening": "开业时间/新开状态", "stay": "催离/停留限制或保证", "rarity": "同城稀缺比较", "sensory": "温感/味道/卫生/服务等感官或效果", "visit": "作者亲历", "comparison": "其他商家/类别比较", "provenance": "图像拍摄或加工过程"}
     issues = []
-    ktv_light = _leisure_ktv_light_context(source, text + "\n" + observation_context)
+    ktv_light = _leisure_ktv_light_context(source, text + "\n" + observation_context, include_bar=True)
     for kind, label in labels.items():
         if ktv_light and kind not in {"location", "hours", "visit"}:
             continue
@@ -11718,7 +11729,7 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         return issues
 
     canonical = _DOMAIN_ALIASES.get(domain or "", domain or "")
-    ktv_light = canonical == "休闲娱乐体验" and _leisure_ktv_light_context(src, out + "\n" + observation_context)
+    ktv_light = canonical == "休闲娱乐体验" and _leisure_ktv_light_context(src, out + "\n" + observation_context, include_bar=True)
     factual_out = out
     if canonical == "休闲娱乐体验":
         # AI descriptions can support visible material, never create hard-fact
@@ -11977,7 +11988,7 @@ def _leisure_public_fact_issues(value: str, source_context: str, *, observation_
     # whether a public sentence may be retained. Do not dismantle package scopes.
     issues.extend(_leisure_observation_fact_issues(
         re.sub(r"[，,]", "", value),
-        (_leisure_nonvisual_fact_source(source_context) if _leisure_ktv_light_context(source_context)
+        (_leisure_nonvisual_fact_source(source_context) if _leisure_ktv_light_context(source_context, include_bar=True)
          else re.sub(r"[，,]", "", _leisure_nonvisual_fact_source(source_context))),
         observation_context=re.sub(r"[，,]", "", observation_context),
     ))
