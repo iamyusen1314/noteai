@@ -370,6 +370,47 @@ test('late clarification failure cannot replace a newer same-account generation 
  assert.equal(elements.get('progressLabel').textContent,'新任务评分验证中…');
  assert.equal(storage.has(pending.storageKey),true);assert.equal(storage.has(next.storageKey),true);
 });
+test('fresh running clarification read locks the old waiting form without posting another answer',async()=>{
+ let reads=0,posts=0;const f=await clarificationOutcomeFixture({fetch:async(_url,options)=>{
+  if(options.method==='POST'){posts++;return {ok:true};}
+  reads++;return {ok:true,json:async()=>({status:'running',version:2})};
+ }});
+ assert.equal(f.submit.disabled,false);await f.readback.click();await f.submit.click();
+ assert.equal(reads,1);assert.equal(posts,0);assert.equal(f.submit.disabled,true);
+ assert.equal(f.textarea.disabled,true);assert.equal(f.select.disabled,true);assert.match(f.message.textContent,/已接收.*不重复提交/);
+});
+test('recovery entry reads the current original task instead of enabling its stale waiting snapshot',async()=>{
+ for(const status of ['running','outcome_unknown','waiting_for_input','read_failed']){
+  let reads=0,shown=null;const original={session_id:'original-task',operation:'generate',status:'waiting_for_input',version:1};
+  const f=make({_authVerifiedOwnerId:'owner-a',_chatOwnerId:()=> 'owner-a',_activeGeneratePaidRequestId:'original-request',localStorage:{getItem:()=>null},
+   showTaskClarification:state=>{shown=state;},fetch:async(_url,options)=>{
+    assert.equal(options.method,undefined);reads++;
+    return reads===1?{ok:true,json:async()=>({tasks:[original]})}
+      :{ok:status!=='read_failed',json:async()=>({...original,status,version:2})};
+   }});
+  const area=new f.Element('div');area.prepend=child=>area.children.unshift(child);f.elements.set('page-upload',area);
+  f.c.document.createElement=tag=>{const e=new f.Element(tag);e.dataset={};e.appendChild=child=>e.append(child);return e;};
+  f.c.load('taskReferenceKey','restorePendingTaskClarification');await f.c.restorePendingTaskClarification();
+  const button=area.children[0].children[0];await button.click();
+  assert.equal(reads,2);
+  if(status==='read_failed'){assert.equal(shown,null);assert.equal(button.disabled,false);assert.match(button.textContent,/读回.*重试/);}
+  else {assert.equal(shown.status,status);assert.equal(shown.version,2);assert.equal(shown.session_id,original.session_id);}
+ }
+});
+test('late recovery read cannot replace a newer generation for the same account',async()=>{
+ let reads=0,shown=0,release;
+ const original={session_id:'original-task',operation:'generate',status:'waiting_for_input',version:1};
+ const f=make({_authVerifiedOwnerId:'owner-a',_chatOwnerId:()=> 'owner-a',_activeGeneratePaidRequestId:'original-request',
+  localStorage:{getItem:()=>null},showTaskClarification:()=>shown++,fetch:async()=>{
+   reads++;return reads===1?{ok:true,json:async()=>({tasks:[original]})}:new Promise(resolve=>release=resolve);
+  }});
+ const area=new f.Element('div');area.prepend=child=>area.children.unshift(child);f.elements.set('page-upload',area);
+ f.c.document.createElement=tag=>{const e=new f.Element(tag);e.dataset={};e.appendChild=child=>e.append(child);return e;};
+ f.c.load('taskReferenceKey','restorePendingTaskClarification');await f.c.restorePendingTaskClarification();
+ const reading=area.children[0].children[0].click();f.c._activeGeneratePaidRequestId='new-request';
+ release({ok:true,json:async()=>original});await reading;
+ assert.equal(reads,2);assert.equal(shown,0);assert.equal(f.c._activeGeneratePaidRequestId,'new-request');
+});
 
 
 // Mixed ledger split and decimal precision are verified against the integrated UI in frontend_usage_accounting.test.cjs.

@@ -5032,11 +5032,29 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .chat-supplement-primary {background:rgba(34,197,94,0.18);}
 .chat-supplement-status {font-size:11px;color:var(--text-2);align-self:center;}
 .chat-supplement-card.is-submitted {opacity:.78;}
+[data-task-clarification] {width:100%;max-width:100%;min-width:0;flex-shrink:0;}
+[data-task-clarification] .chat-supplement-row {grid-template-columns:minmax(0,1fr);}
+[data-task-clarification] .chat-supplement-row > * {min-width:0;max-width:100%;}
+[data-task-clarification] .chat-supplement-row > div {display:flex;flex-wrap:wrap;gap:6px;}
+[data-task-clarification] button {max-width:100%;min-height:44px;white-space:normal;overflow-wrap:anywhere;}
+[data-task-clarification] .chat-supplement-row button {text-align:left;}
+[data-task-clarification] textarea,[data-task-clarification] select {
+  display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;
+}
+[data-task-clarification] textarea {resize:vertical;}
+[data-task-clarification] select {min-height:44px;}
+[data-task-submit],[data-task-readback] {display:block;width:100%;margin-top:8px;}
+[data-task-clarification] strong,[data-task-clarification] span,
+[data-task-clarification] .chat-supplement-title,[data-task-clarification] .chat-supplement-sub,
+[data-task-message] {overflow-wrap:anywhere;}
+[data-task-clarification] :disabled {opacity:.55;cursor:not-allowed;}
 @media(max-width:640px){
   .chat-supplement-card{max-width:96%;}
   .chat-supplement-row{grid-template-columns:1fr;}
   .chat-supplement-row button{justify-self:flex-start;}
   .chat-supplement-field{flex-direction:column;align-items:stretch;}
+  [data-task-clarification] {max-width:100%;}
+  [data-task-clarification] textarea,[data-task-clarification] select {font-size:16px;}
 }
 .chat-plan-card {
   align-self:flex-start;
@@ -10585,8 +10603,10 @@ function showTaskClarification(task) {
   if (_genWaitInterval) { clearInterval(_genWaitInterval); _genWaitInterval = null; }
   if (!document.getElementById('page-live')?.classList.contains('active')) showPage('live');
   const heading = document.querySelector('#page-live .live-header h1');
-  if (heading) heading.textContent = '补充后继续原任务';
-  setProgress(54, '素材和已完成分析已保留，等你补充');
+  if (heading) heading.textContent = task.status === 'waiting_for_input' ? '补充后继续原任务'
+    : task.status === 'running' ? '原任务仍在处理' : '核实原任务状态';
+  setProgress(54, task.status === 'waiting_for_input' ? '素材和已完成分析已保留，等你补充'
+    : '正在读取原任务状态，请勿重复提交');
   rememberTaskReference(task, _chatIdentitySnapshot());
   chatAppendSupplementPrompts([], task);
 }
@@ -10602,6 +10622,8 @@ function renderTaskClarification(task) {
   const answers = new Map((task.answers || []).map(a => [a.question_id,a]));
   wrap.innerHTML = `<div class="chat-supplement-title">把这几处说明白，我就继续完成笔记</div>
     <div class="chat-supplement-sub">原素材无需重传，已完成的识别不再执行，也不会再次扣整单积分。回答只用于本次内容。</div>
+    <p data-task-message role="status"></p>
+    <button type="button" data-task-readback>核实原任务状态</button>
     ${(task.questions || []).map(q => {
       const answer = answers.get(q.question_id);
       return `<div class="chat-supplement-row is-open" data-question-id="${chatEsc(q.question_id)}">
@@ -10613,9 +10635,7 @@ function renderTaskClarification(task) {
           <option value="confirmed">填写我的回答</option><option value="unknown">暂不确定</option><option value="omitted">这项不写</option>
         </select></div>`;
     }).join('')}
-    <button type="button" data-task-submit>按这些说明继续</button>
-    <button type="button" data-task-readback>核实原任务状态</button>
-    <p data-task-message role="status"></p>`;
+    <button type="button" data-task-submit>按这些说明继续</button>`;
   const message = wrap.querySelector('[data-task-message]');
   wrap.querySelectorAll('[data-question-id]').forEach(row => {
     const prior = answers.get(row.dataset.questionId);
@@ -10667,7 +10687,10 @@ function renderTaskClarification(task) {
         await finishClarifiedTask(state.result, task, identity, token, true);
       } else if (['failed','outcome_unknown'].includes(state.status)) {
         showOutcome(state);
-      } else { message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。'; }
+      } else {
+        busy=true;uncertain=true;enable(false);
+        message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。';
+      }
     } catch(error) { if(valid()) message.textContent=error.message; }
   });
   wrap.querySelector('[data-task-submit]').addEventListener('click', async () => {
@@ -10754,9 +10777,31 @@ async function restorePendingTaskClarification() {
     const task=pointer ? data : data.tasks?.[0]; if(!task) return;
     const banner=document.createElement('div');banner.className='chat-supplement-card';banner.dataset.taskRecovery=task.session_id;
     const button=document.createElement('button');button.type='button';button.textContent=task.status==='waiting_for_input'?'有一篇笔记等你补充，继续原任务':'查看上次任务结果';
-    button.addEventListener('click',()=>{if(!_chatIdentityMatches(identity))return;banner.remove();
-      if(task.status==='completed' && task.result) finishClarifiedTask(task.result,task,identity,token,true);
-      else showTaskClarification(task);});banner.appendChild(button);
+    let reading=false;
+    button.addEventListener('click',async()=>{
+      if(reading || !_chatIdentityMatches(identity) || _authToken !== token)return;
+      const generateRequestId=_activeGeneratePaidRequestId;
+      const stillCurrent=()=>_chatIdentityMatches(identity) && _authToken === token
+        && (task.operation !== 'generate' || _activeGeneratePaidRequestId === generateRequestId);
+      reading=true;button.disabled=true;button.textContent='正在核实原任务…';
+      try {
+        const response=await fetch(API_BASE+'/chat/tasks/'+encodeURIComponent(task.session_id || task.task_id),{headers:{Authorization:'Bearer '+token}});
+        const state=await response.json();
+        if(!stillCurrent())return;
+        if(!response.ok)throw Error('原任务暂未读回，点击重试');
+        const sessionId=state.session_id || state.task_id;
+        if(sessionId !== (task.session_id || task.task_id) || state.operation !== task.operation)
+          throw Error('原任务状态尚未确认，点击重试');
+        const current={...state,session_id:sessionId};
+        banner.remove();
+        if(current.status==='completed' && current.result) await finishClarifiedTask(current.result,current,identity,token,true);
+        else showTaskClarification(current);
+      } catch {
+        if(stillCurrent()) {
+          reading=false;button.disabled=false;button.textContent='原任务暂未读回，点击重试';
+        }
+      }
+    });banner.appendChild(button);
     (document.getElementById('page-upload') || document.body).prepend(banner);
   } catch { /* Read-only recovery failure must not create another task. */ }
 }
