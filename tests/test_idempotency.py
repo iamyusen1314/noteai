@@ -110,6 +110,95 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         for private in (source, item['question'], item['source_quote'], '蓝猫店'):
             self.assertNotIn(private, log.getvalue())
 
+    def test_clarification_field_ids_keep_legacy_keys_and_bound_model_labels(self):
+        import hashlib
+        import task_clarification as clarification
+        for field in ("a", "drink_inclusion", "a" + "x" * 63):
+            self.assertEqual(clarification._question_field_id(field), field)
+        labels = ("套餐内容说明项", "实际项目包含范围说明确认项", "BuffetInclusion",
+                  "buffet inclusion", " a ", "中" * 63 + "甲", "中" * 63 + "乙")
+        ids = [clarification._question_field_id(label) for label in labels]
+        for label, field in zip(labels, ids):
+            self.assertEqual(field, "field_" + hashlib.sha256(label.encode("utf-8")).hexdigest()[:32])
+            self.assertEqual(clarification._question_field_id(label), field)
+            self.assertRegex(field, r"^[a-z][a-z0-9_]{0,63}$")
+        self.assertEqual(len(set(ids)), len(labels))
+        for label in (None, True, 7, [], {}, "", "   ", "x" * 65, "中" * 65,
+                      "line\nbreak", "tab\tlabel", "nul\x00label", "del\x7flabel",
+                      "c1\x85label", "zero\u200bwidth", "bidi\u202elabel", "\ud800"):
+            with self.subTest(label=repr(label)):
+                self.assertIsNone(clarification._question_field_id(label))
+        source = "蓝猫店9月双人套餐，包含饮品。"
+        item = {"field": "drink_inclusion", "question": "这个双人套餐包含什么饮品？",
+                "source_quote": "包含饮品", "object": "双人套餐", "time_range": "9月"}
+        opinion = {"role": "内容专家", "raw": "<clarifications>" + json.dumps([item]) + "</clarifications>"}
+        parsed = clarification.questions_from_opinions([opinion], source, "蓝猫店")
+        old_id = hashlib.sha256("蓝猫店\0双人套餐\0drink_inclusion\09月".encode()).hexdigest()[:24]
+        self.assertEqual(parsed[0]["question_id"], old_id)
+        self.assertEqual(parsed[0]["field"], "drink_inclusion")
+        self.assertEqual(clarification.questions_from_opinions([opinion], source, "蓝猫店", parsed), [])
+
+    def test_clarification_model_labels_keep_source_guards_and_wait_on_original_charge(self):
+        import task_clarification as clarification
+        merchant = "水石清池.汤泉生活"
+        source = "门店名：" + merchant + "\n本套餐含自助餐。\n套餐自助餐需另付费。"
+        uid = "model-label-owner"
+        self._create_user(uid)
+        claim = self._claim(uid, "model-label-original", operation="generate")
+        marker = clarification.execution.set({"claim": claim, "merchant": merchant})
+        try:
+            _, refs = clarification.source_references(source)
+            keys = [key for key, value in refs.items() if "自助餐" in value]
+            # Synthetic printable labels cover the observed 7/13-char shape;
+            # they do not claim to be the private model's original labels.
+            items = [{"field": label, "question": question, "source_ids": keys,
+                      "object": merchant, "required": False}
+                     for label, question in (("套餐内容说明项", "本次套餐是否包含自助餐？"),
+                                             ("实际项目包含范围说明确认项", "自助餐需要另行付费吗？"))]
+            def opinion(values):
+                return {"role": "内容专家", "clarification_sources": refs,
+                        "raw": "<clarifications>" + json.dumps(values, ensure_ascii=False) + "</clarifications>"}
+            valid = opinion(items + [items[0]])
+            parsed = clarification.questions_from_opinions([valid], source, merchant)
+            self.assertEqual(len(parsed), 2)
+            for change, status in (({"source_ids": ["s_foreign"]}, "unknown_source_id"),
+                                   ({"object": "另一门店"}, "object_mismatch"),
+                                   ({"question": "请帮忙处理HTTP解析失败？"}, "invalid_question_fields"),
+                                   ({"field": "bad\u200blabel"}, "invalid_question_fields")):
+                self.assertEqual(clarification.questions_from_opinions(
+                    [opinion([{**items[0], **change}])], source, merchant), [])
+                self.assertIn(status, clarification.execution.get()["question_parse_statuses"])
+            with self.assertRaises(clarification.WaitingForInput) as waiting:
+                clarification.pause({"domain": "休闲娱乐体验", "pipeline": "generate_stream"},
+                    [valid], source=source, merchant=merchant, completed_steps=("素材理解", "专家分析"))
+            event = waiting.exception.event
+            self.assertEqual(event["questions"], parsed)
+            self.assertEqual(event["status"], "waiting_for_input")
+            self.assertFalse(event["charged_again"])
+            for label in (item["field"] for item in items):
+                self.assertNotIn(label, json.dumps(event, ensure_ascii=False))
+            row = db.fetchone("SELECT status,charge_applied,refund_applied,complete_applied,usage_id FROM idempotency_requests WHERE id=?", (claim["request_id"],))
+            self.assertEqual(tuple(row), ("waiting_for_input", 1, 0, 0, claim["charge"]["usage_id"]))
+            self.assertEqual(db.fetchone("SELECT COUNT(*) n FROM usage_records WHERE user_id=?", (uid,))["n"], 1)
+        finally:
+            clarification.execution.reset(marker)
+
+    def test_clarification_stored_legacy_ids_are_not_normalized_on_read_or_resume(self):
+        import task_clarification as clarification
+        from unittest import mock
+        claim, event, _, _ = self._waiting_task()
+        before = db.fetchone("SELECT generate_ctx_json FROM chat_sessions WHERE id=?", (claim["request_id"],))["generate_ctx_json"]
+        with mock.patch.object(clarification, "_question_field_id", side_effect=AssertionError("must not rekey stored questions")):
+            self.assertEqual(clarification.read("merchant-a", claim["request_id"])["questions"], event["questions"])
+            self.assertEqual(db.fetchone("SELECT generate_ctx_json FROM chat_sessions WHERE id=?", (claim["request_id"],))["generate_ctx_json"], before)
+            resumed, task = clarification.resume("merchant-a", claim["request_id"], 1,
+                [{"question_id": event["questions"][0]["question_id"], "status": "omitted"}])
+        self.assertEqual(task["questions"], event["questions"])
+        self.assertEqual(task["answers"][0]["question_id"], event["questions"][0]["question_id"])
+        self.assertEqual(task["answers"][0]["field"], "package_inclusions")
+        self.assertEqual(resumed["charge"]["usage_id"], claim["charge"]["usage_id"])
+        self.assertEqual(db.fetchone("SELECT COUNT(*) n FROM usage_records")["n"], 1)
+
     def test_clarification_source_reference_resolves_original_and_scopes_time(self):
         import task_clarification as clarification
         source = "蓝猫店9月双人套餐198元，茶饮两杯。\n蓝猫店10月双人套餐198元，茶饮另点。"

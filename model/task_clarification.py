@@ -31,7 +31,7 @@ QUESTION_CONTRACT = """
 冲突会影响关键文案时提出问题。保留原任务要求的XML输出结构，并在末尾始终
 附加 <clarifications>JSON数组</clarifications>；无须提问时也必须写成
 <clarifications>[]</clarifications>，不要把整份回复改成裸JSON。最多3问，每问结构：
-{"field":"稳定的英文字段名","question":"指出具体不确定点的商家用语问题",
+{"field":"稳定的小写snake_case字段名（英文字母开头，仅小写字母、数字、下划线，最多64字符）","question":"指出具体不确定点的商家用语问题",
  "source_ids":["引发问题的本次素材编号，可列出冲突双方"],"object":"原素材中的具体门店/套餐名称（原样使用，未写明则留空）",
  "time_range":"原文明确的适用时间，未知留空","required":false,"options":["可选的简短回答"]}
 已有答案、选择不写或暂不确定的同一问题不要重复询问。普通润色、程序解析
@@ -80,6 +80,16 @@ def source_references(source):
             json.dumps(references, ensure_ascii=False), references)
 
 
+def _question_field_id(value):
+    """Keep legacy keys; model labels are opaque identity, never facts."""
+    if (not isinstance(value, str) or not 1 <= len(value) <= 64
+            or not value.strip() or not value.isprintable()):
+        return None
+    if re.fullmatch(r"[a-z][a-z0-9_]{0,63}", value):
+        return value
+    return "field_" + hashlib.sha256(value.encode("utf-8")).hexdigest()[:32]
+
+
 def questions_from_opinions(opinions, source, merchant="", answered=()):
     """Only source-anchored questions from the existing content expert call."""
     answered_ids = {item["question_id"] for item in answered}
@@ -109,7 +119,7 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
             if not isinstance(item, dict):
                 statuses.append("invalid_question_fields")
                 continue
-            field = item.get("field")
+            field = _question_field_id(item.get("field"))
             quote = item.get("source_quote")
             source_ids = item.get("source_ids", item.get("source_id"))
             source_quotes = []
@@ -131,7 +141,7 @@ def questions_from_opinions(opinions, source, merchant="", answered=()):
                 quote = source_quotes[0]
             question = item.get("question")
             obj = str(item.get("object") or "").strip()
-            if (not isinstance(field, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", field)
+            if (field is None
                     or not isinstance(quote, str) or not 2 <= len(quote) <= 300 or quote not in source
                     or not isinstance(question, str) or not 4 <= len(question) <= 250
                     or any(term in question for term in ("事实校验", "证据不足", "HTTP", "解析失败"))
