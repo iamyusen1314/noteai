@@ -1063,6 +1063,7 @@ class LeisureIndustryTests(unittest.TestCase):
 
     def test_mock_stream_public_previews_preserve_only_internal_raw_drafts(self):
         captures = []
+        source = "广州；有庭院、泳池与自助餐，具体区位未知。"
         async def model(task, system, user, **kwargs):
             if kwargs.get("trace_step") == "generation_visual":
                 return "<scene>庭院有木桥，位于CBD旁。光线暖黄。</scene><hooks>CBD隐藏庭院</hooks>"
@@ -1082,7 +1083,7 @@ class LeisureIndustryTests(unittest.TestCase):
              mock.patch.object(api._clarification, "pause") as pause, \
              mock.patch.object(api.asyncio, "sleep", new=mock.AsyncMock()):
             async def run():
-                generator = api._generate_pipeline_stream(DOMAIN, "广州；有庭院、泳池与自助餐，具体区位未知。", None,
+                generator = api._generate_pipeline_stream(DOMAIN, source, None,
                     None, {}, None, "2026101412", cover_images=["mock-image"])
                 events = []
                 try:
@@ -1101,7 +1102,14 @@ class LeisureIndustryTests(unittest.TestCase):
                 self.assertNotIn("闹市", encoded)
         self.assertIn("CBD隐藏庭院", captures[0])
         self.assertIn("CBD隐藏庭院", json.dumps(pause.call_args.args[0], ensure_ascii=False))
-        self.assertNotIn("CBD", json.dumps(pause.call_args.args[1], ensure_ascii=False))
+        prepared, private_opinions = pause.call_args.args[:2]
+        self.assertIs(private_opinions, prepared["opinions"])
+        visual = next(item for item in private_opinions if item.get("role") == "视觉专家")
+        self.assertIn("CBD隐藏庭院", visual["raw"])
+        public = api._generation_public_expert_opinions(private_opinions, source, DOMAIN)
+        encoded = json.dumps(public, ensure_ascii=False)
+        self.assertNotIn("CBD", encoded)
+        self.assertNotIn("闹市", encoded)
 
     def test_claim_families_keep_provided_scope_and_personal_information(self):
         source = "门店在CBD旁。下午人少。下午营业。作者说水温舒服、服务贴心。作者说我泡完很舒服。"
