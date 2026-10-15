@@ -6523,6 +6523,25 @@ function paidTaskStatusText(task, operation) {
   if(task?.status==='running')return `原${name}任务仍在处理，页面正在读取进度。`;
   return `原${name}任务状态正在后台核对，页面会继续读取结果。`;
 }
+function renderGenerationTaskOutcome(task, requestId=_activeGeneratePaidRequestId) {
+  if(requestId!==_activeGeneratePaidRequestId || !['failed','outcome_unknown'].includes(task?.status))return;
+  const unknown=task.status==='outcome_unknown';
+  const message=unknown ? '生成结果尚未确认，正在读取原任务和积分状态；请勿重复提交。'
+    : paidTaskStatusText(task,'generate');
+  if(_genWaitInterval) {clearInterval(_genWaitInterval);_genWaitInterval=null;}
+  for(let index=0;index<8;index++)document.getElementById('tl'+index)?.classList.remove('active');
+  for(let index=0;index<5;index++) {
+    document.getElementById('av'+index)?.classList.remove('thinking','dispute','arbiter');
+    _live3DController?.setAgentState?.(index,'idle');
+  }
+  document.querySelectorAll('#live3dLabels span').forEach(el=>el.classList.remove('active'));
+  const heading=document.querySelector('#page-live .live-header h1');
+  if(heading)heading.textContent=unknown ? '正在核实原任务结果' : '本次爆文生成未完成';
+  setProgress(0,message);
+  const banner=document.getElementById('generation-paid-task-banner');
+  if(banner) {banner.textContent=message;banner.style.display='block';}
+  return message;
+}
 function displayPaidTaskState(task, submission, operation, identity, token) {
   if(!_chatIdentityMatches(identity) || _authToken!==token || !currentPaidSubmission(submission))return true;
   const message=paidTaskStatusText(task,operation);
@@ -6530,6 +6549,7 @@ function displayPaidTaskState(task, submission, operation, identity, token) {
   const visible=operation!=='generate' || _activeGeneratePaidRequestId===submission.requestId;
   if(visible && preview)preview.textContent=message;
   if(operation==='generate' && visible) {
+    renderGenerationTaskOutcome(task,submission.requestId);
     const banner=document.getElementById('generation-paid-task-banner');
     if(banner) {banner.textContent=message;banner.style.display='block';}
     const area=document.getElementById('bubbleArea');
@@ -6554,6 +6574,7 @@ function displayPaidTaskState(task, submission, operation, identity, token) {
     }
     const billing=task?.billing ? {...task.billing,refund_status:task.refund_status} : null;
     _generateResult=task?.status==='completed' ? _generateResult
+      : task?.status==='outcome_unknown' ? {_outcome_unknown:true,outcome:'outcome_unknown',_errMsg:message,billing:billing || {status:'unconfirmed'}}
       : {_error:true,_errMsg:message,billing:billing || {status:'unconfirmed'}};
     if(document.getElementById('page-report')?.classList.contains('active'))renderBillingReceipt(billing || {status:'unconfirmed'});
   }
@@ -6722,11 +6743,12 @@ async function startGeneration() {
         terminalTypes: ['complete', 'error', 'clarification_required'],
         onEvent: ev => {
           streamGuard.event();
-          if (identityMatches()) _handleGenStreamEvent(ev, identityMatches);
+          const currentRequest=()=>identityMatches() && _activeGeneratePaidRequestId===paidRequestId;
+          if (currentRequest()) _handleGenStreamEvent(ev, currentRequest);
         },
       });
       const terminal = streamResult.terminalEvent;
-      if (!identityMatches()) { _resolveGen(); return; }
+      if (!identityMatches() || _activeGeneratePaidRequestId!==paidRequestId) { _resolveGen(); return; }
       if (terminal?.type === 'complete') {
         finishPaidSubmission(submission);
         streamGuard.finish();
@@ -6752,29 +6774,37 @@ async function startGeneration() {
       } else if (terminal?.type === 'error') {
         if (terminal.billing?.status === 'refunded') finishPaidSubmission(submission);
         streamGuard.finish();
+        const outcomeUnknown=terminal.task_status==='outcome_unknown';
         const message=terminal.status_code===402 ? (terminal.message || '本次积分不足，尚未受理')
-          : '本次生成未完成，正在读取原任务和积分处理结果…';
-        _generateResult = { _error: true, _errMsg: message, billing: terminal.billing };
+          : outcomeUnknown ? '生成结果尚未确认，正在读取原任务和积分状态；请勿重复提交。'
+          : paidTaskStatusText({...terminal,status:'failed'},'generate');
+        _generateResult = outcomeUnknown
+          ? {_outcome_unknown:true,outcome:'outcome_unknown',_errMsg:message,billing:terminal.billing}
+          : {_error:true,_errMsg:message,billing:terminal.billing};
         if(terminal.status_code!==402)void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
       } else {
         const message = '生成连接已结束，正在读取原任务和积分处理结果…';
         _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
+        renderGenerationTaskOutcome({status:'outcome_unknown'},paidRequestId);
         showToast(message);
         void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
       }
       _resolveGen();
     } catch(err) {
-      if (!identityMatches()) { _resolveGen(); return; }
+      if (!identityMatches() || _activeGeneratePaidRequestId!==paidRequestId) { _resolveGen(); return; }
       console.error('[NoteAI] stream error:', err);
       const message = '生成连接已结束，正在读取原任务和积分处理结果…';
       _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
+      renderGenerationTaskOutcome({status:'outcome_unknown'},paidRequestId);
       showToast(message);
       void watchPaidTask(submission,'generate',identitySnapshot,requestToken);
       _resolveGen();
     } finally {
       streamGuard.finish();
-      _genStreamActive = false;
-      _setGenerationSubmitBusy(false);
+      if(_activeGeneratePaidRequestId===paidRequestId) {
+        _genStreamActive = false;
+        _setGenerationSubmitBusy(false);
+      }
     }
   })();
 
@@ -7036,7 +7066,7 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
       const quotaDetail = ev.status_code === 402 ? normalizeQuotaDetail(ev.detail || ev.message || ev) : null;
       const errMsg = quotaDetail
         ? (quotaDetail.message || `${OP_NAMES[quotaDetail.operation] || 'AI爆文生成'}积分不足`)
-        : '本次生成未完成，正在读取原任务和积分处理结果…';
+        : renderGenerationTaskOutcome({...ev,status:ev.task_status==='outcome_unknown'?'outcome_unknown':'failed'});
       setProgress(0, '⚠ ' + errMsg);
       addBubble('系统', errMsg, 4, 10, 80);
       if (quotaDetail) {
@@ -10163,6 +10193,9 @@ function chatClearUserState() {
   _generateResult = null;
   _diagnoseResult = null;
   _activeGeneratePaidRequestId = null;
+  _genStreamActive = false;
+  _setGenerationSubmitBusy(false);
+  if(_genWaitInterval) {clearInterval(_genWaitInterval);_genWaitInterval=null;}
   _paidTaskReportRef = null;
   const generatedReport = document.getElementById('genReportBody');
   if (generatedReport) generatedReport.style.display = 'none';

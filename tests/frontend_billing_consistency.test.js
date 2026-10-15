@@ -168,6 +168,117 @@ test('late old watcher cannot bind or remove a new request for the same payload'
  assert.equal(JSON.parse(storage.get(next.storageKey)).serverRequestId,undefined);
 });
 
+function generationOutcomeFixture(){
+ const heading={textContent:'AI 爆文生成中'},idle=[];
+ const fixture=make({_activeGeneratePaidRequestId:'',_generateResult:null,_genWaitInterval:null,
+   _live3DController:{setAgentState:(index,state)=>idle.push([index,state])},setLive3DMode(){},setLive3DProgress(){},
+   refreshCreditBalance(){},addBubble(){}});
+ const {c,elements,Element}=fixture;
+ for(const id of ['mainProgress','progressLabel','generation-paid-task-banner','generate-billing-preview','page-report','generation-paid-task-status',
+   ...Array.from({length:8},(_,i)=>'tl'+i),...Array.from({length:5},(_,i)=>'av'+i)]){
+   const el=new Element('div'),classes=new Set();el.classList={add:(...names)=>names.forEach(n=>classes.add(n)),remove:(...names)=>names.forEach(n=>classes.delete(n)),contains:name=>classes.has(name)};
+   el.querySelector=()=>({textContent:''});elements.set(id,el);
+ }
+ c.document.querySelector=()=>heading;c.document.querySelectorAll=()=>[];
+ c.load('setProgress','stepActive','stepDone','paidTaskStatusText','renderGenerationTaskOutcome','displayPaidTaskState','_handleGenStreamEvent');
+ return {...fixture,heading,idle};
+}
+test('refunded SSE error exits scoring activity and shows confirmed refund without inventing a cause',()=>{
+ const {c,elements,heading,idle}=generationOutcomeFixture();
+ c._activeGeneratePaidRequestId='original';
+ c._handleGenStreamEvent({type:'stage',stage:'p4',progress:86,label:'评分验证中…'});
+ elements.get('av4').classList.add('thinking','arbiter');
+ c._handleGenStreamEvent({type:'error',task_status:'failed',billing:{status:'refunded'}});
+ assert.equal(elements.get('tl6').classList.contains('active'),false);
+ assert.equal(elements.get('av4').classList.contains('thinking'),false);
+ assert.equal(elements.get('av4').classList.contains('arbiter'),false);
+ assert.equal(heading.textContent,'本次爆文生成未完成');
+ assert.match(elements.get('progressLabel').textContent,/积分已按原来源退回/);
+ assert.doesNotMatch(elements.get('progressLabel').textContent,/质量|评分验证|正在读取/);
+ assert.ok(idle.some(([index,state])=>index===4 && state==='idle'));
+});
+test('failed refunded task readback closes stale scoring activity and clears only its settled identity',async()=>{
+ const {c,storage,elements,heading}=generationOutcomeFixture();
+ const submission=await c.paidSubmissionIdentity('generate',{brief:'original'},quote);
+ c._activeGeneratePaidRequestId=submission.requestId;
+ c._handleGenStreamEvent({type:'stage',stage:'p4',progress:86,label:'评分验证中…'});
+ assert.equal(c.displayPaidTaskState({status:'failed',refund_status:'refunded',billing:{status:'refunded'}},submission,'generate',{},'synthetic-a'),true);
+ assert.equal(elements.get('tl6').classList.contains('active'),false);
+ assert.equal(heading.textContent,'本次爆文生成未完成');
+ assert.match(elements.get('progressLabel').textContent,/积分已按原来源退回/);
+ assert.equal(storage.has(submission.storageKey),false);
+});
+test('unknown task readback remains unconfirmed and a late old outcome cannot change a new task display',async()=>{
+ const {c,storage,elements,heading}=generationOutcomeFixture();
+ const original=await c.paidSubmissionIdentity('generate',{brief:'original'},quote);
+ c._activeGeneratePaidRequestId=original.requestId;
+ c._handleGenStreamEvent({type:'stage',stage:'p4',progress:86,label:'评分验证中…'});
+ assert.equal(c.displayPaidTaskState({status:'outcome_unknown'},original,'generate',{},'synthetic-a'),false);
+ assert.equal(elements.get('tl6').classList.contains('active'),false);
+ assert.equal(heading.textContent,'正在核实原任务结果');
+ assert.match(elements.get('progressLabel').textContent,/尚未确认.*请勿重复提交/);
+ assert.equal(c._generateResult._outcome_unknown,true);assert.equal(c._generateResult._error,undefined);
+ assert.equal(storage.has(original.storageKey),true);
+ const next=await c.paidSubmissionIdentity('generate',{brief:'new task'},quote);c._activeGeneratePaidRequestId=next.requestId;
+ c._handleGenStreamEvent({type:'stage',stage:'p4',progress:86,label:'新任务评分验证中…'});
+ const headingBefore=heading.textContent;
+ c.displayPaidTaskState({status:'failed',refund_status:'refunded',billing:{status:'refunded'}},original,'generate',{},'synthetic-a');
+ c.renderGenerationTaskOutcome({status:'failed',billing:{status:'refunded'}},original.requestId);
+ assert.equal(elements.get('tl6').classList.contains('active'),true);
+ assert.equal(elements.get('progressLabel').textContent,'新任务评分验证中…');
+ assert.equal(heading.textContent,headingBefore);assert.equal(storage.has(next.storageKey),true);
+});
+test('account clear releases the old generation busy state before a new account can start',()=>{
+ const {c,elements,Element}=generationOutcomeFixture();const cleared=[],attributes={},label={textContent:''};
+ for(const id of ['diag-history-list','diag-history-count','diag-detail-section'])elements.set(id,new Element('div'));
+ const button=new Element('button');button.querySelector=()=>label;button.setAttribute=(key,value)=>{attributes[key]=value;};elements.set('generateSubmitBtn',button);
+ Object.assign(c,{closeVerificationModal(){},closeChangePwd(){},renderBillingReceipt(){},clearProfileUserState(){},clearTrackingUserState(){},
+   resetBillingUsageState(){},clearReportSelection(){},resetScreenshot(){},localStorage:{removeItem(){}},
+   clearInterval:id=>cleared.push(id),_chatRequestAbortController:null,_reportHistorySequence:0,_chatUserStateEpoch:0,_billingBalanceRevision:0,
+   _activeGeneratePaidRequestId:'old-account-request',_genStreamActive:true,_genWaitInterval:77});
+ c.load('_setGenerationSubmitBusy','chatClearUserState');c._setGenerationSubmitBusy(true);
+ assert.equal(button.disabled,true);c.chatClearUserState();
+ assert.equal(c._activeGeneratePaidRequestId,null);assert.equal(c._genStreamActive,false);
+ assert.equal(button.disabled,false);assert.equal(attributes['aria-busy'],'false');
+ assert.equal(c._genWaitInterval,null);assert.deepEqual(cleared,[77]);assert.equal(c._chatUserStateEpoch,1);
+});
+test('actual generation SSE unknown terminal keeps an unknown result and its pending identity',async()=>{
+ const {c,elements,Element,storage,heading}=generationOutcomeFixture();let watched=0;
+ const pending=await c.paidSubmissionIdentity('generate',{brief:'synthetic source'},quote);
+ const terminal={type:'error',task_status:'outcome_unknown',refund_status:'unconfirmed',billing:{status:'unconfirmed'}};
+ for(const [id,value] of [['genDomain','休闲娱乐体验'],['genBrief','synthetic source']]){const el=new Element('input');el.value=value;elements.set(id,el);}
+ Object.assign(c,{PUBLIC_PRODUCT:false,requirePublicCapability:()=>true,_genStreamActive:false,_genVideoState:'empty',_genVideoFileId:null,
+   _genVideoAttempt:0,_genCoverImages:[],getConstraintTags:()=>[],getContentIntentPayload:()=>({}),shouldAskMerchantBeforeRun:()=>false,
+   clearReportSelection(){},_setGenerationSubmitBusy(){},formatLocalTimeWithConstraints:()=> 'synthetic-time',
+   preparePaidSubmission:async()=>pending,createSseWarningGuard:()=>({connected(){},event(){},finish(){}}),
+   fetch:async()=>({status:200,ok:true,body:{}}),setTimeout(){},watchPaidTask:()=>{watched++;},
+   consumeJsonSse:async(_response,options)=>{options.onEvent(terminal);return {terminalEvent:terminal};}});
+ c.load('paidRequest409Message','startGeneration');await c.startGeneration();await c._diagnosePromise;
+ assert.equal(c._generateResult._outcome_unknown,true);assert.equal(c._generateResult._error,undefined);
+ assert.equal(c._generateResult.billing.status,'unconfirmed');assert.equal(storage.has(pending.storageKey),true);
+ assert.equal(heading.textContent,'正在核实原任务结果');assert.equal(watched,1);assert.equal(c._genStreamActive,false);
+});
+test('late completed generation timers cannot open an old report after a new same-account task begins',async()=>{
+ for(const switchAt of [600,1200]){
+  const {c,elements,Element}=generationOutcomeFixture(),timers=[],pages=[];
+  const pending=await c.paidSubmissionIdentity('generate',{brief:'synthetic source'},quote);
+  const terminal={type:'complete',note_title:'synthetic finished',note_body:'synthetic body'};
+  for(const [id,value] of [['genDomain','休闲娱乐体验'],['genBrief','synthetic source']]){const el=new Element('input');el.value=value;elements.set(id,el);}
+  Object.assign(c,{PUBLIC_PRODUCT:false,requirePublicCapability:()=>true,_genStreamActive:false,_genVideoState:'empty',_genVideoFileId:null,
+    _genVideoAttempt:0,_genCoverImages:[],getConstraintTags:()=>[],getContentIntentPayload:()=>({}),shouldAskMerchantBeforeRun:()=>false,
+    clearReportSelection(){},_setGenerationSubmitBusy(){},formatLocalTimeWithConstraints:()=> 'synthetic-time',
+    preparePaidSubmission:async()=>pending,createSseWarningGuard:()=>({connected(){},event(){},finish(){}}),
+    fetch:async()=>({status:200,ok:true,body:{}}),setTimeout:(run,delay)=>timers.push({run,delay}),
+    completeLive3D(){},autoSaveGeneratedNote:async()=>{},showPage:page=>pages.push(page),populateReport:async()=>{},
+    consumeJsonSse:async(_response,options)=>{options.onEvent(terminal);return {terminalEvent:terminal};}});
+  c.load('paidRequest409Message','startGeneration');await c.startGeneration();await c._diagnosePromise;
+  if(switchAt===1200)timers.find(item=>item.delay===600).run();
+  c._activeGeneratePaidRequestId='new-same-account-request';c._genStreamActive=true;
+  await timers.find(item=>item.delay===switchAt).run();
+  assert.equal(pages.includes('report'),false);assert.equal(c._genStreamActive,true);
+ }
+});
+
 
 test('clarification receipt binds server task identity separately and clears only that completed pending task',async()=>{
  const {c,storage}=make();const first=await c.paidSubmissionIdentity('analyze',{video_file_id:'a'},quote);
