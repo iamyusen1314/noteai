@@ -10592,7 +10592,9 @@ function showTaskClarification(task) {
 }
 function renderTaskClarification(task) {
   const identity = _chatIdentitySnapshot(), token = _authToken;
-  const valid = () => _chatIdentityMatches(identity) && _authToken === token;
+  const generateRequestId = _activeGeneratePaidRequestId;
+  const valid = () => _chatIdentityMatches(identity) && _authToken === token
+    && (task.operation !== 'generate' || _activeGeneratePaidRequestId === generateRequestId);
   if (!token || !valid()) return;
   document.querySelectorAll('[data-task-clarification]').forEach(el => el.remove());
   const wrap = document.createElement('div'); wrap.className = 'chat-supplement-card';
@@ -10625,8 +10627,25 @@ function renderTaskClarification(task) {
   });
   let busy = task.status !== 'waiting_for_input', uncertain = task.status !== 'waiting_for_input';
   const enable = value => wrap.querySelectorAll('textarea,select,button:not([data-task-readback])').forEach(el => {el.disabled = !value;});
+  const showOutcome = state => {
+    const failed = (state.status || state.task_status) === 'failed';
+    const outcome = {...state,status:failed ? 'failed' : 'outcome_unknown'};
+    const text = failed ? paidTaskStatusText(outcome,task.operation)
+      : '本次结果尚未完成确认。原素材和回答已保留，请先核实原任务状态，不重复提交。';
+    busy=true;uncertain=!failed;enable(false);message.textContent=text;
+    const result = failed ? {_error:true,_errMsg:text,billing:state.billing}
+      : {_outcome_unknown:true,outcome:'outcome_unknown',_errMsg:text,billing:state.billing || {status:'unconfirmed'}};
+    if(task.operation === 'generate') {
+      _generateResult=result;
+      renderGenerationTaskOutcome(outcome,generateRequestId);
+    } else { _diagnoseResult=result;setProgress(0,text); }
+    if(failed && (state.refund_status === 'refunded' || state.billing?.status === 'refunded'))
+      finishPendingTaskReceipt({request_id:task.session_id,operation:task.operation});
+    refreshCreditBalance();
+  };
   enable(!busy);
-  if (busy) message.textContent='原任务状态：'+task.status+'。请先核实原结果，不重复发起。';
+  if (['failed','outcome_unknown'].includes(task.status)) showOutcome(task);
+  else if (busy) message.textContent='原任务状态：'+task.status+'。请先核实原结果，不重复发起。';
   wrap.querySelector('[data-task-readback]').addEventListener('click', async () => {
     if (!valid()) return;
     try {
@@ -10646,6 +10665,8 @@ function renderTaskClarification(task) {
         });
       } else if (state.status === 'completed' && state.result) {
         await finishClarifiedTask(state.result, task, identity, token, true);
+      } else if (['failed','outcome_unknown'].includes(state.status)) {
+        showOutcome(state);
       } else { message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。'; }
     } catch(error) { if(valid()) message.textContent=error.message; }
   });
@@ -10661,22 +10682,22 @@ function renderTaskClarification(task) {
       if (!valid()) return;
       if (!response.ok) {
         const error = await response.json().catch(()=>({}));
-        if (response.status >= 500 || response.status === 409) uncertain=true;
+        if (response.status >= 500 || response.status === 409) showOutcome({status:'outcome_unknown'});
         else {busy=false;enable(true);}
         message.textContent=(typeof error.detail === 'string' ? error.detail : '回答状态尚未确认') + (uncertain ? '，请先核实原任务状态。' : '');return;
       }
       const streamed = await consumeJsonSse(response,{terminalTypes:['complete','error','clarification_required'],onEvent:event => {
         if (!valid()) return;
         if(event.type === 'clarification_acknowledged') message.textContent=event.message;
-        else if(event.type === 'error') { refreshCreditBalance(); return; }
+        else if(event.type === 'error') return;
         else if(event.type === 'complete') return;
         else if(task.operation === 'generate') _handleGenStreamEvent(event,valid);
         else _handleAnalyzeStreamEvent(event);
       }});
       if (!valid()) return;
       if(streamed.terminalEvent?.type === 'complete') await finishClarifiedTask(streamed.terminalEvent,task,identity,token,false);
-      else { uncertain=true; message.textContent='本次结果尚未完成确认。原素材和回答已保留，请先核实原任务状态，不重复提交。'; }
-    } catch(error) { if(valid()) {uncertain=true;message.textContent='连接中断，原任务可能仍在处理。请先核实原任务状态，不重复提交。';} }
+      else showOutcome(streamed.terminalEvent || {status:'outcome_unknown'});
+    } catch(error) { if(valid()) {showOutcome({status:'outcome_unknown'});message.textContent='连接中断，原任务可能仍在处理。请先核实原任务状态，不重复提交。';} }
   });
   document.getElementById('bubbleArea')?.appendChild(wrap);
   return wrap;

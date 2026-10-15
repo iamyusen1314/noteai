@@ -299,6 +299,78 @@ test('waiting 409 restores only the original task read and preserves identity wh
  }
 });
 
+async function clarificationOutcomeFixture(extra={}) {
+ const fixture=generationOutcomeFixture(),{c,elements,Element}=fixture;
+ const pending=await c.paidSubmissionIdentity('generate',{brief:'unknown package'},quote);
+ c.bindPaidSubmissionReceipt(pending,{request_id:'original-task'});c._activeGeneratePaidRequestId=pending.requestId;
+ const wrap=new Element('div'),message=new Element('p'),submit=new Element('button'),readback=new Element('button');
+ const textarea=new Element('textarea'),select=new Element('select'),row=new Element('div');
+ wrap.dataset={};row.dataset={questionId:'package'};textarea.value='';select.value='omitted';
+ row.querySelector=selector=>selector==='textarea'?textarea:select;row.querySelectorAll=()=>[];
+ wrap.querySelector=selector=>({'[data-task-message]':message,'[data-task-submit]':submit,'[data-task-readback]':readback}[selector]);
+ wrap.querySelectorAll=selector=>selector==='[data-question-id]'?[row]:[textarea,select,submit];
+ const area=new Element('div');area.appendChild=value=>area.append(value);elements.set('bubbleArea',area);
+ c.document.createElement=()=>wrap;
+ Object.assign(c,{chatEsc:value=>String(value || ''),_setGenerationSubmitBusy(){},updateDiagnosisSubmitState(){},...extra});
+ c.load('renderTaskClarification');
+ c.renderTaskClarification({session_id:'original-task',operation:'generate',status:'waiting_for_input',version:1,
+   questions:[{question_id:'package',question:'套餐是否包含自助餐？',options:[]}]});
+ return {...fixture,pending,wrap,message,submit,readback,textarea,select};
+}
+test('actual clarification resume failed/refunded SSE closes scoring and clears only the original settled identity',async()=>{
+ let posted=0;const terminal={type:'error',task_id:'original-task',task_status:'failed',billing:{status:'refunded'}};
+ const f=await clarificationOutcomeFixture({fetch:async(_url,options)=>{posted++;assert.equal(options.method,'POST');return {ok:true};},
+   consumeJsonSse:async(_response,options)=>{options.onEvent({type:'stage',stage:'p4',progress:86,label:'评分验证中…'});options.onEvent(terminal);return {terminalEvent:terminal};}});
+ const {c,elements,heading,storage,pending,submit,message}=f;
+ const other=await c.paidSubmissionIdentity('generate',{brief:'unrelated pending'},quote);
+ await submit.click();await submit.click();
+ assert.equal(posted,1);assert.equal(elements.get('tl6').classList.contains('active'),false);
+ assert.equal(heading.textContent,'本次爆文生成未完成');assert.match(message.textContent,/积分已按原来源退回/);
+ assert.equal(c._generateResult._error,true);assert.equal(c._generateResult._outcome_unknown,undefined);
+ assert.equal(storage.has(pending.storageKey),false);assert.equal(storage.has(other.storageKey),true);assert.equal(submit.disabled,true);
+});
+test('actual clarification unknown SSE stops scoring, retains original identity and prevents answer replay',async()=>{
+ let posted=0;const f=await clarificationOutcomeFixture({fetch:async()=>{posted++;return {ok:true};},
+   consumeJsonSse:async(_response,options)=>{options.onEvent({type:'stage',stage:'p4',progress:86,label:'评分验证中…'});return {terminalEvent:null};}});
+ const {c,elements,heading,storage,pending,submit,message}=f;
+ await submit.click();await submit.click();
+ assert.equal(posted,1);assert.equal(elements.get('tl6').classList.contains('active'),false);
+ assert.equal(heading.textContent,'正在核实原任务结果');assert.match(message.textContent,/尚未完成确认.*不重复提交/);
+ assert.equal(c._generateResult._outcome_unknown,true);assert.equal(storage.has(pending.storageKey),true);assert.equal(submit.disabled,true);
+});
+test('failed clarification with an unconfirmed refund reports failure but retains the paid identity',async()=>{
+ const f=await clarificationOutcomeFixture({fetch:async()=>({ok:true}),
+   consumeJsonSse:async()=>({terminalEvent:{type:'error',task_status:'failed',refund_status:'pending',billing:{status:'charged'}}})});
+ const {c,heading,storage,pending,submit,message}=f;await submit.click();
+ assert.equal(heading.textContent,'本次爆文生成未完成');assert.equal(c._generateResult._error,true);
+ assert.match(message.textContent,/正在核对本次积分退回/);assert.doesNotMatch(message.textContent,/已按原来源退回/);
+ assert.equal(storage.has(pending.storageKey),true);assert.equal(submit.disabled,true);
+});
+test('refused clarification resume remains unknown until read-only original failed/refund readback closes it',async()=>{
+ let posted=0,reads=0;const f=await clarificationOutcomeFixture({fetch:async(url,options)=>{
+   if(options.method==='POST'){posted++;return {ok:false,status:409,json:async()=>({detail:'回答或任务状态已更新'})};}
+   reads++;assert.match(url,/chat\/tasks\/original-task$/);return {ok:true,json:async()=>({status:'failed',refund_status:'refunded',billing:{status:'refunded'}})};
+ }});
+ const {c,elements,heading,storage,pending,submit,readback,message}=f;
+ await submit.click();assert.equal(heading.textContent,'正在核实原任务结果');assert.equal(storage.has(pending.storageKey),true);
+ await readback.click();await submit.click();
+ assert.equal(posted,1);assert.equal(reads,1);assert.equal(heading.textContent,'本次爆文生成未完成');
+ assert.equal(elements.get('tl6').classList.contains('active'),false);assert.match(message.textContent,/积分已按原来源退回/);
+ assert.equal(c._generateResult._error,true);assert.equal(storage.has(pending.storageKey),false);assert.equal(submit.disabled,true);
+});
+test('late clarification failure cannot replace a newer same-account generation display or remove its pending identity',async()=>{
+ let release;const response=new Promise(resolve=>release=resolve);
+ const f=await clarificationOutcomeFixture({fetch:()=>response,
+   consumeJsonSse:async()=>({terminalEvent:{type:'error',task_status:'failed',billing:{status:'refunded'}}})});
+ const {c,elements,heading,storage,pending,submit}=f;const running=submit.click();
+ const next=await c.paidSubmissionIdentity('generate',{brief:'next task'},quote);c._activeGeneratePaidRequestId=next.requestId;
+ c._handleGenStreamEvent({type:'stage',stage:'p4',progress:86,label:'新任务评分验证中…'});const headingBefore=heading.textContent;
+ release({ok:true});await running;
+ assert.equal(heading.textContent,headingBefore);assert.equal(elements.get('tl6').classList.contains('active'),true);
+ assert.equal(elements.get('progressLabel').textContent,'新任务评分验证中…');
+ assert.equal(storage.has(pending.storageKey),true);assert.equal(storage.has(next.storageKey),true);
+});
+
 
 // Mixed ledger split and decimal precision are verified against the integrated UI in frontend_usage_accounting.test.cjs.
 // The experimental mobile menu is intentionally absent from the production-layout FI1 candidate.
