@@ -11332,6 +11332,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
         ("卫生", r"水质|环境|店内|泡池|泳池|水池|餐台|门店|卫生", r"干净|洁净|无菌|卫生合格|卫生有保障|消毒到位|合格|有保障"),
         ("服务", r"服务|工作人员|技师|按摩师", r"专业|贴心|细致|热情|周到|到位|用心|耐心|手法好"),
         ("声音", r"隔音|声音|人声|噪声|噪音|店内|环境", r"安静|不吵|无噪音|隔音好|隔音很好|嘈杂|吵闹|喧闹"),
+        ("声音", r"隔音", r"很好|好"),
     )
     # Opening history and venue stay rules are finite hard facts. A relaxed
     # mood, a reader's itinerary or one table's experience is not a store rule.
@@ -11433,6 +11434,14 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
             facts["hours"].add((times, operation))
         if re.search(r"唯一|独一家|仅此一家|只有这一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
             facts["rarity"].add((re.sub(r"\s", "", part),))
+        # A still object's pose and a reader's wish do not measure venue noise.
+        # Keep the exception on these exact spans so a nearby acoustic claim
+        # (e.g. "大厅安静") still requires its own source.
+        quiet_non_acoustic = list(re.finditer(
+            r"(?:香炉|摆件|花瓶|雕塑|装饰物|器物|石灯|盆景|屏风|静物|物件)"
+            r"(?:也|正|仍|依然|依旧)?安静(?:地)?(?:立|摆|坐落)(?:在|于|着)"
+            r"|(?:想(?:要)?|希望)安静(?:地)?(?:放空|发呆|休息|独处|坐坐)"
+            r"|喜欢安静(?:地(?:放空|发呆|休息|独处)|放空|的(?:人|朋友|读者)|人群)", part))
         for family, subjects, claims in sensory:
             if evidence and visual_sound_source and family == "声音":
                 # A still frame cannot establish an audible experience, even
@@ -11442,6 +11451,9 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
             reverse = re.search(r"(?P<claim>" + claims + r")[^，,。；;\n]{0,10}?(?P<subject>" + subjects + r")", part)
             for match in (direct, reverse):
                 if not match:
+                    continue
+                if (family == "声音" and match.group("claim") == "安静"
+                        and any(span.start() <= match.start("claim") < span.end() for span in quiet_non_acoustic)):
                     continue
                 # Picture tidiness is observable; a hygiene guarantee is not.
                 if (family == "卫生" and visible_frame and match.group("subject") in {"环境", "店内", "餐台", "门店"}
@@ -11460,6 +11472,8 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
                         and bool(re.search(r"美学|意象|效果|构图|色彩|风格|氛围|高级|雅致", part)))
         for sound in re.finditer(r"安静|不吵|嘈杂|吵闹|喧闹|闹中取静", part):
             if visual_style or (evidence and visual_sound_source):
+                continue
+            if sound.group() == "安静" and any(span.start() <= sound.start() < span.end() for span in quiet_non_acoustic):
                 continue
             polarity = "否" if re.search(r"(?:没有|并不|不|没|未)[^，,。；;\n]{0,4}$", part[:sound.start()]) else "是"
             facts["sensory"].add(("声音", "场所", sound.group(), polarity))

@@ -823,6 +823,41 @@ class LeisureIndustryTests(unittest.TestCase):
             self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
         self.assertTrue(api._delivery_integrity_issues("这次进门后就发现庭院。", "朋友进门后就发现庭院。", DOMAIN))
 
+    def test_actual_final_selected_quiet_object_and_reader_intent_are_not_sound_measurements(self):
+        # Exact public selected record2 after P4, not an accepted/saved report.
+        # Actual private capture SHA256 5b83301ad0def253e2a5ff8028c254149b713f74b695443979f2a332f6f5157c.
+        candidate = {'title': '高空汤泉躺看城景，水石清池东方雅致', 'body': '躺进弧形软榻，窗外是整座城市的轮廓，这是水石清池汤泉留下最深的第一印象。\n\n水石清池的汤泉空间走新中式路线，落地窗边弧形软榻低矮舒展，暖金吊灯垂在头顶，太湖石水景铺陈地面，城景与东方布景叠在同一帧画面里。室内细节经得起细看，金箔屏风映着柔暖光线，朱砂红柜配干橘色花束，暗铜色香炉安静立在角落，每一处都有东方美学的取舍逻辑。\n\n走出室内，汤泉庭院是另一重惊喜——黑松、竹影、砾石枯山水，低黑檐小屋静立在高楼背景前，青灰石径穿过葱翠竹丛，画面清幽。\n\n适合想安静放空、喜欢东方美学氛围、想拍出有层次的照片的人。水石清池汤泉的节奏会让人自然想多待着。\n\n先收藏，想偷闲时翻出来。\n\n#新中式汤泉 #高空汤泉 #东方美学 #水石清池 #城市松弛地 #汤泉打卡 #冬日放空', 'variants': ['水石清池高空汤泉的东方画意', '新中式汤泉原来可以这么美', '水石清池汤泉庭院藏着东方美']}
+        source = "本次想介绍套餐是否包含自助餐，但套餐权益我尚未确认；不要猜测，需要时请让我补充或选择不写。"
+        source += "\n【本次商家确认；仅适用于本任务】\n问题：您提到想介绍套餐是否包含自助餐。目前是选择暂不涉及套餐权益的写法，还是您能补充套餐具体包含的项目（如仅汤泉、汤泉+自助餐等）？\n当前回答：用户选择不写此项；所有标题、方案及后续优化都不得写入此项，也不能换种说法暗示。"
+        for text in (candidate['title'], candidate['body'], *candidate['variants']):
+            with self.subTest(text=text):
+                self.assertFalse(api._leisure_observation_fact_claims(text)['sensory'])
+                self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
+
+    def test_quiet_object_pose_and_reader_preferences_do_not_hide_acoustic_claims(self):
+        source = "本次只有空间照片；未提供声环境、隔音、人员服务或卫生体验。"
+        for text in (
+            "暗铜色香炉安静立在角落。", "木质摆件安静地摆在窗边。",
+            "雕塑安静坐落于庭院角落。", "环境里的香炉安静立在角落。",
+            "适合想安静放空、喜欢东方美学氛围的人。", "希望安静地休息的人可以看看空间照片。",
+            "适合喜欢安静的人。", "喜欢安静的朋友，可以先看看这些空间照片。",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(api._leisure_observation_fact_claims(text)['sensory'])
+                self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
+        for text in (
+            "环境很安静。", "大厅安静。", "隔音好。", "隔音很好。", "实测无噪音。",
+            "香炉安静立在角落，大厅很安静。", "适合想安静放空的人，这里的环境很安静。",
+            "这里安静，适合喜欢安静的人。", "工作人员安静站在门口。", "香炉旁的客人安静立在门口。",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(api._leisure_observation_fact_claims(text)['sensory'])
+                self.assertTrue(api._delivery_integrity_issues(text, source, DOMAIN))
+                self.assertFalse(api._delivery_integrity_issues(text, "作者确认：" + text, DOMAIN))
+        for text in ("水温很舒适。", "海鲜新鲜。", "水质干净。", "服务很贴心。", "改善睡眠质量。", "门票仅99元。"):
+            with self.subTest(text=text):
+                self.assertTrue(api._delivery_integrity_issues(text, source, DOMAIN))
+
     def test_food_qualifiers_keep_this_image_field_scope_and_reset(self):
         unknown = "素材只有海鲜展示和庭院照片；食材状态未知。"
         unsafe = "图9（深度）：场景：海鲜自助展示\n核心元素：海鲜，银质餐盆，透亮碎冰，精致摆盘，丰富鲜活\n视觉亮点：海鲜餐台"
