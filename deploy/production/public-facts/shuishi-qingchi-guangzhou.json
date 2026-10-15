@@ -1,0 +1,33 @@
+{
+  "id": "cn-guangzhou-panyu-shuishi-qingchi-b0m2zd2til",
+  "name": "水石清池·汤泉生活",
+  "aliases": ["水石清池汤泉生活"],
+  "domain": "休闲娱乐体验",
+  "city": "广州",
+  "source": "高德公开页人工核验／用户确认",
+  "captured_at": "2026-10-15T10:49:30.577Z",
+  "url": "https://www.amap.com/ssr/place/B0M2ZD2TIL",
+  "facts": {
+    "address": "广州市番禺区汉溪大道东386号广晟万博城主楼9层（雅致酒店电梯上9楼）",
+    "category": "综合洗浴／水疗休闲场所，设自助餐项目"
+  },
+  "field_sources": {
+    "address": {
+      "type": "public_map_page_manual_observation",
+      "url": "https://www.amap.com/ssr/place/B0M2ZD2TIL",
+      "observed_at": "2026-10-15T10:49:30.577Z"
+    },
+    "category": {
+      "type": "owner_confirmation",
+      "statement": "用户明确说明水石清池·汤泉生活是涵盖自助餐的综合洗浴、水疗休闲项目；不是单独餐饮门店。"
+    }
+  },
+  "unverified_fields": [
+    "当前营业安排",
+    "商家电话及预约渠道",
+    "当前价格、人均或套餐",
+    "自助餐餐次及包含权益",
+    "其他具体设施及项目组合"
+  ],
+  "provenance_note": "仅公开商家资料；不是高德Web服务接口命中。核验日期是资料来源时间，不等于每次读取都重新核验。平台显示的人均、评分及营业提示未录入为当前商家承诺。"
+}
