@@ -10607,8 +10607,16 @@ function showTaskClarification(task) {
     : task.status === 'running' ? '原任务仍在处理' : '核实原任务状态';
   setProgress(54, task.status === 'waiting_for_input' ? '素材和已完成分析已保留，等你补充'
     : '正在读取原任务状态，请勿重复提交');
+  if (task.status === 'waiting_for_input') {
+    const waiting={_waiting_for_input:true,session_id:task.session_id,billing:task.billing};
+    if (_isGenerateMode) {
+      _generateResult=waiting;
+      const banner=document.getElementById('generation-paid-task-banner');
+      if (banner) banner.style.display='none';
+    } else _diagnoseResult=waiting;
+  }
   rememberTaskReference(task, _chatIdentitySnapshot());
-  chatAppendSupplementPrompts([], task);
+  return chatAppendSupplementPrompts([], task);
 }
 function renderTaskClarification(task) {
   const identity = _chatIdentitySnapshot(), token = _authToken;
@@ -10666,23 +10674,26 @@ function renderTaskClarification(task) {
   enable(!busy);
   if (['failed','outcome_unknown'].includes(task.status)) showOutcome(task);
   else if (busy) message.textContent='原任务状态：'+task.status+'。请先核实原结果，不重复发起。';
-  wrap.querySelector('[data-task-readback]').addEventListener('click', async () => {
-    if (!valid()) return;
+  const readback=wrap.querySelector('[data-task-readback]');
+  let reading=false;
+  readback.addEventListener('click', async () => {
+    if (reading || !valid()) return;
+    reading=true;readback.disabled=true;busy=true;uncertain=true;enable(false);
     try {
       const response = await fetch(API_BASE + '/chat/tasks/' + encodeURIComponent(task.session_id), {headers:{Authorization:'Bearer '+token}});
       const state = await response.json(); if (!valid()) return;
       if (!response.ok) throw Error(typeof state.detail === 'string' ? state.detail : '暂时无法读取原任务');
       if (state.status !== 'completed') refreshCreditBalance();
-      if (state.status === 'waiting_for_input' && state.version === task.version) {
-        busy = false; uncertain = false; enable(true); message.textContent='原任务仍等待这次回答，可以继续填写。';
-      } else if (state.status === 'waiting_for_input') {
+      if (state.status === 'waiting_for_input') {
         const drafts = new Map([...wrap.querySelectorAll('[data-question-id]')].map(row =>
           [row.dataset.questionId, {answer:row.querySelector('textarea').value,status:row.querySelector('select').value}]));
-        const refreshed = renderTaskClarification(state);
+        const refreshed = showTaskClarification(state);
         refreshed?.querySelectorAll('[data-question-id]').forEach(row => {
           const draft = drafts.get(row.dataset.questionId);
           if (draft) {row.querySelector('textarea').value=draft.answer;row.querySelector('select').value=draft.status;}
         });
+        const notice=refreshed?.querySelector('[data-task-message]');
+        if (notice) notice.textContent='原任务仍等待这次回答，可以继续填写。';
       } else if (state.status === 'completed' && state.result) {
         await finishClarifiedTask(state.result, task, identity, token, true);
       } else if (['failed','outcome_unknown'].includes(state.status)) {
@@ -10691,7 +10702,9 @@ function renderTaskClarification(task) {
         busy=true;uncertain=true;enable(false);
         message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。';
       }
-    } catch(error) { if(valid()) message.textContent=error.message; }
+    } catch(error) {
+      if(valid()) {showOutcome({status:'outcome_unknown'});message.textContent='暂时无法核实原任务。原回答已保留，请重试核实，不重复提交。';}
+    } finally { if(valid()) {reading=false;readback.disabled=false;} }
   });
   wrap.querySelector('[data-task-submit]').addEventListener('click', async () => {
     if (busy || uncertain || !valid()) return;

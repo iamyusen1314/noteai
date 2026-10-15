@@ -379,6 +379,29 @@ test('fresh running clarification read locks the old waiting form without postin
  assert.equal(reads,1);assert.equal(posts,0);assert.equal(f.submit.disabled,true);
  assert.equal(f.textarea.disabled,true);assert.equal(f.select.disabled,true);assert.match(f.message.textContent,/已接收.*不重复提交/);
 });
+test('one clarification read holds answer submission until the original state is known',async()=>{
+ let reads=0,posts=0,release;const f=await clarificationOutcomeFixture({fetch:async(_url,options)=>{
+  if(options.method==='POST'){posts++;return {ok:true};}
+  reads++;return new Promise(resolve=>release=resolve);
+ }});
+ const reading=f.readback.click();await f.readback.click();await f.submit.click();
+ assert.equal(reads,1);assert.equal(posts,0);assert.equal(f.readback.disabled,true);assert.equal(f.submit.disabled,true);
+ release({ok:true,json:async()=>({status:'running',version:2})});await reading;
+ assert.equal(f.readback.disabled,false);assert.equal(f.submit.disabled,true);
+});
+test('fresh waiting read clears the stale unknown view and restores the same-question draft',async()=>{
+ const state={session_id:'original-task',operation:'generate',status:'waiting_for_input',version:1,
+  questions:[{question_id:'package',question:'套餐是否包含自助餐？',options:[]}]};
+ const f=await clarificationOutcomeFixture({fetch:async()=>({ok:true,json:async()=>state}),
+  clearReportSelection(){},rememberTaskReference(){},showPage(){}});
+ f.c.chatAppendSupplementPrompts=(_items,task)=>f.c.renderTaskClarification(task);f.c.load('showTaskClarification');
+ f.c._generateResult={_outcome_unknown:true};f.heading.textContent='正在核实原任务结果';
+ f.elements.get('generation-paid-task-banner').style.display='block';f.textarea.value='原回答草稿';f.select.value='confirmed';
+ await f.readback.click();
+ assert.equal(f.heading.textContent,'补充后继续原任务');assert.equal(f.elements.get('generation-paid-task-banner').style.display,'none');
+ assert.equal(f.c._generateResult._waiting_for_input,true);assert.equal(f.c._generateResult._outcome_unknown,undefined);
+ assert.equal(f.textarea.value,'原回答草稿');assert.equal(f.select.value,'confirmed');assert.equal(f.submit.disabled,false);
+});
 test('recovery entry reads the current original task instead of enabling its stale waiting snapshot',async()=>{
  for(const status of ['running','outcome_unknown','waiting_for_input','read_failed']){
   let reads=0,shown=null;const original={session_id:'original-task',operation:'generate',status:'waiting_for_input',version:1};
