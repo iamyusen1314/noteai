@@ -2,6 +2,7 @@
 from html.parser import HTMLParser
 from html import escape
 from pathlib import Path
+import hashlib
 import re
 import sys
 
@@ -40,12 +41,17 @@ class ProductBundle(HTMLParser):
     def handle_decl(self, decl): self.output.append('<!' + decl + '>')
 
 
-def build(directory):
+def build(directory, *, version_product_app=False):
     root = Path(directory)
     parser = ProductBundle()
     parser.feed((root/'index.html').read_text())
-    (root/'index.html').write_text(''.join(parser.output))
-    (root/'assets/product-app.js').write_text(''.join(parser.scripts))
+    app = ''.join(parser.scripts).encode('utf-8')
+    index = ''.join(parser.output)
+    if version_product_app:
+        version = hashlib.sha256(app).hexdigest()[:12]
+        index = index.replace('src="/assets/product-app.js"', f'src="/assets/product-app.js?v={version}"')
+    (root/'index.html').write_text(index)
+    (root/'assets/product-app.js').write_bytes(app)
     lines = []
     for key, events in parser.handlers:
         for event, code in events:
@@ -56,4 +62,4 @@ def build(directory):
 }});''')
     (root/'assets/product-events.js').write_text('\n'.join(lines)+'\n')
 
-if __name__ == '__main__': build(sys.argv[1])
+if __name__ == '__main__': build(sys.argv[1], version_product_app='--version-product-app' in sys.argv[2:])

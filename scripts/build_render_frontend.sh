@@ -32,7 +32,7 @@ fs.writeFileSync(
 '
 
 if [ "${NOTEAI_PUBLIC_PRODUCT:-0}" = "1" ]; then
-  python3 "$ROOT_DIR/tools/build_public_product_frontend.py" "$DIST_DIR"
+  python3 "$ROOT_DIR/tools/build_public_product_frontend.py" "$DIST_DIR" --version-product-app
 fi
 
 echo "Frontend bundle ready: $DIST_DIR"

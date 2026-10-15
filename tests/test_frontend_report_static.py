@@ -1,5 +1,9 @@
 import unittest
+import hashlib
+import tempfile
 from pathlib import Path
+
+from tools.build_public_product_frontend import build
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -7,6 +11,25 @@ HTML = (ROOT / "NoteAI_Pro_Demo_Framer.html").read_text(encoding="utf-8")
 
 
 class FrontendReportStaticTests(unittest.TestCase):
+    def test_public_build_versions_only_app_reference_from_actual_script_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'assets').mkdir()
+            (root / 'index.html').write_text(HTML, encoding='utf-8')
+            build(root, version_product_app=True)
+            app = (root / 'assets/product-app.js').read_bytes()
+            version = hashlib.sha256(app).hexdigest()[:12]
+            index = (root / 'index.html').read_text(encoding='utf-8')
+            self.assertEqual(index.count(f'src="/assets/product-app.js?v={version}"'), 1)
+            self.assertNotIn('src="/assets/product-app.js"', index)
+            self.assertIn('src="/assets/product-events.js"', index)
+            self.assertIn('src="./runtime-config.js"', index)
+            (root / 'index.html').write_text(HTML, encoding='utf-8')
+            build(root)
+            self.assertEqual((root / 'assets/product-app.js').read_bytes(), app)
+            self.assertEqual((root / 'index.html').read_text(encoding='utf-8'),
+                             index.replace(f'?v={version}', ''))
+
     def test_model_authored_html_is_escaped_before_limited_rendering(self):
         self.assertIn("agentEl.textContent = String(agent || '')", HTML)
         self.assertIn("textEl.textContent = String(text || '')", HTML)
