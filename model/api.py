@@ -11447,6 +11447,28 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
                 # A still frame cannot establish an audible experience, even
                 # if its source caption asserts quietness or absent voices.
                 continue
+            comparison_spans = []
+            if family == "声音":
+                # A comparison needs its own source relation. Neither one
+                # side's quietness nor two separate quiet facts establish it.
+                comparison_pattern = (r"(?P<subject>" + subjects + r")(?:的)?"
+                    r"(?P<relation_neg>并不是|并非|不是|并不|不)?比(?!较)"
+                    r"(?P<object>[^，,。；;\n比而却但]{1,12}?)(?:更加|更)?"
+                    r"(?P<quality_neg>并不|不)?(?P<claim>" + claims + r")")
+                for comparison in re.finditer(comparison_pattern, part):
+                    comparison_spans.append(comparison.span())
+                    before = part[:comparison.start()]
+                    if sound_plan(before):
+                        continue
+                    subject, other = comparison.group("subject"), comparison.group("object")
+                    if subject in {"环境", "店内", "这里", "场所", "声环境"}:
+                        subject = "场所"
+                    if other in {"环境", "店内", "这里", "场所", "声环境"}:
+                        other = "场所"
+                    relation_negative = bool(comparison.group("relation_neg")) != bool(re.search(
+                        r"(?:并不是|并非|不是|并不|不)\s*$", before))
+                    facts["sensory"].add(("声音比较", subject, other, "比", comparison.group("claim"),
+                                          not relation_negative, not bool(comparison.group("quality_neg"))))
             # Acoustic facts need their own subject/predicate. Do not turn a
             # still object's pose, a reader's wish or a mood word into noise.
             sound_link = (r"(?:的)?(?:是|显得|听起来|变得)?"
@@ -11465,6 +11487,9 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
             for match, forward in matches:
                 if not match:
                     continue
+                if family == "声音" and any(start <= match.start() and match.end() <= end
+                                            for start, end in comparison_spans):
+                    continue  # A comparative object is not an absolute sound predicate.
                 if family == "声音" and sound_plan(part[:match.start()]):
                     continue
                 # Picture tidiness is observable; a hygiene guarantee is not.

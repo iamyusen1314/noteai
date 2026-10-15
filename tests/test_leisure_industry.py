@@ -942,6 +942,58 @@ class LeisureIndustryTests(unittest.TestCase):
         for value in ("CBD旁的汤泉。", "位于商务区内。", "市中心的汤泉。", "商圈内。", "位于静安区。", "位于康定路。", "交通便利。"):
             self.assertTrue(any("地理区位" in issue for issue in api._delivery_integrity_issues(value, source, DOMAIN)), value)
 
+    def test_sound_comparisons_require_the_same_explicit_relation(self):
+        unknown = "门店名：甲汤泉\n仅有空间图片；声环境和隔音未知。"
+        for value in ("环境比隔壁更安静。", "大厅比走廊更安静。",
+                      "隔音比隔壁更好。", "噪音比大厅更小。"):
+            with self.subTest(hard=value):
+                issues = api._delivery_integrity_issues(value, unknown, DOMAIN)
+                self.assertTrue(any("感官" in issue for issue in issues))
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+                self.assertFalse(api._delivery_integrity_issues(value, "作者确认：" + value, DOMAIN))
+                public, notices = api._leisure_public_fact_text("庭院画面松弛。" + value, unknown)
+                self.assertIn("庭院画面松弛", public)
+                self.assertNotIn(value.rstrip("。"), public)
+                self.assertTrue(notices)
+        for source, value in (
+            ("作者确认环境比隔壁更安静。", "这里比隔壁更加安静。"),
+            ("作者确认大厅比走廊更安静。", "大厅比走廊安静。"),
+            ("作者确认环境不比隔壁更安静。", "这里不比隔壁更安静。"),
+            ("作者确认环境比隔壁更不安静。", "这里比隔壁更不安静。"),
+            ("作者确认环境比大厅更加安静。", "环境比大厅更安静。"),
+            ("作者确认环境比隔壁更安静。", "并非环境不比隔壁更安静。"),
+        ):
+            self.assertFalse(api._delivery_integrity_issues(value, source, DOMAIN), (source, value))
+        for source, value in (
+            ("作者确认环境安静。", "环境比隔壁更安静。"),
+            ("作者确认环境安静，隔壁也安静。", "环境比隔壁更安静。"),
+            ("作者确认环境比隔壁更安静。", "环境很安静。"),
+            ("作者确认环境比大厅更安静。", "大厅很安静。"),
+            ("作者确认环境比大厅更不安静。", "大厅不安静。"),
+            ("作者确认大厅比走廊更安静。", "庭院比走廊更安静。"),
+            ("作者确认大厅比走廊更安静。", "走廊比大厅更安静。"),
+            ("作者确认环境比隔壁更安静。", "环境比大厅更安静。"),
+            ("作者确认环境比隔壁更安静。", "环境不比隔壁更安静。"),
+            ("作者确认环境不比隔壁更安静。", "环境比隔壁更不安静。"),
+            ("作者确认环境不比隔壁更安静。", "并非环境不比隔壁更安静。"),
+            ("作者确认环境比大厅更安静。", "环境比大厅更安静而室内不安静。"),
+            ("照片中环境比隔壁更安静。", "环境比隔壁更安静。"),
+            ("希望环境比隔壁更安静。", "环境比隔壁更安静。"),
+        ):
+            self.assertTrue(api._delivery_integrity_issues(value, source, DOMAIN), (source, value))
+
+    def test_sound_comparisons_keep_visual_moods_and_local_wishes(self):
+        source = "仅有空间图片；没有确认声环境。"
+        for value in ("大厅画面比走廊画面更安静。", "安静的庭院。", "比想象中更安静。",
+                      "闹中取静。#闹中取静", "希望环境比隔壁更安静。", "想要大厅比走廊更安静。"):
+            self.assertFalse(api._leisure_observation_fact_claims(value)["sensory"], value)
+            self.assertFalse(api._delivery_integrity_issues(value, source, DOMAIN), value)
+        for value in ("希望安静而大厅比走廊更安静。", "想安静却环境比隔壁更安静。",
+                      "画面松弛但隔音比隔壁更好。", "并非环境比隔壁更安静。"):
+            self.assertTrue(api._delivery_integrity_issues(value, source, DOMAIN), value)
+        # The ordinary degree adverb is not an unnamed comparison object.
+        self.assertFalse(api._delivery_integrity_issues("环境比较安静。", "作者确认环境安静。", DOMAIN))
+
     def test_food_qualifiers_keep_this_image_field_scope_and_reset(self):
         unknown = "素材只有海鲜展示和庭院照片；食材状态未知。"
         unsafe = "图9（深度）：场景：海鲜自助展示\n核心元素：海鲜，银质餐盆，透亮碎冰，精致摆盘，丰富鲜活\n视觉亮点：海鲜餐台"
