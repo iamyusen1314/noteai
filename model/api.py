@@ -11325,15 +11325,22 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
     facts["spatial"].update(_leisure_spatial_claims(text, evidence=evidence, observation_context=observation_context))
     facts["sensory"].update(_leisure_contextual_food_claims(text, evidence=evidence, observation_context=observation_context))
     periods = r"工作日|周末|节假日|平日|白天|早上|上午|中午|下午|晚上|夜间|凌晨|全天|\d{1,2}(?:[:：]\d{2}|点)"
-    geography = r"CBD|中央商务区|商务区|中心城区|(?:城(?:市)?|市|城区)(?:中心|中央)|城央|闹市|闹区|商圈|市区|城区"
+    geography = r"CBD|中央商务区|商务区|中心城区|(?:城(?:市)?|市|城区)(?:中心|中央)|城央|商圈|市区|城区"
     sensory = (
         ("水温", r"水温|池温|泡池温度", r"舒适|舒服|适宜|温热|温暖|温和|暖和|冰凉|清凉|刚刚好|刚好|不烫"),
         ("味道", r"海鲜|生鲜|食材|食品|生蚝|长脚蟹|饮品|酒水|菜品|味道|口感", r"鲜美|鲜嫩|新鲜(?!感)|鲜活|好吃|好喝|香甜|清甜|爽口|回甘|不腥|脆嫩|弹牙"),
         ("卫生", r"水质|环境|店内|泡池|泳池|水池|餐台|门店|卫生", r"干净|洁净|无菌|卫生合格|卫生有保障|消毒到位|合格|有保障"),
         ("服务", r"服务|工作人员|技师|按摩师", r"专业|贴心|细致|热情|周到|到位|用心|耐心|手法好"),
-        ("声音", r"隔音|声音|人声|噪声|噪音|店内|环境", r"安静|不吵|无噪音|隔音好|隔音很好|嘈杂|吵闹|喧闹"),
+        ("声音", r"声环境|声音|人声|噪声|噪音|店内|环境|大厅|这里|场所|室内|庭院", r"安静|不吵|无噪音|嘈杂|吵闹|喧闹"),
         ("声音", r"隔音", r"很好|好"),
+        ("声音", r"声音|人声|噪声|噪音|音乐声|水声|风声|歌声|谈话声|声量|音量", r"大|小"),
     )
+    def sound_plan(prefix):
+        # A modal governs this predicate, not a later contrasting assertion.
+        clause = re.split(r"因为|由于|而|却|但|不过|然而", prefix)[-1]
+        if re.search(r"的(?:人|朋友|读者)", clause):
+            return False  # The reader-description noun phrase has ended.
+        return bool(re.match(r"^(?:适合|推荐给)?(?:我(?:们)?|本人|读者)?(?:想(?:要)?|希望|喜欢|期待|建议|计划|准备)", clause))
     # Opening history and venue stay rules are finite hard facts. A relaxed
     # mood, a reader's itinerary or one table's experience is not a store rule.
     opening_date = r"\d{4}年(?:\d{1,2}月(?:\d{1,2}日)?)?|\d{1,2}月\d{1,2}日|今年|去年|本月|上月"
@@ -11420,69 +11427,63 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
         comparison = re.search(r"(?:地理位置|位置|区位|交通|出行|通勤)[^，,。；;\n]{0,18}(?:更|最|更加)(?:方便|便利|便捷)", part)
         if comparison:
             facts["location"].add((re.sub(r"\s", "", comparison.group()), "便利比较", _leisure_relation_positive(part)))
-        if part not in _fact_assertions(field_source):
-            continue  # Negative relation recovery does not broaden other families.
+        asserted = part in _fact_assertions(field_source)
         crowd = re.search(r"无需排队|不用排队|不排队|人不多|人少|客流少|游客少|不拥挤|不挤|人多|客流大|拥挤|高峰|低峰", part)
         times = tuple(re.findall(periods, part))
         visible_frame = bool(re.search(r"照片中|照片里|图中|图里|画面中|画面里|这一帧", part))
         visual_sound_source = bool(re.search(r"照片|图片|画面|镜头|图中|图里|这一帧|图\s*\d+[（(:：]", part))
-        if crowd and not (visible_frame and not times and crowd.group() in {"人少", "人不多", "人多", "游客少"}):
+        if asserted and crowd and not (visible_frame and not times and crowd.group() in {"人少", "人不多", "人多", "游客少"}):
             state = {"人不多": "人少", "客流少": "人少", "游客少": "人少", "不拥挤": "人少", "不挤": "人少", "无需排队": "不排队", "不用排队": "不排队", "客流大": "人多"}.get(crowd.group(), crowd.group())
             facts["crowd"].add((times, state))
-        if times and re.search(r"营业|开放|开门|闭店|打烊", part):
+        if asserted and times and re.search(r"营业|开放|开门|闭店|打烊", part):
             operation = re.search(r"营业|开放|开门|闭店|打烊", part).group()
             facts["hours"].add((times, operation))
-        if re.search(r"唯一|独一家|仅此一家|只有这一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
+        if asserted and re.search(r"唯一|独一家|仅此一家|只有这一家", part) and re.search(r"城区|市区|全城|同城|本地|广州|深圳|北京|上海|杭州|成都|城市", part):
             facts["rarity"].add((re.sub(r"\s", "", part),))
-        # A still object's pose and a reader's wish do not measure venue noise.
-        # Keep the exception on these exact spans so a nearby acoustic claim
-        # (e.g. "大厅安静") still requires its own source.
-        quiet_non_acoustic = list(re.finditer(
-            r"(?:香炉|摆件|花瓶|雕塑|装饰物|器物|石灯|盆景|屏风|静物|物件)"
-            r"(?:也|正|仍|依然|依旧)?安静(?:地)?(?:立|摆|坐落)(?:在|于|着)"
-            r"|(?:想(?:要)?|希望|喜欢)安静", part))
         for family, subjects, claims in sensory:
-            if evidence and visual_sound_source and family == "声音":
+            if not asserted and family != "声音":
+                continue  # Recover acoustic negation without broadening other families.
+            if family == "声音" and evidence and visual_sound_source:
                 # A still frame cannot establish an audible experience, even
                 # if its source caption asserts quietness or absent voices.
                 continue
-            direct = re.search(r"(?P<subject>" + subjects + r")[^，,。；;\n]{0,10}?(?P<claim>" + claims + r")", part)
-            reverse = re.search(r"(?P<claim>" + claims + r")[^，,。；;\n]{0,10}?(?P<subject>" + subjects + r")", part)
-            for match in (direct, reverse):
+            # Acoustic facts need their own subject/predicate. Do not turn a
+            # still object's pose, a reader's wish or a mood word into noise.
+            sound_link = (r"(?:的)?(?:是|显得|听起来|变得)?"
+                          r"(?:(?:很|非常|十分|格外|这么|那么|更|比较|相当|特别|一直|也|都|确实|并不是|并非|不是|并不|不|没有)\s*){0,3}")
+            direct_gap = sound_link if family == "声音" else r"[^，,。；;\n]{0,10}?"
+            reverse_gap = r"(?:的)?" if family == "声音" else r"[^，,。；;\n]{0,10}?"
+            # A venue's adjectival mood is not an acoustic predicate. Reverse
+            # attributes still bind directly to explicit sound/isolation nouns.
+            reverse_subjects = "|".join(subject for subject in subjects.split("|")
+                                        if subject not in {"环境", "店内", "这里", "场所", "大厅", "室内", "庭院"}) if family == "声音" else subjects
+            direct_pattern = r"(?P<subject>" + subjects + r")" + direct_gap + r"(?P<claim>" + claims + r")"
+            reverse_pattern = r"(?P<claim>" + claims + r")" + reverse_gap + r"(?P<subject>" + reverse_subjects + r")"
+            matches = ([(match, True) for match in re.finditer(direct_pattern, part)]
+                       + [(match, False) for match in re.finditer(reverse_pattern, part)]) if family == "声音" else [
+                           (re.search(direct_pattern, part), True), (re.search(reverse_pattern, part), False)]
+            for match, forward in matches:
                 if not match:
                     continue
-                if (family == "声音" and match.group("claim") == "安静"
-                        and any(span.start() <= match.start("claim") < span.end() for span in quiet_non_acoustic)):
+                if family == "声音" and sound_plan(part[:match.start()]):
                     continue
                 # Picture tidiness is observable; a hygiene guarantee is not.
                 if (family == "卫生" and visible_frame and match.group("subject") in {"环境", "店内", "餐台", "门店"}
                         and match.group("claim") in {"干净", "洁净"}):
                     continue
-                between = part[match.end("subject"):match.start("claim")] if match is direct else ""
+                between = part[match.end("subject"):match.start("claim")] if forward else ""
                 polarity = "否" if (re.search(r"(?:没有|无|未有|并不|不|没|未)[^，,。；;\n]{0,4}$", part[:match.start()])
                     or re.search(r"(?:没有|未|没|不)(?!但|仅)[^，,。；;\n]{0,4}$", between)) else "是"
-                facts["sensory"].add((family, match.group("subject"), match.group("claim"), polarity))
+                if family == "声音" and re.search(r"(?:并不是|并非|不是)[^，,。；;\n]{0,4}$", between):
+                    polarity = "否"
+                subject = match.group("subject")
+                if family == "声音" and subject in {"环境", "店内", "这里", "场所", "声环境"}:
+                    subject = "场所"
+                facts["sensory"].add((family, subject, match.group("claim"), polarity))
         quiet = re.search(r"(?P<claim>没有|无|听不到|听不见)(?P<qualifier>[^，,。；;\n]{0,6}?)(?P<subject>人声|噪声|噪音|嘈杂声|吵闹声)", part)
-        if quiet and not (evidence and visual_sound_source):
+        if quiet and not sound_plan(part[:quiet.start()]) and not (evidence and visual_sound_source):
             facts["sensory"].add(("声音", quiet.group("subject"), quiet.group("claim") + quiet.group("qualifier"), "否"))
-        # Subjectless sound experience and surprise/comparison still assert an
-        # audible fact. Explicit visual aesthetics do not establish that fact.
-        visual_style = (bool(re.search(r"画面|视觉|照片|图片|镜头", part))
-                        and bool(re.search(r"美学|意象|效果|构图|色彩|风格|氛围|高级|雅致", part)))
-        for sound in re.finditer(r"安静|不吵|嘈杂|吵闹|喧闹|闹中取静", part):
-            if visual_style or (evidence and visual_sound_source):
-                continue
-            if sound.group() == "安静" and any(span.start() <= sound.start() < span.end() for span in quiet_non_acoustic):
-                continue
-            polarity = "否" if re.search(r"(?:没有|并不|不|没|未)[^，,。；;\n]{0,4}$", part[:sound.start()]) else "是"
-            facts["sensory"].add(("声音", "场所", sound.group(), polarity))
-            surprise = re.search(r"出乎(?:预料|意料)|超出预期|没想到|没料到|竟然|居然", part)
-            comparison = re.search(r"比([^，,。；;\n]{1,12}?)(?:更|还|更加)?(?:安静|不吵|嘈杂|吵闹|喧闹)", part)
-            if surprise or comparison or sound.group() == "闹中取静":
-                scope = ("反预期" if surprise else
-                         re.sub(r"想象(?:中|里)?|预想(?:中|里)?|预期", "作者预期", comparison.group(1)) if comparison else "内外对比")
-                facts["sensory"].add(("声音比较", scope, sound.group(), polarity))
-        visit = _leisure_visit_claim(part)
+        visit = _leisure_visit_claim(part) if asserted else None
         if visit:
             facts["visit"].add(visit)
     audible = r"风声|水声|鸟鸣|鸟叫|人声|噪声|噪音|音乐声|音乐|歌声|谈话声|嘈杂声|吵闹声"
@@ -11492,27 +11493,29 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
             continue
         for sound in re.finditer(audible, part):
             before = part[:sound.start()]
+            after = part[sound.end():]
+            if sound_plan(before):
+                continue
             if re.search(r"#[^\s#]*$", before) or re.match(r"舞台|海报|标识|装饰|图案|风格|话题|主题", part[sound.end():]):
                 continue  # Visible music-related objects/topics do not claim audio.
-            if sound.group() in {"音乐", "音乐声"}:
-                after = part[sound.end():]
-                heard = bool(re.search(r"(?:听到|听见|听不到|听不见|播放|响起|传来|演奏)[^，,。；;\n]{0,6}$", before))
-                texture = bool(re.match(r"(?:很|十分|非常|格外|显得|的)?(?:并不|不)?(?:轻柔|轻微|清晰|明显|悦耳|响亮|嘈杂|吵闹|喧闹|声音|听感|松弛感)", after))
-                venue = bool(re.search(r"(?:本店|店内|这里|门店|酒吧|KTV)[^，,。；;\n]{0,6}(?:有|提供)[^，,。；;\n]{0,3}$", before, re.I))
-                if not (heard or venue or (texture and not re.search(r"选歌|曲目|主题|整理|清单|参考|计划|准备", part))):
-                    continue  # Music as a subject/selection plan is not a sound heard.
-            # Explicitly quoted sound-as-a-visual metaphor is not an assertion
-            # of a sound heard at this venue; visual quietness stays aesthetic.
-            if re.search(r"(?:意象|视觉隐喻|画面比喻)", part):
-                continue
-            absent = bool(re.search(r"(?:没有|无|听不到|听不见|不存在|不播放|不是|并非)[^，,。；;\n]{0,6}$", before))
+            action = bool(re.search(r"(?:听到|听见|听不到|听不见|播放|响起|传来|演奏|提供|没有|无|有|不存在|不播放)"
+                                    r"(?:了|着|过)?(?:任何|一点|一丝|些许)?\s*$", before)
+                          or re.match(r"(?:并不是|并非|不是|并不|不|没有|未)?(?:正在|正|在|已经)?(?:从[^，,。；;\n]{1,12}?)?(?:响起|传来|播放|演奏)", after))
+            quality = (re.match(r"(?:听起来|听着)?(?:比[^，,。；;\n]{1,12}?(?:更|更加)?|很|十分|非常|格外|显得|的)?"
+                                r"(?P<neg>并不|不)?(轻柔|轻微|清晰|明显|悦耳|响亮|嘈杂|吵闹|喧闹)", after)
+                       or re.search(r"(?P<neg>并不|不)?(轻柔|轻微|清晰|明显|悦耳|响亮|嘈杂|吵闹|喧闹)(?:的)?$", before))
+            if not action and re.match(r"(?:选歌|曲目|歌单|主题|清单|配乐)(?:参考|计划|建议|清单|选择)?", after):
+                continue  # A described item in a playlist/topic is not playback.
+            if not (action or quality):
+                continue  # A named sound/topic alone does not assert sound heard.
+            absent = bool(re.search(r"(?:没有|无|听不到|听不见|不存在|不播放|不是|并非)[^，,。；;\n]{0,6}$", before)
+                          or re.match(r"(?:并不是|并非|不是|并不|不|没有|未)(?:正在|正|在|已经)?(?:从[^，,。；;\n]{1,12}?)?(?:播放|响起|传来|演奏)", after))
             actor = re.search(r"(我(?:们)?|本人|作者|朋友|工作人员)[^，,。；;\n]{0,8}(?:听到|听见|听不到|听不见)", before)
             scope = (actor.group(1) if actor else "场所", tuple(re.findall(periods, part)))
             facts["sensory"].add(("声源", sound.group(), "无" if absent else "有", scope))
-            quality = re.match(r"(?:很|十分|非常|格外|显得|的)?(?P<neg>并不|不)?(轻柔|轻微|清晰|明显|悦耳|响亮|嘈杂|吵闹|喧闹)", part[sound.end():])
             if quality and not absent:
                 facts["sensory"].add(("声源质感", sound.group(), quality.group(2), not bool(quality.group("neg")), scope))
-            comparison = re.search(r"(?:比[^，,。；;\n]{1,12})?(?:更|更加|出乎(?:预料|意料)|超出预期|没想到|竟然|居然)", part)
+            comparison = re.search(r"比[^，,。；;\n]{1,12}(?:更|更加)", part)
             if comparison:
                 facts["sensory"].add(("声源比较", sound.group(), re.sub(r"\s", "", part)))
     # A double-negative completed visit is affirmative. Recover only this visit

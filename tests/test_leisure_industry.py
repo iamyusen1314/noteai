@@ -441,12 +441,13 @@ class LeisureIndustryTests(unittest.TestCase):
         saved = api._sanitize_chat_generate_context({"cover_analysis": cover, "expert_opinions": opinions})
         for public in (cover, opinions, progress, saved):
             encoded = json.dumps(public, ensure_ascii=False)
-            for unsupported in ("和风声", "商务区内", "商务区创造避世感", "地理位置便利性"):
+            for unsupported in ("商务区内", "商务区创造避世感", "地理位置便利性"):
                 self.assertNotIn(unsupported, encoded)
         for visible in ("原木格栅", "蓝调池水", "黑松", "红桥", "雅致侘寂"):
             self.assertIn(visible, cover)
         # Bare visual mood is not automatically a medical treatment claim.
         self.assertIn("静谧高级", cover)
+        self.assertIn("和风声的松弛感", cover)
         hits = api._generation_public_feature_hits(actual["note_title"], actual["note_body"], actual["features"], 73, DOMAIN, source)
         self.assertFalse(hits["has_price"])
         self.assertFalse(hits["has_address"])
@@ -807,17 +808,18 @@ class LeisureIndustryTests(unittest.TestCase):
 
     def test_subjectless_sound_and_implicit_completed_visits_are_not_visual_moods(self):
         unknown = "仅有空间照片；作者到访、声音和个人感受未知。"
-        for claim in ("安静得出乎预料。", "比想象中更安静。", "没想到这里这么安静。", "闹中取静。", "照片里很安静。",
+        for claim in ("没想到这里这么安静。",
                       "进门后就发现环境很安静。", "泡完后觉得很舒服。", "一篇实地参考清单。"):
             with self.subTest(claim=claim):
                 self.assertTrue(api._delivery_integrity_issues(claim, unknown, DOMAIN), claim)
                 if "照片" not in claim:
                     self.assertFalse(api._delivery_integrity_issues(claim, "作者确认：" + claim, DOMAIN), claim)
         self.assertFalse(api._delivery_integrity_issues("安静得出乎预料。", "作者说没想到环境这么安静。", DOMAIN))
-        self.assertTrue(api._delivery_integrity_issues("安静得出乎预料。", "作者说环境安静。", DOMAIN))
-        self.assertTrue(api._delivery_integrity_issues("安静。", "照片中环境安静。", DOMAIN))
+        self.assertFalse(api._delivery_integrity_issues("安静得出乎预料。", "作者说环境安静。", DOMAIN))
+        self.assertTrue(api._delivery_integrity_issues("环境很安静。", "照片中环境安静。", DOMAIN))
         for allowed in ("静谧雅致的画面与暖黄灯光。", "宁静的视觉效果适合留白构图。",
                         "画面呈现闹中取静的视觉意象。", "图片氛围安静高级。", "都市休闲空间的木调风格。",
+                        "安静。", "安静得出乎预料。", "比想象中更安静。", "闹中取静。", "照片里很安静。",
                         "下次计划进门后看看庭院。", "建议先拍庭院再拍餐台。", "计划写实地参考清单。",
                         "同一次来可以按已确认的项目安排自己的拍摄主题。", "我没有去过，不写亲测。"):
             self.assertFalse(api._delivery_integrity_issues(allowed, unknown, DOMAIN), allowed)
@@ -846,6 +848,7 @@ class LeisureIndustryTests(unittest.TestCase):
             "有出片需求或想安静待一整个下午的也适合。", "想安静看书的人。",
             "希望安静写字的人。", "喜欢安静喝茶的人。", "想要安静整理照片的人。",
             "希望安静地消磨下午。", "适合想要安静一会儿的人。", "想安静。", "希望安静。",
+            "工作人员安静站在门口。", "香炉旁的客人安静立在门口。",
         ):
             with self.subTest(text=text):
                 self.assertFalse(api._leisure_observation_fact_claims(text)['sensory'])
@@ -853,7 +856,7 @@ class LeisureIndustryTests(unittest.TestCase):
         for text in (
             "环境很安静。", "大厅安静。", "隔音好。", "隔音很好。", "实测无噪音。",
             "香炉安静立在角落，大厅很安静。", "适合想安静放空的人，这里的环境很安静。",
-            "这里安静，适合喜欢安静的人。", "工作人员安静站在门口。", "香炉旁的客人安静立在门口。",
+            "这里安静，适合喜欢安静的人。",
             "想安静待一下午的人，这里环境很安静。", "这里隔音好，适合想安静看书。",
             "喜欢安静的朋友可以来，实测无噪音。", "安静得无噪音，适合想安静喝茶的人。",
             "希望安静，但这里很嘈杂。",
@@ -865,6 +868,79 @@ class LeisureIndustryTests(unittest.TestCase):
         for text in ("水温很舒适。", "海鲜新鲜。", "水质干净。", "服务很贴心。", "改善睡眠质量。", "门票仅99元。"):
             with self.subTest(text=text):
                 self.assertTrue(api._delivery_integrity_issues(text, source, DOMAIN))
+
+    def test_actual_b693_selected_record2_keeps_full_visual_mood_and_urban_scenery(self):
+        # Exact selected record2 from the failed real manual->omitted task,
+        # native capture SHA256 65f4ad62b208c081e28c238fae2ae9f8c71014b5b332c328e95a9a08b30baa5d.
+        # This offline replay does not change that failure or establish a new live PASS.
+        title = "高楼间的禅意汤泉，每个角落都想拍"
+        body = ('走进水石清池·汤泉生活，高层休憩区的落地窗前，暖黄金属漏斗吊灯把光晕柔柔散开来，弧形蓝沙发配太湖石造景和雾感水台，窗外是连片楼宇，窗内是整片东方氛围，坐下来就很容易把节奏放慢。\n\n'
+                '往里走才发现陈设有多讲究，金箔屏风配朱砂红边柜、古铜香炉，阳光透过松枝斜落进来，每个转角都有层次，随手一拍构图就稳，这种细节堆出来的东方雅致质感很容易让人停留。\n\n'
+                '最出乎意料的是室外庭院，黑松、砾石枯山水、青竹、圆窗茶座被安置在楼宇之间，走进去就像换了一层时间节奏，是"闹中取静"真正落地的感觉，也是整个空间里最值得多坐一会儿的地方。\n\n'
+                '适合周末想彻底放松的人、喜欢东方美学氛围的朋友，或者单纯想找个地方发呆；如果只想快进快出，这里的空间节奏不太对路。\n\n'
+                '#汤泉休闲 #新中式美学 #松弛感 #东方美学 #禅意庭院 #闹中取静 #城市绿洲')
+        variants = ["水石清池禅意庭院藏楼间，每角都想拍", "新中式汤泉·东方美学氛围，松弛感拉满", "闹市藏着禅意汤泉，水石清池值得慢慢逛"]
+        source = "本次想介绍套餐是否包含自助餐，但套餐权益我尚未确认；不要猜测，需要时请让我补充或选择不写。"
+        source += "\n【本次商家确认；仅适用于本任务】\n当前回答：用户选择不写此项；所有标题、方案及后续优化都不得写入此项，也不能换种说法暗示。"
+        import hashlib
+        self.assertEqual(hashlib.sha256(body.encode()).hexdigest(), "dce526323d14550a250d53a025dcc1599cb3bf2d8e11da919153b3fb56724f90")
+        for value in (title, body, *variants):
+            claims = api._leisure_observation_fact_claims(value)
+            self.assertFalse(claims["sensory"])
+            self.assertFalse(claims["location"])
+            public, notices = api._leisure_public_fact_text(value, source)
+            self.assertFalse(notices)
+            self.assertEqual("".join(public.split()), "".join(value.split()))
+        issues = api._delivery_integrity_issues(title + "\n" + body, source, DOMAIN, title_variants=variants)
+        self.assertFalse(issues)
+        # The captured CTA advice remains an ordinary quality issue.
+        cta = "缺少互动引导，结尾需要自然出现点赞/收藏/评论等行动号召"
+        self.assertFalse(api._has_blocking_quality_issues(70.5, [cta, *issues], DOMAIN))
+
+    def test_sound_predicates_preserve_hard_facts_without_treating_moods_as_measurements(self):
+        source = "门店名：甲汤泉\n仅有空间图片；声音、隔音、具体区位及作者到访未知。"
+        for value in (
+            "闹中取静。#闹中取静 #城市绿洲", "闹市藏着禅意汤泉。", "闹区里的庭院少见，氛围松弛。",
+            "环境里的陈设安静立着。", "房间角落的一只装置安静地摆着。", "安静的照片里有环境陈设。",
+            "想要安静的环境的人。", "希望这里没有噪音。", "期待听到鸟鸣。", "建议后期搭配轻柔音乐。",
+            "以水声为本篇主题。", "围绕鸟鸣整理拍摄清单。", "风声与光影的视觉意象。", "轻柔音乐选歌清单。",
+            "画面呈现安静的庭院。", "照片中安静的大厅很有东方美学氛围。", "庭院很大，大厅很小。",
+            "安静的环境。", "安静的庭院。", "安静的大厅。",
+        ):
+            with self.subTest(allowed=value):
+                self.assertFalse(api._leisure_observation_fact_claims(value)["sensory"])
+                self.assertFalse(api._delivery_integrity_issues(value, source, DOMAIN))
+        for value in (
+            "环境很安静。", "环境不安静。", "环境并非安静。", "大厅安静。", "隔音不好。",
+            "没有嘈杂人声。", "听不到吵闹声。", "有风声。", "没有水声。", "听到鸟鸣。", "传来歌声。",
+            "音乐正在播放。", "音乐在播放。", "音乐听起来很轻柔。", "风声轻柔。", "清晰的人声。",
+            "听到轻柔的音乐。", "本店提供音乐。", "音乐声从这里传来。",
+            "环境里的陈设安静立着，但环境很嘈杂。", "想安静放空，这里隔音很好。",
+            "希望安静而这里环境很嘈杂。", "想听鸟鸣而这里确实有水声。", "这里播放音乐作为空间主题。",
+            "希望环境安静而这里环境很嘈杂。", "建议环境安静却这里环境很嘈杂。",
+            "建议选这里因为大厅很安静。", "喜欢安静的人选这里环境很安静。",
+            "画面意象很美而我实际听到水声。", "闹中取静的视觉意象，实际听到水声。",
+            "实测噪音很大。", "这里声音很大。", "画面很雅致但噪音很大。",
+            "画面呈现安静的庭院而实测隔音很好。", "照片中安静的大厅很雅致，实测噪音很大。",
+        ):
+            with self.subTest(hard=value):
+                self.assertTrue(api._leisure_observation_fact_claims(value)["sensory"])
+                issues = api._delivery_integrity_issues(value, source, DOMAIN)
+                self.assertTrue(any("感官" in issue for issue in issues))
+                self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
+        for left, right in (("嘈杂的人声。", "人声嘈杂。"), ("轻柔的音乐。", "音乐轻柔。")):
+            self.assertEqual(api._leisure_observation_fact_claims(left)["sensory"], api._leisure_observation_fact_claims(right)["sensory"])
+        for subject in ("这里", "店内", "场所", "声环境"):
+            self.assertFalse(api._delivery_integrity_issues(subject + "很安静。", "作者确认环境安静。", DOMAIN))
+        for source_text, value in (("作者确认庭院安静。", "大厅很安静。"),
+                                   ("作者确认环境安静。", "这里环境并非安静。"),
+                                   ("作者确认音乐正在播放。", "音乐没有正在播放。"),
+                                   ("作者确认音乐正在播放。", "音乐并非正在播放。"),
+                                   ("作者确认音乐不是正在播放。", "音乐正在播放。"),
+                                   ("作者确认音乐不正在播放。", "音乐正在播放。")):
+            self.assertTrue(api._delivery_integrity_issues(value, source_text, DOMAIN))
+        for value in ("CBD旁的汤泉。", "位于商务区内。", "市中心的汤泉。", "商圈内。", "位于静安区。", "位于康定路。", "交通便利。"):
+            self.assertTrue(any("地理区位" in issue for issue in api._delivery_integrity_issues(value, source, DOMAIN)), value)
 
     def test_food_qualifiers_keep_this_image_field_scope_and_reset(self):
         unknown = "素材只有海鲜展示和庭院照片；食材状态未知。"
@@ -956,7 +1032,7 @@ class LeisureIndustryTests(unittest.TestCase):
         issues = api._delivery_integrity_issues(title + "\n" + body, source, DOMAIN, title_variants=variants)
         self.assertTrue(api._has_blocking_quality_issues(95, issues, DOMAIN))
         self.assertTrue(any("空间布局" in issue for issue in issues))
-        self.assertTrue(any("感官" in issue for issue in issues))
+        self.assertFalse(any("感官" in issue for issue in issues))
         self.assertTrue(all(any(f"备选标题{i}：" in issue for issue in issues) for i in range(1, 4)))
         self.assertTrue(api._leisure_public_fact_issues(cover, source))
         original = json.dumps(opinions, ensure_ascii=False)
@@ -965,10 +1041,11 @@ class LeisureIndustryTests(unittest.TestCase):
         public_progress = api._generation_public_progress_event({"type": "expert_opinion", "content": cover, "detail": opinions[-1]["opinion"]}, source, DOMAIN)
         for value in (public_cover, public_experts, public_progress):
             encoded = json.dumps(value, ensure_ascii=False)
-            for unsupported in ("丰富鲜活", "闹中取静", "实地参考清单"):
+            for unsupported in ("丰富鲜活", "实地参考清单"):
                 self.assertNotIn(unsupported, encoded)
         for visible in ("侘寂静谧", "透亮碎冰", "银质餐盆", "精致摆盘", "暖金柔光", "静谧松弛"):
             self.assertIn(visible, public_cover)
+        self.assertIn("闹中取静", public_cover)
         self.assertEqual(json.dumps(opinions, ensure_ascii=False), original)
         contaminated = api._generation_delivery_source_context(DOMAIN, source, cover + "\n" + body)
         self.assertTrue(api._delivery_integrity_issues(title + "\n" + body, contaminated, DOMAIN, title_variants=variants))
@@ -985,12 +1062,12 @@ class LeisureIndustryTests(unittest.TestCase):
             with self.subTest(category=category):
                 public = api._generation_public_expert_opinions(original, f"类型：{category}。{source}", DOMAIN)
                 encoded = json.dumps(public, ensure_ascii=False)
-                for unsupported in ("CBD", "闹市", "白天下午人少", "周末无需排队"):
+                for unsupported in ("CBD", "白天下午人少", "周末无需排队"):
                     if category in {"KTV", "酒吧"} and unsupported in {"白天下午人少", "周末无需排队"}:
                         self.assertIn(unsupported, encoded)
                     else:
                         self.assertNotIn(unsupported, encoded)
-                for supported in ("木桥", "光线暖黄", "缺少地理区位来源依据", "缺少常态或时段客流来源依据"):
+                for supported in ("木桥", "光线暖黄", "被闹市包围", "缺少地理区位来源依据", "缺少常态或时段客流来源依据"):
                     if category in {"KTV", "酒吧"} and supported == "缺少常态或时段客流来源依据":
                         self.assertNotIn(supported, encoded)
                     else:
@@ -1142,7 +1219,6 @@ class LeisureIndustryTests(unittest.TestCase):
             if event["type"] in {"expert_opinion", "p3_done"}:
                 encoded = json.dumps(event, ensure_ascii=False)
                 self.assertNotIn("CBD", encoded)
-                self.assertNotIn("闹市", encoded)
         self.assertIn("CBD隐藏庭院", captures[0])
         self.assertIn("CBD隐藏庭院", json.dumps(pause.call_args.args[0], ensure_ascii=False))
         prepared, private_opinions = pause.call_args.args[:2]
@@ -1152,7 +1228,7 @@ class LeisureIndustryTests(unittest.TestCase):
         public = api._generation_public_expert_opinions(private_opinions, source, DOMAIN)
         encoded = json.dumps(public, ensure_ascii=False)
         self.assertNotIn("CBD", encoded)
-        self.assertNotIn("闹市", encoded)
+        self.assertIn("被闹市包围的休闲空间", api._generation_public_visual_summary("被闹市包围的休闲空间。", source, DOMAIN))
 
     def test_claim_families_keep_provided_scope_and_personal_information(self):
         source = "门店在CBD旁。下午人少。下午营业。作者说水温舒服、服务贴心。作者说我泡完很舒服。"
