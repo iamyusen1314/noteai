@@ -1,5 +1,7 @@
 ## CURRENT — 2026-10-15 10:35 北京：旧版小修复已真实上线，线上验收 GO；评分专项未完成
 
+补充后续版本交接：原窗口发现其worker激活预检仍仅允许DATABASE_URL、worker unit缺source10只读目录消费，正在隔离最小适配。本窗口仅从封存原件回传 `/var/lib/noteai/amap-recurring-maintenance/public:/run/noteai-amap-recurring-public:ro`、`rules-status.json`绝对路径、既有三个非秘密续期变量/pin及读取元数据约束；没有新现场查询、ENV/凭据读取或生产操作。目录绑定用于producer临时文件+fsync+os.replace发布可见性，单文件挂载会保留旧inode。当前实际依据为最终RO目录/3flags原件和b9 UID999 VERIFIED原件；历史future-api-config-contract的ca/936/47b不可复用作当前值。原API的通过不能代替未来worker适配验收。技术合同已实际发给原窗口，发送不代表新worker已通过或已构建。
+
 本节覆盖以下历史进度。Root 本窗口为本轮唯一生产执行者，实际生产变更已经结束，当前没有本轮未完维护操作；原发布窗口继续隔离工作，不自动获准并行生产变更。没有扩展为大版本、0032–0041迁移、新权重或无关改版。
 
 ### 实际版本、上线与恢复基线
