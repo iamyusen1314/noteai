@@ -11440,8 +11440,7 @@ def _leisure_observation_fact_claims(text: str, *, evidence: bool = False, obser
         quiet_non_acoustic = list(re.finditer(
             r"(?:香炉|摆件|花瓶|雕塑|装饰物|器物|石灯|盆景|屏风|静物|物件)"
             r"(?:也|正|仍|依然|依旧)?安静(?:地)?(?:立|摆|坐落)(?:在|于|着)"
-            r"|(?:想(?:要)?|希望)安静(?:地)?(?:放空|发呆|休息|独处|坐坐)"
-            r"|喜欢安静(?:地(?:放空|发呆|休息|独处)|放空|的(?:人|朋友|读者)|人群)", part))
+            r"|(?:想(?:要)?|希望|喜欢)安静", part))
         for family, subjects, claims in sensory:
             if evidence and visual_sound_source and family == "声音":
                 # A still frame cannot establish an audible experience, even

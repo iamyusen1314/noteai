@@ -825,14 +825,16 @@ class LeisureIndustryTests(unittest.TestCase):
 
     def test_actual_final_selected_quiet_object_and_reader_intent_are_not_sound_measurements(self):
         # Exact public selected record2 after P4, not an accepted/saved report.
-        # Actual private capture SHA256 5b83301ad0def253e2a5ff8028c254149b713f74b695443979f2a332f6f5157c.
-        candidate = {'title': '高空汤泉躺看城景，水石清池东方雅致', 'body': '躺进弧形软榻，窗外是整座城市的轮廓，这是水石清池汤泉留下最深的第一印象。\n\n水石清池的汤泉空间走新中式路线，落地窗边弧形软榻低矮舒展，暖金吊灯垂在头顶，太湖石水景铺陈地面，城景与东方布景叠在同一帧画面里。室内细节经得起细看，金箔屏风映着柔暖光线，朱砂红柜配干橘色花束，暗铜色香炉安静立在角落，每一处都有东方美学的取舍逻辑。\n\n走出室内，汤泉庭院是另一重惊喜——黑松、竹影、砾石枯山水，低黑檐小屋静立在高楼背景前，青灰石径穿过葱翠竹丛，画面清幽。\n\n适合想安静放空、喜欢东方美学氛围、想拍出有层次的照片的人。水石清池汤泉的节奏会让人自然想多待着。\n\n先收藏，想偷闲时翻出来。\n\n#新中式汤泉 #高空汤泉 #东方美学 #水石清池 #城市松弛地 #汤泉打卡 #冬日放空', 'variants': ['水石清池高空汤泉的东方画意', '新中式汤泉原来可以这么美', '水石清池汤泉庭院藏着东方美']}
+        # Actual private captures SHA256 5b83301ad0def253e2a5ff8028c254149b713f74b695443979f2a332f6f5157c
+        # and 6612e339885b7744219c5413dfb23b427be4c6878cc852c5fdb9dc6f06f7a204.
+        candidates = ({'title': '高空汤泉躺看城景，水石清池东方雅致', 'body': '躺进弧形软榻，窗外是整座城市的轮廓，这是水石清池汤泉留下最深的第一印象。\n\n水石清池的汤泉空间走新中式路线，落地窗边弧形软榻低矮舒展，暖金吊灯垂在头顶，太湖石水景铺陈地面，城景与东方布景叠在同一帧画面里。室内细节经得起细看，金箔屏风映着柔暖光线，朱砂红柜配干橘色花束，暗铜色香炉安静立在角落，每一处都有东方美学的取舍逻辑。\n\n走出室内，汤泉庭院是另一重惊喜——黑松、竹影、砾石枯山水，低黑檐小屋静立在高楼背景前，青灰石径穿过葱翠竹丛，画面清幽。\n\n适合想安静放空、喜欢东方美学氛围、想拍出有层次的照片的人。水石清池汤泉的节奏会让人自然想多待着。\n\n先收藏，想偷闲时翻出来。\n\n#新中式汤泉 #高空汤泉 #东方美学 #水石清池 #城市松弛地 #汤泉打卡 #冬日放空', 'variants': ['水石清池高空汤泉的东方画意', '新中式汤泉原来可以这么美', '水石清池汤泉庭院藏着东方美']}, {'title': '水石清池｜汤泉里藏着3种雅致小世界', 'body': '在水石清池·汤泉生活，落地大窗是最先抓住视线的，弧形沙发抵窗而设，金属质感大吊灯悬顶，太湖石点缀一旁，窗玻璃蒙着淡淡水汽，抬眼整幅城市天际线就铺进来。什么都不用做。\n\n汤泉休息区的雅致才是真正惊喜，斜阳打在金箔屏风上，朱砂红斗柜、干花铜瓶、古铜薰炉逐一摆到位，金箔映着松鹰古画，整个角落像是被认真打理过的和风私室，雅致而不刻意。庭院藏着截然不同的两种气质，日式禅意院苍劲黑松配白沙砾石、球篱修剪圆润，清冷雅致；新中式小院青灰石阶、修竹、黑瓦亭台，框出竹松小景。三种空间共处一地。\n\n喜欢雅致空间、想在一个下午把氛围切换几遍的，收藏起来直接出发；有出片需求或想安静待一整个下午的也适合。\n\n#汤泉生活方式 #城市松弛感 #高空城景体验 #和风雅致设计 #都市禅意小院 #周末躺平计划', 'variants': ['水石清池·汤泉｜3种雅致氛围藏一起', '一个下午3种雅致，水石清池汤泉值得去', '汤泉空间太雅致了！3种氛围藏在一起']})
         source = "本次想介绍套餐是否包含自助餐，但套餐权益我尚未确认；不要猜测，需要时请让我补充或选择不写。"
         source += "\n【本次商家确认；仅适用于本任务】\n问题：您提到想介绍套餐是否包含自助餐。目前是选择暂不涉及套餐权益的写法，还是您能补充套餐具体包含的项目（如仅汤泉、汤泉+自助餐等）？\n当前回答：用户选择不写此项；所有标题、方案及后续优化都不得写入此项，也不能换种说法暗示。"
-        for text in (candidate['title'], candidate['body'], *candidate['variants']):
-            with self.subTest(text=text):
-                self.assertFalse(api._leisure_observation_fact_claims(text)['sensory'])
-                self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
+        for candidate in candidates:
+            for text in (candidate['title'], candidate['body'], *candidate['variants']):
+                with self.subTest(text=text):
+                    self.assertFalse(api._leisure_observation_fact_claims(text)['sensory'])
+                    self.assertFalse(api._delivery_integrity_issues(text, source, DOMAIN))
 
     def test_quiet_object_pose_and_reader_preferences_do_not_hide_acoustic_claims(self):
         source = "本次只有空间照片；未提供声环境、隔音、人员服务或卫生体验。"
@@ -841,6 +843,9 @@ class LeisureIndustryTests(unittest.TestCase):
             "雕塑安静坐落于庭院角落。", "环境里的香炉安静立在角落。",
             "适合想安静放空、喜欢东方美学氛围的人。", "希望安静地休息的人可以看看空间照片。",
             "适合喜欢安静的人。", "喜欢安静的朋友，可以先看看这些空间照片。",
+            "有出片需求或想安静待一整个下午的也适合。", "想安静看书的人。",
+            "希望安静写字的人。", "喜欢安静喝茶的人。", "想要安静整理照片的人。",
+            "希望安静地消磨下午。", "适合想要安静一会儿的人。", "想安静。", "希望安静。",
         ):
             with self.subTest(text=text):
                 self.assertFalse(api._leisure_observation_fact_claims(text)['sensory'])
@@ -849,6 +854,9 @@ class LeisureIndustryTests(unittest.TestCase):
             "环境很安静。", "大厅安静。", "隔音好。", "隔音很好。", "实测无噪音。",
             "香炉安静立在角落，大厅很安静。", "适合想安静放空的人，这里的环境很安静。",
             "这里安静，适合喜欢安静的人。", "工作人员安静站在门口。", "香炉旁的客人安静立在门口。",
+            "想安静待一下午的人，这里环境很安静。", "这里隔音好，适合想安静看书。",
+            "喜欢安静的朋友可以来，实测无噪音。", "安静得无噪音，适合想安静喝茶的人。",
+            "希望安静，但这里很嘈杂。",
         ):
             with self.subTest(text=text):
                 self.assertTrue(api._leisure_observation_fact_claims(text)['sensory'])
