@@ -9,7 +9,7 @@ function make(extra={}){
  const storage=new Map(),elements=new Map();
  class Element{constructor(tag){this.tagName=tag;this.style={};this.children=[];this.textContent='';}append(...children){this.children.push(...children);for(const e of children)if(e.id)elements.set(e.id,e);}addEventListener(event,fn){this[event]=fn;}showModal(){}close(){}remove(){}replaceChildren(){this.children=[];}}
  const body=new Element('body');const c=vm.createContext({console,window:{},crypto:crypto.webcrypto,TextEncoder,Uint8Array,_authUser:{id:'owner-a'},_authToken:'synthetic-a',_billingQuoteBusy:false,_genVideoFileId:'same-video',_genVideoExpiresAt:Date.now()+86400000,API_AUTH:'https://offline.invalid',API_BASE:'https://offline.invalid',authHeader:()=>({Authorization:'Bearer synthetic'}),showToast(){},openAuthModal(){},showQuotaExceededModal(){},openCreditRecords(){},_chatIdentitySnapshot:()=>({ownerId:'owner-a'}),_chatIdentityMatches:()=>true,readPaidTaskState:async()=>({status:'outcome_unknown',operation:'analyze',task_id:'original-task'}),displayPaidTaskState(){},watchPaidTask(){},sessionStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i],getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},document:{getElementById:id=>elements.get(id),createElement:tag=>new Element(tag),body},...extra});
- c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('createPaidRequestId','paidSubmissionIdentity','currentPaidSubmission','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','generationVideoExpiryMessage','generationVideoSubmissionMessage','showGenerationVideoSubmissionMessage','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
+ c.load=(...names)=>names.forEach(name=>vm.runInContext(source(name),c));c.load('paidTaskFundsResolved','createPaidRequestId','paidSubmissionIdentity','currentPaidSubmission','finishPaidSubmission','confirmBillingQuote','pendingPaidSubmissions','generationVideoExpiryMessage','generationVideoSubmissionMessage','showGenerationVideoSubmissionMessage','preparePaidSubmission','bindPaidSubmissionReceipt','finishPendingTaskReceipt','restoreWaitingPaidSubmission');return {c,storage,elements,Element};
 }
 const quote={operation:'analyze',credits:6,video_credits:0,monthly_credits_used:4,wallet_credits_used:2,can_afford:true,quote_version:'server-six'};
 test('unknown retry retains original key, quote version and exact body across hour change; no media stored',async()=>{
@@ -52,9 +52,9 @@ test('receipt displays actual server debit and monthly/wallet split',()=>{
  c.renderBillingReceipt({credits_used:6,monthly_credits_used:4,wallet_credits_used:2,status:'charged'});assert.match(el.children[0].textContent,/实际扣分 6 积分 · 周期 4 \+ 充值 2/);
  c.renderBillingReceipt(null);assert.equal(el.style.display,'none');
 });
-test('only proven refund clears pending stream errors; ambiguous errors retain identity',()=>{
+test('only proven refund or explicit reservation release clears pending stream errors; ambiguous errors retain identity',()=>{
  for(const name of ['startGeneration','prepareDiagnosis']){
-  const code=source(name);assert.match(code,/terminal\.billing\?\.status === 'refunded'\) finishPaidSubmission/);assert.match(code,/'X-Billing-Quote-Version': submission.quoteVersion/);assert.match(code,/preparePaidSubmission\(/);
+  const code=source(name);assert.match(code,/paidTaskFundsResolved\(terminal\)\) finishPaidSubmission/);assert.match(code,/'X-Billing-Quote-Version': submission.quoteVersion/);assert.match(code,/preparePaidSubmission\(/);
  }
 });
 
@@ -460,4 +460,49 @@ test('manual and delete capability changes refresh actions even when read permis
  const {c}=make({PUBLIC_PRODUCT:true,_publicStatus:{tracking_read_open:true,tracking_manual_open:false,tracking_delete_open:false,tracking_open:false},API_BASE:'https://offline.invalid',document:{getElementById:()=>status,querySelector:()=>({id:'page-profile'})},syncPublicAuthAvailability(){},syncProductUI(){},refreshNativeCapabilities(){},loadTrackingList:()=>calls.push('tracking'),fetch:async()=>({ok:true,json:async()=>({tracking_read_open:true,tracking_manual_open:true,tracking_delete_open:true,tracking_open:false})})});
  c.load('publicImageOpen','publicVideoOpen','profileTrackingAvailable','trackingManualAvailable','trackingDeleteAvailable','refreshPublicStatus');
  await c.refreshPublicStatus();assert.deepEqual(calls,['tracking']);assert.match(status.textContent,/手工记录互动数据，未经平台核验/);assert.match(status.textContent,/自动采集暂未开放/);
+});
+
+// Explicit reservation_v1 fixtures exercise UI wording only, not real account settlement.
+test('postdelivery quote keeps fixed price and starts without a dialog while disclosing reservation',async()=>{
+ const {c,elements,Element}=make({fetch:async()=>({ok:true,json:async()=>({...quote,charge_timing:'after_saved_report'})})});
+ const preview=new Element('div');elements.set('analyze-billing-preview',preview);
+ const accepted=await c.confirmBillingQuote('analyze',false);
+ assert.equal(accepted.credits,6);assert.match(preview.textContent,/受理时预留积分，报告完成并保存后扣分/);
+ assert.doesNotMatch(preview.textContent,/受理时先扣/);assert.equal(elements.has('billing-quote-dialog'),false);
+});
+test('postdelivery receipt separates reservation, committed charge, release, and unresolved release',()=>{
+ const {c,elements,Element}=make();const el=new Element('div');elements.set('report-billing-receipt',el);c.load('renderBillingReceipt');
+ const base={settlement_mode:'reservation_v1',credits_used:0,monthly_credits_used:0,wallet_credits_used:0,refunded_credits:0};
+ c.renderBillingReceipt({...base,status:'reserved',reserved_credits:8,monthly_credits_reserved:6,wallet_credits_reserved:2});
+ assert.match(el.children[0].textContent,/预留 8 积分.*周期 6 \+ 充值 2.*当前未扣积分/);assert.doesNotMatch(el.children[0].textContent,/实际扣分|退回/);
+ c.renderBillingReceipt({...base,status:'reserved',refund_status:'pending',reserved_credits:8});
+ assert.match(el.children[0].textContent,/待后台确认释放.*当前未扣积分/);assert.doesNotMatch(el.children[0].textContent,/已释放|已退/);
+ c.renderBillingReceipt({...base,status:'released',released_credits:8});
+ assert.match(el.children[0].textContent,/预留 8 积分已释放，本次未扣积分/);assert.doesNotMatch(el.children[0].textContent,/退回|实际扣分/);
+ c.renderBillingReceipt({...base,status:'committed',credits_used:8,monthly_credits_used:6,wallet_credits_used:2});
+ assert.match(el.children[0].textContent,/报告已保存，本次实际扣分 8 积分.*周期 6 \+ 充值 2/);
+ c.renderBillingReceipt({...base,status:'unexpected'});assert.match(el.children[0].textContent,/结算状态待核实/);
+});
+test('postdelivery failed task resolves only confirmed release and preserves legacy refund language',()=>{
+ const {c}=make();c.load('paidTaskStatusText');
+ const pending={status:'failed',refund_status:'pending',billing:{settlement_mode:'reservation_v1',status:'reserved'}};
+ assert.equal(c.paidTaskFundsResolved(pending),false);assert.match(c.paidTaskStatusText(pending,'generate'),/正在核实预留积分释放，本次尚未扣积分/);
+ const released={...pending,refund_status:'released',billing:{settlement_mode:'reservation_v1',status:'released'}};
+ assert.equal(c.paidTaskFundsResolved(released),true);assert.match(c.paidTaskStatusText(released,'generate'),/预留积分已释放，本次未扣积分/);
+ assert.equal(c.paidTaskFundsResolved({...pending,refund_status:'refunded'}),false);
+ assert.match(c.paidTaskStatusText({status:'failed',refund_status:'refunded',billing:{status:'refunded'}},'analyze'),/已按原来源退回/);
+ assert.doesNotMatch(c.paidTaskStatusText({status:'failed',billing:{settlement_mode:'reservation_v1',status:'committed'}},'generate'),/尚未扣|已释放|退回/);
+});
+
+test('confirmed reservation release permits one explicit new identity while pending release does not',async()=>{
+ for(const released of [false,true]){
+  let quoted=0;const billing={settlement_mode:'reservation_v1',status:released?'released':'reserved'};
+  const {c}=make({readPaidTaskState:async()=>({status:'failed',refund_status:released?'released':'pending',billing})});
+  const old=await c.paidSubmissionIdentity('generate',{brief:'same-public-fixture'},quote);
+  c.displayPaidTaskState=(task,submission)=>{if(c.paidTaskFundsResolved(task))c.finishPaidSubmission(submission);};
+  c.confirmBillingQuote=async()=>{quoted++;return quote;};
+  const next=await c.preparePaidSubmission('generate',{brief:'same-public-fixture'});
+  assert.equal(quoted,released?1:0);
+  if(released){assert.ok(next?.requestId);assert.notEqual(next.requestId,old.requestId);}else assert.equal(next,null);
+ }
 });

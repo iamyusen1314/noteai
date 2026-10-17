@@ -5947,7 +5947,7 @@ function renderPricingConfig(cfg) {
         <div style="font-size:12px;color:var(--text-muted)">${pricingEsc(cfg.credit_policy || '扣费顺序：套餐周期积分 → 充值积分 → 余额不足提示')}</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px">${opCards}</div>
-      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频分析包含在完整诊断或生成中；上传不扣主流程积分。每次提交先读取服务端报价，受理时扣分；确认失败后按原来源退回。连接中断时页面会继续读取原任务状态。</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">视频分析包含在完整诊断或生成中；上传不扣主流程积分。每次提交先读取服务端报价及结算规则；预留、扣分或退回状态以本次服务端回执为准。连接中断时页面会继续读取原任务状态。</div>
     </div>
 	    <div class="billing-info-card" style="background:var(--surf-1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px">
       <h3 style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">积分按需充值</h3>
@@ -6408,7 +6408,9 @@ async function confirmBillingQuote(operation, hasVideo) {
     if (!Number.isFinite(quote.credits) || quote.credits < 0 || !quote.quote_version) throw Error('服务端报价不完整，尚未提交任务');
     const description=(operation==='analyze'?'本次完整诊断':'本次爆文生成')+'：'+quote.credits+' 积分 / 次'+
       (hasVideo ? '，其中视频理解额外 '+quote.video_credits+' 积分；不按视频时长另计' : '')+'。';
-    if (preview) preview.textContent=description+'受理时先扣周期积分，不足部分扣充值积分；确认失败后按原来源退回。连接中断请核实原任务，不要重复提交。';
+    if (preview) preview.textContent=description+(quote.charge_timing==='after_saved_report'
+      ? '受理时预留积分，报告完成并保存后扣分；未完成则核实后释放预留。连接中断请核实原任务，不要重复提交。'
+      : '受理时先扣周期积分，不足部分扣充值积分；确认失败后按原来源退回。连接中断请核实原任务，不要重复提交。');
     if (!quote.can_afford) { showQuotaExceededModal({operation,credits_needed:quote.credits,monthly_credits_remaining:quote.monthly_credits_remaining,credits_balance:quote.wallet_credits_balance,message:'当前可用积分不足，本次尚未提交。'}); return null; }
     return quote;
   } catch(error) { if(token===_authToken && owner===_authUser?.id) { if(preview)preview.textContent=error.message;showToast(error.message); } return null; }
@@ -6482,8 +6484,8 @@ async function preparePaidSubmission(operation,body) {
       const task=await readPaidTaskState(existing,operation,token);
       if(!_chatIdentityMatches(identity) || token!==_authToken || !currentPaidSubmission(existing))return null;
       displayPaidTaskState(task,existing,operation,identity,token);
-      if(task.status==='failed' && (task.refund_status==='refunded' || task.billing?.status==='refunded')) {
-        // This click is an explicit new intent after the original refund.
+      if(task.status==='failed' && paidTaskFundsResolved(task)) {
+        // This click is an explicit new intent after the original refund/release.
       } else {
         if(task.status!=='completed')void watchPaidTask(existing,operation,identity,token);
         return null;
@@ -6562,11 +6564,11 @@ function syncLiveQueueTaskState(task, identity, token, expectedState=_liveQueueS
   const state=_liveQueueState, taskId=task?.task_id || task?.session_id;
   if(!state || state!==expectedState || state.taskId!==taskId || !_chatIdentityMatches(identity)
       || token!==_authToken || state.token!==token || !state.identityMatches())return;
-  if(state.refundConfirmed && task.billing?.status!=='refunded' && task.refund_status!=='refunded')return false;
+  if(state.refundConfirmed && !paidTaskFundsResolved(task))return false;
   if(state.readbackStatus==='completed' && task.status!=='completed')return false;
   state.version++;state.cancelPending=false;state.readbackStatus=task.status;
   state.taskSnapshot=task;
-  state.refundConfirmed=task.billing?.status==='refunded' || task.refund_status==='refunded';
+  state.refundConfirmed=paidTaskFundsResolved(task);
   state.readbackLocked=['failed','completed','waiting_for_input','outcome_unknown'].includes(task.status);
   state.terminal=['failed','completed','waiting_for_input'].includes(task.status);
   state.canCancel=task.status==='running' && task.can_cancel===true;
@@ -6607,10 +6609,21 @@ function appendPaidTaskReadbackButton(card, submission, operation, identity, tok
   });
   card.appendChild(button);
 }
+function paidTaskFundsResolved(task) {
+  const receipt=task?.billing;
+  if(receipt?.settlement_mode==='reservation_v1' || task?.settlement_mode==='reservation_v1')
+    return receipt?.status==='released' || task?.refund_status==='released';
+  return receipt?.status==='refunded' || task?.refund_status==='refunded';
+}
 function paidTaskStatusText(task, operation) {
   const name=operation==='generate'?'生成':'诊断';
-  const refunded=task?.billing?.status==='refunded' || task?.refund_status==='refunded';
+  const refunded=paidTaskFundsResolved(task);
   if(task?.status==='completed' && task?.report_ref)return `${name}已完成，原报告已保存。`;
+  if(task?.status==='failed' && (task.billing?.settlement_mode==='reservation_v1' || task.settlement_mode==='reservation_v1')) {
+    if(refunded)return `${name}未完成，预留积分已释放，本次未扣积分。`;
+    if(task.billing?.status==='reserved')return `${name}未完成，后台正在核实预留积分释放，本次尚未扣积分。`;
+    return `${name}未完成，后台正在核实本次结算状态，请勿重复提交。`;
+  }
   if(task?.status==='failed' && refunded)return `${name}未完成，本次积分已按原来源退回。`;
   if(task?.status==='failed')return `${name}未完成，后台正在核对本次积分退回，状态确定后会更新。`;
   if(task?.status==='waiting_for_input')return `原${name}任务正在等待补充信息。`;
@@ -6666,7 +6679,7 @@ function displayPaidTaskState(task, submission, operation, identity, token, expe
         button.addEventListener('click',()=>{if(!_chatIdentityMatches(identity)||_authToken!==token)return;
           _paidTaskReportRef={report_type:'generate',report_id:task.report_ref.report_id};showPage('report');});
         card.append(button);
-      } else if((submission.readbackStopped || !['waiting_for_input','running'].includes(task.status)) && task.billing?.status!=='refunded' && task.refund_status!=='refunded') {
+      } else if((submission.readbackStopped || !['waiting_for_input','running'].includes(task.status)) && !paidTaskFundsResolved(task)) {
         appendPaidTaskReadbackButton(card,submission,operation,identity,token);
         if(submission.readbackStopped) {
           const note=document.createElement('div');note.dataset.paidTaskPollingStopped='';
@@ -6680,7 +6693,7 @@ function displayPaidTaskState(task, submission, operation, identity, token, expe
       : {_error:true,_errMsg:message,billing:billing || {status:'unconfirmed'}};
     if(document.getElementById('page-report')?.classList.contains('active'))renderBillingReceipt(billing || {status:'unconfirmed'});
   }
-  const refunded=task?.billing?.status==='refunded' || task?.refund_status==='refunded';
+  const refunded=paidTaskFundsResolved(task);
   const resolved=task?.status==='completed' && !!task.report_ref || task?.status==='failed' && refunded;
   if(resolved) {finishPaidSubmission(submission);refreshCreditBalance();}
   return resolved;
@@ -6748,7 +6761,13 @@ function renderBillingReceipt(receipt) {
   const amount=value=>known(value)?String(value):'未记录';
   el.style.display='block';
   const text=document.createElement('span');
-  text.textContent=receipt.refund_status==='pending' && receipt.status!=='refunded'
+  if(receipt.settlement_mode==='reservation_v1') {
+    text.textContent=receipt.status==='reserved'
+      ? (receipt.refund_status==='pending'?'本次任务未完成，预留积分待后台确认释放；当前未扣积分。':'本次预留 '+amount(receipt.reserved_credits)+' 积分 · 周期 '+amount(receipt.monthly_credits_reserved)+' + 充值 '+amount(receipt.wallet_credits_reserved)+'；报告完成并保存后扣分，当前未扣积分。')
+      : receipt.status==='released'?'预留 '+amount(receipt.released_credits)+' 积分已释放，本次未扣积分。'
+      : receipt.status==='committed'?'报告已保存，本次实际扣分 '+amount(receipt.credits_used)+' 积分 · 周期 '+amount(receipt.monthly_credits_used)+' + 充值 '+amount(receipt.wallet_credits_used)+'。'
+      : '本次预留与结算状态待核实，请读取原任务，不要重复提交。';
+  } else text.textContent=receipt.refund_status==='pending' && receipt.status!=='refunded'
     ? '本次任务未完成，已占用的积分正在后台核对退回。'
     : (receipt.status==='refunded'?'已按原来源退回 '+amount(receipt.refunded_credits)+' 积分；净扣分 ':'本次实际扣分 ')+amount(receipt.credits_used)+' 积分 · 周期 '+amount(receipt.monthly_credits_used)+' + 充值 '+amount(receipt.wallet_credits_used)+'。';
   el.append(text);
@@ -6897,7 +6916,7 @@ async function startGeneration() {
         _generateResult = {_waiting_for_input:true, session_id:terminal.session_id, billing:terminal.billing};
         showTaskClarification(terminal);
       } else if (terminal?.type === 'error') {
-        if (terminal.billing?.status === 'refunded') finishPaidSubmission(submission);
+        if (paidTaskFundsResolved(terminal)) finishPaidSubmission(submission);
         streamGuard.finish();
         const outcomeUnknown=terminal.task_status==='outcome_unknown';
         const message=terminal.status_code===402 ? (terminal.message || '本次积分不足，尚未受理')
@@ -7762,7 +7781,7 @@ async function prepareDiagnosis() {
           _diagnoseResult = {_waiting_for_input:true, session_id:terminal.session_id, billing:terminal.billing};
           showTaskClarification(terminal);
         } else if (terminal?.type === 'error') {
-          if (terminal.billing?.status === 'refunded') finishPaidSubmission(submission);
+          if (paidTaskFundsResolved(terminal)) finishPaidSubmission(submission);
           _diagnoseResult = {
             _error: true,
             _quota: terminal.status_code === 402,
@@ -10868,7 +10887,7 @@ function renderTaskClarification(task) {
   wrap.dataset.taskClarification = task.session_id;
   const answers = new Map((task.answers || []).map(a => [a.question_id,a]));
   wrap.innerHTML = `<div class="chat-supplement-title">把这几处说明白，我就继续完成笔记</div>
-    <div class="chat-supplement-sub">原素材无需重传，已完成的识别不再执行，也不会再次扣整单积分。回答只用于本次内容。</div>
+    <div class="chat-supplement-sub">${task.billing?.settlement_mode==='reservation_v1' ? '原素材无需重传，已完成的识别不再执行；继续本次预留，报告完成并保存后扣分。' : '原素材无需重传，已完成的识别不再执行，也不会再次扣整单积分。'}回答只用于本次内容。</div>
     <p data-task-message role="status"></p>
     <button type="button" data-task-readback>核实原任务状态</button>
     ${(task.questions || []).map(q => {
@@ -10906,7 +10925,7 @@ function renderTaskClarification(task) {
       _generateResult=result;
       renderGenerationTaskOutcome(outcome,generateRequestId);
     } else { _diagnoseResult=result;setProgress(0,text); }
-    if(failed && (state.refund_status === 'refunded' || state.billing?.status === 'refunded'))
+    if(failed && paidTaskFundsResolved(state))
       finishPendingTaskReceipt({request_id:task.session_id,operation:task.operation});
     refreshCreditBalance();
   };
@@ -15123,9 +15142,11 @@ function renderUsageDetail() {
   }
   const recent = document.getElementById('profile-usage-recent');
   if (recent) recent.innerHTML = Array.isArray(usage.recent_records) ? usage.recent_records.slice(0, 10).map(row => {
-    const source = {subscription:'套餐', mixed:'混合', credits:'钱包', refunded:'已退回', free:'未扣积分'}[row.source] || '来源待核';
-    const split = '周期 ' + billingUsageValue(row.monthly_credits_used, 2) + ' / 钱包 ' + billingUsageValue(row.wallet_credits_used, 2);
-    const debit = row.source === 'refunded' ? '净扣 ' + billingUsageValue(row.credits_used, 2) + ' · 已退 ' + billingUsageValue(row.refunded_credits, 2) : '净扣 ' + billingUsageValue(row.credits_used, 2);
+    const reservation=row.settlement_mode==='reservation_v1';
+    const held=reservation && row.status==='reserved',released=reservation && row.status==='released';
+    const source = (held?'预留中':released?'已释放':null) || {subscription:'套餐', mixed:'混合', credits:'钱包', refunded:'已退回', free:'未扣积分'}[row.source] || '来源待核';
+    const split = '周期 ' + billingUsageValue(held?row.monthly_credits_reserved:row.monthly_credits_used, 2) + ' / 钱包 ' + billingUsageValue(held?row.wallet_credits_reserved:row.wallet_credits_used, 2);
+    const debit = held?'预留 ' + billingUsageValue(row.reserved_credits, 2) + ' · 当前未扣':released?'已释放 ' + billingUsageValue(row.released_credits, 2) + ' · 本次未扣':row.source === 'refunded' ? '净扣 ' + billingUsageValue(row.credits_used, 2) + ' · 已退 ' + billingUsageValue(row.refunded_credits, 2) : '净扣 ' + billingUsageValue(row.credits_used, 2);
     const taskRead=row.request_id && ['generate','analyze'].includes(row.operation)
       ? ` <button type="button" class="btn btn-ghost btn-sm" data-usage-task-read="${e(row.request_id)}" data-task-operation="${e(row.operation)}" style="font-size:10px;padding:4px 6px;white-space:normal">查看任务状态</button><span data-usage-task-state role="status" hidden style="display:block;line-height:1.6"></span>` : '';
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px"><span style="color:var(--text-2);flex:1;min-width:0;overflow-wrap:anywhere">${e(row.label || row.operation || '用量记录')}<br><small>${e(debit + ' 积分 · ' + split)}</small>${row.request_id ? `<br><small>任务 ${e(row.request_id)}</small>${taskRead}` : ''}</span><span style="color:var(--text-muted)">${e(billingUsageTime(row.recorded_at))} UTC</span><span style="color:var(--text-muted);font-weight:600;text-align:right">${e(source)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? 'Tokens待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-muted);text-align:right">${e(billingUsageCostValue(row.cost))}</span></div>`;

@@ -1057,3 +1057,130 @@ for(const invalid of ['session','version']) test(`mismatched clarification ${inv
   await expect(page.locator('[data-live-cancel]')).toBeHidden();
   await expect(page.locator('#genMainTitle')).not.toHaveText('蓝猫店原任务完成');
 });
+
+// Postdelivery settlement fixtures are synthetic contract/UI evidence only.
+// They do not perform real reservations, debits, releases, supplier calls or refunds.
+function reservationBilling(status='reserved') {
+  return {settlement_mode:'reservation_v1',status,credits_used:status==='committed'?8:0,
+    monthly_credits_used:status==='committed'?6:0,wallet_credits_used:status==='committed'?2:0,
+    reserved_credits:status==='reserved'?8:0,monthly_credits_reserved:status==='reserved'?6:0,
+    wallet_credits_reserved:status==='reserved'?2:0,released_credits:status==='released'?8:0,refunded_credits:0};
+}
+
+test('reservation task readback keeps pending holds truthful, releases once and rejects stale reserved state',async ({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});
+  await openReadbackIncident(page);
+  let snapshot={...readbackTask('failed',false),settlement_mode:'reservation_v1',refund_status:'pending',billing:reservationBilling()};
+  const methods=[];
+  await page.route('**/synthetic-api/chat/tasks/'+readbackTaskId,route=>{
+    methods.push(route.request().method());return route.fulfill({json:snapshot});
+  });
+  await page.evaluate(async()=>{
+    const task=await readPaidTaskState(__readbackSubmission,'generate',_authToken);
+    displayPaidTaskState(task,__readbackSubmission,'generate',_chatIdentitySnapshot(),_authToken);
+  });
+  await expect(page.locator('#generation-paid-task-status')).toContainText('正在核实预留积分释放，本次尚未扣积分');
+  await expect(page.locator('#generation-paid-task-status')).not.toContainText('已按原来源退回');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  expect(await page.evaluate(()=>currentPaidSubmission(__readbackSubmission))).toBe(true);
+  snapshot={...snapshot,refund_status:'released',billing:reservationBilling('released')};
+  await page.getByRole('button',{name:'重新核实原任务',exact:true}).click();
+  await expect(page.locator('#generation-paid-task-status')).toContainText('预留积分已释放，本次未扣积分');
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-queue-active','false');
+  expect(await page.evaluate(()=>currentPaidSubmission(__readbackSubmission))).toBe(false);
+  await page.evaluate(()=>{
+    const late={task_id:__readbackSubmission.serverRequestId,status:'failed',refund_status:'pending',billing:{settlement_mode:'reservation_v1',status:'reserved'}};
+    window.__lateReservationAccepted=syncLiveQueueTaskState(late,_chatIdentitySnapshot(),_authToken);
+    _handleGenStreamEvent({type:'error',billing:late.billing},__readbackGuard);
+  });
+  expect(await page.evaluate(()=>__lateReservationAccepted)).toBe(false);
+  await expect(page.locator('#generation-paid-task-status')).toContainText('预留积分已释放，本次未扣积分');
+  expect(methods).toEqual(['GET','GET']);
+  await page.locator('#generation-paid-task-status').scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath('390-reservation-release-readback.png')});
+});
+
+test('reservation receipt renders hold, committed and released amounts without relabeling legacy refunds',async ({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await openApp(page);
+  await page.route('**/synthetic-api/reports**',route=>route.fulfill({json:{reports:[],total:0}}));
+  await page.evaluate(receipt=>{_isGenerateMode=true;_generateResult={_error:true,_errMsg:'本地回执状态测试',billing:receipt};showPage('report');renderBillingReceipt(receipt);},reservationBilling());
+  const receipt=page.locator('#report-billing-receipt');
+  await expect(receipt).toBeVisible();
+  await expect(receipt).toContainText('本次预留 8 积分 · 周期 6 + 充值 2');
+  await expect(receipt).toContainText('当前未扣积分');
+  await expect(receipt).not.toContainText('实际扣分');
+  await page.evaluate(r=>renderBillingReceipt(r),reservationBilling('committed'));
+  await expect(receipt).toContainText('报告已保存，本次实际扣分 8 积分 · 周期 6 + 充值 2');
+  await page.evaluate(r=>renderBillingReceipt(r),reservationBilling('released'));
+  await expect(receipt).toContainText('预留 8 积分已释放，本次未扣积分');
+  await expect(receipt).not.toContainText('退回');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(errors).toEqual([]);
+  await page.screenshot({path:testInfo.outputPath('390-released-receipt.png')});
+  await page.evaluate(()=>renderBillingReceipt({status:'refunded',refund_status:'refunded',refunded_credits:8,credits_used:0,monthly_credits_used:0,wallet_credits_used:0}));
+  await expect(receipt).toContainText('已按原来源退回 8 积分；净扣分 0');
+});
+
+test('recent usage distinguishes reservation holds and releases from committed debit and legacy refund',async ({page},testInfo)=>{
+  await page.setViewportSize({width:1280,height:844});
+  await openApp(page);
+  const base={operation:'generate',label:'爆文生成',recorded_at:'2026-10-17T15:00:00Z',credits_used:0,monthly_credits_used:0,wallet_credits_used:0};
+  await page.route('**/synthetic-api/billing/usage?*',route=>route.fulfill({json:{window:{kind:'calendar_month',timezone:'UTC',basis:'usage_record_started_at'},accounting:{},by_operation:{},recent_records:[
+    {...base,...reservationBilling(),request_id:readbackTaskId,source:'reservation_v1:mixed:free'},
+    {...base,...reservationBilling('released'),request_id:'released-fixture',source:'reservation_released_v1:mixed'},
+    {...base,...reservationBilling('committed'),request_id:'committed-fixture',source:'mixed'},
+    {...base,request_id:'legacy-refund-fixture',source:'refunded',refunded_credits:8},
+  ]}}));
+  await page.getByRole('button',{name:'成长档案',exact:true}).click();
+  await page.locator('#profile-usage-toggle').click();
+  const rows=page.locator('#profile-usage-recent');
+  await expect(rows).toContainText('预留 8.00 · 当前未扣 积分 · 周期 6.00 / 钱包 2.00');
+  await expect(rows).toContainText('已释放 8.00 · 本次未扣 积分');
+  await expect(rows).toContainText('净扣 8.00 积分 · 周期 6.00 / 钱包 2.00');
+  await expect(rows).toContainText('净扣 0.00 · 已退 8.00 积分');
+  await page.route('**/synthetic-api/chat/tasks/'+readbackTaskId,route=>route.fulfill({json:{...readbackTask('waiting_for_input',false),settlement_mode:'reservation_v1',refund_status:'reserved',billing:reservationBilling()}}));
+  await page.locator('[data-usage-task-read="'+readbackTaskId+'"]').click();
+  await expect(page.locator('[data-usage-task-state]').first()).toContainText('等待补充信息');
+  await expect(page.locator('[data-usage-task-state]').first()).toHaveAttribute('data-queue-active','false');
+  await rows.scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath('1280-reservation-usage-records.png')});
+});
+
+for(const operation of ['generate','analyze']) {
+  test(`${operation} postdelivery quote starts directly once and discloses saved-report settlement`,async ({page})=>{
+    await openApp(page);
+    let postCount=0;const dialogs=[];
+    page.on('dialog',async d=>{dialogs.push(d.message());await d.dismiss();});
+    await page.route('**/synthetic-api/billing/quote?*',async route=>{await new Promise(resolve=>setTimeout(resolve,100));return route.fulfill({json:{operation,credits:operation==='generate'?8:6,quote_version:'reservation-ui-fixture',can_afford:true,charge_timing:'after_saved_report',video_credits:0}});});
+    await page.route('**/synthetic-api/'+operation+'/stream',route=>{
+      postCount++;
+      const billing={...reservationBilling('released'),request_id:'reservation-terminal-fixture',operation};
+      return route.fulfill({contentType:'text/event-stream',body:'data: '+JSON.stringify({type:'error',task_status:'failed',refund_status:'released',billing})+'\n\n'});
+    });
+    await page.evaluate(op=>{showPage('upload');switchMode(op==='generate'?'generate':'diagnose');},operation);
+    if(operation==='generate')await page.locator('#genBrief').fill('标记的预留说明测试');
+    else {
+      await page.locator('.input-type',{hasText:'填写笔记／上传素材'}).click();
+      await page.locator('#inputTitle').fill('标记的诊断标题');await page.locator('#inputDesc').fill('标记的完整诊断素材正文');
+    }
+    const button=page.locator(operation==='generate'?'#generateSubmitBtn':'#diagnoseSubmitBtn');
+    await button.dblclick();
+    await expect.poll(()=>postCount).toBe(1);
+    expect(dialogs).toEqual([]);
+    await expect(page.locator('#'+operation+'-billing-preview')).toContainText('报告完成并保存后扣分');
+    await expect(page.locator('#'+operation+'-billing-preview')).not.toContainText('受理时先扣');
+  });
+}
+
+
+test('reservation waiting for clarification retains one task and discloses its existing hold',async ({page})=>{
+  await openClarification(page);
+  await page.evaluate(billing=>{__clarifyState.billing=billing;showTaskClarification(__clarifyState);},reservationBilling());
+  await expect(page.locator('[data-task-clarification]')).toContainText('继续本次预留，报告完成并保存后扣分');
+  await expect(page.locator('[data-task-clarification]')).not.toContainText('再次扣整单积分');
+  await expect(page.getByRole('button',{name:'按这些说明继续',exact:true})).toBeEnabled();
+  expect(await page.evaluate(()=>({session:_generateResult.session_id,resume:__clarifyCounts.resume,save:__clarifyCounts.save})))
+    .toEqual({session:'a1111111-1111-4111-8111-111111111111',resume:0,save:0});
+});
