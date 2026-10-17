@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-17 北京21:51：a11生产继续服务；后续AppA隔离候选构建唯一受理／尚未完成
+
+本窗仍唯一云执行者，原发布Root Q-only。已直接核Root真实read_thread.thread.preview首条人类《Owner最终接管指令》，同批目标/合法后继/真实主机必要构建范围覆盖本次Worker-C隔离候选；证据VERIFIED-HUMAN-AUTHORIZATION.json保留，非把Root消息冒作Owner新增授权。独立本地包审GO，仅限e3c82c34c1841554725ccf7b0080fe44e55461eb三角色source overlay/import smoke；不部署、新维护、DDL、正式Worker/支付/provider或权限/新资源。150预算占用95.6110534不变，新增模型0；约3396842B普通对象纳入既有1元storage预留，没有新持续收费资源。生产仍a11/BE8/ca8，不混称AppA上线。
+
+E/appA-e3c82c34-three-role-build-20261017-once1冻结FINAL6006/525ea5d5、PROOF5913/f6ca050f、5wire及两上传文件。真实Chrome OSS两固定key各上传一次，成功2/失败0/中0；明确私有/Standard/OSS AES256，settings及DOM/PNG保留、OSS标签已关闭。DATA Cc-sz070bgi06qkdmo/Tt-sz070bgi0781o1s Success0/D0/13:47:48→52Z，actual-DATA-original01.json15098/08d4641f72b8c23cacc917320bd6dcde0d06144a8939f64496b77498cc861982；2GET/2临时UID999 getter/6成员精确、原bootf31/base6f2d/正式Worker absent，retryfalse/build0。首次读回工具引用已关闭旧tab，在请求前报错；仅重绑定当前浏览器helper，随后读取相同C/T，未重发DATA或GET。
+
+原plan Cc-sz070bgmsj4d3b4/Tt-sz070bgmsjbuscg S0D0/13:49:17Z，actual-plan-original01.json4585/29925f7e598b95c004db0b87cef03693bf0810f34778e556eebfbf755a746f58；实际e3 source/tree/432context/185runtime/9scripts/3injected/4原权重、3base/原矩阵通过，build0/网络0/productionfalse。
+
+唯一build-execute C **c-sz070bgp1o4mfwg**／T **t-sz070bgp1oh3xmo** 已受理，首原件 **actual-build-execute-original01.json** 状态Running/Dropped0，不能称构建通过或未知未执行。载体1320/e5752004→原988/7bd20e48，official Timeout1800/Once/ProcessTree/目标仅Worker-C i-wz98zwcdtcmxzmmoso3w；原各角色build240秒/smoke180秒、1.5GiB/1CPU，构建/smoke无网络/pullfalse；smoke仅UID999临时tmpfs SQLite，不能称所有DB调用0。原host_guard、配置全字段除精确labels保持、baseID/RootFS、O_EXCL/phase持久日志及无自动重试全保留，不改旧摘要false记录。
+
+NEXT_IN_PROGRESS：只读同一build C/T直至终态，成功则原build-readback核三角色id/receipt/source_binding/原完整日志，未知仅原readback/原CID，绝不重build。当前两辅助tab/loopback保存器因实际Running工作保留，终态及原件归档后精确关闭；不打断已受理工作。Root继续Q-only完整控制链，其迁移/发布/真实PG/业务验收未因本次镜像构建而通过。
+
+## HISTORY — 旧版上线收尾及额外只读原件（生产基线仍有效）
+
 ## CURRENT — 2026-10-17 北京21:06：旧版九图／排队修复 a11 已上线；本轮生产操作已闭合
 
 Worker只读摘要差异后续纠正（纯本地，无新增云采集）：原发布Root以三份小OCI Config原件证明，原OCI没有Volumes／OnBuild键，Docker inspect补两键显式null；仅补这两个键，完整Config摘要分别精确等于先前实测7232641e／71d30ec4／8e26fce5，没有其他字段变化。是新只读比较把两种对象形状直接比较导致false，非hash算法变化，也不是实证镜像配置变更。诊断原件Q/target-AppA-worker-fresh-readonly-r1/CONFIG-HASH-DIAGNOSIS.json4387/335ef6076102cb73502debf05cc0c86b19a84c663cacca091a717c9974fefa7a，精确复制保留于E/worker-C-fullC8-readonly-20261017-once1/CONFIG-HASH-DIAGNOSIS.original.json；本窗已核其whole及三个实测摘要绑定。原官方false、fresh_prerequisites=false、旧冻结reader和18路径观察均保留，不伪改历史，不凭该诊断自动构建。原窗口继续Q-only接线；本窗云执行维持收尾，无新增命令或维护，a11生产继续服务。
