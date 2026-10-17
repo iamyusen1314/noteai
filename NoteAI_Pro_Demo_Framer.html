@@ -6549,6 +6549,76 @@ function finishPaidSubmission(submission) { if(currentPaidSubmission(submission)
 const PAID_TASK_READ_INTERVAL_MS = 5000;
 const PAID_TASK_READ_ATTEMPTS = 12;
 const _paidTaskWatchers = new Map();
+const _ownerTaskReads = new Map();
+async function readOwnerTaskState(taskId, operation, identity, token) {
+  const current=()=>_chatIdentityMatches(identity) && _authToken===token;
+  if(!current() || typeof taskId!=='string' || !taskId || taskId.length>128)throw Error('原任务身份无效');
+  const key=identity.ownerId+':'+taskId, sequence=(_ownerTaskReads.get(key)||0)+1;
+  _ownerTaskReads.set(key,sequence);
+  const response=await fetch(API_BASE+'/chat/tasks/'+encodeURIComponent(taskId),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+  const task=await response.json();
+  if(!current() || _ownerTaskReads.get(key)!==sequence)throw Error('原任务读取已更新');
+  if(!response.ok || (task.task_id || task.session_id)!==taskId || task.operation!==operation)throw Error('原任务状态尚未确认');
+  return task;
+}
+function renderOwnerTaskObservation(container, task, includeStatus=true) {
+  const active=task?.queue?.active;
+  container.dataset.taskId=task.task_id || task.session_id || '';
+  container.dataset.taskStatus=task.status || 'unrecorded';
+  container.dataset.queueActive=typeof active==='boolean' ? String(active) : 'unrecorded';
+  let line=container.querySelector('[data-owner-task-observation]');
+  if(!line) {line=document.createElement('span');line.style.display='block';line.dataset.ownerTaskObservation='';line.setAttribute('role','status');container.appendChild(line);}
+  line.textContent=(includeStatus?paidTaskStatusText(task,task.operation)+' ':'')+'后台处理：'+(active===true?'当前有活动处理。':active===false?'当前没有活动处理。':'活动状态未记录。');
+}
+function syncLiveQueueTaskState(task, identity, token, expectedState=_liveQueueState) {
+  const state=_liveQueueState, taskId=task?.task_id || task?.session_id;
+  if(!state || state!==expectedState || state.taskId!==taskId || !_chatIdentityMatches(identity)
+      || token!==_authToken || state.token!==token || !state.identityMatches())return;
+  if(state.refundConfirmed && task.billing?.status!=='refunded' && task.refund_status!=='refunded')return false;
+  if(state.readbackStatus==='completed' && task.status!=='completed')return false;
+  state.version++;state.cancelPending=false;state.readbackStatus=task.status;
+  state.taskSnapshot=task;
+  state.refundConfirmed=task.billing?.status==='refunded' || task.refund_status==='refunded';
+  state.readbackLocked=['failed','completed','waiting_for_input','outcome_unknown'].includes(task.status);
+  state.terminal=['failed','completed','waiting_for_input'].includes(task.status);
+  state.canCancel=task.status==='running' && task.can_cancel===true;
+  state.queue=task.queue || {};
+  state.status=task.status==='completed'?'处理已完成，请查看已保存报告'
+    : task.status==='failed'?'本轮处理已结束，请查看原任务及积分状态'
+    : task.status==='waiting_for_input'?'原任务等待补充信息'
+    : task.status==='running'?'原任务仍在处理，以下为已确认的图片进展'
+    : '原任务结果仍待核实；已保留最后确认的图片进展';
+  const card=document.getElementById('liveTaskQueue');
+  if(!card || card._queueState!==state)return true;
+  renderOwnerTaskObservation(card,task);
+  card.querySelector('[data-live-queue-status]').textContent=state.status;
+  card.querySelector('[data-live-no-progress]').textContent='';
+  const cancel=card.querySelector('[data-live-cancel]');
+  cancel.hidden=!state.canCancel;cancel.style.display=state.canCancel?'':'none';cancel.disabled=!state.canCancel;
+  return true;
+}
+function appendPaidTaskReadbackButton(card, submission, operation, identity, token) {
+  const button=document.createElement('button');button.type='button';button.className='btn btn-ghost btn-sm';
+  button.dataset.paidTaskReadback='';button.textContent='重新核实原任务';
+  let reading=false;
+  button.addEventListener('click',async()=>{
+    const queueAtRead=_liveQueueState;
+    const current=()=>card.isConnected && _chatIdentityMatches(identity) && _authToken===token
+      && currentPaidSubmission(submission) && (operation!=='generate' || _activeGeneratePaidRequestId===submission.requestId)
+      && _liveQueueState===queueAtRead;
+    if(reading || !current())return;
+    reading=true;button.disabled=true;button.textContent='正在核实原任务…';
+    try {
+      const task=await readPaidTaskState(submission,operation,token);
+      if(current())displayPaidTaskState(task,submission,operation,identity,token,queueAtRead);
+    } catch {
+      if(current())button.textContent='暂未读回，点击重新核实';
+    } finally {
+      if(current() && button.isConnected) {reading=false;button.disabled=false;}
+    }
+  });
+  card.appendChild(button);
+}
 function paidTaskStatusText(task, operation) {
   const name=operation==='generate'?'生成':'诊断';
   const refunded=task?.billing?.status==='refunded' || task?.refund_status==='refunded';
@@ -6578,11 +6648,12 @@ function renderGenerationTaskOutcome(task, requestId=_activeGeneratePaidRequestI
   if(banner) {banner.textContent=message;banner.style.display='block';}
   return message;
 }
-function displayPaidTaskState(task, submission, operation, identity, token) {
+function displayPaidTaskState(task, submission, operation, identity, token, expectedQueueState=_liveQueueState) {
   if(!_chatIdentityMatches(identity) || _authToken!==token || !currentPaidSubmission(submission))return true;
   const message=paidTaskStatusText(task,operation);
   const preview=document.getElementById(operation+'-billing-preview');
-  const visible=operation!=='generate' || _activeGeneratePaidRequestId===submission.requestId;
+  const visible=(operation!=='generate' || _activeGeneratePaidRequestId===submission.requestId) && _liveQueueState===expectedQueueState;
+  if(visible && syncLiveQueueTaskState(task,identity,token,expectedQueueState)===false)return false;
   if(visible && preview)preview.textContent=message;
   if(operation==='generate' && visible) {
     renderGenerationTaskOutcome(task,submission.requestId);
@@ -6600,17 +6671,24 @@ function displayPaidTaskState(task, submission, operation, identity, token) {
       const label=document.createElement('div');label.className='bubble-agent';label.textContent='任务状态';
       const body=document.createElement('div');body.className='bubble-text';body.textContent=message;
       card.append(label,body);
+      renderOwnerTaskObservation(card,task,false);
       if(task?.status==='completed' && task.report_ref?.report_type==='generate' && task.report_ref?.report_id) {
         const button=document.createElement('button');button.type='button';button.className='btn btn-ghost btn-sm';
         button.textContent='查看本次已保存报告';
         button.addEventListener('click',()=>{if(!_chatIdentityMatches(identity)||_authToken!==token)return;
           _paidTaskReportRef={report_type:'generate',report_id:task.report_ref.report_id};showPage('report');});
         card.append(button);
+      } else if((submission.readbackStopped || !['waiting_for_input','running'].includes(task.status)) && task.billing?.status!=='refunded' && task.refund_status!=='refunded') {
+        appendPaidTaskReadbackButton(card,submission,operation,identity,token);
+        if(submission.readbackStopped) {
+          const note=document.createElement('div');note.dataset.paidTaskPollingStopped='';
+          note.textContent='已停止自动核对。请重新核实原任务；不会再次生成或扣分。';card.appendChild(note);
+        }
       }
     }
     const billing=task?.billing ? {...task.billing,refund_status:task.refund_status} : null;
-    _generateResult=task?.status==='completed' ? _generateResult
-      : task?.status==='outcome_unknown' ? {_outcome_unknown:true,outcome:'outcome_unknown',_errMsg:message,billing:billing || {status:'unconfirmed'}}
+    if(['failed','outcome_unknown'].includes(task.status))_generateResult=task.status==='outcome_unknown'
+      ? {_outcome_unknown:true,outcome:'outcome_unknown',_errMsg:message,billing:billing || {status:'unconfirmed'}}
       : {_error:true,_errMsg:message,billing:billing || {status:'unconfirmed'}};
     if(document.getElementById('page-report')?.classList.contains('active'))renderBillingReceipt(billing || {status:'unconfirmed'});
   }
@@ -6621,6 +6699,7 @@ function displayPaidTaskState(task, submission, operation, identity, token) {
 }
 async function readPaidTaskState(submission, operation, token) {
   if(!currentPaidSubmission(submission))throw Error('原任务身份已变化');
+  if(submission.serverRequestId)return readOwnerTaskState(submission.serverRequestId,operation,_chatIdentitySnapshot(),token);
   const response=await fetch(API_BASE+'/chat/tasks?operation='+encodeURIComponent(operation),{
     headers:{Authorization:'Bearer '+token,'X-Request-ID':submission.requestId},cache:'no-store'});
   if(!response.ok)throw Error('原任务暂时无法读取');
@@ -6639,8 +6718,9 @@ function watchPaidTask(submission, operation, identity, token) {
     for(let attempt=0;attempt<PAID_TASK_READ_ATTEMPTS;attempt++) {
       if(!_chatIdentityMatches(identity)||_authToken!==token||!currentPaidSubmission(submission))return null;
       try {
+        const queueAtRead=_liveQueueState;
         const task=await readPaidTaskState(submission,operation,token);
-        if(displayPaidTaskState(task,submission,operation,identity,token))return task;
+        if(displayPaidTaskState(task,submission,operation,identity,token,queueAtRead))return task;
       } catch (_) {
         if(!currentPaidSubmission(submission))return null;
         if(attempt===0 && _chatIdentityMatches(identity) && _authToken===token) {
@@ -6649,6 +6729,20 @@ function watchPaidTask(submission, operation, identity, token) {
         }
       }
       if(attempt+1<PAID_TASK_READ_ATTEMPTS)await new Promise(resolve=>setTimeout(resolve,PAID_TASK_READ_INTERVAL_MS));
+    }
+    if(_chatIdentityMatches(identity) && _authToken===token && currentPaidSubmission(submission)
+        && operation==='generate' && _activeGeneratePaidRequestId===submission.requestId) {
+      submission.readbackStopped=true;
+      const area=document.getElementById('bubbleArea');
+      let card=document.getElementById('generation-paid-task-status');
+      if(area && !card) {
+        card=document.createElement('div');card.id='generation-paid-task-status';card.className='bubble';card.setAttribute('role','status');area.appendChild(card);
+      }
+      if(card && !card.querySelector('[data-paid-task-polling-stopped]')) {
+        const note=document.createElement('div');note.dataset.paidTaskPollingStopped='';
+        note.textContent='已停止自动核对。请重新核实原任务；不会再次生成或扣分。';card.appendChild(note);
+        if(!card.querySelector('[data-paid-task-readback]'))appendPaidTaskReadbackButton(card,submission,operation,identity,token);
+      }
     }
     return null;
   })().finally(()=>{if(_paidTaskWatchers.get(key)===pending)_paidTaskWatchers.delete(key);});
@@ -6791,7 +6885,7 @@ async function startGeneration() {
         },
       });
       const terminal = streamResult.terminalEvent;
-      if (!identityMatches() || _activeGeneratePaidRequestId!==paidRequestId) { _resolveGen(); return; }
+      if (!identityMatches() || _activeGeneratePaidRequestId!==paidRequestId || liveQueueReadbackSupersedes(currentRequest)) { _resolveGen(); return; }
       if (terminal?.type === 'complete') {
         finishPaidSubmission(submission);
         streamGuard.finish();
@@ -6834,7 +6928,7 @@ async function startGeneration() {
       }
       _resolveGen();
     } catch(err) {
-      if (!identityMatches() || _activeGeneratePaidRequestId!==paidRequestId) { _resolveGen(); return; }
+      if (!identityMatches() || _activeGeneratePaidRequestId!==paidRequestId || liveQueueReadbackSupersedes(currentRequest)) { _resolveGen(); return; }
       console.error('[NoteAI] stream error:', err);
       const message = '生成连接已结束，正在读取原任务和积分处理结果…';
       _generateResult = { _outcome_unknown: true, outcome: 'outcome_unknown', _errMsg: message };
@@ -6946,6 +7040,9 @@ function appendSafeProcessCard(containerId, ev, extraClass = '') {
 }
 
 const _liveQueueDefaultIdentity=()=>true;
+function liveQueueReadbackSupersedes(identityMatches) {
+  return _liveQueueState?.identityMatches===identityMatches && _liveQueueState.readbackLocked===true;
+}
 function renderLiveQueueEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   const transportTypes = ['task_created','queue_update','heartbeat','image_progress'];
   const terminal = ['complete','error','clarification_required'].includes(ev.type);
@@ -6954,7 +7051,7 @@ function renderLiveQueueEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   // accepted task may take over; a rejected cross-entry submit cannot do so.
   if (ev.type!=='task_created' && _liveQueueState && _liveQueueState.identityMatches!==identityMatches) return true;
   if (!transportTypes.includes(ev.type) && !terminal) return false;
-  if (ev.type === 'task_created' && (!_liveQueueState || _liveQueueState.taskId !== ev.task_id || _liveQueueState.terminal || _liveQueueState.identityMatches!==identityMatches))
+  if (ev.type === 'task_created' && !liveQueueReadbackSupersedes(identityMatches) && (!_liveQueueState || _liveQueueState.taskId !== ev.task_id || _liveQueueState.terminal || _liveQueueState.identityMatches!==identityMatches))
     _liveQueueState={taskId:ev.task_id || '',canCancel:ev.can_cancel===true,queue:{},images:'',terminal:false,version:0,
       identityMatches,token:_authToken,cancelPending:false};
   let state=_liveQueueState;
@@ -6964,7 +7061,9 @@ function renderLiveQueueEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
     state=_liveQueueState={taskId:'',canCancel:false,queue:{},images:'',terminal:false,version:0,
       identityMatches,token:_authToken,cancelPending:false};
   }
-  if (terminal) {
+  if (state.readbackLocked) {
+    // An authoritative owner GET supersedes older buffered stream events.
+  } else if (terminal) {
     state.terminal=true;state.version++;state.canCancel=false;
     state.status=ev.type==='complete' ? '处理已完成' : '本轮处理已结束，请查看原任务及积分状态';
   } else if (!state.terminal) {
@@ -7021,12 +7120,13 @@ function renderLiveQueueEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   card.querySelector('[data-live-queue-status]').textContent=state.status || '已接收任务，等待新进展';
   card.querySelector('[data-live-image-count]').textContent=state.images;
   const seconds=state.queue.last_progress_seconds;
-  card.querySelector('[data-live-no-progress]').textContent=!state.terminal && Number.isFinite(seconds) && seconds>=120
+  card.querySelector('[data-live-no-progress]').textContent=!state.terminal && !state.readbackLocked && Number.isFinite(seconds) && seconds>=120
     ? '距上次实际处理进展 '+Math.floor(seconds)+' 秒；连接仍在，正在核实处理状态，请勿重复提交' : '';
   const button=card.querySelector('[data-live-cancel]');
   const visible=state.canCancel && !!state.taskId && !state.terminal && !state.queue.cancel_requested;
   button.hidden=!visible;button.style.display=visible ? '' : 'none';button.disabled=state.cancelPending || !visible;
-  return !terminal;
+  if(state.taskSnapshot)renderOwnerTaskObservation(card,state.taskSnapshot);
+  return state.readbackLocked || !terminal;
 }
 
 function acceptClarificationQueueEvent(event, task, identityMatches) {
@@ -7649,7 +7749,7 @@ async function prepareDiagnosis() {
           },
         });
         const terminal = streamResult.terminalEvent;
-        if (!currentRequest()) { resolve(); return; }
+        if (!currentRequest() || liveQueueReadbackSupersedes(currentRequest)) { resolve(); return; }
         streamGuard.finish();
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
@@ -7688,7 +7788,7 @@ async function prepareDiagnosis() {
         }
         resolve();
       } catch(err) {
-        if (!currentRequest()) { resolve(); return; }
+        if (!currentRequest() || liveQueueReadbackSupersedes(currentRequest)) { resolve(); return; }
         console.error('[NoteAI] analyze stream error:', err);
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
@@ -10359,6 +10459,7 @@ function chatClearUserState() {
   _activeGeneratePaidRequestId = null;
   _activeAnalyzePaidRequestId = null;
   _liveQueueState = null;
+  _ownerTaskReads.clear();
   _genStreamActive = false;
   _setGenerationSubmitBusy(false);
   if(_genWaitInterval) {clearInterval(_genWaitInterval);_genWaitInterval=null;}
@@ -15037,8 +15138,25 @@ function renderUsageDetail() {
     const source = {subscription:'套餐', mixed:'混合', credits:'钱包', refunded:'已退回', free:'未扣积分'}[row.source] || '来源待核';
     const split = '周期 ' + billingUsageValue(row.monthly_credits_used, 2) + ' / 钱包 ' + billingUsageValue(row.wallet_credits_used, 2);
     const debit = row.source === 'refunded' ? '净扣 ' + billingUsageValue(row.credits_used, 2) + ' · 已退 ' + billingUsageValue(row.refunded_credits, 2) : '净扣 ' + billingUsageValue(row.credits_used, 2);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px"><span style="color:var(--text-2);flex:1">${e(row.label || row.operation || '用量记录')}<br><small>${e(debit + ' 积分 · ' + split)}</small>${row.request_id ? `<br><small>任务 ${e(row.request_id)}</small>` : ''}</span><span style="color:var(--text-muted)">${e(billingUsageTime(row.recorded_at))} UTC</span><span style="color:var(--text-muted);font-weight:600;text-align:right">${e(source)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? 'Tokens待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-muted);text-align:right">${e(billingUsageCostValue(row.cost))}</span></div>`;
+    const taskRead=row.request_id && ['generate','analyze'].includes(row.operation)
+      ? ` <button type="button" class="btn btn-ghost btn-sm" data-usage-task-read="${e(row.request_id)}" data-task-operation="${e(row.operation)}" style="font-size:10px;padding:4px 6px;white-space:normal">查看任务状态</button><span data-usage-task-state role="status" hidden style="display:block;line-height:1.6"></span>` : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px"><span style="color:var(--text-2);flex:1;min-width:0;overflow-wrap:anywhere">${e(row.label || row.operation || '用量记录')}<br><small>${e(debit + ' 积分 · ' + split)}</small>${row.request_id ? `<br><small>任务 ${e(row.request_id)}</small>${taskRead}` : ''}</span><span style="color:var(--text-muted)">${e(billingUsageTime(row.recorded_at))} UTC</span><span style="color:var(--text-muted);font-weight:600;text-align:right">${e(source)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? 'Tokens待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-muted);text-align:right">${e(billingUsageCostValue(row.cost))}</span></div>`;
   }).join('') || '<div style="color:var(--text-muted);font-size:12px">此统计窗口暂无记录</div>' : '最近记录待核';
+  const identity=window._billingUsageIdentity, token=_authToken;
+  recent?.querySelectorAll('[data-usage-task-read]').forEach(button=>button.addEventListener('click',async()=>{
+    const current=()=>button.isConnected && _chatIdentityMatches(identity) && _authToken===token;
+    if(button.disabled || !current())return;
+    const panel=button.parentElement.querySelector('[data-usage-task-state]'),queueAtRead=_liveQueueState;
+    button.disabled=true;panel.hidden=false;panel.textContent='正在读取原任务状态…';
+    try {
+      const task=await readOwnerTaskState(button.dataset.usageTaskRead,button.dataset.taskOperation,identity,token);
+      if(!current())return;
+      panel.replaceChildren();renderOwnerTaskObservation(panel,task);
+      syncLiveQueueTaskState(task,identity,token,queueAtRead);
+    } catch {
+      if(current()) {panel.dataset.queueActive='unrecorded';panel.dataset.taskStatus='unrecorded';panel.textContent='原任务暂未读回，请重试；不会重新生成或扣分。';}
+    } finally {if(current())button.disabled=false;}
+  }));
 }
 
 function toggleUsageDetail() {

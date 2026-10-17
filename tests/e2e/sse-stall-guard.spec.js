@@ -286,7 +286,7 @@ test.describe('SSE warning-only guard', () => {
     expect(messages[0]).toContain('冲突');
     expect(messages[1]).toContain('处理中');
     expect(messages[2]).toContain('已经完成');
-    expect(messages[3]).toContain('退款');
+    expect(messages[3]).toContain('积分退回');
   });
 });
 
@@ -709,6 +709,192 @@ test('old cross-entry stream cannot update or terminate a newly authoritative ta
   });
   await expect(page.locator('#liveTaskQueue')).toContainText('本任务待处理 3 项');
   expect(await page.evaluate(()=>_liveQueueState.terminal)).toBe(false);
+});
+
+// Synthetic owner-task responses exercise the actual public HTML and DOM only.
+// They are not provider calls, real refunds or production task-state evidence.
+const readbackTaskId='2b80b30c-5acf-48ee-bb16-13e0cfc8bd09';
+function readbackTask(status='failed', active=false, refunded=false) {
+  return {task_id:readbackTaskId,session_id:readbackTaskId,operation:'generate',status,
+    can_cancel:status==='running',refund_status:refunded?'refunded':'pending',
+    billing:{status:refunded?'refunded':'charged',credits_used:refunded?0:8,refunded_credits:refunded?8:0},
+    ...(typeof active==='boolean'?{queue:{active,state:active?'settling':'idle'}}:{})};
+}
+async function openReadbackIncident(page) {
+  await openApp(page);
+  await page.evaluate(async taskId=>{
+    window.__readbackSubmission=await paidSubmissionIdentity('generate',{brief:'marked-nine-image-readback'},
+      {quote_version:'synthetic-readback-quote'});
+    _activeGeneratePaidRequestId=__readbackSubmission.requestId;
+    bindPaidSubmissionReceipt(__readbackSubmission,{request_id:taskId});
+    const identity=_chatIdentitySnapshot(),token=_authToken;
+    window.__readbackGuard=()=>_chatIdentityMatches(identity) && _authToken===token
+      && _activeGeneratePaidRequestId===__readbackSubmission.requestId;
+    showPage('live');
+    _handleGenStreamEvent({type:'task_created',task_id:taskId,can_cancel:true},__readbackGuard);
+    _handleGenStreamEvent({type:'image_progress',completed:3,total:9},__readbackGuard);
+    _handleGenStreamEvent({type:'queue_update',queue:{active:true,state:'running',can_cancel:true}},__readbackGuard);
+  },readbackTaskId);
+}
+
+test('owner GET closes the stale 3/9 card without inventing a refund; manual reread confirms refund',async ({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});
+  await openReadbackIncident(page);
+  let snapshot=readbackTask('failed',true),reads=0;
+  const methods=[];
+  await page.route('**/synthetic-api/chat/tasks/'+readbackTaskId,route=>{
+    reads++;methods.push(route.request().method());return route.fulfill({json:snapshot});
+  });
+  await page.evaluate(async()=>{
+    const identity=_chatIdentitySnapshot(),token=_authToken,queue=_liveQueueState;
+    const task=await readPaidTaskState(__readbackSubmission,'generate',token);
+    displayPaidTaskState(task,__readbackSubmission,'generate',identity,token,queue);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('本轮处理已结束');
+  await expect(page.locator('#liveTaskQueue')).toContainText('已完成 3/9 张');
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-queue-active','true');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  await expect(page.locator('#generation-paid-task-status')).toContainText('正在核对本次积分退回');
+  await expect(page.locator('#generation-paid-task-status')).not.toContainText('已按原来源退回');
+  await page.evaluate(()=>{
+    _handleGenStreamEvent({type:'task_created',task_id:__readbackSubmission.serverRequestId,can_cancel:true},__readbackGuard);
+    _handleGenStreamEvent({type:'image_progress',completed:4,total:9},__readbackGuard);
+    _handleGenStreamEvent({type:'stage',stage:'p2',progress:42,label:'旧事件不应恢复专家运行'},__readbackGuard);
+    _handleGenStreamEvent({type:'error',billing:{status:'refunded'}},__readbackGuard);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('已完成 3/9 张');
+  await expect(page.locator('#generation-paid-task-status')).toContainText('正在核对本次积分退回');
+  expect(await page.evaluate(()=>_generateResult.billing.status)).toBe('charged');
+  snapshot=readbackTask('failed',false,true);
+  await page.getByRole('button',{name:'重新核实原任务',exact:true}).click();
+  await expect(page.locator('#generation-paid-task-status')).toContainText('本次积分已按原来源退回');
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-queue-active','false');
+  await expect(page.locator('#liveTaskQueue')).toContainText('当前没有活动处理');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  expect(reads).toBe(2);expect(methods).toEqual(['GET','GET']);
+  expect(await page.evaluate(()=>currentPaidSubmission(__readbackSubmission))).toBe(false);
+  await page.locator('#generation-paid-task-status').scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath('390-authoritative-refund-readback.png')});
+});
+
+test('finite twelve-read watcher stops automatically and manual reread sends only one GET',async ({page})=>{
+  await openReadbackIncident(page);
+  await page.clock.install();
+  let reads=0,snapshot=readbackTask('outcome_unknown',null);
+  await page.route('**/synthetic-api/chat/tasks/'+readbackTaskId,route=>{
+    reads++;return route.fulfill({json:snapshot});
+  });
+  await page.evaluate(()=>{window.__readbackWatch=watchPaidTask(__readbackSubmission,'generate',_chatIdentitySnapshot(),_authToken);});
+  await expect.poll(()=>reads).toBe(1);
+  for(let attempt=2;attempt<=12;attempt++) {
+    await page.clock.fastForward(5000);
+    await expect.poll(()=>reads).toBe(attempt);
+  }
+  await expect(page.locator('[data-paid-task-polling-stopped]')).toContainText('已停止自动核对');
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-queue-active','unrecorded');
+  await expect(page.locator('#liveTaskQueue')).toContainText('活动状态未记录');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  expect(await page.evaluate(()=>({_unknown:_generateResult._outcome_unknown,failed:_generateResult._error || false})))
+    .toEqual({_unknown:true,failed:false});
+  await page.clock.fastForward(60000);expect(reads).toBe(12);
+  snapshot=readbackTask('running',true);
+  await page.getByRole('button',{name:'重新核实原任务',exact:true}).click();
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-queue-active','true');
+  await expect(page.locator('[data-live-cancel]')).toBeVisible();
+  await expect(page.locator('[data-paid-task-polling-stopped]')).toContainText('已停止自动核对');
+  expect(reads).toBe(13);
+  await page.clock.fastForward(60000);expect(reads).toBe(13);
+  snapshot=readbackTask('failed',false,true);
+  await page.getByRole('button',{name:'重新核实原任务',exact:true}).click();
+  await expect(page.locator('#generation-paid-task-status')).toContainText('本次积分已按原来源退回');
+  expect(reads).toBe(14);
+  await page.clock.fastForward(60000);expect(reads).toBe(14);
+});
+
+test('same-task waiting and completed snapshots hide cancellation and retain real queue status',async ({page})=>{
+  await openReadbackIncident(page);
+  await page.evaluate(()=>{
+    const task={task_id:__readbackSubmission.serverRequestId,session_id:__readbackSubmission.serverRequestId,
+      operation:'generate',status:'waiting_for_input',can_cancel:false,queue:{active:false}};
+    displayPaidTaskState(task,__readbackSubmission,'generate',_chatIdentitySnapshot(),_authToken);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('原任务等待补充信息');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  await page.evaluate(()=>{
+    const task={task_id:__readbackSubmission.serverRequestId,session_id:__readbackSubmission.serverRequestId,
+      operation:'generate',status:'completed',can_cancel:false,queue:{active:false},
+      report_ref:{report_type:'generate',report_id:'saved-original'}};
+    displayPaidTaskState(task,__readbackSubmission,'generate',_chatIdentitySnapshot(),_authToken);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('处理已完成');
+  await expect(page.getByRole('button',{name:'查看本次已保存报告',exact:true})).toBeVisible();
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-queue-active','false');
+  await page.evaluate(()=>{
+    _handleGenStreamEvent({type:'stage',stage:'p4',progress:90,label:'迟到旧流'},__readbackGuard);
+    _handleGenStreamEvent({type:'error',task_status:'outcome_unknown'},__readbackGuard);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('处理已完成');
+  await expect(page.locator('#generation-paid-task-status')).toContainText('生成已完成，原报告已保存');
+});
+
+async function openUsageTaskRecord(page) {
+  await openApp(page);
+  await page.route('**/synthetic-api/billing/usage?*',route=>route.fulfill({json:{
+    window:{kind:'calendar_month',timezone:'UTC',basis:'usage_record_started_at'},accounting:{},by_operation:{},
+    recent_records:[{request_id:readbackTaskId,operation:'generate',label:'爆文生成',source:'subscription',
+      credits_used:8,monthly_credits_used:8,wallet_credits_used:0,recorded_at:'2026-10-17T14:20:44Z'}]}}));
+  await page.getByRole('button',{name:'成长档案',exact:true}).click();
+  await expect(page.locator('[data-usage-task-read]')).toHaveCount(1);
+  await page.locator('#profile-usage-toggle').click();
+}
+
+test('recent usage provides cross-device owner-only GET state without local submission or generated result',async ({page},testInfo)=>{
+  await page.setViewportSize({width:1280,height:844});
+  await openUsageTaskRecord(page);
+  const methods=[];
+  await page.route('**/synthetic-api/chat/tasks/'+readbackTaskId,route=>{
+    methods.push(route.request().method());return route.fulfill({json:readbackTask('failed',false)});
+  });
+  await page.getByRole('button',{name:'查看任务状态',exact:true}).click();
+  const panel=page.locator('[data-usage-task-state]');
+  await expect(panel).toHaveAttribute('data-task-id',readbackTaskId);
+  await expect(panel).toHaveAttribute('data-queue-active','false');
+  await expect(panel).toContainText('当前没有活动处理');
+  await expect(panel).toContainText('正在核对本次积分退回');
+  expect(methods).toEqual(['GET']);
+  expect(await page.evaluate(()=>({pending:pendingPaidSubmissions('generate').length,
+    active:_activeGeneratePaidRequestId,result:_generateResult}))).toEqual({pending:0,active:null,result:null});
+  await panel.scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath('1280-recent-usage-task-state.png')});
+});
+
+test('late usage GET cannot terminate a newer task or show another account data',async ({page})=>{
+  await openUsageTaskRecord(page);
+  let release;
+  await page.route('**/synthetic-api/chat/tasks/'+readbackTaskId,async route=>{
+    await new Promise(resolve=>{release=resolve;});return route.fulfill({json:readbackTask('failed',false,true)});
+  });
+  await page.getByRole('button',{name:'查看任务状态',exact:true}).click();
+  await expect.poll(()=>typeof release).toBe('function');
+  await page.evaluate(()=>{
+    window.__newReadbackGuard=()=>true;
+    _activeGeneratePaidRequestId='new-generation';
+    _generateResult={newTask:true};
+    _handleGenStreamEvent({type:'task_created',task_id:'22222222-2222-4222-8222-222222222222',can_cancel:true},__newReadbackGuard);
+    _handleGenStreamEvent({type:'queue_update',queue:{active:true,state:'running',can_cancel:true}},__newReadbackGuard);
+  });
+  release();
+  await expect(page.locator('[data-usage-task-state]')).toHaveAttribute('data-queue-active','false');
+  expect(await page.evaluate(()=>({task:_liveQueueState.taskId,terminal:_liveQueueState.terminal,result:_generateResult})))
+    .toEqual({task:'22222222-2222-4222-8222-222222222222',terminal:false,result:{newTask:true}});
+  release=undefined;
+  await page.getByRole('button',{name:'查看任务状态',exact:true}).click();
+  await expect.poll(()=>typeof release).toBe('function');
+  await page.evaluate(()=>{chatClearUserState();_authUser={id:'other-owner'};_authToken='other-owner-token';});
+  release();
+  await expect(page.locator('[data-usage-task-read]')).toHaveCount(0);
+  await expect(page.locator('#profile-usage-recent')).not.toContainText(readbackTaskId);
+  expect(await page.evaluate(()=>_liveQueueState)).toBeNull();
 });
 
 function actualBackendResumeEvents(operation) {
