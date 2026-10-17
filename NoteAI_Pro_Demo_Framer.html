@@ -7029,6 +7029,21 @@ function renderLiveQueueEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   return !terminal;
 }
 
+function acceptClarificationQueueEvent(event, task, identityMatches) {
+  if (!identityMatches() || event.type!=='clarification_acknowledged' || event.session_id!==task.session_id
+      || !Number.isInteger(task.version) || !Number.isInteger(event.version) || event.version!==task.version+1
+      || event.charged_again!==false || !['generate','analyze'].includes(task.operation)
+      || (event.operation && event.operation!==task.operation)) return false;
+  if (_liveQueueState?.taskId && _liveQueueState.taskId!==task.session_id && !_liveQueueState.terminal) return false;
+  const images=_liveQueueState?.taskId===task.session_id ? _liveQueueState.images : '';
+  _liveQueueState={taskId:task.session_id,canCancel:false,queue:{},images,terminal:false,version:0,
+    identityMatches,token:_authToken,cancelPending:false,status:'说明已接收，正在继续原任务'};
+  // The acknowledgement confirms the original task, not an active model call.
+  // A subsequent real queue update alone enables cancellation.
+  renderLiveQueueEvent({type:'heartbeat'},identityMatches);
+  return true;
+}
+
 function _handleGenStreamEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   if (!identityMatches()) return;
   if (renderLiveQueueEvent(ev,identityMatches)) return;
@@ -10847,6 +10862,8 @@ function renderTaskClarification(task) {
       status:row.querySelector('select').value,answer:row.querySelector('textarea').value.trim()}));
     if (submitted.some(a => a.status === 'confirmed' && !a.answer)) { message.textContent='请填写回答，也可以选“暂不确定”或“这项不写”。'; return; }
     busy=true;enable(false);message.textContent='正在保存回答并接续原任务…';
+    const streamMatches=()=>valid();
+    let resumeAccepted=false;
     try {
       const response = await fetch(API_BASE + '/chat/message', {method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,'X-Request-ID':createPaidRequestId('clarify')},
         body:JSON.stringify({session_id:task.session_id,task_version:task.version,task_answers:submitted,message:'按本次说明继续'})});
@@ -10858,14 +10875,22 @@ function renderTaskClarification(task) {
         message.textContent=(typeof error.detail === 'string' ? error.detail : '回答状态尚未确认') + (uncertain ? '，请先核实原任务状态。' : '');return;
       }
       const streamed = await consumeJsonSse(response,{terminalTypes:['complete','error','clarification_required'],onEvent:event => {
-        if (!valid()) return;
-        if(event.type === 'clarification_acknowledged') message.textContent=event.message;
-        else if(event.type === 'error') return;
-        else if(event.type === 'complete') return;
-        else if(task.operation === 'generate') _handleGenStreamEvent(event,valid);
-        else _handleAnalyzeStreamEvent(event,valid);
+        if (!streamMatches()) return;
+        if(event.type==='clarification_acknowledged') {
+          if (!wrap.isConnected || !acceptClarificationQueueEvent(event,task,streamMatches)) return;
+          resumeAccepted=true;message.textContent=event.message;return;
+        }
+        if (!resumeAccepted) return;
+        if(['complete','error','clarification_required'].includes(event.type)) {
+          renderLiveQueueEvent(event,streamMatches);return;
+        }
+        if(task.operation==='generate') _handleGenStreamEvent(event,streamMatches);
+        else _handleAnalyzeStreamEvent(event,streamMatches);
       }});
-      if (!valid()) return;
+      if (!valid() || (resumeAccepted && _liveQueueState?.identityMatches!==streamMatches)) return;
+      if(!resumeAccepted) {
+        showOutcome({status:'outcome_unknown'});message.textContent='接续状态尚未匹配原任务，请核实原任务状态，不重复提交。';return;
+      }
       if(streamed.terminalEvent?.type === 'complete') await finishClarifiedTask(streamed.terminalEvent,task,identity,token,false);
       else showOutcome(streamed.terminalEvent || {status:'outcome_unknown'});
     } catch(error) { if(valid()) {showOutcome({status:'outcome_unknown'});message.textContent='连接中断，原任务可能仍在处理。请先核实原任务状态，不重复提交。';} }

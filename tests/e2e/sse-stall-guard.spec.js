@@ -315,7 +315,7 @@ async function openClarification(page, operation = 'generate') {
         if (__clarifyMode==='reject') return Response.json({detail:'请完整填写回答'}, {status:422});
         if (__clarifyMode==='disconnect') throw new Error('synthetic disconnect');
         __clarifyState={...__clarifyState,status:'completed',version:2,result:{type:'complete',note_title:'蓝猫店双人套餐',note_body:'双人套餐198元，门票另购。',ces_percentile:76,grade:'良好',saved_note_id:'b1111111-1111-4111-8111-111111111111',saved_note_version:1,pending_confirmation:[],title_variants:[],expert_opinions:[]}};
-        const response='data: '+JSON.stringify({type:'clarification_acknowledged',message:'已更新：套餐不含门票，饮品不写。继续原素材。'})+'\n\n'+'data: '+JSON.stringify(__clarifyState.result)+'\n\n';
+        const response='data: '+JSON.stringify({type:'clarification_acknowledged',session_id:__clarifyState.session_id,version:2,operation,charged_again:false,message:'已更新：套餐不含门票，饮品不写。继续原素材。'})+'\n\n'+'data: '+JSON.stringify(__clarifyState.result)+'\n\n';
         return new Response(response,{headers:{'Content-Type':'text/event-stream'}});
       }
       if (opts.method==='POST' && path.endsWith('/notes')) {__clarifyCounts.save++;throw Error('Must not save twice');}
@@ -709,4 +709,115 @@ test('old cross-entry stream cannot update or terminate a newly authoritative ta
   });
   await expect(page.locator('#liveTaskQueue')).toContainText('本任务待处理 3 项');
   expect(await page.evaluate(()=>_liveQueueState.terminal)).toBe(false);
+});
+
+function actualBackendResumeEvents(operation) {
+  // Exercise the real a11 resume/event/timing wrappers with isolated business
+  // dependencies. No supplier, DB mutation, authentication shortcut or payment.
+  const {execFileSync}=require('node:child_process');
+  const path=require('node:path');
+  const fs=require('node:fs');
+  const localPython=path.resolve(__dirname,'../../.venv/bin/python');
+  const python=process.env.NOTEAI_TEST_PYTHON || (fs.existsSync(localPython)?localPython:'python3');
+  const script=String.raw`
+import os,sys,asyncio,json
+from pathlib import Path
+from contextlib import ExitStack
+from unittest import mock
+from types import SimpleNamespace
+os.environ['PYTHON_DOTENV_DISABLED']='1'
+sys.path.insert(0,str(Path.cwd()/'model'))
+import api
+operation=sys.argv[1];sid='a1111111-1111-4111-8111-111111111111'
+claim={'state':'owner','user_id':'merchant-a','request_id':sid,'operation':operation,'key_hash':'mock-original-hash','charge':{'usage_id':'mock-original-usage'}}
+prepared={'pipeline':'generate_stream' if operation=='generate' else 'analyze','domain':'美食','brief':'原素材','timing':None,'cover_feats':{},'visual_score':None,'local_time':'','user_tier':'free','memory_context':'','metadata':{},'agent_context':'原观察','source_material':'原素材','image_desc':'原图片观察','request':{'note_title':'原始标题','desc':'原始正文','domain':'美食'}}
+task={'version':2,'prepared':prepared,'answers':[{'question_id':'package','answer':'不包含门票','status':'confirmed','revision':2}]}
+complete={'type':'complete','note_title':'蓝猫店原任务完成','note_body':'根据本次说明继续原素材。','ces_percentile':73.2,'grade':'良好','suggested_plans':[],'expert_opinions':[],'pending_confirmation':[]}
+async def generate(**kwargs):
+ yield {'type':'stage','stage':'p3','label':'继续原任务仲裁','progress':60}
+ await asyncio.sleep(.02)
+ yield {'type':'expert_opinion','agent_idx':4,'role':'仲裁专家','content':'原说明已用于本次内容','detail':'','progress':70}
+ yield dict(complete)
+async def analyze(*args,emit,**kwargs):
+ await emit({'type':'stage','stage':'arbitrate','label':'继续原任务诊断','progress':60})
+ await asyncio.sleep(.02)
+ await emit({'type':'expert_opinion','agent_idx':4,'role':'仲裁专家','content':'原说明已用于诊断','detail':'','progress':70})
+ return SimpleNamespace(model_dump=lambda:dict(complete))
+async def run():
+ req=api.ChatMessageInput(session_id=sid,task_version=1,task_answers=[{'question_id':'package','status':'confirmed','answer':'不包含门票'}],message='按本次说明继续')
+ response=await api._resume_clarified_task(req,{'id':'merchant-a'})
+ return [json.loads(chunk[6:]) async for chunk in response.body_iterator]
+with ExitStack() as stack:
+ for target,name,value in [(api._clarification,'resume',(claim,task)),(api._clarification,'answer_context','本次补充：不包含门票'),(api._clarification,'pending_confirmation',[]),(api._billing,'activate_usage',None),(api._billing,'get_charge_receipt',{'request_id':sid,'status':'completed'}),(api._clarification,'save_result',None),(api._idempotency,'mark_completed',True),(api._idempotency,'mark_failed_and_refund',True),(api._public_product,'bind_task_claim',None),(api._public_product,'assert_result_known',None),(api._public_product,'queue_status',{'active':True,'state':'running','can_cancel':True,'completed_calls':1})]:
+  stack.enter_context(mock.patch.object(target,name,return_value=value))
+ stack.enter_context(mock.patch.object(api,'_SSE_HEARTBEAT_SECONDS',.002))
+ stack.enter_context(mock.patch.object(api,'_generate_pipeline_stream',side_effect=generate))
+ stack.enter_context(mock.patch.object(api,'_run_analyze_pipeline',side_effect=analyze))
+ events=asyncio.run(run())
+assert events[0]['type']=='clarification_acknowledged' and events[0]['session_id']==sid and events[0]['version']==2 and events[0]['charged_again'] is False
+assert not any(e['type']=='task_created' for e in events)
+assert events[-1]['type']=='complete' and any(e['type']=='queue_update' for e in events)
+print(json.dumps(events,ensure_ascii=False))
+`;
+  return JSON.parse(execFileSync(python,['-c',script,operation],
+    {cwd:path.resolve(__dirname,'../..'),encoding:'utf8',timeout:15000}));
+}
+
+for(const operation of ['generate','analyze']) test(`actual backend ${operation} clarification acknowledgement resumes queue and closes on terminal`,async ({page})=>{
+  const events=actualBackendResumeEvents(operation);
+  await openClarification(page,operation);
+  await page.evaluate(({events,operation})=>{
+    window.__resumeSequence=events;window.__resumeCancelPaths=[];
+    const fallback=window.fetch.bind(window);
+    window.fetch=async(url,opts={})=>{
+      if(String(url).endsWith('/cancel')){
+        __resumeCancelPaths.push(String(url));return Response.json({cancel_requested:true,message:'原接续已请求停止后续，等待结算'});
+      }
+      if(!String(url).endsWith('/chat/message'))return fallback(url,opts);
+      const encoder=new TextEncoder();
+      return new Response(new ReadableStream({start(controller){
+        for(const event of events.slice(0,-1))controller.enqueue(encoder.encode('data: '+JSON.stringify(event)+'\n\n'));
+        window.__finishActualResume=()=>{controller.enqueue(encoder.encode('data: '+JSON.stringify(events.at(-1))+'\n\n'));controller.close();};
+      }}),{headers:{'Content-Type':'text/event-stream'}});
+    };
+    const handler=operation==='generate'?_handleGenStreamEvent:_handleAnalyzeStreamEvent;
+    handler({type:'task_created',task_id:__clarifyState.session_id,can_cancel:false});
+    handler({type:'clarification_required'});
+  },{events,operation});
+  await page.getByRole('textbox',{name:'198元的双人套餐包含门票吗？',exact:true}).fill('不包含门票');
+  await page.getByRole('combobox',{name:'套餐饮品需要写进这篇笔记吗？处理方式'}).selectOption('omitted');
+  await page.getByRole('button',{name:'按这些说明继续',exact:true}).click();
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-task-id','a1111111-1111-4111-8111-111111111111');
+  await expect(page.locator('#cf4')).toHaveText('已完成');
+  expect(await page.evaluate(()=>_liveQueueState.terminal)).toBe(false);
+  await expect(page.getByRole('button',{name:'取消后续处理',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'取消后续处理',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>__resumeCancelPaths.length)).toBe(1);
+  expect(await page.evaluate(()=>__resumeCancelPaths[0])).toContain('/chat/tasks/a1111111-1111-4111-8111-111111111111/cancel');
+  await page.evaluate(()=>__finishActualResume());
+  await expect.poll(()=>page.evaluate(()=>_liveQueueState.terminal)).toBe(true);
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  expect(events.some(e=>e.type==='task_created')).toBe(false);
+});
+
+for(const invalid of ['session','version']) test(`mismatched clarification ${invalid} cannot take over or complete original task`,async ({page})=>{
+  const events=actualBackendResumeEvents('generate');
+  if(invalid==='session')events[0].session_id='ffffffff-ffff-4fff-8fff-ffffffffffff';else events[0].version=99;
+  await openClarification(page);
+  await page.evaluate(events=>{
+    const fallback=window.fetch.bind(window);
+    window.fetch=async(url,opts={})=>String(url).endsWith('/chat/message')
+      ?new Response(events.map(event=>'data: '+JSON.stringify(event)+'\n\n').join(''),{headers:{'Content-Type':'text/event-stream'}})
+      :fallback(url,opts);
+    _handleGenStreamEvent({type:'task_created',task_id:__clarifyState.session_id,can_cancel:false});
+    _handleGenStreamEvent({type:'clarification_required'});
+  },events);
+  await page.getByRole('textbox',{name:'198元的双人套餐包含门票吗？',exact:true}).fill('不包含门票');
+  await page.getByRole('combobox',{name:'套餐饮品需要写进这篇笔记吗？处理方式'}).selectOption('omitted');
+  await page.getByRole('button',{name:'按这些说明继续',exact:true}).click();
+  await expect(page.locator('[data-task-message]')).toContainText('尚未匹配原任务');
+  expect(await page.evaluate(()=>_generateResult?._outcome_unknown)).toBe(true);
+  expect(await page.evaluate(()=>_liveQueueState.terminal)).toBe(true);
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  await expect(page.locator('#genMainTitle')).not.toHaveText('蓝猫店原任务完成');
 });
