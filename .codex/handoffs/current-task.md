@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-17 北京：AppA固定原件metadata已实际读取，正文尚未归档；生产仍a11
+
+唯一metadata Cc-sz070bhnu70pa80/Tt-sz070bhnu7fooao，固定Worker-C原bootf31，Timeout45，实际Success0/Dropped0。E/appA-e3c82c34-three-role-build-20261017-once1/actual-build-metadata-original01.json **11399/cef07cb1aa4c17365bbf00fe4a4e0392605c465e6bb7ee4510b302207f090d6a**；native3938/d3a8fb435c2b5665f1ca355ab4c7c1033c6fc21bbf4e34c1718b1e3f9bb532f5。13固定JSON均PRESENT_SAVED_ORIGINAL，5先验wholeSHA匹配；Docker/process/network/DB/写入均0，无构建或重readback。冻结metadata.b64 4280/6deb5c51、metadata.py5213/bcc898e0/metadata.sh3208/8532c8d1与独审一致。
+
+最小QA4文件实际metadata：result2744/270b76db；source_binding26744/b5f1b176；APIinspect9816/2306e01d；Workerinspect8114/3e87d0c1。此为大小/whole摘要，尚不能说raw正文已下载；其他9份只记真实metadata。原件已直接交Root/Fact，等待其按实际whole、固定path/offset/16KiB与24576输出上限绑定最小读取包，单包独审与Dropped0/完整字节校验后才算归档。未来image inspect读取还需具体审查Env隐私，不输出任何凭据。
+
+NEXT_IN_PROGRESS：仅收4份必要原件及逐whole核验，不重复AppA build/readback/export/push、不开始QA30/真实PG或生产维护。保留既有2辅助tab和同loopback保存器用于本项，归档完成即精确关闭。旧版a11/BE8/ca8实际上线与已验收边界不变；无新模型调用，预算占用95.6110534/150不变。旧公网临时测试入口恢复授权已履行并关闭，不因迟到回复重开。源码未改。
+
+## HISTORY — 前一构建检查点
+
 ## CURRENT — 2026-10-17 北京21:53：AppA仅隔离候选构建／导入smoke与原收据核验通过，未部署；a11仍为生产基线
 
 唯一AppA e3c82c34c1841554725ccf7b0080fe44e55461eb build Cc-sz070bgp1o4mfwg/Tt-sz070bgp1oh3xmo实际S0D0，13:49:59→13:50:33Z（BJT21:49:59→21:50:33，34秒），前一Running原件保留。E/appA-e3c82c34-three-role-build-20261017-once1/actual-build-execute-original02.json6417/d2e45a2ab4f83de33f787515fe8e43ce0968979da7810d6cafa05735d79e87f5；native2413/e6942e020c941ee6350e3ec42fd9f3a5403e96df14fe34efef8d3457d41ebf7e，BUILT_NOT_DEPLOYED_IMPORT_ONLY，source/tree0d50/原f31/worker beforeafterabsent/0retry。真实三新Linux config imageID：API **eed8502c16e833f94f4d1730d9ea28d6d556e539b25e259c0045a365cb136e4d**，Worker **01e90f59fff64cd06a23d387271cfea20d499f92da6973a9ad02b510a54239ce**，Payment **fc096359bccb3ad1182ada19396a38ce9aa9382900b990a05d2cab09cf3af2dd**；不是OCI index/registrydigest，也不是正式运行CID。
