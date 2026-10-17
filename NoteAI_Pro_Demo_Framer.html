@@ -5043,7 +5043,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 }
 [data-task-clarification] textarea {resize:vertical;}
 [data-task-clarification] select {min-height:44px;}
-[data-task-submit],[data-task-readback] {display:block;width:100%;margin-top:8px;}
+[data-task-submit],[data-task-readback],[data-task-release] {display:block;width:100%;margin-top:8px;}
 [data-task-clarification] strong,[data-task-clarification] span,
 [data-task-clarification] .chat-supplement-title,[data-task-clarification] .chat-supplement-sub,
 [data-task-message] {overflow-wrap:anywhere;}
@@ -10890,6 +10890,7 @@ function renderTaskClarification(task) {
     <div class="chat-supplement-sub">${task.billing?.settlement_mode==='reservation_v1' ? '原素材无需重传，已完成的识别不再执行；继续本次预留，报告完成并保存后扣分。' : '原素材无需重传，已完成的识别不再执行，也不会再次扣整单积分。'}回答只用于本次内容。</div>
     <p data-task-message role="status"></p>
     <button type="button" data-task-readback>核实原任务状态</button>
+    <button type="button" data-task-release style="display:none">放弃此任务并释放预留</button>
     ${(task.questions || []).map(q => {
       const answer = answers.get(q.question_id);
       return `<div class="chat-supplement-row is-open" data-question-id="${chatEsc(q.question_id)}">
@@ -10903,6 +10904,7 @@ function renderTaskClarification(task) {
     }).join('')}
     <button type="button" data-task-submit>按这些说明继续</button>`;
   const message = wrap.querySelector('[data-task-message]');
+  const release=wrap.querySelector('[data-task-release]');
   wrap.querySelectorAll('[data-question-id]').forEach(row => {
     const prior = answers.get(row.dataset.questionId);
     if (prior) row.querySelector('[data-task-status]').value = prior.status;
@@ -10918,7 +10920,7 @@ function renderTaskClarification(task) {
     const outcome = {...state,status:failed ? 'failed' : 'outcome_unknown'};
     const text = failed ? paidTaskStatusText(outcome,task.operation)
       : '本次结果尚未完成确认。原素材和回答已保留，请先核实原任务状态，不重复提交。';
-    busy=true;uncertain=!failed;enable(false);message.textContent=text;
+    busy=true;uncertain=!failed;enable(false);release.style.display='none';message.textContent=text;
     const result = failed ? {_error:true,_errMsg:text,billing:state.billing}
       : {_outcome_unknown:true,outcome:'outcome_unknown',_errMsg:text,billing:state.billing || {status:'unconfirmed'}};
     if(task.operation === 'generate') {
@@ -10933,14 +10935,19 @@ function renderTaskClarification(task) {
   if (['failed','outcome_unknown'].includes(task.status)) showOutcome(task);
   else if (busy) message.textContent='原任务状态：'+task.status+'。请先核实原结果，不重复发起。';
   const readback=wrap.querySelector('[data-task-readback]');
-  let reading=false;
-  readback.addEventListener('click', async () => {
-    if (reading || !valid()) return;
+  const canRelease = task.status === 'waiting_for_input' && task.can_cancel === true
+    && (task.settlement_mode === 'reservation_v1' || task.billing?.settlement_mode === 'reservation_v1');
+  release.style.display=canRelease ? 'block' : 'none';
+  let reading=false,cancelling=false,cancelReadback=false;
+  const readOriginalTask = async () => {
+    if (reading || cancelling || !valid() || !wrap.isConnected) return;
     reading=true;readback.disabled=true;busy=true;uncertain=true;enable(false);
     try {
       const response = await fetch(API_BASE + '/chat/tasks/' + encodeURIComponent(task.session_id), {headers:{Authorization:'Bearer '+token}});
-      const state = await response.json(); if (!valid()) return;
+      const state = await response.json(); if (!valid() || !wrap.isConnected) return;
       if (!response.ok) throw Error(typeof state.detail === 'string' ? state.detail : '暂时无法读取原任务');
+      if ((state.session_id || state.task_id) !== task.session_id || state.operation !== task.operation)
+        throw Error('原任务状态尚未确认');
       if (state.status !== 'completed') refreshCreditBalance();
       if (state.status === 'waiting_for_input') {
         const drafts = new Map([...wrap.querySelectorAll('[data-question-id]')].map(row =>
@@ -10951,18 +10958,34 @@ function renderTaskClarification(task) {
           if (draft) {row.querySelector('textarea').value=draft.answer;row.querySelector('select').value=draft.status;}
         });
         const notice=refreshed?.querySelector('[data-task-message]');
-        if (notice) notice.textContent='原任务仍等待这次回答，可以继续填写。';
+        if (notice) notice.textContent=cancelReadback ? '原任务仍等待补充，尚未确认释放预留；可以继续填写或稍后核实。' : '原任务仍等待这次回答，可以继续填写。';
       } else if (state.status === 'completed' && state.result) {
         await finishClarifiedTask(state.result, task, identity, token, true);
       } else if (['failed','outcome_unknown'].includes(state.status)) {
         showOutcome(state);
       } else {
-        busy=true;uncertain=true;enable(false);
+        busy=true;uncertain=true;enable(false);release.style.display='none';
         message.textContent = state.status === 'running' ? '原回答已接收，仍在处理；请稍后读取，不重复提交。' : '原任务状态：' + state.status + '。已保留原记录。';
       }
     } catch(error) {
-      if(valid()) {showOutcome({status:'outcome_unknown'});message.textContent='暂时无法核实原任务。原回答已保留，请重试核实，不重复提交。';}
+      if(valid() && wrap.isConnected) {showOutcome({status:'outcome_unknown'});message.textContent='暂时无法核实原任务。原回答已保留，请重试核实，不重复提交。';}
     } finally { if(valid()) {reading=false;readback.disabled=false;} }
+  };
+  readback.addEventListener('click',readOriginalTask);
+  release.addEventListener('click',async()=>{
+    if (!canRelease || busy || reading || cancelling || !valid() || !wrap.isConnected) return;
+    cancelling=true;cancelReadback=true;busy=true;uncertain=true;enable(false);readback.disabled=true;
+    message.textContent='正在申请放弃原任务，随后核实预留积分状态…';
+    try {
+      await fetch(API_BASE+'/chat/tasks/'+encodeURIComponent(task.session_id)+'/cancel',{method:'POST',
+        headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({})});
+    } catch { /* A lost cancellation response must be resolved by the original task readback. */ }
+    finally {
+      if(valid() && wrap.isConnected) {
+        cancelling=false;readback.disabled=false;
+        await readOriginalTask();
+      }
+    }
   });
   wrap.querySelector('[data-task-submit]').addEventListener('click', async () => {
     if (busy || uncertain || !valid()) return;

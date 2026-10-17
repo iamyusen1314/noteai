@@ -1184,3 +1184,126 @@ test('reservation waiting for clarification retains one task and discloses its e
   expect(await page.evaluate(()=>({session:_generateResult.session_id,resume:__clarifyCounts.resume,save:__clarifyCounts.save})))
     .toEqual({session:'a1111111-1111-4111-8111-111111111111',resume:0,save:0});
 });
+
+
+// Waiting abandonment uses only the existing cancellation route and authoritative task GET.
+// These fixtures simulate the contract; they do not release real credits or call providers.
+async function openWaitingReservationAbandonment(page) {
+  await openClarification(page);
+  await page.evaluate(billing=>{
+    __clarifyState={...__clarifyState,settlement_mode:'reservation_v1',billing,queue:{active:false}};
+    window.__releaseRequests=[];window.__releaseMode='success';window.__releaseReadMode='normal';
+    const fallback=window.fetch.bind(window);
+    window.fetch=async(url,opts={})=>{
+      const path=String(url);
+      if(path.endsWith('/chat/tasks/'+__clarifyState.session_id+'/cancel')) {
+        __releaseRequests.push({path,method:opts.method,body:opts.body,authorization:opts.headers.Authorization});
+        if(__releaseMode==='disconnect')throw Error('synthetic cancellation response lost');
+        if(__releaseMode==='reject')return Response.json({detail:'本次尚不能释放'},{status:409});
+        if(__releaseMode==='defer')await new Promise(resolve=>{window.__releasePostFinish=resolve;});
+        // Even this success receipt cannot replace the subsequent original-task GET.
+        return Response.json({task_id:__clarifyState.session_id,cancel_requested:true,refund_status:'released',
+          settlement_mode:'reservation_v1',billing:{...billing,status:'released',reserved_credits:0,released_credits:8}});
+      }
+      if(path.endsWith('/chat/tasks/'+__clarifyState.session_id)) {
+        if(__releaseReadMode==='fail')throw Error('synthetic original-task read unavailable');
+        if(__releaseReadMode==='defer')await new Promise(resolve=>{window.__releaseGetFinish=resolve;});
+      }
+      return fallback(url,opts);
+    };
+    showTaskClarification(__clarifyState);
+  },reservationBilling());
+}
+
+test('waiting reservation abandonment appears only after server permission and confirms release by original GET',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await openWaitingReservationAbandonment(page);
+  const release=page.getByRole('button',{name:'放弃此任务并释放预留',exact:true});
+  await expect(release).toBeHidden();
+  await page.getByRole('textbox',{name:'198元的双人套餐包含门票吗？',exact:true}).fill('保留这次填写的回答');
+  await page.evaluate(()=>{__clarifyState.can_cancel=true;});
+  await page.getByRole('button',{name:'核实原任务状态',exact:true}).click();
+  await expect(release).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'198元的双人套餐包含门票吗？',exact:true})).toHaveValue('保留这次填写的回答');
+  await page.evaluate(()=>{__releaseReadMode='defer';});
+  await release.dblclick();
+  await expect.poll(()=>page.evaluate(()=>__releaseRequests.length)).toBe(1);
+  await expect.poll(()=>page.evaluate(()=>typeof __releaseGetFinish)).toBe('function');
+  await expect(page.locator('[data-task-message]')).not.toContainText('预留积分已释放');
+  await expect(page.getByRole('button',{name:'按这些说明继续',exact:true})).toBeDisabled();
+  await page.evaluate(billing=>{
+    __clarifyState={...__clarifyState,status:'failed',can_cancel:false,refund_status:'released',billing};
+    __releaseGetFinish();
+  },reservationBilling('released'));
+  await expect(page.locator('[data-task-message]')).toContainText('预留积分已释放，本次未扣积分');
+  await expect(release).toBeHidden();
+  expect(await page.evaluate(()=>({requests:__releaseRequests.map(r=>({method:r.method,body:r.body,authorized:r.authorization==='Bearer synthetic-owner-token'})),reads:__clarifyCounts.read,resume:__clarifyCounts.resume,save:__clarifyCounts.save})))
+    .toEqual({requests:[{method:'POST',body:'{}',authorized:true}],reads:2,resume:0,save:0});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(errors).toEqual([]);
+  await page.locator('[data-task-message]').scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath('390-waiting-reservation-release-confirmed.png')});
+});
+
+test('waiting reservation abandonment rejection reads the unchanged task and preserves its answers',async({page})=>{
+  await openWaitingReservationAbandonment(page);
+  await page.evaluate(()=>{__clarifyState.can_cancel=true;showTaskClarification(__clarifyState);__releaseMode='reject';});
+  await page.getByRole('textbox',{name:'198元的双人套餐包含门票吗？',exact:true}).fill('尚未提交的原回答');
+  await page.getByRole('button',{name:'放弃此任务并释放预留',exact:true}).click();
+  await expect(page.locator('[data-task-message]')).toContainText('尚未确认释放预留');
+  await expect(page.locator('[data-task-message]')).not.toContainText('预留积分已释放');
+  await expect(page.getByRole('textbox',{name:'198元的双人套餐包含门票吗？',exact:true})).toHaveValue('尚未提交的原回答');
+  await expect(page.getByRole('button',{name:'按这些说明继续',exact:true})).toBeEnabled();
+  expect(await page.evaluate(()=>({cancel:__releaseRequests.length,read:__clarifyCounts.read,resume:__clarifyCounts.resume,save:__clarifyCounts.save})))
+    .toEqual({cancel:1,read:1,resume:0,save:0});
+});
+
+test('waiting reservation abandonment with lost responses stays unknown until manual original GET confirms release',async({page})=>{
+  await openWaitingReservationAbandonment(page);
+  await page.evaluate(()=>{__clarifyState.can_cancel=true;showTaskClarification(__clarifyState);__releaseMode='disconnect';__releaseReadMode='fail';});
+  await page.getByRole('button',{name:'放弃此任务并释放预留',exact:true}).click();
+  await expect(page.locator('[data-task-message]')).toContainText('暂时无法核实原任务');
+  await expect(page.locator('[data-task-message]')).not.toContainText('预留积分已释放');
+  await expect(page.getByRole('button',{name:'按这些说明继续',exact:true})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'放弃此任务并释放预留',exact:true})).toBeHidden();
+  await page.evaluate(billing=>{__releaseReadMode='normal';__clarifyState={...__clarifyState,status:'failed',refund_status:'released',can_cancel:false,billing};},reservationBilling('released'));
+  await page.getByRole('button',{name:'核实原任务状态',exact:true}).click();
+  await expect(page.locator('[data-task-message]')).toContainText('预留积分已释放，本次未扣积分');
+  expect(await page.evaluate(()=>({cancel:__releaseRequests.length,read:__clarifyCounts.read,resume:__clarifyCounts.resume,save:__clarifyCounts.save})))
+    .toEqual({cancel:1,read:1,resume:0,save:0});
+});
+
+test('waiting reservation abandonment is hidden for legacy, missing permission and nonwaiting states',async({page})=>{
+  await openWaitingReservationAbandonment(page);
+  const states=[
+    {status:'waiting_for_input',can_cancel:true,settlement_mode:'legacy',billing:{status:'charged'}},
+    {status:'waiting_for_input',can_cancel:false,settlement_mode:'reservation_v1',billing:reservationBilling()},
+    {status:'waiting_for_input',settlement_mode:'reservation_v1',billing:reservationBilling()},
+    {status:'running',can_cancel:true,settlement_mode:'reservation_v1',billing:reservationBilling()},
+    {status:'outcome_unknown',can_cancel:true,settlement_mode:'reservation_v1',billing:reservationBilling()},
+  ];
+  for(const state of states) {
+    await page.evaluate(state=>{__clarifyState={...__clarifyState,...state};if(!('can_cancel' in state))delete __clarifyState.can_cancel;showTaskClarification(__clarifyState);},state);
+    await expect(page.locator('[data-task-release]')).toBeHidden();
+    await page.locator('[data-task-release]').evaluate(button=>button.click());
+  }
+  expect(await page.evaluate(()=>__releaseRequests.length)).toBe(0);
+});
+
+for(const change of ['account','request'])test(`waiting reservation abandonment ignores a late result after ${change} changes`,async({page})=>{
+  await openWaitingReservationAbandonment(page);
+  await page.evaluate(()=>{__clarifyState.can_cancel=true;showTaskClarification(__clarifyState);__releaseReadMode='defer';});
+  await page.getByRole('button',{name:'放弃此任务并释放预留',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>typeof __releaseGetFinish)).toBe('function');
+  await page.evaluate(({change,billing})=>{
+    if(change==='account'){_authUser={id:'different-owner',username:'other'};_authVerifiedOwnerId='different-owner';_authToken='different-synthetic-token';}
+    else _activeGeneratePaidRequestId='new-different-request';
+    __clarifyState={...__clarifyState,status:'failed',refund_status:'released',can_cancel:false,billing};
+    __releaseGetFinish();
+  },{change,billing:reservationBilling('released')});
+  await page.waitForTimeout(50);
+  await expect(page.locator('[data-task-message]')).not.toContainText('预留积分已释放');
+  expect(await page.evaluate(()=>({cancel:__releaseRequests.length,resume:__clarifyCounts.resume,save:__clarifyCounts.save})))
+    .toEqual({cancel:1,resume:0,save:0});
+});
