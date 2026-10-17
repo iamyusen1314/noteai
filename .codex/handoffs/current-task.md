@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-17 北京22:20：Owner要求暂停以重启Codex，已停止新增动作并完成本地收尾
+
+已直接read_thread核原窗口01a0f7cb的真实userMessage 01a14a3a-6af7-7ef3-b762-009ef5cd81b0，回答“先暂停，我需要重启codex”。这不是维护/固定v3附加批准，重启不得自动开新窗口或关写。当前新T0=false、在途C/T=[]；最后metadata Cc-sz070bhnu70pa80/Tt-sz070bhnu7fooao已Success0/Dropped0，原件11399/cef07cb1保留。此前DATA/plan/build/readback均实际终态，不重发、不强杀。
+
+本窗未附加v3、未提交新RAM操作；暂停时没有另做云侧策略实时读回，不能虚称“当前只剩原两项”已重新核验，本窗无新增附加需撤销。最后实际生产基线仍a11/BE8/ca8，旧版真实上线结论保留；暂停未改线上，健康沿用原上线后原件，不冒称此刻重新探活。AppA三个隔离镜像与源码/host原件保留，未部署/未迁移。4份必要正文仍未采集，metadata不是正文或QA30验收。
+
+已关闭本窗cloud1637495522、saver1637495519两页，未动用户/他窗正式产品页；同loopback保存器PID12259通过精确python3.11 -u原文件身份核验后SIGTERM，session59490实际exit143，127.0.0.1:41973已无listener。只清本地辅助运行，未删镜像/对象/原件/恢复材料/数据。源码无改、无新测试/模型费用；150预算占用95.6110534不变。结构化PAUSE-CHECKPOINT-20261017.json在同AppA E目录。
+
+NEXT_PAUSED：等待用户恢复工作意图；恢复前先读此CURRENT及真实原状态，不自动续派旧build/metadata、过期维护或v3动作。原发布窗口同步暂停Q-only新增工作。保留小修复已上线与后续大版本未上线的明确分界。
+
+## HISTORY — 暂停前只读归档检查点
+
 ## CURRENT — 2026-10-17 北京：AppA固定原件metadata已实际读取，正文尚未归档；生产仍a11
 
 唯一metadata Cc-sz070bhnu70pa80/Tt-sz070bhnu7fooao，固定Worker-C原bootf31，Timeout45，实际Success0/Dropped0。E/appA-e3c82c34-three-role-build-20261017-once1/actual-build-metadata-original01.json **11399/cef07cb1aa4c17365bbf00fe4a4e0392605c465e6bb7ee4510b302207f090d6a**；native3938/d3a8fb435c2b5665f1ca355ab4c7c1033c6fc21bbf4e34c1718b1e3f9bb532f5。13固定JSON均PRESENT_SAVED_ORIGINAL，5先验wholeSHA匹配；Docker/process/network/DB/写入均0，无构建或重readback。冻结metadata.b64 4280/6deb5c51、metadata.py5213/bcc898e0/metadata.sh3208/8532c8d1与独审一致。
