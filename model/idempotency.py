@@ -486,6 +486,9 @@ def settle_expired_requests_for_account_deletion_with_storage(
     """Settle expired claims under the caller-held user deletion fence."""
     current_time = now or _now()
     now_iso = _iso(current_time)
+    import postdelivery
+    if postdelivery._open_rows(tx, user_id):
+        raise ValueError("原任务仍有积分预留，请先完成、取消或核实原任务再删除账号")
     lock = " FOR UPDATE" if tx.postgres else ""
     if tx.fetchone("SELECT id FROM idempotency_requests WHERE user_id=? AND status='failed' "
                    "AND charge_applied=1 AND refund_applied=0 LIMIT 1", (user_id,)):
@@ -552,7 +555,7 @@ def touch_active_claim(context, *, last_progress_at, max_no_progress_seconds=300
     changes neither billing nor a terminal/waiting claim, and never takes over
     an expired owner's token or clears an UNKNOWN provider result.
     """
-    if not context or context.get("state") != "owner":
+    if not context or context.get("state") not in {"owner", "reservation_owner"}:
         return False
     current_time = now or _now()
     progress = _parse_lease_clock(last_progress_at)
@@ -591,6 +594,9 @@ def mark_completed(
     context: dict[str, Any] | None, *, confirm_existing: bool = False, ocr_result: dict | None = None,
     response_reference=None,
 ) -> bool:
+    import postdelivery
+    if postdelivery.is_context(context):
+        return bool(confirm_existing and postdelivery.confirm_completed(context))
     if not context or context.get("state") != "owner":
         return False
     lease_digest = _sha256(str(context.get("lease_token") or ""))
@@ -816,6 +822,10 @@ def mark_failed_and_refund(
     *,
     failure_code: str = "request_failed",
 ) -> bool:
+    import postdelivery
+    if postdelivery.is_context(context):
+        return postdelivery.fail_reservation(context, failure_code=failure_code,
+            original_execution_ended=context.get("_execution_drained") is True)
     if not context or context.get("state") != "owner":
         return False
     safe_code = failure_code if failure_code in FAILURE_CODES else "request_failed"
@@ -854,6 +864,11 @@ def mark_failed_and_refund(
 
 
 def _refund_status(current: dict[str, Any]) -> str:
+    import postdelivery
+    if postdelivery._version(current) is not None:
+        return ("committed" if current.get("complete_applied") else
+                "released" if current.get("refund_applied") else
+                "pending" if current.get("status") == "failed" else "reserved")
     if current.get("refund_applied"):
         return "refunded"
     if not current.get("charge_applied"):
@@ -862,7 +877,9 @@ def _refund_status(current: dict[str, Any]) -> str:
 
 
 def _failure_settlement_projection(current: dict[str, Any]) -> dict:
+    import postdelivery
     return {"task_id": current["id"], "business_status": current["status"],
+            "settlement_mode": "reservation_v1" if postdelivery._version(current) is not None else "legacy",
             "refund_status": _refund_status(current),
             "failure_code": str(current.get("failure_code") or ""),
             "refund_applied": bool(current.get("refund_applied")),
@@ -890,6 +907,11 @@ def reconcile_failed_request(user_id: str, request_id: str) -> dict | None:
         if not row:
             return None
         current = dict(row)
+        import postdelivery
+        if postdelivery._version(current) is not None:
+            # A lease timeout is not an original-process end proof. Versioned
+            # holds use the exact maintenance reconciliation entry instead.
+            return _failure_settlement_projection(current)
         if (current["status"] != "failed" or current.get("refund_applied")
                 or current.get("complete_applied") or current.get("response_ref_json")
                 or current.get("failure_code") == "result_store_unknown"):

@@ -1774,6 +1774,14 @@ def prepare_full_refund(
     refund_id = str(uuid.uuid4())
     merchant_refund_no = "NR_" + refund_id.replace("-", "")
     with (db.transaction if transaction_factory is None else transaction_factory)(write=True) as tx:
+        candidate = tx.fetchone("SELECT user_id FROM payment_orders WHERE id=?",(normalized,))
+        if candidate is not None and candidate["user_id"]:
+            _lock_financial_subject(tx,candidate["user_id"])
+            import postdelivery
+            try:
+                postdelivery.assert_entitlement_mutation_safe(tx,candidate["user_id"])
+            except ValueError:
+                raise PaymentContractError("PAYMENT_ENTITLEMENT_RESERVED") from None
         row = tx.fetchone(
             "SELECT * FROM payment_orders WHERE id=?"
             + (" FOR UPDATE" if tx.postgres else ""),
@@ -2058,6 +2066,9 @@ def _reverse_credit_entitlement(
     event_row_id: str,
     clock: str,
 ) -> None:
+    import postdelivery
+    if order["user_id"]:
+        postdelivery.assert_entitlement_mutation_safe(tx,order["user_id"])
     position = tx.fetchone(
         "SELECT * FROM payment_credit_positions WHERE order_id=?"
         + (" FOR UPDATE" if tx.postgres else ""),
@@ -2134,6 +2145,9 @@ def _reverse_subscription_entitlement(
     event_row_id: str,
     clock: str,
 ) -> None:
+    import postdelivery
+    if order["user_id"]:
+        postdelivery.assert_entitlement_mutation_safe(tx,order["user_id"])
     entitlement = tx.fetchone(
         "SELECT subscription_id,quantity_milli "
         "FROM payment_entitlement_ledger WHERE order_id=? "

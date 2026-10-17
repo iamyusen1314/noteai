@@ -370,6 +370,11 @@ def resume(user_id, session_id, version, answers):
     billing.activate_usage(current["usage_id"])
     claim = {"state": "owner", "request_id": session_id, "lease_token": token, "charge": charge,
              **{k: current[k] for k in ("user_id", "operation", "key_hash", "payload_hash")}}
+    import postdelivery
+    version = postdelivery._version(dict(current))
+    if version is not None:
+        claim.update(state="reservation_owner", settlement_mode="reservation_v1")
+        charge.update(source=version["source"], settlement_mode="reservation_v1")
     return claim, task
 
 
@@ -390,20 +395,26 @@ def answer_context(task):
     return "\n".join(lines)
 
 
-def save_result(claim, result, *, new_generation=None, record_growth=None):
+def save_result(claim, result, *, new_generation=None, record_growth=None, persist_diagnosis=None):
     """Persist the original or resumed result before completion; CAS old leases out."""
     with db.transaction(write=True) as tx:
         content_retention.assert_user_writable_with_storage(tx, claim["user_id"])
         current = idempotency._owned_row(tx, claim)
         row, task = _load(tx, claim["user_id"], claim["request_id"], lock=True)
-        if (row is None and new_generation is not None and claim["operation"] == "generate"
+        import postdelivery
+        reservation = postdelivery.is_context(claim)
+        if reservation and current and current["status"] == "completed" and current["complete_applied"]:
+            if result.get("saved_note_id") != claim["request_id"]:
+                raise HTTPException(409, "原报告身份需要核实")
+            return
+        if (row is None and new_generation is not None and (claim["operation"] == "generate" or reservation)
                 and current and current["status"] == "running"
                 and current["lease_token_hash"] == idempotency._sha256(claim["lease_token"])
                 and current["usage_id"] == claim["charge"]["usage_id"]
                 and not current["refund_applied"] and not current["complete_applied"]):
             # Same task storage and server-generated identity, without inventing
             # questions or a waiting state for an already finished generation.
-            task = {"schema": 1, "operation": "generate", "status": "running", "version": 1,
+            task = {"schema": 1, "operation": claim["operation"], "status": "running", "version": 1,
                     "questions": [], "answers": [], "completed_steps": ["generation"]}
             now = idempotency._iso()
             row = {"id": claim["request_id"], "domain": new_generation["domain"]}
@@ -415,6 +426,10 @@ def save_result(claim, result, *, new_generation=None, record_growth=None):
             raise HTTPException(409, "任务结果状态需要核实")
         _settled_calls(tx, current["usage_id"])
         now = idempotency._iso()
+        if reservation and task["operation"] == "analyze":
+            if persist_diagnosis is None:
+                raise HTTPException(409, "诊断保存事务未提供，不能确认消费")
+            persist_diagnosis(tx)
         if task["operation"] == "generate":
             title, body = result.get("note_title"), result.get("note_body")
             if not title or not body or result.get("quality_failed"):
@@ -427,6 +442,9 @@ def save_result(claim, result, *, new_generation=None, record_growth=None):
                 record_growth(tx, user_id=claim["user_id"], note_id=row["id"], domain=row["domain"],
                               score=result["ces_percentile"], grade=result.get("grade", ""), action="generate")
             result.update({"saved_note_id": row["id"], "saved_note_version": 1})
+        if reservation:
+            postdelivery.finalize_in_transaction(tx, claim, result)
+            result["billing"] = postdelivery.receipt_in_transaction(tx,claim["user_id"],claim["request_id"])
         task["result"] = result
         task["status"] = "completed"
         encoded = _json({KEY: task})
@@ -437,5 +455,6 @@ def save_result(claim, result, *, new_generation=None, record_growth=None):
             raise HTTPException(409, "原笔记保存状态需要核实")
         tx.execute("UPDATE chat_sessions SET note_id=?,generate_ctx_json=?,updated_at=? WHERE id=? AND user_id=?",
                    (saved_note_id, encoded, now, row["id"], claim["user_id"]))
-        tx.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1,completed_at=?,updated_at=? WHERE id=?",
-                   (now, now, row["id"]))
+        if not reservation:
+            tx.execute("UPDATE idempotency_requests SET status='completed',complete_applied=1,completed_at=?,updated_at=? WHERE id=?",
+                       (now, now, row["id"]))

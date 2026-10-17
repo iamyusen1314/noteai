@@ -92,6 +92,8 @@ class PublicAccountBoundary:
         if scope["type"] != "http":
             return
         original_send = send
+        import postdelivery
+        postdelivery.ensure_request_id(scope)
 
         async def private_send(message):
             if message["type"] == "http.response.start":
@@ -100,6 +102,9 @@ class PublicAccountBoundary:
                     (k, v) for k, v in message.get("headers", [])
                     if k.lower() not in {b"cache-control", b"pragma"}
                 ] + [(b"cache-control", b"no-store"), (b"pragma", b"no-cache")]
+                generated_request_id = scope.get("state", {}).get("postdelivery_request_id")
+                if generated_request_id:
+                    message["headers"].append((b"x-request-id", generated_request_id.encode("ascii")))
             await original_send(message)
 
         send = private_send

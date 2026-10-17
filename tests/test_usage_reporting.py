@@ -42,6 +42,13 @@ def project(usage=None, models=None, calls=None, requests=()):
 
 
 class UsageReportingProjectionTests(unittest.TestCase):
+    def test_reservations_and_releases_are_not_final_consumption_or_cash_refunds(self):
+        rows=[parent("held",source="reservation_v1:subscription:free",credits_used=0),
+            parent("released",source="reservation_released_v1:subscription",credits_used=0)]
+        value=project(usage=rows,models=[],calls=[])["accounting"]["business"]
+        self.assertEqual((value["recorded"],value["reserved"],value["released"]),(2,1,1))
+        self.assertEqual((value["completed"],value["refunded"]),(0,0))
+
     def test_calendar_month_and_rolling_days_are_explicit_utc(self):
         clock = datetime.fromisoformat("2026-10-01T07:59:59+08:00")
         month = reporting.reporting_window(period="calendar_month", now=clock)

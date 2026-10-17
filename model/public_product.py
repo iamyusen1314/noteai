@@ -311,6 +311,8 @@ async def authenticated_user(scope):
 
 
 async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None):
+    import postdelivery
+    postdelivery.ensure_request_id(scope)
     path = scope["path"]
     if path.startswith("/auth/") or path in {"/health/live", "/public/status", "/legal/contracts", "/billing/tiers", "/payments/capabilities"}:
         return await app(scope, receive, send)
@@ -634,7 +636,7 @@ def _check_pending_media(tx, user_id, media):
     # source signing/upload. A different request/ref cannot replay the same bytes.
     pending_media = tx.fetchall(
         "SELECT p.provenance_json,i.status AS task_status,i.refund_applied,"
-        "i.complete_applied,u.source AS usage_source FROM public_trial_calls p "
+        "i.complete_applied,i.charge_source,u.source AS usage_source FROM public_trial_calls p "
         "LEFT JOIN idempotency_requests i ON i.usage_id=p.usage_record_id "
         "AND i.user_id=p.user_id LEFT JOIN usage_records u ON u.id=p.usage_record_id "
         "AND u.user_id=p.user_id WHERE p.user_id=? "
@@ -645,10 +647,16 @@ def _check_pending_media(tx, user_id, media):
         # A customer can explicitly start a fresh task after a failed,
         # once-refunded delivery. Preserve the original supplier UNKNOWN/cost
         # and physical identity; this only releases a same-media admission.
+        import postdelivery
+        policy = str(dict(pending_row).get('charge_source') or '')
+        version = policy[len(postdelivery.PREFIX):].split(':') if policy.startswith(postdelivery.PREFIX) else []
+        released_reservation = (len(version) == 2 and version[0] in postdelivery.SOURCES
+            and version[1] in __import__('billing').TIERS
+            and pending_row['usage_source'] == postdelivery.RELEASED_PREFIX + version[0])
         if (pending_row['task_status'] == 'failed'
                 and bool(pending_row['refund_applied'])
                 and not bool(pending_row['complete_applied'])
-                and pending_row['usage_source'] == 'refunded'):
+                and (pending_row['usage_source'] == 'refunded' or released_reservation)):
             continue
         try:
             prior = json.loads(pending_row['provenance_json'])

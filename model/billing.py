@@ -573,6 +573,11 @@ def check_and_deduct_in_transaction(
     lock = " FOR UPDATE" if tx.postgres else ""
     credit_row = tx.fetchone(f"SELECT balance FROM credits WHERE user_id=?{lock}", (uid,))
     balance = round(float(credit_row["balance"] if credit_row else 0), 2)
+    # Compatibility is always active, even when creation of new holds is off.
+    import postdelivery
+    available = postdelivery.availability_in_transaction(tx, uid, sub)
+    monthly_remaining = available["monthly_available"]
+    balance = available["wallet_available"]
 
     monthly_charge = min(cost, monthly_remaining)
     wallet_charge = round(cost - monthly_charge, 2)
@@ -650,7 +655,10 @@ def get_operation_costs() -> dict:
 
 
 def billing_quote_version() -> str:
-    encoded = json.dumps(get_operation_costs(), sort_keys=True, separators=(",", ":"))
+    policy = get_operation_costs()
+    if __import__("postdelivery").enabled():
+        policy = {"operations":policy,"settlement_mode":"reservation_v1"}
+    encoded = json.dumps(policy, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:24]
 
 
@@ -677,8 +685,12 @@ def get_operation_quote(user_id: str, operation: str, *, has_video: bool = False
             "monthly_credits_remaining": plan["monthly_credits_remaining"],
             "wallet_credits_balance": plan["wallet_credits_balance"],
             "total_available_credits": plan["total_available_credits"],
-            "quote_version": billing_quote_version(), "charge_timing": "on_admission",
-            "failure_policy": "refund_after_confirmed_failure",
+            "quote_version": billing_quote_version(), "charge_timing": (
+                "after_saved_report" if __import__("postdelivery").enabled() and operation in {"generate", "analyze"}
+                else "on_admission"),
+            "failure_policy": ("release_after_confirmed_failure" if
+                __import__("postdelivery").enabled() and operation in {"generate", "analyze"}
+                else "refund_after_confirmed_failure"),
             "retry_policy": "same_request_id_no_second_charge"}
 
 
@@ -687,6 +699,13 @@ def get_charge_receipt(user_id: str, operation: str, charge: dict | None,
     """A safe receipt for one existing charge, never a client-supplied amount."""
     if not charge or not charge.get("usage_id"):
         return None
+    import postdelivery
+    if (charge.get("settlement_mode") == "reservation_v1"
+            or str(charge.get("source", "")).startswith(postdelivery.PREFIX)
+            or str(charge.get("charge_source", "")).startswith(postdelivery.PREFIX)):
+        reserved = postdelivery.receipt(user_id, operation, charge, request_id)
+        if reserved is not None:
+            return reserved
     row = db.fetchone("SELECT source,credits_used FROM usage_records WHERE id=? AND user_id=? AND operation=?",
                      (charge["usage_id"], user_id, operation))
     if not row:
@@ -927,6 +946,10 @@ def _deduct_credits(user_id: str, amount: float, description: str) -> float:
             "VALUES(?,0,0,0,?) ON CONFLICT(user_id) DO NOTHING",
             (user_id, now),
         )
+        import postdelivery
+        postdelivery._lock_wallet(tx, user_id)
+        if amount > postdelivery.wallet_available_in_transaction(tx, user_id):
+            raise HTTPException(402, "积分已用于现有任务预留，当前可用余额不足")
         tx.execute(
             "UPDATE credits SET balance=balance-?,total_used=total_used+?,"
             "updated_at=? WHERE user_id=?",
@@ -969,6 +992,9 @@ def refund_operation_charge_in_transaction(
                             (usage_id, uid, operation))
         if not usage or usage["source"] == "refunded":
             return
+        import postdelivery
+        if str(usage["source"]).startswith(postdelivery.PREFIX):
+            raise HTTPException(409, "本次仅预留积分；须核实原任务后释放，不能对未扣积分退款")
     if usage_id and operation in {"analyze", "generate"} and tx.fetchone(
         "SELECT id FROM public_trial_calls WHERE usage_record_id=? AND "
         "(state IN ('dispatched','unknown') OR (state='responded' AND http_status=200 "
@@ -1426,6 +1452,10 @@ def get_quota_status(user_id: str) -> dict:
     monthly_limit = round(float(tier_cfg.get("monthly_credits", 0) or 0), 2)
     monthly_used = round(float(sub.get("used_monthly_credits") or 0), 2)
     monthly_remaining = round(max(0.0, monthly_limit - monthly_used), 2)
+    import postdelivery
+    with db.transaction(write=False) as reservation_read:
+        available = postdelivery.availability_in_transaction(reservation_read, user_id, sub)
+    monthly_remaining, balance = available["monthly_available"], available["wallet_available"]
 
     operation_costs = get_operation_costs()
     for op, config in operation_costs.items():
@@ -1451,6 +1481,8 @@ def get_quota_status(user_id: str) -> dict:
         "entitlement_source": sub.get("entitlement_source", "existing"),
         "monthly_credits": monthly_limit,
         "monthly_credits_used": monthly_used,
+        "monthly_credits_reserved": available["monthly_held"],
+        "wallet_credits_reserved": available["wallet_held"],
         "monthly_credits_remaining": monthly_remaining,
         "monthly_credits_pct": 0 if monthly_limit <= 0 else min(100, round(monthly_used / monthly_limit * 100)),
         "credits_balance": balance,
@@ -1524,7 +1556,7 @@ def _usage_summary_tx(tx, user_id, window, days):
     detail_rows = tx.fetchall(
         "SELECT u.id,u.operation,u.source,u.credits_used,u.cost_rmb,u.tokens_in,u.tokens_out,u.model_calls,u.model_names,u.cost_mode,u.recorded_at,"
         "i.id AS request_id,i.status AS request_status,i.credits_used AS charged_credits,"
-        "i.monthly_credits_used,i.wallet_credits_used,"
+        "i.monthly_credits_used,i.wallet_credits_used,i.charge_source AS settlement_policy,"
         "(SELECT COUNT(*) FROM model_usage_records m WHERE m.usage_record_id=u.id) AS model_detail_count "
         "FROM usage_records u LEFT JOIN idempotency_requests i ON i.usage_id=u.id AND i.user_id=u.user_id "
         "WHERE u.user_id=? AND u.recorded_at>=? AND u.recorded_at<? "
@@ -1539,16 +1571,24 @@ def _usage_summary_tx(tx, user_id, window, days):
         if int(r["model_detail_count"] or 0) == 0 and display_mode == "actual":
             display_mode = "legacy_unverifiable_actual"
         refunded = r["source"] == "refunded"
+        reserved = str(r["source"]).startswith("reservation_v1:")
+        released = str(r["source"]).startswith("reservation_released_v1:")
+        postdelivery_mode = str(r["settlement_policy"] or "").startswith("reservation_v1:")
         monthly = r["monthly_credits_used"]
         wallet = r["wallet_credits_used"]
-        if refunded:
+        if refunded or reserved or released:
             monthly = wallet = 0.0
         elif monthly is None and r["source"] in {"subscription", "credits", "free"}:
             monthly = float(r["credits_used"] or 0) if r["source"] == "subscription" else 0.0
             wallet = float(r["credits_used"] or 0) if r["source"] == "credits" else 0.0
         details.append({
             "usage_id": r["id"], "request_id": r["request_id"],
-            "status": "refunded" if refunded else (r["request_status"] or "recorded"),
+            "status": "refunded" if refunded else "reserved" if reserved else "released" if released else "committed" if postdelivery_mode and r["request_status"] == "completed" else (r["request_status"] or "recorded"),
+            "settlement_mode": "reservation_v1" if postdelivery_mode else "legacy",
+            "reserved_credits": float(r["charged_credits"] or 0) if reserved else 0.0,
+            "monthly_credits_reserved": float(r["monthly_credits_used"] or 0) if reserved else 0.0,
+            "wallet_credits_reserved": float(r["wallet_credits_used"] or 0) if reserved else 0.0,
+            "released_credits": float(r["charged_credits"] or 0) if released else 0.0,
             "monthly_credits_used": monthly, "wallet_credits_used": wallet,
             "refunded_credits": float(r["charged_credits"] or 0) if refunded and r["request_id"] else None,
             "operation":   op,

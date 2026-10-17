@@ -25,6 +25,9 @@ def snapshot(tx, user_id, *, lock=False):
     wallet = tx.fetchone("SELECT balance FROM credits WHERE user_id=?" + suffix, (user_id,))
     paid = tx.fetchone("SELECT COALESCE(SUM(remaining_milli),0) AS remaining FROM payment_credit_positions WHERE user_id=? AND state='active'", (user_id,))
     noncash = tx.fetchone("SELECT COALESCE(SUM(CASE WHEN type='gift' THEN amount WHEN type='usage' AND amount<0 THEN amount ELSE 0 END),0) AS remaining FROM credit_transactions WHERE user_id=?", (user_id,))
+    import postdelivery
+    reserved = tx.fetchone("SELECT source FROM usage_records WHERE user_id=? AND SUBSTR(source,1,?)=? LIMIT 1",
+                          (user_id,len(postdelivery.PREFIX),postdelivery.PREFIX))
     s = dict(sub) if sub else {}
     return {"user_id": user_id, "username": user["username"], "subscription_id": s.get("id"),
             "tier": s.get("tier"), "expires_at": s.get("expires_at"),
@@ -32,6 +35,7 @@ def snapshot(tx, user_id, *, lock=False):
             "wallet_balance": float(wallet["balance"] or 0) if wallet else 0,
             "paid_wallet_reserved": float(paid["remaining"] or 0) / 1000,
             "noncash_recoverable": max(0, float(noncash["remaining"] or 0)),
+            "has_credit_reservations": bool(reserved),
             "features": json.loads(s.get("feature_overrides_json") or "{}"),
             "entitlement_source": s.get("entitlement_source", "existing" if sub else "not_initialized")}
 
@@ -75,6 +79,9 @@ def validate(payload):
 
 def proposed(before, payload):
     after = {**before, "features": dict(before["features"])}
+    if before.get("has_credit_reservations") and (payload["action"] == "set_membership"
+            or (payload["action"] == "adjust_credits" and payload["amount"] < 0)):
+        raise HTTPException(409, "该账号有任务积分预留，请先完成或释放原任务后再扣回或更改会员")
     if payload["action"] != "adjust_credits" and not before["subscription_id"]:
         raise HTTPException(409, "账号没有有效订阅；可调整独立钱包，会员及功能权限需先完成正常账户权益初始化")
     if payload["action"] == "adjust_credits":

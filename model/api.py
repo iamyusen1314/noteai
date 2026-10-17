@@ -83,6 +83,7 @@ import billing as _billing
 import content_retention as _retention
 import security_redaction as _redaction
 import idempotency as _idempotency
+import postdelivery as _postdelivery
 import task_clarification as _clarification
 import durable_ai as _durable_ai
 import private_storage as _private_storage
@@ -974,11 +975,15 @@ def _paid_request_claim(
 ) -> dict[str, Any] | None:
     """Claim an optional idempotency key; headerless clients keep old behavior."""
     raw_request_id = request_id if isinstance(request_id, str) else ""
+    if not raw_request_id.strip() and _postdelivery.enabled() and operation in {"generate", "analyze"}:
+        raw_request_id = "server-" + _uuid.uuid4().hex
     if not raw_request_id.strip():
         _billing.assert_quote_version(quote_version)
         return None
     try:
-        claim = _idempotency.claim_and_charge(
+        admission = (_postdelivery.reserve_claim if _postdelivery.enabled() and operation in {"generate", "analyze"}
+                     else _idempotency.claim_and_charge)
+        claim = admission(
             user_id=user_id,
             operation=operation,
             request_id=raw_request_id,
@@ -991,8 +996,10 @@ def _paid_request_claim(
             "code": "INVALID_REQUEST_ID",
             "message": str(exc),
         }) from exc
-    if claim.get("state") == "owner":
+    if claim.get("state") in {"owner", "reservation_owner"}:
         return claim
+    if claim.get("state") == "legacy_existing":
+        claim["state"] = "in_progress" if claim.get("legacy_status") == "running" else claim.get("legacy_status")
     state = str(claim.get("state") or "in_progress")
     codes = {
         "conflict": "IDEMPOTENCY_CONFLICT",
@@ -1005,7 +1012,9 @@ def _paid_request_claim(
         "conflict": "该请求标识已用于不同内容",
         "in_progress": "相同请求正在处理中",
         "completed": "相同请求已完成；当前版本不回放原始结果",
-        "failed": ("原任务未完成，本次积分已退回；可重新发起"
+        "failed": ("原任务未完成，预留积分已释放，本次未扣积分；可重新发起"
+                   if claim.get("refund_status") == "released" else
+                   "原任务未完成，本次积分已退回；可重新发起"
                    if claim.get("refund_status") == "refunded" else
                    "原任务未完成，后台正在核实本次积分；原素材已保留"),
         "waiting_for_input": "素材和已完成分析已保留，请回答原任务中的问题后继续",
@@ -1032,7 +1041,9 @@ def _failed_stream_task_event(claim: dict[str, Any]) -> dict[str, Any]:
         _log_internal_failure("generation_settlement", exc, phase="failure_readback")
         state = None
     refund_status = state.get("refund_status") if isinstance(state, dict) else "unconfirmed"
-    if refund_status == "refunded":
+    if refund_status == "released":
+        message = "本次处理未完成，预留积分已释放，本次未扣积分；原素材仍保留。"
+    elif refund_status == "refunded":
         message = "本次处理未完成，已退回本次积分；原素材仍保留。"
     else:
         message = "本次处理未完成，后台正在核实本次积分；原素材仍保留。"
@@ -1115,6 +1126,9 @@ async def _idempotent_sse_stream(
             elif event_type in success_types:
                 _public_product.assert_result_known()
                 if not _idempotency.mark_completed(claim, confirm_existing=True):
+                    if _postdelivery.is_context(claim):
+                        await stream.aclose()
+                        claim["_execution_drained"] = True
                     terminal_seen = True
                     _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
                     event = _failed_stream_task_event(claim)
@@ -1123,6 +1137,9 @@ async def _idempotent_sse_stream(
                     return
                 terminal_seen = True
             elif event_type == "error":
+                if _postdelivery.is_context(claim):
+                    await stream.aclose()
+                    claim["_execution_drained"] = True
                 terminal_seen = True
                 _idempotency.mark_failed_and_refund(claim, failure_code="stream_failed")
             if event_type in success_types or event_type in {"error", "clarification_required"}:
@@ -1145,6 +1162,8 @@ async def _idempotent_sse_stream(
         except BaseException as close_exc:
             _log_internal_failure("generation_settlement", close_exc, phase="source_close")
         if not terminal_seen:
+            if _postdelivery.is_context(claim):
+                claim["_execution_drained"] = source_closed
             invocation = _public_product._invocation.get()
             known_local_failure = (source_closed and invocation is not None
                 and invocation.failure == "PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED")
@@ -1165,6 +1184,8 @@ async def _idempotent_sse_stream(
         raise
     finally:
         if not terminal_seen:
+            if _postdelivery.is_context(claim):
+                claim["_execution_drained"] = True  # Source exhausted normally without a terminal event.
             _idempotency.mark_failed_and_refund(claim, failure_code="stream_incomplete")
 
 
@@ -1178,7 +1199,7 @@ async def _emit_progress(emit: ProgressEmitter | None, event: dict[str, Any]) ->
 
 
 async def _clarification_stream(stream, claim, merchant=""):
-    context = {"claim": claim, "merchant": merchant} if claim and _clarification.enabled() else None
+    context = {"claim": claim, "merchant": merchant} if claim and (_clarification.enabled() or _postdelivery.is_context(claim)) else None
     iterator = stream.__aiter__()
     try:
         while True:
@@ -2806,6 +2827,8 @@ _BILLING_RECEIPT_SCHEMA = {
     "source": "string", "status": "string", "credits_used": "number",
     "monthly_credits_used": "number", "wallet_credits_used": "number",
     "refunded_credits": "number",
+    "settlement_mode": "string", "reserved_credits": "number", "released_credits": "number",
+    "monthly_credits_reserved": "number", "wallet_credits_reserved": "number",
 }
 _PERSISTED_DIAGNOSIS_SCHEMAS = {
     "billing": ("nullable", _BILLING_RECEIPT_SCHEMA),
@@ -3752,45 +3775,53 @@ async def _run_five_agents(
         opinions: list[dict] = []
         progress = 36
         stage_failure = None
-        while pending:
-            done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
-            for task in done:
-                fallback_role, agent_idx = pending.pop(task)
-                try:
-                    result = task.result()
-                except Exception as exc:
-                    if _public_product.enabled():
-                        # Finish reading the already-started peers before leaving
-                        # the stage. A missing necessary expert is not a zero-score
-                        # opinion and must not proceed to arbitration as success.
-                        stage_failure = exc
-                        current = _public_product._invocation.get()
-                        if current is not None and not current.failure:
-                            current.failure = "PUBLIC_MODEL_STAGE_FAILED"
-                        continue
-                    if isinstance(exc, _public_product.TrialProviderStopped):
-                        raise
-                    _log_internal_failure(
-                        "provider",
-                        exc,
-                        phase="diagnosis_agent",
-                        attempt=agent_idx,
-                    )
-                    result = {
-                        "role": fallback_role,
-                        "raw": (
-                            f"<opinion>{fallback_role}暂时不可用</opinion>"
-                            "<confidence>0</confidence>"
-                        ),
-                    }
-                if isinstance(result, dict):
-                    opinions.append(result)
-                    role = result.get("role") or fallback_role
-                    raw = result.get("raw") or ""
-                    progress = min(progress + 6, 58)
-                    await _emit_progress(emit, _generation_public_progress_event(
-                        _agent_event_payload(role, raw, agent_idx, progress),
-                        fact_source_context if fact_source_context is not None else note.desc, note.domain))
+        try:
+            while pending:
+                done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    fallback_role, agent_idx = pending.pop(task)
+                    try:
+                        result = task.result()
+                    except Exception as exc:
+                        if _public_product.enabled():
+                            # Finish reading the already-started peers before leaving
+                            # the stage. A missing necessary expert is not a zero-score
+                            # opinion and must not proceed to arbitration as success.
+                            stage_failure = exc
+                            current = _public_product._invocation.get()
+                            if current is not None and not current.failure:
+                                current.failure = "PUBLIC_MODEL_STAGE_FAILED"
+                            continue
+                        if isinstance(exc, _public_product.TrialProviderStopped):
+                            raise
+                        _log_internal_failure(
+                            "provider",
+                            exc,
+                            phase="diagnosis_agent",
+                            attempt=agent_idx,
+                        )
+                        result = {
+                            "role": fallback_role,
+                            "raw": (
+                                f"<opinion>{fallback_role}暂时不可用</opinion>"
+                                "<confidence>0</confidence>"
+                            ),
+                        }
+                    if isinstance(result, dict):
+                        opinions.append(result)
+                        role = result.get("role") or fallback_role
+                        raw = result.get("raw") or ""
+                        progress = min(progress + 6, 58)
+                        await _emit_progress(emit, _generation_public_progress_event(
+                            _agent_event_payload(role, raw, agent_idx, progress),
+                            fact_source_context if fact_source_context is not None else note.desc, note.domain))
+        finally:
+            remaining = list(pending)
+            for task in remaining:
+                if not task.done():
+                    task.cancel()
+            if remaining:
+                await asyncio.gather(*remaining, return_exceptions=True)
 
         if stage_failure is not None:
             _public_product.assert_result_known()
@@ -5252,7 +5283,7 @@ async def _run_generation_agents(
             print(f"[gen] P4-refine round={round_idx} start", file=sys.stderr, flush=True)
             # Normalize inline #tags to #tag# so feature_extractor counts them correctly
             note_obj = NoteInput(note_title=title, desc=_normalize_tags_for_scoring(body), local_time=local_time, domain=domain)
-            sem = await asyncio.to_thread(compute_semantic_features, title, body)
+            sem = await _await_media_worker(compute_semantic_features, title, body)
             pct_new, feat_new = _predict(
                 note_obj,
                 timing_feats=timing,
@@ -5377,7 +5408,7 @@ async def _run_generation_agents(
     if final_compacted_body and final_compacted_body != body:
         body = final_compacted_body
         try:
-            sem = await asyncio.to_thread(compute_semantic_features, title, body)
+            sem = await _await_media_worker(compute_semantic_features, title, body)
             percentile, features = _predict(
                 NoteInput(note_title=title, desc=_normalize_tags_for_scoring(body), local_time=local_time, domain=domain),
                 timing_feats=timing,
@@ -6559,6 +6590,8 @@ class GenerateInput(BaseModel):
 
 class GenerateResponse(BaseModel):
     billing: dict | None = Field(default=None, description="本次服务端实扣积分回执")
+    saved_note_id: str | None = None
+    saved_note_version: int | None = None
     note_title: str = Field(description="生成的笔记标题")
     note_body: str = Field(description="生成的笔记正文（含话题标签）")
     title_variants: list[str] = Field(default=[], description="3个标题变体")
@@ -12453,7 +12486,7 @@ async def _score_generated_note(
         local_time=local_time,
         domain=domain,
     )
-    semantic_feats = await asyncio.to_thread(compute_semantic_features, title, body or "")
+    semantic_feats = await _await_media_worker(compute_semantic_features, title, body or "")
     score, features = _predict(
         note,
         timing_feats=timing,
@@ -17652,6 +17685,45 @@ def diagnose(note: NoteInput, user: dict = Depends(_auth.get_current_user)):
     )
 
 
+def _persist_postdelivery_diagnosis(claim, response, user, request, original_desc, record_growth):
+    """Save the canonical diagnosis and confirm its fixed charge in one tx."""
+    canonical = claim["request_id"]
+    now = _now_iso()
+    response.saved_note_id = canonical
+    response.diagnosis_id = canonical
+    final_receipt = _billing.get_charge_receipt(user["id"], "analyze", claim["charge"], canonical)
+    final_receipt.update(status="committed", credits_used=claim["charge"]["credits_used"],
+        reserved_credits=0.0, monthly_credits_reserved=0.0, wallet_credits_reserved=0.0,
+        monthly_credits_used=claim["charge"]["monthly_credits_used"],
+        wallet_credits_used=claim["charge"]["wallet_credits_used"])
+    response.billing = final_receipt
+    result = response.model_dump()
+
+    def persist(tx):
+        tx.execute("INSERT INTO notes(id,user_id,title,body,domain,score,grade,source,parent_id,version,created_at) "
+            "VALUES(?,?,?,?,?,?,?,'diagnose',NULL,1,?)", (canonical,user["id"],
+            request.note_title.strip() or "（无标题）",original_desc,request.domain or "美食",
+            response.ces_percentile,response.grade,now))
+        _retention._record_content_with_storage(tx,"note",canonical,user["id"],created_at=now)
+        tx.execute("INSERT INTO saved_diagnoses(id,user_id,note_title,domain,ces_percentile,composite_score,grade,diagnosis_json,created_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?)", (canonical,user["id"],request.note_title or "",request.domain or "",
+            response.ces_percentile,response.composite_score,response.grade,
+            _json.dumps(_sanitize_persisted_diagnosis(result),ensure_ascii=False),now))
+        _retention._record_content_with_storage(tx,"diagnosis",canonical,user["id"],created_at=now)
+        if record_growth:
+            _insert_growth_record_with_storage(tx,user_id=user["id"],note_id=canonical,
+                domain=request.domain or "美食",score=response.ces_percentile,grade=response.grade,action="analyze",recorded_at=now)
+
+    _clarification.save_result(claim,result,new_generation={"domain":request.domain,"local_time":request.local_time},
+        persist_diagnosis=persist)
+    response.billing = _billing.get_charge_receipt(user["id"], "analyze", claim["charge"], canonical)
+    if record_growth:
+        try:
+            _memory.check_and_record_achievements(user["id"], response.ces_percentile, "analyze")
+        except Exception as exc:
+            _log_internal_failure("analyze_persistence",exc,phase="achievement_after_save")
+
+
 async def _run_analyze_pipeline(
     req: AnalyzeInput,
     user: dict,
@@ -17659,6 +17731,7 @@ async def _run_analyze_pipeline(
     billing_charge: dict | None = None,
     billing_managed: bool = False,
     prepared: dict | None = None,
+    reservation_claim: dict | None = None,
 ) -> AnalyzeResponse:
     if billing_charge is None:
         billing_charge = _billing.check_and_deduct(user["id"], "analyze")
@@ -17869,7 +17942,7 @@ async def _run_analyze_pipeline(
                 "label": "正在计算语义特征与用户感知信号…",
                 "progress": 22,
             })
-            semantic_feats = await asyncio.to_thread(
+            semantic_feats = await _await_media_worker(
                 compute_semantic_features, req.note_title, req.desc
             )
 
@@ -18343,6 +18416,11 @@ async def _run_analyze_pipeline(
         pending_confirmation=prepared.get("pending_confirmation", []) if prepared else [],
     )
 
+    if _postdelivery.is_context(reservation_claim):
+        await _await_media_worker(_persist_postdelivery_diagnosis, reservation_claim, resp, user,
+            req, original_desc, not report_quality_issues and not missing_dimensions)
+        return resp
+
     # 登录用户同步保存诊断原文为笔记库根版本，后续对话优化挂在这条版本链下。
     try:
         note_title_for_save = (req.note_title or "").strip() or "（无标题）"
@@ -18454,18 +18532,21 @@ async def analyze(
     )
     billing_charge = claim["charge"] if claim else _billing.check_and_deduct(user["id"], "analyze")
     marker = _clarification.execution.set({"claim": claim, "merchant": req.merchant_name or ""}
-        if claim and _clarification.enabled() else None)
+        if claim and (_clarification.enabled() or _postdelivery.is_context(claim)) else None)
     try:
         result = await _run_analyze_pipeline(
             req,
             user,
             billing_charge=billing_charge,
             billing_managed=True,
+            **({"reservation_claim":claim} if _postdelivery.is_context(claim) else {}),
         )
     except _clarification.WaitingForInput as waiting:
         return JSONResponse(waiting.event, status_code=202)
     except BaseException:
         if claim:
+            if _postdelivery.is_context(claim):
+                claim["_execution_drained"] = True
             _idempotency.mark_failed_and_refund(claim, failure_code="request_failed")
         else:
             _billing.refund_operation_charge(user["id"], "analyze", billing_charge, "AI 诊断失败自动退回")
@@ -18510,6 +18591,7 @@ async def analyze_stream_endpoint(
                     emit=emit,
                     billing_charge=billing_charge,
                     billing_managed=True,
+                    **({"reservation_claim":claim} if _postdelivery.is_context(claim) else {}),
                 )
                 payload = resp.model_dump()
                 payload["type"] = "complete"
@@ -18547,6 +18629,8 @@ async def analyze_stream_endpoint(
         finally:
             if not task.done():
                 task.cancel()
+            if _postdelivery.is_context(claim):
+                await asyncio.gather(task, return_exceptions=True)
 
     return StreamingResponse(
         _timed_sse_stream(
@@ -19719,7 +19803,7 @@ async def generate_stream_endpoint(
                     event["original_fact_context"], _facts.format_fact_context(fact_enrichment)
                 ) if part)
                 event["original_fact_context"] = event["fact_context"]
-                if claim and req.persist_result and _clarification.enabled():
+                if claim and ((req.persist_result and _clarification.enabled()) or _postdelivery.is_context(claim)):
                     event["billing"] = _billing.get_charge_receipt(user["id"], "generate", claim["charge"], claim["request_id"])
                     await _await_media_worker(_clarification.save_result, claim, event,
                         new_generation={"domain": req.domain, "local_time": local_time},
@@ -19756,16 +19840,21 @@ async def generate(
     Given an image (and optional brief), generates an optimized note hitting
     the composite delivery objective and auxiliary feature signals.
     """
-    if _clarification.enabled() and isinstance(request_id, str) and request_id.strip():
+    if _postdelivery.enabled() or (_clarification.enabled() and isinstance(request_id, str) and request_id.strip()):
         response = await generate_stream_endpoint(req, user, request_id, quote_version)
-        async for chunk in response.body_iterator:
-            event = _json.loads(chunk.removeprefix("data: ").strip())
-            if event.get("type") == "clarification_required":
-                return JSONResponse(event, status_code=202)
-            if event.get("type") == "complete":
-                return GenerateResponse(**event)
-            if event.get("type") == "error":
-                raise HTTPException(422, event)
+        try:
+            async for chunk in response.body_iterator:
+                event = _json.loads(chunk.removeprefix("data: ").strip())
+                if event.get("type") == "clarification_required":
+                    return JSONResponse(event, status_code=202)
+                if event.get("type") == "complete":
+                    return GenerateResponse(**event)
+                if event.get("type") == "error":
+                    raise HTTPException(422, event)
+        finally:
+            if hasattr(response.body_iterator,"aclose"):
+                await response.body_iterator.aclose()
+
         raise HTTPException(503, "原任务结果需要核实，请读取原任务")
     normalized_constraints = _normalize_user_constraints(req.user_constraints)
     normalized_intent = _normalize_content_intent(req.content_intent)
@@ -22310,7 +22399,9 @@ def _workflow_task_state(row: dict, user_id: str, reports: list[dict] | None = N
             "created_at": row["created_at"], "updated_at": row["updated_at"],
             "billing": _billing.get_charge_receipt(user_id, row["operation"], row, row["id"]),
             "queue": queue,
-            "can_cancel": status == "running" and bool(queue.get("can_cancel")),
+            "can_cancel": ((status == "running" and bool(queue.get("can_cancel"))) or
+                (status == "waiting_for_input" and _postdelivery._version(row) is not None
+                 and queue.get("active") is False)),
             "can_retry": status == "failed" and bool(row.get("refund_applied")),
             "can_resume": status == "waiting_for_input", "durable_execution": False}
 
@@ -22409,10 +22500,18 @@ async def read_chat_task(session_id: str, user: dict = Depends(_auth.get_current
 async def cancel_chat_task(session_id: str, user: dict = Depends(_auth.get_current_user)):
     # The client supplies only its original task id. Resolve the private
     # request hash from the owner-bound claim; never accept a supplied hash.
-    row = _db.fetchone("SELECT id,operation,key_hash,status FROM idempotency_requests WHERE id=? AND user_id=?",
+    row = _db.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?",
                         (session_id, user["id"]))
     if not row or row["operation"] not in {"analyze", "generate"}:
         raise HTTPException(404, "原任务不存在或不属于当前账号")
+    if (row["status"] == "waiting_for_input" and _postdelivery._version(dict(row)) is not None
+            and _public_product.queue_status(user["id"],row["key_hash"]).get("active") is False):
+        receipt = _postdelivery.cancel_waiting_reservation(user["id"],session_id)
+        if receipt:
+            return {"task_id":row["id"],"cancel_requested":True,"can_cancel":False,
+                "settlement_mode":"reservation_v1","refund_status":"released","billing":receipt,
+                "queue":_public_product.queue_status(user["id"],row["key_hash"]),
+                "message":"已结束原任务并释放预留积分，本次未扣积分"}
     accepted = row["status"] == "running" and _public_product.request_cancel(user["id"], row["key_hash"])
     return {"task_id": row["id"], "cancel_requested": bool(accepted),
             "queue": _public_product.queue_status(user["id"], row["key_hash"]),
@@ -22502,7 +22601,8 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
             async def run():
                 try:
                     result = await _run_analyze_pipeline(original, user, emit=emit,
-                        billing_charge=claim["charge"], billing_managed=True, prepared=resumed)
+                        billing_charge=claim["charge"], billing_managed=True, prepared=resumed,
+                        **({"reservation_claim":claim} if _postdelivery.is_context(claim) else {}))
                     event = result.model_dump()
                     event.update({key: prepared["request"].get(key) for key in
                         ("merchant_name", "merchant_visibility", "fact_source_policy")})

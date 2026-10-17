@@ -70,6 +70,10 @@ def _json(value, expected):
 def _status(row, requests):
     if row.get("source") == "refunded":
         return "refunded"
+    if str(row.get("source", "")).startswith("reservation_v1:"):
+        return "reserved"
+    if str(row.get("source", "")).startswith("reservation_released_v1:"):
+        return "released"
     matches = requests.get(row["id"], [])
     if len(matches) != 1 or matches[0].get("operation") != row.get("operation"):
         return "status_unknown"
@@ -210,7 +214,7 @@ def project_usage(*, usage_rows, model_rows, physical_rows, request_rows, window
             op_value[key] = round(op_value[key], 9)
     return {"window": dict(window), "operation_accounting": by_operation, "accounting": {
         "business": {"recorded": len(business), **{key: statuses[key] for key in (
-            "completed", "failed", "refunded", "running", "waiting_for_input", "status_unknown")}},
+            "completed", "failed", "refunded", "reserved", "released", "running", "waiting_for_input", "status_unknown")}},
         "auxiliary": {"recorded": len(auxiliary), "count_basis": "recorded_media_events_not_provider_calls",
                       "included_in_parent": sum(row.get("cost_mode") == "included_in_parent" for row in auxiliary),
                       "parent_link_status": "not_recorded_in_legacy_schema"},
