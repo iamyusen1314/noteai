@@ -639,3 +639,74 @@ for(const operation of ['generate','analyze']) test(`late ${operation} overload 
   expect(await page.evaluate(operation=>operation==='generate'?_genStreamActive:_diagnosisStreamActive,operation)).toBe(true);
   expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('noteai-paid-pending:')).length)).toBe(1);
 });
+
+test('rejected cross-entry analyze cannot erase running generate task or its cancel target',async ({page})=>{
+  await openApp(page);
+  const cancelled=[];
+  await page.route('**/synthetic-api/chat/tasks/*/cancel',route=>{
+    cancelled.push(new URL(route.request().url()).pathname);
+    return route.fulfill({json:{message:'正在等待原生成结算',cancel_requested:true}});
+  });
+  await page.evaluate(()=>{
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async(url,options)=>{
+      if(String(url).includes('/generate/stream')){
+        const encoder=new TextEncoder();
+        return new Response(new ReadableStream({start(controller){
+          window.__crossGenerateController=controller;
+          window.__crossGenerateEmit=event=>controller.enqueue(encoder.encode('data: '+JSON.stringify(event)+'\n\n'));
+          __crossGenerateEmit({type:'task_created',task_id:'11111111-1111-4111-8111-111111111111',can_cancel:true});
+          __crossGenerateEmit({type:'queue_update',queue:{state:'running',can_cancel:true}});
+        }}),{status:200,headers:{'Content-Type':'text/event-stream'}});
+      }
+      if(String(url).includes('/analyze/stream'))return Response.json({detail:{code:'MODEL_USER_OPERATION_BUSY'}},{status:429});
+      return nativeFetch(url,options);
+    };
+    showPage('upload');switchMode('generate');
+  });
+  await page.locator('#genBrief').fill('原生成任务素材');
+  await page.locator('#generateSubmitBtn').click();await page.locator('#billing-quote-confirm').click();
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-task-id','11111111-1111-4111-8111-111111111111');
+  await expect(page.locator('#page-live')).toBeVisible();
+  await page.evaluate(()=>{showPage('upload');switchMode('diagnose');});
+  await page.locator('.input-type',{hasText:'填写笔记／上传素材'}).click();
+  await page.locator('#inputTitle').fill('另一入口未受理的诊断');await page.locator('#inputDesc').fill('不替换原生成');
+  await page.evaluate(()=>{startDiagnosis();});await page.locator('#billing-quote-confirm').click();
+  await expect.poll(()=>page.evaluate(()=>_diagnoseResult?._notAccepted)).toBe(true);
+  await page.evaluate(()=>{
+    showPage('live');
+    __crossGenerateEmit({type:'queue_update',queue:{state:'queued',can_cancel:true,waiting_operations:2}});
+  });
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-task-id','11111111-1111-4111-8111-111111111111');
+  await expect(page.locator('#liveTaskQueue')).toContainText('当前有 2 个任务等待处理');
+  await page.getByRole('button',{name:'取消后续处理',exact:true}).click();
+  await expect(page.locator('#liveTaskQueue')).toContainText('正在等待原生成结算');
+  expect(cancelled).toEqual(['/synthetic-api/chat/tasks/11111111-1111-4111-8111-111111111111/cancel']);
+});
+
+test('old cross-entry stream cannot update or terminate a newly authoritative task',async ({page})=>{
+  await openApp(page);
+  await page.evaluate(()=>{
+    showPage('live');
+    window.__streamA=()=>true;window.__streamB=()=>true;
+    _handleGenStreamEvent({type:'task_created',task_id:'11111111-1111-4111-8111-111111111111',can_cancel:true},__streamA);
+    _handleAnalyzeStreamEvent({type:'task_created',task_id:'22222222-2222-4222-8222-222222222222',can_cancel:true},__streamB);
+    _handleAnalyzeStreamEvent({type:'queue_update',queue:{state:'running',can_cancel:true}},__streamB);
+    _handleGenStreamEvent({type:'queue_update',queue:{state:'settling',can_cancel:false}},__streamA);
+    _handleGenStreamEvent({type:'complete'},__streamA);
+    _handleGenStreamEvent({type:'stage',progress:99,label:'旧A不应覆盖'},__streamA);
+  });
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-task-id','22222222-2222-4222-8222-222222222222');
+  await expect(page.locator('#liveTaskQueue')).toContainText('正在处理请求');
+  await expect(page.getByRole('button',{name:'取消后续处理',exact:true})).toBeVisible();
+  await expect(page.locator('#liveTaskQueue')).not.toContainText('处理已完成');
+  expect(await page.evaluate(()=>_liveQueueState.terminal)).toBe(false);
+  await page.evaluate(()=>{
+    window.__resumedB=()=>true;
+    _handleAnalyzeStreamEvent({type:'task_created',task_id:'22222222-2222-4222-8222-222222222222',can_cancel:true},__resumedB);
+    _handleAnalyzeStreamEvent({type:'queue_update',queue:{state:'queued',can_cancel:true,queued_calls:3}},__resumedB);
+    _handleAnalyzeStreamEvent({type:'complete'},__streamB);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('本任务待处理 3 项');
+  expect(await page.evaluate(()=>_liveQueueState.terminal)).toBe(false);
+});

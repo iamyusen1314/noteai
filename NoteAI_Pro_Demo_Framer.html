@@ -6740,7 +6740,6 @@ async function startGeneration() {
   catch(error) { _genStreamActive=false;_setGenerationSubmitBusy(false);showToast(error.message);_resolveGen();return; }
   if(!submission || !identityMatches()) { _genStreamActive=false;_setGenerationSubmitBusy(false);_resolveGen();return; }
   _activeGeneratePaidRequestId=submission.requestId;
-  _liveQueueState=null;
   (async () => {
     const streamGuard = createSseWarningGuard('generate', '爆文生成');
     const paidRequestId = submission.requestId;
@@ -6946,12 +6945,16 @@ function appendSafeProcessCard(containerId, ev, extraClass = '') {
   container.scrollTop = container.scrollHeight;
 }
 
-function renderLiveQueueEvent(ev, identityMatches = () => true) {
+const _liveQueueDefaultIdentity=()=>true;
+function renderLiveQueueEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   const transportTypes = ['task_created','queue_update','heartbeat','image_progress'];
   const terminal = ['complete','error','clarification_required'].includes(ev.type);
+  if (!identityMatches()) return true;
+  // Each real stream supplies one stable request/owner guard. Only a newly
+  // accepted task may take over; a rejected cross-entry submit cannot do so.
+  if (ev.type!=='task_created' && _liveQueueState && _liveQueueState.identityMatches!==identityMatches) return true;
   if (!transportTypes.includes(ev.type) && !terminal) return false;
-  if (!identityMatches()) return !terminal;
-  if (ev.type === 'task_created' && (!_liveQueueState || _liveQueueState.taskId !== ev.task_id || _liveQueueState.terminal))
+  if (ev.type === 'task_created' && (!_liveQueueState || _liveQueueState.taskId !== ev.task_id || _liveQueueState.terminal || _liveQueueState.identityMatches!==identityMatches))
     _liveQueueState={taskId:ev.task_id || '',canCancel:ev.can_cancel===true,queue:{},images:'',terminal:false,version:0,
       identityMatches,token:_authToken,cancelPending:false};
   let state=_liveQueueState;
@@ -7026,7 +7029,7 @@ function renderLiveQueueEvent(ev, identityMatches = () => true) {
   return !terminal;
 }
 
-function _handleGenStreamEvent(ev, identityMatches = () => true) {
+function _handleGenStreamEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   if (!identityMatches()) return;
   if (renderLiveQueueEvent(ev,identityMatches)) return;
   switch (ev.type) {
@@ -7238,7 +7241,7 @@ function _driveLiveTimeline(stepIdx) {
   stepActive(stepIdx);
 }
 
-function _handleAnalyzeStreamEvent(ev, identityMatches = () => true) {
+function _handleAnalyzeStreamEvent(ev, identityMatches = _liveQueueDefaultIdentity) {
   if (!identityMatches()) return;
   if (renderLiveQueueEvent(ev,identityMatches)) return;
   setLive3DMode(false);
@@ -7574,7 +7577,6 @@ async function prepareDiagnosis() {
   catch(error) { _diagnosisStreamActive=false;updateDiagnosisSubmitState();showToast(error.message);return; }
   if(!submission || !identityMatches()) { _diagnosisStreamActive=false;updateDiagnosisSubmitState();return; }
   _activeAnalyzePaidRequestId=submission.requestId;
-  _liveQueueState=null;
   _diagnosePromise = new Promise((resolve, reject) => {
     (async () => {
       const streamGuard = createSseWarningGuard('analyze', 'AI 诊断');
