@@ -1,3 +1,21 @@
+## CURRENT — 2026-10-17 北京21:06：旧版九图／排队修复 a11 已上线；本轮生产操作已闭合
+
+本窗口独占生产执行，原“启动NoteAI授权续期发布”窗口继续Q-only隔离工作。实际代码 **a11adc0142f646a2d3db7f84a825c9a840707c80**、镜像 **be8f1a5ac4fd95b84532035f3ef7f604fdb5d83b3c84af01a48efd9086bc6bd2**、正式API容器 **ca8ebc9c…**；入口实际重新开放 **2026-10-17 20:51:13.620472北京时间**，不是仅构建或发送。API／支付／Admin物理服务active，restart0／无OOM；Source10当前闭环和pins已绑定ca8。数据库迁移0、worker未启、新版0032–0041／新功能／新权重未混入，现无本轮未结束的维护操作。E0恢复材料保留，恢复须保留业务新数据，禁止覆盖DB／倒退积分。
+
+上线后真实高德通过：C **c-sz070bcjh1qd79c**／T **t-sz070bcjh25clc0**，13:03:25→26Z Success0/Dropped0；E/amap-postlive-positive-a11-local-HOLD1/actual-ca8-once1/actual-original01.json **18092/a24b8192792ac4857be352846e4b546c9a3a98aad1b68b11db62058917f10d93**。实际ca8内UID999／正常PID1／真实共享PG配额／0902绑定true，原生1次冷GET、HTTP200／status1／10000、POI B0FFG2O3RL、当前解析1条，ownattempt661b526a-6ed2-40cb-9d86-2b9e25b60606 succeeded；10月50000／剩49951→49950。无cache/detail/retry/model/业务API或扣点，源和服务未改。供应商未返回request ID，不补造。水石清池仍不能说被高德Web服务匹配；全局真实商户补充记录独立存在。月度自动维护沿用真实官方规则／账号绑定／共享计量与定时任务；实际定时当前月NOOP已有原件，11／12月真实跨月尚未发生，用户一年服务期不是官方一年免费额度。当前snapshot mode operator_attested_monthly如实保留。
+
+正式PC与390×844手机尺寸H5刷新、菜单、8份报告、原洗浴报告重开及正文SHA e522cc47…一致；余额2842.5未变。该线上检查无新生成／保存／扣点。完整生成／savev1／仅扣8的真实验收来自同BE8隔离九图：9/9视觉处理、35条真实模型终态、PG核验及PC/H5重开，允许复用但不重标为本次线上新生成。美团沿用未受影响的真实cold非RAW CLI成功及同任务事实入文证据，内部HTTP/requestID未暴露仍UNKNOWN；不重复供应商调用。Admin仅公开登录页可达／服务active，未重新登录验完整功能；手机尺寸不是真机；新视频未执行。
+
+多人结论：10独立用户各9图的完整链为可控Mock测试通过／27项，不是10真实供应商并发验收。11参数数值来自真实隔离a11/BE8启动；生产完整ENV/profile严格继承和同源证明一致，未另投影生产实时单例：物理请求2／各供应商2／media2／Claude30RPM、活动操作10／每用户1／待发64／排队1800秒／无进展300秒。是保护上限，不承诺固定等待时间或无限并发；真实仅1用户九图全链通过。排队时间、供应商真实超时、任务无进展已区分；取消释放／已发结算／幂等扣点以受控用例验证。休闲四组Prompt适配已含修复；**专项训练／评分校准仍未通过独立验收，无新权重**，v0.4为通用参考分。
+
+费用保持累计150元：已知模型保守计量91.3291334＋历史未知预留3.281920＋存储预留1＝占用95.6110534，余54.3889466；本轮收尾新增模型0，供应商最终现金账单未对账。没有可信的正式多轮生成金额上界，故未冒险新增正式付费生成。原临时公网隔离入口早已于18:00前关闭，本次重复批准未重开；已关闭本窗云调试／保存／OSS标签，仅保留正式产品页，设备模式已复原；不关闭其他窗口标签，不删恢复原件。
+
+原发布窗口已明确确认收到a11完整commit／BE8／ca8／Payf72f／route4c801704／Source10f017＋pinscdc104为后续唯一当前生产基线；未来大版本尚未实际构建，因此**尚未纳入任何新候选镜像**。对方继续隔离，不能用旧ddab/E0证明或覆盖本次修复。最终独立审计确认实际部署、Source10、线上高德和证据边界通过；无需要触发恢复的确定故障。本轮已授权小修复交付结束；专项校准及未执行真实容量／真机／新视频仍独立保留，不冒称完成。
+
+完整结构化证据索引：E/new-baseline-6c81-technical-scope-20261017-once1/**FINAL-ACCEPTANCE-BOUNDARIES.json**。原官方回执、PC/H5 DOM／截图／独立审核保留，以下历史不作为当前运行结论。
+
+## HISTORY — 21:03检查点（已由上方最终原件闭合）
+
 ## CURRENT — Oct17 21:03 Beijing a11/BE8 genuinely LIVE; independent backend/PC/H5 PASS; one postlive Amap probe NEXT
 
 Unique run6de2dba0bf4f4271b80b241d791dbcda C c-sz070bbd5j1um0w/T t-sz070bbd5jgu03k Success0/Dropped0. Actual firstCAS12:50:23.322818Z; reopen-reload mtime12:51:13.620472Z (BJT20:51:13), complete12:51:13.652473Z. Exact source a11adc0142f646a2d3db7f84a825c9a840707c80, image sha256:be8f1a5ac4fd95b84532035f3ef7f604fdb5d83b3c84af01a48efd9086bc6bd2, formal CIDca8ebc9c0f190164aa5507ee20d78ec550595a2eb8355de6412c1423abfed93b. This is oldAPI-only/noDDL; no worker,0032–41/fullC8/newinfra. Main solecloud/prodexecutor; releaseRoot Q-only. No rerun oldrun/restore/prewarm; privatealiasclosedbefore18:00 staysclosed despite duplicated approval reply.
