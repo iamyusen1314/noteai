@@ -16,6 +16,79 @@ api = importlib.import_module("api")
 
 
 class LiveGenerationProgressTests(unittest.TestCase):
+    def test_closed_paid_stream_drains_source_before_settlement_and_keeps_first_failure(self):
+        for local_failure, expected_code in (
+                ("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED", "stream_failed"),
+                ("", "stream_cancelled")):
+            with self.subTest(local_failure=local_failure):
+                order = []
+                invocation = api._public_product.Invocation("original-owner", "original-request")
+                invocation.failure = local_failure
+                claim = {"request_id": "original-task", "user_id": "original-owner",
+                         "operation": "generate", "key_hash": "original-hash"}
+
+                async def run():
+                    release = asyncio.Event()
+
+                    async def source():
+                        try:
+                            yield 'data: {"type":"image_progress","completed":3,"total":9}\n\n'
+                        finally:
+                            order.append("draining")
+                            await release.wait()
+                            order.append("settled-original-calls")
+
+                    wrapped = api._idempotent_sse_stream(source(), claim, success_types={"complete"})
+                    await anext(wrapped)
+                    close = asyncio.create_task(wrapped.aclose())
+                    await asyncio.sleep(.01)
+                    self.assertEqual(order, ["draining"])
+                    self.assertFalse(close.done())
+                    settle.assert_not_called()
+                    release.set()
+                    await close
+
+                def record_settlement(*_args, **_kwargs):
+                    order.append("customer-settlement")
+                    return True
+
+                marker = api._public_product._invocation.set(invocation)
+                try:
+                    with mock.patch.object(api._public_product, "bind_task_claim"), \
+                         mock.patch.object(api._idempotency, "mark_failed_and_refund",
+                                           side_effect=record_settlement) as settle:
+                        asyncio.run(run())
+                        self.assertEqual(order, ["draining", "settled-original-calls", "customer-settlement"])
+                        settle.assert_called_once_with(claim, failure_code=expected_code)
+                finally:
+                    api._public_product._invocation.reset(marker)
+
+    def test_unconfirmed_source_close_cannot_confirm_failed_delivery(self):
+        class UnclosedSource:
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                raise RuntimeError("synthetic source failure")
+
+            async def aclose(self):
+                raise RuntimeError("synthetic drain not confirmed")
+
+        claim = {"request_id": "original-task", "user_id": "original-owner",
+                 "operation": "generate", "key_hash": "original-hash"}
+
+        async def run():
+            return [chunk async for chunk in api._idempotent_sse_stream(
+                UnclosedSource(), claim, success_types={"complete"})]
+
+        with mock.patch.object(api._public_product, "bind_task_claim"), \
+             mock.patch.object(api._idempotency, "mark_failed_and_refund") as settle, \
+             mock.patch.object(api, "_failed_stream_task_event", return_value={"type": "error"}), \
+             mock.patch.object(api, "_log_internal_failure"):
+            events = asyncio.run(run())
+        self.assertEqual(len(events), 1)
+        settle.assert_called_once_with(claim, failure_code="stream_cancelled")
+
     def test_heartbeat_keeps_one_generator_context_and_never_advances_work(self):
         context = contextvars.ContextVar("synthetic_stream_context", default="outside")
         calls = []

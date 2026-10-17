@@ -176,9 +176,24 @@ def _record_usage(provider: str, model: str, tokens_in: int = 0, tokens_out: int
             model, physical_call_id=kwargs.get("physical_call_id"),
             usage_status=kwargs.get("usage_status"),
         )
-    except Exception:
+    except Exception as exc:
         if kwargs.get("physical_call_id"):
-            raise _public_product.TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED") from None
+            # Retain the original local failure without logging SQL, response
+            # content, or credentials. The physical call must never be replayed.
+            try:
+                call_id = str(kwargs["physical_call_id"])
+                error_class = type(exc).__name__
+                sqlstate = getattr(exc, "sqlstate", None)
+                print(json.dumps({"schema": "noteai.model_usage_failure.v1",
+                    "event_code": "billing", "phase": "record_model_usage",
+                    "provider": provider if provider in {"claude", "kimi", "doubao"} else "unknown",
+                    "call_id": call_id if re.fullmatch(r"[A-Za-z0-9_-]{1,128}", call_id) else None,
+                    "exception_class": error_class if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,63}", error_class) else "UnclassifiedError",
+                    "sqlstate": sqlstate if isinstance(sqlstate, str) and re.fullmatch(r"[0-9A-Z]{5}", sqlstate) else None,
+                }), file=sys.stderr, flush=True)
+            except Exception:
+                pass
+            raise _public_product.TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED") from exc
 
 
 def _record_claude_usage(model: str, usage, *, physical_call_id: str | None = None) -> None:

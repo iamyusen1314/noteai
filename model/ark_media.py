@@ -266,9 +266,34 @@ class _ArkCallDiagnostics:
             dispatch_state="not_dispatched" if self.not_dispatched(exc) else "unknown",
             cancellation=not isinstance(exc, Exception), failure_role=role)
         try:
+            # Local accounting wrappers may deliberately hide exception text.
+            # Keep only the underlying class/SQLSTATE, never message or query.
+            local = exc.__cause__ or exc.__context__ or exc
+            name = type(local).__name__
+            sqlstate = getattr(local, "sqlstate", None)
+            event["exception_class"] = name if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,63}", name) else "UnclassifiedError"
+            event["sqlstate"] = sqlstate if isinstance(sqlstate, str) and re.fullmatch(r"[0-9A-Z]{5}", sqlstate) else None
             print(json.dumps(event, allow_nan=False), file=sys.stderr, flush=True)
         except Exception:
             pass  # Logging failure must never replace durable accounting/cancellation.
+
+
+def _persist_call_response(call_id, status, diagnostic, **facts):
+    """At most one local retry; the original helper reads the call before CAS.
+
+    An acknowledgement loss may have committed. Re-entering its existing
+    read-first/idempotent terminal check neither resends the model request nor
+    repeats usage metering. A persistent failure stays unconfirmed.
+    """
+    import public_product
+    for attempt in range(2):
+        try:
+            public_product._record_response(call_id, status, **facts)
+            return
+        except public_product.TrialProviderStopped as exc:
+            diagnostic.log(exc, phase="result_persistence", role="terminal_persistence")
+            if attempt or exc.args != ("PUBLIC_TRIAL_RESULT_PERSISTENCE_UNKNOWN",):
+                raise
 
 
 def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
@@ -319,6 +344,7 @@ def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
         # process or unreconciled original call, rather than normal queueing.
         raise public_product.TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
     status = None
+    nonterminal = False
     diagnostic = _ArkCallDiagnostics(call_id)
     def stop(code):
         diagnostic.failure_reason = code
@@ -336,7 +362,7 @@ def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
             diagnostic.headers_received = True
             diagnostic.phase = "response_accounting"
             if status != 200:
-                public_product._record_response(call_id, status)
+                _persist_call_response(call_id, status, diagnostic)
                 stop("ARK_HTTP_" + str(status))
             diagnostic.phase = "response_decode"
             data = response.json()
@@ -351,11 +377,11 @@ def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
                 "completion_tokens": usage.get("output_tokens"),
                 "prompt_tokens_details": usage.get("input_tokens_details")}} if responses and isinstance(usage, dict) else data
             dimensions = usage_dimensions(meter_data, audio_possible=audio_possible)
+            nonterminal = responses and data.get("status") not in {"completed", "incomplete", "failed"}
             model_router._record_usage("doubao", actual_model,
                 physical_call_id=call_id, **dimensions)
-            nonterminal = responses and data.get("status") not in {"completed", "incomplete", "failed"}
             diagnostic.phase = "response_accounting"
-            public_product._record_response(call_id, status, **({"unknown": True} if nonterminal else {}))
+            _persist_call_response(call_id, status, diagnostic, **({"unknown": True} if nonterminal else {}))
             if nonterminal:
                 stop("ARK_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY")
         diagnostic.phase = "model_validation"
@@ -392,14 +418,26 @@ def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
         return content.strip()
 
     except public_product.TrialProviderStopped as exc:
-        # Preserve existing known rejection / unsettled accounting semantics.
         diagnostic.log(exc)
+        if (diagnostic.phase == "usage_metering" and status == 200
+                and exc.args == ("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED",)):
+            # The complete HTTP response is known even when local usage storage
+            # failed. Missing usage still fences delivery and replay; it must
+            # not leave this finished wire occupying a dispatched slot forever.
+            current = public_product._invocation.get()
+            if current is not None and not current.failure:
+                current.failure = "PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED"
+            try:
+                _persist_call_response(call_id, status, diagnostic,
+                    **({"unknown": True} if nonterminal else {}))
+            except Exception:
+                pass  # Preserve the primary error; persistence failures are logged.
         raise
     except BaseException as exc:
         # Persist the original failure first: terminal accounting may also fail.
         diagnostic.log(exc)
         try:
-            public_product._record_response(call_id, diagnostic.http_status,
+            _persist_call_response(call_id, diagnostic.http_status, diagnostic,
                 unknown=not diagnostic.not_dispatched(exc), not_dispatched=diagnostic.not_dispatched(exc))
         except BaseException as persist_exc:
             diagnostic.log(persist_exc, phase="result_persistence", role="terminal_persistence")

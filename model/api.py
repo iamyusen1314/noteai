@@ -1135,10 +1135,22 @@ async def _idempotent_sse_stream(
                 chunk = 'data: ' + _json.dumps(event, ensure_ascii=False) + '\n\n'
             yield chunk
     except BaseException as exc:
+        # A consumer can close us while the source is suspended at a progress
+        # yield. Drain that same generator (and its issued media calls) before
+        # deciding whether the customer's delivery can be settled.
+        source_closed = False
+        try:
+            await stream.aclose()
+            source_closed = True
+        except BaseException as close_exc:
+            _log_internal_failure("generation_settlement", close_exc, phase="source_close")
         if not terminal_seen:
+            invocation = _public_product._invocation.get()
+            known_local_failure = (source_closed and invocation is not None
+                and invocation.failure == "PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED")
             failure_code = (
                 "stream_cancelled"
-                if isinstance(exc, (asyncio.CancelledError, GeneratorExit))
+                if not source_closed or (isinstance(exc, (asyncio.CancelledError, GeneratorExit)) and not known_local_failure)
                 else "stream_failed"
             )
             try:

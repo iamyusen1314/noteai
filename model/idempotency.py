@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import secrets
 import uuid
@@ -465,7 +466,7 @@ def _fail_running_request_in_transaction(
             return
     tx.execute(
         "UPDATE idempotency_requests SET status='failed',refund_applied=1,"
-        "failure_code=?,refunded_at=?,failed_at=?,updated_at=? WHERE id=?",
+        "failure_code=?,refunded_at=?,failed_at=COALESCE(failed_at,?),updated_at=? WHERE id=?",
         (
             failure_code,
             now_iso,
@@ -1020,5 +1021,129 @@ def reconcile_undelivered_generate(
                             (current["charged_subscription_id"], user_id))
         if (not after or abs(float(after["used_monthly_credits"] or 0)
                              - (before_monthly - float(expected_credits))) > 0.000001):
+            raise ValueError("original subscription credit restoration is unproven")
+        return _failure_settlement_projection(refreshed)
+
+
+def reconcile_undelivered_generate_calls(
+    user_id: str,
+    request_id: str,
+    *,
+    expected_usage_id: str,
+    expected_provider_calls: list[dict[str, Any]],
+    expected_lease_expires_at: str,
+    expected_credits: float,
+    expected_subscription_id: str,
+    expected_period_start: str,
+    original_execution_ended: bool,
+) -> dict:
+    """Explicitly refund one failed delivery, preserving every supplier record.
+
+    This maintenance-only entry requires an operator's original-process end
+    proof and a complete, bounded physical-call manifest. It neither determines
+    supplier outcomes nor runs from a read route, background task, or retry.
+    """
+    if original_execution_ended is not True:
+        raise ValueError("original execution is not confirmed ended")
+    if (not all(isinstance(value, str) and value for value in (
+            user_id, request_id, expected_usage_id, expected_lease_expires_at,
+            expected_subscription_id, expected_period_start))
+            or type(expected_credits) not in (int, float)
+            or not math.isfinite(expected_credits) or expected_credits <= 0
+            or not isinstance(expected_provider_calls, list)
+            or not 1 <= len(expected_provider_calls) <= 64):
+        raise ValueError("original settlement identity is incomplete")
+    manifest = {}
+    for call in expected_provider_calls:
+        if (not isinstance(call, dict)
+                or set(call) != {"id", "state", "http_status", "model_usage_record_id"}
+                or not isinstance(call["id"], str) or not 1 <= len(call["id"]) <= 128
+                or call["id"] in manifest
+                or not isinstance(call["state"], str)
+                or call["state"] not in {"dispatched", "unknown", "responded"}
+                or (call["http_status"] is not None and (
+                    type(call["http_status"]) is not int or not 100 <= call["http_status"] <= 599))
+                or (call["model_usage_record_id"] is not None and (
+                    not isinstance(call["model_usage_record_id"], str)
+                    or not 1 <= len(call["model_usage_record_id"]) <= 128))):
+            raise ValueError("original physical call manifest is invalid")
+        manifest[call["id"]] = dict(call)
+    with db.transaction(write=True) as tx:
+        content_retention.assert_user_writable_with_storage(tx, user_id)
+        lock = " FOR UPDATE" if tx.postgres else ""
+        row = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?" + lock,
+                          (request_id, user_id))
+        if not row:
+            raise ValueError("original task not found")
+        current = dict(row)
+        lease = _parse_lease_clock(current.get("lease_expires_at"))
+        if (current["operation"] != "generate" or current["status"] != "failed"
+                or current.get("usage_id") != expected_usage_id
+                or current.get("lease_expires_at") != expected_lease_expires_at
+                or lease is None or lease > _now() or not current.get("failed_at")
+                or current.get("failure_code") not in FAILURE_CODES
+                or float(current.get("credits_used") or 0) != float(expected_credits)
+                or current.get("charge_source") != "subscription"
+                or current.get("charged_subscription_id") != expected_subscription_id
+                or current.get("charged_period_start") != expected_period_start
+                or float(current.get("monthly_credits_used") or 0) != float(expected_credits)
+                or float(current.get("wallet_credits_used") or 0) != 0
+                or not current.get("charge_applied") or current.get("complete_applied")
+                or current.get("response_ref_json")):
+            raise ValueError("original task is not the expired failed subscription charge")
+        usage = tx.fetchone("SELECT source,credits_used FROM usage_records "
+                            "WHERE id=? AND user_id=? AND operation='generate'" + lock,
+                            (expected_usage_id, user_id))
+        refunded = bool(current.get("refund_applied"))
+        if (not usage or usage["source"] != ("refunded" if refunded else "subscription")
+                or float(usage["credits_used"] or 0) != (0 if refunded else float(expected_credits))):
+            raise ValueError("original usage does not match the charge")
+        calls = tx.fetchall("SELECT id,user_id,state,http_status,model_usage_record_id "
+                            "FROM public_trial_calls WHERE usage_record_id=? ORDER BY id" + lock,
+                            (expected_usage_id,))
+        actual = {call["id"]: {key: call[key] for key in
+                  ("id", "state", "http_status", "model_usage_record_id")} for call in calls}
+        if actual != manifest or any(call["user_id"] != user_id for call in calls):
+            raise ValueError("original physical call manifest changed")
+        for call in calls:
+            if call["model_usage_record_id"] and not tx.fetchone(
+                    "SELECT id FROM model_usage_records WHERE id=? AND usage_record_id=?",
+                    (call["model_usage_record_id"], expected_usage_id)):
+                raise ValueError("original model usage binding changed")
+        session = tx.fetchone("SELECT note_id,generate_ctx_json FROM chat_sessions "
+                              "WHERE id=? AND user_id=?", (request_id, user_id))
+        if session:
+            try:
+                context = json.loads(session["generate_ctx_json"] or "{}")
+                task = context.get("task_continuation") if isinstance(context, dict) else None
+                session_result = bool(session["note_id"] or (isinstance(task, dict) and (
+                    task.get("status") == "completed" or "result" in task)))
+            except (TypeError, ValueError):
+                session_result = True
+        else:
+            session_result = False
+        if (session_result or tx.fetchone("SELECT id FROM notes WHERE id=? AND user_id=?",
+                                          (request_id, user_id))
+                or tx.fetchone("SELECT operation_id FROM ai_operation_admissions "
+                               "WHERE idempotency_request_id=?", (request_id,))):
+            raise ValueError("original result or operation needs separate reconciliation")
+        if refunded:
+            return _failure_settlement_projection(current)
+        subscription = tx.fetchone("SELECT period_start,used_monthly_credits FROM subscriptions "
+                                   "WHERE id=? AND user_id=?" + lock,
+                                   (expected_subscription_id, user_id))
+        before = float(subscription["used_monthly_credits"] or 0) if subscription else -1
+        if (not subscription or subscription["period_start"] != expected_period_start
+                or before + 0.000001 < expected_credits):
+            raise ValueError("original subscription period cannot restore the exact entitlement")
+        _fail_running_request_in_transaction(tx, current, failure_code=current["failure_code"],
+            now_iso=_iso(), defer_unconfirmed=True, confirmed_failed_delivery=True)
+        refreshed = dict(tx.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?",
+                                    (request_id, user_id)))
+        after = tx.fetchone("SELECT used_monthly_credits FROM subscriptions WHERE id=? AND user_id=?",
+                            (expected_subscription_id, user_id))
+        if (not refreshed["refund_applied"] or not after
+                or abs(float(after["used_monthly_credits"] or 0)
+                       - (before - expected_credits)) > 0.000001):
             raise ValueError("original subscription credit restoration is unproven")
         return _failure_settlement_projection(refreshed)
