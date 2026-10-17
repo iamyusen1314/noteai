@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-17 北京21:53：AppA仅隔离候选构建／导入smoke与原收据核验通过，未部署；a11仍为生产基线
+
+唯一AppA e3c82c34c1841554725ccf7b0080fe44e55461eb build Cc-sz070bgp1o4mfwg/Tt-sz070bgp1oh3xmo实际S0D0，13:49:59→13:50:33Z（BJT21:49:59→21:50:33，34秒），前一Running原件保留。E/appA-e3c82c34-three-role-build-20261017-once1/actual-build-execute-original02.json6417/d2e45a2ab4f83de33f787515fe8e43ce0968979da7810d6cafa05735d79e87f5；native2413/e6942e020c941ee6350e3ec42fd9f3a5403e96df14fe34efef8d3457d41ebf7e，BUILT_NOT_DEPLOYED_IMPORT_ONLY，source/tree0d50/原f31/worker beforeafterabsent/0retry。真实三新Linux config imageID：API **eed8502c16e833f94f4d1730d9ea28d6d556e539b25e259c0045a365cb136e4d**，Worker **01e90f59fff64cd06a23d387271cfea20d499f92da6973a9ad02b510a54239ce**，Payment **fc096359bccb3ad1182ada19396a38ce9aa9382900b990a05d2cab09cf3af2dd**；不是OCI index/registrydigest，也不是正式运行CID。
+
+唯一原readback Cc-sz070bguntgszcw/Tt-sz070bguntvsdfk S0D0/13:51:44→45Z，actual-build-readback-original01.json11481/1e6352594cde0c3b63f262c3574e1c93076100711aacf0680b0ab7251c96f3eb；native6211/d6c86550b219b882820619f794ec4c73aeb92dc6fcc54b46a54147ed4aaca7f1：READBACK_ONLY_NO_RETRY/artifact_verifiedtrue，三新ID/currentinspect/savedinspect/rootfs/Config原guards/原7phase/两receipt/source正确绑定，三smokeCID均null、readbackbuild0/cleanupfalse。local-image-receipt SHA dd9662ad9457ea0959b4dba8b5f5715d89c649ea21eeac067be2b7b7809d862b；local-payment-image-receipt SHA8800a2a4f791a50e5b600345b237a062bda1ddfcdb5bfb9effe5a47bfe0a3a93；均在固定host overlay-build下。源码未改、原false诊断未覆盖。Root已逐byte独审actualDATA/plan/execute/readback及目标/Timeout/Once/ProcessTree，确认仅build/import资格。
+
+边界：没有新维护/T0、生产DB、provider/model、正式服务、registry push/OCI export、新资源/权限；smoke允许临时tmpfs SQLite，不能说所有DB调用0。该成功不是QA30／真实PG31→41／真实业务或生产发布验收，正式仍a11/BE8/ca8，不把旧版完成冒AppA完成。模型预算95.6110534/150不变，新增模型0；两普通OSS对象约3.4MB沿storage预留，无新增订阅。
+
+NEXT_IN_PROGRESS：原host的source_binding_result／两receipt／Docker完整日志已保存，但当前本地只有完整官方stdout/原readback及强绑定refs，不能说完整raw bytes已下载。Root/Fact正在复用既有pureFS读取器给固定AppAroot的小集合metadata/whole与必要原bytes；本窗只收这项原结果归档，不重复build/readback、不顺带export/push。两个辅助tab/loopback暂保可用slot，归档结束即关闭；目前所有本次已受理DATA/plan/build/readback均实际终态，无在途或UNKNOWN构建。Root其他控制链仍Q-only，其失败adoption/coldphase等不作为本窗已过项。结构化CANDIDATE-BUILD-RESULT.json及原ACK/冻结wire/上传DOM/PNG保留。
+
+## HISTORY — AppA构建受理检查点（已由上方成功原件覆盖状态）
+
 ## CURRENT — 2026-10-17 北京21:51：a11生产继续服务；后续AppA隔离候选构建唯一受理／尚未完成
 
 本窗仍唯一云执行者，原发布Root Q-only。已直接核Root真实read_thread.thread.preview首条人类《Owner最终接管指令》，同批目标/合法后继/真实主机必要构建范围覆盖本次Worker-C隔离候选；证据VERIFIED-HUMAN-AUTHORIZATION.json保留，非把Root消息冒作Owner新增授权。独立本地包审GO，仅限e3c82c34c1841554725ccf7b0080fe44e55461eb三角色source overlay/import smoke；不部署、新维护、DDL、正式Worker/支付/provider或权限/新资源。150预算占用95.6110534不变，新增模型0；约3396842B普通对象纳入既有1元storage预留，没有新持续收费资源。生产仍a11/BE8/ca8，不混称AppA上线。
