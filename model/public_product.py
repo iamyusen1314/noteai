@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+from contextlib import asynccontextmanager, contextmanager
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -94,6 +95,8 @@ def allowed_route(method: str, path: str) -> bool:
         return True
     if method == "GET" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
         return True
+    if method == "POST" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/cancel", path):
+        return True
     if method == "POST" and image_enabled() and path in {"/upload-image", "/extract-screenshot", "/validate-ocr"}:
         return True
     if method == "POST" and video_enabled() and path == "/upload-video":
@@ -128,9 +131,161 @@ class Invocation:
     call_ids: set = field(default_factory=set)
     observed_models: set = field(default_factory=set)
     fact_observation: dict | None = None
+    admission_state: object | None = field(default=None, repr=False)
 
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
+_model_lease = contextvars.ContextVar("public_product_model_lease", default=None)
+
+
+def _admission_operation():
+    import model_admission
+    current = _invocation.get()
+    if current is None:
+        raise TrialProviderStopped("PUBLIC_TRIAL_REQUIRES_USER_REQUEST")
+    if current.admission_state is None:
+        # Internal/test callers still use their genuine Invocation identity;
+        # ordinary HTTP requests register bounded capacity before charging.
+        current.admission_state = model_admission.Operation(
+            current.user_id, hashlib.sha256(current.request_id.encode()).hexdigest())
+    return current.admission_state
+
+
+@contextmanager
+def model_admission_sync(operation_id, provider):
+    if not enabled():
+        yield
+        return
+    import model_admission as admission
+    operation = _admission_operation()
+    existing = _model_lease.get()
+    if existing is not None:
+        if existing.operation is not operation or existing.call_id != operation_id or existing.provider != provider:
+            raise TrialProviderStopped("MODEL_ADMISSION_NESTED_CALL")
+        yield existing
+        return
+    queue = admission.current().calls
+    try:
+        ticket = queue.acquire(operation, operation_id, provider)
+    except admission.AdmissionError as exc:
+        raise TrialProviderStopped(str(exc)) from None
+    marker = _model_lease.set(ticket)
+    try:
+        yield ticket
+    finally:
+        _model_lease.reset(marker)
+        if not ticket.held_by_stream:
+            queue.release(ticket)
+
+
+@asynccontextmanager
+async def model_admission(operation_id, provider):
+    if not enabled():
+        yield
+        return
+    import model_admission as admission
+    operation = _admission_operation()
+    existing = _model_lease.get()
+    if existing is not None:
+        if existing.operation is not operation or existing.call_id != operation_id or existing.provider != provider:
+            raise TrialProviderStopped("MODEL_ADMISSION_NESTED_CALL")
+        yield existing
+        return
+    queue = admission.current().calls
+    try:
+        ticket = await queue.acquire_async(operation, operation_id, provider)
+    except admission.AdmissionError as exc:
+        raise TrialProviderStopped(str(exc)) from None
+    marker = _model_lease.set(ticket)
+    try:
+        yield ticket
+    finally:
+        _model_lease.reset(marker)
+        if not ticket.held_by_stream:
+            queue.release(ticket)
+
+
+@asynccontextmanager
+async def media_worker_slot(image_index):
+    if not enabled():
+        yield
+        return
+    import model_admission as admission
+    queue = admission.current().media
+    try:
+        ticket = await queue.acquire_async(_admission_operation(), str(uuid.uuid4()), "media_worker")
+    except admission.AdmissionError as exc:
+        raise TrialProviderStopped(str(exc)) from None
+    try:
+        yield
+    finally:
+        queue.release(ticket)
+
+
+def mark_model_dispatched(operation_id):
+    ticket = _model_lease.get()
+    if ticket is not None:
+        import model_admission as admission
+        # Dispatch intent and cancel share the same lock. A cancellation that
+        # wins first cannot be followed by a newly dispatched physical call.
+        with admission.current().calls.lock:
+            if ticket.call_id != operation_id or ticket.dispatched or ticket.closed:
+                raise TrialProviderStopped("MODEL_CALL_ALREADY_DISPATCHED")
+            cancelled = ticket.operation.cancelled.is_set()
+            if not cancelled:
+                ticket.dispatched = True
+                ticket.last_activity = time.monotonic()
+        if cancelled:
+            _record_response(operation_id, None, not_dispatched=True)
+            raise TrialProviderStopped("MODEL_OPERATION_CANCELLED")
+
+
+def note_model_activity(ticket=None):
+    ticket = ticket or _model_lease.get()
+    if ticket is not None:
+        import model_admission as admission
+        admission.current().calls.note_activity(ticket)
+
+
+def model_dispatch_started():
+    ticket = _model_lease.get()
+    return bool(ticket and ticket.dispatched)
+
+
+def queue_status(user_id=None, request_hash=None):
+    import model_admission as admission
+    manager = admission.current()
+    if user_id is None and request_hash is None:
+        current = _invocation.get()
+        operation = current.admission_state if current is not None else None
+    else:
+        operation = manager.find(user_id, request_hash)
+    if operation is None:
+        return {"active": False, "can_cancel": False, "state": "idle"}
+    status = manager.calls.status(operation)
+    media = manager.media.status(operation)
+    if status["state"] == "idle" and media["state"] != "idle":
+        status.update({key: media[key] for key in ("state", "provider", "waiting_seconds", "queued_calls", "waiting_operations", "can_cancel")})
+    return status
+
+
+def request_cancel(user_id, request_hash):
+    import model_admission as admission
+    manager = admission.current()
+    operation = manager.find(user_id, request_hash)
+    if operation is None:
+        return False
+    return manager.cancel_active(operation)
+
+
+def bind_task_claim(claim):
+    if not enabled() or not claim:
+        return
+    import model_admission as admission
+    operation = _admission_operation()
+    if claim.get("user_id") != operation.user_id:
+        raise TrialProviderStopped("MODEL_TASK_OWNER_MISMATCH")
+    admission.current().bind_claim(operation, claim["key_hash"])
 
 
 async def authenticated_user(scope):
@@ -205,6 +360,18 @@ async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None
             context.prompts = await run_in_threadpool(prompt_manager.capture_request)
     except HTTPException as exc:
         return await JSONResponse({"detail": exc.detail}, status_code=exc.status_code)(scope, receive, send)
+    admitted = None
+    owns_admission = False
+    if path in PAID_ROUTES:
+        import model_admission as admission
+        try:
+            admitted, owns_admission = admission.current().register(
+                context.user_id, hashlib.sha256(context.request_id.encode()).hexdigest(), route=path)
+            context.admission_state = admitted
+        except admission.AdmissionError as exc:
+            return await JSONResponse({"detail": {"code": str(exc),
+                "message": "当前生成队列已满，或本账号已有任务处理中。本次未受理、未扣积分，请稍后查看原任务或重新提交。"}},
+                status_code=429, headers={"Retry-After": "5"})(scope, receive, send)
     marker = _invocation.set(context)
     prompt_marker = prompt_manager.bind_request(context.prompts) if context.prompts is not None else None
     try:
@@ -213,6 +380,9 @@ async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None
         if prompt_marker is not None:
             prompt_manager.release_request(prompt_marker)
         _invocation.reset(marker)
+        if owns_admission:
+            admission.current().cancel(admitted)
+            admission.current().finish(admitted)
 
 
 def available():
@@ -411,6 +581,9 @@ def assert_result_known():
     current = _invocation.get()
     if enabled() and current is not None and current.failure:
         raise TrialProviderStopped(current.failure)
+    if (enabled() and current is not None and current.admission_state is not None
+            and current.admission_state.cancelled.is_set()):
+        raise TrialProviderStopped("MODEL_OPERATION_CANCELLED")
 
 
 def record_model_identity(model, *, physical_call_id, usage_status=None):
@@ -452,6 +625,7 @@ def _reserve(request: httpx.Request) -> str:
     except (ValueError, TypeError, AttributeError):
         raise TrialProviderStopped("PUBLIC_TRIAL_REQUEST_OUT_OF_SCOPE") from None
     return _reserve_payload({**payload, "modality": "text"}, RESERVE_MILLI_CNY,
+                            call_id=request.extensions.get("noteai_operation_id"),
                             provenance=request.extensions.get("noteai_provenance"))
 
 
@@ -540,8 +714,9 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
             raise TrialProviderStopped("PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
         if media is not None:
             _check_pending_media(tx, current.user_id, media)
-        # At most two physical calls may be in flight in the entire public scope.
-        if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= 2:
+        # The fair in-process queue is not a replacement for this shared DB guard.
+        import model_admission
+        if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= model_admission.current().limits.physical:
             raise _SlotsBusy()
         tx.execute("UPDATE public_trial_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
                    (reserve, BUDGET_ID))
@@ -593,21 +768,21 @@ def _record_response(call_id: str, status: int | None, *, unknown=False, not_dis
                 raise RuntimeError("physical call result not persisted")
     except Exception:
         raise TrialProviderStopped("PUBLIC_TRIAL_RESULT_PERSISTENCE_UNKNOWN") from None
+    ticket = _model_lease.get()
+    if ticket is not None and ticket.call_id == call_id and not not_dispatched:
+        ticket.progress = True
 
 
 def _reserve_with_wait(request):
-    deadline = time.monotonic() + 90
-    while True:
-        try:
-            return _reserve(request)
-        except _SlotsBusy:
-            if time.monotonic() >= deadline:
-                raise TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
-            time.sleep(0.25)
-        except TrialProviderStopped:
-            raise
-        except Exception:
-            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+    # Fair admission has already completed; DB contention is not a queue timer.
+    try:
+        return _reserve(request)
+    except _SlotsBusy:
+        raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
+    except TrialProviderStopped:
+        raise
+    except Exception:
+        raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
 
 
 def _reserve_claude_once(request, body):
@@ -637,69 +812,62 @@ def _reserve_claude_once(request, body):
 def admit_claude_sync(request, body):
     if not enabled():
         return
-    deadline = time.monotonic() + 90
-    while True:
-        try:
-            request.call_state["id"] = _reserve_claude_once(request, body)
-            return
-        except _SlotsBusy:
-            if time.monotonic() >= deadline:
-                raise TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
-            time.sleep(0.25)
-        except TrialProviderStopped:
-            raise
-        except Exception:
-            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+    try:
+        request.call_state["id"] = _reserve_claude_once(request, body)
+    except _SlotsBusy:
+        raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
+    except TrialProviderStopped:
+        raise
+    except Exception:
+        raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
 
 
 async def admit_claude(request, body):
     if not enabled():
         return
-    deadline = time.monotonic() + 90
-    while True:
-        # Only one short transaction runs in the thread. Never leave a 90-second
-        # slot waiter behind after its user request has been cancelled.
-        attempt = asyncio.create_task(asyncio.to_thread(_reserve_claude_once, request, body))
-        try:
-            request.call_state["id"] = await asyncio.shield(attempt)
-            return
-        except asyncio.CancelledError:
-            while not attempt.done():
-                try:
-                    await asyncio.shield(attempt)
-                except asyncio.CancelledError:
-                    continue
-                except BaseException:
-                    break
+    # Only this short reservation transaction runs in a thread. A queued user
+    # never occupies a worker, and cancellation cannot orphan a reservation.
+    attempt = asyncio.create_task(asyncio.to_thread(_reserve_claude_once, request, body))
+    try:
+        request.call_state["id"] = await asyncio.shield(attempt)
+    except asyncio.CancelledError:
+        while not attempt.done():
             try:
-                call_id = attempt.result()
-            except _SlotsBusy:
-                pass
-            except TrialProviderStopped:
-                raise
-            except Exception:
-                raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
-            else:
-                request.call_state["id"] = call_id
-                _record_response(call_id, None, not_dispatched=True)
-                request.call_state["finalized"] = True
-            raise
+                await asyncio.shield(attempt)
+            except asyncio.CancelledError:
+                continue
+            except BaseException:
+                break
+        try:
+            call_id = attempt.result()
         except _SlotsBusy:
-            if time.monotonic() >= deadline:
-                raise TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
-            await asyncio.sleep(0.25)
+            pass
         except TrialProviderStopped:
             raise
         except Exception:
             raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+        else:
+            request.call_state["id"] = call_id
+            _record_response(call_id, None, not_dispatched=True)
+            request.call_state["finalized"] = True
+        raise
+    except _SlotsBusy:
+        raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
+    except TrialProviderStopped:
+        raise
+    except Exception:
+        raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
 
 
 class _TerminalParser:
-    def __init__(self):
+    def __init__(self, ticket=None):
+        self.ticket = ticket
         self.pending = b""
         self.done = False
         self.content_seen = False
         self.finish_reason = None
+        self.usage = None
+        self.model = None
 
     def feed(self, chunk):
         self.pending += chunk
@@ -717,12 +885,23 @@ class _TerminalParser:
                 value = json.loads(line[5:])
                 if not isinstance(value, dict) or value.get("error"):
                     raise ValueError()
+                usage = value.get("usage")
+                activity = (isinstance(usage, dict) and all(
+                    type(usage.get(key)) is int and usage[key] >= 0
+                    for key in ("prompt_tokens", "completion_tokens")))
+                if isinstance(usage, dict):
+                    self.usage = usage
+                if isinstance(value.get("model"), str):
+                    self.model = value["model"]
                 for choice in value.get("choices", []):
                     content = choice.get("delta", {}).get("content")
                     if isinstance(content, str) and content:
                         self.content_seen = True
+                        activity = activity or bool(content.strip())
                     if choice.get("finish_reason"):
                         self.finish_reason = choice["finish_reason"]
+                if activity:
+                    note_model_activity(self.ticket)
             except (ValueError, TypeError, AttributeError):
                 raise TrialProviderStopped("PUBLIC_TRIAL_STREAM_INVALID") from None
 
@@ -747,14 +926,94 @@ def _validate_response(response):
         raise TrialProviderStopped("PUBLIC_TRIAL_RESPONSE_UNKNOWN") from None
 
 
+def _kimi_operation_id(request):
+    operation_id = request.extensions.get("noteai_operation_id")
+    if operation_id is None or operation_id == "":
+        operation_id = str(uuid.uuid4())
+        request.extensions["noteai_operation_id"] = operation_id
+    if not isinstance(operation_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", operation_id):
+        raise TrialProviderStopped("PUBLIC_MODEL_REQUEST_OUT_OF_SCOPE")
+    return operation_id
+
+
+def _kimi_settlement_deadline(request, client_timeout):
+    # Normal execution retains HTTPX's original phase/read timeouts. Only a
+    # cancelled/closed consumer gets this finite drain ceiling; no fresh retry.
+    timeout = request.extensions.get("timeout", client_timeout)
+    values = [timeout.get(name) for name in ("connect", "read", "write", "pool")]
+    if any(not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0 for value in values):
+        raise TrialProviderStopped("PUBLIC_MODEL_HTTP_TIMEOUT_UNBOUNDED")
+    return time.monotonic() + sum(values)
+
+
+async def _kimi_settle_awaitable(awaitable, deadline, cancelled):
+    task = asyncio.ensure_future(awaitable)
+    if not cancelled:
+        try:
+            await asyncio.wait((task,))
+            return task.result()
+        except asyncio.CancelledError as exc:
+            if task.done() and not asyncio.current_task().cancelling():
+                raise
+            cancelled["exception"] = exc
+    # Once cancellation starts, each read shares the original finite ceiling;
+    # receiving another chunk cannot grant a new drain window.
+    while not task.done():
+        remaining = max(0.0, deadline - time.monotonic())
+        if not remaining:
+            task.cancel()
+            break
+        try:
+            await asyncio.wait((task,), timeout=remaining)
+        except asyncio.CancelledError:
+            continue
+    try:
+        return await task
+    except BaseException:
+        raise cancelled["exception"]
+
+
+async def _kimi_reserve_async(request):
+    attempt = asyncio.create_task(asyncio.to_thread(_reserve_with_wait, request))
+    try:
+        return await asyncio.shield(attempt)
+    except asyncio.CancelledError:
+        while not attempt.done():
+            try:
+                await asyncio.shield(attempt)
+            except asyncio.CancelledError:
+                continue
+            except BaseException:
+                break
+        try:
+            call_id = attempt.result()
+        except TrialProviderStopped:
+            raise
+        except Exception:
+            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+        else:
+            _record_response(call_id, None, not_dispatched=True)
+        raise
+
+
+def _meter_cancelled_kimi(model, usage, call_id):
+    # Normal callers retain their existing accounting. Only cancellation/early
+    # close, which prevents the caller's parser from finishing, settles here.
+    import model_router
+    model_router._record_kimi_usage(model, usage, physical_call_id=call_id)
+
+
 class _TrackedStream(httpx.SyncByteStream):
-    def __init__(self, stream, call_id, status):
+    def __init__(self, stream, call_id, status, *, model=MODEL, ticket=None, deadline=None):
         self.stream, self.call_id, self.status = stream, call_id, status
-        self.parser = _TerminalParser()
+        self.parser = _TerminalParser(ticket=ticket)
+        self.iterator = iter(stream)
+        self.model, self.ticket, self.deadline = model, ticket, deadline
+        self.finalized = False
 
     def __iter__(self):
         try:
-            for chunk in self.stream:
+            for chunk in self.iterator:
                 self.parser.feed(chunk)
                 yield chunk
             self.parser.finish()
@@ -762,90 +1021,213 @@ class _TrackedStream(httpx.SyncByteStream):
             raise TrialProviderStopped("PUBLIC_TRIAL_STREAM_UNKNOWN") from None
 
     def close(self):
+        if self.finalized:
+            return
+        self.finalized = True
+        interrupted = not self.parser.done
         try:
-            self.stream.close()
+            if interrupted:
+                for chunk in self.iterator:
+                    if self.deadline is not None and time.monotonic() >= self.deadline:
+                        raise TrialProviderStopped("PUBLIC_TRIAL_STREAM_UNKNOWN")
+                    self.parser.feed(chunk)
+                self.parser.finish()
         finally:
-            _record_response(self.call_id, self.status if self.parser.done else None)
+            try:
+                self.stream.close()
+            finally:
+                try:
+                    if interrupted:
+                        _meter_cancelled_kimi(self.parser.model or self.model, self.parser.usage, self.call_id)
+                finally:
+                    try:
+                        _record_response(self.call_id, self.status if self.parser.done else None)
+                        if self.ticket is not None:
+                            self.ticket.progress = True
+                    finally:
+                        if self.ticket is not None:
+                            import model_admission
+                            model_admission.current().calls.release(self.ticket)
 
 
 class _TrackedAsyncStream(httpx.AsyncByteStream):
-    def __init__(self, stream, call_id, status):
+    def __init__(self, stream, call_id, status, *, model=MODEL, ticket=None, deadline=None):
         self.stream, self.call_id, self.status = stream, call_id, status
-        self.parser = _TerminalParser()
+        self.parser = _TerminalParser(ticket=ticket)
+        self.iterator = stream.__aiter__()
+        self.model, self.ticket, self.deadline = model, ticket, deadline
+        self.cancelled = {}
+        self.finalized = False
 
     async def __aiter__(self):
         try:
-            async for chunk in self.stream:
+            while True:
+                try:
+                    chunk = await _kimi_settle_awaitable(
+                        self.iterator.__anext__(), self.deadline, self.cancelled)
+                except StopAsyncIteration:
+                    break
                 self.parser.feed(chunk)
-                yield chunk
+                if not self.cancelled:
+                    yield chunk
             self.parser.finish()
+            if self.cancelled:
+                raise self.cancelled["exception"]
+        except asyncio.CancelledError:
+            raise
         except Exception:
             raise TrialProviderStopped("PUBLIC_TRIAL_STREAM_UNKNOWN") from None
 
     async def aclose(self):
+        if self.finalized:
+            return
+        self.finalized = True
+        interrupted = bool(self.cancelled) or not self.parser.done
         try:
-            await self.stream.aclose()
+            if not self.parser.done:
+                while True:
+                    if self.deadline is not None and time.monotonic() >= self.deadline:
+                        raise TrialProviderStopped("PUBLIC_TRIAL_STREAM_UNKNOWN")
+                    try:
+                        chunk = await _kimi_settle_awaitable(
+                            self.iterator.__anext__(), self.deadline, self.cancelled)
+                    except StopAsyncIteration:
+                        break
+                    self.parser.feed(chunk)
+                self.parser.finish()
+        except BaseException:
+            if not self.cancelled:
+                raise
         finally:
-            await run_in_threadpool(_record_response, self.call_id, self.status if self.parser.done else None)
+            try:
+                await self.stream.aclose()
+            finally:
+                try:
+                    if interrupted:
+                        _meter_cancelled_kimi(self.parser.model or self.model, self.parser.usage, self.call_id)
+                finally:
+                    try:
+                        # This short terminal transaction must complete before
+                        # releasing the physical permit to the next request.
+                        _record_response(self.call_id, self.status if self.parser.done else None)
+                        if self.ticket is not None:
+                            self.ticket.progress = True
+                    finally:
+                        if self.ticket is not None:
+                            import model_admission
+                            model_admission.current().calls.release(self.ticket)
+
+        if self.cancelled:
+            raise self.cancelled["exception"]
 
 
 class _KimiClient(httpx.Client):
     def send(self, request, **kwargs):
-        call_id = _reserve_with_wait(request)
-        try:
-            response = super().send(request, **kwargs)
-        except BaseException:
-            _record_response(call_id, None)
-            raise TrialProviderStopped("PUBLIC_TRIAL_TRANSPORT_UNKNOWN") from None
-        response.extensions["noteai_call_id"] = call_id
-        if kwargs.get("stream") and response.status_code == 200 and response.is_closed:
-            parser = _TerminalParser()
-            parser.feed(response.content)
+        operation_id = _kimi_operation_id(request)
+        own_ticket = _model_lease.get() is None
+        with model_admission_sync(operation_id, "kimi") as ticket:
+            deadline = _kimi_settlement_deadline(request, self.timeout.as_dict())
+            call_id = _reserve_with_wait(request)
+            mark_model_dispatched(operation_id)
             try:
-                parser.finish()
-            finally:
-                _record_response(call_id, response.status_code if parser.done else None)
-        elif kwargs.get("stream") and response.status_code == 200:
-            response.stream = _TrackedStream(response.stream, call_id, response.status_code)
-        else:
-            try:
-                _validate_response(response)
-            except TrialProviderStopped:
-                _record_response(call_id, response.status_code, unknown=response.status_code == 200)
-                response.close()
-                raise
-            _record_response(call_id, response.status_code)
-        return response
+                response = super().send(request, **kwargs)
+            except BaseException:
+                _record_response(call_id, None)
+                raise TrialProviderStopped("PUBLIC_TRIAL_TRANSPORT_UNKNOWN") from None
+            response.extensions["noteai_call_id"] = call_id
+            if kwargs.get("stream") and response.status_code == 200 and response.is_closed:
+                parser = _TerminalParser()
+                try:
+                    parser.feed(response.content)
+                    parser.finish()
+                finally:
+                    _record_response(call_id, response.status_code if parser.done else None)
+            elif kwargs.get("stream") and response.status_code == 200:
+                if own_ticket:
+                    ticket.held_by_stream = True
+                response.stream = _TrackedStream(response.stream, call_id, response.status_code,
+                    model=MODEL, ticket=ticket if own_ticket else None, deadline=deadline)
+            else:
+                try:
+                    _validate_response(response)
+                except TrialProviderStopped:
+                    _record_response(call_id, response.status_code, unknown=response.status_code == 200)
+                    response.close()
+                    raise
+                _record_response(call_id, response.status_code)
+            return response
 
 
 class _KimiAsyncClient(httpx.AsyncClient):
     async def send(self, request, **kwargs):
-        call_id = await run_in_threadpool(_reserve_with_wait, request)
-        try:
-            response = await super().send(request, **kwargs)
-        except BaseException:
-            await run_in_threadpool(_record_response, call_id, None)
-            raise TrialProviderStopped("PUBLIC_TRIAL_TRANSPORT_UNKNOWN") from None
-        response.extensions["noteai_call_id"] = call_id
-        if kwargs.get("stream") and response.status_code == 200 and response.is_closed:
-            parser = _TerminalParser()
-            parser.feed(response.content)
+        operation_id = _kimi_operation_id(request)
+        own_ticket = _model_lease.get() is None
+        async with model_admission(operation_id, "kimi") as ticket:
+            deadline = _kimi_settlement_deadline(request, self.timeout.as_dict())
+            call_id = await _kimi_reserve_async(request)
+            mark_model_dispatched(operation_id)
+            cancelled = {}
             try:
-                parser.finish()
-            finally:
-                await run_in_threadpool(_record_response, call_id, response.status_code if parser.done else None)
-        elif kwargs.get("stream") and response.status_code == 200:
-            response.stream = _TrackedAsyncStream(response.stream, call_id, response.status_code)
-        else:
-            try:
-                _validate_response(response)
-            except TrialProviderStopped:
-                await run_in_threadpool(_record_response, call_id, response.status_code, unknown=response.status_code == 200)
-                await response.aclose()
-                raise
-            await run_in_threadpool(_record_response, call_id, response.status_code)
-        return response
-
+                response = await _kimi_settle_awaitable(super().send(request, **kwargs), deadline, cancelled)
+            except BaseException:
+                try:
+                    if cancelled:
+                        _meter_cancelled_kimi(MODEL, None, call_id)
+                finally:
+                    _record_response(call_id, None)
+                if cancelled:
+                    raise cancelled["exception"]
+                raise TrialProviderStopped("PUBLIC_TRIAL_TRANSPORT_UNKNOWN") from None
+            response.extensions["noteai_call_id"] = call_id
+            if kwargs.get("stream") and response.status_code == 200 and response.is_closed:
+                parser = _TerminalParser()
+                try:
+                    parser.feed(response.content)
+                    parser.finish()
+                finally:
+                    try:
+                        if cancelled:
+                            _meter_cancelled_kimi(parser.model or MODEL, parser.usage, call_id)
+                    finally:
+                        _record_response(call_id, response.status_code if parser.done else None)
+            elif kwargs.get("stream") and response.status_code == 200:
+                if own_ticket:
+                    ticket.held_by_stream = True
+                response.stream = _TrackedAsyncStream(response.stream, call_id, response.status_code,
+                    model=MODEL, ticket=ticket if own_ticket else None, deadline=deadline)
+                if cancelled:
+                    response.stream.cancelled.update(cancelled)
+                    await response.aclose()
+            else:
+                try:
+                    _validate_response(response)
+                except TrialProviderStopped:
+                    try:
+                        if cancelled:
+                            try:
+                                value = response.json()
+                            except ValueError:
+                                value = None
+                            usage = value.get("usage") if isinstance(value, dict) else None
+                            if response.status_code == 200 or (isinstance(usage, dict) and usage):
+                                _meter_cancelled_kimi(
+                                    (value.get("model") or MODEL) if isinstance(value, dict) else MODEL,
+                                    usage, call_id)
+                    finally:
+                        _record_response(call_id, response.status_code, unknown=response.status_code == 200)
+                        await response.aclose()
+                    if cancelled:
+                        raise cancelled["exception"]
+                    raise
+                try:
+                    if cancelled:
+                        value = response.json()
+                        _meter_cancelled_kimi(value.get("model") or MODEL, value.get("usage"), call_id)
+                finally:
+                    _record_response(call_id, response.status_code)
+            if cancelled:
+                raise cancelled["exception"]
+            return response
 
 def kimi_client(**kwargs):
     if not enabled():

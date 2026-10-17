@@ -215,6 +215,11 @@ class _ArkCallDiagnostics:
         self.trace_events += 1
         self.last_trace_event = name
         self.network_phase = stages[event]
+        if outcome == "complete":
+            # Actual wire phase completion is liveness, never a usage receipt.
+            # No trace info/payload is retained by the shared queue.
+            import public_product
+            public_product.note_model_activity()
         if event in {"connection.connect_tcp", "connection.start_tls"} and outcome == "failed":
             self.pre_send_failure_observed = True
         if event.startswith(("http11.send_request_", "http2.send_request_")):
@@ -269,6 +274,17 @@ class _ArkCallDiagnostics:
 def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
               audio_possible: bool, json_output: bool = False, responses: bool = False,
               media: dict | None = None, transport=None) -> str:
+    import public_product
+    call_id = str(uuid.uuid4())
+    with public_product.model_admission_sync(call_id, "doubao"):
+        return _complete_admitted(prompt, parts, max_tokens=max_tokens,
+            audio_possible=audio_possible, json_output=json_output, responses=responses,
+            media=media, transport=transport, call_id=call_id)
+
+
+def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
+              audio_possible: bool, json_output: bool = False, responses: bool = False,
+              media: dict | None = None, transport=None, call_id: str) -> str:
     """One physical inference. Record even a truncated response before failing."""
     import public_product
     import model_router
@@ -287,25 +303,21 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
         raise ArkMediaError("ARK_REQUEST_REQUIRES_FILES")
     headers = _headers()
     public_product.assert_result_known()
-    call_id = str(uuid.uuid4())
-    deadline = time.monotonic() + 90
     import prompt_manager
     provenance = prompt_manager.call_provenance("media_understanding", prompt,
         step="video_audio_understanding" if audio_possible else "image_understanding",
         prompt_keys=(), prompt_role="user")
     # Conservative reservation only; owner_metered never uses it as a money cap.
     reserve = int((262144 * (27 if audio_possible else 1.8) + max_tokens * 10.8) / 1000) + 1
-    while True:
-        try:
-            public_product._reserve_payload({"model": MODEL, "max_tokens": max_tokens,
+    try:
+        public_product._reserve_payload({"model": MODEL, "max_tokens": max_tokens,
                 "provider": "doubao", "modality": "video_audio" if audio_possible else "image",
                 **({"media": media} if media is not None else {})},
                 reserve, call_id=call_id, require_metered=True, provenance=provenance)
-            break
-        except public_product._SlotsBusy:
-            if time.monotonic() >= deadline:
-                raise public_product.TrialProviderStopped("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED") from None
-            time.sleep(.25)
+    except public_product._SlotsBusy:
+        # Local permits are already held. An occupied DB slot now means another
+        # process or unreconciled original call, rather than normal queueing.
+        raise public_product.TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
     status = None
     diagnostic = _ArkCallDiagnostics(call_id)
     def stop(code):
@@ -315,6 +327,7 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
         with _client(transport=transport) as client:
             diagnostic.phase = "transport"
             diagnostic.post_entered = True
+            public_product.mark_model_dispatched(call_id)
             response = client.post(RESPONSES_URL if responses else CHAT_URL, content=encoded,
                                    headers={**headers, "Content-Type": "application/json"},
                                    extensions={"trace": diagnostic.trace})

@@ -809,6 +809,7 @@ def _runtime_prompt(key: str, domain: str | None = None, fallback: str = "") -> 
 
 
 ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
+_SSE_HEARTBEAT_SECONDS = 5.0
 
 
 class _SSETimingEnvelope:
@@ -870,11 +871,45 @@ async def _timed_sse_stream(
     *,
     operation: str,
     success_types: set[str] | frozenset[str],
+    claim: dict[str, Any] | None = None,
 ) -> AsyncGenerator[str, None]:
     timing = _SSETimingEnvelope(operation, success_types)
     terminal_seen = False
+    queue: asyncio.Queue = asyncio.Queue(maxsize=1)
+
+    async def produce():
+        # Keep one context for the original generator (including clarification
+        # context tokens); never start another anext on a heartbeat timeout.
+        try:
+            async for chunk in stream:
+                await queue.put(("chunk", chunk))
+        except asyncio.CancelledError:
+            raise
+        except BaseException as exc:
+            await queue.put(("error", exc))
+        else:
+            await queue.put(("end", None))
+        finally:
+            await stream.aclose()
+
+    producer = asyncio.create_task(produce())
     try:
-        async for chunk in stream:
+        while True:
+            try:
+                kind, chunk = await asyncio.wait_for(queue.get(), timeout=_SSE_HEARTBEAT_SECONDS)
+            except asyncio.TimeoutError:
+                status = _public_product.queue_status()
+                if claim and status.get("active") and status.get("last_progress_at"):
+                    await run_in_threadpool(_idempotency.touch_active_claim, claim,
+                        last_progress_at=status["last_progress_at"], max_no_progress_seconds=300)
+                event = {"type": "queue_update" if status.get("active") else "heartbeat",
+                         "queue": status, "work_progress": False}
+                yield f"data: {_json.dumps(timing.wrap(event), ensure_ascii=False)}\n\n"
+                continue
+            if kind == "end":
+                break
+            if kind == "error":
+                raise chunk
             if not chunk.startswith("data: "):
                 yield chunk
                 continue
@@ -899,7 +934,7 @@ async def _timed_sse_stream(
             trace = exc.__traceback__
             while trace is not None:
                 code = trace.tb_frame.f_code
-                if Path(code.co_filename).parent == Path(__file__).parent:
+                if Path(code.co_filename).parent == Path(__file__).parent and code is not produce.__code__:
                     phase = f"{operation}:{Path(code.co_filename).name}:{code.co_name}:{trace.tb_lineno}"
                 trace = trace.tb_next
             _log_internal_failure("sse_stream", exc, phase=phase)
@@ -912,6 +947,13 @@ async def _timed_sse_stream(
             })
             yield f"data: {_json.dumps(error, ensure_ascii=False)}\n\n"
         return
+    finally:
+        if not producer.done():
+            producer.cancel()
+        try:
+            await producer
+        except asyncio.CancelledError:
+            pass
     if not terminal_seen:
         error = timing.wrap({
             "type": "error",
@@ -1045,13 +1087,15 @@ async def _idempotent_sse_stream(
         return
     terminal_seen = False
     try:
+        _public_product.bind_task_claim(claim)
         if announce_task:
             # The durable identity is the existing paid claim, not an SSE trace.
             # Announce only after admission/charge succeeded; this is not a job queue.
             yield 'data: ' + _json.dumps({
                 "type": "task_created", "task_id": claim["request_id"],
                 "operation": claim["operation"], "status": "running",
-                "can_cancel": False, "can_retry": False,
+                "can_cancel": bool(_public_product.queue_status(
+                    claim["user_id"], claim.get("key_hash")).get("can_cancel")), "can_retry": False,
                 "billing": _billing.get_charge_receipt(
                     claim["user_id"], claim["operation"], claim.get("charge"), claim["request_id"]),
             }, ensure_ascii=False) + '\n\n'
@@ -4217,7 +4261,7 @@ def _leisure_visual_writing_material(image_desc: str | None) -> str:
 
 async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: dict, *, _batch_can_continue=None) -> dict:
     if img_b64:
-        description = await _await_media_worker(_kimi_vision_understand, img_b64, domain, brief)
+        description = await _generation_image_observation(img_b64, domain, brief, 0)
         if not description or len(description.strip()) <= 3:
             raise HTTPException(status_code=502, detail="图片画面理解失败，未将文字简报当作图片分析继续生成")
     else:
@@ -4239,25 +4283,38 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
     return {"role": "视觉专家", "raw": raw, "_image_desc": description}
 
 
-async def _generation_visual_batch(images, domain, brief, dk):
+async def _generation_image_observation(image, domain, brief, image_index):
+    # Wait asynchronously before occupying a worker thread. Only the original
+    # image observation holds this slot; its later Claude summary does not.
+    async with _public_product.media_worker_slot(image_index):
+        return await _await_media_worker(_kimi_vision_understand, image, domain, brief)
+
+
+async def _generation_visual_batch(images, domain, brief, dk, *, emit=None):
     # Queue this batch before starting Ark's bounded provider-admission timer.
     slots = asyncio.Semaphore(2)
     failed = False
+    completed = 0
 
     async def observe(index, image):
-        nonlocal failed
+        nonlocal failed, completed
         async with slots:
             if failed:
                 return None
             try:
                 _public_product.assert_result_known()
                 result = (await _gent_visual(image, domain, brief, dk, _batch_can_continue=lambda: not failed) if index == 0
-                          else await _await_media_worker(_kimi_vision_understand, image, domain, brief))
+                          else await _generation_image_observation(image, domain, brief, index))
                 valid_type = isinstance(result, dict) if index == 0 else isinstance(result, (str, dict))
                 if not valid_type or not (len(result.strip()) > 5 if isinstance(result, str)
                                           else str(result.get("_image_desc") or "").strip()):
                     failed = True
                     _log_internal_failure("generate", phase=f"generation_visual_image_{index + 1}", status="invalid_result")
+                else:
+                    completed += 1
+                    await _emit_progress(emit, {"type": "image_progress", "stage": "p1",
+                        "completed": completed, "total": len(images), "image_index": index + 1,
+                        "work_progress": True})
                 return result
             except BaseException as exc:
                 failed = True
@@ -6280,6 +6337,13 @@ def _extract_cover(image_b64: str, use_vision: bool = False) -> tuple[float, dic
         return visual_score, all_feats
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+async def _bounded_extract_cover(image, use_vision=False):
+    # P0 downloads and decodes the original image too. Queue before its thread,
+    # using the same global media bound as P1, without changing pixel features.
+    async with _public_product.media_worker_slot(0):
+        return await _await_media_worker(_extract_cover, image, use_vision)
 
 
 # ── Cover weakness hints ──────────────────────────────────────────
@@ -17682,11 +17746,9 @@ async def _run_analyze_pipeline(
                     "label": "正在提取封面视觉评分特征…",
                     "progress": 8,
                 })
-                visual_score, cover_feats = await _await_media_worker(
-                    _extract_cover, req.cover_image, True
-                )
-                cover_observation = await _await_media_worker(
-                    _kimi_vision_understand, req.cover_image, req.domain, req.desc or None)
+                visual_score, cover_feats = await _bounded_extract_cover(req.cover_image, True)
+                cover_observation = await _generation_image_observation(
+                    req.cover_image, req.domain, req.desc or None, 0)
                 if not isinstance(cover_observation, str) or len(cover_observation.strip()) <= 5:
                     raise HTTPException(status_code=502, detail="独立封面内容理解未完成，本次未忽略封面继续诊断")
                 extra_image_context = "【用户独立封面观察，非视频封面猜测】\n" + cover_observation
@@ -17734,8 +17796,8 @@ async def _run_analyze_pipeline(
                     "progress": 14,
                 })
                 extra_tasks = [
-                    _await_media_worker(_kimi_vision_understand, img_b64, req.domain or "通用", req.desc)
-                    for img_b64 in imgs_to_analyze
+                    _generation_image_observation(img_b64, req.domain or "通用", req.desc, index)
+                    for index, img_b64 in enumerate(imgs_to_analyze, 1)
                 ]
                 extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
                 if any(not isinstance(result, str) or len(result.strip()) <= 3 for result in extra_results):
@@ -18481,6 +18543,7 @@ async def analyze_stream_endpoint(
                 announce_task=True),
             operation="analyze",
             success_types={"complete"},
+            claim=claim,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
@@ -18555,8 +18618,8 @@ async def _generate_pipeline_stream(
             accompanying_images = (cover_images or ([cover_image] if cover_image else []))[:9]
             if accompanying_images:
                 image_results = await asyncio.gather(*[
-                    _await_media_worker(_kimi_vision_understand, image, domain, raw_material_brief)
-                    for image in accompanying_images], return_exceptions=True)
+                    _generation_image_observation(image, domain, raw_material_brief, index)
+                    for index, image in enumerate(accompanying_images)], return_exceptions=True)
                 if any(not isinstance(value, str) or len(value.strip()) <= 5 for value in image_results):
                     raise HTTPException(status_code=502, detail="视频附带图片理解未完成，本次未忽略图片继续生成")
                 observed_image_count = observed_deep_image_count = len(image_results)
@@ -18584,7 +18647,27 @@ async def _generate_pipeline_stream(
 
             # 本批最多启动两张；尚未启动的图片不占用供应商准入等待。
             if deep_imgs_s:
-                deep_results_s = await _generation_visual_batch(deep_imgs_s, domain, brief, dk)
+                visual_events: asyncio.Queue = asyncio.Queue()
+                async def observe_images():
+                    try:
+                        return await _generation_visual_batch(deep_imgs_s, domain, brief, dk, emit=visual_events.put)
+                    finally:
+                        await visual_events.put(None)
+                visual_task = asyncio.create_task(observe_images())
+                try:
+                    while True:
+                        image_event = await visual_events.get()
+                        if image_event is None:
+                            break
+                        yield image_event
+                    deep_results_s = await visual_task
+                finally:
+                    if not visual_task.done():
+                        visual_task.cancel()
+                    try:
+                        await visual_task
+                    except asyncio.CancelledError:
+                        pass
                 if not isinstance(deep_results_s[0], dict) or any(not isinstance(result, (str, dict)) or not (
                     len(result.strip()) > 5 if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
                 ) for result in deep_results_s):
@@ -18633,50 +18716,79 @@ async def _generate_pipeline_stream(
         yield {"type": "stage", "stage": "p2", "label": "三位创作专家并行创作中…", "progress": 30}
         opinions: list[dict] = [vis_result]
 
-        # Stagger task creation by 1.5s each so three calls don't all hit Moonshot at once
-        t_content = asyncio.create_task(_gent_content(domain, brief, dk, image_desc, memory_context))
-        await asyncio.sleep(1.5)
-        t_growth  = asyncio.create_task(_gent_growth(domain, brief, timing, dk, image_desc, memory_context))
-        await asyncio.sleep(1.5)
-        t_user    = asyncio.create_task(_gent_user(domain, brief, dk, image_desc, memory_context))
-
-        p2_tasks = [
-            (t_content, "内容创作师", 1),
-            (t_growth,  "增长策略师", 2),
-            (t_user,    "用户心理师", 3),
-        ]
-        pending: dict = {task: (role, idx) for task, role, idx in p2_tasks}
+        pending: dict = {}
         base_progress = 35
         expert_failed = False
-        while pending:
-            done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
-            for task in done:
-                role, agent_idx = pending.pop(task)
+
+        def failed_before_next_start():
+            for child in pending:
+                if not child.done():
+                    continue
                 try:
-                    result = task.result()
-                except Exception as exc:
-                    _log_internal_failure("generate", exc, phase=f"stream_expert_{agent_idx}")
-                    expert_failed = True
-                    result = {"role": role, "raw": ""}
-                opinions.append(result)
-                raw = result.get("raw", "")
-                if role == "内容创作师":
-                    snippet = _xtag_any(raw, "title", "draft_title") or "内容方向分析完成"
-                    body_preview = _xtag_any(raw, "body", "draft_body")
-                    detail = (body_preview[:80] + "…") if body_preview else ""
-                elif role == "增长策略师":
-                    snippet = _xtag_any(raw, "keywords", "keyword_tip") or "关键词分析中"
-                    tags_raw = _xtag_any(raw, "tags", "tag_recommendation")
-                    detail = tags_raw[:60] if tags_raw else ""
-                else:
-                    snippet = _xtag_any(raw, "hook", "user_angle") or "情感钩子分析中"
-                    cta_raw = _xtag_any(raw, "cta", "hook")
-                    detail = cta_raw.split("\n")[0][:60] if cta_raw else ""
-                base_progress = min(base_progress + 8, 52)
-                yield _generation_public_progress_event({
-                    "type": "expert_opinion", "role": role, "agent_idx": agent_idx,
-                    "content": snippet[:120], "detail": detail, "progress": base_progress,
-                }, brief or "", domain)
+                    result = child.result()
+                except (Exception, asyncio.CancelledError):
+                    return True
+                if not isinstance(result, dict) or not isinstance(result.get("raw"), str) or not result["raw"].strip():
+                    return True
+            return False
+
+        try:
+            # Register each child before the stagger await so disconnects in
+            # that interval still join the already-started original call.
+            t_content = asyncio.create_task(_gent_content(domain, brief, dk, image_desc, memory_context))
+            pending[t_content] = ("内容创作师", 1)
+            await asyncio.sleep(1.5)
+            if not failed_before_next_start():
+                t_growth = asyncio.create_task(_gent_growth(domain, brief, timing, dk, image_desc, memory_context))
+                pending[t_growth] = ("增长策略师", 2)
+                await asyncio.sleep(1.5)
+                if not failed_before_next_start():
+                    t_user = asyncio.create_task(_gent_user(domain, brief, dk, image_desc, memory_context))
+                    pending[t_user] = ("用户心理师", 3)
+            while pending:
+                done, _ = await asyncio.wait(list(pending.keys()), return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    role, agent_idx = pending.pop(task)
+                    try:
+                        result = task.result()
+                        if not isinstance(result, dict) or not isinstance(result.get("raw"), str) or not result["raw"].strip():
+                            raise ValueError("empty specialist result")
+                    except Exception as exc:
+                        _log_internal_failure("generate", exc, phase=f"stream_expert_{agent_idx}")
+                        expert_failed = True
+                        for remaining in pending:
+                            if not remaining.done():
+                                remaining.cancel()
+                        yield {"type": "expert_failed", "role": role, "agent_idx": agent_idx,
+                               "message": "该创作步骤未完成，正在等待已发请求结算；不会跳过后交付"}
+                        break
+                    opinions.append(result)
+                    raw = result.get("raw", "")
+                    if role == "内容创作师":
+                        snippet = _xtag_any(raw, "title", "draft_title") or "内容方向分析完成"
+                        body_preview = _xtag_any(raw, "body", "draft_body")
+                        detail = (body_preview[:80] + "…") if body_preview else ""
+                    elif role == "增长策略师":
+                        snippet = _xtag_any(raw, "keywords", "keyword_tip") or "关键词分析中"
+                        tags_raw = _xtag_any(raw, "tags", "tag_recommendation")
+                        detail = tags_raw[:60] if tags_raw else ""
+                    else:
+                        snippet = _xtag_any(raw, "hook", "user_angle") or "情感钩子分析中"
+                        cta_raw = _xtag_any(raw, "cta", "hook")
+                        detail = cta_raw.split("\n")[0][:60] if cta_raw else ""
+                    base_progress = min(base_progress + 8, 52)
+                    yield _generation_public_progress_event({
+                        "type": "expert_opinion", "role": role, "agent_idx": agent_idx,
+                        "content": snippet[:120], "detail": detail, "progress": base_progress,
+                    }, brief or "", domain)
+                if expert_failed:
+                    break
+        finally:
+            for task in pending:
+                if not task.done():
+                    task.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
 
         _public_product.assert_result_known()
         if expert_failed:
@@ -19531,9 +19643,7 @@ async def generate_stream_endpoint(
         if cover_image:
             yield f"data: {_json.dumps({'type':'stage','stage':'p0','label':'正在提取封面评分特征…','progress':4}, ensure_ascii=False)}\n\n"
             try:
-                visual_score, cover_feats = await _await_media_worker(
-                    _extract_cover, cover_image, False
-                )
+                visual_score, cover_feats = await _bounded_extract_cover(cover_image, False)
             except Exception as exc:
                 _log_internal_failure(
                     "generate",
@@ -19570,6 +19680,7 @@ async def generate_stream_endpoint(
             ) if p),
         ):
             if event.get("type") == "complete":
+                _public_product.assert_result_known()
                 event["fact_enrichment"] = fact_enrichment
                 fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
                 event["user_constraints"] = normalized_constraints
@@ -19614,6 +19725,7 @@ async def generate_stream_endpoint(
                 announce_task=True),
             operation="generate",
             success_types={"complete"},
+            claim=claim,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
@@ -19682,9 +19794,7 @@ async def generate(
         visual_score = None
         cover_feats: dict = {}
         if primary_image:
-            visual_score, cover_feats = await _await_media_worker(
-                _extract_cover, primary_image, True
-            )
+            visual_score, cover_feats = await _bounded_extract_cover(primary_image, True)
 
         fact_enrichment = await _maybe_enrich_facts(
             req.domain,
@@ -22179,6 +22289,7 @@ def _workflow_task_state(row: dict, user_id: str, reports: list[dict] | None = N
             status = "outcome_unknown"
     ref = ({"report_type": report["report_type"], "report_id": report["report_id"], "task_id": row["id"]}
            if report else None)
+    queue = _public_product.queue_status(user_id, row.get("key_hash"))
     return {"type": "task_state", "task_id": row["id"], "operation": row["operation"],
             "status": status, "recorded_status": row["status"],
             "refund_status": _idempotency._refund_status(row),
@@ -22186,7 +22297,9 @@ def _workflow_task_state(row: dict, user_id: str, reports: list[dict] | None = N
             "note_id": report["saved_note_id"] if report else None, "report_ref": ref,
             "created_at": row["created_at"], "updated_at": row["updated_at"],
             "billing": _billing.get_charge_receipt(user_id, row["operation"], row, row["id"]),
-            "can_cancel": False, "can_retry": status == "failed" and bool(row.get("refund_applied")),
+            "queue": queue,
+            "can_cancel": status == "running" and bool(queue.get("can_cancel")),
+            "can_retry": status == "failed" and bool(row.get("refund_applied")),
             "can_resume": status == "waiting_for_input", "durable_execution": False}
 
 
@@ -22279,6 +22392,22 @@ async def read_chat_task(session_id: str, user: dict = Depends(_auth.get_current
             "supplement_prompts": context.get("supplement_prompts") or [],
             "fact_update_pending": context.get("pending_fact_update") is True}
 
+
+@app.post("/chat/tasks/{session_id}/cancel")
+async def cancel_chat_task(session_id: str, user: dict = Depends(_auth.get_current_user)):
+    # The client supplies only its original task id. Resolve the private
+    # request hash from the owner-bound claim; never accept a supplied hash.
+    row = _db.fetchone("SELECT id,operation,key_hash,status FROM idempotency_requests WHERE id=? AND user_id=?",
+                        (session_id, user["id"]))
+    if not row or row["operation"] not in {"analyze", "generate"}:
+        raise HTTPException(404, "原任务不存在或不属于当前账号")
+    accepted = row["status"] == "running" and _public_product.request_cancel(user["id"], row["key_hash"])
+    return {"task_id": row["id"], "cancel_requested": bool(accepted),
+            "queue": _public_product.queue_status(user["id"], row["key_hash"]),
+            "message": ("已请求停止后续处理，正在等待已发请求结算；积分状态以原任务记录为准"
+                        if accepted else "原任务当前不能取消，请读取原任务及积分状态"),
+            "can_cancel": False}
+
 async def _read_media_task(user_id, session_id):
     try:
         return await asyncio.to_thread(_idempotency.read_media_response, user_id, session_id)
@@ -22340,6 +22469,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
                 ) if p))
             async for event in stream:
                 if event.get("type") == "complete":
+                    _public_product.assert_result_known()
                     event.update(prepared.get("metadata", {}))
                     event.update({"fact_context": _clarified_fact_context(prepared, confirmation),
                         "expert_opinions_basis": "pre_clarification",
@@ -22393,7 +22523,7 @@ async def _resume_clarified_task(req: ChatMessageInput, user: dict):
         else:
             raise RuntimeError("unknown continuation pipeline")
     return StreamingResponse(_timed_sse_stream(_idempotent_sse_stream(events(), claim, success_types={"complete"}),
-        operation=claim["operation"], success_types={"complete"}), media_type="text/event-stream",
+        operation=claim["operation"], success_types={"complete"}, claim=claim), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
@@ -22458,6 +22588,7 @@ async def chat_message(
             ),
             operation="chat",
             success_types={"done"},
+            claim=claim,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

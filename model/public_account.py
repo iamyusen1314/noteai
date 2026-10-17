@@ -76,7 +76,13 @@ class PublicAccountBoundary:
     def __init__(self, app):
         self.app = app
         import asyncio
+        import threading
         self.media_slots = asyncio.Semaphore(1)
+        # Preserve the old aggregate raw-JSON memory bound, without serializing
+        # the entire response of every reference-only generation request.
+        self.media_json_budget = 128 * 1024 * 1024
+        self.media_json_bytes = 0
+        self.media_json_lock = threading.Lock()
 
     async def __call__(self, scope, receive, send):
         if not enabled() or scope["type"] == "lifespan":
@@ -152,17 +158,27 @@ class PublicAccountBoundary:
                 if path in public_product.PAID_ROUTES and not re.fullmatch(rb"[A-Za-z0-9_-]{8,100}", request_id):
                     return await reject(400, "请提供有效请求标识，避免重复处理")
 
+            media_reservation = None
+
             async def dispatch_json():
+                nonlocal media_reservation
                 body = bytearray()
                 while True:
                     message = await receive()
                     if message["type"] == "http.disconnect":
                         return
-                    body.extend(message.get("body", b""))
+                    chunk = message.get("body", b"")
+                    if media_reservation is not None and len(body) + len(chunk) > media_reservation:
+                        return await reject(413, "请求体超过已声明或允许的大小")
+                    body.extend(chunk)
                     if len(body) > (128 * 1024 * 1024 if media_json else (210000 if path == "/auth/profile" else (65536 if product_enabled() and not path.startswith("/auth/") else 8192))):
                         return await reject(413, "请求过大")
                     if not message.get("more_body", False):
                         break
+                if media_reservation is not None:
+                    with self.media_json_lock:
+                        self.media_json_bytes -= media_reservation - len(body)
+                    media_reservation = len(body)
                 delivered = False
 
                 async def bounded_receive():
@@ -177,10 +193,28 @@ class PublicAccountBoundary:
                 return await self.app(scope, bounded_receive, send)
 
             if media_json:
-                # Acquire before accumulating/decoding large image JSON, not
-                # only when the eventual provider call reaches admission.
-                async with self.media_slots:
+                # Large legacy base64 requests still consume the original
+                # memory budget until the stream ends. Ordinary uploads send
+                # only owner-bound UUID references, so other users can queue.
+                try:
+                    media_reservation = (int(headers[b"content-length"])
+                        if b"content-length" in headers else self.media_json_budget)
+                except (ValueError, TypeError):
+                    return await reject(400, "请求长度无效")
+                if not 0 <= media_reservation <= self.media_json_budget:
+                    return await reject(413, "请求过大")
+                with self.media_json_lock:
+                    accepted = self.media_json_bytes + media_reservation <= self.media_json_budget
+                    if accepted:
+                        self.media_json_bytes += media_reservation
+                if not accepted:
+                    return await reject(429, {"code": "MODEL_INPUT_CAPACITY_BUSY",
+                        "message": "当前素材请求容量已满，本次未受理、未扣积分，请稍后再试。"})
+                try:
                     return await dispatch_json()
+                finally:
+                    with self.media_json_lock:
+                        self.media_json_bytes -= media_reservation
             return await dispatch_json()
         if product_enabled():
             return await public_product.dispatch(self.app, scope, receive, send, b"")

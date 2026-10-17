@@ -38,6 +38,8 @@ async function installReportHistory(page) {
     showPage('report');
   });
   await expect(page.locator('#gen-card-generation-task')).toBeVisible();
+  // Viewing history is explicit while another task is waiting for input.
+  await page.locator('#gen-card-generation-task').click();
   await expect(page.locator('#genBodyText')).toContainText('历史生成正文');
 }
 
@@ -99,6 +101,9 @@ async function openApp(page) {
     };
   });
   await page.route('**/synthetic-api/billing/plan', route => route.fulfill({json:{total_available_credits:11.5}}));
+  await page.route('**/synthetic-api/billing/quote?*', route => route.fulfill({json:{
+    operation:new URL(route.request().url()).searchParams.get('operation'),credits:8,quote_version:'synthetic-quote-v1',
+    can_afford:true,monthly_credits_used:8,wallet_credits_used:0,monthly_credits_remaining:11.5,wallet_credits_balance:0,video_credits:0}}));
   await page.goto('/NoteAI_Pro_Demo_Framer.html');
   await expect(page).toHaveTitle(/NoteAI Pro/);
   await page.evaluate(() => {
@@ -166,6 +171,7 @@ test.describe('SSE warning-only guard', () => {
     await page.locator('#inputTitle').fill('慢连接测试标题');
     await page.locator('#inputDesc').fill('慢连接测试正文');
     await page.evaluate(() => { startDiagnosis(); startDiagnosis(); });
+    await page.locator('#billing-quote-confirm').click();
 
     await expect(page.locator('[data-sse-warning="analyze"]')).toContainText('任务可能仍在处理，请不要重复提交');
     await expect(page.locator('#diagnoseSubmitBtn')).toBeDisabled();
@@ -185,12 +191,13 @@ test.describe('SSE warning-only guard', () => {
     });
     await page.locator('#genBrief').fill('无终态 EOF 测试简报');
     await page.evaluate(() => { startGeneration(); startGeneration(); });
+    await page.locator('#billing-quote-confirm').click();
 
     await expect(page.locator('[data-sse-warning="generate"]')).toContainText('任务可能仍在处理，请不要重复提交');
     await expect(page.locator('#generateSubmitBtn')).toBeDisabled();
     await expect.poll(() => page.evaluate(() => __sseRequestCounts['/generate/stream'] || 0)).toBe(1);
     await expect.poll(() => page.evaluate(() => _generateResult?._outcome_unknown === true)).toBe(true);
-    await expect.poll(() => page.evaluate(() => _generateResult?._errMsg || '')).toContain('结果确认中');
+    await expect.poll(() => page.evaluate(() => _generateResult?._errMsg || '')).toContain('原任务和积分');
     await expect(page.locator('#generateSubmitBtn')).toBeEnabled();
   });
 
@@ -235,7 +242,8 @@ test.describe('SSE warning-only guard', () => {
     await page.locator('.input-type', {hasText: '填写笔记／上传素材'}).click();
     await page.locator('#inputTitle').fill('多字节切片标题');
     await page.locator('#inputDesc').fill('多字节切片正文');
-    await page.evaluate(() => startDiagnosis());
+    await page.evaluate(() => {void startDiagnosis();});
+    await page.locator('#billing-quote-confirm').click();
 
     await expect.poll(() => page.evaluate(() => _diagnosisStreamActive)).toBe(false);
     await expect.poll(() => page.evaluate(() => _diagnoseResult?.type || '')).toBe('complete');
@@ -256,7 +264,8 @@ test.describe('SSE warning-only guard', () => {
       });
     });
     await page.locator('#genBrief').fill('EOF 尾事件测试');
-    await page.evaluate(() => startGeneration());
+    await page.evaluate(() => {void startGeneration();});
+    await page.locator('#billing-quote-confirm').click();
 
     await expect.poll(() => page.evaluate(() => _generateResult?.type || '')).toBe('complete');
     await expect(page.locator('#nav-credits-display')).toHaveText('11.5积分');
@@ -455,10 +464,178 @@ test('failed new generation preserves its inputs and never opens an older report
   });
   await page.locator('#genBrief').fill('Private marked restaurant test material');
   await page.locator('#generateSubmitBtn').click();
+  await page.locator('#billing-quote-confirm').click();
   await expect.poll(()=>page.evaluate(()=>_generateResult?._error)).toBe(true);
   await page.waitForTimeout(2200);
   expect(await page.evaluate(()=>__oldReportLoads)).toBe(0);
   await expect(page.locator('#page-report')).not.toBeVisible();
   await expect(page.locator('#genBrief')).toHaveValue('Private marked restaurant test material');
   expect(await page.evaluate(()=>__sseRequestCounts['/generate/stream'])).toBe(1);
+});
+
+test('transport heartbeats do not conceal real no-progress warnings', async ({page}) => {
+  await openApp(page);
+  await page.evaluate(()=>{
+    window.__queueWarning=createSseWarningGuard('queue-fixture','合成任务');
+    __queueWarning.connected();__queueWarning.event({type:'stage'});
+    window.__queueHeartbeat=setInterval(()=>__queueWarning.event({type:'heartbeat'}),5);
+  });
+  await expect(page.locator('[data-sse-warning="queue-fixture"]')).toContainText('暂时没有新进度');
+  await page.evaluate(()=>{
+    clearInterval(__queueHeartbeat);
+    __queueWarning.event({type:'queue_update',queue:{completed_calls:1}});
+    __queueWarning.finish();
+  });
+  await expect(page.locator('[data-sse-warning="queue-fixture"]')).toHaveCount(0);
+});
+
+for(const busyCode of ['MODEL_OPERATIONS_BUSY','MODEL_USER_OPERATION_BUSY','MODEL_INPUT_CAPACITY_BUSY'])
+test(`precharge overload ${busyCode} preserves inputs and clears only its unaccepted submission without retry`,async ({page})=>{
+  await openApp(page);
+  let submitted=0;
+  await page.route('**/synthetic-api/generate/stream',route=>{
+    submitted++;
+    return route.fulfill({status:429,json:{detail:{code:busyCode,message:'UNTRUSTED_RAW_TEXT'}}});
+  });
+  await page.evaluate(()=>{showPage('upload');switchMode('generate');});
+  await page.locator('#genBrief').fill('保留本次素材和说明');
+  await page.locator('#generateSubmitBtn').click();
+  await page.locator('#billing-quote-confirm').click();
+  await expect.poll(()=>page.evaluate(()=>_generateResult?._notAccepted)).toBe(true);
+  expect(submitted).toBe(1);
+  expect(await page.evaluate(()=>_generateResult._errMsg)).toContain('未受理、未扣积分');
+  expect(await page.evaluate(()=>_generateResult._errMsg)).not.toContain('UNTRUSTED');
+  expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('noteai-paid-pending:')).length)).toBe(0);
+  await expect(page.locator('#genBrief')).toHaveValue('保留本次素材和说明');
+});
+
+for (const width of [1280,390]) test(`actual queue fields, safe cancellation and failed expert render at ${width}px`,async ({page},testInfo)=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.setViewportSize({width,height:844});
+  await openApp(page);
+  const calls=[];
+  await page.route('**/synthetic-api/chat/tasks/11111111-1111-4111-8111-111111111111/cancel',route=>{
+    calls.push(route.request().method());
+    return route.fulfill({json:{cancel_requested:true,message:'已请求停止后续处理，正在等待已发请求结算；积分状态以原任务记录为准'}});
+  });
+  await page.evaluate(()=>{
+    showPage('live');
+    _handleGenStreamEvent({type:'task_created',task_id:'11111111-1111-4111-8111-111111111111',can_cancel:true});
+    _handleGenStreamEvent({type:'queue_update',queue:{active:true,state:'queued',waiting_operations:3,queued_calls:2,waiting_seconds:32,can_cancel:true,last_progress_seconds:125}});
+    _handleGenStreamEvent({type:'image_progress',completed:4,total:9});
+    agentDone(1,'');_handleGenStreamEvent({type:'expert_failed',agent_idx:1,role:'内容创作师',message:'该步骤未完成，正在等待结算'});
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('当前有 3 个任务等待处理');
+  await expect(page.locator('#liveTaskQueue')).toContainText('本任务待处理 2 项');
+  await expect(page.locator('#liveTaskQueue')).toContainText('已完成 4/9 张');
+  await expect(page.locator('#liveTaskQueue')).toContainText('距上次实际处理进展 125 秒');
+  await expect(page.locator('#cf1')).toHaveText('未完成');
+  await expect(page.locator('#av1')).not.toHaveClass(/done/);
+  const progress=await page.locator('#mainProgress').getAttribute('style');
+  await page.evaluate(()=>_handleGenStreamEvent({type:'heartbeat'}));
+  expect(await page.locator('#mainProgress').getAttribute('style')).toBe(progress);
+  await page.getByRole('button',{name:'取消后续处理',exact:true}).click();
+  await expect(page.locator('#liveTaskQueue')).toContainText('正在等待已发请求结算');
+  await expect(page.getByRole('button',{name:'取消后续处理',exact:true})).toBeDisabled();
+  expect(calls).toEqual(['POST']);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.locator('#liveTaskQueue').scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath(`queue-${width}.png`)});
+  expect(errors).toEqual([]);
+});
+
+test('queue remount retains original task and cancellation uses the JSON boundary contract',async ({page})=>{
+  await openApp(page);
+  const requests=[];
+  await page.route('**/synthetic-api/chat/tasks/*/cancel',route=>{
+    requests.push({method:route.request().method(),contentType:route.request().headers()['content-type'],body:route.request().postData()});
+    return route.fulfill({json:{message:'原任务已接收取消，已发请求正在结算',cancel_requested:true}});
+  });
+  await page.evaluate(()=>{
+    showPage('live');
+    _handleGenStreamEvent({type:'task_created',task_id:'11111111-1111-4111-8111-111111111111',can_cancel:true});
+    _handleGenStreamEvent({type:'queue_update',queue:{state:'queued',can_cancel:true,waiting_operations:3}});
+    showPage('upload');showPage('live');
+    _handleGenStreamEvent({type:'queue_update',queue:{state:'running',can_cancel:true}});
+  });
+  await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-task-id','11111111-1111-4111-8111-111111111111');
+  await expect(page.getByRole('button',{name:'取消后续处理',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'取消后续处理',exact:true}).click();
+  await expect(page.locator('#liveTaskQueue')).toContainText('原任务已接收取消');
+  expect(requests).toEqual([{method:'POST',contentType:'application/json',body:'{}'}]);
+  await page.evaluate(()=>{
+    _handleGenStreamEvent({type:'queue_update',queue:{state:'idle',can_cancel:false}});
+    document.querySelector('[data-live-cancel]').click();
+  });
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  expect(requests.length).toBe(1);
+});
+
+test('late cancellation and stale terminal cannot overwrite completed queue status',async ({page})=>{
+  await openApp(page);
+  let release;let cancelCount=0;
+  await page.route('**/synthetic-api/chat/tasks/*/cancel',async route=>{
+    cancelCount++;
+    if(cancelCount===1)await new Promise(resolve=>{release=resolve;});
+    await route.fulfill({json:{message:'迟到的取消答复',cancel_requested:true}});
+  });
+  await page.evaluate(()=>{
+    showPage('live');
+    _handleGenStreamEvent({type:'task_created',task_id:'11111111-1111-4111-8111-111111111111',can_cancel:true});
+    _handleGenStreamEvent({type:'queue_update',queue:{state:'running',can_cancel:true}});
+    renderLiveQueueEvent({type:'complete'},()=>false);
+  });
+  await expect(page.locator('#liveTaskQueue')).toContainText('正在处理请求');
+  await page.getByRole('button',{name:'取消后续处理',exact:true}).click();
+  await expect.poll(()=>typeof release).toBe('function');
+  await page.evaluate(()=>renderLiveQueueEvent({type:'complete'}));
+  release();
+  await page.waitForTimeout(100);
+  await expect(page.locator('#liveTaskQueue')).toContainText('处理已完成');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  await page.evaluate(()=>{document.querySelector('[data-live-cancel]').click();showPage('upload');showPage('live');});
+  await expect(page.locator('#liveTaskQueue')).toContainText('处理已完成');
+  await expect(page.locator('[data-live-cancel]')).toBeHidden();
+  // Analyze uses the same explicit identity guard before terminal rendering.
+  await page.evaluate(()=>_handleAnalyzeStreamEvent({type:'error'},()=>false));
+  await expect(page.locator('#liveTaskQueue')).toContainText('处理已完成');
+  await page.evaluate(()=>{
+    _handleGenStreamEvent({type:'task_created',task_id:'11111111-1111-4111-8111-111111111111',can_cancel:true});
+    _handleGenStreamEvent({type:'queue_update',queue:{state:'running',can_cancel:true}});
+  });
+  await page.getByRole('button',{name:'取消后续处理',exact:true}).click();
+  await expect(page.locator('#liveTaskQueue')).toContainText('迟到的取消答复');
+  expect(cancelCount).toBe(2);
+});
+
+for(const operation of ['generate','analyze']) test(`late ${operation} overload JSON cannot replace a newer task`,async ({page})=>{
+  await openApp(page);
+  await page.evaluate(operation=>{
+    showPage('upload');switchMode(operation==='generate'?'generate':'diagnose');
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async(url,options)=>{
+      if(!String(url).includes('/'+operation+'/stream'))return nativeFetch(url,options);
+      return {status:429,clone:()=>({json:()=>new Promise(resolve=>{window.__releaseBusyJson=resolve;})})};
+    };
+  },operation);
+  if(operation==='generate'){
+    await page.locator('#genBrief').fill('旧请求保留说明');
+    await page.locator('#generateSubmitBtn').click();
+  } else {
+    await page.locator('.input-type',{hasText:'填写笔记／上传素材'}).click();
+    await page.locator('#inputTitle').fill('旧请求标题');
+    await page.locator('#inputDesc').fill('旧请求正文');
+    await page.evaluate(()=>{startDiagnosis();});
+  }
+  await page.locator('#billing-quote-confirm').click();
+  await expect.poll(()=>page.evaluate(()=>typeof __releaseBusyJson)).toBe('function');
+  await page.evaluate(operation=>{
+    if(operation==='generate') {_activeGeneratePaidRequestId='new-task';_generateResult={newTask:true};_genStreamActive=true;}
+    else {_activeAnalyzePaidRequestId='new-task';_diagnoseResult={newTask:true};_diagnosisStreamActive=true;}
+    __releaseBusyJson({detail:{code:'MODEL_OPERATIONS_BUSY'}});
+  },operation);
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(operation=>operation==='generate'?_generateResult:_diagnoseResult,operation)).toEqual({newTask:true});
+  expect(await page.evaluate(operation=>operation==='generate'?_genStreamActive:_diagnosisStreamActive,operation)).toBe(true);
+  expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('noteai-paid-pending:')).length)).toBe(1);
 });

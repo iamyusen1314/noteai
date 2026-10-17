@@ -1,5 +1,6 @@
 import asyncio
 import concurrent.futures
+from contextlib import asynccontextmanager, nullcontext
 import io
 import json
 import os
@@ -1399,6 +1400,9 @@ class GatewayClaudeTransportTests(unittest.TestCase):
 
     def test_router_stream_chat_and_sync_keep_per_call_trace_out_of_gateway_body(self):
         requests = []
+        @asynccontextmanager
+        async def admission(*args):
+            yield
         class Transport:
             async def stream_message(_self, request):
                 requests.append(request)
@@ -1417,6 +1421,8 @@ class GatewayClaudeTransportTests(unittest.TestCase):
         with mock.patch.object(model_router, 'get_claude_transport', return_value=Transport()), \
              mock.patch.object(model_router, 'claude_transport_mode', return_value='local'), \
              mock.patch.object(model_router._public_product, 'enabled', return_value=True), \
+             mock.patch.object(model_router._public_product, 'model_admission', side_effect=admission), \
+             mock.patch.object(model_router._public_product, 'model_admission_sync', return_value=nullcontext()), \
              mock.patch.object(model_router._runtime_config, 'resolve', side_effect=lambda task,model,maximum:(model,maximum)), \
              mock.patch.object(model_router, '_record_request_claude_usage'), \
              mock.patch.object(model_router, '_finish_claude_call'):
@@ -3824,6 +3830,635 @@ class ClaudeGatewayPackagingTests(unittest.TestCase):
         self.assertNotIn("dynamodb:*", template)
         self.assertNotIn("AWS_ACCESS_KEY_ID", template)
         self.assertNotIn("AWS_SECRET_ACCESS_KEY", template)
+
+
+class GatewayFairAdmissionRouterTests(unittest.TestCase):
+    """Real router/HTTPX code with local transports, no provider or business DB."""
+
+    def setUp(self):
+        import contextlib
+        import model_admission
+        self.stack = contextlib.ExitStack()
+        self.addCleanup(self.stack.close)
+        self.manager = model_admission.Admission(model_admission.Limits(
+            physical=1, claude=1, kimi=1, doubao=1,
+            queue_seconds=2, no_progress_seconds=2))
+        self.stack.enter_context(mock.patch.object(model_admission, 'current', return_value=self.manager))
+        public = model_router._public_product
+        self.stack.enter_context(mock.patch.object(public, 'enabled', return_value=True))
+        self.marker = public._invocation.set(public.Invocation('synthetic-user', 'synthetic-task'))
+        self.addCleanup(public._invocation.reset, self.marker)
+        self.stack.enter_context(mock.patch.dict(os.environ, {
+            'NOTEAI_CLAUDE_TRANSPORT': 'gateway',
+            'NOTEAI_CLAUDE_GATEWAY_CONFIG_EPOCH': 'test-config-1',
+            'NOTEAI_CLAUDE_GATEWAY_KEY_EPOCH': 'test-key-1',
+        }, clear=False))
+        self.stack.enter_context(mock.patch.object(model_router._runtime_config, 'resolve',
+            side_effect=lambda task, model, maximum: (model, maximum)))
+        def reserve(request, body):
+            request.call_state['id'] = request.operation_id
+        self.reserve = self.stack.enter_context(mock.patch.object(public, 'admit_claude',
+            new=mock.AsyncMock(side_effect=reserve)))
+        self.response = self.stack.enter_context(mock.patch.object(public, '_record_response'))
+        self.usage = self.stack.enter_context(mock.patch.object(model_router, '_record_claude_usage'))
+
+    def transport(self, handler):
+        transport = model_router.GatewayClaudeTransport(
+            base_url='https://gateway.example.invalid', key_id='test-key',
+            secret='synthetic-test-secret', http_transport=httpx.MockTransport(handler))
+        self.stack.enter_context(mock.patch.object(model_router, 'get_claude_transport', return_value=transport))
+        return transport
+
+    @staticmethod
+    def complete_response():
+        return httpx.Response(200, json={
+            'protocol_version': protocol.PROTOCOL_VERSION, 'text_blocks': ['ok'],
+            'usage': _complete_usage(input_tokens=2, output_tokens=1),
+            'model': model_router.CLAUDE_HAIKU, 'stop_reason': 'end_turn'})
+
+    def assert_known_once(self):
+        self.assertEqual(self.usage.call_count, 1)
+        self.assertEqual(self.usage.call_args.args[1], _complete_usage(input_tokens=2, output_tokens=1))
+        self.assertEqual(self.response.call_count, 1)
+        self.assertFalse(self.response.call_args.kwargs['unknown'])
+        self.assertFalse(self.manager.calls.active)
+        self.assertFalse(self.manager.calls.waiting)
+
+    def test_public_call_queue_wait_does_not_consume_provider_deadline(self):
+        import model_admission
+        wires = []
+        self.transport(lambda request: (wires.append(request), self.complete_response())[1])
+        async def exercise():
+            other = model_admission.Operation('other-user', 'other-task')
+            ticket = await self.manager.calls.acquire_async(other, 'other-call', 'claude')
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await asyncio.sleep(0.06)  # Longer than this request's provider deadline.
+            self.assertFalse(task.done())
+            self.assertEqual(wires, [])
+            self.manager.calls.release(ticket)
+            return await task
+        with mock.patch.object(model_router, '_claude_timeout_seconds', return_value=0.025), \
+             mock.patch.object(model_router, '_get_semaphore', side_effect=AssertionError('public double queue')):
+            self.assertEqual(asyncio.run(exercise()), 'ok')
+        self.assertEqual(len(wires), 1)
+        self.assert_known_once()
+
+    def test_public_queued_cancel_sends_nothing_and_returns_ticket(self):
+        import model_admission
+        wires = []
+        self.transport(lambda request: (wires.append(request), self.complete_response())[1])
+        async def exercise():
+            ticket = await self.manager.calls.acquire_async(
+                model_admission.Operation('other-user', 'other-task'), 'other-call', 'claude')
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await asyncio.sleep(0)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            self.assertEqual(len(self.manager.calls.active), 1)
+            self.assertFalse(self.manager.calls.waiting)
+            self.manager.calls.release(ticket)
+        asyncio.run(exercise())
+        self.assertEqual(wires, [])
+        self.reserve.assert_not_awaited()
+        self.usage.assert_not_called()
+        self.response.assert_not_called()
+
+    def test_public_dispatched_cancel_waits_for_original_response_and_usage(self):
+        wires = []
+        async def exercise():
+            entered, release = asyncio.Event(), asyncio.Event()
+            async def handler(request):
+                wires.append(request)
+                entered.set()
+                await release.wait()
+                return self.complete_response()
+            self.transport(handler)
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await entered.wait()
+            task.cancel()
+            await asyncio.sleep(0)
+            self.assertFalse(task.done())
+            self.assertEqual(len(self.manager.calls.active), 1)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        with mock.patch.object(model_router, '_claude_timeout_seconds', return_value=0.5):
+            asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assert_known_once()
+
+    def test_public_dispatched_cancel_original_timeout_stays_unknown(self):
+        wires = []
+        async def exercise():
+            entered = asyncio.Event()
+            async def handler(request):
+                wires.append(request)
+                entered.set()
+                await asyncio.Event().wait()
+            self.transport(handler)
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await entered.wait()
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, 0.3)
+        with mock.patch.object(model_router, '_claude_timeout_seconds', return_value=0.035):
+            asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assertEqual(self.usage.call_count, 1)
+        self.assertIsNone(self.usage.call_args.args[1])
+        self.assertEqual(self.response.call_count, 1)
+        self.assertTrue(self.response.call_args.kwargs['unknown'])
+        self.assertFalse(self.manager.calls.active)
+        self.assertFalse(self.manager.calls.waiting)
+
+    def stream_fixture(self, release, entered, wires):
+        class Body(httpx.AsyncByteStream):
+            async def __aiter__(_self):
+                yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION,
+                    'type': 'content', 'text': 'ok'}) + '\n').encode()
+                entered.set()
+                await release.wait()
+                yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION,
+                    'type': 'usage', 'usage': _complete_usage(input_tokens=2, output_tokens=1),
+                    'model': model_router.CLAUDE_HAIKU, 'stop_reason': 'end_turn'}) + '\n').encode()
+                yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION, 'type': 'done'}) + '\n').encode()
+        async def handler(request):
+            wires.append(request)
+            return httpx.Response(200, stream=Body(), headers={'content-type': 'application/x-ndjson'})
+        self.transport(handler)
+
+    def test_public_stream_cancel_drains_terminal_usage_without_new_wire(self):
+        wires, chunks = [], []
+        async def exercise():
+            release, entered = asyncio.Event(), asyncio.Event()
+            self.stream_fixture(release, entered, wires)
+            async def consume():
+                async for item in model_router.stream('diagnosis', 'system', 'synthetic', thinking=False):
+                    chunks.append(item)
+            task = asyncio.create_task(consume())
+            await entered.wait()
+            task.cancel()
+            await asyncio.sleep(0)
+            self.assertFalse(task.done())
+            self.assertEqual(len(self.manager.calls.active), 1)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        with mock.patch.object(model_router, '_claude_timeout_seconds', return_value=0.5):
+            asyncio.run(exercise())
+        self.assertEqual(chunks, [('content', 'ok')])
+        self.assertEqual(len(wires), 1)
+        self.assert_known_once()
+
+    def test_public_stream_close_between_chunks_drains_original_usage(self):
+        wires = []
+        async def exercise():
+            release, entered = asyncio.Event(), asyncio.Event()
+            self.stream_fixture(release, entered, wires)
+            iterator = model_router.stream('diagnosis', 'system', 'synthetic', thinking=False)
+            self.assertEqual(await iterator.__anext__(), ('content', 'ok'))
+            async def unblock():
+                await entered.wait()
+                release.set()
+            unblocking = asyncio.create_task(unblock())
+            await iterator.aclose()
+            await unblocking
+        with mock.patch.object(model_router, '_claude_timeout_seconds', return_value=0.5):
+            asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assert_known_once()
+
+    def test_public_kimi_routes_forward_unique_operation_id_and_hold_ticket(self):
+        operations = []
+        def handler(request):
+            body = json.loads(request.content)
+            opid = request.extensions['noteai_operation_id']
+            ticket = model_router._public_product._model_lease.get()
+            self.assertEqual(ticket.call_id, opid)
+            self.assertEqual(ticket.provider, 'kimi')
+            self.assertNotIn('noteai_operation_id', body)
+            self.assertNotIn('noteai_provenance', body)
+            self.assertTrue(opid)
+            operations.append(opid)
+            model_router._public_product.mark_model_dispatched(opid)
+            if body.get('stream'):
+                chunks = [
+                    {'choices': [{'delta': {'content': 'ok'}}]},
+                    {'choices': [{'delta': {}}], 'usage': {'prompt_tokens': 2, 'completion_tokens': 1}},
+                ]
+                return httpx.Response(200, text=''.join('data: ' + json.dumps(c) + '\n\n' for c in chunks)
+                    + 'data: [DONE]\n\n', headers={'content-type': 'text/event-stream'})
+            return httpx.Response(200, json={'choices': [{'message': {'content': 'ok'}}],
+                'usage': {'prompt_tokens': 2, 'completion_tokens': 1}})
+        async def exercise():
+            self.assertEqual(await model_router.call('diagnosis', 'system', 'synthetic'), 'ok')
+            self.assertEqual([c async for c in model_router.stream('diagnosis', 'system', 'synthetic')], [('content', 'ok')])
+            self.assertEqual([c async for c in model_router.stream_chat('system', [], 'synthetic')], [('content', 'ok')])
+        with mock.patch.object(model_router._runtime_config, 'resolve',
+                side_effect=lambda task, model, maximum: (model_router.KIMI_TEXT, maximum)), \
+             mock.patch.object(model_router._public_product, 'kimi_async_client',
+                side_effect=lambda **kwargs: httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)), \
+             mock.patch.object(model_router._public_product, 'kimi_client',
+                side_effect=lambda **kwargs: httpx.Client(transport=httpx.MockTransport(handler), **kwargs)), \
+             mock.patch.object(model_router, '_record_kimi_usage') as usage:
+            asyncio.run(exercise())
+            self.assertEqual(model_router.call_semantic_sync('system', 'synthetic'), 'ok')
+        self.assertEqual(len(operations), 4)
+        self.assertEqual(len(set(operations)), 4)
+        self.assertEqual(usage.call_count, 4)
+        self.assertFalse(self.manager.calls.active)
+        self.assertFalse(self.manager.calls.waiting)
+
+    def kimi_client_fixture(self, handler, *, sync=False):
+        public = model_router._public_product
+        reserve = self.stack.enter_context(mock.patch.object(public, '_reserve_with_wait',
+            side_effect=lambda request: request.extensions['noteai_operation_id']))
+        self.stack.enter_context(mock.patch.object(model_router._runtime_config, 'resolve',
+            side_effect=lambda task, model, maximum: (model_router.KIMI_TEXT, maximum)))
+        factory = public._KimiClient if sync else public._KimiAsyncClient
+        self.stack.enter_context(mock.patch.object(public, 'kimi_client' if sync else 'kimi_async_client',
+            side_effect=lambda **kwargs: factory(transport=httpx.MockTransport(handler), **kwargs)))
+        usage = self.stack.enter_context(mock.patch.object(model_router, '_record_kimi_usage'))
+        return reserve, usage
+
+    @staticmethod
+    def kimi_complete_response():
+        return httpx.Response(200, json={'model': model_router.KIMI_TEXT,
+            'choices': [{'message': {'content': 'ok'}, 'finish_reason': 'stop'}],
+            'usage': {'prompt_tokens': 2, 'completion_tokens': 1}})
+
+    def test_kimi_sent_cancel_native_settles_once_before_releasing_ticket(self):
+        wires = []
+        async def exercise():
+            entered, release = asyncio.Event(), asyncio.Event()
+            async def handler(request):
+                wires.append(request)
+                entered.set()
+                await release.wait()
+                return self.kimi_complete_response()
+            _reserve, usage = self.kimi_client_fixture(handler)
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await entered.wait()
+            task.cancel()
+            await asyncio.sleep(0)
+            self.assertFalse(task.done())
+            self.assertEqual(len(self.manager.calls.active), 1)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            self.assertEqual(usage.call_count, 1)
+            self.assertEqual(usage.call_args.args[1], {'prompt_tokens': 2, 'completion_tokens': 1})
+        asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assertEqual(self.response.call_count, 1)
+        self.assertEqual(self.response.call_args.args[1], 200)
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_sent_cancel_read_timeout_remains_unknown_without_replay(self):
+        wires = []
+        async def exercise():
+            entered, release = asyncio.Event(), asyncio.Event()
+            async def handler(request):
+                wires.append(request)
+                entered.set()
+                await release.wait()
+                raise httpx.ReadTimeout('synthetic provider read timeout')
+            _reserve, usage = self.kimi_client_fixture(handler)
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await entered.wait()
+            task.cancel()
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            self.assertEqual(usage.call_count, 1)
+            self.assertIsNone(usage.call_args.args[1])
+        asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assertEqual(self.response.call_args.args[1], None)
+        self.assertFalse(self.manager.calls.active)
+
+    def kimi_stream_fixture(self, release, entered, wires):
+        class Body(httpx.AsyncByteStream):
+            async def __aiter__(_self):
+                yield ('data: ' + json.dumps({'model': model_router.KIMI_TEXT,
+                    'choices': [{'delta': {'content': 'ok'}}]}) + '\n\n').encode()
+                entered.set()
+                await release.wait()
+                yield ('data: ' + json.dumps({'model': model_router.KIMI_TEXT,
+                    'choices': [{'delta': {}, 'finish_reason': 'stop'}],
+                    'usage': {'prompt_tokens': 2, 'completion_tokens': 1}}) + '\n\n').encode()
+                yield b'data: [DONE]\n\n'
+        async def handler(request):
+            wires.append(request)
+            return httpx.Response(200, stream=Body(), headers={'content-type': 'text/event-stream'})
+        return self.kimi_client_fixture(handler)
+
+    def test_kimi_stream_cancel_native_drains_one_original_wire_and_usage(self):
+        wires, chunks = [], []
+        async def exercise():
+            release, entered = asyncio.Event(), asyncio.Event()
+            _reserve, usage = self.kimi_stream_fixture(release, entered, wires)
+            async def consume():
+                async for chunk in model_router.stream('diagnosis', 'system', 'synthetic'):
+                    chunks.append(chunk)
+            task = asyncio.create_task(consume())
+            await entered.wait()
+            task.cancel()
+            await asyncio.sleep(0)
+            self.assertFalse(task.done())
+            self.assertEqual(len(self.manager.calls.active), 1)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            self.assertEqual(usage.call_count, 1)
+            self.assertEqual(usage.call_args.args[1], {'prompt_tokens': 2, 'completion_tokens': 1})
+        asyncio.run(exercise())
+        self.assertEqual(chunks, [('content', 'ok')])
+        self.assertEqual(len(wires), 1)
+        self.assertEqual(self.response.call_count, 1)
+        self.assertEqual(self.response.call_args.args[1], 200)
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_stream_close_partial_drains_but_normal_route_never_double_meters(self):
+        wires = []
+        async def exercise():
+            release, entered = asyncio.Event(), asyncio.Event()
+            _reserve, usage = self.kimi_stream_fixture(release, entered, wires)
+            iterator = model_router.stream('diagnosis', 'system', 'synthetic')
+            self.assertEqual(await iterator.__anext__(), ('content', 'ok'))
+            async def unblock():
+                await entered.wait()
+                release.set()
+            unblocking = asyncio.create_task(unblock())
+            await iterator.aclose()
+            await unblocking
+            self.assertEqual(usage.call_count, 1)
+            self.assertFalse(self.manager.calls.active)
+            usage.reset_mock()
+            self.assertEqual([c async for c in model_router.stream('diagnosis', 'system', 'synthetic')], [('content', 'ok')])
+            self.assertEqual(usage.call_count, 1)
+        asyncio.run(exercise())
+        self.assertEqual(len(wires), 2)
+        self.assertEqual(self.response.call_count, 2)
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_direct_stream_holds_ticket_until_close_without_outer_lease(self):
+        public = model_router._public_product
+        usage = self.stack.enter_context(mock.patch.object(model_router, '_record_kimi_usage'))
+        self.stack.enter_context(mock.patch.object(public, '_reserve_with_wait',
+            side_effect=lambda request: request.extensions['noteai_operation_id']))
+        class Body(httpx.AsyncByteStream):
+            async def __aiter__(_self):
+                yield b'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'
+                yield b'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}\n\n'
+                yield b'data: [DONE]\n\n'
+        async def exercise():
+            async with public._KimiAsyncClient(transport=httpx.MockTransport(
+                    lambda request: httpx.Response(200, stream=Body()))) as client:
+                request = client.build_request('POST', public.ENDPOINT, json={'model': public.MODEL})
+                response = await client.send(request, stream=True)
+                self.assertEqual(len(self.manager.calls.active), 1)
+                self.assertIsNone(public._model_lease.get())
+                await response.aclose()
+                self.assertFalse(self.manager.calls.active)
+        asyncio.run(exercise())
+        self.assertEqual(usage.call_count, 1)
+        self.assertEqual(self.response.call_count, 1)
+
+
+    def test_kimi_cancel_during_short_reservation_never_dispatches(self):
+        public = model_router._public_product
+        entered, release = threading.Event(), threading.Event()
+        wires = []
+        def reserve(request):
+            entered.set()
+            if not release.wait(2):
+                raise AssertionError('test reservation was not released')
+            return request.extensions['noteai_operation_id']
+        async def exercise():
+            _reserve, usage = self.kimi_client_fixture(
+                lambda request: (wires.append(request), self.kimi_complete_response())[1])
+            with mock.patch.object(public, '_reserve_with_wait', side_effect=reserve):
+                task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+                while not entered.is_set():
+                    await asyncio.sleep(0)
+                task.cancel()
+                await asyncio.sleep(0)
+                self.assertFalse(task.done())
+                release.set()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
+            usage.assert_not_called()
+        try:
+            asyncio.run(exercise())
+        finally:
+            release.set()
+        self.assertEqual(wires, [])
+        self.assertEqual(self.response.call_count, 1)
+        self.assertTrue(self.response.call_args.kwargs['not_dispatched'])
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_cancel_settlement_has_one_finite_original_timeout_window(self):
+        public = model_router._public_product
+        wires = []
+        async def exercise():
+            entered = asyncio.Event()
+            async def handler(request):
+                wires.append(request)
+                entered.set()
+                await asyncio.Event().wait()
+            _reserve, usage = self.kimi_client_fixture(handler)
+            factory = public._KimiAsyncClient
+            timeout = httpx.Timeout(connect=0.01, read=0.01, write=0.01, pool=0.01)
+            with mock.patch.object(public, 'kimi_async_client', side_effect=lambda **kwargs:
+                    factory(transport=httpx.MockTransport(handler), timeout=timeout)):
+                task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+                await entered.wait()
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await asyncio.wait_for(task, 0.3)
+            self.assertEqual(usage.call_count, 1)
+            self.assertIsNone(usage.call_args.args[1])
+        asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assertIsNone(self.response.call_args.args[1])
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_direct_sync_partial_stream_close_settles_and_releases_ticket(self):
+        public = model_router._public_product
+        usage = self.stack.enter_context(mock.patch.object(model_router, '_record_kimi_usage'))
+        self.stack.enter_context(mock.patch.object(public, '_reserve_with_wait',
+            side_effect=lambda request: request.extensions['noteai_operation_id']))
+        class Body(httpx.SyncByteStream):
+            def __iter__(_self):
+                yield b'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'
+                yield b'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}\n\n'
+                yield b'data: [DONE]\n\n'
+        with public._KimiClient(transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, stream=Body()))) as client:
+            with client.stream('POST', public.ENDPOINT, json={'model': public.MODEL}) as response:
+                iterator = response.iter_lines()
+                self.assertTrue(next(iterator).startswith('data: '))
+                self.assertEqual(len(self.manager.calls.active), 1)
+                self.assertIsNone(public._model_lease.get())
+        self.assertEqual(usage.call_count, 1)
+        self.assertEqual(self.response.call_count, 1)
+        self.assertEqual(self.response.call_args.args[1], 200)
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_direct_send_request_inherits_original_client_timeout(self):
+        public = model_router._public_product
+        seen = []
+        self.stack.enter_context(mock.patch.object(public, '_reserve_with_wait',
+            side_effect=lambda request: request.extensions['noteai_operation_id']))
+        def handler(request):
+            seen.append(request.extensions['timeout'])
+            return self.kimi_complete_response()
+        timeout = httpx.Timeout(0.5)
+        async def exercise():
+            async with public._KimiAsyncClient(timeout=timeout,
+                    transport=httpx.MockTransport(handler)) as client:
+                request = httpx.Request('POST', public.ENDPOINT, json={'model': public.MODEL})
+                self.assertNotIn('timeout', request.extensions)
+                response = await client.send(request)
+                self.assertEqual(response.status_code, 200)
+        asyncio.run(exercise())
+        with public._KimiClient(timeout=timeout, transport=httpx.MockTransport(handler)) as client:
+            request = httpx.Request('POST', public.ENDPOINT, json={'model': public.MODEL})
+            self.assertNotIn('timeout', request.extensions)
+            self.assertEqual(client.send(request).status_code, 200)
+        self.assertEqual(seen, [timeout.as_dict(), timeout.as_dict()])
+        self.assertEqual(self.response.call_count, 2)
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_cancelled_invalid_output_preserves_usage_and_unknown(self):
+        wires = []
+        async def exercise():
+            entered, release = asyncio.Event(), asyncio.Event()
+            async def handler(request):
+                wires.append(request)
+                entered.set()
+                await release.wait()
+                return httpx.Response(200, json={'model': model_router.KIMI_TEXT,
+                    'choices': [{'message': {'content': 'partial'}, 'finish_reason': 'length'}],
+                    'usage': {'prompt_tokens': 2, 'completion_tokens': 1}})
+            _reserve, usage = self.kimi_client_fixture(handler)
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await entered.wait()
+            task.cancel()
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            self.assertEqual(usage.call_count, 1)
+            self.assertEqual(usage.call_args.args[1], {'prompt_tokens': 2, 'completion_tokens': 1})
+        asyncio.run(exercise())
+        self.assertEqual(len(wires), 1)
+        self.assertEqual(self.response.call_count, 1)
+        self.assertTrue(self.response.call_args.kwargs['unknown'])
+        self.assertEqual(model_router._public_product._invocation.get().failure,
+                         'PUBLIC_TRIAL_RESPONSE_UNKNOWN')
+        self.assertFalse(self.manager.calls.active)
+
+    def test_kimi_cancelled_known_rejection_does_not_invent_usage(self):
+        async def exercise(status):
+            entered, release = asyncio.Event(), asyncio.Event()
+            async def handler(request):
+                entered.set()
+                await release.wait()
+                return httpx.Response(status, json={'error': {'type': 'synthetic-rejection'}})
+            _reserve, usage = self.kimi_client_fixture(handler)
+            task = asyncio.create_task(model_router.call('diagnosis', 'system', 'synthetic'))
+            await entered.wait()
+            task.cancel()
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+            usage.assert_not_called()
+        for status in (401, 429):
+            with self.subTest(status=status):
+                model_router._public_product._invocation.get().failure = ''
+                self.response.reset_mock()
+                asyncio.run(exercise(status))
+                self.assertEqual(self.response.call_count, 1)
+                self.assertEqual(self.response.call_args.args[1], status)
+                self.assertFalse(self.response.call_args.kwargs['unknown'])
+                self.assertFalse(self.manager.calls.active)
+
+    def test_public_real_stream_activity_keeps_queue_live_but_silence_still_stalls(self):
+        import model_admission
+        clock = SimpleNamespace(now=0.0)
+        clock.monotonic = lambda: clock.now
+        wires, chunks = [], []
+        async def exercise():
+            tick, end = asyncio.Event(), asyncio.Event()
+            first, second = asyncio.Event(), asyncio.Event()
+            class Body(httpx.AsyncByteStream):
+                async def __aiter__(_self):
+                    yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION,
+                        'type': 'content', 'text': 'one'}) + '\n').encode()
+                    first.set()
+                    await tick.wait()
+                    yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION,
+                        'type': 'content', 'text': 'two'}) + '\n').encode()
+                    second.set()
+                    await end.wait()
+                    yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION,
+                        'type': 'usage', 'usage': _complete_usage(input_tokens=2, output_tokens=1),
+                        'model': model_router.CLAUDE_HAIKU, 'stop_reason': 'end_turn'}) + '\n').encode()
+                    yield (json.dumps({'protocol_version': protocol.PROTOCOL_VERSION, 'type': 'done'}) + '\n').encode()
+            async def handler(request):
+                wires.append(request)
+                return httpx.Response(200, stream=Body(), headers={'content-type': 'application/x-ndjson'})
+            self.transport(handler)
+            async def consume():
+                async for chunk in model_router.stream('diagnosis', 'system', 'synthetic', thinking=False):
+                    chunks.append(chunk)
+            task = asyncio.create_task(consume())
+            await first.wait()
+            waiter = self.manager.calls.enqueue(model_admission.Operation('waiting-user', 'waiting-task'),
+                'waiting-call', 'claude')
+            active = next(iter(self.manager.calls.active.values()))
+            try:
+                clock.now = 250.0
+                tick.set()
+                await second.wait()
+                clock.now = 301.0
+                self.assertFalse(self.manager.calls._check(waiter))
+                self.assertEqual(active.operation.completed_calls, 0)
+                self.assertIsNone(active.operation.last_progress_at)
+                self.assertEqual(chunks, [('content', 'one'), ('content', 'two')])
+                clock.now = 601.0
+                with self.assertRaisesRegex(model_admission.AdmissionError, '^MODEL_QUEUE_NO_PROGRESS$'):
+                    self.manager.calls._check(waiter)
+                self.assertFalse(active.closed)
+                self.assertEqual(len(wires), 1)
+            finally:
+                self.manager.calls.release(waiter)
+                end.set()
+                await task
+        with mock.patch.object(model_admission, 'time', clock):
+            self.manager = model_admission.Admission(model_admission.Limits(
+                physical=1, claude=1, kimi=1, doubao=1,
+                queue_seconds=900, no_progress_seconds=300))
+            with mock.patch.object(model_admission, 'current', return_value=self.manager), \
+                 mock.patch.object(model_router, '_claude_timeout_seconds', return_value=1):
+                asyncio.run(exercise())
+        self.assert_known_once()
+
+    def test_kimi_activity_only_valid_stream_content_or_usage_uses_original_ticket(self):
+        public = model_router._public_product
+        ticket = object()
+        parser = public._TerminalParser(ticket=ticket)
+        with mock.patch.object(public, 'note_model_activity') as activity:
+            parser.feed(b': heartbeat\n')
+            parser.feed(b'data: {"choices":[{"delta":{}}]}\n')
+            parser.feed(b'data: {"choices":[{"delta":{"content":"   "}}]}\n')
+            parser.feed(b'data: {"usage":{"prompt_tokens":"bad","completion_tokens":1},"choices":[]}\n')
+            activity.assert_not_called()
+            parser.feed(b'data: {"choices":[{"delta":{"content":"real chunk"}}]}\n')
+            parser.feed(b'data: {"usage":{"prompt_tokens":2,"completion_tokens":1},"choices":[]}\n')
+            self.assertEqual(activity.call_args_list, [mock.call(ticket), mock.call(ticket)])
 
 
 if __name__ == "__main__":

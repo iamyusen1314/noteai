@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -76,6 +76,47 @@ class PaidRequestIdempotencyTests(unittest.TestCase):
         finally:
             clarification.execution.reset(marker)
         return claim, waiting.exception.event, opinion, source
+
+    def test_model_progress_renews_only_original_live_claim_without_charging_again(self):
+        self._create_user("progress-owner")
+        claim = self._claim("progress-owner", "progress-once", operation="generate")
+        row = dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],)))
+        expiry = idempotency._parse_lease_clock(row["lease_expires_at"])
+        now = expiry - timedelta(seconds=700)
+        progress = now - timedelta(seconds=2)
+        credits = dict(db.fetchone("SELECT * FROM credits WHERE user_id=?", ("progress-owner",)))
+        usage_count = db.fetchone("SELECT count(*) n FROM usage_records")["n"]
+        self.assertTrue(idempotency.touch_active_claim(claim, last_progress_at=progress.isoformat(), now=now))
+        after = dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],)))
+        self.assertEqual(idempotency._parse_lease_clock(after["lease_expires_at"]), progress + timedelta(seconds=1800))
+        self.assertFalse(idempotency.touch_active_claim(claim, last_progress_at=progress.isoformat(), now=now + timedelta(seconds=500)))
+        self.assertEqual(dict(db.fetchone("SELECT * FROM credits WHERE user_id=?", ("progress-owner",))), credits)
+        self.assertEqual(db.fetchone("SELECT count(*) n FROM usage_records")["n"], usage_count)
+        self.assertEqual((after["charge_applied"], after["complete_applied"], after["refund_applied"]), (1, 0, 0))
+
+    def test_heartbeat_stale_future_or_wrong_owner_cannot_renew_claim(self):
+        self._create_user("progress-boundary")
+        claim = self._claim("progress-boundary", "progress-boundary-once", operation="generate")
+        before = dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],)))
+        now = idempotency._parse_lease_clock(before["lease_expires_at"]) - timedelta(seconds=700)
+        for context, progress in ((claim, None), (claim, (now - timedelta(seconds=301)).isoformat()),
+                                  (claim, (now + timedelta(seconds=1)).isoformat()),
+                                  ({**claim, "user_id": "other-owner"}, now.isoformat()),
+                                  ({**claim, "lease_token": "wrong-original-token"}, now.isoformat())):
+            with self.subTest(progress=progress, original_owner=context is claim):
+                self.assertFalse(idempotency.touch_active_claim(context, last_progress_at=progress, now=now))
+        self.assertEqual(dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],))), before)
+
+    def test_real_progress_cannot_revive_expired_or_terminal_claim(self):
+        self._create_user("progress-expired")
+        claim = self._claim("progress-expired", "progress-expired-once", operation="generate")
+        row = dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],)))
+        now = idempotency._parse_lease_clock(row["lease_expires_at"]) + timedelta(seconds=1)
+        self.assertFalse(idempotency.touch_active_claim(claim, last_progress_at=now.isoformat(), now=now))
+        self.assertTrue(idempotency.mark_failed_and_refund(claim, failure_code="request_failed"))
+        terminal = dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],)))
+        self.assertFalse(idempotency.touch_active_claim(claim, last_progress_at=idempotency._now().isoformat()))
+        self.assertEqual(dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (claim["request_id"],))), terminal)
 
     def test_clarification_json_wrappers_keep_source_checks_and_hide_private_logs(self):
         import task_clarification as clarification

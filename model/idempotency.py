@@ -544,6 +544,48 @@ def settle_expired_requests_for_account_deletion_with_storage(
     return settled
 
 
+def touch_active_claim(context, *, last_progress_at, max_no_progress_seconds=300, now=None):
+    """Renew only the original live owner after a real, fresh call result.
+
+    Heartbeats, queue positions and an operator's clock are not progress. This
+    changes neither billing nor a terminal/waiting claim, and never takes over
+    an expired owner's token or clears an UNKNOWN provider result.
+    """
+    if not context or context.get("state") != "owner":
+        return False
+    current_time = now or _now()
+    progress = _parse_lease_clock(last_progress_at)
+    if (progress is None or progress > current_time
+            or not 0 <= (current_time - progress).total_seconds() <= max_no_progress_seconds):
+        return False
+    try:
+        seconds = max(60, int(os.environ.get("NOTEAI_IDEMPOTENCY_LEASE_SECONDS", "1800") or 1800))
+    except ValueError:
+        seconds = 1800
+    digest = _sha256(str(context.get("lease_token") or ""))
+    with db.transaction(write=True) as tx:
+        row = _owned_row(tx, context)
+        if not row:
+            return False
+        row = dict(row)
+        expiry = _parse_lease_clock(row.get("lease_expires_at"))
+        if (row.get("status") != "running" or row.get("lease_token_hash") != digest
+                or row.get("refund_applied") or row.get("complete_applied")
+                or any(row.get(k) != context.get(k) for k in ("user_id", "operation", "key_hash", "payload_hash"))
+                or row.get("usage_id") != (context.get("charge") or {}).get("usage_id")
+                or expiry is None or expiry <= current_time):
+            return False
+        # Renew near the back half of the existing lease, rather than writing
+        # the DB on every SSE heartbeat. A single result cannot renew forever.
+        if (expiry - current_time).total_seconds() > seconds / 2 or expiry >= progress + timedelta(seconds=seconds):
+            return False
+        tx.execute("UPDATE idempotency_requests SET lease_expires_at=?,updated_at=? "
+                   "WHERE id=? AND status='running' AND lease_token_hash=? AND lease_expires_at=?",
+                   (_iso(progress + timedelta(seconds=seconds)), _iso(current_time),
+                    context["request_id"], digest, row["lease_expires_at"]))
+        return True
+
+
 def mark_completed(
     context: dict[str, Any] | None, *, confirm_existing: bool = False, ocr_result: dict | None = None,
     response_reference=None,

@@ -139,8 +139,8 @@ class GenerationVisualAdmissionTests(unittest.TestCase):
                     failure_changed.notify_all()
                 raise
 
-        async def observe_batch(*args):
-            results = await real_batch(*args)
+        async def observe_batch(*args, **kwargs):
+            results = await real_batch(*args, **kwargs)
             batch_results.extend(results)
             return results
 

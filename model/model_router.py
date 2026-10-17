@@ -1116,72 +1116,76 @@ class GatewayClaudeTransport:
     async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
         self._require_config()
         body = self._body(request)
-        request_dispatched = False
-        try:
-            transport = await self._async_http_transport()
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-                follow_redirects=False,
-                trust_env=False,
-                transport=transport,
-            ) as client:
-                await _public_product.admit_claude(request, body)
-                request_dispatched = True
-                request.call_state["sent"] = True
-                response = await client.post(
-                    f"{self.base_url}{_cgp.MESSAGES_PATH}",
-                    content=body,
-                    headers=self._headers(_cgp.MESSAGES_PATH, body),
-                )
-        except asyncio.CancelledError:
-            raise ClaudeRequestCancelled(
-                usage_audit_required=request_dispatched,
-            ) from None
-        except httpx.HTTPError as exc:
-            raise _safe_gateway_http_error(
-                exc,
-                usage_audit_required=request_dispatched,
-            ) from None
-        request.call_state["http_status"] = response.status_code
-        try:
-            return self._decode_result(response)
-        except ClaudeGatewayError as exc:
-            if request_dispatched and not exc.fallback_safe:
-                exc.usage_audit_required = True
-            raise
+        async with _public_product.model_admission(request.operation_id, "claude"):
+            request_dispatched = False
+            try:
+                transport = await self._async_http_transport()
+                async with httpx.AsyncClient(
+                    timeout=self.timeout,
+                    follow_redirects=False,
+                    trust_env=False,
+                    transport=transport,
+                ) as client:
+                    await _public_product.admit_claude(request, body)
+                    _public_product.mark_model_dispatched(request.operation_id)
+                    request_dispatched = True
+                    request.call_state["sent"] = True
+                    response = await client.post(
+                        f"{self.base_url}{_cgp.MESSAGES_PATH}",
+                        content=body,
+                        headers=self._headers(_cgp.MESSAGES_PATH, body),
+                    )
+            except asyncio.CancelledError:
+                raise ClaudeRequestCancelled(
+                    usage_audit_required=request_dispatched,
+                ) from None
+            except httpx.HTTPError as exc:
+                raise _safe_gateway_http_error(
+                    exc,
+                    usage_audit_required=request_dispatched,
+                ) from None
+            request.call_state["http_status"] = response.status_code
+            try:
+                return self._decode_result(response)
+            except ClaudeGatewayError as exc:
+                if request_dispatched and not exc.fallback_safe:
+                    exc.usage_audit_required = True
+                raise
 
     def create_message_sync(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
         self._require_config()
         body = self._body(request)
-        request_dispatched = False
-        try:
-            transport = self._sync_http_transport()
-            with httpx.Client(
-                timeout=self.timeout,
-                follow_redirects=False,
-                trust_env=False,
-                transport=transport,
-            ) as client:
-                _public_product.admit_claude_sync(request, body)
-                request_dispatched = True
-                request.call_state["sent"] = True
-                response = client.post(
-                    f"{self.base_url}{_cgp.MESSAGES_PATH}",
-                    content=body,
-                    headers=self._headers(_cgp.MESSAGES_PATH, body),
-                )
-        except httpx.HTTPError as exc:
-            raise _safe_gateway_http_error(
-                exc,
-                usage_audit_required=request_dispatched,
-            ) from None
-        request.call_state["http_status"] = response.status_code
-        try:
-            return self._decode_result(response)
-        except ClaudeGatewayError as exc:
-            if request_dispatched and not exc.fallback_safe:
-                exc.usage_audit_required = True
-            raise
+        with _public_product.model_admission_sync(request.operation_id, "claude"):
+            request_dispatched = False
+            try:
+                transport = self._sync_http_transport()
+                with httpx.Client(
+                    timeout=self.timeout,
+                    follow_redirects=False,
+                    trust_env=False,
+                    transport=transport,
+                ) as client:
+                    _public_product.admit_claude_sync(request, body)
+                    _public_product.mark_model_dispatched(request.operation_id)
+                    request_dispatched = True
+                    request.call_state["sent"] = True
+                    response = client.post(
+                        f"{self.base_url}{_cgp.MESSAGES_PATH}",
+                        content=body,
+                        headers=self._headers(_cgp.MESSAGES_PATH, body),
+                    )
+            except httpx.HTTPError as exc:
+                raise _safe_gateway_http_error(
+                    exc,
+                    usage_audit_required=request_dispatched,
+                ) from None
+            request.call_state["http_status"] = response.status_code
+            try:
+                return self._decode_result(response)
+            except ClaudeGatewayError as exc:
+                if request_dispatched and not exc.fallback_safe:
+                    exc.usage_audit_required = True
+                raise
 
     async def stream_message(
         self,
@@ -1189,99 +1193,101 @@ class GatewayClaudeTransport:
     ) -> AsyncGenerator[ClaudeStreamEvent, None]:
         self._require_config()
         body = self._body(request)
-        terminal_seen = False
-        usage_seen = False
-        request_dispatched = False
-        successful_response = False
+        async with _public_product.model_admission(request.operation_id, "claude"):
+            terminal_seen = False
+            usage_seen = False
+            request_dispatched = False
+            successful_response = False
 
-        def stream_error(code: str, status_code: int = 502) -> ClaudeGatewayError:
-            return ClaudeGatewayError(
-                code,
-                status_code,
-                usage_audit_required=request_dispatched and not usage_seen,
-            )
+            def stream_error(code: str, status_code: int = 502) -> ClaudeGatewayError:
+                return ClaudeGatewayError(
+                    code,
+                    status_code,
+                    usage_audit_required=request_dispatched and not usage_seen,
+                )
 
-        try:
-            transport = await self._async_http_transport()
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-                follow_redirects=False,
-                trust_env=False,
-                transport=transport,
-            ) as client:
-                await _public_product.admit_claude(request, body)
-                request_dispatched = True
-                request.call_state["sent"] = True
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}{_cgp.STREAM_PATH}",
-                    content=body,
-                    headers=self._headers(_cgp.STREAM_PATH, body),
-                ) as response:
-                    request.call_state["http_status"] = response.status_code
-                    if response.status_code != 200:
-                        self._require_response_media_type(response, "application/json")
-                        await response.aread()
-                        try:
-                            payload = response.json()
-                        except Exception:
-                            payload = None
-                        raise self._error_from_payload(payload, response.status_code)
-                    successful_response = True
-                    self._require_response_media_type(response, "application/x-ndjson")
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        try:
-                            event = json.loads(line)
-                        except json.JSONDecodeError:
-                            raise stream_error("GATEWAY_PROTOCOL_ERROR") from None
-                        if not isinstance(event, dict) or event.get("protocol_version") != _cgp.PROTOCOL_VERSION:
-                            raise stream_error("GATEWAY_PROTOCOL_ERROR")
-                        if terminal_seen:
-                            raise stream_error("GATEWAY_PROTOCOL_ERROR")
-                        event_type = event.get("type")
-                        if (
-                            event_type == "content"
-                            and isinstance(event.get("text"), str)
-                            and not usage_seen
-                        ):
-                            yield ClaudeStreamEvent("content", text=event["text"])
-                        elif event_type == "usage" and _cgp.valid_usage_envelope(event.get("usage")):
-                            if event.get("usage") is None or usage_seen:
+            try:
+                transport = await self._async_http_transport()
+                async with httpx.AsyncClient(
+                    timeout=self.timeout,
+                    follow_redirects=False,
+                    trust_env=False,
+                    transport=transport,
+                ) as client:
+                    await _public_product.admit_claude(request, body)
+                    _public_product.mark_model_dispatched(request.operation_id)
+                    request_dispatched = True
+                    request.call_state["sent"] = True
+                    async with client.stream(
+                        "POST",
+                        f"{self.base_url}{_cgp.STREAM_PATH}",
+                        content=body,
+                        headers=self._headers(_cgp.STREAM_PATH, body),
+                    ) as response:
+                        request.call_state["http_status"] = response.status_code
+                        if response.status_code != 200:
+                            self._require_response_media_type(response, "application/json")
+                            await response.aread()
+                            try:
+                                payload = response.json()
+                            except Exception:
+                                payload = None
+                            raise self._error_from_payload(payload, response.status_code)
+                        successful_response = True
+                        self._require_response_media_type(response, "application/x-ndjson")
+                        async for line in response.aiter_lines():
+                            if not line:
+                                continue
+                            try:
+                                event = json.loads(line)
+                            except json.JSONDecodeError:
+                                raise stream_error("GATEWAY_PROTOCOL_ERROR") from None
+                            if not isinstance(event, dict) or event.get("protocol_version") != _cgp.PROTOCOL_VERSION:
                                 raise stream_error("GATEWAY_PROTOCOL_ERROR")
-                            usage_seen = True
-                            yield ClaudeStreamEvent("usage", usage=event["usage"],
-                                                    model=_completion_metadata(event, "model"),
-                                                    stop_reason=_completion_metadata(event, "stop_reason"))
-                        elif event_type == "done":
-                            if not usage_seen:
-                                raise stream_error("GATEWAY_STREAM_USAGE_MISSING")
-                            terminal_seen = True
-                        elif event_type == "error":
-                            error = self._error_from_payload(event, 502)
-                            error.usage_audit_required = not usage_seen
-                            error.fallback_safe = False
-                            raise error
-                        else:
-                            raise stream_error("GATEWAY_PROTOCOL_ERROR")
-        except asyncio.CancelledError:
-            raise ClaudeRequestCancelled(
-                usage_audit_required=request_dispatched and not usage_seen,
-            ) from None
-        except ClaudeGatewayError as exc:
-            if successful_response:
-                exc.fallback_safe = False
-            if request_dispatched and not usage_seen and not exc.fallback_safe:
-                exc.usage_audit_required = True
-            raise
-        except httpx.HTTPError as exc:
-            raise _safe_gateway_http_error(
-                exc,
-                usage_audit_required=request_dispatched and not usage_seen,
-            ) from None
-        if not terminal_seen or not usage_seen:
-            raise stream_error("GATEWAY_STREAM_INCOMPLETE")
+                            if terminal_seen:
+                                raise stream_error("GATEWAY_PROTOCOL_ERROR")
+                            event_type = event.get("type")
+                            if (
+                                event_type == "content"
+                                and isinstance(event.get("text"), str)
+                                and not usage_seen
+                            ):
+                                yield ClaudeStreamEvent("content", text=event["text"])
+                            elif event_type == "usage" and _cgp.valid_usage_envelope(event.get("usage")):
+                                if event.get("usage") is None or usage_seen:
+                                    raise stream_error("GATEWAY_PROTOCOL_ERROR")
+                                usage_seen = True
+                                yield ClaudeStreamEvent("usage", usage=event["usage"],
+                                                        model=_completion_metadata(event, "model"),
+                                                        stop_reason=_completion_metadata(event, "stop_reason"))
+                            elif event_type == "done":
+                                if not usage_seen:
+                                    raise stream_error("GATEWAY_STREAM_USAGE_MISSING")
+                                terminal_seen = True
+                            elif event_type == "error":
+                                error = self._error_from_payload(event, 502)
+                                error.usage_audit_required = not usage_seen
+                                error.fallback_safe = False
+                                raise error
+                            else:
+                                raise stream_error("GATEWAY_PROTOCOL_ERROR")
+            except asyncio.CancelledError:
+                raise ClaudeRequestCancelled(
+                    usage_audit_required=request_dispatched and not usage_seen,
+                ) from None
+            except ClaudeGatewayError as exc:
+                if successful_response:
+                    exc.fallback_safe = False
+                if request_dispatched and not usage_seen and not exc.fallback_safe:
+                    exc.usage_audit_required = True
+                raise
+            except httpx.HTTPError as exc:
+                raise _safe_gateway_http_error(
+                    exc,
+                    usage_audit_required=request_dispatched and not usage_seen,
+                ) from None
+            if not terminal_seen or not usage_seen:
+                raise stream_error("GATEWAY_STREAM_INCOMPLETE")
 
     def probe_readiness(self) -> dict[str, Any]:
         self._require_config()
@@ -1683,6 +1689,7 @@ async def _await_with_gateway_deadline(
     pre_dispatch: bool = False,
     unstructured_cancel_usage_audit_required: bool = False,
     unstructured_cancel_usage_model: str | None = None,
+    cancel_state: dict | None = None,
 ):
     try:
         remaining = _require_gateway_deadline_remaining(
@@ -1695,24 +1702,47 @@ async def _await_with_gateway_deadline(
     if remaining is None:
         return await awaitable
     task = asyncio.ensure_future(awaitable)
-    try:
-        done, _pending = await asyncio.wait((task,), timeout=remaining)
-    except asyncio.CancelledError as external_cancel:
-        task.cancel()
+    external_cancel = None
+    while True:
         try:
-            await task
-        except ClaudeRequestCancelled:
-            raise
-        except BaseException:
-            raise external_cancel
-        raise external_cancel
+            done, _pending = await asyncio.wait((task,), timeout=remaining)
+            break
+        except asyncio.CancelledError as exc:
+            if (_public_product.enabled() and not pre_dispatch
+                    and _public_product.model_dispatch_started()):
+                # A cancelled consumer must not abandon or replay an already
+                # dispatched request. Its original deadline still bounds drain.
+                external_cancel = external_cancel or exc
+                remaining = max(0.0, deadline - asyncio.get_running_loop().time())
+                continue
+            task.cancel()
+            try:
+                await task
+            except ClaudeRequestCancelled:
+                raise
+            except BaseException:
+                raise exc
+            raise exc
     if task in done:
+        if external_cancel is not None:
+            if cancel_state is not None:
+                # Streaming callers consume the original usage/terminal frames
+                # without emitting more chunks, then propagate this cancellation.
+                cancel_state["exception"] = external_cancel
+            else:
+                try:
+                    task.result()
+                except BaseException:
+                    pass  # Original request's own finally reconciles its usage.
+                raise external_cancel
         return task.result()
 
     task.cancel()
     try:
         await task
     except ClaudeRequestCancelled as exc:
+        if external_cancel is not None:
+            raise external_cancel
         raise _gateway_deadline_error(
             pre_dispatch=not exc.usage_audit_required,
             usage_audit_required=exc.usage_audit_required,
@@ -1723,11 +1753,15 @@ async def _await_with_gateway_deadline(
             and unstructured_cancel_usage_model
         ):
             _record_claude_usage(unstructured_cancel_usage_model, None)
+        if external_cancel is not None:
+            raise external_cancel
         raise _gateway_deadline_error(
             pre_dispatch=pre_dispatch,
             usage_audit_required=unstructured_cancel_usage_audit_required,
         ) from None
     except Exception as exc:
+        if external_cancel is not None:
+            raise external_cancel
         usage_audit_required = bool(
             getattr(exc, "usage_audit_required", False)
         )
@@ -1735,6 +1769,8 @@ async def _await_with_gateway_deadline(
             pre_dispatch=pre_dispatch and not usage_audit_required,
             usage_audit_required=usage_audit_required,
         ) from None
+    if external_cancel is not None:
+        raise external_cancel
     raise _gateway_deadline_error(
         pre_dispatch=pre_dispatch,
         usage_audit_required=unstructured_cancel_usage_audit_required,
@@ -1761,7 +1797,23 @@ async def _call_model_with_retries(
     for attempt in range(1, attempts + 1):
         try:
             t0 = time.monotonic()
-            if model_id.startswith("claude"):
+            if _public_product.enabled():
+                if model_id.startswith("claude"):
+                    result = await _await_with_gateway_deadline(
+                        _call_claude(
+                            model_id, system, user, thinking, max_tokens,
+                            operation_id=operation_id, provenance=provenance,
+                        ),
+                        absolute_deadline,
+                        unstructured_cancel_usage_audit_required=True,
+                        unstructured_cancel_usage_model=model_id,
+                    )
+                else:
+                    result = await _call_kimi(
+                        model_id, system, user, thinking, max_tokens,
+                        operation_id=operation_id, provenance=provenance,
+                    )
+            elif model_id.startswith("claude"):
                 sem = _get_semaphore("claude", CLAUDE_CONCURRENCY)
                 if absolute_deadline is None:
                     async with sem:
@@ -1894,6 +1946,7 @@ async def _call_claude(
 async def _call_kimi(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 1200,
+    operation_id: str = "",
     provenance: dict | None = None,
 ) -> str:
     key = os.environ.get("MOONSHOT_API_KEY", "")
@@ -1913,7 +1966,7 @@ async def _call_kimi(
         r = await client.post(
             KIMI_API_URL, json=payload,
             headers={"Authorization": f"Bearer {key}"},
-            extensions={"noteai_provenance": provenance},
+            extensions={"noteai_provenance": provenance, "noteai_operation_id": operation_id},
         )
         r.raise_for_status()
         data = r.json()
@@ -1937,38 +1990,41 @@ async def call(
         routing["primary"], max_tokens = _runtime_config.resolve(task, routing["primary"], max_tokens)
         routing["fallback"] = []  # A selected formal model is never silently substituted.
     models_to_try = [routing["primary"]] + list(routing.get("fallback", []))
-    absolute_deadline = _gateway_absolute_deadline(
-        task,
-        thinking,
-        max_tokens,
-        models_to_try,
-    )
     operation_id = _new_operation_id()
+    async with _public_product.model_admission(
+        operation_id, "claude" if routing["primary"].startswith("claude") else "kimi",
+    ):
+        absolute_deadline = _gateway_absolute_deadline(
+            task,
+            thinking,
+            max_tokens,
+            models_to_try,
+        )
 
-    for model_id in models_to_try:
-        try:
-            _require_gateway_deadline_remaining(
-                absolute_deadline,
-                pre_dispatch=True,
-            )
-            return await _call_model_with_retries(
-                task, model_id, system, user, thinking, max_tokens,
-                operation_id=operation_id,
-                absolute_deadline=absolute_deadline,
-                provenance=provenance,
-            )
-        except Exception as exc:
-            if isinstance(exc, _public_product.TrialProviderStopped):
-                raise
-            if _is_gateway_deadline_error(exc):
-                raise
-            if model_id.startswith("claude") and not (
-                isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
-            ):
-                _log(f"task={task} model={model_id} STOP code={_safe_failure_code(exc)}")
-                raise _fixed_claude_error(exc) from None
-            _log(f"task={task} model={model_id} FAIL code={_safe_failure_code(exc)} → fallback")
-    raise RuntimeError(f"[mr] all models failed for task={task}")
+        for model_id in models_to_try:
+            try:
+                _require_gateway_deadline_remaining(
+                    absolute_deadline,
+                    pre_dispatch=True,
+                )
+                return await _call_model_with_retries(
+                    task, model_id, system, user, thinking, max_tokens,
+                    operation_id=operation_id,
+                    absolute_deadline=absolute_deadline,
+                    provenance=provenance,
+                )
+            except Exception as exc:
+                if isinstance(exc, _public_product.TrialProviderStopped):
+                    raise
+                if _is_gateway_deadline_error(exc):
+                    raise
+                if model_id.startswith("claude") and not (
+                    isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
+                ):
+                    _log(f"task={task} model={model_id} STOP code={_safe_failure_code(exc)}")
+                    raise _fixed_claude_error(exc) from None
+                _log(f"task={task} model={model_id} FAIL code={_safe_failure_code(exc)} → fallback")
+        raise RuntimeError(f"[mr] all models failed for task={task}")
 
 
 # ── Claude 流式调用 ───────────────────────────────────────────────
@@ -1977,63 +2033,100 @@ async def _claude_transport_stream(
     request: ClaudeMessageRequest,
     absolute_deadline: float | None = None,
 ) -> AsyncGenerator[ClaudeStreamEvent, None]:
-    complete = False
-    failure = None
-    content_seen = False
-    usage_recorded = False
-    provider_event_seen = False
-    transport_iterator = get_claude_transport().stream_message(request).__aiter__()
-    gateway_deadline = absolute_deadline
-    if gateway_deadline is None and claude_transport_mode() == "gateway":
-        gateway_deadline = (
-            asyncio.get_running_loop().time()
-            + _claude_timeout_seconds("stream", True, request.max_tokens)
-        )
-    try:
-        while True:
-            try:
-                next_event = transport_iterator.__anext__()
-                event = await _await_with_gateway_deadline(
-                    next_event,
-                    gateway_deadline,
-                    unstructured_cancel_usage_audit_required=True,
-                )
-            except StopAsyncIteration:
-                if _public_product.enabled() and (not usage_recorded or not content_seen):
-                    raise ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
-                complete = True
-                break
-            provider_event_seen = True
-            if event.type == "usage":
-                _record_request_claude_usage(request, event.usage, event.model)
-                usage_recorded = True
-                _require_claude_completion(request, event)
-            if event.type == "content" and event.text.strip():
-                content_seen = True
-            yield event
-    except BaseException as exc:
-        failure = exc
-        fallback_safe = isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
-        if _is_gateway_deadline_error(exc):
-            audit_required = bool(getattr(exc, "usage_audit_required", False))
-        elif isinstance(exc, ClaudeRequestCancelled):
-            audit_required = exc.usage_audit_required or provider_event_seen
-        elif isinstance(exc, asyncio.CancelledError):
-            audit_required = provider_event_seen
-        else:
-            audit_required = (
-                getattr(exc, "usage_audit_required", False)
-                or provider_event_seen
-                or not fallback_safe
+    async with _public_product.model_admission(request.operation_id, "claude"):
+        complete = False
+        failure = None
+        content_seen = False
+        usage_recorded = False
+        provider_event_seen = False
+        cancel_state = {}
+        transport_iterator = get_claude_transport().stream_message(request).__aiter__()
+        gateway_deadline = absolute_deadline
+        if gateway_deadline is None and claude_transport_mode() == "gateway":
+            gateway_deadline = (
+                asyncio.get_running_loop().time()
+                + _claude_timeout_seconds("stream", True, request.max_tokens)
             )
-        if audit_required and not request.call_state.get("usage_recording_attempted"):
-            _record_request_claude_usage(request, None)
-        raise
-    finally:
         try:
-            await _close_async_iterator(transport_iterator)
+            while True:
+                try:
+                    next_event = transport_iterator.__anext__()
+                    event = await _await_with_gateway_deadline(
+                        next_event,
+                        gateway_deadline,
+                        unstructured_cancel_usage_audit_required=True,
+                        cancel_state=cancel_state,
+                    )
+                except StopAsyncIteration:
+                    if _public_product.enabled() and (not usage_recorded or not content_seen):
+                        raise ClaudeGatewayError("CLAUDE_OUTPUT_INCOMPLETE", 502)
+                    complete = True
+                    break
+                provider_event_seen = True
+                if event.type == "usage":
+                    _record_request_claude_usage(request, event.usage, event.model)
+                    usage_recorded = True
+                    _require_claude_completion(request, event)
+                    _public_product.note_model_activity()
+                elif event.type in {"content", "thinking"} and event.text.strip():
+                    _public_product.note_model_activity()
+                if event.type == "content" and event.text.strip():
+                    content_seen = True
+                if not cancel_state:
+                    yield event
+            if cancel_state:
+                raise cancel_state["exception"]
+        except GeneratorExit:
+            # Closing between content frames is another consumer cancellation.
+            # Drain the one dispatched stream; never open a replacement stream.
+            if _public_product.enabled() and _public_product.model_dispatch_started():
+                try:
+                    while True:
+                        event = await _await_with_gateway_deadline(
+                            transport_iterator.__anext__(), gateway_deadline,
+                            unstructured_cancel_usage_audit_required=True,
+                            cancel_state=cancel_state,
+                        )
+                        if event.type == "usage":
+                            _record_request_claude_usage(request, event.usage, event.model)
+                            usage_recorded = True
+                            _require_claude_completion(request, event)
+                            _public_product.note_model_activity()
+                        elif event.type in {"content", "thinking"} and event.text.strip():
+                            _public_product.note_model_activity()
+                        if event.type == "content" and event.text.strip():
+                            content_seen = True
+                except StopAsyncIteration:
+                    complete = usage_recorded and content_seen
+                except BaseException as exc:
+                    failure = exc
+                    if not request.call_state.get("usage_recording_attempted"):
+                        _record_request_claude_usage(request, None)
+            raise
+        except BaseException as exc:
+            failure = exc
+            fallback_safe = isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
+            if _is_gateway_deadline_error(exc):
+                audit_required = bool(getattr(exc, "usage_audit_required", False))
+            elif isinstance(exc, ClaudeRequestCancelled):
+                audit_required = exc.usage_audit_required or provider_event_seen
+            elif isinstance(exc, asyncio.CancelledError):
+                audit_required = (provider_event_seen
+                                  or _public_product.model_dispatch_started())
+            else:
+                audit_required = (
+                    getattr(exc, "usage_audit_required", False)
+                    or provider_event_seen
+                    or not fallback_safe
+                )
+            if audit_required and not request.call_state.get("usage_recording_attempted"):
+                _record_request_claude_usage(request, None)
+            raise
         finally:
-            _finish_claude_call(request, complete=complete, error=failure)
+            try:
+                await _close_async_iterator(transport_iterator)
+            finally:
+                _finish_claude_call(request, complete=complete, error=failure)
 
 
 async def _stream_claude(
@@ -2078,6 +2171,7 @@ async def _stream_kimi(
     model: str, system: str, user: str,
     thinking: bool = False, max_tokens: int = 16000,
     history: list[dict] | None = None,
+    operation_id: str = "",
     provenance: dict | None = None,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """流式调用 Kimi，yield ('thinking', text) 或 ('content', text)。"""
@@ -2102,7 +2196,7 @@ async def _stream_kimi(
         async with client.stream(
             "POST", KIMI_API_URL, json=payload,
             headers={"Authorization": f"Bearer {key}"},
-            extensions={"noteai_provenance": provenance},
+            extensions={"noteai_provenance": provenance, "noteai_operation_id": operation_id},
         ) as resp:
             resp.raise_for_status()
             final_usage = None
@@ -2146,106 +2240,110 @@ async def stream(
         routing["fallback"] = []  # A selected formal model is never silently substituted.
     primary  = routing["primary"]
     fallbacks = list(routing.get("fallback", []))
-    absolute_deadline = _gateway_absolute_deadline(
-        "stream",
-        thinking,
-        max_tokens,
-        [primary, *fallbacks],
-    )
-    emitted = False
     operation_id = _new_operation_id()
-
-    primary_stream = (
-        _stream_claude(
-            primary, system, user, thinking, max_tokens, history,
-            operation_id=operation_id,
-            absolute_deadline=absolute_deadline,
-            provenance=provenance,
+    async with _public_product.model_admission(
+        operation_id, "claude" if primary.startswith("claude") else "kimi",
+    ):
+        absolute_deadline = _gateway_absolute_deadline(
+            "stream",
+            thinking,
+            max_tokens,
+            [primary, *fallbacks],
         )
-        if primary.startswith("claude")
-        else _stream_kimi(primary, system, user, thinking, max_tokens, history, provenance=provenance)
-    )
-    try:
-        try:
-            if primary.startswith("claude"):
-                async for chunk in primary_stream:
-                    emitted = True
-                    yield chunk
-            else:
-                primary_iterator = primary_stream.__aiter__()
-                while True:
-                    try:
-                        chunk = await _await_with_gateway_deadline(
-                            primary_iterator.__anext__(),
-                            absolute_deadline,
-                        )
-                    except StopAsyncIteration:
-                        break
-                    emitted = True
-                    yield chunk
-            return
-        finally:
-            await _close_async_iterator(primary_stream)
-    except Exception as exc:
-        if isinstance(exc, _public_product.TrialProviderStopped):
-            raise
-        if primary.startswith("claude"):
-            if emitted:
-                _log(f"stream task={task} model={primary} STOP code=CLAUDE_STREAM_PARTIAL")
-                raise ClaudeGatewayError("CLAUDE_STREAM_PARTIAL", 502) from None
-            if _is_gateway_deadline_error(exc):
-                raise
-            fallback_safe = isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
-            if not fallback_safe:
-                _log(f"stream task={task} model={primary} STOP code={_safe_failure_code(exc)}")
-                raise _fixed_claude_error(exc, "CLAUDE_STREAM_FAILED") from None
-        elif _is_gateway_deadline_error(exc):
-            raise
-        _log(f"stream task={task} model={primary} FAIL code={_safe_failure_code(exc)} → fallback")
+        emitted = False
 
-    # fallback: 依次尝试，降级为整块返回
-    for fb_model in fallbacks:
-        try:
-            _require_gateway_deadline_remaining(
-                absolute_deadline,
-                pre_dispatch=True,
+        primary_stream = (
+            _stream_claude(
+                primary, system, user, thinking, max_tokens, history,
+                operation_id=operation_id,
+                absolute_deadline=absolute_deadline,
+                provenance=provenance,
             )
-            _log(f"stream task={task} fallback model={fb_model}")
-            if fb_model.startswith("claude"):
-                result = await _await_with_gateway_deadline(
-                    _call_claude(
-                        fb_model, system, user, thinking=False, max_tokens=max_tokens,
-                        operation_id=operation_id,
-                        provenance=provenance,
-                    ),
-                    absolute_deadline,
-                    unstructured_cancel_usage_audit_required=True,
-                    unstructured_cancel_usage_model=fb_model,
-                )
-            else:
-                result = await _await_with_gateway_deadline(
-                    _call_kimi(
-                        fb_model, system, user, thinking=False, max_tokens=max_tokens,
-                        provenance=provenance,
-                    ),
-                    absolute_deadline,
-                )
-            if result:
-                yield ("content", result)
+            if primary.startswith("claude")
+            else _stream_kimi(primary, system, user, thinking, max_tokens, history,
+                              operation_id=operation_id, provenance=provenance)
+        )
+        try:
+            try:
+                if primary.startswith("claude"):
+                    async for chunk in primary_stream:
+                        emitted = True
+                        yield chunk
+                else:
+                    primary_iterator = primary_stream.__aiter__()
+                    while True:
+                        try:
+                            chunk = await _await_with_gateway_deadline(
+                                primary_iterator.__anext__(),
+                                absolute_deadline,
+                            )
+                        except StopAsyncIteration:
+                            break
+                        emitted = True
+                        yield chunk
                 return
-        except Exception as exc2:
-            if _is_gateway_deadline_error(exc2):
+            finally:
+                await _close_async_iterator(primary_stream)
+        except Exception as exc:
+            if isinstance(exc, _public_product.TrialProviderStopped):
                 raise
-            _log(
-                f"stream task={task} fallback model={fb_model} "
-                f"FAIL code={_safe_failure_code(exc2)}"
-            )
-            if fb_model.startswith("claude") and not (
-                isinstance(exc2, ClaudeGatewayError) and exc2.fallback_safe
-            ):
-                raise _fixed_claude_error(exc2) from None
+            if primary.startswith("claude"):
+                if emitted:
+                    _log(f"stream task={task} model={primary} STOP code=CLAUDE_STREAM_PARTIAL")
+                    raise ClaudeGatewayError("CLAUDE_STREAM_PARTIAL", 502) from None
+                if _is_gateway_deadline_error(exc):
+                    raise
+                fallback_safe = isinstance(exc, ClaudeGatewayError) and exc.fallback_safe
+                if not fallback_safe:
+                    _log(f"stream task={task} model={primary} STOP code={_safe_failure_code(exc)}")
+                    raise _fixed_claude_error(exc, "CLAUDE_STREAM_FAILED") from None
+            elif _is_gateway_deadline_error(exc):
+                raise
+            _log(f"stream task={task} model={primary} FAIL code={_safe_failure_code(exc)} → fallback")
 
-    raise RuntimeError(f"[mr] all stream models failed for task={task}")
+        # fallback: 依次尝试，降级为整块返回
+        for fb_model in fallbacks:
+            try:
+                _require_gateway_deadline_remaining(
+                    absolute_deadline,
+                    pre_dispatch=True,
+                )
+                _log(f"stream task={task} fallback model={fb_model}")
+                if fb_model.startswith("claude"):
+                    result = await _await_with_gateway_deadline(
+                        _call_claude(
+                            fb_model, system, user, thinking=False, max_tokens=max_tokens,
+                            operation_id=operation_id,
+                            provenance=provenance,
+                        ),
+                        absolute_deadline,
+                        unstructured_cancel_usage_audit_required=True,
+                        unstructured_cancel_usage_model=fb_model,
+                    )
+                else:
+                    result = await _await_with_gateway_deadline(
+                        _call_kimi(
+                            fb_model, system, user, thinking=False, max_tokens=max_tokens,
+                            operation_id=operation_id, provenance=provenance,
+                        ),
+                        absolute_deadline,
+                    )
+                if result:
+                    yield ("content", result)
+                    return
+            except Exception as exc2:
+                if _is_gateway_deadline_error(exc2):
+                    raise
+                _log(
+                    f"stream task={task} fallback model={fb_model} "
+                    f"FAIL code={_safe_failure_code(exc2)}"
+                )
+                if fb_model.startswith("claude") and not (
+                    isinstance(exc2, ClaudeGatewayError) and exc2.fallback_safe
+                ):
+                    raise _fixed_claude_error(exc2) from None
+
+        raise RuntimeError(f"[mr] all stream models failed for task={task}")
 
 
 # ── 专用：Claude Sonnet 流式 chat（支持多轮历史） ─────────────────
@@ -2266,13 +2364,24 @@ async def stream_chat(
         prompt_keys=prompt_keys, domain=prompt_domain)
     if _public_product.enabled():
         selected_model, max_tokens = _runtime_config.resolve("chat", CLAUDE_SONNET, max_tokens)
-        iterator = (_stream_claude if selected_model.startswith("claude") else _stream_kimi)(
-            selected_model, system, user_content, thinking, max_tokens, history, provenance=provenance)
-        try:
-            async for event in iterator:
-                yield event
-        finally:
-            await _close_async_iterator(iterator)
+        operation_id = _new_operation_id()
+        async with _public_product.model_admission(
+            operation_id, "claude" if selected_model.startswith("claude") else "kimi",
+        ):
+            deadline = _gateway_absolute_deadline("stream", thinking, max_tokens, [selected_model])
+            if selected_model.startswith("claude"):
+                iterator = _stream_claude(
+                    selected_model, system, user_content, thinking, max_tokens, history,
+                    operation_id=operation_id, absolute_deadline=deadline, provenance=provenance)
+            else:
+                iterator = _stream_kimi(
+                    selected_model, system, user_content, thinking, max_tokens, history,
+                    operation_id=operation_id, provenance=provenance)
+            try:
+                async for event in iterator:
+                    yield event
+            finally:
+                await _close_async_iterator(iterator)
         return
     absolute_deadline = _gateway_absolute_deadline(
         "stream",
@@ -2376,74 +2485,77 @@ def call_claude_sync(
     operation_id = _new_operation_id()
     if _public_product.enabled():
         model, max_tokens = _runtime_config.resolve("semantic", model, max_tokens)
-    if _public_product.enabled() and model == KIMI_TEXT:
-        selected_model = model
-        payload = {"model": selected_model, "messages": [
-            *([{"role": "system", "content": system}] if system else []), *messages],
-            "max_tokens": max_tokens, "thinking": {"type": "enabled" if thinking_budget else "disabled"}}
-        if thinking_budget is None:
-            payload["temperature"] = temperature if temperature is not None else 0.6
-        with _public_product.kimi_client(timeout=KIMI_TIMEOUT) as client:
-            response = client.post(KIMI_API_URL, json=payload, headers={
-                "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")}, extensions={"noteai_provenance": provenance})
-            response.raise_for_status()
-            result = response.json()
-            _record_kimi_usage(selected_model, result.get("usage"),
-                               physical_call_id=response.extensions.get("noteai_call_id"))
-            return result["choices"][0]["message"]["content"]
-    request = ClaudeMessageRequest(
-        model=model,
-        max_tokens=max_tokens,
-        system=system,
-        messages=tuple(messages),
-        operation_id=operation_id,
-        temperature=temperature,
-        thinking_budget=thinking_budget,
-        call_state={"provenance": provenance},
-    )
-    complete = False
-    failure = None
-    try:
-        transport = get_claude_transport()
-        if claude_transport_mode() == "gateway":
-            try:
-                asyncio.get_running_loop()
-            except RuntimeError:
-                pass
+    with _public_product.model_admission_sync(
+        operation_id, "kimi" if model == KIMI_TEXT else "claude",
+    ):
+        if _public_product.enabled() and model == KIMI_TEXT:
+            selected_model = model
+            payload = {"model": selected_model, "messages": [
+                *([{"role": "system", "content": system}] if system else []), *messages],
+                "max_tokens": max_tokens, "thinking": {"type": "enabled" if thinking_budget else "disabled"}}
+            if thinking_budget is None:
+                payload["temperature"] = temperature if temperature is not None else 0.6
+            with _public_product.kimi_client(timeout=KIMI_TIMEOUT) as client:
+                response = client.post(KIMI_API_URL, json=payload, headers={
+                    "Authorization": "Bearer " + os.environ.get("MOONSHOT_API_KEY", "")}, extensions={"noteai_provenance": provenance, "noteai_operation_id": operation_id})
+                response.raise_for_status()
+                result = response.json()
+                _record_kimi_usage(selected_model, result.get("usage"),
+                                   physical_call_id=response.extensions.get("noteai_call_id"))
+                return result["choices"][0]["message"]["content"]
+        request = ClaudeMessageRequest(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=tuple(messages),
+            operation_id=operation_id,
+            temperature=temperature,
+            thinking_budget=thinking_budget,
+            call_state={"provenance": provenance},
+        )
+        complete = False
+        failure = None
+        try:
+            transport = get_claude_transport()
+            if claude_transport_mode() == "gateway":
+                try:
+                    asyncio.get_running_loop()
+                except RuntimeError:
+                    pass
+                else:
+                    raise ClaudeGatewayError(
+                        "GATEWAY_SYNC_CONTEXT_INVALID", 503, fallback_safe=True,
+                    )
+
+                async def bounded_gateway_call() -> ClaudeMessageResult:
+                    deadline = (
+                        asyncio.get_running_loop().time()
+                        + _claude_timeout_seconds("sync", False, max_tokens)
+                    )
+                    return await _await_with_gateway_deadline(
+                        transport.create_message(request),
+                        deadline,
+                        unstructured_cancel_usage_audit_required=True,
+                    )
+
+                result = asyncio.run(bounded_gateway_call())
             else:
-                raise ClaudeGatewayError(
-                    "GATEWAY_SYNC_CONTEXT_INVALID", 503, fallback_safe=True,
-                )
-
-            async def bounded_gateway_call() -> ClaudeMessageResult:
-                deadline = (
-                    asyncio.get_running_loop().time()
-                    + _claude_timeout_seconds("sync", False, max_tokens)
-                )
-                return await _await_with_gateway_deadline(
-                    transport.create_message(request),
-                    deadline,
-                    unstructured_cancel_usage_audit_required=True,
-                )
-
-            result = asyncio.run(bounded_gateway_call())
-        else:
-            result = transport.create_message_sync(request)
-        _record_request_claude_usage(request, result.usage, result.model)
-        _require_claude_completion(request, result)
-        parts = result.text_blocks[:1] if first_text_block else result.text_blocks
-        text = "".join(parts).strip()
-        if _public_product.enabled() and not text:
-            raise ClaudeGatewayError("CLAUDE_OUTPUT_EMPTY", 502)
-        complete = True
-        return text
-    except BaseException as exc:
-        failure = exc
-        if getattr(exc, "usage_audit_required", False) and not request.call_state.get("usage_recording_attempted"):
-            _record_request_claude_usage(request, None)
-        raise
-    finally:
-        _finish_claude_call(request, complete=complete, error=failure)
+                result = transport.create_message_sync(request)
+            _record_request_claude_usage(request, result.usage, result.model)
+            _require_claude_completion(request, result)
+            parts = result.text_blocks[:1] if first_text_block else result.text_blocks
+            text = "".join(parts).strip()
+            if _public_product.enabled() and not text:
+                raise ClaudeGatewayError("CLAUDE_OUTPUT_EMPTY", 502)
+            complete = True
+            return text
+        except BaseException as exc:
+            failure = exc
+            if getattr(exc, "usage_audit_required", False) and not request.call_state.get("usage_recording_attempted"):
+                _record_request_claude_usage(request, None)
+            raise
+        finally:
+            _finish_claude_call(request, complete=complete, error=failure)
 
 
 def call_semantic_sync(system: str, user: str, max_tokens: int = 300, *,

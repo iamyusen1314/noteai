@@ -5698,6 +5698,7 @@ function createSseWarningGuard(operation, label) {
   let phase = 'connect';
   let phaseStartedAt = Date.now();
   let closed = false;
+  let completedCalls = 0;
   const warningId = `sse-warning-${operation}`;
   const clearWarning = () => document.getElementById(warningId)?.remove();
   const warn = () => {
@@ -5718,7 +5719,15 @@ function createSseWarningGuard(operation, label) {
   const timer = setInterval(check, Math.max(10, Number(cfg.pollMs) || 1000));
   return {
     connected() { if (closed) return; phase = 'first'; phaseStartedAt = Date.now(); clearWarning(); },
-    event() { if (closed) return; phase = 'idle'; phaseStartedAt = Date.now(); clearWarning(); },
+    event(event) {
+      if (closed || event?.type === 'heartbeat') return;
+      if (event?.type === 'queue_update') {
+        const count = Number(event.queue?.completed_calls);
+        if (!Number.isFinite(count) || count <= completedCalls) return;
+        completedCalls = count;
+      }
+      phase = 'idle'; phaseStartedAt = Date.now(); clearWarning();
+    },
     finish() { closed = true; clearInterval(timer); clearWarning(); },
   };
 }
@@ -5743,6 +5752,13 @@ async function paidRequest409Message(response, submission) {
   if (detail.code === 'BILLING_QUOTE_CHANGED') { finishPaidSubmission(submission); return '扣分标准已更新，本次未提交。请重新确认服务端报价。'; }
   return IDEMPOTENCY_409_TEXT[detail.code]
     || '原任务状态正在后台核对，页面会继续读取结果。';
+}
+
+async function paidAdmissionRejectionMessage(response) {
+  if (response.status !== 429) return null;
+  const payload=await response.clone().json().catch(()=>({}));
+  return ['MODEL_OPERATIONS_BUSY','MODEL_USER_OPERATION_BUSY','MODEL_INPUT_CAPACITY_BUSY'].includes(payload.detail?.code)
+    ? '当前处理队列已满，或本账号已有任务处理中。本次未受理、未扣积分；请稍后查看原任务或重新提交。' : null;
 }
 
 // One parser for every paid SSE flow. It handles CRLF, arbitrary UTF-8 byte
@@ -6354,6 +6370,8 @@ let _diagnosePromise = null;
 let _isGenerateMode  = false;
 let _genStreamActive = false;
 let _activeGeneratePaidRequestId = null;
+let _activeAnalyzePaidRequestId = null;
+let _liveQueueState = null;
 let _diagnosisStreamActive = false;
 // Historical report viewing must not replace a task that is waiting for input.
 let _historyReportSelection = null;
@@ -6722,9 +6740,11 @@ async function startGeneration() {
   catch(error) { _genStreamActive=false;_setGenerationSubmitBusy(false);showToast(error.message);_resolveGen();return; }
   if(!submission || !identityMatches()) { _genStreamActive=false;_setGenerationSubmitBusy(false);_resolveGen();return; }
   _activeGeneratePaidRequestId=submission.requestId;
+  _liveQueueState=null;
   (async () => {
     const streamGuard = createSseWarningGuard('generate', '爆文生成');
     const paidRequestId = submission.requestId;
+    const currentRequest=()=>identityMatches() && _activeGeneratePaidRequestId===paidRequestId;
     try {
       const resp = await fetch(API_BASE + '/generate/stream', {
         method: 'POST',
@@ -6733,6 +6753,13 @@ async function startGeneration() {
       });
       streamGuard.connected();
       if (!identityMatches()) { _resolveGen(); return; }
+      const admissionMessage=await paidAdmissionRejectionMessage(resp);
+      if (!currentRequest()) { _resolveGen(); return; }
+      if(admissionMessage) {
+        finishPaidSubmission(submission);
+        _generateResult={_error:true,_notAccepted:true,_errMsg:admissionMessage};
+        showToast(admissionMessage);_resolveGen();return;
+      }
       if (resp.status === 402) {
         finishPaidSubmission(submission);
         const errData = await resp.json().catch(() => ({}));
@@ -6760,8 +6787,7 @@ async function startGeneration() {
       const streamResult = await consumeJsonSse(resp, {
         terminalTypes: ['complete', 'error', 'clarification_required'],
         onEvent: ev => {
-          streamGuard.event();
-          const currentRequest=()=>identityMatches() && _activeGeneratePaidRequestId===paidRequestId;
+          streamGuard.event(ev);
           if (currentRequest()) _handleGenStreamEvent(ev, currentRequest);
         },
       });
@@ -6827,7 +6853,7 @@ async function startGeneration() {
   })();
 
   showToast(`🪄 已发起生成（${coverImages.length} 张图${videoRef ? '＋视频音画' : ''}），正在跳转…`);
-  setTimeout(() => { if (identityMatches() && _genStreamActive) showPage('live'); }, 800);
+  setTimeout(() => { if (identityMatches() && _activeGeneratePaidRequestId===submission.requestId && _genStreamActive) showPage('live'); }, 800);
 }
 
 // keep legacy variable declaration removed (was re-declared below)
@@ -6920,11 +6946,92 @@ function appendSafeProcessCard(containerId, ev, extraClass = '') {
   container.scrollTop = container.scrollHeight;
 }
 
+function renderLiveQueueEvent(ev, identityMatches = () => true) {
+  const transportTypes = ['task_created','queue_update','heartbeat','image_progress'];
+  const terminal = ['complete','error','clarification_required'].includes(ev.type);
+  if (!transportTypes.includes(ev.type) && !terminal) return false;
+  if (!identityMatches()) return !terminal;
+  if (ev.type === 'task_created' && (!_liveQueueState || _liveQueueState.taskId !== ev.task_id || _liveQueueState.terminal))
+    _liveQueueState={taskId:ev.task_id || '',canCancel:ev.can_cancel===true,queue:{},images:'',terminal:false,version:0,
+      identityMatches,token:_authToken,cancelPending:false};
+  let state=_liveQueueState;
+  if (state && (!state.identityMatches() || state.token!==_authToken)) return !terminal;
+  if (!state) {
+    if (terminal || ev.type==='heartbeat') return !terminal;
+    state=_liveQueueState={taskId:'',canCancel:false,queue:{},images:'',terminal:false,version:0,
+      identityMatches,token:_authToken,cancelPending:false};
+  }
+  if (terminal) {
+    state.terminal=true;state.version++;state.canCancel=false;
+    state.status=ev.type==='complete' ? '处理已完成' : '本轮处理已结束，请查看原任务及积分状态';
+  } else if (!state.terminal) {
+    if (ev.type==='task_created') state.canCancel=ev.can_cancel===true;
+    const queue=ev.queue || {};
+    state.queue={...state.queue,...queue};
+    if (typeof queue.can_cancel==='boolean') state.canCancel=queue.can_cancel;
+    const labels={queued:'等待可用处理资源',running:'正在处理请求',settling:'正在等待已发请求结算',cancelling:'正在停止后续处理',idle:'已接收任务，等待新进展'};
+    if (ev.type!=='heartbeat' && ev.type!=='image_progress') {
+      let label=labels[queue.state] || '已接收任务，等待新进展';
+      if (queue.state==='queued' && Number.isInteger(queue.waiting_operations) && queue.waiting_operations>0) label+='，当前有 '+queue.waiting_operations+' 个任务等待处理';
+      if (Number.isInteger(queue.queued_calls) && queue.queued_calls>0) label+='，本任务待处理 '+queue.queued_calls+' 项';
+      if (Number.isFinite(queue.waiting_seconds) && queue.waiting_seconds>0) label+='，已等待 '+Math.floor(queue.waiting_seconds)+' 秒';
+      if (queue.cancel_requested) label='已请求停止后续处理，正在等待已发请求结算';
+      state.status=label;
+    }
+    if (ev.type==='image_progress' && Number.isInteger(ev.completed) && Number.isInteger(ev.total) && ev.completed>=0 && ev.completed<=ev.total)
+      state.images='图片理解：已完成 '+ev.completed+'/'+ev.total+' 张';
+  }
+  const area=document.getElementById('bubbleArea');
+  if (!area) return !terminal;
+  let card=document.getElementById('liveTaskQueue');
+  if (card && (card.dataset.taskId!==state.taskId || card._queueState!==state)) {card.remove();card=null;}
+  if (!card) {
+    card=document.createElement('div');card.id='liveTaskQueue';card.className='bubble';card.dataset.taskId=state.taskId;card._queueState=state;
+    card.style.cssText='min-width:0;max-width:100%;overflow-wrap:anywhere';
+    const heading=document.createElement('div');heading.className='bubble-agent';heading.textContent='处理进度';
+    const status=document.createElement('div');status.dataset.liveQueueStatus='';status.setAttribute('role','status');
+    const images=document.createElement('div');images.dataset.liveImageCount='';
+    const quiet=document.createElement('div');quiet.dataset.liveNoProgress='';
+    const cancel=document.createElement('button');cancel.type='button';cancel.dataset.liveCancel='';cancel.className='btn btn-ghost btn-sm';
+    cancel.style.cssText='display:none;max-width:100%;white-space:normal;min-height:36px';cancel.textContent='取消后续处理';
+    card.append(heading,status,images,quiet,cancel);area.appendChild(card);
+    cancel.addEventListener('click',async () => {
+      const actionable=()=>_liveQueueState===state && state.identityMatches() && state.token===_authToken
+        && card.isConnected && !!state.taskId && state.canCancel && !state.terminal && !state.queue.cancel_requested && !state.cancelPending;
+      if (!actionable()) return;
+      const version=state.version;
+      state.cancelPending=true;cancel.disabled=true;
+      state.status='正在请求停止后续处理，已发请求仍需结算…';status.textContent=state.status;
+      const stillCurrent=()=>_liveQueueState===state && state.identityMatches() && state.token===_authToken
+        && card.isConnected && state.version===version && !state.terminal;
+      try {
+        const response=await fetch(API_BASE+'/chat/tasks/'+encodeURIComponent(state.taskId)+'/cancel',
+          {method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.token},body:'{}'});
+        const result=await response.json();
+        if (!stillCurrent()) return;
+        state.status=response.ok ? result.message : '取消状态尚未确认，请核实原任务；不会重复发起生成';status.textContent=state.status;
+      } catch {
+        if (stillCurrent()) {state.status='取消状态尚未确认，请核实原任务；不会重复发起生成';status.textContent=state.status;}
+      }
+    });
+  }
+  card.querySelector('[data-live-queue-status]').textContent=state.status || '已接收任务，等待新进展';
+  card.querySelector('[data-live-image-count]').textContent=state.images;
+  const seconds=state.queue.last_progress_seconds;
+  card.querySelector('[data-live-no-progress]').textContent=!state.terminal && Number.isFinite(seconds) && seconds>=120
+    ? '距上次实际处理进展 '+Math.floor(seconds)+' 秒；连接仍在，正在核实处理状态，请勿重复提交' : '';
+  const button=card.querySelector('[data-live-cancel]');
+  const visible=state.canCancel && !!state.taskId && !state.terminal && !state.queue.cancel_requested;
+  button.hidden=!visible;button.style.display=visible ? '' : 'none';button.disabled=state.cancelPending || !visible;
+  return !terminal;
+}
+
 function _handleGenStreamEvent(ev, identityMatches = () => true) {
   if (!identityMatches()) return;
+  if (renderLiveQueueEvent(ev,identityMatches)) return;
   switch (ev.type) {
     case 'fact_enrichment':
-      _handleAnalyzeStreamEvent(ev);
+      _handleAnalyzeStreamEvent(ev,identityMatches);
       break;
     case 'image_quota_notice': {
       // 图片数超过套餐深度分析上限时的友好提示
@@ -7044,6 +7151,15 @@ function _handleGenStreamEvent(ev, identityMatches = () => true) {
       if (ev.progress) setProgress(ev.progress, '');
       break;
     }
+    case 'expert_failed': {
+      const idx=ev.agent_idx;
+      if (Number.isInteger(idx) && idx>=0 && idx<5) {
+        document.getElementById('av'+idx)?.classList.remove('thinking','done','dispute');
+        const state=document.getElementById('cf'+idx);if(state)state.textContent='未完成';
+      }
+      addBubble(ev.role || '专家',ev.message || '该步骤未完成，正在核实原任务',Number.isInteger(idx)?idx:0,0,0);
+      break;
+    }
     case 'pre_score': {
       const fixes = (ev.fixes || []).slice(0, 2).join('；');
       addBubble('仲裁专家', `草稿评分 ${ev.score} 分，修复重点：${fixes || '综合优化'}`, 4, 10, 12);
@@ -7122,7 +7238,9 @@ function _driveLiveTimeline(stepIdx) {
   stepActive(stepIdx);
 }
 
-function _handleAnalyzeStreamEvent(ev) {
+function _handleAnalyzeStreamEvent(ev, identityMatches = () => true) {
+  if (!identityMatches()) return;
+  if (renderLiveQueueEvent(ev,identityMatches)) return;
   setLive3DMode(false);
   switch (ev.type) {
     case 'stage': {
@@ -7455,10 +7573,13 @@ async function prepareDiagnosis() {
   try { submission=await preparePaidSubmission('analyze',analyzeBody); }
   catch(error) { _diagnosisStreamActive=false;updateDiagnosisSubmitState();showToast(error.message);return; }
   if(!submission || !identityMatches()) { _diagnosisStreamActive=false;updateDiagnosisSubmitState();return; }
+  _activeAnalyzePaidRequestId=submission.requestId;
+  _liveQueueState=null;
   _diagnosePromise = new Promise((resolve, reject) => {
     (async () => {
       const streamGuard = createSseWarningGuard('analyze', 'AI 诊断');
       const paidRequestId = submission.requestId;
+      const currentRequest=()=>identityMatches() && _activeAnalyzePaidRequestId===paidRequestId;
       try {
         const resp = await fetch(API_BASE + '/analyze/stream', {
           method: 'POST',
@@ -7466,7 +7587,14 @@ async function prepareDiagnosis() {
           body: JSON.stringify(analyzeBody),
         });
         streamGuard.connected();
-        if (!identityMatches()) { resolve(); return; }
+        if (!currentRequest()) { resolve(); return; }
+        const admissionMessage=await paidAdmissionRejectionMessage(resp);
+        if (!currentRequest()) { resolve(); return; }
+        if(admissionMessage) {
+          finishPaidSubmission(submission);_diagnosisStreamActive=false;updateDiagnosisSubmitState();
+          _diagnoseResult={_error:true,_notAccepted:true,_errMsg:admissionMessage};
+          showToast(admissionMessage);resolve();return;
+        }
         if (resp.status === 402) {
           finishPaidSubmission(submission);
           const errData = await resp.json().catch(() => ({}));
@@ -7499,12 +7627,12 @@ async function prepareDiagnosis() {
         const streamResult = await consumeJsonSse(resp, {
           terminalTypes: ['complete', 'error', 'clarification_required'],
           onEvent: ev => {
-            streamGuard.event();
-            if (identityMatches()) _handleAnalyzeStreamEvent(ev);
+            streamGuard.event(ev);
+            if (currentRequest()) _handleAnalyzeStreamEvent(ev,currentRequest);
           },
         });
         const terminal = streamResult.terminalEvent;
-        if (!identityMatches()) { resolve(); return; }
+        if (!currentRequest()) { resolve(); return; }
         streamGuard.finish();
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
@@ -7543,7 +7671,7 @@ async function prepareDiagnosis() {
         }
         resolve();
       } catch(err) {
-        if (!identityMatches()) { resolve(); return; }
+        if (!currentRequest()) { resolve(); return; }
         console.error('[NoteAI] analyze stream error:', err);
         _diagnosisStreamActive = false;
         updateDiagnosisSubmitState();
@@ -7558,7 +7686,7 @@ async function prepareDiagnosis() {
   });
 
   showToast('🔍 诊断任务已创建，正在跳转至处理进度…');
-  setTimeout(() => { if (identityMatches() && _diagnosisStreamActive) showPage('live'); }, 800);
+  setTimeout(() => { if (identityMatches() && _activeAnalyzePaidRequestId===submission.requestId && _diagnosisStreamActive) showPage('live'); }, 800);
 }
 
 /* ── Report population ──────────────────────────────────────── */
@@ -8625,6 +8753,7 @@ function startLiveAnimation() {
     document.getElementById('cf'+i).textContent = '';
   }
   document.getElementById('bubbleArea').innerHTML = '<span style="font-size:12px;color:var(--text-muted);font-weight:500">专家讨论区</span>';
+  if (_liveQueueState) renderLiveQueueEvent({type:'heartbeat'},_liveQueueState.identityMatches);
   const paidBanner=document.getElementById('generation-paid-task-banner');
   if(paidBanner) {paidBanner.textContent='';paidBanner.style.display='none';}
   document.getElementById('disputeCard').classList.add('hidden');
@@ -10211,6 +10340,8 @@ function chatClearUserState() {
   _generateResult = null;
   _diagnoseResult = null;
   _activeGeneratePaidRequestId = null;
+  _activeAnalyzePaidRequestId = null;
+  _liveQueueState = null;
   _genStreamActive = false;
   _setGenerationSubmitBusy(false);
   if(_genWaitInterval) {clearInterval(_genWaitInterval);_genWaitInterval=null;}
@@ -10411,6 +10542,8 @@ async function chatSendMessage(options = {}) {
 
     if (await handleChatAccessFailure(resp)) return 'rejected';
 
+    const admissionMessage=await paidAdmissionRejectionMessage(resp);
+    if(admissionMessage) {chatAppendAi(admissionMessage);return 'rejected';}
     const conflictMessage = await paidRequest409Message(resp);
     if (conflictMessage) {
       chatAppendAi('⚠️ ' + conflictMessage);
@@ -10428,7 +10561,7 @@ async function chatSendMessage(options = {}) {
     const streamResult = await consumeJsonSse(resp, {
       terminalTypes: ['done', 'error'],
       onEvent: ev => {
-        streamGuard.event();
+        streamGuard.event(ev);
         chatHandleEvent(ev);
       },
     });
@@ -10728,7 +10861,7 @@ function renderTaskClarification(task) {
         else if(event.type === 'error') return;
         else if(event.type === 'complete') return;
         else if(task.operation === 'generate') _handleGenStreamEvent(event,valid);
-        else _handleAnalyzeStreamEvent(event);
+        else _handleAnalyzeStreamEvent(event,valid);
       }});
       if (!valid()) return;
       if(streamed.terminalEvent?.type === 'complete') await finishClarifiedTask(streamed.terminalEvent,task,identity,token,false);
