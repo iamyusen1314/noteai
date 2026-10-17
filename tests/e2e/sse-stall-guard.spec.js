@@ -155,6 +155,63 @@ async function openApp(page) {
   });
 }
 
+for(const operation of ['generate','analyze']) {
+  test(`${operation} starts directly after server quote; double click creates one request without confirmation`,async ({page})=>{
+    await openApp(page);
+    let quotes=0;const submitted=[];
+    await page.route('**/synthetic-api/billing/quote?*',async route=>{
+      quotes++;await new Promise(resolve=>setTimeout(resolve,100));
+      return route.fulfill({json:{operation,credits:8,quote_version:'direct-server-quote',can_afford:true,
+        monthly_credits_used:8,wallet_credits_used:0,monthly_credits_remaining:11.5,wallet_credits_balance:0,video_credits:0}});
+    });
+    await page.route('**/synthetic-api/'+operation+'/stream',route=>{
+      submitted.push({method:route.request().method(),id:route.request().headers()['x-request-id'],
+        quoteVersion:route.request().headers()['x-billing-quote-version']});
+      const result={type:'complete',note_title:'已保存的模拟直发结果',note_body:'仅本地模拟，不是生产报告。',
+        saved_note_id:'synthetic-direct-saved',saved_note_version:1,ces_percentile:69,grade:'良好',plans:[],title_variants:[],expert_opinions:[]};
+      return route.fulfill({contentType:'text/event-stream',body:'data: '+JSON.stringify(result)+'\n\n'});
+    });
+    await page.evaluate(operation=>{showPage('upload');switchMode(operation==='generate'?'generate':'diagnose');},operation);
+    if(operation==='generate')await page.locator('#genBrief').fill('本地直发验证素材');
+    else {
+      await page.locator('.input-type',{hasText:'填写笔记／上传素材'}).click();
+      await page.locator('#inputTitle').fill('本地直发标题');await page.locator('#inputDesc').fill('本地直发正文');
+    }
+    await page.locator(operation==='generate'?'#generateSubmitBtn':'#diagnoseSubmitBtn').dblclick();
+    await expect.poll(()=>submitted.length).toBe(1);
+    await expect.poll(()=>page.evaluate(operation=>operation==='generate'?_genStreamActive:_diagnosisStreamActive,operation)).toBe(false);
+    expect(quotes).toBe(1);expect(submitted[0].method).toBe('POST');
+    expect(submitted[0].id).toMatch(new RegExp('^'+operation+'-'));
+    expect(submitted[0].quoteVersion).toBe('direct-server-quote');
+    await expect(page.locator('#billing-quote-dialog')).toHaveCount(0);
+    await expect(page.locator('#'+operation+'-billing-preview')).toContainText('8 积分 / 次');
+    await expect(page.locator('#'+operation+'-billing-preview')).toContainText('受理时先扣周期积分');
+  });
+
+  test(`${operation} unaffordable quote keeps inputs and sends no generation request`,async ({page})=>{
+    await openApp(page);
+    let posts=0;const messages=[];
+    page.on('dialog',dialog=>{messages.push(dialog.message());return dialog.dismiss();});
+    await page.route('**/synthetic-api/billing/quote?*',route=>route.fulfill({json:{operation,credits:8,
+      quote_version:'direct-insufficient-quote',can_afford:false,monthly_credits_used:0,wallet_credits_used:8,
+      monthly_credits_remaining:0,wallet_credits_balance:0,video_credits:0}}));
+    await page.route('**/synthetic-api/'+operation+'/stream',route=>{posts++;return route.abort();});
+    await page.evaluate(operation=>{showPage('upload');switchMode(operation==='generate'?'generate':'diagnose');},operation);
+    if(operation==='generate')await page.locator('#genBrief').fill('余额不足仍保留的简报');
+    else {
+      await page.locator('.input-type',{hasText:'填写笔记／上传素材'}).click();
+      await page.locator('#inputTitle').fill('余额不足标题');await page.locator('#inputDesc').fill('余额不足仍保留的正文');
+    }
+    await page.locator(operation==='generate'?'#generateSubmitBtn':'#diagnoseSubmitBtn').click();
+    await expect.poll(()=>messages.length).toBe(1);
+    await expect.poll(()=>page.evaluate(operation=>operation==='generate'?_genStreamActive:_diagnosisStreamActive,operation)).toBe(false);
+    expect(messages[0]).toContain('当前可用积分不足，本次尚未提交');expect(posts).toBe(0);
+    await expect(page.locator('#billing-quote-dialog')).toHaveCount(0);
+    expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(key=>key.startsWith('noteai-paid-pending:')).length)).toBe(0);
+    await expect(page.locator(operation==='generate'?'#genBrief':'#inputDesc')).toHaveValue(operation==='generate'?'余额不足仍保留的简报':'余额不足仍保留的正文');
+  });
+}
+
 test.describe('SSE warning-only guard', () => {
   test('analyze warns on slow connection, keeps one request, then clears on terminal', async ({ page }) => {
     await openApp(page);
@@ -171,7 +228,6 @@ test.describe('SSE warning-only guard', () => {
     await page.locator('#inputTitle').fill('慢连接测试标题');
     await page.locator('#inputDesc').fill('慢连接测试正文');
     await page.evaluate(() => { startDiagnosis(); startDiagnosis(); });
-    await page.locator('#billing-quote-confirm').click();
 
     await expect(page.locator('[data-sse-warning="analyze"]')).toContainText('任务可能仍在处理，请不要重复提交');
     await expect(page.locator('#diagnoseSubmitBtn')).toBeDisabled();
@@ -191,7 +247,6 @@ test.describe('SSE warning-only guard', () => {
     });
     await page.locator('#genBrief').fill('无终态 EOF 测试简报');
     await page.evaluate(() => { startGeneration(); startGeneration(); });
-    await page.locator('#billing-quote-confirm').click();
 
     await expect(page.locator('[data-sse-warning="generate"]')).toContainText('任务可能仍在处理，请不要重复提交');
     await expect(page.locator('#generateSubmitBtn')).toBeDisabled();
@@ -243,7 +298,6 @@ test.describe('SSE warning-only guard', () => {
     await page.locator('#inputTitle').fill('多字节切片标题');
     await page.locator('#inputDesc').fill('多字节切片正文');
     await page.evaluate(() => {void startDiagnosis();});
-    await page.locator('#billing-quote-confirm').click();
 
     await expect.poll(() => page.evaluate(() => _diagnosisStreamActive)).toBe(false);
     await expect.poll(() => page.evaluate(() => _diagnoseResult?.type || '')).toBe('complete');
@@ -265,7 +319,6 @@ test.describe('SSE warning-only guard', () => {
     });
     await page.locator('#genBrief').fill('EOF 尾事件测试');
     await page.evaluate(() => {void startGeneration();});
-    await page.locator('#billing-quote-confirm').click();
 
     await expect.poll(() => page.evaluate(() => _generateResult?.type || '')).toBe('complete');
     await expect(page.locator('#nav-credits-display')).toHaveText('11.5积分');
@@ -464,7 +517,6 @@ test('failed new generation preserves its inputs and never opens an older report
   });
   await page.locator('#genBrief').fill('Private marked restaurant test material');
   await page.locator('#generateSubmitBtn').click();
-  await page.locator('#billing-quote-confirm').click();
   await expect.poll(()=>page.evaluate(()=>_generateResult?._error)).toBe(true);
   await page.waitForTimeout(2200);
   expect(await page.evaluate(()=>__oldReportLoads)).toBe(0);
@@ -500,7 +552,6 @@ test(`precharge overload ${busyCode} preserves inputs and clears only its unacce
   await page.evaluate(()=>{showPage('upload');switchMode('generate');});
   await page.locator('#genBrief').fill('保留本次素材和说明');
   await page.locator('#generateSubmitBtn').click();
-  await page.locator('#billing-quote-confirm').click();
   await expect.poll(()=>page.evaluate(()=>_generateResult?._notAccepted)).toBe(true);
   expect(submitted).toBe(1);
   expect(await page.evaluate(()=>_generateResult._errMsg)).toContain('未受理、未扣积分');
@@ -627,7 +678,6 @@ for(const operation of ['generate','analyze']) test(`late ${operation} overload 
     await page.locator('#inputDesc').fill('旧请求正文');
     await page.evaluate(()=>{startDiagnosis();});
   }
-  await page.locator('#billing-quote-confirm').click();
   await expect.poll(()=>page.evaluate(()=>typeof __releaseBusyJson)).toBe('function');
   await page.evaluate(operation=>{
     if(operation==='generate') {_activeGeneratePaidRequestId='new-task';_generateResult={newTask:true};_genStreamActive=true;}
@@ -665,13 +715,13 @@ test('rejected cross-entry analyze cannot erase running generate task or its can
     showPage('upload');switchMode('generate');
   });
   await page.locator('#genBrief').fill('原生成任务素材');
-  await page.locator('#generateSubmitBtn').click();await page.locator('#billing-quote-confirm').click();
+  await page.locator('#generateSubmitBtn').click();
   await expect(page.locator('#liveTaskQueue')).toHaveAttribute('data-task-id','11111111-1111-4111-8111-111111111111');
   await expect(page.locator('#page-live')).toBeVisible();
   await page.evaluate(()=>{showPage('upload');switchMode('diagnose');});
   await page.locator('.input-type',{hasText:'填写笔记／上传素材'}).click();
   await page.locator('#inputTitle').fill('另一入口未受理的诊断');await page.locator('#inputDesc').fill('不替换原生成');
-  await page.evaluate(()=>{startDiagnosis();});await page.locator('#billing-quote-confirm').click();
+  await page.evaluate(()=>{startDiagnosis();});
   await expect.poll(()=>page.evaluate(()=>_diagnoseResult?._notAccepted)).toBe(true);
   await page.evaluate(()=>{
     showPage('live');

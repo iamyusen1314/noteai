@@ -6408,21 +6408,9 @@ async function confirmBillingQuote(operation, hasVideo) {
     if (!Number.isFinite(quote.credits) || quote.credits < 0 || !quote.quote_version) throw Error('服务端报价不完整，尚未提交任务');
     const description=(operation==='analyze'?'本次完整诊断':'本次爆文生成')+'：'+quote.credits+' 积分 / 次'+
       (hasVideo ? '，其中视频理解额外 '+quote.video_credits+' 积分；不按视频时长另计' : '')+'。';
-    if (preview) preview.textContent=description+'先扣周期积分，不足部分扣充值积分。';
+    if (preview) preview.textContent=description+'受理时先扣周期积分，不足部分扣充值积分；确认失败后按原来源退回。连接中断请核实原任务，不要重复提交。';
     if (!quote.can_afford) { showQuotaExceededModal({operation,credits_needed:quote.credits,monthly_credits_remaining:quote.monthly_credits_remaining,credits_balance:quote.wallet_credits_balance,message:'当前可用积分不足，本次尚未提交。'}); return null; }
-    const accepted=await new Promise(resolve=>{
-      const dialog=document.createElement('dialog');dialog.id='billing-quote-dialog';
-      dialog.style.cssText='box-sizing:border-box;margin:auto;max-width:480px;width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--border);border-radius:16px;padding:24px;background:var(--surf-1);color:var(--text);line-height:1.7';
-      const heading=document.createElement('h2');heading.textContent='确认本次扣分';
-      const summary=document.createElement('p');summary.textContent=description;
-      const policy=document.createElement('p');policy.textContent='受理时扣除：周期 '+quote.monthly_credits_used+' + 充值 '+quote.wallet_credits_used+' 积分。确认失败后按原来源退回；若连接中断，页面会读取原任务状态，不会自动创建新任务。';
-      const actions=document.createElement('div');actions.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:16px';
-      const finish=value=>{dialog.close();dialog.remove();resolve(value);};
-      const cancel=document.createElement('button');cancel.className='btn btn-ghost';cancel.textContent='返回修改';cancel.addEventListener('click',()=>finish(false));
-      const submit=document.createElement('button');submit.className='btn btn-primary';submit.id='billing-quote-confirm';submit.textContent='确认并提交 · '+quote.credits+' 积分';submit.addEventListener('click',()=>finish(true));
-      actions.append(cancel,submit);dialog.append(heading,summary,policy,actions);dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false);});document.body.append(dialog);dialog.showModal();
-    });
-    return accepted && token===_authToken && owner===_authUser?.id ? quote : null;
+    return quote;
   } catch(error) { if(token===_authToken && owner===_authUser?.id) { if(preview)preview.textContent=error.message;showToast(error.message); } return null; }
   finally { _billingQuoteBusy=false; }
 }

@@ -28,11 +28,14 @@ test('pending identity is isolated by account and material payload',async()=>{
  const changed=await c.paidSubmissionIdentity('analyze',{video_file_id:'video-b'},quote);assert.notEqual(a.requestId,changed.requestId);
  c._authUser={id:'owner-b'};c._authToken='synthetic-b';const b=await c.paidSubmissionIdentity('analyze',{video_file_id:'video-a'},quote);assert.notEqual(a.requestId,b.requestId);
 });
-test('quota dialog uses server totals and confirmation, never a client price in request',async()=>{
- let request;const {c,elements}=make({fetch:async(url,options)=>{request={url,options};return {ok:true,json:async()=>quote};}});
- const pending=c.confirmBillingQuote('analyze',true);while(!elements.has('billing-quote-confirm'))await new Promise(r=>setImmediate(r));
- assert.equal(elements.get('billing-quote-confirm').textContent,'确认并提交 · 6 积分');assert.match(request.url,/has_video=true/);assert.equal(request.options.body,undefined);
- elements.get('billing-quote-confirm').click();const accepted=await pending;assert.equal(accepted.quote_version,'server-six');assert.equal(c._billingQuoteBusy,false);
+test('server quote returns directly without a second confirmation and keeps actual charge disclosure',async()=>{
+ let request;const {c,elements,Element}=make({fetch:async(url,options)=>{request={url,options};return {ok:true,json:async()=>quote};}});
+ const preview=new Element('div');elements.set('analyze-billing-preview',preview);
+ const accepted=await c.confirmBillingQuote('analyze',true);
+ assert.match(request.url,/has_video=true/);assert.equal(request.options.body,undefined);
+ assert.equal(elements.has('billing-quote-confirm'),false);assert.equal(elements.has('billing-quote-dialog'),false);
+ assert.match(preview.textContent,/6 积分 \/ 次/);assert.match(preview.textContent,/受理时先扣周期积分/);
+ assert.equal(accepted.quote_version,'server-six');assert.equal(c._billingQuoteBusy,false);
 });
 test('quote unavailable or unaffordable never confirms a paid submission',async()=>{
  for(const kind of ['offline','insufficient','malformed']){
