@@ -4215,13 +4215,16 @@ def _leisure_visual_writing_material(image_desc: str | None) -> str:
             + image_desc)
 
 
-async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: dict) -> dict:
+async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: dict, *, _batch_can_continue=None) -> dict:
     if img_b64:
         description = await _await_media_worker(_kimi_vision_understand, img_b64, domain, brief)
         if not description or len(description.strip()) <= 3:
             raise HTTPException(status_code=502, detail="图片画面理解失败，未将文字简报当作图片分析继续生成")
     else:
         description = brief or f"{domain}相关内容"
+
+    if _batch_can_continue is not None and not _batch_can_continue():
+        raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续生成，请稍后重试")
 
     base = _runtime_prompt("gent_visual_system", domain)
     system = (
@@ -4234,6 +4237,39 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
 
     raw = await _mr.call("content_gen", system, f"品类：{domain}\n素材图内容：\n{description}", max_tokens=16000, trace_step='generation_visual', prompt_keys=('gent_visual_system',), prompt_domain=domain)
     return {"role": "视觉专家", "raw": raw, "_image_desc": description}
+
+
+async def _generation_visual_batch(images, domain, brief, dk):
+    # Queue this batch before starting Ark's bounded provider-admission timer.
+    slots = asyncio.Semaphore(2)
+    failed = False
+
+    async def observe(index, image):
+        nonlocal failed
+        async with slots:
+            if failed:
+                return None
+            try:
+                _public_product.assert_result_known()
+                result = (await _gent_visual(image, domain, brief, dk, _batch_can_continue=lambda: not failed) if index == 0
+                          else await _await_media_worker(_kimi_vision_understand, image, domain, brief))
+                valid_type = isinstance(result, dict) if index == 0 else isinstance(result, (str, dict))
+                if not valid_type or not (len(result.strip()) > 5 if isinstance(result, str)
+                                          else str(result.get("_image_desc") or "").strip()):
+                    failed = True
+                    _log_internal_failure("generate", phase=f"generation_visual_image_{index + 1}", status="invalid_result")
+                return result
+            except BaseException as exc:
+                failed = True
+                if isinstance(exc, Exception):
+                    status = ("admission_busy" if isinstance(exc, _public_product.TrialProviderStopped)
+                              and exc.args == ("PUBLIC_TRIAL_BUSY_OR_UNRECONCILED",) else "failed")
+                    _log_internal_failure("generate", exc, phase=f"generation_visual_image_{index + 1}", status=status)
+                raise
+
+    # Preserve input order and wait for already-started calls to settle.
+    return await asyncio.gather(*(observe(index, image) for index, image in enumerate(images)),
+                                return_exceptions=True)
 
 
 # ── Generation Agent 2: 内容创作 ──────────────────────────────────
@@ -4907,14 +4943,9 @@ async def _run_generation_agents(
           file=sys.stderr, flush=True)
 
     _t0 = _time.time()
-    # 深度分析：所有 deep_imgs 并行调用 _gent_visual 或 _kimi_vision_understand
+    # 本批最多启动两张；已发出的素材调用完整收束。
     if deep_imgs:
-        deep_tasks = [
-            _gent_visual(img, domain, brief, dk) if i == 0
-            else _await_media_worker(_kimi_vision_understand, img, domain, brief)
-            for i, img in enumerate(deep_imgs)
-        ]
-        deep_results = await asyncio.gather(*deep_tasks, return_exceptions=True)
+        deep_results = await _generation_visual_batch(deep_imgs, domain, brief, dk)
         if not isinstance(deep_results[0], dict) or any(not isinstance(result, (str, dict)) or not (
             len(result.strip()) > 5 if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
         ) for result in deep_results):
@@ -18551,14 +18582,9 @@ async def _generate_pipeline_stream(
             label_suffix = f"（{total_imgs_s} 张素材，{len(deep_imgs_s)} 张深度分析）" if total_imgs_s > 1 else ""
             yield {"type": "stage", "stage": "p1", "label": f"视觉分析师正在解读素材{label_suffix}…", "progress": 10}
 
-            # 深度分析：深度图片并行
+            # 本批最多启动两张；尚未启动的图片不占用供应商准入等待。
             if deep_imgs_s:
-                deep_tasks_s = [
-                    _gent_visual(img, domain, brief, dk) if i == 0
-                    else _await_media_worker(_kimi_vision_understand, img, domain, brief)
-                    for i, img in enumerate(deep_imgs_s)
-                ]
-                deep_results_s = await asyncio.gather(*deep_tasks_s, return_exceptions=True)
+                deep_results_s = await _generation_visual_batch(deep_imgs_s, domain, brief, dk)
                 if not isinstance(deep_results_s[0], dict) or any(not isinstance(result, (str, dict)) or not (
                     len(result.strip()) > 5 if isinstance(result, str) else str(result.get("_image_desc") or "").strip()
                 ) for result in deep_results_s):

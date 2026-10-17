@@ -3065,12 +3065,14 @@ class ApiContractTests(unittest.TestCase):
                             "旅行", "main", "酒店事实", "2026091320", None, None, {},
                             cover_images=["main"] + [f"extra-{i}" for i in range(8)], user_tier=tier,
                         ))
-                    self.assertEqual(understand.call_count, 8)
                     if failed:
+                        self.assertEqual(understand.call_count, 2)
+                        self.assertEqual([call.args[0] for call in understand.call_args_list], ["extra-0", "extra-1"])
                         self.assertEqual(failure.exception.status_code, 502)
                         content.assert_not_called()
                         arbitrate.assert_not_called()
                     else:
+                        self.assertEqual(understand.call_count, 8)
                         self.assertIn("图9（深度）", content.call_args.args[3])
                         self.assertNotIn("轻量", content.call_args.args[3])
                         self.assertIn(full_extra, content.call_args.args[3])
