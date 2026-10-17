@@ -1,5 +1,8 @@
 ## CURRENT — 2026-10-17 北京21:06：旧版九图／排队修复 a11 已上线；本轮生产操作已闭合
 
+Worker只读摘要差异后续纠正（纯本地，无新增云采集）：原发布Root以三份小OCI Config原件证明，原OCI没有Volumes／OnBuild键，Docker inspect补两键显式null；仅补这两个键，完整Config摘要分别精确等于先前实测7232641e／71d30ec4／8e26fce5，没有其他字段变化。是新只读比较把两种对象形状直接比较导致false，非hash算法变化，也不是实证镜像配置变更。诊断原件Q/target-AppA-worker-fresh-readonly-r1/CONFIG-HASH-DIAGNOSIS.json4387/335ef6076102cb73502debf05cc0c86b19a84c663cacca091a717c9974fefa7a，精确复制保留于E/worker-C-fullC8-readonly-20261017-once1/CONFIG-HASH-DIAGNOSIS.original.json；本窗已核其whole及三个实测摘要绑定。原官方false、fresh_prerequisites=false、旧冻结reader和18路径观察均保留，不伪改历史，不凭该诊断自动构建。原窗口继续Q-only接线；本窗云执行维持收尾，无新增命令或维护，a11生产继续服务。
+
+
 后续窗口额外只读补证（不延长6de2维护、不构建、不改旧版）：2026-10-17 BJT21:24:57唯一Worker-C诊断 c-sz070begn014fsw/t-sz070begn0g3tvk，官方实例i-wz98zwcdtcmxzmmoso3w/Timeout45/ProcessTree/Success0/Dropped0，E/worker-C-fullC8-readonly-20261017-once1/actual-original01.json18371/7ead05ca0a8a3a3de8463604dc84c404502b66d8df9e255ecf43a259c8590492。16只读命令，目标writes/builds/DB/provider/service0；bootf31不变/实际hostname noteai-prod-worker-c与etc一致；worker前后inactive/dead/MainPID0/job空/正式容器absent；RAM7136681984B、Docker可用27311407104B，过原最低值。原map1364/696e9与3base固定ID/rule/rootfs均匹配，但3config摘要比较均false→fresh_prerequisites_match=false，**不是build GO**，不可改expectedhash蒙混；摘要差异不能直接证明实际配置变更，Root Q-only先查旧原件与序列化口径。18固定AppA receipts、3tags、stage/build目录均未见，NO_RETAINED_BUILD_ADMISSION_AT_FIXED_PATHS仅限固定现场，不当全局未构建证明或重建许可。原件与独审结果已直接交原窗口，本窗未追加云调用；两辅助tab已关闭，本次恢复的同一个loopback保存器按确切源码/127.0.0.1:41973身份停止，原件保留。结构化READONLY-RESULT-BOUNDARIES.json在同E目录；小修复a11的上线结论不变。
 
 
