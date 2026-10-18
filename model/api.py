@@ -43,7 +43,7 @@ from typing import Optional
 
 from feature_extraction import FEATURE_COLS, TIMING_FEATURE_COLS, SEMANTIC_FEATURE_COLS, extract_features
 from extract_cover_features import extract_deterministic, detect_faces
-from v04_composite_features import COMPOSITE_FEATURE_COLS, build_composite_features
+from v04_composite_features import COMPOSITE_FEATURE_COLS, HASHTAG_RE as _COMPOSITE_HASHTAG_RE, build_composite_features
 
 # Scheduler A + hot keywords
 try:
@@ -3215,8 +3215,12 @@ async def _agent_content(
         f"\n\n{_CONTENT_SOURCE_POLICY}"
     )
 
+    current_tag_count = len(_COMPOSITE_HASHTAG_RE.findall(desc or ""))
     content_issues = "\n".join(
-        f"- {w.label}：当前{w.value:.2f} 基准{w.benchmark:.2f}（差距{abs(w.value-w.benchmark):.2f}）"
+        (f"- {w.label}：当前{current_tag_count}个，参考{_tag_target_text(domain)}。"
+         "是否不足只按当前原文数量与目标判断；旧辅助特征口径不代表实际标签数量。"
+         if w.feature == "tag_count" else
+         f"- {w.label}：当前{w.value:.2f} 基准{w.benchmark:.2f}（差距{abs(w.value-w.benchmark):.2f}）")
         for w in weaknesses[:5]
     )
     user = (
@@ -3238,6 +3242,7 @@ async def _agent_content(
 async def _agent_visual(
     domain: str, visual_score: float | None,
     cover_feats: dict, dk: dict,
+    *, note_title: str = "", desc: str = "", agent_context: str = "",
 ) -> dict:
     if visual_score is None:
         return {
@@ -3254,8 +3259,11 @@ async def _agent_visual(
     )
     user = (
         f"当前品类：{domain}\n"
-        f"封面视觉得分：{visual_score}/100\n"
-        f"视觉特征数据（辅助视觉14维）：\n{feat_lines or '无特征数据'}"
+        f"标题（{len(note_title or '')}字）：{note_title or '（无标题）'}\n"
+        f"正文（{len(desc or '')}字）：{desc or ''}\n\n"
+        + (f"补充上下文（不计入正文长度/评分）：\n{agent_context}\n\n" if agent_context else "")
+        + f"封面视觉得分：{visual_score}/100\n"
+        f"视觉特征数据（仅描述独立封面，辅助视觉14维）：\n{feat_lines or '无特征数据'}"
     )
     raw = await _mr.call("diagnosis", system, user, max_tokens=16000, trace_step='diagnosis_visual', prompt_keys=('agent_visual_system',), prompt_domain=domain)
     return {"role": "视觉专家", "raw": raw}
@@ -3763,7 +3771,8 @@ async def _run_five_agents(
         task_specs = [
             (_agent_content(note.note_title, note.desc, note.domain, weaknesses, dk, agent_context,
                 clarification_source=fact_source_context), "内容专家", 0),
-            (_agent_visual(note.domain, visual_score, cover_feats, dk), "视觉专家", 1),
+            (_agent_visual(note.domain, visual_score, cover_feats, dk,
+                note_title=note.note_title, desc=note.desc, agent_context=agent_context), "视觉专家", 1),
             (_agent_growth(note.note_title, note.desc, note.domain, timing, dk, agent_context), "增长专家", 2),
             (_agent_user(note.note_title, note.desc, note.domain, semantic_feats, weaknesses, dk, agent_context), "用户专家", 3),
         ]
@@ -17836,7 +17845,7 @@ async def _run_analyze_pipeline(
                     req.cover_image, req.domain, req.desc or None, 0)
                 if not isinstance(cover_observation, str) or len(cover_observation.strip()) <= 5:
                     raise HTTPException(status_code=502, detail="独立封面内容理解未完成，本次未忽略封面继续诊断")
-                extra_image_context = "【用户独立封面观察，非视频封面猜测】\n" + cover_observation
+                extra_image_context = "【用户独立封面观察，非视频封面猜测】\n图1（独立封面）：" + cover_observation
                 agent_context_parts.append(extra_image_context)
 
             # 视频诊断：用已上传的视频 file_id 提取画面描述（复用 generate 中的 _kimi_video_understand）
@@ -17888,7 +17897,7 @@ async def _run_analyze_pipeline(
                 if any(not isinstance(result, str) or len(result.strip()) <= 3 for result in extra_results):
                     raise HTTPException(status_code=502, detail="部分内容图片理解失败，本次未跳过素材继续诊断，请稍后重试")
                 extra_descs = [
-                    f"图{i+1}：{r}" for i, r in enumerate(extra_results)
+                    f"图{i+1+int(bool(req.cover_image))}：{r}" for i, r in enumerate(extra_results)
                     if isinstance(r, str) and len(r) > 3
                 ]
                 if extra_descs:
@@ -17999,6 +18008,22 @@ async def _run_analyze_pipeline(
                 mem_lines = "\n".join(f"- {m.get('memory', '')}" for m in memories if m.get("memory"))
                 if mem_lines:
                     agent_context_parts.append("【外部记忆召回】\n" + mem_lines)
+            cover_count = int(bool(req.cover_image))
+            extra_count = len(req.extra_images or [])
+            scene_bits = _domain_generation_fact_bits(
+                _GEN_CHECKLIST_ALIASES.get(req.domain, req.domain),
+                f"{req.note_title}\n{req.desc}",
+            )
+            agent_context_parts.insert(0,
+                "【本次原始输入统计与对象；不是新增商家事实】\n"
+                f"商家/品牌（用户输入）：{normalized_merchant or '未提供'}\n"
+                f"原标题{len(req.note_title or '')}字符；原文{len(req.desc or '')}字符（含空白与标签）；"
+                f"正文去标签及空白{_body_content_len_without_tags(req.desc)}字符；"
+                f"当前原文话题标签{len(_COMPOSITE_HASHTAG_RE.findall(req.desc or ''))}个。\n"
+                f"封面{cover_count}张 + 内容图{extra_count}张 = 图片总数{cover_count+extra_count}张。\n"
+                + ("当前项目/场景（用户原文线索）：" + "；".join(scene_bits) + "\n" if scene_bits else "")
+                + "只依据本次原文与下列逐图观察讨论当前项目，不由通用品类补出其他子场景；"
+                "逐图观察不是经营权益或作者亲历证明。原输入统计不能由候选稿、专家建议或辅助特征替换。")
             agent_context = "\n\n".join(p for p in agent_context_parts if p)
 
         # Absent original dimensions are not evidence of poor user content.

@@ -3800,6 +3800,124 @@ class ApiContractTests(unittest.TestCase):
                 asyncio.run(api._repair_diagnosis_report_facts("998元含票。", "春节入住。", "旅行", source))
             self.assertEqual(call.await_count, 1)
 
+    def test_diagnosis_visual_and_peers_receive_original_context_without_changing_features(self):
+        title = "万博9楼水石清池｜禅庭+帝王蟹+星空泳池"
+        body = "汤泉与庭院的原始描述。\n#汤泉 #庭院 #泳池 #海鲜 #广州 #番禺 #休闲 #周末"
+        context = "商家/品牌（用户输入）：水石清池·汤泉生活\n封面1张 + 内容图8张 = 图片总数9张\n独立封面观察：红桥与黑松\n图9：海鲜展示台"
+        weakness = api.WeaknessItem(feature="tag_count", label="话题标签数量", value=4,
+                                   benchmark=5, suggestion="标签数量影响搜索召回")
+        features = {"tag_count": 4.0, "commercial_body_tag_count": 8.0}
+        original_weakness = weakness.model_dump()
+        original_features = dict(features)
+        raw = "<opinion>按当前汤泉原素材分析。</opinion><confidence>0.8</confidence>"
+        with mock.patch.object(api, "_runtime_prompt", return_value="诊断当前{domain}原素材。"), \
+             mock.patch.object(api._mr, "call", new=mock.AsyncMock(return_value=raw)) as call, \
+             mock.patch.object(api, "_agent_arbitrate", new=mock.AsyncMock(return_value={})) as arbiter:
+            asyncio.run(api._run_five_agents(
+                api.NoteInput(note_title=title, desc=body, domain="休闲娱乐体验"),
+                70, "良好", [weakness], features, None, 80,
+                {"cover_brightness": 0.4}, {}, agent_context=context))
+        self.assertEqual(call.await_count, 4)
+        for item in call.call_args_list:
+            self.assertEqual(item.args[0], "diagnosis")
+            self.assertEqual(item.kwargs["max_tokens"], 16000)
+            for original in (title, body, context):
+                self.assertIn(original, item.args[2])
+        visual = next(item for item in call.call_args_list if item.kwargs["trace_step"] == "diagnosis_visual")
+        self.assertIn("cover_brightness: 0.400", visual.args[2])
+        self.assertIn("仅描述独立封面", visual.args[2])
+        content = next(item for item in call.call_args_list if item.kwargs["trace_step"] == "diagnosis_content")
+        self.assertIn("话题标签数量：当前8个", content.args[2])
+        self.assertNotIn("话题标签数量：当前4", content.args[2])
+        self.assertIn(context, arbiter.call_args.kwargs["analysis_context"])
+        self.assertEqual(features, original_features)
+        self.assertEqual(weakness.model_dump(), original_weakness)
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock()) as call:
+            result = asyncio.run(api._agent_visual("休闲娱乐体验", None, {}, {},
+                note_title=title, desc=body, agent_context=context))
+            self.assertIn("未提供封面图", result["raw"])
+            call.assert_not_awaited()
+
+    def test_analyze_input_context_keeps_nine_images_counts_merchants_and_prepared_resume(self):
+        # Original submitted text, with synthetic image observations and zero provider/DB calls.
+        title = "万博9楼水石清池｜禅庭+帝王蟹+星空泳池"
+        body = (
+            "万博城9楼，电梯直上。推开门，黑松、白砾石、红栏小桥、青石板水面全铺展开来——这里是水石清池·汤泉生活，广州少见的和风禅意汤泉。\n\n"
+            "庭院区先走一圈。高空露台是黑瓦禅亭搭白砂枯山水，松间留白感相机拍不完；青石水榭边，暖光宫灯映着灰雅山石，城市噪声真的被隔在了外面。禅意够用。\n\n"
+            "重头戏是汤泉区。暖棕柔光打在原木格栅和原石造景上，整间汤泉室都软下来了。泡完汤泉直走星光顶泳池——暖金星光映进清透蓝池水里，金属扶梯、休闲躺椅都备着，游一圈再出来，节奏刚好。\n\n"
+            "自助餐是意外亮点。铜色穹顶下，冰台摆着帝王蟹腿、大只生蚝、翡翠青口贝、花螺、小龙虾，暗调暖光把每盘都照得认真。\n\n"
+            "还藏着一间低调酒廊。暖黄铜光、弧形吧台、满墙酒架，侘寂氛围，一个人发呆或小团体小聚都合适。\n\n"
+            "📍水石清池·汤泉生活\n番禺汉溪大道东386号广晟万博城主楼9层（雅致酒店电梯上9楼）\n\n"
+            "#汤泉 #禅意汤泉 #广州周末 #海鲜自助 #番禺 #都市避世 #万博城 #泳池"
+        )
+        self.assertEqual((len(title), len(body)), (20, 415))
+        snapshots = []
+        def capture(note, *args, **kwargs):
+            snapshots.append((note, args, kwargs))
+            raise HTTPException(status_code=418, detail="stop at expert input boundary")
+        requests = [
+            api.AnalyzeInput(note_title=title, desc=body, domain="休闲娱乐体验",
+                merchant_name="水石清池·汤泉生活", cover_image="cover", extra_images=[f"extra-{i}" for i in range(8)]),
+            api.AnalyzeInput(note_title="乙店封面", desc="乙店单图原文。", domain="休闲娱乐体验",
+                merchant_name="乙汤泉", cover_image="other-cover"),
+            api.AnalyzeInput(note_title="丙店原文", desc="丙店只提供一张内容图。", domain="休闲娱乐体验",
+                merchant_name="丙汤泉", extra_images=["only-content"]),
+        ]
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}))
+            stack.enter_context(mock.patch.object(api._billing, "record_auxiliary_usage"))
+            cover = stack.enter_context(mock.patch.object(api, "_bounded_extract_cover",
+                new=mock.AsyncMock(return_value=(80, {"cover_brightness": 0.4}))))
+            media = stack.enter_context(mock.patch.object(api, "_generation_image_observation",
+                new=mock.AsyncMock(side_effect=lambda image, *_: f"可见素材-{image}，仅描述画面。")))
+            facts_call = stack.enter_context(mock.patch.object(api, "_maybe_enrich_facts", new=mock.AsyncMock(return_value=None)))
+            stack.enter_context(mock.patch.object(api, "_compute_market_timing_for_delivery", return_value=None))
+            semantic = stack.enter_context(mock.patch.object(api, "compute_semantic_features", return_value={}))
+            stack.enter_context(mock.patch.object(api, "_predict", return_value=(70, {
+                "tag_count": 4.0, "commercial_body_tag_count": 8.0})))
+            stack.enter_context(mock.patch.object(api, "_find_weaknesses", return_value=[]))
+            stack.enter_context(mock.patch.object(api, "_MEM0_AVAILABLE", False))
+            stack.enter_context(mock.patch.object(api._memory, "build_memory_prompt", return_value=""))
+            stack.enter_context(mock.patch.object(api, "_run_five_agents", side_effect=capture))
+            stack.enter_context(mock.patch("httpx.Client.send", side_effect=AssertionError("offline fixture")))
+            stack.enter_context(mock.patch("httpx.AsyncClient.send", side_effect=AssertionError("offline fixture")))
+            for request in requests:
+                with self.assertRaises(HTTPException) as stopped:
+                    asyncio.run(api._run_analyze_pipeline(request, {"id": "fixture-owner"},
+                        billing_charge={}, billing_managed=True))
+                self.assertEqual(stopped.exception.status_code, 418)
+            prepared = snapshots[0][2]["clarification_prepared"]
+            prepared["opinions"] = [{"role": "内容专家", "raw": "已完成的原专家意见"}]
+            media_calls = (cover.await_count, media.await_count, facts_call.await_count, semantic.call_count)
+            with self.assertRaises(HTTPException) as stopped:
+                asyncio.run(api._run_analyze_pipeline(api.AnalyzeInput(**prepared["request"]),
+                    {"id": "fixture-owner"}, billing_charge={}, billing_managed=True, prepared=prepared))
+            self.assertEqual(stopped.exception.status_code, 418)
+            self.assertEqual((cover.await_count, media.await_count, facts_call.await_count, semantic.call_count), media_calls)
+        first = snapshots[0][2]
+        context = first["agent_context"]
+        for actual in ("商家/品牌（用户输入）：水石清池·汤泉生活", "原标题20字符", "原文415字符",
+                       "当前原文话题标签8个", "封面1张 + 内容图8张 = 图片总数9张"):
+            self.assertIn(actual, context)
+        for image in ["cover", *[f"extra-{i}" for i in range(8)]]:
+            self.assertIn(f"可见素材-{image}", context)
+        self.assertIn("图9：可见素材-extra-7", context)
+        self.assertEqual(snapshots[0][0].desc, body)
+        self.assertEqual(snapshots[0][1][3]["tag_count"], 4.0)
+        self.assertIn("封面1张 + 内容图0张 = 图片总数1张", snapshots[1][2]["agent_context"])
+        self.assertIn("封面0张 + 内容图1张 = 图片总数1张", snapshots[2][2]["agent_context"])
+        for snapshot in snapshots[1:3]:
+            self.assertNotIn("水石清池", snapshot[2]["agent_context"])
+        resumed = snapshots[3][2]
+        self.assertEqual(resumed["agent_context"], context)
+        self.assertEqual(resumed["prepared_opinions"], prepared["opinions"])
+        with mock.patch.object(api._mr, "call", new=mock.AsyncMock()) as expert_call, \
+             mock.patch.object(api, "_agent_arbitrate", new=mock.AsyncMock(return_value={})) as arbiter:
+            asyncio.run(api._run_five_agents(snapshots[3][0], *snapshots[3][1],
+                agent_context=context, prepared_opinions=resumed["prepared_opinions"]))
+            expert_call.assert_not_awaited()
+            self.assertEqual(arbiter.call_args.kwargs["analysis_context"], context)
+
     def test_diagnosis_experts_keep_output_capacity_and_source(self):
         source = "开头画面。" * 500 + "末段口播保留。"
         dk = api._get_dk("旅行")
