@@ -15055,8 +15055,8 @@ function resetBillingUsageState(message = '待核实', collapse = false) {
 }
 
 function billingUsageStatusCounts(status, sparse = false) {
-  const labels = sparse ? {completed:'完成', failed:'失败', refunded:'已退回', waiting_for_input:'待补充', running:'处理中', status_unknown:'状态待核'}
-    : {completed:'完成', failed:'失败', refunded:'已退回', waiting_for_input:'待补充', running:'处理中', status_unknown:'状态待核'};
+  const labels = sparse ? {completed:'完成', failed:'失败', refunded:'已退回', waiting_for_input:'待补充', running:'处理中', status_unknown:'状态待核', reserved:'预留中', released:'已释放'}
+    : {completed:'完成', failed:'失败', refunded:'已退回', waiting_for_input:'待补充', running:'处理中', status_unknown:'状态待核', reserved:'预留中', released:'已释放'};
   const present = status && typeof status === 'object' && !Array.isArray(status);
   return Object.entries(labels).map(([key, label]) => label + ' '
     + billingUsageValue(present && sparse && !Object.hasOwn(status, key) ? 0 : status?.[key])).join(' · ');

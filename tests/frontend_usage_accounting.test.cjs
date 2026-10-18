@@ -236,3 +236,20 @@ test('logout clears rendered private billing nodes and prevents pending resurrec
   f.c._authToken=null;f.c.epoch++;f.c.resetBillingUsageState('待更新',true);old.resolve({ok:true,json:async()=>usage()});await pending;
   assert.equal(f.c._lastUsageData,null);assert.equal(f.get('profile-usage-detail').style.display,'none');assert.ok(!f.rendered().includes('task-original'));
 });
+
+test('reservation business and operation counts retain reserved and released separately from refunds',()=>{
+  const {c}=fixture(),u=usage();
+  u.accounting.business={...u.accounting.business,reserved:2,released:1,refunded:3};
+  const before=JSON.stringify(u.accounting.business);
+  const business=c.billingUsageAccountingRows(u.accounting);
+  assert.match(business,/预留中 2/);assert.match(business,/已释放 1/);assert.match(business,/已退回 3/);assert.match(business,/失败 1/);
+  const operation=c.billingUsageStatusCounts({reserved:1,released:1},true);
+  assert.match(operation,/预留中 1/);assert.match(operation,/已释放 1/);assert.match(operation,/已退回 0/);
+  assert.equal(JSON.stringify(u.accounting.business),before,'labels must not change accounting values');
+});
+test('reservation status count labels preserve sparse zero and unrecorded values',()=>{
+  const {c}=fixture();
+  assert.match(c.billingUsageStatusCounts({reserved:null,released:0}),/预留中 待核 · 已释放 0/);
+  assert.match(c.billingUsageStatusCounts({},true),/预留中 0 · 已释放 0/);
+  assert.match(c.billingUsageStatusCounts(undefined,true),/预留中 待核 · 已释放 待核/);
+});
