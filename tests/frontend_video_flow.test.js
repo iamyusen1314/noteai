@@ -240,3 +240,41 @@ test('reselected recovered screenshot matches normalized owner ref without new O
   assert.equal(c._ssImages[0],original);assert.equal(c._ssOcrCache.get('stored-ref'),result);
   assert.equal(original.ocrRequestId,'original-paid-id');
 });
+
+test('manual multi-image diagnosis reuses generation uploads across data URL and raw forms', async()=>{
+  const images=['iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB','/9j/QUJDREVGR0hJSktMTU5PUA=='].map(raw=>'data:image/png;base64,'+raw);
+  const uploads=[],requests=[],toasts=[];
+  const values={inputTitle:'原报告标题',inputDesc:'原报告正文',inputDomain:'休闲娱乐体验',noteMediaType:'image'};
+  const c=context({
+    PUBLIC_PRODUCT:true,API_BASE:'',_authToken:'synthetic',_authUser:{id:'owner'},_authVerifiedOwnerId:'owner',
+    _privateImageInputs:new Map(),_diagnosisStreamActive:false,_diagVideoState:'idle',_diagVideoFileId:null,_diagVideoAttempt:0,
+    _coverBase64:images[0],_diagImages:[{dataURL:images[1]}],
+    document:{getElementById:id=>({value:values[id]}),querySelector:()=>({textContent:'填写笔记／上传素材'})},
+    requirePublicCapability:()=>true,requireProductConsent:()=>true,_chatIdentitySnapshot:()=>({ownerId:'owner'}),_chatIdentityMatches:()=>true,
+    getConstraintTags:()=>[],getContentIntentPayload:()=>({merchant_visibility:'show'}),authHeader:()=>({Authorization:'Bearer synthetic'}),
+    shouldAskMerchantBeforeRun:()=>false,updateDiagnosisSubmitState(){},showToast:m=>toasts.push(m),
+    formatLocalTimeWithConstraints:()=> '2026101810',createSseWarningGuard:()=>({connected(){},finish(){}}),
+    paidAdmissionRejectionMessage:async()=>null,openAuthModal(){},setTimeout(){},
+    atob:value=>Buffer.from(value,'base64').toString('binary'),Blob,FormData,Uint8Array,
+    fetch:async(url,options)=>{
+      if(url.endsWith('/upload-image')) {
+        uploads.push(options);
+        return {ok:true,json:async()=>({media_ref:uploads.length+'1111111-1111-4111-8111-111111111111'})};
+      }
+      requests.push(JSON.parse(options.body));return {status:401};
+    },
+  });
+  c.load('privateImageInput','diagnosisUsesVideo','prepareDiagnosis');
+  const original=await Promise.all(images.map(image=>c.privateImageInput(image)));
+  await c.prepareDiagnosis();if(c._diagnosePromise)await c._diagnosePromise;
+  assert.equal(requests.length,1,toasts.join(';'));
+  assert.equal(uploads.length,2,'the same two source images must upload once each across both input forms');
+  assert.equal(requests[0].cover_image,original[0]);assert.deepEqual(requests[0].extra_images,[original[1]]);
+  assert.equal(requests[0].input_mode,'manual');assert.equal(requests[0].merchant_visibility,'show');
+  assert.equal(uploads[0].headers.Authorization,'Bearer synthetic');
+  assert.equal(await c.privateImageInput(original[0]),original[0]);assert.equal(uploads.length,2);
+  c._authUser={id:'other-owner'};c._authVerifiedOwnerId='other-owner';
+  await c.privateImageInput(images[0]);assert.equal(uploads.length,3,'an unrelated owner must not reuse the upload cache');
+  c.fetch=async()=>({ok:false,json:async()=>({detail:'synthetic upload rejected'})});
+  await assert.rejects(c.privateImageInput('data:image/png;base64,QUJDREVG'),/synthetic upload rejected/);
+});

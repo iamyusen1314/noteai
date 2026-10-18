@@ -7551,10 +7551,10 @@ async function privateImageInput(value, existingMediaRefs = []) {
   const valid=()=>_chatIdentityMatches(identity) && _authToken===token;
   if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(value)) return value;
   const candidates = [...new Set(existingMediaRefs)].slice(0, 9);
-  const key = owner + ':' + value + ':' + candidates.join(',');
+  const raw = value.startsWith('data:') ? value.split(',')[1] : value;
+  const key = owner + ':' + raw + ':' + candidates.join(',');
   if (!_privateImageInputs.has(key)) {
     _privateImageInputs.set(key, (async () => {
-      const raw = value.startsWith('data:') ? value.split(',')[1] : value;
       const prefix = atob(raw.slice(0, 24));
       const mime = prefix.startsWith('\x89PNG') ? 'image/png' : prefix.startsWith('RIFF') ? 'image/webp' : 'image/jpeg';
       // Decode local bytes without a network fetch: production connect-src is self.
@@ -7669,7 +7669,7 @@ async function prepareDiagnosis() {
   updateDiagnosisSubmitState();
   try {
     coverB64 = await privateImageInput(coverB64);
-    extraImages = await Promise.all(extraImages.map(privateImageInput));
+    extraImages = await Promise.all(extraImages.map(image => privateImageInput(image)));
   } catch (error) { showToast(error.message); return; }
   if (diagnosisVideoRef && (diagnosisVideoAttempt !== _diagVideoAttempt || diagnosisVideoRef !== _diagVideoFileId)) {
     showToast('视频已变更，请检查素材后重新提交'); return;
