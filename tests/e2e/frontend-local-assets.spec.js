@@ -60,7 +60,7 @@ test('original public product works under strict script CSP with OTP and dynamic
   });
   await page.goto('/dist/index.html');
   expect(await page.evaluate(async () => (await import(V4_THREE_MODULE_URL)).REVISION)).toBeTruthy();
-  await expect(page.locator('#public-product-status')).toContainText('每月12积分');
+  await expect(page.locator('#public-product-status')).toHaveCount(0);
   await page.locator('#nav-guest').getByRole('button',{name:'注册',exact:true}).click();
   await expect(page.locator('#auth-phone')).toBeVisible();
   await expect(page.locator('#auth-password')).toBeHidden();

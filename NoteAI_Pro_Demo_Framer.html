@@ -2818,7 +2818,6 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   </div>
 </nav>
 
-<div id="public-product-status" role="status" style="display:none;padding:14px 24px;margin-top:66px;color:var(--text-2);background:var(--surf-1);font-size:13px;line-height:1.7"></div>
 <!-- ═══ 登录/注册弹窗 ═══ -->
 <div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
   <div style="background:var(--surf-1);border:1px solid var(--border);border-radius:20px;padding:36px 40px;width:380px;max-width:90vw;position:relative">
@@ -5352,12 +5351,6 @@ async function refreshPublicStatus() {
     if (!response.ok) throw new Error('status unavailable');
     _publicStatus = await response.json();
   } catch (_) { _publicStatus = null; }
-  const status = document.getElementById('public-product-status');
-  status.style.display = 'block';
-  status.textContent = 'NoteAI 正式产品 · 免费账户每月12积分；其他权益以本人账户页为准。各功能扣分以套餐页和提交前服务端报价为准。同等权益不因赠送或购买来源降质。' +
-    (_publicStatus?.registration_open ? '手机验证码注册已开放。' : '手机验证码注册暂不可用，请稍后再试或联系客服。') +
-    (_publicStatus?.ai_open ? '文字诊断与生成按账户权益执行；指定模型失败会如实提示。' : '当前无法确认AI服务可用，请稍后查看服务状态。') +
-    (publicImageOpen() ? '图片理解已开放，按同等账户权益执行。' : '图片暂未开放。') + (publicVideoOpen() ? '视频音画理解已开放。' : '视频音画理解暂未开放。') + (trackingManualAvailable() ? '可关联本人笔记并手工记录互动数据，未经平台核验；自动采集暂未开放。' : _publicStatus?.tracking_open ? '外部笔记跟踪已开放。' : _publicStatus?.tracking_read_open ? '可查看本人已有追踪结果；新增追踪暂未开放。' : '外部笔记跟踪暂未开放。') + '付款状态见套餐页与服务说明中的当前查询结果。';
   syncPublicAuthAvailability();
   syncProductUI();
   refreshNativeCapabilities();

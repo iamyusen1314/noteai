@@ -452,14 +452,14 @@ test('receipt distinguishes missing credit splits from a true zero',()=>{
 
 test('late public capability response refreshes only current profile tracking read',async()=>{
  const calls=[];const status={style:{}};const {c}=make({PUBLIC_PRODUCT:true,_publicStatus:null,API_BASE:'https://offline.invalid',document:{getElementById:()=>status,querySelector:()=>({id:'page-profile'})},syncPublicAuthAvailability(){},syncProductUI(){},refreshNativeCapabilities(){},loadTrackingList:()=>calls.push('tracking'),fetch:async()=>({ok:true,json:async()=>({tracking_read_open:true,tracking_open:false})})});
- c.load('publicImageOpen','publicVideoOpen','profileTrackingAvailable','trackingManualAvailable','trackingDeleteAvailable','refreshPublicStatus');await c.refreshPublicStatus();assert.deepEqual(calls,['tracking']);assert.match(status.textContent,/新增追踪暂未开放/);
+ c.load('publicImageOpen','publicVideoOpen','profileTrackingAvailable','trackingManualAvailable','trackingDeleteAvailable','refreshPublicStatus');await c.refreshPublicStatus();assert.deepEqual(calls,['tracking']);
 });
 
 test('manual and delete capability changes refresh actions even when read permission is unchanged',async()=>{
  const calls=[];const status={style:{}};
  const {c}=make({PUBLIC_PRODUCT:true,_publicStatus:{tracking_read_open:true,tracking_manual_open:false,tracking_delete_open:false,tracking_open:false},API_BASE:'https://offline.invalid',document:{getElementById:()=>status,querySelector:()=>({id:'page-profile'})},syncPublicAuthAvailability(){},syncProductUI(){},refreshNativeCapabilities(){},loadTrackingList:()=>calls.push('tracking'),fetch:async()=>({ok:true,json:async()=>({tracking_read_open:true,tracking_manual_open:true,tracking_delete_open:true,tracking_open:false})})});
  c.load('publicImageOpen','publicVideoOpen','profileTrackingAvailable','trackingManualAvailable','trackingDeleteAvailable','refreshPublicStatus');
- await c.refreshPublicStatus();assert.deepEqual(calls,['tracking']);assert.match(status.textContent,/手工记录互动数据，未经平台核验/);assert.match(status.textContent,/自动采集暂未开放/);
+ await c.refreshPublicStatus();assert.deepEqual(calls,['tracking']);
 });
 
 // Explicit reservation_v1 fixtures exercise UI wording only, not real account settlement.
