@@ -2771,6 +2771,35 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   .feat-grid{ grid-template-columns:1fr; }
   .tech-stats{ grid-template-columns:1fr 1fr; }
 }
+
+/* Saved-report cover task: keep the existing report layout and one small panel. */
+.cover-entry { margin-top:14px; }
+.cover-entry button,.cover-panel button { font:inherit; cursor:pointer; border:1px solid var(--border-hover); border-radius:9px; padding:10px 14px; background:var(--surf-3); color:var(--text); }
+.cover-entry button { color:var(--accent); }
+.cover-panel { margin:auto; overflow:auto; width:min(760px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); box-sizing:border-box; padding:0; border:1px solid var(--border-hover); border-radius:16px; background:var(--surf-1,#111); color:var(--text); }
+.cover-panel::backdrop { background:rgba(0,0,0,.72); }
+.cover-panel-head { position:sticky; top:0; z-index:2; background:var(--surf-1,#111); display:flex; align-items:flex-start; gap:12px; padding:20px; border-bottom:1px solid var(--border); }
+.cover-panel-head h2 { font-size:18px; margin:0 0 6px; }
+.cover-panel-head p { margin:0; font-size:12px; line-height:1.6; color:var(--text-muted); }
+.cover-panel-head>div { flex:1; min-width:0; }
+.cover-panel-body { padding:20px; display:grid; gap:16px; }
+.cover-panel [hidden] { display:none !important; }
+.cover-panel button:disabled { opacity:.5; cursor:default; }
+.cover-panel label { font-size:13px; line-height:1.6; }
+.cover-panel textarea,.cover-panel select { box-sizing:border-box; width:100%; margin-top:6px; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--surf-2); color:var(--text); font:inherit; font-size:14px; }
+.cover-panel textarea { resize:vertical; min-height:70px; }
+.cover-panel-note { font-size:12px; color:var(--text-muted); line-height:1.7; margin:0; overflow-wrap:anywhere; }
+.cover-panel-status { padding:12px; background:var(--surf-2); border:1px solid var(--border); border-radius:10px; font-size:13px; line-height:1.7; white-space:pre-line; overflow-wrap:anywhere; }
+.cover-panel-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.cover-panel button.cover-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.cover-source-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin:10px 0; }
+.cover-source { display:flex; flex-direction:column; gap:6px; padding:8px; border:1px solid var(--border); border-radius:10px; min-width:0; background:var(--surf-2); }
+.cover-source img { width:100%; aspect-ratio:4/3; object-fit:contain; border-radius:6px; background:#171717; }
+.cover-source span { font-size:11px; color:var(--text-muted); }
+.cover-final { display:grid; grid-template-columns:minmax(150px,260px) 1fr; align-items:start; gap:16px; }
+.cover-final img { display:block; width:100%; max-height:420px; object-fit:contain; background:#171717; border-radius:10px; }
+.cover-final-controls { display:grid; gap:12px; min-width:0; }
+@media(max-width:540px) { .cover-panel-head,.cover-panel-body { padding:16px; } .cover-final { grid-template-columns:1fr; } .cover-final img { max-height:360px; } .cover-panel-actions button { flex:1; } }
 </style>
 </head>
 <body>
@@ -3699,6 +3728,8 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 <div class="page" id="page-report">
   <div class="report-page">
     <div id="report-billing-receipt" role="status" style="display:none;margin:16px 0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surf-1);font-size:13px;line-height:1.7;overflow-wrap:anywhere"></div>
+
+    <div class="cover-entry" style="margin-bottom:20px"><button type="button" id="saved-covers-entry" data-product-action="openSavedCovers">已保存封面</button><p class="cover-panel-note" style="margin-top:6px">已交付封面保存90天；原报告到期后仍可在这里重开、下载与免费排字。</p></div>
 
     <!-- ── 报告历史列表 ──────────────────────────────────────── -->
     <div id="diag-history-section" style="margin-bottom:32px">
@@ -5225,6 +5256,7 @@ document.addEventListener('click', event => {
     goToDiagnose, chatRemoveAttachImage, chatRemoveAttachFile, startChatFromNote,
     trackNoteFromLibrary, openNoteDetail, copyNoteToClipboard, _removeSsImage,
     removeDiagImage, openManualFill, openTrackingDetail, deleteTrackingRecord,
+    openCoverPanel, openSavedCovers,
     copyText: text => navigator.clipboard.writeText(String(text)).then(()=>showToast('已复制，请保留AI内容标识'))};
   const action = actions[target.dataset.productAction];
   if (!Object.prototype.hasOwnProperty.call(actions, target.dataset.productAction)) return;
@@ -5511,6 +5543,7 @@ async function openCreditRecords() {
   detail?.scrollIntoView({block:'start',behavior:'smooth'});
 }
 function showPage(name, tabEl) {
+  if (name !== 'report' && typeof closeCoverPanel === 'function') closeCoverPanel();
   const mobileNavWasOpen=document.getElementById('main-navigation')?.classList.contains('nav-mobile-open');
   setMobileNavigation(false);
   const previous=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -6371,7 +6404,7 @@ let _historyReportSelection = null;
 let _paidTaskReportRef = null;
 let _reportSelectionSequence = 0;
 let _reportHistorySequence = 0;
-function clearReportSelection() { _historyReportSelection = null; _reportSelectionSequence += 1; }
+function clearReportSelection() { if (typeof closeCoverPanel === 'function') closeCoverPanel(); _historyReportSelection = null; _reportSelectionSequence += 1; }
 function reportGenerationResult() { return _historyReportSelection?.report_type === 'generate' ? _historyReportSelection.result : _generateResult; }
 function reportDiagnosisResult() { return _historyReportSelection?.report_type === 'analyze' ? _historyReportSelection.result : _diagnoseResult; }
 function reportIsGeneration() { return _historyReportSelection ? _historyReportSelection.report_type === 'generate' : _isGenerateMode; }
@@ -8234,6 +8267,442 @@ function copyText(elId) {
   navigator.clipboard.writeText(markedProductText(el.textContent.trim())).then(() => showToast('✅ 已复制到剪贴板'));
 }
 
+/* ── Independent saved-report cover tasks ───────────────────── */
+let _coverPanel = null;
+let _savedCoverList = null;
+function coverReportRef(type = reportIsGeneration() ? 'generate' : 'analyze') {
+  const selected = _historyReportSelection;
+  if (selected) return selected.report_type === type && selected.report_id
+    ? {report_type:type,report_id:selected.report_id} : null;
+  const result = type === 'generate' ? reportGenerationResult() : reportDiagnosisResult();
+  if (!completeProductResult(result)) return null;
+  const id = type === 'analyze' ? result.diagnosis_id
+    : result.billing?.operation === 'generate' ? result.billing.request_id : null;
+  return typeof id === 'string' && id ? {report_type:type,report_id:id} : null;
+}
+function coverTitleChoices(type) {
+  const result = type === 'generate' ? reportGenerationResult() : reportDiagnosisResult();
+  const original = result?.note_title || result?.input_diagnostics?.original_title || '';
+  const variants = type === 'generate' ? result?.title_variants : result?.suggested_titles;
+  return [...new Set([original,...(Array.isArray(variants) ? variants : [])]
+    .filter(value => typeof value === 'string' && value.trim() && value.length <= 300))];
+}
+function coverPositionOptions(layout) {
+  return [...new Set((Array.isArray(layout?.position_options) ? layout.position_options : [])
+    .filter(value => ['top','bottom'].includes(value)))];
+}
+function coverRejectionUnheld(error) {
+  return ['BILLING_QUOTE_CHANGED','QUOTA_EXCEEDED'].includes(error.detail?.code)
+    && error.detail.admitted === false && error.detail.reserved_credits === 0;
+}
+function coverSubmitBody(ctx, pending) {
+  const title = ctx.dialog.querySelector('[data-cover="title"]').value;
+  if (title && !(ctx.titleChoices || []).includes(title)) throw Error('请选择本报告已有标题，不新增未确认事实');
+  return {...pending,source_media_refs:[...ctx.selected],...(title ? {title} : {})};
+}
+function coverEntryMarkup(type) {
+  const ref = coverReportRef(type);
+  return ref ? `<div class="cover-entry"><button type="button" ${productActionAttributes('openCoverPanel',ref.report_type,ref.report_id)}>一键生成笔记封面</button></div>` : '';
+}
+function coverJobMatches(job, ctx) {
+  return !!job && typeof job.job_id === 'string' && !!job.job_id
+    && job.report_type === ctx.report_type && job.report_id === ctx.report_id;
+}
+function coverJobPending(job) {
+  return !!job && !(['outcome_unknown','unknown'].includes(job.status) && job.billing?.status === 'released')
+    && !['completed','failed','cancelled','expired'].includes(job.status);
+}
+function coverQuoteReady(quote) {
+  return quote?.operation === 'cover_generate' && quote.credits === 8
+    && typeof quote.quote_version === 'string' && !!quote.quote_version
+    && quote.charge_timing === 'after_saved_cover' && quote.can_afford === true;
+}
+function coverTaskStage(job) {
+  const stages = {queued:'等待封面制作名额',design:'正在选图与设计',image:'正在制作底图',qc:'正在检查文字、主体与事实',designing:'正在选图与设计',generating:'正在制作底图',
+    composing:'正在排字',compositing:'正在排字',quality_check:'正在检查文字、主体与事实',
+    checking:'正在检查文字、主体与事实',saving:'正在保存封面',settling:'正在确认交付与结算',
+    completed:'封面已保存',failed:'本次封面未交付',cancelled:'封面任务已停止',expired:'封面已到保存期限',
+    outcome_unknown:'供应商结果待核查，不会自动重新生成',unknown:'供应商结果待核查，不会自动重新生成'};
+  return stages[job?.status === 'outcome_unknown' ? job.status : job?.stage] || stages[job?.status] || '封面任务正在处理';
+}
+function coverPendingKey(ctx) {
+  return 'noteai_cover_pending_v1:' + encodeURIComponent(ctx.identity.ownerId) + ':' + ctx.report_type + ':' + encodeURIComponent(ctx.report_id);
+}
+function coverRestorableWire(value) {
+  const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+      || Object.keys(value).some(key => !['request_id','quote_version','source_media_refs','title'].includes(key))
+      || !uuid.test(value.request_id) || typeof value.quote_version !== 'string' || !value.quote_version || value.quote_version.length > 100
+      || !Array.isArray(value.source_media_refs) || !value.source_media_refs.length || value.source_media_refs.length > 9
+      || value.source_media_refs.some(ref => typeof ref !== 'string' || !uuid.test(ref))
+      || (Object.hasOwn(value,'title') && (typeof value.title !== 'string' || value.title.length > 300))) return null;
+  return {request_id:value.request_id,quote_version:value.quote_version,source_media_refs:[...value.source_media_refs],
+    ...(Object.hasOwn(value,'title') ? {title:value.title} : {})};
+}
+function coverReadPending(ctx) {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(coverPendingKey(ctx)) || 'null');
+    if (!value || !/^[0-9a-f-]{36}$/i.test(value.request_id) || typeof value.quote_version !== 'string') return null;
+    ctx.pendingBody = coverRestorableWire(value);
+    return {request_id:value.request_id,quote_version:value.quote_version};
+  } catch (_) { return null; }
+}
+function coverWritePending(ctx, pending) {
+  ctx.pending = pending;
+  const wire = pending && ctx.pendingBody?.request_id === pending.request_id ? coverRestorableWire(ctx.pendingBody) : null;
+  let stored = true;
+  try { if (pending) sessionStorage.setItem(coverPendingKey(ctx),JSON.stringify(wire || pending)); else sessionStorage.removeItem(coverPendingKey(ctx)); } catch (_) {stored = false;}
+  if (!pending) ctx.pendingBody = null;
+  return stored;
+}
+function closeCoverPanel() {
+  if (_savedCoverList) {
+    const previous = _savedCoverList; _savedCoverList = null;
+    if (previous.dialog.open) previous.dialog.close();
+    previous.dialog.remove();
+  }
+  const ctx = _coverPanel;
+  if (!ctx) return;
+  _coverPanel = null;
+  clearTimeout(ctx.timer);
+  ctx.urls.forEach(url => URL.revokeObjectURL(url));
+  if (ctx.dialog.open) ctx.dialog.close();
+  ctx.dialog.remove();
+  // Leaving this panel stops reads only. The server owns the admitted task.
+}
+async function coverFetch(ctx, path, options = {}) {
+  if (!ctx.current()) throw Error('账户或报告已切换');
+  const response = await fetch(API_BASE + path, {...options,cache:'no-store',
+    headers:{Authorization:'Bearer ' + ctx.token,...(options.body && !(options.body instanceof FormData) ? {'Content-Type':'application/json'} : {}),...options.headers}});
+  if (!ctx.current()) throw Error('账户或报告已切换');
+  if (!response.ok) {
+    let data; try { data = await response.json(); } catch (_) {}
+    const error = Error(typeof data?.detail === 'string' ? data.detail : typeof data?.detail?.message === 'string' ? data.detail.message : '封面服务暂时无法读取，请查询原任务');
+    error.status = response.status; error.detail = data?.detail;
+    throw error;
+  }
+  return response;
+}
+function coverBlobURL(ctx, blob) {
+  if (!ctx.current()) return null;
+  if (!['image/png','image/jpeg','image/webp'].includes(blob.type)) throw Error('封面文件格式未确认，请稍后读取原任务');
+  const url = URL.createObjectURL(blob); ctx.urls.add(url); return url;
+}
+function coverRender(ctx) {
+  if (!ctx.current()) return;
+  const el = name => ctx.dialog.querySelector('[data-cover="' + name + '"]');
+  const job = ctx.active;
+  const hasPending = coverJobPending(job) || !!ctx.pending;
+  el('source-form').hidden = ctx.savedOnly === true;
+  el('quote').textContent = ctx.savedOnly ? '已保存封面 · 重开、下载与排字调整免费。' : ctx.quote?.operation === 'cover_generate' && Number.isFinite(ctx.quote.credits)
+    ? `独立封面 ${ctx.quote.credits} 积分 / 张 · 合格成品保存后结算一次；未交付可用封面不扣分。`
+    : '封面报价暂不可用，不能提交制作。';
+  el('availability').textContent = !ctx.enabled ? (ctx.reason || '封面新任务尚未开放，已保存成品仍可读取。')
+    : ctx.quote?.can_afford === false ? '可用积分不足，请先查看账户积分。' : '';
+  el('status').textContent = ctx.notice || (job ? coverTaskStage(job) : '尚无封面任务。选择本人真实素材后即可独立制作，无需重新生成报告。');
+  if (job?.billing) {
+    const bill = job.billing;
+    const billingText = ['committed','charged','settled'].includes(bill.status)
+      ? `实际扣分 ${Number(bill.credits_used) || 0} 积分`
+      : Number(bill.reserved_credits) > 0 ? `已预留 ${Number(bill.reserved_credits)} 积分，尚未扣分`
+      : ['released','reservation_released','failed'].includes(bill.status) ? '预留已释放，本任务不扣分' : '结算以服务端交付记录为准';
+    el('status').textContent += '\n' + billingText;
+  }
+  const releasedUnknown = ['outcome_unknown','unknown'].includes(job?.status) && job.billing?.status === 'released';
+  el('create').textContent = releasedUnknown ? '新建封面 · 8 积分' : ctx.latest ? '重新设计 · 8 积分' : '生成封面 · 8 积分';
+  const olderUnknown = (ctx.jobs || []).filter(item => item.job_id !== job?.job_id && ['outcome_unknown','unknown'].includes(item.status));
+  el('unknown-history').textContent = olderUnknown.slice(0,3).map(item => `此前任务 ${item.job_id.slice(0,8)}：供应商结果仍待核查，${item.billing?.status === 'released' ? '预留已释放，不追扣原任务' : '请核对原预留'}。`).join('\n');
+  el('create').disabled = ctx.busy || ctx.reading || ctx.uploading || hasPending || !ctx.enabled || !coverQuoteReady(ctx.quote) || !ctx.selected.size;
+  el('title').disabled = ctx.busy || hasPending;
+  el('upload').disabled = ctx.busy || ctx.uploading || hasPending || !ctx.enabled || ctx.sourceAccessExpired === true;
+  el('refresh').disabled = ctx.reading || ctx.busy;
+  el('recover').hidden = !ctx.pending; el('recover').disabled = ctx.busy || ctx.reading;
+  el('recovery-note').hidden = !ctx.pending;
+  el('recovery-note').textContent = ctx.pendingBody ? '核查未找到原任务时，仅使用已保存的原编号、选图引用和标题重交；不新建请求。' : '刷新后未保留原提交内容，此处仅核查原编号，不会猜测内容或新建请求。';
+  el('source-note').textContent = ctx.sourceAccessExpired ? '原报告或原图已到期，已有封面仍可在成品保存期内重开、下载与免费排字。' : ctx.sourceStatus === 'loading' ? '正在核对本人原图…' : ctx.sourceStatus === 'storage_unavailable'
+    ? '素材存储暂不可用，请稍后读取；目前不能判断图片是否过期。'
+    : ctx.sourceStatus === 'reupload_required' || !ctx.sources.length
+      ? '原图缺失或已过期时，请补传本人真实图片；不会重跑报告或编造替代图。'
+      : `已选 ${ctx.selected.size} 张候选素材（最多9张），将结合原视觉建议优选。补传仅供封面，不改写原报告。`;
+  ctx.dialog.querySelectorAll('[data-cover-source]').forEach(input => { input.disabled = ctx.busy || hasPending || input.dataset.ready !== 'true'; });
+  const success = ctx.latest;
+  el('result').hidden = !success?.has_final;
+  if (success?.has_final) {
+    const result = el('result');
+    if (result.parentNode) result.parentNode.insertBefore(result,el('source-form'));
+    el('expiry').textContent = success.expires_at ? `保存至 ${_fmtLocalTime(success.expires_at)}（90天），请及时下载。` : '保存期限暂未确认，请稍后查看原任务。';
+    const editable = !success.expires_at || new Date(success.expires_at).getTime() > Date.now();
+    el('adjust').disabled = ctx.busy || !editable;
+    el('download').disabled = ctx.busy || !editable;
+    if (ctx.editJobId !== success.job_id || ctx.editRevision !== success.asset_revision) {
+      ctx.editJobId = success.job_id; ctx.editRevision = success.asset_revision;
+      el('text').value = success.layout?.text || '';
+      el('position').innerHTML = '<option value="">保留当前位置</option>' + coverPositionOptions(success.layout).map(value => '<option value="' + value + '">' + (value === 'top' ? '上方' : '下方') + '</option>').join('');
+      el('position').value = '';
+    }
+  }
+}
+async function coverShowFinal(ctx) {
+  const job = ctx.latest;
+  if (!job?.has_final) return;
+  const key = job.job_id + ':' + job.asset_revision;
+  if (ctx.previewKey === key) return;
+  const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(job.job_id) + '/download?asset=final&revision=' + encodeURIComponent(job.asset_revision || 0));
+  const blob = await response.blob();
+  if (!ctx.current() || ctx.latest?.job_id !== job.job_id || ctx.latest?.asset_revision !== job.asset_revision) return;
+  const url = coverBlobURL(ctx,blob);
+  if (ctx.finalURL) { URL.revokeObjectURL(ctx.finalURL); ctx.urls.delete(ctx.finalURL); }
+  ctx.previewKey = key; ctx.finalURL = url;
+  ctx.dialog.querySelector('[data-cover="final-image"]').src = url;
+}
+function coverAcceptJob(ctx, job) {
+  if (!coverJobMatches(job,ctx)) throw Error('封面任务身份不一致，未显示或重新提交');
+  ctx.active = job;
+  ctx.jobs = [job,...(ctx.jobs || []).filter(item => item.job_id !== job.job_id)];
+  if (job.status === 'completed' && job.has_final) ctx.latest = job;
+  if (ctx.pending && job.request_id === ctx.pending.request_id) coverWritePending(ctx,null);
+}
+function coverScheduleRead(ctx) {
+  clearTimeout(ctx.timer);
+  if (!ctx.current() || !coverJobPending(ctx.active)) return;
+  ctx.timer = setTimeout(async () => {
+    if (!ctx.current()) return;
+    const originalJobId = ctx.active.job_id;
+    try {
+      const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(originalJobId));
+      const job = await response.json(); if (!ctx.current() || ctx.active?.job_id !== originalJobId) return;
+      coverAcceptJob(ctx,job); ctx.notice = '';
+      coverRender(ctx); await coverShowFinal(ctx);
+    } catch (error) { if (ctx.current()) { ctx.notice = '连接暂时中断，后台任务保留。可刷新查询；不要重复生成。'; coverRender(ctx); } }
+    coverScheduleRead(ctx);
+  },['outcome_unknown','unknown'].includes(ctx.active.status) ? 15000 : 4000);
+}
+async function coverRefresh(ctx) {
+  if (!ctx.current() || ctx.reading) return;
+  ctx.reading = true; coverRender(ctx);
+  try {
+    if (ctx.savedOnly) {
+      const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.savedJobId));
+      const job = await response.json(); if (!ctx.current()) return;
+      coverAcceptJob(ctx,job); ctx.enabled = false; ctx.quote = null;
+      ctx.reason = '此处读取已保存成品，不重新运行原报告。'; ctx.notice = '';
+      coverRender(ctx); await coverShowFinal(ctx); return;
+    }
+    const response = await coverFetch(ctx,ctx.path + '/covers');
+    const data = await response.json(); if (!ctx.current()) return;
+    ctx.enabled = data.enabled === true; ctx.quote = data.quote; ctx.reason = data.reason;
+    const jobs = Array.isArray(data.jobs) ? data.jobs.filter(job => coverJobMatches(job,ctx)) : [];
+    ctx.latest = coverJobMatches(data.latest_success,ctx) && data.latest_success.status === 'completed' ? data.latest_success : ctx.latest;
+    ctx.jobs = jobs;
+    const ownPending = ctx.pending && jobs.find(job => job.request_id === ctx.pending.request_id);
+    const active = ownPending || jobs.find(coverJobPending) || jobs[0];
+    if (active) coverAcceptJob(ctx,active);
+    ctx.notice = ctx.pending ? '提交结果待核查，已保留原请求。刷新仅查询，不会自动重新生成或扣分。' : '';
+    coverRender(ctx); await coverShowFinal(ctx); coverScheduleRead(ctx);
+  } catch (error) { if (ctx.current()) { ctx.notice = error.message; coverRender(ctx); } }
+  finally { ctx.reading = false; coverRender(ctx); }
+}
+async function coverLoadSources(ctx) {
+  if (ctx.savedOnly) return;
+  try {
+    const response = await coverFetch(ctx,ctx.path + '/cover-sources');
+    const data = await response.json(); if (!ctx.current()) return;
+    ctx.sourceStatus = data.status; ctx.sources = Array.isArray(data.sources) ? data.sources.slice(0,10) : [];
+    ctx.selected = new Set(ctx.sources.filter(source => source.status === 'ready').slice(0,9).map(source => source.media_ref));
+    const grid = ctx.dialog.querySelector('[data-cover="sources"]'); grid.replaceChildren();
+    for (const [index,source] of ctx.sources.entries()) {
+      const label = document.createElement('label'); label.className = 'cover-source';
+      const input = document.createElement('input'); input.type = 'checkbox'; input.dataset.coverSource = source.media_ref;
+      input.dataset.ready = String(source.status === 'ready'); input.checked = ctx.selected.has(source.media_ref);
+      const caption = document.createElement('span'); caption.textContent = `素材 ${index + 1} · ${source.status === 'ready' ? '可用' : source.status === 'storage_unavailable' ? '暂不可读' : '需补传'}`;
+      input.addEventListener('change',() => {
+        if (input.checked && ctx.selected.size >= 9) { input.checked = false; showToast('一次最多选择9张候选素材'); return; }
+        if (input.checked) ctx.selected.add(source.media_ref); else ctx.selected.delete(source.media_ref); coverRender(ctx);
+      });
+      label.append(input,caption); grid.append(label);
+      if (source.status === 'ready') {
+        const image = document.createElement('img'); image.alt = '本人报告素材 ' + (index + 1); label.append(image);
+        // Authenticated, owner-bound bytes only; no supplier URLs or URL tokens.
+        void coverFetch(ctx,ctx.path + '/cover-sources/' + encodeURIComponent(source.media_ref)).then(response => response.blob()).then(blob => { if (ctx.current() && image.isConnected) image.src = coverBlobURL(ctx,blob); }).catch(() => { if (ctx.current()) caption.textContent = `素材 ${index + 1} · 预览暂不可读`; });
+      }
+    }
+    coverRender(ctx);
+  } catch (error) { if (ctx.current()) {
+    ctx.sourceAccessExpired = error.status === 404;
+    ctx.sourceStatus = error.status === 404 ? 'reupload_required' : 'storage_unavailable';
+    if (!ctx.latest?.has_final && error.status !== 404) ctx.notice = error.message;
+    coverRender(ctx);
+  } }
+}
+async function coverUploadSources(ctx, files) {
+  if (!ctx.current() || !ctx.enabled || ctx.sourceAccessExpired || ctx.uploading || ctx.busy || coverJobPending(ctx.active) || ctx.pending) return;
+  if (!files.length || files.length > 9 || files.some(file => !['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 10*1024*1024)) {
+    showToast('请一次选择1–9张 JPG、PNG 或 WebP 图片，每张不超过10MB'); return;
+  }
+  ctx.uploading = true; ctx.notice = '正在上传本人封面素材…'; coverRender(ctx);
+  try {
+    const refs = [];
+    for (const file of files) {
+      const form = new FormData(); form.append('file',file);
+      const response = await coverFetch(ctx,'/upload-image',{method:'POST',body:form});
+      const data = await response.json(); if (!ctx.current()) return;
+      if (typeof data.media_ref !== 'string') throw Error('图片上传未确认，未启动封面制作');
+      refs.push(data.media_ref);
+    }
+    await coverFetch(ctx,ctx.path + '/cover-sources',{method:'PUT',body:JSON.stringify({media_refs:refs})});
+    if (!ctx.current()) return;
+    ctx.notice = '补传素材已关联原报告，未重新运行报告。';
+    await coverLoadSources(ctx);
+  } catch (error) { if (ctx.current()) ctx.notice = error.message; }
+  finally { ctx.uploading = false; coverRender(ctx); }
+}
+async function coverRecoverPending(ctx) {
+  if (!ctx.current() || !ctx.pending || ctx.busy || ctx.reading) return;
+  ctx.busy = true; ctx.notice = '正在核查原请求…'; coverRender(ctx);
+  try {
+    const response = await coverFetch(ctx,ctx.path + '/covers');
+    const data = await response.json(); if (!ctx.current()) return;
+    if (data.history_unavailable === true || !Array.isArray(data.jobs)) throw Error('原任务记录暂不可读，请稍后核查');
+    const job = data.jobs.find(item => coverJobMatches(item,ctx) && item.request_id === ctx.pending.request_id);
+    if (job) {coverAcceptJob(ctx,job);ctx.pendingBody=null;ctx.notice='已找回原请求，未重新提交。';coverScheduleRead(ctx);await coverShowFinal(ctx);return;}
+    if (!ctx.pendingBody || ctx.pendingBody.request_id !== ctx.pending.request_id) {
+      ctx.notice = '原编号暂未查到任务，且旧记录缺少可恢复提交内容。请稍后继续核查，不会另建编号或猜测重交。';return;
+    }
+    const submitted = await coverFetch(ctx,ctx.path + '/covers',{method:'POST',body:JSON.stringify(ctx.pendingBody)});
+    const original = await submitted.json(); if (!ctx.current()) return;
+    coverAcceptJob(ctx,original);ctx.pendingBody=null;ctx.notice='原编号与原内容已确认，不重复扣分。';coverScheduleRead(ctx);await coverShowFinal(ctx);
+  } catch(error) {if(ctx.current()) {
+    if (coverRejectionUnheld(error)) {coverWritePending(ctx,null);ctx.pendingBody=null;ctx.quote=null;ctx.notice=error.message+'；本次未受理、未预留，请刷新报价后再试。';}
+    else ctx.notice='原请求仍需核查：'+error.message+'；保留原编号，不会自动重交。';
+  }} finally {ctx.busy=false;coverRender(ctx);}
+}
+async function coverCreate(ctx) {
+  if (!ctx.current() || ctx.busy || ctx.reading || ctx.uploading || ctx.pending || coverJobPending(ctx.active)
+      || !ctx.enabled || !coverQuoteReady(ctx.quote) || !ctx.selected.size) return;
+  if (typeof crypto?.randomUUID !== 'function') { showToast('当前浏览器无法安全建立任务标识，请更新浏览器'); return; }
+  const pending = {request_id:crypto.randomUUID(),quote_version:ctx.quote.quote_version};
+  let body; try {body = coverSubmitBody(ctx,pending);} catch(error) {showToast(error.message);return;}
+  ctx.busy = true; ctx.pendingBody = body;
+  if (!coverWritePending(ctx,pending)) {
+    ctx.pending=null;ctx.pendingBody=null;ctx.busy=false;ctx.notice='当前浏览器无法保存任务恢复状态，请允许会话存储后再试；本次未提交。';coverRender(ctx);return;
+  }
+  ctx.notice = '正在提交独立封面任务…'; coverRender(ctx);
+  try {
+    const response = await coverFetch(ctx,ctx.path + '/covers',{method:'POST',body:JSON.stringify(body)});
+    const job = await response.json(); if (!ctx.current()) return;
+    coverAcceptJob(ctx,job); ctx.pendingBody=null; ctx.notice = ''; coverScheduleRead(ctx); await coverShowFinal(ctx);
+  } catch (error) {
+    if (!ctx.current()) return;
+    if (coverRejectionUnheld(error)) {
+      coverWritePending(ctx,null); ctx.pendingBody=null; ctx.quote=null;
+      ctx.notice=error.message+'；本次未受理、未预留，请刷新报价后再试。';
+    } else if (error.status && [400,401,403,404,422].includes(error.status)) {
+      // A server rejection is explicit. Transport/5xx failures retain the wire identity.
+      coverWritePending(ctx,null); ctx.pendingBody=null; ctx.notice = error.message;
+    } else ctx.notice = '受理结果待核查，已保留原请求。请刷新查询，不会自动重复付费调用。';
+  } finally { ctx.busy = false; coverRender(ctx); }
+}
+async function coverAdjust(ctx) {
+  if (!ctx.current() || ctx.busy || !ctx.latest?.has_final) return;
+  const position = ctx.dialog.querySelector('[data-cover="position"]').value;
+  if (position && !coverPositionOptions(ctx.latest.layout).includes(position)) {showToast('该位置未经主体保护校验，请保留当前位置');return;}
+  const adjustment = {text:ctx.dialog.querySelector('[data-cover="text"]').value,position:position || null,expected_revision:ctx.latest.asset_revision};
+  ctx.busy = true; ctx.notice = '正在免费重新排字并保存…'; coverRender(ctx);
+  try {
+    const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.latest.job_id) + '/adjust',{method:'POST',body:JSON.stringify(adjustment)});
+    const job = await response.json(); if (!ctx.current()) return;
+    if (!coverJobMatches(job,ctx) || job.job_id !== ctx.latest.job_id) throw Error('封面修改结果身份待核查');
+    ctx.latest = job; if (ctx.active?.job_id === job.job_id) ctx.active = job;
+    ctx.notice = '排字修改已保存，不另扣积分。'; coverRender(ctx); await coverShowFinal(ctx);
+  } catch (error) { if (ctx.current()) ctx.notice = error.message + '；保留上一张成功封面，可刷新读取原任务。'; }
+  finally { ctx.busy = false; coverRender(ctx); }
+}
+async function coverDownload(ctx) {
+  if (!ctx.current() || ctx.busy || !ctx.latest?.has_final) return;
+  ctx.busy = true; coverRender(ctx);
+  try {
+    const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.latest.job_id) + '/download?asset=final&revision=' + encodeURIComponent(ctx.latest.asset_revision || 0));
+    const blob = await response.blob(); if (!ctx.current()) return;
+    const url = coverBlobURL(ctx,blob); const link = document.createElement('a');
+    link.href = url; link.download = 'NoteAI-cover-' + ctx.latest.job_id.slice(0,8) + (blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg');
+    document.body.append(link); link.click(); link.remove();
+    ctx.notice = '已交给浏览器下载。如手机打开图片预览，可按浏览器提示保存。';
+  } catch (error) { if (ctx.current()) ctx.notice = error.message; }
+  finally { ctx.busy = false; coverRender(ctx); }
+}
+async function openCoverPanel(reportType, reportId, savedJob = null) {
+  const savedOnly = coverSavedJobReadable(savedJob) && savedJob.report_type === reportType && savedJob.report_id === reportId;
+  const ref = savedOnly ? {report_type:reportType,report_id:reportId} : coverReportRef(reportType);
+  if (!ref || ref.report_id !== reportId) { showToast('请先打开正确的已保存报告'); return; }
+  if (!_authToken || !_chatOwnerId()) { openAuthModal('login'); return; }
+  closeCoverPanel();
+  const dialog = document.createElement('dialog'); dialog.className = 'cover-panel'; dialog.id = 'report-cover-panel';
+  dialog.setAttribute('aria-labelledby','report-cover-title');
+  dialog.innerHTML = `<div class="cover-panel-head"><div><h2 id="report-cover-title">笔记封面</h2><p>复用这份报告、视觉建议和本人素材，独立制作并保存封面。</p></div><button type="button" data-cover="close" aria-label="关闭封面面板">关闭</button></div>
+    <div class="cover-panel-body"><p data-cover="quote" class="cover-panel-note">正在读取独立封面报价…</p><p data-cover="availability" class="cover-panel-note"></p>
+    <div data-cover="status" role="status" aria-live="polite" class="cover-panel-status">正在找回本报告封面任务…</div><p data-cover="unknown-history" class="cover-panel-note" style="white-space:pre-line"></p>
+    <section data-cover="source-form"><label for="report-cover-input-title">标题依据（从已有标题选择，设计自动短摘，不改原笔记）</label><select id="report-cover-input-title" data-cover="title"><option value="">结合原题与备选标题自动优选</option></select>
+    <p data-cover="source-note" class="cover-panel-note">正在核对原图…</p><div data-cover="sources" class="cover-source-grid"></div>
+    <div class="cover-panel-actions"><button type="button" data-cover="upload">补传或换候选图</button><button type="button" data-cover="create" class="cover-primary" disabled>生成封面 · 8 积分</button><button type="button" data-cover="refresh">刷新任务</button><button type="button" data-cover="recover" hidden>核查／重交原请求</button></div><p data-cover="recovery-note" class="cover-panel-note" hidden></p>
+    <input data-cover="file" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden><p class="cover-panel-note">重新设计或换图后制作是新的8积分任务；关闭页面不取消后台任务。重新打开本报告可找回进度。</p></section>
+    <section data-cover="result" hidden><div class="cover-final"><img data-cover="final-image" alt="本报告已保存封面"><div class="cover-final-controls"><p data-cover="expiry" class="cover-panel-note"></p>
+    <label>免费改字与断行<textarea data-cover="text" aria-label="免费修改封面文字" maxlength="80" rows="3"></textarea></label><label>文字位置<select data-cover="position" aria-label="封面文字位置"><option value="">保留当前位置</option></select></label>
+    <div class="cover-panel-actions"><button type="button" data-cover="adjust">免费保存排字</button><button type="button" data-cover="download" class="cover-primary">下载封面</button></div><p class="cover-panel-note">改字、断行、文字位置及下载不重复收费；修改失败保留上一张成功封面。</p></div></div></section></div>`;
+  document.body.append(dialog);
+  const ctx = {dialog,...ref,path:'/reports/' + reportType + '/' + encodeURIComponent(reportId),identity:_chatIdentitySnapshot(),token:_authToken,
+    urls:new Set(),selected:new Set(),sources:[],jobs:[],sourceStatus:'loading',enabled:false,quote:null,active:savedOnly?savedJob:null,latest:savedOnly?savedJob:null,savedOnly,savedJobId:savedOnly?savedJob.job_id:null};
+  ctx.current = () => _coverPanel === ctx && dialog.isConnected && _chatIdentityMatches(ctx.identity) && _authToken === ctx.token
+    && (ctx.savedOnly || coverReportRef(reportType)?.report_id === reportId);
+  _coverPanel = ctx; ctx.pending = ctx.savedOnly ? null : coverReadPending(ctx);
+  ctx.titleChoices = ctx.savedOnly ? [] : coverTitleChoices(reportType);
+  const el = name => dialog.querySelector('[data-cover="' + name + '"]');
+  el('close').addEventListener('click',closeCoverPanel); dialog.addEventListener('cancel',event => { event.preventDefault(); closeCoverPanel(); });
+  ctx.titleChoices.forEach(title => {const option=document.createElement('option');option.value=title;option.textContent=title;el('title').append(option);});
+  el('refresh').addEventListener('click',() => coverRefresh(ctx));
+  el('recover').addEventListener('click',() => coverRecoverPending(ctx));
+  el('create').addEventListener('click',() => coverCreate(ctx)); el('adjust').addEventListener('click',() => coverAdjust(ctx));
+  el('download').addEventListener('click',() => coverDownload(ctx)); el('upload').addEventListener('click',() => el('file').click());
+  el('file').addEventListener('change',() => { const files = [...el('file').files]; el('file').value = ''; void coverUploadSources(ctx,files); });
+  if (savedOnly) dialog.querySelector('.cover-panel-head p').textContent = '读取本人已保存封面，不需要原报告仍在保存期。';
+  dialog.showModal(); coverRender(ctx);
+  await Promise.all([coverRefresh(ctx),coverLoadSources(ctx)]);
+}
+
+function coverSavedJobReadable(job) {
+  return !!job && typeof job.job_id === 'string' && !!job.job_id
+    && ['analyze','generate'].includes(job.report_type) && typeof job.report_id === 'string'
+    && !!job.report_id && job.status === 'completed' && job.has_final === true;
+}
+async function openSavedCovers() {
+  if (!_authToken || !_chatOwnerId()) { openAuthModal('login'); return; }
+  closeCoverPanel();
+  const dialog = document.createElement('dialog'); dialog.className = 'cover-panel'; dialog.id = 'saved-covers-panel';
+  dialog.setAttribute('aria-labelledby','saved-covers-title');
+  dialog.innerHTML = `<div class="cover-panel-head"><div><h2 id="saved-covers-title">已保存封面</h2><p>独立保存90天，原报告到期后仍可读取；重开不会重新生成或扣分。</p></div><button type="button" data-saved-cover-close>关闭</button></div><div class="cover-panel-body" data-saved-cover-list role="status" aria-live="polite">正在读取本人已保存封面…</div>`;
+  document.body.append(dialog);
+  const ctx = {dialog,identity:_chatIdentitySnapshot(),token:_authToken};
+  ctx.current = () => _savedCoverList === ctx && dialog.isConnected && _chatIdentityMatches(ctx.identity) && _authToken === ctx.token;
+  _savedCoverList = ctx;
+  dialog.querySelector('[data-saved-cover-close]').addEventListener('click',closeCoverPanel);
+  dialog.addEventListener('cancel',event => {event.preventDefault();closeCoverPanel();});
+  dialog.showModal();
+  const list = dialog.querySelector('[data-saved-cover-list]');
+  try {
+    const response = await coverFetch(ctx,'/covers');
+    const data = await response.json(); if (!ctx.current()) return;
+    const jobs = Array.isArray(data.jobs) ? data.jobs.filter(coverSavedJobReadable) : [];
+    list.replaceChildren();
+    if (!jobs.length) {list.textContent = '暂无保存期内的封面。已交付封面可在90天内从这里重开。';return;}
+    for (const job of jobs) {
+      const button = document.createElement('button'); button.type = 'button'; button.style.textAlign = 'left';
+      const title = typeof job.layout?.text === 'string' ? job.layout.text.replace(/\s+/g,' ').slice(0,80) : '';
+      button.textContent = (title || '笔记封面') + (job.expires_at ? ' · 保存至 ' + _fmtLocalTime(job.expires_at) : '');
+      button.addEventListener('click',() => {if (ctx.current()) void openCoverPanel(job.report_type,job.report_id,job);});
+      list.append(button);
+    }
+  } catch (error) {if (ctx.current()) list.textContent = error.message;}
+}
+
 /* ── Generation report populate ─────────────────────────────── */
 async function populateGenerateReport() {
   renderBillingReceipt(reportGenerationResult()?.billing);
@@ -8428,6 +8897,7 @@ async function populateGenerateReport() {
               ${conf > 0 ? `<span class="agent-conf-badge ${confCls}">置信度 ${conf.toFixed(2)}</span>` : ''}
             </div>
             <div class="agent-result-text">${escapeHtml(opinion)}${rationale ? `<div style="margin-top:6px;font-size:12px;color:var(--text-muted);line-height:1.6">${escapeHtml(rationale).replace(/\n/g,'<br>')}</div>` : ''}${evidenceHtml}${suggestionsHtml}</div>
+            ${role === '视觉分析师' ? coverEntryMarkup('generate') : ''}
           </div>`;
       }).join('');
     }
@@ -8527,6 +8997,7 @@ function renderAgentResults(opinions, dispute, basis = '') {
           <span class="agent-conf-badge ${confCls}">置信度 ${conf.toFixed(2)}</span>
         </div>
         <div class="agent-result-text">${escapeHtml(opinion)}${evidenceHtml}${impactHtml}${sugHtml}</div>
+        ${role === '视觉专家' ? coverEntryMarkup('analyze') : ''}
       </div>`;
   }).join('');
 
@@ -12238,6 +12709,7 @@ async function openDiagDetail(diagId) {
 }
 
 async function openReportDetail(reportType, reportId) {
+  if (typeof closeCoverPanel === 'function') closeCoverPanel();
   if (!['analyze','generate'].includes(reportType) || typeof reportId !== 'string' || !reportId) return;
   const identity=_chatIdentitySnapshot(), token=_authToken;
   if (!token) return;
@@ -12482,6 +12954,7 @@ function librarySourceLabel(source) {
     case 'analyze':
     case 'diagnose': return '诊断原稿';
     case 'generate': return 'AI生成';
+    case 'cover_generate': return '笔记封面';
     case 'chat': return '对话优化';
     default: return '来源未记录';
   }
@@ -14912,7 +15385,7 @@ document.addEventListener('keydown',event=>{
    计费系统 — 前端
 ═══════════════════════════════════════════════════════════ */
 const OP_NAMES = {
-  analyze:'AI深度诊断', generate:'AI爆文生成',
+  analyze:'AI深度诊断', generate:'AI爆文生成', cover_generate:'笔记封面',
   rewrite:'对话重写', screenshot:'截图识别',
   chat_fast:'对话反馈', diagnose:'快速评分',
 };
@@ -15009,6 +15482,30 @@ function billingUsageCostValue(cost) {
     + (known !== null && (cost?.complete !== true || (unknown !== null && unknown > 0)) ? ' · 待核' : '');
 }
 
+function billingUsageImageCost(image) {
+  if (!image || typeof image !== 'object') return '生图按张费用未记录，实际账单待核';
+  const calls = billingUsageNumber(image.physical_calls);
+  if (calls === 0) return '生图请求 0 条；尚无按张生图费用记录，不代表完整任务成本已核实';
+  const estimated = billingUsageNumber(image.estimated_cost_rmb);
+  const actual = billingUsageNumber(image.actual_cost_rmb);
+  const known = billingUsageNumber(image.known_billed_cost_rmb);
+  const parts = ['生图请求 ' + billingUsageValue(calls,0,' 条')];
+  if (Array.isArray(image.calls) && image.calls.length) {
+    const quantity = key => image.calls.every(call => billingUsageNumber(call[key]) !== null)
+      ? image.calls.reduce((sum,call) => sum + call[key],0) : null;
+    parts.push('输入 ' + billingUsageValue(quantity('input_images'),0,' 张')
+      + ' / 输出 ' + billingUsageValue(quantity('output_images'),0,' 张')
+      + ' / 计费 ' + billingUsageValue(quantity('billed_images'),0,' 张'));
+  }
+  parts.push(estimated === null ? '按张预计待核' : '按张预计 ¥' + estimated.toFixed(4));
+  if (actual !== null && image.cost_status === 'actual') parts.push('实际生图账单 ¥' + actual.toFixed(4));
+  else {
+    if (known !== null && known > 0) parts.push('已核部分账单 ¥' + known.toFixed(4));
+    parts.push('实际生图费用未核实');
+    if (billingUsageNumber(image.unconfirmed_bills) !== null) parts.push('待核账单 ' + image.unconfirmed_bills + ' 条');
+  }
+  return parts.join(' · ');
+}
 function billingUsageOperationCost(row) {
   return {known_calculated_rmb:row.known_calculated_rmb, manual_cost_rmb:row.manual_cost_rmb,
     estimated_only_rmb:row.estimated_only_rmb, complete:row.cost_complete};
@@ -15111,7 +15608,7 @@ async function loadBillingPlan() {
     const pct = total !== null && used !== null && total > 0 ? Math.max(0, Math.min(100, used / total * 100)) : null;
     const costs = plan.operation_costs && typeof plan.operation_costs === 'object' ? {...plan.operation_costs} : {};
     if (!costs.video_analyze) costs.video_analyze = {label:'视频辅助理解', credits:null};
-    const opMeta = {analyze:['AI 深度诊断','#7B61FF'], generate:['AI 爆文生成','#FF6FD8'], chat_rewrite:['对话深度重写','#00D4FF'], chat_fast:['快速对话','#22C55E'], video_analyze:['视频辅助理解','#00D4FF'], screenshot:['截图识别','#22C55E']};
+    const opMeta = {cover_generate:['笔记封面','#0099FF'], analyze:['AI 深度诊断','#7B61FF'], generate:['AI 爆文生成','#FF6FD8'], chat_rewrite:['对话深度重写','#00D4FF'], chat_fast:['快速对话','#22C55E'], video_analyze:['视频辅助理解','#00D4FF'], screenshot:['截图识别','#22C55E']};
     const opCards = Object.entries(costs).map(([key, info]) => {
       const [label, color] = opMeta[key] || [info.label || key, 'var(--holo-mid)'];
       const credits = billingUsageNumber(info.credits);
@@ -15122,9 +15619,9 @@ async function loadBillingPlan() {
     }).join('');
     if (bars) bars.innerHTML = `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px"><div><div style="font-size:13px;font-weight:800;color:var(--text)">当前套餐周期积分</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${e(plan.credit_policy || '权益扣分规则待核')}</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:900;color:var(--holo-mid)">${billingUsageValue(plan.monthly_credits_remaining, 2)}</div><div style="font-size:10px;color:var(--text-muted)">剩余 / 共 ${billingUsageValue(total, 2)}</div></div></div><div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;width:${pct === null ? 0 : pct}%;background:linear-gradient(90deg,#7B61FF,#FF6FD8);border-radius:4px;transition:width .6s ease"></div></div><div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--text-muted)"><span>已用 ${billingUsageValue(used, 2)} 积分</span><span>钱包积分 ${billingUsageValue(plan.wallet_credits_balance, 2)} · 总可用 ${billingUsageValue(available, 2)}</span></div></div>
       <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">功能扣分标准</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px">${opCards}</div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-top:16px;margin-bottom:4px">用量记录口径与主流程内部步骤</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">业务记录、辅助事件、模型用量、供应商请求分别统计，不能相加当作完成次数。${e(billingUsageCost(usage.accounting.cost))}；按供应商用量与记录价格计算，不是供应商账单实付。完整性仅针对模型用量；外部数据费用未对账，平台总成本待核。</div><div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:4px 14px">${billingUsageAccountingRows(usage.accounting)}</div>`;
+      <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--text-muted);text-transform:uppercase;margin-top:16px;margin-bottom:4px">用量记录口径与主流程内部步骤</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">业务记录、辅助事件、模型用量、供应商请求分别统计，不能相加当作完成次数。${e(billingUsageCost(usage.accounting.cost))}；按供应商用量与记录价格计算，不是供应商账单实付。完整性仅针对模型用量；外部数据费用未对账，平台总成本待核。</div><div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:4px 14px">${billingUsageAccountingRows(usage.accounting)}${usage.cover_image_usage ? `<div style="padding:10px 0;font-size:11px;color:var(--text-muted);line-height:1.6">${e(billingUsageImageCost(usage.cover_image_usage))}<br>封面生图按张费用单列；Token计量不代表封面全部费用，未核账单保持待核。</div>` : ''}</div>`;
     const summary = {
-      'profile-cost-total':[billingUsageCostValue(usage.accounting.cost), '本月已知计量成本（非实付）'],
+      'profile-cost-total':[billingUsageCostValue(usage.accounting.cost), usage.cover_image_usage?.physical_calls > 0 ? '本月Token计量成本（生图按张另列）' : '本月已知计量成本（非实付）'],
       'profile-token-total':[billingUsageNumber(usage.total_tokens) === null ? '待核' : fmtTokens(usage.total_tokens), '本月已记录 Tokens'],
       'profile-credits-used-total':[billingUsageValue(usage.total_credits, 2, ' 积分'), '本月记录净扣积分'],
       'profile-credits-bal':[billingUsageValue(available, 2, ' 积分'), '当前可用积分'],
@@ -15152,7 +15649,7 @@ function renderUsageDetail() {
       const count = row.count_basis === 'usage_records' ? billingUsageValue(row.count, 0, ' 条记录') : '记录口径待核';
       const cost = billingUsageOperationCost(row);
       const included = auxiliary && billingUsageNumber(row.count) !== null && row.included_in_parent_records === row.count;
-      return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:7px 10px;background:var(--surf-2);border-radius:8px;font-size:12px"><span style="color:var(--text-2)">${e(row.label || key)}<br><small>${e(auxiliary ? '辅助事件' : row.kind === 'business_operation' ? '业务记录' : '记录类型待核')}</small></span><span style="color:var(--text-muted);text-align:right">${e(count)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? '待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-2);text-align:right">${e(included ? '计入主流程' : billingUsageCostValue(cost))}</span><span style="color:var(--holo-mid);text-align:right">${billingUsageValue(row.credits_used, 2, '积分')}</span><small style="grid-column:1/-1;color:var(--text-muted)">${e(billingUsageStatusCounts(row.status_counts, true) + '；' + billingUsageCost(cost, included) + '；供应商请求记录 ' + billingUsageValue(row.physical_records) + '，模型用量记录 ' + billingUsageValue(row.model_usage_records))}</small></div>`;
+      return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:7px 10px;background:var(--surf-2);border-radius:8px;font-size:12px"><span style="color:var(--text-2)">${e(row.label || key)}<br><small>${e(auxiliary ? '辅助事件' : row.kind === 'business_operation' ? '业务记录' : '记录类型待核')}</small></span><span style="color:var(--text-muted);text-align:right">${e(count)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? '待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-2);text-align:right">${e(included ? '计入主流程' : billingUsageCostValue(cost))}</span><span style="color:var(--holo-mid);text-align:right">${billingUsageValue(row.credits_used, 2, '积分')}</span><small style="grid-column:1/-1;color:var(--text-muted)">${e(billingUsageStatusCounts(row.status_counts, true) + '；' + billingUsageCost(cost, included) + '；供应商请求记录 ' + billingUsageValue(row.physical_records) + '，模型用量记录 ' + billingUsageValue(row.model_usage_records) + (key === 'cover_generate' ? '；Token计量不代表封面全部费用；' + billingUsageImageCost(row.image_usage) : ''))}</small></div>`;
     }).join('');
     byOp.innerHTML = `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;padding:4px 10px;font-size:10px;color:var(--text-muted);font-weight:700"><span>功能</span><span style="text-align:right">记录</span><span style="text-align:right">已记录 Tokens</span><span style="text-align:right">计量成本（非实付）</span><span style="text-align:right">净扣积分</span></div>${rows || '<div style="color:var(--text-muted);font-size:13px;padding:8px">此统计窗口没有用量记录；不代表内部步骤未执行。</div>'}`;
   }
@@ -15163,9 +15660,10 @@ function renderUsageDetail() {
     const source = (held?'预留中':released?'已释放':null) || {subscription:'套餐', mixed:'混合', credits:'钱包', refunded:'已退回', free:'未扣积分'}[row.source] || '来源待核';
     const split = '周期 ' + billingUsageValue(held?row.monthly_credits_reserved:row.monthly_credits_used, 2) + ' / 钱包 ' + billingUsageValue(held?row.wallet_credits_reserved:row.wallet_credits_used, 2);
     const debit = held?'预留 ' + billingUsageValue(row.reserved_credits, 2) + ' · 当前未扣':released?'已释放 ' + billingUsageValue(row.released_credits, 2) + ' · 本次未扣':row.source === 'refunded' ? '净扣 ' + billingUsageValue(row.credits_used, 2) + ' · 已退 ' + billingUsageValue(row.refunded_credits, 2) : '净扣 ' + billingUsageValue(row.credits_used, 2);
+    const imageCost = row.operation === 'cover_generate' ? billingUsageImageCost(row.image_usage) : '';
     const taskRead=row.request_id && ['generate','analyze'].includes(row.operation)
       ? ` <button type="button" class="btn btn-ghost btn-sm" data-usage-task-read="${e(row.request_id)}" data-task-operation="${e(row.operation)}" style="font-size:10px;padding:4px 6px;white-space:normal">查看任务状态</button><span data-usage-task-state role="status" hidden style="display:block;line-height:1.6"></span>` : '';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px"><span style="color:var(--text-2);flex:1;min-width:0;overflow-wrap:anywhere">${e(row.label || row.operation || '用量记录')}<br><small>${e(debit + ' 积分 · ' + split)}</small>${row.request_id ? `<br><small>任务 ${e(row.request_id)}</small>${taskRead}` : ''}</span><span style="color:var(--text-muted)">${e(billingUsageTime(row.recorded_at))} UTC</span><span style="color:var(--text-muted);font-weight:600;text-align:right">${e(source)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? 'Tokens待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-muted);text-align:right">${e(billingUsageCostValue(row.cost))}</span></div>`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surf-2);font-size:11px"><span style="color:var(--text-2);flex:1;min-width:0;overflow-wrap:anywhere">${e(row.label || row.operation || '用量记录')}<br><small>${e(debit + ' 积分 · ' + split)}</small>${imageCost ? `<br><small>${e(imageCost)}</small>` : ''}${row.request_id ? `<br><small>任务 ${e(row.request_id)}</small>${taskRead}` : ''}</span><span style="color:var(--text-muted)">${e(billingUsageTime(row.recorded_at))} UTC</span><span style="color:var(--text-muted);font-weight:600;text-align:right">${e(source)}</span><span style="color:var(--text-muted);text-align:right">${billingUsageNumber(row.total_tokens) === null ? 'Tokens待核' : fmtTokens(row.total_tokens)}</span><span style="color:var(--text-muted);text-align:right">${e(row.operation === 'cover_generate' ? 'Token计量 ' + billingUsageCostValue(row.cost) + '；生图按张另列' : billingUsageCostValue(row.cost))}</span></div>`;
   }).join('') || '<div style="color:var(--text-muted);font-size:12px">此统计窗口暂无记录</div>' : '最近记录待核';
   const identity=window._billingUsageIdentity, token=_authToken;
   recent?.querySelectorAll('[data-usage-task-read]').forEach(button=>button.addEventListener('click',async()=>{
