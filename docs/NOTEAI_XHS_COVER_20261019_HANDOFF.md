@@ -137,12 +137,12 @@
 
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
-| 1 接管基线与确认范围 | 封面主代理 | 基线COMPLETE；产品选择WAITING_USER / cc96df7→94e78f7 | HEAD/branch/ancestor及原窗口A01–A03；官方型号/尺寸/价格依据见最新checkpoint | 已集中提问；未经确认的模型/尺寸/积分/期限不启用 |
-| 2 最小实现与离线验证 | 封面主代理；素材/策略子代理DONE | 基础补丁COMPLETE，完整功能PENDING / 94e78f7 | 素材链与策略合同83项关联测试PASS；本地SQLite+私有内存对象；源码独审通过 | 继续任务执行/成品存储/后结算/UI，依已发产品选择收敛；不冒称已实现 |
-| 3 定向集成与授权真实验收 | 封面主代理 | PENDING | 旧报告证据按第6节复用；新增仅素材/策略受控集成，非真实封面 | 新预算未授权，账号条件UNKNOWN；PG/PC/H5/真实成品均待执行 |
-| 4 独立审查与交付 | 独立审查子代理DONE(基础)；主代理集成 | 基础独审COMPLETE；最终功能交付PENDING / 94e78f7 | 发现同源proxy缺口、旧诊断过滤丢附件，均修复；基础diff无未结P0/P1/P2 | 原窗口接收阶段提交；完整任务/真实验收后另做最终diff独审，不部署 |
+| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor、原窗口A01–A03；用户1/2同意及专项100元授权见最新checkpoint | 已确认合同直接执行；实际账号权限/价格待核 |
+| 2 最小实现与离线验证 | 封面主代理；task/media/UI子代理DONE | COMPLETE / 37512e0+90e969c | 后台、私有PNG、8分唯一结算、异常恢复、PC/H5均有定向证据 | 已冻结；不重复全项目或历史验收 |
+| 3 定向集成与授权真实验收 | 封面主代理；原窗口提供隔离接点 | 本地HTTP集成COMPLETE / a7eb030；真实验收PENDING | PC/H5真实loopback FastAPI→SQLite→私有PNG→后结算通过；预算100元已授权、实际0 | PG由原窗口Q04独立继续；账号登录/型号权限/有效价格UNKNOWN；真实成品/iPhone待测 |
+| 4 独立审查与交付 | 独立审查子代理DONE；主代理集成 | 候选独审与交付COMPLETE / 37512e0+90e969c+a7eb030 | 最终产品diff无未修可复现P0/P1/P2；迁移静态4+队列1独立PASS，loopback补独审通过 | 交原窗口准备集成；真实验收未完成、不发布 |
 
-- 当前分支/HEAD：`codex/noteai-xhs-cover-20261019` / `cc96df72e03a914f2fa595f4d1ec71b03e2d175d`。
+- 接收时分支/HEAD（历史快照，实际状态见最新checkpoint）：`codex/noteai-xhs-cover-20261019` / `cc96df72e03a914f2fa595f4d1ec71b03e2d175d`。
 - 已完成：接收、基线关系、归属与授权边界核对。复用基线修复，无需重复cherry-pick。
 - 未完成：原图关联、独立任务/报价/保存/结算、PC/H5入口与重开下载、定向验证和独审。
 - 运行中供应商/生产请求：无；新增付费模型调用0、生产动作0、历史UNKNOWN原样保留。
@@ -159,6 +159,12 @@
 - **Q02 / 图片账号只读证据与安全配置**：当前worktree无环境/密钥，现`ark_media`仅看图。请提供既有控制台已开通Seedream型号/有效价格/配额的脱敏事实及现有安全配置通道；没有证据则保持UNKNOWN，无需开通、购买、创建新密钥或付费测试。建议固定Pro `doubao-seedream-5-0-pro-260628`，尺寸与产品方案待用户决定。阻塞：真实供应商验收/启用，不阻塞离线adapter合同。A02（原窗口，2026-10-19，北京时间；账号证据仍UNKNOWN）：没有已核验的Seedream账号开通、有效型号、账号生效价格、RPM/IPM或免费余额证据，也没有可交给你当作已验收的Seedream调用记录。现有真实调用仅证明Ark看图型号 `doubao-seed-2-0-lite-260428` 的既有链可用，不证明同Key/项目已具备Seedream权限；公开价格表不等于该账号实际价格。Pro `doubao-seedream-5-0-pro-260628`仍仅官方示例线索，不能写成账号已开通。
   - 现源码安全配置接点为 `model/ark_media.py:39 configured`及`:113 _headers`读取服务端变量 `NOTEAI_ARK_API_KEY`，现base为官方Ark `/api/v3`（文件顶部）。只给变量名/通道，不提供值、环境文件或完整连接串。原管理核验通道是主窗口现有阿里云官方管理会话、成熟主机只读执行/脱敏回执，模型开通/配额应在原火山方舟账号控制台核；本次未为答疑登录探测/开通/购买/调额/建Key。
   - 后续若有已授权真实评测，主窗口通过原受控配置渠道供给隔离运行实例，只交换型号/权限结果/报价版本/额度/脱敏绑定摘要；不将生产env或Key复制到此worktree，不自动假设复用既有Key有权访问新模型。暂保持图片adapter不启用；离线合同/替身测试可继续，真实验收及启用依赖账号证据和另行预算。
+  - **A02补充／2026-10-20 已授权后实际只读核验**：主窗口已通过`read_thread`核实新窗口人类原回复`1同意，2同意，3授权100元以内`及其紧前完整三项正文；独立预算100元、最多6样本/18模型调用/自动付费重试0，旧150元不混用。2元单任务上限未在最终确认正文，不补称获批。以下新事实仅更新账号/设施准备，不改变封面窗口的开发拥有权。
+  - **账号真实阻塞**：原Chrome火山方舟控制台现明确显示会话切为未登录，已打开正常手机号登录表单并保留原tab1637494949。已一次性请用户正常登录，未索取密码/验证码，未开通/购买/建Key。Seedream是否已开通、固定型号权限、账号有效价格、RPM/IPM、项目与Key绑定均仍UNKNOWN；不能把未登录写成模型未开通或权限被拒。既有Ark看图成功仍不能替代这些证据。账号恢复前封面离线开发可继续。
+  - **已有设施现已做当日最小只读确认**：唯一RunCommand `c-sz070iyi0i3k1kw` / `t-sz070iyi0iijfnk`，2026-10-20 00:14:31北京执行；唯一DescribeInvocations原身份读回实Success/Exit0/Dropped0，未重派。正式API仍CID3711/镜像9be6/PID2779792/restart0/running；静态仍c4a指针。原隔离API `noteai-local-api-ca-9cd7` CID761d26/image `c4a27a321e5613eccccc8418b712d3c8a1253d7ee11aebe6a83216f1abd50fa2`/PID2760125/restart0/running，与最后previous39兼容演练镜像一致，**不是封面候选**；旧f3e85bd仍exited。PG4e19/imagee853/PID918657/network=none/running；socket host源 `/var/lib/noteai/old-hotfix-local-pg16-9cd7d2ac5f84-20261013-01/socket`对应容器`/run/noteai-pg-socket`。未查业务表、未验证当前DB权限/事务/在途任务，不以running冒充真实验收就绪。
+  - **隔离/入口边界**：隔离API实际network=host，与生产同机；PG为network=none+独立Unix socket，这不是完全网络隔离证明。`/etc/nginx/noteai-private-ui-204-0615.locations.conf`仍不存在，parent6181B/SHA4c801704978fffb4bd4a0c7b70b03486ee27a621fcf4d478b801a3a811986a0e，原测试公网入口保持关闭。旧18:00开放许可/运行时scope/arm载体均已过期，不可重放。
+  - **可复用接点及尚需事项**：有原API/PG/私有存储受控设施，无需先新建服务。后续主窗口在完整候选、离线验证及样本清单就绪后，依原受控构造/配置渠道装载确切提交/镜像，核新候选只连隔离PG、本人素材和封面专项预算，不复制生产env/Key到worktree。旧原生scope96/150元控制不能充当100元/18calls新约束。当前尚未装载封面镜像、核旧在途/预留或重新开放入口；如需浏览器公网验收，届时按工具的当次开放要求安排，不能沿用过期许可。准备不等于生产部署授权，也不由本次主窗口代发模型。
+  - **证据**：`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-account-environment-20261020-r1/RECEIPT.json` 9850B/SHA256 `4c4728f197b22f14a5a1847659fa941afe27cda5c08ab2925b8458eec9dc6159`。同目录保存RunCommand原回复、DescribeInvocations原回复10023B/SHA`eeadde60ec92b09e27363914120e094f12543d31d295956e1eb718b5d0b52abe`、2227B实际只读命令、3923B解码输出、官方回执截图及脱敏登录观察。1次云只读命令/1次原身份查询、DB查询0/服务改动0/供应商0/付费模型0/凭据值读取或复制0。复原/部署/迁移/开户均未执行；截图是元数据读回，不是封面验收。
 - **Q03 / 报告素材契约增量**：拟增加严格UUID白名单`source_media_refs`保存原输入引用，生成兼容最多9张，诊断兼容cover+9extra（最多10）；另用`cover_source_media_refs`保存本人补传候选，不改原图事实/观察、不延长TTL。只扩展原报告保存/重开和本人素材读取补传接口；旧无图报告明确需补传。请告知原窗口是否有同文件在途变更或已有等效接点。阻塞：无，按本窗口源码拥有权开发；最终由主窗口合并。A03（原窗口，2026-10-19，北京时间；同意作为最小兼容接口方向）：本窗口无 `model/api.py`、原HTML、`model/db.py`、`private_storage.py` 的在途修改或封面代码；这里只做共享交接问答和原操作文档，封面源码由你持有。大版本最后已核ACK仍暂停生产，未通知其恢复，也未向其混入本功能。
   - `source_media_refs`记录本次原输入中实际存在的本人图片UUID，保留输入顺序及与观察图片编号的映射；生成上限9，诊断既有 `cover_image + extra_images(max9)`兼容上限10，有源码依据（api.py:6491/6588），不是扩张前端新上传规格。不得把base64、任意URL、视频file_id塞入该UUID列表，不给旧报告伪造/追溯填入从未保存的原图。存储是规范化JPEG引用，不宣称原文件逐字保留。
   - `cover_source_media_refs`可作为本人补传候选列表，与历史原输入分开；只能修改本人目标报告的候选，不改原观察/事实、已生成报告内容、评分或旧任务扣分。写入和读取/实际使用均校本人、purpose=image、状态及TTL，UUID语法正确不足以授权。不要为写候选复制文件或延长到期时间；过期时明确需补传。
@@ -210,3 +216,55 @@
 - 实现分工：主代理拥有API/shared admission/private_storage90天/Admin/集成；`cover_task_contract`独占cover_jobs、feature SQL、billing/postdelivery及对应tests；`cover_media`独占renderer/runtime/Seedream及fonts/tests；`cover_model_decisions`独占原HTML及前端定向tests。独审者待最终diff就绪再启用。没有两个修改者争同一源码文件。
 - 下一步IN_PROGRESS：实现原账本预留的持久封面任务/状态恢复、原图保真程序排版+至多一次Seedream、90天私有成品/版本化免费调整、API/Admin/前端最小闭环。先离线及受控集成，再核账号安全配置条件；账号未开通不激活/购买/建Key。
 - 运行中provider请求无，付费模型调用0，生产/生产DB动作0。历史UNKNOWN不变。本checkpoint前83项通过不重放；真正每张合格成本仍N/A。
+
+### 恢复 checkpoint — 2026-10-20 第二阶段离线闭环收尾
+
+- 实际分支/HEAD：`codex/noteai-xhs-cover-20261019` / `e4a020c`；完整功能正在该提交后未提交工作区集成，不回退或复制他窗改动。原窗口追加A02账号/运行时答复已保留。
+- 已实现：独立cover_generate任务与8分预留/唯一后结算，原请求持久恢复与30分钟UNKNOWN释放；设计1/图片最多1/QC1；实拍主体保留+程序文字；90天私有底图/成品及版本免费调整；两报告局部入口/已保存封面列表/鉴权下载；已有Admin配置体系内的默认关闭开关和按张成本。新增字体沿用OFL随附许可，无新增生产依赖。旧素材TTL不延长。
+- 有效证据：基础83项沿用94e。任务/原后结算/Token回归63项PASS；runtime/Seedream23项PASS；真实本地SQLite/存储/渲染/供应商协议MockTransport全链10项PASS（禁止socket外联），含多人物理峰值2/图片峰值1、原报告占用资源、保存失败、UNKNOWN和唯一扣分。新增settings10项与scope/共享调度22项PASS；Admin VM21项PASS。PC1280×900/H5 390×844首轮浏览器替身通过，当前正在补两项审查修复；这些不冒充真实模型或真实iPhone保存验收。
+- 调试记录：新增guard测试曾用不被原表接受的`failed`枚举及旧quote，已只修fixture；原disabled调度测试原先断言不读Invocation，新封面例外需查context，改为验证无Invocation时不触碰scheduler，产品行为未扩展。settings测试检出secret保留键草稿假成功，已改为只查is_secret并409，不读secret内容。独审UI两项（标题候选/明确拒绝后的pending恢复）正在修复。未扩大历史验收范围。
+- 计量范围：acceptance独立100元/6任务/18调用；formal独立权益计量scope仍每任务最多3调用/8分，没有把测试预算当商业永久上限。两者均默认功能关闭；正式scope不意味着生产启用授权。每张图片估算与真实账单分列，UNKNOWN/未到账单不当0元，不追扣已释放任务。
+- 最小迁移：仅feature SQL新增cover_jobs、cover_image_usage、cover_asset_revisions和两独立预算行，兼容原schema31；SQL显式事务及可重跑约束更换，旧50元预算值/历史不改。没有运行全量migrator。真实PG验证PENDING：本机无PG/psql，Docker daemon未运行，这是环境限制；原隔离PG由原窗口安排受控装载后验证，不能拿SQLite通过替代。
+- 直接阻塞：原窗口A02实际读回火山会话未登录，固定Seedream型号权限/账号实际价/配额仍UNKNOWN；已有隔离设施运行但未装载本候选。付费调用0/100元，真实合格封面0，每张合格实账成本N/A。无运行中供应商请求、无新UNKNOWN、无生产/DB配置动作。
+- 分工/下一步：HTML代理仅改原HTML及前端tests；media代理仅新增API测试；task代理仅新增settings测试，原所属实现已交主代理。主代理收尾API/Admin/guard与文档，完成最终离线证据后交独立审查者复审最终diff。准备真实调用前必须更新本checkpoint、列≤6样本和≤18调用/成本预留；账号恢复及候选隔离绑定未完成不派真实模型。生产切换仍仅原窗口执行。
+
+### 可定位候选 / 集成恢复说明 — 后端37512e0 + 前端90e969c
+
+- 功能提交：`37512e0678846adabec1623a2000ce3cc4d452cc`（后台、任务、PNG、结算、权限、最小迁移、Admin与对应验证）；`90e969c`（原PC/H5局部入口、已保存列表、刷新恢复、免费调整/下载/成本展示与浏览器验证）。均在原分支，不推生产；基础94e78f7仍为必须祖先，不能只取前端提交。
+- 最终独审修复：PG原RLS仅允许旧Admin配置键，已在feature SQL只为2个cover键增加Admin非secret读/插/改、无删，并保留原app排除集逐字追加这2键、app仅SELECT；不可用SQLite掩盖真实PG权限未验证。formal忙用户32个排队任务遮住其他用户，现按每用户最早queued选取再LIMIT32，补32A+1B回归。Seedream返回的非secret供应商request_id原被service丢弃，现严格过滤后持久保存到图片账本以便核原请求，UNKNOWN没有回执ID时仍保留本地physical ID/时间/响应摘要，不补造供应商ID。
+- 恢复交互：最小原始wire（原request UUID/quote/≤9媒体UUID/已有标题≤300）仅保存在同用户同报告session key，无原图字节/正文/token；刷新后先核原列表、记录不可读不重交，确无记录才由用户显式原UUID/原内容幂等重交。存储失败先于POST停止，ACK/明确无hold拒绝后清除。此能力不授权自动付费重试。
+
+| 改动/风险 | 复用证据 | 需要补测/当前边界 |
+|---|---|---|
+| 素材关联、旧报告白名单/补传 | 94e基础83项 | 原图真实过期由现有TTL，补传不重跑报告；真实 owned 1/9图样本待账号 |
+| shared guard/结算/图像账本 | integrated127；之后修改的jobs/service/SQL重跑41；共享Ark/原报告纯mock40 | 真实PG事务/RLS/迁移两次待原隔离设施；非生产请求已直接交原窗口Q/A |
+| 首版配置/权限/成本显示 | settings10、Admin VM21（其中新增Admin3）、feature SQL静态4 | SQLite不证明PG RLS；按张账单仍UNKNOWN，估算不等于实账 |
+| PC/H5最小入口与恢复 | 最终VM22、两尺寸替身浏览器、a7eb030真实loopback HTTP两尺寸全链 | loopback使用fixture鉴权+合成图/模型替身；真实iPhone保存未测 |
+| 字体/尺寸/主体/文字 | runtime/Seedream23及真实PIL存储全链 | 合成样本不是模型质量；未做生产Docker build、nginx -t、发布 |
+
+- **集成操作边界**：原窗口从以上完整候选构造现有隔离API镜像；保持其他组件与schema31历史不变，只在隔离fixture数据库先验证feature SQL两次、原表/预算不变、app/Admin精确权限及事务。不要调用全仓`render_predeploy.py`，不要触发0032–0041或大版本迁移。本次未授权封面立即生产启用/迁移/发布，不能继承旧修复授权自动上线；取得对应发布授权后也仅由原窗口统一执行。
+- **配置/执行**：服务端只使用原受控`NOTEAI_ARK_API_KEY`通道，不将值复制到worktree。实例`NOTEAI_COVER_WORKER_ENABLED=1`才加载一个cover worker；还须已有存储、对应独立budget行和已发布enabled/account_verified/证据ref配置。默认全关，新GET不安装DDL；Admin draft/activate/restore沿用现有操作编号/原因/修订围栏。`execution_scope=acceptance`才消费本任务100元/6/18，`formal`另记权益成本，不能将验收占用清零或迁移为正式消费。单API进程共享物理2/Seedream1已离线验证；实际多进程/多实例服务器容量未证明，不外推。
+- **回滚/恢复**：先关闭新封面提交，保留旧成品GET/download/免费排字、原任务与账本；在途按冻结策略收尾。worker重启只恢复未派发原任务，已有调用intent/UNKNOWN不自动重发，30分钟释放原用户hold后不追扣；删除中用户沿用原写围栏，由既有删除协调流程清理其hold，不假称该例外已经实测30分钟释放。停用worker/代码回退不能删新表、对象、预算、原供应商UNKNOWN或历史版本。已保存ACK未知先读同job/revision，原请求最多扣8一次。
+- **SQLite说明**：fresh测试库由显式init helper建feature表；已有旧SQLite的旧budget CHECK不会自动重建，此路径fail closed，未用于生产。本交付不偷偷迁移/重建旧本地数据。
+- **费用/样本**：真实模型调用0、真实合格交付0，实账每张合格成本N/A。固定1776×2368图片公开估算0.60元/张，只有需要背景时调用；两次Lite按真实Token另记，保守预留约0.978元/任务（按最大上下文/输出公开价，非账号账单），含背景总预留约1.579元/任务，6任务约9.474元，预算上限100元不是支出目标。8积分按当时套餐标价分摊约2.55–3.20元，非实收或毛利；保存90天可能产生原对象存储按量成本，尚无实际用量账单，不造0元。
+- **真实验收待执行计划**：账号恢复且固定型号/价格/项目/Key/配额脱敏绑定已核后，先1个自有单图完整样本，再1个自有九图选材样本；其余最多4个用于餐饮/酒店/实际休闲不同子类与边界，按首样本质量收敛，不强制凑满。每job最多设计1/图片1/QC1，总≤18，预算保守预留和真实成本分别留账；UNKNOWN只查原ID/账单，不盲发，失败不自动重画。准备每次真实调用前在本节登记样本/原job/call ID、当次预计费用与数据影响；当前未取得完整账号条件，未dispatch。
+
+
+### Q04 / 封面增量真实PG验证 — 主窗口预检事实（2026-10-20 00:48北京，文件本段写完已释放）
+
+- 目标候选后端`37512e0678846adabec1623a2000ce3cc4d452cc`，精确feature SQL8839B/SHA256 `bd6626c6fb887c6aedc665ea981f4a6b28679cb20cb11a70546ca43078b077ec`；前端90e969/后继测试a7eb030不改变该SQL。仅此增量，不跑0032–0041。
+- 本轮唯一已派发预检：`c-sz070j18v6lcu0w` / `t-sz070j18v72u4g0`，官方Start `2026-10-19T16:45:18Z`，原身份DescribeInvocations已读回Success/Exit0/Dropped0；无未知执行、未重派。原件 `/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-pg-migration-37512e0-20261020-r1/preflight-read-original.json` 7493B/SHA `03b6dae887273f0201f1ed9706c38a394d69e805953521626b01b048d7bc7cd7`；同目录保留preflight-run-original、3798B原只读命令及解码output。
+- 预检只在原运行隔离API761d26内以UID0、现有权限尝试连接PG维护库postgres及原隔离库的只读元数据；两者均明确OperationalError/sqlstateNULL，现容器CapAdd=null。未取得有效数据库会话或schema31/RLS当前读回，不能据此称PG迁移/权限测试通过，也未取得足够错误细节将其唯一归因为HBA或文件权限。数据库写入/迁移/模型/服务变更均0。
+- 原PG硬化证据明确限制新数据库连接，普通API不是owner入口；不会为测试改HBA/新建角色/扩大IAM。下一最小可行接点是原先已验证的network-none、单socket只读挂载、root/DAC_OVERRIDE一次性客户端模式（E旧local-pg16-peer-plan02/root_setup_once.py:49–60），仅复用原受控客户端边界，不重放setup/旧时窗或启动服务；当前尚未运行此owner客户端。先只读确认维护库无业务对象/其他会话，若不满足即停止夹具。
+- 未来若可演练：维护库外层事务承载合成夹具，只把原SQL唯一首尾BEGIN/COMMIT交给外层事务管理，保留原文件SHA/变换证据；正文两次、SET LOCAL ROLE原app/Admin、最后完整ROLLBACK并核对象/ACL恢复。不冒完整原SQL包的独立COMMIT演练；source schema/RLS仅只读，旧业务库public不做DDL/数据写。100元由应用guard约束，不称数据库CHECK硬cap。
+- 该段之后共享文件编辑权已释放，封面窗口可立即保存自己的最终交付checkpoint，无需等待本轮PG演练；主窗口后续结果只追加，不覆盖你新段落或源码。当前实际PG迁移/role验证仍NOT_EXECUTED，Seedream登录阻塞沿原A02、不重复催登录。
+
+### 最终候选交付 checkpoint — 2026-10-20，北京00:49后
+
+- **实际分支/HEAD**：`codex/noteai-xhs-cover-20261019` / `a7eb0302d8542c866832119046337219d6b53a7d`；本段与CURRENT后续只作交付文档提交。功能后台`37512e0678846adabec1623a2000ce3cc4d452cc`、前端`90e969cc7c86fe9bff6d838769c6f45e727196e7`、真实loopback测试`a7eb0302d8542c866832119046337219d6b53a7d`，基础94e78f7为祖先。不回退，不新树，不push/merge/deploy。
+- **完成与交付**：阶段1/2及阶段4候选独审/交付完成；阶段3本地真实HTTP集成完成，真实PG及供应商/成品验收仍未完成。接口、迁移/恢复、预算与成本依据见紧前段。完整候选直接交原“修复高德检索与休闲娱乐行业”窗口`01a13080-d8a9-7c50-88c0-09ffcebbef61`，其已接Q04隔离PG协作，不需要用户逐项转述。
+- **本次补成的可复用证据**：`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/loopback-integration/HTTP-BROWSER-RECEIPT.json`，30028B/SHA `b7827b1b8930ee0413ed2e9e7c9a2d69f45a1e14967f8953266c7a58bf6ac6b7`。真实127.0.0.1 FastAPI+临时SQLite+私有对象+PIL；PC1280×900、H5模拟390×844各1任务，真实GET/POST非API fulfill、保存后8分、整页重开原job、下载1776×2368实际PNG、免费排字revision2无新调用/扣分。fixture总4次Mock协议调用/16测试积分，不算真实供应商调用或生产积分。真实身份/登录没有验证，auth为显式dependency override；Python外联禁用，浏览器只放行loopback、WebSocket禁用。后端exit0、浏览器关闭，唯一listener49431已连接拒绝。
+- **样本与汇总**：同目录`cover-http-1280.png`/`cover-http-390.png`及两张adjusted为实际保存/下载的合成素材PNG，各SHA在收据；`cover-http-ui-1280.png`/`cover-http-ui-390.png`为页面截图。另`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/samples/offline-synthetic-cover-preview.png`是合成排版示例，不能当真实模型合格封面。总索引`.../evidence/CANDIDATE-RECEIPT.json`绑定36份本阶段源码/测试及日志；基础83项独立原收据不重建。
+- **独立审查**：`/root/cover_foundation_review`对37512e0/90e969c最终产品diff无未修可复现P0/P1/P2；独立迁移静态4+32A/1B队列1通过；另只读补审a7两test-only harness与清理/费用边界，无新增P0/P1/P2。收据`.../evidence/final-independent-review.json`及本段记录保留。早期VM夹具失败与455efaa基线一致，未扩大修旧测试；精确对照在FRONTEND-RECEIPT。所有开发子代理已完成对应任务，无源码并行修改者。
+- **未决/运行状态**：本窗口真实供应商请求无、付费0/100元、真实合格成品0，每张合格实账成本N/A；不把Mock、成功HTTP或像素规格当模型质量。PG精确SQL尚NOT_EXECUTED，原预检唯一C/T已S0D0见Q04，原窗口下一受控owner客户端尚待其后继记录，不继承/重派其请求。原火山登录未恢复，账号权限/真实价/配额UNKNOWN，真实iPhone保存未测；历史UNKNOWN不变。
+- **恢复入口/下一步**：先读本最终段及Q04后继追加，再核git status/实际HEAD；保持候选默认关闭。原窗口只做既有隔离PG的最小验证/候选受控装载，记录成功或具体阻塞；账号条件恢复后按前述≤6样本/18调用/100元计划逐个记录并验收。真正准备付费前更新本checkpoint、样本/原job/call ID及费用预留；供应商未知只核原请求，不自动重试。当前没有封面生产发布授权，不创建第二套发布流程。
