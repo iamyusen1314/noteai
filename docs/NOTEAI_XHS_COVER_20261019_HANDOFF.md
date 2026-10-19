@@ -378,7 +378,7 @@ r2构建尚未派；窄审检出两项辅助脚本确定性阻断已在本地修
 guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八个白名单源码/静态HOLD输入，61014B/SHA4414b352fd42bdbdbf7ba8ec3bef003ef321e743513626e568c106e271cf0374，已由原Workbench传到本次专用目录；不含.env/DSN/Token/Key/seal/proof。当前正在原身份stage+镜像内artifact check_only；暂未启动API、更未开放入口/派模型。实际字体和helper传输已解决，不再以TLS下载或字体作为阻塞；待核仍是正常runtime/会话/实际OSS可用及Q06 Key项目对应。
 
 
-### Q06 / 90天对象保存契约（非本次分钟级验收前置；待原窗口只读答复）
+### Q07 / 90天对象保存契约（非本次分钟级验收前置；待原窗口只读答复）
 
 - 问题：`model/private_storage.py`对cover_final/base/revision写90天元数据并按owner/TTL读，现有OSS实际Bucket/前缀生命周期是否有更短的统一清理规则？应用JSON/DB到期90天不独立证明供应商对象能保留90天。请复用现成真实存储profile/生命周期收据；如无，仅只读核所用前缀规则，不新增资源或改生产配置。
 - 相关：`cover_service._store_image`→`private_storage.store_media_bytes(lifecycle="cover_v1")/load_media_bytes`、`cover_jobs`资产到期及免费调整保留原expires；本轮隔离namespace与生产namespace需分别陈述。建议明确无提前于90天的Bucket规则，或最终统一集成时最窄申请封面前缀所需配置，不能默许延长所有原图。
