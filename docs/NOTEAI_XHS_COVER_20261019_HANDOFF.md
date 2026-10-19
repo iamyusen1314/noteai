@@ -188,3 +188,25 @@
 官方资料核对采用公开官方网页（`read-docs`已读，因Firecrawl按次计费且无新增预算未用其付费检索）；部分官方页面仅JS外壳，正文来自官方域检索索引，不冒账号验收。官方[型号列表](https://docs.volcengine.com/docs/ark/model-list?lang=en)、[尺寸教程](https://docs.volcengine.com/docs/ark/seedream-4-0-5-0?lang=en)、[价格](https://docs.volcengine.com/docs/ark/model-pricing?lang=en&redirect=1)支持：Pro `1344×1792`是1.5K/<=261万像素档0.30元，`1776×2368`是2K/>261万像素档0.60元；1–3张参考图图片部分公开估算分别0.30–0.34/0.60–0.64元，不能将“2K”套进0.30元档。上述均非当前账号实际账单。图片[API](https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh&redirect=1)临时URL24h须转存；思源黑体[OFL许可](https://raw.githubusercontent.com/adobe-fonts/source-han-sans/master/LICENSE.txt)须随实际固定字体资产保留，当前未下载/植入字体。
 
 技能实际使用：已读`frontend-testing-debugging`用于后续局部浏览器验证规范，目前HTML无变化、PC/H5封面流程未实现，未冒浏览器通过。当前未列`brainstorming`/`review-agent`技能，采用定向方案比较与独立子代理等效工作，未假称调用或安装插件。
+
+
+### 主窗口阶段预读 — 2026-10-19 23:48北京（素材/策略基础，不是上线验收）
+
+- 已核功能提交`94e78f7f64032ae90fa15b41350119bf28c7bed3`父`cc96df7`；实际HEAD为文档后继`455efaa5ee710bd87796cd8a0f177c4ec2456b26`，94→HEAD仅CURRENT/HANDOFF文档，预读前工作区干净。未cherry-pick到生产基线，未切换服务。
+- 阶段原件`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/evidence/foundation-94e78f7/RECEIPT.json`为4246B/SHA256 `c39eca8fb4afa989c7a85fca63d68eba00e75eb47eeef3a44f457bc6bc1bbe13`；已独立核8个提交文件SHA与8份证据日志bytes/SHA。最终日志载83/83 PASS；这是核日志，不是本窗口重跑或供应商/PG/浏览器验收。
+- 只读预审素材权限、原报告白名单/补传隔离及纯policy，未见阻断继续隔离开发的明显问题；同源Nginx仍仅源码及正则合同，未`nginx -t`或部署。原8/6、素材TTL、schema/支付、原HTML未作为本阶段改动；不将纯policy当真实后结算实现。
+- 后续接口提醒1：新任务如果选补传图片，使用该候选自己的图片身份/设计观察，不能套用历史`source_media_items`的原观察编号与描述。
+- 后续接口提醒2：当前`inspect_sources()`会完整读取并校验所有候选图片，不要在高频任务状态轮询中反复调用。现阶段无须为此扩建缓存框架；在封面job/status接线时避免重复取全图，按需要验最终选中素材。
+- 完整功能仍缺后台执行/Seedream/成品保存及唯一结算/Admin/PC-H5/真实验证；合格成品0，不能启用生产。8积分、2元单任务上限、UNKNOWN30分钟释放、90天及15元小样本均仍是封面窗口待确认建议，主窗口没有代为批准。Seedream账号证据仍UNKNOWN。
+- 本次仅共享文档预读记录，未在活跃封面分支提交或编辑其源码；无云/数据库/供应商动作、付费调用或新增预算。最终统一集成发布归本窗口，阶段预读不等于可发布交付。
+
+
+### 最新用户决定 / 执行 checkpoint — 2026-10-20 北京00:05
+
+- 用户本聊天明确回复：`1同意，2同意，3授权100元以内`。对应上一条完整三项确认，已批准：两报告视觉栏共入口；实拍优先按需固定Seedream Pro `doubao-seedream-5-0-pro-260628`；1776×2368单张；设计1/图片最多1/QC1；系统排字与免费文字/断行/位置调整；换主图/重设计另任务；成品/底图/版式90天；8积分/合格交付、先保存再唯一扣分；UNKNOWN核原请求、最多30分钟释放用户预留，此后不追扣该任务。
+- 新的本功能独立真实验收预算上限100元。用户只调整费用上限，仍保留最多6个有权代表样本/最多18次模型调用/零自动付费重试。不继承旧150元修复预算；不据此扩成大规模评测或生产发布。
+- 单任务2元并未出现在最终重发的三项确认正文，不能冒成用户批准的额外产品硬上限；执行采用明确调用/输出上限及本验收总预算保守预留。
+- 当前分支/HEAD `codex/noteai-xhs-cover-20261019` / `455efaa5ee710bd87796cd8a0f177c4ec2456b26`。唯一未提交文件是原窗口追加阶段预读的本HANDOFF，已读并保留；不回退或覆盖。原83项基础证据继续有效，后续只补影响范围。
+- 实现分工：主代理拥有API/shared admission/private_storage90天/Admin/集成；`cover_task_contract`独占cover_jobs、feature SQL、billing/postdelivery及对应tests；`cover_media`独占renderer/runtime/Seedream及fonts/tests；`cover_model_decisions`独占原HTML及前端定向tests。独审者待最终diff就绪再启用。没有两个修改者争同一源码文件。
+- 下一步IN_PROGRESS：实现原账本预留的持久封面任务/状态恢复、原图保真程序排版+至多一次Seedream、90天私有成品/版本化免费调整、API/Admin/前端最小闭环。先离线及受控集成，再核账号安全配置条件；账号未开通不激活/购买/建Key。
+- 运行中provider请求无，付费模型调用0，生产/生产DB动作0。历史UNKNOWN不变。本checkpoint前83项通过不重放；真正每张合格成本仍N/A。
