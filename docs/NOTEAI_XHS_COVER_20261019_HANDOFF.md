@@ -383,3 +383,20 @@ guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八
 - 问题：`model/private_storage.py`对cover_final/base/revision写90天元数据并按owner/TTL读，现有OSS实际Bucket/前缀生命周期是否有更短的统一清理规则？应用JSON/DB到期90天不独立证明供应商对象能保留90天。请复用现成真实存储profile/生命周期收据；如无，仅只读核所用前缀规则，不新增资源或改生产配置。
 - 相关：`cover_service._store_image`→`private_storage.store_media_bytes(lifecycle="cover_v1")/load_media_bytes`、`cover_jobs`资产到期及免费调整保留原expires；本轮隔离namespace与生产namespace需分别陈述。建议明确无提前于90天的Bucket规则，或最终统一集成时最窄申请封面前缀所需配置，不能默许延长所有原图。
 - 负责人：原窗口答现有云存储事实；本窗维护封面源码与收据。状态PENDING；代码合同与离线到期/权限证据已存在，不重做。阻塞范围仅“生产90天存储就绪”结论，**不将其扩为本次短时真实九图/封面验证的新启动门槛**；若实际上传/保存拒绝则按真实错误停止付费链。下一步等原profile可复用答复，结果未知如实列入交付。
+
+
+### Q06 本窗只读答复 / Key元数据已得，指纹映射仍UNKNOWN
+
+当前已登录Ark账号的API Key管理真实显示：name=noteai，非secret资源ID`apikey-20260913223715-5s9fk`，所属default，生效中，权限全部，创建2026-09-13 22:37，最后使用2026-10-18 22:56（页面本地时区显示）。其余当前表中4个Key最后用在六月/三月或未用，不能据此推断不存在其他项目Key，页面明确All Resources只列default。Key列一直为32星号，未点击查看/复制/创建/权限/禁用；没有读取或落盘真实Key。原Lite endpoint`ep-m-20260914073409-rdrk5`也已在当前账号核default/healthy。
+
+元数据与历史NoteAI使用时间/名称相符，仅为佐证；本工作区docs/.codex可检索文本没有这个资源ID到runtime SHA16`35813f100f5af799`的安全配置/secret版本映射原件，**不冒精确Key归属已证实**。原窗口可用该非secret对象ID核既有配置原件；本窗另只查官方是否提供无需读Key值的已有Key自省接口，不付费探针/不建Key。新证据`ARK-KEY-METADATA-READONLY.json`及`ark-key-metadata-masked.png`在本次PLAN目录，JSON列截图bytes/SHA。当前模型调用仍0；本答复不批准新权限，也不把登录UI和目录价说成真实wire成功。
+
+
+### Q06 收敛 / 本次正常请求验证边界与恢复 checkpoint
+
+- 官方窄核未找到SHA16→现有KeyID/inference bearer自省。`GetApiKey`是创建临时Key，不能当查询使用；`GetEndpoint.ProjectName`只证endpoint，官方IAM Key本身可能无Project属性。参考[GetApiKey](https://docs.volcengine.com/docs/ark/get-api-key-api?lang=zh)、[IAM Key规则](https://docs.volcengine.com/docs/ark/iam-api-key-best-practices?lang=zh)。已有供应商body.id+所在小时可经现有AK权限[只读单请求用量](https://docs.volcengine.com/docs/ark/get-inference-request-usage-api?lang=zh)补强到APIKeyID；本窗没有调用该API/申请AK，不将其新设为本轮前置。
+- 工程收敛：用户已经明确授权原合法路由下这一个新九图报告+它的一张封面、40物理模型调用/100元/零自动重试。保持原Key指纹`35813f100f5af799`、原endpoint和固定模型、真实owner普通鉴权与原claim、全部预算/幂等/UNKNOWN停止不变；`project_attribution=UNKNOWN`，不伪写`runtime_key_project_binding_verified=true`。首次正常业务请求承担实际访问验证，无额外付费probe、无换Key或扩权限。403/UNKNOWN停原请求，不重发。
+- 这是测试辅助静态证明的收敛，非产品决定或费用追加：已要求原窗口若其自建helper硬需不可证的项目布尔，只以有原件的同源运行配置/固定指纹/正常原任务/40与100上限替代，并定向验证错身份拒绝；不放宽产品auth、真实账户拒绝或财务边界。该辅助调整尚待原窗口实际完成/钉SHA，不把建议写成已运行。
+- 当前实际HEAD观察`b7ee0ac`（e26054a包含完整保留原窗口A05/A06、Q06项目问题及本窗Q07保存问题；b7仅纠正两问同号）。产品仍e6234e7。镜像实际`sha256:05978bee01588bcc1b4bd0cb74660eadd3a19b97dadfdc9cec8d1a76d08bf6cc`，仅API候选，Admin两叶子保留原9be；固定字体/18源码点通过。feature SQL已在原隔离PG一次提交，schema31/旧预算未变，三个封面表空、配置仍关闭，非生产迁移。
+- startup模型探针一度误查不存在claude_transport.py，原窗已定位并核4权重/manifest与正式容器一致、严格校验PASS；没有模型/权重产品缺陷或重训练。随后单次非推理Gateway metadata脚本停在前后容器快照比较，原窗正在核其实际原回执，不能据此判供应商推理失败，也不盲重发。没有发送图片/提示词或推理请求。
+- 未完成：候选API真实启动/会话与OSS普通上传可用、临时受鉴权测试入口当次确认及开关、同一自然clientID原claim登记和真实报告→封面、PC/H5状态/保存重开下载/免费排字、实际费用与唯一结算、成品独审。当前本窗真实业务/模型请求0、费用0/100、合格封面0，计划两个ID仍未受理；根窗唯一调度，原窗口不并行派模型。HOLD runtime和公网include保持待原回执核实，不将离线/helper通过冒成live。Q07真实90天provider生命周期结论可后续复用原件回答，不成为当前分钟级测试新门槛。
