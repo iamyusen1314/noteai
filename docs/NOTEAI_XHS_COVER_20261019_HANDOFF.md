@@ -268,3 +268,50 @@
 - **独立审查**：`/root/cover_foundation_review`对37512e0/90e969c最终产品diff无未修可复现P0/P1/P2；独立迁移静态4+32A/1B队列1通过；另只读补审a7两test-only harness与清理/费用边界，无新增P0/P1/P2。收据`.../evidence/final-independent-review.json`及本段记录保留。早期VM夹具失败与455efaa基线一致，未扩大修旧测试；精确对照在FRONTEND-RECEIPT。所有开发子代理已完成对应任务，无源码并行修改者。
 - **未决/运行状态**：本窗口真实供应商请求无、付费0/100元、真实合格成品0，每张合格实账成本N/A；不把Mock、成功HTTP或像素规格当模型质量。PG精确SQL尚NOT_EXECUTED，原预检唯一C/T已S0D0见Q04，原窗口下一受控owner客户端尚待其后继记录，不继承/重派其请求。原火山登录未恢复，账号权限/真实价/配额UNKNOWN，真实iPhone保存未测；历史UNKNOWN不变。
 - **恢复入口/下一步**：先读本最终段及Q04后继追加，再核git status/实际HEAD；保持候选默认关闭。原窗口只做既有隔离PG的最小验证/候选受控装载，记录成功或具体阻塞；账号条件恢复后按前述≤6样本/18调用/100元计划逐个记录并验收。真正准备付费前更新本checkpoint、样本/原job/call ID及费用预留；供应商未知只核原请求，不自动重试。当前没有封面生产发布授权，不创建第二套发布流程。
+
+
+### A04 后继结果 — 2026-10-20 北京01:08，真实PG定向夹具通过；共享文件编辑权已释放
+
+- **可接续结论**：后台37512e0678846adabec1623a2000ce3cc4d452cc的精确feature SQL（8839B / SHA bd6626c6fb887c6aedc665ea981f4a6b28679cb20cb11a70546ca43078b077ec）在原PG16.15、维护库postgres的外层ROLLBACK事务中完成两遍正文及89项断言。仅移除唯一首尾BEGIN/COMMIT，正文SHA fe93b6486b8ded69d741dfd61528cd5b13dd166036557e450cc3776e42a2ec3e。不是完整文件独立COMMIT发布演练，不将此限定结果写为全部真实PG产品验收。
+- **最终原身份**：c-sz070j2y4yfh79c / t-sz070j2y4ywyhog，Start/Finish 2026-10-19T17:04:23Z–17:04:25Z（北京01:04:23–25）；官方DescribeInvocations Request01A1551F-867A-55B5-B17E-E62216AC9109，Success/Exit0/Dropped0。客户端exit0且已自动移除；维护public对象/ACL、default ACL和全局角色快照均恢复true。无业务库写入、维护事务COMMIT、HBA/角色属性/IAM/生产服务/公网配置修改，无模型调用/新增费用。
+- **覆盖**：两遍表/约束/索引/RLS/ACL/预算快照一致；旧owner_metered合成累计114234保留，新acceptance累计1234不被第二遍清零；无效id/limit/formal策略被精确identity CHECK拒绝，旧单调触发器仍有效。Admin仅两个非secret cover键读/插/改、不能删/改key或secret；app仅读、写/UPSERT/改名/删除无效或拒绝；原模型/Prompt策略兼容。新增三表app精确权限、Admin仅status/16成本列且整表/其他列与revisions拒绝，PUBLIC/其他角色未获新表权限。100元上限仍是应用guard，不误称DB硬cap。
+- **实际环境缺项与夹具前提**：原isolated schema31确实只有app ACL，system_settings的Admin各列SELECT/INSERT/UPDATE全false；这是原setup只装app_acl所致，不是此次feature新增策略被PG拒绝。唯一只读catalog c-sz070j2sjuyr9q8 / t-sz070j2sjvb8rgg S0D0核实，default_acl=[]、角色无额外成员关系。最终夹具仅在可回滚维护事务内加入现有scripts/postgres/noteai_production_runtime_roles.sql:612起对system_settings的SELECT及noteai_admin_operations_acl.sql:20精确INSERT/UPDATE列，然后测试迁移；**原业务库ACL完全未补**。此依赖须纳入候选隔离装载及最终发布前的元数据只读核对，不能把SQL本身称为新建完整Admin权限，也不能重放全角色脚本。原role NOLOGIN/INHERIT属性未改，测试通过SET LOCAL ROLE，不证明生产Admin登录合同。
+- **失败历史原样保留**：最初普通API连接失败见Q04；后续owner只读预检 c-sz070j1moi23e2o/t-sz070j1moih2s5c成功。未压缩命令因CmdContent.ExceedLimit在API入口拒绝（Request01A15518-D060-5C0A-A382-07744C7CA7C9，无C/T未执行）；等价gzip包没有改feature SQL。r2 c-sz070j2f3nvtmv4/t-sz070j2f3o8b4lc因一次性脚本误用value而非value_json停止；修正后r3 c-sz070j2krafc4cg/t-sz070j2krazbb40发现上述原Admin ACL缺项。两轮均迁移/预算已通过并完整ROLLBACK，没有未知执行或生产业务失败，不能删掉当作一次全绿。
+- **证据**：Epg=/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-pg-migration-37512e0-20261020-r1；RECEIPT.json 12139B/SHA870e5c003182f46a42d682521b298b2d66efd1ea6de3bcfbf34c86c013a6d7a3。该目录含6次实际云命令的原提交/查询回执、长度拒绝原件、各版测试命令/绑定源码与SHA、输出、official-final-readback.png，终局fixture-r4-output.json列89断言/回滚事实。测试辅助代码只在此临时证据目录；本窗口未改产品源码、没有在封面活跃分支提交。独审代理预审了夹具并促成字段/权限断言补齐；不把预审称为独立真实运行。
+- **仍待完成**：完整候选API运行于原隔离数据库的应用事务/预算/真实鉴权测试，真实供应商与成品质量（账号登录/型号/实际价/配额/绑定仍A02 UNKNOWN）、真实iPhone保存未测。FK父表仅id合成桩，未复制任何业务行，不替代全应用流程。候选仍默认关闭，实际付费0/100、真实合格封面0；当前生产仍f3e/9be+Pay/Admin39+publicc4a/schema31，未上线封面、不重跑旧报告/高德/支付。下步由本窗按完整候选准备既有隔离装载和明确Admin前提，账号条件齐后按≤6/18/100计划逐个验收；若无本人登录则保留具体阻塞，不再催同一登录、不扩权限。没有生产发布授权，不能因此自动执行封面迁移或切换。
+
+
+### Q05 / A05 首个接口回读 — 2026-10-20 北京06:58；原窗口只写本段后释放，不操作Ark页
+
+- 人类原件已核：封面thread01a154c9-62ef-7fc2-82dd-0c3a8441193b最新user turn01a1565e-b770-7242-97cc-e7b90f6008ad明确要求本地水石清池九图→新爆文→封面真实验收。这替代原“只复用旧报告”的当前测试输入要求；不是重放旧失败/UNKNOWN任务，不扩大为生产发布。100元独立总预算不变；旧114.234888/150保持独立。
+- **浏览器归属**：你06:54已持有原Ark tab1637494949并核仍登录表单；原窗口不再同时操作、重问本人登录、发送验证码或建Key。控制台未登录本身不是API不可用证据，也不会被人为当作唯一核权入口；API真实拒绝/UNKNOWN和有效价格证据必须分别记录，不能只改account_verified来绕过尚无事实的配置前提。
+- **现成可运行接点的真实状态**：最后当日主机读回是00:14元数据，原PG4e19/schema31/socket存续，原隔离API761d26/image c4a27a仍是previous39测试镜像，**不是919c720封面候选**，所以目前没有可冒充已装好的/covers真实入口或新scope。A04仅维护库ROLLBACK夹具，没有把feature表/预算/ACL写到原业务库。原私有Nginx include仍关闭、旧lease/arm/运行scope已过期。不能把旧启动器直接执行成新功能验收。
+- **本轮确切产品来源**：919c720是文档HEAD，产品后台37512e0+前端90e969c+基础94e78f7+测试a7eb030；需要在原已存API镜像上精确overlay这些相对c4a的文件并单独保存source/image SHA，原配置由主机现有安全通道就地供给，Key/env/连接串不复制到本机。DB仍原独立socket，存储必须原隔离subject/purpose/TTL通道；真实启动前还须核在途/原容器身份、字体/依赖、feature精确SQL与原Admin ACL前提，不能全量migrator。
+- **已经明确的预算接线缺口**：cover_service.py:35–36与public_product.py:713–745只让/covers用noteai-xhs-cover-20261019-acceptance（100000/6jobs/18calls/每job3）；普通/generate仍BUDGET_ID=website-free-product-20260912。改Admin封面配置不能把新九图报告的全部内部调用自动归入同100元，不能混旧scope96、旧150或悄悄修改全站预算行。需要复用原付费guard的独立本轮聚合账本，对报告+封面每条实际物理调用统一预留/结算，保留业务原账本身份；原窗口正只读核最窄安全runner接线，无付费或云变更。
+- **调用数必须明确而不能赌**：离线最少9视觉+6文本=15，再封面≤3可到18，但最近同质量真实f3e九图完整报告分别30/33调用，不能保证新图只15，也不能删评分/内部链降质来凑18。最初18是6封面样本×每样本3的计划；最新要求另含一份真实完整报告。当前不得宣称“总18约束已覆盖新报告全链”。本轮先登记报告与封面各自上限、统一100元聚合及原ID，明确18是否仍仅封面上限；若仍要求全链总18，可靠完成新九图验收尚有这一实质限制，不能先付费跑到第18次中断。原窗口不单独派任何模型，保持你为唯一原request登记/调度者。
+- 下一步：你定位素材/确认一份唯一新report request与最多一份cover request；原窗口补最窄runner构造、预算/路由差异及可执行前提。Seedream可考虑既有服务端通道的单次固定型号实际请求核权，须有原request ID/明确最坏估算/独立聚合guard且计入本100元，403/配额拒绝即停、结果未知只核原ID，不新增Key/开户/权限；这个建议尚未执行，也不能把公开价当账号实账。生产切换0、付费0，本段后共享文件编辑权已释放。
+
+
+### A05 续记 — 2026-10-20 北京07:02；原窗口当前只追加此段后释放
+
+原窗口已直接read_thread核到人类原答复item01a15661-bb44-7040-8c9b-6c251261a3ef：“同意40次，总费用仍≤100元”，问题原文限定本次仅1篇新九图笔记+1张封面、合计40、失败/UNKNOWN不自动重发。此决定已解决A05先前指出的18总数冲突；本轮新的外层scope应40总wire/1report+1cover/100元累计，封面内层仍每job≤3，不扩大为6篇报告或40张封面，不改旧18/6历史记录及150/scope96，不构成生产发布授权。
+
+你持有Ark页和原图/原request登记；原窗口持有受控候选镜像/隔离runtime准备和本轮统一计量窄适配，不并行产品代码。准备状态PLAN_ONLY，当前没有模型原request派发或云启动，现成旧API不是封面入口。原窗口先保存与919c720有效候选绑定的源码/字体清单及test-only guard适配；统一费用在外层只计一次，原报告业务账本不冒用cover类型，内层cover费用同调用不再相加。接下来若需写新接口结论会只追加，当前本段已写完并释放共享文件，你可立即登记唯一case与request IDs，无需另等一轮。
+
+### 最新真实验收 checkpoint — 2026-10-20，北京07:02后，水石九图单次完整场景
+
+- 用户明确要求本地“水石清池.汤泉生活”9图→真实新爆文→该报告封面，并核前后端按方案执行。用户另明确回答“同意40次，总费用仍≤100元”：本次仅1篇新报告+1张封面合计40物理请求/100元，失败或UNKNOWN不自动重发；不扩大成40张封面，不继承旧150/scope96，不授权生产发布。原6封面/18调用历史保留，本次外层40覆盖新报告及本次cover，cover内层仍最多3调用。
+- 分支/HEAD `codex/noteai-xhs-cover-20261019` / `919c720`；接续原窗口未提交A04/A05文档，保留未覆盖，不回退。阶段3恢复为IN_PROGRESS，先真实环境绑定与零重试/合并计量预检，再派发；不是重做基础/离线验收。
+- 原图确在`/Users/openclaw/Desktop/test1013`，9张合计10,977,955B，逐张可解码且与原素材manifest大小/SHA一致。新清单`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/source-nine-readonly/SOURCE-READONLY-INVENTORY.json` SHA`6f865540a7079784d78c42cc5beba768e9aa660e21eb32d423857e71e33bddd3`；顺序1庭院、2吧台、3庭院入口、4餐区、5餐食摆盘、6汤池、7庭院、8汤池、9汤池。图片观察不是套餐/餐食包含、服务细项、价格/地址/营业时间或亲历证明。contact sheet仅核查，不是封面成品。上传规范化JPEG与本地原PNG/JPG散列不同须分别留账。
+- 单次计划原件`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json`，generate原client request=`783412e4-652d-456f-bbdc-dc1cd8863ff4`，cover原client request=`4b492cb5-8ad6-4a2f-bc4f-ec589329ed99`。尚未受理或派模型；实际server job/usage由正常claim返回后追加，不拿client UUID冒充。素材与写作brief已冻结，事实源仅输入/9图，不新增Amap/爬虫，不虚构亲历/未知设施/价格/套餐；完整默认质量链不裁剪。新运行强制guard需跨这两个正常任务共同40/100，不靠cover18预算假装覆盖报告。
+- 正常报告默认2候选，完整无修复成功下限20模型请求，cover再2/3；历史该9图真实报告DB记录30条responded/HTTP200/一一关联model rows（不是把多表相加，非socket抓包证明）。正文/标题/质量修复分支可更多；40是硬停，非保证所有最坏输出都足够。普通报告原重试/fallback须本批明确禁自动重发；正常质量流程中的不同修稿步骤仍分别计真实调用。UNKNOWN保留原ID/成本预留，不开新号掩盖。
+- **火山账号阻塞已部分解除**：用户主动授权代操作正常手机号登录并提供OTP；本窗已在原Ark页完成登录。仅正常登录，不保存/转发验证码、不读Key值、不改认证/权限。当前账号开通管理显示Pro已开通、IPM500；模型详情明确`doubao-seedream-5-0-pro-260628`，选择图片生成输出>261万像素显示0.60元/张，首输入免费、额外0.02元/张；Lite原看图接点健康/default项目、价格与原冻结表一致。这是账号界面的开通/型号/目录价/限流证据，不是实际供应商账单；服务端既有Key所属项目/可调用性仍由受控runtime脱敏核实。没有开通服务/建Key/购买/订阅/调额。截图在本次PLAN同目录`ark-visual-entitlement.png`及`ark-pro-model-price.png`，不含OTP/Key。
+- 归属：主代理持有Ark浏览器/本次唯一原request与真实验收调度；原窗口持有受控候选镜像/隔离PG、存储、外层40/100窄适配；双方不重复派模型。原窗口已回读主机、正构造候选，旧隔离API镜像不是本候选，不能冒已装好。若需前端真实HTTP，优先既有受认证私有服务预览/本机隧道，不以API fulfill或auth override代替；新的公网临时入口若必要先做具体方案并取当次授权，不用过期include。
+- 当前本窗口模型调用0、真实成品0、费用0/100，无新UNKNOWN，无生产DB/配置/发布动作。原窗口受控设施准备的命令身份由其Q05后继记录，本窗不重派。下一步：正常鉴权测试身份/候选image+DB+storage绑定、跨任务计量与零retry先验证；然后真实上传9图与generate，保存成功后只对该report提交上述cover原ID；取实际PNG做人工主题/事实/文字/主体检查，再PC/H5重开/下载/免费调整和唯一结算只读核查。开发与产品Agent账本分别记录，不能把Codex子代理当运行时模型请求。
+
+### 实测前协议兼容修正 / 当前HEAD e6234e7
+
+- 新功能提交`e6234e7`仅`model/cover_seedream.py`与对应test：官方Ark SDK的`Usage.input_images`为Optional，可缺省/None。此前强制该字段会将已返回的合法PNG误判UNKNOWN；现缺省时沿派发前已冻结的请求数量，并在持久化pricing_snapshot标记`input_images_basis=request_payload`，终态区分supplier_usage与request_payload、供应商回报值留空，不冒实际账单。存在但bool/str/错数仍UNKNOWN，generated_images=1、model_id、真实PNG解码/1776×2368/只出1张/0retry均未放宽。
+- primary依据：[官方SDK](https://github.com/volcengine/volcengine-python-sdk/blob/master/volcenginesdkarkruntime/types/images/images.py#L36)；官方Pro教程与API同时支持b64_json、png及1776×2368，未更换模型或首版尺寸。20项受影响seedream/service离线回归PASS，`/root/cover_model_decisions`独立只读复核无阻断。日志在本次PLAN同目录`optional-input-counter-offline-regression.log`；无付费调用。
+- 原窗口已收到精确覆盖要求：最终候选必须在其原构建基础仅增量覆盖此模块，SHA256`3200d6755c89ca8be24847576a862d7eda3db6466a2abd4aa1633721616fc8eb`，产品其余文件不变；不重派已运行构建，不用旧strict adapter派真实模型。当前候选HEAD应核e6234e7后继，不为匹配919c720回退。
+- `ACCOUNT-AND-PROTOCOL-CHECK.json`位于本次PLAN同目录，保存登录成功/已开通固定型号/当前页面价与IPM/截图SHA和20项日志SHA。没有保存OTP/手机号/Key；目录价不替代实际用量账单，服务端Key实际绑定与正常鉴权仍待runtime实证。真实模型请求仍0、预算仍0/100；唯一两个client计划ID不变。
