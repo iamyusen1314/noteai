@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-19：noteai-xhs-cover-20261019 独立封面开发交接
+
+本工作树独立负责“小红书笔记封面”开发、定向验证和可集成功能交付，不执行生产发布。源码基线c4a2bba919e38928a23befde06149a732af98e1a；实际线上为API-only f3e/9be + Pay/Admin39 + public c4a + schema31组合，不是整仓c4a发布。旧操作文档分支043559b不是完整产品起点。
+
+先读 `docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md` 与 `docs/NOTEAI_XHS_COVER_20261019_BASELINE.json`。前者包含用户已确认/建议/待定、模块接点、已核验旧证据、定向补测、恢复与同一文件接口问答。当前仅交接文档，无封面实现、供应商调用或部署；新窗口尚未登记接收。
+
+新分支codex/noteai-xhs-cover-20261019；未复制W2未提交handoff、生产密钥或环境。生产切换仍由原“修复高德检索与休闲娱乐行业”窗口统一执行；大版本窗口维持原暂停/隔离状态。此任务没有新付费测试预算或新增权限授权；旧修复150元预算及历史UNKNOWN独立保留，不挪用/清零。建议不能升级为用户批准，未决定项集中处理。沿用原测试/实际证据，只补受封面改动影响的验证，不重跑高德/支付/历史九图/0032–0041，不执行下方历史dispatch、heartbeat或恢复指令。
+
+下一步：新窗口读交接、登记接收和最小接口合同，在本独立分支接续；接口问答写同一HANDOFF末节，用户不需逐项转述。本CURRENT仅控制本封面任务，下方为继承历史记录。
+
+## HISTORY — 继承源码基线记录（非当前执行指令）
+
 ## CURRENT — 2026-10-17 北京22:20：Owner要求暂停以重启Codex，已停止新增动作并完成本地收尾
 
 已直接read_thread核原窗口01a0f7cb的真实userMessage 01a14a3a-6af7-7ef3-b762-009ef5cd81b0，回答“先暂停，我需要重启codex”。这不是维护/固定v3附加批准，重启不得自动开新窗口或关写。当前新T0=false、在途C/T=[]；最后metadata Cc-sz070bhnu70pa80/Tt-sz070bhnu7fooao已Success0/Dropped0，原件11399/cef07cb1保留。此前DATA/plan/build/readback均实际终态，不重发、不强杀。

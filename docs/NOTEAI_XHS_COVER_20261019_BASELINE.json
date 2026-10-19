@@ -1,0 +1,144 @@
+{
+  "task_id": "noteai-xhs-cover-20261019",
+  "created_at_utc": "2026-10-19T15:22:57.903744+00:00",
+  "verification": "LOCAL_SAVED_ACTUAL_RECEIPTS_AND_COMMITTED_SOURCE_ONLY_NO_FRESH_PRODUCTION_PROBE",
+  "source_worktree": "/Users/openclaw/.codex/worktrees/amap-leisure-candidate-check-20261012/noteai",
+  "worktree": "/Users/openclaw/.codex/worktrees/noteai-xhs-cover-20261019/noteai",
+  "branch": "codex/noteai-xhs-cover-20261019",
+  "baseline_commit": "c4a2bba919e38928a23befde06149a732af98e1a",
+  "required_existing_fix_cherry_picks": [],
+  "verified_ancestor_fixes": [
+    "a11adc0142f646a2d3db7f84a825c9a840707c80",
+    "9a29e977165c33bcf4a7ce339681df7e35417892",
+    "03e52a19c8e781d0c9c05bc06295cc2978a51e5e",
+    "88e1b1176cb036172de80d48b252f1db08194efe",
+    "39d85f2809597ff1958a9c0c23978eecf3229e48",
+    "94b20c1ba9703f26294ece6e555ceb5d2629d700",
+    "b0fbae3ce2914513bc326cecfc0f1852f9352e6d",
+    "f3e5ed18c80fd307b6bad600e722a2a88f95a1ce"
+  ],
+  "production_components": {
+    "api_source": "f3e5ed18c80fd307b6bad600e722a2a88f95a1ce",
+    "api_image": "sha256:9be6daa8b84a59842b7de7d97dc25e8254b5814648356c8833a64bce87e4e141",
+    "pay_admin_bridge_source": "39d85f2809597ff1958a9c0c23978eecf3229e48",
+    "pay_image": "sha256:3f779b9f08f1726ccdfe4bdbeecfb09052e7a13b5c891f87bf72bdecd5286bbf",
+    "admin_image": "sha256:fbafe98f1e9e0e3c3d32c428991a40474907a285491599bd0d33029c5c023517",
+    "public_source": "c4a2bba919e38928a23befde06149a732af98e1a",
+    "public_published_at_Beijing": "2026-10-18 23:50:37 +08:00",
+    "public_pointer": "/var/www/noteai-public/h5-remove-global-status-c4a2bba-d56170b621247b7c1b7490c4714b9738",
+    "public_scope": "index.html and assets/product-app.js delta only; retain actual 9 regular and 2 absence entries",
+    "schema": 31,
+    "postdelivery_flag": 1,
+    "same_existing_EIP_peak_Mbps": 10,
+    "whole_repository_HEAD_not_deployed_as_all_components": true
+  },
+  "source_files": [
+    {
+      "path": "model/api.py",
+      "bytes": 1142344,
+      "sha256": "ae16cc769f9daf9bd4d1fc3c192031e8d79b5d32930330f736226aaffd6b0baf",
+      "matches_saved_actual_API_receipt": true
+    },
+    {
+      "path": "model/db.py",
+      "bytes": 138220,
+      "sha256": "a8ae2363ebf8bd86497840e765006835a4377bc6ddf98b9930e84c28d5f434bb",
+      "matches_saved_actual_API_receipt": true
+    },
+    {
+      "path": "model/postdelivery.py",
+      "bytes": 28577,
+      "sha256": "621970a15e23529231a62d3f46937b9e43aeea5285ed379505aeee62e1a25d68",
+      "matches_saved_actual_API_receipt": true
+    },
+    {
+      "path": "model/public_product.py",
+      "bytes": 59947,
+      "sha256": "fea7f745d505ecd52488816144a6fd474bbe06eb5fca6ba7b1c36307d3cf5b88",
+      "matches_saved_actual_API_receipt": true
+    }
+  ],
+  "evidence_root": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012",
+  "verified_receipts": [
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/formal-postlive-f3e-nine-generate-actual1/FINAL-DELIVERY-RECEIPT.json",
+      "bytes": 12174,
+      "sha256": "d149a81033cc58e6772e3e76a815f3d3d836f30a2c7a131d9632e42f830e7b8a"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/public-remove-global-status-c4a2bba-20261018-r1/ACTUAL-UI-DELIVERY-RESULT.json",
+      "bytes": 7175,
+      "sha256": "c293644cdbfc8c04b814ac6c72290bf0a3ef6c2f804406f289a1b19fec94cafe"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/public-remove-global-status-c4a2bba-20261018-r1/INDEPENDENT-ACTUAL-STATIC-PUBLICATION-REVIEW.json",
+      "bytes": 10883,
+      "sha256": "8e565a1fc8a5eef3ce0a1dc37742fca157056a6394964381c19a6f0be0edfafc"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/source20-f3e-actual85-H5-nine-diagnosis1/ROOT-REAL-RESULT-CHECKPOINT.json",
+      "bytes": 2967,
+      "sha256": "7f371f928d4546d76399a60d4fcfe423d404a87bbb5fa3b0ed341197e1ce7730"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/ten-user-current-f3e-simulation-20261018-r1/SUMMARY.json",
+      "bytes": 12646,
+      "sha256": "8683b298fe6d44d2873d289cafd2bfa73c7ffb31f15b60f577446a7170120a62"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/incident-f3e-sixofnine-20261018-141213/INCIDENT-AND-ACCEPTANCE-RESULT.json",
+      "bytes": 7106,
+      "sha256": "d4dfdd1c0de4b82d013883c9629f37cf192e322644c2786966714f4e98b9034d"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/public-b0-banner-removal-baseline-compare-local1/FINAL-COMPARISON.json",
+      "bytes": 13759,
+      "sha256": "39697bf9409d2134d65f21d7b9a87f1696a5363bbde0753c1e76bda58807a693"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/public-remove-global-status-c4a2bba-20261018-r1/PUBLISHER-FINAL-BASELINE-ACK.json",
+      "bytes": 607,
+      "sha256": "b3704a9d624f35693661e4013e0884c3ed827aa6cccc3e47005871c8259e4e0b"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/incident-a11-nine-3of9-20261017-1422/pg-local1/FINAL-LOCAL-PG-EVIDENCE.json",
+      "bytes": 4782,
+      "sha256": "b96975a5139be208837897d65da7361f827f60dfcc6344e99256f4a36e83e952"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/incident-a11-nine-3of9-20261017-1422/pg-local1/actual-run3/tests.txt",
+      "bytes": 1351,
+      "sha256": "47cc1eee2653da69dbd2d499a7bb096707965c1216f042f6b6262cf273868802"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/postdelivery-reservation-pg-local1/actual-run4/receipt.json",
+      "bytes": 5862,
+      "sha256": "54b3d2576214acb19eb3e9b7b0cd1f78dbc51120c499c2bfbe071e5cf3693444"
+    },
+    {
+      "path": "/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012/postdelivery-reservation-pg-local1/actual-run4/tests.txt",
+      "bytes": 2078,
+      "sha256": "d0d84fff2150f01373ad0c0f7ef8b8a4fbb12f9982351a310db7a0df94e4ba2b"
+    }
+  ],
+  "sensitive_or_environment_files_copied": false,
+  "initial_absent_paths": [
+    ".env",
+    "model/.env",
+    ".venv",
+    "node_modules"
+  ],
+  "source_W2_uncommitted_handoff_not_copied": true,
+  "new_cover_code_changes": 0,
+  "production_actions": 0,
+  "paid_model_calls": 0,
+  "new_cover_budget_approved": false,
+  "old_repair_budget_only": {
+    "limit_CNY": "150",
+    "recorded_CNY": "114.2348880",
+    "remaining_CNY": "35.7651120",
+    "not_available_for_cover_by_this_handoff": true
+  },
+  "new_window_receipt": "PENDING_USER_OPENS_NEW_WINDOW_NO_NEW_THREAD_CREATED",
+  "baseline_query_file": "/Users/openclaw/.codex/worktrees/noteai-xhs-cover-20261019/noteai/docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md"
+}
