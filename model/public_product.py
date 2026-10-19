@@ -93,6 +93,8 @@ def allowed_route(method: str, path: str) -> bool:
         return True
     if method == "GET" and re.fullmatch(r"/reports/(?:analyze|generate)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})", path):
         return True
+    if re.fullmatch(r"/reports/(?:analyze|generate)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})/cover-sources(?:/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})?", path):
+        return method == "GET" or (method == "PUT" and path.endswith("/cover-sources") and image_enabled())
     if method == "GET" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
         return True
     if method == "POST" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/cancel", path):

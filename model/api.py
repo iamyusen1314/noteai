@@ -87,6 +87,7 @@ import postdelivery as _postdelivery
 import task_clarification as _clarification
 import durable_ai as _durable_ai
 import private_storage as _private_storage
+import cover_sources as _cover_sources
 import payment_contract as _payment
 import payment_adapter_runtime as _payment_adapter_runtime
 import prompt_manager as _pm
@@ -2801,6 +2802,8 @@ _INPUT_DIAGNOSTICS_SCHEMA = {
     "original_title": "string",
     "original_desc": "string",
     "cover_media_ref": "nullable_string",
+    "source_media_refs": "report_source_refs",
+    "source_media_items": "report_source_items",
     "video_media_ref": "nullable_string",
     "has_independent_cover": "bool",
     "missing_dimensions": ("list", "string"),
@@ -2831,6 +2834,9 @@ _BILLING_RECEIPT_SCHEMA = {
     "monthly_credits_reserved": "number", "wallet_credits_reserved": "number",
 }
 _PERSISTED_DIAGNOSIS_SCHEMAS = {
+    "source_media_refs": "report_source_refs",
+    "source_media_items": "report_source_items",
+    "cover_source_media_refs": "cover_source_refs",
     "billing": ("nullable", _BILLING_RECEIPT_SCHEMA),
     "ai_diagnosis": "string",
     "report_quality_status": "string",
@@ -2923,6 +2929,10 @@ def _is_bounded_public_map_key(value: Any) -> bool:
 
 def _sanitize_public_schema_value(value: Any, schema: Any) -> Any:
     """Project one value through an explicit recursive public-data schema."""
+    if schema == "report_source_items":
+        return _cover_sources.project_source_items(value)
+    if schema in ("report_source_refs", "cover_source_refs"):
+        return _cover_sources.project_source_refs(value, maximum=10 if schema == "report_source_refs" else 9)
     if schema == "string":
         return value if isinstance(value, str) else _PUBLIC_SCHEMA_MISSING
     if schema == "nullable_string":
@@ -6537,6 +6547,8 @@ class MarketTiming(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
+    source_media_refs: list[str] = Field(default_factory=list, description="原报告本人图片引用；不延长上传保存期")
+    source_media_items: list[dict] = Field(default_factory=list, description="原图片字段和观察编号映射")
     billing: dict | None = Field(default=None, description="本次服务端实扣积分回执")
     cover_analysis: str = Field(default="", description="独立封面的实际内容观察，与原始标题正文分开")
     video_analysis: str = Field(default="", description="完整视频音画素材理解；模型观察而非外部事实认证")
@@ -6598,6 +6610,8 @@ class GenerateInput(BaseModel):
 
 
 class GenerateResponse(BaseModel):
+    source_media_refs: list[str] = Field(default_factory=list, description="原报告本人图片引用；不延长上传保存期")
+    source_media_items: list[dict] = Field(default_factory=list, description="原图片字段和观察编号映射")
     billing: dict | None = Field(default=None, description="本次服务端实扣积分回执")
     saved_note_id: str | None = None
     saved_note_version: int | None = None
@@ -15879,7 +15893,8 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
     )
     if not row or not _retention_visible("diagnosis", diag_id, user["id"]):
         raise HTTPException(status_code=404, detail="诊断记录不存在")
-    data = _sanitize_persisted_diagnosis(_jlib.loads(row["diagnosis_json"]))
+    stored = _jlib.loads(row["diagnosis_json"])
+    data = _sanitize_persisted_diagnosis(stored)
     if not data:
         original = _clarification.completed_diagnosis_result(user["id"], diag_id)
         if original:
@@ -15888,6 +15903,11 @@ async def get_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_use
             data = _sanitize_persisted_diagnosis({
                 key: original[key] for key in _PERSISTED_DIAGNOSIS_SCHEMAS if key in original
             })
+    # A legacy report can still reject its original private transport envelope.
+    # Recover only this separately declared, strictly typed attachment field;
+    # never rewrite or expose the rejected historical content.
+    if isinstance(stored, dict) and "cover_source_media_refs" in stored:
+        data["cover_source_media_refs"] = _cover_sources.project_source_refs(stored["cover_source_media_refs"])
     data["diagnosis_id"] = diag_id
     data["note_title"]   = row["note_title"]
     data["_domain"]      = row["domain"]
@@ -16103,6 +16123,118 @@ async def get_report(report_type: str, report_id: str,
     return {"report_type": report_type, "report_id": report_id, "result": result,
             "saved_note_id": result.get("saved_note_id"), "task_id": own_ref.get("task_id"),
             "chat_session_id": links["chat_session_id"]}
+
+
+class ReportCoverSourcesInput(BaseModel):
+    media_refs: list[str] = Field(max_length=9)
+
+
+def _report_cover_source_refs(result: dict) -> list[str]:
+    if "cover_source_media_refs" in result:
+        return _cover_sources.project_source_refs(result["cover_source_media_refs"])
+    if result.get("source_media_refs"):
+        return _cover_sources.project_source_refs(result["source_media_refs"], maximum=10)
+    diagnostics = result.get("input_diagnostics") or {}
+    if diagnostics.get("source_media_refs"):
+        return _cover_sources.project_source_refs(diagnostics["source_media_refs"], maximum=10)
+    # Legacy diagnoses may have retained only their independent cover UUID.
+    return _cover_sources.source_refs_from_inputs(cover_image=diagnostics.get("cover_media_ref"))
+
+
+@app.get("/reports/{report_type}/{report_id}/cover-sources")
+async def get_report_cover_sources(report_type: str, report_id: str,
+                                   user: dict = Depends(_auth.get_current_user)):
+    report = await get_report(report_type, report_id, user)
+    status = await _await_media_worker(_cover_sources.inspect_sources, user["id"],
+                                       _report_cover_source_refs(report["result"]))
+    return {"report_type": report_type, "report_id": report_id, **status,
+            "upload_path": "/upload-image",
+            "attach_path": f"/reports/{report_type}/{report_id}/cover-sources"}
+
+
+def _save_report_cover_sources(report_type: str, report_id: str, user_id: str, refs: list[str]):
+    """Attach verified replacements without changing the original report inputs."""
+    with _db.transaction(write=True) as tx:
+        _retention.assert_user_writable_with_storage(tx, user_id)
+        lock = " FOR UPDATE" if tx.postgres else ""
+        if report_type == "generate":
+            row = tx.fetchone("SELECT c.generate_ctx_json,c.note_id FROM chat_sessions c "
+                "JOIN idempotency_requests r ON r.id=c.id AND r.user_id=c.user_id "
+                "JOIN notes n ON n.id=c.note_id AND n.user_id=c.user_id "
+                "WHERE c.id=? AND c.user_id=? AND r.operation='generate' "
+                "AND r.status='completed' AND r.complete_applied=1 AND n.source='generate'" + lock,
+                (report_id, user_id))
+            if not row or _retention.status("note", row["note_id"], user_id, tx)["state"] != "active":
+                raise HTTPException(404, "报告不存在或已到保存期限")
+            context = _json.loads(row["generate_ctx_json"])
+            task = context.get(_clarification.KEY) or {}
+            result = task.get("result") or {}
+            if (task.get("operation") != "generate" or task.get("status") != "completed"
+                    or result.get("saved_note_id") != row["note_id"]):
+                raise HTTPException(409, "原报告状态需要核实")
+        elif report_type == "analyze":
+            row = tx.fetchone("SELECT diagnosis_json FROM saved_diagnoses WHERE id=? AND user_id=?" + lock,
+                              (report_id, user_id))
+            if not row or _retention.status("diagnosis", report_id, user_id, tx)["state"] != "active":
+                raise HTTPException(404, "报告不存在或已到保存期限")
+            result = _json.loads(row["diagnosis_json"])
+            if not isinstance(result, dict):
+                raise HTTPException(409, "原报告状态需要核实")
+        else:
+            raise HTTPException(404, "报告类型不存在")
+        references = _private_storage.lock_ready_media_refs(tx, user_id, refs)
+        if any(reference.purpose != "image" for reference in references):
+            raise _private_storage.MediaReferenceUnavailable()
+        result["cover_source_media_refs"] = refs
+        if report_type == "generate":
+            tx.execute("UPDATE chat_sessions SET generate_ctx_json=? WHERE id=? AND user_id=?",
+                       (_json.dumps(context, ensure_ascii=False), report_id, user_id))
+        else:
+            tx.execute("UPDATE saved_diagnoses SET diagnosis_json=? WHERE id=? AND user_id=?",
+                       (_json.dumps(result, ensure_ascii=False), report_id, user_id))
+
+
+@app.put("/reports/{report_type}/{report_id}/cover-sources")
+async def set_report_cover_sources(report_type: str, report_id: str, req: ReportCoverSourcesInput,
+                                   user: dict = Depends(_auth.get_current_user)):
+    await get_report(report_type, report_id, user)
+    try:
+        refs = _cover_sources.normalize_source_refs(req.media_refs)
+    except _cover_sources.CoverSourceValidationError:
+        raise HTTPException(422, "请使用本人上传的图片引用，一次最多9张") from None
+    if not refs:
+        raise HTTPException(422, "请先补传至少一张真实图片")
+    status = await _await_media_worker(_cover_sources.inspect_sources, user["id"], refs)
+    if status["status"] == "storage_unavailable":
+        raise HTTPException(503, "素材存储暂不可用，请稍后读取原素材")
+    if status["status"] != "ready":
+        raise HTTPException(422, "图片不存在、已过期或不可用，请补传本人真实图片")
+    try:
+        await _await_media_worker(_save_report_cover_sources, report_type, report_id, user["id"], refs)
+    except _private_storage.MediaReferenceUnavailable:
+        raise HTTPException(422, "图片已不可用，请补传本人真实图片") from None
+    except ValueError:
+        raise HTTPException(409, "账号或原报告状态需要核实") from None
+    return {"report_type": report_type, "report_id": report_id, **status}
+
+
+@app.get("/reports/{report_type}/{report_id}/cover-sources/{media_ref}")
+async def read_report_cover_source(report_type: str, report_id: str, media_ref: str,
+                                  user: dict = Depends(_auth.get_current_user)):
+    report = await get_report(report_type, report_id, user)
+    if media_ref not in _report_cover_source_refs(report["result"]):
+        raise HTTPException(404, "图片不存在或不属于本报告")
+    try:
+        reference, body = await _await_media_worker(_private_storage.load_media_bytes,
+            media_ref, user_id=user["id"], purpose="image")
+    except _private_storage.MediaReferenceUnavailable:
+        raise HTTPException(404, "图片不存在或已过期，请补传真实图片") from None
+    except _private_storage.PrivateStorageError as exc:
+        if exc.code == "PRIVATE_OBJECT_NOT_FOUND":
+            raise HTTPException(404, "图片不存在或已过期，请补传真实图片") from None
+        raise HTTPException(503, "素材存储暂不可用") from None
+    return Response(body, media_type=reference.content_type,
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @app.delete("/diagnoses/{diag_id}")
@@ -17771,6 +17903,10 @@ async def _run_analyze_pipeline(
         "video_media_ref": req.video_file_id,
         "has_independent_cover": bool(req.cover_image),
     })
+    original_input.setdefault("source_media_refs", _cover_sources.source_refs_from_inputs(
+        cover_image=req.cover_image, extra_images=req.extra_images))
+    original_input.setdefault("source_media_items", _cover_sources.source_items_from_inputs(
+        cover_image=req.cover_image, extra_images=req.extra_images))
     missing_dimensions = []
     if not original_input["original_title"]: missing_dimensions.append("标题")
     if not original_input["original_desc"]: missing_dimensions.extend(["正文", "话题"])
@@ -18399,6 +18535,8 @@ async def _run_analyze_pipeline(
     )
     _public_product.assert_result_known()
     resp = AnalyzeResponse(
+        source_media_refs=_cover_sources.project_source_refs(original_input.get("source_media_refs"), maximum=10),
+        source_media_items=_cover_sources.project_source_items(original_input.get("source_media_items")),
         ces_percentile=reported_percentile,
         composite_score=reported_composite,
         grade=reported_grade,
@@ -19775,7 +19913,10 @@ async def generate_stream_endpoint(
         context = _clarification.execution.get()
         if context is not None:
             context["source_material"] = "【商家原始素材】\n" + (req.brief or "")
-            context["metadata"] = {"fact_enrichment": fact_enrichment,
+            context["metadata"] = {"source_media_refs": _cover_sources.source_refs_from_inputs(
+                cover_image=req.cover_image, cover_images=req.cover_images),
+                "source_media_items": _cover_sources.source_items_from_inputs(
+                    cover_image=req.cover_image, cover_images=req.cover_images), "fact_enrichment": fact_enrichment,
                 "user_constraints": normalized_constraints, "constraint_contract": constraint_contract,
                 "content_intent": normalized_intent, "intent_contract": intent_contract,
                 "merchant_name": normalized_merchant, "merchant_visibility": normalized_visibility,
@@ -19802,6 +19943,10 @@ async def generate_stream_endpoint(
         ):
             if event.get("type") == "complete":
                 _public_product.assert_result_known()
+                event["source_media_refs"] = _cover_sources.source_refs_from_inputs(
+                    cover_image=req.cover_image, cover_images=req.cover_images)
+                event["source_media_items"] = _cover_sources.source_items_from_inputs(
+                    cover_image=req.cover_image, cover_images=req.cover_images)
                 event["fact_enrichment"] = fact_enrichment
                 fact_source_decision = fact_enrichment.get("decision", {}) if isinstance(fact_enrichment, dict) else {}
                 event["user_constraints"] = normalized_constraints
@@ -20023,6 +20168,10 @@ async def generate(
             fact_source_decision=fact_source_decision,
         )
         response = GenerateResponse(
+            source_media_refs=_cover_sources.source_refs_from_inputs(
+                cover_image=req.cover_image, cover_images=req.cover_images),
+            source_media_items=_cover_sources.source_items_from_inputs(
+                cover_image=req.cover_image, cover_images=req.cover_images),
             note_title=result["title"],
             note_body=result["body"],
             title_variants=result.get("variants", []),
