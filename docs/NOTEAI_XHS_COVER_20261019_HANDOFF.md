@@ -344,3 +344,42 @@
 - 独审发现辅助guard期限可为Infinity的窄P2已修；finite/gate新增7项替身独立通过、0socket。作者仍迭代辅助权限检查，日志/源尚未最终冻结，结论只为中间预审，不冒live放行。原基础23项及新7项不能拿来替代实际runtime/鉴权。
 - 复用本次PLAN的最小只读收据计划已存`READONLY-ACCEPTANCE-QUERY-PLAN.md`，SHA`a2b4349a02662931787960baacfa25bd6dccf3629e0a0cac79b6db43194715d1`；仅窄SELECT/现有GET/真实PNG，没有第二套runner。报告积分待正常实时quote，封面8分独立核；最终报告/封面/免费调整三个时点对比物理call与唯一扣分。PC/H5使用当前CUA浏览器及其viewport能力，不以模拟尺寸当iPhone真机。
 - 当前新增模型调用0、已知费用0/100、真实报告/封面0、新UNKNOWN0；无生产迁移/配置/发布。剩余：字体/image/隔离API+真实存储+正常auth与组合guard最终绑定→必要时只在具体已备妥的60分钟受鉴权测试入口方案上取得当次开放确认→本窗唯一派发九图新报告和同报告封面→前后端/成品/费用/独审收据。恢复只读本节及原窗口后继、PLAN、当前HEAD；不重放旧模型/支付/Amap/历史任务。
+
+
+### A05 构建与实际组合差异 — 北京2026-10-20 07:24；原窗口追加后立即释放
+
+- 固定字体已通过原API-C Workbench普通私有文件上传成功（仅非敏感官方字体，原大小16963428B/SHA df2b90…不变），存于/home/ecs-user/noteai-cover-transfer-20261020-r1/；沿既有临时中转，不创建新桶/凭据/公开ACL。Enew/font-workbench-upload.png及后继host SHA核验留证。此前两次TLS失败保留，不重下载。
+- c-sz070k0hswoolc0/t-sz070k0hsx3nzeo明确Failed/Exit1/Dropped0：Docker到step5，旧SHA断言model/admin.html失败；原build-started 5a2b4f…、1298B构建log6d470a31514651bc034117b309404da79fe9a433016a66509fbec4ecf664e0bd保留。没有新image/运行API/业务写/付费请求。不是字体/模型故障。
+- 已一次只读核全部18目标c-sz070k0pwirfzsw/t-sz070k0pwj6fdvk，S0D0：仅model/admin.html实际7e18763…、model/admin_server.py实际66eafb87…不等于f3e Git旧叶子；其余16全部匹配旧SHA或按预期新文件absent。精确原件Enew/api-base-composition-readonly-output.json。正式3711/9be/PID2779792/restart0仍running、include仍absent。此证实组合基线不能把f3e HEAD当整镜像。
+- 最小API-only r2方案已准备（未派）：仅从delta排除上述两个Admin文件，保留其原镜像内容；16API增量与e623 Seedream、固定字体完整保留，独立build-api-only-r2目录/marker/log，原失败不删不改。delta47726B/SHA60acf46a9ecab1a2413aa5e999288dddd440ad8698e3854357ac4a705b816bb3，命令8987B/SHA3563beae55038af33edc465e3d247cc945cc956e4c45c2bceba475361f8e6d73，正在窄独审。不能据此宣称Admin封面候选已部署/验收，Admin改动仍须后续对应独立集成。
+- 脱敏实际运行配置：正式backend=aliyun_oss，原私有桶noteai-private-prod-20260729-c60cc608、深圳内网HTTPS endpoint、原RAM role、prefix noteai-private；Ark配置身份SHA16=35813f100f5af799（不输出Key）。这些仅是实际profile/身份事实，不证明OSS当前写入或Key项目权限。已知OSS控制台欠费仍需先验证真实9图普通上传及存储；不能直接签成已可用proof、更不能先派模型。火山余额与阿里OSS分开记录，不混淆。
+- runtime helper最终a7e36f78bd71f31ff14fec33a278a3bea542be1cf89e8b349fb445083f3a644b，桥逐字abdc5bc6…；6离线准入测试和独立源码ID/路由/auth/启动顺序窄审通过，无产品改动。17leaf源pin、实际PG/ACL/会话/存储、Gateway新签名metadata、有限prepseal仍待真正启动核验。30测guard eb26a9…冻结未变；主窗口不需重跑全项目。
+
+
+### Q06 / 实际Ark Key项目绑定原件（原窗口追加，07:26北京）
+
+当前实际Ark Key仅取得不可逆身份SHA16=35813f100f5af799，原API与新隔离将用同一原RAM/env安全渠道，不读取/输出Key。现有代码没有KeyID/ProjectID自省字段，源码共用NOTEAI_ARK_API_KEY只能证实配置一致，不能证明属于已登录Ark控制台的哪一个项目。请封面窗口核已有配置渠道是否有Key对象ID/secret版本→账号/项目的脱敏映射原件；若没有，请在当前已登录账号只读核可对应的Key元数据与原件，不建Key/扩大权限/发付费探针。guard的runtime_key_project_binding_verified必须有依据，暂未填true。此问题通过本文件直接交换，不要求用户逐项转述。根继续不依赖该证明的镜像/隔离准备，不等待答复才工作。
+
+r2构建尚未派；窄审检出两项辅助脚本确定性阻断已在本地修正：host重压gzip不跨版本固定压缩字节SHA，改钉193542B规范JSON708b1b…；派生apply仅改payload身份门为该规范JSON SHA，保留所有old/new逐文件门。16项临时Git原件重建全SHA通过。新命令9095B/SHAa0916f8d692fb2eb5be3086f194d81b229e5a69325a2a356cb43bdad69170a8e；helper1efa23a3…；源14382B/892e71ff…，待末次窄复核，不将准备脚本误写已执行。
+
+
+### A06 / 已得实际隔离API镜像 — 北京2026-10-20 07:29；原窗口追加后立即释放
+
+- 唯一API-only r2 c-sz070k13y1b6nls/t-sz070k13y1v5udc原身份读回Success/Exit0/Dropped0，实际镜像sha256:05978bee01588bcc1b4bd0cb74660eadd3a19b97dadfdc9cec8d1a76d08bf6cc，tag noteai-cover-api-e6234e7-api-only-20261020-r2。Enew/build-api-only-r2-{run-original,read-original,output}.json留原件，host结果/日志独立build-api-only-r2-*.json/log。
+- API产品e623、其余API叶子919；18源/SQL/原Ark与router校验点全部PASS，manifestSHA76d690f9a287566a4218ebac92d30fccbaeb99fa61f157d6d4a6a15ba1081496；Seedream模块3200d675…、字体df2b90…、FreeType与“水石清池·汤泉生活”中文文字验证PASS。**仅API镜像**：原9be Admin HTML/server两个叶子保留，不声称新Admin已装载或验收。
+- r2最终源码15845B/SHA7d54325e6f818c359b6b14a8dd6eff6b817d1dd041eeb6b1352d4cae3e4d0779；命令10311B/SHA5e4ff038b1113eda2d11a83ad2f3584190d3b1126f4593632462fd6076a83049；规范JSON708b1b…，host实际gzipSHA2ee67a65…（与macOS压缩字节不同属已解释版本差异），逐文件old/new门没有放宽。此前本地窄审检出的压缩门、helper旧门和生成literal缺陷均在dispatch前修正并重建16源/独审，不曾拿未核脚本反复派云。
+- 正式3711/9be/PID2779792/restart0前后严格相等。此步API_launched=false、DBwrites0、provider0、publicentry=false；不是业务验收、不是发布。下一步仅在原隔离PG装精确featureSQL并启动此镜像的HOLD runtime（默认只readiness/upload、所有模型wire关闭）；先证实际存储/Key项目/Gateway，再由封面窗口唯一发真实请求。Q06仍待原件答复，OSS当前写可用尚未证实。
+
+
+### A06 后继 / 原隔离业务PG已装载feature SQL（非生产）
+
+唯一c-sz070k1azltmbcw/t-sz070k1azm140e8原身份Success/Exit0/Dropped0，Enew/install-feature-sql-isolated-{run-original,read-original,output}.json保存全文原件。完整8839B/bd6626 SQL的原BEGIN…COMMIT一次在原Unix socket、noteai_admin、精确原isolated业务库执行；三个新表为空、两新预算reserved0、app权限精确、封面配置absent/default disabled。schema_migrations仍31且manifest不变，旧50元budget整行前后相同。没有全量migrator、0032–0041、生产DB连接、role/HBA调整、旧Admin额外权限补写、业务报告/积分/模型调用。此前89项真实PG回滚fixture证据仍复用，本次是实际业务测试库装载，非89项重跑、非生产迁移验收。
+
+guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八个白名单源码/静态HOLD输入，61014B/SHA4414b352fd42bdbdbf7ba8ec3bef003ef321e743513626e568c106e271cf0374，已由原Workbench传到本次专用目录；不含.env/DSN/Token/Key/seal/proof。当前正在原身份stage+镜像内artifact check_only；暂未启动API、更未开放入口/派模型。实际字体和helper传输已解决，不再以TLS下载或字体作为阻塞；待核仍是正常runtime/会话/实际OSS可用及Q06 Key项目对应。
+
+
+### Q06 / 90天对象保存契约（非本次分钟级验收前置；待原窗口只读答复）
+
+- 问题：`model/private_storage.py`对cover_final/base/revision写90天元数据并按owner/TTL读，现有OSS实际Bucket/前缀生命周期是否有更短的统一清理规则？应用JSON/DB到期90天不独立证明供应商对象能保留90天。请复用现成真实存储profile/生命周期收据；如无，仅只读核所用前缀规则，不新增资源或改生产配置。
+- 相关：`cover_service._store_image`→`private_storage.store_media_bytes(lifecycle="cover_v1")/load_media_bytes`、`cover_jobs`资产到期及免费调整保留原expires；本轮隔离namespace与生产namespace需分别陈述。建议明确无提前于90天的Bucket规则，或最终统一集成时最窄申请封面前缀所需配置，不能默许延长所有原图。
+- 负责人：原窗口答现有云存储事实；本窗维护封面源码与收据。状态PENDING；代码合同与离线到期/权限证据已存在，不重做。阻塞范围仅“生产90天存储就绪”结论，**不将其扩为本次短时真实九图/封面验证的新启动门槛**；若实际上传/保存拒绝则按真实错误停止付费链。下一步等原profile可复用答复，结果未知如实列入交付。
