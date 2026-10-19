@@ -104,55 +104,71 @@ def availability_in_transaction(tx, user_id, subscription):
 
 def reserve_claim(*, user_id, operation, request_id, payload, quote_version=None):
     """Create one explicit v1 reservation; no customer money is consumed here."""
-    if operation not in {"generate", "analyze"}:
-        raise ValueError("reservation supports existing generation/diagnosis only")
+    if operation == "cover_generate":
+        raise ValueError("cover reservations require their atomic cover job admission")
+    with db.transaction(write=True) as tx:
+        context = reserve_claim_in_transaction(tx, user_id=user_id, operation=operation,
+            request_id=request_id, payload=payload, quote_version=quote_version)
+    if context.get("state") == "reservation_owner":
+        billing.activate_usage(context["charge"]["usage_id"])
+    return context
+
+
+def reserve_claim_in_transaction(tx, *, user_id, operation, request_id, payload, quote_version=None,
+                                 cover_quote_version=None):
+    """Create one explicit v1 reservation; no customer money is consumed here."""
+    if operation not in {"generate", "analyze", "cover_generate"}:
+        raise ValueError("unsupported reservation operation")
     normalized = idempotency.normalize_request_id(request_id)
     if not normalized:
         raise ValueError("durable request id required")
     key_hash, body_hash = idempotency._sha256(normalized), idempotency.payload_hash(payload)
     token, row_id = secrets.token_urlsafe(32), str(uuid.uuid4())
     now = idempotency._now()
-    with db.transaction(write=True) as tx:
-        content_retention.assert_user_writable_with_storage(tx, user_id)
-        lock = " FOR UPDATE" if tx.postgres else ""
-        existing = tx.fetchone("SELECT * FROM idempotency_requests WHERE user_id=? "
-            "AND operation=? AND key_hash=?" + lock, (user_id, operation, key_hash))
-        if existing:
-            row = dict(existing)
-            if row["payload_hash"] != body_hash:
-                return {"state": "conflict"}
-            return {"state": ("legacy_existing" if _version(row) is None else
-                "in_progress" if row["status"] == "running" else row["status"]),
-                "task_id": row["id"], "legacy_status":row["status"],
-                "session_id": row["id"] if row["status"] == "waiting_for_input" else None,
-                "failure_code": str(row.get("failure_code") or ""),
-                "refund_status":idempotency._refund_status(row),
-                "settlement_mode": "legacy" if _version(row) is None else "reservation_v1"}
+    content_retention.assert_user_writable_with_storage(tx, user_id)
+    lock = " FOR UPDATE" if tx.postgres else ""
+    existing = tx.fetchone("SELECT * FROM idempotency_requests WHERE user_id=? "
+        "AND operation=? AND key_hash=?" + lock, (user_id, operation, key_hash))
+    if existing:
+        row = dict(existing)
+        if row["payload_hash"] != body_hash:
+            return {"state": "conflict"}
+        return {"state": ("legacy_existing" if _version(row) is None else
+            "in_progress" if row["status"] == "running" else row["status"]),
+            "task_id": row["id"], "legacy_status":row["status"],
+            "session_id": row["id"] if row["status"] == "waiting_for_input" else None,
+            "failure_code": str(row.get("failure_code") or ""),
+            "refund_status":idempotency._refund_status(row),
+            "settlement_mode": "legacy" if _version(row) is None else "reservation_v1"}
+    if operation == "cover_generate":
+        if not cover_quote_version or quote_version != cover_quote_version:
+            raise HTTPException(409, detail={"code": "BILLING_QUOTE_CHANGED",
+                "message": "封面积分或制作策略已更新，请重新确认后提交"})
+    else:
         billing.assert_quote_version(quote_version)
-        if tx.fetchone("SELECT user_id FROM payment_orders WHERE user_id=? "
-                       "AND refund_status IN ('pending','needs_manual') LIMIT 1",(user_id,)):
-            raise HTTPException(409, "原支付权益仍在退款结算，请先核实完成后再发起新任务")
-        _lock_wallet(tx, user_id)
-        sub = billing._require_feature_tx(tx, user_id, operation)
-        available = availability_in_transaction(tx, user_id, sub)
-        price = _money(billing.get_operation_costs()[operation]["credits"])
-        monthly = min(price, available["monthly_available"])
-        wallet = round(price - monthly, 2)
-        if wallet > available["wallet_available"]:
-            raise HTTPException(402, detail={"code": "QUOTA_EXCEEDED",
-                "message": "可用积分不足；已有任务预留仍被保留。"})
-        source = "mixed" if monthly and wallet else "subscription" if monthly else "credits"
-        marker = _marker(source, sub["tier"])
-        usage_id = billing._record_usage_tx(tx, user_id, operation, marker, 0)
-        tx.execute("INSERT INTO idempotency_requests(id,user_id,operation,key_hash,payload_hash,"
-            "status,lease_token_hash,lease_expires_at,usage_id,charged_subscription_id,charged_period_start,"
-            "charge_source,credits_used,monthly_credits_used,wallet_credits_used,usage_created,charge_applied,"
-            "usage_created_at,charged_at,created_at,updated_at) "
-            "VALUES(?,?,?,?,?,'running',?,?,?,?,?,?,?,?,?,1,1,?,?,?,?)", (row_id,user_id,operation,
-            key_hash,body_hash,idempotency._sha256(token),idempotency._iso(now+timedelta(seconds=1800)),
-            usage_id,sub["id"],sub["period_start"],marker,price,monthly,wallet,
-            idempotency._iso(now),None,idempotency._iso(now),idempotency._iso(now)))
-    billing.activate_usage(usage_id)
+    if tx.fetchone("SELECT user_id FROM payment_orders WHERE user_id=? "
+                   "AND refund_status IN ('pending','needs_manual') LIMIT 1",(user_id,)):
+        raise HTTPException(409, "原支付权益仍在退款结算，请先核实完成后再发起新任务")
+    _lock_wallet(tx, user_id)
+    sub = billing._require_feature_tx(tx, user_id, operation)
+    available = availability_in_transaction(tx, user_id, sub)
+    price = _money(billing.get_operation_costs()[operation]["credits"])
+    monthly = min(price, available["monthly_available"])
+    wallet = round(price - monthly, 2)
+    if wallet > available["wallet_available"]:
+        raise HTTPException(402, detail={"code": "QUOTA_EXCEEDED",
+            "message": "可用积分不足；已有任务预留仍被保留。"})
+    source = "mixed" if monthly and wallet else "subscription" if monthly else "credits"
+    marker = _marker(source, sub["tier"])
+    usage_id = billing._record_usage_tx(tx, user_id, operation, marker, 0)
+    tx.execute("INSERT INTO idempotency_requests(id,user_id,operation,key_hash,payload_hash,"
+        "status,lease_token_hash,lease_expires_at,usage_id,charged_subscription_id,charged_period_start,"
+        "charge_source,credits_used,monthly_credits_used,wallet_credits_used,usage_created,charge_applied,"
+        "usage_created_at,charged_at,created_at,updated_at) "
+        "VALUES(?,?,?,?,?,'running',?,?,?,?,?,?,?,?,?,1,1,?,?,?,?)", (row_id,user_id,operation,
+        key_hash,body_hash,idempotency._sha256(token),idempotency._iso(now+timedelta(seconds=1800)),
+        usage_id,sub["id"],sub["period_start"],marker,price,monthly,wallet,
+        idempotency._iso(now),None,idempotency._iso(now),idempotency._iso(now)))
     return {"state": "reservation_owner", "settlement_mode": "reservation_v1",
         "request_id": row_id,"user_id": user_id,"operation": operation,"key_hash": key_hash,
         "payload_hash": body_hash,"lease_token": token,"charge": {"usage_id": usage_id, "settlement_mode":"reservation_v1",
@@ -186,7 +202,10 @@ def _assert_usage_state(tx, row):
         raise ValueError("original reservation usage state changed")
 
 
-def _assert_calls_settled(tx, usage_id, *, require_success=True):
+def _assert_calls_settled(tx, usage_id, *, require_success=True, operation=None):
+    if operation == "cover_generate":
+        import cover_jobs
+        return cover_jobs.assert_calls_settled_in_transaction(tx, usage_id, require_success=require_success)
     calls = tx.fetchall("SELECT state,http_status,model_usage_record_id FROM public_trial_calls "
                         "WHERE usage_record_id=?", (usage_id,))
     if ((require_success and not any(call["http_status"] == 200 for call in calls))
@@ -198,6 +217,9 @@ def _assert_calls_settled(tx, usage_id, *, require_success=True):
 
 
 def _assert_saved(tx, row, result):
+    if row["operation"] == "cover_generate":
+        import cover_jobs
+        return cover_jobs.assert_saved_in_transaction(tx, row, result)
     if not isinstance(result, dict) or not result.get("saved_note_id"):
         raise ValueError("saved report identity required")
     note = tx.fetchone("SELECT id,title,body,source FROM notes WHERE id=? AND user_id=?",
@@ -227,7 +249,7 @@ def finalize_in_transaction(tx, context, result):
                             for held in _open_rows(tx, row["user_id"])))
     if not wallet_backing or _money(wallet_backing["balance"]) < held_wallet:
         raise ValueError("original wallet reservations lost their backing")
-    _assert_calls_settled(tx, row["usage_id"])
+    _assert_calls_settled(tx, row["usage_id"], operation=row["operation"])
     _assert_saved(tx, row, result)
     source = _version(row)
     monthly, wallet = _money(row["monthly_credits_used"]), _money(row["wallet_credits_used"])
@@ -251,7 +273,7 @@ def finalize_in_transaction(tx, context, result):
         balance = tx.fetchone("SELECT balance FROM credits WHERE user_id=?", (row["user_id"],))["balance"]
         tx.execute("INSERT INTO credit_transactions(id,user_id,type,amount,balance_after,description,recorded_at) "
             "VALUES(?,?,'usage',?,?,?,?)", (str(uuid.uuid4()),row["user_id"],-wallet,balance,
-            "报告交付后确认消费",now))
+            "封面交付后确认消费" if row["operation"] == "cover_generate" else "报告交付后确认消费",now))
         import payment_contract
         payment_contract.allocate_paid_credit_positions(tx,row["user_id"],row["usage_id"],wallet)
     tx.execute("UPDATE usage_records SET source=?,credits_used=? WHERE id=? AND user_id=?",

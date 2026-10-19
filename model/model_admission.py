@@ -33,6 +33,7 @@ class Limits:
     claude: int = 2
     kimi: int = 2
     doubao: int = 2
+    seedream: int = 1
     claude_rpm: int = 30
     media_workers: int = 2
     operations: int = 10
@@ -49,6 +50,7 @@ class Limits:
             claude=_number("NOTEAI_CLAUDE_CONCURRENCY", 2, 1, 16),
             kimi=_number("NOTEAI_KIMI_TEXT_CONCURRENCY", 2, 1, 16),
             doubao=_number("NOTEAI_DOUBAO_CONCURRENCY", 2, 1, 16),
+            seedream=_number("NOTEAI_SEEDREAM_CONCURRENCY", 1, 1, 1),
             claude_rpm=_number("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1, 6000),
             media_workers=_number("NOTEAI_MEDIA_WORKER_CONCURRENCY", 2, 1, 8),
             operations=_number("NOTEAI_MODEL_ADMITTED_OPERATIONS", 10, 1, 64),
@@ -316,7 +318,7 @@ class Admission:
         self.operations = {}
         self.aliases = {}
         self.calls = FairQueue(self.limits.physical,
-                               {k: getattr(self.limits, k) for k in ("claude", "kimi", "doubao")},
+                               {k: getattr(self.limits, k) for k in ("claude", "kimi", "doubao", "seedream")},
                                self.limits.pending_calls, self.limits.queue_seconds,
                                self.limits.no_progress_seconds,
                                rates={"claude": self.limits.claude_rpm})

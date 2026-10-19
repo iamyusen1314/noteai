@@ -1094,6 +1094,7 @@ def store_media_bytes(
     ttl_seconds: int = MEDIA_TTL_SECONDS,
     now: datetime | None = None,
     backend: ObjectBackend | None = None,
+    lifecycle: str = "temporary",
 ) -> MediaReference:
     purpose_value = str(purpose or "")
     if purpose_value not in _PURPOSES:
@@ -1111,7 +1112,10 @@ def store_media_bytes(
         1,
         MAX_VIDEO_FRAMES if purpose_value == "video_frames" else 1,
     )
-    ttl = _bounded_int(ttl_seconds, "ttl_seconds", 60, 30 * 24 * 60 * 60)
+    if lifecycle not in {"temporary", "cover_v1"} or (lifecycle == "cover_v1" and purpose_value != "image"):
+        raise ValueError("invalid private media lifecycle")
+    maximum_ttl = (90 if lifecycle == "cover_v1" else 30) * 24 * 60 * 60
+    ttl = _bounded_int(ttl_seconds, "ttl_seconds", 60, maximum_ttl)
     subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
     current = _utc(now)
     created_at = current.isoformat()

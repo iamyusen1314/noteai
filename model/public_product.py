@@ -41,7 +41,7 @@ EXACT_ROUTES = frozenset({
     ("GET", "/account/export"), ("GET", "/account/archive/recovery"),
     ("POST", "/account/archive/recover"), ("POST", "/auth/sessions/revoke-all"),
     ("POST", "/auth/password-reset"), ("POST", "/auth/change-password"), ("DELETE", "/account"),
-    ("GET", "/diagnoses"), ("GET", "/reports"),
+    ("GET", "/diagnoses"), ("GET", "/reports"), ("GET", "/covers"),
     ("GET", "/profile/growth"), ("GET", "/profile/memories"),
     ("GET", "/profile/achievements"),
     ("PUT", "/auth/profile"), ("PATCH", "/auth/profile"), ("PUT", "/auth/avatar"),
@@ -95,6 +95,10 @@ def allowed_route(method: str, path: str) -> bool:
         return True
     if re.fullmatch(r"/reports/(?:analyze|generate)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})/cover-sources(?:/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})?", path):
         return method == "GET" or (method == "PUT" and path.endswith("/cover-sources") and image_enabled())
+    if re.fullmatch(r"/reports/(?:analyze|generate)/(?:[0-9a-f]{32}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})/covers", path):
+        return method in {"GET", "POST"}
+    if re.fullmatch(r"/covers/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}(?:/(?:download|adjust))?", path):
+        return (method == "GET" and not path.endswith("/adjust")) or (method == "POST" and path.endswith("/adjust"))
     if method == "GET" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):
         return True
     if method == "POST" and re.fullmatch(r"/chat/tasks/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/cancel", path):
@@ -134,10 +138,16 @@ class Invocation:
     observed_models: set = field(default_factory=set)
     fact_observation: dict | None = None
     admission_state: object | None = field(default=None, repr=False)
+    budget_id: str | None = None
 
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
 _model_lease = contextvars.ContextVar("public_product_model_lease", default=None)
+
+
+def _cover_scope():
+    current = _invocation.get()
+    return current is not None and current.route == "/covers"
 
 
 def _admission_operation():
@@ -155,7 +165,7 @@ def _admission_operation():
 
 @contextmanager
 def model_admission_sync(operation_id, provider):
-    if not enabled():
+    if not enabled() and not _cover_scope():
         yield
         return
     import model_admission as admission
@@ -182,7 +192,7 @@ def model_admission_sync(operation_id, provider):
 
 @asynccontextmanager
 async def model_admission(operation_id, provider):
-    if not enabled():
+    if not enabled() and not _cover_scope():
         yield
         return
     import model_admission as admission
@@ -583,9 +593,9 @@ class TrialProviderStopped(RuntimeError):
 
 def assert_result_known():
     current = _invocation.get()
-    if enabled() and current is not None and current.failure:
+    if (enabled() or _cover_scope()) and current is not None and current.failure:
         raise TrialProviderStopped(current.failure)
-    if (enabled() and current is not None and current.admission_state is not None
+    if ((enabled() or _cover_scope()) and current is not None and current.admission_state is not None
             and current.admission_state.cancelled.is_set()):
         raise TrialProviderStopped("MODEL_OPERATION_CANCELLED")
 
@@ -700,14 +710,24 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
             or not re.fullmatch(r"[0-9a-f]{64}", str(media.get("sha256", "")))
             or media.get("transport") not in {"inline", "ark_file", "private_oss"}):
         raise TrialProviderStopped("PUBLIC_MEDIA_REFERENCE_INVALID")
+    budget_id = current.budget_id or BUDGET_ID
+    cover = _cover_scope()
+    if budget_id != BUDGET_ID:
+        import cover_settings
+        if not cover or budget_id not in {cover_settings.BUDGET_ID, cover_settings.FORMAL_BUDGET_ID}:
+            raise TrialProviderStopped("PUBLIC_BUDGET_SCOPE_INVALID")
+    elif cover:
+        raise TrialProviderStopped("COVER_REQUIRES_SEPARATE_BUDGET")
+    acceptance = cover and budget_id == cover_settings.BUDGET_ID
     with db.transaction(write=True) as tx:
         lock = " FOR UPDATE" if tx.postgres else ""
-        budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?" + lock, (BUDGET_ID,))
+        budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?" + lock, (budget_id,))
         metered = bool(budget and dict(budget).get("policy_mode") == "owner_metered")
         if require_metered and not metered:
             raise TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_NOT_READY")
-        if (not budget or budget["enabled"] != 1 or (not metered
-                and budget["reserved_milli_cny"] + reserve > budget["limit_milli_cny"])):
+        if (type(reserve) is not int or reserve < 0 or not budget or budget["enabled"] != 1
+                or ((not metered or acceptance)
+                    and budget["reserved_milli_cny"] + reserve > budget["limit_milli_cny"])):
             raise TrialProviderStopped("PUBLIC_TRIAL_BUDGET_EXHAUSTED")
         usage_id = billing._ACTIVE_USAGE_ID.get() if metered else None
         if metered:
@@ -715,9 +735,22 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                                  (usage_id, current.user_id))
             if not parent:
                 raise TrialProviderStopped("PUBLIC_MODEL_REQUIRES_ENTITLEMENT_USAGE")
+            if cover:
+                import cover_settings
+                if parent["operation"] != "cover_generate":
+                    raise TrialProviderStopped("COVER_ENTITLEMENT_SCOPE_INVALID")
+                total_calls = tx.fetchone("SELECT COUNT(*) n FROM public_trial_calls WHERE budget_id=?", (budget_id,))["n"]
+                task_calls = tx.fetchone("SELECT COUNT(*) n FROM public_trial_calls WHERE usage_record_id=?", (usage_id,))["n"]
+                if (acceptance and total_calls >= cover_settings.MAX_ACCEPTANCE_CALLS) or task_calls >= 3:
+                    raise TrialProviderStopped("COVER_CALL_LIMIT_REACHED")
             pending = tx.fetchall("SELECT id FROM public_trial_calls WHERE request_hash=? "
                                   "AND usage_record_id IS NOT NULL AND model_usage_record_id IS NULL "
                                   "AND state='responded' AND http_status=200", (request_hash,))
+            if cover:
+                import cover_jobs
+                pending = [row for row in pending if not cover_jobs.image_call_settled(tx, row["id"])]
+                if pending:
+                    raise TrialProviderStopped("COVER_ACCOUNTING_UNCONFIRMED_NO_REPLAY")
             if any(row["id"] not in current.call_ids for row in pending):
                 raise TrialProviderStopped("PUBLIC_MODEL_ACCOUNTING_UNCONFIRMED_NO_REPLAY")
         if tx.fetchone("SELECT id FROM public_trial_calls WHERE request_hash=? AND state='unknown' LIMIT 1", (request_hash,)):
@@ -729,7 +762,7 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
         if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= model_admission.current().limits.physical:
             raise _SlotsBusy()
         tx.execute("UPDATE public_trial_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
-                   (reserve, BUDGET_ID))
+                   (reserve, budget_id))
         if metered:
             call_trace = provenance if isinstance(provenance, dict) else {
                 "prompt_scope": "request_snapshot", "prompts": prompt_manager.request_versions()}
@@ -739,17 +772,18 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                 **{key: call_trace.get(key) for key in ("task", "step", "prompt_domain",
                     "prompt_scope", "prompts", "missing_prompt_keys", "instruction_role", "instruction_sha256")},
                 "fact_observation": current.fact_observation,
-                "provider": ("claude" if payload["model"].startswith("claude") else
+                "provider": ("seedream" if cover and payload.get("provider") == "seedream" else
+                             "claude" if payload["model"].startswith("claude") else
                              "doubao" if payload["model"] == "doubao-seed-2-0-lite-260428" else "kimi"),
                 "modality": payload.get("modality"),
                 **({"media": media} if media is not None else {}),
                 "operation_id": payload.get("operation_id"),
                 "max_tokens": payload.get("max_tokens")}, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "
-                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now,usage_id,provenance_json))
+                       "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,budget_id,current.user_id,request_hash,"dispatched",reserve,now,usage_id,provenance_json))
         else:
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at) "
-                       "VALUES(?,?,?,?,?,?,?)", (call_id,BUDGET_ID,current.user_id,request_hash,"dispatched",reserve,now))
+                       "VALUES(?,?,?,?,?,?,?)", (call_id,budget_id,current.user_id,request_hash,"dispatched",reserve,now))
         current.call_ids.add(call_id)
     return call_id
 

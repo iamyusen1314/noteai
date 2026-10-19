@@ -72,6 +72,12 @@ OPERATIONS: dict[str, dict] = {
         "credits": 8.0,
         "free":    False,
     },
+    "cover_generate": {
+        "label":   "笔记封面",
+        "cost":    0.0,      # Image and design/QC costs are recorded independently.
+        "credits": 8.0,
+        "free":    False,
+    },
     "chat_fast": {
         "label":   "对话反馈",
         "cost":    0.17,
@@ -669,7 +675,7 @@ def assert_quote_version(version: str | None) -> None:
 
 
 def get_operation_quote(user_id: str, operation: str, *, has_video: bool = False) -> dict:
-    if operation not in {"analyze", "generate", "chat_rewrite", "chat_fast", "screenshot"}:
+    if operation not in {"analyze", "generate", "chat_rewrite", "chat_fast", "screenshot", "cover_generate"}:
         raise HTTPException(400, detail="不支持此操作报价")
     plan = get_quota_status(user_id)
     if plan["feature_overrides"].get(operation) is False:
@@ -686,10 +692,11 @@ def get_operation_quote(user_id: str, operation: str, *, has_video: bool = False
             "wallet_credits_balance": plan["wallet_credits_balance"],
             "total_available_credits": plan["total_available_credits"],
             "quote_version": billing_quote_version(), "charge_timing": (
-                "after_saved_report" if __import__("postdelivery").enabled() and operation in {"generate", "analyze"}
+                "after_saved_cover" if operation == "cover_generate" else
+                "after_saved_report" if __import__("postdelivery").enabled() and operation in {"generate", "analyze", "cover_generate"}
                 else "on_admission"),
             "failure_policy": ("release_after_confirmed_failure" if
-                __import__("postdelivery").enabled() and operation in {"generate", "analyze"}
+                __import__("postdelivery").enabled() and operation in {"generate", "analyze", "cover_generate"}
                 else "refund_after_confirmed_failure"),
             "retry_policy": "same_request_id_no_second_charge"}
 
@@ -1357,7 +1364,7 @@ def _record_model_usage_for_usage_id(
             return
         lock = " FOR UPDATE" if tx.postgres else ""
         parent = tx.fetchone(
-            f"SELECT id,estimated_cost_rmb FROM usage_records "
+            f"SELECT id,operation,estimated_cost_rmb FROM usage_records "
             f"WHERE id=? AND user_id=?{lock}",
             (usage_id, owner["user_id"]),
         )
@@ -1437,6 +1444,9 @@ def _record_model_usage_for_usage_id(
         if physical_call_id:
             tx.execute("UPDATE public_trial_calls SET model_usage_record_id=?,usage_fingerprint=? WHERE id=? AND model_usage_record_id IS NULL",
                        (model_usage_id, fingerprint, physical_call_id))
+        if parent["operation"] == "cover_generate":
+            import cover_jobs
+            cover_jobs.refresh_usage_in_transaction(tx,usage_id)
 
 # ─────────────────────────────────────────────────────────────
 # ⑨ 配额状态查询（用于前端显示）
@@ -1606,6 +1616,22 @@ def _usage_summary_tx(tx, user_id, window, days):
             "recorded_at": r["recorded_at"],
         })
 
+    cover_image_summary = None
+    for detail in details:
+        if detail["operation"] == "cover_generate":
+            import cover_jobs
+            detail["image_usage"] = cover_jobs.image_usage_summary_in_transaction(tx,detail["usage_id"])
+            detail["model_cost_status"] = detail["cost_mode"]
+    if "cover_generate" in by_op:
+        image_rows = tx.fetchall("SELECT m.estimated_cost,m.actual_cost,m.currency FROM cover_image_usage m "
+            "JOIN usage_records u ON u.id=m.usage_id WHERE u.user_id=? AND u.recorded_at>=? AND u.recorded_at<?",(user_id,since,as_of))
+        image_estimate = sum(float(row["estimated_cost"]) for row in image_rows)
+        image_known = sum(float(row["actual_cost"]) for row in image_rows if row["actual_cost"] is not None and row["currency"]=="CNY")
+        image_unknown = sum(row["actual_cost"] is None or row["currency"]!="CNY" for row in image_rows)
+        cover_image_summary = {"physical_calls":len(image_rows),"estimated_cost_rmb":round(image_estimate,9),
+            "known_billed_cost_rmb":round(image_known,9),"actual_cost_rmb":None if image_unknown else round(image_known,9),
+            "unconfirmed_bills":image_unknown,"cost_status":"partial" if image_unknown else "actual"}
+        by_op["cover_generate"]["image_usage"] = cover_image_summary
     report = usage_reporting.project_usage(
         **usage_reporting.read_reporting_rows(tx, window, user_id=user_id), window=window)
     subscription = tx.fetchone("SELECT tier,period_start,expires_at FROM subscriptions "
@@ -1624,6 +1650,7 @@ def _usage_summary_tx(tx, user_id, window, days):
         "total_credits":    round(total_credits, 2),
         "by_operation":     by_op,
         "recent_records":   details,
+        **({"cover_image_usage":cover_image_summary} if cover_image_summary is not None else {}),
     }
 
 

@@ -993,6 +993,22 @@ async def admin_model_config_change(action: str, body: AdminOperationInput, admi
         expected=body.payload.get("expected_revision"), config=body.payload.get("config"))
 
 
+@admin_app.get("/admin/cover-config")
+async def admin_cover_config(scope: str = "production", admin: dict = Depends(_aauth.get_admin_user)):
+    import cover_settings
+    return {**cover_settings.view(scope), "image_costs": cover_settings.cost_view()}
+
+
+@admin_app.post("/admin/cover-config/{action}")
+async def admin_cover_config_change(action: str, body: AdminOperationInput,
+                                    admin: dict = Depends(_aauth.get_admin_user)):
+    _require_admin_capability("model_configuration", admin)
+    import cover_settings
+    return cover_settings.change(action, body.payload.get("scope", "production"), actor=admin["username"],
+        request_id=body.request_id, reason=body.reason, expected=body.payload.get("expected_revision"),
+        config=body.payload.get("config"))
+
+
 @admin_app.post("/admin/users/{user_id}/entitlements/preview")
 async def admin_entitlement_preview(user_id: str, body: dict, admin: dict = Depends(_aauth.get_admin_user)):
     _require_admin_capability("entitlement_management", admin)

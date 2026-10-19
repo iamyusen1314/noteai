@@ -410,6 +410,19 @@ input,select,textarea{font-family:inherit}
       <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeModelConfig('draft')">保存草稿</button>
       <button class="btn btn-primary" data-capability="model_configuration" onclick="changeModelConfig('activate')">发布生效</button>
       <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeModelConfig('restore')">恢复上一配置</button>
+      <div class="card" style="margin-top:20px">
+        <h3>笔记封面</h3>
+        <div id="cover-config-state" role="status">正在读取封面配置…</div>
+        <p>固定 Seedream Pro · 1776×2368 · 8积分/合格交付 · 保存90天；设计1次、图片最多1次、质检1次，无自动付费重绘。</p>
+        <label><input type="checkbox" id="cover-enabled"> 允许新封面任务</label>
+        <label>运行范围 <select class="form-input" id="cover-execution-scope"><option value="acceptance">本次验收：最多6任务/18调用/100元</option><option value="formal">正式用户权益计量（须由主窗口统一发布）</option></select></label>
+        <label><input type="checkbox" id="cover-account-verified"> 固定型号的账号权限和价格已核验</label>
+        <label>脱敏证据编号 <input class="form-input" id="cover-evidence" maxlength="300"></label>
+        <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeCoverConfig('draft')">保存封面草稿</button>
+        <button class="btn btn-primary" data-capability="model_configuration" onclick="changeCoverConfig('activate')">发布封面配置</button>
+        <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeCoverConfig('restore')">恢复封面配置</button>
+        <div id="cover-image-costs"></div>
+      </div>
       <button class="btn btn-ghost" onclick="readPendingOperation()">读取原操作结果</button>
     </div>
     <div class="card-grid card-grid-3" style="margin-bottom:20px">
@@ -1788,7 +1801,45 @@ async function loadModelConfig() {
       select.addEventListener('change', updateLimits); updateLimits();
     });
     applyAdminCapabilities();
+    await loadCoverConfig();
   } catch(e) { state.textContent = `配置读取失败：${e.message}`; }
+}
+let _coverConfig = null;
+async function loadCoverConfig() {
+  const status=document.getElementById('cover-config-state');
+  try {
+    const scope=document.getElementById('mc-scope').value;
+    const data=await adminJson('/admin/cover-config?scope='+encodeURIComponent(scope));
+    _coverConfig=data;
+    const config=data.draft || data.active;
+    document.getElementById('cover-enabled').checked=config.enabled===true;
+    document.getElementById('cover-account-verified').checked=config.account_verified===true;
+    document.getElementById('cover-execution-scope').value=config.execution_scope;
+    document.getElementById('cover-evidence').value=config.account_evidence_ref || '';
+    status.textContent=`修订 ${data.revision}，生效 ${data.active_revision}；当前${data.active.enabled?'允许':'关闭'}新提交。此处配置不代表API执行服务或供应商实时可用；关闭不删除旧成品。`;
+    const costs=data.image_costs;
+    document.getElementById('cover-image-costs').innerHTML=costs?.status==='readable'
+      ? '<p>'+esc(costs.basis)+'</p>'+((costs.images || []).map(row=>'<p>'+esc(row.model_id)+' · '+row.width+'×'+row.height+' · 调用 '+row.image_calls+' · 输入 '+row.input_images+' · 成功 '+row.output_images+' · 已知计费张数 '+row.known_billed_images+'（张数待核 '+row.quantity_unknown_calls+'）<br>公开估算 ¥'+Number(row.estimated_cost).toFixed(4)+'；已知账单 ¥'+Number(row.known_billed_cost).toFixed(4)+'；整单图片实账 '+(row.actual_total_cost==null?'待核':('¥'+Number(row.actual_total_cost).toFixed(4)))+' · UNKNOWN '+row.outcome_unknown_calls+'<br>价格版本 '+esc(row.price_version)+'</p>').join('') || '<p>当前记录中没有图片调用；不据此判断历史从未调用。</p>')
+      : '<p>封面费用暂不可读，不计作0元。</p>';
+    applyAdminCapabilities();
+  } catch(error) { _coverConfig=null; status.textContent='封面配置暂不可读：'+error.message; }
+}
+async function changeCoverConfig(action) {
+  if(!_coverConfig || !requireAdminCapability('model_configuration'))return;
+  const reason=prompt('填写本次封面配置操作原因（不会调用模型）：');
+  if(!reason)return;
+  const config={...(_coverConfig.draft || _coverConfig.active),
+    enabled:document.getElementById('cover-enabled').checked,
+    execution_scope:document.getElementById('cover-execution-scope').value,
+    account_verified:document.getElementById('cover-account-verified').checked,
+    account_evidence_ref:document.getElementById('cover-evidence').value.trim()};
+  const scope=document.getElementById('mc-scope').value;
+  try {
+    if(action==='activate' && (!_coverConfig.draft || Object.keys(config).some(key=>config[key]!==_coverConfig.draft[key])))throw new Error('请先将当前封面配置保存为草稿');
+    if(action!=='draft' && !confirm(`${action==='activate'?'发布封面草稿':'恢复上一封面配置'}：${scope}？不会自动发起模型调用。`))return;
+    const result=await submitAdminOperation('/admin/cover-config/'+action,{reason,payload:{scope,expected_revision:_coverConfig.revision,config:action==='draft'?config:null}});
+    await loadCoverConfig();alert('封面配置已保存；操作编号 '+result.request_id);
+  } catch(error) {alert(error.message+'；请核对原操作结果，不自动重试。');}
 }
 async function changeModelConfig(action) {
   if (!_modelConfig || !requireAdminCapability('model_configuration')) return;

@@ -24,17 +24,21 @@ class PublicAdmissionDisabledTests(unittest.TestCase):
             async with public.model_admission("synthetic-disabled-async", "claude"):
                 return "entered"
         with mock.patch.dict(os.environ, {"NOTEAI_PUBLIC_PRODUCT": "0"}), \
-             mock.patch.object(public, "_invocation") as invocation:
+             mock.patch.object(public, "_invocation") as invocation, \
+             mock.patch.object(core, "current") as scheduler:
+            invocation.get.return_value = None
             self.assertEqual(asyncio.run(run()), "entered")
-        invocation.get.assert_not_called()
+        scheduler.assert_not_called()
 
     def test_disabled_public_sync_admission_is_noop_without_invocation(self):
         with mock.patch.dict(os.environ, {"NOTEAI_PUBLIC_PRODUCT": "0"}), \
-             mock.patch.object(public, "_invocation") as invocation:
+             mock.patch.object(public, "_invocation") as invocation, \
+             mock.patch.object(core, "current") as scheduler:
+            invocation.get.return_value = None
             with public.model_admission_sync("synthetic-disabled-sync", "doubao"):
                 entered = True
         self.assertTrue(entered)
-        invocation.get.assert_not_called()
+        scheduler.assert_not_called()
 
 core = importlib.import_module("model_admission")
 

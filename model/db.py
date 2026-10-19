@@ -2152,8 +2152,11 @@ CREATE INDEX IF NOT EXISTS idx_auth_verification_requester
     WHERE requester_hash <> '';
 
 CREATE TABLE IF NOT EXISTS public_trial_budget (
-    id TEXT PRIMARY KEY CHECK(id='website-free-product-20260912'),
-    limit_milli_cny INTEGER NOT NULL CHECK(limit_milli_cny=50000),
+    id TEXT PRIMARY KEY CHECK(id IN ('website-free-product-20260912','noteai-xhs-cover-20261019-acceptance','noteai-cover-formal-v1')),
+    limit_milli_cny INTEGER NOT NULL CHECK(
+        (id='website-free-product-20260912' AND limit_milli_cny=50000) OR
+        (id='noteai-xhs-cover-20261019-acceptance' AND limit_milli_cny=100000) OR
+        (id='noteai-cover-formal-v1' AND limit_milli_cny=0)),
     reserved_milli_cny INTEGER NOT NULL DEFAULT 0 CHECK(reserved_milli_cny>=0 AND (policy_mode='owner_metered' OR reserved_milli_cny<=limit_milli_cny)),
     enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)),
     policy_mode TEXT NOT NULL DEFAULT 'legacy_capped' CHECK(policy_mode IN('legacy_capped','owner_metered'))

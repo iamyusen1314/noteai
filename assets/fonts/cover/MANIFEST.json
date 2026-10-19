@@ -1,0 +1,19 @@
+{
+  "upstream": "https://github.com/adobe-fonts/source-han-sans",
+  "commit": "a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2",
+  "license": "SIL Open Font License 1.1",
+  "files": [
+    {
+      "filename": "SourceHanSansSC-Bold.otf",
+      "source_url": "https://raw.githubusercontent.com/adobe-fonts/source-han-sans/a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf",
+      "bytes": 16963428,
+      "sha256": "df2b90f5bcc6d01dfc964cec5f6d535d6b6aebd26ed7fd79a9c1b3f2112fcb6b"
+    },
+    {
+      "filename": "LICENSE.txt",
+      "source_url": "https://raw.githubusercontent.com/adobe-fonts/source-han-sans/a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2/LICENSE.txt",
+      "bytes": 4463,
+      "sha256": "fcac737e761ec63dbfbdce11030a1780161920d80315edba9c8beff1c2bac5a2"
+    }
+  ]
+}

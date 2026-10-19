@@ -88,6 +88,8 @@ import task_clarification as _clarification
 import durable_ai as _durable_ai
 import private_storage as _private_storage
 import cover_sources as _cover_sources
+import cover_settings as _cover_settings
+import cover_jobs as _cover_jobs
 import payment_contract as _payment
 import payment_adapter_runtime as _payment_adapter_runtime
 import prompt_manager as _pm
@@ -13686,6 +13688,12 @@ async def startup():
         runtime = collect_item31_canary_dml.configured_runtime("api", _db)
         app.state.item31_canary_runtime = runtime
         app.state.item31_canary_create_resolver = runtime.scope.create
+    if os.environ.get("NOTEAI_COVER_WORKER_ENABLED") == "1":
+        # Start only after the original API startup checks have completed.
+        # Schema installation belongs to the integration owner, never startup.
+        _db.fetchone("SELECT id FROM cover_jobs LIMIT 1")
+        import cover_service
+        app.state.cover_worker = cover_service.CoverWorker().start()
 
 
 def _init_default_prompts():
@@ -13759,6 +13767,9 @@ def _init_default_prompts():
 
 @app.on_event("shutdown")
 async def shutdown():
+    cover_worker = getattr(app.state, "cover_worker", None)
+    if cover_worker is not None:
+        await cover_worker.stop()
     if _public_account.enabled():
         return
     runtime = getattr(app.state, "item31_canary_runtime", None)
@@ -16246,6 +16257,150 @@ async def delete_diagnosis(diag_id: str, user: dict = Depends(_auth.get_current_
         raise HTTPException(status_code=404, detail="诊断记录不存在")
     _retention.mark_deleted("diagnosis", diag_id, user["id"])
     return {"ok": True}
+
+
+class CoverSubmitInput(BaseModel):
+    request_id: str = Field(min_length=36, max_length=36)
+    quote_version: str = Field(min_length=1, max_length=100)
+    source_media_refs: list[str] | None = Field(default=None, max_length=9)
+    title: str | None = Field(default=None, max_length=300)
+
+
+class CoverAdjustInput(BaseModel):
+    text: str = Field(min_length=1, max_length=80)
+    position: Literal["top", "bottom"] | None = None
+    expected_revision: int = Field(ge=1)
+
+
+def _cover_report_snapshot(report, *, title=None, refs=()):
+    result = report["result"]
+    original = str(result.get("note_title") or (result.get("input_diagnostics") or {}).get("original_title") or "")
+    variants = result.get("title_variants") if report["report_type"] == "generate" else result.get("suggested_titles")
+    variants = [item for item in (variants or []) if isinstance(item, str)]
+    if title is not None and title.strip() not in [original, *variants]:
+        raise HTTPException(422, "请选择当前笔记标题或本报告已有备选标题")
+    opinions = [item for item in result.get("expert_opinions", []) if isinstance(item, dict)
+                and item.get("role") in {"视觉分析师", "视觉专家"}]
+    advice = "\n".join(str(item.get("opinion") or "") + "\n" +
+        "\n".join(str(s) for s in item.get("suggestions", []) if isinstance(s, str)) for item in opinions)
+    mapping = [] if "cover_source_media_refs" in result else _cover_sources.project_source_items(
+        result.get("source_media_items") or (result.get("input_diagnostics") or {}).get("source_media_items"))
+    return {"report_type": report["report_type"], "report_id": report["report_id"],
+            "title": title.strip() if title is not None else original,
+            "body": str(result.get("note_body") or result.get("desc") or
+                        (result.get("input_diagnostics") or {}).get("original_desc") or ""),
+            "title_variants": variants, "visual_advice": advice,
+            "domain": str(result.get("_domain") or result.get("domain") or ""),
+            "source_items": [item for item in mapping if item["media_ref"] in refs]}
+
+
+@app.get("/reports/{report_type}/{report_id}/covers")
+async def list_report_covers(report_type: str, report_id: str,
+                             user: dict = Depends(_auth.get_current_user)):
+    report_available = True
+    try:
+        await get_report(report_type, report_id, user)
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        report_available = False
+    enabled, reason = _cover_settings.readiness()
+    try:
+        jobs = await asyncio.to_thread(_cover_jobs.list_report_jobs, user["id"], report_type, report_id)
+    except HTTPException:
+        raise
+    except Exception:
+        return {"enabled": False, "reason": "封面任务记录暂不可读，请稍后核对原任务", "quote": None,
+                "jobs": [], "latest_success": None, "history_unavailable": True}
+    if not report_available:
+        enabled, reason = False, "原报告已不可用于新制作，已保存封面仍可在期限内读取"
+    quote = _cover_jobs.quote_for_user(user["id"], policy_snapshot=_cover_settings.policy_snapshot()) if enabled else None
+    return {"enabled": enabled, "reason": reason, "quote": quote, "jobs": jobs,
+            "latest_success": next((job for job in jobs if job["has_final"]), None)}
+
+
+@app.get("/covers")
+async def list_my_covers(user: dict = Depends(_auth.get_current_user)):
+    try:
+        jobs = await asyncio.to_thread(_cover_jobs.list_user_jobs, user["id"])
+    except Exception:
+        raise HTTPException(503, "已保存封面暂不可读，请稍后核对") from None
+    return {"jobs": jobs}
+
+
+@app.post("/reports/{report_type}/{report_id}/covers", status_code=202)
+async def submit_report_cover(report_type: str, report_id: str, req: CoverSubmitInput,
+                              user: dict = Depends(_auth.get_current_user)):
+    try:
+        if str(_uuid.UUID(req.request_id)) != req.request_id:
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(422, "请使用稳定的封面请求编号") from None
+    report = await get_report(report_type, report_id, user)
+    enabled, reason = _cover_settings.readiness()
+    if not enabled:
+        raise HTTPException(503, reason)
+    refs = req.source_media_refs if req.source_media_refs is not None else _report_cover_source_refs(report["result"])
+    try:
+        refs = _cover_sources.normalize_source_refs(refs)
+        policy = _cover_settings.policy_snapshot()
+        snapshot = _cover_report_snapshot(report, title=req.title, refs=refs)
+        return await _await_media_worker(_cover_jobs.submit_job, user_id=user["id"],
+            report_type=report_type, report_id=report_id, request_id=req.request_id,
+            source_refs=refs, input_snapshot=snapshot, policy_snapshot=policy, quote_version=req.quote_version)
+    except HTTPException as exc:
+        # These two failures are raised before reservation creation, inside
+        # the rolled-back admission transaction. Other conflicts/unknown ACKs
+        # must retain the original request ID for readback.
+        if isinstance(exc.detail, dict) and exc.detail.get("code") in {"BILLING_QUOTE_CHANGED", "QUOTA_EXCEEDED"}:
+            raise HTTPException(exc.status_code, detail={**exc.detail,
+                "admitted": False, "reserved_credits": 0}) from None
+        raise
+    except _cover_sources.CoverSourceValidationError:
+        raise HTTPException(422, "请补传或选择最多9张本人真实图片") from None
+    except _private_storage.MediaReferenceUnavailable:
+        raise HTTPException(422, "原图已过期或不可用，请补传本人真实图片") from None
+    except _private_storage.PrivateStorageError:
+        raise HTTPException(503, "原图存储暂不可用，本次未开始制作") from None
+
+
+@app.get("/covers/{job_id}")
+async def read_cover_job(job_id: str, user: dict = Depends(_auth.get_current_user)):
+    job = await asyncio.to_thread(_cover_jobs.get_job, user["id"], job_id)
+    if job is None:
+        raise HTTPException(404, "封面任务不存在")
+    return job
+
+
+@app.get("/covers/{job_id}/download")
+async def download_cover(job_id: str, asset: Literal["final"] = "final", revision: int | None = None,
+                         user: dict = Depends(_auth.get_current_user)):
+    reference_id = await asyncio.to_thread(_cover_jobs.asset_reference, user["id"], job_id, revision=revision)
+    try:
+        reference, body = await _await_media_worker(_private_storage.load_media_bytes,
+            reference_id, user_id=user["id"], purpose="image")
+    except _private_storage.MediaReferenceUnavailable:
+        raise HTTPException(404, "封面已不可用或到期") from None
+    except _private_storage.PrivateStorageError:
+        raise HTTPException(503, "封面存储暂不可用，请稍后读取原成品") from None
+    return Response(body, media_type=reference.content_type, headers={
+        "Content-Disposition": 'attachment; filename="noteai-cover.png"',
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@app.post("/covers/{job_id}/adjust")
+async def adjust_cover(job_id: str, req: CoverAdjustInput, user: dict = Depends(_auth.get_current_user)):
+    import cover_service
+    import cover_renderer
+    try:
+        return await _await_media_worker(cover_service.adjust, user["id"], job_id,
+            text=req.text, position=req.position, expected_revision=req.expected_revision)
+    except cover_renderer.CoverRenderError:
+        raise HTTPException(422, "文字过长、字体不支持或位置遮挡主体，请减少文字或调整位置") from None
+    except _private_storage.MediaCapacityExceeded:
+        raise HTTPException(429, "封面存储空间暂满，原成品仍可下载") from None
+    except _private_storage.PrivateStorageError:
+        raise HTTPException(503, "调整结果保存失败，原成品仍可下载") from None
 
 
 @app.get("/notes")
