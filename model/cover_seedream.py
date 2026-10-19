@@ -44,7 +44,8 @@ def estimate(input_images: int) -> dict:
             "currency": "CNY", "price_version": PRICE_VERSION,
             "pricing_snapshot": {"mode": "seedream_pro_pixel_tier", "currency": "CNY",
                 "output_le_2610000": "0.30", "output_gt_2610000": "0.60",
-                "extra_input": "0.02", "version": PRICE_VERSION},
+                "extra_input": "0.02", "version": PRICE_VERSION,
+                "input_images_basis": "request_payload"},
             "cost_status": "public_estimate"}
 
 
@@ -121,10 +122,15 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
                 if (not isinstance(images_out, list) or len(images_out) != 1
                         or not isinstance(images_out[0], dict) or images_out[0].get("error")
                         or not isinstance(usage, dict) or type(usage.get("generated_images")) is not int
-                        or usage["generated_images"] != 1
-                        or type(usage.get("input_images")) is not int
-                        or usage["input_images"] != len(source_images)):
+                        or usage["generated_images"] != 1):
                     raise ValueError("output")
+                # The official Ark SDK declares input_images Optional[int].
+                # Request cardinality is already frozen before dispatch; an
+                # omitted supplier counter is not an unknown image outcome.
+                reported_inputs = usage.get("input_images")
+                if reported_inputs is not None and (type(reported_inputs) is not int
+                        or reported_inputs != len(source_images)):
+                    raise ValueError("input count")
                 item = images_out[0]
                 if item.get("size") != f"{WIDTH}x{HEIGHT}" or not isinstance(item.get("b64_json"), str):
                     raise ValueError("format")
@@ -134,6 +140,8 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
                 raise SeedreamError("COVER_SEEDREAM_OUTPUT_UNCONFIRMED", outcome_unknown=True, call_id=call_id) from None
             record = {**snapshot, "call_id": call_id, "status": "responded", "http_status": status,
                       "output_images": 1, "billed_images": usage["generated_images"],
+                      "provider_reported_input_images": reported_inputs,
+                      "input_images_basis": "request_payload" if reported_inputs is None else "supplier_usage",
                       "billing_count_basis": "usage.generated_images:official_success_only_tariff",
                       "provider_request_id": provider_request_id,
                       "response_hash": response_hash, "content_sha256": hashlib.sha256(image).hexdigest()}

@@ -110,9 +110,25 @@ class CoverSeedreamTests(unittest.TestCase):
             with self.assertRaises(seedream.SeedreamError):
                 seedream.estimate(count)
 
+    def test_optional_supplier_input_count_uses_frozen_request_without_claiming_a_bill(self):
+        for usage in ({"generated_images": 1}, {"generated_images": 1, "input_images": None}):
+            with self.subTest(usage=usage):
+                self.requests.clear()
+                output, record = self.generate(data=self.success(usage=usage))
+                self.assertEqual(output, self.background)
+                self.assertEqual(len(self.requests), 1)
+                self.assertEqual(record["input_images"], 1)
+                self.assertEqual(record["input_images_basis"], "request_payload")
+                self.assertIsNone(record["provider_reported_input_images"])
+                self.assertEqual(record["pricing_snapshot"]["input_images_basis"], "request_payload")
+                self.assertIsNone(record["actual_cost"])
+                self.assertEqual(record["status"], "responded")
+
     def test_wrong_model_missing_usage_wrong_input_count_and_size_are_unknown_no_retry(self):
         cases = [self.success(model="a-different-model"), self.success(usage={}),
                  self.success(usage={"generated_images": 1, "input_images": 2}),
+                 self.success(usage={"generated_images": 1, "input_images": True}),
+                 self.success(usage={"generated_images": 1, "input_images": "1"}),
                  self.success(data=[{"size": "1024x1024", "b64_json": base64.b64encode(self.background).decode()}])]
         for data in cases:
             with self.subTest(data_keys=list(data)):
