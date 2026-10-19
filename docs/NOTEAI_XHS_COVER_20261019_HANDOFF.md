@@ -315,3 +315,32 @@
 - primary依据：[官方SDK](https://github.com/volcengine/volcengine-python-sdk/blob/master/volcenginesdkarkruntime/types/images/images.py#L36)；官方Pro教程与API同时支持b64_json、png及1776×2368，未更换模型或首版尺寸。20项受影响seedream/service离线回归PASS，`/root/cover_model_decisions`独立只读复核无阻断。日志在本次PLAN同目录`optional-input-counter-offline-regression.log`；无付费调用。
 - 原窗口已收到精确覆盖要求：最终候选必须在其原构建基础仅增量覆盖此模块，SHA256`3200d6755c89ca8be24847576a862d7eda3db6466a2abd4aa1633721616fc8eb`，产品其余文件不变；不重派已运行构建，不用旧strict adapter派真实模型。当前候选HEAD应核e6234e7后继，不为匹配919c720回退。
 - `ACCOUNT-AND-PROTOCOL-CHECK.json`位于本次PLAN同目录，保存登录成功/已开通固定型号/当前页面价与IPM/截图SHA和20项日志SHA。没有保存OTP/手机号/Key；目录价不替代实际用量账单，服务端Key实际绑定与正常鉴权仍待runtime实证。真实模型请求仍0、预算仍0/100；唯一两个client计划ID不变。
+
+
+### A05 运行准备实况 — 2026-10-20 北京07:09（时戳已按UTC时钟校正）；原窗口追加后立即释放
+
+- 当日真实只读预检已完成（不是计划）：c-sz070jynhzo5hj4/t-sz070jynhzvn6kg，原身份Describe S0D0。正式API3711/9be/PID2779792/restart0仍running；原隔离API761d26/c4a27a/PID2760125、PG4e19/e853/PID918657仍running。原include absent/parent4c8017/staticc4a指针不变；现主机余约11.03GB。9be内Pillow12.3.0/FreeType=true，新增字体absent（已定位、准备时不再重装依赖）。只读脚本/原回执/解码在Enew=/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-real-nine-cover-20261020-r1。
+- **源代码已在实际传输，不是镜像已完成**：919c720相对f3e的18个model文件（含独立SQL）已生成精确SHA delta50384B/df2de934e3ba500b65272455f1e69015792a229d2761065306ec6538aac9f3ec，5段已各自唯一RunCommand提交至/var/lib/noteai/cover-acceptance-20261020-r1/source-parts；1–3已原身份读回S0D0，4/5正读原回执。没有重复传原ID或覆盖旧隔离工作。完整载体705995B仅本机留档，不传.env/Key。build_candidate.bound.py已独立只读预审，修正字体目录0755/文件0444，构建仅9be增量/--network=none/18源SHA及中文字体smoke，不启动API/DB/模型。**build尚未派发、尚无新image ID**，此前不能把准备错称完成。
+- 已收并核e6234e7唯一Seedream协议修复、SHA3200d675…；原919delta不丢弃。因原构建尚未执行，直接在同一既定build中apply919后COPY这个新模块，最终标e623产品、其余919相同；不是重派旧构建或把新模块偷偷混入旧SHA。最新43e5bae只是后继文档，不改变其余产品源。
+- 外层guard复用原Ledger/物理wire/usage，test-only新目录Enew/guard，不改产品和旧150/scope96；已完成19项离线窄验证，正在收据/最终绑定：同一1report+1cover总40/100、图片按张、不依token统计、UNKNOWN保留停止、重复wire/错父报告/错client/serverjob拒绝。审批/原runtime证明/真实payload与image binding未齐仍approved=false，不会在准备阶段派模型。给定client IDs已保留，serverjob/usage只读真实claim关联；自然UI若生成不同UUID，应先登记原计划未受理/UNUSED并与你核对后再绑定，不改wire或偷偷换号。
+- **真实浏览器入口方案**：现无已验证可用的既有私有Workbench端口预览或已获准loopback隧道；本机localhost不等于云主机localhost，不能假称可用。可准备原精确入口https://noteaipro.com/__noteai_test/old-hotfix-204-20261013-0615/及其/api，只还原原Nginx私有include与父配置一行、nginx -t后平滑reload，账号原Bearer/会话鉴权、业务仅原隔离PG/私有storage、新40/100guard，最多60分钟、验收/失败/取消即关，已发调用保留结算。静态只放新专用非secret前端目录，不映射runtime/ledger/env；前后端须真实HTTP，原Gate实际检查原session/本人资格并保留普通auth函数，不使用dependency_override。此为可审查的原入口有限恢复方案，**当前没有当次公网开放批准，也没有执行**；待candidate API本机健康、准确image/IDs/关闭动作均准备好，再由你集中取得工具要求的当次批准，不重用旧时窗。无新权限/订单/支付/SMS/生产迁移。
+- 当前只改测试辅助构建/guard与共享文档，模型0/100、生产变更0、无API新进程。你已接管Ark正常登录及最新账号实证，原窗口未重操tab或发SMS；不再沿旧A02写登录阻塞。下一个可核检查点是确切新image+源/字体smoke，随后原隔离装载及guard/正常auth就绪；本段写完共享文件已释放。
+
+
+### A05 后继实况 — 北京2026-10-20 07:18；原窗口写完立即释放
+
+- 五段source delta均已原身份读回Success/Exit0/Dropped0，4/5原件保存在Enew，无重派。首次构建c-sz070jzkw2hk000/t-sz070jzkw31j6rk在固定GitHub字体TLS握手超时失败；唯一续接c-sz070jztkb24u80/t-sz070jztkb9mj9c在固定jsDelivr同SHA字体TLS EOF失败。两次均在Docker build-started标记前结束，尚无image/API/模型；失败原回执完整保留，不当UNKNOWN重派。准确产品源码delta/e623模块已在原owned构建目录，不重传。
+- 新发现实际OSS控制台明确显示账号欠费、Bucket列表不可用；未上传/建桶/改权限/充值。下一步仅检查原API-C工作台是否存在普通文件传输，不换模型/字体/关闭TLS，也不扩大资源。此项是实际构建阻塞，不能写镜像已齐。生产API/DB/Nginx未改。
+- guard已最终完成30/30窄离线测试（0socket/0实际模型），索引Enew/guard/RESULT.json；主模块SHA256 eb26a9b16b5bc7d5ea23b68e331344eea36c2b3a9268ccdf853a65c3106d8dec，测试deb1f6bd6df3eaefcac37ebc588c545fefc61ccd759a456f0bead758bb1523e8，模板a0f27a1782ad095a395eb87f378ebfcf80a5dc925ea33599d9046ebb72e384ba，最终日志4c16dbc7fabc9b4c9ec9a0a90096f1f609d48ff32297d6d6f88affb04a21936c。此前19/23项是历史中间态；本冻结含±Infinity/NaN拒绝、120秒自然claim首次reserve暂停与180秒硬上限、两phase CAS保留报告账本/成本、不重POST。模板仍approved=false，无VERIFIED proof被补造；实际runtime/Key项目/正常claim/账本及真实验收仍未完成。无需重跑全项目。
+- 唯一真实调度仍由封面窗口持有，原计划client IDs明确UNUSED，使用真实UI自然ID+同Invocation暂停绑定。生产发布未授权，未切换。
+
+
+### 实测准备恢复 checkpoint — 2026-10-20 北京07:20；本窗追加后释放
+
+- 实际HEAD仍`43e5baeca74f70947a86129c89a699bed3d7847d`，唯一未提交是保留原窗口A05后继的本HANDOFF；产品最终e6234e7不变。当前仍PREPARING，不能称真实验收完成。
+- 本窗补核当前火山费用中心：可用49.77元，2026-10月出账中应付0.23/已现金支付0.23/欠费0；仅账号UI快照，非本次账单，不等于服务端Key项目核验。原余额截图及SHA已加入本次`ACCOUNT-AND-PROTOCOL-CHECK.json`，无充值/订阅/设置改变、无凭据写盘。旧费用页CDP焦点读取超时两次，改用同浏览器正常新费用页成功，只读且未重发任何登录或模型请求。
+- 原窗口源传输已完成；候选构建下载固定官方字体两次TLS失败、Docker尚未启动，已封存失败。其尝试现有OSS传字体时控制台显示欠费，正检查原服务器Workbench普通上传；不能冒成火山推理欠费，也不能未经核实际private_storage后宣称所有存储不可用。精确云命令身份与原回执归原窗口Enew目录，不由本窗重复执行。
+- 真实UI自然client ID需登记：generate是`generate-<UUID>`、cover是自然UUID，均在正常点击后直接POST，无可见预登记暂停。原窗口test-only gate正在支持正常claim后/首provider预留派发前暂停同一原执行、最多180秒、只登记非secret ID/hash/ref/父报告；PLAN人工预填两ID未受理，待正常UI原ID实际收到后标UNUSED并记录替换，不注入隐藏state、改wire或再POST。
+- 独审发现辅助guard期限可为Infinity的窄P2已修；finite/gate新增7项替身独立通过、0socket。作者仍迭代辅助权限检查，日志/源尚未最终冻结，结论只为中间预审，不冒live放行。原基础23项及新7项不能拿来替代实际runtime/鉴权。
+- 复用本次PLAN的最小只读收据计划已存`READONLY-ACCEPTANCE-QUERY-PLAN.md`，SHA`a2b4349a02662931787960baacfa25bd6dccf3629e0a0cac79b6db43194715d1`；仅窄SELECT/现有GET/真实PNG，没有第二套runner。报告积分待正常实时quote，封面8分独立核；最终报告/封面/免费调整三个时点对比物理call与唯一扣分。PC/H5使用当前CUA浏览器及其viewport能力，不以模拟尺寸当iPhone真机。
+- 当前新增模型调用0、已知费用0/100、真实报告/封面0、新UNKNOWN0；无生产迁移/配置/发布。剩余：字体/image/隔离API+真实存储+正常auth与组合guard最终绑定→必要时只在具体已备妥的60分钟受鉴权测试入口方案上取得当次开放确认→本窗唯一派发九图新报告和同报告封面→前后端/成品/费用/独审收据。恢复只读本节及原窗口后继、PLAN、当前HEAD；不重放旧模型/支付/Amap/历史任务。
