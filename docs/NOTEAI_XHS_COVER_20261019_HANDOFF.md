@@ -1131,3 +1131,11 @@ A68浏览受控集成已完成：PC1280×900/H5390×844各经正常保存报告/
 | 多原图/底图hash、保存白名单、免费短字/到期兼容 | 既有私有存储/90天合同、旧唯一结算与PG证据 | 后端87及R1/最终26（有重叠），实际本地保存/重开/rev2/下载hash；原窗Q07现行OSS生命周期仍未证 |
 | UI状态/刷新与下载，手机保存差异 | 原PC/H5布局和旧24Node契约 | 当前24Node/两viewport真实本地HTTP与PNG；真iPhone/供应商容量不冒通过 |
 | v1/v2与新任务工作流/恢复 | 旧job冻结/UNKNOWN不重派/共享准入证据 | 显式version与quote/所有ref/hash/源独审；统一更新所有cover worker后才可启用，停用新提交须保v2读取，不整退renderer |
+
+### A68-FREEZE / 功能提交与本机证据已冻结；一次新版真实验收辅助接续仍在准备
+
+实际功能提交**31b4d7b2f7a4623bf1dc3d05effc875d5b9c9be9**（父3773d2d，20文件），未push/部署。统一源码/测试/浏览/独审/样张收据D/implementation-a68/A68-IMPLEMENTATION-RECEIPT.json12893B/SHAcf580a3673e652e31fa8fe3075dc70ffdca447aba79f814c625762024f6f662a；root重读所有product/evidence pins一致。功能改动相对远端e623仅11产品叶，D/implementation-a68/source-bundle/A68-SOURCE-MANIFEST.json3cc2ebdd完整列字节/SHA；完整source-only tar20,579,120B/c75321d8。另560,089B/338bb2a4的小包名明确NOT-COMPLETE且只缺新字体，A68-REQUIRED-FONT.json给官方immutable URL/字节/SHA，实际补齐核验前不能当complete或激活；没有云stage/download。
+
+Q09接续材料由foundation冻结在原D/implementation-a68/acceptance-prep：MINIMAL-DIFF.HOLD.md、SOURCE-PINS.HOLD.json、PARAMETERS.HOLD.json和successor_contract.HOLD.py，20纯断言不是实际guard集成。实际原after-free gzip解码全字节与103eadda一致、36行/两旧case/known3.8472528/inode1460877/旧job两版按原件核（不是本次fresh远端read）。media现独占其implementation子目录只派生原guard/runtime/operator最小源码/patch与配对验证，foundation待冻结后只读独审；不改产品，不新建账本/框架/发布系统，human/END/newIDs仍null默认HOLD，无新付费/公网/云/补分动作。原sole云执行者已收到31b4d7b及包/合同事实，仅答疑/窄审，不自行开放或部署。
+
+本checkpoint后仅文档提交，恢复核实际HEAD；function pin仍31b4d7b，原case PLAN phase=A68_COMMITTED_OFFLINE_PC_H5_REVIEW_PASS_REAL_SUCCESSOR_PREP_HOLD。已完成阶段2/源码独审；未完成新版真实导演/QC/成品设计验收，不能称产品可交付或发布。运行供应商请求[]，无新增UNKNOWN，原累计36/费用/旧UNKNOWN/旧入口CLOSED原样。下一步完成现有测试辅助最小派生/独审，准备齐后集中处理“同report新增一次v2/≤2Lite/0image/0retry/正常8分隔离fixture/新有限入口”的具体范围；不重正文/报告或旧完整验收。
