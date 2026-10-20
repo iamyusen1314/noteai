@@ -41,7 +41,9 @@ def plan(reference, route="photo"):
 
 def approved_qc():
     return {"approved": True, "text_matches": True, "facts_preserved": True,
-            "subject_preserved": True, "issues": [], "local_adjustment": None}
+            "subject_preserved": True, "issues": [], "local_adjustment": None,
+            "design_checks": {key: True for key in ("main_visual", "message_focus", "typographic_hierarchy",
+                "layout_balance", "thumbnail_legibility", "style_fits_subject")}}
 
 
 class CoverRendererTests(unittest.TestCase):
@@ -129,7 +131,12 @@ class CoverRuntimeTests(unittest.TestCase):
         result, call = self.run_task()
         self.assertEqual(call.call_count, 2)
         self.assertEqual(len(call.call_args_list[0].args[2]), 9)
-        self.assertEqual(len(call.call_args_list[1].args[2]), 2)
+        self.assertEqual(len(call.call_args_list[1].args[2]), 3)
+        import base64
+        thumbnail_part = call.call_args_list[1].args[2][2]
+        thumbnail_bytes = base64.b64decode(thumbnail_part["image_url"]["url"].split(",", 1)[1])
+        with Image.open(io.BytesIO(thumbnail_bytes)) as thumbnail:
+            self.assertEqual(thumbnail.size, (240, 320))
         self.assertEqual([args[0] for args in self.before], ["design", "qc"])
         self.assertEqual(self.stages, ["design", "render", "qc", "ready_to_save"])
         self.assertIsNone(result.layout["image_model"])
@@ -184,14 +191,35 @@ class CoverRuntimeTests(unittest.TestCase):
                 with self.assertRaisesRegex(runtime.CoverRuntimeError, "COVER_QC_REJECTED"):
                     self.run_task(qc=bad)
 
-    def test_qc_permits_only_deterministic_local_typography_fix_without_new_paid_check(self):
-        qc = {**approved_qc(), "approved": False, "issues": ["small_text"],
-              "local_adjustment": {"font_size": 120}}
-        result, call = self.run_task(qc=qc)
-        self.assertEqual(call.call_count, 2)
-        self.assertTrue(result.qc["locally_corrected"])
-        self.assertFalse(result.qc["second_paid_qc"])
-        self.assertIn("local_adjustment", result.stages)
+    def test_design_rejection_cannot_be_overridden_by_approved_or_local_fix(self):
+        for key in approved_qc()["design_checks"]:
+            with self.subTest(key=key):
+                qc = approved_qc()
+                qc["design_checks"][key] = False
+                qc["local_adjustment"] = {"font_size": 120}
+                with self.assertRaisesRegex(runtime.CoverRuntimeError, "COVER_QC_DESIGN_REJECTED"):
+                    self.run_task(qc=qc)
+
+    def test_legacy_or_malformed_qc_cannot_silently_skip_design_acceptance(self):
+        for value in (None, {}, {**approved_qc()["design_checks"], "main_visual": "true"}):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(runtime.CoverRuntimeError, "COVER_QC_CONTRACT_INVALID"):
+                    self.run_task(qc={**approved_qc(), "design_checks": value})
+        for issue in ("composition_weak", "message_unfocused", "typography_weak", "empty_layout",
+                      "thumbnail_unreadable", "style_mismatch"):
+            with self.subTest(issue=issue):
+                with self.assertRaisesRegex(runtime.CoverRuntimeError, "COVER_QC_REJECTED"):
+                    self.run_task(qc={**approved_qc(), "issues": [issue]})
+
+    def test_qc_rejection_or_adjustment_cannot_save_a_different_unchecked_final(self):
+        for approved in (True, False):
+            with self.subTest(approved=approved):
+                qc = {**approved_qc(), "approved": approved, "issues": ["small_text"],
+                      "local_adjustment": {"font_size": 120}}
+                with self.assertRaisesRegex(runtime.CoverRuntimeError, "COVER_QC_REJECTED"):
+                    self.run_task(qc=qc)
+                self.assertNotIn("local_adjustment", self.stages)
+                self.assertNotIn("ready_to_save", self.stages)
 
     def test_unknown_design_never_dispatches_an_image_or_paid_retry(self):
         image = mock.Mock()

@@ -218,6 +218,26 @@ class CoverServiceIntegrationTests(unittest.TestCase):
         self.assertIsNone(service.run_next(runtime=self.wrapper()))
         self.assertEqual(len(self.requests), 2)
 
+    def test_unusable_design_keeps_supplier_usage_but_never_saves_or_charges(self):
+        task = self.submit(key="service-design-quality-rejected")
+        before = self.fixture.balances()
+        qc = approved_qc()
+        qc["design_checks"]["layout_balance"] = False
+        # Even a contradictory model approved=true must not deliver the cover.
+        with mock.patch.object(service, "_store_image") as store:
+            result = service.run_next(runtime=self.wrapper(qc=qc))
+        store.assert_not_called()
+        self.assertEqual(result["status"], "failed", result)
+        self.assertEqual(result["billing"]["status"], "released")
+        self.assertEqual(result["billing"]["credits_used"], 0)
+        self.assertEqual(self.fixture.balances(), before)
+        self.assertFalse(result["has_final"])
+        self.assertEqual(len(self.calls(task["job_id"])), 2)
+        self.assertEqual(db.fetchone("SELECT count(*) FROM model_usage_records")[0], 2)
+        self.assertEqual(db.fetchone("SELECT count(*) FROM cover_asset_revisions")[0], 0)
+        self.assertIsNone(service.run_next(runtime=self.wrapper()))
+        self.assertEqual(len(self.requests), 2)
+
     def test_image_unknown_does_not_qc_or_replay_after_reopen_and_worker_poll(self):
         task = self.submit(key="service-image-unknown")
         result = service.run_next(runtime=self.wrapper(route="seedream_background", image_unknown=True))
@@ -236,6 +256,29 @@ class CoverServiceIntegrationTests(unittest.TestCase):
             self.assertIsNone(service.run_next(runtime=self.wrapper()))
         self.assertEqual(len(self.requests), 2)
         self.assertEqual(self.fixture.balances()[1], 0)
+
+    def test_design_rejected_after_seedream_preserves_image_cost_without_delivery(self):
+        task = self.submit(key="service-image-design-rejected")
+        qc = approved_qc()
+        qc["design_checks"]["thumbnail_legibility"] = False
+        with mock.patch.object(service, "_store_image") as store:
+            result = service.run_next(runtime=self.wrapper(route="seedream_background", qc=qc))
+        store.assert_not_called()
+        self.assertEqual(result["status"], "failed", result)
+        self.assertEqual(result["billing"]["credits_used"], 0)
+        self.assertEqual(result["billing"]["status"], "released")
+        self.assertFalse(result["has_final"])
+        self.assertEqual(self.fixture.balances()[1], 0)
+        image = db.fetchone("SELECT * FROM cover_image_usage")
+        self.assertEqual(image["state"], "responded")
+        self.assertEqual(image["billed_images"], 1)
+        self.assertEqual(image["estimated_cost"], "0.60")
+        self.assertIsNone(image["actual_cost"])
+        self.assertEqual(db.fetchone("SELECT count(*) FROM model_usage_records")[0], 2)
+        self.assertEqual(db.fetchone("SELECT count(*) FROM cover_asset_revisions")[0], 0)
+        self.assertEqual(len(self.calls(task["job_id"])), 3)
+        self.assertIsNone(service.run_next(runtime=self.wrapper()))
+        self.assertEqual(len(self.requests), 3)
 
     def test_same_user_original_report_keeps_cover_queued_and_other_user_can_run(self):
         task = self.submit(key="service-queued-owner")

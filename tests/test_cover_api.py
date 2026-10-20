@@ -135,6 +135,24 @@ class CoverApiContractTests(unittest.TestCase):
         self.assertEqual(self.counts(), before)
         self.assertFalse(any(re.match(r"\s*(CREATE|ALTER|DROP)\b", sql, re.I) for sql in statements))
 
+    def test_legacy_saved_quality_snapshot_reopens_and_adjusts_without_new_qc(self):
+        saved, _, _ = self.complete()
+        legacy_qc = json.loads(db.fetchone("SELECT qc_json FROM cover_jobs WHERE id=?", (saved["job_id"],))[0])
+        self.assertNotIn("design_checks", legacy_qc)
+        before = self.counts()
+        before_balance = self.fixture.balances()
+        import cover_runtime
+        with mock.patch.object(cover_runtime, "_validate_qc", side_effect=AssertionError("legacy read must not revalidate")):
+            reopened = self.run_async(api.read_cover_job(saved["job_id"], self.user))
+            self.assertTrue(reopened["has_final"])
+            self.assertTrue(self.run_async(api.download_cover(saved["job_id"], user=self.user)).body)
+            adjusted = self.run_async(api.adjust_cover(saved["job_id"], api.CoverAdjustInput(
+                text="真实门店", expected_revision=1), self.user))
+        self.assertEqual(adjusted["asset_revision"], 2)
+        self.assertEqual(adjusted["expires_at"], saved["expires_at"])
+        self.assertEqual(self.counts(), before)
+        self.assertEqual(self.fixture.balances(), before_balance)
+
     def test_post_freezes_public_report_and_uses_canonical_request_uuid(self):
         request_id = str(uuid.uuid4())
         first = self.submit(self.request(request_id=request_id))
