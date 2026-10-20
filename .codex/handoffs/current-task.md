@@ -6,6 +6,8 @@
 
 root统一源集成/sole正常UI/provider；foundation runtime/operator、media静态、contract独审；原窗sole云执行及最终统一发布。无生产DB/config/发布/新权限/订阅。下一步只完成封面→保存重开/免费排字/下载/唯一结算证据，真实iPhone/真实多人/生产OSS90天规则如实单列未证。
 
+A57新增实际只读Cc-sz070kxhdy8acxs/Tt-sz070kxhdyi9ybk S0/D0，原stdout7341/24ff9a6a已核；9refs当前ready/原序/owner/content同，最早10/21北京12:37:52到期；34全columns SHAfe1b74ad…，unique8/known3.8343288不变；0coverjob/activeunknown/latch，currentPID3350776/source1cab/CLOSED保持。只读0model/业务写，不能代物理binary或成品验收。下一步仅收敛cover-only薄源/原template当场绑定及source-only实stage，准备真齐才集中新有限窗口。正文明确不在范围。
+
 ## HISTORY — 下文保留先前checkpoint，不作当前执行指令
 
 ## CURRENT — 2026-10-20 13:00北京：A3原任务已真实续接，仲裁中；同report封面待完成报告后提交

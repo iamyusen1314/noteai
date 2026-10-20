@@ -138,9 +138,9 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 封面主代理；task/media/UI子代理DONE | COMPLETE / 37512e0+90e969c+e6234e7 | 后台/私有PNG/8分唯一结算/恢复/PC-H5/Seedream可选input usage定向证据及独审 | 产品冻结；不重复全项目或历史验收 |
-| 3 定向集成与授权真实验收 | 封面主代理唯一业务调度；原窗口云接点 | IN_PROGRESS；两次prewire失败已封存，当前仅离线辅助修复/88dd774 | A35/A45实际合计0模型0最终扣分；A39rev2；9原图规范化SHA/size与actual对象9/9匹配；r3 capture定向stub PASS，operator配对待完成；guard不改 | 完成原operator一次有限自动接续+实际refs投影+成对guard CAS回归/独审；源准备齐才集中新重测批准。无新POST/OPEN/成品，原累计40/100不加预算 |
-| 4 独立审查与交付 | 独立审查子代理DONE；主代理集成 | 候选源码独审/交付COMPLETE / 37512e0+90e969c+a7eb030+e6234e7 | 最终产品diff无未修可复现P0/P1/P2，定向回归与loopback独审通过 | 候选已交原窗口；实际成品/费用独审等待真实测试，未发布；90天OSS现行规则仍待核 |
+| 2 最小实现与离线验证 | 主代理；素材/任务/UI子代理 | COMPLETE / 原e6234e7；入口修复f818da4/回归0854113 | 原定向证据复用；真实澄清报告角色入口23项VM通过；固定静态15文件重建及10JS语法通过 | 后端冻结；后续只补受影响封面链路，不扩正文或整站 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / A56–A57，报告已保存、封面未提交 | 实际34calls complete/unique8/9refs；当前RO确认素材仍ready/无coverjob，入口已CLOSED | 同报告1封面续测HOLD源独审/实际source-only就绪后取一次新有限窗；不重报告/九图，保40/100及历史 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | IN_PROGRESS；候选原源码独审完成，真实封面待验 | 原产品diff/定向回归/loopback复用，alias实际renderer回归补齐 | 实际PNG/费用/保存重开下载及免费排字验证后交原窗口统一集成；未生产发布，OSS90天现行规则仍待核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -952,3 +952,11 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 用户随后明确“内容质量验收未通过跟你没关系，别增加修复范围…做好…封面的功能”。据此正文审阅只保留已有证据，不修正文、不重生成、不作为封面交付前置。当前只准备已保存同报告的1张封面，正常auth/原账号/同CID及原guard/ledger。新窗口/END仍HOLD；需薄派生cover-only runtime/operator，受限续窗只CAS batch.seal_sha，严格保全部34call rows/cost/counter/case/旧失败与UNKNOWN；原report/native/applied按旧A3历史核，9refs按历史素材复用并查当前有效期，不宣称新上传。不用要求0calls的旧rebind函数。固定alias静态及新的有限入口包默认HOLD，准备与独审真齐、source-only只读前置就绪后才集中确认新当次窗口。
 
 负责人root统一集成/正常UI唯一POST；foundation runtime/operator、media固定静态、contract独审，各自文件独占；原“修复高德检索与休闲娱乐行业”sole云执行和统一生产发布。当前HEAD0854113，后端产品e6234e7/实际同CID d264/PID3350776/aux1cab/restart0；无生产发布/新预算/权限授权。下一步完成薄续接源与独审，再实际cover→保存/重开/免费排字/下载/唯一8分读回。真实iPhone、真实多人容量及生产OSS90天规则仍单列未验证，不重Amap/支付/旧九图。
+
+### A57-MAIN 当前已保存报告与素材单次实际只读通过；正文不在任务范围
+
+实际Cc-sz070kxhdy8acxs/Tt-sz070kxhdyi9ybk Success/Exit0/Dropped0，RunRequest01A157C9-EC37-586C-B74F-832A8DA2DF3E/ReadRequest01A157CA-0A62-52C3-8532-893BA56316CE。D/saved-report-cover-only-readiness-r1/actual-output.json7341B/SHA24ff9a6ae7a5d314a85be906b746fd13a487783db55b3d7a39b5ad11ebef511b，已逐bytes核官方Output base64原stdout相等；read_saved_report_uid999.py20647/SHA79dcf7b5d4666a2a2e88f312082c36f9a9f791396a25420176b9b9e63b623b82及root载体9895/11967/wire53de/15956已窄审及14离线fixtures。只新增ROOT下reader/result两证据文件，普通app/socket四SELECT/RRRO/ROLLBACK及原private SQLite query_only；0业务SQL写/HTTP/model/control/OPEN，未改权限或Worker-C。
+
+实际13:30:14.796北京，原0cdbe completed/saved/unique8，34physical/model完整、pending0/UNKNOWN0/stopped空；PG3.3571038/私账3.8343288保持。原ledger inode1460877/cap99/call40/dispatch34，全部calls SELECT* ORDER BY id canonical SHA **fe1b74adba5dc5a027f85b6eef735b17df263967720559cf86bcf58a96b7737d**（含receipt/usage全文但只输出摘要）。同9refs原序、owner/content/ready元数据匹配，最早expiry1792557472.232735=10/21北京12:37:52.232735；此仅当前metadata事实，不冒物理binary读取或供应商可访问。该report coverjobs0/本人activeunknown0，8个scope封面artifact及外层root cover.launch-intent不存在，parent4c8/includeabsent/真实close/CIDd264/PID3350776/source1cab前后保护通过。
+
+只据此准备同报告封面，当前仍无新human/END/OPEN/coverPOST。新HOLD runtime/operator/launcher、固定f818 alias静态、有限入口及同账本seal-onlyCAS源正终审；由实际startup立刻绑定现template/新human/current-source proof/cover-only输入，未启动operator，避免下一窗口内再人工打包。新source-only stage及最终批准尚未执行，不把源GO或现只读当付费READY。用户最新正文范围约束已落实，不修正文、不重新生成、不作为封面功能验收前置。
