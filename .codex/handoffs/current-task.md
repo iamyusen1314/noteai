@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-20 13:00北京：A3原任务已真实续接，仲裁中；同report封面待完成报告后提交
+
+唯一任务及证据：docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md A53–A55，既有case/PLAN.json。source产品e6234e7不改；actualA3clientgenerate-6645ca73-c38b-4a87-a171-576817eb1c66/task0cdbe483-9ca4-4012-9090-a718d8b86b4d/usagee0abf51f-ccea-4fba-8371-b829a0c74744。9/9+4专家实际完成，13calls complete/pending0/known0.5902568保守口径(nativeusage0.5185408)，wallet16/原8预留未最终扣。正常事实补充暴露aux遗漏chat续接，不是产品或供应商失败；已1cab+09cdd严格原task接线独审/actual sameCID恢复Success0D0，新PID3350776，原13账/真实nextseal d95/PGpreparedhash/原task版本1完整保持，未重Generate/九图。根04:58唯一normalContinue两omitted，真实ack并仲裁69%，保持同页不刷新。后续真实成品/成本仍待读，不冒已交付。
+
+原入口actualOPEN/bc26/timer END1792473052=13:10:52北京不延长；恢复不重开URL/不新权限/生产不动。下一步原报告真完成→original after-report RO→root真实UI+raw恢复receipt绑定00da cover-only薄helper→original actual coverWAIT_READY→root唯一正常cover；4inputs/initialinstall immutable，不新case/预算/自动重发。原窗sole云执行和统一发布，本窗sole正常UI/provider提交。费用累计40calls/100元不重置，旧2次0模型失败/旧UNKNOWN保留，真iPhone/真多人/OSS90天物理规则仍未证。
+
+## HISTORY — 以下为过往checkpoint，不作当前调度
+
+## CURRENT — 2026-10-20 12:34北京：A3当前真实批准执行中，runtime/control已就绪，boot-only入口恢复待actualOPEN
+
+唯一任务/证据/阶段见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md A51–A52及既有case/PLAN.json；分支codex/noteai-xhs-cover-20261019/HEAD ad4859b/产品e6234e7不变。真实人类e8492281批准1792469452，唯一END1792473052=13:10:52北京；实际OPEN至少剩30min，最晚12:40:52。不滚动END/不取重复yes。实际sameCIDd264/PID3333230/source6c32成功，control已ARMED；首次入口实际因BOUND漏host_boot_id而预检停，实际只读确认入口/OP/静态/timer仍absent。根已作仅一字段新O_EXCL派生config恢复载体af4e365c，保原70a/inode；窄审PASS，原窗唯一云执行中。无A3新UI POST/模型/成品/扣分；旧两次0模型失败与账本保留。原窗实际OPEN后根正常UI owner+9原图→actualinputs install→真实reportWAIT_READY→唯一Generate，报告真成功才独立coverwait。累计40calls/100元、UNKNOWN不自动重发、无生产发布授权。
+
+## HISTORY — 下文保留早期原件，不作当前调度指令
+
 ## CURRENT — 2026-10-20：封面两次真实UI提交均止于模型前；入口已关，当前只做最小辅助流程离线修复
 
 唯一权威任务清单/Q-A/checkpoint：docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md第8节表及末节。唯一case状态：/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json。分支codex/noteai-xhs-cover-20261019，接续起点88dd774（实际HEAD见Git及case PLAN checkpoint），产品源码仍e6234e7冻结；不新工作树/不切换生产。

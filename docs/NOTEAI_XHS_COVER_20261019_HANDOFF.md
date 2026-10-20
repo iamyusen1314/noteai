@@ -890,3 +890,52 @@ foundation正冻结同一source-only分段包（raw≤12288/Base64≤16384）与
 A49后的唯一local增量：完整审批记录体积上限保留，root renderer把提交前安装inputs与启动拆2条有限命令；install生成程序物理去除launch body，真读回两来源+4file后才独占写PRIVATE_OPERATOR_INPUTS_INSTALLED_NOT_STARTED；launch只hashpins并真读这个实际成功receipt/4file/来源/runtime/END后唯一启动，cover仅另起launch复用，不自动POST。final renderer1d15874641d2f4c68a5025a5a19845edd8de27dfab865b67abf16da6558dede6，5 compile/size fixture PASS+task_contract独审GO；初次完整旧JSON重复嵌入压力例超限保留为拒绝证据，共享完整当次合同+parent原件ref大小检查PASS，不删/重写人类原件，不放宽12288/16384。README-EXECUTION同步精确CLI。7叶/实际source-stage完全不变，无新框架/服务/权限。
 
 当前必要非付费准备已真齐：oldyes已消耗/原11:30时窗已过，最新人类批准仍None；newEND/newPID/新runtime/OPEN/paidrequests均无。两个旧模型前失败和0实际模型费用/0最终扣分保留，真实新报告0/封面0。根现在只集中询问一次新重测+从实际同意起≤60min新公网/同CID有限辅助窗口，OPEN仍余≥30min，累计40调用/100元（不是新增）/失败UNKNOWN不自动重发/原账号正常登录限制/生产不改；取得真yes才交原窗核人类原件并执行，不先运行。
+
+
+### A51-MAIN 新真实人类已确认立即执行，唯一END13:10:52北京，不滚动
+
+新userMessage01a15781-45c3-7a10-beac-25b574b5103d/turn01a15781-4593-78d1-a2e7-9482cd3d7d01答“确认，开始执行”，root同thread01a154c9，read_thread直接核验；actual turn.startedAt1792469452=04:10:52Z，首次观察clock04:10:58。case/ACTIONTIME-ATTEMPT3-HUMAN-READ-ORIGINAL.json+HUMAN-ORIGINAL.json保存。完整shared合同ACTIONTIME-ENTRY-APPROVAL-20261020-ATTEMPT3.json2281B/SHAe8496f953cb3e9b4e9e09bf399e5d0a36075fbf0f48f4264537ba3bd766ce12b，全部新A3flags/实际parentref/fullsource3+guard2/op+entrypin齐、productionfalse；approved1792469452/唯一runtime==entry END1792473052=05:10:52Z/13:10:52北京。已交原窗立即核真人类并一次sameCID有限host接续→actualUNARMED/control arm/timer-firstOPEN，actualOPEN须余>=1800，不重传7叶/旧yes/PG/readiness/模型probe。
+
+当前新runtime/OPEN/PID尚待原实际回执，根不提前POST；新一次仍累计40calls/100元、0自动失败UNKNOWN重发、旧两次0模型失败保留、原账号正常auth/isolatedPG，不改production/proxy/账号权限。根后续正常UI owner/选9、真实原件binder→install(不启动)/launch(实际marker+liveproc才READY)均已备；收到真WAIT_READY才唯一Generate，成功报告再独立coverwait。仍无新成品或新供应商调用，不把批准当成功。
+
+
+### A52-MAIN A3实际runtime/control就绪；入口仅boot预检遗漏，原件保留同窗最小修正中
+
+实际同CIDd264/image05978成功PID3333230/restart0/source3 6c32/abdc/7e1，c-sz070kr0wqf49hc/t-sz070kr0wqwljwg Success0/D0；actual runtime原件D/read-actual-runtime/result.ACTUAL-ORIGINAL.json1868B/SHAeb3a0e1d6e19fb80421bd4ee28a2b9c00cd2c661f2f05c507276c4eeb9bc8ce1，seal7555/e561bd42。control c-sz070krl4o3vgg0/t-sz070krl4oiuuio Success0/D0，NATURAL_CLAIM_ADMISSION_ARMED，uploads0/clientnull/coverfalse/provider0，尚无正常UI新提交。
+
+入口首次c-sz070krn4dwx8n4/t-sz070krn4ebwmps Failed2/D0，实际BOUND4040/70a2b3/inode1460913/0600/root，其host_boot_id=null。只读诊断c-sz070kryx3iwwsg/t-sz070kryx3qelts Success0/D0直接证原47a config仅HOST_PIN_CHANGED；真实boot536705bb、runtime/baseline PASS；OP和9markers/静态/include均absent，timer及service not-found/inactive，父4c8原件不变。根定位1fb0 binder从旧HOLD复制时漏填已知boot；这是辅助预检缺口，不是供应商或产品生成失败，模型仍0。实际原件见D/entry-failed-readonly/actual-*。
+
+根仅新增r3/entry/boot-binding-recovery-r1/repair_existing_boot_binding.py6018/SHAaf4e365c2218eed0c88b8e9f66d959cac4b2cdc252214bd3de66f7aaa999f9d3及4251B载体9b4db050；保原70a及inode，新O_EXCL entry.BOUND.boot-pinned.json只改host_boot_id，校验已确认closed/源/同runtime/e849及END/min30后调用原47a OPEN。compile/sh-n及task_contract独审PASS，未新增整binder重跑/namespace/runtime重启/SQL/权限/模型；已交原窗唯一云执行，当前待actualOPEN。不需要重取yes或滚动END；最晚实际OPEN04:40:52Z，唯一END05:10:52Z/13:10:52北京。未实际OPEN/WAIT_READY前根不刷新新UI或Generate，未知只查原操作。
+
+
+### A53-MAIN A3实际OPEN与预启动WAIT_READY成功，唯一正常九图Generate已提交并进入2/9解读
+
+boot-only恢复c-sz070ksi3t254hs/t-sz070ksi3th4ikg Success0/D0，原47a实际PRIVATE_ENTRY_OPEN_FINITE_NOT_BUSINESS_ACCEPTED；新configbc26d2101b255f1032974acef879b22a1a58dbb42e4a028e24da858a082b7609，原70a/inode保留，END1792473052不变。r3/entry/boot-binding-recovery-r1/actual-*完整。正常UI reload/点击普通创作后owner fixture/16积分恢复，依序单张选原9图，domain休闲娱乐体验/种草auto/冻结brief一致；D/normal-ui/实际AX+截图及owner1535/cff8。实际原件binder/renderer未改源，四inputs精确绑定actualruntime1868/eb3a+当前e849+本次owner；meta913/54f2。
+
+原窗实际install Cc-sz070ksqnd2kjk0/Tt-sz070ksqndmjqbk Success0/D0，PRIVATE_OPERATOR_INPUTS_INSTALLED_NOT_STARTED；实际launch Cc-sz070kss2ken7k0/Tt-sz070kss2km4wlc Success0/D0（Read01A15799-BECC），WAIT_READY_ACTUAL_MARKER_AND_LIVE_PROCESS_NOT_MODEL_ACCEPTANCE，原marker337/7bceb6f8、UID/GID999 livePID271/startticks810643588/argv原d43a --wait-resume report/config5b7f。全部actual-*在D/operator-install及operator-report-launch，carrier raw11177/wire14904与4357/5812均原限内；launcher本身POST/model0。
+
+根实读READY后约04:37:48Z唯一正常点击Generate，按钮立即disabled；9正常上传后显示已发起，再进入真实生成页，04:38前端『图片理解：已完成2/9张』。没有第二POST/刷新/取消/手工SQL/180s内打包；同进程自动接续。actual新client/server/usage ID及physical ledger/cost仍待原结果，不凭UI推算实际调用数/成本，旧2次0模型历史不覆盖。当前报告未交付/封面未提交/质量及结算未验收；保持原连接，完成后只读原账本，成功report才独立coverwait。最晚13:10:52自动close，完成/失败可精确早关，不停止已发模型/丢结算。
+
+
+### A54-MAIN 九图与4专家真实完成，原task正常waiting；13模型终态已核，同任务最薄辅助续接准备
+
+正常UI停两条套餐权益事实追问，root按原brief两项选omitted未提交。原产品HTML11463 POST/chat/message携原session/version/answers，api22977/task_clarification.resume345识别原task/usage/keyhash/payloadhash、从prepared继续，charged_again:false，不新报告/重跑九图专家。实际6c32隔离桥/Admission及c361仅generate/cover未接chat，root在提交前定位该aux缺口，未制造续行失败/不重Generate。
+
+原窗actualRO Cc-sz070ktkgcaedxc/Tt-sz070ktkgcrvocg Success0/D0（Read01A157A1-D833），D/continuation-readonly-r1/actual-*：clientgenerate-6645ca73-c38b-4a87-a171-576817eb1c66/task0cdbe483-9ca4-4012-9090-a718d8b86b4d/usagee0abf51f-ccea-4fba-8371-b829a0c74744；PGwaiting_for_input/continuationwaiting/version1/generate_stream/2questions 128761ae57179c372d675ecb、5d435caa87cdc805173475a5。13physical/13usagecalls全complete/transportknown1/pending0/stopped空，无UNKNOWN；dispatches13是已发生历史累计不可清零。privateledger conservativeknown590256800nano=0.5902568元，nativeusage actual_model_cost_rmb0.5185408，原值分别保留，不能把口径差扩大成历史费用修复或供应商账单。usagecredits0/complete0/refund0/wallet16/totalused154，UI8是原8预留后可用额，不冒最终已扣。
+
+actualinitialseal.json7555/e561/inode1460873未改；report.applied286/2ee1指nextseald95e315aafb56c12c8441568058192418ed17b12c40c4315adeeb35836815adc，实际canonical nextseal已存在proofs/natural-report-9fe1d853b63bb2d2/next-seal.json。恢复必须直接用该actualapplied nextseal及原ledger（inode1460877），不能用initialseal启动而误判BATCH_SEAL_CHANGED。claim976/9fe1、native3703/05281、resume10002/4d5c原件保持。
+
+仅aux新derivedruntime31748/1cab29ad34413a76398fd9c25fd1f69c8af419963e8ab1e5a1ef9dba64bcad00，9purefixturesPASS；原6c32/c361保留。严格exacttask/version/usage/keyhash+2omitted body门；副本header归一原client使normaladmission原hash，原dispatch回调内仅临时同Invocation.route为generate，覆盖完整ASGI/SSE生命周期并恢复；全部nativeauth/模型/Prompts/usage/预算继续。实际source-only c-sz070ku64p0fyf4/t-sz070ku64pffchs Success0/D0，1cab实际31748已root0400stage，未激活/重启/模型SQL0，D/continuation-recovery/source-stage/actual-*。初本机fullsource包装超限被拒，改精确old6c32 delta重构+exact1cabSHA，不放宽限，最终raw7712/wire10284。
+
+root唯一hosthelper recover_same_task_host.py15017/4dd32267，carrierraw8556/wire11408/defaultHOLD+compile/sh-n PASS，待独审/原窗窄核才一次同CID受控恢复；min剩600s前才TERM，保当前sourceinode/control目录/actualreport/applied/13calls/成本，不新claim/latch/batch/ledger/budget，不用ptrace/注入，原END/timer/正常账号不扩。actual新PID尚None；恢复READY真实回执前不点Continue。root仍sole正常UI/provider调度，原窗sole云执行/统一发布。真实报告/封面成品及合格交付费用仍未完成。
+
+
+### A55-MAIN 同task续接实际恢复并正常ack，未重Generate；当前仲裁中
+
+runtime1cab9purefixture PASS+contract真实源码GO；root同CID恢复host09cdd5a1c078023ba3422eac343b98652ae15ae8806f1872c903a5629865926a15019B，foundation+原窗proposal独审GO。原4dd返回tuple遗漏由原窗执行前实读指出，只有cfg,_解包2byte修正，old载体未派保留；r2raw8556/c117、wire11408/459f、program15395/f4d1，默认HOLD/compile/sh-n PASS。contract之前完成状态下send_message未触发审查，root实际list_agents纠正后followup真实激活并取得GO，不把旧完成当新独审。
+
+实际唯一恢复Cc-sz070kulzm9gtfk/Tt-sz070kulzmlyb5s Success0/D0（Run01A157AC-7205/Read01A157AC-AC8A），D/continuation-recovery/restore-r2/actual-*；stateSAME_TASK_CONTINUATION_RUNTIME_READY_NO_MODELS，新PID3350776/sameCIDd264/image05978/restart0/source1cab，beforeafterledger13全等（callsSHA dcb77a3d93bc9e912fb0576a1e36afdd3cb24a252ab74c8f518c67ac6b9b5d95/inode1460877/d95/known590256800/pending0），PG原task/usage/version1/两questions相同，prepared实际canonicalSHA fd68f3a548fe6557a56a2156a178726ee830b4fae9bc8d81fc5ba9f6d414187c。只归档旧6c32原inode+control后sameCID一次TERM/start，actualnextseal原件直接复用，未重写seal/账本/预算/新任务；helpermodel0/业务SQL写0，formal/source/entry/timer/END不变。
+
+根实读actualREADY后约04:58:35Z唯一正常按这些说明继续两omitted；UI真实ack『这项不写；这项不写。继续沿用原素材』并进入仲裁69%/草稿68.6，9/9保持未重解读，无第二continue/Generate/取消/刷新。最后13calls成本是续行前已核checkpoint，新增正常续行成本待最终原账本，不冒0或UNKNOWN。报告真实成品尚待完成，cover未提交，END仍13:10:52自动关。
+
+cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4efda16760B，14purechecks+contract独审GO。只消费actualraw recovery+同报告完成UI/RO原件，不重bind/install原4file/initialinstall；新livePID/source实际别证，原1868仍历史安装证明；onlycover wait/独占intent/原launch_operator，不自动POST。root实读时发现report_frozen准备hash额外字段，media只最小加strict prepared_sha256/hx两行并重测，hostpin不变。待真正report完成后再bind/size查/交原窗，不伪造未来PID/job。仍无生产发布授权。
