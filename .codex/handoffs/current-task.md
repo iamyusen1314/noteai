@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 A68：本次未能OPEN；r3失败已定向实证，完整r4辅助源码通过独审，等待关闭入口的后端启动核验
+
+功能31b4d7b保持，登记前HEADcb172aa。原human2aa7/06:35:11→07:35:11/END1792539311不变，OPEN最晚07:05:11已过，入口从未打开，本轮无真实封面/前端付费验收。gift8已成功一次，不重补；当前模型新增0、历史36/private3.8472528/pending0/UNKNOWN保留。原sole实际r3仅后端恢复Cc-sz070nju24wjlz4/Tt-sz070nju256j7cw Failed2，原808/94ba75b5、startup-hold95/41967406(GuardHold)，不把源码GO冒运行通过。
+
+原sole只读Cc-sz070nkbgq7lq0w/Tt-sz070nkbgqf3f28 S0D0原7451/19752189，实证r3 active919a/exited2/PID0、parity存在而handle/normal无，配置10834/a74882、账36/inode1460877/全calls291acd/sealfc60不变/CLOSED及正式6pins相同。新API1160813/0660与seal一致、base API1160663/737b不同，旧legacy父目录二次比较为false；未恢复原throwcode，保其缺证边界。只修测试辅助混合来源兼容，不改产品/生产/正文。
+
+foundation唯一r4三源已冻并真实3.11编译/定向7测试及独审PASS：runtime51138/fe9a362d、guard52450/b752b7f3、legacy46504/266ec5c3；SOURCE-ROOTS-R4-RECEIPT.json11537/786661c7在原P/implementation。legacy仅按实际已载5模块路径核相同hash，其余wrapper字节不变；guard仅固定新legacySHA，runtime严格10字段原/新guard双map及self实际来源，保原human ed9/613d和原END。安全失败定位只留3helper basename+行号≤12，不写错误文本或密钥。media entryr2 26411/22fd53ad与同10map闭包已冻，实际3.11/16定向检查通过，contract独审收尾；当前无entry/OPEN生效。
+
+下一唯一原sole动作：按r3已退出现场及当前a748配置，冷核最薄恢复载体，最多一次有已证根因修正的CLOSED/backend-only正常启动核验，限原07:35:11前；只4处配置变化(runtime/aux10/guardmap/guard_version_root)，保r3/ed9/control原件及原36账，不CAS/gift/TERM/841f整prepare/operator/OPEN/模型。实际结果未知只查原请求，不盲启。root独审/source交接，原sole唯一云与统一集成发布。恢复读原PLAN和本节，不因辅助source测试通过就标封面可交付；真实v2成品/质量/重开下载仍未验。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：gift8已一次成功；隔离启动退出2，最小辅助导入顺序修正待实际恢复
 
 功能31b4d7b未改，登记前HEAD6ff6608。原同意06:35:11→07:35:11固定END1792539311不变，实际OPEN最晚07:05:11；不滚动。gift8真实一次2289/a26c16b4，不再补。prepare Cc-sz070ni7ifswfsw/Tt-sz070ni7igcvmkg已发一次start，实际随后Exited2/PID0，startup-hold仅AssertionError类，不能冒已捕获具体assert。入口仍CLOSED、无ownREADY/新任务/新模型；生产保护保持。

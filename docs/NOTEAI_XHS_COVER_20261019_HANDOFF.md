@@ -1241,3 +1241,14 @@ A68-HUMAN-PENDING：root已通过request_user_input_async实际发送上节唯�
 原sole实际纯只读Cc-sz070nixird7itc/Tt-sz070nixirs6ww0 S0D0，原inner18165/43b7935a，配置及stage14+helper指纹均相符，账本36/private3.8472528/pending0/inode1460877/全calls291acd不变；postCAS seal为fc60cc17205cd3fb957774a333284d76abb796932fb2f57bf9cda1fe9be936e0，不能再假用旧e074或重放841f。辅助ed9在来源循环前未加载完整模块闭包，cover服务实际为lazy import；foundation唯一新增一行正常import6模块产生runtime_entry.import-order-r2.py47514/8fc3ee0d，原严格18来源/预算/身份/END门保持。真实Py3.11.14编译+3桩回归PASS，仅sourceGO，非实际启动成功。收据P/implementation/IMPORT-ORDER-R2-RECEIPT.json3110/4588c0b9。
 
 原sole窗口唯一负责技术后继载体和实际恢复：保原ed9/human2aa7/失败现场/已消费start/CAS，按同一真实授权和固定END登记新技术身份，不另问例行修正批准、不复跑gift/841f、不改产品或生产。root独立窄审并保持专用Chrome2/tab1637495932待命，收到真实newREADY+OPEN即正常UI单击一次。若不能在最迟OPEN前剩余30分钟则保持关闭，不能晚开/扩时；继续不付费修正，不伪称真实成品通过。恢复先读原PLAN及交接末节，不因旧索引状态落后重派已发请求。
+
+
+### A68-R4 / 第二实际失败实证与完整最小辅助闭包
+
+功能31b4d7b保持，登记前HEADcb172aa。原human2aa7/06:35:11→07:35:11/END1792539311不变，OPEN最晚07:05:11已过，入口从未打开，本轮无真实封面/前端付费验收。gift8已成功一次，不重补；当前模型新增0、历史36/private3.8472528/pending0/UNKNOWN保留。原sole实际r3仅后端恢复Cc-sz070nju24wjlz4/Tt-sz070nju256j7cw Failed2，原808/94ba75b5、startup-hold95/41967406(GuardHold)，不把源码GO冒运行通过。
+
+原sole只读Cc-sz070nkbgq7lq0w/Tt-sz070nkbgqf3f28 S0D0原7451/19752189，实证r3 active919a/exited2/PID0、parity存在而handle/normal无，配置10834/a74882、账36/inode1460877/全calls291acd/sealfc60不变/CLOSED及正式6pins相同。新API1160813/0660与seal一致、base API1160663/737b不同，旧legacy父目录二次比较为false；未恢复原throwcode，保其缺证边界。只修测试辅助混合来源兼容，不改产品/生产/正文。
+
+foundation唯一r4三源已冻并真实3.11编译/定向7测试及独审PASS：runtime51138/fe9a362d、guard52450/b752b7f3、legacy46504/266ec5c3；SOURCE-ROOTS-R4-RECEIPT.json11537/786661c7在原P/implementation。legacy仅按实际已载5模块路径核相同hash，其余wrapper字节不变；guard仅固定新legacySHA，runtime严格10字段原/新guard双map及self实际来源，保原human ed9/613d和原END。安全失败定位只留3helper basename+行号≤12，不写错误文本或密钥。media entryr2 26411/22fd53ad与同10map闭包已冻，实际3.11/16定向检查通过，contract独审收尾；当前无entry/OPEN生效。
+
+下一唯一原sole动作：按r3已退出现场及当前a748配置，冷核最薄恢复载体，最多一次有已证根因修正的CLOSED/backend-only正常启动核验，限原07:35:11前；只4处配置变化(runtime/aux10/guardmap/guard_version_root)，保r3/ed9/control原件及原36账，不CAS/gift/TERM/841f整prepare/operator/OPEN/模型。实际结果未知只查原请求，不盲启。root独审/source交接，原sole唯一云与统一集成发布。恢复读原PLAN和本节，不因辅助source测试通过就标封面可交付；真实v2成品/质量/重开下载仍未验。
