@@ -1222,3 +1222,6 @@ root独立逐原Run/Read/stdout核前端10组唯一C/T与font1组，6input pins�
 前端source ref仍ROOT/a68-frontend-source-transport-r1/frontend-source-readiness.json10998B/7398e1b2（6输入/正式13→RAM15/1970未替/finalSTATIC_ROOT未建）；它不是served/browserauth证明。当前证据索引21145B/b0a244106a9d039f5bded1c8e1dae08f777d5ff377b4a3463eff65ba03799ddf及既有PLAN已续记准备完成；raw旧index均保history。**source准备与非付费定向检查已完成；新normal API启动、own operatorREADY、OPEN、正常UI、真实设计/QC/审美均未执行。**旧40ec/PID3379653/CLOSED/旧任务两版/旧UNKNOWN保持，运行供应商请求[]，累计36calls/private3.8472528无新增。
 
 下一唯一集中范围：同report新增1张v2，2Lite/0image/0retry，预留≤1元在原累计≤100/40calls内（完成总≤38），隔离正常gift8用于唯一8分结算，同CID必要aux normal succession/ownREADY及原正常登录/原账号限制入口从新回复起≤60分钟、实际OPEN余≥30分钟/自动关闭。旧窗口已过期，浏览器操作规则对再次公网暴露要求当次确认；不是重问已确认8分/90天/字体，不新增预算/权限/生产发布。准备齐后只问这一次，实际人类回复前canonical/END仍null，严禁先TERM/CAS/gift/OPEN/模型。原sole统一云执行与最终集成发布，root唯一正常UI封面POST；恢复读原PLAN/本节及actual refs，不重跑旧运输、GET、stage、报告或已完成套件。
+
+
+A68-HUMAN-PENDING：root已通过request_user_input_async实际发送上节唯一集中真实验收范围（工具accepted=true，非用户批准），原PLAN已记ASKED_PENDING_HUMAN_RESPONSE_NOT_APPROVED。新canonical/END仍null，无TERM/CAS/gift/OPEN/新模型；等真实答复，不重复问已确认产品决策。后续prepare841f新BOUND必须host_stager_ref用原aux-source-input-r1/source_stage_a68.HOLD.py17230/9370 verifier + 真r3 result4542/9f6c；r3 stage-only binding4554/cfa94d指producer841bd，不能原样用于授权prepare，不改源或重stage。原case为恢复入口，root唯一正常UI/原窗唯一云与统一发布。
