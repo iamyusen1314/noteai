@@ -1,4 +1,4 @@
-## CURRENT — 2026-10-20 A68 R2：产品/PC-H5离线/独审完成，真实封面源准备只读预检已请求
+## CURRENT — 2026-10-20 A68 R2：产品/PC-H5离线/独审完成，真实只读预检PASS，源运输/stage仍待执行
 
 权威HANDOFF A68-PREP-R2/Q09及设计附件A68/A67。分支codex/noteai-xhs-cover-20261019，功能31b4d7b未再改；文档HEAD9ee1529之后本checkpoint仅文档提交，恢复看实际Git不回退。1–3原图/语义文字/许可Sans+Serif/行业意图brief/真实成品240独立QC/current Lite2call，准确免费改字/独立8分/90天保留，旧v1兼容。无新DDL/依赖/模型/平台/正文改动。受影响后端87及R1单项/最终26有重叠不累加、Node24、真实回环PC/H5 HTTP存储下载PASS；model/auth/report/ready明确夹具，非真实导演/真iPhone/供应商容量通过。最终产品源码独审无活跃P1/P2；样张人工布局不冒Agent成品。
 
@@ -7,6 +7,8 @@ prep统一索引8032B/132ca321，旧版同bytes归receipt-history。三helper独
 原真实9图report0cdbe/oldcover4da两版/36calls/private3.8472528/历史UNKNOWN保留，供应商请求[]。旧公网CLOSED/END过期、旧cover名额已消费，不能重用旧case或盲退40ec冷启。原sole云窗口现收到最多1条只读预检请求：同CID/旧源/PID/六mount父mode/CLOSED/原36无在途/可用base hashes，隔离RRRO、无Env/生产DB/源写/模型/gift/TERM-CAS-start/OPEN；尚无实际C/T，不冒已执行。可选32755B精确archive载体仅本机证明，实际base与zlib未核，不冒运输完成。
 
 下一步收唯一只读原件→择实际可用最小运输/source-only新子目录准备→集中绑定一次同报告v2封面真实验收新scope（≤2Lite/0image/0retry，预期累计38≤40/100元不新预算，模型保守≤1元，隔离正常gift8及新有限入口）。new human/END/actual refs仍null/HOLD。原窗口sole云与统一生产集成，生产/配置/权限不改。无新版真实质量或合格成本分母，不给产品可交付/发布GO；原90天lifecycle Q07/真iPhone/真人容量限制保留。
+
+最新A68-READONLY-R2实际：once1 Failed2保留；once2 Cc-sz070m8aj5f42dc/Tt-sz070m8aj5u3gg0 S0/D0，22:14:59北京。root重核raw/payload02fd8553/reader a94dee82；只有挂载数组顺序差，完整canonical投影同；原36/成本/旧cover1/九有效refs、PID3379653/旧40ec/CLOSED均实核，非API31b激活。源写/model/gift/fontGET/TERM-CAS/OPEN0。actual-base carrier185230/d1d053用31段可容原64/262144 compressed门，decoded575297需专用固定终结器，旧stage_bundle不能原样用；原sole执行者继续源输入运输/stage准备，actual仍未运输/生效。已过TTL的无在途proof须最终stage必要刷新，不扩scope或滚END。
 
 ## HISTORY — A67扩展研究里程碑，保留事实，执行状态以上文为准
 

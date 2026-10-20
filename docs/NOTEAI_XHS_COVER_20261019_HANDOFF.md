@@ -1171,3 +1171,12 @@ entry独审22008B/868e508a保UID999→root CAS P2历史，host源码已按实际
 root已交原sole云窗口执行最多1条有界只读预检（请求不是实际结果）：同d264/image059当前PID/旧40ec源、六mount父mode、入口CLOSED、原36/旧report/cover无在途及非font候选base paths/bytes/SHA；无Env/源码正文/密钥/生产DB，隔离原reader仅RRRO，model0/源写0/gift0/TERM-CAS-start0/OPEN0/正式配置0。原C/T尚未返回，结果未知只查原命令、不重发。实际source-only stage/运行/公网/新任务仍未执行，新human和END及actual refs全null。另本机可选32755B/3d868b8精确原archive差异运输候选可用6段构造同560089B/338bb原小包，root3.11逐byte证明；实际cloud base及远端zlib未证，不能冒已运输，不改stager冻结源，也不就地改旧源码。
 
 下一步：接收该唯一只读原件→按实际base择最小运输并完成自有新版本source-only准备→再集中绑定一次同report新v2/2Lite/0image/0retry/隔离正常gift8/新有限受保护入口真实验收范围。原36/3.8472528与旧UNKNOWN/旧两版保持，新供应商请求[]；产品设计质量仍待真实输出，不能交付或发布GO。
+
+
+### A68-READONLY-R2 / 唯一只读后继实际PASS，运输与stage尚未执行
+
+原once1 Cc-sz070m7mzdi84qo/Tt-sz070m7mzdx7itc Failed/2/D0保留，整体HOLD/after未带回，不追认其唯一原因。最薄only-canonical-mount-order＋完整before/after/diff后继once2于北京时间22:14:59.341真实完成：Cc-sz070m8aj5f42dc/Tt-sz070m8aj5u3gg0，Run01A159AA-565A-5466-8E3C-DEAA3DBE3FB6/Read01A159AA-BB15-5CE4-A541-FB7699972C57，Success/0/D0。host/preflight-readonly-r2原stdout9624/57453a12、payload18884/02fd8553、reader7745/a94dee82。root已重读全bytes/SHA及actual before/after，raw只Mounts数组顺序不同，逐Destination保所有字段排序后整个投影相同/difference=[]。same d264/image059/PID3379653/restart0/旧40ec/六mount/父999:999 700/Nginx4c8与入口CLOSED，原report完成/旧cover1及active0、原36/known3847252800/pending0/inode/hash原样，九refs当前未到期。reader31b contract明确API激活false；业务SQL/源写/fontGET/TERM-CAS/gift/OPEN/model全0。当前总36/3.8472528及旧UNKNOWN不变。
+
+统一prep索引当前13576B/1929bcebf5a48c6f73ce11b36b292b242a5f69630f62262e3343a1b07b3ed4d7；旧索引保receipt-history。root仅在自己source-bundle按实际8存在/2缺省叶metadata找齐每叶Git blob（HTML645744/341f对应cef3d59f，不是c4/e623标签），生成actual-base R2精确archive数据载体185230B/d1d05394，root3.11重建10目标叶/原tar/560089B的原338bb gzip逐byte相同。早前32755/6段候选因实际HTML base不符不可用，保历史不删。R2需31个8192 Base64段，原分段上限64、packed compressed262144门可容；但decoded JSON575297超过旧524288且schema不同，不能原样调用旧stage_bundle。原sole执行者准备专用固定schema终结器，只产同338bb原archive给冻结stager，不加通用框架、代码就地替换或新发布系统。AUX六源/retained三资源/静态输入的真实运输也尚待就绪，不能因产品archive候选证明而冒所有源码已到云。
+
+下一步沿原scope做必要自有源输入运输/source-only stage：真实base必须重读hash/absence/路径，远端gzip不匹配HOLD；RRRO no-inflight有效120秒，运输耗时后可在最终stage同一有界命令复用已审reader刷新原字节receipt，不滚过期ref、不重跑全部历史。不得先TERM/start/CAS、gift8、OPEN或模型，均仍待准备齐后的同一次新范围确认。无在途供应商请求[]、新版真实设计质量/成本分母待验、产品不可发布。
