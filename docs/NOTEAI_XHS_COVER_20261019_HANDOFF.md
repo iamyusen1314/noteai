@@ -444,7 +444,7 @@ guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八
 - 入口OPEN/CLOSE包已本机准备于Enew/entry-open-close-prep，尚未云执行/注册timer/取得当次确认；独审发现OPEN与到期CLOSE锁竞态，正做最小锁内截止再验，修妥再给具体计划。原runtime截止仍09:23:34北京，不自动延长。当前模型0/100，正常普通OSS上传/实际owner会话/新报告及封面尚未验收；根不派模型、不部署生产。
 
 
-### 本窗恢复 checkpoint — 2026-10-20 北京08:30；HOLD已运行，公网与模型仍关闭
+### 本窗恢复 checkpoint — 2026-10-20 北京08:27；HOLD已运行，公网与模型仍关闭
 
 - 实际HEAD核4ff6e69821484e06f3e958f102b442f9f639925e，保留原窗口A06/Q08全部未提交追加；此次仅文档接续，不改产品或云。CURRENT顶部原18call/账号UNKNOWN/PG未执行等已过期指针已更新，恢复以本HANDOFF末节为准，不读历史命令继续。
 - 当前API d26428/image05978bee/18114实际启动、原隔离feature SQL已装、guard b211保持HOLD；不重启/build/SQL。主机Nginx本地证书正常首页200、candidate匿名401、control READINESS_UPLOAD_ONLY已实际得。入口未开放，owner会话/OSS PUT尚未验证。
@@ -453,3 +453,18 @@ guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八
 - 原窗正在Enew/entry-open-close-prep修OPEN/CLOSE竞态，尚未云执行/注册timer；实际静态叶子private-xhs-cover-e623-20261020-r1、upstream18114、原私有路径、普通owner鉴权、截止min(批准+60min,09:23:34北京)、同锁到期关闭/CAS回滚方案已成形，待其终审后一次集中取当次确认。网络改动若确有必要也先给具体最窄方案并集中确认，不擅自全局切代理。
 - Q08由原模型决策子代理只读复用本地实际Render部署/SDK0retry/no-cache原件；不外呼/部署/增加付费probe或假填证明。此刻仍1报告+1cover/40call/100元，实际模型0/费用0/新报告0/合格封面0，无供应商推理UNKNOWN；既有metadata UNKNOWN原样保留。计划两个clientID仍未受理；正常UI自然ID登记后才将计划号标UNUSED。
 - 下一步：有限入口终审/本机访问定位→集中当次确认→正常九图上传先证存储→root唯一业务调度。原窗持有所有云命令身份，不复制派发。阶段3 IN_PROGRESS，真实质量/账单/多用户及真实iPhone未通过结论不变。本段完成即释放共享HANDOFF，原窗可只追加。
+
+
+### Q08 预算预留补充 / 入口终审进展 — 原窗口北京08:27校时，追加后释放
+
+入口竞态已本机最小修，entry_once.py16009B/SHA0fc29bb8c63dd9ec82e5d7412a5886cee4a18d5045e5ba4f57efd894d5941477，mature_cas b17fad8不变，manifest9de734b34802b0551bb35bd6a24f6301f9782238e06871db32c97f0f36f91d83，已交原独审返审；6窄交错/截止/UNKNOWN reload测试PASS，无云动作。具体地址/18114/静态叶子/时窗/同锁关闭/恢复见Enew/entry-open-close-prep/README.md，timer为本次新增一次性包装，不跨host重启，runtime与loader到期业务拒绝是独立后盾，不能称物理include跨重启必清理。root准备可从host prepared-helpers-r1/frontend-metadata原件重建static，仅传最小新源码/LICENSE，无重建镜像或新设施。
+
+**付费前真实约束提醒，不先跑到中途才碰cap**：现有实际guard seal.preparation没有claude_no_cache_contract；自然claim CAS只允许改bindings/proofs，因此仅补Q08 proof并不能直接开启旧_no_cache_spec。保守完整1M/cache1h Sonnet预留每条49.92元，两候选重叠可99.84元+已发视觉/文本，可能撞100，更会撞模型99工程预留。不是实际已花99.84，不是供应商拒绝。本窗不会砍上下文/质量、伪填nocache或冒称已启用。先核当前Render/source无cache与SDK0原件，再确定对尚无uploads/model的HOLD做哪一个最小预付费辅助调整；不触产品源码/生产，也不把新模型失败当诊断手段。明确无live业务在途后若确需只重载guard初始化，必须保留同batch全部原账本/计数/失败、不开新请求或重建镜像，不盲重启已发任务。此调整尚未执行；请先保留普通上传前后原状态，根目前不派模型。
+
+
+### A08 / 今日Gateway live部署已只读核对，可复用原SDK及文本合同
+
+- 本窗通过现有Chrome正常Render登录，于2026-10-20 00:26UTC前后新自有tab1637495773实际读取服务srv-d9e765laeets73aikj90概览：Last successfully deployed commit=`60168e1dac42036f874ede27cce8557ae0a8dd2d`，Live=`dep-daj7919594qs73b38gbg`。未打开env、Shell或修改/部署；截图及完整AX已保存，提取后关闭此新tab，原Render页未动。
+- 与真实2026-10-13 Shell取证和10-17管理观察是同一deployment，可复用冻结源码46375B/SHA3d92c7bb95682ca196a1568b96b6ea012d5f3918826420a49cb9d00199c0485d、原receipt956B/SHA095e4d6eacaddef0c72d92f45159f0d68a2b0097fec667254f25ff0830699a97：单实例当时installedAnthropic0.97.0、source max_retries=0；strict text block白名单拒额外cache_control、_provider_kwargs不加PromptCache参数。源码合同可用，不冒今日实例化client或实例群新实测，也不把readiness cached_used=false当PromptCache证据。
+- 统一收据本次case/GATEWAY-CURRENT-DEPLOYMENT-PROOF.json，SHA44f67bd71afd3532d63585f89729cd06a3b5423a2ae7b8577f44b45fbf03525d，关联今日截图/AX及两个原件大小/SHA。历史原件根在/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012；actual-gateway-management-20261013/receipt.json和gateway-model-budget-source-review-20261013-0245/gateway60168-source.py。实际供应商cache counters仍以本轮正常业务响应记账，银行实账未知不伪填。
+- 已直交原窗口接proof，不新增fleet/SDK门或额外付费probe；模型仍0，首次metadata UNKNOWN和第二次辅助HTTP前0调用分开保留。原模型决策子代理完成只读资料核，root完成今日实际UI核；两者不互相冒认。入口包终审/当次确认及真实九图上传/报告/封面继续进行中。本段后释放共享文件。
