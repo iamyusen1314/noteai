@@ -417,3 +417,39 @@ guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八
 - `/root/cover_foundation_review`仅针对新增5项独立回归5/5 PASS、0socket/provider，前后SHA一致；错指纹/路由/型号/伪verified/paidprobe拒绝，owner/正常原任务/40与100/cover3与image1/0retry/403 UNKNOWN停均未放宽。此为helper源与离线合同，通过不冒live；旧eb26只作pre-q06历史，恢复应取当前b211及PREPARATION-MANIFEST。产品e623与镜像05978bee未变，无新增产品源码修改。
 - 原窗口上下文压缩后曾回旧handoff步骤，本窗已以当前checkpoint纠偏，原窗口明确接回正在进行的隔离准备，不重新建树/构建/回放模型。其后实际回读证明正式API/Pay/Admin/原PG存续，新API尚未启动、公网入口关闭；原Gateway非推理GET因辅助断言在保存响应前失败，响应保留UNKNOWN，不是模型失败或可凭空清零的成功。
 - Workbench传新的辅助包明确会话过期，未冒成功；原窗转既有RunCommand。同源启动命令一度被阿里云长度上限入口拒绝、未到服务器执行，现用host原件逐文件old/new SHA增量缩短，不重传镜像或改生产。下一步只核该原命令回执/候选HOLD正常启动及实际存储，再准备当次受鉴权测试入口确认；provider原请求尚无、费用0/100、真实封面0，两个client计划ID未受理。共享文档本段后释放，后继云身份原件由原窗追加。
+
+
+### A06 HOLD启动实际失败已定位 — 2026-10-20 北京08:02；原窗口只写后释放
+
+- Workbench本次新payload明确Session expired、未当成功；39KB内联RunCommand被CmdContent.ExceedLimit拒绝(Request01A15698…)，无Command/Invocation/host执行。已转精确5文件delta，从r1原archive逐byte重建通过：载体11701B/70f2f210…、Base6415604<16KiB，独审GO。不是重传/重构或重建image。
+- 唯一真正启动调用`c-sz070k3ylp415vk/t-sz070k3ylpligao`实际Failed/Exit2/Dropped0，原wrapper仅报launcher OTHER，但formal+旧isolation严格不变/model0/publicclosed。只读定位`c-sz070k43frft9ts/t-sz070k43frpsv7k` Success0/D0已证：candidate IDs=[]、owned runtime root不存在、尚未跨第一处mkdir，明确ValueError `DUPLICATE_ALLOWED_ENV_KEY`（selector第30行/launcher138），因此没有API launch或有效在途调用可中断。
+- 最小辅助修正：只允许同名**同值**ENV去重，冲突值继续拒绝。后继先输出仅重复键名/数量/相同布尔，全部相同才使用新owned r3 launch-source保留r2原件，继续尚未创建的HOLD；不改正式ENV或产品。当前35测guard b211…保留；新API仍未运行，真实普通PUT/auth仍待启动后验收，模型0/100。下一步不重做handoff/build/SQL，不派模型。
+
+
+### A06 已实际正常启动HOLD API — 2026-10-20 北京08:12；共享文件已释放
+
+- `c-sz070k51ivvkdts/t-sz070k51iw5jz7k` **Success/Exit0/Dropped0**，Enew/runtime-hold-launch-r4-{run-original,read-original,output}.json。实际CID **d26428adc219dd6bb4dd0bd2a9e71e78689b1045a9ba325649938f1f65bddc3d**，name noteai-cover-local-api-e623-20261020-r1，image05978bee…，sourcee6234e7，仅127.0.0.1:18114；control/normal-startup-result= NORMAL_API_STARTUP_COMPLETED_NOT_PAID_READY。**不要再次launch/build/SQL/seed；该API已运行。**
+- 沿成熟PID1-only effective_select读回：CPython3.11/source/.env/UID pins真，matches=[false,true]、原图片能力实际enabled=true；不是按Config末值猜。实际唯一selected重复是media flag，其余冲突支付字段未复制。最新launcher19031B/SHA5d6bb7ca66934705997d1e72aa8487eee6c2b7d9fd118d260fe756761c114fc2；selector3802/e1fbdb9b…；原失败/未派last草稿/原source730c均保留，不用b801或730c重启。
+- 实际control/handle-bound核21个产品/支持叶子SHA、4权重、原auth桥、新guard b211…；无新session。**原RDS verify-full只读2 SELECT已实际连通**，managed12全匹配、effective_routes_equal=true、original_writes=0。原正式3711/9be、Pay/Admin/旧761d+PG pins严格不变。此是启动及原模型/Prompt一致证据，未证明owner浏览器会话或OSS PUT成功。
+- guard初始READINESS_UPLOAD_ONLY_GUARD_PRE_DISPATCH、HTTP paid admission=false，proofs={}；新模型/报告/封面/费用0/100、public_entry_opened=false。实际工作root `/var/lib/noteai/cover-acceptance-20261020-r1/runtime-e623-r1/control`；新scope `/var/lib/noteai/cover-acceptance-20261020-r1/noteai-xhs-cover-20261019-batch`。原runtime有效截止2026-10-20 01:23:34UTC（09:23:34北京），仅HOLD，不能冒60分钟公网当次批准。
+- **下一接点**：根只准备原私有Nginx include/一行+新静态叶子的精确开放/关闭包（API改指18114，正式/api不动）；请封面窗在包/close核妥后取得本次具体最多60min的当次公网确认。然后唯一封面窗用原正常登录验证auth/9普通上传/实际OSS；上传失败或未知停模型。paid第一wire前仍需fresh Gateway/SDK/价格与自然claim proofs，并将新helper账本模型cap限99、同100内另1元只作storage工程预留（不是已知支出）；是否可用原nocache已核合同需按当前真实Gateway来源复用，不因保守full-context reserve误把少量实际任务判成收费超限。根不派模型、不改产品、不生产发布。
+
+
+### A06 本机入口实际核验 / Q08 Gateway运行绑定 — 2026-10-20 北京08:22；追加后立即释放
+
+- 新唯一命令 `c-sz070k5xhcpzojk/t-sz070k5xhd4z2m8` 原身份读回Failed/Exit2/Dropped0；Enew/gateway-metadata-second-local-saved-{run-original,read-original,output}.json分别保存。失败只在Gateway辅助子进程，不是API/业务失败。本机独立结果已先落盘：127.0.0.1:18114无bearer GET401/EXISTING_BEARER_REQUIRED，control状态READINESS_UPLOAD_ONLY/uploads0/report_client_id=null/cover_submitted=false/provider0；Nginx active、nginx-t有效、正常证书校验且resolve本机的首页HEAD200/总17.186ms。parent4c801704和public c4a指针不变，formal/Pay/Admin/旧隔离/新d264全部pins严格不变，私有include仍absent。
+- 因而Chrome正常首页及私有URL超时，与电脑DNS fake-IP198.18.0.65/TLS握手超时的证据须分开；当前本机Nginx有实际200，**不能称生产/EIP已故障**。未改代理/DNS/hosts/证书策略/EIP，不开放include。
+- 本次Gateway子进程明确signed_readiness_http_requests=0、OperationalError、model_calls=0；发生在HTTP前，因辅助只读临时容器缺正常DB配置的调用链正定向核查。原首次GET的UNKNOWN继续保留，不把本次0请求称新供应商失败，也不重复已知UNKNOWN。根只修test-only调用前提，不修产品或造SQLite。
+- Q08：付费前还需当前Gateway实际部署revision/SDK max_retries0/no-cache合同的可信原件；签名readiness响应只证明协议/配置epoch/key/nonce/clock，不独立证明SDK/cache配置。请封面窗复用你持有的原Render来源核当前真实部署绑定（不改配置/重部署/额外模型探针），在本文件答复可复用原件。若已有原件无需重审整Gateway。40/100、原质量/路由不变，不靠砍context或伪填SDK proof凑预算。
+- 入口OPEN/CLOSE包已本机准备于Enew/entry-open-close-prep，尚未云执行/注册timer/取得当次确认；独审发现OPEN与到期CLOSE锁竞态，正做最小锁内截止再验，修妥再给具体计划。原runtime截止仍09:23:34北京，不自动延长。当前模型0/100，正常普通OSS上传/实际owner会话/新报告及封面尚未验收；根不派模型、不部署生产。
+
+
+### 本窗恢复 checkpoint — 2026-10-20 北京08:30；HOLD已运行，公网与模型仍关闭
+
+- 实际HEAD核4ff6e69821484e06f3e958f102b442f9f639925e，保留原窗口A06/Q08全部未提交追加；此次仅文档接续，不改产品或云。CURRENT顶部原18call/账号UNKNOWN/PG未执行等已过期指针已更新，恢复以本HANDOFF末节为准，不读历史命令继续。
+- 当前API d26428/image05978bee/18114实际启动、原隔离feature SQL已装、guard b211保持HOLD；不重启/build/SQL。主机Nginx本地证书正常首页200、candidate匿名401、control READINESS_UPLOAD_ONLY已实际得。入口未开放，owner会话/OSS PUT尚未验证。
+- 本机Chrome原私有路径及正式首页均ERR_TIMED_OUT。当前Shadowrocket只读“测试规则”显示noteaipro.com命中GEOIP,CN,DIRECT；没有添加/修改规则、停代理、改DNS/hosts或绕过证书。系统解析fake198.18.0.65，另一次dig @223.5.5.5正常A=39.108.66.93；对后者单次TCP成功而verified SNI TLS5秒超时，HTTP/凭证0。故fakeDNS不独立证明根因，主机本地200也不证明电脑公网路径正常。证据在本次case：local-noteai-rule-readonly.png、LOCAL-ORIGIN-TLS-READONLY.json，原两浏览器错误截图和LOCAL-NETWORK-READONLY.json保留。
+- 独审仅窄读当前helper：旧0600控制消息不可被UID999读的问题已由原窗saved版修复，无需重启API；第二次metadata临时容器缺正常PG模式、import db触发只读SQLite初始化，HTTP前失败实际请求0，非Gateway/产品故障。最小建议仅辅助进程用禁止连接的非真PG sentinel避SQLite自动init并拦连接；原窗唯一修改/执行，本窗未运行建议。
+- 原窗正在Enew/entry-open-close-prep修OPEN/CLOSE竞态，尚未云执行/注册timer；实际静态叶子private-xhs-cover-e623-20261020-r1、upstream18114、原私有路径、普通owner鉴权、截止min(批准+60min,09:23:34北京)、同锁到期关闭/CAS回滚方案已成形，待其终审后一次集中取当次确认。网络改动若确有必要也先给具体最窄方案并集中确认，不擅自全局切代理。
+- Q08由原模型决策子代理只读复用本地实际Render部署/SDK0retry/no-cache原件；不外呼/部署/增加付费probe或假填证明。此刻仍1报告+1cover/40call/100元，实际模型0/费用0/新报告0/合格封面0，无供应商推理UNKNOWN；既有metadata UNKNOWN原样保留。计划两个clientID仍未受理；正常UI自然ID登记后才将计划号标UNUSED。
+- 下一步：有限入口终审/本机访问定位→集中当次确认→正常九图上传先证存储→root唯一业务调度。原窗持有所有云命令身份，不复制派发。阶段3 IN_PROGRESS，真实质量/账单/多用户及真实iPhone未通过结论不变。本段完成即释放共享HANDOFF，原窗可只追加。
