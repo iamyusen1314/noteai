@@ -1,16 +1,18 @@
-## CURRENT — 2026-10-20 10:38北京：封面attempt2已获新真实批准，等原窗口有限接续与actual OPEN/paid READY
+## CURRENT — 2026-10-20：封面两次真实UI提交均止于模型前；入口已关，当前只做最小辅助流程离线修复
 
-唯一权威任务表/Q-A在docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md第8节及末节；case状态在/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json。分支codex/noteai-xhs-cover-20261019，实际HEAD aa7b8b4；产品e6234e7已冻结交原窗，不新工作树/不切换生产。
+唯一权威任务清单/Q-A/checkpoint：docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md第8节表及末节。唯一case状态：/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json。分支codex/noteai-xhs-cover-20261019，最近提交88dd774，产品源码仍e6234e7冻结；不新工作树/不切换生产。
 
-首次正常09:41九图POST已终态：client generate-c345728e-1601-40c0-a897-4ba992e979dc/task5f015705-0778-4e3e-9f31-12c0dda2cbf3/usage150b9d46-b6b2-4123-9247-8c94f2e0f490。operator误要求0600拒原安全0400 seal，latch120超时；实际ledger model/dispatch/known/pending0、最终credits0、预留8释放、钱包16、report/cover0，原closed/stopped保留。09:45:19入口已关；报价1.28不是实际供应商费用。实际只读合同修复PASS_0400+旧expiry拒重放；隔离正常cover配置rev2/enabled/acceptance读回PASS，worker活性/供应商/成品仍未证。旧10:30runtime过期，不重用。
+attempt1真实client generate-c345…/server5f015…/usage150b9…原seal0400被operator误要求0600，120秒超时，0model/dispatch/known/pending/最终credits；原closed/stopped/账本保留。修正后实际UID999 private合同PASS，隔离cover正常app rev2/enabled读回PASS，但不是模型/成品验收。
 
-A42已实际source-only暂存r2 helper d7a0…/auxentry02939…/publicentryc29…；最终manifest e401bcba…/独审GO-source，未启动/OPEN。先前bad ef584…只留史不执行。新operator e6d0…模板齐、PID仍None，只由新实际runtime结果绑定。复用Gateway真实签名200/2RAW UID999 read/价格原件，不再build/SQL/PG/readiness循环。
+attempt2新真实人类同意（call_ea80a…，原件1949/be8a2b及补entry同URL派生2466/7a2ced完整保留），同CIDd264/image05978成功有限接续PID3291093/aux02939/到11:30；实际OPEN+paidREADY后根10:54只点一次正常Generate、9正常上传。实际client generate-0340b5af-1ad2-485e-ad88-eea4a8e56cef/server6845e619-4e92-42ee-aec5-ee308a6a2b36/usagec026aada-9607-4bf2-be2c-c8094401ba59/payload373d6884…；claim02:54:18.442Z/180秒。原窗把9媒体SELECT/打包留在期限内，唯一resume晚派ORIGINAL_CLAIM_WINDOW_EXPIRED_NO_REPLAY，未二次POST。实际10:58:25精确close，不停candidate/不回滚DB。
 
-人类当前真实答“同意重测并限时开放”，questionItemId call_ea80a3901b654adcac9acd817e399e66/0。回复后首clock02:37:51Z=1792463871；原件case/ACTIONTIME-ENTRY-APPROVAL-20261020-ATTEMPT2.json，O_EXCL0600/1949B/SHA be8a2b387d594d89b84f689b504ec1903818e056c474aa7709aba68d1e89fb06。同既有CIDd264/image05978/18114、原owner正常鉴权/隔离PG；含必要aux source后继+新子叶ledger/seal/latch180。入口及backend均≤今天11:30北京/1792467000，实际OPEN须剩≥30min；仍仅一新九图完整笔记+其一封面，原累计40物理调用/100元（模型99+工程存储预留1非已花），0自动付费retry，旧失败/UNKNOWN不清。旧R2 yes不得重用。执行绑定改用同case派生CONTRACT-BOUND.json（2466B/SHA7a2cedfb843a7cd88c0a0ea12e3a0424cd0ea6b904452d00341cee559cb7f244）：仅补helper/public所需entry同已批准entry_url及父原件来历，原be8a2b保留，不延时/改授权。授权已发原窗唯一云执行，本窗唯一正常UI/model dispatcher；未收到actual OPEN+paid READY不得点击生成。
+A45实际终态4757B/SHA4dbb21da3e33f632f4d97ed5bc1f7be1364871e4a575550f8537bf7250c7b553：closed超时/resume及applied不存在；helperledger known/pending/dispatch/calls/cases全0；PG failed/refund1/usagecredits0/modelcalls0/actual_model_cost0，wallet16/totalused154。两次合计0新增供应商模型调用/0模型费/0最终积分，新报告0/封面0。1.28是报价估算，credits8/charge_applied1是原预留并已释放；存储实账仍未量测，不能把工程1元预留算实费。历史114.234888/150和旧UNKNOWN不清。
 
-下一步原窗同CID有限接续→actual UNARMED0/PID→operator bind/stage/UID999新seal和两RAW读合同→8proof待自然claim→timer/actual OPEN/paid READY；根reload原页、正常顺序重选9原图/冻结brief，仅单击Generate一次，9普通上传→自然新claim180s恢复，同报告cover→保存重开下载/免费排字/唯一结算。遇UNKNOWN先查原请求，不二次POST。运行中供应商请求当前0，actual新PID/请求ID待回执。Worker-C无本窗构建/依赖，可由原窗核其他使用者后按人类降费授权StopCharging；不得影响API-C/PG/材料。
+仅非付费修复IN_PROGRESS：根独占Enew/proof-prep/natural-claim-resume-attempt3-HOLD-r1（不是新任务/平台），产品/API/鉴权/支付/生产均不改。捕获源由task_contract负责：在原_paid_request_claim之前投影实际9refs及native hash、正常app一次readonly元数据后O_EXCL，错误发生在原预留之前；21stub PASS，待独审/实际接线。foundation独占既有operator有限一次等待/observe-bind-resume扩展，提交前待机，不再180秒内人工打包/SQL；默认HOLD/未来批准和END/PID仍None。根前述CAS配对P1已撤回：误从本机b211旧模板比较，实际c361(guard/before-arm-fix/cover_acceptance_guard.py)已含严格tariff指针/noCache首绑/specs刷新rollback。45e及其8tests已移rejected-wrong-baseline，未云stage，不能当实际c361修改/验收证据。新版本继续原c361一字不改；仅capture+operator两处必要修复，operator d43a现21离线PASS（含实际c361函数与临时SQLite配对），独审无P1/P2；新源未云stage/未激活/未获新窗口。
 
-待交付仍真实笔记/封面/费用、PC/H5重开下载、独立实际证据审查。真实iPhone/多用户容量/当前OSS90天物理规则未证；不扩历史高德支付验收，未有生产发布授权，统一集成仍原窗。
+九原图只读经验映射case/NORMALIZED-NINE-TO-ACTUAL-MEDIA-MAPPING.json14671B/SHA0c87397922356733a2db6f841d800db9f90277b954c8829560b5638c4677d3f5：按API原样Pillow12.3 JPEG90内存规范化，9/9 hash+size唯一匹配actual9ready rows，原文件没变；不冒旧POST顺序已捕获。未来fresh正常9refs必须由native快照与此有序hash交叉。
+
+A49完整离线源/配对/独审已完成，7叶12part2b607858本机冻结，SOURCE-ONLY GO已交原窗，当前本窗待真实stage回执（不假称未派或成功）。binder1fb0已修SystemExit误报，根实际原件binder/有限启动薄载体完成，原marker+liveproc后才WAIT_READY。统一approval HOLD合同a4ebba/2008B，flags全false/time/PID全null。下一步收实际source-stage及whole原字节，准备真齐才集中取得失败后新重测/60分钟公网/有限operator批准。当前旧许可已消耗，不能重POST/rearm/清stopped/用11:30旧yes另开后继。根唯一正常UI/provider调度，原窗唯一云执行和未来统一集成发布；原窗当前处理独立Worker-C降费，本窗不需该机。真实成品、费用、保存重开下载/免费排字/唯一结算仍未完成，真实iPhone/多人容量/现OSS90天物理规则仍未证。无生产发布授权。
 
 ## HISTORY — 继承源码基线记录（非当前执行指令）
 

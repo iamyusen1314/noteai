@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
 | 2 最小实现与离线验证 | 封面主代理；task/media/UI子代理DONE | COMPLETE / 37512e0+90e969c+e6234e7 | 后台/私有PNG/8分唯一结算/恢复/PC-H5/Seedream可选input usage定向证据及独审 | 产品冻结；不重复全项目或历史验收 |
-| 3 定向集成与授权真实验收 | 封面主代理唯一业务调度；原窗口云接点 | IN_PROGRESS；首次0model失败已封存，attempt2真实批准已到/HEAD aa7b8b4 | A35实际0调用0最终扣分；A36原0400读取修正；A39隔离rev2 enabled；A42实际r2 source-only；新审批1949B/be8a2b… | 原窗现在同CID接续→新actual PID/operator/paid READY/OPEN；硬截止11:30且OPEN余≥30m，累计40/100不加预算；根只一次正常新九图POST→同报告封面。成品/真实iPhone未测 |
+| 3 定向集成与授权真实验收 | 封面主代理唯一业务调度；原窗口云接点 | IN_PROGRESS；两次prewire失败已封存，当前仅离线辅助修复/88dd774 | A35/A45实际合计0模型0最终扣分；A39rev2；9原图规范化SHA/size与actual对象9/9匹配；r3 capture定向stub PASS，operator配对待完成；guard不改 | 完成原operator一次有限自动接续+实际refs投影+成对guard CAS回归/独审；源准备齐才集中新重测批准。无新POST/OPEN/成品，原累计40/100不加预算 |
 | 4 独立审查与交付 | 独立审查子代理DONE；主代理集成 | 候选源码独审/交付COMPLETE / 37512e0+90e969c+a7eb030+e6234e7 | 最终产品diff无未修可复现P0/P1/P2，定向回归与loopback独审通过 | 候选已交原窗口；实际成品/费用独审等待真实测试，未发布；90天OSS现行规则仍待核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -801,10 +801,83 @@ main现只需保留原九图/brief，**不要POST或再取yes**，等Root发最�
 main先正常开原入口/保九原图+brief，Root明确paid READY后只一次点击→9真实uploads→自然新claim≤180s同POST恢复→完整report/save/reopen/8分→该report唯一cover/成品质检/保存重开下载/8分；任何UNKNOWN先读原件不第二POST。首次运行Key/project仍UNKNOWN，首正常业务验证，无额外付费probe。最终成品/模型/cost仍0、未验收，不把本READY当交付。共享文件已释放供main使用，本窗云唯一执行tab1637495782 standby。
 
 
-### A43 封面主窗当前真实批准已到，立即接续一次attempt2（10:38北京）
+### A43-MAIN 封面主窗当前真实批准已到，立即接续一次attempt2（10:38北京）
 
 实际分支codex/noteai-xhs-cover-20261019/HEAD aa7b8b4fff969504ae13b435ae135358c159399b，产品source e6234e7不变。人类新原回复“同意重测并限时开放”（call_ea80a3901b654adcac9acd817e399e66/0），回复后首clock02:37:51Z=1792463871；Ccase/ACTIONTIME-ENTRY-APPROVAL-20261020-ATTEMPT2.json O_EXCL0600/1949B/SHA be8a2b387d594d89b84f689b504ec1903818e056c474aa7709aba68d1e89fb06。aux02939/publicc29完整pin、同CID必要辅助程序/新账本子叶/latch180、累计40物理调用/100元（不是新增）/0auto retry，正常原测试owner/隔离PG/生产不改。entry和runtime均截止1792467000=11:30北京，实际OPEN须余≥30min；旧R1 failed/closed/stopped与0实费记录保留，不重放旧POST/旧yes。
 
 已直接发送原窗口按A42最小序列立即执行；当前仅审批已实证，尚未actual successor/新PID/OPEN/paid READY，根不抢点。下一步收到actual READY后reload同页，正常重选9原图与冻结brief、只一次新Generate，然后同新report唯一cover及保存/重开/下载/免费排字/结算证据。source-only与配置PASS不算真实笔记/封面通过；本case模型仍0、成品0。Worker-C本窗无构建/连续运行依赖，复用API-C现有候选；已告原窗可核其他使用者后按新降费授权StopCharging，保留磁盘/镜像/材料，勿影响API-C/PG。
 
 A43绑定补记10:39：foundation只读发现人类审批JSON只有entry_url，程序合同需entry；保留原be8a2b/1949B，O_EXCL0600生成同case/ACTIONTIME-ENTRY-APPROVAL-20261020-ATTEMPT2.CONTRACT-BOUND.json 2466B/SHA7a2cedfb843a7cd88c0a0ea12e3a0424cd0ea6b904452d00341cee559cb7f244。仅补entry同URL/父原件SHA及来历，批准时间/11:30/授权边界不变；已即时发送原窗停止旧be8a2b绑定，使用派生。此为主窗记录字段漏填修正，不需再取人类yes；实际是否已执行以原窗回执为准，不猜测。
+
+
+### A43 实际a2同CID接续Success，新PID3291093，当前未armed/未OPEN/0模型（10:43）
+
+Root已直接核user01a1572c-057c-7e33-b532-e9bf4cce9303/call_ea80a…答同意；main派生2466/7a2cedfb…逐父原1949/be8a2b字段全等，新增entry同值/parent/derivation，时间不改。唯一实际 **c-sz070kiix1a9iww/t-sz070kiix1hr7y8 Success/Exit0/Dropped0**，RunRequest01A15730-6932-5D54-9629-AD44B59D23DF，Enew/attempt2-runtime-approved-once1-*。actual state ATTEMPT2_RUNTIME_READY_UNARMED_NOT_OPEN_NOT_PAID_ACCEPTED/sameCIDd264/image05978/**PID3291093**/restart0/newend11:30/newlatch180/auxentry02939，R1_history_unchangedtrue、knownpending/carry/model0/99+40/0业务SQL。原entry inode1460534已rename保全；产品/正式不改。
+
+正在按actualOUTPUT JSON值绑定e6operator，唯一source-stage并读取真实CASE/result字节（不是假造host原件）；随后已独审readcontractd455/3c318单读新seal400+twoRAW600→现成8proof静态接续→timer先arm OPEN。normal cover rev2已正常app读回不重开配置/readiness/PG循环。main保原UI/九图/brief，不POST至Root明确paidREADY；Worker-C降费只做两次metadata只读、两窗口ACK无占用，尚未host命令/停机，不抢本有限窗。
+
+
+### A44 实际OPEN及paid-resume READY，main现在仅一次正常九图生成；root observer已填待命（10:52）
+
+新seal合同 **c-sz070kiuxtgxn9c/t-sz070kiuxtvx1c0 Success0/D0**，normal UID999 private实际读新seal6712/SHA220c85f22ccd9237d90479425b776ea381319ce8c141e64526b1b6add2d59545/mode400、twoRAW600、emptylatch/180/99+40/0SQL0HTTP0models/fstat内容前后相同。真实CASE result1672/7ab3964e、seal原件已保存 Enew/attempt2-CASE-{result,seal}.ACTUAL-ORIGINAL.json，非推造。operator e6host已实际stage，actualPID3291093，无旧PID。六静态组Rootreview及所有引用bytes/SHA已核（动态Owner/9refs/claim顶false，非预先resume）。
+
+唯一activate **c-sz070kj7nxm1fr4/t-sz070kj7ny10tts Success0/D0**，真实beforeREADINESS_UPLOAD_ONLY→activate+afterstatus NATURAL_CLAIM_ADMISSION_ARMED/uploads0/reportnull/coverfalse/provider0，原formal/PG及prior不变，0SQL/HTTP/POST/model。Enew/attempt2-control-activate-once-*。
+
+唯一OPEN **c-sz070kjaewt72m8/t-sz070kjaex86gow Success/Exit0/Dropped0**，RunRequest01A15738-40B4-55A1-BF67-689A99D1ADB4；Enew/attempt2-entry-open-approved-once-*及attempt2-entry-open-actual.png。实际PRIVATE_ENTRY_OPEN_FINITE_NOT_BUSINESS_ACCEPTED/18114/formal_static_changedfalse，先arm独立timer **noteai-cover-entry-close-20261020-attempt2**，直到**11:30北京/03:30Z/1792467000**。host BOUND=ROOT/entry-source-attempt2/entry.BOUND.json，SHA**e872bfea1ba79bca820b695014b1e08565444cb569c5ec2223c91d9f62fa65cf**，publicsourcec29，结束/失败/取消仅原精确--close、不要停candidate/inflight或改DB。旧入口R1关闭历史保留。
+
+**main现在正常reload原私有URL，原owner/九图/brief只点击一次生成**（9普通上传后同POST自然claim）。root当前云observer已填actualPID3291093（observe源码3957/f5ea385b…），待真正claim即读取/核Owner+9本次refs/当前claim，180秒内同POST CAS；不再等待新批准/SQL/SDK/readiness。请main每9上传成功/自然claim出现立即给本次成功media_ref/stored_size/dims或POST九refs/payloadSHA的去headers原件，正常页面需等UI明确response，不把本地预览/准入9当持久9。上一R1原件不代本次；确无直接响应时root可用既有RR只读一条对应查询，明确单流程对应推断。当前本case模型仍0/100，首实际KeyAPI访问/真实模型/报告封面均未验收，不冒已成功；main唯一UI/provider，Root不代POST。
+
+
+### A45 Root实际A2终态及入口提前关闭：未触及供应商，准备时序失败，停止重试（10/20 11:11）
+
+A44的OPEN/READY属于历史步骤，不是成功验收。唯一正常UI nine→report actual client `generate-0340b5af-1ad2-485e-ad88-eea4a8e56cef` /server `6845e619-4e92-42ee-aec5-ee308a6a2b36` /usage `c026aada-9607-4bf2-be2c-c8094401ba59` /payload373d6884…，claim976B/SHA57eda553…/inode1460808/mode600/UID999，paused02:54:18.4426758Z/180s。九媒体真实ready当前owner/成功上传时间/size/dims由唯一2SELECT RRRO证实（c-sz070kjqx7jigao）；对应这次提交依赖同一受控UI流程及Promise.all，未取得直接POST全部refs原件，不冒直接payload引用证明。
+
+Root将动态SQL及证明打包留在180s窗口，导致唯一resume **c-sz070kju6oxl9ts/t-sz070kju6phkglc Failed/Exit1/Dropped0**、`ORIGINAL_CLAIM_WINDOW_EXPIRED_NO_REPLAY`。**这是本轮验收操作准备/时序问题，不是已经证实的供应商或产品生成故障。** 不重发resume/rearm/POST/新batch/新yes；原失败现场不清。
+
+**实际提前CLOSED**：c-sz070kjxtoien0g/t-sz070kjxtoxe134 **Success0/D0**，RunRequest01A1573E-ED25-5B64-985E-897599DE1717，at1792465105.0943425=**10:58:25北京**；`PRIVATE_ENTRY_CLOSED_API_WORK_RETAINED`，仅精确include/父行关闭+gracefulreload，API_stopfalse/SQL0/helpermodel0；Enew/attempt2-entry-close-failed-report-*及attempt2-entry-closed-failure.png。不要用原11:30上限声称路径仍开。
+
+**实际原终态RO**：c-sz070kkvs6of4sg/t-sz070kkvs75wf7k **Success0/D0**，RunRequest01A15748-9AD6-5521-B021-BB35811CAA9C，ReadRequest01A15749-52BD-542E-BE0C-127C1C0DB18E；Enew/attempt2-terminal-readonly-{run-original,read-original,output}.json。samePID3291093/ordinary noteai_app/RLSon/2SELECT RRRO/ROLLBACK，0writes/HTTP/model/control/ACL变化；actual report.closed codeCLAIM_LATCH_TIMED_OUT_NO_NEW_CALL/STOPPED_BEFORE_NEW_PHASE_MODEL_CALL，resume/applied absent；privateledger inode1460764 known0/pending0/dispatch0/calls0/cases0/stopped同码。原usage failed/stream_failed/usage_model_calls0/usage_credits_used0/linkedphysical0/actual_model_cost_rmb0；wallet16/totalused154。**cost_rmb1.28是原估算字段，保留而不冒实际供应商费用；credits_used8/charge_applied1/refund_applied1为原预留与释放兼容记录，不能据其说最终扣8或实际付费。** 本次报告最终0分/模型实费0，未有报告/封面成品。累计40/100（model99+storage工程reserve1）不重置，旧R1/旧114.234888/150/UNKNOWN独立保留。
+
+下一次只做非付费最小准备：main提出预先启动现operator等待真实claim、一次observe→校验→绑定已冻结证明→同POSTresume，或利用原normalUI已缓存真实refs先冻结精确九媒体；这是待比较方案，尚未实施/激活/取yes/新付费。别仅延长180秒或新建框架；实际必要准备完成前不再说paidREADY。
+
+Root当前优先用户云成本任务。Worker-C已新实机证空闲，15镜像和e3三角色未导出资产持久保留；已取得main+release无使用ACK。官方StopInstance StopCharging遇安全核验未知错误，最新只读仍Running，**尚未停止计算计费**；本人恢复平台核验问题已集中发出，没有换通道绕过。API-C/F仍Running/PrePaid，NAT/RDS/生产不变。此文件追加释放给main，Root不改封面产品；后续技术答疑通过本文件接续。
+
+
+### A46-MAIN 接续最小修复checkpoint；两次均未进入模型，成品仍0
+
+实际HEAD88dd774/产品e6234e7；A45已核两次模型/最终扣分均0、wallet16，attempt2入口10:58:25关闭，全部old failed/closed/stopped/ledger保留。当前无新yes/新有限end/新PID/云stage/POST，r3只在既有aux版本目录HOLD开发，非第二任务/平台；原窗确认本窗独占源，原窗只答契约/执行及独立成本任务。
+
+最小改动：native_input_snapshot在原_paid_request_claim预留之前投影真正9UUID order/native payloadhash和正常app readonly9元数据，O_EXCL私有，不存token/binary/完整payload；现21stub PASS。现operator扩展一次有限待机，在UI前预备静态facts，真实claim出现即同进程动态验证并bind/resume，不再临窗人工SQL/打包，保180原期限与0自动重POST。guard另有离线确定配对P1：用实际r2输入pure assemble at paused+1，nextseal改变noCache两key及models，c361 old_fixed排bindings/proofs必拒，未实际触发不冒本次根因；根新guard仅允许models.evidence_sha指向fresh priceproof，其它model维度/预算/source/end/UNKNOWN不变，noCache改为initialseal预置/固定，失败还原seal/specs。新guard45e6903c…/8临时SQLite定向PASS；完整paired流程/独审/实际接线待完成。初次测试夹具在Mac系统临时路径symlink处失败，只resolve夹具真路径修复，不弱化保护。
+
+唯一原图映射Ccase/NORMALIZED-NINE-TO-ACTUAL-MEDIA-MAPPING.json14671B/SHA0c87397922356733a2db6f841d800db9f90277b954c8829560b5638c4677d3f5，9/9规范化JPEG SHA+size与实际9ready refs唯一匹配（Pillow12.3/JPEG6.2，只内存转换无新图），原文件未变，不冒旧POST顺序。后继实际refs需capture再与有序normalizedhash交叉。下一步完成源接线/成对回归/独审/source-only，准备真齐再一次集中人类确认；不把mock/配置/源GO当实际模型成品验收。
+
+
+### A47-MAIN 纠正错误辅助基线，撤回不必要guard改动
+
+A46-MAIN关于“c361固定scope不接受price/noCache变更”的判断撤回。根实际比较源是Enew/guard/cover_acceptance_guard.py（SHA b211267…），不是已运行c361；foundation独审定位真实原件Enew/guard/before-arm-fix/cover_acceptance_guard.py52759B/SHA c36184b4fc9b8dfb5060e76cc6e491a6afccdee1ef2a6b3515dc2ffa3788f5ee。其实该源_resume_claim487–556已包含严格model tariff只evidence pointer刷新、首次noCache绑定、specs刷新与回滚。根已实读并纠正，告原窗不新增该前置；45e/8临时测试归档r3/guard/rejected-wrong-baseline-45e，只留误比较历史，不云stage、不作为实际源证据。active r3/guard现精确复制原c361用于配对测试，不改一字/不新guard发布。
+
+必要修复继续仅两处：真实native输入私有投影（先于原billing reserve）和现operator UI前有限一次待机接续；fresh正常9uploads/原guard/原预算40+100/180秒/UNKNOWN不重发均保留。有序normalized9hash已经验匹配实际对象，可提交前冻结；未来native refs对该hash匹配后才动态生成九图证明。所有新批准/END/PID/云stage仍None/HOLD，未实际成品，不取新yes直到可立即执行。
+
+
+### A48-MAIN 提交前有限接续源收敛；仍未新授权/云stage/成品
+
+原c361完全不改。r3/native_input_snapshot.py 7e1ac1…/21 stub PASS；runtime_entry.attempt3.py 6c32bf…只加同源capture接线/三叶source map，独审GO；operator d43a7a…/30118B，21离线（含原c361真实函数+临时SQLite report/cover CAS配对）PASS，无业务PG/HTTP/模型，独审GO。public entry47a6af…/16748B，8有限时窗定向PASS，END不再写死11:30；新实际批准一次冻结runtime==entry≤approved+3600，实际OPEN余≥1800秒，不滚动延长。host successor f091317…/34787B已17离线PASS及task_contract独审GO，只允许未来新批准后原窗同CID从actualA2来源续接至UNARMED；不等于当前可执行。
+
+根新增既有容器内薄launcher（26feacce…/7111B，11离线PASS+media独审无P1/P2）：同scope先O_EXCL launch-intent，唯一Popen实际operator文件；必须真读原operator-started marker且活child/proc UID/GID/argv/starttick匹配才返回WAIT_READY。失败UNKNOWN留intent/原件，绝不自动重启/重POST。不把cloud Running当READY。仅辅助scope新stdout/stderr/ready，产品/鉴权/ledger/PG不写。cover是report成功后单独起一次wait，不自动发cover POST。
+
+root local static HOLDtemplate 21033B/SHA794d0c85ccda45cf1342d6c474aec5e65b35d1c1b88ef8cde12bd2b05cd68afd，20唯一旧本机原件逐bytes/SHA核验；复用dated价格/Gateway/Ark固定事实，oldyes从当前authority组排除。新批准/END/runtime实际PID/normalowner/current-source仍false/null；normalized九hash及原manifest绑定，actual_upload_count仍null，只未来native快照验证后才9。prepare_binding.py本地实际原件binder 7纯fixture PASS，正在media窄审；新approval统一HOLD合同1966B/SHAb1d12dee…所有授权false/END与原humanref null。
+
+foundation正冻结同一source-only分段包（raw≤12288/Base64≤16384）与新入口binder；task_contract将审其最终源。原窗已明确RunCommand此前在Stop安全核验错误后仍有真实Success，只能据未来实际通道结果，不绕任何新核验。仍无新yes/END/未来PID/云stage/TERM/OPEN/POST/模型；真实新报告0、封面0、模型实费0、最终扣分0。下一步冻结→独审→原窗source-only实际stage，准备真齐才一次集中取失败后重测及60分钟新窗口许可。
+
+
+### A49-MAIN A3完整离线准备冻结并交原窗source-only执行；真实验收仍未完成
+
+所有必要接点已收敛，未新增生产改动。staging12离线PASS+task_contract独审GO；binder确定SystemExit成功误报P2已修（1fb0f115…/8940B，child0/7模拟PASS），7叶bundle不含binder故不重冻。Root实际本机freeze至r3/staging/FROZEN-SOURCE-ONLY-r1，bundle whole2b607858a866c0f8edc7fef5e1bd09a0025aac40fc9f2998971fc9f007c5b640/gzipc4062dad6d0ccec8a81fc01f7f9a77976c9ba7a44d0c3ddb6eb350e01d91955e/stager697a7f441ee725f97b2aef4ed9fca9a4cd320f1730500d85d1bdd62129715e41，恰12part000–011/maxraw12183/wire16244，manifest明确NOT_SENT。该本机摘要不作实际stage证据。
+
+根已向原窗发SOURCE-ONLY GO：原API-C/boot/sameCID/currentPID3291093/source02939及原c361/正式static/旧容器真实保护前后校验；只O_EXCL新ROOT transport/runtime-source/operator-source/entry-source，不执行七源码main/TERM/start/control/OPEN/timer/reload/SQL/provider。每前part必须实际Success/Exit0/Dropped0+matching receipt再下个，未知只查原现场，不重发/新namespace。当前本窗未收到新实际C/T/成功回执，原窗可能正在执行准备，以其原件为准，不假称未派或stage已成功。
+
+根最终operator_binding窄修原批准bytes严格贯通，完整guard2map和count/retry int排bool；8fixture PASS+media/task_contract增量GO。新source证据只本次actualA3 runtime，旧回执/notes留本机HOLD蓝图，不冒fresh；thin renderer用actual runtime canonicalSHA并host真读原result再校，3compile/size PASS+独审GO。nested编码raw13109超原12288的本地失败保留，改单层整体gzip（未放宽限制），最终actual carrier仍需逐size复核；未派任何生成carrier。
+
+统一approval HOLD合同修补production_changes_authorized=false（旧1966/b1d…保留before-production-field原件），现2008B/SHAa4ebba3673b2296772d55a39430d5dcf6d1cd3431100f3cce20450f31864050e；新授权flag全false，approved_at/END/humanref null。3消费方同schema纯内存模拟2checks PASS，不是实际human批准。执行合同见r3/operator_execution/README-EXECUTION.md：actual新yes→同CID实际UNARMED→arm/timer-firstOPEN→正常UI owner/选9→实际bound4file/唯一reportwait→原marker+liveproc WAIT_READY→只一次正常点击，180秒内不再人工SQL/打包；成功report后另起一次coverwait，不自动coverPOST。
+
+当前原窗口正source-only准备，根等待其真实stage receipt后才一次集中取得新重测/60分钟公网及同CID有限辅助接续批准。不存在新approved END/新PID/真实报告/封面/模型费/最终扣分；两次0模型失败与wallet16、旧UNKNOWN和100累计预算保留。下一步只收原stage结果及必要whole原字节，不重历史PG/模型/Gateway/Amap/支付。
