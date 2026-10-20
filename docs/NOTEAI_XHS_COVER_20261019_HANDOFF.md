@@ -881,3 +881,12 @@ foundation正冻结同一source-only分段包（raw≤12288/Base64≤16384）与
 统一approval HOLD合同修补production_changes_authorized=false（旧1966/b1d…保留before-production-field原件），现2008B/SHAa4ebba3673b2296772d55a39430d5dcf6d1cd3431100f3cce20450f31864050e；新授权flag全false，approved_at/END/humanref null。3消费方同schema纯内存模拟2checks PASS，不是实际human批准。执行合同见r3/operator_execution/README-EXECUTION.md：actual新yes→同CID实际UNARMED→arm/timer-firstOPEN→正常UI owner/选9→实际bound4file/唯一reportwait→原marker+liveproc WAIT_READY→只一次正常点击，180秒内不再人工SQL/打包；成功report后另起一次coverwait，不自动coverPOST。
 
 当前原窗口正source-only准备，根等待其真实stage receipt后才一次集中取得新重测/60分钟公网及同CID有限辅助接续批准。不存在新approved END/新PID/真实报告/封面/模型费/最终扣分；两次0模型失败与wallet16、旧UNKNOWN和100累计预算保留。下一步只收原stage结果及必要whole原字节，不重历史PG/模型/Gateway/Amap/支付。
+
+
+### A50-MAIN 实际source-only全成功并读取真实whole原件；准备就绪，等新一次当次批准
+
+12固定part每个实际Success0/D0、不重发；最后part011 c-sz070kp8y3c95hc/t-sz070kp8y3w8c8w，RunRequest01A15775-69C3/Read01A15775-7CB4，whole2b607858/7叶pin/before_after_protection_equal实际PASS。真实source-stage原件由独立只读c-sz070kpd5vl4vls/t-sz070kpd5w049og S0/D0（Run01A15776-9D7E/Read01A15776-E8F7）读取：Enew/attempt3-source-only-stage-r1/entry-stage-result.ACTUAL-ORIGINAL.json，4171B/SHA5a0ed9020ce4a9f0f31d95ab075f31709015f43e60ee038c56c32744ab6720c1，host inode1460855/mode0400。根已实读逐byte whole并把全部7叶与本机冻结bundle直接比对相等；不是canonical推造。全C/T见同目录ACTUAL-SOURCE-ONLY-STAGE-RECEIPTS.json。正式/旧A2/currentPID3291093保护不变，helperHTTP/SQL/provider0，未用Worker-C。
+
+A49后的唯一local增量：完整审批记录体积上限保留，root renderer把提交前安装inputs与启动拆2条有限命令；install生成程序物理去除launch body，真读回两来源+4file后才独占写PRIVATE_OPERATOR_INPUTS_INSTALLED_NOT_STARTED；launch只hashpins并真读这个实际成功receipt/4file/来源/runtime/END后唯一启动，cover仅另起launch复用，不自动POST。final renderer1d15874641d2f4c68a5025a5a19845edd8de27dfab865b67abf16da6558dede6，5 compile/size fixture PASS+task_contract独审GO；初次完整旧JSON重复嵌入压力例超限保留为拒绝证据，共享完整当次合同+parent原件ref大小检查PASS，不删/重写人类原件，不放宽12288/16384。README-EXECUTION同步精确CLI。7叶/实际source-stage完全不变，无新框架/服务/权限。
+
+当前必要非付费准备已真齐：oldyes已消耗/原11:30时窗已过，最新人类批准仍None；newEND/newPID/新runtime/OPEN/paidrequests均无。两个旧模型前失败和0实际模型费用/0最终扣分保留，真实新报告0/封面0。根现在只集中询问一次新重测+从实际同意起≤60min新公网/同CID有限辅助窗口，OPEN仍余≥30min，累计40调用/100元（不是新增）/失败UNKNOWN不自动重发/原账号正常登录限制/生产不改；取得真yes才交原窗核人类原件并执行，不先运行。

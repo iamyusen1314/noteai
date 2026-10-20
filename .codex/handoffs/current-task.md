@@ -1,6 +1,6 @@
 ## CURRENT — 2026-10-20：封面两次真实UI提交均止于模型前；入口已关，当前只做最小辅助流程离线修复
 
-唯一权威任务清单/Q-A/checkpoint：docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md第8节表及末节。唯一case状态：/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json。分支codex/noteai-xhs-cover-20261019，最近提交88dd774，产品源码仍e6234e7冻结；不新工作树/不切换生产。
+唯一权威任务清单/Q-A/checkpoint：docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md第8节表及末节。唯一case状态：/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json。分支codex/noteai-xhs-cover-20261019，接续起点88dd774（实际HEAD见Git及case PLAN checkpoint），产品源码仍e6234e7冻结；不新工作树/不切换生产。
 
 attempt1真实client generate-c345…/server5f015…/usage150b9…原seal0400被operator误要求0600，120秒超时，0model/dispatch/known/pending/最终credits；原closed/stopped/账本保留。修正后实际UID999 private合同PASS，隔离cover正常app rev2/enabled读回PASS，但不是模型/成品验收。
 
@@ -13,6 +13,8 @@ A45实际终态4757B/SHA4dbb21da3e33f632f4d97ed5bc1f7be1364871e4a575550f8537bf72
 九原图只读经验映射case/NORMALIZED-NINE-TO-ACTUAL-MEDIA-MAPPING.json14671B/SHA0c87397922356733a2db6f841d800db9f90277b954c8829560b5638c4677d3f5：按API原样Pillow12.3 JPEG90内存规范化，9/9 hash+size唯一匹配actual9ready rows，原文件没变；不冒旧POST顺序已捕获。未来fresh正常9refs必须由native快照与此有序hash交叉。
 
 A49完整离线源/配对/独审已完成，7叶12part2b607858本机冻结，SOURCE-ONLY GO已交原窗，当前本窗待真实stage回执（不假称未派或成功）。binder1fb0已修SystemExit误报，根实际原件binder/有限启动薄载体完成，原marker+liveproc后才WAIT_READY。统一approval HOLD合同a4ebba/2008B，flags全false/time/PID全null。下一步收实际source-stage及whole原字节，准备真齐才集中取得失败后新重测/60分钟公网/有限operator批准。当前旧许可已消耗，不能重POST/rearm/清stopped/用11:30旧yes另开后继。根唯一正常UI/provider调度，原窗唯一云执行和未来统一集成发布；原窗当前处理独立Worker-C降费，本窗不需该机。真实成品、费用、保存重开下载/免费排字/唯一结算仍未完成，真实iPhone/多人容量/现OSS90天物理规则仍未证。无生产发布授权。
+
+A50最新：实际12part source-only全部S0/D0，最后c-sz070kp8y3c95hc/t-sz070kp8y3w8c8w；真实entry-stage原件4171/5a0ed902由c-sz070kpd5vl4vls/t-sz070kpd5w049og读取，根whole及7叶直接比对PASS。源只保存，未启动/OPEN/SQL/model。完整准备就绪；root renderer最终1d158/5fixtures+独审通过，提交前分install（不启动）+launch（实际成功install receipt及live marker/proc才READY）两有限动作。新批准/END/PID仍None，现只取一次新的60min当次窗口及重测许可；不重旧yes/失败POST。
 
 ## HISTORY — 继承源码基线记录（非当前执行指令）
 
