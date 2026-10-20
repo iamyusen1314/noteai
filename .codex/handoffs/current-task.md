@@ -1,8 +1,8 @@
-## CURRENT — 2026-10-20 A68：源码stage停在官方字体GET；现场未激活，正做同字体官方取件
+## CURRENT — 2026-10-20 A68：字体云缓存和前端source输入实际齐，最后cached-stage/字体解码准备中
 
-功能31b4d7b/文档登记前HEAD678fe25，工作树/分支保持。恢复读原case PLAN与交接A68-STAGE-FAIL；47源码输入运输及原件独审已通过，随后source-stage两失败均保原C/T。第二次仅完成3资源/4RRRO/binding、一次raw字体GET报URLError，reason缺失；只读现场15541/414590实际证明source VERSION/product/aux/guard/font全absent、TERM intent absent，旧40ec/PID3379653/6mount/6protected/CLOSED未变。两个started保留、不删不覆写；累计仍36model/private3.8472528/原UNKNOWN，无新模型/补分/OPEN。
+功能31b4d7b/登记前HEAD5157266，原分支/工作树不变。恢复读原case PLAN及交接A68-ASSET-READY。原sole实际前端10Run/10Read S0D0，真source原件10998/7398e1b2；6输入和formal13→RAM15已核，1970未替/finalSTATIC_ROOT=false/未served或浏览器auth。官方Contents云GET同C/T实际Success0D0，原832/6dfe8626，ROOT/a68-font-contents-cache-r1字体24543332/78aa精确；旧raw GET失败保留，不冒重试成功。root逐原件核H/ROOT-FRONTEND-FONT-INPUTS-VERIFICATION.json5367/7e0ef044。
 
-下一进行中：唯一原host作者准备同commit GitHub官方Contents API一次云缓存GET（严格总时限/bytes24543332/SHA78aa），成功才做最小source-stage恢复；本机单次官方API200/字节精确已证，不能冒云通达。frontend固定6叶运输/RAM15与font独立继续，不建最终STATIC_ROOT/替1970sentinel/写Nginx。source齐前不问过早短时窗，source齐后集中一次实际新窗口；newhuman/END仍HOLD，原sole云执行与统一集成发布保持。不改产品/字体/许可/正文/生产，不启动C或继承其他预算。
+下一唯一进行中：原host作者cached-stage r3，仅cache fixedref/新CASE/fresh4RRRO/原VERSION仍absent，保原9370verify/841f与两失败started；合并同CID UID999/PIL两OTF中文解码，不业务导入/SQL/模型。尚未实发r3/激活。累计36model/private3.8472528/pending0/旧UNKNOWN、旧40ec/PID3379653/CLOSED保持。newhuman/END/gift8/TERM/CAS/start31b/ownREADY/OPEN/newmodel全HOLD；source齐后集中一次真实有限窗口，不提前滚动旧窗，不重报告/正文。原sole云执行与统一发布保持，不启动C、不生产改动/新增权限。
 
 ## HISTORY — 上一检查点
 
