@@ -74,7 +74,7 @@ test('old successful cover remains available while a later generation fails',()=
  assert.equal(ctx.latest.job_id,'job-original');assert.equal(ctx.active.job_id,'new-failure');
 });
 test('both visual expert renderers provide one common entry and usage gives covers their own label',()=>{
- assert.equal((html.match(/role === '视觉分析师' \? coverEntryMarkup\('generate'\)/g)||[]).length,1);
+ assert.equal((html.match(/\['视觉分析师','视觉专家'\]\.includes\(role\) \? coverEntryMarkup\('generate'\)/g)||[]).length,1);
  assert.equal((html.match(/role === '视觉专家' \? coverEntryMarkup\('analyze'\)/g)||[]).length,1);
  assert.match(html,/cover_generate:'笔记封面'/);assert.ok(!code.includes('/cancel'));assert.ok(!code.includes('data:image'));
 });

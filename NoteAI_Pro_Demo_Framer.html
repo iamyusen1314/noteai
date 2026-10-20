@@ -8897,7 +8897,7 @@ async function populateGenerateReport() {
               ${conf > 0 ? `<span class="agent-conf-badge ${confCls}">置信度 ${conf.toFixed(2)}</span>` : ''}
             </div>
             <div class="agent-result-text">${escapeHtml(opinion)}${rationale ? `<div style="margin-top:6px;font-size:12px;color:var(--text-muted);line-height:1.6">${escapeHtml(rationale).replace(/\n/g,'<br>')}</div>` : ''}${evidenceHtml}${suggestionsHtml}</div>
-            ${role === '视觉分析师' ? coverEntryMarkup('generate') : ''}
+            ${['视觉分析师','视觉专家'].includes(role) ? coverEntryMarkup('generate') : ''}
           </div>`;
       }).join('');
     }
