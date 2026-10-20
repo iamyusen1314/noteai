@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-20：报告已实际保存/34次终态，入口已关；仅准备同报告封面续测
+
+当前分支codex/noteai-xhs-cover-20261019/HEAD0854113；功能f818da4修复实际“视觉专家”澄清报告漏封面入口，0854113真实renderer回归23/23 PASS。权威交接A56及既有case/PLAN.json。后端产品e6234e7/同CIDd264/PID3350776/aux1cab不变。报告0cdbe483-9ca4-4012-9090-a718d8b86b4d/usagee0abf51f-ccea-4fba-8371-b829a0c74744完成、单保存、9refs原序、唯一8分，wallet16→8。真实34calls complete/UNKNOWN0/pending0，private保守3.8343288元/native3.3571038分别保留，非供应商现金账单。累计40calls/100元不重置，余6；封面≤3calls/图像≤1/0自动付费重试。
+
+入口13:10:27.532北京实际关闭、API不停止；UIpatch/coverwait/coverPOST均未执行，真实封面0。旧e849/END不可复用，不滚动延期、不重报告/九图、不清账。用户最新明确正文质量不在任务；不修正文、不当封面前置。当前独占saved-report-cover-only-r1做非付费HOLD准备：runtime/operator仅复用已完成报告；新授权后受限seal-onlyCAS保持34call/cost/counter；修复alias静态/有限入口。准备、独审、source-only/只读实际齐再一次集中问当次新窗口。新human/END/OPEN/paid cover均HOLD，不能把发送/GO当实际。
+
+root统一源集成/sole正常UI/provider；foundation runtime/operator、media静态、contract独审；原窗sole云执行及最终统一发布。无生产DB/config/发布/新权限/订阅。下一步只完成封面→保存重开/免费排字/下载/唯一结算证据，真实iPhone/真实多人/生产OSS90天规则如实单列未证。
+
+## HISTORY — 下文保留先前checkpoint，不作当前执行指令
+
 ## CURRENT — 2026-10-20 13:00北京：A3原任务已真实续接，仲裁中；同report封面待完成报告后提交
 
 唯一任务及证据：docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md A53–A55，既有case/PLAN.json。source产品e6234e7不改；actualA3clientgenerate-6645ca73-c38b-4a87-a171-576817eb1c66/task0cdbe483-9ca4-4012-9090-a718d8b86b4d/usagee0abf51f-ccea-4fba-8371-b829a0c74744。9/9+4专家实际完成，13calls complete/pending0/known0.5902568保守口径(nativeusage0.5185408)，wallet16/原8预留未最终扣。正常事实补充暴露aux遗漏chat续接，不是产品或供应商失败；已1cab+09cdd严格原task接线独审/actual sameCID恢复Success0D0，新PID3350776，原13账/真实nextseal d95/PGpreparedhash/原task版本1完整保持，未重Generate/九图。根04:58唯一normalContinue两omitted，真实ack并仲裁69%，保持同页不刷新。后续真实成品/成本仍待读，不冒已交付。

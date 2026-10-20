@@ -939,3 +939,16 @@ runtime1cab9purefixture PASS+contract真实源码GO；root同CID恢复host09cdd5
 根实读actualREADY后约04:58:35Z唯一正常按这些说明继续两omitted；UI真实ack『这项不写；这项不写。继续沿用原素材』并进入仲裁69%/草稿68.6，9/9保持未重解读，无第二continue/Generate/取消/刷新。最后13calls成本是续行前已核checkpoint，新增正常续行成本待最终原账本，不冒0或UNKNOWN。报告真实成品尚待完成，cover未提交，END仍13:10:52自动关。
 
 cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4efda16760B，14purechecks+contract独审GO。只消费actualraw recovery+同报告完成UI/RO原件，不重bind/install原4file/initialinstall；新livePID/source实际别证，原1868仍历史安装证明；onlycover wait/独占intent/原launch_operator，不自动POST。root实读时发现report_frozen准备hash额外字段，media只最小加strict prepared_sha256/hx两行并重测，hostpin不变。待真正report完成后再bind/size查/交原窗，不伪造未来PID/job。仍无生产发布授权。
+
+
+### A56-MAIN 九图报告实际保存，34次终态；入口按时关闭，封面-only续测准备中
+
+原报告0cdbe483-9ca4-4012-9090-a718d8b86b4d（client generate-6645ca73-c38b-4a87-a171-576817eb1c66、usage e0abf51f-ccea-4fba-8371-b829a0c74744）于05:03:46.687440Z完成。正常PC显示已保存/实际扣8；正常历史重开同报告成功。actual after-report只读Cc-sz070kvbzizdkw0/Tt-sz070kvbzjjcrnk S0/D0，D/after-report-readonly-r1/actual-output.json17916B/SHA41a19f715bd6c209e8efe305fff8b50819b9df2a1e3f407dc35785c3db793f83：单saved note/usage/reservation、complete_applied1/committed1/released0，9refs原序prepared=result=native；fixture wallet16→8/totalused154→162。34次physical HTTP200/complete、pending0/UNKNOWN0/inflight0，private known3834328800nano=3.8343288元，native model cost3.3571038元。两口径分别保留，均不是已对账供应商现金账单；原40调用/100元累计不重置，剩6次，封面≤3次/图像≤1/0自动付费重试。
+
+真实UI发现已澄清报告视觉角色为“视觉专家”，旧generate renderer只认“视觉分析师”，生成完成与历史重开均漏封面入口。功能修复f818da4仅HTML这一条件及原测试断言；0854113增加执行真实production renderer/identity函数的回归，23/23 PASS、node syntax/diff check PASS，恢复旧条件时新回归准确失败。新590311B/product-app SHA90931c2bb85f6c75197d9f9927f0cfef9c315bc77bb6fb9690f46eeb7745cfdb仅本地已验证，云static修复未执行。
+
+实际关闭Cc-sz070kvpusx8yyo/Tt-sz070kvput9qgow S0/D0，Run01A157B7-CF90/Read01A157B7-EBAA，D/entry-close-actual-r1/actual-output.json：PRIVATE_ENTRY_CLOSED_API_WORK_RETAINED，at1792473027.5322292=13:10:27.532北京（原END13:10:52之前）；nginx graceful reload/API_stopfalse/DB_operations0/model_calls0。原窗确认UIpatch、coverwait、coverPOST均未执行，真实封面0，无新增封面模型费用。不能把载体已发/离线GO当执行，也不能沿用过期e849/END开窗。
+
+用户随后明确“内容质量验收未通过跟你没关系，别增加修复范围…做好…封面的功能”。据此正文审阅只保留已有证据，不修正文、不重生成、不作为封面交付前置。当前只准备已保存同报告的1张封面，正常auth/原账号/同CID及原guard/ledger。新窗口/END仍HOLD；需薄派生cover-only runtime/operator，受限续窗只CAS batch.seal_sha，严格保全部34call rows/cost/counter/case/旧失败与UNKNOWN；原report/native/applied按旧A3历史核，9refs按历史素材复用并查当前有效期，不宣称新上传。不用要求0calls的旧rebind函数。固定alias静态及新的有限入口包默认HOLD，准备与独审真齐、source-only只读前置就绪后才集中确认新当次窗口。
+
+负责人root统一集成/正常UI唯一POST；foundation runtime/operator、media固定静态、contract独审，各自文件独占；原“修复高德检索与休闲娱乐行业”sole云执行和统一生产发布。当前HEAD0854113，后端产品e6234e7/实际同CID d264/PID3350776/aux1cab/restart0；无生产发布/新预算/权限授权。下一步完成薄续接源与独审，再实际cover→保存/重开/免费排字/下载/唯一8分读回。真实iPhone、真实多人容量及生产OSS90天规则仍单列未验证，不重Amap/支付/旧九图。
