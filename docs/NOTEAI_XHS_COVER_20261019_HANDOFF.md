@@ -1189,3 +1189,14 @@ root已交原sole云窗口执行最多1条有界只读预检（请求不是实�
 前端原作者明确wrapper25310B/8f0692af只依赖formal c4a现有10个固定文件，3delta基底/7原字节复用，其余5叶全文内含；固定6输入总69529B，清单P/entry/FRONTEND-TRANSPORT-PLAN.HOLD.json14620B/f3772248。raw manifest8896B/1e9e保原格式，不能重JSON冒原件。原窗接续source-only运输与formal13→RAM15逐SHA核验，不跑Node/builder、不建最终STATIC_ROOT、不替1970sentinel、不写Nginx/OPEN。源码准备完成仍不等于served或新真实质量通过。
 
 下一步由原sole云窗口唯一source-stage命令在同命令刷新4RRRO（TTL120）、保原stdout、复用3同bytes资源、唯一固定官方字体GET并存新RO版本子目录；后续前端输入也由它执行，root不并行发命令。原权威PLAN已更新47输入完成/actualsource-stage和frontend仍待定。foundation仅独立核47原件；contract仅核既有canonical human字段避免临窗缺绑定，不新增审批体系或修改冻结源。新human/END/gift8/TERM/CAS/runtime31b/OPEN/新模型仍未执行，原旧任务/两版/UNKNOWN保留。
+
+
+### A68-STAGE-FAIL / 两次源码准备失败与原现场恢复读取；新模型0
+
+原sole云执行：第一次c-sz070mczshd97nk/t-sz070mczshs8lq8 Failed2/D0，ACTUAL_FORMAL_AND_PRIOR_PINS_NOT_BOUND；wrapper原config.name应映射既有expected.id，停止在CASE.mkdir/资源/RRRO/字体前。只修载体六selector映射，冻结prepare841f/stager9370/产品31b不改。第二次c-sz070md8z2kz6yo/t-sz070md8z2zyl1c（Run01A159DD-3590-50E6-9AA0-A5F4F230D7B2/Read01A159DD-53FB-5401-9A86-85CBEB004942）Failed2/D0；已保3同字节资源、新4RRRO7747B/c9afa9及binding4540B/38145f，stager一次固定Adobe raw GET报URLError。prepare原stdout266B/484ed8、outer2093B/5f2880在H/aux-source-transport-r1/final-stage-actual-r2。错误原件未保reason，不能断言DNS/TLS/权限或具体网络根因；不盲重同GET或整个stage。
+
+现场只读C c-sz070mdmc32kpvk/T t-sz070mdmc3hk3y8（Run01A159E1-04A4-557C-93E7-B39AA4CB8619/Read01A159E1-2842-5463-AC8C-D8A123C9C388）Success0/D0，原stdout15541B/414590434b2789f3abbc010bf1e5578a82173316836a698f36bcb164d535f844，H/final-stage-readback-r1/actual；五份真实started/binding/RRRO/prepare原件已gzip精确导出。root亲核VERSION/product/aux/guard/font全absent、TERM intent absent；旧40ec/CID/PID3379653/6mount/正式及旧隔离6pins/CLOSED保护相等。旧账36/SHA291acd、private3.8472528保持；此读取只保历史RRRO，不能冒新freshready。两CASE/started不删不覆盖；尚无产品stage/激活/补分/OPEN/新模型。
+
+font作者窄查官方Contents API（docs.github.com/en/rest/repos/contents#get-repository-content），固定原Adobe commit、Accept application/vnd.github.raw+json，公开无需token/支持1–100MB。唯一本机GET最终正常200、final api.github.com，24543332B/78aa7a32与提交字体逐byte相同，实际187.581s；socket45不是global45，收尾时原session实际完成，不追记UNKNOWN或重GET。H/font-fetch-diagnosis/CONTENTS-RAW-LOCAL-GET.json963B/6b4033bb，FONT-FETCH-DIAGNOSIS.json5913B/5cd28e7c。本机通达不代云通达，未改字体/许可/产品/冻结stager。原sole原host作者现准备一次固定官方API云缓存诊断（总240s/每socket≤30s/bytes+SHA/无redirect retry token），成功才准备最小同bytes ref恢复，保失败现场。前端6叶/RAM15独立准备，源码/前端齐后才集中当次有限公网验收窗口；新canonical人类回复/END仍HOLD。
+
+本节独立证据：47输入原件独审transport-independent-review.json91650B/d07a56ac（仅运输PASS）、canonical HOLD2040B/085a6355与binding5090B/cc7f3b86（不冒真实批准）。当前证据索引前一版16424B/380c4685逐原字节归档，原PLAN已纳两实际失败/只读现场并保原C/T，不为失败扩正文/生产/历史验收。

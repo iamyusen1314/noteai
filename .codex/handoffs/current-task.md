@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-20 A68：源码stage停在官方字体GET；现场未激活，正做同字体官方取件
+
+功能31b4d7b/文档登记前HEAD678fe25，工作树/分支保持。恢复读原case PLAN与交接A68-STAGE-FAIL；47源码输入运输及原件独审已通过，随后source-stage两失败均保原C/T。第二次仅完成3资源/4RRRO/binding、一次raw字体GET报URLError，reason缺失；只读现场15541/414590实际证明source VERSION/product/aux/guard/font全absent、TERM intent absent，旧40ec/PID3379653/6mount/6protected/CLOSED未变。两个started保留、不删不覆写；累计仍36model/private3.8472528/原UNKNOWN，无新模型/补分/OPEN。
+
+下一进行中：唯一原host作者准备同commit GitHub官方Contents API一次云缓存GET（严格总时限/bytes24543332/SHA78aa），成功才做最小source-stage恢复；本机单次官方API200/字节精确已证，不能冒云通达。frontend固定6叶运输/RAM15与font独立继续，不建最终STATIC_ROOT/替1970sentinel/写Nginx。source齐前不问过早短时窗，source齐后集中一次实际新窗口；newhuman/END仍HOLD，原sole云执行与统一集成发布保持。不改产品/字体/许可/正文/生产，不启动C或继承其他预算。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-20 A68：辅助8源与产品归档47组实际运输完成；产品stage/前端输入/新版真实验收未完成
 
 原工作树/分支保持，功能31b4d7b，本文登记前文档HEAD9c48e86。恢复先读既有case PLAN及交接A68-INPUT；原sole云执行与统一发布仍“修复高德检索与休闲娱乐行业”。47组原Run/Read/stdout在P/host/{aux-source-transport-r1,product-transport-actual-r2}/actual，全部S0/D0、重派0；实际产品归档560089/338bb、辅助8叶pins齐，source-only输入不是产品装载/激活。现旧PID3379653/40ec/CLOSED保持，36model/private3.8472528/旧UNKNOWN不变。
