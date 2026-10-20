@@ -1180,3 +1180,12 @@ root已交原sole云窗口执行最多1条有界只读预检（请求不是实�
 统一prep索引当前13576B/1929bcebf5a48c6f73ce11b36b292b242a5f69630f62262e3343a1b07b3ed4d7；旧索引保receipt-history。root仅在自己source-bundle按实际8存在/2缺省叶metadata找齐每叶Git blob（HTML645744/341f对应cef3d59f，不是c4/e623标签），生成actual-base R2精确archive数据载体185230B/d1d05394，root3.11重建10目标叶/原tar/560089B的原338bb gzip逐byte相同。早前32755/6段候选因实际HTML base不符不可用，保历史不删。R2需31个8192 Base64段，原分段上限64、packed compressed262144门可容；但decoded JSON575297超过旧524288且schema不同，不能原样调用旧stage_bundle。原sole执行者准备专用固定schema终结器，只产同338bb原archive给冻结stager，不加通用框架、代码就地替换或新发布系统。AUX六源/retained三资源/静态输入的真实运输也尚待就绪，不能因产品archive候选证明而冒所有源码已到云。
 
 下一步沿原scope做必要自有源输入运输/source-only stage：真实base必须重读hash/absence/路径，远端gzip不匹配HOLD；RRRO no-inflight有效120秒，运输耗时后可在最终stage同一有界命令复用已审reader刷新原字节receipt，不滚过期ref、不重跑全部历史。不得先TERM/start/CAS、gift8、OPEN或模型，均仍待准备齐后的同一次新范围确认。无在途供应商请求[]、新版真实设计质量/成本分母待验、产品不可发布。
+
+
+### A68-INPUT / 原sole执行者实际完成47组源码输入运输，尚非产品装载
+
+实际功能仍31b4d7b，本文登记前HEAD9c48e86；root未修改产品、未push或部署。原sole窗口已交回P/host/aux-source-transport-r1/ACTUAL-SUMMARY.json9280B/c0b88335与product-transport-actual-r2/ACTUAL-SUMMARY.json18844B/44942235，两者明确projection非原件，原Run/Read/stdout均分项保留。辅助1helper+13data=14组、产品2helper+31data=33组，各Run/首Read均Success/Exit0/Dropped0、重派0。产品末段C c-sz070mc7jwwvrb4/T t-sz070mc7jx9d91c、Run01A159D2-8A86-5EE4-968C-9CB5018D525D/Read01A159D2-AE20-58DE-8B25-6398DA6DD9F8；原stdout8250B/594cffd1。实际同CID内重读bases并还原560089B/338bb2a4固定小包，root:root400/inode1461189；现有8aux已存，不重复运输。此时仍缺新字体/完整source-stage，旧PID3379653、40ec和入口CLOSED保持；47运输不是47模型，模型仍36/private3.8472528/pending0。
+
+前端原作者明确wrapper25310B/8f0692af只依赖formal c4a现有10个固定文件，3delta基底/7原字节复用，其余5叶全文内含；固定6输入总69529B，清单P/entry/FRONTEND-TRANSPORT-PLAN.HOLD.json14620B/f3772248。raw manifest8896B/1e9e保原格式，不能重JSON冒原件。原窗接续source-only运输与formal13→RAM15逐SHA核验，不跑Node/builder、不建最终STATIC_ROOT、不替1970sentinel、不写Nginx/OPEN。源码准备完成仍不等于served或新真实质量通过。
+
+下一步由原sole云窗口唯一source-stage命令在同命令刷新4RRRO（TTL120）、保原stdout、复用3同bytes资源、唯一固定官方字体GET并存新RO版本子目录；后续前端输入也由它执行，root不并行发命令。原权威PLAN已更新47输入完成/actualsource-stage和frontend仍待定。foundation仅独立核47原件；contract仅核既有canonical human字段避免临窗缺绑定，不新增审批体系或修改冻结源。新human/END/gift8/TERM/CAS/runtime31b/OPEN/新模型仍未执行，原旧任务/两版/UNKNOWN保留。
