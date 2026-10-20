@@ -1225,3 +1225,10 @@ root独立逐原Run/Read/stdout核前端10组唯一C/T与font1组，6input pins�
 
 
 A68-HUMAN-PENDING：root已通过request_user_input_async实际发送上节唯一集中真实验收范围（工具accepted=true，非用户批准），原PLAN已记ASKED_PENDING_HUMAN_RESPONSE_NOT_APPROVED。新canonical/END仍null，无TERM/CAS/gift/OPEN/新模型；等真实答复，不重复问已确认产品决策。后续prepare841f新BOUND必须host_stager_ref用原aux-source-input-r1/source_stage_a68.HOLD.py17230/9370 verifier + 真r3 result4542/9f6c；r3 stage-only binding4554/cfa94d指producer841bd，不能原样用于授权prepare，不改源或重stage。原case为恢复入口，root唯一正常UI/原窗唯一云与统一发布。
+
+
+### A68-REAL / 2026-10-21 真实同意与固定新窗口已绑定，开始已授权接续
+
+本轮官方root read_thread真实human：thread01a154c9-62ef-7fc2-82dd-0c3a8441193b、turn01a15b74-4e10-7c92-a60a-4d88ecdd7dcb、user message01a15b74-4e59-74b2-a56b-a98666ea2441，原文“同意本次限时验收”，startedAt1792535711（06:35:11北京）。原read_thread文本11356B/b7a1b0c0在P/actual-human-20261021-r1/read-thread.ACTUAL-ORIGINAL.json。唯一canonical P/a68-human-approval.json2584B/2aa7a11a45dfc10f6b7f9f7be8518be2f182d76e6fd443c4ed40046c69132a32已O_EXCL，原HOLD不改；六scope旗标true，固定END1792539311（07:35:11北京）、latest actual OPEN1792537511（07:05:11），不滚动。root用原host authority函数纯字段检验通过，不导业务/不云。
+
+明确承接此前唯一问题：原report新1v2、2Lite/0image/0retry、总≤38of40/原累计≤100且新model≤1元、隔离gift8/sameCID必要aux正常接续/原受保护入口与正常登录原账号限制。原sole已收到同raw source/metadata/canonical，执行fresh current9refs futureEND/旧36noinflight/balance→正常gift8一次→841f（9370 verifier+真r3 9f6c，不用stage-only cfa94d）→normal TERM/seal-onlyCAS/start31b→root同bytes handle/startup→new ownREADY→timer-first OPEN。没再询问已批准步骤、不重stage/GET/运输/报告/历史验收。当前尚无实际fresh回执/新PID/补分/OPEN/模型，旧态仅最后已知，待原C/T实际核；root唯一正常UI/原窗唯一云及最终发布。root专用Chrome2/tab1637495932仅about:blank，尚未导航/POST，恢复复用此tab，不多开或抢原窗页面。

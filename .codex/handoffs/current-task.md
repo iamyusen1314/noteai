@@ -1,8 +1,8 @@
-## CURRENT — 2026-10-20 A68：隔离source、前端输入、真实UID999字体全部就绪；待当次真实验收窗口
+## CURRENT — 2026-10-21 A68：真人已确认本次有限验收；固定07:35:11关闭，原sole正接续
 
-功能31b4d7b/登记前HEADa0e4a2b，原分支/工作树；恢复先读既有case PLAN及交接A68-PREP-COMPLETE。r3两命令实际S0D0，真stage ROOT/a68-v2-source-stage-cache-r3/result.json4542/9f6c7e72，原9370 verifier/maps/aux/字体均通过；原失败started及841f/9370保留，当前HTTP0/无激活。frontend source原件10998/7398e1b2（RAM15/source-only），UID999实际Py3.11.15/Pillow12.3.0/FreeType2.14.3双OTF中文bbox与module路径hash均核。root实际原件验证1926/7ef8f31c，索引21145/b0a24410。不要重运输/fontGET/stage/套件。
+分支/工作树保持，功能31b4d7b，登记前HEAD457e4e7。恢复读原case PLAN及交接A68-REAL。官方human user01a15b74-4e59-74b2-a56b-a98666ea2441/turn01a15b74-4e10-7c92-a60a-4d88ecdd7dcb实际同意，approved1792535711/END1792539311（北京06:35:11→07:35:11），actualOPEN最晚07:05:11、不滚动。canonical2584/2aa7a11a在P/a68-human-approval.json，原官方read文本11356/b7a1b0c0；原HOLD保留。按单report新1v2/2Lite0image0retry/总≤38of40、原≤100新≤1、gift8/sameCID原受保护入口范围执行，不重问许可。
 
-当前旧40ec/PID3379653/CLOSED保持，36complete/pending0/private3.8472528/全calls291acd/inode1460877、原report completed/旧cover1两版/9有效refs和旧UNKNOWN均保留。新normal API startup31b/ownREADY/OPEN/正常UI/真实设计QC/审美未执行，不能称可交付。已通过request_user_input_async发送唯一集中问题、待真实回复：同report新1v2/2Lite/0image/0retry、原40calls/100预算内且新预留≤1元、隔离gift8/同CID必要aux succession和原受保护有限入口（回复起≤60min、OPEN余≥30min、自动关）；浏览器公网再开放需当次确认。canonicalhuman/END仍null；未实际回复前不TERM/CAS/gift/OPEN/provider。未来prepare841f用原9370 verifier ref+真r3 result9f6c，不复用r3 stage-only cfa94d binding。原sole云执行/统一发布，root sole正常UI，产品/正文/生产/权限范围不扩。
+原sole负责fresh当前媒体futureEND/36/noinflight/balance→normalgift8 once→prepare841f用原9370verifier+真r3 result9f6c→normalTERM/seal-onlyCAS/start31b→raw UID999 handle/startup rootcopies→newownREADY→成熟timer-firstOPEN；root sole normalUI一张。尚未收到本轮实际fresh/新PID/gift/OPEN/模型，不把准备冒生效。root Chrome2/own tab1637495932 about:blank；原source/PIL/frontend实际证据复用，不重stage或套件。旧36/private3.8472528/UNKNOWN/旧cover两版保留，生产不改。
 
 ## HISTORY — 上一检查点
 
