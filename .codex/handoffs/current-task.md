@@ -1,18 +1,18 @@
-## CURRENT — 2026-10-20：noteai-xhs-cover-20261019 限时入口已开，九图正常UI待单次提交
+## CURRENT — 2026-10-20：noteai-xhs-cover-20261019 首次正常九图提交失败，保留原请求并只读核验
 
 唯一权威清单/Q-A/checkpoint在 `docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md` 第8节表及末节；当前case运行状态与原件在 `/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/real-shuishi-nine-20261020-once1/PLAN.json`。下方全部继承历史，不重放旧窗口/预算/命令。
 
 分支codex/noteai-xhs-cover-20261019，实际HEAD用Git核；后台37512e0+原PC/H5前端90e969c+loopback a7eb030+协议e6234e7已交原窗口。API-only镜像05978bee/同CIDd264/PID3246848/guardc361有限至今天10:30北京；feature SQL已一次装原隔离PG，PG89回滚夹具已完成，不重build/SQL/PG/新batch。正式3711/9be+原Pay/Admin/publicc4a/schema31不改，封面尚未生产发布。
 
-用户已充值，原EIP官方Normal/financial锁清空；真实新签名Gateway readiness200。此前财务锁/metadata UNKNOWN/timeout及旧整Docker摘要差异独立保留，当前语义安全合同通过，不假清零、不重探。唯一case仍水石清池9原图→1新完整笔记→同报告1cover，40物理调用/100元/0自动付费重试已批准；同私有账本cap99+1元存储工程预留（非已发生费用），模型/上传/新report/cover均0。
+用户已充值，原EIP官方Normal/financial锁清空；真实新签名Gateway readiness200。此前财务锁/metadata UNKNOWN/timeout及旧整Docker摘要差异独立保留，当前语义安全合同通过，不假清零、不重探。唯一case仍水石清池9原图→1新完整笔记→同报告1cover，40物理调用/100元/0自动付费重试已批准；同私有账本cap99+1元存储工程预留（非已发生费用），首次提交前模型/上传/新report/cover均0；本次提交后的实际终态见下，不据旧0推断当前模型调用。
 
 R1原yes因余时不足未执行，留史。新R2人类明确“同意更新时窗并立即测试”，09:13:19北京起，原窗已实际唯一OPEN，精确私有路径至10:13:19自动关闭，正常登录/原测试账号/18114隔离后端；不改代理/正式产品或生产DB。OPEN原回执574B/SHA3a545e3acc103aaccd4c276e31bbb09c423acfb68c05b15644ba2201ac45994a，Cc-sz070kapv0d9n28/Tt-sz070kapv0s914w，timer先arm。
 
-根已正常浏览器进入入口，顺序选入9/9原图，店名/休闲娱乐体验/冻结brief完整，真实种草型和AI识别默认；截图PC-NINE-INPUT-BEFORE-SUBMIT.png在同case。尚未点生成，图仅本地预览。隔离UI显示明确SYNTHETIC资料与0积分，原窗正只读核正常生成资格，必要时仅隔离账号正常流水补足本次16测试积分，禁止改生产余额或绕资格。
+根已正常浏览器顺序选入9/9原图和冻结brief。原窗资格只读证实免费月额度用完/钱包0/生成权限正常，已正常流水赠16隔离测试积分；生产不改。09:41:18根收到原窗实际READY后仅单击generate一次，正常9图上传后进入真实SSE；09:43页面终态“生成未完成，预留已释放、未扣积分”、余额16。截图PC-NINE-SUBMITTED.png和PC-REPORT-FIRST-SUBMISSION-FAILED.png在同case。未二次POST/取消/刷新。supplier实际dispatch和原natural IDs/claim/closed/费用终态尚须原窗口只读回执，不能把UI上传或失败当模型成品通过。原窗正在按失败即close提前撤入口。
 
-静态price/no-cache模板已备，实际两原件已samecandidateUID999读取/hash验证；8paidproof/naturalclaim仅first-wire门。operator接续窄审GO，无确认P1/P2，须实际paused+117秒前发布，同POST恢复，不能二发或注入ID。根须等原窗明确operator/paid-resume READY和资格结果再单击生成；原窗唯一云执行，根唯一正常UI业务调度。自然ID回来后将两plannedUUID标UNUSED，保留真实usage/report/job映射。
+静态price/no-cache模板已备，实际两原件已samecandidateUID999读取/hash验证；8paidproof/naturalclaim仅first-wire门。原operator静态窄审GO只覆盖当时源码/离线证据，不代表新云端adapter实测；本次实际observer失败，不能沿用GO冒实际就绪。原窗唯一云执行，根唯一正常UI业务调度。自然ID回来后将两plannedUUID标UNUSED，保留真实usage/report/job映射。
 
-下一步：原窗READY→根单击正常九图上传/报价/POST→捕获自然claim、绑定证据并恢复同请求→完成新报告→同报告封面一次→PC/H5/重开下载/免费排字/唯一结算/实际费用及成品独审。UNKNOWN只核原结果不重发。实际iPhone、多用户容量、当前OSS90天物理规则仍未证；原图TTL不延长。最终由原窗口统一集成，未增加生产发布授权。
+下一步：只读原claim/closed/usage/ledger/physical调用与实际observer异常，修最小辅助并非付费验证。新增observer root.bound.py line13的UID999 operator subprocess失败，原始stderr未留；其GUARD.read_bytes权限点仅候选根因，未实证。独审证明若原POST终态closed/failed/released，既有c361/runtime/postdelivery无恢复或rearm入口，0模型亦不得删closed/清stopped/试探第二POST。保留全部失败，准备最小可审接续后，由根集中取得新尝试及新当次临时入口确认才dispatch；不能称真实验收完成。实际iPhone、多用户容量、当前OSS90天物理规则仍未证；原图TTL不延长。最终由原窗口统一集成，未增加生产发布授权。
 
 ## HISTORY — 继承源码基线记录（非当前执行指令）
 
