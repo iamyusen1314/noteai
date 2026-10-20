@@ -1,6 +1,8 @@
 ## CURRENT — 2026-10-20：用户拒绝封面设计，候选不可交付/不可发布；同任务设计专项进行中
 
-权威HANDOFF A65。原分支codex/noteai-xhs-cover-20261019/功能HEAD8441563、文档HEAD按实际Git不回退，A62技术/计量/原件历史保持；用户明确拒绝设计，现又要求先官方/行业/实际项目依据，**B2优先推荐已撤回为候选，暂不催原像素合同改变选择**。原窗HOLD不可交付不可发布；没有生产变化，不造回退/退款。真实官方手册正文/Chrome页面、社区公约和历史行业原页/真实Agent源码已核，非自我讨论。门禁42离线/独审P2已修仅技术证据，不代表视觉通过。原case36calls/private3.8472528、report0cdbe/cover4da/8分事实不变；无新模型/UNKNOWN/云/权限/公网，不重正文/九图或全站验收。
+权威HANDOFF A66。原分支codex/noteai-xhs-cover-20261019/功能HEAD8441563、文档HEAD按实际Git不回退，A62技术/计量/原件历史保持；用户拒绝设计并要求先有事实依据，A65官方/行业/实际源码已核。最新追问具体方案后，root推荐四步新工作流：导演Lite→Seedream完整设计样稿→落地Lite+真照片/准确字层→独立QC，**单张上限3变4尚待明确，不当已批准；不放弃原图真实/免费改字**。B2直接改画主视觉仍未选。原窗HOLD不可交付不可发布，没有生产变化/虚构回退退款。门禁42离线/独审仅技术证据；原36calls/private3.8472528/report0cdbe/cover4da不变，无新模型/UNKNOWN/云/权限/公网，不重正文/九图或全站。
+
+设计附件首节A66写清输入输出、行业brief、两设计步骤同一有限渲染能力目录、完整样稿非交付、不能实现则拒绝、成品质检后不改图、旧任务保旧3call版本。源码窄核需扩layout独立intent/ID/计量/4call guard及最终清单；现recover只恢复未调用，必须补fenced中间已知结果持久/未发下一步恢复，UNKNOWN原请求不重发。初核可复用原JSON/TEXT及私有存储，不默认DDL/新平台；模型预留≤2.20只是按既核tariff上界建议，100元总额不增，36+4=40不是新付费授权。当前四阶段未实现/未调用/未验收；用户明确新工作流后再窄实现与离线独审，真实测试准备齐再集中明确scope/当次入口。原窗仍唯一云/集成发布。
 
 最新设计附件docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md首节A65优先于其A64历史候选。依据：D/official-xhs-cover-evidence.json74880d2c（官方商品手册公开原文+root实际DOM/截图；按商品笔记scope含图文不建议额外加字/视频可加字，不当全社区禁字）；D/industry-cover-case-evidence.jsond79f5944（三份历史署名镜像原页实看foodp13/hotelp19/beautyp8、11，非当前规则/封面CTR因果）；D/design-agent-primary-evidence-v2.json489ad29e（commit级技能/TS脚本/test/许可，排除无证90%互动/刻板风格/重试等）。两研究tab已关，未登录/注册/付费。
 
