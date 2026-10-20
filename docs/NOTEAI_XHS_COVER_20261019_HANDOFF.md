@@ -138,8 +138,8 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理；素材/任务/UI子代理 | COMPLETE / 原e6234e7；f818da4/0854113；a3a0187 | 原定向证据复用；最新封面VM24 PASS/独审余额异步围栏；固定静态15文件及10JS语法通过 | a3a余额补丁只本机验证，live仍f818；不扩正文或整站 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | TECHNICAL_PASS_DESIGN_REJECTED / A63 | 正常九图报告→封面4da、独立8分、免费rev2及重开；实际3OSS PNG/PIL与像素副本全核；36calls/约3.84725元保守计量 | 入口14:28:55已关；本轮H5工具未生效/浏览器OS保存及真iPhone未测，不能冒通过 |
+| 2 最小实现与离线验证 | 主代理；素材/任务/UI子代理 | REOPENED_DESIGN / 原功能e6234e7、a3a0187；质量门禁8441563 | 原技术证据复用；新门禁42离线PASS及独审，3版式概念实际浏览 | Seedream完整无字主视觉与旧像素保真合同有实质差异待决定；原型非模型成品，不扩正文 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | TECHNICAL_PASS_DESIGN_REJECTED / A64 | 正常九图报告→封面4da、独立8分、免费rev2及重开；实际3OSS PNG/PIL与像素副本全核；36calls/约3.84725元保守计量 | 新设计未真实调用/验收；旧入口已关；H5工具未生效/OS保存及真iPhone未证 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | REOPENED_DESIGN_HOLD / 用户拒绝产品质量，原窗已撤可发布判断 | final-contract-review、final-visual-review及FINAL-COVER-DELIVERY-RECEIPT绑定实际原件；8功能提交末a3a0187 | 原窗统一后续集成；当前不生产迁移/启用/发布；保留审美建议与Q07现行90天规则缺项 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1042,3 +1042,19 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 并行分工：root负责Seedream官方资料、原prompt审计、设计收敛/最小实现与唯一HANDOFF；media独占真实公开封面设计案例研究/水石图具体方向；contract独占GitHub实际实现与许可研究；foundation独占当前质量根因及旧合同冲突审查。三个独立问题，不全项目重复审计，不安装插件/新Agent平台、不调用付费检索或模型。真实案例若无法核互动指标仅称设计参考，不冒“爆款证明”；GitHub自称或stars不当流量证据。
 
 当前目标IN_PROGRESS：先给用户清楚的原路径/prompt解释；基于官方/公开案例收敛能实际让Seedream参与设计、保留真实素材和免费改字的专业director→Seedream→成品设计质检流程；用可审参考/非付费版式样张明确层级、字体、裁切与主体保护，不能再以格式/扣分通过就称产品交付。此前已确认“原像素保留+程序文字免费改字+Seedream仅可选背景”与“Seedream直接整张封面含真实场景/文字”存在实质差异，需明确比较和推荐，不擅自牺牲真实性/免费编辑或扩成完整编辑器。下一步证据落原D design-research-*，继续同任务，不建第二交接体系。
+
+### A64-MAIN 非付费设计研究/三方向原型完成，质量放行漏洞已修；推荐方案待产品决定
+
+2026-10-20 15:09北京，原分支/工作区，当前功能提交 **8441563**（父e02fd39；4文件138增32删），随后仅提交本设计附件/checkpoint。旧候选继续不可交付/不可发布，原窗HOLD保持。没有新模型、报告、充值、权限、云或公网动作；原report0cdbe/cover4da/36calls/private3.8472528/旧UNKNOWN及账本不变，旧入口CLOSED且END不可复用。
+
+三个独立问题研究已齐：D/design-research-visual.json14597/SHA2552e84a（四公开作品仅设计参考，未核到同时具备汤泉小红书原封面及原平台互动的热门样本，不冒爆款成功证明）；D/design-research-github.json15503/c6934587（Poster Studio实际图文分层MIT、oh-my-cover-design实际构图简报、PosterVerse非商业不能搬源码；不安装平台）；D/design-root-cause-review.json15876/b193ac2b（实际image0及原中横条/整框禁叠/contain/无字阶/质检豁免根因）。官方Pro文档重新核当前model_id260628及多图/交互能力，不冒已调用。具体旧prompt、来源、三方案比较、可接线新prompt与预算见docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md。
+
+主代理与独审均认为只让Seedream画固定窗口外框饰仍是增强背景，不能宣传承担主视觉。推荐B2：**导演1次看全部九图和原报告→Seedream1次按选中1–3图生成完整无字主视觉→系统准确分层排字→QC1次看原参考/成品/缩略**，固定原Pro、1776×2368，不拆图层/额外概念回读/多Agent循环。保留独立任务、8分合格保存后唯一结算、底图/版本90天及免费字层调整。具体待用户决定：从原照片逐像素保留改为参考场景外观忠实（QC不能证明数学保真），原可选背景调用成为此方案必需的完整主视觉调用。文字仍同一批准标题连续摘取分字级；跨标题与独立店名仅原型建议，未批准不改生产文案合同。若仍要求原像素，做专业原图拼版，不为调用Seedream花无价值背景费。
+
+**实际原型/浏览证据**：D/design-concepts/concepts.html，A庭院沉浸/B庭院+汤池/C旅行杂志，全部原照片HTML/CSS、无模型；主代理实看240px及三方向比较图，推荐B作为本素材方向：两幅原横图完整且约84%照片，主题短字有主次。A/C裁切边缘须明确，C本机宋体不能当生产固定字体。D/design-concepts/browser-check.json3837/e576df33：已有Playwright Chromium（本会话无Browser skill/runtime、不安装依赖），1360×1280和390×844，3方向切换/图片加载/文本边界/空页/console/外部请求检查；errors[]、external_requests[]。这是原型浏览验证，不能冒产品PC/H5已跑新版，也不是真iPhone保存。D/design-concepts/design-directions-comparison.png601685/d819cb59为真实浏览截图、每卡300px，清楚标“离线版式概念·非Seedream成品”。
+
+**已实现最小代码门禁**：cover_runtime同一次QC增加真实240×320第三图；主视觉/主题焦点/字阶/空间平衡/缩略可读/行业风格6项bool，缺项或false直接拒绝，approved矛盾true无效。独审发现旧QC后字号/颜色修正导致最终图未经该次检查的P2，已取消QC后豁免/重画，确定性排字修正在QC之前，拒绝终止不新增复检。service未改：拒绝不调用_store_image/不结算用户，已发生供应商成本保留。旧GET/download/freeadjust不重新执行QC，不追改旧合格状态/账本。设计生成分支、字体资产、schema/鉴权/正式HTML/生产配置均未因此改；门禁修复不等于新图好看。
+
+**有效验证**：42定向离线PASS/12.174s，D/design-quality-offline-tests.log771/SHA68768c79，已有socket.connect禁止外连fixture。覆盖矛盾approved/6设计拒绝/缺项/非法bool/局部改字不能蒙混、真实240缩略同一次QC；service模拟图片已付后拒绝保留responded/billed1/估计0.60/actualNone，0save/0用户扣分/无重派；legacy缺design_checks读取/下载/免费改字继续。首次新增API测试把旧assert插错函数导致NameError，定位为测试编辑错误并移回原函数后复跑42全PASS，非产品或供应商故障。git diff --check PASS。D/design-quality-gate-review.json12338/427e28d4保留初审P2和解决记录，源码窄复审无新P1/P2，只读核最终测试日志、未重跑/不冒视觉交付GO。
+
+**恢复/下一步**：原case PLAN继续同任务，状态REOPENED_USER_REJECTED_COVER_DESIGN_NOT_DELIVERABLE、无运行供应商请求或UNKNOWN新增。先让用户看到具体概念与原prompt，集中确认上述B2合同取舍；已明确质量门禁与研究已自主完成，不重正文/全站/高德/支付。方案确认后仅在原模块补导演/多图主视觉/专业字层与兼容，离线受影响验证→独审→准备齐全才提出有限的新同报告真实样本/必要测试入口，不把数值剩4calls当自动重试许可。建议一次≤3calls，累计到39≤40、同100元总额；既核图片0.60–0.64＋Lite最坏预留约0.977，建议模型预留≤1.70元，非新增预算/发票/成功承诺。未来付费/公网尚未执行，原窗仍唯一云执行与统一集成发布。

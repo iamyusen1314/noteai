@@ -1,8 +1,10 @@
 ## CURRENT — 2026-10-20：用户拒绝封面设计，候选不可交付/不可发布；同任务设计专项进行中
 
-权威HANDOFF A63。原分支codex/noteai-xhs-cover-20261019/源码HEAD7ea4309不回退，A62技术/计量/原件历史保持；用户明确拒绝封面设计和字体/缺乏小红书逻辑，主代理已撤回产品可交付判断，原窗ACK禁止把候选作为可发布产品集成/启用。生产原本未动，不造回退/退款/清账。当前只做封面非付费研究/最小改进，不重报告正文/九图，不复用过期公网窗口或自动新模型。原case36calls/private3.8472528、九图report0cdbe及cover4da/8分事实保留。
+权威HANDOFF A64。原分支codex/noteai-xhs-cover-20261019/功能HEAD8441563不回退，A62技术/计量/原件历史保持；用户明确拒绝封面设计和字体/缺乏小红书逻辑，主代理已撤回产品可交付判断，原窗ACK禁止把候选作为可发布产品集成/启用。生产原本未动，不造回退/退款/清账。当前封面非付费研究/3方向可审HTML原型完成，质检门禁修复42离线PASS/独审P2已修，不代表视觉通过。不重报告正文/九图，不复用过期公网窗口或自动新模型。原case36calls/private3.8472528、九图report0cdbe及cover4da/8分事实保留。
 
-原实现实际没有Seedream，只有Lite设计/QC；Seedream分支只生成抽象纸背景，contain+禁文字与全图相交+单Bold导致横图小/巨留白/无层级，QC只功能安全放过丑图。root查官方Seedream/原prompt并统一实施；media查真实公开设计案例；contract查GitHub实际实现；foundation查根因与新旧产品合同差异。独立并行，不新平台/依赖/收费模型/生产改动。下一步给具体参考和可审版式、专业设计director→Seedream→审美与真实性质检建议，明确Seedream整张出图与原保真/免费文字合同冲突，再集中决定必要的真实重测。此为原任务恢复，不重放旧操作或全项目验收。
+原实现实际没有Seedream，只有Lite设计/QC；可选分支仅抽象纸背景。研究/原prompt/具体新prompt在docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md，D/design-research-*和design-root-cause-review可核。推荐完整无字主视觉B2：导演看9图→Seedream按1–3参考完整设计→独立文字层→一次QC看原参考/成品/240缩略，三调用不扩平台。需要集中产品决定原像素不变改为参考忠实（事实仍不可虚构，QC不保证数学保真），可选背景改必需一次主视觉；文字仍同标题连续摘取。A背景增强不足，B1含字海报会破坏免费改字不推荐。三方向离线概念D/design-concepts（非Seedream）已Chromium1360/390实浏览，主代理推荐B双景作水石方向；不冒新版产品UI或iPhone保存通过。
+
+功能8441563仅门禁：design_checks缺项/false/矛盾approved拒绝，真实240×320同次QC；取消QC后改字号/颜色再不复检的P2通路。42PASS/12.174s、gitdiffcheck、独审原JSON保P2+resolution；模拟图片已付后拒绝保供应商成本、0save/0用户扣分/no retry，legacy QC缺checks仍可重开下载免费改字。源/日志/概念pins见A64。下一步待上述实质合同选择后补原模块设计生成/排字、定向离线/独审；必要真实样本准备齐后再集中明确新同报告scope/时窗，不能把累计剩4call等同自动重派许可。原窗唯一云/集成发布，不扩大正文/生产/权限。
 
 ## HISTORY — A62交付判断已因用户质量拒绝撤回；下文仅保技术事实
 
