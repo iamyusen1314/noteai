@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-20：同报告封面新确认已核，END14:59:31；准备载体待原窗实际执行
+
+最新A59：真人01a157e4-c0dc…/turn01a157e4-c0a2…答确认，startedAt1792475971；唯一END1792479571=06:59:31Z/14:59:31北京。ROOT源实stage16/whole2ca15/10pins及host原件1648/36d519已核；产品e623+入口f818/085，Git当前读取实际HEAD。新唯一prepare5554(raw6401/wire8536/Timeout240)已交原窗sole云执行，尚未收到实际新runtime/PID/WAIT/OPEN，root禁止提前POST。初本机输出guard导致renderer hash拒，已保存NOT-EXECUTED并还原精确独审df53，仅aux本地源，无产品/Git回退。
+
+流程不再临窗人工打包：sameCID once prepare（只aux seal_sha-onlyCAS保34/known/原inode/原报告，actualstartup/PG→安装newopinputs/entry.BOUND，未启动/OPEN）→真实rawReady→唯一coverwait真marker+liveproc→OPEN前再核同PID/argv+原entry余>=30min/先timer后OPEN→根普通UI same report1cover。最晚实际OPEN06:29:31Z，END不滚动。root sole正常UI/provider，原窗sole云执行及统一生产发布；新actualPG最终结算/保存取证由contract准备，media仅审真实PNG。
+
+本次沿同报告0cdbe483-9ca4-4012-9090-a718d8b86b4d、九原refs和原8分。既有34calls complete/known3.8343288(native3.3571038)不清，累计40/100，cover<=3/image<=1/0自动重试。正文明确不修/不当cover前置，不重9图，不改生产/权限/资源。当前尚无真实cover。
+
+## HISTORY — 以下保留旧checkpoint，过期时窗不是当前权限
+
 ## CURRENT — 2026-10-20：报告已实际保存/34次终态，入口已关；仅准备同报告封面续测
 
 当前分支codex/noteai-xhs-cover-20261019/HEAD0854113；功能f818da4修复实际“视觉专家”澄清报告漏封面入口，0854113真实renderer回归23/23 PASS。权威交接A56及既有case/PLAN.json。后端产品e6234e7/同CIDd264/PID3350776/aux1cab不变。报告0cdbe483-9ca4-4012-9090-a718d8b86b4d/usagee0abf51f-ccea-4fba-8371-b829a0c74744完成、单保存、9refs原序、唯一8分，wallet16→8。真实34calls complete/UNKNOWN0/pending0，private保守3.8343288元/native3.3571038分别保留，非供应商现金账单。累计40calls/100元不重置，余6；封面≤3calls/图像≤1/0自动付费重试。

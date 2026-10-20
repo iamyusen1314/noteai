@@ -970,3 +970,13 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 本地 execution/build_execution.py **df53eead64f85455720c65732082cd939bc2ed170573d0c965d2cba656a0c9e2** 独审GO，defaultHOLD；未来actual新human和实际stage receipt才能生成载体。新END只actual userMessage turn.startedAt+3600，host/entry仍OPEN余≥1800。流程已提前收敛：sameCID host一次prepare（只原aux ledger.seal_sha CAS保34/cost/cap/inode；正常startup/PG→立即绑定新template/opinputs与entry.BOUND，不OPEN/不启动wait）→基于真实ROOT/result.json原字节gzip/SHA回传生成唯一coverwait，真marker/liveproc才READY→OPEN前再次核同PID/starttick/argv，再原entry先timer后OPEN→根正常UI仅同报告一张cover。无需180秒窗口内人工SQL/打包，不新框架/发布流程、不重Generate/九图。README含Timeout240/40/60及UNKNOWN同原件恢复。
 
 当前未获新human/END，封面POST/模型/任务仍0，原报告34calls/unique8/known3.8343288及旧失败UNKNOWN全部保留。准备已真齐；集中询问一次新的同报告封面有限公网/同CID辅助窗口许可，沿原累计40/100、封面≤3/图像≤1/0自动付费重试、原正常auth/测试账号限制/隔离backend，生产/权限/预算不扩。正文不修、不当封面前置。真实封面成品、保存重开/下载/免费排字/唯一8分及成本待真正执行；生产统一集成仍原窗负责。
+
+### A59-MAIN 同报告封面续测实际新确认；唯一END14:59:31北京，prepare已交原窗待实际
+
+实际userMessage01a157e4-c0dc-7290-bef2-ad971bdc65de/turn01a157e4-c0a2-79d1-9f20-e2b13d3ce5e9答“确认”，直接read_thread 1turn/includeOutputsfalse核startedAt1792475971=05:59:31Z；初2turn带outputs超工具大小未读成，改1turn成功，未因此重任何业务。实际原读与human派生记录在case/SAVED-COVER-ACTIONTIME-HUMAN-{READ-ORIGINAL,ORIGINAL}.json，保原userMessage type/id/content。新END1792479571=06:59:31Z/**14:59:31北京**，唯一批准+3600不滚动，实际OPEN最晚06:29:31Z须余30min。
+
+真实host stage-result原件已取得：Cc-sz070kz5h2sb8xs/Tt-sz070kz5h37an0g S0/D0，Run01A157DB-0DEC/Read01A157DB-2739；D/source-stage-original-read-r1/stage-result.ACTUAL-ORIGINAL.json1648/SHA36d51988986be483a734703e02cfd8bb01930d15f2c9d00ad67121191135d138/root0400/inode1461008，base64原字节直接保存，非stdout重序列化。root实读bytes/SHA/whole/10叶与冻结包全同。
+
+根本机render时严格SHA拒因独审df53后曾加3行stdout长度guard40a8（未云执行）；已内存反向比对证只有该输出差分，40a8归档NOT-EXECUTED，恢复精确已独审df53，不回退产品/Git。新actual人类绑定prepare载体root execution/ACTUAL-APPROVED-20261020-r1/prepare.sh6401/SHA5554b15d6474f192c0514bcb36cf33c849137bf77b41d15a65337b40ad907426、wire8536/05884192c16f576f0f7c901a59d29bc0bc1bffe8c674475de46ff0910bb4dfbb，compile/sh-n及host.authority实际时窗核通过。已交原窗核当次真人后唯一prepare/Timeout240；本窗不代云/业务POST。
+
+当前新runtime/PID/新seal/WAIT/OPEN均待真正回执，不把载体已交当执行。原PID3350776/1cab、34complete/known3.8343288/unique报告8/0cover保留；新case预算不重置，cover≤3/image≤1/0retry。实际RAW READY后root立即生成唯coverwait→真marker/liveproc→OPEN前复核livePID/argv→原entry min30/timer-firstOPEN→正常UI唯一cover。正文不在范围；不重报告/九图，不增加生产或权限。
