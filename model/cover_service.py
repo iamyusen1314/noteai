@@ -86,17 +86,17 @@ def _run_claim(claim, *, runtime=None):
             sources.append({**item, "payload": body})
         result = (runtime or cover_runtime.run_cover)(job_id=job_id, user_id=user_id,
             report=claim["input_snapshot"], sources=sources,
+            design_version=claim["policy_snapshot"].get("design_version", 1),
             hooks=cover_runtime.RuntimeHooks(before_call=before, on_call=after, on_stage=on_stage))
+        # A usable artifact must pass the actual final-pixel contract before
+        # storage, as well as before the delivery settlement transaction.
+        cover_runtime._validate_qc(result.qc)
         on_stage("ready_to_save")
         base = _store_image(user_id, result.base_bytes)
         final = _store_image(user_id, result.final_bytes)
-        # All semantic QC invariants must hold. A local contrast/size repair
-        # remains distinguished from a second model approval in the snapshot.
         qc = result.qc
-        passed = (all(qc.get(key) is True for key in ("text_matches", "facts_preserved", "subject_preserved"))
-                  and (qc.get("approved") is True or qc.get("locally_corrected") is True))
         return cover_jobs.complete_job(claim, final_media_ref=final.id, base_media_ref=base.id,
-            layout=result.layout, qc_passed=passed, qc_snapshot=qc, design_snapshot=result.design)
+            layout=result.layout, qc_passed=True, qc_snapshot=qc, design_snapshot=result.design)
     except Exception as exc:
         # First read back the original transaction after a possible lost ACK.
         # A committed cover is never released or charged again.
@@ -192,7 +192,8 @@ def adjust(user_id, job_id, *, text, position, expected_revision):
         if position not in job["layout"]["position_options"]:
             raise HTTPException(422, "该位置会遮挡照片，请保留当前位置或选择可用位置")
         box = layout["text_bbox"]
-        xy = [box[0], .035 if position == "top" else .965 - (box[3] - box[1])]
+        margin = .025 if layout.get("schema_version") == 2 else .035
+        xy = [box[0], margin if position == "top" else 1 - margin - (box[3] - box[1])]
     final, updated = cover_runtime.free_adjust(base, layout, text=text, position=xy)
     # New revision bytes may live a few seconds beyond the deadline, but all
     # job reads are still fenced by the original exact expiry, never extended.

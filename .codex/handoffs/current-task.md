@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-20 A68：原图结构化排版实现/离线PC-H5/独审完成，新真实验收准备中
+
+权威HANDOFF A68及Q09，附件A68为实现状态/A67继续为事实依据。起点HEAD3773d2d/原分支codex/noteai-xhs-cover-20261019，随后本次功能提交，恢复核实际Git不回退。root集成；renderer/design/UI独占实现均已冻结，contract最终独审34557B/7fcdfece无活跃P1/P2，保底图hash P2复现与修正。新任务显式v2，旧v1冻结合同/读取/免费改字保留；1–3真实照片/语义主辅字层/许可两字体/行业意图brief/所有选图及成品240缩略独立QC。现Lite两调用，不换模型/平台/默认4call；同批准标题/原像素/免费准确改字/8分/90天保留。新字体24,543,332字节，无新DDL/依赖。后端87、R1单项1与最终26有重叠不累加；renderer23+1/design12/Node24，PC1280×900/H5390×844九原图真实本地HTTP/临时DB/保存刷新/免费rev2/PNG下载hash PASS，认证/报告/ready/调度与供应商均有明确夹具边界，不冒真实模型/登录/设计/真iPhone通过。
+
+原付费36calls/private3.8472528/历史UNKNOWN不变，供应商请求[]；旧入口CLOSED/旧END不可复用，生产/权限/配置/公网/新付费0。Q09原窗已只读答复：旧guard名额已消费，不能滚END或重绑旧case；可复用原隔离report/9refs/账本/OSS，尚无已证明Mac私有浏览链。foundation仅原D/implementation-a68/acceptance-prep准备一次同report独立v2自然case的最小接续草案，保旧36/旧cover两版/UNKNOWN，2Lite/0image/0retry预期累计38、模型保守预留0.976896元≤1元、总仍≤100，正常8分需具体隔离补8scope及新有限END；当前HOLD无执行。下一步冻结提交交原sole云执行者源码窄审/必要源准备，再集中处理一次真实样本范围；不修正文、不新建发布体系。未有新版合格交付成本分母/用户设计接受，不升级可交付或发布。集成需feature关闭时先统一所有cover API/worker到v2+字体再启用，停用须保已存v2读取/免费改字/下载与原在途。
+
+## HISTORY — A67扩展研究里程碑，保留事实，执行状态以上文为准
+
 ## CURRENT — 2026-10-20：扩大设计源码/火山能力研究完成；封面仍不可交付/不可发布
 
 权威 HANDOFF **A67**，设计附件 docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md 首节 A67 优先。分支 codex/noteai-xhs-cover-20261019，研究前 HEAD e32a0e6，产品代码8441563不变；当前随后仅文档提交，恢复看实际Git不回退。用户要求进一步核平面设计 Agents、小红书封面项目和火山平台后再讨论，A66固定四步降为候选，不当默认、不当批准。原图真实、准确免费改字、同标题连续原文、90天、合格保存后独立8分仍保留。不得改造商家事实或扩不存在设施。

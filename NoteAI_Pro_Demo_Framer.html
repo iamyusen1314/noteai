@@ -8318,7 +8318,7 @@ function coverQuoteReady(quote) {
     && quote.charge_timing === 'after_saved_cover' && quote.can_afford === true;
 }
 function coverTaskStage(job) {
-  const stages = {queued:'等待封面制作名额',design:'正在选图与设计',image:'正在制作底图',qc:'正在检查文字、主体与事实',designing:'正在选图与设计',generating:'正在制作底图',
+  const stages = {queued:'等待封面制作名额',design:'正在选图与设计',image:'正在制作封面',qc:'正在检查设计、文字与真实主体',designing:'正在选图与设计',generating:'正在制作封面',
     composing:'正在排字',compositing:'正在排字',quality_check:'正在检查文字、主体与事实',
     checking:'正在检查文字、主体与事实',saving:'正在保存封面',settling:'正在确认交付与结算',
     completed:'封面已保存',failed:'本次封面未交付',cancelled:'封面任务已停止',expired:'封面已到保存期限',

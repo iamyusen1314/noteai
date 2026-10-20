@@ -145,7 +145,8 @@ def policy_snapshot(config=None):
     return {**policy, "execution_scope": selected["execution_scope"],
             "budget_id": BUDGET_ID if selected["execution_scope"] == "acceptance" else FORMAL_BUDGET_ID, "design_model": selected["design_model"],
             "text_max_tokens": selected["text_max_tokens"], "unknown_release_seconds": UNKNOWN_SECONDS,
-            "price_status": "public_estimate", "account_evidence_ref": selected["account_evidence_ref"]}
+            "price_status": "public_estimate", "account_evidence_ref": selected["account_evidence_ref"],
+            "design_version": 2}
 
 
 def readiness():

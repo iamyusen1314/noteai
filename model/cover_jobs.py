@@ -102,6 +102,8 @@ def _policy(snapshot):
             or not 1 <= snapshot["max_physical_calls"] <= 3
             or snapshot.get("max_image_calls", 1) != 1):
         raise ValueError("cover policy differs from the approved fixed contract")
+    if type(snapshot.get("design_version", 1)) is not int or snapshot.get("design_version", 1) not in {1, 2}:
+        raise ValueError("cover design version is not supported")
     # An explicitly configured operational budget is not a newly approved user
     # product price. Its value is retained, rather than invented in this module.
     if snapshot.get("provider_budget") is not None and _decimal(snapshot["provider_budget"]) <= 0:
@@ -554,6 +556,14 @@ def _verified_image(user_id, reference_id, *, now=None, layout=None):
 def _layout(value):
     import cover_renderer
     safe = cover_renderer.validate_plan(value)
+    if safe.get("schema_version") == 2:
+        metadata = {"width", "height", "renderer_version", "photos", "text_layers", "text_bbox",
+            "rendered_lines", "text_pixels", "source_hashes", "base_sha256", "final_sha256",
+            "runtime_version", "design_model", "qc_model", "image_model", "selected_source_ref", "input_source_hashes"}
+        if set(value) - set(safe) - metadata:
+            raise ValueError("unrecognized cover layout metadata")
+        cover_renderer.validate_layout_metadata(value)
+        return _json({**safe, **{key: value[key] for key in metadata if key in value}}, maximum=32768)
     metadata = {"width","height","renderer_version","font_id","font_sha256","source_sha256",
         "photo_pixels","crop_pixels","rendered_lines","text_pixels","runtime_version","design_model","qc_model",
         "image_model","selected_source_ref","input_source_hashes"}
@@ -570,6 +580,11 @@ def _layout(value):
 def _public_layout(value):
     if not value:
         return {}
+    if value.get("schema_version") == 2:
+        import cover_renderer
+        box = value["text_bbox"]
+        return {"text": value["text"], "position": "top" if (box[1] + box[3]) / 2 < .5 else "bottom",
+                "position_options": cover_renderer.position_options(value), "lines": value["rendered_lines"]}
     box = value.get("text_bbox",[0,0,1,0.25])
     photo = value.get("photo_bbox",[0,0,1,1])
     height = box[3]-box[1]
@@ -660,6 +675,8 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
     layout_json = _layout(layout)
     final = _verified_image(claim["user_id"],final_media_ref,now=clock,layout=layout)
     base = _verified_image(claim["user_id"],base_media_ref,now=clock)
+    if layout.get("schema_version") == 2 and layout.get("base_sha256") != base.content_sha256:
+        raise ValueError("saved cover base differs from the editable layout")
     expires_at = min(final.expires_at,base.expires_at)
     if datetime.fromisoformat(expires_at) < clock+timedelta(seconds=RETENTION_SECONDS-60):
         raise ValueError("cover assets do not satisfy the approved 90-day retention")
@@ -669,7 +686,15 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
         if row["status"] == "completed":
             return _projection(row,tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?",(row["id"],)))
         sources = {item["media_ref"]:item["sha256"] for item in json.loads(row["source_manifest_json"])}
-        if layout.get("source_ref") not in sources or layout.get("source_sha256") != sources[layout["source_ref"]]:
+        design_version = json.loads(row["policy_json"]).get("design_version", 1)
+        if design_version == 2:
+            selected = {item["source_ref"]: item["source_sha256"] for item in layout.get("photos", [])}
+            if (layout.get("schema_version") != 2 or not selected or layout.get("input_source_hashes") != sources
+                    or layout.get("source_hashes") != selected
+                    or any(sources.get(reference) != digest for reference, digest in selected.items())):
+                raise ValueError("saved cover layers no longer match their frozen original sources")
+        elif (layout.get("schema_version", 1) != 1 or layout.get("source_ref") not in sources
+                or layout.get("source_sha256") != sources[layout["source_ref"]]):
             raise ValueError("saved cover layout no longer matches an original source")
         references = private_storage.lock_ready_media_refs(tx,claim["user_id"],list(dict.fromkeys([final.id,base.id])),now=clock)
         expected = {final.id:final.content_sha256,base.id:base.content_sha256}
@@ -700,6 +725,18 @@ def update_adjusted_asset(user_id,job_id,*,final_media_ref,layout,expected_revis
         if reference.expires_at < row["expires_at"]:
             raise ValueError("adjusted asset must retain the original expiry")
         previous_layout = json.loads(row["layout_json"])
+        if previous_layout.get("schema_version") == 2:
+            protected = {"schema_version", "route", "photos", "source_hashes", "base_sha256", "background_color",
+                "renderer_version", "width", "height", "runtime_version", "design_model", "qc_model", "image_model",
+                "selected_source_ref", "input_source_hashes"}
+            old_layers, new_layers = previous_layout["text_layers"], layout.get("text_layers", [])
+            mutable = {"text", "bbox", "rendered_lines", "text_pixels", "paint_pixels"}
+            if (any(layout.get(key) != previous_layout.get(key) for key in protected)
+                    or not 1 <= len(new_layers) <= len(old_layers)
+                    or any({k: v for k, v in old.items() if k not in mutable} !=
+                           {k: v for k, v in new.items() if k not in mutable}
+                           for old, new in zip(old_layers, new_layers))):
+                raise ValueError("free text export cannot replace the original photos or typography")
         protected = {"route","source_ref","source_sha256","crop","subject_bbox","photo_bbox", "photo_pixels","crop_pixels",
             "background_color","text_color","panel_color","align","renderer_version","font_id","font_sha256","width","height",
             "runtime_version","design_model","qc_model","image_model","selected_source_ref","input_source_hashes"}

@@ -16290,6 +16290,8 @@ def _cover_report_snapshot(report, *, title=None, refs=()):
             "body": str(result.get("note_body") or result.get("desc") or
                         (result.get("input_diagnostics") or {}).get("original_desc") or ""),
             "title_variants": variants, "visual_advice": advice,
+            "approved_titles": [title.strip()] if title is not None else
+                [value for value in [original, *variants] if value.strip()],
             "domain": str(result.get("_domain") or result.get("domain") or ""),
             "source_items": [item for item in mapping if item["media_ref"] in refs]}
 

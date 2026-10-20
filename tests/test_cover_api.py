@@ -175,6 +175,12 @@ class CoverApiContractTests(unittest.TestCase):
             self.request(request_id=uuid.uuid4().hex)
         self.assertEqual(self.counts(), before)
 
+    def test_selected_title_is_frozen_as_the_only_approved_title(self):
+        job = self.submit(self.request(title="店内真实体验"))
+        frozen = json.loads(db.fetchone("SELECT input_json FROM cover_jobs WHERE id=?", (job["job_id"],))[0])
+        self.assertEqual(frozen["title"], "店内真实体验")
+        self.assertEqual(frozen["approved_titles"], ["店内真实体验"])
+
     def test_quote_change_and_insufficient_credit_are_structured_without_a_new_hold(self):
         before = self.counts()
         with self.assertRaises(HTTPException) as changed:

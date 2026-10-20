@@ -138,9 +138,9 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理；素材/任务/UI子代理 | REOPENED_DESIGN / 质量门禁8441563；A65事实依据收敛 | 原技术证据/42离线与独审复用；官方正文实读/截图、历史行业原页实看、设计Agent实际源码已核 | 先按行业×内容意图×真实素材修设计brief；B2重绘仅候选，原像素合同不擅改，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | TECHNICAL_PASS_DESIGN_REJECTED / A64 | 正常九图报告→封面4da、独立8分、免费rev2及重开；实际3OSS PNG/PIL与像素副本全核；36calls/约3.84725元保守计量 | 新设计未真实调用/验收；旧入口已关；H5工具未生效/OS保存及真iPhone未证 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | REOPENED_DESIGN_HOLD / 用户拒绝产品质量，原窗已撤可发布判断 | final-contract-review、final-visual-review及FINAL-COVER-DELIVERY-RECEIPT绑定实际原件；8功能提交末a3a0187 | 原窗统一后续集成；当前不生产迁移/启用/发布；保留审美建议与Q07现行90天规则缺项 |
+| 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_OFFLINE_COMPLETE / 起点3773d2d，随后本次功能提交 | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_REAL_SUCCESSOR_PREPARATION_HOLD / 新版未外呼 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 准备同报告一次v2/2Lite/0image/0retry受控successor最小差异，正常8分且须具体隔离fixture/新有限公网scope；真iPhone/真人容量不冒通过 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | implementation-a68/contracts/final-review.json34557B/7fcdfece保留底图hash P2复现与修正，含最终PC/H5工具/证据窄审，无活跃P1/P2；旧真实证据不删除 | 真实模型/设计质量仍未验，不给产品可交付或发布GO；原窗统一集成，Q07现行90天规则仍待核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -1101,3 +1101,33 @@ contract代理窄只读核源码：cover_jobs93–104/settings35、139/public_pr
 root负责统一设计方案与最小实现，其他子代理本轮独立研究完成结束，media仅另做本节设计附件事实/授权边界的独立窄审。独审首先指出把“扩不存在设施”只写非默认会弱化禁止项，root已改为明确不得，未把此修正当新产品选择。完成审查后提交仅文档阶段成果，下一步先集中收敛具体模型/工具/调用合同并在原模块准备，不额外修正文或整站。原窗口唯一云执行和统一集成发布。
 
 A67最终验证：media独立窄审 expanded-research-independent-review.json8005B/SHA69e76660a2c327e78a0922caa927aff77b73fbb9170c7957200bb066650c67fb，R1明确禁止虚构设施措辞已修，当前findings[]；仅研究事实与权限边界PASS，不当功能或审美GO。root复核163份固定源码/官方MD/浏览截图原字节及摘要一致、JSON有效、精确被审附件SHAcbdad1b7保持；RESEARCH-INTEGRITY-CHECK.json与RESEARCH-MANIFEST.json在原research目录。浏览研究5tab已关，其他标签页未改；无项目执行/安装/模型调用。git diff --check通过；仅3份原权威文档变更，无需重跑产品42项或历史验收。原case PLAN已更新A67/研究完成/路线未批准未实现/请求[]，恢复入口不变。
+
+
+### A68-MAIN 已收到用户“开始执行”；A67原图结构化排版最小实现进行中
+
+实际起点3773d2df8cd9630d1cf3774996e66dde03cb5896，原工作树/分支干净，未回退或另建。按A67开始已明确工程和离线验证：真实照片多图层、语义字层/主辅字阶、许可字体、行业/意图/素材简报、最终图+缩略QC，继续用现Lite设计与QC2calls，不自动换Pro/Flash/开启4call或新平台。保留8分/90天/原图事实/免费改字/独立任务/唯一结算；不修正文或重整报告。新付费样本/公网按准备齐后的具体范围处理，旧窗口仍CLOSED不可复用，原累计36/3.8472528及历史UNKNOWN不变。
+
+本阶段独占：foundation renderer/fonts/test_cover_renderer_v2；media新cover_design.py/test_cover_design；contract只读保存/任务/报价兼容检查及后续最终diff独审；root runtime/settings/jobs/service/API/必要HTML及集成测试和权威记录。各代理不是产品运行时Agents，不计供应商测试调用。当前运行供应商请求[]，新模型/生产/权限/云0。阶段2 IN_PROGRESS，证据沿原D/implementation-a68，不另建任务/交接。下一步接精确v2图层合同并在原存储/白名单/免费改字路径按显式版本集成；旧v1资产与在途按冻结版本，不用全局新常量使旧资产失效。
+
+### Q09 / A68新版真实封面验收准备的技术接续（仅答疑，不执行云或付费）
+
+问题：当前v2 source-photo设计导演+QC仍2次Lite，已完成后端离线/独审，PC/H5本机验证中。后续若一次同report0cdbe新封面获得具体授权，原同CID隔离后端/guard能否沿用现报告与仍有效的9图、保持原36calls账本而单独放行一个新cover job？请指出现有一次guard、封面计数、0余额的测试积分及源码覆盖的最小必要接续；能否用已有私有/本机路径验证正常UI而不新开公网入口？只核已有契约，不为本问题新建隧道、资源、代理、测试账号或改配置。
+
+相关代码：cover_settings.policy_snapshot的design_version=2；cover_runtime.run_cover按冻结版本2只走真实图层设计/QC；旧job4da保留v1；cover_jobs新任务/报价/结算原合同不变。推荐仍用原保存报告，不重正文/九图报告，不覆盖原成功封面，不复制密钥；若必须续接测试辅助guard或新窗口，准备具体差异和恢复再集中说明。阻塞范围仅新版真实模型/正常远端UI验收，不阻塞本机离线/源码提交。旧公网入口CLOSED/旧END不能复用，数值剩4calls不是自动重试批准；请原窗口只答复事实，不启动部署/公网/充值/模型。
+
+A68当前后端结果：design_version显式冻结/报价区分；1–3原图各自引用+hash、准确字层、原图到期后凭90天底图免费改字；旧v1照旧读取；QC含所有选图/实际成品/240缩略且存储前硬门禁。新字体SourceHanSerifSC-Regular来自Adobe固定commit/OFL1.1，增加24,543,332字节包体，不加依赖、DDL或服务。独审发现base_sha未对实底图验证可导致交付后不能免费改字，已在保存结算前拒绝并补1PASS；初审保留不清。root py_compile与diffcheck PASS。浏览器harness现由media独占，后端审查者不提前签它通过。
+
+Q09原窗口已直接答复（仅据已有原件/source40ec与c361，无本次fresh云/SQL/额度/配置/模型操作）：可复用原API-C隔离实例、DB/socket、同report/9refs/私有OSS namespace及普通登录桥，但没有已审可直接再发的接续。40ec在saved_report_check242、main378/396、ledger_snapshot217/transition_check仍按34/report-only与无旧cover/claim锁定；c361 _validate_seal97–117/两cases、bind_case212–222、_resume_claim535–539亦限制旧一次任务。不能只延END/restart/换JS，不能重绑旧new-report-cover case或清计数。最小受控successor须保原36行SHA291acd…/report34SHAfe1…/known3.8472528/pending0/inode1460877、旧job4da/usage/两版本/claim，独立新增自然client/job/case及2Lite/0image/0retry（预期累计38≤40，不代授权），核产品预算与私账并保旧UNKNOWN。旧结算后余额0，新样本正常8分须在具体scope内先查再按原隔离fixture方式补独立标记8，不能退旧cover凑数或改生产余额。
+
+新bundle须完整含cover_design/字体/renderer/runtime/jobs/service/settings/必要HTML，更新runtime旧active/policy hash与LOADED_FILES/guard精确清单；不能只换前端或把旧e623镜像标签冒v2。按原正常TERM/start/CAS与已审源覆盖方式，不热注入、不绕guard、不启动Worker-C。现API只在云API-C host-network127.0.0.1:18114，ownerbootstrap仍原HTTPS/Host/Origin/api_prefix时效；没有已证明Mac私有浏览/SSH隧道，不能声称不OPEN也做正常远端UI。原图最后ready/hash/owner事实不是fresh；最早expires为2026-10-21北京时间12:37:52.232735，跨期走原补传不延expires。root已让foundation仅在原D/implementation-a68/acceptance-prep准备本机最小源草案/差异，仍HOLD无云/付费/公网/补分执行；原窗口sole云/统一集成发布职责不变。
+
+A68浏览受控集成已完成：PC1280×900/H5390×844各经正常保存报告/cover API（无route fulfill）创建1job、九图全进设计、双图+Sans/Serif实际渲染；两个mock文本HTTP/job，实际临时DB唯一8分。排队/design持久状态、整页reload/重开、免费短摘断行至rev2、两版PNG实际下载1776×2368/hash匹配layout；底图/照片映射/期限保持，免费调用与扣分0。pageerror/consoleerror均0，source pins前后同；本机浏览器/回环server已精确关闭。首轮fixture raw domain触白名单failclosed保留HTTP-BROWSER-FAILURE.json，修fixture后完整PASS，无产品白名单放宽。最终HTTP-BROWSER-RECEIPT.json98115B/SHA494c0f8f3126af9c39b14fbf1518c1a7d9d14c7f3590f281f71be7475b1825cb。Browser插件/Browser技能本会话缺失，使用已安装regular Playwright1228，无安装；H5是尺寸模拟不是真iPhone。root亲自view PC/H5首图及H5免费后。此为本机真实HTTP/存储/渲染、模拟模型，不冒真实导演/QC/供应商或设计质量验收。
+
+最终独审34557B/SHA7fcdfecea8b6620f3d9611733ccac339d0451bc2e703e36c1dc96bd959d3b487核当前source和10浏览源码pin/17PNG/回执全同，无活跃P1/P2。明确浏览认证依赖、readiness/policy、已存报告与调度是测试夹具；不是实际登录、九图重新生成报告或生产就绪证明。只运行了封面相关回归/本地临时DB，没有Amap/支付/历史报告/大版本重跑。root最终py_compile全部改动Python、node --check、git diff --check PASS。当前新供应商请求[]、付费/生产/配置/权限/公网0，旧36/费用/UNKNOWN保留。
+
+| 改动与风险 | 可复用证据 | 本轮补证与仍需补测 |
+| --- | --- | --- |
+| brief/主辅字层/裁切与字体；模型可能设计得不好或给不可实现布局 | A65/A67官方与源码事实；旧图片/模型计量模块 | design12、renderer23+1、实际原图两手工布局/缩略、当前26回归；新版真实导演及人工审美仍待验 |
+| 多原图/底图hash、保存白名单、免费短字/到期兼容 | 既有私有存储/90天合同、旧唯一结算与PG证据 | 后端87及R1/最终26（有重叠），实际本地保存/重开/rev2/下载hash；原窗Q07现行OSS生命周期仍未证 |
+| UI状态/刷新与下载，手机保存差异 | 原PC/H5布局和旧24Node契约 | 当前24Node/两viewport真实本地HTTP与PNG；真iPhone/供应商容量不冒通过 |
+| v1/v2与新任务工作流/恢复 | 旧job冻结/UNKNOWN不重派/共享准入证据 | 显式version与quote/所有ref/hash/源独审；统一更新所有cover worker后才可启用，停用新提交须保v2读取，不整退renderer |
