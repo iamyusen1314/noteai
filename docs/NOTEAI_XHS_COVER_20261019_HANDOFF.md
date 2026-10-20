@@ -1,6 +1,6 @@
 # NoteAI 小红书封面功能交接 — noteai-xhs-cover-20261019
 
-交出日期：2026-10-19（北京时间）。状态：交接和独立工作区已准备；封面产品代码、付费评测、生产发布均未执行。本文是此任务唯一交接入口；配套 `NOTEAI_XHS_COVER_20261019_BASELINE.json` 记录可机器核验的基线和证据摘要。
+交出日期：2026-10-19（北京时间）。交出时状态（历史）：交接和独立工作区已准备；当时封面产品代码、付费评测、生产发布均未执行。当前执行状态以第8节权威表及本文末节checkpoint为准。本文是此任务唯一交接入口；配套 `NOTEAI_XHS_COVER_20261019_BASELINE.json` 记录可机器核验的基线和证据摘要。
 
 ## 1. 归属、范围与授权
 
@@ -137,10 +137,12 @@
 
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
-| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor、原窗口A01–A03；用户1/2同意及专项100元授权见最新checkpoint | 已确认合同直接执行；实际账号权限/价格待核 |
-| 2 最小实现与离线验证 | 封面主代理；task/media/UI子代理DONE | COMPLETE / 37512e0+90e969c | 后台、私有PNG、8分唯一结算、异常恢复、PC/H5均有定向证据 | 已冻结；不重复全项目或历史验收 |
-| 3 定向集成与授权真实验收 | 封面主代理；原窗口提供隔离接点 | 本地HTTP集成COMPLETE / a7eb030；真实验收PENDING | PC/H5真实loopback FastAPI→SQLite→私有PNG→后结算通过；预算100元已授权、实际0 | PG由原窗口Q04独立继续；账号登录/型号权限/有效价格UNKNOWN；真实成品/iPhone待测 |
-| 4 独立审查与交付 | 独立审查子代理DONE；主代理集成 | 候选独审与交付COMPLETE / 37512e0+90e969c+a7eb030 | 最终产品diff无未修可复现P0/P1/P2；迁移静态4+队列1独立PASS，loopback补独审通过 | 交原窗口准备集成；真实验收未完成、不发布 |
+| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
+| 2 最小实现与离线验证 | 封面主代理；task/media/UI子代理DONE | COMPLETE / 37512e0+90e969c+e6234e7 | 后台/私有PNG/8分唯一结算/恢复/PC-H5/Seedream可选input usage定向证据及独审 | 产品冻结；不重复全项目或历史验收 |
+| 3 定向集成与授权真实验收 | 封面主代理唯一业务调度；原窗口云接点 | 离线与本地HTTP COMPLETE / a7eb030；真实验收BLOCKED_EXTERNAL | 真实PG16.15回滚89项+精确隔离feature SQL+05978/d264正常启动；Ark登录/Pro目录价已核，实际模型仍0 | 原EIP官方OperationLock/financial；本人处理现有账单后先核原EIP/正常网络，再有限入口与九图上传→报告→封面。真实成品/iPhone未测 |
+| 4 独立审查与交付 | 独立审查子代理DONE；主代理集成 | 候选源码独审/交付COMPLETE / 37512e0+90e969c+a7eb030+e6234e7 | 最终产品diff无未修可复现P0/P1/P2，定向回归与loopback独审通过 | 候选已交原窗口；实际成品/费用独审等待真实测试，未发布；90天OSS现行规则仍待核 |
+
+以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
 - 接收时分支/HEAD（历史快照，实际状态见最新checkpoint）：`codex/noteai-xhs-cover-20261019` / `cc96df72e03a914f2fa595f4d1ec71b03e2d175d`。
 - 已完成：接收、基线关系、归属与授权边界核对。复用基线修复，无需重复cherry-pick。
@@ -468,3 +470,48 @@ guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八
 - 与真实2026-10-13 Shell取证和10-17管理观察是同一deployment，可复用冻结源码46375B/SHA3d92c7bb95682ca196a1568b96b6ea012d5f3918826420a49cb9d00199c0485d、原receipt956B/SHA095e4d6eacaddef0c72d92f45159f0d68a2b0097fec667254f25ff0830699a97：单实例当时installedAnthropic0.97.0、source max_retries=0；strict text block白名单拒额外cache_control、_provider_kwargs不加PromptCache参数。源码合同可用，不冒今日实例化client或实例群新实测，也不把readiness cached_used=false当PromptCache证据。
 - 统一收据本次case/GATEWAY-CURRENT-DEPLOYMENT-PROOF.json，SHA44f67bd71afd3532d63585f89729cd06a3b5423a2ae7b8577f44b45fbf03525d，关联今日截图/AX及两个原件大小/SHA。历史原件根在/Users/openclaw/.codex/tmp/noteai-amap-leisure-real-20261012；actual-gateway-management-20261013/receipt.json和gateway-model-budget-source-review-20261013-0245/gateway60168-source.py。实际供应商cache counters仍以本轮正常业务响应记账，银行实账未知不伪填。
 - 已直交原窗口接proof，不新增fleet/SDK门或额外付费probe；模型仍0，首次metadata UNKNOWN和第二次辅助HTTP前0调用分开保留。原模型决策子代理完成只读资料核，root完成今日实际UI核；两者不互相冒认。入口包终审/当次确认及真实九图上传/报告/封面继续进行中。本段后释放共享文件。
+
+
+### A08 入口终审GO / 原待绑定guard激活缺陷已在付费前检出 — 北京08:30原窗口追加后释放
+
+- **可审阅的最终入口包**：Enew/entry-open-close-prep/README.md；entry_once.py **16009B / 0fc29bb8c63dd9ec82e5d7412a5886cee4a18d5045e5ba4f57efd894d5941477**，mature_cas.py b17fad83不变；SOURCE-MANIFEST.HOLD.json **2038B / 9de734b34802b0551bb35bd6a24f6301f9782238e06871db32c97f0f36f91d83**。独审复核全部manifest与6窄交错/截止/UNKNOWN reload测试，最终GO仅源码层。OPEN/CLOSE同锁，关闭marker阻重开，所有关键写入前重新核至少剩1800s；reload未知先CAS close且未确认close不撤timer。尚未云stage/注册timer/open，HOLD approval=false，真正开放仍需当次确认及host/nginx读回。
+- 具体固定原入口 https://noteaipro.com/__noteai_test/old-hotfix-204-20261013-0615/ ，新owned static=/var/www/noteai-public/private-xhs-cover-e623-20261020-r1，原raw API prefix→127.0.0.1:18114，普通owner原会话桥不造token；正式/api/current/支付/DB不改。end=min(确认+3600秒,北京时间09:23:34)，一次性timer先arm后公开；提前结束同一精确CAS关闭，不停API、不杀在途。主机不重启，transient timer非跨重启保证，loader/bridge另有到期拒绝。正常9图上传单请求11m/应用10MiB，9次普通upload，generate128m、notes64k、request_buffering off/read900s复用成熟配置，不重修上传。
+- **付费前发现的test-only缺陷必须先补**：当前b211 preparation models.evidence_sha256全0，fresh_price proof必须真实SHA；现CAS只准bindings/proofs，故即使Q08材料齐也永远无法正确激活。两个独审均确认，不能塞伪SHA绕过；legacy.rebind_unactivated_ledger硬旧f3e且仅改DB不改运行seal/specs，不能冒适用当前e623。根已委托仅Enew/guard/before-arm-fix派生最小修：首report自然CAS只准将证据pins绑定真price文件，tariff/context/output/provider/model全部不变；精确既有no-cache合同在首次无调用阶段绑定、运行ModelSpec同步且失败回滚，cover阶段禁止新增。新增必要断言，不改产品/账本业务/生产，不重跑旧验收。
+- 当前已证明无uploads/model/report/cover，原HOLD仍保存；若加载修正确需候选进程重载，只能在再次核无在途后针对本候选、同batch/全部原账本计数与UNKNOWN保持，**不重建镜像/SQL/新设施，不中断业务请求**。具体尚未执行，根会先交窄审与受控方案。请先勿派报告付费；新入口确认可以按上述具体包一次准备，正常上传应等guard装载结论，避免重载丢失辅助upload计数。
+- Q08当前Render60168同deployment原件已收到，将复用；metadata helper根因明确是缺PG环境触发SQLite import，与Gateway无关。最小同candidate新解释器0SQL、所有DB connect硬拒、仅单次正常签名GET helper已审，正在派前修一处stdin载体-i，未发第三次GET。原first UNKNOWN/second HTTP0保留；不另造DB/模型探针/新权限。
+
+
+### URGENT A09 — 原EIP官方financial锁定，先停止公网/代理/业务调用对照
+
+原窗口刚实际只读 `DescribeEipAddresses` Request **01A156B9-0E50-5614-9063-198EFF129464**：exact原eip-wz9upi1f15ywx1nsdhy9l / IP39.108.66.93 / 原API-C i-wz9j36od3nf2b1uw7bvg / InUse / Bandwidth10 / PayByTraffic / PostPaid，但 **BusinessStatus=OperationLock，OperationLocks=[financial]**。不是带宽又回1，也不是换了机器。原件Enew/DescribeEipAddresses-current-readonly-original.json及EIP-CURRENT-FINANCIAL-LOCK.json；只读无资源/财务变更，没有查出余额/具体欠费金额，不猜充值数或声称自动恢复。
+
+本机Nginx verifiedTLS200与实际公网不能通可由这个锁定解释，不能继续假设只因电脑DIRECT。请先不要执行域名代理切换/公开入口或付费请求；已有pending proxy确认应以此新事实更新，不用用户为无必要绕行操作批准。财务锁需真实账号持有人正常在阿里云处理账单/余额；不能用CTO文字授权代为执行工具要求本人接管的支付、不能从封面100预算推定新增云充值。根当前无充值/财务修改权限或动作。本人处理后只读复核原EIP Normal/locks=[]及正常可达，再继续有限入口；不反复GET猜恢复。
+
+新metadata `c-sz070k6rzzr9ips/t-sz070k6s008qt4w` Failed2/D0已原身份保存Enew/metadata-candidate-readonly-*：新解释器0DBconnect/0SQL，正常signedGET进入1次、GATEWAY_READINESS_TIMEOUT/无响应，model0；canonical普通DNS HEAD也5.002秒timeout/http0/peer空。first UNKNOWN/second HTTP0历史保留，新metadata是元数据超时，不冒模型调用或供应商推理拒绝。所有formal/旧新isolation pins严格相等、仍closed。网络限制不阻本地guard修及entry stage-only，根继续，不再发外部探测。
+
+
+### A09 财务阻塞只读收敛 / 原件绝对路径（原窗口追加后释放）
+
+- 官方EIP原件：`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-real-nine-cover-20261020-r1/DescribeEipAddresses-current-readonly-original.json`，1662B/SHA0698f7296fd80332145ceb6dce1b2aa2415303085a130633037c9bb29c2ea406。Request01A156B9-0E50-5614-9063-198EFF129464，EIP status InUse、business OperationLock、OperationLocks.LockReason=[{LockReason:financial}]，同39.108.66.93/10Mbps/原API-C。截图同目录`EIP-current-financial-lock-official.png`，209331B，真实API参数/响应上下文中的financial字段，不含Key/Token。
+- **余额已通过唯一只读API补核**：`QueryAccountBalance-current-readonly-original.json`同目录，Request **01A156BB-7C38-5111-B991-A72BCC2926B4**，Success=true，CNY **AvailableAmount=-2.66 / AvailableCashAmount=0.00 / CreditAmount=0.00 / MybankCreditAmount=0.00 / QuotaLimit=0.00**。截图`Aliyun-current-balance-readonly.png`。未查完整账单，-2.66是当前可用余额事实，不能冒确定解除锁的精确最低充值金额/全部未出账消耗或自动恢复时限；建议本人正常处理欠费并留正余额，再核官方financial锁解除和可达。根没有充值/支付/建订单/改EIP/新资源/新权限操作，100元封面预算不等于云充值批准。
+- 此时不为公网阻断继续stage/装载guard，保留API05978/d264现有HOLD及所有计数；entry包与before-arm-fix/reload准备仅本地保存，待外部恢复再接同case。候选原窗口09:23:34仍有效，到时不能直接用旧proof发业务或偷偷延长；如未恢复，仅记录过期与具体下一有限恢复接点，不重跑已做build/SQL/PG89或模型请求。原入口仍closed/未注册timer，0上传/0模型/0报告/0封面；真实供应商验收和封面上线都未完成。
+
+
+### A10 本地辅助修订冻结，财务恢复后原case可接续（原窗口追加后释放）
+
+- test-only修订在 **Enew/guard/before-arm-fix/**：cover_acceptance_guard.py **52759B / c36184b4fc9b8dfb5060e76cc6e491a6afccdee1ef2a6b3515dc2ffa3788f5ee**，SOURCE-ONLY-MINIMAL.patch **9858B / 7db88605c338d78eede1b6a45af05f3b87e75a60aa24602c8e11c9c0d46170ad**，RESULT.LOCAL.json **8321B / f70d08f7bea3abac3a9e1be055d652e9dcb6add5fcc7f8eb5982eabd69fc2b62**。实际Python3.11.14共48PASS（原35源码逐byte继承+新13）、0fail/error/skip、每例socket入口封闭且attempt0，合成SQLite，非真实业务。旧b211/原35日志/legacy24d72全留存。独审GO-local与准确限制在同目录INDEPENDENT-SOURCE-REVIEW.json，不重跑未受影响项目。
+- 修订允许report/cover两阶段仅将证据pin更新到各自自然binding的真实price文件SHA，所有provider/model/rates/context/output保持原值；seal/ModelSpec一起更新、失败一起回滚。原no-cache双合同/当前Render2003B44f67与旧1836Baefeee原件/root review仅首次report可加入，cover冻结，每次reserve/prewire仍核。100批准额不改；99模型cap+1存储工程预留仅有empty-only降cap函数，**实际账本/预算尚未改**。不得把源码48测当实际成功激活或保证100内所有最坏分支完成。
+- 候选运行态仍 **b211 guard / d264 / 05978 / e623**，0upload/0model/0report/0cover，未装修订/未激活。Enew/reload-preparation/保存未绑定HOLD备用：reload_same_candidate.HOLD.py18865B/648dfe75c5555848a72536915b0e8871e6fafde306da2d9a2a56d92577bc3ae4，bind_reload_guard.py2641B/c5200f3115fef156306a4830bd59825e5e66d0cde6de9846eb0512eec8cbc3f2（未调用）。它尚未完整独审/真实运行，不是下一步自动执行指令；仅未来确需且fresh原空账/无在途/0uploads时针对同CID同batch保留原control后受控加载，不建新container/image/DB、不清账/覆写历史、不延时窗。
+- entry源码final0fc/manifest97b/两段source-stage已独审本地GO、6race+4stage通过，但 **没有云stage/OPEN/timer/Nginx重载**。财务锁期间不继续云安装或HTTP探针，09:23:34截止原样保留。完整本阶段原件索引 Enew/ROOT-CURRENT-NETWORK-AND-LOCAL-PREPARATION.json。生产代码组合未变、公网当前financial锁；100模型预算未花模型费，基础流量/云账单不冒模型invoice0。根本轮只保存既有隔离/本地接口准备，没有并行开发封面产品、没有生产封面发布。
+- 下一步最小配合：账号持有人正常处理Aliyun现有负余额/financial锁。恢复后先读原EIP状态/原case/账本及有效时窗，再由封面窗唯一普通UI上传→正常新report→同report cover；若原runtime已过期必须明确收敛新的有限运行绑定，不能用过期proof或重放任何UNKNOWN。未执行的真实OSS/owner会话/视觉/模型/成品/PC-H5/唯一结算/90天provider保存仍按各自证据限度列出。
+
+
+### 本窗阻塞与恢复 checkpoint — 2026-10-20 北京08:39，阶段3 BLOCKED_EXTERNAL，真实验收未通过
+
+- 实际分支codex/noteai-xhs-cover-20261019/HEAD 8ae2841aac19b1189c0e037198d818d9f79a4709；本次文档提交保留原窗A08–A10全追加，更新同一权威阶段表与CURRENT指针，没有新增任务/树/发布程序或产品改动。产品交付仍后台37512e0+前端90e969c+协议e6234e7，源码独审可复用，实际成品独审未执行。
+- 已读官方原EIP financial锁及当前QueryAccountBalance：可用余额-2.66元、现金/信用0。-2.66是显示的可用余额，未查完整账单/未出账消耗，不能推精确最低充值数或恢复时限。原件和截图在A09绝对路径。原窗已完成只读收敛，不再发公网探针/模型；根也没有充值、支付、改EIP、代理设置、生产DB或配置动作。
+- 先前入口+单域代理确认已经明确向用户撤回，现无可执行当次批准；晚到回复不触发OPEN/切代理。代理仅只读查看/输入域名搜索、已返回首页，设置未改；正常Ark登录已完成，不存/重复用OTP。当前浏览器测试错误页可关闭，原Ark会话保留，不动原窗口云管理tab。
+- 同case PLAN保持一篇九图报告+一封面/40calls/100元；0upload/0model/0cost/0report/0usablecover，两个计划clientID仍未受理。首次metadata UNKNOWN与后继0HTTP/一次metadata timeout分开保留，不冒模型UNKNOWN或把未知成本写0。实际同batch ledger/control由原窗保留，生产进程pins最后严格不变。
+- 当前runtime仍d264/05978/e623、b211 HOLD，公网include关闭、无timer；有限截止09:23:34北京原样，不暗延。before-arm-fix c36184b4/13新增合计48PASS/独审GO仅本地，实际预算/cap/guard尚未更改。reload-preparation还不是已独审自动执行入口；不因源码通过重启候选或新建batch。
+- 恢复唯一入口：先读本段与原窗A09/A10→本人处理现有阿里云账单→原窗只读核原EIP解锁/正常公网→核当前候选、同case账本/control及实际时窗。若过期，明确重新收敛有限运行绑定并取得真正必要的当次入口确认，原build/SQL/PG89不重做，UNKNOWN不重发。再正常owner/9普通上传先证OSS→唯一自然claim新报告→该报告cover→PC/H5状态/重开下载/免费排字/唯一8分/成本及人工独审。真实iPhone、多用户实容量与90天provider规则仍未证；未有真实样本、每张合格成本N/A。
+- 根已向原窗口交回外部阻塞和同case状态，统一集成发布仍属原窗口；本段完成即释放共享文档。当前需要的是本人处理阿里云财务状态，不是重复批准模型预算、再登录火山或重做项目。
