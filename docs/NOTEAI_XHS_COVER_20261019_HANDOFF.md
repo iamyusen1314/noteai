@@ -1263,3 +1263,14 @@ foundation唯一r4三源已冻并真实3.11编译/定向7测试及独审PASS：r
 原human2aa7及06:35:11→07:35:11固定END仍历史原件，最晚OPEN07:05:11已过而未开；本次未产生新v2成品，真实设计/QC/质量/PC-H5重开下载未验，合格新封面成本分母0，不宣称可交付。功能离线与PC/H5既有证据复用，entryr2 22fd/26411、r4整组三源已完成真实3.11独审配对GO，仅source范围。
 
 下一步仍属同任务的非付费恢复收尾：foundation唯一准备最小r5 transition adapter，guardb752/legacy266e/entry22fd/产品31b不改；保历史e074 predecessor，另明确actual_window_parent={seal_ref:真实fc60,transition_ref:真实e074→fc60旧回执}，当次回执必须未来真实fc60→new CAS，不复用旧回执冒新操作。真实旧transition1564/2308b44d现已导在cleanup actual/transition.ACTUAL-ORIGINAL.json，非重建。新human/END/新CAS仍HOLD，先最终源码/独审和原host最薄HOLD载体准备齐，再集中请求一次新的有限真实验收窗口，复用已有8积分、不重报告或补分。原sole唯一云与统一发布，root唯一未来正常UI一次；不另建任务/发布系统或回退历史HEAD。
+
+
+### A68-R5-ACTUAL-PARENT / 最小续接源码与真实parent离线审查完成，未来实际操作仍HOLD
+
+登记前HEADebc622f，产品功能31b4d7b/guardb752/legacy266e/entry22fd保持；仅测试辅助runtime r5新增actual_window_parent分支，54305B/e2b413f9。最终收据P/implementation/WINDOW-SUCCESSOR-R5-RECEIPT.HOLD.json11127B/bc4f36a7，测试13308B/3664f490，作者实际3.11编译+8PASS0.027s、独立8PASS0.028s且无活跃P1/P2。实际parent7772B/fc60及真实history1564B/2308逐原字节使用，没有parent hash替换。旧8974B/3f9d合成parent收据仅历史；完整e074 raw本机缺失，旧完整链复用实际r4正常启动证据，不宣称本机完整重放。
+
+parent只读导出实际Cc-sz070nlyi7k7u2o/Tt-sz070nlyi7rpj40 S0D0，Run01A15BA8-1086-58FF-9950-3DA86F2AAF45/Read01A15BA8-65AF-5BFC-A01E-1E61A339874C；stdout6047B/f5de5294，parent原件在H/window-20261021-r1/parent-seal-export-once-r1/actual。无PG/docker/start/TERM/CAS/Env/DSN/模型/OPEN。新分支保历史e074→fc60，当次另需真实fc60→new，仅approved_at/END/proofs可变，旧36calls全列、inode1460877、known/pending/案例/预算保持，不重play旧CAS或841f。
+
+原sole独占host未来HOLD载体，media独占P/entry binder，精确material九键含END+六rawrefs+boot/pins，入口仍成熟3refs，ownREADY由binder核并不新增第4入口门。7398静态15RAM不冒新6helper来源；新source root/dispatch root均独立原目录，最终static target沿原值。冷读需复用现有image的短命RO工具（单独tool CID/name、network-none、双RO挂载、UID999、限30秒与资源、--rm不留常驻），不作为新后端/新权限/生产配置；实际工具尚未跑。原0bb operator源码不改，future wait3600裁剪END供正常UI操作，claim后180秒不改，当前未激活。
+
+当前真状态仍sameCID Exited0/PID0/CLOSED、36calls/3.8472528/pending0、保留已补8分、无在途/新任务/新版合格封面。新human/END/actualCAS/start/operator/OPEN/模型均null/HOLD。原07:35:11授权过期不延长；host/entry全部准备及窄审完成后只问一次新有限公网验收窗口，不追加预算或产品选择，不重跑报告，不修改正文/生产。PLAN为唯一可恢复任务状态。

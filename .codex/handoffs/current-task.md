@@ -6,7 +6,9 @@
 
 原human2aa7及06:35:11→07:35:11固定END仍历史原件，最晚OPEN07:05:11已过而未开；本次未产生新v2成品，真实设计/QC/质量/PC-H5重开下载未验，合格新封面成本分母0，不宣称可交付。功能离线与PC/H5既有证据复用，entryr2 22fd/26411、r4整组三源已完成真实3.11独审配对GO，仅source范围。
 
-下一步仍属同任务的非付费恢复收尾：foundation唯一准备最小r5 transition adapter，guardb752/legacy266e/entry22fd/产品31b不改；保历史e074 predecessor，另明确actual_window_parent={seal_ref:真实fc60,transition_ref:真实e074→fc60旧回执}，当次回执必须未来真实fc60→new CAS，不复用旧回执冒新操作。真实旧transition1564/2308b44d现已导在cleanup actual/transition.ACTUAL-ORIGINAL.json，非重建。新human/END/新CAS仍HOLD，先最终源码/独审和原host最薄HOLD载体准备齐，再集中请求一次新的有限真实验收窗口，复用已有8积分、不重报告或补分。原sole唯一云与统一发布，root唯一未来正常UI一次；不另建任务/发布系统或回退历史HEAD。
+r5未来窗口最小adapter已冻：54305B/e2b413f9；最终收据P/implementation/WINDOW-SUCCESSOR-R5-RECEIPT.HOLD.json11127B/bc4f36a7，实际Python3.11编译及8纯测试、非作者独审通过，无活跃P1/P2。实际parent原件7772B/fc60与旧transition1564B/2308均不改字节用于测试，无parent digest替换；旧8974/3f9d合成parent收据仅历史。完整e074 raw本机未留，旧完整链复用上述实际r4 startup，不冒本机全链回放。parent单次只读导出Cc-sz070nlyi7k7u2o/Tt-sz070nlyi7rpj40 S0D0，原件在同window/parent-seal-export-once-r1/actual/base-seal.ACTUAL-ORIGINAL.json；无额外模型或业务写。保e074 predecessor与fc60/history，未来新CAS必须fc60→new且仅时间/proofs变化，账本36全列不重置。guardb752/legacy266e/entry22fd/产品31b均不改。
+
+下一步原sole独占host薄载体及其非作者窄审；media独占P/entry未来binder，双方已对齐9keys/6原始refs，frontend7398静态RAM证据与新6helper实际stage分开。host必要冷读复用既有不可变image的短命只读工具（独立tool CID，非新后端），network-none/RO/UID999/限资源/自动移除，实际read尚未执行。原operator0bb源码不改，等正常UI claim最多3600且受新END裁剪，claim后pause/resume仍180秒；当前未激活。新human/END/CAS/start/OPEN/模型均null/HOLD，准备齐再集中请求一次新有效时窗，复用已有8分不补分、不重报告。原sole唯一云及统一发布，root唯一未来正常UI一次。
 
 ## HISTORY — 上一检查点
 
