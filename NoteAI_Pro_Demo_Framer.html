@@ -8459,7 +8459,13 @@ function coverAcceptJob(ctx, job) {
   if (!coverJobMatches(job,ctx)) throw Error('封面任务身份不一致，未显示或重新提交');
   ctx.active = job;
   ctx.jobs = [job,...(ctx.jobs || []).filter(item => item.job_id !== job.job_id)];
-  if (job.status === 'completed' && job.has_final) ctx.latest = job;
+  if (job.status === 'completed' && job.has_final) {
+    ctx.latest = job;
+    if (ctx.balanceJobId !== job.job_id) {
+      ctx.balanceJobId = job.job_id;
+      void refreshCreditBalance();
+    }
+  }
   if (ctx.pending && job.request_id === ctx.pending.request_id) coverWritePending(ctx,null);
 }
 function coverScheduleRead(ctx) {

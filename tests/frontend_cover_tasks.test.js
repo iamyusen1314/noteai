@@ -11,7 +11,7 @@ function make(extra={}) {
   _historyReportSelection:{report_type:'generate',report_id:'saved-report'},_authToken:'synthetic-token',_authUser:{id:'synthetic-owner'},
   reportIsGeneration:()=>true,reportGenerationResult:()=>null,reportDiagnosisResult:()=>null,completeProductResult:x=>!!x,
   productActionAttributes:()=>'',_chatIdentitySnapshot:()=>({ownerId:'synthetic-owner',epoch:1}),_chatIdentityMatches:()=>identity,
-  _fmtLocalTime:x=>x,FormData,URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:x=>calls.push(['revoke',x])},
+  _fmtLocalTime:x=>x,refreshCreditBalance:async()=>null,FormData,URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:x=>calls.push(['revoke',x])},
   clearTimeout:x=>calls.push(['clear',x]),setTimeout:()=>99,API_BASE:'http://offline.invalid',showToast(){},...extra});
  vm.runInContext(code,c);
  const ctx={dialog,report_type:'generate',report_id:'saved-report',identity:{ownerId:'synthetic-owner'},token:'synthetic-token',path:'/reports/generate/saved-report',
@@ -214,4 +214,13 @@ test('unreadable history forbids original-wire resubmission and malformed storag
 test('unavailable session persistence stops a paid submission before any transport',async()=>{
  let posts=0;const {c,ctx}=make({fetch:async()=>{posts++;throw Error('must not submit');}});c.sessionStorage.setItem=()=>{throw Error('storage denied');};
  await c.coverCreate(ctx);assert.equal(posts,0);assert.equal(ctx.pending,null);assert.match(ctx.notice,/恢复状态.*本次未提交/);
+});
+
+test('saved cover settlement refreshes ledger-backed balance once per completed job',()=>{
+ let reads=0;const {c,ctx}=make({refreshCreditBalance:async()=>{reads++;return {total_available_credits:0};}});
+ c.coverAcceptJob(ctx,{...completed,status:'queued',has_final:false,billing:{status:'reserved',reserved_credits:8}});
+ assert.equal(reads,0);
+ c.coverAcceptJob(ctx,completed);assert.equal(reads,1);
+ c.coverAcceptJob(ctx,completed);c.coverAcceptJob(ctx,{...completed,asset_revision:2});assert.equal(reads,1);
+ c.coverAcceptJob(ctx,{...completed,job_id:'next-completed-job'});assert.equal(reads,2);
 });
