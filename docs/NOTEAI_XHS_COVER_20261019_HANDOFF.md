@@ -980,3 +980,14 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 根本机render时严格SHA拒因独审df53后曾加3行stdout长度guard40a8（未云执行）；已内存反向比对证只有该输出差分，40a8归档NOT-EXECUTED，恢复精确已独审df53，不回退产品/Git。新actual人类绑定prepare载体root execution/ACTUAL-APPROVED-20261020-r1/prepare.sh6401/SHA5554b15d6474f192c0514bcb36cf33c849137bf77b41d15a65337b40ad907426、wire8536/05884192c16f576f0f7c901a59d29bc0bc1bffe8c674475de46ff0910bb4dfbb，compile/sh-n及host.authority实际时窗核通过。已交原窗核当次真人后唯一prepare/Timeout240；本窗不代云/业务POST。
 
 当前新runtime/PID/新seal/WAIT/OPEN均待真正回执，不把载体已交当执行。原PID3350776/1cab、34complete/known3.8343288/unique报告8/0cover保留；新case预算不重置，cover≤3/image≤1/0retry。实际RAW READY后root立即生成唯coverwait→真marker/liveproc→OPEN前复核livePID/argv→原entry min30/timer-firstOPEN→正常UI唯一cover。正文不在范围；不重报告/九图，不增加生产或权限。
+
+
+### A60-MAIN 封面真实唯一提交并已保存；后端账本与下载/免费排字继续核验
+
+06:07Z前后实际sameCID prepare Cc-sz070l0gqbl8vsw/Tt-sz070l0gqc089vk S0/D0：runtime3379653/source40ec1ea、原34全行SHAfe1b74ad/known3.8343288/原report8保持，aux仅seal CAS ed53bae2。D/saved-cover-prepare-actual-r1/result.ACTUAL-ORIGINAL.json19717B/SHA3158ba4f475c5b980bdf27fc01f5c810eb878cceafe4d528a52b1653045a138e已由原gzip字节归档核验。WAIT Cc-sz070l0q0cmfqio/Tt-sz070l0q0d1f4lc S0/D0，实际UID999 PID74/start811177829，marker335/8fe31ab5、actualstdout1132/d5d0f673；OPEN Cc-sz070l0uckotlhc/Tt-sz070l0ucl3szk0 S0/D0、stdout329/96b912ec，静态f818/90931，timer noteai-cover-entry-close-20261020-saved-cover-r1。唯一END1792479571=14:59:31北京不变，不再次prepare/wait/OPEN。
+
+根正常PC保存报告0cdbe自动恢复，实际“视觉专家”区独立封面按钮存在。报价8/9候选已选；九张原图naturalWidth/Height全部与原尺寸一致，初异步第7–9缩略尚未加载并非缺图终态。选报告原备选标题A“松影红桥、暖光木格栅，都市禅意汤泉值得来”。约06:11:5xZ根仅一次正常按“生成封面·8积分”；初等待名额/预留8未扣，06:12Z正常显示“封面已保存/实际扣8”，保存至2027-01-18 14:12。实际pageAssets已观测job4da1165c-7cc3-4d12-8c52-fc2e365fa05e及final revision1；未再次POST/报告重跑/正文改动。原第7张庭院真实预览，PC初成品AX/PNG在D/normal-ui/PC-COVER-SAVED-FIRST.*，不能以UI回执代后端唯一结算或独立质量审查。
+
+正常下载按钮已唯一按一次，UI“已交给浏览器下载”，工具download事件30s超时；图片Blob downloadMedia明确不支持，当前本机Downloads未见文件。未把工具失败当产品失败/未冒下载验收通过；只对已交付私有成品继续精确取件。chrome://downloads在首次导航被URL政策拒绝，未绕过该禁令。免费调整尚未做，待finalRO before-free快照。contract最小reader29852/415d0604已15purePASS及独审中，由原窗复用原分段传输；其只读11SELECT/RRRO/ROLLBACK，不新业务或模型。真实成本/次数/结算/物理存储需实际RO，暂不猜测0或已通过。
+
+阶段3仍IN_PROGRESS：真实PNG独审、正常刷新重开/PC-H5/免费排字/下载与前后账本；阶段4最终独审及交付原窗待完成。正文质量明确不在范围。当前累计预算仍40call/100元，不重置34历史；provider新增实数待读。root唯正常UI，原窗唯云/未来统一生产发布；生产/权限/资源0新增。当前HEAD e6c907f（本节随后文档提交），运行封面任务UI已终态，入口提前close待主要取证结束，最晚END自动关，不停API在途。

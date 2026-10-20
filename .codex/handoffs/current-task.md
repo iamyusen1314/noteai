@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-20 14:17北京：真实封面已保存，唯一8分UI回执；只核验封面交付
+
+权威A60及原case/PLAN.json。sameCID d264/runtimePID3379653/source40ec，cover WAIT PID74真实READY后已OPEN，固定END1792479571=14:59:31北京，禁止滚动或重prepare/WAIT/OPEN。实际源f818/90931封面入口可见，九原图均物理加载。root仅一次正常封面提交，actualjob4da1165c-7cc3-4d12-8c52-fc2e365fa05e，revision1，UI已保存/实际扣8/期限2027-01-18 14:12。正常下载UI成功但浏览器工具未取到文件，未记通过；freeadjust尚未做。正文不修/不当封面前置，不重报告或九图。
+
+原report0cdbe/34physical/known3.8343288/native3.3571038/unique8保持历史；当前封面新增调用和成本待原窗实际RO，不猜值，不重置累计40call/100元。下一步原窗运输/执行contract已冻415d0604最小只读，root普通UI重开/免费排字/下载/PC-H5；media独审真实PNG。原窗sole云和统一生产发布，rootsoleUI。无生产/权限/资源变更；入口取证后提前关，最晚END自动关。恢复先看A60/PLAN及实际job，不再POST。
+
+## HISTORY — 下列旧checkpoint保留；过期窗口不能重放
+
 ## CURRENT — 2026-10-20：同报告封面新确认已核，END14:59:31；准备载体待原窗实际执行
 
 最新A59：真人01a157e4-c0dc…/turn01a157e4-c0a2…答确认，startedAt1792475971；唯一END1792479571=06:59:31Z/14:59:31北京。ROOT源实stage16/whole2ca15/10pins及host原件1648/36d519已核；产品e623+入口f818/085，Git当前读取实际HEAD。新唯一prepare5554(raw6401/wire8536/Timeout240)已交原窗sole云执行，尚未收到实际新runtime/PID/WAIT/OPEN，root禁止提前POST。初本机输出guard导致renderer hash拒，已保存NOT-EXECUTED并还原精确独审df53，仅aux本地源，无产品/Git回退。
