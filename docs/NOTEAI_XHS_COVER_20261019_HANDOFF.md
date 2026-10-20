@@ -1158,3 +1158,16 @@ media据此在既有源派生中准备fresh普通解释器先候选model再原/a
 A68-PREP当前证据索引：acceptance-prep/A68-ACCEPTANCE-PREP-RECEIPT.HOLD.json4067B/SHA3eebad12ab2c0366d974aa6736966a30f457f82f9723bd32cd58e1776feb5d71。entry独审11654B/ddce512c保留1个实际接线P2：成熟CAS仅root原件，runtime两ref实际UID999/0600。选择保entry/CAS源不变，由host有界实读两原件并O_EXCL另存root:root0600同字节副本，ref指副本、保原path/uid/hash；尚未补齐/复审，不能称无条件GO。entry没有operator READY硬门，由host/root实核本次新OPDIR READY/PID/source/END/latch后才OPEN，不加第四ref/不假称已有。原窗source-only运输将用已核partial小包加固定官方Serif一次有界读取，最终逐叶核齐；完整20.6MB包尚未在云端，不能仅凭helper接受tar冒传输已就绪。
 
 root已纠正向completed代理send_message未启动回合的调度失误，已实际followup启动foundation三源、media入口独审；合同作者已完成ready路径实核并结束，待host冻结再followup独审。为付费前验证新增case/CAS最小变化，foundation另获准仅在自有临时目录用合成36行运行实际SQLite；原投影无旧36完整行，需明确synthetic baseline，不能冒实际账本/原inode/RUN身份已通过。禁止真实PG/网络/模型。此为受影响高风险接续验证，不新增平台或整站前置。
+
+
+### A68-PREP-R2 / 接续源码窄审闭环；请求一次实际只读预检，尚无新付费
+
+主功能仍31b4d7b，文档HEAD9ee1529；本段随后仅文档checkpoint。统一prep索引当前8032B/SHA132ca3213ab746c0486205ea5a5d8cea71fde61bef5f87258391f20dd4767ea1，旧索引逐byte在receipt-history按SHA保存。三helper独审9077B/0584acfa，无活跃P0/P1/P2；新增2项临时合成SQLite实跑唯一seal CAS/重接拒绝、old36 synthetic前缀不变、新2至38/唯一settle及UNKNOWN保留不重派，所有测试替身明确，非实际原账/硬inode/现场证明。正常gift8与只冻结旧财务行不冲突，但未执行gift或核新余额。
+
+entry独审22008B/868e508a保UID999→root CAS P2历史，host源码已按实际有界实读+O_EXCL root0600同bytes副本闭环，原UID999文件不chown/不重建，实际copy待执行。host首冻bea0保在archive-bea0c12f-r1；两后续接线P2均被独立捕获并在R2最薄修复：①实际18模块仅7个新prefix、余/app，不能全要求新prefix；②新reader的源码合同31b并非API已激活，源准备不能依赖无producer的旧e623新shape标签。R2 HOST-SOURCE-RECEIPT.HOLD.json7502B/19272a8c，独审22814B/61765079保两finding历史，实际Python3.11.14下14纯检查由作者和独审者独立通过，无活跃阻断，仅source/offline GO，不冒实际stage/ready/OPEN。
+
+目标版本补核：安装的/Users/openclaw/.local/bin/python3.11为3.11.14，12个本次变更Python文件实际编译PASS；worktree .venv实际3.12.14，原受影响后端离线证据不能冒3.11执行。root尝试在3.11重跑同2SQLite检查时因该独立解释器无httpx在模块导入即失败（INDEPENDENT-SQLITE-PY311-TESTS.log），属本机测试环境缺库、未执行SQL，不改helper/不安装依赖/不新增mock框架；复用已过的原环境SQL检查，原3.11镜像的真实模块/字体装载与功能仍将在付费前/真实样本按既定路径实核。
+
+root已交原sole云窗口执行最多1条有界只读预检（请求不是实际结果）：同d264/image059当前PID/旧40ec源、六mount父mode、入口CLOSED、原36/旧report/cover无在途及非font候选base paths/bytes/SHA；无Env/源码正文/密钥/生产DB，隔离原reader仅RRRO，model0/源写0/gift0/TERM-CAS-start0/OPEN0/正式配置0。原C/T尚未返回，结果未知只查原命令、不重发。实际source-only stage/运行/公网/新任务仍未执行，新human和END及actual refs全null。另本机可选32755B/3d868b8精确原archive差异运输候选可用6段构造同560089B/338bb原小包，root3.11逐byte证明；实际cloud base及远端zlib未证，不能冒已运输，不改stager冻结源，也不就地改旧源码。
+
+下一步：接收该唯一只读原件→按实际base择最小运输并完成自有新版本source-only准备→再集中绑定一次同report新v2/2Lite/0image/0retry/隔离正常gift8/新有限受保护入口真实验收范围。原36/3.8472528与旧UNKNOWN/旧两版保持，新供应商请求[]；产品设计质量仍待真实输出，不能交付或发布GO。
