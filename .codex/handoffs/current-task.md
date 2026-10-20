@@ -1,8 +1,8 @@
-## CURRENT — 2026-10-20 A68：字体云缓存和前端source输入实际齐，最后cached-stage/字体解码准备中
+## CURRENT — 2026-10-20 A68：隔离source、前端输入、真实UID999字体全部就绪；待当次真实验收窗口
 
-功能31b4d7b/登记前HEAD5157266，原分支/工作树不变。恢复读原case PLAN及交接A68-ASSET-READY。原sole实际前端10Run/10Read S0D0，真source原件10998/7398e1b2；6输入和formal13→RAM15已核，1970未替/finalSTATIC_ROOT=false/未served或浏览器auth。官方Contents云GET同C/T实际Success0D0，原832/6dfe8626，ROOT/a68-font-contents-cache-r1字体24543332/78aa精确；旧raw GET失败保留，不冒重试成功。root逐原件核H/ROOT-FRONTEND-FONT-INPUTS-VERIFICATION.json5367/7e0ef044。
+功能31b4d7b/登记前HEADa0e4a2b，原分支/工作树；恢复先读既有case PLAN及交接A68-PREP-COMPLETE。r3两命令实际S0D0，真stage ROOT/a68-v2-source-stage-cache-r3/result.json4542/9f6c7e72，原9370 verifier/maps/aux/字体均通过；原失败started及841f/9370保留，当前HTTP0/无激活。frontend source原件10998/7398e1b2（RAM15/source-only），UID999实际Py3.11.15/Pillow12.3.0/FreeType2.14.3双OTF中文bbox与module路径hash均核。root实际原件验证1926/7ef8f31c，索引21145/b0a24410。不要重运输/fontGET/stage/套件。
 
-下一唯一进行中：原host作者cached-stage r3，仅cache fixedref/新CASE/fresh4RRRO/原VERSION仍absent，保原9370verify/841f与两失败started；合并同CID UID999/PIL两OTF中文解码，不业务导入/SQL/模型。尚未实发r3/激活。累计36model/private3.8472528/pending0/旧UNKNOWN、旧40ec/PID3379653/CLOSED保持。newhuman/END/gift8/TERM/CAS/start31b/ownREADY/OPEN/newmodel全HOLD；source齐后集中一次真实有限窗口，不提前滚动旧窗，不重报告/正文。原sole云执行与统一发布保持，不启动C、不生产改动/新增权限。
+当前旧40ec/PID3379653/CLOSED保持，36complete/pending0/private3.8472528/全calls291acd/inode1460877、原report completed/旧cover1两版/9有效refs和旧UNKNOWN均保留。新normal API startup31b/ownREADY/OPEN/正常UI/真实设计QC/审美未执行，不能称可交付。下一唯一集中确认同report新1v2/2Lite/0image/0retry、原40calls/100预算内且新预留≤1元、隔离gift8/同CID必要aux succession和原受保护有限入口（回复起≤60min、OPEN余≥30min、自动关）；浏览器公网再开放需当次确认。canonicalhuman/END仍null；未实际回复前不TERM/CAS/gift/OPEN/provider。原sole云执行/统一发布，root sole正常UI，产品/正文/生产/权限范围不扩。
 
 ## HISTORY — 上一检查点
 
