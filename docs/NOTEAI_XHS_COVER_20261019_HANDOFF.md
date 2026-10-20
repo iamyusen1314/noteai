@@ -138,9 +138,9 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理；素材/任务/UI子代理 | COMPLETE / 原e6234e7；入口修复f818da4/回归0854113 | 原定向证据复用；真实澄清报告角色入口23项VM通过；固定静态15文件重建及10JS语法通过 | 后端冻结；后续只补受影响封面链路，不扩正文或整站 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / A56–A57，报告已保存、封面未提交 | 实际34calls complete/unique8/9refs；当前RO确认素材仍ready/无coverjob，入口已CLOSED | 同报告1封面续测HOLD源独审/实际source-only就绪后取一次新有限窗；不重报告/九图，保40/100及历史 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | IN_PROGRESS；候选原源码独审完成，真实封面待验 | 原产品diff/定向回归/loopback复用，alias实际renderer回归补齐 | 实际PNG/费用/保存重开下载及免费排字验证后交原窗口统一集成；未生产发布，OSS90天现行规则仍待核 |
+| 2 最小实现与离线验证 | 主代理；素材/任务/UI子代理 | COMPLETE / 原e6234e7；f818da4/0854113；a3a0187 | 原定向证据复用；最新封面VM24 PASS/独审余额异步围栏；固定静态15文件及10JS语法通过 | a3a余额补丁只本机验证，live仍f818；不扩正文或整站 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | COMPLETE_WITH_LIMITS / A60–A62 | 正常九图报告→封面4da、独立8分、免费rev2及重开；实际3OSS PNG/PIL与像素副本全核；36calls/约3.84725元保守计量 | 入口14:28:55已关；本轮H5工具未生效/浏览器OS保存及真iPhone未测，不能冒通过 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | COMPLETE / 源码与真实证据交付，原窗已ACK | final-contract-review、final-visual-review及FINAL-COVER-DELIVERY-RECEIPT绑定实际原件；8功能提交末a3a0187 | 原窗统一后续集成；当前不生产迁移/启用/发布；保留审美建议与Q07现行90天规则缺项 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -1004,3 +1004,28 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 唯一新产品补丁a3a0187：实际完成回执8而导航8至刷新才0，coverAcceptJob completed+final按job首次调已有refreshCreditBalance，7行只读余额刷新、不改账务。原VM24/24 PASS，foundation独审job去重与真实helper旧token/新账号/revision异步围栏PASS，无新P1/P2。当前live static仍f818/90931，这个补丁只本机已提交/离线审，不冒当前浏览器已运行新版。root交原窗统一集成；不为此重模型/临窗上传static。
 
 本机用精确归一原图(sourceSHA匹配)+actual layout尝试确定性重建，base/final PNG whole不同；已断言停止/只保LOCAL-RECONSTRUCTION-DIAGNOSTIC.json，未写或冒实际PNG样本。待原窗真实storage adapter whole/PIL/RGBpixelSHA，若像素相等可仅以像素等价样本如实标注，否则不冒原件。浏览器blob工具未取得本机文件，不把UI下载提示代OS保存通过。入口固定END14:59:31，收主要UI证据即早关；恢复只读samejob，不再POST封面/报告。当前HEAD a3a0187，阶段3取证/阶段4补最终独审与交付继续。
+
+
+### A62-MAIN 最终可集成交付：真实封面、免费版本、实物PNG及唯一结算全部完成；原窗已ACK，未发布
+
+本任务继续原分支codex/noteai-xhs-cover-20261019；本checkpoint写入时HEAD01f7a23，随后仅文档提交，功能末提交a3a0187。8个需按祖先顺序集成的功能/测试提交：94e78f7、37512e0、90e969c、a7eb030、e6234e7、f818da4、0854113、a3a0187。不回退、不另建树/任务/发布系统、不复制任何生产密钥或他窗未提交改动。后端产品e6234e7；本次实际前端f818/90931，最后a3a余额刷新仅离线24VM与真实helper异步围栏独审通过，未冒当前live包含它。
+
+**交付内容**：已有报告generate/analyze的独立封面入口；原素材可追溯/缺图补传；持久cover_generate任务与明示8分报价；正常刷新重开/独立已保存列表；真实照片保真+程序字体排字/安全调整；私有底图、成品与版本90天合同；下载鉴权；先保存后唯一结算/UNKNOWN原请求查询和最多30分钟释放后不追扣；现有Admin非secret配置默认关闭。设计/QC固定Lite260428，Seedream Pro260628仅可选抽象背景最多1次，不把全休闲行业强套汤泉。固定PNG1776×2368，程序字体随附OFL，不增加生产依赖、Agent平台或完整编辑器。
+
+**本轮实测结果**：原水石清池九原图的新报告0cdbe483-9ca4-4012-9090-a718d8b86b4d实际保存/原34calls/独立8分保持；同report唯一封面4da1165c-7cc3-4d12-8c52-fc2e365fa05e，独立usage5d655878-6bb0-4884-932a-77c7b0cf9fea，20秒左右完成photo路线，设计1+QC1真实HTTP/完整Token/唯一8分，未调用可选Seedream图片。root唯一免费排字将已有词变为三行“松影红桥／都市禅意汤泉／值得来”并移至下方；正常保存、下载请求反馈、整页刷新、0余额从独立列表重开rev2成功。原顶文字无残留，主图不变；rev1/base保留，expires仍2027-01-18T06:12:14.726606Z。before964675/after103ead原字节完整，customer_financial a5237及physical IDs46b0和全privateledger均不变；免费新增模型0/扣分0。正文未审修、未因质量再跑报告。
+
+**费用**：本张2次Lite输入19818/output287，公开tariff计量0.0129240元；是本张模型计量成本，不是包含存储/服务器的全成本或供应商现金发票。累计36实际模型调用≤40，private保守known3.8472528元≤100/pending0/本case UNKNOWN0；product原report+cover计量3.3700278元另保，历史report两口径不强行抹平、旧UNKNOWN永久不清。本张图片调用0仅NOT_EXECUTED_OPTIONAL_PHOTO_ROUTE，不冒Seedream真分支验收或0元生图账单。8积分依据为本次明确确认的独立封面合格保存后收费政策；预留、最终8分及供应商计量分别记账。存储/服务器实账未单独量测。
+
+**真正物理PNG**：唯一Cc-sz070l3lv4mosg0/Tt-sz070l3lv4wodts，Run01A15808-C6BE-5CD6-A40B-4F3F4FEC62BA/Read01A15808-E518-5AA4-94E9-D755C77445ED，实际06:38:54–55Z，S0/D0。D/saved-cover-png-physical-readonly-r1/actual-output.json3776/SHA73507d4ccd1af828b978b5e12fc09d59ccd30dd8a6f704108c51e1795d29e20a是官方原stdout；wrapper中host result3326/91505bf2只作host保存绑定，不冒本地已取其原编码JSON。固定普通app/socket/RRRO4SELECT+rollback、现成隔离OSS adapter3逻辑GET，原key/meta/whole字节哈希均匹配SQL，PIL真实PNG1776×2368/RGB；SDK内部尝试未量测，不冒只有3次wire。三对象wholeSHA分别base d35c2839、rev1 186f7c39、rev2 830af929；full36账本/inode1460877/成本及配置/API/formal保护前后相同。0模型/业务SQL写/配置变更/OPEN。
+
+**样本**：D/normal-ui/COVER-VERIFIED-PIXELS-{base,revision1,revision2}.png均由同一真实归一原图SHA+实际layout+原renderer在本机重建，三张decodeRGB SHA逐一精确等于上述实际OSS物理读取原件。rev2 RGB0e9224c0a8ea09b29d002247af61c7db834c992acae038d1d4f1cc3b3f416716，localPNG2644266/ace96b2b2d05c43005109529fce2e4c0123f710ddd3c0c4f8aad3bb3398245db；原编码2646761/830af929。明确称“像素一致PNG副本”，不冒浏览器下载或原编码导出。COVER-PIXEL-EQUIVALENT-SAMPLES.json保完整比对。独审重算三版照片区域全同、目视原尺寸红桥/松树/池面清楚、三行字形准确/无遮挡，六项硬视觉功能GO；图片35.7%及上方30.6%留白/字重层级审美P2/P3建议保留，不包装优秀设计。正常UI截图原名.png实际JPEG/JFIF，保原件并给final两图同字节.jpg真扩展，不混为产品PNG。
+
+**独立审查与证据**：D/final-contract-review.json验证report8+cover8独立/唯一、原34carryfe1、免费前后财务/调用/成本/期限；D/final-visual-review.json验证实际物理与像素副本及主体文字；foundation复用原完整diff审查，仅增量审f818/085/a3a与物理read薄源，无本范围未修P1/P2。D/FINAL-COVER-DELIVERY-RECEIPT.json统一绑定最终源码提交/所有原件及样本/限制。原离线故障、单图/九图、缺图/过期、保存失败、重复/UNKNOWN/重开/共享容量证据在此前原收据继续有效，不重跑高德/支付/历史九图/评分或大版本迁移。
+
+**关闭与边界**：唯一Cc-sz070l2pv3921a8/Tt-sz070l2pv3o1fcw S0/D0，D/saved-cover-entry-close-actual-r1/actual-output.json171/96301cf84617176cea62c954e0995df1c8ef787b4f49ada9a1ba06f3e31f13ae，实际14:28:55.927北京提前CLOSED（原fixedEND14:59:31不延），API_stopfalse/DB0/model0；root正常测试tab已关闭。浏览器Blob下载UI成功但工具未取得原编码文件，OS保存未证；当前H5 viewport对新旧页均未实生效，已reset并关闭临时页，只沿用既有离线H5证据；真实iPhone保存、真实多人供应商容量及Seedream可选生图未测。90天应用/元数据/当前物理对象已证，未来90天实际存续不可时光验证，生产OSS当前lifecycle兼容性Q07仍须原窗启用前核，历史2天规则不能冒现行事实。
+
+**集成/恢复**：只纳入model/migrations/features/noteai_xhs_cover_20261019_0001.sql（原schema31上3表、两独立budget及两个cover非secret配置ACL），保A04两遍89断言/rollback夹具及其精确Admin列权限前提，不跑render_predeploy或0032–0041全migrator。保既有鉴权/存储/模型安全配置通道，正常启用须原窗核当前契约；本窗不新增生产依赖或权限。先关新cover提交仍保existingGET/download/免费排字和在途原结算；不删表、对象、版本、usage、预算历史或UNKNOWN；既有call intent/UNKNOWN不自动重派，已释放不追扣。
+
+原“修复高德检索与休闲娱乐行业”窗口01a13080-d8a9-7c50-88c0-09ffcebbef61已明确ACK接收8提交及全部真实证据，承担后续唯一统一集成/发布，当前不迁移、不启用、不部署、不启动新的云/模型/正文工作。本任务开发、定向本轮真实验证及可集成交付完成，以上未验项交原窗保留，不创建第二发布程序、不自动续窗或增样本。恢复仅读本A62/最终receipt/实际Git，禁止重放已完成生成和过期窗口。
+
+最终统一证据收据：D/FINAL-COVER-DELIVERY-RECEIPT.json 9351B/SHAf94bb19298675f276dd5780e50cdafab313a7d85d94e59d95b5cf12db867c69a；合同独审9874/9cfcc9a2201be40a1577fce7d0e9551f5583c2ea5d80856ccab0f9c91c49d2d3，最终视觉独审18641/9b86a4d536dac5432b06d11d04d0cc80c3f399e3e2cd8ad66fd1d30c0cea137e，像素比对4032/cbc91ec0af8d27babf268f0aef97524c591718bf913bd72606e3786555fd8b7a。最终收据不自填其所属文档提交SHA，恢复以实际Git为准；只完成本批功能/取证交付，不升级任何未验项或生产状态。
