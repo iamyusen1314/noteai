@@ -8,9 +8,9 @@
 
 R1原yes因余时不足未执行，留史。新R2人类明确“同意更新时窗并立即测试”，09:13:19北京起，原窗已实际唯一OPEN，精确私有路径至10:13:19自动关闭，正常登录/原测试账号/18114隔离后端；不改代理/正式产品或生产DB。OPEN原回执574B/SHA3a545e3acc103aaccd4c276e31bbb09c423acfb68c05b15644ba2201ac45994a，Cc-sz070kapv0d9n28/Tt-sz070kapv0s914w，timer先arm。
 
-根已正常浏览器顺序选入9/9原图和冻结brief。原窗资格只读证实免费月额度用完/钱包0/生成权限正常，已正常流水赠16隔离测试积分；生产不改。09:41:18根收到原窗实际READY后仅单击generate一次，正常9图上传后进入真实SSE；09:43页面终态“生成未完成，预留已释放、未扣积分”、余额16。截图PC-NINE-SUBMITTED.png和PC-REPORT-FIRST-SUBMISSION-FAILED.png在同case。未二次POST/取消/刷新。supplier实际dispatch和原natural IDs/claim/closed/费用终态尚须原窗口只读回执，不能把UI上传或失败当模型成品通过。原窗正在按失败即close提前撤入口。
+根已正常浏览器顺序选入9/9原图和冻结brief。原窗资格只读证实免费月额度用完/钱包0/生成权限正常，已正常流水赠16隔离测试积分；生产不改。09:41:18根收到原窗实际READY后仅单击generate一次，正常9图上传后进入真实SSE；09:43页面终态“生成未完成，预留已释放、未扣积分”、余额16。截图PC-NINE-SUBMITTED.png和PC-REPORT-FIRST-SUBMISSION-FAILED.png在同case。未二次POST/取消/刷新。原只读回执已证natural client generate-c345728e-1601-40c0-a897-4ba992e979dc、task5f015705-0778-4e3e-9f31-12c0dda2cbf3、usage150b9d46-b6b2-4123-9247-8c94f2e0f490；120s超时closed、0supplier/physical/model记录、0pending/UNKNOWN、最终credits0/预留8释放/wallet16。原batch stopped保留，planned两UUID均UNUSED。原窗实际09:45:19已close，API/原件保留。1.28是报价estimate，不是实际供应商费用。
 
-静态price/no-cache模板已备，实际两原件已samecandidateUID999读取/hash验证；8paidproof/naturalclaim仅first-wire门。原operator静态窄审GO只覆盖当时源码/离线证据，不代表新云端adapter实测；本次实际observer失败，不能沿用GO冒实际就绪。原窗唯一云执行，根唯一正常UI业务调度。自然ID回来后将两plannedUUID标UNUSED，保留真实usage/report/job映射。
+静态price/no-cache模板已备，实际两原件已samecandidateUID999读取/hash验证；8paidproof/naturalclaim仅first-wire门。原operator静态窄审GO只覆盖当时源码/离线证据，不代表新云端adapter实测；本次实际observer失败，不能沿用GO冒实际就绪。原窗唯一云执行，根唯一正常UI业务调度。自然ID和usage/task映射已在同case PLAN记录，两plannedUUID均UNUSED；当前无report/job成品。
 
 根因已实证为helper要求0600，原封存seal实际安全0400；最初GUARD.read_bytes权限假设已排除，不按猜测额外改。修正后的实际UID999读取seal0400/claimclosed0600与旧expiry拒绝已Success0（622315ab…/1141B），元数据/内容不改；仅private+claim_check范围、operator_main=false，不能冒完整observe/resume。独审证明原POST终态closed/failed/released无恢复或rearm入口，0模型亦不得删closed/清stopped/试探第二POST。下一步：完成隔离cover开关真实生效与attempt2 HOLD/有限11:30方案、完整源冻结窄审；复用同CID/DB/既有mount但独立辅助叶子，旧R1全部保留。当前无新attempt激活/reload/OPEN/新POST。根等可执行准备齐后集中取得新尝试+新当次入口+必要有限绑定批准（仍共40/100非新增预算），不提前问时窗；不能称真实验收完成。实际iPhone、多用户容量、当前OSS90天物理规则仍未证；原图TTL不延长。最终由原窗口统一集成，未增加生产发布授权。
 
