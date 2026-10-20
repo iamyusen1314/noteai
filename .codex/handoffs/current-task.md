@@ -1,14 +1,16 @@
-## CURRENT — 2026-10-20：用户拒绝封面设计，候选不可交付/不可发布；同任务设计专项进行中
+## CURRENT — 2026-10-20：扩大设计源码/火山能力研究完成；封面仍不可交付/不可发布
 
-权威HANDOFF A66。原分支codex/noteai-xhs-cover-20261019/功能HEAD8441563、文档HEAD按实际Git不回退，A62技术/计量/原件历史保持；用户拒绝设计并要求先有事实依据，A65官方/行业/实际源码已核。最新追问具体方案后，root推荐四步新工作流：导演Lite→Seedream完整设计样稿→落地Lite+真照片/准确字层→独立QC，**单张上限3变4尚待明确，不当已批准；不放弃原图真实/免费改字**。B2直接改画主视觉仍未选。原窗HOLD不可交付不可发布，没有生产变化/虚构回退退款。门禁42离线/独审仅技术证据；原36calls/private3.8472528/report0cdbe/cover4da不变，无新模型/UNKNOWN/云/权限/公网，不重正文/九图或全站。
+权威 HANDOFF **A67**，设计附件 docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md 首节 A67 优先。分支 codex/noteai-xhs-cover-20261019，研究前 HEAD e32a0e6，产品代码8441563不变；当前随后仅文档提交，恢复看实际Git不回退。用户要求进一步核平面设计 Agents、小红书封面项目和火山平台后再讨论，A66固定四步降为候选，不当默认、不当批准。原图真实、准确免费改字、同标题连续原文、90天、合格保存后独立8分仍保留。不得改造商家事实或扩不存在设施。
 
-设计附件首节A66写清输入输出、行业brief、两设计步骤同一有限渲染能力目录、完整样稿非交付、不能实现则拒绝、成品质检后不改图、旧任务保旧3call版本。源码窄核需扩layout独立intent/ID/计量/4call guard及最终清单；现recover只恢复未调用，必须补fenced中间已知结果持久/未发下一步恢复，UNKNOWN原请求不重发。初核可复用原JSON/TEXT及私有存储，不默认DDL/新平台；模型预留≤2.20只是按既核tariff上界建议，100元总额不增，36+4=40不是新付费授权。当前四阶段未实现/未调用/未验收；用户明确新工作流后再窄实现与离线独审，真实测试准备齐再集中明确scope/当次入口。原窗仍唯一云/集成发布。
+原 D/research-expanded-20261020/ 的4份原件：github-graphic-design-agents.json61687/6b4b6c60（6个新源码链+3筛选）、github-xhs-cover-projects.json90041/253f4985（6精读含已知PosterStudio/5新有效）、volcengine-model-and-editing-capabilities.json45904/db635788（官方API/模型/计价/工具）、root-volcengine-apps-and-visual-evidence.json11237/7ee39251（官方Lumi/AgentKit/veImageX、官方demo实际源码与正常Chrome视觉观察）。commit/日期/许可/行号/原件hash齐；研究不是安装、运行或真实模型验收。root实看RedInk展示、PosterMELD学术页、PosterCopilot像素艺术字及rednote-cards默认live页面，不能作本店CTR/保真/交付证据。
 
-最新设计附件docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md首节A65优先于其A64历史候选。依据：D/official-xhs-cover-evidence.json74880d2c（官方商品手册公开原文+root实际DOM/截图；按商品笔记scope含图文不建议额外加字/视频可加字，不当全社区禁字）；D/industry-cover-case-evidence.jsond79f5944（三份历史署名镜像原页实看foodp13/hotelp19/beautyp8、11，非当前规则/封面CTR因果）；D/design-agent-primary-evidence-v2.json489ad29e（commit级技能/TS脚本/test/许可，排除无证90%互动/刻板风格/重试等）。两研究tab已关，未登录/注册/付费。
+重要修订：①设计判断→受限照片/语义文字/布局→真实渲染→独立视觉检查是能力组合，不能靠角色名或固定模板冒专业设计；②原生文字层与可移动PNG层不同，Pro/Flash真实拆层API最多17输出，仍是位图字，另一次请求/按层费/预占17IPM；③veImageX创意魔方确有text/image/shape JSON和渲染SDK，不只是水印，也不自动把Seedream图还原语义层；④Ark、Jimeng、MediaKit、Lumi套餐、AgentKit权限/计价独立，现key不自动拥有全部能力。官方ai-app-lab demo代码实际受ARK自用非商业条款，不能凭repo Apache元数据搬入SaaS。社区作者托管文章不是官方规格；demo/mock/自评分不等于成品通过。
 
-收敛为行业/子类×内容意图×读者决策点×实际素材→有出处参考用途→选纯图/少字/分景/信息结构→再定程序或Seedream职责→按策略查成品/缩略/事实，沿一次设计调用/无运行时抓平台。新brief需evidence_ids和明确制作理由；不是宣称上游已有全行业分类器。水石只能用真实松树红桥庭院汤池等本店证据，不能全休闲套洗浴或借他店价格。完整Seedream重绘仅候选，原像素、免费准确改字、同标题连续摘取及结算合同未改。旧3概念只探索，B也无数据证明最优；新成品未生成。
+建议先在现模块补有出处的行业/意图/素材brief、有限可编辑图层和固定许可字库、字体/裁切/语义硬检查及实际240缩略QC；比较原图专业排版（建议2次文字）与必要时Seedream完整设计样稿→原图分层落地（候选4次）。不默认每张都生样稿再逆向；不再只生模糊背景冒设计。Pro260628现尺寸公开0.60–0.64/1–3refs，Flash260915公开0.12但质量未测，Pro拆层最坏17高档5.10另输入；不能混Lumi高像素1.2档或按1HTTP当1张。视觉Pro2.1候选要验实际导演/QC能力，未切型。
 
-功能8441563仅门禁：design_checks缺项/false/矛盾approved拒绝，真实240×320同次QC；取消QC后改字号/颜色再不复检的P2通路。42PASS/12.174s、gitdiffcheck、独审原JSON保P2+resolution；模拟图片已付后拒绝保供应商成本、0save/0用户扣分/no retry，legacy QC缺checks仍可重开下载免费改字。源/日志/概念pins见A64，未因本轮文档重跑。下一步先按A65事实依据修原模块的设计brief/可执行排版和策略验收；未确认合同变化不放宽，必要真实样本准备齐后集中明确新scope/时窗，不能把剩4call当重派许可。原窗唯一云/集成发布，不扩大正文/生产/权限。
+研究阶段无新增付费/模型/UNKNOWN/云/生产DB或配置/权限/公网；同case累计36calls/private3.8472528，运行供应商请求[]，旧入口CLOSED、旧时窗不可复用，历史未知不清。阶段2仍为设计修订，不因研究完成冒最小实现/真实画质验收完成；正文、Amap、支付、整站和旧报告不重跑。下一步收敛具体制作路线与模型合同，在原模块准备受影响离线实现/验证；新模型/4call或工具/真实测试必须有明确scope，数值剩余4calls不是授权。原“修复高德检索与休闲娱乐行业”sole云端和统一集成发布。
+
+独立研究窄审已完成：expanded-research-independent-review.json8005/69e76660，唯一真实性措辞问题已修、无未结项，非功能GO。root固定来源/截图完整性复核PASS、精确被审设计附件SHAcbdad1b7匹配，RESEARCH-MANIFEST/INTEGRITY在原目录；5个研究tab已关闭。仅3份文档变更，不重跑无变化产品套件。
 
 ## HISTORY — A62交付判断已因用户质量拒绝撤回；下文仅保技术事实
 

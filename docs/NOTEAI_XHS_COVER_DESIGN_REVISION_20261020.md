@@ -2,7 +2,71 @@
 
 状态：**用户已拒绝原设计，当前不可交付、不可发布。** 本文是原 HANDOFF A63 后的设计附件，不是第二套任务或发布流程。研究、离线原型和新增质量拦截不代表新版 Seedream 成品已经通过。
 
-## A66：明确推荐的运行方案——Seedream完整样稿，真实素材分层落地，独立终检
+## A67：扩大源码与火山产品调研后的修订依据；尚非实施或付费授权
+
+用户要求继续查平面设计 Agents、小红书封面项目，以及火山的设计模型和方案，先充分理解再讨论。此次重新比较实际实现，不以 A66 四步方案为预设答案。产品代码仍为 8441563；本轮仅研究和记录。原成品设计验收仍未通过，不能交付或发布。研究包位于原 D 下 `research-expanded-20261020/`，没有新任务、工作树、平台或发布流程。
+
+### 研究所得：应采用的工程能力与不可照搬的假设
+
+| 项目及实际源码 | 核到的工作方式 | 对 NoteAI 的意义与限制 |
+| --- | --- | --- |
+| [OpenPencil](https://github.com/open-pencil/open-pencil)，`src/app/ai/tools/vision.ts`、core text/paint tools | 以真实文字/图像节点编辑；实际渲染选定节点，再用隔离的视觉模型检查层级、对齐、间距、裁切和对比度 | 设计结构与视觉检查都可执行，值得借鉴。完整编辑器及开放工具循环超出当前功能；视觉检查不等于审美或流量保证 |
+| [Paper2Poster](https://github.com/Paper2Poster/Paper2Poster)，PosterAgent pipeline/deoverflow | 内容与版式分开、PPTX 图文对象、渲染后检查并迭代 | 容量、溢出与真实渲染检查可借鉴；学术海报的密度和多轮成本不能原样用在手机封面 |
+| [PosterMELD](https://github.com/imhaojie/PosterMELD)，pipeline/renderer | 布局容量和多级检查，实际输出 PPTX 图文对象 | 可编辑文字和几何检查有源码；root 实看的学术示例不是小红书探店的风格答案 |
+| [PosterCopilot](https://github.com/JiazheWei/PosterCopilot)，predictor/rendering、jazz-day layout | 推理布局、图层资产、合成输出 | root 实看 jazz 展示；其 type 图层为像素，不应把能移动图层说成能改文字、字体 |
+| [EthanGuo2022/OpenDesign](https://github.com/EthanGuo2022/OpenDesign)，planner、critic_agent、render_text_layer | 规划、工具制作、带独立预算与轨迹的视觉 critic，原生字层与图像资产分开 | 能借鉴明确的工具合同、真实渲染和独立检查；多轮规划/critic 不等于固定几次请求，也没有本店成品质检证明 |
+| [nexu-io/open-design](https://github.com/nexu-io/open-design)，critique/scoreboard/config | 多角色评审协议、评分及 fallback | 已读实现的多角色同属一会话；有 `ship_best` 兜底，不能当独立质量门禁或“没通过就不交付”的证明 |
+| [RedInk](https://github.com/HisMax/RedInk)，backend image service/API client | 先大纲再逐张生成含字整图；参考图传递因 provider 分支不同 | root 实看展示图，整体风格和字阶有参考意义。栅格字、真实门店重绘、自动付费 POST 重试与本任务合同不符；LICENSE 为非商业限制，不能直接搬代码 |
+| [RongCover](https://github.com/zjr3193/RongCover)，App、htmlParser、PreviewSection | 文本模型生成 HTML，识别文字节点，二次修改，等字体加载后导出 PNG | 证明 AI 设计可落成可编辑结构；NoteAI 应采用受限数据结构，不执行任意生成 HTML，也不照搬其固定大字审美。此 fork 未核到独立 LICENSE，README 的 MIT 声明不能代替 |
+| [Poster Studio](https://github.com/joeseesun/poster-studio)，canvas-manager、jobs | 真实照片层、文字层、画布导出，AI 是可选资产工具 | 复用旧研究，未充作新发现。其创建 POST 重试、内存任务和 TTL 不是我们持久幂等结算链的替代 |
+| [rednote-cards](https://github.com/huanjuedadehen/rednote-cards)、[CoverLock](https://github.com/SuperMarioYL/coverlock) | 前者富文本模板确定性导出；后者 AI 无字底图加程序标题、风格锁 | root 实看前者 live 默认卡片。内容/样式分离和字体度量可借鉴；知识模板不是所有行业答案，后者 mock 几何合规不证明美观，极端长字还有截断风险 |
+| [video-thumbnail-generator](https://github.com/stylejinmu/video-thumbnail-generator) | 实拍比例适配、裁切或 AI 扩图、本地合成分支 | 有几何分支可参考；AI 分支直接交付模型回图，未贴回原照片，不能据其 prompt 宣称像素保真 |
+
+所有有效结论都关联固定 commit、真实文件/行号和原件哈希；README-only、薄接口包装、仅有主题说明的项目另列筛除。展示图、作者“爆款”宣传、stars、mock、模型自评分都没有替代真实验收；本轮没有发现可复核的封面 CTR 因果研究。上轮 baoyu、Anthropic skills、PosterVerse 的有效证据继续复用，不反复算作新研究。非商业源码、字体和照片不进入商业成品。
+
+### 火山不是一个接口：模型、工具与设计工作台的边界
+
+| 能力路线 | 已核官方能力 | 对此功能的取舍 |
+| --- | --- | --- |
+| [方舟图片 API](https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh) | Seedream Pro260628、Flash260915，多参考、图片编辑、区域/坐标提示、输出约束；另有图层拆分与透明输出合同 | 现有 Pro 接口可继续复用。完整图生图不保证原场景逐像素不变；透明输出也有输入限制，不能把普通多照片直接当透明素材生成 |
+| 同一 API 的 `layer_decomposition` | 单输入图，底图加最多16透明 PNG 层，提供名称、层序、bbox；任何层失败则整体错误 | 这是实有 API，不仅是营销。但拆出来的文字仍是图片层，不能直接免费改字/换字体；拆层还增加一次模型请求和按层输出的成本，不宜当默认必经步骤 |
+| [即梦视觉 API](https://docs.volcengine.com/docs/JimengAI/JimengAI-ImageGeneration40-ProductIntroduction?lang=zh) | 智能参考、编辑、组图；有异步 task 查询，模型/版本/尺寸与 Ark 有差异 | 需要自己的视觉产品凭据、开通与账本合同，不能拿现有 Ark key 或旧 SeedEdit 别名直接替换。价格低不证明在本素材上更好 |
+| [炉米智能生图](https://docs.volcengine.com/docs/Largemodelofimagegeneration/Intelligentimagegeneration?lang=zh)、[智能画布](https://docs.volcengine.com/docs/Largemodelofimagegeneration/smart-canvas?lang=zh) | 框选/标注编辑、语义图层、PSD/PNG 导出、节点和素材引用、可复用 Skills、Auto/Manual 执行 | root 正常浏览官方原页。其图层编辑器还能新增文字层，但不能据此声称原有栅格文字自动成为字体对象。完整工作台、自动修复重提及视频能力超出本功能；公开页没有建立可直接嵌入 NoteAI 的整套封面 API 合同 |
+| [炉米套餐](https://docs.volcengine.com/docs/Largemodelofimagegeneration/Packagebillinginstructions?lang=zh) | 标准月包1000元；Pro按236万像素分档0.6/1.2元，额外参考另算，扩图/抠图为套餐算点折价 | 不是 Ark 按张计价，也不是本账号已有订阅。1776×2368为4205568像素，属于该炉米表较高档；不能用“抠图0.02元”推导本账号已经可调用。不购买套餐 |
+| [veImageX 创意魔方样式](https://docs.volcengine.com/docs/veImageX/Stylestructure?lang=zh)、[结果图 SDK](https://docs.volcengine.com/docs/veImageX/CreativeCube-4?lang=zh) | 真实 JSON 的 image/text/shape/qrcode 节点、文字字串/字体/行字距、图像源/位置与输出；也有基础图文水印处理 | 这是可替换语义文字的实际合成合同。它不负责自动行业设计，也未把任意 Seedream 图自动变成字串/布局；仍需合法层计划。现有本地渲染与存储没有因此必须迁移；另开服务/样式会增大范围 |
+| [AI MediaKit 擦除](https://docs.volcengine.com/docs/Intelligentprocessing/Imageerasurerepair?lang=zh)、[背景移除](https://docs.volcengine.com/docs/Intelligentprocessing/submit-image-background-removal-task-api?lang=zh) | 已知文字/区域擦除、主体抠图、透明输出；独立 API Key 和规格限制 | 适合有必要时的特定图像处理，不是自动排版或还原被遮的真实设施。同步工具文档明确不支持幂等校验，不能套用其他异步工具合同重发；当前不新增工具调用 |
+| [AgentKit/VeADK](https://docs.volcengine.com/docs/agentkit/Tool_type?lang=en) | Agent 编排、image_generate/image_edit 工具、观测与部署 | 不是另一个审美模型；Studio 还涉及依赖服务和跨服务授权。现有 FastAPI 可执行受限设计流程，首版无引入平台的必要 |
+
+[火山官方 ai-app-lab 电商 demo](https://github.com/volcengine/ai-app-lab/tree/88c983d70a098110fc839f8cd05e29fa7715e6ce/demohouse/ad_video_gen)也实际拆分规划、出图、格式化、参考一致性/美学/画质评估。它说明设计 Agent 可以有工具和真实成品输入，不能证明多 Agent 越多越好。源码将组图展开为多次请求并并发，不能把一个工具调用当一次模型费用。特别核对了 [ARK_LICENSE](https://github.com/volcengine/ai-app-lab/blob/88c983d70a098110fc839f8cd05e29fa7715e6ce/ARK_LICENSE.md)：demohouse 代码是自用/非商业许可，不能因仓库顶部 Apache 元数据就用于本 SaaS。
+
+### 对原四步候选的实质修订
+
+**不再预设每张封面必须“生完整样稿再逆向重建”。** 调研支持的是有依据的设计判断、可执行图层、真实渲染和成品质检；没有证据证明固定四步在所有行业都更好。A66 降为复杂设计的可选实现候选，不当已批准或默认路线。
+
+建议在原模块补这四个能力，具体模型和付费调用策略仍待产品方案收敛：
+
+1. **有依据的设计简报。** 输入复用报告、批准标题、视觉建议及真实素材。按行业/子类、笔记意图、读者决策点、实际素材证据选择表达。餐饮实物、酒店空间、教程步骤、测评差异应有不同选材理由；同一行业也可纯图、少字、分景或信息结构，不写“休闲娱乐统一洗浴”。A65 官方商品笔记手册的少加字建议保留商品笔记 scope，不扩大成全平台禁字。
+2. **可编辑、受限的设计表达。** 输出照片层和安全裁切、文字角色/精确文案/断行/字级、字体 ID、位置、对齐、简单形状及可读性处理。字体从有明确许可且固定字形的资产中选，不让模型随口报一个服务器不存在的字体；主辅字层不再同粗同级。先限定少量图层与能力，不能退回整框禁叠和中横条，也不扩完整编辑器。
+3. **按任务选择制作工具。** 实拍门店优先比较真实照片的专业构图排字；需要复杂视觉构思时，可让 Seedream 看真实参考、设计简报与可执行能力，生成完整设计样稿，再落地为真照片和准确文字。Seedream 不再只画模糊纸纹后声称设计完成。不得改造真实商家事实或扩出不存在设施；不能满足原图保真和准确免费改字的整图交付不采用。图层拆分只在确有价值且费用受控时考虑。
+4. **分开的技术检查与视觉检查。** 程序检查字体加载、准确文案、溢出/遮挡/裁切/图层引用；视觉 QC 必须看真实成品、选中原图和240×320缩略，检查主视觉、主题、字阶、布局和行业适配。不能用文件能开、safe-zone、自称通过或“挑最好的一张”替代合格。失败不交付、不结算、不自动付费重试；供应商已发生费用仍真实记录。
+
+设计 Agent 是“在有限工具合同下作设计决策并产出可执行结果”的模型调用；Seedream 是它可使用的图片工具，渲染器负责可靠制作，QC 用独立上下文看最终图。角色名本身不构成专业能力。现 Lite260428 有视觉与结构化能力，不能贬成只有协议；但它的设计判断/坏图拒绝都尚须验。更强 Pro 视觉模型是值得比较的候选，不能未经确认静默切型。
+
+| 内部制作路线 | 调用计数建议，不是现已获批的执行合同 | 主要代价 |
+| --- | --- | --- |
+| 真实照片结构化排版 | 设计1次→确定性制作→QC1次，共2次文字模型 | 没有生图费用，免费改字和事实可控；审美仍取决于设计判断、字体与制作能力，不能把程序排字等同旧模板 |
+| Seedream完整设计样稿后真实分层落地 | 设计1→图片1→落地1→QC1，共4次 | 保留设计探索，但有样稿到真实成品的损失与额外调用；必须验实际落地，不能只展示漂亮样稿 |
+| Seedream整图直接交付，或整图再拆层 | 非推荐默认路线；拆层是额外请求并可能多张计费 | 前者难同时满足门店原图和免费准确改字；后者仍没有原生文字合同，不能许诺省一次调用且免费全编辑 |
+
+**公开模型成本比较，非本轮实付或新报价：** [方舟价表](https://docs.volcengine.com/docs/ark/model-pricing?lang=zh)的 Pro260628 普通输出以261万像素为界，0.30/0.60元每张；当前1776×2368属0.60档，首参考免费、额外每张0.02元，所以1–3参考为0.60–0.64元。Flash260915参考免费、输出每张0.12元，但本素材的文字/设计/一致性尚未实际比较，不能以价格自动换型。Pro拆层按每张输出尺寸0.15/0.30元，底图也计；按17张均高档作保守上界5.10元，另有输入，实际小图层会不同；还会先占17 IPM再按实际返还，不宜首版默认拆层。
+
+设计/QC可考虑官方视觉候选 `doubao-seed-2-1-pro-260915`，公开非音频输入6/输出30元每百万token；现 `doubao-seed-2-0-lite-260428` 在≤32k档为0.6/3.6。仅举含图像换算后1万输入、2000输出token的同量算例，分别0.1200/0.0132元一次，实际图像/思考/长度档会改变计量。模型目录和定位不构成专业设计合格证；新模型的账号准入、导演计划和坏图拒绝须另验，未静默切型。veImageX创意魔方另有每月前100次免费、之后15元/千次的公开渲染档，MediaKit擦除/抠图公开折合0.00138元/成功次，均还有独立服务、存储/分发及账号条件；不能与 Ark 或炉米算点混为一个已开通套餐，更不能因此承诺云成本永久0。
+
+水石首轮应比较“真实庭院主视觉、少量准确文字”和“庭院与真实汤池明确分景”的表达，使用同一已批准标题的连续原文，不重正文、不添价格设施或体验事实。前者是否裁掉关键红桥、后者是否变成拥挤拼图，要看缩略与实际照片，不凭口头宣布哪个必胜。若后续验证 Seedream，必须展示实际送入的参考和 prompt、完整样稿、最终交付三者；没有调用就不能称 Seedream 设计成功。
+
+**边界与下一步：** 本轮证明的是源码/文档合同和实际展示所见，不是新模型跑通、真实画质、付费账户资格或流量验收。现独立任务、唯一结算、存储/重开/90天及8积分合同仍保留；新模型、新调用上限/工具或新实测均不能从调研自动获得批准。累计仍36次、私账已知3.8472528元，无新增供应商请求/UNKNOWN，旧窗口已关闭。先把本节证据与模型成本合成集中方案，在不改正文/生产的范围准备可执行设计与离线对照；新增真实样本准备齐后再绑定具体预算/时窗。原窗口继续唯一负责云端和统一集成发布。
+
+## A66 历史候选：Seedream完整样稿，真实素材分层落地，独立终检
 
 用户追问具体方案及设计Agents如何运行。以下是基于A65事实收敛、在现有后端可落地的**新方案建议**，尚未获新调用合同批准、尚未实现或付费执行。推荐不以放弃原图保真换自由重绘：让Seedream承担完整设计样稿，由另一次视觉设计调用将样稿落为受限图层数据，程序使用真实照片及准确字体制作用户成品。
 

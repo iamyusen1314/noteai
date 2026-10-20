@@ -1082,3 +1082,22 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 contract代理窄只读核源码：cover_jobs93–104/settings35、139/public_product744硬3；stage/intents/physical_call_id/终态清单须版本化增加layout及其输出/成本上限，旧job保旧版本。PG stage为TEXT/intentJSON可复用，不默认DDL。当前recover_jobs792–815不支持已调用多阶段自动续；需fenced中间checkpoint持久director JSON/私有样稿ref+hash/layout，只恢复未发出的下一步，UNKNOWN不重发/成本保留/原30min释放后不追扣。现在未写这些产品代码、无模型/云/公网动作，实际HEAD9326487（本节随后仅文档提交）/功能8441563/36calls和旧事实保持，HOLD不可交付不可发布。
 
 完整推荐及输入输出/精确差异在原设计附件A66首节；下一步用户明确4调用工作流后在原模块窄实现/离线/独审，准备具体再集中确认真实样本/必要当次入口。不重现有42技术验收、不冒四阶段已运行。当前无进行中的供应商请求/新增UNKNOWN，原窗仍唯一云与统一集成发布。
+
+
+### A67-MAIN 扩大GitHub真实实现与火山模型/设计产品调研；四步固定方案重新评估
+
+用户最新要求先充分理解GitHub平面设计Agents、小红书封面项目和火山设计模型方案，再讨论优化。root延续原工作树/分支，研究前HEAD e32a0e6；本轮仅设计附件/此交接/CURRENT文档，产品8441563保持。原图/准确免费改字/同标题连续原文/90天/独立8分合同未放宽，A66完整样稿→重建4call现降为复杂设计候选，未获新流程/模型/工具/付费授权。原成品继续NOT_DELIVERABLE/NOT_PUBLISHABLE，A62真实计量历史保留。
+
+**分工与证据**：foundation独占graphic-source及github-graphic-design-agents.json（61687B/SHA6b4b6c60a71cf22851eaf802650ed5c1727cc2d6c9e83871c50ef61640d32c26），实读Paper2Poster/PosterMELD/PosterCopilot/OpenPencil/EthanOpenDesign/nexuOpenDesign6个新实现，另3筛选，静态编译/critic stub不当Agent实现。media独占media-source及github-xhs-cover-projects.json（90041B/253f498521c74b17c6f321946e04b20f55978170b82e55ee008c29722328eb43），10候选6源码链含旧PosterStudio明确复读，RedInk/RongCover/rednote-cards/CoverLock/thumbnail五新不同路线。contract独占model-api及volcengine-model-and-editing-capabilities.json（45904B/db635788095c7a58832f75ef4b261174ac670fac0025dc2c072712fe82fe87bd），普通公开官方正文/MD原件，12型号/6关键API合同并按实际读取范围记录。root独占官方Lumi/AgentKit/veImageX与官方demo源码、浏览器；root-volcengine-apps-and-visual-evidence.json11237B/7ee3925146682a66a020846709bdffbbece23ab4b4a63720deaf4a5d6c6321e4。全部在原D/research-expanded-20261020/，不新任务体系。每仓commit/日期/关键源码/许可/调用与重试界限有原件；此为研究证据，不冒运行每仓/真实模型或CTR数据。
+
+**有用发现与排除**：真实照片/语义文字/布局可分开设计，渲染后独立看图有实现；但OpenPencil动态工具steps、P2Poster按块多轮、Ethan可能漏critic而pass、nexu同会话persona/Designer0权重/ship_best均不能当我们固定成本和硬交付门。Rong真实HTML文字编辑与PNG导出不意味着要把生成HTML执行进NoteAI；采用受限数据更合适。RedInk及部分POST重试/参考分支不同、CoverLock截字、thumbnail回整张图而未贴原像素均已记录，不照搬。root正常Chrome实际看RedInk展示、MELD学术页、Copilot jazz像素字和rednote-cards默认live界面；截图原字节保留（CUA多为JPEG，历史.png文件名不冒编码），没有下载外图规避显示限制或运行demo生成，不把学术/知识卡风格套本店。
+
+**火山新能力核到合同**：Pro260628/Flash260915真实layer_decomposition单图→底图+最多16透明PNG层/bbox/z_index，不是只有扁平图，但字仍位图；额外请求按输出张数费，先占17IPM。编辑prompt坐标0..999与拆层normalized0..1000区分；alpha输出受限，参考/局部编辑不保证数学保真。Jimeng异步有已知task_id查询，另CV产品key/AKSK不能挪用Ark；MediaKit同步擦除/抠图没有幂等校验，未知结果不重发。veImageX创意魔方确有text字串/font/size和image/shape JSON及SDK渲染，不能把任意Seedream图自动转回语义层；新服务不是当前必需。Lumi真实框选/分层PSD/节点/Skills/AutoManual属设计工作台和独立套餐，专用Agent页主要MV/讲解视频，不冒现成封面API。AgentKit是编排/部署，不是审美模型，不开依赖服务或跨服务权限。官方ai-app-lab电商图片/评估源码已读，demohouse头与.licenserc指ARK自用非商业许可，不能随repo Apache标签用于SaaS；社区作者文章不作官方接口依据。
+
+**成本与建议**：Ark Pro普通图261万像素分档0.30/0.60，当前4205568像素/1–3ref为0.60–0.64；Flash0.12/reference免费不代表质量已验；拆层0.15/0.30每张，17张均高档保守5.10另输入，不按一次HTTP算一张。Lumi236万像素以上1.2/套餐月1000与Ark完全不同，不购买；veImageX/MediaKit公开费是独立服务，非本账号开通或总成本永久0。现Lite真实有视觉能力；Pro2.1-260915是设计/QC比较候选而非已切型，模型定位不能冒专业能力。A67附件详列2call真实图结构排版与4call完整样稿后落地的利弊；不再预设每张逆向重建，也不回旧中横条或只生纸纹。水石只比较真实庭院主视觉少字/庭院汤池明确分景，以主体裁切和240缩略评判断，不口头认定必胜或添商家事实。
+
+**风险/可复用/补测**：A65官方与行业原件、8441563质量门42离线/独审及原36call真实历史继续复用；新研究没有代码变化，不重未影响套件。尚无新Seedream本店成品/模型对比/账户新能力/CTR或iPhone证明；新路线须补受影响图层/字体/裁切/任务恢复/调用上限/最终QC离线与受控集成，不能用研究通过代验。第一轮原候选真实设计仍失败，保存/计费技术历史不追改。无运行模型请求[]/新UNKNOWN/付费/生产/公网/订阅，原总36/private3.8472528及旧UNKNOWN原样，END过期不可重开。
+
+root负责统一设计方案与最小实现，其他子代理本轮独立研究完成结束，media仅另做本节设计附件事实/授权边界的独立窄审。独审首先指出把“扩不存在设施”只写非默认会弱化禁止项，root已改为明确不得，未把此修正当新产品选择。完成审查后提交仅文档阶段成果，下一步先集中收敛具体模型/工具/调用合同并在原模块准备，不额外修正文或整站。原窗口唯一云执行和统一集成发布。
+
+A67最终验证：media独立窄审 expanded-research-independent-review.json8005B/SHA69e76660a2c327e78a0922caa927aff77b73fbb9170c7957200bb066650c67fb，R1明确禁止虚构设施措辞已修，当前findings[]；仅研究事实与权限边界PASS，不当功能或审美GO。root复核163份固定源码/官方MD/浏览截图原字节及摘要一致、JSON有效、精确被审附件SHAcbdad1b7保持；RESEARCH-INTEGRITY-CHECK.json与RESEARCH-MANIFEST.json在原research目录。浏览研究5tab已关，其他标签页未改；无项目执行/安装/模型调用。git diff --check通过；仅3份原权威文档变更，无需重跑产品42项或历史验收。原case PLAN已更新A67/研究完成/路线未批准未实现/请求[]，恢复入口不变。
