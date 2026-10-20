@@ -8,6 +8,8 @@ root统一源集成/sole正常UI/provider；foundation runtime/operator、media�
 
 A57新增实际只读Cc-sz070kxhdy8acxs/Tt-sz070kxhdyi9ybk S0/D0，原stdout7341/24ff9a6a已核；9refs当前ready/原序/owner/content同，最早10/21北京12:37:52到期；34全columns SHAfe1b74ad…，unique8/known3.8343288不变；0coverjob/activeunknown/latch，currentPID3350776/source1cab/CLOSED保持。只读0model/业务写，不能代物理binary或成品验收。下一步仅收敛cover-only薄源/原template当场绑定及source-only实stage，准备真齐才集中新有限窗口。正文明确不在范围。
 
+A58：16part源码-only已全部实际S0/D0，finalstdout1721/329f38ec/whole2ca15/10叶pins逐项核，runtime40ec/op f1b89/launcher b5f5/host400a/entrybaac/static0769已保存但未执行，当前仍1cab/PID3350776/CLOSED/34paidcalls/原known。必要执行renderer df53已独审及4fixtures，实际root result原字节回传、prepare→真coverWAIT_READY→min30 timer-firstOPEN顺序已准备。新human/END/paid cover仍None，现仅需一次新的当次同报告封面有限窗确认；不得旧e849/END再开或重报告。精确源码与真实source-stage receipts见A58及原case PLAN。
+
 ## HISTORY — 下文保留先前checkpoint，不作当前执行指令
 
 ## CURRENT — 2026-10-20 13:00北京：A3原任务已真实续接，仲裁中；同report封面待完成报告后提交
