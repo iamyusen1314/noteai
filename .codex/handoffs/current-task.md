@@ -1,16 +1,16 @@
-## CURRENT — 2026-10-20 北京08:37：noteai-xhs-cover-20261019 因现有EIP财务锁定阻塞真实验收
+## CURRENT — 2026-10-20：noteai-xhs-cover-20261019 充值后同case有限后继准备
 
-唯一权威阶段清单、Q/A和checkpoint在 `docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md` 第8节表及**末节**。本指针不构成第二任务清单，下方全部为继承历史，禁止按旧时窗/预算/命令重放。
+唯一权威清单/Q-A/checkpoint在 `docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md` 第8节表及**末节**。下方全部继承历史，不重放旧窗口/预算/命令。
 
-分支 `codex/noteai-xhs-cover-20261019`，实际HEAD用Git核；产品基础94e78f7、后台37512e0、PC/H5 90e969c、loopback a7eb030、协议e6234e7已完成并交原窗口。API-only候选05978bee/d26428已正常运行于云机127.0.0.1:18114；feature SQL已一次装原隔离PG，PG89项回滚夹具已完成。不重build/SQL/重启。正式仍3711/9be+原Pay/Admin/publicc4a/schema31，封面未生产发布。
+分支codex/noteai-xhs-cover-20261019，实际HEAD用Git核；产品后台37512e0+前端90e969c+loopback a7eb030+协议e6234e7已交原窗口。固定API-only镜像05978bee/同CIDd264，feature SQL已一次装原隔离PG，PG89回滚夹具已完成；不重build/SQL/PG/新batch。正式仍3711/9be+原Pay/Admin/publicc4a/schema31，未上线封面。
 
-本次仅水石清池九张本地原图→一篇完整新笔记→该报告一张封面；人类已准合计40物理调用/100元/0自动付费重试，cover内层≤3。火山正常登录已成功，固定Pro开通/目录价与当前Render live60168同deployment已核；实际模型调用0、费用0、新报告0、真实封面0。原6封面/18调用是历史，不能覆盖本次或继承旧150预算。实际Key项目归属仍UNKNOWN，不伪verified；首次正常业务承担访问验证，不加付费probe。
+用户已充值，原EIP官方Normal/financial锁清空，正常首页/原会话恢复，无代理改动；真实新签名Gateway readiness200。此前负余额/锁定/metadata UNKNOWN和timeout保留为历史，不重探、不假清零。当前唯一case仍水石清池9原图→1新完整笔记→同报告1cover，40物理请求/100元/0自动重试已明确批准，模型0/费用0/真实报告0/真实封面0。
 
-**当前确切外部阻碍**：2026-10-20 00:32:52Z原官方DescribeEipAddresses显示原39.108.66.93仍InUse/10Mbps且绑定原API-C，但BusinessStatus=OperationLock、LockReason=financial。原件/截图见HANDOFF A09及Enew/EIP-CURRENT-FINANCIAL-LOCK.json。不猜欠费金额、不充值/换EIP/新资源；本人需处理现有阿里云账单。官方QueryAccountBalance已补核CNY可用余额-2.66、cash/credit0；未查完整未出账费用，不冒精确最低充值金额。原服务器本机TLS首页200/candidate匿名401不能冒公网恢复。暂停所有公网/代理对照、模型请求，生产进程/配置未改。
+原当次入口yes仅到09:23:34且OPEN余≥30min，因准备未在08:53:34完成而不能执行，入口从未开、timer未注册。根已说明确认问早了；不复用该yes暗延期、不再问模型预算。原窗已实际完成同CID同batch空账有限后继，PID3246848/restart0、guardc361、valid_until=10:30北京；原账本/inode/40cap/历史保留，尚无paid。原整Docker hash差异不可还原照留；当前安全字段/挂载/源/原生产语义合同均实际核妥。
 
-先前临时入口+单域代理当次确认**已因新财务锁事实撤回，无需用户回复；晚到回答不触发OPEN或网络修改**。include/timer未开放/注册，代理设置未变。既有候选runtime截止09:23:34北京，不静默延长。test-only guard仍b211 HOLD；before-arm-fix c36184b4及13新增/合计48项PASS仅在本地，尚未加载，不冒已经修好live。
+当前原窗继续最小entry-source-r2（仅RUNTIME_END/pin）及两真no-cache原件stage/UID999读验、empty-only cap99+1storage预留。根已备price-context.UNBOUND.json和静态ROOT-REVIEWED-NOT-INSTALLED合同，日期/原件SHA精确；它们不是live proof，正常claim后才绑。8 paidproof/naturalclaim是first-wire门，不是OPEN/upload门；不要再次形成UI与claim循环。
 
-下一步由原窗口继续最小只读余额/账单或明确金额UNKNOWN；主代理保存同case PLAN与原件。本人处理账单后，仅核原EIP解锁与网络，再检查现有runtime/同batch账本和deadline，接续原case/自然claim/9普通上传，随后唯一实际报告→cover与PC/H5/保存重开/下载/免费排字/唯一结算/成品质检。不能重发metadata或历史UNKNOWN、自动新建batch/时窗/发布。90天OSS当前规则、实际多用户容量和真实iPhone仍未证实。
+下一步：全部可前做准备和实际回执就绪→根取新准确结束时点的当次临时入口确认（max60min/min30，不改代理/正式/api/生产DB）→原窗唯一OPEN→根正常owner/9普通上传先证OSS→同原自然claim唯一新report→同report cover→PC/H5/重开下载/免费排字/唯一结算/实际费用与独审。正常session/原图TTL/cover90天不因测试换期延长。真实iPhone、多用户实容量、当前OSS90天规则仍未证。生产集成仍原窗口唯一执行，无新增发布授权。
 
 ## HISTORY — 继承源码基线记录（非当前执行指令）
 
