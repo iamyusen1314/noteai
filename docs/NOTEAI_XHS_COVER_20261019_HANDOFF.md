@@ -1139,3 +1139,22 @@ A68浏览受控集成已完成：PC1280×900/H5390×844各经正常保存报告/
 Q09接续材料由foundation冻结在原D/implementation-a68/acceptance-prep：MINIMAL-DIFF.HOLD.md、SOURCE-PINS.HOLD.json、PARAMETERS.HOLD.json和successor_contract.HOLD.py，20纯断言不是实际guard集成。实际原after-free gzip解码全字节与103eadda一致、36行/两旧case/known3.8472528/inode1460877/旧job两版按原件核（不是本次fresh远端read）。media现独占其implementation子目录只派生原guard/runtime/operator最小源码/patch与配对验证，foundation待冻结后只读独审；不改产品，不新建账本/框架/发布系统，human/END/newIDs仍null默认HOLD，无新付费/公网/云/补分动作。原sole云执行者已收到31b4d7b及包/合同事实，仅答疑/窄审，不自行开放或部署。
 
 本checkpoint后仅文档提交，恢复核实际HEAD；function pin仍31b4d7b，原case PLAN phase=A68_COMMITTED_OFFLINE_PC_H5_REVIEW_PASS_REAL_SUCCESSOR_PREP_HOLD。已完成阶段2/源码独审；未完成新版真实导演/QC/成品设计验收，不能称产品可交付或发布。运行供应商请求[]，无新增UNKNOWN，原累计36/费用/旧UNKNOWN/旧入口CLOSED原样。下一步完成现有测试辅助最小派生/独审，准备齐后集中处理“同report新增一次v2/≤2Lite/0image/0retry/正常8分隔离fixture/新有限入口”的具体范围；不重正文/报告或旧完整验收。
+
+A68装载缺口及Q09补充事实：原窗独立核11叶/完整与小包成员/whole SHA全PASS，D/ROOT-A68-SOURCE-TRANSPORT-REVIEW.json3420B/8cf3aed5；没有解包/云/网络/模型。原launcher220–244的/app为read-only，不能docker cp写/app、改宿主Docker overlay、热注入或只改APPLICATION冒装载31b。原窗另核历史实际mount原stdout与同字节投影：Enew/same-cid-guard-reload-readonly-output.json8509B/SHA06cefe18409d0e91aed014b7b81b9591a7c88343455af7a077f2ea2ab756f632（Enew为D父目录），官方C c-sz070k8ldmvzrpc/T t-sz070k8ldnaz5s0，2026-10-20T00:51:14Z Success/0/0；当时d264/image059/PID3239762。六bind/rprivate：RO原runtime-e623-r1/source→/run/noteai-cover-runtime-source、guard→/run/noteai-cover-guard、public-ca→/run/noteai-public-ca、原PGsocket→/run/noteai-pg-socket；RW control→/run/noteai-cover-runtime、原batch→/run/noteai-xhs-cover-20261019-batch。**实际无proof RO mount**，不能把模板支持当已挂载；但source父目录整RO bind可作为同CID新自有版本子目录正常启动候选。
+
+media据此在既有源派生中准备fresh普通解释器先候选model再原/app/model fallback，不热patch已载业务模块；完整两font/两license/manifest、原featureSQL及指向原已核只读artifacts的固定资源别名均须验证，实际module.__file__/source/hash/font路径纳入证明。原目录UID/GID/mode/current existence未留在该历史投影，未来具体scope只读预检6mount/source parents/必要资源，不读Env、不假造fstat、不扩生产read；若条件不符保HOLD，不擅自加mount/换CID。真实前端也须私有static31b而非旧f818，正式public c4a不变；现entry只在具体scope后绑定新source/静态hash/newhuman/END，不新建代理或发布框架。当前只是本机派生，尚无actualsource-stage/loader/新真实模型证明。
+
+
+### A68-PREP / 同报告一次新版真实封面：本机辅助接续收尾
+
+实际功能提交31b4d7b、文档HEAD b25e22d；产品源码未再改，未push/部署。原case PLAN已校正遗留的顶层34call/4call建议/A60准备别名：原值逐项保存在a68_pre_checkpoint_legacy_aliases及原原件；当前36calls/private3.8472528、运行请求[]、2Lite结构化原图路线已实现、真实设计质量待验。没有改写旧调用、旧UNKNOWN、旧成品或财务原件。
+
+原D/implementation-a68/acceptance-prep内仅派生已有测试辅助：implementation三源收据cd9045d5（runtime ed9d0c44/guard 613d6cc1/operator 0bb8e11f，12纯离线检查）；entry薄入口与固定31b静态15叶收据f95fbe3b（25离线检查）；fixture旧正常非现金补分helper派生一次gift8，10父级/恢复门禁离线通过，独审80a8e0b8无活跃P1/P2、实际DB/补分0。所有新human/END/实际读回仍null/HOLD，测试与模拟不冒云端生效。foundation窄审三源，media独立窄审entry；原sole云窗口仅本机独占host目录派生实际stage/normal start/launcher薄接续，冻结后由未编写该源的审查者核验。不得执行旧34/report-only host或旧消费过launcher。
+
+原窗补充：旧launcher硬编码旧operator SHA/已消费OPDIR和ready，故必要的第四薄源launch_operator.A68.HOLD.py使用新a68-v2-operator和claim-latch-a68-v2，不覆盖旧ready/intent/stdout。旧40ec冷启要求34/cover0，现场已有36/cover1；保留旧inode不等于可用回退。若新隔离启动失败或结果未知，应保持入口CLOSED、保原命令/现场/CAS原件、先查原请求，不盲退旧40ec并start。正式生产不受此隔离恢复边界影响。
+
+本机源码准备不代表外部执行。root已请求原sole云窗口在host冻结/窄审后，将必要的最多1条有界只读当前宿主核验与自有版本子目录source-only stage具体对应已有工程scope；尚未收到实际C/T，不能称已stage或fresh核验。该准备不含运行时TERM/start/CAS、gift8、OPEN、模型调用或正式产品。下一步完成窄审/载体与当前源准备，然后集中绑定一次同report新v2封面真实验收范围；旧公网END不能续用，旧cover名额不能重绑。
+
+A68-PREP当前证据索引：acceptance-prep/A68-ACCEPTANCE-PREP-RECEIPT.HOLD.json4067B/SHA3eebad12ab2c0366d974aa6736966a30f457f82f9723bd32cd58e1776feb5d71。entry独审11654B/ddce512c保留1个实际接线P2：成熟CAS仅root原件，runtime两ref实际UID999/0600。选择保entry/CAS源不变，由host有界实读两原件并O_EXCL另存root:root0600同字节副本，ref指副本、保原path/uid/hash；尚未补齐/复审，不能称无条件GO。entry没有operator READY硬门，由host/root实核本次新OPDIR READY/PID/source/END/latch后才OPEN，不加第四ref/不假称已有。原窗source-only运输将用已核partial小包加固定官方Serif一次有界读取，最终逐叶核齐；完整20.6MB包尚未在云端，不能仅凭helper接受tar冒传输已就绪。
+
+root已纠正向completed代理send_message未启动回合的调度失误，已实际followup启动foundation三源、media入口独审；合同作者已完成ready路径实核并结束，待host冻结再followup独审。为付费前验证新增case/CAS最小变化，foundation另获准仅在自有临时目录用合成36行运行实际SQLite；原投影无旧36完整行，需明确synthetic baseline，不能冒实际账本/原inode/RUN身份已通过。禁止真实PG/网络/模型。此为受影响高风险接续验证，不新增平台或整站前置。

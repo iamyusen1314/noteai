@@ -4,6 +4,10 @@
 
 原付费36calls/private3.8472528/历史UNKNOWN不变，供应商请求[]；旧入口CLOSED/旧END不可复用，生产/权限/配置/公网/新付费0。Q09原窗已只读答复：旧guard名额已消费，不能滚END或重绑旧case；可复用原隔离report/9refs/账本/OSS，尚无已证明Mac私有浏览链。foundation仅原D/implementation-a68/acceptance-prep准备一次同report独立v2自然case的最小接续草案，保旧36/旧cover两版/UNKNOWN，2Lite/0image/0retry预期累计38、模型保守预留0.976896元≤1元、总仍≤100，正常8分需具体隔离补8scope及新有限END；当前HOLD无执行。下一步冻结提交交原sole云执行者源码窄审/必要源准备，再集中处理一次真实样本范围；不修正文、不新建发布体系。未有新版合格交付成本分母/用户设计接受，不升级可交付或发布。集成需feature关闭时先统一所有cover API/worker到v2+字体再启用，停用须保已存v2读取/免费改字/下载与原在途。
 
+A68-PREP补充：PLAN当前别名已与36call/2Lite实现同步，旧34/A60/4call记录完整保留。本机已有三运行辅助源/薄入口静态15叶/独立gift8夹具草案，默认human与END及actual refs全HOLD；fixture10离线+独审无活跃P1/P2，未补分。foundation审三源、media独审entry、原sole云窗口独占host薄stage/start/launcher派生，冻结后再窄审。旧40ec不可因保留inode就盲目冷启恢复；失败/UNKNOWN保持CLOSED读原件。当前没有新外部C/T或供应商请求，不称已stage/实际ready/真实成品。
+
+Prep索引4067B/3eebad12；entry独审仍有UID999回执→root CAS接线P2（host同字节root0600读回副本待补/复核），不改entry/CAS。入口不硬验operator READY，host/root须先读本次own READY再OPEN。foundation补仅本机合成36行/临时SQLite真实case/CAS检查，非原账/原inode验证；无真实DB。完整20.6MB源包未运输；partial+官方固定font逐叶stage路径仍本机准备，未云执行。
+
 ## HISTORY — A67扩展研究里程碑，保留事实，执行状态以上文为准
 
 ## CURRENT — 2026-10-20：扩大设计源码/火山能力研究完成；封面仍不可交付/不可发布
