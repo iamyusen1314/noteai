@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-20：用户拒绝封面设计，候选不可交付/不可发布；同任务设计专项进行中
+
+权威HANDOFF A63。原分支codex/noteai-xhs-cover-20261019/源码HEAD7ea4309不回退，A62技术/计量/原件历史保持；用户明确拒绝封面设计和字体/缺乏小红书逻辑，主代理已撤回产品可交付判断，原窗ACK禁止把候选作为可发布产品集成/启用。生产原本未动，不造回退/退款/清账。当前只做封面非付费研究/最小改进，不重报告正文/九图，不复用过期公网窗口或自动新模型。原case36calls/private3.8472528、九图report0cdbe及cover4da/8分事实保留。
+
+原实现实际没有Seedream，只有Lite设计/QC；Seedream分支只生成抽象纸背景，contain+禁文字与全图相交+单Bold导致横图小/巨留白/无层级，QC只功能安全放过丑图。root查官方Seedream/原prompt并统一实施；media查真实公开设计案例；contract查GitHub实际实现；foundation查根因与新旧产品合同差异。独立并行，不新平台/依赖/收费模型/生产改动。下一步给具体参考和可审版式、专业设计director→Seedream→审美与真实性质检建议，明确Seedream整张出图与原保真/免费文字合同冲突，再集中决定必要的真实重测。此为原任务恢复，不重放旧操作或全项目验收。
+
+## HISTORY — A62交付判断已因用户质量拒绝撤回；下文仅保技术事实
+
 ## CURRENT — 2026-10-20 14:44北京：封面功能可集成交付完成，原窗已ACK；入口已关，未生产发布
 
 权威HANDOFF A62及D/FINAL-COVER-DELIVERY-RECEIPT.json（D=/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-real-nine-cover-20261020-r1/attempt3-approved-execution-r1）。原分支codex/noteai-xhs-cover-20261019，写入时HEAD01f7a23，随后仅文档提交；8个功能/测试祖先94e78f7→37512e0→90e969c→a7eb030→e6234e7→f818da4→0854113→a3a0187。实际受控live BEe623/FEf818；a3a余额刷新只读补丁24VM及异步身份独审通过，未冒本次live已含。
