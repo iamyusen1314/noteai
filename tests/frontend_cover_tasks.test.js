@@ -78,6 +78,46 @@ test('both visual expert renderers provide one common entry and usage gives cove
  assert.equal((html.match(/role === '视觉专家' \? coverEntryMarkup\('analyze'\)/g)||[]).length,1);
  assert.match(html,/cover_generate:'笔记封面'/);assert.ok(!code.includes('/cancel'));assert.ok(!code.includes('data:image'));
 });
+test('actual generation report render binds both visual roles to the report and excludes incomplete or cross-type entries',async()=>{
+ // Execute production rendering and identity helpers; the DOM below only collects their output.
+ function source(name) {
+  const start=new RegExp('^(?:async )?function '+name+'\\(', 'm').exec(html);
+  assert.ok(start,`production function ${name}`);
+  for(let end=html.indexOf('}',start.index);end>=0;end=html.indexOf('}',end+1)) {
+   const candidate=html.slice(start.index,end+1);
+   try {new vm.Script(candidate);return candidate;} catch {}
+  }
+  throw Error(`Incomplete production function ${name}`);
+ }
+ const helpers=['escapeHtml','productActionAttributes','completeProductResult','reportGenerationResult','reportDiagnosisResult','reportIsGeneration','gradeInfo','populateGenerateReport'].map(source).join('\n');
+ async function render(role,{saved=false,incomplete={},crossType=false}={}) {
+  const nodes=new Map();
+  const get=id=>{if(!nodes.has(id))nodes.set(id,{style:{},innerHTML:'',textContent:''});return nodes.get(id);};
+  const report={note_title:'本人真实素材标题',note_body:'本人真实素材正文',saved_note_id:'never-use-note-id',ces_percentile:69,
+   billing:{operation:'generate',request_id:'generated-report-id'},...incomplete,
+   expert_opinions:[{role,opinion:'真实画面建议'},{role:'内容创作师',opinion:'正文建议'},{role:'增长策略师',opinion:'增长建议'}]};
+  let networkCalls=0;
+  const {c}=make({document:{getElementById:get,querySelector:get},_generateResult:report,_diagnoseResult:null,_isGenerateMode:true,_diagnosePromise:null,
+   _historyReportSelection:crossType?{report_type:'analyze',report_id:'other-diagnosis',result:{diagnosis_id:'other-diagnosis'}}:
+    saved?{report_type:'generate',report_id:'saved-clarified-report-id',result:report}:null,
+   renderBillingReceipt(){},renderGenerationHeader(){},renderProviderAnswer(){},renderReportLifecycle(){},updateScoreRing(){},
+   reportTimeLabel:()=>'',expertOpinionHistoryNotice:()=>'',fetch:async()=>{networkCalls++;throw Error('render must not use a transport');}});
+  vm.runInContext(helpers,c);await c.populateGenerateReport();assert.equal(networkCalls,0);
+  return get('genAgentResultsList').innerHTML;
+ }
+ for(const [role,saved,reportId] of [['视觉分析师',false,'generated-report-id'],['视觉专家',true,'saved-clarified-report-id']]) {
+  const rendered=await render(role,{saved});
+  const entries=[...rendered.matchAll(/data-product-action="openCoverPanel" data-product-args="([^"]*)"/g)];
+  assert.equal(entries.length,1,`${role} must expose exactly one real report entry`);
+  assert.deepEqual(JSON.parse(entries[0][1].replace(/&quot;/g,'"').replace(/&amp;/g,'&')),['generate',reportId]);
+  const cards=rendered.split('<div class="agent-result">').slice(1);assert.equal(cards.length,3);
+  for(const card of cards) assert.equal(card.includes('data-product-action="openCoverPanel"'),card.includes(`class="agent-result-name">${role}</span>`));
+ }
+ assert.doesNotMatch(await render('用户心理师'),/data-product-action="openCoverPanel"/);
+ for(const incomplete of [{_waiting_for_input:true},{_outcome_unknown:true},{_error:true}])
+  assert.doesNotMatch(await render('视觉专家',{saved:true,incomplete}),/data-product-action="openCoverPanel"/);
+ assert.doesNotMatch(await render('视觉专家',{crossType:true}),/data-product-action="openCoverPanel"/);
+});
 
 test('UNKNOWN stays blocked until release; explicit new intent creates a new UUID and retains the original unknown',async()=>{
  let posts=0;const {c,ctx,el}=make({fetch:async(url,options)=>{posts++;const body=JSON.parse(options.body);return {ok:true,json:async()=>({...completed,job_id:body.request_id,request_id:body.request_id,status:'queued',has_final:false,billing:{status:'reserved',reserved_credits:8}})};}});
