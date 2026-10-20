@@ -12,7 +12,7 @@ R1原yes因余时不足未执行，留史。新R2人类明确“同意更新时�
 
 静态price/no-cache模板已备，实际两原件已samecandidateUID999读取/hash验证；8paidproof/naturalclaim仅first-wire门。原operator静态窄审GO只覆盖当时源码/离线证据，不代表新云端adapter实测；本次实际observer失败，不能沿用GO冒实际就绪。原窗唯一云执行，根唯一正常UI业务调度。自然ID回来后将两plannedUUID标UNUSED，保留真实usage/report/job映射。
 
-下一步：只读原claim/closed/usage/ledger/physical调用与实际observer异常，修最小辅助并非付费验证。新增observer root.bound.py line13的UID999 operator subprocess失败，原始stderr未留；其GUARD.read_bytes权限点仅候选根因，未实证。独审证明若原POST终态closed/failed/released，既有c361/runtime/postdelivery无恢复或rearm入口，0模型亦不得删closed/清stopped/试探第二POST。保留全部失败，准备最小可审接续后，由根集中取得新尝试及新当次临时入口确认才dispatch；不能称真实验收完成。实际iPhone、多用户容量、当前OSS90天物理规则仍未证；原图TTL不延长。最终由原窗口统一集成，未增加生产发布授权。
+根因已实证为helper要求0600，原封存seal实际安全0400；最初GUARD.read_bytes权限假设已排除，不按猜测额外改。修正后的实际UID999读取seal0400/claimclosed0600与旧expiry拒绝已Success0（622315ab…/1141B），元数据/内容不改；仅private+claim_check范围、operator_main=false，不能冒完整observe/resume。独审证明原POST终态closed/failed/released无恢复或rearm入口，0模型亦不得删closed/清stopped/试探第二POST。下一步：完成隔离cover开关真实生效与attempt2 HOLD/有限11:30方案、完整源冻结窄审；复用同CID/DB/既有mount但独立辅助叶子，旧R1全部保留。当前无新attempt激活/reload/OPEN/新POST。根等可执行准备齐后集中取得新尝试+新当次入口+必要有限绑定批准（仍共40/100非新增预算），不提前问时窗；不能称真实验收完成。实际iPhone、多用户容量、当前OSS90天物理规则仍未证；原图TTL不延长。最终由原窗口统一集成，未增加生产发布授权。
 
 ## HISTORY — 继承源码基线记录（非当前执行指令）
 
