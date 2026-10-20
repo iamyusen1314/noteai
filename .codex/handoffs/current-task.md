@@ -1,10 +1,12 @@
 ## CURRENT — 2026-10-20：用户拒绝封面设计，候选不可交付/不可发布；同任务设计专项进行中
 
-权威HANDOFF A64。原分支codex/noteai-xhs-cover-20261019/功能HEAD8441563不回退，A62技术/计量/原件历史保持；用户明确拒绝封面设计和字体/缺乏小红书逻辑，主代理已撤回产品可交付判断，原窗ACK禁止把候选作为可发布产品集成/启用。生产原本未动，不造回退/退款/清账。当前封面非付费研究/3方向可审HTML原型完成，质检门禁修复42离线PASS/独审P2已修，不代表视觉通过。不重报告正文/九图，不复用过期公网窗口或自动新模型。原case36calls/private3.8472528、九图report0cdbe及cover4da/8分事实保留。
+权威HANDOFF A65。原分支codex/noteai-xhs-cover-20261019/功能HEAD8441563、文档HEAD按实际Git不回退，A62技术/计量/原件历史保持；用户明确拒绝设计，现又要求先官方/行业/实际项目依据，**B2优先推荐已撤回为候选，暂不催原像素合同改变选择**。原窗HOLD不可交付不可发布；没有生产变化，不造回退/退款。真实官方手册正文/Chrome页面、社区公约和历史行业原页/真实Agent源码已核，非自我讨论。门禁42离线/独审P2已修仅技术证据，不代表视觉通过。原case36calls/private3.8472528、report0cdbe/cover4da/8分事实不变；无新模型/UNKNOWN/云/权限/公网，不重正文/九图或全站验收。
 
-原实现实际没有Seedream，只有Lite设计/QC；可选分支仅抽象纸背景。研究/原prompt/具体新prompt在docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md，D/design-research-*和design-root-cause-review可核。推荐完整无字主视觉B2：导演看9图→Seedream按1–3参考完整设计→独立文字层→一次QC看原参考/成品/240缩略，三调用不扩平台。需要集中产品决定原像素不变改为参考忠实（事实仍不可虚构，QC不保证数学保真），可选背景改必需一次主视觉；文字仍同标题连续摘取。A背景增强不足，B1含字海报会破坏免费改字不推荐。三方向离线概念D/design-concepts（非Seedream）已Chromium1360/390实浏览，主代理推荐B双景作水石方向；不冒新版产品UI或iPhone保存通过。
+最新设计附件docs/NOTEAI_XHS_COVER_DESIGN_REVISION_20261020.md首节A65优先于其A64历史候选。依据：D/official-xhs-cover-evidence.json74880d2c（官方商品手册公开原文+root实际DOM/截图；按商品笔记scope含图文不建议额外加字/视频可加字，不当全社区禁字）；D/industry-cover-case-evidence.jsond79f5944（三份历史署名镜像原页实看foodp13/hotelp19/beautyp8、11，非当前规则/封面CTR因果）；D/design-agent-primary-evidence-v2.json489ad29e（commit级技能/TS脚本/test/许可，排除无证90%互动/刻板风格/重试等）。两研究tab已关，未登录/注册/付费。
 
-功能8441563仅门禁：design_checks缺项/false/矛盾approved拒绝，真实240×320同次QC；取消QC后改字号/颜色再不复检的P2通路。42PASS/12.174s、gitdiffcheck、独审原JSON保P2+resolution；模拟图片已付后拒绝保供应商成本、0save/0用户扣分/no retry，legacy QC缺checks仍可重开下载免费改字。源/日志/概念pins见A64。下一步待上述实质合同选择后补原模块设计生成/排字、定向离线/独审；必要真实样本准备齐后再集中明确新同报告scope/时窗，不能把累计剩4call等同自动重派许可。原窗唯一云/集成发布，不扩大正文/生产/权限。
+收敛为行业/子类×内容意图×读者决策点×实际素材→有出处参考用途→选纯图/少字/分景/信息结构→再定程序或Seedream职责→按策略查成品/缩略/事实，沿一次设计调用/无运行时抓平台。新brief需evidence_ids和明确制作理由；不是宣称上游已有全行业分类器。水石只能用真实松树红桥庭院汤池等本店证据，不能全休闲套洗浴或借他店价格。完整Seedream重绘仅候选，原像素、免费准确改字、同标题连续摘取及结算合同未改。旧3概念只探索，B也无数据证明最优；新成品未生成。
+
+功能8441563仅门禁：design_checks缺项/false/矛盾approved拒绝，真实240×320同次QC；取消QC后改字号/颜色再不复检的P2通路。42PASS/12.174s、gitdiffcheck、独审原JSON保P2+resolution；模拟图片已付后拒绝保供应商成本、0save/0用户扣分/no retry，legacy QC缺checks仍可重开下载免费改字。源/日志/概念pins见A64，未因本轮文档重跑。下一步先按A65事实依据修原模块的设计brief/可执行排版和策略验收；未确认合同变化不放宽，必要真实样本准备齐后集中明确新scope/时窗，不能把剩4call当重派许可。原窗唯一云/集成发布，不扩大正文/生产/权限。
 
 ## HISTORY — A62交付判断已因用户质量拒绝撤回；下文仅保技术事实
 
