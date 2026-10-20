@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-21 A68：gift8已一次成功；隔离启动退出2，最小辅助导入顺序修正待实际恢复
+
+功能31b4d7b未改，登记前HEAD6ff6608。原同意06:35:11→07:35:11固定END1792539311不变，实际OPEN最晚07:05:11；不滚动。gift8真实一次2289/a26c16b4，不再补。prepare Cc-sz070ni7ifswfsw/Tt-sz070ni7igcvmkg已发一次start，实际随后Exited2/PID0，startup-hold仅AssertionError类，不能冒已捕获具体assert。入口仍CLOSED、无ownREADY/新任务/新模型；生产保护保持。
+
+原sole实际纯只读Cc-sz070nixird7itc/Tt-sz070nixirs6ww0 S0D0，原inner18165/43b7935a，配置及stage14+helper指纹均相符，账本36/private3.8472528/pending0/inode1460877/全calls291acd不变；postCAS seal为fc60cc17205cd3fb957774a333284d76abb796932fb2f57bf9cda1fe9be936e0，不能再假用旧e074或重放841f。辅助ed9在来源循环前未加载完整模块闭包，cover服务实际为lazy import；foundation唯一新增一行正常import6模块产生runtime_entry.import-order-r2.py47514/8fc3ee0d，原严格18来源/预算/身份/END门保持。真实Py3.11.14编译+3桩回归PASS，仅sourceGO，非实际启动成功。收据P/implementation/IMPORT-ORDER-R2-RECEIPT.json3110/4588c0b9。
+
+原sole窗口唯一负责技术后继载体和实际恢复：保原ed9/human2aa7/失败现场/已消费start/CAS，按同一真实授权和固定END登记新技术身份，不另问例行修正批准、不复跑gift/841f、不改产品或生产。root独立窄审并保持专用Chrome2/tab1637495932待命，收到真实newREADY+OPEN即正常UI单击一次。若不能在最迟OPEN前剩余30分钟则保持关闭，不能晚开/扩时；继续不付费修正，不伪称真实成品通过。恢复先读原PLAN及交接末节，不因旧索引状态落后重派已发请求。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：真人已确认本次有限验收；固定07:35:11关闭，原sole正接续
 
 分支/工作树保持，功能31b4d7b，登记前HEAD457e4e7。恢复读原case PLAN及交接A68-REAL。官方human user01a15b74-4e59-74b2-a56b-a98666ea2441/turn01a15b74-4e10-7c92-a60a-4d88ecdd7dcb实际同意，approved1792535711/END1792539311（北京06:35:11→07:35:11），actualOPEN最晚07:05:11、不滚动。canonical2584/2aa7a11a在P/a68-human-approval.json，原官方read文本11356/b7a1b0c0；原HOLD保留。按单report新1v2/2Lite0image0retry/总≤38of40、原≤100新≤1、gift8/sameCID原受保护入口范围执行，不重问许可。
