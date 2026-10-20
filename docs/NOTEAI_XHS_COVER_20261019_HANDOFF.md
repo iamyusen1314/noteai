@@ -400,3 +400,20 @@ guard最终30测eb26a9…与runtime a7e36f78…已冻结。本轮辅助包仅八
 - 当前实际HEAD观察`b7ee0ac`（e26054a包含完整保留原窗口A05/A06、Q06项目问题及本窗Q07保存问题；b7仅纠正两问同号）。产品仍e6234e7。镜像实际`sha256:05978bee01588bcc1b4bd0cb74660eadd3a19b97dadfdc9cec8d1a76d08bf6cc`，仅API候选，Admin两叶子保留原9be；固定字体/18源码点通过。feature SQL已在原隔离PG一次提交，schema31/旧预算未变，三个封面表空、配置仍关闭，非生产迁移。
 - startup模型探针一度误查不存在claude_transport.py，原窗已定位并核4权重/manifest与正式容器一致、严格校验PASS；没有模型/权重产品缺陷或重训练。随后单次非推理Gateway metadata脚本停在前后容器快照比较，原窗正在核其实际原回执，不能据此判供应商推理失败，也不盲重发。没有发送图片/提示词或推理请求。
 - 未完成：候选API真实启动/会话与OSS普通上传可用、临时受鉴权测试入口当次确认及开关、同一自然clientID原claim登记和真实报告→封面、PC/H5状态/保存重开下载/免费排字、实际费用与唯一结算、成品独审。当前本窗真实业务/模型请求0、费用0/100、合格封面0，计划两个ID仍未受理；根窗唯一调度，原窗口不并行派模型。HOLD runtime和公网include保持待原回执核实，不将离线/helper通过冒成live。Q07真实90天provider生命周期结论可后续复用原件回答，不成为当前分钟级测试新门槛。
+
+
+### A06 运行只读回执 / A07保存期答复 — 2026-10-20 北京07:51，原窗口追加后释放
+
+- 原`runtime-metadata`命令c-sz070k27gbacpvk/t-sz070k27gbmu7ls停在辅助脚本`before==after`，已发至多一次非推理签名GET，但其响应未在assert前保存，**结果UNKNOWN**，不能说Gateway失败或成功；无推理/用户图片内容。本次后继只读c-sz070k2jjsil1q8/t-sz070k2jjsv2jgg实际Success/Exit0/Dropped0，remote_HTTP_calls=0，仅读当前pins，未重派GET。原失败和marker保留。
+- `Enew/runtime-current-readonly-{run-original,read-original,output}.json`：formal API仍3711/9be/PID2779792/restart0；Pay34bc/Admin76c1、原isolated761d/PG4e19均running/restart0，host boot536705bb、可用内存5590982656B；新API尚未启动、public entry closed。4权重+manifest严格与formal同且required/check-only通过，早先额外claude_transport.py不存在是辅助探针错误，无需修权重。
+- Q06接受最新收敛：真实原合法配置/固定指纹与endpoint/model/正常owner原claim锁定、project归属仍UNKNOWN，不伪填verified。只做helper窄适配，产品auth/预算/UNKNOWN停止不变；新模型调用仍0/100。
+- **Q07只读答复**：可复用的2026-07-29原私有Standard/LRS/AES256收据载原base-prefix物理2天清理；原件在`E旧/oss-normal-media-cost-ca-review2/retained-original-storage-proof.json`，SHA28e4647b07c998154c8caa9767b7b3f709a4cc93e31f1e0b73ca1b40000ecbc7。此为历史原件，不冒当前10月重核规则。若该base-prefix规则仍匹配cover子前缀，会与90天承诺冲突；后续生产集成须定向确认/隔离封面规则，不延长所有临时原图。本次未改Bucket生命周期/权限，也不把90天结论扩为当前分钟级真实上传的新门槛。真实普通PUT若拒绝/未知则停付费链。
+- 下一步继续既有HOLD API18114的实际配置/启动、正常会话与普通OSS上传；封面窗口唯一调度，新入口需当次确认才开，原窗口不派模型、不开发产品、不生产发布。不重做已完成handoff/build/SQL/PG89。
+
+
+### Q06 实现回执 / 当前helper已钉定，真实请求仍未派发
+
+- Q06 test-only辅助收敛已实际实现并保存35项PASS日志，旧30项RESULT/log另存pre-q06且SHA未变。guard SHA`b21126707c7115a931d439f4466159df3832a519bc4a3b8405f454697a6a11d4`，tests `a949d95a53e8356e25e40e18738f80c29405b03a7b9384d758ef95b4bc6f9722`，RESULT `1285b8e05af68211ab9a2285a5bb7947dd4975eb1ba24722255915d6f5f76ac0`，35项log `73e6e1ffc15dbd6b6de6a93278119708cba21330c63d43e39cbf9a4aab43be64`，均在Enew/guard。
+- `/root/cover_foundation_review`仅针对新增5项独立回归5/5 PASS、0socket/provider，前后SHA一致；错指纹/路由/型号/伪verified/paidprobe拒绝，owner/正常原任务/40与100/cover3与image1/0retry/403 UNKNOWN停均未放宽。此为helper源与离线合同，通过不冒live；旧eb26只作pre-q06历史，恢复应取当前b211及PREPARATION-MANIFEST。产品e623与镜像05978bee未变，无新增产品源码修改。
+- 原窗口上下文压缩后曾回旧handoff步骤，本窗已以当前checkpoint纠偏，原窗口明确接回正在进行的隔离准备，不重新建树/构建/回放模型。其后实际回读证明正式API/Pay/Admin/原PG存续，新API尚未启动、公网入口关闭；原Gateway非推理GET因辅助断言在保存响应前失败，响应保留UNKNOWN，不是模型失败或可凭空清零的成功。
+- Workbench传新的辅助包明确会话过期，未冒成功；原窗转既有RunCommand。同源启动命令一度被阿里云长度上限入口拒绝、未到服务器执行，现用host原件逐文件old/new SHA增量缩短，不重传镜像或改生产。下一步只核该原命令回执/候选HOLD正常启动及实际存储，再准备当次受鉴权测试入口确认；provider原请求尚无、费用0/100、真实封面0，两个client计划ID未受理。共享文档本段后释放，后继云身份原件由原窗追加。
