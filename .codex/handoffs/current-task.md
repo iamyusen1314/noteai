@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-20 14:25北京：真实封面独立8分/2calls已核，免费排字已保存，后快照与物理PNG待补
+
+权威A61、同case PLAN。分支codex/noteai-xhs-cover-20261019/HEAD a3a0187（7行cover结算后只读余额刷新，24VM及独审PASS；当前live静态仍f818）。actualjob4da1165c-7cc3-4d12-8c52-fc2e365fa05e，before-free raw23952/964675已核：completed/rev1/独立cover_generate unique8，report0cdbe原8/34保持，photo原第7图/2真实Lite设计QC/image0，成本0.0129240公开tariff计量非发票；private总36/3.8472528/pending0。累计40/100不重置。真实freeadjust仅一次：三行松影红桥/都市禅意汤泉/值得来+bottom，UI已保存/不另扣；等同415d唯一after-free元数据核财务指纹/physical不变。原native/失败UNKNOWN保留，不重封面/报告/九图，不改正文。
+
+已真PC刷新/0余额/独立列表重开与成品显示；当前H5 viewport未实生效，已reset/临时页关，不能冒H5或iPhone通过。Blob下载工具未取文件，普通UI下载提示成功但OS保存未证；原窗正同隔离storage adapter只读取实际base/final whole/PIL/RGBsha。root本机重建PNG whole不等已停，只保诊断，未冒实际样本。phase3取证/phase4独审交付继续。唯一入口END1792479571=14:59:31北京不延；完成UI后原窗早关，不停在途API。rootsoleUI/原窗sole云和未来统一发布，生产/权限/资源0新增。
+
+## HISTORY — 下列旧checkpoint保留；禁止重放旧任务或时窗
+
 ## CURRENT — 2026-10-20 14:17北京：真实封面已保存，唯一8分UI回执；只核验封面交付
 
 权威A60及原case/PLAN.json。sameCID d264/runtimePID3379653/source40ec，cover WAIT PID74真实READY后已OPEN，固定END1792479571=14:59:31北京，禁止滚动或重prepare/WAIT/OPEN。实际源f818/90931封面入口可见，九原图均物理加载。root仅一次正常封面提交，actualjob4da1165c-7cc3-4d12-8c52-fc2e365fa05e，revision1，UI已保存/实际扣8/期限2027-01-18 14:12。正常下载UI成功但浏览器工具未取到文件，未记通过；freeadjust尚未做。正文不修/不当封面前置，不重报告或九图。

@@ -991,3 +991,16 @@ cover-only薄helper00da71482c6371ab5a95d8f386b52595b8664a0f7470e234896801f944c4e
 正常下载按钮已唯一按一次，UI“已交给浏览器下载”，工具download事件30s超时；图片Blob downloadMedia明确不支持，当前本机Downloads未见文件。未把工具失败当产品失败/未冒下载验收通过；只对已交付私有成品继续精确取件。chrome://downloads在首次导航被URL政策拒绝，未绕过该禁令。免费调整尚未做，待finalRO before-free快照。contract最小reader29852/415d0604已15purePASS及独审中，由原窗复用原分段传输；其只读11SELECT/RRRO/ROLLBACK，不新业务或模型。真实成本/次数/结算/物理存储需实际RO，暂不猜测0或已通过。
 
 阶段3仍IN_PROGRESS：真实PNG独审、正常刷新重开/PC-H5/免费排字/下载与前后账本；阶段4最终独审及交付原窗待完成。正文质量明确不在范围。当前累计预算仍40call/100元，不重置34历史；provider新增实数待读。root唯正常UI，原窗唯云/未来统一生产发布；生产/权限/资源0新增。当前HEAD e6c907f（本节随后文档提交），运行封面任务UI已终态，入口提前close待主要取证结束，最晚END自动关，不停API在途。
+
+
+### A61-MAIN 首张封面真实RO通过；免费改字/断行/移位已保存，等后快照
+
+实际before-free Cc-sz070l24nqjmr5s/Tt-sz070l24nqr4g74，Run01A157F9-9C91-554C-9634-FF0C880D260E/Read01A157F9-B5C2-56E7-803D-6B8CE3D1A29C，S0/D0。D/saved-cover-before-free-readonly-r1/result.ACTUAL-ORIGINAL.json23952B/SHA964675a59c1e165c91f27c92e855477653889dc3d9b62464d0cdda1639f31795，完整host raw gzip回传，root逐byte/SHA核；source415d已15pure及独审GO，不重序列化原件。job4da1165c-7cc3-4d12-8c52-fc2e365fa05e/completed/rev1，usage5d655878-6bb0-4884-932a-77c7b0cf9fea独立cover_generate，unique committed8/reserved0，原report8/34carryfe1不变。violations[]/storage metadata_validtrue/aux stabletrue；actualcover自然seal e0749f0cad244e63ca40762f21e41f805bb239883170c97aa6a35fac8e59fc0b，不能继续拿startup ed53当最终seal。
+
+实际photo路线选原第7张36969477…，Lite doubao-seed-2-0-lite-260428设计+QC共2真实calls、image0；Seedream Pro本例未调用，不能宣称该真实分支通过。cover Token计量0.0129240元，非供应商账户发票；私账总36calls/known3.8472528/pending0，native原report3.3571038另保，累计40/100未重置。base16d3aa14…2604056/d35c2839；finalf75b5b7b…2664059/186f7c39，PNG/期限2027-01-18T06:12:14.726606Z，90天当前是metadata合同，物理adapter读/PIL待原窗补，不冒90天已流逝。
+
+根真实刷新→0余额→独立已保存封面列表→同job重开成功。CUA viewport.set390×844对既有页和新页均未实生效（DOM2164），已reset/临时H5页关闭；本次H5暂UNVERIFIED_TOOL_LIMIT，沿用已有离线H5证据，不假装实际iPhone。media初成品截图独审指出长标题/重点与庭院图匹配及大量留白P2，未当高质量审美通过；正文不审不修。before-free实读后根仅一次正常freeadjust：松影红桥\n都市禅意汤泉\n值得来+下方；正常UI“排字修改已保存，不另扣积分”，旧顶部文字消失、原庭院完整、期限不变。D/normal-ui/PC-COVER-FREE-ADJUST-REV2.{ax.txt,png}。已一次正常下载新版，after-free真实版本/财务/physical指纹待唯一RO；不重模型。
+
+唯一新产品补丁a3a0187：实际完成回执8而导航8至刷新才0，coverAcceptJob completed+final按job首次调已有refreshCreditBalance，7行只读余额刷新、不改账务。原VM24/24 PASS，foundation独审job去重与真实helper旧token/新账号/revision异步围栏PASS，无新P1/P2。当前live static仍f818/90931，这个补丁只本机已提交/离线审，不冒当前浏览器已运行新版。root交原窗统一集成；不为此重模型/临窗上传static。
+
+本机用精确归一原图(sourceSHA匹配)+actual layout尝试确定性重建，base/final PNG whole不同；已断言停止/只保LOCAL-RECONSTRUCTION-DIAGNOSTIC.json，未写或冒实际PNG样本。待原窗真实storage adapter whole/PIL/RGBpixelSHA，若像素相等可仅以像素等价样本如实标注，否则不冒原件。浏览器blob工具未取得本机文件，不把UI下载提示代OS保存通过。入口固定END14:59:31，收主要UI证据即早关；恢复只读samejob，不再POST封面/报告。当前HEAD a3a0187，阶段3取证/阶段4补最终独审与交付继续。
