@@ -214,9 +214,32 @@ def _source_labels(context, sources):
                 or not 1 <= width <= 36_000_000 or not 1 <= height <= 36_000_000
                 or width * height > 36_000_000):
             _error("COVER_DESIGN_SOURCE_DIMENSIONS_INVALID")
+        fit = None
+        if width is not None and width * height >= 196:
+            # Reuse the actual drawing geometry, including its pixel rounding.
+            # This is an uncropped measurement, not a proposed composition or a
+            # subject annotation. A later crop/container changes the projection.
+            try:
+                geometry = renderer._photo_geometry(
+                    {"crop": [0, 0, 1, 1], "subject_bbox": [0, 0, 1, 1], "bbox": [0, 0, 1, 1]},
+                    [width, height])
+            except renderer.CoverRenderError as exc:
+                # An extreme aspect ratio may round the uncropped preview to
+                # zero pixels. Keep the candidate: a safe crop can still fit.
+                if exc.args != ("COVER_PHOTO_TOO_SMALL",):
+                    raise
+            else:
+                x0, y0, x1, y1 = geometry["photo_pixels"]
+                fit = {
+                    "basis": "uncropped_image_in_full_canvas_contain_container",
+                    "actual_photo_bbox": [round(x0 / renderer.WIDTH, 6), round(y0 / renderer.HEIGHT, 6),
+                                          round(x1 / renderer.WIDTH, 6), round(y1 / renderer.HEIGHT, 6)],
+                    "photo_area_fraction": round((x1 - x0) * (y1 - y0) / (renderer.WIDTH * renderer.HEIGHT), 6),
+                }
         labels.append({
             "candidate_number": number, "source_ref": reference,
             "width": width, "height": height,
+            "uncropped_full_canvas_contain": fit,
             "original_positions": [
                 {"input_field": item["input_field"], "image_index": item["image_index"]}
                 for item in positions if item["media_ref"] == reference
@@ -263,7 +286,8 @@ def build_design_prompt(context, sources):
     contract = {
         "schema_version": 2, "route": "photo", "background_color": "#RRGGBB",
         "photos": [{"source_ref": "one supplied UUID", "crop": "normalized xyxy",
-                    "subject_bbox": "normalized xyxy in original", "bbox": "normalized xyxy on canvas"}],
+                    "subject_bbox": "normalized xyxy in original",
+                    "bbox": "normalized xyxy contain container on canvas, not actual photo bounds"}],
         "text_layers": [{"copy_span": {"title_id": "one copy_catalog ID", "start": 0, "end": 4},
                          "line_breaks": [], "bbox": "normalized xyxy on canvas",
                          "font_id": "one available font ID", "font_size": 112,
@@ -289,7 +313,10 @@ def build_design_prompt(context, sources):
         "source_reasons逐一说明选材理由；brief只是可审的设计判断，不是商家事实认证。"
         f"总叙述以{TARGET_BRIEF_CHARACTERS}字符以内为简短目标，每段最多100字符；按需完整保留选材理由、来源边界和事实排除。"
         "原图由程序直接使用，不重画/扩建/美化设施、菜品、人物，不新增价格、服务、疗效或到访体验。"
-        "crop必须包含原图全部关键主体联合subject_bbox；不确定则保全图。按真实width/height和crop比例选bbox，程序contain，不能假设会拉伸铺满。"
+        "crop必须包含原图全部关键主体联合subject_bbox；不确定则保全图。bbox是等比contain的居中容器，不是最终照片边界，四数为xyxy而非xywh。"
+        "sources.uncropped_full_canvas_contain是程序按实际绘图算法测算的全图放入全画布时的真实照片边界与面积占比，不是推荐版式；null表示无可用测算，不能猜。"
+        "横图即使bbox为[0,0,1,1]也可能只占画布一部分；照片已受容器宽度限制后，保持宽度只加高容器也不会变大，fit:cover/object_fit不受支持，不会拉伸或扩图。"
+        "按实际占幅统筹整张封面的主景与文字：若保全主体使单图无法承担构图，选择更合适的真实原图或1–3张明确分景；不要把容器满幅当照片满幅。"
         "照片可明确分景，但不能拼成不存在的连续空间；不强拼九图。不要默认中部横条、35%小图、上下预留大空白、统一色板或统一字体。"
         "文字必须从approved_titles的某一个标题连续摘取，合计最多32字，允许少字但至少一层；只允许改变换行，空格、标点和字序不得改或跨标题拼词。"
         "禁止自行抄写文字：顶层和每层都不要输出text字段。每层只用copy_span选择copy_catalog中的title_id/start/end，程序从原标题取原文。"

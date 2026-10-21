@@ -1,10 +1,12 @@
 """Offline v2 prompt/provenance contracts, not model or aesthetic acceptance."""
 from pathlib import Path
+import io
 import json
 import sys
 import unittest
 from unittest import mock
 import uuid
+from PIL import Image, ImageChops
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
 import cover_design as design
@@ -66,6 +68,49 @@ class CoverDesignTests(unittest.TestCase):
         self.assertIsNone(brief["subtype"])
         self.assertNotIn("PRIVATE_IMAGE", json.dumps(brief, ensure_ascii=False))
         self.assertEqual(brief["evidence_version"], design.EVIDENCE_VERSION)
+
+    def test_contain_preview_matches_pasted_pixels_for_landscape_exact_and_portrait(self):
+        for size in ((1671, 941), (1920, 960), (600, 800), (600, 1200)):
+            with self.subTest(size=size):
+                stream = io.BytesIO()
+                Image.new("RGB", size, "navy").save(stream, "PNG")
+                source = {"media_ref": self.refs[0], "width": size[0], "height": size[1],
+                          "payload": stream.getvalue()}
+                preview = design.build_design_brief(self.context, [source])["sources"][0]["uncropped_full_canvas_contain"]
+                base, _ = renderer.compose_sources([source], photo_plan(self.refs[0]))
+                with Image.open(io.BytesIO(base)) as actual:
+                    bounds = ImageChops.difference(actual, Image.new("RGB", actual.size, "white")).getbbox()
+                expected = [round(value / (renderer.WIDTH if index % 2 == 0 else renderer.HEIGHT), 6)
+                            for index, value in enumerate(bounds)]
+                self.assertEqual(preview["actual_photo_bbox"], expected)
+                area = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1])
+                self.assertEqual(preview["photo_area_fraction"], round(area / (renderer.WIDTH * renderer.HEIGHT), 6))
+                if size == (1671, 941):
+                    self.assertLess(preview["photo_area_fraction"], .43)
+                    self.assertGreater(preview["actual_photo_bbox"][1], .28)
+
+    def test_missing_source_dimensions_do_not_invent_a_contain_preview(self):
+        source = {"media_ref": self.refs[0]}
+        brief = design.build_design_brief(self.context, [source])
+        self.assertIsNone(brief["sources"][0]["uncropped_full_canvas_contain"])
+        self.assertIsNone(brief["sources"][0]["width"])
+
+    def test_unrepresentable_uncropped_hint_does_not_discard_other_candidates(self):
+        sources = [{**self.sources[0], "width": 40000, "height": 1}, self.sources[1]]
+        labels = design.build_design_brief(self.context, sources)["sources"]
+        self.assertEqual([item["source_ref"] for item in labels], self.refs[:2])
+        self.assertIsNone(labels[0]["uncropped_full_canvas_contain"])
+        self.assertIsNotNone(labels[1]["uncropped_full_canvas_contain"])
+
+    def test_director_receives_container_semantics_and_real_occupancy(self):
+        prompt = design.build_design_prompt(self.context, self.sources)
+        brief = json.loads(prompt.split("\n本地证据与本任务素材=", 1)[1])
+        self.assertTrue(all(item["uncropped_full_canvas_contain"]["photo_area_fraction"] < .43
+                            for item in brief["sources"]))
+        self.assertIn("not actual photo bounds", prompt)
+        self.assertIn("fit:cover/object_fit不受支持", prompt)
+        self.assertIn("crop必须包含原图全部关键主体", prompt)
+        self.assertIn("1–3张明确分景", prompt)
 
     def test_nine_source_prompt_uses_every_attachment_in_real_order(self):
         prompt = design.build_design_prompt(self.context, self.sources)
