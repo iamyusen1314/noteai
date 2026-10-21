@@ -15,7 +15,7 @@ from functools import lru_cache
 import re
 import uuid
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps, ImageStat
 
 WIDTH, HEIGHT = 1776, 2368
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -624,6 +624,31 @@ def _move_v2(safe, position):
         layer["bbox"] = _rect([box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy], "text")
 
 
+def _v2_readable_color(canvas, layer, origins, font):
+    # Inspect the actual pixels behind glyphs, including a blended panel. A
+    # declared panel/background color need not be the background of this text.
+    mask = Image.new("L", canvas.size)
+    ink = ImageDraw.Draw(mask)
+    for line, origin in zip(layer["rendered_lines"], origins):
+        ink.text(origin, line, font=font, fill=255, anchor="lt")
+    if mask.getbbox() is None:
+        mask.close()
+        _error("COVER_TEXT_NOT_VISIBLE")
+    background = "#" + "".join(f"{round(value):02X}" for value in ImageStat.Stat(canvas, mask).mean)
+    mask.close()
+
+    def contrast(color):
+        dark, light = sorted((_luminance(color), _luminance(background)))
+        return (light + .05) / (dark + .05)
+
+    if (contrast(layer["color"]) >= 4.5
+            or layer["stroke_width"] >= 2 and contrast(layer["stroke_color"]) >= 4.5):
+        return layer["color"]
+    # Same bounded local correction as v1; never change wording, geometry,
+    # source pixels, fonts, or trigger a model call. Persist the actual color.
+    return max(("#111111", "#FFFFFF"), key=contrast)
+
+
 def _render_v2(base, layout, *, text=None, lines=None, position=None):
     previous = validate_layout_metadata(layout)
     if hashlib.sha256(base).hexdigest() != previous["base_sha256"]:
@@ -648,12 +673,26 @@ def _render_v2(base, layout, *, text=None, lines=None, position=None):
             # Use exact half-open pixel bounds consistently with collision checks.
             panel = Image.new("RGB", (box[2] - box[0], box[3] - box[1]), layer["panel_color"])
             canvas.paste(Image.blend(canvas.crop(box), panel, layer["panel_opacity"]), (box[0], box[1]))
-        draw = ImageDraw.Draw(canvas)
         _, origins = _v2_layer_geometry(layer)
         font = _v2_font(layer["font_id"], layer["font_size"])
+        readable_color = _v2_readable_color(canvas, layer, origins, font)
+        if "final_sha256" in previous and readable_color != layer["color"]:
+            # Free edits retain the saved typography. Reject an unreadable
+            # placement before storage rather than changing an immutable style.
+            canvas.close()
+            _error("COVER_TEXT_CONTRAST_INVALID")
+        layer["color"] = readable_color
+        before_text = canvas.copy()
+        draw = ImageDraw.Draw(canvas)
         for line, origin in zip(layer["rendered_lines"], origins):
             draw.text(origin, line, font=font, fill=layer["color"], anchor="lt",
                       stroke_width=layer["stroke_width"], stroke_fill=layer["stroke_color"])
+        difference = ImageChops.difference(before_text, canvas)
+        visible = difference.getbbox() is not None
+        difference.close()
+        before_text.close()
+        if not visible:
+            _error("COVER_TEXT_NOT_VISIBLE")
     payload = _png(canvas)
     return payload, {**layout, **result, "source_hashes": previous["source_hashes"],
                      "base_sha256": previous["base_sha256"], "final_sha256": hashlib.sha256(payload).hexdigest()}

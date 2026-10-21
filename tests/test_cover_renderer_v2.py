@@ -7,7 +7,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 from model import cover_renderer as renderer
 
 REF_A = '11111111-1111-4111-8111-111111111111'
@@ -71,6 +71,69 @@ class CoverRendererV2Tests(unittest.TestCase):
         spec = plan()
         spec['text_layers'][0]['bbox'] = [.45, .19, .9, .26]
         self.assert_code('COVER_TEXT_OVER_SUBJECT', renderer.compose_sources, sources(), spec)
+
+    def test_invisible_type_is_corrected_against_actual_background_and_reopens(self):
+        # A valid plan used to produce exactly the no-text base and still pass
+        # artifact validation. Check pixels, not just metadata claiming text.
+        for color, expected in [('#FFFFFF', '#111111'), ('#111111', '#FFFFFF')]:
+            with self.subTest(background=color):
+                spec = plan()
+                spec['background_color'] = color
+                for layer in spec['text_layers']:
+                    layer.update(color=color, stroke_width=0)
+                base, layout = renderer.compose_sources(sources(), spec)
+                final, meta = renderer.render_text(base, layout)
+                self.assertNotEqual(final, base)
+                self.assertTrue(renderer.validate_artifact(final, meta)['valid'])
+                self.assertTrue(all(layer['color'] == expected for layer in meta['text_layers']))
+                before, after = renderer.read_image(base), renderer.read_image(final)
+                for layer in meta['text_layers']:
+                    box = renderer._pixels(layer['bbox'])
+                    self.assertIsNotNone(ImageChops.difference(before.crop(box), after.crop(box)).getbbox())
+                reopened = json.loads(json.dumps(meta))
+                again, updated = renderer.render_text(base, reopened)
+                self.assertEqual(again, final)
+                self.assertEqual(updated['source_hashes'], layout['source_hashes'])
+                self.assertEqual(updated['text'], layout['text'])
+
+    def test_contrasting_outline_is_retained_on_actual_light_panel(self):
+        spec = plan()
+        spec['background_color'] = '#FFFFFF'
+        for layer in spec['text_layers']:
+            layer.update(color='#FFFFFF', stroke_width=2, stroke_color='#111111')
+        base, layout = renderer.compose_sources(sources(), spec)
+        final, meta = renderer.render_text(base, layout)
+        self.assertNotEqual(final, base)
+        self.assertTrue(all(layer['color'] == '#FFFFFF' for layer in meta['text_layers']))
+        self.assertTrue(renderer.validate_artifact(final, meta)['valid'])
+
+    def test_free_position_cannot_silently_change_saved_typography(self):
+        image = Image.new('RGB', (1200, 1600), '#FFFFFF')
+        ImageDraw.Draw(image).rectangle((0, 800, 1200, 1600), fill='#111111')
+        stream = io.BytesIO()
+        image.save(stream, 'PNG')
+        spec = {'schema_version': 2, 'route': 'photo', 'text': '庭院汤泉',
+            'background_color': '#FFFFFF',
+            'photos': [{'source_ref': REF_A, 'crop': [0, 0, 1, 1],
+                'subject_bbox': [.4, .4, .6, .6], 'bbox': [0, 0, 1, 1]}],
+            'text_layers': [{'text': '庭院汤泉', 'bbox': [.1, .025, .9, .125],
+                'font_id': 'SourceHanSansSC-Bold', 'font_size': 100,
+                'align': 'left', 'color': '#111111'}]}
+        base, layout = renderer.compose_sources([{'media_ref': REF_A, 'payload': stream.getvalue()}], spec)
+        final, saved = renderer.render_text(base, layout)
+        original = copy.deepcopy(saved)
+        self.assertIn('bottom', renderer.position_options(saved))
+        self.assert_code('COVER_TEXT_CONTRAST_INVALID', renderer.render_text,
+                         base, saved, position=[.1, .875])
+        self.assertEqual(original, saved)
+        self.assertTrue(renderer.validate_artifact(final, saved)['valid'])
+        # A move over the same light background keeps all immutable styles and
+        # can pass the existing storage contract without a model call.
+        adjusted, moved = renderer.render_text(base, saved, text='庭院', position=[.1, .15])
+        mutable = {'text', 'bbox', 'rendered_lines', 'text_pixels', 'paint_pixels'}
+        self.assertEqual({k: v for k, v in saved['text_layers'][0].items() if k not in mutable},
+                         {k: v for k, v in moved['text_layers'][0].items() if k not in mutable})
+        self.assertTrue(renderer.validate_artifact(adjusted, moved)['valid'])
 
     def test_valid_crop_projection_and_contain_preserve_original_pixels(self):
         src, spec = sources(), plan()

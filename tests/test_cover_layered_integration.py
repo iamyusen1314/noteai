@@ -158,6 +158,39 @@ class LayeredCoverIntegrationTests(unittest.TestCase):
         self.assertEqual(len(jobs.get_layout(self.f.user, job["job_id"])["photos"]), 1)
         self.assertEqual(job["billing"]["credits_used"], 8)
 
+    def test_free_low_contrast_move_stops_before_storage_and_preserves_last_delivery(self):
+        image = Image.new("RGB", (1200, 1600), "#FFFFFF")
+        from PIL import ImageDraw
+        ImageDraw.Draw(image).rectangle((0, 800, 1200, 1600), fill="#111111")
+        stream = io.BytesIO()
+        image.save(stream, "PNG")
+        ref = storage.store_media_bytes(self.f.user, purpose="image", content_type="image/png",
+            payload=stream.getvalue(), item_count=1, ttl_seconds=86400)
+        self.refs = [ref.id]
+
+        def change(plan):
+            plan["photos"][0].update(bbox=[0, 0, 1, 1], subject_bbox=[.4, .4, .6, .6])
+            plan["text_layers"] = [plan["text_layers"][0]]
+            plan["text_layers"][0].update(bbox=[.04, .025, .96, .125],
+                copy_span={"title_id": "t1", "start": 0, "end": 6})
+
+        job = self.complete(design_mutation=change)
+        self.assertEqual("completed", job["status"])
+        before = jobs.get_layout(self.f.user, job["job_id"])
+        original_ref = jobs.asset_reference(self.f.user, job["job_id"])
+        with mock.patch.object(service, "_store_image") as store:
+            with self.assertRaisesRegex(renderer.CoverRenderError, "^COVER_TEXT_CONTRAST_INVALID$"):
+                service.adjust(self.f.user, job["job_id"], text=None, position="bottom", expected_revision=1)
+            store.assert_not_called()
+        self.assertEqual(before, jobs.get_layout(self.f.user, job["job_id"]))
+        self.assertEqual(original_ref, jobs.asset_reference(self.f.user, job["job_id"]))
+        self.assertEqual(1, jobs.get_job(self.f.user, job["job_id"])["asset_revision"])
+        updated = service.adjust(self.f.user, job["job_id"], text="咖啡", position=None, expected_revision=1)
+        self.assertEqual(2, updated["asset_revision"])
+        self.assertEqual(original_ref, jobs.asset_reference(self.f.user, job["job_id"], revision=1))
+        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(self.f.balances()[1], 8)
+
     def test_complete_long_brief_reaches_pixel_qc_and_settles_only_once(self):
         def change(plan):
             for field in ("industry", "subtype", "content_intent", "reader_question", "visual_strategy"):

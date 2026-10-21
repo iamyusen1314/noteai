@@ -16398,7 +16398,7 @@ async def adjust_cover(job_id: str, req: CoverAdjustInput, user: dict = Depends(
         return await _await_media_worker(cover_service.adjust, user["id"], job_id,
             text=req.text, position=req.position, expected_revision=req.expected_revision)
     except cover_renderer.CoverRenderError:
-        raise HTTPException(422, "文字过长、字体不支持或位置遮挡主体，请减少文字或调整位置") from None
+        raise HTTPException(422, "文字过长、字体不支持、对比不足或位置遮挡主体，请减少文字或调整位置") from None
     except _private_storage.MediaCapacityExceeded:
         raise HTTPException(429, "封面存储空间暂满，原成品仍可下载") from None
     except _private_storage.PrivateStorageError:
