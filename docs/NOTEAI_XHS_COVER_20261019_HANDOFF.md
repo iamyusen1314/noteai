@@ -130,7 +130,7 @@
 - 接收状态：已接收。2026-10-19 23:31 北京时间，本封面窗口接管 `noteai-xhs-cover-20261019`；实际分支 `codex/noteai-xhs-cover-20261019`，HEAD `cc96df72e03a914f2fa595f4d1ec71b03e2d175d`。初始工作区干净，c4a2bba 与交接提交均为 HEAD 祖先；未回退、未新建工作树、未复制环境/密钥。
 - Q/A：暂无。
 
-- **Q-R13-guard-loader / 隔离接续接口（候选预审，非生产问题）**：next45-to47-text-checkpoint-HOLD-r1 的候选 runtime `next47_guard()` 读取全局 GUARD，只有 main 按 config.guard_version_root 重设；host pure 导入后直接调用及 OPI spec 导入只改自身 GUARD，可能仍指向旧默认目录而要求新 pin。建议唯一作者使用显式 guard 目录/loader 绑定，覆盖这两条真实入口，不依赖 main、不改 __file__ 或伪 SHA；保持旧 proofbase1b950 历史校验与当前 ledger3f63/fresh45 校验独立。阻塞范围：未来隔离接续冻结/预置，产品1d927f2不受影响。已直接交原sole及作者，等待最终接线/组合控制答复；未新增云、模型或发布授权。
+- **Q-R13-guard-loader / 隔离接续接口（源码/离线已闭合，待实际启动验证）**：next45-to47-text-checkpoint-HOLD-r1 的候选 runtime `next47_guard()` 读取全局 GUARD，只有 main 按 config.guard_version_root 重设；host pure 导入后直接调用及 OPI spec 导入只改自身 GUARD，可能仍指向旧默认目录而要求新 pin。建议唯一作者使用显式 guard 目录/loader 绑定，覆盖这两条真实入口，不依赖 main、不改 __file__ 或伪 SHA；保持旧 proofbase1b950 历史校验与当前 ledger3f63/fresh45 校验独立。阻塞范围：未来隔离接续冻结/预置，产品1d927f2不受影响。已直接交原sole及作者，等待最终接线/组合控制答复；未新增云、模型或发布授权。
   A（仅技术收敛，尚未冻结/解阻）：Root同意同一guard文件的固定纯合同段loader：先核整guard exactSHA，再核唯一BEGIN/END及明确AST声明名白名单；host pure/OPI显式传入已pin目录，仅固定runtime绑定，不接外部selector或任意globals；cold与normal用同一函数体/事实SHA。此更新此前“无exec”的实现建议，仅允许这一已审核固定定义段compile/exec，避开整guard的httpx/legacy顶层，不新增文件/模块/挂载/依赖。第7个R12先精确验终态/成本/唯一释放，余6复用旧校验；旧CASE/history与新47分开。仍待真正组合控制及最终pins，不代表源预置或当次公开/付费批准。
 
 
@@ -1728,3 +1728,16 @@ Root5项受影响检查PASS0.350s（原tool cb6d15，未伪造磁盘raw log；�
 R/PRODUCT-TEXT-CHECKPOINT-DELTA.json10100/e77fce42含五叶before/after exactpins、加载名、checkpoint格式/262144UTF8上限/时点、两审与真实45父链exactref。变更只有cover_design/renderer/runtime/service/jobs；API及01ffe前端/15静态叶不变，可复用不重运。已交原sole，仅授权本机薄适配现有HOLD模板/最小私有源预置方案：新第8任务/新正常UUID、45→47最多2Lite/0生图/新增≤1元仍原80/100及现有8分；这是未来提案，future human/clock/END仍null，未授权云source-only或normal/CAS/slot8/operator/OPEN/模型/业务SQL。不能原样用旧44→46同UUID恢复模板，不能复活failed b04/434e或扩131072上限；等具体薄适配/传输plan后Root核再作私有source-only，准备齐再集中向用户确认当次有限公开及真实验收。没有新发布体系，原sole仍最终统一发布。
 
 R12实际23:53:48早关/一次原号POST/1Lite0.0117126元/累计45known3.9263058pending0/final0分余额8原样，入口持续CLOSED/API保留且尚未加载新五叶。旧44streamSHA＋新1完整实账是45真实父链；无full45数组原件，不伪造导出。原sole确认无b04实际plan，失败具体分支UNKNOWN；新版合格仍0/单张成本N/A，供应商invoice/bank UNKNOWN不清。唯一PLAN已更新冻结修复及next47本机HOLD状态；真实新品PC/H5/保存重开/免费排字/下载仍待，真iPhone/多人容量/Q07边界保。
+
+
+### 2026-10-22 01:06:23，三项窄审GO；精确10条私有source-only已授权sole，等待真实原件
+
+登记前HEAD3fb815b，分支codex/noteai-xhs-cover-20261019，产品五叶仍48dbe56＋1d927f2，未改前端/生产。T=R/next45-to47-text-checkpoint-HOLD-r1。core manifest7891/2bee20b1，runtime130117/3ba0f96d、guard114732/5a61e0f5、OPI43740/54dd1ad8、launcher7196/71cff3c2；固定纯段loader显式接normal/hostpure/OPI、builtins module/dict已闭合，旧history AST留存、R12先精核余6旧函数、源码默认MAX6→本次隔离RAM8且真实原7终态。未来45完整摘要只能现场真算，不造full45原数组。更早ancestor fixed6798 loader替代的本地组合边界明示，不能冒真实当前45验收。HOST55360/6da686、stager18803/f4911c及wrapper1316/dc81564f冻结；entry37814/882b4286、binder32370/6fe4c153，entry manifest15944/aaacbc93。旧714d只历史6+同byte5aux来源，新entry保存及OPEN各自直接SHA证明，不冒旧proof。两字体在新root路径同byte复用，无新依赖/字体运输。
+
+三份独立source/offline GO且无未解P0-P2：T/CORE-INDEPENDENT-REVIEW.foundation.json6084/9ddba2be、HOST-INDEPENDENT-REVIEW.entry-review.json5210/4002dda5、ENTRY-INDEPENDENT-REVIEW.entry-review.json4920/955811a6。复用作者core8/host15/entry8局部控制和五叶产品5+7检查，未重复旧18/全套；真样本与真容量不由这些替代。
+
+唯一合并T/SOURCE-ONLY-PLAN.HOLD.root.json31520/51acd24a，原sole机械核4471/866a5888复用；Root再次独立核81refs、10唯一tokens、10Base64逐字等raw、前9gzip等source、8sourcewriter函数AST同，最大wire15932<16384，runtime130117<131072、前8/entry timeout60而产品180。ROOT-EXACT10-SOURCE-PLAN-REVIEW.json7418/f2acb3d3。Root初两本机reader误假定每step都有index/dispatch，仅适配实际product/entry不同schema后真通过，没改source/plan或云；旧entry18500超限载体保历史，当前13080/df9a采用同byte UTF8表示，27splices实还原，不扩大小限制。
+
+Root真实17:06:23UTC授权原sole按该精确10条顺序私有源保存：8sourcepart＋1产品5delta/9samebyte复制＋1entry新叶/5sameaux。ROOT-AUTHORITY.EXACT10.SOURCE-ONLY.json6315/ca654757；这是既有用户允许自主非付费开发的技术scope，不是新的公开/付费人类确认。每原ClientToken一次，Success/Exit0/Dropped0/Repeats1和proof齐才下一，UNKNOWN只查原C/T不重派、不新token另批。仅指定私有源文件及same-response原件，严禁freshPG/normal/TERM/START/CAS/operator/slot8/OPEN/模型/业务HTTP/SQL/生产/新资源/赠分。实际新C/T与aggregate尚未返回，恢复先查原sole进度，不重旧18或这10。当前API45206/image/restart0、ledger45/known3.9263058/pending0/3f63与历史1b95、R12失败/旧latch/UNKNOWN及CLOSED维持；源码保存不等于加载。
+
+唯一PLAN已记source-only授权在途，T/actual-exact10-source-only-r1留实际原件；future新真人/clock/END/normal/ownREADY/OPEN/job/actual45digest仍null。待实际10保存与原读回核齐，再以具体已准备入口集中请求新的最多60分钟有限验收：复用同报告与有效9素材、新第8任务/新自然UUID、最多2Lite/0生图/0自动重发，累计≤47/原80、增≤1元/原100、现有8分最多一张合格保存结算一次。此为待批提案，不复活failed b04/434e，不改正文/生产。R12旧一次失败1Lite0.0117126元/final0分余额8实际历史不清，新合格仍0/单位成本N/A；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07边界仍待。

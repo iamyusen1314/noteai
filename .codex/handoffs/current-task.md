@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-22 01:06:23，三项窄审GO；精确10条私有source-only已授权sole，等待真实原件
+
+登记前HEAD3fb815b，分支codex/noteai-xhs-cover-20261019，产品五叶仍48dbe56＋1d927f2，未改前端/生产。T=R/next45-to47-text-checkpoint-HOLD-r1。core manifest7891/2bee20b1，runtime130117/3ba0f96d、guard114732/5a61e0f5、OPI43740/54dd1ad8、launcher7196/71cff3c2；固定纯段loader显式接normal/hostpure/OPI、builtins module/dict已闭合，旧history AST留存、R12先精核余6旧函数、源码默认MAX6→本次隔离RAM8且真实原7终态。未来45完整摘要只能现场真算，不造full45原数组。更早ancestor fixed6798 loader替代的本地组合边界明示，不能冒真实当前45验收。HOST55360/6da686、stager18803/f4911c及wrapper1316/dc81564f冻结；entry37814/882b4286、binder32370/6fe4c153，entry manifest15944/aaacbc93。旧714d只历史6+同byte5aux来源，新entry保存及OPEN各自直接SHA证明，不冒旧proof。两字体在新root路径同byte复用，无新依赖/字体运输。
+
+三份独立source/offline GO且无未解P0-P2：T/CORE-INDEPENDENT-REVIEW.foundation.json6084/9ddba2be、HOST-INDEPENDENT-REVIEW.entry-review.json5210/4002dda5、ENTRY-INDEPENDENT-REVIEW.entry-review.json4920/955811a6。复用作者core8/host15/entry8局部控制和五叶产品5+7检查，未重复旧18/全套；真样本与真容量不由这些替代。
+
+唯一合并T/SOURCE-ONLY-PLAN.HOLD.root.json31520/51acd24a，原sole机械核4471/866a5888复用；Root再次独立核81refs、10唯一tokens、10Base64逐字等raw、前9gzip等source、8sourcewriter函数AST同，最大wire15932<16384，runtime130117<131072、前8/entry timeout60而产品180。ROOT-EXACT10-SOURCE-PLAN-REVIEW.json7418/f2acb3d3。Root初两本机reader误假定每step都有index/dispatch，仅适配实际product/entry不同schema后真通过，没改source/plan或云；旧entry18500超限载体保历史，当前13080/df9a采用同byte UTF8表示，27splices实还原，不扩大小限制。
+
+Root真实17:06:23UTC授权原sole按该精确10条顺序私有源保存：8sourcepart＋1产品5delta/9samebyte复制＋1entry新叶/5sameaux。ROOT-AUTHORITY.EXACT10.SOURCE-ONLY.json6315/ca654757；这是既有用户允许自主非付费开发的技术scope，不是新的公开/付费人类确认。每原ClientToken一次，Success/Exit0/Dropped0/Repeats1和proof齐才下一，UNKNOWN只查原C/T不重派、不新token另批。仅指定私有源文件及same-response原件，严禁freshPG/normal/TERM/START/CAS/operator/slot8/OPEN/模型/业务HTTP/SQL/生产/新资源/赠分。实际新C/T与aggregate尚未返回，恢复先查原sole进度，不重旧18或这10。当前API45206/image/restart0、ledger45/known3.9263058/pending0/3f63与历史1b95、R12失败/旧latch/UNKNOWN及CLOSED维持；源码保存不等于加载。
+
+唯一PLAN已记source-only授权在途，T/actual-exact10-source-only-r1留实际原件；future新真人/clock/END/normal/ownREADY/OPEN/job/actual45digest仍null。待实际10保存与原读回核齐，再以具体已准备入口集中请求新的最多60分钟有限验收：复用同报告与有效9素材、新第8任务/新自然UUID、最多2Lite/0生图/0自动重发，累计≤47/原80、增≤1元/原100、现有8分最多一张合格保存结算一次。此为待批提案，不复活failed b04/434e，不改正文/生产。R12旧一次失败1Lite0.0117126元/final0分余额8实际历史不清，新合格仍0/单位成本N/A；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07边界仍待。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 00:26，48dbe56＋1d927f2封面局部修复冻结并独审；下一仅最小HOLD接续准备
 
 分支codex/noteai-xhs-cover-20261019，产品HEAD1d927f2，继承48dbe56，不回退。48d仅补导演可见4行/3断点/padding/ink固定字级契约，原渲染几何与拒绝条件保持；1d仅为v2校验后的设计在render前同步保存既有design_json，活owner/token/lease/fence/阶段短事务write-once，同值幂等/异值拒绝，complete不清空/替换已有快照，写失败在compose/QC/storage前停止。不保存HTTP/reasoning/照片字节，不增schema/依赖或公共投影，不加模型重试，不改8分/90天/原文/前端/生产。此修复补已证契约和诊断缺口，不声称还原或验证R12具体overflow参数。
