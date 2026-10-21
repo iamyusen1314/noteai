@@ -8295,6 +8295,14 @@ function coverRejectionUnheld(error) {
   return ['BILLING_QUOTE_CHANGED','QUOTA_EXCEEDED'].includes(error.detail?.code)
     && error.detail.admitted === false && error.detail.reserved_credits === 0;
 }
+function coverAdmissionDiagnostic(requestId, error, responseStatus, phase) {
+  const status = error.status ?? responseStatus;
+  console.warn('noteai_cover_admission_unconfirmed',{
+    request_id:requestId,phase,
+    http_status:Number.isInteger(status) && status >= 100 && status <= 599 ? status : null,
+    error_type:['TypeError','SyntaxError','AbortError'].includes(error.name) ? error.name : 'Error'
+  });
+}
 function coverSubmitBody(ctx, pending) {
   const title = ctx.dialog.querySelector('[data-cover="title"]').value;
   if (title && !(ctx.titleChoices || []).includes(title)) throw Error('请选择本报告已有标题，不新增未确认事实');
@@ -8564,9 +8572,12 @@ async function coverUploadSources(ctx, files) {
 }
 async function coverRecoverPending(ctx) {
   if (!ctx.current() || !ctx.pending || ctx.busy || ctx.reading) return;
+  const requestId = ctx.pending.request_id;
+  let responseStatus = null, phase = 'recovery_lookup';
   ctx.busy = true; ctx.notice = '正在核查原请求…'; coverRender(ctx);
   try {
     const response = await coverFetch(ctx,ctx.path + '/covers');
+    responseStatus = response.status;
     const data = await response.json(); if (!ctx.current()) return;
     if (data.history_unavailable === true || !Array.isArray(data.jobs)) throw Error('原任务记录暂不可读，请稍后核查');
     const job = data.jobs.find(item => coverJobMatches(item,ctx) && item.request_id === ctx.pending.request_id);
@@ -8574,12 +8585,17 @@ async function coverRecoverPending(ctx) {
     if (!ctx.pendingBody || ctx.pendingBody.request_id !== ctx.pending.request_id) {
       ctx.notice = '原编号暂未查到任务，且旧记录缺少可恢复提交内容。请稍后继续核查，不会另建编号或猜测重交。';return;
     }
+    phase = 'recovery_submit'; responseStatus = null;
     const submitted = await coverFetch(ctx,ctx.path + '/covers',{method:'POST',body:JSON.stringify(ctx.pendingBody)});
+    responseStatus = submitted.status;
     const original = await submitted.json(); if (!ctx.current()) return;
     coverAcceptJob(ctx,original);ctx.pendingBody=null;ctx.notice='原编号与原内容已确认，不重复扣分。';coverScheduleRead(ctx);await coverShowFinal(ctx);
   } catch(error) {if(ctx.current()) {
     if (coverRejectionUnheld(error)) {coverWritePending(ctx,null);ctx.pendingBody=null;ctx.quote=null;ctx.notice=error.message+'；本次未受理、未预留，请刷新报价后再试。';}
-    else ctx.notice='原请求仍需核查：'+error.message+'；保留原编号，不会自动重交。';
+    else {
+      if (ctx.pending?.request_id === requestId) coverAdmissionDiagnostic(requestId,error,responseStatus,phase);
+      ctx.notice='原请求仍需核查：'+error.message+'；保留原编号，不会自动重交。';
+    }
   }} finally {ctx.busy=false;coverRender(ctx);}
 }
 async function coverCreate(ctx) {
@@ -8593,8 +8609,10 @@ async function coverCreate(ctx) {
     ctx.pending=null;ctx.pendingBody=null;ctx.busy=false;ctx.notice='当前浏览器无法保存任务恢复状态，请允许会话存储后再试；本次未提交。';coverRender(ctx);return;
   }
   ctx.notice = '正在提交独立封面任务…'; coverRender(ctx);
+  let responseStatus = null;
   try {
     const response = await coverFetch(ctx,ctx.path + '/covers',{method:'POST',body:JSON.stringify(body)});
+    responseStatus = response.status;
     const job = await response.json(); if (!ctx.current()) return;
     coverAcceptJob(ctx,job); ctx.pendingBody=null; ctx.notice = ''; coverScheduleRead(ctx); await coverShowFinal(ctx);
   } catch (error) {
@@ -8605,7 +8623,10 @@ async function coverCreate(ctx) {
     } else if (error.status && [400,401,403,404,422].includes(error.status)) {
       // A server rejection is explicit. Transport/5xx failures retain the wire identity.
       coverWritePending(ctx,null); ctx.pendingBody=null; ctx.notice = error.message;
-    } else ctx.notice = '受理结果待核查，已保留原请求。请刷新查询，不会自动重复付费调用。';
+    } else {
+      if (ctx.pending?.request_id === pending.request_id) coverAdmissionDiagnostic(pending.request_id,error,responseStatus,'create');
+      ctx.notice = '受理结果待核查，已保留原请求。请刷新查询，不会自动重复付费调用。';
+    }
   } finally { ctx.busy = false; coverRender(ctx); }
 }
 async function coverAdjust(ctx) {

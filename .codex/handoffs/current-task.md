@@ -1,3 +1,21 @@
+## CURRENT — 2026-10-21 22:06，R11既有记录定位收尾；受理诊断最小离线修复
+
+登记前HEADa8f2fbc，产品几何7eedae7仍实际运行、入口已21:28:40早关；新HTML只本地。R11真实唯一UI受理待核查没有新合格成品，原请求保留，不重POST/OPEN/延窗/模型，不能从old4da/旧release报新交付或0扣分。原80次/100元不重置。R2/CLOSED与R3限定记录证据齐，调查至既有记录缺口后停止，不建新日志平台或扫描全库。
+
+RO R1 Cc-sz070pp7pgf1o8w/Tt-sz070pp7pgwiyo0 Exit2/D0，outer旧h.docker先assert而未保存exec子输出，原失败保。必要R2只改outer保stdout/stderr/rc、不改SQL，Cc-sz070ppqzcylpts/Tt-sz070ppqzddl3wg outerSuccess0D0/Repeats1，真正childExit2/UndefinedFunction；H/r11-acceptance-fallback-readonly-r2/actual原stdout3435/ea1ed8ea→child2378/65186805，Root官方Output/gzip whole2342/b8ea33cb在同目录。源码created_at TEXT与原查询timestamp比较类型错是诊断脚本缺陷，不是已证POST根因。SQL前实际测试账44/old44SHA74e5/known3914593200/pending0/7cases/新case行空/cap46/69d28/inode1460877和四latch absent已取得，只说明此账无新行，不泛化全部供方或积分0；R3未重读这些。
+
+R3仅修列侧安全时间转换和实际route投影，Cc-sz070pqd3fknbi8/Tt-sz070pqd3fzmpkw/Run01A15EB8-392C-5BAC-BD2F-16E8C83407F6/Read01A15EB8-6F49-5FC2-B27B-B3708A3C5A6F，outer/child均0、S0D0/Repeats1；H/r11-acceptance-fallback-readonly-r3/actual原stdout3066/284972ab→child1176/39214cc4，Root官方Output与gzip原件whole2165/84797c7a已核。ordinary noteai_app/隔离DB/RRRO/RLSon/2SELECT/rollback，user61d6/report0cdbe/generate/21:22:40–21:28:40.346/LIMIT2返回jobs[]，没真job/client/usage可绑terminal；只限定范围0row，未报全局未受理/零费用。原6min安全Docker日志2724/9d11fbd2，补真实route仍0事件；uvicorn warning可抑INFO，absence不是无请求。
+
+既有代理证据缺口已确认，无R4云采集：P/entry/private.locations.HOLD.conf6612/82527629257b4d26fbb8041a4205211f4988761db1ec0d410d76940343c4a363，L41–43正确protected/api location、access_log off、upstream18114，sealed配置b023锁此include，原entry223345写同bytes；H/R11-PROXY-LOG-CONTRACT.root.json1481/55b66165也核。继承error_log路径未由现有契约核实，未猜/var/log或改级别/配置/服务。另一catchall404只是静态可能，未当实际原因。现有记录不能还原原HTTP，本轮保持前端受理未知，不冒供应商UNKNOWN、最终积分或单张合格成本0；合格新版0/单位成本N/A。
+
+为下一少量验收补最小本地脱敏诊断，仍仅原HTML cover模块+既有VM测试：coverCreate与coverRecoverPending共用小函数，固定tag、原requestUUID、固定phase(create/recovery_lookup/recovery_submit)、HTTP100..599否则null、固定Error/TypeError/SyntaxError/AbortError；不记录error.message/detail/stack/正文/标题/素材/token，不改账/请求body/幂等/重发/恢复动作/UI文案。捕获202后坏JSON的真实status，恢复POST前清掉GET的status，只有原pending仍匹配才记录，已ACK后preview失败不冒未受理。查询与提交phase分开，既有sameUUID手动恢复动作仍先GET；没有增加自动提交或provider调用。
+
+旧源红15f2ab复现503无诊断；初create-only26PASS50b617因覆盖真实恢复路径的相关代码变更被最终替代。最终27/27/137.0ms PASSb61690，含503/202坏JSON/network及恢复GET503/POST503/GET200后POST断网、安全字段无敏感sentinel、原pending/单POST约束；diffcheck75765c。独立foundation窄审无实质问题，另唯一必要ACK后preview503边界通过：pending清、无admission误日志、仅1POST；未重27suite/浏览器/模型。证据P/real-ui-r11-geometry-20261021/ROOT-ADMISSION-DIAGNOSTICS-OFFLINE-VERIFICATION.json绑定最终源hash；原R11UI索引5276/d267不覆盖重写，之前a8状态账单修复证据2172/704f保原。
+
+当前只有本地诊断sourceGO，不能补回R11真实HTTP或冒新封面通过。无依赖/迁移/新权限或生产变更，原窗口sole云/最终集成。下一非付费最薄准备优先复用原API7e/现有cap46且实账44、当前9素材/报告/8分，准备从页面恢复原pending编号，先查原任务、如确无则最多一次明确手动同号同body恢复（须新的当次有限公网范围，非自动重发/新UUID）。准备不等于批准：未来新human/raw/clock/END/normal/READY/OPEN/job须null，全部材料具体齐后才集中处理当次新窗口；旧e70e已消费且CLOSED，不能因原END或站立80自动重开。产品成品质量、真实保存重开/免费排字/下载仍未通过，真iPhone/多人容量/Q07边界保；正文和生产不动。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 21:35，R11唯一UI受理待核查已早关；旧billing混显最小离线修复
 
 登记前HEADc1da1d0/实际隔离产品7eedae7，分支codex/noteai-xhs-cover-20261019。R11真人e70e/first1792587990/固定END1792591590不变，唯一UI约21:23:40一次「重新设计8积分」后先提交中，随后受理结果待核查；未点刷新/核查重交/第二POST/排旧字/下载旧图。原报告0cdbe、原标题19字、九新A逐DOM ref全ready/selected/报价8/余额8先核；旧4da显示不冒本轮新成品。R11实际新job/client/usage/HTTP/模型次数/成本/最终积分仍未知，UI旧release不能作新0收费证据；不能把前端受理UNKNOWN写成已证供应商UNKNOWN。root只读console12项均浏览器钱包扩展旧warn，非产品根因，不修插件。

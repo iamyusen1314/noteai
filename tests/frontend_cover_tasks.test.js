@@ -7,7 +7,7 @@ function make(extra={}) {
  const el=name=>{if(!elements.has(name))elements.set(name,{textContent:'',value:name==='position'?'top':'',hidden:false,disabled:false,src:''});return elements.get(name);};
  const dialog={isConnected:true,open:true,querySelector:selector=>el(selector.match(/"([^"]+)"/)[1]),querySelectorAll:()=>[],close(){this.open=false;},remove(){this.isConnected=false;}};
  let identity=true;
- const c=vm.createContext({console,crypto:crypto.webcrypto,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+ const c=vm.createContext({console:{...console,warn(){}},crypto:crypto.webcrypto,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   _historyReportSelection:{report_type:'generate',report_id:'saved-report'},_authToken:'synthetic-token',_authUser:{id:'synthetic-owner'},
   reportIsGeneration:()=>true,reportGenerationResult:()=>null,reportDiagnosisResult:()=>null,completeProductResult:x=>!!x,
   productActionAttributes:()=>'',_chatIdentitySnapshot:()=>({ownerId:'synthetic-owner',epoch:1}),_chatIdentityMatches:()=>identity,
@@ -66,6 +66,41 @@ test('an unresolved new request never borrows an older task billing receipt',asy
   found=true;await c.coverRefresh(ctx);
   assert.equal(ctx.pending,null);assert.equal(posts,1);
   assert.match(el('status').textContent,/已预留 8 积分，尚未扣分/);
+ }
+});
+test('unconfirmed admission retains only request identity, HTTP status and fixed error type in diagnostics',async()=>{
+ const privateText='do-not-log-token-title-media-or-server-detail';
+ for(const [fetch,status,type] of [
+  [async()=>({ok:false,status:503,json:async()=>({detail:privateText})}),503,'Error'],
+  [async()=>({ok:true,status:202,json:async()=>{throw new SyntaxError(privateText);}}),202,'SyntaxError'],
+  [async()=>{throw new TypeError(privateText);},null,'TypeError']
+ ]) {
+  const events=[];let posts=0;
+  const {c,ctx}=make({console:{warn:(...args)=>events.push(args)},fetch:async(...args)=>{posts++;return fetch(...args);}});
+  await c.coverCreate(ctx);const original=ctx.pending.request_id;await c.coverCreate(ctx);
+  assert.equal(posts,1);assert.equal(events.length,1);
+  assert.equal(events[0][0],'noteai_cover_admission_unconfirmed');
+  const data=JSON.parse(JSON.stringify(events[0][1]));
+  assert.deepEqual(data,{request_id:original,phase:'create',http_status:status,error_type:type});
+  assert.ok(!JSON.stringify(events).includes(privateText));assert.ok(!JSON.stringify(events).includes('synthetic-token'));
+ }
+});
+test('explicit recovery diagnostics distinguish lookup from the one original-wire submission',async()=>{
+ for(const mode of ['lookup-503','submit-503','submit-network']) {
+  const events=[];let first=true,posts=0;
+  const {c,ctx}=make({console:{warn:(...args)=>events.push(args)},fetch:async(url,options={})=>{
+   if(options.method==='POST')posts++;
+   if(first){first=false;throw new TypeError('private-initial-error');}
+   if(!options.method && mode!=='lookup-503')return {ok:true,status:200,json:async()=>({jobs:[]})};
+   if(mode==='submit-network')throw new TypeError('private-submission-error');
+   return {ok:false,status:503,json:async()=>({detail:'private-server-detail'})};
+  }});
+  await c.coverCreate(ctx);const original=ctx.pending.request_id;await c.coverRecoverPending(ctx);
+  assert.equal(events.length,2);assert.equal(ctx.pending.request_id,original);
+  const data=JSON.parse(JSON.stringify(events[1][1]));
+  assert.deepEqual(data,{request_id:original,phase:mode==='lookup-503'?'recovery_lookup':'recovery_submit',http_status:mode==='submit-network'?null:503,error_type:mode==='submit-network'?'TypeError':'Error'});
+  assert.equal(posts,mode==='lookup-503'?1:2);await c.coverCreate(ctx);assert.equal(posts,mode==='lookup-503'?1:2);
+  assert.ok(!JSON.stringify(events).includes('private-'));assert.ok(!JSON.stringify(events).includes('synthetic-token'));
  }
 });
 test('a saved task is recovered by server request identity and disabled submission still permits the saved preview',async()=>{
