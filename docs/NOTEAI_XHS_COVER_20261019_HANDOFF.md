@@ -1479,3 +1479,23 @@ sole作者最小R3 runtime98463/22cbf1b1977cd39dc18b2cfd4c4a5eb2370aaf5ec6a9db49
 精确缺口已源码核：runtime在_validate_qc抛前无CoverResult返回；service只在正常返回后store，jobs只有complete_job成功保存时写layout/qc/design；当前隔离adapter/私账也未留原像素或QC正文。ark_media禁止日志完整响应；本次具体QC项/图片不可从已知字段恢复，不再空查/假回放/付费重现。最小后续只在既有run_cover(vision_call=...)每任务注入隔离QC观察器：主窗foundation唯一写P/diagnostic-qc-observer-r1，复用接口，不加生产RuntimeHooks/DB/schema；保存实际final/240thumb原字节+有界固定bool/issues投影、原text哈希/选图UUID，不存完整prompt/报告/响应/秘密，private0600/O_EXCL/未验收候选；普通观察失败不改原QC/计费/次数。root审后原sole唯一薄绑定，不平行改core。此为离线准备，未授权新模型/公网/新任务，原窗口已确认停止外动作并保CLOSED。
 
 当前页面R8 PC失败恢复已实际留证；390×844模拟截图及AX在同R8证据目录，viewport已finally reset，仅证缓存面板及旧成品控件可显示，不冒新版成品/下载或真iPhone。新封面质量/保存重开/免费排字/下载仍HOLD；根因修正须依据未来实际候选和拒因，不能降低QC过关。恢复读唯一PLAN.actual_R8_terminal/R8_QC_recovery_gap、此节与原sole29edb17，不重放已消费40或原命令。
+
+
+### 2026-10-21 — 隔离观察器审定及后继非付费准备 checkpoint
+
+实际HEADb20dc3b，产品仍74ab790。最小隔离观察器已完成：P/diagnostic-qc-observer-r1/observer.py10402/5269009eb3eb2597a9cde736b1b5a31b2150a523cdcb26687b72546277452272，test14020/899420d5a0e73c2e9d6ef7923c4c31569bc249bf77db4b6cdf1b4464a93221e8。作者9组/.454s与实际3.11compile通过；root非作者代码/接口审及仅受影响的真实run_cover+renderer成功路径1次/.424s（模拟模型）通过，ROOT-REVIEW1330/730912684c2b045de88851110cfaa7a9c5d575a9659e6e053c9ff62c3018f89b。保持design/qc恰2、原结果/异常/UNKNOWN/取消、PNG原bytes；只固定6checks/4bool/issues及hash/UUID、private0700/0600/O_EXCL、不存完整prompt/报告/供应商正文/凭据，Pillow复用。生产源码/RuntimeHooks/DB/schema/计费/质量门均未改，不自动安装启用；不能恢复本轮已丢像素，也不代表新真实质量通过。原sole core作者仅准备新variant的RAM per-invocation wrap，不平行改产品。
+
+新付费或公网仍无批准，当前40complete/pending0/3.8841162/CLOSED保留，原80/100累计授权不重置。本机40→42首个观察任务准备缺R8 canonical nextseal8239及claim956/resume11677/applied285四完整原bytes；原terminal只有hash，不能重建。已明确让原sole复用reader做一次必要固定四原只读，前3真实路径/身份在原37615 fixed_originals，nextseal路径从真实已存operator配置派生，不猜；0模型/0业务SQL/不改cap或OPEN、不重40rows。此读是已授权工程准备，无需再问用户；实际C/T/结果尚待返回，恢复先查原sole，不能重派。随后只最薄本机绑定/必要source-only准备，不重12源或旧37审。
+
+未来提案尚未向人请求或获批：最多2个新任务/4Lite/0image/新增≤2元，累计≤44在原80/100内，首个合格即停；仅在已知拒绝、拿到候选和逐项拒因且局部修正后才第二个，UNKNOWN停止不重发。拟窗口按本窗口收到回复clock起60分钟、OPEN仍余≥30分钟，撤回先前未批准15分钟新规则，不加时钟框架；全部未来人/raw/END/cap实际变化仍null-HOLD。所有当前可完成非付费准备齐后才集中确认，不能提前声称READY。
+
+R8 UI唯一证据索引4430/028b01c1e311165a1405f137b06b9635ea6d635f015440aa6c34e2cf4e0c7c98，17文件全0600/目录0700。H5请求390×844、DOM可用375×844/面板337×820，截图375×812；截图实际JPEG虽旧捕获名.png，未转码，不与产品PNG混淆。H5顶部真实“未交付/预留已释放”及旧图保护已见，finally reset；不冒真机或新合格成品/下载。功能交付仍HOLD，下一步依上述准确原件续接取证，禁止降低QC或把离线样例充真实成品。
+
+
+### 2026-10-21 — 四真原完成及观察接入非付费收尾 checkpoint
+
+R8实际状态仍40complete/pending0/预算计量3.8841162、最终用户扣0、CLOSED；产品未改。四真原已一次读回：Cc-sz070osz1uua9ds/Tt-sz070osz1v99ngg/Run01A15D61-88C9-5361-AE2E-2EB7432E2238/Read01A15D61-B2B1-5978-B39D-6FA48BFD611E S0D0，外10785/8725496a，F=N/future40-to42-qc-observer-HOLD-r1/originals-readonly-r1/actual，索引7782/a7b9f0bf。root逐4whole核nextseal11327/8239、claim956/5d11、resume11677/3143、applied285/faea；999:999/600/nlink1与原inode稳定。resume内next_seal对象等于独立原件，applied绑定原whole；root初脚本假设顶层next_seal_sha256的KeyError已局部修正，不是产品/原件错误，不改原件/重读云。当前CID/PID3996046/source22cb/protected/mounts/CLOSED保，无新PG/SQLite/40rows/模型/配置动作。
+
+observer-only薄绑定也经root非作者窄审：runtime100832/3a118d945f5157b4151a74b7518106961ea2b2319ff3749ce9bddd038719f3c0；严格三处插入32+1+1行，独立逆除byteexactR3 98463/22cb，ROOT-NONAUTHOR-REVIEW1151/1b7ea106fc3772046d173b5629ffe8df3931757b46dde2737a1810e2ec5edefa。此variant仍旧38前提/cap40，不能执行新任务。唯一core作者继续真实父40/R8第四失败保留与显式40→42 cap/seal后继适配；host/entry并行复用原normalcold/entry，仅本机HOLD。作者15:46估还需15–20分钟完成局部源码/受影响检查，此为估计非完成。新4core/host最终pins尚未冻结，source-only片数6–9只是估计未执行；不重12/产品14叶/static/font，不引平台。
+
+取证读取端亦列为必要准备：复用fixed-file导回candidate.json/review.json/实际QC240×320 thumbnail.png原bytes，whole校验后root真实看图；完整final先保云原bytes/hash，合格后正常UI下载，不先搬数MB。必要分片按真实size确定，复用既有机制，不新公开debug路由、不把失败图上传成素材/注册成品，也不读不存在的新图。全部未来human/END/实际cap变化/新模型/新OPEN仍HOLD。唯一PLAN已登记精确原件、observer_final和observer_only_binding；接续先看此记录与原sole，不从旧READY重发。
