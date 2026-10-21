@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-21 22:54，core R2与entry R3独审通过；host同cap46本机HOLD待齐
+
+登记前HEADc7b0389，分支codex/noteai-xhs-cover-20261019，产品01ffe6c不变。实际API仍7e/PID4172531，R11已早关、无本轮新云/模型/normal/OPEN，旧e70e不可复用；future human/raw/clock/END/normal/ownREADY/OPEN/job全null。报告正文、生产、大版本与旧账/UNKNOWN保，合格新版仍0/单位交付成本N/A。
+
+现成接续辅助程序本机独审发现并解决两个实质问题，均在源预置前：core历史校验误带新authority refs，R2仅将历史委托投影到hash固定父seal的旧refs，新当前authority仍独立校验；真实consumed→next46组合合法控制通过、错当前ref/cap48/shiftedstart拒，原stub覆盖缺口与夹具失败保。R/core/historical-authority-r2/MANIFEST.HOLD.json10177/1d4392e2，runtime131068/35b18a33763da3c8a754d2dbe722c10d1789ac33cdad38ae4ac3d3ce6ee39735，守原131072；OPI17f34/launcherb4d540/guard38770不变。唯一core/CORE-INDEPENDENT-REVIEW.foundation.json12120/c235450f独审source/offlineGO，无未解P0-P2，不含host/实际启用。
+
+entry R2的binder新operation_root与consumer旧literal不一致已在最终R3单literal闭合，PREVIOUS_OPERATION_ROOT保。R/entry/final-effective-r3/MANIFEST.HOLD.json17101/bf5f0a68，entry41666/8c9a5b76、binder30345/7b204af2、producer18534/87ad1ed4；6source90483只4变2copy，14本地refs与最终pins/模板闭合。新root接受/旧root拒的真正config控制通过，IO/auth/window为受控stub，不冒actual auth/host；旧10+7检查复用未重跑。ENTRY-INDEPENDENT-REVIEW.entry-review.json16017/160de92040ca905a6b138654918862632732e2c76b472c2a79f17f69e824e094独审source/offlineGO，无未解问题。现成CAS/关闭/定时器/恢复围栏未放宽，RAM producer只读固定六源+旧15重建，不执行runtime/slot7/serve/CAS，不冒实际frontend receipt。
+
+前端实际本机15文件已由Root逐size/SHA核，只有app591513/eb3feae6与loader1881/2986d7c3变，13same；derivedapp精确含01ff诊断helper1次与billing身份保护。R/ROOT-FRONTEND-15-LOCAL-PIN-REVIEW.json1296/8e3374ca，未重build/旧suite。此前“wire仅内存”已更正：实际7e/current writer把合法UUID/quote/原序refs/title存sessionStorage，reader可恢复；未读取实际storage，持久副本存在性不保证。正常刷新自身不POST，显式恢复先GET，missing且完整原wire才最多一次原号POST；缺wire停止，不猜内容/新UUID。
+
+此处R=H/r11-recovery-window-HOLD-r1，继承唯一PLAN对应admission_recovery_preparation；未建立第二任务清单。阶段2产品离线及core/entry窄审可复用，stage3新品PC/H5保存重开/免费排字/下载和stage4集成交付仍HOLD。原host作者继续已授权的当前69d28/cap46、44rows/noCASE/pending0仅seal/window继承及finite normal模板，未来缺失默认HOLD，不实际CAS/TERM/START；完工只审受影响分支，不重core/entry/旧测试。原窗口成本/MFA任务独立不阻塞封面。下一接host成品与最终exact source-only计划、核必要差异后自主预置私有源码；所有非付费材料齐才集中处理新的当次有限公网/≤2Lite原号恢复，不借已消费旧时窗。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 22:28，01ffe6c脱敏日志表示收敛；同cap46/隔离第7任务本机HOLD接续
 
 分支codex/noteai-xhs-cover-20261019，产品HEAD01ffe6cc2c682aea7e4feb10eabe205884ed3ab1继承edda0a3，不回退；实际API仍7eedae7/PID4172531，R11已21:28:40早关、原e70e单次已消费，不重开或延窗。原44complete/known3.9145932元/pending0只为最近R2真实账观察，不冒当前供方实结/最终积分0；R11原HTTP/job/client仍未还原，历史UNKNOWN保。合格新版0/单张合格交付成本N/A，原正文与生产不动。
