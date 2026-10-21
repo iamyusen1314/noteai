@@ -1378,3 +1378,10 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 原sole实际12条命令全Success/Exit0/Dropped0：host7+两叶productstage1+entry3+固定2raw只读1。完整原件索引F/SOURCE-ONLY-ACTUAL-COMPLETE.root-r1.json15329/0b90f909，所有C/T/Run/Read/stdout有原件；全部已消费，禁止重运或重导。唯一2raw只读Cc-sz070o2npqpiu4g/Tt-sz070o2npr4i874，stdout5130/8b6aa537；实际source_bundle3398/85a890ce、productstage10766/928cd07e在F/host/fixed-source-originals-readonly-r1/actual，原字节及fd/path稳定。root核两raw、launcher3leaf、最终r2和实际14产品/资源whole均匹配本分支；诚实基座31b+仅cfe2leaf overlay，现API仍旧R6，未激活cfe。一次本窗显示用探针误把map和scalar计数混用，已修检查表达式，实际源及既有检查未变，非产品/环境错误。
 
 当前新human/END/PID/READY/新OPEN/新任务/新模型全无；旧37complete/pending0/私账3.8580108、失败4cb最终扣分0/余额8、旧报告与旧cover两版/268d/原生产均保留，入口CLOSED。媒体最早12:37:52北京到期，不延旧图TTL，未来fresh核必须覆盖新END。下一动作集中问新的1任务、2Lite/0image/0自动重发、累计≤39of原40、增量≤1元在原100内、复用8分、正常鉴权原账号的有限公网窗。实际开启须余≥30min、今天12:30前关闭；确认后直接复用现成host bind_actual_locally.py、独立launcher binder和entry9material/6raw ABI，不重新写接线或重运全套。此前一任务已失败且上窗关闭，新请求与公网不从旧同意自动推出；未答不执行依赖动作。root唯一正常UI，原sole唯一云执行及最终统一集成发布；新版真成品/质量/重开下载仍未验，不能交付GO。
+
+
+### 2026-10-21 12:04:51北京 — 新真人80累计/延后时窗接收
+
+实际功能仍cfe5b4c、登记HEAD7f4b8b0，未改产品源码。真人在新turn01a15ca2-206f-75b0-883d-a794196a1338/user01a15ca2-20b4-7a70-8ae5-664b5034bc9c回答call_d0196ee问题：同意重测，累计调用上限由40增至80，并取消今天12:30绝对截止、允许时间后移；总费用仍原100元。本轮只1新cover/最多2Lite/0image/0自动重发/增量≤1元，沿用8测试积分合格保存后唯一结算；80不是自动重试或批量授权。官方read_thread原字节F/new-human-80-later-r1.OFFICIAL-ORIGINAL.json为16441B/aad6c629；新turn始于1792555491即12:04:51北京，与旧08:10活动turn不同。入口保持同受保护路径、正常鉴权原账号、最多60分钟有限自动CLOSE，实际OPEN余至少30分钟；不改生产产品/DB。
+
+旧9图最早12:37:52到期，现已不足30分钟，不能用旧源假称覆盖新END。最小补救为现有正常UI“补传或换候选图”：上传相同9原件后PUT同报告cover-sources，仅替封面素材引用，不延旧TTL、不重跑报告。root独占正常UI，原窗口sole负责窄改旧12:30硬上限与必要素材续接，已通知；不得重运已完成12条源码准备，不为80主动扩大本次严格37→39派发。最新真实账仍37complete/pending0/已知3.8580108元，失败4cb扣分0/余额8；旧报告与cover两版/268d封印/原生产保留。cfe两叶仅staged未激活、入口仍CLOSED，新封面质量尚未通过。恢复入口为既有PLAN.json current_cover_only_preparation.next_37_to39_continuation.new_actual_human_80_later；不建立第二套任务或发布程序。
