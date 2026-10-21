@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-21 新真人c692已确认，固定17:50:24北京关闭，sole接续第一单
+
+实际HEAD39e7334/产品74ab790。新真人call_c6926b9e27274666b75480472832f0ac已答“同意按此范围立即验收”；官方turn01a15da7-6985-7363-8664-2c8f94537d5c/user01a15da7-6a11-75b3-b0de-b5bf575e2ef7。Root实际首次收到clock08:50:24UTC=16:50:24北京/1792572624；题目明确以本窗口收到并记时起窗，故固定END1792576224=17:50:24、latestOPEN17:20:24，非冒按键时刻，不延窗/重开。完整原件F/new-human44-20261021-r1/OFFICIAL-ORIGINAL.json13107/0134f2d6efdd924536e79a813238f99535b24b55e3316a46203b06da07cbcfae与ROOT-OBSERVED-WITNESS.json已存。
+
+已直接明确交原sole执行完整题答核→full_human_envelope2任务/4Lite/0生图/新增≤2元/总≤44（仍原80/100）→first-phase1任务/2Lite/1元/42投影→已审normalcold/一次UID999 ownREADY/timer-first有限OPEN；用原binder+entry R2 bbcbd5bf，不重9source/产品/报告。Root仍唯一正常UI提交者，先等真实READY+OPEN才POST。首合格保存停生成，只有已知QC拒绝、Root看真实候选/六checks并局部修正后才明确第二任务，UNKNOWN/非预期停且提前关闭。8现有测试积分最多一次合格交付结算，旧记录和生产保护不变。
+
+此checkpoint时实际新PID/READY/OPEN/job尚未返回，最近实账40complete/pending0/3.8841162、cap40/CLOSED；不以授权冒运行或质量通过。现UI1637495948仍上轮失败缓存，9图ready/旧4da保留。下一步只查原sole当次真实回执→正常reload原报告→核报价8及原9/原标题→唯一首单POST，不重新询问同一scope、不重放旧任务。若发生上下文切换，按固定END和原sole进度恢复，不能重建新60分钟。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 九条预置实际齐备，新的有限真实验收尚未批准
 
 登记前HEADe384906，产品仍74ab790。9条非付费source-only全部实际Success/Exit0/Dropped0/Repeats1，无失败/UNKNOWN/重派。原sole索引F/SOURCE-STAGING.ACTUAL.root-r1.json32887/2f627458c5d512b2b754068acaae9424c99fc7e5cdc2dc025401a699a35cb29f；root逐9官方Run/Read原件、Output→stdout/projection及末两原proof独核，ROOT-SOURCE9-ACTUAL-READBACK.json8481/f7de0567d7c290b375fa756f9503296c15221669f3886261c467b368625b1d6d。原件均已本机落盘，不再云导出/重运。

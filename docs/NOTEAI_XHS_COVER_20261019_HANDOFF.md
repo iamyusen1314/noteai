@@ -1519,3 +1519,9 @@ Root host/独立CLI/QC reader窄审1402/958fc316be19b1c6773a9ebd5a9ab5165caf7e73
 保存源不等于运行或模型质量通过。现CID/PID3996046/runtime22cb/config/guard/ledger/prod/mounts/CLOSED保持，0新模型/PG/账变更/TERM-CAS-START/operator/OPEN。实际仍40complete/pending0/工程计量3.8841162、cap40、R8最终扣0、新版合格0/单合格成本N/A。映射纯规则canonical_semantics5043/4b1af290339ce5d5cc12de8a789dfe5b2acdc94a8155b47bdc7a6c8ff40e39b4和manifest2809/8cc3bf23980cbac9819ded8dfa4b2d1670ea4cf3a02a676ef871906b48fe4fe5经root读取核，额外完整范围与首阶段投影兼容，未来真实答复尚需人工核语义，所有新human/raw/END/PID/READY/job仍null。
 
 当前可完成的非付费准备齐。下一步只集中请求新的具体验收范围和一次有限公开入口许可，原单张批准已消费；原80次/100元累计授权继续保留。拟最多2任务/4Lite/0生图/新增≤2元/总≤44，首个合格停止生成，已知质检拒绝看实际候选/六checks并局部修正才人工第二任务；未知/非预期失败停止并提前关。同一窗从本窗收到新同意的clock起≤60min自动关、OPEN仍余≥30min，不重开/延窗；正常登录原测试账号、同隔离必要接续、现有8分最多交付结算一次、旧记录与生产产品/数据库保护。此为待确认提案，不是执行指令；不得复用旧human时刻、旧READY、9source命令或原失败POST。
+
+### 2026-10-21 — 新真人c692及固定17:50:24窗口 checkpoint
+
+HEAD39e7334/产品74ab790。真人call_c6926b9e27274666b75480472832f0ac明确“同意按此范围立即验收”，官方turn01a15da7-6985-7363-8664-2c8f94537d5c/user01a15da7-6a11-75b3-b0de-b5bf575e2ef7。题目明确按本窗收到并记clock起，Root实测16:50:24北京/1792572624，固定END1792576224=17:50:24、latestOPEN17:20:24；不冒精确按键时间，不延窗/重开。F/new-human44-20261021-r1/OFFICIAL-ORIGINAL.json13107/0134f2d6efdd924536e79a813238f99535b24b55e3316a46203b06da07cbcfae及ROOT-OBSERVED-WITNESS.json存完整原件/观测。已明确原sole直接完整题答→full2任务/4Lite/2元/总44→first1/2/1/42，旧80另原来源；原binder+entry R2 bbcbd、已审normalcold/一次ownREADY/timer-firstOPEN接续，不重9source/报告，不再问相同授权。
+
+同原报告/新9素材/8测试分，首合格保存即停；仅已知QC拒绝取得实际候选和六checks、局部修正后才手动第二任务，UNKNOWN/非预期停止提前关。最多一合格封面结算一次8分，累计仍≤80/100、生产与全部旧记录保。Root唯一UI必须等真实READY+OPEN才reload并唯一POST；当前新PID/OPEN/job未返回，最近账40complete/3.8841162/pending0/cap40、入口CLOSED，不能把这段批准当实际结果。恢复先查原sole本次执行，固定END不重建。
