@@ -8297,11 +8297,11 @@ function coverRejectionUnheld(error) {
 }
 function coverAdmissionDiagnostic(requestId, error, responseStatus, phase) {
   const status = error.status ?? responseStatus;
-  console.warn('noteai_cover_admission_unconfirmed',{
+  console.warn('noteai_cover_admission_unconfirmed '+JSON.stringify({
     request_id:requestId,phase,
     http_status:Number.isInteger(status) && status >= 100 && status <= 599 ? status : null,
     error_type:['TypeError','SyntaxError','AbortError'].includes(error.name) ? error.name : 'Error'
-  });
+  }));
 }
 function coverSubmitBody(ctx, pending) {
   const title = ctx.dialog.querySelector('[data-cover="title"]').value;

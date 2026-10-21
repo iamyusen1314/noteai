@@ -79,8 +79,9 @@ test('unconfirmed admission retains only request identity, HTTP status and fixed
   const {c,ctx}=make({console:{warn:(...args)=>events.push(args)},fetch:async(...args)=>{posts++;return fetch(...args);}});
   await c.coverCreate(ctx);const original=ctx.pending.request_id;await c.coverCreate(ctx);
   assert.equal(posts,1);assert.equal(events.length,1);
-  assert.equal(events[0][0],'noteai_cover_admission_unconfirmed');
-  const data=JSON.parse(JSON.stringify(events[0][1]));
+  assert.equal(events[0].length,1);assert.equal(typeof events[0][0],'string');
+  assert.ok(events[0][0].startsWith('noteai_cover_admission_unconfirmed '));
+  const data=JSON.parse(events[0][0].slice('noteai_cover_admission_unconfirmed '.length));
   assert.deepEqual(data,{request_id:original,phase:'create',http_status:status,error_type:type});
   assert.ok(!JSON.stringify(events).includes(privateText));assert.ok(!JSON.stringify(events).includes('synthetic-token'));
  }
@@ -97,7 +98,9 @@ test('explicit recovery diagnostics distinguish lookup from the one original-wir
   }});
   await c.coverCreate(ctx);const original=ctx.pending.request_id;await c.coverRecoverPending(ctx);
   assert.equal(events.length,2);assert.equal(ctx.pending.request_id,original);
-  const data=JSON.parse(JSON.stringify(events[1][1]));
+  assert.equal(events[1].length,1);assert.equal(typeof events[1][0],'string');
+  assert.ok(events[1][0].startsWith('noteai_cover_admission_unconfirmed '));
+  const data=JSON.parse(events[1][0].slice('noteai_cover_admission_unconfirmed '.length));
   assert.deepEqual(data,{request_id:original,phase:mode==='lookup-503'?'recovery_lookup':'recovery_submit',http_status:mode==='submit-network'?null:503,error_type:mode==='submit-network'?'TypeError':'Error'});
   assert.equal(posts,mode==='lookup-503'?1:2);await c.coverCreate(ctx);assert.equal(posts,mode==='lookup-503'?1:2);
   assert.ok(!JSON.stringify(events).includes('private-'));assert.ok(!JSON.stringify(events).includes('synthetic-token'));
