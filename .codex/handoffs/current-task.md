@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-22 01:27:07，10条私有源码实际完成且原件全核；非付费准备齐，待新一次有限验收确认
+
+登记前HEAD c33ea1cb244ab9080330f8b9f241f91fa66595a5，分支codex/noteai-xhs-cover-20261019；产品48dbe56＋1d927f2五叶保持，前端01ffe/15资源未改，生产未变。T=R/next45-to47-text-checkpoint-HOLD-r1。原sole在北京01:08:59–01:13:39实际完成精确10条私有source-only：10/10 Success/Exit0/Dropped0/Repeats1，各原ClientToken一次，无UNKNOWN/重派；scope已消费，不再运输。实际aggregate T/actual-exact10-source-only-r1/ACTUAL-ALL10-SOURCE-ONLY.json42682/SHA7904d4d3b1e707c5786985e4e684e1dc170e9b7d6b89e5f65f037f3111ccc2ba。Root全核66个本机原件/refs、十组官方Run/Read C/T/Request与Output等stdout、三同响应gzip原raw及entry317字节header+LF+3790原文；ROOT-ACTUAL10-WHOLE-READBACK.root.json13361/SHA bce0d966123be335ae30b4352f42c9e1dc41a545024289d4e6147fd148e4a847。先前990cba仅本地reader误把base_leaf_pins列表当dict；已只适配两种已知pin格式，未改source/plan/回执、未重派或重测试。
+
+三份实际原件齐：step-08/source-input-readback.ACTUAL-ORIGINAL.json1870/9a458f24（7host inputs，count8为分片数），step-09/product-source-stage.ACTUAL-ORIGINAL.json11627/9e551640（5改动叶+9同字节保留叶，14总数），entry/actual-source-stage/source-input-readback.ACTUAL-ORIGINAL.json3790/296016a5（1新entry+5同字节aux，6总数）；entry原pack4108/daf24441。五叶逐字匹配1d927f2工作树及冻结manifest；两字体/旧父14叶保持。历史产品HTML复制件871214/eabc不是当前served01ffe的HTML，不混作前端回退；served15静态未运输/重建。现成host/entry latebinder消费这三真实raw，不再补载体或读旧父。core/host/entry三份独立源码/离线GO及产品5+7局部验证可复用，不重旧套件。
+
+source前后API均PID45206、同CID/image/restart0；新源只保存未加载，尚无normal/TERM/START/CAS/slot8/operator/OPEN/模型/业务HTTP/SQL/生产/新资源/赠分。source-only未fresh读取PG或账本，45complete/known3.9263058元/pending0/seal3f63仅R12最近真实authority基线，历史proofbase1b95与所有UNKNOWN保；不把本次源保存当新实账观察。原受保护入口仍CLOSED；原sole已安全收尾执行tab，Root正常UI未触碰。R12早关/失败0最终积分/现有8分、合格新版0/单位成本N/A保，供应商invoice/bank UNKNOWN不清。
+
+唯一PLAN.next47_preparation已改为ACTUAL_SOURCE_ONLY_COMPLETE_ROOT_WHOLE_VERIFIED_READY_NEW_FINITE_APPROVAL，精确10授权已消费不再派，future新真人/clock/END/normal/ownREADY/OPEN/job/actual45digest全null。旧R12确认留历史，不挪用为新第8任务。全部非付费准备已具体完成；下一集中请求1个新正常UUID封面任务，复用水石清池报告0cdbe与有效9原素材，≤2Lite/0生图/0自动重发、新增≤1元、累计≤47/原80、总≤原100，现有8分最多合格持久保存结算一次。新有限窗从Root收到新真人并记实际clock起最多60分钟自动关，首次OPEN余≥30分钟，同窗不重开/延时；失败/UNKNOWN/素材失效停早关。此为待批方案，需新确认是因为用户已确认的旧“失败即停并提前关闭”范围已消费，不新增预算或技能审批门槛。阶段3新品PC/H5、保存重开、免费排字、下载与阶段4真实成品审查/可集成交付仍待；真iPhone/多人容量/Q07边界保，正文与生产不动。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 01:06:23，三项窄审GO；精确10条私有source-only已授权sole，等待真实原件
 
 登记前HEAD3fb815b，分支codex/noteai-xhs-cover-20261019，产品五叶仍48dbe56＋1d927f2，未改前端/生产。T=R/next45-to47-text-checkpoint-HOLD-r1。core manifest7891/2bee20b1，runtime130117/3ba0f96d、guard114732/5a61e0f5、OPI43740/54dd1ad8、launcher7196/71cff3c2；固定纯段loader显式接normal/hostpure/OPI、builtins module/dict已闭合，旧history AST留存、R12先精核余6旧函数、源码默认MAX6→本次隔离RAM8且真实原7终态。未来45完整摘要只能现场真算，不造full45原数组。更早ancestor fixed6798 loader替代的本地组合边界明示，不能冒真实当前45验收。HOST55360/6da686、stager18803/f4911c及wrapper1316/dc81564f冻结；entry37814/882b4286、binder32370/6fe4c153，entry manifest15944/aaacbc93。旧714d只历史6+同byte5aux来源，新entry保存及OPEN各自直接SHA证明，不冒旧proof。两字体在新root路径同byte复用，无新依赖/字体运输。
