@@ -138,9 +138,9 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→bb6a1e0 | 原基线及确认方案保留；10月21日12:04:51北京真人同意复测，累计上限80、总费用仍原100，取消12:30截止并允许后移有限窗；官方原件16441B/aad6c629 | 本轮先1cover/≤2Lite/0image/0自动重发/新增≤1元；不授权新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | A68_COPY_SPAN_REPAIR_OFFLINE_REVIEWED / 功能cfe5b4c（前31b4d7b） | 原文copy_span合同/程序取字；design17、旧runtime17及v2集成10PASS，重叠不重复累计；3.11编译及非作者c76e5684窄审PASS；HTML/API未变复用原PC/H5链路证据 | 新版真实设计与成品质量仍待验；不扩正文或重跑报告 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_REAL_SINGLE_UI_POST_FAILED_ENTRY_CLOSED_ORIGINAL_RESULT_PENDING / cfe5b4c、登记6a26e48 | 正常9图补传后台11550/b53c已核；B PID3957079/ownREADY1098/e8dd实际；唯一UI POST后关闭重开GET显示未交付/预留释放/旧成功图保留 | 已实际CLOSE；原sole取唯一新job/真实模型费用/失败层；不重发。新版质量/保存重开/免费排字下载仍未完成；真iPhone/多人容量未验 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | 原final-review7fcdfece与旧真实证据保留；cfe最终窄审independent-review.json6460B/c76e5684无确定P1/P2；素材补传只读契约10627B/0c6df28a | 新真实封面质量/重开/免费排字/下载及唯一结算未验，不给产品交付或发布GO；原窗统一集成，Q07现行90天规则待生产启用前核 |
+| 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | BRIEF_LENGTH_REPAIR_SOURCE_OFFLINE_GO / 74ab790（前cfe5b4c） | 唯cover_design300目标/18×100硬界，无截断；33设计/受控集成PASS、3.11编译；独审6045/e549无阻断 | 真实新成品待验；可能增加QC输入token，实际费用须核，不扩正文 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | REAL_1E989_FAILED_BRIEF_TOO_LONG_ENTRY_CLOSED / 原28814/66f988 | 原9补传成功；唯一新任务1Lite/0.0109692元、usage最终0/wallet8、38complete/3.86898/pending0/旧37摘要保；13:28:34实际CLOSED | 新最薄38→40准备完成后集中新1任务/有限入口确认；质量/保存重开/免费排字/下载仍未验 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | SOURCE_OFFLINE_AND_ACTUAL_BILLING_REVIEW_PASS_PRODUCT_HOLD | 新源独审6045/e549、真实失败及计量逐原字节独核；旧审/适用PC-H5证据复用 | 未有合格新版，禁止交付或发布GO；原窗统一集成，Q07及真iPhone/多人容量未验边界保留 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -1420,3 +1420,15 @@ root正常刷新→报价8→核原题与新9refs ready/selected→唯一点击�
 已按失败即关约定通知原sole立即CLOSE、保留API及原请求并取本轮唯一job/client/usage/error和实账四RO；CLOSE实际、真实模型次数/成本、失败层仍待原件，不能因页面退款就断言模型0或费用0。原37累计是最近一次已核状态，新累计尚待核。当前不重发/不新建任务/不再OPEN或延时；80为累计上限不等于自动重试。下一步系统定位产品或辅助失败层，仅修封面必要根因及离线回归，保持原报告内容/生产/旧UNKNOWN。新版质量与保存/重开/免费排字/下载验收仍未完成，不交付GO。恢复读同任务PLAN.actual_source_refresh.actual_root_UI_cover和原sole最新实际终态，不从旧PID/READY重放。
 
 补记：原sole实际CLOSE Cc-sz070ohsfn6t0xs/Tt-sz070ohsfnoabcw、Run01A15CEE-C14C-5BAA-A93E-B9BF26F0FF95，Success/Exit0/Dropped0。原stdout846B/696a3e468f7dce5cd6ec73368a7f35f23cc4bdc22a953ff4a085e7859b5f195b已root及独立contract核原字节；13:28:34.301916北京真正CLOSED，API_stopfalse。该close本身DB0/model0不代表本轮封面模型0；未重OPEN/杀API/重发。
+
+### 2026-10-21 — 实际长度失败根因及修正74ab790 checkpoint
+
+实际功能修正提交74ab79027965f1d2ba39ec76efab6ff20f40db5d（前cfe5b4c），本检查点登记HEAD同74ab790，未回退或改其他工作树。只改cover_design.py（23216B/94f62859）与两定向测试；无HTML/API/依赖/schema/迁移改动。根因真实任务1e9890f2-5ef8-4cc5-b055-d2802a3c2b8d/clientc7145cb4-bb1b-482e-ab7f-6890caa01f85/usagecb38c958-9003-4757-818a-e05d6a568fed：13:27:35→51北京，设计Lite成功后产品COVER_DESIGN_BRIEF_TOO_LONG，未渲染/QC/保存。唯一RO Cc-sz070oi6jpsb280/Tt-sz070oi6jq9scn4/Run01A15CF2-C76A-5A53-BEE1-D0B2CAE9378F S0D0；外9093/285b28d9、真child28814/66f988251f5b1c7f70bb5ad5fa13664b56f469d2c9f561666c343b424affea86在F/actual-source-refresh-r1/phaseB-terminal-readonly-r1/actual。root和独立contract已核整字节、job/usage/physical关联及分账；operator真APPLIED/无stderr，非补传或parentgate。原model响应未留，具体超长字段未知，不冒精确回放；原文span/plan结构/源与证据集合走过后才到该长度栅，不等于像素或质量通过。
+
+本次真实1次doubao-seed-2-0-lite-260428，15150入/522出、HTTP200，tariff0.0109692元（0.6/3.6元每百万），supplier invoice未核/银行UNKNOWN保留。claim预留8/charge1/refund1不能冒最终扣8；usage最终0/complete0，wallet8/used170/creditTx63/usage65。现38complete/pending0/已知3.86898元、currentsealcd2e9e29650f43882b38ae7b0166fceb7c9f140fb40c3c6f17af9c845f9ba5c8，旧37digest1ad191/旧36digest291acd/inode1460877保；原report34calls完成和旧4da两revision/4cb失败保留。合格新版分母仍0，不报每张0元。
+
+最小修正把300工程硬栅改为300简短目标、1800结构安全界：5scalar+3reason+3×2reference+4exclusions最多18段，每段既有100限制不变。完整保留审计说明/事实排除，不截断/摘要/删项，不新call；交接未将300列为用户已批准硬策略。类型/数组/控制字符/source/evidence绑定、非事实注记、标题span、主体/绘图/最终事实QC、保存格式、8分/90天及UNKNOWN均不变。较长brief可能增加QC输入token，原价目及调用/预算栅保，不承诺同费用。
+
+P/brief-length-repair-r1有ROOT-CHECKS3554/aaa48baf及最终非作者独审6045/e549f045247c2d22d31aadb4f668939187e1e4640a673a1f7b71849d8370d261（先临时5412/5609后仅补root证据说明，产品pins从未变，最终只认6045）。先2红测重现同code，再design+layered33PASS5.800s；300/301/500完整、18×100结构边界、101/控制字符/超列表拒；受控长brief经真renderer/MockQC/临时存储并8分唯一结算，仍2call/0image/无重发。补design_json保完整断言后只正例复跑1/0.997s；CPython3.11三文件编译/diffcheckPASS。独审4新增单测+13反例及关键AST/6pipeline不变，无P0/P1/P2。Mock/本机3.12离线不冒供应商/公网质量。仅一产品leaf包和SOURCE-MANIFEST已冻，原runtime等全部复用，不造第二发布程序。
+
+入口13:28:34真正CLOSED，原API同CID/PID3957079和全部实账/失败/素材保留。没有新OPEN/CASE/再POST/生产动作。真人累计80/原100保持，私guard40/99更严未扩；下一最薄38→40最多2Lite/0image/0自动重发/增量≤1元/已有8分，复用新9自然24h，不重上传/报告/A。原sole只做必要CLOSED四原件只读导回和本机接续准备，准备齐后集中新正常1cover及当次有限受保护公网窗确认。新版真实质量/保存重开/免费排字/下载仍待验，产品交付HOLD；真iPhone/多人真实容量未验，Q07生产90天生命周期核对仍归原统一发布窗口。恢复读唯一PLAN.real_terminal_ledger/brief_length_repair与本节，不重放任何旧任务/READY。

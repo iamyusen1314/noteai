@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-21 实际长度失败已核，最小修正74ab790及独审通过；入口CLOSED
+
+实际功能修正提交74ab79027965f1d2ba39ec76efab6ff20f40db5d（前cfe5b4c），本检查点登记HEAD同74ab790，未回退或改其他工作树。只改cover_design.py（23216B/94f62859）与两定向测试；无HTML/API/依赖/schema/迁移改动。根因真实任务1e9890f2-5ef8-4cc5-b055-d2802a3c2b8d/clientc7145cb4-bb1b-482e-ab7f-6890caa01f85/usagecb38c958-9003-4757-818a-e05d6a568fed：13:27:35→51北京，设计Lite成功后产品COVER_DESIGN_BRIEF_TOO_LONG，未渲染/QC/保存。唯一RO Cc-sz070oi6jpsb280/Tt-sz070oi6jq9scn4/Run01A15CF2-C76A-5A53-BEE1-D0B2CAE9378F S0D0；外9093/285b28d9、真child28814/66f988251f5b1c7f70bb5ad5fa13664b56f469d2c9f561666c343b424affea86在F/actual-source-refresh-r1/phaseB-terminal-readonly-r1/actual。root和独立contract已核整字节、job/usage/physical关联及分账；operator真APPLIED/无stderr，非补传或parentgate。原model响应未留，具体超长字段未知，不冒精确回放；原文span/plan结构/源与证据集合走过后才到该长度栅，不等于像素或质量通过。
+
+本次真实1次doubao-seed-2-0-lite-260428，15150入/522出、HTTP200，tariff0.0109692元（0.6/3.6元每百万），supplier invoice未核/银行UNKNOWN保留。claim预留8/charge1/refund1不能冒最终扣8；usage最终0/complete0，wallet8/used170/creditTx63/usage65。现38complete/pending0/已知3.86898元、currentsealcd2e9e29650f43882b38ae7b0166fceb7c9f140fb40c3c6f17af9c845f9ba5c8，旧37digest1ad191/旧36digest291acd/inode1460877保；原report34calls完成和旧4da两revision/4cb失败保留。合格新版分母仍0，不报每张0元。
+
+最小修正把300工程硬栅改为300简短目标、1800结构安全界：5scalar+3reason+3×2reference+4exclusions最多18段，每段既有100限制不变。完整保留审计说明/事实排除，不截断/摘要/删项，不新call；交接未将300列为用户已批准硬策略。类型/数组/控制字符/source/evidence绑定、非事实注记、标题span、主体/绘图/最终事实QC、保存格式、8分/90天及UNKNOWN均不变。较长brief可能增加QC输入token，原价目及调用/预算栅保，不承诺同费用。
+
+P/brief-length-repair-r1有ROOT-CHECKS3554/aaa48baf及最终非作者独审6045/e549f045247c2d22d31aadb4f668939187e1e4640a673a1f7b71849d8370d261（先临时5412/5609后仅补root证据说明，产品pins从未变，最终只认6045）。先2红测重现同code，再design+layered33PASS5.800s；300/301/500完整、18×100结构边界、101/控制字符/超列表拒；受控长brief经真renderer/MockQC/临时存储并8分唯一结算，仍2call/0image/无重发。补design_json保完整断言后只正例复跑1/0.997s；CPython3.11三文件编译/diffcheckPASS。独审4新增单测+13反例及关键AST/6pipeline不变，无P0/P1/P2。Mock/本机3.12离线不冒供应商/公网质量。仅一产品leaf包和SOURCE-MANIFEST已冻，原runtime等全部复用，不造第二发布程序。
+
+入口13:28:34真正CLOSED，原API同CID/PID3957079和全部实账/失败/素材保留。没有新OPEN/CASE/再POST/生产动作。真人累计80/原100保持，私guard40/99更严未扩；下一最薄38→40最多2Lite/0image/0自动重发/增量≤1元/已有8分，复用新9自然24h，不重上传/报告/A。原sole只做必要CLOSED四原件只读导回和本机接续准备，准备齐后集中新正常1cover及当次有限受保护公网窗确认。新版真实质量/保存重开/免费排字/下载仍待验，产品交付HOLD；真iPhone/多人真实容量未验，Q07生产90天生命周期核对仍归原统一发布窗口。恢复读唯一PLAN.real_terminal_ledger/brief_length_repair与本节，不重放任何旧任务/READY。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 真实唯一封面提交未交付；入口已CLOSED、原请求取证中
 
 登记前HEAD6a26e48c701e957d7a50afcd3ba40cad0730e863；产品仍cfe5b4c两叶，无新产品/HTML改动。原sole同一次OPEN/END13:55:28.563647内已实际B正常cold：sameCID/image05978、PID3957079/restart0，TERM1/START1/CAS1仅seal→11452c63、原37账/3.8580108/8分保留。独立launcher唯一实际ownREADY原件1098/e8ddf9b51a8e9016b741cfd8bdc9be11115fba49340beae18530d6c9ec2ce19d，operator livePID68/UID999，root核原字节相等；B helper两已知81256B caller读取上限64→128KiB为测试辅助修正，产品守卫不改。
