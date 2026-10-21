@@ -131,6 +131,7 @@
 - Q/A：暂无。
 
 - **Q-R13-guard-loader / 隔离接续接口（候选预审，非生产问题）**：next45-to47-text-checkpoint-HOLD-r1 的候选 runtime `next47_guard()` 读取全局 GUARD，只有 main 按 config.guard_version_root 重设；host pure 导入后直接调用及 OPI spec 导入只改自身 GUARD，可能仍指向旧默认目录而要求新 pin。建议唯一作者使用显式 guard 目录/loader 绑定，覆盖这两条真实入口，不依赖 main、不改 __file__ 或伪 SHA；保持旧 proofbase1b950 历史校验与当前 ledger3f63/fresh45 校验独立。阻塞范围：未来隔离接续冻结/预置，产品1d927f2不受影响。已直接交原sole及作者，等待最终接线/组合控制答复；未新增云、模型或发布授权。
+  A（仅技术收敛，尚未冻结/解阻）：Root同意同一guard文件的固定纯合同段loader：先核整guard exactSHA，再核唯一BEGIN/END及明确AST声明名白名单；host pure/OPI显式传入已pin目录，仅固定runtime绑定，不接外部selector或任意globals；cold与normal用同一函数体/事实SHA。此更新此前“无exec”的实现建议，仅允许这一已审核固定定义段compile/exec，避开整guard的httpx/legacy顶层，不新增文件/模块/挂载/依赖。第7个R12先精确验终态/成本/唯一释放，余6复用旧校验；旧CASE/history与新47分开。仍待真正组合控制及最终pins，不代表源预置或当次公开/付费批准。
 
 
 ### 本任务权威清单与恢复 checkpoint（接收）
