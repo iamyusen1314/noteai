@@ -1,4 +1,4 @@
-## CURRENT — 2026-10-21 A68：真实隔离后端启动与正常收尾已通过，本次未执行真实封面/前端验收
+## CURRENT — 2026-10-21 A68：非付费验收准备已实际闭合，待唯一新有效时窗；尚无新版真实封面
 
 功能31b4d7b不变，登记前HEAD8a6d342。r4实际Cc-sz070nkv0czf4lc/Tt-sz070nkv0dgwf0g S0D0，Run01A15B9C-CDB9-57CA-8673-DEAE5AD5580A/Read01A15B9C-EA49-5285-B621-048717477430；原9571/030a8599、result12812/584d3959在P/host/window-20261021-r1/postcas-r4-backend-recovery-r1/actual。sameCID/image实际新PID3809795，APP31b/18模块/双font/正常startup实核；normal232/cb16ca41、handle9981/ccca69a9均已导原件，root另逐18本机源码和2font全SHA核相符。config11264/5b35a779，runtimefe9a/guardb752/legacy266e，源加载/正常后端PASS，不等于READY/成品/付费验收通过。
 
@@ -8,7 +8,11 @@
 
 r5未来窗口最小adapter已冻：54305B/e2b413f9；最终收据P/implementation/WINDOW-SUCCESSOR-R5-RECEIPT.HOLD.json11127B/bc4f36a7，实际Python3.11编译及8纯测试、非作者独审通过，无活跃P1/P2。实际parent原件7772B/fc60与旧transition1564B/2308均不改字节用于测试，无parent digest替换；旧8974/3f9d合成parent收据仅历史。完整e074 raw本机未留，旧完整链复用上述实际r4 startup，不冒本机全链回放。parent单次只读导出Cc-sz070nlyi7k7u2o/Tt-sz070nlyi7rpj40 S0D0，原件在同window/parent-seal-export-once-r1/actual/base-seal.ACTUAL-ORIGINAL.json；无额外模型或业务写。保e074 predecessor与fc60/history，未来新CAS必须fc60→new且仅时间/proofs变化，账本36全列不重置。guardb752/legacy266e/entry22fd/产品31b均不改。
 
-下一步原sole独占host薄载体及其非作者窄审；media独占P/entry未来binder，双方已对齐9keys/6原始refs，frontend7398静态RAM证据与新6helper实际stage分开。host必要冷读复用既有不可变image的短命只读工具（独立tool CID，非新后端），network-none/RO/UID999/限资源/自动移除，实际read尚未执行。原operator0bb源码不改，等正常UI claim最多3600且受新END裁剪，claim后pause/resume仍180秒；当前未激活。新human/END/CAS/start/OPEN/模型均null/HOLD，准备齐再集中请求一次新有效时窗，复用已有8分不补分、不重报告。原sole唯一云及统一发布，root唯一未来正常UI一次。
+host与entry未来HOLD载体均已冻并非作者窄审GO，无活跃P1/P2。host29900/3ae94de0，manifest6830/11db5858及9纯项；entrybinder32006/52ef95cd、receipt11410/b642c149、3.11作者8PASS0.047/独立8PASS0.052、3sh-n/编译，精确9material/6raw。两host源片已实际S0D0运输、未执行，聚合H/window-20261021-r1/r5-future-window-HOLD-r1/SOURCE-STAGE.ACTUAL.json2773/36cd6a1b；两C/T c-sz070no5qagjfnk/t-sz070no5qay0q2o、c-sz070no7o905vcw/t-sz070no7o9mmygw，原444/32dee8b3及443/52725352。不会重派O_EXCL片。
+
+entry仅新22fd实际3片S0D0（末Cc-sz070noyw0zdiww/Tt-sz070noyw1gutc0），旧5固定RO读回后O_EXCL复制、旧inode不变，未重RAM15/静态build/任何入口执行。真实source_bundle ROOT/a68-entry-r5-source-r1/source-input-readback.json3338/35d46241；必要一次原件导回Cc-sz070np2u3mgxkw/Tt-sz070np2u41gbnk S0D0，Run01A15BC8-16A0-545E-B6E0-74BF99ACA6B2/Read01A15BC8-5E85-5202-9323-B76CC8CB0024，原stdout1761/ea78c73f。本机原件H/window-20261021-r1/r5-future-window-HOLD-r1/entry-source-readback-export-once-r1/actual/source-input-readback.ACTUAL-ORIGINAL.json，非重序列化。root逐3原stdout/真实6源path/全SHA/root0:0/400/inode及原7398旧5完整metadata验证，并用冻结binder.source_bundle实际原件纯合同检查PASS。运输及export均不重派。7398仍仅静态15RAM证据，不能冒新helper来源；成熟3entryrefs不加第4门。
+
+下一步只集中请求新有效有限公网时窗。原human2aa7/END07:35:11已过期，不能滚动或套旧同意；新human/END/CAS/start/ownREADY/OPEN/模型仍null，当前实际CID冷Exited0/PID0/CLOSED/36model/3.8472528/pending0及保留gift8不变。新同意后原sole唯一fresh只读、同CID必要接续、seal-onlyCAS/normalstartup、真实ownREADY与timer-firstOPEN（余≥30min）；root唯一正常UI从原report新1v2、2Lite/0image/0retry、总≤38of40、新≤1元在原≤100内、复用8分不再补/不重报告。新窗口未答前无依赖动作；保合格新封面0、实际质量/重开/下载待验边界。
 
 ## HISTORY — 上一检查点
 

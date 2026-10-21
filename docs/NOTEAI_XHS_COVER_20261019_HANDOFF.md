@@ -1274,3 +1274,12 @@ parent只读导出实际Cc-sz070nlyi7k7u2o/Tt-sz070nlyi7rpj40 S0D0，Run01A15BA8
 原sole独占host未来HOLD载体，media独占P/entry binder，精确material九键含END+六rawrefs+boot/pins，入口仍成熟3refs，ownREADY由binder核并不新增第4入口门。7398静态15RAM不冒新6helper来源；新source root/dispatch root均独立原目录，最终static target沿原值。冷读需复用现有image的短命RO工具（单独tool CID/name、network-none、双RO挂载、UID999、限30秒与资源、--rm不留常驻），不作为新后端/新权限/生产配置；实际工具尚未跑。原0bb operator源码不改，future wait3600裁剪END供正常UI操作，claim后180秒不改，当前未激活。
 
 当前真状态仍sameCID Exited0/PID0/CLOSED、36calls/3.8472528/pending0、保留已补8分、无在途/新任务/新版合格封面。新human/END/actualCAS/start/operator/OPEN/模型均null/HOLD。原07:35:11授权过期不延长；host/entry全部准备及窄审完成后只问一次新有限公网验收窗口，不追加预算或产品选择，不重跑报告，不修改正文/生产。PLAN为唯一可恢复任务状态。
+
+
+### A68-PREWINDOW-READY / 非付费准备及source-only实际运输已闭合
+
+登记前HEAD3e268d0，功能31b4d7b未改。host29900/3ae94de0及entrybinder32006/52ef95cd均冻结、独立窄审无P1/P2，仅future-template/source GO，非运行/OPEN/成品GO。host两源片实际S0D0，C/T与原件汇于H/window-20261021-r1/r5-future-window-HOLD-r1/SOURCE-STAGE.ACTUAL.json2773/36cd6a1b；源码只落新source-input目录，未import或执行。entry固定3片0→1→2均实际S0D0（原stdout229/f37ed710、229/ada3631e、478/7dd7368e），全原Run/Read/PROJECTION在P/entry/future-window-r5-HOLD-r1/source-stage.LOCAL-ONLY/actual-000..002。旧全6运输11片草稿仅本机HISTORY，未派；只新entry26KB跨机运输，旧5固定RO双次读回后O_EXCL复制新root，保旧目录/inode。
+
+真实source_bundle ROOT/a68-entry-r5-source-r1/source-input-readback.json3338/35d4624103d87028a8d053806f582cb61082e733e1dd55ebd34de943f523116d；一次fixed原JSON导回Cc-sz070np2u3mgxkw/Tt-sz070np2u41gbnk（Run01A15BC8-16A0-545E-B6E0-74BF99ACA6B2/Read01A15BC8-5E85-5202-9323-B76CC8CB0024 S0D0，stdout1761/ea78c73f），原件在H/window-20261021-r1/r5-future-window-HOLD-r1/entry-source-readback-export-once-r1/actual/source-input-readback.ACTUAL-ORIGINAL.json，非parse后重序列化。root核真实6源全SHA/新root/root0:0/400/inodes、旧5 refs与原7398完整metadata相同、3原stdout一致；冻结binder.source_bundle对该真实原件纯验证通过，无业务导入/SQL/云。所有这些O_EXCL运输与export均完成，不重派。
+
+至此已确定的非付费准备完成；原operator0bb/launcher3e69/guardb752/legacy266e/entry22fd/产品31b不再改。新human/END/actualCAS/start/ownREADY/OPEN/模型仍NULL；原human2aa7不改、07:35:11固定时窗已过，入口始终CLOSED，当前实际后端冷Exited0/PID0。旧36/3.8472528/pending0及已一次补8分保留，新合格交付0。唯一下一步集中请求一份新有限公网窗口，继续原report/9图、新1v2/2Lite/0image/0retry/总≤38of40、新≤1元在原≤100内、8分只结算一次不再gift。原sole唯一云与统一发布；root唯一正常UI生成、重开、免费两行及实际PNG下载并核后端。保真iPhone/真人多用户容量/90天OSS Q07未验边界，不扩大正文/报告修复。
