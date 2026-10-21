@@ -1459,3 +1459,12 @@ scope只新1cover/≤2Lite/0生图/0自动重发/新增≤1元、累计预计40�
 原sole仅一次RO取三真raw及preTERM意图，C c-sz070onymfi21vk/T t-sz070onymfs1n9c S0D0。N/host/preterm-failure-originals-readonly-r1/actual/THREE-ORIGINALS.INDEX.json2341/8e20f61a及三whole293/c1b46356、1277/7f73f684、7992/df03ce2e已root核；fresh4RRRO实为4SELECT/rollback/SQLwrites0、38完整/钱包8/新九图ready，不能将失败phase标签误判为数据库失败。旧失败CASE/inode保留，原五intent及PROOF未创建由sole实核；没有新PG/model或38全账重读。
 
 sole作者最小R3 runtime98463/22cbf1b1977cd39dc18b2cfd4c4a5eb2370aaf5ec6a9db49922790b4bc3c92df，严格一处window→execution_window；历史回执/授权/映射/hash与新TTL保护不变。foundation补充独审N/CORE-INDEPENDENT-REVIEW.cover-foundation.R3.json5803/9a33254a99ddd772df7376701a937024ed177af064ed40e257a38b9497b554fc，作者7组复用、独立受影响1PASS/.042/3.11compile；不冒实际启动通过。新独立受控CASE a68-next38-brief-oneleaf-execution-media-r3，仅同机派生runtime/薄wrapper/entry pin并正常接续，原12source不重运。当前等sole实际cold→ownREADY→有限OPEN，root唯一正常UI一次提交；END15:21:33/latestOPEN14:51:33不变、不再问同意或擅自延时。
+
+
+### 2026-10-21 — R8真实单次未交付与实际关闭 checkpoint
+
+实际HEADaab8c4c，功能仍74ab790，无追加产品/HTML改动。本次授权已实际执行一张新cover，不能重放：R3 host Cc-sz070ook0g08dfk/Tt-sz070ook0gf7ri8 S0D0，result6380/c39c2a8f whole已核，同CID/image、PID3996046/restart0，TERM/START/CAS各1，仅seal从cd2e→5ddcf0dd，38条/callsSHA35fd/known3868980000/pending0/inode1460877保持；首失败三原inode保留。CLI ownREADY Cc-sz070ooutri0em8/Tt-sz070ooutrwzsow，原1090/d6cac3cb whole已核，UID999/PID75/config2c61/END7293，实际就绪非模型验收。
+
+入口确实按时OPEN：Cc-sz070op12yggvls/Tt-sz070op12ynykn4/Run01A15D39-101E-58F7-A682-DA0556290790，official StartTime06:49:44Z即14:49:44北京，早于latest14:51:33；实际stdout1011/a12aee6a whole已核，固定15:21:33 timer不延。14:53回执传回不是晚OPEN时刻。root仅正常刷新→原报告0cdbe→正常quote8→选择原推荐题→核新9引用全部ready/selected→唯一“重新设计”POST，未上传/报告重跑/第二POST。页面先“正在选图与设计/预留8尚未扣分”；正常关闭重开面板及一次刷新GET后均“本次封面未交付/预留已释放不扣分”，旧4da到期Jan18成品保留。P/real-ui-r8-brief-length-20261021保存前题/9DOM/唯一提交/重开/原任务查询AX及截图；没排旧图或下载旧图冒新版。
+
+失败即实际CLOSE于14:56:50.135北京，Cc-sz070opnvmgioe8/Tt-sz070opnvmxzytc/Run01A15D3F-8F52-5920-AB4D-8BB5383FAED9/Read01A15D3F-BBC5-5D74-9665-7EF48563C6D4 S0D0，原844/6fb80ecd whole已核，graceful_reload/API_stopfalse、close自身DB/model0；位置N/entry/runtime-pin-r3/late-actual-1792567293-r3/actual-close。模型总次数/新费用/最终账/新job-client-usage/error仍待原sole唯一末端只读原件，不从UI退款推断模型0/费用0；最近38账只是本轮提交前状态。当前入口CLOSED，不重OPEN、不自动重试、不改生产或正文。主root下一步只按实际错误层做封面必要根因修正与回归，原sole保现场并取最薄终态；新成品/真实保存重开/免费排字/下载仍未通过，交付HOLD，真iPhone/真实多人/Q07边界保留。恢复先读唯一PLAN.next38_preparation.root_UI_R8/actual_CLOSE及原sole最新原件。
