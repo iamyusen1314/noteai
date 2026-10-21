@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 23:06，全部本机窄审GO；精确18条source-only已授权原sole执行
+
+登记前HEADc82ff89/分支codex/noteai-xhs-cover-20261019，产品01ffe6c不变。Host final R/host/final-recovery-r1已冻结：manifest59714/315f07fb、plan43936/1905bc103f930c788d65217dd763490800992fe9211b5886236b6cf13c227793；host50096/e58d534b。唯一HOST-INDEPENDENT-REVIEW.foundation.json7670/1cbd01b3d01910b2337a51c5cf5333877dd42676389990d1f5bb9cecb35bbb91，无未解P0-P2，仅source/offlineGO。允许旧closed历史标记不代表清消费：仍拒claim/resume/applied，真实44全账/noCASE/pending0/cap46检查保，旧latch/OPDIR按inode和全files原样归档；只sealSHA的同cap46窗口继承不动账/预算/CASE。之前544c→e58d20B漂移已解释，544c历史恢复，最终变体独立冻结；原14受影响控制/compile/sh-n/coldwhole复用未重跑。
+
+Root精确预置计划已核72本地refs、18唯一ClientTokens、wire等raw且内层b85gzip逐byte等冻结source、每组函数AST相同，maxwire15528。ROOT-EXACT18-SOURCE-ONLY-PLAN-REVIEW.json1783/d7f6bc3c；首Rootchecker误假定末RAMreader与前17相同CLI/schema而失败，仅改checker后全核通过，chunk40075e/8d0b14保，不冒产品缺陷或真实执行。原sole另94refs机械索引78583/62a22be9复用；coreR2、entryR3与前端15的独审/pin证据沿紧前checkpoint不重审。
+
+15:06:34UTC Root已明确授权原sole按原plan精确18条（host4私有源片+entry13私有源片+固定RAM真实原raw读回1）顺序执行：原dispatch/ClientToken各1，S0D0/repeats1且proof吻合才下一，UNKNOWN只查原C/T不重派。ROOT-AUTHORITY.EXACT18.SOURCE-ONLY.json4123/e9fbe0bda09093b3570213fb86a12c39f830821a3be53daa85912079c85f231e与唯一PLAN已存。当前新actual C/T/source receipts尚未返回，不能称18已完成；恢复先问原sole既有进度，禁止重派。只新私有源与真实raw，不导入新runtime/激活slot，不执行CAS/TERM/START/operator/OPEN/模型/业务PG/生产或新资源。
+
+阶段2本机产品与必要辅助审查已齐，阶段3真实新品与stage4交付仍HOLD；当前API7e/PID4172531、44calls最近观察/known3.9145932/pending0与R11早关历史保，源预置不等于加载或成品质量通过。future human/raw/clock/END/normal/ownREADY/OPEN/job全null，旧e70e消费窗不可复用；下一只核18实际原proof/host6-entry6-frontend三原回执，全齐后集中处理原pending同号完整wire恢复的新有限真人范围。报告正文和生产不动，合格新版0/单张成本N/A；真iPhone/多人容量/Q07仍列边界。R=H/r11-recovery-window-HOLD-r1，恢复仍用唯一PLAN，不建第二任务/发布体系。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 22:54，core R2与entry R3独审通过；host同cap46本机HOLD待齐
 
 登记前HEADc7b0389，分支codex/noteai-xhs-cover-20261019，产品01ffe6c不变。实际API仍7e/PID4172531，R11已早关、无本轮新云/模型/normal/OPEN，旧e70e不可复用；future human/raw/clock/END/normal/ownREADY/OPEN/job全null。报告正文、生产、大版本与旧账/UNKNOWN保，合格新版仍0/单位交付成本N/A。
