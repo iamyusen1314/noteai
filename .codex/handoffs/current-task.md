@@ -1,3 +1,19 @@
+## CURRENT — 2026-10-21 R9真实QC拒绝、17:33已CLOSED；10e2176可见文字最小修复离线GO
+
+分支 `codex/noteai-xhs-cover-20261019`，功能修复 `10e2176ac123da14ccc5d94c9ce7f7618db15a37`；继承实际HEAD abd922c，不回退、不新建树。用户c692批准的本窗已消费首单，固定END17:50:24保留，原sole实际于17:33:44.0927215提前CLOSE（C c-sz070p3nqypsmio / T t-sz070p3nqyxabk0 / Run01A15DCF-3500-593C-88B9-D30241191F9D / Read01A15DCF-84CB-599E-AC3C-827A6FBFF198，Success/Exit0/Dropped0）。官方Output外840/aa30ef0c，内原child171/6acd525f分开；Root已核官方Output与本机stdout完全一致，模型0/SQL0/API_stopfalse/仅Nginx graceful。无第二POST/44CAS/重开/延期；后台、42条账、9原素材、旧报告与旧4da成品保留，生产未改。
+
+实际唯一R9 job379e10bb-59b4-419e-9e63-6d5ca309e138 / client55370ae5-f825-487d-8016-65cb22f9dc06 / usage822fc827-b71d-43f8-967f-028f5857eef6，COVER_QC_DESIGN_REJECTED。2次Lite均HTTP200完整用量：设计15171/529=0.0110070元，QC6783/85=0.0043758元，合0.0153828；累计42complete/3.899499/pending0，旧40摘要保留。claim预留8、仅1release/0commit，最终扣0/钱包8，assets0/revision0。独立财务18项一致，F/FINANCIAL-R9-ACTUAL-TERMINAL-REVIEW.json9603/224bf850a185c1d4fdfaff57647ffb754be51643ce329bc903c3e0ea1b450b00；供应商实结/发票/FX仍UNKNOWN，新版合格分母0，单张合格交付成本N/A，不报0。
+
+真实观察器candidate719/a271c8c3、review643/f809e661和240×320原PNG62779/1cf78860已保存于F/r9-qc-actual-readonly-r1，原PNG是7片机械复原并whole核，不是本地重画。主窗及独立审实际看到白画布中间横条庭院、上下空白、无可见标题；真实六项main_visual/layout_balance/thumbnail_legibility为false，message_focus/typographic_hierarchy/style_fits_subject为true，issues composition_weak/empty_layout。text_matches/facts/subject为供应商判断，不能当OCR/人工全部通过。完整final2391831/19eb1001保云，未注册/未交付。具体R9设计layout/字色未留，不能声称已证白字白底参数；原文和9图未重生成或上传。
+
+最小修复只改renderer与API一行提示：按实际glyphmask采样面板合成后的底色，保留有效描边；首次绘制对比不足才本地黑/白修色并保存实际color，逐层检查真实绘图像素；不换原文、字体、几何或照片。已保存final免费排字保持immutable字体/颜色；移位后若需改色则在存储前CONTRAST_INVALID，上一成品与积分不变，API422明示对比不足。独审最初发现free auto color与jobs immutable冲突，已按此最薄边界闭合；不放松jobs保护，不改QC/价格/保存期限/依赖/迁移。
+
+验证复用初稿49组18.099s PASS；最终分派仅补3个renderer回归1.885s与2个service/临时DB+私存储受控集成2.165s PASS，含拒绝前不存/旧revision可读/安全短排字不加模型或扣分；编译与diffcheck通过。最终非作者独立组合反例PASS，P/renderer/R9-VISIBLE-TYPE-INDEPENDENT-REVIEW.json6188/2d00805c6148756a972ed8507fe78a2a121a7c2065e1264801ca85314e2081d0，无未解P1/P2，只是离线sourceGO。Root受控验证收据P/renderer/R9-VISIBLE-TYPE-ROOT-VERIFICATION.json及PRODUCT-10e2176-MANIFEST.json绑定实际证据与两产品叶whole，附product-only patch供原窗口复用现有source运输，非新部署流程。最终源码renderer33656/dd15abfa、API1160828/a30515b0（仅文案）；测试两叶不进入运行环境。
+
+当前阶段3/4产品交付HOLD：真实新版构图/质量、保存重开、免费排字、下载未通过；平均对比值也不代替纹理背景可读性或视觉QC。R9正常PC提交→离开重开→原任务GET已验证失败恢复与旧图保护，P/real-ui-r9-qc-observed-20261021留AX/真实JPEG；不下载旧图冒新版，不冒真实iPhone/多人容量，Q07生产90天仍待原窗口核。根窗sole产品与UI，原窗口sole云接续/统一发布；现只并行准备原core/host/entry的最小42→44后继，未来真人/clock/END/READY必须null-HOLD，全部非付费准备齐后再集中处理新有限入口。旧窗已CLOSED，未用第二额度不允许自动新窗。恢复先读本节→唯一PLAN.json对应R8_QC_recovery_gap.actual_R9_*及renderer_visibility_repair→原窗口实际进度；不重复付费/全账导出/源运输/旧READY。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 新真人c692已确认，固定17:50:24北京关闭，sole接续第一单
 
 实际HEAD39e7334/产品74ab790。新真人call_c6926b9e27274666b75480472832f0ac已答“同意按此范围立即验收”；官方turn01a15da7-6985-7363-8664-2c8f94537d5c/user01a15da7-6a11-75b3-b0de-b5bf575e2ef7。Root实际首次收到clock08:50:24UTC=16:50:24北京/1792572624；题目明确以本窗口收到并记时起窗，故固定END1792576224=17:50:24、latestOPEN17:20:24，非冒按键时刻，不延窗/重开。完整原件F/new-human44-20261021-r1/OFFICIAL-ORIGINAL.json13107/0134f2d6efdd924536e79a813238f99535b24b55e3316a46203b06da07cbcfae与ROOT-OBSERVED-WITNESS.json已存。
