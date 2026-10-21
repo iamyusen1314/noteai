@@ -82,7 +82,8 @@ def v2_plan(source_refs):
     brief.update(industry="休闲娱乐", subtype="庭院汤泉", reader_question="庭院环境有什么看点",
         visual_strategy="两幅原图明确分景，文字层级置于图间，保留真实主体",
         source_reasons=[{"source_ref": reference, "reason": "实拍清晰且主体完整"} for reference in selected])
-    return {"schema_version": 2, "route": "photo", "text": "高楼里的\n日式庭院汤泉",
+    # Selected fixture title: 高楼里的日式庭院汤泉; Unicode spans [0:4], [4:10].
+    return {"schema_version": 2, "route": "photo",
         "background_color": "#F6F1E8", "design_brief": brief,
         "photos": [
             {"source_ref": selected[0], "crop": [0, 0, 1, 1],
@@ -90,9 +91,9 @@ def v2_plan(source_refs):
             {"source_ref": selected[1], "crop": [0, 0, 1, 1],
              "subject_bbox": [.04, .15, .96, .95], "bbox": [.015, .58, .985, .995]}],
         "text_layers": [
-            {"text": "高楼里的", "bbox": [.055, .437, .945, .486], "font_id": "SourceHanSerifSC-Regular",
+            {"copy_span": {"title_id": "t1", "start": 0, "end": 4}, "bbox": [.055, .437, .945, .486], "font_id": "SourceHanSerifSC-Regular",
              "font_size": 66, "align": "left", "color": "#294A3D"},
-            {"text": "日式庭院汤泉", "bbox": [.055, .484, .945, .579], "font_id": "SourceHanSansSC-Bold",
+            {"copy_span": {"title_id": "t1", "start": 4, "end": 10}, "bbox": [.055, .484, .945, .579], "font_id": "SourceHanSansSC-Bold",
              "font_size": 156, "align": "left", "color": "#294A3D", "stroke_width": 1}]}
 
 

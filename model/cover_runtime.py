@@ -320,7 +320,8 @@ def run_cover(*, job_id: str, user_id: str, report: dict, sources: list[dict], h
         [ark_media.image_part(source["payload"]) for source in checked], design_transport)
     if design_version == 2:
         try:
-            decision = cover_design.validate_design(design, context, {source["media_ref"] for source in checked})
+            drawing = cover_design.materialize_design_response(design, context)
+            decision = cover_design.validate_design(drawing, context, {source["media_ref"] for source in checked})
         except cover_design.CoverDesignError as exc:
             raise CoverRuntimeError(exc.code) from None
         plan = {key: value for key, value in decision.items() if key != "design_brief"}

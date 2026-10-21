@@ -119,6 +119,58 @@ def _titles(context):
     return titles
 
 
+def _copy_titles(context):
+    # Match the existing exact-copy guard: only LF is ignored. Do not strip
+    # punctuation, spaces, emoji or normalize Unicode before indexing.
+    return {f"t{index}": title.replace("\n", "")
+            for index, title in enumerate(_titles(context), start=1)}
+
+
+def materialize_design_response(value, context):
+    """Resolve new director spans into the unchanged persisted v2 text plan.
+
+    The director selects wording and line boundaries, but never transcribes it.
+    Invalid spans stop this task; they are not repaired by another model call or
+    a fallback title. The caller must still validate the full plan and facts.
+    """
+    if not isinstance(value, dict) or "text" in value:
+        _error("COVER_DESIGN_COPY_CONTRACT_INVALID")
+    layers = value.get("text_layers")
+    if not isinstance(layers, list) or not 1 <= len(layers) <= 3:
+        _error("COVER_DESIGN_COPY_CONTRACT_INVALID")
+    titles = _copy_titles(context)
+    resolved, chosen_title, previous_end, total = [], None, None, 0
+    for layer in layers:
+        if not isinstance(layer, dict) or "text" in layer:
+            _error("COVER_DESIGN_COPY_CONTRACT_INVALID")
+        span = layer.get("copy_span")
+        if not isinstance(span, dict) or set(span) != {"title_id", "start", "end"}:
+            _error("COVER_DESIGN_COPY_CONTRACT_INVALID")
+        title_id, start, end = span["title_id"], span["start"], span["end"]
+        if (not isinstance(title_id, str) or title_id not in titles
+                or chosen_title is not None and title_id != chosen_title):
+            _error("COVER_DESIGN_COPY_TITLE_INVALID")
+        title = titles[title_id]
+        if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(title):
+            _error("COVER_DESIGN_COPY_RANGE_INVALID")
+        if previous_end is not None and start != previous_end:
+            _error("COVER_DESIGN_COPY_NOT_CONTIGUOUS")
+        total += end - start
+        if total > 32:
+            _error("COVER_DESIGN_COPY_TOO_LONG")
+        breaks = layer.get("line_breaks", [])
+        if (not isinstance(breaks, list) or len(breaks) > 11
+                or any(type(boundary) is not int or not start < boundary < end for boundary in breaks)
+                or breaks != sorted(set(breaks))):
+            _error("COVER_DESIGN_COPY_BREAKS_INVALID")
+        boundaries = [start, *breaks, end]
+        text = "\n".join(title[left:right] for left, right in zip(boundaries, boundaries[1:]))
+        resolved.append({**{key: item for key, item in layer.items()
+                            if key not in {"copy_span", "line_breaks"}}, "text": text})
+        chosen_title, previous_end = title_id, end
+    return {**value, "text_layers": resolved, "text": "\n".join(layer["text"] for layer in resolved)}
+
+
 def _references(context):
     domain = context.get("domain", "")
     if not isinstance(domain, str) or len(domain) > 100:
@@ -187,7 +239,10 @@ def build_design_brief(context, sources):
         "subtype": None, "content_intent": None, "reader_question": None,
         "interpretation_status": "director_must_judge_materials_not_verified_facts",
         "industry_limit": "行业标签不证明设施或体验；未知行业和休闲娱乐均不得自动推为洗浴。",
-        "approved_titles": titles, "sources": labels,
+        "approved_titles": titles,
+        "copy_catalog": [{"title_id": title_id, "indexed_chars": list(enumerate(title)), "end": len(title)}
+                         for title_id, title in _copy_titles(context).items()],
+        "sources": labels,
         "reference_rules": references, "untrusted_report_material": material,
         "fact_authority": "本人真实素材和已存报告；他店案例只借表达关系，导演自述不增加事实。",
     }
@@ -206,10 +261,10 @@ def build_design_prompt(context, sources):
         "schema_version": 2, "route": "photo", "background_color": "#RRGGBB",
         "photos": [{"source_ref": "one supplied UUID", "crop": "normalized xyxy",
                     "subject_bbox": "normalized xyxy in original", "bbox": "normalized xyxy on canvas"}],
-        "text_layers": [{"text": "exact approved-title excerpt", "bbox": "normalized xyxy on canvas",
+        "text_layers": [{"copy_span": {"title_id": "one copy_catalog ID", "start": 0, "end": 4},
+                         "line_breaks": [], "bbox": "normalized xyxy on canvas",
                          "font_id": "one available font ID", "font_size": 112,
                          "align": "left|center|right", "color": "#RRGGBB"}],
-        "text": "text_layers texts joined with exactly one newline between layers",
         "design_brief": {
             "industry": "判断行业", "subtype": "可证子类或unknown",
             "content_intent": "本篇意图", "reader_question": "读者要判断什么",
@@ -233,7 +288,12 @@ def build_design_prompt(context, sources):
         "crop必须包含原图全部关键主体联合subject_bbox；不确定则保全图。按真实width/height和crop比例选bbox，程序contain，不能假设会拉伸铺满。"
         "照片可明确分景，但不能拼成不存在的连续空间；不强拼九图。不要默认中部横条、35%小图、上下预留大空白、统一色板或统一字体。"
         "文字必须从approved_titles的某一个标题连续摘取，合计最多32字，允许少字但至少一层；只允许改变换行，空格、标点和字序不得改或跨标题拼词。"
-        "顶层text必须等于按顺序用一个换行连接全部text_layers.text。设计1–3文字层，可主辅字级；字体只用能力目录中已安装许可font_id，不凭空报字体。"
+        "禁止自行抄写文字：顶层和每层都不要输出text字段。每层只用copy_span选择copy_catalog中的title_id/start/end，程序从原标题取原文。"
+        "indexed_chars是[零起始Unicode码点编号,原字符]，已仅移除原换行；start包含、end不包含，末边界见end，不要自行数汉字或按UTF-16计数。"
+        "合同中的0/4只是整数类型示例，不是默认选词。能力目录text_contract描述程序回填后的内部结构，导演输出仍只能按copy_span合同，不写text。"
+        "所有层必须同一title_id，后一层start必须等于前层end；不能跳过标点或拼接不相邻词句。首层start可大于0，末层end可小于标题末边界。"
+        "同层需要语义断行时，用line_breaks列出span内部严格递增的绝对边界编号；不含首尾，默认[]。这些边界只插入换行，不删除字符。"
+        "摘取不能反转原意或夸大事实，尤其不能删否定词变肯定。设计1–3文字层，可主辅字级；字体只用能力目录中已安装许可font_id，不凭空报字体。"
         "只使用能力目录实际支持的排字/描边/面板等。按主体投影保护区放文字；不要把不遮挡误解为禁止与整张照片框重叠。"
         "版式应在240×320缩略图仍有主视觉、主题和字阶，留白需有具体作用。单层少字可合格，不强迫多字体。"
         "合同中的112仅示意数字类型，不是默认字号；bbox/crop/subject_bbox必须输出四个数的数组。"

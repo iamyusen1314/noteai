@@ -153,6 +153,94 @@ class CoverDesignTests(unittest.TestCase):
                              {**self.context, "approved_titles": ["松影，红桥"]})
         self.assertEqual(safe["text"], "松影，\n红桥")
 
+    def span_response(self, spans, **updates):
+        value = photo_plan(self.refs[0])
+        del value["text"]
+        template = value["text_layers"][0]
+        value["text_layers"] = [{**{key: item for key, item in template.items() if key != "text"},
+                                 "copy_span": span} for span in spans]
+        return {**value, **updates}
+
+    def test_director_selects_actual_ui_title_without_transcribing_or_changing_saved_schema(self):
+        # The title was observed in the real UI; this response is a fixture,
+        # not a reconstruction of the failed supplier's unretained response.
+        context = {**self.context, "approved_titles": ["闹市高楼里的日式庭院汤泉，松弛感很出彩"]}
+        value = self.span_response([{"title_id": "t1", "start": 2, "end": 6},
+                                    {"title_id": "t1", "start": 6, "end": 12}])
+        original = json.dumps(value, ensure_ascii=False)
+        resolved = design.materialize_design_response(value, context)
+        safe = design.validate_design(resolved, context, self.refs)
+        self.assertEqual(safe["text"], "高楼里的\n日式庭院汤泉")
+        self.assertEqual(safe["schema_version"], 2)
+        self.assertTrue(all("copy_span" not in layer for layer in resolved["text_layers"]))
+        self.assertEqual(json.dumps(value, ensure_ascii=False), original)
+        self.assertNotIn("text", value)
+
+    def test_copy_catalog_indexes_original_unicode_and_only_removes_lf(self):
+        title = "甲， \n乙😀e\u0301"
+        context = {**self.context, "approved_titles": [title, title, "其他标题"]}
+        brief = design.build_design_brief(context, self.sources[:1])
+        self.assertEqual(brief["copy_catalog"], [
+            {"title_id": "t1", "indexed_chars": list(enumerate("甲， 乙😀e\u0301")), "end": 7},
+            {"title_id": "t2", "indexed_chars": list(enumerate("其他标题")), "end": 4}])
+        value = self.span_response([{"title_id": "t1", "start": 0, "end": 7}])
+        resolved = design.materialize_design_response(value, context)
+        self.assertEqual(resolved["text"], "甲， 乙😀e\u0301")
+        prompt = design.build_design_prompt(context, self.sources[:1])
+        contract = json.loads(prompt.split("输出合同=", 1)[1].split("\n实际制作能力=", 1)[0])
+        self.assertNotIn("text", contract)
+        self.assertNotIn("text", contract["text_layers"][0])
+        self.assertIn("不要自行数汉字或按UTF-16计数", prompt)
+
+    def test_span_selection_preserves_punctuation_and_explicit_semantic_line_breaks(self):
+        context = {**self.context, "approved_titles": ["松影，红桥都市"]}
+        value = self.span_response([{"title_id": "t1", "start": 0, "end": 3},
+                                    {"title_id": "t1", "start": 3, "end": 5},
+                                    {"title_id": "t1", "start": 5, "end": 7}])
+        resolved = design.materialize_design_response(value, context)
+        self.assertEqual(self.validate(resolved, context)["text"], "松影，\n红桥\n都市")
+        value = self.span_response([{"title_id": "t1", "start": 0, "end": 7}])
+        value["text_layers"][0]["line_breaks"] = [3, 5]
+        self.assertEqual(design.materialize_design_response(value, context)["text"], "松影，\n红桥\n都市")
+
+    def test_invalid_copy_selection_stops_without_fallback_or_free_text(self):
+        good = {"title_id": "t1", "start": 0, "end": 4}
+        context = {**self.context, "approved_titles": ["甲" * 40, "乙" * 40]}
+        for span, error in (
+            ({**good, "title_id": "unknown"}, "COPY_TITLE_INVALID"),
+            ({**good, "start": -1}, "COPY_RANGE_INVALID"),
+            ({**good, "start": True}, "COPY_RANGE_INVALID"),
+            ({**good, "end": 4.0}, "COPY_RANGE_INVALID"),
+            ({**good, "end": 0}, "COPY_RANGE_INVALID"),
+            ({**good, "end": 41}, "COPY_RANGE_INVALID"),
+            ({**good, "end": 33}, "COPY_TOO_LONG"),
+        ):
+            with self.subTest(span=span), self.assertRaisesRegex(design.CoverDesignError, error):
+                design.materialize_design_response(self.span_response([span]), context)
+        for second, error in (
+            ({"title_id": "t1", "start": 5, "end": 8}, "COPY_NOT_CONTIGUOUS"),
+            ({"title_id": "t1", "start": 3, "end": 8}, "COPY_NOT_CONTIGUOUS"),
+            ({"title_id": "t2", "start": 4, "end": 8}, "COPY_TITLE_INVALID"),
+            ({"title_id": "t1", "start": 4, "end": 33}, "COPY_TOO_LONG"),
+        ):
+            with self.subTest(second=second), self.assertRaisesRegex(design.CoverDesignError, error):
+                design.materialize_design_response(self.span_response([good, second]), context)
+        for mixed in (self.span_response([good], text="甲"), photo_plan(self.refs[0])):
+            with self.assertRaisesRegex(design.CoverDesignError, "COPY_CONTRACT_INVALID"):
+                design.materialize_design_response(mixed, context)
+        mixed = self.span_response([good])
+        mixed["text_layers"][0]["text"] = "甲"
+        with self.assertRaisesRegex(design.CoverDesignError, "COPY_CONTRACT_INVALID"):
+            design.materialize_design_response(mixed, context)
+
+    def test_explicit_line_breaks_cannot_remove_characters_or_use_invalid_boundaries(self):
+        span = {"title_id": "t1", "start": 1, "end": 5}
+        for breaks in ([0], [1], [5], [2, 2], [3, 2], [True], [2.0], [[2]], "2"):
+            value = self.span_response([span])
+            value["text_layers"][0]["line_breaks"] = breaks
+            with self.subTest(breaks=breaks), self.assertRaisesRegex(design.CoverDesignError, "COPY_BREAKS_INVALID"):
+                design.materialize_design_response(value, self.context)
+
     def test_text_layers_must_exactly_reconstruct_the_top_level_copy(self):
         plan = photo_plan(self.refs[0])
         plan["text_layers"].append({**plan["text_layers"][0], "text": "都市禅意汤泉",

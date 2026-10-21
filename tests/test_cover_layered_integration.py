@@ -21,6 +21,7 @@ import private_storage as storage
 
 
 def layered_plan(refs):
+    """Mock supplier response: title spans only, never model-retyped copy."""
     brief = model_brief(refs[0])
     brief["industry"] = "美食"
     brief["reader_question"] = "真实咖啡环境有什么看点"
@@ -31,12 +32,14 @@ def layered_plan(refs):
         "photos": [{"source_ref": ref, "crop": [0, 0, 1, 1], "subject_bbox": [0, 0, 1, 1], "bbox": box}
                    for ref, box in zip(refs, boxes)],
         "text_layers": [
-            {"text": "周末咖啡", "bbox": [.04, .02, .96, .115], "font_id": "SourceHanSansSC-Bold",
+            {"copy_span": {"title_id": "t1", "start": 0, "end": 4},
+             "bbox": [.04, .02, .96, .115], "font_id": "SourceHanSansSC-Bold",
              "font_size": 144, "align": "left", "color": "#111111"},
-            {"text": "时光", "bbox": [.04, .115, .96, .155], "font_id": "SourceHanSerifSC-Regular",
+            {"copy_span": {"title_id": "t1", "start": 4, "end": 6},
+             "bbox": [.04, .115, .96, .155], "font_id": "SourceHanSerifSC-Regular",
              "font_size": 64, "align": "left", "color": "#444444"},
         ],
-        "text": "周末咖啡\n时光", "design_brief": brief,
+        "design_brief": brief,
     }
 
 
@@ -109,6 +112,8 @@ class LayeredCoverIntegrationTests(unittest.TestCase):
         self.assertEqual(layout["runtime_version"], runtime.LAYERED_VERSION)
         self.assertEqual(set(layout["source_hashes"]), set(self.refs))
         self.assertEqual(len(layout["text_layers"]), 2)
+        self.assertEqual([layer["text"] for layer in layout["text_layers"]], ["周末咖啡", "时光"])
+        self.assertTrue(all("copy_span" not in layer for layer in layout["text_layers"]))
         self.assertEqual(len(self.requests[1]["messages"][0]["content"]), 5)
         self.assertIn("第3张为最终封面", self.requests[1]["messages"][0]["content"][-1]["text"])
         self.assertIn("导演设计提案（仅解释目的与选材，不是事实认证或质量结论", self.requests[1]["messages"][0]["content"][-1]["text"])
@@ -160,6 +165,19 @@ class LayeredCoverIntegrationTests(unittest.TestCase):
             job = self.complete(design_mutation=change)
         self.assertEqual(job["status"], "failed")
         self.assertEqual(len(self.requests), 1)
+        self.assertEqual(self.f.balances()[1], 0)
+        store.assert_not_called()
+
+    def test_discontinuous_title_span_stops_after_design_before_qc_or_storage(self):
+        def change(plan):
+            # The first span ends at 4; overlapping at 3 is not a continuous excerpt.
+            plan["text_layers"][1]["copy_span"]["start"] = 3
+        with mock.patch.object(service, "_store_image") as store:
+            job = self.complete(design_mutation=change)
+        self.assertEqual(job["status"], "failed", job)
+        self.assertFalse(job["has_final"])
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) FROM model_usage_records")[0], 1)
         self.assertEqual(self.f.balances()[1], 0)
         store.assert_not_called()
 
