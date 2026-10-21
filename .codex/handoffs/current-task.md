@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 23:34:50新确认，R12固定00:34:50截止；原sole晚绑/normal待真实回执
+
+分支codex/noteai-xhs-cover-20261019，登记前HEAD78422ee，产品01ffe6c。新真人直接回复“确认”，官方turn01a15f19-c61c-7c81-b2bd-081091560249/user01a15f19-c65c-7ea1-8774-4b27179547bb，明确承接刚发的原号恢复/隔离累计第7任务/2Lite0生图/新增≤1元/本批≤46（原80/100）有限范围。Root首次clock15:34:50UTC=23:34:50北京/start1792596890，固定END1792600490=10月22日00:34:50，latest首次OPEN1792598690=00:04:50；首次需余≥30分钟，同窗不重开/延时。
+
+R/new-human-recovery7-20261021-r1/OFFICIAL-ORIGINAL.json12737/c84b1123984c98b27a383b9f7ca3ccfc066a2288c87493aa82a6a870bda5d350为官方仅当前一turn精确UTF8原件，不合成答复；ROOT-OBSERVED-WITNESS.json2223/18659a1bdb97351f0a96d6703e19d58897b5b81ff9c13b45fa862c6af85b453c记原scope与真实firstclock。前一官方turn可定位问项agentMessage call_75d14fdd5b9947889f4bf76b49e93e6d。首次为定位scope读2turn但未打印/保存其350k全文，随后官方1turn6343字符/12737UTF8 bytes保存，仅机械去apply_patch添加末LF；未以派生摘要冒raw或重clock。
+
+Root已将真raw/witness和固定时间交原sole：只既有host晚绑→一次normal→独立ownREADY→timer-first OPEN；原sole已直接核真问答，原host/entry作者沿现成data模板接续，当前actual newnormalPID/READY/OPEN/job尚未返回，不以真人批准冒实际启动。18source已消费不可重派，旧e70e不能使用。Root仍sole正常UI，待真实OPEN且自身READY后再打开/刷新原report0cdbe，先GET原UUID；有原job只读，无job且完整原wire/素材有效才最多一次手动同号同内容POST；缺失/过期/失败/UNKNOWN停早关，不新UUID、不重报告正文/生产或赠分。现有8测试分、成功持久保存最多一次结算；PC/H5/重开/免费排字/下载只验新成品，旧4da保历史。
+
+唯一PLAN已登记新真人/clock/END与R12状态，恢复先查原sole该次normal C/T进度，UNKNOWN仅查同请求，不能新发。最近44complete/known3.9145932/pending0仍只既有实账观察，新模型/成本/积分以真正本次终态为准，R11 UNKNOWN独立保；新合格封面仍0/单位成本N/A。当前无Root UI POST，阶段3执行中、阶段4交付待实际证据；真iPhone/多人容量/Q07边界原样。R=H/r11-recovery-window-HOLD-r1。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 23:22，18条source-only真实原件全核；下一仅待新的有限原号恢复确认
 
 登记前HEAD5937bb7/分支codex/noteai-xhs-cover-20261019，产品01ffe6c。原sole在23:08:38–23:14:06实际完成精确18条，18/18 Success/Exit0/Dropped0/Repeats1，各原ClientToken一次，无UNKNOWN。R/actual-exact18-source-only-r1/ACTUAL-ALL18-SOURCE-ONLY.json15415/fb8a74bb含全部C/T/Run/Read Request与stdout pins；每step官方Run/Read JSON、原stdout及截图保。step15提交前form detached，查无intent/Run后才同表单一次提交，真实Repeats1；非已派发后重试。
