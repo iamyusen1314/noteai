@@ -145,7 +145,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | TREE_FIX_SOURCE_GO_SAME_CAP47_HOLD_PREP | f045四行独审GO；真实树入口6项Python3.11通过；实际候选Exited2/CLOSED且本轮任务/模型0 | 原core/HOST/ENTRY本机最薄same-cap47失败父合同与必要pin闭合，最终pair待；未来公开/付费全HOLD |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | SAMECAP47_SOURCE_REVIEW_GO_EXACT8_R2_SOURCE_ACTUAL_PENDING | finalpair5036/f410与HOST tuple P1修复/ENTRY双独审GO；Root授权精确8私有源，未开放/新任务模型0 | 原sole8实际原件待返，只查原C/T勿重派；无新真人/normal/OPEN/付费scope，入口实际CLOSED |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1804,3 +1804,14 @@ HOST/ENTRY各原唯一作者继续最薄本机HOLD闭合runtime硬pin、独立�
 真旧CAS是3f63/cap46→02f7/cap47；before/after均45calls/45dispatch/known3926305800/pending0/inode1460877/cases8相同，内部货币cap99000000000保持，原总80次100元不变，businessSQL/model0/noNewReport/budgetResetfalse。此前未有的实际45整流摘要现在由这份旧CAS-time原件获9436b0ab6bccd5c69566ab0a6f22ac03ee89e61debedde50edf11691cd394192，不是此次freshSQL或full45数组导出；未来仍须现场复算相同摘要/费用/无pending。旧authority与旧时窗只能证明旧CAS，新47→47只换有限新窗，不能套新人类到旧CAS或因旧END过去就拒合法历史/放宽当前窗。此必要时间反例已交作者覆盖，禁止运行期全局time伪装。
 
 旧transition缺件已闭合并交core/HOST；sole foundation建议在既有next47_transition_check先识别精确失败父，不加top-level/改loader名，联四实际原件（02f7seal/旧transition/f4e hold/RO外层scene）而非仅338shape。原core唯一作者继续newguard+必要runtime固定rootliteral/wholeSHA派生，HOST/ENTRY必要pin/source-successor接口闭合，约15分钟为作者对其薄适配/受影响controls的估计非交付承诺。四行树修复f045与3.11同6/独审证据复用，不重旧suite或source10；最终pair/最小source plan尚未交，不先运输临时件。唯一PLAN.startup_pin_alignment_preparation已索引真实c98原件/whole与旧CAS-time45digest；新human/clock/END/normal/READY/OPEN/job仍null，transport/public/paid false。scope失败已消费，现场候选Exited2/PID0、入口实际CLOSED不变，无新normal/OPEN/模型/报告。合格新版0/单张成本N/A；本轮新增模型费0，历史known3.9263058及UNKNOWN保。报告正文与生产范围不动，等待具体成品再窄审，不仓促向用户重问时窗。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+
+### 2026-10-22 07:26:49，最终窄审GO、唯一P1已修；精确8条R2私有源码保存已授权原sole，实际回执待返
+
+登记前HEAD02b3c4f，分支codex/noteai-xhs-cover-20261019，产品1d927f2/前端01ffe不改。core-samecap47-recovery-r1冻结runtime130304/5036c980、guard120564/f4109fb1、manifest16831/5e8e88ff；sole foundation新branch独审CORE-SAMECAP47-RECOVERY-INDEPENDENT-REVIEW.foundation.json7597/SHA9e7e1f229294ae909ffe2312a8b3c61360c0d09eb4d5bc19cfaa6fef23d6368b无P0-P2，原46→47body AST/loader ABI保持，4refs联实际失败父，same47仅窗变化，旧/新authority时钟分离。复用3.11.14新branch7项/.211＋历史过期单项/.019、不重7/原6；树两函数AST同，Root3.11六入口/.398证据复用。02f7 seal由可信producer重构且hash与真实RO相等，非独立raw导回；旧transition2725/c98是CAS-time投影非未来fresh45，边界明示。
+
+HOST窄审捕获的唯一P1：main把startup-hold.json required写成str，inventory按set(required)拆字符；旧d802/未执行exact8 d36均保历史。原唯一作者r2仅加逗号tuple，prepare55857/0742e7b0、stager8119/346a91b6、binder7116/8e1d059d、manifest10171/3d966c19，逆替整byte等旧源、inventory AST不改。4个真实main参数+inventory组合原件2379/c5121d3f通过，旧str拒/新tuple成功/缺叶与0755拒；本机owner501/20→999视图适配明示，fd/path/mode/nlink真检查。首/var夹具祖先symlink拒保为测试环境错误，没有松源保护。sole entry审其余无P0-P2，只复核修正/pin后更新最终HOST-ENTRY-SAMECAP47-INDEPENDENT-REVIEW.entry-review.json8158/SHA46bbabdc233080a4527d799096c618ab3a8625aad0af7216932b769c7ecd5aec；原HOLD4631/236f原byte保HOLD-r1。ENTRY最终d1f5/9612/manifest11715/680abe全函数AST同仅data；原8、HOST14及旧suite未重跑。
+
+唯一合计划T/SAMECAP47-EXACT8-SOURCE-ONLY.PLAN.HOLD.root-r2.json55376/SHAed8ea9c6519227d1c46c91908aaab5050011971b5ae763d734a5a1d9d7ce7d65，原sole机械46新refs/8wire/原tokens记录30006/535c8aa0复用。Root只核plan/机械/双审whole pins及8wire/raw逐byte+SHA+Base64、8tokens唯一不重consumed10、原Timeout60/ProcessTree，maxwire15188<16384；没有第二次语义审或重测。ROOT-AUTHORITY.SAMECAP47.EXACT8.R2.SOURCE-ONLY.json16512/SHA0922122bd2e6ac713dba5875913ded504eb54837a3b03c0644c568cba91a3041明确许可原sole顺序8条一次：6inactive host源片＋1runtime-successor物理原件＋1entry源原件，未改OPI/launcher/observer/aux同机复用，product14/served15/字体不运。逐Success/Exit0/Dropped0/Repeats1且proof吻合才下一；UNKNOWN仅查原C/T，不重派或另批。只私有源保存/同响应完整Run/Read/stdout/source原件，不加载，不normal/TERM/START/CAS/operator/slot8/OPEN/model/businessHTTP/SQL/freshPG/配置Env/生产/新资源/赠分。新guard f410是派生，不混称旧5a同byte。
+
+原sole已接明确技术授权，实际新8 C/T/sourceaggregate尚未返；恢复先查原sole本批原进度，不重旧10/18/失败normal或未执行d36。唯一PLAN.startup_pin_alignment_preparation已记source-only authorized/actualpending，public/paid false，future新human/clock/END/normal/READY/OPEN/job全null。此授权时间只是非付费技术记录，不是新真人clock/公开时窗；旧失败06:35:40/07:35:40 scope已消费。当前最后实证candidate Exited2/PID0/restart0、入口CLOSED、02f7cap47、45known3.9263058/pending0（旧CAS-time9436摘要）保；本轮无新UI提交/模型或合格新品，单位成本N/A。下一只核8真实源原件，全准备具体齐后才集中新的有限真实验收确认。正文/生产范围不改，真iPhone/多人容量/Q07等未验保。T=R/next45-to47-text-checkpoint-HOLD-r1。
