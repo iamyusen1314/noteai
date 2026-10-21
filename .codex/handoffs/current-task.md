@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-21 A68：真实新版设计未交付，入口已关闭，定向修复原文选词合同
+
+实际功能仍31b4d7b，登记前HEADc2e864c。R6唯一正常UI POST已进入native，任务4cb70913-96f3-48ad-ac29-ca5cec9003ca/client fc8cdfcd-68f2-4770-b462-82b47378b99e/usage80c0ae9c-18a9-4f57-98fa-e3b2d12b07a8。设计Lite真实HTTP200后，在渲染前报COVER_DESIGN_TEXT_NOT_FROM_TITLE；1次doubao-seed-2-0-lite-260428，input14912/output503，usage tariff0.0107580元，QC0/image0/自动重发0。未生成或保存新版，预留已释放、usage最终扣分0、余额8；旧报告0cdbe/旧cover4da/rev2保留。没有原模型文案留存的证据，不能断言具体改了哪些字，也不盲重发取证。
+
+原sole于北京09:33:49.525实际CLOSE，Cc-sz070nwukejswsg/Tt-sz070nwuketsi68，原stdout808/a03c936e；API现场保留、未停服。实际只读Cc-sz070nx2e0h74lc/Tt-sz070nx2e0yof0g S0D0，原child11632/3795b2a4在P/host/window-20261021-r1/r6-cover-observation-readonly-r1/actual/child.ACTUAL-ORIGINAL.json，4SELECT/rollback/SQL0。账本实际37complete/pending0，原36独立digest291acd仍true/inode1460877，累计私账3.8580108元（历史保守FX8工程口径保留，新call按实际usage tariff）；post-native seal268ddad3。供应商账单未核，不冒最终现金账单；新版合格分母0，不能报每张0元。截图/完整AX在P/real-ui-r6-20261021，显示未交付/预留释放及旧封面，不能冒新成果。
+
+本次一任务及OPEN/CLOSE载体均已消费，不因固定END尚未到而再开、再POST、再补分或重置账本。现在仅做已授权非付费封面修复：root拥有产品源及checkpoint，foundation只读核原文合同并独立建议。Prompt与现守卫均要求获准单标题连续原文，仅改换行；不是放松事实或扩大正文修复。下一步将自由抄写文案改为原标题可定位选词、程序回填并保留最终原文校验，定向回归及非作者审查后再给具体结果。没有新付费/公网/生产发布授权，不另造发布或任务系统。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：新真人已确认，固定10:18:39关闭，原sole接续实测
 
 实际新真人回复已到：user01a15c0a-6f63-7a50-adf6-f9b0d525a221，原文answer“同意按此范围限时重测”，精确问题call_d6defac985dd4ecc884715db935b1d7c。官方read_thread186745B/9dfe5d60原件在P/actual-human-20261021-r3/read-thread.ACTUAL-ORIGINAL.json。新回复属于同一个旧active turn01a15bcb，turn.startedAt08:10:25不能冒新批准时间；useritem没有timestamp。canonical明示首个实观测clock09:19:31=1792545571作technical activation，END保守用问前clock09:18:39+3600=1792549119（北京10:18:39），早于真实新回复+60min；latest actualOPEN09:48:39，不滚动。新canonical3162/0511c37b8998ff37f72ed8b6cb64ead87a15212bc06632919a6197d748bb316d在同r3/a68-human-approval.json，root冻结c95 authority纯检验PASS。不是把旧08:10同意或工具accepted当新批准。

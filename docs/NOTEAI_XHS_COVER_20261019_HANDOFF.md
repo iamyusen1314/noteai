@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
 | 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_OFFLINE_COMPLETE / 功能31b4d7b（起点3773d2d） | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R6_PREWINDOW_ACTUAL_READY / 新版未入模型；仅待新有限窗口 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 准备同报告一次v2/2Lite/0image/0retry受控successor最小差异，正常8分且须具体隔离fixture/新有限公网scope；真iPhone/真人容量不冒通过 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R6_REAL_FAILED_TITLE_COPY / 唯一真实新版失败，已关入口 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 新版1次Lite/0.0107580元/最终扣分0；累计37、私账3.8580108、pending0。仅离线修复原文选词合同，禁止自动重测；真iPhone/真人容量未验 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | implementation-a68/contracts/final-review.json34557B/7fcdfece保留底图hash P2复现与修正，含最终PC/H5工具/证据窄审，无活跃P1/P2；旧真实证据不删除 | 真实模型/设计质量仍未验，不给产品可交付或发布GO；原窗统一集成，Q07现行90天规则仍待核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1334,3 +1334,12 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 实际新真人回复已到：user01a15c0a-6f63-7a50-adf6-f9b0d525a221，原文answer“同意按此范围限时重测”，精确问题call_d6defac985dd4ecc884715db935b1d7c。官方read_thread186745B/9dfe5d60原件在P/actual-human-20261021-r3/read-thread.ACTUAL-ORIGINAL.json。新回复属于同一个旧active turn01a15bcb，turn.startedAt08:10:25不能冒新批准时间；useritem没有timestamp。canonical明示首个实观测clock09:19:31=1792545571作technical activation，END保守用问前clock09:18:39+3600=1792549119（北京10:18:39），早于真实新回复+60min；latest actualOPEN09:48:39，不滚动。新canonical3162/0511c37b8998ff37f72ed8b6cb64ead87a15212bc06632919a6197d748bb316d在同r3/a68-human-approval.json，root冻结c95 authority纯检验PASS。不是把旧08:10同意或工具accepted当新批准。
 
 本次1v2/2Lite/0image/0retry、新≤1元在原≤100、total≤38of40、复用既有8分且合格保存后一次结算；原report/九图/历史36/UNKNOWN/旧cover/生产范围保留。登记前HEAD07f030c，功能31b4d7b、现成辅助c95/a200/fe256/27e/b1ac/45a/3e69/0bb均不改。原sole已获真实source与固定END，按已实stage的c95 latebind→fresh36+8/noactive→同CID正常TERM及旧inode归档→真实acb4单CAS→唯一正常START→3e69一次ownREADY→成熟timer-firstOPEN余≥30min连续执行；root等真实host2raw+READY1填原6raw后唯一正常UI封面。当前尚无这轮实际新CAS/PID/READY/OPEN/模型，不冒成功；原source运输、原件读回、gift或报告不再重派。唯一PLAN记录ACTUAL_NEW_HUMAN_CONFIRMED_CONSERVATIVE_FIXED_END101839，恢复由它和本节接续，结果未知只查原C/T/原请求。
+
+
+### A68-R6-REAL-FAILED / 唯一新版原任务、实际关闭及定向修复接续
+
+实际功能仍31b4d7b，登记前HEADc2e864c。R6唯一正常UI POST已进入native，任务4cb70913-96f3-48ad-ac29-ca5cec9003ca/client fc8cdfcd-68f2-4770-b462-82b47378b99e/usage80c0ae9c-18a9-4f57-98fa-e3b2d12b07a8。设计Lite真实HTTP200后，在渲染前报COVER_DESIGN_TEXT_NOT_FROM_TITLE；1次doubao-seed-2-0-lite-260428，input14912/output503，usage tariff0.0107580元，QC0/image0/自动重发0。未生成或保存新版，预留已释放、usage最终扣分0、余额8；旧报告0cdbe/旧cover4da/rev2保留。没有原模型文案留存的证据，不能断言具体改了哪些字，也不盲重发取证。
+
+原sole于北京09:33:49.525实际CLOSE，Cc-sz070nwukejswsg/Tt-sz070nwuketsi68，原stdout808/a03c936e；API现场保留、未停服。实际只读Cc-sz070nx2e0h74lc/Tt-sz070nx2e0yof0g S0D0，原child11632/3795b2a4在P/host/window-20261021-r1/r6-cover-observation-readonly-r1/actual/child.ACTUAL-ORIGINAL.json，4SELECT/rollback/SQL0。账本实际37complete/pending0，原36独立digest291acd仍true/inode1460877，累计私账3.8580108元（历史保守FX8工程口径保留，新call按实际usage tariff）；post-native seal268ddad3。供应商账单未核，不冒最终现金账单；新版合格分母0，不能报每张0元。截图/完整AX在P/real-ui-r6-20261021，显示未交付/预留释放及旧封面，不能冒新成果。
+
+本次一任务及OPEN/CLOSE载体均已消费，不因固定END尚未到而再开、再POST、再补分或重置账本。现在仅做已授权非付费封面修复：root拥有产品源及checkpoint，foundation只读核原文合同并独立建议。Prompt与现守卫均要求获准单标题连续原文，仅改换行；不是放松事实或扩大正文修复。下一步将自由抄写文案改为原标题可定位选词、程序回填并保留最终原文校验，定向回归及非作者审查后再给具体结果。没有新付费/公网/生产发布授权，不另造发布或任务系统。
