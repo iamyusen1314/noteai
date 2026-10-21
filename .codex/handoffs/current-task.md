@@ -1,3 +1,19 @@
+## CURRENT — 2026-10-21 首40→42离线审定；仅9条非付费源码预置已交原sole执行
+
+登记前HEAD6ee5f3b，branch codex/noteai-xhs-cover-20261019，产品仍74ab790。实际R8仍失败/扣0、40complete/pending0/工程计量3.8841162、入口CLOSED。没有新真人、模型、OPEN或生产动作。F沿上节N/future40-to42-qc-observer-HOLD-r1，不新建任务体系。
+
+最薄首单core已冻：runtime119043/e6bd26b5、guard79223/cd00ccf9、operator39572/c7a31450、launcher7196/fee8fa23。唯一非作者审CORE-INDEPENDENT-REVIEW.cover-foundation.json15035/688c527fd7da3f0c0e4f5765c2c74cb1790f3f01540c1411f4da6c27b506538e：四实际raw/37615终态whole及真实40父链核定；UNKNOWN停止和历史case重放组合纯测/3.11compile通过，复用作者7组，未见新增P0–P2。仅源码/离线GO，不是授权或真实质量GO。技术cap将来仅40→42/原inode/99元模型封顶保留，不填满调用；当前实际未改。
+
+Root完成host/单UID999 launcher/QC reader窄审，原件ROOT-HOST-READER-NARROW-REVIEW.json1402/958fc316be19b1c6773a9ebd5a9ab5165caf7e7308da9107e5301bbceea213ab；8条载体whole及模板归一通过，组合纯测observer→三QC原件→六checks保已知false→230859字节合成PNG分23片恢复exactbytes/篡改拒绝通过，非真实候选。初夹具/var符号链接与缺sourcepart两错误仅修夹具，未改门槛。Reader仅private fixed candidate/review/thumbnail，完整final声明保云hash，不注册失败成品，不新公开路由。
+
+Root发现entry R1把实际前驱两path错误替换成next40；sole作者保R1未执行，R2仅还原真实next38，d614 config/5f91 close/旧END7293保。Root独核所有函数AST同R1、实际base经固定差分等于R2及source载体whole，ROOT-ENTRY-R2-NARROW-REVIEW.json1888/fa388512efc95f002c37c923938db32b7db98ac46c53d5d9aa8bbb23c728578b。只用F/entry/actual-predecessor-r2：entry35675/bbcbd5bf，binder28526/5b00b138，单source wire11864/00cbb165；R1 wire禁止派。
+
+16:19:06北京Root已给原窗口唯一技术执行许可：F/host/SOURCE-TRANSPORT.HOLD.json8条（manifest751ed3c1/index01685263）顺序后R2/ROOTPLAN.SOURCE-ONLY.HOLD.json1条，共9；仅新私有source-input文件与同条原proof读回，保护现CID/PID/runtime/config/guard/ledger/prod/static/mounts，禁止TERM/CAS/START/operator/OPEN/PG/模型/账户变更。未知查原C/T，不重派。尚待实际9条回执；恢复先问sole，不能当未执行重发。不是新用户付费或公网许可。
+
+未来拟2任务/4Lite/0image/新增≤2元/总≤44（仍原80/100）尚未向人请求。完整人类范围须保full_human_envelope，当前generic1单/2call/1元/42仅first_phase_engineering_projection；硬80只旧standing官方16441/aad6c629be3583725e706c4b211ed5da5abe53cd590161d6dd221f6aaf1e7519/call_d019，不冒本次44或旧turn时刻。当前validator允许额外块但不自动证明语义；本机接口组合核与原答复映射仍需收尾。拟同一次≤60min有限OPEN，首合格即停生成，已知拒绝拿图逐项修后才人工第二任务，UNKNOWN/非预期失败停并提前关；窗口从本窗收到新回复的观测clock起、OPEN剩≥30min，不延窗/重开。未来raw/END/实际新PID/READY/任务均null-HOLD。下一步：核9条真实sourceproof和映射接口，更新checkpoint后才集中请求新的具体验收许可。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 四真原及观察绑定已核；首40→42本机续接尚在收尾
 
 R8实际状态仍40complete/pending0/预算计量3.8841162、最终用户扣0、CLOSED；产品未改。四真原已一次读回：Cc-sz070osz1uua9ds/Tt-sz070osz1v99ngg/Run01A15D61-88C9-5361-AE2E-2EB7432E2238/Read01A15D61-B2B1-5978-B39D-6FA48BFD611E S0D0，外10785/8725496a，F=N/future40-to42-qc-observer-HOLD-r1/originals-readonly-r1/actual，索引7782/a7b9f0bf。root逐4whole核nextseal11327/8239、claim956/5d11、resume11677/3143、applied285/faea；999:999/600/nlink1与原inode稳定。resume内next_seal对象等于独立原件，applied绑定原whole；root初脚本假设顶层next_seal_sha256的KeyError已局部修正，不是产品/原件错误，不改原件/重读云。当前CID/PID3996046/source22cb/protected/mounts/CLOSED保，无新PG/SQLite/40rows/模型/配置动作。

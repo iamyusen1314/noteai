@@ -1499,3 +1499,15 @@ R8实际状态仍40complete/pending0/预算计量3.8841162、最终用户扣0、
 observer-only薄绑定也经root非作者窄审：runtime100832/3a118d945f5157b4151a74b7518106961ea2b2319ff3749ce9bddd038719f3c0；严格三处插入32+1+1行，独立逆除byteexactR3 98463/22cb，ROOT-NONAUTHOR-REVIEW1151/1b7ea106fc3772046d173b5629ffe8df3931757b46dde2737a1810e2ec5edefa。此variant仍旧38前提/cap40，不能执行新任务。唯一core作者继续真实父40/R8第四失败保留与显式40→42 cap/seal后继适配；host/entry并行复用原normalcold/entry，仅本机HOLD。作者15:46估还需15–20分钟完成局部源码/受影响检查，此为估计非完成。新4core/host最终pins尚未冻结，source-only片数6–9只是估计未执行；不重12/产品14叶/static/font，不引平台。
 
 取证读取端亦列为必要准备：复用fixed-file导回candidate.json/review.json/实际QC240×320 thumbnail.png原bytes，whole校验后root真实看图；完整final先保云原bytes/hash，合格后正常UI下载，不先搬数MB。必要分片按真实size确定，复用既有机制，不新公开debug路由、不把失败图上传成素材/注册成品，也不读不存在的新图。全部未来human/END/实际cap变化/新模型/新OPEN仍HOLD。唯一PLAN已登记精确原件、observer_final和observer_only_binding；接续先看此记录与原sole，不从旧READY重发。
+
+### 2026-10-21 — 首40→42局部审定与9条非付费预置 checkpoint
+
+登记前HEAD6ee5f3b/branch codex/noteai-xhs-cover-20261019，产品74ab790无追加。实际仍R8失败/最终扣0、40complete/pending0/3.8841162、CLOSED，无新模型/任务或公网许可。F沿上一节定义。
+
+唯一core窄审已完成：runtime119043/e6bd26b5、guard79223/cd00ccf9、operator39572/c7a31450、launcher7196/fee8fa23；独审原件CORE-INDEPENDENT-REVIEW.cover-foundation.json15035/688c527fd7da3f0c0e4f5765c2c74cb1790f3f01540c1411f4da6c27b506538e。核实际40父原件链、R8失败/释放、未知停止/旧case重放组合及3.11compile；不重作者7组，未见新增P0–P2，仅源码/离线GO。未来技术cap仅40→42而非直接放80，不填调用；原99元模型cap/40条/成本/旧历史/inode保留。
+
+Root host/独立CLI/QC reader窄审1402/958fc316be19b1c6773a9ebd5a9ab5165caf7e7308da9107e5301bbceea213ab：8载体whole/归一模板一致，实际observer→固定QC reader→JSON原bytes/六checks已知false→230859合成PNG23片exact恢复且篡改拒绝PASS。纯夹具初始/var symlink和漏sourcepart已修夹具不改源码/门槛，不冒真实候选。Root发现entry R1误替换实际前驱两path，sole R2仅改回next38；原d614 config/5f91 close/END7293保持，R1未执行载体禁用。R2 entry35675/bbcbd5bf、binder28526/5b00b138、wire11864/00cbb165；ROOT-ENTRY-R2-NARROW-REVIEW.json1888/fa388512efc95f002c37c923938db32b7db98ac46c53d5d9aa8bbb23c728578b核所有函数AST同R1/真实base固定差分精确还原R2及5sidecars复用。未加产品模块/schema/依赖/公开debug。
+
+16:19:06北京Root已明确许可原窗口sole只执行F/host/SOURCE-TRANSPORT.HOLD.json8条→F/entry/actual-predecessor-r2/ROOTPLAN.SOURCE-ONLY.HOLD.json1条，共9条非付费source-only。仅新私有源文件与同条原proof读回；现CID/PID/runtime/config/guard/ledger/生产/static/mounts保，禁止TERM/CAS/START/operator/OPEN/PG/模型/账户改动。未知只原C/T查、不重派。实际结果尚待原sole9条回执；不能因本checkpoint未填回执再重运，也不重旧12/产品14叶/字体。
+
+未来2任务/4Lite/0image/新增≤2元/累计≤44仍原80/100提案未向人请求或批准。唯一接口组合纯测6769/3758040ef9f7e955c6775e7ae049eb1278b65217128142e201bf4b11cafd0ab0通过：保完整full_human_envelope2/4/2/44，generic只是first_phase_engineering_projection1/2/1/42；80另绑历史standing官方16441/aad6c629be3583725e706c4b211ed5da5abe53cd590161d6dd221f6aaf1e7519/call_d019，非本次44。validator接受extra块不验证其语义，Root/binder须核未来真实答复→完整范围→阶段投影；未证明授权/第二单能力，未来实际raw均null。拟同一≤60min有限窗口内首合格停生成；已知拒绝先取得实际图/六checks并局部修正才人工第二任务，UNKNOWN/非预期失败停并提前关，不重开/延窗；OPEN仍余≥30min。先核9条原sourceproof和本机映射收尾，更新checkpoint，再集中提交具体验收许可，不从旧同意直接新调用。
