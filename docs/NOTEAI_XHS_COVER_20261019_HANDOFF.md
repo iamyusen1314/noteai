@@ -137,10 +137,10 @@
 
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
-| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_COPY_SPAN_REPAIR_OFFLINE_REVIEWED / 功能cfe5b4c（前31b4d7b） | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R6_REAL_FAILED_TITLE_COPY / 唯一真实新版失败，已关入口 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 新版1次Lite/0.0107580元/最终扣分0；累计37、私账3.8580108、pending0。仅离线修复原文选词合同，禁止自动重测；真iPhone/真人容量未验 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | implementation-a68/contracts/final-review.json34557B/7fcdfece保留底图hash P2复现与修正，含最终PC/H5工具/证据窄审，无活跃P1/P2；旧真实证据不删除 | 真实模型/设计质量仍未验，不给产品可交付或发布GO；原窗统一集成，Q07现行90天规则仍待核 |
+| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→bb6a1e0 | 原基线及确认方案保留；10月21日12:04:51北京真人同意复测，累计上限80、总费用仍原100，取消12:30截止并允许后移有限窗；官方原件16441B/aad6c629 | 本轮先1cover/≤2Lite/0image/0自动重发/新增≤1元；不授权新资源/生产切换 |
+| 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | A68_COPY_SPAN_REPAIR_OFFLINE_REVIEWED / 功能cfe5b4c（前31b4d7b） | 原文copy_span合同/程序取字；design17、旧runtime17及v2集成10PASS，重叠不重复累计；3.11编译及非作者c76e5684窄审PASS；HTML/API未变复用原PC/H5链路证据 | 新版真实设计与成品质量仍待验；不扩正文或重跑报告 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_CFE_HUMAN80_LATER_WINDOW_AUTHORIZED_MEDIA_REUPLOAD_PENDING / cfe5b4c、登记bb6a1e0 | 旧报告/cover两版/失败4cb退款保留；实际累计37/pending0/已知私账3.8580108；14产品资源已staged未激活；原9本机bytes/SHA全匹配0c6df28a证据 | sole适配仅上传关联阶段、模型关闭；root正常补传9图后核新TTL/旧报告账，再1新cover≤2Lite；实际派发仍更严格37→39，human累计上限80。真iPhone/多人真实容量未验 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | 原final-review7fcdfece与旧真实证据保留；cfe最终窄审independent-review.json6460B/c76e5684无确定P1/P2；素材补传只读契约10627B/0c6df28a | 新真实封面质量/重开/免费排字/下载及唯一结算未验，不给产品交付或发布GO；原窗统一集成，Q07现行90天规则待生产启用前核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -1384,4 +1384,8 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 
 实际功能仍cfe5b4c、登记HEAD7f4b8b0，未改产品源码。真人在新turn01a15ca2-206f-75b0-883d-a794196a1338/user01a15ca2-20b4-7a70-8ae5-664b5034bc9c回答call_d0196ee问题：同意重测，累计调用上限由40增至80，并取消今天12:30绝对截止、允许时间后移；总费用仍原100元。本轮只1新cover/最多2Lite/0image/0自动重发/增量≤1元，沿用8测试积分合格保存后唯一结算；80不是自动重试或批量授权。官方read_thread原字节F/new-human-80-later-r1.OFFICIAL-ORIGINAL.json为16441B/aad6c629；新turn始于1792555491即12:04:51北京，与旧08:10活动turn不同。入口保持同受保护路径、正常鉴权原账号、最多60分钟有限自动CLOSE，实际OPEN余至少30分钟；不改生产产品/DB。
 
-旧9图最早12:37:52到期，现已不足30分钟，不能用旧源假称覆盖新END。最小补救为现有正常UI“补传或换候选图”：上传相同9原件后PUT同报告cover-sources，仅替封面素材引用，不延旧TTL、不重跑报告。root独占正常UI，原窗口sole负责窄改旧12:30硬上限与必要素材续接，已通知；不得重运已完成12条源码准备，不为80主动扩大本次严格37→39派发。最新真实账仍37complete/pending0/已知3.8580108元，失败4cb扣分0/余额8；旧报告与cover两版/268d封印/原生产保留。cfe两叶仅staged未激活、入口仍CLOSED，新封面质量尚未通过。恢复入口为既有PLAN.json current_cover_only_preparation.next_37_to39_continuation.new_actual_human_80_later；不建立第二套任务或发布程序。
+旧9图最早12:37:52到期，现已不足30分钟，不能用旧源假称覆盖新END。最小补救为现有正常UI“补传或换候选图”：上传相同9原件后PUT同报告cover-sources，仅替封面素材引用，不延旧TTL、不重跑报告。root独占正常UI，原窗口sole负责必要素材续接与有限技术时窗绑定（复核冻结脚本无12:30字面硬限，不将其误记为代码缺陷），已通知；不得重运已完成12条源码准备，不为80主动扩大本次严格37→39派发。最新真实账仍37complete/pending0/已知3.8580108元，失败4cb扣分0/余额8；旧报告与cover两版/268d封印/原生产保留。cfe两叶仅staged未激活、入口仍CLOSED，新封面质量尚未通过。恢复入口为既有PLAN.json current_cover_only_preparation.next_37_to39_continuation.new_actual_human_80_later；不建立第二套任务或发布程序。
+
+### 2026-10-21 12:20北京 — 原sole续接确认及限定更正
+
+原窗口直接答复已采用本次真人原件；冻结helper没有12:30字面硬限，先前“需窄改硬上限”的推断已更正，真正差异是原批准时刻与技术开放起点分开绑定。原sole正在使同CID/DB先开放受鉴权仅上传/关联阶段，模型/cover POST关闭；root正常补传同9图，实核新引用/自然TTL及原报告/37账保留后才接续1cover/2Lite。实际准备齐后固定最多60分钟有限OPEN/END，不能把技术起点冒成真人批准时间。仅helper差异；未重运已完成12条/改产品/扩大设施/生产切换。原sole此回执尚非实际补传READY/OPEN，root未上传或生成。
