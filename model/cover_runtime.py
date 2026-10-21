@@ -40,6 +40,7 @@ class RuntimeHooks:
     before_call: Callable[[str, str, dict], None]
     on_call: Callable[[dict], None]
     on_stage: Callable[[str], None] = lambda _stage: None
+    on_design: Callable[[dict], None] = lambda _design: None
 
 
 @dataclass
@@ -257,7 +258,8 @@ def run_cover(*, job_id: str, user_id: str, report: dict, sources: list[dict], h
     if not isinstance(user_id, str) or not user_id or not isinstance(hooks, RuntimeHooks):
         raise CoverRuntimeError("COVER_RUNTIME_IDENTITY_REQUIRED")
     if (not isinstance(sources, list) or not 1 <= len(sources) <= 9
-            or not callable(hooks.before_call) or not callable(hooks.on_call) or not callable(hooks.on_stage)):
+            or not callable(hooks.before_call) or not callable(hooks.on_call) or not callable(hooks.on_stage)
+            or (design_version == 2 and not callable(hooks.on_design))):
         raise CoverRuntimeError("COVER_RUNTIME_SOURCES_INVALID")
     context = _report_context(report)
     checked = []
@@ -326,6 +328,9 @@ def run_cover(*, job_id: str, user_id: str, report: dict, sources: list[dict], h
             raise CoverRuntimeError(exc.code) from None
         plan = {key: value for key, value in decision.items() if key != "design_brief"}
         design_snapshot = {**decision, "input_brief": cover_design.build_design_brief(context, checked)}
+        # Retain the validated proposal before deterministic rendering can fail.
+        # This is diagnostic input, never a QC result or a delivered artifact.
+        hooks.on_design(design_snapshot)
         selected_sources = [next(source for source in checked if source["media_ref"] == item["source_ref"])
                             for item in plan["photos"]]
     else:

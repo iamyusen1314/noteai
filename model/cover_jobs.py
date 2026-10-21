@@ -369,6 +369,29 @@ def mark_stage(claim, stage, *, now=None):
     return True
 
 
+def record_design_snapshot(claim, snapshot, *, now=None):
+    """Write one validated v2 proposal under the original live worker fence."""
+    if (not isinstance(snapshot, dict) or type(snapshot.get("schema_version")) is not int
+            or snapshot["schema_version"] != 2 or snapshot.get("route") != "photo"):
+        raise ValueError("validated layered cover design required")
+    encoded = _json(snapshot)
+    clock = _now(now)
+    with db.transaction(write=True) as tx:
+        row = _owner_row(tx, claim, now=clock)
+        if json.loads(row["policy_json"]).get("design_version", 1) != 2:
+            raise ValueError("design checkpoint is only for layered cover tasks")
+        previous = json.loads(row["design_json"] or "{}")
+        if previous:
+            if _json(previous) != encoded:
+                raise ValueError("original cover design snapshot changed")
+            return False
+        if row["status"] != "running" or row["stage"] != "design":
+            raise ValueError("original cover design stage changed")
+        tx.execute("UPDATE cover_jobs SET design_json=?,updated_at=? WHERE id=?",
+            (encoded, clock.isoformat(), row["id"]))
+    return True
+
+
 def before_text_call(claim, stage, call_id, *, now=None):
     """Persist one design/QC dispatch intent before invoking the original adapter."""
     if stage not in {"design", "qc"} or not isinstance(call_id,str) or not call_id:
@@ -696,13 +719,19 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
         elif (layout.get("schema_version", 1) != 1 or layout.get("source_ref") not in sources
                 or layout.get("source_sha256") != sources[layout["source_ref"]]):
             raise ValueError("saved cover layout no longer matches an original source")
+        design_json = _json(design_snapshot or {})
+        previous_design = json.loads(row["design_json"] or "{}")
+        if previous_design:
+            if design_snapshot is not None and _json(previous_design) != design_json:
+                raise ValueError("original cover design snapshot changed")
+            design_json = row["design_json"]
         references = private_storage.lock_ready_media_refs(tx,claim["user_id"],list(dict.fromkeys([final.id,base.id])),now=clock)
         expected = {final.id:final.content_sha256,base.id:base.content_sha256}
         if any(ref.content_sha256 != expected[ref.id] for ref in references):
             raise ValueError("original verified asset changed")
         tx.execute("UPDATE cover_jobs SET status='saving',stage='saving',final_media_ref=?,base_media_ref=?,"
             "layout_json=?,qc_json=?,design_json=?,asset_revision=1,expires_at=?,updated_at=? WHERE id=?",
-            (final.id,base.id,layout_json,_json(qc),_json(design_snapshot or {}),expires_at,clock.isoformat(),row["id"]))
+            (final.id,base.id,layout_json,_json(qc),design_json,expires_at,clock.isoformat(),row["id"]))
         tx.execute("INSERT INTO cover_asset_revisions(job_id,revision,media_ref,layout_json,expires_at,created_at) VALUES(?,1,?,?,?,?)",
             (row["id"],final.id,layout_json,expires_at,clock.isoformat()))
         postdelivery.finalize_in_transaction(tx,claim,{"cover_job_id":row["id"]})

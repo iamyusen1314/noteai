@@ -77,6 +77,13 @@ def _run_claim(claim, *, runtime=None):
                 response_hash=record.get("response_hash"), http_status=record.get("http_status"),
                 provider_request_id=record.get("provider_request_id"))
 
+    def on_design(snapshot):
+        public_product.assert_result_known()
+        try:
+            cover_jobs.record_design_snapshot(claim, snapshot)
+        except Exception:
+            raise cover_runtime.CoverRuntimeError("COVER_DESIGN_CHECKPOINT_FAILED") from None
+
     try:
         sources = []
         for item in claim["source_manifest"]:
@@ -87,7 +94,8 @@ def _run_claim(claim, *, runtime=None):
         result = (runtime or cover_runtime.run_cover)(job_id=job_id, user_id=user_id,
             report=claim["input_snapshot"], sources=sources,
             design_version=claim["policy_snapshot"].get("design_version", 1),
-            hooks=cover_runtime.RuntimeHooks(before_call=before, on_call=after, on_stage=on_stage))
+            hooks=cover_runtime.RuntimeHooks(before_call=before, on_call=after,
+                on_stage=on_stage, on_design=on_design))
         # A usable artifact must pass the actual final-pixel contract before
         # storage, as well as before the delivery settlement transaction.
         cover_runtime._validate_qc(result.qc)
