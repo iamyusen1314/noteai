@@ -1389,3 +1389,13 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 ### 2026-10-21 12:20北京 — 原sole续接确认及限定更正
 
 原窗口直接答复已采用本次真人原件；冻结helper没有12:30字面硬限，先前“需窄改硬上限”的推断已更正，真正差异是原批准时刻与技术开放起点分开绑定。原sole正在使同CID/DB先开放受鉴权仅上传/关联阶段，模型/cover POST关闭；root正常补传同9图，实核新引用/自然TTL及原报告/37账保留后才接续1cover/2Lite。实际准备齐后固定最多60分钟有限OPEN/END，不能把技术起点冒成真人批准时间。仅helper差异；未重运已完成12条/改产品/扩大设施/生产切换。原sole此回执尚非实际补传READY/OPEN，root未上传或生成。
+
+### 2026-10-21 — 一次有限OPEN与正常UI反证 checkpoint
+
+实际分支codex/noteai-xhs-cover-20261019，登记前HEAD4b863c3a4b9023a42c8574a83cdcb5a11b4d88ee；产品仍cfe5b4c两叶（08f103b4/240b965a），没有HTML/static/产品配置变更。最新真人1792555491/12:04:51北京、call_d0196ee已同意本次复测，累计80/原100元、去12:30允许后移；当前首次任务仍严格2Lite/0image/0自动重发/新增≤1元/已有8分。真正批准时刻与技术窗口分开，不伪改真人时间。
+
+**当前已公开OPEN，不得重复OPEN或延END**：原受保护路径/正常鉴权原账号，固定END1792562128.5636473＝13:55:28.563647北京，timer noteai-cover-entry-close-a68-source-refresh-phaseA-r1。A/B共用这一窗口/15static pins/include/loader/timer。原sole实际A host result8948/726f1587、OPEN child341/816213f4在F/actual-source-refresh-r1对应actual目录；首次A同CIDd26428/image05978，PID3945816/restart0，CFE两叶真实加载，private37/3.8580108/268d/余额8保留。最新完整原件及命令状态由原sole维护，不能按旧PID盲发；root唯一正常UI，原sole唯一云执行及未来统一集成发布。
+
+根因及恢复：首次cold在任何TERM/START前误用2MiB读取已验证17/25MB字体而exit2；唯一RO已证其uid999/mode400/nlink1和其余53必要元数据符合，仅该资源caller恢复32MiB，其他权限/wholeSHA不放宽。随后A真实启动并OPEN，但正常UI实证『封面执行服务尚未启用』/quoteNone/旧9全需补传/补传按钮disabled；A自设workerflag0导致normal cover_settings.readiness拒绝，先前辅助READY不等于正常UI可补传。root未强点/选图/上传/生成。证据P/real-ui-r7-source-refresh-20261021/before-upload.ax.txt及upload-disabled-original-phaseA.png。R4只改helper，按正常lifespan注册真实idle worker，Admission仍只9upload/1PUT、全部模型/生成入口封闭、无paidoperator，需实际taskalive/2terminal/normalreadinessTrue/37相等才新READY；source94213/7630281d、manifest3411/e743fbbc、非作者review1498/145e3b7d已GO。原sole正同CID/port/同OPEN/同END正常冷接续，不改页面/quote、不延时。
+
+恢复必须先读同任务PLAN.current_cover_only_preparation.next_37_to39_continuation.actual_source_refresh和原sole最新真实回执。当前root上传0/新coverPOST0/新模型0、累计37complete/pending0/已知3.8580108、旧失败4cb扣分0及旧cover两版保留；新版质量仍未通过。待原sole实际normalREADY，root刷新正常报价→一次补传已核原9→sole核source-refresh-complete新refs/自然TTL（正常expire_media可能自然清理旧已过期媒体，保留旧native原证据，不延TTL）→B同END真实paidREADY后唯一POST。时间不足不发付费；不重报告/重正文/重原12次源码运输/生产发布。

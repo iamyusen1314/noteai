@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 源补传有限入口已OPEN；同END下修正A正常availability，上传与模型仍0
+
+实际分支codex/noteai-xhs-cover-20261019，登记前HEAD4b863c3a4b9023a42c8574a83cdcb5a11b4d88ee；产品仍cfe5b4c两叶（08f103b4/240b965a），没有HTML/static/产品配置变更。最新真人1792555491/12:04:51北京、call_d0196ee已同意本次复测，累计80/原100元、去12:30允许后移；当前首次任务仍严格2Lite/0image/0自动重发/新增≤1元/已有8分。真正批准时刻与技术窗口分开，不伪改真人时间。
+
+**当前已公开OPEN，不得重复OPEN或延END**：原受保护路径/正常鉴权原账号，固定END1792562128.5636473＝13:55:28.563647北京，timer noteai-cover-entry-close-a68-source-refresh-phaseA-r1。A/B共用这一窗口/15static pins/include/loader/timer。原sole实际A host result8948/726f1587、OPEN child341/816213f4在F/actual-source-refresh-r1对应actual目录；首次A同CIDd26428/image05978，PID3945816/restart0，CFE两叶真实加载，private37/3.8580108/268d/余额8保留。最新完整原件及命令状态由原sole维护，不能按旧PID盲发；root唯一正常UI，原sole唯一云执行及未来统一集成发布。
+
+根因及恢复：首次cold在任何TERM/START前误用2MiB读取已验证17/25MB字体而exit2；唯一RO已证其uid999/mode400/nlink1和其余53必要元数据符合，仅该资源caller恢复32MiB，其他权限/wholeSHA不放宽。随后A真实启动并OPEN，但正常UI实证『封面执行服务尚未启用』/quoteNone/旧9全需补传/补传按钮disabled；A自设workerflag0导致normal cover_settings.readiness拒绝，先前辅助READY不等于正常UI可补传。root未强点/选图/上传/生成。证据P/real-ui-r7-source-refresh-20261021/before-upload.ax.txt及upload-disabled-original-phaseA.png。R4只改helper，按正常lifespan注册真实idle worker，Admission仍只9upload/1PUT、全部模型/生成入口封闭、无paidoperator，需实际taskalive/2terminal/normalreadinessTrue/37相等才新READY；source94213/7630281d、manifest3411/e743fbbc、非作者review1498/145e3b7d已GO。原sole正同CID/port/同OPEN/同END正常冷接续，不改页面/quote、不延时。
+
+恢复必须先读同任务PLAN.current_cover_only_preparation.next_37_to39_continuation.actual_source_refresh和原sole最新真实回执。当前root上传0/新coverPOST0/新模型0、累计37complete/pending0/已知3.8580108、旧失败4cb扣分0及旧cover两版保留；新版质量仍未通过。待原sole实际normalREADY，root刷新正常报价→一次补传已核原9→sole核source-refresh-complete新refs/自然TTL（正常expire_media可能自然清理旧已过期媒体，保留旧native原证据，不延TTL）→B同END真实paidREADY后唯一POST。时间不足不发付费；不重报告/重正文/重原12次源码运输/生产发布。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 12:04:51北京：新真人同意80累计上限与延后有限验收窗，先补传同9原图
 
 实际功能仍cfe5b4c、登记HEAD7f4b8b0，未改产品源码。真人在新turn01a15ca2-206f-75b0-883d-a794196a1338/user01a15ca2-20b4-7a70-8ae5-664b5034bc9c回答call_d0196ee问题：同意重测，累计调用上限由40增至80，并取消今天12:30绝对截止、允许时间后移；总费用仍原100元。本轮只1新cover/最多2Lite/0image/0自动重发/增量≤1元，沿用8测试积分合格保存后唯一结算；80不是自动重试或批量授权。官方read_thread原字节F/new-human-80-later-r1.OFFICIAL-ORIGINAL.json为16441B/aad6c629；新turn始于1792555491即12:04:51北京，与旧08:10活动turn不同。入口保持同受保护路径、正常鉴权原账号、最多60分钟有限自动CLOSE，实际OPEN余至少30分钟；不改生产产品/DB。
