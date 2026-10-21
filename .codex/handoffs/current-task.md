@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-22 06:35:40新确认，next47固定07:35:40截止；原sole晚绑/normal待真实回执
+
+登记前HEAD fcb6a0455cecf7848b26f94e9d929ced44a6cd12，分支codex/noteai-xhs-cover-20261019，产品48dbe56＋1d927f2、前端01ffe未改。真人明确同意call_c7f9fa298079456090ea907c1796b5c3新scope：新建1个封面任务，复用水石清池报告0cdbe与有效9真实素材，只封面/PC/H5/保存重开/免费排字/下载，不改正文。≤2Lite/0生图/0自动重发、新增≤1元/累计≤47of80/总≤原100，现有8分、合格持久保存最多一次结算；失败/UNKNOWN/素材失效立即停早关，旧失败与旧图保。原正常登录/测试用户限制、隔离后端、生产product/config/DB边界保持。旧R12失败任务b04/UUID434e不复活，新第8任务必须新自然UUID。
+
+Root首次真实clock2026-10-21 22:35:40UTC=10月22日06:35:40北京，start1792622140，END1792625740=07:35:40，latest首次OPEN1792623940=07:05:40；最多60分钟、首次余≥30分钟、同窗不重开不延时。真turn01a1609a-fb78-7383-af09-a6a28f9a26dd/user01a1609a-fbc2-7b90-9139-6625047b837b。T/new-human-next47-20261022-r1/OFFICIAL-ORIGINAL.json12571/SHA ed70680d1dd96dbdadbf5740b3926a92bb9036f332d629c2b0de678ddd0f4af9为官方当前1turn exact UTF8原文，ROOT-OBSERVED-WITNESS.json3047/SHA8dba1c3a658f83e56e0b5813a150edef24fed0847387f1f8ca2aca3af2598405绑定问题/答复/首次clock及固定END；后续原件抓取不重clock，不合成答复。
+
+已发原sole立即按既有latebinder消费三实际source raw及新human/window→一次normal→独立ownREADY→timer-first OPEN，fresh45完整摘要只能实际计算；10source已消费不重派、不加测试/旧父读回。当前实际新normalPID/ownREADY/OPEN/job仍未返回，不能以新真人同意冒启动；原45206同CID/image/restart0与R12最近45complete/known3.9263058/pending0只是已知父基线，实时以后续原件为准。Root为唯一普通UI，已仅读取原Chrome1/tab1637495948缓存失败面板/旧4da，未刷新或提交，待实际OPEN+自身READY再继续。素材当前缓存9可用不冒新的服务端有效性证明。唯一PLAN已记新真人/clock/END，恢复先查原sole本次normal C/T，不重source或再取yes。阶段3新一次真实验收执行中；新品合格0/单位成本N/A，真iPhone/多人容量/Q07未验边界保。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 01:27:07，10条私有源码实际完成且原件全核；非付费准备齐，待新一次有限验收确认
 
 登记前HEAD c33ea1cb244ab9080330f8b9f241f91fa66595a5，分支codex/noteai-xhs-cover-20261019；产品48dbe56＋1d927f2五叶保持，前端01ffe/15资源未改，生产未变。T=R/next45-to47-text-checkpoint-HOLD-r1。原sole在北京01:08:59–01:13:39实际完成精确10条私有source-only：10/10 Success/Exit0/Dropped0/Repeats1，各原ClientToken一次，无UNKNOWN/重派；scope已消费，不再运输。实际aggregate T/actual-exact10-source-only-r1/ACTUAL-ALL10-SOURCE-ONLY.json42682/SHA7904d4d3b1e707c5786985e4e684e1dc170e9b7d6b89e5f65f037f3111ccc2ba。Root全核66个本机原件/refs、十组官方Run/Read C/T/Request与Output等stdout、三同响应gzip原raw及entry317字节header+LF+3790原文；ROOT-ACTUAL10-WHOLE-READBACK.root.json13361/SHA bce0d966123be335ae30b4352f42c9e1dc41a545024289d4e6147fd148e4a847。先前990cba仅本地reader误把base_leaf_pins列表当dict；已只适配两种已知pin格式，未改source/plan/回执、未重派或重测试。

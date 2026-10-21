@@ -142,7 +142,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | R12_FAILED_TEXT_OVERFLOW_ACTUAL_EARLY_CLOSED | 一次原号恢复建b04a；1Lite0.0117126元，累计45/3.9263058/pending0；final0分/余额8；23:53:48真CLOSED | 无candidate/QC/新品；实际plan未留存，具体overflow分支UNKNOWN；仅局部修复，不能自动重试或重开 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | NEXT47_CONFIRMED_REAL_PREP_IN_PROGRESS / 固定END07:35:40 | 新真人06:35:40；1新任务/≤2Lite/0生图/0重发/增≤1元/累计47of80与原100；R12失败原证保 | 原sole晚绑→normal/ownREADY/有限OPEN真原件待；首次OPEN最晚07:05:40；Root尚未提交 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1752,3 +1752,12 @@ Root真实17:06:23UTC授权原sole按该精确10条顺序私有源保存：8sour
 source前后API均PID45206、同CID/image/restart0；新源只保存未加载，尚无normal/TERM/START/CAS/slot8/operator/OPEN/模型/业务HTTP/SQL/生产/新资源/赠分。source-only未fresh读取PG或账本，45complete/known3.9263058元/pending0/seal3f63仅R12最近真实authority基线，历史proofbase1b95与所有UNKNOWN保；不把本次源保存当新实账观察。原受保护入口仍CLOSED；原sole已安全收尾执行tab，Root正常UI未触碰。R12早关/失败0最终积分/现有8分、合格新版0/单位成本N/A保，供应商invoice/bank UNKNOWN不清。
 
 唯一PLAN.next47_preparation已改为ACTUAL_SOURCE_ONLY_COMPLETE_ROOT_WHOLE_VERIFIED_READY_NEW_FINITE_APPROVAL，精确10授权已消费不再派，future新真人/clock/END/normal/ownREADY/OPEN/job/actual45digest全null。旧R12确认留历史，不挪用为新第8任务。全部非付费准备已具体完成；下一集中请求1个新正常UUID封面任务，复用水石清池报告0cdbe与有效9原素材，≤2Lite/0生图/0自动重发、新增≤1元、累计≤47/原80、总≤原100，现有8分最多合格持久保存结算一次。新有限窗从Root收到新真人并记实际clock起最多60分钟自动关，首次OPEN余≥30分钟，同窗不重开/延时；失败/UNKNOWN/素材失效停早关。此为待批方案，需新确认是因为用户已确认的旧“失败即停并提前关闭”范围已消费，不新增预算或技能审批门槛。阶段3新品PC/H5、保存重开、免费排字、下载与阶段4真实成品审查/可集成交付仍待；真iPhone/多人容量/Q07边界保，正文与生产不动。
+
+
+### 2026-10-22 06:35:40新确认，next47固定07:35:40截止；原sole晚绑/normal待真实回执
+
+登记前HEAD fcb6a0455cecf7848b26f94e9d929ced44a6cd12，分支codex/noteai-xhs-cover-20261019，产品48dbe56＋1d927f2、前端01ffe未改。真人明确同意call_c7f9fa298079456090ea907c1796b5c3新scope：新建1个封面任务，复用水石清池报告0cdbe与有效9真实素材，只封面/PC/H5/保存重开/免费排字/下载，不改正文。≤2Lite/0生图/0自动重发、新增≤1元/累计≤47of80/总≤原100，现有8分、合格持久保存最多一次结算；失败/UNKNOWN/素材失效立即停早关，旧失败与旧图保。原正常登录/测试用户限制、隔离后端、生产product/config/DB边界保持。旧R12失败任务b04/UUID434e不复活，新第8任务必须新自然UUID。
+
+Root首次真实clock2026-10-21 22:35:40UTC=10月22日06:35:40北京，start1792622140，END1792625740=07:35:40，latest首次OPEN1792623940=07:05:40；最多60分钟、首次余≥30分钟、同窗不重开不延时。真turn01a1609a-fb78-7383-af09-a6a28f9a26dd/user01a1609a-fbc2-7b90-9139-6625047b837b。T/new-human-next47-20261022-r1/OFFICIAL-ORIGINAL.json12571/SHA ed70680d1dd96dbdadbf5740b3926a92bb9036f332d629c2b0de678ddd0f4af9为官方当前1turn exact UTF8原文，ROOT-OBSERVED-WITNESS.json3047/SHA8dba1c3a658f83e56e0b5813a150edef24fed0847387f1f8ca2aca3af2598405绑定问题/答复/首次clock及固定END；后续原件抓取不重clock，不合成答复。
+
+已发原sole立即按既有latebinder消费三实际source raw及新human/window→一次normal→独立ownREADY→timer-first OPEN，fresh45完整摘要只能实际计算；10source已消费不重派、不加测试/旧父读回。当前实际新normalPID/ownREADY/OPEN/job仍未返回，不能以新真人同意冒启动；原45206同CID/image/restart0与R12最近45complete/known3.9263058/pending0只是已知父基线，实时以后续原件为准。Root为唯一普通UI，已仅读取原Chrome1/tab1637495948缓存失败面板/旧4da，未刷新或提交，待实际OPEN+自身READY再继续。素材当前缓存9可用不冒新的服务端有效性证明。唯一PLAN已记新真人/clock/END，恢复先查原sole本次normal C/T，不重source或再取yes。阶段3新一次真实验收执行中；新品合格0/单位成本N/A，真iPhone/多人容量/Q07未验边界保。T=R/next45-to47-text-checkpoint-HOLD-r1。
