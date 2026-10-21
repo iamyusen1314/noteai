@@ -142,7 +142,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | NORMAL_STARTUP_UNKNOWN_SCOPE_CONSUMED_READONLY_RECOVERY | 原C/T Failed/2/D0/R1；CAS/TERM/START已发，OPEN/新任务/新模型0；原官方原件全核 | 当前隔离PID/启动原件/断言根因待唯一sole最小只读核定；不重派或重开，不冒封面质检失败 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | STARTUP_PIN_CONFLICT_CONFIRMED_LOCAL_REPAIR | 一次RO全核：candidate Exited2/PID0、入口CLOSED；trace树门+旧五SHA对新1d冲突，OPEN/任务/模型0 | 原唯一core作者本机最小对齐及真实函数入口控制；失败scope已消费，无新normal/OPEN/model授权 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1770,3 +1770,14 @@ Root首次真实clock2026-10-21 22:35:40UTC=10月22日06:35:40北京，start1792
 stdout明确CAS_sent=true、TERM_sent=true、START_sent=true，phase=SAME_CID_START_SENT_ONCE，code=FIRST42_STARTUP_UNKNOWN_PRESERVE_ORIGINAL_NO_REPLAY，exception_class=AssertionError；OPEN=false/operator_started=false/model_calls=0。这是隔离接续启动层失败/目标状态未知，不能冒产品模型或封面质检失败，也不能声称旧PID45206/原3f63 seal在CAS/TERM后仍当前不变。实际新startup原件、当前目标PID/loaded source/新seal/fresh45摘要待原sole已有路径最小只读核定；formal/prod未有新操作报告，Root不接管云、不扫描无关日志/凭据，不新造恢复框架。只查原C/T和本次启动现场，不重normal/launcher/operator/slot8/OPEN或旧父45/测试。Root仍只看缓存失败面板，未刷新/POST/新UUID/排旧字/下载；入口本轮从未开放，未建立封面任务或新增模型调用。
 
 唯一PLAN已记录实际终态，normal_CAS_operator_OPEN_models_SQL_authorized=false且confirmation_consumed_by_failure=true；原真人/首次clock/END留历史，future READY/OPEN/job仍null，无新公开/付费scope。原sole负责仅现有路径必要只读恢复，foundation子代理只读窄看postSTART断言和最低实证路径，不修改作者源/云或重独审；定位后只继续受影响非付费修复，不急于重新问窗口。交付证据映射T/DELIVERY-AFFECTED-EVIDENCE-MAP.entry-review.json6753/d801cfe4已复用两修复/实际10原证，无新schema/依赖/迁移或额外门槛。最近真实财务基线45calls/known3.9263058元/pending0、原80/100、现有8分及历史UNKNOWN保；此normal没有新的账本全量或银行结算证明。新品合格0/单张成本N/A；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07仍待，报告正文与生产范围不扩大。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+
+### 2026-10-22 06:55:25，一次现场只读原件已齐；确定辅助旧五SHA冲突，仅本机最小修复中
+
+登记前HEAD4800121，分支codex/noteai-xhs-cover-20261019；封面产品48dbe56＋1d927f2/前端01ffe仍未改。原sole一次必要RO C=c-sz070r2s41d5r7k/T=t-sz070r2s41s55a8，Run01A160A9-229C-549A-83F9-127C58F681AF/Read01A160A9-7669-57E1-BBB3-A78A1DC03D09，22:51:01UTC完成S0D0/Repeats1。T/actual-startup-failure-readonly-r1保存官方Run128/Read7336/完整stdout4653及截图；Root逐官方Output等stdout、hold base64等338原byte、before/after及END字段，ROOT-STARTUP-SCENE-WHOLE-READBACK.root.json11765/64005bf50da9d4ae6d44b81647d40e5fac043302545944697750a4382e992cd1。startup-hold.ACTUAL-ORIGINAL.json338/f4e0366e，实际AssertionError/trace runtime_entry.py1402→1229→217→184→66/provider0。
+
+现场已确定：同CID/image/restart0，但隔离candidate Exited/Exit2/PID0；normal结果/handle/prompt projection/socket/request/result都不存在，新runtime源码130117/3ba0仍在。config/window/seal均固定END1792625740；新seal9465/02f7a004仅文件实证，不冒fresh45账本通过或旧3f63当前不变。Nginx前后同parent6181/4c801704、privateinclude缺失、CLOSED=true。本轮入口从未开，无需再造CLOSE；原normal只一次，Root UI提交0/新模型0，无新增云探测/旧45/业务SQL或生产操作。旧失败窗口已消费，07:35:40仅历史固定截止，不借余时重开。
+
+实际trace与冻结源码确定失败门是bind_product L217→check_product_tree L184–186的树SHA/资源门，L66仅need统一抛出。runtime PRODUCT_FILES压缩表仍7e旧五叶，已通过stage的本轮1d五叶均新SHA；Root按实际11627/9e551 product14原件和冻结3ba0逐表核，9未改匹配、5冲突：design2d06→679676/jobsb56e→f3c000/rendererdd15→ea96/runtime240b→299ee/service1ba7→b67f。按源码顺序最早确定冲突design；hold未存错误后缀，不能称服务器原件直接点名它。发生在产品导入/PG检查/guard安装前，属于隔离接续校验表不同步，非模型或成品质检失败。此前8项只context/OPI/pure段而未执行bind_product→check_product_tree，覆盖漏项已明示。
+
+已交原唯一core作者做一个本机派生：当前树检查仅将对应model预期对齐bind_product已钉死的NEXT47 source_map/overlay，保历史表/9未改叶/资源字体SQL/非symlink/RO/artifact alias/PathFinder，不能跳过门或冒旧源码通过。补受影响真实函数入口控制（不stub这俩）：新五叶通过、任一旧叶混入/未改资源错SHA/错source_map拒；如temp根/只读挂载用控制适配必须明示，不冒云启动。只交具体diff/受影响证据及最小私有delta准备，复用原叶，不重产品5+7/旧18或10条源运输，不引平台/依赖/扩大131072。Root负责窄核和同一PLAN，foundation只读建议已结束，无同文件争写。当前无新normal/OPEN/付费授权，不在准备未齐时再问用户。合格新品0/单位成本N/A，报告正文与生产不动；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07边界保。

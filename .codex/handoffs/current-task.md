@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-22 06:55:25，一次现场只读原件已齐；确定辅助旧五SHA冲突，仅本机最小修复中
+
+登记前HEAD4800121，分支codex/noteai-xhs-cover-20261019；封面产品48dbe56＋1d927f2/前端01ffe仍未改。原sole一次必要RO C=c-sz070r2s41d5r7k/T=t-sz070r2s41s55a8，Run01A160A9-229C-549A-83F9-127C58F681AF/Read01A160A9-7669-57E1-BBB3-A78A1DC03D09，22:51:01UTC完成S0D0/Repeats1。T/actual-startup-failure-readonly-r1保存官方Run128/Read7336/完整stdout4653及截图；Root逐官方Output等stdout、hold base64等338原byte、before/after及END字段，ROOT-STARTUP-SCENE-WHOLE-READBACK.root.json11765/64005bf50da9d4ae6d44b81647d40e5fac043302545944697750a4382e992cd1。startup-hold.ACTUAL-ORIGINAL.json338/f4e0366e，实际AssertionError/trace runtime_entry.py1402→1229→217→184→66/provider0。
+
+现场已确定：同CID/image/restart0，但隔离candidate Exited/Exit2/PID0；normal结果/handle/prompt projection/socket/request/result都不存在，新runtime源码130117/3ba0仍在。config/window/seal均固定END1792625740；新seal9465/02f7a004仅文件实证，不冒fresh45账本通过或旧3f63当前不变。Nginx前后同parent6181/4c801704、privateinclude缺失、CLOSED=true。本轮入口从未开，无需再造CLOSE；原normal只一次，Root UI提交0/新模型0，无新增云探测/旧45/业务SQL或生产操作。旧失败窗口已消费，07:35:40仅历史固定截止，不借余时重开。
+
+实际trace与冻结源码确定失败门是bind_product L217→check_product_tree L184–186的树SHA/资源门，L66仅need统一抛出。runtime PRODUCT_FILES压缩表仍7e旧五叶，已通过stage的本轮1d五叶均新SHA；Root按实际11627/9e551 product14原件和冻结3ba0逐表核，9未改匹配、5冲突：design2d06→679676/jobsb56e→f3c000/rendererdd15→ea96/runtime240b→299ee/service1ba7→b67f。按源码顺序最早确定冲突design；hold未存错误后缀，不能称服务器原件直接点名它。发生在产品导入/PG检查/guard安装前，属于隔离接续校验表不同步，非模型或成品质检失败。此前8项只context/OPI/pure段而未执行bind_product→check_product_tree，覆盖漏项已明示。
+
+已交原唯一core作者做一个本机派生：当前树检查仅将对应model预期对齐bind_product已钉死的NEXT47 source_map/overlay，保历史表/9未改叶/资源字体SQL/非symlink/RO/artifact alias/PathFinder，不能跳过门或冒旧源码通过。补受影响真实函数入口控制（不stub这俩）：新五叶通过、任一旧叶混入/未改资源错SHA/错source_map拒；如temp根/只读挂载用控制适配必须明示，不冒云启动。只交具体diff/受影响证据及最小私有delta准备，复用原叶，不重产品5+7/旧18或10条源运输，不引平台/依赖/扩大131072。Root负责窄核和同一PLAN，foundation只读建议已结束，无同文件争写。当前无新normal/OPEN/付费授权，不在准备未齐时再问用户。合格新品0/单位成本N/A，报告正文与生产不动；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07边界保。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 06:46:35，本次normal真实启动未知且已停止；入口未开/新封面任务0/模型0，仅最小只读恢复
 
 登记前HEAD63921ab，分支codex/noteai-xhs-cover-20261019，产品48dbe56＋1d927f2/前端01ffe保持。新确认scope沿06:35:40首次clock与固定07:35:40截止，已被本次失败即停规则消费，不借剩余时窗重开/重派。唯一normal C=c-sz070r1y990h91c/T=t-sz070r1y99fgn40，RunRequest01A160A0-9F40-5705-B488-5D9636156096；原Read01A160A3-5EE5-589B-B17C-A201AA8DC5A3明确Failed/Exit2/Dropped0/Repeats1，执行22:41:43–46UTC=06:41:43–46北京。T/host/actual-bound/actual-normal-startup的官方Run128/Read1590/完整stdout300及截图保；Root逐官方Output等原stdout及C/T/Request/终态，ROOT-NORMAL-FAILED-WHOLE-READBACK.root.json3450/1b326578e56b0e827d26cc9548690945b6336a216c473d70943c1c752b360578。
