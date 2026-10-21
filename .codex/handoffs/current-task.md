@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 修复74ab790及12条源码就位齐备，仅待新单张有限验收确认
+
+登记前HEADeb98e7e21480ab9ecb9f10f4f2250b01a5c7a2c7，功能74ab790/前cfe5b4c不再改。必要非付费接续已全部实际准备齐：N=F/actual-source-refresh-r1/next38-brief-oneleaf-HOLD-r1；唯一索引SOURCE-STAGING.ACTUAL.root-r1.json48665/736830f0bec3bc156449421e8cdcdedaf773fce304a8167f1dd88adfa9be1f25，host9+product1+entry2共12条全部Success/Exit0/Dropped0，每条C/T/Run/Read/stdout/原件/截图已记，已消费不可重运或重导。product同条原10875/2b66ce7c098aa678a93ad60838de1283c3ba0ab2d841b0295b0126ad1ba12465，14叶=新design94f一叶+保13（含runtime240b）；root逐14whole与本分支相等。entry同条原3446/9c8404daf066dcb38f7372fa26675bf0be73386d55174e1a3926c2c318ce0876在N/entry/runtime-pin-r2/source-output-envelope-r3/actual-001，6源+5保留sidecar已真齐，未造source raw。
+
+core唯一非作者审N/CORE-INDEPENDENT-REVIEW.cover-foundation.json15000/613136214d96d2528879bb437eb9d6e9e703938b27dfea69199fe1113056e727；最终runtime R2 98453/4a0aab77ea5ac8062afc08c8523e8da1df32eaf79725754ef079add54da71bbe、guard984060b2/operator6feb710d/launcher4085baa6，未解决P0/P1/P2为0。历史A真实human/window/ledger37/9refs与未来执行human/window/父38分离，仅核9自然TTL覆盖新END；不重A/补传或改旧TTL。审查发现新thirdfailed保留门缺PG原费用0.0109692及唯一release聚合，两门已由唯一作者R2最小补齐并反例验证；当前真实账无异常，不是产品计费修复或历史支付扩展。作者7pure复用、独立wire38→39→40/UNKNOWN/replay及R2局部通过；无新模型/DB动作。原Root只审host2479/6f59b12e及entry1610/c0cde928，不重复core或产品33；launcher1015/6ce095e0b8bfe5bf068058c8a313dfff6033a8e07cc5abeba0e5a9940780959b仅现B读cap代码晚data复用。字体读默认32MiB本已覆盖原文件，显式caller不构成新已证故障，不以此加门。
+
+现仍同CIDd26428/image05978/PID3957079/restart0/Running，加载源0e1698c5/config原样，入口CLOSED，TERM/CAS/START/operator/新model/业务SQL0，production未改。新真人/END/新job均null；源码就位不是激活或公网/付费授权。实际38complete/pending0/私账3.86898/父cd2e/钱包8/三终态复用此前28814真实终态，不冒新查账；未来激活前沿现固定4RRRO fresh，只读核同38/3终态/8分/新9TTL与当前源，再正常cold→单ownREADY→有限OPEN。旧13:55:28时限已过，原timer/历史END保留，新窗口用原绑定幂等防旧关闭影响。
+
+下一唯一动作是集中确认修复74ab790后的新1cover与当次有限受保护公网窗：复用原report0cdbe/新9（自然24h至明日13:15）/8分，本次≤2Lite/0image/0自动重发/增量≤1元，预计总40在真人80内、总费用仍原100；实际私guard40/99更严不重置。确认起最多60分钟自动关、实际OPEN余≥30分钟，无12:30截止。只问新的自然任务与已关闭入口重新公开，不重问已定产品或预算；未答只保CLOSED，不激活/派模型。原sole已明确准备实齐无技术阻碍、根窗唯一正常UI。新真人到达后取真实官方原件/观察时间晚bind，不用旧turn.startedAt冒批准、不重运12源。新版成品质量/重开/免费排字/下载仍未完成，产品交付HOLD；真iPhone/多人真实容量及Q07生产90天lifecycle边界保留。恢复先读唯一PLAN.brief_length_repair.next38_preparation、此节及原sole最新原件，原Source12全部消费，不重放。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 实际长度失败已核，最小修正74ab790及独审通过；入口CLOSED
 
 实际功能修正提交74ab79027965f1d2ba39ec76efab6ff20f40db5d（前cfe5b4c），本检查点登记HEAD同74ab790，未回退或改其他工作树。只改cover_design.py（23216B/94f62859）与两定向测试；无HTML/API/依赖/schema/迁移改动。根因真实任务1e9890f2-5ef8-4cc5-b055-d2802a3c2b8d/clientc7145cb4-bb1b-482e-ab7f-6890caa01f85/usagecb38c958-9003-4757-818a-e05d6a568fed：13:27:35→51北京，设计Lite成功后产品COVER_DESIGN_BRIEF_TOO_LONG，未渲染/QC/保存。唯一RO Cc-sz070oi6jpsb280/Tt-sz070oi6jq9scn4/Run01A15CF2-C76A-5A53-BEE1-D0B2CAE9378F S0D0；外9093/285b28d9、真child28814/66f988251f5b1c7f70bb5ad5fa13664b56f469d2c9f561666c343b424affea86在F/actual-source-refresh-r1/phaseB-terminal-readonly-r1/actual。root和独立contract已核整字节、job/usage/physical关联及分账；operator真APPLIED/无stderr，非补传或parentgate。原model响应未留，具体超长字段未知，不冒精确回放；原文span/plan结构/源与证据集合走过后才到该长度栅，不等于像素或质量通过。

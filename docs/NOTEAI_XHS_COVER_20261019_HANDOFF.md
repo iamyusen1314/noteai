@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→bb6a1e0 | 原基线及确认方案保留；10月21日12:04:51北京真人同意复测，累计上限80、总费用仍原100，取消12:30截止并允许后移有限窗；官方原件16441B/aad6c629 | 本轮先1cover/≤2Lite/0image/0自动重发/新增≤1元；不授权新资源/生产切换 |
 | 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | BRIEF_LENGTH_REPAIR_SOURCE_OFFLINE_GO / 74ab790（前cfe5b4c） | 唯cover_design300目标/18×100硬界，无截断；33设计/受控集成PASS、3.11编译；独审6045/e549无阻断 | 真实新成品待验；可能增加QC输入token，实际费用须核，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | REAL_1E989_FAILED_BRIEF_TOO_LONG_ENTRY_CLOSED / 原28814/66f988 | 原9补传成功；唯一新任务1Lite/0.0109692元、usage最终0/wallet8、38complete/3.86898/pending0/旧37摘要保；13:28:34实际CLOSED | 新最薄38→40准备完成后集中新1任务/有限入口确认；质量/保存重开/免费排字/下载仍未验 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | REPAIR74AB_ALL12_SOURCE_STAGED_PENDING_NEW_FINITE_APPROVAL / 74ab790 | 原1e989失败实账38/3.86898/最终0分保；core独审613136/host-entry-launcher窄核及12条source-only实际全S0D0，14产品资源与本分支一致；原进程/CLOSED保持 | 无新技术准备阻碍；集中新1cover/有限入口确认，未答不激活。质量/保存重开/免费排字/下载待验 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | SOURCE_OFFLINE_AND_ACTUAL_BILLING_REVIEW_PASS_PRODUCT_HOLD | 新源独审6045/e549、真实失败及计量逐原字节独核；旧审/适用PC-H5证据复用 | 未有合格新版，禁止交付或发布GO；原窗统一集成，Q07及真iPhone/多人容量未验边界保留 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1432,3 +1432,14 @@ root正常刷新→报价8→核原题与新9refs ready/selected→唯一点击�
 P/brief-length-repair-r1有ROOT-CHECKS3554/aaa48baf及最终非作者独审6045/e549f045247c2d22d31aadb4f668939187e1e4640a673a1f7b71849d8370d261（先临时5412/5609后仅补root证据说明，产品pins从未变，最终只认6045）。先2红测重现同code，再design+layered33PASS5.800s；300/301/500完整、18×100结构边界、101/控制字符/超列表拒；受控长brief经真renderer/MockQC/临时存储并8分唯一结算，仍2call/0image/无重发。补design_json保完整断言后只正例复跑1/0.997s；CPython3.11三文件编译/diffcheckPASS。独审4新增单测+13反例及关键AST/6pipeline不变，无P0/P1/P2。Mock/本机3.12离线不冒供应商/公网质量。仅一产品leaf包和SOURCE-MANIFEST已冻，原runtime等全部复用，不造第二发布程序。
 
 入口13:28:34真正CLOSED，原API同CID/PID3957079和全部实账/失败/素材保留。没有新OPEN/CASE/再POST/生产动作。真人累计80/原100保持，私guard40/99更严未扩；下一最薄38→40最多2Lite/0image/0自动重发/增量≤1元/已有8分，复用新9自然24h，不重上传/报告/A。原sole只做必要CLOSED四原件只读导回和本机接续准备，准备齐后集中新正常1cover及当次有限受保护公网窗确认。新版真实质量/保存重开/免费排字/下载仍待验，产品交付HOLD；真iPhone/多人真实容量未验，Q07生产90天生命周期核对仍归原统一发布窗口。恢复读唯一PLAN.real_terminal_ledger/brief_length_repair与本节，不重放任何旧任务/READY。
+
+
+### 2026-10-21 — 12条源码实际齐备，有限验收确认前 checkpoint
+
+登记前HEADeb98e7e21480ab9ecb9f10f4f2250b01a5c7a2c7，功能74ab790/前cfe5b4c不再改。必要非付费接续已全部实际准备齐：N=F/actual-source-refresh-r1/next38-brief-oneleaf-HOLD-r1；唯一索引SOURCE-STAGING.ACTUAL.root-r1.json48665/736830f0bec3bc156449421e8cdcdedaf773fce304a8167f1dd88adfa9be1f25，host9+product1+entry2共12条全部Success/Exit0/Dropped0，每条C/T/Run/Read/stdout/原件/截图已记，已消费不可重运或重导。product同条原10875/2b66ce7c098aa678a93ad60838de1283c3ba0ab2d841b0295b0126ad1ba12465，14叶=新design94f一叶+保13（含runtime240b）；root逐14whole与本分支相等。entry同条原3446/9c8404daf066dcb38f7372fa26675bf0be73386d55174e1a3926c2c318ce0876在N/entry/runtime-pin-r2/source-output-envelope-r3/actual-001，6源+5保留sidecar已真齐，未造source raw。
+
+core唯一非作者审N/CORE-INDEPENDENT-REVIEW.cover-foundation.json15000/613136214d96d2528879bb437eb9d6e9e703938b27dfea69199fe1113056e727；最终runtime R2 98453/4a0aab77ea5ac8062afc08c8523e8da1df32eaf79725754ef079add54da71bbe、guard984060b2/operator6feb710d/launcher4085baa6，未解决P0/P1/P2为0。历史A真实human/window/ledger37/9refs与未来执行human/window/父38分离，仅核9自然TTL覆盖新END；不重A/补传或改旧TTL。审查发现新thirdfailed保留门缺PG原费用0.0109692及唯一release聚合，两门已由唯一作者R2最小补齐并反例验证；当前真实账无异常，不是产品计费修复或历史支付扩展。作者7pure复用、独立wire38→39→40/UNKNOWN/replay及R2局部通过；无新模型/DB动作。原Root只审host2479/6f59b12e及entry1610/c0cde928，不重复core或产品33；launcher1015/6ce095e0b8bfe5bf068058c8a313dfff6033a8e07cc5abeba0e5a9940780959b仅现B读cap代码晚data复用。字体读默认32MiB本已覆盖原文件，显式caller不构成新已证故障，不以此加门。
+
+现仍同CIDd26428/image05978/PID3957079/restart0/Running，加载源0e1698c5/config原样，入口CLOSED，TERM/CAS/START/operator/新model/业务SQL0，production未改。新真人/END/新job均null；源码就位不是激活或公网/付费授权。实际38complete/pending0/私账3.86898/父cd2e/钱包8/三终态复用此前28814真实终态，不冒新查账；未来激活前沿现固定4RRRO fresh，只读核同38/3终态/8分/新9TTL与当前源，再正常cold→单ownREADY→有限OPEN。旧13:55:28时限已过，原timer/历史END保留，新窗口用原绑定幂等防旧关闭影响。
+
+下一唯一动作是集中确认修复74ab790后的新1cover与当次有限受保护公网窗：复用原report0cdbe/新9（自然24h至明日13:15）/8分，本次≤2Lite/0image/0自动重发/增量≤1元，预计总40在真人80内、总费用仍原100；实际私guard40/99更严不重置。确认起最多60分钟自动关、实际OPEN余≥30分钟，无12:30截止。只问新的自然任务与已关闭入口重新公开，不重问已定产品或预算；未答只保CLOSED，不激活/派模型。原sole已明确准备实齐无技术阻碍、根窗唯一正常UI。新真人到达后取真实官方原件/观察时间晚bind，不用旧turn.startedAt冒批准、不重运12源。新版成品质量/重开/免费排字/下载仍未完成，产品交付HOLD；真iPhone/多人真实容量及Q07生产90天lifecycle边界保留。恢复先读唯一PLAN.brief_length_repair.next38_preparation、此节及原sole最新原件，原Source12全部消费，不重放。
