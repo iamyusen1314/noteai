@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→bb6a1e0 | 原基线及确认方案保留；10月21日12:04:51北京真人同意复测，累计上限80、总费用仍原100，取消12:30截止并允许后移有限窗；官方原件16441B/aad6c629 | 本轮先1cover/≤2Lite/0image/0自动重发/新增≤1元；不授权新资源/生产切换 |
 | 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | A68_COPY_SPAN_REPAIR_OFFLINE_REVIEWED / 功能cfe5b4c（前31b4d7b） | 原文copy_span合同/程序取字；design17、旧runtime17及v2集成10PASS，重叠不重复累计；3.11编译及非作者c76e5684窄审PASS；HTML/API未变复用原PC/H5链路证据 | 新版真实设计与成品质量仍待验；不扩正文或重跑报告 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_CFE_HUMAN80_LATER_WINDOW_AUTHORIZED_MEDIA_REUPLOAD_PENDING / cfe5b4c、登记bb6a1e0 | 旧报告/cover两版/失败4cb退款保留；实际累计37/pending0/已知私账3.8580108；14产品资源已staged未激活；原9本机bytes/SHA全匹配0c6df28a证据 | sole适配仅上传关联阶段、模型关闭；root正常补传9图后核新TTL/旧报告账，再1新cover≤2Lite；实际派发仍更严格37→39，human累计上限80。真iPhone/多人真实容量未验 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_REAL_NINE_SUPPLEMENT_COMPLETE_B_PAID_READY_PENDING / cfe5b4c、登记b277b35 | 同一OPEN至13:55:28；正常UI9图/1PUT实际成功，后台11550/b53c与DOM/原素材独立核一致；CFE真实加载；37账/3.8580108/8分/268d保留 | B晚bind实际refs/同窗cold→真实paidREADY→唯一cover POST；本次仍最多2Lite/0image/0auto。新版成品与质量/重开下载未验，真iPhone及多人容量未验 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | 原final-review7fcdfece与旧真实证据保留；cfe最终窄审independent-review.json6460B/c76e5684无确定P1/P2；素材补传只读契约10627B/0c6df28a | 新真实封面质量/重开/免费排字/下载及唯一结算未验，不给产品交付或发布GO；原窗统一集成，Q07现行90天规则待生产启用前核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1399,3 +1399,13 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 根因及恢复：首次cold在任何TERM/START前误用2MiB读取已验证17/25MB字体而exit2；唯一RO已证其uid999/mode400/nlink1和其余53必要元数据符合，仅该资源caller恢复32MiB，其他权限/wholeSHA不放宽。随后A真实启动并OPEN，但正常UI实证『封面执行服务尚未启用』/quoteNone/旧9全需补传/补传按钮disabled；A自设workerflag0导致normal cover_settings.readiness拒绝，先前辅助READY不等于正常UI可补传。root未强点/选图/上传/生成。证据P/real-ui-r7-source-refresh-20261021/before-upload.ax.txt及upload-disabled-original-phaseA.png。R4只改helper，按正常lifespan注册真实idle worker，Admission仍只9upload/1PUT、全部模型/生成入口封闭、无paidoperator，需实际taskalive/2terminal/normalreadinessTrue/37相等才新READY；source94213/7630281d、manifest3411/e743fbbc、非作者review1498/145e3b7d已GO。原sole正同CID/port/同OPEN/同END正常冷接续，不改页面/quote、不延时。
 
 恢复必须先读同任务PLAN.current_cover_only_preparation.next_37_to39_continuation.actual_source_refresh和原sole最新真实回执。当前root上传0/新coverPOST0/新模型0、累计37complete/pending0/已知3.8580108、旧失败4cb扣分0及旧cover两版保留；新版质量仍未通过。待原sole实际normalREADY，root刷新正常报价→一次补传已核原9→sole核source-refresh-complete新refs/自然TTL（正常expire_media可能自然清理旧已过期媒体，保留旧native原证据，不延TTL）→B同END真实paidREADY后唯一POST。时间不足不发付费；不重报告/重正文/重原12次源码运输/生产发布。
+
+### 2026-10-21 — 实际九图补传完成 checkpoint
+
+登记前HEADb277b35354bb14b6b05f3652f7d48c90f7e5d87e；功能仍cfe5b4c/前31b4d7b，产品/HTML/static均未再改。实际唯一OPEN/END1792562128.5636473＝13:55:28.563647北京，timer noteai-cover-entry-close-a68-source-refresh-phaseA-r1，A/B同窗口；不得重OPEN/延时。真人12:04:51授权累计80/原100元、允许后移有限窗，本首次cover仍≤2Lite/0image/0自动重发/新增≤1元/已有8分，真实累计37/3.8580108/pending0、私账旧cap40/99更严格保留不重置。
+
+A真实补传完成：R4同CIDd26428/image05978、PID3951329/restart0，正常worker注册/taskalive/idle及readiness全真，原helper字体读cap和workerflag两次环境错误原件保留。root正常刷新quote→一次filechooser选原9→正常上传及PUT，无强点禁用/伪造quote/改页面/重报告。页面明确“补传素材已关联原报告”，9新refs全ready/selected且实际9解码预览可见。P/real-ui-r7-source-refresh-20261021有完整AX/截图及DOM975B新9有序引用；标题已选原推荐“闹市高楼里的日式庭院汤泉，松弛感很出彩”，尚无新cover POST。
+
+后台唯一RO Cc-sz070ognukiww00/Tt-sz070ognukxwa2o S0D0，source-refresh-complete原字节11550/b53c3baeb9bbb5e9c81cefc6a20238ca6b9530023c513d3df7d54e7aefda3358在F/actual-source-refresh-r1/phaseA-receipt-readonly-r1/output-bound-r2/actual。root whole及独立task_contract窄数据核一致：实际9normal upload+1normalPUT/provider0/helper直接业务SQL0，新ready13:15:04–11、自然24h到明日同时分秒覆盖END；9raw身份对原inventory逐项相等、normalized与原归一图hash相等；report仅cover_source override、原内容/prepared/生成唯一8分/旧2jobs/37账/268d保留。允许正常upload的旧已过期媒体cleanup，不冒“全旧media状态不变”；此为receipt观测对照，不冒本机全原账重算。
+
+当前直接下一步：原sole已取得实际A完成receipt，复用预制B仅晚bind四实际refs，在同CID/port/同OPEN/static15/timer/END正常cold并给真实paidREADY；不再上传。root唯一正常UI，原sole唯一云/未来统一集成发布。B实际READY后root唯一正常POST，检真实v2、重开/免费排字/下载及唯一8分；未收到READY不点生成。新版质量仍未验，不交付GO；时间不足不发付费，不改正文/生产。恢复读同任务PLAN.next_37_to39_continuation.actual_source_refresh及原sole最新原件，避免按旧A0/PID盲重放。

@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 实际九图补传前后端已验证，等待同窗B付费READY；入口仍OPEN
+
+登记前HEADb277b35354bb14b6b05f3652f7d48c90f7e5d87e；功能仍cfe5b4c/前31b4d7b，产品/HTML/static均未再改。实际唯一OPEN/END1792562128.5636473＝13:55:28.563647北京，timer noteai-cover-entry-close-a68-source-refresh-phaseA-r1，A/B同窗口；不得重OPEN/延时。真人12:04:51授权累计80/原100元、允许后移有限窗，本首次cover仍≤2Lite/0image/0自动重发/新增≤1元/已有8分，真实累计37/3.8580108/pending0、私账旧cap40/99更严格保留不重置。
+
+A真实补传完成：R4同CIDd26428/image05978、PID3951329/restart0，正常worker注册/taskalive/idle及readiness全真，原helper字体读cap和workerflag两次环境错误原件保留。root正常刷新quote→一次filechooser选原9→正常上传及PUT，无强点禁用/伪造quote/改页面/重报告。页面明确“补传素材已关联原报告”，9新refs全ready/selected且实际9解码预览可见。P/real-ui-r7-source-refresh-20261021有完整AX/截图及DOM975B新9有序引用；标题已选原推荐“闹市高楼里的日式庭院汤泉，松弛感很出彩”，尚无新cover POST。
+
+后台唯一RO Cc-sz070ognukiww00/Tt-sz070ognukxwa2o S0D0，source-refresh-complete原字节11550/b53c3baeb9bbb5e9c81cefc6a20238ca6b9530023c513d3df7d54e7aefda3358在F/actual-source-refresh-r1/phaseA-receipt-readonly-r1/output-bound-r2/actual。root whole及独立task_contract窄数据核一致：实际9normal upload+1normalPUT/provider0/helper直接业务SQL0，新ready13:15:04–11、自然24h到明日同时分秒覆盖END；9raw身份对原inventory逐项相等、normalized与原归一图hash相等；report仅cover_source override、原内容/prepared/生成唯一8分/旧2jobs/37账/268d保留。允许正常upload的旧已过期媒体cleanup，不冒“全旧media状态不变”；此为receipt观测对照，不冒本机全原账重算。
+
+当前直接下一步：原sole已取得实际A完成receipt，复用预制B仅晚bind四实际refs，在同CID/port/同OPEN/static15/timer/END正常cold并给真实paidREADY；不再上传。root唯一正常UI，原sole唯一云/未来统一集成发布。B实际READY后root唯一正常POST，检真实v2、重开/免费排字/下载及唯一8分；未收到READY不点生成。新版质量仍未验，不交付GO；时间不足不发付费，不改正文/生产。恢复读同任务PLAN.next_37_to39_continuation.actual_source_refresh及原sole最新原件，避免按旧A0/PID盲重放。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 源补传有限入口已OPEN；同END下修正A正常availability，上传与模型仍0
 
 实际分支codex/noteai-xhs-cover-20261019，登记前HEAD4b863c3a4b9023a42c8574a83cdcb5a11b4d88ee；产品仍cfe5b4c两叶（08f103b4/240b965a），没有HTML/static/产品配置变更。最新真人1792555491/12:04:51北京、call_d0196ee已同意本次复测，累计80/原100元、去12:30允许后移；当前首次任务仍严格2Lite/0image/0自动重发/新增≤1元/已有8分。真正批准时刻与技术窗口分开，不伪改真人时间。
