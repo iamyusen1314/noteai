@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-21 A68：封面标题选词修复已提交并独审，真实验收仍HOLD
+
+实际功能提交cfe5b4c2cee2341ff3d8c0b25fad48bfbbbb57d1（前31b4d7b），登记前HEAD6051e77。只改后端cover_design.py（22906B/08f103b4）和cover_runtime.py（21222B/240b965a），另3个定向测试/夹具文件；无生产依赖、schema或前端版式修改。新设计响应由自由抄文改为冻结approved_title逐Unicode码点copy_span，程序取原文，允许1–3连续层和同层语义换行，再走原精确文字守卫/renderer/事实与最终像素QC。保存schema2、旧v1/v2重开与免费排字、8分/90天及最多2Lite/0image/0自动重发均保持。源两叶包/manifest在P/copy-span-repair-r1，未部署。
+
+本次离线design17、旧v1runtime17与v2集成10PASS（根34含design17，不能重复累加）；错误span在1次mock设计后即停、QC0/保存0/最终扣分0。实际CPython3.11编译4变更源码/测试PASS；本地.venv3.12为运行验证环境。frontend loopback模型夹具协议已同步且纯materialize/validate检查PASS；HTML/API/已存plan未变，复用既有PC/H5链路证据，没有冒新版真实或重新浏览器通过。非作者最终窄审GO无确定P1/P2，independent-review.json6460/c76e5684；覆盖边界/Unicode/非法索引，禁网络/无DB/cloud/model。一个审查夹具曾把合法start=1误列非法，已修夹具，非产品问题；原供应商错文未保存，具体错串仍UNKNOWN，不冒精确复现。catalog增加输入token，实际单张费用须后续实测，调用上限与定价未改。
+
+真实历史仍为R6唯一4cb failed/预留释放/最终扣分0，入口09:33:49.525 CLOSED、API现场保留；原报告与旧4da两版保留。累计37complete/pending0、私账3.8580108元（保历史工程成本口径）、原36独立摘要未变、当前实测seal268d；本次离线新增模型0，新合格v2仍0，不能交付或报合格单张成本。Q10已记录实际37/2叶/已消费latch与entry的最薄接续差异。下一步仅原sole准备既有载体差异，新的自然任务及有限公网/累计39须集中明确确认，当前不OPEN/重启/派模型/补分/重运18源或15静态，更不发布生产。根窗保此文档编辑所有权至本checkpoint提交，原窗口不并行改同文件。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：真实新版设计未交付，入口已关闭，定向修复原文选词合同
 
 实际功能仍31b4d7b，登记前HEADc2e864c。R6唯一正常UI POST已进入native，任务4cb70913-96f3-48ad-ac29-ca5cec9003ca/client fc8cdfcd-68f2-4770-b462-82b47378b99e/usage80c0ae9c-18a9-4f57-98fa-e3b2d12b07a8。设计Lite真实HTTP200后，在渲染前报COVER_DESIGN_TEXT_NOT_FROM_TITLE；1次doubao-seed-2-0-lite-260428，input14912/output503，usage tariff0.0107580元，QC0/image0/自动重发0。未生成或保存新版，预留已释放、usage最终扣分0、余额8；旧报告0cdbe/旧cover4da/rev2保留。没有原模型文案留存的证据，不能断言具体改了哪些字，也不盲重发取证。

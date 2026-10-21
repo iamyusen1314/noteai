@@ -138,7 +138,7 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_OFFLINE_COMPLETE / 功能31b4d7b（起点3773d2d） | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
+| 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_COPY_SPAN_REPAIR_OFFLINE_REVIEWED / 功能cfe5b4c（前31b4d7b） | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
 | 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R6_REAL_FAILED_TITLE_COPY / 唯一真实新版失败，已关入口 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 新版1次Lite/0.0107580元/最终扣分0；累计37、私账3.8580108、pending0。仅离线修复原文选词合同，禁止自动重测；真iPhone/真人容量未验 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | implementation-a68/contracts/final-review.json34557B/7fcdfece保留底图hash P2复现与修正，含最终PC/H5工具/证据窄审，无活跃P1/P2；旧真实证据不删除 | 真实模型/设计质量仍未验，不给产品可交付或发布GO；原窗统一集成，Q07现行90天规则仍待核 |
 
@@ -1343,3 +1343,18 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 原sole于北京09:33:49.525实际CLOSE，Cc-sz070nwukejswsg/Tt-sz070nwuketsi68，原stdout808/a03c936e；API现场保留、未停服。实际只读Cc-sz070nx2e0h74lc/Tt-sz070nx2e0yof0g S0D0，原child11632/3795b2a4在P/host/window-20261021-r1/r6-cover-observation-readonly-r1/actual/child.ACTUAL-ORIGINAL.json，4SELECT/rollback/SQL0。账本实际37complete/pending0，原36独立digest291acd仍true/inode1460877，累计私账3.8580108元（历史保守FX8工程口径保留，新call按实际usage tariff）；post-native seal268ddad3。供应商账单未核，不冒最终现金账单；新版合格分母0，不能报每张0元。截图/完整AX在P/real-ui-r6-20261021，显示未交付/预留释放及旧封面，不能冒新成果。
 
 本次一任务及OPEN/CLOSE载体均已消费，不因固定END尚未到而再开、再POST、再补分或重置账本。现在仅做已授权非付费封面修复：root拥有产品源及checkpoint，foundation只读核原文合同并独立建议。Prompt与现守卫均要求获准单标题连续原文，仅改换行；不是放松事实或扩大正文修复。下一步将自由抄写文案改为原标题可定位选词、程序回填并保留最终原文校验，定向回归及非作者审查后再给具体结果。没有新付费/公网/生产发布授权，不另造发布或任务系统。
+
+
+### Q10 / 真实37次后仅封面原文合同修复与最薄再验收接续（准备不等于执行许可）
+
+- 问题/代码：真实4cb任务已failed/refund1/最终扣分0，累计37/pending0、实测seal268d。产品仅cover_design.py与cover_runtime.py将新设计自由抄文改为冻结标题copy_span；renderer/存储格式/鉴权/积分/90天/QC不改。旧c95/R6/b752基线36及CASE一次绑定不能直接重跑，原entry/operator/latch均有真实已消费历史。
+- 已收原窗口只读答疑：未来只装最终两叶源并一次受控冷接续，其余16源码/字体/15静态和原图复用；保全部37/费用/原36独立摘要，另一个自然任务不能冒用4cb/client/CASE；需累计上限39而不是旧38，仍原40/100、既有8分不补；真实seal/claim/resume/applied若需完整校验，只读一次取所缺原raw，不从safe投影重建；正常旧目录按原inode归档。该答复来自本机已存材料，无新云/SQL/模型/运输。
+- 推荐/阻塞范围：先完成两叶产品修复的离线回归和独审冻结，再由原sole将上述差异收敛到既有执行载体，不重运原18源/15静态、不另建发布或任务体系。非付费准备自主推进；本次已消费的唯一任务、旧OPEN/CLOSE不能重放。任何新一任务/最多2Lite/累计39及有限公网窗须集中单次确认，准备期间不派模型、不OPEN/重启/补分/改生产。仅阻塞下一次真实新版成品验收，不阻塞本地修复；原窗口仍唯一最终集成发布者。
+
+### A68-COPY-SPAN-REPAIR / 原文选词合同修复与独审checkpoint
+
+实际功能提交cfe5b4c2cee2341ff3d8c0b25fad48bfbbbb57d1（前31b4d7b），登记前HEAD6051e77。只改后端cover_design.py（22906B/08f103b4）和cover_runtime.py（21222B/240b965a），另3个定向测试/夹具文件；无生产依赖、schema或前端版式修改。新设计响应由自由抄文改为冻结approved_title逐Unicode码点copy_span，程序取原文，允许1–3连续层和同层语义换行，再走原精确文字守卫/renderer/事实与最终像素QC。保存schema2、旧v1/v2重开与免费排字、8分/90天及最多2Lite/0image/0自动重发均保持。源两叶包/manifest在P/copy-span-repair-r1，未部署。
+
+本次离线design17、旧v1runtime17与v2集成10PASS（根34含design17，不能重复累加）；错误span在1次mock设计后即停、QC0/保存0/最终扣分0。实际CPython3.11编译4变更源码/测试PASS；本地.venv3.12为运行验证环境。frontend loopback模型夹具协议已同步且纯materialize/validate检查PASS；HTML/API/已存plan未变，复用既有PC/H5链路证据，没有冒新版真实或重新浏览器通过。非作者最终窄审GO无确定P1/P2，independent-review.json6460/c76e5684；覆盖边界/Unicode/非法索引，禁网络/无DB/cloud/model。一个审查夹具曾把合法start=1误列非法，已修夹具，非产品问题；原供应商错文未保存，具体错串仍UNKNOWN，不冒精确复现。catalog增加输入token，实际单张费用须后续实测，调用上限与定价未改。
+
+真实历史仍为R6唯一4cb failed/预留释放/最终扣分0，入口09:33:49.525 CLOSED、API现场保留；原报告与旧4da两版保留。累计37complete/pending0、私账3.8580108元（保历史工程成本口径）、原36独立摘要未变、当前实测seal268d；本次离线新增模型0，新合格v2仍0，不能交付或报合格单张成本。Q10已记录实际37/2叶/已消费latch与entry的最薄接续差异。下一步仅原sole准备既有载体差异，新的自然任务及有限公网/累计39须集中明确确认，当前不OPEN/重启/派模型/补分/重运18源或15静态，更不发布生产。根窗保此文档编辑所有权至本checkpoint提交，原窗口不并行改同文件。
