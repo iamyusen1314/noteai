@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-21 23:22，18条source-only真实原件全核；下一仅待新的有限原号恢复确认
+
+登记前HEAD5937bb7/分支codex/noteai-xhs-cover-20261019，产品01ffe6c。原sole在23:08:38–23:14:06实际完成精确18条，18/18 Success/Exit0/Dropped0/Repeats1，各原ClientToken一次，无UNKNOWN。R/actual-exact18-source-only-r1/ACTUAL-ALL18-SOURCE-ONLY.json15415/fb8a74bb含全部C/T/Run/Read Request与stdout pins；每step官方Run/Read JSON、原stdout及截图保。step15提交前form detached，查无intent/Run后才同表单一次提交，真实Repeats1；非已派发后重试。
+
+三真原件已齐：step-04/source-input-readback.ACTUAL-ORIGINAL.json1551/ced8792c（host6）、step-17同名4532/714deafa（entry6+aux2）、step-18/frontend-source.receipt.ACTUAL-ORIGINAL.json16943/f3119cc2。Root实际逐18官方Request/C/T/S0D0/Repeats核Output等stdout，三gzip等原raw、host/entry字段等冻结plan、RAM15等最终manifest且13same，ROOT-ACTUAL18-WHOLE-READBACK.root.json18399/406fd8670fe7b9dd8f78eda9bd484527ef4616c7f5b60941eec6f59e34f164d7。首次reader用step04而实际step-04的本机路径拼写错误已仅修读法，未改原件/重派。原sole机械核5586/c47a7cfe保并复用，未再云读或重测试。
+
+真frontend回执为PRIVATE_STATIC_A68_SOURCE_VERIFIED，01ffe/HTML70dd/backend7e/base31b，formal/currentprivate前后等、仅RAM重建，PC_H5_rendered=false/browser_auth_tested=false，不冒真实页面/成品验收。实际normal/CAS/TERM/START/operator/slot7/OPEN/模型/业务SQL/生产/新资源均0；仅私有源保存，18scope已消费不可重派。此前API版本7e保持未被本步骤加载新源，新normal PID仍未有。R11旧受理UNKNOWN、最后R2实账44/known3.9145932/pending0、原80次100元与历史未知保，合格新版0/单张成本N/A。
+
+现成host晚绑R/host/final-recovery-r1/bind_true_future_locally.py可直接消费step04及18原raw；entry晚绑R/entry/final-effective-r3/prepare_entry_recovery.HOLD.py，actual-bindings.json1961/b7c91596只补真step17/18 refs及local原件路径，所有future fields null。未执行晚绑或造新human/clock/END，不再增加工具/补测。Root已保原Chrome1/tab1637495948，P/real-ui-r11-geometry-20261021/r12-prepared-cached-pending.jpg160675为原恢复面板/旧4da，非新版交付，未刷新/POST或读取隐藏storage。
+
+全部非付费准备已具体完成。唯一PLAN.current admission_recovery_preparation及顶层pending_actiontime_confirmation已置新的确认待发范围，旧R10快照保历史；future human/raw/clock/END/normal/READY/OPEN/job全null，旧e70e消费且CLOSED。下一集中请求：原受保护入口新的最多60分钟/首次OPEN余≥30分钟/同窗不重开延时，原report0cdbe+9真实素材，只核查原UUID；有job只读，missing且完整原wire/素材有效才最多一次手动同号同内容POST；缺失/过期/失败/UNKNOWN停并提前关，不自动重发/新UUID。隔离仅累计第7个cover任务，≤2Lite/0生图/新增≤1元/本批≤46、原80/100/现有8分/最多成功保存结算一次；正常登录和原账号、生产/正文/DB不改。必须取得新当次真人后才记首次真实clock并晚绑→sole normal→独立ownREADY→timer-first OPEN→Root正常UI；不能重18source/旧报告/旧窗口。阶段3新品PC/H5/保存重开/免费排字/下载和阶段4交付仍待实际，真iPhone/多人容量/Q07照实保。R=H/r11-recovery-window-HOLD-r1，仍同一任务与发布归属。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 23:06，全部本机窄审GO；精确18条source-only已授权原sole执行
 
 登记前HEADc82ff89/分支codex/noteai-xhs-cover-20261019，产品01ffe6c不变。Host final R/host/final-recovery-r1已冻结：manifest59714/315f07fb、plan43936/1905bc103f930c788d65217dd763490800992fe9211b5886236b6cf13c227793；host50096/e58d534b。唯一HOST-INDEPENDENT-REVIEW.foundation.json7670/1cbd01b3d01910b2337a51c5cf5333877dd42676389990d1f5bb9cecb35bbb91，无未解P0-P2，仅source/offlineGO。允许旧closed历史标记不代表清消费：仍拒claim/resume/applied，真实44全账/noCASE/pending0/cap46检查保，旧latch/OPDIR按inode和全files原样归档；只sealSHA的同cap46窗口继承不动账/预算/CASE。之前544c→e58d20B漂移已解释，544c历史恢复，最终变体独立冻结；原14受影响控制/compile/sh-n/coldwhole复用未重跑。
