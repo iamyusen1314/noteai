@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-21 21:06:30，新真人批准R11单张有限验收，固定22:06:30关闭
+
+登记前HEAD3391751/产品7eedae7。真正新人call_e70e95ef34354b8882727e2d8c10d5e2答「同意按此范围立即限时验收」，官方turn01a15e76-4a03-72f3-a8fb-9e511564b63a/user01a15e91-e888-7420-8adc-96c0bea06b4d（同一进行中turn内新用户消息，非旧e8a）。Root首次clock13:06:30UTC=21:06:30北京/1792587990；固定END1792591590=22:06:30，latest首次OPEN1792589790=21:36:30，同窗不重开不延时。H/new-human46-geometry-20261021-r1/OFFICIAL-ORIGINAL.json92030/3008fe3ecfe20b2c8f047278aa433b32158e6cc0a51d7de580ff499994510896是官方read_thread(includeOutputsfalse)原UTF8文字，未抽条拼造；保存时apply_patch附加的LF已机械去掉恢复原字节。ROOT-OBSERVED-WITNESS.json2361/4a231d5682635728a7cf5a3458b40a31bbdd80da9870938bb1fcffac35435ef4绑定真实题答/固定时刻。首次本机统计用不存在TextEncoder报错，未写云/无外部动作；仅改为UTF8码点统计后保存，时刻未重取或移动。
+
+批准仅1任务/≤2Lite/0image/0自动重发/新增≤1元/本批≤46、仍原80次/100元、原报告0cdbe/9新A/现有8分、合格持久保存最多一次结算；失败或UNKNOWN立即停并提前关，正常登录和原测试账号/同隔离后端，正文/生产不改。已明确交原sole复用现成晚绑→normalcold→一次ownREADY→timer-first OPEN，Root等实际READY与OPEN才唯一普通UI POST。10条source已消费不重运，父44RO/旧报告/旧suite不重。当前新normalPID/ownREADY/OPEN/job未返回，不能以批准冒实际开启/成品通过；唯一PLAN.next44_geometry_preparation记真正raw和固定END。恢复先查原sole同一次命令C/T进度，UNKNOWN只查原C/T，不再询问同一批准或重建新60分钟。PC/H5新版成品/保存重开/免费排字/下载仍待实际验收，原记录和历史UNKNOWN保。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 21:05，精确10条源码预置与独立收据核对完成，待新当次限时验收
 
 登记前HEAD882e4e1，分支codex/noteai-xhs-cover-20261019，产品7eedae7。精确10条非付费source-only已于北京20:52:49–20:56:35实际全部完成，唯一C/T各Success/Exit0/Dropped0/Repeats1，无失败/UNKNOWN/重派；10条已消费，恢复不得重运或重派。H=G/next44-to46-geometry-HOLD-r1。原sole唯一索引H/SOURCE-STAGE-ACTUAL10.root.json44914/5a20a05d6fe28ba8a3642bf659eb4e23da1ecc458647bb6ecfda0c0645484a01；Root只核本机官方Run/Read Output=原stdout、projection及gzip原bytes/entry真实LF，H/ROOT-SOURCE10-ALL-ACTUAL-WHOLE-READBACK.json19595/b36d5acb2c02af3288fabeaaad3667061088180b0770c7d90b30293debb7b971。末host原proof1784/59ec722a、product11338/1a53770f、entry3778/c6252ef7分别在冻结plan.steps对应actualDir，原件未重序列化；无新云回读或44账查询。
