@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-21 九条预置实际齐备，新的有限真实验收尚未批准
+
+登记前HEADe384906，产品仍74ab790。9条非付费source-only全部实际Success/Exit0/Dropped0/Repeats1，无失败/UNKNOWN/重派。原sole索引F/SOURCE-STAGING.ACTUAL.root-r1.json32887/2f627458c5d512b2b754068acaae9424c99fc7e5cdc2dc025401a699a35cb29f；root逐9官方Run/Read原件、Output→stdout/projection及末两原proof独核，ROOT-SOURCE9-ACTUAL-READBACK.json8481/f7de0567d7c290b375fa756f9503296c15221669f3886261c467b368625b1d6d。原件均已本机落盘，不再云导出/重运。
+
+host末原F/host/source-part-007/actual/source-input-readback.ACTUAL-ORIGINAL.json1590/7782c6a762eda0aad7f570a435eddce1aa003cfbb231affffcb6ba285c345571；entry末原F/entry/actual-predecessor-r2/actual-source-stage/source-input-readback.ACTUAL-ORIGINAL.json3862/4764212a5540e71d5da9f3082d4af60e7aa32e400bb00fa94451b54bbcb05e20。4core/e6bd-cd00-c7a3-fee8、observer5269/hostdbf0与R2 entrybbcbd逐whole吻合，5sidecars同机复用。仅保存HOLD源，未加载：CID/PID3996046/runtime22cb/config/guard/prod/mounts/static保，0PG/账本变更/TERM-CAS-START/operator/OPEN/model。实际仍40complete/pending0/3.8841162、cap40、CLOSED、R8最终扣0/新版合格0；不能当READY/成品通过。
+
+映射纯规则final F/host/canonical-envelope-mapping-r2/canonical_semantics.py5043/4b1af290339ce5d5cc12de8a789dfe5b2acdc94a8155b47bdc7a6c8ff40e39b4，manifest2809/8cc3bf23980cbac9819ded8dfa4b2d1670ea4cf3a02a676ef871906b48fe4fe5。Root源码窄审与独立组合6769/3758040e相容，未改原binder/执行源。未来须以真实新raw核full2单/4Lite/2元/≤44→first-phase1/2/1/42，旧standing80只旧aad6来源；额外块接口可容不证明批准。新实际raw/END/PID/ownREADY/job仍null。现在非付费可准备部分齐，下一步集中请求同一≤60min有限OPEN具体验收；收到新确认才绑定观测起点/固定END并cold→ownREADY→OPEN。原单张已消费，原80/100总预算保留，不自动新POST/扩大cap，不把旧批准时间当新窗。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 首40→42离线审定；仅9条非付费源码预置已交原sole执行
 
 登记前HEAD6ee5f3b，branch codex/noteai-xhs-cover-20261019，产品仍74ab790。实际R8仍失败/扣0、40complete/pending0/工程计量3.8841162、入口CLOSED。没有新真人、模型、OPEN或生产动作。F沿上节N/future40-to42-qc-observer-HOLD-r1，不新建任务体系。
