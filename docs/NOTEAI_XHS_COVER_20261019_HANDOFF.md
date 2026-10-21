@@ -138,8 +138,8 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
-| 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_OFFLINE_COMPLETE / 起点3773d2d，随后本次功能提交 | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_REAL_SUCCESSOR_PREPARATION_HOLD / 新版未外呼 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 准备同报告一次v2/2Lite/0image/0retry受控successor最小差异，正常8分且须具体隔离fixture/新有限公网scope；真iPhone/真人容量不冒通过 |
+| 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_OFFLINE_COMPLETE / 功能31b4d7b（起点3773d2d） | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R5_UI_REJECTED_ZERO_NEW_ACCOUNTING / 新版未入模型；R6非付费准备中 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 准备同报告一次v2/2Lite/0image/0retry受控successor最小差异，正常8分且须具体隔离fixture/新有限公网scope；真iPhone/真人容量不冒通过 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | implementation-a68/contracts/final-review.json34557B/7fcdfece保留底图hash P2复现与修正，含最终PC/H5工具/证据窄审，无活跃P1/P2；旧真实证据不删除 | 真实模型/设计质量仍未验，不给产品可交付或发布GO；原窗统一集成，Q07现行90天规则仍待核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1303,3 +1303,16 @@ A68-NEW-WINDOW-PENDING：root在上述实际准备闭合后已集中请求唯一
 定位根因：正常产品coverFetch把request_id放JSONbody，隔离ExistingOwnerGate先从X-Request-ID头取值给R5Admission，未读body即拒。foundation唯一桥候选P/implementation/owner_session_bootstrap.cover-body-request-id-r2.py18768/fe25663f仅固定cover路径读取16KiB/64events/总5秒的原body UUID、头存在须一致、保鉴权及原ASGI字节重放，不注入header/放宽parent；原桥15771/abdc不改。3.11编译及明确shim8PASS、真实FastAPI3.12同8PASS，初始缺fastapi环境错误单列保留；contract非作者窄审进行中。产品/guard/entry均未改，source测试不是实际修复生效。
 
 当前08:43已过latestOPEN，入口继续CLOSED，不复派旧OPEN/POST。新窗口必要技术恢复先准备：旧operator-started与READY是真历史，须正常结束旧PID、whole目录保inode归档，不能删证或称未启动；static15实际已stage，不能重复走not-exists stage/旧O_EXCL。foundation唯一窄R6核完整e074→fc60→acb4原链与未来acb4→new的seal-only；media唯一entry严格复用已存私有static15/保旧timer与入口记录；原sole唯一host保现场接续HOLD，不重复无价值旧END重启。所有未来human/新END/新OPEN/付费均未授权，仅非付费准备。桥/恢复载体齐且独审后集中一次说明重测范围；复用gift8、不加预算/生产权限、不修正文。唯一权威PLAN已记录实际失败和零新增证据。
+
+
+### A68-R6-SOURCE-REVIEWED / 真实父链与已用入口最小接续，实际执行仍HOLD
+
+产品功能仍31b4d7b，登记前HEADffc0937；本节不把测试辅助当产品修改。唯一旧真人272c固定END09:10:25不变、latestOPEN08:40:25已过，原CLOSE保持；新真人/END/新CAS/start/operator/OPEN/model均null/false。08:30单次正常UI在native前被PARENT gate拒，真实RO新任务/模型/扣分0、wallet8/旧36/3.8472528/pending0/旧cover保留，证据沿上节，不重POST或补分。root仅滚动保留页面并保存P/real-ui-r5-20261021/pc-retained-rejection-top.png；图中仍是旧cover和旧8分，不是新成果。
+
+桥fe25663f/18768（固定body UUID兼容）、R6a2004277/57864（真实e074→fc60→acb4原链后只acb4→new seal-only）、entryv327e1831f/29819（严格复用现有15文件、唯一loader END CAS、全旧history保留）均冻结并非作者窄审GO，无确定P1/P2。独立真实FastAPI8PASS、Py3.11.14 R6 9PASS0.038、entry12PASS0.044，编译/全SHA核过；不是现场修复生效。R6实际fc60/2308/acb4/fb426四raw全字节/canonicalSHA配对，最原e074本机缺仅明确fixture和已实际R5 startup历史证据复用，不冒完整本机原链回放。原operator-started拒绝门未放宽，必须由sole正常停旧CID、整旧operator/latch/control保inode归档再正常新绑定。
+
+必要一次RO父链导回Cc-sz070nsrdbvcqv4/Tt-sz070nsrdc7u8lc S0D0，Run01A15BED-DF01-5F39-A656-656D0C2E9AEC/Read01A15BEE-124D-5B0F-BC82-5CF48032D70F；原stdout7394/40f68129、acb4原seal7772和fb426原transition1568在H/window-20261021-r1/r5-current-parent-two-originals-export-once-r1/actual，root逐SHA及原36/hash/inode实核。没有另导entry manifest/close新门，未来entry在host现场实读原件和逐15pin核，合成树测试不冒实际文件。
+
+media唯一binder P/entry/future-window-r6-HOLD-r1/prepare_entry_r6.HOLD.py32143/b1acafd8；receipt9933/165d28e6。root非作者diff+真实3.11.14 10PASS0.070，原9material/6raw/成熟3entryrefs保持。三片source-only已唯一实际0→1→2全S0D0，原stdout229/b5d812ab、229/e3e13bf1、478/1cdb26d2在同目录source-stage.LOCAL-ONLY/actual-000..002。C/T依次c-sz070ntnbu8pv5s/t-sz070ntnbuq75kw、c-sz070nto4z23668/t-sz070nto4zjkglc、c-sz070ntoz9p94hs/t-sz070ntoza6qeww。只新entry跨机三片（chunk6800），旧5源主机RO复制，不重31b/静态build/15文件/源码运输。真实source_bundle ROOT/a68-entry-r6-source-r1/source-input-readback.json3338/ddb7ff4c79db21343fcc5358fa9d8c5442f3ace0d111ea6d6633cfaeddca94ef；本机raw尚null，待与host sourceproof必要合并一次有界导回，不重三片、不从源码重建actual。
+
+尚未完成：原sole唯一host W/r6-future-window-HOLD-r1具体恢复载体的最终纯check/冻结及source-only运输，后续一次必要actualsource原文读回；不宣称全部准备完成。source GO不等于future执行GO。准备实齐后集中请求新有限公网/同report1v2真实重测，仍2Lite/0image/0retry、新≤1元在原≤100与累计≤38of40、复用8分不再gift。不重报告/不修正文/不变生产/不启新权限或平台。未来免费排字应以真实新封面文案作准确短摘和断行，不把旧cover文案强套新结果。当前合格新v2仍0，真实质量/重开/下载/真实iPhone/真人容量未验，成本分母0不能报0元合格交付。
