@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 R8真实QC拒绝、最终扣0，40次已知3.8841162；仅离线补观测
+
+实际HEADa152056/功能74ab790，生产与产品源码未追加。本轮唯一终态RO Cc-sz070oq3lrm1c74/Tt-sz070oq3ls10q9s/Run01A15D44-0B7D-59C1-AEF4-30A0028E35EE S0D0，外9675/c56572d4、真child37615/b03f761bd1ce84fb143370a895ccc155824d9e160b3abe91e85b89febbe239bb在N/terminal-readonly-r1/actual，root whole及独立contract6424/5115892a201f27ceb759ae41afc540a48c46b755d2ef898a2db404896a9885c2已核。唯一新job a673def7-1037-4bd2-a50b-886b8dc331bb/clientb6d720f3-c5a9-4c81-b70f-2c0967dd345b/usagef04f491a-3149-4f11-956a-351cd15f01f1，14:55:31→58北京，COVER_QC_DESIGN_REJECTED。实际完成设计校验及绘图、QC六设计布尔至少一false；不是brief再失败，也不能从总码推具体构图/字阶/事实哪项。
+
+真实2次doubao-seed-2-0-lite-260428均HTTP200/usagecomplete，设计15171入467出=0.0107838元、QC6720入89出=0.0043524元，合0.0151362（tariff工程计量，供应商发票未核/银行UNKNOWN保）。finalusage0、claim预留8/charge1/refund1/complete0，钱包8/used170/creditTx63/usage66；revision0/base-final-null/assets0。旧report34calls和3cover投影保，旧38digest35fd不变。现40complete/dispatch40/pending0/known3.8841162，seal823909bcb0b2e3d030895bd773a697dac0d8279fe55dc34f7e36f74ae6036502/inode1460877、callSHA0b0d02c8c3cc6e0f22e4cb07f33f7860c331533ddc5eea5e89841006bb49d7ae。私cap40已满；真人80/100保留不重问，但此单张已消费，不能自动再POST/扩cap。合格新版仍0，合格每张成本N/A。
+
+精确缺口已源码核：runtime在_validate_qc抛前无CoverResult返回；service只在正常返回后store，jobs只有complete_job成功保存时写layout/qc/design；当前隔离adapter/私账也未留原像素或QC正文。ark_media禁止日志完整响应；本次具体QC项/图片不可从已知字段恢复，不再空查/假回放/付费重现。最小后续只在既有run_cover(vision_call=...)每任务注入隔离QC观察器：主窗foundation唯一写P/diagnostic-qc-observer-r1，复用接口，不加生产RuntimeHooks/DB/schema；保存实际final/240thumb原字节+有界固定bool/issues投影、原text哈希/选图UUID，不存完整prompt/报告/响应/秘密，private0600/O_EXCL/未验收候选；普通观察失败不改原QC/计费/次数。root审后原sole唯一薄绑定，不平行改core。此为离线准备，未授权新模型/公网/新任务，原窗口已确认停止外动作并保CLOSED。
+
+当前页面R8 PC失败恢复已实际留证；390×844模拟截图及AX在同R8证据目录，viewport已finally reset，仅证缓存面板及旧成品控件可显示，不冒新版成品/下载或真iPhone。新封面质量/保存重开/免费排字/下载仍HOLD；根因修正须依据未来实际候选和拒因，不能降低QC过关。恢复读唯一PLAN.actual_R8_terminal/R8_QC_recovery_gap、此节与原sole29edb17，不重放已消费40或原命令。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 R8真实单次未交付，14:56已CLOSED，核原终态后只修封面
 
 实际HEADaab8c4c，功能仍74ab790，无追加产品/HTML改动。本次授权已实际执行一张新cover，不能重放：R3 host Cc-sz070ook0g08dfk/Tt-sz070ook0gf7ri8 S0D0，result6380/c39c2a8f whole已核，同CID/image、PID3996046/restart0，TERM/START/CAS各1，仅seal从cd2e→5ddcf0dd，38条/callsSHA35fd/known3868980000/pending0/inode1460877保持；首失败三原inode保留。CLI ownREADY Cc-sz070ooutri0em8/Tt-sz070ooutrwzsow，原1090/d6cac3cb whole已核，UID999/PID75/config2c61/END7293，实际就绪非模型验收。
