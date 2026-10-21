@@ -1450,3 +1450,12 @@ core唯一非作者审N/CORE-INDEPENDENT-REVIEW.cover-foundation.json15000/61313
 新真人已明确回答call_059286257d854213a4a4662d28fc6d67“同意，立即限时验收”，official user01a15d20-1511-7d50-bc40-3ad8a7355fb1。旧active turn01a15ca2/startedAt12:04:51不是此次批准时间；官方user item未给时刻。真实question前clock14:21:33和新reply首次观测clock14:22:53分别1792563693/1792563773，故选择保守固定技术END1792567293＝今天15:21:33北京（前clock+3600，早于真人同意+60），latestOPEN14:51:33。两时钟与实际回复分开，不伪造精确批准时间。官方整原字节N/new-human74ab-r1/OFFICIAL-ORIGINAL.json616183/056378dc，实际witness在同目录；既有canon/finite-window由原sole按此真实新回复晚bind，不改已冻源/不再SOURCE。
 
 scope只新1cover/≤2Lite/0生图/0自动重发/新增≤1元、累计预计40在真人80内/总仍原100；复用8分及同原报告新9，合格保存唯一结算。正常登录原账号/同隔离后端必要cold与有限OPEN获批准，生产产品/DB不改。主root仍唯一正常UI，原sole唯一云执行；现在等实际fresh4RRRO→正常cold/单ownREADY→timer-firstOPEN原件，不因授权/代码就位就盲点。新actualPID/OPEN/job/model仍未报告，最近实账38/3.86898/pending0保留。旧12 source全部已消费，新human不是重运/补传/重报告理由。确认已收到，不再重复问；结果未知只读原请求不重发。
+
+
+### 2026-10-21 — 预停接线失败及最小R3 checkpoint
+
+实际HEAD仍cb82b26/功能74ab790，无产品/HTML追加。新有限验收首次host c-sz070on8y2wqayo/t-sz070on8y36pwcg在06:29:48UTC实际Exit2/Dropped0，原stdout294/b9c53f89，结果已知保留不重放；failure-result原293/c1b46356。ACTUAL_PHASE_A_RECEIPT_SCOPE_REQUIRED来自helper media_check把新END7293与历史A END2128相等比较；不是九图失效、产品74ab或供应商错误。TERM/CAS/START/OPEN/operator/model均0，公共入口仍CLOSED，新1cover未消费。
+
+原sole仅一次RO取三真raw及preTERM意图，C c-sz070onymfi21vk/T t-sz070onymfs1n9c S0D0。N/host/preterm-failure-originals-readonly-r1/actual/THREE-ORIGINALS.INDEX.json2341/8e20f61a及三whole293/c1b46356、1277/7f73f684、7992/df03ce2e已root核；fresh4RRRO实为4SELECT/rollback/SQLwrites0、38完整/钱包8/新九图ready，不能将失败phase标签误判为数据库失败。旧失败CASE/inode保留，原五intent及PROOF未创建由sole实核；没有新PG/model或38全账重读。
+
+sole作者最小R3 runtime98463/22cbf1b1977cd39dc18b2cfd4c4a5eb2370aaf5ec6a9db49922790b4bc3c92df，严格一处window→execution_window；历史回执/授权/映射/hash与新TTL保护不变。foundation补充独审N/CORE-INDEPENDENT-REVIEW.cover-foundation.R3.json5803/9a33254a99ddd772df7376701a937024ed177af064ed40e257a38b9497b554fc，作者7组复用、独立受影响1PASS/.042/3.11compile；不冒实际启动通过。新独立受控CASE a68-next38-brief-oneleaf-execution-media-r3，仅同机派生runtime/薄wrapper/entry pin并正常接续，原12source不重运。当前等sole实际cold→ownREADY→有限OPEN，root唯一正常UI一次提交；END15:21:33/latestOPEN14:51:33不变、不再问同意或擅自延时。
