@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 真实唯一封面提交未交付；入口已CLOSED、原请求取证中
+
+登记前HEAD6a26e48c701e957d7a50afcd3ba40cad0730e863；产品仍cfe5b4c两叶，无新产品/HTML改动。原sole同一次OPEN/END13:55:28.563647内已实际B正常cold：sameCID/image05978、PID3957079/restart0，TERM1/START1/CAS1仅seal→11452c63、原37账/3.8580108/8分保留。独立launcher唯一实际ownREADY原件1098/e8ddf9b51a8e9016b741cfd8bdc9be11115fba49340beae18530d6c9ec2ce19d，operator livePID68/UID999，root核原字节相等；B helper两已知81256B caller读取上限64→128KiB为测试辅助修正，产品守卫不改。
+
+root正常刷新→报价8→核原题与新9refs ready/selected→唯一点击重新设计，无第二次POST或重上传。页面先等待名额/预留8，关闭面板再从同报告重开仅正常GET后明确“本次封面未交付／预留已释放，本任务不扣分”，旧4da图仍在。P/real-ui-r7-source-refresh-20261021保存single-cover-submit.ax.txt、reopen-after-single-submit.ax.txt、recovered-backend-state.ax.txt及single-cover-failed-ui.png；旧图不是新版成品，不改旧图排字冒新验收。
+
+已按失败即关约定通知原sole立即CLOSE、保留API及原请求并取本轮唯一job/client/usage/error和实账四RO；CLOSE实际、真实模型次数/成本、失败层仍待原件，不能因页面退款就断言模型0或费用0。原37累计是最近一次已核状态，新累计尚待核。当前不重发/不新建任务/不再OPEN或延时；80为累计上限不等于自动重试。下一步系统定位产品或辅助失败层，仅修封面必要根因及离线回归，保持原报告内容/生产/旧UNKNOWN。新版质量与保存/重开/免费排字/下载验收仍未完成，不交付GO。恢复读同任务PLAN.actual_source_refresh.actual_root_UI_cover和原sole最新实际终态，不从旧PID/READY重放。
+
+补记：原sole实际CLOSE Cc-sz070ohsfn6t0xs/Tt-sz070ohsfnoabcw、Run01A15CEE-C14C-5BAA-A93E-B9BF26F0FF95，Success/Exit0/Dropped0。原stdout846B/696a3e468f7dce5cd6ec73368a7f35f23cc4bdc22a953ff4a085e7859b5f195b已root及独立contract核原字节；13:28:34.301916北京真正CLOSED，API_stopfalse。该close本身DB0/model0不代表本轮封面模型0；未重OPEN/杀API/重发。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 实际九图补传前后端已验证，等待同窗B付费READY；入口仍OPEN
 
 登记前HEADb277b35354bb14b6b05f3652f7d48c90f7e5d87e；功能仍cfe5b4c/前31b4d7b，产品/HTML/static均未再改。实际唯一OPEN/END1792562128.5636473＝13:55:28.563647北京，timer noteai-cover-entry-close-a68-source-refresh-phaseA-r1，A/B同窗口；不得重OPEN/延时。真人12:04:51授权累计80/原100元、允许后移有限窗，本首次cover仍≤2Lite/0image/0自动重发/新增≤1元/已有8分，真实累计37/3.8580108/pending0、私账旧cap40/99更严格保留不重置。

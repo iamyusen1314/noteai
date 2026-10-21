@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→bb6a1e0 | 原基线及确认方案保留；10月21日12:04:51北京真人同意复测，累计上限80、总费用仍原100，取消12:30截止并允许后移有限窗；官方原件16441B/aad6c629 | 本轮先1cover/≤2Lite/0image/0自动重发/新增≤1元；不授权新资源/生产切换 |
 | 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | A68_COPY_SPAN_REPAIR_OFFLINE_REVIEWED / 功能cfe5b4c（前31b4d7b） | 原文copy_span合同/程序取字；design17、旧runtime17及v2集成10PASS，重叠不重复累计；3.11编译及非作者c76e5684窄审PASS；HTML/API未变复用原PC/H5链路证据 | 新版真实设计与成品质量仍待验；不扩正文或重跑报告 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_REAL_NINE_SUPPLEMENT_COMPLETE_B_PAID_READY_PENDING / cfe5b4c、登记b277b35 | 同一OPEN至13:55:28；正常UI9图/1PUT实际成功，后台11550/b53c与DOM/原素材独立核一致；CFE真实加载；37账/3.8580108/8分/268d保留 | B晚bind实际refs/同窗cold→真实paidREADY→唯一cover POST；本次仍最多2Lite/0image/0auto。新版成品与质量/重开下载未验，真iPhone及多人容量未验 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_REAL_SINGLE_UI_POST_FAILED_ENTRY_CLOSED_ORIGINAL_RESULT_PENDING / cfe5b4c、登记6a26e48 | 正常9图补传后台11550/b53c已核；B PID3957079/ownREADY1098/e8dd实际；唯一UI POST后关闭重开GET显示未交付/预留释放/旧成功图保留 | 已实际CLOSE；原sole取唯一新job/真实模型费用/失败层；不重发。新版质量/保存重开/免费排字下载仍未完成；真iPhone/多人容量未验 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | 原final-review7fcdfece与旧真实证据保留；cfe最终窄审independent-review.json6460B/c76e5684无确定P1/P2；素材补传只读契约10627B/0c6df28a | 新真实封面质量/重开/免费排字/下载及唯一结算未验，不给产品交付或发布GO；原窗统一集成，Q07现行90天规则待生产启用前核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1409,3 +1409,14 @@ A真实补传完成：R4同CIDd26428/image05978、PID3951329/restart0，正常wo
 后台唯一RO Cc-sz070ognukiww00/Tt-sz070ognukxwa2o S0D0，source-refresh-complete原字节11550/b53c3baeb9bbb5e9c81cefc6a20238ca6b9530023c513d3df7d54e7aefda3358在F/actual-source-refresh-r1/phaseA-receipt-readonly-r1/output-bound-r2/actual。root whole及独立task_contract窄数据核一致：实际9normal upload+1normalPUT/provider0/helper直接业务SQL0，新ready13:15:04–11、自然24h到明日同时分秒覆盖END；9raw身份对原inventory逐项相等、normalized与原归一图hash相等；report仅cover_source override、原内容/prepared/生成唯一8分/旧2jobs/37账/268d保留。允许正常upload的旧已过期媒体cleanup，不冒“全旧media状态不变”；此为receipt观测对照，不冒本机全原账重算。
 
 当前直接下一步：原sole已取得实际A完成receipt，复用预制B仅晚bind四实际refs，在同CID/port/同OPEN/static15/timer/END正常cold并给真实paidREADY；不再上传。root唯一正常UI，原sole唯一云/未来统一集成发布。B实际READY后root唯一正常POST，检真实v2、重开/免费排字/下载及唯一8分；未收到READY不点生成。新版质量仍未验，不交付GO；时间不足不发付费，不改正文/生产。恢复读同任务PLAN.next_37_to39_continuation.actual_source_refresh及原sole最新原件，避免按旧A0/PID盲重放。
+
+
+### 2026-10-21 — 真实唯一封面提交未交付 checkpoint
+
+登记前HEAD6a26e48c701e957d7a50afcd3ba40cad0730e863；产品仍cfe5b4c两叶，无新产品/HTML改动。原sole同一次OPEN/END13:55:28.563647内已实际B正常cold：sameCID/image05978、PID3957079/restart0，TERM1/START1/CAS1仅seal→11452c63、原37账/3.8580108/8分保留。独立launcher唯一实际ownREADY原件1098/e8ddf9b51a8e9016b741cfd8bdc9be11115fba49340beae18530d6c9ec2ce19d，operator livePID68/UID999，root核原字节相等；B helper两已知81256B caller读取上限64→128KiB为测试辅助修正，产品守卫不改。
+
+root正常刷新→报价8→核原题与新9refs ready/selected→唯一点击重新设计，无第二次POST或重上传。页面先等待名额/预留8，关闭面板再从同报告重开仅正常GET后明确“本次封面未交付／预留已释放，本任务不扣分”，旧4da图仍在。P/real-ui-r7-source-refresh-20261021保存single-cover-submit.ax.txt、reopen-after-single-submit.ax.txt、recovered-backend-state.ax.txt及single-cover-failed-ui.png；旧图不是新版成品，不改旧图排字冒新验收。
+
+已按失败即关约定通知原sole立即CLOSE、保留API及原请求并取本轮唯一job/client/usage/error和实账四RO；CLOSE实际、真实模型次数/成本、失败层仍待原件，不能因页面退款就断言模型0或费用0。原37累计是最近一次已核状态，新累计尚待核。当前不重发/不新建任务/不再OPEN或延时；80为累计上限不等于自动重试。下一步系统定位产品或辅助失败层，仅修封面必要根因及离线回归，保持原报告内容/生产/旧UNKNOWN。新版质量与保存/重开/免费排字/下载验收仍未完成，不交付GO。恢复读同任务PLAN.actual_source_refresh.actual_root_UI_cover和原sole最新实际终态，不从旧PID/READY重放。
+
+补记：原sole实际CLOSE Cc-sz070ohsfn6t0xs/Tt-sz070ohsfnoabcw、Run01A15CEE-C14C-5BAA-A93E-B9BF26F0FF95，Success/Exit0/Dropped0。原stdout846B/696a3e468f7dce5cd6ec73368a7f35f23cc4bdc22a953ff4a085e7859b5f195b已root及独立contract核原字节；13:28:34.301916北京真正CLOSED，API_stopfalse。该close本身DB0/model0不代表本轮封面模型0；未重OPEN/杀API/重发。
