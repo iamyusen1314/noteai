@@ -1370,3 +1370,11 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 | 专用验收接续：真实37→新一任务最多39/原40 | 旧CASE复用、计数重置、旧计时器或已用入口重放 | 4真实父raw和第37完整行独核；旧36摘要保留；现关闭入口原件 | 既有载体最薄适配的单次窄审/源码运输；新真人有限窗后才执行冷接续/新OPEN，禁止自动重发 |
 
 费用分别记账：真实失败4cb的供应商usage tariff为0.0107580元，用户最终扣分0；当前私账累计3.8580108元保原历史工程换算口径。新合格v2分母仍0，尚不能计算每张合格交付成本。8积分沿用用户已确认的独立cover_generate报价，待合格成品持久保存后一次结算；非付费排字、查询、重开与下载不建立新收费任务。此表不授权新测试或生产发布，生产90天OSS生命周期Q07仍由原窗口在启用前定向处理。
+
+### CFE-ACTUAL-PREPARED / 实际源码就位与单次新确认之前checkpoint
+
+实际功能cfe5b4c，登记前HEAD1cc6a41；两叶产品、原稿保存格式和原PC/H5版式未再改。F=P/host/window-20261021-r1/consumed-r6-cfe-successor-HOLD-r1。三位互斥作者完成37实账/新CASE/最多39of40/3个历史及新cover任务的最薄专用接续；同一原窗口Root为非作者，core49eca与最后host/entry闭合r2 5318/9ef970bb、独立launcher2221/eb26910e均source-only GO。core/host/entry原证据按适用范围复用，未另增第三轮审查或重产品44/旧套件。r2只纠正文字口径：product14=替2+保12，entryartifact16refs；旧r1保留，源未变。runtime83cf7654/guard9f9e0e3a/operator e0365bb8/entry6ff2c348，完整SHA见core8969/49eca042。
+
+原sole实际12条命令全Success/Exit0/Dropped0：host7+两叶productstage1+entry3+固定2raw只读1。完整原件索引F/SOURCE-ONLY-ACTUAL-COMPLETE.root-r1.json15329/0b90f909，所有C/T/Run/Read/stdout有原件；全部已消费，禁止重运或重导。唯一2raw只读Cc-sz070o2npqpiu4g/Tt-sz070o2npr4i874，stdout5130/8b6aa537；实际source_bundle3398/85a890ce、productstage10766/928cd07e在F/host/fixed-source-originals-readonly-r1/actual，原字节及fd/path稳定。root核两raw、launcher3leaf、最终r2和实际14产品/资源whole均匹配本分支；诚实基座31b+仅cfe2leaf overlay，现API仍旧R6，未激活cfe。一次本窗显示用探针误把map和scalar计数混用，已修检查表达式，实际源及既有检查未变，非产品/环境错误。
+
+当前新human/END/PID/READY/新OPEN/新任务/新模型全无；旧37complete/pending0/私账3.8580108、失败4cb最终扣分0/余额8、旧报告与旧cover两版/268d/原生产均保留，入口CLOSED。媒体最早12:37:52北京到期，不延旧图TTL，未来fresh核必须覆盖新END。下一动作集中问新的1任务、2Lite/0image/0自动重发、累计≤39of原40、增量≤1元在原100内、复用8分、正常鉴权原账号的有限公网窗。实际开启须余≥30min、今天12:30前关闭；确认后直接复用现成host bind_actual_locally.py、独立launcher binder和entry9material/6raw ABI，不重新写接线或重运全套。此前一任务已失败且上窗关闭，新请求与公网不从旧同意自动推出；未答不执行依赖动作。root唯一正常UI，原sole唯一云执行及最终统一集成发布；新版真成品/质量/重开下载仍未验，不能交付GO。

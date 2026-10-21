@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-21 CFE：非付费准备与实际源码就位齐备，待一次新任务/有限窗确认
+
+实际功能cfe5b4c，登记前HEAD1cc6a41；两叶产品、原稿保存格式和原PC/H5版式未再改。F=P/host/window-20261021-r1/consumed-r6-cfe-successor-HOLD-r1。三位互斥作者完成37实账/新CASE/最多39of40/3个历史及新cover任务的最薄专用接续；同一原窗口Root为非作者，core49eca与最后host/entry闭合r2 5318/9ef970bb、独立launcher2221/eb26910e均source-only GO。core/host/entry原证据按适用范围复用，未另增第三轮审查或重产品44/旧套件。r2只纠正文字口径：product14=替2+保12，entryartifact16refs；旧r1保留，源未变。runtime83cf7654/guard9f9e0e3a/operator e0365bb8/entry6ff2c348，完整SHA见core8969/49eca042。
+
+原sole实际12条命令全Success/Exit0/Dropped0：host7+两叶productstage1+entry3+固定2raw只读1。完整原件索引F/SOURCE-ONLY-ACTUAL-COMPLETE.root-r1.json15329/0b90f909，所有C/T/Run/Read/stdout有原件；全部已消费，禁止重运或重导。唯一2raw只读Cc-sz070o2npqpiu4g/Tt-sz070o2npr4i874，stdout5130/8b6aa537；实际source_bundle3398/85a890ce、productstage10766/928cd07e在F/host/fixed-source-originals-readonly-r1/actual，原字节及fd/path稳定。root核两raw、launcher3leaf、最终r2和实际14产品/资源whole均匹配本分支；诚实基座31b+仅cfe2leaf overlay，现API仍旧R6，未激活cfe。一次本窗显示用探针误把map和scalar计数混用，已修检查表达式，实际源及既有检查未变，非产品/环境错误。
+
+当前新human/END/PID/READY/新OPEN/新任务/新模型全无；旧37complete/pending0/私账3.8580108、失败4cb最终扣分0/余额8、旧报告与旧cover两版/268d/原生产均保留，入口CLOSED。媒体最早12:37:52北京到期，不延旧图TTL，未来fresh核必须覆盖新END。下一动作集中问新的1任务、2Lite/0image/0自动重发、累计≤39of原40、增量≤1元在原100内、复用8分、正常鉴权原账号的有限公网窗。实际开启须余≥30min、今天12:30前关闭；确认后直接复用现成host bind_actual_locally.py、独立launcher binder和entry9material/6raw ABI，不重新写接线或重运全套。此前一任务已失败且上窗关闭，新请求与公网不从旧同意自动推出；未答不执行依赖动作。root唯一正常UI，原sole唯一云执行及最终统一集成发布；新版真成品/质量/重开下载仍未验，不能交付GO。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：封面标题选词修复已提交并独审，真实验收仍HOLD
 
 实际功能提交cfe5b4c2cee2341ff3d8c0b25fad48bfbbbb57d1（前31b4d7b），登记前HEAD6051e77。只改后端cover_design.py（22906B/08f103b4）和cover_runtime.py（21222B/240b965a），另3个定向测试/夹具文件；无生产依赖、schema或前端版式修改。新设计响应由自由抄文改为冻结approved_title逐Unicode码点copy_span，程序取原文，允许1–3连续层和同层语义换行，再走原精确文字守卫/renderer/事实与最终像素QC。保存schema2、旧v1/v2重开与免费排字、8分/90天及最多2Lite/0image/0自动重发均保持。源两叶包/manifest在P/copy-span-repair-r1，未部署。
