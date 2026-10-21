@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-21 19:51，R10唯一UI已提交后显示未交付，入口实际提前关闭
+
+产品10e2176/登记前HEADb7c861e，e8a本次一单已消费，不再POST/OPEN/延窗。真实normal Cc-sz070pf4qsj0ykg/Tt-sz070pf4qt0i8zk Success0D0，原stdout11167/f7bbc69c→child5902/a6a040de，PID4129619同CID/image，TERM/START/CAS各1；42rows909617/known3899499000/pending0/inode1460877保，只cap42→44。一次ownREADY Cc-sz070pfea1ypekg/Tt-sz070pfea2673ls S0D0，真1090/37f0c681/UID999 PID69/821850317。实际OPEN19:48:21，Cc-sz070pfo23s0pog/Tt-sz070pfo24703r4，原1005/fee4cd44，END20:31:39未变。Root唯一正常reload→原report0cdbe→quote8→原推荐题及9新A全ready→一次重新设计POST；曾显示选图设计/预留8尚未扣分。关闭重开面板后未交付/释放，仅再一次刷新GET确认，H5实际375×844/面板337×820，finally reset；旧4da成品仍在，未排旧字/下载旧图冒新品。短暂quote积分不足随后消失，不能当根因。
+
+已立即早关19:51:20.906462，Cc-sz070pfxob2e7ls/Tt-sz070pfxobhdlog/Run01A15E4D-323B-530B-AC3A-CFD654D0AEB2/Read01A15E4D-5DE1-5746-836D-C1A61D093C36 S0D0，原839/1c6ea7e7→child170/6d41ec98，Nginxgraceful/API_stopfalse/DB0/model0。Root各官方Output whole已核，收据各actual目录ROOT-OFFICIAL-WHOLE-READBACK.json。当前实际新job/client/usage/error/新调用费用/最终扣分仍待原sole唯一薄terminal原件，不从UI或旧42推新终态；有QC才取R2候选/逐项原件。P/real-ui-r10-visible-type-20261021留PC/H5 AX与真实JPEG，pc-undelivered-status-and-previous-cover.jpg明确失败加旧图。唯一PLAN.next42_preparation登记全进度；下一只读原terminal/像素诊断与必要局部离线修复，不重付费、不重开、不改正文/生产。新品保存重开/排字/下载与质量仍未通过，禁止交付为合格。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 19:31:39，新真人e8a批准单张有限验收，固定20:31:39关闭
 
 实际HEAD8627313/产品10e2176，真人call_e8a753070592462b8ba82516e9329b0b答「同意立即限时验收」，官方turn01a15e3b-0aca-7cd1-abc8-b9084e656c98/user01a15e3b-0b5e-79b1-ad24-ddd30a24ae0f。Root首次clock11:31:39UTC=19:31:39北京/1792582299，固定END1792585899=20:31:39、latest首次OPEN20:01:39；同窗不重开不延时。G/new-human44-visible10e-20261021-r1/OFFICIAL-ORIGINAL.json15397/2b8759aa8c2519522fe0abdc37b1debc470564f9c2f4ffa50c84a4240d7eb7ed及ROOT-OBSERVED-WITNESS.json1333/87ab8b44记录原题答和观测。此新范围仅1任务/≤2Lite/0image/0自动重发/新增≤1元/本批≤44，仍原80/100；旧报告0cdbe与9真素材/现有8分，合格保存最多一次结算。失败或未知立即停并提前关，生产不动。13源已消费不重运；已通知原sole只做现成latebind→normalcold→一次ownREADY→timer-first OPEN，Root唯一正常UI一次POST仍待实际READY与OPEN。当前新PID/OPEN/job未返回，不能把批准当执行结果；恢复查唯一PLAN.next42_preparation及原sole本次原回执，不再询问同一批准。
