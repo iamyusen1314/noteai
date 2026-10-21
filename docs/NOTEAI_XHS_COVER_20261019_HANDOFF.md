@@ -130,6 +130,8 @@
 - 接收状态：已接收。2026-10-19 23:31 北京时间，本封面窗口接管 `noteai-xhs-cover-20261019`；实际分支 `codex/noteai-xhs-cover-20261019`，HEAD `cc96df72e03a914f2fa595f4d1ec71b03e2d175d`。初始工作区干净，c4a2bba 与交接提交均为 HEAD 祖先；未回退、未新建工作树、未复制环境/密钥。
 - Q/A：暂无。
 
+- **Q-R13-guard-loader / 隔离接续接口（候选预审，非生产问题）**：next45-to47-text-checkpoint-HOLD-r1 的候选 runtime `next47_guard()` 读取全局 GUARD，只有 main 按 config.guard_version_root 重设；host pure 导入后直接调用及 OPI spec 导入只改自身 GUARD，可能仍指向旧默认目录而要求新 pin。建议唯一作者使用显式 guard 目录/loader 绑定，覆盖这两条真实入口，不依赖 main、不改 __file__ 或伪 SHA；保持旧 proofbase1b950 历史校验与当前 ledger3f63/fresh45 校验独立。阻塞范围：未来隔离接续冻结/预置，产品1d927f2不受影响。已直接交原sole及作者，等待最终接线/组合控制答复；未新增云、模型或发布授权。
+
 
 ### 本任务权威清单与恢复 checkpoint（接收）
 
