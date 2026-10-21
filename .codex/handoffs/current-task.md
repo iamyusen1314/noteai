@@ -1,3 +1,19 @@
+## CURRENT — 2026-10-21 21:35，R11唯一UI受理待核查已早关；旧billing混显最小离线修复
+
+登记前HEADc1da1d0/实际隔离产品7eedae7，分支codex/noteai-xhs-cover-20261019。R11真人e70e/first1792587990/固定END1792591590不变，唯一UI约21:23:40一次「重新设计8积分」后先提交中，随后受理结果待核查；未点刷新/核查重交/第二POST/排旧字/下载旧图。原报告0cdbe、原标题19字、九新A逐DOM ref全ready/selected/报价8/余额8先核；旧4da显示不冒本轮新成品。R11实际新job/client/usage/HTTP/模型次数/成本/最终积分仍未知，UI旧release不能作新0收费证据；不能把前端受理UNKNOWN写成已证供应商UNKNOWN。root只读console12项均浏览器钱包扩展旧warn，非产品根因，不修插件。
+
+实际normal Cc-sz070pna7gfx2ww/Tt-sz070pna7gxedc0 S0D0/Repeats1，stdout11408/6f24bef4→result6074/fa550b75和4同响应原raw全核；PID4172531/sameCID-image/restart0/7e设计2d06与core2267已加载，TERM/START/CAS各1已消费，44rows/all74e5/known3914593200/pending0/inode1460877/旧cases当时保，仅cap44→46+新seal69d28变化。normal rootwhole3994/56437ab3在H/host/actual-bound/actual-normal-startup。独立ownREADY Cc-sz070pnjygv962o/Tt-sz070pnjyhcqghs，stdout4842/41fcdbdd→原1090/70b93291，live/receipt UID999 pid68/startticks文本822399017/confige99c全等，launcher1/0models/当时CLOSED；rootwhole2343/8f75a93f在H/host/separate-launcher-HOLD-r1/final-core-recipe-r1/actual-bound/actual-ready。Root首核把start_ticks文本与整数比较失败，误提前发成功消息后立即明确更正；只改本机比较类型后真正whole通过，无云重派/数据改写。
+
+实际OPEN Cc-sz070pnspwl5gjk/Tt-sz070pnspwxmy9s，原stdout1005/23b47850，timer_unit noteai-cover-entry-close-a68-next44-geometry-qc-r1先设/固定END1590，formalstaticfalse/SQL模型0，rootwhole1385/d1238578在H/entry/final-source-r1/late-actual-1792591590-r1/actual-open。未知即请求早关，实际21:28:40.346294/1792589320.346294 CLOSED：Cc-sz070pom82ssetc/Tt-sz070pom83a9p8g S0D0/Repeats1，原stdout839/72b294d7，API_stopfalse/DB0/model0只属关闭动作，rootwhole1296/35c6c24c在同late目录actual-close。API/inflight/原记录保，未重开/延窗/任何生产变更。root只核官方Output原byte及outer原entry字段，不冒未传回的inner stdout原字节另核。
+
+既有claim唯一RO Cc-sz070poogtimznk/Tt-sz070poogtq4oow S0D0/Repeats1，H/r11-claim-readonly-r1/actual原stdout413/95ba9ecb和原pack237/15512eac官方Output/gzip逐byte相等，四cover.claim/resume/applied/closed叶均absent。rootwhole在同actual目录；absence不证未受理/零调用/零积分。原sole下一只ordinary noteai_app RRRO查询user61d6/report0cdbe/21:22:40–21:28:40新受理LIMIT2+账44→46摘要与该段当前CID/PID安全日志状态/路径/异常类型（不取凭据/正文/query），不重claim/POST/模型。终态模板仍null，历史UNKNOWN保。
+
+原foundation静态窄定位：HTML8600宽catch也覆盖409/429/5xx/断网/响应解析等，API正常202也可能已提交但ACK丢失；本次根因仍待原HTTP/行。已确认独立的封面状态显示缺口：HTML8402在新pending notice后拼旧active.billing。只本地修这一行，要求无pending或active.request_id匹配pending.request_id才显示该billing；不改HTTP/幂等/实际账/恢复/素材/版式/依赖/迁移。新回归沿既有VM夹具模拟一次503、旧释放/旧成功、GET未找回保持pending/旧成品、GET找回自身reserved8，POST仍1。旧源红882d18准确复现；首次修后fixture旧成功ID不一致24/25，修正夹具saved/preview身份而非扩产品，最终25/25/127.8ms PASS2f1554，diffcheck7a6cee PASS。独立非作者窄审无实质问题，复用25结果未重suite；仅offlineGO，未送隔离或生产。证据P/real-ui-r11-geometry-20261021/ROOT-UNKNOWN-STATUS-OFFLINE-VERIFICATION.json2172/704f267e。
+
+PC/H5真实失败页面缓存响应式核对保存：H5请求390×844、实际375×844、panel337×820/client320/scroll320，finally已恢复PC；不冒实际iPhone、新成功成品重开/排字/下载。R11UI索引P/real-ui-r11-geometry-20261021/ROOT-UI-EVIDENCE-INDEX.json5276/d2673bf7，包含原PNG/JPEG/AX/9refs/console和离线说明；图中旧4da不是本轮成品。阶段3受理未解、阶段4交付HOLD，合格新版0/单合格成本N/A。恢复查唯一PLAN.next44_geometry_preparation与原sole这一次RO真实C/T，不能重10source/normal/READY/OPEN/UI任务或重新请求已消费窗口；不把成本MFA等他窗问题带入本任务。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 21:06:30，新真人批准R11单张有限验收，固定22:06:30关闭
 
 登记前HEAD3391751/产品7eedae7。真正新人call_e70e95ef34354b8882727e2d8c10d5e2答「同意按此范围立即限时验收」，官方turn01a15e76-4a03-72f3-a8fb-9e511564b63a/user01a15e91-e888-7420-8adc-96c0bea06b4d（同一进行中turn内新用户消息，非旧e8a）。Root首次clock13:06:30UTC=21:06:30北京/1792587990；固定END1792591590=22:06:30，latest首次OPEN1792589790=21:36:30，同窗不重开不延时。H/new-human46-geometry-20261021-r1/OFFICIAL-ORIGINAL.json92030/3008fe3ecfe20b2c8f047278aa433b32158e6cc0a51d7de580ff499994510896是官方read_thread(includeOutputsfalse)原UTF8文字，未抽条拼造；保存时apply_patch附加的LF已机械去掉恢复原字节。ROOT-OBSERVED-WITNESS.json2361/4a231d5682635728a7cf5a3458b40a31bbdd80da9870938bb1fcffac35435ef4绑定真实题答/固定时刻。首次本机统计用不存在TextEncoder报错，未写云/无外部动作；仅改为UTF8码点统计后保存，时刻未重取或移动。

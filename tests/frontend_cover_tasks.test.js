@@ -45,6 +45,29 @@ test('a conflicting or 5xx response remains unresolved instead of creating a fre
   await c.coverCreate(ctx);assert.ok(ctx.pending);await c.coverCreate(ctx);assert.equal(posts,1);
  }
 });
+test('an unresolved new request never borrows an older task billing receipt',async()=>{
+ for(const billing of [{status:'released',reserved_credits:0},{status:'committed',credits_used:8}]) {
+  let posts=0,found=false;
+  const older={...completed,job_id:'older-task',status:billing.status==='released'?'failed':'completed',has_final:billing.status==='committed',billing};
+  const {c,ctx,el}=make({fetch:async(url,options={})=>{
+   if(options.method==='POST'){posts++;return {ok:false,status:503,json:async()=>({detail:'核查原请求'})};}
+   const jobs=found?[{...completed,job_id:'new-task',request_id:ctx.pending.request_id,status:'queued',stage:'queued',has_final:false,billing:{status:'reserved',reserved_credits:8}}]:[older];
+   return {ok:true,json:async()=>({enabled:true,quote:ctx.quote,jobs,latest_success:ctx.latest})};
+  }});
+  const saved=older.has_final?older:completed;
+  c.coverAcceptJob(ctx,older);ctx.latest={...saved};ctx.previewKey=saved.job_id+':'+saved.asset_revision;
+  await c.coverCreate(ctx);const original=ctx.pending.request_id;
+  assert.match(el('status').textContent,/受理结果待核查/);
+  assert.doesNotMatch(el('status').textContent,/预留已释放|实际扣分/);
+  await c.coverRefresh(ctx);
+  assert.equal(ctx.pending.request_id,original);assert.equal(posts,1);
+  assert.doesNotMatch(el('status').textContent,/预留已释放|实际扣分/);
+  assert.equal(ctx.latest.job_id,saved.job_id);
+  found=true;await c.coverRefresh(ctx);
+  assert.equal(ctx.pending,null);assert.equal(posts,1);
+  assert.match(el('status').textContent,/已预留 8 积分，尚未扣分/);
+ }
+});
 test('a saved task is recovered by server request identity and disabled submission still permits the saved preview',async()=>{
  const {c,ctx,storage,el}=make();c.coverWritePending(ctx,{request_id:completed.request_id,quote_version:'v'});
  c.fetch=async url=>url.includes('/download')?{ok:true,blob:async()=>new Blob(['synthetic'],{type:'image/png'})}:{ok:true,json:async()=>({enabled:false,reason:'暂时关闭新提交',quote:null,jobs:[completed],latest_success:completed})};

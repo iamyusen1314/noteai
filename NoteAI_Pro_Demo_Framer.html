@@ -8400,7 +8400,7 @@ function coverRender(ctx) {
   el('availability').textContent = !ctx.enabled ? (ctx.reason || '封面新任务尚未开放，已保存成品仍可读取。')
     : ctx.quote?.can_afford === false ? '可用积分不足，请先查看账户积分。' : '';
   el('status').textContent = ctx.notice || (job ? coverTaskStage(job) : '尚无封面任务。选择本人真实素材后即可独立制作，无需重新生成报告。');
-  if (job?.billing) {
+  if (job?.billing && (!ctx.pending || job.request_id === ctx.pending.request_id)) {
     const bill = job.billing;
     const billingText = ['committed','charged','settled'].includes(bill.status)
       ? `实际扣分 ${Number(bill.credits_used) || 0} 积分`
