@@ -138,7 +138,7 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
-| 2 最小实现与离线验证 | 主代理；独立问题子代理 | PRODUCT_SOURCE_OFFLINE_GO / 7eedae7、a8f2fbc、edda0a3、01ffe6c | 几何输入/状态身份/脱敏诊断已定向测与独审；最新两诊断测试PASS，复用原27；前端本机2叶变/13同 | 现有API仍7e；core R2/entry R3/host final窄审均通过；精确18条私有source预置实际完成并全核，未启动或开放 |
+| 2 最小实现与离线验证 | 主代理；独立问题子代理 | LOCAL_SOURCE_REVIEW_GO / 48dbe56＋1d927f2 | 固定排字契约5项＋设计checkpoint7项离线通过；五叶3.11编译，双独审无P0-P2 | 仅源码/本地证据；原sole准备最小HOLD薄适配，尚未预置或加载这五叶 |
 | 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | R12_FAILED_TEXT_OVERFLOW_ACTUAL_EARLY_CLOSED | 一次原号恢复建b04a；1Lite0.0117126元，累计45/3.9263058/pending0；final0分/余额8；23:53:48真CLOSED | 无candidate/QC/新品；实际plan未留存，具体overflow分支UNKNOWN；仅局部修复，不能自动重试或重开 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_PASS_DELIVERY_HOLD / 01ffe6c | 7e几何独审4427621d；a8/edda/01ff独立窄审与既有真实R10财务18项复用；原PNG保 | 新版合格交付0/单位成本N/A；最终辅助source独审及真实PC/H5重开/排字/下载未齐；Q07/真iPhone/多人未验 |
 
@@ -1714,3 +1714,14 @@ Root已将真raw/witness和固定时间交原sole：只既有host晚绑→一次
 源码与原sole均确认：run_cover实际设计响应只在内存，design_json直到complete_job才写；legacy guard只有计量投影/receipt_sha，ark_media不日志body，本次无已知实际plan文件。不扫日志/再云读/重调模型，不以失败码断言长标题。四类实际排字分支（>4行、单行宽、ink越框、行ink重叠）目前具体命中UNKNOWN；已证的源码缺口为导演能力目录/Prompt未公开4行与padding/ink限制且新span最多允许12显式行。局部补齐能力/断点契约，并在现有design_json中于v2已校验plan、render前按原owner/lease/fence保存，便于失败复查；固定字级/原文/质检与失败即停保留，不靠静默缩字/宽松QC。Root拥有renderer/design及对应tests，foundation独占runtime/service/jobs及新checkpoint tests；entry审查者已只读独审失败层，无并行同文件编辑。无新schema/依赖/模型/生产动作。
 
 唯一PLAN已记录真实terminal/早关与上述恢复状态。阶段2局部修复与离线验证进行中；阶段3下一张真实新品PC/H5/重开/排字/下载及阶段4完整交付仍待，真iPhone/多人容量/Q07边界如实保。未来如需付费/新任务或重新公开，待局部修复与审查具体完成后集中说明，不借已消费R12或剩余1call新发。原sole只保基线答疑/精确云执行及统一发布归属，不并行产品源码。
+
+
+### 2026-10-22 00:26，48dbe56＋1d927f2封面局部修复冻结并独审；下一仅最小HOLD接续准备
+
+分支codex/noteai-xhs-cover-20261019，产品HEAD1d927f2，继承48dbe56，不回退。48d仅补导演可见4行/3断点/padding/ink固定字级契约，原渲染几何与拒绝条件保持；1d仅为v2校验后的设计在render前同步保存既有design_json，活owner/token/lease/fence/阶段短事务write-once，同值幂等/异值拒绝，complete不清空/替换已有快照，写失败在compose/QC/storage前停止。不保存HTTP/reasoning/照片字节，不增schema/依赖或公共投影，不加模型重试，不改8分/90天/原文/前端/生产。此修复补已证契约和诊断缺口，不声称还原或验证R12具体overflow参数。
+
+Root5项受影响检查PASS0.350s（原tool cb6d15，未伪造磁盘raw log；首新测试分隔符夹具错误保），checkpoint新增7项真实临时SQLite＋MockTransport/socket fence PASS1.803s（P/design-checkpoint-repair-r1/checkpoint-tests-final.log1399/0c027045），含实际render overflow留计划且无QC/asset/final扣分、真实DB触发器写失败停止、失效/跨用户/终态围栏、不可替换与成功交付保持、v1兼容。首轮tuple/list及违规状态夹具错误只改测试，原失败日志保。5个源叶Python3.11编译及diffcheck通过；独审TEXT-CONTRACT-INDEPENDENT-REVIEW.entry-review.json3213/91f9b91c和DESIGN-CHECKPOINT-INDEPENDENT-REVIEW.entry-review.json3750/dde8bef6均无P0-P2，独立审查未重复7套测试。
+
+R/PRODUCT-TEXT-CHECKPOINT-DELTA.json10100/e77fce42含五叶before/after exactpins、加载名、checkpoint格式/262144UTF8上限/时点、两审与真实45父链exactref。变更只有cover_design/renderer/runtime/service/jobs；API及01ffe前端/15静态叶不变，可复用不重运。已交原sole，仅授权本机薄适配现有HOLD模板/最小私有源预置方案：新第8任务/新正常UUID、45→47最多2Lite/0生图/新增≤1元仍原80/100及现有8分；这是未来提案，future human/clock/END仍null，未授权云source-only或normal/CAS/slot8/operator/OPEN/模型/业务SQL。不能原样用旧44→46同UUID恢复模板，不能复活failed b04/434e或扩131072上限；等具体薄适配/传输plan后Root核再作私有source-only，准备齐再集中向用户确认当次有限公开及真实验收。没有新发布体系，原sole仍最终统一发布。
+
+R12实际23:53:48早关/一次原号POST/1Lite0.0117126元/累计45known3.9263058pending0/final0分余额8原样，入口持续CLOSED/API保留且尚未加载新五叶。旧44streamSHA＋新1完整实账是45真实父链；无full45数组原件，不伪造导出。原sole确认无b04实际plan，失败具体分支UNKNOWN；新版合格仍0/单张成本N/A，供应商invoice/bank UNKNOWN不清。唯一PLAN已更新冻结修复及next47本机HOLD状态；真实新品PC/H5/保存重开/免费排字/下载仍待，真iPhone/多人容量/Q07边界保。

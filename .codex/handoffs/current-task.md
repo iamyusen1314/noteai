@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-22 00:26，48dbe56＋1d927f2封面局部修复冻结并独审；下一仅最小HOLD接续准备
+
+分支codex/noteai-xhs-cover-20261019，产品HEAD1d927f2，继承48dbe56，不回退。48d仅补导演可见4行/3断点/padding/ink固定字级契约，原渲染几何与拒绝条件保持；1d仅为v2校验后的设计在render前同步保存既有design_json，活owner/token/lease/fence/阶段短事务write-once，同值幂等/异值拒绝，complete不清空/替换已有快照，写失败在compose/QC/storage前停止。不保存HTTP/reasoning/照片字节，不增schema/依赖或公共投影，不加模型重试，不改8分/90天/原文/前端/生产。此修复补已证契约和诊断缺口，不声称还原或验证R12具体overflow参数。
+
+Root5项受影响检查PASS0.350s（原tool cb6d15，未伪造磁盘raw log；首新测试分隔符夹具错误保），checkpoint新增7项真实临时SQLite＋MockTransport/socket fence PASS1.803s（P/design-checkpoint-repair-r1/checkpoint-tests-final.log1399/0c027045），含实际render overflow留计划且无QC/asset/final扣分、真实DB触发器写失败停止、失效/跨用户/终态围栏、不可替换与成功交付保持、v1兼容。首轮tuple/list及违规状态夹具错误只改测试，原失败日志保。5个源叶Python3.11编译及diffcheck通过；独审TEXT-CONTRACT-INDEPENDENT-REVIEW.entry-review.json3213/91f9b91c和DESIGN-CHECKPOINT-INDEPENDENT-REVIEW.entry-review.json3750/dde8bef6均无P0-P2，独立审查未重复7套测试。
+
+R/PRODUCT-TEXT-CHECKPOINT-DELTA.json10100/e77fce42含五叶before/after exactpins、加载名、checkpoint格式/262144UTF8上限/时点、两审与真实45父链exactref。变更只有cover_design/renderer/runtime/service/jobs；API及01ffe前端/15静态叶不变，可复用不重运。已交原sole，仅授权本机薄适配现有HOLD模板/最小私有源预置方案：新第8任务/新正常UUID、45→47最多2Lite/0生图/新增≤1元仍原80/100及现有8分；这是未来提案，future human/clock/END仍null，未授权云source-only或normal/CAS/slot8/operator/OPEN/模型/业务SQL。不能原样用旧44→46同UUID恢复模板，不能复活failed b04/434e或扩131072上限；等具体薄适配/传输plan后Root核再作私有source-only，准备齐再集中向用户确认当次有限公开及真实验收。没有新发布体系，原sole仍最终统一发布。
+
+R12实际23:53:48早关/一次原号POST/1Lite0.0117126元/累计45known3.9263058pending0/final0分余额8原样，入口持续CLOSED/API保留且尚未加载新五叶。旧44streamSHA＋新1完整实账是45真实父链；无full45数组原件，不伪造导出。原sole确认无b04实际plan，失败具体分支UNKNOWN；新版合格仍0/单张成本N/A，供应商invoice/bank UNKNOWN不清。唯一PLAN已更新冻结修复及next47本机HOLD状态；真实新品PC/H5/保存重开/免费排字/下载仍待，真iPhone/多人容量/Q07边界保。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 00:14，R12真实排字失败已早关；仅封面排字契约与设计checkpoint局部修复中
 
 登记前HEADdc51f48，分支codex/noteai-xhs-cover-20261019，既有产品01ffe6c/后端7eedae7；不回退、不新建工作树。R12新确认有限scope已实际消费：normal PID45206、独立ownREADY、timer-first OPEN都取得真原件且Root逐byte核；Root只在原报告0cdbe恢复9素材后点一次“核查／重交原请求”，原UUID434ea45c建立job b04a332b-d7fb-40b5-9734-b461c53fff99/usage619428ad-d9f8-43f4-9481-54f9aeb16376。界面先确认同号内容/预留8，随后真实未交付/已释放，HTTP数字未实际捕获；旧4da保历史，不冒新版样本。
