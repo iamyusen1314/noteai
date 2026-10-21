@@ -145,7 +145,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | SAMECAP47_SOURCE_REVIEW_GO_EXACT8_R2_SOURCE_ACTUAL_PENDING | finalpair5036/f410与HOST tuple P1修复/ENTRY双独审GO；Root授权精确8私有源，未开放/新任务模型0 | 原sole8实际原件待返，只查原C/T勿重派；无新真人/normal/OPEN/付费scope，入口实际CLOSED |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | ACTUAL8_R2_SOURCE_VERIFIED_QUALITY_PLAN_HOLD | 精确8条S0D0/R1全原件、3source raw及14源pin全核；只保存未加载/模型0 | Q-R16收敛更强模型与图片工具质量方案；无新normal/OPEN/付费scope，入口实际CLOSED |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1815,3 +1815,42 @@ HOST窄审捕获的唯一P1：main把startup-hold.json required写成str，inven
 唯一合计划T/SAMECAP47-EXACT8-SOURCE-ONLY.PLAN.HOLD.root-r2.json55376/SHAed8ea9c6519227d1c46c91908aaab5050011971b5ae763d734a5a1d9d7ce7d65，原sole机械46新refs/8wire/原tokens记录30006/535c8aa0复用。Root只核plan/机械/双审whole pins及8wire/raw逐byte+SHA+Base64、8tokens唯一不重consumed10、原Timeout60/ProcessTree，maxwire15188<16384；没有第二次语义审或重测。ROOT-AUTHORITY.SAMECAP47.EXACT8.R2.SOURCE-ONLY.json16512/SHA0922122bd2e6ac713dba5875913ded504eb54837a3b03c0644c568cba91a3041明确许可原sole顺序8条一次：6inactive host源片＋1runtime-successor物理原件＋1entry源原件，未改OPI/launcher/observer/aux同机复用，product14/served15/字体不运。逐Success/Exit0/Dropped0/Repeats1且proof吻合才下一；UNKNOWN仅查原C/T，不重派或另批。只私有源保存/同响应完整Run/Read/stdout/source原件，不加载，不normal/TERM/START/CAS/operator/slot8/OPEN/model/businessHTTP/SQL/freshPG/配置Env/生产/新资源/赠分。新guard f410是派生，不混称旧5a同byte。
 
 原sole已接明确技术授权，实际新8 C/T/sourceaggregate尚未返；恢复先查原sole本批原进度，不重旧10/18/失败normal或未执行d36。唯一PLAN.startup_pin_alignment_preparation已记source-only authorized/actualpending，public/paid false，future新human/clock/END/normal/READY/OPEN/job全null。此授权时间只是非付费技术记录，不是新真人clock/公开时窗；旧失败06:35:40/07:35:40 scope已消费。当前最后实证candidate Exited2/PID0/restart0、入口CLOSED、02f7cap47、45known3.9263058/pending0（旧CAS-time9436摘要）保；本轮无新UI提交/模型或合格新品，单位成本N/A。下一只核8真实源原件，全准备具体齐后才集中新的有限真实验收确认。正文/生产范围不改，真iPhone/多人容量/Q07等未验保。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+
+### Q-R16 — 2026-10-22，质量选型复核：规划模型、真实照片工具与生图分开（推荐，未批准执行）
+
+接收用户关于 Lite/Pro、Lovart 及更强模型处理选图、裁剪、修色、排字的连续质疑。登记前 HEAD5660bf1；产品1d927f2、前端01ffe不改。本节是事实核对和方案，不冒用户批准；累计80次/100元不变，无新付费调用/入口。原sole已授权的精确8条R2私有源码保存可继续收尾、只收原回执；完成后保持HOLD，不立即按旧0生图/2Lite方案索取开窗确认。当前只收到原窗口“前两步成功”的进度，完整8条原件尚未核齐，不能声称已完成。
+
+**查明的现有行为与不足。** 原用户拒收的4da1165c封面，唯一PLAN记录真实2次Seed2Lite、0次图像模型调用；不能说其质量差是SeedreamLite造成。当前设计/QC型号是 `doubao-seed-2-0-lite-260428`，`model/ark_media.py:320/323` 两种请求明确 `thinking.type=disabled`，不是模型天生不能思考。官方确认该Lite可开启thinking；Seedream5Lite也具备思考能力。现有 `cover_seedream.py` 配置的图像模型本来就是 `doubao-seedream-5-0-pro-260628`，但旧runtime生图prompt仅要求无文字/无实物的抽象纸张背景，不负责完整封面设计。旧设计prompt建议照片中部、上下留字，照片与文字框不相交、照片面积最低0.35；这类限制会压缩构图空间，不能仅甩给模型。v2虽已取消统一横条模板，仍未有一张合格新版真实成品；不能据源码修复宣称设计通过。关闭thinking也尚未被对照实验证明为唯一根因。
+
+**优先推荐及替代候选。**
+
+| 角色/候选 | 推荐理由与实际接入边界 | 公开价格依据 |
+| --- | --- | --- |
+| 首先验证 Seed2.1Pro `doubao-seed-2-1-pro-260915`：设计导演＋单独的最终像素QC调用 | 具备多模态、思考、工具及结构化输出；现有Ark视觉通道可复用，但须封面专用参数/计量和账号核权，不能改共享ark_media全局而影响报告；思考输出预算不能盲用原2048。厂商复杂视觉/CreativeWork评测不是NoteAI质量证明 | 输入6元/百万token，输出含原始思考30元/百万。若每次全输入≤20k、总输出含思考≤4k，约≤0.24元/次、两次≤0.48元；这是token假设，非单张保证价 |
+| Claude Opus5.5 `claude-opus-5-5`：质量对照候选 | 官方图片入/文字出、视觉/工具/自适应思考；现有产品只是Sonnet4.6文本路由，Gateway604–606明确IMAGES_DISABLED，不能把已有Claude当视觉已接通。当前尚无该型号账号/图像合同验证 | 官方USD4/20每百万输入/输出token；不换算汇率、不冒现有渠道价 |
+| Gemini3.1Pro `gemini-3.1-pro-preview`：另一视觉规划/审稿候选 | 支持图片理解、思考、工具/结构化输出，不直接生图；Preview且当前无本任务可用账号/接入证据。NanoBanana图像型号是另一类，不混称 | 官方≤200k上下文USD2/12每百万输入/输出token；思考计入输出 |
+| Seedream5Pro `doubao-seedream-5-0-pro-260628`：完整视觉候选/必要图形设计执行 | 试验时要给真正封面设计brief，不再仅做纸张背景；参考图/局部编辑不保证设施或照片像素不变。直出候选不能跳过真实性验收，也不能冒可免费改字的分层成品 | 1776×2368为4205568像素，输出0.60元；同九图输入再0.16元，共约0.76元，不含规划/QC/存储/UNKNOWN |
+
+**真实图片工具缺口。** 当前Pillow renderer只有EXIF转正/RGB、受保护矩形crop、LANCZOS等比contain与文字渲染；没有ICC→sRGB、曝光/白平衡/曲线/饱和/锐化流程。文字“对比纠正”改的是字色，不是修照片。字体目录仅思源黑体Bold＋宋体Regular，几何通过不等于字体审美通过。现有 `model/requirements-api.txt` 已有Pillow/OpenCV/NumPy，可先补封面所需的有限、可复原操作，无需新平台/生产依赖；ImageCms实际编译支持待核。工具必须保留原图、操作参数、主体保护及预览，禁止生成式扩景/补菜/改设施；适度修色也须检查不歪曲材质和食物颜色。新增操作若采用，必须贯通合同、持久化、重开、免费调整边界和下载，不能只让模型输出JSON。
+
+**参考Lovart可验证的做法。** 官方公开流程为需求/真实参考/BrandKit→任务工具和模型→画布→可逆局部编辑；Skills明确包含RedNote covers，固化专业指南和多步流程；支持TouchEdit、EditElements和独立文字层。应借鉴行业与笔记意图明确的brief、区分真实商家素材与风格参考、可审设计计划、实际制作工具、最终像素审稿、针对问题的局部修正。其内部prompt、Agent拓扑及critic次数未公开，不假称已复刻。无需新增Agent平台或完整编辑器；不让多个角色反复讨论代替成品。
+
+**建议验证顺序（尚未执行）。** 先固定水石清池九张原图/顺序/hash、已有报告/标题、实际可执行工具，比较设计规划方案；再单独比较图像模型，避免同时改模型/prompt/渲染器后无法判断原因。相同prompt的图像对照必须是真正的封面brief，而非当前产JSON的规划prompt或旧抽象背景prompt。Seedream5Lite/Pro各一图、同九图及1776×2368时公开图像价合计约0.98元；但Lite已EOM且2026-11-24 14:00北京EOS，不新增产品默认依赖，账号若不可用则不新开通/强行跑对照。一次一图只能证明本样本，不能宣称普遍优劣。真实性（设施/空间/主体/原素材对应）、文字准确、构图、字体层级、缩略图可读性逐项看实际像素；事实不符直接拒，不以更高美观评分抵消。最强原照保护仍是原照图层直接处理，不能仅依赖模型“看起来真实”。
+
+本次两个事实研究子代理及一个源码工具核对代理均真实使用、只读完成。没有模型调用、账号操作、新依赖、产品代码、迁移或生产改变。下一步先向用户说明上述推荐和取舍，收敛质量方案；其后局部实现/离线验证，再为具体新模型调用和必要测试入口集中确认。旧真实验收与所有UNKNOWN继续保留，仍无合格新版每张交付成本。
+
+官方资料（本次实际读取）：
+- [Seed思考参数](https://docs.volcengine.com/docs/ark/deep-thinking?lang=zh)、[Seed2.1型号](https://docs.volcengine.com/docs/ark/model-list?lang=en)、[Seed2.1能力说明](https://seed.bytedance.com/zh/blog/seed2-1-officially-released-advancing-ai-productivity)。
+- [Seedream5Lite](https://seed.bytedance.com/zh/seedream5_0_lite)、[Pro](https://seed.bytedance.com/zh/seedream5_0_pro)、[Ark价格](https://docs.volcengine.com/docs/ark/model-pricing?lang=en&redirect=1)、[下线公告](https://docs.volcengine.com/docs/ark/model-deprecation-notice?lang=zh)。
+- [ClaudeOpus5.5](https://platform.claude.com/docs/en/models/opus-5-5/overview)、[Gemini3.1Pro](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview)、[Gemini价格](https://ai.google.dev/gemini-api/docs/pricing)。
+- [Lovart工作流](https://www.lovart.ai/docs/getting-started/how-lovart-works)、[Skills](https://www.lovart.ai/docs/how-to-prompt/agent-skills)、[模型锁定/直接生成区别](https://www.lovart.ai/docs/how-to-prompt/selecting-ai-models)、[局部/分层编辑](https://www.lovart.ai/docs/edit-your-design/advanced-ai-editing)、[独立文字层](https://www.lovart.ai/docs/edit-your-design/canvas-objects)。
+
+
+### 2026-10-22 07:36:11实际保存完成，精确8条R2原件与源pin闭合；质量方案HOLD
+
+原sole实际07:31:01–07:36:11北京精确8条R2私有源码一次完成，8/8 Success/Exit0/Dropped0/Repeats1，原tokens各一次，无UNKNOWN/云重派。aggregate T/actual-samecap47-exact8-source-only-r2/ACTUAL-ALL8-SOURCE-ONLY.json16522/SHA b95cddd89c96d3af2d074d99dd6efc91ce1a2c27cff306491dc710a109c9b531。Root已核八官方Run/Read C/T/Request、plan intent、严格Base64 Output等完整stdout、三同响应gzip/entrypack原byte。host raw2150/cf8d1809、runtime-successor2610/a45b2adc、entry3844/e079dfd9；后者是header+LF+原文，不重JSON。sourcepin窄审child仅补新manifest与旧actual10真实raw所载未改aux，8host+6entry全符；复用Root回执检查，不冒二次整套独审。唯一ROOT-ACTUAL8-WHOLE-READBACK.root.json21468/SHA37fffc6f25baf520dfc6a3d33baabff59d98d98921d9f825aa37a12301a7a264。
+
+Root本机reader最初把官方Output当plain而非Base64，及把旧aux误当新manifest内嵌/猜旧raw目录，断言先停；只修本机读取，最终从旧ROOT-ACTUAL10真实ref取原件，不改任何源/原证、不云查询/重派。候选同CID/image Exited2/PID0/restart0、入口CLOSED、protected/mounts/旧productstage11627与runtime3ba本真来源保持。新runtime5036/guardf410/host0742/entryd1f5只保存未加载；normal/TERM/START/CAS/operator/OPEN/模型/HTTP/SQL/生产/新资源全0。未fresh读PG/账，45known3.9263058/pending0仍旧原账证据，不冒今日新财务读数。
+
+source-only授权已消费，不重旧10/18/本8或failednormal；PLAN记录actual与proof、cloud-source false/public-paid false，futurehuman/clock/END/normal/READY/OPEN/job全空。原sole已接质量steering，收尾保持HOLD；下一按Q-R16收敛规划模型＋有限专业照片工具，复用报告及九原照，不改正文/积分价格/保存期/生产。合格新版0，真实新PC/H5重开/免费排字/下载、真iPhone/多人/Q07仍未验；不能把8条辅助保存当功能质量进度。本检查点只改文档及既有唯一PLAN。

@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 07:26:49，最终窄审GO、唯一P1已修；精确8条R2私有源码保存已授权原sole，实际回执待返
+## CURRENT — 2026-10-22 质量选型复核完成；精确8条R2私有源码原件已核、未加载，公开/模型仍HOLD
+
+登记前HEAD5660bf1；产品1d927f2、前端01ffe未改。最新用户质疑聚焦更强规划/QC模型、真实照片裁剪修色排字与Lovart方法，不是新付费调用/开窗批准。已核代码：旧拒收4da真实2Lite/0生图；当前Seed2Lite260428设计/QC显式thinking disabled；旧Seedream本来配置5Pro但仅抽象背景prompt。官方两类Lite都具思考，不能归因Lite天生不思考，也未证明关闭thinking是唯一根因。三定向只读子代理完成，事实/推荐/价格/边界完整见HANDOFF末节Q-R16。
+
+优先建议验证封面专用Seed2.1Pro260915(开启思考)导演＋单独最终像素QC，强视觉候选还包括ClaudeOpus5.5、Gemini3.1ProPreview；没有声明谁已通过本任务质量。现有Claude网关IMAGES_DISABLED，现Kimi文本适配，不能当视觉已接好。现renderer只有EXIF/RGB/crop/contain/两字体排字，没有ICC和照片修色；现依赖Pillow/OpenCV/NumPy可补必要有限工具，无新平台。Lovart公开参考/专业Skills/工具执行/分层及局部编辑可借鉴，其内部prompt/拓扑未公开。新模型/工具参数和修色边界是待收敛方案，尚未改产品或供应商调用。
+
+原sole07:31:01–07:36:11北京精确8 R2 source-only全部S0D0/R1；aggregate16522/b95cddd8，三raw2150cf8/2610a45/3844e079。Root核8官方Run/Read/Base64完整stdout/intent及3raw；child仅补8host/6entry源pin，唯一proof21468/37fffc6f。只保存未加载，授权已消费；本机reader格式/祖先路径纠正不云重派。禁止原8重派/加载/normal/TERM/START/CAS/OPEN/模型/业务HTTP/SQL/生产。现保持HOLD，不立即索取旧0生图/2Lite验收窗。旧06:35scope已失败消费；未来human/clock/END/job均空。最近真实45complete/known3.9263058元/pending0来自原账证据，不是本次新fresh读；累计80次100元不重置。原报告/正文/旧成品/UNKNOWN不动；新版合格仍0/单位成本N/A。下一先向用户解释质量方案，再局部实现与非付费验证；付费/公开须具体范围确认。唯一PLAN新增quality_model_review，不另建任务/交接体系。
+
+## HISTORY — 2026-10-22 07:26:49，最终窄审GO、唯一P1已修；精确8条R2私有源码保存已授权原sole，实际回执待返
 
 登记前HEAD02b3c4f，分支codex/noteai-xhs-cover-20261019，产品1d927f2/前端01ffe不改。core-samecap47-recovery-r1冻结runtime130304/5036c980、guard120564/f4109fb1、manifest16831/5e8e88ff；sole foundation新branch独审CORE-SAMECAP47-RECOVERY-INDEPENDENT-REVIEW.foundation.json7597/SHA9e7e1f229294ae909ffe2312a8b3c61360c0d09eb4d5bc19cfaa6fef23d6368b无P0-P2，原46→47body AST/loader ABI保持，4refs联实际失败父，same47仅窗变化，旧/新authority时钟分离。复用3.11.14新branch7项/.211＋历史过期单项/.019、不重7/原6；树两函数AST同，Root3.11六入口/.398证据复用。02f7 seal由可信producer重构且hash与真实RO相等，非独立raw导回；旧transition2725/c98是CAS-time投影非未来fresh45，边界明示。
 
