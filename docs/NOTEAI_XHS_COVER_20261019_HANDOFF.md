@@ -134,6 +134,9 @@
   A（仅技术收敛，尚未冻结/解阻）：Root同意同一guard文件的固定纯合同段loader：先核整guard exactSHA，再核唯一BEGIN/END及明确AST声明名白名单；host pure/OPI显式传入已pin目录，仅固定runtime绑定，不接外部selector或任意globals；cold与normal用同一函数体/事实SHA。此更新此前“无exec”的实现建议，仅允许这一已审核固定定义段compile/exec，避开整guard的httpx/legacy顶层，不新增文件/模块/挂载/依赖。第7个R12先精确验终态/成本/唯一释放，余6复用旧校验；旧CASE/history与新47分开。仍待真正组合控制及最终pins，不代表源预置或当次公开/付费批准。
 
 
+- **Q-R14-actual-tree-pins / 已证并离线修复，实云待验**：本次normal原trace落runtime bind_product→check_product_tree，原窗确认旧PRODUCT_FILES五SHA拒新1d五叶。相关runtime L167/184–186；实际RO338/f4e与product-stage11627/9e55已全核。原core作者四行取已锁map修复f045、sole foundation窄审84588c99、Root3.11六入口通过d2c045da；阻塞从树检查转为Q-R15，不能冒真实封面质量通过。
+- **Q-R15-same-cap47-startup-failure-parent / 原窗已答复缺口，技术适配本机进行中**：旧guard transition L1212–1231/cover_context L1340不支持实际02f7/cap47/Exited2PID0父，仅HOST换字段不足。Root已给最小建议并决定由原core唯一作者精确失败父新分支，保历史/同cap47/cases/max8/实账/失败inode；HOST/ENTRY闭合必要pin及独立runtime-successor物理原件。原窗确认接受实施，尚无最终guard/runtime pair或实际source运输；只阻塞隔离接续及后续真实验收，产品/正文/生产不改，无需用户为技术选择重复批准。
+
 ### 本任务权威清单与恢复 checkpoint（接收）
 
 此处延续原任务，清单/checkpoint 不另建副本。主窗口统一集成发布。
@@ -142,7 +145,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | STARTUP_PIN_CONFLICT_CONFIRMED_LOCAL_REPAIR | 一次RO全核：candidate Exited2/PID0、入口CLOSED；trace树门+旧五SHA对新1d冲突，OPEN/任务/模型0 | 原唯一core作者本机最小对齐及真实函数入口控制；失败scope已消费，无新normal/OPEN/model授权 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | TREE_FIX_SOURCE_GO_SAME_CAP47_HOLD_PREP | f045四行独审GO；真实树入口6项Python3.11通过；实际候选Exited2/CLOSED且本轮任务/模型0 | 原core/HOST/ENTRY本机最薄same-cap47失败父合同与必要pin闭合，最终pair待；未来公开/付费全HOLD |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1781,3 +1784,14 @@ stdout明确CAS_sent=true、TERM_sent=true、START_sent=true，phase=SAME_CID_ST
 实际trace与冻结源码确定失败门是bind_product L217→check_product_tree L184–186的树SHA/资源门，L66仅need统一抛出。runtime PRODUCT_FILES压缩表仍7e旧五叶，已通过stage的本轮1d五叶均新SHA；Root按实际11627/9e551 product14原件和冻结3ba0逐表核，9未改匹配、5冲突：design2d06→679676/jobsb56e→f3c000/rendererdd15→ea96/runtime240b→299ee/service1ba7→b67f。按源码顺序最早确定冲突design；hold未存错误后缀，不能称服务器原件直接点名它。发生在产品导入/PG检查/guard安装前，属于隔离接续校验表不同步，非模型或成品质检失败。此前8项只context/OPI/pure段而未执行bind_product→check_product_tree，覆盖漏项已明示。
 
 已交原唯一core作者做一个本机派生：当前树检查仅将对应model预期对齐bind_product已钉死的NEXT47 source_map/overlay，保历史表/9未改叶/资源字体SQL/非symlink/RO/artifact alias/PathFinder，不能跳过门或冒旧源码通过。补受影响真实函数入口控制（不stub这俩）：新五叶通过、任一旧叶混入/未改资源错SHA/错source_map拒；如temp根/只读挂载用控制适配必须明示，不冒云启动。只交具体diff/受影响证据及最小私有delta准备，复用原叶，不重产品5+7/旧18或10条源运输，不引平台/依赖/扩大131072。Root负责窄核和同一PLAN，foundation只读建议已结束，无同文件争写。当前无新normal/OPEN/付费授权，不在准备未齐时再问用户。合格新品0/单位成本N/A，报告正文与生产不动；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07边界保。
+
+
+### 2026-10-22 07:05:59，辅助树校验四行修复独审GO与目标3.11通过；same-cap47失败父接续仅本机HOLD中
+
+登记前HEAD5094a55，分支codex/noteai-xhs-cover-20261019；产品48dbe56＋1d927f2/前端01ffe未改。T/core-product-tree-pin-alignment-r1已冻结单runtime派生130299/f045bfdc37767a30ffefc902512b3b0811bd32f013ce1e3ba51dfc02c33809d7，manifest10676/923a8f45，patch1611/4e8d1002。只check_product_tree四行把5固定model预期取bind_product已钉死source_map，逆替换整文件等旧3ba0，历史两表byte/其他函数AST、9未改叶/资源字体SQL/RO/alias/origin门保，距131072上限773B。sole foundation CORE-PRODUCT-TREE-PIN-ALIGNMENT-INDEPENDENT-REVIEW.foundation.json4927/SHA84588c99c4de7c28bc165855ae9fcefb5263ce9fae405d0cc9ff63dd62fff067无P0-P2，仅源码/离线GO，未重跑。
+
+作者六个定向真实函数入口控制首次Python3.14 PASS/.415未留raw，随后同6一次捕获/.383，1823/87098f57与stderr936/fb45原件保，不冒3.11。Root为闭合实际cloud版本差异，只补同6一次Python3.11.14：6 PASS/0.398s（进程elapsed0.437798），target-python311-r1/ENTRY-CONTROLS.PY311.ACTUAL.json4006/SHA d2c045da3234726f1bcc4fd0b80622fd1ba897a4d4b4b0c74f552b3341c58786及stdout/stderr保；未重产品5+7/旧8/支付/报告。控制确走bind_product→check_product_tree：旧3ba0复现设计SHA拒、新18模块/14叶通过、5旧叶逐一混入/资源与API错SHA/错map/缺失/链接拒。temp根投影/statvfs只读flag/artifact sentinel边界明示，不是实云挂载/PG/启动/成品。未来runtime仅guard wholepin改而两函数AST同则复用这6，不重跑。
+
+新的实质技术缺口已由原HOST答复：旧guard next47_transition_check L1212–1231只3f63/cap46→47/cases+[CASE]，cover_context47 L1340优先consumed45_parent，旧recovery_window_parent也仅44/cap46；本次实际02f7/cap47/Exited2/PID0不能仅换HOST父字段就宣称支持。Root已明确原唯一core作者本机新guard派生，保旧分支历史；精确失败父同cap47/同cases不append、不增max8/physical47/预算，先按旧execution_authority真实验证3f63→02f7，再按未来新human/firstclock验证02f7→新seal，只允许时间/proofs/authority变化，45 fresh完整摘要/known3926305800/pending0仍现场检查。338hold本身不含CID/账本，必须联已存RO外层；旧CAS transition原件若必要缺件先给真实路径和最小安全读取方案，不用代码造actual或读Env/配置原文。保失败control/inode/CASE，guard固定新目录a68-v2-text-checkpoint47-recovery-r1和wholeSHA为必要版本数据；runtime除已审四行仅同步该固定目录literal/wholepin，不放宽path/ABI/131072。新branch受影响控制须组合旧真验证器不stub，旧6不重测。
+
+HOST/ENTRY各原唯一作者继续最薄本机HOLD闭合runtime硬pin、独立新runtime-successor原件（旧productstage11627诚实3ba0不改JSON）、Exited/Exit2/PID0/restart0和02f7 same-cap47父。OPI动态runtime契约/同byteguard以外未改叶、observer、product14、served15/字体全部复用；仅待最终guard/runtime pair一次对齐，不运输f045临时件或重10。ENTRY临时93eb/4381/manifest34bd仅dataHOLD非最终pair，各函数AST同；不能冒已可启动。唯一PLAN.next47_preparation.startup_pin_alignment_preparation索引四行GO/3.11原证，future新human/clock/END/normal/READY/OPEN/job全null，cloud transport与public/paid全false。原失败scope已消费、入口实际CLOSED/candidate Exited2，无新normal/模型或用户确认待答；合格新品0/单位成本N/A，报告正文/生产不动。下一等finalpair及changed-branch证据→solefoundation窄审→最终必要host/entry差分与最小私有source plan，非付费材料齐后才集中处理新有限验收。
