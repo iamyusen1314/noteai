@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-21 A68：新真人已确认，固定10:18:39关闭，原sole接续实测
+
+实际新真人回复已到：user01a15c0a-6f63-7a50-adf6-f9b0d525a221，原文answer“同意按此范围限时重测”，精确问题call_d6defac985dd4ecc884715db935b1d7c。官方read_thread186745B/9dfe5d60原件在P/actual-human-20261021-r3/read-thread.ACTUAL-ORIGINAL.json。新回复属于同一个旧active turn01a15bcb，turn.startedAt08:10:25不能冒新批准时间；useritem没有timestamp。canonical明示首个实观测clock09:19:31=1792545571作technical activation，END保守用问前clock09:18:39+3600=1792549119（北京10:18:39），早于真实新回复+60min；latest actualOPEN09:48:39，不滚动。新canonical3162/0511c37b8998ff37f72ed8b6cb64ead87a15212bc06632919a6197d748bb316d在同r3/a68-human-approval.json，root冻结c95 authority纯检验PASS。不是把旧08:10同意或工具accepted当新批准。
+
+本次1v2/2Lite/0image/0retry、新≤1元在原≤100、total≤38of40、复用既有8分且合格保存后一次结算；原report/九图/历史36/UNKNOWN/旧cover/生产范围保留。登记前HEAD07f030c，功能31b4d7b、现成辅助c95/a200/fe256/27e/b1ac/45a/3e69/0bb均不改。原sole已获真实source与固定END，按已实stage的c95 latebind→fresh36+8/noactive→同CID正常TERM及旧inode归档→真实acb4单CAS→唯一正常START→3e69一次ownREADY→成熟timer-firstOPEN余≥30min连续执行；root等真实host2raw+READY1填原6raw后唯一正常UI封面。当前尚无这轮实际新CAS/PID/READY/OPEN/模型，不冒成功；原source运输、原件读回、gift或报告不再重派。唯一PLAN记录ACTUAL_NEW_HUMAN_CONFIRMED_CONSERVATIVE_FIXED_END101839，恢复由它和本节接续，结果未知只查原C/T/原请求。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：恢复准备及实际源码运输闭合，旧窗已过期，仅待新有限窗口
 
 登记前HEAD37ff68c，功能仍31b4d7b；本次只完成必要测试辅助恢复准备，不更产品或生产。三功能辅助源R6a200/bridgefe256/entry27e与binderb1ac均已独审GO。原sole host具体prepare_r6.HOLD.py42295/c95c621a504d1567d9358205f1f125ee8521ad9d09aa0d5d3c6af6001353fbd1，22叶MANIFEST8463/93145c68；作者9纯项、非作者完整窄审GO无P1/P2，root逐22叶wholeSHA/defaultHOLD/TERM→确认退出→原inode整目录归档→acb4单CAS→同CID唯一START核合，未重复第三轮套件。独立launcher模板12254/45a82263、binder2656/5ec951c1、manifest1383/2d392e44亦非作者窄审GO，仍仅原3e69一次CLI+live identity+READY单原件gzip，未知不重发；host实际handle/startup两raw由c95既有raw-concat一次压缩回传，正好闭合原六raw，不添门。

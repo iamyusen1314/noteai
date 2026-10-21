@@ -1327,3 +1327,10 @@ host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz0
 本次两端源码和必要材料已实际就位，全部非付费准备实齐；只待新的真人有限公网/同报告一张v2重测批准。旧human272c的09:10:25固定END已经过期且入口早08:30关闭，不能滚动、新OPEN或再点POST。新human/END/实际TERM/CAS/START/launcher/OPEN/model全null/false；现有8分/旧36/3.8472528/pending0/历史UNKNOWN及旧cover保留，新合格v2仍0。contract另只读复核新CASE=new-report-cover-v2-a68，旧cover2不占新case，直接复用既有PURE12/独立SQLite2与相关AST未变证据：只允许全批37/38，第三次拒，两预留合计0.976896元≤新1元，旧36全列不重置，不新增测试/预算。上述模型执行仍尚未发生。
 
 下一唯一动作集中问新有限时窗：本次真人回复起≤60分钟且今天12:30北京前、实际OPEN余≥30min；保原受保护入口/正常登录原账号、同CID必要接续、原report九图新1v2、2Lite/0image/0retry、新≤1元在原≤100/累计≤38of40、复用gift8一次结算不重补。这是前次固定时窗到期后对再次公网开放的当次确认，来源为用户原时限及浏览器access/public exposure规则，不重问8分/90天等已定产品项。批准前只保CLOSED；批准后原sole唯一云执行/真实读回，root唯一正常UI生成及成品重开/准确免费短摘断行/下载；原窗口统一集成发布职责保持，当前无生产发布授权。
+
+
+### A68-R6-ACTUAL-HUMAN / 新有效时窗与保守固定截止
+
+实际新真人回复已到：user01a15c0a-6f63-7a50-adf6-f9b0d525a221，原文answer“同意按此范围限时重测”，精确问题call_d6defac985dd4ecc884715db935b1d7c。官方read_thread186745B/9dfe5d60原件在P/actual-human-20261021-r3/read-thread.ACTUAL-ORIGINAL.json。新回复属于同一个旧active turn01a15bcb，turn.startedAt08:10:25不能冒新批准时间；useritem没有timestamp。canonical明示首个实观测clock09:19:31=1792545571作technical activation，END保守用问前clock09:18:39+3600=1792549119（北京10:18:39），早于真实新回复+60min；latest actualOPEN09:48:39，不滚动。新canonical3162/0511c37b8998ff37f72ed8b6cb64ead87a15212bc06632919a6197d748bb316d在同r3/a68-human-approval.json，root冻结c95 authority纯检验PASS。不是把旧08:10同意或工具accepted当新批准。
+
+本次1v2/2Lite/0image/0retry、新≤1元在原≤100、total≤38of40、复用既有8分且合格保存后一次结算；原report/九图/历史36/UNKNOWN/旧cover/生产范围保留。登记前HEAD07f030c，功能31b4d7b、现成辅助c95/a200/fe256/27e/b1ac/45a/3e69/0bb均不改。原sole已获真实source与固定END，按已实stage的c95 latebind→fresh36+8/noactive→同CID正常TERM及旧inode归档→真实acb4单CAS→唯一正常START→3e69一次ownREADY→成熟timer-firstOPEN余≥30min连续执行；root等真实host2raw+READY1填原6raw后唯一正常UI封面。当前尚无这轮实际新CAS/PID/READY/OPEN/模型，不冒成功；原source运输、原件读回、gift或报告不再重派。唯一PLAN记录ACTUAL_NEW_HUMAN_CONFIRMED_CONSERVATIVE_FIXED_END101839，恢复由它和本节接续，结果未知只查原C/T/原请求。
