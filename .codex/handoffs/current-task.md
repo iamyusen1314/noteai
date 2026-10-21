@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-22 07:11:14，旧CAS ancestry真原件全核；原作者继续最薄same-cap47本机派生，无新执行批准
+
+登记前HEADf13df2f，分支codex/noteai-xhs-cover-20261019，产品1d927f2/前端01ffe未改。唯一必要定点RO C=c-sz070r4a24g5h4w/T=t-sz070r4a24v4v7k，Run01A160B8-835F-50C1-A411-BD0B4C39D719/Read01A160B9-0E72-5EDB-A9A3-09645135F8F4，23:07:49UTC成功S0D0/Repeats1。T/actual-failed47-transition-readonly-r1/transition.ACTUAL-ORIGINAL.json2725/SHAc98ae65e0096232e37ac10076d1d1a5a0bd49877fb91ec85aab5e6e564b936ed，真实原路径proofs/a68-text-checkpoint45to47-r1/transition.json，inode1462601/uid999/mode600。Root逐官方Output等完整stdout1513、gzip等2725原byte、状态/字段全核，ROOT-FAILED47-TRANSITION-WHOLE-READBACK.root.json7697/6b9e16832b908e3226518d61c40ab3e6cae8f2ae866d50567d38a04dac89a774；官方Run128/Read3152/截图原件保。仅此固定file读<=65536，不读配置原文/Env/凭据/全45行，不再云探测。
+
+真旧CAS是3f63/cap46→02f7/cap47；before/after均45calls/45dispatch/known3926305800/pending0/inode1460877/cases8相同，内部货币cap99000000000保持，原总80次100元不变，businessSQL/model0/noNewReport/budgetResetfalse。此前未有的实际45整流摘要现在由这份旧CAS-time原件获9436b0ab6bccd5c69566ab0a6f22ac03ee89e61debedde50edf11691cd394192，不是此次freshSQL或full45数组导出；未来仍须现场复算相同摘要/费用/无pending。旧authority与旧时窗只能证明旧CAS，新47→47只换有限新窗，不能套新人类到旧CAS或因旧END过去就拒合法历史/放宽当前窗。此必要时间反例已交作者覆盖，禁止运行期全局time伪装。
+
+旧transition缺件已闭合并交core/HOST；sole foundation建议在既有next47_transition_check先识别精确失败父，不加top-level/改loader名，联四实际原件（02f7seal/旧transition/f4e hold/RO外层scene）而非仅338shape。原core唯一作者继续newguard+必要runtime固定rootliteral/wholeSHA派生，HOST/ENTRY必要pin/source-successor接口闭合，约15分钟为作者对其薄适配/受影响controls的估计非交付承诺。四行树修复f045与3.11同6/独审证据复用，不重旧suite或source10；最终pair/最小source plan尚未交，不先运输临时件。唯一PLAN.startup_pin_alignment_preparation已索引真实c98原件/whole与旧CAS-time45digest；新human/clock/END/normal/READY/OPEN/job仍null，transport/public/paid false。scope失败已消费，现场候选Exited2/PID0、入口实际CLOSED不变，无新normal/OPEN/模型/报告。合格新版0/单张成本N/A；本轮新增模型费0，历史known3.9263058及UNKNOWN保。报告正文与生产范围不动，等待具体成品再窄审，不仓促向用户重问时窗。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 07:05:59，辅助树校验四行修复独审GO与目标3.11通过；same-cap47失败父接续仅本机HOLD中
 
 登记前HEAD5094a55，分支codex/noteai-xhs-cover-20261019；产品48dbe56＋1d927f2/前端01ffe未改。T/core-product-tree-pin-alignment-r1已冻结单runtime派生130299/f045bfdc37767a30ffefc902512b3b0811bd32f013ce1e3ba51dfc02c33809d7，manifest10676/923a8f45，patch1611/4e8d1002。只check_product_tree四行把5固定model预期取bind_product已钉死source_map，逆替换整文件等旧3ba0，历史两表byte/其他函数AST、9未改叶/资源字体SQL/RO/alias/origin门保，距131072上限773B。sole foundation CORE-PRODUCT-TREE-PIN-ALIGNMENT-INDEPENDENT-REVIEW.foundation.json4927/SHA84588c99c4de7c28bc165855ae9fcefb5263ce9fae405d0cc9ff63dd62fff067无P0-P2，仅源码/离线GO，未重跑。
