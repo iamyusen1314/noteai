@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→e4a020c | HEAD/branch/ancestor及用户首版合同；本次1篇新九图笔记+1封面/40物理调用/100元明确授权 | 原40/100只覆盖本次，不授权云充值/新资源/生产切换 |
 | 2 最小实现与离线验证 | 主代理集成；renderer/design/UI分工子代理 | A68_OFFLINE_COMPLETE / 功能31b4d7b（起点3773d2d） | v2图层/brief已接保存；后端87及R1单项1、最终受影响26PASS有重叠不累加；renderer23+1/design12/Node24；九图PC/H5实际本地HTTP/PNG下载PASS | 新版真实导演/成品质量未验；手工/模拟样本不冒Agent成果，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R5_UI_REJECTED_ZERO_NEW_ACCOUNTING / 新版未入模型；R6非付费准备中 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 准备同报告一次v2/2Lite/0image/0retry受控successor最小差异，正常8分且须具体隔离fixture/新有限公网scope；真iPhone/真人容量不冒通过 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | A68_R6_PREWINDOW_ACTUAL_READY / 新版未入模型；仅待新有限窗口 | 原真实report/cover4da/两版/36calls/3.8472528保留；Q09原窗只读说明旧guard一次名额已消费，不能延旧END重发 | 准备同报告一次v2/2Lite/0image/0retry受控successor最小差异，正常8分且须具体隔离fixture/新有限公网scope；真iPhone/真人容量不冒通过 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | A68_SOURCE_AND_OFFLINE_REVIEW_PASS_PRODUCT_HOLD | implementation-a68/contracts/final-review.json34557B/7fcdfece保留底图hash P2复现与修正，含最终PC/H5工具/证据窄审，无活跃P1/P2；旧真实证据不删除 | 真实模型/设计质量仍未验，不给产品可交付或发布GO；原窗统一集成，Q07现行90天规则仍待核 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1316,3 +1316,14 @@ A68-NEW-WINDOW-PENDING：root在上述实际准备闭合后已集中请求唯一
 media唯一binder P/entry/future-window-r6-HOLD-r1/prepare_entry_r6.HOLD.py32143/b1acafd8；receipt9933/165d28e6。root非作者diff+真实3.11.14 10PASS0.070，原9material/6raw/成熟3entryrefs保持。三片source-only已唯一实际0→1→2全S0D0，原stdout229/b5d812ab、229/e3e13bf1、478/1cdb26d2在同目录source-stage.LOCAL-ONLY/actual-000..002。C/T依次c-sz070ntnbu8pv5s/t-sz070ntnbuq75kw、c-sz070nto4z23668/t-sz070nto4zjkglc、c-sz070ntoz9p94hs/t-sz070ntoza6qeww。只新entry跨机三片（chunk6800），旧5源主机RO复制，不重31b/静态build/15文件/源码运输。真实source_bundle ROOT/a68-entry-r6-source-r1/source-input-readback.json3338/ddb7ff4c79db21343fcc5358fa9d8c5442f3ace0d111ea6d6633cfaeddca94ef；本机raw尚null，待与host sourceproof必要合并一次有界导回，不重三片、不从源码重建actual。
 
 尚未完成：原sole唯一host W/r6-future-window-HOLD-r1具体恢复载体的最终纯check/冻结及source-only运输，后续一次必要actualsource原文读回；不宣称全部准备完成。source GO不等于future执行GO。准备实齐后集中请求新有限公网/同report1v2真实重测，仍2Lite/0image/0retry、新≤1元在原≤100与累计≤38of40、复用8分不再gift。不重报告/不修正文/不变生产/不启新权限或平台。未来免费排字应以真实新封面文案作准确短摘和断行，不把旧cover文案强套新结果。当前合格新v2仍0，真实质量/重开/下载/真实iPhone/真人容量未验，成本分母0不能报0元合格交付。
+
+
+### A68-R6-PREWINDOW-ACTUAL-READY / 全部非付费准备实齐，等待唯一新有限窗口
+
+登记前HEAD37ff68c，功能仍31b4d7b；本次只完成必要测试辅助恢复准备，不更产品或生产。三功能辅助源R6a200/bridgefe256/entry27e与binderb1ac均已独审GO。原sole host具体prepare_r6.HOLD.py42295/c95c621a504d1567d9358205f1f125ee8521ad9d09aa0d5d3c6af6001353fbd1，22叶MANIFEST8463/93145c68；作者9纯项、非作者完整窄审GO无P1/P2，root逐22叶wholeSHA/defaultHOLD/TERM→确认退出→原inode整目录归档→acb4单CAS→同CID唯一START核合，未重复第三轮套件。独立launcher模板12254/45a82263、binder2656/5ec951c1、manifest1383/2d392e44亦非作者窄审GO，仍仅原3e69一次CLI+live identity+READY单原件gzip，未知不重发；host实际handle/startup两raw由c95既有raw-concat一次压缩回传，正好闭合原六raw，不添门。
+
+host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz070nv08izo074、c-sz070nv182g5n28/t-sz070nv18304tts、c-sz070nv24g7rpq8/t-sz070nv24gmr3sw；原stdout406/906f7351、406/756d7158、405/6f42738d在W/r6-future-window-HOLD-r1/source-part-000..002/actual。真实ROOT/a68-future-window-r6-source-input-r1/prepare_r6.HOLD.py42295/c95，原active/config/双guard/CLOSED保持；全target操作false。entry三片原C/T见前节，不重派。必要唯一source原件读回Cc-sz070nv95ltb56o/Tt-sz070nv95m8aj9c（Run01A15C07-7847-56D0-898B-D5AAE64731B6/Read01A15C07-A8EC-5BD3-A484-2A2EBF797489）S0D0：原stdout1761/0b94ca70、原3338/ddb7ff4c在同W/r6-future-window-HOLD-r1/entry-source-readback-export-once-r1/actual；root逐原字节SHA及冻结binder.source_bundle实际六叶合同PASS。没有构造actual原文或复跑运输。
+
+本次两端源码和必要材料已实际就位，全部非付费准备实齐；只待新的真人有限公网/同报告一张v2重测批准。旧human272c的09:10:25固定END已经过期且入口早08:30关闭，不能滚动、新OPEN或再点POST。新human/END/实际TERM/CAS/START/launcher/OPEN/model全null/false；现有8分/旧36/3.8472528/pending0/历史UNKNOWN及旧cover保留，新合格v2仍0。contract另只读复核新CASE=new-report-cover-v2-a68，旧cover2不占新case，直接复用既有PURE12/独立SQLite2与相关AST未变证据：只允许全批37/38，第三次拒，两预留合计0.976896元≤新1元，旧36全列不重置，不新增测试/预算。上述模型执行仍尚未发生。
+
+下一唯一动作集中问新有限时窗：本次真人回复起≤60分钟且今天12:30北京前、实际OPEN余≥30min；保原受保护入口/正常登录原账号、同CID必要接续、原report九图新1v2、2Lite/0image/0retry、新≤1元在原≤100/累计≤38of40、复用gift8一次结算不重补。这是前次固定时窗到期后对再次公网开放的当次确认，来源为用户原时限及浏览器access/public exposure规则，不重问8分/90天等已定产品项。批准前只保CLOSED；批准后原sole唯一云执行/真实读回，root唯一正常UI生成及成品重开/准确免费短摘断行/下载；原窗口统一集成发布职责保持，当前无生产发布授权。

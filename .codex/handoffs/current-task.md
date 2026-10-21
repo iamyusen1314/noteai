@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 A68：恢复准备及实际源码运输闭合，旧窗已过期，仅待新有限窗口
+
+登记前HEAD37ff68c，功能仍31b4d7b；本次只完成必要测试辅助恢复准备，不更产品或生产。三功能辅助源R6a200/bridgefe256/entry27e与binderb1ac均已独审GO。原sole host具体prepare_r6.HOLD.py42295/c95c621a504d1567d9358205f1f125ee8521ad9d09aa0d5d3c6af6001353fbd1，22叶MANIFEST8463/93145c68；作者9纯项、非作者完整窄审GO无P1/P2，root逐22叶wholeSHA/defaultHOLD/TERM→确认退出→原inode整目录归档→acb4单CAS→同CID唯一START核合，未重复第三轮套件。独立launcher模板12254/45a82263、binder2656/5ec951c1、manifest1383/2d392e44亦非作者窄审GO，仍仅原3e69一次CLI+live identity+READY单原件gzip，未知不重发；host实际handle/startup两raw由c95既有raw-concat一次压缩回传，正好闭合原六raw，不添门。
+
+host3片source-only已唯一实际0→1→2全S0D0，C/T c-sz070nv08ii6ps0/t-sz070nv08izo074、c-sz070nv182g5n28/t-sz070nv18304tts、c-sz070nv24g7rpq8/t-sz070nv24gmr3sw；原stdout406/906f7351、406/756d7158、405/6f42738d在W/r6-future-window-HOLD-r1/source-part-000..002/actual。真实ROOT/a68-future-window-r6-source-input-r1/prepare_r6.HOLD.py42295/c95，原active/config/双guard/CLOSED保持；全target操作false。entry三片原C/T见前节，不重派。必要唯一source原件读回Cc-sz070nv95ltb56o/Tt-sz070nv95m8aj9c（Run01A15C07-7847-56D0-898B-D5AAE64731B6/Read01A15C07-A8EC-5BD3-A484-2A2EBF797489）S0D0：原stdout1761/0b94ca70、原3338/ddb7ff4c在同W/r6-future-window-HOLD-r1/entry-source-readback-export-once-r1/actual；root逐原字节SHA及冻结binder.source_bundle实际六叶合同PASS。没有构造actual原文或复跑运输。
+
+本次两端源码和必要材料已实际就位，全部非付费准备实齐；只待新的真人有限公网/同报告一张v2重测批准。旧human272c的09:10:25固定END已经过期且入口早08:30关闭，不能滚动、新OPEN或再点POST。新human/END/实际TERM/CAS/START/launcher/OPEN/model全null/false；现有8分/旧36/3.8472528/pending0/历史UNKNOWN及旧cover保留，新合格v2仍0。contract另只读复核新CASE=new-report-cover-v2-a68，旧cover2不占新case，直接复用既有PURE12/独立SQLite2与相关AST未变证据：只允许全批37/38，第三次拒，两预留合计0.976896元≤新1元，旧36全列不重置，不新增测试/预算。上述模型执行仍尚未发生。
+
+下一唯一动作集中问新有限时窗：本次真人回复起≤60分钟且今天12:30北京前、实际OPEN余≥30min；保原受保护入口/正常登录原账号、同CID必要接续、原report九图新1v2、2Lite/0image/0retry、新≤1元在原≤100/累计≤38of40、复用gift8一次结算不重补。这是前次固定时窗到期后对再次公网开放的当次确认，来源为用户原时限及浏览器access/public exposure规则，不重问8分/90天等已定产品项。批准前只保CLOSED；批准后原sole唯一云执行/真实读回，root唯一正常UI生成及成品重开/准确免费短摘断行/下载；原窗口统一集成发布职责保持，当前无生产发布授权。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：三项辅助修复及binder通过独审，entry源实际已运输，host收尾中
 
 产品功能仍31b4d7b，登记前HEADffc0937；本节不把测试辅助当产品修改。唯一旧真人272c固定END09:10:25不变、latestOPEN08:40:25已过，原CLOSE保持；新真人/END/新CAS/start/operator/OPEN/model均null/false。08:30单次正常UI在native前被PARENT gate拒，真实RO新任务/模型/扣分0、wallet8/旧36/3.8472528/pending0/旧cover保留，证据沿上节，不重POST或补分。root仅滚动保留页面并保存P/real-ui-r5-20261021/pc-retained-rejection-top.png；图中仍是旧cover和旧8分，不是新成果。
