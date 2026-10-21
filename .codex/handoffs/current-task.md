@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-21 新真人已确认，固定15:21:33关闭，原sole立即接续真实验收
+
+新真人已明确回答call_059286257d854213a4a4662d28fc6d67“同意，立即限时验收”，official user01a15d20-1511-7d50-bc40-3ad8a7355fb1。旧active turn01a15ca2/startedAt12:04:51不是此次批准时间；官方user item未给时刻。真实question前clock14:21:33和新reply首次观测clock14:22:53分别1792563693/1792563773，故选择保守固定技术END1792567293＝今天15:21:33北京（前clock+3600，早于真人同意+60），latestOPEN14:51:33。两时钟与实际回复分开，不伪造精确批准时间。官方整原字节N/new-human74ab-r1/OFFICIAL-ORIGINAL.json616183/056378dc，实际witness在同目录；既有canon/finite-window由原sole按此真实新回复晚bind，不改已冻源/不再SOURCE。
+
+scope只新1cover/≤2Lite/0生图/0自动重发/新增≤1元、累计预计40在真人80内/总仍原100；复用8分及同原报告新9，合格保存唯一结算。正常登录原账号/同隔离后端必要cold与有限OPEN获批准，生产产品/DB不改。主root仍唯一正常UI，原sole唯一云执行；现在等实际fresh4RRRO→正常cold/单ownREADY→timer-firstOPEN原件，不因授权/代码就位就盲点。新actualPID/OPEN/job/model仍未报告，最近实账38/3.86898/pending0保留。旧12 source全部已消费，新human不是重运/补传/重报告理由。确认已收到，不再重复问；结果未知只读原请求不重发。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 修复74ab790及12条源码就位齐备，仅待新单张有限验收确认
 
 登记前HEADeb98e7e21480ab9ecb9f10f4f2250b01a5c7a2c7，功能74ab790/前cfe5b4c不再改。必要非付费接续已全部实际准备齐：N=F/actual-source-refresh-r1/next38-brief-oneleaf-HOLD-r1；唯一索引SOURCE-STAGING.ACTUAL.root-r1.json48665/736830f0bec3bc156449421e8cdcdedaf773fce304a8167f1dd88adfa9be1f25，host9+product1+entry2共12条全部Success/Exit0/Dropped0，每条C/T/Run/Read/stdout/原件/截图已记，已消费不可重运或重导。product同条原10875/2b66ce7c098aa678a93ad60838de1283c3ba0ab2d841b0295b0126ad1ba12465，14叶=新design94f一叶+保13（含runtime240b）；root逐14whole与本分支相等。entry同条原3446/9c8404daf066dcb38f7372fa26675bf0be73386d55174e1a3926c2c318ce0876在N/entry/runtime-pin-r2/source-output-envelope-r3/actual-001，6源+5保留sidecar已真齐，未造source raw。

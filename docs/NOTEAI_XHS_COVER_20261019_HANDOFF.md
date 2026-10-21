@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→bb6a1e0 | 原基线及确认方案保留；10月21日12:04:51北京真人同意复测，累计上限80、总费用仍原100，取消12:30截止并允许后移有限窗；官方原件16441B/aad6c629 | 本轮先1cover/≤2Lite/0image/0自动重发/新增≤1元；不授权新资源/生产切换 |
 | 2 最小实现与离线验证 | 主代理集成；设计/任务/素材独立子代理 | BRIEF_LENGTH_REPAIR_SOURCE_OFFLINE_GO / 74ab790（前cfe5b4c） | 唯cover_design300目标/18×100硬界，无截断；33设计/受控集成PASS、3.11编译；独审6045/e549无阻断 | 真实新成品待验；可能增加QC输入token，实际费用须核，不扩正文 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | REPAIR74AB_ALL12_SOURCE_STAGED_PENDING_NEW_FINITE_APPROVAL / 74ab790 | 原1e989失败实账38/3.86898/最终0分保；core独审613136/host-entry-launcher窄核及12条source-only实际全S0D0，14产品资源与本分支一致；原进程/CLOSED保持 | 无新技术准备阻碍；集中新1cover/有限入口确认，未答不激活。质量/保存重开/免费排字/下载待验 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | NEW_HUMAN_CONFIRMED_FIXED_END152133_ACTIVATION_PENDING / 74ab790 | 已齐12source；新真人059286/01a15d20真同意、官方616183/056378dc；保守END15:21:33，旧38账/8分/新9复用 | 原sole立即fresh→cold/ownREADY→有限OPEN，root等待实际READY唯一POST；不再询同意或重SOURCE |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | SOURCE_OFFLINE_AND_ACTUAL_BILLING_REVIEW_PASS_PRODUCT_HOLD | 新源独审6045/e549、真实失败及计量逐原字节独核；旧审/适用PC-H5证据复用 | 未有合格新版，禁止交付或发布GO；原窗统一集成，Q07及真iPhone/多人容量未验边界保留 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1443,3 +1443,10 @@ core唯一非作者审N/CORE-INDEPENDENT-REVIEW.cover-foundation.json15000/61313
 现仍同CIDd26428/image05978/PID3957079/restart0/Running，加载源0e1698c5/config原样，入口CLOSED，TERM/CAS/START/operator/新model/业务SQL0，production未改。新真人/END/新job均null；源码就位不是激活或公网/付费授权。实际38complete/pending0/私账3.86898/父cd2e/钱包8/三终态复用此前28814真实终态，不冒新查账；未来激活前沿现固定4RRRO fresh，只读核同38/3终态/8分/新9TTL与当前源，再正常cold→单ownREADY→有限OPEN。旧13:55:28时限已过，原timer/历史END保留，新窗口用原绑定幂等防旧关闭影响。
 
 下一唯一动作是集中确认修复74ab790后的新1cover与当次有限受保护公网窗：复用原report0cdbe/新9（自然24h至明日13:15）/8分，本次≤2Lite/0image/0自动重发/增量≤1元，预计总40在真人80内、总费用仍原100；实际私guard40/99更严不重置。确认起最多60分钟自动关、实际OPEN余≥30分钟，无12:30截止。只问新的自然任务与已关闭入口重新公开，不重问已定产品或预算；未答只保CLOSED，不激活/派模型。原sole已明确准备实齐无技术阻碍、根窗唯一正常UI。新真人到达后取真实官方原件/观察时间晚bind，不用旧turn.startedAt冒批准、不重运12源。新版成品质量/重开/免费排字/下载仍未完成，产品交付HOLD；真iPhone/多人真实容量及Q07生产90天lifecycle边界保留。恢复先读唯一PLAN.brief_length_repair.next38_preparation、此节及原sole最新原件，原Source12全部消费，不重放。
+
+
+### 2026-10-21 — 新真人059286已确认，固定15:21:33 checkpoint
+
+新真人已明确回答call_059286257d854213a4a4662d28fc6d67“同意，立即限时验收”，official user01a15d20-1511-7d50-bc40-3ad8a7355fb1。旧active turn01a15ca2/startedAt12:04:51不是此次批准时间；官方user item未给时刻。真实question前clock14:21:33和新reply首次观测clock14:22:53分别1792563693/1792563773，故选择保守固定技术END1792567293＝今天15:21:33北京（前clock+3600，早于真人同意+60），latestOPEN14:51:33。两时钟与实际回复分开，不伪造精确批准时间。官方整原字节N/new-human74ab-r1/OFFICIAL-ORIGINAL.json616183/056378dc，实际witness在同目录；既有canon/finite-window由原sole按此真实新回复晚bind，不改已冻源/不再SOURCE。
+
+scope只新1cover/≤2Lite/0生图/0自动重发/新增≤1元、累计预计40在真人80内/总仍原100；复用8分及同原报告新9，合格保存唯一结算。正常登录原账号/同隔离后端必要cold与有限OPEN获批准，生产产品/DB不改。主root仍唯一正常UI，原sole唯一云执行；现在等实际fresh4RRRO→正常cold/单ownREADY→timer-firstOPEN原件，不因授权/代码就位就盲点。新actualPID/OPEN/job/model仍未报告，最近实账38/3.86898/pending0保留。旧12 source全部已消费，新human不是重运/补传/重报告理由。确认已收到，不再重复问；结果未知只读原请求不重发。
