@@ -14,6 +14,8 @@ entry仅新22fd实际3片S0D0（末Cc-sz070noyw0zdiww/Tt-sz070noyw1gutc0），�
 
 下一步只集中请求新有效有限公网时窗。原human2aa7/END07:35:11已过期，不能滚动或套旧同意；新human/END/CAS/start/ownREADY/OPEN/模型仍null，当前实际CID冷Exited0/PID0/CLOSED/36model/3.8472528/pending0及保留gift8不变。新同意后原sole唯一fresh只读、同CID必要接续、seal-onlyCAS/normalstartup、真实ownREADY与timer-firstOPEN（余≥30min）；root唯一正常UI从原report新1v2、2Lite/0image/0retry、总≤38of40、新≤1元在原≤100内、复用8分不再补/不重报告。新窗口未答前无依赖动作；保合格新封面0、实际质量/重开/下载待验边界。
 
+A68-NEW-WINDOW-PENDING：全部准备完成后，root于2026-10-21约08:09北京通过request_user_input_async集中发出唯一新时窗问题，工具accepted不等于人类批准。范围为新回复起≤60分钟且今天12:30前、OPEN余≥30分钟，其余原范围不变；原PLAN已记pending，新human/END仍null。收到真实新答复前不启动/CAS/launcher/OPEN/模型，不重复问或重派源运输/export。
+
 ## HISTORY — 上一检查点
 
 ## CURRENT — 2026-10-21 A68：本次未能OPEN；r3失败已定向实证，完整r4辅助源码通过独审，等待关闭入口的后端启动核验
