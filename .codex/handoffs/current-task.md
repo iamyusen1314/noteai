@@ -1,4 +1,6 @@
-## CURRENT — 2026-10-21 A68：非付费验收准备已实际闭合，待唯一新有效时窗；尚无新版真实封面
+## CURRENT — 2026-10-21 A68：新真人时窗已绑定09:10:25关闭，接续既有包进行真实封面验收
+
+本轮实际真人已于2026-10-21 08:10:25北京回复“同意”，user01a15bcb-801f-7353-961e-f081f9ceeafc/turn01a15bcb-7fd2-7b72-9c39-05c173f471b5。官方原read_thread11439B/b2e2b43b在P/actual-human-20261021-r2/read-thread.ACTUAL-ORIGINAL.json；新canonical2357B/272c266c在同目录a68-human-approval.json，直接R5e2/entry22fd/guardb752/operator0bb，原2aa7不改。approved1792541425，固定END1792545025=今天09:10:25北京，最晚actual OPEN08:40:25，不能滚动。root冻结host.authority及3source实际SHA纯验证通过。原sole已收真实来源并接续现成包，root正常UI专用Chrome2/tab1637495948 about:blank待命。当前尚无本轮实际CAS/start/ownREADY/OPEN/model回执，不能冒操作通过。复用savedreport/九图/已有gift8，新1v2/2Lite0image0retry/总≤38of40/新≤1原≤100，不重报告/补分/源运输/旧prepare或CAS。
 
 功能31b4d7b不变，登记前HEAD8a6d342。r4实际Cc-sz070nkv0czf4lc/Tt-sz070nkv0dgwf0g S0D0，Run01A15B9C-CDB9-57CA-8673-DEAE5AD5580A/Read01A15B9C-EA49-5285-B621-048717477430；原9571/030a8599、result12812/584d3959在P/host/window-20261021-r1/postcas-r4-backend-recovery-r1/actual。sameCID/image实际新PID3809795，APP31b/18模块/双font/正常startup实核；normal232/cb16ca41、handle9981/ccca69a9均已导原件，root另逐18本机源码和2font全SHA核相符。config11264/5b35a779，runtimefe9a/guardb752/legacy266e，源加载/正常后端PASS，不等于READY/成品/付费验收通过。
 

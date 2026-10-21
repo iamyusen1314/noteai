@@ -1285,3 +1285,8 @@ parent只读导出实际Cc-sz070nlyi7k7u2o/Tt-sz070nlyi7rpj40 S0D0，Run01A15BA8
 至此已确定的非付费准备完成；原operator0bb/launcher3e69/guardb752/legacy266e/entry22fd/产品31b不再改。新human/END/actualCAS/start/ownREADY/OPEN/模型仍NULL；原human2aa7不改、07:35:11固定时窗已过，入口始终CLOSED，当前实际后端冷Exited0/PID0。旧36/3.8472528/pending0及已一次补8分保留，新合格交付0。唯一下一步集中请求一份新有限公网窗口，继续原report/9图、新1v2/2Lite/0image/0retry/总≤38of40、新≤1元在原≤100内、8分只结算一次不再gift。原sole唯一云与统一发布；root唯一正常UI生成、重开、免费两行及实际PNG下载并核后端。保真iPhone/真人多用户容量/90天OSS Q07未验边界，不扩大正文/报告修复。
 
 A68-NEW-WINDOW-PENDING：root在上述实际准备闭合后已集中请求唯一新时窗（新回复起≤60分钟且今天12:30北京前、实际OPEN余≥30分钟）；request_user_input_async accepted仅说明问题已送达。新human/END仍null，当前不进行CAS/start/launcher/OPEN/model。原PLAN pending为恢复入口，不重复提问或重派已完成source/export。
+
+
+### A68-R5-REAL-WINDOW / 新真人同意与固定时窗
+
+本轮实际真人已于2026-10-21 08:10:25北京回复“同意”，user01a15bcb-801f-7353-961e-f081f9ceeafc/turn01a15bcb-7fd2-7b72-9c39-05c173f471b5。官方原read_thread11439B/b2e2b43b在P/actual-human-20261021-r2/read-thread.ACTUAL-ORIGINAL.json；新canonical2357B/272c266c在同目录a68-human-approval.json，直接R5e2/entry22fd/guardb752/operator0bb，原2aa7不改。approved1792541425，固定END1792545025=今天09:10:25北京，最晚actual OPEN08:40:25，不能滚动。root冻结host.authority及3source实际SHA纯验证通过。原sole已收真实来源并接续现成包，root正常UI专用Chrome2/tab1637495948 about:blank待命。当前尚无本轮实际CAS/start/ownREADY/OPEN/model回执，不能冒操作通过。复用savedreport/九图/已有gift8，新1v2/2Lite0image0retry/总≤38of40/新≤1原≤100，不重报告/补分/源运输/旧prepare或CAS。
