@@ -286,6 +286,25 @@ class CoverDesignTests(unittest.TestCase):
             with self.subTest(breaks=breaks), self.assertRaisesRegex(design.CoverDesignError, "COPY_BREAKS_INVALID"):
                 design.materialize_design_response(value, self.context)
 
+    def test_director_line_limit_matches_actual_renderer_and_prompt(self):
+        context = {**self.context, "approved_titles": ["庭院汤泉松影红桥都市"]}
+        value = self.span_response([{"title_id": "t1", "start": 0, "end": 10}])
+        value["text_layers"][0]["line_breaks"] = [2, 4, 6]
+        resolved = design.materialize_design_response(value, context)
+        self.assertEqual(resolved["text"], "庭院\n汤泉\n松影\n红桥都市")
+        value["text_layers"][0]["line_breaks"] = [2, 4, 6, 8]
+        with self.assertRaisesRegex(design.CoverDesignError, "COPY_BREAKS_INVALID"):
+            design.materialize_design_response(value, context)
+        prompt = design.build_design_prompt(context, self.sources[:1])
+        capabilities = json.loads(prompt.split("\n实际制作能力=", 1)[1].split("\n本地证据与本任务素材=", 1)[0])
+        limits = capabilities["text_layout"]
+        self.assertEqual(limits["max_rendered_lines_per_layer"], 4)
+        self.assertEqual(limits["max_explicit_line_breaks"], 3)
+        self.assertEqual(limits["padding_px"], 8)
+        self.assertTrue(limits["font_size_is_fixed"])
+        self.assertIn("每层总计最多4行", prompt)
+        self.assertIn("实际带描边字形必须完整落在bbox内", prompt)
+
     def test_text_layers_must_exactly_reconstruct_the_top_level_copy(self):
         plan = photo_plan(self.refs[0])
         plan["text_layers"].append({**plan["text_layers"][0], "text": "都市禅意汤泉",

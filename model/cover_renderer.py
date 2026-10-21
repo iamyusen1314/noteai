@@ -23,6 +23,8 @@ FONT_PATH = Path(__file__).resolve().parents[1] / "assets/fonts/cover/SourceHanS
 FONT_SHA256 = "df2b90f5bcc6d01dfc964cec5f6d535d6b6aebd26ed7fd79a9c1b3f2112fcb6b"
 RENDERER_VERSION = "noteai-cover-renderer-v1"
 RENDERER_V2_VERSION = "noteai-cover-renderer-v2"
+MAX_TEXT_LINES = 4
+TEXT_PADDING = 8
 FONT_CATALOG = {
     "SourceHanSansSC-Bold": {"path": FONT_PATH, "sha256": FONT_SHA256},
     "SourceHanSerifSC-Regular": {
@@ -312,6 +314,12 @@ def design_capabilities():
             "align": ["left", "center", "right"], "line_height": [1, 1.6],
             "stroke_width": [0, 8], "panel_opacity": [0, 1],
             "effects": ["stroke", "solid_panel"], "coordinates": "normalized_xyxy",
+            "text_layout": {"max_rendered_lines_per_layer": MAX_TEXT_LINES,
+                            "max_explicit_line_breaks": MAX_TEXT_LINES - 1,
+                            "padding_px": TEXT_PADDING, "padding_adds_stroke_width": True,
+                            "auto_wrap": True, "font_size_is_fixed": True,
+                            "fit_checks": ["advance_width", "actual_glyph_ink_with_stroke",
+                                           "ink_inside_bbox", "no_overlapping_line_ink"]},
             "text_contract": "top text equals newline-joined layers; only newlines may differ"}
 
 
@@ -462,13 +470,13 @@ def _v2_layer_geometry(layer):
     font = _v2_font(layer["font_id"], layer["font_size"])
     box, stroke = _pixels(layer["bbox"]), layer["stroke_width"]
     # Padding also keeps a stroked glyph's actual ink within its declared box.
-    padding = 8 + stroke
+    padding = TEXT_PADDING + stroke
     width = box[2] - box[0] - padding * 2
     height = box[3] - box[1] - padding * 2
     if width <= 0 or height <= 0:
         _error("COVER_TEXT_BOX_TOO_SMALL")
     lines = _lines(layer["text"], font, width - stroke * 2)
-    if len(lines) > 4:
+    if len(lines) > MAX_TEXT_LINES:
         _error("COVER_TEXT_OVERFLOW")
     draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
     line_step = math.ceil(layer["font_size"] * layer["line_height"])

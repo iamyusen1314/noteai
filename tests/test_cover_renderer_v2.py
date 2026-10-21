@@ -197,6 +197,24 @@ class CoverRendererV2Tests(unittest.TestCase):
         spec['text_layers'][1]['bbox'] = [.05, .53, .15, .56]
         self.assert_code('COVER_TEXT_OVERFLOW', renderer.compose_sources, sources(), spec)
 
+    def test_four_lines_render_with_fixed_copy_and_five_lines_stop(self):
+        # Synthetic geometry control, not a reconstruction of R12's lost plan.
+        spec = plan()
+        spec['photos'] = spec['photos'][:1]
+        spec['text'] = '庭院\n汤泉\n松影\n红桥'
+        spec['text_layers'] = [{**spec['text_layers'][1], 'text': spec['text'],
+            'bbox': [.06, .51, .94, .97], 'font_size': 142, 'stroke_width': 2}]
+        original = copy.deepcopy(spec)
+        base, layout = renderer.compose_sources(sources()[:1], spec)
+        result, final = renderer.render_text(base, layout)
+        self.assertTrue(renderer.validate_artifact(result, final)['valid'])
+        self.assertEqual(final['text_layers'][0]['font_size'], 142)
+        self.assertEqual(final['rendered_lines'], ['庭院', '汤泉', '松影', '红桥'])
+        self.assertEqual(spec, original)
+        spec['text'] += '\n都市'
+        spec['text_layers'][0]['text'] = spec['text']
+        self.assert_code('COVER_TEXT_OVERFLOW', renderer.compose_sources, sources()[:1], spec)
+
     def test_missing_glyph_no_fallback(self):
         spec = plan()
         spec['text_layers'][0]['text'] = chr(0x10FFFF)

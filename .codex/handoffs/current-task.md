@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-22 00:14，R12真实排字失败已早关；仅封面排字契约与设计checkpoint局部修复中
+
+登记前HEADdc51f48，分支codex/noteai-xhs-cover-20261019，既有产品01ffe6c/后端7eedae7；不回退、不新建工作树。R12新确认有限scope已实际消费：normal PID45206、独立ownREADY、timer-first OPEN都取得真原件且Root逐byte核；Root只在原报告0cdbe恢复9素材后点一次“核查／重交原请求”，原UUID434ea45c建立job b04a332b-d7fb-40b5-9734-b461c53fff99/usage619428ad-d9f8-43f4-9481-54f9aeb16376。界面先确认同号内容/预留8，随后真实未交付/已释放，HTTP数字未实际捕获；旧4da保历史，不冒新版样本。
+
+本次真实失败码COVER_TEXT_OVERFLOW，设计Lite HTTP200/15945输入596输出/physical b7c2544e-e8b2-5f25-aedf-711d9c573a8c/model_usage4a063743-93cf-4782-a1ef-47bdba3e3bf1，计量11712600nano=0.0117126元；累计45calls/known3.9263058/pending0/原上限80次100元不重置。尚未到QC，observer不存在，无candidate/base/final/revision0。原8分唯一预留释放、commit0/finalcredits0、余额8；settlement credits8/charge_applied1是预留历史，不是最终扣8。供方发票/银行实结UNKNOWN保，合格v2仍0/单张合格成本N/A。原入口已23:53:48.102335北京（1792598028.102335）实际提前CLOSED，API保留；未用剩余时窗/调用重试，不再开放。R12失败不覆盖旧成功，报告正文、生产DB/静态与权限不变。
+
+原件R/recovery7-terminal-readonly-r1/actual-job-b04a332b-bound-r1/actual：stdout5640/0ac0881b、child10079/e276e4d6；官方C c-sz070q26hlmpudc/T t-sz070q26hlwpfr4，Run01A15F31-7F87-52A6-ACE5-E5FE673DEFE9/Read01A15F31-E03D-5F51-8FCE-F049CFE40575，S0D0/repeats1，独立RO4SELECT+rollback/SQL0/HTTP0。Root新增既有原件whole核验ROOT-R12-CLAIM-TERMINAL-WHOLE-READBACK.json8171/96fcac67，核官方Output=stdout、gzip=child与claim包逐件原byte；财务独审FINANCIAL-R12-ACTUAL-TERMINAL-REVIEW.foundation.json5053/14be74a6。UI原件P/real-ui-r12-original-recovery-20261021/pre-recovery-*、post-once-recovery-state.txt/jpg保。R=H/r11-recovery-window-HOLD-r1。
+
+源码与原sole均确认：run_cover实际设计响应只在内存，design_json直到complete_job才写；legacy guard只有计量投影/receipt_sha，ark_media不日志body，本次无已知实际plan文件。不扫日志/再云读/重调模型，不以失败码断言长标题。四类实际排字分支（>4行、单行宽、ink越框、行ink重叠）目前具体命中UNKNOWN；已证的源码缺口为导演能力目录/Prompt未公开4行与padding/ink限制且新span最多允许12显式行。局部补齐能力/断点契约，并在现有design_json中于v2已校验plan、render前按原owner/lease/fence保存，便于失败复查；固定字级/原文/质检与失败即停保留，不靠静默缩字/宽松QC。Root拥有renderer/design及对应tests，foundation独占runtime/service/jobs及新checkpoint tests；entry审查者已只读独审失败层，无并行同文件编辑。无新schema/依赖/模型/生产动作。
+
+唯一PLAN已记录真实terminal/早关与上述恢复状态。阶段2局部修复与离线验证进行中；阶段3下一张真实新品PC/H5/重开/排字/下载及阶段4完整交付仍待，真iPhone/多人容量/Q07边界如实保。未来如需付费/新任务或重新公开，待局部修复与审查具体完成后集中说明，不借已消费R12或剩余1call新发。原sole只保基线答疑/精确云执行及统一发布归属，不并行产品源码。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 23:34:50新确认，R12固定00:34:50截止；原sole晚绑/normal待真实回执
 
 分支codex/noteai-xhs-cover-20261019，登记前HEAD78422ee，产品01ffe6c。新真人直接回复“确认”，官方turn01a15f19-c61c-7c81-b2bd-081091560249/user01a15f19-c65c-7ea1-8774-4b27179547bb，明确承接刚发的原号恢复/隔离累计第7任务/2Lite0生图/新增≤1元/本批≤46（原80/100）有限范围。Root首次clock15:34:50UTC=23:34:50北京/start1792596890，固定END1792600490=10月22日00:34:50，latest首次OPEN1792598690=00:04:50；首次需余≥30分钟，同窗不重开/延时。

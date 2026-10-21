@@ -162,7 +162,7 @@ def materialize_design_response(value, context):
         if total > 32:
             _error("COVER_DESIGN_COPY_TOO_LONG")
         breaks = layer.get("line_breaks", [])
-        if (not isinstance(breaks, list) or len(breaks) > 11
+        if (not isinstance(breaks, list) or len(breaks) >= renderer.MAX_TEXT_LINES
                 or any(type(boundary) is not int or not start < boundary < end for boundary in breaks)
                 or breaks != sorted(set(breaks))):
             _error("COVER_DESIGN_COPY_BREAKS_INVALID")
@@ -324,6 +324,10 @@ def build_design_prompt(context, sources):
         "合同中的0/4只是整数类型示例，不是默认选词。能力目录text_contract描述程序回填后的内部结构，导演输出仍只能按copy_span合同，不写text。"
         "所有层必须同一title_id，后一层start必须等于前层end；不能跳过标点或拼接不相邻词句。首层start可大于0，末层end可小于标题末边界。"
         "同层需要语义断行时，用line_breaks列出span内部严格递增的绝对边界编号；不含首尾，默认[]。这些边界只插入换行，不删除字符。"
+        "每层最多3个显式断点；显式断行加程序按宽度自动折行后，每层总计最多4行。字号固定，程序不会缩字、删字或挤压字形来迁就文字框。"
+        "排字必须按1776×2368像素核算：bbox先转像素；四边内边距均为8+stroke_width像素，单行字宽不得超过框宽减两侧内边距再减2×stroke_width。"
+        "行起点步长为ceil(font_size×line_height)像素；框高需容下全部行起点、实际字形描边高度和上下内边距，不能把font_size或一行高度当成多行总高。"
+        "实际带描边字形必须完整落在bbox内且各行墨迹不能重叠；预留余量。放不下时在设计阶段选择更宽/更高且不遮主体的文字框、较短连续标题片段或合适字级，不提交必然溢出的框。"
         "摘取不能反转原意或夸大事实，尤其不能删否定词变肯定。设计1–3文字层，可主辅字级；字体只用能力目录中已安装许可font_id，不凭空报字体。"
         "只使用能力目录实际支持的排字/描边/面板等。按主体投影保护区放文字；不要把不遮挡误解为禁止与整张照片框重叠。"
         "版式应在240×320缩略图仍有主视觉、主题和字阶，留白需有具体作用。单层少字可合格，不强迫多字体。"

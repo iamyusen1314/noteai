@@ -137,9 +137,9 @@
 
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
-| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；最新e70e单张范围已消费并早关 | 旧窗不能复用；未来新human/clock/END仍null |
+| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | PRODUCT_SOURCE_OFFLINE_GO / 7eedae7、a8f2fbc、edda0a3、01ffe6c | 几何输入/状态身份/脱敏诊断已定向测与独审；最新两诊断测试PASS，复用原27；前端本机2叶变/13同 | 现有API仍7e；core R2/entry R3/host final窄审均通过；精确18条私有source预置实际完成并全核，未启动或开放 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | R12_FRESH_CONFIRMED_FIXED_END1792600490_AWAIT_NORMAL_READY_OPEN | R11 21:28:40早关；限定R3 jobs[]、R2账44/3.9145932/pending0/cap46；不泛化为全局0扣分 | 缺实际R11 HTTP/job；新真人确认原号恢复/隔离第7任务/2Lite1元46有限窗，固定END00:34:50；normal/READY/OPEN真回执未返，Root未POST |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | R12_FAILED_TEXT_OVERFLOW_ACTUAL_EARLY_CLOSED | 一次原号恢复建b04a；1Lite0.0117126元，累计45/3.9263058/pending0；final0分/余额8；23:53:48真CLOSED | 无candidate/QC/新品；实际plan未留存，具体overflow分支UNKNOWN；仅局部修复，不能自动重试或重开 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_PASS_DELIVERY_HOLD / 01ffe6c | 7e几何独审4427621d；a8/edda/01ff独立窄审与既有真实R10财务18项复用；原PNG保 | 新版合格交付0/单位成本N/A；最终辅助source独审及真实PC/H5重开/排字/下载未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1701,3 +1701,16 @@ R/new-human-recovery7-20261021-r1/OFFICIAL-ORIGINAL.json12737/c84b1123984c98b27a
 Root已将真raw/witness和固定时间交原sole：只既有host晚绑→一次normal→独立ownREADY→timer-first OPEN；原sole已直接核真问答，原host/entry作者沿现成data模板接续，当前actual newnormalPID/READY/OPEN/job尚未返回，不以真人批准冒实际启动。18source已消费不可重派，旧e70e不能使用。Root仍sole正常UI，待真实OPEN且自身READY后再打开/刷新原report0cdbe，先GET原UUID；有原job只读，无job且完整原wire/素材有效才最多一次手动同号同内容POST；缺失/过期/失败/UNKNOWN停早关，不新UUID、不重报告正文/生产或赠分。现有8测试分、成功持久保存最多一次结算；PC/H5/重开/免费排字/下载只验新成品，旧4da保历史。
 
 唯一PLAN已登记新真人/clock/END与R12状态，恢复先查原sole该次normal C/T进度，UNKNOWN仅查同请求，不能新发。最近44complete/known3.9145932/pending0仍只既有实账观察，新模型/成本/积分以真正本次终态为准，R11 UNKNOWN独立保；新合格封面仍0/单位成本N/A。当前无Root UI POST，阶段3执行中、阶段4交付待实际证据；真iPhone/多人容量/Q07边界原样。R=H/r11-recovery-window-HOLD-r1。
+
+
+### 2026-10-22 00:14，R12真实排字失败已早关；仅封面排字契约与设计checkpoint局部修复中
+
+登记前HEADdc51f48，分支codex/noteai-xhs-cover-20261019，既有产品01ffe6c/后端7eedae7；不回退、不新建工作树。R12新确认有限scope已实际消费：normal PID45206、独立ownREADY、timer-first OPEN都取得真原件且Root逐byte核；Root只在原报告0cdbe恢复9素材后点一次“核查／重交原请求”，原UUID434ea45c建立job b04a332b-d7fb-40b5-9734-b461c53fff99/usage619428ad-d9f8-43f4-9481-54f9aeb16376。界面先确认同号内容/预留8，随后真实未交付/已释放，HTTP数字未实际捕获；旧4da保历史，不冒新版样本。
+
+本次真实失败码COVER_TEXT_OVERFLOW，设计Lite HTTP200/15945输入596输出/physical b7c2544e-e8b2-5f25-aedf-711d9c573a8c/model_usage4a063743-93cf-4782-a1ef-47bdba3e3bf1，计量11712600nano=0.0117126元；累计45calls/known3.9263058/pending0/原上限80次100元不重置。尚未到QC，observer不存在，无candidate/base/final/revision0。原8分唯一预留释放、commit0/finalcredits0、余额8；settlement credits8/charge_applied1是预留历史，不是最终扣8。供方发票/银行实结UNKNOWN保，合格v2仍0/单张合格成本N/A。原入口已23:53:48.102335北京（1792598028.102335）实际提前CLOSED，API保留；未用剩余时窗/调用重试，不再开放。R12失败不覆盖旧成功，报告正文、生产DB/静态与权限不变。
+
+原件R/recovery7-terminal-readonly-r1/actual-job-b04a332b-bound-r1/actual：stdout5640/0ac0881b、child10079/e276e4d6；官方C c-sz070q26hlmpudc/T t-sz070q26hlwpfr4，Run01A15F31-7F87-52A6-ACE5-E5FE673DEFE9/Read01A15F31-E03D-5F51-8FCE-F049CFE40575，S0D0/repeats1，独立RO4SELECT+rollback/SQL0/HTTP0。Root新增既有原件whole核验ROOT-R12-CLAIM-TERMINAL-WHOLE-READBACK.json8171/96fcac67，核官方Output=stdout、gzip=child与claim包逐件原byte；财务独审FINANCIAL-R12-ACTUAL-TERMINAL-REVIEW.foundation.json5053/14be74a6。UI原件P/real-ui-r12-original-recovery-20261021/pre-recovery-*、post-once-recovery-state.txt/jpg保。R=H/r11-recovery-window-HOLD-r1。
+
+源码与原sole均确认：run_cover实际设计响应只在内存，design_json直到complete_job才写；legacy guard只有计量投影/receipt_sha，ark_media不日志body，本次无已知实际plan文件。不扫日志/再云读/重调模型，不以失败码断言长标题。四类实际排字分支（>4行、单行宽、ink越框、行ink重叠）目前具体命中UNKNOWN；已证的源码缺口为导演能力目录/Prompt未公开4行与padding/ink限制且新span最多允许12显式行。局部补齐能力/断点契约，并在现有design_json中于v2已校验plan、render前按原owner/lease/fence保存，便于失败复查；固定字级/原文/质检与失败即停保留，不靠静默缩字/宽松QC。Root拥有renderer/design及对应tests，foundation独占runtime/service/jobs及新checkpoint tests；entry审查者已只读独审失败层，无并行同文件编辑。无新schema/依赖/模型/生产动作。
+
+唯一PLAN已记录真实terminal/早关与上述恢复状态。阶段2局部修复与离线验证进行中；阶段3下一张真实新品PC/H5/重开/排字/下载及阶段4完整交付仍待，真iPhone/多人容量/Q07边界如实保。未来如需付费/新任务或重新公开，待局部修复与审查具体完成后集中说明，不借已消费R12或剩余1call新发。原sole只保基线答疑/精确云执行及统一发布归属，不并行产品源码。
