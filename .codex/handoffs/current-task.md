@@ -1,3 +1,17 @@
+## CURRENT — 2026-10-21 A68：唯一正常UI请求止于测试桥，已关闭且实证零新增；最小修复准备
+
+功能31b4d7b不变，登记前HEAD1d98e2d。本轮08:10:25真人同意/272c固定END09:10:25及latestOPEN08:40:25不滚动。实际R5同CID/image启动成功PID3822442，fc60→acb4仅seal/proofs接续，旧36全列291acd/inode1460877/known3.8472528/pending0保持；实际operator PID98/READY1090/90c已启动。首次operator外层OUTPUT_BOUND失败仅导出失败，真实launcher0已保，随后一次只读导出4原件闭合，不重launcher。实际host Cc-sz070nprchcpiio/Tt-sz070nprchrowlc、只读export Cc-sz070nqg4mwne9s/Tt-sz070nqg4nbmscg，原件均在既有P/host/window-20261021-r1。
+
+原sole实际timer-first OPEN Cc-sz070nqyvnduo00/Tt-sz070nqyvnxturk，原966/7e409911。root唯一正常Chrome2/tab1637495948从saved report0cdbe的真实九图/原题、报价8点一次“重新设计”；立即PARENT_REQUEST_GATE_REQUIRED，未重发、未恢复POST、未重跑报告。原sole08:30:39.939实际CLOSE Cc-sz070nr7qpig7wg/Tt-sz070nr7qppxwxs，原808/c7985bb1；API保留，不是生产停服。截图/完整AX在P/real-ui-r5-20261021。UI仍展示的“实际扣分8”归于旧4da成功封面，不能冒新扣分。
+
+真实终态只读Cc-sz070nrmkg9vocg/Tt-sz070nrmkgtuv40 S0D0，原child5168/66cb0e68及stdout3464/b8eebc83在同window/r5-parent-gate-terminal-readonly-r1/actual。新cover/usage/模型/扣分均0、无nativeclaim或在途，wallet8/旧cover与rev2完整保留；旧36账/成本/sealacb4/正式6pins/隔离sameCID及CLOSED不变。不是供应商未知或产品正文错误；无新v2合格封面，成本分母0仍不可计算。
+
+定位根因：正常产品coverFetch把request_id放JSONbody，隔离ExistingOwnerGate先从X-Request-ID头取值给R5Admission，未读body即拒。foundation唯一桥候选P/implementation/owner_session_bootstrap.cover-body-request-id-r2.py18768/fe25663f仅固定cover路径读取16KiB/64events/总5秒的原body UUID、头存在须一致、保鉴权及原ASGI字节重放，不注入header/放宽parent；原桥15771/abdc不改。3.11编译及明确shim8PASS、真实FastAPI3.12同8PASS，初始缺fastapi环境错误单列保留；contract非作者窄审进行中。产品/guard/entry均未改，source测试不是实际修复生效。
+
+当前08:43已过latestOPEN，入口继续CLOSED，不复派旧OPEN/POST。新窗口必要技术恢复先准备：旧operator-started与READY是真历史，须正常结束旧PID、whole目录保inode归档，不能删证或称未启动；static15实际已stage，不能重复走not-exists stage/旧O_EXCL。foundation唯一窄R6核完整e074→fc60→acb4原链与未来acb4→new的seal-only；media唯一entry严格复用已存私有static15/保旧timer与入口记录；原sole唯一host保现场接续HOLD，不重复无价值旧END重启。所有未来human/新END/新OPEN/付费均未授权，仅非付费准备。桥/恢复载体齐且独审后集中一次说明重测范围；复用gift8、不加预算/生产权限、不修正文。唯一权威PLAN已记录实际失败和零新增证据。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 A68：新真人时窗已绑定09:10:25关闭，接续既有包进行真实封面验收
 
 本轮实际真人已于2026-10-21 08:10:25北京回复“同意”，user01a15bcb-801f-7353-961e-f081f9ceeafc/turn01a15bcb-7fd2-7b72-9c39-05c173f471b5。官方原read_thread11439B/b2e2b43b在P/actual-human-20261021-r2/read-thread.ACTUAL-ORIGINAL.json；新canonical2357B/272c266c在同目录a68-human-approval.json，直接R5e2/entry22fd/guardb752/operator0bb，原2aa7不改。approved1792541425，固定END1792545025=今天09:10:25北京，最晚actual OPEN08:40:25，不能滚动。root冻结host.authority及3source实际SHA纯验证通过。原sole已收真实来源并接续现成包，root正常UI专用Chrome2/tab1637495948 about:blank待命。当前尚无本轮实际CAS/start/ownREADY/OPEN/model回执，不能冒操作通过。复用savedreport/九图/已有gift8，新1v2/2Lite0image0retry/总≤38of40/新≤1原≤100，不重报告/补分/源运输/旧prepare或CAS。
