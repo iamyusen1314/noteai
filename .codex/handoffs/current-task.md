@@ -1,3 +1,9 @@
+## CURRENT — 2026-10-21 19:31:39，新真人e8a批准单张有限验收，固定20:31:39关闭
+
+实际HEAD8627313/产品10e2176，真人call_e8a753070592462b8ba82516e9329b0b答「同意立即限时验收」，官方turn01a15e3b-0aca-7cd1-abc8-b9084e656c98/user01a15e3b-0b5e-79b1-ad24-ddd30a24ae0f。Root首次clock11:31:39UTC=19:31:39北京/1792582299，固定END1792585899=20:31:39、latest首次OPEN20:01:39；同窗不重开不延时。G/new-human44-visible10e-20261021-r1/OFFICIAL-ORIGINAL.json15397/2b8759aa8c2519522fe0abdc37b1debc470564f9c2f4ffa50c84a4240d7eb7ed及ROOT-OBSERVED-WITNESS.json1333/87ab8b44记录原题答和观测。此新范围仅1任务/≤2Lite/0image/0自动重发/新增≤1元/本批≤44，仍原80/100；旧报告0cdbe与9真素材/现有8分，合格保存最多一次结算。失败或未知立即停并提前关，生产不动。13源已消费不重运；已通知原sole只做现成latebind→normalcold→一次ownREADY→timer-first OPEN，Root唯一正常UI一次POST仍待实际READY与OPEN。当前新PID/OPEN/job未返回，不能把批准当执行结果；恢复查唯一PLAN.next42_preparation及原sole本次原回执，不再询问同一批准。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 18:34，10e2176修复与R2接续全部source预置完成，待新的当次有限验收
 
 登记前HEAD9048b41/产品10e2176；当前入口CLOSED，运行API仍e6bd/PID4056547、账42complete/3.899499/pending0/钱包8，生产不动。13源码保存真实全部Success0D0/Repeats1，Root官方Output whole逐核，G/ROOT-SOURCE13-ALL-ACTUAL-WHOLE-READBACK.json12799/f6da91665e65059d919c81b5f518e1214efb4bd117595ffcd364b6608219e8c3；source保存不是实际加载/READY/质量通过。13已消费，不重运或再派。
