@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-22 06:46:35，本次normal真实启动未知且已停止；入口未开/新封面任务0/模型0，仅最小只读恢复
+
+登记前HEAD63921ab，分支codex/noteai-xhs-cover-20261019，产品48dbe56＋1d927f2/前端01ffe保持。新确认scope沿06:35:40首次clock与固定07:35:40截止，已被本次失败即停规则消费，不借剩余时窗重开/重派。唯一normal C=c-sz070r1y990h91c/T=t-sz070r1y99fgn40，RunRequest01A160A0-9F40-5705-B488-5D9636156096；原Read01A160A3-5EE5-589B-B17C-A201AA8DC5A3明确Failed/Exit2/Dropped0/Repeats1，执行22:41:43–46UTC=06:41:43–46北京。T/host/actual-bound/actual-normal-startup的官方Run128/Read1590/完整stdout300及截图保；Root逐官方Output等原stdout及C/T/Request/终态，ROOT-NORMAL-FAILED-WHOLE-READBACK.root.json3450/1b326578e56b0e827d26cc9548690945b6336a216c473d70943c1c752b360578。
+
+stdout明确CAS_sent=true、TERM_sent=true、START_sent=true，phase=SAME_CID_START_SENT_ONCE，code=FIRST42_STARTUP_UNKNOWN_PRESERVE_ORIGINAL_NO_REPLAY，exception_class=AssertionError；OPEN=false/operator_started=false/model_calls=0。这是隔离接续启动层失败/目标状态未知，不能冒产品模型或封面质检失败，也不能声称旧PID45206/原3f63 seal在CAS/TERM后仍当前不变。实际新startup原件、当前目标PID/loaded source/新seal/fresh45摘要待原sole已有路径最小只读核定；formal/prod未有新操作报告，Root不接管云、不扫描无关日志/凭据，不新造恢复框架。只查原C/T和本次启动现场，不重normal/launcher/operator/slot8/OPEN或旧父45/测试。Root仍只看缓存失败面板，未刷新/POST/新UUID/排旧字/下载；入口本轮从未开放，未建立封面任务或新增模型调用。
+
+唯一PLAN已记录实际终态，normal_CAS_operator_OPEN_models_SQL_authorized=false且confirmation_consumed_by_failure=true；原真人/首次clock/END留历史，future READY/OPEN/job仍null，无新公开/付费scope。原sole负责仅现有路径必要只读恢复，foundation子代理只读窄看postSTART断言和最低实证路径，不修改作者源/云或重独审；定位后只继续受影响非付费修复，不急于重新问窗口。交付证据映射T/DELIVERY-AFFECTED-EVIDENCE-MAP.entry-review.json6753/d801cfe4已复用两修复/实际10原证，无新schema/依赖/迁移或额外门槛。最近真实财务基线45calls/known3.9263058元/pending0、原80/100、现有8分及历史UNKNOWN保；此normal没有新的账本全量或银行结算证明。新品合格0/单张成本N/A；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07仍待，报告正文与生产范围不扩大。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-22 06:35:40新确认，next47固定07:35:40截止；原sole晚绑/normal待真实回执
 
 登记前HEAD fcb6a0455cecf7848b26f94e9d929ced44a6cd12，分支codex/noteai-xhs-cover-20261019，产品48dbe56＋1d927f2、前端01ffe未改。真人明确同意call_c7f9fa298079456090ea907c1796b5c3新scope：新建1个封面任务，复用水石清池报告0cdbe与有效9真实素材，只封面/PC/H5/保存重开/免费排字/下载，不改正文。≤2Lite/0生图/0自动重发、新增≤1元/累计≤47of80/总≤原100，现有8分、合格持久保存最多一次结算；失败/UNKNOWN/素材失效立即停早关，旧失败与旧图保。原正常登录/测试用户限制、隔离后端、生产product/config/DB边界保持。旧R12失败任务b04/UUID434e不复活，新第8任务必须新自然UUID。

@@ -142,7 +142,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | NEXT47_CONFIRMED_REAL_PREP_IN_PROGRESS / 固定END07:35:40 | 新真人06:35:40；1新任务/≤2Lite/0生图/0重发/增≤1元/累计47of80与原100；R12失败原证保 | 原sole晚绑→normal/ownREADY/有限OPEN真原件待；首次OPEN最晚07:05:40；Root尚未提交 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | NORMAL_STARTUP_UNKNOWN_SCOPE_CONSUMED_READONLY_RECOVERY | 原C/T Failed/2/D0/R1；CAS/TERM/START已发，OPEN/新任务/新模型0；原官方原件全核 | 当前隔离PID/启动原件/断言根因待唯一sole最小只读核定；不重派或重开，不冒封面质检失败 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -1761,3 +1761,12 @@ source前后API均PID45206、同CID/image/restart0；新源只保存未加载，
 Root首次真实clock2026-10-21 22:35:40UTC=10月22日06:35:40北京，start1792622140，END1792625740=07:35:40，latest首次OPEN1792623940=07:05:40；最多60分钟、首次余≥30分钟、同窗不重开不延时。真turn01a1609a-fb78-7383-af09-a6a28f9a26dd/user01a1609a-fbc2-7b90-9139-6625047b837b。T/new-human-next47-20261022-r1/OFFICIAL-ORIGINAL.json12571/SHA ed70680d1dd96dbdadbf5740b3926a92bb9036f332d629c2b0de678ddd0f4af9为官方当前1turn exact UTF8原文，ROOT-OBSERVED-WITNESS.json3047/SHA8dba1c3a658f83e56e0b5813a150edef24fed0847387f1f8ca2aca3af2598405绑定问题/答复/首次clock及固定END；后续原件抓取不重clock，不合成答复。
 
 已发原sole立即按既有latebinder消费三实际source raw及新human/window→一次normal→独立ownREADY→timer-first OPEN，fresh45完整摘要只能实际计算；10source已消费不重派、不加测试/旧父读回。当前实际新normalPID/ownREADY/OPEN/job仍未返回，不能以新真人同意冒启动；原45206同CID/image/restart0与R12最近45complete/known3.9263058/pending0只是已知父基线，实时以后续原件为准。Root为唯一普通UI，已仅读取原Chrome1/tab1637495948缓存失败面板/旧4da，未刷新或提交，待实际OPEN+自身READY再继续。素材当前缓存9可用不冒新的服务端有效性证明。唯一PLAN已记新真人/clock/END，恢复先查原sole本次normal C/T，不重source或再取yes。阶段3新一次真实验收执行中；新品合格0/单位成本N/A，真iPhone/多人容量/Q07未验边界保。T=R/next45-to47-text-checkpoint-HOLD-r1。
+
+
+### 2026-10-22 06:46:35，本次normal真实启动未知且已停止；入口未开/新封面任务0/模型0，仅最小只读恢复
+
+登记前HEAD63921ab，分支codex/noteai-xhs-cover-20261019，产品48dbe56＋1d927f2/前端01ffe保持。新确认scope沿06:35:40首次clock与固定07:35:40截止，已被本次失败即停规则消费，不借剩余时窗重开/重派。唯一normal C=c-sz070r1y990h91c/T=t-sz070r1y99fgn40，RunRequest01A160A0-9F40-5705-B488-5D9636156096；原Read01A160A3-5EE5-589B-B17C-A201AA8DC5A3明确Failed/Exit2/Dropped0/Repeats1，执行22:41:43–46UTC=06:41:43–46北京。T/host/actual-bound/actual-normal-startup的官方Run128/Read1590/完整stdout300及截图保；Root逐官方Output等原stdout及C/T/Request/终态，ROOT-NORMAL-FAILED-WHOLE-READBACK.root.json3450/1b326578e56b0e827d26cc9548690945b6336a216c473d70943c1c752b360578。
+
+stdout明确CAS_sent=true、TERM_sent=true、START_sent=true，phase=SAME_CID_START_SENT_ONCE，code=FIRST42_STARTUP_UNKNOWN_PRESERVE_ORIGINAL_NO_REPLAY，exception_class=AssertionError；OPEN=false/operator_started=false/model_calls=0。这是隔离接续启动层失败/目标状态未知，不能冒产品模型或封面质检失败，也不能声称旧PID45206/原3f63 seal在CAS/TERM后仍当前不变。实际新startup原件、当前目标PID/loaded source/新seal/fresh45摘要待原sole已有路径最小只读核定；formal/prod未有新操作报告，Root不接管云、不扫描无关日志/凭据，不新造恢复框架。只查原C/T和本次启动现场，不重normal/launcher/operator/slot8/OPEN或旧父45/测试。Root仍只看缓存失败面板，未刷新/POST/新UUID/排旧字/下载；入口本轮从未开放，未建立封面任务或新增模型调用。
+
+唯一PLAN已记录实际终态，normal_CAS_operator_OPEN_models_SQL_authorized=false且confirmation_consumed_by_failure=true；原真人/首次clock/END留历史，future READY/OPEN/job仍null，无新公开/付费scope。原sole负责仅现有路径必要只读恢复，foundation子代理只读窄看postSTART断言和最低实证路径，不修改作者源/云或重独审；定位后只继续受影响非付费修复，不急于重新问窗口。交付证据映射T/DELIVERY-AFFECTED-EVIDENCE-MAP.entry-review.json6753/d801cfe4已复用两修复/实际10原证，无新schema/依赖/迁移或额外门槛。最近真实财务基线45calls/known3.9263058元/pending0、原80/100、现有8分及历史UNKNOWN保；此normal没有新的账本全量或银行结算证明。新品合格0/单张成本N/A；PC/H5新品重开/免费排字/下载、真iPhone/多人容量/Q07仍待，报告正文与生产范围不扩大。T=R/next45-to47-text-checkpoint-HOLD-r1。
