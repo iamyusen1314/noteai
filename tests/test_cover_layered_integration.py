@@ -158,6 +158,38 @@ class LayeredCoverIntegrationTests(unittest.TestCase):
         self.assertEqual(len(jobs.get_layout(self.f.user, job["job_id"])["photos"]), 1)
         self.assertEqual(job["billing"]["credits_used"], 8)
 
+    def test_complete_long_brief_reaches_pixel_qc_and_settles_only_once(self):
+        def change(plan):
+            for field in ("industry", "subtype", "content_intent", "reader_question", "visual_strategy"):
+                plan["design_brief"][field] = "说明" * 40
+            plan["design_brief"]["factual_exclusions"] = ["不新增价格", "不借用他店设施"]
+        job = self.complete(design_mutation=change)
+        self.assertEqual(job["status"], "completed", job)
+        self.assertEqual(len(self.requests), 2)
+        qc_prompt = self.requests[1]["messages"][0]["content"][-1]["text"]
+        self.assertIn("不新增价格", qc_prompt)
+        self.assertIn("不借用他店设施", qc_prompt)
+        saved = json.loads(db.fetchone("SELECT design_json FROM cover_jobs WHERE id=?", (job["job_id"],))[0])
+        self.assertEqual(saved["design_brief"]["visual_strategy"], "说明" * 40)
+        self.assertEqual(saved["design_brief"]["factual_exclusions"], ["不新增价格", "不借用他店设施"])
+        self.assertEqual(jobs.get_job(self.f.user, job["job_id"])["layout"]["text"], "周末咖啡\n时光")
+        duplicate = self.submit()
+        self.assertEqual(duplicate["job_id"], job["job_id"])
+        self.assertFalse(duplicate["created"])
+        self.assertEqual(self.f.balances()[1], 8)
+        self.assertEqual(db.fetchone("SELECT COUNT(*) FROM model_usage_records")[0], 2)
+
+    def test_oversized_brief_field_stops_before_qc_storage_or_final_charge(self):
+        def change(plan):
+            plan["design_brief"]["visual_strategy"] = "字" * 101
+        with mock.patch.object(service, "_store_image") as store:
+            job = self.complete(design_mutation=change)
+        self.assertEqual(job["status"], "failed", job)
+        self.assertEqual(len(self.requests), 1)
+        self.assertFalse(job["has_final"])
+        self.assertEqual(self.f.balances()[1], 0)
+        store.assert_not_called()
+
     def test_foreign_selected_photo_fails_before_qc_or_storage(self):
         def change(plan):
             plan["photos"][1]["source_ref"] = str(uuid.uuid4())

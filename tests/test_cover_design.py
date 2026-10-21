@@ -262,11 +262,71 @@ class CoverDesignTests(unittest.TestCase):
                 plan["design_brief"][field] = update
                 with self.assertRaisesRegex(design.CoverDesignError, error):
                     self.validate(plan)
+
+    def test_complete_brief_over_concision_target_retains_every_exclusion(self):
         plan = photo_plan(self.refs[0])
         for field in ("industry", "subtype", "content_intent", "reader_question", "visual_strategy"):
             plan["design_brief"][field] = "字" * 80
-        with self.assertRaisesRegex(design.CoverDesignError, "COVER_DESIGN_BRIEF_TOO_LONG"):
-            self.validate(plan)
+        exclusions = ["未证实价格不得新增", "不声称本人到访", "不得借用他店设施", "不新增疗效"]
+        plan["design_brief"]["factual_exclusions"] = exclusions
+        safe = self.validate(plan)
+        for field, value in plan["design_brief"].items():
+            self.assertEqual(safe["design_brief"][field], value)
+        self.assertEqual(safe["design_brief"]["interpretation_status"], "director_proposal_not_verified_facts")
+        self.assertEqual(safe["text"], plan["text"])
+
+    def test_brief_concision_target_is_not_a_delivery_boundary(self):
+        for total in (300, 301, 500):
+            with self.subTest(total=total):
+                plan = photo_plan(self.refs[0])
+                brief = plan["design_brief"]
+                fields = [(brief, key) for key in ("industry", "subtype", "content_intent",
+                          "reader_question", "visual_strategy")]
+                fields += [(brief["source_reasons"][0], "reason"),
+                           (brief["reference_usage"][0], "borrow"),
+                           (brief["reference_usage"][0], "limit"),
+                           (brief["factual_exclusions"], 0)]
+                remaining = total - len(fields)
+                for parent, key in fields:
+                    extra = min(99, remaining)
+                    parent[key] = "字" * (1 + extra)
+                    remaining -= extra
+                self.assertEqual(remaining, 0)
+                safe = self.validate(plan)["design_brief"]
+                for key, value in brief.items():
+                    self.assertEqual(safe[key], value)
+
+    def test_maximum_complete_audit_structure_is_bounded_without_truncation(self):
+        plan = photo_plan(self.refs[0])
+        plan["photos"] = [{**plan["photos"][0], "source_ref": self.refs[index],
+                           "bbox": [0, .2 + index * .26, 1, .46 + index * .26]}
+                          for index in range(3)]
+        evidence = ["xhs-community-truth-and-title", "xhs-product-note-20260211", "xhs-food-202402-p13"]
+        brief = {key: "字" * 100 for key in ("industry", "subtype", "content_intent",
+                 "reader_question", "visual_strategy")}
+        brief.update(source_reasons=[{"source_ref": ref, "reason": "字" * 100} for ref in self.refs[:3]],
+                     evidence_ids=evidence,
+                     reference_usage=[{"evidence_id": ref, "borrow": "字" * 100, "limit": "字" * 100}
+                                      for ref in evidence],
+                     factual_exclusions=["字" * 100 for _ in range(4)])
+        plan["design_brief"] = brief
+        safe = self.validate(plan, {**self.context, "domain": "美食"})["design_brief"]
+        for key, value in brief.items():
+            self.assertEqual(safe[key], value)
+
+    def test_brief_individual_field_and_list_bounds_still_reject(self):
+        changes = (
+            ("visual_strategy", "字" * 101),
+            ("visual_strategy", "说明\x00"),
+            ("factual_exclusions", ["边界"] * 5),
+            ("factual_exclusions", ["字" * 101]),
+        )
+        for field, value in changes:
+            with self.subTest(field=field, value=value):
+                plan = photo_plan(self.refs[0])
+                plan["design_brief"][field] = value
+                with self.assertRaisesRegex(design.CoverDesignError, "COVER_DESIGN_BRIEF_INVALID"):
+                    self.validate(plan)
 
     def test_renderer_rejection_propagates_and_v1_is_not_reinterpreted_as_v2(self):
         with mock.patch.object(renderer, "validate_plan", side_effect=renderer.CoverRenderError("COVER_SUBJECT_CROPPED")):
