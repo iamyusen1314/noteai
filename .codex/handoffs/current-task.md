@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-21 20:13，R10真实布局QC失败已关闭；7eedae7几何输入修复离线GO
+
+分支codex/noteai-xhs-cover-20261019，实际产品HEAD7eedae75345c69366bdc33f4983d2dca63646266（继承61d0c4d/10e2176，不回退）。本轮真job81bc6eaf-b8a4-48d3-a66a-ac5750873c95/client4cfc59d9-8e37-40a1-846a-de99dfc4be1b/usagec77f9711-b0d3-4161-9d4a-0b3f28f04b2e，19:49:51→19:50:22 COVER_QC_DESIGN_REJECTED；2Lite HTTP200完整用量，15171/428=.0106434+6680/123=.0044508=.0150942元计量。44complete/3.9145932/pending0，parent42摘要/3.899499/inode1460877保。claim1/release1/commit0/finalcredits0，wallet8/used170/Tx63/资产revision0。独立财务18项一致，G/FINANCIAL-R10-ACTUAL-TERMINAL-REVIEW.json10305/11e5a5b4；真terminal13062/49133fb0。供应商实结/FX仍UNKNOWN，合格新版分母0，单张交付成本N/A。原报告完成与旧成品保留，19:51:20.906462实际CLOSED，不重开或重模型。
+
+真实candidate1325/e83f+review622/f4fb+240×320原PNG79869/904a已从固定reader 8片机械回读，Root官方9份Output/metadata原LF/两JSON/片whole核2349/7fa7c738。Root与非作者实际看图：黑色标题已可见，庭院横景居中，上方大白区；仅layout_balance=false/empty_layout，其他5true不冒整体通过。provider声明计划不是最终renderer布局；本地原图1671×941而非近似2:1例子，精确renderer预报bbox[0,.288851,1,.711149]/面积.422297只能作为全crop/fullcanvas参考，不能冒未核云原图新尺寸。
+
+最小产品修复7eedae7只加设计输入真实contain边界/面积提示并明示bbox是容器、受宽度限制后加高不会放大/不支持fitcover，让导演在主体保护内选原图/明确真分景，无强制多图或面积阈值，不改renderer/schema/QC/积分/保存/依赖/迁移。运行只cover_design.py25292/2d06bc9e，tests23409/1c5671aa不进云；初24/.508s PASS，最终仅3受影响几何/.413s（含实际PNG边界和极端比例hint=null/其它候选保）与单双图service/临时DB/私存储2/1.843s PASS，3.11编译/diffcheck通过。最终独立9517/4427621d source/offlineGO，无未解P1/P2，不冒真实新成品。Root验证6734/e4e92ea6与manifest1576/7811c5c1、oneleafpatch4989/de08fb7e在P/renderer。
+
+唯一PLAN.next42_preparation.next44_geometry_preparation登记下一最薄非付费准备：原sole复用缓存14叶/现core-host-entry，只oneleaf增量与实际父44必要原件/数据适配，rootsole产品/UI，不叠旧审/测试/字体运输；未来human/clock/END/READY/OPEN/job全null-HOLD，e8a已消费。原sole正在准备，尚未source/激活或新调用。全部非付费准备具体齐后再集中处理新的有限公网/付费授权，不沿用旧END或standing80。PC/H5新品/保存重开/免费排字/下载仍未通过，交付HOLD，真iPhone/多人/Q07边界保，正文和生产不动。
+
+## HISTORY — 上一检查点
+
 ## CURRENT — 2026-10-21 19:51，R10唯一UI已提交后显示未交付，入口实际提前关闭
 
 产品10e2176/登记前HEADb7c861e，e8a本次一单已消费，不再POST/OPEN/延窗。真实normal Cc-sz070pf4qsj0ykg/Tt-sz070pf4qt0i8zk Success0D0，原stdout11167/f7bbc69c→child5902/a6a040de，PID4129619同CID/image，TERM/START/CAS各1；42rows909617/known3899499000/pending0/inode1460877保，只cap42→44。一次ownREADY Cc-sz070pfea1ypekg/Tt-sz070pfea2673ls S0D0，真1090/37f0c681/UID999 PID69/821850317。实际OPEN19:48:21，Cc-sz070pfo23s0pog/Tt-sz070pfo24703r4，原1005/fee4cd44，END20:31:39未变。Root唯一正常reload→原report0cdbe→quote8→原推荐题及9新A全ready→一次重新设计POST；曾显示选图设计/预留8尚未扣分。关闭重开面板后未交付/释放，仅再一次刷新GET确认，H5实际375×844/面板337×820，finally reset；旧4da成品仍在，未排旧字/下载旧图冒新品。短暂quote积分不足随后消失，不能当根因。
