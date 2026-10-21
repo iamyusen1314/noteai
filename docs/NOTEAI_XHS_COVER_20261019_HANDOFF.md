@@ -1645,3 +1645,15 @@ R3仅修列侧安全时间转换和实际route投影，Cc-sz070pqd3fknbi8/Tt-sz0
 旧源红15f2ab复现503无诊断；初create-only26PASS50b617因覆盖真实恢复路径的相关代码变更被最终替代。最终27/27/137.0ms PASSb61690，含503/202坏JSON/network及恢复GET503/POST503/GET200后POST断网、安全字段无敏感sentinel、原pending/单POST约束；diffcheck75765c。独立foundation窄审无实质问题，另唯一必要ACK后preview503边界通过：pending清、无admission误日志、仅1POST；未重27suite/浏览器/模型。证据P/real-ui-r11-geometry-20261021/ROOT-ADMISSION-DIAGNOSTICS-OFFLINE-VERIFICATION.json绑定最终源hash；原R11UI索引5276/d267不覆盖重写，之前a8状态账单修复证据2172/704f保原。
 
 当前只有本地诊断sourceGO，不能补回R11真实HTTP或冒新封面通过。无依赖/迁移/新权限或生产变更，原窗口sole云/最终集成。下一非付费最薄准备优先复用原API7e/现有cap46且实账44、当前9素材/报告/8分，准备从页面恢复原pending编号，先查原任务、如确无则最多一次明确手动同号同body恢复（须新的当次有限公网范围，非自动重发/新UUID）。准备不等于批准：未来新human/raw/clock/END/normal/READY/OPEN/job须null，全部材料具体齐后才集中处理当次新窗口；旧e70e已消费且CLOSED，不能因原END或站立80自动重开。产品成品质量、真实保存重开/免费排字/下载仍未通过，真iPhone/多人容量/Q07边界保；正文和生产不动。
+
+###  2026-10-21 22:28，01ffe6c脱敏日志表示收敛；同cap46/隔离第7任务本机HOLD接续
+
+分支codex/noteai-xhs-cover-20261019，产品HEAD01ffe6cc2c682aea7e4feb10eabe205884ed3ab1继承edda0a3，不回退；实际API仍7eedae7/PID4172531，R11已21:28:40早关、原e70e单次已消费，不重开或延窗。原44complete/known3.9145932元/pending0只为最近R2真实账观察，不冒当前供方实结/最终积分0；R11原HTTP/job/client仍未还原，历史UNKNOWN保。合格新版0/单张合格交付成本N/A，原正文与生产不动。
+
+已确认独立受理门槛：model/cover_jobs.py MAX_ACCEPTANCE_JOBS=6，acceptance分支累计全部状态达到6且无原幂等记录时在reserve/INSERT前429，现有6个封面终态填满；46模型上限或technical max_tasks7不能解除它。此为当前源码确定前置阻塞，不是R11实际429证明。Root已选择只在隔离验收runtime中加入固定用户/报告/budget且未来fresh一任务授权才生效的MAX6→7适配，不改产品cover_jobs/数据库/旧记录，不切formal budget。原sole两原作者继续本机HOLD：当前69d28/cap46的46→46新窗继承（不重演44→46/不加48）、operator/launcher新HTMLpin、既有split/build算法的独立新输出/entry窄适配；旧源/账/时窗/派生均保，未新云运输或激活。最终exact source计划和变更函数/pins独审仍待齐。
+
+免费浏览器探针仅尝试打开任务自写data:合成页，浏览器URL策略在创建前拒绝；已停止，未经其他协议/本地服务或底层接口绕过，未执行探针、未取得真实console结果，不能宣称旧对象字段实际丢失。为消除工具渲染歧义，01ffe6c仅把既有coverAdmissionDiagnostic的4白名单字段用JSON.stringify写成单条console.warn文本；原requestUUID/phase/HTTP100..599或null/固定error_type不变，无message/detail/stack/正文/素材/token。只HTML和现有tests/frontend_cover_tasks.test.js改，提交/恢复/幂等/请求body/积分不变。受影响2项定向tests通过，96.998541ms，日志336/b98bb093；git diff --check通过；foundation非作者只审表示diff并复用测试，无实质问题、无真实浏览器效果背书，未重复旧27suite。
+
+新唯一HTML872279/70dde0a11d0ce4749f79875e4d899d1cc92d4e0b5362afdaabb7d46c15a52da2。P/real-ui-r11-geometry-20261021/PRODUCT-01ffe6c-FRONTEND-MANIFEST.json1819/6ff1369f7283703613e19d9399ced40488677ff93602fdbb8e78b7db6445b5f2；product-01ffe6c-frontend-only.patch5599/507029b7（旧7e HTML eabc→新70dd，含a8账单身份与edda诊断）；ROOT-ADMISSION-DIAGNOSTIC-STRING-OFFLINE-VERIFICATION.json2007/c59bb0b9。原edda manifest/派生保历史，原sole已收到新pin，仅本机闭合，不盲预置旧74461；后端7e设计/renderer/guard业务无本产品改动，无依赖/迁移/模型调用/生产改动。
+
+阶段1接管范围、阶段2产品与离线修复可复用，阶段3真实新版成品及PC/H5保存重开/免费排字/下载仍未通过，阶段4集成交付HOLD。唯一PLAN已延续本机接续，下一先核原sole最终本机source计划/局部验证/必要独审，再决定精确非付费source预置；此时future human/raw/clock/END/normal/ownREADY/OPEN/job全null，无新付费或公网批准。未来如需原pending恢复，必须正常页面先GET、仅原UUID与完整冻结body一致才最多一次明确手动原号提交，不自动新任务/重发；缺原wire则停止。第7总任务、≤2Lite/0生图/新增≤1元/批≤46、原80次100元/现有8分/最多成功结算一次与新有限入口须集中在最后当次范围，不能继承旧e70e。真iPhone/多人容量/Q07边界照实保留，原窗口sole云执行及最终集成发布。
