@@ -36,7 +36,7 @@ def synthetic_png(size, color):
     return out.getvalue()
 
 
-def returned_value(body, required):
+def returned_value(body, required, *, tool_call_id=None):
     """Decode the actual SDK tool message, rather than a test-specific shortcut."""
     def find(value):
         if isinstance(value, str):
@@ -58,11 +58,31 @@ def returned_value(body, required):
                     return answer
         return None
     for message in reversed(body["messages"]):
-        if message["role"] == "tool":
+        if message["role"] == "tool" and (tool_call_id is None or message.get("tool_call_id") == tool_call_id):
             value = find(message.get("content"))
             if value is not None:
                 return value
     raise AssertionError("SDK did not expose expected tool field: " + required)
+
+
+class ReturnedValueTests(unittest.TestCase):
+    def test_contract_and_render_results_keep_their_tool_call_identity(self):
+        body = {"messages": [
+            {"role": "tool", "tool_call_id": "fixture_5_0", "content": json.dumps({
+                "code": 0, "stdout": json.dumps({"pass": True, "checks": []}), "stderr": ""})},
+            {"role": "tool", "tool_call_id": "fixture_5_1", "content": json.dumps({
+                "ok": False, "code": "UPSTREAM_EDITABLE_CONTRACT_FAILED", "model_calls": 0})},
+        ]}
+        self.assertEqual(returned_value(body, "code")["code"], "UPSTREAM_EDITABLE_CONTRACT_FAILED")
+        contract = returned_value(body, "code", tool_call_id="fixture_5_0")
+        self.assertEqual(contract["code"], 0)
+        self.assertIs(json.loads(contract["stdout"])["pass"], True)
+        self.assertEqual(returned_value(body, "code", tool_call_id="fixture_5_1")["code"],
+            "UPSTREAM_EDITABLE_CONTRACT_FAILED")
+        with self.assertRaisesRegex(AssertionError, "png_path"):
+            returned_value(body, "png_path", tool_call_id="fixture_5_1")
+        with self.assertRaisesRegex(AssertionError, "code"):
+            returned_value(body, "code", tool_call_id="missing")
 
 
 class ScriptedBridge(runtime.Bridge):
@@ -135,10 +155,10 @@ class ScriptedBridge(runtime.Bridge):
                 "text_layers": [{"id": "title", "allowed_rect": {"x": 90, "y": 100, "width": 1600, "height": 350}}],
                 "protected_regions": [{"x": 500, "y": 800, "width": 700, "height": 800}]}})]
         elif turn == 6:
-            contract = returned_value(prepared, "code")
+            contract = returned_value(prepared, "code", tool_call_id="fixture_5_0")
             if contract["code"] != 0 or json.loads(contract.get("stdout") or "{}").get("pass") is not True:
                 raise AssertionError("Actual SDK contract check did not pass: " + json.dumps(contract))
-            rendered = returned_value(prepared, "png_path")
+            rendered = returned_value(prepared, "png_path", tool_call_id="fixture_5_1")
             self.rendered_tool = rendered
             calls = [("cover_view", {"path": rendered.get("image_path", rendered["png_path"])})]
         elif turn == 7:

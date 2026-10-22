@@ -107,8 +107,12 @@ async function freezeProject(dir, request) {
   return { sources, text_layers, protected_regions };
 }
 function run(command, args, cwd, name) {
+  const started = performance.now();
   const result = spawnSync(command, args, { cwd, encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024, env: process.env });
-  const evidence = { command: name, exit_code: result.status, stdout: result.stdout || '', stderr: result.stderr || '' };
+  const evidence = { command: name, exit_code: result.status, signal: result.signal,
+    elapsed_ms: Math.round(performance.now() - started),
+    error: result.error ? { code: result.error.code, message: result.error.message } : null,
+    stdout: result.stdout || '', stderr: result.stderr || '' };
   if (result.error || result.status !== 0) fail('UPSTREAM_' + name.toUpperCase() + '_FAILED', JSON.stringify(evidence));
   return evidence;
 }
