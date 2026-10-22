@@ -2108,3 +2108,6 @@ APT r2 c-sz070rxxgr6xjpc/t-sz070rxxgrqwqgw索引完整且82新包/0升级/0移�
 独立reader实际逐规则、wire/CHILD与载体/恢复核无P0–P2，E/aux-candidate-review/SANDBOX-THREE-SYSCALL-PROPOSAL-REVIEW.GO.json7977/SHA12df42be30798f9498db25870a991ca7eff6b6eebb96cb346297e99effd99fa1。这只是具体提案可申请当次确认，非已应用/SDK成功/normal-ready/模型或审美GO。Root已重新读取Cua实际策略：浏览器UI发起的安全敏感权限扩大须action-time确认，问批准时保存并展示可核截图。原sole只准备准确官方RunCommand新SDK未提交表单/截图/markHandoff，Root随后一次集中问具体临时权限，不重复问预算/模型；当前尚未问、无本人权限回复/新公网窗，所有profile应用/新SDK/候选/模型/业务DB/OPEN0。
 
 不受阻source17薄delta已Root另行本机核6固定Git基底逐旧byte/offset拼接＝20a实际源、11literal全等、gzip exact，E/ROOT-REMAINING17-LOCAL-INTEGRITY.json1123/SHA84c932a7b767a76f698f6c851a63a0202dfad9ed8eda6f59c427366c695a4501；只本机，不冒远端base/staged/运行通过。原sole按原8片＋两静态纯保存继续，不重74/fonts/整15，不等此安全回复也不execute产品。真实模型本批0、合格商家封面0/单位成本N/A、15新增/100累计/99物理围栏和旧UNKNOWN全保。
+
+
+**本次具体权限问题已提交本人，待明确回复**：官方tab1637496161准确新SDK RunCommand表单未提交、未点最终发起、无Request/C/T，RunCommand-UNSUBMITTED-20261022.png及UNSUBMITTED-FORM.json存上列SDK新attempt目录，页面已sole markHandoff。Root已看截图并将展示给本人，request_user_input_async仅返回accepted，不是本人同意；唯一PLAN.security_actiontime_confirmation为PENDING/user_raw与received_at空，公网时窗仍无。本步仅本任务临时3syscall权限＋一次0模型费SDK复测/后续至多1同规格隔离candidate，profile/生产/付费均未执行。原sole继续不受阻source-only准备，不因该问题重问原预算或自动发起。

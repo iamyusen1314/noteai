@@ -4,7 +4,7 @@
 
 B/sandbox-three-syscall-v28.3.3-HOLD-r1/COMBINED-MANIFEST.HOLD.json1774/ed30aadb绑定profile/原same-case新attempt/normal生命周期。E/aux-candidate-review/SANDBOX-THREE-SYSCALL-PROPOSAL-REVIEW.GO.json7977/12df42be：实际逐条31/default/clone3未改、wire与CHILD exact、SDK和normal同profile与回收界清楚，无P0–P2；GO仅具体提案，不是执行授权/SDK成功/normalREADY。SDK保networknone/RO；normal保原networkhost/18114/原鉴权与隔离DB/网关限制，同image/1.5GB/1CPU/128pids/NNP/capdrop/RO，最多1新私有candidate，原cold不启动/删除。生成与免费排字同API容器，必须各载体绑定profile；只改短命SDK容器无效。新candidate结束仅在终态/无inflight后回收、账与15基线不回退，无host/sysctl/daemon/AppArmor/生产变更。
 
-下一sole在官方RunCommand仅备准确新SDK表单并截图/markHandoff，最终发起不点；Root据截图＋冻结方案集中当次确认额外系统调用权限。Cua当前安全规则要求浏览器发起的权限扩展当次同意，即使已一般授权环境准备；此确认不改原15/100预算，也不是新公网窗口。尚未询问/收到本人本次权限回复，profile应用/新SDK/candidate/PG/provider/OPEN均0。Root已完成新17叶本机exact基底拼接/literal/gzip完整性核1123/84c932a7，只本机不冒远端，原sole继续最薄source17/两静态纯保存，不重74/fonts/整15。新版真实成品/质量/PC-H5真实验收仍待，合格0/单位成本N/A；公网CLOSED/newhuman-clock-END空，真实准备齐后另按现有具体有限窗操作，不提前消费它。旧账/UNKNOWN全保。
+下一sole在官方RunCommand仅备准确新SDK表单并截图/markHandoff，最终发起不点；Root据截图＋冻结方案集中当次确认额外系统调用权限。Cua当前安全规则要求浏览器发起的权限扩展当次同意，即使已一般授权环境准备；此确认不改原15/100预算，也不是新公网窗口。本次具体临时权限问题已发本人，待明确回复；官方新SDK表单已截图并markHandoff、最终发起未点，无C/T。profile应用/新SDK/candidate/PG/provider/OPEN均0。Root已完成新17叶本机exact基底拼接/literal/gzip完整性核1123/84c932a7，只本机不冒远端，原sole继续最薄source17/两静态纯保存，不重74/fonts/整15。新版真实成品/质量/PC-H5真实验收仍待，合格0/单位成本N/A；公网CLOSED/newhuman-clock-END空，真实准备齐后另按现有具体有限窗操作，不提前消费它。旧账/UNKNOWN全保。
 
 ## HISTORY — 2026-10-22 05:49UTC Linux三安装成功；实际SDK渲染因Chrome沙箱启动失败，保留原件定向处理
 
