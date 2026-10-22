@@ -1884,3 +1884,32 @@ source-only授权已消费，不重旧10/18/本8或failednormal；PLAN记录actu
 本地开发助手安装Skill只影响开发阶段，不会自动使NoteAI后端具备同等运行能力。产品运行仍需现有任务/调用计量/工具接口/保存合同，按有上限的导演→制作→审稿执行；不把所有第三方Skill正文塞进运行prompt，不加Agent平台/账号/订阅/完整编辑器。当前已有素材/计费/保存/六项QC可复用，新增只针对经样例确认的设计/工具缺口。Q-R16模型候选保留，本轮不新增价格/积分/保存期限决定。
 
 研究原件统一在现有任务tmp的design-skills-research-20261022-r1：ROOT-ASSESSMENT.json11819/SHA94894b020e6efd508bdcf2420ecb9312e610c716e78928f3165235e213a92f43；xhs-skill.sources.json195988/26caf8ca、project-audit.sources.json107572/692e908d（含已读固定版本原文），official-skill.sources.json16580/48abc812（URL/长度/SHA/短引/评估，非19份全文归档），Root另存TecSong/guide原文及截图19refs。GitHub元数据日期与文件最后提交日期分开，精确pin见这些原件；无需为展示再重抓。PLAN同一quality_model_review下追加skill_market_research，不新建task/checkpoint/handoff。源码/现有8条保存/45次账史/80次100元/UNKNOWN/入口CLOSED均不动，无新模型/公开scope或产品代码。下一先向用户报告推荐/淘汰和证据限制，收敛具体质量方案；不直接进入又一轮旧模型付费重试。
+
+### Q-R18 — 2026-10-22，深入火山设计工作流及实际设计Skill；现有渲染方案重新开放比较，尚无审美通过成品
+
+**接续与范围。** 用户指出Q-R17偏目录筛选，遗漏火山可复用workflow/agents，也没有满意封面证明现方案，应从优秀项目深入学习prompt/Skill。该质疑成立。接收HEAD1d1ea6e、分支codex/noteai-xhs-cover-20261019、产品1d927f2/前端01ffe未变，工作树clean。Root与三个独立只读代理分工深读火山官方工具/实际源码、扣子即梦配置、照片设计/海报项目；不重新审整个产品。Firecrawl深度研究SKILL实际读取并用于定向搜索及官方页面读取；其研究工具本轮5 credits，不是生成模型调用，人民币等值未知。没有安装/运行第三方代码、上传素材、登录/账号开通、模型生成、云执行、产品/生产变化。review-agent不在本窗口可用Skill目录，采用独立代理窄审等效方法；不为技能名安装插件。前端测试技能本轮无适用产品变更。
+
+**修正Q-R17的判断方式。** 不以“缺NoteAI存储/鉴权/计费”否定设计项目的设计价值，这些由现有NoteAI业务层承担。公开设计方法、原作者案例、实际NoteAI运行与用户满意分别记证据；官方身份/星数/输出JSON都不能证明审美通过。旧Q-R16/Q-R17是历史推荐，不构成必须坚持现Pillow/坐标/字级方案的决定；设计Agent、渲染器及图像编辑路线继续开放比较，允许必要替换设计执行层，保留已实现的任务/素材/账/保存能力。合格新版仍0，不宣称本轮交付。
+
+**火山确有可复用能力，已读到执行契约。**
+
+1. [veImageX万创Agent](https://docs.volcengine.com/docs/veImageX/UsingAIcapabilitiesthroughWanchuangAgent?lang=zh)：原商品照＋可选构图参考＋可修改指令→文档所示思考模型理解→工具调用→结果/再次编辑。当前文档限定智能抠图及电商场景生成；不能直接把真实汤泉换成想象背景，也未提供通用封面排字。Seed1.6仅历史文档示例，不是当前账号可用性或新模型推荐。
+2. [创意魔方真实样式JSON](https://docs.volcengine.com/docs/veImageX/Stylestructure?lang=zh)及[结果API](https://docs.volcengine.com/docs/veImageX/GettheresultgraphURI?lang=zh)：原照image和text独立图层、数组顺序、crop viewpoint、亮度/对比/锐化/饱和度、字体/字号/行字距/对齐、背景/形状/蒙版。`StyleId + Params`与动态属性渲染，返回`ResUri`还要核`RenderDetail`，可能存在单层失败。确有专业图形执行能力；审美规划需上游供给。2024官方示例本身缺冒号、部分字段与表格/SDK不一致，已原样留存；不能直接复制上线。该服务需要单独服务/IAM/存储计费和账号核实，不假定Ark充值包含。
+3. [扣子官方自媒体图文模板](https://docs.coze.cn/tutorial_template_visual_content_creation)：Root/代理已读完整文档和4张实际配置图。正文、配图、封面是不同分支；封面文案→图片子流程→画板，文字变量独立传入。可以仅取封面分支复用已有报告。截图里的prompt改写很基础，system框空白，封面示例是中秋9:16通用生图后画板，并非成熟真实商家审美。官方[画布插件](https://docs.coze.cn/canvas-plugin)确有参考/版本对比、区域意见、局部编辑与文字编辑；不声称内部Agent prompt/DSL已开源。搜索索引曾出现咖啡四方案，但当前全文不复现，已剔除该例。
+4. 扣子[裁剪](https://docs.coze.cn/guides_cut_image_plugin)、[调色](https://docs.coze.cn/guides_change_image_plugin)、[排字](https://docs.coze.cn/guides_add_text_to_image_plugin)有实际参数/API；工作流可异步取得execute_id并查history。[官方价格](https://docs.coze.cn/coze_pro_plugin_fee)三工具各0.01元/次，恰各一次为0.03元，仅供应商参考，未含规划/QC/生图/套餐；不等于NoteAI积分。裁剪/调色专页结果链接30天，不能误套泛页一年。导入导出DSL需要付费套餐/依赖重绑，本次没导出或开通。
+5. [bytedance/agentkit-samples完整官方源码](https://github.com/bytedance/agentkit-samples/tree/7e3310b5984efe482cfdf1049135367fa1018a75/python/02-use-cases/ad_video_gen_seq)确有策略→分镜→图像工具→多模态评估等；已读16个固定版本全文，Apache2。`image_generate_gather`真传参考图；`geval.py`真把候选成品和原参考作为input_image交给评估，输出美学/画质/一致性理由，审美包含构图/配色/光影。可借这些阶段和接口，不必引AgentKit平台。原默认食品饮料、4分镜×多候选、视频、关闭watermark与关闭评估thinking等不可照搬；它不承诺XHS字体可读或照片像素不变。Skills Sandbox的canvas-design只是执行示例/截图，非此包内公开的专业封面SKILL。
+
+**设计项目已深入到prompt/代码/中间产物。**
+
+- [Guizang照片叠字方法](https://github.com/op7418/guizang-social-card-skill/blob/cf4b810fac1c73fb65a2bb31d8c9278d82cbc4c5/references/image-overlay.md)及M16版式：先观察真实照片焦点、主体轮廓、裁切焦点与文字静区，再在四种图文构图中选；该配方建议约30%安静区域。先不用蒙版，必要时采照片暗色做约0.15–0.30局部遮罩；否则换照片或把标题移出图，不靠厚黑底遮住一切。字体、字重、语义断行、字距和照片色调联动，HTML/CSS保持独立文字。以上数字是作者某配方，不是平台规范，也不能全行业套日系宋体。AGPL3/另有商业许可；方法研究和代码移植分开。所称validator文件未出现在固定tree，且原图→HTML→PNG完整公开案例未闭合，不虚称自动QC或审美已证。
+- [Howard poster-generator的完整prompt模板](https://github.com/howardz27/poster-generator-skill/blob/fa2a40bf0943c14dbcf2dfd86a2efe66fa8b4cbc/references/base-prompt.md)：先抽事实主线/必留与可选信息，再按内容结构/密度/主体/渠道选版式；视觉风格另选，最后拼完整版式＋风格定义＋结构化文案。MIT，40张中英公开样例可比较。Root实际看了稀疏展览海报和黑色耳机广告：前者克制留白但小字不适合直接做信息流封面；后者主体/光影/白字层级完整，但品牌/卖点是虚构演示，不能移给商家。单例完整prompt/调用链未公开，不因文件名宣称实跑某模型。原自动重试/换后端须适配既有有限调用，不因此否定其设计方法。
+- [PosterVerse](https://github.com/wuhaer/PosterVerse/tree/158104943e2f0fd33167cfed0ac7ffa09e2c9e6e)：确有同文件夹的立春用户要求→蓝图JSON→背景PNG→最终HTML可追溯链；阶段3真正接收实际背景图和精确文案再安排可编辑文字。这比只堆形容词更具体。它是生成插画、研究许可CC BY-NC-ND；不可直接商用复制。入口还有while True持续生成与JSON最多10次，绝不直接运行/移植。借中间产物与分层方法，不引新训练/平台。
+- [design-image-studio](https://github.com/kangarooking/design-image-studio/tree/dc43ec482fd0e2452b9feb75d82344467690e0dd)：MIT，目的/受众/主视觉/层级/色光/安全区→compiled brief→Seedream prompt的参数组织可学。Root读实际Python：`make_design_reasoning`是按参数/任务profile确定性拼字段，wrapper本身没调用Claude，也没读取所指73KB“system prompt”；要由上层Agent实际阅读推理。文件路径元数据不能当“已运行设计思考”。该长prompt官方归属未证，不能冒Anthropic官方。实际方向样例两张活动广告，左图可见“安全区”被画成字，进一步说明不能把完整源码/漂亮宣传当合格产物。
+
+**Lovart值得学的具体机制。** [官方Agent Skills](https://www.lovart.ai/docs/how-to-prompt/agent-skills)明确含RedNote封面，定制Skill的顺序是Thinking模式下先做到满意，再保存成功对话/流程。[2026-10-19官方介绍](https://www.lovart.ai/zh/blog/what-is-lovart)补充参考、工具/模型调度、可比较的版本和局部编辑。Root另读[lovartai/lovart-skill](https://github.com/lovartai/lovart-skill/tree/2e66cf1df6f2a5a005e9001169657e1c3e887587)完整client与Skill：实际向lgw.lovart.ai发送自然语言＋attachments/subjects/brandkits，持久project/thread，独立查status/result；说明有设计服务接入路径。此客户端是桥接，内部设计Skill/调度prompt并没公开；原站到repo身份链接未独立证实，frontmatter MIT而根tree无LICENSE。账号/价格/内部物理调用上限未核，不安装、不上传、不调用。可作为比较候选，不凭闭源/业务功能缺口排除，也不冒已合法接通。
+
+**当前收敛建议，仍非批准。** 先做有真实参考的设计样张对照，再选最终设计执行层：原照＋可编辑图层（现实现/HTML-SVG或veImageX）与严格约束Seedream Pro照片编辑均可进入候选，不能预设哪条必胜。规划需要把真实图观察、受众/行业/笔记单一主张、参考图可借与禁借、内容优先级、字体实字库/字重/断行、色彩、裁切、修色/蒙版写成可执行决定；不是继续增加“高级感/爆款”等形容词。保留实际brief、完整prompt、工具参数/分层和成品，最终像素与原照并排看，复用现有缩略图/六项检查，只围绕明确缺陷做局部修改。事实安全硬门槛，美观分不能抵消虚构设施/菜品/价格/服务。经用户满意的真实商家方案才固化Skill，再接入已有任务/存储/计费；开发助手Skill和产品运行Agent分别计量。不给用户增加完整编辑器或新发布体系。
+
+**证据与恢复。** 原task tmp/design-workflow-deep-20261022-r2/ROOT-DEEP-ASSESSMENT.json12694/SHA f80a9ed905ee531a10287e9a1bfc47716a5f859042fc819ab841dde80f691d1c索引3子报告、固定源全文、Firecrawl2搜索＋官方Pro文章原文/usage、4张Root实际浏览截图；所有公开例图只是研究证据，不是NoteAI样张。本轮资料读取不形成实际每张交付成本，仍N/A。最近原账45次/known3.9263058元/pending0及UNKNOWN保留，不冒fresh读。原80次100元不重置；exact8私有源已保存未加载且授权消费；入口CLOSED，future human/clock/END/job全空。唯一PLAN沿quality_model_review追加deep_workflow_research，设计架构OPEN，旧Q-R17保历史；不创建第二套task/checkpoint/handoff。下一向用户给出本轮具体纠正、方法与候选取舍，再将有限样张比较范围具体化；不立即按旧2Lite/0图像方案重测。
+
+Q-R18独立结论窄审：原独立项目代理核Root汇总与已读固定版本来源，确认无实质纠正；单配方数字/虚构样例/研究链路边界、许可与候选开放均保，未重复抓取或运行。实际回复摘要存同目录INDEPENDENT-RESEARCH-REVIEW.json，不冒产品diff或成品审美审查通过。本次仅文档，执行git diff --check及JSON/引用原件校验，不重跑无关产品测试。

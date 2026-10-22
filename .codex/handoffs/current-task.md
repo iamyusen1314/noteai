@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 平面设计/XHS封面Skill研究完成，实际源码与三张仓库样例已看；尚未安装/执行/改变产品
+## CURRENT — 2026-10-22 火山设计workflow/Agent与专业设计Skill已深入源码；设计路线开放，先取得满意样张再固化
+
+登记前HEAD1d1ea6e，分支codex/noteai-xhs-cover-20261019；产品1d927f2/前端01ffe未改。用户否定上轮目录研究和无满意成品即坚持方案；本轮Root＋3独立代理实际读官方配置、16份AgentKit源码及设计Skill/prompt/模板/中间产物，Root另看4张公开样例像素。已证实此前遗漏veImageX万创Agent、创意魔方原照/文字图层、扣子独立封面与原照处理、AgentKit候选＋原图共同视觉QC。实际API/能力与模板审美分开，具体边界和原件见HANDOFF末节Q-R18。
+
+设计方法重点是Guizang按真实主体/静区决定裁切及字体/局部遮罩、Howard事实内容×版式×风格完整prompt、PosterVerse蓝图→实际图→可编辑文字。design-image-studio的Python字段拼装本身不证明调用Claude思考；公开样例也有安全区文字泄漏。Lovart官方先满意再保存Skill，有RedNote类，另实际client桥接设计后端；内部设计prompt/费用/调用限额未核。缺NoteAI账/鉴权/保存不否定设计价值，NoteAI业务层负责。旧Q-R16/17仅历史建议，现renderer/model/Agent不定案；允许对照图层工具与受限SeedreamPro编辑，不能用工程过关代审美。尚无用户认可新版样张，合格0/单位成本N/A。
+
+本轮只读研究，Firecrawl实际5 research credits（人民币等值未知），模型0/上传0/安装0/第三方运行0/云/生产0。ROOT-DEEP-ASSESSMENT12694/f80a9ed9与3子源报告/4浏览截图存原task tmp/design-workflow-deep-20261022-r2；未触正常测试UI，研究tab已关。唯一PLAN.quality_model_review追加deep_workflow_research并置设计架构OPEN，原task/账/UNKNOWN/exact8保存证据保留。旧source-only授权已消费、新runtime未加载；入口CLOSED，future human/clock/END/job仍空；最近45calls/known3.9263058/pending0只是原账证据，80次100元仍累计。下一给用户具体研究取舍，形成可比较真实样张的有限执行范围；不直接旧Lite重试或新增开窗/服务。
+
+## HISTORY — 2026-10-22 平面设计/XHS封面Skill研究完成，实际源码与三张仓库样例已看；尚未安装/执行/改变产品
 
 登记前HEAD3465a68，产品1d927f2/前端01ffe保留。用户最新要求继续研究市场官方/GitHub设计Skills而非马上实施。Root＋三个独立问题代理已按实际SKILL、脚本/工具、案例、原图保护/行业/字体/QC、调用界限、维护和许可核；OpenAI官方skill-installer只查curated目录成功，不安装；没有Firecrawl收费研究、生成模型/上传素材/账号/云或生产操作。完整候选/证据/推荐与反证见HANDOFF末节Q-R17，来源固定版本与实际原件存原task tmp/design-skills-research-20261022-r1，ROOT-ASSESSMENT11819/94894b02。
 
