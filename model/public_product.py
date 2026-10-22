@@ -741,7 +741,16 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                     raise TrialProviderStopped("COVER_ENTITLEMENT_SCOPE_INVALID")
                 total_calls = tx.fetchone("SELECT COUNT(*) n FROM public_trial_calls WHERE budget_id=?", (budget_id,))["n"]
                 task_calls = tx.fetchone("SELECT COUNT(*) n FROM public_trial_calls WHERE usage_record_id=?", (usage_id,))["n"]
-                if (acceptance and total_calls >= cover_settings.MAX_ACCEPTANCE_CALLS) or task_calls >= 3:
+                job = tx.fetchone("SELECT policy_json FROM cover_jobs WHERE usage_id=? AND user_id=?",
+                    (usage_id, current.user_id))
+                policy = json.loads(job["policy_json"]) if job else {}
+                agent_cover = (policy.get("design_version") == 3 and
+                    policy.get("workflow_engine") == "editable_design_opencode_v1")
+                # The owner lifted the call-count ceiling for A. The same DB
+                # money reservation and UNKNOWN/physical-slot guards still apply.
+                limit = policy.get("max_physical_calls", 3)
+                if ((not agent_cover and acceptance and total_calls >= cover_settings.MAX_ACCEPTANCE_CALLS)
+                        or (limit is not None and task_calls >= limit)):
                     raise TrialProviderStopped("COVER_CALL_LIMIT_REACHED")
             pending = tx.fetchall("SELECT id FROM public_trial_calls WHERE request_hash=? "
                                   "AND usage_record_id IS NOT NULL AND model_usage_record_id IS NULL "
@@ -774,7 +783,8 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                 "fact_observation": current.fact_observation,
                 "provider": ("seedream" if cover and payload.get("provider") == "seedream" else
                              "claude" if payload["model"].startswith("claude") else
-                             "doubao" if payload["model"] == "doubao-seed-2-0-lite-260428" else "kimi"),
+                             "doubao" if payload["model"] in {"doubao-seed-2-0-lite-260428",
+                                 "doubao-seed-2-1-pro-260915"} else "kimi"),
                 "modality": payload.get("modality"),
                 **({"media": media} if media is not None else {}),
                 "operation_id": payload.get("operation_id"),

@@ -33,7 +33,7 @@ class SeedreamError(RuntimeError):
 
 
 def estimate(input_images: int) -> dict:
-    if type(input_images) is not int or not 1 <= input_images <= 3:
+    if type(input_images) is not int or not 1 <= input_images <= 9:
         raise SeedreamError("COVER_SEEDREAM_REFERENCE_COUNT_INVALID")
     from decimal import Decimal
     amount = Decimal("0.60") + Decimal("0.02") * (input_images - 1)

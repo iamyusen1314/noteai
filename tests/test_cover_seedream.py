@@ -106,7 +106,8 @@ class CoverSeedreamTests(unittest.TestCase):
 
     def test_estimate_uses_output_pixel_tier_and_explicit_extra_references(self):
         self.assertEqual([seedream.estimate(n)["estimated_cost"] for n in (1, 2, 3)], ["0.60", "0.62", "0.64"])
-        for count in (0, 4, True):
+        self.assertEqual(seedream.estimate(9)["estimated_cost"], "0.76")
+        for count in (0, 10, True):
             with self.assertRaises(seedream.SeedreamError):
                 seedream.estimate(count)
 

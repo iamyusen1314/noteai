@@ -16270,6 +16270,7 @@ class CoverAdjustInput(BaseModel):
     text: str = Field(min_length=1, max_length=80)
     position: Literal["top", "bottom"] | None = None
     expected_revision: int = Field(ge=1)
+    layer_id: str | None = Field(default=None, min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 def _cover_report_snapshot(report, *, title=None, refs=()):
@@ -16396,7 +16397,8 @@ async def adjust_cover(job_id: str, req: CoverAdjustInput, user: dict = Depends(
     import cover_renderer
     try:
         return await _await_media_worker(cover_service.adjust, user["id"], job_id,
-            text=req.text, position=req.position, expected_revision=req.expected_revision)
+            text=req.text, position=req.position, expected_revision=req.expected_revision,
+            **({"layer_id": req.layer_id} if req.layer_id is not None else {}))
     except cover_renderer.CoverRenderError:
         raise HTTPException(422, "文字过长、字体不支持、对比不足或位置遮挡主体，请减少文字或调整位置") from None
     except _private_storage.MediaCapacityExceeded:

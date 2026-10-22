@@ -413,9 +413,10 @@ input,select,textarea{font-family:inherit}
       <div class="card" style="margin-top:20px">
         <h3>笔记封面</h3>
         <div id="cover-config-state" role="status">正在读取封面配置…</div>
-        <p>固定 Seedream Pro · 1776×2368 · 8积分/合格交付 · 保存90天；设计1次、图片最多1次、质检1次，无自动付费重绘。</p>
+        <p id="cover-workflow-state">1776×2368 · 8积分/合格交付 · 保存90天；工作流及实际调用按生效配置，无自动付费重试。</p>
+        <label>设计工作流 <select class="form-input" id="cover-workflow" onchange="document.getElementById('cover-account-verified').checked=false;document.getElementById('cover-evidence').value=''"><option value="layered_v2">已有分层排版</option><option value="editable_design_opencode_v1">Editable-Design 完整设计 Skill · OpenCode 2.1.2</option></select></label>
         <label><input type="checkbox" id="cover-enabled"> 允许新封面任务</label>
-        <label>运行范围 <select class="form-input" id="cover-execution-scope"><option value="acceptance">本次验收：最多6任务/18调用/100元</option><option value="formal">正式用户权益计量（须由主窗口统一发布）</option></select></label>
+        <label>运行范围 <select class="form-input" id="cover-execution-scope"><option value="acceptance">受保护验收（费用与样本闸按生效工作流）</option><option value="formal">正式用户权益计量（须由主窗口统一发布）</option></select></label>
         <label><input type="checkbox" id="cover-account-verified"> 固定型号的账号权限和价格已核验</label>
         <label>脱敏证据编号 <input class="form-input" id="cover-evidence" maxlength="300"></label>
         <button class="btn btn-ghost" data-capability="model_configuration" onclick="changeCoverConfig('draft')">保存封面草稿</button>
@@ -1812,6 +1813,10 @@ async function loadCoverConfig() {
     const data=await adminJson('/admin/cover-config?scope='+encodeURIComponent(scope));
     _coverConfig=data;
     const config=data.draft || data.active;
+    document.getElementById('cover-workflow').value=config.workflow_engine || 'layered_v2';
+    document.getElementById('cover-workflow-state').textContent=config.workflow_engine
+      ? 'Editable-Design完整Skill / OpenCode2.1.2；Seed2.1Pro规划与质检、Seedream5Pro完整概念、原照与独立HTML文字；按需要逐次计量，验收累计费用上限100元，无自动付费重试。8积分/合格交付，保存90天。'
+      : '已有分层排版；'+config.design_model+' / '+config.model_id+'；8积分/合格交付，保存90天。';
     document.getElementById('cover-enabled').checked=config.enabled===true;
     document.getElementById('cover-account-verified').checked=config.account_verified===true;
     document.getElementById('cover-execution-scope').value=config.execution_scope;
@@ -1833,6 +1838,12 @@ async function changeCoverConfig(action) {
     execution_scope:document.getElementById('cover-execution-scope').value,
     account_verified:document.getElementById('cover-account-verified').checked,
     account_evidence_ref:document.getElementById('cover-evidence').value.trim()};
+  const workflow=document.getElementById('cover-workflow')?.value;
+  if(workflow==='editable_design_opencode_v1')Object.assign(config,{workflow_engine:workflow,
+    design_model:'doubao-seed-2-1-pro-260915',max_physical_calls:null,text_max_tokens:8192});
+  else if(workflow==='layered_v2'){
+    delete config.workflow_engine;Object.assign(config,{design_model:'doubao-seed-2-0-lite-260428',max_physical_calls:3,text_max_tokens:2048});
+  }
   const scope=document.getElementById('mc-scope').value;
   try {
     if(action==='activate' && (!_coverConfig.draft || Object.keys(config).some(key=>config[key]!==_coverConfig.draft[key])))throw new Error('请先将当前封面配置保存为草稿');

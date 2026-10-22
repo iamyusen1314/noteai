@@ -4,10 +4,10 @@ const html=fs.readFileSync(require('node:path').join(__dirname,'../NoteAI_Pro_De
 const code=html.split('/* ── Independent saved-report cover tasks ───────────────────── */')[1].split('/* ── Generation report populate')[0];
 function make(extra={}) {
  const storage=new Map(),calls=[],elements=new Map();
- const el=name=>{if(!elements.has(name))elements.set(name,{textContent:'',value:name==='position'?'top':'',hidden:false,disabled:false,src:''});return elements.get(name);};
+ const el=name=>{if(!elements.has(name))elements.set(name,{textContent:'',value:name==='position'?'top':'',hidden:false,disabled:false,src:'',replaceChildren(...children){this.children=children;this.value=children[0]?.value || '';}});return elements.get(name);};
  const dialog={isConnected:true,open:true,querySelector:selector=>el(selector.match(/"([^"]+)"/)[1]),querySelectorAll:()=>[],close(){this.open=false;},remove(){this.isConnected=false;}};
  let identity=true;
- const c=vm.createContext({console:{...console,warn(){}},crypto:crypto.webcrypto,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+ const c=vm.createContext({console:{...console,warn(){}},document:{createElement:()=>({value:'',textContent:''})},crypto:crypto.webcrypto,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   _historyReportSelection:{report_type:'generate',report_id:'saved-report'},_authToken:'synthetic-token',_authUser:{id:'synthetic-owner'},
   reportIsGeneration:()=>true,reportGenerationResult:()=>null,reportDiagnosisResult:()=>null,completeProductResult:x=>!!x,
   productActionAttributes:()=>'',_chatIdentitySnapshot:()=>({ownerId:'synthetic-owner',epoch:1}),_chatIdentityMatches:()=>identity,

@@ -37,6 +37,13 @@ def defaults():
             "unknown_release_seconds": UNKNOWN_SECONDS}
 
 
+def editable_defaults():
+    """Explicit opt-in; existing published configurations keep their engine."""
+    return {**defaults(), "workflow_engine": "editable_design_opencode_v1",
+            "design_model": "doubao-seed-2-1-pro-260915",
+            "max_physical_calls": None, "text_max_tokens": 8192}
+
+
 def _key(scope):
     if scope not in {"production", "test"}:
         raise HTTPException(422, "封面配置范围无效")
@@ -44,7 +51,7 @@ def _key(scope):
 
 
 def validate(config):
-    base = defaults()
+    base = editable_defaults() if isinstance(config, dict) and "workflow_engine" in config else defaults()
     if not isinstance(config, dict) or set(config) != set(base):
         raise HTTPException(422, "请完整提供首版封面配置")
     for key, expected in base.items():
@@ -90,8 +97,9 @@ def view(scope="production"):
             "budget": {"id": BUDGET_ID if acceptance else FORMAL_BUDGET_ID,
                        "scope": "acceptance" if acceptance else "formal",
                        "limit_cny": 100 if acceptance else None,
-                       "max_jobs": MAX_ACCEPTANCE_JOBS if acceptance else None,
-                       "max_calls": MAX_ACCEPTANCE_CALLS if acceptance else None,
+                       "max_jobs": (2 if state["active"].get("workflow_engine") else MAX_ACCEPTANCE_JOBS) if acceptance else None,
+                       "max_calls": (MAX_ACCEPTANCE_CALLS if acceptance and
+                           state["active"].get("workflow_engine") is None else None),
                        "automatic_paid_retries": 0},
             "effect": "发布配置影响新封面任务；在途任务使用已冻结策略，关闭新提交后保留旧成品读取和免费排字。"}
 
@@ -146,7 +154,9 @@ def policy_snapshot(config=None):
             "budget_id": BUDGET_ID if selected["execution_scope"] == "acceptance" else FORMAL_BUDGET_ID, "design_model": selected["design_model"],
             "text_max_tokens": selected["text_max_tokens"], "unknown_release_seconds": UNKNOWN_SECONDS,
             "price_status": "public_estimate", "account_evidence_ref": selected["account_evidence_ref"],
-            "design_version": 2}
+            "design_version": 3 if selected.get("workflow_engine") else 2,
+            **({"workflow_engine": selected["workflow_engine"], "max_physical_calls": None}
+               if selected.get("workflow_engine") else {})}
 
 
 def readiness():
@@ -156,6 +166,10 @@ def readiness():
             return False, "封面功能尚未开放"
         if os.environ.get("NOTEAI_COVER_WORKER_ENABLED") != "1":
             return False, "封面执行服务尚未启用"
+        if config.get("workflow_engine"):
+            import cover_agent_runtime
+            if not cover_agent_runtime.environment_ready():
+                return False, "封面设计宿主、浏览器或字体环境尚未就绪"
         if not ark_media.configured():
             return False, "封面模型尚未配置"
         import private_storage

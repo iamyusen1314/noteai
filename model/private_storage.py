@@ -80,8 +80,10 @@ def _assert_media_capacity(storage, subject_hash: str, size_bytes: int) -> None:
     row = storage.fetchone(
         "SELECT count(*) n,COALESCE(sum(size_bytes),0) bytes FROM private_media_refs "
         "WHERE subject_hash=? AND state='ready'", (subject_hash,))
+    import cover_agent_artifacts
+    bundle_count, bundle_bytes = cover_agent_artifacts.active_bundle_totals(storage, subject_hash)
     # An elapsed TTL alone does not prove that the physical object was removed.
-    if int(row["n"]) >= count_limit or int(row["bytes"]) + size_bytes > byte_limit:
+    if int(row["n"]) + bundle_count >= count_limit or int(row["bytes"]) + bundle_bytes + size_bytes > byte_limit:
         raise MediaCapacityExceeded()
 
 
@@ -1464,6 +1466,12 @@ def delete_user_media(
     backend: ObjectBackend | None = None,
     now: datetime | None = None,
 ) -> int:
+    import cover_agent_artifacts
+    import cover_agent_runtime
+    cover_agent_runtime.cleanup_stale_workspaces(user_id=user_id)
+    # Delete the owner-bound editable sources before their PNG references, so
+    # a partial cleanup remains recoverable through the existing media fence.
+    cover_agent_artifacts.delete_bundles(user_id=user_id, backend=backend, now=now)
     subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
     rows = db.fetchall(
         "SELECT * FROM private_media_refs "
@@ -1502,6 +1510,9 @@ def delete_user_media(
 
 def has_ready_user_media(storage: Any, user_id: str) -> bool:
     subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
+    import cover_agent_runtime
+    if cover_agent_runtime.has_private_workspace(storage, user_id):
+        return True
     return bool(
         storage.fetchone(
             "SELECT 1 FROM private_media_refs "
@@ -1520,6 +1531,10 @@ def expire_media(
 ) -> int:
     bounded = _bounded_int(limit, "limit", 1, 100)
     current_iso = _utc(now).isoformat()
+    import cover_agent_artifacts
+    import cover_agent_runtime
+    cover_agent_runtime.cleanup_stale_workspaces(user_id=user_id, limit=bounded)
+    cover_agent_artifacts.delete_bundles(user_id=user_id, expired_only=True, backend=backend, now=_utc(now), limit=bounded)
     if user_id is not None:
         # Upload maintenance only touches this account's expired image bytes.
         # It never calls a provider, cleans videos or retries unknown operations.
@@ -1618,6 +1633,9 @@ def reconcile_orphans(
             f"SELECT 1 FROM {table} WHERE id=?",
             (reference_id,),
         )
+        if not exists and table == 'ai_payload_refs':
+            import cover_agent_artifacts
+            exists = cover_agent_artifacts.has_reference(reference_id)
         if not exists and table == 'ai_payload_refs':
             field = "response_ref_json::jsonb->>'id'" if db.using_postgres() else "json_extract(response_ref_json,'$.id')"
             exists = db.fetchone(f"SELECT 1 FROM idempotency_requests WHERE response_ref_json IS NOT NULL AND {field}=?",

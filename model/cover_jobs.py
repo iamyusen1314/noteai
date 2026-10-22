@@ -33,6 +33,7 @@ HOLD_SECONDS = 1800
 BUDGET_ID = "noteai-xhs-cover-20261019-acceptance"
 FORMAL_BUDGET_ID = "noteai-cover-formal-v1"
 MAX_ACCEPTANCE_JOBS = 6
+MAX_AGENT_ACCEPTANCE_JOBS = 2
 FEATURE_SQL = Path(__file__).parent / "migrations/features/noteai_xhs_cover_20261019_0001.sql"
 STAGES = frozenset({"queued", "design", "image", "qc", "saving", "completed", "failed", "outcome_unknown"})
 
@@ -98,12 +99,16 @@ def _policy(snapshot):
             or snapshot.get("width") != WIDTH or snapshot.get("height") != HEIGHT
             or _decimal(snapshot.get("credits")) != Decimal(8)
             or snapshot.get("retention_seconds") != RETENTION_SECONDS
-            or type(snapshot.get("max_physical_calls")) is not int
-            or not 1 <= snapshot["max_physical_calls"] <= 3
+            or (not (snapshot.get("design_version") == 3 and snapshot.get("max_physical_calls") is None)
+                and (type(snapshot.get("max_physical_calls")) is not int
+                     or not 1 <= snapshot["max_physical_calls"] <= 3))
             or snapshot.get("max_image_calls", 1) != 1):
         raise ValueError("cover policy differs from the approved fixed contract")
-    if type(snapshot.get("design_version", 1)) is not int or snapshot.get("design_version", 1) not in {1, 2}:
+    if type(snapshot.get("design_version", 1)) is not int or snapshot.get("design_version", 1) not in {1, 2, 3}:
         raise ValueError("cover design version is not supported")
+    if snapshot.get("design_version") == 3 and (snapshot.get("workflow_engine") != "editable_design_opencode_v1"
+            or snapshot.get("design_model") != "doubao-seed-2-1-pro-260915"):
+        raise ValueError("cover agent engine/model is not pinned")
     # An explicitly configured operational budget is not a newly approved user
     # product price. Its value is retained, rather than invented in this module.
     if snapshot.get("provider_budget") is not None and _decimal(snapshot["provider_budget"]) <= 0:
@@ -276,7 +281,11 @@ def submit_job(*, user_id, report_type, report_id, request_id, source_refs, inpu
         # The shared budget row serializes the six-sample bound across users.
         # An already admitted key must still be readable when this bound is full.
         original = tx.fetchone("SELECT id FROM idempotency_requests WHERE user_id=? AND operation=? AND key_hash=?",(user_id,OPERATION,key_hash))
-        if budget_id == BUDGET_ID and count["n"] >= MAX_ACCEPTANCE_JOBS and not original:
+        agent = policy_snapshot.get("design_version") == 3
+        if agent:
+            field = "policy_json::jsonb->>'design_version'" if tx.postgres else "json_extract(policy_json,'$.design_version')"
+            count = tx.fetchone("SELECT count(*) n FROM cover_jobs WHERE budget_id=? AND CAST(" + field + " AS INTEGER)=3", (budget_id,))
+        if budget_id == BUDGET_ID and count["n"] >= (MAX_AGENT_ACCEPTANCE_JOBS if agent else MAX_ACCEPTANCE_JOBS) and not original:
             raise HTTPException(429,"本次封面验收样本已达上限，请等待核对")
         expected_quote = policy_quote_version(policy_snapshot)
         context = postdelivery.reserve_claim_in_transaction(tx, user_id=user_id, operation=OPERATION,
@@ -394,7 +403,8 @@ def record_design_snapshot(claim, snapshot, *, now=None):
 
 def before_text_call(claim, stage, call_id, *, now=None):
     """Persist one design/QC dispatch intent before invoking the original adapter."""
-    if stage not in {"design", "qc"} or not isinstance(call_id,str) or not call_id:
+    agent = claim.get("policy_snapshot", {}).get("design_version") == 3
+    if (stage not in {"design", "qc"} and not (agent and re.fullmatch(r"(?:design|qc):[1-9][0-9]{0,5}", str(stage)))) or not isinstance(call_id,str) or not call_id:
         raise ValueError("invalid cover text/vision call intent")
     clock = _now(now)
     with db.transaction(write=True) as tx:
@@ -404,11 +414,33 @@ def before_text_call(claim, stage, call_id, *, now=None):
             raise ValueError("original cover model step already admitted; never replay")
         calls = tx.fetchall("SELECT id FROM public_trial_calls WHERE usage_record_id=?",(row["usage_id"],))
         known_ids = set(intents.values()) | {call["id"] for call in calls}
-        if len(known_ids | {call_id}) > json.loads(row["policy_json"])["max_physical_calls"]:
+        limit = json.loads(row["policy_json"])["max_physical_calls"]
+        if limit is not None and len(known_ids | {call_id}) > limit:
             raise ValueError("cover task call limit exceeded")
         intents[stage] = call_id
-        tx.execute("UPDATE cover_jobs SET call_intents_json=?,stage=?,updated_at=? WHERE id=?",(_json(intents),stage,clock.isoformat(),row["id"]))
+        tx.execute("UPDATE cover_jobs SET call_intents_json=?,stage=?,updated_at=? WHERE id=?",(_json(intents),stage.split(":")[0],clock.isoformat(),row["id"]))
     return True
+
+
+def record_agent_candidate(claim, snapshot, media_ref, *, now=None):
+    """Retain actual rejected pixels/QC without declaring delivery or charging."""
+    _verified_image(claim["user_id"], media_ref, now=now)
+    with db.transaction(write=True) as tx:
+        row = _owner_row(tx, claim, now=_now(now))
+        if json.loads(row["policy_json"]).get("design_version") != 3:
+            raise ValueError("candidate evidence belongs to the editable engine")
+        design = json.loads(row["design_json"] or "{}")
+        items = design.setdefault("candidate_evidence", [])
+        item = {**snapshot, "media_ref": media_ref}
+        previous = next((index for index, old in enumerate(items) if old["final_sha256"] == item["final_sha256"]), None)
+        if previous is None:
+            if len(items) >= 2:
+                raise ValueError("cover local revision budget exhausted")
+            items.append(item)
+        else:
+            items[previous] = item
+        tx.execute("UPDATE cover_jobs SET design_json=?,updated_at=? WHERE id=?",
+            (_json(design), _now(now).isoformat(), row["id"]))
 
 
 def heartbeat_job(claim, *, now=None):
@@ -571,12 +603,20 @@ def _verified_image(user_id, reference_id, *, now=None, layout=None):
     except (OSError, SyntaxError):
         raise ValueError("saved cover image is invalid") from None
     if layout is not None:
-        import cover_renderer
-        cover_renderer.validate_artifact(body,layout)
+        if layout.get("schema_version") == 3:
+            import cover_agent_artifacts
+            cover_agent_artifacts.validate_saved(user_id, layout, final_bytes=body)
+        else:
+            import cover_renderer
+            cover_renderer.validate_artifact(body,layout)
     return reference
 
 
 def _layout(value):
+    if value.get("schema_version") == 3:
+        import cover_agent_artifacts
+        cover_agent_artifacts.validate_layout(value)
+        return _json(value)
     import cover_renderer
     safe = cover_renderer.validate_plan(value)
     if safe.get("schema_version") == 2:
@@ -603,6 +643,15 @@ def _layout(value):
 def _public_layout(value):
     if not value:
         return {}
+    if value.get("schema_version") == 3:
+        import cover_agent_artifacts
+        layers = [{"id": item["id"], "text": item["text"],
+            "position_options": list(cover_agent_artifacts.position_options(value, item["id"]))}
+            for item in value["text_layers"]]
+        return {"text": value["text"], "position": "current", "position_options": [],
+            "lines": value["rendered_lines"], "engine": "editable_design",
+            "text_layers": layers,
+            "qc_status": value["qc_status"]}
     if value.get("schema_version") == 2:
         import cover_renderer
         box = value["text_bbox"]
@@ -653,10 +702,25 @@ def assert_calls_settled_in_transaction(tx, usage_id, *, require_success=True):
         elif not call["model_usage_record_id"] or not tx.fetchone("SELECT id FROM model_usage_records WHERE id=? AND usage_record_id=?", (call["model_usage_record_id"],usage_id)):
             raise ValueError("original cover text/vision accounting remains unconfirmed")
     job = tx.fetchone("SELECT id,policy_json,call_intents_json,layout_json FROM cover_jobs WHERE usage_id=?", (usage_id,))
-    if not job or len(calls) > json.loads(job["policy_json"])["max_physical_calls"]:
+    policy = json.loads(job["policy_json"]) if job else {}
+    limit = policy.get("max_physical_calls", 3)
+    if not job or (limit is not None and len(calls) > limit):
         raise ValueError("cover physical call budget changed")
     if require_success:
         intents = json.loads(job["call_intents_json"])
+        if policy.get("design_version") == 3:
+            labels = list(intents)
+            if (not any(key.startswith("design:") for key in labels)
+                    or not any(key.startswith("qc:") for key in labels)
+                    or len(set(intents.values())) != len(intents)):
+                raise ValueError("original agent design and final visual quality calls are required")
+            images = tx.fetchall("SELECT id FROM cover_image_usage WHERE usage_id=?", (usage_id,))
+            by_id = {call["id"]: call for call in calls}
+            if (len(images) != 1 or set(by_id) != set(intents.values()) | {images[0]["id"]}
+                    or any(not by_id[c]["model_usage_record_id"] or by_id[c]["http_status"] != 200 for c in intents.values())
+                    or json.loads(job["layout_json"] or "{}").get("schema_version") != 3):
+                raise ValueError("agent calls differ from their original physical manifest")
+            return
         if set(intents) != {"design","qc"} or len(set(intents.values())) != 2:
             raise ValueError("original design and quality calls are required")
         call_by_id = {call["id"]:call for call in calls}
@@ -681,6 +745,14 @@ def assert_saved_in_transaction(tx, financial, result):
     qc = json.loads(job["qc_json"])
     if qc.get("passed") is not True or not tx.fetchone("SELECT revision FROM cover_asset_revisions WHERE job_id=? AND revision=1 AND media_ref=?", (job["id"],job["final_media_ref"])):
         raise ValueError("cover did not pass quality and durable revision checks")
+    layout = json.loads(job["layout_json"] or "{}")
+    if layout.get("schema_version") == 3:
+        import cover_agent_artifacts
+        ref = cover_agent_artifacts.reference(layout["editable_ref"])
+        if ref.state != "ready" or ref.subject_hash != idempotency.operation_subject_hash(financial["user_id"]) or ref.expires_at < job["expires_at"]:
+            raise ValueError("editable cover ownership or retention changed")
+        if qc.get("final_sha256") != layout["final_sha256"] or qc.get("source_hashes") != layout["source_hashes"]:
+            raise ValueError("visual quality evidence belongs to another cover")
     for reference_id in (job["final_media_ref"],job["base_media_ref"]):
         reference = tx.fetchone("SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?", (reference_id,idempotency.operation_subject_hash(financial["user_id"])))
         if not reference or reference["state"] != "ready" or reference["purpose"] != "image" or reference["expires_at"] < job["expires_at"]:
@@ -710,7 +782,12 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
             return _projection(row,tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?",(row["id"],)))
         sources = {item["media_ref"]:item["sha256"] for item in json.loads(row["source_manifest_json"])}
         design_version = json.loads(row["policy_json"]).get("design_version", 1)
-        if design_version == 2:
+        if design_version == 3:
+            if (layout.get("schema_version") != 3 or layout.get("input_source_hashes") != sources
+                    or not layout.get("source_hashes")
+                    or any(sources.get(ref) != digest for ref, digest in layout["source_hashes"].items())):
+                raise ValueError("editable cover no longer matches frozen source photos")
+        elif design_version == 2:
             selected = {item["source_ref"]: item["source_sha256"] for item in layout.get("photos", [])}
             if (layout.get("schema_version") != 2 or not selected or layout.get("input_source_hashes") != sources
                     or layout.get("source_hashes") != selected
@@ -722,9 +799,12 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
         design_json = _json(design_snapshot or {})
         previous_design = json.loads(row["design_json"] or "{}")
         if previous_design:
-            if design_snapshot is not None and _json(previous_design) != design_json:
+            if design_version == 3:
+                design_json = _json({**previous_design, **(design_snapshot or {})})
+            elif design_snapshot is not None and _json(previous_design) != design_json:
                 raise ValueError("original cover design snapshot changed")
-            design_json = row["design_json"]
+            else:
+                design_json = row["design_json"]
         references = private_storage.lock_ready_media_refs(tx,claim["user_id"],list(dict.fromkeys([final.id,base.id])),now=clock)
         expected = {final.id:final.content_sha256,base.id:base.content_sha256}
         if any(ref.content_sha256 != expected[ref.id] for ref in references):
@@ -754,6 +834,13 @@ def update_adjusted_asset(user_id,job_id,*,final_media_ref,layout,expected_revis
         if reference.expires_at < row["expires_at"]:
             raise ValueError("adjusted asset must retain the original expiry")
         previous_layout = json.loads(row["layout_json"])
+        if previous_layout.get("schema_version") == 3:
+            protected = {"schema_version", "route", "renderer_version", "width", "height", "source_hashes",
+                "input_source_hashes", "constraints", "base_kind", "initial_qc_ref"}
+            if (any(layout.get(key) != previous_layout.get(key) for key in protected)
+                    or [x["id"] for x in layout.get("text_layers", [])] != [x["id"] for x in previous_layout["text_layers"]]
+                    or layout.get("qc_status") != "USER_ADJUSTED_NOT_VISUALLY_REVIEWED"):
+                raise ValueError("free edit cannot replace the original design or claim new visual QC")
         if previous_layout.get("schema_version") == 2:
             protected = {"schema_version", "route", "photos", "source_hashes", "base_sha256", "background_color",
                 "renderer_version", "width", "height", "runtime_version", "design_model", "qc_model", "image_model",

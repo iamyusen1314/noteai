@@ -8291,6 +8291,18 @@ function coverPositionOptions(layout) {
   return [...new Set((Array.isArray(layout?.position_options) ? layout.position_options : [])
     .filter(value => ['top','bottom'].includes(value)))];
 }
+function coverEditLayer(ctx) {
+  const layers = ctx.latest?.layout?.text_layers;
+  if (ctx.latest?.layout?.engine !== 'editable_design' || !Array.isArray(layers)) return null;
+  return layers.find(layer => layer.id === ctx.dialog.querySelector('[data-cover="text-layer"]').value) || layers[0] || null;
+}
+function coverSelectTextLayer(ctx) {
+  const layer = coverEditLayer(ctx);
+  if (!layer) return;
+  ctx.dialog.querySelector('[data-cover="text"]').value = layer.text || '';
+  const select = ctx.dialog.querySelector('[data-cover="position"]');
+  select.innerHTML = '<option value="">保留当前位置</option>' + coverPositionOptions(layer).map(value => '<option value="' + value + '">' + (value === 'top' ? '安全文字区上方' : '安全文字区下方') + '</option>').join('');
+}
 function coverRejectionUnheld(error) {
   return ['BILLING_QUOTE_CHANGED','QUOTA_EXCEEDED'].includes(error.detail?.code)
     && error.detail.admitted === false && error.detail.reserved_credits === 0;
@@ -8445,8 +8457,14 @@ function coverRender(ctx) {
     if (ctx.editJobId !== success.job_id || ctx.editRevision !== success.asset_revision) {
       ctx.editJobId = success.job_id; ctx.editRevision = success.asset_revision;
       el('text').value = success.layout?.text || '';
+      const layers = success.layout?.engine === 'editable_design' ? success.layout.text_layers || [] : [];
+      el('text-layer-label').hidden = !layers.length;
+      el('text-layer').replaceChildren(...layers.map((layer,index) => {
+        const option = document.createElement('option');option.value=layer.id;option.textContent='文字 '+(index+1);return option;
+      }));
       el('position').innerHTML = '<option value="">保留当前位置</option>' + coverPositionOptions(success.layout).map(value => '<option value="' + value + '">' + (value === 'top' ? '上方' : '下方') + '</option>').join('');
       el('position').value = '';
+      coverSelectTextLayer(ctx);
     }
   }
 }
@@ -8632,8 +8650,9 @@ async function coverCreate(ctx) {
 async function coverAdjust(ctx) {
   if (!ctx.current() || ctx.busy || !ctx.latest?.has_final) return;
   const position = ctx.dialog.querySelector('[data-cover="position"]').value;
-  if (position && !coverPositionOptions(ctx.latest.layout).includes(position)) {showToast('该位置未经主体保护校验，请保留当前位置');return;}
-  const adjustment = {text:ctx.dialog.querySelector('[data-cover="text"]').value,position:position || null,expected_revision:ctx.latest.asset_revision};
+  const layer = coverEditLayer(ctx);
+  if (position && !coverPositionOptions(layer || ctx.latest.layout).includes(position)) {showToast('该位置未经主体保护校验，请保留当前位置');return;}
+  const adjustment = {text:ctx.dialog.querySelector('[data-cover="text"]').value,position:position || null,expected_revision:ctx.latest.asset_revision,...(layer ? {layer_id:layer.id} : {})};
   ctx.busy = true; ctx.notice = '正在免费重新排字并保存…'; coverRender(ctx);
   try {
     const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.latest.job_id) + '/adjust',{method:'POST',body:JSON.stringify(adjustment)});
@@ -8673,7 +8692,7 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
     <div class="cover-panel-actions"><button type="button" data-cover="upload">补传或换候选图</button><button type="button" data-cover="create" class="cover-primary" disabled>生成封面 · 8 积分</button><button type="button" data-cover="refresh">刷新任务</button><button type="button" data-cover="recover" hidden>核查／重交原请求</button></div><p data-cover="recovery-note" class="cover-panel-note" hidden></p>
     <input data-cover="file" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden><p class="cover-panel-note">重新设计或换图后制作是新的8积分任务；关闭页面不取消后台任务。重新打开本报告可找回进度。</p></section>
     <section data-cover="result" hidden><div class="cover-final"><img data-cover="final-image" alt="本报告已保存封面"><div class="cover-final-controls"><p data-cover="expiry" class="cover-panel-note"></p>
-    <label>免费改字与断行<textarea data-cover="text" aria-label="免费修改封面文字" maxlength="80" rows="3"></textarea></label><label>文字位置<select data-cover="position" aria-label="封面文字位置"><option value="">保留当前位置</option></select></label>
+    <label data-cover="text-layer-label" hidden>选择文字<select data-cover="text-layer" aria-label="选择封面文字层"></select></label><label>免费改字与断行<textarea data-cover="text" aria-label="免费修改封面文字" maxlength="80" rows="3"></textarea></label><label>文字位置<select data-cover="position" aria-label="封面文字位置"><option value="">保留当前位置</option></select></label>
     <div class="cover-panel-actions"><button type="button" data-cover="adjust">免费保存排字</button><button type="button" data-cover="download" class="cover-primary">下载封面</button></div><p class="cover-panel-note">改字、断行、文字位置及下载不重复收费；修改失败保留上一张成功封面。</p></div></div></section></div>`;
   document.body.append(dialog);
   const ctx = {dialog,...ref,path:'/reports/' + reportType + '/' + encodeURIComponent(reportId),identity:_chatIdentitySnapshot(),token:_authToken,
@@ -8683,6 +8702,7 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
   _coverPanel = ctx; ctx.pending = ctx.savedOnly ? null : coverReadPending(ctx);
   ctx.titleChoices = ctx.savedOnly ? [] : coverTitleChoices(reportType);
   const el = name => dialog.querySelector('[data-cover="' + name + '"]');
+  el('text-layer').addEventListener('change',() => coverSelectTextLayer(ctx));
   el('close').addEventListener('click',closeCoverPanel); dialog.addEventListener('cancel',event => { event.preventDefault(); closeCoverPanel(); });
   ctx.titleChoices.forEach(title => {const option=document.createElement('option');option.value=title;option.textContent=title;el('title').append(option);});
   el('refresh').addEventListener('click',() => coverRefresh(ctx));

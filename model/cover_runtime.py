@@ -41,6 +41,7 @@ class RuntimeHooks:
     on_call: Callable[[dict], None]
     on_stage: Callable[[str], None] = lambda _stage: None
     on_design: Callable[[dict], None] = lambda _design: None
+    on_candidate: Callable[[dict, bytes], None] = lambda _snapshot, _body: None
 
 
 @dataclass
@@ -252,6 +253,11 @@ def run_cover(*, job_id: str, user_id: str, report: dict, sources: list[dict], h
     supplied hashes again. Hook failure stops the workflow and is never retried.
     Test adapters are explicit injections, never production model fallbacks.
     """
+    if design_version == 3:
+        import cover_agent_runtime
+        return cover_agent_runtime.run_cover(job_id=job_id, user_id=user_id, report=report,
+            sources=sources, hooks=hooks, model_transport=design_transport,
+            image_transport=seedream_transport)
     import public_product
     if type(design_version) is not int or design_version not in {1, 2}:
         raise CoverRuntimeError("COVER_DESIGN_VERSION_INVALID")

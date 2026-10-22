@@ -1,0 +1,151 @@
+# NoteAI cover Skill host
+
+This is an adapter around the real, fixed OpenCode **2.1.2** SDK, not a replacement
+agent loop. It loads the complete locally pinned `editable-design/SKILL.md` and
+lets that agent author the cover project. `model/cover_editable` remains the
+original Skill renderer/font/check implementation. No global Skill, CLI, account,
+provider configuration, or credential is used.
+
+## Runtime
+
+The exact SDK and plugin dependencies are declared and locked here. Install the
+lockfile into an approved task-local runtime using `npm ci --ignore-scripts
+--no-audit --no-fund`, with empty npm user/global configuration. There is no
+installation or provider call at module import. Set
+`NOTEAI_COVER_HOST_NODE_MODULES=/absolute/task/runtime/node_modules`; the worker
+checks SDK/plugin versions before startup. The integration selects Node through
+`NOTEAI_COVER_NODE` and launches `worker.mjs`. Node 25.7.0 on macOS was actually
+tested; other Node/OS combinations need their own runtime check.
+
+The Promise SDK entry is intentional: `@opencode/sdk/promise` accepts the second
+embed override argument, while the 2.1.2 root `OpenCode.create` wrapper drops it.
+Explicit Config/Global service overrides disable project, system, global and
+Claude configuration and isolate all SDK data in this job's state directory.
+Model catalog fetching, catalog snapshots and file watchers are disabled.
+
+The child process removes inherited configuration and provider credentials before
+importing the SDK. It retains only PATH/TMPDIR, the explicit runtime path and
+`EDITABLE_DESIGN_BROWSER` / `PUPPETEER_EXECUTABLE_PATH` / `NO_SANDBOX` /
+`EDITABLE_DESIGN_NO_SANDBOX`. It never
+receives an Ark API key. Its only provider is a localhost OpenAI-compatible
+transport; all other providers and native tools are removed. Default deny plus
+six explicit tool permissions also disables OpenCode's automatically appended
+Code Mode `execute` tool, which otherwise includes `fetch`. A second tool hook
+rejects any unlisted tool. The trusted local renderer subprocess still requires
+normal job/process filesystem isolation from its caller; this module is not an
+OS sandbox.
+
+## JSON-lines protocol
+
+Only protocol JSON goes to stdout; SDK error diagnostics go to stderr. The first
+input is:
+
+```json
+{
+  "type": "start",
+  "job_id": "cover-job-id",
+  "state_dir": "/absolute/private/job-state",
+  "work_dir": "/absolute/private/job-project",
+  "skill_dir": "/absolute/noteai/model/cover_editable/vendor/editable-design",
+  "editable_cli": "/absolute/noteai/model/cover_editable/cli.mjs",
+  "model_id": "explicit-authorized-model-id",
+  "prompt": "The existing report facts, cover brief and product tool mapping",
+  "images": [{"path": "assets/original-1.jpg", "name": "original-1.jpg"}],
+  "max_model_requests": null,
+  "deadline_epoch_ms": 1792639999000,
+  "mode": "run"
+}
+```
+
+`max_model_requests: null` removes the optional count limit. Python owns the
+cumulative monetary reservation and deadline. A finite fixture limit is enforced
+before the next bridge dispatch. `context_tokens` and `output_tokens` are optional
+explicit model bounds; defaults are 128000 and 8192.
+
+Every actual HTTP request emits `model_request` with `id`, cumulative `ordinal`,
+`label` (primary/compaction/generate/title), method, path and the full JSON body.
+Python must account and dispatch it once, then reply:
+
+```json
+{"type":"model_response","id":"request-id","status":200,"body":{"id":"provider-id","choices":[],"usage":{}}}
+```
+
+The SDK requests a stream. The bridge sends Python `stream:false` and converts its
+complete normal chat response to SSE locally. This does not add a physical model
+call. Request image data URLs contain exact bytes so Python can verify that the
+authorized originals and generated concept actually reached a vision request.
+SDK automatic image resizing is explicitly disabled. Its width/height/base64
+bounds permit the caller's already checked <=36 megapixel, <=10 MiB originals
+without re-encoding; Python remains responsible for the total pixel bound.
+Never store these whole bodies in a public artifact or product JSON record.
+
+`unknown:true` instead of status/body marks an unknown supplier result. Timeout,
+stdin disconnect or an unanswered request also preserve UNKNOWN. The worker
+vetoes all SDK automatic retries. Actual compaction/auxiliary requests share the
+same HTTP bridge and billing path. Titles are local deterministic strings.
+
+Tools are `cover_read`, `cover_write`, `cover_view`, `cover_seedream`,
+`cover_render`, `cover_check`. They map to safe local file operations, actual
+image input, the single nonshipping concept, and original font/check/render
+scripts. `cover_check` supports poster/fonts/contract and ten preinstalled
+Fontsource font IDs; it never installs a new font package. HTML is guarded with a
+network/script blocking CSP before any browser check. The renderer independently
+checks source hashes, output resources, fonts, live text geometry and PNG size.
+Agent writes cannot touch hidden files/directories, host state, NoteAI input or
+session records, QC records, frozen revisions, preview output, or original assets.
+
+`cover_seedream` emits `tool_request` with `arguments:{prompt}`. Python supplies
+the authorized originals and saves the returned concept locally. The agent cannot
+choose remote input URLs. A second concept request in the same job is refused.
+Reply `tool_response` with the same id and `result` (normally including the saved
+relative concept path). UNKNOWN must use `unknown:true`.
+
+`cover_render` emits `tool_request` with the normalized renderer request. Python
+must verify that the concept was genuinely sent in a model request and reply
+`result:{allowed:true}`. Only then does the host call the pinned local CLI. The
+CLI result is returned to the agent and emitted as `render_finished.artifact`.
+Paths returned to the agent are job-relative. The Python artifact retains the
+original absolute CLI paths. The same existing browser dependency creates a
+real 240x320 PNG preview without a model or new dependency. The event and final
+result also include `preview` with its path/hash/source hash; viewing the latest
+final PNG automatically returns both full and preview pixels to the model.
+`result.artifact` is the last successful render's original result JSON (including
+revision, manifest hash and paths). Render success is not a visual-QC pass.
+
+Other events are `ready`, `request_hook`, `retry_veto`, `protocol_error` and final
+`result`. Final context contains bounded summaries and image/Skill hashes, not
+large image data URLs or the entire Skill body.
+
+## Recovery and revision
+
+State includes the SDK SQLite session and an atomically replaced
+`host-checkpoint.json`. A request is marked pending **before** it is emitted.
+An unknown/pending model or paid-tool request refuses any new dispatch on restart.
+Resolve it in the original Python ledger before arranging a recovery; never delete
+the marker to make another paid request.
+
+Use the same start fields with `mode:"inspect"` to read a known session without
+sending another prompt. `mode:"revise", session_id:"original-session-id"` permits
+one explicit local revision only after known COMPLETE, no pending request, and a
+matching stored session. It reuses that actual SDK session and cumulative ordinal;
+it does not create a fresh task or replay the original prompt. Python must decide
+that a revision is warranted by independent QC. A second revision is refused.
+
+This task's host proof is offline. It establishes SDK operation and boundaries,
+not real model compatibility, design aesthetics, product persistence/settlement,
+cross-user concurrency, Linux deployment, or a paid supplier result.
+
+## Focused verification
+
+```sh
+NOTEAI_COVER_HOST_NODE_MODULES=/absolute/task/runtime/node_modules \
+python3 model/cover_agent_host/test_host.py
+```
+
+The fixture uses the actual SDK with a mocked Python transport. It verifies full
+Skill + original pixels, safe tool execution + viewed-image bytes in the next
+request, only the six allowed tools, normal completion, 503 retry veto, a finite
+physical request limit, UNKNOWN persistence/no replay, zero-call reopen,
+same-session revision, active-HTML rejection and internal-file write denial.
+These fixture calls have zero
+model cost and must not be recorded as real model or visual-quality acceptance.

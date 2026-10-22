@@ -40,6 +40,7 @@ def _run_claim(claim, *, runtime=None):
     marker = public_product._invocation.set(invocation)
     usage_marker = billing._ACTIVE_USAGE_ID.set(claim["charge"]["usage_id"])
     heartbeat_stop = threading.Event()
+    candidate_refs = {}
 
     def heartbeat():
         while not heartbeat_stop.wait(30):
@@ -84,7 +85,18 @@ def _run_claim(claim, *, runtime=None):
         except Exception:
             raise cover_runtime.CoverRuntimeError("COVER_DESIGN_CHECKPOINT_FAILED") from None
 
+    def on_candidate(snapshot, body):
+        digest = hashlib.sha256(body).hexdigest()
+        reference = candidate_refs.get(digest)
+        if reference is None:
+            reference = _store_image(user_id, body).id
+            candidate_refs[digest] = reference
+        cover_jobs.record_agent_candidate(claim, snapshot, reference)
+
     try:
+        if claim["policy_snapshot"].get("design_version") == 3:
+            import cover_agent_runtime
+            cover_agent_runtime.prepare_original_workspace(claim)
         sources = []
         for item in claim["source_manifest"]:
             _, body = private_storage.load_media_bytes(item["media_ref"], user_id=user_id, purpose="image")
@@ -95,13 +107,17 @@ def _run_claim(claim, *, runtime=None):
             report=claim["input_snapshot"], sources=sources,
             design_version=claim["policy_snapshot"].get("design_version", 1),
             hooks=cover_runtime.RuntimeHooks(before_call=before, on_call=after,
-                on_stage=on_stage, on_design=on_design))
+                on_stage=on_stage, on_design=on_design, on_candidate=on_candidate))
         # A usable artifact must pass the actual final-pixel contract before
         # storage, as well as before the delivery settlement transaction.
         cover_runtime._validate_qc(result.qc)
         on_stage("ready_to_save")
         base = _store_image(user_id, result.base_bytes)
         final = _store_image(user_id, result.final_bytes)
+        if result.layout.get("schema_version") == 3:
+            import cover_agent_artifacts
+            result.layout["editable_ref"] = cover_agent_artifacts.store(user_id, job_id,
+                result.artifact["editable_bundle"])
         qc = result.qc
         return cover_jobs.complete_job(claim, final_media_ref=final.id, base_media_ref=base.id,
             layout=result.layout, qc_passed=True, qc_snapshot=qc, design_snapshot=result.design)
@@ -129,11 +145,19 @@ def _run_claim(claim, *, runtime=None):
         public_product._invocation.reset(marker)
         if owns:
             model_admission.current().finish(operation)
+        if claim["policy_snapshot"].get("design_version") == 3:
+            import cover_agent_runtime
+            try:
+                cover_agent_runtime.cleanup_workspace(job_id)
+            except (OSError, ValueError):
+                logging.warning("cover_workspace_cleanup_requires_reconcile job_id=%s", job_id)
 
 
 def run_next(*, runtime=None):
     """One worker slot; blocked users do not monopolize the pending queue."""
     cover_jobs.recover_jobs()
+    import cover_agent_runtime
+    cover_agent_runtime.cleanup_stale_workspaces(limit=16)
     rows = db.fetchall("SELECT q.id,q.user_id FROM cover_jobs q WHERE q.status='queued' AND NOT EXISTS "
         "(SELECT 1 FROM cover_jobs p WHERE p.status='queued' AND p.user_id=q.user_id AND "
         "(p.created_at<q.created_at OR (p.created_at=q.created_at AND p.id<q.id))) "
@@ -185,7 +209,7 @@ class CoverWorker:
             await asyncio.shield(self.task)
 
 
-def adjust(user_id, job_id, *, text, position, expected_revision):
+def adjust(user_id, job_id, *, text, position, expected_revision, layer_id=None):
     job = cover_jobs.get_job(user_id, job_id)
     if not job or not job["has_final"]:
         raise HTTPException(404, "可调整的封面不存在或已过期")
@@ -193,6 +217,20 @@ def adjust(user_id, job_id, *, text, position, expected_revision):
         raise HTTPException(409, "封面已更新，请重新打开")
     row = db.fetchone("SELECT layout_json,expires_at FROM cover_jobs WHERE id=? AND user_id=?", (job_id, user_id))
     layout = json.loads(row["layout_json"])
+    remaining = max(60, min(cover_settings.RETENTION_SECONDS,
+        int((datetime.fromisoformat(row["expires_at"]) - datetime.now(timezone.utc)).total_seconds()) + 1))
+    if layout.get("schema_version") == 3:
+        import cover_agent_artifacts
+        try:
+            final, updated = cover_agent_artifacts.adjust(user_id, job_id, layout, text=text,
+                position=position, layer_id=layer_id, revision=expected_revision + 1, ttl_seconds=remaining)
+        except ValueError as exc:
+            if str(exc) == "COVER_EDITABLE_RENDER_BUSY":
+                raise HTTPException(429, "排字处理中，请稍后重试；原成品仍可下载") from None
+            raise HTTPException(422, "文字超出安全区域或源文件不可读，请缩短文字或保留原位置") from None
+        stored = _store_image(user_id, final, ttl_seconds=remaining)
+        return cover_jobs.update_adjusted_asset(user_id, job_id, final_media_ref=stored.id,
+            layout=updated, expected_revision=expected_revision)
     base_ref = cover_jobs.asset_reference(user_id, job_id, base=True)
     _, base = private_storage.load_media_bytes(base_ref, user_id=user_id, purpose="image")
     xy = None

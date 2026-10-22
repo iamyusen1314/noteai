@@ -287,6 +287,14 @@ def _pricing_snapshot(provider: str, model: str, *, prompt_tokens: int = 0) -> d
     are deliberately excluded here because they cannot prove a model-specific
     supplier cost.
     """
+    if provider == "doubao" and model == "doubao-seed-2-1-pro-260915":
+        import cover_agent_provider
+        rates = cover_agent_provider.pricing(prompt_tokens)
+        return {"currency": "RMB", "usd_cny": _billing_usd_cny(),
+                "price_version": cover_agent_provider.PRICE_VERSION, "pricing_status": "exact",
+                "cache_write_5m": None, "cache_write_1h": None,
+                **{dimension: _exact_price(model, dimension, "RMB", price)
+                   for dimension, price in rates.items()}}
     if provider == "doubao" and model == "doubao-seed-2-0-lite-260428":
         import ark_media
         rates = ark_media.pricing(prompt_tokens)

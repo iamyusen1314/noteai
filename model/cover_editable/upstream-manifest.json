@@ -1,0 +1,785 @@
+{
+  "repo": "yejy53/Editable-Design",
+  "revision": "c87b16f6d7c198e2b6967f13f1b1baa939d6f31f",
+  "subdirectory": "skills/editable-design",
+  "complete_subdirectory": true,
+  "original_files_modified": false,
+  "directories": [
+    {
+      "directory": "skills/editable-design",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design",
+      "items": [
+        {
+          "path": "skills/editable-design/agents",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/assets",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/font-kit",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/references",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/scripts",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/LICENSE",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/README.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/SKILL.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/THIRD_PARTY_NOTICES.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/pack.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/tests",
+          "type": "directory"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/agents",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/agents",
+      "items": [
+        {
+          "path": "skills/editable-design/agents/openai.yaml",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/editor",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/assets/poster-starter",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/assets/replay",
+          "type": "directory"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/font-kit",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/font-kit",
+      "items": [
+        {
+          "path": "skills/editable-design/font-kit/package-lock.json",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/font-kit/package.json",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/references",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references",
+      "items": [
+        {
+          "path": "skills/editable-design/references/asset-architecture.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/references/editor-pitfalls.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/references/editor-runtime.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/references/font-system.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/references/imagery.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/references/layout-typography.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/references/replay-contract.md",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/scripts",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts",
+      "items": [
+        {
+          "path": "skills/editable-design/scripts/.gitignore",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/_browser.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/bake.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/build-replay.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/check-contract.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/check-fonts.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/check-poster.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/doctor.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/explode.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/font-kit.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/import-asset.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/init-poster.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/install-font-kit.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/package-lock.json",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/package.json",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/remove-chroma-key.py",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/render-poster.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/trace.sh",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/verify-replay.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/verify.mjs",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/scripts/wire-editor.mjs",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/tests",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/tests",
+      "items": [
+        {
+          "path": "skills/editable-design/tests/fixtures",
+          "type": "directory"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets/editor",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/editor",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/editor/layer-editor.css",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/editor/layer-editor.js",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets/poster-starter",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/poster-starter/assets",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/assets/poster-starter/reference",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/assets/poster-starter/.gitignore",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/poster-starter/README.md",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/poster-starter/index.html",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/poster-starter/poster.json",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets/replay",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/replay/icons",
+          "type": "directory"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/index.html",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/replay-motion.js",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/replay.css",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/replay.js",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/tests/fixtures",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/tests/fixtures",
+      "items": [
+        {
+          "path": "skills/editable-design/tests/fixtures/small-explode",
+          "type": "directory"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets/poster-starter/assets",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/assets",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/poster-starter/assets/.gitkeep",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets/poster-starter/reference",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/reference",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/poster-starter/reference/.gitkeep",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/assets/replay/icons",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons",
+      "items": [
+        {
+          "path": "skills/editable-design/assets/replay/icons/assets.png",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/icons/html.png",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/icons/input.png",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/icons/layers.png",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/icons/plan.png",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/icons/reference.png",
+          "type": "file"
+        },
+        {
+          "path": "skills/editable-design/assets/replay/icons/review.png",
+          "type": "file"
+        }
+      ]
+    },
+    {
+      "directory": "skills/editable-design/tests/fixtures/small-explode",
+      "url": "https://github.com/yejy53/Editable-Design/tree/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/tests/fixtures/small-explode",
+      "items": [
+        {
+          "path": "skills/editable-design/tests/fixtures/small-explode/index.html",
+          "type": "file"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "upstream_path": "skills/editable-design/LICENSE",
+      "path": "vendor/editable-design/LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/LICENSE"
+    },
+    {
+      "upstream_path": "skills/editable-design/README.md",
+      "path": "vendor/editable-design/README.md",
+      "bytes": 1649,
+      "sha256": "d4aad5b57c016799a0809cb5d49118ce6549a91cc60a390654be6086c4194a7c",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/README.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/SKILL.md",
+      "path": "vendor/editable-design/SKILL.md",
+      "bytes": 35974,
+      "sha256": "18911337c1d6751637c673394d2a8c375869e6f30fa2fb1dd2e4fe94516206b5",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/SKILL.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/THIRD_PARTY_NOTICES.md",
+      "path": "vendor/editable-design/THIRD_PARTY_NOTICES.md",
+      "bytes": 899,
+      "sha256": "64986dcd1588d749862d2a9cd887ff70da5400a546832134e94e8dad7430ae16",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/agents/openai.yaml",
+      "path": "vendor/editable-design/agents/openai.yaml",
+      "bytes": 247,
+      "sha256": "6b77acca4f871a750aa992b50673832324c05fcd9083bf10ae5196d2a6488580",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/agents/openai.yaml"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/editor/layer-editor.css",
+      "path": "vendor/editable-design/assets/editor/layer-editor.css",
+      "bytes": 11555,
+      "sha256": "4a464373a5787ef19203e48a850434d5e7ef9dc4f688efb17005fce3fa4f47e2",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/editor/layer-editor.css"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/editor/layer-editor.js",
+      "path": "vendor/editable-design/assets/editor/layer-editor.js",
+      "bytes": 87164,
+      "sha256": "9595f93474deedbb2a18b75a45c426213ab79cf1f5c874db6fd1f833df319fdd",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/editor/layer-editor.js"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/poster-starter/.gitignore",
+      "path": "vendor/editable-design/assets/poster-starter/.gitignore",
+      "bytes": 23,
+      "sha256": "20cb4efc3b29ddf6f45705986bb6f3c7b39904b3bde96b2ce28a1b6ffae1dc45",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/.gitignore"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/poster-starter/README.md",
+      "path": "vendor/editable-design/assets/poster-starter/README.md",
+      "bytes": 3850,
+      "sha256": "e5271b38bac5eea645507bb9a401ab65abba57273e37711dae58b3ad54a1e4e5",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/README.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/poster-starter/assets/.gitkeep",
+      "path": "vendor/editable-design/assets/poster-starter/assets/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/assets/.gitkeep"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/poster-starter/index.html",
+      "path": "vendor/editable-design/assets/poster-starter/index.html",
+      "bytes": 2315,
+      "sha256": "5f9a3c3b5449c0407dcf3c8426c6c76fe4fcb6ea17bcb1332751044a241cc066",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/index.html"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/poster-starter/poster.json",
+      "path": "vendor/editable-design/assets/poster-starter/poster.json",
+      "bytes": 96,
+      "sha256": "20eff24d193896e3b8c6430e1201ea0a7563ce16861b3233e14b3bc48b3d9f1d",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/poster.json"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/poster-starter/reference/.gitkeep",
+      "path": "vendor/editable-design/assets/poster-starter/reference/.gitkeep",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/poster-starter/reference/.gitkeep"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/assets.png",
+      "path": "vendor/editable-design/assets/replay/icons/assets.png",
+      "bytes": 143908,
+      "sha256": "a426e5b71ede7fd8d9c8dfa0eabe1de3eb02131a729755f9ec83bc78fbfdd8e8",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/assets.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/html.png",
+      "path": "vendor/editable-design/assets/replay/icons/html.png",
+      "bytes": 165703,
+      "sha256": "6e174a7e51ea2c754be068d86aba868974f362a740c83e3edbbfd7590cb526d8",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/html.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/input.png",
+      "path": "vendor/editable-design/assets/replay/icons/input.png",
+      "bytes": 135350,
+      "sha256": "dbd2e35c38a8ac772f475fa6d3da8a99b8ecec10444996c8e22d378a32d6d733",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/input.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/layers.png",
+      "path": "vendor/editable-design/assets/replay/icons/layers.png",
+      "bytes": 145170,
+      "sha256": "f5e1c538e763a57ba2bcb3c8ce9ffa0a7429b4af80b678b99b921ae7e6323d1f",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/layers.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/plan.png",
+      "path": "vendor/editable-design/assets/replay/icons/plan.png",
+      "bytes": 136143,
+      "sha256": "efc8919829e0381c5d2b1410695d30b73c1a057c280c29280ceedbc7cf6df29c",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/plan.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/reference.png",
+      "path": "vendor/editable-design/assets/replay/icons/reference.png",
+      "bytes": 133621,
+      "sha256": "4b588862caab75921acb2c7f19299a217ff721c025ec6dbcc3d053cdda4d145f",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/reference.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/icons/review.png",
+      "path": "vendor/editable-design/assets/replay/icons/review.png",
+      "bytes": 152046,
+      "sha256": "ab9871e79ff6addca5e36543319af691627411c2b21cf078e1e3d96de92cb80c",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/icons/review.png"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/index.html",
+      "path": "vendor/editable-design/assets/replay/index.html",
+      "bytes": 2976,
+      "sha256": "076fa308862cb14568d300dc2269924054ac1415ed2c5cdb33866ff77c2a872e",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/index.html"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/replay-motion.js",
+      "path": "vendor/editable-design/assets/replay/replay-motion.js",
+      "bytes": 17886,
+      "sha256": "aa2249b72d36d29b80a71621ca386c774d7cb02356660537f84616657c639c16",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/replay-motion.js"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/replay.css",
+      "path": "vendor/editable-design/assets/replay/replay.css",
+      "bytes": 26282,
+      "sha256": "e88a7c8cfea7f950ac2209a7d0ec890d760d73ef856921ca8cb8b19ce7bf3ede",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/replay.css"
+    },
+    {
+      "upstream_path": "skills/editable-design/assets/replay/replay.js",
+      "path": "vendor/editable-design/assets/replay/replay.js",
+      "bytes": 24266,
+      "sha256": "63c1fc1f076c390ecd22f5b6bee836179ff212ef58bac9ff59d684be96696505",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/assets/replay/replay.js"
+    },
+    {
+      "upstream_path": "skills/editable-design/font-kit/package-lock.json",
+      "path": "vendor/editable-design/font-kit/package-lock.json",
+      "bytes": 4992,
+      "sha256": "5118624b52660596190c28a92f979fc5ab9da6b5f4c642eac655de1fec72b25a",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/font-kit/package-lock.json"
+    },
+    {
+      "upstream_path": "skills/editable-design/font-kit/package.json",
+      "path": "vendor/editable-design/font-kit/package.json",
+      "bytes": 697,
+      "sha256": "738db72edf33525b2ecc3822f27e2477c4d7cef85b431f906e84724805b3cc2a",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/font-kit/package.json"
+    },
+    {
+      "upstream_path": "skills/editable-design/pack.sh",
+      "path": "vendor/editable-design/pack.sh",
+      "bytes": 563,
+      "sha256": "c504f0579227db8b15af7dc4c0279dbb81f5642171b9d2f9d9dca2de8a8d72ef",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/pack.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/asset-architecture.md",
+      "path": "vendor/editable-design/references/asset-architecture.md",
+      "bytes": 3436,
+      "sha256": "8e49ea7a60f08aefbdd1be2e163558bfe594a5367003aea8007d05de17d70a66",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/asset-architecture.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/editor-pitfalls.md",
+      "path": "vendor/editable-design/references/editor-pitfalls.md",
+      "bytes": 11324,
+      "sha256": "5124ee08dde68420c451f834c7c67ab674c10c0d2835e4cd45eaeb37f1248258",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/editor-pitfalls.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/editor-runtime.md",
+      "path": "vendor/editable-design/references/editor-runtime.md",
+      "bytes": 6241,
+      "sha256": "ad946ae8d5e4101eacc32f68e5f387a531b0e196c41925c054f0f2e263808237",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/editor-runtime.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/font-system.md",
+      "path": "vendor/editable-design/references/font-system.md",
+      "bytes": 3869,
+      "sha256": "a22609f2649be880aa90efcbb6b3fa23f2fd259d250bf9287c2c4451f1f391dc",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/font-system.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/imagery.md",
+      "path": "vendor/editable-design/references/imagery.md",
+      "bytes": 6946,
+      "sha256": "311caa4caf93066ab03e68cff3bf947ed2a21f6f2353ba2315368c27bc53449f",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/imagery.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/layout-typography.md",
+      "path": "vendor/editable-design/references/layout-typography.md",
+      "bytes": 5814,
+      "sha256": "5f500014a8586eeb1aa875da2f3e842802c68d35b0a6453c4509c03297022e5e",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/layout-typography.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/references/replay-contract.md",
+      "path": "vendor/editable-design/references/replay-contract.md",
+      "bytes": 8949,
+      "sha256": "c7d0510132bfca19a13c04fb1ec2b68a8a0bd51c7fb39edbadb3fe45ac6c0279",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/references/replay-contract.md"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/.gitignore",
+      "path": "vendor/editable-design/scripts/.gitignore",
+      "bytes": 14,
+      "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/.gitignore"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/_browser.mjs",
+      "path": "vendor/editable-design/scripts/_browser.mjs",
+      "bytes": 10437,
+      "sha256": "cc6abfb28289707599a46623074e2545f29f2dbac4aaf39da9ee2924590c5458",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/_browser.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/bake.mjs",
+      "path": "vendor/editable-design/scripts/bake.mjs",
+      "bytes": 3572,
+      "sha256": "50861eb5c7638c62878b7af468e0dc49e0b0cea68b0877e2072b7152a34d29bd",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/bake.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/build-replay.mjs",
+      "path": "vendor/editable-design/scripts/build-replay.mjs",
+      "bytes": 14675,
+      "sha256": "8fc94e84d4e835e0d77ae482ee4d3f6418a6f848efe995aa089ea6d5ff189155",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/build-replay.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/check-contract.mjs",
+      "path": "vendor/editable-design/scripts/check-contract.mjs",
+      "bytes": 14168,
+      "sha256": "9f66e17e750dba6228eeafebe3c2fb09bc4e8860e15d0c01b3332b8e14e677eb",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/check-contract.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/check-fonts.sh",
+      "path": "vendor/editable-design/scripts/check-fonts.sh",
+      "bytes": 8682,
+      "sha256": "f4aad3d47da64bff8a411cc69ec111b62c084876996a65681e82d15a267d0afb",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/check-fonts.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/check-poster.sh",
+      "path": "vendor/editable-design/scripts/check-poster.sh",
+      "bytes": 2930,
+      "sha256": "80fe0a3db2866cf9fa9a8317b05ba89daa99503f03663f9f7b1b2fbb5953c386",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/check-poster.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/doctor.sh",
+      "path": "vendor/editable-design/scripts/doctor.sh",
+      "bytes": 3345,
+      "sha256": "6d68dd85527e0de13d179f749a50a90b5585c58ba0a74f19a8725b0b168575cc",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/doctor.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/explode.mjs",
+      "path": "vendor/editable-design/scripts/explode.mjs",
+      "bytes": 6530,
+      "sha256": "226b59540426b9454285af2e1da07ddaaa5a190a1ebfa54f1a27cf01f7ac1d96",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/explode.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/font-kit.mjs",
+      "path": "vendor/editable-design/scripts/font-kit.mjs",
+      "bytes": 6399,
+      "sha256": "0b3a50bb8a377117d4ec8942656e78e078604621f896fac5813a92576aeda601",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/font-kit.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/import-asset.sh",
+      "path": "vendor/editable-design/scripts/import-asset.sh",
+      "bytes": 1000,
+      "sha256": "9cc9314b8747c6b50cb35a882e73a430eeeeed97285e33d8085fdb9bec9bae77",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/import-asset.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/init-poster.sh",
+      "path": "vendor/editable-design/scripts/init-poster.sh",
+      "bytes": 2775,
+      "sha256": "51fbf996c2633fd0704c36c94ef3185b6d65855e9579af1eb6d76ac476157950",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/init-poster.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/install-font-kit.sh",
+      "path": "vendor/editable-design/scripts/install-font-kit.sh",
+      "bytes": 340,
+      "sha256": "340fb5372ed34a6be3b7ca2372f8a7926f74ff7a22d2bdf4a0f09c627552a794",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/install-font-kit.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/package-lock.json",
+      "path": "vendor/editable-design/scripts/package-lock.json",
+      "bytes": 11683,
+      "sha256": "61863eb1b97b8e8a64f1850abea49e882cf56531b8dde43b9965049a07db6bd8",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/package-lock.json"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/package.json",
+      "path": "vendor/editable-design/scripts/package.json",
+      "bytes": 325,
+      "sha256": "dbcdeb2f5b9846aa6ce7f4b2868f335a8646d27debb3a20e7eca277fbe5457aa",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/package.json"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/remove-chroma-key.py",
+      "path": "vendor/editable-design/scripts/remove-chroma-key.py",
+      "bytes": 7592,
+      "sha256": "1b1f2ef679b0997452ebcaa024398f139188b17df736745640c5d6f82273fab7",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/remove-chroma-key.py"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/render-poster.sh",
+      "path": "vendor/editable-design/scripts/render-poster.sh",
+      "bytes": 6328,
+      "sha256": "3711ff38c543d6436c42308f6794dcf3c0e2d1cd25f9517cf1a3e7e402420d57",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/render-poster.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/trace.sh",
+      "path": "vendor/editable-design/scripts/trace.sh",
+      "bytes": 5779,
+      "sha256": "8a7235e7bec1456aa58de4d37408146b34e8b92d341586f8c2bd0f42e840203e",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/trace.sh"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/verify-replay.mjs",
+      "path": "vendor/editable-design/scripts/verify-replay.mjs",
+      "bytes": 10127,
+      "sha256": "60c54eee019adb8cf8aa35da09b0993b423145cfd098cac1d3eb8a2f87fd0106",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/verify-replay.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/verify.mjs",
+      "path": "vendor/editable-design/scripts/verify.mjs",
+      "bytes": 41584,
+      "sha256": "d5c8c467f52bc10c589dbf991555b8bdccca8eda9e358e54fc0bf3c77720d88a",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/verify.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/scripts/wire-editor.mjs",
+      "path": "vendor/editable-design/scripts/wire-editor.mjs",
+      "bytes": 4168,
+      "sha256": "eac9933cebee4f8307883d2d113f64e9a0aa131424a4cacd6ff19a7a3b4785b6",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/scripts/wire-editor.mjs"
+    },
+    {
+      "upstream_path": "skills/editable-design/tests/fixtures/small-explode/index.html",
+      "path": "vendor/editable-design/tests/fixtures/small-explode/index.html",
+      "bytes": 1984,
+      "sha256": "f9e4f4570d85f77ae273ef76a05920773d3eb95030cc1c0169540fcaa91bfef1",
+      "url": "https://raw.githubusercontent.com/yejy53/Editable-Design/c87b16f6d7c198e2b6967f13f1b1baa939d6f31f/skills/editable-design/tests/fixtures/small-explode/index.html"
+    },
+    {
+      "upstream_path": "LICENSE",
+      "path": "UPSTREAM-LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "upstream_path": "THIRD_PARTY_NOTICES.md",
+      "path": "UPSTREAM-THIRD-PARTY-NOTICES.md",
+      "bytes": 1188,
+      "sha256": "0c1d78054c663c764a26491b18bfac3295213161e4fcb95430f4128d8f0760b6"
+    }
+  ]
+}
