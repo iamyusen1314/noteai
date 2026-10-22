@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 05:10UTC 全部应用源/完整58文件Skill已保存；只剩库下载、npm与Linux实际验证
+## CURRENT — 2026-10-22 05:28UTC 全部应用源/Skill/系统库已核；唯一3ci运行，随后Linux实际SDK渲染
+
+原worktree/分支、功能7f73ca6＋20a8136保持，登记HEAD5cd1141；权威任务原PLAN，详HANDOFF Q-R26最新续接。13应用源/58完整Skill已存且Root逐SHA回读匹配；以下旧状态全历史不重跑。官方Aliyun镜像剩26包实际成功，C c-sz070s14yszmiv4/T t-sz070s14yth3ta8，Run01A16209-BE77-56BF-8F34-4CE2635FBDE0，05:17:42UTC S0D0/R1。82signedDEB全SHA、3ldd missing[]、Node24.22.1/Chrome152版本通过，sysroot253580315B/1321文件/setid0；result44164/cfef6c10在B/deps-private-sysroot-mirror-tail-r4/actual。准确state PRIVATE_CHROME_SYSROOT_LIBRARIES_READY_NOT_RENDER_OR_SDK_VERIFIED，不冒浏览器实际渲染/整个runtime ready。56旧完整包/719415partial与原日志保，未重index/NodeChrome；系统/安全/生产不改。
+
+唯一最终3ci实际已受理C c-sz070s22sdzueww/T t-sz070s22se7c3y8，Run01A16213-62F4-5D7E-A6B3-86C5F92156E9，Start05:26:41UTC，最近Running/D0/R1；只查同请求，旧r1/r2不派。B/npm-ci-actual-mirror-ready-r3/actual原件，原CHILD三锁/600-180-180s不变。成功后仅原一caseLinux SDK/原CLI/字体/bundle/免费派生，显式NOTEAI_SQLITE_PATH任务临时、DATABASE_URL空/无provider、默认sandbox/networknone；不重131/宿主8/旧业务。现阶段SDK/真实模型/PG/OPEN0。
+
+原sole可并行准备既有normal/ENTRY/前端20a最小差分HOLD，未真实通过的deps/SDK refs保持None，不开候选/公网/业务POST，不再运旧fonts/vendors/全91。Root不另加门、runner/平台/资源或接管云；Worker-C成本MFA独立。金额本批新增≤15＋原总100/physical99，次数按需求，第二默认deny/首合格停/最多8分一次/UNKNOWN不重发；aux离线最终GO5a0b242b/89725df3/f56aa6e1原证据复用。真实fresh/context/normal/PG/九图与审美仍待，future human/clock/END/OPEN全null，入口CLOSED，合格样张0/单位成本N/A，旧45/known3.9263058与UNKNOWN不重置。实际准备齐后一次集中新有限公开窗确认。OS Blob/真iPhone/多人实机容量未验。
+
+## HISTORY — 2026-10-22 05:10UTC 全部应用源/完整58文件Skill已保存；只剩库下载、npm与Linux实际验证
 
 原worktree/分支不变，登记HEADb5e7bc3，功能7f73ca6＋20a8136冻结；下方均历史，权威任务仍原PLAN，详HANDOFF Q-R26最新续接。13应用源片全S0D0/R1，aggregate5142/d898c1d1；完整Skill通过官方Contents补缺后58/1468296B全存，C c-sz070rzrk1g4w75/T t-sz070rzrk2042yo，result81486/e4f8e63b。Root修正本机两根版权url读取后逐58 bytes/SHA/来源比对差异0，E/ROOT-WHOLE58-READBACK-CHECK.json；原先过早PASS消息已明确撤回后重核，证据不伪装首验通过。源码只保存，未加载/SDK未执行。
 
