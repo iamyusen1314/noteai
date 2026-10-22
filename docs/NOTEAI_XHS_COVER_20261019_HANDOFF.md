@@ -145,7 +145,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 必要normal源码/策略惰性预置及data晚绑→新有限入口真实九照封面；OPEN仍CLOSED |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | normal两core/策略已实际存证，Node内存探针实际PASS；finaldeps/5叶源晚绑→新有限入口真实九照封面；OPEN仍CLOSED |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2367,4 +2367,13 @@ R6整体PASS满足原预授权：原sole按已独审两叶3段，顺序在新私
 原guard明确要求Node SQLite探针已实际执行，而R9直接run_cover并未运行该小探针。Root决定仅一次原_environment_ready中201B/SHA1e0d35ed2580331231f8da3225b2645b017096fcc9638b21cb188bb27f35e11a的node:sqlite :memory:接口检查，原sole HOST作者准备≤30秒含清理/同Node24.22.1与R6受控sandbox，0SDK/Chrome/付费provider/后端Python import/磁盘或业务DB；失败或未知不重发。此刻尚未派发，当前无云/供应商在途。真actual后另存最终deps聚合，不覆盖旧HOLD，不伪称normal CID/21module已启动；正常PID512/tmp256最小计划与既有资源PASS复用，不添新用例门。
 
 恢复唯一PLAN implementation_a.normal_twoleaf_transport_review、normal_document_dependency_trace.existing_node_memory_probe；F为B/v3-private-host-HOLD-r1/normal-launcher-21map-HOLD-r1。futurehuman/END/15元基线及真实cover-only scope保空，public CLOSED，阶段3进行/4真实交付HOLD。A真实provider0/合格商家封面0/单价N/A，15新增/100总、旧45calls/3.9263058/UNKNOWN全保，报告正文/生产不动。下一真探针→仅必要final绑定与窄审→一次当次有限公网时窗→九照封面和PC/H5/保存重开/免费排字/实际下载/唯一8分；原sole最终统一集成发布。
+
+
+## CURRENT — 2026-10-22 16:50UTC 既有Node内存探针一次实际PASS；最终deps与完整5叶normal源绑定进行中
+
+登记HEAD79441f6/产品c708fe05。唯一Node probe C c-sz070tqhrvr0j5s/T t-sz070tqhrw5zx8g，于16:43:57–58Z S0/D0/R1；Run01A1647F-729E-51B8-BECB-E936B98D8D98/Read01A1647F-B02D-5DCB-B064-B3DE58DEA1DB，token2d681a8b已消耗不重发。B/node-sqlite-original-snippet-probe-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json3208/SHAd34a3a9aa75261c7ddee0fb17fadf2f1cf6d6778e1fef9532f7796a0e55e19d2已Root全JSON/whole/PASS契约核实；同一Node v24.22.1执行原201B/1e0d脚本、phase SNIPPET_COMPLETED/exit0，tool0.14821s/总0.175574s，autormabsence、cold前后同。0SDK/Chrome/backendimport/真实provider/PG/业务DB/normalSTART/OPEN/生产。
+
+原sole唯一adapter正在按真actual另存finaldeps并组装精确5叶prepared输入：已存runtime134081/049bf与guard165867/cb74，加原3helper复用；两core目录不能直接冒完整runtime3/guard2目录。原helper/控制逻辑/权限不改，root0400输入由既有install复制为新UID9990400。finaldeps模板5232/9e76与source10471/ace3已获独立窄审GO：8原proof/19553manifest/4absolute环境与guard字段一致，candidate可见/私有RW明确仅R6 ephemeral，normalCID/mapping/workspace仍未来；需actual probe后精确绑定，旧HOLD5072/a1caa保持原样。未重复SDK或资源case，无新增框架门。当前无云/供应商在途，下一只必要绑定的惰性source保存/回读及最终窄核。
+
+恢复唯一PLAN implementation_a.normal_document_dependency_trace.existing_node_memory_probe及normal_twoleaf_transport_review；当前state NODE_MEMORY_PROBE_ACTUAL_PASS_NORMAL_FINAL_BINDING_IN_PROGRESS_REAL_A0。阶段3继续/4真实交付HOLD；futurehuman/END/15baseline空、public CLOSED。A真实调用0/合格商家0/单位成本N/A，15新增/100总和旧45calls/3.9263058/UNKNOWN保，报告正文与生产不动。最终准备具体完成后仅一次当次有效有限公网确认，再做九照封面真实质量/PC-H5/保存重开/免费排字/实际下载与唯一8分；原窗口统一集成发布。
 

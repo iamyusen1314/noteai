@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 16:40UTC 正常入口三段源码与策略惰性保存已实证；补既有Node内存接口一次实测
+## CURRENT — 2026-10-22 16:50UTC 既有Node内存探针一次实际PASS；最终deps与完整5叶normal源绑定进行中
+
+登记HEAD79441f6/产品c708fe05。唯一Node probe C c-sz070tqhrvr0j5s/T t-sz070tqhrw5zx8g，于16:43:57–58Z S0/D0/R1；Run01A1647F-729E-51B8-BECB-E936B98D8D98/Read01A1647F-B02D-5DCB-B064-B3DE58DEA1DB，token2d681a8b已消耗不重发。B/node-sqlite-original-snippet-probe-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json3208/SHAd34a3a9aa75261c7ddee0fb17fadf2f1cf6d6778e1fef9532f7796a0e55e19d2已Root全JSON/whole/PASS契约核实；同一Node v24.22.1执行原201B/1e0d脚本、phase SNIPPET_COMPLETED/exit0，tool0.14821s/总0.175574s，autormabsence、cold前后同。0SDK/Chrome/backendimport/真实provider/PG/业务DB/normalSTART/OPEN/生产。
+
+原sole唯一adapter正在按真actual另存finaldeps并组装精确5叶prepared输入：已存runtime134081/049bf与guard165867/cb74，加原3helper复用；两core目录不能直接冒完整runtime3/guard2目录。原helper/控制逻辑/权限不改，root0400输入由既有install复制为新UID9990400。finaldeps模板5232/9e76与source10471/ace3已获独立窄审GO：8原proof/19553manifest/4absolute环境与guard字段一致，candidate可见/私有RW明确仅R6 ephemeral，normalCID/mapping/workspace仍未来；需actual probe后精确绑定，旧HOLD5072/a1caa保持原样。未重复SDK或资源case，无新增框架门。当前无云/供应商在途，下一只必要绑定的惰性source保存/回读及最终窄核。
+
+恢复唯一PLAN implementation_a.normal_document_dependency_trace.existing_node_memory_probe及normal_twoleaf_transport_review；当前state NODE_MEMORY_PROBE_ACTUAL_PASS_NORMAL_FINAL_BINDING_IN_PROGRESS_REAL_A0。阶段3继续/4真实交付HOLD；futurehuman/END/15baseline空、public CLOSED。A真实调用0/合格商家0/单位成本N/A，15新增/100总和旧45calls/3.9263058/UNKNOWN保，报告正文与生产不动。最终准备具体完成后仅一次当次有效有限公网确认，再做九照封面真实质量/PC-H5/保存重开/免费排字/实际下载与唯一8分；原窗口统一集成发布。
+
+## HISTORY — 2026-10-22 16:40UTC 正常入口三段源码与策略惰性保存已实证；补既有Node内存接口一次实测
 
 登记HEAD e9b6be17c3d3a5b6ea6c3433065373aef589425c/产品c708fe05，原分支/worktree不变。三core载体顺序实际完成：source-part000 actual5126/c0fe2464、001 actual5126/4c0c9bf7、002 actual5813/4331a7f3；末C c-sz070tp5qv682dc/T t-sz070tp5qvdpreo、16:29:00Z S0/D0/R1，Run01A16471-C166-52BA-AA64-9B0E5E01C455/Read01A16471-F8A7-5790-9992-5191C29EB916。Root逐原JSON/whole hash/protected前后等核实，新PREFIX/normal-core-c708-twoleaf-input-r1含guard165867/cb74d2c1与runtime134081/049bf888，root0400/nlink1；由launcher install复制成UID999读取叶，不并改原输入权限。源码未import，START/READY/OPEN/DB/models均0。
 
