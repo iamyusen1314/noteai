@@ -1,4 +1,30 @@
-## CURRENT — 2026-10-22 09:43UTC 本人明确批准新增chroot；原sole续接冻结r4零provider SDK，实际回执待返
+## CURRENT — 2026-10-22 10:08UTC 局部路径修复18765f1已交付，本机深TMPDIR真实SDK通过；原sole准备Linux五叶增量复测
+
+产品提交18765f16fa80430cb7dfe56d93d4498b2d126407，原分支worktree不变，仅5leaf/41+/6-：host.mjs、thumbnail.mjs、cli.mjs、README、test_cover_agent_runtime.py。共享短/tmp/ncr-*私有0700 scope覆盖CLI/render/edit、host thumbnail与独立cover_check；恢复TMPDIR且finally只删本次目录，原upstream58/浏览器flags/安全配置/依赖/迁移不动。测试symlinks=True保留坏链不掩盖原失败；同SDK响应加真实contract工具code0/pass true断言，设计7轮/总8synthetic消息不变。SIGKILL仍靠原隔离临时卷终态回收，不冒即时finally。独立reader已收口无P0-P2，非Linux/模型/审美验收。
+
+E/short-browser-tmp-r1/sdk-final-local-receipt.json619/a7220459，实际macOS SDK1/no skip/29.294s（elapsed29.9116），TMPDIR176字符；contract、1776x2368渲染、240x320缩略图、sourcebundle/原照字节、免费排字与旧PNG不变全部真实断言通过，provider0/业务DB0，仅私有SQLite。helper的短路径/独占0700/成功失败清理/环境恢复另真PASS。前一轮31s只覆盖未补check旁路版本，保历史不混最终。旧受影响离线证据复用，不重全项目/高德/支付/报告。
+
+新冻结manifest E/short-browser-tmp-r1/INTEGRATION-SOURCE-MANIFEST.json19243/188043cddfdc970aceec3e63c3a42e063fa4c6f039d715ccd3a1db63c2865110；SOURCE-DELTA.json2908/41ca9f341be2d0ebfba00c260ab729c177a100c73c36c45f1fb21bab6a539da6。总91/运行89/5changed86reused，无新叶；旧20a/6fe3 manifest/r4失败引用完整保，不覆写。原sole已收commit/pins，唯一云作者仅五叶新版本source transport和同fa978新目的非付费SDK准备，Root窄核具体新载体后必要人工复测；旧r4/token不重放，权限/预算无需重问。HOST真实normal argv-only r2 1844/c5ccb11c、interface2563/6cc7cf66和truth metadata r5 22603/5e6e29de已Root真读/hash核，仍不是完整creator/READY，future成功refs保持空。
+
+阶段①完成；②本次局部实现及离线验证完成；③Linux目标环境/真实九照封面与PC/H5保存重开下载及唯一结算进行中；④该局部独审完成，完整交付待真实证据。无在途provider/新UNKNOWN，A模型0/合格商家样张0/单位成本N/A；normal/public仍0/关闭，新公网human-clock-END空，15新增/100总99物理与历史账/原正文/生产边界全保。下一只同配置Linux实际渲染链；真正ready后一次有限公网确认，原sole统一集成发布。
+
+## HISTORY — 2026-10-22 09:58UTC r4真实错误已读：浏览器临时路径过长，最小局部修复中
+
+登记HEAD622cf43，唯一PLAN已更新；原sole three-files RO C c-sz070spg9gh3q4g/T t-sz070spg9gw3474，Run01A16303-483A-507C-B388-17F47B8A40D7/Read01A16303-71ED-554F-98DB-1FE5F82E80EC，09:48:43Z S0D0/R1。B/sdk-chroot-attempt4-three-files-readonly-r1/actual/result.ACTUAL-ORIGINAL.json6492/a7eeb3b2、投影6830/2176c138及stderr2907/dc509554已Root完整读/hash核。字体code0；真实主错误Socket path too long，深/tool/tmp/.../jobs/UUID/tmp/org.chromium.Chromium.*/SingletonSocket，非原zygote237/chroot分支。另测试copytree跟随失败浏览器留下的SingletonLock坏链引发teardown错误；不放宽原png_path/SDK断言。
+
+Root独占产品：仅NoteAI渲染适配器短私有TMPDIR及finally清理，CLI生成/免费排字与host缩略图同样覆盖；upstream58/sandbox/权限/资源不变、不加依赖。独立代理唯一tests/test_cover_agent_runtime.py修symlinks留证，另reader只读检查边界。原sole仅HOST HOLD更新真实normal seccomp参数/旧truth，无重派SDK/产品冲突。下一局部非付费验证→新commit/pins→原sole同fa978/原资源新目的人工零provider Linux复测；保留r4失败，不重放旧token，不把必要已知故障工程变成新人审门。
+
+normal/public仍0/关闭，真实模型0/合格商家封面0/单位成本N/A；15新增/100总99物理及旧UNKNOWN/报告正文/生产边界全保。无在途provider、当前C/T均终态，新公网human-clock-END空。真正ready后再一次有限公网验收确认；正式集成发布仍只原sole。
+
+## HISTORY — 2026-10-22 09:49UTC 已批准四调用SDK实际FAILED；新错误原件只读定位，未推旧因或重派
+
+登记HEAD622cf43，产品20a/原worktree分支保持。新增chroot本人09:43:13UTC确认原件d1a03d已实用；原sole fresh6199实际一次Run01A16300-11E1-55D1-9162-55ED6AB1E4F7、C c-sz070sp503sagw0/T t-sz070sp503zs5xc，Read01A16300-5B42-51E4-B72C-1FC803AB8B37，09:45:12–18Z Failed/Exit2/D0/R1。B/sandbox-chroot-rule-proposal-HOLD-r3/sdk-same-case-chroot-attempt-r4/actual/result.ACTUAL-ORIGINAL.json5478/c4b6dce2已Root完整读/whole核；profile13234/fa978实际应用、Ran1/no skip/no timeout，unittest5.4445s/tool5.6621s、6synthetic message/1image fixture、真实provider/PG业务DB0/私有SQLite允许，未freeedit。cold前后同、tool auto-rm真，363676KiB是RUSAGE_CHILDREN非cgroup峰值，不称容量通过。新stderr2907/dc509554/stdout0与proof-odwaprfp保留，未读inner不能推仍zygote/chroot或添权限；已知终态失败非供应商UNKNOWN。
+
+原sole无须新GO正在复用成熟three-files RO只取这次两日志和lasttool文本投影，准备即一次读取，0新SDK/权限/模型/normal/public/生产；Root不接云tab/不重派同token。新增四调用的必要已知故障非付费定位沿原工程授权，不因Codex自once泛化新审批；原三调用失败和所有历史证据完整保。
+
+并行独立reader只读定位后续normal实际缺口：当前9ab3 HOST metadata仍旧610b/3b4091/No usable/pending，真正旧launch_runtime_once.py235–244 Docker create args没有seccomp参数，换JSON不能使fa978实际应用。原sole HOST后续唯一派生实际--security-opt=seccomp=<actual host fa978file>并同步必要旧refs，源89/固定archive2/frontend2/15预算与清理不动；实际SDK成功/deps refs未有前保持None，不START。此不拖慢当前取错，不加新平台/门。真实模型0/合格商家样张0/单位成本N/A、normal/public0、新public human-clock-END空，15新增/100总99物理/原报告正文/生产与旧UNKNOWN全保。
+
+## HISTORY — 2026-10-22 09:43UTC 本人明确批准新增chroot；原sole续接冻结r4零provider SDK，实际回执待返
 
 登记HEADa6f3d4c，原worktree/分支与功能20a保持。本人本聊天直接原文「确认」，Root收到后首个真实钟09:43:13UTC（北京17:43:13）；E/ROOT-CHROOT-ACTIONTIME-APPROVAL-20261022.json1715/SHA d1a03d0858fcedce0dd4466c00a0a383efd20d0df1ffb9c00b063cb6c574a285记录真实原文/时基，唯一PLAN新许可置APPROVED，不混旧三call批准或工具accepted。范围为已冻fa978 profile/四调用全参数、原UID999NNPcapdropALL只读与资源不变；先原CHILD4283/7ca4 SDKnetworknone，实际通过及readiness后至多1同profile隔离normal按r3原host18114/网关正常鉴权测试账号隔离DB/终态无inflight清理，不动原cold/账/15起点。不是新增CAP/host配置/生产或public人窗/预算。
 

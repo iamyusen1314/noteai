@@ -2176,3 +2176,14 @@ B/sandbox-chroot-rule-proposal-HOLD-r3已完整冻：profile13234/SHAfa978cbc76a
 
 
 **09:43UTC新增chroot明确本人确认已收，r4实际待返**：本聊天本人原文「确认」，首Root真实钟09:43:13UTC（北京17:43:13）；E/ROOT-CHROOT-ACTIONTIME-APPROVAL-20261022.json1715/SHA d1a03d0858fcedce0dd4466c00a0a383efd20d0df1ffb9c00b063cb6c574a285与原PLAN已录APPROVED。准已审fa978四调用/SDK先验→条件性至多1同profile隔离normal的r3范围，不准public/host/生产/新预算或cap。原sole立即续6199 fresh完整AX核wire15912/fdc872/token9357/Name与600ProcessTree，确认未提交后仅点一次并记录真实C/T；UNKNOWN只查同请求，原失败保。此刻尚无实际C/T，不冒执行/通过；Root不接云tab，readonly代理并行仅定位normal必须同步的旧610b pins/实际Docker args，不改作者文件。模型/normal/public仍0，15新增/100总99物理和全部旧账/UNKNOWN保，本次时基不是新public窗；实际SDK及私有正常准备齐后才给真正ready的有限窗验收。
+
+
+**四调用r4实际终态失败，先读新因不重派**：C c-sz070sp503sagw0/T t-sz070sp503zs5xc、Run01A16300-11E1-55D1-9162-55ED6AB1E4F7/Read01A16300-5B42-51E4-B72C-1FC803AB8B37，09:45:12–18Z Failed/Exit2/D0/R1；r3/sdk-same-case-chroot-attempt-r4/actual/result.ACTUAL-ORIGINAL.json5478/SHA c4b6dce2fe846961f556b7317ee13d7b7cfb632a1fb4cf9dd169f8e983ddf85b已Root实核，fa978实际应用、原case ran1/no skip/no timeout。新stderr2907/dc5095540a887778c62988a1889889b94ef5ebb838c4ebf9e2e449c0a88c43fd/stdout0/proof-odwaprfp未读inner，不能推仍旧zygote/新chroot不足；原sole复用成熟三固定文件RO一次读取新错误，无需新GO/SDK/权限，完整素材JSON不导。cold同/tool已rm、真实provider/PG业务DB0，6合成消息不冒模型费，5.4445/5.6621秒与363676KiB单子树RSS不冒真实九照/聚合容量/成品质检。
+
+Root独立normal消费reader同时查明旧launch_runtime_once.py235–244无实际seccomp Docker arg，9ab3 HOST纯meta旧610b/3b4091/No usable/pending，不能仅换JSON说normal已适配。已交原sole HOST后续只派生实际--security-opt到已冻host fa978file并同步必要refs/actualSDK与deps（成功前None），其他NNP/capdrop/资源/net/auth/isolatedDB/唯一candidate/89source/archive2/frontend2/预算清理全保；ENTRY既有运行与预算/窗口接口足够，不新增字段/框架。此刻normal/public/模型0，新publicclock-END空、15/100/99和旧账UNKNOWN保；先收真实innererror再局修，不扩大报告正文或生产范围。
+
+
+**09:58UTC Q-R26答复续记：r4具体错误与局部修复所有权**：上述three-files RO6492/a7eeb3b2及投影6830/2176c138已Root真读核，字体成功，实际cover_render在check-contract报Linux SingletonSocket path too long；与旧sandbox/zygote错误分开记录。Root修NoteAI侧短私有浏览器TMPDIR并覆盖CLI和thumbnail，原58包/权限/资源不变；测试作者仅copytree(symlinks=True)保留坏链证据不放宽SDK断言。原sole不碰产品，等新commit/最少变更叶pins后同fa978新目的人工非付费复测；旧r4/token/全部失败保，当前无新SDK/normal/public/provider。此为必要已知故障工程，无新增权限/预算/发布或泛化审批门。
+
+
+**10:08UTC里程碑：最小修复18765f1与有效验证**：产品18765f16fa80430cb7dfe56d93d4498b2d126407仅现有5叶，short private TMPDIR覆盖CLI/thumbnail/cover_check，upstream58/权限/依赖全保；测试仅坏链留证与真实contract工具回归加强。E/short-browser-tmp-r1最终本机receipt619/a7220459实际SDK29.294s/8synthetic messages PASS（176字符深路径、contract/render/thumbnail/sourcebundle/freeedit/旧成品保），不是Linux或商家审美验收。冻结新manifest19243/188043cd、delta2908/41ca9f34，91总/89runtime/5changed86reused；旧20a/6fe3/r4引用保不覆写。原sole唯一云作者准备最少新版本五叶transport＋新目的同fa978零provider SDK，Root核具体差分，普通已知故障非付费工程不重问。HOST normal argv r2和metadata r5已真读核仍HOLD非creator，actual/READY/START/OPEN空。改动→风险→证据→补测：仅browser scratch及留证→Linux资源/路径实际仍待→本机最终SDK+独审与旧不变证据复用→Linux目标SDK后九照真实封面PC/H5等。A付费0/合格样张0/单位成本N/A，无public窗或生产变更。
