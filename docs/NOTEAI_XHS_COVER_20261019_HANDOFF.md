@@ -2408,3 +2408,15 @@ Root浏览器3只接自己产品tab1637495948，刷新实际404/nginx确认入�
 
 范围沿已批PlanA：复用水石清池原报告与9真照，仅封面/PC-H5/持久保存重开/免费排字/实际下载，不改报告正文或生产；最多2task，首合格存后停，只有明确QC拒绝且局修可第二，失败UNKNOWN停/0自动重发；现有8测试分最多结算一次，新增≤15元/原总≤100元，调用数按需求。旧45calls/3.9263058/UNKNOWN与源保存失败全保。恢复唯一PLAN implementation_a.final_normal_preparation.pending_public_confirmation/实际proof；state HUMAN_WINDOW_APPROVED_CLOSED_FRESH_BINDING_IN_PROGRESS_A_REAL0。下一原sole真START/READY/有限OPEN后Root接自己产品tab1637495948只一次真实生成，原sole核实时成本/唯一账与关闭；结束严格不晚END。阶段3进行/4真实交付HOLD，A合格商家0/单价N/A，最终原sole统一集成发布。
 
+
+
+## CURRENT — 2026-10-22 22:57UTC 九图自然过期已实证；仅接续正常补传辅助程序，真实A尚0
+
+实际HEAD d02a454b16ecb63818cc7bd00bb96cd52daa7cdf，产品c708fe05不变。当前人类时窗仍start1792708207/END1792711807（北京06:30:07–07:30:07）；首OPEN最晚23:00:07Z，时钟不重置，不抢开或省验证。此前“准备完成”仅已保存源码/依赖及静态配置，不足以证明过期素材的实际接续已可执行；该表述予以纠正。
+
+唯一closed预检token6676ee00-b811-4b65-b758-2c89bdc95149已消费，C c-sz070umbhw6h1j4/T t-sz070umbhwqg8ao、Run01A165C6-13E6-533E-90FF-2DEFFD5430EC/Read01A165C6-6891-517B-BA60-A3F90F586F58，22:40:44Z FailedExit2/D0/R1。原142B/SHA b6dbc265714be92cd4dd165f839c583c44d63310ebbd3df0cc3a90cb36666120保存在F/normal-closedprep-20261023-063007-r1/final-r2/actual/result.ACTUAL-ORIGINAL.json：ACTUAL_ORIGINAL_NINE_NATURAL_TTL；0models/START/OPEN/CAS。失败在45ledger/新INPUT/first15基线前，未消费封面任务或付费调用，不重派该请求。
+
+旧source-refresh11550B/b53c3bae的9张自然过期时间实际为2026-10-22 05:15:04–11Z，已过期约17小时，不能改expiry或缩END伪通过。本机9原图逐whole仍等原inventory、合10977955B；正常9补传+1封面素材关联已获授权。发现验收辅助runtime固定旧37账/旧human/receipt，且main先走paid素材门，故只在E/v3-current-source-refresh-20261023-r1制作两新副本，唯一作者normal_c708_mount_review；原PhaseA37/旧45/UNKNOWN全保。新增profile PLAN_A_V3_CURRENT_NINE_NORMAL_UPLOAD，真currenthuman/window/raw9/45ledger/24hTTL；同runtime在paid cover_context前增加SOURCE_REFRESH_ONLY分支，复用正常auth、真实idle worker/readiness、9upload+1PUT admission及provider fences，不伪auth或直写DB。原sole仅HOST/wrapper/ENTRY，不并行改core。
+
+当前无新candidate/READY/OPEN、first15基线尚无、A真实模型0/合格商家0/用户扣分0/单价N/A。Root/原sole已约定来不及在首OPEN门前完成即保持CLOSED，继续已授权非付费实现；具体可运行、测试和closed就绪前不再提出新时窗。恢复唯一PLAN implementation_a.current_source_refresh_recovery及final_normal_preparation.current_closed_fresh。下一冻结两core ABI/纯合同验证/独审→原sole本机HOST-ENTRY接续；产品正文、生产、预算15新增/100总及现有8测试积分不动，最终原sole统一集成发布。
+
