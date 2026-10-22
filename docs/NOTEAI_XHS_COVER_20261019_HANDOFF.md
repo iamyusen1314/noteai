@@ -2210,3 +2210,14 @@ Root独立normal消费reader同时查明旧launch_runtime_once.py235–244无实
 
 阶段③仍进行中，新LinuxSDKPASS/正常隔离API/九照专业成品及PC/H5保存重开免费排字下载唯一结算未达；A真实模型0、合格商家封面0、单位成本N/A。public CLOSED/newhuman-clock-END空，原新增15/累计100物理99、旧45calls/3.9263058/UNKNOWN全保，报告正文/生产不动，统一集成发布只原窗口。恢复先唯一PLANimplementation_a.temporary_pid_limit_fix及exit_metadata_fix.future_diagnostic_scope，已结束R6/RO不重派。
 
+
+## 接续检查点 — 2026-10-22 11:43UTC r7字体保护真实拒绝；中断同组回收修复910e4bd已提交，本机完整SDK通过
+
+实际HEAD/功能910e4bdaba17e02c168510c31c12e4e972f21d74，分支/worktree保持。r7仅临时PID256实际11:19:48–58Z F2D0/R1，C c-sz070sxkr4cprls/T t-sz070sxkr4rp5og；result6175/4c5998ac已Root全读核。固定四文件RO11:23:51Z S0D0/R1，C c-sz070sxxrxh66m8/T t-sz070sxxrxw5kow；result8903/0533adf3及三原byte/projection7994/18537均真核。PID256两端绑定/max增0、memory事件增0，但SDK未通过：独立contract14checks真PASS，idleFonts含Noto Sans SC Variable，内部render返回TEXT_FONT_NOT_SELF_HOSTED/title。0provider/业务DB，无450s timeout；不称容量或字体成功，不回溯R5/R6唯一原因。
+
+下一固定原R7job字体Chrome诊断最终r3已Root全读/codec/pins/三语法核，独立reader核≤6相交face只读观测；token506af548-2a87-4044-8564-5d63dddec82b，plan4811/9f4c、source16351/02b7、wire11592/6b7b。原sole获一次执行指令，尚未返C/T/实际结果，不重派。只原页面/现有65a源与三旧depsRO/现有权限资源，先snapshot再一次font.load，不写原页/字体/上游、不装系统包、不SDK/模型/normal/public。计时准确界限：成功launch耗时扣70余量，launch本身依赖上游默认timeout，timer非启动前激活；Docker80/ProcessTree90独立界，不夸称严格主动70。更早HOLD版本从未执行。
+
+910e4bd仅2现有叶runtime/tests。实际Bridge缺口先复现：direct host退出仍有同组child。现POSIX独立session，仅ownedPG TERM、保leader未reap的5s grace、KILL再reap；信号错误仍收direct host，清理错误不覆盖原deadline，无原错则报错不假交付。macOS实际已退出未reap leader会EPERM，已两原生case证实；仅wait0确退出且后signal0为ESRCH才认空，reap后不再非零kill，extant/unknown组拒绝。3定向21.011s PASS含四实进程subcases/无关sentinel保/异常保留；本机实际SDK1/no skip32.802s（outer33.203）PASS，完整contract/render/thumbnail/QC/sourcebundle/freeedit/8synthetic、0provider私有SQLite。首SDK EPERM失败保未冒Linux实因。独审9206/7943ddbb GO无P0-P2，仍仅同组清理、不冒detached Chrome全树或真实多人容量已验。
+
+新E/bridge-group-fix-r1/manifest19404/b5d3af42，总91/运行89，相对65a仅2叶变/上游58保；delta1282/e58a4bd0，MacSDKreceipt664/9ca093d1。当前云仍65a，字体诊断不混新源；待真实字体事实/必要局部修复合并后最小source接续，不重装/复制其他窗口或加迁移权限。阶段③未达目标Linux整链及真实九照专业成品/PC-H5重开排字下载唯一结算；A模型0/合格商家样张0/单位成本N/A，public CLOSED/新human-clock-END空，15新增/100总物理99、旧45calls/3.9263058/UNKNOWN保。正文/生产不动，最终原sole统一集成。
+
