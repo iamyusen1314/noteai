@@ -128,7 +128,7 @@
 唯一交换路径为本文件的绝对路径：`/Users/openclaw/.codex/worktrees/noteai-xhs-cover-20261019/noteai/docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md`。不要在两个工作树分别维护互相冲突的交接副本。新窗口在本节追加`Q编号/接口/问题/期望答复`；主窗口答疑时在对应条目写`A/源码依据/决定状态`，不需要用户逐项转述。修改前先读当前文件，按段追加，避免覆盖对方更新。只新增明确接口约定，不把问答自动当成部署/费用批准。
 
 - 接收状态：已接收。2026-10-19 23:31 北京时间，本封面窗口接管 `noteai-xhs-cover-20261019`；实际分支 `codex/noteai-xhs-cover-20261019`，HEAD `cc96df72e03a914f2fa595f4d1ec71b03e2d175d`。初始工作区干净，c4a2bba 与交接提交均为 HEAD 祖先；未回退、未新建工作树、未复制环境/密钥。
-- Q/A：暂无。
+- Q/A：按以下条目及末节 checkpoint 续记，接收时“暂无”为历史。
 
 - **Q-R13-guard-loader / 隔离接续接口（源码/离线已闭合，待实际启动验证）**：next45-to47-text-checkpoint-HOLD-r1 的候选 runtime `next47_guard()` 读取全局 GUARD，只有 main 按 config.guard_version_root 重设；host pure 导入后直接调用及 OPI spec 导入只改自身 GUARD，可能仍指向旧默认目录而要求新 pin。建议唯一作者使用显式 guard 目录/loader 绑定，覆盖这两条真实入口，不依赖 main、不改 __file__ 或伪 SHA；保持旧 proofbase1b950 历史校验与当前 ledger3f63/fresh45 校验独立。阻塞范围：未来隔离接续冻结/预置，产品1d927f2不受影响。接线与受影响组合控制已独审通过；10月22日01:08–01:13仅私有源码实际预置，尚未加载，真实启动待新有限验收确认；无新模型或发布授权。
   A（仅技术收敛，尚未冻结/解阻）：Root同意同一guard文件的固定纯合同段loader：先核整guard exactSHA，再核唯一BEGIN/END及明确AST声明名白名单；host pure/OPI显式传入已pin目录，仅固定runtime绑定，不接外部selector或任意globals；cold与normal用同一函数体/事实SHA。此更新此前“无exec”的实现建议，仅允许这一已审核固定定义段compile/exec，避开整guard的httpx/legacy顶层，不新增文件/模块/挂载/依赖。第7个R12先精确验终态/成本/唯一释放，余6复用旧校验；旧CASE/history与新47分开。仍待真正组合控制及最终pins，不代表源预置或当次公开/付费批准。
@@ -136,6 +136,9 @@
 
 - **Q-R14-actual-tree-pins / 已证并离线修复，实云待验**：本次normal原trace落runtime bind_product→check_product_tree，原窗确认旧PRODUCT_FILES五SHA拒新1d五叶。相关runtime L167/184–186；实际RO338/f4e与product-stage11627/9e55已全核。原core作者四行取已锁map修复f045、sole foundation窄审84588c99、Root3.11六入口通过d2c045da；阻塞从树检查转为Q-R15，不能冒真实封面质量通过。
 - **Q-R15-same-cap47-startup-failure-parent / 原窗已答复缺口，技术适配本机进行中**：旧guard transition L1212–1231/cover_context L1340不支持实际02f7/cap47/Exited2PID0父，仅HOST换字段不足。Root已给最小建议并决定由原core唯一作者精确失败父新分支，保历史/同cap47/cases/max8/实账/失败inode；HOST/ENTRY闭合必要pin及独立runtime-successor物理原件。原窗确认接受实施，尚无最终guard/runtime pair或实际source运输；只阻塞隔离接续及后续真实验收，产品/正文/生产不改，无需用户为技术选择重复批准。
+
+- **Q-R27-current-nine-refresh / 当前素材与正常补传接续（本机离线闭合，实启动待证）**：旧九图11550/b53c回执自然TTL已过；当前runtime/guard仍固定旧37账、旧human及paid素材门，不能修改到期时间或重跑报告。相关`refreshed_source_context`、`main`；建议仅新增current9receipt profile与正常SOURCE_REFRESH_ONLY启动，复用R4 auth/worker/9upload+1PUT及provider fences。阻塞仅隔离验收接续。A：原sole确认原9正常补传已获授权，原37/45/UNKNOWN不动；当前失败142/b6dbc发生在任何SQL/新INPUT/first15前，0模型。唯一core作者冻R2 runtime0676/guard2261，HOST/ENTRY仅原sole；尚未实际上传或启动。
+- **Q-R28-upload-normal-settings / 上传启动误用付费配置门（独审P2已局修）**：r1 runtime共用块在SOURCE_ONLY分支前调用`v3_cover_state`，将普通补图错误绑定新版付费active配置。建议SOURCE_ONLY只读实际正常settings metadata，真worker启动后沿原readiness验可用，paid严格V3校验保。A：原sole按已有执行历史确认从未执行V3配置save/activate，本轮TTL失败也早于SQL；这不是新读当前DB值。原sole接受最小局修，不改DB/伪quote；R2仅runtime15行helper/条件选择及post-start字段，guard不动，13纯合同PASS，cover_media独立复核P2关闭。真实startup仍未验，公网本窗不再OPEN。
 
 ### 本任务权威清单与恢复 checkpoint（接收）
 
@@ -145,7 +148,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 最终5叶源＋deps实际9530/124a保存，Node实测及final绑定双独审GO；待新当次有限入口真实九照封面；OPEN仍CLOSED |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 旧9图已自然过期，closed142/b6dbc失败保留；当前human首OPEN门已过，入口CLOSED。仅修当前素材receipt及正常upload-only辅助启动，产品c708不改；冻后窄审/可能封闭启动，再做真实封面 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2419,4 +2422,32 @@ Root浏览器3只接自己产品tab1637495948，刷新实际404/nginx确认入�
 旧source-refresh11550B/b53c3bae的9张自然过期时间实际为2026-10-22 05:15:04–11Z，已过期约17小时，不能改expiry或缩END伪通过。本机9原图逐whole仍等原inventory、合10977955B；正常9补传+1封面素材关联已获授权。发现验收辅助runtime固定旧37账/旧human/receipt，且main先走paid素材门，故只在E/v3-current-source-refresh-20261023-r1制作两新副本，唯一作者normal_c708_mount_review；原PhaseA37/旧45/UNKNOWN全保。新增profile PLAN_A_V3_CURRENT_NINE_NORMAL_UPLOAD，真currenthuman/window/raw9/45ledger/24hTTL；同runtime在paid cover_context前增加SOURCE_REFRESH_ONLY分支，复用正常auth、真实idle worker/readiness、9upload+1PUT admission及provider fences，不伪auth或直写DB。原sole仅HOST/wrapper/ENTRY，不并行改core。
 
 当前无新candidate/READY/OPEN、first15基线尚无、A真实模型0/合格商家0/用户扣分0/单价N/A。Root/原sole已约定来不及在首OPEN门前完成即保持CLOSED，继续已授权非付费实现；具体可运行、测试和closed就绪前不再提出新时窗。恢复唯一PLAN implementation_a.current_source_refresh_recovery及final_normal_preparation.current_closed_fresh。下一冻结两core ABI/纯合同验证/独审→原sole本机HOST-ENTRY接续；产品正文、生产、预算15新增/100总及现有8测试积分不动，最终原sole统一集成发布。
+
+
+
+## CURRENT — 2026-10-22 23:10UTC 当前补传辅助两叶已冻结、离线通过；本窗公网不开，待独审与封闭启动
+
+登记HEAD8886a4f/产品c708fe05不变，第一OPEN门23:00:07Z已过，本次公网持续CLOSED；原END23:30:07Z（北京07:30:07）不滚动。旧142/b6dbc TTL预检失败/旧37receipt/45账/UNKNOWN保，无重派；0真实A模型/封面/上传/用户扣分，first15基线未创建。
+
+E/v3-current-source-refresh-20261023-r1 唯一作者已冻runtime171899/SHA b676c65d2d1fdcf02fc9797f460ca5896a2fbc47bcabadc2589c4482f93c4643、guard174644/SHA 2261d1d5a953a02252680dff2af2b9b34e81550215f917e9e4b55b7ee163b6cb。父本134081/049bf与165867/cb74不动；只新增current9receipt契约及正常SOURCE_REFRESH_ONLY boot，paid模型/价格/结算/58上游/SQL不改。EVIDENCE.OFFLINE.json4445/07a7dc57、ABI7753/39537c7b、DIFF54146/d3e8010d、TEST-RESULT2101/ad031735及12项纯合同PASS已Root逐whole/全文核；main/真实loader/新receipt数据流/错误scope与过期拒绝/旧分支字节/R4 auth-worker-fences均有离线证据，但main使用明确doubles、历史transition为fixture边界，不是云启动或真实素材成品通过。cover_media独审在读最终冻结pair。
+
+原sole拥有HOST/ENTRY，已收完整ABI，HOST草案仅本机对齐。准备若在原END前具备实施+独审+最小transport/startup/cleanup完整余量，只做封闭0upload/0paid/provider启动readiness；不足则HOLD。source-only admission/authbridge到END后拒请求，uvicorn本身不自动退出；原sole沿成熟恢复4b95只停新owned CID/name/image/label并核exited/PID0，不能将ENTRY close或旧handle当进程终止，也不stop旧d264。未新增定时/发布平台。
+
+Root先前将完整HOST配置69788B误当IPC后已立即更正：launcher实际只发20/22key白名单，原3414/上传3957B（未含RAM URL），原65536上限保留，无扩容或新测试；无实际IPC启动失败。该误判不成为产品缺陷或扩大范围依据。
+
+可复用：R9 SDK与R6受控Linux多人、原c708产品diff/像素/计费/保存证据均未因辅助源码续接失效，不重跑；需补：正常9补传+1关联、实际启动、真实A成品/六项QC与PC/H5持久保存重开免费排字实际下载/唯一8分。恢复唯一PLAN implementation_a.current_source_refresh_recovery；下一独审→原sole具体HOST闭合→视END余量封闭启动。具体就绪前不再提新公网时窗；A合格交付0/单位成本N/A，15新增/100总不改，正文/生产不动，原sole统一集成发布。
+
+
+
+## CURRENT — 2026-10-22 23:18UTC 当前补传接续R2及独审完成；本轮只允许封闭准备，真实封面未验
+
+登记HEAD8886a4f/产品c708fe05不变。当前human原start1792708207/END1792711807（北京06:30:07–07:30:07）不延；首OPEN门23:00:07Z已过，本轮公网持续CLOSED。旧预检142/b6dbc因9图自然TTL过期失败，旧37回执/45账/UNKNOWN全保，不重派该请求。当前真实A模型/新封面/补传/用户扣分均0，first15基线未创建，合格交付成本N/A。
+
+D=E/v3-current-source-refresh-20261023-r1/startup-config-scope-r2，最终runtime173221/067677a6c97ace28397fa0be4ff0eee7da245b628f6a866d7e0e2839681ff9dc、guard174644/2261d1d5a953a02252680dff2af2b9b34e81550215f917e9e4b55b7ee163b6cb；原r1 b676及父049b/cb74全部保留。仅接续current9正常素材receipt及SOURCE_REFRESH_ONLY boot；独审P2确认补传误依paidV3配置，依据原sole从未save/activate V3的已有执行历史，仅source-only读取当前normalsettings metadata，真worker后验readiness再出READY，paid严格V3函数/分支仍原样，guard不再变。不是新DB读值，不改数据库或产品。
+
+D/ABI8716/65bbe753、EVIDENCE6524/b44a181e、局部diff3245/33703775、13纯合同PASS输出2279/287bdedf，Root逐12refs whole及关键代码/全文证据核完；独审INDEPENDENT-REVIEW.cover-media.json11047/SHA445ff5c01ba50f83b00ee5aceb7efd38699cec96d353e383fe34823dba424243无活跃P0-P2。3.11纯内存compile/旧37 AST/当前45+raw9+24h/真实authworker+fences接线及paid隔离源码审证据齐；离线main/doubles与历史fixture边界明确，不冒实际startup/上传/封面审美通过。原IPC65536保，Root把完整config误当wire的扩容建议已撤回，实际22key不含秘密约3957B，无实际IPC失败。
+
+23:17:55Z已将最终pair/ABI/证据/独审一次集中交原sole。原sole唯一HOST/ENTRY，按剩余时间决定是否仅必要inert保存或在原END前完整封闭0upload/paid/provider启动→3ready读回→新CID精确normalstop/inspect exitedPID0；不足就HOLD，不抢最后启动。core admission/authbridge END后拒请求，但uvicorn不自动退，ENTRY close/handle不是进程终止。原成熟恢复4b95沿用，不stop旧d264/生产；无新定时发布平台。
+
+恢复唯一PLAN implementation_a.current_source_refresh_recovery。两core实现及独审子代理均结束，主窗口继续集成，不增加报告/高德/支付或其他范围。可复用R9 SDK、R6 Linux受控多人、c708像素/计费/保存证据，不重跑；需补实际封闭启动、正常9补传+1关联、真实A成品/QC6/PC-H5保存重开免费排字实际下载及唯一8分。具体HOST/ENTRY可运行就绪前不再提公网时窗；15新增/100总、8测试分和调用次数按需求政策保，最终由原sole统一集成发布。
 

@@ -1,4 +1,28 @@
-## CURRENT — 2026-10-22 22:57UTC 九图自然过期已实证；仅接续正常补传辅助程序，真实A尚0
+## CURRENT — 2026-10-22 23:18UTC 当前补传接续R2及独审完成；本轮只允许封闭准备，真实封面未验
+
+登记HEAD8886a4f/产品c708fe05不变。当前human原start1792708207/END1792711807（北京06:30:07–07:30:07）不延；首OPEN门23:00:07Z已过，本轮公网持续CLOSED。旧预检142/b6dbc因9图自然TTL过期失败，旧37回执/45账/UNKNOWN全保，不重派该请求。当前真实A模型/新封面/补传/用户扣分均0，first15基线未创建，合格交付成本N/A。
+
+D=E/v3-current-source-refresh-20261023-r1/startup-config-scope-r2，最终runtime173221/067677a6c97ace28397fa0be4ff0eee7da245b628f6a866d7e0e2839681ff9dc、guard174644/2261d1d5a953a02252680dff2af2b9b34e81550215f917e9e4b55b7ee163b6cb；原r1 b676及父049b/cb74全部保留。仅接续current9正常素材receipt及SOURCE_REFRESH_ONLY boot；独审P2确认补传误依paidV3配置，依据原sole从未save/activate V3的已有执行历史，仅source-only读取当前normalsettings metadata，真worker后验readiness再出READY，paid严格V3函数/分支仍原样，guard不再变。不是新DB读值，不改数据库或产品。
+
+D/ABI8716/65bbe753、EVIDENCE6524/b44a181e、局部diff3245/33703775、13纯合同PASS输出2279/287bdedf，Root逐12refs whole及关键代码/全文证据核完；独审INDEPENDENT-REVIEW.cover-media.json11047/SHA445ff5c01ba50f83b00ee5aceb7efd38699cec96d353e383fe34823dba424243无活跃P0-P2。3.11纯内存compile/旧37 AST/当前45+raw9+24h/真实authworker+fences接线及paid隔离源码审证据齐；离线main/doubles与历史fixture边界明确，不冒实际startup/上传/封面审美通过。原IPC65536保，Root把完整config误当wire的扩容建议已撤回，实际22key不含秘密约3957B，无实际IPC失败。
+
+23:17:55Z已将最终pair/ABI/证据/独审一次集中交原sole。原sole唯一HOST/ENTRY，按剩余时间决定是否仅必要inert保存或在原END前完整封闭0upload/paid/provider启动→3ready读回→新CID精确normalstop/inspect exitedPID0；不足就HOLD，不抢最后启动。core admission/authbridge END后拒请求，但uvicorn不自动退，ENTRY close/handle不是进程终止。原成熟恢复4b95沿用，不stop旧d264/生产；无新定时发布平台。
+
+恢复唯一PLAN implementation_a.current_source_refresh_recovery。两core实现及独审子代理均结束，主窗口继续集成，不增加报告/高德/支付或其他范围。可复用R9 SDK、R6 Linux受控多人、c708像素/计费/保存证据，不重跑；需补实际封闭启动、正常9补传+1关联、真实A成品/QC6/PC-H5保存重开免费排字实际下载及唯一8分。具体HOST/ENTRY可运行就绪前不再提公网时窗；15新增/100总、8测试分和调用次数按需求政策保，最终由原sole统一集成发布。
+
+## HISTORY — 2026-10-22 23:10UTC 当前补传辅助两叶已冻结、离线通过；本窗公网不开，待独审与封闭启动
+
+登记HEAD8886a4f/产品c708fe05不变，第一OPEN门23:00:07Z已过，本次公网持续CLOSED；原END23:30:07Z（北京07:30:07）不滚动。旧142/b6dbc TTL预检失败/旧37receipt/45账/UNKNOWN保，无重派；0真实A模型/封面/上传/用户扣分，first15基线未创建。
+
+E/v3-current-source-refresh-20261023-r1 唯一作者已冻runtime171899/SHA b676c65d2d1fdcf02fc9797f460ca5896a2fbc47bcabadc2589c4482f93c4643、guard174644/SHA 2261d1d5a953a02252680dff2af2b9b34e81550215f917e9e4b55b7ee163b6cb。父本134081/049bf与165867/cb74不动；只新增current9receipt契约及正常SOURCE_REFRESH_ONLY boot，paid模型/价格/结算/58上游/SQL不改。EVIDENCE.OFFLINE.json4445/07a7dc57、ABI7753/39537c7b、DIFF54146/d3e8010d、TEST-RESULT2101/ad031735及12项纯合同PASS已Root逐whole/全文核；main/真实loader/新receipt数据流/错误scope与过期拒绝/旧分支字节/R4 auth-worker-fences均有离线证据，但main使用明确doubles、历史transition为fixture边界，不是云启动或真实素材成品通过。cover_media独审在读最终冻结pair。
+
+原sole拥有HOST/ENTRY，已收完整ABI，HOST草案仅本机对齐。准备若在原END前具备实施+独审+最小transport/startup/cleanup完整余量，只做封闭0upload/0paid/provider启动readiness；不足则HOLD。source-only admission/authbridge到END后拒请求，uvicorn本身不自动退出；原sole沿成熟恢复4b95只停新owned CID/name/image/label并核exited/PID0，不能将ENTRY close或旧handle当进程终止，也不stop旧d264。未新增定时/发布平台。
+
+Root先前将完整HOST配置69788B误当IPC后已立即更正：launcher实际只发20/22key白名单，原3414/上传3957B（未含RAM URL），原65536上限保留，无扩容或新测试；无实际IPC启动失败。该误判不成为产品缺陷或扩大范围依据。
+
+可复用：R9 SDK与R6受控Linux多人、原c708产品diff/像素/计费/保存证据均未因辅助源码续接失效，不重跑；需补：正常9补传+1关联、实际启动、真实A成品/六项QC与PC/H5持久保存重开免费排字实际下载/唯一8分。恢复唯一PLAN implementation_a.current_source_refresh_recovery；下一独审→原sole具体HOST闭合→视END余量封闭启动。具体就绪前不再提新公网时窗；A合格交付0/单位成本N/A，15新增/100总不改，正文/生产不动，原sole统一集成发布。
+
+## HISTORY — 2026-10-22 22:57UTC 九图自然过期已实证；仅接续正常补传辅助程序，真实A尚0
 
 实际HEAD d02a454b16ecb63818cc7bd00bb96cd52daa7cdf，产品c708fe05不变。当前人类时窗仍start1792708207/END1792711807（北京06:30:07–07:30:07）；首OPEN最晚23:00:07Z，时钟不重置，不抢开或省验证。此前“准备完成”仅已保存源码/依赖及静态配置，不足以证明过期素材的实际接续已可执行；该表述予以纠正。
 
