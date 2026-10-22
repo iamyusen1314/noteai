@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 17:05UTC 最终材料保存旧legacy路径不匹配已定位；仅单路径修正等待原回执
+## CURRENT — 2026-10-22 17:17UTC 方案A必要准备及最终独审完成；只待新当次有限公网时窗，真实A仍0
+
+登记HEAD34b156a/产品c708fe05。修正载体944afd7f原C c-sz070tsoz5q0ohs/T t-sz070tsoz6chrls于17:08:37–38Z SuccessExit0/D0/R1，Run01A16496-06A6-5350-A589-236BC9919144/Read01A16496-6F6D-5354-8BD2-049E437035D4；M/source-only/actual/result.ACTUAL-ORIGINAL.json9530/SHA124ae801aed37a33103413323e19af96a69f1ae02a066c80e3cbc66e291d6ff5已Root完整真核。最终五source cb74/266e/7e1a/fe256/049b和6416/6c46deps实际新namespace/root0400/nlink1，protected前后同/all_five_sources_saved_not_loaded/noProbeSDK/0DBmodelsSTARTREADYOPEN，原164失败与8673RO保。此前Run弹窗DOM点击未生效，fresh AX/screenshot后同token原生点击才受理，未新token/重派；仅局部UI变量错误从原Run恢复，非产品或模型失败。
+
+最终具体A=M/actual-bound-normal-HOLD-r1：manifest5313/28052b9b、config80057/101bc4c8、launcher26896/ce8155e3、map4088/e9fa1c82、diff4874/422b406b、NEXT-LAZY1980/8021dcb1、恢复1520/4b957cf1。Root与normal_c708_mount_review独立GO，精确7known-ref字段差分/全部本机refs/five完整metadata tuple逐等9530、6416deps实ref/futureNone核实；无运行或新测试。已存core/deps/policy/19553manifest/90SQLview及7extras不再保存空HOLD重覆。未来只同次closed fresh事实/first immutable15基线/实际human-END-scope晚绑，惰性保存不变launcher与唯一actualconfig后沿原startup/normal/auth/读取检查；当前normalCID/READY未冒认，无云或供应商在途。
+
+Root浏览器3只接自己产品tab1637495948，刷新实际404/nginx确认入口CLOSED；E/browser-current/ENTRY-CLOSED-BEFORE-PLAN-A-APPROVAL-20261023.png保存截图，未点击生成/上传/付费。当前已用functions.request_user_input_async集中请求新有限时窗，tool accepted仅表示问题已展示，不是人类批准；newhuman/clock/END仍空。仅原受保护入口，收到本次同意实际起最多60min/首OPEN至少30min/POST至少1500s，同窗不重开延时；仅原报告9照cover+PC/H5/保存重开免费排字实际下载，≤2task首合格停/只有已知QC拒绝且局修可第二/失败UNKNOWN停不自动重发，新增沿原15元、总100元、现8测试分最多结算一次。旧时窗已结束，浏览器公网重新暴露需当次确认；原成本MFA独立不阻封面准备。
+
+恢复唯一PLAN implementation_a.final_normal_preparation及其pending_public_confirmation；state PREPARATION_COMPLETE_AWAIT_NEW_ACTIONTIME_PUBLIC_WINDOW_REAL_A0。阶段3待真实验收/4真实交付HOLD，A真实调用0/合格商家0/单位成本N/A，旧45calls/3.9263058/UNKNOWN及全部失败保，报告正文/生产不动。下一实际human到达立即记本窗口CLOCK/END→原sole唯一接续启动与有限OPEN→九照真实成品及完整UI闭环/证据成本→原sole统一集成发布；未获当次human不OPEN或付费。
+
+## HISTORY — 2026-10-22 17:05UTC 最终材料保存旧legacy路径不匹配已定位；仅单路径修正等待原回执
 
 登记HEAD d1f8a2a/产品c708不变。原final source-only token4f6472f6受理C c-sz070tr25rx1w5c/T t-sz070tr25sh12ww，16:50:18–19Z Failed2/D0/R1，Run01A16485-42EF-5303-81AD-15866498BF84/Read01A16485-83AE-51F6-9FAE-1DAACB962115。N/source-only/actual/result.ACTUAL-ORIGINAL.json原stdout164/SHA0bdbc2c7d2b6b7bca040b3f8324b5a214c8096c571d6c80c49f1131d1f87114c，FIXED_EXISTING_CORE_HELPER_WHOLE在新INPUT创建前失败，0DB/models/START/READY/OPEN；旧失败全保，非probe或成品质量失败。
 

@@ -145,7 +145,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | normal两core/策略已实际存证，Node内存探针实际PASS；finaldeps/5叶源晚绑→新有限入口真实九照封面；OPEN仍CLOSED |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 最终5叶源＋deps实际9530/124a保存，Node实测及final绑定双独审GO；待新当次有限入口真实九照封面；OPEN仍CLOSED |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2387,4 +2387,15 @@ R6整体PASS满足原预授权：原sole按已独审两叶3段，顺序在新私
 修正包N/legacy-path-correction-r1已冻结：source23387/9f5d9f4d、manifest5948/33b1e2ba、raw14073/afc9d1b5、wire18764/8cbbe4dc、token944afd7f-111c-4720-9396-a81a80dc2aa0。Root逆替唯一path后byte等原23355/dcd24，所有控制/9helper/6416deps/另外4map保持原；实际codec/manifestrefs/compile/sh-n核过，未本机执行。normal config79913/8a4f仅source-map-ref变化，3773/2fb4 map保旧失败与RO来源；ce815launcher/4b95恢复原样。原sole按授权只该修正一次保存，其自身stable-read精确核版本化266e后O_EXCL；截至本checkpoint未收到新C/T或actual，不重派，结果只从原请求核取。不新增RO/probe/SDK/资源case或产品需求。
 
 恢复唯一PLAN implementation_a.normal_document_dependency_trace.final_source_only_attempt.corrected_successor。阶段3进行/4真实交付HOLD，public CLOSED/futurehuman-END-15baseline空。A真实模型0/合格商家0/单位成本N/A，15新增/100总、旧45calls/3.9263058/UNKNOWN保。下一修正原actual→必要knownref晚绑与具体包→一次新有限公网时窗真实九照封面/PC-H5/保存重开免费排字实际下载/唯一8分；正文生产不动，原窗口统一集成发布。
+
+
+## CURRENT — 2026-10-22 17:17UTC 方案A必要准备及最终独审完成；只待新当次有限公网时窗，真实A仍0
+
+登记HEAD34b156a/产品c708fe05。修正载体944afd7f原C c-sz070tsoz5q0ohs/T t-sz070tsoz6chrls于17:08:37–38Z SuccessExit0/D0/R1，Run01A16496-06A6-5350-A589-236BC9919144/Read01A16496-6F6D-5354-8BD2-049E437035D4；M/source-only/actual/result.ACTUAL-ORIGINAL.json9530/SHA124ae801aed37a33103413323e19af96a69f1ae02a066c80e3cbc66e291d6ff5已Root完整真核。最终五source cb74/266e/7e1a/fe256/049b和6416/6c46deps实际新namespace/root0400/nlink1，protected前后同/all_five_sources_saved_not_loaded/noProbeSDK/0DBmodelsSTARTREADYOPEN，原164失败与8673RO保。此前Run弹窗DOM点击未生效，fresh AX/screenshot后同token原生点击才受理，未新token/重派；仅局部UI变量错误从原Run恢复，非产品或模型失败。
+
+最终具体A=M/actual-bound-normal-HOLD-r1：manifest5313/28052b9b、config80057/101bc4c8、launcher26896/ce8155e3、map4088/e9fa1c82、diff4874/422b406b、NEXT-LAZY1980/8021dcb1、恢复1520/4b957cf1。Root与normal_c708_mount_review独立GO，精确7known-ref字段差分/全部本机refs/five完整metadata tuple逐等9530、6416deps实ref/futureNone核实；无运行或新测试。已存core/deps/policy/19553manifest/90SQLview及7extras不再保存空HOLD重覆。未来只同次closed fresh事实/first immutable15基线/实际human-END-scope晚绑，惰性保存不变launcher与唯一actualconfig后沿原startup/normal/auth/读取检查；当前normalCID/READY未冒认，无云或供应商在途。
+
+Root浏览器3只接自己产品tab1637495948，刷新实际404/nginx确认入口CLOSED；E/browser-current/ENTRY-CLOSED-BEFORE-PLAN-A-APPROVAL-20261023.png保存截图，未点击生成/上传/付费。当前已用functions.request_user_input_async集中请求新有限时窗，tool accepted仅表示问题已展示，不是人类批准；newhuman/clock/END仍空。仅原受保护入口，收到本次同意实际起最多60min/首OPEN至少30min/POST至少1500s，同窗不重开延时；仅原报告9照cover+PC/H5/保存重开免费排字实际下载，≤2task首合格停/只有已知QC拒绝且局修可第二/失败UNKNOWN停不自动重发，新增沿原15元、总100元、现8测试分最多结算一次。旧时窗已结束，浏览器公网重新暴露需当次确认；原成本MFA独立不阻封面准备。
+
+恢复唯一PLAN implementation_a.final_normal_preparation及其pending_public_confirmation；state PREPARATION_COMPLETE_AWAIT_NEW_ACTIONTIME_PUBLIC_WINDOW_REAL_A0。阶段3待真实验收/4真实交付HOLD，A真实调用0/合格商家0/单位成本N/A，旧45calls/3.9263058/UNKNOWN及全部失败保，报告正文/生产不动。下一实际human到达立即记本窗口CLOCK/END→原sole唯一接续启动与有限OPEN→九照真实成品及完整UI闭环/证据成本→原sole统一集成发布；未获当次human不OPEN或付费。
 
