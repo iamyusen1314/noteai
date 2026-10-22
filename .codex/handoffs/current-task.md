@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 10:24UTC 产品18765f1本机通过保持；Linux source-only接续误拒旧合法可执行脚本，局部修接续契约
+## CURRENT — 2026-10-22 10:35UTC 新187源码89全量实际whole成功，原sole准备同权限零provider Linux SDK
+
+分支codex/noteai-xhs-cover-20261019，登记HEADa693573/产品18765f16fa80430cb7dfe56d93d4498b2d126407；源码固定manifest188043/19243/91不变。原sole新目的mode-continuation-r2一次成功：C c-sz070stfxgbifwg/T t-sz070stfxgnzxmo，Run01A1632C-3CD9-5539-AE1A-1304BB078177/Read01A1632C-9970-53A1-B83E-B362C402A377，10:33:27Z S0D0/R1。B/short-browser-18765f16-mode-continuation-r2/actual/result.ACTUAL-ORIGINAL.json50328/SHA940b2d026fe2533ea074f479a6323db7309d34e82159dfc912ddc90ef47769e4已Root完整JSON/hash及89path/bytes/SHA与新manifest逐项核。原45先whole+inode验且不覆不改mode，仅缺44 O_EXCL创建，最终89真whole；原两parts/cold保。固定18上游.sh/.mjs0500/其余71为0400，准确复用原materializer36833/e287第88行原契约，不把suffix全局放宽。旧step01失败保非UNKNOWN。
+
+真实新root PREFIX/product-18765f16-r1，manifest原bytes在PREFIX/sdk-short-browser-18765f16-inputs-r1/INTEGRATION-SOURCE-MANIFEST.json；server50328回执在PREFIX/sdk-short-browser-18765f16-mode-continuation-r2/source-input-readback.json。3个node_modules只空slot，SDK须恰3组旧Linux依赖RO bind，不重装/复制；2 archive仍pending（非runtime89缺项），old20a/root/所有证据未改。当前SOURCE_SAVED_NOT_EXECUTED，不冒SDK/normal/审美通过。
+
+下一原sole唯一HOST在现有HOLD接actual50328与新root/3RO依赖，冻新目的同fa978原CHILD/UID999/NNP/CapDropALL/networknone/1.5GiB1CPU128pids SDK载体，Root窄核后沿原已确认工程授权复测，不重问同范围非付费修复。无在途provider/新UNKNOWN；新SDK未执行/normal0/public关闭/新human-public-clock-END空。A模型0/合格商家样张0/单位成本N/A，15新增/100总99物理及原报告正文/生产/旧账全保。阶段②局部实现+本机验证已成，③Linux实际渲染链与九照真实验收仍进行中；完整集成只原sole。
+
+## HISTORY — 2026-10-22 10:24UTC 产品18765f1本机通过保持；Linux source-only接续误拒旧合法可执行脚本，局部修接续契约
 
 登记HEADe0061aa，产品18765f1与新manifest188043/91不变，worktree仅本任务文档。两source-only新token已各一次实际终态：step00 C c-sz070srynze03y8/T t-sz070srynznzpc0，10:16:52Z S0D0/R1，result858/972ca1dc仅part保存/refs0；step01 C c-sz070ss26q315a8/T t-sz070ss26qaiubk，10:17:58Z F1D0/R1，stdout292/db08c28e main46旧base read999元数据拒绝，未SDK/产品/业务DB/模型。两个原parts和partial新root完整保，不重派原token/终结器，不重运源码。
 
