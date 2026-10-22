@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 06:28UTC 源码运输基底差异已定位；安全提案仍待本人明确回复
+## CURRENT — 2026-10-22 06:48UTC 非消费两HTML仅待归档；v3最小源角色适配中，安全许可仍待本人
+
+登记HEAD030345a/功能20a，原worktree/分支/唯一PLAN保持。Root据独立消费核允许仅本次v3私有运行把NoteAI_Pro_Demo_Framer.html、model/admin.html两非消费原source缺席标ARCHIVAL_PENDING；API仅chat_ui.html路由，ENTRY两叶只recipe/manifest/formal_app，source_html只pin，Admin不属静态15。原远端全91物理前置是Codex辅助合同技术门、非用户产品决定；完整91manifest身份与最终Git交付不变，正式Admin/完整归档要求不冒已完成。不改产品代码、前端构建、模型/预算/权限。
+
+原唯一core作者正最小v3派生：保89其他源/Skill/资源/legacy/21module/只读/bytesSHA，明确仅固定两缺席待归档，存在则仍核20a whole；无外部skiplist，旧v1/v2 PRODUCT_FILES/check_product_tree不改。v3_source_tree需从合并expected移旧HTML物理门，receipt/size计数与runtime bind/normal/ENTRY新SHA同步，绝不沿旧pin报89/91已过。原ENTRY唯一作者一次小终结器复用9原pack及4actual相等host，固定15功能叶+前端2；原17/6全量载体、34归档运输候选保。两作者待冻结新差分后交现独立reader仅受影响窄审，不新平台/门/runner，未新物化或启动。
+
+Root先前“首未填发”为旧状态，已按sole回执纠正：两UI运输34候选在原明确continue下已发0–3四片，全部S0D0/R1/末06:43:02Z，留FOUR-PARTS-PRESERVED-THEN-ARCHIVAL-SCOPE-PAUSE.json，余30从未发。四片及原9/失败保，不清零、不算模型UNKNOWN、不重复运输。SDK表单6161/610b profile/3b4091 wire与已发安全问题未变，仍无本人回复，profile/新SDK/候选/PG/provider/OPEN0，newhuman-clock-END空。下一新aux/source finalizer定向diff+受影响control→既有reader→必要纯保存；实际私有ready及真正模型/PC-H5/审美另记。15新增/100累计/99物理界/旧UNKNOWN保；真实合格0/单位成本N/A。
+
+## HISTORY — 2026-10-22 06:28UTC 源码运输基底差异已定位；安全提案仍待本人明确回复
 
 登记HEADdf9baac，功能20a/原分支工作区保持，权威PLAN不变。阶段③负责人Root（本机Git定位/状态）、原ENTRY（单叶运输续接）、原HOST（待确认SDK/normal载体）。既有9个运输片已保存，末i8实际06:16:38UTC C c-sz070s6j6hn58n4/T t-sz070s6j6i4mj28 Failed/Exit2/D0/R1，ALL_SIX_ACTUAL_BASE_WHOLES_REQUIRED，物化17/两静态前停止；不是模型UNKNOWN/产品失败，也不重复9片。
 
