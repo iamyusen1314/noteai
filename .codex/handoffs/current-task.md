@@ -12,6 +12,8 @@ Root按原手机号授权并获本人本次OTP恢复火山普通登录，只读�
 
 费用授权补正：Q-R20/初次Q-R21及selection:61把新增15元写为本批硬上限，用户后续只明确取消次数。旧“15为预估”是Codex解释，不能冒本人解除金额界。本批仍新增≤15元且原累计100/physical99较低围栏保，不重置历史、不新增预算；已交唯一aux作者补最小差额门/受影响控制，未调用模型。下一具体有限验收确认同样列此金额，无需重问已批准模型或安装。完整131路径集成清单在E/COMPLETE-COVER-INTEGRATION-SCOPE.json，路径层无新增非封面业务目录，不冒全代码重新审计。
 
+04:29UTC恢复入口：15元小增量已冻结并同reader离线GO，entry5a0b242b/guard89725df3/manifestf56aa6e1，FINAL-INCREMENTAL15-REVIEW.GO.json5994/ae6f1480；只核新钱门，旧P2/body-only证据复用，尚非实际fresh/normal/云GO。sysroot原C c-sz070rwhva1miv4/T t-sz070rwhva947wg（Run01A161DA-1BFD-5492-8841-28F79105EDA0）外层S0D0/R1，但内层PRIVATE_SYSROOT_HOLD，01-signed-index-update触90s OWNED_APT_PHASE_TIME_BOUND；actual/result2338/e105d894在原deps-private-sysroot-r1，Root已核。sole先读固定log/partial元数据，不盲重apt/旧C/T。13功能源分片已报告前4成功，余片＋Skill58继续；未npm/SDK/模型/PG/OPEN。恢复从原sole同一请求/原片receipt续接，勿把外层exit0冒依赖ready，勿重新搬全包。
+
 ## HISTORY — 2026-10-22 方案A7f73ca6＋资源20a8136已提交；本人扫码后已回原sole继续一次能力核
 
 详HANDOFF Q-R24。原SDK并行工具本地峰值2已真实复现并串行修为1，异常释放/排队deadline通过；补实际Node.sqlite能力readiness，本机True；修后宿主8与SDK原renderer/保存/免费派生全链通过，均0真实模型。固定源manifest已更新20a8136，原131/PC-H5/鉴权PNG/独审证据仍有效；OS Blob落盘、真iPhone、Linux实际容量及真实商家审美仍未验。
