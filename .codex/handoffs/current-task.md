@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 15:13UTC 原R3已受理仅读；normal本机两叶独审通过，未启动真实验收
+## CURRENT — 2026-10-22 15:30UTC R3确认PID拒绝事件；仅私有512单变量验证准备，真实交付仍HOLD
+
+登记HEAD d110560/产品c708。R3 C c-sz070thjpddog00/T t-sz070thjpdxnmrk于15:03:40–15:06:13Z Failed2/D0/R1，Read01A1642B-2561-54C0-ABE3-082F3944362C；原result15202/SHA1d1b0b215780b64de9437178d724bf291bf3e6c5b23b983c4717c3ee2d3ca90d已Root全读核。seed成功，第一queued设计6的外层contract14项PASS，渲染内部再次contract120110ms/ETIMEDOUT，0真实provider/PG/业务DB。两独立reader排除barrier循环互锁：真实editCLI已spawn才授权render，freeedit最终rev2完成；原UNKNOWN不重派。
+
+唯一固定4原件RO C c-sz070tj9e9vnpxc/T t-sz070tj9ea35eyo，15:22:53Z S0/D0/R1，Run01A16435-37A1-56AE-8A26-3AFD08049DEE/Read01A16435-7714-54AC-891C-6E5D7FD4B1B2；B/resource-sharing-diagnostic-r3-fixed-logs-timeline-readonly-r1/actual/result.ACTUAL-ORIGINAL.json10235/SHA0e272949b96c39b308882a36ac78fc8656c17f23184b58e3c1c02a8165e2c734，三原logs gzip/hash/byte及projection33889/76a23e0ea2a0997af4a1a3fafd23ef864ba702666e6f5c2d8e35d89492b918dc已Root独核，source12382/05cb逻辑已读。1464samples在sample242同点pids.current256=max256且pids.events0→2，内存peak1019568128<1610612736、memory.events全0；freeedit完成后genChrome1658仍到内层超时。CPUthrottling未采UNKNOWN，末host-Z在失败清理时序不单认泄漏；不宣称唯一根因或容量PASS。原samples3685446/291c54由RO完整稳定核hash，此处只投影，未伪称本机完整原件。
+
+下一唯一私有case单变量PID256→512，CPU1/mem1.5GiB/fa978/init/UID999/Chrome flags/58上游/全部断言/超时保，不加云资源/付费模型或改normal。独审GO；新case E/resource-sharing-linux-r1/diagnostic-pid512-r1/controlled_resource_case.py25515/SHA9b8302ab7040e5c001e4d962b58471459d8eab50f1de107a368b102b5430d3e8，仅一行expect与错误说明两字串256→512，Root逆换原25515/f43d byte等/compile通过，无执行。原sole获授权核最小差分后仅一次source→一次新case，冻结pins供并行独审；尚无新受理C/T。若失败/未知即停，不自动加PID/超时，不改队列/跳契约/重装，所有历史保留。
+
+normal next-HOLD-datafill-r1独立窄审GO：manifest4477/f5a05325、config56490/375240e1、两叶sourceonly plan3577/bd7ea266；launcher原26895/eb00/PID256未变。7extras历史实数/ref补全，当前fresh bind仍PENDING；两叶仅本机、server/transport None，4500policy/futurehuman/END/depsREADY/finalcore/15baseline均保None，不伪造READY或以未来时窗阻塞准备。恢复唯一PLAN targeted_capacity_review.pid512_single_variable_verification；阶段3进行/阶段4真实交付HOLD，A模型0/商家0/单位成本N/A，15新增100总及旧45calls/3.9263058/UNKNOWN保，报告正文和生产不改，原sole统一集成发布。
+
+## HISTORY — 2026-10-22 15:13UTC 原R3已受理仅读；normal本机两叶独审通过，未启动真实验收
 
 登记HEAD c8dfee0、产品c708fe05，分支/worktree不变。唯一synthetic diagR3已由原sole受理：C c-sz070thjpddog00/T t-sz070thjpdxnmrk、Run01A16423-A16C-5FB5-8CB8-3B5CAE97244C，原token bf614120已消耗；当前仅Running/D0/R1/Output0，没有verdict。只读该原请求终态，不重派、不取消、不调整超时。冻结source44934/16b456、wire20720/694636、case25515/f43d只增最后两个原tool消息到receipt，原断言/流程不变；R1/R2及旧UNKNOWN保。
 
