@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 09:38UTC chroot失败分支已定位；单调用配置及未提交命令已齐、独审GO提案，待本人当次新增权限确认
+## CURRENT — 2026-10-22 09:43UTC 本人明确批准新增chroot；原sole续接冻结r4零provider SDK，实际回执待返
+
+登记HEADa6f3d4c，原worktree/分支与功能20a保持。本人本聊天直接原文「确认」，Root收到后首个真实钟09:43:13UTC（北京17:43:13）；E/ROOT-CHROOT-ACTIONTIME-APPROVAL-20261022.json1715/SHA d1a03d0858fcedce0dd4466c00a0a383efd20d0df1ffb9c00b063cb6c574a285记录真实原文/时基，唯一PLAN新许可置APPROVED，不混旧三call批准或工具accepted。范围为已冻fa978 profile/四调用全参数、原UID999NNPcapdropALL只读与资源不变；先原CHILD4283/7ca4 SDKnetworknone，实际通过及readiness后至多1同profile隔离normal按r3原host18114/网关正常鉴权测试账号隔离DB/终态无inflight清理，不动原cold/账/15起点。不是新增CAP/host配置/生产或public人窗/预算。
+
+原sole唯一云UI owner已接当前本人原文与时基，续接6199先fresh AX核登录/准确目标/完整wire15912 fdc872、token9357/Name noteai-original-sdk-case-seccomp-chroot-r4/600 ProcessTree及未提交，再仅点一次；受理报C/T后只查原请求、UNKNOWN不重放。当前实际C/T未返，不称已执行/SDK通过。Root只读代理并行核后续normal当前610b→fa978最少实际消费pins，不写作者文件/新runner/门；原HOST仍唯一修改者，未来actual89/deps/SDK/normal refs待实证。旧两个SDK失败与所有日志/静态证据保，不重复源码/依赖安装或历史测试。
+
+本批真实模型0、provider运行[]、normal/public0、新human-public-clock-END空、合格商家样张0/单位成本N/A；15新增/100累计99物理/旧UNKNOWN及原报告正文生产边界保。下一核实际r4 SDK渲染/字体/原照/sourcebundle/freeedit结果，再续已授权私有normal准备；真正ready后一次有限公网确认与真实九照封面验收，不把本次安全人答当public授权。
+
+## HISTORY — 2026-10-22 09:38UTC chroot失败分支已定位；单调用配置及未提交命令已齐、独审GO提案，待本人当次新增权限确认
 
 登记HEAD315edff，功能20a/原worktree分支保持，本轮无产品代码改动。阶段③唯一直接阻碍已从泛zygote/库猜测收窄：原core真实returnPC cb2516e对应cb25169 fatal调用，前置syscall161非0失败；chdir失败另call返回cb2517a，非本帧。Linux primary x86_64表161=chroot，搜索原文已核、不伪造raw源SHA。最后frame RO C c-sz070smuyazbh1c/T t-sz070smuybbsyrk、Run01A162E8-AE4E-5537-93EE-E5A47AC6D64A/Read01A162E8-D62D-5A51-A94B-DF6656312DD5，09:19:40Z S0D0/R1，B/sdk-attempt3-last-rawcheck-frame-readonly-r1/actual/result.ACTUAL-ORIGINAL.json6689/7d2ec017与frame22248/8ad9已Root核。helper unique1因两call未采rodata只限制字面量证据，不推翻真实指令；未知errno/path及单一根因/修复充分性保。Moby28.3.3 setupSeccomp134–145/155按Bounding过滤Includes.Caps，当前ALLdrop跳过原chroot条件allow，静态推默认EPERM1（不是BPF/errno实测）。静态追址/工具检测支线结束，不需strace/新诊断框架。
 

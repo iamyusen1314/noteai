@@ -2173,3 +2173,6 @@ B/sandbox-chroot-rule-proposal-HOLD-r3已完整冻：profile13234/SHAfa978cbc76a
 
 
 **待人答恢复入口**：新增chroot的具体问题已用request_user_input_async发出且accepted；Root09:40:45UTC实际核当前仍无本人回复，原raw/received_at空，截图已展示。此时间是发问后核对时间，不是本人答复/公网开窗时间。原sole6199保持marked未提交，profile fa978/SDK fdc872/token9357/条件性normal原范围均未执行，不因工具accepted或旧三调用确认而启动。所有授权内准备已齐，下一只接具体新权限明确人答→记录首个真实接收时钟→sole fresh核表单一次提交；公网另待真正ready确认。
+
+
+**09:43UTC新增chroot明确本人确认已收，r4实际待返**：本聊天本人原文「确认」，首Root真实钟09:43:13UTC（北京17:43:13）；E/ROOT-CHROOT-ACTIONTIME-APPROVAL-20261022.json1715/SHA d1a03d0858fcedce0dd4466c00a0a383efd20d0df1ffb9c00b063cb6c574a285与原PLAN已录APPROVED。准已审fa978四调用/SDK先验→条件性至多1同profile隔离normal的r3范围，不准public/host/生产/新预算或cap。原sole立即续6199 fresh完整AX核wire15912/fdc872/token9357/Name与600ProcessTree，确认未提交后仅点一次并记录真实C/T；UNKNOWN只查同请求，原失败保。此刻尚无实际C/T，不冒执行/通过；Root不接云tab，readonly代理并行仅定位normal必须同步的旧610b pins/实际Docker args，不改作者文件。模型/normal/public仍0，15新增/100总99物理和全部旧账/UNKNOWN保，本次时基不是新public窗；实际SDK及私有正常准备齐后才给真正ready的有限窗验收。
