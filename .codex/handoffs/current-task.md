@@ -1,4 +1,16 @@
-## CURRENT — 2026-10-22 14:00UTC c708 Linux完整SDK实际通过；接续受控并发与原私有入口准备
+## CURRENT — 2026-10-22 14:22UTC 受控Linux用例已知缺既有SQL；仅补测试材料，不改产品/迁移
+
+登记HEAD2a9bc63，产品c708与R9 Linux完整SDK实际PASS保。受控输入3段各S0/D0/R1，末C c-sz070tckm0g3t34/T t-sz070tckm102zuo、Run01A163F0-92FC-5C4B-AE7A-0DC390A66420/Read01A163F0-D498-56E3-9B90-CF4E0C31C4F0；actual输入2996/SHA32124595e624068ec4b4bfc933b4a1373bbee9fae7de38246620f842213d7dc8四叶/两c708fixture与独立source-runtime-R9链已Root真核。
+
+唯一受控case C c-sz070tcyb3v0rgg/T t-sz070tcyb4ci1vk、Run01A163F4-7AA3-5E56-907D-8BDD742A013E/Read01A163F4-EEC1-5712-8984-31B88BD66F64，14:12:10–14Z Failed2/D0/R1；B/resource-sharing-c708-linux-HOLD-r1/final-actual-input-bound-r1/actual/result.ACTUAL-ORIGINAL.json6951/SHAa5b8fbacb7159bbdd0a0da5cf51c2ce6dcc73b2388f9dbf886cde1bc4e25a6a8已Root全读/hash。case3.7535s/exit1/无timeout，尚未进入observer/SDK/queue，无receipt/events/resource samples/privateledger，0provider/业务DB/PG，cold同/autorm真，不是容量通过或供应商UNKNOWN，不重派原token。
+
+仅两原日志RO C c-sz070tdama4zk00/T t-sz070tdamajyy2o于14:16Z S0/D0/R1，Run01A163F7-FCA6-5C9F-8799-9C625396E139/Read01A163F8-428C-5A21-98F2-327481CF7F47；B/resource-sharing-case-two-files-readonly-r1/actual/result.ACTUAL-ORIGINAL.json3213/SHA32e1d446ea0fe70dde00b7bd6d8a902c2ea4c44649d2be79e56a9acc63f37314与stderr1886/562679、failure1798/e2e8原byte全解读核。精确失败为fixture.setUp→jobs.init_sqlite_schema→FEATURE_SQL.read_text缺/deps/product/model/migrations/features/noteai_xhs_cover_20261019_0001.sql；这是隔离测试投影漏材料，不是产品或容量错误。原SQL自37512e已有8839/bd6626c6，既有/app/model资源readonly444实际证据已找到；下一仅原sole复用同原叶到私有测试读取点/必要目录，保89pins/原失败，不改SQL/fixture，不重跑PG迁移/生产或历史predeploy。取得实际材料后只准备同case最小后继与实际观测，非盲重放。
+
+normal-c708 metadata12024/038822及真实keydiff已Root核，仍不是launcher/READY。原sole继续原19k launcher最小接线；独立窄审已指出guard完整产品根/run/noteai-cover-runtime-source/a68-v3-plan-a-20261022-r1/product、真实91/21map与runtime.__file__旁Skill/CLI/HOST必须同根，私有state rw/fontcache0700；不能只覆12Python或/deps/product。API lifespan立即领queued，须沿原账本真实状态避免旧任务/UNKNOWN重跑；现core新human/window与15元基线是未来字段，POST余≥1500秒，不伪填READY，也不把启动绑定时窗做成确认前循环门槛。physical99指货币99元reserve，非99调用cap；历史seal47与v3 call_countNone/最多2task/首合格停保。
+
+权威恢复唯一PLAN implementation_a.targeted_capacity_review.failure_logs_readonly及normal_profile_consumption_readonly_audit。当前无在途云/供应商请求；新SQL材料/受控后继尚未执行，normal/public未START/OPEN。PC/H5恢复步骤已读核，原浏览器3产品tab1637495948只做inventory未导航/认登录；实际下载必须验文件，不以HTTP200替代。当前全131集成路径与旧范围一致，仍须基础featureSQL+db.py，不是A增量独立可发。A真实模型0/合格商家0/单位成本N/A、15新增/100总/旧45calls/3.9263058/UNKNOWN全保，报告正文/生产不动，阶段3继续/阶段4真实交付HOLD，原窗口统一发布。
+
+## HISTORY — 2026-10-22 14:00UTC c708 Linux完整SDK实际通过；接续受控并发与原私有入口准备
 
 登记HEAD ae70c86，产品c708fe05ccb02925f75c7263e36af18e350a9776，原worktree/分支不变。新source两步实际成功，part01原件35324/SHA20ce552ea5024065d218da0dd8275e0247c9d8d0d5997ca470d39b98ccd57d27、89叶bytes/hash/mode已Root逐核；source与旧runtime36085/41a2是独立链接，不把新source当wrapper/XML新回执。仍91身份/89runtime/2archivespending，3叶增量/86runtime复用，58上游及三旧deps保、无重装。
 
