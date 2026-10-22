@@ -2377,3 +2377,14 @@ R6整体PASS满足原预授权：原sole按已独审两叶3段，顺序在新私
 
 恢复唯一PLAN implementation_a.normal_document_dependency_trace.existing_node_memory_probe及normal_twoleaf_transport_review；当前state NODE_MEMORY_PROBE_ACTUAL_PASS_NORMAL_FINAL_BINDING_IN_PROGRESS_REAL_A0。阶段3继续/4真实交付HOLD；futurehuman/END/15baseline空、public CLOSED。A真实调用0/合格商家0/单位成本N/A，15新增/100总和旧45calls/3.9263058/UNKNOWN保，报告正文与生产不动。最终准备具体完成后仅一次当次有效有限公网确认，再做九照封面真实质量/PC-H5/保存重开/免费排字/实际下载与唯一8分；原窗口统一集成发布。
 
+
+## CURRENT — 2026-10-22 17:05UTC 最终材料保存旧legacy路径不匹配已定位；仅单路径修正等待原回执
+
+登记HEAD d1f8a2a/产品c708不变。原final source-only token4f6472f6受理C c-sz070tr25rx1w5c/T t-sz070tr25sh12ww，16:50:18–19Z Failed2/D0/R1，Run01A16485-42EF-5303-81AD-15866498BF84/Read01A16485-83AE-51F6-9FAE-1DAACB962115。N/source-only/actual/result.ACTUAL-ORIGINAL.json原stdout164/SHA0bdbc2c7d2b6b7bca040b3f8324b5a214c8096c571d6c80c49f1131d1f87114c，FIXED_EXISTING_CORE_HELPER_WHOLE在新INPUT创建前失败，0DB/models/START/READY/OPEN；旧失败全保，非probe或成品质量失败。
+
+一次固定5path RO已真证根因：C c-sz070trozvszym8/T t-sz070trozw0hnnk、16:57:25Z S0/D0/R1，Run01A1648B-C4EA-519E-A7E2-2D79F89B08E3/Read01A1648C-031E-5DB7-821E-B1A3B2BB4A3A；B/final-deps-fixed-five-source-readonly-r1/actual/result.ACTUAL-ORIGINAL.json8673/SHA258475a25c8a4855dccc6e953f865ae0090472bd96eaa0ce97de89e38db121ac已Root全读核。5均stable/metadata合，4whole相同，仅旧top legacy46369/24d72与应46504/266e不同，INPUT实际不存在、protected同、0写/内容导出/模型DB。已存stage源码与11627/9e551真实证明正确leaf为runtime-e623-r1/guard/a68-v2-text-checkpoint45to47-r1/legacy_text_guard.py，故只改来源路径，不换pin或代码。
+
+修正包N/legacy-path-correction-r1已冻结：source23387/9f5d9f4d、manifest5948/33b1e2ba、raw14073/afc9d1b5、wire18764/8cbbe4dc、token944afd7f-111c-4720-9396-a81a80dc2aa0。Root逆替唯一path后byte等原23355/dcd24，所有控制/9helper/6416deps/另外4map保持原；实际codec/manifestrefs/compile/sh-n核过，未本机执行。normal config79913/8a4f仅source-map-ref变化，3773/2fb4 map保旧失败与RO来源；ce815launcher/4b95恢复原样。原sole按授权只该修正一次保存，其自身stable-read精确核版本化266e后O_EXCL；截至本checkpoint未收到新C/T或actual，不重派，结果只从原请求核取。不新增RO/probe/SDK/资源case或产品需求。
+
+恢复唯一PLAN implementation_a.normal_document_dependency_trace.final_source_only_attempt.corrected_successor。阶段3进行/4真实交付HOLD，public CLOSED/futurehuman-END-15baseline空。A真实模型0/合格商家0/单位成本N/A，15新增/100总、旧45calls/3.9263058/UNKNOWN保。下一修正原actual→必要knownref晚绑与具体包→一次新有限公网时窗真实九照封面/PC-H5/保存重开免费排字实际下载/唯一8分；正文生产不动，原窗口统一集成发布。
+
