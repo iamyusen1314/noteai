@@ -11,6 +11,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -83,6 +85,101 @@ class ReturnedValueTests(unittest.TestCase):
             returned_value(body, "png_path", tool_call_id="fixture_5_1")
         with self.assertRaisesRegex(AssertionError, "code"):
             returned_value(body, "code", tool_call_id="missing")
+
+
+@unittest.skipUnless(os.name == "posix", "POSIX owned process groups")
+class OwnedHostCleanupTests(unittest.TestCase):
+    def test_permission_error_is_not_ignored_for_an_extant_group(self):
+        process = mock.Mock(pid=12345)
+        process.poll.return_value = 0
+        denied = PermissionError("controlled signal denial")
+        with mock.patch.object(runtime.os, "killpg", side_effect=[denied, None]) as kill:
+            with self.assertRaises(PermissionError) as raised:
+                runtime._stop_host(process)
+        self.assertIs(raised.exception, denied)
+        self.assertEqual(kill.call_args_list, [mock.call(process.pid, signal.SIGTERM), mock.call(process.pid, 0)])
+
+    def test_deadline_and_completed_host_stop_owned_descendants(self):
+        original_popen = subprocess.Popen
+        original_stop = runtime._stop_host
+
+        def executing(pid):
+            result = subprocess.run(["ps", "-p", str(pid), "-o", "stat="],
+                capture_output=True, text=True, check=False)
+            return bool(result.stdout.strip() and not result.stdout.strip().startswith("Z"))
+
+        for mode, cleanup_error in (("deadline", False), ("complete", False),
+                                    ("deadline", True), ("complete", True)):
+            with self.subTest(mode=mode, cleanup_error=cleanup_error), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                child_info = root / "child.json"
+                child = root / "child.py"
+                child.write_text("import os,signal,time\n"
+                    "signal.signal(signal.SIGTERM,signal.SIG_IGN)\n"
+                    "time.sleep(20)\n")
+                host = root / "host.py"
+                host.write_text("import json,os,signal,subprocess,sys,time\n"
+                    "json.loads(sys.stdin.readline())\n"
+                    "signal.signal(signal.SIGTERM,signal.SIG_IGN)\n"
+                    "p=subprocess.Popen([sys.executable,sys.argv[1]],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+                    "open(sys.argv[2],'w').write(json.dumps({'pid':p.pid,'pgid':os.getpgid(p.pid)}))\n"
+                    "if sys.argv[3]=='complete':\n"
+                    " print(json.dumps({'type':'result','ok':True,'artifact':{}}),flush=True)\n"
+                    "else: time.sleep(20)\n")
+                processes = []
+                sentinel = original_popen([sys.executable, "-c", "import time;time.sleep(20)"],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    start_new_session=True)
+
+                def redirect(command, **kwargs):
+                    self.assertEqual(Path(command[1]), runtime.ROOT / "cover_agent_host/worker.mjs")
+                    self.assertIs(kwargs["start_new_session"], True)
+                    process = original_popen([sys.executable, str(host), str(child), str(child_info), mode], **kwargs)
+                    processes.append(process)
+                    return process
+
+                def stop(process):
+                    original_stop(process)
+                    if cleanup_error:
+                        raise PermissionError("Controlled cleanup failure after fixture teardown")
+
+                try:
+                    bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=root, sources=[], hooks=None)
+                    with mock.patch.object(runtime.subprocess, "Popen", side_effect=redirect), \
+                            mock.patch.object(runtime, "_stop_host", side_effect=stop):
+                        if mode == "deadline":
+                            with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_TASK_DEADLINE") as raised:
+                                bridge.run("Local cleanup fixture", deadline=time.time() + .4)
+                            if cleanup_error:
+                                self.assertIn("COVER_HOST_CLEANUP_FAILED: PermissionError", raised.exception.__notes__)
+                        elif cleanup_error:
+                            with self.assertRaises(PermissionError):
+                                bridge.run("Local cleanup fixture", deadline=time.time() + 2)
+                        else:
+                            self.assertTrue(bridge.run("Local cleanup fixture", deadline=time.time() + 2)["ok"])
+                    self.assertEqual(len(processes), 1)
+                    process = processes[0]
+                    info = json.loads(child_info.read_text())
+                    self.assertEqual(info["pgid"], process.pid)
+                    end = time.monotonic() + 1
+                    while executing(info["pid"]) and time.monotonic() < end:
+                        time.sleep(.01)
+                    self.assertFalse(executing(info["pid"]))
+                    self.assertIsNotNone(process.returncode)
+                    self.assertTrue(process.stdin.closed)
+                    self.assertTrue(process.stdout.closed)
+                    self.assertIsNone(sentinel.poll(), "Cleanup must not signal another host's group")
+                finally:
+                    if child_info.exists():
+                        pid = json.loads(child_info.read_text())["pid"]
+                        if executing(pid):
+                            os.kill(pid, signal.SIGKILL)
+                    for process in processes:
+                        if process.poll() is None:
+                            process.kill()
+                        process.wait(timeout=3)
+                    sentinel.kill()
+                    sentinel.wait(timeout=3)
 
 
 class ScriptedBridge(runtime.Bridge):

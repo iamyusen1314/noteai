@@ -12,7 +12,9 @@ import os
 from pathlib import Path
 import queue
 import shutil
+import signal
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -27,6 +29,48 @@ import cover_seedream
 import public_product
 
 ROOT = Path(__file__).resolve().parent
+
+
+def _stop_host(process):
+    """Stop this host's POSIX group without signalling the API's own group."""
+    def signal_group(value):
+        try:
+            os.killpg(process.pid, value)
+        except ProcessLookupError:
+            return False
+        except PermissionError as error:
+            # macOS can report EPERM for an exited, unreaped group leader.
+            # Reap only if already exited; after that, probe without signalling
+            # a possibly reused PGID. An extant/unknown group remains an error.
+            try:
+                process.wait(timeout=0)
+            except (OSError, subprocess.SubprocessError):
+                raise error
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                return False
+            except OSError:
+                raise error
+            raise error
+        return True
+
+    try:
+        if os.name == "posix":
+            if signal_group(signal.SIGTERM):
+                # Keep the leader unreaped during the grace period so its
+                # numeric group cannot be reused. Drivers can close browsers.
+                time.sleep(5)
+                signal_group(signal.SIGKILL)
+    finally:
+        # Also stop/reap the direct host if group signalling itself fails.
+        if process.poll() is None:
+            process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
 
 
 @lru_cache(maxsize=4)
@@ -318,7 +362,8 @@ class Bridge:
                 for source in self.sources], "max_model_requests": None,
             "deadline_epoch_ms": int(deadline * 1000), **({"session_id": self.session_id, "mode": "revise"} if self.session_id else {})}
         process = subprocess.Popen([os.environ.get("NOTEAI_COVER_NODE", "node"), str(worker)],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
+            start_new_session=os.name == "posix")
         messages = queue.Queue(maxsize=2)
 
         def reader():
@@ -375,15 +420,18 @@ class Bridge:
         finally:
             # Killing this local host never causes supplier redispatch. The
             # Python call is synchronous and durably terminal before continuation.
-            if process.poll() is None:
-                process.terminate()
+            original_error = sys.exc_info()[1]
+            cleanup_errors = []
+            for close in (lambda: _stop_host(process), process.stdin.close, process.stdout.close):
                 try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=5)
-            process.stdin.close()
-            process.stdout.close()
+                    close()
+                except (OSError, subprocess.SubprocessError) as error:
+                    cleanup_errors.append(error)
+            if cleanup_errors:
+                if original_error is None:
+                    raise cleanup_errors[0]
+                original_error.add_note("COVER_HOST_CLEANUP_FAILED: " +
+                    ",".join(type(error).__name__ for error in cleanup_errors))
 
 
 def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
