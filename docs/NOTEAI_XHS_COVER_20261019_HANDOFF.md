@@ -2251,3 +2251,15 @@ Init实际metadata：InitBinary docker-init、InitCommit {ID:empty}保持UNKNOWN
 受控并发artifact单独进行中：只私有SQLite/MockTransport/真实service与SDK，验证2用户排队+免费编辑实际重叠，不读业务库/付费。已保fixture两次末尾assert/额度契约失败原件，不算产品故障或通过；正在验证正确subscription或wallet唯一扣8分与免费编辑额度不增，0真实模型。已复用九图存储契约独审8870/9a321fe9，无新容量阻断；真实finalbundle/账号配额仍随正式保存结果记录。
 
 恢复先唯一PLAN implementation_a.fontconfig_runtime_integration.SDK_final。当前无供应商/付费任务，A真实模型0、合格商家封面0/单位成本N/A，阶段③Linux整链与九照专业成品/PC-H5重开排字下载唯一结算未完成；public CLOSED/新human-clock-END空。15新增/100总物理99、旧45calls/3.9263058/UNKNOWN保，报告正文/生产不动，原sole统一集成发布。
+
+## 接续检查点 — 2026-10-22 12:51UTC R8已知CLI失败：缺ps与60秒无PNG分开定位；受控本机排队/免费编辑已验
+
+登记HEADa28ef34，产品910e4bd/新89源码与wrapper/XML实际36085/41a2保持。唯一R8 C c-sz070t4agdygpa8/T t-sz070t4agefxzpc、Run01A1639B-92D6-5384-A3C3-04C45CBBCD7F/Read01A1639F-5A1A-51CF-BA8D-8E210F16D87B，12:35:03–12:36:19Z实际F2/D0/R1；原result6504/SHA631f06f35958f1369e621ad454c21f254dbfb075f2ffa52b3a2d1313f78262d1已Root真核。tool74.987s/case74.757s、6synthetic、非450timeout、freeedit未完成，0provider/业务DB/PG，cold/profile/autorm保。不称完整SDK或真实封面通过。
+
+固定4文件RO C c-sz070t4wz1bohz4/T t-sz070t4wz1qnw1s、Run01A163A1-FD81-5752-8F38-47CFF6DDC1C8/Read01A163A2-75E4-5F9F-B84D-3D94C8DC8E02于12:42:04Z S0/D0/R1；B/sdk-bridge910-r8-four-files-readonly-r1/actual/result.ACTUAL-ORIGINAL.json9031/SHA68fe2007a9de729dfab0ef59bbe5c110ee572b99ae170da0c122791ec713c3da、三raw及projection8347/aba1已Root实际decode/hash核。fixture5_0 contract14项PASS/idleFonts空；fixture5_1 raw render exit127、elapsed60112、stderr精确两行render-poster.sh:line110:ps:command not found（原478/1305c63c无截断），不是旧TEXT_FONT_NOT_SELF_HOSTED。cgroup3772/d24c实际PID2→2/max256/events0、memory.peak695230464/events0，不推全树/多人容量。上游script原line110需ps且丢弃raw Chrome stderr，循环等PNG60秒；缺cleanup工具与无PNG原因分开，不能凭缺ps宣称唯一根因。
+
+下一仅原sole准备一次固定R8job全RO direct raw Chrome CLI诊断：原pinned flags/scale1，独立profile/out、70秒含清理、同910/wrapper/XML/fontcache/fa978/256/init/CPU1/1.5G/netnone；显式同host环境HOME absent与私有XDG、准确短TMPDIR，不借干净HOME掩盖差异。保留真实bounded stderr/exit/PNGstat及同次有限工具存在性，不SDK/模型/改flags或资源。不重派R8或旧probe。已有82私有包无procps/libproc2，最少私有补包仅本地签名metadata准备，版本/Depends/SHA未得则UNKNOWN，未下载/装host/改上游58或生产。
+
+独立受控并发最终Mac case已实际PASS65.0215s：setup1+两用户排队2，各九张合成图，27Mock回复、0外部；真实generation/freeedit Chrome重叠28采样/峰2、第二SDK在第一结束后才启、最终owned子树空，三用户各唯一subscription8分，免费edit revision2且monthly/wallet/调用不增，真实private storage重开/PNG读取通过。E/resource-sharing-linux-r1/local-attempt-03/receipt.json3032/b4ee9bf3与冻结script25169/9f236c4d、INPUTS2317/ee723e6d/manifest4034/b777278a已Root读核；独审6443/2d00165e无新阻断。原attempt01/02仍FAILED（fixture额度/charge-source断言），不翻写；不是Linux、真九照10.98MB、OSS/PG/auth或全站容量证据。三份原fixture另只读namespace准备，无新框架/仓库改动，暂不云跑。
+
+normal v3与capacity仅独立HOLD准备，actualSDKPASS/depsREADY/normalREADY保持None，不是当前CLI前置。恢复先唯一PLAN implementation_a.fontconfig_runtime_integration.SDK_final/fixed_four_files_readonly。当前无在途供应商或新CLI请求；阶段③Linux整链与真实九照专业成品/PC-H5保存重开免费排字下载唯一结算未完成，A真实模型0/合格商家封面0/单位成本N/A；public CLOSED/新human-clock-END空，15新增/100总物理99与旧45calls/3.9263058/UNKNOWN全保，正文/生产不动，原窗口统一集成发布。
