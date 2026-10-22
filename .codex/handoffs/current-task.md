@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 用户否决个人审美定案；完整现成项目复用优先，撤回自建默认
+## CURRENT — 2026-10-22 具体workflow提案A完成，等待用户确认；未安装/实施/生成
+
+登记前HEADed0521c，分支codex/noteai-xhs-cover-20261019，产品1d927f2/前端01ffe保。最新用户要求深研后明确选火山/扣子或其他完整项目给方案确认。Root＋3定向只读代理完成新扣子/AgentKit/托管Agent/开源workflow和现成宿主比对，详见HANDOFF末节Q-R20与docs/NOTEAI_XHS_COVER_WORKFLOW_SELECTION_20261022.md（提案，不是新任务清单）。
+
+建议A：Editable-Design完整营销设计Skill c87b16f＋OpenCode2.1.2 SDK 7456ad8宿主＋现Ark。保原Skill概念→实际看图→完整计划→HTML真字/原照层→渲染审图/编辑验证，非只摘规则；Root已读官方SDK/图片/provider/原生HTTP计量和retry veto契约，实际Ark/工具/字体/限额均未跑。预计需4类接入，Bun/Node/Chromium等依赖未装。OpenDesign引擎因学术profile/原照视觉/QC等8适配保备选；AgentKit是真Skill云宿主但需账号/费用/环境核；扣子新API可用但官方FAQ部署工作流暂不能调用Skill，不能把开发期Skill当运行器。服务商缺口具体见提案，不用其无业务保存/账本否定设计价值。
+
+待确认范围：A与必要依赖/适配→先隔离离线→最多2封面任务、≤26物理调用（含探测/辅助）、新增模型≤15元，原累计80/100内；不是新增预算或当前执行授权。对旧设计1/QC1调整须确认，Pro最多1整张概念/task，不以概念图替真实门店照片。初版强制原照＋当前成品QC是需补适配；免费改字0模型派生只做确定性检查并保delta，不冒再次视觉pass。8积分90天/唯一结算/原UI及报告保，经济性尚未验。
+
+四独立问题源报告＋固定源码/官方阅读/Root茶饮样例浏览证据存原tmp/workflow-selection-20261022-r3，ROOT-WORKFLOW-SELECTION索引。独立窄审3澄清已修，无审美通过声明。仅文档/PLAN更新，研究3 Firecrawl credits（CNY未知）、模型0/安装运行0/上传0/云/生产0；研究tab已关。旧45calls/known3.9263058/pending0只是历史，UNKNOWN与原80/100保；exact8私有保存已消费未加载，入口CLOSED，新human/clock/END/job全空。下一等待本次具体方案确认，不先安装/调用/实施，不按旧Lite方案重测。
+
+## HISTORY — 2026-10-22 用户否决个人审美定案；完整现成项目复用优先，撤回自建默认
 
 登记前HEADbc873bd，分支codex/noteai-xhs-cover-20261019，产品1d927f2/前端01ffe未改。最新用户明确拒绝“少量参考＋用户满意”作为设计定案标准，个人偏好不代表市场认可；要求优先复用网络现有项目，并调整妨碍复用的旧限制。独立代理核原确认/建议与AGENTS：从无用户禁止复用/必须自建；不接Managed/multi-Agent是建议列，优先现后端/不默认新平台不等于禁令。此前Codex扩大解释与自建默认撤回。完整事实、适配原则及边界见HANDOFF末节Q-R19；Q-R18研究原件保，冲突推荐已被取代。
 
