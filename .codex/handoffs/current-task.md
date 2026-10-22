@@ -1,4 +1,4 @@
-## CURRENT — 2026-10-22 23:18UTC 当前补传接续R2及独审完成；本轮只允许封闭准备，真实封面未验
+## CURRENT — 2026-10-22 23:25UTC 当前补传接续R2已独审并实际预置；本轮不启动，真实封面未验
 
 登记HEAD8886a4f/产品c708fe05不变。当前human原start1792708207/END1792711807（北京06:30:07–07:30:07）不延；首OPEN门23:00:07Z已过，本轮公网持续CLOSED。旧预检142/b6dbc因9图自然TTL过期失败，旧37回执/45账/UNKNOWN全保，不重派该请求。当前真实A模型/新封面/补传/用户扣分均0，first15基线未创建，合格交付成本N/A。
 
@@ -9,6 +9,12 @@ D/ABI8716/65bbe753、EVIDENCE6524/b44a181e、局部diff3245/33703775、13纯合�
 23:17:55Z已将最终pair/ABI/证据/独审一次集中交原sole。原sole唯一HOST/ENTRY，按剩余时间决定是否仅必要inert保存或在原END前完整封闭0upload/paid/provider启动→3ready读回→新CID精确normalstop/inspect exitedPID0；不足就HOLD，不抢最后启动。core admission/authbridge END后拒请求，但uvicorn不自动退，ENTRY close/handle不是进程终止。原成熟恢复4b95沿用，不stop旧d264/生产；无新定时发布平台。
 
 恢复唯一PLAN implementation_a.current_source_refresh_recovery。两core实现及独审子代理均结束，主窗口继续集成，不增加报告/高德/支付或其他范围。可复用R9 SDK、R6 Linux受控多人、c708像素/计费/保存证据，不重跑；需补实际封闭启动、正常9补传+1关联、真实A成品/QC6/PC-H5保存重开免费排字实际下载及唯一8分。具体HOST/ENTRY可运行就绪前不再提公网时窗；15新增/100总、8测试分和调用次数按需求政策保，最终由原sole统一集成发布。
+
+### 2026-10-22 23:25UTC 实际五叶源预置完成；本轮不启动、不开放
+
+原sole两段actual：part000 Cc-sz070upvhoijbpc/Tt-sz070upvhosix34，23:20:35Z S0/D0/R1，Run01A165EA-9153-5910-9D52-D936F301208D/Read01A165EB-3F7A-59DD-8A30-012CABADCBE5，5570/51c4e6838d0f6499af2b2f927a85eb2d700b23756461c34299366e60a06ff1f3；part001 Cc-sz070uq1zjtsjcw/Tt-sz070uq1zkdrq4g，23:22:36Z S0/D0/R1，Run01A165EC-6BF8-56FB-9383-FF11E0617382/Read01A165EC-A37B-5F8E-8302-C262FB26072D，7412/9f9898d482e547fa0e3ca15ba6d0b9900a1d2f1a83777ca6a30410216ffa5fd8。原件在B/v3-private-host-HOLD-r1/normal-launcher-21map-HOLD-r1/upload-only-final-20261023-r1/two-core-source-only-r2/source-part-00{0,1}/actual；Root已全文及whole核。server PREFIX/normal-core-current-refresh-five-input-r2/source-input-readback.json，runtime0676/guard2261及266e/7e1a/fe256五叶全部root0400/nlink1，已保存未加载，protected前后同。
+
+原sole据实际余量决定START HOLD：HOST authority/config/launcher仍至少4小保存段+1次launch/3ready/精确stop，不能保证原END23:30:07Z前完成；未生成startup token、无新CID/session、0上传/DB/模型/扣分，本轮公网从未OPEN。不是供应商或成品测试失败。下一继续非付费具体HOST/ENTRY材料收口，复用已存五叶/6416deps，不重传、重probe或添4RRRO；仅真正剩当次human-END晚绑及正常启动/补传时再集中公网确认，不用空准备消耗新时窗。
 
 ## HISTORY — 2026-10-22 23:10UTC 当前补传辅助两叶已冻结、离线通过；本窗公网不开，待独审与封闭启动
 

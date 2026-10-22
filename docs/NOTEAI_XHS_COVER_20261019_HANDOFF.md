@@ -148,7 +148,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 旧9图已自然过期，closed142/b6dbc失败保留；当前human首OPEN门已过，入口CLOSED。仅修当前素材receipt及正常upload-only辅助启动，产品c708不改；冻后窄审/可能封闭启动，再做真实封面 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 旧9图过期、142/b6dbc保；R2辅助已独审并实际五叶预置7412/9f9898。首OPEN门过/余量不足，本轮START与OPEN均HOLD；继续具体HOST/ENTRY收口，实际启动/补传/真实成品未验 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2451,3 +2451,10 @@ D/ABI8716/65bbe753、EVIDENCE6524/b44a181e、局部diff3245/33703775、13纯合�
 
 恢复唯一PLAN implementation_a.current_source_refresh_recovery。两core实现及独审子代理均结束，主窗口继续集成，不增加报告/高德/支付或其他范围。可复用R9 SDK、R6 Linux受控多人、c708像素/计费/保存证据，不重跑；需补实际封闭启动、正常9补传+1关联、真实A成品/QC6/PC-H5保存重开免费排字实际下载及唯一8分。具体HOST/ENTRY可运行就绪前不再提公网时窗；15新增/100总、8测试分和调用次数按需求政策保，最终由原sole统一集成发布。
 
+
+
+### 2026-10-22 23:25UTC 实际五叶源预置完成；本轮不启动、不开放
+
+原sole两段actual：part000 Cc-sz070upvhoijbpc/Tt-sz070upvhosix34，23:20:35Z S0/D0/R1，Run01A165EA-9153-5910-9D52-D936F301208D/Read01A165EB-3F7A-59DD-8A30-012CABADCBE5，5570/51c4e6838d0f6499af2b2f927a85eb2d700b23756461c34299366e60a06ff1f3；part001 Cc-sz070uq1zjtsjcw/Tt-sz070uq1zkdrq4g，23:22:36Z S0/D0/R1，Run01A165EC-6BF8-56FB-9383-FF11E0617382/Read01A165EC-A37B-5F8E-8302-C262FB26072D，7412/9f9898d482e547fa0e3ca15ba6d0b9900a1d2f1a83777ca6a30410216ffa5fd8。原件在B/v3-private-host-HOLD-r1/normal-launcher-21map-HOLD-r1/upload-only-final-20261023-r1/two-core-source-only-r2/source-part-00{0,1}/actual；Root已全文及whole核。server PREFIX/normal-core-current-refresh-five-input-r2/source-input-readback.json，runtime0676/guard2261及266e/7e1a/fe256五叶全部root0400/nlink1，已保存未加载，protected前后同。
+
+原sole据实际余量决定START HOLD：HOST authority/config/launcher仍至少4小保存段+1次launch/3ready/精确stop，不能保证原END23:30:07Z前完成；未生成startup token、无新CID/session、0上传/DB/模型/扣分，本轮公网从未OPEN。不是供应商或成品测试失败。下一继续非付费具体HOST/ENTRY材料收口，复用已存五叶/6416deps，不重传、重probe或添4RRRO；仅真正剩当次human-END晚绑及正常启动/补传时再集中公网确认，不用空准备消耗新时窗。
