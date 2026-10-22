@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 05:28UTC 全部应用源/Skill/系统库已核；唯一3ci运行，随后Linux实际SDK渲染
+## CURRENT — 2026-10-22 05:49UTC Linux三安装成功；实际SDK渲染因Chrome沙箱启动失败，保留原件定向处理
+
+登记HEAD3211daa/clean，功能仍7f73ca6＋20a8136，原工作区/分支不变。唯一PLAN为权威状态，HANDOFF Q-R26续接记精确回执。三npm ci于05:32:23UTC实际S0D0/R1，C c-sz070s22sdzueww/T t-sz070s22se7c3y8，result3580/c0b3c456；不重复安装。完整58上游源、13应用片、Node/Chrome/82库及三锁证据复用，不冒整个运行器已通过。
+
+同一原SDK定向case实际05:37:38–43UTC Failed/Exit2/Dropped0/Repeats1，C c-sz070s31ytzjvnk/T t-sz070s31yuh162o，result4657/f1e550cf。Ran1/未skip，wrapper4.510646s、unittest内层2.748s；6条合成消息，真实provider/PG/业务DB0，仅任务私有SQLite。首次断言缺png_path只是下游；原HOST只读取回第6tool，C c-sz070s3nos7rkzk/T t-sz070s3nosp8veo、S0D0/R1，projection6919/0897a680在B/sdk-smoke-render-tool-readonly-r1/actual。实际UPSTREAM_EDITABLE_CONTRACT_FAILED的Chrome152 FATAL No usable sandbox，font_add实际code0/NotoSansSC复制成功。无成品/免费派生，不能冒Linux通过或把该已知环境失败记模型UNKNOWN。
+
+下一由原HOST唯一作者执行已准备固定安全字段metadata RO，依据现配置选保持浏览器沙箱的最小处理；不重case/依赖、不先no-sandbox/SYS_ADMIN/改seccomp或内核。Root产品源码不先改；若具体方案涉及安全权限变化，须先给可审具体动作，再按工具当次要求集中确认，不请求泛化新授权。其余既有17源叶/两静态差分继续HOLD准备，无candidate START/业务POST/OPEN/生产。单case1合成图/RUSAGE_CHILDREN367108KiB不是真实九照/多人容量证明。
+
+本批真实模型0、合格商家样张0/单位成本N/A；新增≤15元＋原总100/physical99、次数按需求、第二默认deny/首合格停/最多8分一次/UNKNOWN不重发均保持。aux离线增量GO不等于完整context/PG/normal/运行/审美GO。公网CLOSED，新human/clock/END/OPEN全空。实际私有准备齐后仅一次具体新有限公开窗确认；旧账45/known3.9263058/pending0与UNKNOWN保持，OS落盘/真iPhone未验。
+
+## HISTORY — 2026-10-22 05:28UTC 全部应用源/Skill/系统库已核；唯一3ci运行，随后Linux实际SDK渲染
 
 原worktree/分支、功能7f73ca6＋20a8136保持，登记HEAD5cd1141；权威任务原PLAN，详HANDOFF Q-R26最新续接。13应用源/58完整Skill已存且Root逐SHA回读匹配；以下旧状态全历史不重跑。官方Aliyun镜像剩26包实际成功，C c-sz070s14yszmiv4/T t-sz070s14yth3ta8，Run01A16209-BE77-56BF-8F34-4CE2635FBDE0，05:17:42UTC S0D0/R1。82signedDEB全SHA、3ldd missing[]、Node24.22.1/Chrome152版本通过，sysroot253580315B/1321文件/setid0；result44164/cfef6c10在B/deps-private-sysroot-mirror-tail-r4/actual。准确state PRIVATE_CHROME_SYSROOT_LIBRARIES_READY_NOT_RENDER_OR_SDK_VERIFIED，不冒浏览器实际渲染/整个runtime ready。56旧完整包/719415partial与原日志保，未重index/NodeChrome；系统/安全/生产不改。
 
