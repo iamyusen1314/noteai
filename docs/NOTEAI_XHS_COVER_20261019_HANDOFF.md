@@ -2029,3 +2029,32 @@ readiness不再只凭Node package engines≥22.12，补实际node:sqlite内存DB
 原sole接现唯一能力RO时遭**正常阿里云管理登录过期**，尚未填payload/点击发起，无C/T/ad4 token未消费，0云命令/安装/模型/OPEN/生产；与Worker-C MFA独立。具体DEPENDENCY-PREP.HOLD及原sole Q-R23云执行接口补答保留。用户本窗口要求“阿里云登陆的页面截图发给我，我扫码登录”，Root仅接原官方login tab1637496139并截当前官方二维码发本人，原sole明确暂停同tab操作；未填凭据/读秘密/发命令。页面已markHandoff，等待本人扫码；不能把发截图当登录完成。实际登录后Root只核状态并还原sole继续同未消费一次能力RO，不重旧命令/调用/窗。
 
 公网仍CLOSED，未设置新human/clock/END/OPEN；累计100元、无调用数限/辅助全计、最多2新任务/首合格停/8分一次/UNKNOWN不重放保持。新版真实商家封面0/单位合格成本N/A；原45账/3.9263058/pending0为历史，未冒fresh。浏览器策略另拒绝chrome://downloads定向记录读取，未绕过；可复用已鉴权PNG证据，OS落盘/真iPhone未核。下一唯一直接阻碍为扫码恢复原正常管理登录；其余本地授权工作与代码修后证据已闭合，真实质量验收和sole统一集成交付仍待。
+
+
+#### Q-R24 sole实际接续 — 登录恢复与唯一能力RO完成，依赖准备尚未就绪
+
+本人在主窗正常登录后，原6139仍为主窗sessionclaim，本窗没有争用该tab；主窗随后精确关闭它。本窗使用同已选Chrome3新建原官方RunCommand表单6144，原ad4eecf3参数/token未消费且同原payload一次执行。C c-sz070ro0624fjeo/T t-sz070ro062bx8g0，Run01A16182-F461-5CB7-94A4-4AA9DBDE22DB/Read01A16183-1A00-5CF9-9BF6-D36C86DACA0C，实际10月22日10:48:56北京完成，Success/Exit0/Dropped0/Repeats1。root-plan-a-20261022-r1/capability-readonly-r1/actual保官方Run/Read完整原JSON、完整stdout4277/SHA6618ec2ab4f21bd9b11a166e2689b99d2e68f3645f12a07b6f46b33c27129f9d、两截图及ACTUAL-READONLY-RESULT.json；旧NOT-DISPATCHED诚实保登录前历史，不覆盖。
+
+实际host alinux4/x86_64无固定常规Node/Chromium；原候选image Debian13/x86_64、/usr/local/bin/node20.20.2(低于新依赖要求)，固定常规Chromium路径及command-v均未发现，不冒全盘绝对不存在。同CID/image前后exited/PID0相同，limits1.5GiB/1CPU/Pids128。workroot available10573172736B≈9.85GiB、inodes2187865，hostMemAvailable5450508kB/Total7638904kB；不是候选可用5.2GiB或多人容量通过。短命UID999/networknone/rootfsRO工具exit0/stderr0/auto-rm absence实际已核，无业务挂载/SQL/网络/model/原candidateSTART/OPEN/生产。
+
+本窗继续原scope的任务私有依赖准备：优先复用现sourceRO挂载，宿主runtime-e623-r1/source/plan-a-deps-20261022-r1→容器/run/noteai-cover-runtime-source/plan-a-deps-20261022-r1，不改正式image/config/DB/代理/NAT/规格。Node固定受支持24.22.1官方SHA；三锁不变/正常optional/空npm配置/ignore-scripts/fetch-retries0。Chrome选原Puppeteer25.9.0 revisions实际对应的full Chrome152.0.7977.54，便于与headless:true及上游shell一致；官方versionJSON实际2138/eb04c25a，公开HTTPS本机zip实际194151778B/SHA88af83664e1e5f79dc1c1378d0699b98dddd69690a748addf4ccbe322bfacedf，MD5与官方ETag282ca8171761f4b47fa718c51dd16a92相同；不能冒供应商发布SHA/PGP签名。存dependency-public-metadata-r1，未执行该Linux二进制。原机器依赖尚未下载/安装或冒ready。
+
+先私有prefix下载/校验/解包与npm，原image限资源短命工具验Node/Chrome版本与ldd；缺共享库只列实际项后局部处理，不apt全机/改内核或加cap。SDK/renderer实际smoke随后仅对Linux差异，记录现1.5GiB限额下RSS/CPU/结束状态；本机mock证明不替Linux，单人不替多人。正常Chrome sandbox先保持，未先关闭保护；上游shell不传播NO_SANDBOX条件已告主窗，若真遇限制按具体错误处理，不猜。原source20a/manifest6fe全符、未运输产品；新normal/READY/付费/OPEN时窗未发生，原8/旧47/callcount窗不重派。主窗原照片9约10.98MB与小mock夹具内存差异明确，不改原累计100元/UNKNOWN。
+
+普通管理登录恢复后，本窗仅只读原成本StopInstance页一次，仍显示本人手机安全验证/验证码空；未发送OTP、重提Stop或换通道，新计算节省仍0。该本人MFA不作封面依赖准备前置。
+
+### Q-R25 — 2026-10-22，本人正常登录已恢复；实际云能力核完成，任务私有Linux依赖/原aux v3兼容进行中
+
+本人“已登录”后Root于02:47:42UTC实际观察原官方login返回OpenAPI正常表单，未填/未发云命令；因Cua跨会话不能争用同tab，Root正常关闭未提交6139，明确还原sole独占Chrome新官方表单，同未消费ad4一次scope不变。原sole随后实际02:48:56UTC完成唯一能力RO：C c-sz070ro0624fjeo/T t-sz070ro062bx8g0、Run01A16182-F461-5CB7-94A4-4AA9DBDE22DB/Read01A16183-1A00-5CF9-9BF6-D36C86DACA0C、Success/Exit0/Dropped0/Repeats1。Root核原官方JSON与stdout4277/SHA6618ec2ab4f21bd9b11a166e2689b99d2e68f3645f12a07b6f46b33c27129f9d。此token已消费不重放，旧NOT-DISPATCHED只历史。
+
+**实际能力**：原image Debian13/x86_64，现/usr/local/bin/node20.20.2低于依赖要求，固定常规路径/command-v未见Chromium（不冒全盘绝对不存在）；原候选实际前后同CID/image、Exited/PID0，短命network-none/UID999/RO/限资源版本核无业务挂载且auto-rm。原候选限1.5GiB/1CPU/128pids，不能把host可用约5.2GiB当candidate额度；workroot可用约9.85GiB。0模型/SQL/候选START/OPEN/生产。原件在root-plan-a-20261022-r1/capability-readonly-r1/actual/ACTUAL-READONLY-RESULT.json及stdout等，唯一PLAN已记实际C/T/摘要，不当runtime ready或多人容量通过。
+
+**当前准备**：原sole已备12步canonical任务私有metadata/官方Node24.22.1/fullChrome152.0.7977.54/原三锁文件Linux npm安装，实际目标仅已有API-C隔离资源新私有prefix，不改正式image/config/DB/proxy/内核、不增云资源、不搬Darwin模块。最近阶段回报尚未远端安装，先修两份npm空配置必须分路径与UID999遍历权限的明确准备点，再一次安装/精确ldd缺库回执；新的安装C/T尚未提供，不能说已装。若官方源顺畅，首份实际依赖或缺库回执约15–25分钟（sole给的阶段依据），不是最终ready时间。Sandbox必须实际证明，不默认no-sandbox或扩权限。成本Worker-C本人MFA独立，不能当本依赖前置。
+
+**最小可复用Linux runner已交**：20a原tests.test_cover_agent_runtime.CoverAgentRuntimeSDKTests.test_real_sdk_controlled_tools_renderer_photo_qc_and_source_bundle一case，显式PYTHON_DOTENV_DISABLED=1、DATABASE_URL空、任务私有Node/SDK/browser/TMPDIR/proof-output，0provider/0DB。它证明1合成原照、实际SDK/完整Skill/原CLI/字体/成品与缩略图/文件bundle capture restore/免费派生；不能冒PG持久8分或真实九图/多人容量。已要求只补Linux/实际1.5GiB下RSS/CPU/结束行为，原131/宿主8/PC-H5及九图API fixture等有效证据复用不重跑，暂不新增runner或框架。
+
+**账号开通/价格实核**：Root并行仅访问Ark首页/开通管理，未开API Key页。原火山登录也过期；按用户此前原手机号登录授权只发一次SMS，用户提供本次验证码后恢复原账号，未复制/记载验证码或密钥。实际Seed2.1Pro家族已开通，标准输入6/输出30/缓存命中1.2元每百万token，500RPM/100万TPM；Seedream5Pro家族已开通，首输入免费/额外.02元每图、输出.3–.6元每图，符合现估价。可见免费额度/余额仅此时控制台观察、非任务专项预留/净账保证；金额敏感细节只留原task tmp/provider/ACCOUNT-CONDITIONS-20261022.json与实际UI截图，余额已恢复隐藏，临时只读tab关闭。0模型/新服务开通/新订阅/充值/账号权限变更。该证据只证明家族开通和展示价格，固定model_id、既有API Key实际范围及真实token/图片usage仍须实际接口验收。
+
+**v3适配输入已交**：由20a固定源纯函数editable_defaults→validate→policy_snapshot→jobs._policy生成V3-ISOLATED-CONFIG-POLICY.json4500/SHA2a2d8227d72c5701f6b6656827c9049374e02a00aa1bf4e8cb9eb0bd6d9c5d04，quote148c8e89d657fd0ae9fbfe72，含非secret prospective test配置/完整策略/标准价格/1033毫元逐次预留和account证据SHA。本机静态_require_price通过；0DB/未应用/未激活，不冒新rev。原sole一次列清旧5036/f410硬钉14叶/静态/旧Lite wire/47call/单CASE/单POST/第8slot不适v3，按20a完整图作最小兼容，不新建发布或测试框架；旧47 NOTNULL仅历史字段，不用大整数伪无界，明确v3不以其拒计数；原100元与原physical99元两层货币围栏均保，不悄升99→100。新两任务仍最多首合格交付/8分一次、1concept/任务，0自动付费retry/UNKNOWN重放。
+
+阶段③进行中；功能7f73ca6＋20a冻结未再改，原sole独占云/aux，Root在本机只维护已有CURRENT/PLAN/证据并待新aux定向独审。测试公网仍CLOSED，无新human/clock/END/READY/OPEN，实际模型本批0、候选运行0、真实合格样张0/单张成本N/A。原45calls/known3.9263058/pending0仅历史、UNKNOWN留存，不重旧45全量/高德/支付/报告内容。依赖与一次Linux smoke/必要aux适配齐后，再将当次具体有限公网验收方案发本人，不提前消费新时窗。

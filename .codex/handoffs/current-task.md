@@ -1,8 +1,16 @@
-## CURRENT — 2026-10-22 方案A7f73ca6＋资源20a8136已提交；等待本人扫码恢复原sole管理登录
+## CURRENT — 2026-10-22 云实际能力已核；两个Pro家族账号已开通，sole任务私有Linux依赖/aux v3兼容中
+
+功能7f73ca6＋20a8136冻结；详HANDOFF Q-R25。本人恢复Aliyun登录后原sole02:48:56UTC一次ad4能力RO实际Success，C c-sz070ro0624fjeo/T t-sz070ro062bx8g0，已消费不重放。实际Debian13/x64/Node20.20.2、常规Chrome未见，候选同CID/image前后Exited/PID0；1.5GiB/1CPU/128pids、prefix可用9.85GiB。原sole现准备固定Node24.22.1/fullChrome152/三lock Linux npm任务私有安装，最近安装尚未dispatch，须实际缺库/sandbox/SDK/renderer/RSS核验，不冒ready。0模型/SQL/OPEN/生产，Worker-C MFA独立。已有最小一caseSDK+原CLI/字体/bundle/免费派生runner已交，0provider/0DB，不重131/8全套。
+
+Root按原手机号授权并获本人本次OTP恢复火山普通登录，只读实核Seed2.1Pro与Seedream5Pro家族已开通/展示价格吻合，未看key/开新服务或订阅/调用模型；actual fixed model_id/既有key范围/usage待验。账号证据E/provider/ACCOUNT-CONDITIONS-20261022.json及截图；敏感余额仅tmp、已恢复隐藏。E/V3-ISOLATED-CONFIG-POLICY.json由20a纯函数生成，quote148c8e89d657fd0ae9fbfe72，prospective未应用/0DB；原sole据此最小一次兼容旧aux，旧47不是v3计数闸、原100和physical99两钱闸保。唯一PLAN含actualRO与account/policy refs；运行provider请求空。
+
+下一sole私有依赖+Linux一次smoke+最小aux实接，Root可独审新diff/证据，ready后再一次具体有限公网验收确认。公网仍CLOSED，无新human/clock/END/OPEN；新真实样张0/成本N/A，原45账3.9263058/pending0仅历史/UNKNOWN保，调用次数按需求不限，首合格停/最多一次8分。OS Blob落盘/真iPhone/多人实机容量未验如实保留。
+
+## HISTORY — 2026-10-22 方案A7f73ca6＋资源20a8136已提交；本人扫码后已回原sole继续一次能力核
 
 详HANDOFF Q-R24。原SDK并行工具本地峰值2已真实复现并串行修为1，异常释放/排队deadline通过；补实际Node.sqlite能力readiness，本机True；修后宿主8与SDK原renderer/保存/免费派生全链通过，均0真实模型。固定源manifest已更新20a8136，原131/PC-H5/鉴权PNG/独审证据仍有效；OS Blob落盘、真iPhone、Linux实际容量及真实商家审美仍未验。
 
-原sole唯一能力RO未dispatch即遇官方Aliyun登录过期；没有C/T或新云/安装/model/OPEN。本人要求二维码截图，Root已从原官方tab1637496139截图发本人且markHandoff，sole暂停同tab操作。尚未看到扫码/登录成功；成功后Root还sole继续原未消费一次RO，不重历史source8/normal/窗。唯一PLAN已保存WAITING_EXISTING_ALIYUN_QR_LOGIN及功能20a。公网仍CLOSED，无新human/clock/END/OPEN；用户取消调用次数闸、累计100元保；合格新版0/成本N/A。
+原sole唯一能力RO未dispatch即遇官方Aliyun登录过期；没有C/T或新云/安装/model/OPEN。本人要求二维码截图，Root已从原官方tab1637496139截图发本人且markHandoff，sole暂停同tab操作。后续本人回复“已登录”，Root于02:47:42UTC实际见官方login返回原OpenAPI表单，CommandContent仍空/未发；已明确还sole控制同tab，Root不再并行操作。实际云授权及Node/Chromium/capacity待sole原未消费一次RO真结果，不重历史source8/normal/窗。唯一PLAN已记OWNER_QR_LOGIN_RETURN_OBSERVED及功能20a。公网仍CLOSED，无新human/clock/END/OPEN；用户取消调用次数闸、累计100元保；合格新版0/成本N/A。
 
 ## HISTORY — 2026-10-22 方案A功能7f73ca6已提交；离线/独审完成，原sole隔离集成准备
 
