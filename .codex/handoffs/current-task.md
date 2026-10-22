@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 08:07UTC 本人明确确认临时沙箱权限；原sole续接一次无provider SDK用例，尚待实际回执
+## CURRENT — 2026-10-22 08:27UTC 已授权一次SDK实际失败；错误转为zygote握手提前退出，原15秒窗日志只读定位中
+
+登记HEAD54bd2db，功能20a/原工作区分支保持。本人原文确认/08:07:27UTC已记0a398414证据，冻结610b profile＋3b4091/token399911原SDK只执行一次。真实C c-sz070sgrqbp9vcw/T t-sz070sgrqcbqygw、Run01A162AA-2EA4-5EB2-A0CD-56F232725540，08:11:24–29Z Failed/Exit2/D0/R1，原result5491/7247befb在B/sandbox-three-syscall-v28.3.3-HOLD-r1/sdk-same-case-attempt-r3/actual，Root实核。Ran1/no skip/no timeout，unittest4.6919s/outertool4.9241s；synthetic requests6＋image工具1、真实provider/PG业务DB0。profile确用/Chrome sandbox args没变、原cold前后同/短命工具auto-rm实际已核，原f1e失败亦保。不自动再跑或把失败计vendorUNKNOWN。
+
+只读原三文件C c-sz070sh9kqaoutc/T t-sz070sh9kqpo8w0 S0D0/R1，投影B/sdk-seccomp-attempt3-three-files-readonly-r1/actual/last-tool-text.PROJECTION.json6664/cc5429f1已Root核。字体code0；cover_render仍UPSTREAM_EDITABLE_CONTRACT_FAILED，但真实Chrome152由旧129 No usable sandbox变237 Zygote process exited prematurely -1。官方exacttag源码说明boot后hello握手child已退出；-1只是WIFSIGNALED泛值，后browser signal6不是zygote信号。cpufreq ENOENT属crashpad伴随项。219B/76d4d4 launcher实际export LD_LIBRARY_PATH再exec真ChromeELF，无显式ld-linux，已排除该猜因；chroot被CAP_SYS_CHROOT条件过滤只是静态差异，未证明实因，不据此先加权限。
+
+下一原sole HOST仅原tool08:11:20–35Z Docker历史白名单事件/同窗kernel必要记录只读≤64KiB/短timeout，不运行Chrome/SDK/新profile/normal；日志若缺不能推无OOM/无SIGSYS。361112KiB为RUSAGE_CHILDREN非聚合cgroup峰值，不能排OOM。Root独立reader已解释覆盖：真实渲染PNG/QC/字形主体/zip还原/免费排字未完成，fixture/1图不冒真实九照/审美/多人容量。源码15+frontend2/HOLD pins/独审证据复用，无生产/公网/模型，原15新增/100总99物理与旧UNKNOWN保。新有效公开窗未启动/normal0，真实合格0/单位成本N/A。仍自主做事实定位和局修准备，不把未证原因当新权限或付费重试依据。
+
+## HISTORY — 2026-10-22 08:07UTC 本人明确确认临时沙箱权限；原sole续接一次无provider SDK用例，尚待实际回执
 
 登记HEAD6cc1686/clean，产品20a/原worktree分支不变。本人在封面Root当前对话直接原文「确认」，Root接收后首真实钟08:07:27UTC（北京时间16:07:27），不是代理或环境消息。E/ROOT-SANDBOX-ACTIONTIME-APPROVAL-20261022.json1544/0a398414已记原文/时基/具体范围，唯一PLAN security确认置APPROVED，尚无新C/T/实际结果。批准固定profile610b三调用额外许可、一次同原SDK case（wire15884/3b4091ea/token399911b6/600s），0provider/PG业务DB/公网，任务私有合成SQLite允许；原f1e失败/原cold/NNP/capdrop/非root/只读/networknone与资源限额保。不批准no-sandbox/SYS_ADMIN/unconfined/host变更或新资源，不自动重复/UNKNOWN重派。
 
