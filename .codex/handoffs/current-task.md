@@ -1,4 +1,18 @@
-## CURRENT — 2026-10-22 14:22UTC 受控Linux用例已知缺既有SQL；仅补测试材料，不改产品/迁移
+## CURRENT — 2026-10-22 14:54UTC R2第六轮模拟断言待原工具取证；最小receipt诊断准备，normal仅HOLD
+
+登记HEAD cddc4d5、产品c708，R9 Linux完整SDK技术PASS保。SQL测试材料已补齐：唯一source C c-sz070tebrl00g74/T t-sz070tebrlezu9s，14:27:34Z S0/D0/R1，Run01A16402-93A1-5A19-B649-CAE307589B3B/Read01A16402-DB35-5E8E-A5C7-5FCD5A4748A1；B/resource-sharing-c708-feature-sql-private-view-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json37194/SHA7164944c3eed935eb4841fc89b2413ede7835456706c66ddd7938ac926c48ebe，Root逐89旧source hash/path/mode及SQL8839/bd662/400与18exec71read核一致，cold/root444一次cp10752/126f4be4；新90view不改旧树/SQL/依赖，0SQL执行/模型。
+
+仅补材料R2 C c-sz070tezv3pi2v4/T t-sz070tezv49h9mo、Run01A16409-72D5-5621-B65C-105AFFD3BE03/Read01A1640A-137D-5B39-85C6-ED104FB8D982，14:35:04–23Z Failed2/D0/R1；actual8504/SHA9ad859ccab04eb46a58916efe7b577fc4a77fbb7e5a856b5b77f130e3e5deba6全读核。case18.341s，无timeout，已过SQLsetup但setup seed e9bd0cc8... outcome_unknown/保留reserved8-used0私有账，未到两用户/freeedit，不算容量通过。真实provider/业务DB/PG仍0，cold同/autorm真，R1与旧真实UNKNOWN均保。
+
+唯一4原日志RO C c-sz070tfckiy49a8/T t-sz070tfckjalr0g，14:39:02Z S0/D0/R1，Run01A1640D-1197-5336-AFA9-DA7C4DB013E3/Read01A1640D-6DC9-5552-9214-1A3AB8DB5B12；B/resource-sharing-case-r2-four-files-readonly-r1/actual/result.ACTUAL-ORIGINAL.json6858/SHA48c372aaf8bf07c854858be294fc7a4912560b6aa5bbef2153fd1fc0a6e6c6e5及4解压原bytes/hash已Root核。call376a62...精确design6在Mock wire append前Assertion，只有design1..5+image回复，不是turn8序列耗尽、真实供应商异常或容量判定。具体是fixture_5_0 contract失败还是fixture_5_1 render无png_path目前证据不足；service finally清工作目录，而原case只保wire不保内存b.requests工具消息，原工具现场已缺，不能假称取得/猜资源修复。
+
+唯一case子代理已准备E/resource-sharing-linux-r1/diagnostic-last-tools-r1/controlled_resource_case.py25515/SHAf43d5f9b7b399fe0313273e99ce1ac838c72d6577e46abba318d38f2fb55cb15。只原finally receipt增加396–399四行单赋值，保每bridge job/design_turn及最后已有请求中的fixture_5_0/5_1两个原tool消息；无其他modelbody/照片/新请求，原流程/断言/判定不变，逆删AST完整赋值后byte等原25169/9f/compile真核，未运行本机case。Root已交sole只保存1新case叶到独立namespace、原90view/SQL/3fixtures/deps不重传；实际ref后才安排一次新私有synthetic诊断任务，原UNKNOWN不重跑，0真实供应商，不修产品/资源或加框架。当前无在途云/供应商，source载体尚待，非第三case已派。
+
+normal原launcher最小HOLD已就具体结构：B/v3-private-host-HOLD-r1/normal-launcher-21map-HOLD-r1/launch_runtime_once.HOLD.py26895/eb00b095、config49220/e3e1bf83、manifest5124/af77341f、实际patch17455/584a386Root全读/静态核；同完整guardROOT/89+8原extras/21map/SkillCLI、3deps双RO、artifact alias/rwstate/fontcache-init及fa978/256/init接线。3helper/2guard里最终core/guard pins、v3 policy/overlay、newhuman/END/deps15baseline仍None/HOLD，7原extras实际bytes refs待复用；未normalSTART/READY/OPEN，也不把该未来有效时窗做成确认前循环门槛。Root不并行改唯一adapter文件；待工具层事实及最终产品版本统一精确晚绑。
+
+恢复先唯一PLAN implementation_a.targeted_capacity_review.r2_actual_trace/diagnostic_receipt_variant与normal_profile_consumption_readonly_audit.minimal_launcher_HOLD。阶段3仍进行、阶段4真实交付HOLD；A真实模型0/合格商家0/单位成本N/A，15新增/100总/物理99货币reserve、调用次数按需求、旧45calls/3.9263058/UNKNOWN保，正文生产不动、最终原窗口统一集成发布。
+
+## HISTORY — 2026-10-22 14:22UTC 受控Linux用例已知缺既有SQL；仅补测试材料，不改产品/迁移
 
 登记HEAD2a9bc63，产品c708与R9 Linux完整SDK实际PASS保。受控输入3段各S0/D0/R1，末C c-sz070tckm0g3t34/T t-sz070tckm102zuo、Run01A163F0-92FC-5C4B-AE7A-0DC390A66420/Read01A163F0-D498-56E3-9B90-CF4E0C31C4F0；actual输入2996/SHA32124595e624068ec4b4bfc933b4a1373bbee9fae7de38246620f842213d7dc8四叶/两c708fixture与独立source-runtime-R9链已Root真核。
 
