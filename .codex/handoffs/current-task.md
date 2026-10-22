@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 08:27UTC 已授权一次SDK实际失败；错误转为zygote握手提前退出，原15秒窗日志只读定位中
+## CURRENT — 2026-10-22 08:37UTC 历史日志实际收口；同窗Chrome/libc段错有证，具体子进程及根因待最小观测
+
+登记HEAD77556eb，产品20a/原worktree分支保持。原sole一次15秒历史RO已实际S0D0/R1，C c-sz070sild2l6hog/T t-sz070sild305vr4，Run01A162BC-E47A-5942-B8E4-142373A8ABB5/Read01A162BD-4867-506A-8666-45C3D7903120，08:31:50UTC完成。B/sdk-attempt3-historical-events-kernel-readonly-r1/actual/result.ACTUAL-ORIGINAL.json4371/SHA4ed502d3已Root完整JSON/hash及两gzip投影核。Docker六类白名单query exit0/stdout0，明确UNKNOWN_EMPTY_OR_NOT_RETAINED不能排OOM/seccomp；kernel同窗361B/1035e53a无截断：08:11:27.790887 chrome342338 segfault at308 in libc.so.6，随后342337 trap int3。无PID→已auto-rm工具映射，不严称zygote或ABI根因；新SDK/Chrome/profile/provider/业务DB0，cold前后同。
+
+既有cfef82包本机窄核/独立reader均未发现libc6/libc-bin等glibc包或独立copy，libglib不是glibc；只有1321文件汇总而非逐path清单，既有browser栈/usr/lib libc也不能替崩溃child maps。混配无正证，不先换库/launcher/加chroot/cap。独立reader确认后续如需观测，可在现有outer CHILD之Popen前及p.wait汇合后、proof解析前读固定self-cgroup/memory与pids字段，赶在--rm前保存聚合差值；仅准备、未执行或新增runner/门。缺字段记UNKNOWN，不改通过条件。原sole先收本机事实与最少判别证据，再定受控验证，不自动重派旧C/T或凭猜因扩权限。
+
+本次仅权威PLAN/本任务文档状态更新；原失败、唯一结算/15新增/100总99物理/UNKNOWN全保，付费模型0/合格商家样张0/单位成本N/A，public CLOSED/newhuman-clock-END空/normal0。源码保存/离线证据复用，正文/生产范围不扩；真实LinuxPNG/QC/freeedit、正常隔离API及九照PC/H5验收仍待，正式集成发布只原sole。
+
+## HISTORY — 2026-10-22 08:27UTC 已授权一次SDK实际失败；错误转为zygote握手提前退出，原15秒窗日志只读定位中
 
 登记HEAD54bd2db，功能20a/原工作区分支保持。本人原文确认/08:07:27UTC已记0a398414证据，冻结610b profile＋3b4091/token399911原SDK只执行一次。真实C c-sz070sgrqbp9vcw/T t-sz070sgrqcbqygw、Run01A162AA-2EA4-5EB2-A0CD-56F232725540，08:11:24–29Z Failed/Exit2/D0/R1，原result5491/7247befb在B/sandbox-three-syscall-v28.3.3-HOLD-r1/sdk-same-case-attempt-r3/actual，Root实核。Ran1/no skip/no timeout，unittest4.6919s/outertool4.9241s；synthetic requests6＋image工具1、真实provider/PG业务DB0。profile确用/Chrome sandbox args没变、原cold前后同/短命工具auto-rm实际已核，原f1e失败亦保。不自动再跑或把失败计vendorUNKNOWN。
 
