@@ -1,4 +1,4 @@
-## CURRENT — 2026-10-22 云与Pro账号已核；Linux依赖尾段续接、v3验收控制独审中
+## CURRENT — 2026-10-22 完整Chrome/Node已核；私有缺库准备、aux增量独审闭合及费用界补正
 
 功能7f73ca6＋20a8136冻结；详HANDOFF Q-R25。本人恢复Aliyun登录后原sole02:48:56UTC一次ad4能力RO实际Success，C c-sz070ro0624fjeo/T t-sz070ro062bx8g0，已消费不重放。实际Debian13/x64/Node20.20.2、常规Chrome未见，候选同CID/image前后Exited/PID0；1.5GiB/1CPU/128pids、prefix可用9.85GiB。原sole已完成11份metadata保存；第12安装C c-sz070rr6onnicqo/T t-sz070rr6onv01s0于03:28:04UTC已知Failed，Chrome触180s下载界，尚未解包/npm，Node32,026,916B整包已校验。Chrome65,011,712B已与原官方194,151,778B包前缀逐字核；唯一600s Range续传已受理C c-sz070rsaj4nbzls/T t-sz070rsaj4uton4，等待原请求结果，勿重派旧installer/metadata/Node或再开whole下载。后续须完整SHA/缺库/sandbox/SDK/renderer/RSS实际核验，不冒ready。0模型/SQL/OPEN/生产，Worker-C MFA独立。已有最小一caseSDK+原CLI/字体/bundle/免费派生runner已交，0provider/0DB，不重131/8全套。
 
@@ -7,6 +7,10 @@ Root按原手机号授权并获本人本次OTP恢复火山普通登录，只读�
 03:53UTC补正：上述runner及纯policy的“0DB”表述过宽。model/db.py导入会初始化SQLite；后续Linux显式NOTEAI_SQLITE_PATH=<任务私有TMPDIR>/sdk-smoke-synthetic.sqlite3、DATABASE_URL空，仅任务合成SQLite/SDK会话SQLite，0 PG/业务DB/provider。不读删默认本地DB、不改产品DB初始化。前述r3续传600s已知失败；sole已实核108789760B新tail与官方同区间一致，连原前缀合计173801472/194151778，只剩20350306B；准备一次420s尾段r4，不重Node/已存Chrome，r4 C/T/完整SHA/ldd尚待实际回执。独审发现aux admission查询与落库间空窗及第二次修正无执行落点，已交唯一作者修；产品预算行锁会拦第三job，不冒可多付费。候选未冻结/未GO。
 
 下一sole私有依赖+Linux一次smoke+最小aux实接，Root仅复核新diff/证据，ready后再一次具体有限公网验收确认。公网仍CLOSED，无新human/clock/END/OPEN；新真实样张0/成本N/A，原45账3.9263058/pending0仅历史/UNKNOWN保，调用次数按需求不限，首合格停/最多一次8分。OS Blob落盘/真iPhone/多人实机容量未验如实保留。A增量7f/20a依赖此前封面实现；最终从c4a2bba集成需完整封面提交/源图及原封面feature migration，不能只摘两个A增量宣称完整交付。
+
+最新精确状态见HANDOFF Q-R26、唯一PLAN。r4 C c-sz070rtucs6y1vk/T t-sz070rtucsofcao实际03:54:52UTC S0/D0/R1，原包194151778B/88af完整校验，Node24.22.1运行；Chrome实际缺25 SONAME，PRIVATE_DEPS_HOLD_CHROME_SHARED_LIBRARIES_MISSING，未npm/SDK/模型。原sole仅准备官方Debian13 download-only/extract私有sysroot，保持原CID cold/PID0，不apt正式主机/image或放宽sandbox。三项aux问题已局部修后独审GO（仅离线增量），最终body-only pair d9cac618/f333b85b/manifestfdaa1a6e，后续费用小增量待作者闭合；完整context/normal/真实PG/UI/模型/审美仍未验。原单case硬编码1合成图，没有九图体积参数，不能冒真实10.98MB九照容量；不另造runner。
+
+费用授权补正：Q-R20/初次Q-R21及selection:61把新增15元写为本批硬上限，用户后续只明确取消次数。旧“15为预估”是Codex解释，不能冒本人解除金额界。本批仍新增≤15元且原累计100/physical99较低围栏保，不重置历史、不新增预算；已交唯一aux作者补最小差额门/受影响控制，未调用模型。下一具体有限验收确认同样列此金额，无需重问已批准模型或安装。完整131路径集成清单在E/COMPLETE-COVER-INTEGRATION-SCOPE.json，路径层无新增非封面业务目录，不冒全代码重新审计。
 
 ## HISTORY — 2026-10-22 方案A7f73ca6＋资源20a8136已提交；本人扫码后已回原sole继续一次能力核
 

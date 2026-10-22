@@ -2064,3 +2064,17 @@ readiness不再只凭Node package engines≥22.12，补实际node:sqlite内存DB
 **准备/独审在途**：r2安装在180s、r3尾段在600s分别已知超时，原件/已有字节保留，绝非模型UNKNOWN。sole已将r3的108789760B与官方zip对应区间逐字核对，连原65011712B共173801472B，剩20350306B；下一只对该尾段一次420s有界Range，最终仍须整包SHA/实际ldd/sandbox/SDK证明，不因下载耗时重建环境。新aux候选由原sole唯一作者修改、Root独立代理只读检查：已复现入口admission查库→落库间空窗，产品预算行锁最多2job仍有效，但第二可过早建任务/预留；另人工局改说明尚未绑定第二次执行输入或修正后源码。两项已交作者做最小闭合，未冻结/未出GO、没有新任务/模型/OPEN。
 
 **最终集成边界**：本轮91文件manifest是方案A相对既有封面实现的增量，7f73ca6＋20a8136并非从产品c4a2bba独立可用的全部封面功能。最终原sole统一集成须包含此前封面实现和`model/migrations/features/noteai_xhs_cover_20261019_0001.sql`；方案A本身无新增迁移/PG GRANT。现在不执行历史大版本迁移/发布，不为此重审全项目；最终交付列清完整源与所需迁移。
+
+### Q-R26 — 2026-10-22，完整依赖包实核、aux修后独审；费用授权边界补正，真实验收仍待
+
+登记HEAD73d3c26，产品源仍20a8136（7f73ca6＋20a），仅本任务文档后继；原工作树/分支不变，不回退。权威任务状态仍原PLAN，阶段③任务私有环境准备中，产品离线独审证据复用；没有新增任务体系、生产发布或报告正文修复。
+
+**实际环境进展**：唯一最后尾段r4 C c-sz070rtucs6y1vk/T t-sz070rtucsofcao、Run01A161BE-E101-571F-98A6-F7F6D7B5093C于03:54:52UTC Success/Exit0/Dropped0/Repeats1。三段合成194151778B/SHA88af83664e1e5f79dc1c1378d0699b98dddd69690a748addf4ccbe322bfacedf与原官方包一致；原Node32026916B复用，实跑v24.22.1。Root核result5886/SHA723b5cbdae08189d611264d59b99efd8dd2c1ce7a2cfb88ee73092228db62f6d，位于root-plan-a-20261022-r1/deps-stage-final-range-r4/actual/result.ACTUAL-ORIGINAL.json。Chrome实际缺25 SONAME，state为PRIVATE_DEPS_HOLD_CHROME_SHARED_LIBRARIES_MISSING；尚未npm/SDK/成品渲染，不冒ready。原CID/image前后cold/PID0、短命工具auto-rm已核。sole仅准备官方签名Debian13仓库download-only/extract任务私有sysroot，不apt正式系统/image、不改内核/安全权限；不重Node/Chrome/既存174MB。apt源只读第一轮自设keyring后缀限制误拒，HTTP0，属准备工具限制，按已安装官方keyring文件membership局修，不冒供应商权限拒绝。
+
+**aux独审修复闭合**：同一独立reader先发现admission查库→落库空窗、第二次局改文本无执行落点，作者分别补持久UUID/payload槽、第二默认deny；产品预算行锁最多2job本来有效，未宣称能额外付费。修后又发现新增header必需门不兼容20a原UI body-only request_id，实际r2 bridge fe256只取body/保headers，作者仅改可选header：缺席可用body，存在须唯一且等body，同UUID改payload拒，前端/bridge/产品未改。final entry133372/SHA d9cac6182ff87783dc824dbad91d622e6d4680f4b2dca198776ca1a7f119d524、guard161694/SHA f333b85bed2a414d123493e9d7107a047d760957385697d88df5c3ba31f5edcb、manifest5582/SHA fdaa1a6e0da8d2c4ad10947acf2de5798ea23e2c8785f39d1a0994662f1f1aed。原branch13及P2五项证据复用，仅补真实body helper→实际Admission/dispatch组合一项.094s，report/native-submit显式adapter，不冒PG/UI。FINAL-INCREMENT-REVIEW.GO.json4725/SHAb7302bc0820b4d36ec87a88c915011092e0fd9cb6db682b871ba68e483d42745存E/aux-candidate-review。GO只限冻结离线增量；test09缺旧raw保持HOLD，不是完整context/normal/云/PG/真实模型/审美或公网GO。
+
+**费用界纠正**：初提案Q-R20/初次Q-R21与selection文档:61明确把新增≤15元列为本批硬上限；用户后来“可增加调用次数，凭需求而定，无需限制”明确解除次数，未直接解除金额。Q-R21后续“旧15元为预估”属于Codex解释，不能记录成用户批准抬高金额。为保持授权，本批新增≤15元、累计100元与physical99元低层围栏均保，次数不限/逐次预留/辅助失败计账/UNKNOWN不重放照旧。已要求唯一aux作者仅补本批真实起点差额门和受影响控制，历史45/known3.9263058不清零、不任意选baseline，不新增价格/预算/生产配置。当前模型0，尚未触发费用；该小增量完成后仅复核费用门，不重产品或先前审查。
+
+**复用证据/剩余差异**：现有SDK一case只1合成图、无9图/bytes参数；另九图API fixture也固定小合成图，换它不代表真实10.98MB且多整套API。保持原一次Linuxsmoke，不新runner、不拿其RSS冒真实九照/并发。真实九照及实际API资源后续分别记录，已有本地共享准入/两用户/报告共槽逻辑证据复用。Git-only集成核c4→cc96直接父子、cc96→7f→20a祖先，完整c4..20a净131路径，唯一feature SQL由37512e0引入；E/COMPLETE-COVER-INTEGRATION-SCOPE.json/SHA98573fdfc5730cb56e6bf3c9de76165e022328eb88aefd1c66367f678cc212cf列完整路径与前置。只上A两提交到c4不可用，若目标已完整1d927f2及schema才可增量；不覆盖原sole current-task记录，不因本清单重跑旧迁移/验收。
+
+下一唯一sole私有sysroot/npm/实际sandbox及SDK一case→费用小门冻结复核→必要真实隔离normal/鉴权/静态绑定准备→ready后一次具体新有限公网确认。仍无新human/clock/END/OPEN/真实任务，实际合格样张0/单位成本N/A，UNKNOWN与旧成品保留。OS Blob/真iPhone/多人实机容量未验；正式集成发布仅原sole。
