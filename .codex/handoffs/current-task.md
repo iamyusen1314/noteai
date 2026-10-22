@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 12:04UTC fixed117原件核实：传输/二进制装载成功，CSS仍失败；验证私有字体配置发现路径
+## CURRENT — 2026-10-22 12:21UTC 私有字体配置实际恢复原CSS字体；最小源码与运行配置接续
+
+登记HEAD17a9ca2、功能910e4bd，分支/worktree不变。单次private Fontconfig probe C c-sz070t25255sutc/T t-sz070t2525fsg74于12:10:57–12:11:00Z实际S0/D0/R1，Run01A16385-81BF-5081-AF81-FE5B36147843/Read01A16385-B49D-5BC9-ABCE-F6726033759E；B/r7-private-fontconfig-diagnostic-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json20378/SHA c3fe0ace9c50557db6d034a3de13c2c4b747ee3520854078a7ba67346027558f 已Root真读hash/JSON。默认fc-match无默认配置且family/file空；仅新Chrome启动前指定任务XML后，同binary/UID/LD/HOME找到已有DejaVu，原HTML原标题字体不变，原CSS exact fonts.load真实resolved7/全部loaded，loaded6→7、error0、7requests/7responses，console/pageerror空；close/autorm及原HTML/font/profile/R7/cold不变真核。支持本隔离环境字体配置发现缺失为此故障原因；0SDK/模型/业务DB，不是完整PNG/SDK或商家审美通过，旧失败均保且不重派此probe。
+
+原sole唯一HOST正准备最小910e两叶+manifest19404/b5d3增量，87 runtime原叶复用、新source root保65a；无重装/上游58改动。新独立Chrome wrapper只保旧LD并指定只读XML，旧219-byte wrapper保；cache=/tmp/noteai-fontcache，不复用已完成probe的/tool/fontcache，新路径仍需完整SDK实际证。拟仅新短命SDK在现成Docker init可用时显式加--init；目前只准备metadata/argv提案，未执行、未证R7 current18都是zombie，不冒资源全未变。其余fa978/UID999NNPcapdropALL/readonly/networknone/CPU1/1.5GiB/PID256原case断言保；先真实source/runtime refs再一次非付费LinuxSDK，normal/public仍0。
+
+独立契约核：generation每API worker1、HOST工具同job串行；免费排字独立_EDIT_SLOT1/等30s，可能同进程1生成+1编辑Chrome，尚未声明多人容量通过。已有模型共享准入/唯一结算/UNKNOWN与工具串行证据复用，只准备同持续Linux容器受控2用户排队+重叠免费编辑（MockTransport/私有SQLite/0provider），不重报告。九图sourcebundle走120MiB捕获/128MiB存储读取而非10MiB单图限制；原九照10,977,955B与已知font assets4,520,822B未见必超，新真实finalbundle和账号实际配额仍待验，不新增产品修复。
+
+恢复先唯一PLAN implementation_a.private_fontconfig_candidate/fontconfig_runtime_integration及两个定向review。当前无在途云或供应商请求；阶段③Linux整链、真实九照专业成品及PC/H5保存重开免费排字下载唯一结算未完成。A真实模型0/合格商家封面0/单位成本N/A；public CLOSED/新human-clock-END空，15新增/100总物理99和旧45calls/3.9263058/UNKNOWN保，正文生产不动、最终原窗口统一集成。
+
+## HISTORY — 2026-10-22 12:04UTC fixed117原件核实：传输/二进制装载成功，CSS仍失败；验证私有字体配置发现路径
 
 原分支/worktree，产品910e4bd、本机完整SDK32.802s和3定向21.011s/独审GO保持；云仍65a89，不混入当前诊断。fixed117仅一次C c-sz070t0vy88775s/T t-sz070t0vy8s6dxc，11:56:55–57Z S0D0/R1，Run01A16378-A5BD-596F-AC7B-86A702407292/Read01A16378-E363-59E4-BBAA-F850D6F25BD3。B/r7-fixed117-font-binary-diagnostic-final-r4/actual/result.ACTUAL-ORIGINAL.json24046/SHA b30c3ce33b979489e9ca853e3c73ffe0a2dbbaba98f9d7c84c9066884a75fe72已Root实际JSON/hash核；原job117、npm117、browser响应三者52464/SHA d94b5af0c14838af99bf9855f91e851878726558531ddef5bd2100b70dfbe90c，wOF2/header相符、CDP真实loadingFinished。独立binary FontFace constructor/load真实loaded，未加document/DOM；原CSS101faces仍error/原load既有NetworkError。stderr保留8046UTF8、192条空font/glyph0 HarfBuzz记录且截断，不由未见OTS断言排除。close/autorm/原HTML/profile/R7/cold不变实际确认，0SDK/模型/业务DB；不是渲染或审美通过。
 
