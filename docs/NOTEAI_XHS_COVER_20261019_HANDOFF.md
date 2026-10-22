@@ -2058,3 +2058,9 @@ readiness不再只凭Node package engines≥22.12，补实际node:sqlite内存DB
 **v3适配输入已交**：由20a固定源纯函数editable_defaults→validate→policy_snapshot→jobs._policy生成V3-ISOLATED-CONFIG-POLICY.json4500/SHA2a2d8227d72c5701f6b6656827c9049374e02a00aa1bf4e8cb9eb0bd6d9c5d04，quote148c8e89d657fd0ae9fbfe72，含非secret prospective test配置/完整策略/标准价格/1033毫元逐次预留和account证据SHA。本机静态_require_price通过；0DB/未应用/未激活，不冒新rev。原sole一次列清旧5036/f410硬钉14叶/静态/旧Lite wire/47call/单CASE/单POST/第8slot不适v3，按20a完整图作最小兼容，不新建发布或测试框架；旧47 NOTNULL仅历史字段，不用大整数伪无界，明确v3不以其拒计数；原100元与原physical99元两层货币围栏均保，不悄升99→100。新两任务仍最多首合格交付/8分一次、1concept/任务，0自动付费retry/UNKNOWN重放。
 
 阶段③进行中；功能7f73ca6＋20a冻结未再改，原sole独占云/aux，Root在本机只维护已有CURRENT/PLAN/证据并待新aux定向独审。测试公网仍CLOSED，无新human/clock/END/READY/OPEN，实际模型本批0、候选运行0、真实合格样张0/单张成本N/A。原45calls/known3.9263058/pending0仅历史、UNKNOWN留存，不重旧45全量/高德/支付/报告内容。依赖与一次Linux smoke/必要aux适配齐后，再将当次具体有限公网验收方案发本人，不提前消费新时窗。
+
+**03:53UTC执行补正**：上文runner和纯policy的“0DB”须收窄为0 PG/业务DB/provider；`model/db.py`模块末尾在非PG时有导入初始化SQLite。Linux一case显式使用`NOTEAI_SQLITE_PATH=<任务私有TMPDIR>/sdk-smoke-synthetic.sqlite3`与空`DATABASE_URL`，SDK自身会话SQLite也属任务临时文件。此处仅纠正证据边界，不修改/删除默认本地数据库，不新增DB抑制开关。原sole已收到并采用。
+
+**准备/独审在途**：r2安装在180s、r3尾段在600s分别已知超时，原件/已有字节保留，绝非模型UNKNOWN。sole已将r3的108789760B与官方zip对应区间逐字核对，连原65011712B共173801472B，剩20350306B；下一只对该尾段一次420s有界Range，最终仍须整包SHA/实际ldd/sandbox/SDK证明，不因下载耗时重建环境。新aux候选由原sole唯一作者修改、Root独立代理只读检查：已复现入口admission查库→落库间空窗，产品预算行锁最多2job仍有效，但第二可过早建任务/预留；另人工局改说明尚未绑定第二次执行输入或修正后源码。两项已交作者做最小闭合，未冻结/未出GO、没有新任务/模型/OPEN。
+
+**最终集成边界**：本轮91文件manifest是方案A相对既有封面实现的增量，7f73ca6＋20a8136并非从产品c4a2bba独立可用的全部封面功能。最终原sole统一集成须包含此前封面实现和`model/migrations/features/noteai_xhs_cover_20261019_0001.sql`；方案A本身无新增迁移/PG GRANT。现在不执行历史大版本迁移/发布，不为此重审全项目；最终交付列清完整源与所需迁移。
