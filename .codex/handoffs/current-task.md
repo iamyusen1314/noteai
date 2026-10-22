@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 完整Chrome/Node已核；私有缺库准备、aux增量独审闭合及费用界补正
+## CURRENT — 2026-10-22 05:10UTC 全部应用源/完整58文件Skill已保存；只剩库下载、npm与Linux实际验证
+
+原worktree/分支不变，登记HEADb5e7bc3，功能7f73ca6＋20a8136冻结；下方均历史，权威任务仍原PLAN，详HANDOFF Q-R26最新续接。13应用源片全S0D0/R1，aggregate5142/d898c1d1；完整Skill通过官方Contents补缺后58/1468296B全存，C c-sz070rzrk1g4w75/T t-sz070rzrk2042yo，result81486/e4f8e63b。Root修正本机两根版权url读取后逐58 bytes/SHA/来源比对差异0，E/ROOT-WHOLE58-READBACK-CHECK.json；原先过早PASS消息已明确撤回后重核，证据不伪装首验通过。源码只保存，未加载/SDK未执行。
+
+Node24.22.1/完整Chrome包已实核；官方签名索引和82必要包/62,099,324B元信息全核，0升级/0移除。私有sysroot尾段r3 C c-sz070ryx3a43ym8/T t-sz070ryx3ao35ds触600s下载界，原56完整deb＋libz3 partial/lock保留，约47.8MB未下完，实速约23.8kB/s，原路尚需30min以上；不能称libs/npm/Chrome启动/renderer已ready。sole仅准备官方Aliyun HTTPS镜像必要一包8,560,036B/原signed hash/60s实测，通过才补余25；原签名/82版本/已成包/partial均保，不改系统sources/NAT/代理/DNS/TLS或权限。镜像C/T尚未返，不派旧r3/index/Node/Chrome。官方资料及建议存E/DEPENDENCY-MIRROR-SOURCES.json，不以镜像存在冒速度通过。
+
+唯一aux作者费用小增量已同reader离线GO：entry5a0b242b/guard89725df3/manifestf56aa6e1，E/aux-candidate-review/FINAL-INCREMENTAL15-REVIEW.GO.json；两P2/body-only证据复用。金额本批新增≤15元＋原总100/physical99，次数不限但期限/逐次预留/UNKNOWN不重放保，第二默认deny、首合格停/最多8分一次。actual fresh/完整context/normal/PG/模型/审美仍待，future human/clock/END/OPEN均null、公网CLOSED、本轮实际模型0/合格样张0/单位成本N/A。历史45/known3.9263058/pending0与UNKNOWN留存，不冒fresh。
+
+下一仅sole剩余依赖下载→3npm ci→原一case task-private SQLite/实际Linux SDK/原CLI/字体/渲染与资源回执→必要私有normal/鉴权/静态绑定→ready后一次具体新有限公网确认→水石已有报告＋真实九照封面验收。原onecase1合成图不冒真实10.98MB九照/多人容量。OS Blob落盘/真iPhone未验。Root不接管云/生产、Worker-C成本MFA独立、不新增runner/平台/资源；完整c4..20a集成清单/唯一feature SQL给原sole，不只交A两增量。
+
+## HISTORY — 2026-10-22 完整Chrome/Node已核；私有缺库准备、aux增量独审闭合及费用界补正
 
 功能7f73ca6＋20a8136冻结；详HANDOFF Q-R25。本人恢复Aliyun登录后原sole02:48:56UTC一次ad4能力RO实际Success，C c-sz070ro0624fjeo/T t-sz070ro062bx8g0，已消费不重放。实际Debian13/x64/Node20.20.2、常规Chrome未见，候选同CID/image前后Exited/PID0；1.5GiB/1CPU/128pids、prefix可用9.85GiB。原sole已完成11份metadata保存；第12安装C c-sz070rr6onnicqo/T t-sz070rr6onv01s0于03:28:04UTC已知Failed，Chrome触180s下载界，尚未解包/npm，Node32,026,916B整包已校验。Chrome65,011,712B已与原官方194,151,778B包前缀逐字核；唯一600s Range续传已受理C c-sz070rsaj4nbzls/T t-sz070rsaj4uton4，等待原请求结果，勿重派旧installer/metadata/Node或再开whole下载。后续须完整SHA/缺库/sandbox/SDK/renderer/RSS实际核验，不冒ready。0模型/SQL/OPEN/生产，Worker-C MFA独立。已有最小一caseSDK+原CLI/字体/bundle/免费派生runner已交，0provider/0DB，不重131/8全套。
 
