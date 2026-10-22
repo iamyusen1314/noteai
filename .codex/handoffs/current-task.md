@@ -1,4 +1,16 @@
-## CURRENT — 2026-10-22 12:21UTC 私有字体配置实际恢复原CSS字体；最小源码与运行配置接续
+## CURRENT — 2026-10-22 12:37UTC 新910源码89与字体运行文件实际保存；完整Linux SDK已指令单次验证
+
+登记HEAD21f8808、功能910e4bd，原分支/worktree。source/runtime part00 C c-sz070t3iqcsyvi8/T t-sz070t3iqd0gkjk于12:26:25–26Z、part01 C c-sz070t3l9f979q8/T t-sz070t3l9fj6v40于12:27:13Z均S0/D0/R1；准确Run/Read与原件refs在唯一PLAN。part00 actual3535/cc3954d8、part01 B/bridge910-fontconfig-source-runtime-HOLD-r1/part-01/actual/result.ACTUAL-ORIGINAL.json36085/SHA41a2f4b9e7d56dd03ae0a08c6d56a8b0bd541f61446741b419996aa670013f17已Root实际全89新manifest19404/b5d3 byte/hash及18exec500/其余71400逐核。新product-910e4bd-r1/3空deps槽/两archive pending真存，87原runtime复用、上游58不改，无重装。新wrapper277/c721264a999500/XML209/970c52c9999400真实读回，旧65a/219/R7/cold保。
+
+Init实际metadata：InitBinary docker-init、InitCommit {ID:empty}保持UNKNOWN，不把truthy对象当commit验证；固定/usr/bin/docker-init root0755/regular非symlink/version0 tini0.19.0/statstable支持Root选择仅下一临时SDK--init。该argv变化为子进程回收，未证R7 current18类型，未改normal/生产或装新包。新/tmp/noteai-fontcache0700仍须完整SDK验证，原fc-match/CSS probe成功不替代整链。
+
+最终单SDK B/sdk-bridge910-fontconfig-init-HOLD-r1/final-actual-source-init-bound-r1，plan5687/cad0dd2f、source41613/d6947257、wire19908/a68d2b16、token41abe324-ef8e-436c-ba52-919c2014556a/600ProcessTree。Root全文draft对成熟r7 outer/CHILD差分及最终实际ref/codec/AST/sh-n核，只有36085实际source/runtime绑定与init显式选择；原case8synthetic/强断言/150,450,540/CPU1/1.5GiB/PID256/fa978/UID999NNPcapdropALL/readonly/netnone和3旧depsRO保。原sole已获一次执行指令，当前C/T与实际SDK结果尚待，勿重派/冒PASS。源/runtime独审9188/87f7e87a无P0-P2；不额外人审门。
+
+受控并发artifact单独进行中：只私有SQLite/MockTransport/真实service与SDK，验证2用户排队+免费编辑实际重叠，不读业务库/付费。已保fixture两次末尾assert/额度契约失败原件，不算产品故障或通过；正在验证正确subscription或wallet唯一扣8分与免费编辑额度不增，0真实模型。已复用九图存储契约独审8870/9a321fe9，无新容量阻断；真实finalbundle/账号配额仍随正式保存结果记录。
+
+恢复先唯一PLAN implementation_a.fontconfig_runtime_integration.SDK_final。当前无供应商/付费任务，A真实模型0、合格商家封面0/单位成本N/A，阶段③Linux整链与九照专业成品/PC-H5重开排字下载唯一结算未完成；public CLOSED/新human-clock-END空。15新增/100总物理99、旧45calls/3.9263058/UNKNOWN保，报告正文/生产不动，原sole统一集成发布。
+
+## HISTORY — 2026-10-22 12:21UTC 私有字体配置实际恢复原CSS字体；最小源码与运行配置接续
 
 登记HEAD17a9ca2、功能910e4bd，分支/worktree不变。单次private Fontconfig probe C c-sz070t25255sutc/T t-sz070t2525fsg74于12:10:57–12:11:00Z实际S0/D0/R1，Run01A16385-81BF-5081-AF81-FE5B36147843/Read01A16385-B49D-5BC9-ABCE-F6726033759E；B/r7-private-fontconfig-diagnostic-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json20378/SHA c3fe0ace9c50557db6d034a3de13c2c4b747ee3520854078a7ba67346027558f 已Root真读hash/JSON。默认fc-match无默认配置且family/file空；仅新Chrome启动前指定任务XML后，同binary/UID/LD/HOME找到已有DejaVu，原HTML原标题字体不变，原CSS exact fonts.load真实resolved7/全部loaded，loaded6→7、error0、7requests/7responses，console/pageerror空；close/autorm及原HTML/font/profile/R7/cold不变真核。支持本隔离环境字体配置发现缺失为此故障原因；0SDK/模型/业务DB，不是完整PNG/SDK或商家审美通过，旧失败均保且不重派此probe。
 
