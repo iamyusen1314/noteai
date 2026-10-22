@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 06:59UTC 新15运行源/前端2已实际保存，两个定向独审GO；SDK临时权限仍待本人
+## CURRENT — 2026-10-22 08:07UTC 本人明确确认临时沙箱权限；原sole续接一次无provider SDK用例，尚待实际回执
+
+登记HEAD6cc1686/clean，产品20a/原worktree分支不变。本人在封面Root当前对话直接原文「确认」，Root接收后首真实钟08:07:27UTC（北京时间16:07:27），不是代理或环境消息。E/ROOT-SANDBOX-ACTIONTIME-APPROVAL-20261022.json1544/0a398414已记原文/时基/具体范围，唯一PLAN security确认置APPROVED，尚无新C/T/实际结果。批准固定profile610b三调用额外许可、一次同原SDK case（wire15884/3b4091ea/token399911b6/600s），0provider/PG业务DB/公网，任务私有合成SQLite允许；原f1e失败/原cold/NNP/capdrop/非root/只读/networknone与资源限额保。不批准no-sandbox/SYS_ADMIN/unconfined/host变更或新资源，不自动重复/UNKNOWN重派。
+
+原sole唯一云UI owner已收到可信人答和真实时基，先fresh AX核6161当前登录/目标/完整参数与wire、未提交状态，随后一次发起并记真实C/T，再只查原请求。若实际登录失效沿同目的地已授权正常恢复，不为未证问题先扩大权限。Root不接管其云tab。此批准不是公网验收窗口，public human/clock/END/OPEN仍空，15新增/100累计/99物理围栏未变，不用SDK人答伪装public人窗。
+
+其余授权准备已收口：15运行源/前端2实际3ce776保存、原74复用、固定两archive pending、full91false/实际89未验；两个定向独审与HOST20290/9ab3＋ENTRY9009/15b7本机meta引用齐，旧证据复用。新原SDK实际渲染/字体/原照/bundle/free_edit与Linuxmemory结果待；1synthetic不冒真实九照/供应商/审美/正常API或多人容量。收到实际回执后Root与原独立reader只读解释范围，再完成实际normal89/deps/fresh基线等必要准备；真正就绪后一次具体有限公网确认，原sole统一执行。合格商家样张0/单位成本N/A，本批实际模型0。
+
+## HISTORY — 2026-10-22 06:59UTC 新15运行源/前端2已实际保存，两个定向独审GO；SDK临时权限仍待本人
 
 登记HEAD26a639a，功能20a/原worktree分支不变，唯一PLAN已链接全部真实回执。一次source-only C c-sz070s9j91yrvuo/T t-sz070s9j92l8yyo、Run01A1625F-EC86-5725-97D0-064BB69234A5于06:50:17UTC Success/Exit0/D0/R1；B/remaining17-and-frontend2-transport-r1/execution15-archive2-continuation-r3/actual/result.ACTUAL-ORIGINAL.json13936/3ce77660，Root已核全JSON/hash、15source逐一等不可变91manifest目标/uid9990400nlink1、两frontend refs/protected前后等。actualapp593014/ba3cad3e与loader1881/0e1d449c仅HOLD保存，served/CASfalse。2archive absent/pending、full91=false/runtime89_verified_here=false，0imageCP/DB/SDK/START/模型/OPEN。原9/失败/4片保，余30未发。
 
