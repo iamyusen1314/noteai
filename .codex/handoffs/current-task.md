@@ -1,4 +1,18 @@
-## CURRENT — 2026-10-22 12:51UTC R8已知CLI失败：缺ps与60秒无PNG分开定位；受控本机排队/免费编辑已验
+## CURRENT — 2026-10-22 13:32UTC 上游浏览器同页截图兼容修复c708fe0；本机完整链路与像素回归通过，Linux最小接续准备
+
+功能提交c708fe05ccb02925f75c7263e36af18e350a9776（parent bb4199b），原分支/worktree/910历史保。仅model/cover_editable/cli.mjs、其README、tests/test_cover_agent_runtime.py三现有叶；58原上游不改，无新包/权限/迁移/PG GRANT/Agent loop。Q-R20/Q-R21确认整包Skill+OpenCode/原照HTML/PNG工具与必要薄适配，未由人类锁render-poster.sh；独立范围核查确认具体shell是自有README实现约定，可在已授权范围局修，不新增批准门。
+
+改动只把最后PNG导出接到既有inspect的同一已guard页面，复用上游_browser.launch/open与pixelDiff的page.screenshot/画布clip/captureBeyondViewport模式，scale1、保不透明背景；生成/免费edit同路径。三原checks、selfhost字体/原照/主体/安全限制、PNG尺寸10MiB读回、源包/hash/QC6/计费全保。render证据如实记editable_design_browser/page.screenshot/clip/elapsed，不伪造shell退出。原render-poster.sh保原件，未宣称新旧像素等价；失败仍写failure而无成功manifest/不覆盖父成品。
+
+唯一新本机完整SDK实际Ran1/no skip25.268s、outer26.323491s PASS；E/browser-capture-r1/sdk-local-r1/receipt.json923/SHAf1774991ddbf3fbcc651a365e46d817062c30f49c8c4c69fba2d0e80af123760。新增17px外粉margin验真实画布clip17,17/1776×2368/scale1，实际中文ink/原照边缘中心/contain留白，免费排字仅标题允许区像素变化/照片区相同，原PNG/sourcehash/QC/8synthetic请求强断言均PASS，0供应商/业务DB、私有SQLite。Pillow未来getdata退役warning非产品错，不为warning重跑/换依赖。最终独审E/browser-capture-r1/independent-review/INDEPENDENT-REVIEW.json7207/SHAdd00d9647bfab1de877af31170895ccdc1ec60cfb4aa0db42ab4971e73964899已Root全读hash核，无P0-P2；不是Linux/商家审美/真实provider/OSS/PG/多人容量通过。
+
+新E/browser-capture-r1/INTEGRATION-SOURCE-MANIFEST.json19553/SHA46ba01bb7ad1f8eac1fb05d47e552f1158530f28c5976bf5a83ea6c11a4aeb54，SOURCE-DELTA1894/fa3eda37038c76b8c8312dc040ab5cfdc3affead5d03cef0c8a9c00809c7916e，仍91身份/89runtime/2archivespending；相对真实910仅3runtime变、86runtime复用、18固定exec及3旧depsRO保。原sole已实际核三git新blob、ScriptedBridge/returned_value AST不变，准备最小新root传输，不重装/重运全项目。新LinuxSDK实际ref仍空；后续受控case仅按新manifest承接测试叶d58b，不翻旧receipt或重复Mac整case。
+
+原rawCLI诊断已知收集终态非渲染PASS：C c-sz070t6o5ic9iww/T t-sz070t6o5itqtc0，13:01:44–13:02:45Z collected S0/D0/R1，Run01A163B4-00D1-5082-8A56-622734A6B3F6/Read01A163B5-736A-5D5B-887A-EC8A71A301D0。B/r8-direct-chrome-cli-diagnostic-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json12331/SHA21c9b84eb99e455de90513267019209b3d8ba298a184ff81cb46d382af6b7d3c与stderr全5122/9f5dadd2已Root真读核；timeout60s/无PNG，exit0在ownedTERM后，非自然成功。其余12工具可用而ps缺；DBus/GLib/component与TERMzygote记录不证唯一无PNG原因。old HTML101027/e2b939、poster/profile/R8/cold保，0SDK/model/DB。原sole停止进一步rawCLI/procps/DBus安装猜测，最少补包方案仅保HOLD；不修改原失败或无依据清UNKNOWN。
+
+恢复先唯一PLAN implementation_a.browser_capture_compatibility_fix/current_source_manifest。当前无在途供应商/新source或SDK请求，新actualSDKPASS/normalREADY空，public CLOSED/newhuman-clock-END空。阶段③Linux完整链路→受控并发→原normal私有准备→有限真实九照封面及PC-H5保存重开免费排字下载唯一结算尚待；A真实模型0/合格商家封面0/单位成本N/A。15新增/100总物理99和旧45calls/3.9263058/UNKNOWN保，正文/生产不动，最终原sole统一集成发布。
+
+## HISTORY — 2026-10-22 12:51UTC R8已知CLI失败：缺ps与60秒无PNG分开定位；受控本机排队/免费编辑已验
 
 登记HEADa28ef34，产品910e4bd/新89源码与wrapper/XML实际36085/41a2保持。唯一R8 C c-sz070t4agdygpa8/T t-sz070t4agefxzpc、Run01A1639B-92D6-5384-A3C3-04C45CBBCD7F/Read01A1639F-5A1A-51CF-BA8D-8E210F16D87B，12:35:03–12:36:19Z实际F2/D0/R1；原result6504/SHA631f06f35958f1369e621ad454c21f254dbfb075f2ffa52b3a2d1313f78262d1已Root真核。tool74.987s/case74.757s、6synthetic、非450timeout、freeedit未完成，0provider/业务DB/PG，cold/profile/autorm保。不称完整SDK或真实封面通过。
 
