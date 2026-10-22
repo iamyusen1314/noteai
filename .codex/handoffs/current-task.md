@@ -4,6 +4,8 @@
 
 既有cfef82包本机窄核/独立reader均未发现libc6/libc-bin等glibc包或独立copy，libglib不是glibc；只有1321文件汇总而非逐path清单，既有browser栈/usr/lib libc也不能替崩溃child maps。混配无正证，不先换库/launcher/加chroot/cap。独立reader确认后续如需观测，可在现有outer CHILD之Popen前及p.wait汇合后、proof解析前读固定self-cgroup/memory与pids字段，赶在--rm前保存聚合差值；仅准备、未执行或新增runner/门。缺字段记UNKNOWN，不改通过条件。原sole先收本机事实与最少判别证据，再定受控验证，不自动重派旧C/T或凭猜因扩权限。
 
+补查原PID的core metadata已实际成功：C c-sz070sjjis1ngg0/T t-sz070sjjisgmuio、Run01A162C6-A194-5981-AC4A-883170876FD9/Read01A162C6-CA15-51B6-AA45-8329B5C247D1，08:42:28Z S0D0/R1。B/sdk-attempt3-fixed-coredump-metadata-readonly-r1/actual/result.ACTUAL-ORIGINAL.json3794/5b3afaaf和1301B/371aa441投影已Root核；PID342338确SIGSEGV11、UID999、exe/deps/chrome/chrome-linux64/chrome、Docker cgroup f51d545b…，有libc0x8f62d/0x3fdf0/0x110630及Chrome五帧。未读取实际core/environment，也未留原工具ID到该DockerID映射，signal事实不冒完整归属/根因。先用同base与现有Chrome/已有工具定点静态符号读取；暂无安装/新case/权限，cgroup诊断HOLD备用。紧邻本人确认前的实际final是“先执行一次”，不把Root自设sdk_runs_max永久扩成所有非付费诊断限制；若需相同权限明确手动诊断，属既有工程授权，原已消费请求不重放，新目的/身份另记，不泛化重复问用户。公网与新增安全权限边界仍保。
+
 本次仅权威PLAN/本任务文档状态更新；原失败、唯一结算/15新增/100总99物理/UNKNOWN全保，付费模型0/合格商家样张0/单位成本N/A，public CLOSED/newhuman-clock-END空/normal0。源码保存/离线证据复用，正文/生产范围不扩；真实LinuxPNG/QC/freeedit、正常隔离API及九照PC/H5验收仍待，正式集成发布只原sole。
 
 ## HISTORY — 2026-10-22 08:27UTC 已授权一次SDK实际失败；错误转为zygote握手提前退出，原15秒窗日志只读定位中
