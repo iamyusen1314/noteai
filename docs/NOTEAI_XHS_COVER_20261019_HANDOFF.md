@@ -2193,3 +2193,6 @@ Root独立normal消费reader同时查明旧launch_runtime_once.py235–244无实
 
 
 **10:35UTC恢复完成：actual89源码已保存/非SDKPASS**：mode-continuation-r2 C c-sz070stfxgbifwg/T t-sz070stfxgnzxmo，10:33:27Z S0D0/R1，原件50328/940b2d02已Root whole及89pin全核。45原inode/whole保、44缺项创建、18固定exec0500/71读400、3空modules slot与两原parts/cold保，旧失败不清。新root product-18765f16-r1，固定manifest188043；2 archivepending不在89runtime内。原sole现在仅准备新目的同fa978原CHILD zero-provider SDK载体，明确3旧deps RO bind；新SDK未跑/normal0/public关闭，无在途provider/新UNKNOWN，预算/正文生产边界不变。恢复入口与实际C/T/refs见本任务CURRENT/唯一PLAN。
+
+
+**10:51UTC Q-R26实际r5与最小65a续接**：r5 actual5503/29bf72为已知终态失败126s/6synthetic，无模型/用户扣分；三文件actual6970/f2d2、projection8108/6939已Root完整核，独立contract真实PASS，render内部再次contract空输出exit1，真实原因未证。65a两叶只加native退出留证并修test按tool id分流（强断言保），本机真实SDK+双tool回归29.710s PASS；原生受控timeout可复现status1空输出但不证明旧因。新source manifest19279/cbc85f4a与delta1827/94bee5fc不增91/89或依赖权限。原sole按原模板最少增量并保固定18mode及旧187/r5/source现场；下一仅一次明确原资源fa978零provider诊断，复用旧self-cgroup观察/新退出信息，不盲增cap/资源/换库或重报告。C/T、恢复、证据与预算等见唯一PLAN/CURRENT，normal/public仍0，真实商家样张0/单位成本N/A。

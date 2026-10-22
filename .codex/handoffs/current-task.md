@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 10:35UTC 新187源码89全量实际whole成功，原sole准备同权限零provider Linux SDK
+## CURRENT — 2026-10-22 10:51UTC r5真实失败已定位层；最小退出留证/测试取值修复65a，本机回归通过，准备一次原资源诊断
+
+原分支/worktree，产品65a61bc296668e8b5c5be0a556ca42e45c4199e5（parent00c2186），不回退或覆旧187。r5 C c-sz070sts0tve7eo/T t-sz070sts0ufde68，10:37:13–10:39:19Z F2D0/R1（最后Read01A16332-93EA-5C1D-A841-10A00506E917）；B/sdk-short-browser-18765f16-actual-source-bound-r1/actual/result.ACTUAL-ORIGINAL.json5503/29bf72e3已Root全读核。Ran1/no skip/无450s timeout，case125.855s（unittest124.749）/tool126.088，6synthetic消息/未freeedit/0provider或业务DB。CPU108.91user+12.43sys/RSS362320只RUSAGE_CHILDREN；cold/profile/旧r4保且tool auto-rm真，未有cgroup峰/事件证据，非新供应商UNKNOWN。
+
+成熟三文件RO C c-sz070su9iconx8g/T t-sz070su9id657nk，10:42:40Z S0D0/R1；原件6970/f2d2d3f3与projection8108/693924c6已Root实际完整读/hash。fixture5_0独立contract真实code0/pass true/14checks（Linux Chrome/字体/画布/图层已实际可用），fixture5_1 render内部再次editable_contract status1/stdout空/stderr空。旧returned_value逆查code拿到render错误，误标contract失败；CLI run遗漏native error/signal/elapsed使不能判断真实超时/信号。根因未证，不先加资源/权限/换库或改upstream。
+
+65a仅2叶：CLI给既有进程记录加signal/error.code,message/elapsed，原timeout120000/失败判定/flags/env不变；测试按tool_call_id分开5_0/5_1，缺PNG继续失败，新增双tool回归不放宽强断言。E/exit-metadata-r1/local-receipt.json307/211d4e1f实际macOS 2targeted tests29.710s（outer30.343）PASS，含真实SDK渲染/thumbnail/sourcebundle/freeedit；native-subprocess-evidence.json1311/52ee41c2三原生受控case PASS，证实“status1+空输出仍可能ETIMEDOUT”，只支持需留证、不回溯证明R5。独立CLI窄审GO无阻断。新manifest19279/cbc85f4ab29560ddba6137bf18e690d1fd8ae23a431f671d507bc6f40aeb5506，delta1827/94bee5fc372ece90d89768bd79243df0791106d170ef8e3796288addebbac068，91总/89runtime、相对187仅2叶变，上游58保；旧actual89 50328/940b及所有失败保。
+
+下一原sole唯一HOST最少两叶新版本source-only，固定18exec0500与其他400/已有3组Linux依赖RO复用，不重装。随后Root明确新目的1次同fa978/UID999NNPcapdropALL/networknone/1.5GiB1CPU128pids零provider诊断，复用既有88de self-cgroup观察+新native退出信息，用事实区分资源事件/子调用错误；原aa167/88de补丁未执行，当前meta c581只换R5/fa978事实、不是新门。当前无新SDK/normal/public/provider在途，新public人窗空；A模型0/合格商家样张0/单位成本N/A，15新增/100总99物理及旧UNKNOWN/正文/生产全保。阶段③仍进行中，不能把本机PASS或Linux独立contractPASS冒整链/审美验收。
+
+## HISTORY — 2026-10-22 10:35UTC 新187源码89全量实际whole成功，原sole准备同权限零provider Linux SDK
 
 分支codex/noteai-xhs-cover-20261019，登记HEADa693573/产品18765f16fa80430cb7dfe56d93d4498b2d126407；源码固定manifest188043/19243/91不变。原sole新目的mode-continuation-r2一次成功：C c-sz070stfxgbifwg/T t-sz070stfxgnzxmo，Run01A1632C-3CD9-5539-AE1A-1304BB078177/Read01A1632C-9970-53A1-B83E-B362C402A377，10:33:27Z S0D0/R1。B/short-browser-18765f16-mode-continuation-r2/actual/result.ACTUAL-ORIGINAL.json50328/SHA940b2d026fe2533ea074f479a6323db7309d34e82159dfc912ddc90ef47769e4已Root完整JSON/hash及89path/bytes/SHA与新manifest逐项核。原45先whole+inode验且不覆不改mode，仅缺44 O_EXCL创建，最终89真whole；原两parts/cold保。固定18上游.sh/.mjs0500/其余71为0400，准确复用原materializer36833/e287第88行原契约，不把suffix全局放宽。旧step01失败保非UNKNOWN。
 
