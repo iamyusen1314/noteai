@@ -9,7 +9,7 @@ import readline from 'node:readline';
 import { pathToFileURL } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { makeThumbnail } from './thumbnail.mjs';
+import { makeThumbnail, withBrowserTemporaryDirectory } from './thumbnail.mjs';
 
 const MAX_LINE = 40 * 1024 * 1024;
 const MAX_FILE = 10 * 1024 * 1024;
@@ -274,7 +274,8 @@ try {
         if (!['editorial-serif', 'luxury-serif', 'clean-sans', 'geometric-sans', 'condensed-sans', 'experimental-display', 'cjk-sans', 'cjk-serif', 'cjk-calligraphy', 'cjk-display'].includes(font_id)) throw error('FONT_ID_FORBIDDEN');
         commands.font_add = [process.execPath, [path.join(scripts, 'font-kit.mjs'), 'add', font_id, file]];
       }
-      const [cmd, args] = commands[action]; return { content: JSON.stringify(await runLocal(cmd, args, path.dirname(file))) };
+      const [cmd, args] = commands[action];
+      return { content: JSON.stringify(await withBrowserTemporaryDirectory(() => runLocal(cmd, args, path.dirname(file)))) };
     }),
   ];
   const allowedTools = new Set(tools.map((item) => item.name));

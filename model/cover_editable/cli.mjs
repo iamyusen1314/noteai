@@ -8,6 +8,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { withBrowserTemporaryDirectory } from '../cover_agent_host/thumbnail.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const SKILL = path.join(ROOT, 'vendor/editable-design');
@@ -277,7 +278,7 @@ try {
   if (flag) body = await fs.readFile(inputPath, 'utf8');
   else { const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk); body = Buffer.concat(chunks).toString('utf8'); }
   if (Buffer.byteLength(body) > 1024 * 1024) fail('REQUEST_TOO_LARGE');
-  process.stdout.write(JSON.stringify(await perform(command, JSON.parse(body))) + '\n');
+  process.stdout.write(JSON.stringify(await withBrowserTemporaryDirectory(() => perform(command, JSON.parse(body)))) + '\n');
 } catch (error) {
   process.stdout.write(JSON.stringify({ ok: false, schema_version: SCHEMA, code: error.code || 'RENDER_FAILED', detail: error.message, model_calls: 0 }) + '\n');
   process.exitCode = 1;

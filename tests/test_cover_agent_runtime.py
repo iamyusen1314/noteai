@@ -129,11 +129,15 @@ class ScriptedBridge(runtime.Bridge):
             calls = [("cover_check", {"action": "font_add", "html": "index.html", "font_id": "cjk-sans"})]
         elif turn == 5:
             source = self.sources[0]
-            calls = [("cover_render", {"request": {"project_dir": ".",
+            calls = [("cover_check", {"action": "contract", "html": "index.html"}),
+                ("cover_render", {"request": {"project_dir": ".",
                 "sources": [{"ref": source["media_ref"], "path": source["path"], "sha256": source["sha256"]}],
                 "text_layers": [{"id": "title", "allowed_rect": {"x": 90, "y": 100, "width": 1600, "height": 350}}],
                 "protected_regions": [{"x": 500, "y": 800, "width": 700, "height": 800}]}})]
         elif turn == 6:
+            contract = returned_value(prepared, "code")
+            if contract["code"] != 0 or json.loads(contract.get("stdout") or "{}").get("pass") is not True:
+                raise AssertionError("Actual SDK contract check did not pass: " + json.dumps(contract))
             rendered = returned_value(prepared, "png_path")
             self.rendered_tool = rendered
             calls = [("cover_view", {"path": rendered.get("image_path", rendered["png_path"])})]
@@ -185,7 +189,7 @@ class CoverAgentRuntimeSDKTests(unittest.TestCase):
         if destination:
             target = Path(destination) / cls.root.name
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(cls.root, target)
+            shutil.copytree(cls.root, target, symlinks=True)
         print("COVER_AGENT_RUNTIME_PROOF=" + str(cls.root))
 
     def test_real_sdk_controlled_tools_renderer_photo_qc_and_source_bundle(self):

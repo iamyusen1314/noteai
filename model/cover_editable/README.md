@@ -47,6 +47,14 @@ result; a failed operation has exit code 1. The caller supplies an authorized
 per-job directory and provides OS/process isolation. This trusted local CLI is
 not an HTTP endpoint or a tenant filesystem sandbox.
 
+On POSIX, browser operations use a fresh private `0700` directory under `/tmp`
+so Chromium's Unix socket paths stay short even when the job directory is deep.
+The CLI and the host's check/thumbnail operations share this scope, restore `TMPDIR`
+and remove their own scratch directory on normal completion or an exception.
+Revisions and evidence remain in the authorized job directory. Forced process
+termination still relies on the existing isolated container's temporary-volume
+cleanup; it cannot run JavaScript `finally`.
+
 Render request:
 
 ```json

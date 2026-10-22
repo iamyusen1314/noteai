@@ -4,7 +4,28 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
-export async function makeThumbnail({ pngPath, outputRoot, skillDir }) {
+// Chromium also creates Unix sockets under TMPDIR. Job paths can exceed their
+// pathname limit, so keep browser scratch private and short, outside revisions.
+// The host already serializes local tools; CLI callers run in their own process.
+export async function withBrowserTemporaryDirectory(operation) {
+  if (process.platform === 'win32') return await operation();
+  const previous = process.env.TMPDIR;
+  const temporary = await fs.mkdtemp('/tmp/ncr-');
+  try {
+    process.env.TMPDIR = temporary;
+    return await operation();
+  } finally {
+    if (previous === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = previous;
+    await fs.rm(temporary, { recursive: true, force: true });
+  }
+}
+
+export async function makeThumbnail(request) {
+  return await withBrowserTemporaryDirectory(() => renderThumbnail(request));
+}
+
+async function renderThumbnail({ pngPath, outputRoot, skillDir }) {
   const original = await fs.readFile(pngPath);
   const hash = createHash('sha256').update(original).digest('hex');
   await fs.mkdir(outputRoot, { recursive: true });
