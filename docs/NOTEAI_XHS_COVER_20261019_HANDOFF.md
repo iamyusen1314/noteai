@@ -1854,3 +1854,33 @@ HOST窄审捕获的唯一P1：main把startup-hold.json required写成str，inven
 Root本机reader最初把官方Output当plain而非Base64，及把旧aux误当新manifest内嵌/猜旧raw目录，断言先停；只修本机读取，最终从旧ROOT-ACTUAL10真实ref取原件，不改任何源/原证、不云查询/重派。候选同CID/image Exited2/PID0/restart0、入口CLOSED、protected/mounts/旧productstage11627与runtime3ba本真来源保持。新runtime5036/guardf410/host0742/entryd1f5只保存未加载；normal/TERM/START/CAS/operator/OPEN/模型/HTTP/SQL/生产/新资源全0。未fresh读PG/账，45known3.9263058/pending0仍旧原账证据，不冒今日新财务读数。
 
 source-only授权已消费，不重旧10/18/本8或failednormal；PLAN记录actual与proof、cloud-source false/public-paid false，futurehuman/clock/END/normal/READY/OPEN/job全空。原sole已接质量steering，收尾保持HOLD；下一按Q-R16收敛规划模型＋有限专业照片工具，复用报告及九原照，不改正文/积分价格/保存期/生产。合格新版0，真实新PC/H5重开/免费排字/下载、真iPhone/多人/Q07仍未验；不能把8条辅助保存当功能质量进度。本检查点只改文档及既有唯一PLAN。
+
+
+### Q-R17 — 2026-10-22，平面设计与小红书封面Skill市场研究完成（仅研究，不安装/执行/生图）
+
+用户要求先研究官方与GitHub真实项目，综合合理性/质量/成功证据再决定优化，不再只凭自拟prompt持续试错。登记前HEAD3465a68，产品1d927f2/前端01ffe不变，工作树接收clean。主代理核官方目录、实际文本/模板/脚本、三张原仓库例图；三个独立问题子代理分别核官方Skills、小红书Skills、执行/许可反证，无同文件修改。使用本机skill-installer的list-skills.py --format json成功查询OpenAI curated目录，未安装；imagegen只是作为研究对象读取，未执行。没有调用Firecrawl收费研究任务/生成接口、账号、第三方脚本或云执行；未触原正常测试UI。
+
+**结论与证据标准。** 候选中有值得参考的工程和设计方法；尚无证据证明哪一包可直接稳定完成NoteAI真实商家九图封面的设计、实拍保护、免费改字、保存重开和唯一结算。来源身份、具体SKILL/代码、真实案例、参考图作用、行业路由、字体/修色、成品像素QC、调用边界、维护及许可分开判断，不把官方署名/星数/安装数当美学或点击率证明。本轮是源码与公开样例审阅，没有安装运行的质量对照，也没有可复核商家CTR提升数据；不称全市场穷尽。
+
+| 候选与一手入口 | 可借鉴的实际内容 | 适用性与不能照搬的默认行为 |
+| --- | --- | --- |
+| [Anthropic canvas-design](https://github.com/anthropics/skills/blob/main/skills/canvas-design/SKILL.md) | 先形成视觉方向，再统筹构图/颜色/字体/层级及实际画布精修；Apache2 | 偏抽象艺术海报/少字，目录只有SKILL与字体，没有专用自动渲染/QC脚本。不能把隐喻、细字/少字倾向当商家封面规则；字体目录不证明中文覆盖 |
+| [OpenAI imagegen](https://github.com/openai/skills/blob/main/skills/.system/imagegen/SKILL.md)＋[design-critique](https://github.com/anthropics/knowledge-work-plugins/blob/main/design/skills/design-critique/SKILL.md) | 前者区分编辑目标/风格参考/合成输入，保留不变量并局部修改；后者强调第一眼、层级、具体可执行缺陷；均Apache2 | 前者是图像执行工作流，不是XHS行业知识；其OpenAI工具合同不是Seedream合同。后者偏UI，须剔除导航/触控等无关检查，不另建一套全站审计 |
+| [Meitu官方Skills](https://github.com/meitu/meitu-skills) | 有海报导演、行业映射、主体复原清单，低光/降噪/超分/图像编辑原子工具；MIT且组织Verified控制meitu.com | 小红书reference硬编码半幅标题/柔和彩色等配方，不能当小红书官方规范；image-edit自动重试/换模型，多图可能降为首图。需CLI/AKSK、上传输入与上下文、API费用未核。未找到本次可看像素的官方成品样例，不接入服务 |
+| [baoyu-cover-image](https://github.com/JimLiu/baoyu-skills/blob/1567581c26ec29f4216c6e6835415bf30343b0e3/skills/baoyu-cover-image/SKILL.md) | 构图类型、色板、渲染方式、文字密度、情绪、字体分维；分析参考、保存prompt与候选 | 推荐借设计语法。默认16:9/40–60%留白/简化剪影等不适合统一套实拍；字体语义不等于真正字库排版；自带失败重试须移除 |
+| [baoyu-xhs-images](https://github.com/JimLiu/baoyu-skills/blob/1567581c26ec29f4216c6e6835415bf30343b0e3/skills/baoyu-xhs-images/SKILL.md) | 先读者/内容再大纲；风格/布局/色板分开；direct/style/palette参考用途 | 工程和维护/采用证据较充分，但目标是1–10张卡通信息图。关键词首匹配及cute默认不是行业识别；默认批量4/失败重试一次不适用。首张可用direct ref与生成步骤WITHOUT ref存在指令冲突，不能直接接九原图。以上baoyu两Skill同一MIT仓库，不能算两份独立成功证明 |
+| [cover-pop](https://github.com/Alexsun1one/cover-pop/blob/de46bd7454e1cc765d75c934178a032f73f9982d/SKILL.md) | 读者、一个承诺、视觉证明、构图类型；[QA](https://github.com/Alexsun1one/cover-pop/blob/de46bd7454e1cc765d75c934178a032f73f9982d/references/qa-checklist.md)要求看实际200px缩略图并逐字转录标题，不能凭prompt自认通过 | 推荐借成品审稿，但采用证据薄、作者样例少；默认字烧入图片，没有本任务完整照片事实/免费改字及累计付费/UNKNOWN合同。MIT |
+| [xhs-cover-lab-open](https://github.com/atian-create/xhs-cover-lab-open-skill/blob/2cb8ac794d42027b9fae20b131c7c424deff344b/SKILL.md) | [行业/赛道路由](https://github.com/atian-create/xhs-cover-lab-open-skill/blob/2cb8ac794d42027b9fae20b131c7c424deff344b/references/track_router.md)与读者决策、点击理由、视觉证明；参考规则区分能借结构与不能复制的人脸/空间/资源 | 推荐借brief方法；是纯判断/提示词框架，非图像执行器，不能称成熟成功封面产品。作者商业API导流无需接入，跨城/价格等建议不能越过已证事实。MIT |
+| [AutoDesign poster](https://github.com/Yaxin9Luo/AutoDesign/blob/bd635851ef8a2ae257e2bf4c8cd4e984ea3fff1e/agent_skills/autodesign-poster/SKILL.md) | 受控素材catalog、可编辑HTML/CSS、真实渲染/DOM核对、最终像素视觉审稿和缺陷路由；子目录MIT | 推荐借“执行＋反馈”架构；学术海报/强制白底规则不搬入XHS。OpenDesign文字层工具与它有明显作者/引用关联，不算独立佐证，也不迁移整平台 |
+| [TecSong Auto-Redbook](https://github.com/TecSong/Auto-Redbook-Skills/blob/60315cfc6ea11832fa12d2ae576c81e1a9c7caae/SKILL.md) | 真有Python/JS、CSS主题、五种封面构建器及导出PNG | 文字卡片工具：cover输入emoji/title/subtitle，没有实际原照/主体/crop合同，不能解决实拍设计。远程Google Fonts导入不等于固定字体。README/package声明MIT，但tree无LICENSE且API license null，直接移植前许可需补核；不称成熟成功项目 |
+| [graphic-design-guide](https://github.com/genapohub/graphic-design-guide) | 需求/媒介分类，MoodBoard、字体配对/字重/字距与版权规格；实际MIT | 主要输出文字规格，不是实际图片工具；印刷/PPI规则不当XHS像素验收。其额外记忆/多次确认不可覆盖本任务唯一记录及授权，不为此另建体系 |
+
+**排除与反证。** [xwchris/xhs-cover-skill](https://github.com/xwchris/xhs-cover-skill/blob/77869d1098799918c28d2e808cef61049772cff5/SKILL.md)是npx到外部服务、注册/积分/APIKey接口壳，未见本地可审原照工具/QC；[jogholy/xhs-publisher](https://github.com/jogholy/xhs-publisher/blob/eec0efdc359d1e633d6b07bd023d110b61833cd3/SKILL.md)主要自动发布/评论并有静默降级/模板兜底，超出封面范围。[Jaaz实际LICENSE](https://github.com/11cafe/jaaz/blob/145dd85067be77e36d400637a595e19a7b07c77a/LICENSE)限制二开/多人部署/竞争商业产品，不能被README的opensource用语替代；不引平台或代码。npuckett/canvas-design-agent是Canvas LMS课程编排，同名无关，不误选。
+
+**样例实际观察。** Root在独立临时浏览器tab1637496099看了固定版本的TecSong retro封面、baoyu fresh样例、cover-pop ordinary-ideas样例并保存截图。前者是emoji＋文字模板（大块空白）；第二是手绘知识信息图；第三1925×817是横版插画/静物＋文字封面。可看到各自视觉表达，但均不是“水石清池原照→3:4商家封面”的运行对照；没有据此声称保真或质量验收通过。Meitu本次无真实样例可看，明确未验。研究tab不保留，不触原正常UI/生产。截图仅作研究证据，不用作产品素材。
+
+**研究后的具体收敛建议（未实施）。** 固定一份版本化商家封面流程：①从已有报告/真实图/读者决策形成brief，行业只是路由因素，不用关键词直接套风格；②将照片身份、风格参考、文字分角色，明确主图和不可变事实；③按baoyu组织构图/色彩/字体/字级等可执行参数，做少量有明确差异的方向，不能只写美术形容词；④用现有后端工具执行原照裁剪/有界修色/独立文字层；⑤复用现有实际240px缩略图与六项QC，在此补可核对的逐字观察与具体缺陷证据，不能另建重复QC平台；⑥只按明确问题局部修正，修后再看最终像素，保留旧候选、0自动付费重发和UNKNOWN规则。小红书模板是候选表达，不是全行业规范或爆款保证。先验证真实九图样例，再把成功流程固化，不凭安装Skill声明交付。
+
+本地开发助手安装Skill只影响开发阶段，不会自动使NoteAI后端具备同等运行能力。产品运行仍需现有任务/调用计量/工具接口/保存合同，按有上限的导演→制作→审稿执行；不把所有第三方Skill正文塞进运行prompt，不加Agent平台/账号/订阅/完整编辑器。当前已有素材/计费/保存/六项QC可复用，新增只针对经样例确认的设计/工具缺口。Q-R16模型候选保留，本轮不新增价格/积分/保存期限决定。
+
+研究原件统一在现有任务tmp的design-skills-research-20261022-r1：ROOT-ASSESSMENT.json11819/SHA94894b020e6efd508bdcf2420ecb9312e610c716e78928f3165235e213a92f43；xhs-skill.sources.json195988/26caf8ca、project-audit.sources.json107572/692e908d（含已读固定版本原文），official-skill.sources.json16580/48abc812（URL/长度/SHA/短引/评估，非19份全文归档），Root另存TecSong/guide原文及截图19refs。GitHub元数据日期与文件最后提交日期分开，精确pin见这些原件；无需为展示再重抓。PLAN同一quality_model_review下追加skill_market_research，不新建task/checkpoint/handoff。源码/现有8条保存/45次账史/80次100元/UNKNOWN/入口CLOSED均不动，无新模型/公开scope或产品代码。下一先向用户报告推荐/淘汰和证据限制，收敛具体质量方案；不直接进入又一轮旧模型付费重试。

@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 质量选型复核完成；精确8条R2私有源码原件已核、未加载，公开/模型仍HOLD
+## CURRENT — 2026-10-22 平面设计/XHS封面Skill研究完成，实际源码与三张仓库样例已看；尚未安装/执行/改变产品
+
+登记前HEAD3465a68，产品1d927f2/前端01ffe保留。用户最新要求继续研究市场官方/GitHub设计Skills而非马上实施。Root＋三个独立问题代理已按实际SKILL、脚本/工具、案例、原图保护/行业/字体/QC、调用界限、维护和许可核；OpenAI官方skill-installer只查curated目录成功，不安装；没有Firecrawl收费研究、生成模型/上传素材/账号/云或生产操作。完整候选/证据/推荐与反证见HANDOFF末节Q-R17，来源固定版本与实际原件存原task tmp/design-skills-research-20261022-r1，ROOT-ASSESSMENT11819/94894b02。
+
+建议借baoyu的设计参数与参考角色、cover-lab赛道/读者brief、cover-pop真实缩略图逐字审稿、imagegen/Meitu主体不变量与局部工具、AutoDesign可编辑渲染反馈，收敛成一份有上限的商家封面流程；不是整包安装或多角色反复讨论。canvas-design偏艺术，baoyu偏信息图，Meitu有自动重试/换模型/多图降首图且新服务费用未核；cover-pop/cover-lab采用/商家实样证据薄。Root实际看的三个例图分别文字模板、手绘信息图、横版插画封面，不是本任务原照3:4验收。没有项目被称为已经证明能完整替换NoteAI质量与业务闭环。Jaaz许可及发布/外部服务壳项目不采用。已有行业brief/240px/六项QC/可编辑文字/任务账存储继续复用，下一只补经样例确认的缺口，不另建平台或任务体系。
+
+Q-R16强视觉模型候选仍是待定方案，本轮研究不批准新模型/账号/测试公网窗。原exact8 R2私有源07:31:01–07:36:11已全核且授权消费、未加载，ROOT-ACTUAL8 proof21468/37fffc6f；不可重派或normal/TERM/START/CAS/OPEN。最近原账45complete/known3.9263058元/pending0/原80次100元与UNKNOWN保，不冒fresh财务读；新版合格0、单位成本N/A。唯一PLAN.quality_model_review.skill_market_research已追加研究状态，future新human/clock/END/job仍空。下一向用户给出项目取舍与质量方案，再局部实现/非付费验证；不按旧2Lite/0image方案马上重复验收。研究浏览器tab临时关闭，未触正常UI5948。
+
+## HISTORY — 2026-10-22 质量选型复核完成；精确8条R2私有源码原件已核、未加载，公开/模型仍HOLD
 
 登记前HEAD5660bf1；产品1d927f2、前端01ffe未改。最新用户质疑聚焦更强规划/QC模型、真实照片裁剪修色排字与Lovart方法，不是新付费调用/开窗批准。已核代码：旧拒收4da真实2Lite/0生图；当前Seed2Lite260428设计/QC显式thinking disabled；旧Seedream本来配置5Pro但仅抽象背景prompt。官方两类Lite都具思考，不能归因Lite天生不思考，也未证明关闭thinking是唯一根因。三定向只读子代理完成，事实/推荐/价格/边界完整见HANDOFF末节Q-R16。
 
