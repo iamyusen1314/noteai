@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 06:10UTC 三调用任务私有沙箱提案已冻结并独审GO；等待当次具体权限确认，未执行
+## CURRENT — 2026-10-22 06:28UTC 源码运输基底差异已定位；安全提案仍待本人明确回复
+
+登记HEADdf9baac，功能20a/原分支工作区保持，权威PLAN不变。阶段③负责人Root（本机Git定位/状态）、原ENTRY（单叶运输续接）、原HOST（待确认SDK/normal载体）。既有9个运输片已保存，末i8实际06:16:38UTC C c-sz070s6j6hn58n4/T t-sz070s6j6i4mj28 Failed/Exit2/D0/R1，ALL_SIX_ACTUAL_BASE_WHOLES_REQUIRED，物化17/两静态前停止；不是模型UNKNOWN/产品失败，也不重复9片。
+
+原唯一6path RO C c-sz070s6urggyo00/T t-sz070s6urgtg5q8 S0D0/R1，stdout3262/b6f2418c在B/remaining17-and-frontend2-transport-r1/base-mismatch-readonly-r1/actual，Root实核。四host base全等；image HTML实际645744/341f0eb0，不等先前假定31b的871214/eabc；Admin尚未复制（首HTML错后即停），不能说Admin实际也不符。Root Git-only精确匹配22ae1e588abe7e201d9b671694203924ea391de3 HTML blobcef3d59f，原本机补丁完整性通过不替远端base证。独立本机reader证gate121确为whole比较，不是schema/key错误；无重复云探测/修改。
+
+下一原ENTRY只对actual22ae HTML局部重算、保九片/四host；Admin只做尚未发生的固定path首次cp/whole，严格选已知基底或未知HOLD。Root已Git-only备22ae Admin89721/7e187历史候选及原ef215，E/ROOT-IMAGE-ADMIN-GIT-CANDIDATES.json983/47431418；actual05978 Admin仍未知，不能拿历史替fresh。不扩产品修复/重17/91/9片。沙箱profile610b/SDK表单6161仍未提交，唯一PLAN.user_raw/received_at空，未收到本人同意；06:12已发具体问题，不重问预算/模型或因线程消息猜批准。实际profile/新SDK/candidate/provider/PG/OPEN0，新公网clock/END空；15新增/100累计/99物理界和旧UNKNOWN保。Root仅待必要人答与原sole单叶续接证据，不另起任务/runner/生产流程。
+
+## HISTORY — 2026-10-22 06:10UTC 三调用任务私有沙箱提案已冻结并独审GO；等待当次具体权限确认，未执行
 
 登记HEAD26f36b3，功能仍20a，原worktree/分支不变；阶段③环境问题定向处理，权威PLAN/HANDOFF Q-R26续接。实际Linux唯一case因Chrome No usable sandbox失败原件保；宿主userns已开、Docker28.3.3 builtin seccomp/UID999/CapDropALL/NNP实核，未证明seccomp为唯一原因。原sole冻结完整同版本官方31规则＋仅append clone/setns/unshare allow，profile13162/610b8caf；这是无参数限制额外权限，不冒flags最小化或已解根因。
 
