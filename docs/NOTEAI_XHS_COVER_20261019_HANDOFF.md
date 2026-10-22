@@ -145,7 +145,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0 R9 Linux完整技术PASS | 原R9 C/T及6649/0565812b实际Ran1/8synthetic/22.308s/免费edit PASS、0外部 | 受控Linux多人＋原normal私有准备→新有限入口真实九照封面；OPEN仍CLOSED |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 必要normal源码/策略惰性预置及data晚绑→新有限入口真实九照封面；OPEN仍CLOSED |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2343,4 +2343,17 @@ normal next-HOLD-datafill-r1独立窄审GO：manifest4477/f5a05325、config56490
 resource定点核实际puppeteer25.9默认--disable-dev-shm-usage与Chromium152 GetShmemTempDir→GetTempDir/TMPDIR，同/tmp64MiB供独立ncr/profile及匿名unlink共享内存。源码支持局部tmpfs耗尽假设，现statvfs/ENOSPC未知，memory无OOM不能证明tmpfs足，也不凭此改networkidle或上游。仅一次原配置目的明确的取证已指令原sole：新case E/resource-sharing-linux-r1/diagnostic-filesystem-space-r1/controlled_resource_case.py27096/SHA0c5232b53b94293711dc6aa0d02f9b0c7c79ba160cf7befb42fdd832654011c8，Root全窄diff/compile核；只Observer加/tmp与/dev/shm statvfs字节/inode余量，原receipt直接first/last/min原sample点/zero/unknown，所有原字段/流程/断言/PID512/CPU1/mem1.5/tmp64/flags/58原件/超时保。原sole成熟载体核后一次source→一次case，冻结pins并行审；尚无新受理C/T，不再额外取证框架/wrapper/Chrome flags或盲扩容量，失败/未知不重发。
 
 normal唯一adapter可并行本机将已独审两叶source-only plan具化到私有新namespace/分段载体，不改旧件/futurehuman-系None；诊断期间不并行云传输，诊断结束Root再决定必要惯性预置，非START/READY/OPEN。恢复唯一PLAN targeted_capacity_review.temporary_filesystem_hypothesis及pid512_single_variable_verification；阶段3继续/阶段4真实交付HOLD，当前无云在途；A真实模型0/合格商家0/单位成本N/A，15新增100总/旧45calls3.9263058UNKNOWN保。真实九照与PC/H5保存重开免费排字下载唯一结算尚未完成，正文生产不改，原sole统一发布。
+
+
+## CURRENT — 2026-10-22 16:22UTC 受控Linux多人链路R6完整PASS；仅惰性源码与策略预置，真实A尚0
+
+登记HEADe3383db/产品c708，原worktree/分支/预算延续，午夜不重置。R5原result21262/d7a5已Root全核：/tmp64MiB在591样本中最低余208896B（0.3113%）、inode充足，同Nav30s；零样本/ENOSPC未捕获，不冒唯一根因。依据实际Puppeteer共享内存TMPDIR源码与直接余量，只新R6改Docker/tmp64→256MiB；PID512/CPU1/总mem1.5GiB/全部flags/58原件/同27096case/断言/超时保。原sole先完成独立成本只读收口后16:17:12Z唯一受理，无Worker-C前置或新资源购买。
+
+R6 C c-sz070to3ulo5r0g/T t-sz070to3uly5ce8，16:17:12–16:18:11Z SuccessExit0/D0/R1，Run01A16466-F372-5A62-9A77-258AC5354E70/Read01A16468-226D-575D-872A-830295B3C3C4；B/resource-sharing-diagnostic-tmp256-actual-bound-r1/actual/result.ACTUAL-ORIGINAL.json16115/SHAd9bc599389f6036abdb9ecccdb2cbdfd35d2f666759993c46247e6de36e62ab3已Root完整JSON/hash及receipt独核。PASS_CONTROLLED_RESOURCE_CASE，case55.227s、guard58.676s；setup1另计+两用户queued两jobcompleted/第二严格后开；freeeditrev2、3项唯一8分及免费edit无钱包/月费/model增量、持久bundle/PNG重开断言全PASS，46浏览器重叠样本、峰2、容器存活时finalowned[]。540样本/tmp总268435456/min余167555072，PID事件0，mempeak1186869248<1610612736/内存事件0；cold同/autorm真，真实provider/PG/业务DB均0。只受控oneAPIworker+onefreeedit/synthetic，非真实商家/OSS/PG/其他replica或全站容量；旧失败/UNKNOWN全保，R6已足不重复跑。
+
+R6整体PASS满足原预授权：原sole按已独审两叶3段，顺序在新私有namespace保存实际core与proof，每段原结果核后下一，失败/未知即停；不import/START/OPEN/DB/model。独审manifest10001/592e8b0d、BOUND6813/bc671deb，真实云base2610/a45的runtime5036/guardf410而非冒旧本机pair已存，重建目标049bf/cb74精确。normal唯一adapter仅将计划私有环境PID256→512/tmp64m→256m及必要data绑定，其他CPU/总memory/profile/init/UID/network/auth保；当前源码未声称已实际预置齐，服务和公网仍CLOSED。
+
+必要文档只读已收敛：当前19553/46ba manifest已真实保在PREFIX/sdk-browser-capture-c708fe05-inputs-r1/INTEGRATION-SOURCE-MANIFEST.json（35324/20ce明确ref及原write-readback），直接复用不重传；4500/2a2d policy仅本机，需要独立小惰性保存，不扩入已冻3pack。deps实际aggregate尚无，沿原字段复用R9/npm/sysroot/wrapper/Skill/c708source/90SQLview及R6actual，不重装/重跑SDK/假称独立SQLite环境探针；不能代替normal21module/workspace实际回执。相同R6PASS条件下必要小policy/聚合/绑定JSON惰性保存已授权，全部futurehuman/END/15baseline/cover-only真实scope继续None直到一次新有效时窗，不以此阻塞已有非付费准备。
+
+恢复唯一PLAN implementation_a.targeted_capacity_review.tmp256_single_variable_verification及normal_document_dependency_trace；阶段3继续、阶段4真实交付HOLD。A真实模型0/合格商家0/单位成本N/A，15新增/100总与旧45calls/3.9263058/UNKNOWN保。剩余必要私有预置/晚绑→当次有限公网确认→真实九照封面、PC/H5、保存重开免费排字实际下载与唯一结算；不改正文生产，原窗口统一集成发布。
 

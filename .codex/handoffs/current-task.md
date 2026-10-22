@@ -1,4 +1,16 @@
-## CURRENT — 2026-10-22 15:52UTC PID512消除拒绝但仍导航超时；仅一次原配置statvfs取证准备
+## CURRENT — 2026-10-22 16:22UTC 受控Linux多人链路R6完整PASS；仅惰性源码与策略预置，真实A尚0
+
+登记HEADe3383db/产品c708，原worktree/分支/预算延续，午夜不重置。R5原result21262/d7a5已Root全核：/tmp64MiB在591样本中最低余208896B（0.3113%）、inode充足，同Nav30s；零样本/ENOSPC未捕获，不冒唯一根因。依据实际Puppeteer共享内存TMPDIR源码与直接余量，只新R6改Docker/tmp64→256MiB；PID512/CPU1/总mem1.5GiB/全部flags/58原件/同27096case/断言/超时保。原sole先完成独立成本只读收口后16:17:12Z唯一受理，无Worker-C前置或新资源购买。
+
+R6 C c-sz070to3ulo5r0g/T t-sz070to3uly5ce8，16:17:12–16:18:11Z SuccessExit0/D0/R1，Run01A16466-F372-5A62-9A77-258AC5354E70/Read01A16468-226D-575D-872A-830295B3C3C4；B/resource-sharing-diagnostic-tmp256-actual-bound-r1/actual/result.ACTUAL-ORIGINAL.json16115/SHAd9bc599389f6036abdb9ecccdb2cbdfd35d2f666759993c46247e6de36e62ab3已Root完整JSON/hash及receipt独核。PASS_CONTROLLED_RESOURCE_CASE，case55.227s、guard58.676s；setup1另计+两用户queued两jobcompleted/第二严格后开；freeeditrev2、3项唯一8分及免费edit无钱包/月费/model增量、持久bundle/PNG重开断言全PASS，46浏览器重叠样本、峰2、容器存活时finalowned[]。540样本/tmp总268435456/min余167555072，PID事件0，mempeak1186869248<1610612736/内存事件0；cold同/autorm真，真实provider/PG/业务DB均0。只受控oneAPIworker+onefreeedit/synthetic，非真实商家/OSS/PG/其他replica或全站容量；旧失败/UNKNOWN全保，R6已足不重复跑。
+
+R6整体PASS满足原预授权：原sole按已独审两叶3段，顺序在新私有namespace保存实际core与proof，每段原结果核后下一，失败/未知即停；不import/START/OPEN/DB/model。独审manifest10001/592e8b0d、BOUND6813/bc671deb，真实云base2610/a45的runtime5036/guardf410而非冒旧本机pair已存，重建目标049bf/cb74精确。normal唯一adapter仅将计划私有环境PID256→512/tmp64m→256m及必要data绑定，其他CPU/总memory/profile/init/UID/network/auth保；当前源码未声称已实际预置齐，服务和公网仍CLOSED。
+
+必要文档只读已收敛：当前19553/46ba manifest已真实保在PREFIX/sdk-browser-capture-c708fe05-inputs-r1/INTEGRATION-SOURCE-MANIFEST.json（35324/20ce明确ref及原write-readback），直接复用不重传；4500/2a2d policy仅本机，需要独立小惰性保存，不扩入已冻3pack。deps实际aggregate尚无，沿原字段复用R9/npm/sysroot/wrapper/Skill/c708source/90SQLview及R6actual，不重装/重跑SDK/假称独立SQLite环境探针；不能代替normal21module/workspace实际回执。相同R6PASS条件下必要小policy/聚合/绑定JSON惰性保存已授权，全部futurehuman/END/15baseline/cover-only真实scope继续None直到一次新有效时窗，不以此阻塞已有非付费准备。
+
+恢复唯一PLAN implementation_a.targeted_capacity_review.tmp256_single_variable_verification及normal_document_dependency_trace；阶段3继续、阶段4真实交付HOLD。A真实模型0/合格商家0/单位成本N/A，15新增/100总与旧45calls/3.9263058/UNKNOWN保。剩余必要私有预置/晚绑→当次有限公网确认→真实九照封面、PC/H5、保存重开免费排字实际下载与唯一结算；不改正文生产，原窗口统一集成发布。
+
+## HISTORY — 2026-10-22 15:52UTC PID512消除拒绝但仍导航超时；仅一次原配置statvfs取证准备
 
 登记HEAD8168c07/产品c708，未改产品代码。唯一PID512 case C c-sz070tkmrx6s3r4/T t-sz070tkmrxo9e68，15:38:15–15:39:20Z Failed2/D0/R1，Run01A16443-4AEE-5E7F-BB90-27D5AE5DFF79/Read01A16445-0FFD-5646-87DB-A82FCC7CCAE2；原result18600/SHA9f392a18e17ac9a4a7febecfab7955ddce6c662b59257f4448bb20f54d85c4a9已Root全读核。seed成功、外contract全PASS，内contract31331ms exit1/errornull，原stderr精确Puppeteer Navigation30000ms在_browser.open126/check-contract29；非外120s超时。source-only实际1766/727777已核，新case只expect512、outer差分/9helper/PROFILE/CHILD逆换/21localrefs均Root与独审核；没有后继自动重试、normal未升512。
 
