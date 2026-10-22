@@ -2357,3 +2357,14 @@ R6整体PASS满足原预授权：原sole按已独审两叶3段，顺序在新私
 
 恢复唯一PLAN implementation_a.targeted_capacity_review.tmp256_single_variable_verification及normal_document_dependency_trace；阶段3继续、阶段4真实交付HOLD。A真实模型0/合格商家0/单位成本N/A，15新增/100总与旧45calls/3.9263058/UNKNOWN保。剩余必要私有预置/晚绑→当次有限公网确认→真实九照封面、PC/H5、保存重开免费排字实际下载与唯一结算；不改正文生产，原窗口统一集成发布。
 
+
+## CURRENT — 2026-10-22 16:40UTC 正常入口三段源码与策略惰性保存已实证；补既有Node内存接口一次实测
+
+登记HEAD e9b6be17c3d3a5b6ea6c3433065373aef589425c/产品c708fe05，原分支/worktree不变。三core载体顺序实际完成：source-part000 actual5126/c0fe2464、001 actual5126/4c0c9bf7、002 actual5813/4331a7f3；末C c-sz070tp5qv682dc/T t-sz070tp5qvdpreo、16:29:00Z S0/D0/R1，Run01A16471-C166-52BA-AA64-9B0E5E01C455/Read01A16471-F8A7-5790-9992-5191C29EB916。Root逐原JSON/whole hash/protected前后等核实，新PREFIX/normal-core-c708-twoleaf-input-r1含guard165867/cb74d2c1与runtime134081/049bf888，root0400/nlink1；由launcher install复制成UID999读取叶，不并改原输入权限。源码未import，START/READY/OPEN/DB/models均0。
+
+两小文档也已实际保存：C c-sz070tpdytj4pa8/T t-sz070tpdytqmebk、16:31:34Z S0/D0/R1，Run01A16474-19C9-546F-BD62-0B7460A3B20C/Read01A16474-5F3D-5FCE-90CC-A1FDA8132FCA；F/policy-deps-documents-source-only-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json7827/SHAcc1395daba0ae015e618cde9e10fe4096ee56c878faa002006fabbdd3cc2debc已Root全读核。policy4500/2a2d、aggregate5072/a1caa48b实际root0400且旧件/protected不变；复用已有19553/46ba manifest/8proof，不重传安装。aggregate如实HOLD、node_sqlite_api_probe为空，不能作为guard_READY。
+
+原guard明确要求Node SQLite探针已实际执行，而R9直接run_cover并未运行该小探针。Root决定仅一次原_environment_ready中201B/SHA1e0d35ed2580331231f8da3225b2645b017096fcc9638b21cb188bb27f35e11a的node:sqlite :memory:接口检查，原sole HOST作者准备≤30秒含清理/同Node24.22.1与R6受控sandbox，0SDK/Chrome/付费provider/后端Python import/磁盘或业务DB；失败或未知不重发。此刻尚未派发，当前无云/供应商在途。真actual后另存最终deps聚合，不覆盖旧HOLD，不伪称normal CID/21module已启动；正常PID512/tmp256最小计划与既有资源PASS复用，不添新用例门。
+
+恢复唯一PLAN implementation_a.normal_twoleaf_transport_review、normal_document_dependency_trace.existing_node_memory_probe；F为B/v3-private-host-HOLD-r1/normal-launcher-21map-HOLD-r1。futurehuman/END/15元基线及真实cover-only scope保空，public CLOSED，阶段3进行/4真实交付HOLD。A真实provider0/合格商家封面0/单价N/A，15新增/100总、旧45calls/3.9263058/UNKNOWN全保，报告正文/生产不动。下一真探针→仅必要final绑定与窄审→一次当次有限公网时窗→九照封面和PC/H5/保存重开/免费排字/实际下载/唯一8分；原sole最终统一集成发布。
+
