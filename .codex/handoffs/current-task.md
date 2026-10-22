@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 10:51UTC r5真实失败已定位层；最小退出留证/测试取值修复65a，本机回归通过，准备一次原资源诊断
+## CURRENT — 2026-10-22 11:03UTC 65a新源码89实际全核；同原资源r6诊断已受理，只查询原C/T
+
+分支原codex/noteai-xhs-cover-20261019，登记HEADa131c5e，功能65a61bc296668e8b5c5be0a556ca42e45c4199e5及manifest19279/cbc85不变。新两叶source step00/01各一次S0D0/R1（10:57:50/10:58:26Z）；step01 C c-sz070svo54jr8qo/T t-sz070svo5518j5s，Run01A16343-1B77-5F1B-8A60-C8AB00179D29/Read01A16343-4960-5F53-97EF-8730B3E3B8BC。B/exit-metadata-65a61bc2-source-r1/part-01/actual/result.ACTUAL-ORIGINAL.json34641/2e3f5a4ece41554b83e44b1dc2e90a1c405f70dfac1c1f9ac9e26ba34d9c837f已Root全JSON/hash及89新pin逐项核；newproduct-65a61bc2-r1、18exec500/71read400/3空deps槽、两archive pending，原187/r5/cold保、无重装/模型。
+
+新目的单次r6原sole已受理：C c-sz070svxn8zliio/T t-sz070svxn9m2lmo，Run01A16345-D10C-5881-9B3A-C4F53C8FE487；token4842a8e9-1418-47d8-8d08-dd54d1804c1b、wire18960/f2a0216a86c625d3fbf2504111d79499193768cf71a01afb7dd86c1a245895f1。B/sdk-exit-metadata-65a61bc2-cgroup-actual-source-bound-r1，Root全读main/codec核、仅实际source34641绑定到HOLD39279，CHILD8288/88de exact既有self-cgroup观察（不是4283原样），原case/通过断言不变。UID999/NNP/capdropALL/readonly/networknone/fa978/1.5GiB1CPU128pids/3旧depsRO全保，未增资源或权限。只收集新native退出信息和本任务cgroup events，native/cgroup/SDKPASS实际结果待返；不重复发SDK/UNKNOWN重派，不提早叫资源根因或通过。R5真实失败、14项独立contractPASS/内部render错误与全部历史仍保。
+
+当前仅上述零provider诊断在途，无provider/付费请求；normal/public0，新公网human-clock-END空，A模型0/合格商家样张0/单位成本N/A。15新增/100总99物理及旧UNKNOWN/正文/生产界限保。恢复先读唯一PLANimplementation_a.exit_metadata_fix.future_diagnostic_scope，原sole查此C/T终态→真读native/cgroup证据→按事实决定局部下一步；不重做已成功源码/依赖/历史验收。
+
+## HISTORY — 2026-10-22 10:51UTC r5真实失败已定位层；最小退出留证/测试取值修复65a，本机回归通过，准备一次原资源诊断
 
 原分支/worktree，产品65a61bc296668e8b5c5be0a556ca42e45c4199e5（parent00c2186），不回退或覆旧187。r5 C c-sz070sts0tve7eo/T t-sz070sts0ufde68，10:37:13–10:39:19Z F2D0/R1（最后Read01A16332-93EA-5C1D-A841-10A00506E917）；B/sdk-short-browser-18765f16-actual-source-bound-r1/actual/result.ACTUAL-ORIGINAL.json5503/29bf72e3已Root全读核。Ran1/no skip/无450s timeout，case125.855s（unittest124.749）/tool126.088，6synthetic消息/未freeedit/0provider或业务DB。CPU108.91user+12.43sys/RSS362320只RUSAGE_CHILDREN；cold/profile/旧r4保且tool auto-rm真，未有cgroup峰/事件证据，非新供应商UNKNOWN。
 
