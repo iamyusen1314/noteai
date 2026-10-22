@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 17:17UTC 方案A必要准备及最终独审完成；只待新当次有限公网时窗，真实A仍0
+## CURRENT — 2026-10-22 22:33UTC 实际人类新同意已记录；本次北京06:30:07–07:30:07有限验收正在封闭准备
+
+登记HEAD46331ce/产品c708，原分支/worktree延续。Root当前实际userturn01a165bc-45d0-7631-b2e2-49be159c4a8e/userMessage01a165bc-4691-77b1-84ea-565d25d842e9原文“同意”，已read_thread直接读回；不是委托或问题tool accepted当批准。首次clock.curr_time为2026-10-22 22:30:07Z（北京10月23日06:30:07），start1792708207/END1792711807=23:30:07Z（北京07:30:07）；首OPEN最晚23:00:07Z/须至少30min，POST须至少1500s，同窗不重开延时。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-063007.json1148/2bd12873、WITNESS528/14d7de98与QUESTION1528/b2ee9a0d保原可核。
+
+原sole已自行read_thread核到该真human，22:31:06Z ACK保原clock/END不重置；现仅沿已独审A80057/101bc4+ce815及已存9530/6416做成熟closedfresh事实、firstimmutable15元基线、samehuman-END-scope晚绑与原ENTRY唯一timer，不重probe/SDK/resourcecase或空HOLD，不将Worker-C成本本人MFA设前置。当前未收到START/READY/OPEN或新云C/T，付费任务尚0；所有后续按原请求记实，不为窗口发生切换重做已证材料。Root只读本机9原图逐whole仍等原inventory，总10977955B，浏览器API已恢复，未点付费生成。
+
+范围沿已批PlanA：复用水石清池原报告与9真照，仅封面/PC-H5/持久保存重开/免费排字/实际下载，不改报告正文或生产；最多2task，首合格存后停，只有明确QC拒绝且局修可第二，失败UNKNOWN停/0自动重发；现有8测试分最多结算一次，新增≤15元/原总≤100元，调用数按需求。旧45calls/3.9263058/UNKNOWN与源保存失败全保。恢复唯一PLAN implementation_a.final_normal_preparation.pending_public_confirmation/实际proof；state HUMAN_WINDOW_APPROVED_CLOSED_FRESH_BINDING_IN_PROGRESS_A_REAL0。下一原sole真START/READY/有限OPEN后Root接自己产品tab1637495948只一次真实生成，原sole核实时成本/唯一账与关闭；结束严格不晚END。阶段3进行/4真实交付HOLD，A合格商家0/单价N/A，最终原sole统一集成发布。
+
+## HISTORY — 2026-10-22 17:17UTC 方案A必要准备及最终独审完成；只待新当次有限公网时窗，真实A仍0
 
 登记HEAD34b156a/产品c708fe05。修正载体944afd7f原C c-sz070tsoz5q0ohs/T t-sz070tsoz6chrls于17:08:37–38Z SuccessExit0/D0/R1，Run01A16496-06A6-5350-A589-236BC9919144/Read01A16496-6F6D-5354-8BD2-049E437035D4；M/source-only/actual/result.ACTUAL-ORIGINAL.json9530/SHA124ae801aed37a33103413323e19af96a69f1ae02a066c80e3cbc66e291d6ff5已Root完整真核。最终五source cb74/266e/7e1a/fe256/049b和6416/6c46deps实际新namespace/root0400/nlink1，protected前后同/all_five_sources_saved_not_loaded/noProbeSDK/0DBmodelsSTARTREADYOPEN，原164失败与8673RO保。此前Run弹窗DOM点击未生效，fresh AX/screenshot后同token原生点击才受理，未新token/重派；仅局部UI变量错误从原Run恢复，非产品或模型失败。
 
