@@ -1,4 +1,24 @@
-## CURRENT — 2026-10-22 具体workflow提案A完成，等待用户确认；未安装/实施/生成
+## CURRENT — 2026-10-22 方案A功能7f73ca6已提交；离线/独审完成，原sole隔离集成准备
+
+同原分支/worktree，功能7f73ca6（parent52e24b2）。完整58上游原样＋固定OpenCode2.1.2宿主，128k/8192 Pro规划/QC、SeedreamPro整张概念、真原照层/HTML字/免费编辑；无新DB迁移/PG GRANT/生产变更。独审4P1+BR P2均修后闭合；受影响Python131、SDK真实工具/原renderer/保存派生、前端27/Admin3通过，模型响应均mock。Cua PC免费文字断行/安全移位、H5刷新从已保存库重开同549d/revision2成功，原9mock calls/8分唯一；鉴权PNG下载HTTP200/1776×2368/hash已存，浏览器Blob下载回执工具不支持，OS/真iPhone保存未验。loopback64182及前62810已结束；运行paid请求0。详HANDOFF Q-R23及原E/MILESTONE-OFFLINE-RESULT，唯一PLAN已更新。
+
+原sole仅答现契约，Node/Chromium Linux未核；原sameorigin/API gate可复用，新v3实接/新静态manifest未验，旧normal/ENTRY/旧已消费8条/47数闸/旧时窗不可重放。下一交固定源/三锁文件/必要系统清单让原sole准备同隔离backend，不开生产/模型/公网；实际准备完成再新有限验收窗跑水石已存报告+9原照。用户取消调用次数上限，累计100元仍保，最多2新任务/首合格停/8分一次/UNKNOWN不重放。真实本批0、合格商家样张0/单张成本N/A；最近45calls/3.9263058/pending0仅历史。公网CLOSED，无新human/clock/END/OPEN。
+
+## HISTORY — 2026-10-22 方案A首次离线全链已跑通；四P1修后复核与PC/H5回验进行中
+
+同原worktree/分支/接收HEAD52e24b2，实施源码尚未提交。完整固定Editable-Design c87b16f＋OpenCode2.1.2宿主已实际安装隔离运行；不是自建Agent loop。真实SDK/完整Skill/原照/概念/成品/240px缩略图、原包字体渲染、源包恢复/免费派生均跑通；模型响应MockTransport、实际Ark/Seedream0。已有loopback同任务真API/本地账/私有源包和PNG唯一8分，当前页面http://127.0.0.1:62810/NoteAI_Pro_Demo_Framer.html，进程exec80849（测试synthetic账号/素材，无真实凭据）。PC看见九图/成品/文字层，免费移位按安全区拒绝保旧图，已定位字体ink比DOM盒顶高13px并局修，需新backend回验。此页面未外露，非真实商家审美。
+
+完整接口/实际证据与独审缺口见HANDOFF末节Q-R22。v3复用原任务/账/共享准入/存储/结算，旧v1/v2保；新源包以原job私有metadata索引并管理quota/expiry/delete，revision不可变，不新增迁移/长期权限。四P1已按实证修，独立修后审进行中；本地临时真实素材terminal清理/残留恢复也已补。下一只补受影响回验/最新端到端，再commit及交原sole准备隔离验收；不冒已ready/审美通过。
+
+用户已解除26/80调用数闸，按实际需要；累计100元费用预算仍保、0自动付费retry/UNKNOWN重放，首张合格停且最多一次8分/90天。128k输入/8192总输出使完整Skill+九图可入，每次保守预留1.033元。生产仍唯一原sole，原exact8已消费保存未加载、测试公网CLOSED、新human/clock/END/job为空。历史45次/known3.9263058/pending0不冒fresh。checkpoint任务与PLAN唯一，无新发布流程。
+
+## HISTORY — 2026-10-22 用户批准开始方案A；固定整包与现成宿主隔离接入中
+
+实际接收HEAD52e24b212df65d4fa6710ee8ac3e5b95e92b9107、同分支/原工作树，不回退。用户“开始推进方案A”批准Q-R20具体依赖/薄适配及有限测试，完整登记见HANDOFF末节Q-R21。Root已有Python接点；host/editable各独占新目录；第三代理只读核合同，主窗口统一集成。已定位旧单stage/任务3调用硬闸及HTML保存/免费编辑需版本适配，先固定SDK mock与原整包渲染证明，再改v3分支，保v1/v2与原报告。
+
+用户随后直接解除26/80调用数上限，按实际设计需要调用；原累计100元费用预算不变、辅助全计、0自动付费retry/UNKNOWN重放。首张合格保存即停、最多8分一次；第二仅已知质量拒绝后手动局改验证。1776×2368/90天/免费确定性文字调整照旧。当前真实模型0，无新公网窗口，入口CLOSED；生产/云唯一原sole，旧精确8保存消费未加载。历史45次/known3.9263058/pending0非fresh账。下一隔离依赖与离线工具/SDK通过、计量保存集成、独审，再进行已批准预算内代表性真实验收；必要公网窗口仅就新实际暴露另记录确认，不能重放旧时钟。
+
+## HISTORY — 2026-10-22 具体workflow提案A完成，等待用户确认；未安装/实施/生成
 
 登记前HEADed0521c，分支codex/noteai-xhs-cover-20261019，产品1d927f2/前端01ffe保。最新用户要求深研后明确选火山/扣子或其他完整项目给方案确认。Root＋3定向只读代理完成新扣子/AgentKit/托管Agent/开源workflow和现成宿主比对，详见HANDOFF末节Q-R20与docs/NOTEAI_XHS_COVER_WORKFLOW_SELECTION_20261022.md（提案，不是新任务清单）。
 

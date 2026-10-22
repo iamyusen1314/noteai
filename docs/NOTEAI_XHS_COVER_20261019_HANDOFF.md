@@ -1945,3 +1945,62 @@ AgentKit是真Skill宿主/企业托管和真实候选＋原图QC源码，保云�
 独立窄审：graphic代理提出顺序、强制QC适配与免费派生证据3澄清，Root已按原Skill/业务合同修提案，未冒修后又独审；host代理窄审OpenCode/服务/费用无实质问题，未审审美。仅文档，diff检查与JSON/原件引用检查，不重跑产品suite。新资料原件在原task tmp/workflow-selection-20261022-r3，四独立源报告/固定源码、火山billing读取、Root公开样例截图；ROOT-WORKFLOW-SELECTION.json索引方案与pins。Firecrawl本轮3 research credits（2搜索＋1页，人民币等值未知），模型0/第三方运行0/上传0/云0/生产0。下一等待用户确认具体A方案；不先装Skill/实施/跑模型，也不继续旧Lite验收。
 
 Q-R20提案补充：首张合格保存即停、最多交付/结算一次8积分；第二任务仅在明确质量拒绝且针对性修正/非付费验证后手动，UNKNOWN/非预期失败/素材失效即停，不开自动第二任务或赠分。A宿主仅装封面Skill并禁自动发现全局Skill/默认模型。均仍待本次用户确认，非现行授权。
+
+### Q-R21 — 2026-10-22，用户批准开始方案A；接收实际HEAD52e24b2，隔离接入与离线验证进行中
+
+用户直接指示“开始推进方案A”，批准Q-R20具体完整Skill＋现成宿主、必要本地依赖/薄适配和所列有限真实测试范围，不重复询问启动。实际接收分支codex/noteai-xhs-cover-20261019、HEAD52e24b212df65d4fa6710ee8ac3e5b95e92b9107；原已跟踪文件clean，新model/cover_agent_host与model/cover_editable由各唯一代理创建。旧产品1d927f2/前端01ffe及旧证据保留。登记时间2026-10-22 01:19:47UTC（09:19:47北京）。
+
+四阶段：①接管/范围已完成，本确认对应52e24b2方案；②最小实现/离线验证进行中，Root负责已有Python任务/调用/保存适配，host代理独占新model/cover_agent_host，editable代理独占新model/cover_editable，只读契约代理核现有接点；③定向集成与真实验收待离线闭合，④最终diff独审和交原sole集成待前序。完整固定版本不变：Editable-Design c87b16f6d7c198e2b6967f13f1b1baa939d6f31f、OpenCode7456ad872eecd5f7f857e2cbe9135c1407b12795/2.1.2。禁止降为自写Agent循环或只抽取几条设计规则。
+
+本次批准上限：最多2新封面任务、合计26次物理模型调用（探测/标题/压缩/质检/工具及图像都计），新增模型费≤15元，仍原累计80次100元；每任务≤12文本/视觉＋1SeedreamPro，预算不足不发。首个合格持久保存即停，最多一次8积分结算；第二仅在明确质量拒绝及局部修正/离线验证后手动，UNKNOWN/非预期失败/素材过期即停、无自动重发。必要本地依赖可安装，任务隔离目录/固定版本/禁全局配置或真实账号默认模型。当前只做本地依赖与mock，真实模型尚0，模型额度非已使用。完整概念→实际看图→计划→原照独立层＋HTML文字→实际原照/成品/缩略图QC→至多一次局改，1776×2368/90天/免费确定性排字照旧。
+
+最小接口缺口已实际定位：旧固定design/image/qc物理ID、每stage单调用和public_product任务3调用硬闸不支持宿主工具循环；须版本化复用同账本/共享准入，不能只改配置或另建账本。新HTML源/字体/资产保存及免费派生的实际合同正在核查。下一先证明固定SDK离线运行及整包渲染，再补必要v3封面桥接，旧v1/v2继续兼容；不改共享报告默认模型/正文，不碰无关迁移/支付/高德。
+
+本次不是新的公网开启时窗，入口仍CLOSED，无新OPEN/human/clock/END/job；原source-only8条已消费保存未加载，不重派。最近45次/known3.9263058/pending0为历史证据，不冒fresh账；UNKNOWN保持。原“修复高德检索与休闲娱乐行业”仍唯一云/统一发布，本窗口不动生产。关键阶段及外部付费前继续更新唯一PLAN及本末节，真实模型之前列实际账户/预算/素材/请求状态，不因压缩或换代理重复调用。
+
+Q-R21补充（用户后续直接授权）：用户“可增加调用次数，凭需求而定，无需限制”取代本批26次/累计80次调用数门槛；调用按真实设计需要计数，所有辅助与失败仍记实际账。原累计100元费用预算不重置、不新开资源/订阅/发布；旧15元为该有限样张提案费用预估，不把调用数当质量标准。UNKNOWN/非预期失败无自动付费重发、保存后最多一次8积分、原素材/报告范围保持。运行仍受任务期限/共享容量/逐次货币预留约束；不把解除次数门槛解释为无限自动循环或忽略未明成本。
+
+### Q-R22 — 2026-10-22 10:09北京，方案A完成首次本机全链；独审缺口局修及PC/H5定向回验中，真实模型0
+
+仍同HEAD52e24b2接续，不回退；源码正在形成首次实现提交。完整Editable-Design固定58上游文件/许可/hash原样保留，OpenCode实际2.1.2 SDK已在任务目录安装并隔离配置，未全局安装Skill/新平台/账号；复用现Node25.7及Chrome、Puppeteer/Fontsource锁文件依赖。宿主去掉默认工具/execute与外部provider，只有六个设计工具；图片自动缩放已显式关闭（真实2400×1800会被默认缩到2000×1500，已用SDK实证并修），完整Skill/原图/概念/成品/240px缩略图均以实际字节进入模型请求。模型流经Python统一账、共享准入、预留/UNKNOWN，SDK只作本地SSE转换，不持Ark凭据，不自建Agent loop。
+
+新v3封面桥接已写，保v1/v2旧配置/旧成品：Seed2.1Pro260915思考开启、128k输入/8192含思考总输出，单次保守预留1.033元；32k保守界放不下完整Skill+九图（代表性初轮51835，实际SDK九图fixture75691），因此按真实需要扩输入，不删Skill。公开Pro价仍6/cache1.2/output30元/百万，不冒账号实际实付。Seedream5Pro260628整张概念参考、原照独立层、HTML真字、实际视觉QC及至多一次局改；原1776×2368/8分/90天/免费文字断行安全移位不变。用户已取消26/80次数上限，累计100元费用预算仍保；本批2新任务/首合格停和0UNKNOWN自动重放保。
+
+实际离线成果：固定SDK受控工具/完整Skill/503无重试/UNKNOWN/断线不重放/会话重开/一次显式续接；原包真实中文字体/渲染/编辑/源图hash/安全区及外链检查；真实SDK→工具→原包render→原照+成品+缩略图QC输入→完整bundle恢复/免费编辑全链已跑通（模型响应为本地fixture，绝非真实商家审美）。本地loopback实际API＋SQLite账＋私有存储＋SDK/CLI已形成1已完成任务、9个物理MockTransport请求(8chat+1九图概念)、唯一8分，成品7ecc6df7-7275-473e-9d80-21b5aa2b77a0。实际Ark/Seedream调用0；这些mock账不合并原45次财务历史。
+
+源包复用PrivateObjectPayloadStore，准确ref保存在原cover_jobs/cover_asset_revisions私有JSON白名单，不冒PNG存HTML、不仅留供应商URL；未新增DB表/迁移/GRANT。源包与PNG/实际文字/原图hash绑定，复开及免费派生用同原renderer；CAS失败不覆盖旧成品、不再次扣费。已知ack但未提交revision的源包先记job.design_json.editable_pending_refs，纳入quota/expiry/用户删除与orphan管理。实际删除回执写原可UPDATE的cover_jobs.design_json.editable_source_deletions，revision保持不可变（其原PG角色只有SELECT/INSERT），无需扩大长期权限。
+
+独立审查真实发现并修：①另一PNG+同步伪装layout/QC不能冒原source bundle结算；②普通上传也计全部ready源包bytes/objects，过TTL未物理删继续计，cleanup尊重limit且精确索引；③源包先存/PNG失败后重试UUID含新bundle digest不再永远冲突；④CSS伪元素新增价格文字拒绝；⑤初版即要求文字plain/BR保证与免费edit合同一致；⑥原图/报告/SDK SQLite临时工作目录terminal清理，进程残留bounded sweep/用户删除/expiry恢复，仅保内容less会话/原请求metadata；候选PNG/QC在受管理存储保留。修后定向独审进行中，不能把初审发现当最终GO。
+
+浏览器使用frontend-testing-debugging实际Skill+Cua，在本地loopback正常UI看到了报告视觉专家入口、九图/新成品/独立文字层与8分回执。PC免费移位实测安全拒绝，原成品/原结算保；根因是字体实际ink比DOM盒顶部高13px，旧options只看盒，现保存真实ink并按联合边界算dy，待同入口受影响回验。手机尺寸/下载/真实重开尚未完成，不把旧v1 loopback或技术PNG冒新版审美。一次旧unit fixture未提供replaceChildren，已仅补mock DOM并复测；一次直接browser脚本缺模块，未安装新浏览器包，后续UI统一Cua。相关unit/存储/API回归已过，具体可复用/新增证据索引在原task tmp/implementation-a-20261022-r1的editable、host、provider、runtime-integration、review原件；不重高德/支付/报告内容验收。
+
+下一：完成上述实际免费排字/PC-H5/下载回验、最新全链与四P1修后独审→提交可定位功能源→交原sole只准备同隔离后端必要依赖/运行接续→在原累计100元内做水石九图已有报告真实封面，不改正文。当前公网入口仍CLOSED，无新human/clock/END/OPEN/云命令/付费/生产；原exact8源码保存消费未加载，不重派。最近45calls/known3.9263058/pending0仍历史，不冒fresh账；尚无合格新版真实样张，单位交付成本N/A。
+
+
+#### Q-R22 接口补答 — 2026-10-22 原云执行窗口：隔离Linux依赖与受保护前端契约
+
+本次只复用原实际回执和冻结源码，未云查询/安装/命令运输/模型/OPEN/生产操作；不修改方案A产品源码或其他文件。方案A本地Node25.7/Chrome成功只证明本机，不能当Linux候选依赖证明。
+
+| 接口问题 | 当前有证据的答案 |
+|---|---|
+| 同隔离候选是否已有Node≥22.12 | **未核版本、未核实际路径**。同CID/image的已存实际回执没有Node可执行文件或版本清单；不能断言已安装或未安装，也不能用Dockerfile构建声明代替实机。 |
+| 同候选是否已有Chromium | **未核版本、未核可执行路径及运行依赖**。本机Chrome/Puppeteer离线证据不外推到Linux。无本次探测或安装；待最终固定依赖清单后另做必要最窄能力核验。 |
+| 原正常登录与受保护前端能否指向新隔离candidate | **同源代理/原鉴权契约可复用，但新candidate实际接通未验**。冻结private.locations.HOLD.conf6612/SHA82527629257b4d26fbb8041a4205211f4988761db1ec0d410d76940343c4a363的固定私有/api前缀保留给127.0.0.1:18114；不改正式/api。ExistingOwnerGate（owner_session_bootstrap.cover-body-request-id-r2.py18768/SHAfe25663fc5f18c4d462b2f37775e12c7ed9d69f1bd02a39571962e1020392f2f）保唯一Bearer、HTTPS Host/Origin、原账号未改auth函数、原会话/有效期/状态/合同只读校验、固定批准路由及请求ID父门；不创建/复制会话或绕过鉴权。静态页面本身可读，不等于API匿名可用。 |
+
+最近实际隔离scene来自T/actual-samecap47-exact8-source-only-r2/step-07/runtime-successor.ACTUAL-ORIGINAL.json2610/SHAa45b2adc1b1da03c37e95ddac19881b130281a1555b08f0ab76027c7abd8876d（10月22日07:35:32北京）：同CID d26428adc219dd6bb4dd0bd2a9e71e78689b1045a9ba325649938f1f65bddc3d、image sha256:05978bee01588bcc1b4bd0cb74660eadd3a19b97dadfdc9cec8d1a76d08bf6cc、Exited/Exit2/PID0/restart0、CLOSED，未加载新runtime。它不证明此后任何时刻仍同态；本次未作新查询。
+
+新candidate沿原端口/鉴权/隔离DB接线具备既有模式；但旧normal/ENTRY硬钉1d927产品14、01ffe静态15、5036/f410辅助源码与旧47调用门/已消费时窗，**不能直接用于方案A或冒符合最新取消次数门的授权**。收到主窗最终固定提交/锁文件/必要系统依赖与新HTML静态清单后，原sole再仅准备所需兼容接续，保原登录/账号/报告/存储/账与货币上限；不扩大路由、权限或生产，不重派旧8条。新normal/READY/受保护入口与新有效时窗需实际证明，当前全部未发生。旧18/10/8实际原件、45账历史/UNKNOWN保留，不以本问题要求重新采旧账或重跑旧验收。
+
+本补答不是新云执行、安装、付费或公网授权；当前无模型/OPEN/新任务，Node/Chromium是明确能力缺件，不把Worker-C成本本人MFA当本隔离准备前置。主窗自行纳入已有Q-R22/CURRENT/PLAN，本窗不stage/commit其混合未提交源码。
+
+### Q-R23 — 2026-10-22 10:30北京，方案A功能提交7f73ca6；阶段二完成，原sole隔离定向集成准备中
+
+功能提交7f73ca6（完整HEAD见INTEGRATION-SOURCE-MANIFEST），parent52e24b2；91文件主要为完整58文件原Skill和锁文件，未抽取/修改上游，必要业务薄适配为新宿主/Ark桥/源包持久化及现任务v3接线。新Node SDK/Puppeteer/许可字体都固定锁，Node≥22.12且实测本机25.7/Chrome，Linux必须实际启动核验；无新Python依赖、DB迁移、PG GRANT、生产配置或新资源。原v1/v2、报告正文/高德/支付/大版本保持；默认仍disabled，未激活生产。
+
+**有效证据**：受影响Python131项PASS/13.730秒，最新实际SDK→完整Skill/工具→原渲染器→原照/成品/缩略图QC输入→源包保存恢复/免费改字PASS/25.598秒（所有模型为fixture）；前端合同27及Admin3通过，58上游文件逐SHA不变。独立审查4P1（成品/source绑定、源包quota/回收、文字层可编辑、私有工作目录恢复清理）与BR断行P2均修后复核闭合，无未解P0-P2；BR初版两行原样免费保存后文字/换行/PNG hash完全一致。临时edit/source/SDK会话进入受管理私有目录，DB归属优先，终态清理/活跃用户删除pending/过期残留回收已实测；内容less请求回执与受管理候选成品/QC保留。
+
+**实际Cua PC/H5**：同一loopback九图合成报告/已完成任务549d002b，PC改字+两行+安全上移成功，revision1→2，8积分唯一结算；H5 390×844封面面板宽352可滚动，页面刷新→报告→已保存封面重新进入同任务/revision2，文字断行及回执保留。PC/H5下载按钮均反馈已交浏览器；受鉴权下载HTTP200、PNG1776×2368/58707bytes/SHAe537361993110fdb219a320565fc069e567c4125180fc0510199f4e021b4314d，与已存revision2读取一致。工具等待Blob下载事件超时，downloadMedia明确不支持Blob，OS落盘未验证，不冒下载全端通过；真iPhone仍未测。页面console仅第三方浏览器扩展warn，无本产品error。基础整页body在390下522宽是已有报告布局，不扩本次封面面板范围修整站。当前loopback已正常关闭，exec8715完成，无运行模型请求。
+
+原task tmp/implementation-a-20261022-r1下MILESTONE-OFFLINE-RESULT.json、INTEGRATION-SOURCE-MANIFEST.json、INDEPENDENT-PLAN-A-RECHECK.json、browser-current/BROWSER-API-EVIDENCE.json及PC/H5截图、runtime-final/noteai-cover-runtime-proof-6mafwpz3为本阶段原件索引。真实Ark/Seedream0、真实商家样张0、单位合格交付成本N/A；Mock9次/.0096账绝不并入原真实费用或冒审美通过。一次生命周期unit因macOS/var→/private/var规范路径断言失败，已仅修fixture.resolve后44/131相关测试通过；一次下载证据脚本误用无PIL的系统python，改既有.venv通过，无安装/产品修复。
+
+**接口/下一步**：原sole已在Q-R22接口补答确认现有sameorigin私有/api前缀、18114/ExistingOwnerGate可复用，Node/Chromium实际未核；新v3需最小适配原候选启动/白名单manifest，旧normal/ENTRY硬钉旧14/静态15/47次数/已消费时窗，不能原样重放。Root交固定7f73ca6/源SHA/三锁文件/四env名，由原sole仅准备同隔离后端必要能力和新静态清单，先无模型/不开公网，后实际就绪再取得当次新有限暴露窗口并验水石已存报告+9原素材。用户解除26/80调用数上限、仍累计100元、首合格停/最多一次8分、UNKNOWN不自动重放，不新增订阅/生产流程。原8源码保存消费未加载、最近45calls/known3.9263058/pending0仅历史、所有UNKNOWN留存；本批真实0，不能宣称新正常candidate/READY/OPEN/fresh账或PG/多人容量通过。阶段③在途，④产品独审局部完成、真实质量与可集成交付待；唯一PLAN/current沿原任务续接。
