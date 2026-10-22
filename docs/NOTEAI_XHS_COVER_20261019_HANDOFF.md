@@ -2333,3 +2333,14 @@ Worker-C就本封面任务无运行构建/常驻依赖或立即使用计划，�
 
 normal next-HOLD-datafill-r1独立窄审GO：manifest4477/f5a05325、config56490/375240e1、两叶sourceonly plan3577/bd7ea266；launcher原26895/eb00/PID256未变。7extras历史实数/ref补全，当前fresh bind仍PENDING；两叶仅本机、server/transport None，4500policy/futurehuman/END/depsREADY/finalcore/15baseline均保None，不伪造READY或以未来时窗阻塞准备。恢复唯一PLAN targeted_capacity_review.pid512_single_variable_verification；阶段3进行/阶段4真实交付HOLD，A模型0/商家0/单位成本N/A，15新增100总及旧45calls/3.9263058/UNKNOWN保，报告正文和生产不改，原sole统一集成发布。
 
+
+## CURRENT — 2026-10-22 15:52UTC PID512消除拒绝但仍导航超时；仅一次原配置statvfs取证准备
+
+登记HEAD8168c07/产品c708，未改产品代码。唯一PID512 case C c-sz070tkmrx6s3r4/T t-sz070tkmrxo9e68，15:38:15–15:39:20Z Failed2/D0/R1，Run01A16443-4AEE-5E7F-BB90-27D5AE5DFF79/Read01A16445-0FFD-5646-87DB-A82FCC7CCAE2；原result18600/SHA9f392a18e17ac9a4a7febecfab7955ddce6c662b59257f4448bb20f54d85c4a9已Root全读核。seed成功、外contract全PASS，内contract31331ms exit1/errornull，原stderr精确Puppeteer Navigation30000ms在_browser.open126/check-contract29；非外120s超时。source-only实际1766/727777已核，新case只expect512、outer差分/9helper/PROFILE/CHILD逆换/21localrefs均Root与独审核；没有后继自动重试、normal未升512。
+
+仅R4旧events+samples RO C c-sz070tliqm2vytc/T t-sz070tliqmcvk74，15:48:12–13Z S0/D0/R1，Run01A1644C-689E-5270-A293-1D2BFA40BFD9/Read01A1644C-AB8C-5ECC-AE5D-A256AC01649F；原result6297/SHA c0cade51ea29ffc50139d0f0816e93fe6c4db736c5c99f88aad81517b5352c89/events1382/cbf230/投影29780/ff8d27已Root gzip原byte/hash核。598samples实际PID512/峰294/pids.events全0，memory.peak1131429888<1.5GiB/events0，免费editrev2完成，末owned空；genChrome约30.687s仍导航失败。CPUstat未采UNKNOWN。512解决本轮PID拒绝但不等于完整容量或唯一根因，不再加PID/超时。
+
+resource定点核实际puppeteer25.9默认--disable-dev-shm-usage与Chromium152 GetShmemTempDir→GetTempDir/TMPDIR，同/tmp64MiB供独立ncr/profile及匿名unlink共享内存。源码支持局部tmpfs耗尽假设，现statvfs/ENOSPC未知，memory无OOM不能证明tmpfs足，也不凭此改networkidle或上游。仅一次原配置目的明确的取证已指令原sole：新case E/resource-sharing-linux-r1/diagnostic-filesystem-space-r1/controlled_resource_case.py27096/SHA0c5232b53b94293711dc6aa0d02f9b0c7c79ba160cf7befb42fdd832654011c8，Root全窄diff/compile核；只Observer加/tmp与/dev/shm statvfs字节/inode余量，原receipt直接first/last/min原sample点/zero/unknown，所有原字段/流程/断言/PID512/CPU1/mem1.5/tmp64/flags/58原件/超时保。原sole成熟载体核后一次source→一次case，冻结pins并行审；尚无新受理C/T，不再额外取证框架/wrapper/Chrome flags或盲扩容量，失败/未知不重发。
+
+normal唯一adapter可并行本机将已独审两叶source-only plan具化到私有新namespace/分段载体，不改旧件/futurehuman-系None；诊断期间不并行云传输，诊断结束Root再决定必要惯性预置，非START/READY/OPEN。恢复唯一PLAN targeted_capacity_review.temporary_filesystem_hypothesis及pid512_single_variable_verification；阶段3继续/阶段4真实交付HOLD，当前无云在途；A真实模型0/合格商家0/单位成本N/A，15新增100总/旧45calls3.9263058UNKNOWN保。真实九照与PC/H5保存重开免费排字下载唯一结算尚未完成，正文生产不改，原sole统一发布。
+
