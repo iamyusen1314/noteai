@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 11:03UTC 65a新源码89实际全核；同原资源r6诊断已受理，只查询原C/T
+## CURRENT — 2026-10-22 11:16UTC r6原件已核：触及PID128并达到Bridge截止；仅下一临时SDK调256准备中
+
+原分支/worktree，登记HEADc77b58f20acf19d5d004259d3e8d4355e21df6b9，产品65a61bc/manifest19279/cbc85保持、源码89已实际全核。r6 C c-sz070svxn8zliio/T t-sz070svxn9m2lmo，11:01:23–11:03:56Z F2D0/R1；actual6022/SHA dd17f74ef1c6753f72f2b9bf4755d053a00aca293f629eba4639192e25d23f2f 已Root全读JSON/hash，非供应商UNKNOWN。tool152.087s/case151.798s，1/no skip、5synthetic消息，0provider/业务DB，freeedit未完成；原cold/profile/source/旧失败保、临时tool auto-rm已核。
+
+固定四文件RO C c-sz070swtsyxevi8/T t-sz070swtszew5xc，11:11:24Z S0D0/R1，Run01A1634E-FBB5-5A32-9E28-27A27403F2F6/Read01A1634F-1E02-501A-8C3B-978AE5937050。B/sdk-exit-metadata-r6-four-files-readonly-r2/actual/result.ACTUAL-ORIGINAL.json6699/74b8f801a096e842f395ec25442a15fcf4244827b413eff4121a21ed36ae3927、raw cgroup3777/b1e8a9a8decf0b8584db5bf7b0b0713891f3e61cdb61986a334ea92709c8ef43、stderr1397/1353和stdout72/38ed及projection3323/9de5均Root真全读核。实际Bridge150s COVER_AGENT_TASK_DEADLINE，非450s外层timeout；cgroup两端0::/、memory1610612736/pids128绑定，pids.events max0→5/current1→83，memory.peak555982848、memory.events各项0。仅证本次触PID限和deadline，不冒唯一根因、83全zombie、R5原因或排除所有其他原因。5request仅至font_add，无实际contract/render返回或nativeexit，不假称已取得。
+
+下一已明确只给新目的临时零provider SDK pids128→256（expected binding同步），CPU1/1.5GiB/fa978/UID999NNPcapdropALL/readonly/networknone/Chrome flags/源码65a89/旧3depsRO/原case/断言/150与450截止全保，不加init或其他变量、不扩大normal/生产。128是前次冻结尝试值，未见人类永久PID128上限；属已授权必要非付费技术调优，明确记录参数已变，不虚称资源全未变、不编造审批拒绝。原sole唯一HOST准备新载体身份供Root窄核；尚未执行，无在途云/模型任务。独立窄审正常浏览器链串行；异常终止可能只管直接child，正在受控本地复现，不将其无证当r6原因。
+
+阶段③仍进行中，新LinuxSDKPASS/正常隔离API/九照专业成品及PC/H5保存重开免费排字下载唯一结算未达；A真实模型0、合格商家封面0、单位成本N/A。public CLOSED/newhuman-clock-END空，原新增15/累计100物理99、旧45calls/3.9263058/UNKNOWN全保，报告正文/生产不动，统一集成发布只原窗口。恢复先唯一PLANimplementation_a.temporary_pid_limit_fix及exit_metadata_fix.future_diagnostic_scope，已结束R6/RO不重派。
+
+## HISTORY — 2026-10-22 11:03UTC 65a新源码89实际全核；同原资源r6诊断已受理，只查询原C/T
 
 分支原codex/noteai-xhs-cover-20261019，登记HEADa131c5e，功能65a61bc296668e8b5c5be0a556ca42e45c4199e5及manifest19279/cbc85不变。新两叶source step00/01各一次S0D0/R1（10:57:50/10:58:26Z）；step01 C c-sz070svo54jr8qo/T t-sz070svo5518j5s，Run01A16343-1B77-5F1B-8A60-C8AB00179D29/Read01A16343-4960-5F53-97EF-8730B3E3B8BC。B/exit-metadata-65a61bc2-source-r1/part-01/actual/result.ACTUAL-ORIGINAL.json34641/2e3f5a4ece41554b83e44b1dc2e90a1c405f70dfac1c1f9ac9e26ba34d9c837f已Root全JSON/hash及89新pin逐项核；newproduct-65a61bc2-r1、18exec500/71read400/3空deps槽、两archive pending，原187/r5/cold保、无重装/模型。
 
