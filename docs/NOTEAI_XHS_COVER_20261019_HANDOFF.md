@@ -2187,3 +2187,6 @@ Root独立normal消费reader同时查明旧launch_runtime_once.py235–244无实
 
 
 **10:08UTC里程碑：最小修复18765f1与有效验证**：产品18765f16fa80430cb7dfe56d93d4498b2d126407仅现有5叶，short private TMPDIR覆盖CLI/thumbnail/cover_check，upstream58/权限/依赖全保；测试仅坏链留证与真实contract工具回归加强。E/short-browser-tmp-r1最终本机receipt619/a7220459实际SDK29.294s/8synthetic messages PASS（176字符深路径、contract/render/thumbnail/sourcebundle/freeedit/旧成品保），不是Linux或商家审美验收。冻结新manifest19243/188043cd、delta2908/41ca9f34，91总/89runtime/5changed86reused；旧20a/6fe3/r4引用保不覆写。原sole唯一云作者准备最少新版本五叶transport＋新目的同fa978零provider SDK，Root核具体差分，普通已知故障非付费工程不重问。HOST normal argv r2和metadata r5已真读核仍HOLD非creator，actual/READY/START/OPEN空。改动→风险→证据→补测：仅browser scratch及留证→Linux资源/路径实际仍待→本机最终SDK+独审与旧不变证据复用→Linux目标SDK后九照真实封面PC/H5等。A付费0/合格样张0/单位成本N/A，无public窗或生产变更。
+
+
+**10:24UTC测试接续错误（不扩产品修复）**：18765f1冻结/本机最终SDK证据有效。source step00 S0、step01 F1各一次，原parts与partial保；薄RO21570/f31541确认new45元数据在/44缺，首违规旧pack.sh合法0500但读取器只接受0400，实际SHA同原pin、cold不变。仅原sole核有限9.sh原mode契约并派生固定清单读/保0500，其余400；逐whole验已有45不覆盖后只写缺44，不重运part/产品，不泛化权限/审批，不重报告。新SDK/normal/public/provider仍0，原正文/生产/预算/UNKNOWN全保，具体C/T与恢复见权威CURRENT/PLAN。

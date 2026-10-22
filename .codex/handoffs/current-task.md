@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 10:08UTC 局部路径修复18765f1已交付，本机深TMPDIR真实SDK通过；原sole准备Linux五叶增量复测
+## CURRENT — 2026-10-22 10:24UTC 产品18765f1本机通过保持；Linux source-only接续误拒旧合法可执行脚本，局部修接续契约
+
+登记HEADe0061aa，产品18765f1与新manifest188043/91不变，worktree仅本任务文档。两source-only新token已各一次实际终态：step00 C c-sz070srynze03y8/T t-sz070srynznzpc0，10:16:52Z S0D0/R1，result858/972ca1dc仅part保存/refs0；step01 C c-sz070ss26q315a8/T t-sz070ss26qaiubk，10:17:58Z F1D0/R1，stdout292/db08c28e main46旧base read999元数据拒绝，未SDK/产品/业务DB/模型。两个原parts和partial新root完整保，不重派原token/终结器，不重运源码。
+
+原sole薄RO C c-sz070ssfdm238xs/T t-sz070ssfdmjkjcw，Run01A16321-D1BB-5C74-A41A-4C1EDEAB42B7/Read01A16321-F68C-59E3-8EF2-D0788441093E，10:22:04Z S0D0/R1；B/short-browser-18765f16-partial-first-base-readonly-r1/actual/result.ACTUAL-ORIGINAL.json21570/f31541f2已Root真JSON/hash核。new45present/44missing，45元数据999400/nlink1/stable/size合，不冒whole45已验；sorted首旧违规pack.sh实际999500/nlink1/stable/563、SHAc504f057与原pin完全同，cold前后同。实因测试源码读取门一律400误拒合法0500执行脚本，非产品或账号问题；首一读取不推后44均400。原manifest有9个.sh，原sole先核原materializer有限mode契约，再固定path+hash exec清单0500/其他0400，resume逐whole验45已有、不覆写，再O_EXCL写44缺项；不放宽全局/生产权限，不添新审批门或依赖。
+
+本机最终SDK29.294s/8synthetic消息、contract/render/thumbnail/sourcebundle/freeedit仍有效，独审最终9370/56f34800已Root核GO仅局部diff，未冒Linux/审美。完整集成metadata续记E/short-browser-tmp-r1/COMPLETE-INTEGRATION-CONTINUATION.json2188/579fc1a5复用旧完整131path清单；新增fix不加migration/dep，正式集成只原sole。新Linux SDK尚0/normal0/public关闭，新human-public-clock-END空；provider0/合格商家样张0/单位成本N/A，15新增/100总99物理与旧UNKNOWN/报告正文生产边界全保。下一仅修源码接续→actual89→同配置新目的SDK，再真实九照封面验收准备。
+
+## HISTORY — 2026-10-22 10:08UTC 局部路径修复18765f1已交付，本机深TMPDIR真实SDK通过；原sole准备Linux五叶增量复测
 
 产品提交18765f16fa80430cb7dfe56d93d4498b2d126407，原分支worktree不变，仅5leaf/41+/6-：host.mjs、thumbnail.mjs、cli.mjs、README、test_cover_agent_runtime.py。共享短/tmp/ncr-*私有0700 scope覆盖CLI/render/edit、host thumbnail与独立cover_check；恢复TMPDIR且finally只删本次目录，原upstream58/浏览器flags/安全配置/依赖/迁移不动。测试symlinks=True保留坏链不掩盖原失败；同SDK响应加真实contract工具code0/pass true断言，设计7轮/总8synthetic消息不变。SIGKILL仍靠原隔离临时卷终态回收，不冒即时finally。独立reader已收口无P0-P2，非Linux/模型/审美验收。
 
