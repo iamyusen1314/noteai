@@ -2221,3 +2221,12 @@ Root独立normal消费reader同时查明旧launch_runtime_once.py235–244无实
 
 新E/bridge-group-fix-r1/manifest19404/b5d3af42，总91/运行89，相对65a仅2叶变/上游58保；delta1282/e58a4bd0，MacSDKreceipt664/9ca093d1。当前云仍65a，字体诊断不混新源；待真实字体事实/必要局部修复合并后最小source接续，不重装/复制其他窗口或加迁移权限。阶段③未达目标Linux整链及真实九照专业成品/PC-H5重开排字下载唯一结算；A模型0/合格商家样张0/单位成本N/A，public CLOSED/新human-clock-END空，15新增/100总物理99、旧45calls/3.9263058/UNKNOWN保。正文/生产不动，最终原sole统一集成。
 
+
+## 接续检查点 — 2026-10-22 12:04UTC fixed117原件核实：传输/二进制装载成功，CSS仍失败；验证私有字体配置发现路径
+
+原分支/worktree，产品910e4bd、本机完整SDK32.802s和3定向21.011s/独审GO保持；云仍65a89，不混入当前诊断。fixed117仅一次C c-sz070t0vy88775s/T t-sz070t0vy8s6dxc，11:56:55–57Z S0D0/R1，Run01A16378-A5BD-596F-AC7B-86A702407292/Read01A16378-E363-59E4-BBAA-F850D6F25BD3。B/r7-fixed117-font-binary-diagnostic-final-r4/actual/result.ACTUAL-ORIGINAL.json24046/SHA b30c3ce33b979489e9ca853e3c73ffe0a2dbbaba98f9d7c84c9066884a75fe72已Root实际JSON/hash核；原job117、npm117、browser响应三者52464/SHA d94b5af0c14838af99bf9855f91e851878726558531ddef5bd2100b70dfbe90c，wOF2/header相符、CDP真实loadingFinished。独立binary FontFace constructor/load真实loaded，未加document/DOM；原CSS101faces仍error/原load既有NetworkError。stderr保留8046UTF8、192条空font/glyph0 HarfBuzz记录且截断，不由未见OTS断言排除。close/autorm/原HTML/profile/R7/cold不变实际确认，0SDK/模型/业务DB；不是渲染或审美通过。
+
+下一只验证有官方源码支持的环境假设：Chromium152 URL字体加载中需last-resort fallback，取空时CSS source被丢弃，而独立binary已loaded可绕过该分支。已有82私有包实际含DejaVu字体、Fontconfig配置和fc-match，wrapper只设库路径，字体数据路径是否可见尚未证。原sole准备同fc-match/UID/LD/HOME默认对比本任务私有XML dir与cache；仅新Chrome启动前FONTCONFIG_FILE指定候选，保持原HTML/font/source65a/上游58/fa978及CPU1/1.5G/PID256，不装包/改系统配置/加权限。候选/源码机制不是根因结论，fc-match成功也不冒ChromePASS；实际carrier/result尚空，不重派旧R4或盲重SDK。
+
+恢复先唯一PLANimplementation_a.font_load_diagnostic.binary_probe_preparation和private_fontconfig_candidate。当前无在途云/供应商请求，阶段③Linux整链和真实九照专业样张/PC-H5重开免费排字下载唯一结算未完成；A真实模型0、合格商家封面0、单位成本N/A，public CLOSED/新human-clock-END空。15新增/100总物理99及旧45calls/3.9263058/UNKNOWN保，正文/生产不动，最终原窗口统一集成。
+

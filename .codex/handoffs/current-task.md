@@ -1,4 +1,12 @@
-## CURRENT — 2026-10-22 11:43UTC r7字体保护真实拒绝；中断同组回收修复910e4bd已提交，本机完整SDK通过
+## CURRENT — 2026-10-22 12:04UTC fixed117原件核实：传输/二进制装载成功，CSS仍失败；验证私有字体配置发现路径
+
+原分支/worktree，产品910e4bd、本机完整SDK32.802s和3定向21.011s/独审GO保持；云仍65a89，不混入当前诊断。fixed117仅一次C c-sz070t0vy88775s/T t-sz070t0vy8s6dxc，11:56:55–57Z S0D0/R1，Run01A16378-A5BD-596F-AC7B-86A702407292/Read01A16378-E363-59E4-BBAA-F850D6F25BD3。B/r7-fixed117-font-binary-diagnostic-final-r4/actual/result.ACTUAL-ORIGINAL.json24046/SHA b30c3ce33b979489e9ca853e3c73ffe0a2dbbaba98f9d7c84c9066884a75fe72已Root实际JSON/hash核；原job117、npm117、browser响应三者52464/SHA d94b5af0c14838af99bf9855f91e851878726558531ddef5bd2100b70dfbe90c，wOF2/header相符、CDP真实loadingFinished。独立binary FontFace constructor/load真实loaded，未加document/DOM；原CSS101faces仍error/原load既有NetworkError。stderr保留8046UTF8、192条空font/glyph0 HarfBuzz记录且截断，不由未见OTS断言排除。close/autorm/原HTML/profile/R7/cold不变实际确认，0SDK/模型/业务DB；不是渲染或审美通过。
+
+下一只验证有官方源码支持的环境假设：Chromium152 URL字体加载中需last-resort fallback，取空时CSS source被丢弃，而独立binary已loaded可绕过该分支。已有82私有包实际含DejaVu字体、Fontconfig配置和fc-match，wrapper只设库路径，字体数据路径是否可见尚未证。原sole准备同fc-match/UID/LD/HOME默认对比本任务私有XML dir与cache；仅新Chrome启动前FONTCONFIG_FILE指定候选，保持原HTML/font/source65a/上游58/fa978及CPU1/1.5G/PID256，不装包/改系统配置/加权限。候选/源码机制不是根因结论，fc-match成功也不冒ChromePASS；实际carrier/result尚空，不重派旧R4或盲重SDK。
+
+恢复先唯一PLANimplementation_a.font_load_diagnostic.binary_probe_preparation和private_fontconfig_candidate。当前无在途云/供应商请求，阶段③Linux整链和真实九照专业样张/PC-H5重开免费排字下载唯一结算未完成；A真实模型0、合格商家封面0、单位成本N/A，public CLOSED/新human-clock-END空。15新增/100总物理99及旧45calls/3.9263058/UNKNOWN保，正文/生产不动，最终原窗口统一集成。
+
+## HISTORY — 2026-10-22 11:43UTC r7字体保护真实拒绝；中断同组回收修复910e4bd已提交，本机完整SDK通过
 
 实际HEAD/功能910e4bdaba17e02c168510c31c12e4e972f21d74，分支/worktree保持。r7仅临时PID256实际11:19:48–58Z F2D0/R1，C c-sz070sxkr4cprls/T t-sz070sxkr4rp5og；result6175/4c5998ac已Root全读核。固定四文件RO11:23:51Z S0D0/R1，C c-sz070sxxrxh66m8/T t-sz070sxxrxw5kow；result8903/0533adf3及三原byte/projection7994/18537均真核。PID256两端绑定/max增0、memory事件增0，但SDK未通过：独立contract14checks真PASS，idleFonts含Noto Sans SC Variable，内部render返回TEXT_FONT_NOT_SELF_HOSTED/title。0provider/业务DB，无450s timeout；不称容量或字体成功，不回溯R5/R6唯一原因。
 
