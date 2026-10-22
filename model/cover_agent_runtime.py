@@ -39,6 +39,14 @@ def _environment_ready(node, modules, browser):
             timeout=3, check=True).stdout.decode().strip().lstrip("v").split(".")
         if tuple(map(int, version[:2])) < (22, 12):
             return False
+        # The package engine declaration alone does not prove the actual
+        # node:sqlite APIs used by this SDK. Probe only an in-memory database.
+        subprocess.run([binary, "--input-type=module", "-e",
+            "import {DatabaseSync} from 'node:sqlite'; const db=new DatabaseSync(':memory:');"
+            "const stmt=db.prepare('SELECT 1'); stmt.setReturnArrays(true);"
+            "if(!Array.isArray(stmt.get())) process.exit(1); db.close();"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3, check=True,
+            env={"PATH": os.environ.get("PATH", "")})
         for package in ("sdk", "plugin"):
             value = json.loads((Path(modules) / ("@opencode/" + package + "/package.json")).read_text())
             if value["version"] != "2.1.2":

@@ -16,6 +16,9 @@ installation or provider call at module import. Set
 checks SDK/plugin versions before startup. The integration selects Node through
 `NOTEAI_COVER_NODE` and launches `worker.mjs`. Node 25.7.0 on macOS was actually
 tested; other Node/OS combinations need their own runtime check.
+The package's >=22.12 declaration is not a Linux compatibility proof: readiness
+also checks the real `node:sqlite` in-memory database and array-result APIs used
+by the SDK. The full SDK and renderer still need a provider-free target-host test.
 
 The Promise SDK entry is intentional: `@opencode/sdk/promise` accepts the second
 embed override argument, while the 2.1.2 root `OpenCode.create` wrapper drops it.
@@ -34,6 +37,11 @@ Code Mode `execute` tool, which otherwise includes `fetch`. A second tool hook
 rejects any unlisted tool. The trusted local renderer subprocess still requires
 normal job/process filesystem isolation from its caller; this module is not an
 OS sandbox.
+
+All six tools share one local queue, including render/check subprocesses and the
+completed render's thumbnail. Parallel SDK tool calls cannot fan out local
+browser work or race font/file writes. A queued tool checks the task deadline
+again when it acquires the slot; a rejected tool releases it for the next call.
 
 ## JSON-lines protocol
 

@@ -209,11 +209,21 @@ try {
   const { Global } = await load('@opencode/util/dist/global.js');
   const fullSkill = await fs.readFile(path.join(job.skill_dir, 'SKILL.md'), 'utf8');
   const skillsSha = sha(fullSkill);
+  // SDK tool calls may arrive in parallel. One local tool owns files and
+  // browser capacity through its entire render/check/thumbnail operation.
+  let localToolTail = Promise.resolve();
   const tool = (name, description, input, execute) => ({ name, description, input, options: { codemode: false }, execute: async (args) => {
-    try { return await execute(args); } catch (e) {
+    const previous = localToolTail;
+    let release;
+    localToolTail = new Promise((resolve) => { release = resolve; });
+    await previous;
+    try {
+      if (inputClosed || Date.now() >= job.deadline_epoch_ms) throw error('LOCAL_TOOL_DEADLINE');
+      return await execute(args);
+    } catch (e) {
       if (/UNKNOWN/.test(e.code || '')) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
       return { content: JSON.stringify({ ok: false, code: e.code || 'LOCAL_TOOL_FAILED', detail: e.message }) };
-    }
+    } finally { release(); }
   } });
   const tools = [
     tool('cover_read', 'Read a UTF-8 job file, or a complete Skill reference using skill:relative/path. Images use cover_view.', objectSchema({ path: { type: 'string' } }), async ({ path: rel }) => {
