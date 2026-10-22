@@ -116,7 +116,7 @@ function run(command, args, cwd, name) {
   if (result.error || result.status !== 0) fail('UPSTREAM_' + name.toUpperCase() + '_FAILED', JSON.stringify(evidence));
   return evidence;
 }
-async function inspect(dir, manifest, edit = null) {
+async function inspect(dir, manifest, edit = null, pngPath = null) {
   const { launch, open } = await import('./vendor/editable-design/scripts/_browser.mjs');
   const browser = await launch();
   const requests = [], blocked = [];
@@ -201,7 +201,25 @@ async function inspect(dir, manifest, edit = null) {
       if (box.overflow || !contained(allowed, box.rect) || box.ink.some((b) => !contained(allowed, b))) fail('TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION', box.id);
       if (manifest.protected_regions.some((r) => box.ink.some((b) => overlaps(r, b)))) fail('TEXT_OVER_PROTECTED_SUBJECT', box.id);
     }
-    return { ...state, external_requests: 0, requested_local_files: [...new Set(requests.map((url) => path.relative(dir, fileURLToPath(url))))].sort(), visual_qc: 'NOT_PERFORMED' };
+    let screenshot = null;
+    if (pngPath) {
+      // Reuse the upstream pixelDiff capture pattern on the page just checked.
+      // Element screenshots can wait for scrolling on a tall poster; clipping
+      // the canvas also keeps page margins out of the delivered image.
+      const canvas = await page.$('[data-canvas-width]');
+      const clip = await canvas.boundingBox();
+      if (!clip || ![clip.x, clip.y, clip.width, clip.height].every(finite)
+          || clip.x < 0 || clip.y < 0) fail('CANVAS_NOT_CAPTURABLE');
+      const started = performance.now();
+      await page.screenshot({ path: pngPath, type: 'png', clip,
+        captureBeyondViewport: true, omitBackground: false });
+      if (errors.length || blocked.length) fail('OFFLINE_RENDER_ERROR', JSON.stringify({ errors, blocked }));
+      screenshot = { renderer: 'editable_design_browser',
+        upstream_module: 'scripts/_browser.mjs', operation: 'page.screenshot',
+        elapsed_ms: Math.round(performance.now() - started), canvas_clip: clip,
+        device_scale_factor: 1, external_requests: 0 };
+    }
+    return { ...state, ...(screenshot ? { screenshot } : {}), external_requests: 0, requested_local_files: [...new Set(requests.map((url) => path.relative(dir, fileURLToPath(url))))].sort(), visual_qc: 'NOT_PERFORMED' };
   } finally { await browser.close(); }
 }
 async function filesEvidence(dir) {
@@ -258,9 +276,9 @@ async function perform(command, request) {
     evidence.push(run('/bin/bash', [path.join(SKILL, 'scripts/check-poster.sh'), path.join(dir, 'index.html')], dir, 'poster_contract'));
     evidence.push(run('/bin/bash', [path.join(SKILL, 'scripts/check-fonts.sh'), path.join(dir, 'index.html')], dir, 'fonts'));
     evidence.push(run(process.execPath, [path.join(SKILL, 'scripts/check-contract.mjs'), path.join(dir, 'index.html'), '--json'], dir, 'editable_contract'));
-    const checks = await inspect(dir, constraints);
     await fs.mkdir(path.join(dir, 'out'));
-    evidence.push(run('/bin/bash', [path.join(SKILL, 'scripts/render-poster.sh'), path.join(dir, 'index.html'), path.join(dir, 'out/poster.png'), '--scale', '1'], dir, 'render'));
+    const checks = await inspect(dir, constraints, null, path.join(dir, 'out/poster.png'));
+    evidence.push({ command: 'render', ...checks.screenshot });
     const png = await fs.readFile(path.join(dir, 'out/poster.png'));
     if (png.readUInt32BE(16) !== WIDTH || png.readUInt32BE(20) !== HEIGHT) fail('PNG_DIMENSION_MISMATCH');
     if (png.length > 10 * 1024 * 1024) fail('PNG_OUTPUT_TOO_LARGE');

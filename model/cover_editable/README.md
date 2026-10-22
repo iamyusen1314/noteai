@@ -24,9 +24,20 @@ npm ci --prefix model/cover_editable/vendor/editable-design/font-kit --ignore-sc
 ```
 
 All package versions are pinned in the upstream lockfiles. `node_modules` is
-ignored. The adapter invokes upstream `check-poster.sh`, `check-fonts.sh`,
-`check-contract.mjs` and `render-poster.sh`, without substituting a new rendering
-framework. Its additional DOM inspection uses the upstream `_browser.mjs`.
+ignored. The adapter invokes upstream `check-poster.sh`, `check-fonts.sh` and
+`check-contract.mjs`. It reuses upstream `_browser.mjs` for DOM inspection and
+captures that same checked page with the upstream `pixelDiff` screenshot pattern:
+the canvas bounding box, scale 1 and `captureBeyondViewport`. Page margins are
+excluded and the normal opaque background is retained. Generation and free text
+editing use the same capture path; the PNG dimensions and size are read back.
+
+The complete upstream `render-poster.sh` remains unchanged in the package. Its
+raw Chrome CLI path did not produce a PNG in the isolated Linux runtime, and its
+cleanup required an unavailable `ps`. The adapter uses the project's existing
+Puppeteer browser path instead. Render evidence records `editable_design_browser`
+and `page.screenshot`, not a successful invocation of that shell script. This is
+an export compatibility change, not a new design workflow or rendering framework;
+pixel equality with the old raw CLI is not claimed.
 
 Use the original `font-kit.mjs add` command **before** referencing its generated
 `--font-kit-ID` variable. The upstream tool treats the variable's presence as its

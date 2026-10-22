@@ -20,7 +20,7 @@ import unittest
 import uuid
 from unittest import mock
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
 import cover_agent_artifacts as artifacts
@@ -325,8 +325,16 @@ class CoverAgentRuntimeSDKTests(unittest.TestCase):
             kwargs["on_call"](record)
             return concept, record
 
+        original_html = ScriptedBridge.html
+
+        def offset_canvas(source_path):
+            # A viewport screenshot would include this margin and truncate the
+            # tall canvas. The delivered image must be the checked canvas.
+            return original_html(source_path).replace("html,body {margin:0;padding:0}",
+                "html,body {margin:0;padding:0} body {margin:17px;background:#ff00ff}")
+
         try:
-            with mock.patch.dict(os.environ, {"NOTEAI_COVER_AGENT_STATE_ROOT": str(self.root / "jobs")}), mock.patch.object(runtime.cover_seedream, "generate_background", side_effect=fake_image) as image:
+            with mock.patch.dict(os.environ, {"NOTEAI_COVER_AGENT_STATE_ROOT": str(self.root / "jobs")}), mock.patch.object(runtime.cover_seedream, "generate_background", side_effect=fake_image) as image, mock.patch.object(ScriptedBridge, "html", side_effect=offset_canvas):
                 result = runtime.run_cover(job_id=str(uuid.uuid4()), user_id="offline-owner",
                     report={"title": "原照独立图层中文排字测试", "body": "合成技术图验证，非商家样本。", "title_variants": []},
                     sources=[source], hooks=hooks, bridge_class=ScriptedBridge)
@@ -345,6 +353,21 @@ class CoverAgentRuntimeSDKTests(unittest.TestCase):
             self.assertIn("Written only after", (restored / "design-plan.md").read_text())
             self.assertEqual(result.layout["qc_status"], "INITIAL_VISUAL_QC_PASSED")
             old_png = (restored / "out/poster.png").read_bytes()
+            manifest = json.loads((restored / "render-manifest.json").read_bytes())
+            capture = manifest["checks"]["screenshot"]
+            self.assertEqual((capture["renderer"], capture["operation"]),
+                ("editable_design_browser", "page.screenshot"))
+            self.assertEqual(capture["device_scale_factor"], 1)
+            self.assertEqual((capture["canvas_clip"]["x"], capture["canvas_clip"]["y"]), (17, 17))
+            with Image.open(io.BytesIO(old_png)) as image:
+                delivered = image.convert("RGB")
+            self.assertEqual(delivered.size, (1776, 2368))
+            self.assertEqual(delivered.getpixel((0, 0)), (246, 242, 233))
+            self.assertEqual(delivered.getpixel((140, 700)), (90, 127, 117))
+            self.assertEqual(delivered.getpixel((888, 1240)), (203, 174, 112))
+            self.assertEqual(delivered.getpixel((888, 600)), (246, 242, 233))
+            title = delivered.crop((90, 100, 1690, 450))
+            self.assertGreater(sum(max(pixel) < 100 for pixel in title.getdata()), 1000)
             edited = artifacts.cli("edit", {"schema_version": artifacts.SCHEMA,
                 "output_root": str(self.root / "free-edit-revisions"),
                 "parent_revision_dir": str(restored),
@@ -354,6 +377,14 @@ class CoverAgentRuntimeSDKTests(unittest.TestCase):
             adjusted_png, _, adjusted_layout = artifacts.capture(edited,
                 expected_sources=result.layout["input_source_hashes"])
             self.assertNotEqual(adjusted_png, old_png)
+            with Image.open(io.BytesIO(adjusted_png)) as image:
+                adjusted = image.convert("RGB")
+            difference = ImageChops.difference(delivered, adjusted).getbbox()
+            self.assertIsNotNone(difference)
+            self.assertTrue(difference[0] >= 90 and difference[1] >= 100
+                and difference[2] <= 1690 and difference[3] <= 450, difference)
+            self.assertIsNone(ImageChops.difference(delivered.crop((0, 500, 1776, 2368)),
+                adjusted.crop((0, 500, 1776, 2368))).getbbox())
             self.assertEqual((restored / "out/poster.png").read_bytes(), old_png)
             self.assertEqual(adjusted_layout["qc_status"], "USER_ADJUSTED_NOT_VISUALLY_REVIEWED")
             self.assertEqual(adjusted_layout["initial_qc_ref"], result.layout["initial_qc_ref"])
