@@ -2004,3 +2004,28 @@ Q-R21补充（用户后续直接授权）：用户“可增加调用次数，凭
 原task tmp/implementation-a-20261022-r1下MILESTONE-OFFLINE-RESULT.json、INTEGRATION-SOURCE-MANIFEST.json、INDEPENDENT-PLAN-A-RECHECK.json、browser-current/BROWSER-API-EVIDENCE.json及PC/H5截图、runtime-final/noteai-cover-runtime-proof-6mafwpz3为本阶段原件索引。真实Ark/Seedream0、真实商家样张0、单位合格交付成本N/A；Mock9次/.0096账绝不并入原真实费用或冒审美通过。一次生命周期unit因macOS/var→/private/var规范路径断言失败，已仅修fixture.resolve后44/131相关测试通过；一次下载证据脚本误用无PIL的系统python，改既有.venv通过，无安装/产品修复。
 
 **接口/下一步**：原sole已在Q-R22接口补答确认现有sameorigin私有/api前缀、18114/ExistingOwnerGate可复用，Node/Chromium实际未核；新v3需最小适配原候选启动/白名单manifest，旧normal/ENTRY硬钉旧14/静态15/47次数/已消费时窗，不能原样重放。Root交固定7f73ca6/源SHA/三锁文件/四env名，由原sole仅准备同隔离后端必要能力和新静态清单，先无模型/不开公网，后实际就绪再取得当次新有限暴露窗口并验水石已存报告+9原素材。用户解除26/80调用数上限、仍累计100元、首合格停/最多一次8分、UNKNOWN不自动重放，不新增订阅/生产流程。原8源码保存消费未加载、最近45calls/known3.9263058/pending0仅历史、所有UNKNOWN留存；本批真实0，不能宣称新正常candidate/READY/OPEN/fresh账或PG/多人容量通过。阶段③在途，④产品独审局部完成、真实质量与可集成交付待；唯一PLAN/current沿原任务续接。
+
+
+#### Q-R23 云执行接口 — 方案A能力核载体已备；官方登录过期，尚未提交
+
+原云窗口已核7f73ca6功能manifest18308/a32a7788的91实际文件pin全部匹配（4497857B，含LFS原像素）；现HEAD4503bc为docs后继，不冒全HEAD等功能源。已复用MILESTONE1427/c51aa87d和修后独审7129/8a800c，不重131测试或本机全链。主窗随后发现同SDK回复多tool可并行，正在作唯一host本地工具串行小增量；**未运输或冻结7f为最终产品**。
+
+唯一必要能力RO在任务tmp/root-plan-a-20261022-r1/capability-readonly-r1冻结：run.sh6645/9707c40f01a891263dc8e7c768fe198180e40e0503890eade27c8487160dea92；wire8860/17ac0b8614c93d909d746c7e74b95a3f51cfc52fd6c274f2ada51ff131291de9；原ClientToken ad4eecf3-1042-4389-8db0-aacdf224028f、Timeout60/ProcessTree、target原API-C。只白名单inspect原CID/image/status/PID/Memory/NanoCpus/PidsLimit前后、workroot statvfs与MemTotal/MemAvailable、host/原image固定Node/Chromium版本/OSarch；候选须Exited/PID0才短命network-none/rootfsRO/UID999/256MiB/32pids/--rm无业务挂载工具，不启动原CID、不读Env/config/SQL或网络。原sole已逐源码核，本机compile/sh-n不是实际Linux证据。
+
+**新实际阻塞是正常管理登录过期，不是成本MFA前置**：新官方RunCommand tab6136显示登录/注册，正常点官方入口打开account.aliyun.com tab6139，实际账号/密码空表单与二维码。尚未填payload或点击发起，云命令0、无C/T，原token未消费。actual/NOT-DISPATCHED.json及LOGIN-BLOCKED-NOT-DISPATCHED.png存真实证据；未提交命令页已关闭，官方登录6139及独立成本MFA5782保handoff，主UI未触。本窗已集中请本人正常登录，不收聊天密码/验证码、不换通道绕过；恢复后沿同原载体一次执行，不重能力核。
+
+Linux最小依赖：三原lock（SDK219159/10d62d5a、renderer11683/61863eb1、font4992/5118624b）和完整原Skill复用；必须目标CPU/libc安装原生包，本机Darwin目录不可搬。Node分支实际node:sqlite/setReturnArrays/DatabaseSync.timeout，>=22.12声明不能当启动保证；Bun无须直接新增，pty.node模块加载即require其平台包，ignore-scripts不等于可省。Puppeteer-core25.9.0不带Chromium，浏览器/共享库/实际容量仍未核。只读代理报377中立host/25renderer/10font缓存SRI全符、25Linux变体缺；不冒已Linux安装。
+
+公开官方发行页核Node25现EOL、24为LTS，官方最新LTS24.22.1（https://nodejs.org/en/about/previous-releases、https://nodejs.org/download/release/latest-v24.x/）。若需安装，优先固定受支持24.22.1，先目标arch/libc、后实际SQLite/SDK非provider启动验证；当前仅候选方案，不冒兼容已通过。官方SHASUMS文本所列x64 tar.xz为6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6，arm64为dbabf7a1cbf947e6059ffad2c27b80041db97dea1e553b62afdee7f13fca336e；未下载二进制/验PGP或安装。不能以macOS25.7成功默认在Linux安装EOL25。
+
+最薄准备记录在root-plan-a-20261022-r1/DEPENDENCY-PREP.HOLD.json；安装/云/模型/OPEN/生产均0，实际能力空。下一仅本人恢复现有登录→原唯一能力核→按实机缺件在私有任务根装固定依赖→实际无provider SDK/原renderer定向smoke；最终产品等主窗工具串行小增量及新manifest，只适配必要新源/前端/guard契约，旧账UNKNOWN与原源码证明保留。没有Node/Chromium现成证据不等于要新机器；未经实核不宣称容量足够，也不新增订阅/长期权限/生产变更。
+
+### Q-R24 — 2026-10-22，资源边界补丁20a8136；登录截图已发，云准备尚未dispatch
+
+7f73ca6功能后续最小资源修复20a8136：现SDK可并行同一回复的多个tool，实际受控子进程（无Chrome）复现峰值2；六工具共同单队列覆盖check/render/thumbnail及文件修改，工具取得槽后重新校验deadline，finally释放不毒化后队。修后同实际SDK fixture峰值1、首工具拒绝后后续正常执行、排队越deadline后不启动均通过；不替换SDK loop，不新增模型次数门。正常路径每API进程1cover生成＋1free-edit最多2浏览器实例（非OS所有子进程），不能外推多replica/原报告媒体/真实CPU-RSS容量或异常进程树回收已通过。6既有共享准入/报告占槽/两用户/Pro计量/UNKNOWN窄测试通过。RESOURCE-SHARING-CHECK.json及resource-sharing-before-r2/after原件保；没有新的模型准入绕过/UNKNOWN自动重发。
+
+readiness不再只凭Node package engines≥22.12，补实际node:sqlite内存DB/setReturnArrays/array结果零网络能力探测（本机True）；原sole官方核Node25现EOL、Node24 LTS/24.22.1作为Linux候选仍须actual arch/libc/SDK/renderer核验，不搬Darwin node_modules，不因Bun依赖默认加Bun。新增仅3文件28行减2，无DB/生产变更。修后宿主原8检查PASS/14.684s、实际SDK/原CLI保存/免费派生全链PASS/25.035s，真实模型仍0；131其他受影响证据仍适用，未重复无关历史验收。源manifest已绑定7f73ca6＋20a8136逐actual bytes/SHA，4503bc只是中间文档。
+
+原sole接现唯一能力RO时遭**正常阿里云管理登录过期**，尚未填payload/点击发起，无C/T/ad4 token未消费，0云命令/安装/模型/OPEN/生产；与Worker-C MFA独立。具体DEPENDENCY-PREP.HOLD及原sole Q-R23云执行接口补答保留。用户本窗口要求“阿里云登陆的页面截图发给我，我扫码登录”，Root仅接原官方login tab1637496139并截当前官方二维码发本人，原sole明确暂停同tab操作；未填凭据/读秘密/发命令。页面已markHandoff，等待本人扫码；不能把发截图当登录完成。实际登录后Root只核状态并还原sole继续同未消费一次能力RO，不重旧命令/调用/窗。
+
+公网仍CLOSED，未设置新human/clock/END/OPEN；累计100元、无调用数限/辅助全计、最多2新任务/首合格停/8分一次/UNKNOWN不重放保持。新版真实商家封面0/单位合格成本N/A；原45账/3.9263058/pending0为历史，未冒fresh。浏览器策略另拒绝chrome://downloads定向记录读取，未绕过；可复用已鉴权PNG证据，OS落盘/真iPhone未核。下一唯一直接阻碍为扫码恢复原正常管理登录；其余本地授权工作与代码修后证据已闭合，真实质量验收和sole统一集成交付仍待。

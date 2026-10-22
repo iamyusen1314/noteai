@@ -1,4 +1,10 @@
-## CURRENT — 2026-10-22 方案A功能7f73ca6已提交；离线/独审完成，原sole隔离集成准备
+## CURRENT — 2026-10-22 方案A7f73ca6＋资源20a8136已提交；等待本人扫码恢复原sole管理登录
+
+详HANDOFF Q-R24。原SDK并行工具本地峰值2已真实复现并串行修为1，异常释放/排队deadline通过；补实际Node.sqlite能力readiness，本机True；修后宿主8与SDK原renderer/保存/免费派生全链通过，均0真实模型。固定源manifest已更新20a8136，原131/PC-H5/鉴权PNG/独审证据仍有效；OS Blob落盘、真iPhone、Linux实际容量及真实商家审美仍未验。
+
+原sole唯一能力RO未dispatch即遇官方Aliyun登录过期；没有C/T或新云/安装/model/OPEN。本人要求二维码截图，Root已从原官方tab1637496139截图发本人且markHandoff，sole暂停同tab操作。尚未看到扫码/登录成功；成功后Root还sole继续原未消费一次RO，不重历史source8/normal/窗。唯一PLAN已保存WAITING_EXISTING_ALIYUN_QR_LOGIN及功能20a。公网仍CLOSED，无新human/clock/END/OPEN；用户取消调用次数闸、累计100元保；合格新版0/成本N/A。
+
+## HISTORY — 2026-10-22 方案A功能7f73ca6已提交；离线/独审完成，原sole隔离集成准备
 
 同原分支/worktree，功能7f73ca6（parent52e24b2）。完整58上游原样＋固定OpenCode2.1.2宿主，128k/8192 Pro规划/QC、SeedreamPro整张概念、真原照层/HTML字/免费编辑；无新DB迁移/PG GRANT/生产变更。独审4P1+BR P2均修后闭合；受影响Python131、SDK真实工具/原renderer/保存派生、前端27/Admin3通过，模型响应均mock。Cua PC免费文字断行/安全移位、H5刷新从已保存库重开同549d/revision2成功，原9mock calls/8分唯一；鉴权PNG下载HTTP200/1776×2368/hash已存，浏览器Blob下载回执工具不支持，OS/真iPhone保存未验。loopback64182及前62810已结束；运行paid请求0。详HANDOFF Q-R23及原E/MILESTONE-OFFLINE-RESULT，唯一PLAN已更新。
 
