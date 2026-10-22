@@ -143,10 +143,10 @@
 
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
-| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→01ffe6c | 用户确认8分/90天/实拍v2及累计80次/100元；R12实际已消费且早关 | 不复用已消费窗，不重置历史账/UNKNOWN |
-| 2 最小实现与离线验证 | 主代理；独立问题子代理 | SOURCE_STAGED_REVIEW_GO / 48dbe56＋1d927f2 | 排字契约5项＋checkpoint7项、五叶3.11编译及双独审；辅助三窄审；实际10条私有源全核 | 新五叶已保存未加载，10条已消费；非付费准备齐，下一只待新的有限真人/窗口 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | ACTUAL8_R2_SOURCE_VERIFIED_QUALITY_PLAN_HOLD | 精确8条S0D0/R1全原件、3source raw及14源pin全核；只保存未加载/模型0 | Q-R16收敛更强模型与图片工具质量方案；无新normal/OPEN/付费scope，入口实际CLOSED |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_SOURCE_REVIEW_PASS_REAL_DELIVERY_HOLD / 48dbe56＋1d927f2 | 产品双独审、辅助core/host/entry独审通过；原PNG及R12财务原证保 | 新版合格交付0/单位成本N/A；真实PC/H5重开/排字/下载和成品质检未齐；Q07/真iPhone/多人未验 |
+| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
+| 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
+| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0 R9 Linux完整技术PASS | 原R9 C/T及6649/0565812b实际Ran1/8synthetic/22.308s/免费edit PASS、0外部 | 受控Linux多人＋原normal私有准备→新有限入口真实九照封面；OPEN仍CLOSED |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -2277,3 +2277,13 @@ normal v3与capacity仅独立HOLD准备，actualSDKPASS/depsREADY/normalREADY保
 原rawCLI诊断已知收集终态非渲染PASS：C c-sz070t6o5ic9iww/T t-sz070t6o5itqtc0，13:01:44–13:02:45Z collected S0/D0/R1，Run01A163B4-00D1-5082-8A56-622734A6B3F6/Read01A163B5-736A-5D5B-887A-EC8A71A301D0。B/r8-direct-chrome-cli-diagnostic-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json12331/SHA21c9b84eb99e455de90513267019209b3d8ba298a184ff81cb46d382af6b7d3c与stderr全5122/9f5dadd2已Root真读核；timeout60s/无PNG，exit0在ownedTERM后，非自然成功。其余12工具可用而ps缺；DBus/GLib/component与TERMzygote记录不证唯一无PNG原因。old HTML101027/e2b939、poster/profile/R8/cold保，0SDK/model/DB。原sole停止进一步rawCLI/procps/DBus安装猜测，最少补包方案仅保HOLD；不修改原失败或无依据清UNKNOWN。
 
 恢复先唯一PLAN implementation_a.browser_capture_compatibility_fix/current_source_manifest。当前无在途供应商/新source或SDK请求，新actualSDKPASS/normalREADY空，public CLOSED/newhuman-clock-END空。阶段③Linux完整链路→受控并发→原normal私有准备→有限真实九照封面及PC-H5保存重开免费排字下载唯一结算尚待；A真实模型0/合格商家封面0/单位成本N/A。15新增/100总物理99和旧45calls/3.9263058/UNKNOWN保，正文/生产不动，最终原sole统一集成发布。
+
+## 接续检查点 — 2026-10-22 14:00UTC c708 Linux完整SDK实际通过；接续受控并发与原私有入口准备
+
+登记HEAD ae70c86，产品c708fe05ccb02925f75c7263e36af18e350a9776，原worktree/分支不变。新source两步实际成功，part01原件35324/SHA20ce552ea5024065d218da0dd8275e0247c9d8d0d5997ca470d39b98ccd57d27、89叶bytes/hash/mode已Root逐核；source与旧runtime36085/41a2是独立链接，不把新source当wrapper/XML新回执。仍91身份/89runtime/2archivespending，3叶增量/86runtime复用，58上游及三旧deps保、无重装。
+
+唯一R9 C c-sz070taphah6o00/T t-sz070taphaynyf4，Run01A163DD-6F83-58DF-BD4F-DC30A7B1B694/Read01A163DD-D9E5-517C-B8D1-CC857A6DFDFF，于13:47:00–13:47:23Z实际Success/Exit0/Dropped0/Repeats1；B/sdk-browser-capture-c708fe05-r9-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json6649/SHA0565812ba80c94ce00a87c402e926c12c4cf0fca89f0fe4c78680dd6f5f6b156，Root全JSON/hash及stdout原gzip解码逐字节相同核实。Ran1/no skip/无timeout、case22.308414s/tool22.550051s、8synthetic/原照与画布像素强断言/免费edit结果保存真通过；原cold CID/image/exited/PID0前后相同、auto-rm真核。自cgroup前后EXPECTED_LIMITS与事件增量全0见真实回执；raw cgroup仅ref/hash，未重复取全原件，不夸大树回收/容量。0真实provider/业务DB/PG/merchant，public CLOSED。这是Linux完整技术链路PASS，非商家审美/真实模型/OSS/PG/auth/多人容量通过；旧R8/rawCLI失败全保且不重派。
+
+下一原sole唯一HOST作者复用成熟R9外壳准备既有受控Linuxcase：setup1+2用户排队+第三用户免费edit实际Chrome重叠，同持续container/私有SQLite/MockTransport0外部，保while-alive自cgroup/PID与ownedchildren/drain/唯一结算/存储重开。c708兼容只读AST审已完成，ScriptedBridge/synthetic_png/returned_value与其余fixture定义不变；仅用现test24037/d58b与source35324承接旧输入，不翻写旧INPUTS/Mac证据、不重跑Mac。420s是观察循环，setup150SDK及finally清理另计，outer如实覆盖。当前carrier准备未云跑；原sole独立准备normal真实21mount/cache与profile-fa978/PID256/init/wrapper277/XML209绑定，normalREADY/START/OPEN仍空/0，不因Worker-C成本MFA阻塞封面。
+
+权威状态唯一PLAN implementation_a.browser_capture_compatibility_fix.target_SDK.actual_result及targeted_capacity_review；目前无在途云/供应商请求。阶段1/2和局部独审证据可复用，阶段3继续受控Linux→原normal私有就绪→新当次有限入口真实九照封面及PC/H5保存重开免费排字下载唯一结算，阶段4真实交付HOLD。A真实模型0/合格商家封面0/单位成本N/A，15新增/100总物理99、旧45calls/3.9263058/UNKNOWN保；调用次数按需求不沿用旧80硬顶。正文/生产不动，原窗口统一集成发布。

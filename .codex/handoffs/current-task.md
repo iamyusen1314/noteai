@@ -1,4 +1,14 @@
-## CURRENT — 2026-10-22 13:32UTC 上游浏览器同页截图兼容修复c708fe0；本机完整链路与像素回归通过，Linux最小接续准备
+## CURRENT — 2026-10-22 14:00UTC c708 Linux完整SDK实际通过；接续受控并发与原私有入口准备
+
+登记HEAD ae70c86，产品c708fe05ccb02925f75c7263e36af18e350a9776，原worktree/分支不变。新source两步实际成功，part01原件35324/SHA20ce552ea5024065d218da0dd8275e0247c9d8d0d5997ca470d39b98ccd57d27、89叶bytes/hash/mode已Root逐核；source与旧runtime36085/41a2是独立链接，不把新source当wrapper/XML新回执。仍91身份/89runtime/2archivespending，3叶增量/86runtime复用，58上游及三旧deps保、无重装。
+
+唯一R9 C c-sz070taphah6o00/T t-sz070taphaynyf4，Run01A163DD-6F83-58DF-BD4F-DC30A7B1B694/Read01A163DD-D9E5-517C-B8D1-CC857A6DFDFF，于13:47:00–13:47:23Z实际Success/Exit0/Dropped0/Repeats1；B/sdk-browser-capture-c708fe05-r9-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json6649/SHA0565812ba80c94ce00a87c402e926c12c4cf0fca89f0fe4c78680dd6f5f6b156，Root全JSON/hash及stdout原gzip解码逐字节相同核实。Ran1/no skip/无timeout、case22.308414s/tool22.550051s、8synthetic/原照与画布像素强断言/免费edit结果保存真通过；原cold CID/image/exited/PID0前后相同、auto-rm真核。自cgroup前后EXPECTED_LIMITS与事件增量全0见真实回执；raw cgroup仅ref/hash，未重复取全原件，不夸大树回收/容量。0真实provider/业务DB/PG/merchant，public CLOSED。这是Linux完整技术链路PASS，非商家审美/真实模型/OSS/PG/auth/多人容量通过；旧R8/rawCLI失败全保且不重派。
+
+下一原sole唯一HOST作者复用成熟R9外壳准备既有受控Linuxcase：setup1+2用户排队+第三用户免费edit实际Chrome重叠，同持续container/私有SQLite/MockTransport0外部，保while-alive自cgroup/PID与ownedchildren/drain/唯一结算/存储重开。c708兼容只读AST审已完成，ScriptedBridge/synthetic_png/returned_value与其余fixture定义不变；仅用现test24037/d58b与source35324承接旧输入，不翻写旧INPUTS/Mac证据、不重跑Mac。420s是观察循环，setup150SDK及finally清理另计，outer如实覆盖。当前carrier准备未云跑；原sole独立准备normal真实21mount/cache与profile-fa978/PID256/init/wrapper277/XML209绑定，normalREADY/START/OPEN仍空/0，不因Worker-C成本MFA阻塞封面。
+
+权威状态唯一PLAN implementation_a.browser_capture_compatibility_fix.target_SDK.actual_result及targeted_capacity_review；目前无在途云/供应商请求。阶段1/2和局部独审证据可复用，阶段3继续受控Linux→原normal私有就绪→新当次有限入口真实九照封面及PC/H5保存重开免费排字下载唯一结算，阶段4真实交付HOLD。A真实模型0/合格商家封面0/单位成本N/A，15新增/100总物理99、旧45calls/3.9263058/UNKNOWN保；调用次数按需求不沿用旧80硬顶。正文/生产不动，原窗口统一集成发布。
+
+## HISTORY — 2026-10-22 13:32UTC 上游浏览器同页截图兼容修复c708fe0；本机完整链路与像素回归通过，Linux最小接续准备
 
 功能提交c708fe05ccb02925f75c7263e36af18e350a9776（parent bb4199b），原分支/worktree/910历史保。仅model/cover_editable/cli.mjs、其README、tests/test_cover_agent_runtime.py三现有叶；58原上游不改，无新包/权限/迁移/PG GRANT/Agent loop。Q-R20/Q-R21确认整包Skill+OpenCode/原照HTML/PNG工具与必要薄适配，未由人类锁render-poster.sh；独立范围核查确认具体shell是自有README实现约定，可在已授权范围局修，不新增批准门。
 
