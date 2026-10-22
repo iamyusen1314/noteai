@@ -140,6 +140,8 @@
 - **Q-R27-current-nine-refresh / 当前素材与正常补传接续（本机离线闭合，实启动待证）**：旧九图11550/b53c回执自然TTL已过；当前runtime/guard仍固定旧37账、旧human及paid素材门，不能修改到期时间或重跑报告。相关`refreshed_source_context`、`main`；建议仅新增current9receipt profile与正常SOURCE_REFRESH_ONLY启动，复用R4 auth/worker/9upload+1PUT及provider fences。阻塞仅隔离验收接续。A：原sole确认原9正常补传已获授权，原37/45/UNKNOWN不动；当前失败142/b6dbc发生在任何SQL/新INPUT/first15前，0模型。唯一core作者冻R2 runtime0676/guard2261，HOST/ENTRY仅原sole；尚未实际上传或启动。
 - **Q-R28-upload-normal-settings / 上传启动误用付费配置门（独审P2已局修）**：r1 runtime共用块在SOURCE_ONLY分支前调用`v3_cover_state`，将普通补图错误绑定新版付费active配置。建议SOURCE_ONLY只读实际正常settings metadata，真worker启动后沿原readiness验可用，paid严格V3校验保。A：原sole按已有执行历史确认从未执行V3配置save/activate，本轮TTL失败也早于SQL；这不是新读当前DB值。原sole接受最小局修，不改DB/伪quote；R2仅runtime15行helper/条件选择及post-start字段，guard不动，13纯合同PASS，cover_media独立复核P2关闭。真实startup仍未验，公网本窗不再OPEN。
 
+- **Q-R29-two-stage-producer-and-lifetime / 完整验收接续尚未齐（原sole最小实施中）**：问题：原B closed_prepare为NO_CAS_START，仅预算基线，未产生当前9receipt对应V3 seal/CAS；ce815仅校验启动，且拟预存closed诊断wrapper在READY后finally stop，无法供实际上传，隔离V3配置save/activate也未执行。建议：同soleHOST补最小paid-HOLD数据生产及现正常配置服务激活，实际上传复用R4/ce815保活与4b95精确恢复，不把closed-only诊断当正常服务或重放同CID。A：原sole23:29–30Z确认这些为具体未完成，6inert段未派；已独立reader列guard消费点，仍soleHOST唯一改，不新平台/权限/测试框架。阻塞后续真实九照封面，不涉及产品c708/报告正文/生产；收口前不再请求空公网时窗。
+
 ### 本任务权威清单与恢复 checkpoint（接收）
 
 此处延续原任务，清单/checkpoint 不另建副本。主窗口统一集成发布。
@@ -2458,3 +2460,9 @@ D/ABI8716/65bbe753、EVIDENCE6524/b44a181e、局部diff3245/33703775、13纯合�
 原sole两段actual：part000 Cc-sz070upvhoijbpc/Tt-sz070upvhosix34，23:20:35Z S0/D0/R1，Run01A165EA-9153-5910-9D52-D936F301208D/Read01A165EB-3F7A-59DD-8A30-012CABADCBE5，5570/51c4e6838d0f6499af2b2f927a85eb2d700b23756461c34299366e60a06ff1f3；part001 Cc-sz070uq1zjtsjcw/Tt-sz070uq1zkdrq4g，23:22:36Z S0/D0/R1，Run01A165EC-6BF8-56FB-9383-FF11E0617382/Read01A165EC-A37B-5F8E-8302-C262FB26072D，7412/9f9898d482e547fa0e3ca15ba6d0b9900a1d2f1a83777ca6a30410216ffa5fd8。原件在B/v3-private-host-HOLD-r1/normal-launcher-21map-HOLD-r1/upload-only-final-20261023-r1/two-core-source-only-r2/source-part-00{0,1}/actual；Root已全文及whole核。server PREFIX/normal-core-current-refresh-five-input-r2/source-input-readback.json，runtime0676/guard2261及266e/7e1a/fe256五叶全部root0400/nlink1，已保存未加载，protected前后同。
 
 原sole据实际余量决定START HOLD：HOST authority/config/launcher仍至少4小保存段+1次launch/3ready/精确stop，不能保证原END23:30:07Z前完成；未生成startup token、无新CID/session、0上传/DB/模型/扣分，本轮公网从未OPEN。不是供应商或成品测试失败。下一继续非付费具体HOST/ENTRY材料收口，复用已存五叶/6416deps，不重传、重probe或添4RRRO；仅真正剩当次human-END晚绑及正常启动/补传时再集中公网确认，不用空准备消耗新时窗。
+
+
+当前后段具体缺口（原sole23:29–30Z答复，非新增审批）：原B closed_prepare末尾NO_CAS_START，只生成费用基线，没有paid V3 seal/currentreceipt CAS生产者；ce815仅验seal/启动，隔离V3 normal settings也尚未save/activate。另拟预存launcher为closed-only诊断，3ready后finally stop，不能直接供正常九图上传；同CID/name/ownedroot不能重放。已由同soleHOST在独立paid-HOLD及现R4/ce815保活+4b95恢复上最小闭合，原core/guard/产品不改；当前6inert段尚未派，无在途。新的有效时窗未申请，必须等真实两阶段可运行材料全部收口，不能称只差晚绑/点击。原END23:30:07Z后不START/OPEN/paid。
+
+
+23:38UTC 接续更新：ENTRY已完成本机R2接口HOLD（INTERFACE6450/cb12aff8、MANIFEST3316/7e03c5d3、source37358/dd07669d、binder42508/d225cebe），Root全文接口并核7refs/6sidecar及五叶metadata逐等7412；futurehuman/END/CID/3ready全None，无token/执行。HOST仍未齐：同一canonical必须在正常补图前引用真正RO45/pending0产生的首个immutable15baseline，9receipt与后续paid钉同human；补图后再换human会断契约。这里只调整必要事实生产顺序，不改core/预算/旧账，当前baseline仍None。唯一HOST继续统一human/normal保活/paidsealCAS/隔离settings启用四处收口；原窗口既有settings reader已完成，Root重复reader立即中止、无写或执行，不复做。
