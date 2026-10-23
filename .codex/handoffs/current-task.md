@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 07:33UTC 新CID已由实际薄RO确认退出；局部PG参数邻接离线修复中
+
+原16970/9113932006已Root全核6原件和保护前后，148f exited/PID0/exit143/restart0/name-image-app正确，当前无须再stop；历史cleanupreceipt缺失保。原startup339/d615 class SyntaxError trace到runtime1406历史校验调用。真实guard1722/1763与db+psycopg无连接wire已暴露$1AND/$2ORDER，服务端SQLSTATE未取，不冒PGPASS。唯一作者normal_c708_mount_review正仅修3条reachable PG SQL（两guard+runtime1220免费排字）和必要guardpin，不改SQLite账本/产品/DB。Root独立集成review；本轮START07:10:28失败STOP不可续，入口CLOSED/无云在途/模型上传POST0。权威PLAN c.machinery_r3_current_human_window；完整原件与下一步见交接末节。
+
 ## CURRENT — 2026-10-23 07:20UTC 实际prepare失败STOP，未OPEN；核新CID残留而非重试
 
 唯一07:10:28批准窗失败消耗，不因END未到而再启动/开放。W实际8300/633db778已核，protected前后全等/OPENfalse/无三READY与settings；UI上传PUT/模型/封面POST/扣分0。内层192/d0ffe3显示新CID148f9413d176e41ffd8dbff55d0c2fe3bfd350ca3979e1782b6f3c1a800eb2b3 cleanup:null，不能声称已停。launcher finally覆盖最初failure，根因未知，不能猜旧错误。sole收到仅一次exactCID及owned-r3固定safe原proof薄RO；若仍running再精确身份匹配原gracefulcleanup必要恢复。无新业务/公网/付费动作。PLAN c.machinery_r3_current_human_window为唯一恢复点，详情交接最新节。

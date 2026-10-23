@@ -2682,3 +2682,12 @@ Root已将具体最终材料交原sole并授权必要source-only实际保存/完
 内层upload-start.stdout192/d0ffe3a567aa834c175e6eb38d25596358e8f1cb3b323077f7f77ea039e0130f明确OWNED_CLEANUP_UNCONFIRMED_READ_ACTUAL_CID_NO_REPLAY，唯一新CID148f9413d176e41ffd8dbff55d0c2fe3bfd350ca3979e1782b6f3c1a800eb2b3、cleanup:null；内层result487/349423966cc24aac8fa0ea5d85adf7d611d87e6187ca6eec9195014a8a791370，stderr0。不能称该CID已停，也不复用旧9f98。Root与sole读launcher finally442–445：cleanup_owned任意异常覆盖最初failure，所以现有192B无法证明原启动根因，不能猜旧machinery重复。
 
 已交同一sole一次薄只读接续：只exact CID自定义id/name/image/app/state/restart（不读Env/logs/exec），固定owned-r3中launch-started/container/ipc/index/cleanup与control四safe JSON原bytes+metadata/absence，其余control仅name/type/meta。先只读；若真实running，再以exactname/image/app精确匹配的原mature gracefulcleanup必要恢复同一测试CID。属于原授权定向调试/必要恢复，不是业务重试/新公网窗/付费调用。normal_c708_mount_review独立只核现有源码/路径，不云操作/重审项目。权威PLAN c.machinery_r3_current_human_window已记失败原件、cleanup未知和下一步；原first15/账本/旧UNKNOWN/正式服务保留。
+
+
+## CURRENT — 2026-10-23 07:33UTC 薄RO证新CID已退出，定位PG占位符邻接，离线最小修复中
+
+原sole一次薄RO C c-sz070vxhotfwtfk/T t-sz070vxhotuw7i8，Run01A167AA-3625-5F72-90CF-5E3FB26F8EF1/Read01A167AA-71A0-5DFC-9682-3F4528F63E6C Success0/D0/R1。R=B/window-20261023-151028-r1/failed-owned-startup-originals-readonly-r1/raw-preserve-r2/actual；原16970/911393200607d1e2e65b6106e9b92e9d8518148f6888edb965d280dd67b17d40 Root全读、核6fixed base64原bytes/sha、index和startup双副本一致。148f实际前后均exited/runningfalse/PID0/exit143/restart0且name/image/app精确匹配，当前已停，无须另stop。历史closed-startup-cleanup.json仍真实absent，不能补写其历史成功；原7protected/6pins全等、ENTRY CLOSED、RO无SQL/exec/logs/ENV/写入。sole原总索引9540/4eebd3445e1d5fe1d2c159ccf5d3b7427e7b36ee949777293d601beb21a10b6a，完成页已关/无云在途。
+
+startup-hold原339/d615005e4d1ad2e85f7ae984f7e30b1eb3609c30fca93851226bf9075f709efd（control inode1617347/999600，copy1617349/root600）class SyntaxError，helpertrace1916→1811→1657→1494→1406/provider0；三READY实际absent。1406为old_cover_check(...v3_historical_rows)，证明到原报告历史校验路径，不能把SyntaxError当Python解析或旧AttributeError。唯一作者与cover_media独立核实际guard174644/2261 L1722 SQL user_id=?AND report_id=?ORDER，L1763新POST gate j.user_id=?AND；真实model.db._postgres_sql只replace?→%s，真实psycopg3.3.4无连接converter最终生成$1AND/$2ORDER。此为可定位参数邻接错误，补空格后driver wire正确；SQLSTATE/服务端解析错误文本没有现场导出，离线证据不冒真实PG/质量PASS。
+
+normal_c708_mount_review唯一tmp helper修改负责人继续最小同因修：两条guard PG query三空格，runtime1220免费排字权限同因query，以及必要newguard whole pin承接，保6c69/2261原件、SQLite账本查询不动、正常model.db/产品c708/正文/生产不改。Root+cover_media负责最终diff/真实adapter-wire/权限边界独立核。无新DB/依赖/模型/业务窗，不重复旧suite；本轮STOP不可续，后续外部接入须先准备完整具体可核结果。PLAN本轮CID字段已从未知更新为真实退出，其余旧失败和UNKNOWN继续保留。
