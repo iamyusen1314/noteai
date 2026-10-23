@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 07:43UTC PG spacing补丁与独立窄审GO，原机制private接续准备中
+
+产品c708与正常DB不改。I/postgres-placeholder-spacing-r1 new runtime174627/b7c2908d、guard174647/62926013，精确3PG SQL共6spaces+1guardwhole；manifest2616/597f33d0/evidence5458/c06568ef/独审5193/d0f4455c Root全核接受，真实adapter-wire/params/historyfilter/owner-report-completed/AST4PASS、3.11compilePASS。实际PG SQLSTATE/启动/成品仍未验，旧source/SQLite账本保。PLAN q.postgres_placeholder_spacing_repair是当前恢复点；原sole只准备既有source/pin最小本机接续，Root核carrier后private保存，未准新START/OPEN。07:10失败窗继续STOP，148f实际exited/PID0/exit143/restart0，无云在途；新human/END尚无，不重first15/ENTRY/冷suite/正文/生产。完整refs在交接末节。
+
 ## CURRENT — 2026-10-23 07:33UTC 新CID已由实际薄RO确认退出；局部PG参数邻接离线修复中
 
 原16970/9113932006已Root全核6原件和保护前后，148f exited/PID0/exit143/restart0/name-image-app正确，当前无须再stop；历史cleanupreceipt缺失保。原startup339/d615 class SyntaxError trace到runtime1406历史校验调用。真实guard1722/1763与db+psycopg无连接wire已暴露$1AND/$2ORDER，服务端SQLSTATE未取，不冒PGPASS。唯一作者normal_c708_mount_review正仅修3条reachable PG SQL（两guard+runtime1220免费排字）和必要guardpin，不改SQLite账本/产品/DB。Root独立集成review；本轮START07:10:28失败STOP不可续，入口CLOSED/无云在途/模型上传POST0。权威PLAN c.machinery_r3_current_human_window；完整原件与下一步见交接末节。

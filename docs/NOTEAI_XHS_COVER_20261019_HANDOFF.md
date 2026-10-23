@@ -2691,3 +2691,12 @@ Root已将具体最终材料交原sole并授权必要source-only实际保存/完
 startup-hold原339/d615005e4d1ad2e85f7ae984f7e30b1eb3609c30fca93851226bf9075f709efd（control inode1617347/999600，copy1617349/root600）class SyntaxError，helpertrace1916→1811→1657→1494→1406/provider0；三READY实际absent。1406为old_cover_check(...v3_historical_rows)，证明到原报告历史校验路径，不能把SyntaxError当Python解析或旧AttributeError。唯一作者与cover_media独立核实际guard174644/2261 L1722 SQL user_id=?AND report_id=?ORDER，L1763新POST gate j.user_id=?AND；真实model.db._postgres_sql只replace?→%s，真实psycopg3.3.4无连接converter最终生成$1AND/$2ORDER。此为可定位参数邻接错误，补空格后driver wire正确；SQLSTATE/服务端解析错误文本没有现场导出，离线证据不冒真实PG/质量PASS。
 
 normal_c708_mount_review唯一tmp helper修改负责人继续最小同因修：两条guard PG query三空格，runtime1220免费排字权限同因query，以及必要newguard whole pin承接，保6c69/2261原件、SQLite账本查询不动、正常model.db/产品c708/正文/生产不改。Root+cover_media负责最终diff/真实adapter-wire/权限边界独立核。无新DB/依赖/模型/业务窗，不重复旧suite；本轮STOP不可续，后续外部接入须先准备完整具体可核结果。PLAN本轮CID字段已从未知更新为真实退出，其余旧失败和UNKNOWN继续保留。
+
+
+## CURRENT — 2026-10-23 07:43UTC 三条PG查询最小补丁与独审完成，准备原机制private source接续
+
+产品功能c708fe05、原分支不改。I/postgres-placeholder-spacing-r1是唯一局部修复：new runtime174627/b7c2908da18607c3f116cf4817bf4c39ab7ff2f16f70f0d097c94afb248abf31，newguard174647/62926013d86db4c6ab886d0847b824036134b1d019ef3a2bfb4c4d6c1ba847f9。Root核原/新完整bytes精确只有guard1722两空格、1763一空格、runtime1220三空格与单guardwhole pin；原6c69/2261与db4253579a全部不变，SQLite三查询原样。manifest2616/597f33d05d19dece368d35ae2f9f6b49b7d43846ce10f467f27bff5f7f2fe7d9；diff4501/3581209221faef928c1924587ee648875e284d475eb536fa4b68fd2d6705e4fa；evidence5458/c06568ef581a770942b672030014196f2fe9e026f0ae7ef8df9284f8675667c2。
+
+作者真实3.12.14/psycopg3.3.4 adapter+driver wire/参数、实际历史过滤、实际Admission owner/report/completed约束和AST4PASS；3.11.14纯内存compile两源PASS。首次local selector误选旧正常查询2fail已记，修测试selector后4PASS，产品补丁无追加。cover_media独立只跑同四项一次PASS0.274s，整bytes/所有refs与权限/账本边界核合，无确定P0-P2；独审5193/d0f4455c7c19aad387993a6344a0dc153f7668fd7df7952e17c9a416346b7aa8 Root全读接受。服务端SQLSTATE/真实启动/真实成品仍未通过，不能混作offline PASS。
+
+权威PLAN q.postgres_placeholder_spacing_repair记上述整原refs，原sole/已有HOST作者只做既有immutable stage和两阶段caller的必要本机source/pin差异，优先server-local旧整源精确替换核newwhole，避免重新运输350KB源；未改helper/ENTRY6/binder/前端/first15原件复用，结构不变的cold21/R6/R9不重复。Root核具体carrier后再同一sole零费private保存，无业务START/OPEN/模型；当前07:10窗已STOP不可续，暂无新human/END。待完整实际private材料保存可核后才集中形成下一次有限真实验收请求，不以未经核实的准备声称可交付。
