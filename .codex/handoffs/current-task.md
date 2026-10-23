@@ -1,3 +1,9 @@
+## CURRENT — 2026-10-23 11:01:20UTC 新真人确认已固定，R5单次真实验收接续中
+
+登记HEADe420b88/功能c708fe05。Root本turn第一clock11:01:20Z；read_thread核真实user message01a1686c-18fe-7d03-804d-0f43ef6b3064“确认”/turn01a1686c-18da-7572-9515-83a56099ce69（started1792753277），不是旧同意或线程转述。START1792753280/END1792756880固定至北京20:01:20，首实际OPEN须≤11:31:20Z且剩≥30min，同窗不重开不延时。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-190120.json1633/502fc487及.WITNESS820/15fc64f2原件已存；W5/INPUT.spacing-r5.AUTHORITY.ACTUAL.json4600/a59eb493仅原6key的authority4字段晚绑，source3真引用/frontend保持，PUT None。
+
+原sole已收本次明确dispatchGO，沿已核12057/107939只DATA赋值晚绑后一次prepare/CLOSEDnormalsettings→3READY→有限ENTRY；Root只真OPEN后正常9原图补传，PUT final-ASGI-send实际终态前不paid。权威PLAN c.entry_static_r5_current_human_window是本轮恢复入口，旧r4和sourceSAVE原件不覆盖。15新增/100总/调用按需/2job上限首合格停/条件second/异常UNKNOWN停、8现有分最多一次、正文生产不改保持。尚无新prepare/OPEN成功、模型/成品/扣分；源物理保存证据和旧READY复用但不得冒当前成功。成本本人MFA独立，不作前置。
+
 ## CURRENT — 2026-10-23 10:58UTC R5私有保存实际成功、三真引用绑定与独审通过，等待新的当次有限公网确认
 
 登记HEAD0619338/功能c708fe05不变。唯一source SAVE token8b7404b9-6076-4da0-9ce4-00d27e0678d2，C c-sz070wfodjefxmo/T t-sz070wfodjyf4e8，Run01A16864-DA95-5527-9610-1C3079E6D793/Read01A16865-28C6-533C-BA05-7A7B51933697，实际10:53:23–24Z Success0/D0/R1。raw26556/90def660；Root06ffa8逐项核14新expectedwhole/安全meta/新inode及1ENTRY proof，14旧+2anchor逐meta等原actual，6运行服务和保护前后同、入口CLOSED。actual ENTRY6 proof2184/27ea8dbe原base64与独立raw逐byte同；cover_media a7b5b9窄核六源契约/3ref GO。core2158/90deb只读复用，binder42533/d09bd0d7为真保存引用。

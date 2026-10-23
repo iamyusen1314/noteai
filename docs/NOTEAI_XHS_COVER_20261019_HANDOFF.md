@@ -150,7 +150,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_R5_SOURCE_SAVE_BIND_ACTUAL_GO_WAIT_FRESH_WINDOW / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口CLOSED/8d807exited143，旧失败保；R5 SAVE26556/90def与三引用绑定12057/107939 Root及独审GO，等待新当次有限确认后正常补传9图/真实成品验收 |
+| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_R5_FRESH_WINDOW_CONFIRMED_REAL_PREPARE_PENDING / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口CLOSED/8d807exited143，旧失败保；R5 SAVE26556/90def与三引用绑定12057/107939 Root及独审GO，等待新当次有限确认后正常补传9图/真实成品验收 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 产品当前3叶独审7207/dd00及原素材/计费/存储证据复用；ENTRY单源独审4679/faeba66e与实际回执纯predicate/篡改/安全诊断通过 | 方案A合格交付0/单位成本N/A；新版真实PC/H5、成品重开/免费排字/下载/唯一结算待齐；真实iPhone与自然90天未验，不作完成声明 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2773,4 +2773,10 @@ E/entry-static-contract-r1 单源41112/4e6b9276b9b3989bafec19ba313c3210cd25d3f67
 原HOLD只晚绑SOURCE_REFS：12057/10793963，Root08559b核其余归一AST全等冻结11217/9dc75d，DATA仍None；INPUT1206/4b5ff589保持原6键/16943 f311前端回执，authority及PUTterminal None。normal_c708窄核同3槽/6键，无重复测试。总原实际checkpoint B/ROOT-R5-SOURCE-SAVE-ACTUAL-AND-BOUND.json6132/9d8cea2a已Root全读；完整绝对路径/原件/独审/风险-证据映射登记权威PLAN q.successor_consumer_materials。没有target执行、DB、模型、START/OPEN/READY、人类END或first15操作。唯一source SAVE完成，不重发/重复保存。
 
 当前唯一待定是新的当次公网确认：E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-ENTRY-STATIC-R5-ACTUAL.json；已通过异步问题发用户，实际reply/START/END仍None。上次r4同意已消费过期，不可复用；浏览器规则要求当次确认，不新增预算。真正新reply后第一clock/原消息witness固定60min、首OPEN剩≥30min，同窗不重开不延时，原sole只DATA晚绑一次prepare→ENTRY，Root正常9图补传PUT final-send后实际Pro路线/封面/PC-H5/重开/免费排字/下载/8分唯一结算；首合格停/条件second/异常UNKNOWN立即停保。PlanA新模型0/交付0/扣分0，单位成本N/A，不把物理保存GO冒成品审美通过；正文生产不改，15新增/100总/调用按需。原失败、旧UNKNOWN、cleanup cp UNKNOWN/marker absent及8d807 exited143保留，不再stop。成本本人MFA独立。
+
+## CURRENT — 2026-10-23 11:01:20UTC 新真人确认已固定，R5单次真实验收接续中
+
+登记HEADe420b88/功能c708fe05。Root本turn第一clock11:01:20Z；read_thread核真实user message01a1686c-18fe-7d03-804d-0f43ef6b3064“确认”/turn01a1686c-18da-7572-9515-83a56099ce69（started1792753277），不是旧同意或线程转述。START1792753280/END1792756880固定至北京20:01:20，首实际OPEN须≤11:31:20Z且剩≥30min，同窗不重开不延时。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-190120.json1633/502fc487及.WITNESS820/15fc64f2原件已存；W5/INPUT.spacing-r5.AUTHORITY.ACTUAL.json4600/a59eb493仅原6key的authority4字段晚绑，source3真引用/frontend保持，PUT None。
+
+原sole已收本次明确dispatchGO，沿已核12057/107939只DATA赋值晚绑后一次prepare/CLOSEDnormalsettings→3READY→有限ENTRY；Root只真OPEN后正常9原图补传，PUT final-ASGI-send实际终态前不paid。权威PLAN c.entry_static_r5_current_human_window是本轮恢复入口，旧r4和sourceSAVE原件不覆盖。15新增/100总/调用按需/2job上限首合格停/条件second/异常UNKNOWN停、8现有分最多一次、正文生产不改保持。尚无新prepare/OPEN成功、模型/成品/扣分；源物理保存证据和旧READY复用但不得冒当前成功。成本本人MFA独立，不作前置。
 
