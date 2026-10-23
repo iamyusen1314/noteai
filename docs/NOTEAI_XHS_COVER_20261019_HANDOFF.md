@@ -2640,3 +2640,12 @@ D=E/runtime-importlib-machinery-r1，runtime174624/6c695092ce050f75ccddcfaa27e37
 Root已将具体最终材料交原sole并授权必要source-only实际保存/完整读回；模型费0、仅新测试source输入/索引，DB/业务START/OPEN/first15与human写均不在此步。实际core5/ENTRY6及binder三槽只能在保存后形成，future wrapper11228/4a1819只预绑真SOURCE_REFS，DATA及新human-END仍None。当前回执待，UNKNOWN保原intent/C-T，不盲重发。唯一PLAN保存完整refs与待执行状态；恢复先读它和实际原件，不重做已通过单cold/本机pack/旧suite。
 
 原13:00:58有限窗失败STOP、从未OPEN，不复用。A真实模型/新封面/扣分仍0、合格交付成本N/A；旧45次/3.9263058元及UNKNOWN保留，新增15元/原总100元/调用按需及最多一次8分保。当前仅源码/离线接线GO，正常启动/owner维护、九图补传、paid CAS、真实成品及PC/H5保存重开免费排字下载尚未验收。下一实际保存读回→Root核三真槽/具体正常调用材料→再安排当次有限入口与完整封面闭环；无新公众问题待答、生产不变。
+
+
+### 06:25UTC 实际源码保存进度及ENTRY载体断点
+
+原sole五次source操作中，8新叶两段已Success并完整读回，最终actual20441/e4b53298e4d5b6642f79ca7a859ed2417dbf7c4a7cccf8d995343b489caf9bb9；Root逐8对最终PHYSICAL whole/root400/nlink1、两段及跨段原保护全等。CORE3随后实际复制成功，call17420/69b2e98e、真实5源索引4327/4bb74d9e57330fb3f4f2507a572c58435199477b8c0d659f62e2979c40ef562e，Root核5源内容/权限/新runtime目录与旧guard目录及保护；对应server core-r4/source-input-readback.json inode1617282。无需重做这些结果。
+
+原ENTRY carrier000成功229/335fd47d，001 Cc-sz070vreh5ye41s/Tt-sz070vreh6fvegw FailedExit2/D0/R1，原158/df63447854431e9135646be04e211b1c820fb7848701ca2ebb69c1915271a277仅AssertionError泛HOLD，已停止，未重发或换目录。现场partial/6源索引仍UNKNOWN。normal唯一作者本机核实际8679/d670包与8053 stager，Root独立解包确认producer父本32460/47c98b45与consumer硬要求32144/6ff2c348矛盾，是确定工具契约错配；不能凭此倒写云具体断点。
+
+已交sole至多一次集中固定source现场RO：r3目标树/固定parts、receipt、6leaf/proof元数据与安全receipt原件；旧固定base/五sidecar及已真实存r2 ENTRY37358/c633元数据whole。无Env/DB/源码执行/启动/模型。不重8叶/core5、不盲重carrier；实际RO后才按确定进度选择最薄同目录补齐，不新增恢复平台。所有原件在F/runtime-machinery-integration-transport-HOLD-r1（F沿上文）；sole总checkpoint30768/576e2256，唯一PLAN已记实际引用、已证本机错配及待RO状态。当前无云结果重放、新公网问题或人类END；原失败公众窗继续STOP。实际A调用/成品/扣分仍0，真实质量验收未通过，正文/生产不动。
