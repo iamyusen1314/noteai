@@ -1,3 +1,9 @@
+## CURRENT — 2026-10-23 09:36UTC 真实prepare已成功，ENTRY单次失败，本窗STOP；原恢复与失败层定位中
+
+登记HEAD7b17f00/功能c708未改。prepare Run01A16819-28D4-533A-BE97-AE240BDFA5E2/Read01A16819-D2FB-54C4-8F55-8160E4CBDCE1 Success0/D0/R1，actual42360/02793390与13原files whole已Root核；真实runtime b7c/guard629已加载、3READY/worker存活idle、CLOSED settings RO writes0/provider0。新CID8d807a9f90fc09f920fb736f085f2d64d2b6d1464c50b08d406566ad7850cc7d upload-only/18114，旧45ledger/7terminal和原保护前后相等。旧fixture settings Lite不是PlanA供应商验收，paid未安装。
+
+ENTRY原单次Run01A1681E-22AB-5ECC-B9D9-4A32359434C4/Read01A1681E-822F-5DB4-8484-E52DFCB4FC7E实际Failed2/D0/R1，Wopen/actual/Output.ACTUAL-ORIGINAL.txt205/538b06df Root已核，phase open-upload-entry/AssertionError，未给具体assert或entry实际state。故本窗立即STOP不可续/重开/延时；不能在未读状态前声称CLOSED或OPEN。Root浏览器0reload/上传/PUT/POST/模型/扣分；原sole按既有固定原件读取和精确关闭恢复，必要身份匹配后graceful回收本轮CID，旧原件/first15/正式服务保。normal_c708只读定位到三层均吞assert-code，binder.prepare同进程没有独立prepare日志；仅以固定R/D/O原件存在顺序分层，再对真实安全input/metadata离线核具体失败predicate，不重open取错误。权威PLAN c.spacing_r4_current_human_window是唯一恢复点，当前entry状态与CID清理均待实际回执，任何后续公网确认须先完成具体修正，不能把启动成功当封面质量通过。
+
 ## CURRENT — 2026-10-23 09:24:38UTC 新当次同意已记录，原sole单次真实验收接续中
 
 登记HEAD43fee94/功能c708未改。真正新plain同意message01a16813-8dad-7ec3-bb93-29206ac5251d/turn01a16813-8d60-78f0-9243-7d38a2a1551f已原read_thread核；第一clock09:24:38Z，START1792747478/END1792751078固定至北京18:24:38，首OPEN最晚09:54:38Z/至少剩30分钟，同窗不重开不延时。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-172438.json及WITNESS为真实bytes，权威PLAN c.spacing_r4_current_human_window含wholerefs。原source-bound12057/8c21保持，只DATA晚绑交原sole一次prepare-upload/CLOSED normal-settings observe→有限ENTRY；Root再正常9原图补传PUT真实final-ASGI-send终态，才切paid正常封面。最多2新任务/首合格停/条件second/异常UNKNOWN立即停及提前关，15新增/100总/调用按需/现有8分最多一次；正文生产不改、旧失败账first15原件保持。实际新模型/封面/扣分仍0，未冒成品或OPEN成功；不重旧suite/source保存，不借成本MFA扩范围。
