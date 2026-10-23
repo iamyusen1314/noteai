@@ -2718,3 +2718,9 @@ cover_media只读独立27ref、9派生、8py Constant/data/material5keys、b7c/6
 真正错误phase SAVE_SOURCE/AssertionError SAFE_FIXED_PARENT；source.TEMPLATE.r2.HOLD.py81只在directory(p)检查immediate父类型/uid==gid0/no022，114目录循环在所有source write之前。因此证明父目录门阻，不能猜哪个具体parent/owner/mode或是否已有空partial目录；本轮STOP不重发，不删除/换namespace，不chmod/chown旧parent。三PG补丁、消费9派生和实际源目标全部保冻结，不重suite/三PG/cold。
 
 Root已限定唯一sole一次最薄lstat-only RO：固定DIRS7、其已有immediateparents、DIRECT8的4现有parents与TARGETS22计划文件，去重约35paths，返type/uid/gid/mode/dev/inode/nlink/symlink/absence以及原保护前后；无扫描/内容/env/logs/SQL/写入/目标执行。这属原授权定向调试，不是新的公网/业务或付费调用。只在真实tuple到齐后修保存器错误父metadata合同，保原ACL、新文件root400/nlink1与精确白名单，并在同D按实际partial恢复，不无据放宽。权威PLAN q...postgres_placeholder_spacing_repair.private_source_continuation已登记本次失败原件/RunRead/source0和这一恢复入口。DATA/human-END仍None，成本本人MFA独立，不阻cover本次只读。
+
+
+## CURRENT — 2026-10-23 08:59UTC 私有源码真实保存及最终三引用接线完成，只待当次有限公网确认
+
+本任务noteai-xhs-cover-20261019/原worktree，登记HEAD6a82b2a/功能c708fe05未改。原source-only失败由固定父目录实际UID0/GID999/0750契约纠正，同D复用三个partial且不改既有ACL。r3-final实际Success/Exit0/D0/R1（Run01A167F4-6298-5CA2-9B42-A577FC70889F/Read01A167F4-CEE8-520D-860B-A8501C4056E1）：raw38636/11362a0a、19源whole、core2158/90deb89d、ENTRY3796/a663c18f和binder42533/07d2均已Root及cover_media窄审e523e5核合；六容器/原保护前后等，旧21源/锚和first15保。最终wrapper12057/8c21a2b1对11217/c4d7仅SOURCE_REFS三真槽变化，Root AST及INPUT原6键核合，DATA/authority/human-END仍None。权威PLAN q.postgres_placeholder_spacing_repair.private_source_continuation含完整绝对refs与Root3998/71cccd06；勿重源码保存/SQL/cold/旧suite。原07:10窗失败STOP且已到期，入口仍CLOSED；新问题E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-SPACING-SOURCE-ACTUAL.json是唯一待当次确认项。用户新同意后第一clock→真实reply/witness→固定60分钟且首OPEN至少剩30分钟→仅DATA晚绑交原sole一次prepare/ENTRY→Root正常九图补传PUT与封面闭环。方案A实际模型/封面/扣分0，尚无成品质量结论；15新增/100总/按需calls/8分一次及正文生产不改保。成本本人MFA独立，不是封面前置。
+
