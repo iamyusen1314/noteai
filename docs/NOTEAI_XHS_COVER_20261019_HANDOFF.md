@@ -150,7 +150,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_REAL_PREPARE_PASS_R4_STOP_R5_WIRING / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口真CLOSED/8d807真exited143，旧失败及清理marker缺失保；原九图TTL过期，R5完整接线与真实私有保存后，再按新有限授权正常补传九图并验收成品 |
+| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_R5_SOURCE_SAVE_BIND_ACTUAL_GO_WAIT_FRESH_WINDOW / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口CLOSED/8d807exited143，旧失败保；R5 SAVE26556/90def与三引用绑定12057/107939 Root及独审GO，等待新当次有限确认后正常补传9图/真实成品验收 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 产品当前3叶独审7207/dd00及原素材/计费/存储证据复用；ENTRY单源独审4679/faeba66e与实际回执纯predicate/篡改/安全诊断通过 | 方案A合格交付0/单位成本N/A；新版真实PC/H5、成品重开/免费排字/下载/唯一结算待齐；真实iPhone与自然90天未验，不作完成声明 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2765,4 +2765,12 @@ E/entry-static-contract-r1 单源41112/4e6b9276b9b3989bafec19ba313c3210cd25d3f67
 原sole收到单次私有SAVE具体GO：index7118/1a46c790，writer39720/369e04ce、shell14460/d3ce174e、wire19280/edfff36a，仅14新源+1ENTRY6 proof/3ENTRY目录，无core复制/远程SAVE或result文件/目标执行/DB/模型/START/OPEN/INPUT/first15变化。新token和actual目前未回，UNKNOWN或截断不得重发。后续Root只核真实15新meta、旧14+2锚与保护前后、ENTRY6原bytes及三真SOURCE_REFS，再在既有HOLD模板晚绑；不添加另一任务体系。原r4失败窗已消费且END已过，入口CLOSED/8d807真exited143保，原cleanup cp UNKNOWN及marker absent保，不再stop/重开。新human-END仍None，尚无新公网授权。
 
 剩余真实封面验收：私有保存actual及三引用完成后才集中发新的有限公网确认；真OPEN后正常九图补传PUT final-ASGI-send，再验证实际Pro2.1/5Pro路线与一张封面、PC/H5、重开、免费排字、下载、8分唯一结算和每张合格成本。PlanA实际模型0/新封面0/扣分0，不以本机GO替代成品审美。报告正文/生产不改；15元新增/100元总、调用按需、首合格停/异常UNKNOWN停规则保持。成本Worker-C本人MFA独立，不是封面前置。
+
+## CURRENT — 2026-10-23 10:58UTC R5私有保存实际成功、三真引用绑定与独审通过，等待新的当次有限公网确认
+
+登记HEAD0619338/功能c708fe05不变。唯一source SAVE token8b7404b9-6076-4da0-9ce4-00d27e0678d2，C c-sz070wfodjefxmo/T t-sz070wfodjyf4e8，Run01A16864-DA95-5527-9610-1C3079E6D793/Read01A16865-28C6-533C-BA05-7A7B51933697，实际10:53:23–24Z Success0/D0/R1。raw26556/90def660；Root06ffa8逐项核14新expectedwhole/安全meta/新inode及1ENTRY proof，14旧+2anchor逐meta等原actual，6运行服务和保护前后同、入口CLOSED。actual ENTRY6 proof2184/27ea8dbe原base64与独立raw逐byte同；cover_media a7b5b9窄核六源契约/3ref GO。core2158/90deb只读复用，binder42533/d09bd0d7为真保存引用。
+
+原HOLD只晚绑SOURCE_REFS：12057/10793963，Root08559b核其余归一AST全等冻结11217/9dc75d，DATA仍None；INPUT1206/4b5ff589保持原6键/16943 f311前端回执，authority及PUTterminal None。normal_c708窄核同3槽/6键，无重复测试。总原实际checkpoint B/ROOT-R5-SOURCE-SAVE-ACTUAL-AND-BOUND.json6132/9d8cea2a已Root全读；完整绝对路径/原件/独审/风险-证据映射登记权威PLAN q.successor_consumer_materials。没有target执行、DB、模型、START/OPEN/READY、人类END或first15操作。唯一source SAVE完成，不重发/重复保存。
+
+当前唯一待定是新的当次公网确认：E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-ENTRY-STATIC-R5-ACTUAL.json；已通过异步问题发用户，实际reply/START/END仍None。上次r4同意已消费过期，不可复用；浏览器规则要求当次确认，不新增预算。真正新reply后第一clock/原消息witness固定60min、首OPEN剩≥30min，同窗不重开不延时，原sole只DATA晚绑一次prepare→ENTRY，Root正常9图补传PUT final-send后实际Pro路线/封面/PC-H5/重开/免费排字/下载/8分唯一结算；首合格停/条件second/异常UNKNOWN立即停保。PlanA新模型0/交付0/扣分0，单位成本N/A，不把物理保存GO冒成品审美通过；正文生产不改，15新增/100总/调用按需。原失败、旧UNKNOWN、cleanup cp UNKNOWN/marker absent及8d807 exited143保留，不再stop。成本本人MFA独立。
 
