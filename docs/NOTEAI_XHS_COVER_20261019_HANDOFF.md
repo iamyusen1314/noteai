@@ -2666,3 +2666,10 @@ Root已将具体最终材料交原sole并授权必要source-only实际保存/完
 当前仅一个新的当次有限入口问题：E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-MACHINERY-SOURCE-ACTUAL.json2230/64c023ef4436d7bb3c4ac5eab3bf867366342559bae9f3bd30100cecd637239e；07:08:08UTC为准备时钟读回，绝不是新的批准start。真正human/END尚无，原13:00:58失败窗继续STOP，不复用。问题沿原方案A/保存报告+九真实素材/最多2新job/首合格止/异常UNKNOWN止/8现有分最多一次/新增15元与原总100元/调用按需，首OPEN余30分钟、收到新同意记录后最多60分钟自动关闭。浏览器规则要求新一轮公网暴露当次确认，不追加预算/发布。唯一PLAN c.pending_public_window_confirmation为权威等待点。
 
 恢复后先读取新直接人类回复，第一步记录实际clock及同一start/END，保存原reply/witness，仅在新副本晚绑DATA，再交原sole沿原正常prepare→CLOSED配置观察→ENTRY→Root九普通上传和PUT真实ASGI终态→正常配置/CAS/paid→Root单封面POST/独立成品质检/PC-H5保存重开免费排字下载/唯一结算。不得重源码、first15、旧suite/报告或旧UNKNOWN。实际A模型/新封面/扣分仍0，质量及每张合格成本N/A，阶段3未通过；正文/生产不动，成本本人MFA独立。开发和非付费准备已具体完成，真实交付仍待本轮验收，不假称功能可交付。
+
+
+## CURRENT — 2026-10-23 07:10:28UTC 新当次直接同意，沿既备源码执行真实验收
+
+当前HEAD86d52ae354f11ab4cc0943b46b200bf12497f5e0/分支codex/noteai-xhs-cover-20261019/产品c708fe05不变。本人对call_980917问题新直接结构化回复answer同意；实际Root read_thread当前turn01a16722-28fd-7fa3-a88f-0067fdc5c929内最新userMessage01a16798-9928-7100-9e94-dfc40f962a8c。首次clock07:10:28UTC固定START1792739428/END1792743028=08:10:28UTC(北京16:10:28)，首OPEN≤07:40:28Z，同窗不重开/不延时。原turn.startedAt不是本次同意时间。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-151028.json2991/4ab91641e27589c44cd73272dd709886c1febe4f813691da5bf3c7c2f9724e9a及WITNESS642/9e53f6653b68761201393aa40e4938b8782fcd64d1b64c218d047d542edfae95已保存原结构/实际ID/第一clock。权威PLAN c.machinery_r3_current_human_window；旧失败窗保留。
+
+已交唯一原sole在新副本仅DATA晚绑12069/af0b三真sourcebound壳，正常prepare-upload与CLOSED settings observe→ENTRY timerfirst/OPEN；Root负责正常九原图上传PUT/真实ASGI终态后paid cutover与单coverPOST、PC/H5保存重开免费排字下载。预算仍方案A新增≤15/原总≤100/calls按需/最多2条件second/原8分最多1次，非预期失败UNKNOWN即停提前关。source/core/ENTRY/first15不重复。独立acceptance_ui_resume只审本轮真实PNG和QC6，暂无新成品/费用/扣分。生产和报告正文不动。
