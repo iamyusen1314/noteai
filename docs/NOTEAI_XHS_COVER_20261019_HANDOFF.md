@@ -2631,7 +2631,7 @@ D=E/runtime-importlib-machinery-r1，runtime174624/6c695092ce050f75ccddcfaa27e37
 补证已实际完成：C c-sz070vo5xfackqo/T t-sz070vo5xfpbytc，Run01A1674A-7D3C-597A-AA2F-16D8E1EFDB49/Read01A1674A-C2E5-5404-A35A-2FB5B1FA6D01，Success0/D0/R1。M/mount-metadata-supplement-r1/actual/result.ACTUAL-ORIGINAL.json19072/381d1b9d；完整raw11056/ecfb3347。将当前37完整records循环旋转10位，原byte编码及尾newline构成11056B，精确命中before原SHA7c5694c66219600708fd9248da2f20f4f4c2b5a215bb201d53e8b4d62d3a8186；Root独立重算相同，33相关只读挂载不变。comparison5587/2667b974及重建原件保留；固定9f98 exited2/PID0/restart0与6pins前后全等、cold absent。接受功能绑定与当前完整挂载相同补证，原outerExit2和当时afterraw未存历史保留，不重写失败回执、不新跑cold。阶段继续最小pin/data接线。
 
 
-## CURRENT — 2026-10-23 06:10UTC 最小运行接线及窄独审通过；原sole接续实际源码保存
+## CURRENT — 2026-10-23 本轮最小运行接线及窄独审通过；原sole接续实际源码保存
 
 登记HEAD8fffe38/原分支/产品c708fe05不变。最终I=`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/implementation-a-20261022-r1/runtime-importlib-machinery-r1/integration-minimal-r1`已0400冻结；MANIFEST9050/e408a1ebb3c1d9173754306ea20c668b2c882cfbbfcffe987fc776137cb3e573、ABI3875/ef8532dd、PHYSICAL9521/115e7703、CHECKS1674/da69f2c7。Root核25冻结refs、必要diff和template仅三字段变化；cover_media正式窄独审13864/874b172ac666d77fb8a03108d5f5eed54bc387aa5f404b378eca5fe9b02e3fcd全文及25引用再核，无活跃P0–P2，不重跑旧suite。
 
@@ -2642,10 +2642,16 @@ Root已将具体最终材料交原sole并授权必要source-only实际保存/完
 原13:00:58有限窗失败STOP、从未OPEN，不复用。A真实模型/新封面/扣分仍0、合格交付成本N/A；旧45次/3.9263058元及UNKNOWN保留，新增15元/原总100元/调用按需及最多一次8分保。当前仅源码/离线接线GO，正常启动/owner维护、九图补传、paid CAS、真实成品及PC/H5保存重开免费排字下载尚未验收。下一实际保存读回→Root核三真槽/具体正常调用材料→再安排当次有限入口与完整封面闭环；无新公众问题待答、生产不变。
 
 
-### 06:25UTC 实际源码保存进度及ENTRY载体断点
+### 本轮实际源码保存进度及ENTRY载体断点
 
 原sole五次source操作中，8新叶两段已Success并完整读回，最终actual20441/e4b53298e4d5b6642f79ca7a859ed2417dbf7c4a7cccf8d995343b489caf9bb9；Root逐8对最终PHYSICAL whole/root400/nlink1、两段及跨段原保护全等。CORE3随后实际复制成功，call17420/69b2e98e、真实5源索引4327/4bb74d9e57330fb3f4f2507a572c58435199477b8c0d659f62e2979c40ef562e，Root核5源内容/权限/新runtime目录与旧guard目录及保护；对应server core-r4/source-input-readback.json inode1617282。无需重做这些结果。
 
 原ENTRY carrier000成功229/335fd47d，001 Cc-sz070vreh5ye41s/Tt-sz070vreh6fvegw FailedExit2/D0/R1，原158/df63447854431e9135646be04e211b1c820fb7848701ca2ebb69c1915271a277仅AssertionError泛HOLD，已停止，未重发或换目录。现场partial/6源索引仍UNKNOWN。normal唯一作者本机核实际8679/d670包与8053 stager，Root独立解包确认producer父本32460/47c98b45与consumer硬要求32144/6ff2c348矛盾，是确定工具契约错配；不能凭此倒写云具体断点。
 
 已交sole至多一次集中固定source现场RO：r3目标树/固定parts、receipt、6leaf/proof元数据与安全receipt原件；旧固定base/五sidecar及已真实存r2 ENTRY37358/c633元数据whole。无Env/DB/源码执行/启动/模型。不重8叶/core5、不盲重carrier；实际RO后才按确定进度选择最薄同目录补齐，不新增恢复平台。所有原件在F/runtime-machinery-integration-transport-HOLD-r1（F沿上文）；sole总checkpoint30768/576e2256，唯一PLAN已记实际引用、已证本机错配及待RO状态。当前无云结果重放、新公网问题或人类END；原失败公众窗继续STOP。实际A调用/成品/扣分仍0，真实质量验收未通过，正文/生产不动。
+
+
+固定RO已实回：C c-sz070vskkw9aygw/T t-sz070vskkwoacjk，Success0/D0/R1，actual46084/74c2602c6935125d527568c72c60dc8966b89024d0b82c3ff4b4c429ea8b960d。Root完整核：D仅part000/receipt000/part001三件，稳定root400/nlink1；001receipt/6leaf/proof/嵌套目录全absent，原保护前后全等。实际BASE32460/47c98b45恰与包一致，五sidecar与NEAR37358/c633全核合；原generic错误仍保。由此采用更薄原包路线：不重传，decoder仅纠正base bytes/hash两个旧常量，复用原decode/六leaf/proof尾部，同D一次已知partial完成，原三件和001失败不改、另留finish回执。normal唯一作者正做真实本机roundtrip与具体薄修复，cover_media只审局部；尚无finish云执行，不新增RO/namespace/公众窗口，caller/binder/core/8叶不变。唯一PLAN已同步actual RO及当前状态。
+
+
+同目录薄finish已冻结/窄审，交sole一次source-only执行：I/entry-source-finish-existing-r1，source11421/669d731e、载体11560/8a4c59db、MANIFEST2557/4f31892d、EVIDENCE2637/74cb08dd、ABI1412/f4c49027、独审4358/41fbfdb1。Root读完整diff/原包回环证据/契约/独审，核7refs与shell仅嵌一次原源；作者Python3.11.14局部字节/拒例PASS，不冒现场write。decoder仅实际base两旧常量纠正，严格actual3partial身份/whole，在原D复用已保存包与原5sidecar完成六源物理readback/proof，另落source-finish-result；原part/泛失败及001receipt缺失保持，不重传/新namespace/首次15写。原sole已获具体一次source完成范围及完整回执捕获，结果待，UNKNOWN停不重发。三真source槽在此次真实索引读回后才允许预绑SOURCE_REFS，DATA/新human-END仍None，不业务启动或OPEN。唯一PLAN已同步恢复入口；无新增模型费、A成品仍0，实际封面闭环未通过。

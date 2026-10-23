@@ -1,8 +1,8 @@
 ## CURRENT — 实际8叶/CORE5保存已核；ENTRY source载体001失败，单次固定RO待回
 
-原封面任务/产品c708fe05/分支不变。8叶actual20441/e4b53298与CORE5真索引4327/4bb74d9e均已Root whole/权限/保护核合，保留复用。ENTRY000成功、001原158/df634478仅泛AssertionError已停，partial未知。已证本机包父本32460/47c98与stager硬要求32144/6ff2契约错配；已交sole一次固定source现场RO，等待原件，禁止重放载体/换目录/重8叶及CORE。无新窗口或模型/DB/START/OPEN，A成品0。权威详情见交接末节及唯一PLAN；恢复先读实际结果，下一按RO确定最薄同目录完成方式。
+原封面任务/产品c708fe05/分支不变。8叶actual20441/e4b53298与CORE5真索引4327/4bb74d9e均已Root whole/权限/保护核合，保留复用。ENTRY000成功、001原158/df634478仅泛AssertionError已停，partial未知。已证本机包父本32460/47c98与stager硬要求32144/6ff2契约错配；固定RO46084/74c260已Root核：D恰3partial、6leaf/proof/001receipt全absent，实际BASE32460/47c与包相同。normal正准备纠正decoder两旧常量后同D一次薄finish；禁止重放载体/换目录/重8叶及CORE。无新窗口或模型/DB/START/OPEN，A成品0。权威详情见交接末节及唯一PLAN；恢复先读实际结果，下一局部薄finish本机roundtrip/窄审→原sole具体单次source完成。
 
-## CURRENT — 2026-10-23 06:10UTC 最小接线窄独审通过，原sole实际源码保存中
+## CURRENT — 2026-10-23 本轮最小接线窄独审通过，原sole实际源码保存中
 
 产品c708fe05/原封面分支与worktree不变。运行单import真实21绑定及Mounts补证已通过；最小必要pin/后继路径和binder一行Path导入已冻结，独审13864/874b172a无活跃P0–P2，Root核全引用。原sole已获具体source-only保存/读回范围，回执待；业务START/OPEN/DB/模型0，旧失败有限窗STOP。三真source槽待实际保存，future human/END仍空，未发新公网问题。权威详情/恢复顺序见 docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md 末节及原唯一PLAN；不要重跑cold/旧suite/first15，不重复未知请求。下一实际读回→正常启动与九图封面闭环，真实成品仍未验收。
 
