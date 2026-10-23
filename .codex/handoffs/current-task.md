@@ -1,3 +1,15 @@
+## CURRENT — 2026-10-23 04:44UTC 身份错配最小修复冻结、定向合同通过；待独审最终记录后仅预置3新叶
+
+实际HEAD425c2d2/产品c708fe05不变。normal_c708_mount_review完成唯一两辅助源码修正，Root已技术接受复用既有实际成功3023/79f6的临时owner维护profile；普通app已有真实只读1217/5e2e，原SQL写policy排除2封面key，故不能全切app。修复仅fixed.settings_call+child身份/五源RAM加载和必要注册表文件名，不改主API/worker999、PG grant/HBA/credentials、产品/CORE/ENTRY/deps/正文/生产。现ownedCID999读/hash五精确模块→RAM交接，原9be短生命周期owner/root只原DAC_OVERRIDE/networknone/ROroot+原socketRO/256m64PID/--rm；仍原正常settings/adminops/CAS/UUID服务。observe/recover RO、原7终态/UNKNOWN/恢复约束保；原结果先持久，再核client消失和ownedCID不变，UNKNOWN不冒无写/不重派。
+
+本节后续：正式独审D/INDEPENDENT-REVIEW.cover-media.json8910/2d336d281a818ce61c47ae6fa6e32db3714a0d47b9d64b3213a65b6babc6fdb6已Root全文whole核，无确定P0–P2，仅源码/离线GO。原sole已收到执行明确范围的3叶惰性保存授权；禁止增加独立PG probe，实际身份与正常服务接续既定CLOSED observe。唯一PLAN a.state=OWNER_PEER_REPAIR_REVIEWED_WAIT_ACTUAL_THREE_SOURCE_PRESTORE_NO_PUBLIC_WINDOW，实际3叶回读尚待，不提前申请公网窗。
+
+唯一新D=E/complete-two-stage-host-20261023-r1/normal-settings-owner-peer-r1，冻结0400。仅3新云叶加到真实已存r2原根：fixed_two_stage.owner-peer-r1.py43801/bc0abf156792b174da00a694695e487cec15c0b59bb03125112b2545ac510653；normal_settings_child.owner-peer-r1.py10878/8cc219fbe0f664e26908df82ae3416aacc527734fc424d3e3c7ba0e09445f8e9；PROGRAMS.owner-peer-r1.json1255/ec06a019030d7581bdf171ae7f20548d48e10dc01570d289112335174be3e4da。原R4十一源不覆盖、其余七program相对路径原位复用，不复制整包；同未用r2 RUN/INPUT/OUT/ownednames保。future wrapper同D10824/8271c9e3e101099251123e889890267908af7bc784418e9495d12eb02adf87fc只改3leaf refs/names/argv，DATA/human/ENDNone。原首15真1119/b463/四staticrefs/binder及旧INPUT原保。
+
+MANIFEST5167/63afcba116afed596622f87429d747ce31f872ba2a8c0c61f20ee3ea8768d3ca、EVIDENCE3160/71f95540557b435fa7d3f6e2e7ae1d80e01d35ba94688447cf3a6152600ac74c、AST1440/12bc4dfa357ad40fb4fc6497128b9c42ca3e449d8b4a8feb5a9a000319277bc6、PHYSICAL4396/1889a370cc96e48c3d858c69ce936cc832889a259cb6095e1362a3a95611a7e0、ABI1970/3a6925905ba313c599b34a94955efff787c82baf3466585fbc64f49dee906b44。4改动缝隙纯合同实际PASS0.059s：peer/精确profile、五RAM/canonical/篡改拒、四actionRO/CAS/UNKNOWN/恢复、真实settings_call函数doubles的结果先保/postcheck/失败不再调用。只模拟I/O不冒角色实际成功，没重旧suite。Root全文两源和wrapper必要diff、AST/证据/27localrefs whole全核；cover_media初审无确定P0–P2，等最终JSON。原sole已获精确3叶材料，finalGO前只读，后仅O_EXCL惰性保存/whole原回执，不import/main/DB/START/OPEN。
+
+唯一PLAN c.normal_settings_owner_peer_repair接续原任务，旧R4 actual11与native失败各自保。当前A模型/补传/封面/扣分0、新current actualsource/identity/READY未知；未申请新公众窗，旧失败窗不重开。下一独审final→原sole实际3源回读/现有壳核齐→Root再真实九照封面及PC/H5/重开免费排字下载唯一结算；此阶段尚未完成成品交付。
+
 ## CURRENT — 2026-10-23 04:32UTC 11叶源码真实预置完成；隔离原生身份拒绝已定位为待核正常配置错配
 
 实际HEAD9a3073850a7a76595e40667905ff3d3c5bed908d/产品c708fe05，原worktree/分支延续。官方正常空表单已恢复，不需要本人操作error.taobao.com；原异常导航与初始UNKNOWN记录保留，不再发源码长URL。原sole实际完成source000/001，两段均Success/Exit0/Dropped0/Repeats1，沿原Token，无新重试标识。最终Q/source-part-001/actual/result.ACTUAL-ORIGINAL.json13307/57b5d06d55b039332d6c613462be581d9e2d95146fb6778a450b22c84b392719，服务器source-input-readback inode1617223/root0400/nlink1；11叶实际whole/metadata与D4物理表7新byte+4旧copy全部匹配，Root逐项复核。两段protected_before==after且跨段一致，DB/targetimport/main/START/READY/OPEN/models/INPUT/human/first15_write均0。初次Root本机核验误用D4/mature_fresh.py不存在的快捷路径，已改用权威PHYSICAL local_reference_ref，非源码不匹配或云失败，无额外云动作。
