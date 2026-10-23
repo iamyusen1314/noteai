@@ -2618,3 +2618,14 @@ D=E/complete-two-stage-host-20261023-r1/normal-settings-owner-peer-r1，MANIFEST
 D=E/runtime-importlib-machinery-r1，runtime174624/6c695092ce050f75ccddcfaa27e37de386dce847bc54a556841080af65f5c5a2仅27B显式stdlib import，guard/sourcepin/产品/权限保。REPRO774/4254ff43+命令2075/8aff81de，MANIFEST2916/c74c04da，ABI4088/719495b0，CHECKS749/b3e6b213，正式独审6091/2bd7f113018d621ff60ef2ee351f218557b3737d078490c71cdaf49483f28191；Root全文及13refs核。唯一cold outer15564/cac25827（child4970/d2bdae42内嵌）已交sole一次执行：只2输入O_EXCL/旧runtime27Bdelta，sameimage短rm/networknone/999/ROroot/原fa978与资源上限，仅RO原source/guard/weights/deps和shadow3source字段；真旧bind失败→真新91tree/21PathFinder通过，无mock/skip/主服务/PG/authority/模型/OPEN/原CID重启，输出先保/后验新cold消失+原6pins/CID/mount/config，不自动第二次。
 
 现在actualcold待原件，不冒normalstartup/owner-peer/成品通过，runtime修复未业务激活；原窗保持失败消费，不用余时重开，无新公众问题。A模型/新图/积分0、旧45/UNKNOWN/first15/r2现场保。下一先核私有断点实际结果，再仅必要corepin/后继数据，不扩正文/生产/新平台。
+
+
+## CURRENT — 2026-10-23 单行导入修复：真实21源绑定通过，原工具后验失败独立保留
+
+延续HEAD50b787e/产品c708fe05。单次私有同镜像验证C `c-sz070vn3aeagao0`/T `t-sz070vn3aekfw1s` 的真实Python3.11.15子进程复现旧 `importlib.machinery` AttributeError；只新增27B显式导入后，真实完整源码树及21个PathFinder绑定PASS，child exit0、非timeout、stderr0。Root已逐项比对实际21源与原guard常量，全相同。原件M=`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-plan-a-20261022-r1/runtime-machinery-single-cold-20261023-r1`；actual/result.ACTUAL-ORIGINAL.json43125/SHAab70621ad20f7ed368a03964f7ddbbf296594b4b4196afc76efae812548a3c4e，汇总28037/e1fa51ec。新runtime174624/6c695092已实际保存于cold输入目录，尚未接入正常业务启动。
+
+原outer仍Exit2/HOLD：它只比较docker inspect Mounts原始文本，before仅留33个相关tuple及全raw SHA，after仅留false，完整原文缺失，不能认定排序原因。cold临时容器确已移除、原配置/源码及6个保护容器前后相等；功能PASS与后验HOLD分别保留，不重跑cold。normal_c708_mount_review和cover_media均独立核原件同结论。已交sole一次固定旧9f98的完整Mounts纯元数据RO补录，不读Env/DB、不执行容器；结果待回。若33相关只读绑定相同可据其实际范围收口，全raw历史原因不能补造。
+
+唯一作者同时准备最薄接入：只改新runtime的必要consumer pin与已消费r2后的唯一数据路径；原guard/6个ENTRY sidecars/依赖/产品/first15真1119b463不变，避免重传全包。ENTRY两必要数据pin副本交原sole核接。此处main、worker、SQL、供应商、OPEN均0；当前13:00:58有限窗已因唯一prepare失败STOP，从未OPEN，不重用或延时。A真实模型/新封面/扣分仍0，合格交付成本N/A；旧45次/3.9263058元及UNKNOWN保，新增15元/原总100元/调用按需不变。阶段3未完成；下一是实际元数据补录与最小接线后正常启动，之后才正常九图补传及真实成品、PC/H5、保存重开、免费排字、下载和唯一8分。唯一PLAN已同步，无新公网问题待答。
+
+补证已实际完成：C c-sz070vo5xfackqo/T t-sz070vo5xfpbytc，Run01A1674A-7D3C-597A-AA2F-16D8E1EFDB49/Read01A1674A-C2E5-5404-A35A-2FB5B1FA6D01，Success0/D0/R1。M/mount-metadata-supplement-r1/actual/result.ACTUAL-ORIGINAL.json19072/381d1b9d；完整raw11056/ecfb3347。将当前37完整records循环旋转10位，原byte编码及尾newline构成11056B，精确命中before原SHA7c5694c66219600708fd9248da2f20f4f4c2b5a215bb201d53e8b4d62d3a8186；Root独立重算相同，33相关只读挂载不变。comparison5587/2667b974及重建原件保留；固定9f98 exited2/PID0/restart0与6pins前后全等、cold absent。接受功能绑定与当前完整挂载相同补证，原outerExit2和当时afterraw未存历史保留，不重写失败回执、不新跑cold。阶段继续最小pin/data接线。

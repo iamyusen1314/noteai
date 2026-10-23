@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 单import真实绑定PASS，outer元数据HOLD；最小接线继续
+
+本任务仍noteai-xhs-cover-20261019/原worktree/产品c708fe05。真实单cold旧错→新21源绑定通过；outer原Exit2因Mounts原文比较不等保留，一次固定9f98完整RO补证已实际命中before全raw SHA（37条records仅循环顺序不同，33相关RO不变），Root已独立核，原outerExit2/当时afterraw未存仍保；不重跑cold。唯一作者准备必要runtime/ENTRY数据pin和已消费r2后的路径，实际core索引落盘后才产。原公众有限窗失败STOP未OPEN，A模型/封面/扣分0；预算/旧UNKNOWN/first15不变。权威状态及完整原件见 docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md 末节和原PLAN；当前无新公众问题，下一最小接线/正常启动→原九照真实封面闭环。
+
 ## CURRENT — 2026-10-23 05:30UTC 原启动记录核收；干净3.11复现缺失stdlib导入，仅27B修复/窄审齐，单次私有真绑定待执行
 
 登记HEADc24c9e1/产品c708fe05不变。原sole唯一原件RO C c-sz070vl5hggc2kg/T t-sz070vl5hgxtczk，Run01A1672B-9371-5B96-A5C5-60EF0956D50A/Read01A1672B-D5F2-5857-A99C-BD81D1325011 Success0/D0/R1。R=B/window-20261023-130058-r1/failed-owned-startup-originals-readonly-r1；actual13466/83bf7422a6f0dd33a5618ca1a2413cfaee80392a4b675b52991fba51a3f45fe5，总索引23223/2f5c9064d5b992b5e04b4ad50f919804f6cafad030bf0a6d0f380be619501ef1。6原件base64/whole逐项核、control及rootcopy hold253/11cbf4f7同byte，原保护/6pins/新CID退出2PID0前后同；structuredhold足够未dockerlogs，SQL/writes/START/OPEN/models0。服务器hold只有AttributeError+runtime1915→1729→210，无异常message，不能伪称服务端已经给出machinery字样。
