@@ -2859,3 +2859,10 @@ R6 ENTRY单源41034/31d469c2，manifest3438/b626、diff3354/0ffc、evidence10345
 F/prepare-upload-once.ram-settings-r6.SOURCE-BOUND.HOLD.py12076/aba78f870a125d9e19d69a701253c781a5e395567d63a595fef3138dfb1d6e60已同tool核：父11232/4d227c6c归一AST仅三真SOURCE_REFS赋值不同；core2158/90deb原封复用、新binder42533/263794df、新ENTRYproof2184/fe61路径/whole精确等actual，DATA和futurehuman/END/CID/terminal仍None。三成熟terminalread/advance/close薄壳预置，不临场新包装。原隔离V3rev4配置实际通过保；旧f933真exit、R5入口CLOSED且同意消费过期保，不重开延时或恢复旧phase。
 
 唯一新待确认问题已通过request_user_input_async发出：E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-R6-SOURCE-ACTUAL.json2208/3b51165a479941303a46c44f10ed23ed86fcacbb14cd4dc660272fd6006b324d，选项原文同意/暂不开放。其理由为上轮已失败即停并关闭，新公网开放按浏览器规则需当次确认；不是新增预算/产品选择/普通技术审批。权威PLAN c.current_recovery_point=entry_static_r6_preparation为当前恢复入口，含实际source/boundouter/pendingquestion refs；新reply/clock/START/END仍None。真正新直接人类reply后第一clock+原消息witness固定最多60分钟、首OPEN剩≥30分钟、同窗不重开延时，only DATA晚绑原12076壳交sole一次prepare/OPEN；Root正常原9素材fresh及单封面完整验收。预算仍PlanA新增15/原总100、调用按需，现有8分最多一次、首合格停/条件第二/任务或模型UNKNOWN停；正文生产不改。PlanA实际模型/新封面/结算0、质量与合格成本N/A，不以本轮私有成功冒成品验收。恢复不重复旧suite/源码保存/配置启用/旧stop。
+
+
+## CURRENT — 2026-10-23 15:10:32UTC R6新的当次真人确认已记录，原sole唯一真实验收接续中
+
+登记HEAD e250ee8b94bb4d97c2b376551dcf7556a403f2f0/功能c708不变。read_thread实际最新plain用户确认：message01a16950-35fc-77e1-b2e9-a55def200b7e/turn01a16950-35bd-7d72-b0aa-97232075f78c(start1792768226)，原文确认。Root本turn第一clock15:10:32Z，START1792768232/END1792771832固定至16:10:32Z（北京时间10月24日00:10:32），首实际OPEN最晚15:40:32Z且余至少30分钟，同窗不重开/延时。原E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-231032.json1627/82245816及WITNESS829/73be347e；B/window-20261023-231032-r6/INPUT.spacing-r6.AUTHORITY.ACTUAL.json4604/b7ad4842为原六键、三真source refs原封、authority真4键、PUT None正常发现模式。权威PLAN current_recovery_point=entry_static_r6_preparation已记录真实clock/refs/尚未执行的prepare/ENTRY/CID等。
+
+原sole已获一次执行接续：only DATA晚绑冻结source-bound outer12076/aba78f87，先非付费prepare及正常V3rev4观察/复用→有限ENTRY；Root正常9原图fresh终态后用已备thin terminal/advance，实际Pro路线及单张封面、PC/H5、保存重开、免费排字、下载、8分唯一结算。首合格停/条件second/失败UNKNOWN停，15新增/100总/调用按需，正文生产不改。此前SAVE26596/1392/私有配置12359/b35b/旧f933退出均完成不可重跑；截至登记模型/新封面/结算0，不冒实际OPEN/成品。
