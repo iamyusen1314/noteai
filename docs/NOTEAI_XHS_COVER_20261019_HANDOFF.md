@@ -2655,3 +2655,14 @@ Root已将具体最终材料交原sole并授权必要source-only实际保存/完
 
 
 同目录薄finish已冻结/窄审，交sole一次source-only执行：I/entry-source-finish-existing-r1，source11421/669d731e、载体11560/8a4c59db、MANIFEST2557/4f31892d、EVIDENCE2637/74cb08dd、ABI1412/f4c49027、独审4358/41fbfdb1。Root读完整diff/原包回环证据/契约/独审，核7refs与shell仅嵌一次原源；作者Python3.11.14局部字节/拒例PASS，不冒现场write。decoder仅实际base两旧常量纠正，严格actual3partial身份/whole，在原D复用已保存包与原5sidecar完成六源物理readback/proof，另落source-finish-result；原part/泛失败及001receipt缺失保持，不重传/新namespace/首次15写。原sole已获具体一次source完成范围及完整回执捕获，结果待，UNKNOWN停不重发。三真source槽在此次真实索引读回后才允许预绑SOURCE_REFS，DATA/新human-END仍None，不业务启动或OPEN。唯一PLAN已同步恢复入口；无新增模型费、A成品仍0，实际封面闭环未通过。
+
+
+## CURRENT — 2026-10-23 07:08UTC 实际源码接续完成，三真槽调用壳已核；仅待一次新当次公网确认
+
+当前登记HEAD33568fa/原封面分支/产品c708fe05不变。原same-D finish实际C c-sz070vu6r1zr400/T t-sz070vu6r2h8ef4，Run01A16788-4D71-57C9-A163-030FD466625B/Read01A16788-A759-5D7C-B137-CEEBEFA82F6F，Success0/D0/R1、invocation1/return0。T/entry-source-finish-output-carrier-r1/actual原18245/5882ff7dcbd8ef1cedab784a4b921cafeb6363e7c5e32831621792878d7d5d88、ENTRY6原4911/333fffe979496688130d99a8babce15b6989c1ae4ae8f584bf1d61af1f605843、独立finish原470/18514063。Root核完整导出raw/refs、六源逐项对binder PINS、3partial/BASE/5原件逐字段对actual RO不变、原7保护与6pins前后等。新proof inode1495960/finish1495961 root400/nlink1；原001generic失败保，未生成001成功receipt。真实完成仅源码保存，SQL/模型/业务START/OPEN0。旧cold outer Exit2及当时afterraw缺失继续保，不倒写历史。
+
+唯一SOURCE_BOUND壳位于T/future-source-bound-machinery-r3-HOLD-r1/prepare-upload-once.machinery-r3.SOURCE-BOUND.HOLD.py12069/af0b257d76c831fe520b217acd3d804aea011723f67cc8d03f2d2e856e2c9178；Root核整AST除SOURCE_REFS还原None后与原11228/4a1819完全相同。三槽均实际：core4327/4bb74d9e、binder42533/176ef335、ENTRY4911/333fffe9；INPUT1207/f127f187的authority/PUT终态与壳DATA仍None。总索引T/ROOT-ENTRY6-FINISH-AND-FUTURE-HOLD.json11112/c84e4ad8、本机manifest4244/67efb492全读，Root核22引用。原sole开发会话capacity提示出现在实际保存之后，已正常恢复，没有云UNKNOWN或重复执行、未换产品模型；执行页已关，无云在途。
+
+当前仅一个新的当次有限入口问题：E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-MACHINERY-SOURCE-ACTUAL.json2230/64c023ef4436d7bb3c4ac5eab3bf867366342559bae9f3bd30100cecd637239e；07:08:08UTC为准备时钟读回，绝不是新的批准start。真正human/END尚无，原13:00:58失败窗继续STOP，不复用。问题沿原方案A/保存报告+九真实素材/最多2新job/首合格止/异常UNKNOWN止/8现有分最多一次/新增15元与原总100元/调用按需，首OPEN余30分钟、收到新同意记录后最多60分钟自动关闭。浏览器规则要求新一轮公网暴露当次确认，不追加预算/发布。唯一PLAN c.pending_public_window_confirmation为权威等待点。
+
+恢复后先读取新直接人类回复，第一步记录实际clock及同一start/END，保存原reply/witness，仅在新副本晚绑DATA，再交原sole沿原正常prepare→CLOSED配置观察→ENTRY→Root九普通上传和PUT真实ASGI终态→正常配置/CAS/paid→Root单封面POST/独立成品质检/PC-H5保存重开免费排字下载/唯一结算。不得重源码、first15、旧suite/报告或旧UNKNOWN。实际A模型/新封面/扣分仍0，质量及每张合格成本N/A，阶段3未通过；正文/生产不动，成本本人MFA独立。开发和非付费准备已具体完成，真实交付仍待本轮验收，不假称功能可交付。
