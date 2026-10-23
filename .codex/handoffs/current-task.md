@@ -1,3 +1,11 @@
+## CURRENT — 2026-10-23 11:35UTC 本轮正常九图与最终保存回执通过，但advance实际失败STOP；入口提前关与原现场核对中
+
+登记HEAD95c4f27/功能c708未改。本轮ENTRY11:21:37Z实际OPEN/timer至12:01:20Z已Root8bf115核1937/71862a36；正常前端认证8分→原report0cdbe→独立面板→9原图filechooser正常补传，UI9可用checked/缩略图、“关联原报告未重跑”实际通过。PC及390×844 H5九图/按钮截图在W5（H5已reset），尚非新版成品/真实iPhone证据。固定terminal RO Run01A16889-C7BC-5937-B2A3-18ACE11FA083/Read01A1688A-3E4A-58F5-BF51-BD2481C6D662实际11:33:43–44Z S0/D0/R1；terminal1398/af933d5d已Root f0876d核：NORMAL_COVER_SOURCES_PUT_FINAL_ASGI_SEND_COMPLETED、HTTP200/finalsendtrue、9upload+1attach、owner/report/usage同本任务、provider/model0、technicalwindow188/57ec。九图及原保存回执保留，不能无依据重上传/重跑正文。
+
+唯一advance tokenbb726e98-b8d3-4778-bcb0-0ee957225dbc，C c-sz070wjfxwh4k5c/T t-sz070wjfxwom96o，Run01A1688B-811D-5942-B70C-9B917540855A/Read01A1688B-F7AD-59C8-95D5-EADBA91A75F5实际11:35:36–39Z Failed2/D0/R1，W5/advance-paid-once-confirm-r5/actual/Output.ACTUAL-ORIGINAL.txt仅generic AssertionError/TWO_STAGE_HOLD_OR_UNKNOWN_READ_ORIGINAL_NO_REPLAY。具体code/已到阶段未知，不把本地受理时间当过margin证明，也不猜supplier0/配置无写。Root新coverPOST0/无paidREADY/无新版样本，未做成品验收。本窗已消费STOP，原sole获既有恢复GO只单次R5 exactconfig20d643/before4c8017提前close，保新数据与现场，再限定实际advance phase markers/log/settings/seal/ownedCID原件RO；不重发advance、不重开延时、不先盲stop容器。
+
+normal独立只读确认初始INPUT.PUT_terminal_ref=None为成熟caller支持状态，advance自动发现实际marker并仅内存填ref，不能据此定因。阶段顺序/首次settings335、CAS355、uploadstop361、paidstart362已在权威PLAN c.entry_static_r5_current_human_window.paid登记，须以实际markers定位下一最小修正；旧suite/READY/第一15/旧UNKNOWN不重跑或清零。当前public关闭及ownedCID/配置真实边界仍待原回执，勿声称已关闭或新模型实际0；旧terminal上的0仅截至PUT。正文生产/预算/权限范围不扩展，Worker成本MFA独立不得占封面关键接续。
+
 ## CURRENT — 2026-10-23 11:18UTC R5真prepare通过、确认词兼容已保存；单次ENTRY已发待原回执
 
 登记HEADe3d69a1/功能c708未改。新真人“确认”原件与11:01:20Z START/12:01:20Z END保持，首OPEN≤11:31:20Z，不能重开/延时。执行前发现uploadprepare仅认“同意”的确定性拦截，未发失败请求；唯一HOST只新增3兼容叶，原文相等AND共同text in(同意,确认)，其余授权/时刻/线程不变，Root全短diff+固定3载体核及normal独审GO，既有8纯谓词证据通过未重跑。3源SAVE e033f86b，Run01A16878-92D7-56D9-A2DD-8A858F9ECC7B/Read01A16878-EC7A-535F-AAD9-92D301050E79实际11:14:56Z S0/D0/R1，raw10962/40d641d4已Root核3新meta/whole/inode、old3及保护全等，无目录/ENTRYproof/core/DB/模型/human改动。W5/confirm-word-compat-HOLD-r1为既有本轮材料；caller44248/678e7eed、uploadprep14356/e34c5573、PROGRAMS1255/03992e39，原r5全保。

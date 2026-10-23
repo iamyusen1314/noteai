@@ -150,7 +150,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_R5_FRESH_WINDOW_CONFIRMED_REAL_PREPARE_PENDING / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口CLOSED/8d807exited143，旧失败保；R5 SAVE26556/90def与三引用绑定12057/107939 Root及独审GO，等待新当次有限确认后正常补传9图/真实成品验收 |
+| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_R5_REAL9_AND_PUT_PASS_ADVANCE_FAILED_STOP_RECOVERY / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口CLOSED/8d807exited143，旧失败保；R5 SAVE26556/90def与三引用绑定12057/107939 Root及独审GO，等待新当次有限确认后正常补传9图/真实成品验收 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成 | DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 产品当前3叶独审7207/dd00及原素材/计费/存储证据复用；ENTRY单源独审4679/faeba66e与实际回执纯predicate/篡改/安全诊断通过 | 方案A合格交付0/单位成本N/A；新版真实PC/H5、成品重开/免费排字/下载/唯一结算待齐；真实iPhone与自然90天未验，不作完成声明 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -2787,4 +2787,12 @@ E/entry-static-contract-r1 单源41112/4e6b9276b9b3989bafec19ba313c3210cd25d3f67
 唯一prepare token35366baf，Run01A1687B-7595-5CB1-8FE6-8C7C9567ABB3/Read01A1687B-D139-5E3E-ACF2-14700FC41B14实际11:18:05–11:18:11Z Success0/D0/R1；W5/prepare-confirm-r5-once/actual/result.ACTUAL-ORIGINAL.json42360/c45094f5，13inner原bytes/whole及三READY已Root d38cdd核合，b7c runtime/629 guard和c708源overlay实际加载、worker活/idle、CLOSED settings writes0/provider0。新CID f9335871fbb56b98ca24659b3efb7099145319ee94ca1242578967a68e96d593/18114，仅uploadarmed、generation/cover/paidguard/operator均false；旧45ledger/pending0/7terminal/activeunknown0/claim0保，实际旧fixture Lite非Pro路线验收。
 
 单次有限ENTRY token64f4bfe5-169d-4110-afbe-3b8f5824926f，C c-sz070wi708adzpc/T t-sz070wi708pdds0，Run01A1687E-B187-5AA2-9804-097F87841AAF已发，原T待回，不将受理当OPEN成功。权威PLAN c.entry_static_r5_current_human_window含全部原件绝对refs及本轮恢复入口；Root仅actualOPEN后正常UI补传9原图、PUT final-ASGI-send真正终态后才advance-paid，后续同兼容caller，不混old。当前新模型/封面/积分0，正文/生产/旧UNKNOWN和first15不改；15新增/100总/首合格停及异常UNKNOWN停保持。不要因恢复重发SAVE/prepare/ENTRY，成本MFA独立。
+
+## CURRENT — 2026-10-23 11:35UTC 本轮正常九图与最终保存回执通过，但advance实际失败STOP；入口提前关与原现场核对中
+
+登记HEAD95c4f27/功能c708未改。本轮ENTRY11:21:37Z实际OPEN/timer至12:01:20Z已Root8bf115核1937/71862a36；正常前端认证8分→原report0cdbe→独立面板→9原图filechooser正常补传，UI9可用checked/缩略图、“关联原报告未重跑”实际通过。PC及390×844 H5九图/按钮截图在W5（H5已reset），尚非新版成品/真实iPhone证据。固定terminal RO Run01A16889-C7BC-5937-B2A3-18ACE11FA083/Read01A1688A-3E4A-58F5-BF51-BD2481C6D662实际11:33:43–44Z S0/D0/R1；terminal1398/af933d5d已Root f0876d核：NORMAL_COVER_SOURCES_PUT_FINAL_ASGI_SEND_COMPLETED、HTTP200/finalsendtrue、9upload+1attach、owner/report/usage同本任务、provider/model0、technicalwindow188/57ec。九图及原保存回执保留，不能无依据重上传/重跑正文。
+
+唯一advance tokenbb726e98-b8d3-4778-bcb0-0ee957225dbc，C c-sz070wjfxwh4k5c/T t-sz070wjfxwom96o，Run01A1688B-811D-5942-B70C-9B917540855A/Read01A1688B-F7AD-59C8-95D5-EADBA91A75F5实际11:35:36–39Z Failed2/D0/R1，W5/advance-paid-once-confirm-r5/actual/Output.ACTUAL-ORIGINAL.txt仅generic AssertionError/TWO_STAGE_HOLD_OR_UNKNOWN_READ_ORIGINAL_NO_REPLAY。具体code/已到阶段未知，不把本地受理时间当过margin证明，也不猜supplier0/配置无写。Root新coverPOST0/无paidREADY/无新版样本，未做成品验收。本窗已消费STOP，原sole获既有恢复GO只单次R5 exactconfig20d643/before4c8017提前close，保新数据与现场，再限定实际advance phase markers/log/settings/seal/ownedCID原件RO；不重发advance、不重开延时、不先盲stop容器。
+
+normal独立只读确认初始INPUT.PUT_terminal_ref=None为成熟caller支持状态，advance自动发现实际marker并仅内存填ref，不能据此定因。阶段顺序/首次settings335、CAS355、uploadstop361、paidstart362已在权威PLAN c.entry_static_r5_current_human_window.paid登记，须以实际markers定位下一最小修正；旧suite/READY/第一15/旧UNKNOWN不重跑或清零。当前public关闭及ownedCID/配置真实边界仍待原回执，勿声称已关闭或新模型实际0；旧terminal上的0仅截至PUT。正文生产/预算/权限范围不扩展，Worker成本MFA独立不得占封面关键接续。
 
