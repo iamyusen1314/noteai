@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-23 04:32UTC 11叶源码真实预置完成；隔离原生身份拒绝已定位为待核正常配置错配
+
+实际HEAD9a3073850a7a76595e40667905ff3d3c5bed908d/产品c708fe05，原worktree/分支延续。官方正常空表单已恢复，不需要本人操作error.taobao.com；原异常导航与初始UNKNOWN记录保留，不再发源码长URL。原sole实际完成source000/001，两段均Success/Exit0/Dropped0/Repeats1，沿原Token，无新重试标识。最终Q/source-part-001/actual/result.ACTUAL-ORIGINAL.json13307/57b5d06d55b039332d6c613462be581d9e2d95146fb6778a450b22c84b392719，服务器source-input-readback inode1617223/root0400/nlink1；11叶实际whole/metadata与D4物理表7新byte+4旧copy全部匹配，Root逐项复核。两段protected_before==after且跨段一致，DB/targetimport/main/START/READY/OPEN/models/INPUT/human/first15_write均0。初次Root本机核验误用D4/mature_fresh.py不存在的快捷路径，已改用权威PHYSICAL local_reference_ref，非源码不匹配或云失败，无额外云动作。
+
+原始总索引Q/ROOT-ACTUAL-R4-SOURCE-SUMMARY.json25208/f96ded85aefec36142c297420884c9c374323905bfa1ccbfd173f17a7079f293包含正常官方页截图及两段原C/T/Run/Read。单独native身份RO仅一次：C c-sz070vh3rl1j7k0/T t-sz070vh3rlgilmo，Run01A16702-08A2-5298-8779-0D4A3DA600AC/Read01A16702-5487-589E-985D-3DAB867709F1，Exit2/D0/R1；B/fixture-native-role-readonly-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json1015/d41787994faf9e3b45e0813967b1955ccd0f5c21bb2e348fd752305bc2666b34。PG五pin匹配；无凭据UID999通过Unix请求noteai_admin遭peer拒绝，stdout空，未改role/grant/hba/凭据，不重试。不能扩称所有正常应用DB故障，不混入source DB0。
+
+normal_c708_mount_review继续唯一正常配置修改负责人，只读已发现成熟peer映射OS postgres999→noteai_app、OS root→noteai_admin；当前normal_settings_child硬UID999+ADMIN_URL noteai_admin及fixedcaller exec999同样错配。正核既有成功正常app只读与原owner-maintenance成熟profile，优先复用正常现成权限，禁止凭空授权或让主API长期root。Root维护PLAN/证据，cover_media待最终窄审；无并行改同文件。未来human/END/INPUT仍None，旧03:39:07Z窗失败关闭不重开，当前不先申请公网窗。源码预置通过不冒真实READY/成品通过。
+
+唯一PLAN a.state=ACTUAL_R4_SOURCE_SAVED_NORMAL_DB_AUTH_CONTRACT_LOCAL_ROOT_CAUSE_REVIEW_NO_PUBLIC_WINDOW。实际PlanA模型/新封面/补传/扣分仍0，旧45/3.9263058/UNKNOWN、first15真1119/b463和原INPUT保持；新增15/原总100、调用按需/8分最多一次不变。下一最小正常身份契约结论→必要修复/定向证据/窄审→原sole实际必要预置→具体现有调用齐后真实九照封面及PC/H5完整验收。正文/生产不动，最终交付未完成。
+
 ## CURRENT — 2026-10-23 04:12UTC 无参官方页正常恢复；撤回过宽人工恢复要求，继续原源请求核对
 
 实际HEADda0d31fb4a1c6026b7f2501da2f8d7ad9acb85ab/产品c708fe05，原worktree/分支延续。本人明确“我不在电脑前自己处理”“error.taobao.com是错误链接不需我操作”。Root复读完整原tool记录call_e9fd666b48aa4796902af68f99e22c27，发现被拒导航携带RunCommand?RegionId&params=整段CommandContent Base64长query；不是空白无参官方页。原site拒绝仍有效，不访问/观察error域，不换browser/surface/raw/CDP/关闭保护。工具原文允许不需要被阻动作的materially safer alternative，因此仅原sole同Chrome6365一次普通goto无query/payload/token的已知官方 https://api.aliyun.com/api/Ecs/2014-05-26/RunCommand ，正常site gate实际允许，官方标题/文档页可见，未点Run。

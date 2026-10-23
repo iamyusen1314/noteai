@@ -2565,6 +2565,14 @@ Root另已授权一个独立的fixture原生Unix noteai_admin/UID999仅SELECT身
 
 本次旧有限窗03:39:07Z已过且从未OPEN，A实际模型/上传/成品/积分0，合格成本N/A；旧45/3.9263058/UNKNOWN、首15真1119/b463 inode1495872、旧INPUT/canonical/failure全保，不清零重捕。预算新增15/原总100/调用按需及8积分最多一次不变，成本MFA独立不设封面前置，无任何新公众问题。阶段3未通/4完整交付待。唯一PLAN c.active_local_successor保存Q/latebind/transport refs、site_safety与恢复顺序，state WAIT_USER_OFFICIAL_BROWSER_RECOVERY_R4_FIXED_SOURCE_PRESTORE_UNKNOWN_NO_PUBLIC_QUESTION。已授权的本机修复和非付费材料完成，直接阻碍仅正常官方页面恢复；恢复后原sole续实际惰性读回/必要连接核对→Root核whole/具体调用材料→再安排真正原九照封面及PC-H5保存重开免费排字下载/唯一结算/独立审美，不伪称交付完成。
 
+## CURRENT — 2026-10-23 04:32UTC 真实11叶预置完成；正常身份错配定位接续
+
+接收登记延续原HEAD9a3073850a7a76595e40667905ff3d3c5bed908d/分支codex/noteai-xhs-cover-20261019/产品c708fe05。官方页面恢复，无需本人操作错误域。原sole两source沿原Token实际Success/Exit0/D0/R1，最终Q/source-part-001/actual/result.ACTUAL-ORIGINAL.json13307/57b5d06d55b039332d6c613462be581d9e2d95146fb6778a450b22c84b392719；Root按权威PHYSICAL逐项核11叶whole/root0400/nlink1、两段及跨段保护一致。总索引Q/ROOT-ACTUAL-R4-SOURCE-SUMMARY.json25208/f96ded85aefec36142c297420884c9c374323905bfa1ccbfd173f17a7079f293。仅源码落盘，START/READY/OPEN/模型/INPUT/首15写入均0，不能冒真实验收。
+
+接口问答：独立一次fixture原生UID999→noteai_admin Unix身份SELECT实际peer拒绝，原件B/fixture-native-role-readonly-HOLD-r1/actual/result.ACTUAL-ORIGINAL.json1015/d41787994faf9e3b45e0813967b1955ccd0f5c21bb2e348fd752305bc2666b34，失败即停无重试/权限修改。相关normal_settings_child.py硬UID999+admin、fixed_two_stage.py exec999。已查成熟映射999→noteai_app/root→noteai_admin；不是正常app已全面失效，也不需先改PG权限。normal_c708_mount_review唯一负责人核现成成功连接与最小修正，Root统一决定/集成，原sole只接具体准备好的云动作。阻塞范围仅下一正常settings observe/activate/restore，产品正文/生产不扩修；建议复用成熟正常profile，主API/模型worker保持999，尚未修正/真实验证不得冒已确认。
+
+唯一PLAN已更新实际证据与当前状态，旧失败窗与UNKNOWN/首15/原INPUT不可变，无新公众问题。实际PlanA模型/封面/扣分0，下一完成最小身份修复后再做真实成品、PC/H5、保存重开、免费排字、下载与唯一结算；最终交付仍待。
+
 ## CURRENT — 2026-10-23 04:12UTC 无参官方页正常恢复；撤回过宽人工恢复要求，继续原源请求核对
 
 实际HEADda0d31fb4a1c6026b7f2501da2f8d7ad9acb85ab/产品c708fe05，原worktree/分支延续。本人明确“我不在电脑前自己处理”“error.taobao.com是错误链接不需我操作”。Root复读完整原tool记录call_e9fd666b48aa4796902af68f99e22c27，发现被拒导航携带RunCommand?RegionId&params=整段CommandContent Base64长query；不是空白无参官方页。原site拒绝仍有效，不访问/观察error域，不换browser/surface/raw/CDP/关闭保护。工具原文允许不需要被阻动作的materially safer alternative，因此仅原sole同Chrome6365一次普通goto无query/payload/token的已知官方 https://api.aliyun.com/api/Ecs/2014-05-26/RunCommand ，正常site gate实际允许，官方标题/文档页可见，未点Run。
