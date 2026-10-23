@@ -2629,3 +2629,14 @@ D=E/runtime-importlib-machinery-r1，runtime174624/6c695092ce050f75ccddcfaa27e37
 唯一作者同时准备最薄接入：只改新runtime的必要consumer pin与已消费r2后的唯一数据路径；原guard/6个ENTRY sidecars/依赖/产品/first15真1119b463不变，避免重传全包。ENTRY两必要数据pin副本交原sole核接。此处main、worker、SQL、供应商、OPEN均0；当前13:00:58有限窗已因唯一prepare失败STOP，从未OPEN，不重用或延时。A真实模型/新封面/扣分仍0，合格交付成本N/A；旧45次/3.9263058元及UNKNOWN保，新增15元/原总100元/调用按需不变。阶段3未完成；下一是实际元数据补录与最小接线后正常启动，之后才正常九图补传及真实成品、PC/H5、保存重开、免费排字、下载和唯一8分。唯一PLAN已同步，无新公网问题待答。
 
 补证已实际完成：C c-sz070vo5xfackqo/T t-sz070vo5xfpbytc，Run01A1674A-7D3C-597A-AA2F-16D8E1EFDB49/Read01A1674A-C2E5-5404-A35A-2FB5B1FA6D01，Success0/D0/R1。M/mount-metadata-supplement-r1/actual/result.ACTUAL-ORIGINAL.json19072/381d1b9d；完整raw11056/ecfb3347。将当前37完整records循环旋转10位，原byte编码及尾newline构成11056B，精确命中before原SHA7c5694c66219600708fd9248da2f20f4f4c2b5a215bb201d53e8b4d62d3a8186；Root独立重算相同，33相关只读挂载不变。comparison5587/2667b974及重建原件保留；固定9f98 exited2/PID0/restart0与6pins前后全等、cold absent。接受功能绑定与当前完整挂载相同补证，原outerExit2和当时afterraw未存历史保留，不重写失败回执、不新跑cold。阶段继续最小pin/data接线。
+
+
+## CURRENT — 2026-10-23 06:10UTC 最小运行接线及窄独审通过；原sole接续实际源码保存
+
+登记HEAD8fffe38/原分支/产品c708fe05不变。最终I=`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/implementation-a-20261022-r1/runtime-importlib-machinery-r1/integration-minimal-r1`已0400冻结；MANIFEST9050/e408a1ebb3c1d9173754306ea20c668b2c882cfbbfcffe987fc776137cb3e573、ABI3875/ef8532dd、PHYSICAL9521/115e7703、CHECKS1674/da69f2c7。Root核25冻结refs、必要diff和template仅三字段变化；cover_media正式窄独审13864/874b172ac666d77fb8a03108d5f5eed54bc387aa5f404b378eca5fe9b02e3fcd全文及25引用再核，无活跃P0–P2，不重跑旧suite。
+
+运行源码唯一功能差异仍是已真实验证的显式importlib.machinery；接线只同步必要pin及已消费r2之后r3数据路径，原owner-peer/first15/guard/产品/ENTRY保护逻辑保持。实际本机材料生成发现既有binder裸Path缺导入，唯一派生binder补一行from pathlib import Path；原17函数AST保持，原报错541/1b077与修复后真实纯本机pack4766/64cb保留。运输说明的重复ENTRY目的P2也已闭合：8非ENTRY叶direct，ENTRY第9改动只由原两成熟carrier创建，避免先建目标。caller44279/4a0a4a8d、binder42533/176ef335、ENTRY37358/60154076、PROGRAMS1255/c603c799；三runtime由actual cold6c+原两helper在server内O_EXCL复制，guard2直接旧ref，五旧ENTRY sidecar server复用，不重传原11包。
+
+Root已将具体最终材料交原sole并授权必要source-only实际保存/完整读回；模型费0、仅新测试source输入/索引，DB/业务START/OPEN/first15与human写均不在此步。实际core5/ENTRY6及binder三槽只能在保存后形成，future wrapper11228/4a1819只预绑真SOURCE_REFS，DATA及新human-END仍None。当前回执待，UNKNOWN保原intent/C-T，不盲重发。唯一PLAN保存完整refs与待执行状态；恢复先读它和实际原件，不重做已通过单cold/本机pack/旧suite。
+
+原13:00:58有限窗失败STOP、从未OPEN，不复用。A真实模型/新封面/扣分仍0、合格交付成本N/A；旧45次/3.9263058元及UNKNOWN保留，新增15元/原总100元/调用按需及最多一次8分保。当前仅源码/离线接线GO，正常启动/owner维护、九图补传、paid CAS、真实成品及PC/H5保存重开免费排字下载尚未验收。下一实际保存读回→Root核三真槽/具体正常调用材料→再安排当次有限入口与完整封面闭环；无新公众问题待答、生产不变。

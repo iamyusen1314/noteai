@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 06:10UTC 最小接线窄独审通过，原sole实际源码保存中
+
+产品c708fe05/原封面分支与worktree不变。运行单import真实21绑定及Mounts补证已通过；最小必要pin/后继路径和binder一行Path导入已冻结，独审13864/874b172a无活跃P0–P2，Root核全引用。原sole已获具体source-only保存/读回范围，回执待；业务START/OPEN/DB/模型0，旧失败有限窗STOP。三真source槽待实际保存，future human/END仍空，未发新公网问题。权威详情/恢复顺序见 docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md 末节及原唯一PLAN；不要重跑cold/旧suite/first15，不重复未知请求。下一实际读回→正常启动与九图封面闭环，真实成品仍未验收。
+
 ## CURRENT — 2026-10-23 单import真实绑定PASS，outer元数据HOLD；最小接线继续
 
 本任务仍noteai-xhs-cover-20261019/原worktree/产品c708fe05。真实单cold旧错→新21源绑定通过；outer原Exit2因Mounts原文比较不等保留，一次固定9f98完整RO补证已实际命中before全raw SHA（37条records仅循环顺序不同，33相关RO不变），Root已独立核，原outerExit2/当时afterraw未存仍保；不重跑cold。唯一作者准备必要runtime/ENTRY数据pin和已消费r2后的路径，实际core索引落盘后才产。原公众有限窗失败STOP未OPEN，A模型/封面/扣分0；预算/旧UNKNOWN/first15不变。权威状态及完整原件见 docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md 末节和原PLAN；当前无新公众问题，下一最小接线/正常启动→原九照真实封面闭环。
