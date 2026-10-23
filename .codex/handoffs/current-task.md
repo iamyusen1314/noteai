@@ -33110,3 +33110,6 @@ Cover checkpoint15:50:36UTC: R6 CLOSED/404/consumed. Actual original recover PAS
 
 
 Cover checkpoint16:08UTC: R6 remains STOP/CLOSED/404, CAS_NOT_SENT and no new model/job/settlement. Five original bodies now fully acquired through bounded3segment RO, Root actual5raw+officialstream verified; existing PLAN/coverhandoff latestCURRENT has hashes and firsttruncation preserved. Unique author normal_c708 pure historical replay passed real refresh/fresh/candidate build, mapping true guard historical refs, exact business KeyError not yet known. Only test-local guard-path setup corrected, no product/guard relaxation. Original source author owns helper/test; final current test-source whole pending. Necessary one exact current uploadCID graceful cleanup authorized to sole, actual not yet reported; do not assume stopped or retry. No fresh public authority, no R6 reopen.
+
+
+Cover cleanup actual16:12:04UTC Success0/D0/R1, Root original1904/0a5a verified exact current eeb13 exited/PID0/exit143 after single cleanup. Commandconfirmedfalse preserved separately; no secondstop; DB/OSS9photos kept, portfree not probed. Pure historical guard localization continues on current testharness0d37 exact guard629; two oldraw plus truepredecessor raw required via bounded soleRO, no historical test/model/public replay. Existing PLAN/coverhandoff latestCURRENT authoritative.
