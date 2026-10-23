@@ -2673,3 +2673,12 @@ Root已将具体最终材料交原sole并授权必要source-only实际保存/完
 当前HEAD86d52ae354f11ab4cc0943b46b200bf12497f5e0/分支codex/noteai-xhs-cover-20261019/产品c708fe05不变。本人对call_980917问题新直接结构化回复answer同意；实际Root read_thread当前turn01a16722-28fd-7fa3-a88f-0067fdc5c929内最新userMessage01a16798-9928-7100-9e94-dfc40f962a8c。首次clock07:10:28UTC固定START1792739428/END1792743028=08:10:28UTC(北京16:10:28)，首OPEN≤07:40:28Z，同窗不重开/不延时。原turn.startedAt不是本次同意时间。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-151028.json2991/4ab91641e27589c44cd73272dd709886c1febe4f813691da5bf3c7c2f9724e9a及WITNESS642/9e53f6653b68761201393aa40e4938b8782fcd64d1b64c218d047d542edfae95已保存原结构/实际ID/第一clock。权威PLAN c.machinery_r3_current_human_window；旧失败窗保留。
 
 已交唯一原sole在新副本仅DATA晚绑12069/af0b三真sourcebound壳，正常prepare-upload与CLOSED settings observe→ENTRY timerfirst/OPEN；Root负责正常九原图上传PUT/真实ASGI终态后paid cutover与单coverPOST、PC/H5保存重开免费排字下载。预算仍方案A新增≤15/原总≤100/calls按需/最多2条件second/原8分最多1次，非预期失败UNKNOWN即停提前关。source/core/ENTRY/first15不重复。独立acceptance_ui_resume只审本轮真实PNG和QC6，暂无新成品/费用/扣分。生产和报告正文不动。
+
+
+## CURRENT — 2026-10-23 07:20UTC 本轮实际prepare失败，入口始终关闭，唯一新CID清理未知
+
+同一07:10:28Z批准窗已消耗并STOP_THIS_WINDOW，不重prepare、不OPEN/延时。原sole实际C c-sz070vwi099pkow/T t-sz070vwi09w6nsw，Run01A167A0-09E1-50DE-8228-29BEAA6138EB/Read01A167A0-66AC-5892-B8BF-ECBAA88886CB FailedExit2/D0/R1。W=root-plan-a-20261022-r1/window-20261023-151028-r1/prepare-upload-machinery-sourcebound-r3，actual/result.ACTUAL-ORIGINAL.json8300/633db7787ee676d9b7e6050401249640138880b361fae29f3d48f6db488e39f1 Root核完整原gzip/bytes与protected前后全等，timeoutfalse/OPENfalse；无三READY或settings observe、正常UI上传PUT/封面POST均0。实际A模型/成品/扣分仍0，质量未验收。
+
+内层upload-start.stdout192/d0ffe3a567aa834c175e6eb38d25596358e8f1cb3b323077f7f77ea039e0130f明确OWNED_CLEANUP_UNCONFIRMED_READ_ACTUAL_CID_NO_REPLAY，唯一新CID148f9413d176e41ffd8dbff55d0c2fe3bfd350ca3979e1782b6f3c1a800eb2b3、cleanup:null；内层result487/349423966cc24aac8fa0ea5d85adf7d611d87e6187ca6eec9195014a8a791370，stderr0。不能称该CID已停，也不复用旧9f98。Root与sole读launcher finally442–445：cleanup_owned任意异常覆盖最初failure，所以现有192B无法证明原启动根因，不能猜旧machinery重复。
+
+已交同一sole一次薄只读接续：只exact CID自定义id/name/image/app/state/restart（不读Env/logs/exec），固定owned-r3中launch-started/container/ipc/index/cleanup与control四safe JSON原bytes+metadata/absence，其余control仅name/type/meta。先只读；若真实running，再以exactname/image/app精确匹配的原mature gracefulcleanup必要恢复同一测试CID。属于原授权定向调试/必要恢复，不是业务重试/新公网窗/付费调用。normal_c708_mount_review独立只核现有源码/路径，不云操作/重审项目。权威PLAN c.machinery_r3_current_human_window已记失败原件、cleanup未知和下一步；原first15/账本/旧UNKNOWN/正式服务保留。

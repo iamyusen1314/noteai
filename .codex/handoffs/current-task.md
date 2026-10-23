@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 07:20UTC 实际prepare失败STOP，未OPEN；核新CID残留而非重试
+
+唯一07:10:28批准窗失败消耗，不因END未到而再启动/开放。W实际8300/633db778已核，protected前后全等/OPENfalse/无三READY与settings；UI上传PUT/模型/封面POST/扣分0。内层192/d0ffe3显示新CID148f9413d176e41ffd8dbff55d0c2fe3bfd350ca3979e1782b6f3c1a800eb2b3 cleanup:null，不能声称已停。launcher finally覆盖最初failure，根因未知，不能猜旧错误。sole收到仅一次exactCID及owned-r3固定safe原proof薄RO；若仍running再精确身份匹配原gracefulcleanup必要恢复。无新业务/公网/付费动作。PLAN c.machinery_r3_current_human_window为唯一恢复点，详情交接最新节。
+
 ## CURRENT — 2026-10-23 07:10:28UTC 新当次人类同意已记录并交唯一sole执行
 
 HEAD86d52ae/产品c708fe05不变；START1792739428/END1792743028固定，首OPEN≤07:40:28Z，最多至北京16:10:28自动关、同窗不重开不延时。本人新async call_980917 answer同意原结构、ID与第一clock见E/HUMAN-20261023-1510282991/4ab91641及WITNESS642/9e53f665，PLAN c.machinery_r3_current_human_window是唯一恢复点。原sole已收到：只DATA晚绑既备12069sourcebound→prepare上传API+CLOSED观察→ENTRY→Root九普通源上传PUT真实终态→paid→Root单封面验收。旧失败/source/first15不重，A实际模型/成品/扣分仍0；15新增/100总/按需calls/最多2条件second/现有8分一次保持。异常UNKNOWN停止提前关，正文生产不改。详见交接最新节。
