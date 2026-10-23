@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 08:06UTC 最小接续链双窄审GO，原sole仅private source保存中
+
+HEAD e2b2878/产品c708未改；本轮07:10批准prepare失败STOP，148f已实际退出，入口CLOSED，无模型/上传/POST/扣分。三PG SQL补丁b7c/629及离线/独审已接受。消费者manifest25846/0230的9派生/27ref/Constant-data/权限预算门和物理core5+ENTRY6 ABI/copy3-copy5均独立GO；Root已给原sole明确source-only保存范围，原机制producer-decoder-whole验证后O_EXCL新源与实际proof，不能START/OPEN/SQL/model，first15与旧history全保。PLAN q.postgres_placeholder_spacing_repair.private_source_continuation是唯一恢复点，实际新refs/human-END仍None。不要重3SQL/cold/旧suite/ENTRY大包，不为freshbudget造first15；实际读回到齐后Root核真实三ref再晚绑SOURCE_REFS，DATA保None。完整原件/绝对manifest在交接最新节与PLAN。
+
 ## CURRENT — 2026-10-23 07:43UTC PG spacing补丁与独立窄审GO，原机制private接续准备中
 
 产品c708与正常DB不改。I/postgres-placeholder-spacing-r1 new runtime174627/b7c2908d、guard174647/62926013，精确3PG SQL共6spaces+1guardwhole；manifest2616/597f33d0/evidence5458/c06568ef/独审5193/d0f4455c Root全核接受，真实adapter-wire/params/historyfilter/owner-report-completed/AST4PASS、3.11compilePASS。实际PG SQLSTATE/启动/成品仍未验，旧source/SQLite账本保。PLAN q.postgres_placeholder_spacing_repair是当前恢复点；原sole只准备既有source/pin最小本机接续，Root核carrier后private保存，未准新START/OPEN。07:10失败窗继续STOP，148f实际exited/PID0/exit143/restart0，无云在途；新human/END尚无，不重first15/ENTRY/冷suite/正文/生产。完整refs在交接末节。
