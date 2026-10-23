@@ -2816,3 +2816,17 @@ E/normal-settings-source-contract-r1单源13136/b02d5abc3c5fdf8a7f68cd911405e952
 
 下一次公网前须完成这处受控集成与后续成熟terminal读/advance/close薄载体预置，仅在真实新reply/CID/refs到来晚绑，避免临场包装或跨上下文重做。未来human-END仍None，原窗口不可恢复；真实封面/质量/单位成本尚未完成，不以离线或配置验证替代。所有失败/未知/first15/原九图终态保持，Worker成本MFA独立。
 
+
+
+## CURRENT — 2026-10-23 12:32:30UTC 私有配置修复已审；保存因旧loader指纹在写前停止，按实际状态接续
+
+本任务原分支/HEAD c5d05ffc993cc6a5aa311bb240209a7d2de8d95c，功能c708fe05不变。Root补核J/source-only包：9f8336已审成熟writer/短diff/整载体roundtrip；1ed9da纠正旧child proof的basename键映射后，3旧meta逐字段相等、3份literal重建精确等新whole、14直接refs+3新leaves核真。此前Root本机lookup脚本KeyError导致GO发早，已在HOST实际提交前撤回；补核真PASS后才给替代GO，原包无变更。
+
+唯一SAVE token5fac9846-3592-46fc-86a8-57dca24e7b63，C c-sz070wo0q6dyfwg/T t-sz070wo0q6sxtz4，Run01A168BA-7AF1-53E7-B596-8E61998977CE/Read01A168BB-21D9-5296-B4D9-CEC7DCCC6F7C，实际12:26:55Z Failed2/D0/R1。J/actual/result.ACTUAL-ORIGINAL.json493/a8d3cb67f53ae538ff9783e12dda60cf6192df923f7634957c302bdb41c3f6a3已Root e60123全读：CURRENT_PRIVATE_FRONTEND_CHANGED发生于main76初次all_protected，先于78–85源码读取和写循环；oldrefs/source_refs均空，before/after均null，不能把protected_equal false冒称生产发生变化。原失败封存不重发；3新source实际refs未有，正常配置启用尚未执行。确定旧pin在writer L15：loader1881/c903仍为R11，R5成功OPEN已修改END。原sole正用一次固定3JSON原raw+loader stable meta/hash只读接续，非全站扫描。拿到实际后仅修writer该loader pin并机械重gzip/wire；原3targets/PLAN/补丁/其他保护不改，新的有因修正单次调用用新token。
+
+后续受控集成wrapper2927/799bb339已Root8030d7全读：仅晚绑3实际refs，checkpoint新draft c0c0e64e-2703-483e-b778-9fa421da9ba2/activate a5aa9bc3-0a9d-4bd3-b910-b659bbb7d336，一次原正常事务rev2→4/目标V3/审计2，0provider/coverPOST/public/生产/积分/schema；保V3active，不制造restore回Lite。另独立只读已指出下轮ENTRY不能继续钉R11前态：R5manifest/loader需原件后精确承接previous refs/schema/已消费OP/UNIT及既有消费者pins；core/b02d/5sidecars/15tree/CAS等原证据复用。九图产品持久关联证据1398/af933保留，下轮优先正常GET/缩略读验证；辅助fresh-window限制不能冒称产品素材丢失。
+
+恢复以原权威PLAN current_cover_only_preparation.quality_model_review.implementation_a.current_source_refresh_recovery.complete_two_stage_caller.entry_static_r5_current_human_window.settings_source_contract_repair为准。R5同意已消费、入口实际CLOSED/END已过、future human-END None；新公网前先完成非付费集成和成熟薄载体准备。PlanA模型0/新封面0/结算0，真实成品质量与合格成本未完成；不以本机审查/配置集成冒验收。报告正文/生产/旧UNKNOWN/first15保持，成本MFA独立。
+
+
+固定R5只读回执已实际完成：token8da80621-26eb-438a-9773-97100250fcda，C c-sz070wobht1pn28/T t-sz070wobht97c3k，Run01A168BD-8D5E-5E86-BE8C-2399BBE39148/Read01A168BD-E1E3-5E6B-8FAE-6617F52D40B5，12:30:16Z S0/D0/R1。raw17325/fc9c3a8c，Root987621/8dd06f/eb96b5/a04266核3JSON原base64/whole/本地byte同：config6464/20d643(root400)，manifest2143/4cc6ec9f(root600，exact PRIVATE_STATIC_REUSED_NOT_ROUTED/true/无commit/15files)，provenance2728/372de468(root600，仅loader变更)；loader1881/6921103b root644/nlink1/inode1048042真等manifestpin/END1792756880。未重读其他assets/正式/PG/CID。成熟writer唯一c903→692实测pin修正在J/r5-loader-pin-only-r1，Root360585/470674核整source唯一literal、new3whole、wire→shell→gzip→exactsource及shell其余byte同；新有因修正单次GO已交sole，source21049/598f71eb、run9951/4d26ef37、wire13268/99a28dc8，actual尚未回；不重复旧493请求。后继outer相同旧loaderpin与ENTRY previous6/schema/newRUN身份一起最小承接。独立确认caller331–332已有精确V3复用分支：受控集成真留rev4后，新prepare真observe可0servicecalls直接复用，不造rev6或restore；此时runtimeV3 readiness仍待原prepare实际验证。素材读取只需原ref epoch/hash与对象metadata相等，无需当前global epoch字面不变。权威PLAN已补这些实际refs/差异与未知界限。
