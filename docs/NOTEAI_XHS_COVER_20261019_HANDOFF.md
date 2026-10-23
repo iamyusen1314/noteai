@@ -2875,3 +2875,14 @@ F/prepare-upload-once.ram-settings-r6.SOURCE-BOUND.HOLD.py12076/aba78f870a125d9e
 唯一OPEN tokendb35224b-aebc-4db7-ab8e-a7235e5b6b7e，Run01A16958-B6A3-5006-BAF3-9AF39FD5B52E/Read01A16959-5F33-51D6-A623-25A706990521实际15:19:45–46Z S0/D0/R1；W6/open-upload-entry-once/actual/Output.ACTUAL-ORIGINAL.txt1937/4b4fccc2已Root577f14全读核OPENtrue、timer active、END1792771832/16:10:32Z(北京10月24日00:10:32)，首OPEN剩50m46s，满足原至少30分钟。config6464/2aeccde7，parent4c801→3c783；同窗不重开延时。Root仅正常产品tab1637495948/browser4，不接管sole云tab；报告正常登录恢复fixture8分，原report0cdbe已打开，单次chooser原9文件补传，UI明确“补传素材已关联原报告，未重新运行报告”、9/9可用并选中，W6/ROOT-NORMAL-NINE-ATTACHED.png保存。旧历史成品不可读提示保留，不作新封面质量失败。
 
 权威PLAN同r6字段已补actual prepare/ENTRY/CID/UI；当前new coverPOST/model/credits0。下一只由原sole预置terminal薄壳核本次最终ASGI及身份，再单次advance-paid；actual paidREADY后Root正常UI单次新封面，实际PNG/240thumb/QC6独立审美与事实核对，再PC/H5重开/免费排字/下载/唯一8分。已有--recover-readonly的snapshot.new_terminal_rows含完整QC/layout/design/policy及claim终态，可复用不造新collector；费用沿已有三表方法按实际新job/usage，旧40call读取器不能整份原跑R6。无正文/生产变更，首合格停/失败UNKNOWN停，原15/100预算、调用按需及旧UNKNOWN/first15保持。
+
+
+## CURRENT — 2026-10-23 15:37UTC R6推进实际KeyError，按约停止并已关闭；仅继续原件定位和必要局部修复
+
+登记HEAD0174c75/功能c708不变。正常九图terminal只读 Run01A16962-25B1-5DED-8794-9E5780676D59/Read01A16962-62AB-54F4-AD45-3E7BA1F42348实际15:30:03–04Z S0/D0/R1；actual1398/fecff1a6已Root0dfafa全读whole/字段，HTTP200/finalASGItrue、9normaluploads/1attach、原owner/report/usage及provider/model0；canonical human2568/439c0d3与technical188/89f90c保持，源E1627仅provenance。不是素材失败/重跑报告。
+
+唯一advance tokene57b110e-082c-4370-b792-0e2246b1730c，Run01A16964-4BA2-57DC-82ED-39B8404D01C0/Read01A16964-84C0-5132-A89D-36A6F08F9837实际15:32:24–26Z Failed2/D0/R1，W6/advance-paid-once/actual/Output.ACTUAL-ORIGINAL.txt194/201f3394已Root5172bd原读：KeyError/phaseadvance-paid/stateTWO_STAGE_HOLD_OR_UNKNOWN_READ_ORIGINAL_NO_REPLAY，无key/stack，automaticPOST/retry/rollbackfalse。不猜根因/不称paidREADY；Root始终未点新生成，coverPOST0/新成品0，未做内容质量验收。
+
+原close token2dacf420-34e8-4c70-8751-531bdbcb5551，Run01A16966-8007-5C7E-9A67-1A585E1C0D8D/Read01A16966-C043-5275-84CB-E295BD73AF5E实际15:34:48–49Z S0/D0/R1，actual171/c73e85b4 Root697d80核PRIVATE_ENTRY_CLOSED_API_WORK_RETAINED/nginx_reloadtrue/APIstopfalse/DB0/model0。Root正常tab reload真404，W6/ROOT-ENTRY-EARLY-CLOSED.png保存；原9图/DB/CID/旧45/UNKNOWN保，不盲rollback/stop，同窗已消费不得重开延时或付费重发。
+
+下一原sole用现成caller7737的--recover-readonly及固定stage原件一次核CAS/配置/旧任务/当前CID，第一个未到阶段定位；Root7d528a/3aa640/4d1983已只读当前advance与terminal链，normal_c708唯一源作者独立只读查字段契约，未改源。根因后只做受影响局部修复及非付费定向验证，须覆盖真实9terminal/V3rev4到candidate/preflight后续字段，不能下次公网才首次试后续契约。无新collector/全云DB审计、无报告正文/生产/预算扩展；实际模型/费用/结算以原恢复只读为准，旧未知不清零。权威PLAN同r6 paid/close/normal9字段含实际refs、0POST和停止范围。
