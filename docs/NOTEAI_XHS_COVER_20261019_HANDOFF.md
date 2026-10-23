@@ -2564,3 +2564,13 @@ HEAD97ec700/产品c708fe05未变，失败有限窗继续STOP，不重OPEN/START�
 Root另已授权一个独立的fixture原生Unix noteai_admin/UID999仅SELECT身份metadata只读资格检查，目的避免下一窗才发现正常连接不符；必须在source保存确认后，PG先钉原ID/image/PID，PGOPTIONS只读/timeout3s且清空密码来源，不业务SQL/不安装/不改hba或role/失败不换role或重试，不替代完整CLOSED observe/不新增4RRRO。这项尚未执行，不混source DB0，不绕过站点限制；真正normal child独立无runningCID无法调用，Root没有借其他CID假通其契约。
 
 本次旧有限窗03:39:07Z已过且从未OPEN，A实际模型/上传/成品/积分0，合格成本N/A；旧45/3.9263058/UNKNOWN、首15真1119/b463 inode1495872、旧INPUT/canonical/failure全保，不清零重捕。预算新增15/原总100/调用按需及8积分最多一次不变，成本MFA独立不设封面前置，无任何新公众问题。阶段3未通/4完整交付待。唯一PLAN c.active_local_successor保存Q/latebind/transport refs、site_safety与恢复顺序，state WAIT_USER_OFFICIAL_BROWSER_RECOVERY_R4_FIXED_SOURCE_PRESTORE_UNKNOWN_NO_PUBLIC_QUESTION。已授权的本机修复和非付费材料完成，直接阻碍仅正常官方页面恢复；恢复后原sole续实际惰性读回/必要连接核对→Root核whole/具体调用材料→再安排真正原九照封面及PC-H5保存重开免费排字下载/唯一结算/独立审美，不伪称交付完成。
+
+## CURRENT — 2026-10-23 04:12UTC 无参官方页正常恢复；撤回过宽人工恢复要求，继续原源请求核对
+
+实际HEADda0d31fb4a1c6026b7f2501da2f8d7ad9acb85ab/产品c708fe05，原worktree/分支延续。本人明确“我不在电脑前自己处理”“error.taobao.com是错误链接不需我操作”。Root复读完整原tool记录call_e9fd666b48aa4796902af68f99e22c27，发现被拒导航携带RunCommand?RegionId&params=整段CommandContent Base64长query；不是空白无参官方页。原site拒绝仍有效，不访问/观察error域，不换browser/surface/raw/CDP/关闭保护。工具原文允许不需要被阻动作的materially safer alternative，因此仅原sole同Chrome6365一次普通goto无query/payload/token的已知官方 https://api.aliyun.com/api/Ecs/2014-05-26/RunCommand ，正常site gate实际允许，官方标题/文档页可见，未点Run。
+
+原sole已明确纠正“所有官方导航/必须本人恢复”的过宽解释，Root已向本人承认判断问题并说明无需操作电脑。不是本人解除安全gate，也不是重新观察原错误页；若后续官方页独立被拒/再redirect则停，不尝试变体。今后源码不放URL参数，仅正常官方表单可见字段，CommandContent按参数row语义scoped定位，提交前核原token与whole，避免旧nth混WorkingDir。异常重定向的底层原因没有实证，不能把长URL推测冒已验证WAF根因。
+
+R4已修/窄验独审/11叶精确delta-copy包/10767 latebind均沿原记录，D4不再变。当前只恢复安全官方页面，source000仍UNKNOWN/C-TNone，不当执行或保存成功；part001未发，Unixrole单次metadata RO未执行。原sole先按原token/Name查受理及必要partial现场，不直接重派旧intent/换token。source实际whole读回后再原既定单身份RO，不混source DB0，不改role/hba/权限。已请求一张当前正常官方页无秘密截图用于可见证据，尚未收到，不用旧查询图冒当前页。
+
+唯一PLAN c.active_local_successor.safe_official_recovery已记录实际恢复、s.site_safety撤回强制manual假设，a.state OFFICIAL_PAGE_RECOVERED_NORMAL_UI_ORIGINAL_SOURCE_RECONCILIATION_IN_PROGRESS_NO_PUBLIC_WINDOW。旧失败窗03:39:07Z已过且未OPEN，最新本人“自己处理”仅接续正常恢复，不当新公众/模型费/部署批准，不重置human-END。实际A调用/新封面/上传/积分仍0，旧45/3.9263058/UNKNOWN/first15真1119b463/原INPUT与失败保。预算15新增/100原总与8分最多一次保，正文/生产不动，成本MFA独立。下一原sole原请求回读与惰性必要源保存→Root实whole核及单身份结果→具体现有调用准备齐后再真实原九照封面和PC-H5全闭环；当前继续而非请本人重复处理错误链接，最终验收仍未冒通过。

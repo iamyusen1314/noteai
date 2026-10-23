@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-23 04:12UTC 无参官方页正常恢复；撤回过宽人工恢复要求，继续原源请求核对
+
+实际HEADda0d31fb4a1c6026b7f2501da2f8d7ad9acb85ab/产品c708fe05，原worktree/分支延续。本人明确“我不在电脑前自己处理”“error.taobao.com是错误链接不需我操作”。Root复读完整原tool记录call_e9fd666b48aa4796902af68f99e22c27，发现被拒导航携带RunCommand?RegionId&params=整段CommandContent Base64长query；不是空白无参官方页。原site拒绝仍有效，不访问/观察error域，不换browser/surface/raw/CDP/关闭保护。工具原文允许不需要被阻动作的materially safer alternative，因此仅原sole同Chrome6365一次普通goto无query/payload/token的已知官方 https://api.aliyun.com/api/Ecs/2014-05-26/RunCommand ，正常site gate实际允许，官方标题/文档页可见，未点Run。
+
+原sole已明确纠正“所有官方导航/必须本人恢复”的过宽解释，Root已向本人承认判断问题并说明无需操作电脑。不是本人解除安全gate，也不是重新观察原错误页；若后续官方页独立被拒/再redirect则停，不尝试变体。今后源码不放URL参数，仅正常官方表单可见字段，CommandContent按参数row语义scoped定位，提交前核原token与whole，避免旧nth混WorkingDir。异常重定向的底层原因没有实证，不能把长URL推测冒已验证WAF根因。
+
+R4已修/窄验独审/11叶精确delta-copy包/10767 latebind均沿原记录，D4不再变。当前只恢复安全官方页面，source000仍UNKNOWN/C-TNone，不当执行或保存成功；part001未发，Unixrole单次metadata RO未执行。原sole先按原token/Name查受理及必要partial现场，不直接重派旧intent/换token。source实际whole读回后再原既定单身份RO，不混source DB0，不改role/hba/权限。已请求一张当前正常官方页无秘密截图用于可见证据，尚未收到，不用旧查询图冒当前页。
+
+唯一PLAN c.active_local_successor.safe_official_recovery已记录实际恢复、s.site_safety撤回强制manual假设，a.state OFFICIAL_PAGE_RECOVERED_NORMAL_UI_ORIGINAL_SOURCE_RECONCILIATION_IN_PROGRESS_NO_PUBLIC_WINDOW。旧失败窗03:39:07Z已过且未OPEN，最新本人“自己处理”仅接续正常恢复，不当新公众/模型费/部署批准，不重置human-END。实际A调用/新封面/上传/积分仍0，旧45/3.9263058/UNKNOWN/first15真1119b463/原INPUT与失败保。预算15新增/100原总与8分最多一次保，正文/生产不动，成本MFA独立。下一原sole原请求回读与惰性必要源保存→Root实whole核及单身份结果→具体现有调用准备齐后再真实原九照封面和PC-H5全闭环；当前继续而非请本人重复处理错误链接，最终验收仍未冒通过。
+
 ## CURRENT — 2026-10-23 04:00UTC R4修复/独审/惰性包及调用壳均已完成；官方异常重定向触发站点安全阻断，等本人正常恢复
 
 登记HEADd2532f9/产品c708fe05，根因修复与D4源码/4定向离线合同/AST/独审沿上节，不改产品/正文/生产，不冒真实START/成品验收。原sole最终运输Q=F/base-image-revision-r4-inert-source-HOLD-r1/bound-globals-r2：MANIFEST7266/557102d631751b49aa6e9caa000efe2799e102d11c8f89f905fdf1a197502a27，carrier13775/bb3b398087d029fb0d7eee3036458648b917428d339f06ce113533f857b6c28e；只7精确delta+4同whole O_EXCL复制11叶，原保护7常量/helper AST齐。旧复用运输遗漏7常量在任何云受理前被窄审HOLD后补齐，非产品失败，不重跑旧suite。future latebind壳B/successor-r4-prepare-upload-call-HOLD-r1/prepare-upload-once.TEMPLATE.HOLD.py10767/4c539fa61fb64bf7addb3bf9068a932f14313a2bd758e1afdc0fb7a9b0ef7a18已Root全文核及原sole窄独审GO；DATA=None/六key本机模板1194/69db、未来真human-END一次晚绑，无读取新云DEPLOY/INPUT.HOLD假设，无OPEN/自动coverPOST。
