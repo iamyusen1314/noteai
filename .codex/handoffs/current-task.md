@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-23 04:56UTC 三新叶真实预置与Root核收通过；代码/调用已齐，准备唯一新有限真实验收确认
+
+登记HEADe644b5e9aeec5958ff400105377b6b13e7d6cf56/产品c708fe05不变。owner-peer两辅助修复/4定向纯合同与独审8910/2d336沿上节，原sole完成T=F/owner-peer-three-source-HOLD-r1两段惰性保存，均Success/Exit0/D0/R1。最终T/source-part-001/actual/result.ACTUAL-ORIGINAL.json13412/50008e38a0010d7eeb7c9fc7df702a730bb848b528fcb332f00a637d7e5ed3c6；服务器PREFIX/owner-peer-three-source-input-r1/source-input-readback.json同whole/root0400/nlink1/inode1617230。三新源43801/bc0abf15、10878/8cc219fb、1255/ec06a019均whole/metadata匹配且inode各异原11。最终原11所有metadata精确等原source13307/57b，原保护两段前后/跨段/与旧源及6容器五字段均真等。T/ROOT-ACTUAL-THREE-SOURCE-SUMMARY.json27165/723f2159f6ee1cac76328dab428e8bc70201f38c260af3f7d4a883f9cae39677含原Run/Read/intent/截图与所有refs；Root全文actual13412、索引whole、27localrefs及上述比较均核通过。
+
+原part0 C c-sz070vjb15f6mtc/T t-sz070vjb15z5tkw，Run01A16718-A11B-5D5A-A3D6-DD63B6EA27CF/Read01A16718-F0C4-5920-90B6-FF8952EF6FC1；part1 C c-sz070vjg43xy6tc/T t-sz070vjg447xs74，Run01A1671A-14A3-51EF-A524-EACD03810E54/Read01A1671A-4E30-5FCE-984F-CF7C39B0400A。一次原sole本机actual目录不存在的ENOENT已从同一UI原结果补保存，未重派云；一次Root检查误要求不完整part0包含原11全量refs，已改按source_complete在最终part1核全量，非source不匹配/云失败。两段DB/import/main/START/READY/OPEN/INPUT/human/first15/ENTRY/core均0/false，原nativepeer失败保，无新probe。
+
+当前真正可运行壳D/prepare-upload-once.TEMPLATE.HOLD.py10824/8271c9e3，原r2根3叶与其余程序/CORE/ENTRY/依赖均真实实存，DATA/human/ENDNone。原sole已获新fixed filename全阶段接续说明，非旧fixed调用；所有必要工作齐后才准备请求新有限公众窗，不以旧03:39:07Z失败窗或“自己处理错误链接”作新曝光批准。待真实同意后首次clock→原human/witness/END，闭门prepare三READY+normal settings observe→原ENTRY→Root正常九原照上传+PUT→实际ASGI终帧marker→唯一normal advance-paid→Root正常UI封面POST，保持原UNKNOWN停/0自动重发、首合格停止、最多2任务和受限第二QC修正规则。
+
+准备付费影响：仅复用报告0cdbe483及9真原图，不改正文；方案A新增累计≤15元、原任务总≤100元、调用按需，现有8测试积分在合格持久保存后最多结算一次，供应商成本另记。实际A模型/新图/补传/扣分仍0、合格单张成本N/A；旧45/3.9263058/UNKNOWN/first15原件保。验收仍须真实成品、PC/H5、重开免费排字下载及唯一结算；当前只源码实存通过，不冒当前PG身份/正常启动/审美通过。唯一PLAN已实际状态OWNER_PEER_FIX_ACTUALLY_PRESTORED_AND_REVIEWED_CONCRETE_CALLER_READY_NO_PUBLIC_WINDOW_YET。下一只待当次有限入口确认，正文/生产/权限不扩改。
+
 ## CURRENT — 2026-10-23 04:44UTC 身份错配最小修复冻结、定向合同通过；待独审最终记录后仅预置3新叶
 
 实际HEAD425c2d2/产品c708fe05不变。normal_c708_mount_review完成唯一两辅助源码修正，Root已技术接受复用既有实际成功3023/79f6的临时owner维护profile；普通app已有真实只读1217/5e2e，原SQL写policy排除2封面key，故不能全切app。修复仅fixed.settings_call+child身份/五源RAM加载和必要注册表文件名，不改主API/worker999、PG grant/HBA/credentials、产品/CORE/ENTRY/deps/正文/生产。现ownedCID999读/hash五精确模块→RAM交接，原9be短生命周期owner/root只原DAC_OVERRIDE/networknone/ROroot+原socketRO/256m64PID/--rm；仍原正常settings/adminops/CAS/UUID服务。observe/recover RO、原7终态/UNKNOWN/恢复约束保；原结果先持久，再核client消失和ownedCID不变，UNKNOWN不冒无写/不重派。
