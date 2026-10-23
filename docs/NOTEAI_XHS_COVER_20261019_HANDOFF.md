@@ -2602,3 +2602,10 @@ D=E/complete-two-stage-host-20261023-r1/normal-settings-owner-peer-r1，MANIFEST
 代码最小修复/独审与真实源已全部齐，未来壳10824/8271仅剩收到真正新同意后晚绑DATA，原r2数据、四staticrefs/CORE/ENTRY/binder/deps/first15保。原sole已获同新fixed filename五阶段顺序，Root负责正常9上传/PUT、实际ASGI terminal后正常UI单封面。下一集中请求一次新的60分钟自动关闭受保护入口，不沿用已失败窗，不把本人“自行处理错误链接”冒新公众批准。旧45/3.9263058/UNKNOWN保；方案A新增≤15/原总100、调用按需/现有8积分合格持久保存后最多一次保，实际A调用/新图/扣分0。真实PG身份/启动/美观/PC-H5重开下载仍待，不冒封面交付。
 
 当前唯一公众窗问题已通过request_user_input_async发出，原文E/ROOT-PUBLIC-WINDOW-QUESTION-20261023-OWNER-PEER-ACTUAL.json1868/275f263ed77edfa51f2e14e94666a5a8423abf41af0e21c7dbd04030e3f63e76；唯一PLAN pending_question_ref保。尚无新human/observedclock/END，START/OPEN/模型0。原sole已确认HOST无阻且10824壳可立即接续；不增加probe或其它准备。收到真实同意第一步实际clock及原文/witness晚绑，未答复不执行依赖动作。
+
+
+## CURRENT — 2026-10-23 05:09UTC 新窗唯一prepare失败即停，原启动根因待只读回收
+
+真正新同意turn01a16722-28fd-7fa3-a88f-0067fdc5c929/userMessage01a16722-292c-7891-a6b4-0dba8a792204，Root第一clock05:00:58Z，START1792731658/END1792735258（北京13:00:58至14:00:58）。human1569/c606c01f与witness539/95c22f42原件保，原sole仅10824 DATA晚绑，r2云INPUT3987/89511086已消费。唯一C c-sz070vkidh7by0w/T t-sz070vkidhot8g0，Run01A16724-FC53-5253-A92D-4B3516654640/Read01A16725-7A74-547A-9AF7-2CD7D6F7AE48于05:04:01–02Z实际FailedExit2/D0/R1，非超时。W/actual/result.ACTUAL-ORIGINAL.json8499/8a099edd56e82d9dd4ad6379a095777f2b34e1825227ed7a42cf339aed37e062 Rootwhole及protected_before==after核。inner stdout365/9631ff83白名单code UPLOAD_ONLY_READY_UNCONFIRMED_PRESERVED_NO_REPLAY；新CID9f98b2403c56fde0ee1fe0181744c9aca4408e604025f44ec7c4fbe7c761f330实际清理为exited/PID0/exit2。未达三READY/adminobserve，owner-peer helper未执行，不能判其失败或已通。
+
+本窗失败即停且从未OPEN；A模型/新coverPOST/补传/积分0、合格单张N/A。Root已告知用户，未重发/延时/新公众问题。一次必要原件RO已交sole：唯一runtime-v3-current-upload-owned-r2的launch-container/ipc-sent、collector已存closed-startup-original-index和4固定originals、control/startup-hold、cleanup；必要exact新CID日志有界读取，不Config.Env/profile/DB/provider/START/重启，保护前后核。normal作者只核确切路径，Root先看实际启动错误再最小修正，不凭1秒退出猜依赖/账号/延时，不扩正文或生产。唯一PLAN已失败/原请求/新CID清理状态，r2现场与旧45/3.9263058/UNKNOWN/first15原件保持，下一等原startup记录。
