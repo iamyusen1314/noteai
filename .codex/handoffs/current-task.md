@@ -1,3 +1,13 @@
+## CURRENT — 2026-10-23 03:03UTC 本窗真实启动失败已停止，未OPEN；只做本机最小诊断修复
+
+实际HEAD2e4bd47/产品c708fe05，原有限start1792723147/END1792726747不滚动。本次真prepare-upload Cc-sz070v8qqc6j7r4/Tt-sz070v8qqcgit4w、Run01A166AC-35DC-5D0D-ACCB-E075C991C0E8/Read01A166AC-CACA-5CB9-88DC-FD69BCA8CA84，FailedExit2/D0/R1，非timeout。B/window-20261023-103907-r1/prepare-upload-actual-r1/actual/result.ACTUAL-ORIGINAL.json8207/SHA73c101cc4b04223364e2d57cb6dfb29f28cacd0aa7c7c3f8fe060648affba1db Root全文whole及4内raw全核。fixedcaller phase prepare-upload失败；upload-start rc2、stdout137/04d09666仅HOLD_OR_UNKNOWN_READ_ORIGINAL_LAUNCH_MARKER/AssertionError/cleanup:null，stderr0，没有ready/adminobserve。旧catch吞need码，因此具体断言仍待定位，不能凭cleanup:null当无CID。
+
+原sole随后一次窄只读真实C c-sz070v9d1tzpnuo/T t-sz070v9d1uep1xc、Read01A166B2-CFBA-5259-891E-C5DDD492B4EC，SuccessExit0/D0/R1。prepare-failure-readonly-r1/actual/result.ACTUAL-ORIGINAL.json9121/c4bc6833cad303e2702496267d368fbc72d5b96b74100fee109f6718cf296a51 Root全文whole：固定ownedroot不存在、exactNAME inspectExit1无新容器/标记；PG ID/image/PID918657/restart0/running同expected；初始10static与functional/product-root/guard-root/image/database/port全匹配。入口始终CLOSED，生产protected前后全同，无上传/模型/新封面/积分结算，无ownedCID须清理、无云在途。原sole已关完成console6357、保costMFA5782，不并改Root helper。
+
+真实INPUT3875/027576cf已root400 inode1617199 O_EXCL；首15基线已经真创建，1119/b4635e61fa274a79edd22b1805ed3e55bd68241c9893aaa55eac7196623a34d5 inode1495872 UIDGID999/600/nlink1；canonical同基线。全部保留，不删除/重捕/覆盖，不换namespace重试。原sole总checkpoint B/window-20261023-103907-r1/ROOT-PREPARE-FAILED-THIS-WINDOW-CLOSED.json3808/7f072550ec67b478d4de0e7701c0c15db1e1f639172f92c1e5f5d44310792a19。唯一PLAN c.current_human_window已记实际失败和scene refs，本窗按非预期失败停止，不重开/付费POST，不再申请延时。
+
+Root唯一normal_c708_mount_review本机在E/complete-two-stage-host-20261023-r1/failure-diagnostics-r3派生最小safe大写need码诊断补丁，原r2冻结；不改启动行为/权限/重试/清理。它结合实际pre-owned-root范围定位具体根因，证实后才给必要最小修复；不把缺诊断或本机模拟当实机已修。actualsample独审与账务独审待真新任务，目前A真实调用/成品/补传/扣分仍0、每张合格成本N/A，旧45/3.9263058/UNKNOWN保。范围不增：只封面及PC/H5保存重开免费排字下载，正文/生产不动；预算15新增/100原总/调用按需/8测试分最多一次。阶段3未通过，阶段4交付仍HOLD。下一完成明确本机修复/最小回归/独审与具体可恢复材料，再交原sole，不拿失败要求用户重做产品决定或追加费用。
+
 ## CURRENT — 2026-10-23 02:39:07UTC 新当次人类同意已实录，固定两阶段真实验收接续
 
 实际HEAD c69f6ddaffe695c2774fa3de19b7496b7d453f42/产品c708fe05/原分支worktree延续，未回退。真userturn01a166a0-3238-74f2-8448-1c3847a4b5f9、message01a166a0-3286-7d50-8fae-b46eece01d9a原文“同意”，Root read_thread已核。首次clock02:39:07Z=北京10:39:07，start1792723147/END1792726747=03:39:07Z=北京11:39:07；首OPEN须不晚03:09:07Z、POST余至少1500s，同窗不重开延时。E/ROOT-PUBLIC-WINDOW-HUMAN-20261023-103907.json1483/3e8d36007349efa00699839793fb17967b110dbbea1005a6f86cdf2eb8c8456a、同basename.WITNESS.json539/1c4b9ad92462dda1d9ce8636fd9d0908dabe87d7c592327006336e2ad98a7c0b，问题1889/b97全保，不改旧过期窗。
