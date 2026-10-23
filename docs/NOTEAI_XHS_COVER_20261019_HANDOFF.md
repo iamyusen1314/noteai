@@ -150,8 +150,8 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / c708fe0（基础提交保） | 本机完整SDK＋画布/中文/原照像素/免费排字回归，独审GO；58上游原件保 | 不重跑未变全项目；多人Linux受控与真实成品在阶段3 |
-| 3 定向集成与授权真实验收 | 主代理唯一正常UI；原窗口sole云执行 | IN_PROGRESS / c708fe0；R9 SDK＋R6受控Linux多人实际PASS | R6原C/T＋16115/d9bc5993：两用户queued、并发免费edit/唯一结算/存储/进程回收PASS，0外部；PID512/tmp256，同CPU1/mem1.5 | 旧9图过期、142/b6dbc保；R2辅助已独审并实际五叶预置7412/9f9898。首OPEN门过/余量不足，本轮START与OPEN均HOLD；继续具体HOST/ENTRY收口，实际启动/补传/真实成品未验 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | PRODUCT_DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 当前3叶最终独审7207/dd00；先前基础/计费/素材/存储审证据复用 | 新版合格商家0/单位成本N/A；真实PC/H5重开/排字/下载/QC未齐；真iPhone与生产90天Q07界限保 |
+| 3 定向集成与真实验收 | 原sole执行；主代理操作产品UI | IN_PROGRESS_REAL_PREPARE_PASS_R4_STOP_R5_WIRING / c708fe0 | 实际42360/02793390三READY与CLOSED只读配置已核，b7c/629真实加载；R6既有6115/d9bc5993两用户受控资源证据复用；ENTRY实际36526/64a8定位旧回执schema阻断，41112/4e6b局修及独审通过 | r4窗STOP/入口真CLOSED/8d807真exited143，旧失败及清理marker缺失保；原九图TTL过期，R5完整接线与真实私有保存后，再按新有限授权正常补传九图并验收成品 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成 | DIFF_REVIEW_GO_REAL_DELIVERY_HOLD / c708fe0 | 产品当前3叶独审7207/dd00及原素材/计费/存储证据复用；ENTRY单源独审4679/faeba66e与实际回执纯predicate/篡改/安全诊断通过 | 方案A合格交付0/单位成本N/A；新版真实PC/H5、成品重开/免费排字/下载/唯一结算待齐；真实iPhone与自然90天未验，不作完成声明 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -2757,4 +2757,12 @@ ENTRY原单次Run01A1681E-22AB-5ECC-B9D9-4A32359434C4/Read01A1681E-822F-5DB4-848
 E/entry-static-contract-r1 单源41112/4e6b9276b9b3989bafec19ba313c3210cd25d3f6717dd600516a960dca18b18a，完整diff6794/507bf957、evidence4491/445ee383、manifest2068/cf7511c2。仅加实际旧manifest整byte SHA pin、精确真实schema，以及82既有literal码/两helper basename最多12行号的无消息无locals诊断。原15file/tree/CAS/window/authority/timer/当前输出/保护函数不变；Root全读diff/test/evidence+AST/whole/内存compile核收。作者3.11.14三项actual-predicate/tamper/安全诊断通过；cover_media独立仅同三项一次PASS0.051s/abdd8f，独审4679/faeba66e无P0-P2，Root已读核，不再重此检查/SQL/cold/旧suite。
 
 下一原sole唯一作者做既有消费者的必要本机literal/pin及已消费r4身份机械接线；ENTRY作者停止改源，实际新sourceproof/human-END仍None，Root核具体diff后再source-only真实保存，现无新公网/模型/DB/stop授权需求。直接b86 ENTRY hash仅binder2/caller1/uploadprepare1引用，连带PROGRAMS/material/whole按真实派生承接；core2158/90deb及b7c/629真实startup证据复用，不复制新core或重first15。r4原窗STOP/CLOSED/8d807exited143原Failed清理marker与cp UNKNOWN保，0上传/POST/模型/扣分。权威PLAN c.spacing_r4_current_human_window.entry_static_contract_repair含完整refs/RootGO/下步，不能把本地GO当成实际ENTRY/OPEN或成品质量通过。
+
+## CURRENT — 2026-10-23 10:51UTC R5最小消费者及私有保存载体Root/独审GO，唯一source-only保存已交原sole
+
+登记HEAD73557ef/功能c708fe05未改，分支codex/noteai-xhs-cover-20261019。权威PLAN既有q.successor_consumer_materials已记Root三次工具2fc004/73a7eb/6585e5及cover_media独审7047/aa0631c7（6b8551 exit0）GO。Root全读writer执行逻辑与shell，核27本机whole、9精确byte delta+5同byte服务器复制、固定PLAN和14目标/2旧锚、9成熟helper AST一致；原功能三测、SQL、cold/READY不重跑。ENTRY冻结4e功能源保留，R5派生19ca只两身份常量；core2158/90deb及b7c/629真实startup复用。
+
+原sole收到单次私有SAVE具体GO：index7118/1a46c790，writer39720/369e04ce、shell14460/d3ce174e、wire19280/edfff36a，仅14新源+1ENTRY6 proof/3ENTRY目录，无core复制/远程SAVE或result文件/目标执行/DB/模型/START/OPEN/INPUT/first15变化。新token和actual目前未回，UNKNOWN或截断不得重发。后续Root只核真实15新meta、旧14+2锚与保护前后、ENTRY6原bytes及三真SOURCE_REFS，再在既有HOLD模板晚绑；不添加另一任务体系。原r4失败窗已消费且END已过，入口CLOSED/8d807真exited143保，原cleanup cp UNKNOWN及marker absent保，不再stop/重开。新human-END仍None，尚无新公网授权。
+
+剩余真实封面验收：私有保存actual及三引用完成后才集中发新的有限公网确认；真OPEN后正常九图补传PUT final-ASGI-send，再验证实际Pro2.1/5Pro路线与一张封面、PC/H5、重开、免费排字、下载、8分唯一结算和每张合格成本。PlanA实际模型0/新封面0/扣分0，不以本机GO替代成品审美。报告正文/生产不改；15元新增/100元总、调用按需、首合格停/异常UNKNOWN停规则保持。成本Worker-C本人MFA独立，不是封面前置。
 
