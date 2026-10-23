@@ -2780,3 +2780,11 @@ E/entry-static-contract-r1 单源41112/4e6b9276b9b3989bafec19ba313c3210cd25d3f67
 
 原sole已收本次明确dispatchGO，沿已核12057/107939只DATA赋值晚绑后一次prepare/CLOSEDnormalsettings→3READY→有限ENTRY；Root只真OPEN后正常9原图补传，PUT final-ASGI-send实际终态前不paid。权威PLAN c.entry_static_r5_current_human_window是本轮恢复入口，旧r4和sourceSAVE原件不覆盖。15新增/100总/调用按需/2job上限首合格停/条件second/异常UNKNOWN停、8现有分最多一次、正文生产不改保持。尚无新prepare/OPEN成功、模型/成品/扣分；源物理保存证据和旧READY复用但不得冒当前成功。成本本人MFA独立，不作前置。
 
+## CURRENT — 2026-10-23 11:18UTC R5真prepare通过、确认词兼容已保存；单次ENTRY已发待原回执
+
+登记HEADe3d69a1/功能c708未改。新真人“确认”原件与11:01:20Z START/12:01:20Z END保持，首OPEN≤11:31:20Z，不能重开/延时。执行前发现uploadprepare仅认“同意”的确定性拦截，未发失败请求；唯一HOST只新增3兼容叶，原文相等AND共同text in(同意,确认)，其余授权/时刻/线程不变，Root全短diff+固定3载体核及normal独审GO，既有8纯谓词证据通过未重跑。3源SAVE e033f86b，Run01A16878-92D7-56D9-A2DD-8A858F9ECC7B/Read01A16878-EC7A-535F-AAD9-92D301050E79实际11:14:56Z S0/D0/R1，raw10962/40d641d4已Root核3新meta/whole/inode、old3及保护全等，无目录/ENTRYproof/core/DB/模型/human改动。W5/confirm-word-compat-HOLD-r1为既有本轮材料；caller44248/678e7eed、uploadprep14356/e34c5573、PROGRAMS1255/03992e39，原r5全保。
+
+唯一prepare token35366baf，Run01A1687B-7595-5CB1-8FE6-8C7C9567ABB3/Read01A1687B-D139-5E3E-ACF2-14700FC41B14实际11:18:05–11:18:11Z Success0/D0/R1；W5/prepare-confirm-r5-once/actual/result.ACTUAL-ORIGINAL.json42360/c45094f5，13inner原bytes/whole及三READY已Root d38cdd核合，b7c runtime/629 guard和c708源overlay实际加载、worker活/idle、CLOSED settings writes0/provider0。新CID f9335871fbb56b98ca24659b3efb7099145319ee94ca1242578967a68e96d593/18114，仅uploadarmed、generation/cover/paidguard/operator均false；旧45ledger/pending0/7terminal/activeunknown0/claim0保，实际旧fixture Lite非Pro路线验收。
+
+单次有限ENTRY token64f4bfe5-169d-4110-afbe-3b8f5824926f，C c-sz070wi708adzpc/T t-sz070wi708pdds0，Run01A1687E-B187-5AA2-9804-097F87841AAF已发，原T待回，不将受理当OPEN成功。权威PLAN c.entry_static_r5_current_human_window含全部原件绝对refs及本轮恢复入口；Root仅actualOPEN后正常UI补传9原图、PUT final-ASGI-send真正终态后才advance-paid，后续同兼容caller，不混old。当前新模型/封面/积分0，正文/生产/旧UNKNOWN和first15不改；15新增/100总/首合格停及异常UNKNOWN停保持。不要因恢复重发SAVE/prepare/ENTRY，成本MFA独立。
+
