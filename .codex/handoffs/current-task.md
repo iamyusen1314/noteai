@@ -33104,3 +33104,6 @@ Cover task checkpoint 2026-10-23 15:28UTC: prepared cover worktree only, branch 
 
 
 Cover checkpoint 2026-10-23 15:37UTC supersedes earlier active-window pointer: R6 actual normal9 terminal PASS; advance Failed2/KeyError (key/stack not captured), Root coverPOST0. Original ENTRY close actually succeeded15:34:48–49Z and Root UI404; no samewindow reopen/extend/retry. Existing authoritative PLAN entry_static_r6_preparation has actual failure/close refs. Sole original recover-readonly/fixed marker read pending; Root/normal_c708 narrow readonly callchain diagnosis; no new collector, source changes, reportbody or production work. New qualified sample/visual QA/settlement remain unachieved.
+
+
+Cover checkpoint15:50:36UTC: R6 CLOSED/404/consumed. Actual original recover PASS CAS_NOT_SENT/V3rev4/newrows0/old7/claims0/writes0/provider0. Fixed20 marker RO PASS (9exists/11absent): actualfresh fourRRRO exit0, candidatepreflight and later all absent. Unique author normal_c708 now pure historical real-data candidate/guard localization; Root original bytes verified. No new model/cover/settlement, no samewindow retry. Exact raw refs and remaining scope in original PLAN r6 and coverhandoff latest CURRENT; no broader work.

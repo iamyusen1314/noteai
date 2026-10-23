@@ -2886,3 +2886,12 @@ F/prepare-upload-once.ram-settings-r6.SOURCE-BOUND.HOLD.py12076/aba78f870a125d9e
 原close token2dacf420-34e8-4c70-8751-531bdbcb5551，Run01A16966-8007-5C7E-9A67-1A585E1C0D8D/Read01A16966-C043-5275-84CB-E295BD73AF5E实际15:34:48–49Z S0/D0/R1，actual171/c73e85b4 Root697d80核PRIVATE_ENTRY_CLOSED_API_WORK_RETAINED/nginx_reloadtrue/APIstopfalse/DB0/model0。Root正常tab reload真404，W6/ROOT-ENTRY-EARLY-CLOSED.png保存；原9图/DB/CID/旧45/UNKNOWN保，不盲rollback/stop，同窗已消费不得重开延时或付费重发。
 
 下一原sole用现成caller7737的--recover-readonly及固定stage原件一次核CAS/配置/旧任务/当前CID，第一个未到阶段定位；Root7d528a/3aa640/4d1983已只读当前advance与terminal链，normal_c708唯一源作者独立只读查字段契约，未改源。根因后只做受影响局部修复及非付费定向验证，须覆盖真实9terminal/V3rev4到candidate/preflight后续字段，不能下次公网才首次试后续契约。无新collector/全云DB审计、无报告正文/生产/预算扩展；实际模型/费用/结算以原恢复只读为准，旧未知不清零。权威PLAN同r6 paid/close/normal9字段含实际refs、0POST和停止范围。
+
+
+## CURRENT — 2026-10-23 15:50:36UTC R6实际恢复与20原件已核，缺口限于fresh之后/candidate完成之前；唯一作者正本机真数据定位
+
+登记HEAD8a4b8c5/功能c708不变。原recover唯一token1d68339e-6878-4fe2-bf3f-61b777890f7b，Run01A1696D-48B4-51A3-81DF-7D5926254E47/Read01A1696D-B90F-5925-8BE3-B7B1DABB41E9实际15:42:13–16Z S0/D0/R1；W6/recover-readonly-once/actual/Output.ACTUAL-ORIGINAL.txt2271/47289dc9已Root4ae873全读whole，CAS_NOT_SENT、V3rev4/draftNone、old7精确/claims0/activeunknown0/newterminal[]/normalops[]/writes0/provider0。未改配置、未重发phase。
+
+唯一20固定文件RO token62148de6-b34d-4223-a057-a0021df2d074，Run01A16971-D5F2-5ECB-A2FF-B5197CCB600F/Read01A16972-1B78-5C91-83FD-7DD3BA7EF03C，15:47:11Z S0/D0/R1。W6/advance-fixed-markers-readonly-once/actual/result.ACTUAL-ORIGINAL.json37483/0597ebc6，Root41827a/767444真核9存在raw base64/whole/本地逐byte及stable regular uidgid0/nlink1，11absent真实，总23556；DB/docker/model/targetexec/writes0。实际precutover1741、terminalindex623、settingsconfirmed2629(stateEXISTING_EXACT_V3_NORMAL_SETTINGS_REUSED)已完成；fresh intent826/result494/stdout8525/stderr0/ACTUALRAW8525均在，exit0/timeoutfalse，stdout与raw8525/1f11d907全同。candidatepreflight/candidateonly、CASintent/APPLIED、uploadstop、paidstart4、paidready2均absent。因此本轮未到paid启动，不归素材或配置失败。
+
+normal_c708独立窄读确认producer/consumer字段在同源上无确定拼写/层级错配；Root复核mature64e require_fresh直接key来自b7c成功scope已保证的refs/media_rows及caller构造refresh.ref.sha，尚无该处直接KeyError依据。接下由唯一作者用真实fresh和相关历史原件、本次真实attempt15:32:24显式now做本机纯build/真实guard回放找具体key；不替guard/ledger/historical PASS，不执行main/PG/CAS/worker/provider，也不把历史clock用于恢复实际窗口。确缺原raw才列精确ref最小只读；不猜因重写产品、不造新框架。原sole已停云调用，成本MFA另任务不读。入口已CLOSED/Root404、本窗消费，当前新模型/成品/结算0；真实封面审美/重开/免费排字/下载/合格成本仍未完成。恢复以原PLAN entry_static_r6_preparation.phase_markers_actual/recover_readonly为准，勿重跑已完成RO。
