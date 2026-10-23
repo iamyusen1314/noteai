@@ -2609,3 +2609,12 @@ D=E/complete-two-stage-host-20261023-r1/normal-settings-owner-peer-r1，MANIFEST
 真正新同意turn01a16722-28fd-7fa3-a88f-0067fdc5c929/userMessage01a16722-292c-7891-a6b4-0dba8a792204，Root第一clock05:00:58Z，START1792731658/END1792735258（北京13:00:58至14:00:58）。human1569/c606c01f与witness539/95c22f42原件保，原sole仅10824 DATA晚绑，r2云INPUT3987/89511086已消费。唯一C c-sz070vkidh7by0w/T t-sz070vkidhot8g0，Run01A16724-FC53-5253-A92D-4B3516654640/Read01A16725-7A74-547A-9AF7-2CD7D6F7AE48于05:04:01–02Z实际FailedExit2/D0/R1，非超时。W/actual/result.ACTUAL-ORIGINAL.json8499/8a099edd56e82d9dd4ad6379a095777f2b34e1825227ed7a42cf339aed37e062 Rootwhole及protected_before==after核。inner stdout365/9631ff83白名单code UPLOAD_ONLY_READY_UNCONFIRMED_PRESERVED_NO_REPLAY；新CID9f98b2403c56fde0ee1fe0181744c9aca4408e604025f44ec7c4fbe7c761f330实际清理为exited/PID0/exit2。未达三READY/adminobserve，owner-peer helper未执行，不能判其失败或已通。
 
 本窗失败即停且从未OPEN；A模型/新coverPOST/补传/积分0、合格单张N/A。Root已告知用户，未重发/延时/新公众问题。一次必要原件RO已交sole：唯一runtime-v3-current-upload-owned-r2的launch-container/ipc-sent、collector已存closed-startup-original-index和4固定originals、control/startup-hold、cleanup；必要exact新CID日志有界读取，不Config.Env/profile/DB/provider/START/重启，保护前后核。normal作者只核确切路径，Root先看实际启动错误再最小修正，不凭1秒退出猜依赖/账号/延时，不扩正文或生产。唯一PLAN已失败/原请求/新CID清理状态，r2现场与旧45/3.9263058/UNKNOWN/first15原件保持，下一等原startup记录。
+
+
+## CURRENT — 2026-10-23 05:30UTC 最小标准库导入修复及同镜像私有绑定验证
+
+登记HEADc24c9e1/产品c708fe05。原sole唯一RO actual13466/83bf7422、总索引23223/2f5c9064已Root核，6原件及hold253/11cb双copy一致，原保护/6pins/9f98退出2PID0前后同，未dockerlogs/SQL/模型。原hold只AttributeError及1915→1729→210，无message。normal作者clean实际Python3.11.14载真实runtime3612+guard2261原AST，复现importlib缺machinery，再显式import同表达式通过；不冒完整启动。
+
+D=E/runtime-importlib-machinery-r1，runtime174624/6c695092ce050f75ccddcfaa27e37de386dce847bc54a556841080af65f5c5a2仅27B显式stdlib import，guard/sourcepin/产品/权限保。REPRO774/4254ff43+命令2075/8aff81de，MANIFEST2916/c74c04da，ABI4088/719495b0，CHECKS749/b3e6b213，正式独审6091/2bd7f113018d621ff60ef2ee351f218557b3737d078490c71cdaf49483f28191；Root全文及13refs核。唯一cold outer15564/cac25827（child4970/d2bdae42内嵌）已交sole一次执行：只2输入O_EXCL/旧runtime27Bdelta，sameimage短rm/networknone/999/ROroot/原fa978与资源上限，仅RO原source/guard/weights/deps和shadow3source字段；真旧bind失败→真新91tree/21PathFinder通过，无mock/skip/主服务/PG/authority/模型/OPEN/原CID重启，输出先保/后验新cold消失+原6pins/CID/mount/config，不自动第二次。
+
+现在actualcold待原件，不冒normalstartup/owner-peer/成品通过，runtime修复未业务激活；原窗保持失败消费，不用余时重开，无新公众问题。A模型/新图/积分0、旧45/UNKNOWN/first15/r2现场保。下一先核私有断点实际结果，再仅必要corepin/后继数据，不扩正文/生产/新平台。
