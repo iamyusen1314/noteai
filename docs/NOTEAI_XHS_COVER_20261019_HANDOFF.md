@@ -2709,3 +2709,12 @@ normal_c708_mount_review唯一tmp helper修改负责人继续最小同因修：�
 cover_media只读独立27ref、9派生、8py Constant/data/material5keys、b7c/629→ENTRYb86f→binder07d2→caller665c/44248→PROGRAMSc960/1255、别名/嵌入INPUT/HOLD/权限预算重试first15未变全核GO（tool b0c7e2 exit0，无P0-P2）。normal_c708只独立core物理source3+versioned a68-v2-plan-a-v3-20261022-r1两guard与paid preflight父basename门、ENTRY六同根门、copy3/5逐实际4327/4911原proof tuple核GO；未重SQL/cold/旧suite。Root已给唯一原sole具体source-only保存GO，不再增加逐小步人类审批或新框架。
 
 唯一sole沿原immutable机制验证producer→decoder→精确替换→最终whole，再仅O_EXCL新core5、8新basename和ENTRY6（旧字节server-local复用copy3/copy5、不重传350KB），物理读回后才写new core5/ENTRY6 actual source-input-readback和binder actualref、root400/nlink1；返全原件/保护前后。此为0模型/0SQL/0DB/0业务START/OPEN的private材料保存，旧原件/first15/45账/正式服务与正文保。DATA/SOURCE_REFS/actualproof/human/END/CID/READY当前仍None；07:10失败窗STOP不可续。三个真实source refs到齐并Root核后才能晚绑原11217/c4d7模板SOURCE_REFS，DATA仍None等待新当次人类窗口。权威PLAN已记两窄审与source-only in-progress；不能当真实启动/封面质量已通过。
+
+
+## CURRENT — 2026-10-23 08:23UTC source-only保存实际失败在父目录门，源/proof0，固定元数据只读接续中
+
+当前登记HEADbb95392/产品c708不变，原07:10:28窗08:10:28已到期且从未OPEN。source-only单次token a9093f2b-5a9b-4277-9380-6770c28d24ac被官方实际受理：C c-sz070w29x0znsow/T t-sz070w29x19ne2o，Run01A167DB-4FB5-580C-9DF3-77A5B847BF00/Read01A167DC-0F7B-565A-A3A7-5C1A068B653C，08:23:09–10UTC FailedExit2/D0/R1。原manifest父目录/source-save-once-r1/actual/result.ACTUAL-ORIGINAL.json18054/67bd0656b5402d77ead0c863bb33be15062ab33eb1ed557dc1976c2be8275aae Root已核原gzip/whole和protected前后全等；21oldsource/anchors原whole已验证，source_refs/proof_originals均空、三ref/INPUT/human/READY全None，0DB/model/START/OPEN/目标执行/first15。source-save checkpoint3775/c423c830d514a2f14b0398f1d265b676b840eb02e8aba881192d7bef731eaf46，同原父目录，实际SDK原/PNG保；完成页已关，无已知云在途。首个UI缺CommandContent在提交intent前被阻，补正常同字段后完整wire预览才单发，不是提前执行/二次Run。
+
+真正错误phase SAVE_SOURCE/AssertionError SAFE_FIXED_PARENT；source.TEMPLATE.r2.HOLD.py81只在directory(p)检查immediate父类型/uid==gid0/no022，114目录循环在所有source write之前。因此证明父目录门阻，不能猜哪个具体parent/owner/mode或是否已有空partial目录；本轮STOP不重发，不删除/换namespace，不chmod/chown旧parent。三PG补丁、消费9派生和实际源目标全部保冻结，不重suite/三PG/cold。
+
+Root已限定唯一sole一次最薄lstat-only RO：固定DIRS7、其已有immediateparents、DIRECT8的4现有parents与TARGETS22计划文件，去重约35paths，返type/uid/gid/mode/dev/inode/nlink/symlink/absence以及原保护前后；无扫描/内容/env/logs/SQL/写入/目标执行。这属原授权定向调试，不是新的公网/业务或付费调用。只在真实tuple到齐后修保存器错误父metadata合同，保原ACL、新文件root400/nlink1与精确白名单，并在同D按实际partial恢复，不无据放宽。权威PLAN q...postgres_placeholder_spacing_repair.private_source_continuation已登记本次失败原件/RunRead/source0和这一恢复入口。DATA/human-END仍None，成本本人MFA独立，不阻cover本次只读。

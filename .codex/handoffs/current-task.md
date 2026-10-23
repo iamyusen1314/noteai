@@ -1,3 +1,7 @@
+## CURRENT — 2026-10-23 08:23UTC source-only保存失败SAFE_FIXED_PARENT，0源码/proof；一次固定目录RO接续
+
+HEADbb95392/产品c708不改。唯一a909 token实际C c-sz070w29x0znsow/T t-sz070w29x19ne2o、Run01A167DB-4FB5-580C-9DF3-77A5B847BF00/Read01A167DC-0F7B-565A-A3A7-5C1A068B653C Failed2/D0/R1。原18054/67bd0656 Root核全、protected等，21旧source校合但source/proof0/三refsNone/无DB模型STARTOPENfirst15。writer81父owner/mode门在114目录循环触发，具体parent/partial未知；不重Run/新namespace/改parent ACL。sole已收到仅DIRS7/immediateparents/DIRECT8parents/TARGETS22固定lstat元数据一次RO，无内容/扫描/写入。到齐后才最小同D恢复；3PG与消费链冻结不重suite，旧07:10窗已过期未开，DATA/human-END仍None。权威PLAN private_source_continuation actual_failure/recovery，完整原件见交接最新节。
+
 ## CURRENT — 2026-10-23 08:06UTC 最小接续链双窄审GO，原sole仅private source保存中
 
 HEAD e2b2878/产品c708未改；本轮07:10批准prepare失败STOP，148f已实际退出，入口CLOSED，无模型/上传/POST/扣分。三PG SQL补丁b7c/629及离线/独审已接受。消费者manifest25846/0230的9派生/27ref/Constant-data/权限预算门和物理core5+ENTRY6 ABI/copy3-copy5均独立GO；Root已给原sole明确source-only保存范围，原机制producer-decoder-whole验证后O_EXCL新源与实际proof，不能START/OPEN/SQL/model，first15与旧history全保。PLAN q.postgres_placeholder_spacing_repair.private_source_continuation是唯一恢复点，实际新refs/human-END仍None。不要重3SQL/cold/旧suite/ENTRY大包，不为freshbudget造first15；实际读回到齐后Root核真实三ref再晚绑SOURCE_REFS，DATA保None。完整原件/绝对manifest在交接最新节与PLAN。
