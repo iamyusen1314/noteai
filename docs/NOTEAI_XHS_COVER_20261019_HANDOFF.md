@@ -2796,3 +2796,13 @@ E/entry-static-contract-r1 单源41112/4e6b9276b9b3989bafec19ba313c3210cd25d3f67
 
 normal独立只读确认初始INPUT.PUT_terminal_ref=None为成熟caller支持状态，advance自动发现实际marker并仅内存填ref，不能据此定因。阶段顺序/首次settings335、CAS355、uploadstop361、paidstart362已在权威PLAN c.entry_static_r5_current_human_window.paid登记，须以实际markers定位下一最小修正；旧suite/READY/第一15/旧UNKNOWN不重跑或清零。当前public关闭及ownedCID/配置真实边界仍待原回执，勿声称已关闭或新模型实际0；旧terminal上的0仅截至PUT。正文生产/预算/权限范围不扩展，Worker成本MFA独立不得占封面关键接续。
 
+## CURRENT — 2026-10-23 11:55UTC 入口实际关闭、推进失败已定位到短owner源码契约；最小单child修正进行中
+
+登记HEAD95f52ef/功能c708不改。原close Run01A1688E-C938-5E33-AB06-3CE39AEC3446/Read01A1688F-A49F-510B-A9DB-D8C62AFB0AC5实际11:39:11–12Z S0/D0/R1，raw171/c1915526 Root fec4c6核PRIVATE_ENTRY_CLOSED_API_WORK_RETAINED；Root浏览器reload亦404，W5/ROOT-ENTRY-EARLY-CLOSED.png。固定phase RO Run01A16892-DA7E-5599-80FE-D1048851299D/Read01A16893-2C9C-548D-AE70-69B9BE8DD4F7实际11:43:38Z S0/D0/R1，raw34671/8fd4210b Root b72a65/5276a2核14存在raw+7absent/9meta，precutover1741与terminal-index623真在；settings-activate-source705 exit0，activate.result497 exit2/stderr0。settings-confirmed/fresh/candidate/CAS/paidstart/paidREADY均absent。parent6181/4c8017 closed/include absent/timer inactive-notfound-dead-next空；f933仍running/PID696631/restart0前后同，未盲stop。
+
+唯一追加原stdout172/7b520449（Run01A16894-D2A6-5227-B909-0E5DB2728979/Read01A16895-0314-5722-9C47-D3234463ACB3，11:45:47Z S0/D0/R1）实为FileNotFoundError/SQLSTATE null/该client provider_calls0，没有filename，不能伪造旧现场具体路径。normal独立源码链：8cc child只RAM加载5源码并设canonical文件标识，observe提前返；activate/restore执行原paidhelper，首个require_settings_modules重新物理读cover_settings canonical，后才正常事务。唯一同9be6 image、无mount/PG/provider/API/模块的固定path lstat实证 Run01A1689D-C942-54C7-9FF4-1EDAA0473E75/Read01A1689E-1D1E-55D1-8DFB-7D92BAED24DA（11:55:34–35Z S0/D0/R1），raw794/96ddac18 Root bd027b核该canonical path不存在/errno2，--rm后exactname absent；这是镜像缺口证据，不冒旧异常filename已捕获。
+
+权威PLAN c.entry_static_r5_current_human_window.settings_source_contract_repair已登记唯一代码作者normal_c708，E/normal-settings-source-contract-r1，父8cc和默认paidhelper不改；短child用5真source whole/canonical/RAM模块对象/互引及原policy checks等价验证，不跳过hash，不新增mount/权限/依赖/产品重构。cover_media独立窄审进行中，实际原图9/终态1398证据复用；下一公网前先做修复后的非付费受控验证并预置后续成熟薄载体，不临场重新包装。另settings_config_contract只读预核原正常draft/activate后续配置链，无写/测试/云，防再漏确定契约缺口。
+
+原sole获授权用成熟observe一次查当前cover_settings及原draft/activate两UUID操作记录，既有同report7计数和restoreID附带RO可复用，不新框架/全账；尚待actual，不断言DB写0或盲rollback。原R5同意已消费STOP，future human-END None，不重开或同窗重试/模型；f933短时保留至必要恢复只读结束后才精确回收决定。Root新coverPOST0、无新版样本/质量通过，供应商计量与积分不冒验收；正文生产/预算/旧UNKNOWN/first15原件保持。完整绝对refs与单次tokens以同PLAN恢复，勿换窗重派已完成RO或source保存。成本任务独立。
+
