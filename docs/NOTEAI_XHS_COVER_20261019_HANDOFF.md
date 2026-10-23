@@ -2960,3 +2960,12 @@ HEADc56def6/功能c708不改。非ENTRY9leaf最终独审settings_config_contract
 Root实际本窗口browser4/tab1637495948再次观察404，截图W6/ROOT-ENTRY-CLOSED-BEFORE-R7.png已存，未占soleCloud/MFA页。原sole无云/模型在途；全部普通工程/私有保存与独审已完成。唯一新公网问题已通过request_user_input_async发出，原文E/ROOT-PUBLIC-WINDOW-QUESTION-20261024-R7-SOURCE-ACTUAL.json（完整ref在原PLAN）。其accepted true只是提问接收，不是用户答复；新human/START/END均None，旧R6确认不可借用。仅因上轮已失败即停关闭、浏览器工具public exposure要求当次确认，等待新的直接人类同意；不是新增产品/预算/普通技术审批。真实回复后第一clock+原文witness固定最多60分钟/首OPEN余≥30分钟，同窗不重开延时，仅DATA晚绑be2d交sole一次prepare/OPEN，其余原件不重复。
 
 权威PLAN current_recovery_point仍entry_static_r7_preparation，state全部私有准备实际完成等待新公网人证；a.next包含恢复入口。PlanA新增模型/合格封面/结算0，真实审美/PC-H5重开/免费排字/下载/每合格成本仍未过；预算原15/100、现有8分最多一次、首合格停/条件第二/意外或UNKNOWN停、报告正文/生产/旧UNKNOWN/first15保持。后续真实验收通过前不能报功能交付完成。
+
+
+## CURRENT — 2026-10-23 23:50:42UTC R7新的真人同意已核，固定一小时窗口接续中
+
+实际branch/HEAD00a486b/功能c708不改，工作树clean起步。read_thread newest直接userMessage01a16b2c-657b-7481-bbdf-462914d85fd6，turn01a16b2c-6510-7a40-938d-1f447f2c5a44/start1792799434，原文同意；不是旧R6或仅requestaccepted。Root第一clock23:50:42Z固定START1792799442/END1792803042，至2026-10-24 00:50:42UTC（北京07:50:42–08:50:42），首OPEN最晚00:20:42UTC且余≥30分钟，同窗不重开/延时。
+
+E新human1627/c9eb356e、witness806/b7b0fa2d全保新原文/消息ID/真实第一clock/待答R7question49fc。W7=B/window-20261024-075042-r7，INPUT.spacing-r7.AUTHORITY.ACTUAL.json4561/7deeea49六键/三真refs/原frontend/PUTNone/authority四键；W7/prepare-upload-once.ram-settings-r7.AUTHORITY.ACTUAL.py16612/ef4ecd69相对冻结be2d12041仅DATA字节赋值，Root95d727归一AST真核，未改SOURCE_REFS/源/预算/产品。具体一次prepare+actual后一次OPEN指令已交原sole，实际Run/CID尚未回；不凭等待重发，Root只持正常产品UI4/tab1637495948，Cloud/MFA仍sole所有。
+
+本次范围仍已批准PlanA Seed2.1Pro设计/质检+每任务≤1Seedream5Pro概念、final真实九图，最多2新任务首合格停/明确QC拒绝+真候选QC6+局部修正才第二；意外或UNKNOWN停并提前关。沿原新增15/总100、调用按需/fixture现8分最多结算一次，不重正文/生产。source-save/配置/pure/core/RO/旧测试不重复，全部旧UNKNOWN/first15/失败保。当前模型/新封面/结算0，真实质量未验收，下一Root正常9补传→原terminalRO→advance实际READY后才单封面。
