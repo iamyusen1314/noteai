@@ -150,8 +150,8 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8、9f55fbf | 当前V3真九图普通功能链、同库重启、PC/H5重开/免费排字和HTTP下载；9f增加桌面原生保存，实际文件等持久rev2；首次可编辑包保存失败真实回归1PASS/净扣0，见末节 | 旧证据复用；供应商HTTP/QC mock，不能替代真实质量或真实供应商结算；iPhone及不支持picker的设备落盘未证 |
-| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_LOCAL_ACCEPTANCE_TOOL_REPAIR / 产品9f55fbf；真实r1已失败释放8分 | b3实际build/native技术PASS；r1共11Pro＋1Seedream均HTTP200，文本目录已知1.107312元、image actualNULL/估0.76，合格0；normal重复读取released8/net0、旧财务行不变；key已官方禁用、server退出 | 本机验收gross budget99436＋下一1033超100000，离线原guard已复现；不降counter/改trigger/重发。正局修同caller，保同DB/全部费用与旧UNKNOWN，拟本机formal原生记账＋额外A15累计费用上界guard；真实成品/前端仍未验 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成；原sole接手组件集成准备 | SOURCE_AND_NATIVE_REVIEW_GO_REAL_DELIVERY_PENDING / 产品9f55fbf；原sole932f30a | 下载实现、首次包保存失败回归及实际b3 native原件均独审GO；原sole已实际build/native及组件记录提交，见末节精确refs，不以收录代替接手执行 | 方案A真实合格交付0/单位成本N/A；真实六项QC/质量、正常供应商任务完整链、真实成品PC/H5及唯一结算仍待证。真实iPhone未验；桌面OS落盘已证。本窗口不发布生产 |
+| 3 定向集成与真实验收 | 封面主代理；原sole唯一最终集成发布 | IN_PROGRESS_INPUT_BUDGET_ALIGNMENT / 产品9f55fbf；R2本地输入上限失败 | b3实际build/native PASS；R2真实IAB PC/H5入口/断线找回，11Pro＋1Seedream均200；本地第12Pro拒发；normal重复读released8/net0；key已实际禁用 | 原失败/费用/UNKNOWN全保；零供应商修复SDK与provider计量衔接、脱敏诊断和终态旧报价；未有真实成品，不冒质量或完整验收 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成；原sole接手组件 | SOURCE_AND_NATIVE_REVIEW_GO_REAL_DELIVERY_PENDING / 产品9f55fbf；原sole339a987 | 已完成下载/首次包保存失败/b3 native独审及原sole实际组件更新；R2设计原件6份留存，无最终渲染 | 真实合格0/单位成本N/A；原照最终六项QC、真实成功保存/改字/下载/唯一结算仍待；真实iPhone未验。本窗口不发布生产 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -3290,3 +3290,14 @@ HEAD2c637d9／产品9f55fbf／callerb90446de46928不变。本窗10:45:55Z读取�
 IAB2/tab1实际正常打开127.0.0.1:56613原产品，正常本机测试会话识别local-nine-owner，报告434正文与9张有效素材都在，原失败不扣与旧mock成品仍展示。PC1440×1000正常封面入口、报价8分/90天/标题自动优选；前端真实点击重新设计后202 queued，新job d3048c40-7132-48a0-b082-d9a5ba912c93／client4a6f6706-822b-421f-acce-5f583bc42154／usagee95b3f70-6fcf-4a07-8382-7f366e380bb8，已预留8、实际扣0。H5390×844排队面板宽352/left19/right371，document.scrollWidth390无横溢；PC/H5截图已落C。原PREPARED client538678aa未POST、已被正常UI生成4a6f替代，不得后续误发。
 
 Root正常GET state核新job唯一/workerfalse/新once无/新模型0（累计原12），A15保守bound4187milli、formal counter0、旧acceptance99436及全部旧账不变。下一立即执行该唯一Bearer run-next，默认真实Pro/Seedream≤1概念及原照HTML流程，A15按实际＋未知＋在途上界守卫，不重复旧failed/不重跑报告；真实大图六项QC及保存找回/改字/下载/唯一结算继续。原sole只接最终组件集成、不发布生产，本checkpoint不是停止。
+
+
+## CURRENT — 2026-10-24T11:09:46.264749+00:00 R2真实前端任务输入上限失败，8分释放、受限key关闭；继续零供应商局部修复
+
+实际HEAD a892e4ac5b96b4de96eedaac64151690524f7b13／功能仍9f55fbf，caller仍b90446de。用户本次同意后，IAB真实PC1440×1000入口提交新job d3048c40-7132-48a0-b082-d9a5ba912c93／client4a6f6706-822b-421f-acce-5f583bc42154／usagee95b3f70-6fcf-4a07-8382-7f366e380bb8，H5390×844排队及刷新后找回同一running任务已实际观察，无横溢、未取消／重复。单次run-next后本轮11Pro＋1Seedream全部HTTP200；第12Pro在本地prepare_payload因COVER_AGENT_INPUT_LIMIT_EXCEEDED拒发，未ordinal++／before_call／reserve／HTTP。host receipt保留ordinal12/primary/UNKNOWN／bodySHA，不将其改成物理UNKNOWN；原物理12均responded，结果未知0。本轮文本目录已知1.5136872元，图像actualNULL／estimate0.76保留；方案A已知文本累计3.0734532元，A15保守含历史未知／逐call ceil上界6467milli，余8533，不是银行账单。原报告434正文／9原照／旧失败和旧mock成功均保，合格真实封面仍0／每合格成本N/A。
+
+正常GET原job两次200，released8／credits_used0、refund_applied1／complete0，原monthly used8／wallet8／total_used0恢复；worker false。C/REAL-R2-STATE-110310.json、REAL-R2-FAILED-NORMAL-READBACK001.json、REAL-R2-TEXT-DIMENSIONS-AND-RECEIPT001.json为真实原件。IAB失败页显示未交付／预留已释放，但轮询后的旧can_afford提示仍有“积分不足”，关闭重开后消失；封面局部状态衔接待修，不扩其他账务。控制台error/warn0，截图IAB-H5-FAILED-R2.png。官方same task key已实际禁用，按钮启用／编辑权限／删除，C/TASK-KEY-DISABLED.R2.ACTUAL.*已留并显示用户，未改权限/其他key或泄露值。
+
+foundation按白名单抢救6份稳定实际设计原件至C/real-r2-design-evidence，CAPTURE-MANIFEST6648／a818ab6331d77792f8fed6eb541b396110ecd74b4961d894aee119eba92745b6：brief、两版concept prompt、concept PNG、design-plan、poster.json；没有index.html／最终渲染／240缩图，概念非交付。最终prompt是composition-prompt.c531843c00b4.md；实际生成概念已Root和子代理看图，几何改动不能当商家实照。原计划明确用source1＋9原照HTML实现，但失败前尚未完成，不能据计划冒质量PASS。workspace已由正常cleanup删除，仅保content-free host receipt；无法还原第12包真实计量分项，不能补造请求正文。
+
+独立窄审确定两套计量不一致：provider按text UTF8 JSON bytes＋image pixel bound＋framing阈值131072；固定SDK按字符/4及每图1500、context128000约108800估算才compact。成功11笔的实际input＋cache_read最大32067，仍不证明失败包实际值或重复图数量。继续零供应商修复：foundation唯一改provider/runtime及现有测试，提取同一meter和固定整数拒发诊断、沿现有receipt留存且诊断失败不掩原错；Root只改host与封面失败后的报价衔接，独审只读SDK原生compaction接口并用实际SDK造包回归决定修正，不任意涨128K／预算或编tokenizer。不新建平台/验收脚本体系，不读secret/SDK业务数据库、不重发旧job。key禁用使付费分支停止，其他离线开发继续；本checkpoint不是结束。
