@@ -258,6 +258,120 @@ class AgentArtifactTests(unittest.TestCase):
         self.assertEqual(self.fixture.balances(), balances)
         self.assertEqual(db.fetchone("SELECT count(*) n FROM public_trial_calls")["n"], calls)
 
+    def test_v3_first_bundle_save_failure_releases_without_replaying_sdk(self):
+        import shutil
+        import socket
+        import httpx
+        import cover_agent_runtime as runtime
+
+        if not os.environ.get("NOTEAI_COVER_HOST_NODE_MODULES") or not shutil.which("node"):
+            self.skipTest("Explicit local SDK installation and Node are required")
+
+        # Reuse the real metered SDK/CLI fixture, with one synthetic source.
+        # Only supplier HTTP responses and the final bundle write are replaced.
+        from tests.frontend_cover_agent_http import MeteredScriptedBridge, TITLE, synthetic_png
+
+        class SingleSourceBridge(MeteredScriptedBridge):
+            instances = []
+
+            def respond_image(bridge, request):
+                self.assertEqual(request.url.path, "/api/v3/images/generations")
+                payload = json.loads(request.content)
+                self.assertIsInstance(payload["image"], str)
+                raw = base64.b64decode(payload["image"].split(",", 1)[1], validate=True)
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), bridge.sources[0]["sha256"])
+                bridge.wire_requests.append({"stage": "image", "input_images": 1,
+                    "model": payload["model"], "http_status": 200})
+                return httpx.Response(200, json={"model": payload["model"],
+                    "data": [{"b64_json": base64.b64encode(
+                        synthetic_png((1776, 2368), "#A1A8B1")).decode(), "size": "1776x2368"}],
+                    "usage": {"input_images": 1, "generated_images": 1}},
+                    headers={"x-request-id": "synthetic-single-source-save-failure"})
+
+        config = cover_settings.editable_defaults()
+        config.update(enabled=True, account_verified=True,
+            account_evidence_ref="SYNTHETIC_LOCAL_SAVE_FAILURE_FIXTURE")
+        self.fixture.policy = cover_settings.policy_snapshot(config)
+        self.fixture.input = {"title": TITLE, "body": "单图合成保存失败技术测试。",
+            "title_variants": [], "domain": "其他", "visual_advice": "保留合成原图和独立文字。"}
+        source = private_storage.store_media_bytes(self.fixture.user, purpose="image", content_type="image/png",
+            payload=synthetic_png((1671, 941), "#406050"), item_count=1, ttl_seconds=86400)
+        self.fixture.source = source
+        before_balances = self.fixture.balances()
+        before_images = db.fetchone("SELECT count(*) n FROM private_media_refs WHERE state='ready'")["n"]
+        saved = {}
+
+        def original_rows(table, usage_id):
+            column = "usage_record_id" if table in {"public_trial_calls", "model_usage_records"} else "usage_id"
+            return [dict(row) for row in db.fetchall(
+                "SELECT * FROM " + table + " WHERE " + column + "=? ORDER BY id", (usage_id,))]
+
+        def fail_bundle(user_id, job_id, bundle):
+            self.assertEqual((user_id, job_id), (self.fixture.user, task["job_id"]))
+            self.assertIsInstance(bundle, bytes)
+            saved["calls"] = original_rows("public_trial_calls", usage_id)
+            saved["models"] = original_rows("model_usage_records", usage_id)
+            saved["images"] = original_rows("cover_image_usage", usage_id)
+            saved["ready_images"] = db.fetchone("SELECT count(*) n FROM private_media_refs WHERE state='ready'")["n"]
+            raise private_storage.ObjectStorageUnavailable("FIXTURE_V3_FIRST_BUNDLE_SAVE_FAILED")
+
+        def run(**kwargs):
+            try:
+                return runtime.run_cover(**kwargs, bridge_class=SingleSourceBridge)
+            except Exception as exc:
+                import traceback
+                saved["runtime_error"] = {"class": type(exc).__name__, "code": getattr(exc, "code", None),
+                    "frames": [(Path(frame.filename).name, frame.lineno, frame.name)
+                        for frame in traceback.extract_tb(exc.__traceback__)]}
+                raise
+
+        with mock.patch.dict(os.environ, {"PYTHON_DOTENV_DISABLED": "1", "DATABASE_URL": "",
+                "NOTEAI_PUBLIC_PRODUCT": "0", "NOTEAI_ARK_API_KEY": "offline-save-failure-fixture",
+                "NOTEAI_COVER_AGENT_STATE_ROOT": str(Path(self.fixture.temp.name) / "agent-jobs")}), \
+                mock.patch.object(socket.socket, "connect", side_effect=AssertionError("External network forbidden")), \
+                mock.patch.object(socket.socket, "connect_ex", side_effect=AssertionError("External network forbidden")), \
+                mock.patch.object(socket, "getaddrinfo", side_effect=AssertionError("External DNS forbidden")):
+            task = self.fixture.submit(key="v3-first-bundle-save-failed")
+            usage_id = db.fetchone("SELECT usage_id FROM cover_jobs WHERE id=?", (task["job_id"],))["usage_id"]
+            with mock.patch.object(artifacts, "store", side_effect=fail_bundle) as store:
+                result = cover_service.run_next(runtime=run)
+            self.assertEqual(store.call_count, 1, {"job": result, "runtime_error": saved.get("runtime_error")})
+            self.assertEqual((result["status"], result["billing"]["status"],
+                result["billing"]["credits_used"]), ("failed", "released", 0))
+            self.assertFalse(result["has_final"])
+            self.assertEqual(result["asset_revision"], 0)
+            self.assertEqual(self.fixture.balances(), before_balances)
+            self.assertEqual(db.fetchone("SELECT count(*) n FROM cover_asset_revisions")["n"], 0)
+            # Both normal PNG writes completed before the editable bundle failed.
+            self.assertGreaterEqual(saved["ready_images"], before_images + 2)
+            self.assertEqual(len(saved["calls"]), 9)
+            self.assertTrue(all(row["state"] == "responded" and row["http_status"] == 200 for row in saved["calls"]))
+            self.assertEqual(len(saved["models"]), 8)
+            self.assertEqual(len(saved["images"]), 1)
+            image = saved["images"][0]
+            self.assertEqual((image["state"], image["cost_status"], image["billed_images"]), ("responded", "estimated", 1))
+            self.assertIsNone(image["actual_cost"])
+            usage = dict(db.fetchone("SELECT * FROM usage_records WHERE id=?", (usage_id,)))
+            self.assertEqual(usage["credits_used"], 0)
+            self.assertGreater(usage["actual_model_cost_rmb"], 0)
+            self.assertAlmostEqual(usage["estimated_cost_rmb"],
+                usage["actual_model_cost_rmb"] + float(image["estimated_cost"]))
+            financial = db.fetchone("SELECT complete_applied,refund_applied FROM idempotency_requests WHERE id=?", (task["job_id"],))
+            self.assertEqual(tuple(financial), (0, 1))
+            self.assertEqual(jobs.get_job(self.fixture.user, task["job_id"])["status"], "failed")
+            duplicate = self.fixture.submit(key="v3-first-bundle-save-failed")
+            self.assertFalse(duplicate["created"])
+            self.assertEqual(duplicate["job_id"], task["job_id"])
+            self.assertIsNone(jobs.claim_job(task["job_id"]))
+            for _ in range(2):
+                self.assertIsNone(cover_service.run_next(runtime=run))
+            for table, key in (("public_trial_calls", "calls"), ("model_usage_records", "models"),
+                               ("cover_image_usage", "images")):
+                self.assertEqual(original_rows(table, usage_id), saved[key])
+            self.assertEqual(dict(db.fetchone("SELECT * FROM usage_records WHERE id=?", (usage_id,))), usage)
+            self.assertEqual(len(SingleSourceBridge.instances), 1)
+            self.assertEqual(len(SingleSourceBridge.instances[0].wire_requests), 9)
+
     def test_old_and_new_settings_are_explicit_and_valid(self):
         old = cover_settings.defaults()
         self.assertNotIn("workflow_engine", cover_settings.validate(old))

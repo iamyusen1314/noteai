@@ -8673,16 +8673,36 @@ async function coverAdjust(ctx) {
 }
 async function coverDownload(ctx) {
   if (!ctx.current() || ctx.busy || !ctx.latest?.has_final) return;
-  ctx.busy = true; coverRender(ctx);
+  const jobId = ctx.latest.job_id, revision = ctx.latest.asset_revision, ownerId = ctx.identity.ownerId;
+  const current = () => ctx.current() && ctx.identity.ownerId === ownerId && ctx.latest?.has_final
+    && ctx.latest.job_id === jobId && ctx.latest.asset_revision === revision;
+  const usePicker = typeof globalThis.showSaveFilePicker === 'function';
+  let writable = null;
+  ctx.busy = true; ctx.notice = usePicker ? '请选择封面保存位置…' : '正在读取封面文件…'; coverRender(ctx);
   try {
-    const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.latest.job_id) + '/download?asset=final&revision=' + encodeURIComponent(ctx.latest.asset_revision || 0));
-    const blob = await response.blob(); if (!ctx.current()) return;
-    const url = coverBlobURL(ctx,blob); const link = document.createElement('a');
-    link.href = url; link.download = 'NoteAI-cover-' + ctx.latest.job_id.slice(0,8) + (blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg');
-    document.body.append(link); link.click(); link.remove();
-    ctx.notice = '已交给浏览器下载。如手机打开图片预览，可按浏览器提示保存。';
-  } catch (error) { if (ctx.current()) ctx.notice = error.message; }
-  finally { ctx.busy = false; coverRender(ctx); }
+    const handle = usePicker ? await globalThis.showSaveFilePicker({suggestedName:'NoteAI-cover-' + jobId.slice(0,8) + '.png',
+      types:[{description:'PNG 封面',accept:{'image/png':['.png']}}],excludeAcceptAllOption:true}) : null;
+    if (!current()) return;
+    const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(jobId) + '/download?asset=final&revision=' + encodeURIComponent(revision || 0));
+    if (!current()) return;
+    const blob = await response.blob(); if (!current()) return;
+    if (usePicker) {
+      if (blob.type !== 'image/png') throw Error('封面文件格式未确认，请稍后读取原任务');
+      writable = await handle.createWritable(); if (!current()) return;
+      await writable.write(blob); if (!current()) return;
+      await writable.close(); writable = null;
+      if (current()) ctx.notice = '封面已保存到所选位置。';
+    } else {
+      const url = coverBlobURL(ctx,blob); const link = document.createElement('a');
+      link.href = url; link.download = 'NoteAI-cover-' + jobId.slice(0,8) + (blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg');
+      document.body.append(link); link.click(); link.remove();
+      ctx.notice = '已交给浏览器下载。如手机打开图片预览，可按浏览器提示保存。';
+    }
+  } catch (error) { if (current()) ctx.notice = error.name === 'AbortError' ? '已取消保存，原封面保留。' : error.message; }
+  finally {
+    if (writable) { try { await writable.abort(); } catch (_) {} }
+    ctx.busy = false; coverRender(ctx);
+  }
 }
 async function openCoverPanel(reportType, reportId, savedJob = null) {
   const savedOnly = coverSavedJobReadable(savedJob) && savedJob.report_type === reportType && savedJob.report_id === reportId;

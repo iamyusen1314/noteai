@@ -311,3 +311,68 @@ test('saved cover settlement refreshes ledger-backed balance once per completed 
  c.coverAcceptJob(ctx,completed);c.coverAcceptJob(ctx,{...completed,asset_revision:2});assert.equal(reads,1);
  c.coverAcceptJob(ctx,{...completed,job_id:'next-completed-job'});assert.equal(reads,2);
 });
+
+test('desktop cover save opens the picker before fetching and reports success only after close',{timeout:2000},async()=>{
+ const events=[],blob=new Blob(['saved-cover-bytes'],{type:'image/png'});let finishClose,closeStarted,request,pickerOptions;
+ const closeGate=new Promise(resolve=>finishClose=resolve),closing=new Promise(resolve=>closeStarted=resolve);
+ const writable={write:async value=>{assert.equal(value,blob);events.push('write');},close:async()=>{events.push('close');closeStarted();await closeGate;},abort:async()=>events.push('abort')};
+ const {c,ctx}=make({showSaveFilePicker:options=>{pickerOptions=options;events.push('picker');return Promise.resolve({createWritable:async()=>{events.push('create');return writable;}});},
+  fetch:async(url,options)=>{request={url,options};events.push('fetch');return {ok:true,blob:async()=>blob};}});
+ ctx.latest={...completed};ctx.notice='封面已保存到所选位置。';const saved=JSON.stringify(ctx.latest),saving=c.coverDownload(ctx);
+ assert.deepEqual(events,['picker']);await c.coverDownload(ctx);assert.equal(events.filter(event=>event==='picker').length,1);
+ await closing;
+ assert.doesNotMatch(ctx.notice || '',/已保存/);assert.equal(ctx.busy,true);
+ assert.equal(request.url,'http://offline.invalid/covers/job-original/download?asset=final&revision=1');
+ assert.equal(request.options.headers.Authorization,'Bearer synthetic-token');assert.equal(request.options.cache,'no-store');
+ assert.deepEqual(JSON.parse(JSON.stringify(pickerOptions)),{suggestedName:'NoteAI-cover-job-orig.png',types:[{description:'PNG 封面',accept:{'image/png':['.png']}}],excludeAcceptAllOption:true});
+ finishClose();await saving;
+ assert.deepEqual(events,['picker','fetch','create','write','close']);assert.match(ctx.notice,/已保存到所选位置/);
+ assert.equal(ctx.busy,false);assert.equal(JSON.stringify(ctx.latest),saved);
+});
+
+test('desktop cover save cancellation never fetches or falls back to a second download',async()=>{
+ let requests=0,pickers=0,anchors=0;
+ const {c,ctx}=make({showSaveFilePicker:async()=>{pickers++;throw Object.assign(Error('user cancelled'),{name:'AbortError'});},
+  fetch:async()=>{requests++;throw Error('cancelled picker must not fetch');},document:{createElement:()=>{anchors++;throw Error('must not fall back');}}});
+ ctx.latest={...completed};await c.coverDownload(ctx);
+ assert.equal(pickers,1);assert.equal(requests,0);assert.equal(anchors,0);assert.match(ctx.notice,/已取消保存/);
+ assert.doesNotMatch(ctx.notice,/已保存|已交给浏览器/);assert.equal(ctx.busy,false);assert.equal(ctx.latest.asset_revision,1);
+});
+
+test('desktop cover save aborts write or close failures without retry or a success receipt',async()=>{
+ for(const failure of ['write','close']) {
+  let requests=0,writes=0,closes=0,aborts=0;
+  const {c,ctx}=make({showSaveFilePicker:async()=>({createWritable:async()=>({
+   write:async()=>{writes++;if(failure==='write')throw Error('disk write failed');},
+   close:async()=>{closes++;if(failure==='close')throw Error('disk close failed');},abort:async()=>{aborts++;}
+  })}),fetch:async()=>{requests++;return {ok:true,blob:async()=>new Blob(['cover'],{type:'image/png'})};}});
+  ctx.latest={...completed};const saved=JSON.stringify(ctx.latest);await c.coverDownload(ctx);
+  assert.equal(requests,1);assert.equal(writes,1);assert.equal(closes,failure==='close'?1:0);assert.equal(aborts,1);
+  assert.match(ctx.notice,/disk (write|close) failed/);assert.doesNotMatch(ctx.notice,/已保存|已交给浏览器/);
+  assert.equal(ctx.busy,false);assert.equal(JSON.stringify(ctx.latest),saved);assert.equal(ctx.urls.size,0);
+ }
+});
+
+test('desktop cover save fences owner job and revision changes before writing or committing',async()=>{
+ for(const stage of ['picker','fetch','blob','create','write'])for(const change of ['owner','job','revision','closed']) {
+  let requests=0,writes=0,closes=0,aborts=0,ctx,leave;
+  function invalidate(at){if(stage!==at)return;if(change==='owner')ctx.identity.ownerId='other-owner';else if(change==='job')ctx.latest={...completed,job_id:'other-job'};else if(change==='revision')ctx.latest={...completed,asset_revision:2};else leave();}
+  const writable={write:async()=>{writes++;invalidate('write');},close:async()=>{closes++;},abort:async()=>{aborts++;}};
+  const fixture=make({showSaveFilePicker:async()=>{invalidate('picker');return {createWritable:async()=>{invalidate('create');return writable;}};},
+   fetch:async()=>{requests++;invalidate('fetch');return {ok:true,blob:async()=>{invalidate('blob');return new Blob(['cover'],{type:'image/png'});}};}});
+  ({ctx,leave}=fixture);ctx.latest={...completed};await fixture.c.coverDownload(ctx);
+  assert.equal(requests,stage==='picker'?0:1,stage+':'+change);assert.equal(writes,stage==='write'?1:0,stage+':'+change);
+  assert.equal(closes,0,stage+':'+change);assert.equal(aborts,['create','write'].includes(stage)?1:0,stage+':'+change);
+  assert.doesNotMatch(ctx.notice || '',/已保存|已交给浏览器/);assert.equal(ctx.busy,false);
+ }
+});
+
+test('cover download retains the authenticated Blob fallback when the desktop picker is unavailable',async()=>{
+ let request;const events=[],link={click(){events.push('click');},remove(){events.push('remove');}};
+ const {c,ctx}=make({document:{createElement:name=>{assert.equal(name,'a');return link;},body:{append:value=>{assert.equal(value,link);events.push('append');}}},
+  fetch:async(url,options)=>{request={url,options};return {ok:true,blob:async()=>new Blob(['cover'],{type:'image/png'})};}});
+ ctx.latest={...completed};await c.coverDownload(ctx);
+ assert.deepEqual(events,['append','click','remove']);assert.equal(link.href,'blob:synthetic');assert.equal(link.download,'NoteAI-cover-job-orig.png');
+ assert.equal(request.options.headers.Authorization,'Bearer synthetic-token');assert.equal(request.url.includes('synthetic-token'),false);
+ assert.match(ctx.notice,/已交给浏览器下载/);assert.doesNotMatch(ctx.notice,/已保存到所选位置/);assert.equal(ctx.latest.asset_revision,1);
+});
