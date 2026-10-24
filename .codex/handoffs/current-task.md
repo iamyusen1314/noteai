@@ -33360,3 +33360,14 @@ R3 caller48227／1b601bd642baabde69f102a6a88fe93e34052bc8c7b89aa0c1bee7294b47cc2
 接续HEAD5136d7a／产品333b967。Root12:39:09Z读取用户新“确认”，已正常临时启用same双Pro受限key apikey-20261024165317-pvjfq，不改权限／其他key／公网／生产；C/TASK-KEY-REENABLED.R3.ACTUAL.*遮罩回执已给用户，终态或异常须立即禁用。原caller48227／1b601bd6精确未变，serve003 exec9506／127.0.0.1:64438，有限until1792849248／lifespanoff／无自动worker，同STATE/DB/9图434正文及原24physical历史保持。
 
 PC1440×1000正常报告入口已核8分/90天、9图有效，UI自然点击新建job38b7e113-c77e-45f0-b3e7-50e1fe1bf628／client3834322e-f7b0-477e-9b6b-1b6f7b083c34／usage96f477e8-5830-4eb9-9a3c-70b9d14a5ff4，queued／预留8／净实际0，旧失败与旧mock成品保。正常state200已存C/REAL-R3-BEFORE-WORKER001.json：新模型0，历史两failed各net0/24全响应，A15含历史UNKNOWN保守上界6467milli／余8533，不是现金账单。下一Root唯一Bearer run-next，固定Pro规划/QC、Seedream至多1概念、真实原照HTML成品；foundation仅并行抢救该job公开设计/真实候选/QC原件，禁止secret/SDK DB。未知或非预期失败即停不重发，终态禁用后继续只读/免费验证，不能把预留当扣分或把概念当交付。
+
+
+## CURRENT — 2026-10-24T13:05:51.891908+00:00 R3真实输出不完整失败，净扣0／key禁用／server退出；继续离线输出契约修复
+
+HEADd8dcac7／产品333b967；job38b7e113-c77e-45f0-b3e7-50e1fe1bf628／usage96f477e8-5830-4eb9-9a3c-70b9d14a5ff4已failed/COVER_AGENT_OUTPUT_INCOMPLETE/revision0，11Pro＋1Seedream共12physical全responded200，无physicalUNKNOWN。正常GET原job两次200均released8／credits_used0，charge1/refund1/complete0；钱包8/total_used0、月度used8复原，旧mock成功保。PC/H5实际失败UI未交付／预留已释放，falseInsufficient=false／新按钮恢复可用，console error/warn0；因此333报价释放修复已有真实受影响证据，不重其他页面。H5390×844宽352、document390，关闭／刷新后已找回同一running且未重复新建；真实iPhone仍未验。控制回执读取脚本曾误assert HTTP200，而接口定义202；原POST仅一次、body未在断言前保存，后续只GET＋一次intent核原任务运行，没有重发或伪造原响应。C/REAL-RUN-CONTROL-R3.CONTRACT-READBACK.json保该测试读取错误。
+
+末笔Pro input13548／completion8192恰requestmax，provider唯一OUTPUT_INCOMPLETE分支说明finish_reason既非stop也非tool_calls，但真实枚举／思考与正文占比／末包正文均未留，不能冒还原length或思考耗尽。content-free原receipt保host UNKNOWN／pendingordinal11/bodySHAa0e00214，12个physical全部已响应属于不同层，不重放。C/REAL-R3-TERMINAL-SUMMARY001.json、REAL-R3-STATE007.json与FAILED-NORMAL-READBACK001为原证。新增文本目录1.3566444元；方案A文本累计4.4300976／历史总known目录8.3564034，三图actual仍NULL各0.76估计＋旧UNKNOWN保；A15保守上界8589milli／余6411，不是现金账单。合格真实封面仍0／单张合格成本N/A。
+
+已按本轮失败即停实际禁用同key，C/TASK-KEY-DISABLED.R3.ACTUAL.*遮罩回执已给用户；正常POST stop200，原exec9506退出0。foundation白名单捕获3件共7299988B：两版概念prompt＋7295128B/ba89e7ca概念PNG1776×2368，CAPTURE-MANIFEST4266／f9348bdb；没有shipping HTML/final/240/QC。Root及子代理都实际看过概念，生成场景和误字只作参考，不能冒真实成品。原source/9图/434正文/三失败/旧mock及所有旧原件不改；没有R4/session/新paid/新key请求。
+
+当前继续可执行离线工作，不以失败或本checkpoint结束：candidate只读复核输出/估算调用契约，foundation只读核固定SDK2.1.2对官方encrypted_content回传支持，Root负责统一收敛最小修复。实际官方新文档明确260915需原样回传encrypted_content，reasoning_content只是摘要；Agent输出长度需兼顾思考和成品，现host只转content/reasoning/toolcalls、provider消息白名单也缺encrypted_content。它是已发现的适配合同缺口，不证明R3具体末包字段。下一补准确的content-free结束诊断、足够且有预算上界的输出配置及完整思考回传联调；截断仍停止，不放行截断工具参数触发SDK最多两次自动付费续写。模型/积分/90天/报告/依赖/平台/生产及原A15/总100均不变，任何后续真实key启用需在具体非付费修复齐后集中处理。
