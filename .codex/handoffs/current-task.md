@@ -33258,3 +33258,16 @@ Root只清理本任务公开registry可重下的npm `_cacache`，原_logs、inst
 stderr原件尚未留，不能推测具体lib；构建器误把容器运行合同当host门槛，原sole正做最小build-only修正＋一次有界host错误capture，不重复SendFile/materializer/原终态Run。后续仅新image nonroot/networknone实际Chrome版本和渲染smoke可证运行，不将源码匹配或放宽host门冒PASS。原接手方“修复高德检索与休闲娱乐行业”已实际执行，下一仍它负责精确修正和候选构建，Root追结果；不新增产品功能、Env/DB/生产/公网/模型动作或另一套交接发布。
 
 403／CAPTCHA当次许可分支、1.10元未查实费用预留、旧R7closed／净扣0／8测试积分／成本UNKNOWN均保，真实合格0／单位成本N/A。校验只暂停自身，隔离构建继续，本文档和交接收录不构成停止条件。
+
+
+## CURRENT — 2026-10-24 08:21 UTC 候选b3镜像及native合成技术smoke实际通过；真实业务验收继续
+
+HEAD43ace1a1dd01a72444169dc20e0e2d3577896ebf／原cover分支，产品仍9f55fbf。原solebuild-only最小修正已实际成功，未重传SendFile／物化16叶：c-sz070zksbv593pc／t-sz070zksbvrq6tc，08:01:22–08:03:11Z Success／Exit0／Repeats1／Dropped0。C/DELTA16-HOSTFIX-BUILD-READ0024952／5bce2504及OUTPUT0022868／ccc5df05逐whole核合，镜像本地ID sha256:b3f22cc28d9f3c61b1a8eb8b62b85ade87a699c4f91dd1606dede408fb0d884b，非registrydigest／未push／未部署。85源＋3锁／6依赖tree copyeq，fresh logical1283631054B／free before7956992000B，固定Node24.22.1；host实错127/libbz2.so.1.0已留，未安装hostdeps，构建时imageChrome未运行，其后由下段实际smoke补证。原solef6419b1已记真实build；生产／DB／模型0。
+
+候选native entry12495／6f146f36、wrapper22217／02cdbf5a、wire14258／f22154e6、PLAN19401／41c0141f沿精确GO，保原R9fa978sandbox且无NO_SANDBOX。实际c-sz070zm7zb1on40／t-sz070zm7zbj5xj4，08:17:27–35Z Success/Exit0/Repeat1/Dropped0；Read01A16CFD-F6A0-5217-AD8C-D1DAD10ADFEA。C/CANDIDATE-NATIVE-SMOKE-READ0013584／e4e4128f及OUTPUT0011841／8eb16f7d全whole核合，imageb3/entry6f相等／ownedremovedtrue／stderr0。Node24.22.1、Chrome152.0.7977.54、worker默认false，4SDK imports／内存sqlite ReturnArrays／3font_add／1render＋1thumbnail实际通过；PNG82257／37da7cb6／1776×2368、manifest74114／d017d3d1／RENDERED、thumb9292／4201c8c5／240×320且sourceSHA相等。SDK create/prompt、model/external/businessDB0，NOT_VISUALLY_REVIEWED／realphotos0／normaldeliveryfalse；wrapper固定nonroot/networknone等边界，entry不自行attestcontainercontrols。
+
+Root已核实际原件；最终actual独审已GO：READ Base64 Output逐byte等OUTPUT、innerstdout1088/fullSHA/空stderr一致，imageb3/entry6f/单次Exit0/ownedremoved对齐成功条件；只技术运行证据，未另取PNG再hash，不冒图像独立验收或真实质量。原sole正实际更新组件记录，Root与sole下一核现有合法task-only providerroute能否续私有正常业务真实验收，不取b991/旧拒绝配置、不拷生产密钥、不重放R7，只有缺准确可用合同才列具体外部阻塞。无需用户普通继续或登录，checkpoint不构成停止。
+
+限定R7旧结果复用已完成：仅PLAN已索引本地public输出，livechild2600／0f76120d为design0／candidate0／QC0，postclose8671／25293528为has_base/final=false／revision0／无response_ref。3次真实doubao-seed-2-1-pro-260915输出1727/4109/455tokens／已知0.452454元只有元数据，无已存可直接复用设计计划／HTML／tool正文，不能重构或补映射。此分支停止，非全盘不存在声明，未取b991/secret/配置或重发模型。
+
+阶段2本机PASS／阶段3IN_PROGRESS／阶段4真实HOLD；403／CAPTCHA当次许可仅该console模型分支、1.10元预留、旧R7与成本UNKNOWN／合格0保持。build和合成技术smoke不替代真实九图／审美／供应商完整链／唯一结算／iPhone保存。继续可执行私有正常链合同核对，不开新公网或生产。
