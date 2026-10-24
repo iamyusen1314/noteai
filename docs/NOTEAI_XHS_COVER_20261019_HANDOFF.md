@@ -3389,3 +3389,10 @@ R4独审caller00277341/实际原库RO d00e6094已准备，九图到明日05:22Z�
 目前全部已授权且不依赖新key动作的工程/候选验证/原件独审已完成；剩余仅1个R4真实封面及依赖其成功的原照质量/六项QC/保存重开/免费改字/下载/唯一结算，确实受新时段启用受限密钥的当次确认阻塞。既有async问题已发但无新答复，不重复发/不以沉默代同意。刚正常DOM再次核same noteai-cover-20261024-acceptance row仍已禁用并markHandoff；本机server无、worker无、新job/session无、供应商请求无、后台续跑无。原R3 host pendingordinal11/UNKNOWN原receipt独立保留，physical36全responded，绝不重放。真实合格0/单张合格成本N/A，真iPhone未验证，完整任务未完成。
 
 恢复唯一入口：本CURRENT＋原PLAN normal_v3_real_nine_local_continuation→现C/real_provider_local_app.README.md与48596/00277341 caller。收到本次新答复Root立即记实际时间，先只读重核九图TTL/原账（当前最早2026-10-25T05:22:02.593942Z），同受限key正常启用≤60min，caller绑定fresh until并用原DB/objects/报告434正文，IAB正常新建一个job，checkpoint后唯一run-next（原接口202，先保存body再断言），保真实候选/QC/结果；终态或非预期失败UNKNOWN立即禁用/stop，后续免费成功链按同任务验证。仍固定双Pro/至多1概念/一次局部质量修正/原8分/90天，不新密钥/权限/公网/部署。原方案A15/总100累计预算不变，保守bound8589milli余6411、已知目录文本4.4300976、总known目录8.3564034及全部图像actualNULL/旧UNKNOWN原样，非现金账单。无需再build/native、重旧suite、重授信或恢复旧云环境。没有承诺不存在的后台自动重试。
+
+
+## CURRENT — 2026-10-24T15:27:34.360989+00:00 R4本次确认与同key启用已实际执行，正常前端唯一任务已排队，付费派发前checkpoint
+
+实际HEAD8179a54／产品9f167da。Root15:22:56Z读取本次新“确认”，截至16:22:56Z≤60分钟；正常控制台same双Pro受限key已实际生效，未改权限/其他key/读取值；C/TASK-KEY-REENABLED.R4.ACTUAL.*已留遮罩回执并展示用户，终态或异常即禁用。Root重新只读原库确认9图ready未过期、三failed全36物理响应/唯一释放/旧账不变，total_changes0；C/REAL-CALLER-R4.ACTUAL-READONLY-STATE-PREFLIGHT002.json／d18f6886。原A15bound8589milli余6411，原UNKNOWN不重发。
+
+同一冻结caller48596/00277341以fresh until1792858976启动serve004 exec87128，origin127.0.0.1:55697，lifespanoff/无自动worker；原报告434正文/九图/历史均保持。IAB正常PC1440×1000原报告封面入口报价8分/90天/9素材有效，真实点击新建唯一jobcd7cd248-af29-4239-817c-4fb29f712425／client9a734cd6-9b3c-4f18-84fb-492ed748f871／usage9d535cb2-a1dd-4702-8493-b18fc0804823，queued预留8/实际扣0。C/REAL-R4-BEFORE-WORKER001.json已核phase1/新physical0/workerfalse/once不存在，PC排队图IAB-PC-QUEUED-R4.png已留。下一Root唯一Bearer run-next，先保存原响应再核202；固定双Pro/至多1概念/现有一次局部质量修正/原照HTML。foundation仅观察该新job公开产物，不接key/SDK DB/旧job。不中断或重发未知；失败终态即关闭，真实保存/重开/改字/下载/唯一结算依成功状态实证。此checkpoint不是结束或生产发布。
