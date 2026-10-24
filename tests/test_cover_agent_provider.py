@@ -101,6 +101,24 @@ class CoverAgentProviderTests(unittest.TestCase):
         return dict(db.fetchone("SELECT m.* FROM model_usage_records m JOIN public_trial_calls c "
             "ON c.model_usage_record_id=m.id WHERE c.id=?", (call_id,)))
 
+    @contextlib.contextmanager
+    def editable_claim(self):
+        # Multi-round Bridge tests use a normally submitted v3 claim, keeping
+        # the original one-design/one-QC fixtures and their evidence unchanged.
+        policy = {**self.fixture.policy, "design_version": 3, "max_physical_calls": None,
+            "workflow_engine": "editable_design_opencode_v1", "design_model": provider.MODEL}
+        task = self.fixture.submit(policy_snapshot=policy, quote_version=cover_jobs.policy_quote_version(policy))
+        original, self.claim = self.claim, cover_jobs.claim_job(task["job_id"])
+        marker = public_product._invocation.set(public_product.Invocation(self.fixture.user,
+            self.claim["request_id"], route="/covers", budget_id=policy["budget_id"]))
+        meter = billing._ACTIVE_USAGE_ID.set(self.claim["charge"]["usage_id"])
+        try:
+            yield
+        finally:
+            billing._ACTIVE_USAGE_ID.reset(meter)
+            public_product._invocation.reset(marker)
+            self.claim = original
+
     def test_full_tool_chat_uses_pro_thinking_and_one_original_metered_call(self):
         call_id = self.intent()
         expected = self.response(tool=True)
@@ -147,7 +165,7 @@ class CoverAgentProviderTests(unittest.TestCase):
     def test_invalid_input_and_unbounded_remote_image_never_reach_transport(self):
         invalid = []
         for change in ({"stream": True}, {"thinking": {"type": "disabled"}},
-                {"max_tokens": 8193}, {"max_completion_tokens": 8192},
+                {"max_tokens": provider.MAX_OUTPUT_TOKENS + 1}, {"max_completion_tokens": 8192},
                 {"messages": [{"role": "user", "content": "a" * provider.MAX_INPUT_TOKENS}]},
                 {"model": ark_media.MODEL}, {"service_tier": "fast"}):
             invalid.append({**deepcopy(self.body), **change})
@@ -167,7 +185,217 @@ class CoverAgentProviderTests(unittest.TestCase):
         image = prepared["messages"][1]["content"][1]["image_url"]
         self.assertEqual(image["image_pixel_limit"], {"min_pixels": 1764, "max_pixels": 1764})
         self.assertLess(bound, provider.MAX_INPUT_TOKENS)
-        self.assertEqual(provider.estimate()["estimated_cost"], "1.032192")
+        self.assertEqual(provider.estimate(8192)["estimated_cost"], "1.032192")
+
+    def test_output_request_caps_and_estimate_use_actual_maximum(self):
+        for maximum, amount in ((8192, "1.032192"), (32768, "1.769472"), (65536, "2.752512")):
+            with self.subTest(maximum=maximum):
+                body = deepcopy(self.body)
+                body.pop("max_tokens")
+                body["max_completion_tokens"] = maximum
+                prepared, _ = provider.prepare_payload(body)
+                self.assertEqual(prepared["max_completion_tokens"], maximum)
+                self.assertEqual(prepared["reasoning_effort"], "high")
+                quote = provider.estimate(prepared["max_completion_tokens"])
+                self.assertEqual((quote["output_token_bound"], quote["estimated_cost"]), (maximum, amount))
+        self.assertEqual(provider.estimate()["output_token_bound"], 65536)
+        for maximum in (True, 0, -1, 65537):
+            with self.subTest(invalid=maximum):
+                with self.assertRaises(ValueError):
+                    provider.estimate(maximum)
+                body = deepcopy(self.body)
+                body["max_tokens"] = maximum
+                with self.assertRaisesRegex(provider.CoverAgentProviderError, "OUTPUT_LIMIT_INVALID"):
+                    provider.prepare_payload(body)
+        self.assertEqual(provider.MAX_INPUT_TOKENS, 131072)
+        self.assertFalse(self.requests)
+
+    def test_encrypted_assistant_history_is_exact_and_counts_toward_input_bound(self):
+        cipher = "PRIVATE_OPAQUE_原样_+/=="
+        assistant = self.response(tool=True)["choices"][0]["message"]
+        assistant["encrypted_content"] = cipher
+        self.body["messages"].extend([assistant,
+            {"role": "tool", "tool_call_id": "tool_one", "content": "synthetic known tool result"}])
+        prepared, encrypted_bound = provider.prepare_payload(self.body)
+        self.assertEqual(prepared["messages"][-2], assistant)
+        plain = deepcopy(self.body)
+        plain["messages"][-2].pop("encrypted_content")
+        self.assertGreater(encrypted_bound - provider.prepare_payload(plain)[1], len(cipher.encode()))
+        call_id = self.intent()
+        provider.complete(self.body, call_id=call_id, transport=self.transport())
+        self.assertEqual(json.loads(self.requests[0].content)["messages"][-2]["encrypted_content"], cipher)
+        self.assertNotIn(cipher, json.dumps(self.call_row(call_id)))
+        self.assertEqual(len(self.requests), 1)
+
+    def test_encrypted_history_rejects_wrong_role_empty_and_nonstring_values(self):
+        for role, cipher in (("assistant", ""), ("assistant", None), ("assistant", {}),
+                             ("assistant", 1), ("system", "opaque"), ("user", "opaque"),
+                             ("tool", "opaque")):
+            with self.subTest(role=role, cipher_type=type(cipher).__name__):
+                message = {"role": role, "content": "known text", "encrypted_content": cipher}
+                if role == "tool":
+                    message["tool_call_id"] = "tool_one"
+                body = {"messages": [message]}
+                with self.assertRaisesRegex(provider.CoverAgentProviderError, "ENCRYPTED_HISTORY_INVALID"):
+                    provider.prepare_payload(body)
+        self.assertFalse(self.requests)
+
+    def test_bridge_hook_cost_snapshot_and_native_reserve_share_actual_output_cap(self):
+        with self.editable_claim():
+            import cover_agent_runtime
+            from types import SimpleNamespace
+
+            hooks = []
+            def before(stage, call_id, quote):
+                hooks.append(dict(quote))
+                cover_jobs.before_text_call(self.claim, stage, call_id)
+            bridge = cover_agent_runtime.Bridge(job_id=self.claim["request_id"],
+                directory=Path(self.fixture.temp.name), sources=[], hooks=SimpleNamespace(before_call=before),
+                model_transport=self.transport())
+            reserved = []
+            for maximum, expected in ((8192, 1033), (32768, 1770), (65536, 2753)):
+                body = deepcopy(self.body)
+                body["max_tokens"] = maximum
+                _, call_id = bridge.model(body)
+                row = self.call_row(call_id)
+                reserved.append(row["reserve_milli_cny"])
+                self.assertEqual(row["reserve_milli_cny"], expected)
+                self.assertEqual(hooks[-1]["output_token_bound"], maximum)
+                self.assertEqual(bridge.costs[-1]["output_token_bound"], maximum)
+                self.assertEqual(hooks[-1]["estimated_cost"], bridge.costs[-1]["estimated_cost"])
+                self.assertEqual(json.loads(self.requests[-1].content)["max_completion_tokens"], maximum)
+            self.assertEqual(reserved, [1033, 1770, 2753])
+            self.assertEqual(len(self.requests), 3)
+            self.assertEqual(self.fixture.balances()[1], 0)
+
+    def test_bridge_keeps_cipher_in_python_and_restores_identical_preflight_and_dispatch(self):
+        with self.editable_claim():
+            import cover_agent_runtime
+            from types import SimpleNamespace
+
+            cipher = "SYNTHETIC_PRIVATE_OPAQUE_中文_" * 7
+            original = self.response(tool=True)
+            original["choices"][0]["message"]["encrypted_content"] = cipher
+            responses = iter([original, self.response()])
+            def respond(request):
+                self.requests.append(request)
+                return httpx.Response(200, json=next(responses))
+            hooks = SimpleNamespace(before_call=lambda stage, call_id, quote:
+                cover_jobs.before_text_call(self.claim, stage, call_id))
+            bridge = cover_agent_runtime.Bridge(job_id=self.claim["request_id"],
+                directory=Path(self.fixture.temp.name), sources=[], hooks=hooks,
+                model_transport=httpx.MockTransport(respond))
+            safe, first_id = bridge.model(self.body)
+            self.assertNotIn(cipher, json.dumps(safe, ensure_ascii=False))
+            self.assertEqual(original["choices"][0]["message"]["encrypted_content"], cipher)
+            next_body = deepcopy(self.body)
+            next_body["messages"].extend([safe["choices"][0]["message"], {
+                "role": "tool", "tool_call_id": "tool_one", "content": "known successful file read"}])
+            untouched = deepcopy(next_body)
+            with mock.patch.object(provider, "admit_payload", wraps=provider.admit_payload) as admit:
+                self.assertEqual(bridge.preflight(next_body), {"allowed": True})
+            preflight = admit.call_args.args[0]
+            self.assertEqual(preflight["messages"][-2]["encrypted_content"], cipher)
+            safe_second, second_id = bridge.model(next_body)
+            dispatched = json.loads(self.requests[-1].content)
+            self.assertEqual(provider.prepare_payload(preflight)[0], dispatched)
+            self.assertEqual(dispatched["messages"][-2], original["choices"][0]["message"])
+            self.assertEqual(next_body, untouched)
+            self.assertNotIn(cipher, json.dumps(safe_second, ensure_ascii=False))
+            self.assertNotIn(cipher, json.dumps(bridge.costs, ensure_ascii=False))
+            self.assertEqual([self.call_row(item)["state"] for item in (first_id, second_id)],
+                ["responded", "responded"])
+            self.assertEqual(len(self.requests), 2)
+            self.assertEqual(bridge.ordinal, 2)
+
+    def test_bridge_thinking_failure_after_response_preserves_native_cost_without_retry(self):
+        import cover_agent_runtime
+        import cover_runtime
+        from types import SimpleNamespace
+
+        hooks = SimpleNamespace(before_call=lambda stage, call_id, quote:
+            cover_jobs.before_text_call(self.claim, "design", call_id))
+        bridge = cover_agent_runtime.Bridge(job_id=self.claim["request_id"],
+            directory=Path(self.fixture.temp.name), sources=[], hooks=hooks,
+            model_transport=self.transport())
+        with mock.patch.object(bridge.thinking, "remember", side_effect=
+                cover_agent_runtime.ThinkingError("COVER_AGENT_THINKING_MEMORY_LIMIT")):
+            with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_THINKING_MEMORY_LIMIT"):
+                bridge.model(self.body)
+        self.assertEqual(bridge.ordinal, 1)
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(len(bridge.costs), 1)
+        call_id = bridge.costs[0]["call_id"]
+        self.assertEqual(self.call_row(call_id)["state"], "responded")
+        self.assertEqual(self.model_row(call_id)["usage_status"], "complete")
+        self.assertGreater(self.model_row(call_id)["known_cost_rmb"], 0)
+        self.assertEqual(self.fixture.balances()[1], 0)
+
+    def test_stop_at_8192_is_usable_and_not_inferred_to_be_truncated(self):
+        response = self.response()
+        response["usage"]["completion_tokens"] = 8192
+        call_id = self.intent()
+        self.assertEqual(provider.complete(self.body, call_id=call_id, transport=self.transport(response)), response)
+        self.assertEqual(self.call_row(call_id)["state"], "responded")
+        self.assertEqual(self.model_row(call_id)["output_tokens"], 8192)
+        self.assertEqual(len(self.requests), 1)
+
+    def test_length_with_partial_tool_arguments_is_known_metered_and_never_returned(self):
+        response = self.response(tool=True)
+        response["choices"][0]["finish_reason"] = "length"
+        response["choices"][0]["message"]["encrypted_content"] = "PRIVATE_RESPONSE_CIPHER"
+        response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"] = '{"path":"index.html","text":"PARTIAL_PRIVATE'
+        response["usage"].update(completion_tokens=8192, completion_tokens_details={"reasoning_tokens": 7000})
+        call_id = self.intent()
+        with self.assertRaises(provider.CoverAgentProviderError) as caught:
+            provider.complete(self.body, call_id=call_id, transport=self.transport(response))
+        error = caught.exception
+        self.assertEqual(error.code, "COVER_AGENT_OUTPUT_LIMIT_REACHED")
+        self.assertFalse(error.outcome_unknown)
+        self.assertEqual(error.call_id, call_id)
+        self.assertEqual(error.output_diagnostics, {"finish_reason": "length", "completion_tokens": 8192,
+            "max_completion_tokens": 8192, "reasoning_tokens": 7000})
+        self.assertEqual((self.call_row(call_id)["state"], self.call_row(call_id)["http_status"]), ("responded", 200))
+        self.assertEqual(self.model_row(call_id)["output_tokens"], 8192)
+        self.assertAlmostEqual(self.model_row(call_id)["known_cost_rmb"], .246264)
+        self.assertEqual(len(self.requests), 1)
+        self.assertNotIn("PRIVATE", json.dumps(error.output_diagnostics))
+        self.assertEqual(self.fixture.balances()[1], 0)
+
+    def test_65536_stop_is_accepted_and_observed_over_cap_is_still_rejected(self):
+        body = deepcopy(self.body)
+        body["max_tokens"] = provider.MAX_OUTPUT_TOKENS
+        response = self.response()
+        response["usage"]["completion_tokens"] = provider.MAX_OUTPUT_TOKENS
+        call_id = self.intent()
+        self.assertEqual(provider.complete(body, call_id=call_id, transport=self.transport(response)), response)
+        self.assertEqual(self.call_row(call_id)["reserve_milli_cny"], 2753)
+        response["usage"]["completion_tokens"] += 1
+        prepared, _ = provider.prepare_payload(body)
+        with self.assertRaisesRegex(provider.CoverAgentProviderError, "OBSERVED_LIMIT_EXCEEDED"):
+            provider._validate_result(response, prepared, {"usage_status": "complete"})
+        self.assertEqual(len(self.requests), 1)
+
+    def test_output_diagnostics_project_only_enum_counts_and_valid_reasoning(self):
+        prepared, _ = provider.prepare_payload(self.body)
+        for finish, expected in (("length", "length"), ("content_filter", "content_filter"),
+                                 ("stop", "stop"), ("tool_calls", "tool_calls"),
+                                 ("PRIVATE_UNRECOGNIZED_REASON", "other"), (None, "missing")):
+            response = self.response()
+            response["choices"][0]["finish_reason"] = finish
+            response["usage"]["completion_tokens_details"] = {"reasoning_tokens": 31}
+            diagnostic = provider._output_diagnostics(response, prepared)
+            self.assertEqual(diagnostic["finish_reason"], expected)
+            self.assertIsNone(diagnostic["reasoning_tokens"])
+            self.assertNotIn("PRIVATE", json.dumps(diagnostic))
+        for reasoning in (True, -1, 31, "30", {}):
+            response["usage"]["completion_tokens_details"] = {"reasoning_tokens": reasoning}
+            self.assertIsNone(provider._output_diagnostics(response, prepared)["reasoning_tokens"])
+        response["usage"]["completion_tokens_details"] = {"reasoning_tokens": 30}
+        diagnostic = provider._output_diagnostics(response, prepared)
+        self.assertEqual(diagnostic["reasoning_tokens"], 30)
+        self.assertIsNone(provider.validated_output_diagnostics({**diagnostic, "raw": "PRIVATE"}))
+        self.assertIsNone(provider.validated_output_diagnostics({**diagnostic, "finish_reason": {"raw": "PRIVATE"}}))
 
     def test_approved_128k_input_bound_keeps_complete_skill_sized_text(self):
         self.body["messages"][0]["content"] = "a" * 35974

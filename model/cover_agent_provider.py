@@ -32,7 +32,10 @@ import public_product
 MODEL = "doubao-seed-2-1-pro-260915"
 PRICE_VERSION = "ark-public-seed-2-1-pro-260915-2026-10-22"
 MAX_INPUT_TOKENS = 131072
-MAX_OUTPUT_TOKENS = 8192  # Includes reasoning, unlike Chat max_tokens.
+MAX_OUTPUT_TOKENS = 65536  # Includes reasoning, unlike Chat max_tokens.
+QC_OUTPUT_TOKENS = 32768
+COMPACTION_OUTPUT_TOKENS = 8192
+SDK_CONTEXT_TOKENS = 262144
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 _MODEL_NAME = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")
@@ -42,14 +45,19 @@ _KEYS = {"model", "messages", "tools", "tool_choice", "parallel_tool_calls",
     "response_format", "seed", "service_tier"}
 _INPUT_DIAGNOSTIC_KEYS = frozenset({"text_bytes", "image_count", "image_tokens",
     "message_count", "tool_count", "framing_tokens", "total_bound", "max_input_tokens"})
+_OUTPUT_DIAGNOSTIC_KEYS = frozenset({"finish_reason", "completion_tokens",
+    "max_completion_tokens", "reasoning_tokens"})
+_OUTPUT_FINISH_REASONS = frozenset({"length", "content_filter", "stop", "tool_calls", "other", "missing"})
 
 
 class CoverAgentProviderError(public_product.TrialProviderStopped):
-    def __init__(self, code, *, outcome_unknown=False, call_id=None, input_diagnostics=None):
+    def __init__(self, code, *, outcome_unknown=False, call_id=None, input_diagnostics=None,
+                 output_diagnostics=None):
         self.code = code
         self.outcome_unknown = bool(outcome_unknown)
         self.call_id = call_id
         self.input_diagnostics = validated_input_diagnostics(input_diagnostics)
+        self.output_diagnostics = validated_output_diagnostics(output_diagnostics)
         super().__init__(code)
 
 
@@ -64,6 +72,38 @@ def validated_input_diagnostics(value):
             or not 257 * value["image_count"] <= value["image_tokens"] <= 5376 * value["image_count"]):
         return None
     return dict(value)
+
+
+def validated_output_diagnostics(value):
+    """Keep only a fixed finish classification and non-secret token counts."""
+    if (not isinstance(value, dict) or set(value) != _OUTPUT_DIAGNOSTIC_KEYS
+            or not isinstance(value["finish_reason"], str) or value["finish_reason"] not in _OUTPUT_FINISH_REASONS
+            or type(value["completion_tokens"]) is not int or not 0 <= value["completion_tokens"] < 2**63
+            or type(value["max_completion_tokens"]) is not int
+            or not 1 <= value["max_completion_tokens"] <= MAX_OUTPUT_TOKENS
+            or (value["reasoning_tokens"] is not None and (type(value["reasoning_tokens"]) is not int
+                or not 0 <= value["reasoning_tokens"] <= value["completion_tokens"]))):
+        return None
+    return dict(value)
+
+
+def _output_diagnostics(data, body):
+    usage = data.get("usage") if isinstance(data, dict) else None
+    if not isinstance(usage, dict):
+        return None
+    choices = data.get("choices")
+    finish = choices[0].get("finish_reason") if (isinstance(choices, list) and len(choices) == 1
+        and isinstance(choices[0], dict)) else None
+    finish = finish if isinstance(finish, str) and finish in _OUTPUT_FINISH_REASONS - {"other", "missing"} else (
+        "missing" if finish is None else "other")
+    details = usage.get("completion_tokens_details")
+    reasoning = details.get("reasoning_tokens") if isinstance(details, dict) else None
+    completion = usage.get("completion_tokens")
+    if (type(reasoning) is not int or type(completion) is not int
+            or not 0 <= reasoning <= completion):
+        reasoning = None
+    return validated_output_diagnostics({"finish_reason": finish, "completion_tokens": completion,
+        "max_completion_tokens": body.get("max_completion_tokens"), "reasoning_tokens": reasoning})
 
 
 def _measure_input(body, image_tokens, image_count):
@@ -94,11 +134,13 @@ def pricing(prompt_tokens: int) -> dict:
             "audio_input": None, "audio_cache_read": None}
 
 
-def estimate() -> dict:
+def estimate(max_completion_tokens=MAX_OUTPUT_TOKENS) -> dict:
+    if type(max_completion_tokens) is not int or not 1 <= max_completion_tokens <= MAX_OUTPUT_TOKENS:
+        raise ValueError("cover agent estimate output bound is invalid")
     amount = (Decimal(MAX_INPUT_TOKENS) * Decimal("6")
-        + Decimal(MAX_OUTPUT_TOKENS) * Decimal("30")) / Decimal(1000000)
+        + Decimal(max_completion_tokens) * Decimal("30")) / Decimal(1000000)
     return {"provider": "doubao", "model_id": MODEL, "currency": "CNY",
-        "input_token_bound": MAX_INPUT_TOKENS, "output_token_bound": MAX_OUTPUT_TOKENS,
+        "input_token_bound": MAX_INPUT_TOKENS, "output_token_bound": max_completion_tokens,
         "estimated_cost": str(amount), "actual_cost": None,
         "price_version": PRICE_VERSION, "cost_status": "upper_estimate"}
 
@@ -172,6 +214,7 @@ def _validate_and_measure_payload(payload: dict) -> tuple[dict, dict]:
     if type(maximum) is not int or not 1 <= maximum <= MAX_OUTPUT_TOKENS:
         _invalid("COVER_AGENT_OUTPUT_LIMIT_INVALID")
     body.update(model=MODEL, stream=False, thinking={"type": "enabled"},
+        reasoning_effort=body.get("reasoning_effort", "high"),
         max_completion_tokens=maximum, service_tier="default")
     messages = body.get("messages")
     if not isinstance(messages, list) or not 1 <= len(messages) <= 128:
@@ -179,7 +222,7 @@ def _validate_and_measure_payload(payload: dict) -> tuple[dict, dict]:
     image_tokens, image_count = 0, 0
     for message in messages:
         if (not isinstance(message, dict) or set(message) - {"role", "content", "name",
-                "tool_calls", "tool_call_id", "reasoning_content"}
+                "tool_calls", "tool_call_id", "reasoning_content", "encrypted_content"}
                 or message.get("role") not in {"system", "developer", "user", "assistant", "tool"}):
             _invalid()
         content = message.get("content")
@@ -187,6 +230,9 @@ def _validate_and_measure_payload(payload: dict) -> tuple[dict, dict]:
             _invalid()
         if "reasoning_content" in message and not isinstance(message["reasoning_content"], str):
             _invalid()
+        if "encrypted_content" in message and (message["role"] != "assistant"
+                or not isinstance(message["encrypted_content"], str) or not message["encrypted_content"]):
+            _invalid("COVER_AGENT_ENCRYPTED_HISTORY_INVALID")
         if message["role"] == "tool" and not _NAME.fullmatch(str(message.get("tool_call_id", ""))):
             _invalid("COVER_AGENT_TOOL_MESSAGE_INVALID")
         if isinstance(content, list):
@@ -262,41 +308,48 @@ def _require_price():
 
 
 def _validate_result(data, body, dimensions):
+    diagnostic = _output_diagnostics(data, body)
+
+    def reject(code):
+        raise CoverAgentProviderError(code, output_diagnostics=diagnostic)
+
     if data.get("model") != MODEL:
-        _invalid("COVER_AGENT_MODEL_IDENTITY_MISMATCH")
+        reject("COVER_AGENT_MODEL_IDENTITY_MISMATCH")
     fallback = data.get("service_status", {})
     if isinstance(fallback, dict) and isinstance(fallback.get("model_fallback"), dict) and fallback["model_fallback"].get("fallback_triggered"):
-        _invalid("COVER_AGENT_MODEL_FALLBACK_REJECTED")
+        reject("COVER_AGENT_MODEL_FALLBACK_REJECTED")
     if dimensions["usage_status"] != "complete":
-        _invalid("COVER_AGENT_USAGE_INCOMPLETE")
+        reject("COVER_AGENT_USAGE_INCOMPLETE")
     usage = data["usage"]
     if usage["prompt_tokens"] > MAX_INPUT_TOKENS or usage["completion_tokens"] > body["max_completion_tokens"]:
-        _invalid("COVER_AGENT_OBSERVED_LIMIT_EXCEEDED")
+        reject("COVER_AGENT_OBSERVED_LIMIT_EXCEEDED")
     choices = data.get("choices")
     if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict):
-        _invalid("COVER_AGENT_OUTPUT_INVALID")
+        reject("COVER_AGENT_OUTPUT_INVALID")
     choice = choices[0]
+    if choice.get("finish_reason") == "length":
+        reject("COVER_AGENT_OUTPUT_LIMIT_REACHED")
     message = choice.get("message")
     if not isinstance(message, dict) or message.get("role") != "assistant":
-        _invalid("COVER_AGENT_OUTPUT_INVALID")
+        reject("COVER_AGENT_OUTPUT_INVALID")
     if choice.get("finish_reason") == "stop":
         if message.get("tool_calls") or not isinstance(message.get("content"), str) or not message["content"].strip():
-            _invalid("COVER_AGENT_OUTPUT_EMPTY")
+            reject("COVER_AGENT_OUTPUT_EMPTY")
     elif choice.get("finish_reason") == "tool_calls":
         names = {tool["function"]["name"] for tool in body.get("tools", [])}
         calls, identifiers = message.get("tool_calls"), set()
         if not isinstance(calls, list) or not calls:
-            _invalid("COVER_AGENT_TOOL_OUTPUT_INVALID")
+            reject("COVER_AGENT_TOOL_OUTPUT_INVALID")
         for call in calls:
             function = call.get("function") if isinstance(call, dict) else None
             if (not isinstance(call, dict) or call.get("type") != "function"
                     or not _NAME.fullmatch(str(call.get("id", ""))) or call["id"] in identifiers
                     or not isinstance(function, dict) or function.get("name") not in names
                     or not isinstance(function.get("arguments"), str)):
-                _invalid("COVER_AGENT_TOOL_OUTPUT_INVALID")
+                reject("COVER_AGENT_TOOL_OUTPUT_INVALID")
             identifiers.add(call["id"])
     else:
-        _invalid("COVER_AGENT_OUTPUT_INCOMPLETE")
+        reject("COVER_AGENT_OUTPUT_INCOMPLETE")
 
 
 def complete(payload: dict, *, call_id: str, transport=None) -> dict:
@@ -319,7 +372,7 @@ def complete(payload: dict, *, call_id: str, transport=None) -> dict:
     terminal, status = False, None
     with public_product.model_admission_sync(call_id, "doubao"):
         public_product.assert_result_known()
-        reserve = int((Decimal(estimate()["estimated_cost"]) * 1000).to_integral_value(rounding=ROUND_CEILING))
+        reserve = int((Decimal(estimate(body["max_completion_tokens"])["estimated_cost"]) * 1000).to_integral_value(rounding=ROUND_CEILING))
         try:
             public_product._reserve_payload({"model": MODEL, "provider": "doubao", "modality": "image",
                 "max_tokens": body["max_completion_tokens"]}, reserve, call_id=call_id,

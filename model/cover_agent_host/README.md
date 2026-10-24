@@ -68,7 +68,38 @@ input is:
 `max_model_requests: null` removes the optional count limit. Python owns the
 cumulative monetary reservation and deadline. A finite fixture limit is enforced
 before the next bridge dispatch. `context_tokens` and `output_tokens` are optional
-explicit model bounds; defaults are 128000 and 8192.
+explicit model bounds; defaults are 262144 and 65536. Python retains its smaller
+131072 input admission bound. `compaction_output_tokens` defaults to 8192 and is
+set explicitly on the SDK summary hook (the SDK's larger default is not used).
+Independent final QC requests use 32768. Python's before-call estimate, native
+reservation and recorded upper estimate all use the actual request output limit;
+these are reservations, not a new monetary budget or a claim of supplier spend.
+
+The 65536 design limit includes thinking. It fits the current generic Chat API
+parameter range, while the specific model supports larger output and the Agent
+guide recommends 128000 or more subject to the business case. These documentary
+differences do not prove this account has accepted the new limit in a real call.
+Thinking remains enabled/high. A `length` response is a known, metered failure
+(`COVER_AGENT_OUTPUT_LIMIT_REACHED`), never partial tool execution or an SDK
+automatic paid continuation. Only enumerated finish reason and bounded numeric
+usage diagnostics survive cleanup; no response text or thinking is retained.
+
+For `doubao-seed-2-1-pro-260915`, the official Agent guide requires original
+`encrypted_content` replay; `reasoning_content` alone is only a summary. The
+fixed SDK cannot carry that flat field. The same Python Bridge therefore keeps
+allowed original assistant messages in job-local bounded RAM, restores them before
+both preflight and dispatch, and strips the opaque field from replies to this
+Node host. No opaque block enters SDK history, tools, logs or saved artifacts.
+Matching checks whole ordered tool-call groups, strict JSON argument values and
+the visible text; harmless SDK JSON formatting is normalized, while changed,
+partial, conflicting or unknown turns stop locally. The same Bridge survives
+the existing one-correction/two-host flow. A lost process/cache is not rebuilt
+from a pending request, and never authorizes replay. No upstream SDK change or
+new dependency is needed.
+
+Official references: [Agent invocation](https://docs.volcengine.com/docs/ark/agent-model-invocation-practice?lang=zh),
+[model list](https://docs.volcengine.com/docs/ark/model-list?lang=en),
+[Chat API](https://docs.volcengine.com/docs/ark/chat-api?lang=en).
 
 Before any dispatch intent, the actual SDK wire body emits `model_preflight`
 with `id`, `label`, method, path and body. Python applies the same pure validator
@@ -91,8 +122,12 @@ uses the same provider admission and ledger; an automatic SDK summary NUDGE is
 blocked before dispatch. In the SDK summary input only, successful `cover_write`
 arguments may become file references when the corresponding receipt and current
 ordinary file both match the full text's exact bytes and SHA. Missing, overwritten
-or failed writes stay untouched. This avoids the SDK's inability to drop a single
-long cover exchange without changing saved files or the session history.
+or failed writes stay untouched. The resulting transcript is provided as a fresh
+user summary document, with recorded tools represented as text rather than live
+assistant/tool turns. Initial media parts remain images; already viewed tool-image
+outputs become file/hash references rather than base64 text. This avoids both
+reusing signed tool IDs with changed arguments and the SDK's inability to drop a
+single long exchange. Saved files and the original session remain unchanged.
 After compaction, the primary context hook restores the
 exact full Skill and original task facts/title/source index. It does not reinsert
 old image payloads: original files remain available to `cover_view`, and actual

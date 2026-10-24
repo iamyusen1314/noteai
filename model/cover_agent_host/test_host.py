@@ -16,6 +16,7 @@ import re
 import selectors
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from types import SimpleNamespace
@@ -25,6 +26,8 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent.parent
+sys.path.insert(0, str(PROJECT / "model"))
+from cover_agent_thinking import ThinkingState
 PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGNQKJhAEmIY1TCqYfhqAACs2CAQru0W7wAAAABJRU5ErkJggg==")
 
 
@@ -32,6 +35,7 @@ def provider_admission():
     """Execute the actual pure validator, without importing DB/env/provider I/O."""
     names = {"MODEL", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "_NAME", "_KEYS",
              "_INPUT_DIAGNOSTIC_KEYS", "CoverAgentProviderError", "validated_input_diagnostics",
+             "_OUTPUT_DIAGNOSTIC_KEYS", "_OUTPUT_FINISH_REASONS", "validated_output_diagnostics",
              "_measure_input", "_invalid", "_image_tokens", "_validate_and_measure_payload",
              "_check_request_size", "prepare_payload", "admit_payload"}
     source = PROJECT / "model/cover_agent_provider.py"
@@ -98,7 +102,7 @@ class HostProof(unittest.TestCase):
         print("HOST_PROOF_EVIDENCE=" + str(cls.root))
 
     def request(self, case, *, mode="run", limit=None, behavior="success", session_id=None,
-                forbidden_path=None, admission=None, respond=None, nine_photos=False):
+                forbidden_path=None, admission=None, respond=None, nine_photos=False, thinking=None):
         root = self.root / case
         (root / "work").mkdir(parents=True, exist_ok=True)
         (root / "work/photo.png").write_bytes(PNG)
@@ -133,7 +137,7 @@ class HostProof(unittest.TestCase):
         proc = subprocess.Popen([self.node, str(HERE / "worker.mjs")], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, bufsize=1)
         host_sha = hashlib.sha256((HERE / "host.mjs").read_bytes()).hexdigest()
         proc.stdin.write(json.dumps(start) + "\n"); proc.stdin.flush()
-        events, calls, preflights, responses = [], [], [], []
+        events, calls, preflights, responses, supplier_bodies = [], [], [], [], []
         selector = selectors.DefaultSelector(); selector.register(proc.stdout, selectors.EVENT_READ)
         until = time.time() + 75
         try:
@@ -148,19 +152,23 @@ class HostProof(unittest.TestCase):
                 event = json.loads(line); events.append(event)
                 if event["type"] == "model_preflight":
                     self.assertEqual((event["method"], event["path"]), ("POST", "/chat/completions"))
-                    outcome = admission["admit_payload"](event["body"]) if admission else {"allowed": True}
+                    wire = thinking.restore(event["body"]) if thinking is not None else event["body"]
+                    outcome = admission["admit_payload"](wire) if admission else {"allowed": True}
                     preflights.append({"label": event.get("label"), "outcome": outcome,
-                                       "measurement": admission["_validate_and_measure_payload"](event["body"])[1] if admission else None,
-                                       "body_sha256": hashlib.sha256(json.dumps(event["body"], sort_keys=True).encode()).hexdigest()})
+                                       "measurement": admission["_validate_and_measure_payload"](wire)[1] if admission else None,
+                                       "body_sha256": hashlib.sha256(json.dumps(wire, sort_keys=True).encode()).hexdigest()})
                     answer = {"type": "model_preflight_response", "id": event["id"], **outcome}
                     proc.stdin.write(json.dumps(answer) + "\n"); proc.stdin.flush()
                 if event["type"] == "model_request":
                     calls.append(event)
+                    wire = thinking.restore(event["body"]) if thinking is not None else event["body"]
+                    self.assertEqual(preflights[-1]["body_sha256"], hashlib.sha256(json.dumps(wire, sort_keys=True).encode()).hexdigest())
+                    supplier_bodies.append(wire)
                     if behavior == "disconnect":
                         proc.stdin.close()
                         continue
                     if respond:
-                        answer = respond(event, calls)
+                        answer = respond({**event, "body": wire}, calls)
                     elif behavior == "unknown":
                         answer = {"type": "model_response", "id": event["id"], "unknown": True}
                     elif behavior == "503":
@@ -182,6 +190,8 @@ class HostProof(unittest.TestCase):
                             message["tool_calls"] = [{"id": "call_" + str(ordinal), "type": "function", "function": {"name": fn, "arguments": json.dumps(args)}}]
                         body = {"id": "chatcmpl_fixture", "object": "chat.completion", "created": 1, "model": "offline-fixture", "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls" if fn else "stop"}], "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}}
                         answer = {"type": "model_response", "id": event["id"], "status": 200, "body": body}
+                    if thinking is not None and answer.get("status") == 200:
+                        answer = {**answer, "body": thinking.remember(answer["body"])}
                     responses.append(answer)
                     proc.stdin.write(json.dumps(answer) + "\n"); proc.stdin.flush()
                 if event["type"] == "result":
@@ -197,6 +207,7 @@ class HostProof(unittest.TestCase):
             selector.close()
         (root / (mode + "-" + behavior + "-events.json")).write_text(json.dumps(events, indent=2))
         (root / (mode + "-" + behavior + "-responses.json")).write_text(json.dumps(responses, indent=2))
+        (root / (mode + "-" + behavior + "-synthetic-supplier-bodies.json")).write_text(json.dumps(supplier_bodies, indent=2))
         (root / (mode + "-" + behavior + "-stderr.txt")).write_text(stderr)
         result = next((event for event in reversed(events) if event["type"] == "result"), None)
         self.assertIsNotNone(result, stderr)
@@ -292,7 +303,7 @@ class HostProof(unittest.TestCase):
         self.assertEqual(reopened["code"], "PREVIOUS_REQUEST_UNKNOWN_NO_REPLAY")
         self.assertEqual(calls, [])
 
-    def context_responder(self, *, malformed_summary=False):
+    def context_responder(self, *, malformed_summary=False, view_before_compaction=False):
         state = {"primary": 0, "compactions": 0, "viewed_after_compaction": False}
         paragraph = "离线设计说明，保留真实照片与批准标题，不增添商家事实。\n"
 
@@ -320,8 +331,11 @@ class HostProof(unittest.TestCase):
             else:
                 state["primary"] += 1
                 self.assertLessEqual(state["primary"], 16, "Long SDK transcript never exercised the real input bound")
-                fn, arguments = "cover_write", {"path": "design-step-" + str(state["primary"]) + ".md",
-                                                 "text": paragraph * 160}
+                if view_before_compaction and state["primary"] == 1:
+                    fn, arguments = "cover_view", {"path": "source-2.png"}
+                else:
+                    fn, arguments = "cover_write", {"path": "design-step-" + str(state["primary"]) + ".md",
+                                                     "text": paragraph * 160}
                 content = None
             message = {"role": "assistant", "content": content}
             if fn:
@@ -366,7 +380,7 @@ try {
     .filter((part) => part.type === 'tool' && part.name === 'cover_write' && typeof part.state?.input?.text === 'string')
     .map((part) => ({ id: part.id, path: part.state.input.path, bytes: Buffer.byteLength(part.state.input.text),
       sha256: createHash('sha256').update(part.state.input.text).digest('hex') }));
-  console.log(JSON.stringify(writes));
+  console.log(JSON.stringify({ writes, opaque_present: JSON.stringify(context).includes('TEST_OPAQUE_COVER_') }));
 } finally { await sdk.close(); }
 """
         env = {"PATH": "/opt/homebrew/bin:/usr/bin:/bin", "HOME": str(root / "state/isolated"),
@@ -375,9 +389,117 @@ try {
                                   self.modules, str(root), session_id], env=env,
                                  capture_output=True, text=True, timeout=20)
         self.assertEqual(checked.returncode, 0, checked.stderr[-2000:])
-        receipts = json.loads(checked.stdout)
+        exported = json.loads(checked.stdout)
+        self.assertFalse(exported["opaque_present"], "Opaque thinking leaked into public SDK export")
+        receipts = exported["writes"]
         (root / "stored-original-write-receipts.json").write_text(json.dumps(receipts, indent=2))
         return receipts
+
+    def opaque_responder(self, responder, *, prefix):
+        originals, ciphers = [], []
+
+        def respond(event, calls):
+            for message in event["body"]["messages"]:
+                if message["role"] == "assistant":
+                    self.assertIn(message, originals, "Supplier replay changed the original signed assistant message")
+            answer = responder(event, calls)
+            if answer.get("status") == 200:
+                message = answer["body"]["choices"][0]["message"]
+                message["reasoning_content"] = "合成思考摘要，不是加密原文"
+                message["encrypted_content"] = "TEST_OPAQUE_COVER_" + prefix + "_" + str(len(calls))
+                originals.append(deepcopy(message)); ciphers.append(message["encrypted_content"])
+            return answer
+
+        return respond, originals, ciphers
+
+    def assert_no_sdk_cipher(self, result, events, root, ciphers, *, mode="run"):
+        visible = json.dumps(events) + (root / (mode + "-success-responses.json")).read_text()
+        visible += (root / (mode + "-success-stderr.txt")).read_text()
+        visible += (root / "state/host-checkpoint.json").read_text()
+        self.assertTrue(ciphers)
+        for cipher in ciphers:
+            self.assertNotIn(cipher, visible)
+        self.stored_write_receipts(root, result["session_id"])
+
+    def test_real_sdk_opaque_replay_and_fresh_summary_keep_original_state(self):
+        admission = provider_admission()
+        thinking = ThinkingState("opaque_context")
+        respond, originals, ciphers = self.opaque_responder(
+            self.context_responder(view_before_compaction=True), prefix="context")
+        result, calls, events, root = self.request("opaque_context", admission=admission,
+            respond=respond, nine_photos=True, thinking=thinking)
+        self.assertTrue(result["ok"], result)
+        supplier = json.loads((root / "run-success-synthetic-supplier-bodies.json").read_text())
+        self.assertTrue(any(message.get("encrypted_content") for body in supplier
+                            for message in body["messages"] if message["role"] == "assistant"))
+        summaries = [body for body, call in zip(supplier, calls) if call.get("label") == "compaction"]
+        self.assertEqual(len(summaries), 1)
+        self.assertTrue(all(message["role"] in {"system", "user"} for message in summaries[0]["messages"]))
+        self.assertEqual(summaries[0].get("max_tokens", summaries[0].get("max_completion_tokens")), 8192)
+        summary_text = "\n".join(text_values(summaries[0]))
+        self.assertIn("Previously viewed image; retrieve the original file with cover_view", summary_text)
+        self.assertIn(hashlib.sha256((root / "work/source-2.png").read_bytes()).hexdigest(), summary_text)
+        self.assertNotIn("data:image/", summary_text, "Summary serialized tool image bytes into text")
+        self.assert_no_sdk_cipher(result, events, root, ciphers)
+
+    def test_real_sdk_same_python_memory_replays_across_two_hosts(self):
+        thinking = ThinkingState("opaque_revision")
+        originals, ciphers = [], []
+
+        def reply(phase):
+            def respond(event, calls):
+                for message in event["body"]["messages"]:
+                    if message["role"] == "assistant":
+                        self.assertIn(message, originals)
+                ordinal = len(calls)
+                message = {"role": "assistant", "content": "COMPLETE_" + phase}
+                if ordinal == 1:
+                    message["content"] = ""
+                    message["tool_calls"] = [{"id": "call_" + phase, "type": "function", "function": {
+                        "name": "cover_write", "arguments": '{ "text" : "真实中文与参数 1", "path" : "' + phase + '.md" }'}}]
+                message["encrypted_content"] = "TEST_OPAQUE_COVER_" + phase + "_" + str(ordinal)
+                originals.append(deepcopy(message)); ciphers.append(message["encrypted_content"])
+                return {"type": "model_response", "id": event["id"], "status": 200, "body": {
+                    "id": "fixture", "object": "chat.completion", "created": 1, "model": event["body"]["model"],
+                    "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls" if ordinal == 1 else "stop"}],
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}}}
+            return respond
+
+        first, calls, events, root = self.request("opaque_revision", respond=reply("first"), thinking=thinking)
+        self.assertTrue(first["ok"], first)
+        self.assertEqual(len(calls), 2)
+        self.assert_no_sdk_cipher(first, events, root, ciphers)
+        count_before = thinking.entry_count
+        revised, next_calls, next_events, _ = self.request("opaque_revision", mode="revise",
+            session_id=first["session_id"], respond=reply("revised"), thinking=thinking)
+        self.assertTrue(revised["ok"], revised)
+        self.assertEqual(len(next_calls), 2)
+        self.assertGreater(thinking.entry_count, count_before)
+        self.assertEqual(revised["session_id"], first["session_id"])
+        self.assert_no_sdk_cipher(revised, next_events, root, ciphers, mode="revise")
+
+    def test_real_sdk_opaque_memory_does_not_replay_unknown_response(self):
+        thinking = ThinkingState("opaque_unknown")
+
+        def respond(event, calls):
+            if len(calls) > 1:
+                return {"type": "model_response", "id": event["id"], "unknown": True}
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": {
+                "id": "fixture", "object": "chat.completion", "created": 1, "model": event["body"]["model"],
+                "choices": [{"index": 0, "finish_reason": "tool_calls", "message": {"role": "assistant", "content": None,
+                    "encrypted_content": "TEST_OPAQUE_COVER_unknown_1", "tool_calls": [{"id": "unknown_first", "type": "function",
+                        "function": {"name": "cover_write", "arguments": '{"path":"known.md","text":"known before unknown"}'}}]}}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}}}
+
+        result, calls, events, _ = self.request("opaque_unknown", respond=respond, thinking=thinking)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(thinking.entry_count, 1)
+        self.assertFalse(any(call.get("label") == "compaction" for call in calls))
+        inspected, new_calls, _, _ = self.request("opaque_unknown", mode="inspect", thinking=thinking)
+        self.assertEqual(inspected["code"], "PREVIOUS_REQUEST_UNKNOWN_NO_REPLAY")
+        self.assertEqual(new_calls, [])
 
     def test_real_sdk_nine_photos_compacts_before_local_input_bound_without_supplier(self):
         admission = provider_admission()
@@ -394,6 +516,12 @@ try {
                             for value in rejected))
         compactions = [call for call in calls if call.get("label") == "compaction"]
         self.assertEqual(len(compactions), 1)
+        self.assertEqual(compactions[0]["body"].get("max_tokens", compactions[0]["body"].get("max_completion_tokens")), 8192)
+        self.assertTrue(all(message["role"] in {"system", "user"}
+                            and not message.get("tool_calls") for message in compactions[0]["body"]["messages"]),
+                        "Standalone summary reused active assistant/tool records")
+        self.assertTrue(all(call["body"].get("max_tokens", call["body"].get("max_completion_tokens")) == 65536
+                            for call in calls if call.get("label") == "primary"))
         compact_index = calls.index(compactions[0])
         continued = calls[compact_index + 1:]
         self.assertEqual(len(continued), 2, "Expected fresh original view then normal completion")

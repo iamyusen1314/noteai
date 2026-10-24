@@ -25,6 +25,7 @@ from functools import lru_cache
 import ark_media
 import cover_agent_artifacts as artifacts
 import cover_agent_provider as provider
+from cover_agent_thinking import ThinkingError, ThinkingState
 import cover_renderer
 import cover_runtime
 import cover_seedream
@@ -32,6 +33,7 @@ import public_product
 
 ROOT = Path(__file__).resolve().parent
 _INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
+_OUTPUT_DIAGNOSTIC_FILE = "provider-output-diagnostic.json"
 
 
 def _write_input_diagnostic(directory, job_id, measurement):
@@ -71,6 +73,44 @@ def _read_input_diagnostic(directory, job_id):
             return None
         measurement = provider.validated_input_diagnostics(value["measurement"])
         return measurement if measurement and measurement["total_bound"] > provider.MAX_INPUT_TOKENS else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _write_output_diagnostic(directory, job_id, diagnostic):
+    diagnostic = provider.validated_output_diagnostics(diagnostic)
+    if diagnostic is None or str(uuid.UUID(job_id)) != job_id:
+        raise ValueError("invalid output diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("output diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+    fd = os.open(state / _OUTPUT_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_output_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _OUTPUT_DIAGNOSTIC_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                    or not 0 < metadata.st_size <= 4096):
+                return None
+            body = stream.read(4097)
+        if len(body) > 4096:
+            return None
+        value = json.loads(body)
+        if (not isinstance(value, dict) or set(value) != {"job_id", "diagnostic"}
+                or value["job_id"] != job_id):
+            return None
+        return provider.validated_output_diagnostics(value["diagnostic"])
     except (OSError, ValueError, TypeError):
         return None
 
@@ -182,6 +222,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "INPUT_REJECTED_PRE_DISPATCH"}
         receipt["input_rejection"] = {"code": "COVER_AGENT_INPUT_LIMIT_EXCEEDED", "measurement": measurement}
+    output = _read_output_diagnostic(directory, job_id)
+    if output is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "OUTPUT_REJECTED_AFTER_KNOWN_RESPONSE"}
+        receipt["output_rejection"] = output
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -354,6 +399,13 @@ class Bridge:
         self.session_id = None
         self.costs = []
         self.last_preview = None
+        self.thinking = ThinkingState(job_id)
+
+    def _restore_thinking(self, payload):
+        try:
+            return self.thinking.restore(payload)
+        except ThinkingError as error:
+            raise cover_runtime.CoverRuntimeError(error.code) from None
 
     def _record_input_rejection(self, measurement):
         try:
@@ -361,29 +413,48 @@ class Bridge:
         except Exception:
             logging.warning("cover_input_diagnostic_unavailable")
 
+    def _record_output_rejection(self, diagnostic):
+        try:
+            _write_output_diagnostic(self.directory, self.job_id, diagnostic)
+        except Exception:
+            logging.warning("cover_output_diagnostic_unavailable")
+
     def preflight(self, payload):
         public_product.assert_result_known()
-        decision = provider.admit_payload(payload)
+        decision = provider.admit_payload(self._restore_thinking(payload))
         if decision["allowed"] is False:
             self._record_input_rejection(decision["measurement"])
         return decision
 
     def model(self, payload, stage="design"):
         # Validate the actual full SDK request before a durable dispatch intent.
+        public_product.assert_result_known()
         try:
-            prepared, _ = provider.prepare_payload(payload)
+            prepared, _ = provider.prepare_payload(self._restore_thinking(payload))
         except provider.CoverAgentProviderError as error:
             if error.code == "COVER_AGENT_INPUT_LIMIT_EXCEEDED" and error.input_diagnostics is not None:
                 self._record_input_rejection(error.input_diagnostics)
             raise
+        estimate = provider.estimate(prepared["max_completion_tokens"])
         self.ordinal += 1
         call_id = str(uuid.uuid5(uuid.UUID(self.job_id), "editable:" + stage + ":" + str(self.ordinal)))
-        with public_product.model_admission_sync(call_id, "doubao"):
-            self.hooks.before_call(stage + ":" + str(self.ordinal), call_id, provider.estimate())
-            body = provider.complete(prepared, call_id=call_id, transport=self.model_transport)
+        try:
+            with public_product.model_admission_sync(call_id, "doubao"):
+                self.hooks.before_call(stage + ":" + str(self.ordinal), call_id, estimate)
+                body = provider.complete(prepared, call_id=call_id, transport=self.model_transport)
+        except provider.CoverAgentProviderError as error:
+            if error.output_diagnostics is not None:
+                self._record_output_rejection(error.output_diagnostics)
+            raise
         self.seen_images.update(_images_in(prepared))
-        self.costs.append({**provider.estimate(), "call_id": call_id, "stage": stage,
+        self.costs.append({**estimate, "call_id": call_id, "stage": stage,
             "status": "responded"})
+        try:
+            # Supplier-only opaque history stays in this Bridge's RAM. The
+            # detached response returned here is the safe Node/SDK projection.
+            body = self.thinking.remember(body)
+        except ThinkingError as error:
+            raise cover_runtime.CoverRuntimeError(error.code) from None
         return body, call_id
 
     def tool(self, message):
@@ -427,6 +498,8 @@ class Bridge:
         start = {"job_id": self.job_id, "state_dir": str(state), "work_dir": str(self.directory),
             "skill_dir": str(ROOT / "cover_editable/vendor/editable-design"),
             "editable_cli": str(ROOT / "cover_editable/cli.mjs"), "model_id": provider.MODEL,
+            "output_tokens": provider.MAX_OUTPUT_TOKENS, "context_tokens": provider.SDK_CONTEXT_TOKENS,
+            "compaction_output_tokens": provider.COMPACTION_OUTPUT_TOKENS,
             "prompt": prompt, "images": [{"path": source["path"], "name": source["media_ref"]}
                 for source in self.sources], "max_model_requests": None,
             "deadline_epoch_ms": int(deadline * 1000), **({"session_id": self.session_id, "mode": "revise"} if self.session_id else {})}
@@ -568,8 +641,9 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
         payload = {"model": provider.MODEL, "messages": [{"role": "user", "content": [
             *[ark_media.image_part(source["payload"]) for source in selected],
             ark_media.image_part(final), ark_media.image_part(cover_runtime._qc_thumbnail(final)),
-            {"type": "text", "text": qc_prompt}]}], "max_completion_tokens": 8192,
-            "thinking": {"type": "enabled"}, "stream": False, "response_format": {"type": "json_object"}}
+            {"type": "text", "text": qc_prompt}]}], "max_completion_tokens": provider.QC_OUTPUT_TOKENS,
+            "thinking": {"type": "enabled"}, "reasoning_effort": "high",
+            "stream": False, "response_format": {"type": "json_object"}}
         response, qc_call_id = bridge.model(payload, stage="qc")
         try:
             qc = cover_runtime._json_result(response["choices"][0]["message"]["content"])

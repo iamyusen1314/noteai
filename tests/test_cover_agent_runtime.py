@@ -5,6 +5,7 @@ own those). It calls no external model, uses no merchant photo and opens no DB.
 Set NOTEAI_COVER_HOST_NODE_MODULES to the approved local SDK installation.
 """
 import base64
+import contextlib
 import hashlib
 import io
 import json
@@ -182,6 +183,8 @@ class InputRejectionDiagnosticTests(unittest.TestCase):
                 mock.patch.object(runtime, "_stop_host"), mock.patch.object(provider, "complete") as complete:
             self.bridge.run("synthetic protocol only", deadline=time.time() + 2)
         frames = [json.loads(line) for line in process.stdin.captured.splitlines()]
+        self.assertEqual((frames[0]["output_tokens"], frames[0]["context_tokens"], frames[0]["compaction_output_tokens"]),
+            (65536, 262144, 8192))
         decision = frames[-1]
         self.assertEqual((decision["type"], decision["id"], decision["allowed"]),
             ("model_preflight_response", "offline-preflight", False))
@@ -205,6 +208,115 @@ class InputRejectionDiagnosticTests(unittest.TestCase):
         raw = (self.root / "receipts" / (self.job_id + ".json")).read_text()
         self.assertNotIn("PRIVATE_FORGED_PAYLOAD", raw)
         self.assertNotIn("input_rejection", json.loads(raw))
+
+    def test_known_output_limit_diagnostic_survives_cleanup_without_private_payload(self):
+        diagnostic = {"finish_reason": "length", "completion_tokens": 8192,
+                      "max_completion_tokens": 8192, "reasoning_tokens": 7000}
+        original = provider.CoverAgentProviderError("COVER_AGENT_OUTPUT_LIMIT_REACHED", output_diagnostics=diagnostic)
+        with mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(provider, "complete", side_effect=original) as complete:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                self.bridge.model({"messages": [{"role": "user", "content": "PRIVATE_FACT_CIPHER_SENTINEL"}],
+                                   "max_completion_tokens": 8192})
+        self.assertIs(caught.exception, original)
+        complete.assert_called_once()
+        self.assertEqual(self.bridge.ordinal, 1)
+        path = self.directory / "host-state/provider-output-diagnostic.json"
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("PRIVATE", path.read_text())
+        self.assertEqual(runtime._read_output_diagnostic(self.directory, self.job_id), diagnostic)
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual(receipt["status"], "OUTPUT_REJECTED_AFTER_KNOWN_RESPONSE")
+        self.assertEqual(receipt["output_rejection"], diagnostic)
+        self.assertFalse(self.directory.exists())
+
+    def test_output_diagnostic_failure_never_masks_known_original_error(self):
+        diagnostic = {"finish_reason": "other", "completion_tokens": 30,
+                      "max_completion_tokens": 8192, "reasoning_tokens": None}
+        original = provider.CoverAgentProviderError("COVER_AGENT_OUTPUT_INCOMPLETE", output_diagnostics=diagnostic)
+        with mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(provider, "complete", side_effect=original), \
+                mock.patch.object(runtime, "_write_output_diagnostic", side_effect=OSError("PRIVATE_FAILURE")), \
+                self.assertLogs(level="WARNING") as logged:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                self.bridge.model({"messages": [{"role": "user", "content": "synthetic"}]})
+        self.assertIs(caught.exception, original)
+        self.assertFalse(original.outcome_unknown)
+        self.assertNotIn("PRIVATE_FAILURE", " ".join(logged.output))
+
+    def test_cleanup_discards_forged_output_diagnostic_and_preserves_original_unknown(self):
+        diagnostic = {"finish_reason": "length", "completion_tokens": 30,
+                      "max_completion_tokens": 8192, "reasoning_tokens": None}
+        runtime._write_output_diagnostic(self.directory, self.job_id, diagnostic)
+        path = self.directory / "host-state/provider-output-diagnostic.json"
+        forged = json.loads(path.read_text())
+        forged["diagnostic"]["encrypted_content"] = "PRIVATE_CIPHER"
+        path.write_text(json.dumps(forged))
+        (self.directory / "host-state/host-checkpoint.json").write_text(json.dumps({
+            "status": "UNKNOWN", "pending_request": {"ordinal": 1, "body_sha256": "a" * 64, "label": "primary"}}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        raw = (self.root / "receipts" / (self.job_id + ".json")).read_text()
+        self.assertNotIn("PRIVATE_CIPHER", raw)
+        self.assertNotIn("output_rejection", json.loads(raw))
+        self.assertEqual(json.loads(raw)["status"], "UNKNOWN")
+
+    def test_thinking_restore_failure_is_before_meter_ordinal_and_http(self):
+        original = runtime.ThinkingError("COVER_AGENT_THINKING_CONTEXT_MISMATCH")
+        body = {"messages": [{"role": "user", "content": "synthetic"}]}
+        for method in (self.bridge.preflight, self.bridge.model):
+            with self.subTest(method=method.__name__), \
+                    mock.patch.object(self.bridge.thinking, "restore", side_effect=original), \
+                    mock.patch.object(provider, "prepare_payload") as prepare, \
+                    mock.patch.object(provider, "admit_payload") as admit:
+                with self.assertRaisesRegex(cover_runtime.CoverRuntimeError,
+                        "COVER_AGENT_THINKING_CONTEXT_MISMATCH"):
+                    method(body)
+                prepare.assert_not_called()
+                admit.assert_not_called()
+        self.assertEqual(self.bridge.ordinal, 0)
+        self.hooks.before_call.assert_not_called()
+        self.assertFalse(self.http_requests)
+
+    def test_nonhelper_failure_after_response_is_not_hidden_or_retried(self):
+        original = RuntimeError("synthetic helper implementation failure")
+        with mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(provider, "complete", return_value={"choices": []}) as complete, \
+                mock.patch.object(self.bridge.thinking, "remember", side_effect=original):
+            with self.assertRaises(RuntimeError) as caught:
+                self.bridge.model({"messages": [{"role": "user", "content": "synthetic"}]})
+        self.assertIs(caught.exception, original)
+        complete.assert_called_once()
+        self.assertEqual(self.bridge.ordinal, 1)
+        self.assertEqual(len(self.bridge.costs), 1)
+        self.assertFalse(self.http_requests)
+
+    def test_unknown_precedes_thinking_restore_and_nonhelper_failures_are_not_hidden(self):
+        invocation = runtime.public_product.Invocation("offline-owner", self.job_id, route="/covers",
+            budget_id="noteai-xhs-cover-20261019-acceptance")
+        marker = runtime.public_product._invocation.set(invocation)
+        body = {"messages": [{"role": "user", "content": "synthetic"}]}
+        try:
+            invocation.failure = "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY"
+            with mock.patch.object(self.bridge.thinking, "restore") as restore:
+                for method in (self.bridge.preflight, self.bridge.model):
+                    with self.assertRaisesRegex(runtime.public_product.TrialProviderStopped, "UNKNOWN_NO_REPLAY"):
+                        method(body)
+                restore.assert_not_called()
+            self.assertEqual(invocation.failure, "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
+        finally:
+            runtime.public_product._invocation.reset(marker)
+        original = RuntimeError("synthetic helper implementation failure")
+        with mock.patch.object(self.bridge.thinking, "restore", side_effect=original):
+            for method in (self.bridge.preflight, self.bridge.model):
+                with self.assertRaises(RuntimeError) as caught:
+                    method(body)
+                self.assertIs(caught.exception, original)
+        self.assertEqual(self.bridge.ordinal, 0)
+        self.hooks.before_call.assert_not_called()
+        self.assertFalse(self.http_requests)
 
 
 @unittest.skipUnless(os.name == "posix", "POSIX owned process groups")
@@ -319,7 +431,7 @@ class ScriptedBridge(runtime.Bridge):
     def model(self, payload, stage="design"):
         # Keep the production Ark payload contract in the test. Only the
         # physical provider/ledger is replaced, not SDK messages or tools.
-        prepared, bound = provider.prepare_payload(payload)
+        prepared, bound = provider.prepare_payload(self._restore_thinking(payload))
         self.ordinal += 1
         call_id = str(uuid.uuid5(uuid.UUID(self.job_id), "offline:" + str(self.ordinal)))
         hashes = runtime._images_in(prepared)
@@ -393,15 +505,17 @@ class ScriptedBridge(runtime.Bridge):
         return self.response(None, calls), call_id
 
     def response(self, text, calls=None):
-        message = {"role": "assistant", "content": text}
+        message = {"role": "assistant", "content": text,
+            "encrypted_content": "TEST_OPAQUE_COVER_runtime_" + str(self.ordinal)}
         if calls:
             message["tool_calls"] = [{"id": "fixture_" + str(self.ordinal) + "_" + str(i),
                 "type": "function", "function": {"name": name, "arguments": json.dumps(args, ensure_ascii=False)}}
                 for i, (name, args) in enumerate(calls)]
-        return {"id": "chatcmpl-offline-runtime", "object": "chat.completion", "created": 1,
+        body = {"id": "chatcmpl-offline-runtime", "object": "chat.completion", "created": 1,
             "model": provider.MODEL, "choices": [{"index": 0, "message": message,
                 "finish_reason": "tool_calls" if calls else "stop"}],
             "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}}
+        return self.thinking.remember(body)
 
     @staticmethod
     def html(source_path):
@@ -459,6 +573,7 @@ class CoverAgentRuntimeSDKTests(unittest.TestCase):
                     report={"title": "原照独立图层中文排字测试", "body": "合成技术图验证，非商家样本。", "title_variants": []},
                     sources=[source], hooks=hooks, bridge_class=ScriptedBridge)
             bridge = ScriptedBridge.instances[-1]
+            self.assertNotIn("TEST_OPAQUE_COVER_runtime_", json.dumps(bridge.host_results))
             self.assertEqual(image.call_count, 1)
             self.assertEqual(bridge.design_turn, 7)
             self.assertEqual(sum(r["stage"] == "qc" for r in bridge.requests), 1)
