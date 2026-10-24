@@ -33449,3 +33449,14 @@ R5 caller49187/7eba9d78d0f874a6e4062482966f8ed9c122eb2243bd935ddb6ce6cb9f775915�
 IAB PC1440×1000正常入口核8分/90天/九图有效后真实点击新建唯一job6e4c3bc0-c1aa-40d4-af09-3a69db65a8c0／clientdb599e6d-9c89-4bd3-9b6f-b3d67946bda7／usage9c65e229-62ca-458d-b86c-975ae189c2a4，queued预留8/实际结算0；原mock成品与失败保。C/REAL-R5-BEFORE-WORKER001.json已核新physical0/workerfalse/无新once。下一Root唯一Bearer run-next，保存原HTTP响应后核202；固定双Pro/最多1概念/任务内一次局部质量修正，最终真实原照HTML。candidate仅公开白名单产物观察，不读SDK DB/cipher/key。失败或未知停、不重发；完整成品六项/PC-H5/保存找回/免费改字/下载/唯一结算仍按真实结果验证，不能拿模拟替代。
 
 原soleD4一COPY候选已实际构建209f09d4，原件已到；foundation正核绑定actualimage的新3case薄native外层，不重复旧21/渲染/生产。Root继续两分支，不以checkpoint结束。
+
+
+## CURRENT — 2026-10-24T16:26:31.198998+00:00 R5真实失败已关闭／54本机物理历史全响应／净扣0；209f定向候选闭合，继续离线适配合同修复
+
+接续HEADff727ca／功能4ab8a9e。R5 job6e4c3bc0-c1aa-40d4-af09-3a69db65a8c0／usage9c65e229-62ca-458d-b86c-975ae189c2a4已failed/COVER_DELIVERY_FAILED/rev0，无final。10Pro＋1Seedream共11physical全部responded200/物理UNKNOWN0，本机历史54个响应；原host receipt仍UNKNOWN/modelrequests11/pendingordinal11/bodySHA0466f68d并保本地input rejection135893>131072，属于独立层，绝不重放或清零。正常GET两次200，released8/creditsused0、charge1/refund1/complete0，wallet8/totalused0/monthlyused8复原；C/REAL-R5-FAILED-NORMAL-READBACK001.json。key已正常禁用并保存遮罩回执，stop200、serve005 exec97715 exit0；PC/H5实际失败/预留释放/新设计按钮恢复，consolewarn/error[]，viewportreset/产品tab已关闭。之前H5关闭刷新找回同running且新task只1，390面板352无溢；非真iPhone。
+
+新文本目录1.4965284元，方案Aknowntext6.6873240／历史总known目录10.6136298；第五张图actualNULL/估0.76及全部旧UNKNOWN保持。A15保守bound12374milli／余2626，非现金账单；formal68094/旧99436不重置。9主请求2753＋1摘要1033＋图760恰formal增量26570，下一primary预留2753大于余2626，原预算保护必拒；原异常类型未留，不能冒它就是唯一历史直接原因。原预算不擅增、不降预留或重发。C/REAL-R5-TERMINAL-SUMMARY001.json留完整成本/终态与分层限制。真实合格仍0/单位成本N/A。
+
+候选子代理保6公开原件5825294B，C/real-r5-design-evidence/CAPTURE-MANIFEST.json6099/e9ff9b9941b36ba10de5d073b38bc8d0e99d8438efc34d654372b3638b9c10f2；index3962/bc3d37f5、poster183/56fb4e82、brief/两prompt/概念5814599/0cba33d6。无final/240/QC捕获，不假冒未捕获就从未出现。已纯离线确认保全poster顶层width/height不符canvas嵌套、brand父含span不符文字叶子、HTML无自托管font-face；这些是确定交付缺口，不等于倒推终态原异常。当前runtime prompt只提文件名而未交代适配器精确schema/文字叶子/先font_add再变量，Root下一最小补齐原Agent提示并以该真实HTML离线回归，不固定审美模板或改报告。foundation唯一修改原caller/README的R6失败父保全和预算拒绝明因，仍HOLD/原A15/无新key服务模型，不改产品。
+
+原sole已实际完成D4 image209f09d4（a76b基础单COPY provider）和Node24.22.1/SDK2.1.2恰3新case全PASS/0skip，16:06:30–34Z、elapsed3.712，原Read01A16EAA/Output3014逐byte核合；6sourcepins逐Git4ab相等，28原件3561654B/manifest4517/69ba097c父逐filewhole验证，AUTO_REMOVED/stderr0/供应商与业务DB生产0。Root新收据C/DELTA4AB8A9E-NATIVE-ROOT-READBACK001.json，foundation实际及最终第19节独审GO。原solefbf5a20 clean未push完成101/API91组件及候选，后d9abe91仅收录归属Root的R5失败，不重测/不发布。下一个接手仍Root离线具体契约修复，不能拿本机合成或候选PASS当真实质量。阶段/此checkpoint不停止尚可执行工程。
