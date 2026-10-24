@@ -231,7 +231,7 @@ def _validate_and_measure_payload(payload: dict) -> tuple[dict, dict]:
         if "reasoning_content" in message and not isinstance(message["reasoning_content"], str):
             _invalid()
         if "encrypted_content" in message and (message["role"] != "assistant"
-                or not isinstance(message["encrypted_content"], str) or not message["encrypted_content"]):
+                or not isinstance(message["encrypted_content"], str)):
             _invalid("COVER_AGENT_ENCRYPTED_HISTORY_INVALID")
         if message["role"] == "tool" and not _NAME.fullmatch(str(message.get("tool_call_id", ""))):
             _invalid("COVER_AGENT_TOOL_MESSAGE_INVALID")

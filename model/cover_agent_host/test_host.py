@@ -395,7 +395,7 @@ try {
         (root / "stored-original-write-receipts.json").write_text(json.dumps(receipts, indent=2))
         return receipts
 
-    def opaque_responder(self, responder, *, prefix):
+    def opaque_responder(self, responder, *, prefix, empty_at=()):
         originals, ciphers = [], []
 
         def respond(event, calls):
@@ -406,7 +406,8 @@ try {
             if answer.get("status") == 200:
                 message = answer["body"]["choices"][0]["message"]
                 message["reasoning_content"] = "合成思考摘要，不是加密原文"
-                message["encrypted_content"] = "TEST_OPAQUE_COVER_" + prefix + "_" + str(len(calls))
+                message["encrypted_content"] = ("" if len(calls) in empty_at else
+                    "TEST_OPAQUE_COVER_" + prefix + "_" + str(len(calls)))
                 originals.append(deepcopy(message)); ciphers.append(message["encrypted_content"])
             return answer
 
@@ -418,8 +419,27 @@ try {
         visible += (root / "state/host-checkpoint.json").read_text()
         self.assertTrue(ciphers)
         for cipher in ciphers:
-            self.assertNotIn(cipher, visible)
+            if cipher:
+                self.assertNotIn(cipher, visible)
         self.stored_write_receipts(root, result["session_id"])
+
+    def test_real_sdk_empty_encrypted_turn_keeps_exact_history_and_compacts(self):
+        respond, originals, ciphers = self.opaque_responder(
+            self.context_responder(view_before_compaction=True), prefix="empty", empty_at=(2,))
+        result, calls, events, root = self.request("empty_context", admission=provider_admission(),
+            respond=respond, nine_photos=True, thinking=ThinkingState("empty_context"))
+        self.assertTrue(result["ok"], result)
+        supplier = json.loads((root / "run-success-synthetic-supplier-bodies.json").read_text())
+        replayed = [message for body in supplier for message in body["messages"]
+                    if message["role"] == "assistant" and "encrypted_content" in message]
+        self.assertTrue(any(message["encrypted_content"] == "" for message in replayed))
+        self.assertTrue(any(message["encrypted_content"] for message in replayed))
+        self.assertTrue(all(message in originals for message in replayed))
+        self.assertEqual(sum(call.get("label") == "compaction" for call in calls), 1)
+        responses = json.loads((root / "run-success-responses.json").read_text())
+        self.assertTrue(all("encrypted_content" not in response["body"]["choices"][0]["message"]
+                            for response in responses))
+        self.assert_no_sdk_cipher(result, events, root, ciphers)
 
     def test_real_sdk_opaque_replay_and_fresh_summary_keep_original_state(self):
         admission = provider_admission()

@@ -227,10 +227,35 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertNotIn(cipher, json.dumps(self.call_row(call_id)))
         self.assertEqual(len(self.requests), 1)
 
-    def test_encrypted_history_rejects_wrong_role_empty_and_nonstring_values(self):
-        for role, cipher in (("assistant", ""), ("assistant", None), ("assistant", {}),
+    def test_empty_encrypted_assistant_turn_is_restored_exactly_and_metered(self):
+        from cover_agent_thinking import ThinkingState
+
+        original = self.response(tool=True)
+        assistant = original["choices"][0]["message"]
+        assistant["encrypted_content"] = ""
+        thinking = ThinkingState(self.claim["request_id"])
+        safe = thinking.remember(original)
+        self.assertNotIn("encrypted_content", safe["choices"][0]["message"])
+        self.body["messages"].extend([safe["choices"][0]["message"], {
+            "role": "tool", "tool_call_id": "tool_one", "content": "known tool result"}])
+        restored = thinking.restore(self.body)
+        self.assertEqual(restored["messages"][-2], assistant)
+        self.assertEqual(provider.admit_payload(restored), {"allowed": True})
+        prepared, bound = provider.prepare_payload(restored)
+        self.assertEqual(prepared["messages"][-2], assistant)
+        without_field = deepcopy(restored)
+        without_field["messages"][-2].pop("encrypted_content")
+        self.assertGreater(bound, provider.prepare_payload(without_field)[1])
+        call_id = self.intent()
+        provider.complete(restored, call_id=call_id, transport=self.transport())
+        self.assertEqual(json.loads(self.requests[0].content)["messages"][-2], assistant)
+        self.assertEqual(self.call_row(call_id)["state"], "responded")
+        self.assertEqual(len(self.requests), 1)
+
+    def test_encrypted_history_rejects_wrong_role_and_nonstring_values(self):
+        for role, cipher in (("assistant", None), ("assistant", {}),
                              ("assistant", 1), ("system", "opaque"), ("user", "opaque"),
-                             ("tool", "opaque")):
+                             ("tool", "opaque"), ("system", ""), ("user", ""), ("tool", "")):
             with self.subTest(role=role, cipher_type=type(cipher).__name__):
                 message = {"role": role, "content": "known text", "encrypted_content": cipher}
                 if role == "tool":

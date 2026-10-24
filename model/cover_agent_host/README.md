@@ -97,6 +97,13 @@ the existing one-correction/two-host flow. A lost process/cache is not rebuilt
 from a pending request, and never authorizes replay. No upstream SDK change or
 new dependency is needed.
 
+The Chat schema declares `encrypted_content` as a string without a nonempty
+constraint. An empty string in an original assistant turn is preserved through
+the same matching, metering and supplier replay; it is neither removed nor
+replaced with a fabricated signature. Other roles and nonstring values remain
+invalid. Local synthetic coverage does not establish supplier acceptance of an
+explicit empty string in every model/account combination.
+
 Official references: [Agent invocation](https://docs.volcengine.com/docs/ark/agent-model-invocation-practice?lang=zh),
 [model list](https://docs.volcengine.com/docs/ark/model-list?lang=en),
 [Chat API](https://docs.volcengine.com/docs/ark/chat-api?lang=en).
