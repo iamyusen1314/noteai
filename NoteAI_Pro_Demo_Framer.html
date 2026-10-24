@@ -8418,7 +8418,7 @@ function coverRender(ctx) {
     ? `独立封面 ${ctx.quote.credits} 积分 / 张 · 合格成品保存后结算一次；未交付可用封面不扣分。`
     : '封面报价暂不可用，不能提交制作。';
   el('availability').textContent = !ctx.enabled ? (ctx.reason || '封面新任务尚未开放，已保存成品仍可读取。')
-    : ctx.quote?.can_afford === false ? '可用积分不足，请先查看账户积分。' : '';
+    : ctx.quote?.can_afford === false && !hasPending ? '可用积分不足，请先查看账户积分。' : '';
   el('status').textContent = ctx.notice || (job ? coverTaskStage(job) : '尚无封面任务。选择本人真实素材后即可独立制作，无需重新生成报告。');
   if (job?.billing && (!ctx.pending || job.request_id === ctx.pending.request_id)) {
     const bill = job.billing;
@@ -8450,6 +8450,8 @@ function coverRender(ctx) {
   if (success?.has_final) {
     const result = el('result');
     if (result.parentNode) result.parentNode.insertBefore(result,el('source-form'));
+    el('preview-note').textContent = ctx.previewFailedKey === success.job_id + ':' + success.asset_revision
+      ? '已保存封面的预览暂不可用，可刷新重试；当前任务进度与结算以此处任务状态为准。' : '';
     el('expiry').textContent = success.expires_at ? `保存至 ${_fmtLocalTime(success.expires_at)}（90天），请及时下载。` : '保存期限暂未确认，请稍后查看原任务。';
     const editable = !success.expires_at || new Date(success.expires_at).getTime() > Date.now();
     el('adjust').disabled = ctx.busy || !editable;
@@ -8472,14 +8474,20 @@ async function coverShowFinal(ctx) {
   const job = ctx.latest;
   if (!job?.has_final) return;
   const key = job.job_id + ':' + job.asset_revision;
-  if (ctx.previewKey === key) return;
-  const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(job.job_id) + '/download?asset=final&revision=' + encodeURIComponent(job.asset_revision || 0));
-  const blob = await response.blob();
-  if (!ctx.current() || ctx.latest?.job_id !== job.job_id || ctx.latest?.asset_revision !== job.asset_revision) return;
-  const url = coverBlobURL(ctx,blob);
-  if (ctx.finalURL) { URL.revokeObjectURL(ctx.finalURL); ctx.urls.delete(ctx.finalURL); }
-  ctx.previewKey = key; ctx.finalURL = url;
-  ctx.dialog.querySelector('[data-cover="final-image"]').src = url;
+  if (ctx.previewKey === key || ctx.previewFailedKey === key) return;
+  try {
+    const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(job.job_id) + '/download?asset=final&revision=' + encodeURIComponent(job.asset_revision || 0));
+    const blob = await response.blob();
+    if (!ctx.current() || ctx.latest?.job_id !== job.job_id || ctx.latest?.asset_revision !== job.asset_revision) return;
+    const url = coverBlobURL(ctx,blob);
+    if (ctx.finalURL) { URL.revokeObjectURL(ctx.finalURL); ctx.urls.delete(ctx.finalURL); }
+    ctx.previewKey = key; ctx.previewFailedKey = null; ctx.finalURL = url;
+    ctx.dialog.querySelector('[data-cover="final-image"]').src = url;
+  } catch (error) {
+    if (!ctx.current() || ctx.latest?.job_id !== job.job_id || ctx.latest?.asset_revision !== job.asset_revision) return;
+    ctx.previewFailedKey = key;
+  }
+  coverRender(ctx);
 }
 function coverAcceptJob(ctx, job) {
   if (!coverJobMatches(job,ctx)) throw Error('封面任务身份不一致，未显示或重新提交');
@@ -8511,7 +8519,7 @@ function coverScheduleRead(ctx) {
 }
 async function coverRefresh(ctx) {
   if (!ctx.current() || ctx.reading) return;
-  ctx.reading = true; coverRender(ctx);
+  ctx.reading = true; ctx.previewFailedKey = null; coverRender(ctx);
   try {
     if (ctx.savedOnly) {
       const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.savedJobId));
@@ -8691,7 +8699,7 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
     <p data-cover="source-note" class="cover-panel-note">正在核对原图…</p><div data-cover="sources" class="cover-source-grid"></div>
     <div class="cover-panel-actions"><button type="button" data-cover="upload">补传或换候选图</button><button type="button" data-cover="create" class="cover-primary" disabled>生成封面 · 8 积分</button><button type="button" data-cover="refresh">刷新任务</button><button type="button" data-cover="recover" hidden>核查／重交原请求</button></div><p data-cover="recovery-note" class="cover-panel-note" hidden></p>
     <input data-cover="file" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden><p class="cover-panel-note">重新设计或换图后制作是新的8积分任务；关闭页面不取消后台任务。重新打开本报告可找回进度。</p></section>
-    <section data-cover="result" hidden><div class="cover-final"><img data-cover="final-image" alt="本报告已保存封面"><div class="cover-final-controls"><p data-cover="expiry" class="cover-panel-note"></p>
+    <section data-cover="result" hidden><p data-cover="preview-note" class="cover-panel-note" role="status"></p><div class="cover-final"><img data-cover="final-image" alt="本报告已保存封面"><div class="cover-final-controls"><p data-cover="expiry" class="cover-panel-note"></p>
     <label data-cover="text-layer-label" hidden>选择文字<select data-cover="text-layer" aria-label="选择封面文字层"></select></label><label>免费改字与断行<textarea data-cover="text" aria-label="免费修改封面文字" maxlength="80" rows="3"></textarea></label><label>文字位置<select data-cover="position" aria-label="封面文字位置"><option value="">保留当前位置</option></select></label>
     <div class="cover-panel-actions"><button type="button" data-cover="adjust">免费保存排字</button><button type="button" data-cover="download" class="cover-primary">下载封面</button></div><p class="cover-panel-note">改字、断行、文字位置及下载不重复收费；修改失败保留上一张成功封面。</p></div></div></section></div>`;
   document.body.append(dialog);

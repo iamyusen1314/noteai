@@ -113,6 +113,32 @@ test('a saved task is recovered by server request identity and disabled submissi
  assert.equal(el('create').disabled,true);assert.equal(el('result').hidden,false);assert.equal(el('adjust').disabled,false);assert.equal(el('download').disabled,false);
  assert.match(el('status').textContent,/实际扣分 8/);assert.equal(el('final-image').src,'blob:synthetic');
 });
+test('unavailable older preview cannot turn an accepted new task into an unconfirmed submission',async()=>{
+ let posts=0,downloads=0,poll;const events=[];
+ const {c,ctx,el}=make({setTimeout:callback=>{poll=callback;return 99;},console:{warn:x=>events.push(x)},fetch:async(url,options={})=>{
+  if(url.includes('/download')){downloads++;return {ok:false,status:503,json:async()=>({detail:'封面存储暂不可用'})};}
+  const running={...completed,job_id:'new-task',request_id:options.body?JSON.parse(options.body).request_id:ctx.active.request_id,status:'running',stage:'design',has_final:false,billing:{status:'reserved',reserved_credits:8}};
+  if(options.method==='POST'){posts++;return {ok:true,status:202,json:async()=>running};}
+  return {ok:true,json:async()=>({...running,stage:'qc'})};
+ }});
+ ctx.latest={...completed};await c.coverCreate(ctx);
+ assert.equal(posts,1);assert.equal(ctx.active.job_id,'new-task');assert.equal(ctx.pending,null);assert.equal(events.length,0);
+ assert.match(el('status').textContent,/正在选图与设计.*\n已预留 8/);assert.match(el('preview-note').textContent,/预览暂不可用/);
+ assert.equal(downloads,1);assert.equal(typeof poll,'function');await poll();
+ assert.match(el('status').textContent,/正在检查设计、文字与真实主体/);assert.equal(downloads,1);assert.equal(posts,1);
+});
+test('manual refresh retries only the unavailable preview and keeps the reserved task recoverable',async()=>{
+ let downloads=0,ready=false,poll;
+ const running={...completed,job_id:'new-task',status:'running',stage:'design',has_final:false,billing:{status:'reserved',reserved_credits:8}};
+ const {c,ctx,el}=make({setTimeout:callback=>{poll=callback;return 99;},fetch:async url=>{
+  if(url.includes('/download')){downloads++;return ready?{ok:true,blob:async()=>new Blob(['fixture'],{type:'image/png'})}:{ok:false,status:503,json:async()=>({detail:'封面存储暂不可用'})};}
+  return {ok:true,json:async()=>({enabled:true,quote:{...ctx.quote,can_afford:false},jobs:[running,completed],latest_success:completed})};
+ }});
+ await c.coverRefresh(ctx);assert.equal(ctx.active.job_id,'new-task');assert.equal(downloads,1);assert.equal(typeof poll,'function');
+ assert.equal(el('availability').textContent,'');assert.match(el('status').textContent,/正在选图与设计/);assert.equal(el('create').disabled,true);
+ ready=true;await c.coverRefresh(ctx);assert.equal(downloads,2);assert.equal(el('preview-note').textContent,'');assert.equal(el('final-image').src,'blob:synthetic');
+ assert.equal(ctx.active.job_id,'new-task');assert.match(el('status').textContent,/已预留 8 积分/);
+});
 test('late responses from a switched account cannot publish original cover bytes or state',async()=>{
  let release;const gate=new Promise(r=>release=r);const {c,ctx,leave}=make({fetch:async()=>{await gate;return {ok:true,json:async()=>completed};}});
  const request=c.coverFetch(ctx,'/covers/job-original').catch(e=>e.message);leave();release();assert.equal(await request,'账户或报告已切换');
