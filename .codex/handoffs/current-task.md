@@ -33440,3 +33440,12 @@ R5 caller49187/7eba9d78d0f874a6e4062482966f8ed9c122eb2243bd935ddb6ce6cb9f775915�
 原sole已实际读4ab并准备D4=原C/delta4ab8a9e-candidate-r1，固定actuala76b只1COPY provider，新context/tag、101/API91不扩，另2support metadata更新。builder7245/95c55536、wire5208/b265、PLAN7363/0a5d15e9、Send9317/9bd7aadc、pack6675/7135均经Root逐层编码+exactenvelope和foundation源码/oneCOPY/reader/once/UNKNOWN窄审GO；C/DELTA4AB8A9E-BUILD-ROOT-PREFLIGHT001.json3262/45feeaca。GO已交原sole沿既定授权执行一次，不等新增用户业务批准；仅新empty SDK＋provider正负薄验证，不重原21/render/依赖/PG或生产。目前未冒actual新build/native成功，Root继续跟原件。
 
 刚集中发送新R5 key动作当次问题，尚无新答复；samekey正常row仍disabled并留TASK-KEY-R5-PENDING-APPROVAL.png已给用户/markHandoff。范围原报告九照、单张、固定双Pro/最多1概念/任务内一次质量修正、≤60min、失败UNKNOWN即停禁用，仍A15/原总100、保守余4.887，不新增权限/公网/预算/生产。R4已消费关闭，不能拿旧确认续新task；当前server/model无，真实合格0/单位成本N/A，旧费用与UNKNOWN不动。仅此真实分支待用户动作，原sole候选和后续原件独审继续，不以阶段汇报停止。
+
+
+## CURRENT — 2026-10-24T16:02:02.476248+00:00 R5当次确认、同key实际启用与正常UI唯一排队，派发前checkpoint
+
+实际HEADd90e03b／功能4ab8a9e。Root15:59:05Z读取新“确认”，本次same受限key已正常生效，截止16:59:05Z≤60min，终态或异常即禁用；C/TASK-KEY-REENABLED.R5.ACTUAL.*遮罩回执已展示用户。原caller49187/7eba9d78精确未变，以同STATE/DB/九照/报告434正文启动serve005 exec97715，origin127.0.0.1:57904，lifespanoff/无自动worker。旧43physical全部响应、四failed/net0/99436与41524原计量/全部UNKNOWN保持，A15保守10113milli余4887。
+
+IAB PC1440×1000正常入口核8分/90天/九图有效后真实点击新建唯一job6e4c3bc0-c1aa-40d4-af09-3a69db65a8c0／clientdb599e6d-9c89-4bd3-9b6f-b3d67946bda7／usage9c65e229-62ca-458d-b86c-975ae189c2a4，queued预留8/实际结算0；原mock成品与失败保。C/REAL-R5-BEFORE-WORKER001.json已核新physical0/workerfalse/无新once。下一Root唯一Bearer run-next，保存原HTTP响应后核202；固定双Pro/最多1概念/任务内一次局部质量修正，最终真实原照HTML。candidate仅公开白名单产物观察，不读SDK DB/cipher/key。失败或未知停、不重发；完整成品六项/PC-H5/保存找回/免费改字/下载/唯一结算仍按真实结果验证，不能拿模拟替代。
+
+原soleD4一COPY候选已实际构建209f09d4，原件已到；foundation正核绑定actualimage的新3case薄native外层，不重复旧21/渲染/生产。Root继续两分支，不以checkpoint结束。
