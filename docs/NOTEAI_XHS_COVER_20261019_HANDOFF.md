@@ -3086,3 +3086,14 @@ normal_c708只跟R2caller→helper→launcher→ENTRY/binder/recover跨阶段真
 真实输入缺件已定点确认：既有8671/2529仅4部分calls+1case/摘要，无全49+9。sole正在收口一次固定config+原private ledger只读载体，mode=ro/immutable+query_only/同事务，三sidecar存在就HOLD，稳定whole/meta/原49+9指纹/stop/known/inode必须不变，非秘密完整raw封包≤23500含LF，否则只安全HOLD；不写原账本/生产DB/CAS、不part运输/正常runtime/模型。actual尚未派。只有读回实际配置/行数据后才可真实连续验证，不能改hash或用callback冒CAS。
 
 本机R3已freeze：resume-normal-consumers-anchors-r3/MANIFEST17084/f3af98fb，Root264e09核6源0400，只有ENTRY68420/436bc6aa、binder67070/7eb2cfcb、PROGRAMS1531/bb24596c三叶，实际三历史锚和关联pin，两源码inverse精确，其他三源及未来None保；仅机械绑定非联调。sourcepack MANIFEST.FINAL.HOLD21989/5053fba7/source246117/141f77d9/PLAN214964/5460ec91，本机18+2源证明、16片惰性运输，planned37新文件/10dir，仍未云操作；Root只做初main/helper/finaldelta读，不给全包执行GO。权威PLAN consumed_state_resume_preparation.tool_integration_review已记3独审完成/sole与Root联调在做。待非付费链证据完整后再谈剩余case2真实验收，未新增预算或用户确认事项。
+
+
+## CURRENT — 2026-10-24 03:30UTC 登录回调已返官方页，但只读装载被安全策略阻断；Run0，继续本机联调
+
+接收HEAD f73b747/原cover分支，UI63e仍本机，R7关闭/净扣0/余额8/历史成本与UNKNOWN保持。用户“已登录”后Root原6544官方页已回RunCommand；一次AX超时后重绑同页成功，不新开替代页。装载已冻结b991只读参数时，浏览器明确因error.taobao.com安全拒绝，未触发用户批准流程；未点击Run、服务器命令0/查询0、三个ID皆None。本次不是模型/产品失败或服务器UNKNOWN，不能将回调当实际API鉴权成功，也不能让另一页/原窗口代做来绕过策略。ROOT-LOGIN-AND-POLICY-BLOCK.ACTUAL.json保原观察，冻结请求及wire不改。
+
+Q=W7/resume-integration-local-r1/paid-config-ledger-fixed-readonly；最终source13849/c2b15f12、run7423/ef9ac8b4、wire9900/d902c5d7、manifest6408/d008c51d，Root030d75/20aa5b/78d37d/26d6a6核验通过。Root早先checker把成熟inner Base85误当Base64的三次检查失败已纠正，没改payload/未派发，单列工具checker问题。b991新唯一请求prepared不等于已Run，不生成新token、不重复旧读取；实际非秘密fullconfig及全49calls/9cases/schema仍缺，不能假造hash或以synthetic替代真实指纹。
+
+唯一credential-I/O seam R4已冻结：manifest5301/d37bae84，launcher32104/ec2d93bc与PROGRAMS1531/4f2700e9两叶，其余R3继续真ref；只提取load_fixed_runtime_business_url，固定secret path/21281/132c/NOFOLLOW/UID/GID/0400/stable/clear-reset/finallyclose及read_json原门不变。作者逆还原、3局部检查与独审GO复用；Root3556c9核10叶whole/mode400和短diff，不重跑。不读真实secret/Env，不称连续或云通过。旧R3及141f/5053源包未覆盖，运输/SAVE仍未执行。
+
+normal既有六类边界位置表已归档continuous-driver-local-r1/EXTERNAL-BOUNDARIES.REVIEW.md5868/d854e766；仅真实临时FS身份、HOST-clock-proc、单一credentialI/O、exactargv Docker/runtime、socket IPC、systemd/Nginx可明示适配，内部hash/parse/state/predecessor/CAS不可stub。原sole唯一写连续driver；Root另交cover_media只写image-guard-bridge-local-r1，真实V3图像账本admission/reserve/dispatch/terminal局部桥接，明确synthetic与HTTP fake，不冒真实49/9resume，不重旧suite。两者当前进行中，无完整联调PASS。权威PLAN原tool_integration_review已记固定载体、真实Run0拦截、R4冻结、负责人/数据缺口/下一步；不新task/发布流程/权限或预算，真实成品验收继续暂停。
