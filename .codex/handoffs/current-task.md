@@ -33196,3 +33196,12 @@ D/INDEX.IMPORTS.HOLD13182/144e9223在Root a8694f核31owned+5外部+父1=37refs�
 剩余实际依赖仍是完整非秘密paidconfig/原49calls9cases/schema、五fixed raw及同UUID/native材料；原b991被浏览器site-safety以error.taobao.com拦截、Run0/IDsNone。不是用户未授权或未登录证据，不能以新页/通道、source运输part0取配置等代做被拒读取；主账号首页和空表单正常仅是诊断事实。Root已把拦截与独立本机进展分开，不把它扩成新生产流程/平台，也不反复要求用户代排障。下一恢复只沿唯一PLAN原tool_integration_review，缺件齐后运行真实固定链与失败恢复，再在有效既定范围内进行唯一case2真实封面及PC/H5/重开/免费排字/下载/唯一结算。全部R7旧成本UNKNOWN、净扣0/余额8、原窗口关闭与退出事实保持。
 
 04:59UTC补记：sole已冻结同R2候选75本机文件，FREEZE.RECEIPT.HOLD.json25315/5ac0a440aa50；Root逐whole/0400核75项，原a346c2f0 manifest字节不变。只完成本机保存留存，不授执行权，part_zero_may_replace_blocked_b991_read=false，actual49/9与云/模型/公网仍0。权威PLAN已接同freeze ref；本轮无需用户代操作。
+
+
+## CURRENT — 2026-10-24 05:15 UTC 用户再次要求继续；纠正过宽前置，推进正常V3真实九图本机贯通
+
+登记HEAD6140881/原cover分支。上轮把原49/9和Nginx原件当作全部功能验证前置，限制过宽；normal独审实核这些仅属旧R7恢复wrapper，正常API/jobs/service/Agent/SDK/CLI/storage/settlement无需它们。b991拒绝仍保留且不绕过；本次不是取受拒数据的替代路线，不触旧ledger或云。当前没有用户代操作或普通继续确认待办，继续原任务，不另建任务。
+
+新tasktmp/normal-v3-real-nine-local-r1是既有任务的本机验证产物目录：cover_media唯一local_app.py，foundation唯一REPORT-INPUT.REUSED.LOCAL.json，从已留report三原件/九图inventory复用完整标题正文/视觉建议，不重跑报告；Root负责环境/生命周期/Cua PC-H5/证据，normal独审只核实际接口。现有v2已有真九图完整功能证据，V3 synthetic SDK/CLI和normal局部证据复用；缺同一真九图数据在当前V3下从正常generate report create到磁盘持久化重开/free edit/download/唯一8分的完整证据，本轮只补该缺口，不重旧suite。
+
+已在任务3.11虚拟环境按现有requirements-api固定版本补齐API所需依赖，pip退出0(f665b0/60605f)，不改repo或生产依赖；node既有v25.7.0、SDK2.1.2既有E/host/runtime/node_modules，现Chrome可执行文件复用。计划仅127.0.0.1、显式env-i/禁dotenv、新SQLite+LocalDirectoryObjectBackend，lifespan off，无原生产启动/scheduler/后台coverworker；正常API/服务/Agent/SDK/CLI/真实原照片裁切排字/存储/结算执行，只最外模型HTTP模拟。先正常UI创建再显式run-next，不预造成功成品；同目录重启不再grant/上传/建report。实际供应商0/费用0、auth为明确test-only、模拟QC不冒审美或真实验收，生产0/公网0。当前serverPID/port/job均None，权威PLAN.normal_v3_real_nine_local_continuation已记负责人/范围/恢复入口，下一实现后立即执行而非等待用户。
