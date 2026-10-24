@@ -3069,3 +3069,20 @@ W7/resume-normal-consumers-draft-r1完整六consumer包11593/527bf6bf、91KBdiff
 原同40761ce2令牌实际受理Run01A16BC3-DAF2-556E-ABC7-16D87B8657D1/C c-sz070yrriv7tnnk/T t-sz070yrrivfbcow；一次exactInvokeId结果Read01A16BC5-8F0F-56C7-999A-CEED7BA68161，02:36:01UTC S0/D0/R1。CRO=原W7/r7-entry-three-originals-readonly-once，ROOT-Output.ACTUAL-ORIGINAL.txt8702/328ec86a、ROOT-result.ACTUAL-ORIGINAL.json14303/cda01a11、ROOT-THREE-ACTUAL-ORIGINALS.INDEX.json5434/4b680f25，已Root2ae170逐层官方Output→gzip→raw/local whole及stable fullmetadata核真：entry.config6464/99384062513801477b100bbaa6a0b7a498777a8adb704ec66c7f9ca7fed5dc5a root400/inode1618064；manifest2143/544501201a5652bfb163022345feb62a99a541949fd4e04033c15d751cd9cea7 root600/inode1618069；close171/b0b1c4821a12ade5f5b37a017ac77f0f9051e9a22d742977289e33e164244d4c root600/inode1618206；共8778B。DB/docker/model/targetimport/exec/写0。旧UI未知过程全部保留，本请求已恢复成功，不再重发读；Root临时页已关闭，原sole相关页暂停解除，仅待具体source-only操作。
 
 sole本机保存包仍在成形，18物理source（10新内容/8同bytecopy）+2物理proof/9新私有dirs，成熟16分片只运输惰性writer，单独SAVE薄壳未审、未云。Root未审变化中的中间source，待freeze完整manifest/差异/codec/独审才核具体保存。settings独立限定本机原件核明fullpaidconfig仅固定HOST路径DEPLOY/paid/runtime-launch.spacing-r7.HOLD.json，旧caller349写raw(candidate.config)，尚无真实body/sizeSHA；READY1857不能替代，launcher.read_json会额外读RAM填business_url而不适用。该缺件已交sole仅评估同次固定稳定RO，不扩18+2写集、collector或秘密范围。权威PLAN consumed_state_resume_preparation已更新实际三raw/RootUI收口，未来source/human/END/transition/READY仍None。下一冻结保存载体审核→必要私有实际预置/纯验证→全部齐后才提新一次有限公网与仅剩case2一个修复任务。真实新合格封面/审美/六项QC/PC-H5重开/免费排字/下载/唯一结算及每合格成本仍未完成。
+
+
+## CURRENT — 2026-10-24 03:07:06 UTC 用户要求彻查验收工具；独立归因完成，补连续联调中，实际生成暂停
+
+用户指出验收工具频繁出错、可能缺完整联调。Root已承认确定工具缺陷和证据层次混淆，暂停下一真实生成/公网问题；sole继续本机freeze但运输/SAVE也保持未执行。此为原任务M2工具联调补缺，不新task/平台/发布流程，不扩正文或其他产品。HEAD81b775f/原分支，R7历史费用/UNKNOWN/释放/退出/原件/自然TTL保留，模型/新任务/公网0。
+
+cover_media限定独立归因：实际工具缺陷为历史v3_context空prior导致bindings KeyError，以及V3 admitted先receipt再继承mark要求dispatched导致Seedream派发前拒绝；独审另截获45/7消费态不适配、pure loader缺CAS入口、caller无前驱成功门，均已有局部修复。产品63e修的是旧预览遮状态/hold误显示不足，未真实启用；不将UI产品修复或旧UNKNOWN分类另扩工作。早先Cloud无ID原因仍未证；本次Root同token实际普通确认后03份原件已恢复，不重读。已有R7真实前半连续链（OPEN/九图上传+PUT/paidREADY/正常POST/3Pro），不是从未联调；没有当前fixedcore+R3+63e完整成功链，更没有新合格成品。
+
+settings对实际测试逐行核验：R1/check_consumers_offline.py49手造裁剪config/core/sidecar，90 CAS callbackstub，136手造READY/handle/startup，175只抽collect分支；R2/check_phase_predecessors_offline.py17预置阶段文件，65 main把内部action/predecessor等stub。原8项是7+单独修1、R2新增5项一次PASS，不能相加称完整链。core虽有真实tempSQLite，synthetic49并非实际22159/1a889指纹；tests/test_cover_seedream.py32–40亦mock admission/reserve/dispatch/terminal，漏了真实guard状态交接。sourcepack VERIFY222明确NOT_EXECUTED_CURRENT_R3。有效局部证据继续复用，不改写成失败/作废，也不冒全链。
+
+normal_c708只跟R2caller→helper→launcher→ENTRY/binder/recover跨阶段真实接口，未见确定P0–P2键/状态形状错配；尚需在真实装配验证newpaid普通import的provider_env_contract物理同目录，以及human/window独立authority目录（prepare要求RESUME_PROOF全新）。恢复只判真实before/after/其他UNKNOWN，不能凭APPLIED/READY缓存自动推进。
+
+下一补一条真正连续的非付费内部链：同一冻结版本、同一任务产物逐级供prepare→唯一CAS→start→READY→open→recover消费，临时库装真实49calls/9cases并保原TEXT/NULL/int指纹，仅OS路径/uid/inode和最外Docker/PG/Nginx/HTTP使用明示边界替身；不能stub待测内部阶段/投影/hash/CAS。另贯穿真实guard图像admission/reserve/dispatch/terminal接点，验证副作用之前拒绝、CAS前后中断和UNKNOWN不重放。此类联调不会证明审美、供应商或实际成品通过。
+
+真实输入缺件已定点确认：既有8671/2529仅4部分calls+1case/摘要，无全49+9。sole正在收口一次固定config+原private ledger只读载体，mode=ro/immutable+query_only/同事务，三sidecar存在就HOLD，稳定whole/meta/原49+9指纹/stop/known/inode必须不变，非秘密完整raw封包≤23500含LF，否则只安全HOLD；不写原账本/生产DB/CAS、不part运输/正常runtime/模型。actual尚未派。只有读回实际配置/行数据后才可真实连续验证，不能改hash或用callback冒CAS。
+
+本机R3已freeze：resume-normal-consumers-anchors-r3/MANIFEST17084/f3af98fb，Root264e09核6源0400，只有ENTRY68420/436bc6aa、binder67070/7eb2cfcb、PROGRAMS1531/bb24596c三叶，实际三历史锚和关联pin，两源码inverse精确，其他三源及未来None保；仅机械绑定非联调。sourcepack MANIFEST.FINAL.HOLD21989/5053fba7/source246117/141f77d9/PLAN214964/5460ec91，本机18+2源证明、16片惰性运输，planned37新文件/10dir，仍未云操作；Root只做初main/helper/finaldelta读，不给全包执行GO。权威PLAN consumed_state_resume_preparation.tool_integration_review已记3独审完成/sole与Root联调在做。待非付费链证据完整后再谈剩余case2真实验收，未新增预算或用户确认事项。
