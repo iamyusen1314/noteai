@@ -33205,3 +33205,12 @@ D/INDEX.IMPORTS.HOLD13182/144e9223在Root a8694f核31owned+5外部+父1=37refs�
 新tasktmp/normal-v3-real-nine-local-r1是既有任务的本机验证产物目录：cover_media唯一local_app.py，foundation唯一REPORT-INPUT.REUSED.LOCAL.json，从已留report三原件/九图inventory复用完整标题正文/视觉建议，不重跑报告；Root负责环境/生命周期/Cua PC-H5/证据，normal独审只核实际接口。现有v2已有真九图完整功能证据，V3 synthetic SDK/CLI和normal局部证据复用；缺同一真九图数据在当前V3下从正常generate report create到磁盘持久化重开/free edit/download/唯一8分的完整证据，本轮只补该缺口，不重旧suite。
 
 已在任务3.11虚拟环境按现有requirements-api固定版本补齐API所需依赖，pip退出0(f665b0/60605f)，不改repo或生产依赖；node既有v25.7.0、SDK2.1.2既有E/host/runtime/node_modules，现Chrome可执行文件复用。计划仅127.0.0.1、显式env-i/禁dotenv、新SQLite+LocalDirectoryObjectBackend，lifespan off，无原生产启动/scheduler/后台coverworker；正常API/服务/Agent/SDK/CLI/真实原照片裁切排字/存储/结算执行，只最外模型HTTP模拟。先正常UI创建再显式run-next，不预造成功成品；同目录重启不再grant/上传/建report。实际供应商0/费用0、auth为明确test-only、模拟QC不冒审美或真实验收，生产0/公网0。当前serverPID/port/job均None，权威PLAN.normal_v3_real_nine_local_continuation已记负责人/范围/恢复入口，下一实现后立即执行而非等待用户。
+
+
+## CURRENT — 2026-10-24 05:43 UTC 封面当前V3真九图正常功能链完成本机补证，真实验收仍未完成
+
+HEAD538aa15接续/原cover分支；唯一阶段表已同步，详见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md末节。本轮真实普通UI queued create→一次run-next→Agent/SDK2.1.2/CLI render→磁盘保存→正常唯一8分→同库实际stop/restart→PC/H5 saved重开→免费排字revision2→HTTP下载双版本/重复字节恒等，原报告434字及照片区域像素不变。仅外层供应商HTTP/设计/QC mock，synthetic auth/account/SQLite，实际供应商/费用/公网/生产0；不冒模型/审美验收。
+
+L=tasktmp/normal-v3-real-nine-local-r1，ROOT-FUNCTIONAL-RESULT22053/86cd0dde含48refs＋7产品源，独审whole已核/无确定P0–P2，最终INDEPENDENT-FUNCTIONAL-REVIEW26209/3dab7ef7（0400）GO且明确限制。RUN002测试helper缺socket reuse，旧失败保；唯一一行修后RUN003同state成功，fixture/jobs/usage/exports/credits/subscription恒等。job2a9baeed/reportc90f9b4e/usageb1090e04，合成钱包8未动、默认月度12实际用8；账面partial0.0096/estimated0.7696是mock计量，实际0。免费修改QC正确标USER_ADJUSTED_NOT_VISUALLY_REVIEWED。PC实际1440初始/2164最终、H5真实viewport390×844无横溢；浏览器download按钮回提示但事件超时/Blob不支持，磁盘及真实iPhone未证。内部chrome页URL-policy拒绝，无绕过；HTTP成功只证后端字节。48623已退出0、56870无监听、worker false、两个本轮tab关闭/尺寸reset；原state与两版成品保。
+
+原R7 b991安全拒绝Run0/IDsNone、49/9与fixed inputs缺件、UNKNOWN/成本/净扣0钱包8/已关闭均保留，不把该恢复wrapper扩大为普通功能前置，也不以本机mock冒实际恢复/付费GO。没有产品或迁移新改动；真实合格封面0/单位成本N/A、最终交付仍HOLD。唯一PLAN原normal_v3_real_nine_local_continuation已记当前job/退出/refs/剩余缺口。Root下一向原sole交已独审的精确可复用证据，真实供应商质量、浏览器落盘及实际R7仍待合法可执行条件，不等待用户普通继续。
