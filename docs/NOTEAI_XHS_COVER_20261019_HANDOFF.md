@@ -149,9 +149,9 @@
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
-| 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8 | 当前V3真九图＋原434字报告，正常UI创建→Agent/SDK/CLI→磁盘保存→唯一8分→同库重启→PC/H5重开/免费排字→HTTP下载贯通；供应商HTTP/QC mock，见末节L/ROOT-FUNCTIONAL-RESULT | 旧证据复用；浏览器按钮磁盘保存回执未证，不能以HTTP读取代替；真实质量仍阶段3 |
-| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_R7_CLOSED_REAL_RESULT_PENDING / c708fe0、UI63e未云激活 | R7真九图/正常POST/3Pro调用及真实失败/UNKNOWN原件保；新L正常V3本机贯通只补功能，不冒真实供应商或旧49/9恢复通过 | 原b991固定取件被工具site-safety拒绝，Run0；不绕过、不凭模拟推进旧CAS或case2。原窗口已关闭/净扣0/余额8，真实成品仍0 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成 | SOURCE_REVIEW_GO_REAL_DELIVERY_HOLD / 63e93c8 | 原产品/存储/计费及当前helper窄审GO复用；L完整功能证据独审3dab7ef7 GO，见末节，不再重复全项目审查 | 方案A真实合格交付0/单位成本N/A；真实供应商六项QC/成品质量、浏览器磁盘保存/真实iPhone仍未证，不作最终交付或发布声明 |
+| 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8、9f55fbf | 当前V3真九图普通功能链、同库重启、PC/H5重开/免费排字和HTTP下载；9f增加桌面原生保存，实际文件等持久rev2；首次可编辑包保存失败真实回归1PASS/净扣0，见末节 | 旧证据复用；供应商HTTP/QC mock，不能替代真实质量或真实供应商结算；iPhone及不支持picker的设备落盘未证 |
+| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_REAL_MODEL_RISK_BLOCK / 9f55fbf；旧R7仍CLOSED | R7原3Pro/失败/UNKNOWN保留；独立官方console九图Pro阶段1单次请求403 BusinessRiskDetected，无模型结果，1.10元费用预留未清；本机功能和真实供应商证据分列 | 仅官方CAPTCHA分支待当次确认；不解隐藏校验或重发。原b991 Run0拒绝仅阻旧恢复wrapper。继续只读参数/用量与交付准备，真实合格封面0 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成；原sole接手组件集成准备 | SOURCE_REVIEW_GO_REAL_DELIVERY_HOLD / 产品9f55fbf；原sole清单3215b73 | 下载实现、首次包保存失败回归均已独审无确定P0–P2；原sole已实际完成100组件清单及9f三叶增补，见末节精确refs，不以收录代替接手执行 | 方案A真实合格交付0/单位成本N/A；真实六项QC/质量、实际完整供应商链及唯一结算、iPhone仍待证。桌面OS文件已证，不再列缺项；本窗口不发布生产 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -3184,3 +3184,23 @@ PC初始1440×1000正常入口、状态和保存；重启独立saved入口重开
 主证据L/ROOT-FUNCTIONAL-RESULT.json22053/86cd0dde（48refs＋7产品源hash），独审逐whole已核且无确定P0–P2；最终L/INDEPENDENT-FUNCTIONAL-REVIEW.json26209/3dab7ef7（0400）确认GO_LOCAL_FUNCTIONAL_EVIDENCE_WITH_EXPLICIT_LIMITS，55项引用及9原图核合。ROOT结果明确FUNCTIONAL_LOCAL_PASS_BROWSER_DISK_SAVE_UNCONFIRMED；原始QC是mock，免费版标USER_ADJUSTED_NOT_VISUALLY_REVIEWED。运行完已停48623退出0、56870无监听、worker false，两个本轮测试tab已关闭并请求清除尺寸覆盖；状态/旧成品/失败均保留。恢复运行用L/README原env-i＋同state，不重放run-next；本地原图24h自然TTL不伪延长，90天成品到期2027-01-22 05:27:20UTC只是本机合同，不冒自然到期验收。
 
 本轮改动/风险/复用/下一步：产品代码与既有features专用迁移未变，未执行任何生产迁移/配置；只tasktmp helper一行和本交接checkpoint。原V2/当前V3局部、资源隔离及失败证据继续复用，不重旧高德/支付/九图/全suite。新证据仅补当前V3正常功能贯通。原R7固定b991取件仍被工具site-safety以error.taobao.com拒绝，Run0/IDsNone、旧49/9/原配置缺件保留，不换页/通道/窗口代取、不重放旧CAS/UNKNOWN；source-only冻结包不因本机成功获得云GO。真实Pro/Seedream合格成品、六项质量、实际每合格成本仍未完成，方案A合格交付0/单位成本N/A。下一交原sole已独审的可复用证据和明确缺口，最终生产仍仅原sole；不存在等待用户回复普通“继续”的事项。
+
+
+## CURRENT — 2026-10-24 06:33 UTC 桌面真实落盘及首次保存失败免扣分已补齐，真实模型分支停在官方风控校验
+
+登记产品HEAD `9f55fbff2f4de7ea1e93cdc50c6288256800cdc3`／`codex/noteai-xhs-cover-20261019`。本轮仅改 `NoteAI_Pro_Demo_Framer.html`、`tests/frontend_cover_tasks.test.js`、`tests/test_cover_agent_artifacts.py`：桌面下载在用户点击时同步打开原生picker，随后沿原Bearer权限读取PNG，实际write/close后才提示保存；取消不fetch、不自动切换另一保存方式，旧上下文或写入失败会abort，不保存目录权限/handle。未新增后端、依赖、迁移或生产配置。JS定向5组含20个异步上下文变化边界通过，最终日志L/DESKTOP-SAVE-PICKER.FINAL-DIRECTED-TESTS.log633／25c5979a；下载和失败回归交叉独审均无确定P0–P2，不重跑旧全站suite。
+
+L沿用上节同目录。原background点击返回AbortError并如实显示取消，原件保留；切至真实Chrome前台后从普通已保存封面按钮打开macOS保存框并正常保存。L/DESKTOP-SAVE.ACTUAL-RESULT.json1756／`97f2eba5b7671175bfd157ebeea1107274d8a7b4984d4d4df53a377984e289bb`证明文件 `browser-saved/NoteAI-cover-2a9baeed-revision2-browser-save-20261024.png` 3876729B／`d2a712bc0c2409fd28eb6db5973441f803c6dde07d2bbc74360d753e539d6edc`／1776×2368，与持久rev2和HTTP下载逐byte相等。PC-NATIVE-SAVE-SUCCESS.png实际显示“封面已保存到所选位置。”；jobs/usage/physical_calls/image_usage/credits/subscription逐值不变，新任务/模型/扣分0。此为macOS/Chrome实际OS落盘，已关闭此前桌面缺口；不冒真实iPhone、fallback设备或模型审美通过。浏览器内部下载记录仍未读取，原URL-policy拒绝未绕过。
+
+首次可编辑包保存失败的最小回归位于既有E=`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/implementation-a-20261022-r1`下 `v3-first-bundle-save-failure-r1/EVIDENCE.LOCAL.json`8394／`8a718c1c7856f9137363e3b0203f3c6ad30a71ab1a1cd2c0904863ea8f411142`。真实normal submit/claim/service/Invocation/SDK/CLI/PNG保存后，仅editable bundle store入口抛ObjectStorageUnavailable：RUN003实际1PASS/15.555s/skip0，failed/released/net0/revision0、complete0/refund1、原余额恢复；9个mock物理回执/8条模型记录/1条图像estimate及actualNULL完整保留。相同request_key/拒claim/两次空worker poll未重复SDK/调用/结算。RUN001/002仅新单图responder误以为image是list的fixture错误，已局修并保原失败；未改产品service/jobs，未测bundle内部半写或ACK丢失，不冒真实供应商成本。测试工作期d5证据源码与9f所提交23880B／734ae846完全相同。
+
+真实质量另走已授权的官方console独立样本，不是重发旧UNKNOWN或新建原R7业务任务：复用原434字报告和9张真实原照，选择 `doubao-seed-2-1-pro-260915`，关闭联网/Canvas，max_output16384/thinking high，阶段1只正常发送一次。官方conversation `41999793092822824` 的RequestId `2026102414202505C5E6B7F61A807CEC19`明确HTTP403／SendExperienceMessage／BusinessRiskDetected／decisionBLOCK，无模型回复；白名单原件L/CONSOLE-STAGE1.BUSINESS-RISK.ACTUAL.json1011／`48b7d54e49bc3864b95447cf0046ab9e87259ef8e5507fbbeb0cdb43cc6e9d03`，未存验证码、cookie、签名URL或opaque风控payload。官方验证码iframe为hidden，正常frame读取超时；未强制显示、解决或重发，只有此校验分支待用户当次确认。当前费用未查实，保留阶段1预留1.10元，不能记0或清历史UNKNOWN。样本全程预留上界4.10元（至多3次Pro与1次Seedream的保守预留及舍入），仍计方案A新增≤15／原累计≤100元，不重置已发生成本，调用次数按已授权需求。实际上传完成顺序为原索引 `[1,3,4,6,8,9,2,5,7]`，与原阶段1prompt宣称同序不符；原prompt不覆盖，后续获准步骤必须先明确位置/原文件映射，不能伪称选图依据正确。
+
+原唯一集成接手方“修复高德检索与休闲娱乐行业”（thread `01a13080-d8a9-7c50-88c0-09ffcebbef61`）已实际执行基础集成清单并完成9f增补，非仅确认收录；原sole docs-only提交 `3215b73d3ded9f389cadb64592fbb78cb0674b2a`，clean／未push。其原工作树 `docs/NOTEAI_COVER_FINAL_INTEGRATION_20261024.md`17060B／`30d0fb361e6924dc99e114ebee5e44343d2aeef67950aad3de721cbe0b5598f9`及 `docs/NOTEAI_COVER_INTEGRATION_SOURCE_20261024.json`54978B／`d21a82ee2676b03ca42d74ec530bfeb1f8b53029cb5e370468e1288e2b39bd20`已本机只读核真。100个组件仅HTML随9f改变，其余99不变；两测试另列精确Git/hash，不扩成生产组件。原有schema31／独立封面迁移、LFS原件及PlanA Node/SDK/browser运行依赖闭包见该清单，不执行历史迁移或第二套发布。Root继续真实样本、参数/用量与剩余功能证据；原sole下一只更新对应组件差异并负责最终统一集成发布，本窗口不修改另一工作树或生产。
+
+恢复继续唯一PLAN的 `tool_integration_review.normal_v3_real_nine_local_continuation`；以上登记不构成停工条件。旧R7窗口已关闭、净扣0／原8测试积分、全部旧成本/UNKNOWN及b991 Run0安全拒绝保持；该wrapper缺件不再挡普通开发。当前真实合格封面仍0／每合格成本N/A，真实六项QC/审美、实际normal供应商完整链与唯一结算、真实iPhone未完成；本机mock与桌面保存不替代这些。下一继续只读核Seedream实际model/参数和该403用量，官方校验获得当次许可且可正常呈现才处理，不重发未知任务、不打开新公网时窗。
+
+
+06:37UTC接续：Root已实际读官方Seedream `doubao-seedream-5-0-pro-260628` 参数，3:4／2K／1张显示1728×2304、无参考图预计0.41元；这是UI估价，不是实际账单，也不改变产品1776×2368或1张合同。官方当日Pro260915汇总及模型拆分均3次、输出6291tokens，输入/总量只显示8.5万/9.1万舍入数；与旧R7三次相符但不能按汇总认定新403费用为0，1.10元仍预留。L/VOLC-CAPABILITY-AND-USAGE.READONLY.json2885／`412a2f6b7c3393e9346a4a23c45dea278c13e5b7b8949d5258714a0bef823ae2`含4个实际DOM/截图refs。只正常刷新同一41999793092822824会话一次，读回空会话且无可见CAPTCHA或模型回复；未重新提交，原403不抹去。官方校验许可仍只影响该分支，不能强制显示或绕过风控。
+
+本机RUN004 worker false／新supplier_requests空后，Root正常POST stop；原exec92010退出0、56870监听已消失，文件和同库状态保留，不重跑run-next。原sole已收到下一实际候选构建任务，wait_threads真实见其inProgress并已检查本机Docker及固定Linux依赖；只在原工作树做本机API-only候选定义/构建能力，不云操作、收费、SQL或发布。本任务继续追踪实际构建结果和官方模型阻塞，不能把本段或文档提交当作完成。
