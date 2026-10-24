@@ -3281,3 +3281,12 @@ Root继续当前可执行离线修复：foundation仅改同一C/real_provider_lo
 实际R2 --preflight --next-after-job b296... PASS。正常serve002／exec99574已启动127.0.0.1:56613／until1792844356，同STATE/DB无重建/重置，强核原failed/net0/12responded及原once/result，account/history/9图434正文原样；只激活本机formal已有执行scope，原acceptance counter99436不动、formal native counter0，额外A15guard安装。正常auth新本机session非OTP，不输出token；GET quote200：8分、90天、1776×2368、model5Pro，4monthly＋4wallet预算来源，余额仍monthly4/wallet8。GET state证实真实累积仍12、nextphase jobs0/workerfalse/无新once，A15bound4187/余10813。新稳定clientUUID538678aa-5f25-4810-a9e8-3d4deed0f345只写PREPARED body未POST，避免等待用户时启动任务期限；无新增模型调用。
 
 官方task key仍已禁用。Root已提交一条集中async确认：当前同一双Pro受限key临时重新启用并验收1张新封面/保存找回/改字/下载/唯一结算，仍A累计15／原100（已含旧known/UNKNOWN），失败/未知不重发、结束禁用，不开公网或改生产；Chrome3 loopback受客户端阻断且不绕安全，库存IAB2可用，问题中同时明确本轮改用内置浏览器做PC/H5。浏览器操作规则要求重新启用已禁用凭据取得当次确认；本项未获回答前不启用、不发新付费。其他已授权准备已自主完成，现只剩该外部答复后可执行的真实链；仍保持恢复信息而非重跑历史。
+
+
+## CURRENT — 2026-10-24T10:49:29.764847+00:00 用户已同意，受限key恢复＋内置浏览器真实提交新任务，首次派发前checkpoint
+
+HEAD2c637d9／产品9f55fbf／callerb90446de46928不变。本窗10:45:55Z读取用户“同意”：同一双Pro受限key＋1新封面完整验收＋改用IAB，仍A15／原100。官方same task key apikey-20261024165317-pvjfq已实际恢复生效，未改权限/读取值/其他key；C/TASK-KEY-REENABLED.R2.ACTUAL.*有遮罩截图元数据，已给用户。当前key生效，终态/异常必须禁用，不能因checkpoint结束遗留。
+
+IAB2/tab1实际正常打开127.0.0.1:56613原产品，正常本机测试会话识别local-nine-owner，报告434正文与9张有效素材都在，原失败不扣与旧mock成品仍展示。PC1440×1000正常封面入口、报价8分/90天/标题自动优选；前端真实点击重新设计后202 queued，新job d3048c40-7132-48a0-b082-d9a5ba912c93／client4a6f6706-822b-421f-acce-5f583bc42154／usagee95b3f70-6fcf-4a07-8382-7f366e380bb8，已预留8、实际扣0。H5390×844排队面板宽352/left19/right371，document.scrollWidth390无横溢；PC/H5截图已落C。原PREPARED client538678aa未POST、已被正常UI生成4a6f替代，不得后续误发。
+
+Root正常GET state核新job唯一/workerfalse/新once无/新模型0（累计原12），A15保守bound4187milli、formal counter0、旧acceptance99436及全部旧账不变。下一立即执行该唯一Bearer run-next，默认真实Pro/Seedream≤1概念及原照HTML流程，A15按实际＋未知＋在途上界守卫，不重复旧failed/不重跑报告；真实大图六项QC及保存找回/改字/下载/唯一结算继续。原sole只接最终组件集成、不发布生产，本checkpoint不是停止。
