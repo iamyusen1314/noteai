@@ -33460,3 +33460,16 @@ IAB PC1440×1000正常入口核8分/90天/九图有效后真实点击新建唯�
 候选子代理保6公开原件5825294B，C/real-r5-design-evidence/CAPTURE-MANIFEST.json6099/e9ff9b9941b36ba10de5d073b38bc8d0e99d8438efc34d654372b3638b9c10f2；index3962/bc3d37f5、poster183/56fb4e82、brief/两prompt/概念5814599/0cba33d6。无final/240/QC捕获，不假冒未捕获就从未出现。已纯离线确认保全poster顶层width/height不符canvas嵌套、brand父含span不符文字叶子、HTML无自托管font-face；这些是确定交付缺口，不等于倒推终态原异常。当前runtime prompt只提文件名而未交代适配器精确schema/文字叶子/先font_add再变量，Root下一最小补齐原Agent提示并以该真实HTML离线回归，不固定审美模板或改报告。foundation唯一修改原caller/README的R6失败父保全和预算拒绝明因，仍HOLD/原A15/无新key服务模型，不改产品。
 
 原sole已实际完成D4 image209f09d4（a76b基础单COPY provider）和Node24.22.1/SDK2.1.2恰3新case全PASS/0skip，16:06:30–34Z、elapsed3.712，原Read01A16EAA/Output3014逐byte核合；6sourcepins逐Git4ab相等，28原件3561654B/manifest4517/69ba097c父逐filewhole验证，AUTO_REMOVED/stderr0/供应商与业务DB生产0。Root新收据C/DELTA4AB8A9E-NATIVE-ROOT-READBACK001.json，foundation实际及最终第19节独审GO。原solefbf5a20 clean未push完成101/API91组件及候选，后d9abe91仅收录归属Root的R5失败，不重测/不发布。下一个接手仍Root离线具体契约修复，不能拿本机合成或候选PASS当真实质量。阶段/此checkpoint不停止尚可执行工程。
+
+
+## CURRENT — 2026-10-24T16:43:06.549206+00:00 适配器契约修复8bc1f76已提交／实际离线原照预览与SDK链通过；新候选交原sole执行，R6预算与key集中待答
+
+实际功能HEAD8bc1f76eef6d67b2fc423c6e1d9cd2166f461706，三API产品＋README共4叶：runtime36012/d9b57622（仅_prompt精确canvas嵌套、文字叶子、先font_add后变量、固定画布和测量纠错）；host37392/89b985ca（仅render工具描述）；CLI21940/40a2f195（原硬门和code不变，detail仅id/元素盒/allowed/overflow/ink前16及总数）；README14451/e619652d。没有新平台/依赖/fonts/SQL/HTML/模型/价格/8分/90天/执行或重试策略。candidate最终独审GO无P0–P2；compile/nodecheck/diffcheck通过。C/R5-ADAPTER-SOURCE-AND-EVIDENCE001.json为冻结4叶与原件索引。
+
+原R5保全HTML＋本人原照1/8的实际CLI离线复现：原schema真实红；修三处后又因body flex把画布缩为1400、C1/C2真实红；固定body后原手工安全区与字体盒触原overflow红；新CLI提供真实几何detail，按坐标加原headline height322并修安全区后004实际1776×2368渲染成功，SHA30386025，manifest5c2eab7d，0外网/0模型。原设计/照片/文字内容不改，五项手工技术修补如实留，不把原脚本中途失败当全PASS。实际freeedit817d7c09成功，原b72c1688像素不变、USER_ADJUSTED_NOT_VISUALLY_REVIEWED；产品原thumbnail产出240×320 SHA f0a14e17。C/r5-adapter-offline-r1/summary.json301678/e1ec2635含1293原件（字体随各CLI快照保），初次汇总命令多余PIL导入未安装在system python，删无用import后只汇总，没有重跑渲染或改依赖。Root与独审实际看原照/大图/240：主体保留、标题可读无明显遮挡/缺字，品牌小字较小；没有固定Pro六项QC/市场效果或产品成功交付主张。原Agent没留下的plan/review未编造。
+
+同最终产品实际Node25.7/SDK2.1.2受影响完整工具/CLI/240/mockQC/editable bundle/freeedit单项1PASS/20.528s，C/R5-ADAPTER-SDK001.log726/287e2969，完整proof原teardown已保存C/r5-adapter-sdk-r1/noteai-cover-runtime-proof-midihuf7。只有此一项，无旧suite/高德/支付/报告重跑；全部新验证供应商0/业务DB0/新收费0，合成模型素材与上述真原照离线副本分别标明。真实R5仍failed/net0/合格0，旧54physical/host UNKNOWN/全部旧费用均不改。
+
+foundation已唯一准备同C的R6 caller52194/da5de5b091cad055df18f359526d71aa5ed148a124eaa9d3fe933942da5101c6、README11100/2ea0db60；R5旧caller和README独立inode0400封存。五固定失败父/54响应、R5 11/10与1.4965284、formalfloor68094保持；原4预算函数/session/main AST不变，仅本scope预算或scope拒绝添加固定.code＋首件安全code/bound/reserve整数诊断，失败不掩原错。启动前fresh原账与当前design估算先检查，不能先预留8再必拒；Root完整diff独审与原文件-only预检1925/70f77c8b实际HOLD：12374+2753>15000、余2626。没新session/job/server/模型/新key动作。
+
+刚集中发出R6真实分支所需唯一新问题：建议方案A累计15→20元（仅追加5元，原总100不变），新单任务预计2–3元/硬控累计20，same双Pro受限key≤60min/终态提前关/失败或未知停不重发，其余既定真实完整验收范围不变。目前无对应新答复；caller仍15000，绝不把建议当批准。正常DOM再次核key disabled并保TASK-KEY-R6-PENDING-APPROVAL.png已给用户/markHandoff，没有后台server或paid续跑。原sole已收到8bc具体3产品＋1support差量/原101API91、209f基础COPY-only最小新候选任务；目前仅派发，尚未冒实际开始，Root继续wait核实际启动/原件，待答不停止独立非付费工作。本checkpoint不是任务完成。
