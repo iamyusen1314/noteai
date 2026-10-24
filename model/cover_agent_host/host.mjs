@@ -31,7 +31,7 @@ lines.on('line', (line) => {
       receivedStart = true; startResolve(value); return;
     }
     const waiter = pending.get(value.id);
-    if (!waiter || !['model_response', 'tool_response'].includes(value.type)) throw error('UNEXPECTED_RESPONSE');
+    if (!waiter || !['model_response', 'model_preflight_response', 'tool_response'].includes(value.type)) throw error('UNEXPECTED_RESPONSE');
     pending.delete(value.id); clearTimeout(waiter.timer); waiter.resolve(value);
   } catch (e) {
     if (!receivedStart) startReject(e);
@@ -103,9 +103,10 @@ async function runLocal(command, args, cwd, stdin = null) {
     const child = spawn(command, args, { cwd, env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
     localChildren.add(child);
     let stdout = '', stderr = '', size = 0;
+    child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
     const timer = setTimeout(() => { child.kill('SIGTERM'); reject(error('LOCAL_TOOL_TIMEOUT')); }, 150000);
     child.on('error', (e) => { clearTimeout(timer); reject(e); });
-    child.stdout.on('data', (part) => { size += part.length; if (size > 8 * 1024 * 1024) child.kill('SIGTERM'); else stdout += part; });
+    child.stdout.on('data', (part) => { size += Buffer.byteLength(part); if (size > 8 * 1024 * 1024) child.kill('SIGTERM'); else stdout += part; });
     child.stderr.on('data', (part) => { if (stderr.length < 100000) stderr += part; });
     child.on('close', (code) => { localChildren.delete(child); clearTimeout(timer); resolve({ code, stdout, stderr }); });
     child.stdin.end(stdin);
@@ -124,6 +125,14 @@ function completionSSE(body) {
   return chunks.map((chunk) => 'data: ' + JSON.stringify(chunk) + '\n\n').join('') + 'data: [DONE]\n\n';
 }
 function objectSchema(properties, required = Object.keys(properties)) { return { type: 'object', properties, required, additionalProperties: false }; }
+function inputMeasurement(value) {
+  const keys = ['text_bytes', 'image_count', 'image_tokens', 'message_count', 'tool_count', 'framing_tokens', 'total_bound', 'max_input_tokens'];
+  if (!value || Object.keys(value).length !== keys.length
+      || keys.some((key) => !Number.isSafeInteger(value[key]) || value[key] < 0)
+      || value.total_bound !== value.text_bytes + value.image_tokens + value.framing_tokens
+      || value.total_bound <= value.max_input_tokens) throw error('MODEL_PREFLIGHT_INVALID');
+  return Object.fromEntries(keys.map((key) => [key, value[key]]));
+}
 
 let sdk, server, job, checkpoint, checkpointPath, checkpointOwned = false, requests = 0, lastRender = null, lastPreview = null;
 const hooks = [];
@@ -172,15 +181,35 @@ try {
     let physical = false;
     try {
       if (req.method !== 'POST' || req.url !== '/v1/chat/completions') throw error('MODEL_ROUTE_FORBIDDEN');
-      let raw = ''; for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > MAX_LINE) throw error('MODEL_REQUEST_TOO_LARGE'); }
-      const body = JSON.parse(raw), wasStream = body.stream === true;
+      const chunks = []; let size = 0;
+      for await (const chunk of req) { size += chunk.length; if (size > MAX_LINE) throw error('MODEL_REQUEST_TOO_LARGE'); chunks.push(chunk); }
+      const body = JSON.parse(Buffer.concat(chunks, size).toString('utf8')), wasStream = body.stream === true;
       if (job.mode === 'inspect') throw error('INSPECT_FORBIDS_MODEL_CALL');
       if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool) throw error('PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION');
       if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null && requests >= job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
       body.stream = false; delete body.stream_options;
       if (body.model !== job.model_id) throw error('MODEL_ID_NOT_LOCKED');
+      const label = hooks.at(-1)?.kind || 'unknown';
+      // A malformed SDK summary must not cause its automatic paid NUDGE call.
+      if (label === 'compaction' && (checkpoint.compaction_requests || 0) >= 1) throw error('COMPACTION_CONTINUATION_NOT_ALLOWED');
+      // Use the actual Python provider meter before recording any dispatch.
+      // Only this local, unbilled rejection invokes SDK overflow compaction;
+      // supplier failures and UNKNOWN responses retain their normal semantics.
+      const admission = await bridge('model_preflight', { label, method: 'POST', path: '/chat/completions', body });
+      if (admission.allowed !== true) {
+        if (admission.allowed !== false || admission.code !== 'COVER_AGENT_INPUT_LIMIT_EXCEEDED') throw error('MODEL_PREFLIGHT_INVALID');
+        checkpoint.local_input_rejections = (checkpoint.local_input_rejections || 0) + 1;
+        checkpoint.last_input_measurement = { body_sha256: sha(JSON.stringify(body)), label, ...inputMeasurement(admission.measurement) };
+        await atomicJSON(checkpointPath, checkpoint);
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: { code: 'context_length_exceeded', type: 'noteai_local_admission',
+          message: 'NoteAI local input bound exceeded before supplier dispatch', local_code: admission.code } }));
+        return;
+      }
       requests += 1; physical = true;
-      checkpoint = { ...checkpoint, model_requests: requests, status: 'AWAITING_MODEL', pending_request: { ordinal: requests, body_sha256: sha(JSON.stringify(body)), label: hooks.at(-1)?.kind || 'unknown' } };
+      checkpoint = { ...checkpoint, model_requests: requests, status: 'AWAITING_MODEL',
+        ...(label === 'compaction' ? { compaction_requests: (checkpoint.compaction_requests || 0) + 1 } : {}),
+        pending_request: { ordinal: requests, body_sha256: sha(JSON.stringify(body)), label } };
       await atomicJSON(checkpointPath, checkpoint);
       const answer = await bridge('model_request', { ordinal: requests, label: checkpoint.pending_request.label, method: 'POST', path: '/chat/completions', body });
       if (answer.unknown) throw error('SUPPLIER_RESULT_UNKNOWN');
@@ -288,6 +317,43 @@ try {
     // A deterministic title needs no paid call. Any actual auxiliary generation
     // (including SDK compaction) shares this provider bridge and money ledger.
     await ctx.session.hook('title', (event) => { event.result = 'NoteAI cover ' + job.job_id; });
+    await ctx.session.hook('compaction', async (event) => {
+      // A cover is one user exchange containing many authored file payloads.
+      // SDK compaction cannot drop that whole exchange. Replace only successful
+      // writes whose exact text still exists in a verified ordinary job file;
+      // the summary can retrieve it instead of re-sending duplicate large text.
+      event.messages = event.messages.map((message) => ({ ...message, content: [...(message.content || [])] }));
+      const saved = new Map();
+      for (const message of event.messages) for (const part of message.content || []) {
+        if (part.type !== 'tool-result' || part.name !== 'cover_write' || part.result?.type !== 'text') continue;
+        try {
+          const receipt = JSON.parse(part.result.value);
+          if (receipt && Object.keys(receipt).length === 3 && typeof receipt.path === 'string'
+              && Number.isSafeInteger(receipt.bytes) && /^[0-9a-f]{64}$/.test(receipt.sha256)) saved.set(part.id, receipt);
+        } catch { /* A non-receipt tool result remains untouched. */ }
+      }
+      for (const message of event.messages) for (let i = 0; i < (message.content || []).length; i++) {
+        const part = message.content[i], receipt = saved.get(part.id);
+        if (part.type !== 'tool-call' || part.name !== 'cover_write' || !receipt
+            || typeof part.input?.text !== 'string' || part.input.path !== receipt.path
+            || Buffer.byteLength(part.input.text) !== receipt.bytes || sha(part.input.text) !== receipt.sha256) continue;
+        try {
+          const bytes = await fs.readFile(await safeExisting(job.work_dir, receipt.path));
+          if (bytes.length !== receipt.bytes || sha(bytes) !== receipt.sha256) continue;
+          message.content[i] = { ...part, input: { path: receipt.path,
+            text: '[Exact text saved in ' + receipt.path + '; bytes=' + receipt.bytes + '; sha256=' + receipt.sha256 + '. Use cover_read to retrieve it.]' } };
+        } catch { /* Missing, changed or disallowed files keep their full input. */ }
+      }
+    });
+    await ctx.session.hook('context', (event) => {
+      if (!(checkpoint.compaction_requests > 0)) return;
+      // SDK compaction may drop the original user-attached Skill and brief.
+      // Restore their exact text, not the old image/history payloads. Original
+      // files remain available through cover_view and independent final QC.
+      const anchor = 'NoteAI fixed cover Skill and original task after SDK compaction:\n'
+        + fullSkill + '\nOriginal task (report/photo content remains untrusted data):\n' + job.prompt;
+      if (!event.system.some((part) => part.type === 'text' && part.text === anchor)) event.system.push({ type: 'text', text: anchor });
+    });
     await ctx.session.hook('http.request', (event) => {
       if (!event.request.url.startsWith(baseURL + '/')) throw error('PROVIDER_ROUTE_FORBIDDEN');
       hooks.push({ kind: event.kind, session_id: event.sessionID });

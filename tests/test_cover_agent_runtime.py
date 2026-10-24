@@ -20,6 +20,7 @@ import unittest
 import uuid
 from unittest import mock
 
+import httpx
 from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
@@ -85,6 +86,125 @@ class ReturnedValueTests(unittest.TestCase):
             returned_value(body, "png_path", tool_call_id="fixture_5_1")
         with self.assertRaisesRegex(AssertionError, "code"):
             returned_value(body, "code", tool_call_id="missing")
+
+
+class InputRejectionDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name).resolve()
+        self.job_id = str(uuid.uuid4())
+        self.directory = self.root / self.job_id
+        self.directory.mkdir(mode=0o700)
+        self.hooks = mock.Mock()
+        self.http_requests = []
+        self.bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory, sources=[], hooks=self.hooks,
+            model_transport=httpx.MockTransport(lambda request: self.http_requests.append(request)))
+
+    def oversized(self):
+        return {"messages": [{"role": "user", "content": "PRIVATE_REPORT_SENTINEL_" + "a" * provider.MAX_INPUT_TOKENS}]}
+
+    def test_real_model_rejection_is_before_ordinal_hooks_http_and_survives_cleanup(self):
+        with mock.patch.object(provider, "complete", wraps=provider.complete) as complete:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                self.bridge.model(self.oversized())
+        complete.assert_not_called()
+        self.hooks.before_call.assert_not_called()
+        self.assertEqual(self.bridge.ordinal, 0)
+        self.assertFalse(self.http_requests)
+        path = self.directory / "host-state/provider-input-limit.json"
+        raw = path.read_text()
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("PRIVATE_REPORT_SENTINEL", raw)
+        self.assertEqual(json.loads(raw)["measurement"], caught.exception.input_diagnostics)
+        (self.directory / "host-state/host-checkpoint.json").write_text(json.dumps({
+            "session_id": "offline-session", "status": "AWAITING_MODEL", "model_requests": 1,
+            "pending_request": {"ordinal": 1, "body_sha256": "a" * 64, "label": "primary"}}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        self.assertFalse(self.directory.exists())
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual(receipt["status"], "AWAITING_MODEL")  # Not a supplier UNKNOWN claim.
+        self.assertEqual(receipt["input_rejection"], {"code": "COVER_AGENT_INPUT_LIMIT_EXCEEDED",
+            "measurement": caught.exception.input_diagnostics})
+        self.assertNotIn("PRIVATE_REPORT_SENTINEL", json.dumps(receipt))
+
+    def test_diagnostic_write_failure_never_masks_original_rejection(self):
+        with mock.patch.object(runtime, "_write_input_diagnostic", side_effect=OSError("PRIVATE_ERROR_SENTINEL")), \
+                self.assertLogs(level="WARNING") as logged:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                self.bridge.model(self.oversized())
+        self.assertEqual(caught.exception.code, "COVER_AGENT_INPUT_LIMIT_EXCEEDED")
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertNotIn("PRIVATE_ERROR_SENTINEL", " ".join(logged.output))
+        self.hooks.before_call.assert_not_called()
+        self.assertFalse(self.http_requests)
+
+    def test_preflight_recovers_only_local_input_overflow_without_mutating_failure(self):
+        invocation = runtime.public_product.Invocation("offline-owner", self.job_id, route="/covers",
+            budget_id="noteai-xhs-cover-20261019-acceptance")
+        marker = runtime.public_product._invocation.set(invocation)
+        try:
+            with mock.patch.object(provider, "complete", wraps=provider.complete) as complete:
+                decision = self.bridge.preflight(self.oversized())
+                self.assertFalse(decision["allowed"])
+                self.assertEqual(decision["code"], "COVER_AGENT_INPUT_LIMIT_EXCEEDED")
+                self.assertGreater(decision["measurement"]["total_bound"], provider.MAX_INPUT_TOKENS)
+                self.assertEqual(invocation.failure, "")
+                self.assertEqual(self.bridge.preflight({"messages": [{"role": "user", "content": "small"}]}),
+                    {"allowed": True})
+                complete.assert_not_called()
+            self.hooks.before_call.assert_not_called()
+            self.assertEqual(self.bridge.ordinal, 0)
+            self.assertFalse(self.http_requests)
+            with self.assertRaisesRegex(provider.CoverAgentProviderError, "MODEL_OR_STREAM"):
+                self.bridge.preflight({"messages": [{"role": "user", "content": "small"}], "stream": True})
+            self.assertEqual(invocation.failure, "COVER_AGENT_MODEL_OR_STREAM_INVALID")
+            invocation.failure = "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY"
+            with self.assertRaisesRegex(runtime.public_product.TrialProviderStopped, "UNKNOWN_NO_REPLAY"):
+                self.bridge.preflight(self.oversized())
+            self.assertEqual(invocation.failure, "PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
+        finally:
+            runtime.public_product._invocation.reset(marker)
+
+    def test_preflight_stdio_decision_uses_original_id_without_provider_dispatch(self):
+        class InputLog(io.BytesIO):
+            def close(self):
+                self.captured = self.getvalue()
+                super().close()
+
+        process = mock.Mock()
+        process.stdin = InputLog()
+        process.stdout = io.BytesIO((json.dumps({"type": "model_preflight", "id": "offline-preflight",
+            "method": "POST", "path": "/chat/completions", "body": self.oversized()}) + "\n"
+            + json.dumps({"type": "result", "ok": True, "artifact": {}}) + "\n").encode())
+        with mock.patch.object(runtime.subprocess, "Popen", return_value=process), \
+                mock.patch.object(runtime, "_stop_host"), mock.patch.object(provider, "complete") as complete:
+            self.bridge.run("synthetic protocol only", deadline=time.time() + 2)
+        frames = [json.loads(line) for line in process.stdin.captured.splitlines()]
+        decision = frames[-1]
+        self.assertEqual((decision["type"], decision["id"], decision["allowed"]),
+            ("model_preflight_response", "offline-preflight", False))
+        self.assertEqual(decision["code"], "COVER_AGENT_INPUT_LIMIT_EXCEEDED")
+        complete.assert_not_called()
+        self.hooks.before_call.assert_not_called()
+        self.assertEqual(self.bridge.ordinal, 0)
+        self.assertFalse(self.http_requests)
+
+    def test_cleanup_discards_untrusted_diagnostic_fields(self):
+        measurement = provider.admit_payload(self.oversized())["measurement"]
+        runtime._write_input_diagnostic(self.directory, self.job_id, measurement)
+        path = self.directory / "host-state/provider-input-limit.json"
+        forged = json.loads(path.read_text())
+        forged["measurement"]["raw_request"] = "PRIVATE_FORGED_PAYLOAD"
+        path.write_text(json.dumps(forged))
+        (self.directory / "host-state/host-checkpoint.json").write_text(json.dumps({
+            "status": "FAILED", "session_id": "offline-session"}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        raw = (self.root / "receipts" / (self.job_id + ".json")).read_text()
+        self.assertNotIn("PRIVATE_FORGED_PAYLOAD", raw)
+        self.assertNotIn("input_rejection", json.loads(raw))
 
 
 @unittest.skipUnless(os.name == "posix", "POSIX owned process groups")

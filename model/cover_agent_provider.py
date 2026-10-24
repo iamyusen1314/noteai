@@ -40,14 +40,46 @@ _KEYS = {"model", "messages", "tools", "tool_choice", "parallel_tool_calls",
     "max_tokens", "max_completion_tokens", "thinking", "reasoning_effort",
     "stream", "temperature", "top_p", "presence_penalty", "frequency_penalty",
     "response_format", "seed", "service_tier"}
+_INPUT_DIAGNOSTIC_KEYS = frozenset({"text_bytes", "image_count", "image_tokens",
+    "message_count", "tool_count", "framing_tokens", "total_bound", "max_input_tokens"})
 
 
 class CoverAgentProviderError(public_product.TrialProviderStopped):
-    def __init__(self, code, *, outcome_unknown=False, call_id=None):
+    def __init__(self, code, *, outcome_unknown=False, call_id=None, input_diagnostics=None):
         self.code = code
         self.outcome_unknown = bool(outcome_unknown)
         self.call_id = call_id
+        self.input_diagnostics = validated_input_diagnostics(input_diagnostics)
         super().__init__(code)
+
+
+def validated_input_diagnostics(value):
+    """Only bounded, internally consistent integers may survive error cleanup."""
+    if (not isinstance(value, dict) or set(value) != _INPUT_DIAGNOSTIC_KEYS
+            or any(type(item) is not int or not 0 <= item < 2**63 for item in value.values())
+            or not 1 <= value["message_count"] <= 128 or not 0 <= value["tool_count"] <= 128
+            or value["max_input_tokens"] != MAX_INPUT_TOKENS
+            or value["framing_tokens"] != 128 * (value["message_count"] + value["tool_count"]) + 1024
+            or value["total_bound"] != value["text_bytes"] + value["image_tokens"] + value["framing_tokens"]
+            or not 257 * value["image_count"] <= value["image_tokens"] <= 5376 * value["image_count"]):
+        return None
+    return dict(value)
+
+
+def _measure_input(body, image_tokens, image_count):
+    """The existing admission arithmetic, without retaining any request content."""
+    measured = deepcopy(body)
+    for message in measured["messages"]:
+        if isinstance(message.get("content"), list):
+            for part in message["content"]:
+                if part.get("type") == "image_url":
+                    part["image_url"]["url"] = ""
+    text_bytes = len(json.dumps(measured, ensure_ascii=False, separators=(",", ":")).encode())
+    message_count, tool_count = len(body["messages"]), len(body.get("tools", []))
+    framing = 128 * (message_count + tool_count) + 1024
+    return {"text_bytes": text_bytes, "image_count": image_count, "image_tokens": image_tokens,
+        "message_count": message_count, "tool_count": tool_count, "framing_tokens": framing,
+        "total_bound": text_bytes + image_tokens + framing, "max_input_tokens": MAX_INPUT_TOKENS}
 
 
 def pricing(prompt_tokens: int) -> dict:
@@ -113,8 +145,8 @@ def _image_tokens(image):
     return math.ceil(limits["max_pixels"] / 1764) + 256
 
 
-def prepare_payload(payload: dict) -> tuple[dict, int]:
-    """Validate a detached Chat body and return its conservative input bound.
+def _validate_and_measure_payload(payload: dict) -> tuple[dict, dict]:
+    """Validate a detached Chat body and measure its conservative input bound.
 
     Text/tool JSON is counted by UTF-8 bytes (not characters), plus explicit
     framing headroom. Vision uses actual inline bytes and explicit pixel caps.
@@ -144,7 +176,7 @@ def prepare_payload(payload: dict) -> tuple[dict, int]:
     messages = body.get("messages")
     if not isinstance(messages, list) or not 1 <= len(messages) <= 128:
         _invalid()
-    image_tokens = 0
+    image_tokens, image_count = 0, 0
     for message in messages:
         if (not isinstance(message, dict) or set(message) - {"role", "content", "name",
                 "tool_calls", "tool_call_id", "reasoning_content"}
@@ -166,6 +198,7 @@ def prepare_payload(payload: dict) -> tuple[dict, int]:
                 if part.get("type") != "image_url" or set(part) != {"type", "image_url"}:
                     _invalid("COVER_AGENT_MODALITY_INVALID")
                 image_tokens += _image_tokens(part["image_url"])
+                image_count += 1
     tools = body.get("tools", [])
     if not isinstance(tools, list) or len(tools) > 128:
         _invalid("COVER_AGENT_TOOLS_INVALID")
@@ -188,19 +221,36 @@ def prepare_payload(payload: dict) -> tuple[dict, int]:
             _invalid("COVER_AGENT_TOOLS_INVALID")
     elif not isinstance(choice, str) or choice not in {"auto", "none", "required"} or (choice == "required" and not tools):
         _invalid("COVER_AGENT_TOOLS_INVALID")
-    measured = deepcopy(body)
-    for message in measured["messages"]:
-        if isinstance(message.get("content"), list):
-            for part in message["content"]:
-                if part.get("type") == "image_url":
-                    part["image_url"]["url"] = ""
-    text_bytes = len(json.dumps(measured, ensure_ascii=False, separators=(",", ":")).encode())
-    bound = text_bytes + image_tokens + 128 * (len(messages) + len(tools)) + 1024
-    if bound > MAX_INPUT_TOKENS:
-        _invalid("COVER_AGENT_INPUT_LIMIT_EXCEEDED")
+    measurement = _measure_input(body, image_tokens, image_count)
+    return body, measurement
+
+
+def _check_request_size(body):
     if len(json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()) > ark_media.MAX_REQUEST_BYTES:
         _invalid("COVER_AGENT_REQUEST_TOO_LARGE")
+
+
+def prepare_payload(payload: dict) -> tuple[dict, int]:
+    """Original hard admission: validate, reject input overflow, then wire size."""
+    body, measurement = _validate_and_measure_payload(payload)
+    bound = measurement["total_bound"]
+    if bound > MAX_INPUT_TOKENS:
+        raise CoverAgentProviderError("COVER_AGENT_INPUT_LIMIT_EXCEEDED", input_diagnostics=measurement)
+    _check_request_size(body)
     return body, bound
+
+
+def admit_payload(payload: dict) -> dict:
+    """Pure preflight decision only for input overflow; all other errors fatal.
+
+    No exception is constructed for this known local non-dispatch rejection, so
+    an existing Invocation failure/UNKNOWN is never cleared or replaced.
+    """
+    body, measurement = _validate_and_measure_payload(payload)
+    if measurement["total_bound"] > MAX_INPUT_TOKENS:
+        return {"allowed": False, "code": "COVER_AGENT_INPUT_LIMIT_EXCEEDED", "measurement": measurement}
+    _check_request_size(body)
+    return {"allowed": True}
 
 
 def _require_price():

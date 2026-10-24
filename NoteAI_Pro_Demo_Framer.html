@@ -8495,6 +8495,9 @@ function coverAcceptJob(ctx, job) {
   ctx.jobs = [job,...(ctx.jobs || []).filter(item => item.job_id !== job.job_id)];
   if (job.status === 'completed' && job.has_final) {
     ctx.latest = job;
+  }
+  if ((job.status === 'completed' && job.has_final)
+      || (!coverJobPending(job) && ['released','reservation_released','failed'].includes(job.billing?.status))) {
     if (ctx.balanceJobId !== job.job_id) {
       ctx.balanceJobId = job.job_id;
       void refreshCreditBalance();
@@ -8512,6 +8515,12 @@ function coverScheduleRead(ctx) {
       const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(originalJobId));
       const job = await response.json(); if (!ctx.current() || ctx.active?.job_id !== originalJobId) return;
       coverAcceptJob(ctx,job); ctx.notice = '';
+      if (!coverJobPending(job)) {
+        // The old quote may have been read while this task held its credits.
+        ctx.quote = null;
+        await coverRefresh(ctx);
+        return;
+      }
       coverRender(ctx); await coverShowFinal(ctx);
     } catch (error) { if (ctx.current()) { ctx.notice = '连接暂时中断，后台任务保留。可刷新查询；不要重复生成。'; coverRender(ctx); } }
     coverScheduleRead(ctx);

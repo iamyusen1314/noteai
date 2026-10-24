@@ -312,6 +312,46 @@ test('saved cover settlement refreshes ledger-backed balance once per completed 
  c.coverAcceptJob(ctx,{...completed,job_id:'next-completed-job'});assert.equal(reads,2);
 });
 
+test('a released cover hold refreshes the ledger balance once without charging or replacing a saved cover',()=>{
+ let reads=0;const {c,ctx}=make({refreshCreditBalance:async()=>{reads++;}});
+ ctx.latest={...completed};
+ const failed={...completed,job_id:'failed-task',status:'failed',stage:'failed',has_final:false,billing:{status:'released',credits_used:0,reserved_credits:0}};
+ c.coverAcceptJob(ctx,{...failed,status:'outcome_unknown',billing:{status:'reserved',reserved_credits:8}});assert.equal(reads,0);
+ c.coverAcceptJob(ctx,failed);c.coverAcceptJob(ctx,failed);
+ assert.equal(reads,1);assert.equal(ctx.latest.job_id,completed.job_id);
+});
+
+test('terminal polling replaces the quote taken during a credit hold using reads only',async()=>{
+ let poll,reads=0,posts=0,balanceReads=0;
+ const failed={...completed,job_id:'failed-task',status:'failed',stage:'failed',has_final:false,billing:{status:'released',credits_used:0,reserved_credits:0}};
+ const {c,ctx,el}=make({setTimeout:callback=>{poll=callback;return 99;},refreshCreditBalance:async()=>{balanceReads++;},fetch:async(url,options={})=>{
+  if(options.method){posts++;throw Error('must only read');}
+  reads++;
+  return {ok:true,json:async()=>url.endsWith('/covers/failed-task')?failed:{enabled:true,quote:{operation:'cover_generate',credits:8,quote_version:'current',can_afford:true,charge_timing:'after_saved_cover'},jobs:[failed,completed],latest_success:completed}};
+ }});
+ ctx.latest={...completed};ctx.previewKey=completed.job_id+':'+completed.asset_revision;
+ ctx.active={...failed,status:'running',stage:'design',billing:{status:'reserved',reserved_credits:8}};
+ ctx.quote.can_afford=false;c.coverScheduleRead(ctx);await poll();
+ assert.equal(reads,2);assert.equal(posts,0);assert.equal(balanceReads,1);
+ assert.equal(el('availability').textContent,'');assert.equal(el('create').disabled,false);
+ assert.match(el('status').textContent,/预留已释放，本任务不扣分/);assert.equal(ctx.latest.job_id,completed.job_id);
+});
+
+test('a failed terminal quote read cannot keep an obsolete insufficient-credit warning or enable submission',async()=>{
+ let poll,posts=0;
+ const failed={...completed,job_id:'failed-task',status:'failed',stage:'failed',has_final:false,billing:{status:'released',credits_used:0,reserved_credits:0}};
+ const {c,ctx,el}=make({setTimeout:callback=>{poll=callback;return 99;},fetch:async(url,options={})=>{
+  if(options.method){posts++;throw Error('must only read');}
+  if(url.endsWith('/covers/failed-task'))return {ok:true,json:async()=>failed};
+  throw Error('报价读取中断');
+ }});
+ ctx.active={...failed,status:'running',stage:'design',billing:{status:'reserved',reserved_credits:8}};
+ ctx.quote.can_afford=false;c.coverScheduleRead(ctx);await poll();await c.coverCreate(ctx);
+ assert.equal(posts,0);assert.equal(ctx.quote,null);assert.equal(el('create').disabled,true);
+ assert.equal(el('availability').textContent,'');assert.match(el('quote').textContent,/报价暂不可用/);
+ assert.match(el('status').textContent,/报价读取中断/);assert.match(el('status').textContent,/本任务不扣分/);
+});
+
 test('desktop cover save opens the picker before fetching and reports success only after close',{timeout:2000},async()=>{
  const events=[],blob=new Blob(['saved-cover-bytes'],{type:'image/png'});let finishClose,closeStarted,request,pickerOptions;
  const closeGate=new Promise(resolve=>finishClose=resolve),closing=new Promise(resolve=>closeStarted=resolve);

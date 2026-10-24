@@ -70,7 +70,35 @@ cumulative monetary reservation and deadline. A finite fixture limit is enforced
 before the next bridge dispatch. `context_tokens` and `output_tokens` are optional
 explicit model bounds; defaults are 128000 and 8192.
 
-Every actual HTTP request emits `model_request` with `id`, cumulative `ordinal`,
+Before any dispatch intent, the actual SDK wire body emits `model_preflight`
+with `id`, `label`, method, path and body. Python applies the same pure validator
+and input meter used by its hard provider admission, without reserving money or
+creating a physical call. It replies `model_preflight_response` with the same
+`id` and `allowed:true`, or `allowed:false`, code
+`COVER_AGENT_INPUT_LIMIT_EXCEEDED` and fixed integer `measurement` fields.
+Other validation failures remain fatal. No Invocation failure or UNKNOWN is
+cleared to recover a local rejection.
+
+Only that known local input rejection becomes a localhost 400 with SDK-compatible
+`context_length_exceeded` and explicit `noteai_local_admission` identity. This
+uses OpenCode's existing overflow compaction; it is not a supplier response or
+Volcengine native compaction. Rejected preflights have no physical ordinal,
+dispatch intent or charge. They retain content-free measurements in the existing
+cleanup receipt. The provider's 131072 conservative bound is unchanged.
+
+At most one admitted compaction request is allowed per task. Its paid response
+uses the same provider admission and ledger; an automatic SDK summary NUDGE is
+blocked before dispatch. In the SDK summary input only, successful `cover_write`
+arguments may become file references when the corresponding receipt and current
+ordinary file both match the full text's exact bytes and SHA. Missing, overwritten
+or failed writes stay untouched. This avoids the SDK's inability to drop a single
+long cover exchange without changing saved files or the session history.
+After compaction, the primary context hook restores the
+exact full Skill and original task facts/title/source index. It does not reinsert
+old image payloads: original files remain available to `cover_view`, and actual
+original/concept/final/thumbnail inspection and independent QC still apply.
+
+Every admitted model request emits `model_request` with `id`, cumulative `ordinal`,
 `label` (primary/compaction/generate/title), method, path and the full JSON body.
 Python must account and dispatch it once, then reply:
 

@@ -3,21 +3,75 @@
 NOTEAI_COVER_HOST_NODE_MODULES points to the task-local exact installation.
 No remote model endpoint, credential, account, or product database is involved.
 """
+import ast
 import base64
+from copy import deepcopy
 import hashlib
+import io
 import json
+import math
 import os
 from pathlib import Path
+import re
 import selectors
 import shutil
 import subprocess
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
+
+from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent.parent
 PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGNQKJhAEmIY1TCqYfhqAACs2CAQru0W7wAAAABJRU5ErkJggg==")
+
+
+def provider_admission():
+    """Execute the actual pure validator, without importing DB/env/provider I/O."""
+    names = {"MODEL", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "_NAME", "_KEYS",
+             "_INPUT_DIAGNOSTIC_KEYS", "CoverAgentProviderError", "validated_input_diagnostics",
+             "_measure_input", "_invalid", "_image_tokens", "_validate_and_measure_payload",
+             "_check_request_size", "prepare_payload", "admit_payload"}
+    source = PROJECT / "model/cover_agent_provider.py"
+    tree = ast.parse(source.read_text(), filename=str(source))
+    selected = [node for node in tree.body if (
+        isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in names
+        or isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id in names for t in node.targets))]
+    found = {node.name if isinstance(node, (ast.FunctionDef, ast.ClassDef)) else node.targets[0].id
+             for node in selected}
+    if found != names:
+        raise AssertionError("Pure provider contract changed: " + repr(names ^ found))
+    media_source = PROJECT / "model/ark_media.py"
+    media_tree = ast.parse(media_source.read_text(), filename=str(media_source))
+    media_nodes = [node for node in media_tree.body if isinstance(node, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id in {"MAX_IMAGE_BYTES", "MAX_REQUEST_BYTES"}
+                           for t in node.targets)]
+    media = {}
+    exec(compile(ast.Module(body=media_nodes, type_ignores=[]), str(media_source), "exec"), media)
+    namespace = {"base64": base64, "deepcopy": deepcopy, "io": io, "json": json,
+                 "math": math, "re": re, "Image": Image,
+                 "ark_media": SimpleNamespace(**{key: media[key] for key in ("MAX_IMAGE_BYTES", "MAX_REQUEST_BYTES")}),
+                 "public_product": SimpleNamespace(TrialProviderStopped=RuntimeError)}
+    exec(compile(ast.Module(body=selected, type_ignores=[]), str(source), "exec"), namespace)
+    return namespace
+
+
+def text_values(value):
+    if isinstance(value, str):
+        return [] if value.startswith("data:image/") else [value]
+    if isinstance(value, list):
+        return [text for item in value for text in text_values(item)]
+    if isinstance(value, dict):
+        return [text for item in value.values() for text in text_values(item)]
+    return []
+
+
+def image_hashes(body):
+    return [hashlib.sha256(base64.b64decode(part["image_url"]["url"].split(",", 1)[1])).hexdigest()
+            for message in body["messages"] if isinstance(message.get("content"), list)
+            for part in message["content"] if part.get("type") == "image_url"]
 
 
 class HostProof(unittest.TestCase):
@@ -27,12 +81,15 @@ class HostProof(unittest.TestCase):
         cls.node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
         if not cls.modules or not cls.node:
             raise unittest.SkipTest("Explicit task-local OpenCode installation and node required")
+        cls.node_version = subprocess.run([cls.node, "--version"], capture_output=True,
+                                          text=True, check=True, timeout=5).stdout.strip()
         cls.root = Path(tempfile.mkdtemp(prefix="noteai-cover-host-proof-"))
         cls.receipts = []
 
     @classmethod
     def tearDownClass(cls):
-        receipt = {"real_model_requests": 0, "sdk_version": "2.1.2", "fixtures": cls.receipts}
+        receipt = {"real_model_requests": 0, "sdk_version": "2.1.2", "node_version": cls.node_version,
+                   "fixtures": cls.receipts}
         (cls.root / "proof-results.json").write_text(json.dumps(receipt, indent=2))
         output = os.environ.get("NOTEAI_COVER_HOST_PROOF_OUTPUT")
         if output:
@@ -40,17 +97,31 @@ class HostProof(unittest.TestCase):
             shutil.copytree(cls.root, Path(output) / cls.root.name)
         print("HOST_PROOF_EVIDENCE=" + str(cls.root))
 
-    def request(self, case, *, mode="run", limit=None, behavior="success", session_id=None, forbidden_path=None):
+    def request(self, case, *, mode="run", limit=None, behavior="success", session_id=None,
+                forbidden_path=None, admission=None, respond=None, nine_photos=False):
         root = self.root / case
         (root / "work").mkdir(parents=True, exist_ok=True)
         (root / "work/photo.png").write_bytes(PNG)
+        photos = [{"path": "photo.png"}]
+        if nine_photos:
+            photos = []
+            for index in range(1, 10):
+                target = root / ("work/source-" + str(index) + ".png")
+                image = Image.new("RGB", (32, 32), (index * 23, index * 17, index * 11))
+                image.save(target)
+                photos.append({"path": target.name, "name": "original-" + str(index)})
+        prompt = "Offline proof only. Follow the returned tool calls and finish. Do not generate artwork."
+        if nine_photos:
+            prompt += "\n批准事实：真实庭院；批准标题：城市里的日式庭院。不得增加价格或服务。\n原照索引=" + json.dumps([
+                {"path": photo["path"], "sha256": hashlib.sha256((root / "work" / photo["path"]).read_bytes()).hexdigest()}
+                for photo in photos], ensure_ascii=False)
         start = {
             "type": "start", "job_id": case, "state_dir": str(root / "state"),
             "work_dir": str(root / "work"),
             "skill_dir": str(PROJECT / "model/cover_editable/vendor/editable-design"),
             "editable_cli": str(PROJECT / "model/cover_editable/cli.mjs"),
-            "model_id": "offline-fixture", "prompt": "Offline proof only. Follow the returned tool calls and finish. Do not generate artwork.",
-            "images": [{"path": "photo.png"}], "max_model_requests": limit,
+            "model_id": admission["MODEL"] if admission else "offline-fixture", "prompt": prompt,
+            "images": photos, "max_model_requests": limit,
             "deadline_epoch_ms": int((time.time() + 60) * 1000), "mode": mode,
         }
         if session_id:
@@ -60,8 +131,9 @@ class HostProof(unittest.TestCase):
             if os.environ.get(key):
                 env[key] = os.environ[key]
         proc = subprocess.Popen([self.node, str(HERE / "worker.mjs")], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, bufsize=1)
+        host_sha = hashlib.sha256((HERE / "host.mjs").read_bytes()).hexdigest()
         proc.stdin.write(json.dumps(start) + "\n"); proc.stdin.flush()
-        events, calls = [], []
+        events, calls, preflights, responses = [], [], [], []
         selector = selectors.DefaultSelector(); selector.register(proc.stdout, selectors.EVENT_READ)
         until = time.time() + 75
         try:
@@ -74,12 +146,22 @@ class HostProof(unittest.TestCase):
                 if not line:
                     break
                 event = json.loads(line); events.append(event)
+                if event["type"] == "model_preflight":
+                    self.assertEqual((event["method"], event["path"]), ("POST", "/chat/completions"))
+                    outcome = admission["admit_payload"](event["body"]) if admission else {"allowed": True}
+                    preflights.append({"label": event.get("label"), "outcome": outcome,
+                                       "measurement": admission["_validate_and_measure_payload"](event["body"])[1] if admission else None,
+                                       "body_sha256": hashlib.sha256(json.dumps(event["body"], sort_keys=True).encode()).hexdigest()})
+                    answer = {"type": "model_preflight_response", "id": event["id"], **outcome}
+                    proc.stdin.write(json.dumps(answer) + "\n"); proc.stdin.flush()
                 if event["type"] == "model_request":
                     calls.append(event)
                     if behavior == "disconnect":
                         proc.stdin.close()
                         continue
-                    if behavior == "unknown":
+                    if respond:
+                        answer = respond(event, calls)
+                    elif behavior == "unknown":
                         answer = {"type": "model_response", "id": event["id"], "unknown": True}
                     elif behavior == "503":
                         answer = {"type": "model_response", "id": event["id"], "status": 503, "body": {"error": {"message": "controlled offline failure", "type": "server_error"}}}
@@ -100,6 +182,7 @@ class HostProof(unittest.TestCase):
                             message["tool_calls"] = [{"id": "call_" + str(ordinal), "type": "function", "function": {"name": fn, "arguments": json.dumps(args)}}]
                         body = {"id": "chatcmpl_fixture", "object": "chat.completion", "created": 1, "model": "offline-fixture", "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls" if fn else "stop"}], "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}}
                         answer = {"type": "model_response", "id": event["id"], "status": 200, "body": body}
+                    responses.append(answer)
                     proc.stdin.write(json.dumps(answer) + "\n"); proc.stdin.flush()
                 if event["type"] == "result":
                     break
@@ -113,10 +196,14 @@ class HostProof(unittest.TestCase):
             proc.stdout.close(); proc.stderr.close()
             selector.close()
         (root / (mode + "-" + behavior + "-events.json")).write_text(json.dumps(events, indent=2))
+        (root / (mode + "-" + behavior + "-responses.json")).write_text(json.dumps(responses, indent=2))
         (root / (mode + "-" + behavior + "-stderr.txt")).write_text(stderr)
         result = next((event for event in reversed(events) if event["type"] == "result"), None)
         self.assertIsNotNone(result, stderr)
-        self.receipts.append({"case": case, "mode": mode, "behavior": behavior, "model_bridge_requests": len(calls), "result": result, "events_file": str(root / (mode + "-" + behavior + "-events.json"))})
+        self.receipts.append({"case": case, "mode": mode, "behavior": behavior,
+                              "host_sha256": host_sha,
+                              "model_bridge_requests": len(calls), "preflights": preflights,
+                              "result": result, "events_file": str(root / (mode + "-" + behavior + "-events.json"))})
         return result, calls, events, root
 
     def test_complete_skill_image_tool_loop_and_reopen_without_dispatch(self):
@@ -204,6 +291,183 @@ class HostProof(unittest.TestCase):
         reopened, calls, _, _ = self.request("disconnect", mode="inspect")
         self.assertEqual(reopened["code"], "PREVIOUS_REQUEST_UNKNOWN_NO_REPLAY")
         self.assertEqual(calls, [])
+
+    def context_responder(self, *, malformed_summary=False):
+        state = {"primary": 0, "compactions": 0, "viewed_after_compaction": False}
+        paragraph = "离线设计说明，保留真实照片与批准标题，不增添商家事实。\n"
+
+        def respond(event, calls):
+            label = event.get("label")
+            fn, arguments = None, None
+            if label == "compaction":
+                state["compactions"] += 1
+                content = "NOT_A_STRUCTURED_SUMMARY" if malformed_summary else (
+                    "## Objective\n- Continue the offline cover fixture.\n"
+                    "## Requirements\n- Preserve approved facts, title and original files.\n"
+                    "## Decisions\n- No generated photos are deliverable.\n"
+                    "## Work State\n### Completed\n- Wrote local design notes.\n"
+                    "### Active\n- Inspect the original photo and finish.\n"
+                    "### Blocked\n- (none)\n## Next Move\n1. View source-1.png.\n"
+                    "## Relevant Files\n- source-1.png: original pixels.\n"
+                    "## Important Context\n- This is a synthetic, provider-free fixture.")
+            elif state["compactions"]:
+                if not state["viewed_after_compaction"]:
+                    state["viewed_after_compaction"] = True
+                    fn, arguments = "cover_view", {"path": "source-1.png"}
+                    content = None
+                else:
+                    content = "OFFLINE_COMPLETE"
+            else:
+                state["primary"] += 1
+                self.assertLessEqual(state["primary"], 16, "Long SDK transcript never exercised the real input bound")
+                fn, arguments = "cover_write", {"path": "design-step-" + str(state["primary"]) + ".md",
+                                                 "text": paragraph * 160}
+                content = None
+            message = {"role": "assistant", "content": content}
+            if fn:
+                message["tool_calls"] = [{"id": "context_call_" + str(len(calls)), "type": "function",
+                                          "function": {"name": fn, "arguments": json.dumps(arguments, ensure_ascii=False)}}]
+            body = {"id": "chatcmpl_context_fixture", "object": "chat.completion", "created": 1,
+                    "model": event["body"]["model"],
+                    "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls" if fn else "stop"}],
+                    "usage": {"prompt_tokens": max(1, sum(len(t) for t in text_values(event["body"])) // 4
+                                                      + 1500 * len(image_hashes(event["body"]))),
+                              "completion_tokens": 2000 if fn == "cover_write" else 100}}
+            body["usage"]["total_tokens"] = body["usage"]["prompt_tokens"] + body["usage"]["completion_tokens"]
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": body}
+
+        return respond
+
+    def stored_write_receipts(self, root, session_id):
+        # Read only this test's own synthetic session through the public SDK.
+        # No direct SQLite access, provider transport, or live application state.
+        script = r"""
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
+const [modules, root, sessionID] = process.argv.slice(1);
+globalThis.fetch = async () => { throw new Error('OFFLINE_HISTORY_FORBIDS_NETWORK'); };
+const load = (name) => import(pathToFileURL(path.join(modules, name)).href);
+const { create } = await load('@opencode/sdk/dist/promise.js');
+const { Global } = await load('@opencode/util/dist/global.js');
+const { Config } = await load('@opencode/core/dist/config.js');
+const home = path.join(root, 'state', 'isolated');
+const cfg = { project: false, global: false, system: false, claude: false,
+  content: JSON.stringify({ providers: {}, skills: [], update: 'disable' }) };
+const sdk = await create({ config: cfg, database: { path: path.join(root, 'state/session.sqlite') },
+  models: { fetch: false, snapshot: false }, fs: { filewatcher: false, fff: false }, log: { level: 'error' } },
+  { overrides: [Global.node.replace(Global.layerWith({ home, data: path.join(home, 'data'),
+    config: path.join(home, 'config'), cache: path.join(home, 'cache'), state: path.join(home, 'state'),
+    tmp: path.join(home, 'tmp'), bin: path.join(home, 'bin'), log: path.join(home, 'log'),
+    repos: path.join(home, 'repos') })), Config.node.replace(Config.configured(cfg))] });
+try {
+  const { messages: context } = await sdk.sessions.export({ sessionID, sanitize: false });
+  const writes = context.flatMap((message) => message.type === 'assistant' ? (message.content || []) : [])
+    .filter((part) => part.type === 'tool' && part.name === 'cover_write' && typeof part.state?.input?.text === 'string')
+    .map((part) => ({ id: part.id, path: part.state.input.path, bytes: Buffer.byteLength(part.state.input.text),
+      sha256: createHash('sha256').update(part.state.input.text).digest('hex') }));
+  console.log(JSON.stringify(writes));
+} finally { await sdk.close(); }
+"""
+        env = {"PATH": "/opt/homebrew/bin:/usr/bin:/bin", "HOME": str(root / "state/isolated"),
+               "OPENCODE_TEST_HOME": str(root / "state/isolated"), "OPENCODE_DISABLE_FREE_MODELS": "true"}
+        checked = subprocess.run([self.node, "--input-type=module", "-e", script,
+                                  self.modules, str(root), session_id], env=env,
+                                 capture_output=True, text=True, timeout=20)
+        self.assertEqual(checked.returncode, 0, checked.stderr[-2000:])
+        receipts = json.loads(checked.stdout)
+        (root / "stored-original-write-receipts.json").write_text(json.dumps(receipts, indent=2))
+        return receipts
+
+    def test_real_sdk_nine_photos_compacts_before_local_input_bound_without_supplier(self):
+        admission = provider_admission()
+        result, calls, events, root = self.request("context_bound", admission=admission,
+            respond=self.context_responder(), nine_photos=True)
+        self.assertTrue(result["ok"], {"status": result.get("status"), "errors": [
+            entry["error"] for entry in result.get("context", []) if entry.get("error")]})
+        rejections = [event for event in events if event["type"] == "model_preflight"]
+        measured = [admission["admit_payload"](event["body"]) for event in rejections]
+        rejected = [value for value in measured if value["allowed"] is False]
+        self.assertTrue(rejected, "Actual SDK never reached the unchanged real provider bound")
+        self.assertTrue(all(value["code"] == "COVER_AGENT_INPUT_LIMIT_EXCEEDED"
+                            and value["measurement"]["total_bound"] > admission["MAX_INPUT_TOKENS"]
+                            for value in rejected))
+        compactions = [call for call in calls if call.get("label") == "compaction"]
+        self.assertEqual(len(compactions), 1)
+        compact_index = calls.index(compactions[0])
+        continued = calls[compact_index + 1:]
+        self.assertEqual(len(continued), 2, "Expected fresh original view then normal completion")
+        skill = (PROJECT / "model/cover_editable/vendor/editable-design/SKILL.md").read_text()
+        for call in continued:
+            text = "\n".join(text_values(call["body"]))
+            self.assertIn(skill, text, "Full fixed Skill did not survive SDK compaction")
+            self.assertIn("批准事实：真实庭院；批准标题：城市里的日式庭院。不得增加价格或服务。", text)
+            for index in range(1, 10):
+                photo = root / ("work/source-" + str(index) + ".png")
+                self.assertIn(photo.name, text)
+                self.assertIn(hashlib.sha256(photo.read_bytes()).hexdigest(), text)
+        original_hashes = {hashlib.sha256((root / ("work/source-" + str(index) + ".png")).read_bytes()).hexdigest()
+                           for index in range(1, 10)}
+        self.assertEqual(set(image_hashes(calls[0]["body"])), original_hashes)
+        self.assertLess(len(image_hashes(continued[0]["body"])), 9, "Compaction reinserted all original image bytes")
+        self.assertIn(hashlib.sha256((root / "work/source-1.png").read_bytes()).hexdigest(), image_hashes(continued[-1]["body"]))
+        for call in calls:
+            _, bound = admission["prepare_payload"](call["body"])
+            self.assertLessEqual(bound, admission["MAX_INPUT_TOKENS"])
+        checkpoint = json.loads((root / "state/host-checkpoint.json").read_text())
+        self.assertEqual(checkpoint["model_requests"], len(calls))
+        self.assertEqual(checkpoint["local_input_rejections"], len(rejected))
+        self.assertEqual(checkpoint["compaction_requests"], 1)
+        self.assertIsNone(checkpoint.get("pending_request"))
+        responses = json.loads((root / "run-success-responses.json").read_text())
+        original_writes = [tool for response in responses for choice in response.get("body", {}).get("choices", [])
+                           for tool in choice["message"].get("tool_calls", [])
+                           if tool["function"]["name"] == "cover_write"]
+        expected = {}
+        for tool in original_writes:
+            arguments = json.loads(tool["function"]["arguments"])
+            expected.setdefault(tool["id"], {"id": tool["id"], "path": arguments["path"],
+                                             "bytes": len(arguments["text"].encode()),
+                                             "sha256": hashlib.sha256(arguments["text"].encode()).hexdigest()})
+        stored = {row["id"]: row for row in self.stored_write_receipts(root, result["session_id"])}
+        self.assertTrue(expected)
+        self.assertEqual(stored, expected, "Compaction mutated original session write text")
+        for event in events:
+            if event["type"] != "model_preflight" or event.get("label") != "primary":
+                continue
+            for message in event["body"]["messages"]:
+                for tool in message.get("tool_calls", []):
+                    if tool["id"] not in expected:
+                        continue
+                    arguments = json.loads(tool["function"]["arguments"])
+                    self.assertEqual(hashlib.sha256(arguments["text"].encode()).hexdigest(),
+                                     expected[tool["id"]]["sha256"], "UTF-8 primary replay changed original text")
+
+    def test_real_sdk_unknown_nine_photo_result_never_compacts_or_replays(self):
+        admission = provider_admission()
+        result, calls, events, _ = self.request("context_unknown", admission=admission, nine_photos=True,
+            respond=lambda event, _: {"type": "model_response", "id": event["id"], "unknown": True})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].get("label"), "primary")
+        self.assertFalse(any(event["type"] == "model_preflight" and event.get("label") == "compaction" for event in events))
+        reopened, calls, _, _ = self.request("context_unknown", mode="inspect")
+        self.assertEqual(reopened["code"], "PREVIOUS_REQUEST_UNKNOWN_NO_REPLAY")
+        self.assertEqual(calls, [])
+
+    def test_real_sdk_malformed_summary_cannot_dispatch_a_second_paid_attempt(self):
+        admission = provider_admission()
+        result, calls, _, root = self.request("context_malformed", admission=admission,
+            respond=self.context_responder(malformed_summary=True), nine_photos=True)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "FAILED")
+        compactions = [call for call in calls if call.get("label") == "compaction"]
+        self.assertEqual(len(compactions), 1, "SDK NUDGE generated another admitted model call")
+        self.assertEqual(calls[-1], compactions[0])
+        checkpoint = json.loads((root / "state/host-checkpoint.json").read_text())
+        self.assertEqual(checkpoint["compaction_requests"], 1)
+        self.assertIsNone(checkpoint.get("pending_request"))
 
 
 if __name__ == "__main__":

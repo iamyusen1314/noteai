@@ -8,11 +8,13 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import queue
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import threading
@@ -29,6 +31,48 @@ import cover_seedream
 import public_product
 
 ROOT = Path(__file__).resolve().parent
+_INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
+
+
+def _write_input_diagnostic(directory, job_id, measurement):
+    measurement = provider.validated_input_diagnostics(measurement)
+    if (measurement is None or measurement["total_bound"] <= provider.MAX_INPUT_TOKENS
+            or str(uuid.UUID(job_id)) != job_id):
+        raise ValueError("invalid input rejection diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("input diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "code": "COVER_AGENT_INPUT_LIMIT_EXCEEDED",
+        "measurement": measurement}, separators=(",", ":")).encode()
+    fd = os.open(state / _INPUT_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_input_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _INPUT_DIAGNOSTIC_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                    or not 0 < metadata.st_size <= 4096):
+                return None
+            body = stream.read(4097)
+        if len(body) > 4096:
+            return None
+        value = json.loads(body)
+        if (not isinstance(value, dict) or set(value) != {"job_id", "code", "measurement"}
+                or value["job_id"] != job_id or value["code"] != "COVER_AGENT_INPUT_LIMIT_EXCEEDED"):
+            return None
+        measurement = provider.validated_input_diagnostics(value["measurement"])
+        return measurement if measurement and measurement["total_bound"] > provider.MAX_INPUT_TOKENS else None
+    except (OSError, ValueError, TypeError):
+        return None
 
 
 def _stop_host(process):
@@ -122,6 +166,7 @@ def cleanup_workspace(job_id):
     if directory.is_symlink() or not directory.exists():
         return
     # Keep only content-free recovery identifiers, never images/report/SQLite.
+    receipt = None
     state = directory / "host-state/host-checkpoint.json"
     if state.is_file() and not state.is_symlink():
         try:
@@ -132,6 +177,12 @@ def cleanup_workspace(job_id):
                 "pending_request": {key: pending.get(key) for key in ("ordinal", "body_sha256", "label")}}
         except (ValueError, TypeError):
             receipt = {"job_id": job_id, "status": "HOST_STATE_UNREADABLE_NO_REPLAY"}
+    measurement = _read_input_diagnostic(directory, job_id)
+    if measurement is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "INPUT_REJECTED_PRE_DISPATCH"}
+        receipt["input_rejection"] = {"code": "COVER_AGENT_INPUT_LIMIT_EXCEEDED", "measurement": measurement}
+    if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
         (checkpoint / (str(uuid.UUID(job_id)) + ".json")).write_text(json.dumps(receipt))
@@ -304,9 +355,27 @@ class Bridge:
         self.costs = []
         self.last_preview = None
 
+    def _record_input_rejection(self, measurement):
+        try:
+            _write_input_diagnostic(self.directory, self.job_id, measurement)
+        except Exception:
+            logging.warning("cover_input_diagnostic_unavailable")
+
+    def preflight(self, payload):
+        public_product.assert_result_known()
+        decision = provider.admit_payload(payload)
+        if decision["allowed"] is False:
+            self._record_input_rejection(decision["measurement"])
+        return decision
+
     def model(self, payload, stage="design"):
         # Validate the actual full SDK request before a durable dispatch intent.
-        prepared, _ = provider.prepare_payload(payload)
+        try:
+            prepared, _ = provider.prepare_payload(payload)
+        except provider.CoverAgentProviderError as error:
+            if error.code == "COVER_AGENT_INPUT_LIMIT_EXCEEDED" and error.input_diagnostics is not None:
+                self._record_input_rejection(error.input_diagnostics)
+            raise
         self.ordinal += 1
         call_id = str(uuid.uuid5(uuid.UUID(self.job_id), "editable:" + stage + ":" + str(self.ordinal)))
         with public_product.model_admission_sync(call_id, "doubao"):
@@ -399,11 +468,14 @@ class Bridge:
                     self.session_id = event["session_id"]
                     (self.directory / "host-session.json").write_text(json.dumps({"session_id": self.session_id,
                         "job_id": self.job_id, "recovery": "Inspect original only; do not replay provider calls"}))
-                elif kind == "model_request":
+                elif kind in {"model_preflight", "model_request"}:
                     if event.get("method") != "POST" or not str(event.get("path", "")).endswith("/chat/completions"):
                         raise cover_runtime.CoverRuntimeError("COVER_AGENT_PROVIDER_PATH_INVALID")
-                    body, _ = self.model(event["body"])
-                    send({"type": "model_response", "id": event["id"], "status": 200, "body": body})
+                    if kind == "model_preflight":
+                        send({"type": "model_preflight_response", "id": event["id"], **self.preflight(event["body"])})
+                    else:
+                        body, _ = self.model(event["body"])
+                        send({"type": "model_response", "id": event["id"], "status": 200, "body": body})
                 elif kind == "tool_request":
                     send({"type": "tool_response", "id": event["id"], "result": self.tool(event)})
                 elif kind == "result":

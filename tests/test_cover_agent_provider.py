@@ -175,6 +175,51 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertGreater(bound, 32768)
         self.assertLessEqual(bound, 131072)
 
+    def test_input_measurement_preserves_sum_image_count_and_content_free_rejection(self):
+        body = deepcopy(self.body)
+        body["messages"][1]["content"].append(deepcopy(body["messages"][1]["content"][1]))
+        sentinel = "PRIVATE_TEXT_REASONING_PATH_SENTINEL"
+        body["messages"][0]["content"] = sentinel + "a" * provider.MAX_INPUT_TOKENS
+        body["messages"].append({"role": "assistant", "content": "", "reasoning_content": sentinel})
+        with self.assertRaises(provider.CoverAgentProviderError) as caught:
+            provider.prepare_payload(body)
+        error = caught.exception
+        self.assertEqual(error.code, "COVER_AGENT_INPUT_LIMIT_EXCEEDED")
+        self.assertFalse(error.outcome_unknown)
+        measurement = error.input_diagnostics
+        self.assertEqual(measurement["image_count"], 2)  # Repeated images still consume context.
+        self.assertEqual(measurement["image_tokens"], 2 * 257)
+        self.assertEqual((measurement["message_count"], measurement["tool_count"]), (3, 1))
+        self.assertEqual(measurement["framing_tokens"], 128 * (3 + 1) + 1024)
+        self.assertEqual(measurement["total_bound"], measurement["text_bytes"]
+            + measurement["image_tokens"] + measurement["framing_tokens"])
+        self.assertGreater(measurement["total_bound"], provider.MAX_INPUT_TOKENS)
+        self.assertTrue(all(type(value) is int for value in measurement.values()))
+        serialized = json.dumps(measurement)
+        self.assertNotIn(sentinel, serialized)
+        self.assertNotIn("data:image", serialized)
+        self.assertIsNone(provider.validated_input_diagnostics({**measurement, "raw": sentinel}))
+        self.assertIsNone(provider.validated_input_diagnostics({**measurement, "total_bound": 1}))
+        self.assertFalse(self.requests)
+
+    def test_exact_input_boundary_is_unchanged_and_only_overflow_attaches_measurement(self):
+        body = {"messages": [{"role": "user", "content": ""}]}
+        _, overhead = provider.prepare_payload(body)
+        body["messages"][0]["content"] = "a" * (provider.MAX_INPUT_TOKENS - overhead)
+        prepared, bound = provider.prepare_payload(body)
+        self.assertEqual(bound, provider.MAX_INPUT_TOKENS)
+        expected = deepcopy(prepared)
+        for message in expected["messages"]:
+            self.assertEqual(message["content"], body["messages"][0]["content"])
+        body["messages"][0]["content"] += "a"
+        with self.assertRaises(provider.CoverAgentProviderError) as caught:
+            provider.prepare_payload(body)
+        self.assertEqual(caught.exception.input_diagnostics["total_bound"], provider.MAX_INPUT_TOKENS + 1)
+        invalid = {"messages": body["messages"], "stream": True}
+        with self.assertRaises(provider.CoverAgentProviderError) as rejected:
+            provider.prepare_payload(invalid)
+        self.assertIsNone(rejected.exception.input_diagnostics)
+
     def test_incomplete_json_200_remains_unknown_without_fallback_or_retry(self):
         call_id = self.intent()
         def respond(request):
