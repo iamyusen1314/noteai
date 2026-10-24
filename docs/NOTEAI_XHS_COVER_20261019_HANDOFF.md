@@ -3219,3 +3219,16 @@ Root只清理本任务公开registry可重下的npm `_cacache`，原_logs、inst
 为减少传输，下一先在原staged product严格对照85源whole及三锁；匹配则直接组新context，缺/不符只列具体叶，不先传1.7MB整包、不另搭恢复或发布系统。依赖复用原官方archive/锁/安装运行证明，有原whole就比；未存golden whole的项明确记本次fingerprint与复制前后相等，不虚构旧hash或无依据扩大审计。原sole独占写D/prepare_build_once.py，当前DRAFT且main立即退出、未上云；Root只读并行窄审，完成后一次新私有context/tag的pull=false/network=none COPY-only构建。实际镜像ID/digest仍None，后续仅受影响的零供应商镜像检查；不更换生产组件或开启worker。
 
 唯一PLAN原normal_v3_real_nine_local_continuation保持ACTIVE，含当前产品提交、已结束local server、真实容量refs、接手已开始及正在写命令的owner。模型403只暂停真实模型分支，候选装配继续；历史UNKNOWN/旧R7净扣0及8测试积分保留，真实合格封面仍0／每张合格成本N/A。下一是完成命令窄审并执行已授权隔离构建，不能以本checkpoint或交接收录结束任务。
+
+
+## CURRENT — 2026-10-24 07:59 UTC 私有16叶增量已实际物化，85源及三锁全匹配；构建器host检查误层，最小修正继续
+
+当前记录HEAD `a1f4c20440265f3f633b33eef05cff9ee0965173`／原cover分支，产品功能仍9f55fbf。阶段2本机功能PASS证据复用；阶段3定向集成IN_PROGRESS；阶段4真实交付HOLD。原sole“修复高德检索与休闲娱乐行业”继续唯一执行候选装配，已实际执行以下步骤，Root核原件并追下一步；文档登记、源码匹配或接手收录均不是结束条件。
+
+C沿用上节D同目录。首Run `c-sz070zi5uu98oow`／`t-sz070zi5uuvprsw` 于07:31:57UTC明确Exit78：85叶中69匹配、12缺失、4whole不符，状态SOURCE_NOT_READY_NO_WRITES_NO_BUILD，context/build均0；原COPY-BUILD-READ.ACTUAL-ORIGINAL.json2599／a388e375及OUTPUT1058／c0204a92保留，未重发该终态命令。原sole据实际16叶缺口制作固定新私有delta：官方SendFile仅一次，`f-sz070zjsp0s1hq8` 于07:50:16UTC实际Success／0400／Overwritefalse；发送public pack为22506B／`777a1a892034162de8f25c1a201105509d7dcbf33872c11f793d317beee514c1`，非配置、Env或DB。DELTA16-SENDFILE-READ.ACTUAL-ORIGINAL.json31212／`4a6ec3d675c4054a6b36db26e2675e22059bfbc441d8bb41297ce983d8bc784c`保留真实逐实例成功，不拿计划或控制台外层状态代替。
+
+随后唯一组合Run `c-sz070zk66sy5pts`／`t-sz070zk66t85b7k` 于07:54:29UTC明确Exit81／Dropped0。DELTA16-BUILD-READ.ACTUAL-ORIGINAL.json1907／`526de392a42430fc8e98f23b4e57f3ff6852dad4161fe7b1e45c87687e62544c`及OUTPUT538／`8c2f7722e028d9f9ae336e80abe1c781776629cab1c12f886b76c7dfb8dbecda`显示16叶已物化至新私有source-delta16目录、old P未改、短时source reader已移除，随后85源和三锁whole全匹配。失败在host执行固定Chrome wrapper `--version` 非零；原stderr尚未捕获，不能臆断缺哪份lib或把host失败认作候选镜像Chrome失败。context未创建、build未开始、镜像ID/digest仍None。以上8份actual Run/Read/Output均已逐whole核读，没有重跑旧测试。
+
+这是候选构建器把容器运行合同错误作为host预检门槛，非产品功能、模型或生产错误。原sole正在最小build-only修正及一次有界host stderr采集，保留原source/三锁/ELF/复制前后相等/资源/immutable base和未知不重发控制；不重复SendFile、16叶materializer或已终态原Run。真正Chrome版本与渲染只可由后续候选image的nonroot／networknone受影响smoke证明，不能以放宽host门或COPY成功计运行通过。Root下一收精确修正及实际结果；没有新增产品功能、Env、DB、生产、公开入口或模型动作，不另建任务／交接表／发布程序。
+
+官方Pro403/CAPTCHA分支、阶段1费用预留1.10元及全部旧成本/UNKNOWN仍保持，真实合格封面0／每合格成本N/A。仅该官方校验分支待当次许可；其余已授权且可执行的隔离候选构建继续。权威状态仍唯一PLAN原 `normal_v3_real_nine_local_continuation.integration_owner_actual_work`，接手方原sole已实际执行而非仅ACK；Root持续追踪build-only及后续镜像证据，不在此checkpoint停止。
