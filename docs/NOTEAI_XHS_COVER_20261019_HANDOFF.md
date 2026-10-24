@@ -150,8 +150,8 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8、9f55fbf | 当前V3真九图普通功能链、同库重启、PC/H5重开/免费排字和HTTP下载；9f增加桌面原生保存，实际文件等持久rev2；首次可编辑包保存失败真实回归1PASS/净扣0，见末节 | 旧证据复用；供应商HTTP/QC mock，不能替代真实质量或真实供应商结算；iPhone及不支持picker的设备落盘未证 |
-| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_MODEL_RISK_AND_CANDIDATE_BUILD_PREP / 9f55fbf；旧R7仍CLOSED | R7原3Pro/失败/UNKNOWN保留；独立官方console九图Pro阶段1单次请求403 BusinessRiskDetected，无模型结果，1.10元费用预留未清；本机功能和真实供应商证据分列 | 仅官方CAPTCHA分支待当次确认；不解隐藏校验或重发。原b991 Run0拒绝仅阻旧恢复wrapper。继续只读参数/用量与交付准备，真实合格封面0 |
-| 4 独立审查与交付 | 独立审查子代理；主代理集成；原sole接手组件集成准备 | SOURCE_REVIEW_GO_REAL_DELIVERY_HOLD / 产品9f55fbf；原sole清单3215b73 | 下载实现、首次包保存失败回归均已独审无确定P0–P2；原sole已实际完成100组件清单及9f三叶增补，见末节精确refs，不以收录代替接手执行 | 方案A真实合格交付0/单位成本N/A；真实六项QC/质量、实际完整供应商链及唯一结算、iPhone仍待证。桌面OS文件已证，不再列缺项；本窗口不发布生产 |
+| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_LOCAL_REAL_PROVIDER_PREP / 产品9f55fbf；旧R7仍CLOSED | b3候选镜像已实际build及native技术PASS；受限双模型task key已获准创建并仅本机安全留存，官方开通/价格/余额49.69已读证；新增真实模型调用0。旧R7及console403/1.10未知预留保留 | 正在独审本机默认真实Bridge、正常测试会话及一次worker接续程序；新任务受A15/原100预算约束，余新预留上界12.687元。不再以旧wrapper或SSH身份作全局前置；真实合格封面0，key验收结束或停止后禁用 |
+| 4 独立审查与交付 | 独立审查子代理；主代理集成；原sole接手组件集成准备 | SOURCE_AND_NATIVE_REVIEW_GO_REAL_DELIVERY_PENDING / 产品9f55fbf；原sole932f30a | 下载实现、首次包保存失败回归及实际b3 native原件均独审GO；原sole已实际build/native及组件记录提交，见末节精确refs，不以收录代替接手执行 | 方案A真实合格交付0/单位成本N/A；真实六项QC/质量、正常供应商任务完整链、真实成品PC/H5及唯一结算仍待证。真实iPhone未验；桌面OS落盘已证。本窗口不发布生产 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -3247,3 +3247,12 @@ C沿用上节D同目录。首Run `c-sz070zi5uu98oow`／`t-sz070zi5uuvprsw` 于07
 另完成一次限定的既有真实结果复用检查：只查唯一PLAN的R7已索引public output refs，没有扫全盘、读secret／配置或取b991。R7 live-job child2600／0f76120d显示design_bytes0／candidate0／qc_bytes0／route及schema为空；postclose child8671／25293528只有状态／计量，has_base=false／has_final=false／revision0／has_response_ref=false。三次完成的真实模型均 `doubao-seed-2-1-pro-260915`，输出1727／4109／455 tokens、合计已知0.452454元，但没有已存可直接复用的实际设计计划、HTML或tool正文，不能凭token／成本重构；该复用分支已停止，不宣称全磁盘没有原件，不重发模型或扩大搜索。九图实际顺序与未留输出的映射无法补证。
 
 阶段2本机PASS／阶段3实际候选及真实验收IN_PROGRESS／阶段4真实交付HOLD保持。官方403／CAPTCHA当次许可只影响该console模型分支，1.10元费用预留及全部历史成本／UNKNOWN仍保，真实合格封面0／每合格成本N/A。镜像build及合成技术smoke不替代真实六项质量、供应商完整链、实际唯一结算或iPhone保存；Root继续当前可执行的私有正常链合同核对，未开启公网或生产发布，checkpoint不构成停止。
+
+
+## CURRENT — 2026-10-24 09:07 UTC 受限任务凭据已获准并安全留于本机，真实正常链改在本机隔离后端接续
+
+实际HEAD03c17fd1bc1c81c7dea80ee6a43770a22ab7c9bb／功能9f55fbf。用户最新“确认”已批准本次官方CAPTCHA及必要的新task双模型受限key安全注入、验收结束或停止后禁用；A新增≤15元／原累计≤100元不变，没有新IAM、云资源或公网授权。当前官方UI无可见challenge，Root未强制显示、解题或重发403。官方正常key管理实际创建 `noteai-cover-20261024-acceptance`／resource `apikey-20261024165317-pvjfq`／default项目；重开核仅Seed2.1Pro及Seedream5Pro、endpoint0／future-all off，生效中但尚未使用。C/TASK-KEY-CREATION.ACTUAL-METADATA.json1644／84848c6a及已显示给用户的MASKED截图只记元数据；值仅由浏览器opaque值写到本机任务私有 `C/provider-private/ark-task.key`（0400／父0700），UI已隐藏，无聊天、日志、仓库或云传输。本checkpoint不读取或hash该值；此key的验收后禁用仍为未完成恢复动作。
+
+原sole只读实核SSH agent为NO_IDENTITIES，亦无已验证的既有云Secrets安全注入合同，不扩大扫描或复制生产密钥。Root因此自主使用既有本机隔离正常后端完成真实外部模型链，不等待旧云恢复／新公网；b3云native已过证据单独复用，不冒cloud完整链。原sole932f30a＋c606abf已实际交组件记录，生产不动。C/TASK-PROVIDER-READINESS.READONLY.json2629／30ce534f及其实际refs显示：Pro `doubao-seed-2-1-pro-260915` 已开通，输入／输出／cache-hit为6／30／1.2元每百万tokens、余免费409115tokens；Seedream `doubao-seedream-5-0-pro-260628` 已开通，输入0.02元/张且首张免、输出0.3–0.6元，9参考图单输出保守0.76元；账号余额49.69元。这仅是官方UI账号／价目证据，key API鉴权及新增模型调用仍0，免费额度不当实际cash0。
+
+foundation唯一编写C/real_provider_local_app.py，旧L/local_app.py不改；计划从原SQLite＋objects私有只读快照接续，保留旧mock账与成品，不grant／补传／重跑报告，用默认真实Bridge、正常auth session（本机testuser非OTP、私有HTML bootstrap）和一次Bearer保护worker。代码未完成／未执行，独审待稿。预算准备受既有jobs/settings硬合同limit100000约束，不改产品或伪造较小limit：计划用现有budget行技术scope hold总85000milli，含原mock reservation，净新增85000−old_mock_reserved；另carry真实历史及未知预留2313milli（453＋760＋1100），目标初reserved87313、available≤12687。技术hold不是供应商成本或用户扣分，不写假usage／physicalcost、不清旧账；system_settings单marker事务幂等。实际新DB初始化／模型调用仍0。Root下一审caller后接真实验收；旧R7及403／UNKNOWN完整保，合格封面0／单位成本N/A，此关键checkpoint不构成停止。

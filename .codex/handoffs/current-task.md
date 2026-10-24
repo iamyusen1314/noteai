@@ -33271,3 +33271,12 @@ Root已核实际原件；最终actual独审已GO：READ Base64 Output逐byte等O
 限定R7旧结果复用已完成：仅PLAN已索引本地public输出，livechild2600／0f76120d为design0／candidate0／QC0，postclose8671／25293528为has_base/final=false／revision0／无response_ref。3次真实doubao-seed-2-1-pro-260915输出1727/4109/455tokens／已知0.452454元只有元数据，无已存可直接复用设计计划／HTML／tool正文，不能重构或补映射。此分支停止，非全盘不存在声明，未取b991/secret/配置或重发模型。
 
 阶段2本机PASS／阶段3IN_PROGRESS／阶段4真实HOLD；403／CAPTCHA当次许可仅该console模型分支、1.10元预留、旧R7与成本UNKNOWN／合格0保持。build和合成技术smoke不替代真实九图／审美／供应商完整链／唯一结算／iPhone保存。继续可执行私有正常链合同核对，不开新公网或生产。
+
+
+## CURRENT — 2026-10-24 09:07 UTC 新任务受限双模型key已获准安全本机留存，真实正常链本机接续准备中
+
+HEAD03c17fd1bc1c81c7dea80ee6a43770a22ab7c9bb／功能9f。用户“确认”批准本次官方CAPTCHA及必要新task双模型key安全注入／验收后禁用，仍A15／原总100，无新IAM/资源/公网。当前challenge不可见，未强制或重发403。实际key noteai-cover-20261024-acceptance／apikey-20261024165317-pvjfq／default已生效，重开核只Pro2.1＋Seedream5Pro、endpoint0/futurealloff，未使用；C/TASK-KEY-CREATION.ACTUAL-METADATA1644／84848c6a无值，MASKED截图已给用户。凭据仅browser opaque→本机C/provider-private/ark-task.key，0400/父0700、UI重新隐藏；无聊天/日志/仓库/云传输，本checkpoint不读或hash其值。验收结束或停止必须禁用，当前仍待履行。
+
+原sole只读SSHagent NO_IDENTITIES、无已验证云Secrets安全注入合同，不扩扫。Root自主改用既有本机隔离正常后端接真实模型，不等云恢复/新公网；云b3native技术证据独立，不冒cloud完整链。sole932f30a＋c606abf已实际交组件，生产0。C/TASK-PROVIDER-READINESS.READONLY2629／30ce534f：Pro已开通6/30/1.2元每M input/output/cachehit、免费409115tokens；Seedream已开通input0.02/张首张免、output0.3–0.6、9refs保守0.76；余额49.69。仅UI账号证据，APIkeyauth/新调用0，不把免费额度作cash0。
+
+foundation唯一写C/real_provider_local_app.py，旧L/local_app不动；原SQLite+objects私有ro快照/旧账成品保，无grant/upload/report重跑，默认真实Bridge、正常auth session（local testuser非OTP、私有HTMLbootstrap）、一次Bearer worker。稿未完成/未执行，独审待稿。正常jobs/settings硬要limit100000，不改产品降15000；计划技术scopehold总85000含旧mock reservation，净新增85000−oldmockreserved，加真实历史/UNKNOWNcarry2313（453+760+1100），目标reserved87313/available≤12687，非成本/用户扣分、不写假usage/physicalcost/清旧账，单system_settings marker事务幂等。实际新DB初始化/模型0，Root继续审caller和真实验收；原R7/403/UNKNOWN/合格0/单位costN/A保留，checkpoint不是停止条件。
