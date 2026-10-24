@@ -198,7 +198,9 @@ async function inspect(dir, manifest, edit = null, pngPath = null) {
       const allowed = manifest.text_layers.find((l) => l.id === box.id).allowed_rect;
       const family = box.font.split(',')[0].trim().replace(/["']/g, '');
       if (!state.font_faces.some((f) => f.family === family && f.status === 'loaded')) fail('TEXT_FONT_NOT_SELF_HOSTED', box.id);
-      if (box.overflow || !contained(allowed, box.rect) || box.ink.some((b) => !contained(allowed, b))) fail('TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION', box.id);
+      if (box.overflow || !contained(allowed, box.rect) || box.ink.some((b) => !contained(allowed, b))) fail('TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION', JSON.stringify({
+        id: box.id, element_rect: box.rect, allowed_rect: allowed, overflow: box.overflow,
+        ink_rects: box.ink.slice(0, 16), ink_rect_count: box.ink.length }));
       if (manifest.protected_regions.some((r) => box.ink.some((b) => overlaps(r, b)))) fail('TEXT_OVER_PROTECTED_SUBJECT', box.id);
     }
     let screenshot = null;

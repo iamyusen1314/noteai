@@ -308,7 +308,7 @@ try {
       checkpoint.pending_tool = null; await atomicJSON(checkpointPath, checkpoint);
       return { content: JSON.stringify(answer.result) };
     }),
-    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. Python must approve original and concept image inspection before execution.', objectSchema({ request: { type: 'object', additionalProperties: true } }), async ({ request }) => {
+    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: { type: 'object', additionalProperties: true } }), async ({ request }) => {
       request = { ...request, schema_version: 'noteai-cover-editable/v1', output_root: path.join(job.work_dir, 'revisions') };
       request.project_dir = path.resolve(job.work_dir, request.project_dir || 'project');
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');

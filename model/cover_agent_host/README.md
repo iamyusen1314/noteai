@@ -169,6 +169,15 @@ scripts. `cover_check` supports poster/fonts/contract and ten preinstalled
 Fontsource font IDs; it never installs a new font package. HTML is guarded with a
 network/script blocking CSP before any browser check. The renderer independently
 checks source hashes, output resources, fonts, live text geometry and PNG size.
+The business prompt and render-tool description state the adapter's exact
+`poster.json` canvas shape and editable text-leaf contract. Font installation
+precedes references to the generated `--font-kit-ID` variable, since the pinned
+font-kit treats an existing variable as already installed. These are technical
+delivery requirements; the agent still chooses the layout and type style.
+The existing text-bound failure includes the measured element/allowed/ink
+rectangles and overflow flag, with at most 16 ink rectangles and no text content.
+This lets the agent correct font geometry from actual measurements while the
+original canvas, font and subject-protection checks remain in force.
 Agent writes cannot touch hidden files/directories, host state, NoteAI input or
 session records, QC records, frozen revisions, preview output, or original assets.
 
