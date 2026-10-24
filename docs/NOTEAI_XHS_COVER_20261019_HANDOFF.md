@@ -2969,3 +2969,15 @@ Root实际本窗口browser4/tab1637495948再次观察404，截图W6/ROOT-ENTRY-C
 E新human1627/c9eb356e、witness806/b7b0fa2d全保新原文/消息ID/真实第一clock/待答R7question49fc。W7=B/window-20261024-075042-r7，INPUT.spacing-r7.AUTHORITY.ACTUAL.json4561/7deeea49六键/三真refs/原frontend/PUTNone/authority四键；W7/prepare-upload-once.ram-settings-r7.AUTHORITY.ACTUAL.py16612/ef4ecd69相对冻结be2d12041仅DATA字节赋值，Root95d727归一AST真核，未改SOURCE_REFS/源/预算/产品。具体一次prepare+actual后一次OPEN指令已交原sole，实际Run/CID尚未回；不凭等待重发，Root只持正常产品UI4/tab1637495948，Cloud/MFA仍sole所有。
 
 本次范围仍已批准PlanA Seed2.1Pro设计/质检+每任务≤1Seedream5Pro概念、final真实九图，最多2新任务首合格停/明确QC拒绝+真候选QC6+局部修正才第二；意外或UNKNOWN停并提前关。沿原新增15/总100、调用按需/fixture现8分最多结算一次，不重正文/生产。source-save/配置/pure/core/RO/旧测试不重复，全部旧UNKNOWN/first15/失败保。当前模型/新封面/结算0，真实质量未验收，下一Root正常9补传→原terminalRO→advance实际READY后才单封面。
+
+
+## CURRENT — 2026-10-24 00:18UTC R7真实首个封面已提交，核查同一任务中
+
+分支codex/noteai-xhs-cover-20261019，接续HEAD2ad5704，功能源c708fe05未变。唯一权威PLAN仍current_cover_only_preparation.quality_model_review.implementation_a.current_source_refresh_recovery.complete_two_stage_caller.entry_static_r7_preparation；同窗START23:50:42/END00:50:42UTC固定，不重开延长。实际prepare 23:54:54–23:55:00Z、OPEN23:57:44Z、原九图正常补传关联（9upload+1attach/HTTP200，未重跑报告）、terminal RO00:05:56Z及advance00:08:42–48Z全部真实完成。当前paidCID ba0584522dd9427439e5a7cfe4a57cb825d072b52e2e134bd0426266d7e6a195，advance为ACTUAL_PAID_NORMAL_READY_NO_TASK_CREATED。各官方Run/Read/whole/raw证据均在PLAN与W7原目录，不重复派prepare/OPEN/advance。V3实际金额账本限制15/100元；旧47仅历史身份，已独立核实，不新增数量门。
+
+Root00:14:50–00:15:05UTC通过正常PC UI只点击一次“重新设计·8积分”，已创建原任务并显示预留8尚未扣分。只刷新GET一次、关闭面板再从同一报告重开一次；没有第二POST/原请求重交。W7/ROOT-FIRST-COVER-SUBMITTED与ROOT-FIRST-COVER-REOPENED各AX/PNG保存；九图PC/H5入口证据已保存。UI旧成品存储不可用提示覆盖当前进度，独立normal_c708源码核实coverScheduleRead先accept新任务，再await旧latest预览；旧预览异常进入同一catch，不能据此判新任务provider失败或UNKNOWN。sole正对当前隔离服务做一次有界只读取本轮真实jobID/status/calls，不运行要求terminal的recover脚本、不重发模型。
+
+下一仅核查并跟进原任务；合格需真实PNG/240缩图/QC六项、原照一致性独审、保存重开/免费排字/实际下载/唯一8分/供应商成本证据。若真实非预期失败或UNKNOWN，立即停止付费、由sole按已绑定CLOSE/recover提前关闭，不自动重试。当前不能称成品或审美通过。封面进度被旧预览覆盖是定向待修缺口；报告正文、生产与其他历史问题不扩围。
+
+
+CURRENT补记00:21UTC：Root仅本机修复封面状态误导：HTML的coverShowFinal内部隔离成品下载/解码异常，独立结果区提示、按job/revision避免轮询重复读坏预览、显式刷新才重读；不吞新任务GET/POST错误，保账户/报告/版本迟到校验。已预留任务不再误提示积分不足，报价/任务/扣分准入不放宽。新增2条有因果的回归，node --test tests/frontend_cover_tasks.test.js 29/29 PASS，git diff --check PASS；normal_c708只读最终diff独审GO，无确定P0–P2。修改仅HTML和该既有测试，未激活到当前public/c708；真实模型任务与质量验收不能用此本机结果替代。后台一次最小只读原任务核查待实际回执，不重发、不改报告正文或生产。
