@@ -33296,3 +33296,12 @@ HEAD32482e5／产品9f55fbf不变。真实job b296a095-6f1b-4e06-9cbc-f4b9143769
 失败定位在本轮测试预算，不以HTTP200当审美通过：acceptance counter99436，下一Pro保守reserve1033使总100469>100000。原host content-free receipt主请求ordinal12，而11Pro＋1image的12个physical已全部响应；只读备份离线调用原_reserve_payload实际复现PUBLIC_TRIAL_BUDGET_EXHAUSTED／HTTP0／physical21不变。该counter包含85000技术范围占用、历史2313及累计最大模型预留，并非真实消费。独审发现原trial_budget_monotone禁止下降，Root未执行release/删trigger/改limit。C/REAL-STATE007.TERMINAL、REAL-FAILED-READBACK-AND-STOP001、REAL-FAILED-FINANCIAL-AND-INTENTS001及real-budget-repro-r1/RESULT为有效原件；r1caller原码32872／24d16301冻结txt。
 
 Root继续当前可执行离线修复：foundation仅改同一C/real_provider_local_app.py及README，不改产品/DB/key/UI。拟保同STATE/DB、原acceptance counter99436及所有账/old once，显式next-after-job验证原失败/全响应/净0后，只准备一个人工新job；用现产品本机formal execution_scope/native budget0 owner_metered正向记账，额外本机串行A15 guard从原mock exclusion逐call计算已知精确文本ceil＋其余完整reserve＋旧carry2313＋新拟reserve，再进原native_reserve，UNKNOWN/在途始终保全。此方案不新建DB重置费用或增加预算，不恢复旧failed、不自动重发。独审已核既有formal合同可行，待首稿/精确审/离线验证。新付费及key重新启用尚未执行；届时才集中说明具体动作和当次确认要求。Chrome本机ERR_BLOCKED_BY_CLIENT仍单列，不改浏览器安全或冒前端真实验收；现阶段不是停工。
+
+
+## CURRENT — 2026-10-24T10:02:38.169156+00:00 同库R2接续已冻结/独审/离线及正常冷启动通过，key仍禁用，等待当次重新启用确认
+
+实际HEAD2f01a7d／功能9f55fbf，原sole已实际提交339a987组件差量，Root已核Git对象及两叶stat，不冒HOST重验本机供应商。C/real_provider_local_app.py46928B／b90446de冻结，README5667／73e83fb7；独审精确GO。Root真实3.11执行纯guard边界全PASS：actual metadata21physical排原mock9得到本任务上界4187milli；下一Pro后5220；UNKNOWN/在途/非精确/None/NaN/错币种或provider保完整reserve；image actualNULL仍760；billed才用actual逐callceil，超过原reserve也按更高actual；等号15000可、超1拒。两线程纯内存模拟证明检查＋原native reserve串行，非真实多人/容量证明。没有业务DB、key或外部模型参与这些纯检查。
+
+实际R2 --preflight --next-after-job b296... PASS。正常serve002／exec99574已启动127.0.0.1:56613／until1792844356，同STATE/DB无重建/重置，强核原failed/net0/12responded及原once/result，account/history/9图434正文原样；只激活本机formal已有执行scope，原acceptance counter99436不动、formal native counter0，额外A15guard安装。正常auth新本机session非OTP，不输出token；GET quote200：8分、90天、1776×2368、model5Pro，4monthly＋4wallet预算来源，余额仍monthly4/wallet8。GET state证实真实累积仍12、nextphase jobs0/workerfalse/无新once，A15bound4187/余10813。新稳定clientUUID538678aa-5f25-4810-a9e8-3d4deed0f345只写PREPARED body未POST，避免等待用户时启动任务期限；无新增模型调用。
+
+官方task key仍已禁用。Root已提交一条集中async确认：当前同一双Pro受限key临时重新启用并验收1张新封面/保存找回/改字/下载/唯一结算，仍A累计15／原100（已含旧known/UNKNOWN），失败/未知不重发、结束禁用，不开公网或改生产；Chrome3 loopback受客户端阻断且不绕安全，库存IAB2可用，问题中同时明确本轮改用内置浏览器做PC/H5。浏览器操作规则要求重新启用已禁用凭据取得当次确认；本项未获回答前不启用、不发新付费。其他已授权准备已自主完成，现只剩该外部答复后可执行的真实链；仍保持恢复信息而非重跑历史。
