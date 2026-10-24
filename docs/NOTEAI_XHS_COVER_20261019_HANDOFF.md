@@ -3110,3 +3110,14 @@ HEAD865e52c/原cover分支。cover_media在既有W7/resume-integration-local-r1/
 settings窄审当前input_clone21991/fadbf与固定producer13849/c2b接口无确定P0–P2：仅接packet解压后原始result bytes/实际size-SHA，62key/metadata/全1-49-9原TEXT/schema/前后指纹匹配；仅known legacy DDL，参数化插入+commit-reopen校验，未执行SQL。Root提前指出新sandbox loader若只做sys.modules副本会破futureannotations/dataclass，3069ab仅内存stdlib3.11复现；sole已报activated临时真共享注册/finally恢复和局部检查，Root尚未最终bundle验收，不当旧产品错误。
 
 当前唯一外部取件仍b991 prepared/Run0、因error.taobao.com安全拒绝；无新token/查询/替代面绕过，已只问用户官方表单能否正常显示，不要求点击Run/新付费批准。实际fullconfig/49+9/schema及晚ENTRY依赖缺件仍保留，不能拼记录或改hash。权威PLAN原tool_integration_review已记局部实际证据/环境补测/桥未执行/原sole负责人/下一步；真实生成、公网、运输SAVE继续HOLD，原R7成本UNKNOWN/净扣0/余额8保持，合格封面仍0。
+
+
+## CURRENT — 2026-10-24 04:02UTC 连续工具草稿独审发现三处P1并已局部修正；当前索引仍HOLD，完整链0
+
+HEADd373c15/原cover分支、工作区干净接续。原sole309aa索引的15refs在Root04ec58核真；新增CURRENT索引8727/35502371、22refs在3e4ff9核真，保留旧快照不倒写。状态明确可编辑/未freeze/非GO：actual phases[]/clone0/SQL0/CASfalse/Cloud0/provider0。只有--input-status CLI，不能冒一键全链已具备。
+
+normal独审adapter25221/88c425两P1：缺真实ENTRY614所需rglob，以及resolve拒正确current最终链接/不解析目标，违反原ENTRY250–251。唯一adapter作者局部补受管star遍历和单final-link解析至27381/f8882ffb，保中间link/越界/父组件/源码普通读链接拒绝；a52ecc及1eb261定向检查原stdout464/65b53047、197/799223b9已Rootb23377/446e04读核，不重旧suite。entryreview独审driver10462/d49255一P1：只注册外invoker，漏真entry_once两组子进程argv；现实际binder产config后取真SHA精确注册--open/--close到原loader.run_python，不用successcallback，配置变更拒。其余阶段/前驱/缓存先failure/同clone/异常close一次+readonly恢复无CAS重放形状未见确定P0–P2。Root554a55/765736核改源，未执行ENTRY。
+
+作者另修stdlib argparse必须看真实sys.argv的测试loader缺口：仅子源码exec期间临时真实argv/stdin且finally还原，原CLI unchanged；Python3.11.14单新增受影响case ba3ac1 PASS，LOADER-ARGV原件607/bb4ec1ca。loader当前9314/1ffbbf6e，driver最终12037/d4500ab6；既有7unique/8execution局部证据只归工具，不作用户链进度。Root读loader与fixture_inputs10331/3d3b及其旧bodyassembly实际slice，返回的内部替身不用于当前stage；原source/hash/阶段/SQL仍真，不重跑历史检查。
+
+runtime_fixture24324/8bc57e0a已定义并接在实际CAS后/start前，projection closure只真读同caller同clone；未安装或执行，Root只读首145行，无fullGO。晚ENTRY已有材料索引10680/e4d113b2：两明确既有树匹配formal10叶、2应不存在，87字节runtime-config未匹配这两树；父4c801704及3immutable conf只有metadata/hash缺body，非全盘无原件结论，不造hash/扩找。缺actual RO全config+49/9/schema、对应资源body、sameclone guard上下文/660f入口、bootstrap/fullCLI和真正连续+失败伴随，均入原PLAN tool_integration_review。原sole继续独立本机装配；Root统一收证。b991仍Run0/IDsNone安全阻断，无绕过渠道、新token、付费、公网或sourceSAVE；原R7成本/UNKNOWN/净0余额8/合格0保持。
