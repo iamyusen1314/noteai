@@ -150,7 +150,7 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8、9f55fbf | 当前V3真九图普通功能链、同库重启、PC/H5重开/免费排字和HTTP下载；9f增加桌面原生保存，实际文件等持久rev2；首次可编辑包保存失败真实回归1PASS/净扣0，见末节 | 旧证据复用；供应商HTTP/QC mock，不能替代真实质量或真实供应商结算；iPhone及不支持picker的设备落盘未证 |
-| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_LOCAL_REAL_PROVIDER_PREP / 产品9f55fbf；旧R7仍CLOSED | b3候选镜像已实际build及native技术PASS；受限双模型task key已获准创建并仅本机安全留存，官方开通/价格/余额49.69已读证；新增真实模型调用0。旧R7及console403/1.10未知预留保留 | 正在独审本机默认真实Bridge、正常测试会话及一次worker接续程序；新任务受A15/原100预算约束，余新预留上界12.687元。不再以旧wrapper或SSH身份作全局前置；真实合格封面0，key验收结束或停止后禁用 |
+| 3 定向集成与真实验收 | 封面主代理；原sole答疑及唯一最终集成发布 | IN_PROGRESS_LOCAL_ACCEPTANCE_TOOL_REPAIR / 产品9f55fbf；真实r1已失败释放8分 | b3候选镜像已实际build及native技术PASS；受限双模型task key已获准创建并仅本机安全留存，官方开通/价格/余额49.69已读证；新增真实模型调用0。旧R7及console403/1.10未知预留保留 | 正在独审本机默认真实Bridge、正常测试会话及一次worker接续程序；新任务受A15/原100预算约束，余新预留上界12.687元。不再以旧wrapper或SSH身份作全局前置；真实合格封面0，key验收结束或停止后禁用 |
 | 4 独立审查与交付 | 独立审查子代理；主代理集成；原sole接手组件集成准备 | SOURCE_AND_NATIVE_REVIEW_GO_REAL_DELIVERY_PENDING / 产品9f55fbf；原sole932f30a | 下载实现、首次包保存失败回归及实际b3 native原件均独审GO；原sole已实际build/native及组件记录提交，见末节精确refs，不以收录代替接手执行 | 方案A真实合格交付0/单位成本N/A；真实六项QC/质量、正常供应商任务完整链、真实成品PC/H5及唯一结算仍待证。真实iPhone未验；桌面OS落盘已证。本窗口不发布生产 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
@@ -3256,3 +3256,19 @@ C沿用上节D同目录。首Run `c-sz070zi5uu98oow`／`t-sz070zi5uuvprsw` 于07
 原sole只读实核SSH agent为NO_IDENTITIES，亦无已验证的既有云Secrets安全注入合同，不扩大扫描或复制生产密钥。Root因此自主使用既有本机隔离正常后端完成真实外部模型链，不等待旧云恢复／新公网；b3云native已过证据单独复用，不冒cloud完整链。原sole932f30a＋c606abf已实际交组件记录，生产不动。C/TASK-PROVIDER-READINESS.READONLY.json2629／30ce534f及其实际refs显示：Pro `doubao-seed-2-1-pro-260915` 已开通，输入／输出／cache-hit为6／30／1.2元每百万tokens、余免费409115tokens；Seedream `doubao-seedream-5-0-pro-260628` 已开通，输入0.02元/张且首张免、输出0.3–0.6元，9参考图单输出保守0.76元；账号余额49.69元。这仅是官方UI账号／价目证据，key API鉴权及新增模型调用仍0，免费额度不当实际cash0。
 
 foundation唯一编写C/real_provider_local_app.py，旧L/local_app.py不改；计划从原SQLite＋objects私有只读快照接续，保留旧mock账与成品，不grant／补传／重跑报告，用默认真实Bridge、正常auth session（本机testuser非OTP、私有HTML bootstrap）和一次Bearer保护worker。代码未完成／未执行，独审待稿。预算准备受既有jobs/settings硬合同limit100000约束，不改产品或伪造较小limit：计划用现有budget行技术scope hold总85000milli，含原mock reservation，净新增85000−old_mock_reserved；另carry真实历史及未知预留2313milli（453＋760＋1100），目标初reserved87313、available≤12687。技术hold不是供应商成本或用户扣分，不写假usage／physicalcost、不清旧账；system_settings单marker事务幂等。实际新DB初始化／模型调用仍0。Root下一审caller后接真实验收；旧R7及403／UNKNOWN完整保，合格封面0／单位成本N/A，此关键checkpoint不构成停止。
+
+
+## CURRENT — 2026-10-24T09:23:45.636764+00:00 本机真实任务已正常受理，首次真实供应商派发前 checkpoint
+
+实际HEAD32482e5／功能9f55fbf。C/real_provider_local_app.py已冻结32872B／24d16301，Root及独审完成核心合同核对，最终cost诊断delta独审中；现成Python3.11.14纯preflight PASS，正常serve001已启动127.0.0.1:54730／session13915／until1792844356，未启动lifespan/自动worker。新私有SQLite ro备份与九图已核，old_mock_reserved9024／net_scope_hold75976／historycarry2313／实际reserved87313／新可预留12687milli；原账与旧成品不动，0模型。正常GET报价8分、90天；POST新job b296a095-6f1b-4e06-9cbc-f4b914376937／client76123122-c393-4444-8652-6eaa65c02ba6／usage9ad6dd3e-b9f2-4b2b-9998-71841b4ec417已202 queued，4月度＋4钱包预留／实际扣0。原九图434正文复用，无补传/grant/重跑。下一执行唯一Bearer onceworker，默认真实Pro/Seedream链；异常或UNKNOWN核原件、不自动重发。key仍生效仅Python内存，结束/停止须禁用。
+
+Chrome新本机root及HTML均ERR_BLOCKED_BY_CLIENT，一次普通Reload仍同；独立HTTP /200、正常quote/create已200/202，未改浏览器安全或换port绕过。此前完整前端供应商mock证据复用，但本次真实前端仍待证；当前新任务证据明确LOCAL_REAL_PROVIDER_NORMAL_API，非cloud/OTP/前端真实验收。受阻分支不阻真实API，Root继续实际一次worker，不停在checkpoint。
+
+
+## CURRENT — 2026-10-24T09:45:27.017505+00:00 本机真实r1已失败、8分全释、key已禁用；验收预算根因已复现，继续离线局修
+
+HEAD32482e5／产品9f55fbf不变。真实job b296a095-6f1b-4e06-9cbc-f4b914376937／usage9ad6dd3e-b9f2-4b2b-9998-71841b4ec417终态failed，11次Pro＋1次Seedream均HTTP200，无physical UNKNOWN；文本目录已知1.107312元，图像9输入/1输出/1billed quantity，actualNULL、estimate0.76保留（provider_request_id已存受控证据）。normal GET两次均released8／credits_used0；月度及钱包原值复原、refund_applied1、complete0，无新成品/候选/QC或设计留存，合格0／单位成本N/A。旧source及clone原四类财务行SHA与原snapshot逐一相等，旧mock/R7/403/UNKNOWN不改。实际server13915已正常stop/exit0，原RUN-ONCE/RUN-RESULT保留。官方同task key实际已禁用、按钮变启用，C/TASK-KEY-DISABLED.*元数据与遮罩截图已给用户，其他key不动。
+
+失败定位在本轮测试预算，不以HTTP200当审美通过：acceptance counter99436，下一Pro保守reserve1033使总100469>100000。原host content-free receipt主请求ordinal12，而11Pro＋1image的12个physical已全部响应；只读备份离线调用原_reserve_payload实际复现PUBLIC_TRIAL_BUDGET_EXHAUSTED／HTTP0／physical21不变。该counter包含85000技术范围占用、历史2313及累计最大模型预留，并非真实消费。独审发现原trial_budget_monotone禁止下降，Root未执行release/删trigger/改limit。C/REAL-STATE007.TERMINAL、REAL-FAILED-READBACK-AND-STOP001、REAL-FAILED-FINANCIAL-AND-INTENTS001及real-budget-repro-r1/RESULT为有效原件；r1caller原码32872／24d16301冻结txt。
+
+Root继续当前可执行离线修复：foundation仅改同一C/real_provider_local_app.py及README，不改产品/DB/key/UI。拟保同STATE/DB、原acceptance counter99436及所有账/old once，显式next-after-job验证原失败/全响应/净0后，只准备一个人工新job；用现产品本机formal execution_scope/native budget0 owner_metered正向记账，额外本机串行A15 guard从原mock exclusion逐call计算已知精确文本ceil＋其余完整reserve＋旧carry2313＋新拟reserve，再进原native_reserve，UNKNOWN/在途始终保全。此方案不新建DB重置费用或增加预算，不恢复旧failed、不自动重发。独审已核既有formal合同可行，待首稿/精确审/离线验证。新付费及key重新启用尚未执行；届时才集中说明具体动作和当次确认要求。Chrome本机ERR_BLOCKED_BY_CLIENT仍单列，不改浏览器安全或冒前端真实验收；现阶段不是停工。
