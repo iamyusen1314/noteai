@@ -3097,3 +3097,16 @@ Q=W7/resume-integration-local-r1/paid-config-ledger-fixed-readonly；最终sourc
 唯一credential-I/O seam R4已冻结：manifest5301/d37bae84，launcher32104/ec2d93bc与PROGRAMS1531/4f2700e9两叶，其余R3继续真ref；只提取load_fixed_runtime_business_url，固定secret path/21281/132c/NOFOLLOW/UID/GID/0400/stable/clear-reset/finallyclose及read_json原门不变。作者逆还原、3局部检查与独审GO复用；Root3556c9核10叶whole/mode400和短diff，不重跑。不读真实secret/Env，不称连续或云通过。旧R3及141f/5053源包未覆盖，运输/SAVE仍未执行。
 
 normal既有六类边界位置表已归档continuous-driver-local-r1/EXTERNAL-BOUNDARIES.REVIEW.md5868/d854e766；仅真实临时FS身份、HOST-clock-proc、单一credentialI/O、exactargv Docker/runtime、socket IPC、systemd/Nginx可明示适配，内部hash/parse/state/predecessor/CAS不可stub。原sole唯一写连续driver；Root另交cover_media只写image-guard-bridge-local-r1，真实V3图像账本admission/reserve/dispatch/terminal局部桥接，明确synthetic与HTTP fake，不冒真实49/9resume，不重旧suite。两者当前进行中，无完整联调PASS。权威PLAN原tool_integration_review已记固定载体、真实Run0拦截、R4冻结、负责人/数据缺口/下一步；不新task/发布流程/权限或预算，真实成品验收继续暂停。
+
+
+## CURRENT — 2026-10-24 03:48UTC 图像账本缺陷已离线复现，3.11局部回归通过；完整工具链仍未通过
+
+HEAD865e52c/原cover分支。cover_media在既有W7/resume-integration-local-r1/image-guard-bridge-local-r1完成冻结source22308/660f9cff与manifest3586/65ef5977；真实未改guard00a05/runtimef912/legacy266ec5整byte导入、synthetic tempSQLite同fixture，真v3_admit/record_post/bind/reserve/wire_gate/dispatch/_image_json及事务方法。旧admitted先mark真实抛RECEIPT_STATE_UNCONFIRMED且状态不变；修复原子dispatch经1fakeHTTP接回执，重复和UNKNOWN不重发、已知未派发actual0释放预留、故意SQLite写失败整组回滚。原try_settle在缺正常jobs账证时真实拒绝，未伪造accounted；单独mark_image_estimated只证终态事务，pending760000000/actualNULL保留，非供应商成本或正常结算通过。
+
+作者4check在Python3.12.14/httpx0.28.1通过，首轮fixture缺created_at与全局3.11缺httpx原失败均保留。Root另在任务tmp/root-py311-env-r1准备Python3.11.14，官方PyPI仅安装项目requirements-api已固定httpx0.28.1/Pillow12.3.0及其依赖，无repo/生产依赖变化。对同22308/660f最终脚本runpy非main一次实际4PASS/0.314s（0ba163/8e5084），不覆盖作者冻结evidence；root-py311-verification-r1/EVIDENCE.RUN001.json7516/29f33878及TEST.RUN001.txt为真记录。此为环境匹配补测，模型/服务器DB/公网0，未借3.12二进制。
+
+完整复用入口是source100 bridge_existing_context(guard,*,seedream_module,source_images,prompt,call_id,before_call,on_call,transport)，只消费连续driver已真实admit/nativeclaim/install的同guard/同clone，直接调原generate_background和hooks，入口仍NOT_EXECUTED。局部__new__对象/合成native行不冒真实49/9、原inode构造/CAS/fullbeforewire/正常jobs记账、供应商或成品质量。sole已获入口/3.11env和真refs，继续唯一连续driver装配；Root不把两组并列PASS冒完整联调。
+
+settings窄审当前input_clone21991/fadbf与固定producer13849/c2b接口无确定P0–P2：仅接packet解压后原始result bytes/实际size-SHA，62key/metadata/全1-49-9原TEXT/schema/前后指纹匹配；仅known legacy DDL，参数化插入+commit-reopen校验，未执行SQL。Root提前指出新sandbox loader若只做sys.modules副本会破futureannotations/dataclass，3069ab仅内存stdlib3.11复现；sole已报activated临时真共享注册/finally恢复和局部检查，Root尚未最终bundle验收，不当旧产品错误。
+
+当前唯一外部取件仍b991 prepared/Run0、因error.taobao.com安全拒绝；无新token/查询/替代面绕过，已只问用户官方表单能否正常显示，不要求点击Run/新付费批准。实际fullconfig/49+9/schema及晚ENTRY依赖缺件仍保留，不能拼记录或改hash。权威PLAN原tool_integration_review已记局部实际证据/环境补测/桥未执行/原sole负责人/下一步；真实生成、公网、运输SAVE继续HOLD，原R7成本UNKNOWN/净扣0/余额8保持，合格封面仍0。
