@@ -33897,3 +33897,15 @@ checkpoint前RootHEAD78d6160，功能17d96f7、branch/worktree原样。原集成
 | 最小修复与离线验证 | 17d96f7＋最终独审GO；完整callback/受影响SDK均有精确scope证据 | 无未闭本阶段技术项 |
 | 定向集成与真实验收 | actualc205/云Node24定向7PASS；sole d6e18e9三组件已核收；真实qualified0 | Root：待新金额与临时访问决定后1真实cover |
 | 独审交付 | 源码/载体/原件/组件独审完成；完整产品交付未完成 | Root补真实图、UI/唯一结算/单位成本证据后交sole统一发布；无生产GO |
+
+
+## CURRENT — 2026-10-25T11:05:02.674020+00:00 新直接答复“确认”已登记A42/+10/1新cover，同key最长至12:02:52UTC，立即限时验收
+
+首次真实时钟11:02:52UTC，用户直接回复对应上一集中A32→42追加10、总≤100、1新cover、原受限key最多60min问项。R13-ACTUAL-HUMAN-SCOPE001.json 2055/cd350f834898375ae0c5b430eda4494dd95fabb86c6beccb24c26fdcd6315422 固定截止12:02:52UTC，终态早关、失败/预算不足/UNKNOWN即停，不继承或重发R12。实际授权现A42，旧bound28729/剩13271、旧UNKNOWN2753完整。caller984359d1完全不改，prepared LAST_APPROVED32/HOLD只是既有静态准备metadata；本actualreceipt授权其已有LOCAL_REAL_LIMIT42000执行。已独立只读核此契约，无新业务/math/门禁改动，README头登记actualscope并先冻结旧档。当前尚未启用key/serve/新job；Root下一立即正常samekey启用→同一隔离local调用器→原报告9有效原图1新cover；候选actualc205及sole d6e18e9已完成，不重复。
+
+
+## CURRENT — 2026-10-25T11:10:50.076277+00:00 R13唯一UI新job排队/key已启用，准备single paid run-next
+
+已官方UI启用samekey，禁用截止12:02:52UTC不变；REAL-R13-SERVER-START001156428/61df2125，serve013 exec80251/origin http://127.0.0.1:53481，正常samecaller984359d1/args确认，启动未发模型。PC1440从原报告封面panel一击“重新设计8积分”，normal readback新phase唯一queued6d0e68a8-b0bf-475f-8f40-864a59aee49a/usaged5eff5fd-a157-4948-aca2-2c41a4d361bd/cliente41861f0-81aa-4005-a4b8-2449e2096c36，newphysical0/workerfalse，8分仅预留。当前报告cover-sources实际9ready且最早expiryOct26 05:45:36Z，无需补传；caller required_at_starttrue检查旧HISTORICAL fixture，并非此当前素材状态，不扩为阻塞或重复上传。旧mock成品保留不能冒R13成品。
+
+Root下一仅一次POST /__local__/run-next；candidate沿原6815B公开whitelist observer只换job/目标/截止采集公开设计原件，不读私有SDK/CP、无paid。当前A42/bound28729/余13271、旧UNKNOWN2753全留。模型预计数元，最多1概念/1既有任务内质量修正、0自动重发，失败或未知即停终态提前关闭。当前checkpoint在外部paid前保存，后续恢复必须查本job/once，不能再建或重发。
