@@ -124,9 +124,16 @@ Volcengine native compaction. Rejected preflights have no physical ordinal,
 dispatch intent or charge. They retain content-free measurements in the existing
 cleanup receipt. The provider's 131072 conservative bound is unchanged.
 
-At most one admitted compaction request is allowed per task. Its paid response
-uses the same provider admission and ledger; an automatic SDK summary NUDGE is
-blocked before dispatch. In the SDK summary input only, successful `cover_write`
+At most two admitted compaction requests are allowed per task, each consuming a
+distinct known local primary-input overflow ticket. The ticket binds the rejected
+body SHA and current request ordinal and is consumed atomically with the normal
+dispatch checkpoint. A second ticket requires a different body and at least one
+known successful primary response after the first summary. Repeating an overflow,
+an immediate still-oversized continuation, summary-input rejection and an automatic
+SDK summary NUDGE cannot buy another summary. Missing older ticket state fails
+closed. Each paid response still uses the original provider admission, money
+ledger and task deadline; UNKNOWN cannot issue or consume a ticket. In the SDK
+summary input only, successful `cover_write`
 arguments may become file references when the corresponding receipt and current
 ordinary file both match the full text's exact bytes and SHA. Missing, overwritten
 or failed writes stay untouched. The resulting transcript is provided as a fresh
@@ -267,9 +274,31 @@ counts and the latest validated local input measurement. It keeps the original
 first input-rejection diagnostic separately; neither includes model text,
 font CSS, opaque thinking state or arbitrary SDK error messages. Optional
 diagnostic failures cannot replace the original error; supplier UNKNOWN retains
-its existing strict checkpoint/no-replay path. The 131072 input bound and single
-summary restriction are unchanged. A later real attempt must establish actual
+its existing strict checkpoint/no-replay path. The 131072 input bound is unchanged;
+the two-summary ticket limit above replaces the former task-wide one-summary
+engineering limit. A later real attempt must establish actual
 design quality and successful product delivery independently of these fixtures.
+
+Local input measurements may additionally include `text_breakdown`: nine fixed
+integer byte counts for system/developer content, user content, assistant content,
+reasoning, encrypted thinking, tool arguments, tool results, tool schemas, and
+remaining JSON structure. They partition the existing compact UTF-8 JSON meter
+after image URLs are blanked; user content still includes image envelope metadata.
+These counts contain no source text, thinking values or image bytes. The first
+rejection sidecar and the host's latest rejection retain their separate counts
+through normal cleanup. Old eight-field measurements remain valid. Invalid
+optional counts are discarded without hiding the original measurement or error;
+attribution failure cannot change admission, dispatch, pricing, UNKNOWN or billing.
+These diagnostics do not establish the missing R12 input composition retroactively.
+
+The same checkpoint also keeps one `last_render_rejection`, projected on cleanup
+as `last_local_render_rejection`. It contains a fixed local error code, request
+count, optional ASCII layer ID and bounded numeric text geometry; raw detail,
+HTML, stdout and stderr are excluded. This is a previous local rejection, which
+may remain after later rendering succeeds, and is separate from the terminal
+failure cause. Invalid optional geometry or diagnostic I/O cannot replace the
+original tool result. Actual overflow requires correcting the CSS line box and
+then synchronizing the request's allowed text area while preserving subjects.
 
 An unexpected reservation exception can occur before the adapter enters its HTTP
 transport. The R7 receipt retained that conservative UNKNOWN, but did not retain
@@ -373,7 +402,7 @@ and stored-file identity. Compaction checks the original argument against the
 former and the current ordinary file against the latter before replacing the
 quoted write with a retrievable reference. Legacy three-field receipts still
 require exact input/file equality. Changed or missing files keep their original
-write text. The 131072 input bound, one-summary limit, full Skill/fact retention,
+write text. The 131072 input bound, full Skill/fact retention,
 supplier UNKNOWN handling, deadlines, models and billing are unchanged.
 
 The R11 real task stopped after its summarized primary request still exceeded the

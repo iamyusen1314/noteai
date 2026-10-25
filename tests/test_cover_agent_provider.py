@@ -779,5 +779,121 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertFalse(self.requests)
 
 
+class PureInputDiagnosticTests(unittest.TestCase):
+    def test_text_partition_is_exact_private_and_distinguishes_post_summary_growth(self):
+        from cover_agent_thinking import ThinkingState
+
+        # This fixture uses the wire shape after one SDK summary, not a live
+        # SDK/session/provider run. Only the real in-memory restore and meter run.
+        with mock.patch("sqlite3.connect", side_effect=AssertionError("No diagnostic DB")), \
+                mock.patch("socket.socket.connect", side_effect=AssertionError("No diagnostic network")), \
+                mock.patch.object(provider, "complete", side_effect=AssertionError("No diagnostic model")):
+            size = lambda value: len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode())
+            body = {"model": provider.MODEL, "stream": False, "messages": [
+                {"role": "system", "content": '固定系统 "引号"\n反斜杠\\'},
+                {"role": "developer", "content": [{"type": "text", "text": "真实素材约束"}]},
+                {"role": "user", "content": [{"type": "text", "text": "真实照片与标题"},
+                    {"type": "image_url", "image_url": {"url": "data:image/png;base64," + "A" * 10000}}]},
+                {"role": "assistant", "content": "排字完成\n保留原照",
+                    "reasoning_content": "R" * 97, "encrypted_content": "Q" * 113,
+                    "tool_calls": [{"id": "synthetic_partition", "type": "function", "function": {
+                        "name": "cover_write", "arguments": json.dumps({"path": "poster.html",
+                            "text": '<div title="真实">汤泉\\\n</div>'}, ensure_ascii=False)}}]},
+                {"role": "tool", "tool_call_id": "synthetic_partition", "content": "已保存\n原照不变"}],
+                "tools": [{"type": "function", "function": {"name": "cover_write",
+                    "description": '保存 "真实" 封面', "parameters": {"type": "object"}}}]}
+            original = deepcopy(body)
+            measured = deepcopy(body)
+            measured["messages"][2]["content"][1]["image_url"]["url"] = ""
+            full_text_bytes = size(measured)
+            measurement = provider._measure_input(body, 512, 1)
+            breakdown = measurement["text_breakdown"]
+            expected = {
+                "system_content_bytes": sum(size(message["content"]) for message in measured["messages"][:2]),
+                "user_content_bytes": size(measured["messages"][2]["content"]),
+                "assistant_content_bytes": size(measured["messages"][3]["content"]),
+                "reasoning_content_bytes": size(measured["messages"][3]["reasoning_content"]),
+                "encrypted_content_bytes": size(measured["messages"][3]["encrypted_content"]),
+                "tool_arguments_bytes": size(measured["messages"][3]["tool_calls"][0]["function"]["arguments"]),
+                "tool_result_bytes": size(measured["messages"][4]["content"]),
+                "tool_schema_bytes": size(measured["tools"]),
+            }
+            expected["other_json_bytes"] = full_text_bytes - sum(expected.values())
+            self.assertEqual(breakdown, expected)
+            self.assertEqual(sum(breakdown.values()), measurement["text_bytes"])
+            self.assertEqual(measurement["text_bytes"], full_text_bytes)
+            legacy = {key: value for key, value in measurement.items() if key != "text_breakdown"}
+            self.assertEqual(legacy, {"text_bytes": full_text_bytes, "image_count": 1, "image_tokens": 512,
+                "message_count": 5, "tool_count": 1, "framing_tokens": 1792,
+                "total_bound": full_text_bytes + 512 + 1792, "max_input_tokens": 131072})
+            self.assertEqual(provider.validated_input_diagnostics(legacy), legacy)
+            self.assertEqual(provider.validated_input_diagnostics(measurement), measurement)
+            self.assertTrue(body == original)
+            other_image = deepcopy(body)
+            other_image["messages"][2]["content"][1]["image_url"]["url"] = "data:image/png;base64," + "B" * 20000
+            self.assertEqual(provider._measure_input(other_image, 512, 1), measurement)
+            diagnostic = json.dumps(measurement, ensure_ascii=False)
+            self.assertTrue(all(value not in diagnostic for value in (
+                body["messages"][3]["reasoning_content"], body["messages"][3]["encrypted_content"],
+                body["messages"][2]["content"][1]["image_url"]["url"])))
+
+            malformed = [None, [], {**breakdown, "unexpected": 0},
+                {key: value for key, value in breakdown.items() if key != "other_json_bytes"}]
+            for value in (-1, True, 1.0, 2**63, breakdown["other_json_bytes"] + 1):
+                malformed.append({**breakdown, "other_json_bytes": value})
+            for invalid in malformed:
+                self.assertEqual(provider.validated_input_diagnostics({**legacy, "text_breakdown": invalid}), legacy)
+            self.assertIsNone(provider.validated_input_diagnostics({**measurement, "total_bound": 0}))
+            overflow = {"messages": [{"role": "user", "content": "X" * 150000}]}
+            original_stop = provider.admit_payload(overflow)
+            original_stop["measurement"].pop("text_breakdown")
+            with mock.patch.object(provider, "_text_breakdown", side_effect=RuntimeError("synthetic attribution failure")):
+                self.assertEqual(provider._measure_input(body, 512, 1), legacy)
+                self.assertEqual(provider.admit_payload({"messages": [{"role": "user", "content": "short"}]}),
+                    {"allowed": True})
+                self.assertEqual(provider.admit_payload(overflow), original_stop)
+                with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                    provider.prepare_payload(overflow)
+                self.assertEqual(caught.exception.code, "COVER_AGENT_INPUT_LIMIT_EXCEEDED")
+                self.assertEqual(caught.exception.input_diagnostics, original_stop["measurement"])
+
+            summary = "## Objective\nPreserve real photos.\n## Work State\nContinue the saved design."
+            self.partition_examples = []
+            for mode in ("opaque", "visible"):
+                state = ThinkingState("synthetic_partition_" + mode)
+                state.remember({"choices": [{"message": {"role": "assistant", "content": "old turn",
+                    "encrypted_content": "P" * 40000}}]})
+                after_summary = {"model": provider.MODEL, "messages": [
+                    {"role": "system", "content": "Fixed cover Skill and original task."},
+                    {"role": "user", "content": summary}], "tools": [], "stream": False}
+                fresh = provider._measure_input(state.restore(after_summary), 0, 0)
+                self.assertEqual(fresh["text_breakdown"]["encrypted_content_bytes"], 0)
+                self.assertEqual(state.entry_count, 1)  # Retained old RAM is not automatically re-injected.
+                for index in range(2):
+                    identifier = "synthetic_" + mode + "_" + str(index)
+                    response = {"choices": [{"message": {"role": "assistant", "content": None,
+                        "tool_calls": [{"id": identifier, "type": "function", "function": {
+                            "name": "cover_write", "arguments": json.dumps({"path": "poster.html",
+                                "text": "V" * (35000 if mode == "visible" else 16)})}}],
+                        "encrypted_content": "C" * (70000 if mode == "opaque" else 32)}}]}
+                    safe = state.remember(response)
+                    after_summary["messages"].extend([safe["choices"][0]["message"],
+                        {"role": "tool", "tool_call_id": identifier,
+                            "content": "T" * (35000 if mode == "visible" else 16)}])
+                sdk_visible = provider._measure_input(after_summary, 0, 0)
+                restored = provider._measure_input(state.restore(after_summary), 0, 0)
+                self.assertEqual(sum(restored["text_breakdown"].values()), restored["text_bytes"])
+                self.assertGreater(restored["total_bound"], provider.MAX_INPUT_TOKENS)
+                if mode == "opaque":
+                    self.assertLess(sdk_visible["total_bound"], provider.MAX_INPUT_TOKENS)
+                    self.assertGreater(restored["text_breakdown"]["encrypted_content_bytes"], 131072)
+                else:
+                    self.assertGreater(sdk_visible["total_bound"], provider.MAX_INPUT_TOKENS)
+                    self.assertLess(restored["text_breakdown"]["encrypted_content_bytes"], 100)
+                    self.assertGreater(restored["text_breakdown"]["tool_arguments_bytes"]
+                        + restored["text_breakdown"]["tool_result_bytes"], 131072)
+                self.partition_examples.append({"mode": mode, "sdk_visible": sdk_visible, "restored": restored})
+
+
 if __name__ == "__main__":
     unittest.main()

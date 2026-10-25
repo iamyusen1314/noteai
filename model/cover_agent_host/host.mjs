@@ -243,11 +243,21 @@ function completionSSE(body) {
 function objectSchema(properties, required = Object.keys(properties)) { return { type: 'object', properties, required, additionalProperties: false }; }
 function inputMeasurement(value) {
   const keys = ['text_bytes', 'image_count', 'image_tokens', 'message_count', 'tool_count', 'framing_tokens', 'total_bound', 'max_input_tokens'];
-  if (!value || Object.keys(value).length !== keys.length
+  if (!value || Object.keys(value).some((key) => !keys.includes(key) && key !== 'text_breakdown')
       || keys.some((key) => !Number.isSafeInteger(value[key]) || value[key] < 0)
       || value.total_bound !== value.text_bytes + value.image_tokens + value.framing_tokens
       || value.total_bound <= value.max_input_tokens) throw error('MODEL_PREFLIGHT_INVALID');
-  return Object.fromEntries(keys.map((key) => [key, value[key]]));
+  const result = Object.fromEntries(keys.map((key) => [key, value[key]]));
+  const breakdownKeys = ['system_content_bytes', 'user_content_bytes', 'assistant_content_bytes',
+    'reasoning_content_bytes', 'encrypted_content_bytes', 'tool_arguments_bytes',
+    'tool_result_bytes', 'tool_schema_bytes', 'other_json_bytes'];
+  const detail = value.text_breakdown;
+  if (detail && typeof detail === 'object' && !Array.isArray(detail)
+      && Object.keys(detail).length === breakdownKeys.length
+      && breakdownKeys.every((key) => Number.isSafeInteger(detail[key]) && detail[key] >= 0)
+      && breakdownKeys.reduce((sum, key) => sum + detail[key], 0) === value.text_bytes)
+    result.text_breakdown = Object.fromEntries(breakdownKeys.map((key) => [key, detail[key]]));
+  return result;
 }
 const FAILURE_CODES = new Set(['COMPACTION_CONTINUATION_NOT_ALLOWED', 'MODEL_PREFLIGHT_INVALID',
   'MODEL_REQUEST_LIMIT', 'MODEL_ROUTE_FORBIDDEN', 'MODEL_REQUEST_TOO_LARGE', 'MODEL_ID_NOT_LOCKED',
@@ -261,9 +271,9 @@ function failureDiagnostic(code, stage) {
   if (last) {
     result.last_input_label = ['primary', 'compaction'].includes(last.label) ? last.label : 'unknown';
     try {
-      result.last_input_measurement = inputMeasurement(Object.fromEntries(
+      result.last_input_measurement = inputMeasurement({ ...Object.fromEntries(
         ['text_bytes', 'image_count', 'image_tokens', 'message_count', 'tool_count', 'framing_tokens', 'total_bound', 'max_input_tokens']
-          .map((key) => [key, last[key]])));
+          .map((key) => [key, last[key]])), ...(last.text_breakdown === undefined ? {} : { text_breakdown: last.text_breakdown }) });
     } catch { delete result.last_input_label; }
   }
   return result;
@@ -271,6 +281,56 @@ function failureDiagnostic(code, stage) {
 function rememberFailure(code, stage) {
   try { checkpoint.terminal_diagnostic = failureDiagnostic(code, stage); }
   catch { /* Optional diagnostics must never replace the original error. */ }
+}
+function overflowTicket(state, bodySHA, ordinal) {
+  const count = state.compaction_requests ?? 0, previous = state.overflow_ticket;
+  if (previous && previous.consumed !== true) return previous;
+  if (!Number.isSafeInteger(count) || count < 0 || count >= 2
+      || !Number.isSafeInteger(ordinal) || ordinal < 0 || !/^[0-9a-f]{64}$/.test(bodySHA)) return null;
+  if (count > 0 && (!Number.isSafeInteger(state.last_successful_primary_request)
+      || !Number.isSafeInteger(state.last_compaction_request_ordinal)
+      || state.last_successful_primary_request <= state.last_compaction_request_ordinal
+      || !/^[0-9a-f]{64}$/.test(state.last_compacted_primary_sha256)
+      || bodySHA === state.last_compacted_primary_sha256)) return null;
+  return { body_sha256: bodySHA, request_ordinal: ordinal, consumed: false };
+}
+function compactionTicketAllowed(state, ordinal) {
+  const count = state.compaction_requests ?? 0, ticket = state.overflow_ticket;
+  return Number.isSafeInteger(count) && count >= 0 && count < 2
+    && ticket && typeof ticket === 'object' && !Array.isArray(ticket)
+    && Object.keys(ticket).sort().join(',') === 'body_sha256,consumed,request_ordinal'
+    && ticket.consumed === false && /^[0-9a-f]{64}$/.test(ticket.body_sha256)
+    && Number.isSafeInteger(ticket.request_ordinal) && ticket.request_ordinal === ordinal;
+}
+const RENDER_REJECTION_CODES = new Set(['TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION',
+  'TEXT_OVER_PROTECTED_SUBJECT', 'TEXT_FONT_NOT_SELF_HOSTED', 'COVER_DESIGN_TEXT_NOT_FROM_TITLE',
+  'OFFLINE_RENDER_ERROR', 'RENDER_DEPENDENCY_INCOMPLETE', 'CANVAS_PIXEL_GEOMETRY_MISMATCH',
+  'GENERATED_TEXT_NOT_EDITABLE', 'VISIBLE_TEXT_NOT_REGISTERED', 'UPSTREAM_POSTER_CONTRACT_FAILED',
+  'UPSTREAM_FONTS_FAILED', 'UPSTREAM_EDITABLE_CONTRACT_FAILED', 'OTHER_LOCAL_RENDER_REJECTION']);
+function renderRejection(result) {
+  if (result?.ok !== false) return null;
+  const record = { code: RENDER_REJECTION_CODES.has(result.code) ? result.code : 'OTHER_LOCAL_RENDER_REJECTION',
+    model_requests: requests };
+  const layer = (value) => typeof value === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value);
+  if (['TEXT_OVER_PROTECTED_SUBJECT', 'TEXT_FONT_NOT_SELF_HOSTED', 'COVER_DESIGN_TEXT_NOT_FROM_TITLE'].includes(record.code)
+      && layer(result.detail)) record.layer_id = result.detail;
+  if (record.code === 'TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION') {
+    try {
+      const detail = JSON.parse(result.detail);
+      const rect = (value) => value && typeof value === 'object' && !Array.isArray(value)
+        && Object.keys(value).length === 4 && ['x', 'y', 'width', 'height'].every((key) =>
+          Number.isFinite(value[key]) && Math.abs(value[key]) <= 1000000)
+        && value.width > 0 && value.height > 0;
+      if (layer(detail.id)) record.layer_id = detail.id;
+      if (rect(detail.element_rect) && rect(detail.allowed_rect) && typeof detail.overflow === 'boolean'
+          && Array.isArray(detail.ink_rects) && detail.ink_rects.length <= 16 && detail.ink_rects.every(rect)
+          && Number.isSafeInteger(detail.ink_rect_count) && detail.ink_rect_count >= detail.ink_rects.length
+          && detail.ink_rect_count <= 1000000)
+        record.geometry = { element_rect: detail.element_rect, allowed_rect: detail.allowed_rect,
+          overflow: detail.overflow, ink_rects: detail.ink_rects, ink_rect_count: detail.ink_rect_count };
+    } catch { /* The original tool result remains available to the agent. */ }
+  }
+  return record;
 }
 function summaryMaterial(messages) {
   // This is a new summarization branch, not a continuation of signed assistant
@@ -376,8 +436,9 @@ try {
       body.stream = false; delete body.stream_options;
       if (body.model !== job.model_id) throw error('MODEL_ID_NOT_LOCKED');
       const label = hooks.at(-1)?.kind || 'unknown';
-      // A malformed SDK summary must not cause its automatic paid NUDGE call.
-      if (label === 'compaction' && (checkpoint.compaction_requests || 0) >= 1) throw error('COMPACTION_CONTINUATION_NOT_ALLOWED');
+      // Each paid summary consumes one new known, unbilled primary overflow.
+      // An automatic SDK NUDGE cannot reuse that ticket or create a new one.
+      if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests)) throw error('COMPACTION_CONTINUATION_NOT_ALLOWED');
       // Use the actual Python provider meter before recording any dispatch.
       // Only this local, unbilled rejection invokes SDK overflow compaction;
       // supplier failures and UNKNOWN responses retain their normal semantics.
@@ -386,15 +447,23 @@ try {
         if (admission.allowed !== false || admission.code !== 'COVER_AGENT_INPUT_LIMIT_EXCEEDED') throw error('MODEL_PREFLIGHT_INVALID');
         checkpoint.local_input_rejections = (checkpoint.local_input_rejections || 0) + 1;
         checkpoint.last_input_measurement = { body_sha256: sha(JSON.stringify(body)), label, ...inputMeasurement(admission.measurement) };
+        if (label === 'primary') checkpoint.overflow_ticket = overflowTicket(checkpoint,
+          checkpoint.last_input_measurement.body_sha256, requests);
         await atomicJSON(checkpointPath, checkpoint);
         res.writeHead(400, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: { code: 'context_length_exceeded', type: 'noteai_local_admission',
           message: 'NoteAI local input bound exceeded before supplier dispatch', local_code: admission.code } }));
         return;
       }
+      // Another HTTP request may have consumed the ticket while Python was
+      // measuring this one. Recheck before the synchronous dispatch transition.
+      if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests)) throw error('COMPACTION_CONTINUATION_NOT_ALLOWED');
       requests += 1; physical = true;
       checkpoint = { ...checkpoint, model_requests: requests, status: 'AWAITING_MODEL',
-        ...(label === 'compaction' ? { compaction_requests: (checkpoint.compaction_requests || 0) + 1 } : {}),
+        ...(label === 'compaction' ? { compaction_requests: (checkpoint.compaction_requests || 0) + 1,
+          overflow_ticket: { ...checkpoint.overflow_ticket, consumed: true },
+          last_compacted_primary_sha256: checkpoint.overflow_ticket.body_sha256,
+          last_compaction_request_ordinal: requests } : {}),
         pending_request: { ordinal: requests, body_sha256: sha(JSON.stringify(body)), label } };
       await atomicJSON(checkpointPath, checkpoint);
       const answer = await bridge('model_request', { ordinal: requests, label: checkpoint.pending_request.label, method: 'POST', path: '/chat/completions', body });
@@ -402,6 +471,8 @@ try {
       if (!Number.isInteger(answer.status) || answer.status < 100 || answer.status > 599) throw error('MODEL_RESPONSE_INVALID');
       const payload = typeof answer.body === 'string' ? answer.body : JSON.stringify(answer.body);
       checkpoint = { ...checkpoint, pending_request: null, status: answer.status >= 200 && answer.status < 300 ? 'RUNNING' : 'FAILED', last_response_status: answer.status };
+      if (label === 'primary' && answer.status >= 200 && answer.status < 300)
+        checkpoint.last_successful_primary_request = requests;
       await atomicJSON(checkpointPath, checkpoint);
       let output = payload, contentType = 'application/json';
       if (wasStream && answer.status >= 200 && answer.status < 300) { output = completionSSE(JSON.parse(payload)); contentType = 'text/event-stream'; }
@@ -476,7 +547,13 @@ try {
       if (Array.isArray(answer.result.approved_titles)) request.approved_titles = answer.result.approved_titles;
       const run = await runLocal(process.execPath, [job.editable_cli, 'render'], request.project_dir, JSON.stringify(request));
       let result; try { result = JSON.parse(run.stdout); } catch { throw error('RENDER_RESPONSE_INVALID'); }
-      if (run.code !== 0 || result.ok !== true) return { content: JSON.stringify(result) };
+      if (run.code !== 0 || result.ok !== true) {
+        try {
+          const rejection = renderRejection(result);
+          if (rejection) { checkpoint.last_render_rejection = rejection; await atomicJSON(checkpointPath, checkpoint); }
+        } catch { /* Optional failure evidence must not alter the original tool result. */ }
+        return { content: JSON.stringify(result) };
+      }
       lastRender = result; checkpoint.artifact = result; await atomicJSON(checkpointPath, checkpoint);
       lastPreview = await makeThumbnail({ pngPath: result.png_path, outputRoot: path.join(job.work_dir, '.previews'), skillDir: job.skill_dir });
       checkpoint.preview = lastPreview; await atomicJSON(checkpointPath, checkpoint);

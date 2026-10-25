@@ -109,6 +109,203 @@ class TitleScopeBridgeTests(unittest.TestCase):
             self.assertEqual(len(bridge.approved_titles), 1)
 
 
+class LocalRenderRejectionDiagnosticTests(unittest.TestCase):
+    # Exact stdout from the retained first offline CLI rejection, not a guessed
+    # merchant HTML failure. Only the existing content-free geometry is present.
+    CLI_FAILURE = (r'{"ok":false,"schema_version":"noteai-cover-editable/v1",'
+        r'"code":"TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION",'
+        r'"detail":"{\"id\":\"text-line1\",\"element_rect\":{\"x\":96,\"y\":1756,\"width\":648,\"height\":124},'
+        r'\"allowed_rect\":{\"x\":0,\"y\":0,\"width\":1776,\"height\":2368},\"overflow\":true,'
+        r'\"ink_rects\":[{\"x\":96,\"y\":1743,\"width\":648,\"height\":150}],\"ink_rect_count\":1}",'
+        r'"model_calls":0}' + '\n').encode()
+
+    @staticmethod
+    def cleanup_facade(root):
+        """Compile the actual cleanup/readers, without importing business DBs.
+
+        Other diagnostic files are genuinely absent. Their real readers return
+        on ENOENT; no provider validator, SDK or business module is imported.
+        """
+        import ast
+        import math
+        import stat
+        from types import SimpleNamespace
+        source = Path(__file__).resolve().parents[1] / "model/cover_agent_runtime.py"
+        tree = ast.parse(source.read_text())
+        functions = {"_render_rejection_diagnostic", "_host_failure_diagnostic",
+            "_host_result_diagnostic", "_read_input_diagnostic", "_read_output_diagnostic",
+            "_read_reservation_diagnostic", "_read_host_result_diagnostic",
+            "_read_seedream_diagnostic", "cleanup_workspace"}
+        constants = {"_RENDER_REJECTION_CODES", "_HOST_FAILURE_CODES", "_HOST_RESULT_STATUSES",
+            "_HOST_RESULT_FS_CODES", "_INPUT_DIAGNOSTIC_FILE", "_OUTPUT_DIAGNOSTIC_FILE",
+            "_RESERVATION_DIAGNOSTIC_FILE", "_HOST_RESULT_DIAGNOSTIC_FILE", "_SEEDREAM_DIAGNOSTIC_FILE"}
+        selected = [node for node in tree.body if (
+            isinstance(node, ast.FunctionDef) and node.name in functions) or (
+            isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)
+                and target.id in constants for target in node.targets))]
+        assert {node.name for node in selected if isinstance(node, ast.FunctionDef)} == functions
+        namespace = {"json": json, "os": os, "math": math, "stat": stat,
+            "shutil": shutil, "uuid": uuid, "Path": Path, "workspace_root": lambda: root}
+        exec(compile(ast.Module(body=selected, type_ignores=[]), str(source), "exec"), namespace)
+        return SimpleNamespace(**namespace)
+
+    def actual_host(self, root, *, invalid=False):
+        node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
+        self.assertIsNotNone(node, "Node is required for the actual render handler")
+        source = Path(__file__).resolve().parents[1] / "model/cover_agent_host/host.mjs"
+        fixture = root / "captured-cli-failure.json"
+        fixture.write_bytes(self.CLI_FAILURE)
+        job_id = str(uuid.uuid4())
+        directory = root / job_id
+        state = directory / "host-state"
+        state.mkdir(parents=True)
+        script = r'''
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const [sourcePath,fixturePath,directory,mode]=process.argv.slice(1);
+const source=await fs.readFile(sourcePath,'utf8');
+const original=JSON.parse(await fs.readFile(fixturePath,'utf8'));
+const checkpointPath=path.join(directory,'host-state/host-checkpoint.json');
+const terminal={code:'COMPACTION_CONTINUATION_NOT_ALLOWED',stage:'gateway',
+ model_requests:14,compaction_requests:1,local_input_rejections:2};
+const base=()=>({status:'FAILED',model_requests:14,pending_request:null,terminal_diagnostic:terminal});
+let handler,wire,runCalls=0,bridgeCalls=0;
+const ctx=vm.createContext({path,fs,process:{execPath:process.execPath},requests:14,
+ checkpoint:base(),checkpointPath,job:{work_dir:directory,editable_cli:'/not-executed-cli'},
+ error:code=>Object.assign(new Error(code),{code}),objectSchema:()=>({}),
+ tool:(name,description,schema,callback)=>{assert.equal(name,'cover_render');handler=callback;},
+ bridge:async()=>{bridgeCalls++;return {result:{allowed:true,approved_titles:['trusted title']}};},
+ runLocal:async()=>{runCalls++;return {code:1,stdout:JSON.stringify(wire)};},
+ makeThumbnail:()=>assert.fail('Rejected render must not make a preview'),
+ send:()=>assert.fail('Rejected render must not announce a finished render')});
+vm.runInContext(source.match(/^function inside\([^\n]+$/m)[0]
+ +source.slice(source.indexOf('async function atomicJSON('),source.indexOf('function imageMime('))
+ +source.slice(source.indexOf('const RENDER_REJECTION_CODES ='),source.indexOf('function summaryMaterial(')),ctx);
+vm.runInContext(source.slice(source.indexOf("    tool('cover_render',"),
+ source.indexOf("    tool('cover_check',")).trim().replace(/,$/,''),ctx);
+const clone=value=>JSON.parse(JSON.stringify(value));
+const realAtomic=ctx.atomicJSON;
+async function invoke(value,failWrite=false) {
+ wire=value;ctx.checkpoint=base();
+ ctx.atomicJSON=failWrite?async()=>{throw new Error('PRIVATE_IO_SENTINEL')}:realAtomic;
+ const before=runCalls,bridges=bridgeCalls;
+ const returned=await handler({request:{project_dir:'.',approved_titles:['authored spoof']}});
+ assert.deepEqual(JSON.parse(returned.content),value);
+ assert.equal(runCalls-before,1);assert.equal(bridgeCalls-bridges,1);
+ const record=clone(ctx.checkpoint.last_render_rejection);
+ assert.deepEqual(Object.keys(record).sort(),Object.keys(record).filter(key=>
+  ['code','model_requests','layer_id','geometry'].includes(key)).sort());
+ assert.equal(record.model_requests,14);
+ assert(!JSON.stringify(record).includes('PRIVATE_'));
+ return record;
+}
+if(mode==='valid') {
+ const saved=await invoke(original);
+ const detail=JSON.parse(original.detail);
+ assert.deepEqual(saved,{code:original.code,model_requests:14,layer_id:detail.id,geometry:{
+  element_rect:detail.element_rect,allowed_rect:detail.allowed_rect,overflow:detail.overflow,
+  ink_rects:detail.ink_rects,ink_rect_count:detail.ink_rect_count}});
+ const first=await fs.readFile(checkpointPath,'utf8');
+ await invoke(original,true);
+ assert.equal(await fs.readFile(checkpointPath,'utf8'),first);
+ console.log(JSON.stringify({pass:true,checkpoint:JSON.parse(first),run_calls:runCalls,
+  bridge_calls:bridgeCalls,explicit_invocations:2,original_tool_values_unchanged:true,
+  optional_write_failure_did_not_repeat:true}));
+} else {
+ const detail=JSON.parse(original.detail);
+ const mutate=change=>({...original,detail:JSON.stringify(change(clone(detail)))});
+ const values=[
+  mutate(d=>({...d,element_rect:{...d.element_rect,x:NaN}})),
+  mutate(d=>({...d,element_rect:{...d.element_rect,width:1e9}})),
+  mutate(d=>({...d,element_rect:{...d.element_rect,width:true}})),
+  mutate(d=>({...d,element_rect:{...d.element_rect,extra:{rawHTML:'PRIVATE_HTML'}}})),
+  mutate(d=>({...d,ink_rect_count:1000001})),
+  {...original,detail:'{"id":"PRIVATE/path","raw":"PRIVATE_BODY"}'},
+  {...original,code:'PRIVATE_UNKNOWN_CODE',detail:'PRIVATE_BODY',stdout:'PRIVATE_STDOUT',rawHTML:'PRIVATE_HTML'}];
+ const records=[];
+ for(const value of values) {const record=await invoke(value);assert(!('geometry'in record));records.push(record);}
+ assert.equal(records.at(-1).code,'OTHER_LOCAL_RENDER_REJECTION');
+ console.log(JSON.stringify({pass:true,records,run_calls:runCalls,explicit_invocations:values.length,
+  original_tool_values_unchanged:true,no_private_payload_in_checkpoint_projection:true}));
+}
+'''
+        completed = subprocess.run([node, "--input-type=module", "-e", script,
+            str(source), str(fixture), str(directory), "invalid" if invalid else "valid"],
+            capture_output=True, text=True, timeout=15)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, "")
+        result = json.loads(completed.stdout)
+        self.assertTrue(result["pass"])
+        return job_id, directory, result
+
+    def test_actual_render_rejection_and_cleanup_preserve_distinct_terminal_reason(self):
+        self.assertEqual(len(self.CLI_FAILURE), 397)
+        self.assertEqual(hashlib.sha256(self.CLI_FAILURE).hexdigest(),
+            "7dec0ec748dc7e9bbf315d4f6cdd688d67381e6bd07da4fdde5fecf16f97608b")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            job_id, directory, host = self.actual_host(root)
+            facade = self.cleanup_facade(root)
+            facade.cleanup_workspace(job_id)
+            receipt = json.loads((root / "receipts" / (job_id + ".json")).read_text())
+            self.assertEqual(receipt["last_local_render_rejection"],
+                host["checkpoint"]["last_render_rejection"])
+            self.assertEqual(receipt["terminal_diagnostic"], host["checkpoint"]["terminal_diagnostic"])
+            self.assertNotEqual(receipt["terminal_diagnostic"]["code"],
+                receipt["last_local_render_rejection"]["code"])
+            self.assertEqual((receipt["status"], receipt["model_requests"]), ("FAILED", 14))
+            self.assertFalse(directory.exists())
+            self.assertEqual(host["run_calls"], host["explicit_invocations"])
+            for field in ("detail", "stdout", "rawHTML", "PRIVATE_"):
+                self.assertNotIn(field, json.dumps(receipt))
+            self.diagnostic_evidence = {"actual_host": host, "actual_cleanup_receipt": receipt,
+                "fixture_sha256": hashlib.sha256(self.CLI_FAILURE).hexdigest(),
+                "business_imports": False, "provider_calls": 0}
+
+    def test_invalid_render_projection_is_optional_and_does_not_poison_cleanup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            _, _, host = self.actual_host(root, invalid=True)
+            facade = self.cleanup_facade(root)
+            valid = host["records"][0]
+            terminal = {"code": "SDK_IDLE_FAILED", "stage": "sdk_idle", "model_requests": 14,
+                "compaction_requests": 1, "local_input_rejections": 2}
+            geometry = json.loads(json.loads(self.CLI_FAILURE)["detail"])
+            geometry.pop("id")
+            invalid = [
+                {**valid, "code": "PRIVATE_UNKNOWN_CODE"},
+                {**valid, "rawHTML": "PRIVATE_HTML"},
+                {**valid, "model_requests": True},
+                {**valid, "model_requests": 10 ** 1000},
+                {**valid, "geometry": {**geometry, "element_rect": {
+                    **geometry["element_rect"], "x": float("nan")}}},
+                {**valid, "geometry": {**geometry, "element_rect": {
+                    **geometry["element_rect"], "width": 10 ** 1000}}},
+                {**valid, "geometry": {**geometry, "ink_rects": [{"extra": {"raw": "PRIVATE"}}]}},
+            ]
+            receipts = []
+            for item in invalid:
+                job_id = str(uuid.uuid4())
+                directory = root / job_id
+                (directory / "host-state").mkdir(parents=True)
+                (directory / "host-state/host-checkpoint.json").write_text(json.dumps({
+                    "status": "FAILED", "model_requests": 14, "pending_request": None,
+                    "terminal_diagnostic": terminal, "last_render_rejection": item}))
+                facade.cleanup_workspace(job_id)
+                receipt = json.loads((root / "receipts" / (job_id + ".json")).read_text())
+                self.assertEqual(receipt["terminal_diagnostic"], terminal)
+                self.assertEqual(receipt["status"], "FAILED")
+                if "last_local_render_rejection" in receipt:
+                    self.assertNotIn("geometry", receipt["last_local_render_rejection"])
+                self.assertNotIn("PRIVATE", json.dumps(receipt))
+                self.assertFalse(directory.exists())
+                receipts.append(receipt)
+            self.diagnostic_evidence = {"actual_host": host, "actual_cleanup_receipts": receipts,
+                "business_imports": False, "provider_calls": 0}
+
+
 class ReturnedValueTests(unittest.TestCase):
     def test_contract_and_render_results_keep_their_tool_call_identity(self):
         body = {"messages": [
@@ -589,6 +786,38 @@ class SeedreamDiagnosticTests(unittest.TestCase):
 
 
 class InputRejectionDiagnosticTests(unittest.TestCase):
+    def test_actual_host_projects_optional_counts_without_changing_old_measurement(self):
+        node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
+        self.assertIsNotNone(node, "Node is required for the affected host diagnostic")
+        source = Path(__file__).resolve().parents[1] / "model/cover_agent_host/host.mjs"
+        script = r'''
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const ctx=vm.createContext({checkpoint:{},requests:20,error:code=>Object.assign(new Error(code),{code})});
+vm.runInContext(source.slice(source.indexOf('function inputMeasurement('),source.indexOf('function summaryMaterial(')),ctx);
+const old={text_bytes:125811,image_count:3,image_tokens:3444,message_count:33,tool_count:6,
+ framing_tokens:6016,total_bound:135271,max_input_tokens:131072};
+assert.equal(JSON.stringify(ctx.inputMeasurement(old)),JSON.stringify(old));
+const keys=['system_content_bytes','user_content_bytes','assistant_content_bytes','reasoning_content_bytes',
+ 'encrypted_content_bytes','tool_arguments_bytes','tool_result_bytes','tool_schema_bytes','other_json_bytes'];
+const detail=Object.fromEntries(keys.map(key=>[key,key==='encrypted_content_bytes'?old.text_bytes:0]));
+const next={...old,text_breakdown:detail};
+ctx.checkpoint={compaction_requests:1,local_input_rejections:2,last_input_measurement:{...next,label:'primary'}};
+assert.equal(JSON.stringify(ctx.failureDiagnostic('COMPACTION_CONTINUATION_NOT_ALLOWED','gateway').last_input_measurement),JSON.stringify(next));
+for(const bad of [{...detail,encrypted_content_bytes:0},{...detail,other_json_bytes:true},
+ {...detail,raw:'PRIVATE_SENTINEL'},'PRIVATE_SENTINEL',null]) {
+ assert.equal(JSON.stringify(ctx.inputMeasurement({...old,text_breakdown:bad})),JSON.stringify(old));
+}
+assert.throws(()=>ctx.inputMeasurement({...next,raw:'PRIVATE_SENTINEL'}),/MODEL_PREFLIGHT_INVALID/);
+console.log(JSON.stringify({pass:true,old_values_unchanged:true,optional_invalid_dropped:true}));
+'''
+        result = subprocess.run([node, "--input-type=module", "-e", script, str(source)],
+            capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)["pass"])
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -643,6 +872,8 @@ class InputRejectionDiagnosticTests(unittest.TestCase):
     def test_terminal_reason_survives_cleanup_without_replacing_first_input_measurement(self):
         first = self.bridge.preflight(self.oversized())["measurement"]
         latest = {**first, "text_bytes": first["text_bytes"] + 10, "total_bound": first["total_bound"] + 10}
+        latest["text_breakdown"] = {**first["text_breakdown"],
+            "other_json_bytes": first["text_breakdown"]["other_json_bytes"] + 10}
         diagnostic = {"code": "COMPACTION_CONTINUATION_NOT_ALLOWED", "stage": "gateway",
             "model_requests": 14, "compaction_requests": 1, "local_input_rejections": 2,
             "last_input_label": "primary", "last_input_measurement": latest}

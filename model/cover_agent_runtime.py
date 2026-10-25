@@ -9,6 +9,7 @@ import base64
 import hashlib
 import json
 import logging
+import math
 import os
 from pathlib import Path
 import queue
@@ -45,6 +46,41 @@ _HOST_FAILURE_CODES = {"COMPACTION_CONTINUATION_NOT_ALLOWED", "MODEL_PREFLIGHT_I
     "PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION", "SUPPLIER_RESULT_UNKNOWN", "MODEL_RESPONSE_INVALID",
     "BRIDGE_TIMEOUT_UNKNOWN", "BRIDGE_DISCONNECTED_UNKNOWN", "SDK_IDLE_FAILED",
     "RENDER_ARTIFACT_MISSING", "HOST_LOCAL_FAILURE"}
+_RENDER_REJECTION_CODES = {"TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION", "TEXT_OVER_PROTECTED_SUBJECT",
+    "TEXT_FONT_NOT_SELF_HOSTED", "COVER_DESIGN_TEXT_NOT_FROM_TITLE", "OFFLINE_RENDER_ERROR",
+    "RENDER_DEPENDENCY_INCOMPLETE", "CANVAS_PIXEL_GEOMETRY_MISMATCH", "GENERATED_TEXT_NOT_EDITABLE",
+    "VISIBLE_TEXT_NOT_REGISTERED", "UPSTREAM_POSTER_CONTRACT_FAILED", "UPSTREAM_FONTS_FAILED",
+    "UPSTREAM_EDITABLE_CONTRACT_FAILED", "OTHER_LOCAL_RENDER_REJECTION"}
+
+
+def _render_rejection_diagnostic(value):
+    """A previous local render rejection, not the terminal failure's root cause."""
+    if (type(value) is not dict or not {"code", "model_requests"}.issubset(value)
+            or set(value) - {"code", "model_requests", "layer_id", "geometry"}
+            or type(value["code"]) is not str or value["code"] not in _RENDER_REJECTION_CODES
+            or type(value["model_requests"]) is not int or not 0 <= value["model_requests"] <= 1000000):
+        return None
+    result = {"code": value["code"], "model_requests": value["model_requests"]}
+    layer = value.get("layer_id")
+    if (type(layer) is str and 1 <= len(layer) <= 80 and layer.isascii()
+            and all(char.isalnum() or char in "_-" for char in layer)):
+        result["layer_id"] = layer
+
+    def rect(item):
+        return (type(item) is dict and set(item) == {"x", "y", "width", "height"}
+            and all(type(number) in {int, float} and abs(number) <= 1000000 and math.isfinite(number)
+                    for number in item.values()) and item["width"] > 0 and item["height"] > 0)
+
+    geometry = value.get("geometry")
+    if (result["code"] == "TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION" and type(geometry) is dict
+            and set(geometry) == {"element_rect", "allowed_rect", "overflow", "ink_rects", "ink_rect_count"}
+            and rect(geometry["element_rect"]) and rect(geometry["allowed_rect"])
+            and type(geometry["overflow"]) is bool and type(geometry["ink_rects"]) is list
+            and len(geometry["ink_rects"]) <= 16 and all(rect(item) for item in geometry["ink_rects"])
+            and type(geometry["ink_rect_count"]) is int
+            and len(geometry["ink_rects"]) <= geometry["ink_rect_count"] <= 1000000):
+        result["geometry"] = geometry
+    return result
 
 
 def _host_failure_diagnostic(value):
@@ -385,6 +421,9 @@ def cleanup_workspace(job_id):
             terminal = _host_failure_diagnostic(value.get("terminal_diagnostic"))
             if terminal is not None:
                 receipt["terminal_diagnostic"] = terminal
+            rejection = _render_rejection_diagnostic(value.get("last_render_rejection"))
+            if rejection is not None:
+                receipt["last_local_render_rejection"] = rejection
         except (ValueError, TypeError):
             receipt = {"job_id": job_id, "status": "HOST_STATE_UNREADABLE_NO_REPLAY"}
     measurement = _read_input_diagnostic(directory, job_id)
@@ -584,6 +623,8 @@ def _prompt(context, sources):
         "用cover_render工具提交sources[{ref,path,sha256}]、text_layers[{id,allowed_rect:{x,y,width,height}}]、"
         "protected_regions[{x,y,width,height}]，所有坐标为画布像素。allowed_rect是此设计中可免费调整的安全文字区，"
         "allowed_rect须同时包含文字元素盒及实际字形；超界错误detail提供测得坐标，按它修正。"
+        "若overflow为true，扩大allowed_rect本身不能修好行框内的字形溢出；"
+        "须依据实际ink_rects修正CSS行高或文字盒，再同步本次render请求的allowed_rect，保留真实主体保护区。"
         "protected_regions须覆盖实际照片关键主体，不能为空或凭空编写。实际看最终大图及240px缩略图后才能结束。"
         "模型请求由业务层逐次计量，无自动重试/换模型/联网/任意脚本，金额与任务期限由业务层限制。"
         "只调用可用工具，不绕过工具写最终PNG或调用外部API。不要创建前台完整编辑器。\n"

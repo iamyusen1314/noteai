@@ -54,6 +54,9 @@ _KEYS = {"model", "messages", "tools", "tool_choice", "parallel_tool_calls",
     "response_format", "seed", "service_tier"}
 _INPUT_DIAGNOSTIC_KEYS = frozenset({"text_bytes", "image_count", "image_tokens",
     "message_count", "tool_count", "framing_tokens", "total_bound", "max_input_tokens"})
+_TEXT_BREAKDOWN_KEYS = frozenset({"system_content_bytes", "user_content_bytes",
+    "assistant_content_bytes", "reasoning_content_bytes", "encrypted_content_bytes",
+    "tool_arguments_bytes", "tool_result_bytes", "tool_schema_bytes", "other_json_bytes"})
 _OUTPUT_DIAGNOSTIC_KEYS = frozenset({"finish_reason", "completion_tokens",
     "max_completion_tokens", "reasoning_tokens"})
 _OUTPUT_FINISH_REASONS = frozenset({"length", "content_filter", "stop", "tool_calls", "other", "missing"})
@@ -120,13 +123,28 @@ def _reservation_diagnostics(error, call_id, reserve):
 
 def validated_input_diagnostics(value):
     """Only bounded, internally consistent integers may survive error cleanup."""
-    if (not isinstance(value, dict) or set(value) != _INPUT_DIAGNOSTIC_KEYS
-            or any(type(item) is not int or not 0 <= item < 2**63 for item in value.values())
+    if (not isinstance(value, dict) or not _INPUT_DIAGNOSTIC_KEYS.issubset(value)
+            or set(value) - _INPUT_DIAGNOSTIC_KEYS - {"text_breakdown"}
+            or any(type(value[key]) is not int or not 0 <= value[key] < 2**63
+                   for key in _INPUT_DIAGNOSTIC_KEYS)
             or not 1 <= value["message_count"] <= 128 or not 0 <= value["tool_count"] <= 128
             or value["max_input_tokens"] != MAX_INPUT_TOKENS
             or value["framing_tokens"] != 128 * (value["message_count"] + value["tool_count"]) + 1024
             or value["total_bound"] != value["text_bytes"] + value["image_tokens"] + value["framing_tokens"]
             or not 257 * value["image_count"] <= value["image_tokens"] <= 5376 * value["image_count"]):
+        return None
+    result = {key: value[key] for key in _INPUT_DIAGNOSTIC_KEYS}
+    breakdown = validated_text_breakdown(value.get("text_breakdown"), value["text_bytes"])
+    if breakdown is not None:
+        result["text_breakdown"] = breakdown
+    return result
+
+
+def validated_text_breakdown(value, text_bytes):
+    """Optional byte counts only; invalid detail cannot hide the original stop."""
+    if (type(value) is not dict or set(value) != _TEXT_BREAKDOWN_KEYS
+            or any(type(item) is not int or not 0 <= item < 2**63 for item in value.values())
+            or sum(value.values()) != text_bytes):
         return None
     return dict(value)
 
@@ -163,6 +181,31 @@ def _output_diagnostics(data, body):
         "max_completion_tokens": body.get("max_completion_tokens"), "reasoning_tokens": reasoning})
 
 
+def _text_breakdown(measured, text_bytes):
+    # Partition disjoint JSON values, including their escaping/quotes. Image
+    # URLs have already been blanked by the existing meter. The remainder owns
+    # keys, separators, roles, tool IDs and request options, never their values.
+    result = dict.fromkeys(_TEXT_BREAKDOWN_KEYS, 0)
+    size = lambda value: len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode())
+    content_keys = {"system": "system_content_bytes", "developer": "system_content_bytes",
+        "user": "user_content_bytes", "assistant": "assistant_content_bytes", "tool": "tool_result_bytes"}
+    for message in measured["messages"]:
+        if "content" in message:
+            result[content_keys[message["role"]]] += size(message["content"])
+        for field in ("reasoning_content", "encrypted_content"):
+            if field in message:
+                result[field + "_bytes"] += size(message[field])
+        calls = message.get("tool_calls")
+        for call in calls if isinstance(calls, list) else []:
+            function = call.get("function") if isinstance(call, dict) else None
+            if isinstance(function, dict) and "arguments" in function:
+                result["tool_arguments_bytes"] += size(function["arguments"])
+    if "tools" in measured:
+        result["tool_schema_bytes"] = size(measured["tools"])
+    result["other_json_bytes"] = text_bytes - sum(result.values())
+    return validated_text_breakdown(result, text_bytes)
+
+
 def _measure_input(body, image_tokens, image_count):
     """The existing admission arithmetic, without retaining any request content."""
     measured = deepcopy(body)
@@ -174,9 +217,16 @@ def _measure_input(body, image_tokens, image_count):
     text_bytes = len(json.dumps(measured, ensure_ascii=False, separators=(",", ":")).encode())
     message_count, tool_count = len(body["messages"]), len(body.get("tools", []))
     framing = 128 * (message_count + tool_count) + 1024
-    return {"text_bytes": text_bytes, "image_count": image_count, "image_tokens": image_tokens,
+    result = {"text_bytes": text_bytes, "image_count": image_count, "image_tokens": image_tokens,
         "message_count": message_count, "tool_count": tool_count, "framing_tokens": framing,
         "total_bound": text_bytes + image_tokens + framing, "max_input_tokens": MAX_INPUT_TOKENS}
+    try:
+        breakdown = _text_breakdown(measured, text_bytes)
+    except Exception:
+        breakdown = None  # Optional attribution must not change hard admission.
+    if breakdown is not None:
+        result["text_breakdown"] = breakdown
+    return result
 
 
 def pricing(prompt_tokens: int) -> dict:

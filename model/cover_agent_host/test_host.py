@@ -34,7 +34,8 @@ PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4
 def provider_admission():
     """Execute the actual pure validator, without importing DB/env/provider I/O."""
     names = {"MODEL", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "_NAME", "_KEYS",
-             "_INPUT_DIAGNOSTIC_KEYS", "CoverAgentProviderError", "validated_input_diagnostics",
+             "_INPUT_DIAGNOSTIC_KEYS", "_TEXT_BREAKDOWN_KEYS", "CoverAgentProviderError", "validated_input_diagnostics",
+             "validated_text_breakdown", "_text_breakdown",
              "_OUTPUT_DIAGNOSTIC_KEYS", "_OUTPUT_FINISH_REASONS", "validated_output_diagnostics",
              "_RESERVATION_DIAGNOSTIC_KEYS", "_RESERVATION_EXCEPTION_TYPES", "validated_reservation_diagnostics",
              "_measure_input", "_invalid", "_image_tokens", "_validate_and_measure_payload",
@@ -986,6 +987,244 @@ try {
         reopened, calls, _, _ = self.request("context_unknown", mode="inspect")
         self.assertEqual(reopened["code"], "PREVIOUS_REQUEST_UNKNOWN_NO_REPLAY")
         self.assertEqual(calls, [])
+
+    def test_real_sdk_two_summaries_each_consume_a_new_primary_overflow(self):
+        admission = provider_admission()
+        state = {"compactions": 0, "writes": [0, 0], "viewed": False, "tickets": [], "rejection_receipts": []}
+        paragraph = "离线设计进度：保留真实原照、批准标题与已保存文件，不增添商家事实。\n"
+        case = "two_primary_overflows"
+
+        def respond(event, calls):
+            label = event.get("label")
+            fn, arguments = None, None
+            if label == "compaction":
+                state["compactions"] += 1
+                self.assertLessEqual(state["compactions"], 2)
+                checkpoint = json.loads((self.root / case / "state/host-checkpoint.json").read_text())
+                state["tickets"].append(deepcopy(checkpoint.get("overflow_ticket")))
+                state["rejection_receipts"].append({
+                    "body_sha256": checkpoint["last_input_measurement"]["body_sha256"],
+                    "requests_before_summary": checkpoint["model_requests"] - 1,
+                    "compaction_ordinal": event["ordinal"],
+                    "rejection_number": checkpoint["local_input_rejections"]})
+                content = ("## Objective\n- Complete the same offline cover.\n"
+                    "## Requirements\n- Keep the approved facts, title and original photographs.\n"
+                    "## Decisions\n- Use only original photo pixels.\n"
+                    "## Work State\n### Completed\n- Progress notes are saved in phase files.\n"
+                    "### Active\n- Continue the saved design.\n### Blocked\n- (none)\n"
+                    "## Next Move\n1. Continue from the saved phase notes.\n"
+                    "## Relevant Files\n- phase-0-1.md and phase-1-1.md: saved design progress.\n"
+                    "## Important Context\n- Synthetic, provider-free fixture; preserve original facts.\n"
+                    "- Completed summary round " + str(state["compactions"]) + ".")
+            elif state["compactions"] < 2:
+                phase = state["compactions"]
+                state["writes"][phase] += 1
+                self.assertLessEqual(state["writes"][phase], 16, "Phase never reached the real local input bound")
+                fn, arguments = "cover_write", {"path": "phase-" + str(phase) + "-"
+                    + str(state["writes"][phase]) + ".md", "text": paragraph * 160}
+                content = None
+            elif not state["viewed"]:
+                state["viewed"] = True
+                fn, arguments, content = "cover_view", {"path": "source-1.png"}, None
+            else:
+                content = "OFFLINE_COMPLETE"
+            message = {"role": "assistant", "content": content}
+            if fn:
+                message["tool_calls"] = [{"id": "two_overflows_" + str(len(calls)), "type": "function",
+                    "function": {"name": fn, "arguments": json.dumps(arguments, ensure_ascii=False)}}]
+            body = {"id": "chatcmpl_two_overflows", "object": "chat.completion", "created": 1,
+                "model": event["body"]["model"], "choices": [{"index": 0, "message": message,
+                    "finish_reason": "tool_calls" if fn else "stop"}], "usage": {
+                    "prompt_tokens": max(1, sum(len(text) for text in text_values(event["body"])) // 4
+                        + 1500 * len(image_hashes(event["body"]))),
+                    "completion_tokens": 2000 if fn == "cover_write" else 100}}
+            body["usage"]["total_tokens"] = body["usage"]["prompt_tokens"] + body["usage"]["completion_tokens"]
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": body}
+
+        thinking = ThinkingState(case)
+        response, originals, ciphers = self.opaque_responder(respond, prefix="two_overflows")
+        result, calls, events, root = self.request(case, admission=admission,
+            respond=response, nine_photos=True, thinking=thinking)
+        self.assertTrue(result["ok"], {"code": result.get("code"), "status": result.get("status"),
+            "compactions": state["compactions"]})
+        self.assertEqual(state["compactions"], 2)
+        self.assertTrue(all(state["writes"]))
+        self.assertEqual([ticket["consumed"] for ticket in state["tickets"]], [True, True])
+        compactions = [call for call in calls if call.get("label") == "compaction"]
+        self.assertEqual(len(compactions), 2)
+        rejected = []
+        for event in events:
+            if event["type"] != "model_preflight":
+                continue
+            decision = admission["admit_payload"](thinking.restore(event["body"]))
+            if decision["allowed"] is False:
+                self.assertEqual(event.get("label"), "primary", "A summary overflow minted a primary ticket")
+                rejected.append(event)
+        self.assertEqual(len(rejected), 2)
+        for index, summary_call in enumerate(compactions):
+            eligible = [event for event in rejected if events.index(event) < events.index(summary_call)]
+            self.assertEqual(len(eligible), index + 1)
+            rejection = eligible[-1]
+            receipt = state["rejection_receipts"][index]
+            self.assertEqual(receipt["body_sha256"], hashlib.sha256(json.dumps(
+                rejection["body"], ensure_ascii=False, separators=(",", ":")).encode()).hexdigest())
+            self.assertEqual(receipt["requests_before_summary"], summary_call["ordinal"] - 1)
+            self.assertEqual(receipt["compaction_ordinal"], summary_call["ordinal"])
+            self.assertEqual(receipt["rejection_number"], index + 1)
+            self.assertEqual(state["tickets"][index], {"body_sha256": receipt["body_sha256"],
+                "request_ordinal": receipt["requests_before_summary"], "consumed": True})
+            self.assertTrue(all(message["role"] in {"system", "user"}
+                and not message.get("tool_calls") for message in summary_call["body"]["messages"]))
+            self.assertEqual(summary_call["body"].get("max_tokens",
+                summary_call["body"].get("max_completion_tokens")), 8192)
+            self.assertLess(sum(len(text) for text in text_values(summary_call["body"])), 131072)
+        skill = (PROJECT / "model/cover_editable/vendor/editable-design/SKILL.md").read_text()
+        for call in calls:
+            _, bound = admission["prepare_payload"](thinking.restore(call["body"]))
+            self.assertLessEqual(bound, admission["MAX_INPUT_TOKENS"])
+            if call.get("label") == "primary" and calls.index(call) > calls.index(compactions[0]):
+                text = "\n".join(text_values(call["body"]))
+                self.assertIn(skill, text)
+                self.assertIn("批准事实：真实庭院；批准标题：城市里的日式庭院。不得增加价格或服务。", text)
+                for index in range(1, 10):
+                    photo = root / ("work/source-" + str(index) + ".png")
+                    self.assertIn(photo.name, text)
+                    self.assertIn(hashlib.sha256(photo.read_bytes()).hexdigest(), text)
+        checkpoint = json.loads((root / "state/host-checkpoint.json").read_text())
+        self.assertEqual(checkpoint["local_input_rejections"], 2)
+        self.assertEqual(checkpoint["compaction_requests"], 2)
+        self.assertEqual(checkpoint["overflow_ticket"], state["tickets"][-1])
+        self.assertEqual(checkpoint["last_compacted_primary_sha256"], state["tickets"][-1]["body_sha256"])
+        self.assertEqual(checkpoint["last_compaction_request_ordinal"], compactions[-1]["ordinal"])
+        self.assertEqual(checkpoint["model_requests"], len(calls))
+        self.assertIsNone(checkpoint.get("pending_request"))
+        self.assertNotEqual(state["rejection_receipts"][0]["body_sha256"],
+            state["rejection_receipts"][1]["body_sha256"])
+        self.assertGreater(compactions[1]["ordinal"], compactions[0]["ordinal"] + 1,
+            "Second summary had no successful primary progress after the first")
+        (root / "two-summary-ticket-receipts.json").write_text(json.dumps(state["rejection_receipts"], indent=2))
+        expected = {}
+        for original in originals:
+            for tool in original.get("tool_calls", []):
+                if tool["function"]["name"] != "cover_write":
+                    continue
+                arguments = json.loads(tool["function"]["arguments"])
+                expected[tool["id"]] = {"id": tool["id"], "path": arguments["path"],
+                    "bytes": len(arguments["text"].encode()),
+                    "sha256": hashlib.sha256(arguments["text"].encode()).hexdigest()}
+        stored = {row["id"]: row for row in self.stored_write_receipts(root, result["session_id"])}
+        self.assertEqual(stored, expected, "Summary projection mutated original signed write history")
+        self.assert_no_sdk_cipher(result, events, root, ciphers)
+
+    def test_compaction_tickets_allow_shrink_but_cannot_be_reused(self):
+        script = r'''
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const section=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);
+  assert(a>=0 && b>a);return source.slice(a,b);};
+const helpers=section('function overflowTicket(', 'const RENDER_REJECTION_CODES');
+const measure=section('function inputMeasurement(', 'const FAILURE_CODES');
+const rejected=section('      if (admission.allowed !== true) {', '\n      requests += 1; physical = true;');
+const admitted=section('      // Another HTTP request may have consumed the ticket while Python was',
+  "\n      const answer = await bridge('model_request'");
+const earlyGate=section("      if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests))",
+  '\n      // Use the actual Python provider meter');
+const persisted=[],responses=[];
+const ctx=vm.createContext({Buffer,checkpointPath:'synthetic-only',
+  sha:value=>createHash('sha256').update(value).digest('hex'),
+  error:code=>Object.assign(new Error(code),{code}),
+  atomicJSON:async(_path,value)=>persisted.push(JSON.parse(JSON.stringify(value))),
+  res:{writeHead:status=>responses.push(status),end:()=>{}},requests:3,physical:false});
+vm.runInContext(helpers+measure+'\nasync function rejectOnly(){'+rejected+'}\n'
+  +'async function admitOnly(){'+admitted+'}\n'
+  +'async function concurrentAdmission(waiter){'+earlyGate+'\nawait waiter;\n'+admitted+'}\n',ctx);
+const A='a'.repeat(64),B='b'.repeat(64);
+ctx.body={messages:[{role:'user',content:'X'.repeat(140000)}]};
+const bytes=Buffer.byteLength(JSON.stringify(ctx.body));
+ctx.admission={allowed:false,code:'COVER_AGENT_INPUT_LIMIT_EXCEEDED',measurement:{
+  text_bytes:bytes,image_count:0,image_tokens:0,message_count:1,tool_count:0,
+  framing_tokens:1152,total_bound:bytes+1152,max_input_tokens:131072}};
+const minted=ctx.overflowTicket({},A,3);
+ctx.checkpoint={compaction_requests:0,local_input_rejections:1,overflow_ticket:minted};
+assert.equal(ctx.compactionTicketAllowed(ctx.checkpoint,3),true);
+ctx.label='compaction';
+await ctx.rejectOnly();
+assert.equal(ctx.requests,3);assert.equal(ctx.physical,false);
+assert.equal(ctx.checkpoint.compaction_requests,0);
+assert.equal(ctx.checkpoint.local_input_rejections,2);
+assert.equal(ctx.checkpoint.last_input_measurement.label,'compaction');
+assert.equal(ctx.checkpoint.overflow_ticket,minted);assert.equal(minted.consumed,false);
+assert.equal(ctx.compactionTicketAllowed(ctx.checkpoint,3),true,
+  'A local summary shrink lost the unconsumed original primary ticket');
+assert.equal(persisted.length,1);assert.deepEqual(responses,[400]);
+ctx.body={messages:[{role:'user',content:'Shrunk standalone summary.'}]};
+ctx.admission={allowed:true};
+await ctx.admitOnly();
+assert.equal(ctx.requests,4);assert.equal(ctx.checkpoint.compaction_requests,1);
+assert.equal(ctx.checkpoint.overflow_ticket.consumed,true);
+assert.equal(ctx.checkpoint.pending_request.ordinal,4);
+assert.equal(persisted.length,2);assert.equal(persisted[1].overflow_ticket.consumed,true);
+assert.equal(persisted[1].pending_request.ordinal,4,
+  'Ticket was not consumed with the same durable request intent');
+assert.equal(ctx.compactionTicketAllowed(ctx.checkpoint,4),false,'NUDGE reused the consumed ticket');
+const first={compaction_requests:1,last_compacted_primary_sha256:A,
+  last_compaction_request_ordinal:4,last_successful_primary_request:4,
+  overflow_ticket:{body_sha256:A,request_ordinal:3,consumed:true}};
+assert.equal(ctx.overflowTicket(first,B,7),null,'No known primary progress after summary');
+const progressed={...first,last_successful_primary_request:7};
+assert.equal(ctx.overflowTicket(progressed,A,7),null,'Same rejected body minted a second ticket');
+const second=ctx.overflowTicket(progressed,B,7);
+assert.equal(ctx.compactionTicketAllowed({...progressed,overflow_ticket:second},7),true);
+assert.equal(ctx.compactionTicketAllowed({...progressed,overflow_ticket:second},8),false);
+assert.equal(ctx.overflowTicket({...progressed,compaction_requests:2},'c'.repeat(64),9),null);
+assert.equal(ctx.compactionTicketAllowed({...progressed,compaction_requests:2,overflow_ticket:second},7),false);
+assert.equal(Boolean(ctx.compactionTicketAllowed({compaction_requests:1,local_input_rejections:2},7)),false);
+assert.equal(ctx.overflowTicket({compaction_requests:1,local_input_rejections:2},B,7),null);
+ctx.checkpoint={compaction_requests:0,local_input_rejections:0};ctx.requests=0;ctx.physical=false;
+ctx.admission={allowed:false,code:'COVER_AGENT_INPUT_LIMIT_EXCEEDED',measurement:{
+  text_bytes:bytes,image_count:0,image_tokens:0,message_count:1,tool_count:0,
+  framing_tokens:1152,total_bound:bytes+1152,max_input_tokens:131072}};
+await ctx.rejectOnly();
+assert.equal(ctx.checkpoint.overflow_ticket,undefined,'Summary overflow created a primary ticket');
+assert.equal(Boolean(ctx.compactionTicketAllowed(ctx.checkpoint,0)),false);
+ctx.checkpoint={compaction_requests:0,overflow_ticket:ctx.overflowTicket({},A,3)};
+ctx.requests=3;ctx.body={messages:[{role:'user',content:'Short concurrent summary.'}]};
+let physicalTransitions=0,physicalValue=false;
+Object.defineProperty(ctx,'physical',{configurable:true,get:()=>physicalValue,
+  set:value=>{physicalValue=value;if(value===true)physicalTransitions++;}});
+let firstReady,secondReady;
+const firstWait=new Promise(resolve=>{firstReady=resolve;});
+const secondWait=new Promise(resolve=>{secondReady=resolve;});
+const beforeRace=persisted.length;
+const firstCall=ctx.concurrentAdmission(firstWait),secondCall=ctx.concurrentAdmission(secondWait);
+assert.equal(ctx.requests,3);firstReady();secondReady();
+const results=await Promise.allSettled([firstCall,secondCall]);
+assert.equal(results.filter(result=>result.status==='fulfilled').length,1);
+assert.equal(results.filter(result=>result.status==='rejected'
+  && result.reason.code==='COMPACTION_CONTINUATION_NOT_ALLOWED').length,1);
+assert.equal(ctx.requests,4);assert.equal(ctx.checkpoint.compaction_requests,1);
+assert.equal(persisted.length-beforeRace,1);assert.equal(physicalTransitions,1);
+const unknown=source.indexOf("if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool)");
+const gate=source.indexOf("if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests))");
+assert(unknown>=0 && unknown<gate,'Existing UNKNOWN server gate must run before ticket admission');
+console.log(JSON.stringify({cases:['two_ticket_admission','summary_shrink_preserves_ticket',
+  'same_intent_atomic_consume','NUDGE_consumed_ticket','no_primary_progress','same_body_SHA',
+  'stale_request_ordinal','third_summary','old_checkpoint_missing_ticket','summary_cannot_mint',
+  'concurrent_preflights_one_dispatch'],
+  real_provider_calls:0,product_DB_operations:0,
+  unknown_scope:'Static ordering of existing server gate only; pure helpers do not claim UNKNOWN runtime coverage.'}));
+'''
+        checked = subprocess.run([self.node, "--input-type=module", "-e", script, str(HERE / "host.mjs")],
+            capture_output=True, text=True, timeout=10,
+            env={"PATH": "/opt/homebrew/bin:/usr/bin:/bin"})
+        self.assertEqual(checked.returncode, 0, checked.stderr[-2000:])
+        detail = json.loads(checked.stdout)
+        self.assertEqual(len(detail["cases"]), 11)
+        self.receipts.append({"case": "compaction_ticket_vm", "host_sha256":
+            hashlib.sha256((HERE / "host.mjs").read_bytes()).hexdigest(), "result": detail})
 
     def test_real_sdk_malformed_summary_cannot_dispatch_a_second_paid_attempt(self):
         admission = provider_admission()
