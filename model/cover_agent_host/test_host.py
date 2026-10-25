@@ -1127,7 +1127,7 @@ const section=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a
   assert(a>=0 && b>a);return source.slice(a,b);};
 const helpers=section('function overflowTicket(', 'const RENDER_REJECTION_CODES');
 const measure=section('function inputMeasurement(', 'const FAILURE_CODES');
-const rejected=section('      if (admission.allowed !== true) {', '\n      requests += 1; physical = true;');
+const rejected=section('      if (admission.allowed !== true) {', '\n      requests += 1;');
 const admitted=section('      // Another HTTP request may have consumed the ticket while Python was',
   "\n      const answer = await bridge('model_request'");
 const earlyGate=section("      if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests))",
@@ -1137,7 +1137,9 @@ const ctx=vm.createContext({Buffer,checkpointPath:'synthetic-only',
   sha:value=>createHash('sha256').update(value).digest('hex'),
   error:code=>Object.assign(new Error(code),{code}),
   atomicJSON:async(_path,value)=>persisted.push(JSON.parse(JSON.stringify(value))),
-  res:{writeHead:status=>responses.push(status),end:()=>{}},requests:3,physical:false});
+  res:{writeHead:status=>responses.push(status),end:()=>{}},requests:3,physical:false,
+  ownIntent:null,owner:'synthetic-owner',gatewayOwner:'synthetic-owner',
+  job:{deadline_epoch_ms:Number.MAX_SAFE_INTEGER,max_model_requests:null}});
 vm.runInContext(helpers+measure+'\nasync function rejectOnly(){'+rejected+'}\n'
   +'async function admitOnly(){'+admitted+'}\n'
   +'async function concurrentAdmission(waiter){'+earlyGate+'\nawait waiter;\n'+admitted+'}\n',ctx);
@@ -1225,6 +1227,252 @@ console.log(JSON.stringify({cases:['two_ticket_admission','summary_shrink_preser
         self.assertEqual(len(detail["cases"]), 11)
         self.receipts.append({"case": "compaction_ticket_vm", "host_sha256":
             hashlib.sha256((HERE / "host.mjs").read_bytes()).hexdigest(), "result": detail})
+
+    def test_gateway_rechecks_state_after_deferred_preflight_before_any_transition(self):
+        source_path = Path(os.environ.get("NOTEAI_COVER_HOST_STATE_VM_SOURCE") or str(HERE / "host.mjs"))
+        script = r'''
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const section=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);
+  assert(a>=0 && b>a);return source.slice(a,b);};
+const helpers=section('function overflowTicket(', 'const RENDER_REJECTION_CODES');
+const measure=section('function inputMeasurement(', 'const FAILURE_CODES');
+// Execute the actual original pre-await gates, await itself, and every path
+// through rejection/consumption up to the actual model bridge dispatch line.
+const gateway=section("      if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool)",
+  '\n      if (answer.unknown)');
+assert(gateway.includes("const admission = await bridge('model_preflight'"));
+assert(gateway.includes("const answer = await bridge('model_request'"));
+const cases=[];
+for(const condition of ['UNKNOWN','pending_tool','deadline','request_limit'])
+for(const allowed of [true,false]) for(const kind of ['primary','compaction']) {
+  let resolvePreflight;
+  const wait=new Promise(resolve=>{resolvePreflight=resolve;});
+  const clock={now:100},counts={preflight:0,dispatch:0,persist:0,http_response:0};
+  const ctx=vm.createContext({Buffer,Date:{now:()=>clock.now},
+    sha:value=>createHash('sha256').update(value).digest('hex'),
+    error:code=>Object.assign(new Error(code),{code}),
+    job:{mode:'run',model_id:'synthetic',deadline_epoch_ms:1000,max_model_requests:4},
+    hooks:[{kind}],requestKind:kind,owner:'synthetic-owner',gatewayOwner:'synthetic-owner',ownIntent:null,
+    body:{model:'synthetic',messages:[{role:'user',content:'X'.repeat(140000)}]},
+    checkpointPath:'synthetic-only',requests:3,physical:false,
+    checkpoint:{status:'RUNNING',pending_tool:null,model_requests:3,compaction_requests:0,
+      local_input_rejections:0,...(kind==='compaction'?{overflow_ticket:{
+        body_sha256:'a'.repeat(64),request_ordinal:3,consumed:false}}:{})},
+    atomicJSON:async()=>{counts.persist++;},
+    res:{writeHead:()=>{counts.http_response++;},end:()=>{}},
+    bridge:async type=>{
+      if(type==='model_preflight'){counts.preflight++;return await wait;}
+      if(type==='model_request'){counts.dispatch++;return {status:200,body:{}};}
+      throw new Error('Unexpected bridge type');
+    }});
+  vm.runInContext(helpers+measure+'\nasync function gatewayOnce(){'+gateway+'}\n',ctx);
+  const pending=ctx.gatewayOnce();
+  assert.equal(counts.preflight,1);assert.equal(ctx.requests,3);
+  if(condition==='UNKNOWN')ctx.checkpoint.status='UNKNOWN';
+  else if(condition==='pending_tool')ctx.checkpoint.pending_tool={id:'synthetic-pending'};
+  else if(condition==='deadline')clock.now=1000;
+  else ctx.requests=4;
+  const before=JSON.stringify(ctx.checkpoint),beforeRequests=ctx.requests;
+  const bytes=Buffer.byteLength(JSON.stringify(ctx.body));
+  resolvePreflight(allowed?{allowed:true}:{allowed:false,code:'COVER_AGENT_INPUT_LIMIT_EXCEEDED',
+    measurement:{text_bytes:bytes,image_count:0,image_tokens:0,message_count:1,tool_count:0,
+      framing_tokens:1152,total_bound:bytes+1152,max_input_tokens:131072}});
+  let code=null;
+  try{await pending;}catch(error){code=error.code||'UNCLASSIFIED';}
+  const expectedCode=['UNKNOWN','pending_tool'].includes(condition)
+    ?'PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION':'MODEL_REQUEST_LIMIT';
+  const pass=code===expectedCode && JSON.stringify(ctx.checkpoint)===before
+    && ctx.requests===beforeRequests && ctx.physical===false && counts.dispatch===0
+    && counts.persist===0 && counts.http_response===0;
+  cases.push({condition,allowed,kind,pass,code,expected_code:expectedCode,
+    checkpoint_unchanged:JSON.stringify(ctx.checkpoint)===before,
+    requests_unchanged:ctx.requests===beforeRequests,physical:ctx.physical,...counts});
+}
+const failures=cases.filter(row=>!row.pass);
+console.log(JSON.stringify({cases,failures,real_provider_calls:0,product_DB_operations:0,
+  source_bytes:Buffer.byteLength(source),source_sha256:createHash('sha256').update(source).digest('hex'),
+  gateway_segment_bytes:Buffer.byteLength(gateway),
+  gateway_segment_sha256:createHash('sha256').update(gateway).digest('hex'),
+  scope:'Actual source segment with deferred local bridge; no SDK session, socket, provider or DB.'}));
+assert.equal(failures.length,0,'State changed during preflight admitted an extra transition');
+'''
+        checked = subprocess.run([self.node, "--input-type=module", "-e", script, str(source_path)],
+            capture_output=True, text=True, timeout=10,
+            env={"PATH": "/opt/homebrew/bin:/usr/bin:/bin"})
+        detail = json.loads(checked.stdout)
+        self.receipts.append({"case": "gateway_preflight_state_vm", "host_source_path": str(source_path),
+            "host_sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(), "result": detail})
+        self.assertEqual(checked.returncode, 0, checked.stderr[-2000:])
+        self.assertEqual(len(detail["cases"]), 16)
+        self.assertEqual(detail["failures"], [])
+
+    def test_full_gateway_callback_owns_each_intent_and_fences_every_await(self):
+        source_path = Path(os.environ.get("NOTEAI_COVER_HOST_CALLBACK_VM_SOURCE") or str(HERE / "host.mjs"))
+        script = r'''
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const section=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);
+  assert(a>=0 && b>a);return source.slice(a,b);};
+const start=source.includes('  let gatewayOwner = null;')?'  let gatewayOwner = null;':'  server = http.createServer';
+const callback=section(start,"\n  await new Promise((resolve) => server.listen");
+const helpers=section('function inputMeasurement(', 'const RENDER_REJECTION_CODES');
+const sse=section('function completionSSE(', 'function objectSchema(');
+const declarations=['MAX_LINE','sha','error'].map(name=>{
+  const match=source.match(new RegExp('^const '+name+' = .*;$','m'));assert(match);return match[0];}).join('\n');
+const deferred=()=>{let release;const promise=new Promise(resolve=>{release=resolve;});return {promise,release};};
+const tickUntil=async predicate=>{for(let i=0;i<200;i++){if(predicate())return;await Promise.resolve();}
+  throw new Error('Controlled callback did not reach the expected await');};
+function harness(options={}) {
+  const waits={preflight:deferred(),atomic:deferred(),response:deferred()};
+  const clock={now:100},counts={preflight:0,dispatch:0,persist:0},labels={preflight:[],dispatch:[]};
+  let handler;
+  const ctx=vm.createContext({Buffer,createHash,Date:{now:()=>clock.now},server:null,
+    http:{createServer:fn=>{handler=fn;return {};}},checkpointPath:'synthetic-only',
+    requests:3,hooks:[{kind:'primary'}],
+    checkpoint:{status:'RUNNING',pending_request:null,pending_tool:null,model_requests:3,
+      compaction_requests:0,local_input_rejections:0},
+    job:{mode:'run',model_id:'synthetic',deadline_epoch_ms:1000,max_model_requests:4},
+    atomicJSON:async()=>{counts.persist++;if(options.pauseAtomic && counts.persist===1)await waits.atomic.promise;},
+    bridge:async(type,fields)=>{
+      if(type==='model_preflight'){counts.preflight++;labels.preflight.push(fields.label);
+        if(options.pausePreflight)await waits.preflight.promise;return {allowed:true};}
+      if(type==='model_request'){counts.dispatch++;labels.dispatch.push(fields.label);
+        if(options.pauseResponse)await waits.response.promise;
+        return {status:200,body:{id:'synthetic-known',choices:[],usage:{}}};}
+      throw new Error('Unexpected local bridge type');
+    }});
+  vm.runInContext(declarations+'\n'+sse+helpers+'\n'+callback,ctx);
+  return {ctx,handler,waits,clock,counts,labels};
+}
+function request({kind='primary',bodyGate=null,payload=null}={}) {
+  return {method:'POST',url:'/v1/chat/completions',headers:{'x-noteai-host-kind':kind},
+    async *[Symbol.asyncIterator](){if(bodyGate)await bodyGate.promise;
+      yield Buffer.from(payload??JSON.stringify({model:'synthetic',messages:[{role:'user',content:'fixture'}]}));}};
+}
+function response(){return {status:null,body:null,writeHead(status){this.status=status;},end(body){this.body=body;}};}
+const cases=[];
+async function prove(name,fn){try{const detail=await fn();cases.push({name,...detail});}
+  catch(error){cases.push({name,pass:false,error:error.code||error.message});}}
+await prove('concurrent_requests_one_owner_preflight_dispatch',async()=>{
+  const h=harness({pausePreflight:true}),firstRes=response(),busyRes=response();
+  const firstRun=h.handler(request(),firstRes);await tickUntil(()=>h.counts.preflight===1);
+  const before=JSON.stringify(h.ctx.checkpoint);
+  const busyRun=h.handler(request({payload:JSON.stringify({model:'synthetic',messages:[{role:'user',content:'second'}]})}),busyRes);
+  for(let i=0;i<20;i++)await Promise.resolve();
+  const busyClean=busyRes.status===409 && JSON.stringify(h.ctx.checkpoint)===before;
+  h.waits.preflight.release();await Promise.all([firstRun,busyRun]);
+  return {pass:busyClean && firstRes.status===200 && h.counts.preflight===1 && h.counts.dispatch===1,
+    busy_status:busyRes.status,busy_checkpoint_unchanged:busyClean,...h.counts};
+});
+await prove('busy_bad_body_never_enters_checkpoint_catch',async()=>{
+  const h=harness({pauseAtomic:true}),firstRes=response(),busyRes=response();
+  const firstRun=h.handler(request(),firstRes);await tickUntil(()=>h.counts.persist===1);
+  const before=JSON.stringify(h.ctx.checkpoint),persistBefore=h.counts.persist;
+  await h.handler(request({payload:'{'}),busyRes);
+  const clean=busyRes.status===409 && JSON.stringify(h.ctx.checkpoint)===before && h.counts.persist===persistBefore;
+  h.waits.atomic.release();await firstRun;
+  return {pass:clean && firstRes.status===200 && h.counts.dispatch===1,busy_checkpoint_unchanged:clean,
+    busy_status:busyRes.status,...h.counts};
+});
+for(const change of ['UNKNOWN','pending_tool','deadline','lower_limit','intent','owner','request_count'])
+await prove('persist_await_'+change+'_never_dispatches',async()=>{
+  const h=harness({pauseAtomic:true}),res=response();
+  const run=h.handler(request(),res);await tickUntil(()=>h.counts.persist===1);
+  const own=JSON.stringify(h.ctx.checkpoint.pending_request);
+  if(change==='UNKNOWN')h.ctx.checkpoint.status='UNKNOWN';
+  else if(change==='pending_tool')h.ctx.checkpoint.pending_tool={id:'other-known-tool'};
+  else if(change==='deadline')h.clock.now=1000;
+  else if(change==='lower_limit')h.ctx.job.max_model_requests=3;
+  else if(change==='intent')h.ctx.checkpoint.pending_request={ordinal:9,body_sha256:'b'.repeat(64),label:'primary'};
+  else if(change==='owner')vm.runInContext("gatewayOwner = Symbol('other owner')",h.ctx);
+  else {h.ctx.requests=5;h.ctx.checkpoint.model_requests=5;}
+  const changedIntent=JSON.stringify(h.ctx.checkpoint.pending_request);
+  h.waits.atomic.release();await run;
+  let preserved;
+  if(change==='UNKNOWN')preserved=h.ctx.checkpoint.status==='UNKNOWN' && JSON.stringify(h.ctx.checkpoint.pending_request)===own;
+  else if(change==='pending_tool')preserved=h.ctx.checkpoint.pending_tool?.id==='other-known-tool'
+    && JSON.stringify(h.ctx.checkpoint.pending_request)===own;
+  else if(change==='intent')preserved=JSON.stringify(h.ctx.checkpoint.pending_request)===changedIntent;
+  else preserved=h.ctx.checkpoint.status==='FAILED' && h.ctx.checkpoint.pending_request===null;
+  if(change==='request_count')preserved=preserved && h.ctx.requests===5 && h.ctx.checkpoint.model_requests===5;
+  return {pass:h.counts.dispatch===0 && res.status===502 && preserved,protected_state_preserved:preserved,
+    response_status:res.status,final_status:h.ctx.checkpoint.status,...h.counts};
+});
+await prove('normal_final_request_slot_still_dispatches',async()=>{
+  const h=harness(),res=response();await h.handler(request(),res);
+  return {pass:res.status===200 && h.counts.dispatch===1 && h.ctx.requests===4
+    && h.ctx.checkpoint.status==='RUNNING' && h.ctx.checkpoint.pending_request===null,
+    response_status:res.status,requests:h.ctx.requests,...h.counts};
+});
+await prove('known200_does_not_overwrite_UNKNOWN_during_response_await',async()=>{
+  const h=harness({pauseResponse:true}),res=response();
+  const run=h.handler(request(),res);await tickUntil(()=>h.counts.dispatch===1);
+  const own=JSON.stringify(h.ctx.checkpoint.pending_request);h.ctx.checkpoint.status='UNKNOWN';
+  h.waits.response.release();await run;
+  return {pass:res.status===502 && h.ctx.checkpoint.status==='UNKNOWN'
+    && JSON.stringify(h.ctx.checkpoint.pending_request)===own && h.counts.dispatch===1,
+    response_status:res.status,final_status:h.ctx.checkpoint.status,...h.counts};
+});
+for(const status of ['FAILED','COMPLETE'])
+await prove('known200_does_not_restore_'+status+'_during_response_await',async()=>{
+  const h=harness({pauseResponse:true}),res=response();
+  const run=h.handler(request(),res);await tickUntil(()=>h.counts.dispatch===1);
+  const own=JSON.stringify(h.ctx.checkpoint.pending_request);h.ctx.checkpoint.status=status;
+  h.waits.response.release();await run;
+  return {pass:res.status===502 && h.ctx.checkpoint.status==='UNKNOWN'
+    && JSON.stringify(h.ctx.checkpoint.pending_request)===own && h.counts.dispatch===1
+    && h.ctx.checkpoint.last_successful_primary_request===undefined,
+    response_status:res.status,final_status:h.ctx.checkpoint.status,...h.counts};
+});
+await prove('known200_after_deadline_remains_known',async()=>{
+  const h=harness({pauseResponse:true}),res=response();
+  const run=h.handler(request(),res);await tickUntil(()=>h.counts.dispatch===1);
+  h.clock.now=1000;h.waits.response.release();await run;
+  return {pass:res.status===200 && h.ctx.checkpoint.status==='RUNNING'
+    && h.ctx.checkpoint.pending_request===null && h.counts.dispatch===1,
+    response_status:res.status,final_status:h.ctx.checkpoint.status,...h.counts};
+});
+await prove('request_header_kind_survives_body_await_global_hook_change',async()=>{
+  const h=harness(),res=response(),bodyGate=deferred();
+  const run=h.handler(request({kind:'primary',bodyGate}),res);
+  h.ctx.hooks.push({kind:'compaction'});bodyGate.release();await run;
+  return {pass:res.status===200 && h.labels.preflight[0]==='primary' && h.labels.dispatch[0]==='primary',
+    response_status:res.status,preflight_label:h.labels.preflight[0]??null,
+    dispatch_label:h.labels.dispatch[0]??null,...h.counts};
+});
+for(const kind of ['generate','title'])
+await prove('known_SDK_'+kind+'_uses_the_existing_model_ledger',async()=>{
+  const h=harness(),res=response();await h.handler(request({kind}),res);
+  return {pass:res.status===200 && h.ctx.requests===4 && h.ctx.checkpoint.model_requests===4
+    && h.ctx.checkpoint.compaction_requests===0 && h.ctx.checkpoint.overflow_ticket===undefined
+    && h.ctx.checkpoint.last_successful_primary_request===undefined
+    && h.labels.preflight[0]===kind && h.labels.dispatch[0]===kind && h.counts.dispatch===1,
+    response_status:res.status,requests:h.ctx.requests,preflight_label:h.labels.preflight[0]??null,
+    dispatch_label:h.labels.dispatch[0]??null,...h.counts};
+});
+const failures=cases.filter(row=>!row.pass);
+console.log(JSON.stringify({cases,failures,real_provider_calls:0,product_DB_operations:0,
+  actual_callback_bytes:Buffer.byteLength(callback),actual_callback_sha256:createHash('sha256').update(callback).digest('hex'),
+  source_bytes:Buffer.byteLength(source),source_sha256:createHash('sha256').update(source).digest('hex'),
+  scope:'Actual entire createServer callback with fake HTTP, deferred file/bridge promises; no socket, database, key, SDK session or supplier.'}));
+assert.equal(failures.length,0,'Actual gateway callback lost ownership or crossed an await fence');
+'''
+        checked = subprocess.run([self.node, "--input-type=module", "-e", script, str(source_path)],
+            capture_output=True, text=True, timeout=10,
+            env={"PATH": "/opt/homebrew/bin:/usr/bin:/bin"})
+        detail = json.loads(checked.stdout)
+        self.receipts.append({"case": "whole_gateway_callback_vm", "host_source_path": str(source_path),
+            "host_sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(), "result": detail})
+        self.assertEqual(checked.returncode, 0, checked.stderr[-2000:])
+        self.assertEqual(len(detail["cases"]), 17)
+        self.assertEqual(detail["failures"], [])
 
     def test_real_sdk_malformed_summary_cannot_dispatch_a_second_paid_attempt(self):
         admission = provider_admission()

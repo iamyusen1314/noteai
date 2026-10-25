@@ -218,6 +218,13 @@ An unknown/pending model or paid-tool request refuses any new dispatch on restar
 Resolve it in the original Python ledger before arranging a recovery; never delete
 the marker to make another paid request.
 
+The same host admits one model HTTP request at a time. A concurrent request gets
+an unbilled 409 without modifying the active checkpoint. Each request carries its
+own SDK kind and pending ordinal/body hash; state is checked again after preflight
+and checkpoint writes, and before applying a response. A lost or unknown intent
+cannot be overwritten by a later response. Known responses arriving after the
+deadline remain known; the deadline prevents new dispatches.
+
 Use the same start fields with `mode:"inspect"` to read a known session without
 sending another prompt. `mode:"revise", session_id:"original-session-id"` permits
 one explicit local revision only after known COMPLETE, no pending request, and a

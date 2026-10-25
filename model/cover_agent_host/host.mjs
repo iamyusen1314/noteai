@@ -302,6 +302,11 @@ function compactionTicketAllowed(state, ordinal) {
     && ticket.consumed === false && /^[0-9a-f]{64}$/.test(ticket.body_sha256)
     && Number.isSafeInteger(ticket.request_ordinal) && ticket.request_ordinal === ordinal;
 }
+function pendingIntentMatches(value, expected) {
+  return value && expected && Object.keys(value).sort().join(',') === 'body_sha256,label,ordinal'
+    && value.ordinal === expected.ordinal && value.body_sha256 === expected.body_sha256
+    && value.label === expected.label;
+}
 const RENDER_REJECTION_CODES = new Set(['TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION',
   'TEXT_OVER_PROTECTED_SUBJECT', 'TEXT_FONT_NOT_SELF_HOSTED', 'COVER_DESIGN_TEXT_NOT_FROM_TITLE',
   'OFFLINE_RENDER_ERROR', 'RENDER_DEPENDENCY_INCOMPLETE', 'CANVAS_PIXEL_GEOMETRY_MISMATCH',
@@ -423,8 +428,17 @@ try {
       pending.set(id, { resolve, reject, timer }); send({ type, id, ...fields });
     });
   };
+  let gatewayOwner = null;
   server = http.createServer(async (req, res) => {
-    let physical = false;
+    // A second request must not touch the active request's checkpoint or .tmp.
+    if (gatewayOwner !== null) {
+      res.writeHead(409, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: { code: 'MODEL_GATEWAY_BUSY', type: 'noteai_host' } }));
+      return;
+    }
+    const owner = Symbol('model request'), requestKind = req.headers['x-noteai-host-kind'];
+    gatewayOwner = owner;
+    let physical = false, ownIntent = null;
     try {
       if (req.method !== 'POST' || req.url !== '/v1/chat/completions') throw error('MODEL_ROUTE_FORBIDDEN');
       const chunks = []; let size = 0;
@@ -435,7 +449,8 @@ try {
       if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null && requests >= job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
       body.stream = false; delete body.stream_options;
       if (body.model !== job.model_id) throw error('MODEL_ID_NOT_LOCKED');
-      const label = hooks.at(-1)?.kind || 'unknown';
+      const label = requestKind;
+      if (!['primary', 'compaction', 'generate', 'title'].includes(label)) throw error('MODEL_REQUEST_KIND_INVALID');
       // Each paid summary consumes one new known, unbilled primary overflow.
       // An automatic SDK NUDGE cannot reuse that ticket or create a new one.
       if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests)) throw error('COMPACTION_CONTINUATION_NOT_ALLOWED');
@@ -443,6 +458,10 @@ try {
       // Only this local, unbilled rejection invokes SDK overflow compaction;
       // supplier failures and UNKNOWN responses retain their normal semantics.
       const admission = await bridge('model_preflight', { label, method: 'POST', path: '/chat/completions', body });
+      // Another bridge operation can change state or exhaust time while this
+      // pure preflight is pending. Recheck before minting or consuming a ticket.
+      if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool) throw error('PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION');
+      if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null && requests >= job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
       if (admission.allowed !== true) {
         if (admission.allowed !== false || admission.code !== 'COVER_AGENT_INPUT_LIMIT_EXCEEDED') throw error('MODEL_PREFLIGHT_INVALID');
         checkpoint.local_input_rejections = (checkpoint.local_input_rejections || 0) + 1;
@@ -458,30 +477,46 @@ try {
       // Another HTTP request may have consumed the ticket while Python was
       // measuring this one. Recheck before the synchronous dispatch transition.
       if (label === 'compaction' && !compactionTicketAllowed(checkpoint, requests)) throw error('COMPACTION_CONTINUATION_NOT_ALLOWED');
-      requests += 1; physical = true;
+      requests += 1;
+      ownIntent = { ordinal: requests, body_sha256: sha(JSON.stringify(body)), label };
       checkpoint = { ...checkpoint, model_requests: requests, status: 'AWAITING_MODEL',
         ...(label === 'compaction' ? { compaction_requests: (checkpoint.compaction_requests || 0) + 1,
           overflow_ticket: { ...checkpoint.overflow_ticket, consumed: true },
           last_compacted_primary_sha256: checkpoint.overflow_ticket.body_sha256,
           last_compaction_request_ordinal: requests } : {}),
-        pending_request: { ordinal: requests, body_sha256: sha(JSON.stringify(body)), label } };
+        pending_request: ownIntent };
       await atomicJSON(checkpointPath, checkpoint);
-      const answer = await bridge('model_request', { ordinal: requests, label: checkpoint.pending_request.label, method: 'POST', path: '/chat/completions', body });
+      if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool || gatewayOwner !== owner
+          || checkpoint.status !== 'AWAITING_MODEL' || requests !== ownIntent.ordinal
+          || !pendingIntentMatches(checkpoint.pending_request, ownIntent)) throw error('PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION');
+      if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null
+          && ownIntent.ordinal > job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
+      physical = true;
+      const answer = await bridge('model_request', { ordinal: ownIntent.ordinal, label: ownIntent.label, method: 'POST', path: '/chat/completions', body });
       if (answer.unknown) throw error('SUPPLIER_RESULT_UNKNOWN');
       if (!Number.isInteger(answer.status) || answer.status < 100 || answer.status > 599) throw error('MODEL_RESPONSE_INVALID');
+      if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool || gatewayOwner !== owner
+          || checkpoint.status !== 'AWAITING_MODEL' || requests !== ownIntent.ordinal
+          || !pendingIntentMatches(checkpoint.pending_request, ownIntent))
+        throw error('PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION');
       const payload = typeof answer.body === 'string' ? answer.body : JSON.stringify(answer.body);
       checkpoint = { ...checkpoint, pending_request: null, status: answer.status >= 200 && answer.status < 300 ? 'RUNNING' : 'FAILED', last_response_status: answer.status };
       if (label === 'primary' && answer.status >= 200 && answer.status < 300)
-        checkpoint.last_successful_primary_request = requests;
+        checkpoint.last_successful_primary_request = ownIntent.ordinal;
       await atomicJSON(checkpointPath, checkpoint);
       let output = payload, contentType = 'application/json';
       if (wasStream && answer.status >= 200 && answer.status < 300) { output = completionSSE(JSON.parse(payload)); contentType = 'text/event-stream'; }
       res.writeHead(answer.status, { 'content-type': contentType }); res.end(output);
     } catch (e) {
       rememberFailure(e.code, 'gateway');
-      if (physical && checkpoint.pending_request) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
+      if (!physical && ownIntent && pendingIntentMatches(checkpoint.pending_request, ownIntent)
+          && checkpoint.status !== 'UNKNOWN' && !checkpoint.pending_tool)
+        checkpoint = { ...checkpoint, pending_request: null, status: 'FAILED' };
+      if (physical && checkpoint.pending_request) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint).catch(() => {}); }
       else { try { await atomicJSON(checkpointPath, checkpoint); } catch { /* Diagnostic only; retain original 502. */ } }
       res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: { message: e.code || 'HOST_TRANSPORT_FAILED', type: 'noteai_host' } }));
+    } finally {
+      if (gatewayOwner === owner) gatewayOwner = null;
     }
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -659,6 +694,7 @@ try {
     });
     await ctx.session.hook('http.request', (event) => {
       if (!event.request.url.startsWith(baseURL + '/')) throw error('PROVIDER_ROUTE_FORBIDDEN');
+      event.request.headers.set('x-noteai-host-kind', event.kind);
       hooks.push({ kind: event.kind, session_id: event.sessionID });
       send({ type: 'request_hook', kind: event.kind, session_id: event.sessionID });
     });
