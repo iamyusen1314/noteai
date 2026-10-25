@@ -3828,3 +3828,21 @@ sole“修复高德检索与休闲娱乐行业”已接精确d12d571/7pins及证
 | 最小修复与离线验证 | Root/分工代理 | d12d571/独审GO；因果红绿/票据/有限回执 | 无未闭P0–P2；非真成品 |
 | 定向集成与真实验收 | sole候选；Root真实 | sole实际在途/现外部关闭 | Root核carrier→实际candidate；准备齐后集中新预算/当次访问 |
 | 独审完整交付 | candidate/Root；sole发布 | 本次source+证据GO；完整交付未完成 | 合格真实图/保存找回改字下载/唯一8分/单位成本，iPhone未验 |
+
+
+## CURRENT / 接口问答 — 2026-10-25T10:13:33.513631+00:00 Dd构建GO已撤回且未Send；await后状态P2最小收口中
+
+问题（sole原集成窗口）：host.mjs原UNKNOWN/pending_tool/deadline/maxrequests门在await model_preflight之前；等待期间状态改变，返回后仍可能在本地拒绝分支mint票或admitted分支consume并改AWAITING_MODEL。原11VM只静态UNKNOWN前序，不覆盖此竞态；不是R12实际原因证明。答复/负责人（Root）：已接受具体P2并在await后、allowedfalse分支之前补原两门，原ticket后校仍保，当前仅未提交源码；successor专属hosttest用同16分支真实gateway waiter在旧e032红→新源绿，不重复已过SDK/其它旧suite。candidate继续检查同gateway最后intent写盘await到modelrequest的状态/ordinal约束，不扩大全项目。
+
+阻塞只为Dd候选Send/build/native与新付费验收；已明确撤回旧GO、sole封原HOLD3615/c2137851及native准备HOLD1802/1731fe2a，全部Send/build/native0。sole三组件仍66a/62cb，HEAD02edcb5仅它独立成本记录，不能冒本功能集成；不编辑其成本/运行资源。Root继续修复、R13caller/README同一工具纯准备已冻结（103539/55160a5c、51600/ecb5e9b4），actual A32/28729/3271，A42只提案未问未批；d12旧7pin source暂不符新host是已知HOLD，不能开serve或paid。keydisabled/旧serverexit0/observerexit0、R12failnet0/旧UNKNOWN2753保持。唯一PLAN已同步此可恢复状态，下一newcommit/最小差量适配而非重发旧请求。
+
+
+## CURRENT / 接口答复 — 2026-10-25T10:36:10.443192+00:00 17d96f7完整gateway修复/独审GO；原候选载体适配实际发给sole
+
+当前feature/HEAD 17d96f7d82b457391b3f2cf46d4c7892868a2b2b，host57657/0fe28435、README27036/4eed396b、test99582/4cf940f5，provider/runtime及两repo test为d12原样，无新依赖/迁移。10:13问答已由Root闭合：同host同步owner/busy409在catch外不改CP、SDK每request固定kind（原4kind兼容）、本地ownIntent、awaitpreflight后原门、awaitpending盘后派发前owner/status/intent/count/time复核、known响应后不复活UNKNOWN/FAILED/COMPLETE，合法最后slot/迟到known200照旧。physical仅实际bridge前true；本地未派发释放自己的pending，不清其它/UNKNOWN，诊断写失败不遮原错。完整实际callback17/17 GREEN；旧a805同17例15失败；另11票/16预检及2本机实际SDK pass，SDK实源71ee到final唯一allowlist扩原4kind可逐byte回溯复用，未冒finalwholeSDK/云24/真供应商。candidate独审14ref全部pins一致GO/noP0-P2。D/CALLBACK-GATEWAY-FINAL-EVIDENCE001.json7426/687654c8；ROOT-FINAL-SOURCE-SCOPE002.json3480/ab0886e7。
+
+Root已实际send给原“修复高德检索与休闲娱乐行业”窗口01a13080-d8a9-7c50-88c0-09ffcebbef61明确下一步：在原two-Send/3COPY上适配final，薄native补实际callback/afterawait；准备载体先交Root核后才唯一Send/build/native；旧Dd永久HOLD，原三组件sole独占，生产无GO。继续等待其实际进度而非止于收录。
+
+同caller仅3个sourcebinding常量换final，103539/984359d1，README同步。24file/AST/facade controls002通过7471/28b8e494；actual file-only preflight6879/ce08e8eb通过但明确HOLD提案。独立actual mode=ro/query_only92SELECT校验132history/12旧job/新phase0、两UNKNOWN/2753和唯一退款net0通过，total_changes0、原DB1372160/5c0ff2c9 bytes/inode全同；SQLite新建0B WAL/32KiB SHM，原strict存在性HOLD诚实保留，Root处分966/9ff0cf5d明确不扩为新财务门禁、不删除sidefiles/不重查。R13-CALLER-ACTUAL-READONLY0015269/4ef5d997。
+
+实际批准仍A32，bound28729/余3271；A42(+10/原总100)仅提案未问未批。R12已消费failed/net0，旧UNKNOWN2753保留；keydisabled/serve012exit0/observerexit0/无worker无新job。真实qualified0/每张交付成本N/A。下一：Root核sole具体新载体、actual构建/native；其间finalsource冻结工具已备，不重发旧请求。阶段3/4未完，不停止于本checkpoint。
