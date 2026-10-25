@@ -33492,3 +33492,10 @@ foundation实际原件+第22节独审GO，candidate组件窄审GO，均无确定
 R6 caller仍52194/da5de5b0、README11100/2ea0db60，原15000未改；file-only preflight70f77c8b为HOLD。追加5元至A累计20元（原总100不变）及同受限key限时启用的合并问题已经发出，目前无对应新答复。C/R6-A20-PROPOSED-UNAPPLIED.json5812/fc4c8629仅审过的未应用方案，不能当批准。01:57Z正常DOM再核same noteai-cover-20261024-acceptance已禁用并markHandoff。无新key权限/公网/生产、无新job/session/server/模型派发，无后台自动续跑。
 
 当前全部可独立执行的非付费开发、定向集成和独审已完成；唯一外部阻塞为R6追加预算和本次限时密钥动作的合并确认，连带成功链依真实结果。下一负责人Root：收到该答复记录实际时间，只读重核原账和9素材TTL（当前最早2026-10-25T05:22:02.593942Z，若到期走正常原图补传，不改TTL/重跑报告），仅在同意后应用已审cap20差量/精确caller及预检，同key启用最多60min，单新任务、最多1概念/一次原有质量修正，唯一run-next先存原HTTP响应再核202；失败/未知立即关闭不重发。成功则完成实际保存找回/免费改字/下载/一次结算，交回原sole统一评估集成。未有新答复前不重build/native/旧suite或重问同一问题；任务尚未完整交付，不承诺不存在的后台执行。
+
+
+## CURRENT — 2026-10-25T02:10:07.522857+00:00 R6本次追加5元/限时key确认已执行，正常UI唯一排队，真实派发前checkpoint
+
+实际HEADb4e0a6c/功能8bc1f76，Root02:06:08Z收到c932895明确同意A15→20仅追加5元/原总100、samekey最多60min，截止03:06:08Z＝北京时间11:06:08；同时到达旧4ab问题仅保历史，不再启动第二任务。原已审cap20差量已精确应用caller52772/931ecc4c，原15k STATE004未改；foundation新独审GO，README12267/5f7f4805如实绑定单新任务。新实际RO/query_only/authorizer/禁网络预检已核五failed/54responded、bound12374/available7626、九素材ready且最早05:22:02Z到期、434正文不变/totalchanges0。初次RO脚本用了不存在media_objects表，只读报错，改实际private_media_refs后通过；没有产品改动或新依赖。证据C/REAL-CALLER-R6.ACTUAL-READONLY-STATE-PREFLIGHT001.json。
+
+同受限key已正常控制台启用且保存遮罩TASK-KEY-REENABLED.R6.ACTUAL.png已给用户；现caller起serve006 exec79560/origin127.0.0.1:51429，lifespanoff/无自动worker。PC1440×1000正常原报告视觉专家封面入口核8分/90天/九图，点击一次重新设计，新jobc6c04f2e-7492-41eb-90f5-1fcee646910f/client3b0be11a-f935-4d62-9269-f91ff067844e/usage3c44c99a-c50e-4ae2-8bb7-55634b405635已queued，phase恰1/新physical0/workerfalse/无新once。C/REAL-R6-BEFORE-WORKER001.json及R6-BEFORE-DISPATCH-CHECKPOINT001.json已保存。下一Root唯一Bearer run-next，先保原HTTP响应再核202；固定双Pro/最多1概念/既有一次任务内质量修正，最终真实原照HTML。独审子代理仅白名单公开成品证据捕获，不读key/cipher/SDK DB；失败/UNKNOWN立即禁用并停止，不重发。成功后执行PC/H5保存找回/免费改字/下载/唯一结算；尚不冒真实质量通过，不改生产。
