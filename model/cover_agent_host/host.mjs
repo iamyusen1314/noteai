@@ -285,7 +285,7 @@ function rememberFailure(code, stage) {
 function overflowTicket(state, bodySHA, ordinal) {
   const count = state.compaction_requests ?? 0, previous = state.overflow_ticket;
   if (previous && previous.consumed !== true) return previous;
-  if (!Number.isSafeInteger(count) || count < 0 || count >= 2
+  if (!Number.isSafeInteger(count) || count < 0 || count >= Number.MAX_SAFE_INTEGER
       || !Number.isSafeInteger(ordinal) || ordinal < 0 || !/^[0-9a-f]{64}$/.test(bodySHA)) return null;
   if (count > 0 && (!Number.isSafeInteger(state.last_successful_primary_request)
       || !Number.isSafeInteger(state.last_compaction_request_ordinal)
@@ -296,7 +296,7 @@ function overflowTicket(state, bodySHA, ordinal) {
 }
 function compactionTicketAllowed(state, ordinal) {
   const count = state.compaction_requests ?? 0, ticket = state.overflow_ticket;
-  return Number.isSafeInteger(count) && count >= 0 && count < 2
+  return Number.isSafeInteger(count) && count >= 0 && count < Number.MAX_SAFE_INTEGER
     && ticket && typeof ticket === 'object' && !Array.isArray(ticket)
     && Object.keys(ticket).sort().join(',') === 'body_sha256,consumed,request_ordinal'
     && ticket.consumed === false && /^[0-9a-f]{64}$/.test(ticket.body_sha256)

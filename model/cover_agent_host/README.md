@@ -124,15 +124,20 @@ Volcengine native compaction. Rejected preflights have no physical ordinal,
 dispatch intent or charge. They retain content-free measurements in the existing
 cleanup receipt. The provider's 131072 conservative bound is unchanged.
 
-At most two admitted compaction requests are allowed per task, each consuming a
-distinct known local primary-input overflow ticket. The ticket binds the rejected
-body SHA and current request ordinal and is consumed atomically with the normal
-dispatch checkpoint. A second ticket requires a different body and at least one
-known successful primary response after the first summary. Repeating an overflow,
+Each admitted compaction request consumes a fresh known local primary-input
+overflow ticket. The ticket binds the rejected body SHA and current request
+ordinal and is consumed atomically with the normal dispatch checkpoint. Each
+later ticket requires a different body from the last compacted input and at least
+one known successful primary response after the preceding summary. There is no
+separate fixed summary-count limit; the count must remain an exact safe integer.
+Repeating an overflow,
 an immediate still-oversized continuation, summary-input rejection and an automatic
 SDK summary NUDGE cannot buy another summary. Missing older ticket state fails
 closed. Each paid response still uses the original provider admission, money
-ledger and task deadline; UNKNOWN cannot issue or consume a ticket. In the SDK
+ledger, task deadline and any explicit task request limit; UNKNOWN cannot issue
+or consume a ticket. Different input bytes and a successful response prove
+protocol progress, not useful design progress, so money and time remain the
+bounds on ineffective work. In the SDK
 summary input only, successful `cover_write`
 arguments may become file references when the corresponding receipt and current
 ordinary file both match the full text's exact bytes and SHA. Missing, overwritten
