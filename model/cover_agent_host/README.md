@@ -339,3 +339,15 @@ per network chunk, not as a strict total wall-clock timer. A late supplier resul
 still needs truthful usage accounting and cannot authorize delivery or settlement
 after the original claim expires. Heartbeats must not manufacture wire activity;
 the shared queue's existing no-progress behavior remains in effect.
+
+Initial-render title scope is also returned by the business bridge from the
+original report context. The host overwrites any model-authored `approved_titles`
+before calling the existing renderer. Its actual DOM text leaves must be exact
+excerpts of those titles after the same whitespace normalization as the final
+Python guard. A local `COVER_DESIGN_TEXT_NOT_FROM_TITLE` result names the offending
+layer, so the existing Agent can correct that layer within the original task and
+budget. It cannot expand the title scope or treat the local error as a render.
+The final business guard is retained. This initial-generation constraint is not
+persisted into free-edit constraints; user adjustments retain their existing text,
+geometry, revision and billing rules. Standalone legacy CLI requests without this
+optional scope retain their previous behavior.

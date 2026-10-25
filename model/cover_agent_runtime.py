@@ -561,6 +561,8 @@ def _prompt(context, sources):
         "最终shipping照片只能引用assets中逐byte原照，保留主体和可追溯图层，禁止生成式扩景/改设施/菜品/人物/价格/服务。"
         "可按Skill裁切、修色、构图与排字，但修色必须有限且真实，主体不可被裁去或文字盖住。"
         "文字来自approved_titles（如有）否则title/title_variants的精确短摘，只能变化断行；"
+        "cover_render会按实际HTML逐层检查该范围；若返回COVER_DESIGN_TEXT_NOT_FROM_TITLE，"
+        "按detail中的文字层id在当前设计内改成原题短摘，不能扩充approved_titles或把错误当作渲染成功。"
         "不得添加无根据事实或Skill/安全区等设计说明文字。字体用整包已许可中文字库，必须是独立可编辑真实文字。"
         "制作index.html/poster.json、完整brief/design-plan/asset-plan/prompts/render-review等原Skill留存；"
         "项目放当前工作区根，cover_render.request.project_dir用'.'，原照已在assets/source-N内，不能改写原照。"
@@ -601,6 +603,7 @@ class Bridge:
         self.costs = []
         self.last_preview = None
         self.request_deadline = None
+        self.approved_titles = None
         self.thinking = ThinkingState(job_id)
 
     def _restore_thinking(self, payload):
@@ -704,7 +707,10 @@ class Bridge:
         if name == "cover_render":
             if not self.concept_hash or self.concept_hash not in self.seen_images:
                 raise cover_runtime.CoverRuntimeError("COVER_AGENT_CONCEPT_NOT_VIEWED")
-            return {"allowed": True}
+            answer = {"allowed": True}
+            if self.approved_titles is not None:
+                answer["approved_titles"] = list(self.approved_titles)
+            return answer
         raise cover_runtime.CoverRuntimeError("COVER_AGENT_TOOL_NOT_ALLOWED")
 
     def run(self, prompt, *, deadline):
@@ -834,6 +840,8 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
         raise cover_runtime.CoverRuntimeError("COVER_RUNTIME_SOURCES_INVALID")
     bridge = bridge_class(job_id=job_id, directory=directory, sources=checked, hooks=hooks,
         model_transport=model_transport, image_transport=image_transport)
+    bridge.approved_titles = [title for title in
+        (context.get("approved_titles") or [context["title"], *context["title_variants"]]) if title.strip()]
     hooks.on_stage("design")
     prompt = _prompt(context, [{k: value for k, value in source.items() if k != "payload"} for source in checked])
     (directory / "noteai-input.json").write_text(json.dumps({"report": context,

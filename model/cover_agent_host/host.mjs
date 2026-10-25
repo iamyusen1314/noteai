@@ -407,6 +407,9 @@ try {
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');
       const answer = await bridge('tool_request', { name: 'cover_render', arguments: request });
       if (answer.result?.allowed !== true) throw error(answer.result?.code || 'RENDER_NOT_APPROVED');
+      // Only the business bridge can supply the original report title scope.
+      delete request.approved_titles;
+      if (Array.isArray(answer.result.approved_titles)) request.approved_titles = answer.result.approved_titles;
       const run = await runLocal(process.execPath, [job.editable_cli, 'render'], request.project_dir, JSON.stringify(request));
       let result; try { result = JSON.parse(run.stdout); } catch { throw error('RENDER_RESPONSE_INVALID'); }
       if (run.code !== 0 || result.ok !== true) return { content: JSON.stringify(result) };

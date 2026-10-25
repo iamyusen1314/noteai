@@ -116,7 +116,9 @@ function run(command, args, cwd, name) {
   if (result.error || result.status !== 0) fail('UPSTREAM_' + name.toUpperCase() + '_FAILED', JSON.stringify(evidence));
   return evidence;
 }
-async function inspect(dir, manifest, edit = null, pngPath = null) {
+// Match Python str.split whitespace normalization in the final business guard.
+const titleText = (text) => text.replace(/[\u0009-\u000d\u001c-\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, '');
+async function inspect(dir, manifest, edit = null, pngPath = null, approvedTitles = null) {
   const { launch, open } = await import('./vendor/editable-design/scripts/_browser.mjs');
   const browser = await launch();
   const requests = [], blocked = [];
@@ -195,6 +197,8 @@ async function inspect(dir, manifest, edit = null, pngPath = null) {
     if (errors.length || blocked.length) fail('OFFLINE_RENDER_ERROR', JSON.stringify({ errors, blocked }));
     if (state.width !== WIDTH || state.height !== HEIGHT || state.fonts_status !== 'loaded' || state.images.some((im) => !im.loaded)) fail('RENDER_DEPENDENCY_INCOMPLETE');
     for (const box of state.boxes) {
+      const text = titleText(box.text);
+      if (approvedTitles && (!text || !approvedTitles.some((title) => title.includes(text)))) fail('COVER_DESIGN_TEXT_NOT_FROM_TITLE', box.id);
       const allowed = manifest.text_layers.find((l) => l.id === box.id).allowed_rect;
       const family = box.font.split(',')[0].trim().replace(/["']/g, '');
       if (!state.font_faces.some((f) => f.family === family && f.status === 'loaded')) fail('TEXT_FONT_NOT_SELF_HOSTED', box.id);
@@ -239,8 +243,14 @@ async function perform(command, request) {
   if (request.schema_version !== SCHEMA) fail('SCHEMA_VERSION_INVALID');
   const allowedKeys = command === 'edit'
     ? ['schema_version', 'output_root', 'parent_revision_dir', 'expected_parent_manifest_sha256', 'edits', 'initial_qc_ref']
-    : ['schema_version', 'output_root', 'project_dir', 'sources', 'text_layers', 'protected_regions', 'initial_qc_ref'];
+    : ['schema_version', 'output_root', 'project_dir', 'sources', 'text_layers', 'protected_regions', 'initial_qc_ref', 'approved_titles'];
   if (Object.keys(request).some((key) => !allowedKeys.includes(key))) fail('REQUEST_FIELDS_FORBIDDEN');
+  let approvedTitles = null;
+  if (command === 'render' && request.approved_titles !== undefined) {
+    if (!Array.isArray(request.approved_titles) || !request.approved_titles.length || request.approved_titles.length > 21
+        || request.approved_titles.some((title) => typeof title !== 'string' || [...title].length > 300 || !titleText(title))) fail('APPROVED_TITLES_INVALID');
+    approvedTitles = request.approved_titles.map(titleText);
+  }
   const out = path.resolve(request.output_root || '');
   if (!request.output_root || !path.isAbsolute(request.output_root)) fail('ABSOLUTE_OUTPUT_ROOT_REQUIRED');
   await fs.mkdir(out, { recursive: true });
@@ -279,7 +289,7 @@ async function perform(command, request) {
     evidence.push(run('/bin/bash', [path.join(SKILL, 'scripts/check-fonts.sh'), path.join(dir, 'index.html')], dir, 'fonts'));
     evidence.push(run(process.execPath, [path.join(SKILL, 'scripts/check-contract.mjs'), path.join(dir, 'index.html'), '--json'], dir, 'editable_contract'));
     await fs.mkdir(path.join(dir, 'out'));
-    const checks = await inspect(dir, constraints, null, path.join(dir, 'out/poster.png'));
+    const checks = await inspect(dir, constraints, null, path.join(dir, 'out/poster.png'), approvedTitles);
     evidence.push({ command: 'render', ...checks.screenshot });
     const png = await fs.readFile(path.join(dir, 'out/poster.png'));
     if (png.readUInt32BE(16) !== WIDTH || png.readUInt32BE(20) !== HEIGHT) fail('PNG_DIMENSION_MISMATCH');

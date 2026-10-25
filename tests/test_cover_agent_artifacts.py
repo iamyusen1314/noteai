@@ -1,5 +1,6 @@
 """Offline source-bundle/settlement regression; no aesthetic claim or model IO."""
 import base64
+import contextlib
 from copy import deepcopy
 import hashlib
 import io
@@ -381,6 +382,148 @@ class AgentArtifactTests(unittest.TestCase):
         self.assertEqual(policy["design_version"], 3)
         self.assertIsNone(policy["max_physical_calls"])
         jobs._policy(policy)
+
+
+class AgentTitleCLIContractTests(unittest.TestCase):
+    """Actual local DOM/PNG checks; no SDK, model transport or business DB."""
+
+    def setUp(self):
+        import shutil
+        import socket
+        import sqlite3
+
+        self.node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
+        self.browser = os.environ.get("EDITABLE_DESIGN_BROWSER") or \
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        if not self.node or not Path(self.browser).is_file():
+            self.skipTest("Explicit installed Node and local Chrome are required")
+        self.temp = tempfile.TemporaryDirectory(prefix="noteai-title-dom-")
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name)
+        self.project = self.directory / "project"
+        (self.project / "assets").mkdir(parents=True)
+        (self.directory / "tmp").mkdir()
+        self.stack = self.enterContext(contextlib.ExitStack())
+        self.sql = self.stack.enter_context(mock.patch.object(sqlite3, "connect",
+            side_effect=AssertionError("Business SQLite is forbidden in CLI fixture")))
+        self.network = self.stack.enter_context(mock.patch.object(socket.socket, "connect",
+            side_effect=AssertionError("Python external socket is forbidden in CLI fixture")))
+        self.env = {key: os.environ[key] for key in ("PATH", "LANG", "LC_ALL") if key in os.environ}
+        self.env.update(TMPDIR=str(self.directory / "tmp"), HOME=str(self.directory),
+                        EDITABLE_DESIGN_BROWSER=self.browser)
+        self.model = Path(__file__).resolve().parents[1] / "model"
+        self.cli = self.model / "cover_editable/cli.mjs"
+        photo = io.BytesIO()
+        Image.new("RGB", (800, 1000), "#507060").save(photo, "PNG")
+        self.photo = photo.getvalue()
+        (self.project / "assets/synthetic-photo.png").write_bytes(self.photo)
+        (self.project / "poster.json").write_text(json.dumps({
+            "canvas": {"width": 1776, "height": 2368}, "scale": 1, "dpi": None}))
+        # Same fixed canvas/source/type geometry as offline-smoke's first render,
+        # reduced to one title layer; font_add still uses the real installed kit.
+        (self.project / "index.html").write_text("""<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><title>离线技术夹具</title><style>
+:root {--font-title:sans-serif} * {box-sizing:border-box}
+html,body {margin:0;padding:0} .poster {position:relative;width:1776px;height:2368px;overflow:hidden;background:#f6f2e9}
+.photo {position:absolute;left:120px;top:520px;width:1536px;height:1440px;object-fit:contain}
+.title {position:absolute;left:120px;top:150px;width:1480px;height:260px;margin:0;font-family:var(--font-title);font-size:96px;line-height:1.18;font-weight:600;color:#203a34;white-space:pre-wrap}
+.brand {position:absolute;left:120px;top:440px;width:1480px;height:80px;margin:0;font-family:var(--font-title);font-size:48px;line-height:1.2;color:#203a34}
+</style></head><body><main class="poster" data-canvas-width="1776" data-canvas-height="2368">
+<img class="photo" data-layer-id="source-photo" src="assets/synthetic-photo.png" alt="合成技术图片">
+<h1 class="title hf-slot" data-layer-id="title">原照独立图层<br>中文排字测试</h1>
+</main></body></html>""", encoding="utf-8")
+        self.local([self.node, str(self.model / "cover_editable/vendor/editable-design/scripts/font-kit.mjs"),
+                    "add", "cjk-sans", str(self.project / "index.html")])
+        html = (self.project / "index.html").read_text()
+        self.assertIn("--font-kit-cjk-sans", html)
+        (self.project / "index.html").write_text(html.replace(
+            "--font-title:sans-serif", "--font-title:var(--font-kit-cjk-sans)"), encoding="utf-8")
+        self.request = {"schema_version": "noteai-cover-editable/v1", "project_dir": str(self.project),
+            "output_root": str(self.directory / "revisions"),
+            "sources": [{"ref": "synthetic-source-1", "path": "assets/synthetic-photo.png",
+                         "sha256": hashlib.sha256(self.photo).hexdigest()}],
+            "text_layers": [{"id": "title", "allowed_rect": {"x": 96, "y": 120, "width": 1584, "height": 320}}],
+            "protected_regions": [{"x": 430, "y": 780, "width": 900, "height": 1000}],
+            "approved_titles": ["原照独立图层中文排字测试"]}
+
+    def tearDown(self):
+        if hasattr(self, "sql"):
+            self.sql.assert_not_called()
+            self.network.assert_not_called()
+
+    def local(self, arguments, *, body=None):
+        import subprocess
+        result = subprocess.run(arguments, input=body, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=180, env=self.env, check=False)
+        if body is None:
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", "replace")[-2048:])
+        return result
+
+    def invoke(self, command, request, *, expected_code=None):
+        result = self.local([self.node, str(self.cli), command],
+            body=json.dumps(request, ensure_ascii=False).encode())
+        value = json.loads(result.stdout)
+        self.assertEqual(value["model_calls"], 0)
+        if expected_code:
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(value["ok"])
+            self.assertEqual(value["code"], expected_code)
+        else:
+            self.assertEqual(result.returncode, 0, value)
+            self.assertTrue(value["ok"], value)
+            self.assertEqual(value["external_requests"], 0)
+            with Image.open(value["png_path"]) as image:
+                self.assertEqual(image.size, (1776, 2368))
+        return value
+
+    def test_approved_title_linebreak_uses_actual_dom(self):
+        self.request["approved_titles"] = ["其他批准标题" + str(index) for index in range(20)] + \
+            self.request["approved_titles"]
+        self.request["approved_titles"][0] = "字" * 299 + "🫧"
+        self.assertEqual(len(self.request["approved_titles"][0]), 300)
+        self.assertEqual(len(self.request["approved_titles"]), 21)
+        self.assertTrue(all(set(layer) == {"id", "allowed_rect"} for layer in self.request["text_layers"]))
+        result = self.invoke("render", self.request)
+        manifest = json.loads(Path(result["manifest_path"]).read_bytes())
+        self.assertEqual([box["text"] for box in manifest["checks"]["boxes"]],
+                         ["原照独立图层\n中文排字测试"])
+        self.assertNotIn("approved_titles", manifest["constraints"])
+        self.assertEqual((self.project / "assets/synthetic-photo.png").read_bytes(), self.photo)
+
+    def test_unapproved_dom_brand_rejected_without_declared_text(self):
+        html_path = self.project / "index.html"
+        html_path.write_text(html_path.read_text().replace("</main>",
+            '<p class="brand hf-slot" data-layer-id="brand">未批准品牌与正文标签</p></main>'), encoding="utf-8")
+        self.request["text_layers"].append({"id": "brand",
+            "allowed_rect": {"x": 96, "y": 420, "width": 1584, "height": 120}})
+        self.assertTrue(all(set(layer) == {"id", "allowed_rect"} for layer in self.request["text_layers"]))
+        rejected = self.invoke("render", self.request, expected_code="COVER_DESIGN_TEXT_NOT_FROM_TITLE")
+        self.assertEqual(rejected["detail"], "brand")
+        self.assertEqual(list((self.directory / "revisions").glob("*/out/poster.png")), [])
+        # Standalone legacy CLI requests without a business policy remain valid;
+        # normal Agent rendering receives its trusted policy from Python/host.
+        legacy = {key: value for key, value in self.request.items() if key != "approved_titles"}
+        accepted = self.invoke("render", legacy)
+        boxes = json.loads(Path(accepted["manifest_path"]).read_bytes())["checks"]["boxes"]
+        self.assertEqual(next(box["text"] for box in boxes if box["id"] == "brand"), "未批准品牌与正文标签")
+
+    def test_free_edit_keeps_user_text_outside_original_title(self):
+        original = self.invoke("render", self.request)
+        prior_png = Path(original["png_path"]).read_bytes()
+        user_text = "用户自由改字\n与原标题无关"
+        self.assertNotIn(user_text.replace("\n", ""), self.request["approved_titles"][0])
+        edit = {"schema_version": self.request["schema_version"], "output_root": self.request["output_root"],
+            "parent_revision_dir": original["revision_dir"],
+            "expected_parent_manifest_sha256": original["manifest_sha256"],
+            "edits": [{"layer_id": "title", "text": user_text, "dx": 0, "dy": 0}]}
+        self.assertNotIn("approved_titles", edit)
+        adjusted = self.invoke("edit", edit)
+        manifest = json.loads(Path(adjusted["manifest_path"]).read_bytes())
+        self.assertEqual(manifest["checks"]["boxes"][0]["text"], user_text)
+        self.assertEqual(adjusted["qc_status"], "USER_ADJUSTED_NOT_VISUALLY_REVIEWED")
+        self.assertEqual(Path(original["png_path"]).read_bytes(), prior_png)
+        self.assertNotEqual(adjusted["png_sha256"], original["png_sha256"])
+        self.assertNotIn("approved_titles", manifest["constraints"])
 
 
 if __name__ == "__main__":

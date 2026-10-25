@@ -96,6 +96,19 @@ class ProviderDeadlineBridgeTests(unittest.TestCase):
             self.assertEqual(bridge.ordinal, 1)
 
 
+class TitleScopeBridgeTests(unittest.TestCase):
+    def test_render_scope_comes_from_report_not_authored_arguments(self):
+        with tempfile.TemporaryDirectory() as root:
+            bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=Path(root), sources=[], hooks=mock.Mock())
+            bridge.concept_hash = "seen-concept"
+            bridge.seen_images.add(bridge.concept_hash)
+            bridge.approved_titles = ["水石清池：藏在高楼里的日式枯山水汤泉"]
+            answer = bridge.tool({"name": "cover_render", "arguments": {"approved_titles": ["任意新宣传词"]}})
+            self.assertEqual(answer, {"allowed": True, "approved_titles": bridge.approved_titles})
+            answer["approved_titles"].append("mutated response")
+            self.assertEqual(len(bridge.approved_titles), 1)
+
+
 class ReturnedValueTests(unittest.TestCase):
     def test_contract_and_render_results_keep_their_tool_call_identity(self):
         body = {"messages": [
@@ -117,6 +130,41 @@ class ReturnedValueTests(unittest.TestCase):
 
 
 class HostFontBoundaryTests(unittest.TestCase):
+    def test_actual_render_tool_overrides_authored_title_scope_and_returns_local_error(self):
+        node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
+        if not node:
+            self.skipTest("Node required for actual host tool boundary")
+        source = Path(__file__).resolve().parents[1] / "model/cover_agent_host/host.mjs"
+        script = r'''
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const segment=source.slice(source.indexOf("    tool('cover_render',"),source.indexOf("    tool('cover_check',")).trim().replace(/,$/,'');
+let handler, scope, rendered;
+const local={ok:false,code:'COVER_DESIGN_TEXT_NOT_FROM_TITLE',detail:'headline'};
+const ctx=vm.createContext({path,process:{execPath:process.execPath},
+  fs:{realpath:async p=>p},job:{work_dir:'/owned-job',editable_cli:'/existing-cli'},
+  inside:()=>true,error:code=>new Error(code),objectSchema:()=>({}),
+  tool:(name,description,schema,callback)=>{assert.equal(name,'cover_render');handler=callback;},
+  bridge:async()=>({result:{allowed:true,...(scope===undefined?{}:{approved_titles:scope})}}),
+  runLocal:async(command,args,cwd,input)=>{rendered=JSON.parse(input);return {code:1,stdout:JSON.stringify(local)};}});
+vm.runInContext(segment,ctx);
+for (const trusted of [['原标题'],undefined]) {
+  scope=trusted;
+  const response=await handler({request:{project_dir:'.',approved_titles:['伪造范围']}});
+  if(trusted) assert.deepEqual(rendered.approved_titles,trusted);
+  else assert.equal(Object.hasOwn(rendered,'approved_titles'),false);
+  assert.deepEqual(JSON.parse(response.content),local);
+}
+console.log(JSON.stringify({pass:true,real_host_tool:true,model_calls:0}));
+'''
+        result = subprocess.run([node, "--input-type=module", "-e", script, str(source)],
+            capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)["pass"])
+
     def test_actual_helpers_preserve_authored_content_and_do_not_mask_original_errors(self):
         node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
         if not node:
