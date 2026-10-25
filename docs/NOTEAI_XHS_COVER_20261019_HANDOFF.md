@@ -3885,3 +3885,14 @@ checkpoint前RootHEAD78d6160，功能17d96f7、branch/worktree原样。原集成
 已官方UI启用samekey，禁用截止12:02:52UTC不变；REAL-R13-SERVER-START001156428/61df2125，serve013 exec80251/origin http://127.0.0.1:53481，正常samecaller984359d1/args确认，启动未发模型。PC1440从原报告封面panel一击“重新设计8积分”，normal readback新phase唯一queued6d0e68a8-b0bf-475f-8f40-864a59aee49a/usaged5eff5fd-a157-4948-aca2-2c41a4d361bd/cliente41861f0-81aa-4005-a4b8-2449e2096c36，newphysical0/workerfalse，8分仅预留。当前报告cover-sources实际9ready且最早expiryOct26 05:45:36Z，无需补传；caller required_at_starttrue检查旧HISTORICAL fixture，并非此当前素材状态，不扩为阻塞或重复上传。旧mock成品保留不能冒R13成品。
 
 Root下一仅一次POST /__local__/run-next；candidate沿原6815B公开whitelist observer只换job/目标/截止采集公开设计原件，不读私有SDK/CP、无paid。当前A42/bound28729/余13271、旧UNKNOWN2753全留。模型预计数元，最多1概念/1既有任务内质量修正、0自动重发，失败或未知即停终态提前关闭。当前checkpoint在外部paid前保存，后续恢复必须查本job/once，不能再建或重发。
+
+
+## CURRENT — 2026-10-25T11:41:05.326566+00:00 R13真实候选已渲染但第三次压缩被工程cap2拒绝；本轮全部关闭/净扣0，继续离线修复
+
+feature17d96f7/Root源码未改，checkpoint前HEAD66c70aa。R13唯一job6d0e68a8-b0bf-475f-8f40-864a59aee49a/usaged5eff5fd-a157-4948-aca2-2c41a4d361bd在STATE007(11:33:24Z)真实failed/COVER_AGENT_DESIGN_INCOMPLETE/rev0/noFinal/workerfalse；26physical全200=25Pro＋1Seedream，newUNKNOWN0。knownPro2.9949012CNY/imageactualNULL估.76，本轮保守新增3768milli，A42保守32497/余9503，旧UNKNOWN2753及历史费用全留。正常GET同job两次相等且六组账本前后同，唯一claim charge1/refund1/complete0（月4＋wallet4预留已全退），wallet8/totalused0，PC/H5均显示未交付/预留释放/console[]。key已官方UI提前disabled；observer68586 exit0/46公开原件13.746MB保全；normalstop一次200后serve013 exec80251 exit0、IAB13closed/viewportreset。此task/访问已消费，不自动新付费或重开。
+
+safe内容无正文receipt1721/a6714ebb证实：terminalgateway COMPACTION_CONTINUATION_NOT_ALLOWED，compaction2/localreject3/modelreq25/lastprimarybound159905>131072；text151672中system48335/tool_result68076/encrypted10666/reasoning4603，其余分区保原。lastlocalrendererror TEXT_OVERFLOW/title在model14，与terminal分别记录；host_result artifact_is_dicttrue/FAILED。首次本地reject133463/19images，全部原signed SDK内容按产品cleanup已删，Root未读取，不能把具体原tool结果的唯一来源作已证。现在有实际分区，下一针对当期cover_read/managed-font大输出做受控因果复现，同时修正任意cap2与已准按需调用/既有money＋deadline边界；不机械改成cap3，不改价格/模型/原图/质量门或原报告正文。
+
+本轮真实候选full4171287/cdc560eb与240128208/dcdfecb5已Root及candidate亲看：园景＋吧台/汤池两图，金色两行宋体字，未见文字溢出/遮主体、240主字可读/品牌较小；尚非合格交付，未捕获qc0/1不推不存在。Root已向用户展示明确candidate notdelivery。C/REAL-R13-TERMINAL-SUMMARY001.json保当前所有refs；46原件manifest47500/718b658c和END5397/aee2282f保时序。原照1/2/9精确canonical同SHA视觉对比待补，已核正常报告9ready非旧fixtureflag过期。
+
+既定共享资源最小V3 Bridge/report票竞争离线单场景三段PASS .649s：占槽reserve/dispatch/HTTP0，释放后实际Bridge/provider/tempSQLite继续，MockReadTimeout保UNKNOWN2753并释放全部ticket/阻下一调用；2MockHTTP/外部0，原report仅symbolicticket非实际reportmodel，多用户真实容量仍未验。E/resource-sharing-v3-bridge-report-r1/RESULT0013846/058fb221，不改产品/本C真实账本，源pins一致。sole原d6e18e9/c205候选保留但不冒本次真实交付通过/无生产GO；下一Root离线修复、独审再适配，持续执行不止于本checkpoint。
