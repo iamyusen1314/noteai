@@ -33670,3 +33670,12 @@ Root只修local harness旧ref启动加载及normal补传两缺口：MediaReferen
 Root实际现库RO预检002（modeRO/query_only、仅SELECT/READ/FUNCTION）9旧job/85physical/原R9唯一image400与所有费用/UNKNOWN均正，A25保守18460milli/余6540，DB/WAL/SHM whole前后等/changes0。9旧素材owner/purpose/state/hash/size匹配但均已自然过期，9canonical原文件bytes/SHA完好；下一正常补传，不旧TTL延长或重跑434字正文。C/REAL-CALLER-R10.ACTUAL-READONLY-STATE-PREFLIGHT002.json43086/c5da9ba5。首次RO探针在line22 file-byte断言失败、写证据前退出，原chunk275649已记录，不冒产品错误/实因；后续002明确各字段与文件whole全保，未借失败改业务状态或猜原因。C/R10-READY-HOLD-SOURCE-AND-EVIDENCE001.json2557/b7acd31e汇集准确恢复入口。
 
 R9本次限时单task已按失败规则消费并提前关闭，keydisabled/serve009exit0/无后台model，physicalUNKNOWN0不等于费用均已确认；新增knownPro.5898936/imageactualNULL，旧R7UNKNOWN和所有旧成本全保。真实合格0/单位合格成本N/A；成功后的PC/H5保存重开/免费改字/下载/唯一8分结算和物理iPhone未验。独立非付费开发/候选/审查/工具联调已完成，唯一剩余外部动作是新1task及原samekey新≤60min时段，需要当次确认；无新增预算/权限/公网/生产。建议复用原报告、正常补传原9图，固定双Pro/最多1concept/原有1次task内质量修正，预计2–3元，硬控A累计25/原总100（当前保守余6.540），现有8test积分成功才唯一结算；失败/UNKNOWN即提前禁用停/不重发。未收到本次同意前不设置新until/job/session或启动key/服务；不是任务完成。
+
+
+## CURRENT — 2026-10-25T05:48:21.831793+00:00 R10当次确认已收、正常九图补传完整通过且唯一封面排队，真实派发前checkpoint
+
+实际HEADb2c69698054ac5a8403205eed3ee3fa29538671a/功能c9dcd89。Root05:42:25Z收到用户“确认”，对应R10新单task/原samekey最多60min，截止06:42:25Z＝北京14:42:25（unix1792910545），终态提前关闭，失败UNKNOWN停/不重发；A25/原总100不加预算。C/R10-ACTUAL-HUMAN-SCOPE001.json1548/a8c35dd4，caller76148/ff4acc66不变、README仅actual前言且原20853/191dd716独立0400保。freshRO0039旧job/85响应/原image400与账历史不改，DBwhole等/changes0；A25保守18460/余6540，9旧ref自然到期但canonical9完好，磁盘1158443008B。
+
+samekey已正常UI启用，TASK-KEY-REENABLED.R10.ACTUAL.png已给用户，无权限改动；serve010 exec45658/origin127.0.0.1:50692/lifespanoff无自动worker。正常原报告→视觉专家→封面，显示旧9需补传/重设计禁用；正常filechooser选择canonical9、POST upload-image逐个正常保存＋唯一PUT关联成功，UI9ready。Root通过正常GET9图片逐byte比PIL API规范化JPEG质量90精确等，newrefs与old refs不同、最早新expiry2026-10-26T05:45:36.754891Z；434字note_body及title/titlevariants与原REPORT-INPUT逐值全等，没有重跑报告。C/REAL-R10-NORMAL-REUPLOAD-READBACK001.json120783/c63308aa、REPORT-TEXT-INTEGRITY001、EXPIRED-SOURCE-UI001和REUPLOAD-READY-UI001为实证；这是实际本机normalAPI/真实原图，非旧ASGI RAM或云验收。
+
+PC1440×1000点击一次重新设计8积分，新joba7907023-bedf-4a94-a3fe-b1315b378c7a/clientfff8ac99-6cf4-4e7a-b3d1-ddd501ef861a/usage8039ea8a-19c9-4ccf-accf-43634a0ad90b queued/rev0，恰一新phasejob/physical0/workerfalse/oncefalse；仅8分mixed4+4预留，complete0。C/REAL-R10-BEFORE-WORKER001.json98347/69010e5e和R10-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口；唯一PLAN已同步实际当前leaf和top，本次task名额已用，不授权第二task。candidate只按原公开白名单绑定新job观察，旧R9证据全保。下一Root唯一POST run-next，保原HTTP响应核202；固定双Pro/最多1concept/原有1task内QC修正，最终真实原照；成功继续PC/H5保存重开/免费改字/下载/唯一结算，失败或UNKNOWN即禁key停/不重发。生产/原sole冻结候选不变。
