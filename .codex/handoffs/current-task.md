@@ -33814,3 +33814,12 @@ Root fresh实际RO84SELECT/query_only/total_changes0、完整原11job/111physica
 正常PC1440×1000报告→视觉专家→封面点一次重新设计8积分，新job b5eabe9a-a087-43dd-9aee-469385857201/client5b7e84bf-42fa-41d5-b85f-3a494dae8ac5/usagee4a4acff-e712-4f2d-8e59-3887fa37649b queued/rev0，phase恰1/physical0/workerfalse/oncefalse，仅mixed8预留/尚未扣分；旧mock图不是本次成品。REAL-R12-BEFORE-WORKER001.json126060/6aa14d21和R12-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口，唯一PLAN已纠正当前state/next/授权及task占用，勿因恢复再建task。candidate仅接同job既有公开allowlist observer，无真实SDK私件/DB/key/network读取。
 
 下一Root唯一POST run-next保HTTP原响应核202；之后只查询，手机刷新重开找回同job/连点禁用，成功继续真实最终图/六QC/保存找回/免费排字/下载及唯一8分，失败UNKNOWN预算停立即禁key封存。sole41eb/actual62cb/三组件冻结/生产无GO；真实qualified0/旧UNKNOWN和所有费用全保，不把候选1VM通过冒本次真实合格。
+
+
+## CURRENT — 2026-10-25T08:59:35.864865+00:00 R12唯一真实派发202正在设计；PC/H5刷新找回同task，不得再次派发
+
+当前HEAD8e9190b5f196ffd4b346b3401b038804516334d7/功能66a51d5。Root08:57:20.411747–.489290Z唯一POST run-next HTTP202，原job b5eabe9a-a087-43dd-9aee-469385857201/client5b7e84bf/usagee4a4acff-e712-4f2d-8e59-3887fa37649b不变；REAL-R12-RUN-NEXT-ONCE-INTENT001和RUN-NEXT001原件已保，automatic_retries0。08:58:39Z normalstate running/design/rev0，3physical=2Pro200＋1dispatched，本轮knownPro.2089284CNY，A32当前bound28578/余3422milli含活跃call2753最大预留，不等于已消费此金额；旧UNKNOWN仍2753保。REAL-R12-STATE001.json128777/d283c187是当时实际回执，不可把此running与旧queued恢复入口当新task许可。
+
+PC正在选图设计截图PC-RUNNING001已保；H5真实390×844 reload→菜单→报告→视觉封面正常找回同一后台任务，重新设计禁用，预留8尚未扣；normalAPI仅一phasejob。H5文档client/scroll390、panel352/x19/right371、console warn/error[]，H5-RUNNING-REOPEN001截图保。旁旧mock封面不冒本次成品，设备模拟不等于实际iPhone保存。candidate只读原public allowlist observer exec35643、同job/截止09:50:59Z、目录real-r12-design-evidence，STOP.REQUESTED为恢复停入口，未知SDK/private/DB/key/network0。
+
+当前serve012 exec39399/origin127.0.0.1:61597、key生效，本次硬截止仍09:50:59Z、终态提前禁用；原host25min/job30min界限保，不因模型慢延长scope。下一Root仅GET监测与公开成品核，绝不再次POST run-next或新建task；成功正常PC/H5保存找回/免费改字/下载/唯一8分，失败UNKNOWN或budgetstop立即keydisable/observerstop/normalreadback/关闭并离线定位。唯一PLAN同步实际202/current及observer，sole41eb/actual62cb/3组件冻结、生产无GO。
