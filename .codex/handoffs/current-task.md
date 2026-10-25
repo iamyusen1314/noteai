@@ -33620,3 +33620,10 @@ R8本轮仍failed/0physical+model+image/增费0/唯一释放8/净扣0，key正�
 唯一剩余外部决策：Root04:41Z已集中发新R9单task＋samekey最多60min确认，预计2–3元，沿**已批准A25和原总100、不增加预算**，当前保守余7.893；旧任务失败即停/早关已消费，不能推定本次答复。C/R9-PENDING-HUMAN-SCOPE001.json、TASK-KEY-R9-PENDING-APPROVAL.png为实际待答/密钥禁用证据；目前未收到对应新答复，newuntil/job/session均null，未重启服务/读key内容或模型。收到后Root记录实际时间，fresh核原账/磁盘/9图并按需正常补传，samekey限时启用，只1newtask/最多1concept/既有1次任务内QC修正，失败或UNKNOWN停且不重发；成功则完成PC/H5真实保存重开/免费改字/下载/唯一结算，交sole统一集成。全部独立非付费路径已完成，没有后台自动续跑承诺。
 
 原PLAN顶层resume字段原先仍指旧0ab/b4e/历史next47；Root已在**同一权威PLAN**保其逐值历史快照后更新current_resume_pointer至当前normal_v3续接节点、2295实际source/当前HEAD/R9待答和唯一next_action，未建立第二任务清单或重置历史。下次恢复先读此CURRENT与PLAN当前指针，不能误用保留的旧顶层历史确认或已关闭R8时窗。
+
+
+## CURRENT — 2026-10-25T04:57:11.382207+00:00 R9本次确认接收并正常UI唯一排队，真实派发前checkpoint
+
+接续HEAD303574aa/功能2295b06，Root实际04:54:14Z收到用户对R9明确“确认”，同原双Pro受限key最多60min、截止05:54:14Z＝北京时间13:54:14，1newtask/失败UNKNOWN停且不重发；A25/原总100不新增预算，C/R9-ACTUAL-HUMAN-SCOPE001.json。fresh实际RO预检002核全部8历史/80响应/原R7UNKNOWN、bound17107/余7893、9图owner/ready/SHA/TTL均符，原DBwhole相等/changes0，磁盘当时671469568B。原9图最早05:22:02Z，目前有效；报告正文不重跑。caller63409/f766无改，README仅实际scope前言并独立0400保旧。
+
+samekey已正常启用、遮罩TASK-KEY-REENABLED.R9.ACTUAL.png已给用户；serve009 exec34919/origin127.0.0.1:63448/lifespanoff无自动worker。PC1440×1000正常原报告→视觉专家→封面报价8/90天/9ready，点击一次重新设计，新job1d6b4cac-1982-4b23-af3d-8878be35ad4d/clientf9fccf4a-b919-4a42-824d-5a5c03581367/usage79f29804-fb7f-43e7-91e5-192407882f4b queued，phase恰1/新physical0/workerfalse/oncefalse。C/REAL-R9-BEFORE-WORKER001.json及R9-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口，PLAN已标本次task名额已用，不授权第二task。下一Root唯一run-next，先保HTTP原响应再核202；固定双Pro、最多1concept/原有1次task内QC修正、最终真实原照。失败/UNKNOWN即key禁用关闭/不重发；成功完成PC/H5保存重开/免费改字/下载/唯一结算。仅本机真实供应商，不冒云或真实质量已过，生产不变。
