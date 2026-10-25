@@ -3932,10 +3932,21 @@ sole独占三组件已preparedactual5d/f8bd/buildtrue/2PASS，Root只读17项核
 
 ## CURRENT — 2026-10-25T12:52:42.542401+00:00 R14 UNKNOWN全闭/8预留已释放，继续已证CJK裁切误拒最小修复
 
-checkpoint前HEAD 8240641d2b95ecad63d553c9139e198dead89d4a，功能5d88564，原task/branch/worktree不变。R14唯一job46b1edbb/usagesa2b407dc（完整ID见PLAN/terminal）在12:36:08Z STATE008 outcome_unknown/rev0/noFinal/workerfalse。24physical=23HTTP200（22Pro＋1image）＋1Pro UNKNOWN59642d0d；knownPro2.9634900元，image actualNULL/估.76元。本轮保守4768milli，A42累计37265/余4735；旧UNKNOWN2753＋本轮1033共3786全部保留，不重发。实际安全provider事件确认request_send后等待响应头56.722s ReadTimeout，不能认定未处理/零费；第三summary已准入，5d cap修复有效，不扩大超时或猜测供应商结果。
+checkpoint前HEAD 8240641d2b95ecad63d553c9139e198dead89d4a，功能5d88564，原task/branch/worktree不变。R14唯一job46b1edbb/usagea2b407dc（完整ID见PLAN/terminal）在12:36:08Z STATE008 outcome_unknown/rev0/noFinal/workerfalse。24physical=23HTTP200（22Pro＋1image）＋1Pro UNKNOWN59642d0d；knownPro2.9634900元，image actualNULL/估.76元。本轮保守4768milli，A42累计37265/余4735；旧UNKNOWN2753＋本轮1033共3786全部保留，不重发。实际安全provider事件确认request_send后等待响应头56.722s ReadTimeout，不能认定未处理/零费；第三summary已准入，5d cap修复有效，不扩大超时或猜测供应商结果。
 
 key已官方UI提前禁用；正常GET两次相同且六组账本前后未变。原30min UNKNOWN预留到期后，仅沿existing release_expired_unknowns在同一本机DB/真实时钟释放本任务8分，唯一claim charge1/refund1/complete0，used0/reserved0/released8、wallet8/totalused0，无赠分/生产DB。PC/H5均显示待核查且预留已释放，console[]；normal stop一次200、Root exec21590实际exit0、tab14closed/viewportreset。公开observer ROOT_REQUESTED_STOP/PID16063 absent，52原件6507302B逐SHA/0400核合；其原agent exec不可取exitcode，诚实记UNKNOWN，不冒exit0。未捕获最终poster/QC、合格封面0/单位交付成本N/A，未通过本轮保存改字下载，物理iPhone未验。
 
 完整终态证据：/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-plan-a-20261022-r1/candidate-capacity-readonly-20261024-r1/REAL-R14-TERMINAL-SUMMARY001.json（5638B/90560113608abe5633ad35cb0ce7989550a2a62d7f69e0f8bfa2836ceccba791），含实际state/安全异常/积分恢复前后/关闭/UI/observer及独审refs。sole已实际36d296c提交原三组件/Root只读核收，D5 actualf8bd/2nativePASS保留，生产无GO；后续新CLI功能需再最小适配，不重跑旧未影响链。
 
 Root与foundation实际看原公开HTML/固定font/canonical1、8复现：visible中文实际像素完全在元素及allowed内，旧CLI却因scrollHeight155>clientHeight150误拒；hidden50px负对照实截字。foundation独占cli.mjs与现有test_cover_agent_artifacts.py作真实CSS裁切轴/祖先最小修复，保allowed/canvas/protected/原照/标题守卫，0供应商/DB/依赖；successor已完成实际ReadTimeout窄审，后续独立审最终diff。Root负责统一集成和checkpoint。本阶段继续执行，不止于本交接。R14单任务/时段已消费，无新paid/key窗口授权；当前无需用户作技术判断，先完成离线修复和受影响验证。
+
+
+## CURRENT — 2026-10-25T13:06:36.679182+00:00 CJK裁切最小修复998119e已提交/独审GO，接续原候选及同caller准备
+
+功能commit 998119ed9170ae94be495dccc58b8ef98520c321，只改model/cover_editable/cli.mjs与tests/test_cover_agent_artifacts.py（117+/1−），无依赖/配置/迁移/模型/价格变化。旧无条件scroll溢出改为实际computed裁切轴/祖先及canvas截图边界，canvas自身内边裁切与独立rotate祖先审查项已闭合；原scroll保诊断、Range非pixelink注释清楚，原allowed/标题/字体/可见文字/原照/主体守卫块逐byte保持。CLI25076/149f6509，test38905/f6e9c136；9源manifest3682/5b9ae04b保7旧源完全同。
+
+现有真实CLI/Chrome/font定向3methods54.353s PASS，含9裁字/allowed/canvas/protected负例及免费改字正常/越界、原PNG保持。同R14公开HTML副本几何控制旧419B RED→修后PASS4.768s，PNG3132573/d023d1ea与Root已亲看的独立preview字节完全同、titlecrop逐像素同。实验不是原完整request：其它层allowed全canvas/protected空/approvedtitles省略，仅隔离几何；不冒业务事实/QC/真实交付。首轮fixture错误及旧RED全保，不伪装全绿。证据C/R14-TEXT-CLIPPING-REPRO001/REPAIR-EVIDENCE001.json6911/da545969；Root12refs逐SHA、全文diff/nodecheck/diffcheck核合。successor独立23项核GO，无阻断，INDEPENDENT-REPAIR-REVIEW001.json5799/6dd34f64，不重复SDK或外部调用。
+
+已实际发具体冻结commit/pins给原集成窗口01a13080-d8a9-7c50-88c0-09ffcebbef61：它独占原三组件和成熟candidate，优先actualf8bd base单CLI叶COPY，不重拷未变三叶；准备具体载体/最小Node24实际CLI受影响验证后交Root核再唯一执行，0生产。该云分支与本机真实验收独立。foundation已结束源码修改，现独占同existing caller+README的R15 HOLD最小准备，保14旧job/182physical、旧2753+新1033 UNKNOWN和原释放，不重发；四预算数学/auth/session/main等不变。实际A42/bound37265/余4735；A47(+5/原总100不变)只是未提问、未批准的准备，任何文件阈值不能授权执行，未来当次scope/截止仍空。
+
+R14仍UNKNOWN/无final/净0，keydisabled/server21590exit0/tabclosed/observerstopped全保持；真实合格0/单位成本N/A。原存储/结算未改证据可复用，本次补的是CLI/edit；完整PC/H5成品保存找回改字下载唯一8分尚须新真实任务，物理iPhone未验。下一继续原候选具体核收和同caller预检，不止于checkpoint。
