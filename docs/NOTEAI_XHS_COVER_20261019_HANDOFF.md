@@ -3726,3 +3726,23 @@ R10原task a7907023/usage8039ea8a仍outcome_unknown，physical77653108-ac75-5f94
 | 独立审查/完整交付 | candidate；Root；sole | c341752原3组件GO且冻结 | 101/91/5pins/actual完整相等 | 获真实合格图及成功链后交sole统一集成，生产无GO |
 
 唯一下一外部决策：集中请求A25→A30仅+5（原总100），原samekey新最多60min，独立1newtask/固定双Pro/最多1concept/原既有1次task内QC修正，预计2–3元、hardA30，复用原报告和9有效原照，测PC/H5生成保存找回/免费改字/下载/唯一成功结算，旧UNKNOWN/成本不改。失败UNKNOWN停并提前禁用，不重发或新task；无新公网/权限/生产。收到新的明确答复才记录实际起止并执行；未答只暂停依赖的付费访问，非付费准备已完成，不存在后台自动续跑。
+
+
+## CURRENT — 2026-10-25T07:16:33.506899+00:00 R11当次授权已接、九原照正常读取全符、唯一新封面排队（真实派发前）
+
+用户本次明确同意A25→A30追加5元/原总100、原samekey最多60min、独立1newtask。实际接收07:09:17Z，最晚08:09:17Z＝北京16:09:17，终态提前禁用；C/R11-ACTUAL-HUMAN-SCOPE001.json。freshRO003 77SELECT/原10job94physical/原UNKNOWN2753及旧账全符、total_changes0、DB/WAL/SHM与002整byte同，四源码工作区逐Gitf822符；free1092157440B。A30保守23035/余6965，不清旧费用。key正常UI启用，REAL-SERVE011.log/exec5824/origin127.0.0.1:56289/lifespanoff，无自动worker。启用首个不带dialog作用域的locator因2matches失败未点击，freshAX后只dialog按钮成功，权威row生效中/截图REENABLED.R11.ACTUAL001，不是产品或供应商故障。
+
+原报告→视觉专家→封面正常PC1440×1000；正常GET原report全response与R10原件相等，正常GET9ready/原ref与有效TTL至26日、9图片byte/SHA逐原规范化全等，无补传/报告重跑。C/REAL-R11-NORMAL-NINE-READBACK001.json。点击一次新建封面8积分，新job 247b6812-db56-418c-a9b3-e58e1132d3f4/client54fb25d7-d8f0-4f0d-a6e0-5fbbd8bfa2f8/usage5d4e2b83-90a9-44f8-b412-5f024b5b0603 queued/rev0，phase恰1/physical0/workerfalse/oncefalse，仅mixed4+4预留/complete0；旁旧mock成品不算本次结果。C/REAL-R11-BEFORE-WORKER001.json、R11-BEFORE-DISPATCH-CHECKPOINT001.json与唯一PLAN为恢复入口，本次task名额已用。下一Root唯一POST run-next保HTTP原件；candidate仅同任务公开白名单observer。固定双Pro/最多1concept/原1次task内QC修正，失败UNKNOWN停/禁key/不重发，成功继续PC/H5保存找回/免费改字/下载/唯一8分结算。生产和sole c341752三组件冻结不变。
+
+
+## CURRENT — 2026-10-25T07:49:29.375413+00:00 R11实际上下文续接失败已关闭/净扣0；封面host三处确定契约缺口离线修复中
+
+唯一R11 job247b6812-db56-418c-a9b3-e58e1132d3f4/usage5d4e2b83-90a9-44f8-b412-5f024b5b0603，07:17:07Z唯一run-next202，07:33:13Z读到failed/COVER_AGENT_DESIGN_INCOMPLETE/rev0/noFinal/workerfalse。17physical全HTTP200＝16Pro＋1Seedream，本轮UNKNOWN0；knownPro1.8099984CNY、imageactualNULL估.76，A30保守25615/余4385milli；原R10UNKNOWN77653108…/2753及全部旧cost保。正常GET两次200全等released8/creditsused0/reserved0，唯一charge1/refund1/complete0，供应商/预算相关state六组whole前后同。C/REAL-R11-STATE007/008、FAILED-NORMAL-READBACK001、TERMINAL-SUMMARY001为恢复入口。PC/H5正常刷新显示本次未交付/预留释放不扣分、console[]；旧mock图仍保不冒本轮成品。
+
+同key已正常UI提前禁用，权威row已禁用/截图TASK-KEY-DISABLED.R11.ACTUAL001已给用户；serve011正常stop200/exec5824exit0，tab11关闭/viewportreset。candidate observer16274 ownSTOP/exit0，375次/12公开版本7624725B，manifest11894/ba3340c0、END4039/d133ebc4，0400原件whole复核；捕获brief/2prompt/唯一concept/plan/4HTML，实际final/240/render-manifest/QC未捕获，不推从未存在或视觉通过。当前无后台请求/server/key，单任务时窗已消费并提前关闭，不重发或推定另一新任务获批。合格真实0/每张成本N/A，成功保存找回/免费改字/下载/成功唯一8分及物理iPhone仍未验。
+
+本次safehostreceipt1013/SHA047692c96e111a7c55cf75d09c2b31c49b794992ba391003870958d0404475a5已亲读：FAILED/model_requests16/pendingnull、compaction1/localinputreject2；末次primary text126040+image2296+framing4736=133072>本地131072，后继第二summary在reserve/HTTP前由COMPACTION_CONTINUATION_NOT_ALLOWED挡。近端停止层已定位；不是官方context耗尽证明，126040里CSS/opaque/tooltext各占比原回执未留，不能仅凭101KB磁盘HTML断唯一内容根因。
+
+Root及两个独立read-only代理确认三个具体可修衔接缺口：①font_add只登记原HTML路径，已成功字体的只读snapshot回读可重新返回约99950B/101face，现非faceCSS/DOM约2KB；②草稿011丢--font-kit-cjk-serif定义仍保引用，上游font_add仅includes变量名就误判already present，重复调用不能可靠修复；③cover_write自动补faces/CSP后receipt存储hash与原inputhash不等，压缩要求二者同，正常authored-view写入无法收缩文件引用。Root将只在host补已验证同job字体块视图、工具拥有kit变量恢复、输入/存储双hash引用，原真实HTML/字体/license/Skill/原SDK记录/一次summary/131072门/UNKNOWN与模型费用不放宽；foundation专属host test文件做真实SDK＋CLI组合回归，candidate最终独审。尚未改产品source，不把这三缺口冒R11唯一历史因或真实质量通过。
+
+sole c341752/actual7e7原三组件维持冻结，下一Root明确newsource及最终真实证据再接手统一集成，生产无GO。下一立即推进上述定向离线修复/红绿/独审，局部阻塞不停整个任务；新paid任务或key时段未授权，待具体结果准备齐再一次集中提出实际所需范围，不重用本轮旧同意。
