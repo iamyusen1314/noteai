@@ -609,6 +609,27 @@ html,body {width:1776px;height:2368px;background:#17150f;overflow:hidden}
                                "canvas-inner-border", "rotated-clipping-ancestor"}:
                     self.assertTrue(json.loads(rejected["detail"])["overflow"])
 
+    def test_inline_and_contents_without_overflow_boxes_remain_visible(self):
+        html_path = self.cjk_clipping_fixture()
+        original = html_path.read_text()
+        inline = original.replace(
+            '<div class="title hf-slot" data-layer-id="title">',
+            '<span class="title hf-slot" data-layer-id="title">').replace(
+            '汤泉，</div></div>', '汤泉，</span></div>')
+        cases = [
+            ("inline", inline, ".text-wrap{position:absolute;left:96px;top:1238px}.title{position:static;display:inline;overflow:hidden}"),
+            ("contents", original, ".text-wrap{display:contents;overflow:hidden}"),
+        ]
+        for name, html, css in cases:
+            with self.subTest(name=name):
+                html_path.write_text(html.replace("</style>", css + "</style>"), encoding="utf-8")
+                result = self.invoke("render", self.request)
+                box = json.loads(Path(result["manifest_path"]).read_bytes())["checks"]["boxes"][0]
+                self.assertFalse(box["overflow"])
+                self.assertEqual(box["text"], "闹市高楼里的日式庭院汤泉，")
+                with Image.open(result["png_path"]) as image:
+                    self.assertEqual(image.size, (1776, 2368))
+
 
 if __name__ == "__main__":
     unittest.main()

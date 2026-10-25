@@ -165,12 +165,17 @@ async function inspect(dir, manifest, edit = null, pngPath = null, approvedTitle
             || r.x + r.width > c.width / scaleX + .5 || r.y + r.height > c.height / scaleY + .5)) return true;
         for (let node = el; node; node = node.parentElement) {
           const css = getComputedStyle(node);
+          // display:contents generates no box to clip its descendants.
+          if (css.display === 'contents') continue;
           // These nonrectangular paint restrictions cannot prove a complete text
           // leaf visible using the existing rectangular layout contract.
           if (css.clipPath !== 'none' || css.maskImage !== 'none' || css.clip !== 'auto') return true;
-          const paintClip = /(?:^|\s)(?:paint|strict|content)(?:\s|$)/.test(css.contain);
-          const clipX = paintClip || css.overflowX !== 'visible';
-          const clipY = paintClip || css.overflowY !== 'visible';
+          // Non-replaced inline text has no client box; its overflow property
+          // does not clip the line. Continue checking its actual ancestors.
+          const inlineText = css.display === 'inline' && node.clientWidth === 0 && node.clientHeight === 0;
+          const paintClip = !inlineText && /(?:^|\s)(?:paint|strict|content)(?:\s|$)/.test(css.contain);
+          const clipX = !inlineText && (paintClip || css.overflowX !== 'visible');
+          const clipY = !inlineText && (paintClip || css.overflowY !== 'visible');
           if (!clipX && !clipY) continue;
           for (let ancestor = node; ancestor; ancestor = ancestor.parentElement) {
             const style = getComputedStyle(ancestor);
