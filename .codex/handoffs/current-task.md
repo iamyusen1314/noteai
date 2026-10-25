@@ -33974,3 +33974,14 @@ Root与foundation实际看原公开HTML/固定font/canonical1、8复现：visibl
 已实际发具体冻结commit/pins给原集成窗口01a13080-d8a9-7c50-88c0-09ffcebbef61：它独占原三组件和成熟candidate，优先actualf8bd base单CLI叶COPY，不重拷未变三叶；准备具体载体/最小Node24实际CLI受影响验证后交Root核再唯一执行，0生产。该云分支与本机真实验收独立。foundation已结束源码修改，现独占同existing caller+README的R15 HOLD最小准备，保14旧job/182physical、旧2753+新1033 UNKNOWN和原释放，不重发；四预算数学/auth/session/main等不变。实际A42/bound37265/余4735；A47(+5/原总100不变)只是未提问、未批准的准备，任何文件阈值不能授权执行，未来当次scope/截止仍空。
 
 R14仍UNKNOWN/无final/净0，keydisabled/server21590exit0/tabclosed/observerstopped全保持；真实合格0/单位成本N/A。原存储/结算未改证据可复用，本次补的是CLI/edit；完整PC/H5成品保存找回改字下载唯一8分尚须新真实任务，物理iPhone未验。下一继续原候选具体核收和同caller预检，不止于checkpoint。
+
+
+## CURRENT — 2026-10-25T13:24:12.162647+00:00 最终6c6c132修复inline/contents回归；实际账本RO通过，下一同工具filepreflight与单CLI候选
+
+功能commit 6c6c132a0e74e420590e3a1003617f0f984b9482，包含998的原CJK修复和最终适用box增量，当前工作树clean。sole交叉审查提出inline/contents可达反例后，998 carrier已HOLD/云0；successor实际3控制与Root新method旧RED均证实：两种合法文字完整可见但client0导致本地误拒，真实外层hidden则真裁字。最终仅contents不虚构principalbox、inline需displayinline且client0×0忽略不适用overflow/paint；仍继续真实祖先、canvas/allowed/protected/非矩形/标题/字体/原照守卫。CLI25513/2a9a0bc9、test40166/ae9006f6；9叶manifest5091/811b1d61保7旧叶同。最终4methods/62.032s PASS（含原9负例/新增2放行/免费edit正越界与原PNG保持），旧RED2case8.905s保留。独审5686/3ab9d746 GO已逐source/diff/output核，不重SDK/付费。原998独审→新反例HOLD→修复→最终GO全留，不抹旧问题。
+
+R15同existing caller/README准备保14任务/182physical、两UNKNOWN2753+1033及R14单独到期释放事实，15file/AST控制PASS，四预算math/auth/session/main及旧dated分类不变；新current严格只准这两条已披露UNKNOWN，第三条阻断。Root实际mode=ro/query_only105SELECT完成新verify_failed_predecessor/actual_real_bound，0changes且normal.db前后bytes/SHA完全相同；保A42/bound37265/余4735，UNKNOWN全3786。初Root隔离harness漏datetime在首SELECT前停，修harness依赖后通过，无业务源码改动或SQL/付费重试。REAL-CALLER-R15-ACTUAL-READONLY001.json1817/b5e44ddc保实际结果；不是模拟或云验收。foundation现只晚绑最终source两常量和README，Root随后跑一次完整file-only preflight，不再重测旧15controls/账本。A47(+5)仍未问未批、窗口None，keyoff/无serve无worker无新task。
+
+已把最终6c/pins发原窗口，实际答复正本机适配唯一D9单CLI COPY（actualf8bd父）及4method Node24计划/具体准备diff，先交Root核再一次执行；三组件仍36d/f8bd冻结，无生产GO/API91不扩。原host2VM/SDK及不变存储计费证据复用，云CLI与本机新真实验收独立。资源协同仅确认本窗无Worker-C占用/近期依赖；停费由原窗授权/MFA处理，不改或冒已节省。
+
+风险/证据对应：CLI受影响→本次真实DOM/PNG/edit正负例与独审；任务/保存/计费源码不变→既有正常链证据＋R14真实失败净0；真实合格成品/PC-H5保存找回改字下载唯一结算→仍待新付费task，不用离线PNG替代；物理iPhone/多人真实容量未验。R14 UNKNOWN全闭/净0/合格0与全部旧费用仍保。下一按PLAN继续同caller、D9核收及集中新增scope决定，不停于此checkpoint。
