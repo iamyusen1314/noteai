@@ -150,8 +150,8 @@
 | --- | --- | --- | --- | --- |
 | 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8、9f55fbf | 当前V3真九图普通功能链、同库重启、PC/H5重开/免费排字和HTTP下载；9f增加桌面原生保存，实际文件等持久rev2；首次可编辑包保存失败真实回归1PASS/净扣0，见末节 | 旧证据复用；供应商HTTP/QC mock，不能替代真实质量或真实供应商结算；iPhone及不支持picker的设备落盘未证 |
-| 3 定向集成与真实验收 | Root；原sole唯一最终集成发布 | SOURCE4AB209F_NODE24_ACTUAL_PASS_R5_FAILED_OFFLINE_FIX_ACTIVE | 原sole209f实际单COPY/Node24恰3新case全PASS；R5正常UI/关闭刷新找回/11物理响应/失败释放8分 | R5未交付；HTML适配schema/文字叶子/font提示局修；A15保守余2626<next2753，新paid暂停，不重旧任务 |
-| 4 独立审查与交付 | 独立子代理；Root；原sole | SOURCE4AB_AND_209F_FINAL_REVIEW_GO_REAL_DELIVERY_PENDING | 4ab四叶及209f实际原件/组件独审GO，solefbf5a20已完成101/API91；原whole证据复用 | 新适配修复后定向独审；真实合格0/单位成本N/A；成品及成功唯一结算待，真iPhone未验，本窗不生产发布 |
+| 3 定向集成与真实验收 | Root；原sole唯一最终集成发布 | SOURCE8BC8831_NODE24_ACTUAL_PASS_REAL_R6_HOLD | 8bc适配器提示/几何诊断已修；真实原照离线CLI渲染、免费改字和240缩图通过；原sole8831候选Node24六项全PASS/0skip；R5失败唯一释放8分 | 真实合格0；A15保守余2626<next2753。追加5元及同受限key限时启用的合并问题待答，未应用20元建议、不重发旧任务 |
+| 4 独立审查与交付 | 独立子代理；Root；原sole | SOURCE8BC_AND_8831_FINAL_REVIEW_GO_REAL_DELIVERY_PENDING | 8bc四叶、8831实际回执和组件均独审GO；原sole6348e157已实际完成101/API91，4metadata变/97不变；Root原件复核2af80f21 | 已完成候选集成段，下一接手Root执行获批后的1张真实完整链，结果再交原sole统一集成；成品Pro QC/保存/成功结算待，真iPhone未验、不生产发布 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -3449,3 +3449,22 @@ IAB PC1440×1000正常入口核8分/90天/九图有效后真实点击新建唯�
 foundation已唯一准备同C的R6 caller52194/da5de5b091cad055df18f359526d71aa5ed148a124eaa9d3fe933942da5101c6、README11100/2ea0db60；R5旧caller和README独立inode0400封存。五固定失败父/54响应、R5 11/10与1.4965284、formalfloor68094保持；原4预算函数/session/main AST不变，仅本scope预算或scope拒绝添加固定.code＋首件安全code/bound/reserve整数诊断，失败不掩原错。启动前fresh原账与当前design估算先检查，不能先预留8再必拒；Root完整diff独审与原文件-only预检1925/70f77c8b实际HOLD：12374+2753>15000、余2626。没新session/job/server/模型/新key动作。
 
 刚集中发出R6真实分支所需唯一新问题：建议方案A累计15→20元（仅追加5元，原总100不变），新单任务预计2–3元/硬控累计20，same双Pro受限key≤60min/终态提前关/失败或未知停不重发，其余既定真实完整验收范围不变。目前无对应新答复；caller仍15000，绝不把建议当批准。正常DOM再次核key disabled并保TASK-KEY-R6-PENDING-APPROVAL.png已给用户/markHandoff，没有后台server或paid续跑。原sole已收到8bc具体3产品＋1support差量/原101API91、209f基础COPY-only最小新候选任务；目前仅派发，尚未冒实际开始，Root继续wait核实际启动/原件，待答不停止独立非付费工作。本checkpoint不是任务完成。
+
+
+## CURRENT — 2026-10-25T01:57:40Z 8bc候选8831实际六项通过及独审闭合；唯一剩余真实R6待预算与密钥当次确认
+
+本节写入前实际HEAD2baf57d7e7c9f2dec0f09b668596037a3228f08a，分支codex/noteai-xhs-cover-20261019，功能提交8bc1f76eef6d67b2fc423c6e1d9cd2166f461706未再改。接续原任务、不新工作树。原sole“修复高德检索与休闲娱乐行业”（thread01a13080-d8a9-7c50-88c0-09ffcebbef61）已实际完成候选段，保存6348e157ca5fedb6c8589913e51c258e0b836f9a/clean/未push，不是只收录ACK。保持唯一生产集成发布归属，无生产切换。
+
+D8实际build c-sz07127j75y23gg／t-sz07127j765jshs，2026-10-25T01:43:29–36Z Success/Exit0/R1/D0，仅209f基础3COPY，actualimage sha256:8831862b7fa5fd3d2d63efe5465ce6d93a543fe279f183e34b4627e7503359a0。actualcontext/tag含8bc1f76da后缀，原sole已如实修清单；该名字不是源码提交，源label/whole仍精确8bc，不为改名重建。原SendFile f-sz0710vuu4cc8w0的10/24原回执恢复读取，未重发。
+
+唯一新native c-sz07128bxq7lla8／t-sz07128bxqf3abk，Run01A170C2-4E4E-5D5E-BD6A-AAEE0351AA9E／Read01A170C3-53FD-5AFA-932A-36719D222654，10/25 01:52:25–26Z Success/Exit0/R1/D0，elapsed0.467秒。actual8831/Node24.22.1、4源码pins与7原代码片段whole全部等Git8bc及本worktree；6唯一case全passed/0failure/error/skip：JS语法及工具描述、原_prompt空和代表事实装配、原0.5px容差、原element/ink/overflow硬条件、first16+总数无内容诊断、原font/protected硬门。无产品模块import/SDK/browser/render/provider/业务DB/生产调用。34原件29922B、manifest4244/58d055e6为父逐文件whole已核的正式回执声明，Root未另取全量云proof；AUTO_REMOVED/ownedremovedtrue/stderr0。Root亲读官方Output严格Base64→3685B ndjson逐byte全等，API_LAYER.actual_result完整对象全等。C/DELTA8BC1F76-NATIVE-ROOT-READBACK001.json5008/2af80f21ee8f333928fa0bc6114e87a976ce7cbc8ef094e16929b3e7340184e0。
+
+foundation实际原件+第22节独审GO，candidate组件窄审GO，均无确定P0–P2。原sole101source/API91集合不变，仅host/runtime/CLI/README四metadata变，其余97整row全等，4项blob/bytes/SHA对Git8bc相符；Dockerfile固定209f+三COPY，依赖/生产无变。API_LAYER123838/c097a2d10f04d88de05e45391139056867266835714aaf19cd24c9e2bbe041da，FINAL62495/38ed8a86deaa1773daa4a59fbc90927cdc5b5c9f7a1e15dedfb5b45365a3853b第22节。旧21/3case/渲染/PG/支付/高德证据复用，没重跑。
+
+改动/风险/证据/补测对应：仅8bc提示词契约与几何诊断→源码/本机SDK合成1PASS+真原照离线CLI/改字/240+8831六项技术验证均通过→仍需真实Agent完整交付、固定Pro六项QC、PC/H5成功保存找回/免费改字/下载/成功唯一结算；不拿离线预览或合成QC代替。R5仍failed/净扣0；本机54physical全部responded与host独立UNKNOWN并存，不清零/重发。真实合格0/每张合格成本N/A，真iPhone未验。
+
+原方案A15元仍唯一有效上限，保守bound12374milli/余2626<下一设计预留2753。目录已知A文本6.6873240元、历史known目录10.6136298；5张本机图actualNULL各估0.76、旧R7图UNKNOWN/403未确认成本均保。官方正常用量页按同key读54调用/5图，与本机吻合；账单月度两行0.60+8×0.02支持0.76目录估算，但不能逐job归属，不改actualNULL或当现金已对账。readonly原件C/VOLC-TASKKEY-USAGE-R5.READONLY.*及VOLC-IMAGE-BILL-ROWS.READONLY.json，新费用0。日期变化不重置账本、formal68094/旧99436、原8测试积分或任何预算。
+
+R6 caller仍52194/da5de5b0、README11100/2ea0db60，原15000未改；file-only preflight70f77c8b为HOLD。追加5元至A累计20元（原总100不变）及同受限key限时启用的合并问题已经发出，目前无对应新答复。C/R6-A20-PROPOSED-UNAPPLIED.json5812/fc4c8629仅审过的未应用方案，不能当批准。01:57Z正常DOM再核same noteai-cover-20261024-acceptance已禁用并markHandoff。无新key权限/公网/生产、无新job/session/server/模型派发，无后台自动续跑。
+
+当前全部可独立执行的非付费开发、定向集成和独审已完成；唯一外部阻塞为R6追加预算和本次限时密钥动作的合并确认，连带成功链依真实结果。下一负责人Root：收到该答复记录实际时间，只读重核原账和9素材TTL（当前最早2026-10-25T05:22:02.593942Z，若到期走正常原图补传，不改TTL/重跑报告），仅在同意后应用已审cap20差量/精确caller及预检，同key启用最多60min，单新任务、最多1概念/一次原有质量修正，唯一run-next先存原HTTP响应再核202；失败/未知立即关闭不重发。成功则完成实际保存找回/免费改字/下载/一次结算，交回原sole统一评估集成。未有新答复前不重build/native/旧suite或重问同一问题；任务尚未完整交付，不承诺不存在的后台执行。
