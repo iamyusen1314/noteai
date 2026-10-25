@@ -4036,3 +4036,26 @@ R14仍唯一job46b1edbb-0243-4eb0-865d-60b695592aa8 outcome_unknown/rev0/noFinal
 R15唯一6efb6858/usage9790ecb1仍failed/rev0/noFinal/合格0；2个已知Pro合计0.416880元、新UNKNOWN0，8预留全释放净0。原key官方禁用/serve3279exit0/workerfalse/observer71766absent且exec17534exit0/IAB15closed/viewportreset；本次官方只读确认原受限key仍“已禁用”，截图R16-PENDING-SAME-KEY-DISABLED001.png保留，tab3/1637496730标handoff供后续批准后的同页恢复。A47已批、保守bound37682milli/余9318，旧两UNKNOWN3786含在bound内不重加、历史费用不清零。PLAN本次保留旧current别名快照并把top遗留A42/旧runtime/head修正为上述实际R15闭合/A47/ae6，历史不删。
 
 R16唯一既有async问项仍ASKED_PENDING，无人类答复/无新scope/窗口None。仅请求同原key新最多60min和1新cover，沿A47/原总100、预计4–6元、无需追加钱；原R15任务/访问已消费，不能把其同意重作新授权。R16同caller132110/f2e75b6f、README75068/f217821a及实际RO112SELECT/0changes、11叶fullfilepreflight/rootreview证据复用，不新框架/不重跑。收到实际答复后Root先记UTC/+60min固定截止，再启samekey/同caller/恰1新task afterR15，原报告9真实原照/固定双Pro/≤1非交付概念/≤1既有局部修正，失败UNKNOWN预算停早禁key、不重发任何旧请求。当前所有可执行非付费路径已完成；剩余真实合格成品→PC/H5保存找回→免费改字→下载→成功唯一8分及最终真实证据/合格成本审查，均依赖该新单任务决定。合格交付成本仍N/A，物理iPhone保存/真实多人云吞吐未验；未承诺不存在的后台续跑或创建自动化。
+
+
+## CURRENT — 2026-10-25T22:31:18+00:00 R16实际用户同意1新封面/同key60min，沿A47不追加
+
+用户实际答复“同意按此范围限时验收1张”，固定截止2026-10-25T23:31:18+00:00（北京2026-10-26 07:31:18；unix1792971078）。原报告9原照/固定双Pro/≤1非交付概念/≤1既有质量修正，PC/H5保存找回/免费改字/下载/成功唯一8分。A47/bound37682/余9318/旧UNKNOWN3786含在bound内全保，+0预算；失败UNKNOWN预算停立即禁原key，不重发旧请求，无新权限公网生产。scope R16-ACTUAL-HUMAN-SCOPE001.json 1613/ff529aecc0c9e06b1a23fb6ad691844a91626376c1a8bcfb5853fb2a42fbd161。当前尚未启key/serve/新task，Root立即按同冻结caller开始；截止不因启动延迟后移。
+
+
+## CURRENT — 2026-10-25T22:35:06.212462+00:00 R16唯一UI新job已queued，8仅预留，准备唯一run-next
+
+原samekey已官方enabled截图保，固定截止23:31:18UTC/1792971078不变。serve实际exec79718/origin127.0.0.1:64183，SERVER-START001166727/55d3e815。PC原报告→独立封面→一击重新设计8分，job1a83e8df-ea87-4aca-ae8c-8290ed28a150/usage2d91dc8c-c639-49a4-b49d-bd38f549ac3c/client58a87959-55f6-445d-82a4-baee743ce61b queued/rev0，STATE001157576/bd77a05f证phase恰1/0physical/workerfalse，A47bound37682余9318/旧UNKNOWN3786不变。9真实素材当前UI全可用，旧mock保存图仅历史，不是本轮新交付；不补传、不重跑报告。Root原件intent已O_EXCL登记，下一仅一次POST run-next，失败UNKNOWN预算停即key早关；无第二新task/旧请求重发。
+
+
+## CURRENT — 2026-10-25T22:44:40.371175+00:00 R16首请求真实HTTP401失败，全闭/净0；仅继续非付费适配器错误元信息缺口
+
+当前功能ae6/检查点前HEADfb8ff9f6a03e5eb47441558e20a1f1b0bf1371f7。R16唯一job1a83e8df-ea87-4aca-ae8c-8290ed28a150/usage2d91dc8c-c639-49a4-b49d-bd38f549ac3c/client58a87959-55f6-445d-82a4-baee743ce61b，唯一UI任务/唯一run-next202于22:35:06.309854Z。首physical aca4d7e9-e8fc-5ddb-a350-27b10f72755f真实responded/HTTP401/modelusageNULL；failed/COVER_AGENT_HTTP_401/rev0/noFinal/workerfalse，image0/记录的模型usage0/newSupplierUNKNOWN0。401实际供应商费用仍UNKNOWN，无usage/bill不能冒0；原每次2753milli保守预留完整计入A47 bound40435/余6565，旧两UNKNOWN3786原样且不重加，所有15旧job/184physical/169models/13image原row逐项同。
+
+正常GET两次全同、六组账本及subscription前后同；billing used0/reserved0/released8，唯一claim charge1/refund1/complete0/wallet8/totalused0，无赠分/生产DB。PC与H5390×844实际刷新→菜单→原报告→独立封面均未交付/预留释放，旧mock成品是历史。任务太快失败，REAL-R16-PC-RUNNING001原计划文件名实际已是失败画面，不能作running证据，另有PC-FAILED001/H5-FAILED001真实保存。初CUA Page.navigate超时但原tab16已打开，取回同tab后正常进入；一次未声明handle赋值被JS拒后用let绑定，无重复task/模型，不冒产品导航错误。
+
+原samekey按失败即停已官方禁用并截图，整页reload仍已禁用/会话可读；stop一次HTTP200，Root exec79718实际exit0/stderr0；observer PID19053 absent/session76297exit0/ROOT_REQUESTED_STOP/捕获0件，IAB16closed/viewportreset，无新worker/请求。REAL-R16-TERMINAL-SUMMARY001.json8895/34124cc84c0b3f9e0cc2b72b46d8050c29f173304f6cd17a85142c24dcbd37fd保18原件refs；正常净0证据2484/218400ef，safehostreceipt429/eae95256。host UNKNOWN/pendingordinal1是本地桥未返回上游401，非新增供应商UNKNOWN；此次尚未到JSON/usage/ThinkingState，更不是R15remember复现。此单任务/访问已消费，余下原时窗不构成重开/第二单授权。
+
+凭证代码只读核：固定cn-beijing Ark Chat端点、Python清ambient env/禁dotenv后只读取既有受限key文件至NOTEAI_ARK_API_KEY；_headers仅Bearer该env，trust_env=False/不follow_redirects，Node/SDK不持key。既有创建metadata绑定apikey-20261024165317-pvjfq及同private path；本次仅stat原key文件regular/currentowner/mode0400/singlelink/mtime仍2026-10-24T08:58:37.482368Z，未读值/不以metadata冒当前内容匹配。官方错误码索引支持401鉴权/账号分类，但本次原error.code和Request-ID未保存，实际失效/禁启时序/权限等原因仍UNKNOWN，不能据401换模型/充值/新建key。旧控制台统计仅支持Responses而本次Chat，相关未变限制复用，不启新日志/权限或重复推理。
+
+已定位确实可修的工程缺口：文本provider非200在原HTTP记账成功后只抛状态码，不留固定分类/供应商请求编号，丢失下一步原请求核查信息。foundation独占provider.py+现有test_cover_agent_provider.py，仅沿现有logging补content-free有界元信息（无正文/message/全headers/key），不新sidecar/依赖/平台，不动UNKNOWN/费用/模型/200流程；successor先窄读现有Seedream安全习惯，待最终diff独审不重测。Root维护唯一PLAN/闭合/统一集成。该修复是定位能力，不是假称本次401已修或封面已合格；修完后继续同原caller的HOLD历史准备，当前无新的付费或key窗口请求，不止于本checkpoint。原55e集成候选支线已完成，生产仍无GO。
