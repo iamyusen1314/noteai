@@ -3998,3 +3998,17 @@ R14仍唯一job46b1edbb-0243-4eb0-865d-60b695592aa8 outcome_unknown/rev0/noFinal
 唯一PLAN已将四阶段目标/负责人/状态/提交/证据/阻塞/下一步写回原plan字段，旧local completed[]明确标为HTTP模拟的历史正常功能证据；清除remaining/recovery_next里遗留R6额度及旧候选待执行指针，未删历史。记录首轮引用少了INLINE-CONTROL001目录，在写入前停止；按实际原件路径修正后写入，无DB/模型动作。当前全部可执行非付费源码、定向验证及候选交接已完成；仅完整真实成品生成→持久保存找回→PC/H5免费改字→下载→成功唯一8分及最终真实证据审查待新外部决定。物理iPhone保存/真实多人SDK报告共用吞吐仍未验，不冒通过。
 
 恢复入口仍为原PLAN current_resume_pointer；收到既有问项实际同意后，先记录实际UTC和+60min硬截止，再用冻结同caller/README（0c9d04d7/1d4ffb07）--next-after-job R14创建恰1新任务，复用原报告及9有效原照/双Pro/≤1非交付概念/≤1既有质量修正，逐次A47预算检查；失败UNKNOWN预算不足即停/提前禁key，旧请求绝不重发。无同意不开key/付费。没有新增自动化或后台续跑承诺；本次checkpoint不是完成交付声明。
+
+
+## CURRENT — 2026-10-25T14:26:58+00:00 R15用户确认追加5元至A47与同key最多60min，仅1新封面
+
+实际回复“确认”对应紧前集中问项：A42→47仅+5元/原总100不变，保守bound37265/余9735、两UNKNOWN3786全保。固定截止2026-10-25T15:26:58+00:00（unix1792942018），不能因延迟启用后移；固定双Pro/≤1非交付概念/≤1既有task内质量修正，复用原报告9真实原照，成功持久保存后唯一8分，PC/H5/保存找回/免费改字/下载。失败UNKNOWN预算停立即禁key，不重发旧任务，无新公网/权限/生产。R15-ACTUAL-HUMAN-SCOPE001.json 1330/e6fd23d201f34ab9d5f6bf09dfaa86260d38c0fe4b5a4746165e922d533f7def保实际scope；当前尚未启key/serve/新task。Root下一立即同key启用→冻结同caller新until启动→唯一UI新task，原sole候选已完成不重复。
+
+
+## CURRENT — 2026-10-25T14:41:01.007892+00:00 R15第二个已知响应在thinking.remember校验失败，真实单任务全闭/净0；继续非付费定向排查
+
+功能6c/HEAD22eaa3c不变。R15唯一job6efb6858-29df-44d7-b07e-9130da4e2a1e/usage9790ecb1-3774-406b-9455-3702bcb5cdd5/clientbea5c0cc-4ab1-4ea9-9648-0ea8decb2054，唯一UI创建/唯一POST202已执行。STATE002 failed/COVER_AGENT_THINKING_CONTEXT_INVALID/rev0/noFinal/workerfalse；仅2Pro物理请求均200，exact完整记录0.152988＋0.263892=0.416880元，image0/newUNKNOWN0。保守新占417milli、A47累计37682/余9318；旧两UNKNOWN3786及所有历史费用不变。normal GET两次同且六组账本前后同，预留8全释放，唯一claim charge1/refund1/complete0，wallet8/used0，无赠分/生产。PC/H5实际均未交付/预留释放、console[]；本轮真实合格0/单位合格成本N/A。
+
+同key已官方实际提前disabled并截图；normal stop一次200，Root exec3279实际exit0，observer PID71766正常stop/exec17534exit0/0公开候选，IAB15已关/viewportreset。REAL-R15-TERMINAL-SUMMARY001.json 5532/3784da9e9440290c5956a3282570dc3258beb4d6d6e2e03b006630dd53be0d7f绑定全部原件。此单task/敏感访问已消费，不重开、不自动新task；A47预算仍有效但不是新的key访问时段。
+
+现有content-free cleanup receipt429/05d6c969证requests2/pendingordinal2 primary，供应商两请求已完整计量，实际触发收敛为Bridge.model在第二个known response的ThinkingState.remember（回Node之前），不是供应商UNKNOWN。原payload按正常cleanup不留，无法据错误码断言哪种JSON/shape；不读私有SDK或猜prompt原因。successor负责纯内存guard类别因果控制与exact-opaque安全契约窄审；foundation负责固定SDK公开代码对malformed toolargs的错误修复/历史编码契约；Root统一判断最小源码修复/安全诊断并继续，不将此次失败扩大到报告/模型替换/全项目。当前无新外部阻塞要求用户作技术决定，不停于本checkpoint。
