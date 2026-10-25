@@ -103,7 +103,8 @@ class HostProof(unittest.TestCase):
         print("HOST_PROOF_EVIDENCE=" + str(cls.root))
 
     def request(self, case, *, mode="run", limit=None, behavior="success", session_id=None,
-                forbidden_path=None, admission=None, respond=None, nine_photos=False, thinking=None):
+                forbidden_path=None, admission=None, respond=None, nine_photos=False, thinking=None,
+                tool_respond=None):
         root = self.root / case
         (root / "work").mkdir(parents=True, exist_ok=True)
         (root / "work/photo.png").write_bytes(PNG)
@@ -151,6 +152,12 @@ class HostProof(unittest.TestCase):
                 if not line:
                     break
                 event = json.loads(line); events.append(event)
+                if event["type"] == "tool_request" and tool_respond is not None:
+                    # Explicit synthetic business approval only; the real host
+                    # still invokes its ordinary pinned CLI/browser itself.
+                    answer = {"type": "tool_response", "id": event["id"],
+                              "result": tool_respond(event)}
+                    proc.stdin.write(json.dumps(answer) + "\n"); proc.stdin.flush()
                 if event["type"] == "model_preflight":
                     self.assertEqual((event["method"], event["path"]), ("POST", "/chat/completions"))
                     wire = thinking.restore(event["body"]) if thinking is not None else event["body"]
@@ -245,20 +252,115 @@ class HostProof(unittest.TestCase):
         self.assertEqual(reopened["session_id"], result["session_id"])
         self.assertEqual(dispatched, [])
 
+    def test_managed_font_variable_scope_uses_actual_helpers(self):
+        source = HERE / "host.mjs"
+        script = r'''
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const start=source.indexOf('function fontFaces('),end=source.indexOf('async function atomicJSON(');
+assert(start>=0 && end>start);
+const declaration='--font-kit-cjk-serif: "Installed", serif;';
+const ctx=vm.createContext({Buffer,path,checkpoint:{managed_fonts:{'index.html':{
+  'cjk-serif':{family:'Installed',faces:[],declaration}}}},
+  error:code=>Object.assign(new Error(code),{code}),
+  sha:v=>createHash('sha256').update(v).digest('hex')});
+const relativeStart=source.indexOf('function relative('),relativeEnd=source.indexOf('async function safeExisting(');
+const summaryStart=source.indexOf('function summaryMaterial('),summaryEnd=source.indexOf('\nlet sdk,',summaryStart);
+assert(relativeStart>=0 && relativeEnd>relativeStart && summaryStart>=0 && summaryEnd>summaryStart);
+vm.runInContext(source.slice(start,end)+source.slice(relativeStart,relativeEnd)
+  +source.slice(summaryStart,summaryEnd),ctx);
+const outcomes=[];
+for(const [name,css] of [
+  ['unused_selector','.unused{'+declaration+'}'],
+  ['conditional_root','@media(min-width:1px){:root{'+declaration+'}}'],
+  ['duplicate_root',':root{'+declaration+'}:root{'+declaration+'}'],
+  ['global_and_unused',':root{'+declaration+'}.unused{'+declaration+'}'],
+]){
+  let code='NO_ERROR';
+  try{ctx.restoreManagedFonts('index.html','<style>'+css+'</style><h1>UNCHANGED_DOM</h1>');}
+  catch(e){code=e.code;}
+  outcomes.push({name,code});
+}
+const normal='<style>:root{'+declaration+'--font-title:explicit-role-sentinel;}</style><h1>UNCHANGED_DOM</h1>';
+assert.equal(ctx.restoreManagedFonts('index.html',normal),normal);
+outcomes.push({name:'normal_global_root',unchanged:true});
+const fake=`<style>/* .unused{${declaration}} */ .example{content:' :root{${declaration}} ';}
+:root{--font-title:var(--font-kit-cjk-serif);}</style><h1>UNCHANGED_DOM</h1>`;
+const restored=ctx.restoreManagedFonts('index.html',fake);
+assert.equal(restored,fake.replace('<style>','<style>:root {'+declaration+'}'));
+assert.equal(ctx.restoreManagedFonts('index.html',restored),restored);
+assert(restored.includes('--font-title:var(--font-kit-cjk-serif);'));
+outcomes.push({name:'references_comments_strings_only',tool_global_added:true,role_unchanged:true});
+const known='@font-face {font-family:"Installed";src:url("./assets/fonts/cjk-serif/known.woff2");}';
+const unknown=known.replace('Installed','UNKNOWN_AUTHOR_FACE');
+ctx.checkpoint.managed_fonts['index.html']['cjk-serif'].faces=[known];
+const raw='<html><head><style>'+known+unknown+':root{--field:#123456;}</style></head>'
+  +'<body><h1>完整非字体DOM与原文字</h1><!--UNCHANGED_DOM_TAIL--></body></html>';
+const input=[{role:'assistant',content:[
+  {type:'tool-call',id:'raw-text-read',name:'cover_read',input:{path:'snapshot.html'}},
+  {type:'tool-call',id:'raw-content-read',name:'cover_read',input:{path:'another.html'}},
+  {type:'tool-call',id:'skill-read',name:'cover_read',input:{path:'skill:references/example.html'}},
+]},{role:'tool',content:[
+  {type:'tool-result',id:'raw-text-read',name:'cover_read',result:{type:'text',value:raw}},
+  {type:'tool-result',id:'raw-content-read',name:'cover_read',result:{type:'content',value:[{type:'text',text:raw}]}},
+  {type:'tool-result',id:'skill-read',name:'cover_read',result:{type:'text',value:raw}},
+]}];
+const original=JSON.stringify(input),summary=ctx.summaryMaterial(input);
+assert.equal(JSON.stringify(input),original);
+assert.equal(summary.length,1);assert.equal(summary[0].role,'user');
+const prefix='Recorded tool result: ';
+const results=summary[0].content.filter(part=>part.type==='text' && part.text.startsWith(prefix))
+  .map(part=>JSON.parse(part.text.slice(prefix.length)).result);
+const textView=JSON.parse(results[0].value),contentView=JSON.parse(results[1].value[0].text);
+for(const view of [textView,contentView]){
+  assert.equal(view.omitted_font_faces,1);
+  assert.equal(view.text,raw.replace(known,''));
+  assert(view.text.includes(unknown));
+}
+assert.equal(results[2].value,raw);
+outcomes.push({name:'summary_raw_read_views',text_wrapper:true,content_wrapper:true,
+  unknown_face_retained:true,skill_html_unchanged:true,original_messages_unchanged:true});
+console.log(JSON.stringify({host_sha256:createHash('sha256').update(source).digest('hex'),
+  actual_helper_segment:true,sdk_imported:false,supplier_calls:0,outcomes}));
+assert(outcomes.slice(0,4).every(item=>item.code==='MANAGED_FONT_VARIABLE_CONFLICT'),
+  'Non-global or duplicate font-kit declaration was accepted as restored');
+'''
+        result = subprocess.run([self.node, "--input-type=module", "-e", script, str(source)],
+            capture_output=True, text=True, timeout=10,
+            env={"PATH": "/opt/homebrew/bin:/usr/bin:/bin"})
+        (self.root / "font-scope-vm.stdout.json").write_text(result.stdout)
+        (self.root / "font-scope-vm.stderr.txt").write_text(result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(json.loads(result.stdout)["outcomes"]), 7)
+
     def test_real_sdk_managed_cjk_fonts_keep_complete_authored_html_editable(self):
         case = "managed_font_edit"
         work = self.root / case / "work"
+        (work / "assets").mkdir(parents=True)
+        photo = work / "assets/synthetic-photo.png"
+        Image.new("RGB", (800, 1000), (117, 154, 131)).save(photo)
+        photo_bytes = photo.read_bytes()
+        (work / "poster.json").write_text(json.dumps({"canvas": {"width": 1776, "height": 2368},
+                                                     "scale": 1, "dpi": None}))
         tail = "AUTHORED_DOM_TAIL_AFTER_MANAGED_FONTS"
         original_text, edited_text = "原始中文排字", "调整后的中文排字"
         authored = ("<!doctype html><html><head><meta charset=\"utf-8\"><style>\n"
                     ":root { --font-title: \"Songti SC\", serif; --field: #242421; }\n"
-                    "#poster { width:1776px; height:2368px; background:var(--field); }\n"
-                    ".headline { font-family:var(--font-title); font-size:118px; }\n"
+                    "*{box-sizing:border-box}html,body{margin:0;padding:0;width:1776px}\n"
+                    "#poster {position:relative;width:1776px;height:2368px;overflow:hidden;background:var(--field)}\n"
+                    ".headline{position:absolute;left:120px;top:150px;width:1500px;height:260px;"
+                    "font-family:var(--font-title);font-size:118px;line-height:1.3;color:#ffffff}\n"
+                    ".photo{position:absolute;left:120px;top:600px;width:1536px;height:1600px;object-fit:contain}\n"
                     "</style></head><body><div id=\"poster\" data-canvas-width=\"1776\" "
-                    "data-canvas-height=\"2368\"><div class=\"hf-slot headline\" "
-                    "data-layer-id=\"headline\">" + original_text + "</div>"
+                    "data-canvas-height=\"2368\"><img class=\"photo\" src=\"assets/synthetic-photo.png\" alt=\"\">"
+                    "<div class=\"hf-slot headline\" data-layer-id=\"headline\">" + original_text + "</div>"
                     "<!--" + tail + "--></div></body></html>")
         faces = re.compile(r"@font-face\s*\{[^{}]*\}")
+        kit = re.compile(r"--font-kit-cjk-serif\s*:[^;{}]+;?")
         observed = {"synthetic_fixture": True, "external_provider_calls": 0}
         saved = {}
 
@@ -276,17 +378,10 @@ class HostProof(unittest.TestCase):
             ordinal = len(calls)
             fn, arguments = None, None
             if ordinal == 1:
-                check = next(t["function"] for t in event["body"]["tools"]
-                             if t["function"]["name"] == "cover_check")
-                # Let the old baseline reach its real SDK truncation instead of
-                # stopping on a parameter its old tool schema does not expose.
-                observed["css_var_supported"] = "css_var" in check["parameters"]["properties"]
                 fn, arguments = "cover_write", {"path": "index.html", "text": authored}
             elif ordinal == 2:
                 fn, arguments = "cover_check", {"action": "font_add", "html": "index.html",
-                                                "font_id": "cjk-serif"}
-                if observed["css_var_supported"]:
-                    arguments["css_var"] = "--font-title"
+                                                "font_id": "cjk-serif", "css_var": "--font-title"}
             elif ordinal == 3:
                 data = (work / "index.html").read_bytes()
                 saved.update(before=data, faces=faces.findall(data.decode()), font_files=font_files())
@@ -295,84 +390,230 @@ class HostProof(unittest.TestCase):
                 fn, arguments = "cover_read", {"path": "index.html"}
             elif ordinal == 4:
                 raw = tool_text(event["body"], "managed-font-call-3")
-                observed.update(first_read_bytes=len(raw.encode()), tail_reached_sdk=tail in raw,
-                                physical_file_unchanged_by_read=(work / "index.html").read_bytes() == saved["before"])
-                try:
-                    view = json.loads(raw)
-                except json.JSONDecodeError:
-                    view = None
-                observed["first_view"] = view
-                if isinstance(view, dict) and isinstance(view.get("text"), str) and tail in view["text"]:
-                    saved["edited"] = view["text"].replace("#242421", "#303030", 1).replace(original_text, edited_text, 1)
-                    fn, arguments = "cover_write", {"path": "index.html", "text": saved["edited"]}
+                view = json.loads(raw)
+                observed.update(first_read_bytes=len(raw.encode()), first_view=view,
+                    physical_file_unchanged_by_read=(work / "index.html").read_bytes() == saved["before"])
+                # Drop only the tool-owned kit declaration and managed faces;
+                # retain the explicit role, every authored style and whole DOM.
+                saved["edited"] = kit.sub("", view["text"]).replace("#242421", "#303030", 1).replace(original_text, edited_text, 1)
+                fn, arguments = "cover_write", {"path": "index.html", "text": saved["edited"]}
             elif ordinal == 5:
-                after = (work / "index.html").read_bytes()
-                saved["after"] = after
+                after = (work / "index.html").read_bytes(); saved["after"] = after
                 observed.update(edited_html_bytes=len(after), font_files_unchanged=font_files() == saved["font_files"],
-                                managed_faces_unchanged=faces.findall(after.decode()) == saved["faces"])
+                    managed_faces_unchanged=faces.findall(after.decode()) == saved["faces"],
+                    kit_definition_restored=bool(kit.search(after.decode())),
+                    transformed_write_receipt=json.loads(tool_text(event["body"], "managed-font-call-4")))
                 fn, arguments = "cover_read", {"path": "index.html"}
             elif ordinal == 6:
-                raw = tool_text(event["body"], "managed-font-call-5")
-                observed["second_view"] = json.loads(raw)
-                # Identical font CSS in a different, unregistered file must not
-                # inherit another HTML file's managed-font elision permission.
-                fn, arguments = "cover_write", {"path": "unregistered.html",
-                    "text": "<html><head><style>" + saved["faces"][0]
-                    + "</style></head><body>UNREGISTERED_FONT_DOM_TAIL</body></html>"}
+                observed["second_view"] = json.loads(tool_text(event["body"], "managed-font-call-5"))
+                saved["unknown_face"] = saved["faces"][0].replace("Noto Serif SC Variable", "UNKNOWN_SYNTHETIC_FONT", 1)
+                self.assertNotEqual(saved["unknown_face"], saved["faces"][0])
+                saved["snapshot"] = ("<html><head><style>" + saved["faces"][0] + saved["unknown_face"]
+                    + ":root{--font-title:explicit-role-sentinel;}</style></head>"
+                    "<body>SNAPSHOT_KNOWN_AND_UNKNOWN_DOM_TAIL</body></html>")
+                fn, arguments = "cover_write", {"path": "snapshot.html", "text": saved["snapshot"]}
             elif ordinal == 7:
-                fn, arguments = "cover_read", {"path": "unregistered.html"}
+                fn, arguments = "cover_read", {"path": "snapshot.html"}
             elif ordinal == 8:
-                observed["unregistered_read"] = tool_text(event["body"], "managed-font-call-7")
+                raw = tool_text(event["body"], "managed-font-call-7")
+                observed["snapshot_read"] = raw
                 fn, arguments = "cover_write", {"path": "notes.txt", "text": "普通文件逐字原文。\n"}
             elif ordinal == 9:
                 fn, arguments = "cover_read", {"path": "notes.txt"}
             elif ordinal == 10:
                 observed["ordinary_read"] = tool_text(event["body"], "managed-font-call-9")
+                fn, arguments = "cover_render", {"request": {"project_dir": ".",
+                    "sources": [{"ref": "synthetic-source", "path": "assets/synthetic-photo.png",
+                                 "sha256": hashlib.sha256(photo_bytes).hexdigest()}],
+                    "text_layers": [{"id": "headline", "allowed_rect": {"x": 100, "y": 100, "width": 1576, "height": 380}}],
+                    "protected_regions": []}}
+            elif ordinal == 11:
+                rendered = json.loads(tool_text(event["body"], "managed-font-call-10"))
+                observed["render_result"] = rendered
+                if rendered.get("ok"):
+                    fn, arguments = "cover_view", {"path": rendered["image_path"]}
             message = {"role": "assistant", "content": "OFFLINE_FONT_EDIT_COMPLETE" if fn is None else None}
             if fn:
                 message["tool_calls"] = [{"id": "managed-font-call-" + str(ordinal), "type": "function",
                     "function": {"name": fn, "arguments": json.dumps(arguments, ensure_ascii=False)}}]
-            body = {"id": "chatcmpl_managed_font_fixture", "object": "chat.completion", "created": 1,
-                    "model": event["body"]["model"], "choices": [{"index": 0, "message": message,
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": {
+                "id": "chatcmpl_managed_font_fixture", "object": "chat.completion", "created": 1,
+                "model": event["body"]["model"], "choices": [{"index": 0, "message": message,
                     "finish_reason": "tool_calls" if fn else "stop"}],
-                    "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}}
-            return {"type": "model_response", "id": event["id"], "status": 200, "body": body}
+                "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}}}
 
-        result, calls, _, root = self.request(case, respond=respond)
+        def tool_respond(event):
+            self.assertEqual(event["name"], "cover_render")
+            return {"allowed": True, "approved_titles": [edited_text]}
+
+        result, calls, _, root = self.request(case, respond=respond, tool_respond=tool_respond)
         (root / "managed-font-observations.json").write_text(json.dumps(observed, ensure_ascii=False, indent=2))
         self.assertTrue(result["ok"], result)
         self.assertGreater(observed["installed_html_bytes"], 50 * 1024)
         self.assertEqual(observed["installed_faces"], 101)
-        self.assertTrue(observed["tail_reached_sdk"], "SDK truncated the actual authored DOM after the generated font CSS")
-        self.assertTrue(observed["css_var_supported"])
-        self.assertEqual(len(calls), 10)
         self.assertTrue(observed["physical_file_unchanged_by_read"])
+        self.assertTrue(observed["kit_definition_restored"], "Successful font_add's own kit declaration was lost during authored rewrite")
+        self.assertTrue(observed["font_files_unchanged"])
+        self.assertTrue(observed["managed_faces_unchanged"])
+        self.assertTrue(any(p.endswith("/LICENSE.txt") for p in saved["font_files"]))
+        self.assertTrue(any(p.endswith(".woff2") for p in saved["font_files"]))
         view = observed["first_view"]
         self.assertEqual(view["view"], "authored_html_with_managed_font_faces_elided")
         self.assertEqual((view["path"], view["bytes"], view["sha256"]),
                          ("index.html", len(saved["before"]), hashlib.sha256(saved["before"]).hexdigest()))
         self.assertEqual(view["omitted_font_faces"], 101)
         self.assertEqual(view["text"], faces.sub("", saved["before"].decode()))
-        self.assertEqual(view["fonts"], [{"font_id": "cjk-serif", "variable": "--font-kit-cjk-serif",
-                                        "family": "Noto Serif SC Variable", "face_count": 101}])
-        added = json.loads(observed["font_add_tool_text"])
-        self.assertEqual(added["font"], {"font_id": "cjk-serif", "variable": "--font-kit-cjk-serif",
-                                          "css_var": "--font-title", "face_count": 101})
-        self.assertRegex(saved["before"].decode(), r"--font-title\s*:\s*var\(--font-kit-cjk-serif\)")
-        self.assertTrue(observed["font_files_unchanged"])
-        self.assertTrue(observed["managed_faces_unchanged"])
-        self.assertTrue(any(p.endswith("/LICENSE.txt") for p in saved["font_files"]))
-        self.assertTrue(any(p.endswith(".woff2") for p in saved["font_files"]))
-        self.assertEqual(faces.sub("", saved["after"].decode()), saved["edited"])
-        self.assertIn(edited_text, saved["after"].decode())
-        self.assertIn("#303030", saved["after"].decode())
-        self.assertNotIn(original_text, saved["after"].decode())
-        self.assertEqual(observed["second_view"]["text"], saved["edited"])
+        self.assertEqual(observed["second_view"]["text"], faces.sub("", saved["after"].decode()))
         self.assertEqual(observed["second_view"]["sha256"], hashlib.sha256(saved["after"]).hexdigest())
-        self.assertEqual(observed["unregistered_read"], (work / "unregistered.html").read_text())
-        self.assertIn(saved["faces"][0], observed["unregistered_read"])
-        self.assertIn("UNREGISTERED_FONT_DOM_TAIL", observed["unregistered_read"])
+        self.assertEqual(re.search(r"<body>[\s\S]*</body>", saved["after"].decode())[0],
+                         re.search(r"<body>[\s\S]*</body>", saved["edited"])[0])
+        self.assertIn("#303030", saved["after"].decode())
+        self.assertRegex(saved["after"].decode(), r"--font-title\s*:\s*var\(--font-kit-cjk-serif\)")
+        snapshot = json.loads(observed["snapshot_read"])
+        self.assertEqual(snapshot["omitted_font_faces"], 1)
+        self.assertNotIn(saved["faces"][0], snapshot["text"])
+        self.assertIn(saved["unknown_face"], snapshot["text"])
+        snapshot_bytes = (work / "snapshot.html").read_bytes()
+        self.assertEqual(snapshot["sha256"], hashlib.sha256(snapshot_bytes).hexdigest())
+        self.assertIn("SNAPSHOT_KNOWN_AND_UNKNOWN_DOM_TAIL", snapshot["text"])
+        self.assertIn("--font-title:explicit-role-sentinel;", snapshot["text"])
         self.assertEqual(observed["ordinary_read"], "普通文件逐字原文。\n")
+        self.assertTrue(observed["render_result"]["ok"], observed["render_result"])
+        rendered = observed["render_result"]
+        png = work / rendered["image_path"]; thumb = work / rendered["thumbnail_path"]
+        with Image.open(png) as image:self.assertEqual(image.size, (1776, 2368));image.verify()
+        with Image.open(thumb) as image:self.assertEqual(image.size, (240, 320));image.verify()
+        manifest = json.loads((work / rendered["manifest_path"]).read_text())
+        self.assertEqual(manifest["checks"]["boxes"][0]["text"], edited_text)
+        self.assertEqual((manifest["model_calls"], manifest["checks"]["screenshot"]["external_requests"]), (0, 0))
+        self.assertEqual(photo.read_bytes(), photo_bytes)
+        self.assertEqual(len(calls), 12)
+
+    def test_real_sdk_transformed_font_write_compacts_by_input_and_stored_hashes(self):
+        case = "font_transformed_compaction"
+        admission = provider_admission()
+        thinking = ThinkingState(case)
+        work = self.root / case / "work"
+        observed = {"synthetic_fixture": True, "external_provider_calls": 0}
+        state = {"primary": 0, "compactions": 0, "continued": 0}
+        marker = "TRANSFORMED_WRITE_INPUT_SENTINEL"
+        authored = ("<html><head><style>:root{--font-title:serif;}"
+                    "#canvas{position:relative;width:1776px;height:2368px}"
+                    ".title{font-family:var(--font-title)}</style></head><body>"
+                    "<div id=\"canvas\" data-canvas-width=\"1776\" data-canvas-height=\"2368\">"
+                    "<div class=\"title\" data-layer-id=\"title\">城市里的日式庭院</div>"
+                    "<!--FONT_COMPACTION_BASE_DOM--></div></body></html>")
+        paragraph = "离线设计说明，保留真实照片与批准标题，不增添商家事实。\n"
+        rewritten = {}
+
+        def tool_text(body, call_id):
+            row = next((m for m in body["messages"]
+                        if m.get("role") == "tool" and m.get("tool_call_id") == call_id), {})
+            value = row.get("content", "")
+            return value if isinstance(value, str) else "".join(text_values(value))
+
+        def respond(event, calls):
+            fn, arguments = None, None
+            if event.get("label") == "compaction":
+                state["compactions"] += 1
+                content = ("## Objective\n- Finish the offline font fixture.\n"
+                    "## Requirements\n- Preserve approved title and original photos.\n"
+                    "## Decisions\n- Installed faces belong to the font kit.\n"
+                    "## Work State\n### Completed\n- Saved index.html and notes.\n"
+                    "### Active\n- View source-1.png.\n### Blocked\n- (none)\n"
+                    "## Next Move\n1. View source-1.png and finish.\n"
+                    "## Relevant Files\n- index.html: complete authored design.\n"
+                    "## Important Context\n- Synthetic provider-free fixture.")
+            elif state["compactions"]:
+                state["continued"] += 1
+                content = "OFFLINE_FONT_COMPACTION_COMPLETE"
+                if state["continued"] == 1:
+                    fn, arguments = "cover_view", {"path": "source-1.png"};content = None
+            else:
+                state["primary"] += 1
+                n = state["primary"];self.assertLessEqual(n, 20, "Real input meter never reached overflow")
+                content = None
+                if n == 1:
+                    fn, arguments = "cover_write", {"path": "index.html", "text": authored}
+                elif n == 2:
+                    fn, arguments = "cover_check", {"action": "font_add", "html": "index.html",
+                        "font_id": "cjk-serif", "css_var": "--font-title"}
+                elif n == 3:
+                    fn, arguments = "cover_read", {"path": "index.html"}
+                elif n == 4:
+                    view = json.loads(tool_text(event["body"], "font-compact-3"))
+                    rewritten["text"] = re.sub(r"--font-kit-cjk-serif\s*:[^;{}]+;?", "", view["text"])
+                    rewritten["text"] = re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', "", rewritten["text"])
+                    rewritten["text"] = rewritten["text"].replace("</body>", "<!--" + marker + "--></body>")
+                    fn, arguments = "cover_write", {"path": "index.html", "text": rewritten["text"]}
+                else:
+                    if n == 5:
+                        observed["transformed_receipt"] = json.loads(tool_text(event["body"], "font-compact-4"))
+                        data = (work / "index.html").read_bytes()
+                        observed["stored_html_bytes"] = len(data)
+                        observed["stored_html_sha256"] = hashlib.sha256(data).hexdigest()
+                        observed["input_bytes"] = len(rewritten["text"].encode())
+                        observed["input_sha256"] = hashlib.sha256(rewritten["text"].encode()).hexdigest()
+                    fn, arguments = "cover_write", {"path": "long-step-" + str(n) + ".md",
+                        "text": paragraph * 160}
+            message = {"role": "assistant", "content": content}
+            if fn:
+                message["tool_calls"] = [{"id": "font-compact-" + str(len(calls)), "type": "function",
+                    "function": {"name": fn, "arguments": json.dumps(arguments, ensure_ascii=False)}}]
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": {
+                "id": "chatcmpl_font_compaction_fixture", "object": "chat.completion", "created": 1,
+                "model": event["body"]["model"], "choices": [{"index": 0, "message": message,
+                    "finish_reason": "tool_calls" if fn else "stop"}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}}}
+
+        replying, originals, ciphers = self.opaque_responder(respond, prefix="font_transform")
+        result, calls, events, root = self.request(case, admission=admission, respond=replying,
+            nine_photos=True, thinking=thinking)
+        summaries = [call for call in calls if call.get("label") == "compaction"]
+        observed["summary_count"] = len(summaries)
+        if summaries:
+            material = "\n".join(text_values(summaries[0]["body"]))
+            observed["rewritten_input_ref_collapsed"] = marker not in material
+            observed["input_and_stored_reference_present"] = ("index.html" in material
+                and observed["input_sha256"] in material and observed["stored_html_sha256"] in material)
+        (root / "font-transform-observations.json").write_text(json.dumps(observed, ensure_ascii=False, indent=2))
+        self.assertTrue(result["ok"], result)
+        receipt = observed["transformed_receipt"]
+        self.assertEqual(set(receipt), {"path", "bytes", "sha256", "input_bytes", "input_sha256"})
+        self.assertEqual((receipt["input_bytes"], receipt["input_sha256"]),
+                         (observed["input_bytes"], observed["input_sha256"]))
+        self.assertEqual((receipt["bytes"], receipt["sha256"]),
+                         (observed["stored_html_bytes"], observed["stored_html_sha256"]))
+        self.assertGreater(receipt["bytes"], receipt["input_bytes"] + 50 * 1024)
+        self.assertEqual(len(summaries), 1)
+        self.assertTrue(observed["rewritten_input_ref_collapsed"], "Automatically expanded successful write stayed in summary text")
+        self.assertTrue(observed["input_and_stored_reference_present"])
+        summary_index = calls.index(summaries[0])
+        skill = (PROJECT / "model/cover_editable/vendor/editable-design/SKILL.md").read_text()
+        for call in calls[summary_index + 1:]:
+            material = "\n".join(text_values(call["body"]))
+            self.assertIn(skill, material)
+            self.assertIn("批准事实：真实庭院；批准标题：城市里的日式庭院。不得增加价格或服务。", material)
+        self.assertTrue(any(event["type"] == "model_preflight" and
+            admission["admit_payload"](thinking.restore(event["body"]))["allowed"] is False for event in events))
+        for call in calls:
+            self.assertLessEqual(admission["prepare_payload"](thinking.restore(call["body"]))[1], 131072)
+        responses = json.loads((root / "run-success-responses.json").read_text())
+        expected = {}
+        for response in responses:
+            for choice in response.get("body", {}).get("choices", []):
+                for tool in choice["message"].get("tool_calls", []):
+                    if tool["function"]["name"] != "cover_write":continue
+                    args = json.loads(tool["function"]["arguments"])
+                    expected.setdefault(tool["id"], {"id": tool["id"], "path": args["path"],
+                        "bytes": len(args["text"].encode()), "sha256": hashlib.sha256(args["text"].encode()).hexdigest()})
+        stored = {row["id"]: row for row in self.stored_write_receipts(root, result["session_id"])}
+        self.assertEqual(stored, expected, "Compaction changed original synthetic SDK write arguments")
+        visible = json.dumps(events) + (root / "run-success-responses.json").read_text()
+        for cipher in ciphers:self.assertNotIn(cipher, visible)
+        checkpoint = json.loads((root / "state/host-checkpoint.json").read_text())
+        self.assertEqual(checkpoint["compaction_requests"], 1)
+        self.assertIsNone(checkpoint.get("pending_request"))
 
     def test_explicit_revision_continues_only_known_original_session_once(self):
         first, _, _, _ = self.request("revision")

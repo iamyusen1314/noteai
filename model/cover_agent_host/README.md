@@ -351,3 +351,34 @@ The final business guard is retained. This initial-generation constraint is not
 persisted into free-edit constraints; user adjustments retain their existing text,
 geometry, revision and billing rules. Standalone legacy CLI requests without this
 optional scope retain their previous behavior.
+
+Managed font editing and compaction share the same authored-code contract.
+After a successful local font installation, the host records the exact font-face
+CSS and the tool-owned kit variable declaration. A subsequent authored rewrite
+restores missing installed faces and the kit declaration, while preserving the
+chosen design role. Conflicting or duplicate kit definitions return a local error.
+Older checkpoints without a stored declaration retain their previous behavior.
+The complete pinned upstream package, font files and licenses remain unchanged.
+
+HTML reads, including immutable renderer snapshots, elide only exact font-face
+blocks already verified by a successful installation in this job. All other
+CSS and DOM, including the kit definition and unknown or changed font faces,
+remain in the editable view. The full file is unchanged by reading. The same
+projection applies only to quoted HTML read results in a fresh summary branch;
+it does not edit the original SDK tool records or signed assistant history.
+
+A write that adds managed fonts or CSP reports both its original input identity
+and stored-file identity. Compaction checks the original argument against the
+former and the current ordinary file against the latter before replacing the
+quoted write with a retrievable reference. Legacy three-field receipts still
+require exact input/file equality. Changed or missing files keep their original
+write text. The 131072 input bound, one-summary limit, full Skill/fact retention,
+supplier UNKNOWN handling, deadlines, models and billing are unchanged.
+
+The R11 real task stopped after its summarized primary request still exceeded the
+local bound (133072). Its safe receipt does not identify which text category
+caused that size; the font and write-contract defects above are proven gaps, not
+a claim that font CSS alone caused R11. The targeted offline combination uses the
+real SDK, provider admission meter and CLI/browser with scripted model responses
+and a synthetic fixture. It proves the tool chain, not real merchant design
+quality, supplier compatibility or successful customer settlement.
