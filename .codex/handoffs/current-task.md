@@ -33565,3 +33565,12 @@ R7所有关闭/唯一8分释放事实沿前节：job仍UNKNOWN/原失败码，80
 R8 caller唯一准备58439/c01b128a（0400）＋README9934/3b964fe7，R7旧53184/cb5与8936/fdbf独立inode0400归档。六failed与R7UNKNOWN分开验证，原RUN-RESULT预留8与独立deadline释放1→0两原件SHA分别钉住；不把未知改failed或重放。4预算函数/守卫/session/main AST全等，formal floor132246/acceptance99436/历史carry保。作者12文件/合成queryfacade控制通过，candidate独审GO；不是实际SQL。Root另做真实SQLite modeRO/query_only/SELECT-READ-FUNCTION authorizer预检，实际7历史/80响应/9素材subject_hash归正确owner、ready/SHA/TTL全符、最早05:22:02.593942Z、db whole不变/changes0；C/REAL-CALLER-R8.ACTUAL-READONLY-STATE-PREFLIGHT001.json。首次误用media user_id/status列只是只读查询错误，按实际subject_hash/state修正，无产品/DB修补。未读key/启动server/session/job/provider。
 
 A20仍唯一有效cap20000，下一designreserve2753只证明首笔可容，不保证完整任务；R8-A25-PROPOSED-UNAPPLIED.json仅未应用一行20k→25k提案（追加上限5，原总100不变），proposedcaller SHA3963682f不代表批准。当前全部独立非付费开发/离线/候选/独审准备完成，下一Root集中询问新单任务与samekey≤60min及A25分配；R7确认已消费且终态早关，绝不复用已关闭授权。新答复前keydisabled、无后台服务/模型任务，不假称自动续跑。收到同意后记实际时间，精确应用已审一行cap、freshRO/素材TTL核、normal同key启用与单任务真实验收；失败/UNKNOWN即停保留，不重发。此为外部决策等待，不是任务完成或封面质量交付。
+
+
+## CURRENT — 2026-10-25T04:09:48Z R8实际确认已接收／A25已精确应用，正常PC唯一新任务已排队，派发前checkpoint
+
+接续HEAD95b57fb6d4098bdfa990c8e56e582ff61a3adb84/功能cb9f1fc。Root实际04:06:31Z收到用户“确认”，明确对应唯一pending R8 A20→25（仅增加5元累计上限、原总100不变）及同受限key最多60分钟，截止05:06:31Z＝北京时间13:06:31，终态提前关闭、失败或UNKNOWN停/不重发。C/R8-ACTUAL-HUMAN-SCOPE001.json为实际授权，不复用R7已消费确认。caller58439/3963682f精确唯一行cap25000，README11470/34324da0实际前言＋原历史suffix保留；foundation机械delta/时窗独审GO，无其他预算/守卫源码变更。旧caller/README独立inode0400保。
+
+fresh实际SQLite RO/query_only/SELECT-READ-FUNCTION预检002：七历史/80响应原digest不变，R7仍UNKNOWN且唯一释放；A保守17107milli、当前available7893（非已消费现金），原STATE013 limit20k证据不改。9原图owner/purpose/ready/SHA/TTL全通过，最早05:22:02.593942Z，到期不延长。DBwhole前后相等/changes0。same noteai-cover-20261024-acceptance正常控制台启用，遮罩TASK-KEY-REENABLED.R8.ACTUAL.png已给用户，无权限改动。
+
+serve008 exec15449/origin127.0.0.1:60322/lifespanoff无自动worker，正常PC1440×1000报告→视觉专家→封面，实际8积分/90天/九图ready，旧UNKNOWN已明确预留释放/不追扣。只点击一次“新建封面”，jobd277b820-664c-4131-a84e-2cdb248446e8/client87d1902c-5fc0-4335-a0ac-b8f4c506cdf7/usage2ef02eb6-e6a8-4468-acca-1186c1908fcf queued，phase恰1/新physical0/workerfalse/oncefalse。C/REAL-R8-BEFORE-WORKER001.json及R8-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口，PLAN原路径已接续。下一Root唯一run-next，先保原HTTP响应再核202；双Pro/最多1概念/原有一次任务内质量修正，真实原照最终像素，不改正文。失败/未知立即key禁用并正常关闭，不重发；成功继续PC/H5保存找回/免费改字/下载/成功唯一结算。仅本机真实供应商验收，不冒云环境或质量通过，无生产/公网改动。
