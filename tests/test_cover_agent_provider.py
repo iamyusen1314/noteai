@@ -5,6 +5,7 @@ import io
 import json
 import os
 from pathlib import Path
+import sqlite3
 import sys
 import unittest
 import uuid
@@ -493,6 +494,124 @@ class CoverAgentProviderTests(unittest.TestCase):
             provider.complete(self.body, call_id=call_id, transport=self.transport())
         self.assertFalse(self.requests)
         self.assertIsNone(db.fetchone("SELECT id FROM public_trial_calls WHERE id=?", (call_id,)))
+
+    def assert_reservation_failure(self, error, kind, *, sqlite_code=None, os_errno=None):
+        call_id = self.intent()
+        with mock.patch.object(public_product, "_reserve_payload", side_effect=error) as reserve, \
+                mock.patch.object(public_product, "mark_model_dispatched") as dispatched, \
+                mock.patch.object(ark_media, "_client") as client:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                provider.complete(self.body, call_id=call_id, transport=self.transport())
+            failure = caught.exception
+            self.assertEqual(failure.code, "COVER_AGENT_RESERVATION_UNCONFIRMED")
+            self.assertEqual(str(failure), failure.code)
+            self.assertTrue(failure.outcome_unknown)
+            self.assertEqual(failure.call_id, call_id)
+            self.assertEqual(failure.reservation_diagnostics, {"phase": "reservation",
+                "exception_type": kind, "sqlite_errorcode": sqlite_code, "os_errno": os_errno,
+                "call_id": call_id, "reserve_milli_cny": 1033})
+            self.assertIsNone(failure.input_diagnostics)
+            self.assertIsNone(failure.output_diagnostics)
+            self.assertNotIn("PRIVATE", json.dumps(failure.reservation_diagnostics))
+            self.assertEqual(self.invocation.failure, failure.code)
+            self.assertIsNone(db.fetchone("SELECT id FROM public_trial_calls WHERE id=?", (call_id,)))
+            self.assertEqual(db.fetchone("SELECT count(*) n FROM model_usage_records")["n"], 0)
+            with self.assertRaises(public_product.TrialProviderStopped):
+                provider.complete(self.body, call_id=call_id, transport=self.transport())
+            self.assertEqual(reserve.call_count, 1)
+            dispatched.assert_not_called()
+            client.assert_not_called()
+        self.assertFalse(self.requests)
+
+    def test_sqlite_reservation_failure_keeps_unknown_and_numeric_diagnostic_without_http(self):
+        with sqlite3.connect(":memory:") as connection:
+            try:
+                connection.execute("SELECT * FROM PRIVATE_MISSING_TABLE")
+            except sqlite3.OperationalError as error:
+                self.assert_reservation_failure(error, "OperationalError", sqlite_code=sqlite3.SQLITE_ERROR)
+            else:
+                self.fail("Synthetic missing-table fixture did not fail")
+
+    def test_runtime_reservation_failure_keeps_unknown_without_exception_text(self):
+        self.assert_reservation_failure(RuntimeError("PRIVATE_SQL_AND_PAYLOAD"), "RuntimeError")
+
+    def test_os_reservation_failure_keeps_unknown_and_only_numeric_errno(self):
+        self.assert_reservation_failure(OSError(28, "PRIVATE_FILE_AND_PAYLOAD"), "OSError", os_errno=28)
+
+    def test_reservation_exception_types_use_real_classes_and_reject_hostile_attributes(self):
+        for error, expected in ((sqlite3.IntegrityError("PRIVATE"), "IntegrityError"),
+                                (sqlite3.DatabaseError("PRIVATE"), "DatabaseError"),
+                                (ValueError("PRIVATE"), "OtherError"),
+                                (type("OperationalError", (ValueError,), {})("PRIVATE"), "OtherError")):
+            with self.subTest(expected=expected):
+                value = provider._reservation_diagnostics(error, "safe-call", 1033)
+                self.assertEqual(value["exception_type"], expected)
+                self.assertNotIn("PRIVATE", json.dumps(value))
+        bad = sqlite3.OperationalError("PRIVATE")
+        for value in (True, "PRIVATE", -1, 65536):
+            bad.sqlite_errorcode = value
+            self.assertIsNone(provider._reservation_diagnostics(bad, "safe-call", 1033))
+        class Hostile(sqlite3.OperationalError):
+            @property
+            def sqlite_errorcode(self):
+                raise RuntimeError("PRIVATE_ATTRIBUTE_FAILURE")
+        self.assertIsNone(provider._reservation_diagnostics(Hostile("PRIVATE"), "safe-call", 1033))
+
+    def test_reservation_diagnostic_validator_is_exact_bounded_and_detached(self):
+        value = {"phase": "reservation", "exception_type": "RuntimeError", "sqlite_errorcode": None,
+            "os_errno": None, "call_id": "safe-call_1", "reserve_milli_cny": 1033}
+        projected = provider.validated_reservation_diagnostics(value)
+        self.assertEqual(projected, value)
+        self.assertIsNot(projected, value)
+        value["call_id"] = "changed"
+        self.assertEqual(projected["call_id"], "safe-call_1")
+        for change in ({"phase": "PRIVATE"}, {"exception_type": "PRIVATE"},
+                       {"call_id": "../PRIVATE"}, {"call_id": 1}, {"reserve_milli_cny": True},
+                       {"reserve_milli_cny": -1}, {"reserve_milli_cny": 10**9 + 1},
+                       {"sqlite_errorcode": True}, {"sqlite_errorcode": "PRIVATE"},
+                       {"sqlite_errorcode": 65536}, {"os_errno": -1}, {"os_errno": []},
+                       {"raw_message": "PRIVATE_SQL_AND_PAYLOAD"}):
+            with self.subTest(change=change):
+                self.assertIsNone(provider.validated_reservation_diagnostics({**projected, **change}))
+        self.assertIsNone(provider.validated_reservation_diagnostics({"phase": "reservation"}))
+        for reserve in (0, 10**9):
+            self.assertIsNotNone(provider.validated_reservation_diagnostics({**projected,
+                "reserve_milli_cny": reserve, "sqlite_errorcode": 65535, "os_errno": 0}))
+
+    def test_optional_reservation_diagnostic_failure_never_masks_unknown_stop(self):
+        call_id = self.intent()
+        with mock.patch.object(public_product, "_reserve_payload", side_effect=RuntimeError("PRIVATE")), \
+                mock.patch.object(provider, "validated_reservation_diagnostics", side_effect=RuntimeError("PRIVATE")), \
+                mock.patch.object(ark_media, "_client") as client:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                provider.complete(self.body, call_id=call_id, transport=self.transport())
+        self.assertEqual(caught.exception.code, "COVER_AGENT_RESERVATION_UNCONFIRMED")
+        self.assertTrue(caught.exception.outcome_unknown)
+        self.assertIsNone(caught.exception.reservation_diagnostics)
+        self.assertIsNone(db.fetchone("SELECT id FROM public_trial_calls WHERE id=?", (call_id,)))
+        client.assert_not_called()
+        self.assertFalse(self.requests)
+
+    def test_known_trial_reservation_stop_is_not_reclassified(self):
+        def stopped(*_args, **_kwargs):
+            raise public_product.TrialProviderStopped("FIXED_POLICY_STOP")
+        with mock.patch.object(public_product, "_reserve_payload", side_effect=stopped) as reserve:
+            with self.assertRaises(public_product.TrialProviderStopped) as caught:
+                provider.complete(self.body, call_id=self.intent(), transport=self.transport())
+        self.assertIs(type(caught.exception), public_product.TrialProviderStopped)
+        self.assertEqual(str(caught.exception), "FIXED_POLICY_STOP")
+        self.assertFalse(hasattr(caught.exception, "reservation_diagnostics"))
+        self.assertEqual(reserve.call_count, 1)
+        self.assertFalse(self.requests)
+
+    def test_slot_reservation_stop_keeps_known_unreconciled_semantics(self):
+        with mock.patch.object(public_product, "_reserve_payload", side_effect=public_product._SlotsBusy()):
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                provider.complete(self.body, call_id=self.intent(), transport=self.transport())
+        self.assertEqual(caught.exception.code, "MODEL_ADMISSION_UNRECONCILED")
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertIsNone(caught.exception.reservation_diagnostics)
+        self.assertFalse(self.requests)
 
     def test_known_http_denial_does_not_fake_usage_or_retry(self):
         call_id = self.intent()

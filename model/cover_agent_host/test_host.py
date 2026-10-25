@@ -36,6 +36,7 @@ def provider_admission():
     names = {"MODEL", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "_NAME", "_KEYS",
              "_INPUT_DIAGNOSTIC_KEYS", "CoverAgentProviderError", "validated_input_diagnostics",
              "_OUTPUT_DIAGNOSTIC_KEYS", "_OUTPUT_FINISH_REASONS", "validated_output_diagnostics",
+             "_RESERVATION_DIAGNOSTIC_KEYS", "_RESERVATION_EXCEPTION_TYPES", "validated_reservation_diagnostics",
              "_measure_input", "_invalid", "_image_tokens", "_validate_and_measure_payload",
              "_check_request_size", "prepare_payload", "admit_payload"}
     source = PROJECT / "model/cover_agent_provider.py"

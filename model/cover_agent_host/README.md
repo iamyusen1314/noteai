@@ -270,3 +270,16 @@ diagnostic failures cannot replace the original error; supplier UNKNOWN retains
 its existing strict checkpoint/no-replay path. The 131072 input bound and single
 summary restriction are unchanged. A later real attempt must establish actual
 design quality and successful product delivery independently of these fixtures.
+
+An unexpected reservation exception can occur before the adapter enters its HTTP
+transport. The R7 receipt retained that conservative UNKNOWN, but did not retain
+the local exception type; its 11 physical calls all returned, while the next text
+intent has no physical row. Repeating the same reservation on an isolated local
+database copy succeeded, so the original cause is still unproven.
+
+For future failures, the Python receipt also keeps `reservation_failure`: a fixed
+reservation phase, an allowlisted exception category, bounded SQLite/OS numeric
+codes, the original call ID and reserve amount. It excludes exception messages,
+SQL, credentials and model content. This optional diagnostic never replaces the
+original exception, clears UNKNOWN, releases a reservation early, or authorizes a
+retry. Existing deadline recovery remains responsible for any eventual release.

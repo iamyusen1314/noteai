@@ -156,6 +156,162 @@ console.log('PASS actual helpers: comments/strings, unknown fonts, exact authore
         self.assertIn("PASS actual helpers", result.stdout)
 
 
+class ReservationDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.job_id = str(uuid.uuid4())
+        self.directory = self.root / self.job_id
+        self.directory.mkdir(mode=0o700)
+        self.path = self.directory / "host-state/provider-reservation-diagnostic.json"
+        self.diagnostic = {"phase": "reservation", "exception_type": "OperationalError",
+            "sqlite_errorcode": 5, "os_errno": None, "call_id": str(uuid.uuid4()),
+            "reserve_milli_cny": 2753}
+
+    def raw_file(self, envelope, *, mode=0o600, extra_bytes=0):
+        self.path.parent.mkdir(mode=0o700, exist_ok=True)
+        self.path.write_bytes(json.dumps(envelope).encode() + b" " * extra_bytes)
+        self.path.chmod(mode)
+
+    def test_original_unknown_error_and_safe_diagnostic_survive_cleanup_exactly(self):
+        hooks = mock.Mock()
+        bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory, sources=[], hooks=hooks)
+        original = provider.CoverAgentProviderError("COVER_AGENT_RESERVATION_UNCONFIRMED",
+            outcome_unknown=True, call_id=self.diagnostic["call_id"],
+            reservation_diagnostics=self.diagnostic)
+        with mock.patch.object(runtime.public_product, "assert_result_known"), \
+                mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(provider, "complete", side_effect=original) as complete:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                bridge.model({"messages": [{"role": "user", "content": "synthetic reservation fixture"}]})
+        self.assertIs(caught.exception, original)
+        self.assertTrue(original.outcome_unknown)
+        self.assertEqual(original.call_id, self.diagnostic["call_id"])
+        complete.assert_called_once()
+        hooks.before_call.assert_called_once()
+        self.assertEqual(bridge.ordinal, 1)
+        self.assertEqual(bridge.costs, [])
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(runtime._read_reservation_diagnostic(self.directory, self.job_id), self.diagnostic)
+        pending = {"ordinal": 11, "body_sha256": "a" * 64, "label": "primary"}
+        (self.path.parent / "host-checkpoint.json").write_text(json.dumps({
+            "session_id": "synthetic-session", "status": "UNKNOWN", "model_requests": 11,
+            "pending_request": pending, "encrypted_content": "PRIVATE_CIPHER_SENTINEL",
+            "raw_exception": "PRIVATE_SQL_SENTINEL"}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        self.assertFalse(self.directory.exists())
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual(receipt["reservation_failure"], self.diagnostic)
+        self.assertEqual((receipt["status"], receipt["model_requests"], receipt["pending_request"]),
+                         ("UNKNOWN", 11, pending))
+        self.assertNotIn("PRIVATE_", json.dumps(receipt))
+
+    def test_optional_write_failure_does_not_mask_or_repeat_original_error(self):
+        hooks = mock.Mock()
+        bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory, sources=[], hooks=hooks)
+        original = provider.CoverAgentProviderError("COVER_AGENT_RESERVATION_UNCONFIRMED",
+            outcome_unknown=True, call_id=self.diagnostic["call_id"],
+            reservation_diagnostics=self.diagnostic)
+        with mock.patch.object(runtime.public_product, "assert_result_known"), \
+                mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(provider, "complete", side_effect=original) as complete, \
+                mock.patch.object(runtime, "_write_reservation_diagnostic", side_effect=OSError("PRIVATE_SQL_SENTINEL")), \
+                self.assertLogs(level="WARNING") as logged:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                bridge.model({"messages": [{"role": "user", "content": "synthetic reservation fixture"}]})
+        self.assertIs(caught.exception, original)
+        self.assertTrue(caught.exception.outcome_unknown)
+        complete.assert_called_once()
+        hooks.before_call.assert_called_once()
+        self.assertEqual(bridge.costs, [])
+        self.assertNotIn("PRIVATE_SQL_SENTINEL", " ".join(logged.output))
+
+    def test_first_diagnostic_wins_without_overwriting_original_bytes(self):
+        runtime._write_reservation_diagnostic(self.directory, self.job_id, self.diagnostic)
+        original = self.path.read_bytes()
+        replacement = {**self.diagnostic, "exception_type": "IntegrityError", "sqlite_errorcode": 2067,
+                       "reserve_milli_cny": 1033}
+        with self.assertRaises(FileExistsError):
+            runtime._write_reservation_diagnostic(self.directory, self.job_id, replacement)
+        self.assertEqual(self.path.read_bytes(), original)
+        self.assertEqual(runtime._read_reservation_diagnostic(self.directory, self.job_id), self.diagnostic)
+
+    def test_reader_and_provider_projection_reject_forged_fields_and_numeric_types(self):
+        bad_values = [None, [], "PRIVATE_SQL_SENTINEL",
+            {**self.diagnostic, "raw_exception": "PRIVATE_SQL_SENTINEL"},
+            {**self.diagnostic, "phase": "transport"},
+            {**self.diagnostic, "exception_type": "PRIVATE_SQL_SENTINEL"},
+            {**self.diagnostic, "exception_type": []}]
+        bad_values.extend({**self.diagnostic, key: value}
+                          for key in ("sqlite_errorcode", "os_errno")
+                          for value in (True, 1.0, -1, 65536, "5"))
+        bad_values.extend({**self.diagnostic, "reserve_milli_cny": value}
+                          for value in (True, 1.0, -1, 1000000001, "2753"))
+        bad_values.extend([{**self.diagnostic, "call_id": "private\nSQL"},
+                           {**self.diagnostic, "call_id": ""},
+                           {key: value for key, value in self.diagnostic.items() if key != "phase"}])
+        for diagnostic in bad_values:
+            with self.subTest(diagnostic=diagnostic):
+                self.assertIsNone(provider.validated_reservation_diagnostics(diagnostic))
+                self.raw_file({"job_id": self.job_id, "diagnostic": diagnostic})
+                self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+
+    def test_reader_rejects_wrong_envelope_or_invalid_json(self):
+        for envelope in ({"job_id": str(uuid.uuid4()), "diagnostic": self.diagnostic},
+                         {"job_id": self.job_id, "diagnostic": self.diagnostic, "raw": "PRIVATE_SQL"},
+                         {"diagnostic": self.diagnostic}, []):
+            with self.subTest(envelope=envelope):
+                self.raw_file(envelope)
+                self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+        self.path.write_text("not-json PRIVATE_SQL")
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+
+    def test_reader_rejects_symlink_hardlink_directory_and_oversize(self):
+        self.raw_file({"job_id": self.job_id, "diagnostic": self.diagnostic})
+        target = self.root / "synthetic-target.json"
+        self.path.rename(target)
+        self.path.symlink_to(target)
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+        self.path.unlink()
+        os.link(target, self.path)
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+        self.path.unlink()
+        self.path.mkdir()
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+        self.path.rmdir()
+        self.raw_file({"job_id": self.job_id, "diagnostic": self.diagnostic}, extra_bytes=4097)
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+
+    def test_reader_requires_owner_and_private_mode_but_accepts_frozen_original(self):
+        envelope = {"job_id": self.job_id, "diagnostic": self.diagnostic}
+        self.raw_file(envelope, mode=0o400)
+        self.assertEqual(runtime._read_reservation_diagnostic(self.directory, self.job_id), self.diagnostic)
+        with mock.patch.object(runtime.os, "getuid", return_value=self.path.stat().st_uid + 1):
+            self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+        self.path.chmod(0o644)
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+
+    def test_deep_bounded_json_is_discarded_without_losing_unknown_cleanup_receipt(self):
+        self.path.parent.mkdir(mode=0o700)
+        deep = b"[" * 1500 + b"0" + b"]" * 1500
+        self.assertEqual(len(deep), 3001)
+        self.path.write_bytes(deep)
+        self.path.chmod(0o600)
+        self.assertIsNone(runtime._read_reservation_diagnostic(self.directory, self.job_id))
+        pending = {"ordinal": 11, "body_sha256": "b" * 64, "label": "primary"}
+        (self.path.parent / "host-checkpoint.json").write_text(json.dumps({
+            "status": "UNKNOWN", "model_requests": 11, "pending_request": pending}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        self.assertFalse(self.directory.exists())
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual((receipt["status"], receipt["model_requests"], receipt["pending_request"]),
+                         ("UNKNOWN", 11, pending))
+        self.assertNotIn("reservation_failure", receipt)
+
+
 class InputRejectionDiagnosticTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

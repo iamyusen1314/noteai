@@ -20,6 +20,7 @@ import io
 import json
 import math
 import re
+import sqlite3
 
 from PIL import Image
 
@@ -48,17 +49,65 @@ _INPUT_DIAGNOSTIC_KEYS = frozenset({"text_bytes", "image_count", "image_tokens",
 _OUTPUT_DIAGNOSTIC_KEYS = frozenset({"finish_reason", "completion_tokens",
     "max_completion_tokens", "reasoning_tokens"})
 _OUTPUT_FINISH_REASONS = frozenset({"length", "content_filter", "stop", "tool_calls", "other", "missing"})
+_RESERVATION_DIAGNOSTIC_KEYS = frozenset({"phase", "exception_type", "sqlite_errorcode",
+    "os_errno", "call_id", "reserve_milli_cny"})
+_RESERVATION_EXCEPTION_TYPES = frozenset({"OperationalError", "IntegrityError", "DatabaseError",
+    "OSError", "RuntimeError", "OtherError"})
 
 
 class CoverAgentProviderError(public_product.TrialProviderStopped):
     def __init__(self, code, *, outcome_unknown=False, call_id=None, input_diagnostics=None,
-                 output_diagnostics=None):
+                 output_diagnostics=None, reservation_diagnostics=None):
         self.code = code
         self.outcome_unknown = bool(outcome_unknown)
         self.call_id = call_id
         self.input_diagnostics = validated_input_diagnostics(input_diagnostics)
         self.output_diagnostics = validated_output_diagnostics(output_diagnostics)
+        self.reservation_diagnostics = None
+        try:
+            self.reservation_diagnostics = validated_reservation_diagnostics(reservation_diagnostics)
+        except Exception:
+            pass  # Optional diagnostics cannot replace the original provider stop.
         super().__init__(code)
+
+
+def validated_reservation_diagnostics(value):
+    """A fixed, content-free projection of a pre-transport reservation failure."""
+    if (type(value) is not dict or any(type(key) is not str for key in value)
+            or set(value) != _RESERVATION_DIAGNOSTIC_KEYS
+            or type(value["phase"]) is not str or value["phase"] != "reservation"
+            or type(value["exception_type"]) is not str
+            or value["exception_type"] not in _RESERVATION_EXCEPTION_TYPES
+            or type(value["call_id"]) is not str or not _NAME.fullmatch(value["call_id"])
+            or type(value["reserve_milli_cny"]) is not int
+            or not 0 <= value["reserve_milli_cny"] <= 10**9
+            or any(item is not None and (type(item) is not int or not 0 <= item <= 65535)
+                   for item in (value["sqlite_errorcode"], value["os_errno"]))):
+        return None
+    return dict(value)
+
+
+def _reservation_diagnostics(error, call_id, reserve):
+    try:
+        if isinstance(error, sqlite3.OperationalError):
+            kind = "OperationalError"
+        elif isinstance(error, sqlite3.IntegrityError):
+            kind = "IntegrityError"
+        elif isinstance(error, sqlite3.DatabaseError):
+            kind = "DatabaseError"
+        elif isinstance(error, OSError):
+            kind = "OSError"
+        elif isinstance(error, RuntimeError):
+            kind = "RuntimeError"
+        else:
+            kind = "OtherError"
+        return validated_reservation_diagnostics({"phase": "reservation", "exception_type": kind,
+            "sqlite_errorcode": getattr(error, "sqlite_errorcode", None)
+                if isinstance(error, sqlite3.DatabaseError) else None,
+            "os_errno": getattr(error, "errno", None) if isinstance(error, OSError) else None,
+            "call_id": call_id, "reserve_milli_cny": reserve})
+    except Exception:
+        return None  # Reading a hostile exception attribute must not mask its original stop.
 
 
 def validated_input_diagnostics(value):
@@ -382,9 +431,10 @@ def complete(payload: dict, *, call_id: str, transport=None) -> dict:
             raise CoverAgentProviderError("MODEL_ADMISSION_UNRECONCILED", call_id=call_id) from None
         except public_product.TrialProviderStopped:
             raise
-        except Exception:
+        except Exception as error:
             raise CoverAgentProviderError("COVER_AGENT_RESERVATION_UNCONFIRMED",
-                outcome_unknown=True, call_id=call_id) from None
+                outcome_unknown=True, call_id=call_id,
+                reservation_diagnostics=_reservation_diagnostics(error, call_id, reserve)) from None
         try:
             with ark_media._client(transport=transport) as client:
                 diagnostic.phase = "transport"
