@@ -1,6 +1,7 @@
 """Mock-transport Seedream wire/ledger tests; no real model invocation."""
 import base64
 import contextlib
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -157,6 +158,122 @@ class CoverSeedreamTests(unittest.TestCase):
         self.assertIsNone(self.records[-1]["billed_images"])
         self.assertIsNone(self.records[-1]["actual_cost"])
         self.assertEqual(self.response.call_args.args, (self.call_id, 403))
+        self.assertEqual(failure.exception.response_diagnostics["provider_code"], "AccessDenied")
+
+    def test_http_failure_retains_only_whitelisted_response_diagnostics_after_accounting(self):
+        sentinel = "PRIVATE-prompt-token-/private/path"
+        body = json.dumps({"error": {"code": "InvalidParameter.InvalidValue", "param": "size",
+            "message": sentinel, "detail": sentinel, "innererror": {"token": sentinel}},
+            "prompt": sentinel}).encode()
+        with self.assertRaises(seedream.SeedreamError) as failure:
+            self.generate(handler=lambda request: httpx.Response(400, content=body,
+                headers={"x-request-id": "fixture-error-400", "private-header": sentinel}))
+        error = failure.exception
+        self.assertEqual((error.code, error.outcome_unknown, error.call_id),
+                         ("COVER_SEEDREAM_HTTP_400", False, self.call_id))
+        self.assertEqual(error.response_diagnostics, {"http_status": 400, "body_kind": "json_error",
+            "provider_code": "InvalidParameter.InvalidValue", "parameter": "size",
+            "provider_request_id": "fixture-error-400", "response_hash": hashlib.sha256(body).hexdigest()})
+        self.assertNotIn(sentinel, json.dumps(error.response_diagnostics) + str(error))
+        self.assertEqual([event[0] for event in self.events],
+            ["admission", "reserve", "before", "dispatch", "ledger", "response"])
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(len(self.records), 1)
+        self.assertEqual(self.records[0]["status"], "failed")
+        self.assertNotIn("response_diagnostics", self.records[0])
+        self.assertIsNone(self.records[0]["actual_cost"])
+        self.assertIsNone(self.records[0]["billed_images"])
+        self.assertEqual(self.records[0]["cost_status"], "public_estimate")
+        self.response.assert_called_once_with(self.call_id, 400)
+
+    def test_http_failure_unknown_malformed_deep_and_large_bodies_degrade_without_content(self):
+        sentinel = "PRIVATE-prompt-token-/private/path"
+        valid = b'{"error":{"code":"MissingParameter","param":"image"}}'
+        cases = [(json.dumps({"error": {"code": sentinel, "param": sentinel, "message": sentinel}}).encode(),
+                  "json_error", "OTHER", None),
+                 (b'{"error":[]}', "json_other", "OTHER", None),
+                 (b'[]', "json_other", "OTHER", None),
+                 (b'<html>' + sentinel.encode(), "non_json", "OTHER", None),
+                 (b'[' * 1500 + b'0' + b']' * 1500, "non_json", "OTHER", None),
+                 (valid + b' ' * (seedream.MAX_ERROR_DIAGNOSTIC_BYTES - len(valid)),
+                  "json_error", "MissingParameter", "image"),
+                 (valid + b' ' * (seedream.MAX_ERROR_DIAGNOSTIC_BYTES - len(valid) + 1),
+                  "too_large", "OTHER", None)]
+        for body, kind, code, parameter in cases:
+            with self.subTest(kind=kind, size=len(body)):
+                self.requests.clear()
+                with self.assertRaises(seedream.SeedreamError) as failure:
+                    self.generate(handler=lambda request: httpx.Response(400, content=body,
+                        headers={"x-request-id": "/not/an/id"}))
+                diagnostic = failure.exception.response_diagnostics
+                self.assertEqual((diagnostic["body_kind"], diagnostic["provider_code"], diagnostic["parameter"]),
+                                 (kind, code, parameter))
+                self.assertIsNone(diagnostic["provider_request_id"])
+                self.assertEqual(diagnostic["response_hash"], hashlib.sha256(body).hexdigest())
+                self.assertNotIn(sentinel, json.dumps(diagnostic))
+                self.assertEqual(failure.exception.code, "COVER_SEEDREAM_HTTP_400")
+                self.assertFalse(failure.exception.outcome_unknown)
+                self.assertEqual(len(self.requests), 1)
+
+    def test_http_failure_diagnostics_validator_is_exact_bounded_and_detached(self):
+        value = {"http_status": 400, "body_kind": "json_error", "provider_code": "OTHER",
+            "parameter": None, "provider_request_id": None, "response_hash": "a" * 64}
+        validated = seedream.validated_http_failure_diagnostics(value)
+        self.assertEqual(validated, value)
+        self.assertIsNot(validated, value)
+        validated["provider_code"] = "AccessDenied"
+        self.assertEqual(value["provider_code"], "OTHER")
+        cases = [None, [], {**value, "message": "PRIVATE"},
+            {key: item for key, item in value.items() if key != "parameter"}]
+        for key, values in {"http_status": (True, 200, 99, 600, "400"),
+                "body_kind": ("PRIVATE", None, []), "provider_code": ("PRIVATE", None, []),
+                "parameter": ("/private/path", False, []),
+                "provider_request_id": ("/private/path", "x" * 161, False, []),
+                "response_hash": ("A" * 64, "a" * 63, None, [])}.items():
+            cases.extend({**value, key: item} for item in values)
+        for invalid in cases:
+            with self.subTest(invalid_type=type(invalid).__name__):
+                self.assertIsNone(seedream.validated_http_failure_diagnostics(invalid))
+                self.assertIsNone(seedream.SeedreamError("original", response_diagnostics=invalid).response_diagnostics)
+
+    def test_http_failure_codes_and_wire_parameters_are_exact_allowlists(self):
+        for code in seedream._HTTP_FAILURE_PROVIDER_CODES:
+            for parameter in seedream._HTTP_FAILURE_PARAMETERS:
+                with self.subTest(code=code, parameter=parameter):
+                    body = json.dumps({"error": {"code": code, "param": parameter}}).encode()
+                    diagnostic = seedream._http_failure_diagnostics(400, body, None, "a" * 64)
+                    self.assertEqual(diagnostic["provider_code"], code)
+                    self.assertEqual(diagnostic["parameter"], parameter)
+                    self.assertEqual(seedream.validated_http_failure_diagnostics(diagnostic), diagnostic)
+
+    def test_optional_diagnostic_failures_do_not_replace_http_failure(self):
+        for name in ("_http_failure_diagnostics", "validated_http_failure_diagnostics"):
+            with self.subTest(name=name), mock.patch.object(seedream, name,
+                    side_effect=RuntimeError("PRIVATE-diagnostic-failure")):
+                self.requests.clear()
+                with self.assertRaises(seedream.SeedreamError) as failure:
+                    self.generate(handler=lambda request: httpx.Response(400, content=b'{}'))
+                self.assertEqual(failure.exception.code, "COVER_SEEDREAM_HTTP_400")
+                self.assertFalse(failure.exception.outcome_unknown)
+                self.assertIsNone(failure.exception.response_diagnostics)
+                self.assertEqual(len(self.requests), 1)
+
+    def test_http_failure_accounting_errors_still_preserve_unknown_before_diagnostics(self):
+        for stage in ("image_ledger", "public_terminal"):
+            with self.subTest(stage=stage):
+                self.requests.clear()
+                after = mock.Mock(side_effect=RuntimeError("PRIVATE-ledger-failure")) if stage == "image_ledger" else self.after
+                response = mock.patch("public_product._record_response", side_effect=RuntimeError("PRIVATE-terminal-failure"))
+                with (response if stage == "public_terminal" else contextlib.nullcontext()), \
+                        mock.patch.object(seedream, "_http_failure_diagnostics") as diagnostic:
+                    with self.assertRaises(seedream.SeedreamError) as failure:
+                        self.generate(after=after, handler=lambda request: httpx.Response(400,
+                            json={"error": {"code": "InvalidParameter", "param": "image"}}))
+                self.assertTrue(failure.exception.outcome_unknown)
+                self.assertEqual(failure.exception.code, "COVER_SEEDREAM_OUTCOME_UNKNOWN")
+                self.assertIsNone(failure.exception.response_diagnostics)
+                self.assertEqual(len(self.requests), 1)
+                diagnostic.assert_not_called()
 
     def test_read_timeout_is_unknown_and_original_call_is_not_reissued(self):
         def fail(request):
@@ -167,6 +284,7 @@ class CoverSeedreamTests(unittest.TestCase):
         self.assertEqual(len(self.requests), 1)
         self.assertEqual(self.records[-1]["status"], "unknown")
         self.assertTrue(self.response.call_args.kwargs["unknown"])
+        self.assertIsNone(failure.exception.response_diagnostics)
 
     def test_ledger_ack_failure_stops_delivery_and_keeps_unknown(self):
         with self.assertRaises(seedream.SeedreamError) as failure:

@@ -300,3 +300,19 @@ private sidecar survives normal cleanup independently of the last checkpoint;
 it does not rewrite that checkpoint or alter the original business error, billing,
 UNKNOWN or retry behavior. Malformed, linked, oversized or nonprivate sidecars
 are discarded, and optional diagnostic I/O cannot mask the original failure.
+
+The R9 image request returned HTTP 400. Its original ledger retained the request
+ID and response hash, but discarded the supplier error body, so that historical
+400 cannot be attributed to parameters, content review or another cause. It was
+not retried; its image cost remains unknown and the customer's 8 credits were
+released. No new cover or aesthetic acceptance was produced.
+
+Future non-200 image responses retain a separate `seedream_http_failure` in the
+existing private cleanup receipt. Only a small, bounded JSON body is parsed, and
+the projection contains the HTTP status, fixed body kind, an allowlisted supplier
+code (otherwise `OTHER`), an allowlisted parameter name, request ID and response
+hash. Messages, request values, inner errors, headers and raw bodies are never
+retained. The first-write-only sidecar uses the same private file validation as
+other diagnostics. Optional parsing or file I/O cannot change the original HTTP
+failure, UNKNOWN/accounting rules, image cost, request count or no-retry boundary.
+This adds no database column or migration, and does not recover the R9 body.

@@ -394,6 +394,125 @@ class HostResultDiagnosticTests(unittest.TestCase):
         self.assertFalse((self.root / "receipts" / (self.job_id + ".json")).exists())
 
 
+class SeedreamDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.job_id = str(uuid.uuid4())
+        self.directory = self.root / self.job_id
+        self.directory.mkdir(mode=0o700)
+        self.path = self.directory / "host-state/seedream-http-failure.json"
+        self.diagnostic = {"http_status": 400, "body_kind": "json_error",
+            "provider_code": "InvalidParameter", "parameter": "size",
+            "provider_request_id": "synthetic-image-request", "response_hash": "a" * 64}
+
+    def bridge(self, **kwargs):
+        payload = synthetic_png((200, 200), "#557788")
+        source = {"payload": payload, "sha256": hashlib.sha256(payload).hexdigest()}
+        bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory,
+            sources=[source], hooks=mock.Mock(), **kwargs)
+        bridge.seen_images.add(source["sha256"])
+        return bridge
+
+    def cleanup_receipt(self):
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        self.assertFalse(self.directory.exists())
+        return json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+
+    def test_actual_image_adapter_failure_survives_bridge_cleanup_without_raw_response(self):
+        requests = []
+        def transport(request):
+            requests.append(request)
+            return httpx.Response(400, json={"error": {"code": "InvalidParameter", "param": "size",
+                "message": "PRIVATE_PROMPT_TOKEN_PATH", "innererror": "PRIVATE_INTERNAL"}},
+                headers={"x-request-id": "synthetic-image-request"})
+        bridge = self.bridge(image_transport=httpx.MockTransport(transport))
+        with mock.patch.object(runtime.ark_media, "_headers", return_value={}), \
+                mock.patch.object(runtime.public_product, "assert_result_known"), \
+                mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(runtime.public_product, "_reserve_payload"), \
+                mock.patch.object(runtime.public_product, "mark_model_dispatched"), \
+                mock.patch.object(runtime.public_product, "_record_response") as terminal:
+            with self.assertRaises(runtime.cover_seedream.SeedreamError) as caught:
+                bridge.tool({"name": "cover_seedream", "arguments": {"prompt": "synthetic concept"}})
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(caught.exception.code, "COVER_SEEDREAM_HTTP_400")
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual(caught.exception.call_id, cover_runtime.physical_call_id(self.job_id, "image"))
+        terminal.assert_called_once_with(caught.exception.call_id, 400)
+        record = bridge.hooks.on_call.call_args.args[0]
+        self.assertIsNone(record["actual_cost"])
+        self.assertIsNone(record["billed_images"])
+        self.assertEqual(record["status"], "failed")
+        self.assertEqual(bridge.costs, [])
+        self.assertIsNone(bridge.concept_hash)
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        diagnostic = caught.exception.response_diagnostics
+        receipt = self.cleanup_receipt()
+        self.assertEqual(receipt["seedream_http_failure"], diagnostic)
+        self.assertNotIn("PRIVATE_", json.dumps(receipt))
+
+    def test_optional_write_failure_preserves_original_exception_and_never_repeats(self):
+        bridge = self.bridge()
+        original = runtime.cover_seedream.SeedreamError("COVER_SEEDREAM_HTTP_400",
+            call_id=cover_runtime.physical_call_id(self.job_id, "image"),
+            response_diagnostics=self.diagnostic)
+        with mock.patch.object(runtime.cover_seedream, "generate_background", side_effect=original) as generate, \
+                mock.patch.object(runtime, "_write_seedream_diagnostic", side_effect=OSError("PRIVATE_IO")), \
+                self.assertLogs(level="WARNING") as logs:
+            with self.assertRaises(runtime.cover_seedream.SeedreamError) as caught:
+                bridge.tool({"name": "cover_seedream", "arguments": {"prompt": "synthetic concept"}})
+        self.assertIs(caught.exception, original)
+        generate.assert_called_once()
+        self.assertIn("cover_seedream_diagnostic_unavailable", logs.output[0])
+        self.assertNotIn("PRIVATE_", "".join(logs.output))
+        self.assertFalse(self.path.exists())
+
+    def test_first_diagnostic_is_immutable_and_does_not_rewrite_original_host_unknown(self):
+        runtime._write_seedream_diagnostic(self.directory, self.job_id, self.diagnostic)
+        first = self.path.read_bytes()
+        with self.assertRaises(FileExistsError):
+            runtime._write_seedream_diagnostic(self.directory, self.job_id,
+                {**self.diagnostic, "provider_code": "OTHER"})
+        self.assertEqual(first, self.path.read_bytes())
+        (self.path.parent / "host-checkpoint.json").write_text(json.dumps({
+            "status": "UNKNOWN", "model_requests": 4, "pending_request": None}))
+        receipt = self.cleanup_receipt()
+        self.assertEqual((receipt["status"], receipt["model_requests"]), ("UNKNOWN", 4))
+        self.assertEqual(receipt["seedream_http_failure"], self.diagnostic)
+
+    def test_reader_rejects_untrusted_files_and_cleanup_can_discard_deep_json(self):
+        runtime._write_seedream_diagnostic(self.directory, self.job_id, self.diagnostic)
+        original = self.path.read_bytes()
+        self.path.chmod(0o644)
+        self.assertIsNone(runtime._read_seedream_diagnostic(self.directory, self.job_id))
+        self.path.chmod(0o600)
+        alias = self.root / "alias"
+        os.link(self.path, alias)
+        self.assertIsNone(runtime._read_seedream_diagnostic(self.directory, self.job_id))
+        alias.unlink()
+        self.path.unlink()
+        alias.write_bytes(original)
+        self.path.symlink_to(alias)
+        self.assertIsNone(runtime._read_seedream_diagnostic(self.directory, self.job_id))
+        self.path.unlink()
+        for invalid in ({"job_id": str(uuid.uuid4()), "diagnostic": self.diagnostic},
+                        {"job_id": self.job_id, "diagnostic": {**self.diagnostic, "message": "PRIVATE"}},
+                        {"job_id": self.job_id, "diagnostic": {**self.diagnostic, "provider_code": "PRIVATE"}}):
+            self.path.write_text(json.dumps(invalid)); self.path.chmod(0o600)
+            self.assertIsNone(runtime._read_seedream_diagnostic(self.directory, self.job_id))
+        self.path.write_bytes(b" " * 4097)
+        self.assertIsNone(runtime._read_seedream_diagnostic(self.directory, self.job_id))
+        self.path.write_bytes(b"[" * 1500 + b"0" + b"]" * 1500)
+        (self.path.parent / "host-checkpoint.json").write_text(json.dumps({
+            "status": "UNKNOWN", "model_requests": 4, "pending_request": None}))
+        receipt = self.cleanup_receipt()
+        self.assertEqual(receipt["status"], "UNKNOWN")
+        self.assertNotIn("seedream_http_failure", receipt)
+
+
 class InputRejectionDiagnosticTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

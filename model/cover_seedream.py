@@ -24,12 +24,68 @@ URL = ark_media.BASE_URL + "/images/generations"
 PRICE_VERSION = "ark-public-seedream-pro-2026-10-19"
 WIDTH, HEIGHT = cover_renderer.WIDTH, cover_renderer.HEIGHT
 MAX_RESPONSE_BYTES = 24 * 1024 * 1024
+MAX_ERROR_DIAGNOSTIC_BYTES = 16 * 1024
+_HTTP_FAILURE_DIAGNOSTIC_KEYS = frozenset({"http_status", "body_kind", "provider_code",
+    "parameter", "provider_request_id", "response_hash"})
+_HTTP_FAILURE_BODY_KINDS = frozenset({"json_error", "json_other", "non_json", "too_large"})
+_HTTP_FAILURE_PROVIDER_CODES = frozenset({"OTHER", "InvalidParameter",
+    "InvalidParameter.InvalidValue", "InvalidParameter.MissingParameter", "MissingParameter",
+    "InputTextSensitiveContentDetected", "InputImageSensitiveContentDetected",
+    "OutputImageSensitiveContentDetected", "InputTextSensitiveContentDetected.PolicyViolation",
+    "InputImageSensitiveContentDetected.PolicyViolation", "OutputImageSensitiveContentDetected.PolicyViolation",
+    "AccessDenied", "QuotaExceeded"})
+_HTTP_FAILURE_PARAMETERS = frozenset({"model", "prompt", "image", "size", "response_format",
+    "output_format", "watermark"})
 
 
 class SeedreamError(RuntimeError):
-    def __init__(self, code, *, outcome_unknown=False, call_id=None):
+    def __init__(self, code, *, outcome_unknown=False, call_id=None, response_diagnostics=None):
         self.code, self.outcome_unknown, self.call_id = code, bool(outcome_unknown), call_id
+        self.response_diagnostics = None
+        try:
+            self.response_diagnostics = validated_http_failure_diagnostics(response_diagnostics)
+        except Exception:
+            pass  # Optional diagnostics cannot replace the original image-call stop.
         super().__init__(code)
+
+
+def validated_http_failure_diagnostics(value):
+    """Only fixed error categories and existing content-free response identifiers."""
+    if (type(value) is not dict or any(type(key) is not str for key in value)
+            or set(value) != _HTTP_FAILURE_DIAGNOSTIC_KEYS
+            or type(value["http_status"]) is not int
+            or not 100 <= value["http_status"] <= 599 or value["http_status"] == 200
+            or type(value["body_kind"]) is not str or value["body_kind"] not in _HTTP_FAILURE_BODY_KINDS
+            or type(value["provider_code"]) is not str or value["provider_code"] not in _HTTP_FAILURE_PROVIDER_CODES
+            or (value["parameter"] is not None and (type(value["parameter"]) is not str
+                or value["parameter"] not in _HTTP_FAILURE_PARAMETERS))
+            or (value["provider_request_id"] is not None and (type(value["provider_request_id"]) is not str
+                or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", value["provider_request_id"])))
+            or type(value["response_hash"]) is not str
+            or not re.fullmatch(r"[0-9a-f]{64}", value["response_hash"])):
+        return None
+    return dict(value)
+
+
+def _http_failure_diagnostics(status, body, provider_request_id, response_hash):
+    diagnostic = {"http_status": status, "body_kind": "non_json", "provider_code": "OTHER",
+        "parameter": None, "provider_request_id": provider_request_id, "response_hash": response_hash}
+    if len(body) > MAX_ERROR_DIAGNOSTIC_BYTES:
+        diagnostic["body_kind"] = "too_large"
+    else:
+        try:
+            value = json.loads(body)
+            error = value.get("error") if type(value) is dict else None
+            diagnostic["body_kind"] = "json_error" if type(error) is dict else "json_other"
+            if type(error) is dict:
+                code, parameter = error.get("code"), error.get("param")
+                if type(code) is str and code in _HTTP_FAILURE_PROVIDER_CODES:
+                    diagnostic["provider_code"] = code
+                if type(parameter) is str and parameter in _HTTP_FAILURE_PARAMETERS:
+                    diagnostic["parameter"] = parameter
+        except Exception:
+            pass  # Malformed/deep JSON or optional parsing failure stays content-free.
+    return diagnostic
 
 
 def estimate(input_images: int) -> dict:
@@ -112,7 +168,13 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
                 on_call(record)
                 ledger_terminal = True
                 public_product._record_response(call_id, status)
-                raise SeedreamError("COVER_SEEDREAM_HTTP_" + str(status), call_id=call_id)
+                diagnostics = None
+                try:
+                    diagnostics = _http_failure_diagnostics(status, body, provider_request_id, response_hash)
+                except Exception:
+                    pass  # A diagnostic failure cannot turn a known HTTP failure into UNKNOWN.
+                raise SeedreamError("COVER_SEEDREAM_HTTP_" + str(status), call_id=call_id,
+                    response_diagnostics=diagnostics)
             try:
                 data = json.loads(body)
                 if not isinstance(data, dict) or data.get("model") != MODEL:

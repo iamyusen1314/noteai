@@ -36,6 +36,7 @@ _INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
 _OUTPUT_DIAGNOSTIC_FILE = "provider-output-diagnostic.json"
 _RESERVATION_DIAGNOSTIC_FILE = "provider-reservation-diagnostic.json"
 _HOST_RESULT_DIAGNOSTIC_FILE = "bridge-host-result.json"
+_SEEDREAM_DIAGNOSTIC_FILE = "seedream-http-failure.json"
 _HOST_RESULT_STATUSES = {"RUNNING", "AWAITING_MODEL", "FAILED", "UNKNOWN", "COMPLETE"}
 _HOST_RESULT_FS_CODES = {"EACCES", "EEXIST", "ENOENT", "ENOSPC", "EIO", "EMFILE",
     "ENFILE", "EROFS", "EDQUOT", "ENOTDIR", "ENOTEMPTY", "ETIMEDOUT"}
@@ -243,6 +244,44 @@ def _read_host_result_diagnostic(directory, job_id):
         return None
 
 
+def _write_seedream_diagnostic(directory, job_id, diagnostic):
+    diagnostic = cover_seedream.validated_http_failure_diagnostics(diagnostic)
+    if diagnostic is None or str(uuid.UUID(job_id)) != job_id:
+        raise ValueError("invalid Seedream HTTP diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("Seedream diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+    fd = os.open(state / _SEEDREAM_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_seedream_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _SEEDREAM_DIAGNOSTIC_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                    or not 0 < metadata.st_size <= 4096):
+                return None
+            body = stream.read(4097)
+        if len(body) > 4096:
+            return None
+        value = json.loads(body)
+        if (not isinstance(value, dict) or set(value) != {"job_id", "diagnostic"}
+                or value["job_id"] != job_id):
+            return None
+        return cover_seedream.validated_http_failure_diagnostics(value["diagnostic"])
+    except (OSError, ValueError, TypeError, RecursionError):
+        return None
+
+
 def _stop_host(process):
     """Stop this host's POSIX group without signalling the API's own group."""
     def signal_group(value):
@@ -368,6 +407,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "HOST_RESULT_RECORDED"}
         receipt["host_result_failure"] = host_result
+    seedream = _read_seedream_diagnostic(directory, job_id)
+    if seedream is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "SEEDREAM_HTTP_FAILURE_RECORDED"}
+        receipt["seedream_http_failure"] = seedream
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -582,6 +626,12 @@ class Bridge:
         except Exception:
             logging.warning("cover_reservation_diagnostic_unavailable")
 
+    def _record_seedream_rejection(self, diagnostic):
+        try:
+            _write_seedream_diagnostic(self.directory, self.job_id, diagnostic)
+        except Exception:
+            logging.warning("cover_seedream_diagnostic_unavailable")
+
     def preflight(self, payload):
         public_product.assert_result_known()
         decision = provider.admit_payload(self._restore_thinking(payload))
@@ -630,9 +680,14 @@ class Bridge:
             if not {source["sha256"] for source in self.sources}.issubset(self.seen_images):
                 raise cover_runtime.CoverRuntimeError("COVER_AGENT_ORIGINALS_NOT_VIEWED")
             self.hooks.on_stage("image")
-            image, record = cover_seedream.generate_background(source_images=[source["payload"] for source in self.sources],
-                prompt=arguments["prompt"], call_id=cover_runtime.physical_call_id(self.job_id, "image"),
-                before_call=self.hooks.before_call, on_call=self.hooks.on_call, transport=self.image_transport)
+            try:
+                image, record = cover_seedream.generate_background(source_images=[source["payload"] for source in self.sources],
+                    prompt=arguments["prompt"], call_id=cover_runtime.physical_call_id(self.job_id, "image"),
+                    before_call=self.hooks.before_call, on_call=self.hooks.on_call, transport=self.image_transport)
+            except cover_seedream.SeedreamError as error:
+                if error.response_diagnostics is not None:
+                    self._record_seedream_rejection(error.response_diagnostics)
+                raise
             self.concept_record, self.concept_hash = record, artifacts.digest(image)
             self.costs.append(record)
             relative = "reference/composition-reference.png"
