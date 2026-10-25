@@ -35,6 +35,10 @@ ROOT = Path(__file__).resolve().parent
 _INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
 _OUTPUT_DIAGNOSTIC_FILE = "provider-output-diagnostic.json"
 _RESERVATION_DIAGNOSTIC_FILE = "provider-reservation-diagnostic.json"
+_HOST_RESULT_DIAGNOSTIC_FILE = "bridge-host-result.json"
+_HOST_RESULT_STATUSES = {"RUNNING", "AWAITING_MODEL", "FAILED", "UNKNOWN", "COMPLETE"}
+_HOST_RESULT_FS_CODES = {"EACCES", "EEXIST", "ENOENT", "ENOSPC", "EIO", "EMFILE",
+    "ENFILE", "EROFS", "EDQUOT", "ENOTDIR", "ENOTEMPTY", "ETIMEDOUT"}
 _HOST_FAILURE_CODES = {"COMPACTION_CONTINUATION_NOT_ALLOWED", "MODEL_PREFLIGHT_INVALID",
     "MODEL_REQUEST_LIMIT", "MODEL_ROUTE_FORBIDDEN", "MODEL_REQUEST_TOO_LARGE", "MODEL_ID_NOT_LOCKED",
     "PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION", "SUPPLIER_RESULT_UNKNOWN", "MODEL_RESPONSE_INVALID",
@@ -179,6 +183,66 @@ def _read_reservation_diagnostic(directory, job_id):
         return None
 
 
+def _host_result_diagnostic(event):
+    """Content-free projection of the actual host result, not its stale checkpoint."""
+    if (not isinstance(event, dict) or type(event.get("ok")) is not bool
+            or not isinstance(event.get("status"), str) or event["status"] not in _HOST_RESULT_STATUSES
+            or type(event.get("model_requests")) is not int
+            or not 0 <= event["model_requests"] <= 1000000):
+        return None
+    code = event.get("code")
+    if not isinstance(code, str) or code not in _HOST_FAILURE_CODES | _HOST_RESULT_FS_CODES:
+        code = "RENDER_ARTIFACT_MISSING" if event["ok"] else "HOST_LOCAL_FAILURE"
+    return {"ok": event["ok"], "status": event["status"], "code": code,
+        "model_requests": event["model_requests"],
+        "artifact_is_dict": isinstance(event.get("artifact"), dict)}
+
+
+def _write_host_result_diagnostic(directory, job_id, event):
+    diagnostic = _host_result_diagnostic(event)
+    if diagnostic is None or str(uuid.UUID(job_id)) != job_id:
+        raise ValueError("invalid host result diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("host result diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+    fd = os.open(state / _HOST_RESULT_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_host_result_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _HOST_RESULT_DIAGNOSTIC_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                    or not 0 < metadata.st_size <= 4096):
+                return None
+            body = stream.read(4097)
+        if len(body) > 4096:
+            return None
+        value = json.loads(body)
+        if (not isinstance(value, dict) or set(value) != {"job_id", "diagnostic"}
+                or value["job_id"] != job_id):
+            return None
+        diagnostic = value["diagnostic"]
+        keys = {"ok", "status", "code", "model_requests", "artifact_is_dict"}
+        if (not isinstance(diagnostic, dict) or set(diagnostic) != keys
+                or type(diagnostic["artifact_is_dict"]) is not bool):
+            return None
+        projected = _host_result_diagnostic({**diagnostic,
+            "artifact": {} if diagnostic["artifact_is_dict"] else None})
+        return diagnostic if projected == diagnostic else None
+    except (OSError, ValueError, TypeError, RecursionError):
+        return None
+
+
 def _stop_host(process):
     """Stop this host's POSIX group without signalling the API's own group."""
     def signal_group(value):
@@ -299,6 +363,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "RESERVATION_UNCONFIRMED_NO_REPLAY"}
         receipt["reservation_failure"] = reservation
+    host_result = _read_host_result_diagnostic(directory, job_id)
+    if host_result is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "HOST_RESULT_RECORDED"}
+        receipt["host_result_failure"] = host_result
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -649,6 +718,10 @@ class Bridge:
                     send({"type": "tool_response", "id": event["id"], "result": self.tool(event)})
                 elif kind == "result":
                     if event.get("ok") is not True or not isinstance(event.get("artifact"), dict):
+                        try:
+                            _write_host_result_diagnostic(self.directory, self.job_id, event)
+                        except (OSError, ValueError, TypeError, RecursionError):
+                            logging.warning("cover_host_result_diagnostic_unavailable")
                         raise cover_runtime.CoverRuntimeError("COVER_AGENT_DESIGN_INCOMPLETE")
                     return event
                 elif kind == "render_finished":

@@ -312,6 +312,88 @@ class ReservationDiagnosticTests(unittest.TestCase):
         self.assertNotIn("reservation_failure", receipt)
 
 
+class HostResultDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.job_id = str(uuid.uuid4())
+        self.directory = self.root / self.job_id
+        self.directory.mkdir(mode=0o700)
+        self.path = self.directory / "host-state/bridge-host-result.json"
+        self.event = {"type": "result", "ok": False, "status": "FAILED", "code": "ENOENT",
+            "model_requests": 0, "artifact": None, "detail": "PRIVATE_PATH_SENTINEL",
+            "context": {"encrypted_content": "PRIVATE_CIPHER_SENTINEL"}}
+
+    def run_failed_bridge(self, event):
+        process = mock.Mock(stdin=io.BytesIO(), stdout=io.BytesIO(json.dumps(event).encode() + b"\n"))
+        bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory, sources=[], hooks=mock.Mock())
+        with mock.patch.object(runtime.subprocess, "Popen", return_value=process), \
+                mock.patch.object(runtime, "_stop_host"), \
+                mock.patch.object(runtime.public_product, "assert_result_known"), \
+                mock.patch.object(provider, "complete", side_effect=AssertionError("no supplier")) as supplier:
+            with self.assertRaises(cover_runtime.CoverRuntimeError) as caught:
+                bridge.run("synthetic host failure", deadline=time.time() + 5)
+        supplier.assert_not_called()
+        self.assertEqual(caught.exception.code, "COVER_AGENT_DESIGN_INCOMPLETE")
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual(bridge.ordinal, 0)
+
+    def test_actual_bridge_preserves_result_when_checkpoint_is_stale_running(self):
+        self.path.parent.mkdir(mode=0o700)
+        (self.path.parent / "host-checkpoint.json").write_text(json.dumps({
+            "status": "RUNNING", "model_requests": 0, "pending_request": None}))
+        self.run_failed_bridge(self.event)
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual(receipt["status"], "RUNNING")
+        self.assertEqual(receipt["host_result_failure"], {"ok": False, "status": "FAILED",
+            "code": "ENOENT", "model_requests": 0, "artifact_is_dict": False})
+        self.assertNotIn("PRIVATE_", json.dumps(receipt))
+
+    def test_missing_artifact_and_optional_io_failure_keep_original_business_error(self):
+        self.run_failed_bridge({**self.event, "ok": True, "status": "COMPLETE", "code": None})
+        self.assertEqual(runtime._read_host_result_diagnostic(self.directory, self.job_id)["code"],
+                         "RENDER_ARTIFACT_MISSING")
+        before = self.path.read_bytes()
+        self.run_failed_bridge(self.event)  # O_EXCL: the first actual diagnostic remains immutable.
+        self.assertEqual(self.path.read_bytes(), before)
+        with mock.patch.object(runtime, "_write_host_result_diagnostic", side_effect=OSError("PRIVATE_IO")):
+            self.run_failed_bridge(self.event)
+
+    def test_untrusted_result_cannot_copy_detail_or_unbounded_values(self):
+        projected = runtime._host_result_diagnostic({**self.event, "code": "PRIVATE_PATH_SENTINEL"})
+        self.assertEqual(projected["code"], "HOST_LOCAL_FAILURE")
+        self.assertNotIn("PRIVATE_", json.dumps(projected))
+        for patch in ({"ok": 1}, {"status": []}, {"model_requests": True},
+                      {"model_requests": -1}, {"model_requests": 1000001}):
+            self.assertIsNone(runtime._host_result_diagnostic({**self.event, **patch}))
+
+    def test_reader_rejects_malicious_state_and_cleanup_still_finishes(self):
+        runtime._write_host_result_diagnostic(self.directory, self.job_id, self.event)
+        original = self.path.read_bytes()
+        self.path.chmod(0o644)
+        self.assertIsNone(runtime._read_host_result_diagnostic(self.directory, self.job_id))
+        self.path.chmod(0o600)
+        alias = self.root / "alias"
+        os.link(self.path, alias)
+        self.assertIsNone(runtime._read_host_result_diagnostic(self.directory, self.job_id))
+        alias.unlink()
+        self.path.unlink()
+        alias.write_bytes(original)
+        self.path.symlink_to(alias)
+        self.assertIsNone(runtime._read_host_result_diagnostic(self.directory, self.job_id))
+        self.path.unlink()
+        self.path.write_bytes(b"[" * 1500 + b"0" + b"]" * 1500)
+        self.path.chmod(0o600)
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        self.assertFalse(self.directory.exists())
+        self.assertFalse((self.root / "receipts" / (self.job_id + ".json")).exists())
+
+
 class InputRejectionDiagnosticTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

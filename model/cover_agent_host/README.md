@@ -283,3 +283,20 @@ codes, the original call ID and reserve amount. It excludes exception messages,
 SQL, credentials and model content. This optional diagnostic never replaces the
 original exception, clears UNKNOWN, releases a reservation early, or authorizes a
 retry. Existing deadline recovery remains responsible for any eventual release.
+
+The R8 attempt failed before any supplier call. Its last host checkpoint remained
+`RUNNING` with zero requests, while the business task was already failed and its
+credits released. The original host result code was not retained. A subsequent
+local SDK probe encountered actual `ENOSPC`; this is compatible with that stale
+checkpoint pattern, but does not prove the historical R8 exception. Public
+download cache and byte-verified duplicate temporary proofs were removed without
+removing the authoritative evidence, original photos, dependencies or other work.
+
+For a future failed or artifact-less host result, Python keeps a separate
+`host_result_failure` projection: boolean success/artifact flags, fixed status,
+allowlisted host/filesystem code and a bounded request count. It never copies
+`detail`, context, paths, session content or opaque history. This first-write-only
+private sidecar survives normal cleanup independently of the last checkpoint;
+it does not rewrite that checkpoint or alter the original business error, billing,
+UNKNOWN or retry behavior. Malformed, linked, oversized or nonprivate sidecars
+are discarded, and optional diagnostic I/O cannot mask the original failure.
