@@ -33832,3 +33832,23 @@ PC正在选图设计截图PC-RUNNING001已保；H5真实390×844 reload→菜单
 正常GET两次全等released8/reserved0/creditsused0、唯一charge1/refund1/complete0，六组supplier/budgetstate前后全同；PC1440和H5390刷新均明确本次未交付/预留已释放，console warn/error[]，旧mock不是本次成品。已实际提前禁用samekey并给用户截图；observer35643 exit0/36public原件保全，normalstop一次200、serve012 exec39399 exit0、IABtab12关闭/viewportreset。原workspace被产品终态cleanup删除，Root未读取私有SDK内容；不能追溯缺失消息类别，只能用公开原件和受控复现证据定位。C/REAL-R12-TERMINAL-SUMMARY001.json含原件wholepins；STATE008147419/8ac59de5、FAILED-NORMAL-READBACK0011743/9e314b53、STOP001346/40e60bed、publicEND5921/d2168209。本次task/window已消费，无R13或旧请求重发授权。
 
 Root当前负责host消息/压缩根因，foundation只负责公开真实HTML＋已有同源素材/字体副本的实际CLI离线复现，candidate独立查host架构，不重复全项目审查；不新增框架、不调用供应商或读DB。真实qualified仍0/每张合格交付成本N/A，实际成功保存找回/改字/下载/唯一结算与物理iPhone未验。sole已实际回信接收失败和冻结41eb/66a/actual62cb/原3组件，下一只接具体最小newsource或真实新证据后统一集成，生产无GO。阶段3/4仍未完成；下一离线取得根因并修正，不停止于本checkpoint，不自动新付费。
+
+
+## CURRENT — 2026-10-25T10:00:17.310306+00:00 d12d571因果修复与独审完成；sole实际开工候选，Root继续HOLD续测工具准备
+
+当前功能/HEAD d12d571754f93a86b55b87a4601566468945b1ef，原branch/worktree，源码clean。仅7leaf host/provider/runtime/README及3tests，无新依赖/迁移/生产。R12真实failed/net0及全部费用、旧UNKNOWN2753不改；keydisabled/serve012exit0/observerexit0/无worker，原时段已消费。
+
+已定位并离线实证两件：首三相同真实HTML的行高124而ink150，原CLI即fullcanvas allowed也拒；第四HTML改行高后同三张规范化原照逐SHA与字体可渲染1776×2368/外部请求0，但原第4请求未留不能定唯一失败因。其PNG351cc3c9/3472264B与原产品thumbnail240×320 f442b4d4均已Root目视，只标离线重现候选、不计真实QC/交付。完整R12-render-rootcause/R12-OFFLINE-RENDER-ROOTCAUSE.json15135/27fa9f09保原工具环境超时和合法控制边界。
+
+确定停止因是原工程one-summary在有新primary进展的第二本地超限时一律拦截，用户已准调用次数按需而未固定此工程上限。现最多2summary各用独立primary已知本地超限票（bodySHA/ordinal）；第二需不同body且summary后至少一成功primary；admitted同pendingintent原子消费，并在awaitpreflight后再校一次防并发。NUDGE/同票/无进展/第三/UNKNOWN不增派；summary本地未派发拒绝可同票缩小、不出票不计费。原131072/输出65536及summary8192/25min/金额/模型/质量修正界限不动，原signedhistory与summaryMaterial逐byte同。真实本机SDK旧guard RED→final两票继续GREEN，另malformed NUDGE只一summary；11VM含纯本地shrink/并发单消费通过。两独审P2均闭；合成摘要同内容不同cipher碰撞与VM变量重名工具错误各保留，修fixture/VM后只补受影响项，不重已过SDK。C/R12-OFFLINE-ROOTCAUSE001/two-primary-overflows-FINAL001.json12256/b72a94f0；Node25/SDK2.1.2合成不冒云24/真模型质量，SDK自有合成sessionDB有/产品DB0。
+
+计量旧8数值不变，只加可选9类JSON UTF8字节整数（图URL清空/分区和=原textbytes），非法optional只丢自身；原checkpoint/cleanup保首末计量及最近渲染固定code/有限geometry，不存原文/opaque/stdout，last rejection与terminalcause分列。prompt说明overflowtrue必须修CSS行高/盒并同步安全区、保主体，不放宽门。provider纯AST红绿/实际handler原397B失败→checkpoint→实际cleanup2PASS、Root4诊断定向PASS、一次原opaque SDK PASS证据均按实际source阶段复用。Root最初4runtime定向完整import触发工作区默认SQLite初始化（无DATABASE_URL/override，model/data/noteai.db892928B/09:28:35Z），此前无beforehash，不能冒DB0；后续纯AST/audit明确业务DB0，无C真实账本或生产写。ROOT-FINAL-SOURCE-SCOPE001.json3991/48070495全7pins及AST边界；candidate逐refs/source独审GO/noP0–P2。
+
+sole“修复高德检索与休闲娱乐行业”已接精确d12d571/7pins及证据；Root实际wait_threads看到active/inProgress并已有完成工具marker，sole明确已开始核三运行叶差量，基于actual62cb准备最小3COPY与薄native，具体carrier先交Root核，原101/API91及三组件其独占，生产无GO。Root未止于收录；下一核载体后一次执行和实际读回，继续新真实验收准备。successor仅同一caller/README准备后续HOLD：实际批准仍A32/bound28729/余3271；A42(+10/原总100)只提案未问未批，现3271不足R12历史最高准入5799。旧cost3114+两QC/单primary修正/第二summary完整预留组合10440只示边界，不当实费或全task包价；R12-BUDGET-REUSE00229161/8e8ce00a。尚无新task/key/server/window，不能从本checkpoint或preparedcap出发重发旧请求。
+
+| 阶段/目标 | 负责人 | 状态/提交与证据 | 剩余/下一步 |
+| --- | --- | --- | --- |
+| 接管范围 | Root | 原任务/branch/确认方案接续 | 不重审全项目 |
+| 最小修复与离线验证 | Root/分工代理 | d12d571/独审GO；因果红绿/票据/有限回执 | 无未闭P0–P2；非真成品 |
+| 定向集成与真实验收 | sole候选；Root真实 | sole实际在途/现外部关闭 | Root核carrier→实际candidate；准备齐后集中新预算/当次访问 |
+| 独审完整交付 | candidate/Root；sole发布 | 本次source+证据GO；完整交付未完成 | 合格真实图/保存找回改字下载/唯一8分/单位成本，iPhone未验 |
