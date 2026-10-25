@@ -1,3 +1,5 @@
+最新执行状态在本文末尾的最新 CURRENT；较早 CURRENT 为历史。权威恢复状态沿用 noteai-xhs-cover-20261019 的原 PLAN.json/current_resume_pointer，不重建任务。
+
 # NoteAI 小红书封面功能交接 — noteai-xhs-cover-20261019
 
 交出日期：2026-10-19（北京时间）。交出时状态（历史）：交接和独立工作区已准备；当时封面产品代码、付费评测、生产发布均未执行。当前执行状态以第8节权威表及本文末节checkpoint为准。本文是此任务唯一交接入口；配套 `NOTEAI_XHS_COVER_20261019_BASELINE.json` 记录可机器核验的基线和证据摘要。
@@ -3961,3 +3963,14 @@ R15同existing caller/README准备保14任务/182physical、两UNKNOWN2753+1033�
 已把最终6c/pins发原窗口，实际答复正本机适配唯一D9单CLI COPY（actualf8bd父）及4method Node24计划/具体准备diff，先交Root核再一次执行；三组件仍36d/f8bd冻结，无生产GO/API91不扩。原host2VM/SDK及不变存储计费证据复用，云CLI与本机新真实验收独立。资源协同仅确认本窗无Worker-C占用/近期依赖；停费由原窗授权/MFA处理，不改或冒已节省。
 
 风险/证据对应：CLI受影响→本次真实DOM/PNG/edit正负例与独审；任务/保存/计费源码不变→既有正常链证据＋R14真实失败净0；真实合格成品/PC-H5保存找回改字下载唯一结算→仍待新付费task，不用离线PNG替代；物理iPhone/多人真实容量未验。R14 UNKNOWN全闭/净0/合格0与全部旧费用仍保。下一按PLAN继续同caller、D9核收及集中新增scope决定，不停于此checkpoint。
+
+
+## CURRENT — 2026-10-25T13:32:02.635973+00:00 R15同工具完整预检/独审GO，已集中询A47与新key时段；原D6单CLI构建GO已发，继续跟踪
+
+当前功能6c6c132，checkpoint前HEAD39b9eb72b11e76a48199f738da2e8b07173f8e0e，key仍disabled/无serve无worker无新task，旧R14 UNKNOWN净0与A42/bound37265/余4735、两UNKNOWN3786全保。最终同caller123341/0c9d04d7、README69551/1d4ffb07已冻结0400；15原file/AST控制按函数等价复用，source-only9叶PASS4618/50bf516b。Root实际full main --preflight --next-after-job R14单次exit0/stderr0，10555/c0b4e85c，明确HOLD/noDB/noKey/noModels/current42余4735/proposed47余9735，未授权47；前述actualRO105SELECT/0changes证据复用。successor窄独审4598/ae752039 GO，无阻断，不重SQL/preflight/SDK。
+
+已用一个async问项集中询：A42→47仅追加5元/原总100不变、1新cover/双Pro/1非交付概念/1既有修正、预计4–6元且逐次硬控47、同受限key从实际同意起最长60min终态早关、失败UNKNOWN预算停/no replay，仅本机真供应商，无生产/公网/权限变化。尚未答复/窗口None，不以准备阈值冒批准。询问原因是R14单任务/时段已消费、余额4735不足稳妥完成预计流程，新的临时敏感访问及追加金额须当次确认；不是要求用户作技术判断。
+
+原sole实际交D6唯一冻结准备：PREPARED-HANDOFF0013528/c4d4f7d2、BUILD-PREPARED5055/fd840479、两个独审source4054/2ba16fc2及carrier5667/1b79b05c。Root已核12refs/full driver-Docker/strict sendpack/buildwire-innerdriver/rawCLI=Git6c/API-C双新token/root0400-nooverwrite/容量及oldCLIreaderremoved/once-UNKNOWN边界，ROOT-BUILD-CARRIER-GO0011932/4bcd4fae。已实际send唯一one SendFile＋one COPY-only build GO给sole，基actualf8bd只CLI一叶、无RUN/install/pull/env/service改动；newimage尚未回，不冒已构建。Native仅4原method/15CLI+7font的计划，实际image后给具体绑定entry再核，一批180/210/300秒、原非root/networknone/只读/资源界限，无SDK/DB/model或旧host2VM重跑。原3组件/101同路径/API91仍sole独占，100整row不动，只有actual后更新；生产无GO。
+
+下一继续跟踪sole实际build与最小DOM/edit验证；付费分支只等集中外部决定，不暂停此非付费分支。收到同意先记录实际UTC/60min硬截止和既有预算→正常同key启用/同caller/1task；没有同意绝不开key/付费。合格封面仍0/单位成本N/A，完整真实成品保存找回改字下载唯一8分尚待，物理iPhone未验。
