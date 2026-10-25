@@ -33823,3 +33823,12 @@ Root fresh实际RO84SELECT/query_only/total_changes0、完整原11job/111physica
 PC正在选图设计截图PC-RUNNING001已保；H5真实390×844 reload→菜单→报告→视觉封面正常找回同一后台任务，重新设计禁用，预留8尚未扣；normalAPI仅一phasejob。H5文档client/scroll390、panel352/x19/right371、console warn/error[]，H5-RUNNING-REOPEN001截图保。旁旧mock封面不冒本次成品，设备模拟不等于实际iPhone保存。candidate只读原public allowlist observer exec35643、同job/截止09:50:59Z、目录real-r12-design-evidence，STOP.REQUESTED为恢复停入口，未知SDK/private/DB/key/network0。
 
 当前serve012 exec39399/origin127.0.0.1:61597、key生效，本次硬截止仍09:50:59Z、终态提前禁用；原host25min/job30min界限保，不因模型慢延长scope。下一Root仅GET监测与公开成品核，绝不再次POST run-next或新建task；成功正常PC/H5保存找回/免费改字/下载/唯一8分，失败UNKNOWN或budgetstop立即keydisable/observerstop/normalreadback/关闭并离线定位。唯一PLAN同步实际202/current及observer，sole41eb/actual62cb/3组件冻结、生产无GO。
+
+
+## CURRENT — 2026-10-25T09:22:43.150635+00:00 R12真实失败已提前关闭/净扣0；离线复现定位继续
+
+当前branch codex/noteai-xhs-cover-20261019、checkpoint前HEAD ef176e13cee4218774bae369dc20f5e70a396a0f、功能66a51d5。R12唯一job b5eabe9a-a087-43dd-9aee-469385857201/usagee4a4acff-e712-4f2d-8e59-3887fa37649b在09:13:36.558598Z实际读到failed/COVER_AGENT_DESIGN_INCOMPLETE/rev0/noFinal/workerfalse。21physical全HTTP200＝20Pro＋1Seedream，本轮UNKNOWN0；knownPro2.3442828CNY、imageactualNULL估.76，A32保守28729/余3271milli；旧R10UNKNOWN2753和全部旧费用保持。safe host一次压缩后第二次inputbound135271>131072（text125811/3images），首次149696（text119495/19images）；不能断言文本唯一来源，也不能把已验66a字体契约修复冒此停止点已解决。
+
+正常GET两次全等released8/reserved0/creditsused0、唯一charge1/refund1/complete0，六组supplier/budgetstate前后全同；PC1440和H5390刷新均明确本次未交付/预留已释放，console warn/error[]，旧mock不是本次成品。已实际提前禁用samekey并给用户截图；observer35643 exit0/36public原件保全，normalstop一次200、serve012 exec39399 exit0、IABtab12关闭/viewportreset。原workspace被产品终态cleanup删除，Root未读取私有SDK内容；不能追溯缺失消息类别，只能用公开原件和受控复现证据定位。C/REAL-R12-TERMINAL-SUMMARY001.json含原件wholepins；STATE008147419/8ac59de5、FAILED-NORMAL-READBACK0011743/9e314b53、STOP001346/40e60bed、publicEND5921/d2168209。本次task/window已消费，无R13或旧请求重发授权。
+
+Root当前负责host消息/压缩根因，foundation只负责公开真实HTML＋已有同源素材/字体副本的实际CLI离线复现，candidate独立查host架构，不重复全项目审查；不新增框架、不调用供应商或读DB。真实qualified仍0/每张合格交付成本N/A，实际成功保存找回/改字/下载/唯一结算与物理iPhone未验。sole已实际回信接收失败和冻结41eb/66a/actual62cb/原3组件，下一只接具体最小newsource或真实新证据后统一集成，生产无GO。阶段3/4仍未完成；下一离线取得根因并修正，不停止于本checkpoint，不自动新付费。
