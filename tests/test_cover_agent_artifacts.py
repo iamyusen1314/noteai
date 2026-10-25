@@ -524,6 +524,90 @@ html,body {margin:0;padding:0} .poster {position:relative;width:1776px;height:23
         self.assertEqual(Path(original["png_path"]).read_bytes(), prior_png)
         self.assertNotEqual(adjusted["png_sha256"], original["png_sha256"])
         self.assertNotIn("approved_titles", manifest["constraints"])
+        outside = {**edit, "edits": [{"layer_id": "title", "dx": 900, "dy": 0}]}
+        self.invoke("edit", outside, expected_code="TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION")
+        self.assertEqual(Path(original["png_path"]).read_bytes(), prior_png)
+
+    def cjk_clipping_fixture(self):
+        """R14's line geometry with a synthetic photo and the fixed real serif kit."""
+        html_path = self.project / "index.html"
+        html_path.write_text("""<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><title>离线裁切夹具</title><style>
+:root {--font-title:serif} * {margin:0;padding:0;box-sizing:border-box}
+html,body {width:1776px;height:2368px;background:#17150f;overflow:hidden}
+#canvas {position:relative;width:1776px;height:2368px;overflow:hidden}
+.photo {position:absolute;left:72px;top:72px;width:1632px;height:1080px;object-fit:contain}
+.title {position:absolute;left:96px;top:1238px;font-family:var(--font-title);font-size:112px;font-weight:600;line-height:1.34;letter-spacing:.02em;color:#f3ede2;white-space:nowrap}
+</style></head><body><main id="canvas" data-canvas-width="1776" data-canvas-height="2368">
+<img class="photo" src="assets/synthetic-photo.png" alt="合成技术图片">
+<div class="text-wrap"><div class="title hf-slot" data-layer-id="title">闹市高楼里的日式庭院汤泉，</div></div>
+</main></body></html>""", encoding="utf-8")
+        self.local([self.node, str(self.model / "cover_editable/vendor/editable-design/scripts/font-kit.mjs"),
+                    "add", "cjk-serif", str(html_path)])
+        html_path.write_text(html_path.read_text().replace(
+            "--font-title:serif", "--font-title:var(--font-kit-cjk-serif)"), encoding="utf-8")
+        self.request["text_layers"] = [{"id": "title", "allowed_rect": {
+            "x": 88, "y": 1226, "width": 1516, "height": 176}}]
+        self.request["protected_regions"] = [{"x":430,"y":300,"width":900,"height":500}]
+        self.request["approved_titles"] = ["闹市高楼里的日式庭院汤泉，松弛感很出彩"]
+        return html_path
+
+    def test_visible_cjk_range_overhang_is_not_css_clipping(self):
+        self.cjk_clipping_fixture()
+        result = self.invoke("render", self.request)
+        checks = json.loads(Path(result["manifest_path"]).read_bytes())["checks"]
+        box = checks["boxes"][0]
+        self.assertTrue(box["scroll_overflow"])
+        self.assertFalse(box["overflow"])
+        self.assertLess(box["ink"][0]["y"], box["rect"]["y"])
+        self.assertGreater(box["ink"][0]["height"], box["rect"]["height"])
+        self.assertEqual(box["text"], "闹市高楼里的日式庭院汤泉，")
+        # The full title actually painted into the PNG, not merely a metadata pass.
+        from PIL import ImageChops
+        with Image.open(result["png_path"]) as image:
+            crop = image.convert("RGB").crop((88, 1226, 1604, 1402))
+            painted = ImageChops.difference(crop, Image.new("RGB", crop.size, "#17150f")).getbbox()
+        self.assertIsNotNone(painted)
+        self.assertGreater(painted[2] - painted[0], 1300)
+        self.assertGreater(painted[3] - painted[1], 100)
+        self.assertGreater(painted[1], 0)
+        self.assertLess(painted[3], crop.height)
+
+    def test_css_clipping_allowed_canvas_and_protected_guards_remain(self):
+        html_path = self.cjk_clipping_fixture()
+        original = html_path.read_text()
+        cases = [
+            ("own-hidden", ".title{overflow:hidden;height:50px}", None, None),
+            ("own-clip", ".title{overflow:clip;height:50px}", None, None),
+            ("ancestor-hidden", ".text-wrap{position:absolute;inset:0;height:1288px;overflow:hidden}", None, None),
+            ("ancestor-clip", ".text-wrap{position:absolute;inset:0;height:1288px;overflow:clip}", None, None),
+            ("canvas-inner-border", "#canvas{border:120px solid #17150f}",
+             {"x":0,"y":0,"width":1776,"height":2368}, None),
+            ("rotated-clipping-ancestor", ".text-wrap{position:absolute;inset:0;overflow:hidden;rotate:1deg}", None, None),
+            ("outside-allowed", "", {"x":88,"y":1226,"width":1516,"height":100}, None),
+            ("outside-canvas", ".title{top:2300px}#canvas{overflow:visible}html,body{overflow:visible}",
+             {"x":0,"y":0,"width":1776,"height":3000}, None),
+            ("protected-subject", "", None, [{"x":120,"y":1270,"width":50,"height":50}]),
+        ]
+        for name, css, allowed, protected in cases:
+            with self.subTest(name=name):
+                html_path.write_text(original.replace("</style>", css + "</style>"), encoding="utf-8")
+                request = deepcopy(self.request)
+                if allowed is not None:
+                    request["text_layers"][0]["allowed_rect"] = allowed
+                if protected is not None:
+                    request["protected_regions"] = protected
+                code = "TEXT_OVER_PROTECTED_SUBJECT" if protected else ("UPSTREAM_EDITABLE_CONTRACT_FAILED"
+                    if name == "ancestor-clip" else "TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION")
+                rejected = self.invoke("render", request, expected_code=code)
+                if name == "ancestor-clip":
+                    upstream = json.loads(rejected["detail"])
+                    self.assertEqual(upstream["command"], "editable_contract")
+                    checks = json.loads(upstream["stdout"])["checks"]
+                    self.assertTrue(any(check["id"] == "C5-text-hit" and check["ok"] is False for check in checks))
+                elif name in {"own-hidden", "own-clip", "ancestor-hidden", "outside-canvas",
+                               "canvas-inner-border", "rotated-clipping-ancestor"}:
+                    self.assertTrue(json.loads(rejected["detail"])["overflow"])
 
 
 if __name__ == "__main__":

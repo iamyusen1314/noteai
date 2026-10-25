@@ -159,6 +159,37 @@ async function inspect(dir, manifest, edit = null, pngPath = null, approvedTitle
       const c = canvas.getBoundingClientRect();
       if (Math.abs(c.width - 1776) > .5 || Math.abs(c.height - 2368) > .5) throw new Error('CANVAS_PIXEL_GEOMETRY_MISMATCH');
       const scaleX = c.width / Number(canvas.dataset.canvasWidth), scaleY = c.height / Number(canvas.dataset.canvasHeight);
+      const clippedText = (el, ranges) => {
+        // The PNG is the canvas border box; CSS clipping can be tighter inside it.
+        if (ranges.some((r) => r.x < -.5 || r.y < -.5
+            || r.x + r.width > c.width / scaleX + .5 || r.y + r.height > c.height / scaleY + .5)) return true;
+        for (let node = el; node; node = node.parentElement) {
+          const css = getComputedStyle(node);
+          // These nonrectangular paint restrictions cannot prove a complete text
+          // leaf visible using the existing rectangular layout contract.
+          if (css.clipPath !== 'none' || css.maskImage !== 'none' || css.clip !== 'auto') return true;
+          const paintClip = /(?:^|\s)(?:paint|strict|content)(?:\s|$)/.test(css.contain);
+          const clipX = paintClip || css.overflowX !== 'visible';
+          const clipY = paintClip || css.overflowY !== 'visible';
+          if (!clipX && !clipY) continue;
+          for (let ancestor = node; ancestor; ancestor = ancestor.parentElement) {
+            const style = getComputedStyle(ancestor);
+            if (style.rotate !== 'none' && !/(?:^|\s)[+-]?0(?:\.0+)?(?:deg|rad|turn)$/.test(style.rotate)) return true;
+            if (style.transform === 'none') continue;
+            const matrix = new DOMMatrixReadOnly(style.transform);
+            if (!matrix.is2D || matrix.b || matrix.c || matrix.a <= 0 || matrix.d <= 0) return true;
+          }
+          const b = node.getBoundingClientRect();
+          const sx = node.offsetWidth ? b.width / node.offsetWidth : scaleX;
+          const sy = node.offsetHeight ? b.height / node.offsetHeight : scaleY;
+          const edge = { x: (b.x + node.clientLeft * sx - c.x) / scaleX,
+            y: (b.y + node.clientTop * sy - c.y) / scaleY,
+            width: node.clientWidth * sx / scaleX, height: node.clientHeight * sy / scaleY };
+          if (ranges.some((r) => (clipX && (r.x < edge.x - .5 || r.x + r.width > edge.x + edge.width + .5))
+              || (clipY && (r.y < edge.y - .5 || r.y + r.height > edge.y + edge.height + .5)))) return true;
+        }
+        return false;
+      };
       const textIDs = new Set(layers.map((layer) => layer.id));
       for (const el of [document.body, ...document.body.querySelectorAll('*')]) {
         const css = getComputedStyle(el), b = el.getBoundingClientRect();
@@ -185,9 +216,10 @@ async function inspect(dir, manifest, edit = null, pngPath = null, approvedTitle
         const el = found[0], b = el.getBoundingClientRect(), css = getComputedStyle(el);
         if ([...el.children].some((child) => child.tagName !== 'BR')) throw new Error('EDITABLE_LAYER_MUST_BE_TEXT_LEAF:' + id);
         const range = document.createRange(); range.selectNodeContents(el);
+        // Compatibility name: these are DOM Range layout boxes, not raster ink.
         const ink = [...range.getClientRects()].map((r) => ({ x: (r.x - c.x) / scaleX, y: (r.y - c.y) / scaleY, width: r.width / scaleX, height: r.height / scaleY }));
         const text = [...el.childNodes].map((node) => node.nodeName === 'BR' ? '\n' : node.textContent).join('');
-        return { id, text, rect: { x: (b.x - c.x) / scaleX, y: (b.y - c.y) / scaleY, width: b.width / scaleX, height: b.height / scaleY }, ink, overflow: el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1, font: css.fontFamily, font_size: css.fontSize, font_weight: css.fontWeight };
+        return { id, text, rect: { x: (b.x - c.x) / scaleX, y: (b.y - c.y) / scaleY, width: b.width / scaleX, height: b.height / scaleY }, ink, overflow: clippedText(el, ink), scroll_overflow: el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1, font: css.fontFamily, font_size: css.fontSize, font_weight: css.fontWeight };
       });
       return { width: Number(canvas.dataset.canvasWidth), height: Number(canvas.dataset.canvasHeight), fonts_status: document.fonts.status, font_faces: [...document.fonts].map((f) => ({ family: f.family.replace(/["']/g, ''), weight: f.weight, status: f.status })), images: [...document.images].map((im) => {
         const b = im.getBoundingClientRect(), css = getComputedStyle(im);
