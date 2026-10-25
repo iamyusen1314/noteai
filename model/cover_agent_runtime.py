@@ -34,6 +34,31 @@ import public_product
 ROOT = Path(__file__).resolve().parent
 _INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
 _OUTPUT_DIAGNOSTIC_FILE = "provider-output-diagnostic.json"
+_HOST_FAILURE_CODES = {"COMPACTION_CONTINUATION_NOT_ALLOWED", "MODEL_PREFLIGHT_INVALID",
+    "MODEL_REQUEST_LIMIT", "MODEL_ROUTE_FORBIDDEN", "MODEL_REQUEST_TOO_LARGE", "MODEL_ID_NOT_LOCKED",
+    "PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION", "SUPPLIER_RESULT_UNKNOWN", "MODEL_RESPONSE_INVALID",
+    "BRIDGE_TIMEOUT_UNKNOWN", "BRIDGE_DISCONNECTED_UNKNOWN", "SDK_IDLE_FAILED",
+    "RENDER_ARTIFACT_MISSING", "HOST_LOCAL_FAILURE"}
+
+
+def _host_failure_diagnostic(value):
+    required = {"code", "stage", "model_requests", "compaction_requests", "local_input_rejections"}
+    optional = {"last_input_label", "last_input_measurement"}
+    if (not isinstance(value, dict) or not required.issubset(value) or set(value) - required - optional
+            or not isinstance(value["code"], str) or value["code"] not in _HOST_FAILURE_CODES
+            or not isinstance(value["stage"], str) or value["stage"] not in {"gateway", "host", "sdk_idle", "missing_render"}
+            or any(type(value[key]) is not int or not 0 <= value[key] <= 1000000
+                   for key in ("model_requests", "compaction_requests", "local_input_rejections"))):
+        return None
+    result = {key: value[key] for key in required}
+    if optional & set(value):
+        measurement = provider.validated_input_diagnostics(value.get("last_input_measurement"))
+        if (not isinstance(value.get("last_input_label"), str)
+                or value["last_input_label"] not in {"primary", "compaction", "unknown"}
+                or measurement is None or measurement["total_bound"] <= measurement["max_input_tokens"]):
+            return None
+        result.update(last_input_label=value["last_input_label"], last_input_measurement=measurement)
+    return result
 
 
 def _write_input_diagnostic(directory, job_id, measurement):
@@ -215,6 +240,9 @@ def cleanup_workspace(job_id):
             receipt = {"job_id": job_id, "session_id": str(value.get("session_id", ""))[:100],
                 "status": str(value.get("status", ""))[:50], "model_requests": value.get("model_requests"),
                 "pending_request": {key: pending.get(key) for key in ("ordinal", "body_sha256", "label")}}
+            terminal = _host_failure_diagnostic(value.get("terminal_diagnostic"))
+            if terminal is not None:
+                receipt["terminal_diagnostic"] = terminal
         except (ValueError, TypeError):
             receipt = {"job_id": job_id, "status": "HOST_STATE_UNREADABLE_NO_REPLAY"}
     measurement = _read_input_diagnostic(directory, job_id)
@@ -387,8 +415,11 @@ def _prompt(context, sources):
         "其内部只含文字或br，装饰和分组放在文字叶子之外。hf-slot是文字元素的class。"
         "按设计选择整包已许可中文font_id（cjk-sans/cjk-serif/cjk-calligraphy/cjk-display）；"
         "先写HTML，再调用cover_check(action='font_add',html='index.html',font_id=所选ID)，"
+        "可同时传css_var='--font-title'把HTML中已唯一声明的字体角色精确绑定到该字库；其他角色保持设计选择。"
         "成功后才把生成的--font-kit-ID变量用于相应字体角色。不要提前写该变量，"
         "否则原font-kit会把它当作已安装；系统字体候选不能代替本地font-face和实际字体文件。"
+        "cover_read对已登记字库的HTML返回JSON设计视图，完整设计在text字段；仅省略已安装font-face样板，"
+        "读取不改原文件，编辑text后用cover_write写回会原样保留字库，不要把字库CSS复制进模型上下文。"
         "沿用cover_check/cover_render返回的原code/detail局部修正；"
         "没有cover_render的ok:true及实际PNG/manifest，不能宣称已渲染完成。"
         "用cover_render工具提交sources[{ref,path,sha256}]、text_layers[{id,allowed_rect:{x,y,width,height}}]、"

@@ -236,3 +236,37 @@ physical request limit, UNKNOWN persistence/no replay, zero-call reopen,
 same-session revision, active-HTML rejection and internal-file write denial.
 These fixture calls have zero
 model cost and must not be recorded as real model or visual-quality acceptance.
+
+## Installed font assets and readable design files
+
+The real R6 attempt did not deliver a cover. Its retained 103KB HTML contains
+101 installed CJK font faces before the authored typography and DOM. The pinned
+SDK's ordinary tool-output limit is 50KiB, so returning that file verbatim can
+hide the design that the agent needs to edit. This is an observed tool-contract
+gap, not proof of R6's sole terminal cause.
+
+After a successful `cover_check` `font_add`, the host records only newly added
+font-face blocks plus previously verified blocks in the same job checkpoint.
+Pre-existing, unknown blocks remain authored content. `cover_read` projects only
+exact registered blocks out of HTML and returns JSON with the original file's
+bytes/SHA, font metadata, and the complete remaining design in `text`. Reading
+does not change the stored file. Editing that text with `cover_write` restores
+the exact installed font faces without changing other CSS or DOM bytes. Ordinary
+files, Skill references and unknown font blocks retain their original read path.
+
+`font_add` accepts optional `css_var`, such as `--font-title`, to bind one existing
+unique CSS custom-property declaration to the chosen kit. It does not choose a
+font or change other roles. Comments and strings do not count as declarations;
+missing/duplicate declarations and kit-variable self-reference are rejected.
+The original renderer still verifies actual loaded fonts, text bounds, photos,
+protected subjects and final pixels. Font files and licences remain in the
+normal editable bundle. No new dependency or rendering platform is introduced.
+
+The existing content-free receipt also retains fixed host failure codes, stage,
+counts and the latest validated local input measurement. It keeps the original
+first input-rejection diagnostic separately; neither includes model text,
+font CSS, opaque thinking state or arbitrary SDK error messages. Optional
+diagnostic failures cannot replace the original error; supplier UNKNOWN retains
+its existing strict checkpoint/no-replay path. The 131072 input bound and single
+summary restriction are unchanged. A later real attempt must establish actual
+design quality and successful product delivery independently of these fixtures.

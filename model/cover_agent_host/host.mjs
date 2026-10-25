@@ -78,7 +78,7 @@ async function writeWithin(root, relativePath, text) {
   }
   if (!inside(root, await fs.realpath(path.dirname(target)))) throw error('PATH_OUTSIDE_JOB');
   try { if ((await fs.lstat(target)).isSymbolicLink()) throw error('SYMLINK_FORBIDDEN'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-  if (relativePath.endsWith('.html')) text = guardedHTML(text);
+  if (relativePath.endsWith('.html')) text = guardedHTML(restoreManagedFonts(relativePath, text));
   await fs.writeFile(target, text); return { path: relativePath, bytes: Buffer.byteLength(text), sha256: sha(text) };
 }
 const CSP = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src file:; font-src file:; style-src \'unsafe-inline\'; script-src \'none\'; connect-src \'none\'; base-uri \'none\'">';
@@ -90,6 +90,72 @@ function guardedHTML(html) {
   for (const ref of refs) { if (ref.startsWith('#')) continue; if (/[\\:]|^\/|%(?:2e|2f|5c)/i.test(ref)) throw error('EXTERNAL_RESOURCE_FORBIDDEN'); relative(ref.replace(/^(?:\.\/)+/, '')); }
   if (!/<head\b[^>]*>/i.test(html)) throw error('HTML_HEAD_REQUIRED');
   return html.includes(CSP) ? html : html.replace(/<head\b[^>]*>/i, (match) => match + '\n' + CSP);
+}
+function fontFaces(html, id) {
+  const faces = [];
+  for (const style of html.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)) {
+    for (const match of style[1].matchAll(/@font-face\s*\{[^{}]*\}/g)) {
+      const css = match[0];
+      const urls = [...css.matchAll(/url\(["']([^"']+)["']\)/g)].map((value) => value[1]);
+      if (urls.length === 1 && urls[0].startsWith('./assets/fonts/' + id + '/')
+          && /^\.\/assets\/fonts\/[a-z-]+\/[A-Za-z0-9._-]+\.woff2$/.test(urls[0])) faces.push(css);
+    }
+  }
+  return faces;
+}
+function managedFonts(rel) { return checkpoint?.managed_fonts?.[rel] || {}; }
+function registeredFontFaces(before, after, verified) {
+  // Pre-existing authored blocks are not evidence of a successful installer.
+  return [...new Set([...verified.filter((face) => after.includes(face)),
+    ...after.filter((face) => !before.includes(face))])];
+}
+function restoreManagedFonts(rel, html) {
+  const missing = [];
+  for (const font of Object.values(managedFonts(rel))) {
+    for (const face of font.faces) if (!html.includes(face)) missing.push(face);
+  }
+  if (!missing.length) return html;
+  const opening = html.match(/<style(?:\s[^>]*)?>/i);
+  if (!opening) throw error('MANAGED_FONT_STYLE_REQUIRED');
+  const at = opening.index + opening[0].length;
+  return html.slice(0, at) + missing.join('') + html.slice(at);
+}
+function authoredRead(rel, html) {
+  const omitted = new Set(), fonts = [];
+  let text = html;
+  for (const [id, font] of Object.entries(managedFonts(rel))) {
+    let count = 0;
+    text = text.replace(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi, (style) =>
+      style.replace(/@font-face\s*\{[^{}]*\}/g, (face) => {
+        if (!font.faces.includes(face)) return face;
+        omitted.add(face); count += 1; return '';
+      }));
+    if (count) fonts.push({ font_id: id, variable: '--font-kit-' + id, family: font.family, face_count: count });
+  }
+  if (!omitted.size) return html;
+  return JSON.stringify({ path: rel, bytes: Buffer.byteLength(html), sha256: sha(html),
+    view: 'authored_html_with_managed_font_faces_elided', omitted_font_faces: omitted.size, fonts, text });
+}
+function bindFontRole(html, id, role, validateOnly = false) {
+  if (typeof role !== 'string' || !/^--[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(role)
+      || role.startsWith('--font-kit-')) throw error('FONT_ROLE_VARIABLE_INVALID');
+  const assignment = new RegExp('(^|[;{\\s])' + role + '\\s*:[^;{}]*;', 'g');
+  let count = 0;
+  const result = html.replace(/(<style(?:\s[^>]*)?>)([\s\S]*?)(<\/style>)/gi, (_, opening, css, closing) => {
+    // Keep offsets while masking comments/strings, so prose or content values
+    // cannot masquerade as a CSS property declaration.
+    const masked = css.replace(/\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/g,
+      (value) => ' '.repeat(value.length));
+    const changes = [...masked.matchAll(assignment)]; count += changes.length;
+    if (validateOnly) return opening + css + closing;
+    for (const match of changes.reverse()) {
+      const at = match.index + match[1].length;
+      css = css.slice(0, at) + role + ': var(--font-kit-' + id + ');' + css.slice(match.index + match[0].length);
+    }
+    return opening + css + closing;
+  });
+  if (count !== 1) throw error('FONT_ROLE_DECLARATION_MUST_BE_UNIQUE');
+  return result;
 }
 async function atomicJSON(file, value) { await fs.writeFile(file + '.tmp', JSON.stringify(value, null, 2)); await fs.rename(file + '.tmp', file); }
 function imageMime(file) { const ext = path.extname(file).toLowerCase(); const mime = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }[ext]; if (!mime) throw error('IMAGE_FORMAT_FORBIDDEN'); return mime; }
@@ -132,6 +198,29 @@ function inputMeasurement(value) {
       || value.total_bound !== value.text_bytes + value.image_tokens + value.framing_tokens
       || value.total_bound <= value.max_input_tokens) throw error('MODEL_PREFLIGHT_INVALID');
   return Object.fromEntries(keys.map((key) => [key, value[key]]));
+}
+const FAILURE_CODES = new Set(['COMPACTION_CONTINUATION_NOT_ALLOWED', 'MODEL_PREFLIGHT_INVALID',
+  'MODEL_REQUEST_LIMIT', 'MODEL_ROUTE_FORBIDDEN', 'MODEL_REQUEST_TOO_LARGE', 'MODEL_ID_NOT_LOCKED',
+  'PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION', 'SUPPLIER_RESULT_UNKNOWN', 'MODEL_RESPONSE_INVALID',
+  'BRIDGE_TIMEOUT_UNKNOWN', 'BRIDGE_DISCONNECTED_UNKNOWN', 'SDK_IDLE_FAILED', 'RENDER_ARTIFACT_MISSING']);
+function failureDiagnostic(code, stage) {
+  const result = { code: FAILURE_CODES.has(code) ? code : 'HOST_LOCAL_FAILURE', stage,
+    model_requests: requests, compaction_requests: checkpoint.compaction_requests || 0,
+    local_input_rejections: checkpoint.local_input_rejections || 0 };
+  const last = checkpoint.last_input_measurement;
+  if (last) {
+    result.last_input_label = ['primary', 'compaction'].includes(last.label) ? last.label : 'unknown';
+    try {
+      result.last_input_measurement = inputMeasurement(Object.fromEntries(
+        ['text_bytes', 'image_count', 'image_tokens', 'message_count', 'tool_count', 'framing_tokens', 'total_bound', 'max_input_tokens']
+          .map((key) => [key, last[key]])));
+    } catch { delete result.last_input_label; }
+  }
+  return result;
+}
+function rememberFailure(code, stage) {
+  try { checkpoint.terminal_diagnostic = failureDiagnostic(code, stage); }
+  catch { /* Optional diagnostics must never replace the original error. */ }
 }
 function summaryMaterial(messages) {
   // This is a new summarization branch, not a continuation of signed assistant
@@ -254,7 +343,9 @@ try {
       if (wasStream && answer.status >= 200 && answer.status < 300) { output = completionSSE(JSON.parse(payload)); contentType = 'text/event-stream'; }
       res.writeHead(answer.status, { 'content-type': contentType }); res.end(output);
     } catch (e) {
+      rememberFailure(e.code, 'gateway');
       if (physical && checkpoint.pending_request) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
+      else { try { await atomicJSON(checkpointPath, checkpoint); } catch { /* Diagnostic only; retain original 502. */ } }
       res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: { message: e.code || 'HOST_TRANSPORT_FAILED', type: 'noteai_host' } }));
     }
   });
@@ -288,10 +379,12 @@ try {
     } finally { release(); }
   } });
   const tools = [
-    tool('cover_read', 'Read a UTF-8 job file, or a complete Skill reference using skill:relative/path. Images use cover_view.', objectSchema({ path: { type: 'string' } }), async ({ path: rel }) => {
+    tool('cover_read', 'Read a UTF-8 job file, or a complete Skill reference using skill:relative/path. Installed font-face boilerplate in HTML is elided into a JSON authored view: edit its complete text field; cover_write preserves the exact installed faces. The stored file is unchanged by reading. Images use cover_view.', objectSchema({ path: { type: 'string' } }), async ({ path: rel }) => {
       const fromSkill = rel.startsWith('skill:'); const file = await safeExisting(fromSkill ? job.skill_dir : job.work_dir, fromSkill ? rel.slice(6) : rel);
       if (!/\.(md|txt|json|html|css|ya?ml|mjs|js|sh)$/i.test(file)) throw error('READ_FORMAT_FORBIDDEN');
-      const bytes = await fs.readFile(file); if (bytes.length > 1024 * 1024) throw error('READ_TOO_LARGE'); return { content: bytes.toString('utf8') };
+      const bytes = await fs.readFile(file); if (bytes.length > 1024 * 1024) throw error('READ_TOO_LARGE');
+      return { content: !fromSkill && file.endsWith('.html')
+        ? authoredRead(path.relative(job.work_dir, file), bytes.toString('utf8')) : bytes.toString('utf8') };
     }),
     tool('cover_write', 'Write a complete local HTML/JSON/Markdown/text design file within this job. No scripts or source asset changes.', objectSchema({ path: { type: 'string' }, text: { type: 'string' } }), async ({ path: rel, text }) => ({ content: JSON.stringify(await writeWithin(job.work_dir, rel, text)) })),
     tool('cover_view', 'Inspect actual local photo, concept, or render pixels. Viewing the last final PNG also includes its actual 240x320 preview. Result images go to the next model request.', objectSchema({ path: { type: 'string' } }), async ({ path: rel }) => {
@@ -326,18 +419,34 @@ try {
       forAgent.thumbnail_path = path.relative(job.work_dir, lastPreview.path); forAgent.thumbnail_sha256 = lastPreview.sha256;
       send({ type: 'render_finished', artifact: result, preview: lastPreview }); return { content: JSON.stringify(forAgent) };
     }),
-    tool('cover_check', 'Run only the pinned local Skill poster/font/contract checks, or install a preinstalled font. No shell commands or downloads. font_add must precede any var(--font-kit-ID) reference.', objectSchema({ action: { type: 'string', enum: ['poster', 'fonts', 'contract', 'font_add'] }, html: { type: 'string' }, font_id: { type: 'string' } }, ['action', 'html']), async ({ action, html, font_id }) => {
+    tool('cover_check', 'Run only the pinned local Skill poster/font/contract checks, or install a preinstalled font. No shell commands or downloads. font_add may take css_var such as --font-title to bind that existing unique CSS custom property to the selected kit. This preserves all other design styles. Install before using var(--font-kit-ID).', objectSchema({ action: { type: 'string', enum: ['poster', 'fonts', 'contract', 'font_add'] }, html: { type: 'string' }, font_id: { type: 'string' }, css_var: { type: 'string' } }, ['action', 'html']), async ({ action, html, font_id, css_var }) => {
       const file = await safeExisting(job.work_dir, html); if (!file.endsWith('.html')) throw error('HTML_REQUIRED');
       if (action === 'font_add' && inside(path.join(job.work_dir, 'revisions'), file)) throw error('IMMUTABLE_REVISION');
       await fs.writeFile(file, guardedHTML(await fs.readFile(file, 'utf8')));
+      const beforeFontFaces = action === 'font_add' ? fontFaces(await fs.readFile(file, 'utf8'), font_id) : [];
       const scripts = path.join(job.skill_dir, 'scripts');
       const commands = { poster: ['/bin/bash', [path.join(scripts, 'check-poster.sh'), file]], fonts: ['/bin/bash', [path.join(scripts, 'check-fonts.sh'), file]], contract: [process.execPath, [path.join(scripts, 'check-contract.mjs'), file, '--json']] };
       if (action === 'font_add') {
         if (!['editorial-serif', 'luxury-serif', 'clean-sans', 'geometric-sans', 'condensed-sans', 'experimental-display', 'cjk-sans', 'cjk-serif', 'cjk-calligraphy', 'cjk-display'].includes(font_id)) throw error('FONT_ID_FORBIDDEN');
+        if (css_var !== undefined) bindFontRole(await fs.readFile(file, 'utf8'), font_id, css_var, true);
         commands.font_add = [process.execPath, [path.join(scripts, 'font-kit.mjs'), 'add', font_id, file]];
       }
       const [cmd, args] = commands[action];
-      return { content: JSON.stringify(await withBrowserTemporaryDirectory(() => runLocal(cmd, args, path.dirname(file)))) };
+      const result = await withBrowserTemporaryDirectory(() => runLocal(cmd, args, path.dirname(file)));
+      if (action === 'font_add' && result.code === 0) {
+        const installed = await fs.readFile(file, 'utf8'), rel = path.relative(job.work_dir, file);
+        const verified = (managedFonts(rel)[font_id]?.faces || []).filter((face) => installed.includes(face));
+        const faces = registeredFontFaces(beforeFontFaces, fontFaces(installed, font_id), verified);
+        if (!faces.length) throw error('INSTALLED_FONT_FACES_REQUIRED');
+        const family = faces[0].match(/font-family:\s*["']([^"']+)["']\s*;/)?.[1];
+        if (!family) throw error('INSTALLED_FONT_FAMILY_REQUIRED');
+        checkpoint.managed_fonts ??= {};
+        checkpoint.managed_fonts[rel] = { ...managedFonts(rel), [font_id]: { family, faces } };
+        await atomicJSON(checkpointPath, checkpoint);
+        if (css_var !== undefined) await fs.writeFile(file, guardedHTML(bindFontRole(installed, font_id, css_var)));
+        result.font = { font_id, variable: '--font-kit-' + font_id, css_var: css_var ?? null, face_count: faces.length };
+      }
+      return { content: JSON.stringify(result) };
     }),
   ];
   const allowedTools = new Set(tools.map((item) => item.name));
@@ -418,12 +527,14 @@ try {
   const context = await sdk.sessions.context({ sessionID: session.id });
   const last = context.at(-1);
   const failed = last?.type === 'idle' && last.outcome === 'failed';
+  if ((failed || !lastRender) && !checkpoint.terminal_diagnostic)
+    rememberFailure(failed ? 'SDK_IDLE_FAILED' : 'RENDER_ARTIFACT_MISSING', failed ? 'sdk_idle' : 'missing_render');
   checkpoint.status = checkpoint.pending_request || checkpoint.pending_tool || checkpoint.status === 'UNKNOWN' ? 'UNKNOWN' : failed ? 'FAILED' : 'COMPLETE';
   checkpoint.model_requests = requests; checkpoint.artifact = lastRender; await atomicJSON(checkpointPath, checkpoint);
   const contextSummary = context.map((item) => ({ type: item.type, id: item.id, outcome: item.outcome, error: item.error, usage: item.usage, text: typeof item.text === 'string' ? item.text.slice(0, 4000) : undefined, files: item.files?.map((file) => ({ name: file.name, mime: file.mime, sha256: file.data ? sha(Buffer.from(file.data, 'base64')) : undefined })), skills: item.skills?.map((skill) => ({ id: skill.id, name: skill.name, sha256: sha(skill.text || '') })) }));
   send({ type: 'result', ok: !failed && checkpoint.status !== 'UNKNOWN', status: checkpoint.status, session_id: session.id, model_requests: requests, artifact: lastRender, preview: lastPreview, context: contextSummary });
 } catch (e) {
-  if (checkpoint && checkpointPath && checkpointOwned) { checkpoint.status = checkpoint.pending_request || checkpoint.pending_tool || checkpoint.status === 'UNKNOWN' ? 'UNKNOWN' : 'FAILED'; await atomicJSON(checkpointPath, checkpoint).catch(() => {}); }
+  if (checkpoint && checkpointPath && checkpointOwned) { if (!checkpoint.terminal_diagnostic) rememberFailure(e.code, 'host'); checkpoint.status = checkpoint.pending_request || checkpoint.pending_tool || checkpoint.status === 'UNKNOWN' ? 'UNKNOWN' : 'FAILED'; await atomicJSON(checkpointPath, checkpoint).catch(() => {}); }
   send({ type: 'result', ok: false, status: checkpoint?.status || 'FAILED', code: e.code || 'HOST_FAILED', detail: e.message, session_id: checkpoint?.session_id || null, model_requests: requests, artifact: lastRender }); process.exitCode = 1;
 } finally {
   if (sdk) await sdk.close();

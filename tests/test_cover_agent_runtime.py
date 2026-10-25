@@ -89,6 +89,73 @@ class ReturnedValueTests(unittest.TestCase):
             returned_value(body, "code", tool_call_id="missing")
 
 
+class HostFontBoundaryTests(unittest.TestCase):
+    def test_actual_helpers_preserve_authored_content_and_do_not_mask_original_errors(self):
+        node = os.environ.get("NOTEAI_COVER_NODE") or shutil.which("node")
+        if not node:
+            self.skipTest("Node required for actual host helper checks")
+        source = Path(__file__).resolve().parents[1] / "model/cover_agent_host/host.mjs"
+        script = r'''
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const source=fs.readFileSync(process.argv[1],'utf8');
+const segment=(start,end)=>source.slice(source.indexOf(start),source.indexOf(end));
+const ctx=vm.createContext({Buffer,checkpoint:{},requests:14,
+  sha:(v)=>createHash('sha256').update(v).digest('hex'),
+  error:(code)=>Object.assign(new Error(code),{code})});
+vm.runInContext(segment('function fontFaces(', 'async function atomicJSON(')
+  +segment('function inputMeasurement(', 'function summaryMaterial('),ctx);
+const quoted='<style>/* --font-title: serif; */ .x{content:" --font-title: fake; "}</style>';
+assert.throws(()=>ctx.bindFontRole(quoted,'cjk-serif','--font-title'),/FONT_ROLE_DECLARATION_MUST_BE_UNIQUE/);
+const html=quoted.replace('</style>', ':root{--font-title:"System Serif",serif;--color:#123}</style>');
+assert.equal(ctx.bindFontRole(html,'cjk-serif','--font-title',true),html);
+const bound=ctx.bindFontRole(html,'cjk-serif','--font-title');
+assert.equal(bound,html.replace('--font-title:"System Serif",serif;','--font-title: var(--font-kit-cjk-serif);'));
+assert.throws(()=>ctx.bindFontRole(html,'cjk-serif','--font-kit-cjk-serif'),/FONT_ROLE_VARIABLE_INVALID/);
+const unknown='@font-face {font-family:"Authored";src:url("./assets/fonts/cjk-serif/custom.woff2");}';
+const known='@font-face {font-family:"Installed";src:url("./assets/fonts/cjk-serif/known.woff2");}';
+const before='<style>'+unknown+':root{--font-title:serif;}</style><h1>KEEP_ORIGINAL_TITLE</h1>';
+const after=before.replace('<style>','<style>'+known);
+const faces=ctx.registeredFontFaces(ctx.fontFaces(before,'cjk-serif'),ctx.fontFaces(after,'cjk-serif'),[]);
+assert.deepEqual(Array.from(faces),[known]);
+ctx.checkpoint={managed_fonts:{'index.html':{'cjk-serif':{family:'Installed',faces}}}};
+const projected=JSON.parse(ctx.authoredRead('index.html',after));
+assert.equal(projected.omitted_font_faces,1);
+assert.equal(projected.text,before);
+assert(projected.text.includes(unknown));
+assert.equal(ctx.restoreManagedFonts('index.html',projected.text),after);
+assert.equal(ctx.authoredRead('unknown.html',after),after);
+assert.equal(ctx.authoredRead('index.html',after.replace(known,known.replace('Installed','Different'))),
+  after.replace(known,known.replace('Installed','Different')));
+ctx.checkpoint={last_input_measurement:{label:'PRIVATE_SENTINEL',text_bytes:'bad'}};
+const diagnostic=ctx.failureDiagnostic('COMPACTION_CONTINUATION_NOT_ALLOWED','gateway');
+assert.equal(diagnostic.code,'COMPACTION_CONTINUATION_NOT_ALLOWED');
+assert(!('last_input_measurement' in diagnostic));
+assert(!JSON.stringify(diagnostic).includes('PRIVATE_SENTINEL'));
+Object.defineProperty(ctx.checkpoint,'terminal_diagnostic',{set(){throw new Error('diagnostic denied')}});
+assert.doesNotThrow(()=>ctx.rememberFailure('MODEL_REQUEST_LIMIT','gateway'));
+const start=source.indexOf("      rememberFailure(e.code, 'gateway');");
+const catchBody=source.slice(start,source.indexOf('\n    }\n  });',start));
+ctx.atomicJSON=async()=>{throw new Error('core checkpoint denied')};
+ctx.checkpointPath='synthetic';ctx.checkpoint={};
+const failure=vm.runInContext('(async function(e,physical,res){'+catchBody+'})',ctx);
+const response={writeHead(code){this.code=code},end(body){this.body=JSON.parse(body)}};
+await failure({code:'COMPACTION_CONTINUATION_NOT_ALLOWED'},false,response);
+assert.equal(response.code,502);
+assert.equal(response.body.error.message,'COMPACTION_CONTINUATION_NOT_ALLOWED');
+ctx.checkpoint={pending_request:{ordinal:1}};
+await assert.rejects(failure({code:'SUPPLIER_RESULT_UNKNOWN'},true,response),/core checkpoint denied/);
+assert.equal(ctx.checkpoint.status,'UNKNOWN');
+console.log('PASS actual helpers: comments/strings, unknown fonts, exact authored roundtrip, diagnostic errors, strict UNKNOWN checkpoint');
+'''
+        result = subprocess.run([node, "--input-type=module", "--eval", script, str(source)],
+            capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PASS actual helpers", result.stdout)
+
+
 class InputRejectionDiagnosticTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -140,6 +207,37 @@ class InputRejectionDiagnosticTests(unittest.TestCase):
         self.assertNotIn("PRIVATE_ERROR_SENTINEL", " ".join(logged.output))
         self.hooks.before_call.assert_not_called()
         self.assertFalse(self.http_requests)
+
+    def test_terminal_reason_survives_cleanup_without_replacing_first_input_measurement(self):
+        first = self.bridge.preflight(self.oversized())["measurement"]
+        latest = {**first, "text_bytes": first["text_bytes"] + 10, "total_bound": first["total_bound"] + 10}
+        diagnostic = {"code": "COMPACTION_CONTINUATION_NOT_ALLOWED", "stage": "gateway",
+            "model_requests": 14, "compaction_requests": 1, "local_input_rejections": 2,
+            "last_input_label": "primary", "last_input_measurement": latest}
+        (self.directory / "host-state/host-checkpoint.json").write_text(json.dumps({
+            "status": "FAILED", "model_requests": 14, "pending_request": None,
+            "terminal_diagnostic": diagnostic, "managed_fonts": {"PRIVATE_SENTINEL": "private"},
+            "error": "PRIVATE_SENTINEL"}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual(receipt["terminal_diagnostic"], diagnostic)
+        self.assertEqual(receipt["input_rejection"]["measurement"], first)
+        self.assertNotIn("PRIVATE_SENTINEL", json.dumps(receipt))
+        self.assertFalse(self.directory.exists())
+        self.hooks.before_call.assert_not_called()
+        self.assertFalse(self.http_requests)
+
+    def test_terminal_diagnostic_rejects_arbitrary_error_payloads_and_invalid_types(self):
+        valid = {"code": "SDK_IDLE_FAILED", "stage": "sdk_idle", "model_requests": 1,
+            "compaction_requests": 0, "local_input_rejections": 0}
+        self.assertEqual(runtime._host_failure_diagnostic(valid), valid)
+        for bad in ({**valid, "code": "PRIVATE_REPORT_SENTINEL"}, {**valid, "code": []},
+                    {**valid, "stage": []}, {**valid, "model_requests": True},
+                    {**valid, "raw_message": "PRIVATE_REPORT_SENTINEL"},
+                    {**valid, "last_input_label": "primary"}):
+            with self.subTest(bad=bad):
+                self.assertIsNone(runtime._host_failure_diagnostic(bad))
 
     def test_preflight_recovers_only_local_input_overflow_without_mutating_failure(self):
         invocation = runtime.public_product.Invocation("offline-owner", self.job_id, route="/covers",

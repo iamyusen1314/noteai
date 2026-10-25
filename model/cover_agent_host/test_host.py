@@ -244,6 +244,135 @@ class HostProof(unittest.TestCase):
         self.assertEqual(reopened["session_id"], result["session_id"])
         self.assertEqual(dispatched, [])
 
+    def test_real_sdk_managed_cjk_fonts_keep_complete_authored_html_editable(self):
+        case = "managed_font_edit"
+        work = self.root / case / "work"
+        tail = "AUTHORED_DOM_TAIL_AFTER_MANAGED_FONTS"
+        original_text, edited_text = "原始中文排字", "调整后的中文排字"
+        authored = ("<!doctype html><html><head><meta charset=\"utf-8\"><style>\n"
+                    ":root { --font-title: \"Songti SC\", serif; --field: #242421; }\n"
+                    "#poster { width:1776px; height:2368px; background:var(--field); }\n"
+                    ".headline { font-family:var(--font-title); font-size:118px; }\n"
+                    "</style></head><body><div id=\"poster\" data-canvas-width=\"1776\" "
+                    "data-canvas-height=\"2368\"><div class=\"hf-slot headline\" "
+                    "data-layer-id=\"headline\">" + original_text + "</div>"
+                    "<!--" + tail + "--></div></body></html>")
+        faces = re.compile(r"@font-face\s*\{[^{}]*\}")
+        observed = {"synthetic_fixture": True, "external_provider_calls": 0}
+        saved = {}
+
+        def font_files():
+            return {p.relative_to(work).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                    for p in sorted((work / "assets/fonts/cjk-serif").rglob("*")) if p.is_file()}
+
+        def tool_text(body, call_id):
+            message = next((m for m in reversed(body["messages"])
+                            if m.get("role") == "tool" and m.get("tool_call_id") == call_id), {})
+            value = message.get("content", "")
+            return value if isinstance(value, str) else "".join(text_values(value))
+
+        def respond(event, calls):
+            ordinal = len(calls)
+            fn, arguments = None, None
+            if ordinal == 1:
+                check = next(t["function"] for t in event["body"]["tools"]
+                             if t["function"]["name"] == "cover_check")
+                # Let the old baseline reach its real SDK truncation instead of
+                # stopping on a parameter its old tool schema does not expose.
+                observed["css_var_supported"] = "css_var" in check["parameters"]["properties"]
+                fn, arguments = "cover_write", {"path": "index.html", "text": authored}
+            elif ordinal == 2:
+                fn, arguments = "cover_check", {"action": "font_add", "html": "index.html",
+                                                "font_id": "cjk-serif"}
+                if observed["css_var_supported"]:
+                    arguments["css_var"] = "--font-title"
+            elif ordinal == 3:
+                data = (work / "index.html").read_bytes()
+                saved.update(before=data, faces=faces.findall(data.decode()), font_files=font_files())
+                observed.update(installed_html_bytes=len(data), installed_faces=len(saved["faces"]),
+                                font_add_tool_text=tool_text(event["body"], "managed-font-call-2"))
+                fn, arguments = "cover_read", {"path": "index.html"}
+            elif ordinal == 4:
+                raw = tool_text(event["body"], "managed-font-call-3")
+                observed.update(first_read_bytes=len(raw.encode()), tail_reached_sdk=tail in raw,
+                                physical_file_unchanged_by_read=(work / "index.html").read_bytes() == saved["before"])
+                try:
+                    view = json.loads(raw)
+                except json.JSONDecodeError:
+                    view = None
+                observed["first_view"] = view
+                if isinstance(view, dict) and isinstance(view.get("text"), str) and tail in view["text"]:
+                    saved["edited"] = view["text"].replace("#242421", "#303030", 1).replace(original_text, edited_text, 1)
+                    fn, arguments = "cover_write", {"path": "index.html", "text": saved["edited"]}
+            elif ordinal == 5:
+                after = (work / "index.html").read_bytes()
+                saved["after"] = after
+                observed.update(edited_html_bytes=len(after), font_files_unchanged=font_files() == saved["font_files"],
+                                managed_faces_unchanged=faces.findall(after.decode()) == saved["faces"])
+                fn, arguments = "cover_read", {"path": "index.html"}
+            elif ordinal == 6:
+                raw = tool_text(event["body"], "managed-font-call-5")
+                observed["second_view"] = json.loads(raw)
+                # Identical font CSS in a different, unregistered file must not
+                # inherit another HTML file's managed-font elision permission.
+                fn, arguments = "cover_write", {"path": "unregistered.html",
+                    "text": "<html><head><style>" + saved["faces"][0]
+                    + "</style></head><body>UNREGISTERED_FONT_DOM_TAIL</body></html>"}
+            elif ordinal == 7:
+                fn, arguments = "cover_read", {"path": "unregistered.html"}
+            elif ordinal == 8:
+                observed["unregistered_read"] = tool_text(event["body"], "managed-font-call-7")
+                fn, arguments = "cover_write", {"path": "notes.txt", "text": "普通文件逐字原文。\n"}
+            elif ordinal == 9:
+                fn, arguments = "cover_read", {"path": "notes.txt"}
+            elif ordinal == 10:
+                observed["ordinary_read"] = tool_text(event["body"], "managed-font-call-9")
+            message = {"role": "assistant", "content": "OFFLINE_FONT_EDIT_COMPLETE" if fn is None else None}
+            if fn:
+                message["tool_calls"] = [{"id": "managed-font-call-" + str(ordinal), "type": "function",
+                    "function": {"name": fn, "arguments": json.dumps(arguments, ensure_ascii=False)}}]
+            body = {"id": "chatcmpl_managed_font_fixture", "object": "chat.completion", "created": 1,
+                    "model": event["body"]["model"], "choices": [{"index": 0, "message": message,
+                    "finish_reason": "tool_calls" if fn else "stop"}],
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}}
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": body}
+
+        result, calls, _, root = self.request(case, respond=respond)
+        (root / "managed-font-observations.json").write_text(json.dumps(observed, ensure_ascii=False, indent=2))
+        self.assertTrue(result["ok"], result)
+        self.assertGreater(observed["installed_html_bytes"], 50 * 1024)
+        self.assertEqual(observed["installed_faces"], 101)
+        self.assertTrue(observed["tail_reached_sdk"], "SDK truncated the actual authored DOM after the generated font CSS")
+        self.assertTrue(observed["css_var_supported"])
+        self.assertEqual(len(calls), 10)
+        self.assertTrue(observed["physical_file_unchanged_by_read"])
+        view = observed["first_view"]
+        self.assertEqual(view["view"], "authored_html_with_managed_font_faces_elided")
+        self.assertEqual((view["path"], view["bytes"], view["sha256"]),
+                         ("index.html", len(saved["before"]), hashlib.sha256(saved["before"]).hexdigest()))
+        self.assertEqual(view["omitted_font_faces"], 101)
+        self.assertEqual(view["text"], faces.sub("", saved["before"].decode()))
+        self.assertEqual(view["fonts"], [{"font_id": "cjk-serif", "variable": "--font-kit-cjk-serif",
+                                        "family": "Noto Serif SC Variable", "face_count": 101}])
+        added = json.loads(observed["font_add_tool_text"])
+        self.assertEqual(added["font"], {"font_id": "cjk-serif", "variable": "--font-kit-cjk-serif",
+                                          "css_var": "--font-title", "face_count": 101})
+        self.assertRegex(saved["before"].decode(), r"--font-title\s*:\s*var\(--font-kit-cjk-serif\)")
+        self.assertTrue(observed["font_files_unchanged"])
+        self.assertTrue(observed["managed_faces_unchanged"])
+        self.assertTrue(any(p.endswith("/LICENSE.txt") for p in saved["font_files"]))
+        self.assertTrue(any(p.endswith(".woff2") for p in saved["font_files"]))
+        self.assertEqual(faces.sub("", saved["after"].decode()), saved["edited"])
+        self.assertIn(edited_text, saved["after"].decode())
+        self.assertIn("#303030", saved["after"].decode())
+        self.assertNotIn(original_text, saved["after"].decode())
+        self.assertEqual(observed["second_view"]["text"], saved["edited"])
+        self.assertEqual(observed["second_view"]["sha256"], hashlib.sha256(saved["after"]).hexdigest())
+        self.assertEqual(observed["unregistered_read"], (work / "unregistered.html").read_text())
+        self.assertIn(saved["faces"][0], observed["unregistered_read"])
+        self.assertIn("UNREGISTERED_FONT_DOM_TAIL", observed["unregistered_read"])
+        self.assertEqual(observed["ordinary_read"], "普通文件逐字原文。\n")
+
     def test_explicit_revision_continues_only_known_original_session_once(self):
         first, _, _, _ = self.request("revision")
         self.assertTrue(first["ok"], first)
