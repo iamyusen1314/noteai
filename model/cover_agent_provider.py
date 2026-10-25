@@ -19,6 +19,7 @@ from datetime import datetime
 from decimal import Decimal, ROUND_CEILING
 import io
 import json
+import logging
 import math
 import re
 import sqlite3
@@ -64,6 +65,31 @@ _RESERVATION_DIAGNOSTIC_KEYS = frozenset({"phase", "exception_type", "sqlite_err
     "os_errno", "call_id", "reserve_milli_cny"})
 _RESERVATION_EXCEPTION_TYPES = frozenset({"OperationalError", "IntegrityError", "DatabaseError",
     "OSError", "RuntimeError", "OtherError"})
+_HTTP_FAILURE_PROVIDER_CODES = frozenset({"AuthenticationError", "InvalidAccountStatus"})
+
+
+def _http_failure_metadata(response):
+    """Project only fixed categories and an existing official response identifier."""
+    if type(response.status_code) is not int or not 100 <= response.status_code <= 599 or response.status_code == 200:
+        raise ValueError("invalid HTTP failure metadata status")
+    request_id = response.headers.get("x-request-id") or response.headers.get("x-tt-logid")
+    if type(request_id) is not str or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", request_id):
+        request_id = None
+    result = {"event_code": "cover_agent_http_failure", "http_status": response.status_code,
+        "body_kind": "non_json", "provider_code": "OTHER", "provider_request_id": request_id}
+    if len(response.content) > 16 * 1024:
+        result["body_kind"] = "too_large"
+    else:
+        try:
+            value = json.loads(response.content)
+            error = value.get("error") if type(value) is dict else None
+            result["body_kind"] = "json_error" if type(error) is dict else "json_other"
+            code = error.get("code") if type(error) is dict else None
+            if type(code) is str and code in _HTTP_FAILURE_PROVIDER_CODES:
+                result["provider_code"] = code
+        except (ValueError, TypeError, RecursionError):
+            pass
+    return result
 
 
 class CoverAgentProviderError(public_product.TrialProviderStopped):
@@ -527,6 +553,10 @@ def complete(payload: dict, *, call_id: str, transport=None, deadline=None) -> d
                 if status != 200:
                     public_product._record_response(call_id, status)
                     terminal = True
+                    try:
+                        logging.warning(json.dumps(_http_failure_metadata(response), separators=(",", ":")))
+                    except Exception:
+                        pass  # Optional metadata/logging cannot replace the known HTTP stop.
                     raise CoverAgentProviderError("COVER_AGENT_HTTP_" + str(status), call_id=call_id)
                 diagnostic.phase = "response_decode"
                 if len(response.content) > MAX_RESPONSE_BYTES:

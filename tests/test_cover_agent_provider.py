@@ -624,6 +624,110 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertEqual(len(self.requests), 1)
         self.assertEqual(db.fetchone("SELECT count(*) n FROM model_usage_records")["n"], 0)
 
+    def test_known_401_records_only_safe_http_metadata_after_response_accounting(self):
+        call_id = self.intent()
+        def respond(request):
+            self.requests.append(request)
+            return httpx.Response(401, json={"error": {"code": "AuthenticationError",
+                "message": "PRIVATE_PROMPT_TOKEN_PATH", "detail": "PRIVATE_DETAIL"}},
+                headers={"x-request-id": "official-request_001:ok", "authorization": "PRIVATE_HEADER"})
+        with mock.patch("logging.warning") as logged:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                provider.complete(self.body, call_id=call_id, transport=httpx.MockTransport(respond))
+        self.assertEqual(caught.exception.code, "COVER_AGENT_HTTP_401")
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual((self.call_row(call_id)["state"], self.call_row(call_id)["http_status"]), ("responded", 401))
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(db.fetchone("SELECT count(*) n FROM model_usage_records")["n"], 0)
+        self.assertEqual(len(logged.call_args_list), 1)
+        value = json.loads(logged.call_args.args[0])
+        self.assertEqual(value, {"event_code": "cover_agent_http_failure", "http_status": 401,
+            "body_kind": "json_error", "provider_code": "AuthenticationError",
+            "provider_request_id": "official-request_001:ok"})
+        self.assertNotIn("PRIVATE_", logged.call_args.args[0])
+
+    def test_known_403_metadata_is_logged_only_after_terminal_accounting(self):
+        call_id = self.intent()
+        def inspect_log(text):
+            self.assertEqual((self.call_row(call_id)["state"], self.call_row(call_id)["http_status"]), ("responded", 403))
+            self.assertEqual(json.loads(text)["provider_request_id"], "official-log-002")
+        def respond(request):
+            self.requests.append(request)
+            return httpx.Response(403, json={"error": {"code": "InvalidAccountStatus", "message": "PRIVATE_MESSAGE"}},
+                headers={"x-tt-logid": "official-log-002"})
+        with mock.patch("logging.warning", side_effect=inspect_log) as logged:
+            with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_HTTP_403") as caught:
+                provider.complete(self.body, call_id=call_id, transport=httpx.MockTransport(respond))
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual(json.loads(logged.call_args.args[0])["provider_code"], "InvalidAccountStatus")
+        self.assertEqual((logged.call_count, len(self.requests)), (1, 1))
+        self.assertEqual(db.fetchone("SELECT count(*) n FROM model_usage_records")["n"], 0)
+
+    def test_http_failure_metadata_is_bounded_and_cannot_echo_untrusted_fields(self):
+        cases = [(b"", "non_json"), (b"<html>PRIVATE_BODY</html>", "non_json"),
+            (b"[]", "json_other"), (b'{"error":{"code":["PRIVATE_CODE"],"message":"PRIVATE_MESSAGE"}}', "json_error"),
+            (b'{"error":{"code":"PRIVATE_CODE","request_id":"PRIVATE_BODY_ID"}}', "json_error"),
+            (b"[" * 1500 + b"0" + b"]" * 1500, "non_json"), (b"x" * 16385, "too_large")]
+        for body, kind in cases:
+            with self.subTest(kind=kind):
+                response = httpx.Response(401, content=body, headers={"x-request-id": "invalid id PRIVATE_HEADER"})
+                value = provider._http_failure_metadata(response)
+                self.assertEqual(value, {"event_code": "cover_agent_http_failure", "http_status": 401,
+                    "body_kind": kind, "provider_code": "OTHER", "provider_request_id": None})
+                self.assertNotIn("PRIVATE_", json.dumps(value))
+        with mock.patch.object(provider.json, "loads", side_effect=AssertionError("oversize must not parse")):
+            self.assertEqual(provider._http_failure_metadata(httpx.Response(401, content=b"x" * 16385))["body_kind"], "too_large")
+        for request_id in ("bad/id", "x" * 161, ""):
+            self.assertIsNone(provider._http_failure_metadata(httpx.Response(401,
+                headers={"x-request-id": request_id}))["provider_request_id"])
+
+    def test_optional_http_logger_failure_preserves_known_denial_without_retry(self):
+        call_id = self.intent()
+        with mock.patch("logging.warning", side_effect=RuntimeError("PRIVATE_LOGGER")) as logged:
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                provider.complete(self.body, call_id=call_id, transport=self.transport(status=401))
+        self.assertEqual(caught.exception.code, "COVER_AGENT_HTTP_401")
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual((logged.call_count, len(self.requests)), (1, 1))
+        self.assertEqual(self.call_row(call_id)["state"], "responded")
+        self.assertEqual(db.fetchone("SELECT count(*) n FROM model_usage_records")["n"], 0)
+
+    def test_optional_http_metadata_failure_preserves_original_denial(self):
+        call_id = self.intent()
+        with mock.patch.object(provider, "_http_failure_metadata", side_effect=RuntimeError("PRIVATE_PARSER")), \
+                mock.patch("logging.warning") as logged:
+            with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_HTTP_401") as caught:
+                provider.complete(self.body, call_id=call_id, transport=self.transport(status=401))
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual(len(self.requests), 1)
+        logged.assert_not_called()
+        self.assertEqual(self.call_row(call_id)["state"], "responded")
+
+    def test_http_accounting_failure_stays_unknown_before_any_optional_metadata(self):
+        call_id = self.intent()
+        with mock.patch.object(public_product, "_record_response", side_effect=RuntimeError("PRIVATE_ACCOUNTING")), \
+                mock.patch.object(provider, "_http_failure_metadata") as metadata, \
+                contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                provider.complete(self.body, call_id=call_id, transport=self.transport(status=401))
+        self.assertTrue(caught.exception.outcome_unknown)
+        self.assertEqual(caught.exception.code, "COVER_AGENT_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY")
+        self.assertEqual(self.call_row(call_id)["state"], "dispatched")
+        self.assertEqual(len(self.requests), 1)
+        metadata.assert_not_called()
+        self.assertEqual(db.fetchone("SELECT count(*) n FROM model_usage_records")["n"], 0)
+        with self.assertRaises(public_product.TrialProviderStopped):
+            provider.complete(self.body, call_id=str(uuid.uuid4()), transport=self.transport())
+        self.assertEqual(len(self.requests), 1)
+
+    def test_http_logger_cancellation_is_not_swallowed_or_replayed(self):
+        call_id = self.intent()
+        with mock.patch("logging.warning", side_effect=KeyboardInterrupt), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(KeyboardInterrupt):
+                provider.complete(self.body, call_id=call_id, transport=self.transport(status=401))
+        self.assertEqual((self.call_row(call_id)["state"], self.call_row(call_id)["http_status"]), ("responded", 401))
+        self.assertEqual(len(self.requests), 1)
+
     def test_unknown_wire_outcome_keeps_original_call_and_blocks_next_dispatch(self):
         call_id = self.intent()
         errors = io.StringIO()
