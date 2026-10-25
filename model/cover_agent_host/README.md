@@ -356,7 +356,8 @@ Managed font editing and compaction share the same authored-code contract.
 After a successful local font installation, the host records the exact font-face
 CSS and the tool-owned kit variable declaration. A subsequent authored rewrite
 restores missing installed faces and the kit declaration, while preserving the
-chosen design role. Conflicting or duplicate kit definitions return a local error.
+chosen design role. A final CSS declaration may omit its semicolon; it is still
+checked for value and global scope. Conflicting or duplicate kit definitions return a local error.
 Older checkpoints without a stored declaration retain their previous behavior.
 The complete pinned upstream package, font files and licenses remain unchanged.
 

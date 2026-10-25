@@ -274,12 +274,17 @@ assert(relativeStart>=0 && relativeEnd>relativeStart && summaryStart>=0 && summa
 vm.runInContext(source.slice(start,end)+source.slice(relativeStart,relativeEnd)
   +source.slice(summaryStart,summaryEnd),ctx);
 const outcomes=[];
-for(const [name,css] of [
+const rejected=[
   ['unused_selector','.unused{'+declaration+'}'],
   ['conditional_root','@media(min-width:1px){:root{'+declaration+'}}'],
   ['duplicate_root',':root{'+declaration+'}:root{'+declaration+'}'],
   ['global_and_unused',':root{'+declaration+'}.unused{'+declaration+'}'],
-]){
+  ['wrong_root_no_semicolon',':root{--font-kit-cjk-serif:"Wrong",serif}'],
+  ['wrong_root_no_semicolon_whitespace',':root{--font-kit-cjk-serif:"Wrong", serif \n }'],
+  ['unused_no_semicolon','.unused{--font-kit-cjk-serif:"Installed",serif}'],
+  ['conditional_no_semicolon','@media(min-width:1px){:root{--font-kit-cjk-serif:"Installed",serif}}'],
+];
+for(const [name,css] of rejected){
   let code='NO_ERROR';
   try{ctx.restoreManagedFonts('index.html','<style>'+css+'</style><h1>UNCHANGED_DOM</h1>');}
   catch(e){code=e.code;}
@@ -288,6 +293,11 @@ for(const [name,css] of [
 const normal='<style>:root{'+declaration+'--font-title:explicit-role-sentinel;}</style><h1>UNCHANGED_DOM</h1>';
 assert.equal(ctx.restoreManagedFonts('index.html',normal),normal);
 outcomes.push({name:'normal_global_root',unchanged:true});
+for(const [name,value] of [['correct_no_semicolon','"Installed",serif'],
+                          ['correct_no_semicolon_whitespace','"Installed", serif \n ']]){
+  const html='<style>:root{--font-title:explicit-role-sentinel;--font-kit-cjk-serif:'+value+'}</style><h1>UNCHANGED_DOM</h1>';
+  outcomes.push({name,unchanged:ctx.restoreManagedFonts('index.html',html)===html});
+}
 const fake=`<style>/* .unused{${declaration}} */ .example{content:' :root{${declaration}} ';}
 :root{--font-title:var(--font-kit-cjk-serif);}</style><h1>UNCHANGED_DOM</h1>`;
 const restored=ctx.restoreManagedFonts('index.html',fake);
@@ -326,8 +336,10 @@ outcomes.push({name:'summary_raw_read_views',text_wrapper:true,content_wrapper:t
   unknown_face_retained:true,skill_html_unchanged:true,original_messages_unchanged:true});
 console.log(JSON.stringify({host_sha256:createHash('sha256').update(source).digest('hex'),
   actual_helper_segment:true,sdk_imported:false,supplier_calls:0,outcomes}));
-assert(outcomes.slice(0,4).every(item=>item.code==='MANAGED_FONT_VARIABLE_CONFLICT'),
+assert(outcomes.slice(0,rejected.length).every(item=>item.code==='MANAGED_FONT_VARIABLE_CONFLICT'),
   'Non-global or duplicate font-kit declaration was accepted as restored');
+assert(outcomes.filter(item=>item.name.startsWith('correct_no_semicolon')).every(item=>item.unchanged),
+  'Correct global final declaration without semicolon was unnecessarily replaced');
 '''
         result = subprocess.run([self.node, "--input-type=module", "-e", script, str(source)],
             capture_output=True, text=True, timeout=10,
@@ -335,7 +347,7 @@ assert(outcomes.slice(0,4).every(item=>item.code==='MANAGED_FONT_VARIABLE_CONFLI
         (self.root / "font-scope-vm.stdout.json").write_text(result.stdout)
         (self.root / "font-scope-vm.stderr.txt").write_text(result.stderr)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(json.loads(result.stdout)["outcomes"]), 7)
+        self.assertEqual(len(json.loads(result.stdout)["outcomes"]), 13)
 
     def test_real_sdk_managed_cjk_fonts_keep_complete_authored_html_editable(self):
         case = "managed_font_edit"

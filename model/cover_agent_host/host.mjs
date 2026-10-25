@@ -117,7 +117,7 @@ function registeredFontFaces(before, after, verified) {
 }
 function fontVariableDeclarations(html, variable) {
   const declarations = [];
-  const assignment = new RegExp('(^|[;{\\s])' + variable + '\\s*:[^;{}]*;', 'g');
+  const assignment = new RegExp('(^|[;{\\s])' + variable + '\\s*:[^;{}]*(?:;|(?=}))', 'g');
   for (const style of html.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)) {
     const masked = style[1].replace(/\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/g,
       (value) => ' '.repeat(value.length));
@@ -129,7 +129,8 @@ function fontVariableDeclarations(html, variable) {
         else if (masked[i] === '}') { scopes.pop(); boundary = i + 1; }
         else if (masked[i] === ';') boundary = i + 1;
       }
-      const text = style[1].slice(at, match.index + match[0].length).trim();
+      const raw = style[1].slice(at, match.index + match[0].length).trim();
+      const text = raw.endsWith(';') ? raw : raw + ';';
       declarations.push({ text, value: text.slice(text.indexOf(':') + 1, -1).trim(),
         global_root: scopes.length === 1 && scopes[0] === ':root' });
     }
