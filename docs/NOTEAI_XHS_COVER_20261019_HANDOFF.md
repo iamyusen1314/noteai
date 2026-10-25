@@ -3655,3 +3655,21 @@ R9本次限时单task已按失败规则消费并提前关闭，keydisabled/serve
 samekey已正常UI启用，TASK-KEY-REENABLED.R10.ACTUAL.png已给用户，无权限改动；serve010 exec45658/origin127.0.0.1:50692/lifespanoff无自动worker。正常原报告→视觉专家→封面，显示旧9需补传/重设计禁用；正常filechooser选择canonical9、POST upload-image逐个正常保存＋唯一PUT关联成功，UI9ready。Root通过正常GET9图片逐byte比PIL API规范化JPEG质量90精确等，newrefs与old refs不同、最早新expiry2026-10-26T05:45:36.754891Z；434字note_body及title/titlevariants与原REPORT-INPUT逐值全等，没有重跑报告。C/REAL-R10-NORMAL-REUPLOAD-READBACK001.json120783/c63308aa、REPORT-TEXT-INTEGRITY001、EXPIRED-SOURCE-UI001和REUPLOAD-READY-UI001为实证；这是实际本机normalAPI/真实原图，非旧ASGI RAM或云验收。
 
 PC1440×1000点击一次重新设计8积分，新joba7907023-bedf-4a94-a3fe-b1315b378c7a/clientfff8ac99-6cf4-4e7a-b3d1-ddd501ef861a/usage8039ea8a-19c9-4ccf-accf-43634a0ad90b queued/rev0，恰一新phasejob/physical0/workerfalse/oncefalse；仅8分mixed4+4预留，complete0。C/REAL-R10-BEFORE-WORKER001.json98347/69010e5e和R10-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口；唯一PLAN已同步实际当前leaf和top，本次task名额已用，不授权第二task。candidate只按原公开白名单绑定新job观察，旧R9证据全保。下一Root唯一POST run-next，保原HTTP响应核202；固定双Pro/最多1concept/原有1task内QC修正，最终真实原照；成功继续PC/H5保存重开/免费改字/下载/唯一结算，失败或UNKNOWN即禁key停/不重发。生产/原sole冻结候选不变。
+
+
+## CURRENT — 2026-10-25T05:52:53.071553+00:00 R10唯一真实请求已202，正在原任务image步骤；不得重复派发
+
+实际HEAD29e6b066/功能c9dcd89。本次唯一POST run-next 05:48:41.935844–05:48:42.012518Z HTTP202，C/REAL-R10-RUN-NEXT001.json原件保。原a7907023-bedf-4a94-a3fe-b1315b378c7a/clientfff8ac99/usage8039ea8a任务05:52:21Z running/image，3Pro已响应＋1image dispatched，workertrue，known新增Pro.3692844CNY，A25保守19590milli/余5410；8积分仍仅mixed4+4预留，complete0。REAL-R10-STATE001/002.json为只读状态证据；手机390×844刷新正常报告→视觉专家→封面找回同一运行任务、9素材有效/重提锁定，不把旁边旧mock图称本次成品。PC-RUNNING001及H5-RUNNING-REOPEN001截图保。
+
+serve010 exec45658/origin127.0.0.1:50692持续，samekey已启用但截止仍06:42:25Z，终态提前禁用，失败UNKNOWN停不重发。公开白名单observer81204绑定同job，暂仅brief/prompt。唯一PLAN已同步实际202与running，旧queued/next run-next留作历史，不可据旧字段再次POST。下一仅GET本次状态；成功关闭key后验PC/H5保存重开/免费改字/下载/唯一结算，失败或UNKNOWN立即禁key并封存再离线定位。生产和sole冻结候选不变。
+
+
+## CURRENT — 2026-10-25T06:06:35.698026+00:00 R10真实read-timeout UNKNOWN，samekey已关闭；定向离线超时修复继续
+
+实际HEAD29e6b066/功能c9dcd89。本次a7907023-bedf-4a94-a3fe-b1315b378c7a/clientfff8ac99/usage8039ea8a于06:02:40.519865Z读到outcome_unknown/COVER_AGENT_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY、rev0/noFinal/workerfalse。9physical=7Pro200+1SeedreamPro200+最后1ProUNKNOWN，唯一unknown77653108-ac75-5f94-b96d-2f400630d995。原REAL-SERVE010.log安全固定trace明确transport/response_read/ReadTimeout、240385ms、request_sendtrue/responseheadersnull/cancellationfalse，是等待响应头超时；不是正文质量/QC拒绝或标题守卫实触发。不能推供应商没执行或免费，不重发原请求。samekey正常控制台已禁用并权威行核，TASK-KEY-DISABLED.R10.ACTUAL001.png已给用户，本次单task访问时段消费/提前关闭，不默续时窗。
+
+C/REAL-R10-STATE013.json、UNKNOWN-NORMAL-READBACK001（正常GET两次200/同task仍UNKNOWN、creditsused0/reserved8）、UNKNOWN-TRANSPORT-AND-DEADLINE001.json2703/b6f75e33为恢复入口。actualdeadline06:17:24.491174Z，下一按真实时钟调用原cover_jobs.release_expired_unknowns，不提前改时钟/重写deadline。serve010 exec45658仅本地读回存活、无worker/keydisabled，释放后正常stop；原RUN-ONCE/RUN-RESULT全保。新增knownPro1.0594656CNY，imageactualNULL/估.76、UNKNOWN保留2753milli；A25保守23035/余1965milli，native非现金、旧R7UNKNOWN/所有cost不改，真实合格0/单位成本N/A。
+
+PC/H5运行刷新找回同task、9素材有效/重提锁定、H5文档390/panel352且console[]；终态前端显示供应商待核查/尚未扣分，旁旧mock图不算新成品。公开observer81204已STOP/exit0，331次/7版本7376276B；manifest7372/39f1c9d6、END4538/3ce87683。只有brief/两prompt/concept7365025/2c0718d9/design-plan/poster.json/prompts，未捕获HTML/final/240/QC，不推从未存在或六项合格。safehostreceipt有compaction1、localinputreject133357>131072、pendingprimary8，这不代替独立真实transporttrace。
+
+Root已向原sole明确发送实际结果并要求维持0cb8155/c9/fb788三组件候选冻结，无新build/native/生产；接手方的下一执行为等待具体newsource或真实结果后统一集成，Root继续当前任务。foundation独立只读核coverprovider→arkclient240秒和共享permit/lease/heartbeat及官方建议；Root只准备封面专用最小修复，不改原报告超时/模型/生产。计划中的品牌/正文tag可能超approved_titles但无实际HTML，暂列风险，不能冒本次实因或加塞修复。下一先完成实际timeout契约修正和受控回归，至06:17:24后原UNKNOWN唯一释放并核费用/调用不变，继续既有集成流程；完整成功保存找回/免费改字/下载/唯一成功结算/真实iPhone仍未验。
