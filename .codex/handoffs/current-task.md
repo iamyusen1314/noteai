@@ -33920,3 +33920,14 @@ safe内容无正文receipt1721/a6714ebb证实：terminalgateway COMPACTION_CONTI
 本轮真实候选full4171287/cdc560eb与240128208/dcdfecb5已Root及candidate亲看：园景＋吧台/汤池两图，金色两行宋体字，未见文字溢出/遮主体、240主字可读/品牌较小；尚非合格交付，未捕获qc0/1不推不存在。Root已向用户展示明确candidate notdelivery。C/REAL-R13-TERMINAL-SUMMARY001.json保当前所有refs；46原件manifest47500/718b658c和END5397/aee2282f保时序。原照1/2/9精确canonical同SHA视觉对比待补，已核正常报告9ready非旧fixtureflag过期。
 
 既定共享资源最小V3 Bridge/report票竞争离线单场景三段PASS .649s：占槽reserve/dispatch/HTTP0，释放后实际Bridge/provider/tempSQLite继续，MockReadTimeout保UNKNOWN2753并释放全部ticket/阻下一调用；2MockHTTP/外部0，原report仅symbolicticket非实际reportmodel，多用户真实容量仍未验。E/resource-sharing-v3-bridge-report-r1/RESULT0013846/058fb221，不改产品/本C真实账本，源pins一致。sole原d6e18e9/c205候选保留但不冒本次真实交付通过/无生产GO；下一Root离线修复、独审再适配，持续执行不止于本checkpoint。
+
+
+## CURRENT — 2026-10-25T11:54:39.160409+00:00 5d88564修复第三合法超限阻断，真实SDK三次摘要/独审GO；继续候选和同caller准备
+
+当前branch/worktree不变，功能commit 5d885643e0194edf33402a415a9270d87121caee（本checkpoint前HEAD同）。只改host57701/75a7fa8a、README27317/6fe09f4b、hosttest103269/cdad61d8；产品逻辑仅两counter比较2→Number.MAX_SAFE_INTEGER，后者只保+1数值精确，不是新业务调用额度。每summary仍独占新known本地primary INPUT_LIMIT票/bodySHA/ordinal、与上次不同SHA且其后有已知成功primary、同pending intent原子消费；原money/25min/UNKNOWN/owner/辅助kind/请求界限完全不动。原第三票实际RED由18callback唯一失败证明，新12票VM/18callback含6fresh票＋本机实际Node25/OpenCode2.1.2三summary/三localreject/20合成bridge GREEN，signed原writes/opaque/fullSkill/事实prompt/9照片hash全保。D13 REPEATED-OVERFLOW-FINAL-EVIDENCE00110413/f46d8098；candidate独审3874/9533ef45 GO/noP0-P2，Root独立27ref全pins核合、node --check/git diff --check通过；不重复SDK/供应商或历史suite。source0034227/800fb598保7叶，4叶自d12不变，无新依赖/迁移/生产。
+
+工具因果调查7受控对照明确：R13公开196KB HTML内193193B是193块unicode-range字体CSS，base64为0；逐字对应固定两kit。现actual cover_read在canonical registry下仅4049/3277B，snapshot同效、未知改块保留、正文及非font CSS/DOM完整。manifest全读73353B/JSON工具81210B确可重现，但R13原tool已cleanup，不能证明它实际被读或造成68076B；无新确证P1/P2，不为假设加read接口、投影或prompt。本次只修确定cap因，R13-COVER-READ-REPRO001/RESULT00110647/ea4f8bd6。原照1/2/9pure canonical规范化逐SHA匹配R13brief且candidate亲看：actual候选主体对应三原照，概念图改写景物但未用于shipping照片；full/240无可见溢出/遮主体，品牌较小。此人眼候选观察不冒ProQC/市场认可/交付通过。
+
+已实际send给sole原“修复高德检索与休闲娱乐行业”窗口精确newcommit/pins：沿actualc205原two-Send/3COPY准备，仅host运行叶变，原三组件/101路径/API91由它独占；具体carrier/native先交Root核后一次执行，不新发布系统/资源/生产。Root下一核其实际开始及原件。successor已明确接手同caller/README的R14 HOLD最小准备，先冻结R13档，保13旧任务/158physical/once/旧UNKNOWN，预算数学不变/无DB写servekeypaid。
+
+实际A42已批、bound32497/余9503、原总100/旧UNKNOWN2753全部保；R13failed/net0/keydisabled/server80251exit0/observer68586exit0/无worker/未新task。原1task和时段已消费，不能从未来HOLD准备开新paid。唯一PLAN本次纠正遗留top/leaf旧R12运行和A32展示为实际R13全闭/当前A42，既有历史记录不删。真实qualified0/每张合格成本N/A，下一继续候选/工具具体准备，不止于本checkpoint；准备好后只需新一张任务的当次key时段决定，无新增预算。
