@@ -148,10 +148,10 @@
 
 | 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
 | --- | --- | --- | --- | --- |
-| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；A新增15元/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
+| 1 接管基线与确认范围 | 封面主代理 | COMPLETE / cc96df7→Plan A确认 | 整包Editable-Design/OpenCode、Pro规划/QC＋Seedream概念/原照HTML；8分/90天；原A15→当前A20已确认/原总100元，调用次数按需求 | 历史窗口已消费，下一公网仍需当次有限时窗；旧UNKNOWN保 |
 | 2 最小实现与离线验证 | 主代理；独立问题子代理 | COMPLETE_TARGETED / 7f73ca6、20a8136、910e4bd、63e93c8、9f55fbf | 当前V3真九图普通功能链、同库重启、PC/H5重开/免费排字和HTTP下载；9f增加桌面原生保存，实际文件等持久rev2；首次可编辑包保存失败真实回归1PASS/净扣0，见末节 | 旧证据复用；供应商HTTP/QC mock，不能替代真实质量或真实供应商结算；iPhone及不支持picker的设备落盘未证 |
-| 3 定向集成与真实验收 | Root；原sole唯一最终集成发布 | SOURCE8BC8831_NODE24_ACTUAL_PASS_REAL_R6_HOLD | 8bc适配器提示/几何诊断已修；真实原照离线CLI渲染、免费改字和240缩图通过；原sole8831候选Node24六项全PASS/0skip；R5失败唯一释放8分 | 真实合格0；A15保守余2626<next2753。追加5元及同受限key限时启用的合并问题待答，未应用20元建议、不重发旧任务 |
-| 4 独立审查与交付 | 独立子代理；Root；原sole | SOURCE8BC_AND_8831_FINAL_REVIEW_GO_REAL_DELIVERY_PENDING | 8bc四叶、8831实际回执和组件均独审GO；原sole6348e157已实际完成101/API91，4metadata变/97不变；Root原件复核2af80f21 | 已完成候选集成段，下一接手Root执行获批后的1张真实完整链，结果再交原sole统一集成；成品Pro QC/保存/成功结算待，真iPhone未验、不生产发布 |
+| 3 定向集成与真实验收 | Root；原sole唯一最终集成发布 | SOURCE0AB_LOCAL_GO_CANDIDATE_ACTIVE_R6_FAILED | 字体设计视图/精确绑定/诊断修复0ab已提交；原sole实际接手8831基础2COPY候选；本机固定SDK读写和完整渲染链通过 | R6未交付/净扣0；Node24受影响验证执行中；真实合格0；R7仅同库准备，key禁用，不重旧任务 |
+| 4 独立审查与交付 | 独立子代理；Root；原sole | SOURCE0AB_FINAL_REVIEW_GO_NATIVE_AND_REAL_DELIVERY_PENDING | 0ab五叶最终独审GO，3P2已修及对应负例真通过；旧8831原件复用，新候选由原sole实际执行 | Root核新候选实际原件后接新授权真实链；Pro QC/成功保存下载结算待，真iPhone未验，不生产发布 |
 
 以下项目保留接收时历史快照；当前状态以紧上方权威表及末节checkpoint为准。
 
@@ -3484,3 +3484,16 @@ R6 caller仍52194/da5de5b0、README11100/2ea0db60，原15000未改；file-only p
 C/REAL-R6-TERMINAL-SUMMARY001.json：新增已知目录文本1.9059936元，Aknowntext累计8.5933176/历史known目录12.5196234；第6本机图actualNULL/估0.76与全部旧未明保。A20保守bound15045milli/余4955，非现金账单。formal105676/acceptance99436不重置，本机历史69physical。真实合格0/单位合格成本N/A，成功ProQC/持久交付/免费改字/下载/唯一成功结算仍未完成，真iPhone未验。汇总脚本首次误读budget.reserved_milli_cny，改实际current_reserved_milli_cny后仅重汇总，无DB/模型操作。
 
 公开白名单观察exec89694已实际Exit0，仅ownSTOP文件停止；10原件6006160B，manifest10074/b5b8117b1b34372f568d4461239e42db124645baacaa64e2cfe697f4eee71d77，结束只读review3671/d2941695。实际概念5889573/3e8a83f0只reference；HTML102990/f2282a4e装101font-face但--font-title仍系统字体、var(--font-kit-cjk-serif)引用0，现硬门会拒它，这是确定产物缺口，非终态唯一因。无final/240/QC捕获，不等从未短暂存在。固定SDK工具输出默认50KiB/2000行裁剪；本HTML前100k大多字体CSS，所以cover_read整文件可能只把字体前缀给模型而丢设计DOM。host又未为read结果做可验证字体投影。下一Root核机械字体绑定/可读设计视图和实际固定SDK第二合法摘要边界，复现再最小修；foundation只读SDK/合同，candidate只读原件/建议，产品统一Root改。禁读旧SDK DB/cipher、不重旧job/paid/生产、不新增平台或依赖。此本轮单任务确认已消费关闭；独立非付费工程继续，不以失败或checkpoint结束。
+
+
+## CURRENT — 2026-10-25T02:46:50.379906+00:00 字体读取链修复0ab35c1已提交/最终本机SDK独审通过，原sole新候选已实际接手，R7仅同库准备
+
+功能HEAD0ab35c13a21951cf71a5bd080ef677c3adb9216f，5叶：host44332/aa20e6c3（新managed字体视图/原face回写保全、font_add可选css_var精确绑定、固定终态诊断）；runtime38334/016c1ea6（只提示新工具合同及receipt白名单诊断）；README16681/3b9ab6f9；host测试48573/db1255bb；runtime测试45833/72d638a2。无新runtime叶/依赖/平台/HTML/SQL/fonts/模型/8分/90天/输入131072/单摘要上限/重试或结算改动。固定SDK默认50KiB工具截断的具体缺口已重现：旧8bc真实SDK RED1.572s，100877B/101face只到wire51420B，无设计尾；保原RED。新读只把本job font_add实际新增或原已核且whole相同的font-face投影为metadata，未知face/Skill/普通文件不裁；完整CSS/DOM在text，read不改文件、write自动恢复原faces，字体/许可逐byte保持。css_var只绑定已唯一声明真实CSS属性，comments/strings不算，其他角色不动。没有替换审美模板或绕过原render硬门。
+
+candidate唯一新增SDK测试，Root统一产品修改；foundation两次独审提出3P2并已真修：注释误声明、预存未知face误登记、可选诊断掩原错。最终五叶GO无未解P0–P2。原gateway和Python receipt现在只保固定枚举/计数/最后校验测量，无rawSDK message/cipher/fontCSS；诊断best-effort不掩原502，pending UNKNOWN核心持久化原样严格。首件input-rejection保历史，与最后host diagnostic分开；不据R6首件131721倒推其最终唯因。
+
+最终实际Node25.7/SDK2.1.2：managed CJK完整read/write＋普通/未知raw负例和原malformed-summary门2PASS/2.565s，R6-FONT-READ-SDK-FINAL001；Root亲读本次合成checkpoint确记COMPACTION_CONTINUATION_NOT_ALLOWED/gateway/counts且无pending，非R6历史再认定。真实helpers/原gatewaycatch＋cleanup白名单3PASS/.063s，R6-FONT-READ-BOUNDARIES001；最后SDK→CLI1776/240→mockQC/editable bundle/freeedit单case1PASS/21.265s，R6-FONT-READ-SDK-RENDER002及完整proof。此前GREEN001仅多插空行导致严格字节断言失败，Root改插入分隔符，严格断言未放松；初次-I用-m unittest找不到tests是环境入口错误，改直接文件入口后4PASS/.007s，无依赖/产品修补。所有原失败日志留存。compile/nodecheck/diffcheck通过。固定原whole索引C/R6-FONT-READ-SOURCE-AND-EVIDENCE001.json6363/d2e9ee1c465123d18b2b4f686def99200dd9228723ac47a7fe0c6357b2eecf0c；全部新增供应商/业务DB/生产0，不冒真实质量或云Node24。
+
+原sole已明确接手0ab候选且wait游标1759实际active/command完成，turn01a170f1-e10a-7b91-9449-811dbb79c4ca。固定8831862b基础仅2COPY产品；按实际原files契约保持101/API91，2API＋README/test_host共4metadata变/97不变（Root已纠正最初3/98预估，未错误改清单）；runtimeTests只证据不扩集合。sole唯一准备builder/pack/PLAN供Root具体审后一次构建与最薄Node24字体读写/负例/坏摘要验证，不重旧render/21/PG/高德/支付，无生产。Root继续跟实际回执，不能只ACK就结束。foundation同时唯一准备C caller/README R7同库固定六失败父/69响应/既有预算HOLD，不起服务或读key/DB；当前新human key问题尚未发。
+
+R6已消费关闭：14Pro+1image全responded、hostFAILED/pendingnull、净扣0，key正常disabled/exec79560exit0，原观察exec89694exit0。A20保守15045milli余4955，Aknowntext8.5933176/历史known目录12.5196234，第6图actualNULL估.76及旧UNKNOWN保；formal105676/acceptance99436不变，真实合格0/单位N/A。下一Root在候选实际、caller审查和fresh只读原账/TTL齐后，才提出同受限key新有限时窗的单任务验收，无额外预算请求；不拿旧4ab或本轮已关闭确认启动R7。独立非付费工程继续。
