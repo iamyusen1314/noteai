@@ -33803,3 +33803,14 @@ Root诊断工具两处本地错误保留：最初用完整缩进源码行比较a
 R12原caller93596/10fc5ce7准备和实际RO84SELECT已复用，不新task/key/server/provider；A30保守25615/余4385、旧UNKNOWN2753完整保。Root按R11原17calls真实顺序逐prefix+当次reserve核：实际保守cost2580milli，但最大admission需5236milli，超当前headroom851milli；这是旧失败序列的已知预算压力，非新task预测或发票。为避免中途budgetstop并覆盖既有最多1quality修正，推荐最小新增2元，A30→A32、原total100不变，拟余6385milli；**未向用户提问/未批准**。C/R12-BUDGET-RESERVATION-PROPOSAL001.json4271/b571d67e99624fa0d911922c2eb25a93cfa511acdd9aa634051429ee14ed7d0a。successor专属同caller/README准备必要提案常量/清楚HOLD与旧A30事实，原四budget数学/历史与UNKNOWN/正常上传/serve逻辑不扩；Root最后亲审后一次合并所需2元与新60min samekey/1task决定。无静默增加预算、不缩模型输出质量、不复用已消费R11时窗。
 
 阶段2修复/离线证据及阶段3候选集成已完成；当前剩余是实际1张合格封面、PC/H5保存找回/免费改字/下载/成功唯一8分与完整最终交付，真实qualified仍0/每张成本N/A，物理iPhone未验。key正常UI只读确认已禁用（BEFORE-R12-APPROVAL001截图），所有服务/worker/observer无后台。唯一PLAN同步此恢复点和提案，当前批准仍A30。下一完成提案工具具体可复核准备和独审后发一次集中确认；并非停止于此checkpoint。
+
+
+## CURRENT — 2026-10-25T08:56:42.232680+00:00 R12实际+2/A32及新60min已收，正常原九图核通过/唯一新task queued；真实派发前checkpoint
+
+功能source66a51d5/当前HEAD2cc354e9a5b32db15a348c332a4d86af2fad759f。Root08:50:59.554807Z实际收到用户“同意追加2元并限时验收1张”，question call_04b8c40cb1d54e2388b21c161b6a5ab4；A30→A32仅+2/原total100，截止09:50:59Z（北京17:50:59/unix1792921859），同原key/最多1task/最多1concept与原1task内质量修正，终态早禁，预算不足/失败/UNKNOWN停、不重发。R12-ACTUAL-HUMAN-SCOPE001.json1699/f2085fc3原件固定。已准备caller94044/59f4ef9a和README42740/5b5c3ff2、source窄patch/2纯控制/独审GO、Root allrefs/AST亲核3998附近/ROOT-READBACK0013988/430ee06c；原A30独立0400原件完整。预检元数据HOLD/A30是批准前历史，actual本receipt授权runtime cap32000；不因旧prepared字段冒本次无授权或静默扩大scope。
+
+Root fresh实际RO84SELECT/query_only/total_changes0、完整原11job/111physical及旧94投影/两UNKNOWN/2753保留，mainDBwhole前后同；runtime math cap32000/bound25615/余6385，nextreserve2753fits但不保证全流程。REAL-CALLER-R12.ACTUAL-READONLY-STATE-PREFLIGHT002.json61231/64b27e50。samekey已正常UI启用/权威row生效中/ACTUAL002截图已给用户，不改权限；serve012 exec39399/origin127.0.0.1:61597/lifespanoff无自动worker。正常GET原report整体与R10原报告相等，9素材全ready/同refs/每张normalGET byte+SHA全等、expiry最早26日05:45:36Z，无重跑报告或补传；REAL-R12-NORMAL-NINE-READBACK001.json137028/68dd8be5。
+
+正常PC1440×1000报告→视觉专家→封面点一次重新设计8积分，新job b5eabe9a-a087-43dd-9aee-469385857201/client5b7e84bf-42fa-41d5-b85f-3a494dae8ac5/usagee4a4acff-e712-4f2d-8e59-3887fa37649b queued/rev0，phase恰1/physical0/workerfalse/oncefalse，仅mixed8预留/尚未扣分；旧mock图不是本次成品。REAL-R12-BEFORE-WORKER001.json126060/6aa14d21和R12-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口，唯一PLAN已纠正当前state/next/授权及task占用，勿因恢复再建task。candidate仅接同job既有公开allowlist observer，无真实SDK私件/DB/key/network读取。
+
+下一Root唯一POST run-next保HTTP原响应核202；之后只查询，手机刷新重开找回同job/连点禁用，成功继续真实最终图/六QC/保存找回/免费排字/下载及唯一8分，失败UNKNOWN预算停立即禁key封存。sole41eb/actual62cb/三组件冻结/生产无GO；真实qualified0/旧UNKNOWN和所有费用全保，不把候选1VM通过冒本次真实合格。
