@@ -26,7 +26,7 @@ from functools import lru_cache
 import ark_media
 import cover_agent_artifacts as artifacts
 import cover_agent_provider as provider
-from cover_agent_thinking import ThinkingError, ThinkingState
+from cover_agent_thinking import ThinkingError, ThinkingState, validated_thinking_diagnostics
 import cover_renderer
 import cover_runtime
 import cover_seedream
@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parent
 _INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
 _OUTPUT_DIAGNOSTIC_FILE = "provider-output-diagnostic.json"
 _RESERVATION_DIAGNOSTIC_FILE = "provider-reservation-diagnostic.json"
+_THINKING_DIAGNOSTIC_FILE = "thinking-context-diagnostic.json"
 _HOST_RESULT_DIAGNOSTIC_FILE = "bridge-host-result.json"
 _SEEDREAM_DIAGNOSTIC_FILE = "seedream-http-failure.json"
 _HOST_RESULT_STATUSES = {"RUNNING", "AWAITING_MODEL", "FAILED", "UNKNOWN", "COMPLETE"}
@@ -216,6 +217,47 @@ def _read_reservation_diagnostic(directory, job_id):
                 or value["job_id"] != job_id):
             return None
         return provider.validated_reservation_diagnostics(value["diagnostic"])
+    except (OSError, ValueError, TypeError, RecursionError):
+        return None
+
+
+def _write_thinking_diagnostic(directory, job_id, diagnostic):
+    diagnostic = validated_thinking_diagnostics(diagnostic)
+    if diagnostic is None or str(uuid.UUID(job_id)) != job_id:
+        raise ValueError("invalid thinking diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("thinking diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+    if len(body) > 4096:
+        raise ValueError("thinking diagnostic too large")
+    fd = os.open(state / _THINKING_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_thinking_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _THINKING_DIAGNOSTIC_FILE,
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                    or not 0 < metadata.st_size <= 4096):
+                return None
+            body = stream.read(4097)
+        if len(body) > 4096:
+            return None
+        value = json.loads(body)
+        if (type(value) is not dict or set(value) != {"job_id", "diagnostic"}
+                or value["job_id"] != job_id):
+            return None
+        return validated_thinking_diagnostics(value["diagnostic"])
     except (OSError, ValueError, TypeError, RecursionError):
         return None
 
@@ -441,6 +483,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "RESERVATION_UNCONFIRMED_NO_REPLAY"}
         receipt["reservation_failure"] = reservation
+    thinking = _read_thinking_diagnostic(directory, job_id)
+    if thinking is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "THINKING_CONTEXT_REJECTED"}
+        receipt["thinking_failure"] = thinking
     host_result = _read_host_result_diagnostic(directory, job_id)
     if host_result is not None:
         if receipt is None:
@@ -651,7 +698,17 @@ class Bridge:
         try:
             return self.thinking.restore(payload)
         except ThinkingError as error:
+            self._record_thinking_rejection(error, "restore")
             raise cover_runtime.CoverRuntimeError(error.code) from None
+
+    def _record_thinking_rejection(self, error, phase):
+        try:
+            _write_thinking_diagnostic(self.directory, self.job_id, {
+                "phase": phase, "reason": error.reason, "code": error.code,
+                "ordinal": self.ordinal, "entry_count": self.thinking.entry_count,
+                "retained_bytes": self.thinking.retained_bytes})
+        except Exception:
+            logging.warning("cover_thinking_diagnostic_unavailable")
 
     def _record_input_rejection(self, measurement):
         try:
@@ -716,6 +773,7 @@ class Bridge:
             # detached response returned here is the safe Node/SDK projection.
             body = self.thinking.remember(body)
         except ThinkingError as error:
+            self._record_thinking_rejection(error, "remember")
             raise cover_runtime.CoverRuntimeError(error.code) from None
         return body, call_id
 

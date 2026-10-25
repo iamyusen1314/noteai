@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
-from cover_agent_thinking import ThinkingError, ThinkingState
+from cover_agent_thinking import ThinkingError, ThinkingState, validated_thinking_diagnostics
 
 
 def response(content=None, calls=None, cipher="fake-opaque", **extra):
@@ -135,6 +135,59 @@ class ThinkingStateTests(unittest.TestCase):
         self.state.remember(response(calls=[call(arguments='{"x":true}')]))
         self.assert_code("COVER_AGENT_THINKING_CONTEXT_MISMATCH",
                          lambda: self.state.restore({"messages": [response(calls=[call(arguments='{"x":1}')])["choices"][0]["message"]]}))
+
+    def test_fixed_reasons_distinguish_rejections_without_changing_original_codes(self):
+        cases = [("JSON_SYNTAX", '{"x":}'), ("DUPLICATE_KEY", '{"x":1,"x":2}'),
+            ("NON_OBJECT_ARGUMENTS", "[]"), ("NON_FINITE_NUMBER", '{"x":NaN}'),
+            ("NON_FINITE_NUMBER", '{"x":1e309}'), ("UNSAFE_INTEGER", '{"x":9007199254740992}'),
+            ("ARGUMENTS_TYPE", 42)]
+        for reason, arguments in cases:
+            with self.subTest(reason=reason), self.assertRaises(ThinkingError) as caught:
+                self.state.remember(response(calls=[call(arguments=arguments)]))
+            self.assertEqual(caught.exception.reason, reason)
+            self.assertEqual(caught.exception.code, "COVER_AGENT_THINKING_CONTEXT_INVALID")
+            self.assertEqual(str(caught.exception), caught.exception.code)
+            self.assertEqual(self.state.entry_count, 0)
+        for reason, invalid in [("MESSAGE_CONTENT_TYPE", response(content=[])),
+                ("TOOL_CALLS_TYPE", response(calls={})),
+                ("REASONING_TYPE", response(reasoning_content={})),
+                ("OPAQUE_TYPE", response(cipher={}))]:
+            with self.subTest(reason=reason), self.assertRaises(ThinkingError) as caught:
+                self.state.remember(invalid)
+            self.assertEqual(caught.exception.reason, reason)
+            self.assertEqual(str(caught.exception), "COVER_AGENT_THINKING_CONTEXT_INVALID")
+        checks = [
+            ("INVALID_SHAPE", lambda: self.state.remember({"choices": []})),
+            ("UNKNOWN_HISTORY", lambda: self.state.restore({"messages": [{"role": "assistant", "content": "unknown"}]})),
+            ("MEMORY_LIMIT", lambda: ThinkingState("tiny", max_bytes=1)),
+        ]
+        self.state.remember(response(calls=[call()]))
+        checks.append(("IDENTITY_MISMATCH", lambda: self.state.remember(
+            response(calls=[call(arguments='{"text":"changed"}')]))))
+        for reason, action in checks:
+            with self.subTest(reason=reason), self.assertRaises(ThinkingError) as caught:
+                action()
+            self.assertEqual(caught.exception.reason, reason)
+            self.assertEqual(str(caught.exception), caught.exception.code)
+        error = ThinkingError("COVER_AGENT_THINKING_CONTEXT_INVALID", reason="PRIVATE_SENTINEL")
+        self.assertEqual(error.reason, "INVALID_SHAPE")
+        self.assertNotIn("PRIVATE_SENTINEL", str(error))
+
+    def test_diagnostic_schema_is_fixed_bounded_and_detached(self):
+        value = {"phase": "remember", "reason": "JSON_SYNTAX",
+            "code": "COVER_AGENT_THINKING_CONTEXT_INVALID", "ordinal": 2,
+            "entry_count": 1, "retained_bytes": self.state.retained_bytes}
+        validated = validated_thinking_diagnostics(value)
+        self.assertEqual(validated, value)
+        validated["ordinal"] = 99
+        self.assertEqual(value["ordinal"], 2)
+        bad = [{**value, "raw": "PRIVATE_SENTINEL"}, {**value, "reason": "PRIVATE_SENTINEL"},
+            {**value, "phase": "design"}, {**value, "code": []}, []]
+        for key in ("ordinal", "entry_count", "retained_bytes"):
+            bad.extend({**value, key: item} for item in (True, -1, None, 10 ** 100))
+        for item in bad:
+            with self.subTest(item=item):
+                self.assertIsNone(validated_thinking_diagnostics(item))
 
     def test_memory_limit_is_atomic_and_no_export_or_storage_exists(self):
         small = ThinkingState("bounded", max_bytes=4096)

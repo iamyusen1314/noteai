@@ -19,20 +19,41 @@ _UNKNOWN = "COVER_AGENT_THINKING_CONTEXT_UNKNOWN"
 _MISMATCH = "COVER_AGENT_THINKING_CONTEXT_MISMATCH"
 _LIMIT = "COVER_AGENT_THINKING_MEMORY_LIMIT"
 _CODES = frozenset({_INVALID, _UNKNOWN, _MISMATCH, _LIMIT})
+_REASONS = frozenset({"JSON_SYNTAX", "DUPLICATE_KEY", "NON_OBJECT_ARGUMENTS",
+    "NON_FINITE_NUMBER", "UNSAFE_INTEGER", "INVALID_TYPE", "INVALID_SHAPE",
+    "IDENTITY_MISMATCH", "UNKNOWN_HISTORY", "MEMORY_LIMIT", "ARGUMENTS_TYPE",
+    "MESSAGE_CONTENT_TYPE", "TOOL_CALLS_TYPE", "REASONING_TYPE", "OPAQUE_TYPE"})
+_DEFAULT_REASONS = {_INVALID: "INVALID_SHAPE", _UNKNOWN: "UNKNOWN_HISTORY",
+    _MISMATCH: "IDENTITY_MISMATCH", _LIMIT: "MEMORY_LIMIT"}
+_DIAGNOSTIC_KEYS = frozenset({"phase", "reason", "code", "ordinal", "entry_count", "retained_bytes"})
 
 
 class ThinkingError(ValueError):
-    def __init__(self, code=_MISMATCH):
+    def __init__(self, code=_MISMATCH, *, reason=None):
         self.code = code if code in _CODES else _INVALID
+        self.reason = reason if type(reason) is str and reason in _REASONS else _DEFAULT_REASONS[self.code]
         super().__init__(self.code)
 
 
 ThinkingStateError = ThinkingError
 
 
-def _need(condition, code=_INVALID):
+def validated_thinking_diagnostics(value):
+    """Only fixed categories and bounded counters may leave the RAM helper."""
+    if (type(value) is not dict or set(value) != _DIAGNOSTIC_KEYS
+            or type(value["phase"]) is not str or value["phase"] not in {"remember", "restore"}
+            or type(value["reason"]) is not str or value["reason"] not in _REASONS
+            or type(value["code"]) is not str or value["code"] not in _CODES
+            or any(type(value[key]) is not int or not 0 <= value[key] <= limit
+                   for key, limit in (("ordinal", 1000000), ("entry_count", 1000000),
+                                      ("retained_bytes", MAX_MEMORY_BYTES)))):
+        return None
+    return dict(value)
+
+
+def _need(condition, code=_INVALID, *, reason=None):
     if not condition:
-        raise ThinkingError(code)
+        raise ThinkingError(code, reason=reason)
 
 
 def _dump(value):
@@ -40,19 +61,19 @@ def _dump(value):
         return json.dumps(value, ensure_ascii=False, sort_keys=True,
                           separators=(",", ":"), allow_nan=False).encode("utf-8")
     except (TypeError, ValueError, UnicodeError, RecursionError):
-        raise ThinkingError(_INVALID) from None
+        raise ThinkingError(_INVALID, reason="INVALID_TYPE") from None
 
 
 def _pairs(items):
     result = {}
     for key, value in items:
-        _need(key not in result)
+        _need(key not in result, reason="DUPLICATE_KEY")
         result[key] = value
     return result
 
 
 def _constant(_value):
-    raise ThinkingError(_INVALID)
+    raise ThinkingError(_INVALID, reason="NON_FINITE_NUMBER")
 
 
 def _typed(value):
@@ -64,23 +85,27 @@ def _typed(value):
     if type(value) is str:
         return ["string", value]
     if type(value) in {int, float}:
-        _need(math.isfinite(value))
+        _need(math.isfinite(value), reason="NON_FINITE_NUMBER")
         if isinstance(value, int) or value.is_integer():
-            _need(abs(value) <= _SAFE_INTEGER)
+            _need(abs(value) <= _SAFE_INTEGER, reason="UNSAFE_INTEGER")
         number = float(value)
         return ["number", (0.0 if number == 0 else number).hex()]
     if type(value) is list:
         return ["array", [_typed(item) for item in value]]
-    _need(type(value) is dict and all(type(key) is str for key in value))
+    _need(type(value) is dict and all(type(key) is str for key in value), reason="INVALID_TYPE")
     return ["object", [[key, _typed(value[key])] for key in sorted(value)]]
 
 
 def _arguments(text):
-    _need(type(text) is str)
+    _need(type(text) is str, reason="ARGUMENTS_TYPE")
     try:
         value = json.loads(text, object_pairs_hook=_pairs, parse_constant=_constant)
-        _need(type(value) is dict)
+        _need(type(value) is dict, reason="NON_OBJECT_ARGUMENTS")
         return _typed(value)
+    except ThinkingError:
+        raise
+    except json.JSONDecodeError:
+        raise ThinkingError(_INVALID, reason="JSON_SYNTAX") from None
     except (ValueError, TypeError, OverflowError, RecursionError):
         raise ThinkingError(_INVALID) from None
 
@@ -88,10 +113,10 @@ def _arguments(text):
 def _assistant(message):
     _need(type(message) is dict and message.get("role") == "assistant")
     content = message.get("content")
-    _need(content is None or type(content) is str)
+    _need(content is None or type(content) is str, reason="MESSAGE_CONTENT_TYPE")
     saved = {"role": "assistant", "content": content}
     original_calls = message.get("tool_calls", [])
-    _need(original_calls is None or type(original_calls) is list)
+    _need(original_calls is None or type(original_calls) is list, reason="TOOL_CALLS_TYPE")
     calls = original_calls or []
     identifiers, signatures, projected = [], [], []
     for call in calls:
@@ -101,7 +126,7 @@ def _assistant(message):
         _need(type(function) is dict and type(function.get("name")) is str
               and _NAME.fullmatch(function["name"]))
         identifier, name = call["id"], function["name"]
-        _need(identifier not in identifiers)
+        _need(identifier not in identifiers, reason="IDENTITY_MISMATCH")
         arguments = function.get("arguments")
         signatures.append([identifier, name, _arguments(arguments)])
         identifiers.append(identifier)
@@ -111,7 +136,8 @@ def _assistant(message):
         saved["tool_calls"] = None if original_calls is None else projected
     for key in ("reasoning_content", "encrypted_content"):
         value = message.get(key)
-        _need(value is None or type(value) is str)
+        _need(value is None or type(value) is str,
+              reason="REASONING_TYPE" if key == "reasoning_content" else "OPAQUE_TYPE")
         if value is not None:
             saved[key] = value
     # The fixed SDK turns empty text into null when replaying a tool-call turn.

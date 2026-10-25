@@ -135,17 +135,19 @@ class LocalRenderRejectionDiagnosticTests(unittest.TestCase):
         functions = {"_render_rejection_diagnostic", "_host_failure_diagnostic",
             "_host_result_diagnostic", "_read_input_diagnostic", "_read_output_diagnostic",
             "_read_reservation_diagnostic", "_read_host_result_diagnostic",
-            "_read_seedream_diagnostic", "cleanup_workspace"}
+            "_read_seedream_diagnostic", "_read_thinking_diagnostic", "cleanup_workspace"}
         constants = {"_RENDER_REJECTION_CODES", "_HOST_FAILURE_CODES", "_HOST_RESULT_STATUSES",
             "_HOST_RESULT_FS_CODES", "_INPUT_DIAGNOSTIC_FILE", "_OUTPUT_DIAGNOSTIC_FILE",
-            "_RESERVATION_DIAGNOSTIC_FILE", "_HOST_RESULT_DIAGNOSTIC_FILE", "_SEEDREAM_DIAGNOSTIC_FILE"}
+            "_RESERVATION_DIAGNOSTIC_FILE", "_HOST_RESULT_DIAGNOSTIC_FILE", "_SEEDREAM_DIAGNOSTIC_FILE",
+            "_THINKING_DIAGNOSTIC_FILE"}
         selected = [node for node in tree.body if (
             isinstance(node, ast.FunctionDef) and node.name in functions) or (
             isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)
                 and target.id in constants for target in node.targets))]
         assert {node.name for node in selected if isinstance(node, ast.FunctionDef)} == functions
         namespace = {"json": json, "os": os, "math": math, "stat": stat,
-            "shutil": shutil, "uuid": uuid, "Path": Path, "workspace_root": lambda: root}
+            "shutil": shutil, "uuid": uuid, "Path": Path, "workspace_root": lambda: root,
+            "validated_thinking_diagnostics": runtime.validated_thinking_diagnostics}
         exec(compile(ast.Module(body=selected, type_ignores=[]), str(source), "exec"), namespace)
         return SimpleNamespace(**namespace)
 
@@ -582,6 +584,133 @@ class ReservationDiagnosticTests(unittest.TestCase):
         self.assertEqual((receipt["status"], receipt["model_requests"], receipt["pending_request"]),
                          ("UNKNOWN", 11, pending))
         self.assertNotIn("reservation_failure", receipt)
+
+
+class ThinkingDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.job_id = str(uuid.uuid4())
+        self.directory = self.root / self.job_id
+        self.directory.mkdir(mode=0o700)
+        self.path = self.directory / "host-state/thinking-context-diagnostic.json"
+        self.hooks = mock.Mock()
+        self.bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory, sources=[], hooks=self.hooks)
+
+    @staticmethod
+    def response(arguments='{"x":}'):
+        return {"choices": [{"message": {"role": "assistant", "content": None,
+            "encrypted_content": "PRIVATE_CIPHER_SENTINEL", "tool_calls": [{"type": "function",
+                "id": "PRIVATE_TOOL_ID", "function": {"name": "PRIVATE_TOOL_NAME", "arguments": arguments}}]}}]}
+
+    def diagnostic(self, phase="remember"):
+        return {"phase": phase, "reason": "JSON_SYNTAX", "code": "COVER_AGENT_THINKING_CONTEXT_INVALID",
+            "ordinal": 1, "entry_count": 0, "retained_bytes": self.bridge.thinking.retained_bytes}
+
+    def checkpoint_and_cleanup(self):
+        self.path.parent.mkdir(mode=0o700, exist_ok=True)
+        pending = {"ordinal": 9, "body_sha256": "a" * 64, "label": "primary"}
+        terminal = {"code": "SUPPLIER_RESULT_UNKNOWN", "stage": "gateway", "model_requests": 9,
+            "compaction_requests": 0, "local_input_rejections": 0}
+        (self.path.parent / "host-checkpoint.json").write_text(json.dumps({"status": "UNKNOWN",
+            "model_requests": 9, "pending_request": pending, "terminal_diagnostic": terminal,
+            "private": "PRIVATE_SENTINEL"}))
+        with mock.patch.object(runtime, "workspace_root", return_value=self.root):
+            runtime.cleanup_workspace(self.job_id)
+        self.assertFalse(self.directory.exists())
+        receipt = json.loads((self.root / "receipts" / (self.job_id + ".json")).read_text())
+        self.assertEqual(receipt["status"], "UNKNOWN")
+        self.assertEqual(receipt["pending_request"], pending)
+        self.assertEqual(receipt["terminal_diagnostic"], terminal)
+        self.assertNotIn("PRIVATE_", json.dumps(receipt))
+        return receipt
+
+    def test_remember_failure_is_after_one_known_response_and_survives_cleanup(self):
+        with mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                mock.patch.object(provider, "complete", return_value=self.response()) as complete:
+            with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_THINKING_CONTEXT_INVALID"):
+                self.bridge.model({"messages": [{"role": "user", "content": "synthetic"}]})
+        complete.assert_called_once()
+        self.hooks.before_call.assert_called_once()
+        self.assertEqual(self.bridge.ordinal, 1)
+        self.assertEqual((len(self.bridge.costs), self.bridge.costs[0]["status"]), (1, "responded"))
+        diagnostic = self.diagnostic()
+        self.assertEqual(runtime._read_thinking_diagnostic(self.directory, self.job_id), diagnostic)
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("PRIVATE_", self.path.read_text())
+        self.assertEqual(self.checkpoint_and_cleanup()["thinking_failure"], diagnostic)
+
+    def test_restore_failure_is_before_admission_meter_and_ordinal(self):
+        with mock.patch.object(provider, "admit_payload") as admit, \
+                mock.patch.object(provider, "prepare_payload") as prepare, \
+                mock.patch.object(provider, "complete") as complete:
+            with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_THINKING_CONTEXT_UNKNOWN"):
+                self.bridge.preflight({"messages": [{"role": "assistant", "content": "PRIVATE_UNKNOWN"}]})
+        admit.assert_not_called()
+        prepare.assert_not_called()
+        complete.assert_not_called()
+        self.hooks.before_call.assert_not_called()
+        self.assertEqual((self.bridge.ordinal, self.bridge.costs), (0, []))
+        value = runtime._read_thinking_diagnostic(self.directory, self.job_id)
+        self.assertEqual((value["phase"], value["reason"], value["ordinal"]), ("restore", "UNKNOWN_HISTORY", 0))
+        self.assertNotIn("PRIVATE_", self.path.read_text())
+
+    def test_optional_write_or_counter_failure_never_masks_original_guard(self):
+        original = runtime.ThinkingError("COVER_AGENT_THINKING_CONTEXT_MISMATCH")
+        for failure in ("write", "counter"):
+            with self.subTest(failure=failure), \
+                    mock.patch.object(self.bridge.thinking, "restore", side_effect=original), \
+                    mock.patch.object(runtime, "_write_thinking_diagnostic", side_effect=OSError("PRIVATE_IO")) as write, \
+                    mock.patch.object(runtime.ThinkingState, "entry_count", new_callable=mock.PropertyMock,
+                        **({"side_effect": RuntimeError("PRIVATE_COUNT")} if failure == "counter" else {"return_value": 0})), \
+                    self.assertLogs(level="WARNING") as logged:
+                with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_THINKING_CONTEXT_MISMATCH"):
+                    self.bridge.preflight({"messages": []})
+                self.assertNotIn("PRIVATE_", " ".join(logged.output))
+                self.assertEqual(write.call_count, 0 if failure == "counter" else 1)
+        self.assertEqual(self.bridge.ordinal, 0)
+        self.hooks.before_call.assert_not_called()
+        with mock.patch.object(self.bridge.thinking, "restore", side_effect=original), \
+                mock.patch.object(runtime, "_write_thinking_diagnostic", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                self.bridge.preflight({"messages": []})
+
+    def test_sidecar_is_immutable_and_rejects_untrusted_files_and_deep_json(self):
+        diagnostic = self.diagnostic()
+        runtime._write_thinking_diagnostic(self.directory, self.job_id, diagnostic)
+        original = self.path.read_bytes()
+        with self.assertRaises(FileExistsError):
+            runtime._write_thinking_diagnostic(self.directory, self.job_id, {**diagnostic, "ordinal": 2})
+        self.assertEqual(self.path.read_bytes(), original)
+        self.path.chmod(0o400)
+        self.assertEqual(runtime._read_thinking_diagnostic(self.directory, self.job_id), diagnostic)
+        self.path.chmod(0o600)
+        envelopes = [{"job_id": self.job_id, "diagnostic": {**diagnostic, "cipher": "PRIVATE_SENTINEL"}},
+            {"job_id": self.job_id, "diagnostic": {**diagnostic, "reason": "PRIVATE_SENTINEL"}},
+            {"job_id": self.job_id, "diagnostic": {**diagnostic, "retained_bytes": True}},
+            {"job_id": str(uuid.uuid4()), "diagnostic": diagnostic}]
+        for envelope in envelopes:
+            self.path.write_text(json.dumps(envelope))
+            self.assertIsNone(runtime._read_thinking_diagnostic(self.directory, self.job_id))
+        self.path.write_bytes(b" " * 4097)
+        self.assertIsNone(runtime._read_thinking_diagnostic(self.directory, self.job_id))
+        self.path.write_bytes(original)
+        self.path.chmod(0o644)
+        self.assertIsNone(runtime._read_thinking_diagnostic(self.directory, self.job_id))
+        self.path.chmod(0o600)
+        linked = self.path.with_name("synthetic-hardlink")
+        os.link(self.path, linked)
+        self.assertIsNone(runtime._read_thinking_diagnostic(self.directory, self.job_id))
+        linked.unlink()
+        self.path.unlink()
+        self.path.symlink_to(linked.name)
+        self.assertIsNone(runtime._read_thinking_diagnostic(self.directory, self.job_id))
+        self.path.unlink()
+        self.path.write_bytes(b"[" * 1500 + b"0" + b"]" * 1500)
+        self.path.chmod(0o600)
+        self.assertIsNone(runtime._read_thinking_diagnostic(self.directory, self.job_id))
+        self.assertNotIn("thinking_failure", self.checkpoint_and_cleanup())
 
 
 class HostResultDiagnosticTests(unittest.TestCase):
