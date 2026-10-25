@@ -3550,3 +3550,21 @@ A20仍唯一有效cap20000，下一designreserve2753只证明首笔可容，不�
 fresh实际SQLite RO/query_only/SELECT-READ-FUNCTION预检002：七历史/80响应原digest不变，R7仍UNKNOWN且唯一释放；A保守17107milli、当前available7893（非已消费现金），原STATE013 limit20k证据不改。9原图owner/purpose/ready/SHA/TTL全通过，最早05:22:02.593942Z，到期不延长。DBwhole前后相等/changes0。same noteai-cover-20261024-acceptance正常控制台启用，遮罩TASK-KEY-REENABLED.R8.ACTUAL.png已给用户，无权限改动。
 
 serve008 exec15449/origin127.0.0.1:60322/lifespanoff无自动worker，正常PC1440×1000报告→视觉专家→封面，实际8积分/90天/九图ready，旧UNKNOWN已明确预留释放/不追扣。只点击一次“新建封面”，jobd277b820-664c-4131-a84e-2cdb248446e8/client87d1902c-5fc0-4335-a0ac-b8f4c506cdf7/usage2ef02eb6-e6a8-4468-acca-1186c1908fcf queued，phase恰1/新physical0/workerfalse/oncefalse。C/REAL-R8-BEFORE-WORKER001.json及R8-BEFORE-DISPATCH-CHECKPOINT001.json为恢复入口，PLAN原路径已接续。下一Root唯一run-next，先保原HTTP响应再核202；双Pro/最多1概念/原有一次任务内质量修正，真实原照最终像素，不改正文。失败/未知立即key禁用并正常关闭，不重发；成功继续PC/H5保存找回/免费改字/下载/成功唯一结算。仅本机真实供应商验收，不冒云环境或质量通过，无生产/公网改动。
+
+
+## CURRENT — 2026-10-25T04:16Z R8首请求前失败已关闭／供应商0与积分净扣0，继续实际SDK离线定位
+
+接续HEADf619cfa/功能cb9f1fc，唯一R8 jobd277b820/usage2ef02eb6的run-next04:10:12.710567–.804739Z实际202，04:10:49Z读到failed/COVER_AGENT_DESIGN_INCOMPLETE/rev0/noFinal/workerfalse。phase physical0/model0/image0，新增模型费0，A25bound17107/余7893及全部原80响应/旧费用UNKNOWN不变。normal GET /covers/{job}两次200均释放8/credits0，charge1/refund1/complete0，wallet8/used0/月used8复原；PC失败页、H5关闭reload→原报告重开找回同failed与此前R7UNKNOWN不追扣，width390/doc390/panel352/left19right371，console[]。旧mock成品仅保旧结果，不冒新真实成品。Root立即normal key禁用，TASK-KEY-DISABLED.R8.ACTUAL.png已给用户；server008正常stop200/exec15449exit0，tab8已关/viewportreset，无后台模型或服务、不重发。C/REAL-R8-STATE001/002、FAILED-NORMAL-READBACK001、STOP001、TERMINAL-SUMMARY001为恢复入口。当前60min单task授权已消费并提前关闭，不自动开第二个。
+
+公开观察exec83687已exit0，0产物（未捕获不代表未短暂存在），manifest787/34ade2d5、endedreview2140/5c997930。安全hostreceipt214/e40781dd只有RUNNING/modelrequests0/pendingnull，没有诊断，不等于worker仍运行。Bridge收到!ok或缺artifact会统一DESIGN_INCOMPLETE并抹event code，stderr本来DEVNULL；此处只是待证定位。独立foundation正在只读分析host/Bridgecheckpoint顺序。Root现仅独立临时目录的实际SDK2.1.2+Bridge/provider-free探针：合成九图一轮baseline实际1个synthetic响应、COMPLETE/RENDER_ARTIFACT_MISSING，证明正常终态落盘；另使用本人9原照副本与原报告context的独立UUID探针进行中，无key/供应商/原job或DB写。继续查根因和最小离线修复，不以R8失败停工或冒任务交付。
+
+
+## CURRENT — 2026-10-25T04:26:53.712712+00:00 2295b06安全host-result增量已保存／实际本机ENOSPC已清自有缓存，继续正常business与候选接续
+
+功能HEAD2295b06ce531ea4895b6dfb3ec4894afc3b00669，仅runtime44676/7122f648、runtimeTests60740/f77d5cc6、README18751/6ff06e2b。真实result失败或缺artifact时保独立5字段safe projection（ok/status/有限host或FS code/有界requestcount/artifactbool），不含detail/context/path/session/cipher；O_EXCL/NOFOLLOW/uid/nlink/private/4096/deepJSON检查，cleanup另保host_result_failure，不改旧checkpoint/R7UNKNOWN/原DESIGN_INCOMPLETE、计费/重试/依赖。4新失败协议/安全负例＋8旧reservation12PASS/.016s，compile/diffcheck过，candidate独审runtime/tests/README GO无P0–P2。C/R8-HOST-RESULT-SOURCE-AND-EVIDENCE001.json为原件索引。
+
+Root原照第三个独立provider-free SDK探针真实报errno28 ENOSPC（summary落盘阶段），actualData228Gi/used199Gi/avail116Mi/100%；该probe安全checkpoint也RUNNING0、最终event没保，不能补造或回填R8唯一根因。仅删本task可重新下载的公开Chromezip194151778B（官方/下载原receipt保）＋31systemtemp自有合成proof291576211B，全部逐file/bytes/SHA与保留C证据副本全等才删；不删原图/原账/独有证据/依赖/key/其他窗口文件。C/LOCAL-ENOSPC-CACHE-CLEANUP001.json、EXACT-DUPLICATE-CLEANUP001.json；当时avail624996352B。没有修改产品生产或其他窗口资源。
+
+实际SDK2.1.2+真实Bridge：明确临时host注入ready后ENOSPC且FAILED落盘也ENOSPC，5.709s/0syntheticmodel/0supplier，原RUNNING0与新safe FAILED/ENOSPC0并存，未改shipping host，证明诊断可保该故障签名但不是原R8原因实证。清理后本人9原图副本+原报告context/独立UUID再跑9.143s，到首syntheticresponse1/COMPLETE/missingartifact并保新safe result；原DBSHA不变/0外呼。原两baseline6.095/9.577也正常到首syntheticcall1，不冒真实模型/质量。foundation最小完整business独立copy probe已接手，尚在执行；Root继续核实际。
+
+原sole已收到R8失败/0费/关闭及本机ENOSPC分层事实并明确保持旧ea6e001/3712/三组件冻结。Root已给2295功能及准确两shipping leaves/受影响证据，请sole沿3712准备仅runtime1COPY及既有最薄诊断native，先返回carrier供审；未发外部命令/未构建或部署。下一Root完成business实际证据、carrier独审、同sole实际候选回执及准确组件交付，不以本checkpoint停工。R8单任务授权已消费/提前关；当前无key/serve/paidjob，A25原cap/保守17107/余7893与原80费用全保。真实合格0/单位N/A，成功保存找回改字下载结算及iPhone仍未验。
