@@ -15,17 +15,21 @@ from __future__ import annotations
 
 import base64
 from copy import deepcopy
+from datetime import datetime
 from decimal import Decimal, ROUND_CEILING
 import io
 import json
 import math
 import re
 import sqlite3
+import time
 
+import httpx
 from PIL import Image
 
 import ark_media
 import billing
+import db
 import model_router
 import public_product
 
@@ -38,6 +42,10 @@ QC_OUTPUT_TOKENS = 32768
 COMPACTION_OUTPUT_TOKENS = 8192
 SDK_CONTEXT_TOKENS = 262144
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+# Nonstream Pro thinking can exceed the shared media client's 240-second read.
+# Keep a cover-only ceiling and leave room for connection/upload and settlement.
+READ_TIMEOUT_SECONDS = 900
+REQUEST_MARGIN_SECONDS = 140
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 _MODEL_NAME = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")
 _KEYS = {"model", "messages", "tools", "tool_choice", "parallel_tool_calls",
@@ -401,7 +409,18 @@ def _validate_result(data, body, dimensions):
         reject("COVER_AGENT_OUTPUT_INCOMPLETE")
 
 
-def complete(payload: dict, *, call_id: str, transport=None) -> dict:
+def request_timeout(deadline=None):
+    read = READ_TIMEOUT_SECONDS
+    if deadline is not None:
+        if type(deadline) not in {int, float} or not math.isfinite(deadline):
+            _invalid("COVER_AGENT_TASK_DEADLINE")
+        read = min(read, deadline - time.time() - REQUEST_MARGIN_SECONDS)
+        if read <= 0:
+            _invalid("COVER_AGENT_TASK_DEADLINE")
+    return httpx.Timeout(read, connect=10, write=90, pool=10)
+
+
+def complete(payload: dict, *, call_id: str, transport=None, deadline=None) -> dict:
     """Dispatch exactly once, returning the complete non-stream Chat response.
 
     The caller must persist its original intent and recheck its live cover
@@ -413,6 +432,14 @@ def complete(payload: dict, *, call_id: str, transport=None) -> dict:
     current = public_product._invocation.get()
     if current is None or current.route != "/covers" or not billing._ACTIVE_USAGE_ID.get():
         _invalid("COVER_AGENT_ORIGINAL_CONTEXT_REQUIRED")
+    job = db.fetchone("SELECT deadline_at FROM cover_jobs WHERE id=? AND user_id=?",
+        (current.request_id, current.user_id))
+    if not job:
+        _invalid("COVER_AGENT_ORIGINAL_CONTEXT_REQUIRED")
+    job_deadline = datetime.fromisoformat(job["deadline_at"]).timestamp()
+    request_timeout(deadline)  # Reject an invalid/expired host bound before admission.
+    deadline = min(job_deadline, deadline) if deadline is not None else job_deadline
+    request_timeout(deadline)
     body, _ = prepare_payload(payload)
     _require_price()
     headers = ark_media._headers()
@@ -421,6 +448,8 @@ def complete(payload: dict, *, call_id: str, transport=None) -> dict:
     terminal, status = False, None
     with public_product.model_admission_sync(call_id, "doubao"):
         public_product.assert_result_known()
+        # Waiting for the shared permit may have consumed the remaining time.
+        timeout = request_timeout(deadline)
         reserve = int((Decimal(estimate(body["max_completion_tokens"])["estimated_cost"]) * 1000).to_integral_value(rounding=ROUND_CEILING))
         try:
             public_product._reserve_payload({"model": MODEL, "provider": "doubao", "modality": "image",
@@ -442,7 +471,7 @@ def complete(payload: dict, *, call_id: str, transport=None) -> dict:
                 diagnostic.post_entered = True
                 response = client.post(ark_media.CHAT_URL, content=encoded,
                     headers={**headers, "Content-Type": "application/json"},
-                    extensions={"trace": diagnostic.trace})
+                    extensions={"trace": diagnostic.trace}, timeout=timeout)
                 status = diagnostic.http_status = response.status_code
                 diagnostic.headers_received = True
                 if status != 200:

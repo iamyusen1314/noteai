@@ -1,12 +1,14 @@
 """Cover-only Pro transport: real local accounting, synthetic HTTP, no network."""
 import contextlib
 from copy import deepcopy
+from datetime import datetime, timezone
 import io
 import json
 import os
 from pathlib import Path
 import sqlite3
 import sys
+import time
 import unittest
 import uuid
 from unittest import mock
@@ -637,6 +639,53 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertEqual(len(self.requests), 1)
         self.assertNotIn("never log request contents", errors.getvalue())
         self.assertNotIn("offline-cover-agent-fixture", errors.getvalue())
+
+    def test_cover_read_timeout_is_separate_from_shared_media_default(self):
+        call_id = self.intent()
+        provider.complete(self.body, call_id=call_id, transport=self.transport())
+        self.assertEqual(self.requests[0].extensions["timeout"],
+            {"connect": 10, "read": 900, "write": 90, "pool": 10})
+        with ark_media._client(transport=self.transport()) as client:
+            self.assertEqual(client.timeout.as_dict(),
+                {"connect": 10, "read": 240, "write": 90, "pool": 10})
+
+    def test_host_and_original_job_deadlines_both_bound_request_wait(self):
+        now = time.time()
+        db.execute("UPDATE cover_jobs SET deadline_at=? WHERE id=?",
+            (datetime.fromtimestamp(now + 400, timezone.utc).isoformat(), self.claim["request_id"]))
+        with mock.patch.object(provider.time, "time", return_value=now):
+            provider.complete(self.body, call_id=self.intent(), transport=self.transport(), deadline=now + 500)
+            provider.complete(self.body, call_id=self.intent("qc"), transport=self.transport(), deadline=now + 300)
+        self.assertAlmostEqual(self.requests[0].extensions["timeout"]["read"], 260, places=5)
+        self.assertAlmostEqual(self.requests[1].extensions["timeout"]["read"], 160, places=5)
+
+    def test_short_or_invalid_host_deadline_never_reserves_or_sends(self):
+        call_id = self.intent()
+        for deadline in (time.time() + 139, float("inf"), True, "late"):
+            with self.subTest(deadline=deadline), \
+                    mock.patch.object(public_product, "_reserve_payload") as reserve, \
+                    mock.patch.object(public_product, "mark_model_dispatched") as dispatched:
+                with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_TASK_DEADLINE"):
+                    provider.complete(self.body, call_id=call_id, transport=self.transport(), deadline=deadline)
+                reserve.assert_not_called()
+                dispatched.assert_not_called()
+        self.assertFalse(self.requests)
+        self.assertIsNone(db.fetchone("SELECT id FROM public_trial_calls WHERE id=?", (call_id,)))
+
+    def test_shared_queue_wait_rechecks_deadline_before_reserving(self):
+        now = time.time()
+        clock = [now]
+        @contextlib.contextmanager
+        def delayed_permit(*args):
+            clock[0] += 301
+            yield
+        with mock.patch.object(provider.time, "time", side_effect=lambda: clock[0]), \
+                mock.patch.object(public_product, "model_admission_sync", side_effect=delayed_permit), \
+                mock.patch.object(public_product, "_reserve_payload") as reserve:
+            with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_TASK_DEADLINE"):
+                provider.complete(self.body, call_id=self.intent(), transport=self.transport(), deadline=now + 400)
+        reserve.assert_not_called()
+        self.assertFalse(self.requests)
 
     def test_proven_pre_send_pool_failure_is_known_but_never_retried(self):
         call_id = self.intent()

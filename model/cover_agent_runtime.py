@@ -600,6 +600,7 @@ class Bridge:
         self.session_id = None
         self.costs = []
         self.last_preview = None
+        self.request_deadline = None
         self.thinking = ThinkingState(job_id)
 
     def _restore_thinking(self, payload):
@@ -642,6 +643,7 @@ class Bridge:
     def model(self, payload, stage="design"):
         # Validate the actual full SDK request before a durable dispatch intent.
         public_product.assert_result_known()
+        provider.request_timeout(self.request_deadline)
         try:
             prepared, _ = provider.prepare_payload(self._restore_thinking(payload))
         except provider.CoverAgentProviderError as error:
@@ -654,7 +656,8 @@ class Bridge:
         try:
             with public_product.model_admission_sync(call_id, "doubao"):
                 self.hooks.before_call(stage + ":" + str(self.ordinal), call_id, estimate)
-                body = provider.complete(prepared, call_id=call_id, transport=self.model_transport)
+                body = provider.complete(prepared, call_id=call_id, transport=self.model_transport,
+                    deadline=self.request_deadline)
         except provider.CoverAgentProviderError as error:
             if error.output_diagnostics is not None:
                 self._record_output_rejection(error.output_diagnostics)
@@ -705,6 +708,7 @@ class Bridge:
         raise cover_runtime.CoverRuntimeError("COVER_AGENT_TOOL_NOT_ALLOWED")
 
     def run(self, prompt, *, deadline):
+        self.request_deadline = deadline
         worker = ROOT / "cover_agent_host/worker.mjs"
         if not worker.is_file():
             raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_UNAVAILABLE")

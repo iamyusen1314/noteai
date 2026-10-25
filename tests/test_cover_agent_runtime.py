@@ -69,6 +69,33 @@ def returned_value(body, required, *, tool_call_id=None):
     raise AssertionError("SDK did not expose expected tool field: " + required)
 
 
+class ProviderDeadlineBridgeTests(unittest.TestCase):
+    def test_short_host_deadline_stops_before_intent_or_supplier(self):
+        with tempfile.TemporaryDirectory() as root:
+            hooks = mock.Mock()
+            bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=Path(root), sources=[], hooks=hooks)
+            bridge.request_deadline = time.time() + 139
+            with mock.patch.object(runtime.public_product, "assert_result_known"), \
+                    mock.patch.object(provider, "complete") as complete:
+                with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_TASK_DEADLINE"):
+                    bridge.model({"messages": [{"role": "user", "content": "deadline fixture"}]})
+            hooks.before_call.assert_not_called()
+            complete.assert_not_called()
+            self.assertEqual(bridge.ordinal, 0)
+
+    def test_qc_reuses_the_original_host_deadline(self):
+        with tempfile.TemporaryDirectory() as root:
+            bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=Path(root), sources=[], hooks=mock.Mock())
+            bridge.request_deadline = time.time() + 500
+            response = {"choices": [{"message": {"role": "assistant", "content": "synthetic QC"}}]}
+            with mock.patch.object(runtime.public_product, "assert_result_known"), \
+                    mock.patch.object(runtime.public_product, "model_admission_sync", return_value=contextlib.nullcontext()), \
+                    mock.patch.object(provider, "complete", return_value=response) as complete:
+                bridge.model({"messages": [{"role": "user", "content": "deadline fixture"}]}, stage="qc")
+            self.assertEqual(complete.call_args.kwargs["deadline"], bridge.request_deadline)
+            self.assertEqual(bridge.ordinal, 1)
+
+
 class ReturnedValueTests(unittest.TestCase):
     def test_contract_and_render_results_keep_their_tool_call_identity(self):
         body = {"messages": [

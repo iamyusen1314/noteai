@@ -316,3 +316,26 @@ retained. The first-write-only sidecar uses the same private file validation as
 other diagnostics. Optional parsing or file I/O cannot change the original HTTP
 failure, UNKNOWN/accounting rules, image cost, request count or no-retry boundary.
 This adds no database column or migration, and does not recover the R9 body.
+
+R10 reached the real concept and design planning, then a Pro request sent on the
+wire timed out waiting for response headers after 240.385 seconds. Its original
+physical call stays UNKNOWN, including its reserved supplier cost; it is never
+resent. The known responses and reference concept are not a delivered cover.
+
+Only the cover Pro adapter overrides the shared media client's read timeout:
+at most 900 seconds, further reduced to the earlier original job/host deadline
+minus 140 seconds (connection/upload/pool allowance plus settlement margin).
+It rechecks after waiting for the shared permit and rejects insufficient time
+before reserving or sending. Bridge design and QC reuse the original host
+deadline. Connect/write/pool stay 10/90/10 seconds; other media/report calls keep
+their original 240-second read setting. No permit, heartbeat, queue, task deadline,
+retry, model, price or customer charging rule is changed.
+
+This is a finite compromise within the existing 25-minute host and 30-minute job,
+not the full 1800-second nonstream wait suggested by the
+[Ark deep-thinking documentation](https://docs.volcengine.com/docs/ark/deep-thinking?lang=en).
+[HTTPX read/write timeouts](https://www.python-httpx.org/advanced/timeouts/) apply
+per network chunk, not as a strict total wall-clock timer. A late supplier result
+still needs truthful usage accounting and cannot authorize delivery or settlement
+after the original claim expires. Heartbeats must not manufacture wire activity;
+the shared queue's existing no-progress behavior remains in effect.
