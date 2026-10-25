@@ -33952,3 +33952,14 @@ PC已显示正在选图设计、8分仅预留；H5390×844实际reload→菜单�
 sole沿原3COPY/2Send实际D5构建12:04:11–18Z S0R1D0/newimage f8bd2f3b533a0f76875ab5ea0ac541e42876b4d4084aa218d86f0e25ebf03345/basec205；原3whole/readerremoved、free5058904064B/Mem5360124KB过。BUILD-ACTUAL0014153/a8052437及Root actualbinding1582/26802703（22项，以receipt为准）保officialstrictB64。随后一次native12:17:59–18:00Z S0R1D0/.478s，actualhost75a7/2exactPASS/2VM（ticket12＋callback18含6鲜票）/0fail-error-skip/denyIO/socketSQL/产品imports，AUTO_REMOVED/stderr0；原12proof28508B/manifest1605/cdd3181c由固定parent逐whole核，Root没另取remote12。NATIVE-ACTUAL00119060/fa593a13、Root970/b5a8bd9c核所有6本地refs/actual结果；非SDK/CLI/render/供应商/成品质量验收，旧Ds/本机实际SDK证据按scope复用不重。
 
 sole独占三组件已preparedactual5d/f8bd/buildtrue/2PASS，Root只读17项核101仅3meta/98整row同、API91不扩/当前inventorywhole、restore版本lock/envwrapper原样、build/native原件全文等。ROOT-THREE-COMPONENT-READBACK0011820/b5a62589，source77683/b3cc34fe、API351126/ceedd0d0、FINAL111694/557b8cb3；sole正在独审和commit，Root下一只读gitshow核其实际HEAD/parent，不等真实任务也不生产。Root下一继续仅GET R14/公开候选、保存找回改字下载与唯一结算或终态net0早关；阶段3/4仍未完成，不能止于checkpoint。
+
+
+## CURRENT — 2026-10-25T12:52:42.542401+00:00 R14 UNKNOWN全闭/8预留已释放，继续已证CJK裁切误拒最小修复
+
+checkpoint前HEAD 8240641d2b95ecad63d553c9139e198dead89d4a，功能5d88564，原task/branch/worktree不变。R14唯一job46b1edbb/usagesa2b407dc（完整ID见PLAN/terminal）在12:36:08Z STATE008 outcome_unknown/rev0/noFinal/workerfalse。24physical=23HTTP200（22Pro＋1image）＋1Pro UNKNOWN59642d0d；knownPro2.9634900元，image actualNULL/估.76元。本轮保守4768milli，A42累计37265/余4735；旧UNKNOWN2753＋本轮1033共3786全部保留，不重发。实际安全provider事件确认request_send后等待响应头56.722s ReadTimeout，不能认定未处理/零费；第三summary已准入，5d cap修复有效，不扩大超时或猜测供应商结果。
+
+key已官方UI提前禁用；正常GET两次相同且六组账本前后未变。原30min UNKNOWN预留到期后，仅沿existing release_expired_unknowns在同一本机DB/真实时钟释放本任务8分，唯一claim charge1/refund1/complete0，used0/reserved0/released8、wallet8/totalused0，无赠分/生产DB。PC/H5均显示待核查且预留已释放，console[]；normal stop一次200、Root exec21590实际exit0、tab14closed/viewportreset。公开observer ROOT_REQUESTED_STOP/PID16063 absent，52原件6507302B逐SHA/0400核合；其原agent exec不可取exitcode，诚实记UNKNOWN，不冒exit0。未捕获最终poster/QC、合格封面0/单位交付成本N/A，未通过本轮保存改字下载，物理iPhone未验。
+
+完整终态证据：/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/root-plan-a-20261022-r1/candidate-capacity-readonly-20261024-r1/REAL-R14-TERMINAL-SUMMARY001.json（5638B/90560113608abe5633ad35cb0ce7989550a2a62d7f69e0f8bfa2836ceccba791），含实际state/安全异常/积分恢复前后/关闭/UI/observer及独审refs。sole已实际36d296c提交原三组件/Root只读核收，D5 actualf8bd/2nativePASS保留，生产无GO；后续新CLI功能需再最小适配，不重跑旧未影响链。
+
+Root与foundation实际看原公开HTML/固定font/canonical1、8复现：visible中文实际像素完全在元素及allowed内，旧CLI却因scrollHeight155>clientHeight150误拒；hidden50px负对照实截字。foundation独占cli.mjs与现有test_cover_agent_artifacts.py作真实CSS裁切轴/祖先最小修复，保allowed/canvas/protected/原照/标题守卫，0供应商/DB/依赖；successor已完成实际ReadTimeout窄审，后续独立审最终diff。Root负责统一集成和checkpoint。本阶段继续执行，不止于本交接。R14单任务/时段已消费，无新paid/key窗口授权；当前无需用户作技术判断，先完成离线修复和受影响验证。
