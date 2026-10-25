@@ -3673,3 +3673,34 @@ C/REAL-R10-STATE013.json、UNKNOWN-NORMAL-READBACK001（正常GET两次200/同ta
 PC/H5运行刷新找回同task、9素材有效/重提锁定、H5文档390/panel352且console[]；终态前端显示供应商待核查/尚未扣分，旁旧mock图不算新成品。公开observer81204已STOP/exit0，331次/7版本7376276B；manifest7372/39f1c9d6、END4538/3ce87683。只有brief/两prompt/concept7365025/2c0718d9/design-plan/poster.json/prompts，未捕获HTML/final/240/QC，不推从未存在或六项合格。safehostreceipt有compaction1、localinputreject133357>131072、pendingprimary8，这不代替独立真实transporttrace。
 
 Root已向原sole明确发送实际结果并要求维持0cb8155/c9/fb788三组件候选冻结，无新build/native/生产；接手方的下一执行为等待具体newsource或真实结果后统一集成，Root继续当前任务。foundation独立只读核coverprovider→arkclient240秒和共享permit/lease/heartbeat及官方建议；Root只准备封面专用最小修复，不改原报告超时/模型/生产。计划中的品牌/正文tag可能超approved_titles但无实际HTML，暂列风险，不能冒本次实因或加塞修复。下一先完成实际timeout契约修正和受控回归，至06:17:24后原UNKNOWN唯一释放并核费用/调用不变，继续既有集成流程；完整成功保存找回/免费改字/下载/唯一成功结算/真实iPhone仍未验。
+
+
+## CURRENT — 2026-10-25T06:26:03.950549+00:00 R10真实期限唯一释放且全部本轮服务关闭；4b5超时已交，原标题规则工具反馈正在离线闭合
+
+实际HEAD4b5fc6d/branch不变。R10 actualdeadline06:17:24.491174Z，Root实际06:17后按原cover_jobs.release_expired_unknowns(owner)第一1/第二0；job仍UNKNOWN，billingreleased8/net0，financialrefund1/complete0，public_trial_calls/model_usage_records/cover_image_usage/public_trial_budget全表whole前后相等。C/REAL-R10-ACTUAL-DEADLINE-UNIQUE-RELEASE001.json3965/c615c40c和RELEASED-NORMAL-READBACK001正常GET两次200为证；PC/H5刷新均预留已释放不扣分/console[]，截图PC-RELEASED001/H5-RELEASED001。key先前正常disabled；serve01006:19:05stop200/exec45658exit0，tab10已close/viewportreset，无provider或observer后台。旧费用及本轮unknown77653108.../reserve2753不改，不重发。known本轮Pro1.0594656/imageactualNULL估.76、A25保守23035/余1965仍沿原值，真实qualified0/unitN/A。
+
+功能4b5fc6d最小5叶timeout已提交：provider27486/79e6b0e1、runtime47445/4dd507e7、README21415/2856206b、providerTests47646/eef7ece2、runtimeTests69760/874d9d05。仅cover Pro readcap900并按原job/host较早deadline减140，排队后复核，Bridge传原deadline至QC，shared240/queue300/30sheartbeat/25mhost30mjob/zero retry/billing全不变。Rootprovider41PASS2.511s，runtime原33PASS21.118s(1SDKskip)，新增Bridge2＋原30minrelease/latecharge/sharedreservation2共4PASS.125s，原3queue精准casePASS.001s，compile/diffcheckPASS；首轮新float精确断言失败259.99999976!=260后改AlmostEqual并补host较早case，原失败chunkdd0c40保，非产品失败。C/R10-COVER-TIMEOUT-SOURCE-AND-EVIDENCE001.json2592/1160f5da，candidate独审5叶GO，无P0-P2。官方证据R10-COVER-READ-TIMEOUT-REVIEW001.json4856/009026d4是工具提取段落，非remote原HTMLwhole；900为现期限内折中，不冒1800完整保障/HTTPXhardwallclock。
+
+原sole已明确接手并实际准备D4b原两COPY pack/driver/wire、最薄entry，本地HOLD未Send/build/native/生产，HEAD仍0cb8155/statusclean/原c9fb788三组件未动。为避免两次候选build，Root现把直接封面缺口一并闭合：R10公开design-plan拟加非approved_titles文字，只有计划非实触发；现原文字规则会由Bridge可信标题→host强制覆盖模型自填范围→CLI真实DOM文字检查，在截图/下一paid模型前返回原COVER_DESIGN_TEXT_NOT_FROM_TITLE与具体layerid供既有Agent局改，原末端守卫保留，constraints不持久化title范围/免费edit不受新增限制。不是放宽文字产品选择，不碰报告或新平台。Root独占runtime/host/cli/README/runtimeTests，foundation独占artifactTests，candidate只读审。Root真实host handler VM＋Python可信边界2PASS.054s，最新5受影响helper/deadlineTestsPASS.110s，Nodecheck/diffcheckPASS。foundation正在真实CLI/Chromium原照syntheticDOM三case：合法短摘断行、未批准品牌拒、免费改字新词保，0SDK/模型/业务DB。尚未宣其结果/新source完成。
+
+下一Root完成DOM原件/独审并提交combined source，sole只适配必要旧HOLD载体，一次候选source/build/native/三组件实际读回，不重旧suite。当前新真实task没有授权时段且unknown原请求不重发；后续须先如实核原UNKNOWN可回查能力和当前预算headroom1965（小于完整新Pro预留2753），不能用重复确认掩盖原请求或假称新预算已批。只暂停外部付费动作，现离线开发/集成准备继续，完整真实成功保存/重开/免费改字/下载/唯一成功结算仍未完成。
+
+
+## CURRENT — 2026-10-25T06:41:55.300890+00:00 f822de5合并源码已冻并独审GO；sole接续一次候选，R11仅HOLD未获授权
+
+实际HEADf822de5586ffdf03fab7aad3ef966c95e09b0faa（直接父4b5fc6d）/原branch。4b超时修复保留；新增原文字短摘规则前移原render工具反馈，Root提交6叶。相对云actualc9/fb788最终shipping5叶为provider27486/79e6b0e1、runtime48030/a542f488、host44561/9a7fe62a、cli22849/1d0829ca、README22267/1c7a11d8。可信scope由原context（最多21/300codepoints、略空白fallback）产生，host强制覆盖模型字段，现CLI实际DOMbox逐层精确短摘/截图前返回原code+layerid供既有Agent局改；scope不入parent.constraints，freeedit/legacy不变，末端Python guard保，无模型/图平台/依赖/迁移/正文/结算变更。
+
+Root真实Python可信边界＋actualhosthandler VM2PASS.054s、受影响5helper/deadlinePASS.110s，foundation实际CLI/Chrome3PASS25.196s、合法例扩21后仅该case1PASS4.492s（0SQL/SDK/provider）。首整体测试文件导入被sqliteguard先拦、未连接/未进CLI，原001保；后AST只提取新增真实class，旧AgentArtifactTests AST原封。合成PNG/manifest随TemporaryDirectory清，只有durablestdout/断言，没有伪留图。candidate再查确定UTF16/Python字符数P2：合法300codepoint（299字+🫧）Root实际CLI先红APPROVED_TITLES_INVALID/.260s，再仅改[...title].length，同case真CLI/Chrome绿1PASS5.429s/0skip/SQL0，RED/GREEN001全保。当前artifactTests33122/c3cbb976、runtimeTests72666/6b87e277。C/R10-TITLE-TOOL-FEEDBACK-SOURCE-AND-EVIDENCE002.json3752/652e3b37是最终6pin＋红绿入口，001及原DOM4421/c273dcd0不覆盖；candidate亲读全部whole最终GO/P2已闭，无需重无影响case。
+
+原sole已先实际准备D4b source/build载体与最薄entry后按Rootcombined HOLD停稳，未Send/build/native，原HEAD0cb8155/statusclean/三组件c9fb788未变。Root现已消息最终f822和5shippingpins，明确只适配必要旧材料后送Root具体审，审核前不云执行，最终一次必要候选差量/最薄native/原101+91三组件更新，不重旧suite或新发布系统。需核其实际开始准备/完成，不能只收录。Root并行R11工具HOLD准备继续。
+
+原R10终态/唯一释放/服务关闭沿前CURRENT有效：jobUNKNOWN、physical77653108…UNKNOWN/2753真实成本预留、imageactualNULL估.76保，keydisabled/serve010exit0/无运行请求，净积分0，真实qualified0/单位N/A。contract子代理已只读核官方回查，C/R10-ARK-ORIGINAL-SYNC-LOOKUP-READONLY001.json14868/ef904281：GetInferenceRequestUsage确可查同步用量但需供应商响应体id+QueryHour且仅AK，不取回正文；本请求没响应id/headers，本地physical UUID未传供应商，不能代填；Responses retrieval不能追溯转换Chat。聚合用量即便有旧AK也不唯一映射此call/恢复正文，当前无已证入口，不能断言供应商内部绝无其它方式。未读取/创建AK、请求供应商、开监控或扩权。native计量按user+job request_hash隔离、DBslots只计dispatched、非streamfinally释放permit；但现测试caller更严全UNKNOWN stop，不直接绕过。
+
+foundation正准备同工具R11 HOLD，原R10caller76148/ff4acc66与README21470/f9e92b6c已独立inode0400冻；未来仅精确原R10未知call作已披露历史admission分类且2753全部保留，任何新UNKNOWN停。四budget数学全文原封，当前实际A25=23035/余1965（不足完整Pro2753）不得冒新cap；提案A30仅+5、原total100不变但**尚未批准**，无R11时窗/job/session/key/server。全历史实际94calls=93responded+1unknown，84Procomplete、9image为8HTTP200＋原R9精确HTTP400，不可误写全9image200。单文件preflight与受控history负例在途，未开服务/key或DB写。准备/审查和combined候选实齐后才能一次集中提交真实验收所需新当次时段、独立新task及预算/旧UNKNOWN风险决定，不重发旧请求。
+
+| 阶段/目标 | 负责人 | 状态/提交 | 有效证据 | 阻塞/下一步 |
+| --- | --- | --- | --- | --- |
+| 接管基线与确认范围 | Root | 已接续原任务/原决定 | 原BASELINE/handoff/branch/历史不回退 | 不重审全项目 |
+| 最小实现/离线验证 | Root及分工代理 | 4b5fc6d＋f822de5完成/独审GO | 原41provider、33runtime及精准新增/DOM红绿 | 不冒实际商家质量通过 |
+| 定向集成/真实验收 | Root；sole候选 | R10UNKNOWN闭环净0；combined candidate准备中 | 原真实9图补传/同434正文、真实transport、真实deadline唯一释放 | Root审carrier/sole一次执行；R11仅HOLD |
+| 独立审查/完整交付 | candidate；Root；sole集成发布 | 本轮源码GO；功能最终交付未完成 | 最终6whole/原日志/唯一PLAN | 真成品和成功保存找回/改字/下载/唯一结算仍待；生产sole未获本次GO |
