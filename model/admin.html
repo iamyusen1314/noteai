@@ -1806,11 +1806,17 @@ async function loadModelConfig() {
   } catch(e) { state.textContent = `配置读取失败：${e.message}`; }
 }
 let _coverConfig = null;
+let _coverLoadSequence = 0;
 async function loadCoverConfig() {
   const status=document.getElementById('cover-config-state');
+  const scope=document.getElementById('mc-scope').value;
+  const sequence=++_coverLoadSequence;
+  _coverConfig=null;
+  status.textContent='正在读取封面配置…';
   try {
-    const scope=document.getElementById('mc-scope').value;
     const data=await adminJson('/admin/cover-config?scope='+encodeURIComponent(scope));
+    if(sequence!==_coverLoadSequence || scope!==document.getElementById('mc-scope').value)return;
+    if(data.scope!==scope)throw new Error('封面配置范围不匹配，请重新读取');
     _coverConfig=data;
     const config=data.draft || data.active;
     document.getElementById('cover-workflow').value=config.workflow_engine || 'layered_v2';
@@ -1827,10 +1833,13 @@ async function loadCoverConfig() {
       ? '<p>'+esc(costs.basis)+'</p>'+((costs.images || []).map(row=>'<p>'+esc(row.model_id)+' · '+row.width+'×'+row.height+' · 调用 '+row.image_calls+' · 输入 '+row.input_images+' · 成功 '+row.output_images+' · 已知计费张数 '+row.known_billed_images+'（张数待核 '+row.quantity_unknown_calls+'）<br>公开估算 ¥'+Number(row.estimated_cost).toFixed(4)+'；已知账单 ¥'+Number(row.known_billed_cost).toFixed(4)+'；整单图片实账 '+(row.actual_total_cost==null?'待核':('¥'+Number(row.actual_total_cost).toFixed(4)))+' · UNKNOWN '+row.outcome_unknown_calls+'<br>价格版本 '+esc(row.price_version)+'</p>').join('') || '<p>当前记录中没有图片调用；不据此判断历史从未调用。</p>')
       : '<p>封面费用暂不可读，不计作0元。</p>';
     applyAdminCapabilities();
-  } catch(error) { _coverConfig=null; status.textContent='封面配置暂不可读：'+error.message; }
+  } catch(error) {
+    if(sequence!==_coverLoadSequence || scope!==document.getElementById('mc-scope').value)return;
+    _coverConfig=null; status.textContent='封面配置暂不可读：'+error.message;
+  }
 }
 async function changeCoverConfig(action) {
-  if(!_coverConfig || !requireAdminCapability('model_configuration'))return;
+  if(!_coverConfig || _coverConfig.scope!==document.getElementById('mc-scope').value || !requireAdminCapability('model_configuration'))return;
   const reason=prompt('填写本次封面配置操作原因（不会调用模型）：');
   if(!reason)return;
   const config={...(_coverConfig.draft || _coverConfig.active),
