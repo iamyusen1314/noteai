@@ -34,6 +34,7 @@ MODEL = "kimi-k2.6"
 ENDPOINT = "https://api.moonshot.cn/v1/chat/completions"
 
 EXACT_ROUTES = frozenset({
+    ("POST", "/wechat/share-config"),
     ("POST", "/auth/contracts/accept"),
     ("GET", "/billing/tiers"), ("GET", "/billing/plan"),
     ("GET", "/billing/usage"), ("GET", "/billing/credits"), ("GET", "/billing/quote"),
@@ -327,7 +328,8 @@ async def dispatch(app, scope, receive, send, body: bytes, *, authenticated=None
     import postdelivery
     postdelivery.ensure_request_id(scope)
     path = scope["path"]
-    if path.startswith("/auth/") or path in {"/health/live", "/public/status", "/legal/contracts", "/billing/tiers", "/payments/capabilities"}:
+    if ((scope["method"], path) == ("POST", "/wechat/share-config")
+            or path.startswith("/auth/") or path in {"/health/live", "/public/status", "/legal/contracts", "/billing/tiers", "/payments/capabilities"}):
         return await app(scope, receive, send)
     from fastapi import HTTPException
     from fastapi.security import HTTPAuthorizationCredentials

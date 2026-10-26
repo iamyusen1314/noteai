@@ -176,7 +176,7 @@ class PublicAccountBoundary:
                     if media_reservation is not None and len(body) + len(chunk) > media_reservation:
                         return await reject(413, "请求体超过已声明或允许的大小")
                     body.extend(chunk)
-                    if len(body) > (128 * 1024 * 1024 if media_json else (210000 if path == "/auth/profile" else (65536 if product_enabled() and not path.startswith("/auth/") else 8192))):
+                    if len(body) > (128 * 1024 * 1024 if media_json else (210000 if path == "/auth/profile" else (65536 if product_enabled() and not path.startswith(("/auth/", "/wechat/")) else 8192))):
                         return await reject(413, "请求过大")
                     if not message.get("more_body", False):
                         break

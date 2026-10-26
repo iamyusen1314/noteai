@@ -74,6 +74,7 @@ import db as _db
 import auth as _auth
 import account_security as _account_security
 import public_account as _public_account
+import wechat_share as _wechat_share
 import public_product as _public_product
 import ark_media as _ark_media
 import memory as _memory
@@ -14480,6 +14481,28 @@ def _auth_request_fingerprint(request: Request) -> str:
     # Uvicorn accepts forwarded addresses only from the configured trusted proxy.
     # User-Agent is controlled by the caller and must not create a new IP quota.
     return client
+
+
+class WeChatShareConfigInput(BaseModel):
+    url: str = Field(min_length=1, max_length=2048, strict=True)
+
+
+@app.post("/wechat/share-config")
+async def wechat_share_config(req: WeChatShareConfigInput, request: Request):
+    headers = {"Cache-Control": "no-store", "Pragma": "no-cache"}
+    try:
+        result = await run_in_threadpool(_wechat_share.share_config, req.url,
+            client_key=_auth_request_fingerprint(request))
+    except _wechat_share.ShareURLInvalid:
+        return JSONResponse({"enabled": False, "detail": "分享页面地址无效"},
+            status_code=422, headers=headers)
+    except _wechat_share.ShareUnavailable as exc:
+        headers["Retry-After"] = str(exc.retry_after)
+        return JSONResponse({"enabled": False, "detail": {"code": exc.code,
+            "message": "微信分享暂不可用，请稍后再试"}},
+            status_code=429 if isinstance(exc, _wechat_share.ShareRateLimited) else 503,
+            headers=headers)
+    return JSONResponse(result, headers=headers)
 
 
 @app.post("/auth/register")
