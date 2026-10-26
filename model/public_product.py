@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager, contextmanager
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation, ROUND_CEILING
 import hashlib
 import json
 import os
@@ -693,6 +694,98 @@ def assert_media_result_known(media):
         _check_pending_media(tx, current.user_id, media)
 
 
+def _check_cover_verification_budget(tx, current, usage_id, reserve, budget_id):
+    """Optional deployment-scope ceiling, under the existing budget row lock.
+
+    Native cumulative reservations and entitlement charging are never changed.
+    The persisted first job binds the scope across worker/process restarts.
+    """
+    values = [os.environ.get("NOTEAI_COVER_VERIFY_" + name) for name in
+              ("USER_ID", "SINCE_UTC", "MAX_MILLI")]
+    if all(value is None for value in values):
+        return
+
+    def stop(code):
+        error = TrialProviderStopped(code)
+        error.code = code
+        raise error
+
+    owner, since, maximum = values
+    try:
+        if type(owner) is not str or str(uuid.UUID(owner)) != owner:
+            raise ValueError()
+        # A correctly configured scope never restricts another user's work.
+        if current.user_id != owner:
+            return
+        if type(since) is not str or len(since) > 40:
+            raise ValueError()
+        clock = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        if clock.tzinfo is None or clock.utcoffset() != timezone.utc.utcoffset(clock):
+            raise ValueError()
+        if (type(maximum) is not str or not re.fullmatch(r"[1-9][0-9]{0,5}", maximum)
+                or int(maximum) > 100000):
+            raise ValueError()
+    except (ValueError, TypeError, OverflowError):
+        stop("COVER_VERIFY_BUDGET_CONFIG_INVALID")
+    first = tx.fetchone("SELECT id,usage_id FROM cover_jobs WHERE user_id=? AND budget_id=? "
+        "AND created_at>=? ORDER BY created_at,id LIMIT 1", (owner, budget_id, clock.isoformat()))
+    if not first or first["usage_id"] != usage_id:
+        stop("COVER_VERIFY_TASK_SCOPE_INVALID")
+    rows = tx.fetchall("SELECT c.id,c.user_id,c.budget_id,c.state,c.http_status,c.reserve_milli_cny,"
+        "c.model_usage_record_id,m.usage_record_id AS model_usage_id,m.provider AS model_provider,"
+        "m.model,m.price_currency,m.pricing_status,m.usage_status,m.known_cost_rmb,"
+        "i.id AS image_id,i.job_id AS image_job_id,i.usage_id AS image_usage_id,"
+        "i.provider AS image_provider,i.model_id,i.state AS image_state,i.http_status AS image_http,"
+        "i.currency,i.cost_status,i.actual_cost FROM public_trial_calls c "
+        "LEFT JOIN model_usage_records m ON m.id=c.model_usage_record_id "
+        "LEFT JOIN cover_image_usage i ON i.id=c.id WHERE c.usage_record_id=?", (usage_id,))
+    total = 0
+    for row in rows:
+        held = row["reserve_milli_cny"]
+        if (type(held) is not int or held < 0 or row["user_id"] != owner
+                or row["budget_id"] != budget_id or row["state"] not in {"dispatched", "responded", "unknown"}):
+            stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+        amount = None
+        if row["model_usage_record_id"] is not None and row["image_id"] is not None:
+            stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+        if row["state"] == "responded" and row["http_status"] == 200:
+            if row["model_usage_record_id"] is not None:
+                if (row["model_usage_id"] != usage_id or row["model_provider"] != "doubao"
+                        or row["model"] != "doubao-seed-2-1-pro-260915"
+                        or row["price_currency"] not in {"CNY", "RMB"}
+                        or row["pricing_status"] != "exact" or row["usage_status"] != "complete"):
+                    stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+                amount = row["known_cost_rmb"]
+                if amount is None:
+                    stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+            elif row["image_id"] is not None:
+                if (row["image_usage_id"] != usage_id or row["image_job_id"] != first["id"]
+                        or row["image_provider"] != "seedream" or row["model_id"] != "doubao-seedream-5-0-pro-260628"
+                        or row["image_state"] != "responded" or row["image_http"] != 200
+                        or row["currency"] != "CNY" or row["cost_status"] not in {"estimated", "unknown", "billed"}):
+                    stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+                if row["cost_status"] == "billed":
+                    amount = row["actual_cost"]
+                    if amount is None:
+                        stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+                elif row["actual_cost"] is not None:
+                    stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+            else:
+                stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+        if amount is not None:
+            try:
+                cost = Decimal(str(amount))
+                if isinstance(amount, bool) or not cost.is_finite() or cost < 0:
+                    raise ValueError()
+                held = int((cost * 1000).to_integral_value(rounding=ROUND_CEILING))
+            except (InvalidOperation, ValueError, TypeError, OverflowError):
+                stop("COVER_VERIFY_ACCOUNTING_UNCONFIRMED")
+        # In-flight, UNKNOWN, non-200 and unbilled images retain their full hold.
+        total += held
+    if total + reserve > int(maximum):
+        stop("COVER_VERIFY_BUDGET_EXHAUSTED")
+
+
 def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, provenance=None):
     import db
     import billing
@@ -766,6 +859,8 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
             raise TrialProviderStopped("PUBLIC_TRIAL_UNKNOWN_NO_REPLAY")
         if media is not None:
             _check_pending_media(tx, current.user_id, media)
+        if cover and budget_id == cover_settings.FORMAL_BUDGET_ID:
+            _check_cover_verification_budget(tx, current, usage_id, reserve, budget_id)
         # The fair in-process queue is not a replacement for this shared DB guard.
         import model_admission
         if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= model_admission.current().limits.physical:

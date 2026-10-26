@@ -4157,3 +4157,14 @@ Worker-C与封面运行/构建关系正在按实际代码和现存镜像位置�
 - 第一只读输出中间截626字节已原样保留；唯一缺项补查 `c-sz0715z9vuhxxq8/t-sz0715z9vurxj40` Success/exit0/Dropped0，完整原件和 `production-release-20261026-r1/FRESH-MISSING-OBSERVED001.json`。Public旧 index270486/8ce6de6e、app553954/a55e287d、9保留+2缺席及current一致。API/Admin各自角色只读事务及ROLLBACK、0writes；新增三表/两预算/四策略尚无。原OSS RAM角色配置齐全、无静态AK，已有data rw mount。
 - 缺口：显式可写cover workspace、Node/Chrome路径与既有sandbox资源接线、feature-only SQL、Admin配置与Nginx cover路由。探针误以Git entrypoint pin比对生产继承脚本，实际39ddd/freshstartup461-f90e；不是产品缺陷，按原镜像继承链核对。
 - 下一步 IN_PROGRESS：Admin实际隔离import、Public仅2delta staging、最小功能迁移/配置及原unit切换；再完成真实线上生成/保存找回/免费改字/下载/唯一结算。三subagents分别准备Public stage、feature激活、原发布适配，均无外部执行。当前正式服务、配置、数据库尚未更改；无新增模型费用，A47/总100及旧UNKNOWN不变。完整运行/费用恢复仍看唯一PLAN。
+
+
+### 2026-10-26 正式发布 checkpoint：实际资产／身份核实与线上验收费控
+
+- Public唯一stage `c-sz07161dd6oxyps/t-sz07161dd73xcsg` Success/exit0/Dropped0：新目录 `/var/www/noteai-public/cover-8b3ccde-20261026-r1`，manifest `4e1bb156806b1d3a54648aea4d0624897a1f699678e5e14642f86663d251f92a`，只2delta且9保留/2缺席；current仍c4。非published。
+- Admin四叶候选实际import拒绝在cover_settings；唯一精确诊断 `c-sz07160uh1p8veo/t-sz07160uh1wqkg0`确认缺 `ark_media`。最小补1叶Git8b，不改产品逻辑、不copy API。实际构建 `c-sz07162txtws83k/t-sz07162txubrm68` Success/exit0/Dropped0，最终候选 `sha256:4a034ab8d549ce2db9379dc74ee86e505cd56e0c10c25ecb16196d904cfaddcc`、61层、11配置继承；仅受影响settings/policy import待实际执行。旧失败保留。
+- DB原service只读身份 `c-sz07161j1n9qo74/t-sz07161j1noq29s` Success/exit0/Dropped0：noteai_admin@noteai/TLS verify-full，8相关表direct owner、公有schema继承owner/create，ROLLBACK、0DDL/DML/grant。已解决凭据入口unknown，未复制或输出secret。唯一featureSQL待核原RLS完整契约后执行；不全migrator/0032–41，不覆盖额外实际路由/策略。
+- 正常product/Admin均现有身份登录，Admin详情实证当前测试用户 `61d63b05-17eb-47d5-b19e-fb7eab297299`，无需改密码或造actor。新获批线上1张预算A47→52(+5)，原总100不变；原保守44196milli含全部旧UNKNOWN保留，新余7804。
+- 改动：仅 `model/public_product.py` +95行及 `tests/test_cover_verification_budget.py`。原因：R17本机guard未进入normal CoverWorker，formal owner_metered原路径不按本次验收实际余款限费。新增可选三ENV `NOTEAI_COVER_VERIFY_USER_ID/SINCE_UTC/MAX_MILLI`，在既有预算事务／UNKNOWN／账务检查后、physical INSERT前按部署后首owner job实费逐call向上取整并保未定价图片完整预留，硬核本次7804milli；原reserve、积分、其他user/report不变。验收终态移除三ENV并正常重启API。不得变since重置额度或重发原UNKNOWN。
+- 验证：临时SQLite定向6项PASS，compile及diffcheck PASS，独立review GO（金额/归属/默认行为/原guard次序/PG列契约）。证据 `production-release-20261026-r1/cover-verification-budget/EVIDENCE001.json`，source68524/7d53ca32、test10409/9d6ba453；不重跑历史suite。API只从既有28de增量COPY此Python叶，复用未受影响Node/SDK/模型链证据；新的normal部署与线上真实验收仍待执行，不能以此模拟证据代替。
+- 下一步 IN_PROGRESS：绑定API单叶实际commit与构建；Admin受影响import；原RLS严格预检＋feature-only SQL；原unit/proxy最小切换及正常readiness；最后1张线上真实封面/PC/H5/保存找回/改字/下载/唯一8分，随后去掉验收临时ENV。仍未改变正式服务或激活封面，当前0新模型调用。
