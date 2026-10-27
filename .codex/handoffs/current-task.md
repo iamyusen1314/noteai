@@ -34430,3 +34430,21 @@ Owner已授权两文件最小候选+离线验证，生产继续由原发布窗�
 独立禁网离线：旧wheel bundle逐SHA等生产9cc2…；新120根仅移除G3/G1C1C3保留；8真实根锚验证+21原样guard用例全通过。Root原pure packaging1项PASS/独审GO；禁网Anthropic0.97HTTPX0.28默认新CA/maxretry0通过，botocore本地1.43.114与线上1.43.93不同；Python3.11.14 guard/3.12.14SDK均不冒线上Linux3.11.16。生产调用/付费模型/云端命令/部署0。
 
 已修复=源码候选离线通过；待验证=实际APT/镜像构建及digest/双实例TLS；已上线=否，线上旧库仍受影响。Docker本机Colima socket缺失，未启动VM或构建。唯一两文件diff与完整检查refs在 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/CANDIDATE.json 和 CANDIDATE-8800638.patch；详细交付见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md最新同日CURRENT。原发布窗口应只接此Gateway差异，记录base/依赖/镜像身份后做原定TLS和健康验证，旧deploy回退会恢复旧CA风险。原PLAN/既有验收不改；本窗口候选与离线验证已完成，无待输入，不直接切换生产。
+
+
+### 2026-10-27 — CURRENT：owner启动Push/部署，隔离Gateway发布进行中
+
+Owner最新明确“开始执行Push、部署”，本窗口据此单独执行本次Render Gateway修复；原发布相关chat新鲜状态均idle，未见并发发布。已只推隔离新分支codex/gateway-emudhra-20261027，远端实际SHA cfb156e6510fab7ea3254f062fc6227531e27afb，父恰为线上60168e1；完整树仅两文件不同、blobs逐字等8800638。当前产品分支7ff381e及封面/H5/Admin累计源码未push。目标服务srv-d9e765laeets73aikj90仍Live旧dep-daj7919594qs73b38gbg，AutoDeploy可见Off，关联分支不改。仅使用现有套餐/构建/实例配额，无新资源或模型请求；预期一次指定SHA构建部署，平台健康/滚动与原240秒shutdown合同保持。GitHub combined status返回空statuses，不冒CI通过；新分支只含原60168的普通CI，无发布workflow。
+
+恢复以 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/release/SOURCE-PREPARED.json、PUSH-INTENT.json、PUSH-ACTUAL.json 为准。Push已成功，不重放。下一步本窗口唯一执行Render“Deploy a specific commit”cfb156e一次；尚未发起deploy，先核无disk/无并发，再保存原deploy身份和实际构建回执；后续双实例CA/TLS/健康检查，0付费模型。不重跑旧验收/迁移/支付，不变更API-C/Admin/H5。原生产发布权的本次例外仅限此明确授权的Gateway修复。
+
+唯一Render部署已实际受理：dep-dbg19cp42hec73d9ivag，Dashboard记录2026-10-27 11:04:19北京时间，source cfb156e，当前Building／新实例0of2。旧60168e1此前Live保留，尚无新部署终态；只读跟踪该原ID，不再次Deploy/Restart或清缓存重派。原始受理界面存release/DEPLOY-ACK-UI.txt，意图在DEPLOY-INTENT.json。
+
+
+### 2026-10-27 — CURRENT：Render修复已Push/上线/双实例验证完成
+
+Owner本次Push/部署明确授权已完成，仅Gateway。隔离远端codex/gateway-emudhra-20261027／cfb156e6510fab7ea3254f062fc6227531e27afb，父60168e1、全树仅2文件/blobs等8800638；未Push产品/H5/Admin累计分支。唯一dep-dbg19cp42hec73d9ivag，11:05:24北京时间实际Live、2of2。新jz47n/rrc4g共7runtime文件逐Gitcfb，6应用文件仍原60168。
+
+实际Python3.11.18/OpenSSL3.5.7/certifi2026.10.19/systemCA20250419+deb13u1/botocore1.43.119；base digest9635410349cba3531fabde484e07f14e625abb40e1bc8b23fffa046cb497ce2d已知，最终服务image digest仍UNKNOWN。两实例各148hash入口无目标G3/AAA，实际SDK默认CA正确；4真实证书拒绝+2正常TLSHTTP404+4本机health200/共享控制ready。总外部尝试7含本窗口原第二域名抄错导致的DNS失败，原STOP保留；已通过G3未重跑，仅补未执行正确AAA/正例/health。零自动重试/付费模型，不作生成/支付/全产品验收，未动其他服务/业务数据/旧UNKNOWN/旧Item32/34。独立终审GO。
+
+详见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md最新同日CURRENT；全部原身份/日志/结果/SHA在 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/release/RELEASE-ACCEPTANCE.json 。状态已修复+已上线（本次范围），无待输入/后台任务。现有Starter/scaling与关联旧分支保持、AutoDeploy Off；未来必须指定cfb156e或明确后继，不点旧分支Deploy latest。旧dep-daj7919594qs73b38gbg是应急恢复且会重引旧CA风险。其他生产发布继续由原窗口统一执行，本次例外不扩权。费用仅既有构建/实例及必要readiness读取，不虚称实账0。

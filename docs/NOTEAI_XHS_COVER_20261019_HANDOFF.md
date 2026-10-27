@@ -4426,3 +4426,31 @@ Root复用原pure packaging用例1项通过（AST提取原方法，未导入API/
 状态：已核实=线上旧库受影响；已修复=两文件源码候选离线通过；待验证=Debian实际安装/完整镜像/镜像digest/双实例真实TLS；已上线=否。本机Docker CLI因Colima socket不存在无法连接，未启动daemon/VM、未构建镜像或安装系统包。本阶段无云端命令/模型请求/生产读写/费用/凭据/网络/服务/资源变动，未重跑旧验收。仍须由原发布窗口记录实际base/image digest及完整依赖差异，针对原Gateway构建，执行有效CA核对和原定双实例TLS/健康检查；不可整仓发布本产品分支。旧部署回退会恢复旧CA风险。
 
 准确交付：`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/CANDIDATE.json`；同目录 `CANDIDATE-8800638.patch` 为唯一两文件diff。离线原件在 `offline-qa/CERTIFI-ARTIFACTS-OFFLINE-QA.json`、`offline-qa/DOCKER-GUARD-OFFLINE-MATRIX.json` 和 `CLIENT-CA-OFFLINE.json`。原只读CHECKPOINT.json保留为历史，原PLAN/current_resume_pointer不改。下一步归原发布窗口进行镜像构建与发布前验证；本窗口的候选准备和离线验证已完成，无待用户输入。
+
+
+### 2026-10-27 — CURRENT：owner启动Push/部署，隔离Gateway发布进行中
+
+Owner最新明确“开始执行Push、部署”，本窗口据此单独执行本次Render Gateway修复；原发布相关chat新鲜状态均idle，未见并发发布。已只推隔离新分支codex/gateway-emudhra-20261027，远端实际SHA cfb156e6510fab7ea3254f062fc6227531e27afb，父恰为线上60168e1；完整树仅两文件不同、blobs逐字等8800638。当前产品分支7ff381e及封面/H5/Admin累计源码未push。目标服务srv-d9e765laeets73aikj90仍Live旧dep-daj7919594qs73b38gbg，AutoDeploy可见Off，关联分支不改。仅使用现有套餐/构建/实例配额，无新资源或模型请求；预期一次指定SHA构建部署，平台健康/滚动与原240秒shutdown合同保持。GitHub combined status返回空statuses，不冒CI通过；新分支只含原60168的普通CI，无发布workflow。
+
+恢复以 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/release/SOURCE-PREPARED.json、PUSH-INTENT.json、PUSH-ACTUAL.json 为准。Push已成功，不重放。下一步本窗口唯一执行Render“Deploy a specific commit”cfb156e一次；尚未发起deploy，先核无disk/无并发，再保存原deploy身份和实际构建回执；后续双实例CA/TLS/健康检查，0付费模型。不重跑旧验收/迁移/支付，不变更API-C/Admin/H5。原生产发布权的本次例外仅限此明确授权的Gateway修复。
+
+唯一Render部署已实际受理：dep-dbg19cp42hec73d9ivag，Dashboard记录2026-10-27 11:04:19北京时间，source cfb156e，当前Building／新实例0of2。旧60168e1此前Live保留，尚无新部署终态；只读跟踪该原ID，不再次Deploy/Restart或清缓存重派。原始受理界面存release/DEPLOY-ACK-UI.txt，意图在DEPLOY-INTENT.json。
+
+
+### 2026-10-27 — CURRENT：Render安全修复已Push并上线，双实例定向核验完成
+
+Owner最新“开始执行Push、部署”授权已执行完成，本次仅由本窗口发布Gateway；其他生产发布仍归原发布窗口，不扩大为全产品切换。远端 `codex/gateway-emudhra-20261027`／提交 `cfb156e6510fab7ea3254f062fc6227531e27afb`（父恰为线上60168e1）已单次Push且远端SHA读回一致；完整树仅两文件差异，逐字等已审8800638。当前封面产品分支及交接、H5/Admin/API-C累计源码均未Push。普通CI状态工具返回空statuses，不记为CI通过，不重跑旧验收门禁。
+
+唯一Render部署 `dep-dbg19cp42hec73d9ivag` 在北京时间11:04:19受理，官方完整日志 **11:05:24 Live**、Dashboard成功／2of2、duration1m04s。新实例 `77c9c77668-jz47n` 与 `77c9c77668-rrc4g` 的7运行文件长度及SHA逐项等cfb156e；6个应用/控制/启动/protocol文件仍等60168e1，只有requirements新100B。现有Starter/scaling、服务关联分支与Auto-Deploy Off保持，未改凭据/网络/权限/其他服务。
+
+实际构建base `python:3.11-slim@sha256:9635410349cba3531fabde484e07f14e625abb40e1bc8b23fffa046cb497ce2d`；最终服务镜像digest未在完整Render日志/UI/Shell暴露，仍UNKNOWN，不用base/pod/commit冒充。完整构建日志25261B／SHAd41350a6…c22d留存。构建时CA检查通过；两实例实测Python **3.11.18**（旧3.11.16）、OpenSSL3.5.7（Debianopenssl包u3）、certifi **2026.10.19**、system CA **20250419+deb13u1**；同Anthropic0.97.0/HTTPX0.28.1，botocore实际解析到1.43.119（旧1.43.93），完整安装包版本见BUILD-TERMINAL.json。未把旧构建环境当线上环境。
+
+两实例certifi bundle238856B/SHA `50f79f98dac192b20dbf73f35c56f0b0c557ab267ff5199d1117cc1180b70785`；system bundle222073B/SHA `e9c7b63ee2623386e9b0a3ee32f499d01a8ea23dc83b8383ddff9f8e749543b7`，各148个有效hash入口检查均无本公告G3/AAA根。SDK实际原始HTTPX默认CA与certifi相同，验证/hostname开启、无代理覆盖、零重试、无真实认证头/正文。
+
+**上线实际核验通过**：每实例对官方两证书端点均得到真实 `SSLCertVerificationError`（合计4次），正常 `https://api.anthropic.com/` 无鉴权GET两次TLS成功／HTTP404；404仅作正常TLS证明，不冒模型生成健康。两实例 `/health/live`、`/health/ready` 共4次200，shared-control/multi-instance ready均true；readiness可能读取DynamoDB，不宣称AWS调用0。未发模型Messages/付款或业务数据请求，未重做Item32/34/支付/成品验收。
+
+原第一实例核验曾因**本窗口抄错第二测试域名为点号**而DNS失败，严格STOP；首G3已通过，后续正例/健康当时未发。原b73脚本、STOP原JSON和错误域名保留；核对官方正确 `dv-g3b-aaa-emudhra.we-have-a-problem.com` 后，只续该实例未执行的正确AAA/正例/健康，未重复已完成G3；第二实例一次执行正确三探测。实际外部连接尝试总7=4证书拒绝+2正常TLS+1保留的错误域名DNS失败，自动retry0，付费模型0。该失败不冒provider故障或改记PASS。独立最终复核读全部原件、重算7文件，GO／无剩余本次发布阻断。
+
+最终现场、可恢复原身份及全部SHA：`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/release/RELEASE-ACCEPTANCE.json`，同目录BUILD-TERMINAL.json、原完整日志、3份实际实例结果、SOURCE/PUSH/DEPLOY意图与原回执、RENDER-LIVE-FINAL.jpg。日志下载曾停在原生Save对话框导致浏览器等待超时；完成同一次保存后，使用既有Chrome原页继续只读核验，无重复下载/部署或安全绕过。原交接PLAN/current_resume_pointer及旧UNKNOWN/账单保持。
+
+状态：已核实/已修复/已上线=本次Gateway证书修复及双实例定向核验完成；最终镜像digest仍待Render未来可用元数据，不影响当前已核实源码/CA/实际TLS事实。**今后Gateway发布应使用cfb156e或其明确后继SHA，禁止直接点旧关联分支的Deploy latest commit**；Auto-Deploy继续Off。旧dep-daj7919594qs73b38gbg保留为应急恢复入口，回旧版会恢复旧CA风险，未为验收回退。本次没有新增套餐/长期资源，使用既有构建与实例；实际费用不虚构为0。下一步正常维护，无后台任务/新调度或待owner输入，不启动其他功能或旧验收。
