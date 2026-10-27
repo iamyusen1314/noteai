@@ -50,6 +50,10 @@ def build(directory, *, version_product_app=False):
     if version_product_app:
         version = hashlib.sha256(app).hexdigest()[:12]
         index = index.replace('src="/assets/product-app.js"', f'src="/assets/product-app.js?v={version}"')
+        payment_script = root/'assets/payment-native.js'
+        if payment_script.is_file():
+            payment_version = hashlib.sha256(payment_script.read_bytes()).hexdigest()[:12]
+            index = index.replace('src="/assets/payment-native.js"', f'src="/assets/payment-native.js?v={payment_version}"')
     (root/'index.html').write_text(index)
     (root/'assets/product-app.js').write_bytes(app)
     lines = []
