@@ -1,4 +1,4 @@
-/* Original order APIs only. Refresh/poll never submits a provider request. */
+/* Original order APIs only. Automatic polling never submits a provider request. */
 let _nativeCapability = null;
 let _nativeCapabilityRead = 0;
 let _nativeCheckout = null;
@@ -30,6 +30,8 @@ function nativeMoney(fen) { return '¥' + (Number(fen) / 100).toFixed(2); }
 function nativeOrderState(order) {
   if (order.refund_status === 'refunded' && order.refunded_fen === order.amount_fen)
     return {text:'已全额原路退款', terminal:true};
+  if (order.refund_status === 'refunded')
+    return {text:'退款结果需要核实，请联系客服', terminal:true};
   if (order.refund_status === 'needs_manual')
     return {text:'退款结果需要核实，请联系客服；请勿重复付款', terminal:true};
   if (order.refund_status === 'pending')
@@ -104,12 +106,113 @@ function nativeClearSession() {
 }
 function nativeDialog(title,body) {
   nativeCloseCheckout();const dialog=document.createElement('dialog');dialog.id='native-checkout-dialog';
-  dialog.style.cssText='box-sizing:border-box;margin:auto;max-width:520px;width:90vw;max-height:85dvh;overflow:auto;overflow-wrap:anywhere;border-radius:16px;padding:24px;background:var(--surf-1);color:var(--text);border:1px solid var(--border)';
-  const heading=document.createElement('h2');heading.textContent=title;
-  const close=document.createElement('button');close.className='btn btn-ghost';close.textContent='关闭';close.addEventListener('click',nativeCloseCheckout);
-  body.querySelectorAll('button').forEach(button=>{button.className='btn btn-primary';button.type='button';});
-  dialog.append(heading,body,close);document.body.append(dialog);dialog.addEventListener('cancel',nativeCloseCheckout);dialog.showModal();
+  const heading=document.createElement('h2');heading.id='native-checkout-title';heading.textContent=title;
+  dialog.setAttribute('aria-labelledby',heading.id);dialog.setAttribute('tabindex','-1');body.className='native-pay-main';
+  const close=document.createElement('button');close.className='native-pay-back';close.textContent='‹';close.type='button';close.setAttribute('aria-label','关闭');close.addEventListener('click',nativeCloseCheckout);
+  body.querySelectorAll('button').forEach(button=>{if(!button.className)button.className='native-pay-primary';button.type='button';});
+  const style=document.createElement('style');style.textContent=`
+    #native-checkout-dialog{box-sizing:border-box;margin:auto;padding:0;width:390px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 48px);overflow:auto;overflow-wrap:anywhere;border:1px solid #e2e5ec;border-radius:23px;outline:0;background:#fff;color:#171923;font:14px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 14px 45px #1c213024;color-scheme:light}
+    #native-checkout-dialog *{box-sizing:border-box}
+    #native-checkout-dialog::backdrop{background:#11182770}
+    #native-checkout-dialog h2{height:64px;display:flex;align-items:center;justify-content:center;padding:0 52px;margin:0;border-bottom:1px solid #f4f5f7;font-size:17px;font-weight:600;color:#171923}
+    #native-checkout-dialog button{font:inherit;cursor:pointer;box-shadow:none;letter-spacing:0;text-transform:none}
+    #native-checkout-dialog button:focus-visible,#native-checkout-dialog summary:focus-visible{outline:3px solid #b9adee;outline-offset:3px}
+    #native-checkout-dialog button:disabled{cursor:default;opacity:.55}
+    #native-checkout-dialog .native-pay-back{position:absolute;top:16px;left:17px;width:32px;height:32px;padding:0;border:0;background:none;color:#4e5360;font-size:29px;line-height:1}
+    #native-checkout-dialog .native-pay-main{min-height:590px;display:flex;flex-direction:column;padding:0 27px 26px}
+    #native-checkout-dialog .native-pay-brand{display:flex;align-items:center;justify-content:center;gap:6px;padding-top:34px;color:#606577;font-size:13px;font-weight:600}
+    #native-checkout-dialog .native-pay-mark{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:#7d65df;color:white;font-size:11px}
+    #native-checkout-dialog .native-pay-amount{display:flex;align-items:baseline;justify-content:center;gap:4px;margin-top:29px;font-variant-numeric:tabular-nums;line-height:1.15}
+    #native-checkout-dialog .native-pay-currency{font-size:27px;font-weight:500}
+    #native-checkout-dialog .native-pay-digits{font-size:62px;font-weight:650;letter-spacing:-2.3px}
+    #native-checkout-dialog .native-pay-product{text-align:center;margin-top:14px;font-size:16px;font-weight:550}
+    #native-checkout-dialog .native-pay-validity{margin-left:12px;font-size:13px;font-weight:400;color:#707785}
+    #native-checkout-dialog .native-pay-info{margin-top:38px;padding:19px 0;border-top:1px solid #edf0f3;border-bottom:1px solid #edf0f3}
+    #native-checkout-dialog .native-pay-method{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:550}
+    #native-checkout-dialog .native-pay-wechat{display:inline-flex;width:27px;height:25px;color:#0a8457}
+    #native-checkout-dialog svg{display:block;width:100%;height:100%}
+    #native-checkout-dialog .native-pay-check{margin-left:auto;color:#0a8457}
+    #native-checkout-dialog .native-pay-merchant{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:20px;font-size:11px;line-height:1.6;color:#737b88}
+    #native-checkout-dialog .native-pay-merchant span:last-child{font-size:12.5px;color:#666d7a;text-align:right}
+    #native-checkout-dialog .native-pay-details{margin-top:20px;font-size:12px;color:#737b88}
+    #native-checkout-dialog summary{cursor:pointer;list-style:none;width:max-content}
+    #native-checkout-dialog summary::-webkit-details-marker{display:none}
+    #native-checkout-dialog summary::after{content:'⌄';margin-left:5px}
+    #native-checkout-dialog details[open] summary::after{content:'⌃'}
+    #native-checkout-dialog .native-pay-detail-body{padding-top:15px;font-size:11px;line-height:1.7}
+    #native-checkout-dialog .native-pay-row{display:flex;justify-content:space-between;gap:14px;margin-bottom:9px}
+    #native-checkout-dialog .native-pay-row span:last-child{color:#666d7a;text-align:right;max-width:76%;overflow-wrap:anywhere}
+    #native-checkout-dialog .native-pay-link{padding:0;margin:10px 0 0;border:0;background:none;color:#737b88;font-size:12px;text-align:left;text-decoration:underline;text-underline-offset:3px}
+    #native-checkout-dialog .native-pay-actions{margin-top:auto;padding-top:32px}
+    #native-checkout-dialog .native-pay-primary{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:51px;padding:12px 18px;border:0;border-radius:11px;background:#0a8457;color:white;font-size:16px;font-weight:600}
+    #native-checkout-dialog .native-pay-primary:hover{background:#086e48}
+    #native-checkout-dialog .native-pay-primary .native-pay-wechat{width:23px;height:21px;color:#fff}
+    #native-checkout-dialog .native-pay-caption{font-size:11px;line-height:1.6;color:#707785;margin:12px 0 0;text-align:center;min-height:18px}
+    #native-checkout-dialog #native-wechat-refresh-result:empty{display:none}
+    #native-checkout-dialog .native-pay-hero{text-align:center;padding:52px 0 36px;border-bottom:1px solid #edf0f3}
+    #native-checkout-dialog .native-pay-status-icon{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;margin:0 auto 25px;background:#eeedf9;color:#8b78cf;font-size:29px}
+    #native-checkout-dialog .native-pay-success{background:#e8f7f0;color:#0a8457}
+    #native-checkout-dialog .native-pay-hero h3{margin:0;font-size:24px;font-weight:600;color:#171923}
+    #native-checkout-dialog .native-pay-subtitle{margin-top:13px;font-size:14px;line-height:1.8;color:#737b88}
+    #native-checkout-dialog .native-pay-paid-amount{margin-top:30px;font-size:26px;font-weight:550;color:#3d4350}
+    #native-checkout-dialog .native-pay-qr{display:flex;flex-direction:column;align-items:center;margin-top:29px}
+    #native-checkout-dialog canvas{display:block;width:183px;max-width:100%;height:auto;padding:8px;background:white;border:1px solid #e9ebef;border-radius:12px}
+    #native-checkout-dialog .native-pay-qr p{font-size:12px;color:#707785;text-align:center;line-height:1.7}
+    #native-checkout-dialog .native-pay-notice{font-size:12px;line-height:1.8;color:#707785;margin:20px 0}
+    #native-checkout-dialog .native-pay-list{display:block;width:100%;padding:16px 0;text-align:left;border:0;border-bottom:1px solid #edf0f3;background:none;color:#3d4350;line-height:1.8}
+    @media(max-width:600px){#native-checkout-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border:0;border-radius:0}#native-checkout-dialog[open]{display:flex;flex-direction:column}#native-checkout-dialog h2{flex-shrink:0}#native-checkout-dialog .native-pay-main{flex:1;min-height:0;overflow:auto;padding-bottom:max(26px,env(safe-area-inset-bottom))}}
+  `;
+  dialog.append(heading,body,close,style);document.body.append(dialog);dialog.addEventListener('cancel',nativeCloseCheckout);dialog.showModal();dialog.focus?.();
   return dialog;
+}
+function nativePayNode(tag,className,text) {
+  const node=document.createElement(tag);node.className=className;if(text!==undefined)node.textContent=text;return node;
+}
+function nativeWechatIcon() {
+  const icon=nativePayNode('span','native-pay-wechat');icon.setAttribute('aria-hidden','true');
+  icon.innerHTML='<svg viewBox="0 0 30 26" fill="currentColor"><path d="M12 2C6.1 2 1.5 5.8 1.5 10.5c0 2.6 1.4 4.8 3.7 6.4L4.2 20l3.7-1.8c1.3.4 2.7.7 4.1.7.8 0 1.6-.1 2.4-.3a8.4 8.4 0 0 1-2-5.3c0-4.7 4.3-8.4 9.8-8.4C20.2 3.1 16.4 2 12 2Zm-3.6 7.6a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Zm7 0a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/><path d="M29 13.1c0-3.7-3.6-6.7-8.1-6.7s-8.1 3-8.1 6.7 3.6 6.7 8.1 6.7c1.1 0 2.2-.2 3.1-.5l2.8 1.5-.7-2.5c1.8-1.3 2.9-3.1 2.9-5.2Zm-10.8-.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5.5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>';return icon;
+}
+function nativeProductName(value) {
+  return value.display_name || ((value.product_kind||value.order?.product_kind)==='subscription'?'会员套餐':'积分充值');
+}
+function nativePaySummary(body,value) {
+  const brand=nativePayNode('div','native-pay-brand');brand.append(nativePayNode('span','native-pay-mark','N'),nativePayNode('span','','NoteAI Pro'));
+  const amount=nativePayNode('div','native-pay-amount');amount.append(nativePayNode('span','native-pay-currency','¥'),nativePayNode('span','native-pay-digits',(Number(value.amount_fen)/100).toFixed(2)));
+  const product=nativePayNode('div','native-pay-product',value.display_credits?value.display_credits+'积分':nativeProductName(value));
+  product.append(nativePayNode('span','native-pay-validity',(value.product_kind||value.order?.product_kind)==='subscription'?'· 30天，不自动续费':'· 长期有效'));
+  body.append(brand,amount,product);
+}
+function nativePayMerchant(body) {
+  const info=nativePayNode('div','native-pay-info'),method=nativePayNode('div','native-pay-method');
+  method.append(nativeWechatIcon(),nativePayNode('span','','微信支付'),nativePayNode('span','native-pay-check','✓'));
+  const merchant=nativePayNode('div','native-pay-merchant');merchant.append(nativePayNode('span','','收款方'),nativePayNode('span','','易事快（广州）咨询服务有限公司'));
+  info.append(method,merchant);body.append(info);
+}
+function nativePayDetails(body,value) {
+  const details=nativePayNode('details','native-pay-details'),content=nativePayNode('div','native-pay-detail-body');
+  details.append(nativePayNode('summary','','订单详情'));
+  const rows=[['商品',nativeProductName(value)],['金额',nativeMoney(value.amount_fen)],['收款方','易事快（广州）咨询服务有限公司']];
+  if(value.order){rows.push(['商品标识',value.order.product_id],['订单号',value.order.id],['订单状态',nativeOrderState(value.order).text]);}
+  for(const [label,text] of rows){const row=nativePayNode('div','native-pay-row');row.append(nativePayNode('span','',label),nativePayNode('span','',text));content.append(row);}
+  if(value.canary && _nativeCapability?.canary_checkout?.notice)content.append(nativePayNode('p','native-pay-notice',_nativeCapability.canary_checkout.notice));
+  details.append(content);body.append(details);return content;
+}
+function nativePayAction(body,label,action,caption='') {
+  const actions=nativePayNode('div','native-pay-actions'),button=nativePayNode('button','native-pay-primary',label);
+  if(label==='微信支付'){button.textContent='';button.append(nativeWechatIcon(),nativePayNode('span','',label));}
+  button.type='button';button.addEventListener('click',async()=>{if(button.disabled)return;button.disabled=true;try{await action();}finally{button.disabled=false;}});actions.append(button,typeof caption==='string'?nativePayNode('p','native-pay-caption',caption):caption);body.append(actions);return button;
+}
+function nativePayHero(body,value,title,subtitle,success=false) {
+  const hero=nativePayNode('div','native-pay-hero');
+  hero.append(nativePayNode('div','native-pay-status-icon'+(success?' native-pay-success':''),success?'✓':'·'));
+  const heading=nativePayNode('h3','',title);heading.id='native-order-title';
+  hero.append(heading,nativePayNode('div','native-pay-subtitle',subtitle),nativePayNode('div','native-pay-paid-amount',nativeMoney(value.amount_fen)));body.append(hero);
+}
+function nativeShowConfirmation(value,ready=false) {
+  const body=document.createElement('div');nativePaySummary(body,value);nativePayMerchant(body);nativePayDetails(body,value);
+  const jsapi=value.method==='jsapi';
+  nativePayAction(body,jsapi?'微信支付':'生成支付二维码',()=>jsapi && !ready?nativeBeginWechatCheckout(value):nativeSubmitCheckout(value),jsapi?(ready?'微信授权已完成，点击继续付款':'首次支付需微信授权'):'使用手机微信扫码付款');
+  nativeDialog(ready?'继续微信支付':'确认付款',body);
 }
 function nativeErrorText(value,fallback) {
   const detail=value?.detail;
@@ -148,13 +251,9 @@ async function nativeStartCheckout(kind,id) {
     if(original?.method==='jsapi' && !original.attempted && (original.oauth_state || original.oauth_restart_required)){nativeShowWechatRestart(original);return;}
     const value={user_id:_authUser.id,product_kind:kind,product_id:id,amount_fen:fen,
       key:canary?.idempotency_key||('native-'+crypto.randomUUID()),canary:!!canary,attempted:false,
-      method:nativeJsapiAvailable()?'jsapi':'native'};
-    const body=document.createElement('div');const text=document.createElement('p');
-    text.textContent=(product.name||id)+' · '+nativeMoney(fen)+' · 微信支付'+(kind==='subscription'?'，一次性30天，不自动续费':'');body.append(text);
-    const environment=document.createElement('p');environment.id='native-checkout-environment';environment.textContent=nativePaymentHint();body.append(environment);
-    if(canary){const note=document.createElement('p');note.textContent=canary.notice;body.append(note);}
-    const confirm=document.createElement('button');confirm.textContent=value.method==='jsapi'?'授权并继续微信支付':'确认创建 '+nativeMoney(fen)+' 支付二维码';
-    confirm.addEventListener('click',()=>value.method==='jsapi'?nativeBeginWechatCheckout(value):nativeSubmitCheckout(value));body.append(confirm);nativeDialog('核对订单',body);
+      method:nativeJsapiAvailable()?'jsapi':'native',display_name:product.name||product.label||'',
+      display_credits:Number(kind==='subscription'?product.monthly_credits:product.credits)||null};
+    nativeShowConfirmation(value);
   }catch(e){showToast(e.message||'订单准备失败');}
 }
 function nativeOfferWechatResume() {
@@ -169,22 +268,20 @@ function nativeOfferWechatResume() {
 }
 function nativeShowWechatResume(value) {
   if(value.user_id!==_authUser?.id || !nativeJsapiAvailable())return;
-  const body=document.createElement('div'),text=document.createElement('p'),button=document.createElement('button');
-  text.textContent='微信授权已完成。继续原商品 '+value.product_id+' · '+nativeMoney(value.amount_fen)+'，确认后仅创建这一笔订单；不会自动付款。';
-  button.textContent='继续本人微信支付';button.addEventListener('click',()=>nativeSubmitCheckout(value));body.append(text,button);nativeDialog('继续微信支付',body);
+  nativeShowConfirmation(value,true);
 }
 function nativeShowWechatRestart(value,message='微信授权未完成或已过期。') {
   if(value.user_id!==_authUser?.id || value.attempted || !nativeJsapiAvailable())return;
-  const body=document.createElement('div'),text=document.createElement('p'),button=document.createElement('button');
-  text.textContent=message+' 请先核实订单状态，再重新授权继续付款。';
-  button.textContent='重新微信授权';button.addEventListener('click',()=>nativeRestartWechatCheckout(value));body.append(text,button);nativeDialog('重新微信授权',body);
+  const body=document.createElement('div');nativePaySummary(body,value);nativePayDetails(body,value);
+  body.append(nativePayNode('p','native-pay-notice',message));
+  nativePayAction(body,'重新微信授权',()=>nativeRestartWechatCheckout(value),'先核实原订单，再继续授权');nativeDialog('重新微信授权',body);
 }
 function nativeShowWechatContextRecovery(value) {
   if(value.user_id!==_authUser?.id || value.order || !['WECHAT_JSAPI_STATE_INVALID_OR_EXPIRED','WECHAT_JSAPI_CONTEXT_INVALID'].includes(value.jsapi_precreate_rejection))return;
-  const body=document.createElement('div'),text=document.createElement('p'),button=document.createElement('button');
-  text.textContent='微信授权已过期或未完成。请先核实订单状态，再重新授权继续付款；不会自动重新下单。';
-  button.textContent='核实原订单以重新授权';button.addEventListener('click',async()=>{try{if(await nativeVerifyWechatRestart(value))nativeShowWechatRestart(value);}catch(e){showToast(e.message||'无法核实原订单');}});
-  body.append(text,button);nativeDialog('核实原微信支付授权',body);
+  const body=document.createElement('div');nativePaySummary(body,value);nativePayDetails(body,value);
+  body.append(nativePayNode('p','native-pay-notice','微信授权已过期或未完成。不会自动重新下单。'));
+  nativePayAction(body,'核实原订单以重新授权',async()=>{try{if(await nativeVerifyWechatRestart(value))nativeShowWechatRestart(value);}catch(e){showToast(e.message||'无法核实原订单');}});
+  nativeDialog('核实原微信支付授权',body);
 }
 function nativeResetWechatAuthorization(value) {
   for(const name of ['checkout_context','oauth_state','oauth_completion_attempted','jsapi_params','jsapi_precreate_rejection'])delete value[name];
@@ -339,12 +436,12 @@ async function nativeSubmitCheckout(value) {
     if(value.user_id===_authUser?.id && token===_authToken && generation===_nativeViewGeneration)nativeRenderOrder(value);
   }catch(e){
     if(value.user_id===_authUser?.id && token===_authToken && generation===_nativeViewGeneration){
-      const body=document.createElement('div');const text=document.createElement('p');
-      text.textContent=(e.message||'网络中断')+'。只核实原订单，不自动重新下单。';body.append(text);
-      const read=document.createElement('button');read.textContent='核实原订单';read.addEventListener('click',async()=>{
+      const body=document.createElement('div');nativePayHero(body,value,'付款结果待确认','请先核实结果，避免重复付款。');
+      const details=nativePayDetails(body,value);details.append(nativePayNode('p','native-pay-notice',(e.message||'网络中断')+'。只核实原订单，不自动重新下单。'));
+      nativePayAction(body,'核实原订单',async()=>{
         if(value.jsapi_precreate_rejection){try{if(await nativeVerifyWechatRestart(value))nativeShowWechatRestart(value);}catch(error){showToast(error.message||'无法核实原订单');}}
         else await nativeRecoverOriginal(true);
-      });body.append(read);nativeDialog('订单结果待核实',body);
+      });nativeDialog('订单结果待核实',body);
       if(value.attempted)await nativeRecoverOriginal(false);
     }
   }finally{_nativeBusy=false;}
@@ -352,33 +449,49 @@ async function nativeSubmitCheckout(value) {
 function nativeRenderOrder(value) {
   if(value.user_id!==_authUser?.id || !NATIVE_UUID.test(value.order?.id))return;
   const body=document.createElement('div');const order=value.order,state=nativeOrderState(order);
-  const info=document.createElement('p');info.textContent=nativeMoney(order.amount_fen)+' · '+order.product_id+' · 订单 '+order.id;
-  const status=document.createElement('p');status.id='native-order-state';status.textContent=state.text;body.append(info,status);
-  if(nativeIsJsapiOrder(value) && value.jsapi_params && !state.terminal && order.payment_status!=='succeeded'){
-    const button=document.createElement('button'),note=document.createElement('p');button.textContent='在微信内支付此订单';
-    button.disabled=nativePaymentEnvironment()!=='wechat';note.textContent=button.disabled?'请在原微信会话打开本站核实此订单；请勿重新下单。':'点击后在微信付款窗口核对商户和金额；取消付款不会新建订单。';
-    button.addEventListener('click',()=>nativeInvokeJsapi(value,button,note));body.append(button,note);
-  }else if(value.checkout && !state.terminal && order.payment_status!=='succeeded'){
+  const jsapi=nativeIsJsapiOrder(value),unpaid=!state.terminal && order.payment_status!=='succeeded' && order.refund_status==='none';
+  const payable=unpaid && (jsapi?!!value.jsapi_params && nativePaymentEnvironment()==='wechat':!!value.checkout);
+  const complete=order.payment_status==='succeeded' && order.entitlement_status==='applied' && order.refund_status==='none';
+  if(payable){nativePaySummary(body,value);}
+  else if(complete)nativePayHero(body,value,'支付成功',value.display_credits?value.display_credits+'积分已到账':'权益已到账',true);
+  else {
+    let title='付款结果待确认',subtitle='请先核实结果，避免重复付款。';
+    if(order.refund_status==='refunded'){title=order.refunded_fen===order.amount_fen?'已全额退款':'退款结果待核实';subtitle='退款以原支付渠道到账为准。';}
+    else if(order.refund_status==='pending'){title='退款处理中';subtitle='请等待原订单确认结果。';}
+    else if(order.refund_status==='needs_manual' || order.payment_status==='needs_manual' || order.entitlement_status==='needs_manual'){title='结果需要核实';subtitle='请联系客服，请勿重复付款。';}
+    else if(order.payment_status==='succeeded'){title='支付已确认';subtitle='权益处理中，请勿重复付款。';}
+    else if(['failed','closed'].includes(order.payment_status)){title=order.payment_status==='closed'?'订单已关闭':'支付未成功';subtitle='原订单记录已保留。';}
+    nativePayHero(body,value,title,subtitle);
+  }
+  if(payable && !jsapi){
+    const panel=nativePayNode('div','native-pay-qr');
     const qr=qrcode(0,'M');qr.addData(value.checkout,'Byte');qr.make();const count=qr.getModuleCount(),cell=6;
-    const canvas=document.createElement('canvas');canvas.width=canvas.height=(count+8)*cell;canvas.style.cssText='max-width:100%;height:auto';canvas.setAttribute('aria-label','微信支付二维码，金额'+nativeMoney(order.amount_fen));
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=(count+8)*cell;canvas.setAttribute('aria-label','微信支付二维码，金额'+nativeMoney(order.amount_fen));
     const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.fillStyle='#000';
     for(let y=0;y<count;y++)for(let x=0;x<count;x++)if(qr.isDark(y,x))context.fillRect((x+4)*cell,(y+4)*cell,cell,cell);
-    body.append(canvas);const tip=document.createElement('p');tip.textContent=nativePaymentHint(true)+' 请在付款微信上再次核对商户和金额。';body.append(tip);
-  }else if(!state.terminal && order.payment_status!=='succeeded'){
-    const note=document.createElement('p');note.textContent=nativeIsJsapiOrder(value)?'原付款参数不在当前会话中，请先核实微信支付状态。未付款时可结束原订单；结果未确认时请勿重新下单或重复付款。':'原付款二维码或微信支付参数不在当前会话中；请勿重复下单，联系客服核实原订单。';body.append(note);
+    panel.append(canvas,nativePayNode('p','',nativePaymentEnvironment()==='desktop'?'使用手机微信扫码付款':'请在电脑或另一屏幕展示二维码，再用手机微信扫码'));body.append(panel);
   }
-  if(order.payment_status==='succeeded' && order.entitlement_status==='applied' && typeof returnFromPricing==='function') {
-    const back=document.createElement('button');back.textContent='权益已到账，返回原任务';back.addEventListener('click',()=>{nativeCloseCheckout();returnFromPricing();});body.append(back);
+  if(payable)nativePayMerchant(body);
+  const details=nativePayDetails(body,value),status=nativePayNode('p','native-pay-notice',state.text);status.id='native-order-state';details.append(status);
+  if(!payable && unpaid)details.append(nativePayNode('p','native-pay-notice',jsapi?'原付款参数不在当前会话中，请先核实支付结果。':'原付款二维码不在当前会话中，请联系客服核实原订单。'));
+  const read=nativePayNode('button','native-pay-link','刷新原订单状态');read.addEventListener('click',()=>nativeRecoverOriginal(true));details.append(read);
+  const note=nativePayNode('p','native-pay-caption','');note.id='native-wechat-refresh-result';note.setAttribute('role','status');note.setAttribute('aria-live','polite');
+  if(complete){
+    nativePayAction(body,'完成',()=>{nativeCloseCheckout();if(typeof returnFromPricing==='function')returnFromPricing();});
+  }else if(payable && jsapi){
+    const bridgeNote=nativePayNode('p','native-pay-caption','点击后在微信付款窗口核对金额');
+    const button=nativePayAction(body,'微信支付',()=>nativeInvokeJsapi(value,button,bridgeNote),bridgeNote);
+    const refresh=nativePayNode('button','native-pay-link','核实支付结果');refresh.setAttribute('data-wechat-order-refresh','');refresh.addEventListener('click',()=>nativeRefreshWechatOrder(value,false));details.append(refresh);
+  }else if(state.terminal){
+    nativePayAction(body,'完成',nativeCloseCheckout);
+  }else{
+    const verify=nativePayAction(body,jsapi?'核实支付结果':'刷新支付状态',()=>jsapi?nativeRefreshWechatOrder(value,false):nativeRecoverOriginal(true));
+    if(jsapi)verify.setAttribute('data-wechat-order-refresh','');
   }
-  const read=document.createElement('button');read.textContent='刷新原订单状态';read.addEventListener('click',()=>nativeRecoverOriginal(true));body.append(read);
-  if(nativeIsJsapiOrder(value) && order.provider_mode==='live' && !state.terminal){
-    const note=document.createElement('p');note.id='native-wechat-refresh-result';note.textContent='先核实微信支付状态；已付款的订单不会关闭。结果未确认时，请勿重复付款。';body.append(note);
-    const refresh=document.createElement('button');refresh.textContent='核实微信支付状态';refresh.setAttribute('data-wechat-order-refresh','');refresh.addEventListener('click',()=>nativeRefreshWechatOrder(value,false));body.append(refresh);
-    if(order.payment_status!=='succeeded'){
-      const close=document.createElement('button');close.textContent='结束未付款订单';close.setAttribute('data-wechat-order-refresh','');close.addEventListener('click',()=>nativeRefreshWechatOrder(value,true));body.append(close);
-    }
+  if(jsapi && order.provider_mode==='live' && unpaid){
+    const close=nativePayNode('button','native-pay-link','结束未付款订单');close.setAttribute('data-wechat-order-refresh','');close.addEventListener('click',()=>nativeRefreshWechatOrder(value,true));details.append(close);
   }
-  nativeDialog(value.canary?'本人授权的微信支付自测':'微信支付订单',body);
+  body.append(note);nativeDialog(payable?(jsapi?'确认付款':'微信扫码支付'):'支付结果',body);
   if(!state.terminal){const generation=_nativeViewGeneration;let remaining=60;
     const poll=async()=>{if(generation!==_nativeViewGeneration || value.user_id!==_authUser?.id || remaining--<=0)return;
       await nativeRecoverOriginal(false);if(generation===_nativeViewGeneration && !nativeOrderState(value.order).terminal)_nativeTimer=setTimeout(poll,5000);};
@@ -396,9 +509,10 @@ async function nativeRecoverOriginal(show) {
     const order=value.order?.id?data:data.orders?.[0];
     if(!order){if(show)showToast('尚未查到原订单；不自动重发，请稍后核实');return;}
     if(!NATIVE_UUID.test(order.id) || order.amount_fen!==value.amount_fen)throw Error('原订单身份不一致');
+    const changed=['payment_status','entitlement_status','refund_status','refunded_fen'].some(name=>value.order?.[name]!==order[name]);
     value.order=order;nativeSaveStorage(value);if(value.user_id!==_authUser?.id || generation!==_nativeViewGeneration)return;
     const state=nativeOrderState(order);const el=document.getElementById('native-order-state');if(el)el.textContent=state.text;
-    if(show || state.terminal){nativeRenderOrder(value);if(state.terminal)loadBillingPlan();}
+    if(show || changed || state.terminal){nativeRenderOrder(value);if(state.terminal)loadBillingPlan();}
     return true;
   }catch(e){if(show && value.user_id===_authUser?.id)showToast(e.message||'订单读取失败');}
   finally{_nativeReadBusy=false;}
@@ -410,7 +524,7 @@ async function nativeShowOrders() {
     if(!r.ok)throw Error(nativeErrorText(data,'订单读取失败'));if(owner!==_authUser?.id || token!==_authToken)return;
     const body=document.createElement('div');
     if(!data.orders?.length){const p=document.createElement('p');p.textContent='暂无本人支付订单';body.append(p);}
-    for(const order of data.orders||[]){const button=document.createElement('button');button.style.cssText='display:block;margin:12px 0;max-width:100%;overflow-wrap:anywhere';
+    for(const order of data.orders||[]){const button=document.createElement('button');button.className='native-pay-list';
       button.textContent=order.created_at.slice(0,10)+' · '+nativeMoney(order.amount_fen)+' · '+nativeOrderState(order).text;
       button.addEventListener('click',()=>{let saved=null;try{saved=nativeReadStorage();}catch(_){}
         _nativeCheckout=saved?.order?.id===order.id?saved:{user_id:owner,order,amount_fen:order.amount_fen,key:'',attempted:true};nativeRenderOrder(_nativeCheckout);});body.append(button);}
