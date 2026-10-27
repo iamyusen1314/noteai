@@ -34410,3 +34410,23 @@ Direct owner asynchronous phone reply: **已显示正确 Logo 和标题** after 
 Necessary private recovery helper bug repair now safely retained on API-C: original V3 source21045B/SHA875bc5e03d3e71ba98192c62582ae9217b8e3c633c4b1accc8f9506b47123544, explicit systemctlfields only/finalpredicate unchanged/12offline controls and independentreviewPASS. Unique SendFile f-sz0717mxebvescg actualSuccess/exactContent/rootroot0400/Overwritefalse at14:13:52UTC, remote R/wechat_share_runtime_adapter_20261026_r3.py. W/wechat-share-runtime-preparation/v2/RUNTIME-SENDFILE.V3.ACTUAL001.json proves this. New R1/R2/R3 .V3.PLAN.json point to exact V3name/length/SHA; alternatives only, NEVER executed for acceptance. V2 absence helper remains defective history and must not be replayed. If reversal becomes necessary, first exact static RESTORE+known readback, then actual drained/knownruntime recovery through V3; preserve all once/UNKNOWN guards. No production restore was tested or claimed in this completion.
 
 Cleanup: saved receipts/screenshots/checkpoint, temporaryviewport reset, no running Cloud/model task. Current public verification and reused console tabs closed; native pipe ended on lastwindow close. Subsequent actual cua.getState has no Chrome browser provider/tabs (Chrome process remains running); Root did not open another page merely to check cleanup. At peak only2tabs in this resumption. W/WECHAT-SHARE-FINAL-CLEANUP001.json + finalUI receipt retained. No background followup scheduled or promised. Next: ordinary owner use; only new concrete feedback should open a new change, do not replay completed acceptance/deployments.
+
+
+### 2026-10-27 — CURRENT：Render eMudhra 只读核查已完成，受影响／修复待授权
+
+上线工作树HEAD e47fe3b，维护与功能开发隔离，原发布窗口保留生产切换。API-C唯一只读云助手c-sz0719evhwjjo5c成功Exit0；实际镜像5125a622…/CID3c5867…仍running、transport=gateway、HTTPS主机noteai-prod-claude-gateway.onrender.com，public/status200 Claude五业务enabled=true。此为当前配置关系，不是模型调用或上游健康验收。
+
+Render正式srv-d9e765laeets73aikj90 Live/dep-daj7919594qs73b38gbg/60168e1，最近部署记录09月13日/2实例。两实例2qxbh与tc65x实测Python3.11.16/OpenSSL3.5.7/HTTPX0.28.1/certifi2026.7.22/systemCA20250419，7运行文件whole逐Git60168一致；HTTPX默认context和botocore默认CA均指certifi，CA overrides全false/AWS sharedconfig absent，无Node/npm/PHP PATH。官方https://render.com/docs/advisory-emudhra明确Python修复要求certifi>=2026.10.19及Docker系统CA更新，故受影响，非凭Node/PHP判断。未发现已遭利用证据；未测恶意证书端点。镜像digest未从已查Dashboard/Shell取得，旧buildlogs超保留期，不冒已知。访问日志原本关闭，无messages匹配不代表停用。
+
+已核实=受影响；待验证=两文件最小候选(certifipin+系统CArefresh)、候选digest/实际根移除和双实例TLS拒绝；已修复=否；已上线=否。候选须保持Gateway60168源码/原共享控制，原发布窗口执行部署和应急回退；旧deploy回退会重引旧CA风险。独立source reviewer同结论。无代码/构建/安装/发布/凭据/网络/停服/付款/模型/新资源或新费用；未扩staging、未重验旧验收。原PLAN/current_resume_pointer不变。
+
+详细只读事实和最小修复/验证/回退附于 docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md 最新同日CURRENT；脱敏实际观察摘录 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/CHECKPOINT.json。下一项：按本次“先只读”边界，请owner仅授权准备两文件候选及离线验证；本窗口不直接切换生产。
+
+
+### 2026-10-27 — CURRENT：Render候选8800638已离线验证；生产未变
+
+Owner已授权两文件最小候选+离线验证，生产继续由原发布窗口执行。本地源码提交8800638（父e47fe3b），仅gateway/requirements.txt与gateway/Dockerfile、未push：pin已有certifi2026.10.19；升级已有system CA+fresh哈希目录；构建时显式检查certifi/system bundle及hash入口，旧G3/AAA或坏/空/不可读库失败。官方2026.10.19保留G1/C1/C3，DebianDSA6572-1修复版trixie20250419+deb13u1，未误禁全部emSign或改业务源。
+
+独立禁网离线：旧wheel bundle逐SHA等生产9cc2…；新120根仅移除G3/G1C1C3保留；8真实根锚验证+21原样guard用例全通过。Root原pure packaging1项PASS/独审GO；禁网Anthropic0.97HTTPX0.28默认新CA/maxretry0通过，botocore本地1.43.114与线上1.43.93不同；Python3.11.14 guard/3.12.14SDK均不冒线上Linux3.11.16。生产调用/付费模型/云端命令/部署0。
+
+已修复=源码候选离线通过；待验证=实际APT/镜像构建及digest/双实例TLS；已上线=否，线上旧库仍受影响。Docker本机Colima socket缺失，未启动VM或构建。唯一两文件diff与完整检查refs在 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/CANDIDATE.json 和 CANDIDATE-8800638.patch；详细交付见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md最新同日CURRENT。原发布窗口应只接此Gateway差异，记录base/依赖/镜像身份后做原定TLS和健康验证，旧deploy回退会恢复旧CA风险。原PLAN/既有验收不改；本窗口候选与离线验证已完成，无待输入，不直接切换生产。
