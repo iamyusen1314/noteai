@@ -22,7 +22,7 @@ import time
 import zipfile
 import zlib
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Iterable, Mapping, Protocol
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit
@@ -742,6 +742,11 @@ def _validate_order(
         "provider_name",
         "device_ip",
     }
+    jsapi = isinstance(order, dict) and order.get("payment_method") == "jsapi"
+    if jsapi:
+        if provider_name != "wechatpay_direct":
+            raise _fail("PAYMENT_PROVIDER_ORDER_INVALID")
+        expected |= {"payment_method", "payer_openid"}
     if not isinstance(order, dict) or set(order) != expected:
         raise _fail("PAYMENT_PROVIDER_ORDER_INVALID")
     if order.get("provider_name") != provider_name:
@@ -757,12 +762,18 @@ def _validate_order(
         raise _fail("PAYMENT_PROVIDER_PRODUCT_INVALID")
     if not isinstance(order.get("device_ip"), str):
         raise _fail("PAYMENT_PROVIDER_ORDER_INVALID")
-    return {
+    result = {
         "merchant_order_no": _opaque(order.get("merchant_order_no"), "order_no"),
         "amount_fen": _positive_fen(order.get("amount_fen")),
         "product_id": product_id,
         "product_kind": order["product_kind"],
     }
+    if jsapi:
+        openid = order["payer_openid"]
+        if not isinstance(openid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", openid):
+            raise _fail("PAYMENT_PROVIDER_PAYER_INVALID")
+        result.update({"payment_method": "jsapi", "payer_openid": openid})
+    return result
 
 
 def _validate_refund(
@@ -937,6 +948,8 @@ def _process_verified_payment_query(
             "pay_amt": _fen_text(result.amount_fen),
         },
         provider_name=expected_provider_name,
+        wechat_trade_type=result.wechat_trade_type,
+        wechat_jsapi_payer_hash=result.wechat_jsapi_payer_hash,
     )
     transaction_factory = _event_transaction_factory(event, transaction_factory)
     return payment_contract.process_authenticated_callback(
@@ -1132,6 +1145,26 @@ class HttpxWeChatPayTransport:
     def __repr__(self) -> str:
         return "HttpxWeChatPayTransport(configuration_redacted=True)"
 
+    def jsapi_payment_parameters(self, prepay_id: str) -> dict[str, str]:
+        """Sign local bridge parameters using the configured merchant key."""
+        package = "prepay_id=" + _opaque(prepay_id, "prepay_id")
+        _current, timestamp = _clock_epoch(self._clock)
+        nonce = str(self._nonce_factory() or "")
+        if not _NONCE_RE.fullmatch(nonce):
+            raise _fail("PAYMENT_PROVIDER_NONCE_INVALID")
+        message = f"{self._app_id}\n{timestamp}\n{nonce}\n{package}\n".encode("ascii")
+        signature = base64.b64encode(self._merchant_private_key.sign(
+            message, padding.PKCS1v15(), hashes.SHA256()
+        )).decode("ascii")
+        return {
+            "appId": self._app_id,
+            "timeStamp": str(timestamp),
+            "nonceStr": nonce,
+            "package": package,
+            "signType": "RSA",
+            "paySign": signature,
+        }
+
     def _signed_headers(
         self,
         method: str,
@@ -1183,8 +1216,9 @@ class HttpxWeChatPayTransport:
         payload: Mapping[str, Any],
     ) -> tuple[str, str, bytes]:
         item = dict(payload)
-        if operation == "native.create":
-            return "POST", "/v3/pay/transactions/native", json.dumps(
+        if operation in {"native.create", "jsapi.create"}:
+            path = "/v3/pay/transactions/jsapi" if operation == "jsapi.create" else "/v3/pay/transactions/native"
+            return "POST", path, json.dumps(
                 item,
                 ensure_ascii=False,
                 allow_nan=False,
@@ -1829,7 +1863,7 @@ class HttpxAlipayTransport:
 
 
 class WeChatPayGateway(payment_contract.PaymentProvider):
-    """WeChat Pay API v3 Native gateway with authenticated notifications."""
+    """WeChat Pay API v3 Native/JSAPI gateway with authenticated notifications."""
 
     provider_name = "wechatpay_direct"
 
@@ -1894,17 +1928,56 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
             provider_name=self.provider_name,
             prod_mode=self._prod_mode,
         )
-        body = self._request(
-            "native.create",
-            {
-                "appid": self._app_id,
-                "mchid": self._merchant_id,
-                "description": f"NoteAI Pro {item['product_id']}",
-                "out_trade_no": item["merchant_order_no"],
-                "notify_url": self._callback_url,
-                "amount": {"total": item["amount_fen"], "currency": "CNY"},
-            },
-        )
+        jsapi = item.get("payment_method") == "jsapi"
+        signer = getattr(self._transport, "jsapi_payment_parameters", None)
+        if jsapi and not callable(signer):
+            raise _fail("PAYMENT_PROVIDER_JSAPI_SIGNER_UNAVAILABLE")
+        payload = {
+            "appid": self._app_id,
+            "mchid": self._merchant_id,
+            "description": f"NoteAI Pro {item['product_id']}",
+            "out_trade_no": item["merchant_order_no"],
+            "notify_url": self._callback_url,
+            "amount": {"total": item["amount_fen"], "currency": "CNY"},
+        }
+        if jsapi:
+            payload["payer"] = {"openid": item["payer_openid"]}
+            payload["time_expire"] = (
+                datetime.now(timezone.utc) + timedelta(minutes=15)
+            ).isoformat(timespec="seconds")
+        body = self._request("jsapi.create" if jsapi else "native.create", payload)
+        if jsapi:
+            prepay_id = _opaque(body.get("prepay_id"), "prepay_id")
+            params = signer(prepay_id)
+            if (
+                not isinstance(params, dict)
+                or set(params) != {"appId", "timeStamp", "nonceStr", "package", "signType", "paySign"}
+                or params.get("appId") != self._app_id
+                or params.get("package") != "prepay_id=" + prepay_id
+                or params.get("signType") != "RSA"
+                or not isinstance(params.get("timeStamp"), str)
+                or not re.fullmatch(r"[0-9]{10}", params["timeStamp"])
+                or not isinstance(params.get("nonceStr"), str)
+                or not _NONCE_RE.fullmatch(params["nonceStr"])
+                or not isinstance(params.get("paySign"), str)
+                or not 1 <= len(params["paySign"]) <= payment_contract.MAX_SIGNATURE_BYTES * 2
+            ):
+                raise _fail("PAYMENT_PROVIDER_CHECKOUT_INVALID")
+            checkout = json.dumps(
+                {"channel": "wechatpay_jsapi", "kind": "bridge", "params": params},
+                separators=(",", ":"), sort_keys=True,
+            )
+            if len(checkout.encode("utf-8")) > MAX_CHECKOUT_VALUE_BYTES:
+                raise _fail("PAYMENT_PROVIDER_CHECKOUT_INVALID")
+            return payment_contract.ProviderPaymentResult(
+                merchant_order_no=item["merchant_order_no"], provider_payment_id=None,
+                status="pending", amount_fen=item["amount_fen"], app_id=self._app_id,
+                prod_mode=self._prod_mode, response_verified=True, checkout_token=checkout,
+                provider_name=self.provider_name, currency="CNY", wechat_trade_type="JSAPI",
+                wechat_jsapi_payer_hash=payment_contract.wechat_jsapi_payer_identity_hash(
+                    self._app_id, item["payer_openid"]
+                ),
+            )
         code_url = str(body.get("code_url") or "").strip()
         if (
             not code_url.startswith("weixin://wxpay/bizpayurl?")
@@ -2030,11 +2103,24 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
                 provider_name=self.provider_name,
                 currency="CNY",
                 provider_created_at=provider_created_at,
+                wechat_trade_type=str(body.get("trade_type") or ""),
+                wechat_jsapi_payer_hash=self._jsapi_response_payer_hash(body),
             ),
             raw_body,
             signature,
             verified_at,
         )
+
+    def _jsapi_response_payer_hash(self, body: Mapping[str, Any]) -> str | None:
+        if body.get("trade_type") != "JSAPI":
+            return None
+        payer = body.get("payer")
+        if not isinstance(payer, Mapping):
+            raise _fail("PAYMENT_PROVIDER_PAYER_INVALID")
+        try:
+            return payment_contract.wechat_jsapi_payer_identity_hash(self._app_id, payer.get("openid"))
+        except payment_contract.PaymentContractError as exc:
+            raise _fail("PAYMENT_PROVIDER_PAYER_INVALID") from exc
 
     def process_payment_query(
         self,
@@ -2388,6 +2474,8 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
                 data=data,
                 provider_name=self.provider_name,
                 authenticated_payload_sha256=semantic_sha256,
+                wechat_trade_type=str(provider.get("trade_type") or "") if event_type.startswith("payment.") else "",
+                wechat_jsapi_payer_hash=self._jsapi_response_payer_hash(provider) if event_type.startswith("payment.") else None,
             ),
             raw_body=raw,
             signature=signature,

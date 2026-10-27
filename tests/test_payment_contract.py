@@ -191,6 +191,7 @@ class PaymentContractTests(unittest.TestCase):
             "payment_reconciliation_runs",
             "payment_reconciliation_items",
             "payment_settlement_summaries",
+            "payment_wechat_oauth_states",
         }
         rows = db.fetchall(
             "SELECT name,sql FROM sqlite_master WHERE type='table' "
@@ -200,7 +201,9 @@ class PaymentContractTests(unittest.TestCase):
         definitions = "\n".join(str(row["sql"]) for row in rows).lower()
         self.assertNotIn("real not null", definitions)
         self.assertNotIn("callback_body", definitions)
-        self.assertNotIn("payer", definitions)
+        # The app-scoped hash is the sole permitted payer identity column;
+        # raw payer data remains excluded from the accounting tables.
+        self.assertNotIn("payer", definitions.replace("wechat_jsapi_payer_hash", ""))
         self.assertNotIn("card_", definitions)
         migration = (
             MODEL_DIR

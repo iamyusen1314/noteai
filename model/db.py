@@ -821,6 +821,49 @@ def _install_sqlite_ark_media_guards(conn: sqlite3.Connection) -> None:
         conn.execute('RELEASE ark_guard_install')
 
 
+def _upgrade_sqlite_wechat_jsapi(conn) -> None:
+    # Nullable identity preserves every original Native order and request hash.
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(payment_orders)")}
+    if "wechat_jsapi_payer_hash" not in columns:
+        conn.execute("ALTER TABLE payment_orders ADD COLUMN wechat_jsapi_payer_hash TEXT "
+                     "CHECK(wechat_jsapi_payer_hash IS NULL OR "
+                     "(provider='wechatpay_direct' AND length(wechat_jsapi_payer_hash)=64 "
+                     "AND wechat_jsapi_payer_hash NOT GLOB '*[^0-9a-f]*'))")
+    conn.executescript("""
+CREATE TRIGGER IF NOT EXISTS payment_orders_jsapi_identity_immutable_v1
+BEFORE UPDATE OF wechat_jsapi_payer_hash ON payment_orders
+WHEN NEW.wechat_jsapi_payer_hash IS NOT OLD.wechat_jsapi_payer_hash
+BEGIN SELECT RAISE(ABORT,'payment payer identity is immutable'); END;
+CREATE TABLE IF NOT EXISTS payment_wechat_oauth_states (
+    state_hash TEXT PRIMARY KEY CHECK(length(state_hash)=64 AND state_hash NOT GLOB '*[^0-9a-f]*'),
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_hash TEXT NOT NULL CHECK(length(session_hash)=64 AND session_hash NOT GLOB '*[^0-9a-f]*'),
+    app_id TEXT NOT NULL,
+    product_kind TEXT NOT NULL CHECK(product_kind IN ('subscription','credit_package')),
+    product_id TEXT NOT NULL,
+    idempotency_key_hash TEXT NOT NULL CHECK(length(idempotency_key_hash)=64 AND idempotency_key_hash NOT GLOB '*[^0-9a-f]*'),
+    status TEXT NOT NULL CHECK(status IN ('pending','exchanging','ready','failed','unknown')),
+    openid_ciphertext TEXT,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL CHECK(expires_at>created_at),
+    updated_at TEXT NOT NULL,
+    CHECK((status='ready')=(openid_ciphertext IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS idx_payment_wechat_oauth_user_created ON payment_wechat_oauth_states(user_id,created_at);
+CREATE INDEX IF NOT EXISTS idx_payment_wechat_oauth_user_expiry ON payment_wechat_oauth_states(user_id,expires_at);
+CREATE TRIGGER IF NOT EXISTS payment_wechat_oauth_identity_v1
+BEFORE UPDATE ON payment_wechat_oauth_states
+WHEN NEW.state_hash IS NOT OLD.state_hash OR NEW.user_id IS NOT OLD.user_id
+    OR NEW.session_hash IS NOT OLD.session_hash OR NEW.app_id IS NOT OLD.app_id
+    OR NEW.product_kind IS NOT OLD.product_kind OR NEW.product_id IS NOT OLD.product_id
+    OR NEW.idempotency_key_hash IS NOT OLD.idempotency_key_hash
+    OR NEW.created_at IS NOT OLD.created_at OR NEW.expires_at IS NOT OLD.expires_at
+    OR NOT ((OLD.status='pending' AND NEW.status='exchanging')
+        OR (OLD.status='exchanging' AND NEW.status IN ('ready','failed','unknown')))
+BEGIN SELECT RAISE(ABORT,'invalid WeChat authorization transition'); END;
+""")
+
+
 def _init_sqlite() -> None:
     """创建所有表（幂等）。"""
     with closing(_get_sqlite_conn()) as conn, conn:
@@ -1074,6 +1117,13 @@ CREATE TABLE IF NOT EXISTS payment_orders (
     app_id_hash          TEXT NOT NULL CHECK (
                              length(app_id_hash)=64
                              AND app_id_hash NOT GLOB '*[^0-9a-f]*'
+                         ),
+    wechat_jsapi_payer_hash TEXT CHECK (
+                             wechat_jsapi_payer_hash IS NULL OR (
+                                 provider='wechatpay_direct'
+                                 AND length(wechat_jsapi_payer_hash)=64
+                                 AND wechat_jsapi_payer_hash NOT GLOB '*[^0-9a-f]*'
+                             )
                          ),
     idempotency_key_hash TEXT NOT NULL CHECK (
                              length(idempotency_key_hash)=64
@@ -2319,6 +2369,7 @@ CREATE INDEX IF NOT EXISTS idx_contract_acceptance_version
     ON user_contract_acceptances(contract_version,privacy_accepted_at);
         """)
         _upgrade_sqlite_trial_usage(conn)
+        _upgrade_sqlite_wechat_jsapi(conn)
         from amap_quota import SQLITE_SCHEMA as amap_quota_schema
         conn.executescript(amap_quota_schema)
         _upgrade_sqlite_original_video(conn)

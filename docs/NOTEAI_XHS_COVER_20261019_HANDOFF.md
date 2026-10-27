@@ -4454,3 +4454,20 @@ Owner最新“开始执行Push、部署”授权已执行完成，本次仅由�
 最终现场、可恢复原身份及全部SHA：`/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/release/RELEASE-ACCEPTANCE.json`，同目录BUILD-TERMINAL.json、原完整日志、3份实际实例结果、SOURCE/PUSH/DEPLOY意图与原回执、RENDER-LIVE-FINAL.jpg。日志下载曾停在原生Save对话框导致浏览器等待超时；完成同一次保存后，使用既有Chrome原页继续只读核验，无重复下载/部署或安全绕过。原交接PLAN/current_resume_pointer及旧UNKNOWN/账单保持。
 
 状态：已核实/已修复/已上线=本次Gateway证书修复及双实例定向核验完成；最终镜像digest仍待Render未来可用元数据，不影响当前已核实源码/CA/实际TLS事实。**今后Gateway发布应使用cfb156e或其明确后继SHA，禁止直接点旧关联分支的Deploy latest commit**；Auto-Deploy继续Off。旧dep-daj7919594qs73b38gbg保留为应急恢复入口，回旧版会恢复旧CA风险，未为验收回退。本次没有新增套餐/长期资源，使用既有构建与实例；实际费用不虚构为0。下一步正常维护，无后台任务/新调度或待owner输入，不启动其他功能或旧验收。
+
+
+### 2026-10-27 — CURRENT：微信 JSAPI 最小候选已修复并离线验证，尚未上线
+
+本节所在提交为 JSAPI 候选（基线 ba90552）；用户本次要求补齐微信内同机支付。昨日的分享配置不是 JSAPI 已开通证明。API-C 实际只读命令 c-sz0719o880ya7sw / t-sz0719o881d9lvk 于 03:55:34UTC 成功退出0：payment/share AppID 均为 wxfa4405963601a505，Secret 已配置，分享启用、JSAPI 关闭。API5125/Pay3f779/Admin4a034 的原 CID/image/started_at 均与原发布一致，未切换任何服务；完整非秘密元数据在 `/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/wechat-jsapi-20261027/API-C-READONLY-METADATA.json`。
+
+**已修复（仅本地代码）**：复用原 wechatpay_direct provider、价格、订单、退款和账本。新增一次性 OAuth begin/complete，固定同源 `/wechat-pay.html`，state绑定登录用户、仍存活的原会话、AppID、商品和原幂等键；5分钟有效、先占用后单次兑换，code/Secret/token不落盘或下发，OpenID只短期AES-GCM密文，订单只存不可变AppID作用域payer散列。JSAPI下单15分钟有效，商户RSA签署Bridge参数；可信回调/查单必须匹配JSAPI交易类型与payer才入账。客户端使用独立Bridge，不借分享签名；授权返回后由用户继续，取消/成功均核实原单，不凭客户端发权益。PC/微信外浏览器和历史订单缺省仍为Native。新增开关 `NOTEAI_WECHAT_JSAPI_ENABLED=1` 默认关闭，并严格要求支付/分享AppID一致；复用现有Secret，无新增生产依赖。
+
+独立交叉复核发现并修复：过期授权在尚未下单时被误标永久UNKNOWN；现在仅两个明确的下单前400授权拒绝、且按原key确认无订单，才允许手动重新授权，同商品/key保留。网络UNKNOWN、其他4xx/5xx、读不到状态或已有订单均不解锁。另加授权有效期显式校验，避免依赖清理DELETE和数据库时钟。原HTML只改统一付款说明函数，未改页面布局或重建H5。
+
+**已验证（离线）**：后端支付/OAuth/真实ASGI合约113项+分享隔离13项，共126项通过；前端单元63项通过（Native脚本内另有24场景），Chromium1280×900/390×844实际组件交互1项通过，共64项前端/浏览器测试。验证真实合成RSA/AES回调重复仅一笔cash/entitlement、越权拒绝、授权重放/过期/注销、不同商品/key/session拒绝、Native兼容、取消及UNKNOWN防重。均临时SQLite/合成供应商，未启动lifespan或模型资产、未触达生产DB或真实OAuth/支付/模型。py_compile和diff检查通过；隔离静态build通过，包含根回调和自有脚本、CSP移除inline、静态引用无缺失。浏览器测试首次因隔离工作树找不到Playwright未启动，随后通过NODE_PATH复用本机既有安装（未安装依赖）；原失败不作为产品故障。私有证据目录同上，含FRONTEND-FINAL.log、OFFLINE-BUILD.json、screenshots（均为离线合成页面）。本机Python3.12；实际API-C Python3.11候选镜像QA与真实PostgreSQL0032执行尚待发布准备，不能冒充已验证。
+
+**待验证／未上线**：①商户JSAPI产品权限；②该服务号AppID与现有商户号关联；③实际使用主域/所用www的公众号网页授权域名；④同协议域名根目录的JSAPI支付授权目录；以及真实微信/iPhone调起、取消和新JSAPI付款回执。商户平台读取被浏览器站点安全策略拒绝，未尝试替代入口绕过；已一次性向owner询问四项现有后台配置，不再索取Secret。相关官方依据：[接入条件](https://pay.wechatpay.cn/doc/v3/merchant/4015423216)、[下单](https://pay.wechatpay.cn/doc/v3/merchant/4012791856)、[调起签名](https://pay.wechatpay.cn/doc/v3/merchant/4012365339)、[支付目录](https://pay.wechatpay.cn/doc/v3/merchant/4013287088)。OAuth端点另以既有分享相同固定[WxJava源码](https://github.com/binarywang/WxJava/blob/1b22c250810f79da2e33a51ab06d740c768ae4cf/weixin-java-mp/src/main/java/me/chanjar/weixin/mp/enums/WxMpApiUrl.java)复核，明确不是微信官方正文。
+
+**发布与回退（未执行）**：产品生产仍由原发布窗口统一执行；此前Render Push/部署例外不转移本项发布权限。原窗口先读取实际服务/schema_migrations/角色权限、验证0032于隔离PG与实际3.11候选镜像，再按现有排空/受控切换/健康检查流程只应用新增0032，不重跑旧迁移或已消费命令。API与Payment必须成对更新，Payment新校验就绪后才启用JSAPI；静态目录新增回调页/脚本和精确Nginx路径，保留当前CSP/no-referrer/access_log off及其他原路由/资产。四项后台事实满足后才开启新flag。真机先验证授权/调起/取消；真实新JSAPI付款须本人选择现有商品并确认金额，不重演旧Native订单、退款或验收。回退先关闭JSAPI新单入口并恢复静态/API，保留新Payment验签器处理已有JSAPI原单，保留0032、成品、订单及账本；不得降级遗忘在途JSAPI身份绑定，不删除资源或重发UNKNOWN。
+
+改动范围：model/{api,wechat_jsapi,payment_contract,direct_payment_gateways,db,public_product}.py、增量0032；assets/payment-native.js及新增授权回调HTML/JS；原HTML统一说明；两个Nginx模板和原静态build脚本；对应隔离测试。未改支付价格/余额/权益语义、凭据/网络/Render/其他服务/旧UNKNOWN/Item32/34。下一步：owner四项后台事实返回后继续补缺；原发布窗口接收本提交做既有发布准备。当前已核实=实际配置元数据+离线结果，已修复=候选源码，已上线=否。

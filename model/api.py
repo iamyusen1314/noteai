@@ -75,6 +75,7 @@ import auth as _auth
 import account_security as _account_security
 import public_account as _public_account
 import wechat_share as _wechat_share
+import wechat_jsapi as _wechat_jsapi
 import public_product as _public_product
 import ark_media as _ark_media
 import memory as _memory
@@ -16993,6 +16994,17 @@ class PaymentOrderInput(BaseModel):
     provider: Optional[
         Literal["wechatpay_direct", "alipay_direct", "adapay"]
     ] = None
+    wechat_jsapi_context: Optional[str] = Field(default=None, min_length=32, max_length=128)
+
+
+class WeChatPaymentOAuthBeginInput(BaseModel):
+    product_kind: Literal["subscription", "credit_package"]
+    product_id: str = Field(min_length=2, max_length=32)
+
+
+class WeChatPaymentOAuthCompleteInput(BaseModel):
+    state: str = Field(min_length=32, max_length=128)
+    code: str = Field(min_length=1, max_length=512)
 
 
 def _test_billing_enabled() -> bool:
@@ -17565,6 +17577,72 @@ async def billing_tiers():
             )}
 
 
+def _wechat_jsapi_available() -> bool:
+    # Credentials alone do not enable a new payment channel. The release owner
+    # enables it only after verifying merchant permission and both domains.
+    if (not _payment_ordering_available("wechatpay_direct")
+            or os.environ.get("NOTEAI_PAYMENT_CANARY_ENABLED", "").strip() == "1"):
+        return False
+    try:
+        _wechat_jsapi.configuration(
+            _payment_adapter_runtime.configured_app_id("wechatpay_direct"))
+    except _wechat_jsapi.JSAPIError:
+        return False
+    return True
+
+
+def _wechat_jsapi_session(request: Request) -> str:
+    # Depends(get_current_user) has already authenticated this exact bearer;
+    # the OAuth module also checks its live session under the user fence.
+    value = request.headers.get("authorization", "")
+    parts = value.split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
+        raise HTTPException(401, "未登录")
+    return parts[1]
+
+
+def _wechat_jsapi_http_error(exc):
+    code = exc.code
+    status_code = (503 if any(word in code for word in ("DISABLED", "CONFIGURED", "UNAVAILABLE"))
+                   else 429 if "RATE" in code else 409 if any(word in code for word in ("UNKNOWN", "USED", "PROGRESS")) else 400)
+    return HTTPException(status_code, code)
+
+
+@app.post("/payments/wechat/oauth/begin")
+async def wechat_payment_oauth_begin(
+    body: WeChatPaymentOAuthBeginInput, request: Request,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+    user: dict = Depends(_auth.get_current_user),
+):
+    if not _wechat_jsapi_available() or not await _payment_callback_runtime_ready():
+        raise HTTPException(503, "WECHAT_JSAPI_UNAVAILABLE")
+    try:
+        return await run_in_threadpool(
+            _wechat_jsapi.begin, user_id=user["id"],
+            session_token=_wechat_jsapi_session(request),
+            product_kind=body.product_kind, product_id=body.product_id,
+            idempotency_key=idempotency_key, origin=request.headers.get("origin", ""),
+            payment_app_id=_payment_adapter_runtime.configured_app_id("wechatpay_direct"))
+    except _wechat_jsapi.JSAPIError as exc:
+        raise _wechat_jsapi_http_error(exc) from None
+
+
+@app.post("/payments/wechat/oauth/complete")
+async def wechat_payment_oauth_complete(
+    body: WeChatPaymentOAuthCompleteInput, request: Request,
+    user: dict = Depends(_auth.get_current_user),
+):
+    if not _wechat_jsapi_available():
+        raise HTTPException(503, "WECHAT_JSAPI_UNAVAILABLE")
+    try:
+        return await run_in_threadpool(
+            _wechat_jsapi.complete, user_id=user["id"],
+            session_token=_wechat_jsapi_session(request), state=body.state, code=body.code,
+            payment_app_id=_payment_adapter_runtime.configured_app_id("wechatpay_direct"))
+    except _wechat_jsapi.JSAPIError as exc:
+        raise _wechat_jsapi_http_error(exc) from None
+
+
 @app.get("/payments/capabilities")
 async def payment_capabilities(user: dict | None = Depends(_auth.get_optional_user)):
     """Public availability only; never expose provider configuration."""
@@ -17618,6 +17696,7 @@ async def payment_capabilities(user: dict | None = Depends(_auth.get_optional_us
         "currency": "CNY",
         "auto_renewal": False,
         "canary_checkout": canary_checkout,
+        "wechat_jsapi_available": "wechatpay_direct" in available_providers and _wechat_jsapi_available(),
     }
 
 
@@ -17682,6 +17761,21 @@ async def payment_order_create(
     prod_mode = _payment_adapter_runtime.configured_prod_mode(
         selected_provider
     )
+    jsapi_openid = ""
+    jsapi_payer_hash = None
+    if body.wechat_jsapi_context is not None:
+        if selected_provider != "wechatpay_direct" or not _wechat_jsapi_available():
+            raise HTTPException(503, "WECHAT_JSAPI_UNAVAILABLE")
+        try:
+            jsapi_openid = await run_in_threadpool(
+                _wechat_jsapi.resolve, user_id=user["id"],
+                session_token=_wechat_jsapi_session(request),
+                product_kind=body.product_kind, product_id=body.product_id,
+                idempotency_key=idempotency_key,
+                checkout_context=body.wechat_jsapi_context, payment_app_id=app_id)
+            jsapi_payer_hash = _payment.wechat_jsapi_payer_identity_hash(app_id, jsapi_openid)
+        except _wechat_jsapi.JSAPIError as exc:
+            raise _wechat_jsapi_http_error(exc) from None
     canary_context = _item31_create_canary_context(
         provider_name=selected_provider,
         user_id=user["id"],
@@ -17721,6 +17815,7 @@ async def payment_order_create(
                 app_id=app_id,
                 prod_mode=prod_mode,
                 provider_name=selected_provider,
+                wechat_jsapi_payer_hash=jsapi_payer_hash,
                 **transaction_options,
             )
             full_order = _db.fetchone(
@@ -17737,6 +17832,7 @@ async def payment_order_create(
             provider_request = _payment.provider_payment_request(
                 full_order,
                 device_ip=device_ip,
+                wechat_jsapi_openid=jsapi_openid,
             )
             submission_code, updated, checkout = await _complete_payment_submission(
                 order["id"],

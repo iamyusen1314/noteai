@@ -326,6 +326,15 @@ and sign/template approval. New auth schema and candidate API are not deployed y
 
 ## Payment execution contract — current direct-provider implementation
 
+- October27 JSAPI CURRENT: the local candidate adds one-use, session/product/key/
+  AppID-bound Official Account OAuth and merchant-RSA JSAPI checkout to the
+  existing WeChat provider. OpenID is transient or short-lived encrypted; orders
+  keep only an immutable AppID-scoped payer hash. Verified JSAPI trade/payer must
+  match before the existing ledger can grant rights. Native remains the default.
+  This candidate is offline-verified, not deployed; actual API-C confirms equal
+  payment/share AppID and configured Secret, JSAPI flag off. Merchant permission,
+  AppID association, OAuth domains, payment directories and real-WeChat receipt
+  remain unverified. See latest cover handoff; original window owns publication.
 - Current owner-designated V1 channels are WeChat Pay direct and Alipay direct.
   The older Adapay contract remains for historical rows; it is not the current
   onboarding path. Canonical details are in `docs/PAYMENT_PRODUCTION_CONTRACT.md`.

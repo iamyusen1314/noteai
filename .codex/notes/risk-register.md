@@ -1,3 +1,13 @@
+October27 JSAPI CURRENT — local implementation/offline checks do not establish
+merchant JSAPI permission, AppID association, OAuth/payment directory configuration
+or real-WeChat/iPhone acceptance. Actual API-C payment/share AppID match, Secret
+configured, JSAPI disabled; API/Pay/Admin unchanged. Browser safety blocked merchant
+console reading; owner confirmation is pending, no workaround. Additive0032 SQL
+has SQLite/ASGI/independent review evidence but no actual PostgreSQL execution yet.
+Release must verify migration/least-privilege and deploy API+Payment together before
+enabling JSAPI; rollback retains schema/ledgers and the newer Payment verifier for
+pending JSAPI orders. Original product release window retains execution ownership.
+
 September19 CURRENT — integrity business source f0b/API9fd/Admin73e and frontend e9d are live after one independent controlled continuation at Sep18 19:13:29UTC. Original failed rollout/restoration remain sealed; suppressed original subcheck cannot be reconstructed as a known sole cause. Source-based repair applied6 growth records with no provider/credit/source-fact changes; actual PC and H5 read33 records/5 existing milestones/preferences0. Local synthetic writes/persistence/context tests are separate from production-owner read-only acceptance. Historical missing local-step evidence and unknown supplier fees remain unknown. Admin mixed-cost labels, mobile navigation and historical report date followups are being completed. Actual original Tracking service remains inactive/disabled/suspended on a78 with no config/safety rows and no queued/active work; dedicated-role permissions observed, live session validity not observed. Existing V5 detail contract is author-bound to its server session, so prior Item34 success cannot establish all-user automatic collection. Connect provider-free owned details/manual evidence independently; do not bypass author restrictions, reuse completed acceptance identities or claim automatic readiness from a flag. Item33 isolated bindings/schedule and seven protected paths remain.
 
 September18 CURRENT: Item32 real cycle e7f3345/run-4gbceax8 VERIFIED after original

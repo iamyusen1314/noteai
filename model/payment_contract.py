@@ -60,6 +60,7 @@ _OPAQUE_REF_RE = re.compile(r"^[A-Za-z0-9_:-]{1,128}$")
 _APP_ID_RE = re.compile(r"^[A-Za-z0-9_:-]{3,64}$")
 _IDEMPOTENCY_RE = re.compile(r"^[\x21-\x7e]{8,128}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_WECHAT_OPENID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _MONEY_RE = re.compile(r"^(0|[1-9][0-9]{0,10})\.[0-9]{2}$")
 
 CATALOG: dict[tuple[str, str], dict[str, Any]] = {
@@ -143,6 +144,8 @@ class ProviderPaymentResult:
     provider_name: str = "adapay"
     currency: str = "CNY"
     provider_created_at: int | None = None
+    wechat_trade_type: str = ""
+    wechat_jsapi_payer_hash: str | None = None
 
     def __repr__(self) -> str:
         return (
@@ -276,13 +279,14 @@ def provider_payment_request(
     row: Any,
     *,
     device_ip: str,
+    wechat_jsapi_openid: str = "",
 ) -> dict[str, Any]:
     """Return the only fields an adapter may receive.
 
     The transaction device IP is required by Adapay. It is passed through for
     this one request and is never persisted by the payment contract.
     """
-    return {
+    result = {
         "merchant_order_no": str(row["merchant_order_no"]),
         "amount_fen": int(row["amount_fen"]),
         "currency": str(row["currency"]),
@@ -292,6 +296,23 @@ def provider_payment_request(
         "provider_name": str(row["provider"]),
         "device_ip": str(device_ip or ""),
     }
+    payer_hash = (
+        row["wechat_jsapi_payer_hash"]
+        if "wechat_jsapi_payer_hash" in row.keys()
+        else None
+    )
+    if payer_hash is not None:
+        if (
+            result["provider_name"] != "wechatpay_direct"
+            or _wechat_jsapi_payer_hash_for_app_hash(
+                str(row["app_id_hash"]), wechat_jsapi_openid
+            ) != payer_hash
+        ):
+            raise PaymentContractError("PAYMENT_JSAPI_PAYER_MISMATCH")
+        result.update({"payment_method": "jsapi", "payer_openid": wechat_jsapi_openid})
+    elif wechat_jsapi_openid:
+        raise PaymentContractError("PAYMENT_JSAPI_PAYER_MISMATCH")
+    return result
 
 
 def provider_refund_request(refund: Any, order: Any) -> dict[str, Any]:
@@ -320,6 +341,8 @@ class CallbackEvent:
     # Set only by the direct adapter after verifying and decrypting the full
     # WeChat resource. Queries/legacy events retain their raw-byte identity.
     authenticated_payload_sha256: str | None = None
+    wechat_trade_type: str = ""
+    wechat_jsapi_payer_hash: str | None = None
 
 
 def _now() -> datetime:
@@ -368,6 +391,36 @@ def _provider_name(value: str) -> str:
 
 def _app_id_hash(app_id: str, provider_name: str = "adapay") -> str:
     return _hash(f"noteai-{_provider_name(provider_name)}-app-v1", app_id)
+
+
+def _wechat_jsapi_payer_hash_for_app_hash(app_hash: str, openid: str) -> str:
+    if not isinstance(openid, str) or not _WECHAT_OPENID_RE.fullmatch(openid):
+        raise PaymentContractError("PAYMENT_JSAPI_OPENID_INVALID")
+    if not _SHA256_RE.fullmatch(app_hash):
+        raise PaymentContractError("PAYMENT_INVALID_APP_ID")
+    return _hash("noteai-wechat-jsapi-payer-v1", app_hash + "\0" + openid)
+
+
+def wechat_jsapi_payer_identity_hash(app_id: str, openid: str) -> str:
+    """Bind a transient verified OpenID to its application without storing it."""
+    return _wechat_jsapi_payer_hash_for_app_hash(
+        _app_id_hash(_app_id(app_id), "wechatpay_direct"), openid
+    )
+
+
+def _wechat_jsapi_binding_matches(row: Any, *, trade_type: str, payer_hash: str | None) -> bool:
+    expected = (
+        row["wechat_jsapi_payer_hash"]
+        if "wechat_jsapi_payer_hash" in row.keys()
+        else None
+    )
+    return expected is None or (
+        row["provider"] == "wechatpay_direct"
+        and trade_type == "JSAPI"
+        and isinstance(payer_hash, str)
+        and _SHA256_RE.fullmatch(payer_hash) is not None
+        and hmac.compare_digest(str(expected), payer_hash)
+    )
 
 
 def _payment_user_fence(tx: db.Transaction, user_id: str, *, allow_deletion_requested=False):
@@ -726,6 +779,7 @@ def create_order(
     app_id: str,
     prod_mode: bool = False,
     provider_name: str = "adapay",
+    wechat_jsapi_payer_hash: str | None = None,
     now: datetime | None = None,
     transaction_factory=None,
 ) -> dict[str, Any]:
@@ -740,6 +794,12 @@ def create_order(
         raise PaymentContractError("PAYMENT_USER_REQUIRED")
     expected_app = _app_id(app_id)
     selected_provider = _provider_name(provider_name)
+    if wechat_jsapi_payer_hash is not None and (
+        selected_provider != "wechatpay_direct"
+        or not isinstance(wechat_jsapi_payer_hash, str)
+        or not _SHA256_RE.fullmatch(wechat_jsapi_payer_hash)
+    ):
+        raise PaymentContractError("PAYMENT_JSAPI_PAYER_HASH_INVALID")
     key_hash = _hash("noteai-payment-idempotency-v1", key)
     payload_hash = _hash(
         "noteai-payment-order-payload-v1",
@@ -757,6 +817,10 @@ def create_order(
     created = _iso(now)
     if selected_provider != "adapay":
         payload_hash = _hash("noteai-payment-provider-v1", selected_provider + payload_hash)
+    if wechat_jsapi_payer_hash is not None:
+        payload_hash = _hash(
+            "noteai-payment-wechat-jsapi-order-v1", payload_hash + wechat_jsapi_payer_hash
+        )
     order_id = str(uuid.uuid4())
     merchant_order_no = (
         "NA_" + order_id.replace("-", "")
@@ -812,9 +876,9 @@ def create_order(
             "amount_fen,currency,provider,provider_mode,merchant_order_no,"
             "app_id_hash,idempotency_key_hash,request_hash,payment_status,"
             "entitlement_status,refund_status,refunded_fen,refund_count,"
-            "created_at,updated_at"
+            "created_at,updated_at,wechat_jsapi_payer_hash"
             ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "'created','pending','none',0,0,?,?)",
+            "'created','pending','none',0,0,?,?,?)",
             (
                 order_id,
                 uid,
@@ -832,6 +896,7 @@ def create_order(
                 payload_hash,
                 created,
                 created,
+                wechat_jsapi_payer_hash,
             ),
         )
         row = tx.fetchone("SELECT * FROM payment_orders WHERE id=?", (order_id,))
@@ -951,6 +1016,10 @@ def mark_payment_submission(
                 or raw_provider_payment_id == row["provider_payment_id"]
             )
             and (provider_payment_id is not None or result.status == "pending")
+            and _wechat_jsapi_binding_matches(
+                row, trade_type=result.wechat_trade_type,
+                payer_hash=result.wechat_jsapi_payer_hash,
+            )
         )
         if not expected or result.status not in {"pending", "succeeded"}:
             tx.execute(
@@ -1437,6 +1506,10 @@ def _process_payment_event(
         and event.provider_name == row["provider"]
         and _app_id_hash(event.app_id, event.provider_name) == row["app_id_hash"]
         and event.prod_mode == (row["provider_mode"] == "live")
+        and _wechat_jsapi_binding_matches(
+            row, trade_type=event.wechat_trade_type,
+            payer_hash=event.wechat_jsapi_payer_hash,
+        )
         and (
             payload["provider_payment_id"] is None
             or

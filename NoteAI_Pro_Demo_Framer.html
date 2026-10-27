@@ -5302,13 +5302,15 @@ function productPaymentDisclosureText(capability) {
       if (providers.includes('wechatpay_direct') && ['subscription','credit_package'].includes(canary.product_kind)
           && typeof canary.product_id === 'string' && canary.product_id.trim()) text = '仅本人授权的微信 Native 自测订单可下单，不能据此认定公众收款已开放。';
     } else {
-      text = providers.includes('wechatpay_direct') ? '微信 Native 扫码支付当前可下单。'
+      text = providers.includes('wechatpay_direct') ? (value?.wechat_jsapi_available === true ? '微信支付当前可下单：微信内可授权后直接付款，电脑使用 Native 扫码。' : '微信 Native 扫码支付当前可下单。')
         : '服务端报告付款渠道可用；本页面对应购买入口仍待核实。';
     }
   } else if (validProviders && enabled === false && !providers.length && (!disclosure || status === 'unavailable')) {
     text = '当前查询结果为不可下单；现有账户权益仍按账户记录使用。';
   }
-  return text + '本页使用 Native 扫码流程；微信 H5 已申请、待审核，JSAPI 尚未接入，不能在手机本机直接拉起支付。';
+  return text + (value?.wechat_jsapi_available === true
+    ? '请在付款微信上核对商户和金额；微信外手机浏览器的 H5 支付仍待审核。'
+    : '当前结算未开放微信内直接付款；手机请另屏展示二维码后扫码。微信 H5 已申请、待审核。');
 }
 function productRouteDisclosureText() {
   const data = _productDisclosure;

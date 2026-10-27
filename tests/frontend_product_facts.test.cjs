@@ -37,8 +37,18 @@ test('current disclosure distinguishes version, historical acceptance, material 
 });
 test('available formal payment explicitly describes Native, pending H5 and current refund policy',async()=>{
   const f=fixture();await f.c.loadProductDisclosure();const text=f.get('legal-refund-facts').textContent;
-  assert.match(text,/Native 扫码支付当前可下单/);assert.match(text,/H5 已申请、待审核/);assert.match(text,/JSAPI 尚未接入/);assert.match(text,/所购权益未消耗时，可申请全额原路退款/);assert.match(text,/申请不代表到账/);assert.match(text,/不自动续费/);assert.match(text,/服务端订单报价/);
+  assert.match(text,/Native 扫码支付当前可下单/);assert.match(text,/H5 已申请、待审核/);assert.match(text,/当前结算未开放微信内直接付款/);assert.match(text,/所购权益未消耗时，可申请全额原路退款/);assert.match(text,/申请不代表到账/);assert.match(text,/不自动续费/);assert.match(text,/服务端订单报价/);
   assert.doesNotMatch(text,/无条件|7天.*退款|比例退款|支付网关尚未启用|不得收取真实款项/);
+});
+test('JSAPI disclosure requires an explicit current capability and retains Native and H5 boundaries',()=>{
+  const f=fixture(()=>response(contract()),true);
+  const available={ordering_available:true,providers:['wechatpay_direct'],wechat_jsapi_available:true};
+  const text=f.c.productPaymentDisclosureText(available);
+  assert.match(text,/微信内可授权后直接付款/);assert.match(text,/电脑使用 Native 扫码/);
+  assert.match(text,/H5 支付仍待审核/);assert.doesNotMatch(text,/JSAPI 尚未接入|当前结算未开放微信内直接付款/);
+  for(const value of [null,{...available,wechat_jsapi_available:false},{...available,wechat_jsapi_available:undefined}]){
+    assert.match(f.c.productPaymentDisclosureText(value),/当前结算未开放微信内直接付款/);
+  }
 });
 test('known unavailable and unknown payment states remain different',async()=>{
   for(const [data,expected,forbidden] of [

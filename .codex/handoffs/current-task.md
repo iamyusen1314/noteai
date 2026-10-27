@@ -34448,3 +34448,17 @@ Owner本次Push/部署明确授权已完成，仅Gateway。隔离远端codex/gat
 实际Python3.11.18/OpenSSL3.5.7/certifi2026.10.19/systemCA20250419+deb13u1/botocore1.43.119；base digest9635410349cba3531fabde484e07f14e625abb40e1bc8b23fffa046cb497ce2d已知，最终服务image digest仍UNKNOWN。两实例各148hash入口无目标G3/AAA，实际SDK默认CA正确；4真实证书拒绝+2正常TLSHTTP404+4本机health200/共享控制ready。总外部尝试7含本窗口原第二域名抄错导致的DNS失败，原STOP保留；已通过G3未重跑，仅补未执行正确AAA/正例/health。零自动重试/付费模型，不作生成/支付/全产品验收，未动其他服务/业务数据/旧UNKNOWN/旧Item32/34。独立终审GO。
 
 详见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md最新同日CURRENT；全部原身份/日志/结果/SHA在 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/render-advisory-20261027/release/RELEASE-ACCEPTANCE.json 。状态已修复+已上线（本次范围），无待输入/后台任务。现有Starter/scaling与关联旧分支保持、AutoDeploy Off；未来必须指定cfb156e或明确后继，不点旧分支Deploy latest。旧dep-daj7919594qs73b38gbg是应急恢复且会重引旧CA风险。其他生产发布继续由原窗口统一执行，本次例外不扩权。费用仅既有构建/实例及必要readiness读取，不虚称实账0。
+
+
+### 2026-10-27T04:00:24.900407+00:00 — CURRENT JSAPI minimal implementation in progress, production unchanged
+
+Owner requests completing in-WeChat same-device JSAPI with existing service-account credentials. Read-only actual API-C invocation t-sz0719o881d9lvk / c-sz0719o880ya7sw Success0 confirms payment/share AppID equal, share secret configured, JSAPI flag disabled; API5125/Pay3f779/Admin4a034 CIDs unchanged. Evidence: /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/wechat-jsapi-20261027/API-C-READONLY-METADATA.json. No order/provider/DB mutation. Merchant-console read blocked by browser site-safety policy; no workaround. One bundled async question asks existing JSAPI permission, AppID binding, OAuth domains, payment directories; never request Secret again.
+
+Local source implementing OAuth one-use session/product/key/AppID binding+encrypted short-lived OpenID, additive0032 payer hash/authorization table, JSAPI RSA checkout and verified payer/trade binding, original UI Bridge/callback flow; Native/refund/accounting reused. Offline payment91/OAuth14/frontend tests pass individually; integrated API/updated disclosure checks in progress. Independent reviewers found/fixed expired OAuth context UI dead-end; unknown submissions remain non-retriable. These are local candidates, NOT deployed or real-WeChat accepted. Other production release ownership remains original window; Render exception did not transfer product deployment. Next complete scoped integrated checks, account prerequisites, compact release/rollback notes.
+
+
+### 2026-10-27T04:09:23.981908+00:00 — CURRENT JSAPI candidate offline complete; pending account facts/original publisher
+
+本节同一提交基于ba90552，已补OAuth单次会话/商品/key/AppID绑定、加密短期OpenID、0032不可变payer散列、JSAPI15分钟订单与merchant-RSA Bridge、可信回调/query payer匹配、原UI同机入口/独立回调。Native缺省、原账本/退款复用。独立复核的授权过期恢复死路已修，未知提交仍不重发；显式expiry拒绝不依赖DELETE成功。后端113+分享13=126 PASS，前端单元63+真实Chromium组件1=64 PASS（另Native脚本24场景）；py_compile/diff/build PASS。全部离线，未触真实OAuth/支付/模型/生产DB，未重跑旧支付或Item32/34验收。PG0032真实执行和3.11候选镜像QA尚待，生产未变。
+
+实际只读API-C AppID payment/share相同、Secret已配置、JSAPIflag关闭；原3CID不变，原t-sz0719o881d9lvk/Success0。商户console被浏览器安全策略拒绝，无绕过；一次性问owner JSAPI权限/AppID关联/OAuth域名/支付目录，仍待答，不索取Secret。产品发布继续原窗口，Render例外不扩权。下一步账号事实补齐后由原窗口执行既有发布准备；API+Payment成对更新后才能开JSAPI，回退保留0032/账本及在途JSAPI新Payment校验。详见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md最新CURRENT及私有 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/wechat-jsapi-20261027。源码已修复+离线已验证，已上线=否。

@@ -18,6 +18,7 @@ fi
 
 mkdir -p "$DIST_DIR"
 cp "$ROOT_DIR/NoteAI_Pro_Demo_Framer.html" "$DIST_DIR/index.html"
+cp "$ROOT_DIR/wechat-pay.html" "$DIST_DIR/wechat-pay.html"
 mkdir -p "$DIST_DIR/assets"
 cp -R "$ROOT_DIR/assets/." "$DIST_DIR/assets/"
 

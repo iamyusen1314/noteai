@@ -117,6 +117,10 @@ def allowed_route(method: str, path: str) -> bool:
             or re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path)):
         return True
     if wechat_configured():
+        if method == "POST" and path in {"/payments/wechat/oauth/begin", "/payments/wechat/oauth/complete"}:
+            # The handler also requires exact AppID/secret configuration and
+            # real Payment readiness; the new feature is explicitly opt-in.
+            return os.environ.get("NOTEAI_WECHAT_JSAPI_ENABLED") == "1"
         if (method, path) in {("GET", "/payments/capabilities"), ("GET", "/payments/orders"), ("POST", "/payments/orders")}:
             return True
         if method == "GET" and re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path):

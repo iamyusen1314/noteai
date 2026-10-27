@@ -10,7 +10,7 @@ const value=()=>({user_id:'owner-A',product_kind:'credit_package',product_id:'st
 (async()=>{const results=[];
  for (const [ua,expected] of [['Desktop Browser','desktop'],['iPhone Mobile','mobile'],['iPhone MicroMessenger','wechat']]) {
   const {c}=make();c.navigator={userAgent:ua};assert.equal(c.nativePaymentEnvironment(),expected);
-  const hint=c.nativePaymentHint();assert.match(hint,/Native/);if(expected!=='desktop'){assert.match(hint,/不能在本机直接拉起/);assert.match(hint,/JSAPI 和 H5 支付尚未接入/);}results.push('payment-environment-'+expected+' PASS');
+  const hint=c.nativePaymentHint();assert.match(hint,/Native/);if(expected!=='desktop'){assert.match(hint,/不能在本机直接拉起/);assert.match(hint,/当前查询未确认微信内直接支付可用/);assert.doesNotMatch(hint,/JSAPI.{0,5}(尚未|未)接入/);}results.push('payment-environment-'+expected+' PASS');
  }
 
  {const {c,renders}=make(),v=value();v.attempted=true;v.order={...base};set(c,'_nativeCheckout',v);c.fetch=async()=>json({...base,payment_status:'succeeded',entitlement_status:'applied'});await c.nativeRecoverOriginal(false);assert.equal(v.order.payment_status,'succeeded');assert.equal(renders.length,1);results.push('plain-detail-response-readback PASS');}
