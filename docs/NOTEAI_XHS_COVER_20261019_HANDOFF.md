@@ -4471,3 +4471,8 @@ Owner最新“开始执行Push、部署”授权已执行完成，本次仅由�
 **发布与回退（未执行）**：产品生产仍由原发布窗口统一执行；此前Render Push/部署例外不转移本项发布权限。原窗口先读取实际服务/schema_migrations/角色权限、验证0032于隔离PG与实际3.11候选镜像，再按现有排空/受控切换/健康检查流程只应用新增0032，不重跑旧迁移或已消费命令。API与Payment必须成对更新，Payment新校验就绪后才启用JSAPI；静态目录新增回调页/脚本和精确Nginx路径，保留当前CSP/no-referrer/access_log off及其他原路由/资产。四项后台事实满足后才开启新flag。真机先验证授权/调起/取消；真实新JSAPI付款须本人选择现有商品并确认金额，不重演旧Native订单、退款或验收。回退先关闭JSAPI新单入口并恢复静态/API，保留新Payment验签器处理已有JSAPI原单，保留0032、成品、订单及账本；不得降级遗忘在途JSAPI身份绑定，不删除资源或重发UNKNOWN。
 
 改动范围：model/{api,wechat_jsapi,payment_contract,direct_payment_gateways,db,public_product}.py、增量0032；assets/payment-native.js及新增授权回调HTML/JS；原HTML统一说明；两个Nginx模板和原静态build脚本；对应隔离测试。未改支付价格/余额/权益语义、凭据/网络/Render/其他服务/旧UNKNOWN/Item32/34。下一步：owner四项后台事实返回后继续补缺；原发布窗口接收本提交做既有发布准备。当前已核实=实际配置元数据+离线结果，已修复=候选源码，已上线=否。
+
+
+### 2026-10-27T04:14:55.531948+00:00 — CURRENT JSAPI backend prerequisites 1–3 owner-confirmed; directory still empty
+
+Owner明确确认①JSAPI产品权限②wxfa4405963601a505关联现有商户号③网页授权域名；这是owner后台确认，不冒充本窗口直接console读取。用户截图明确显示JSAPI支付授权目录“暂无数据”，第④尚未保存。已按当前微信官方4013287088规则指导在上方JSAPI区域分别添加 `https://noteaipro.com/`、`https://www.noteaipro.com/`，保留末尾/，通常5分钟生效；Native回调框保持原状。等待owner实际保存确认，不将建议值当成已配置。候选5748b93已本地提交/工作树干净；后端126、前端63+浏览器1及build通过，PG0032/实际3.11候选镜像QA/真机仍待原发布准备。无Push/生产变更。私有原件OWNER-CONFIG-READBACK.json，生产继续原窗口统一执行。

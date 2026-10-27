@@ -34462,3 +34462,8 @@ Local source implementing OAuth one-use session/product/key/AppID binding+encryp
 本节同一提交基于ba90552，已补OAuth单次会话/商品/key/AppID绑定、加密短期OpenID、0032不可变payer散列、JSAPI15分钟订单与merchant-RSA Bridge、可信回调/query payer匹配、原UI同机入口/独立回调。Native缺省、原账本/退款复用。独立复核的授权过期恢复死路已修，未知提交仍不重发；显式expiry拒绝不依赖DELETE成功。后端113+分享13=126 PASS，前端单元63+真实Chromium组件1=64 PASS（另Native脚本24场景）；py_compile/diff/build PASS。全部离线，未触真实OAuth/支付/模型/生产DB，未重跑旧支付或Item32/34验收。PG0032真实执行和3.11候选镜像QA尚待，生产未变。
 
 实际只读API-C AppID payment/share相同、Secret已配置、JSAPIflag关闭；原3CID不变，原t-sz0719o881d9lvk/Success0。商户console被浏览器安全策略拒绝，无绕过；一次性问owner JSAPI权限/AppID关联/OAuth域名/支付目录，仍待答，不索取Secret。产品发布继续原窗口，Render例外不扩权。下一步账号事实补齐后由原窗口执行既有发布准备；API+Payment成对更新后才能开JSAPI，回退保留0032/账本及在途JSAPI新Payment校验。详见docs/NOTEAI_XHS_COVER_20261019_HANDOFF.md最新CURRENT及私有 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/wechat-jsapi-20261027。源码已修复+离线已验证，已上线=否。
+
+
+### 2026-10-27T04:14:55.531948+00:00 — CURRENT JSAPI backend prerequisites 1–3 owner-confirmed; directory still empty
+
+Owner明确确认①JSAPI产品权限②wxfa4405963601a505关联现有商户号③网页授权域名；这是owner后台确认，不冒充本窗口直接console读取。用户截图明确显示JSAPI支付授权目录“暂无数据”，第④尚未保存。已按当前微信官方4013287088规则指导在上方JSAPI区域分别添加 `https://noteaipro.com/`、`https://www.noteaipro.com/`，保留末尾/，通常5分钟生效；Native回调框保持原状。等待owner实际保存确认，不将建议值当成已配置。候选5748b93已本地提交/工作树干净；后端126、前端63+浏览器1及build通过，PG0032/实际3.11候选镜像QA/真机仍待原发布准备。无Push/生产变更。私有原件OWNER-CONFIG-READBACK.json，生产继续原窗口统一执行。

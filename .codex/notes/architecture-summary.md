@@ -333,8 +333,9 @@ and sign/template approval. New auth schema and candidate API are not deployed y
   match before the existing ledger can grant rights. Native remains the default.
   This candidate is offline-verified, not deployed; actual API-C confirms equal
   payment/share AppID and configured Secret, JSAPI flag off. Merchant permission,
-  AppID association, OAuth domains, payment directories and real-WeChat receipt
-  remain unverified. See latest cover handoff; original window owns publication.
+  AppID association and OAuth domains are now owner-confirmed; the supplied
+  screenshot still has no payment directory, and real-WeChat receipt is pending.
+  See latest cover handoff; original window owns publication.
 - Current owner-designated V1 channels are WeChat Pay direct and Alipay direct.
   The older Adapay contract remains for historical rows; it is not the current
   onboarding path. Canonical details are in `docs/PAYMENT_PRODUCTION_CONTRACT.md`.

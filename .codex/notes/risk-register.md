@@ -1,8 +1,9 @@
 October27 JSAPI CURRENT — local implementation/offline checks do not establish
-merchant JSAPI permission, AppID association, OAuth/payment directory configuration
-or real-WeChat/iPhone acceptance. Actual API-C payment/share AppID match, Secret
+real-WeChat/iPhone acceptance. Owner now confirms JSAPI permission, AppID association
+and OAuth domains; the supplied screenshot still has zero JSAPI payment directories.
+Actual API-C payment/share AppID match, Secret
 configured, JSAPI disabled; API/Pay/Admin unchanged. Browser safety blocked merchant
-console reading; owner confirmation is pending, no workaround. Additive0032 SQL
+console reading; directory saving confirmation is pending, no workaround. Additive0032 SQL
 has SQLite/ASGI/independent review evidence but no actual PostgreSQL execution yet.
 Release must verify migration/least-privilege and deploy API+Payment together before
 enabling JSAPI; rollback retains schema/ledgers and the newer Payment verifier for
