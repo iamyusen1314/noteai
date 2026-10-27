@@ -8,6 +8,7 @@ let _nativeReadBusy = false;
 let _nativeViewGeneration = 0;
 let _nativeResumeOffered = '';
 let _nativeBridgeBusy = false;
+let _nativeRefreshBusy = false;
 const NATIVE_UUID = /^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/;
 const WECHAT_CHECKOUT_CONTEXT = /^[A-Za-z0-9_-]{24,128}$/;
 function nativePaymentEnvironment() {
@@ -245,6 +246,41 @@ function nativeWechatBridge() {
     document.addEventListener('WeixinJSBridgeReady',ready);
   });
 }
+function nativeIsJsapiOrder(value) {
+  return value?.order?.payment_method ? value.order.payment_method==='jsapi' : value?.method==='jsapi';
+}
+async function nativeRefreshWechatOrder(value,closeUnpaid=false) {
+  if(_nativeRefreshBusy || !_authToken || value.user_id!==_authUser?.id || !nativeIsJsapiOrder(value) ||
+    value.order?.provider_mode!=='live' || !NATIVE_UUID.test(value.order?.id))return;
+  const token=_authToken,generation=_nativeViewGeneration,orderId=value.order.id;
+  const current=()=>value.user_id===_authUser?.id && token===_authToken && generation===_nativeViewGeneration;
+  const buttons=[...document.querySelectorAll('[data-wechat-order-refresh]')];
+  const status=message=>{const el=document.getElementById('native-wechat-refresh-result');if(el)el.textContent=message;else showToast(message);};
+  _nativeRefreshBusy=true;buttons.forEach(button=>{button.disabled=true;});
+  try {
+    const response=await fetch(API_BASE+'/payments/orders/'+orderId+'/refresh',{method:'POST',headers:{...authHeader(),'Content-Type':'application/json'},
+      cache:'no-store',redirect:'error',body:JSON.stringify({close_unpaid:closeUnpaid===true})});
+    const result=await response.json();if(!current())return;
+    if(!response.ok){
+      let message='微信支付结果尚未确认，请稍后核实原订单；请勿重新下单或重复付款。';
+      if(response.status===429){
+        const retryAfter=response.headers?.get('Retry-After'),seconds=typeof retryAfter==='string' && /^[1-9][0-9]{0,2}$/.test(retryAfter)?Number(retryAfter):0;
+        message=seconds>=1 && seconds<=300?(closeUnpaid?'请在约'+seconds+'秒后再结束未付款订单；本次尚未结束订单。':'请在约'+seconds+'秒后再核实支付状态。')+'结果未确认时请勿重复付款。':'请稍后再核实微信支付状态；结果未确认时请勿重复付款。';
+      }
+      status(message);return;
+    }
+    const order=result.order;
+    if(order?.id!==orderId || order.amount_fen!==value.amount_fen || order.provider_mode!=='live' || order.payment_method!=='jsapi'){
+      status('原订单信息尚未确认，请联系客服核实；请勿重新下单或重复付款。');return;
+    }
+    const changed=['payment_status','entitlement_status','refund_status','refunded_fen'].some(name=>value.order[name]!==order[name]);
+    value.order=order;value.method='jsapi';nativeSaveStorage(value);_nativeCheckout=value;
+    if(changed || nativeOrderState(order).terminal)nativeRenderOrder(value);
+    else status(closeUnpaid?'订单尚未确认结束，请稍后核实原订单；请勿重新下单或重复付款。':'微信尚未确认这笔付款，请稍后核实原订单；请勿重复付款。');
+    if(nativeOrderState(order).terminal)loadBillingPlan();
+  }catch(_){if(current())status('微信支付结果尚未确认，请稍后核实原订单；请勿重新下单或重复付款。');}
+  finally{_nativeRefreshBusy=false;if(current())buttons.forEach(button=>{button.disabled=false;});}
+}
 async function nativeInvokeJsapi(value,button,status) {
   if(_nativeBridgeBusy || value.user_id!==_authUser?.id || nativePaymentEnvironment()!=='wechat')return;
   const token=_authToken,generation=_nativeViewGeneration;const current=()=>value.user_id===_authUser?.id && token===_authToken && generation===_nativeViewGeneration;
@@ -253,7 +289,7 @@ async function nativeInvokeJsapi(value,button,status) {
     const params=nativeJsapiParams(value.jsapi_params),bridge=await nativeWechatBridge();if(!current())return;
     await new Promise(resolve=>{
       let finished=false;const finish=message=>{if(finished)return;finished=true;clearTimeout(timer);
-        if(current()){status.textContent=message;void nativeRecoverOriginal(false);}resolve();};
+        if(current()){status.textContent=message;void nativeRefreshWechatOrder(value,false);}resolve();};
       const timer=setTimeout(()=>finish('付款窗口结果尚未确认，请核实原订单；请勿重新下单。'),60000);
       try {bridge.invoke('getBrandWCPayRequest',params,result=>{
           const outcome=result?.err_msg;
@@ -318,7 +354,7 @@ function nativeRenderOrder(value) {
   const body=document.createElement('div');const order=value.order,state=nativeOrderState(order);
   const info=document.createElement('p');info.textContent=nativeMoney(order.amount_fen)+' · '+order.product_id+' · 订单 '+order.id;
   const status=document.createElement('p');status.id='native-order-state';status.textContent=state.text;body.append(info,status);
-  if(value.method==='jsapi' && value.jsapi_params && !state.terminal && order.payment_status!=='succeeded'){
+  if(nativeIsJsapiOrder(value) && value.jsapi_params && !state.terminal && order.payment_status!=='succeeded'){
     const button=document.createElement('button'),note=document.createElement('p');button.textContent='在微信内支付此订单';
     button.disabled=nativePaymentEnvironment()!=='wechat';note.textContent=button.disabled?'请在原微信会话打开本站核实此订单；请勿重新下单。':'点击后在微信付款窗口核对商户和金额；取消付款不会新建订单。';
     button.addEventListener('click',()=>nativeInvokeJsapi(value,button,note));body.append(button,note);
@@ -329,12 +365,19 @@ function nativeRenderOrder(value) {
     for(let y=0;y<count;y++)for(let x=0;x<count;x++)if(qr.isDark(y,x))context.fillRect((x+4)*cell,(y+4)*cell,cell,cell);
     body.append(canvas);const tip=document.createElement('p');tip.textContent=nativePaymentHint(true)+' 请在付款微信上再次核对商户和金额。';body.append(tip);
   }else if(!state.terminal && order.payment_status!=='succeeded'){
-    const note=document.createElement('p');note.textContent=value.method==='jsapi'?'原付款参数不在当前会话中；请勿重新下单，联系客服核实原订单。':'原付款二维码或微信支付参数不在当前会话中；请勿重复下单，联系客服核实原订单。';body.append(note);
+    const note=document.createElement('p');note.textContent=nativeIsJsapiOrder(value)?'原付款参数不在当前会话中，请先核实微信支付状态。未付款时可结束原订单；结果未确认时请勿重新下单或重复付款。':'原付款二维码或微信支付参数不在当前会话中；请勿重复下单，联系客服核实原订单。';body.append(note);
   }
   if(order.payment_status==='succeeded' && order.entitlement_status==='applied' && typeof returnFromPricing==='function') {
     const back=document.createElement('button');back.textContent='权益已到账，返回原任务';back.addEventListener('click',()=>{nativeCloseCheckout();returnFromPricing();});body.append(back);
   }
   const read=document.createElement('button');read.textContent='刷新原订单状态';read.addEventListener('click',()=>nativeRecoverOriginal(true));body.append(read);
+  if(nativeIsJsapiOrder(value) && order.provider_mode==='live' && !state.terminal){
+    const note=document.createElement('p');note.id='native-wechat-refresh-result';note.textContent='先核实微信支付状态；已付款的订单不会关闭。结果未确认时，请勿重复付款。';body.append(note);
+    const refresh=document.createElement('button');refresh.textContent='核实微信支付状态';refresh.setAttribute('data-wechat-order-refresh','');refresh.addEventListener('click',()=>nativeRefreshWechatOrder(value,false));body.append(refresh);
+    if(order.payment_status!=='succeeded'){
+      const close=document.createElement('button');close.textContent='结束未付款订单';close.setAttribute('data-wechat-order-refresh','');close.addEventListener('click',()=>nativeRefreshWechatOrder(value,true));body.append(close);
+    }
+  }
   nativeDialog(value.canary?'本人授权的微信支付自测':'微信支付订单',body);
   if(!state.terminal){const generation=_nativeViewGeneration;let remaining=60;
     const poll=async()=>{if(generation!==_nativeViewGeneration || value.user_id!==_authUser?.id || remaining--<=0)return;

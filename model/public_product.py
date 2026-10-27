@@ -116,6 +116,8 @@ def allowed_route(method: str, path: str) -> bool:
     if method == "GET" and (path in {"/payments/capabilities", "/payments/orders"}
             or re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", path)):
         return True
+    if method == "POST" and re.fullmatch(r"/payments/orders/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/refresh", path):
+        return wechat_configured(callback=True)
     if wechat_configured():
         if method == "POST" and path in {"/payments/wechat/oauth/begin", "/payments/wechat/oauth/complete"}:
             # The handler also requires exact AppID/secret configuration and

@@ -1,13 +1,18 @@
-October27 JSAPI CURRENT — local implementation/offline checks do not establish
-real-WeChat/iPhone acceptance. Owner now confirms JSAPI permission, AppID association
-and OAuth domains; the supplied screenshot still has zero JSAPI payment directories.
-Actual API-C payment/share AppID match, Secret
-configured, JSAPI disabled; API/Pay/Admin unchanged. Browser safety blocked merchant
-console reading; directory saving confirmation is pending, no workaround. Additive0032 SQL
-has SQLite/ASGI/independent review evidence but no actual PostgreSQL execution yet.
-Release must verify migration/least-privilege and deploy API+Payment together before
-enabling JSAPI; rollback retains schema/ledgers and the newer Payment verifier for
-pending JSAPI orders. Original product release window retains execution ownership.
+October27 JSAPI CURRENT — all four account prerequisites are owner-confirmed,
+including saved HTTPS payment directories; real-WeChat/iPhone receipt is pending.
+Local final verification: Python3.11.14 133 contracts, PG16.15 8 isolated checks,
+frontend74+Chromium1 all PASS. PG0032 SHA13b68f97…35ca3f3; original Native rows,
+role/RLS boundaries, unique settlement/refund and query-clock grants verified.
+Only the temporary local PG ran; it is now stopped, with pid/socket absent.
+The initial 15-minute deadline did not close unpaid orders: fixed with bounded
+owner refresh and explicit unpaid close. API retains the merchant key; Payment
+independently verifies the raw signed query receipt and has no new outbound/key.
+UNKNOWN never permits replacement; provider close204 alone is not terminal proof.
+Production Linux candidate QA/pair switch and real WeChat acceptance remain with
+the original publisher. After any JSAPI order exists, disable new checkout first
+but retain refresh-capable API + Payment + compatible recovery UI until original
+orders are terminal. Retain schema/ledgers/UNKNOWN; do not revert to old API merely
+because new checkout is disabled. No production push/deploy has happened here.
 
 September19 CURRENT — integrity business source f0b/API9fd/Admin73e and frontend e9d are live after one independent controlled continuation at Sep18 19:13:29UTC. Original failed rollout/restoration remain sealed; suppressed original subcheck cannot be reconstructed as a known sole cause. Source-based repair applied6 growth records with no provider/credit/source-fact changes; actual PC and H5 read33 records/5 existing milestones/preferences0. Local synthetic writes/persistence/context tests are separate from production-owner read-only acceptance. Historical missing local-step evidence and unknown supplier fees remain unknown. Admin mixed-cost labels, mobile navigation and historical report date followups are being completed. Actual original Tracking service remains inactive/disabled/suspended on a78 with no config/safety rows and no queued/active work; dedicated-role permissions observed, live session validity not observed. Existing V5 detail contract is author-bound to its server session, so prior Item34 success cannot establish all-user automatic collection. Connect provider-free owned details/manual evidence independently; do not bypass author restrictions, reuse completed acceptance identities or claim automatic readiness from a flag. Item33 isolated bindings/schedule and seven protected paths remain.
 

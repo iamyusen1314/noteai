@@ -2,11 +2,21 @@
 ALTER TABLE public.payment_orders ADD COLUMN wechat_jsapi_payer_hash TEXT
     CHECK(wechat_jsapi_payer_hash IS NULL OR
         (provider='wechatpay_direct' AND wechat_jsapi_payer_hash ~ '^[0-9a-f]{64}$'));
+ALTER TABLE public.payment_orders ADD COLUMN wechat_jsapi_last_query_at BIGINT
+    CHECK(wechat_jsapi_last_query_at IS NULL OR
+        (wechat_jsapi_payer_hash IS NOT NULL
+         AND wechat_jsapi_last_query_at BETWEEN 946684800 AND 4102444800));
 CREATE FUNCTION public.noteai_payment_jsapi_identity_guard_v1() RETURNS TRIGGER
 LANGUAGE plpgsql SET search_path=pg_catalog,public AS $$
 BEGIN
     IF NEW.wechat_jsapi_payer_hash IS DISTINCT FROM OLD.wechat_jsapi_payer_hash THEN
         RAISE EXCEPTION 'payment payer identity is immutable' USING ERRCODE='23514';
+    END IF;
+    IF NEW.wechat_jsapi_last_query_at IS DISTINCT FROM OLD.wechat_jsapi_last_query_at
+       AND (NEW.wechat_jsapi_last_query_at IS NULL
+            OR (OLD.wechat_jsapi_last_query_at IS NOT NULL
+                AND NEW.wechat_jsapi_last_query_at<=OLD.wechat_jsapi_last_query_at)) THEN
+        RAISE EXCEPTION 'payment query clock must advance' USING ERRCODE='23514';
     END IF;
     RETURN NEW;
 END $$;
@@ -78,5 +88,6 @@ BEGIN
 END $$;
 GRANT SELECT,INSERT,DELETE ON public.payment_wechat_oauth_states TO noteai_app;
 GRANT UPDATE(status,openid_ciphertext,updated_at) ON public.payment_wechat_oauth_states TO noteai_app;
+GRANT UPDATE(wechat_jsapi_last_query_at) ON public.payment_orders TO noteai_app;
 REVOKE ALL ON FUNCTION public.noteai_payment_jsapi_identity_guard_v1(),
     public.noteai_payment_wechat_oauth_guard_v1() FROM PUBLIC;

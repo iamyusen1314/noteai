@@ -4476,3 +4476,22 @@ Owner最新“开始执行Push、部署”授权已执行完成，本次仅由�
 ### 2026-10-27T04:14:55.531948+00:00 — CURRENT JSAPI backend prerequisites 1–3 owner-confirmed; directory still empty
 
 Owner明确确认①JSAPI产品权限②wxfa4405963601a505关联现有商户号③网页授权域名；这是owner后台确认，不冒充本窗口直接console读取。用户截图明确显示JSAPI支付授权目录“暂无数据”，第④尚未保存。已按当前微信官方4013287088规则指导在上方JSAPI区域分别添加 `https://noteaipro.com/`、`https://www.noteaipro.com/`，保留末尾/，通常5分钟生效；Native回调框保持原状。等待owner实际保存确认，不将建议值当成已配置。候选5748b93已本地提交/工作树干净；后端126、前端63+浏览器1及build通过，PG0032/实际3.11候选镜像QA/真机仍待原发布准备。无Push/生产变更。私有原件OWNER-CONFIG-READBACK.json，生产继续原窗口统一执行。
+
+
+### 2026-10-27T04:47:34.592024+00:00 — CURRENT：JSAPI四项配置owner确认齐；恢复缺口已修并完成本机PG/3.11验证，待原窗口发布
+
+Owner回复“已保存”，四项后台前置均为owner确认（非本窗口绕过商户console独立读取）。原空目录截图仍保留历史；OWNER-DIRECTORIES-SAVED.json记录指导的两个HTTPS根目录已保存确认，不再反复索取AppSecret或确认已答事项。大版本仍V0.4，生产未切换。本节所在提交为5748b93之上的恢复补丁，发布应包含本节提交，不只取初版5748b93。
+
+**新发现及最小修复**：官方JSAPI下单说明明确time_expire只是可支付截止，不是自动关单。原候选前端只GET本地，取消/15分钟超时后可能永久pending并挡住下一次购买。已补本人live JSAPI原单的认证POST `/payments/orders/{id}/refresh`（strict bool `close_unpaid`），API先持久15秒冷却，再使用既有merchant key最多一次GET；用户明确“结束未付款订单”时，仅验签确认NOTPAY后再POST关单、再GET验签确认CLOSED（最多3个供应商请求/动作，零自动retry）。成功入原账本，NOTPAY/USERPAYING/未知不解锁、不重create，204关单回执不直接冒充本地终态。Bridge返回仅远端核实一次，5秒轮询继续只GET本地；历史JSAPI无付款参数、新购买关闭时仍可核实/结束；429明确等待秒数、本次尚未结束订单。
+
+权限边界保持：API唯一持有既有merchant签名能力；Payment仍CallbackOnlyTransport/既有platform公钥，固定loopback `/internal/payments/wechat/query-receipt`独立验证原始微信签名/serial/clock/原单字段后才应用账本，不信任API传来的verified标记。内部路由无公网Nginx入口，不共享新密钥或扩Payment外连权限。合法未付NOTPAY/CLOSED可缺payer/type，只有verified query窄条件允许；SUCCESS与普通通知仍严格payer/trade匹配。0032新增nullable `wechat_jsapi_last_query_at`及仅API该列UPDATE权限，时钟必须前进；Native原行不回填、不改价/积分/退款语义。
+
+**实际验证**：Python3.11.14原既有隔离venv最终133项（原113+新gateway12+新API8）全部PASS，失败/错误/skip0；日志PY311-RECOVERY-CONTRACT.log，metadata PY311-RECOVERY-RUNTIME.json。全程禁dotenv并清继承env，DNS/socket统一拒绝；末轮记录1个被拒绝尝试，线程stack不足以定因，未冒来源已知/无尝试，外连成功0。最初3.11原候选113轮另有2个被拒绝socket尝试，原日志保留。现有分享后端13项未受改动，复用原通过证据，不重跑真实分享/支付。前端单元74+Chromium桌面/手机1=75 PASS（Native脚本内24场景另记）；手机模拟cancel→核实→用户显式结束→验签终态→可新购，原create总1，console error/provider外联0。py_compile/diff及最终隔离static build通过，引用无缺失；真实iPhone/微信尚待，不能用模拟替代。
+
+**真实隔离PostgreSQL16.15：8/8 PASS/0skip**，0032 SHA `13b68f97c454e66b935d9e9157d071cc62899309131667fccdbe044c135ca3f3`。验证0001–31原Native行逐值保留/new列NULL、仅0032迁移后二次NOOP、API有限状态/单调查询时钟、Payment/Admin/worker/PUBLIC负权限、OAuth RLS/session/密文/不可逆CAS/显式expiry、实际Payment role合成JSAPI重复仅一笔现金/权益及全额退款兼容。来源为本机已有可信Homebrew bottle，先有2次initdb环境失败（DYLD被shell剥离、编译share路径缺失），原件保留；只修任务私有Mach-O加载路径/本地签名和私有Cellar/opt相对布局，未安装/更改全局库、SIP、Colima或下载。最终仅启动1个专用cluster/PID64536、0700短unix socket、listen_addresses空；已先停同实例exit0，pid/socket消失、短socket目录已删，PGDATA/证据保留。冻结131个源码/SQL原件；本轮PG覆盖0032和原账本/回调/退款，不冒后来HTTP回执方法已跑PG，后者真实ASGI+合成RSA链8项单独验证通过。
+
+本轮改动：原API/Payment runtime接线、model/wechat_payment_reconcile.py、原gateway/contract及0032/db/public allowlist、一个精确Nginx POST、原payment asset和对应隔离tests；未改原HTML布局、新依赖/凭据/网络/生产/支付余额/Render/旧UNKNOWN/Item32/34。私有原件统一位于 `/Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/wechat-jsapi-20261027`，含PG32-TESTS-ATTEMPT1.log、PG32-SOURCE-SNAPSHOT.json、PG32-FINAL-READBACK.json、PG16-CLEANUP.json、RECONCILE-API-ACCEPTANCE.json、FRONTEND-RECOVERY-FINAL.log、OFFLINE-RECOVERY-BUILD.json和screenshots-recovery。
+
+**原窗口下一步／边界**：产品生产发布权仍在“Implement NoteAI cover feature”；本窗口只读核其idle，未发跨窗口指令或Push/部署。剩余是发布窗口新鲜只读核生产/在途/schema_migrations与角色，基于保留API5125/Pay3f779构建实际Linux/Python3.11最小候选QA，再仅应用0032并配对切换API+Payment（netns重绑）、发布最小静态/Nginx增量、健康检查后开JSAPI。API源码闭包为api/db/direct_payment_gateways/payment_contract/public_product/wechat_jsapi/wechat_payment_reconcile；Payment为db/direct_payment_gateways/payment_contract/payment_runtime，另保留0032SQL。静态只改必要首页/生成product-app/payment-native以及新增授权页/脚本，保留线上runtime-config和其他原字节；原Nginx全部路由/CSP/no-referrer/access_log off保持。不得使用会改Prompt或跑旧迁移的通用render_predeploy.py，也不重放旧发布命令。实际新JSAPI授权/调起/取消再验；新真实付款须本人选原商品确认金额，旧Native支付/退款验收不重演。
+
+**回退修正（替代初版5748的旧API回退建议）**：先关JSAPI新单flag/入口。已有JSAPI非终态原单时，必须保留含refresh/merchant查询能力的API、新Payment独立验签器及兼容恢复按钮；Payment没有outbound，不能只留它却恢复不含该链的旧API。先前静态可按兼容增量恢复，但保留JSAPI原单恢复能力。只有确认所有相关原单终态、无UNKNOWN/待核金额或退款待办，才评估回完整旧组件；0032、订单/成品/账本始终保留，不降级遗忘身份、不重发create/close UNKNOWN。开启JSAPI之前若无JSAPI订单，可按原配对恢复方案保留增量schema回旧组件。已修复/本机定向已验证=是，已Push/已上线/真机验收=否。

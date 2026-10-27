@@ -481,6 +481,52 @@ def _canary_callback_options(request: Request) -> dict:
     return {"transaction_resolver": resolver}
 
 
+@app.post("/internal/payments/wechat/query-receipt")
+async def wechatpay_query_receipt(request: Request):
+    # API and Payment share a network namespace; this route has no public
+    # Nginx location. No bearer or merchant signing key crosses this boundary.
+    if request.client is None or request.client.host not in {"127.0.0.1", "::1"}:
+        raise HTTPException(403, "PAYMENT_QUERY_LOCAL_ONLY")
+    if not _callback_available("wechatpay_direct") or _enabled("NOTEAI_PAYMENT_CANARY_ENABLED"):
+        raise HTTPException(503, "PAYMENT_QUERY_UNAVAILABLE")
+    if request.headers.get("content-type", "").split(";", 1)[0].lower() != "application/json":
+        raise HTTPException(415, "PAYMENT_QUERY_REQUEST_INVALID")
+    raw = await _bounded_callback_body(request, max_bytes=96 * 1024)
+    try:
+        body = json.loads(raw)
+        if (not isinstance(body, dict) or set(body) != {"user_id", "order_id", "receipt"}
+                or type(body["user_id"]) is not str or not 1 <= len(body["user_id"]) <= 128
+                or type(body["order_id"]) is not str
+                or re.fullmatch(r"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", body["order_id"]) is None):
+            raise ValueError
+    except (ValueError, TypeError):
+        raise HTTPException(400, "PAYMENT_QUERY_REQUEST_INVALID") from None
+
+    def process():
+        row = db.fetchone("SELECT * FROM payment_orders WHERE id=? AND user_id=?",
+                          (body["order_id"], body["user_id"]))
+        if (row is None or row["provider"] != "wechatpay_direct"
+                or row["provider_mode"] != "live" or row["wechat_jsapi_payer_hash"] is None):
+            raise HTTPException(404, "PAYMENT_ORDER_NOT_FOUND")
+        gateway = _direct_callback_gateway("wechatpay_direct")
+        try:
+            result = gateway.process_signed_payment_query_receipt(
+                payment_contract.ProviderPaymentLookup(
+                    merchant_order_no=row["merchant_order_no"],
+                    provider_payment_id=row["provider_payment_id"] or "",
+                    expected_amount_fen=int(row["amount_fen"])), body["receipt"])
+        except payment_contract.PaymentContractError:
+            raise HTTPException(400, "PAYMENT_QUERY_RECEIPT_INVALID") from None
+        if result.get("ok") is not True or result.get("code"):
+            raise HTTPException(409, "PAYMENT_QUERY_RESULT_UNCONFIRMED")
+        return {"ok": True}
+
+    # This role never constructs an outbound transport. Independent signature
+    # validation and the existing account-fenced ledger run in one worker.
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(process)
+
+
 @app.post("/payments/wechat/callback")
 async def wechatpay_callback(request: Request):
     """Authenticate one WeChat Pay API v3 notification and acknowledge it."""

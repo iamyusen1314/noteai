@@ -34467,3 +34467,19 @@ Local source implementing OAuth one-use session/product/key/AppID binding+encryp
 ### 2026-10-27T04:14:55.531948+00:00 — CURRENT JSAPI backend prerequisites 1–3 owner-confirmed; directory still empty
 
 Owner明确确认①JSAPI产品权限②wxfa4405963601a505关联现有商户号③网页授权域名；这是owner后台确认，不冒充本窗口直接console读取。用户截图明确显示JSAPI支付授权目录“暂无数据”，第④尚未保存。已按当前微信官方4013287088规则指导在上方JSAPI区域分别添加 `https://noteaipro.com/`、`https://www.noteaipro.com/`，保留末尾/，通常5分钟生效；Native回调框保持原状。等待owner实际保存确认，不将建议值当成已配置。候选5748b93已本地提交/工作树干净；后端126、前端63+浏览器1及build通过，PG0032/实际3.11候选镜像QA/真机仍待原发布准备。无Push/生产变更。私有原件OWNER-CONFIG-READBACK.json，生产继续原窗口统一执行。
+
+
+### 2026-10-27T04:21:28.365314+00:00 — CURRENT owner confirms JSAPI directories saved; isolated PG/Python3.11 followup in progress
+
+Owner直接回复“已保存”，第④按所给两HTTPS根目录指导保存；四项后台前置现均为owner确认，不再重复询问。原空目录截图保留为历史，新增私有OWNER-DIRECTORIES-SAVED.json；未冒充独立商户console/真机成功。source5748b93，docs37fa41b，产品生产仍原窗口独占；当前本窗口无Push/部署/业务DB/Provider调用。原发布窗口实际idle（Implement NoteAI cover feature，最后交接明示保留唯一发布权）；只读核状态，未发跨窗口消息。
+
+授权独立检查继续：已有uv Python3.11.14对6变更module只compile通过；发现原root-py311-env-r1完整依赖，独立agent正跑113项隔离合约。另一agent复用本机已缓存可信Homebrew PG16/OpenSSL bottle，先校SHA/依赖/版本，再以专用0700短unix socket临时cluster验证0032/RLS/Native兼容/JSAPI唯一结算；不安装、不联网、不碰default或noteai-prep Colima（均Stopped且有保留资源，禁止启动未知restart容器）。全部本机临时资源，完成须停唯一cluster并留证；失败STOP。实际Linux生产候选镜像QA与配对切换仍交原发布窗口，不把本机3.11当image验收。
+
+
+### 2026-10-27T04:47:34.592024+00:00 — CURRENT JSAPI recovery complete locally; owner prerequisites all confirmed; original publisher pending
+
+Owner第4“已保存”已记，不再问四项/Secret。发现time_expire≠close导致初版仅本地GET的pending阻断，已在5748之上补认证原单refresh、显式未付关单、持久15s限流；API持既有merchant key出站，Payment用原platform公钥在固定loopback独立验原始query回执，无新secret/Payment外连。最多GET→POST→GET，204不能直接关本地；SUCCESS/payer严格，NOTPAY/CLOSED缺payer仅verified query窄分支；UNKNOWN从不重create/自动retry。新单flag关闭不挡原单恢复。
+
+最终3.11.14原venv133/133、真实本机PG16.15 8/8、前端单元74+Chromium1=75及compile/diff/staticbuild PASS。0032 SHA13b68f97…ca3f3包含单调queryclock/API列权限；PG冻结/原Native保持/账本退款证据完整，唯一cluster已停止(pid/socket无)，保留两个本机initdb环境失败和私有relocation原件，未动系统/Colima/外网/生产。3.11末轮1个DNS/socket被guard拒绝、stack不足定因；外连成功0，不假称无尝试。HTTP新回执链8项ASGI+RSA验证，不冒PG已跑HTTP。
+
+状态：source恢复补丁即本节提交；已修复+本机验证，Push/上线/真机均否。现阶段无需owner补配置，剩余原窗口实际Linux候选QA、新鲜生产/0032/角色核对、既有受控配对切换和真微信验收。发布权仍“Implement NoteAI cover feature”，未跨窗口发指令；Render例外不扩权。回退必须先关JSAPI新单，但存在JSAPI非终态时保留含refresh的API+新Payment+兼容恢复按钮，不能回旧API丢恢复能力；schema/账本/UNKNOWN保留。详见主handoff最新CURRENT及W/wechat-jsapi-20261027全部原件。

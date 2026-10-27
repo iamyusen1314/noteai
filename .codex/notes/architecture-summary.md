@@ -334,7 +334,13 @@ and sign/template approval. New auth schema and candidate API are not deployed y
   This candidate is offline-verified, not deployed; actual API-C confirms equal
   payment/share AppID and configured Secret, JSAPI flag off. Merchant permission,
   AppID association and OAuth domains are now owner-confirmed; the supplied
-  screenshot still has no payment directory, and real-WeChat receipt is pending.
+  screenshot initially had no payment directory; owner now confirms it saved.
+  Real-WeChat receipt is still pending.
+  Owner refresh uses API merchant-signed GET/explicit unpaid close, then raw
+  signed query receipts sent only to loopback Payment for independent verification.
+  Payment retains no outbound capability; existing JSAPI orders remain recoverable
+  when new checkout is off. Local PG16 role/migration checks and Python3.11 contracts
+  pass; actual Linux image publication and real WeChat receipt remain pending.
   See latest cover handoff; original window owns publication.
 - Current owner-designated V1 channels are WeChat Pay direct and Alipay direct.
   The older Adapay contract remains for historical rows; it is not the current

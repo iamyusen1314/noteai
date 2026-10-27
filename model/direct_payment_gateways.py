@@ -125,6 +125,8 @@ class VerifiedDirectResponse:
     signature: str
     verified_at: int
     response_verified: bool
+    headers: Mapping[str, str] | None = None
+    status_code: int = 200
 
     def __repr__(self) -> str:
         return (
@@ -215,6 +217,43 @@ class DirectPaymentTransport(Protocol):
 
 def _fail(code: str) -> DirectPaymentGatewayError:
     return DirectPaymentGatewayError(code)
+
+
+def _verify_wechat_response_signature(raw, headers, *, verifier_id, public_key, current):
+    """Authenticate the exact provider receipt, including relayed query bytes."""
+    if (not isinstance(raw, bytes) or len(raw) > MAX_DIRECT_RESPONSE_BYTES
+            or not isinstance(headers, Mapping) or not 4 <= len(headers) <= 16):
+        raise _fail("PAYMENT_PROVIDER_RESPONSE_HEADER_INVALID")
+    lowered = {}
+    for key, value in headers.items():
+        if (not isinstance(key, str) or not isinstance(value, str)
+                or not re.fullmatch(r"[A-Za-z0-9-]{1,64}", key)
+                or not 1 <= len(value) <= payment_contract.MAX_SIGNATURE_BYTES * 2
+                or any(ord(c) < 33 or ord(c) > 126 for c in value)
+                or key.lower() in lowered):
+            raise _fail("PAYMENT_PROVIDER_RESPONSE_HEADER_INVALID")
+        lowered[key.lower()] = value
+    timestamp_text = lowered.get("wechatpay-timestamp", "")
+    nonce = lowered.get("wechatpay-nonce", "")
+    signature = lowered.get("wechatpay-signature", "")
+    try:
+        timestamp = int(timestamp_text)
+        serial = _wechat_verifier_id(lowered.get("wechatpay-serial"))
+        decoded = base64.b64decode(signature, validate=True)
+    except (DirectPaymentGatewayError, TypeError, ValueError, binascii.Error):
+        raise _fail("PAYMENT_PROVIDER_RESPONSE_HEADER_INVALID") from None
+    if (serial != verifier_id or not _NONCE_RE.fullmatch(nonce)
+            or not re.fullmatch(r"[0-9]{10}", timestamp_text)
+            or abs(current - timestamp) > MAX_CALLBACK_AGE_SECONDS
+            or lowered.get("wechatpay-signature-type") not in {None, "WECHATPAY2-SHA256-RSA2048"}
+            or not signature):
+        raise _fail("PAYMENT_PROVIDER_RESPONSE_HEADER_INVALID")
+    try:
+        public_key.verify(decoded, f"{timestamp_text}\n{nonce}\n".encode("ascii") + raw + b"\n",
+                          padding.PKCS1v15(), hashes.SHA256())
+    except (InvalidSignature, ValueError):
+        raise _fail("PAYMENT_PROVIDER_RESPONSE_UNVERIFIED") from None
+    return signature, timestamp, lowered
 
 
 def _opaque(value: Any, field: str) -> str:
@@ -950,6 +989,9 @@ def _process_verified_payment_query(
         provider_name=expected_provider_name,
         wechat_trade_type=result.wechat_trade_type,
         wechat_jsapi_payer_hash=result.wechat_jsapi_payer_hash,
+        wechat_query_trade_state=(
+            result.wechat_trade_state if expected_provider_name == "wechatpay_direct" else ""
+        ),
     )
     transaction_factory = _event_transaction_factory(event, transaction_factory)
     return payment_contract.process_authenticated_callback(
@@ -1057,6 +1099,7 @@ def _http_response_bytes(
     deadline: float,
     monotonic_clock: Callable[[], float],
     max_bytes: int = MAX_DIRECT_RESPONSE_BYTES,
+    allow_empty: bool = False,
 ) -> bytes:
     chunks: list[bytes] = []
     total = 0
@@ -1070,7 +1113,7 @@ def _http_response_bytes(
     if _monotonic_value(monotonic_clock) > deadline:
         raise _fail("PAYMENT_PROVIDER_TIMEOUT")
     raw = b"".join(chunks)
-    if not raw:
+    if not raw and not allow_empty:
         raise _fail("PAYMENT_PROVIDER_RESPONSE_INVALID")
     return raw
 
@@ -1245,6 +1288,14 @@ class HttpxWeChatPayTransport:
                 f"/v3/pay/transactions/out-trade-no/{quote(order_no, safe='')}?{query}",
                 b"",
             )
+        if operation == "jsapi.close_by_out_trade_no":
+            if set(item) != {"out_trade_no", "mchid"}:
+                raise _fail("PAYMENT_PROVIDER_REQUEST_INVALID")
+            order_no = _opaque(item["out_trade_no"], "order_no")
+            if str(item["mchid"] or "") != self._merchant_id:
+                raise _fail("PAYMENT_PROVIDER_REQUEST_INVALID")
+            return ("POST", f"/v3/pay/transactions/out-trade-no/{quote(order_no, safe='')}/close",
+                    json.dumps({"mchid": self._merchant_id}, separators=(",", ":")).encode("ascii"))
         if operation == "refund.query_by_out_refund_no":
             if set(item) != {"out_refund_no"}:
                 raise _fail("PAYMENT_PROVIDER_REQUEST_INVALID")
@@ -1320,6 +1371,7 @@ class HttpxWeChatPayTransport:
                     response,
                     deadline=deadline,
                     monotonic_clock=self._monotonic_clock,
+                    allow_empty=(operation == "jsapi.close_by_out_trade_no" and response.status_code == 204),
                 )
                 final_url = str(response.url)
                 status_code = int(response.status_code)
@@ -1335,45 +1387,18 @@ class HttpxWeChatPayTransport:
             raise
         except httpx.HTTPError as exc:
             raise _fail("PAYMENT_PROVIDER_TRANSPORT_ERROR") from exc
-        if final_url != url or not media_type_ok:
+        empty_close = operation == "jsapi.close_by_out_trade_no" and status_code == 204 and raw == b""
+        if final_url != url or (not media_type_ok and not empty_close):
             raise _fail("PAYMENT_PROVIDER_RESPONSE_INVALID")
-        response_timestamp = response_headers.get("wechatpay-timestamp", "")
-        response_nonce = response_headers.get("wechatpay-nonce", "")
-        response_signature = response_headers.get("wechatpay-signature", "")
-        response_serial = response_headers.get("wechatpay-serial", "")
-        signature_type = response_headers.get("wechatpay-signature-type")
-        try:
-            response_epoch = int(response_timestamp)
-            normalized_serial = _wechat_verifier_id(response_serial)
-            decoded_signature = base64.b64decode(
-                response_signature,
-                validate=True,
-            )
-        except (DirectPaymentGatewayError, TypeError, ValueError, binascii.Error) as exc:
-            raise _fail("PAYMENT_PROVIDER_RESPONSE_HEADER_INVALID") from exc
-        if (
-            normalized_serial != self._platform_verifier_id
-            or signature_type not in {None, "WECHATPAY2-SHA256-RSA2048"}
-            or not _NONCE_RE.fullmatch(response_nonce)
-            or abs(timestamp - response_epoch) > MAX_CALLBACK_AGE_SECONDS
-            or not response_signature
-            or len(response_signature) > payment_contract.MAX_SIGNATURE_BYTES * 2
-        ):
-            raise _fail("PAYMENT_PROVIDER_RESPONSE_HEADER_INVALID")
-        try:
-            self._platform_public_key.verify(
-                decoded_signature,
-                f"{response_timestamp}\n{response_nonce}\n".encode("ascii")
-                + raw
-                + b"\n",
-                padding.PKCS1v15(),
-                hashes.SHA256(),
-            )
-        except InvalidSignature as exc:
-            raise _fail("PAYMENT_PROVIDER_RESPONSE_UNVERIFIED") from exc
-        parsed = _json_object(raw, "PAYMENT_PROVIDER_RESPONSE_INVALID")
+        response_signature, response_epoch, response_headers = _verify_wechat_response_signature(
+            raw, response_headers, verifier_id=self._platform_verifier_id,
+            public_key=self._platform_public_key, current=timestamp,
+        )
+        parsed = {} if empty_close else _json_object(raw, "PAYMENT_PROVIDER_RESPONSE_INVALID")
         if not 200 <= status_code < 300:
             raise _fail("PAYMENT_PROVIDER_REQUEST_REJECTED")
+        if operation == "jsapi.close_by_out_trade_no" and not empty_close:
+            raise _fail("PAYMENT_PROVIDER_CLOSE_UNCONFIRMED")
         return VerifiedDirectResponse(
             provider_name="wechatpay_direct",
             body=parsed,
@@ -1381,6 +1406,8 @@ class HttpxWeChatPayTransport:
             signature=response_signature,
             verified_at=response_epoch,
             response_verified=True,
+            headers=response_headers,
+            status_code=status_code,
         )
 
     def _download_trade_bill(self, download_url: str, *, deadline: float) -> bytes:
@@ -2012,6 +2039,19 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
         self,
         lookup: payment_contract.ProviderPaymentLookup | str,
     ) -> tuple[payment_contract.ProviderPaymentResult, bytes, str, int]:
+        merchant_order_no = _opaque(
+            lookup.merchant_order_no if isinstance(lookup, payment_contract.ProviderPaymentLookup) else lookup,
+            "order_no",
+        )
+        body, raw_body, signature, verified_at = self._request_with_receipt(
+            "native.query_by_out_trade_no",
+            {"out_trade_no": merchant_order_no, "mchid": self._merchant_id},
+        )
+        return self._parse_payment_query(lookup, body), raw_body, signature, verified_at
+
+    def _parse_payment_query(
+        self, lookup: payment_contract.ProviderPaymentLookup | str, body: Mapping[str, Any],
+    ) -> payment_contract.ProviderPaymentResult:
         expected_payment_id = (
             str(lookup.provider_payment_id or "")
             if isinstance(lookup, payment_contract.ProviderPaymentLookup)
@@ -2020,10 +2060,6 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
         merchant_order_no = _opaque(
             lookup.merchant_order_no if isinstance(lookup, payment_contract.ProviderPaymentLookup) else lookup,
             "order_no",
-        )
-        body, raw_body, signature, verified_at = self._request_with_receipt(
-            "native.query_by_out_trade_no",
-            {"out_trade_no": merchant_order_no, "mchid": self._merchant_id},
         )
         state_map = {
             "SUCCESS": "succeeded",
@@ -2091,28 +2127,30 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
             )
         except DirectPaymentGatewayError as exc:
             raise _fail("PAYMENT_PROVIDER_RESPONSE_MISMATCH") from exc
-        return (
-            payment_contract.ProviderPaymentResult(
-                merchant_order_no=merchant_order_no,
-                provider_payment_id=payment_id or None,
-                status=state_map[state],
-                amount_fen=amount_fen,
-                app_id=self._app_id,
-                prod_mode=self._prod_mode,
-                response_verified=True,
-                provider_name=self.provider_name,
-                currency="CNY",
-                provider_created_at=provider_created_at,
-                wechat_trade_type=str(body.get("trade_type") or ""),
-                wechat_jsapi_payer_hash=self._jsapi_response_payer_hash(body),
+        return payment_contract.ProviderPaymentResult(
+            merchant_order_no=merchant_order_no,
+            provider_payment_id=payment_id or None,
+            status=state_map[state],
+            amount_fen=amount_fen,
+            app_id=self._app_id,
+            prod_mode=self._prod_mode,
+            response_verified=True,
+            provider_name=self.provider_name,
+            currency="CNY",
+            provider_created_at=provider_created_at,
+            wechat_trade_type=str(body.get("trade_type") or ""),
+            wechat_jsapi_payer_hash=self._jsapi_response_payer_hash(
+                body, allow_unpaid=state in {"NOTPAY", "CLOSED"}
             ),
-            raw_body,
-            signature,
-            verified_at,
+            wechat_trade_state=state,
         )
 
-    def _jsapi_response_payer_hash(self, body: Mapping[str, Any]) -> str | None:
-        if body.get("trade_type") != "JSAPI":
+    def _jsapi_response_payer_hash(self, body: Mapping[str, Any], *, allow_unpaid=False) -> str | None:
+        if body.get("trade_type") != "JSAPI" and not (
+            allow_unpaid and not body.get("trade_type") and "payer" in body
+        ):
+            return None
+        if allow_unpaid and "payer" not in body:
             return None
         payer = body.get("payer")
         if not isinstance(payer, Mapping):
@@ -2121,6 +2159,56 @@ class WeChatPayGateway(payment_contract.PaymentProvider):
             return payment_contract.wechat_jsapi_payer_identity_hash(self._app_id, payer.get("openid"))
         except payment_contract.PaymentContractError as exc:
             raise _fail("PAYMENT_PROVIDER_PAYER_INVALID") from exc
+
+    def export_payment_query_receipt(self, lookup: payment_contract.ProviderPaymentLookup) -> dict[str, Any]:
+        """API-side one GET; retain provider-signed bytes for Payment to verify."""
+        merchant_order_no = _opaque(lookup.merchant_order_no, "order_no")
+        response = self._transport.request(self.provider_name, "native.query_by_out_trade_no", {
+            "out_trade_no": merchant_order_no, "mchid": self._merchant_id,
+        })
+        body, raw, _signature, _verified_at = _verified_response(response, self.provider_name)
+        self._parse_payment_query(lookup, body)
+        if response.status_code != 200 or not isinstance(response.headers, Mapping):
+            raise _fail("PAYMENT_PROVIDER_QUERY_RECEIPT_INVALID")
+        return {"body_b64": base64.b64encode(raw).decode("ascii"), "headers": dict(response.headers)}
+
+    def process_signed_payment_query_receipt(
+        self, lookup: payment_contract.ProviderPaymentLookup, receipt: Mapping[str, Any], *,
+        now: datetime | None = None, transaction_factory=None,
+    ) -> dict[str, Any]:
+        """Payment verifies the original WeChat signature without outbound I/O."""
+        if (not isinstance(receipt, Mapping) or set(receipt) != {"body_b64", "headers"}
+                or not isinstance(receipt.get("body_b64"), str)
+                or not 1 <= len(receipt["body_b64"]) <= ((MAX_DIRECT_RESPONSE_BYTES + 2) // 3) * 4):
+            raise _fail("PAYMENT_PROVIDER_QUERY_RECEIPT_INVALID")
+        try:
+            raw = base64.b64decode(receipt["body_b64"], validate=True)
+        except (ValueError, binascii.Error):
+            raise _fail("PAYMENT_PROVIDER_QUERY_RECEIPT_INVALID") from None
+        _current, epoch = _clock_epoch(lambda: now or datetime.now(timezone.utc))
+        signature, verified_at, _headers = _verify_wechat_response_signature(
+            raw, receipt["headers"], verifier_id=self._platform_serial,
+            public_key=self._platform_public_key, current=epoch,
+        )
+        body = _json_object(raw, "PAYMENT_PROVIDER_RESPONSE_INVALID")
+        result = self._parse_payment_query(lookup, body)
+        return _process_verified_payment_query(
+            result, raw, signature, verified_at, expected_app_id=self._app_id,
+            expected_provider_name=self.provider_name, expected_prod_mode=self._prod_mode,
+            now=now, **payment_contract.transaction_options(transaction_factory),
+        )
+
+    def close_unpaid_payment(self, lookup: payment_contract.ProviderPaymentLookup) -> None:
+        """API-side one close POST; only a later signed CLOSED query settles it."""
+        if not isinstance(lookup, payment_contract.ProviderPaymentLookup) or lookup.provider_payment_id:
+            raise _fail("PAYMENT_PROVIDER_CLOSE_LOOKUP_INVALID")
+        response = self._transport.request(self.provider_name, "jsapi.close_by_out_trade_no", {
+            "out_trade_no": _opaque(lookup.merchant_order_no, "order_no"), "mchid": self._merchant_id,
+        })
+        if (not isinstance(response, VerifiedDirectResponse) or response.provider_name != self.provider_name
+                or response.response_verified is not True or response.status_code != 204
+                or response.raw_body != b"" or response.body != {}):
+            raise _fail("PAYMENT_PROVIDER_CLOSE_UNCONFIRMED")
 
     def process_payment_query(
         self,

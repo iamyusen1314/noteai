@@ -11,7 +11,7 @@ test('rendered desktop Native and WeChat OAuth/callback/bridge remain isolated a
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin='http://127.0.0.1:'+server.address().port;let browser;
  try{browser=await chromium.launch({headless:true,...(process.env.NOTEAI_PLAYWRIGHT_EXECUTABLE?{executablePath:process.env.NOTEAI_PLAYWRIGHT_EXECUTABLE}:{})});
   for(const wechat of [false,true]){
-   const viewport=wechat?{width:390,height:844}:{width:1280,height:900},context=await browser.newContext({viewport,userAgent:wechat?'Mozilla/5.0 iPhone MicroMessenger/8.0.0':'Mozilla/5.0 Desktop',serviceWorkers:'block'}),page=await context.newPage(),calls=[],errors=[];let created=false,bridgeInvocations=0;
+   const viewport=wechat?{width:390,height:844}:{width:1280,height:900},context=await browser.newContext({viewport,userAgent:wechat?'Mozilla/5.0 iPhone MicroMessenger/8.0.0':'Mozilla/5.0 Desktop',serviceWorkers:'block'}),page=await context.newPage(),calls=[],errors=[];let created=false,bridgeInvocations=0,currentOrder={...order,payment_method:wechat?'jsapi':'native'};
    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')errors.push(m.text());});
    await context.addInitScript(()=>localStorage.setItem('noteai_token','synthetic-token'));
    await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url()),p=url.pathname,method=req.method();const send=data=>route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
@@ -24,9 +24,10 @@ test('rendered desktop Native and WeChat OAuth/callback/bridge remain isolated a
     if(p==='/auth/me')return send({id:'owner-A'});
     if(p==='/payments/wechat/oauth/begin'){const u=new URL('https://open.weixin.qq.com/connect/oauth2/authorize');for(const [k,v]of Object.entries({appid:appId,redirect_uri:origin+'/wechat-pay.html',response_type:'code',scope:'snsapi_base',state}))u.searchParams.set(k,v);u.hash='wechat_redirect';return send({authorize_url:u.href,state});}
     if(p==='/payments/wechat/oauth/complete')return send({checkout_context:state});
-    if(p==='/payments/orders'&&method==='POST'){assert.equal(created,false);created=true;const body=req.postDataJSON();assert.equal(body.wechat_jsapi_context,wechat?state:undefined);return send({order,checkout:JSON.stringify(wechat?{channel:'wechatpay_jsapi',kind:'bridge',params}:{channel:'wechatpay_native',kind:'qr_text',value:'weixin://wxpay/bizpayurl?pr=SyntheticOnly'})});}
-    if(p==='/payments/orders')return send({orders:created?[order]:[]});
-    if(p==='/payments/orders/'+order.id)return send(order);throw Error('Unexpected request '+p);
+    if(p==='/payments/orders'&&method==='POST'){assert.equal(created,false);created=true;const body=req.postDataJSON();assert.equal(body.wechat_jsapi_context,wechat?state:undefined);return send({order:currentOrder,checkout:JSON.stringify(wechat?{channel:'wechatpay_jsapi',kind:'bridge',params}:{channel:'wechatpay_native',kind:'qr_text',value:'weixin://wxpay/bizpayurl?pr=SyntheticOnly'})});}
+    if(p==='/payments/orders')return send({orders:created?[currentOrder]:[]});
+    if(p==='/payments/orders/'+order.id+'/refresh'){assert.equal(wechat,true);assert.equal(method,'POST');if(req.postDataJSON().close_unpaid)currentOrder={...currentOrder,payment_status:'failed'};return send({order:currentOrder});}
+    if(p==='/payments/orders/'+order.id)return send(currentOrder);throw Error('Unexpected request '+p);
    });
    await context.routeWebSocket('**/*',socket=>socket.close());
    await page.goto(origin+'/');await page.getByRole('button',{name:wechat?'微信内直接购买':'微信扫码购买'}).waitFor();assert.equal(await page.title(),'NoteAI JSAPI offline checkout');assert.equal(new URL(page.url()).origin,origin);assert.match(await page.locator('body').innerText(),/NoteAI 原订单支付/);await page.locator('#buy').click();await page.getByRole('heading',{name:'核对订单'}).waitFor();
@@ -36,10 +37,15 @@ test('rendered desktop Native and WeChat OAuth/callback/bridge remain isolated a
     await page.goto(origin+'/wechat-pay.html?code=SyntheticCode&state='+state);await page.waitForURL(origin+'/');await page.getByRole('heading',{name:'继续微信支付'}).waitFor();assert.equal(calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,0);
     await page.getByRole('button',{name:'继续本人微信支付'}).click();await page.getByRole('button',{name:'在微信内支付此订单'}).waitFor();assert.equal(await page.locator('canvas').count(),0);
     await page.evaluate(()=>{window.__bridgeCalls=[];window.WeixinJSBridge={invoke:(name,params,done)=>{window.__bridgeCalls.push({name,params});done({err_msg:'get_brand_wcpay_request:cancel'});}};});
-    await page.getByRole('button',{name:'在微信内支付此订单'}).click();await page.getByText(/已取消本次付款/).waitFor();assert.equal(await page.locator('#native-order-state').innerText(),'等待微信支付确认；请勿重复付款');bridgeInvocations=await page.evaluate(()=>window.__bridgeCalls.length);assert.equal(bridgeInvocations,1);assert.equal(calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,1);
+    const automaticVerification=page.waitForResponse(response=>response.url().endsWith('/refresh'));
+    await page.getByRole('button',{name:'在微信内支付此订单'}).click();await automaticVerification;await page.getByText(/已取消本次付款/).waitFor();await page.getByText(/微信尚未确认这笔付款/).waitFor();assert.equal(await page.locator('#native-order-state').innerText(),'等待微信支付确认；请勿重复付款');bridgeInvocations=await page.evaluate(()=>window.__bridgeCalls.length);assert.equal(bridgeInvocations,1);assert.equal(calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,1);
+    const refreshes=()=>calls.filter(c=>c.p.endsWith('/refresh'));assert.equal(refreshes().length,1);assert.equal(refreshes()[0].body.close_unpaid,false);
+    if(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR){await fs.mkdir(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR,'wechat-jsapi-mobile.png')});}
+    await page.getByRole('button',{name:'结束未付款订单',exact:true}).click();await page.getByText('支付未成功',{exact:true}).waitFor();assert.equal(refreshes().length,2);assert.equal(refreshes()[1].body.close_unpaid,true);assert.equal(await page.getByRole('button',{name:'结束未付款订单',exact:true}).count(),0);assert.equal(calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,1);
+    await page.getByRole('button',{name:'关闭',exact:true}).click();await page.locator('#buy').click();await page.getByRole('heading',{name:'核对订单'}).waitFor();assert.equal(calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,1);assert.equal(calls.filter(c=>c.p==='/payments/wechat/oauth/begin').length,1);
    }
-   assert.equal(await page.locator('nextjs-portal,vite-error-overlay').count(),0);assert.deepEqual(errors,[]);if(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR){await fs.mkdir(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR,wechat?'wechat-jsapi-mobile.png':'native-desktop.png')});}
-   console.log(JSON.stringify({viewport,wechat,order_posts:calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,bridgeInvocations,console_errors:errors.length,provider_network_calls:0}));await context.close();
+   assert.equal(await page.locator('nextjs-portal,vite-error-overlay').count(),0);assert.deepEqual(errors,[]);if(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR){await fs.mkdir(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.NOTEAI_JSAPI_SCREENSHOT_DIR,wechat?'wechat-jsapi-new-purchase.png':'native-desktop.png')});}
+   console.log(JSON.stringify({viewport,wechat,order_posts:calls.filter(c=>c.p==='/payments/orders'&&c.method==='POST').length,original_order_refreshes:calls.filter(c=>c.p.endsWith('/refresh')).length,bridgeInvocations,console_errors:errors.length,provider_network_calls:0}));await context.close();
   }
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 });

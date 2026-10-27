@@ -76,6 +76,7 @@ import account_security as _account_security
 import public_account as _public_account
 import wechat_share as _wechat_share
 import wechat_jsapi as _wechat_jsapi
+import wechat_payment_reconcile as _wechat_reconcile
 import public_product as _public_product
 import ark_media as _ark_media
 import memory as _memory
@@ -17007,6 +17008,10 @@ class WeChatPaymentOAuthCompleteInput(BaseModel):
     code: str = Field(min_length=1, max_length=512)
 
 
+class WeChatPaymentRefreshInput(BaseModel):
+    close_unpaid: bool = Field(default=False, strict=True)
+
+
 def _test_billing_enabled() -> bool:
     enabled = os.environ.get("NOTEAI_ENABLE_TEST_BILLING", "").strip().lower()
     stage = os.environ.get("NOTEAI_DEPLOYMENT_STAGE", "").strip().lower()
@@ -17722,6 +17727,44 @@ async def payment_order_detail(
     if order is None:
         raise HTTPException(status_code=404, detail="PAYMENT_ORDER_NOT_FOUND")
     return order
+
+
+@app.post("/payments/orders/{order_id}/refresh")
+async def wechat_payment_order_refresh(
+    order_id: str, body: WeChatPaymentRefreshInput,
+    user: dict = Depends(_auth.get_current_user),
+):
+    # Recovery remains available when new checkout is paused. API has the
+    # existing merchant signing key; only Payment can authenticate and settle.
+    if (not _payment_callback_relay_enabled()
+            or not await _payment_callback_runtime_ready()
+            or not _payment_adapter_runtime.configured_prod_mode("wechatpay_direct")):
+        raise HTTPException(503, "PAYMENT_QUERY_UNAVAILABLE")
+    provider = _payment_adapter_runtime.provider_from_environment(
+        "wechatpay_direct", required_role="api")
+    if provider is None:
+        raise HTTPException(503, "PAYMENT_QUERY_UNAVAILABLE")
+    worker = asyncio.create_task(anyio.to_thread.run_sync(
+        lambda: _wechat_reconcile.reconcile(
+            user_id=user["id"], order_id=order_id,
+            app_id=_payment_adapter_runtime.configured_app_id("wechatpay_direct"),
+            provider=provider, close_unpaid=body.close_unpaid),
+        abandon_on_cancel=False))
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        # Join the same bounded query/close and its receipt; cancellation never
+        # resubmits a create or substitutes a local timeout for provider state.
+        while not worker.done():
+            try:
+                await asyncio.shield(worker)
+            except asyncio.CancelledError:
+                continue
+        worker.result()
+        raise
+    except _wechat_reconcile.ReconciliationError as exc:
+        headers = {"Retry-After": str(exc.retry_after)} if exc.retry_after is not None else None
+        raise HTTPException(exc.status, exc.code, headers=headers) from None
 
 
 @app.post("/payments/orders")

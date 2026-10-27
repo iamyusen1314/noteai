@@ -829,11 +829,23 @@ def _upgrade_sqlite_wechat_jsapi(conn) -> None:
                      "CHECK(wechat_jsapi_payer_hash IS NULL OR "
                      "(provider='wechatpay_direct' AND length(wechat_jsapi_payer_hash)=64 "
                      "AND wechat_jsapi_payer_hash NOT GLOB '*[^0-9a-f]*'))")
+    if "wechat_jsapi_last_query_at" not in columns:
+        conn.execute("ALTER TABLE payment_orders ADD COLUMN wechat_jsapi_last_query_at INTEGER "
+                     "CHECK(wechat_jsapi_last_query_at IS NULL OR "
+                     "(wechat_jsapi_payer_hash IS NOT NULL AND typeof(wechat_jsapi_last_query_at)='integer' "
+                     "AND wechat_jsapi_last_query_at BETWEEN 946684800 AND 4102444800))")
     conn.executescript("""
 CREATE TRIGGER IF NOT EXISTS payment_orders_jsapi_identity_immutable_v1
 BEFORE UPDATE OF wechat_jsapi_payer_hash ON payment_orders
 WHEN NEW.wechat_jsapi_payer_hash IS NOT OLD.wechat_jsapi_payer_hash
 BEGIN SELECT RAISE(ABORT,'payment payer identity is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS payment_orders_jsapi_query_clock_v1
+BEFORE UPDATE OF wechat_jsapi_last_query_at ON payment_orders
+WHEN NEW.wechat_jsapi_last_query_at IS NOT OLD.wechat_jsapi_last_query_at
+    AND (NEW.wechat_jsapi_last_query_at IS NULL
+        OR (OLD.wechat_jsapi_last_query_at IS NOT NULL
+            AND NEW.wechat_jsapi_last_query_at<=OLD.wechat_jsapi_last_query_at))
+BEGIN SELECT RAISE(ABORT,'payment query clock must advance'); END;
 CREATE TABLE IF NOT EXISTS payment_wechat_oauth_states (
     state_hash TEXT PRIMARY KEY CHECK(length(state_hash)=64 AND state_hash NOT GLOB '*[^0-9a-f]*'),
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

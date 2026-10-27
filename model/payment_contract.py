@@ -146,6 +146,7 @@ class ProviderPaymentResult:
     provider_created_at: int | None = None
     wechat_trade_type: str = ""
     wechat_jsapi_payer_hash: str | None = None
+    wechat_trade_state: str = ""
 
     def __repr__(self) -> str:
         return (
@@ -343,6 +344,8 @@ class CallbackEvent:
     authenticated_payload_sha256: str | None = None
     wechat_trade_type: str = ""
     wechat_jsapi_payer_hash: str | None = None
+    # Set only by the verified direct query adapter, never notification parsing.
+    wechat_query_trade_state: str = ""
 
 
 def _now() -> datetime:
@@ -420,6 +423,26 @@ def _wechat_jsapi_binding_matches(row: Any, *, trade_type: str, payer_hash: str 
         and isinstance(payer_hash, str)
         and _SHA256_RE.fullmatch(payer_hash) is not None
         and hmac.compare_digest(str(expected), payer_hash)
+    )
+
+
+def _wechat_unpaid_query_binding_matches(
+    row: Any, *, state: str, trade_type: str, payer_hash: str | None,
+    provider_payment_id: str | None,
+) -> bool:
+    """Only authenticated NOTPAY/CLOSED queries may omit an unpaid payer."""
+    expected = row["wechat_jsapi_payer_hash"] if "wechat_jsapi_payer_hash" in row.keys() else None
+    return bool(
+        expected and row["provider"] == "wechatpay_direct"
+        and state in {"NOTPAY", "CLOSED"} and trade_type in {"", "JSAPI"}
+        and (payer_hash is None or (
+            isinstance(payer_hash, str) and _SHA256_RE.fullmatch(payer_hash)
+            and hmac.compare_digest(str(expected), payer_hash)
+        ))
+        and provider_payment_id is None
+        and not row["provider_payment_id"]
+        and row["payment_status"] in {"created", "pending", "failed", "closed"}
+        and row["entitlement_status"] == "pending" and row["refund_status"] == "none"
     )
 
 
@@ -911,6 +934,10 @@ def _public_order(row: Any) -> dict[str, Any]:
         "amount_fen": int(row["amount_fen"]),
         "currency": row["currency"],
         "provider_mode": row["provider_mode"],
+        "payment_method": (
+            "jsapi" if "wechat_jsapi_payer_hash" in row.keys() and row["wechat_jsapi_payer_hash"]
+            else "native"
+        ) if row["provider"] == "wechatpay_direct" else None,
         "payment_status": row["payment_status"],
         "entitlement_status": row["entitlement_status"],
         "refund_status": row["refund_status"],
@@ -981,6 +1008,7 @@ def mark_payment_submission(
     *,
     now: datetime | None = None,
     transaction_factory=None,
+    _verified_query: bool = False,
 ) -> dict[str, Any]:
     """Record a verified synchronous response; never grant entitlement."""
     normalized = _uuid(order_id, "order_id")
@@ -1016,10 +1044,16 @@ def mark_payment_submission(
                 or raw_provider_payment_id == row["provider_payment_id"]
             )
             and (provider_payment_id is not None or result.status == "pending")
-            and _wechat_jsapi_binding_matches(
+            and (_wechat_jsapi_binding_matches(
                 row, trade_type=result.wechat_trade_type,
                 payer_hash=result.wechat_jsapi_payer_hash,
-            )
+            ) or (_verified_query and result.status == "pending"
+                  and result.wechat_trade_state == "NOTPAY"
+                  and _wechat_unpaid_query_binding_matches(
+                      row, state=result.wechat_trade_state, trade_type=result.wechat_trade_type,
+                      payer_hash=result.wechat_jsapi_payer_hash,
+                      provider_payment_id=provider_payment_id,
+                  )))
         )
         if not expected or result.status not in {"pending", "succeeded"}:
             tx.execute(
@@ -1085,6 +1119,7 @@ def mark_payment_query_submission(
         raise PaymentContractError("PAYMENT_ORDER_NOT_FOUND")
     return mark_payment_submission(
         str(row["id"]), result, now=now, transaction_factory=transaction_factory,
+        _verified_query=True,
     )
 
 
@@ -1506,10 +1541,15 @@ def _process_payment_event(
         and event.provider_name == row["provider"]
         and _app_id_hash(event.app_id, event.provider_name) == row["app_id_hash"]
         and event.prod_mode == (row["provider_mode"] == "live")
-        and _wechat_jsapi_binding_matches(
+        and (_wechat_jsapi_binding_matches(
             row, trade_type=event.wechat_trade_type,
             payer_hash=event.wechat_jsapi_payer_hash,
-        )
+        ) or (event.event_type == "payment.failed" and event.wechat_query_trade_state == "CLOSED"
+              and _wechat_unpaid_query_binding_matches(
+                  row, state=event.wechat_query_trade_state, trade_type=event.wechat_trade_type,
+                  payer_hash=event.wechat_jsapi_payer_hash,
+                  provider_payment_id=payload["provider_payment_id"],
+              )))
         and (
             payload["provider_payment_id"] is None
             or
