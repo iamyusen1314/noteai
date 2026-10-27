@@ -82,7 +82,7 @@ function nativeSyncControls() {
     const kind=el.dataset.productAction==='handleUpgrade'?'subscription':'credit_package';
     const open=nativeAllowed(kind,args[0]);
     el.setAttribute('aria-disabled',String(!open));el.title=open?nativePaymentHint():'此套餐当前未开放购买';
-    if(el.tagName==='BUTTON'){el.disabled=!open;el.textContent=open?(nativeJsapiAvailable()?'微信内直接购买':nativePaymentEnvironment()==='desktop'?'微信扫码购买':'查看扫码购买方式'):'暂不可购买';}
+    if(el.tagName==='BUTTON'){el.disabled=!open;el.textContent=open?(nativeJsapiAvailable()?'立即购买':nativePaymentEnvironment()==='desktop'?'微信扫码购买':'查看扫码购买方式'):'暂不可购买';}
   });
   const pricing=document.getElementById('pricing-content');
   if(pricing && !document.getElementById('native-payment-environment')) {

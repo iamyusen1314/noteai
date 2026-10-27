@@ -30,7 +30,7 @@ test('rendered desktop Native and WeChat OAuth/callback/bridge remain isolated a
     if(p==='/payments/orders/'+order.id)return send(currentOrder);throw Error('Unexpected request '+p);
    });
    await context.routeWebSocket('**/*',socket=>socket.close());
-   await page.goto(origin+'/');await page.getByRole('button',{name:wechat?'微信内直接购买':'微信扫码购买'}).waitFor();assert.equal(await page.title(),'NoteAI JSAPI offline checkout');assert.equal(new URL(page.url()).origin,origin);assert.match(await page.locator('body').innerText(),/NoteAI 原订单支付/);await page.locator('#buy').click();await page.getByRole('heading',{name:'确认付款'}).waitFor();
+   await page.goto(origin+'/');await page.getByRole('button',{name:wechat?'立即购买':'微信扫码购买'}).waitFor();assert.equal(await page.title(),'NoteAI JSAPI offline checkout');assert.equal(new URL(page.url()).origin,origin);assert.match(await page.locator('body').innerText(),/NoteAI 原订单支付/);await page.locator('#buy').click();await page.getByRole('heading',{name:'确认付款'}).waitFor();
    if(!wechat){await page.getByRole('button',{name:'生成支付二维码'}).click();await page.getByRole('heading',{name:'微信扫码支付',exact:true}).waitFor();assert.equal(await page.locator('canvas').count(),1);assert.equal(calls.filter(c=>c.p.includes('/oauth/')).length,0);}
    else{
     await page.getByRole('button',{name:'微信支付',exact:true}).click();await page.waitForURL('https://open.weixin.qq.com/**');const saved=await page.evaluate(()=>sessionStorage.length);assert.equal(saved,0); // OAuth host cannot read the original origin's storage.
