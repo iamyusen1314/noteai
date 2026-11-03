@@ -20,6 +20,35 @@ The package's >=22.12 declaration is not a Linux compatibility proof: readiness
 also checks the real `node:sqlite` in-memory database and array-result APIs used
 by the SDK. The full SDK and renderer still need a provider-free target-host test.
 
+### Initial attachment memory compatibility patch
+
+The pinned OpenCode 2.1.2 initial prompt materializes up to eight attachments
+concurrently. Each image still goes through Photon decoding and its format,
+dimensions and size checks even when automatic resizing is disabled. Large
+original photos share the existing API container memory budget with Python.
+
+After installing the pinned packages, apply this separate build-only helper:
+
+```sh
+node /app/model/cover_agent_host/apply-sdk-attachment-memory-compat.mjs /absolute/runtime/node_modules
+```
+
+It accepts only SDK/core 2.1.2 and the exact 8209-byte
+`@opencode/core/dist/chunks/repository-cache-3xcrjpsd.js` source
+`9c74c7aa0923e21ec0df7ee48c2574f75252acc7488c9af2dc8333e1615d64cb`.
+One character changes initial `materializeAttachment` concurrency from 8 to 1;
+the result must be
+`bfbd1ac398c1cc6be27c22535daae0b05eb90005ab825b052a003110be74f8f3`.
+It preserves attachment order, Photon checks and photo bytes. Other tool calls,
+model queues and their concurrency stay unchanged. Unknown sources are rejected;
+an exact second application preserves bytes and modification time.
+
+The patch regression is `tests.test_cover_sdk_attachment_memory_compat`. A target
+Linux resource check must retain all nine original byte hashes across the SDK's
+existing turns and concurrent `cover_view` calls, with the existing 1.5GiB limit
+and an explicit allowance for the API parent. Offline helper tests alone do not
+prove resource safety or a usable customer cover.
+
 ### Large-photo Base64 compatibility patch
 
 OpenCode 2.1.2's `@opencode/schema/dist/prompt.js` validates Base64 with a nested
