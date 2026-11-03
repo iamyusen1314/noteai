@@ -34554,3 +34554,119 @@ Sourceproductbranch actualremoteHEADdd; CI40460530928 FAILED during legacyfoodte
 Owner最新明确：本人已收到公司线下付款，并自行在Admin为指定5账号各充值260积分；按每账号99元登记，合计495元／1300积分。该事实来自owner声明，本窗口未独立读取后台流水／余额，不能记作已核验开通pro月套餐或网页支付成功。原本窗口待发放的5个UUID请求均已标记SUPERSEDED_DO_NOT_EXECUTE，不得恢复访问后重发；本窗口实际充值／会员／生产数据变更0。
 
 完整手机号与私有登记沿用 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/owner-five-membership-grants-20261103/REQUESTS.json；原PLAN.json之owner_five_membership_grants_20261103现为REGISTERED_OWNER_MANUAL_CREDIT_TOPUPS。按本次一个月管理约定，将2026-12-03作为下月续费核对日，并非后台已核实expires_at，也不代表钱包积分会自动失效。唯一既有线程提醒noteai-12已实际创建并在owner纠正后更新为积分充值说明、ACTIVE／COUNT1，保存规则回读推算北京时间2026-12-03 09:00；尚未到执行日。届时只提醒owner按最新续费记录核对99元×未续费账号，不自动扣费／联系账号本人／发放／清余额。此本机线程提醒依赖电脑及应用运行；无额外云端提醒或后台轮询保证。当前范围登记与提醒设置完成，生产发布状态不变。
+
+
+### 2026-11-03 — CURRENT：已定位普通用户原九图封面启动失败；精准修复已提交、生产尚未切换
+
+Owner要求立即排查并修复指定5账号之一的线上封面失败。Root实际只读t-sz071zrkevdwn40/Success0/Dropped0定位尾号3140同一报告的3个failed任务，15:28–15:29北京时间；均COVER_AGENT_DESIGN_INCOMPLETE、model/image调用0、complete_applied0/refund_applied1/usage实际扣0，未重发或额外充值。完整手机号/任务/报告留本次私有证据，不提交业务正文/照片/凭据。
+
+同实际Node24/SDK2.1.2/原9JPEG的隔离零供应商复现t-sz071zsahjurl6o显示SDKprompt500；t-sz071zt4sigrvuo的同core原因投影明确RangeError Maximum call stack size exceeded，Effect SchemaAST2312正则test→SDK materializeAttachment133 Base64.make。原图27,827,473B/9张完整，非损坏、余额、Worker C、存储容量或已证明HTTP总body限制；fileURI仍走Base64.make，不能当修复。临时文件/进程已精确清理，DB/provider均0。原r1诊断缺storage初始化的工具错误完整保留，已用正常configure_from_environment纠正。
+
+功能提交dbc349a39281a9665a456b7b9d37a6c92e244c91：仅SDK2.1.2 prompt.js严格等价线性Base64构建补丁脚本、README、6项定向测试；原2370B/SHA2fd973e…→3196B/SHA90e473112cca6e5cda43aceb63bddc1daa1adb028f96f1e7796896b52c410904，版本/Schema元数据/原图/模型/结算不变。独立源码审GO、6项真实Effect及大串/格式/幂等通过（本机Node25.7，不能冒Linux验证）。
+
+实际Linux旧4MiB负例已PASS/Node24.22.1，18现行app/host源全读回。原候选3MiB负例不足和Root接续SHA抄漏2位均在build前已知失败保留；Hash已改为取原回执。首次实际FROM当前e86加COPY构建t-sz071zuu3kn0dmo因max depth exceeded失败，tag为空/build-known不存在，未切服务/无生产写。正在准备复用已验证e86直接parent5125、将原e86最后层的7个dd2199e冻结源＋SDK补丁合并为一个COPY，保持当前层深及全部业务源，不flatten/重装/加依赖。仍需实际新候选QA、原9图至preflight原SHA一致验证、Root沿现有受控API/Payment共享netns配套发布及读回。Payment原image4e4d/JSAPIflag1、Admin/public/0032/真实订单账本保留，不调用旧消费phase。
+
+权威仍原PLAN.json/cover_incident_20261103，私有证据 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/production-cover-incident-20261103。CURRENT生产仍API69eef/e86、Payf9adad/4e4d、Adminc5d404/4a034、publiclabel1a68181，均未由本轮重启；原任务和所有UNKNOWN不改，新模型0。源码修复不是上线或成品验收；本阶段汇报后继续候选和唯一发布，不等待owner再次“继续”。
+
+
+### 2026-11-03T12:41:05.806659+00:00 — CURRENT：Node24及原九图跨轮QA已通过；原单次停止已知137，Root正接续恢复（不得重发stop）
+
+功能HEAD dbc349a39281a9665a456b7b9d37a6c92e244c91；candidate b1b826a1fadc002d5e1d3aaca926d4a5e0e757f07cd0646433848e4923e44824实际构建/Node24 QA t-sz071zvok0bi9z4 PASS，125层与现行18源/Config不变。原九图 t-sz071zx63nkmuww PASS：27,827,473B九原图实际SDK两轮wire累计SHA全等；1synthetic响应/真实provider0，不冒真实设计或成品。首次首轮必须9图的QA断言错误已保留，SDK原滚动图预算/真实跨轮查看规则未改。
+
+Root原adapter prepare t-sz071zx17ahpts0、close t-sz071zxctbqz6kg、drain t-sz071zxh0xylkow Success0，0032/flag1/两JSAPI历史/旧UNKNOWN均保留。switch001 t-sz071zxkgutroxs在stop前active检查失败；只读t-sz071zxs2ztlkhs确认原3CID/无stopintent/当前activefalse。独审同repairphase一次有界续接后，switch002 t-sz071zxy653wjk0执行唯一stop command_exit0，但原工具absent仅接受0/143，实际API unit退出137导致检查失败，未CAS/start。
+
+**此刻实际运行状态（不可使用旧上线结论）**：t-sz071zy61776nls Success0实际证明API及Pay容器均absent；APIfailed/failed、MainPID0/NRestarts0/Job空、ExecMainStatus137；Payinactive/dead、MainPID0/NRestarts0/Job空/Status0；Admin原c5d404运行未变。原API/Pay unit仍beforeexact，只有close和唯一stop的CONFIRMED markers，未动schema/账本/secret/static/JSAPIflag。入口处于受控maintenance。不是未知stop，也不能重发switch/stop或假称原absent通过。Root与adapter/独审子代理正按既有历史failed-marker路径核已停终态，接续同phase的CAS→reload→start→verify→reopen，不reset-failed、不加新发布系统。私有恢复入口 E/RELEASE-STOP-READ001.RESULT.FULL.json和E/RELEASE-ADAPTER.PREPARED.py；E仍本次production-cover-incident-20261103。
+
+Owner进一步明确修复后必须跑完整真实生成并交最终封面，已接续准备：保留原3failed，不重发；复用此次尾号3140原report及9原照，优先正常生产UI鉴权新UUID。预算最后上线单逐call闭合正在只读准备，旧A52当前精确余量暂UNKNOWN，不能用旧7804毫元冒现余额或清除旧UNKNOWN。尚未新增模型调用/新任务/用户扣分。当前最优先下一步仍Root恢复生产服务，然后正常UI真任务/保存重开/改字/下载/唯一结算验收；不等owner再次继续。
+
+
+### 2026-11-03T12:52:06.746791+00:00 — CURRENT：SDK修复已实际上线、服务和入口已恢复；继续owner真实成品验收
+
+本节取代上节临时“API/Pay absent/maintenance”状态。原单次stop137专用续接经独审后，t-sz071zyg39fup6o Success0：同repairphase仅CAS/reload/start，additionalstop/resetfailed0。t-sz071zyiq9qtdz4 Success0实际verify：API新CID8cd9f9ec6c10f5ead018fcf7a4a5733a2b38701d690f60ee4dada82fee6196aa/imageb1b826a1fadc002d5e1d3aaca926d4a5e0e757f07cd0646433848e4923e44824，SDK2.1.2/schema3196B SHA90e473...；Pay新CID46f5db45bd87bce13738371ad76ea1ccaf616301347aeee7b7418cd3b92c84b8仍原4e4d镜像/共享API netns，Admin仍c5d404未重启；normalreadiness200/DBreadonly/localmodelready，0032/flag1/JSAPIordersEver2保留。t-sz071zyllddxszk Success0 syntax/reload0已reopen，正常官网实际authenticatedowner9531报告可打开。publiclabel/static/secret/schema/账本/Render/Worker C均未改；本轮新provider/SQLwrites0。独立最终发布证据review GO。功能HEAD仍dbc349a，source/docs尚未Push。
+
+Owner最新明确选择用当前9531已登录账号原水石报告08f2...验收1张，已正常前端读取旧e68成品及9个过期原图引用。九本地原件/Users/openclaw/Desktop/test1013逐byte仍与权威SOURCE-READONLY-INVENTORY.json一致，总10977955B；继续正常补传，不重生成报告，不借用客户3140身份。旧e68预览暂未成功加载与保存选择器取消现象分别保留，尚不作已完成保存重开/下载结论；新任务尚未提交。
+
+预算t-sz071zyuvkbe0ow实际READONLY/ROLLBACK Success0补齐最后上线单23calls逐callceil：old界点44196+3430=47626毫元，原A52保守余4374；图像actual账单仍未知，整reserve保留，不拿estimate当actual。Owner本次已明确追加5元至A57、原总≤100，当前保守余9374毫元，仅1新封面。完整原件E/ENGINEERING-BUDGET-READ001.RESULT.FULL.json。现普通生产owner_metered无HTTP单任务金额参数，不冒已设置per-task硬限额；不复活旧临时key/旧时窗/旧guard，按现有正常任务/成本记录继续。下一步已在执行：补传九图→正常新UUID提交一次→只查该任务→真实成品/PC-H5/保存找回/免费改字/下载/唯一8积分，最终给owner封面成果，不在里程碑处停止。
+
+
+### 2026-11-03T13:30:56.675517+00:00 — CURRENT：SDK修复在线；90天保存链新增实证缺口已定位并修源码，继续生产候选及真实单（未发模型）
+
+当前实际服务仍上节API8cd9/b1b、Pay46f5/4e4d、Adminc5d404，SDK已上线reopen，非maintenance。Root在正常owner9531 UI打开原report08f2...并补传九个原件，9张blob/尺寸实际可用；owner明确选用9531报告和追加A52→57（原总≤100），仅1新cover。保守A旧累计47626毫元、剩9374毫元，旧UNKNOWN和图像actual未知整reserve保留；新模型/新cover任务仍0。
+
+完整预检发现旧e68/rev2预览失败。t-sz071zzxhi9diio Success0只读正常权限/TTL/存储getter实际：DBready/Jan24未到期，3312881B/SHA8cf7642...，OSS404 PRIVATE_OBJECT_NOT_FOUND。原Downloads/NoteAI-cover-e68fea12-free-edit.png实际字节/哈希全等可恢复；不能用PNG假称原设计源也恢复，固定productionrelease目录未找到实际bundle备份。t-sz07200prp6vfuo仅1次GetBucketLifecycle以现APIrole被403，未扩权限；Root复用既有主账号控制台正常登录读取，bucket哈希与生产配置一致，当前唯一原noteai-private-ttl-v1确为noteai-private/最后修改2天删除+碎片1天，覆盖封面。可证明实际策略与90天承诺冲突并会提前删除；无对象删除日志，不能伪称已知谁/何时删该对象。
+
+Owner已在本次明确同意两条封面90天规则。Root实际保存并重开编辑只读核完整prefix/days/overlap：noteai-cover-media-v1-90d→noteai-private/v1/media/image/cover_v1/；noteai-cover-design-v1-90d→noteai-private/v1/payload/result/cover_v1/；均最后修改90天/允许前缀重叠true/无新增碎片动作；原root2天+1天不改。首尝试因重复碎片策略InvalidRequest/ec0014-00000084明确拒绝，已保留；改为子规则不设置碎片后成功。规则控制面已保存，官方提示实际执行变更最多48h，不能冒90天实耗验收。E/OSS-COVER-90DAY-RULES-SAVED001.png及两个SAVED-EXACT001.json为证据。此次只获准这两新目录规则；旧混用key的精确保护/恢复仍须按实际清单接续，不能称前向新路径自动保护旧对象。
+
+源码功能HEAD ec1551cd5e5b6e51e86bae95677ed6efaa290864（ec1551c）：仅private_storage、cover_agent_artifacts及2定向tests，新增cover_v1专用image/result键；以持久object_key_hash唯一选择旧/新路径，保留owner/TTL/内容/metadata校验，无404猜测fallback。普通temporary键和保留策略、DB schema/role/计费/报告/模型不变。作者定向证据及独立实际新增5+现有28通过，独审GO无P0P2；源已本地commit，未Push/部署。rollback约束：一旦新prefix引用写入，恢复镜像必须保留新读删兼容，不能直接回SDK-only b1b后丢新成品。
+
+主窗下一步已在进行：原5125parent合并COPY保持125层的retention候选，继承7dd源和SDK90e，仅新增两模块差异；adapter子代理只做私有builder、不动repo/云。旧有效covers仅只读清单已准备E/OLD-COVER-INVENTORY001.PLAN.json，尚未派，不能假称清单完成/旧PNG已恢复。之后Root沿既有受控pair流程发布→新owner任务一次→生成/保存重开/免费排字/下载/唯一8积分并最终交封面。无新任务平台、权限、资源或新modelcall，不在此checkpoint处停止。
+
+
+### 2026-11-03T14:40:10.831987+00:00 — CURRENT：90天候选Linux QA通过；原生产阶段在stop前安全中止，接续同phase
+
+HEAD ec1551cd5e5b6e51e86bae95677ed6efaa290864。实际候选8cac99996c08207e2491845c5a602ebc4220698fe194c393ac23eeca78b30e72/125层已构建；RETENTION-QA003 t-sz072079pc6gu0w Success0，实际Python3.11.15五项network-none tests/errors0/failures0/skips0，生产env/mount/provider/PGwrites0。QA1因只读SQLite默认路径失败、QA2因Root误用compact派生JSON作原件SHA在执行前拒绝均保留；原build6237B/e3f30...与QA1060B/74c756...已实际服务端原字节核对，不以重序列化派生物代替原回执。
+
+RETENTION-PREPARE001 t-sz07208mwxqy134 Success0，0032/JSAPIflag1/两订单/原3CID与public/secret保持。RETENTION-PUBLISH001 t-sz07208ozm3nsao在close/reload0、draintrue后第二次freshactive检查拒绝ACTIVE_WORK_SAFE_ABORT_BEFORE_STOP；未stop。只读RETENTION-ACTIVE-READ001 t-sz07208tjx0q6m8 Success0明确原3CID仍running、stopintent不存在、当前activefalse/三个role活动事务0/app leases-cover-physical全0，13旧物理UNKNOWN保留。不可无失败瞬间counts而指认具体活动来源；当前入口closed maintenance，Root正接续同repairphase switch→verify→reopen，不重放close/drain/已执行stop、不弱化gate。
+
+Owner最新明确同意不登录3140，直接原账户原report新建封面。目标UID499131d8-9056-49d3-89a2-9ce1132bc8b2/reportd9424446-5b00-4f36-bbce-6dff3726c269及原九JPEG27827473B；不再把原图复制给9531，不创建客户session/token。唯一稳定clientUUID72f9a14f-2c75-4be3-9d0d-d7f9535348e5仍未提交；旧3failed不重发，正常8积分成功持久保存后唯一结算、失败0。A57保守余9374毫元，全部旧费用/UNKNOWN保留；本次新model/tasks0。下一步先完成服务恢复与实际verify/reopen，再一次正常handler后台任务→真实成品/保存重开/免费排字/下载/结算并交付PNG，不能以发布checkpoint为停止点。私有证据仍production-cover-incident-20261103，旧混用路径可恢复原PNG/缺实际设计源分支不阻断新任务。
+
+
+### 2026-11-03T14:42:49.222847+00:00 — CURRENT：保存修复已上线reopen；3140原报告唯一新封面任务已受理，继续真实成品验收
+
+本节替代上节maintenance状态。RETENTION-PUBLISH-CONTINUE001/t-sz07208xreb1xc0 Success0/Dropped0/Repeats1，原同phase仅switch→verify→reopen：API现d3bcab424fd82f3bc824ec054cc6b9786d0fd0fbb8921fee189cf3e90481c2b6/image8cac99996c08207e2491845c5a602ebc4220698fe194c393ac23eeca78b30e72；Paya2ba229e71c1190095d9a8425eaeb7356e33c8f8957e88d98f78fd6ad2a5cbf5/原4e4d；Admin仍c5d404/4a034未重启。两retention源SHA/SDK90e/3196B/2.1.2、fullprofiles/sharednetns/normalreadiness200、0032/JSAPIflag1/ordersEver2、reopensyntax0/reload0均实际确认，独审GO。public/static/secret不改，发布provider/SQLwrites0。新prefix规则90天为已保存控制面配置，不冒90天实耗测试；旧e68/404恢复仍独立保留。新prefixrefs写入后不能盲退b1b；前向/回退都保留新版reader。历史PUBLISH001.PLAN decoded_builder_sha字段抄旧，实际wire解码b8d156...及原回执已核，不因此重派。
+
+BACKEND-COVER-SUBMIT001/t-sz072091h64aoe8 Success0，实际normalhandler受理createdtrue：newjobcd6e8d59-8d95-4b53-87ea-11ed4ba05a03、usagea8609b58-2676-45e0-96de-e426b8a8d29c、stableclient72f9a14f-2c75-4be3-9d0d-d7f9535348e5，固定3140uid499.../原reportd942.../九原图。14:41:35UTC queued，普通8积分reserved/actualused0；既有正常CoverWorker续接，无新增worker/session/token/客户登录。此单已消费唯一新任务授权，只查询原job，任何网络未知不可新建UUID或重发旧请求。A57旧保守47626毫元＋本单实际/预留待续算，原总≤100，不能把queued/云Success当成品成功。下一步Root只读跟踪同job真实模型结果→normalhandlers保存重开/一次免费改字/下载/唯一8结算→实际PNG交付；不等待owner继续。
+
+
+### 2026-11-03T14:48:13.960792+00:00 — CURRENT：3140新单已知失败零调用/零净扣；精确内核OOM实证，继续定向内存修复
+
+原唯一新jobcd6e8d59-8d95-4b53-87ea-11ed4ba05a03已在14:41:54UTC failed/COVER_AGENT_HOST_INTERRUPTED，非running。STATUS001/t-sz07209a2un41z4 Success0实际calls[]、knownmodel0、usagecredits0/reservation_released_v1:mixed、refund_applied1/complete0；预留2monthly+6wallet已退，不能将idempotency.credits_used8视为净扣。本单provider/model新增0、A57旧保守47626/余9374毫元不变。保留原client/job，不重发、新UUID或假称合格交付。
+
+HOST-READ001/t-sz07209fpkpy8e8 Success0精确原任务窗口14:41:30–14:42:15UTC内核明确docker-d3bc... cgroup内MainThread PID3952445/UID999被OOMkill，anonrss1322248KiB；同当前API容器memory.max1610612736/peak相等/events oom1/kill1/OOMKilledtrue而Runningtrue，PythonAPI未退出。contentfree原receiptRUNNING/session存在/model_requests0无pending，workspace已正常cleanup。不是模型/质检/已知坏图；原hoststderr丢弃/returncode未留存，不能编造原exitcode。现有SDK源码修复/retention上线事实保留，此次暴露原九图SDK设计进程峰值内存缺口；前次原九图QA证明传输SHA但未证明本次完整生产内存边界。
+
+Root继续实际原九图/零供应商/隔离同内存限额复现，优先验证NodeGC/峰值内存最小修复，保持真实原图、存储期限、模型、正常结算；不购资源/加worker/改余额/无限模型试错。子代理分别窄查实际SDK/fullhost内存与独立数据路径，Root统一源码/生产发布。待定向修复和验证具体可审后，再依现有仅1任务约束集中处理下一张真实验收授权，非付费工作不等owner。线上仍APId3bc/8cac+Paya2ba/4e4d+Adminc5d，入口正常reopen。
+
+
+### 2026-11-03T15:02:04.933401+00:00 — CURRENT：OOM最小SDK修复已提交/候选已构建；原九图同限额资源QA运行中，尚未发布该补丁
+
+功能HEAD d1eaa9ded5b0a667e172a180d72791ab8074e3f5，仅新增精确SDK/core2.1.2附件串行prepare buildhelper+4定向tests+README；实际依赖chunk8209B/SHA9c74c7aa...→8209B/bfbd1ac398c1cc6be27c22535daae0b05eb90005ab825b052a003110be74f8f3，唯一字节8→1，保留Photon解码/尺寸校验、原bytes/顺序/工具调用/模型队列。作者4项PASS，独审再实际4项PASS（本机Node，不能冒Linux）；无Runtime/额度/模型/图片缩放变更。初始concurrency8解码/WASM高峰与API常驻共享1.5GiB，SDK位图处理路径已独审；不能仅凭小JPEG压缩尺寸估内存。
+
+MEMORY-BUILD001 t-sz0720ahrty8qgw Success0/Dropped0/Repeats1：新候选sha256:eb932a8e6852a5dd506cb119d41744e1742f65fbaf25c6fc6dca413532b25313，复用parent5125一次COPY11叶仍125层，保留现retention2源+SDK90e+原7业务源/模式，22源码闭合除该chunk外全部不变。原serverbuild回执4675B/SHAea46ea82055a08e3a09db33231d82adfa578d0695bb5f1223bf96b1e0f8da27d，E/MEMORY-BUILD001.ORIGINAL-OUTPUT-JSON-LINE.json精确原字节镜像，禁止JSON重序列化后替代原SHA。未改生产3CID/资源/依赖/DB/provider。
+
+MEMORY-QA001当前已实际派t-sz0720atc4i1rls（Commandc-sz0720atc3vkohs），仅查询该Invoke原结果；不可重派。冻结稿ATTACHMENT-MEMORY-QA.PREPARED.py23712B/9b7f99...、wire13064/4e585d...，同实际candidate/九原图27827473B+真实prompt，networknone、CPU2/内存1536MiB/200MiB显式padding（模拟常驻，非真实API精确模型），原两轮preflight含4并发cover_view+1synthetic，供应商0；将读实际peak/events/candidateOOM及九SHA，未知即保留不重跑。预期serverresult ROOT/cover-sdk-attachment-memory-20261103-r1.result.json。发布adapter继承原pair流程/known137和当前8cac兼容reader回退，私有DRAFT尚QA合同待绑定不能派；Root继续QA→必要修正/独审→唯一受控生产发布。
+
+当前生产仍d3bc/8cac(不含新串行补丁)/Paya2ba/4e4d/Adminc5d；入口已正常reopen。原任务cd6e...已知OOM失败、物理0/净积分0，旧三failed/所有UNKNOWN保留；本轮不自动新建/重发，仍无合格封面可交付。A57保守余9374毫元不变。下一张真实单须按已限定1任务的最新约束，在修复和非付费验证具体完成后集中确认；除此分支的源码/验证/已授权发布自主继续，不让该授权等待阻断工程。
+
+
+### 2026-11-03T15:05:18.386923+00:00 — CURRENT：内存QA001已知OOM失败，禁止发布eb932；继续零供应商512MiB V8实验
+
+MEMORY-QA001/t-sz0720atc4i1rls Failed1/Dropped0/Repeats1，actualcandidateeb932在ready→primary request_hook后、首preflight前进程-9；paddedPython247040KiB、cgrouppeak1610612736、oom/kill各+1，candidateOOMKilledtrue；九原图/9319B真实prompt已完整入SDK但未到preflight，synthetic/provider/physical0，生产3CID不变且私有QA已清理。单改attachment并发8→1尚未解决，d1e源码/eb932不能宣称修复/上线；旧a222发布稿会拒绝该failedQA。独立源码阶段定位request_hook发生在SDK组装HTTP后，紧随SDKRequest.clone().arrayBuffer全body拷贝，再hostchunks/concat/string/parse/JSONstdio多副本；未有逐行allocation实证，不能将单一Photon并发或某一copy行假称唯一原因。现继续同9图/真实prompt/200MiBpadding/CPU2/1536MiB且只在QA Nodeargv加入--max-old-space-size=512的新有界实验；先记录default/512实际heaplimit，保留所有失败，不跑模型、不重派原case、不买资源、不将未过QA候选部署。Root未扩大真实任务授权，原唯一新cd6e仍failed/零净扣，A57余9374毫元不变，入口/当前d3bc8cac保持正常。
+
+
+### 2026-11-03T15:16:47.399642+00:00 — CURRENT：512实验仍二轮OOM；现VM容量足够，改走现资源配置适配的零模型验证
+
+MEMORY-HEAP512-QA001/t-sz0720bfa0g58u8实际Failed1/Dropped0/Repeats1，r2原结果保留不重派。Node默认heap905969664B，512参数实际heap637534208B；首preflight5原SHA+1synthetic四cover_view通过，但第二primaryhook后仍-9/cgrouppeak1536MiB/OOMkill1，非V8heapfatal，二轮9SHA未闭合。provider/physical0、生产CID不变、QA私有容器已清理。不得将512或串行补丁声明为已修复，不部署eb932。独审已证SDK附加HTTP hook诱发clone-arrayBuffer+gateway大JSON副本，该事实不是已确定某一行唯一alloc根因；官方model.request替代hook可作为后备但尚未修改/验证，不立即叠加SDK复制补丁。
+
+Root重新核定范围：1.5GiB为现有Docker技术配置，非owner要求永久固定的产品决定。MEMORY-CAPACITY-READ001/t-sz0720brzjam77k Success0实际VM MemTotal7638904KiB/MemAvailable5561260KiB/无swap；API限1.5GiB当前193.9MiB/Admin限1GiB当前100.2MiB/Pay256MiB当前42.48MiB。原VM有余量，无需新服务器/订阅/WorkerC或新增费用权限。现在优先验证原生产8cac(原chunk9c74/不采用实验串行)、defaultNode、同九图真实prompt+200MiBpadding+CPU2，将QA容器单变量设3GiB；并只读核精确unit memoryflag和完整runtime非secretprofile，为若PASS仅hot memoryupdate+精确unit CAS持久化准备，不改鉴权/source/模型/队列/Paynetns，不需重启。三服务最大3+1+.25=4.25GiB低于VM7.285，按当前available推余约1.38GiB给其他当前负载；这是容量预算不是所有并发/真实完整生成已验收。若运行中回退限额必须先证memory.current安全，不能盲缩导致OOM。当前工程/免费验证继续，真实下一张仍未擅建、A57余9374毫元/旧UNKNOWN原样。
+
+
+### 2026-11-03T15:23:54.872348+00:00 — CURRENT：原生产8cac/3GiB九图资源QA实际PASS；实验源已撤回，热限额持久化准备中
+
+CURRENT-3G-QA001/t-sz0720ca5gwnxmo Success0/Dropped0/Repeats1，实际原生产8cac、原chunk9c74/SDK90e、defaultNode无heapflag；真实九原JPEG27827473B/真prompt9319B+200MiB父进程padding/CPU2/3GiB/noSwap，实际两preflight累计九SHA相同，1synthetic含4cover_view、真实provider/physical0，peak2215448576B约2.064GiB，OOM/max事件全0，candidateExit0/OOMfalse/3CID保持/cleanup真。原server回执ROOT/cover-sdk-attachment-memory-20261103-r3.result.json6060B/SHAdc8cca09e2b84059507957acf5a889c0c3537085295315aa5b6a23686058612f，E/CURRENT-3G-QA001.ORIGINAL-OUTPUT-JSON-LINE.json为原字节；这是前两轮受控资源证据，不冒付费完整生成或多人容量通过。独立审GO：采用原生产源码仅资源适配，不发布实验SDK/512参数。
+
+Root已另提交revert169cd801d031be368af8c7d4d7e30fddc692e09f撤回未采用d1eaa9d的helper/test/README三叶，保留Git历史/私有失败/eb932，不reset或改两handoff记录；正式功能源码仍dbc349a+ec1551c，与生产8cac一致。当前HEAD169cd80，未Push。
+
+MEMORY-UNIT-READ001/t-sz0720ccvsv9j40 Success0：API public-product.conf3225B/SHA13814794418841ac4240ea2b487b2c9bf95eacd7f449a009f2d229fd5cfde7d8/root0644，唯一--memory=1536m、CPU2，无memory-swap token。当前d3bc同CID/image8cac，HostConfigMemory1610612736/MemorySwap3221225472，去除这两项后profileSHAca708ec4c630e583ff088a178c92f35ffadee2f055c0e8ae181748d7bd65f3cd；systemactive/running/NRestarts0/NeedDaemonReloadno。Root准备现容器hotdockerupdate memory3g/total-memory-swap3g，并将unit唯一token替换为--memory=3072m --memory-swap=3072m，后者防未来Docker默认自动变6G total，daemonreload不restart。仅原VM容量/无新实例/付费/权限/WorkerC，保CPU/队列/模型/source/3CID与netns。更新脚本尚未派，不能声称线上已3G；若partial后需降回旧值，先证实际current有安全余量，不能直接缩导致OOM。继续此必要技术修复，完成后再集中请求下一张真实任务（原cd6e已失败/0call/0net），A57余9374毫元不变，不重发旧任务或未知。
+
+
+### 2026-11-03T15:49:15.617959+00:00 — CURRENT：生产3GiB热调整已最终读回；下一张真实单等待新增1任务确认，其他交付工作继续
+
+当前生产API仍d3bcab424fd82f3bc824ec054cc6b9786d0fd0fbb8921fee189cf3e90481c2b6/image8cac99996c08207e2491845c5a602ebc4220698fe194c393ac23eeca78b30e72，Pay仍a2ba/4e4d、Admin仍c5d404/4a034，三CID/PID/Config原样、无restart。API HostConfig仅Memory由1610612736增为3221225472B，MemorySwap仍3221225472B；CPU2/队列/pids512/模型/鉴权/存储/JSAPI/旧订单/原静态不动。公开unit public-product.conf现3245B/SHA79e9b2d4d7de2f70f9d7b07a58683c1d729b0bf36940bcf4cdd16dff0497b0bf，root0644，--memory=3072m --memory-swap=3072m --cpus=2；daemonreload0/NeedReloadno，future restart继续此限额。原精确before/after私有备份和once intent在ROOT/api-memory-hotupdate-20261103-r1，不重放update/CAS/reload。若回退不能blindshrink，须先排空任务及证实际用量有足够余量；source rollback需保留90dayreader。
+
+MEMORY-HOTUPDATE001/t-sz0720di0ufxp1c执行update/CAS/reload均已确认0，但Root末尾误用host健康地址报404，原Failed1与failure.json保留。HOTVERIFY001因强求kernelSwap0而拒绝；READ002/t-sz0720dxt4qblkw证actualRAM3G正确，kernelSwapMax保留旧1610612736、swap.current0/hostSwapTotal0/无新增swap，HostConfig/profile其他原样。独审接受以实际无swap及旧kernel上限不增加为准，不为此扩修systemd。未来若启用hostswap须复核已记录HostConfig/kernel差异，不能冒kernel0。HOTVERIFY002/003进一步定位工具错误：API /health/ready被现有public_product白名单故意不公开；此模块实际bcbde...与源码全等，404不应触发产品route改造。Admin/Pay ready各200，API按原R4公开/health/live核验。
+
+最终MEMORY-HOTVERIFY004/t-sz0720en9irsi68 Success0/Dropped0/Repeats1，case/result.json已唯一写入state EXISTING_API_3G_HOTUPDATE_PERSISTED_VERIFIED；actualAPI live200/ok、AdminReady200/PayReady200，normal只读本地模型ready复用同8cac/source/config/原PID的RETENTION-PUBLISH-CONTINUE001实际200证据，非虚构公网ready200。Config全等/HostConfig仅API Memory delta/3PID未重启/历史OOMtrue+oom1kill1保持且无新增，资源新购/SQLwrites/provider/publicroutechanges0。原server最终回执5804B/SHAcc47c832caac7c89824e1bff37f4f69951041fe2664f4fadf4092fdcae71c977，E/MEMORY-HOTVERIFY004.ORIGINAL-OUTPUT-JSON-LINE.json；直接HTTP观察先一行、最终回执最后一行，禁JSON重序列化冒原SHA。截图E/PRODUCTION-3G-HOTUPDATE-VERIFIED.png。
+
+Root已完整完成此已授权生产技术修复和受控九图资源验证；当前功能源码dbc349a+ec1551c，GitHEAD169cd801d031be368af8c7d4d7e30fddc692e09f仅撤销未采用d1实验，不部署eb932/heap512/改hook。原新jobcd6e...failure/0provider/0net，3原客户失败0净扣全部保留，无真实成品可冒交付。A57保守47626/余9374毫元、原总≤100，旧UNKNOWN完整保留。原单明确仅1个新任务且已created后失败，因此Root在本次对话集中请求『原3140report再新增1任务，预计4–6元，预算/权限不变，合格保存后只结算一次8积分』；问题已由request_user_input_async发出，尚无回复。不得将无回复当同意，也不要重复问现技术发布或新权限。
+
+后续唯一preparedclient baaad9ce-bba2-466c-b35c-483f6a5800b9，E/BACKEND-OWNER-COVER-R2.INTENT.json/PREPARED_ONLY_PENDING...；E/BACKEND-COVER-SUBMIT002.PLAN.json/WIRE目前未派，正常handler同7a691...脚本/固定3140uid499.../原reportd942.../9原图，不session/token/新worker。只有收到本次新增1任务同意后派一次；任何结果未知只读原UUID，不重发旧cd6e。后续status稿BACKEND-COVER-R2-STATUS.READONLY.CHILD.py与POST-COVER-R2-DELIVERY-VERIFY.PREPARED.py已按该client准备，后者验证4个已知失败净0，成功后正常保存重开/免费改原文字断行/下载/唯一8，实际新job_id等待受理回执晚绑。Root继续独立最终审查/源码文档收尾等不依赖用户答复工作，不在阶段汇报处停工；任务仍待实际成品PNG和验收，不能标complete。
