@@ -34670,3 +34670,26 @@ MEMORY-HOTUPDATE001/t-sz0720di0ufxp1c执行update/CAS/reload均已确认0，但R
 Root已完整完成此已授权生产技术修复和受控九图资源验证；当前功能源码dbc349a+ec1551c，GitHEAD169cd801d031be368af8c7d4d7e30fddc692e09f仅撤销未采用d1实验，不部署eb932/heap512/改hook。原新jobcd6e...failure/0provider/0net，3原客户失败0净扣全部保留，无真实成品可冒交付。A57保守47626/余9374毫元、原总≤100，旧UNKNOWN完整保留。原单明确仅1个新任务且已created后失败，因此Root在本次对话集中请求『原3140report再新增1任务，预计4–6元，预算/权限不变，合格保存后只结算一次8积分』；问题已由request_user_input_async发出，尚无回复。不得将无回复当同意，也不要重复问现技术发布或新权限。
 
 后续唯一preparedclient baaad9ce-bba2-466c-b35c-483f6a5800b9，E/BACKEND-OWNER-COVER-R2.INTENT.json/PREPARED_ONLY_PENDING...；E/BACKEND-COVER-SUBMIT002.PLAN.json/WIRE目前未派，正常handler同7a691...脚本/固定3140uid499.../原reportd942.../9原图，不session/token/新worker。只有收到本次新增1任务同意后派一次；任何结果未知只读原UUID，不重发旧cd6e。后续status稿BACKEND-COVER-R2-STATUS.READONLY.CHILD.py与POST-COVER-R2-DELIVERY-VERIFY.PREPARED.py已按该client准备，后者验证4个已知失败净0，成功后正常保存重开/免费改原文字断行/下载/唯一8，实际新job_id等待受理回执晚绑。Root继续独立最终审查/源码文档收尾等不依赖用户答复工作，不在阶段汇报处停工；任务仍待实际成品PNG和验收，不能标complete。
+
+
+### 2026-11-03T22:32:31.029116+00:00 — CURRENT：已收到owner新增1任务确认，接续原3140九图真实成品验收
+
+Owner2026-11-04明确回复“同意，立即生成并交付”；沿用A57/原总100、保守余9374毫元、同reportd942.../uid499.../原9图、成功唯一8、失败或未知即停不重发。唯一preparedclientbaaad9ce-bba2-466c-b35c-483f6a5800b9现已获准，SUBMIT002尚未派；Root正在执行正常handler后台创建→只读跟踪→真实保存重开/免费改字/下载/最终PNG。线上仍原8cac+d3bc、RAM3GiB/CPU2/现3CID不重启，所有技术修复及离线证据沿用，不重发旧cd6e或已消费QA/hotupdate。实际HEAD2a9562b已push，同功能源码dbc349a+ec1551c。
+
+
+### 2026-11-03T22:50:34.214940+00:00 — CURRENT：R2已知缺图前置校验失败，用户8分全退；继续最小可恢复查看流程修复
+
+实际R2job82055b92-eb75-4b11-bada-d743d5b89271/clientbaaad9ce.../usage709a02d4...于2026-11-03T22:41:50UTC(11月4日06:41北京) failed/COVER_AGENT_ORIGINALS_NOT_VIEWED。STATUS004/t-sz0721g4kyrijuo Success0证12个Pro请求全部200、已知文字模型费1.2792612元、逐callceil1285毫元；Seedream0/UNKNOWN0。financial complete0/refund1、usagecredits0/reservation_released_v1:mixed，预留2monthly+6wallet全退，不能把原financialcredits8当净扣。A57现保守累计48911/余8089毫元，原总≤100/所有旧UNKNOWN保留，不清零成本。没有真实PNG/成功结算，不能称验收通过。原R2此单授权已消费并按failurestop终态，禁止重发/复活/新UUID替代，当前无运行任务或供应商请求。
+
+实际3GiB内存修复在真实12调用中有效：峰值2798436352B、memorymax3221225472、旧oom1/kill1不增，API/Pay/Admin/source配置保持；不回退或重做已验证资源发布。新根因：SDK滚动图预算可能不把全部9图带入每次请求，Bridge.model仍正确只在成功实际payload按图字节SHA累积seen；Bridge.tool对缺原图直接raise使整个任务失败，Agent无机会补看。确切本次missing refs未被旧receipt保存，cleanup后不可还原，不能猜是旧QA的缺4。
+
+Root继续非付费窄修复，author子代理唯一负责Runtime.py/host.mjs/必要定向tests；保all9真实seen gate，在任何图像stage/预算预留/供应商dispatch前最多2次回固定missingref/path/SHA的可恢复tool反馈，指导按缺项实际cover_view并进入下一次成功modelpayload；host只对此明确known/notdispatched否决复位concept_requested+pending，未知/真实图调用/财务/权限/哈希错误/已派概念继续terminal，不重置deadline/seen/预算/once。将复用现真实SDK+原9隔离协议回归，不手工伪seen、不新增Agent平台/测试框架或不必要门禁；新付费任务未授权。Root统一集成候选/上线，已确认技术开发与非付费验证继续，不在此汇报或checkpoint停止。
+
+
+### 2026-11-03T23:06:51.707912+00:00 — CURRENT：缺图生图前恢复修复已提交；Linux原九图零供应商QA正在执行
+
+功能提交b43fb1f1a59e3afd624e514d279e4c1a3c6382a0，仅Runtime54843/SHA29e9b1e6f3d1e74d6dc7d276be08568b35f572922c7cf5bcebee1293f0e1b3c3、host58896/SHAb2f70fb7c6ebbfa93671305c3b0a5fdac37760b611ae7865feeebcef22c9784b及定向测试。仅生图stage/预留/dispatch前的ORIGINALS_NOT_VIEWED明确返回本job missing ref/path/SHA、dispatched:false、最多2次；host只对此可信已知否决复位当次pending/concept_requested。实际seen仍仅来自成功模型payload，UNKNOWN/真实派图/其他错误/duplicate不复位，不回填seen或重置deadline/成本。11项本机定向检查PASS，实际固定SDK2.1.2首5→missing4→真实cover_view→union9→唯一概念stub/duplicate拒绝；这是本机合成供应商证据，不冒Linux/真实成品。独立源码审GO。
+
+ORIGINAL-VIEW-BUILD003/t-sz0721ht4197gg0 Success0/Dropped0，实际candidate917d91adea824a4d766d1a0cd4b241c53e704a37460dcef7d624d043230a0fd2，原5125parent124层一次COPY12叶仍125层/22closure仅两叶变，原schema90e/core9c74/90天reader/支付/静态/配置/mode/生产3CID保持。原serverbuild回执6054B/SHAe4f88f1e64273eae434482c6bca55d59cf776eeff4004a306ae0b717ef36b940。首次云CmdContent.ExceedLimit明确未受理/noInvoke，已保留；仅拆小并暂存既有helper，未重派未知构建。ORIGINAL-VIEW-QA001/t-sz0721i2g9s622o已受理正在执行，复用原3140报告九图27827473B只读/RAMpipe，在candidate实际Bridge/SDK/host、3GiB/200MiBpadding/networknone下，仅外部模型和Seedream受控stub；尚无通过结论。
+
+生产仍d3bc/8cac/Paya2ba4e4d/Adminc5d，入口正常，未发布candidate。R2job82055b92-eb75-4b11-bada-d743d5b89271已知failed、12次HTTP200设计模型约1.2792612元、图像0/UNKNOWN0、预留8全退/净0；A57保守累计48911毫元/余8089，旧费用/UNKNOWN原样。无新付费任务；旧R2单任务授权已消费，不重发。Root下一步：只查本QA原Invoke→若PASS晚绑原R4受控pair发布保3G/90天读兼容→恢复正常入口；之后集中取得下一张新付费任务的单次授权再交真实PNG。其他技术验证/已授权发布自主继续，不在本checkpoint停止。
