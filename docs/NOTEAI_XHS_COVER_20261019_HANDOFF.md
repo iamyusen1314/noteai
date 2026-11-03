@@ -4559,3 +4559,10 @@ Sourceproductbranch actualremoteHEADdd; CI40460530928 FAILED during legacyfoodte
 实际单次 `c-sz071ag9q5501ds`／`t-sz071ag9q5chqf4` 09:09:55–56Z Success0/Dropped0/Repeats1；Public=`/var/www/noteai-public/payment-ui-label-1a68181-20261027-r1`，manifest `202e6487b12c77f09de027200338c7d26ebede722de48c6d92bbe79f2995aada`（16文件＋2absence）。仅asset46521B/SHA1d4bd729…和index274597B/SHA250e902e…唯一缓存引用变，其余14文件／2absence不变；2个静态GET200/CSP/no-referrer及原3服务完整CID/image、配置／Admin／验证文件保持。orders/DB/provider/reload/restarts0，后端dd2199e、旧12元JSAPI唯一到账及旧99元Native／UNKNOWN保留。复用服务器已有UI包，以不足6KB薄字面量CAS载体发布，无新整包上传或发布系统；源码／载体独审GO，回退目标全树前置已在派发前修正。一次本机旧闭包tab绑定失败无云受理，随后准确新plan/tab绑定执行；未重放旧发布。
 
 权威原PLAN/payment_ui_design_review.label_followup=COMPLETE_PUBLISHED，当前public/manifest/acceptance已推进并保留UIV1原值；完整证据 J/payment-ui-label-20261027-r1/RELEASE-ACCEPTANCE.json、PUBLISH.RESULT.FULL.json、ONLINE-UI-QA.json及ONLINE-WECHAT-LABEL.png。J仍是原production-release-r1。**恢复顺序**：本轮ROLLBACK.ROOT.WIRE.sh精确旧UIV1全树＋当前label基线验证后，仅label→UIV1；若还需退UI，沿上节UIV1→cache-r2，之后必要时才原R4 disable。不得直接用原R4对新label指针，不能回旧整套API／Pay或删0032／账本。旧目录和所有证据保留，无实际回退。Root唯一发布权不变，原Chrome发布tab已关，IAB仅留官网、无在途云／模型任务；下一步正常使用，无需再付款／确认。
+
+
+### 2026-11-03 — CURRENT：5账号线下收款／手工260积分已按owner说明登记，续费提醒已建立
+
+Owner最新明确：本人已收到公司线下付款，并自行在Admin为指定5账号各充值260积分；按每账号99元登记，合计495元／1300积分。该事实来自owner声明，本窗口未独立读取后台流水／余额，不能记作已核验开通pro月套餐或网页支付成功。原本窗口待发放的5个UUID请求均已标记SUPERSEDED_DO_NOT_EXECUTE，不得恢复访问后重发；本窗口实际充值／会员／生产数据变更0。
+
+完整手机号与私有登记沿用 /Users/openclaw/.codex/tmp/noteai-xhs-cover-20261019/owner-five-membership-grants-20261103/REQUESTS.json；原PLAN.json之owner_five_membership_grants_20261103现为REGISTERED_OWNER_MANUAL_CREDIT_TOPUPS。按本次一个月管理约定，将2026-12-03作为下月续费核对日，并非后台已核实expires_at，也不代表钱包积分会自动失效。唯一既有线程提醒noteai-12已实际创建并在owner纠正后更新为积分充值说明、ACTIVE／COUNT1，保存规则回读推算北京时间2026-12-03 09:00；尚未到执行日。届时只提醒owner按最新续费记录核对99元×未续费账号，不自动扣费／联系账号本人／发放／清余额。此本机线程提醒依赖电脑及应用运行；无额外云端提醒或后台轮询保证。当前范围登记与提醒设置完成，生产发布状态不变。
