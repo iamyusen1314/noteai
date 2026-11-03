@@ -15,6 +15,16 @@ const MAX_LINE = 40 * 1024 * 1024;
 const MAX_FILE = 10 * 1024 * 1024;
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const error = (code) => Object.assign(new Error(code), { code });
+function recoverableOriginalViewRejection(result, images, completed) {
+  return result?.ok === false && result.code === 'COVER_AGENT_ORIGINALS_NOT_VIEWED'
+    && result.recoverable === true && result.dispatched === false
+    && result.required_action === 'cover_view' && result.repair_limit === 2
+    && Number.isSafeInteger(completed) && completed >= 0 && completed < 2
+    && result.repair_attempt === completed + 1
+    && Array.isArray(result.missing_originals) && result.missing_originals.length > 0
+    && result.missing_originals.length <= 9 && result.missing_originals.every((missing) =>
+      images.some((image) => image.name === missing.ref && image.path === missing.path));
+}
 const send = (event) => process.stdout.write(JSON.stringify(event) + '\n');
 const pending = new Map();
 const localChildren = new Set();
@@ -568,6 +578,13 @@ try {
       checkpoint.pending_tool = { name: 'cover_seedream', prompt_sha256: sha(args.prompt) }; await atomicJSON(checkpointPath, checkpoint);
       const answer = await bridge('tool_request', { name: 'cover_seedream', arguments: args });
       if (answer.unknown) throw error('SUPPLIER_RESULT_UNKNOWN');
+      if (answer.result?.code === 'COVER_AGENT_ORIGINALS_NOT_VIEWED') {
+        if (!recoverableOriginalViewRejection(answer.result, job.images || [], checkpoint.original_view_repairs ?? 0)) throw error('ORIGINAL_VIEW_REPAIR_INVALID');
+        checkpoint.original_view_repairs = answer.result.repair_attempt;
+        checkpoint.pending_tool = null; checkpoint.concept_requested = false;
+        await atomicJSON(checkpointPath, checkpoint);
+        return { content: JSON.stringify(answer.result) };
+      }
       checkpoint.pending_tool = null; await atomicJSON(checkpointPath, checkpoint);
       return { content: JSON.stringify(answer.result) };
     }),
