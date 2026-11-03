@@ -94,6 +94,9 @@ class AgentArtifactTests(unittest.TestCase):
         task, claim, final, bundle, layout, result = self.complete()
         self.assertEqual(result["status"], "completed")
         self.assertEqual(result["billing"]["credits_used"], 8)
+        self.assertIn("/image/cover_v1/", private_storage._reference_key(final))
+        self.assertIn("/result/cover_v1/", private_storage._reference_key(
+            artifacts.reference(layout["editable_ref"]), payload=True))
         self.assertEqual(artifacts.validate_saved(self.fixture.user, jobs.get_layout(self.fixture.user, task["job_id"])), bundle)
         self.assertEqual(result["layout"]["engine"], "editable_design")
         self.assertNotIn("editable_ref", result["layout"])
@@ -198,7 +201,7 @@ class AgentArtifactTests(unittest.TestCase):
         remaining_bytes = 0
         for row in rows:
             ref = artifacts.reference(json.loads(row["layout_json"])["editable_ref"])
-            key = private_storage._payload_key(ref.id, ref.subject_hash, ref.purpose)
+            key = private_storage._reference_key(ref, payload=True)
             design = json.loads(row["design_json"])
             deleted = design.get("editable_source_deletions", {})
             states.append("deleted" if ref.id in deleted else "ready")
@@ -227,6 +230,9 @@ class AgentArtifactTests(unittest.TestCase):
         task, _, _, bundle, layout, _ = self.complete()
         balances = self.fixture.balances()
         calls = db.fetchone("SELECT count(*) n FROM public_trial_calls")["n"]
+        private_storage.expire_media(now=self.fixture.now + timedelta(days=2))
+        with self.assertRaises(private_storage.MediaReferenceUnavailable):
+            private_storage.load_media_bytes(self.fixture.source.id, user_id=self.fixture.user)
         def candidate(name):
             value = json.loads(bundle)
             manifest = json.loads(base64.b64decode(value["files"]["render-manifest.json"]))
@@ -258,6 +264,26 @@ class AgentArtifactTests(unittest.TestCase):
         self.assertEqual(result["layout"]["qc_status"], "USER_ADJUSTED_NOT_VISUALLY_REVIEWED")
         self.assertEqual(self.fixture.balances(), balances)
         self.assertEqual(db.fetchone("SELECT count(*) n FROM public_trial_calls")["n"], calls)
+        # Initial, failed-PNG candidate and successful edit sources all use the
+        # same cover retention scope, including references not in a revision.
+        design = json.loads(db.fetchone("SELECT design_json FROM cover_jobs WHERE id=?",
+            (task["job_id"],))["design_json"])
+        pending = design.get("editable_pending_refs", {})
+        self.assertEqual(len(pending), 3)
+        for descriptor in pending.values():
+            key = private_storage._reference_key(artifacts.reference(descriptor), payload=True)
+            self.assertIn("/result/cover_v1/", key)
+            self.assertIsNotNone(self.fixture.backend.head(key))
+        final_ref = jobs.asset_reference(self.fixture.user, task["job_id"])
+        reference, _ = private_storage.load_media_bytes(final_ref, user_id=self.fixture.user)
+        self.assertIn("/image/cover_v1/", private_storage._reference_key(reference))
+        self.assertGreaterEqual(reference.expires_at, result["expires_at"])
+        cleanup = private_storage.reconcile_orphans(prefix="v1/payload", now=self.fixture.now + timedelta(days=2), apply=True)
+        self.assertEqual(cleanup["deleted_count"], 0)
+        private_storage.delete_user_media(self.fixture.user)
+        for descriptor in pending.values():
+            key = private_storage._reference_key(artifacts.reference(descriptor), payload=True)
+            self.assertIsNone(self.fixture.backend.head(key))
 
     def test_v3_first_bundle_save_failure_releases_without_replaying_sdk(self):
         import shutil

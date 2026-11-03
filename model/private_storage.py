@@ -38,7 +38,8 @@ ORPHAN_MIN_AGE_SECONDS = 24 * 60 * 60
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _OBJECT_KEY_RE = re.compile(
-    r"^v1/(payload|media)/(request|result|image|video_frames|video)/"
+    r"^v1/(?:(payload|media)/(request|result|image|video_frames|video)/"
+    r"|(?:media/image|payload/result)/cover_v1/)"
     r"[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\.(json|bin|zip)$"
 )
@@ -727,6 +728,8 @@ def _object_prefix(value: str) -> str:
         "v1/media/image",
         "v1/media/video_frames",
         "v1/media/video",
+        "v1/media/image/cover_v1",
+        "v1/payload/result/cover_v1",
     }:
         raise ValueError("invalid private object prefix")
     return normalized + "/"
@@ -763,10 +766,13 @@ def _canonical_metadata(values: dict[str, Any]) -> dict[str, str]:
     return result
 
 
-def _media_key(reference_id: str, subject_hash: str, purpose: str) -> str:
+def _media_key(reference_id: str, subject_hash: str, purpose: str, *, lifecycle: str = "temporary") -> str:
+    if lifecycle not in {"temporary", "cover_v1"} or (lifecycle == "cover_v1" and purpose != "image"):
+        raise ValueError("invalid private media lifecycle")
     suffix = "zip" if purpose == "video_frames" else "bin"
+    scope = "cover_v1/" if lifecycle == "cover_v1" else ""
     return _object_key(
-        f"v1/media/{purpose}/{subject_hash[:12]}/{reference_id}.{suffix}"
+        f"v1/media/{purpose}/{scope}{subject_hash[:12]}/{reference_id}.{suffix}"
     )
 
 
@@ -774,10 +780,27 @@ def _payload_key(
     reference_id: str,
     subject_hash: str,
     purpose: str,
+    *,
+    lifecycle: str = "temporary",
 ) -> str:
+    if lifecycle not in {"temporary", "cover_v1"} or (lifecycle == "cover_v1" and purpose != "result"):
+        raise ValueError("invalid private payload lifecycle")
+    scope = "cover_v1/" if lifecycle == "cover_v1" else ""
     return _object_key(
-        f"v1/payload/{purpose}/{subject_hash[:12]}/{reference_id}.json"
+        f"v1/payload/{purpose}/{scope}{subject_hash[:12]}/{reference_id}.json"
     )
+
+
+def _reference_key(reference, *, payload: bool = False) -> str | None:
+    """Resolve one old/new key by its persisted hash, never by a storage miss."""
+    make_key = _payload_key if payload else _media_key
+    candidates = [make_key(reference.id, reference.subject_hash, reference.purpose)]
+    if reference.purpose == ("result" if payload else "image"):
+        candidates.append(make_key(reference.id, reference.subject_hash, reference.purpose,
+                                   lifecycle="cover_v1"))
+    matches = [key for key in candidates
+               if hashlib.sha256(key.encode("utf-8")).hexdigest() == reference.object_key_hash]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _object_metadata(
@@ -878,9 +901,11 @@ def validate_stored_object_descriptor(item: StoredObject) -> None:
         raise ObjectStorageUnavailable("PRIVATE_OBJECT_METADATA_MISMATCH") from exc
     try:
         expected_key = (
-            _payload_key(reference_id, subject_hash, purpose)
+            _payload_key(reference_id, subject_hash, purpose,
+                         lifecycle="cover_v1" if "/cover_v1/" in key else "temporary")
             if key.startswith("v1/payload/")
-            else _media_key(reference_id, subject_hash, purpose)
+            else _media_key(reference_id, subject_hash, purpose,
+                            lifecycle="cover_v1" if "/cover_v1/" in key else "temporary")
         )
     except ValueError as exc:
         raise ObjectStorageUnavailable("PRIVATE_OBJECT_METADATA_MISMATCH") from exc
@@ -918,6 +943,7 @@ class PrivateObjectPayloadStore(durable_ai.PayloadStore):
         item_count: int,
         ttl_seconds: int,
         now: datetime | None = None,
+        lifecycle: str = "temporary",
     ) -> durable_ai.PayloadReference:
         op_id = str(uuid.UUID(str(operation_id)))
         purpose_value = (
@@ -937,7 +963,7 @@ class PrivateObjectPayloadStore(durable_ai.PayloadStore):
         expires_at = (current + timedelta(seconds=ttl)).isoformat()
         content_sha = hashlib.sha256(body).hexdigest()
         epoch_hash = hashlib.sha256(self._epoch().encode("utf-8")).hexdigest()
-        key = _payload_key(reference_id, subject_hash, purpose_value)
+        key = _payload_key(reference_id, subject_hash, purpose_value, lifecycle=lifecycle)
         metadata = _object_metadata(
             reference_id=reference_id,
             subject_hash=subject_hash,
@@ -1032,8 +1058,8 @@ class PrivateObjectPayloadStore(durable_ai.PayloadStore):
             or _utc() >= datetime.fromisoformat(reference.expires_at)
         ):
             raise durable_ai.PayloadUnavailable("DURABLE_AI_PAYLOAD_NOT_FOUND")
-        key = _payload_key(reference.id, subject_hash, reference.purpose)
-        if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+        key = _reference_key(reference, payload=True)
+        if key is None:
             raise durable_ai.PayloadUnavailable("DURABLE_AI_PAYLOAD_NOT_FOUND")
         try:
             body, metadata = self._backend().get(
@@ -1065,8 +1091,8 @@ class PrivateObjectPayloadStore(durable_ai.PayloadStore):
         subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
         if reference.subject_hash != subject_hash:
             raise durable_ai.PayloadUnavailable("DURABLE_AI_PAYLOAD_NOT_FOUND")
-        key = _payload_key(reference.id, subject_hash, reference.purpose)
-        if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+        key = _reference_key(reference, payload=True)
+        if key is None:
             raise durable_ai.PayloadUnavailable("DURABLE_AI_PAYLOAD_NOT_FOUND")
         try:
             return self._backend().delete(key)
@@ -1125,7 +1151,7 @@ def store_media_bytes(
     reference_id = str(uuid.uuid4())
     content_sha = hashlib.sha256(body).hexdigest()
     epoch_hash = hashlib.sha256(_key_epoch_value().encode("utf-8")).hexdigest()
-    key = _media_key(reference_id, subject_hash, purpose_value)
+    key = _media_key(reference_id, subject_hash, purpose_value, lifecycle=lifecycle)
     metadata = _object_metadata(
         reference_id=reference_id,
         subject_hash=subject_hash,
@@ -1312,8 +1338,8 @@ def load_media_bytes(
         or (purpose is not None and reference.purpose != purpose)
     ):
         raise MediaReferenceUnavailable()
-    key = _media_key(reference.id, subject_hash, reference.purpose)
-    if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+    key = _reference_key(reference)
+    if key is None:
         raise MediaReferenceUnavailable()
     selected = backend or get_object_backend()
     body, metadata = selected.get(
@@ -1485,8 +1511,8 @@ def delete_user_media(
         _delete_ark_media(row)
     references = [_media_reference_from_row(row) for row in rows]
     for reference in references:
-        key = _media_key(reference.id, subject_hash, reference.purpose)
-        if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+        key = _reference_key(reference)
+        if key is None:
             raise ObjectStorageUnavailable("PRIVATE_MEDIA_KEY_MISMATCH")
         if not selected.delete(key):
             raise ObjectStorageUnavailable("PRIVATE_MEDIA_DELETE_FAILED")
@@ -1557,8 +1583,8 @@ def expire_media(
             selected = backend or get_object_backend()
             for row in rows:
                 reference = _media_reference_from_row(row)
-                key = _media_key(reference.id, subject_hash, reference.purpose)
-                if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+                key = _reference_key(reference)
+                if key is None:
                     raise ObjectStorageUnavailable("PRIVATE_MEDIA_KEY_MISMATCH")
                 if not selected.delete(key):
                     raise ObjectStorageUnavailable("PRIVATE_MEDIA_DELETE_FAILED")
@@ -1575,8 +1601,8 @@ def expire_media(
     for row in rows:
         _delete_ark_media(row)
         reference = _media_reference_from_row(row)
-        key = _media_key(reference.id, reference.subject_hash, reference.purpose)
-        if hashlib.sha256(key.encode("utf-8")).hexdigest() != reference.object_key_hash:
+        key = _reference_key(reference)
+        if key is None:
             raise ObjectStorageUnavailable("PRIVATE_MEDIA_KEY_MISMATCH")
         if not selected.delete(key):
             raise ObjectStorageUnavailable("PRIVATE_MEDIA_DELETE_FAILED")

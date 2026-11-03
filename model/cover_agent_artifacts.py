@@ -208,7 +208,8 @@ def store(user_id, job_id, bundle, *, revision=1, ttl_seconds=90 * 86400):
         private_storage._assert_media_capacity(tx,
             __import__("idempotency").operation_subject_hash(user_id), len(bundle))
         ref = private_storage.PrivateObjectPayloadStore().put(operation_id=op_id,
-            user_id=user_id, purpose="result", payload=bundle, item_count=1, ttl_seconds=ttl_seconds)
+            user_id=user_id, purpose="result", payload=bundle, item_count=1,
+            ttl_seconds=ttl_seconds, lifecycle="cover_v1")
         descriptor = {key: value for key, value in asdict(ref).items() if key != "created"}
         design = json.loads(job["design_json"] or "{}")
         design.setdefault("editable_pending_refs", {})[ref.id] = descriptor
@@ -366,8 +367,8 @@ def delete_bundles(*, user_id=None, expired_only=False, backend=None, now=None, 
             break
         # For expiry the descriptor's owner is intentionally used only to form
         # its exact opaque key; no content is read or returned.
-        key = private_storage._payload_key(ref.id, ref.subject_hash, ref.purpose)
-        if digest(key.encode()) != ref.object_key_hash or not store._backend().delete(key):
+        key = private_storage._reference_key(ref, payload=True)
+        if key is None or not store._backend().delete(key):
             raise private_storage.ObjectStorageUnavailable("COVER_EDITABLE_DELETE_UNCONFIRMED")
         with db.transaction(write=True) as tx:
             # Revision rows stay immutable (the existing app role has no UPDATE
