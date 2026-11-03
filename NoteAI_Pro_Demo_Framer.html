@@ -3739,7 +3739,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
   <div class="report-page">
     <div id="report-billing-receipt" role="status" style="display:none;margin:16px 0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surf-1);font-size:13px;line-height:1.7;overflow-wrap:anywhere"></div>
 
-    <div class="cover-entry" style="margin-bottom:20px"><button type="button" id="saved-covers-entry" data-product-action="openSavedCovers">已保存封面</button><p class="cover-panel-note" style="margin-top:6px">已交付封面保存90天；原报告到期后仍可在这里重开、下载与免费排字。</p></div>
+    <div class="cover-entry" style="margin-bottom:20px"><button type="button" id="saved-covers-entry" data-product-action="openSavedCovers">已保存封面</button><p class="cover-panel-note" style="margin-top:6px">新封面保存3天，旧封面按原到期时间保留；原报告到期后仍可在保存期内重开、下载与免费排字。</p></div>
 
     <!-- ── 报告历史列表 ──────────────────────────────────────── -->
     <div id="diag-history-section" style="margin-bottom:32px">
@@ -8464,7 +8464,7 @@ function coverRender(ctx) {
     if (result.parentNode) result.parentNode.insertBefore(result,el('source-form'));
     el('preview-note').textContent = ctx.previewFailedKey === success.job_id + ':' + success.asset_revision
       ? '已保存封面的预览暂不可用，可刷新重试；当前任务进度与结算以此处任务状态为准。' : '';
-    el('expiry').textContent = success.expires_at ? `保存至 ${_fmtLocalTime(success.expires_at)}（90天），请及时下载。` : '保存期限暂未确认，请稍后查看原任务。';
+    el('expiry').textContent = success.expires_at ? `保存至 ${_fmtLocalTime(success.expires_at)}，请及时下载。` : '保存期限暂未确认，请稍后查看原任务。';
     const editable = !success.expires_at || new Date(success.expires_at).getTime() > Date.now();
     el('adjust').disabled = ctx.busy || !editable;
     el('download').disabled = ctx.busy || !editable;
@@ -8774,7 +8774,7 @@ async function openSavedCovers() {
   closeCoverPanel();
   const dialog = document.createElement('dialog'); dialog.className = 'cover-panel'; dialog.id = 'saved-covers-panel';
   dialog.setAttribute('aria-labelledby','saved-covers-title');
-  dialog.innerHTML = `<div class="cover-panel-head"><div><h2 id="saved-covers-title">已保存封面</h2><p>独立保存90天，原报告到期后仍可读取；重开不会重新生成或扣分。</p></div><button type="button" data-saved-cover-close>关闭</button></div><div class="cover-panel-body" data-saved-cover-list role="status" aria-live="polite">正在读取本人已保存封面…</div>`;
+  dialog.innerHTML = `<div class="cover-panel-head"><div><h2 id="saved-covers-title">已保存封面</h2><p>新封面独立保存3天，旧封面按原到期时间保留；原报告到期后仍可读取，重开不会重新生成或扣分。</p></div><button type="button" data-saved-cover-close>关闭</button></div><div class="cover-panel-body" data-saved-cover-list role="status" aria-live="polite">正在读取本人已保存封面…</div>`;
   document.body.append(dialog);
   const ctx = {dialog,identity:_chatIdentitySnapshot(),token:_authToken};
   ctx.current = () => _savedCoverList === ctx && dialog.isConnected && _chatIdentityMatches(ctx.identity) && _authToken === ctx.token;
@@ -8788,7 +8788,7 @@ async function openSavedCovers() {
     const data = await response.json(); if (!ctx.current()) return;
     const jobs = Array.isArray(data.jobs) ? data.jobs.filter(coverSavedJobReadable) : [];
     list.replaceChildren();
-    if (!jobs.length) {list.textContent = '暂无保存期内的封面。已交付封面可在90天内从这里重开。';return;}
+    if (!jobs.length) {list.textContent = '暂无保存期内的封面。新封面可在3天内重开，旧封面按原到期时间保留。';return;}
     for (const job of jobs) {
       const button = document.createElement('button'); button.type = 'button'; button.style.textAlign = 'left';
       const title = typeof job.layout?.text === 'string' ? job.layout.text.replace(/\s+/g,' ').slice(0,80) : '';

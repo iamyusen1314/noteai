@@ -92,7 +92,7 @@ class CoverApiContractTests(unittest.TestCase):
                 final_body, layout = cover_renderer.render_text(base_body, layout)
                 def store(body):
                     return storage.store_media_bytes(self.fixture.user, purpose="image", content_type="image/png",
-                        payload=body, item_count=1, ttl_seconds=90 * 86400, lifecycle="cover_v1")
+                        payload=body, item_count=1, ttl_seconds=3 * 86400, lifecycle="cover_3d_v1")
                 return store(final_body), store(base_body), layout
             self.fixture.assets = assets
         saved, final, base = self.fixture.complete(claim)
@@ -237,7 +237,7 @@ class CoverApiContractTests(unittest.TestCase):
         actual_utc = storage._utc
         before = self.counts()
         # Advance the test clock instead of rewriting immutable media TTL or
-        # bypassing its integrity triggers. The source is 24h, cover is 90d.
+        # bypassing its integrity triggers. The source is 24h, new cover is 3d.
         with mock.patch.object(jobs, "_now", return_value=future), \
                 mock.patch.object(storage, "_utc", side_effect=lambda value=None: actual_utc(value or future)):
             with self.assertRaises(HTTPException) as expired:

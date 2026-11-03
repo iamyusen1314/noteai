@@ -24,7 +24,8 @@ BUDGET_MILLI_CNY = 100_000
 FORMAL_BUDGET_ID = "noteai-cover-formal-v1"
 MAX_ACCEPTANCE_JOBS = 6
 MAX_ACCEPTANCE_CALLS = 18
-RETENTION_SECONDS = 90 * 24 * 60 * 60
+RETENTION_SECONDS = 3 * 24 * 60 * 60
+LEGACY_RETENTION_SECONDS = 90 * 24 * 60 * 60
 UNKNOWN_SECONDS = 30 * 60
 
 
@@ -73,6 +74,15 @@ def validate(config):
     return copy.deepcopy(config)
 
 
+def _current_config(config):
+    # Only the previously published 90-day value is compatible on read. Keep
+    # its stored bytes/history, while all new quotes and tasks use three days.
+    value = copy.deepcopy(config)
+    if isinstance(value, dict) and type(value.get("retention_seconds")) is int and value["retention_seconds"] == LEGACY_RETENTION_SECONDS:
+        value["retention_seconds"] = RETENTION_SECONDS
+    return validate(value)
+
+
 def read(scope="production", tx=None):
     row = (tx or db).fetchone("SELECT value_json FROM system_settings WHERE key=? AND is_secret=0", (_key(scope),))
     if not row:
@@ -81,9 +91,9 @@ def read(scope="production", tx=None):
     import json
     try:
         state = json.loads(row["value_json"])
-        validate(state["active"])
+        _current_config(state["active"])
         if state.get("draft") is not None:
-            validate(state["draft"])
+            _current_config(state["draft"])
         return state
     except (ValueError, TypeError, KeyError, HTTPException):
         raise HTTPException(503, "封面配置需要核实或恢复") from None
@@ -92,7 +102,10 @@ def read(scope="production", tx=None):
 def view(scope="production"):
     state = read(scope)
     acceptance = state["active"]["execution_scope"] == "acceptance"
-    return {**state, "instance_opt_in": os.environ.get("NOTEAI_COVER_WORKER_ENABLED") == "1",
+    return {**state, "active": _current_config(state["active"]),
+            "draft": _current_config(state["draft"]) if state.get("draft") is not None else None,
+            "stored_active_retention_seconds": state["active"]["retention_seconds"],
+            "instance_opt_in": os.environ.get("NOTEAI_COVER_WORKER_ENABLED") == "1",
             "credential_configured": ark_media.configured(),
             "budget": {"id": BUDGET_ID if acceptance else FORMAL_BUDGET_ID,
                        "scope": "acceptance" if acceptance else "formal",
@@ -128,7 +141,7 @@ def change(action, scope, *, actor, request_id, reason, expected, config=None):
             selected = before["draft"] if action == "activate" else before["previous"]
             if selected is None:
                 raise HTTPException(409, "没有可发布或恢复的封面配置")
-            after.update(active=validate(selected), previous=before["active"], draft=None,
+            after.update(active=_current_config(selected), previous=before["active"], draft=None,
                          active_revision=after["revision"])
         tx.execute("INSERT INTO system_settings(key,value_json,is_secret,updated_at) VALUES(?,?,0,?) "
                    "ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at "
@@ -141,7 +154,7 @@ def change(action, scope, *, actor, request_id, reason, expected, config=None):
 
 def policy_snapshot(config=None):
     """Freeze the approved route and a catalogue estimate, not an actual bill."""
-    selected = validate(config or read()["active"])
+    selected = _current_config(config or read()["active"])
     policy = {"enabled": selected["enabled"], "operation": "cover_generate", "provider": "seedream",
         "model_id": selected["model_id"], "width": selected["width"], "height": selected["height"],
         "credits": "8", "retention_seconds": RETENTION_SECONDS, "max_physical_calls": 3,

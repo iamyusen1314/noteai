@@ -11,7 +11,7 @@ import sys
 import tempfile
 import unittest
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 
 from PIL import Image
@@ -68,7 +68,7 @@ class AgentArtifactTests(unittest.TestCase):
             final, bundle, layout = artifacts.capture(result, expected_sources={source.id: source.content_sha256})
         # Existing PNG storage is reused; source retention starts afterwards.
         final_ref = private_storage.store_media_bytes(self.fixture.user, purpose="image", content_type="image/png",
-            payload=final, item_count=1, ttl_seconds=90 * 86400, lifecycle="cover_v1")
+            payload=final, item_count=1, ttl_seconds=3 * 86400, lifecycle="cover_3d_v1")
         layout["editable_ref"] = artifacts.store(self.fixture.user, task["job_id"], bundle)
         return task, claim, final_ref, bundle, layout
 
@@ -94,8 +94,8 @@ class AgentArtifactTests(unittest.TestCase):
         task, claim, final, bundle, layout, result = self.complete()
         self.assertEqual(result["status"], "completed")
         self.assertEqual(result["billing"]["credits_used"], 8)
-        self.assertIn("/image/cover_v1/", private_storage._reference_key(final))
-        self.assertIn("/result/cover_v1/", private_storage._reference_key(
+        self.assertIn("/image/cover_3d_v1/", private_storage._reference_key(final))
+        self.assertIn("/result/cover_3d_v1/", private_storage._reference_key(
             artifacts.reference(layout["editable_ref"]), payload=True))
         self.assertEqual(artifacts.validate_saved(self.fixture.user, jobs.get_layout(self.fixture.user, task["job_id"])), bundle)
         self.assertEqual(result["layout"]["engine"], "editable_design")
@@ -192,7 +192,7 @@ class AgentArtifactTests(unittest.TestCase):
         original_layouts = {row["job_id"]: row["layout_json"] for row in
             db.fetchall("SELECT job_id,layout_json FROM cover_asset_revisions")}
         self.assertEqual(artifacts.active_bundle_totals(db, subject), (2, original_bytes))
-        future = self.fixture.now + timedelta(days=91)
+        future = self.fixture.now + timedelta(days=4)
         self.assertEqual(artifacts.delete_bundles(user_id=self.fixture.user, expired_only=True,
             backend=self.fixture.backend, now=future, limit=1), 1)
         rows = db.fetchall("SELECT r.job_id,r.layout_json,j.design_json FROM cover_asset_revisions r "
@@ -272,11 +272,13 @@ class AgentArtifactTests(unittest.TestCase):
         self.assertEqual(len(pending), 3)
         for descriptor in pending.values():
             key = private_storage._reference_key(artifacts.reference(descriptor), payload=True)
-            self.assertIn("/result/cover_v1/", key)
+            self.assertIn("/result/cover_3d_v1/", key)
+            self.assertLessEqual(datetime.fromisoformat(descriptor["expires_at"])
+                - datetime.fromisoformat(descriptor["created_at"]), timedelta(days=3))
             self.assertIsNotNone(self.fixture.backend.head(key))
         final_ref = jobs.asset_reference(self.fixture.user, task["job_id"])
         reference, _ = private_storage.load_media_bytes(final_ref, user_id=self.fixture.user)
-        self.assertIn("/image/cover_v1/", private_storage._reference_key(reference))
+        self.assertIn("/image/cover_3d_v1/", private_storage._reference_key(reference))
         self.assertGreaterEqual(reference.expires_at, result["expires_at"])
         cleanup = private_storage.reconcile_orphans(prefix="v1/payload", now=self.fixture.now + timedelta(days=2), apply=True)
         self.assertEqual(cleanup["deleted_count"], 0)

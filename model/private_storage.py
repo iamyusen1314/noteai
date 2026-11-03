@@ -33,13 +33,14 @@ MAX_VIDEO_BUNDLE_BYTES = 64 * 1024 * 1024
 MAX_VIDEO_FRAMES = 100
 MAX_FRAME_BYTES = 2 * 1024 * 1024
 MEDIA_TTL_SECONDS = 24 * 60 * 60
+_COVER_RETENTION_SECONDS = {"cover_v1": 90 * 86400, "cover_3d_v1": 3 * 86400}
 MAX_OBJECT_LIST_LIMIT = 1000
 ORPHAN_MIN_AGE_SECONDS = 24 * 60 * 60
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _OBJECT_KEY_RE = re.compile(
     r"^v1/(?:(payload|media)/(request|result|image|video_frames|video)/"
-    r"|(?:media/image|payload/result)/cover_v1/)"
+    r"|(?:media/image|payload/result)/(?:cover_v1|cover_3d_v1)/)"
     r"[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\.(json|bin|zip)$"
 )
@@ -730,6 +731,8 @@ def _object_prefix(value: str) -> str:
         "v1/media/video",
         "v1/media/image/cover_v1",
         "v1/payload/result/cover_v1",
+        "v1/media/image/cover_3d_v1",
+        "v1/payload/result/cover_3d_v1",
     }:
         raise ValueError("invalid private object prefix")
     return normalized + "/"
@@ -767,10 +770,10 @@ def _canonical_metadata(values: dict[str, Any]) -> dict[str, str]:
 
 
 def _media_key(reference_id: str, subject_hash: str, purpose: str, *, lifecycle: str = "temporary") -> str:
-    if lifecycle not in {"temporary", "cover_v1"} or (lifecycle == "cover_v1" and purpose != "image"):
+    if lifecycle not in {"temporary", *_COVER_RETENTION_SECONDS} or (lifecycle != "temporary" and purpose != "image"):
         raise ValueError("invalid private media lifecycle")
     suffix = "zip" if purpose == "video_frames" else "bin"
-    scope = "cover_v1/" if lifecycle == "cover_v1" else ""
+    scope = lifecycle + "/" if lifecycle != "temporary" else ""
     return _object_key(
         f"v1/media/{purpose}/{scope}{subject_hash[:12]}/{reference_id}.{suffix}"
     )
@@ -783,9 +786,9 @@ def _payload_key(
     *,
     lifecycle: str = "temporary",
 ) -> str:
-    if lifecycle not in {"temporary", "cover_v1"} or (lifecycle == "cover_v1" and purpose != "result"):
+    if lifecycle not in {"temporary", *_COVER_RETENTION_SECONDS} or (lifecycle != "temporary" and purpose != "result"):
         raise ValueError("invalid private payload lifecycle")
-    scope = "cover_v1/" if lifecycle == "cover_v1" else ""
+    scope = lifecycle + "/" if lifecycle != "temporary" else ""
     return _object_key(
         f"v1/payload/{purpose}/{scope}{subject_hash[:12]}/{reference_id}.json"
     )
@@ -796,8 +799,8 @@ def _reference_key(reference, *, payload: bool = False) -> str | None:
     make_key = _payload_key if payload else _media_key
     candidates = [make_key(reference.id, reference.subject_hash, reference.purpose)]
     if reference.purpose == ("result" if payload else "image"):
-        candidates.append(make_key(reference.id, reference.subject_hash, reference.purpose,
-                                   lifecycle="cover_v1"))
+        candidates.extend(make_key(reference.id, reference.subject_hash, reference.purpose,
+                                   lifecycle=lifecycle) for lifecycle in _COVER_RETENTION_SECONDS)
     matches = [key for key in candidates
                if hashlib.sha256(key.encode("utf-8")).hexdigest() == reference.object_key_hash]
     return matches[0] if len(matches) == 1 else None
@@ -900,12 +903,13 @@ def validate_stored_object_descriptor(item: StoredObject) -> None:
     except (KeyError, TypeError, ValueError) as exc:
         raise ObjectStorageUnavailable("PRIVATE_OBJECT_METADATA_MISMATCH") from exc
     try:
+        lifecycle = next((scope for scope in _COVER_RETENTION_SECONDS if "/" + scope + "/" in key), "temporary")
         expected_key = (
             _payload_key(reference_id, subject_hash, purpose,
-                         lifecycle="cover_v1" if "/cover_v1/" in key else "temporary")
+                         lifecycle=lifecycle)
             if key.startswith("v1/payload/")
             else _media_key(reference_id, subject_hash, purpose,
-                            lifecycle="cover_v1" if "/cover_v1/" in key else "temporary")
+                            lifecycle=lifecycle)
         )
     except ValueError as exc:
         raise ObjectStorageUnavailable("PRIVATE_OBJECT_METADATA_MISMATCH") from exc
@@ -955,7 +959,8 @@ class PrivateObjectPayloadStore(durable_ai.PayloadStore):
         if not body or len(body) > durable_ai.MAX_OBJECT_BYTES:
             raise ValueError("payload size is outside the durable object limit")
         count = _bounded_int(item_count, "item_count", 0, 1000)
-        ttl = _bounded_int(ttl_seconds, "ttl_seconds", 60, 90 * 24 * 60 * 60)
+        ttl = _bounded_int(ttl_seconds, "ttl_seconds", 60,
+            _COVER_RETENTION_SECONDS.get(lifecycle, 90 * 24 * 60 * 60))
         subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
         reference_id = durable_ai.payload_reference_id_for(op_id, purpose_value)
         current = _utc(now)
@@ -1140,9 +1145,9 @@ def store_media_bytes(
         1,
         MAX_VIDEO_FRAMES if purpose_value == "video_frames" else 1,
     )
-    if lifecycle not in {"temporary", "cover_v1"} or (lifecycle == "cover_v1" and purpose_value != "image"):
+    if lifecycle not in {"temporary", *_COVER_RETENTION_SECONDS} or (lifecycle != "temporary" and purpose_value != "image"):
         raise ValueError("invalid private media lifecycle")
-    maximum_ttl = (90 if lifecycle == "cover_v1" else 30) * 24 * 60 * 60
+    maximum_ttl = _COVER_RETENTION_SECONDS.get(lifecycle, 30 * 24 * 60 * 60)
     ttl = _bounded_int(ttl_seconds, "ttl_seconds", 60, maximum_ttl)
     subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
     current = _utc(now)

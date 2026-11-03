@@ -156,7 +156,7 @@ def position_options(layout, layer_id):
     return positions
 
 
-def adjust(user_id, job_id, layout, *, text, position, layer_id, revision, ttl_seconds):
+def adjust(user_id, job_id, layout, *, text, position, layer_id, revision, ttl_seconds, lifecycle="cover_3d_v1"):
     layer_id = layer_id or layout["text_layers"][0]["id"]
     if not any(layer["id"] == layer_id for layer in layout["text_layers"]):
         raise ValueError("COVER_EDITABLE_LAYER_INVALID")
@@ -182,7 +182,7 @@ def adjust(user_id, job_id, layout, *, text, position, layer_id, revision, ttl_s
         if temporary is not None:
             shutil.rmtree(temporary)
         _EDIT_SLOT.release()
-    updated["editable_ref"] = store(user_id, job_id, encoded, revision=revision, ttl_seconds=ttl_seconds)
+    updated["editable_ref"] = store(user_id, job_id, encoded, revision=revision, ttl_seconds=ttl_seconds, lifecycle=lifecycle)
     return final, updated
 
 
@@ -195,7 +195,7 @@ def reference(value):
     return ref
 
 
-def store(user_id, job_id, bundle, *, revision=1, ttl_seconds=90 * 86400):
+def store(user_id, job_id, bundle, *, revision=1, ttl_seconds=3 * 86400, lifecycle="cover_3d_v1"):
     # A failed PNG save may leave an unindexed source candidate. A later free
     # edit is another candidate for the same CAS revision, not the same bytes.
     op_id = str(uuid.uuid5(uuid.UUID(job_id), "editable-source:" + str(revision) + ":" + digest(bundle)))
@@ -209,7 +209,7 @@ def store(user_id, job_id, bundle, *, revision=1, ttl_seconds=90 * 86400):
             __import__("idempotency").operation_subject_hash(user_id), len(bundle))
         ref = private_storage.PrivateObjectPayloadStore().put(operation_id=op_id,
             user_id=user_id, purpose="result", payload=bundle, item_count=1,
-            ttl_seconds=ttl_seconds, lifecycle="cover_v1")
+            ttl_seconds=ttl_seconds, lifecycle=lifecycle)
         descriptor = {key: value for key, value in asdict(ref).items() if key != "created"}
         design = json.loads(job["design_json"] or "{}")
         design.setdefault("editable_pending_refs", {})[ref.id] = descriptor

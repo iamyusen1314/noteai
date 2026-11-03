@@ -47,7 +47,7 @@ class CoverJobsTests(unittest.TestCase):
             (self.report,self.user,'真实门店','休闲娱乐体验','{"visual":"真实照片"}',self.now.isoformat()))
         self.source=self.image(self.user,small=True)
         self.policy={'enabled':True,'operation':'cover_generate','provider':'seedream','model_id':jobs.MODEL_ID,
-            'width':1776,'height':2368,'credits':8,'retention_seconds':90*86400,'max_physical_calls':3,
+            'width':1776,'height':2368,'credits':8,'retention_seconds':3*86400,'max_physical_calls':3,
             'max_image_calls':1,'budget_id':'noteai-xhs-cover-20261019-acceptance'}
         self.input={'note_title':'真实门店','note_body':'真实素材笔记','visual_advice':'保留门店主体'}
         self.index=0
@@ -63,7 +63,7 @@ class CoverJobsTests(unittest.TestCase):
         out=io.BytesIO()
         Image.new('RGB',(32,24) if small else (1776,2368),(44,88,111)).save(out,'PNG')
         return private_storage.store_media_bytes(user,purpose='image',content_type='image/png',payload=out.getvalue(),
-            item_count=1,ttl_seconds=90*86400 if not small else 86400,lifecycle='cover_v1' if not small else 'temporary',now=now)
+            item_count=1,ttl_seconds=3*86400 if not small else 86400,lifecycle='cover_3d_v1' if not small else 'temporary',now=now)
 
     def submit(self,*,key=None,**overrides):
         self.index+=1
@@ -100,7 +100,7 @@ class CoverJobsTests(unittest.TestCase):
         final,layout=cover_renderer.render_text(base,layout)
         def store(body):
             return private_storage.store_media_bytes(self.user,purpose='image',content_type='image/png',payload=body,
-                item_count=1,ttl_seconds=90*86400,lifecycle='cover_v1')
+                item_count=1,ttl_seconds=3*86400,lifecycle='cover_3d_v1')
         return store(final),store(base),layout
 
     def text_calls(self,claim):

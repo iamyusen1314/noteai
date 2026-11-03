@@ -28,7 +28,8 @@ import private_storage
 OPERATION = "cover_generate"
 MODEL_ID = "doubao-seedream-5-0-pro-260628"
 WIDTH, HEIGHT = 1776, 2368
-RETENTION_SECONDS = 90 * 86400
+RETENTION_SECONDS = 3 * 86400
+LEGACY_RETENTION_SECONDS = 90 * 86400
 HOLD_SECONDS = 1800
 BUDGET_ID = "noteai-xhs-cover-20261019-acceptance"
 FORMAL_BUDGET_ID = "noteai-cover-formal-v1"
@@ -91,14 +92,16 @@ def init_sqlite_schema():
         connection.close()
 
 
-def _policy(snapshot):
+def _policy(snapshot, *, allow_legacy_retention=False):
     if not isinstance(snapshot, dict) or snapshot.get("enabled") is not True:
         raise HTTPException(503, "封面功能尚未启用")
     if (snapshot.get("budget_id") not in {BUDGET_ID,FORMAL_BUDGET_ID} or snapshot.get("operation") != OPERATION or snapshot.get("model_id") != MODEL_ID
             or snapshot.get("provider") not in {"doubao", "ark", "volcengine_ark", "seedream"}
             or snapshot.get("width") != WIDTH or snapshot.get("height") != HEIGHT
             or _decimal(snapshot.get("credits")) != Decimal(8)
-            or snapshot.get("retention_seconds") != RETENTION_SECONDS
+            or type(snapshot.get("retention_seconds")) is not int
+            or snapshot.get("retention_seconds") not in ({RETENTION_SECONDS, LEGACY_RETENTION_SECONDS}
+                if allow_legacy_retention else {RETENTION_SECONDS})
             or (not (snapshot.get("design_version") == 3 and snapshot.get("max_physical_calls") is None)
                 and (type(snapshot.get("max_physical_calls")) is not int
                      or not 1 <= snapshot["max_physical_calls"] <= 3))
@@ -213,7 +216,7 @@ def list_report_jobs(user_id, report_type, report_id):
             "ORDER BY created_at DESC,id DESC", (user_id, report_type, report_id))
         if not rows:
             _authorize_report(tx, user_id, report_type, report_id)
-        # Retained cover artifacts have their own approved 90-day lifecycle.
+        # Retained cover artifacts keep their own original saved expiry.
         # Existing owner rows remain discoverable without reading an expired or
         # deleted report's body. This never authorizes a new submit for it.
         return [_projection(row, tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (row["id"],))) for row in rows]
@@ -226,7 +229,7 @@ def list_user_jobs(user_id, *, limit=100, now=None):
     rows = db.fetchall("SELECT * FROM cover_jobs WHERE user_id=? AND ((status='completed' AND expires_at>?) "
         "OR (status IN ('queued','running','saving','outcome_unknown') AND created_at>=?)) "
         "ORDER BY created_at DESC,id DESC LIMIT ?",(user_id,clock.isoformat(),
-        (clock-timedelta(seconds=RETENTION_SECONDS)).isoformat(),limit))
+        (clock-timedelta(seconds=LEGACY_RETENTION_SECONDS)).isoformat(),limit))
     return [_projection(row,db.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?",(row["id"],user_id))) for row in rows]
 
 
@@ -238,7 +241,7 @@ def submit_job(*, user_id, report_type, report_id, request_id, source_refs, inpu
     if not refs:
         raise HTTPException(422, "请先补传至少一张真实图片")
     _safe_input(input_snapshot)
-    _policy(policy_snapshot)
+    _policy(policy_snapshot, allow_legacy_retention=True)
     request_key = idempotency.normalize_request_id(request_id)
     if not request_key:
         raise HTTPException(422, "封面任务需要稳定的请求编号")
@@ -251,14 +254,28 @@ def submit_job(*, user_id, report_type, report_id, request_id, source_refs, inpu
         previous = tx.fetchone("SELECT i.id,i.payload_hash FROM idempotency_requests i "
             "WHERE i.user_id=? AND i.operation=? AND i.key_hash=?" + _lock(tx), (user_id, OPERATION, key_hash))
         if previous:
-            if previous["payload_hash"] != digest:
-                raise HTTPException(409, "原请求编号已绑定不同的封面内容")
             old = tx.fetchone("SELECT * FROM cover_jobs WHERE id=? AND user_id=?", (previous["id"], user_id))
             if not old:
                 raise HTTPException(409, "原封面任务需要核实，不能重复创建")
+            if previous["payload_hash"] != digest:
+                stored_policy = json.loads(old["policy_json"])
+                stored_payload = {"report_type": old["report_type"], "report_id": old["report_id"],
+                    "source_refs": [item["media_ref"] for item in json.loads(old["source_manifest_json"])],
+                    "input": json.loads(old["input_json"]), "policy": stored_policy}
+                current_payload = {**stored_payload, "policy": {**stored_policy, "retention_seconds": RETENTION_SECONDS}}
+                if (type(stored_policy.get("retention_seconds")) is not int
+                        or stored_policy["retention_seconds"] != LEGACY_RETENTION_SECONDS
+                        or policy_snapshot["retention_seconds"] != RETENTION_SECONDS
+                        or old["payload_hash"] != previous["payload_hash"]
+                        or idempotency.payload_hash(stored_payload) != previous["payload_hash"]
+                        or idempotency.payload_hash(current_payload) != digest):
+                    raise HTTPException(409, "原请求编号已绑定不同的封面内容")
             result = _projection(old, tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (old["id"],)))
             return {**result, "created": False}
         _authorize_report(tx, user_id, report_type, report_id)
+    # A legacy snapshot can only read its exact original request above; it
+    # cannot create a new task under the previous retention contract.
+    _policy(policy_snapshot)
     # Verify actual bytes outside the short financial transaction. The second
     # fence below locks and compares the exact source descriptors again.
     manifest = []
@@ -773,13 +790,14 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
     if layout.get("schema_version") == 2 and layout.get("base_sha256") != base.content_sha256:
         raise ValueError("saved cover base differs from the editable layout")
     expires_at = min(final.expires_at,base.expires_at)
-    if datetime.fromisoformat(expires_at) < clock+timedelta(seconds=RETENTION_SECONDS-60):
-        raise ValueError("cover assets do not satisfy the approved 90-day retention")
     qc = {**(qc_snapshot or {}),"passed":True}
     with db.transaction(write=True) as tx:
         row = _owner_row(tx,claim,now=clock,allow_completed=True)
         if row["status"] == "completed":
             return _projection(row,tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?",(row["id"],)))
+        policy = _policy(json.loads(row["policy_json"]), allow_legacy_retention=True)
+        if datetime.fromisoformat(expires_at) < clock+timedelta(seconds=policy["retention_seconds"]-60):
+            raise ValueError("cover assets do not satisfy the approved retention")
         sources = {item["media_ref"]:item["sha256"] for item in json.loads(row["source_manifest_json"])}
         design_version = json.loads(row["policy_json"]).get("design_version", 1)
         if design_version == 3:

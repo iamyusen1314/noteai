@@ -135,7 +135,9 @@ class CoverServiceIntegrationTests(unittest.TestCase):
         final, body = storage.load_media_bytes(final_ref, user_id=self.fixture.user, purpose="image")
         with Image.open(io.BytesIO(body)) as image:
             self.assertEqual(image.size, (1776, 2368))
-        self.assertGreaterEqual(datetime.fromisoformat(final.expires_at) - self.fixture.now, timedelta(days=89))
+        self.assertGreaterEqual(datetime.fromisoformat(final.expires_at) - self.fixture.now, timedelta(days=3) - timedelta(seconds=1))
+        self.assertEqual(datetime.fromisoformat(final.expires_at) - datetime.fromisoformat(final.created_at), timedelta(days=3))
+        self.assertIn("/cover_3d_v1/", storage._reference_key(final))
         self.assertEqual(jobs.get_job(self.fixture.user, task["job_id"])["status"], "completed")
         duplicate = self.submit(key="service-photo")
         self.assertFalse(duplicate["created"])

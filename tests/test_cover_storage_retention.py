@@ -25,7 +25,7 @@ class CoverStorageRetentionTests(unittest.TestCase):
         self.fixture.tearDown()
 
     def legacy_media(self):
-        """An old immutable key/hash row with the same 90-day media contract."""
+        """An old immutable flat key/hash remains readable without fallback."""
         original = private_storage._media_key
         def legacy_key(reference_id, subject_hash, purpose, **kwargs):
             return original(reference_id, subject_hash, purpose)
@@ -40,11 +40,11 @@ class CoverStorageRetentionTests(unittest.TestCase):
         self.assertEqual(source.object_key_hash, hashlib.sha256(source_key.encode()).hexdigest())
         cover = self.fixture.image(self.fixture.user)
         cover_key = private_storage._reference_key(cover)
-        self.assertEqual(cover_key, f"v1/media/image/cover_v1/{cover.subject_hash[:12]}/{cover.id}.bin")
+        self.assertEqual(cover_key, f"v1/media/image/cover_3d_v1/{cover.subject_hash[:12]}/{cover.id}.bin")
         backend = private_storage.AliyunOssObjectBackend(client=object(), bucket="offline-cover-test")
         self.assertEqual(backend._remote_key(cover_key), "noteai-private/" + cover_key)
         self.assertEqual((datetime.fromisoformat(cover.expires_at)
-            - datetime.fromisoformat(cover.created_at)).total_seconds(), 90 * 86400)
+            - datetime.fromisoformat(cover.created_at)).total_seconds(), 3 * 86400)
         for purpose in ("request", "result"):
             ref = private_storage.PrivateObjectPayloadStore().put(operation_id=str(uuid.uuid4()),
                 user_id=self.fixture.user, purpose=purpose, payload=b'{"temporary":true}',
@@ -71,7 +71,7 @@ class CoverStorageRetentionTests(unittest.TestCase):
         self.assertIsNone(self.fixture.backend.head(private_storage._reference_key(self.fixture.source)))
         for ref in (current, legacy):
             self.assertIsNotNone(self.fixture.backend.head(private_storage._reference_key(ref)))
-        private_storage.expire_media(user_id=self.fixture.user, now=self.fixture.now + timedelta(days=91))
+        private_storage.expire_media(user_id=self.fixture.user, now=self.fixture.now + timedelta(days=4))
         for ref in (current, legacy):
             self.assertIsNone(self.fixture.backend.head(private_storage._reference_key(ref)))
         remaining = [self.fixture.image(self.fixture.user), self.legacy_media()]
@@ -102,12 +102,12 @@ class CoverStorageRetentionTests(unittest.TestCase):
 
     def test_payload_old_new_hash_binding_and_delete(self):
         store = private_storage.PrivateObjectPayloadStore()
-        for lifecycle in ("temporary", "cover_v1"):
+        for lifecycle in ("temporary", "cover_v1", "cover_3d_v1"):
             ref = store.put(operation_id=str(uuid.uuid4()), user_id=self.fixture.user,
                 purpose="result", payload=b'{"design":true}', item_count=1,
-                ttl_seconds=90 * 86400, lifecycle=lifecycle)
+                ttl_seconds=(3 if lifecycle == "cover_3d_v1" else 90) * 86400, lifecycle=lifecycle)
             key = private_storage._reference_key(ref, payload=True)
-            self.assertEqual("/cover_v1/" in key, lifecycle == "cover_v1")
+            self.assertEqual("/" + lifecycle + "/" in key, lifecycle != "temporary")
             self.assertEqual(store.get(ref, user_id=self.fixture.user), b'{"design":true}')
             with mock.patch.object(self.fixture.backend, "get", wraps=self.fixture.backend.get) as read:
                 with self.assertRaises(durable_ai.PayloadUnavailable):
@@ -147,7 +147,7 @@ class LegacyEditableBundleTests(unittest.TestCase):
             old_ref = cover_agent_artifacts.reference(layout["editable_ref"])
             self.assertNotIn("/cover_v1/", private_storage._reference_key(old_ref, payload=True))
             pending = cover_agent_artifacts.store(flow.fixture.user, task["job_id"], bundle, revision=2)
-            self.assertIn("/cover_v1/", private_storage._reference_key(
+            self.assertIn("/cover_3d_v1/", private_storage._reference_key(
                 cover_agent_artifacts.reference(pending), payload=True))
             private_storage.reconcile_orphans(prefix="v1/payload", now=flow.fixture.now + timedelta(days=2), apply=True)
             self.assertEqual(cover_agent_artifacts.load(flow.fixture.user, layout), bundle)

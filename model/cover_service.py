@@ -25,13 +25,21 @@ import private_storage
 import public_product
 
 
-def _store_image(user_id, body, *, ttl_seconds=cover_settings.RETENTION_SECONDS):
+def _store_image(user_id, body, *, ttl_seconds=cover_settings.RETENTION_SECONDS, lifecycle="cover_3d_v1"):
     return private_storage.store_media_bytes(user_id, purpose="image", content_type="image/png",
-        payload=body, item_count=1, ttl_seconds=ttl_seconds, lifecycle="cover_v1")
+        payload=body, item_count=1, ttl_seconds=ttl_seconds, lifecycle=lifecycle)
+
+
+def _retention_policy(policy):
+    retention = policy.get("retention_seconds")
+    if type(retention) is not int or retention not in {cover_settings.RETENTION_SECONDS, cover_settings.LEGACY_RETENTION_SECONDS}:
+        raise HTTPException(503, "原封面保存策略需要核实")
+    return retention, "cover_v1" if retention == cover_settings.LEGACY_RETENTION_SECONDS else "cover_3d_v1"
 
 
 def _run_claim(claim, *, runtime=None):
     user_id, job_id = claim["user_id"], claim["request_id"]
+    retention, lifecycle = _retention_policy(claim["policy_snapshot"])
     invocation = public_product.Invocation(user_id, job_id, route="/covers",
         budget_id=claim["policy_snapshot"].get("budget_id", cover_settings.BUDGET_ID))
     operation, owns = model_admission.current().register(user_id,
@@ -89,7 +97,7 @@ def _run_claim(claim, *, runtime=None):
         digest = hashlib.sha256(body).hexdigest()
         reference = candidate_refs.get(digest)
         if reference is None:
-            reference = _store_image(user_id, body).id
+            reference = _store_image(user_id, body, ttl_seconds=retention, lifecycle=lifecycle).id
             candidate_refs[digest] = reference
         cover_jobs.record_agent_candidate(claim, snapshot, reference)
 
@@ -112,12 +120,12 @@ def _run_claim(claim, *, runtime=None):
         # storage, as well as before the delivery settlement transaction.
         cover_runtime._validate_qc(result.qc)
         on_stage("ready_to_save")
-        base = _store_image(user_id, result.base_bytes)
-        final = _store_image(user_id, result.final_bytes)
+        base = _store_image(user_id, result.base_bytes, ttl_seconds=retention, lifecycle=lifecycle)
+        final = _store_image(user_id, result.final_bytes, ttl_seconds=retention, lifecycle=lifecycle)
         if result.layout.get("schema_version") == 3:
             import cover_agent_artifacts
             result.layout["editable_ref"] = cover_agent_artifacts.store(user_id, job_id,
-                result.artifact["editable_bundle"])
+                result.artifact["editable_bundle"], ttl_seconds=retention, lifecycle=lifecycle)
         qc = result.qc
         return cover_jobs.complete_job(claim, final_media_ref=final.id, base_media_ref=base.id,
             layout=result.layout, qc_passed=True, qc_snapshot=qc, design_snapshot=result.design)
@@ -215,20 +223,21 @@ def adjust(user_id, job_id, *, text, position, expected_revision, layer_id=None)
         raise HTTPException(404, "可调整的封面不存在或已过期")
     if job["asset_revision"] != expected_revision:
         raise HTTPException(409, "封面已更新，请重新打开")
-    row = db.fetchone("SELECT layout_json,expires_at FROM cover_jobs WHERE id=? AND user_id=?", (job_id, user_id))
+    row = db.fetchone("SELECT layout_json,expires_at,policy_json FROM cover_jobs WHERE id=? AND user_id=?", (job_id, user_id))
     layout = json.loads(row["layout_json"])
-    remaining = max(60, min(cover_settings.RETENTION_SECONDS,
+    retention, lifecycle = _retention_policy(json.loads(row["policy_json"]))
+    remaining = max(60, min(retention,
         int((datetime.fromisoformat(row["expires_at"]) - datetime.now(timezone.utc)).total_seconds()) + 1))
     if layout.get("schema_version") == 3:
         import cover_agent_artifacts
         try:
             final, updated = cover_agent_artifacts.adjust(user_id, job_id, layout, text=text,
-                position=position, layer_id=layer_id, revision=expected_revision + 1, ttl_seconds=remaining)
+                position=position, layer_id=layer_id, revision=expected_revision + 1, ttl_seconds=remaining, lifecycle=lifecycle)
         except ValueError as exc:
             if str(exc) == "COVER_EDITABLE_RENDER_BUSY":
                 raise HTTPException(429, "排字处理中，请稍后重试；原成品仍可下载") from None
             raise HTTPException(422, "文字超出安全区域或源文件不可读，请缩短文字或保留原位置") from None
-        stored = _store_image(user_id, final, ttl_seconds=remaining)
+        stored = _store_image(user_id, final, ttl_seconds=remaining, lifecycle=lifecycle)
         return cover_jobs.update_adjusted_asset(user_id, job_id, final_media_ref=stored.id,
             layout=updated, expected_revision=expected_revision)
     base_ref = cover_jobs.asset_reference(user_id, job_id, base=True)
@@ -243,8 +252,8 @@ def adjust(user_id, job_id, *, text, position, expected_revision, layer_id=None)
     final, updated = cover_runtime.free_adjust(base, layout, text=text, position=xy)
     # New revision bytes may live a few seconds beyond the deadline, but all
     # job reads are still fenced by the original exact expiry, never extended.
-    remaining = max(60, min(cover_settings.RETENTION_SECONDS,
+    remaining = max(60, min(retention,
         int((datetime.fromisoformat(row["expires_at"]) - datetime.now(timezone.utc)).total_seconds()) + 1))
-    stored = _store_image(user_id, final, ttl_seconds=remaining)
+    stored = _store_image(user_id, final, ttl_seconds=remaining, lifecycle=lifecycle)
     return cover_jobs.update_adjusted_asset(user_id, job_id, final_media_ref=stored.id,
         layout=updated, expected_revision=expected_revision)

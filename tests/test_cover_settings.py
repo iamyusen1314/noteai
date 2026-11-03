@@ -149,7 +149,7 @@ class CoverSettingsTests(unittest.TestCase):
             self.assertEqual(policy['credits'],'8')
             self.assertEqual(policy['model_id'],settings.MODEL_ID)
             self.assertEqual((policy['width'],policy['height']),(1776,2368))
-            self.assertEqual(policy['retention_seconds'],90*86400)
+            self.assertEqual(policy['retention_seconds'],3*86400)
             self.assertEqual(policy['price_status'],'public_estimate')
             self.assertNotIn('actual_cost',policy)
         self.activate(scope='test',execution_scope='formal')
