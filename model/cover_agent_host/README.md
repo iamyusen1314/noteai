@@ -20,6 +20,47 @@ The package's >=22.12 declaration is not a Linux compatibility proof: readiness
 also checks the real `node:sqlite` in-memory database and array-result APIs used
 by the SDK. The full SDK and renderer still need a provider-free target-host test.
 
+### Large-photo Base64 compatibility patch
+
+OpenCode 2.1.2's `@opencode/schema/dist/prompt.js` validates Base64 with a nested
+repetition RegExp. Node can exhaust its RegExp stack on a legal multi-megabyte
+photo before the first model request. During candidate construction, after the
+locked dependency installation or retained dependency copy, run:
+
+```bash
+node /app/model/cover_agent_host/apply-sdk-base64-compat.mjs /absolute/runtime/node_modules
+```
+
+The build-only helper requires SDK/schema versions 2.1.2 and the exact original
+2370-byte schema SHA256
+`2fd973e0fac2f8fe9025ced5a3ba410768ab99806143e70e4388044f27f325b4`.
+It replaces only the Base64 filter with a constant-space, linear character scan;
+the schema identifier, original pattern representation, JSON Schema and filter
+annotations remain unchanged. Empty strings, padding and nonzero unused padding
+bits retain the original acceptance rules. Images are neither decoded/re-encoded
+nor resized by this patch. It adds no dependency, model call or provider retry.
+
+Only the exact patched 3196-byte SHA256
+`90e473112cca6e5cda43aceb63bddc1daa1adb028f96f1e7796896b52c410904`
+is accepted on a second application. Other file bytes/versions and symbolic
+targets fail closed without modifying the dependency. Stdout contains only
+version/hash/size metadata. Apply it to a candidate dependency tree, never mutate
+the live installation; production switching remains the integration owner's job.
+
+Provider-free regression uses an explicit existing dependency runtime, copies
+the schema only to temporary directories, and imports no product DB or dotenv:
+
+```bash
+NOTEAI_COVER_HOST_NODE_MODULES=/absolute/unmodified/runtime/node_modules \
+NOTEAI_COVER_NODE=/absolute/node \
+python3 -m unittest tests.test_cover_sdk_base64_compat
+```
+
+The test retains the old large-photo RangeError control, checks the real Effect
+schema and `FileAttachment.create` with approximately 14MB of Base64, rejects
+large malformed input, and verifies metadata equivalence and guarded idempotency.
+Node/OS production compatibility still requires the original target-host check.
+
 The Promise SDK entry is intentional: `@opencode/sdk/promise` accepts the second
 embed override argument, while the 2.1.2 root `OpenCode.create` wrapper drops it.
 Explicit Config/Global service overrides disable project, system, global and
