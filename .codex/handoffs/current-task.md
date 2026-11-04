@@ -34732,3 +34732,18 @@ RETENTION3D-DUAL-QA001已知失败保留：6用例5通过1ERROR，唯独测试�
 唯一发布前外部待定仍为已发出的两条新cover_3d_v1目录3天自动永久删除规则当次确认；第一media规则modal已具体准备但未确定，design第二条尚未创建；旧90天两规则与root原图2天/碎片1天全部保留。用户“仅新封面改3天，旧封面保留原期限”是产品范围确认，不能冒称已同意本次不可逆删除配置。确认到达后Root保存两规则并精确读回，再派既有publishwire一次。新R3仍无UUID/任务/付费授权；R2已消费failed、8分全退、12knownPro、无图/UNKNOWN0，A57保守48911/余8089毫元原样。发布完成后再按单任务边界集中确认下一张，绝不重发R2。
 
 权威PLAN.current_resume_pointer已由旧COMPLETE历史指针改为本incident ACTIVE并保留旧指针，防恢复误判结束。Root自建50442本机预览session39269已停止，原用户56613未动；Chrome4仅保留两个实际续接标签。所有不依赖确认的当前准备完成；只暂停OSS Save及依赖发布/后续真实任务，不冒后台自动续跑承诺。
+
+
+### 2026-11-04T00:29:12.840491+00:00 — CURRENT：新3天规则与封面修复版已正式上线，入口重开；下一张真实成品仍待单任务确认
+
+Owner本次直接“确认”已登记为两条新cover_3d_v1目录3天自动永久删除的当次授权。Root实际保存media noteai-cover-media-new-v1-3d（noteai-private/v1/media/image/cover_3d_v1/）及design noteai-cover-design-new-v1-3d（noteai-private/v1/payload/result/cover_3d_v1/），均LastModified3天/delete/overlaptrue/无新增碎片策略；再打开编辑页只读完整前缀/天数/模式并取消，原root2天+碎片1天/两90天旧规则均保持。E/OSS-NEW3-RULES-SAVED001.RESULT.json+各SAVED-EXACT001.DOM.txt/PNG及FIVE-RULES-READBACK001为真实UI证据；控制台提示48h内加载/异步删除，不能称已等满3天实测。
+
+实际RETENTION3D-RELEASE-PUBLISH001/t-sz0721p3u9ypvy8 Success0/Dropped0/Repeats1，原8stage全部闭合：close reload0→drain→原2leafstatic swap/manifest544c/HTTPS200与SHA→pair switch→真实verify→new3 policy只读→reopen reload0→COMPLETED_REOPENED。未重派旧prepare/任何UNKNOWN，无137或恢复续接。本轮provider0/SQLwrites0、无新订单/积分调整/Admin重启。E/RETENTION3D-RELEASE-PUBLISH001.RESULT.FULL.json及ORIGINAL-OUTPUT-LINE01..08为原输出逐字节切片，末行343B/SHA62e5d7e7c01d7a7c45bc4c5977d75ca6e4c095d1f699ef6288deca7a034608f0；独立审GO，无直接阻塞问题。
+
+当前production API CID22da657568108e5760de879a03daa715ef0add33941e4f640c2a5764b95f2b4e/image0748de3d0ccccb8d4c6291916a521ea0ade462e9c495685ee7f92da5e18221b0，Pay CID9f4e5c597e878e74ff626fd63f6b216337b457c6d1a6c64cc2aac44b5990bc33/image4e4d原样且同netns；Admin原c5d/4a034保持。正式functional6e9c（此前b43fb补看恢复），7源码/SDK90e/core9c74精确，API3GiB/2CPU/全profile保持，新CID OOMfalse/restart0。公开API live200；实际normal DB SELECT1只读/localmodel ready200、Admin8001/Pay8002 readytrue；API公开ready404原合同不改。schema0032/JSAPI1/原2orders保留。newpolicy259200秒/8积分/Seed2.1Pro+Seedream5Pro，storedactive仍7776000未重写，旧期限不追溯。
+
+静态current=/var/www/noteai-public/cover-retention-3d-6e9c1fd9-20261104-r1，manifest544cd530f2deb2cdcfd35f331e2105a09a362260f184b1b9ccc683fc71b04859，仅index717d/appbfa0两叶及4文案/引用，其他14叶/2absences保留，paymentnative1d4/分享Logo不改。公网普通首页首次浏览器缓存仍旧脚本21ed，正常reload已取bfa0；独立query同样新脚本，无新增cache修复。Root在正确第二标签实测1280×900/doc1265及390×844/doc375、H5菜单正常、applicationconsoleerror0，E/ONLINE-NEW3-PUBLIC-SMOKE002.RESULT.json+PC/H5截图；最初viewport作用于另一标签导致2560截图已保留WRONG-TAB不计H5通过，最终viewportreset。此为未登录公网页面smoke，封面列表/重开仍复用前次实际split受控mock证据，不能冒客户3140前端登录/真实PNG/iPhone保存。
+
+回退用本CASE prepare_running_rollback→compatad4c，保new3/old90 reader、当前new3静态与3GiB；new3ref后禁止blind退8cac。recover_closed_pair仅旧“candidate从未start、双容器明确absent”特殊前提，非通用回退/已验证一键恢复，若触发先读原once状态再窄恢复，不在本次新增gate。Root维持唯一发布权，不需WorkerC，无新依赖/迁移/长期权限/资源。
+
+R2原82055b92仍failed/net0/8全退、12knownPro文字1.2792612/图0/UNKNOWN0，所有旧UNKNOWN/费用保留，A57保守48911/余8089毫元不变。本次确认只针对两存储规则；R3仍未获新单任务授权、未建UUID/任务或发送模型。Root继续准备当前22da绑定的既有正常handler和原9字节现场只读检查；完成后集中请求原3140报告新增1张预计4–6元、预算不追加，成功保存/重开/免费改字/下载/唯一8结算并交真实PNG。技术发布完成不等于真实成品验收通过，任务尚未complete。
