@@ -34859,3 +34859,12 @@ Root已集中询问新决定：A62→70仅追加8元/原总≤100，当前保守
 ### 2026-11-04T04:07:33.951333+00:00 — CURRENT：Owner“确认”已批准A62→70追加8元/原总≤100，仅R5一个新任务
 
 Root将上一条集中问题的实际“确认”登记为新单授权，唯一CLIENT 3d97a5dd-53f4-4ce7-a572-662902db0f2c，E/BACKEND-OWNER-COVER-R5.INTENT.json；A prior59115/本单最多10885毫元/预计4–8元，旧R4 7257及其中UNKNOWN2753与所有历史保持。3140原uid499…/generate d942…九真实原照/双Pro/最多1非交付概念图+既有1局部修正/最终保原照/新3天/合格保存后唯一8。失败未知预算不足停不重发，不另建第二client；无需客户登录/新权限/公网或资源。当前尚未新job/预留/供应商调用，slot尚未消费。Root先复用已审NEXT guard/operator/status，install须精确当前a4e79/23092及正常unit，verifiedclosed→正常handler唯一submit首job+usage→open；终态精确恢复当前23092。仅此支推进，不重做旧已过QA/存储/支付/Amap或报告。
+
+
+### 2026-11-04T04:13:36.410588+00:00 — CURRENT：R5唯一fce7…1739已真实创建并运行，入口恢复；只跟踪此单
+
+R5-BUDGET-INSTALL001/t-sz07229ah5bvmdc Success0/Dropped0，现场since04:11:26.849982UTC/USER499…/MAX10885，exactcurrent23092同image配置切换，actualAPIb452e18f7574553e8e532332b1eb38ba3c66af7dd60ff55ed306407907cfb882/profile60ed4092a290910ffdf40226889bfe500d9d8e1d648901b87af89e2bc51b1db5，Paycc7c9ac1cb75b5131cca61d08c66416f81289217ef1d2d500b4e5440ce845ef7/原4e4同netns，Admin原c5d保持；normalready200/static544c/schema0032flag1/orders2不变。原helper15197/0eaa只晚绑95dd/child39f85，本次实际install前Root自核，独审GO于执行后形成；不得写为提前独审install背书。
+
+BACKEND-COVER-R5-SUBMIT001/t-sz07229dzn09v5s Success0/Dropped0，9024/39f85 normalhandler child仅新唯一client3d97a5dd-53f4-4ce7-a572-662902db0f2c，于04:12:36.980506UTC createdtrue：jobfce7e0bd-ad62-4826-b4d8-84cde4121739/usagef2375db7-d6b5-44bb-a2b0-6a517ce917ce/原generate d942…/9张/8分reserved。首job/usage同原budgetfirsttask后原reopen syntax/reload0；无HTTP登录/新token/worker/模型直调。原R4released UNKNOWN独立保留不再误挡新任务。submit inner/outer、guard/remove/status独审GO在submit派发前已到，无重跑旧QA。CloudClientToken Root按Name确定性uuid5=efaf3865-6457-5c85-bc7e-9984ebf0844b补入PLAN，业务client/wire不变。唯一serverresult ROOT/cover-backend-original-owner-20261104-r5.result.json。当前授权单任务已消费，严禁另建第二client/重发原R4或任何未知请求；尚无合格成品或最终8扣分。
+
+Root接续原readonly STATUS001(从实际installverified+R5durablereceipt动态取CID/job，prior59115/A70，非新paid)→仅真实合格持久PNG正常read/list/download/bundle核9SHA/new3/真实六项QC→一次免费排字/实际图层/重开/下载/唯一8→仅终态无inflight才原R5-BUDGET-REMOVE001精确恢复本次23092正常配置，不能回5aef。其余8/A费用旧UNKNOWN全部保留。
