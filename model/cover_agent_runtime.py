@@ -963,7 +963,9 @@ def _prompt(context, sources):
         "读取不改原文件，编辑text后用cover_write写回会原样保留字库，不要把字库CSS复制进模型上下文。"
         "沿用cover_check/cover_render返回的原code/detail局部修正；"
         "没有cover_render的ok:true及实际PNG/manifest，不能宣称已渲染完成。"
-        "用cover_render工具提交sources[{ref,path,sha256}]、text_layers[{id,allowed_rect:{x,y,width,height}}]、"
+        "用cover_render工具提交sources[{path}]，只选本job给定的原照路径；ref/sha256可省，"
+        "由后端从实际原照字节生成权威身份，兼容传入的ref/sha256不作为授权依据；"
+        "另提交text_layers[{id,allowed_rect:{x,y,width,height}}]、"
         "protected_regions[{x,y,width,height}]，所有坐标为画布像素。allowed_rect是此设计中可免费调整的安全文字区，"
         "allowed_rect须同时包含文字元素盒及实际字形；超界错误detail提供测得坐标，按它修正。"
         "若overflow为true，扩大allowed_rect本身不能修好行框内的字形溢出；"
@@ -1121,9 +1123,18 @@ class Bridge:
             project = (project if project.is_absolute() else root / project).resolve(strict=True)
             if not project.is_dir() or not project.is_relative_to(root):
                 raise _RenderSourceRejection("PROJECT_INVALID")
+            # Source identity is business-owned. An author's copied checksum
+            # cannot grant access, or reject an otherwise unchanged original.
+            if (not 1 <= len(self.sources) <= 9 or any(not isinstance(source, dict)
+                    or not isinstance(source.get("payload"), bytes) or not source["payload"]
+                    or not isinstance(source.get("media_ref"), str) or not source["media_ref"]
+                    or not isinstance(source.get("path"), str) or not source["path"]
+                    or artifacts.digest(source["payload"]) != source.get("sha256") for source in self.sources)):
+                raise _RenderSourceRejection("FROZEN_ORIGINAL_INVALID")
+            maximum = max(len(source["payload"]) for source in self.sources)
             canonical, used = [], set()
             for entry in entries:
-                if not isinstance(entry, dict) or not isinstance(entry.get("sha256"), str):
+                if not isinstance(entry, dict):
                     raise _RenderSourceRejection("DECLARATION_INVALID")
                 try:
                     relative = artifacts.relative(entry.get("path"))
@@ -1146,11 +1157,6 @@ class Bridge:
                     raise _RenderSourceRejection("PATH_NOT_FOUND") from None
                 if not resolved.is_relative_to(project):
                     raise _RenderSourceRejection("PATH_NOT_ALLOWED")
-                originals = [source for source in self.sources if source["sha256"] == entry["sha256"]]
-                if not originals:
-                    raise _RenderSourceRejection("HASH_NOT_ORIGINAL")
-                if any(artifacts.digest(source["payload"]) != source["sha256"] for source in originals):
-                    raise _RenderSourceRejection("FROZEN_ORIGINAL_INVALID")
                 fd = os.open(resolved, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
                 try:
                     info = os.fstat(fd)
@@ -1160,11 +1166,16 @@ class Bridge:
                     os.close(fd)
                     raise
                 with os.fdopen(fd, "rb") as stream:
-                    if info.st_size != len(originals[0]["payload"]):
+                    if (info.st_size > maximum
+                            or not any(info.st_size == len(source["payload"]) for source in self.sources)):
                         raise _RenderSourceRejection("SOURCE_BYTES_CHANGED")
-                    body = stream.read(len(originals[0]["payload"]) + 1)
-                    if len(body) != len(originals[0]["payload"]) or artifacts.digest(body) != entry["sha256"]:
+                    body = stream.read(info.st_size + 1)
+                    if len(body) != info.st_size:
                         raise _RenderSourceRejection("SOURCE_BYTES_CHANGED")
+                actual_sha = artifacts.digest(body)
+                originals = [source for source in self.sources if source["sha256"] == actual_sha]
+                if not originals:
+                    raise _RenderSourceRejection("SOURCE_BYTES_CHANGED")
                 source = next((item for item in originals
                     if (root / item["path"]).resolve(strict=True) == resolved), originals[0])
                 if source["media_ref"] in used:

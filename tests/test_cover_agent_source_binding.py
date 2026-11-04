@@ -55,29 +55,43 @@ class RenderSourceBindingTests(unittest.TestCase):
                 {"ref": "frozen-original", "path": path, "sha256": self.source["sha256"]}]})
             self.assertEqual(request, before)
 
-    def test_wrong_hash_paths_other_photos_concept_and_symlinks_are_not_originals(self):
+    def test_wrong_or_missing_authored_identity_is_replaced_only_for_real_frozen_bytes(self):
+        for item in ({"path": "original.png"}, {"path": "original.png", "ref": "wrong-owner-alias", "sha256": "0" * 64},
+                {"path": "original.png", "ref": "", "sha256": "not-a-checksum"}):
+            request = {"name": "cover_render", "arguments": {"sources": [item]}}
+            before = deepcopy(request)
+            self.assertEqual(self.bridge.tool(request), {"allowed": True, "canonical_sources": [
+                {"ref": self.source["media_ref"], "path": "original.png", "sha256": self.source["sha256"]}]})
+            self.assertEqual(request, before)
+            self.assertEqual(self.bridge.render_source_repairs, 0)
+
+    def test_paths_other_photos_concept_and_symlinks_cannot_grant_original_identity(self):
         other = fixture.synthetic_png((40, 30), "#814276")
         (self.root / "other.png").write_bytes(other)
         (self.root / "concept.png").write_bytes(other)
-        outside = self.root.parent / "outside.png"
-        outside.write_bytes(self.body)
+        outside = self.root.parent / "outside.png"; outside.write_bytes(self.body)
         (self.root / "linked.png").symlink_to(outside)
-        cases = ({"sha256": "0" * 64}, {"path": "missing.png"}, {"path": "../outside.png"},
-            {"path": "other.png", "sha256": artifacts.digest(other)},
-            {"path": "concept.png", "sha256": artifacts.digest(other)})
-        for change in cases:
-            with self.subTest(change=change):
-                # Each independent rejected declaration can be corrected, but
-                # never receives canonical approval or runs the renderer.
-                bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=self.root,
-                    sources=[self.source], hooks=mock.Mock())
-                bridge.concept_hash = "seen-concept"; bridge.seen_images.add("seen-concept")
-                answer = bridge.tool(self.request(**change))
-                self.assertFalse(answer["allowed"])
-                self.assertFalse(answer["dispatched"])
-                self.assertNotIn("canonical_sources", answer)
-        with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_RENDER_SOURCE_INVALID"):
-            self.bridge.tool(self.request(path="linked.png"))
+        for path in ("missing.png", "../outside.png"):
+            self.assertFalse(self.bridge.tool(self.request(path=path))["allowed"])
+        for path in ("other.png", "concept.png", "linked.png"):
+            with self.subTest(path=path), self.assertRaisesRegex(cover_runtime.CoverRuntimeError,
+                    "COVER_AGENT_RENDER_SOURCE_INVALID"):
+                self.bridge.tool(self.request(path=path, sha256=self.source["sha256"]))
+
+    def test_oversize_file_is_rejected_without_reading_model_selected_bytes(self):
+        (self.root / "too-large.png").write_bytes(self.body + b"X")
+        real_fdopen = runtime.os.fdopen
+        class Guarded:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def read(self, *_): raise AssertionError("Oversize source must never be read")
+        def guarded(fd, *args, **kwargs): return Guarded(real_fdopen(fd, *args, **kwargs))
+        with mock.patch.object(runtime.os, "fdopen", side_effect=guarded), \
+                mock.patch.object(runtime, "_write_render_source_diagnostic"), \
+                self.assertRaises(runtime._RenderSourceRejection) as caught:
+            self.bridge.tool(self.request(path="too-large.png"))
+        self.assertEqual(caught.exception.reason, "SOURCE_BYTES_CHANGED")
 
     def test_changed_bytes_and_duplicate_aliases_cannot_rebind_an_original(self):
         (self.root / "changed.png").write_bytes(b"x" * len(self.body))
@@ -201,7 +215,7 @@ class CanonicalSourceScriptedBridge(fixture.ScriptedBridge):
             self.ordinal += 1
             self.requests.append({"stage": stage, "input_bound": bound, "image_sha256": sorted(hashes)})
             return self.response(None, [("cover_view", {"path": source["path"]}) for source in missing]), "offline-preface"
-        if stage == "design" and self.design_turn == 5 and self.case in {"wrong_hash", "unauthorized_concept"}:
+        if stage == "design" and self.design_turn == 5 and self.case in {"wrong_path"}:
             rejection = fixture.returned_value(payload, "recoverable")
             if rejection.get("allowed") is not False or rejection.get("dispatched") is not False:
                 raise AssertionError("Rejected source was approved")
@@ -226,8 +240,10 @@ class CanonicalSourceScriptedBridge(fixture.ScriptedBridge):
                     source["ref"] = "model-local-alias"
                 if self.copy_path:
                     source["path"] = self.copy_path
-                if self.case == "wrong_hash":
-                    source["sha256"] = "0" * 64
+                if self.case in {"wrong_hash", "project_copy"}:
+                    source["sha256"] = "not-an-authority"
+                if self.case == "path_only":
+                    source.pop("ref"); source.pop("sha256")
                 if self.case == "wrong_path":
                     source["path"] = "../outside.jpg"
                 if self.case == "unauthorized_concept":
@@ -281,9 +297,45 @@ class CanonicalSourceSDKTests(unittest.TestCase):
                 "physical_provider_calls": 0, "production_DB_writes": 0, "QC_is_synthetic_stub": True,
                 "cases": cls.proofs}, indent=2) + "\n")
 
+    def saved_edit_identity(self, result):
+        # Exercise the normal private-bundle store/load and free-edit functions
+        # in the existing isolated owner/SQLite/object-backend fixture. This is
+        # not production login, settlement, or merchant aesthetic acceptance.
+        from tests.test_cover_jobs import CoverJobsTests
+        storage = CoverJobsTests()
+        storage.setUp()
+        try:
+            task, _ = storage.claim()
+            layout = deepcopy(result.layout)
+            layout["editable_ref"] = artifacts.store(storage.user, task["job_id"],
+                result.artifact["editable_bundle"])
+            saved = artifacts.validate_saved(storage.user, layout, final_bytes=result.final_bytes)
+            self.assertEqual(saved, result.artifact["editable_bundle"])
+            before = storage.balances()
+            edited, updated = artifacts.adjust(storage.user, task["job_id"], layout,
+                text="原照独立\n图层中文排字测试", position=None, layer_id="title",
+                revision=2, ttl_seconds=3 * 86400)
+            edited_bundle = artifacts.validate_saved(storage.user, updated, final_bytes=edited)
+            self.assertEqual(updated["source_hashes"], layout["source_hashes"])
+            self.assertEqual(updated["input_source_hashes"], layout["input_source_hashes"])
+            self.assertEqual(updated["initial_qc_ref"], layout["initial_qc_ref"])
+            self.assertEqual(updated["qc_status"], "USER_ADJUSTED_NOT_VISUALLY_REVIEWED")
+            self.assertEqual(storage.balances(), before, "Normal free edit must not charge credits")
+            manifest = json.loads(base64.b64decode(json.loads(edited_bundle)["files"]["render-manifest.json"]))
+            self.assertEqual({x["ref"]: x["sha256"] for x in manifest["constraints"]["sources"]},
+                layout["source_hashes"])
+            with self.assertRaises(Exception):
+                artifacts.validate_saved(storage.other, updated)
+            return {"normal_private_bundle_store_load": True, "actual_free_edit_and_recapture": True,
+                "source_identity_unchanged": True, "isolated_owner_check": True,
+                "free_edit_credit_delta": 0, "physical_model_calls": 0}
+        finally:
+            storage.tearDown()
+
     def run_case(self, case, *, rejected=False):
         concept = fixture.synthetic_png((1776, 2368), "#a1a8b1")
         candidates, stops = [], []
+        saved_edit = None
         CanonicalSourceScriptedBridge.instances = []
         CanonicalSourceScriptedBridge.case = case
         def on_candidate(snapshot, body):
@@ -320,6 +372,8 @@ class CanonicalSourceSDKTests(unittest.TestCase):
                     self.assertEqual(len(result.layout["input_source_hashes"]), 9)
                     self.assertEqual(len(candidates), 2)
                     self.assertTrue(candidates[-1]["qc_present"])
+                    if case == "wrong_hash":
+                        saved_edit = self.saved_edit_identity(result)
                 bridge = CanonicalSourceScriptedBridge.instances[-1]
                 self.assertTrue({s["sha256"] for s in self.sources}.issubset(bridge.seen_images))
                 self.assertEqual(image.call_count, 1)
@@ -329,7 +383,8 @@ class CanonicalSourceSDKTests(unittest.TestCase):
                 self.proofs.append({"case": case, "rejected_before_CLI_render": rejected,
                     "actual_host_complete": bool(bridge.host_results and bridge.host_results[-1]["status"] == "COMPLETE"),
                     "originals_wire_seen": 9, "candidate_callbacks": candidates, "real_host_cleanup": stops,
-                    "scripted_model_responses": len(bridge.requests), "physical_provider_calls": 0})
+                    "scripted_model_responses": len(bridge.requests), "physical_provider_calls": 0,
+                    "saved_edit_identity": saved_edit})
             finally:
                 runtime.cleanup_workspace(job)
 
@@ -342,8 +397,11 @@ class CanonicalSourceSDKTests(unittest.TestCase):
     def test_project_copy_keeps_exact_original_bytes_and_canonical_identity(self):
         self.run_case("project_copy")
 
-    def test_wrong_hash_is_denied_before_actual_cli_render(self):
-        self.run_case("wrong_hash", rejected=True)
+    def test_authored_wrong_hash_is_replaced_by_real_bytes_before_actual_capture(self):
+        self.run_case("wrong_hash")
+
+    def test_path_only_tool_input_uses_backend_identity_through_actual_capture(self):
+        self.run_case("path_only")
 
     def test_wrong_path_is_denied_before_actual_cli_render(self):
         self.run_case("wrong_path", rejected=True)

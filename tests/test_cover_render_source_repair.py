@@ -22,8 +22,7 @@ class RenderSourceRepairTests(unittest.TestCase):
     request = binding.RenderSourceBindingTests.request
 
     def test_authored_declaration_errors_are_rejected_without_file_access_or_render(self):
-        cases = [({"sha256": "0" * 64}, "HASH_NOT_ORIGINAL"),
-            ({"path": "missing.png"}, "PATH_NOT_FOUND"),
+        cases = [({"path": "missing.png"}, "PATH_NOT_FOUND"),
             ({"path": "../outside.png"}, "PATH_NOT_ALLOWED"),
             ({"path": "/not-owned/photo.png"}, "PATH_NOT_ALLOWED"),
             ({"path": "./original.png"}, "PATH_NOT_ALLOWED")]
@@ -45,7 +44,7 @@ class RenderSourceRepairTests(unittest.TestCase):
             self.assertEqual(self.bridge.tool(self.request(path="../outside.png"))["reason"], "PATH_NOT_ALLOWED")
 
     def test_repair_budget_is_job_wide_and_valid_render_approval_does_not_reset_it(self):
-        rejected = self.bridge.tool(self.request(sha256="0" * 64))
+        rejected = self.bridge.tool(self.request(path="missing.png"))
         self.assertEqual(rejected["repair_attempt"], 1)
         self.assertTrue(self.bridge.tool(self.request())["allowed"])
         duplicate = self.request()
@@ -54,7 +53,7 @@ class RenderSourceRepairTests(unittest.TestCase):
         self.assertEqual((rejected["reason"], rejected["repair_attempt"]), ("DUPLICATE_ORIGINAL", 2))
         self.assertTrue(self.bridge.tool(self.request())["allowed"])
         with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_RENDER_SOURCE_INVALID"):
-            self.bridge.tool(self.request(sha256="0" * 64))
+            self.bridge.tool(self.request(path="missing.png"))
         self.assertEqual(self.bridge.render_source_repairs, 2)
         self.assertIsNone(self.bridge.concept_record)
         self.assertEqual(self.bridge.seen_images, {"seen-concept"})
@@ -91,7 +90,7 @@ class RenderSourceRepairTests(unittest.TestCase):
         (state / "host-checkpoint.json").write_text(json.dumps(checkpoint))
         self.bridge.tool(self.request(path="private-authored-missing.png"))
         first = (state / runtime._RENDER_SOURCE_DIAGNOSTIC_FILE).read_bytes()
-        self.bridge.tool(self.request(sha256="0" * 64))
+        self.bridge.tool(self.request(path="missing.png"))
         self.assertEqual((state / runtime._RENDER_SOURCE_DIAGNOSTIC_FILE).read_bytes(), first)
         with mock.patch.dict(os.environ, {"NOTEAI_COVER_AGENT_STATE_ROOT": str(directory.parent)}):
             runtime.cleanup_workspace(job)
@@ -111,7 +110,7 @@ class RenderSourceRepairTests(unittest.TestCase):
     def test_optional_diagnostic_failure_never_changes_the_rejection_or_hard_error(self):
         with mock.patch.object(runtime, "_write_render_source_diagnostic", side_effect=OSError("PRIVATE")), \
                 self.assertLogs(level="WARNING") as logs:
-            answer = self.bridge.tool(self.request(sha256="0" * 64))
+            answer = self.bridge.tool(self.request(path="missing.png"))
             (self.root / "original.png").write_bytes(b"x" * len(self.body))
             with self.assertRaises(runtime._RenderSourceRejection) as caught:
                 self.bridge.tool(self.request())
@@ -166,7 +165,7 @@ class SourceRepairScriptedBridge(fixture.ScriptedBridge):
             for name, args in calls:
                 if name == "cover_render":
                     self.valid_request = deepcopy(args)
-                    args["request"]["sources"][0]["sha256"] = "0" * 64
+                    args["request"]["sources"][0]["path"] = "missing-original.png"
                     self.repair_phase = "rejected"
         return super().response(text, calls)
 
@@ -221,7 +220,7 @@ class RenderSourceRepairSDKTests(unittest.TestCase):
                 report={"title": "原照独立图层中文排字测试", "body": "合成技术测试，不代表实际商家成品或审美验收。", "title_variants": []},
                 bridge_class=SourceRepairScriptedBridge)
             bridge = SourceRepairScriptedBridge.instances[-1]
-            self.assertEqual([r["reason"] for r in bridge.rejections], ["HASH_NOT_ORIGINAL", "PATH_NOT_ALLOWED"])
+            self.assertEqual([r["reason"] for r in bridge.rejections], ["PATH_NOT_FOUND", "PATH_NOT_ALLOWED"])
             self.assertEqual([r["repair_attempt"] for r in bridge.rejections], [1, 2])
             self.assertEqual(result.layout["source_hashes"], {source["media_ref"]: source["sha256"]})
             self.assertEqual(result.layout["final_sha256"], artifacts.digest(result.final_bytes))

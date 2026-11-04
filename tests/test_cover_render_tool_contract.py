@@ -135,9 +135,10 @@ console.log(JSON.stringify({schema, returned, raw: rawResult,
         self.assertEqual(request["required"], ["sources", "text_layers"])
         sources = request["properties"]["sources"]
         self.assertEqual((sources["minItems"], sources["maxItems"]), (1, 9))
-        self.assertEqual(set(sources["items"]["required"]), {"ref", "path", "sha256"})
+        self.assertEqual(sources["items"]["required"], ["path"])
         self.assertFalse(sources["items"]["additionalProperties"])
-        self.assertEqual(sources["items"]["properties"]["sha256"]["pattern"], "^[a-f0-9]{64}$")
+        self.assertEqual(sources["items"]["properties"]["sha256"], {"type": "string"})
+        self.assertEqual(sources["items"]["properties"]["ref"], {"type": "string"})
         layer = request["properties"]["text_layers"]["items"]
         self.assertFalse(layer["additionalProperties"])
         self.assertEqual(layer["properties"]["id"]["pattern"], "^[A-Za-z0-9_-]{1,80}$")

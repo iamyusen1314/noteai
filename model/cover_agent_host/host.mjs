@@ -657,12 +657,12 @@ try {
       checkpoint.pending_tool = null; await atomicJSON(checkpointPath, checkpoint);
       return { content: JSON.stringify(answer.result) };
     }),
-    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: objectSchema({
+    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. Choose original photos by their supplied path; Python derives canonical ref and SHA from actual frozen original bytes. Optional authored ref/sha256 are compatibility metadata, never authorization. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: objectSchema({
       project_dir: { type: 'string', minLength: 1 },
       sources: { type: 'array', minItems: 1, maxItems: 9, items: objectSchema({
-        ref: { type: 'string', minLength: 1 }, path: { type: 'string', minLength: 1 },
-        sha256: { type: 'string', pattern: '^[a-f0-9]{64}$' },
-      }) },
+        ref: { type: 'string' }, path: { type: 'string', minLength: 1 },
+        sha256: { type: 'string' },
+      }, ['path']) },
       text_layers: { type: 'array', minItems: 1, items: objectSchema({
         id: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,80}$' },
         allowed_rect: objectSchema({ x: { type: 'number' }, y: { type: 'number' },
