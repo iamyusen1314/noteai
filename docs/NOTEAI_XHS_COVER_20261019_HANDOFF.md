@@ -4911,3 +4911,21 @@ Root功能提交3b33ef97e5698cb80c62dd18e96544392582b03b已实际push origin，�
 已实际准备新Linux边界测试只读快照：SOURCE-REF-REPAIR-ORIGINAL-NINE-FIXTURE001/t-sz0722doon97c3k Success0/Dropped0，normalapp role/每连接READONLY/正常TTL+9GET，05:00:44.941551UTC exact9/27827473B/源SHA全符后才私有写ROOT/source-reference-original-nine-fixture-20261104-r1(9JPG+manifest0400uid999/dir0500/私有root700)，manifest4046/SHA24efd7b3355e407e3e00d20115214ef949aadcefbc0465af7f3a6b7d604b3274。旧R2/R3原件验证是RAM-only且ownedcleanup，未假称有旧cache；本次只为受影响新capture/canonical边界准备fixture，不重跑旧九图行为，不改源TTL/业务DB/publicACL/Git/模型/权限。fixture只隔离QA只读mount /qa-originals，不能视作生产素材延期或新任务授权。
 
 Root继续复用原helper6746/twoleaf差分载体BUILD(9713/812ec649…无额外分段)/当前21db8cae/23092/parent5125→COPY16第125层/22closure/providerb749/SDK90e/core9c74固定；候选Linux仅新增sourcebinding14实际九图模块，旧29实际3642/d7d381仅历史复用。原pair流程发布、STATIC6e544c不swap、回退23092；未build/未部署前不宣称Node24通过。R5已安全结束/8全释放/无PNG，A70累计63046余6954/旧UNKNOWN完整保留，禁止成功POST或新paidclient；当前无runningmodel请求。仍欠真实合格PNG、保存重开免费改字下载/唯一8及实际成品PC-H5，技术修复阶段汇报/提交不是任务结束。
+
+
+### 2026-11-04T05:29:37.512045+00:00 — CURRENT：3b33候选1a7已实际Linux Node24完整接收链路通过；原发布流程准备，无新paid
+
+SOURCE-REF-REPAIR-BUILD001/t-sz0722eaoifwidc Success0/Dropped0：原6169B/SHAa89f1fab2577d08e5eec3a9c0cfb061c2b883b41ef73915756e4bb4da0d2159c，candidate sha256:1a7c74ffa0b9b3f2f31a08bf71736f376c6d811652f64e57787fc3fcdd83e45b/source3b33。parent5125的16replacementCOPY/第125层/22closure仅2leaf改，其余20项/Config/modes/providerb749/SDK90e/core9c74、正常3CID保持。源码/差分重建/构建绑定独审GO在派发前已到。
+
+QA-PAYLOAD-STAGE001/t-sz0722ethl535z4 Success0实际payload9395/SHA996330120e686bda8f49a94978cea6c4e7c7871911c93c2c13abec1cc2c6e338，raw33854/48b1；仅读hostMemTotal7638904KiB/Available5595140KiB≈5.34GiB/swap0，Root据此允许严格顺序一次一容器的新增14验证，不混同3GiB容器与主机容量。SOURCE-REF-REPAIR-QA001/t-sz0722fgvw1zb40 Success0/Dropped0/Repeats1，原16943B/SHA5a49a7fc675ad526948922b5c3f0b45c4e40675b871e4bc059c5672f27ce1f72：实际Node24.22.1/Py3.11.15/SDK2.1.2，14run/0skip/0fail/error（8pure+6SDK，7freshcontainer sequential）。真实九原图27827473B/9wire，每三正(UUID/alias/assetscopy)COMPLETE→实际CLI→严格capture→两candidate callbacks，三负(hash/path/concept)CLI前拒/candidate0，6hosts均143/reaped。每case3GiB/2CPU/pids512/tmp256/swap0，maxpeak2712072192、所有OOM/maxevents0，networknone/noProdEnvDBMount/只派生fixtureRO/ownedcleanup/正常3CID全保持。概念/QC明确stub、provider0/生产DB0/无产品存储结算/多用户容量或审美通过声称；旧29不重跑。实际回执及逐函数AST/绑定已独审GO。
+
+本次补齐了先前SDK→CLI之后未覆盖的capture/candidate契约验证；仍不能据此反推原R5唯一异常。Root继续同原ca21/R4发布薄绑定：先PREPARE实际current21db/8cae/23092及私有before原件，然后close→freshdrain→pair switch至1a7→verify→reopen；STATIC6e544c不swap，Admin原c5d/Pay原4e4/JSAPIflag1和原订单历史保持，回退23092同equal分支保留。Source功能3b33已push，checkpointdoc3f848已push；QA成功不是交付终点。仍无新paidclient或真实PNG，R5已net0/旧UNKNOWN完整保留，A70累计63046/余6954；只有下一真实付费任务需新的具体范围确认，技术发布继续自主执行。
+
+
+### 2026-11-04T05:36:56.496173+00:00 — CURRENT：3b33素材身份修复已实际生产发布/恢复入口，独审GO；真实成品仍待新任务授权
+
+Root实际SOURCE-REF-REPAIR-RELEASE-PREPARE001/t-sz0722gnxdshkhs Success0/Dropped0，原1016B/SHA11f6522cf187654936d49d6be30e5c87ea078e4f17b8c3f1eb95cd64be8638ca；继而唯一PUBLISH001/t-sz0722gqqneao00 Success0/Dropped0/Repeats1，官方原6425B/SHAe2fb48181f8f394ddf58554ebca11ebd00149574f926b1b14d11439d93ffc9be（E/SOURCE-REF-REPAIR-RELEASE-PUBLISH001.ORIGINAL-OUTPUT.jsonl），实际close→drain→pair switch→verify→reopen+final闭合，05:35:15UTC终态。source3b33/image1a7c74ffa0b9b3f2f31a08bf71736f376c6d811652f64e57787fc3fcdd83e45b；当前API4b8d3af50a1884ad2e0171e058dea9b929aec8b2c15971c3235ee9c0e46e505a/profileaf86773765ee4365610655e35e4a6ed026e2eb6d89fe6ae9bfac9494b0f175e0，Pay8d958c2a8c2e87ba8d0ac78f844bf87c82698abef09671baace88b6efa2fba9a/原4e4同netns/profilebb76，Admin原c5d/image4a034/profile3249不变。fullprofiles/两修复源16f4与f981/其余20closure/SDK90e/core9c74、normal DB-readonly/modelready200、schema0032flag1/原2JSAPI orders保持，reopen syntax/reload0，0SQL写/模型/新任务。STATIC6e544c不swap，3天/旧90策略保持；上一actual首页/appbfa证据复用，不重跑支付/高德/历史九图。截图E/PUBLISH001.png（完整basename为SOURCE-REF-REPAIR-RELEASE-PUBLISH001.png）。
+
+独立审查已对官方Output与本机原文件逐字全等/实际服务与入口恢复GO；只代表技术上线安全，不是新真实封面审美或保存改字下载唯一结算通过。兼容回退为本CASE原prepare_running_rollback到23092，原once/UNKNOWN恢复语义保持；不得重派已完成prepare/publish，也不回更旧5aef/0748。当前无running模型请求/临时预算env/新增公网入口；R5fce7仍failed/noPNG/8全释放net0，26known/保守3931，A70累计63046/余6954，旧UNKNOWN完整保留。
+
+Root继续既有NEXT/POST/本地真实结果UI工具的实际新runtime薄绑定准备，未创建CLIENT/job/usage或付费请求。上一R5仅一任务授权已消费；真实交付分支需集中确认使用现有余6.954元的新任务范围（不新增预算），其余免费工程继续。最终仍欠3140原报告真实合格PNG、正常存储读取/免费改字/下载/一次8及实际成品PC-H5；无成品不宣称完成。
