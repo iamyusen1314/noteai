@@ -4705,3 +4705,42 @@ Root继续非付费窄修复，author子代理唯一负责Runtime.py/host.mjs/�
 ORIGINAL-VIEW-BUILD003/t-sz0721ht4197gg0 Success0/Dropped0，实际candidate917d91adea824a4d766d1a0cd4b241c53e704a37460dcef7d624d043230a0fd2，原5125parent124层一次COPY12叶仍125层/22closure仅两叶变，原schema90e/core9c74/90天reader/支付/静态/配置/mode/生产3CID保持。原serverbuild回执6054B/SHAe4f88f1e64273eae434482c6bca55d59cf776eeff4004a306ae0b717ef36b940。首次云CmdContent.ExceedLimit明确未受理/noInvoke，已保留；仅拆小并暂存既有helper，未重派未知构建。ORIGINAL-VIEW-QA001/t-sz0721i2g9s622o已受理正在执行，复用原3140报告九图27827473B只读/RAMpipe，在candidate实际Bridge/SDK/host、3GiB/200MiBpadding/networknone下，仅外部模型和Seedream受控stub；尚无通过结论。
 
 生产仍d3bc/8cac/Paya2ba4e4d/Adminc5d，入口正常，未发布candidate。R2job82055b92-eb75-4b11-bada-d743d5b89271已知failed、12次HTTP200设计模型约1.2792612元、图像0/UNKNOWN0、预留8全退/净0；A57保守累计48911毫元/余8089，旧费用/UNKNOWN原样。无新付费任务；旧R2单任务授权已消费，不重发。Root下一步：只查本QA原Invoke→若PASS晚绑原R4受控pair发布保3G/90天读兼容→恢复正常入口；之后集中取得下一张新付费任务的单次授权再交真实PNG。其他技术验证/已授权发布自主继续，不在本checkpoint停止。
+
+
+### 2026-11-03T23:20:12.358804+00:00 — CURRENT：owner将仅新封面改为3天，旧封面原期限；旧90天候选暂停，新闭包开发中
+
+Owner最新明确“仅新封面改3天，旧封面保留原期限”。Root已解释3GiB是运行内存、OSS存储独立，仍按明确产品决定执行，不把两者混为容量依据。新生成保存/报价/页面/专用对象路径统一最多3天；历史原期限、旧policy/metadata/账务保留，免费排字不续原到期；不得追溯改旧expires或把原两90天prefix规则直接缩短。拟最小新增cover_3d_v1 image+result两prefix及3天规则，原cover_v1/旧temporary哈希选key读取与旧成品改字兼容，普通原图2天/root碎片1天不改。OSS实际删除为异步，服务端72h访问截止与物理删除不可混称。新3天自动永久删除规则尚未创建/生效。
+
+实际新9图QA001/t-sz0721i2g9s622o Success0/Dropped0：candidate917d/functionalb43fb，在Linux3.11/Node24/SDK2.1.2实际Bridge+host上，真实9JPEG27827473B/候选prompt9585B，5次scripted供应商响应首5→missing4→union9→1conceptstub/重复拒绝；peak2584760320/3GiB/200MiBpadding、OOMdelta0、清理完成、生产3CID保持、provider/DBwrites0。原serverQA回执3681B/SHAfb372c9c23cf5f4c3e4aa302e7f202ca97bf9df144f0f36faef5a813bd6af8da已与官方Output原字节核对。此证据复用于未变SDK/缺图恢复逻辑，不冒新3天存储闭包或真实成品通过。
+
+ORIGINAL-VIEW-RELEASE-STAGE001/t-sz0721ifljp37y8 Success0仅暂存原R4惯用publisher包；PREPARE001/t-sz0721ihzrwejgg Failed1/RUNTIME_LIFECYCLE_CHANGED，精确因原d3bc历史OOMKilledtrue被R4 rows_now一律false断言阻断，位于CASE mkdir/close之前，未关入口/stop/switch/改DB。旧OOM1/kill1原样，不清标记或重复热调整；独审子代理只补精确oldCID/PID/image/3G/旧事件1/1/0不增与live的历史识别，newCID/Pay/Admin仍严格false/Restart0。旧90天candidate917d及其publisher不再派发，最终新3天source/build/QA/runtime需晚绑后才发布。当前production仍d3bc8cac/Paya2ba4e4d/Adminc5d，正常入口；当前GitHEAD0c85308b66d5c68cce62322c9f9a0c93719ba67d已push。
+
+Owner旧R2单已消费failed/12knownPro/约1.2792612元/图0/UNKNOWN0/8全退，A57累计48911毫元/余8089，未授权或新建R3。Root统筹继续：author唯一修改settings/jobs/service/artifacts/private_storage/HTML+tests；独审只私有修publisher旧OOM识别；readpath只私有准备当前static四文本delta，避免重建旧大HTML覆盖现支付；Root统一候选/验证/存储规则当次永久删除确认/受控发布。保存期限变化不扩到报告/付费套餐/原图，不在此checkpoint停止工程。
+
+
+### 2026-11-03T23:52:36.274641+00:00 — CURRENT：仅新封面3天实现及Linux双候选/PC-H5受控验证完成；未切换生产，自动删除确认仍待答
+
+新功能提交6e9c1fd9873ee2e73d93a8eaf4672a62b9a19e00（当前HEAD6e9c1fd9873ee2e73d93a8eaf4672a62b9a19e00，此前b43fb缺图修复保留）：5后端settings/jobs/service/artifacts/private_storage + 原HTML4文案/定向tests。新quote/policy/initial候选/base/final/设计包均3天、专用cover_3d_v1；保旧90 active/draft原始DB bytes、previous、旧哈希key reader及旧成品期限。Admin view提供有效3拷贝/标原stored90；旧在途按冻结policy保存90及校验完成阈值；旧免费edit按原remaining/旧namespace不续不缩；旧key在current3重试只允许TTL90→3唯一差异且重建原封存payload/hash全部匹配时只读原job，新key90拒绝/输入或其他policy变化仍409。无schema/依赖/直接生产DB或配置迁移。作者最终85Python=84通过+1已有SDK条件skip、37前端状态测试PASS，独立源窄审GO；E/NEW3-OLD90-LOCAL002.RESULT.json5374/SHAb7ec803c90b311ea60f4c7322106da3bbf5188bde43d3535e1ce6bd034a25b08。
+
+RETENTION3D-DUAL-BUILD001/t-sz0721kndb14740实际Success0/Dropped0，双candidate同parent5125/125层/22closure/modes/config，forward0748de3d0ccccb8d4c6291916a521ea0ade462e9c495685ee7f92da5e18221b0(15COPY/7delta)，compatad4c8cf0a3f35821f1c4a862604ca0752f7b6e477004fd36780f8cf2bc519ea9(13COPY/仅5new3源、Runtime/host继承原)，并非全文commit镜像。原server回执14557B/SHA9cf7a371ebcb95f948a1a4ab1737de93d5fae7e902677bef4e56627ea0cd2c2b。最终forward未变17项（含Runtime29e9/hostb2f7/SDK90e/core9c74/package及lock/deps/config）与已实测917d闭合，复用原3681/fb372真实九图Bridge/3GiB资源QA；旧receipt.image917d不改写，不冒最终image重测。compat不冒旧host补看修复通过，但同样保新3/旧90存储读取。写入new3refs后不可直接回8cac，恢复必须用compat并保新3static。
+
+RETENTION3D-DUAL-QA001已知失败保留：6用例5通过1ERROR，唯独测试容器未设可写排字根而尝试/app/.cache（readonlyfs）；不是业务断言失败/新供应商未知。只读FAILURE-READ001精确核245B/2b60失败原件及stdout536/b6d1、stderr2208/676d，未重build或改业务。仅HARNESS设置NOTEAI_COVER_AGENT_STATE_ROOT=/tmp/私有qa_root/agent后独立QA002/t-sz0721lr8yeppmo Success0/Dropped0/Repeats1，同不可变6测试包28720/6cd1、同forward/compat各6/6PASS/无skiperror，actualPy3.11.15/networknone/isolatedSQLite/无生产env或mount/provider0/PGwrites0/3CID保持/QA清理完成。原serverQA2383B/SHAee7c68388083e51c2e84be6dbdce296e1c87c0102b92fe61c591cb33a4d80be1。
+
+私有static只从实际生产label 16文件+2absences完整副本派生，index1/appJS3文案+appcache引用；其余14leaf SHA逐项不变，不用工作区整HTML覆盖生产。候选index274632/717d87697fecedad94ffaf7e4075944f2ef0b4b3f11f11c6900a505961a03cda、app595614/bfa0d022f2d3846d75f3949f7f4f47beb0ee24e2c3c306c676d78f17c9d13c8a、manifest544cd530f2deb2cdcfd35f331e2105a09a362260f184b1b9ccc683fc71b04859；acceptedtarget=/var/www/noteai-public/cover-retention-3d-6e9c1fd9-20261104-r1，onceprefix=COVER-RETENTION-3D-6e9c1fd9-20261104-r1，原m.ROOT为ROOT/production-release-20261026-r1。Root用实际split候选、本机mock会话/API重用原showReport初始化，CUA Chrome4第二标签1280×900/390×844实看保存列表/新3重开/旧90重开、具体到期无固定90误标、宽度无横溢出、本机origin console errors0、未POST/无model；viewport已reset。E/NEW3-OLD90-RENDER001.RESULT.json4007/SHA22659baecba5269ff79184c419e9af1ed71a9eca7022e7db97202b841a8f5138+4截图。此为受控UI，非客户3140登录/真实成品/IPhone保存。仅Root创建localhost50442，session39269临时preview server还在运行（停止时只关此进程）；用户原56613不动。
+
+生产仍d3bc8cac/Paya2ba4e4d/Adminc5d、API3GiB/2CPU/旧OOM1保持、原3072 unit79e9、入口正常；未执行本轮close/switch/新static swap。旧90候选PREPARE历史OOM false断言失败已保留，不重派；独审私有dc79 helper只容许精确旧CID/PID/8cac/3GiB/旧events1/1/0未增且健康的historicaltrue，新CID/Pay/Admin仍false。最终publisher现已绑定双build/7源/compat/旧QA闭接、known static marker与历史OOM，正在晚绑2383新storageQA；继续用原R4/once，不改原包。静态将admissionsclosed先atomic swap→精确known marker齐全后publisher选新manifest→switch/verify/reopen；未知partial先核原记录不重swap。
+
+仅新3天OSS两规则仍DRAFT_NOT_SAVED，已向owner发当次永久删除确认（实际questionItemId以异步问题记录为准，不能假称已同意）；第一Chrome4 tab1637498728保留modal：media noteai-cover-media-new-v1-3d / noteai-private/v1/media/image/cover_3d_v1/ / lastModified3 / delete / overlaptrue / multipart不启用，第二将design同法payload/result/cover_3d_v1/；原两90规则与root2天/碎片1天不变。未获答前只暂停Save及依赖新策略公网放行，其他准备继续。当前第二tab1637498741在云结果页，使用fillCover3DayRun/Query/saveCover3DayResult新绑定，不能用旧browser3 helper。R2依旧failed/net0/12known text1.2792612/图0，A57保守48911毫元/余8089、旧UNKNOWN保留；R3尚无新授权/UUID/任务，不重发旧单。下一步Root：最终publisher+staticguard私有核对/prepare→获OSS当前确认后存两规则读回→受控发布并线上核验→集中取得下一张真实单次任务授权，完成3140原九图成品/保存改字下载/唯一8结算/实际PNG交付；不在checkpoint或子代理完成处停止。
+
+
+### 2026-11-04T00:19:20.819488+00:00 — CURRENT：新3天/旧原期限闭包已就绪；云端prepare与静态只读核验成功，尚未发布
+
+当前功能HEAD6e9c1fd9873ee2e73d93a8eaf4672a62b9a19e00，新封面3天/旧封面原期限与b43fb缺原图补看恢复均已完成源审、定向本机及Linux受控验证，复用上一CURRENT精确证据，不重测。发布工具首次PREPARE001/t-sz0721mp72paf40因工具指纹误把Python嵌套代码debug路径/行号列入契约而在CASE/生产操作前失败，原件保留；修复仅私有helper结构化比较，执行逻辑/defaults仍受保护，实际完整R4三本机Python版本正反例及云端Python3.11.6已通过。最终publisher66670B/SHAd21a32a558b3c2f96a60fd336aa4ff4b3abddd3cb438244f7df0309969d00a1e已按原机制私有暂存，不新增发布体系。
+
+实际PREPARE002/t-sz0721nlr9ux9fk Success0/Dropped0/Repeats1，CASE=ROOT/release-cover-retention3d-20261104-r1已存在，仅备份/绑定；原Output最后JSON行1571B/SHA8619934c6e65ac1c6df41212e9d9abeb49ea1ad1f140a43b2ce8f0687043007c。实际STATIC-FRESHCHECK001/t-sz0721ofmpxmzuo Success0/Dropped0/Repeats1，原Output1743B/SHAafd0d62dced12263a198b579b8f0cd8063d74f4244b3ec937817c9a20cb8b25d，逐项证现16文件+2absence/原manifest202e、所拟两叶新manifest544c、原3CID/unit/环境/Admin/JSAPI/原配置保持，SQLwrites/provider0。不要再次prepare或重派原Invoke。
+
+最终未执行publishwire14741B/SHA22623f9688a68be0344ec1d02b1013424a2c0590b69d8ae278227dfb871268b9，独审GO；较旧未执行稿唯一修正为只读probe取state.active.max_image_calls（policy_snapshot不返回该字段），原稿保留。close/drain→原两叶static原子切换→原pair switch/verify→实际3天只读policy probe→reopen流程不变。API仍d3bc/8cac/3GiB/CPU2/旧OOM1无增，Pay仍a2ba/4e4d，Admin仍c5d/4a034，原static/入口保持，未close/swap/switch。
+
+唯一发布前外部待定仍为已发出的两条新cover_3d_v1目录3天自动永久删除规则当次确认；第一media规则modal已具体准备但未确定，design第二条尚未创建；旧90天两规则与root原图2天/碎片1天全部保留。用户“仅新封面改3天，旧封面保留原期限”是产品范围确认，不能冒称已同意本次不可逆删除配置。确认到达后Root保存两规则并精确读回，再派既有publishwire一次。新R3仍无UUID/任务/付费授权；R2已消费failed、8分全退、12knownPro、无图/UNKNOWN0，A57保守48911/余8089毫元原样。发布完成后再按单任务边界集中确认下一张，绝不重发R2。
+
+权威PLAN.current_resume_pointer已由旧COMPLETE历史指针改为本incident ACTIVE并保留旧指针，防恢复误判结束。Root自建50442本机预览session39269已停止，原用户56613未动；Chrome4仅保留两个实际续接标签。所有不依赖确认的当前准备完成；只暂停OSS Save及依赖发布/后续真实任务，不冒后台自动续跑承诺。
