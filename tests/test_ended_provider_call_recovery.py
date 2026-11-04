@@ -201,5 +201,193 @@ class EndedProviderCallRecoveryTests(unittest.TestCase):
         self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE state='dispatched'")[0], 0)
 
 
+    def test_live_cover_and_old_orphan_block_zero_calls_then_exact_recovery_keeps_all_nine(self):
+        from tests.test_generation_multiuser_admission import api, ark, admission
+        from tests.test_cover_jobs import CoverJobsTests
+        import cover_jobs
+        import cover_agent_provider
+        import private_storage
+        from datetime import datetime, timezone
+        from decimal import Decimal, ROUND_CEILING
+        self.use_wallet(8); ended = self.reserve(); orphan = self.pending(ended)
+        self.expire(ended); original_args = self.recovery_snapshot(ended)
+        before_orphan = dict(db.fetchone("SELECT * FROM public_trial_calls WHERE id=?", (orphan,)))
+        normal_user, cover_user = "normal-p1-owner", "live-cover-owner"
+        for user in (normal_user, cover_user):
+            db.execute("INSERT INTO users(id,username,email,password_hash,password_salt,created_at)VALUES(?,?,?,?,?,?)",
+                (user, user, user + "@example.invalid", "fixture", "fixture", billing._now()))
+            billing.get_subscription(user); billing.grant_credits(user, 64, "isolated coupling fixture")
+        normal = settlement.reserve_claim(user_id=normal_user, operation="generate",
+            request_id="original-normal-nine", payload={"fixture": "same nine inputs"})
+        normal_usage = normal["charge"]["usage_id"]
+        manager = admission.Admission(admission.Limits(physical=2, doubao=2, media_workers=2))
+        ready, finish = threading.Event(), threading.Event()
+        cover_call = str(uuid.uuid4()); cover_errors = []
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.dict(os.environ, {"NOTEAI_PUBLIC_PRODUCT": "1",
+                "NOTEAI_ARK_API_KEY": "synthetic-offline-only"}))
+            stack.enter_context(mock.patch.object(admission, "_instance", manager))
+            db.execute("UPDATE public_trial_budget SET enabled=1,policy_mode='owner_metered'")
+            cover_jobs.init_sqlite_schema()
+            private_storage.configure_object_backend(private_storage.InMemoryObjectBackend(),
+                                                     key_epoch="coupling-fixture")
+            stack.callback(private_storage.reset_object_backend)
+            cover = CoverJobsTests()
+            cover.user = cover_user; cover.now = datetime.now(timezone.utc)
+            cover.report = str(uuid.uuid4()); cover.index = 0
+            db.execute("INSERT INTO saved_diagnoses(id,user_id,note_title,domain,diagnosis_json,created_at)"
+                "VALUES(?,?,?,?,?,?)", (cover.report, cover_user, "synthetic", "休闲娱乐体验", "{}", billing._now()))
+            cover.source = cover.image(cover_user, small=True)
+            cover.input = {"note_title": "synthetic", "note_body": "isolated original", "visual_advice": "real pixels"}
+            cover.policy = {"enabled": True, "operation": "cover_generate", "provider": "seedream",
+                "model_id": cover_jobs.MODEL_ID, "width": 1776, "height": 2368, "credits": 8,
+                "retention_seconds": 3 * 86400, "max_physical_calls": None, "max_image_calls": 1,
+                "budget_id": cover_jobs.FORMAL_BUDGET_ID, "design_version": 3,
+                "workflow_engine": "editable_design_opencode_v1", "design_model": cover_agent_provider.MODEL}
+            _, cover_claim = cover.claim()
+            operation, owns = manager.register(cover_user, "c" * 64, route="/covers")
+            self.assertTrue(owns)
+            def live_cover():
+                inv = public.Invocation(cover_user, cover_claim["request_id"], route="/covers",
+                    budget_id=cover_jobs.FORMAL_BUDGET_ID, admission_state=operation)
+                im = public._invocation.set(inv)
+                um = billing._ACTIVE_USAGE_ID.set(cover_claim["charge"]["usage_id"])
+                try:
+                    with public.model_admission_sync(cover_call, "doubao"):
+                        cover_jobs.before_text_call(cover_claim, "design:1", cover_call)
+                        reserve = int((Decimal(cover_agent_provider.estimate()["estimated_cost"]) * 1000)
+                                      .to_integral_value(rounding=ROUND_CEILING))
+                        public._reserve_payload({"model": cover_agent_provider.MODEL, "provider": "doubao",
+                            "modality": "image", "max_tokens": cover_agent_provider.MAX_OUTPUT_TOKENS},
+                            reserve, call_id=cover_call, require_metered=True)
+                        public.mark_model_dispatched(cover_call)
+                        ready.set()
+                        if not finish.wait(15):
+                            raise AssertionError("Controlled live cover fixture was not released")
+                except BaseException as exc:
+                    cover_errors.append(exc); ready.set()
+                finally:
+                    billing._ACTIVE_USAGE_ID.reset(um); public._invocation.reset(im)
+                    manager.finish(operation)
+            worker = threading.Thread(target=live_cover)
+            worker.start()
+            try:
+                self.assertTrue(ready.wait(5))
+                self.assertEqual(cover_errors, [])
+                live_row = dict(db.fetchone("SELECT * FROM public_trial_calls WHERE id=?", (cover_call,)))
+                live_parent = dict(db.fetchone("SELECT * FROM cover_jobs WHERE id=?", (cover_claim["request_id"],)))
+                self.assertEqual(live_row["state"], "dispatched")
+                self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE state='dispatched'")[0], 2)
+                with manager.calls.lock:
+                    ticket = manager.calls.active[cover_call]
+                    self.assertTrue(ticket.dispatched); self.assertFalse(ticket.closed)
+                pixel = io.BytesIO(); Image.new("RGB", (20, 20), "white").save(pixel, "PNG")
+                sent, observed, busy_snapshots = [], [], []
+                original_reserve = public._reserve_payload
+                def inspect_reserve(*args, **kwargs):
+                    try:
+                        return original_reserve(*args, **kwargs)
+                    except public._SlotsBusy:
+                        with manager.calls.lock:
+                            busy_snapshots.append({"live_tickets": [(t.call_id, t.operation.user_id) for t in manager.calls.active.values()],
+                                "rows": [dict(row) for row in db.fetchall("SELECT id,user_id,state,http_status FROM public_trial_calls WHERE state='dispatched'")]})
+                        raise
+                stack.enter_context(mock.patch.object(public, "_reserve_payload", side_effect=inspect_reserve))
+                active = maximum_normal = maximum_global = 0
+                lock = threading.Lock()
+                def supplier(request):
+                    nonlocal active, maximum_normal, maximum_global
+                    with lock:
+                        sent.append(request.url.path); active += 1
+                        maximum_normal = max(maximum_normal, active)
+                        maximum_global = max(maximum_global, active + 1)  # Genuine held cover ticket.
+                    try:
+                        self.assertLessEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE state='dispatched'")[0], 2)
+                        return httpx.Response(200, json={"model": ark.MODEL,
+                            "usage": {"prompt_tokens": 100, "completion_tokens": 20,
+                                      "prompt_tokens_details": {"cached_tokens": 0}},
+                            "choices": [{"finish_reason": "stop", "message": {"content": "庭院木桥和光线均为清晰可见的真实素材。"}}]})
+                    finally:
+                        with lock: active -= 1
+                def client(**kwargs):
+                    return httpx.Client(transport=httpx.MockTransport(supplier), trust_env=False)
+                def pixels(name):
+                    observed.append(name); return pixel.getvalue()
+                async def summary(*args, **kwargs):
+                    return "<scene>庭院木桥光线</scene><hooks>真实素材画面</hooks>"
+                stack.enter_context(mock.patch.object(ark, "_client", side_effect=client))
+                stack.enter_context(mock.patch.object(api, "_read_image_input", side_effect=pixels))
+                stack.enter_context(mock.patch.object(api, "_runtime_prompt", return_value="合成技术视觉{domain}"))
+                stack.enter_context(mock.patch.object(api._mr, "call", side_effect=summary))
+                inputs = ["photo-" + str(i) for i in range(9)]
+                invocation = public.Invocation(normal_user, normal["request_id"], route="/generate/stream")
+                im = public._invocation.set(invocation); um = billing._ACTIVE_USAGE_ID.set(normal_usage)
+                try:
+                    failed = asyncio.run(api._generation_visual_batch(inputs, "休闲娱乐体验", "合成九图", {}))
+                    self.assertTrue(any(isinstance(value, public.TrialProviderStopped)
+                        and value.args == ("MODEL_ADMISSION_UNRECONCILED",) for value in failed))
+                    self.assertEqual(sent, [])
+                    self.assertEqual(db.fetchone("SELECT COUNT(*) FROM public_trial_calls WHERE usage_record_id=?",
+                                     (normal_usage,))[0], 0)
+                    with manager.calls.lock:
+                        self.assertEqual(set(manager.calls.active), {cover_call})
+                    self.assertEqual(invocation.failure, "MODEL_ADMISSION_UNRECONCILED")
+                    settlement.release_undelivered(normal, original_execution_ended=True)
+                    failed_usage = normal_usage
+                    self.assertEqual(tuple(db.fetchone("SELECT status,refund_applied FROM idempotency_requests WHERE id=?",
+                                     (normal["request_id"],))), ("failed", 1))
+                    self.recover(ended, args=original_args)
+                    self.assertEqual(dict(db.fetchone("SELECT * FROM public_trial_calls WHERE id=?", (orphan,))),
+                                     {**before_orphan, "state": "unknown"})
+                    # Failed Invocation remains fenced. Compare a distinct local
+                    # claim using the same nine inputs, never revive an old task.
+                    normal = settlement.reserve_claim(user_id=normal_user, operation="generate",
+                        request_id="fresh-normal-nine-after-capacity", payload={"fixture": "same nine inputs"})
+                    normal_usage = normal["charge"]["usage_id"]
+                    fresh = public.Invocation(normal_user, normal["request_id"], route="/generate/stream")
+                    ni = public._invocation.set(fresh); nu = billing._ACTIVE_USAGE_ID.set(normal_usage)
+                    normal_before = dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (normal["request_id"],)))
+                    usage_before = dict(db.fetchone("SELECT * FROM usage_records WHERE id=?", (normal_usage,)))
+                    try:
+                        observed.clear()
+                        result = asyncio.run(api._generation_visual_batch(inputs, "休闲娱乐体验", "合成九图", {}))
+                        self.assertEqual(len(result), 9)
+                        self.assertTrue(all(isinstance(value, (str, dict)) for value in result),
+                            {"results": [(type(value).__name__, value.args) for value in result if isinstance(value, Exception)],
+                             "busy": busy_snapshots, "sent": len(sent)})
+                        self.assertEqual(sorted(observed), sorted(inputs))
+                        self.assertEqual(len(sent), 9)
+                        self.assertEqual((maximum_normal, maximum_global), (1, 2))
+                        self.assertEqual(dict(db.fetchone("SELECT * FROM idempotency_requests WHERE id=?",
+                                         (normal["request_id"],))), normal_before)
+                        self.assertEqual(db.fetchone("SELECT credits_used FROM usage_records WHERE id=?", (normal_usage,))[0],
+                                         usage_before["credits_used"])
+                        self.assertEqual(db.fetchone("SELECT COUNT(*) FROM usage_records WHERE user_id=? AND operation='generate'",
+                                         (normal_user,))[0], 2)
+                        self.assertEqual(db.fetchone("SELECT credits_used FROM usage_records WHERE id=?", (failed_usage,))[0], 0)
+                        self.assertEqual(invocation.failure, "MODEL_ADMISSION_UNRECONCILED")
+                        with db.transaction(write=True) as tx:
+                            sub = billing._get_subscription_tx(tx, normal_user)
+                            availability = settlement.availability_in_transaction(tx, normal_user, sub)
+                        self.assertEqual(availability["monthly_held"] + availability["wallet_held"], 8)
+                    finally:
+                        billing._ACTIVE_USAGE_ID.reset(nu); public._invocation.reset(ni)
+                finally:
+                    billing._ACTIVE_USAGE_ID.reset(um); public._invocation.reset(im)
+                self.assertEqual(dict(db.fetchone("SELECT * FROM public_trial_calls WHERE id=?", (cover_call,))), live_row)
+                self.assertEqual(dict(db.fetchone("SELECT * FROM cover_jobs WHERE id=?", (cover_claim["request_id"],))), live_parent)
+                with manager.calls.lock:
+                    self.assertIs(manager.calls.active[cover_call], ticket)
+                    self.assertFalse(ticket.closed)
+                rows = db.fetchall("SELECT state,http_status,model_usage_record_id FROM public_trial_calls WHERE usage_record_id=?",
+                                   (normal_usage,))
+                self.assertEqual(len(rows), 9)
+                self.assertTrue(all(row["state"] == "responded" and row["http_status"] == 200
+                                    and row["model_usage_record_id"] for row in rows))
+            finally:
+                finish.set(); worker.join(5)
+            self.assertFalse(worker.is_alive()); self.assertEqual(cover_errors, [])
+
+
 if __name__ == "__main__":
     unittest.main()
