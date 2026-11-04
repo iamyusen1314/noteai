@@ -34747,3 +34747,29 @@ Owner本次直接“确认”已登记为两条新cover_3d_v1目录3天自动永
 回退用本CASE prepare_running_rollback→compatad4c，保new3/old90 reader、当前new3静态与3GiB；new3ref后禁止blind退8cac。recover_closed_pair仅旧“candidate从未start、双容器明确absent”特殊前提，非通用回退/已验证一键恢复，若触发先读原once状态再窄恢复，不在本次新增gate。Root维持唯一发布权，不需WorkerC，无新依赖/迁移/长期权限/资源。
 
 R2原82055b92仍failed/net0/8全退、12knownPro文字1.2792612/图0/UNKNOWN0，所有旧UNKNOWN/费用保留，A57保守48911/余8089毫元不变。本次确认只针对两存储规则；R3仍未获新单任务授权、未建UUID/任务或发送模型。Root继续准备当前22da绑定的既有正常handler和原9字节现场只读检查；完成后集中请求原3140报告新增1张预计4–6元、预算不追加，成功保存/重开/免费改字/下载/唯一8结算并交真实PNG。技术发布完成不等于真实成品验收通过，任务尚未complete。
+
+
+### 2026-11-04T00:48:55.215419+00:00 — CURRENT：R3一张已获新授权；原9真实有效，现有费用保护配置接续准备中，尚无模型调用
+
+Owner实际回复问题call_43fbe3af1f8644b09ab315726186ccf1：“同意，生成这1张并交付”。Root于00:44:08UTC登记仅1个新任务CLIENT2d89dcc8-1966-4a76-b2b8-05e3a0dc0e5b，E/BACKEND-OWNER-COVER-R3.INTENT.json与原权威PLAN.r3_task_approval；尚未云submit/创建job/预留积分/发送模型，不得新建第二CLIENT或重发R2。固定3140uid499…/原报告d942…/9真原图，双Pro/最多1非交付概念+1既有局部修正，预计4–6元，A57/原总100不追加，保守prior48911/本次最大8089毫元，成功保存唯一8，失败/未知/预算不足即停；验收保存重开/免费改字/下载/实际PNG。
+
+R3-ORIGINAL-NINE-PRECHECK001/t-sz0721pw3vj320w Success0/Dropped0/Repeats1，实际normal owner report/private_storage逐个GET9JPEG27827473B/全SHA，最早expiry2026-11-04T07:13:19UTC（15:13北京）；原quote8/总262（月2+wallet260）/formal新3day/readiness通过。全DB READ ONLY/无写锁/预留/任务/model，quote只在独立预检子进程使用真实当前subscription SELECT适配，过期/需换月停，不模拟额度。原输出3318B/SHA6c159549d3e6816c718eebf9367ec2f75fc8eeefc639372fca51f11c1cf4a5ee。
+
+同时实测NOTEAI_COVER_VERIFY_USER_ID/SINCE_UTC/MAX_MILLI全null：正式owner_metered本来无验收上限，status/quote不能冒原子预算已就绪。Root复用现有public_product._check_cover_verification_budget，不新guard/worker/预算行/源码/依赖/image；必须给真实API parentworker添加3非secret env（仅3140、本次serverUTCsince、MAX8089），同0748原pair配置接续；仅dockerexec child env无效。scope按owner+since首个formal job绑定，故close/drain/原pair verify后保持closed，Root正常handler建唯一获准R3并核first/job/usage后reopen，其他账号不受费用限制；3140临时窗第二cover会拒绝。终态且无inflight后同原pair精确移除3vars，UNKNOWN费用/原ID照留，不在运行中清guard。Owner本次问题已披露临时绑定和终态恢复并获同意。
+
+私有最小wrapper现冻结稿E/R3-VERIFY-BUDGET.CONFIG-ONLY.PREPARED.py10165B/SHA61c32f6c7e34c5f4d212ae3df326c223e83940452d5f73cfbc574d24515618f5，窄审GO，直接复用成功R2publisher d21a原phase/once/137恢复，新install/remove私有case只因3env差异不可消费旧retentionCASE；无新发布系统。author cover_sdk_release_adapter正最小补“install verified但保持closed，normal submit明确未受理/无任何task”的清理分支（freshfirstNone/实际verifiedpair/原closedroutes/无重发），61c32不能冒此分支已覆盖；其新稿须晚绑最新pin并窄审后才实际安装。Root已准备E/R3-BUDGET-EXISTING-PUBLISHER-MODULE-LOADER.PREPARED.py，用真正ModuleType.__dict__执行原R2，以helper临时pub.bind_adapter确影响phase函数globals，不能SimpleNamespace复制全局。
+
+当前production仍已验证API22da/0748、Pay9f4e/4e4、Adminc5d、3GiB/2CPU、新3static544c/入口正常；未安装3env/未额外重启。R3提交外壳不能继续旧22da硬码：guard install配套重建后的新CID需从实际verified晚绑，三个既有R3 child bodies不变（submit7635/0548c4、status7310/2cdaef、post16729/84b105）。Chrome4两个原标签，第二在此只读预检结果；仅fillCover3DayRun/Query/saveCover3DayResult，其他browser3绑定不用。下一步Root：收author unused-closed最小修正版+独审→原sameimage配置接续/实际parentguard核对→用唯一CLIENT正常submit一次并reopen→只读跟踪/真实成品完整验收/精确清guard→下载PNG。不得因授权已到而跳过预算绑定或假称成品通过。
+
+
+### 2026-11-04T01:03:30.001817+00:00 — CURRENT：R3已唯一创建并正常运行至image，入口重开；预算保护已实际生效，禁止重发
+
+最终私有helper R3-VERIFY-BUDGET.CONFIG-ONLY.R2.PREPARED.py15197B/SHA0eaa3062ebf65ee19c0df7baebf9f6b11c396ab49dc055d0190713069c485ef3，normal与known-unused/closed恢复均独审GO；原61c32/735草稿保留。新增分支只允许原CLIENT/intent/安全明确未受理＋新鲜first/clienttask/financial全0＋actualverifiedclosed，禁止close/abort提前open，直接继承closed drain/switch/verify/reopen，不消费旧case或重发。实际pub ModuleType.__dict__加载，phase globals绑定已核。
+
+R3-BUDGET-INSTALL001/t-sz0721rjtrehk3k Success0/Dropped0/Repeats1，6stage完整。实际parentAPI CIDd6dab7d41ee86a714a9b348bdd07174b45e80a07be6000c5910593f0bd7ecc66、sameimage0748，Pay CID4bcbcaa38185d6cd0114959c5d69f0fad2fef6e282ecab323b6c80419ef602f1/image4e4，Admin原c5d。仅API三env：USER499…3140、SINCE2026-11-04T00:52:34.642975+00:00、MAX8089；实际完整profile/7source/3GiB/CPU2/netns/normalready200/0032flag1/原2orders全部通过，provider/SQLwrites0。安装CASE=ROOT/cover-verify-budget-r3-install-20261104-r1；new3static544c/双3天OSS规则保持。
+
+BACKEND-COVER-SUBMIT003/t-sz0721rmg1wi51c Success0/Dropped0/Repeats1，获准CLIENT2d89dcc8-1966-4a76-b2b8-05e3a0dc0e5b仅创建一次，jobf0ee1ed3-7ad0-419c-b7d7-310a86783790/usage40acf4ac-5e2b-4d09-8b3d-c5ad0d772e00，00:53:27.953662UTC createdtrue。normalhandler原3140reportd942…/九图/quote8，原firstjob/usage核一致后reopen syntax/reload0；无登录/session/token/newworker。server原once intent/result=ROOT/cover-backend-original-owner-20261104-r3.{intent,result}.json，旧failed/所有UNKNOWN未动。安装+提交原FULL与各LINE原切片已保存，独审实际GO。
+
+状态按既有readonly child7310/2cdaef读同CLIENT，不重试模型。STATUS001/t-sz0721rs2jv69s0和002/t-sz0721rxf3wdvcw均完成，003/t-sz0721s33rrdxxc为3个有界45s读已完成、原stdout在ROOT/cover-backend-original-owner-20261104-r3.status003.[0-2].stdout.json；004/t-sz0721scg3788w0正在有界最多3读，只查询该Invoke。最新01:01:29UTC：jobrunning/stageimage，13physicalcalls、knowntext1.5319356CNY、newtaskconservative2299毫元（含在途）、UNKNOWN0，旧prior48911所以A累计保守51210/余5790。说明已越过此前缺原图生图前失败点，尚无最终PNG或合格交付。financial原charge_applied1/credits_used8是2monthly+6wallet预留；complete0/usagecredits0，不能称已结算8。deadline01:23:27UTC/正常runtime仍运行。
+
+后续只继续原f0ee直到明确终态；完成后E/POST-COVER-R3-DELIVERY001.WIRE.sh9194/9eac0216…6828d可查真实保存/重开/包内9SHA/3天/下载/唯一8并打印真实文字层（首次不改字），再选一次已授权免费排字/下载PNG。该外壳当前绑定d6da，若先移除guard重建API须按remove实证新CID晚绑，child16729/84b105不变。E/R3-BUDGET-REMOVE001.WIRE.sh9151/2bae0a0e…d738已独审GO，只在first原job终态且无在途后prepare(remove)→原close/drain/switch/verify/reopen，精确恢复原API unit去三env，同0748/3G/new3static保留。当前未remove，严禁运行中清预算保护。失败/未知/预算不足即停paid分支，不新CLIENT/重发，保留原费用/UNKNOWN并核正常refund，继续允许的恢复/修复。任务未complete，不能在checkpoint处停止或冒已交PNG。
