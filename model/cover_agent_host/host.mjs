@@ -390,7 +390,7 @@ function summaryMaterial(messages) {
   return [{ role: 'user', content }];
 }
 
-let sdk, server, job, checkpoint, checkpointPath, checkpointOwned = false, requests = 0, lastRender = null, lastPreview = null;
+let sdk, server, fetchAgent, job, checkpoint, checkpointPath, checkpointOwned = false, requests = 0, lastRender = null, lastPreview = null;
 const hooks = [];
 const originalFetch = globalThis.fetch;
 try {
@@ -531,10 +531,14 @@ try {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const baseURL = `http://127.0.0.1:${server.address().port}/v1`;
+  // Both the SDK and native fetch otherwise stop waiting for headers at five
+  // minutes, while the known Python response can take up to its bounded 900s.
+  const { Agent, Dispatcher1Wrapper } = await load('undici/index.js');
+  fetchAgent = new Dispatcher1Wrapper(new Agent({ headersTimeout: Math.max(1, job.deadline_epoch_ms - Date.now()) }));
   globalThis.fetch = async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.hostname !== '127.0.0.1' || url.port !== String(server.address().port)) throw error('HOST_NETWORK_DENIED');
-    return originalFetch(input, init);
+    return originalFetch(input, { ...init, dispatcher: fetchAgent });
   };
   const { create } = await load('@opencode/sdk/dist/promise.js');
   const { Plugin } = await load('@opencode/plugin/dist/promise/index.js');
@@ -717,7 +721,7 @@ try {
     });
     await ctx.session.hook('retry', (event) => { event.decision = { retry: false }; send({ type: 'retry_veto', attempt: event.attempt, error_type: event.error.type }); });
   } });
-  const config = { media: { image: { auto_resize: false, max_width: 36000000, max_height: 36000000, max_base64_bytes: Math.ceil(MAX_FILE / 3) * 4 } }, providers: { noteai: { activation: 'enabled', env: ['NOTEAI_HOST_TOKEN'], package: '@opencode/ai/providers/openai-compatible', settings: { baseURL, transport: 'http', encoding: 'none' }, models: { [job.model_id]: { capabilities: { input: ['text', 'image'], output: ['text'], tools: true }, limit: { context: job.context_tokens, output: job.output_tokens } } } } }, model: 'noteai/' + job.model_id, skills: [], update: 'disable', permissions: [{ action: '*', resource: '*', effect: 'deny' }] };
+  const config = { media: { image: { auto_resize: false, max_width: 36000000, max_height: 36000000, max_base64_bytes: Math.ceil(MAX_FILE / 3) * 4 } }, providers: { noteai: { activation: 'enabled', env: ['NOTEAI_HOST_TOKEN'], package: '@opencode/ai/providers/openai-compatible', settings: { baseURL, transport: 'http', encoding: 'none', headerTimeout: Math.max(1, job.deadline_epoch_ms - Date.now()) }, models: { [job.model_id]: { capabilities: { input: ['text', 'image'], output: ['text'], tools: true }, limit: { context: job.context_tokens, output: job.output_tokens } } } } }, model: 'noteai/' + job.model_id, skills: [], update: 'disable', permissions: [{ action: '*', resource: '*', effect: 'deny' }] };
   const cfg = { project: false, global: false, system: false, claude: false, content: JSON.stringify(config) };
   sdk = await create({ config: { project: false, claude: false, content: cfg.content }, database: { path: path.join(job.state_dir, 'session.sqlite') }, models: { fetch: false, snapshot: false }, fs: { filewatcher: false, fff: false }, plugins: [plugin], log: { level: 'error', emit: (e) => process.stderr.write(JSON.stringify({ sdk_log: e.level, message: e.message }) + '\n') } }, { overrides: [Global.node.replace(Global.layerWith({ home, data: path.join(home, 'data'), config: path.join(home, 'config'), cache: path.join(home, 'cache'), state: path.join(home, 'state'), tmp: path.join(home, 'tmp'), bin: path.join(home, 'bin'), log: path.join(home, 'log'), repos: path.join(home, 'repos') })), Config.node.replace(Config.configured(cfg))] });
   let session;
@@ -750,6 +754,7 @@ try {
   send({ type: 'result', ok: false, status: checkpoint?.status || 'FAILED', code: e.code || 'HOST_FAILED', detail: e.message, session_id: checkpoint?.session_id || null, model_requests: requests, artifact: lastRender }); process.exitCode = 1;
 } finally {
   if (sdk) await sdk.close();
+  if (fetchAgent) await fetchAgent.close();
   if (server) await new Promise((resolve) => server.close(resolve));
   lines.close(); process.stdin.pause(); globalThis.fetch = originalFetch;
 }

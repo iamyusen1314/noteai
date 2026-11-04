@@ -39,6 +39,7 @@ _RESERVATION_DIAGNOSTIC_FILE = "provider-reservation-diagnostic.json"
 _THINKING_DIAGNOSTIC_FILE = "thinking-context-diagnostic.json"
 _HOST_RESULT_DIAGNOSTIC_FILE = "bridge-host-result.json"
 _SEEDREAM_DIAGNOSTIC_FILE = "seedream-http-failure.json"
+_RESPONSE_DELIVERY_DIAGNOSTIC_FILE = "model-response-delivery.json"
 _HOST_RESULT_STATUSES = {"RUNNING", "AWAITING_MODEL", "FAILED", "UNKNOWN", "COMPLETE"}
 _HOST_RESULT_FS_CODES = {"EACCES", "EEXIST", "ENOENT", "ENOSPC", "EIO", "EMFILE",
     "ENFILE", "EROFS", "EDQUOT", "ENOTDIR", "ENOTEMPTY", "ETIMEDOUT"}
@@ -360,6 +361,54 @@ def _read_seedream_diagnostic(directory, job_id):
         return None
 
 
+def _response_delivery_diagnostic(value):
+    keys = {"code", "phase", "call_id", "ordinal", "exception_type", "os_errno", "supplier_result_known"}
+    if (type(value) is not dict or set(value) != keys
+            or value["code"] != "COVER_AGENT_HOST_RESPONSE_UNDELIVERED"
+            or value["phase"] != "model_response_send" or value["supplier_result_known"] is not True
+            or value["exception_type"] not in {"BrokenPipeError", "ConnectionResetError"}
+            or type(value["ordinal"]) is not int or not 1 <= value["ordinal"] <= 1000000
+            or type(value["call_id"]) is not str or not 1 <= len(value["call_id"]) <= 128
+            or not all(char.isascii() and (char.isalnum() or char in "_-") for char in value["call_id"])
+            or (value["os_errno"] is not None and (type(value["os_errno"]) is not int or not 0 <= value["os_errno"] <= 65535))):
+        return None
+    return value
+
+
+def _write_response_delivery_diagnostic(directory, job_id, diagnostic):
+    diagnostic = _response_delivery_diagnostic(diagnostic)
+    if diagnostic is None or str(uuid.UUID(job_id)) != job_id:
+        raise ValueError("invalid model response delivery diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("response delivery diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+    fd = os.open(state / _RESPONSE_DELIVERY_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_response_delivery_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _RESPONSE_DELIVERY_DIAGNOSTIC_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                    or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o600}
+                    or not 0 < metadata.st_size <= 2048):
+                return None
+            value = json.loads(stream.read(2049))
+        if type(value) is not dict or set(value) != {"job_id", "diagnostic"} or value["job_id"] != job_id:
+            return None
+        return _response_delivery_diagnostic(value["diagnostic"])
+    except (OSError, ValueError, TypeError, RecursionError):
+        return None
+
+
 def _stop_host(process):
     """Stop this host's POSIX group without signalling the API's own group."""
     def signal_group(value):
@@ -498,6 +547,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "SEEDREAM_HTTP_FAILURE_RECORDED"}
         receipt["seedream_http_failure"] = seedream
+    delivery = _read_response_delivery_diagnostic(directory, job_id)
+    if delivery is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "KNOWN_RESPONSE_UNDELIVERED"}
+        receipt["model_response_delivery_failure"] = delivery
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -890,8 +944,19 @@ class Bridge:
                     if kind == "model_preflight":
                         send({"type": "model_preflight_response", "id": event["id"], **self.preflight(event["body"])})
                     else:
-                        body, _ = self.model(event["body"])
-                        send({"type": "model_response", "id": event["id"], "status": 200, "body": body})
+                        body, call_id = self.model(event["body"])
+                        try:
+                            send({"type": "model_response", "id": event["id"], "status": 200, "body": body})
+                        except (BrokenPipeError, ConnectionResetError) as error:
+                            try:
+                                _write_response_delivery_diagnostic(self.directory, self.job_id, {
+                                    "code": "COVER_AGENT_HOST_RESPONSE_UNDELIVERED", "phase": "model_response_send",
+                                    "call_id": call_id, "ordinal": self.ordinal,
+                                    "exception_type": type(error).__name__, "os_errno": error.errno,
+                                    "supplier_result_known": True})
+                            except (OSError, ValueError):
+                                logging.warning("cover_response_delivery_diagnostic_unavailable")
+                            raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_RESPONSE_UNDELIVERED") from error
                 elif kind == "tool_request":
                     send({"type": "tool_response", "id": event["id"], "result": self.tool(event)})
                 elif kind == "result":
