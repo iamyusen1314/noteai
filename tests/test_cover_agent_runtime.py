@@ -610,7 +610,7 @@ class ThinkingDiagnosticTests(unittest.TestCase):
         self.bridge = runtime.Bridge(job_id=self.job_id, directory=self.directory, sources=[], hooks=self.hooks)
 
     @staticmethod
-    def response(arguments='{"x":}'):
+    def response(arguments=''):
         return {"choices": [{"message": {"role": "assistant", "content": None,
             "encrypted_content": "PRIVATE_CIPHER_SENTINEL", "tool_calls": [{"type": "function",
                 "id": "PRIVATE_TOOL_ID", "function": {"name": "PRIVATE_TOOL_NAME", "arguments": arguments}}]}}]}

@@ -137,7 +137,7 @@ class ThinkingStateTests(unittest.TestCase):
                          lambda: self.state.restore({"messages": [response(calls=[call(arguments='{"x":1}')])["choices"][0]["message"]]}))
 
     def test_fixed_reasons_distinguish_rejections_without_changing_original_codes(self):
-        cases = [("JSON_SYNTAX", '{"x":}'), ("DUPLICATE_KEY", '{"x":1,"x":2}'),
+        cases = [("JSON_SYNTAX", ''), ("DUPLICATE_KEY", '{"x":1,"x":2}'),
             ("NON_OBJECT_ARGUMENTS", "[]"), ("NON_FINITE_NUMBER", '{"x":NaN}'),
             ("NON_FINITE_NUMBER", '{"x":1e309}'), ("UNSAFE_INTEGER", '{"x":9007199254740992}'),
             ("ARGUMENTS_TYPE", 42)]

@@ -12,6 +12,7 @@ import sys
 
 
 MAX_MEMORY_BYTES = 16 * 1024 * 1024
+MAX_MALFORMED_TURNS = 2
 _SAFE_INTEGER = 2 ** 53 - 1
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 _INVALID = "COVER_AGENT_THINKING_CONTEXT_INVALID"
@@ -22,7 +23,7 @@ _CODES = frozenset({_INVALID, _UNKNOWN, _MISMATCH, _LIMIT})
 _REASONS = frozenset({"JSON_SYNTAX", "DUPLICATE_KEY", "NON_OBJECT_ARGUMENTS",
     "NON_FINITE_NUMBER", "UNSAFE_INTEGER", "INVALID_TYPE", "INVALID_SHAPE",
     "IDENTITY_MISMATCH", "UNKNOWN_HISTORY", "MEMORY_LIMIT", "ARGUMENTS_TYPE",
-    "MESSAGE_CONTENT_TYPE", "TOOL_CALLS_TYPE", "REASONING_TYPE", "OPAQUE_TYPE"})
+    "MESSAGE_CONTENT_TYPE", "TOOL_CALLS_TYPE", "REASONING_TYPE", "OPAQUE_TYPE", "JSON_SYNTAX_REPAIR_LIMIT"})
 _DEFAULT_REASONS = {_INVALID: "INVALID_SHAPE", _UNKNOWN: "UNKNOWN_HISTORY",
     _MISMATCH: "IDENTITY_MISMATCH", _LIMIT: "MEMORY_LIMIT"}
 _DIAGNOSTIC_KEYS = frozenset({"phase", "reason", "code", "ordinal", "entry_count", "retained_bytes"})
@@ -110,7 +111,7 @@ def _arguments(text):
         raise ThinkingError(_INVALID) from None
 
 
-def _assistant(message):
+def _assistant(message, *, malformed=None):
     _need(type(message) is dict and message.get("role") == "assistant")
     content = message.get("content")
     _need(content is None or type(content) is str, reason="MESSAGE_CONTENT_TYPE")
@@ -128,7 +129,17 @@ def _assistant(message):
         identifier, name = call["id"], function["name"]
         _need(identifier not in identifiers, reason="IDENTITY_MISMATCH")
         arguments = function.get("arguments")
-        signatures.append([identifier, name, _arguments(arguments)])
+        try:
+            identity = _arguments(arguments)
+        except ThinkingError as error:
+            # Only a known response may register unparseable argument bytes.
+            # Empty input is excluded: this SDK parses raw || '{}' and could
+            # execute it, instead of producing the native JSON-input failure.
+            if malformed is None or error.reason != "JSON_SYNTAX" or not arguments:
+                raise
+            malformed[identifier] = arguments
+            identity = ["invalid-json-exact-raw", arguments]
+        signatures.append([identifier, name, identity])
         identifiers.append(identifier)
         projected.append({"id": identifier, "type": "function",
                           "function": {"name": name, "arguments": arguments}})
@@ -145,6 +156,41 @@ def _assistant(message):
     content_key = ["tool-empty"] if calls and content in {None, ""} else ["text", content]
     fingerprint = hashlib.sha256(_dump([content_key, signatures])).hexdigest()
     return saved, fingerprint, identifiers
+
+
+def _native_json_error(arguments):
+    """Pinned SDK 2.1.2 tool.input-json envelope, including JS UTF-16 slice."""
+    encoded = arguments.encode("utf-16-le", errors="surrogatepass")
+    excerpt = encoded[:4096].decode("utf-16-le", errors="surrogatepass")
+    length, kept = len(encoded) // 2, len(excerpt.encode("utf-16-le", errors="surrogatepass")) // 2
+    message = ("The tool input could not be parsed as JSON, so the call was not executed. "
+        "Reissue the call with valid JSON arguments.")
+    if length:
+        message += "\n\nInput excerpt (first " + str(kept) + " of " + str(length) + " characters):\n" + excerpt
+        if length > kept:
+            message += "\n[truncated]"
+    return {"error": {"type": "tool.input-json", "message": message}, "content": []}
+
+
+def _native_json_rejections(messages, index, original, identifiers):
+    """Accept the SDK's specific non-execution projection, never an ID alone."""
+    following = []
+    for message in messages[index + 1:]:
+        if type(message) is not dict or message.get("role") != "tool":
+            break
+        following.append(message)
+    for call in original["tool_calls"]:
+        if call["id"] not in identifiers:
+            continue
+        matches = [item for item in following if item.get("tool_call_id") == call["id"]]
+        _need(len(matches) == 1, _MISMATCH)
+        item = matches[0]
+        _need(set(item) == {"role", "tool_call_id", "content"} and type(item["content"]) is str, _MISMATCH)
+        try:
+            value = json.loads(item["content"], object_pairs_hook=_pairs, parse_constant=_constant)
+        except (ValueError, TypeError, RecursionError):
+            raise ThinkingError(_MISMATCH) from None
+        _need(value == _native_json_error(call["function"]["arguments"]), _MISMATCH)
 
 
 def _size(value, seen=None):
@@ -171,7 +217,8 @@ class ThinkingState:
         self._max_bytes = max_bytes
         self._messages = {}
         self._ids = {}
-        self._bytes = _size((job_id, self._messages, self._ids))
+        self._malformed = {}
+        self._bytes = _size((job_id, self._messages, self._ids, self._malformed))
         _need(self._bytes <= max_bytes, _LIMIT)
 
     @property
@@ -187,19 +234,31 @@ class ThinkingState:
         _need(type(response) is dict and type(response.get("choices")) is list
               and len(response["choices"]) == 1 and type(response["choices"][0]) is dict)
         message = response["choices"][0].get("message")
-        saved, key, identifiers = _assistant(message)
+        malformed = {}
+        saved, key, identifiers = _assistant(message, malformed=malformed)
         body = _dump(saved)
         _need(len(body) <= self._max_bytes, _LIMIT)
         _need(all(self._ids.get(identifier, key) == key for identifier in identifiers), _MISMATCH)
         if key in self._messages:
             _need(self._messages[key] == body, _MISMATCH)
         else:
-            messages, ids = dict(self._messages), dict(self._ids)
+            messages, ids, projections = dict(self._messages), dict(self._ids), dict(self._malformed)
+            if malformed:
+                _need(len(projections) < MAX_MALFORMED_TURNS, reason="JSON_SYNTAX_REPAIR_LIMIT")
+                projected = deepcopy(saved)
+                for call in projected["tool_calls"]:
+                    if call["id"] in malformed:
+                        call["function"]["arguments"] = "{}"
+                # This is only a replay identity. The raw argument string is
+                # never parsed, repaired, or passed to a callable by Python.
+                projected_key = _assistant(projected)[1]
+                _need(projected_key not in projections, _MISMATCH)
+                projections[projected_key] = (key, tuple(malformed))
             messages[key] = body
             ids.update((identifier, key) for identifier in identifiers)
-            retained = _size((self._job_id, messages, ids))
+            retained = _size((self._job_id, messages, ids, projections))
             _need(retained <= self._max_bytes, _LIMIT)
-            self._messages, self._ids, self._bytes = messages, ids, retained
+            self._messages, self._ids, self._malformed, self._bytes = messages, ids, projections, retained
         result = deepcopy(response)
         result["choices"][0]["message"].pop("encrypted_content", None)
         return result
@@ -217,6 +276,16 @@ class ThinkingState:
             _need(not used_ids.intersection(identifiers), _MISMATCH)
             used_ids.update(identifiers)
             known = self._messages.get(key)
+            projection = self._malformed.get(key)
+            if known is None and projection is not None:
+                original_key, malformed_ids = projection
+                # Valid siblings, the whole ordered group and content already
+                # matched its fingerprint. Bad inputs must be this exact SDK
+                # empty-object projection plus its adjacent native failure.
+                _need(all(call["function"]["arguments"] == "{}" for call in message["tool_calls"]
+                    if call["id"] in malformed_ids), _MISMATCH)
+                known = self._messages[original_key]
+                _native_json_rejections(result["messages"], index, json.loads(known), malformed_ids)
             if known is None:
                 _need(not any(identifier in self._ids for identifier in identifiers), _MISMATCH)
                 raise ThinkingError(_UNKNOWN)
