@@ -901,6 +901,61 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
     return call_id
 
 
+
+def _quarantine_ended_reservation_calls(tx, row, *, original_execution_ended):
+    """Quarantine only this ended, released v1 delivery's unconfirmed calls.
+
+    This is a terminal-maintenance action, never admission-time reclamation.
+    No fee/reservation, call identity, known response, or existing UNKNOWN changes.
+    """
+    import postdelivery
+    if original_execution_ended is not True:
+        raise ValueError("original execution has not ended")
+    lock = " FOR UPDATE" if tx.postgres else ""
+    parent = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=? AND user_id=?" + lock,
+                         (row["id"], row["user_id"]))
+    parent = dict(parent) if parent else None
+    identity = ("id", "user_id", "operation", "usage_id", "key_hash", "payload_hash",
+                "lease_token_hash", "charge_source", "credits_used",
+                "monthly_credits_used", "wallet_credits_used")
+    if (not parent or any(parent[key] != row[key] for key in identity)
+            or postdelivery._version(parent) is None
+            or parent["operation"] not in {"generate", "analyze"}
+            or parent["status"] != "failed" or not parent["refund_applied"]
+            or parent["complete_applied"] or parent["response_ref_json"]
+            or parent["failure_code"] == "result_store_unknown"):
+        raise ValueError("original released reservation identity changed")
+    postdelivery._assert_usage_state(tx, parent)
+    if (tx.fetchone("SELECT id FROM notes WHERE id=? AND user_id=?", (parent["id"], parent["user_id"]))
+            or tx.fetchone("SELECT id FROM saved_diagnoses WHERE id=? AND user_id=?",
+                           (parent["id"], parent["user_id"]))
+            or tx.fetchone("SELECT operation_id FROM ai_operation_admissions WHERE idempotency_request_id=?",
+                           (parent["id"],))):
+        raise ValueError("original result or durable operation requires reconciliation")
+    session = tx.fetchone("SELECT note_id,generate_ctx_json FROM chat_sessions WHERE id=? AND user_id=?",
+                          (parent["id"], parent["user_id"]))
+    if session:
+        task = json.loads(session["generate_ctx_json"] or "{}").get("task_continuation", {})
+        if session["note_id"] or not isinstance(task, dict) or "result" in task or task.get("status") == "completed":
+            raise ValueError("original session result may exist")
+    calls = tx.fetchall("SELECT id,user_id,usage_record_id,http_status,model_usage_record_id "
+                        "FROM public_trial_calls WHERE usage_record_id=? AND state='dispatched' ORDER BY id" + lock,
+                        (parent["usage_id"],))
+    # Validate the entire set before changing any row. A partially persisted
+    # known result needs its original accounting recovery, not a guessed state.
+    if any(call["user_id"] != parent["user_id"] or call["usage_record_id"] != parent["usage_id"]
+           or call["http_status"] is not None or call["model_usage_record_id"] is not None for call in calls):
+        raise ValueError("original dispatched call outcome requires reconciliation")
+    for call in calls:
+        changed = tx.execute("UPDATE public_trial_calls SET state='unknown' WHERE id=? AND user_id=? "
+                             "AND usage_record_id=? AND state='dispatched' AND http_status IS NULL "
+                             "AND model_usage_record_id IS NULL",
+                             (call["id"], parent["user_id"], parent["usage_id"]))
+        if int(changed.rowcount) != 1:
+            raise ValueError("original physical call state changed")
+    return len(calls)
+
+
 def _record_response(call_id: str, status: int | None, *, unknown=False, not_dispatched=False):
     import db
     # Reservation remains charged even if body/stream subsequently disconnects.

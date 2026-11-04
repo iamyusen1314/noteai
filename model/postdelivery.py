@@ -296,11 +296,14 @@ def release_in_transaction(tx, context, *, original_execution_ended):
     if original_execution_ended is not True:
         raise ValueError('original execution has not ended')
     row = _owned(tx, context)
-    return _release_row_in_transaction(tx, row)
+    return _release_row_in_transaction(tx, row, original_execution_ended=True)
 
 
-def _release_row_in_transaction(tx, row):
+def _release_row_in_transaction(tx, row, *, original_execution_ended=False):
     if row['status'] == 'failed' and row['refund_applied']:
+        if original_execution_ended and row['operation'] in {'generate', 'analyze'}:
+            import public_product
+            public_product._quarantine_ended_reservation_calls(tx, row, original_execution_ended=True)
         return {'status': 'released', 'credits_used': 0}
     if row['complete_applied'] or row['response_ref_json']:
         raise ValueError('original result may already exist')
@@ -321,6 +324,9 @@ def _release_row_in_transaction(tx, row):
     now = billing._now()
     tx.execute('UPDATE usage_records SET source=?,credits_used=0 WHERE id=? AND user_id=?', (RELEASED_PREFIX + _version(row)['source'], row['usage_id'], row['user_id']))
     tx.execute("UPDATE idempotency_requests SET status='failed',refund_applied=1,failure_code=CASE WHEN failure_code<>'' THEN failure_code ELSE 'request_failed' END,failed_at=COALESCE(failed_at,?),refunded_at=NULL,updated_at=? WHERE id=?", (now, now, row['id']))
+    if original_execution_ended and row['operation'] in {'generate', 'analyze'}:
+        import public_product
+        public_product._quarantine_ended_reservation_calls(tx, row, original_execution_ended=True)
     return {'status': 'released', 'credits_used': 0}
 
 
@@ -331,7 +337,8 @@ def reconcile_undelivered_reservation(user_id, request_id, *, expected_snapshot,
     No lease timeout alone releases a hold. The caller supplies the complete
     original task snapshot and physical-call manifest read before this explicit
     action; every field is compared under the existing user fence. No provider
-    record, fee, or UNKNOWN state changes, and no owner token is reconstructed.
+    fee or known/UNKNOWN outcome changes. Only ended dispatched calls without
+    any response/metering become UNKNOWN; no owner token is reconstructed.
     """
     fields = {"operation", "key_hash", "payload_hash", "usage_id", "lease_token_hash",
         "lease_expires_at", "charge_source", "credits_used", "monthly_credits_used",
@@ -375,14 +382,22 @@ def reconcile_undelivered_reservation(user_id, request_id, *, expected_snapshot,
         calls = tx.fetchall("SELECT id,user_id,state,http_status,model_usage_record_id FROM public_trial_calls "
                             "WHERE usage_record_id=? ORDER BY id" + lock, (row["usage_id"],))
         actual = {call["id"]: {key: call[key] for key in call_fields} for call in calls}
-        if actual != manifest or any(call["user_id"] != user_id for call in calls):
+        expected = {key: dict(value) for key, value in manifest.items()}
+        if already_released:
+            # Idempotent readback of this exact ended-call quarantine only.
+            for key, value in expected.items():
+                if (value == {"id": key, "state": "dispatched", "http_status": None,
+                              "model_usage_record_id": None}
+                        and actual.get(key) == {**value, "state": "unknown"}):
+                    value["state"] = "unknown"
+        if actual != expected or any(call["user_id"] != user_id for call in calls):
             raise ValueError("original reservation call manifest changed")
         for call in calls:
             if call["model_usage_record_id"] and not tx.fetchone(
                     "SELECT id FROM model_usage_records WHERE id=? AND usage_record_id=?",
                     (call["model_usage_record_id"], row["usage_id"])):
                 raise ValueError("original reservation model usage binding changed")
-        return _release_row_in_transaction(tx, row)
+        return _release_row_in_transaction(tx, row, original_execution_ended=True)
 
 
 def cancel_waiting_reservation(user_id, request_id):
