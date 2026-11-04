@@ -40,6 +40,13 @@ _THINKING_DIAGNOSTIC_FILE = "thinking-context-diagnostic.json"
 _HOST_RESULT_DIAGNOSTIC_FILE = "bridge-host-result.json"
 _SEEDREAM_DIAGNOSTIC_FILE = "seedream-http-failure.json"
 _RESPONSE_DELIVERY_DIAGNOSTIC_FILE = "model-response-delivery.json"
+_POST_HOST_DIAGNOSTIC_FILE = "post-host-diagnostic.json"
+_CAPTURE_FAILURE_CODES = {"COVER_EDITABLE_MANIFEST_CHANGED", "COVER_EDITABLE_MANIFEST_INVALID",
+    "COVER_EDITABLE_SOURCE_CHANGED", "COVER_EDITABLE_PATH_INVALID", "COVER_EDITABLE_FILE_CHANGED",
+    "COVER_EDITABLE_BUNDLE_TOO_LARGE", "COVER_EDITABLE_FINAL_CHANGED", "COVER_EDITABLE_RENDER_CONTRACT_INVALID",
+    "COVER_EDITABLE_LAYOUT_INVALID", "COVER_EDITABLE_HASH_INVALID"}
+_POST_HOST_EXCEPTION_TYPES = {"ValueError", "KeyError", "TypeError", "FileNotFoundError", "PermissionError",
+    "IsADirectoryError", "NotADirectoryError", "OSError", "JSONDecodeError", "UnicodeDecodeError", "RuntimeError", "OtherError"}
 _HOST_RESULT_STATUSES = {"RUNNING", "AWAITING_MODEL", "FAILED", "UNKNOWN", "COMPLETE"}
 _HOST_RESULT_FS_CODES = {"EACCES", "EEXIST", "ENOENT", "ENOSPC", "EIO", "EMFILE",
     "ENFILE", "EROFS", "EDQUOT", "ENOTDIR", "ENOTEMPTY", "ETIMEDOUT"}
@@ -425,6 +432,62 @@ def _read_response_delivery_diagnostic(directory, job_id):
         return None
 
 
+def _post_host_diagnostic(value):
+    if (type(value) is not dict or set(value) != {"stage", "code", "exception_type"}
+            or value["stage"] != "artifact_capture"
+            or type(value["code"]) is not str or type(value["exception_type"]) is not str
+            or value["code"] not in _CAPTURE_FAILURE_CODES | {"COVER_AGENT_CAPTURE_FAILED"}
+            or value["exception_type"] not in _POST_HOST_EXCEPTION_TYPES):
+        return None
+    return dict(value)
+
+
+def _read_post_host_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _POST_HOST_DIAGNOSTIC_FILE,
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.getuid()
+                    or stat.S_IMODE(info.st_mode) not in {0o400, 0o600} or not 0 < info.st_size <= 4096):
+                return None
+            value = json.loads(stream.read(4097))
+        if type(value) is not dict or set(value) != {"job_id", "diagnostic"} or value["job_id"] != job_id:
+            return None
+        return _post_host_diagnostic(value["diagnostic"])
+    except (OSError, ValueError, TypeError, RecursionError):
+        return None
+
+
+def _capture_artifact(artifact, *, expected_sources, directory, job_id):
+    try:
+        return artifacts.capture(artifact, expected_sources=expected_sources)
+    except Exception as error:
+        if getattr(error, "outcome_unknown", False) or isinstance(error, cover_runtime.CoverRuntimeError):
+            raise
+        code = error.args[0] if isinstance(error, ValueError) and error.args else None
+        if not isinstance(code, str) or code not in _CAPTURE_FAILURE_CODES:
+            code = "COVER_AGENT_CAPTURE_FAILED"
+        kind = type(error).__name__
+        diagnostic = {"stage": "artifact_capture", "code": code,
+            "exception_type": kind if kind in _POST_HOST_EXCEPTION_TYPES else "OtherError"}
+        try:
+            state = directory / "host-state"
+            if state.is_symlink():
+                raise ValueError("diagnostic directory is a link")
+            state.mkdir(mode=0o700, exist_ok=True)
+            body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+            fd = os.open(state / _POST_HOST_DIAGNOSTIC_FILE,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(body)
+        except (OSError, ValueError, TypeError, RecursionError):
+            logging.warning("cover_post_host_diagnostic_unavailable")
+        raise cover_runtime.CoverRuntimeError(code) from error
+
+
 def _stop_host(process):
     """Stop this host's POSIX group without signalling the API's own group."""
     def signal_group(value):
@@ -568,6 +631,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "KNOWN_RESPONSE_UNDELIVERED"}
         receipt["model_response_delivery_failure"] = delivery
+    capture = _read_post_host_diagnostic(directory, job_id)
+    if capture is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "ARTIFACT_CAPTURE_FAILED"}
+        receipt["post_host_failure"] = capture
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -853,6 +921,55 @@ class Bridge:
             raise cover_runtime.CoverRuntimeError(error.code) from None
         return body, call_id
 
+    def _render_sources(self, arguments):
+        """Bind source identity to this job's original bytes, never authored aliases."""
+        try:
+            if not isinstance(arguments, dict) or not isinstance(arguments.get("sources"), list):
+                raise ValueError("sources required")
+            entries = arguments["sources"]
+            if not 1 <= len(entries) <= 9:
+                raise ValueError("source count invalid")
+            root = self.directory.resolve(strict=True)
+            project = Path(arguments.get("project_dir") or ".")
+            project = (project if project.is_absolute() else root / project).resolve(strict=True)
+            if not project.is_dir() or not project.is_relative_to(root):
+                raise ValueError("project out of scope")
+            canonical, used = [], set()
+            for entry in entries:
+                if not isinstance(entry, dict) or not isinstance(entry.get("sha256"), str):
+                    raise ValueError("source invalid")
+                relative = artifacts.relative(entry.get("path"))
+                path = project / relative
+                cursor = project
+                for part in Path(relative).parts:
+                    cursor = cursor / part
+                    if cursor.is_symlink():
+                        raise ValueError("source is a link")
+                resolved = path.resolve(strict=True)
+                if not resolved.is_relative_to(project):
+                    raise ValueError("source out of scope")
+                originals = [source for source in self.sources if source["sha256"] == entry["sha256"]
+                    and artifacts.digest(source["payload"]) == source["sha256"]]
+                if not originals:
+                    raise ValueError("source not an original")
+                fd = os.open(resolved, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                with os.fdopen(fd, "rb") as stream:
+                    info = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(info.st_mode) or info.st_size != len(originals[0]["payload"]):
+                        raise ValueError("source not an original")
+                    body = stream.read(len(originals[0]["payload"]) + 1)
+                    if len(body) != len(originals[0]["payload"]) or artifacts.digest(body) != entry["sha256"]:
+                        raise ValueError("source bytes changed")
+                source = next((item for item in originals
+                    if (root / item["path"]).resolve(strict=True) == resolved), originals[0])
+                if source["media_ref"] in used:
+                    raise ValueError("duplicate original")
+                used.add(source["media_ref"])
+                canonical.append({"ref": source["media_ref"], "path": entry["path"], "sha256": source["sha256"]})
+            return canonical
+        except (OSError, ValueError, TypeError, KeyError):
+            raise cover_runtime.CoverRuntimeError("COVER_AGENT_RENDER_SOURCE_INVALID") from None
+
     def tool(self, message):
         name, arguments = message.get("name"), message.get("arguments", {})
         if name == "cover_seedream":
@@ -891,7 +1008,7 @@ class Bridge:
         if name == "cover_render":
             if not self.concept_hash or self.concept_hash not in self.seen_images:
                 raise cover_runtime.CoverRuntimeError("COVER_AGENT_CONCEPT_NOT_VIEWED")
-            answer = {"allowed": True}
+            answer = {"allowed": True, "canonical_sources": self._render_sources(arguments)}
             if self.approved_titles is not None:
                 answer["approved_titles"] = list(self.approved_titles)
             return answer
@@ -1048,8 +1165,9 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
         revision_dir = Path(result["artifact"]["revision_dir"]).resolve()
         if not revision_dir.is_relative_to(directory):
             raise cover_runtime.CoverRuntimeError("COVER_AGENT_ARTIFACT_OUT_OF_SCOPE")
-        final, bundle, layout = artifacts.capture(result["artifact"],
-            expected_sources={source["media_ref"]: source["sha256"] for source in checked})
+        final, bundle, layout = _capture_artifact(result["artifact"],
+            expected_sources={source["media_ref"]: source["sha256"] for source in checked},
+            directory=directory, job_id=job_id)
         candidate = {"final_sha256": layout["final_sha256"], "source_hashes": layout["source_hashes"], "qc": None}
         hooks.on_candidate(candidate, final)
         if rejected_hash is not None and layout["final_sha256"] == rejected_hash:

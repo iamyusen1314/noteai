@@ -99,12 +99,18 @@ class ProviderDeadlineBridgeTests(unittest.TestCase):
 class TitleScopeBridgeTests(unittest.TestCase):
     def test_render_scope_comes_from_report_not_authored_arguments(self):
         with tempfile.TemporaryDirectory() as root:
-            bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=Path(root), sources=[], hooks=mock.Mock())
+            body = b"frozen original fixture"
+            (Path(root) / "source.jpg").write_bytes(body)
+            digest = artifacts.digest(body)
+            source = {"media_ref": "original-ref", "path": "source.jpg", "sha256": digest, "payload": body}
+            bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=Path(root), sources=[source], hooks=mock.Mock())
             bridge.concept_hash = "seen-concept"
             bridge.seen_images.add(bridge.concept_hash)
             bridge.approved_titles = ["水石清池：藏在高楼里的日式枯山水汤泉"]
-            answer = bridge.tool({"name": "cover_render", "arguments": {"approved_titles": ["任意新宣传词"]}})
-            self.assertEqual(answer, {"allowed": True, "approved_titles": bridge.approved_titles})
+            answer = bridge.tool({"name": "cover_render", "arguments": {"approved_titles": ["任意新宣传词"],
+                "sources": [{"ref": "model-alias", "path": "source.jpg", "sha256": digest}]}})
+            self.assertEqual(answer, {"allowed": True, "approved_titles": bridge.approved_titles,
+                "canonical_sources": [{"ref": "original-ref", "path": "source.jpg", "sha256": digest}]})
             answer["approved_titles"].append("mutated response")
             self.assertEqual(len(bridge.approved_titles), 1)
 
@@ -136,11 +142,13 @@ class LocalRenderRejectionDiagnosticTests(unittest.TestCase):
             "_host_result_diagnostic", "_read_input_diagnostic", "_read_output_diagnostic",
             "_read_reservation_diagnostic", "_read_host_result_diagnostic",
             "_read_seedream_diagnostic", "_read_thinking_diagnostic",
-            "_response_delivery_diagnostic", "_read_response_delivery_diagnostic", "cleanup_workspace"}
+            "_response_delivery_diagnostic", "_read_response_delivery_diagnostic",
+            "_post_host_diagnostic", "_read_post_host_diagnostic", "cleanup_workspace"}
         constants = {"_RENDER_REJECTION_CODES", "_HOST_FAILURE_CODES", "_HOST_RESULT_STATUSES",
             "_HOST_RESULT_FS_CODES", "_INPUT_DIAGNOSTIC_FILE", "_OUTPUT_DIAGNOSTIC_FILE",
             "_RESERVATION_DIAGNOSTIC_FILE", "_HOST_RESULT_DIAGNOSTIC_FILE", "_SEEDREAM_DIAGNOSTIC_FILE",
-            "_THINKING_DIAGNOSTIC_FILE", "_RESPONSE_DELIVERY_DIAGNOSTIC_FILE"}
+            "_THINKING_DIAGNOSTIC_FILE", "_RESPONSE_DELIVERY_DIAGNOSTIC_FILE",
+            "_POST_HOST_DIAGNOSTIC_FILE", "_CAPTURE_FAILURE_CODES", "_POST_HOST_EXCEPTION_TYPES"}
         selected = [node for node in tree.body if (
             isinstance(node, ast.FunctionDef) and node.name in functions) or (
             isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)
@@ -179,7 +187,8 @@ const ctx=vm.createContext({path,fs,process:{execPath:process.execPath},requests
  checkpoint:base(),checkpointPath,job:{work_dir:directory,editable_cli:'/not-executed-cli'},
  error:code=>Object.assign(new Error(code),{code}),objectSchema:()=>({}),
  tool:(name,description,schema,callback)=>{assert.equal(name,'cover_render');handler=callback;},
- bridge:async()=>{bridgeCalls++;return {result:{allowed:true,approved_titles:['trusted title']}};},
+ bridge:async()=>{bridgeCalls++;return {result:{allowed:true,approved_titles:['trusted title'],
+  canonical_sources:[{ref:'trusted-original',path:'assets/source.jpg',sha256:'a'.repeat(64)}]}};},
  runLocal:async()=>{runCalls++;return {code:1,stdout:JSON.stringify(wire)};},
  makeThumbnail:()=>assert.fail('Rejected render must not make a preview'),
  send:()=>assert.fail('Rejected render must not announce a finished render')});
@@ -348,7 +357,7 @@ const ctx=vm.createContext({path,process:{execPath:process.execPath},
   fs:{realpath:async p=>p},job:{work_dir:'/owned-job',editable_cli:'/existing-cli'},
   inside:()=>true,error:code=>new Error(code),objectSchema:()=>({}),
   tool:(name,description,schema,callback)=>{assert.equal(name,'cover_render');handler=callback;},
-  bridge:async()=>({result:{allowed:true,...(scope===undefined?{}:{approved_titles:scope})}}),
+  bridge:async()=>({result:{allowed:true,canonical_sources:[{ref:'trusted-original',path:'assets/source.jpg',sha256:'a'.repeat(64)}],...(scope===undefined?{}:{approved_titles:scope})}}),
   runLocal:async(command,args,cwd,input)=>{rendered=JSON.parse(input);return {code:1,stdout:JSON.stringify(local)};}});
 vm.runInContext(segment,ctx);
 for (const trusted of [['原标题'],undefined]) {
@@ -356,6 +365,7 @@ for (const trusted of [['原标题'],undefined]) {
   const response=await handler({request:{project_dir:'.',approved_titles:['伪造范围']}});
   if(trusted) assert.deepEqual(rendered.approved_titles,trusted);
   else assert.equal(Object.hasOwn(rendered,'approved_titles'),false);
+  assert.deepEqual(rendered.sources,[{ref:'trusted-original',path:'assets/source.jpg',sha256:'a'.repeat(64)}]);
   assert.deepEqual(JSON.parse(response.content),local);
 }
 console.log(JSON.stringify({pass:true,real_host_tool:true,model_calls:0}));

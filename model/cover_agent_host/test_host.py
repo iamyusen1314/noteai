@@ -517,7 +517,8 @@ assert(outcomes.filter(item=>item.name.startsWith('correct_no_semicolon')).every
 
         def tool_respond(event):
             self.assertEqual(event["name"], "cover_render")
-            return {"allowed": True, "approved_titles": [edited_text]}
+            return {"allowed": True, "approved_titles": [edited_text],
+                "canonical_sources": event["arguments"]["sources"]}
 
         result, calls, _, root = self.request(case, respond=respond, tool_respond=tool_respond)
         (root / "managed-font-observations.json").write_text(json.dumps(observed, ensure_ascii=False, indent=2))

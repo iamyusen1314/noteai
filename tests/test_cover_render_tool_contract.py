@@ -61,7 +61,8 @@ const ctx = vm.createContext({fs, path, spawn, process, Buffer, setTimeout, clea
   },
   bridge: async (type, value) => {
     assert.equal(type, 'tool_request'); assert.equal(value.name, 'cover_render');
-    bridgeCalls++; return {result: {allowed: true, approved_titles: input.approved_titles}};
+    bridgeCalls++; return {result: {allowed: true, approved_titles: input.approved_titles,
+      canonical_sources: input.request.sources}};
   },
   send: event => sent.push(event),
 });

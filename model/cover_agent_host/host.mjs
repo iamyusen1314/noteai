@@ -640,6 +640,13 @@ try {
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');
       const answer = await bridge('tool_request', { name: 'cover_render', arguments: request });
       if (answer.result?.allowed !== true) throw error(answer.result?.code || 'RENDER_NOT_APPROVED');
+      // Only Python can bind a selected file's bytes to this job's original media identity.
+      const canonical = answer.result.canonical_sources;
+      if (!Array.isArray(canonical) || canonical.length < 1 || canonical.length > 9
+          || canonical.some((source) => !source || typeof source.ref !== 'string' || !source.ref
+            || typeof source.path !== 'string' || !source.path || !/^[a-f0-9]{64}$/.test(source.sha256)))
+        throw error('RENDER_SOURCE_BINDING_INVALID');
+      request.sources = canonical;
       // Only the business bridge can supply the original report title scope.
       delete request.approved_titles;
       if (Array.isArray(answer.result.approved_titles)) request.approved_titles = answer.result.approved_titles;
