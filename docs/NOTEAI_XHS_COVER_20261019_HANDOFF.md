@@ -4929,3 +4929,22 @@ Root实际SOURCE-REF-REPAIR-RELEASE-PREPARE001/t-sz0722gnxdshkhs Success0/Droppe
 独立审查已对官方Output与本机原文件逐字全等/实际服务与入口恢复GO；只代表技术上线安全，不是新真实封面审美或保存改字下载唯一结算通过。兼容回退为本CASE原prepare_running_rollback到23092，原once/UNKNOWN恢复语义保持；不得重派已完成prepare/publish，也不回更旧5aef/0748。当前无running模型请求/临时预算env/新增公网入口；R5fce7仍failed/noPNG/8全释放net0，26known/保守3931，A70累计63046/余6954，旧UNKNOWN完整保留。
 
 Root继续既有NEXT/POST/本地真实结果UI工具的实际新runtime薄绑定准备，未创建CLIENT/job/usage或付费请求。上一R5仅一任务授权已消费；真实交付分支需集中确认使用现有余6.954元的新任务范围（不新增预算），其余免费工程继续。最终仍欠3140原报告真实合格PNG、正常存储读取/免费改字/下载/一次8及实际成品PC-H5；无成品不宣称完成。
+
+
+### 2026-11-04T05:43:12.070704+00:00 — CURRENT：唯一恢复指针已校正；未执行的新任务工具与容量证据边界收口，付费分支只等集中范围答复
+
+权威原PLAN.current_resume_pointer已更新为SOURCE_REFERENCE_REPAIR_RELEASED_REAL_DELIVERY_PENDING_SCOPE，指向cover_incident_20261103.ref_identity_repair_20261104及next_acceptance_preparation.current_scope_question；旧Oct26完成状态保留为dated historical_completion_before_20261103_incident，不能掩盖Nov3故障续修。HEAD9d7ca9a6已push，功能source3b33/线上1a7/当前API4b8d-Pay8d95-Adminc5d/入口open不变。没有running模型或云发布；不能重做已完成PREP/PUB。
+
+复用既有工具仅技术晚绑：AFTER-CANONICAL-VERIFY-BUDGET.UNBOUND.py11150/e2e6a242、STATUS child7466/04c1d655、outer20945/2763fe2d，source3b33/image1a7/current4b8/新CASE与normalunit/carrierf904更新，原0eaa15197及guard函数等；CLIENT/CASES/TASK/MAX/childSHA均None，轻量UNBOUND beforeFS/businessimport证明2392/c76ec41b，0云/模型/UUID/新任务。最新含actual normal_api与QC的POST原R5 bound26228/b30fa仅2approved IDs置None→CURRENT.UNBOUND26160/5567cf44，AST其余全等，未执行；原R5工具完整保留但失败job禁止成功POST。现有UI harness仍待真实新job/完整DTO/PNG后晚绑，不用技术QA图片冒成品。
+
+| 改动/风险 | 可复用证据 | 需要补测 |
+| --- | --- | --- |
+| canonical原照身份/capture | 本机23及实际Linux14，source3b33已独审/实际发布 | 新真实供应商合格PNG、保存/免费改字/下载/唯一8 |
+| 静态/支付/Admin未改 | 544c静态与appbfa首页、原付款/JSAPI订单、此发布ready/0032flag1 | 不重复历史支付/高德 |
+| 共享资源 | 现每API进程CoverWorker串行，shared model_admission；旧R6受控16115/d9bc、3G真9预检6060/dc8c、今QA16943/5a49 | 真九图+改字+其他报告/媒体叠加及真实供应商多人吞吐未验；当前1张不据此宣称容量过 |
+
+只读容量核查没有改限流或新增测试：claim是job围栏非跨进程全局cover单例，默认物理2/doubao2/Seedream1只是源码默认非本次live读；单任务143/reaped与3GiB无OOM不证明多用户总内存，免费改字有独立进程内slot可重叠，30min从submit起久排可正常过期释放。保留边界，不扩为本单新前置。
+
+已集中向用户请求在现有余6.954元内自主完成1张（首合格停/已知无UNKNOWN技术失败先免费修后可在余款内重建，UNKNOWN或预算不足停且不重发）；可选只再新建1任务。未收到答复，不把超时/未选择当授权，不新增预算。无需登录或操作电脑。只有此真实付费分支暂缓；免费技术发布及准备均已实做，仍无PNG/8已退/net0。
+
+最终UNBOUND窄审已GO（准确delta/pins/原helper/当前1a7恢复点/历史成本/FS前拒），未生成或执行futurewire。对应子代理全部任务收口；无后台模型/发布/QA任务。余下真实生成及其后续保存改字下载/成品UI均依赖新付费范围答复，收到后按同一checkpoint续跑，不重做发布与已完成验证。
