@@ -759,9 +759,9 @@ class CoverAgentProviderTests(unittest.TestCase):
             (datetime.fromtimestamp(now + 400, timezone.utc).isoformat(), self.claim["request_id"]))
         with mock.patch.object(provider.time, "time", return_value=now):
             provider.complete(self.body, call_id=self.intent(), transport=self.transport(), deadline=now + 500)
-            provider.complete(self.body, call_id=self.intent("qc"), transport=self.transport(), deadline=now + 300)
+            provider.complete(self.body, call_id=self.intent("qc"), transport=self.transport(), deadline=now + 360)
         self.assertAlmostEqual(self.requests[0].extensions["timeout"]["read"], 260, places=5)
-        self.assertAlmostEqual(self.requests[1].extensions["timeout"]["read"], 160, places=5)
+        self.assertAlmostEqual(self.requests[1].extensions["timeout"]["read"], 220, places=5)
 
     def test_short_or_invalid_host_deadline_never_reserves_or_sends(self):
         call_id = self.intent()

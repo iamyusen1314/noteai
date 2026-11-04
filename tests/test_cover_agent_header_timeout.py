@@ -172,7 +172,7 @@ class HeaderWaitRealSDKTests(unittest.TestCase):
                 started = time.monotonic()
                 with mock.patch.object(runtime,"ROOT",model):
                     with self.assertRaises(cover_runtime.CoverRuntimeError) as caught:
-                        bridge.run("PRIVATE_SYNTHETIC_HEADER_FIXTURE; return a short answer without tools.",deadline=time.time()+300)
+                        bridge.run("PRIVATE_SYNTHETIC_HEADER_FIXTURE; return a short answer without tools.",deadline=time.time()+500)
                 checkpoint = json.loads((directory / "host-state/host-checkpoint.json").read_text())
                 calls = [dict(row) for row in db.fetchall("SELECT id,state,http_status,model_usage_record_id FROM public_trial_calls WHERE usage_record_id=?",(fixture.claim["charge"]["usage_id"],))]
                 self.assertEqual((len(requests),len(before),len(calls),len(bridge.costs)),(1,1,1,1),

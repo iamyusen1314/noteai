@@ -135,11 +135,12 @@ class LocalRenderRejectionDiagnosticTests(unittest.TestCase):
         functions = {"_render_rejection_diagnostic", "_host_failure_diagnostic",
             "_host_result_diagnostic", "_read_input_diagnostic", "_read_output_diagnostic",
             "_read_reservation_diagnostic", "_read_host_result_diagnostic",
-            "_read_seedream_diagnostic", "_read_thinking_diagnostic", "cleanup_workspace"}
+            "_read_seedream_diagnostic", "_read_thinking_diagnostic",
+            "_response_delivery_diagnostic", "_read_response_delivery_diagnostic", "cleanup_workspace"}
         constants = {"_RENDER_REJECTION_CODES", "_HOST_FAILURE_CODES", "_HOST_RESULT_STATUSES",
             "_HOST_RESULT_FS_CODES", "_INPUT_DIAGNOSTIC_FILE", "_OUTPUT_DIAGNOSTIC_FILE",
             "_RESERVATION_DIAGNOSTIC_FILE", "_HOST_RESULT_DIAGNOSTIC_FILE", "_SEEDREAM_DIAGNOSTIC_FILE",
-            "_THINKING_DIAGNOSTIC_FILE"}
+            "_THINKING_DIAGNOSTIC_FILE", "_RESPONSE_DELIVERY_DIAGNOSTIC_FILE"}
         selected = [node for node in tree.body if (
             isinstance(node, ast.FunctionDef) and node.name in functions) or (
             isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)

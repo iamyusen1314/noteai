@@ -47,6 +47,8 @@ MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 # Keep a cover-only ceiling and leave room for connection/upload and settlement.
 READ_TIMEOUT_SECONDS = 900
 REQUEST_MARGIN_SECONDS = 140
+# Refuse a new paid call with only a short tail left; this is not a supplier SLA.
+MIN_READ_WINDOW_SECONDS = 180
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 _MODEL_NAME = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")
 _KEYS = {"model", "messages", "tools", "tool_choice", "parallel_tool_calls",
@@ -491,7 +493,7 @@ def request_timeout(deadline=None):
         if type(deadline) not in {int, float} or not math.isfinite(deadline):
             _invalid("COVER_AGENT_TASK_DEADLINE")
         read = min(read, deadline - time.time() - REQUEST_MARGIN_SECONDS)
-        if read <= 0:
+        if read < MIN_READ_WINDOW_SECONDS:
             _invalid("COVER_AGENT_TASK_DEADLINE")
     return httpx.Timeout(read, connect=10, write=90, pool=10)
 

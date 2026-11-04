@@ -317,18 +317,47 @@ function pendingIntentMatches(value, expected) {
     && value.ordinal === expected.ordinal && value.body_sha256 === expected.body_sha256
     && value.label === expected.label;
 }
-const RENDER_REJECTION_CODES = new Set(['TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION',
-  'TEXT_OVER_PROTECTED_SUBJECT', 'TEXT_FONT_NOT_SELF_HOSTED', 'COVER_DESIGN_TEXT_NOT_FROM_TITLE',
-  'OFFLINE_RENDER_ERROR', 'RENDER_DEPENDENCY_INCOMPLETE', 'CANVAS_PIXEL_GEOMETRY_MISMATCH',
-  'GENERATED_TEXT_NOT_EDITABLE', 'VISIBLE_TEXT_NOT_REGISTERED', 'UPSTREAM_POSTER_CONTRACT_FAILED',
-  'UPSTREAM_FONTS_FAILED', 'UPSTREAM_EDITABLE_CONTRACT_FAILED', 'OTHER_LOCAL_RENDER_REJECTION']);
+const RENDER_REJECTION_CODES = new Set([
+  'ABSOLUTE_OUTPUT_ROOT_REQUIRED', 'ABSOLUTE_PROJECT_DIR_REQUIRED', 'ACTIVE_CSS_FORBIDDEN',
+  'ACTIVE_HTML_FORBIDDEN', 'APPROVED_TITLES_INVALID', 'ASSET_PATH_INVALID',
+  'ASSET_TYPE_FORBIDDEN', 'CANVAS_MISSING', 'CANVAS_MUST_BE_1776_2368_SCALE_1',
+  'CANVAS_NOT_CAPTURABLE', 'CANVAS_PIXEL_GEOMETRY_MISMATCH', 'COMMAND_INVALID',
+  'COVER_DESIGN_TEXT_NOT_FROM_TITLE', 'EDITABLE_LAYER_MUST_BE_TEXT_LEAF', 'EDITS_REQUIRED',
+  'EDIT_FIELDS_FORBIDDEN', 'EDIT_LAYER_MISSING', 'EDIT_OFFSET_INVALID',
+  'EDIT_TEXT_INVALID', 'EDIT_TEXT_REQUIRES_PLAIN_TEXT_LEAF', 'EXTERNAL_OR_ABSOLUTE_RESOURCE_FORBIDDEN',
+  'GENERATED_TEXT_NOT_EDITABLE', 'HTML_HEAD_REQUIRED', 'HTML_TOO_LARGE',
+  'OFFLINE_RENDER_ERROR', 'OTHER_LOCAL_RENDER_REJECTION', 'PARENT_ARTIFACT_CHANGED',
+  'PARENT_REVISION_CONFLICT', 'PARENT_REVISION_INVALID', 'PNG_DIMENSION_MISMATCH',
+  'PNG_OUTPUT_TOO_LARGE', 'PROJECT_SPECIAL_FILE_FORBIDDEN', 'PROJECT_SYMLINK_FORBIDDEN',
+  'PROJECT_TOO_LARGE', 'RECT_INVALID', 'REGULAR_FILE_REQUIRED',
+  'RENDER_DEPENDENCY_INCOMPLETE', 'REQUEST_FIELDS_FORBIDDEN', 'REQUEST_TOO_LARGE',
+  'RESOURCE_ATTRIBUTE_MUST_BE_QUOTED', 'SCHEMA_VERSION_INVALID', 'SOURCES_REQUIRED',
+  'SOURCE_HASH_MISMATCH', 'SOURCE_MANIFEST_INVALID', 'SOURCE_PHOTO_NOT_USED',
+  'SYSTEM_FONT_REFERENCE_FORBIDDEN', 'TEXT_FONT_NOT_SELF_HOSTED', 'TEXT_LAYERS_REQUIRED',
+  'TEXT_LAYER_ID_INVALID', 'TEXT_LAYER_NOT_UNIQUE', 'TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION',
+  'TEXT_OVER_PROTECTED_SUBJECT', 'UNAUTHORIZED_SHIPPING_IMAGE', 'UPSTREAM_EDITABLE_CONTRACT_FAILED',
+  'UPSTREAM_FONTS_FAILED', 'UPSTREAM_POSTER_CONTRACT_FAILED', 'USAGE',
+  'VISIBLE_TEXT_NOT_REGISTERED']);
 function renderRejection(result) {
   if (result?.ok !== false) return null;
-  const record = { code: RENDER_REJECTION_CODES.has(result.code) ? result.code : 'OTHER_LOCAL_RENDER_REJECTION',
-    model_requests: requests };
   const layer = (value) => typeof value === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value);
-  if (['TEXT_OVER_PROTECTED_SUBJECT', 'TEXT_FONT_NOT_SELF_HOSTED', 'COVER_DESIGN_TEXT_NOT_FROM_TITLE'].includes(record.code)
-      && layer(result.detail)) record.layer_id = result.detail;
+  let code = result.code, layerID = result.detail;
+  if (code === 'RENDER_FAILED' && typeof result.detail === 'string') {
+    // Browser evaluate throws have no CLI error.code. Retain only the fixed
+    // renderer vocabulary, never its arbitrary message, HTML, path or stack.
+    if (['EDIT_LAYER_MISSING', 'EDIT_TEXT_REQUIRES_PLAIN_TEXT_LEAF', 'CANVAS_MISSING',
+      'CANVAS_PIXEL_GEOMETRY_MISMATCH', 'GENERATED_TEXT_NOT_EDITABLE', 'VISIBLE_TEXT_NOT_REGISTERED'].includes(result.detail))
+      code = result.detail;
+    else {
+      const match = /^(TEXT_LAYER_NOT_UNIQUE|EDITABLE_LAYER_MUST_BE_TEXT_LEAF):([A-Za-z0-9_-]{1,80})$/.exec(result.detail);
+      if (match) { code = match[1]; layerID = match[2]; }
+    }
+  }
+  const record = { code: RENDER_REJECTION_CODES.has(code) ? code : 'OTHER_LOCAL_RENDER_REJECTION',
+    model_requests: requests };
+  if (['TEXT_OVER_PROTECTED_SUBJECT', 'TEXT_FONT_NOT_SELF_HOSTED', 'COVER_DESIGN_TEXT_NOT_FROM_TITLE',
+    'TEXT_LAYER_NOT_UNIQUE', 'EDITABLE_LAYER_MUST_BE_TEXT_LEAF'].includes(record.code)
+      && layer(layerID)) record.layer_id = layerID;
   if (record.code === 'TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION') {
     try {
       const detail = JSON.parse(result.detail);
@@ -592,7 +621,20 @@ try {
       checkpoint.pending_tool = null; await atomicJSON(checkpointPath, checkpoint);
       return { content: JSON.stringify(answer.result) };
     }),
-    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: { type: 'object', additionalProperties: true } }), async ({ request }) => {
+    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: objectSchema({
+      project_dir: { type: 'string', minLength: 1 },
+      sources: { type: 'array', minItems: 1, maxItems: 9, items: objectSchema({
+        ref: { type: 'string', minLength: 1 }, path: { type: 'string', minLength: 1 },
+        sha256: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+      }) },
+      text_layers: { type: 'array', minItems: 1, items: objectSchema({
+        id: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,80}$' },
+        allowed_rect: objectSchema({ x: { type: 'number' }, y: { type: 'number' },
+          width: { type: 'number', exclusiveMinimum: 0 }, height: { type: 'number', exclusiveMinimum: 0 } }),
+      }) },
+      protected_regions: { type: 'array', items: objectSchema({ x: { type: 'number' }, y: { type: 'number' },
+        width: { type: 'number', exclusiveMinimum: 0 }, height: { type: 'number', exclusiveMinimum: 0 } }) },
+    }, ['sources', 'text_layers']) }), async ({ request }) => {
       request = { ...request, schema_version: 'noteai-cover-editable/v1', output_root: path.join(job.work_dir, 'revisions') };
       request.project_dir = path.resolve(job.work_dir, request.project_dir || 'project');
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');

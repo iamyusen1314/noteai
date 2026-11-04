@@ -226,6 +226,66 @@ class HostProof(unittest.TestCase):
                               "result": result, "events_file": str(root / (mode + "-" + behavior + "-events.json"))})
         return result, calls, events, root
 
+    def render_schema_case(self, name, *, extra=False):
+        approved = []
+        observed = {}
+        arguments = {"request": {"project_dir": ".", "sources": [{"ref": "synthetic-photo",
+            "path": "assets/photo.png", "sha256": hashlib.sha256(PNG).hexdigest()}],
+            "text_layers": [{"id": "title", "allowed_rect": {"x": 0, "y": 0, "width": 1776, "height": 400}}],
+            "protected_regions": []}}
+        if extra:
+            arguments["request"]["raw_html"] = "PRIVATE_NOT_A_CLI_FIELD"
+
+        def respond(event, calls):
+            tools = {tool["function"]["name"]: tool["function"] for tool in event["body"]["tools"]}
+            schema = tools["cover_render"]["parameters"]["properties"]["request"]
+            self.assertFalse(schema["additionalProperties"])
+            self.assertEqual(set(schema["properties"]), {"project_dir", "sources", "text_layers", "protected_regions"})
+            self.assertEqual(set(schema["required"]), {"sources", "text_layers"})
+            self.assertEqual((schema["properties"]["sources"]["minItems"], schema["properties"]["sources"]["maxItems"]), (1, 9))
+            self.assertEqual(set(schema["properties"]["sources"]["items"]["required"]), {"ref", "path", "sha256"})
+            self.assertEqual(set(schema["properties"]["text_layers"]["items"]["required"]), {"id", "allowed_rect"})
+            observed["actual_sdk_request_schema"] = schema
+            message = {"role": "assistant", "content": "SCHEMA_FIXTURE_COMPLETE"}
+            if len(calls) == 1:
+                message.update(content=None, tool_calls=[{"id": "schema_contract_call", "type": "function",
+                    "function": {"name": "cover_render", "arguments": json.dumps(arguments)}}])
+            else:
+                tool_results = [item for item in event["body"]["messages"] if item["role"] == "tool"]
+                self.assertTrue(tool_results, "The actual SDK must return the tool's validation result")
+                observed["tool_result_present"] = True
+            return {"type": "model_response", "id": event["id"], "status": 200, "body": {
+                "id": "chatcmpl_render_schema_fixture", "object": "chat.completion", "created": 1,
+                "model": event["body"]["model"], "choices": [{"index": 0, "message": message,
+                    "finish_reason": "tool_calls" if len(calls) == 1 else "stop"}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}}}
+
+        def tool_respond(event):
+            approved.append(event)
+            request = event["arguments"]
+            self.assertEqual(request["schema_version"], "noteai-cover-editable/v1")
+            self.assertTrue(Path(request["output_root"]).is_absolute())
+            self.assertNotIn("approved_titles", request)
+            self.assertNotIn("raw_html", request)
+            # Deliberately stop before CLI: another targeted test runs the real
+            # renderer. This case proves the real SDK's registered contract.
+            return {"allowed": False, "code": "SCHEMA_FIXTURE_LOCAL_STOP"}
+
+        result, calls, _, root = self.request(name, respond=respond, tool_respond=tool_respond)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(approved), 1)
+        self.assertNotEqual(result["status"], "UNKNOWN")
+        self.assertIsNone(result.get("artifact"))
+        observed.update(extra_field_stripped=extra, business_bridge_calls=len(approved),
+            real_provider_calls=0, actual_CLI_render_claimed=False)
+        (root / "schema-observations.json").write_text(json.dumps(observed, indent=2))
+
+    def test_real_sdk_render_schema_accepts_the_cli_model_owned_request(self):
+        self.render_schema_case("render_schema_valid")
+
+    def test_real_sdk_render_schema_strips_extra_fields_before_the_business_bridge(self):
+        self.render_schema_case("render_schema_extra_stripped", extra=True)
+
     def test_complete_skill_image_tool_loop_and_reopen_without_dispatch(self):
         result, calls, events, root = self.request("success")
         self.assertTrue(result["ok"], result)
