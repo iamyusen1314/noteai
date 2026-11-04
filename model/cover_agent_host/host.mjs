@@ -13,6 +13,16 @@ import { makeThumbnail, withBrowserTemporaryDirectory } from './thumbnail.mjs';
 
 const MAX_LINE = 40 * 1024 * 1024;
 const MAX_FILE = 10 * 1024 * 1024;
+const LOCAL_TOOL_NAMES = ['cover_read', 'cover_write', 'cover_view', 'cover_seedream', 'cover_render', 'cover_check'];
+const hostStarted = performance.now();
+function localToolActivity(previous, name, outcome, elapsed) {
+  const attempts = Object.fromEntries(LOCAL_TOOL_NAMES.map((tool) => [tool,
+    Number.isSafeInteger(previous?.attempts?.[tool]) && previous.attempts[tool] >= 0
+      ? Math.min(1000000, previous.attempts[tool]) : 0]));
+  if (outcome === 'running') attempts[name] = Math.min(1000000, attempts[name] + 1);
+  return { attempts, last_name: name, last_outcome: outcome,
+    elapsed_ms: Math.min(86400000, Math.max(0, Math.floor(elapsed))) };
+}
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const error = (code) => Object.assign(new Error(code), { code });
 function recoverableOriginalViewRejection(result, images, completed) {
@@ -583,13 +593,26 @@ try {
     let release;
     localToolTail = new Promise((resolve) => { release = resolve; });
     await previous;
+    let outcome = 'failed';
+    const remember = async (value) => {
+      try {
+        checkpoint.local_tool_activity = localToolActivity(checkpoint.local_tool_activity, name, value, performance.now() - hostStarted);
+        // Optional content-free evidence cannot replace a tool/UNKNOWN error or
+        // modify its pending paid-call/once fields.
+        await atomicJSON(checkpointPath, checkpoint);
+      } catch { /* Retain the original tool result and critical pending state. */ }
+    };
+    await remember('running');
     try {
       if (inputClosed || Date.now() >= job.deadline_epoch_ms) throw error('LOCAL_TOOL_DEADLINE');
-      return await execute(args);
+      const result = await execute(args);
+      outcome = 'returned';
+      return result;
     } catch (e) {
+      outcome = /UNKNOWN/.test(e.code || '') ? 'unknown' : 'failed';
       if (/UNKNOWN/.test(e.code || '')) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
       return { content: JSON.stringify({ ok: false, code: e.code || 'LOCAL_TOOL_FAILED', detail: e.message }) };
-    } finally { release(); }
+    } finally { await remember(outcome); release(); }
   } });
   const tools = [
     tool('cover_read', 'Read a UTF-8 job file, or a complete Skill reference using skill:relative/path. Installed font-face boilerplate in HTML is elided into a JSON authored view: edit its complete text field; cover_write preserves the exact installed faces. The stored file is unchanged by reading. Images use cover_view.', objectSchema({ path: { type: 'string' } }), async ({ path: rel }) => {

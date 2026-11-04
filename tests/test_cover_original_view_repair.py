@@ -15,6 +15,7 @@ import unittest
 import uuid
 from unittest import mock
 
+import httpx
 from PIL import Image, PngImagePlugin
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
@@ -85,6 +86,19 @@ def response(turn, calls=None):
 
 
 class OriginalViewRepairTests(unittest.TestCase):
+    def test_view_batches_bound_encoded_bytes_preserve_order_and_never_resize(self):
+        fixture = [{"path": "assets/" + str(index), "payload": b"x" * size}
+            for index, size in enumerate((27, 27, 57, 100, 3))]
+        originals = [item["payload"] for item in fixture]
+        with mock.patch.object(runtime, "_VIEW_BATCH_ENCODED_LIMIT", 100):
+            self.assertEqual(runtime._original_view_batches(fixture),
+                [["assets/0"], ["assets/1"], ["assets/2"], ["assets/3"], ["assets/4"]])
+            self.assertEqual(runtime._original_view_batches(fixture[:1] + fixture[-1:]),
+                [["assets/0", "assets/4"]])
+        self.assertEqual([item["payload"] for item in fixture], originals)
+        self.assertEqual(runtime._original_view_batches([]), [])
+        self.assertEqual(runtime._VIEW_BATCH_ENCODED_LIMIT, 15 * 1024 * 1024)
+
     def test_missing_feedback_is_bounded_and_never_dispatches_or_marks_seen(self):
         with tempfile.TemporaryDirectory() as root:
             fixture = sources(Path(root))
@@ -98,6 +112,7 @@ class OriginalViewRepairTests(unittest.TestCase):
                         ("COVER_AGENT_ORIGINALS_NOT_VIEWED", True, False, 2))
                     self.assertEqual(result["missing_originals"], [{"ref": item["media_ref"], "path": item["path"],
                         "sha256": item["sha256"]} for item in fixture])
+                    self.assertEqual(result["view_batches"], [[item["path"] for item in fixture]])
                     self.assertEqual(bridge.seen_images, set())
                 with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_ORIGINALS_NOT_VIEWED"):
                     bridge.tool({"name": "cover_seedream", "arguments": {"prompt": "fixture"}})
@@ -172,6 +187,97 @@ async function attempt(result, unknown=false, before={}) {
 @unittest.skipUnless(os.environ.get("NOTEAI_COVER_HOST_NODE_MODULES") and shutil.which("node"),
     "Explicit approved local SDK installation required")
 class OriginalViewRepairSDKTests(unittest.TestCase):
+    def test_actual_sdk_returned_batches_reduce_missing_view_rounds_without_weakening_seen_gate(self):
+        from tests import test_cover_agent_provider as provider_fixture
+        proofs = []
+        for mode in ("sequential", "batch"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as root, contextlib.ExitStack() as stack:
+                directory = Path(root)
+                manifest = os.environ.get("NOTEAI_COVER_REAL_NINE_MANIFEST")
+                if manifest:
+                    (directory / "assets").mkdir()
+                    fixture = []
+                    for index, item in enumerate(json.loads(Path(manifest).read_text())["files"]):
+                        payload = Path(item["path"]).read_bytes()
+                        self.assertEqual((len(payload), hashlib.sha256(payload).hexdigest()),
+                            (item["bytes"], item["sha256"]))
+                        name = "assets/source-" + str(index + 1) + ".jpg"
+                        (directory / name).write_bytes(payload)
+                        fixture.append({"media_ref": item["media_ref"], "path": name,
+                            "payload": payload, "sha256": item["sha256"]})
+                else:
+                    fixture = sources(directory, rolling=True)
+                self.assertEqual(len(fixture), 9)
+                ledger = provider_fixture.CoverAgentProviderTests()
+                ledger.setUp()
+                stack.callback(ledger.tearDown)
+                stack.enter_context(ledger.editable_claim())
+                received, selected, rejections = [], [], []
+
+                def known_response(turn, calls=None):
+                    body = response(turn, calls)
+                    body["usage"] = ledger.response()["usage"]
+                    return httpx.Response(200, json=body)
+
+                def model_transport(request):
+                    prepared = json.loads(request.content)
+                    hashes = runtime._images_in(prepared)
+                    received.append(hashes)
+                    missing = [item for item in fixture if item["sha256"] not in bridge.seen_images | hashes]
+                    turn = len(received)
+                    if turn == 1:
+                        self.assertEqual(len(hashes), 5)
+                        calls = [("cover_seedream", {"prompt": "Offline missing-originals contract only."})]
+                    elif not missing:
+                        return known_response(turn)
+                    else:
+                        if turn == 2:
+                            rejection = returned_value(prepared, "missing_originals")
+                            self.assertIs(rejection["dispatched"], False)
+                            self.assertEqual(rejection["view_batches"], [[item["path"] for item in missing]])
+                            rejections.append(rejection)
+                        paths = [item["path"] for item in missing]
+                        batch = paths[:1] if mode == "sequential" else rejections[0]["view_batches"][0]
+                        selected.extend(batch)
+                        calls = [("cover_view", {"path": value}) for value in batch]
+                    return known_response(turn, calls)
+
+                def before(stage, call_id, _estimate):
+                    provider_fixture.cover_jobs.before_text_call(ledger.claim, stage, call_id)
+
+                bridge = runtime.Bridge(job_id=ledger.claim["request_id"], directory=directory,
+                    sources=fixture, hooks=cover_runtime.RuntimeHooks(before, lambda _record: None),
+                    model_transport=httpx.MockTransport(model_transport))
+
+                prompt = runtime._prompt({"title": "原照批量查看技术夹具", "body": "仅离线合同验证", "title_variants": []},
+                    [{key: value for key, value in item.items() if key != "payload"} for item in fixture])
+                with mock.patch.object(runtime.cover_seedream, "generate_background") as image:
+                    with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_DESIGN_INCOMPLETE"):
+                        # Normal admission needs its unchanged 180s useful
+                        # read plus 140s margin; the test normally takes <1min.
+                        bridge.run(prompt, deadline=time.time() + 600)
+                image.assert_not_called()
+                self.assertEqual(bridge.seen_images, {item["sha256"] for item in fixture})
+                self.assertEqual(len(selected), 4)
+                self.assertEqual(len(set(selected)), 4)
+                self.assertEqual(bridge.original_view_repairs, 1)
+                state = json.loads((directory / "host-state/host-checkpoint.json").read_text())
+                activity = runtime._local_tool_diagnostic(state["local_tool_activity"])
+                self.assertEqual(activity["attempts"]["cover_view"], 4)
+                self.assertEqual(activity["attempts"]["cover_seedream"], 1)
+                self.assertEqual(activity["last_name"], "cover_view")
+                self.assertEqual(activity["last_outcome"], "returned")
+                calls = provider_fixture.db.fetchall("SELECT state,http_status FROM public_trial_calls WHERE usage_record_id=?",
+                    (ledger.claim["charge"]["usage_id"],))
+                self.assertEqual(len(calls), len(received))
+                self.assertTrue(all(call["state"] == "responded" and call["http_status"] == 200 for call in calls))
+                proofs.append({"mode": mode, "model_responses": len(received), "normal_known_200_ledger_calls": len(calls),
+                    "wire_sha256": [sorted(value) for value in received], "originals_seen": len(bridge.seen_images),
+                    "original_bytes": sum(len(item["payload"]) for item in fixture), "local_tools": activity})
+        self.assertEqual([proof["model_responses"] for proof in proofs], [6, 3])
+        print("BATCH_ORIGINAL_VIEW_SDK_PROOF=" + json.dumps({"actual_manifest": bool(os.environ.get("NOTEAI_COVER_REAL_NINE_MANIFEST")),
+            "cases": proofs, "supplier_calls": 0, "business_DB_writes": 0}))
+
     def test_real_sdk_rolling_nine_view_repair_concept_once(self):
         with tempfile.TemporaryDirectory() as root:
             directory = Path(root)

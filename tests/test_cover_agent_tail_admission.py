@@ -26,7 +26,7 @@ class TailAdmissionTests(unittest.TestCase):
         self.clock = [time.time()]
         self.before, self.requests = [], []
 
-    def run_call(self, remaining, *, queue_delay=0, read_timeout=False):
+    def run_call(self, remaining, *, queue_delay=0, read_timeout=False, http_status=200):
         def before(stage, call_id, _estimate):
             self.before.append(stage)
             cover_jobs.before_text_call(self.fixture.claim, "design", call_id)
@@ -35,7 +35,7 @@ class TailAdmissionTests(unittest.TestCase):
             self.requests.append(request)
             if read_timeout:
                 raise httpx.ReadTimeout("PRIVATE_SYNTHETIC_TIMEOUT", request=request)
-            return httpx.Response(200, json=self.fixture.response())
+            return httpx.Response(http_status, json=self.fixture.response())
 
         self.bridge = runtime.Bridge(job_id=self.fixture.claim["request_id"],
             directory=Path(self.fixture.fixture.temp.name), sources=[],
@@ -85,6 +85,14 @@ class TailAdmissionTests(unittest.TestCase):
         with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_TASK_DEADLINE"):
             self.run_call(319.999)
         self.assert_no_intent_or_dispatch()
+        diagnostic = runtime._read_deadline_admission_diagnostic(self.bridge.directory, self.bridge.job_id)
+        self.assertEqual(diagnostic["phase"], "before_shared_permit")
+        self.assertEqual(diagnostic["reason"], "insufficient_read_window")
+        self.assertIs(diagnostic["dispatched"], False)
+        self.assertEqual(diagnostic["next_ordinal"], 1)
+        self.assertEqual(diagnostic["minimum_read_ms"], 180000)
+        self.assertEqual(diagnostic["request_margin_ms"], 140000)
+        self.assertLess(diagnostic["useful_read_ms"], 180000)
 
     def test_exact_boundary_keeps_normal_once_accounting(self):
         self.run_call(320)
@@ -96,10 +104,25 @@ class TailAdmissionTests(unittest.TestCase):
         self.assertEqual((calls[0]["state"], calls[0]["http_status"]), ("responded", 200))
         self.assertIsNotNone(calls[0]["model_usage_record_id"])
         self.assertEqual(len(self.bridge.costs), 1)
+        self.assertIsNone(runtime._read_deadline_admission_diagnostic(self.bridge.directory, self.bridge.job_id))
 
     def test_shared_queue_time_is_rechecked_before_the_original_intent(self):
         with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_TASK_DEADLINE"):
             self.run_call(400, queue_delay=100)
+        self.assert_no_intent_or_dispatch()
+        diagnostic = runtime._read_deadline_admission_diagnostic(self.bridge.directory, self.bridge.job_id)
+        self.assertEqual(diagnostic["phase"], "after_shared_permit")
+        self.assertEqual(diagnostic["remaining_ms"], 300000)
+        self.assertEqual(diagnostic["useful_read_ms"], 160000)
+        self.assertEqual(diagnostic["next_ordinal"], 1)
+
+    def test_optional_diagnostic_write_failure_preserves_original_admission_exception(self):
+        with mock.patch.object(runtime.os, "open", side_effect=PermissionError("PRIVATE_SYNTHETIC_PATH")), \
+                contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(provider.CoverAgentProviderError) as caught:
+                self.run_call(319)
+        self.assertEqual(caught.exception.code, "COVER_AGENT_TASK_DEADLINE")
+        self.assertFalse(caught.exception.outcome_unknown)
         self.assert_no_intent_or_dispatch()
 
     def test_sufficient_window_keeps_the_existing_900_second_read_ceiling(self):
@@ -121,6 +144,19 @@ class TailAdmissionTests(unittest.TestCase):
             self.bridge.model(self.fixture.body)
         self.assertEqual(len(self.requests), 1)
         self.assertEqual(len(self.calls()), 1)
+
+    def test_known_http_failure_does_not_mark_images_seen_or_create_success_cost(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaisesRegex(provider.CoverAgentProviderError, "COVER_AGENT_HTTP_403") as caught:
+                self.run_call(1500, http_status=403)
+        self.assertFalse(caught.exception.outcome_unknown)
+        self.assertEqual(self.bridge.seen_images, set())
+        self.assertEqual(self.bridge.costs, [])
+        self.assertEqual(len(self.requests), 1)
+        calls = self.calls()
+        self.assertEqual(len(calls), 1)
+        self.assertEqual((calls[0]["state"], calls[0]["http_status"]), ("responded", 403))
+        self.assertIsNone(runtime._read_deadline_admission_diagnostic(self.bridge.directory, self.bridge.job_id))
 
 
 if __name__ == "__main__":
