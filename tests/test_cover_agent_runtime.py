@@ -143,12 +143,16 @@ class LocalRenderRejectionDiagnosticTests(unittest.TestCase):
             "_read_reservation_diagnostic", "_read_host_result_diagnostic",
             "_read_seedream_diagnostic", "_read_thinking_diagnostic",
             "_response_delivery_diagnostic", "_read_response_delivery_diagnostic",
-            "_post_host_diagnostic", "_read_post_host_diagnostic", "cleanup_workspace"}
+            "_post_host_diagnostic", "_read_post_host_diagnostic", "_render_source_diagnostic",
+            "_read_render_source_diagnostic", "_local_tool_diagnostic", "_deadline_admission_diagnostic",
+            "_read_deadline_admission_diagnostic", "cleanup_workspace"}
         constants = {"_RENDER_REJECTION_CODES", "_HOST_FAILURE_CODES", "_HOST_RESULT_STATUSES",
             "_HOST_RESULT_FS_CODES", "_INPUT_DIAGNOSTIC_FILE", "_OUTPUT_DIAGNOSTIC_FILE",
             "_RESERVATION_DIAGNOSTIC_FILE", "_HOST_RESULT_DIAGNOSTIC_FILE", "_SEEDREAM_DIAGNOSTIC_FILE",
             "_THINKING_DIAGNOSTIC_FILE", "_RESPONSE_DELIVERY_DIAGNOSTIC_FILE",
-            "_POST_HOST_DIAGNOSTIC_FILE", "_CAPTURE_FAILURE_CODES", "_POST_HOST_EXCEPTION_TYPES"}
+            "_POST_HOST_DIAGNOSTIC_FILE", "_CAPTURE_FAILURE_CODES", "_POST_HOST_EXCEPTION_TYPES",
+            "_RENDER_SOURCE_DIAGNOSTIC_FILE", "_RENDER_SOURCE_REPAIR_REASONS", "_RENDER_SOURCE_HARD_REASONS",
+            "_LOCAL_TOOL_NAMES", "_DEADLINE_ADMISSION_DIAGNOSTIC_FILE"}
         selected = [node for node in tree.body if (
             isinstance(node, ast.FunctionDef) and node.name in functions) or (
             isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)

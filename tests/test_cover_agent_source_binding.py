@@ -63,12 +63,21 @@ class RenderSourceBindingTests(unittest.TestCase):
         outside.write_bytes(self.body)
         (self.root / "linked.png").symlink_to(outside)
         cases = ({"sha256": "0" * 64}, {"path": "missing.png"}, {"path": "../outside.png"},
-            {"path": "linked.png"}, {"path": "other.png", "sha256": artifacts.digest(other)},
+            {"path": "other.png", "sha256": artifacts.digest(other)},
             {"path": "concept.png", "sha256": artifacts.digest(other)})
         for change in cases:
-            with self.subTest(change=change), self.assertRaisesRegex(cover_runtime.CoverRuntimeError,
-                    "COVER_AGENT_RENDER_SOURCE_INVALID"):
-                self.bridge.tool(self.request(**change))
+            with self.subTest(change=change):
+                # Each independent rejected declaration can be corrected, but
+                # never receives canonical approval or runs the renderer.
+                bridge = runtime.Bridge(job_id=str(uuid.uuid4()), directory=self.root,
+                    sources=[self.source], hooks=mock.Mock())
+                bridge.concept_hash = "seen-concept"; bridge.seen_images.add("seen-concept")
+                answer = bridge.tool(self.request(**change))
+                self.assertFalse(answer["allowed"])
+                self.assertFalse(answer["dispatched"])
+                self.assertNotIn("canonical_sources", answer)
+        with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_RENDER_SOURCE_INVALID"):
+            self.bridge.tool(self.request(path="linked.png"))
 
     def test_changed_bytes_and_duplicate_aliases_cannot_rebind_an_original(self):
         (self.root / "changed.png").write_bytes(b"x" * len(self.body))
@@ -76,8 +85,10 @@ class RenderSourceBindingTests(unittest.TestCase):
             self.bridge.tool(self.request(path="changed.png"))
         request = self.request()
         request["arguments"]["sources"].append({**request["arguments"]["sources"][0], "ref": "second-alias"})
-        with self.assertRaisesRegex(cover_runtime.CoverRuntimeError, "COVER_AGENT_RENDER_SOURCE_INVALID"):
-            self.bridge.tool(request)
+        rejection = self.bridge.tool(request)
+        self.assertEqual(rejection["reason"], "DUPLICATE_ORIGINAL")
+        self.assertFalse(rejection["allowed"])
+        self.assertFalse(rejection["dispatched"])
 
     def test_duplicate_photo_bytes_choose_by_original_path_then_frozen_order_not_alias(self):
         second = {**self.source, "media_ref": "second-original", "path": "second.png"}
@@ -190,6 +201,13 @@ class CanonicalSourceScriptedBridge(fixture.ScriptedBridge):
             self.ordinal += 1
             self.requests.append({"stage": stage, "input_bound": bound, "image_sha256": sorted(hashes)})
             return self.response(None, [("cover_view", {"path": source["path"]}) for source in missing]), "offline-preface"
+        if stage == "design" and self.design_turn == 5 and self.case in {"wrong_hash", "unauthorized_concept"}:
+            rejection = fixture.returned_value(payload, "recoverable")
+            if rejection.get("allowed") is not False or rejection.get("dispatched") is not False:
+                raise AssertionError("Rejected source was approved")
+            # This negative fixture ends here; the recovery SDK fixture owns
+            # the subsequent new corrected declaration and actual rendering.
+            raise cover_runtime.CoverRuntimeError("COVER_AGENT_RENDER_SOURCE_INVALID")
         try:
             return super().model(payload, stage=stage)
         finally:

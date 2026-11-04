@@ -35,6 +35,19 @@ function recoverableOriginalViewRejection(result, images, completed) {
     && result.missing_originals.length <= 9 && result.missing_originals.every((missing) =>
       images.some((image) => image.name === missing.ref && image.path === missing.path));
 }
+function recoverableRenderSourceRejection(result, images, completed) {
+  return result && Object.keys(result).sort().join(',') === 'allowed,code,dispatched,originals,reason,recoverable,repair_attempt,repair_limit'
+    && result.allowed === false && result.code === 'COVER_AGENT_RENDER_SOURCE_INVALID'
+    && result.recoverable === true && result.dispatched === false && result.repair_limit === 2
+    && ['DECLARATION_INVALID', 'PATH_NOT_ALLOWED', 'PATH_NOT_FOUND', 'HASH_NOT_ORIGINAL', 'DUPLICATE_ORIGINAL'].includes(result.reason)
+    && Number.isSafeInteger(completed) && completed >= 0 && completed < 2
+    && result.repair_attempt === completed + 1
+    && Array.isArray(images) && images.length >= 1 && images.length <= 9
+    && Array.isArray(result.originals) && result.originals.length === images.length
+    && result.originals.every((source, index) => source && Object.keys(source).sort().join(',') === 'path,ref,sha256'
+      && source.ref === images[index].name && source.path === images[index].path
+      && /^[a-f0-9]{64}$/.test(source.sha256) && source.sha256 === images[index].sha256);
+}
 const send = (event) => process.stdout.write(JSON.stringify(event) + '\n');
 const pending = new Map();
 const localChildren = new Set();
@@ -662,6 +675,14 @@ try {
       request.project_dir = path.resolve(job.work_dir, request.project_dir || '.');
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');
       const answer = await bridge('tool_request', { name: 'cover_render', arguments: request });
+      if (answer.unknown) throw error('SUPPLIER_RESULT_UNKNOWN');
+      if (answer.result?.allowed === false && answer.result.code === 'COVER_AGENT_RENDER_SOURCE_INVALID') {
+        if (!recoverableRenderSourceRejection(answer.result, job.images || [], checkpoint.render_source_repairs ?? 0))
+          throw error('RENDER_SOURCE_REPAIR_INVALID');
+        checkpoint.render_source_repairs = answer.result.repair_attempt;
+        await atomicJSON(checkpointPath, checkpoint);
+        return { content: JSON.stringify(answer.result) };
+      }
       if (answer.result?.allowed !== true) throw error(answer.result?.code || 'RENDER_NOT_APPROVED');
       // Only Python can bind a selected file's bytes to this job's original media identity.
       const canonical = answer.result.canonical_sources;

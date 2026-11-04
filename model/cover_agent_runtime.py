@@ -42,6 +42,11 @@ _SEEDREAM_DIAGNOSTIC_FILE = "seedream-http-failure.json"
 _RESPONSE_DELIVERY_DIAGNOSTIC_FILE = "model-response-delivery.json"
 _POST_HOST_DIAGNOSTIC_FILE = "post-host-diagnostic.json"
 _DEADLINE_ADMISSION_DIAGNOSTIC_FILE = "deadline-admission.json"
+_RENDER_SOURCE_DIAGNOSTIC_FILE = "render-source-rejection.json"
+_RENDER_SOURCE_REPAIR_REASONS = {"DECLARATION_INVALID", "PATH_NOT_ALLOWED", "PATH_NOT_FOUND",
+    "HASH_NOT_ORIGINAL", "DUPLICATE_ORIGINAL"}
+_RENDER_SOURCE_HARD_REASONS = {"PROJECT_INVALID", "SOURCE_LINK", "SOURCE_NOT_REGULAR",
+    "SOURCE_BYTES_CHANGED", "FROZEN_ORIGINAL_INVALID", "SOURCE_ORIGINAL_MISSING", "SOURCE_IO_ERROR"}
 _VIEW_BATCH_ENCODED_LIMIT = 15 * 1024 * 1024
 _LOCAL_TOOL_NAMES = {"cover_read", "cover_write", "cover_view", "cover_seedream", "cover_render", "cover_check"}
 _CAPTURE_FAILURE_CODES = {"COVER_EDITABLE_MANIFEST_CHANGED", "COVER_EDITABLE_MANIFEST_INVALID",
@@ -141,6 +146,61 @@ def _local_tool_diagnostic(value):
         return None
     return {"attempts": dict(value["attempts"]), "last_name": value["last_name"],
         "last_outcome": value["last_outcome"], "elapsed_ms": value["elapsed_ms"]}
+
+
+def _render_source_diagnostic(value):
+    if (type(value) is not dict or set(value) != {"reason", "repair_attempt", "repair_limit", "recoverable", "dispatched"}
+            or type(value["reason"]) is not str
+            or value["reason"] not in _RENDER_SOURCE_REPAIR_REASONS | _RENDER_SOURCE_HARD_REASONS
+            or type(value["repair_attempt"]) is not int or not 0 <= value["repair_attempt"] <= 2
+            or type(value["repair_limit"]) is not int or value["repair_limit"] != 2
+            or type(value["recoverable"]) is not bool or value["dispatched"] is not False
+            or (value["recoverable"] and (value["reason"] not in _RENDER_SOURCE_REPAIR_REASONS
+                or value["repair_attempt"] < 1))):
+        return None
+    return dict(value)
+
+
+def _write_render_source_diagnostic(directory, job_id, diagnostic):
+    diagnostic = _render_source_diagnostic(diagnostic)
+    if diagnostic is None or str(uuid.UUID(job_id)) != job_id:
+        raise ValueError("invalid source rejection diagnostic")
+    state = directory / "host-state"
+    if state.is_symlink():
+        raise ValueError("source diagnostic directory is a link")
+    state.mkdir(mode=0o700, exist_ok=True)
+    body = json.dumps({"job_id": job_id, "diagnostic": diagnostic}, separators=(",", ":")).encode()
+    # Retain the first precise local rejection. Never overwrite pending paid-call
+    # state, or expose an authored path, hash, argument or exception message.
+    fd = os.open(state / _RENDER_SOURCE_DIAGNOSTIC_FILE,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(body)
+
+
+def _read_render_source_diagnostic(directory, job_id):
+    try:
+        if (directory / "host-state").is_symlink():
+            return None
+        fd = os.open(directory / "host-state" / _RENDER_SOURCE_DIAGNOSTIC_FILE,
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.getuid()
+                    or stat.S_IMODE(info.st_mode) not in {0o400, 0o600} or not 0 < info.st_size <= 4096):
+                return None
+            value = json.loads(stream.read(4097))
+        if type(value) is not dict or set(value) != {"job_id", "diagnostic"} or value["job_id"] != job_id:
+            return None
+        return _render_source_diagnostic(value["diagnostic"])
+    except (OSError, ValueError, TypeError, RecursionError):
+        return None
+
+
+class _RenderSourceRejection(cover_runtime.CoverRuntimeError):
+    def __init__(self, reason):
+        super().__init__("COVER_AGENT_RENDER_SOURCE_INVALID")
+        self.reason = reason
 
 
 def _deadline_admission_diagnostic(value):
@@ -697,6 +757,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "MODEL_ADMISSION_STOPPED_PRE_DISPATCH"}
         receipt["deadline_admission"] = deadline
+    source_rejection = _read_render_source_diagnostic(directory, job_id)
+    if source_rejection is not None:
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "SOURCE_REJECTED_PRE_RENDER"}
+        receipt["first_render_source_rejection"] = source_rejection
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -924,6 +989,7 @@ class Bridge:
         self.request_deadline = None
         self.approved_titles = None
         self.original_view_repairs = 0
+        self.render_source_repairs = 0
         self.thinking = ThinkingState(job_id)
 
     def _restore_thinking(self, payload):
@@ -1046,50 +1112,70 @@ class Bridge:
         """Bind source identity to this job's original bytes, never authored aliases."""
         try:
             if not isinstance(arguments, dict) or not isinstance(arguments.get("sources"), list):
-                raise ValueError("sources required")
+                raise _RenderSourceRejection("DECLARATION_INVALID")
             entries = arguments["sources"]
             if not 1 <= len(entries) <= 9:
-                raise ValueError("source count invalid")
+                raise _RenderSourceRejection("DECLARATION_INVALID")
             root = self.directory.resolve(strict=True)
             project = Path(arguments.get("project_dir") or ".")
             project = (project if project.is_absolute() else root / project).resolve(strict=True)
             if not project.is_dir() or not project.is_relative_to(root):
-                raise ValueError("project out of scope")
+                raise _RenderSourceRejection("PROJECT_INVALID")
             canonical, used = [], set()
             for entry in entries:
                 if not isinstance(entry, dict) or not isinstance(entry.get("sha256"), str):
-                    raise ValueError("source invalid")
-                relative = artifacts.relative(entry.get("path"))
+                    raise _RenderSourceRejection("DECLARATION_INVALID")
+                try:
+                    relative = artifacts.relative(entry.get("path"))
+                    if "\0" in relative:
+                        raise ValueError("invalid path")
+                except ValueError:
+                    # Reject before inspecting anything outside the project.
+                    raise _RenderSourceRejection("PATH_NOT_ALLOWED") from None
                 path = project / relative
                 cursor = project
                 for part in Path(relative).parts:
                     cursor = cursor / part
                     if cursor.is_symlink():
-                        raise ValueError("source is a link")
-                resolved = path.resolve(strict=True)
+                        raise _RenderSourceRejection("SOURCE_LINK")
+                try:
+                    resolved = path.resolve(strict=True)
+                except FileNotFoundError:
+                    if any(path == root / source["path"] for source in self.sources):
+                        raise _RenderSourceRejection("SOURCE_ORIGINAL_MISSING") from None
+                    raise _RenderSourceRejection("PATH_NOT_FOUND") from None
                 if not resolved.is_relative_to(project):
-                    raise ValueError("source out of scope")
-                originals = [source for source in self.sources if source["sha256"] == entry["sha256"]
-                    and artifacts.digest(source["payload"]) == source["sha256"]]
+                    raise _RenderSourceRejection("PATH_NOT_ALLOWED")
+                originals = [source for source in self.sources if source["sha256"] == entry["sha256"]]
                 if not originals:
-                    raise ValueError("source not an original")
+                    raise _RenderSourceRejection("HASH_NOT_ORIGINAL")
+                if any(artifacts.digest(source["payload"]) != source["sha256"] for source in originals):
+                    raise _RenderSourceRejection("FROZEN_ORIGINAL_INVALID")
                 fd = os.open(resolved, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                try:
+                    info = os.fstat(fd)
+                    if not stat.S_ISREG(info.st_mode):
+                        raise _RenderSourceRejection("SOURCE_NOT_REGULAR")
+                except Exception:
+                    os.close(fd)
+                    raise
                 with os.fdopen(fd, "rb") as stream:
-                    info = os.fstat(stream.fileno())
-                    if not stat.S_ISREG(info.st_mode) or info.st_size != len(originals[0]["payload"]):
-                        raise ValueError("source not an original")
+                    if info.st_size != len(originals[0]["payload"]):
+                        raise _RenderSourceRejection("SOURCE_BYTES_CHANGED")
                     body = stream.read(len(originals[0]["payload"]) + 1)
                     if len(body) != len(originals[0]["payload"]) or artifacts.digest(body) != entry["sha256"]:
-                        raise ValueError("source bytes changed")
+                        raise _RenderSourceRejection("SOURCE_BYTES_CHANGED")
                 source = next((item for item in originals
                     if (root / item["path"]).resolve(strict=True) == resolved), originals[0])
                 if source["media_ref"] in used:
-                    raise ValueError("duplicate original")
+                    raise _RenderSourceRejection("DUPLICATE_ORIGINAL")
                 used.add(source["media_ref"])
                 canonical.append({"ref": source["media_ref"], "path": entry["path"], "sha256": source["sha256"]})
             return canonical
+        except _RenderSourceRejection:
+            raise
         except (OSError, ValueError, TypeError, KeyError):
-            raise cover_runtime.CoverRuntimeError("COVER_AGENT_RENDER_SOURCE_INVALID") from None
+            raise _RenderSourceRejection("SOURCE_IO_ERROR") from None
 
     def tool(self, message):
         name, arguments = message.get("name"), message.get("arguments", {})
@@ -1130,7 +1216,26 @@ class Bridge:
         if name == "cover_render":
             if not self.concept_hash or self.concept_hash not in self.seen_images:
                 raise cover_runtime.CoverRuntimeError("COVER_AGENT_CONCEPT_NOT_VIEWED")
-            answer = {"allowed": True, "canonical_sources": self._render_sources(arguments)}
+            try:
+                canonical = self._render_sources(arguments)
+            except _RenderSourceRejection as error:
+                recoverable = error.reason in _RENDER_SOURCE_REPAIR_REASONS and self.render_source_repairs < 2
+                if recoverable:
+                    self.render_source_repairs += 1
+                diagnostic = {"reason": error.reason, "repair_attempt": self.render_source_repairs,
+                    "repair_limit": 2, "recoverable": recoverable, "dispatched": False}
+                try:
+                    _write_render_source_diagnostic(self.directory, self.job_id, diagnostic)
+                except FileExistsError:
+                    pass
+                except Exception:
+                    logging.warning("cover_render_source_diagnostic_unavailable")
+                if not recoverable:
+                    raise
+                return {"allowed": False, "code": error.code, **diagnostic,
+                    "originals": [{"ref": source["media_ref"], "path": source["path"], "sha256": source["sha256"]}
+                        for source in self.sources]}
+            answer = {"allowed": True, "canonical_sources": canonical}
             if self.approved_titles is not None:
                 answer["approved_titles"] = list(self.approved_titles)
             return answer
@@ -1153,7 +1258,7 @@ class Bridge:
             "editable_cli": str(ROOT / "cover_editable/cli.mjs"), "model_id": provider.MODEL,
             "output_tokens": provider.MAX_OUTPUT_TOKENS, "context_tokens": provider.SDK_CONTEXT_TOKENS,
             "compaction_output_tokens": provider.COMPACTION_OUTPUT_TOKENS,
-            "prompt": prompt, "images": [{"path": source["path"], "name": source["media_ref"]}
+            "prompt": prompt, "images": [{"path": source["path"], "name": source["media_ref"], "sha256": source["sha256"]}
                 for source in self.sources], "max_model_requests": None,
             "deadline_epoch_ms": int(deadline * 1000), **({"session_id": self.session_id, "mode": "revise"} if self.session_id else {})}
         process = subprocess.Popen([os.environ.get("NOTEAI_COVER_NODE", "node"), str(worker)],
