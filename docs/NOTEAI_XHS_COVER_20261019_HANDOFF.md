@@ -4948,3 +4948,12 @@ Root继续既有NEXT/POST/本地真实结果UI工具的实际新runtime薄绑定
 已集中向用户请求在现有余6.954元内自主完成1张（首合格停/已知无UNKNOWN技术失败先免费修后可在余款内重建，UNKNOWN或预算不足停且不重发）；可选只再新建1任务。未收到答复，不把超时/未选择当授权，不新增预算。无需登录或操作电脑。只有此真实付费分支暂缓；免费技术发布及准备均已实做，仍无PNG/8已退/net0。
 
 最终UNBOUND窄审已GO（准确delta/pins/原helper/当前1a7恢复点/历史成本/FS前拒），未生成或执行futurewire。对应子代理全部任务收口；无后台模型/发布/QA任务。余下真实生成及其后续保存改字下载/成品UI均依赖新付费范围答复，收到后按同一checkpoint续跑，不重做发布与已完成验证。
+
+
+### 2026-11-04T05:50:07.684966+00:00 — CURRENT：用户批准现有余款内自主交付1张，R6唯一意图已登记，正常链路准备中
+
+真实新答复“同意，在现有余款内自主完成这1张”已记录原PLAN.cover_incident_20261103.r6_delivery_scope_approval及E/BACKEND-OWNER-COVER-R6.INTENT.json。沿用A70累计63046/余6954毫元、原总100元，不追加预算；首合格保存即停/只一次8，固定双Pro/每task最多1非交付概念+既有1局部质检修正/原九真照/新成品3天。用户同时明确允许已知且无UNKNOWN的技术失败先免费修，再在余款内重建；UNKNOWN或不足立即停且旧未知不重发，不再逐次询问同一已授权范围。
+
+Root唯一CLIENT5a5404f3-2546-4cb5-9aba-f8a4558e02e4，job/usage尚未产生。基于正常NEXT仅CLIENT晚绑child9042/SHA c27e64b44ebf4ba30dc2bda9fd42f2927a4ff26d15577acf2215b9922452edad；原0eaa预算控制、实际已发布source3b33/image1a7/current4b8d/Pay8d95/Adminc5d、f904原publisher及新install/remove CASE由readpath唯一私有薄包装，独审同步。Root唯一实云，其他代理不执行云/模型；前端代理仅现replay harness晚绑真实新client，job/DTO/PNG仍None不启动。无新worker/session/token/权限/公网入口，先正常有效9refs/原SHA校验，过期则正常补传同9原件，不改原到期值。
+
+下一步：普通0400代码carrier预置→原pair预算guard install verified CLOSED→原账号报告正常handler唯一submit→firstjob/usage核实→reopen→只查询原任务。成功后原POST正常API/QC/3天持久保存/真实层一次免费改字/重开下载/唯一8→实际成品PC-H5（若受控回放则明确其边界）→交付PNG→终态原guard移除恢复本次1a7正常unit；失败或UNKNOWN保持历史/积分正常释放，不复用R5/R4未知client。
