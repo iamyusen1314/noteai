@@ -5398,3 +5398,14 @@ readpath原NEXT单套已真正完成，独审GO并结束，Root明确接手后�
 ### 2026-11-04T23:27:40.624051+00:00 — CURRENT补充：答复11月3日前后差异，区分旧缺口、新运行触发与尚未查明的首因
 
 仅复用原actual002/9531phase及只读git，独立nov3_shared_slot_history已实际完成：全DB dispatched≥2 guard9941c85ab(Sep12)，FairQueue/default2 a11adc014(Oct17)，退预留但未隔离ended call的39d85f28(Oct18)；cover37512e06(Oct20)/Agent7f73ca61(Oct22)已共用physical，非Nov3才共享。dd219→772d的api/ark_media/model_router/model_admission/public_product/postdelivery/idempotency源码diff为空，不能据此否认运行回归。原DB实际北京时间3140 Nov3 15:21完成、8858 Nov4 14:59完成；8925 oldcall Nov4 16:28遗留后，3453 18:12失败，9531 21:42与真实R12cover占位重叠，3140 Nov5 01:11失败。这个时序支持旧持久占位缺口在Nov4被触发/扩大；Root的封面验收确实参与9531共享名额竞争，先前仅单功能健康/成功验证未覆盖旧异常+跨功能并存。初始Sonnet为何未正常结束仍无原证，不伪称已查明供应商响应或具体发布是首因，不宣称所有历史失败唯一根因/整系统完整恢复。当前功能3def/c65和预算边界不变，无新云/模型/生产改动，仅补证与解释，不重做修复/验收。
+
+
+### 2026-11-04T23:39:21.043074+00:00 — CURRENT补充：全站2名额来源与10人行为已查清；是开发保护默认，未经过商业容量定容
+
+Root及两个独立只读代理capacity_limit_origin/ten_user_queue_behavior实际完成，无源码/生产配置/云命令/付费模型变更。Gateway2/RPM30最早5a78c26ab(Jul12/Codex)；全public DB硬2来自9941c85ab(Sep12受控免费恢复)；a11adc014(Oct17)改公平队列但明确保守保持physical2并沿既有Gateway30RPM。未发现用户要求只2、供应商硬限只2、或2CPU/3GiB实测最大只能2的证据。原商业合同docs/ALIBABA_PRODUCTION_BOOTSTRAP.md18–21为可靠受理100任务/未来1000（持久受理、排队、可恢复，并非100wire直冲）；risk-register2661明确Gateway『自设』2，不能把历史受控默认当商用容量已成立。
+
+Root复用原Ark正常用户tab8725，只读官方开通管理实际模型级常规配额：Seed2.0Lite30000RPM/5000000TPM；Seed2.1Pro500RPM/1000000TPM；Seedream5Pro500IPM。E/CAPACITY-ARK-LIMITS-ACTUAL001.json1643/12f87bfe68c702b4ee66f76a1fa1fcf155241039aa0d526850f4f48cfc8e2a76、SEEDREAM966/3f0c38a3de9481253650e6c8889aed8667dd774b17821697b51e4b47791ba721及截图留原。单位是每分钟请求/Token/输出图片，不是用户并发/每分钟成品，不能用500RPM直接承诺500封面；未读取真实key、改配额、开服务或调推理。现Claude/Kimi真实账号配额及Renderenv未再次实际读，旧Oct17Gateway2/30仅历史观察；当前API实际configured2/30仍复用前次受限RO证据，不冒新鲜PID1队列计数。
+
+10在线浏览不占此模型池；10人同生成则活动operation最多10/人1，全站call2按用户与任务轮转、普通九图自身最多并行2，其他调用等待。operation满在新扣分预留前429。等待不占模型执行票但保留SSE/operation与已有8积分hold；原cover worker同API进程且串行1张，实际接手才计operation10，持久queued封面数不等于活动10上限。1800是无自身进展的饥饿窗，300是队列活跃无进展时等待方受控停止；普通lease只凭自身真实进展续，非一概30分钟总超时。封面30分钟deadline含等worker，另25分钟Agent/逐call180+140尾窗，长排队会吞执行窗口并可能失败。健康队列可轮转，不是10人必死锁；但尚无实际10用户混合报告+封面真实时延、Gateway30RPM、3GiB内存联合容量证明。现十人MockHTTP测试将RPM6000/queue900，不能当生产30/1800容量验收。
+
+本轮改动仅记录/证据，生产仍3def/c65/normal1cad592d/24pins/静态544c；A96/总100/已用与旧UNKNOWN保持，新增110预算仍未同意，真实商家PNG仍未完成。Root对开发保护默认被沿用到商用、跨功能容量校准遗漏负责。后续容量修正应按供应商请求/Token与实测延迟、图片/渲染内存分层调度并公平保护报告/封面，先受控10混合后在具体授权成本内取真实证据，不凭2核推2并发，也不直接改10冒容量通过。现有3defLinux8/并存回归可复用为技术正确性证据；不能复用成10真实商用吞吐。当前用户要求为排查并告知，本次未擅改生产上限/新增资源/调用付费模型。权威P仍generate_incident_20261105，其capacity_limit_investigation是此结论入口，无第二套任务/交接或新平台。
