@@ -188,10 +188,10 @@ class CoverAgentProviderTests(unittest.TestCase):
         image = prepared["messages"][1]["content"][1]["image_url"]
         self.assertEqual(image["image_pixel_limit"], {"min_pixels": 1764, "max_pixels": 1764})
         self.assertLess(bound, provider.MAX_INPUT_TOKENS)
-        self.assertEqual(provider.estimate(8192)["estimated_cost"], "1.032192")
+        self.assertEqual(provider.estimate(8192)["estimated_cost"], "1.425408")
 
     def test_output_request_caps_and_estimate_use_actual_maximum(self):
-        for maximum, amount in ((8192, "1.032192"), (32768, "1.769472"), (65536, "2.752512")):
+        for maximum, amount in ((8192, "1.425408"), (32768, "2.162688"), (65536, "3.145728")):
             with self.subTest(maximum=maximum):
                 body = deepcopy(self.body)
                 body.pop("max_tokens")
@@ -210,7 +210,7 @@ class CoverAgentProviderTests(unittest.TestCase):
                 body["max_tokens"] = maximum
                 with self.assertRaisesRegex(provider.CoverAgentProviderError, "OUTPUT_LIMIT_INVALID"):
                     provider.prepare_payload(body)
-        self.assertEqual(provider.MAX_INPUT_TOKENS, 131072)
+        self.assertEqual(provider.MAX_INPUT_TOKENS, 196608)
         self.assertFalse(self.requests)
 
     def test_encrypted_assistant_history_is_exact_and_counts_toward_input_bound(self):
@@ -281,7 +281,7 @@ class CoverAgentProviderTests(unittest.TestCase):
                 directory=Path(self.fixture.temp.name), sources=[], hooks=SimpleNamespace(before_call=before),
                 model_transport=self.transport())
             reserved = []
-            for maximum, expected in ((8192, 1033), (32768, 1770), (65536, 2753)):
+            for maximum, expected in ((8192, 1426), (32768, 2163), (65536, 3146)):
                 body = deepcopy(self.body)
                 body["max_tokens"] = maximum
                 _, call_id = bridge.model(body)
@@ -292,7 +292,7 @@ class CoverAgentProviderTests(unittest.TestCase):
                 self.assertEqual(bridge.costs[-1]["output_token_bound"], maximum)
                 self.assertEqual(hooks[-1]["estimated_cost"], bridge.costs[-1]["estimated_cost"])
                 self.assertEqual(json.loads(self.requests[-1].content)["max_completion_tokens"], maximum)
-            self.assertEqual(reserved, [1033, 1770, 2753])
+            self.assertEqual(reserved, [1426, 2163, 3146])
             self.assertEqual(len(self.requests), 3)
             self.assertEqual(self.fixture.balances()[1], 0)
 
@@ -397,7 +397,7 @@ class CoverAgentProviderTests(unittest.TestCase):
         response["usage"]["completion_tokens"] = provider.MAX_OUTPUT_TOKENS
         call_id = self.intent()
         self.assertEqual(provider.complete(body, call_id=call_id, transport=self.transport(response)), response)
-        self.assertEqual(self.call_row(call_id)["reserve_milli_cny"], 2753)
+        self.assertEqual(self.call_row(call_id)["reserve_milli_cny"], 3146)
         response["usage"]["completion_tokens"] += 1
         prepared, _ = provider.prepare_payload(body)
         with self.assertRaisesRegex(provider.CoverAgentProviderError, "OBSERVED_LIMIT_EXCEEDED"):
@@ -425,11 +425,11 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertIsNone(provider.validated_output_diagnostics({**diagnostic, "raw": "PRIVATE"}))
         self.assertIsNone(provider.validated_output_diagnostics({**diagnostic, "finish_reason": {"raw": "PRIVATE"}}))
 
-    def test_approved_128k_input_bound_keeps_complete_skill_sized_text(self):
+    def test_application_input_bound_keeps_complete_skill_sized_text(self):
         self.body["messages"][0]["content"] = "a" * 35974
         _, bound = provider.prepare_payload(self.body)
         self.assertGreater(bound, 32768)
-        self.assertLessEqual(bound, 131072)
+        self.assertLessEqual(bound, provider.MAX_INPUT_TOKENS)
 
     def test_input_measurement_preserves_sum_image_count_and_content_free_rejection(self):
         body = deepcopy(self.body)
@@ -450,7 +450,8 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertEqual(measurement["total_bound"], measurement["text_bytes"]
             + measurement["image_tokens"] + measurement["framing_tokens"])
         self.assertGreater(measurement["total_bound"], provider.MAX_INPUT_TOKENS)
-        self.assertTrue(all(type(value) is int for value in measurement.values()))
+        self.assertTrue(all(type(value) is int for key, value in measurement.items() if key != "text_breakdown"))
+        self.assertEqual(sum(measurement["text_breakdown"].values()), measurement["text_bytes"])
         serialized = json.dumps(measurement)
         self.assertNotIn(sentinel, serialized)
         self.assertNotIn("data:image", serialized)
@@ -488,9 +489,9 @@ class CoverAgentProviderTests(unittest.TestCase):
         self.assertEqual(self.call_row(call_id)["state"], "unknown")
         self.assertEqual(len(self.requests), 1)
 
-    def test_original_money_guard_blocks_1033_milli_reservation_before_http(self):
+    def test_original_money_guard_blocks_current_reservation_before_http(self):
         call_id = self.intent()
-        db.execute("UPDATE public_trial_budget SET reserved_milli_cny=limit_milli_cny-1032 WHERE id=?",
+        db.execute("UPDATE public_trial_budget SET reserved_milli_cny=limit_milli_cny-1425 WHERE id=?",
             (self.claim["policy_snapshot"]["budget_id"],))
         with self.assertRaisesRegex(public_product.TrialProviderStopped, "PUBLIC_TRIAL_BUDGET_EXHAUSTED"):
             provider.complete(self.body, call_id=call_id, transport=self.transport())
@@ -511,7 +512,7 @@ class CoverAgentProviderTests(unittest.TestCase):
             self.assertEqual(failure.call_id, call_id)
             self.assertEqual(failure.reservation_diagnostics, {"phase": "reservation",
                 "exception_type": kind, "sqlite_errorcode": sqlite_code, "os_errno": os_errno,
-                "call_id": call_id, "reserve_milli_cny": 1033})
+                "call_id": call_id, "reserve_milli_cny": 1426})
             self.assertIsNone(failure.input_diagnostics)
             self.assertIsNone(failure.output_diagnostics)
             self.assertNotIn("PRIVATE", json.dumps(failure.reservation_diagnostics))
@@ -929,7 +930,7 @@ class PureInputDiagnosticTests(unittest.TestCase):
             legacy = {key: value for key, value in measurement.items() if key != "text_breakdown"}
             self.assertEqual(legacy, {"text_bytes": full_text_bytes, "image_count": 1, "image_tokens": 512,
                 "message_count": 5, "tool_count": 1, "framing_tokens": 1792,
-                "total_bound": full_text_bytes + 512 + 1792, "max_input_tokens": 131072})
+                "total_bound": full_text_bytes + 512 + 1792, "max_input_tokens": provider.MAX_INPUT_TOKENS})
             self.assertEqual(provider.validated_input_diagnostics(legacy), legacy)
             self.assertEqual(provider.validated_input_diagnostics(measurement), measurement)
             self.assertTrue(body == original)
@@ -948,7 +949,7 @@ class PureInputDiagnosticTests(unittest.TestCase):
             for invalid in malformed:
                 self.assertEqual(provider.validated_input_diagnostics({**legacy, "text_breakdown": invalid}), legacy)
             self.assertIsNone(provider.validated_input_diagnostics({**measurement, "total_bound": 0}))
-            overflow = {"messages": [{"role": "user", "content": "X" * 150000}]}
+            overflow = {"messages": [{"role": "user", "content": "X" * provider.MAX_INPUT_TOKENS}]}
             original_stop = provider.admit_payload(overflow)
             original_stop["measurement"].pop("text_breakdown")
             with mock.patch.object(provider, "_text_breakdown", side_effect=RuntimeError("synthetic attribution failure")):
@@ -978,24 +979,24 @@ class PureInputDiagnosticTests(unittest.TestCase):
                     response = {"choices": [{"message": {"role": "assistant", "content": None,
                         "tool_calls": [{"id": identifier, "type": "function", "function": {
                             "name": "cover_write", "arguments": json.dumps({"path": "poster.html",
-                                "text": "V" * (35000 if mode == "visible" else 16)})}}],
-                        "encrypted_content": "C" * (70000 if mode == "opaque" else 32)}}]}
+                                "text": "V" * (provider.MAX_INPUT_TOKENS // 3 if mode == "visible" else 16)})}}],
+                        "encrypted_content": "C" * (provider.MAX_INPUT_TOKENS // 2 + 1024 if mode == "opaque" else 32)}}]}
                     safe = state.remember(response)
                     after_summary["messages"].extend([safe["choices"][0]["message"],
                         {"role": "tool", "tool_call_id": identifier,
-                            "content": "T" * (35000 if mode == "visible" else 16)}])
+                            "content": "T" * (provider.MAX_INPUT_TOKENS // 3 if mode == "visible" else 16)}])
                 sdk_visible = provider._measure_input(after_summary, 0, 0)
                 restored = provider._measure_input(state.restore(after_summary), 0, 0)
                 self.assertEqual(sum(restored["text_breakdown"].values()), restored["text_bytes"])
                 self.assertGreater(restored["total_bound"], provider.MAX_INPUT_TOKENS)
                 if mode == "opaque":
                     self.assertLess(sdk_visible["total_bound"], provider.MAX_INPUT_TOKENS)
-                    self.assertGreater(restored["text_breakdown"]["encrypted_content_bytes"], 131072)
+                    self.assertGreater(restored["text_breakdown"]["encrypted_content_bytes"], provider.MAX_INPUT_TOKENS)
                 else:
                     self.assertGreater(sdk_visible["total_bound"], provider.MAX_INPUT_TOKENS)
                     self.assertLess(restored["text_breakdown"]["encrypted_content_bytes"], 100)
                     self.assertGreater(restored["text_breakdown"]["tool_arguments_bytes"]
-                        + restored["text_breakdown"]["tool_result_bytes"], 131072)
+                        + restored["text_breakdown"]["tool_result_bytes"], provider.MAX_INPUT_TOKENS)
                 self.partition_examples.append({"mode": mode, "sdk_visible": sdk_visible, "restored": restored})
 
 

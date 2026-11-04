@@ -37,7 +37,10 @@ import public_product
 
 MODEL = "doubao-seed-2-1-pro-260915"
 PRICE_VERSION = "ark-public-seed-2-1-pro-260915-2026-10-22"
-MAX_INPUT_TOKENS = 131072
+# Application conservative token bound, including UTF-8 JSON, images and framing.
+# Together with the unchanged 65536 output it fits the configured 262144 SDK
+# context. It is below the exact model's 1048576 input limit, not a byte cap.
+MAX_INPUT_TOKENS = 196608
 MAX_OUTPUT_TOKENS = 65536  # Includes reasoning, unlike Chat max_tokens.
 QC_OUTPUT_TOKENS = 32768
 COMPACTION_OUTPUT_TOKENS = 8192
@@ -261,7 +264,7 @@ def pricing(prompt_tokens: int) -> dict:
     """Standard catalogue CNY/million, not the account's final supplier bill.
 
     Billing can price an unexpected over-bound response without losing its real
-    usage. The smaller 128k admission bound is enforced separately below.
+    usage. The smaller application admission bound is enforced separately below.
     """
     if type(prompt_tokens) is not int or not 0 <= prompt_tokens <= 1048576:
         raise ValueError("cover agent pricing input is outside the model context")

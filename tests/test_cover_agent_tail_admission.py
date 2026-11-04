@@ -138,7 +138,7 @@ class TailAdmissionTests(unittest.TestCase):
         self.assertTrue(caught.exception.outcome_unknown)
         calls = self.calls()
         self.assertEqual(len(calls), 1)
-        self.assertEqual((calls[0]["state"], calls[0]["reserve_milli_cny"]), ("unknown", 2753))
+        self.assertEqual((calls[0]["state"], calls[0]["reserve_milli_cny"]), ("unknown", 3146))
         self.assertIsNone(calls[0]["model_usage_record_id"])
         with self.assertRaises(public_product.TrialProviderStopped):
             self.bridge.model(self.fixture.body)
