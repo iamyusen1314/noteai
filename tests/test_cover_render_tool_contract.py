@@ -24,12 +24,18 @@ class RenderToolCLIContractTests(unittest.TestCase):
         self.fixture.setUp()
         self.addCleanup(self.fixture.tearDown)
 
-    def actual_host(self, *, change=None):
+    def actual_host(self, *, change=None, root_project=False):
         fixture = self.fixture
+        if root_project:
+            for item in fixture.project.iterdir():
+                item.rename(fixture.directory / item.name)
+            fixture.project.rmdir()
         # Only fields the model is permitted to author. Host-owned policy and
         # output paths must still be added by the actual callback.
         request = {key: deepcopy(fixture.request[key]) for key in
                    ("sources", "text_layers", "protected_regions")}
+        if not root_project:
+            request["project_dir"] = "project"
         if change:
             change(request)
         input_path = fixture.directory / "tool-input.json"
@@ -79,7 +85,7 @@ ctx.runLocal = async (...args) => {
   runCalls++; cliRequest = JSON.parse(args[3]);
   assert.equal(cliRequest.schema_version, 'noteai-cover-editable/v1');
   assert.equal(cliRequest.output_root, path.join(directory, 'revisions'));
-  assert.equal(cliRequest.project_dir, path.join(directory, 'project'));
+  assert.equal(cliRequest.project_dir, path.resolve(directory, input.request.project_dir || '.'));
   assert.deepEqual(JSON.parse(JSON.stringify(cliRequest.approved_titles)), input.approved_titles);
   const run = await runLocal(...args); rawResult = JSON.parse(run.stdout); return run;
 };
@@ -152,6 +158,15 @@ console.log(JSON.stringify({schema, returned, raw: rawResult,
             ["原照独立图层\n中文排字测试"])
         self.assertNotIn("approved_titles", manifest["constraints"])
         self.assertEqual((self.fixture.project / "assets/synthetic-photo.png").read_bytes(), self.fixture.photo)
+
+    def test_omitted_project_directory_renders_the_actual_job_root(self):
+        value = self.actual_host(root_project=True)
+        self.assertNotIn("project_dir", value["schema"]["properties"]["request"]["required"])
+        self.assertTrue(value["raw"]["ok"])
+        self.assertEqual(value["raw"]["external_requests"], 0)
+        self.assertEqual((self.fixture.directory / "assets/synthetic-photo.png").read_bytes(), self.fixture.photo)
+        with Image.open(value["raw"]["png_path"]) as image:
+            self.assertEqual(image.size, (1776, 2368))
 
     def test_direct_callback_extra_field_rejected_by_actual_cli_and_retained(self):
         # Direct callback is the internal/legacy defense; SDK validation of this

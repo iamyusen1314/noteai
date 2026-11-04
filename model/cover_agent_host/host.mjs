@@ -636,7 +636,7 @@ try {
         width: { type: 'number', exclusiveMinimum: 0 }, height: { type: 'number', exclusiveMinimum: 0 } }) },
     }, ['sources', 'text_layers']) }), async ({ request }) => {
       request = { ...request, schema_version: 'noteai-cover-editable/v1', output_root: path.join(job.work_dir, 'revisions') };
-      request.project_dir = path.resolve(job.work_dir, request.project_dir || 'project');
+      request.project_dir = path.resolve(job.work_dir, request.project_dir || '.');
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');
       const answer = await bridge('tool_request', { name: 'cover_render', arguments: request });
       if (answer.result?.allowed !== true) throw error(answer.result?.code || 'RENDER_NOT_APPROVED');
