@@ -5495,3 +5495,77 @@ Render a623代码dep-dbluj90ae00c73fpq200与配置第二次滚动dep-dblumqo8v5c
 R3私有准备E/CAPACITY-BUILD003.PREPARED.py18136/2b0998b1、PAYLOAD003.PREPARED.json20449/b834887d均SOURCE None、四入口未绑拒绝beforeIO，复用原R2两个缓存part与整包固定pin，仅换API/private两delta，其余11delta/new2text对象相同；API原33hunk只合并最近9字节间隔成为32，原apply_delta逐字重建，copy26/old29/new31实际集合核实。Root将以本次实际新commit晚绑、派发一新R3，不重旧case；压后officialCommandContent约21156<24KB。
 
 生产Gateway仍a623/45e6/两个实例64/20000+signedready；0033保持原a623/b343 knownCOMMIT，不重迁移；API仍c65/原CID和正式OPEN，Pay/Admin/static/WorkerC不变。私有publisher SDKgetter改为onlyImage不放32KiB边界，Gateway/0033各固定原依赖source，不冒新API源上线。发布前恢复核又定位具体工具缺口：原abort_before_stop可在未switch drainFalse时OPEN；candidate已api-start但verifyfail/未OPEN时，原recover_closed_pair禁止start、runningrollback要求已verified+open，不能假称覆盖。quota reviewer正在仅准备原函数的最小closed兼容恢复分支供Root复核/独审，不造markers、删历史或停现生产。此分支只暂停close，Root继续commit/build/LinuxQA，不把它扩大成停工。权威P.next与owners对应，Root唯一发布；当前没有运行中云请求、新模型费用或新预算决定。
+
+
+### 2026-11-05T04:09:18.740630+00:00 — CURRENT生产切换前checkpoint：7081/1c32实际构建与Linux通过，原prepare已成功，回退工具独审GO
+
+功能source7081a6b8290626aa763e52602d679bff795acd59已推，工作树产品/测试无未提交修改（本checkpoint为docs-only）。实际R3build/t-sz0725pu4xds740 Success0/D0：image1c3233db2e0fff73151fafe934d3505d5ce6e17b7d175e2b212a7be0cd04faa0、26COPY/31closure/125层、原依赖SDK/core相同，server build-model-capacity-20261105-r3.result.json11466/cd0716bd。根因也已实际证实旧未format Dockerinspect exit0但stdout44468>原run32768；新只Image格式不放上限、不输出ENV。R3实际mixedQA/t-sz0725qao3yb11c Success0/D0：100knownMockHTTP/meter100，64并存、CPU2、buffer266259412、原V0.4模型实际加载、真实Node/Chromium两个候选、cleanup在Node存活时不误删；3GiB2CPU/swap0，cgrouppeak1183592448（约1.10GiB）、OOM0、owned容器已清，三正式CID不变。server model-capacity-20261105-r3.qa.result.json10370/21e31940。不是100完整报告/真供应商吞吐/商家封面质量。
+
+原publisher新source已晚绑E/CAPACITY-RELEASE-ADAPTER.BOUND.py21856/77027ee9，Rootserver capacity-release-adapter-20261105-r2.py；binding1130/cf5bc68a在server capacity-release-binding-20261105-r2.json；只独立固定Gateway/sourcea623/45e6及原0033/sourcea623/SQLb343真实回执，R3API用7081/1c32/build/QA3，无重Gateway/DDL。prepare003/t-sz0725r1l9v203k Success0/D0，原CASE release-model-capacity-20261105-r1/repair 已真正prepared；从此不得重prepare或覆盖baseline。当前仍未close/switch：API3def/c65/1cad、Pay592d/Adminc5d、static544c正常OPEN，WorkerC停。
+
+回退工具新增的真实verifyfail/partial/crash缺口现已解决并独审GO。E/CAPACITY-CLOSED-ROLLBACK.PREPARED.py24128/ee47422a，独审7627/5256f025，原红保留；合法systemd重启后追加whole-pinned observation供stop/readback，原baseline/snapshot逐byte不改，foreign/profile/namespace/stale/livework拒绝，无伪造ACK、verified或OPEN。仅源码与纯合同/独立8窄case，未执行实际线上回退。原未switch仍abort_before_stop；candidate已start未OPEN用该同CASE prepare/stop/finish→真实pub.verify/reopen rollback，兼容c65完整ENV和Pay新netns。每一次UNKNOWN接续必须Root先读同原CloudInvoke终态并whole-pin原响应，确认旧外层controller不再可能晚执行；容器/PID/Job静稳不代替此证据。Root恢复wrapper须硬绑定这条外部前置，禁止盲重stop/start/原未知请求。
+
+Root下一已授权动作E/CAPACITY-RELEASE-PUBLISH001.PLAN.json/ClientToken fe785f3d-c3a3-4b9e-a953-1a5f787a426d（未派发/无Invoke）：沿原已prepared CASE close新的付费生成受理→实际drain（用户旧任务正常收尾）→61秒quiet不清任何旧quota/UNKNOWN→原API+Pay paired switch→真实源/全profile/DB/model/Admin/Pay/8925未知费保留verify→新child有效配置与fresh signedGateway（不冒PID1 queue）→reopen。若drain明确busy未switch，原abort_before_stop恢复OPEN，不杀用户任务；其他unknown只查原Invoke再恢复。服务不买/不扩，模型调用0，新测试单0。配置目标remote64、活动operation100/人1、pending512、CPU2、prepared256MiB、raw128MiB、upload4、DNS2、Gatewaybody32MiB；各实际供应商RPM/Token/IPM按前段完整额度。重渲染/cover worker仍按既有本地资源约束，不能据此宣称100完整重任务吞吐已验收。
+
+已顺行PC/H5公开基线E/CAPACITY-PUBLIC-PC-H5-BASELINE001.json：首页→生成表单/正常登录弹层、390×844菜单展开收起均实际可用，视口已reset，无NoteAI控制台error/warn；6条warning源为chrome-extension内容脚本，与产品分列。浏览器当前退出登录，未发SMS/读token/绕权限；登录后状态/成品/排字/下载及真实iPhone保存未验证，不能用公开页替代。ROOT实际current前端static未改，可复用对应旧证据。
+
+非付费复用分支E/CAPACITY-PAID-ARTIFACT-REUSE.READONLY001.json6120/7170ebcc：P封存R12/13/14供应商known200但均failed/refund/finalfalse/revision0，无完整design/PNG/独立QC原文可直接证合格续保存，原livefence合同不允许复活已退终态；未云扫对象，不能夸成全OSS绝无残留。全部旧费用/UNKNOWN保留，A96/总100仍余A3083m不足下一3146m预留，A106/总110提议仍未明确批准，新增模型0；付费分支只此待决定，不阻本次发布。Root唯一负责人继续到部署/线上非付费验收，checkpoint/报告不是停止条件。
+
+
+### 2026-11-05T04:12:54.239385+00:00 — CURRENT：唯一生产发布已派发，先查原Invoke，禁止第二次执行
+
+CAPACITY-RELEASE-PUBLISH001已实际派发Invoke t-sz0725ts7djery8，ACK已E保存，结果尚未读回。主controller独占同CASE的close/drain61/API+Pay切换/真实verify与配置/signedready/reopen。恢复先读权威P.running_cloud_invoke并Describe同ID；active时不发任何后续发布/恢复controller，不重prepare，不把尚无最终输出当失败重跑。终态失败先读原动作markers+实际runtime，任何UNKNOWN恢复wrapper必须绑定本原Invoke已terminal的whole-response证据。没有模型/新cover任务/支付单调用。Root持续执行直到真实终态及线上验收，当前不是交付完成。
+
+
+### 2026-11-05T04:19:56.003877+00:00 — CURRENT：首次容量发布在API stop前失败，原入口已真实恢复，API未重启
+
+PUBLISH001/t-sz0725ts7djery8实际Failed/Exit1/D0，终态whole-response2378/03645623原件E/CAPACITY-RELEASE-PUBLISH001.POLL001.RESULT.FULL.json已保存；close和drain成功，但主adapter错误把原drain的file-ref当结果，未创建capacity-quiet-window，switch第一步即FileNotFound、未发API stop/CAS/start。Root已按原abort_before_stop严格先绑定该终态与noapi-stop，ABORT001/t-sz0725u8ancpn9c真实Success/restoreOPEN，syntax0/reload0/无APIstop或restart，原用户工作/所有历史/静态未变，模型0。原CASEr1的prepared/close/drain/abort文件保留，不能重用已消费once或覆盖baseline。当前c65仍正式OPEN。
+
+只修工具返回契约：沿本CASE/drain.json读取drained真值后quiet61，保原ref返回；独立作者用真实retaineddrain+file-ref补定向红绿。接续在同noteai-xhs-cover-20261019下使用已知终态后的原publisher下一attempt CASEr2，只有case/该drainfix变，不是新任务或第二发布程序。7081/1c32真实build/Linux、Gateway和0033证据仍适用不重跑；Root自主继续prepare和受控发布，当前不是停止条件或交付完成。
+
+
+### 2026-11-05T04:52:04.034790+00:00 — CURRENT：第二次发布静默期失败，已恢复原OPEN；只读实际活跃项诊断中
+
+PUBLISH002/t-sz0725vpxl5imm8已知Failed1/D0，在quiet_proof检到active而API stop/CAS/start从未执行；原观察未落盘，具体活跃来源未定，不猜测为用户任务或DB事务。ABORT002/t-sz0725wabhgjr40实际Success0/D0，原abort_before_stop恢复OPEN，syntax0/reload0、API未stop/restart，当前c65及原Pay/Admin/static保持。原CASEr2/失败原件保留。Root下一在OPEN状态仅75秒content-free work_counts只读采样，保完整原计数再决定最小修正，不反复关闭入口/放宽停机保护；两独立代理分查原计数语义和实际发布契约。无供应商调用/SQL写/预算变化。7081/1c32实际build/Linux、已上线Gateway64/20000和已应用0033继续复用，未冒API已上线或商家成品通过。
+
+
+### 2026-11-05T05:01:50.165947+00:00 — CURRENT：实际OPEN采样全零；最小发布工具修正双独审GO，接续原CASEr3
+
+OPEN下原work_counts采样t-sz0725xfc2dr20w已Success0/D0，77.126秒/16样本/active0/唯一计数1；有效requestlease、physicaldispatched、coveractive、Node和三角色TX均0。旧15physicalUNKNOWN、1coverUNKNOWN、两expiredrunning行和1历史pending订单保，不清理/重发。本次旧quiet失败具体active来源未复现，不能归因为worker或Admin事务。server原完整proof25659/5c79205a，E/CAPACITY-WORK-COUNTS-READONLY001.POLL002.OUTPUT.txt。
+
+仅私有发布工具修正：quiet保fullactive，在90秒界内重置后连续61秒；失败同CASE不可覆盖保存已完成probe/counts/clock，未完成probe等待不冒quiet。作者7实际原wrapper合同通过，独立5窄边界GO，E/CAPACITY-QUIET-OBSERVATION.INDEPENDENT-REVIEW001.json1656/cb7ac3e2。主外层close已确认后drain/read/switch异常且无api-stop.intent才原abort，abort前attempted防重复；真实AST11哨兵独审GO，E/CAPACITY-PRESTOP-RECOVERY-INDEPENDENT-REVIEW001.json5803/09fb0ae0。均非真实server61证明，非新增发布系统。
+
+Root晚绑同任务CASE release-model-capacity-20261105-r3，adapter23704/9b4fc20a→server capacity-release-adapter-20261105-r4.py；闭窗回退helper仅CASE变24128/1faec663→server r3，原once/契约不改。E/CAPACITY-RELEASE-PREPARE005.PLAN.json token c59bb9c2-13dd-4b83-bca0-25b7b2c00f1a；其后PUBLISH003 token1c2fc3ee-40c2-4dc3-b620-c8f3834cebb6，尚未实际派发。严格只有Root使用原publisher，不覆盖已终态r1/r2。功能7081/1c32/Gateway/0033/build/Linux完全复用，不重付费/DDL；生产仍c65/OPEN，预算A96/原100与旧费用UNKNOWN不变。下一Rootprepare→原close/drain/真实quiet61/switch/verify/config+signedready/reopen，若失败按原同Invoke读回恢复，不能重复同请求。
+
+
+### 2026-11-05T05:04:21.534148+00:00 — CURRENT：原准备已成功，唯一容量发布PUBLISH003已派发
+
+prepare005/t-sz0725ya3t8p8n4真实Success0/D0，CASEr3已prepared但未close/source变更。当前PUBLISH003/t-sz0725yf8m59c00已派发，唯一controller负责原close/drain/实际连续61s/切换API+Pay/verify/newconfig/freshsignedready/reopen；禁止重复同请求、重prepare或另一个发布controller。先Describe同ID原终态；失败前stop分支原自动abort只一次，stop后严格读原记录再已审恢复，UNKNOWN不猜。功能7081/1c32、预算旧费用/UNKNOWN保持，新模型0。
+
+
+### 2026-11-05T05:06:15.662055+00:00 — CURRENT：容量版本7081/1c32已真实上线并恢复OPEN，继续线上非付费验收
+
+PUBLISH003/t-sz0725yf8m59c00实际2026-11-05T05:03:52Z–2026-11-05T05:05:17Z Success0/D0，原close/drain/真实quiet/switch/verify/config+signedready/reopen全部通过。API CID7a014897ef7533e3eb64a520125cbc42e34536bc0618f231c93f9f9c3b287f94/image1c3233db/profile9524a3b4；Pay CID328a62e96dbb85f1ce44507e3fe39d0582af2f68023e4caa861d375128ebcec9/原image4e4d/原profilebb76，实际netns同API；Admin原c5d/4a03/3249保持、static544c未切。API真实31source及原SDK2.1.2校验通过，DB只读SELECT1+本地V0.4原件可用，Admin/Pay ready；JSAPI1且历史订单2保。旧c65完整ENV为兼容回退，不DROP0033。
+
+原新child有效配置不是PID1实时queue快照：capacityenabled true、remote64、operations100/每人1、pending512、CPU2、buffer268435456、Gatewaybody33554432、DNS2；完整六model额度实等官方账号，freshsignedGateway remote_ready/sharedcontrol/DDBsharedatomic。Render仍a623/45e6全实例64/20000与原Starter/自动2..4，WorkerC停。新模型/任务/费用和SQL写均0，未冒真实供应商吞吐或商家封面通过。E/CAPACITY-PRODUCTION-RELEASE-ACTUAL001.json和PUBLISH003.POLL001原件；先按P当前版本恢复，禁止重复旧prepare/publish/迁移。
+
+Root下一读取真实quiet proof/postOPEN原runtime计数及PC/H5公开页检查，再独立收据复核/交付；正常认证后的成品、改字/下载和3140真实PNG仍未完成。预算A96/总100、保守A92917m+preA3927m、旧UNKNOWN不变，A余3083m不足下一3146m预留，A106/总110提议仍未答，不能因发布通过新增付费或清零。
+
+
+### 2026-11-05T05:11:46.709404+00:00 — CURRENT：实际postOPEN及PC/H5验证完成；真实付费成品分支仍待预算
+
+postOPEN/t-sz0725yt3x7301s Success0/D0，05:08:13Z原runtime/profile与verified真同，入口OPEN。原capacity-quiet-window20011/3b994a4a真连续61.515846秒/总观察63.673766秒/13样本/0busy/0reset；不是模拟clock。原open-reload64/4cb34b53、effectiveconfig2120/e601f4fc、verified7542/1f886e48四真whole refs在E/CAPACITY-POSTOPEN-READONLY001.POLL001.OUTPUT.txt。actualworkcounts无新live/dispatched/cover/node/TX，旧15physicalUNKNOWN/1coverUNKNOWN/expiredrunning2/pending1保；不因此清历史或重请求。
+
+PCreload官网→生成九图/100MB视频/8行业正常；390×844 H5入口、菜单展开及正常登录弹层可用，截图与E/CAPACITY-POSTOPEN-UI-EVIDENCE001.json；已reset桌面尺寸，未发OTP/未读token/未创建模型任务。12warn全来自chrome-extension内容脚本（包含旧6及reload新6），产品error/warn0，不扩范围修扩展。静态544c完全未变；不能冒登录后重开/改字/下载、真实iPhone保存或真实成品通过。最终独立实际收据审查核FULL/stdout/摘要逐byte一致、15源指纹等Git7081、六modelquota/64/100/1/512/CPU2/256M/DNS2/body32M全等，无确定发布偏差；newchild配置读回不是PID1实时queue或64真实supplier并发。
+
+改动/风险/复用/补验映射：
+
+|改动与目的|有效证据|剩余需要补验|
+|---|---|---|
+|六model共享持久RPM/Token/IPM；同TX费用/唯一physical，消除旧全系统2票瓶颈|真实账号quota+PG模块/全app交易证据+actualeffectiveconfig；0033已knownCOMMIT不重迁移|真实供应商限额/完整任务吞吐，未实测官方天花板满载|
+|100任务/人1、remote64、pending512，配额等待原票、公平排队|原400fanout/100图片真实LinuxMock并存、实际env/profile|配置不是100整篇报告/100重封面同时完成承诺|
+|九图、视频、截图/聊天图、语义评分隔离CPU2/remote；原buffer256M/raw128M/body32M/DNS2|新增定向红绿+真实Linux3GiB2CPU/OOM0/cgrouppeak1183592448|真实商家全链；未跑付费压力批次|
+|Gateway旧2/30限制替换为64/20000，保原共享DDB安全协议|两个Render实例实际source/env、原512M Linux、线上signedready|真实外部批量吞吐；原Starter算力仍是物理约束|
+|原发布工具修返回契约、Image-only元数据、quiet现场和一次prestop恢复|旧失败全保；真实原CASEr3发布/61.5s/OPEN，源码独审及actualreceipt审核|闭窗回退只经源/纯合同验证，未为测试故意触发生产回退|
+
+Root已将同一未答预算决定集中重述：A96→106/原总100→110（追加10元，无需充值），只用于3140原报告一张真实封面及必要受影响链验收；当前A保守已用92.917、余3.083，小于下一预留3.146，旧费用/UNKNOWN全保。尚未获答，不把充值余额、配额任务或登录授权当费用批准。无新合格PNG，单位合格成本N/A；现有生产保持OPEN。Root继续完成文档/提交/交接，只有付费分支和正常OTP所需认证UI受外部条件限制。
