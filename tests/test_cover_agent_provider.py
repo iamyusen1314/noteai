@@ -125,7 +125,7 @@ class CoverAgentProviderTests(unittest.TestCase):
     def test_full_tool_chat_uses_pro_thinking_and_one_original_metered_call(self):
         call_id = self.intent()
         expected = self.response(tool=True)
-        with public_product.model_admission_sync(call_id, "doubao"):
+        with public_product.model_admission_sync(call_id, "doubao", model_id=provider.MODEL):
             actual = provider.complete(self.body, call_id=call_id, transport=self.transport(expected))
         self.assertEqual(actual, expected)
         self.assertEqual(len(self.requests), 1)
@@ -781,7 +781,7 @@ class CoverAgentProviderTests(unittest.TestCase):
         now = time.time()
         clock = [now]
         @contextlib.contextmanager
-        def delayed_permit(*args):
+        def delayed_permit(*args, **kwargs):
             clock[0] += 301
             yield
         with mock.patch.object(provider.time, "time", side_effect=lambda: clock[0]), \

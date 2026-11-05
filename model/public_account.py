@@ -77,7 +77,12 @@ class PublicAccountBoundary:
         self.app = app
         import asyncio
         import threading
-        self.media_slots = asyncio.Semaphore(1)
+        import model_capacity
+        streams = int(os.environ.get("NOTEAI_UPLOAD_STREAM_CONCURRENCY", "4")) if model_capacity.enabled() else 1
+        if not 1 <= streams <= 16:
+            raise ValueError("invalid upload stream capacity")
+        self.media_slots = asyncio.Semaphore(streams)
+        self.capacity_mode = model_capacity.enabled()
         # Preserve the old aggregate raw-JSON memory bound, without serializing
         # the entire response of every reference-only generation request.
         self.media_json_budget = 128 * 1024 * 1024
@@ -146,16 +151,37 @@ class PublicAccountBoundary:
                 if content_type != b"multipart/form-data":
                     return await reject(415, "请上传原始素材文件")
                 maximum = (100 if path == "/upload-video" else 10) * 1024 * 1024 + 65536
+                upload_reservation = None
+                if self.capacity_mode:
+                    declared = headers.get(b"content-length", b"")
+                    if declared and (not declared.isdigit() or len(declared) > 12):
+                        return await reject(413, "上传文件超过允许大小")
+                    upload_reservation = int(declared) if declared else maximum
+                    if not 0 < upload_reservation <= maximum:
+                        return await reject(413, "上传文件超过允许大小")
+                    # Stream parallelism never multiplies the original aggregate
+                    # raw-body memory budget. Chunked uploads reserve the bound.
+                    with self.media_json_lock:
+                        busy = self.media_json_bytes + upload_reservation > self.media_json_budget
+                        if not busy:
+                            self.media_json_bytes += upload_reservation
+                    if busy:
+                        return await reject(429, "上传队列繁忙，请稍后重试")
                 consumed = 0
                 async def upload_receive():
                     nonlocal consumed
                     message = await receive()
                     consumed += len(message.get("body", b""))
-                    if consumed > maximum:
+                    if consumed > (upload_reservation if upload_reservation is not None else maximum):
                         raise HTTPException(413, "上传文件超过允许大小")
                     return message
-                async with self.media_slots:
-                    return await public_product.dispatch(self.app, scope, upload_receive, send, b"", authenticated=authenticated)
+                try:
+                    async with self.media_slots:
+                        return await public_product.dispatch(self.app, scope, upload_receive, send, b"", authenticated=authenticated)
+                finally:
+                    if upload_reservation is not None:
+                        with self.media_json_lock:
+                            self.media_json_bytes -= upload_reservation
             if method != "DELETE" and headers.get(b"content-type", b"").split(b";", 1)[0].strip() != b"application/json":
                 return await reject(415, "请求格式必须为JSON")
             if media_json:

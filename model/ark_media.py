@@ -10,6 +10,7 @@ import asyncio
 import base64
 import io
 import json
+import math
 import os
 import re
 import socket
@@ -17,6 +18,7 @@ import ssl
 import sys
 import time
 import uuid
+from copy import deepcopy
 
 import httpx
 from PIL import Image
@@ -301,10 +303,73 @@ def _complete(prompt: str, parts: list[dict], *, max_tokens: int,
               media: dict | None = None, transport=None) -> str:
     import public_product
     call_id = str(uuid.uuid4())
-    with public_product.model_admission_sync(call_id, "doubao"):
+    with public_product.model_admission_sync(call_id, "doubao", model_id=MODEL):
         return _complete_admitted(prompt, parts, max_tokens=max_tokens,
             audio_possible=audio_possible, json_output=json_output, responses=responses,
             media=media, transport=transport, call_id=call_id)
+
+
+def _capacity_input_bound(payload: dict, *, audio_possible: bool) -> tuple[int, str]:
+    """Bound quota tokens without counting inline base64 as text or changing wire.
+
+    Seed 2.0+ visual tokens use pixels/1764, after the selected detail/pixel
+    range. Official reference: docs.volcengine.com/docs/ark/image-understanding.
+    The opaque video/audio path has no verified local token count and retains
+    an explicit context upper bound; this is not a supplier usage measurement.
+    """
+    if audio_possible:
+        return 262144, "video_context_upper_bound"
+    measured = deepcopy(payload)
+    messages = measured.get("messages", measured.get("input", []))
+    images, part_count, opaque_image = 0, 0, False
+    for message in messages:
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, list):
+            return 262144, "opaque_media_context_upper_bound"
+        part_count += len(content)
+        for part in content:
+            if not isinstance(part, dict):
+                return 262144, "opaque_media_context_upper_bound"
+            if part.get("type") in {"text", "input_text"}:
+                continue
+            if part.get("type") != "image_url" or not isinstance(part.get("image_url"), dict):
+                return 262144, "opaque_media_context_upper_bound"
+            image = part["image_url"]
+            url = image.get("url")
+            detail = image.get("detail", "high")
+            ranges = {"low": (1764, 2257920), "high": (2257920, 2257920),
+                      "xhigh": (2257920, 9031680)}
+            if detail not in ranges:
+                return 262144, "opaque_media_context_upper_bound"
+            minimum, maximum = ranges[detail]
+            limits = image.get("image_pixel_limit")
+            if limits is not None:
+                if not isinstance(limits, dict):
+                    return 262144, "opaque_media_context_upper_bound"
+                minimum = limits.get("min_pixels", minimum)
+                maximum = limits.get("max_pixels", maximum)
+                if (type(minimum) is not int or type(maximum) is not int
+                        or not 1764 <= minimum <= maximum <= 9031680):
+                    return 262144, "opaque_media_context_upper_bound"
+            pixels = maximum  # A remote image is opaque; never fetch it here.
+            if isinstance(url, str) and url.startswith("data:image/"):
+                try:
+                    encoded = url.split(",", 1)[1]
+                    if len(encoded) > math.ceil(MAX_IMAGE_BYTES / 3) * 4:
+                        raise ValueError()
+                    raw = base64.b64decode(encoded, validate=True)
+                    with Image.open(io.BytesIO(raw)) as photo:
+                        pixels = min(maximum, max(minimum, photo.width * photo.height))
+                except (ValueError, TypeError, OSError, IndexError):
+                    opaque_image = True
+            else:
+                opaque_image = True
+            images += math.ceil(pixels / 1764) + 256
+            image["url"] = ""  # Only the local measurement copy is altered.
+    text = len(json.dumps(measured, ensure_ascii=False, separators=(",", ":")).encode())
+    framing = 128 * (len(messages) + part_count) + 1024
+    bound = min(262144, text + images + framing)
+    return bound, "opaque_image_max_pixels_bound" if opaque_image else "inline_pixels_utf8_bound"
 
 
 def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
@@ -334,10 +399,16 @@ def _complete_admitted(prompt: str, parts: list[dict], *, max_tokens: int,
         prompt_keys=(), prompt_role="user")
     # Conservative reservation only; owner_metered never uses it as a money cap.
     reserve = int((262144 * (27 if audio_possible else 1.8) + max_tokens * 10.8) / 1000) + 1
+    reservation = {"model": MODEL, "max_tokens": max_tokens,
+        "provider": "doubao", "modality": "video_audio" if audio_possible else "image",
+        **({"media": media} if media is not None else {})}
+    import model_capacity
+    if model_capacity.enabled():
+        input_bound, basis = _capacity_input_bound(payload, audio_possible=audio_possible)
+        reservation.update(_capacity_demand=model_capacity.Demand(MODEL, input_bound, max_tokens),
+                           _capacity_estimate_basis=basis)
     try:
-        public_product._reserve_payload({"model": MODEL, "max_tokens": max_tokens,
-                "provider": "doubao", "modality": "video_audio" if audio_possible else "image",
-                **({"media": media} if media is not None else {})},
+        public_product.reserve_payload_with_capacity(reservation,
                 reserve, call_id=call_id, require_metered=True, provenance=provenance)
     except public_product._SlotsBusy:
         # Local permits are already held. An occupied DB slot now means another

@@ -7,6 +7,9 @@ Waiting for a permit is separate from a provider's HTTP/business deadline.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
+import contextvars
+import functools
 from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -44,6 +47,8 @@ class Limits:
 
     @classmethod
     def environment(cls):
+        import model_capacity
+        capacity_mode = model_capacity.enabled()
         physical = _number("NOTEAI_MODEL_PHYSICAL_CONCURRENCY", 2, 1, 16)
         return cls(
             physical=physical,
@@ -51,11 +56,14 @@ class Limits:
             kimi=_number("NOTEAI_KIMI_TEXT_CONCURRENCY", 2, 1, 16),
             doubao=_number("NOTEAI_DOUBAO_CONCURRENCY", 2, 1, 16),
             seedream=_number("NOTEAI_SEEDREAM_CONCURRENCY", 1, 1, 1),
-            claude_rpm=_number("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1, 6000),
+            claude_rpm=_number("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1,
+                               60000 if capacity_mode else 6000),
             media_workers=_number("NOTEAI_MEDIA_WORKER_CONCURRENCY", 2, 1, 8),
-            operations=_number("NOTEAI_MODEL_ADMITTED_OPERATIONS", 10, 1, 64),
+            operations=_number("NOTEAI_MODEL_ADMITTED_OPERATIONS", 100 if capacity_mode else 10,
+                               1, 1024 if capacity_mode else 64),
             operations_per_user=_number("NOTEAI_MODEL_OPERATIONS_PER_USER", 1, 1, 4),
-            pending_calls=_number("NOTEAI_MODEL_PENDING_CALLS", 64, 1, 256),
+            pending_calls=_number("NOTEAI_MODEL_PENDING_CALLS", 256 if capacity_mode else 64,
+                                  1, 4096 if capacity_mode else 256),
             queue_seconds=_number("NOTEAI_MODEL_QUEUE_SECONDS", 1800, 30, 1800),
             no_progress_seconds=_number("NOTEAI_MODEL_NO_PROGRESS_SECONDS", 300, 250, 900),
         )
@@ -83,6 +91,11 @@ class Ticket:
     provider: str
     queued_at: float
     event: threading.Event = field(default_factory=threading.Event)
+    model_id: str | None = None
+    rate_granted_at: float | None = None
+    weight: int = 1
+    capacity_wait_seconds: float = 0.0
+    deferred_started: float | None = None
     asynchronous: tuple | None = None
     granted: bool = False
     granted_at: float | None = None
@@ -113,6 +126,7 @@ class FairQueue:
         self.lock = threading.RLock()
         self.waiting = OrderedDict()
         self.active = {}
+        self.deferred = {}
         self.last_user = None
         self.last_progress = time.monotonic()
         self.progress_source = progress_source
@@ -120,9 +134,11 @@ class FairQueue:
         self.grants = {provider: deque() for provider in self.rates}
 
     def _tickets(self):
-        return [t for tasks in self.waiting.values() for items in tasks.values() for t in items]
+        return ([t for tasks in self.waiting.values() for items in tasks.values() for t in items]
+                + list(self.deferred.values()))
 
     def _remove(self, ticket):
+        self.deferred.pop(ticket.call_id, None)
         tasks = self.waiting.get(ticket.operation.user_id)
         if tasks is None:
             return
@@ -139,7 +155,7 @@ class FairQueue:
         for history in self.grants.values():
             while history and now - history[0] >= 60.:
                 history.popleft()
-        while len(self.active) < self.capacity and self.waiting:
+        while sum(t.weight for t in self.active.values()) < self.capacity and self.waiting:
             users = list(self.waiting)
             if len(users) > 1 and users[0] == self.last_user:
                 users = users[1:] + users[:1]
@@ -154,10 +170,16 @@ class FairQueue:
                     if now - max(candidate.queued_at, candidate.operation.last_progress) >= self.wait_seconds:
                         candidate.notify()
                         continue
-                    used = sum(t.provider == candidate.provider for t in self.active.values())
-                    history = self.grants.get(candidate.provider)
-                    rate_available = history is None or len(history) < self.rates[candidate.provider]
-                    if rate_available and used < self.families.get(candidate.provider, self.capacity):
+                    family = self._family_key(candidate)
+                    used = sum(self._family_key(t) == family for t in self.active.values())
+                    rate_key = candidate.provider if family == candidate.provider else None
+                    history = self.grants.get(rate_key)
+                    retained_rate = (candidate.rate_granted_at is not None
+                                     and now - candidate.rate_granted_at < 60.)
+                    rate_available = (history is None or retained_rate
+                                      or len(history) < self.rates[rate_key])
+                    fits_weight = sum(t.weight for t in self.active.values()) + candidate.weight <= self.capacity
+                    if rate_available and fits_weight and used < self.families.get(family, self.capacity):
                         selected = candidate
                         tasks.move_to_end(key)
                         break
@@ -170,17 +192,26 @@ class FairQueue:
             selected.granted_at = time.monotonic()
             selected.last_activity = selected.granted_at
             self.active[selected.call_id] = selected
-            if selected.provider in self.grants:
+            rate_key = selected.provider if self._family_key(selected) == selected.provider else None
+            if (rate_key in self.grants and (selected.rate_granted_at is None
+                    or now - selected.rate_granted_at >= 60.)):
                 # Reserve an RPM place at grant, including a later cancelled
                 # grant. This conservative local ceiling is never a usage bill.
-                self.grants[selected.provider].append(now)
+                self.grants[rate_key].append(now)
+                selected.rate_granted_at = now
             self.last_user = selected.operation.user_id
             if selected.operation.user_id in self.waiting:
                 self.waiting.move_to_end(selected.operation.user_id)
             selected.notify()
 
-    def enqueue(self, operation, call_id, provider):
+    def _family_key(self, ticket):
+        key = (ticket.provider, ticket.model_id)
+        return key if key in self.families else ticket.provider
+
+    def enqueue(self, operation, call_id, provider, *, model_id=None, weight=1):
         with self.lock:
+            if type(weight) is not int or not 1 <= weight <= self.capacity:
+                raise AdmissionError("MODEL_BUFFER_SIZE_EXCEEDED")
             if operation.cancelled.is_set():
                 raise AdmissionError("MODEL_OPERATION_CANCELLED")
             pending = self._tickets()
@@ -189,6 +220,8 @@ class FairQueue:
             if len(pending) >= self.pending_limit:
                 raise AdmissionError("MODEL_QUEUE_FULL")
             ticket = Ticket(operation, call_id, provider, time.monotonic())
+            ticket.model_id = model_id
+            ticket.weight = weight
             with operation.lock:
                 operation.outstanding += 1
             tasks = self.waiting.setdefault(operation.user_id, OrderedDict())
@@ -232,8 +265,8 @@ class FairQueue:
                     and self.active.get(ticket.call_id) is ticket):
                 ticket.last_activity = time.monotonic()
 
-    def acquire(self, operation, call_id, provider):
-        ticket = self.enqueue(operation, call_id, provider)
+    def acquire(self, operation, call_id, provider, *, model_id=None, weight=1):
+        ticket = self.enqueue(operation, call_id, provider, model_id=model_id, weight=weight)
         try:
             while not self._check(ticket):
                 ticket.event.wait(.1)
@@ -243,8 +276,8 @@ class FairQueue:
             self.release(ticket)
             raise
 
-    async def acquire_async(self, operation, call_id, provider):
-        ticket = self.enqueue(operation, call_id, provider)
+    async def acquire_async(self, operation, call_id, provider, *, model_id=None, weight=1):
+        ticket = self.enqueue(operation, call_id, provider, model_id=model_id, weight=weight)
         wake = asyncio.Event()
         ticket.asynchronous = (asyncio.get_running_loop(), wake)
         try:
@@ -258,6 +291,72 @@ class FairQueue:
         except BaseException:
             self.release(ticket)
             raise
+
+    def defer(self, ticket):
+        """Park an unissued call without occupying a socket execution place."""
+        with self.lock:
+            if (ticket.closed or ticket.dispatched or ticket.held_by_stream
+                    or self.active.get(ticket.call_id) is not ticket):
+                raise AdmissionError("MODEL_CALL_CANNOT_DEFER")
+            del self.active[ticket.call_id]
+            ticket.granted = False
+            ticket.granted_at = None
+            ticket.deferred_started = time.monotonic()
+            self.deferred[ticket.call_id] = ticket
+            self._grant()
+
+    def _requeue_deferred(self, ticket):
+        with self.lock:
+            if (ticket.closed or ticket.operation.cancelled.is_set()
+                    or self.deferred.get(ticket.call_id) is not ticket):
+                raise AdmissionError("MODEL_OPERATION_CANCELLED")
+            del self.deferred[ticket.call_id]
+            ticket.event.clear()
+            tasks = self.waiting.setdefault(ticket.operation.user_id, OrderedDict())
+            tasks.setdefault(ticket.operation.request_hash, deque()).append(ticket)
+            self._grant()
+
+    def resume(self, ticket):
+        """Fairly requeue the same identity; never register another operation."""
+        try:
+            self._requeue_deferred(ticket)
+            while not self._check(ticket):
+                ticket.event.wait(.1)
+                ticket.event.clear()
+            self._finish_deferred_wait(ticket)
+            return ticket
+        except BaseException:
+            self.release(ticket)
+            raise
+
+    async def resume_async(self, ticket):
+        wake = asyncio.Event()
+        ticket.asynchronous = (asyncio.get_running_loop(), wake)
+        try:
+            self._requeue_deferred(ticket)
+            while not self._check(ticket):
+                try:
+                    await asyncio.wait_for(wake.wait(), .25)
+                except asyncio.TimeoutError:
+                    pass
+                wake.clear()
+            self._finish_deferred_wait(ticket)
+            return ticket
+        except BaseException:
+            self.release(ticket)
+            raise
+
+    def _finish_deferred_wait(self, ticket):
+        with self.lock:
+            if ticket.deferred_started is not None:
+                ticket.capacity_wait_seconds += max(0., time.monotonic() - ticket.deferred_started)
+                ticket.deferred_started = None
+
+    def deferred_seconds(self, ticket):
+        with self.lock:
+            ongoing = (max(0., time.monotonic() - ticket.deferred_started)
+                       if ticket.deferred_started is not None else 0.)
+            return ticket.capacity_wait_seconds + ongoing
 
     def release(self, ticket):
         callback = None
@@ -317,14 +416,40 @@ class Admission:
         self.lock = threading.RLock()
         self.operations = {}
         self.aliases = {}
-        self.calls = FairQueue(self.limits.physical,
-                               {k: getattr(self.limits, k) for k in ("claude", "kimi", "doubao", "seedream")},
+        self._remote_executor = None
+        families = {k: getattr(self.limits, k) for k in ("claude", "kimi", "doubao", "seedream")}
+        import model_capacity
+        remote_capacity = self.limits.physical
+        if model_capacity.enabled():
+            # This bounds local sockets/threads, not supplier RPM/TPM/IPM.
+            # CPU-heavy image preparation remains in the separate media queue.
+            remote_capacity = _number("NOTEAI_MODEL_REMOTE_CONCURRENCY", 16, 1, 256)
+            for model_id in model_capacity.model_ids():
+                policy = model_capacity.policy_for(model_id)
+                if policy is not None:
+                    provider = ("seedream" if "seedream" in model_id else
+                                "claude" if model_id.startswith("claude") else
+                                "kimi" if model_id.startswith(("kimi", "moonshot")) else "doubao")
+                    families[(provider, model_id)] = policy.concurrency or remote_capacity
+        self.calls = FairQueue(remote_capacity, families,
                                self.limits.pending_calls, self.limits.queue_seconds,
                                self.limits.no_progress_seconds,
                                rates={"claude": self.limits.claude_rpm})
         self.media = FairQueue(self.limits.media_workers, {}, self.limits.pending_calls,
                                self.limits.queue_seconds, self.limits.no_progress_seconds,
                                progress_source=self.calls.progress_snapshot)
+        self.buffers = FairQueue(_number("NOTEAI_MODEL_BUFFER_MIB", 256, 1, 2048) * 1024 * 1024,
+                                 {}, self.limits.pending_calls, self.limits.queue_seconds,
+                                 self.limits.no_progress_seconds,
+                                 progress_source=self.calls.progress_snapshot)
+        self.gateway_bodies = FairQueue(
+            _number("NOTEAI_CLAUDE_GATEWAY_INFLIGHT_BODY_BYTES", 32 * 1024 * 1024,
+                    1, 256 * 1024 * 1024), {}, self.limits.pending_calls,
+            self.limits.queue_seconds, self.limits.no_progress_seconds,
+            progress_source=self.calls.progress_snapshot)
+        self.gateway_dns = FairQueue(2, {}, self.limits.pending_calls,
+                                     self.limits.queue_seconds, self.limits.no_progress_seconds,
+                                     progress_source=self.calls.progress_snapshot)
 
     def register(self, user_id, request_hash, *, route=""):
         key = (user_id, request_hash)
@@ -376,20 +501,39 @@ class Admission:
     def cancel(self, operation):
         self.calls.cancel(operation)
         self.media.cancel(operation)
+        self.buffers.cancel(operation)
+        self.gateway_bodies.cancel(operation)
+        self.gateway_dns.cancel(operation)
 
     def cancel_active(self, operation):
         # Use the same calls->media lock order for the active check and Event
         # update. Last release either wins (save is no longer cancellable), or
         # cancellation wins and the existing pre-save gate observes it.
-        with self.calls.lock, self.media.lock:
+        with self.calls.lock, self.media.lock, self.buffers.lock, self.gateway_bodies.lock, self.gateway_dns.lock:
             if operation.cancelled.is_set():
                 return True
             tickets = (self.calls._tickets() + list(self.calls.active.values())
-                       + self.media._tickets() + list(self.media.active.values()))
+                       + self.media._tickets() + list(self.media.active.values())
+                       + self.buffers._tickets() + list(self.buffers.active.values())
+                       + self.gateway_bodies._tickets() + list(self.gateway_bodies.active.values())
+                       + self.gateway_dns._tickets() + list(self.gateway_dns.active.values()))
             if not any(t.operation is operation for t in tickets):
                 return False
             self.cancel(operation)
             return True
+
+    def remote_executor(self):
+        with self.lock:
+            if self._remote_executor is None:
+                self._remote_executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=self.calls.capacity, thread_name_prefix="noteai-model-io")
+            return self._remote_executor
+
+    def close_remote_workers(self):
+        with self.lock:
+            executor, self._remote_executor = self._remote_executor, None
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=False)
 
 
 _instance = None
@@ -402,3 +546,14 @@ def current():
         if _instance is None:
             _instance = Admission()
         return _instance
+
+
+async def run_remote(function, *args, **kwargs):
+    """Keep long vendor I/O out of the CPU/upload/default worker executor."""
+    import model_capacity
+    if not model_capacity.enabled():
+        return await asyncio.to_thread(function, *args, **kwargs)
+    context = contextvars.copy_context()
+    work = functools.partial(function, *args, **kwargs)
+    return await asyncio.get_running_loop().run_in_executor(
+        current().remote_executor(), context.run, work)

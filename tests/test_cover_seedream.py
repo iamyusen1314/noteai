@@ -31,7 +31,7 @@ class CoverSeedreamTests(unittest.TestCase):
         self.call_id = str(uuid.uuid4())
         self.stack = contextlib.ExitStack()
         self.admit = self.stack.enter_context(mock.patch("public_product.model_admission_sync",
-            side_effect=lambda cid, provider: self.admission(cid, provider)))
+            side_effect=lambda cid, provider, **kwargs: self.admission(cid, provider)))
         self.reserve = self.stack.enter_context(mock.patch("public_product._reserve_payload",
             side_effect=lambda *args, **kw: self.events.append(("reserve", args, kw))))
         self.mark = self.stack.enter_context(mock.patch("public_product.mark_model_dispatched",
@@ -94,6 +94,7 @@ class CoverSeedreamTests(unittest.TestCase):
         self.assertEqual(reserved.args[0]["modality"], "image_generation")
         self.assertEqual(reserved.args[1], 600)
         self.assertEqual(self.admit.call_args.args, (self.call_id, "seedream"))
+        self.assertEqual(self.admit.call_args.kwargs, {"model_id": seedream.MODEL})
         order = [event[0] for event in self.events]
         self.assertEqual(order, ["admission", "reserve", "before", "dispatch", "ledger", "response", "release"])
         self.assertEqual(record["output_images"], 1)

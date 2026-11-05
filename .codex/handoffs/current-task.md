@@ -35397,3 +35397,43 @@ Root复用原Ark正常用户tab8725，只读官方开通管理实际模型级常
 10在线浏览不占此模型池；10人同生成则活动operation最多10/人1，全站call2按用户与任务轮转、普通九图自身最多并行2，其他调用等待。operation满在新扣分预留前429。等待不占模型执行票但保留SSE/operation与已有8积分hold；原cover worker同API进程且串行1张，实际接手才计operation10，持久queued封面数不等于活动10上限。1800是无自身进展的饥饿窗，300是队列活跃无进展时等待方受控停止；普通lease只凭自身真实进展续，非一概30分钟总超时。封面30分钟deadline含等worker，另25分钟Agent/逐call180+140尾窗，长排队会吞执行窗口并可能失败。健康队列可轮转，不是10人必死锁；但尚无实际10用户混合报告+封面真实时延、Gateway30RPM、3GiB内存联合容量证明。现十人MockHTTP测试将RPM6000/queue900，不能当生产30/1800容量验收。
 
 本轮改动仅记录/证据，生产仍3def/c65/normal1cad592d/24pins/静态544c；A96/总100/已用与旧UNKNOWN保持，新增110预算仍未同意，真实商家PNG仍未完成。Root对开发保护默认被沿用到商用、跨功能容量校准遗漏负责。后续容量修正应按供应商请求/Token与实测延迟、图片/渲染内存分层调度并公平保护报告/封面，先受控10混合后在具体授权成本内取真实证据，不凭2核推2并发，也不直接改10冒容量通过。现有3defLinux8/并存回归可复用为技术正确性证据；不能复用成10真实商用吞吐。当前用户要求为排查并告知，本次未擅改生产上限/新增资源/调用付费模型。权威P仍generate_incident_20261105，其capacity_limit_investigation是此结论入口，无第二套任务/交接或新平台。
+
+
+### 2026-11-04T23:48:30.719865+00:00 — CURRENT：用户扩展授权至全项目调用容量与火山最大可用配额落实，已开始执行
+
+用户最新要求明确覆盖整个项目各模型与全流程承接，取代此前仅封面定向盘查边界，但不授权无关改版/新付费资源/重放支付或UNKNOWN。仍用noteai-xhs-cover-20261019及权威P.generate_incident_20261105.capacity_implementation_scope，无第二任务体系。当前分支HEADbac72357、生产3def/c65/normal1cad592d/24pins/静态544c；Root唯一生产发布与集成。Root已派且实际开始三个独立只读分工：capacity_all_model_calls核全模型入口及计量/准入，capacity_full_flow_resources核API/队列/线程/进程/图片内存/DB/存储/前端恢复/保存结算，capacity_quota_scheduler_design核最小模型级RPM/TPM/IPM调度及旧durable复用；产品编辑尚未分配，权威P/docs只Root写。
+
+四阶段为全链容量清单IN_PROGRESS→最小配额/资源修正→受控offline/actualLinux及受控发布→真实供应商/全报告/商家PNG交付。火山按当前账号已开通的模型级最高可用额度作为供应商天花板，不把30000RPM直接变30000线程；现有3GiB/2CPU及Claude/Kimi/Render/AWS/DB等下游须逐一核可承载量与实证，未知项如实标，不买配额/新资源或降质替模。已授权开发及免费验证持续，不等用户重复继续。预算仍A96/原总100/保守92917+preA3927/旧UNKNOWN全保留，先前A106/总110提议未获答；新增付费真实容量/封面分支仅此待决定，不能用新容量要求当费用追加。当前无新模型/云请求/线上变动。下一Root汇总具体瓶颈并分配单文件改码owner；不以盘查清单或本checkpoint作停止条件。
+
+
+### 2026-11-05T00:07:22.411177+00:00 — CURRENT：全链盘查完成，最小模型配额与上传修正实现中，尚未提交/上线
+
+当前GitHEADbac72357/生产3defc65不变；权威P.capacity_implementation_scope阶段1完成、阶段2IN_PROGRESS。已得18source/33API调用盘查E/CAPACITY-ALL-MODEL-CALLS-READONLY001.md11442/296ff5df及json11935/76870cd1；17段全链E/CAPACITY-FULL-FLOW-RESOURCES.READONLY001.json11519/793efd64及ADDENDUM3460/3c17dff7。普通九图基础9Lite+4Haiku后Sonnet，评分/修正另调；Claude实际Anthropic直API，Render与AWS/Dynamo仅Gateway控制面；未知供应商配额不能拿火山或AWS节点数代替。新容量调度不能只升Ark后仍Gateway2/30/media2/串行worker/上传1/DB直连/事务内OSS/HTTPownedSSE等后续瓶颈。
+
+当前源编辑唯一owner：Root public_product/model_admission/db/public_account与新boundarytest及P/docs；capacity_all_model_calls五provider/runtime源及新集成test/三旧mock签名；capacity_quota_scheduler_design新model_capacity.py11962/ecd8b3ad、0033sql1790/df4a0b49与tests13217/4baf396a已完成冻结，模块SQLite14unique和实际PG16五unique最新通过，旧setup/fixture失败全留、临时PG全清，E/CAPACITY-MODULE.FINAL.LOCAL001.EVIDENCE.json9936/bcfff839；cover_sdk_independent_review正在窄审该模块SQL/实际证据。capacity_full_flow_resources完成uploadapi窄修后释放产品编辑权给Root，现仅持tests/test_capacity_shared_admission.py独立验证Root共享接入。
+
+上传PIL旧版实际卡SSE红1FAIL→新3uniquePASS，JPEGbytes保原；E/CAPACITY-UPLOAD-FINAL001.EVIDENCE.json5350/586f0b27。Root另模式内开放上传streams默认4但共享原128MiB原始body预算（chunked按上界reserve，声明与实际越界拒），新ASGIboundary并存/字节预算target真实PASS.002s；首次fixture漏开image/video capability导致404已修fixture无产品放权，随后shell只读status变量报错属于命令收尾，原testlog实际PASS已读取，不重跑冒新证据。Root公共/model调度草稿在modeon按实际model分池并localremoteIO默认16（待实际Linux资源校准）、活动任务100/pending256，mediaCPU独立；full官方RPM/TPM/IPM已写持久61桶，同TX quota+钱+唯一physicalcallid，UNKNOWN钱不减、quota满只是等待。defaultmodeoff保原2/10/64及无新增advisory锁，不在GET建DDL；唯一新0033尚未生产迁移，NOTEAI_MODEL_CAPACITY_ENABLED默认0/线上未开。
+
+实际只读Cloud t-sz07256r4n3hq80 Success0/Dropped0，原c65/1cad pin；普通roleREADONLY/xidnull，DBmax_connections1620/reserved20/work_mem4MB/physical1590responded15unknown0dispatched/durableflag0。probe显式statement_timeout3s不是proddefault；/proc/1 RSS772k只是tini，不冒Uvicorn真实内存/线程；pgstat仅角色可见聚合非整RDS负载。无新paid/SQL写/生产配置改变。当前新边界正在回归：quota等待期间原v1 lease若过期，现草稿可能新付费dispatch，独立test作者正实际红复现，Root随后补同TX原claim有效性围栏，保旧hold/UNKNOWN不自动释放；Pro等待后尾窗失败的从未HTTPphysicalrow收尾由provider作者target修，不降校验/重旧全套。
+
+恢复先P.capacity_implementation_scope及本节，不重跑已过14/5/上传3；Root继续修lease/publicaccount→共享与provider受控集成→独审→实际Linux资源/完整受影响链候选→必要最小0033及受控发布。下一非火山真实quota在官方Anthropic/Moonshot账号查看，不能造数；已有官方文档指出Anthropic组织/workspace/模型RPM/ITPM/OTPM分别受限，程序化读取需AdminKey，不擅新增密钥。付费预算仍A96/原100，旧费用/UNKNOWN全保，新A106/110提议未获答；真实商家PNG/整篇/十真实用户容量尚未passed。不得以本实现进展或checkpoint终止其他免费工作，也不得称modeon16/100为生产真实吞吐已证。
+
+
+### 2026-11-05T01:00:16.229748+00:00 — CURRENT：实际三家配额核实、容量源已实现未上线；PG与混合Linux验证正在执行
+
+仍分支codex/noteai-xhs-cover-20261019/HEADbac72357，生产3def/c65/API1cad/Pay592d/Adminc5d/静态544c不变。用户要求全项目容量落地，Root继续唯一集成与生产发布；没有新资源、模型调用或费用。已实际完成用户指定Google/Gmail正常Claude登录，组织Scale与Default workspace继承：Haiku4.x、Sonnet4.x各10000RPM/10000000ITPM/2000000OTPM；只读keymetadata原prod-v2标签在Default，不显示/复制完整key。Moonshot现有Tier3为50并发/200RPM/3MTPM；Ark Lite30000RPM/5MTPM、Pro500RPM/1MTPM、Seedream500IPM。官方最大配额是供应商天花板，不能当硬件并发或已验收吞吐。E/CAPACITY-CLAUDE*ACTUAL001、MOONSHOT、ARK原件；Render登录只读实际Starter每实例0.5CPU/512MB、原自动2..4实例，E/CAPACITY-RENDER-COMPUTE-ACTUAL001.json/png，无付费资源变更。
+
+候选新增model_capacity V2 f5e63a28/0033 b343b188已SQLite19+实际PG模块9并独审GO；未生产迁移。Root共享调度按实际模型持久RPM/TPM/IPM/ClaudeITOT，同TX quota+费用+唯一physical；配额等待park原票、不占远程执行位/DB锁，原v1lease有效性重新核；UNKNOWN费用完整保留。媒体CPU与remoteHTTP独立，上传原128MiB总界内4流，prepared buffer256MiB，remote executor有界且shutdown先coverdrain后join不丢计量。各作者最终证据P.latest_local_evidence；不重旧支付/高德/历史套。新增Gateway容量开关默认0，允许配置64/20000而不被旧32/600截断，新增在途body32MiB，11新+5兼容PASS，原DDB协议/认证/UNKNOWN不变。API body同预算发送前等待，Quota满时释放并醒后重取，8unique定向通过且Root源独审GO，32MiB不是API全部resident上界。Root又实际复现DNS workers2+pending2在6请求时拒5/6，最小修改为sync/async同DNS2公平队列，原SSRF/global地址验证/pin不变；首目标6resolver全过，新取消共池目标正在执行。
+
+单文件编辑权：Root全产品source/P/docs/Git/云；capacity_all_model_calls仅new DNS test+只读review；capacity_full_flow_resources仅new mixedresources test+私有harness（10owner/100真实图片准备HTTPMock+actualNode/Chromium），capacity_quota_scheduler_design仅new fullschemaPG integration test+本机私有PG。当前new flags默认0、未提交/未上线；modeon本地remote默认16只是草稿资源上界，是否部署64待actualLinux3GiB/2CPU无swap真实并存证据。首次启用必须原publisher close+实际drain后至少61秒，避免空新桶和旧60秒调用重复额度；不清旧桶/UNKNOWN。所有capacity/env/modelpolicy修改需新进程+exactprofile读回，不支持热改。受影响PG需真app/NOBYPASSRLS全schema同TX验证，模块9不冒整API通过。
+
+权威仍P.generate_incident_20261105.capacity_implementation_scope，无第二任务/发布体系。下一DNS/PG/mixed证据→冻结source提交→原privatebuilder实际Linux与资源校准→必要仅0033和原受控publisher/API+Gateway配置联动；阶段报告不是停止条件。付费分支仍A96/总100、保守A92917m+preA3927m、A余3083m不足下一reserve3146m；早前A106/总110提议未获答，不默改额度/重发旧未知。真实整篇/商家最终PNG仍未交付，不能以本机或受控Linux替代。
+
+
+### 2026-11-05T01:12:34.180775+00:00 — CURRENT：容量候选源冻结准备提交；完整PG/请求体/DNS/封面排队证据已就绪，下一实际Linux
+
+原生产3def/c65未变。完整私有PG16非特权noteai_app/NOINHERIT/NOBYPASSRLS：全部现有schema加新0033与feature，真实原generate/formal-cover两budget同模型3次入场/3次等待、同TX bucket+费用+physical、晚INSERT回滚/防重、真实v1lease过期、cancelcommit与ACK未知，共4unique PASS，全部私有cluster/socket已清，E/CAPACITY-PG-INTEGRATION.FINAL.LOCAL001.EVIDENCE.json7335/8332ea37。原测试环境LC_ALL启动和新test字段误用原件留存，未改产品为测试迁就。Root整合30目标首次26PASS/4旧V1夹具按7列seed而新V2为9列错误；首次test-only显式7列修正仍缺nonNull，已补显式9列且token=input+output后只重失败4全部PASS，原3次log全留，产品无因此变更。
+
+Rootbody8unique独审GO、DNS3unique独审GO（真实6预检red时5/6失败→全6成功；sync/async原resolver2公平queue；取消3次join原future，原SSRF/pin/HMAC八对象AST相同），E/CAPACITY-API-GATEWAY-BODY.FINAL.REVIEW002.json与CAPACITY-GATEWAY-DNS.FINAL.REVIEW001.json。新cover_jobs候选ab2f7676仅capacity mode首次queued/fence0/原财务仍live/无intent或physical或UNKNOWN，锁job+financial后取实际clock，queued原1800截止未到才把执行deadline与financial lease同TX设claimtime+1800；不延长旧恢复/重复claim、不复活过期，原worker300s fence/单worker/8积分/3d不改。新9unique含实际本机PNG唯一结算、事务/并发/锁等待跨expiry与mode0，E/CAPACITY-COVER-QUEUE.FINAL.LOCAL001.EVIDENCE.json8580/04d9387f，另一独审者正在核最终diff。总hold最多queued<30min+execution30min，UNKNOWN后仍不超过原30min释放且此后不追扣；不得描述为提交总hold30min。
+
+新mixed resources test29123/8e85286e本机warm后实际1PASS20.638s，真正既有get_v04从已存在本地Booster/gate加载、禁止ensure下载/网络；10owner100图片待办，64实际MockHTTP与真实Node/Chromium/2candidate/9源并存、CPU2/buffer256MiB只84prepared、100meter和线程收尾。Mac不是Linux证据；饱和body预算期间4上传等待约19s属明确背压，不称无等待。E/CAPACITY-LINUX-MIXED-LOCAL-FINAL002.EVIDENCE.json。原Cloud RunCommand官方Base64后24KB限制已按read-docs核对，沿原分段CAS/原helper复用封存旧fixture，最小新增delta9696B，薄loader已按同5modules本机联调PASS20.615s，不新建验收平台/不重旧测试。惰性CAPACITY-BUILD.PREPARED.py16425/7f477e56复用原helper/5125父镜像/单COPY125层，预计26COPY/31closure，SOURCE仍待本次commit绑定，无云派发/生产变更。Root下一完成候选提交、精确source绑定、原privateLinux测试与网关512MiB校准、原publisher必要0033/close-drain61s/配置联动与rollback。A96/总100及旧费用UNKNOWN不变，真实报告/3140商家PNG尚未交付。

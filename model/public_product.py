@@ -151,6 +151,7 @@ class Invocation:
 
 _invocation = contextvars.ContextVar("public_product_invocation", default=None)
 _model_lease = contextvars.ContextVar("public_product_model_lease", default=None)
+_gateway_body_lease = contextvars.ContextVar("public_product_gateway_body_lease", default=None)
 
 
 def _cover_scope():
@@ -172,7 +173,7 @@ def _admission_operation():
 
 
 @contextmanager
-def model_admission_sync(operation_id, provider):
+def model_admission_sync(operation_id, provider, *, model_id=None):
     if not enabled() and not _cover_scope():
         yield
         return
@@ -180,13 +181,16 @@ def model_admission_sync(operation_id, provider):
     operation = _admission_operation()
     existing = _model_lease.get()
     if existing is not None:
-        if existing.operation is not operation or existing.call_id != operation_id or existing.provider != provider:
+        if (existing.operation is not operation or existing.call_id != operation_id
+                or existing.provider != provider
+                or (model_id is not None and existing.model_id not in {None, model_id})):
             raise TrialProviderStopped("MODEL_ADMISSION_NESTED_CALL")
         yield existing
         return
     queue = admission.current().calls
     try:
-        ticket = queue.acquire(operation, operation_id, provider)
+        ticket = (queue.acquire(operation, operation_id, provider, model_id=model_id)
+                  if model_id is not None else queue.acquire(operation, operation_id, provider))
     except admission.AdmissionError as exc:
         raise TrialProviderStopped(str(exc)) from None
     marker = _model_lease.set(ticket)
@@ -199,7 +203,7 @@ def model_admission_sync(operation_id, provider):
 
 
 @asynccontextmanager
-async def model_admission(operation_id, provider):
+async def model_admission(operation_id, provider, *, model_id=None):
     if not enabled() and not _cover_scope():
         yield
         return
@@ -207,13 +211,16 @@ async def model_admission(operation_id, provider):
     operation = _admission_operation()
     existing = _model_lease.get()
     if existing is not None:
-        if existing.operation is not operation or existing.call_id != operation_id or existing.provider != provider:
+        if (existing.operation is not operation or existing.call_id != operation_id
+                or existing.provider != provider
+                or (model_id is not None and existing.model_id not in {None, model_id})):
             raise TrialProviderStopped("MODEL_ADMISSION_NESTED_CALL")
         yield existing
         return
     queue = admission.current().calls
     try:
-        ticket = await queue.acquire_async(operation, operation_id, provider)
+        ticket = (await queue.acquire_async(operation, operation_id, provider, model_id=model_id)
+                  if model_id is not None else await queue.acquire_async(operation, operation_id, provider))
     except admission.AdmissionError as exc:
         raise TrialProviderStopped(str(exc)) from None
     marker = _model_lease.set(ticket)
@@ -240,6 +247,101 @@ async def media_worker_slot(image_index):
         yield
     finally:
         queue.release(ticket)
+
+
+@asynccontextmanager
+async def media_buffer_slot(size_bytes):
+    """Bound prepared source/wire copies separately from local CPU and quota."""
+    import model_capacity
+    if not model_capacity.enabled():
+        yield
+        return
+    import model_admission as admission
+    queue = admission.current().buffers
+    try:
+        ticket = await queue.acquire_async(_admission_operation(), str(uuid.uuid4()),
+                                           "media_buffer", weight=size_bytes)
+    except admission.AdmissionError as error:
+        raise TrialProviderStopped(str(error)) from None
+    try:
+        yield
+    finally:
+        queue.release(ticket)
+
+
+@contextmanager
+def claude_body_slot_sync(body):
+    """Wait locally for the same aggregate body budget enforced by Gateway."""
+    import model_capacity
+    if not model_capacity.enabled():
+        yield
+        return
+    import model_admission as admission
+    manager = admission.current()
+    remote = _model_lease.get()
+    lease = {"ticket": None, "weight": max(1, len(body))}
+    marker = _gateway_body_lease.set(lease)
+    try:
+        if remote is not None:
+            manager.calls.defer(remote)
+        _acquire_gateway_body_sync(lease)
+        if remote is not None:
+            manager.calls.resume(remote)
+        yield
+    except admission.AdmissionError as error:
+        raise TrialProviderStopped(str(error)) from None
+    finally:
+        _release_gateway_body()
+        _gateway_body_lease.reset(marker)
+
+
+@asynccontextmanager
+async def claude_body_slot(body):
+    import model_capacity
+    if not model_capacity.enabled():
+        yield
+        return
+    import model_admission as admission
+    manager = admission.current()
+    remote = _model_lease.get()
+    lease = {"ticket": None, "weight": max(1, len(body))}
+    marker = _gateway_body_lease.set(lease)
+    try:
+        if remote is not None:
+            manager.calls.defer(remote)
+        await _acquire_gateway_body_async(lease)
+        if remote is not None:
+            await manager.calls.resume_async(remote)
+        yield
+    except admission.AdmissionError as error:
+        raise TrialProviderStopped(str(error)) from None
+    finally:
+        _release_gateway_body()
+        _gateway_body_lease.reset(marker)
+
+
+def _release_gateway_body():
+    lease = _gateway_body_lease.get()
+    if lease is not None and lease["ticket"] is not None:
+        import model_admission
+        model_admission.current().gateway_bodies.release(lease["ticket"])
+        lease["ticket"] = None
+
+
+def _acquire_gateway_body_sync(lease=None):
+    lease = lease if lease is not None else _gateway_body_lease.get()
+    if lease is not None and lease["ticket"] is None:
+        import model_admission
+        lease["ticket"] = model_admission.current().gateway_bodies.acquire(
+            _admission_operation(), str(uuid.uuid4()), "claude_body", weight=lease["weight"])
+
+
+async def _acquire_gateway_body_async(lease=None):
+    lease = lease if lease is not None else _gateway_body_lease.get()
+    if lease is not None and lease["ticket"] is None:
+        import model_admission
+        lease["ticket"] = await model_admission.current().gateway_bodies.acquire_async(
+            _admission_operation(), str(uuid.uuid4()), "claude_body", weight=lease["weight"])
 
 
 def mark_model_dispatched(operation_id):
@@ -590,6 +692,13 @@ def validate_startup(storage):
     budget = storage.fetchone("SELECT * FROM public_trial_budget WHERE id=?", (BUDGET_ID,))
     if not budget or budget["limit_milli_cny"] != LIMIT_MILLI_CNY or budget["enabled"] != 1:
         raise RuntimeError("public trial budget unavailable")
+    import model_capacity
+    if model_capacity.enabled():
+        # Only the explicit migration may install this content-free table.
+        # A GET or API startup never receives schema-write authority.
+        storage.fetchone("SELECT COUNT(*) AS n FROM model_capacity_buckets")
+        for model_id in model_capacity.model_ids():
+            model_capacity.policy_for(model_id)
 
 
 class TrialProviderStopped(RuntimeError):
@@ -632,7 +741,7 @@ class _SlotsBusy(Exception):
     pass
 
 
-def _reserve(request: httpx.Request) -> str:
+def _prepare_kimi_reservation(request: httpx.Request) -> dict:
     if request.method != "POST" or str(request.url) != ENDPOINT:
         raise TrialProviderStopped("PUBLIC_TRIAL_PROVIDER_NOT_ALLOWED")
     try:
@@ -647,7 +756,30 @@ def _reserve(request: httpx.Request) -> str:
             raise ValueError()
     except (ValueError, TypeError, AttributeError):
         raise TrialProviderStopped("PUBLIC_TRIAL_REQUEST_OUT_OF_SCOPE") from None
-    return _reserve_payload({**payload, "modality": "text"}, RESERVE_MILLI_CNY,
+    return _text_capacity_payload({**payload, "modality": "text"}, request.content,
+                                  len(messages), maximum)
+
+
+def _text_capacity_payload(payload, wire_body, message_count, max_tokens):
+    """Keep complete text/wire content; quota bounds never truncate quality."""
+    import model_capacity
+    try:
+        if model_capacity.policy_for(payload["model"]) is not None:
+            # Tokenizers cannot require more text tokens than complete UTF-8
+            # bytes plus explicit role/message framing. Count the full serialized
+            # wire, including cache/tool/thinking metadata, without a cache credit.
+            bound = len(wire_body) + 1024 + 256 * max(1, message_count)
+            payload = {**payload, "_capacity_demand": model_capacity.Demand(
+                payload["model"], bound, max_tokens),
+                "_capacity_estimate_basis": "complete_utf8_wire_plus_message_framing_upper_bound"}
+    except model_capacity.CapacityError as error:
+        raise TrialProviderStopped(str(error)) from None
+    return payload
+
+
+def _reserve(request: httpx.Request) -> str:
+    payload = _prepare_kimi_reservation(request)
+    return _reserve_payload(payload, RESERVE_MILLI_CNY,
                             call_id=request.extensions.get("noteai_operation_id"),
                             provenance=request.extensions.get("noteai_provenance"))
 
@@ -798,6 +930,7 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
     import db
     import billing
     import prompt_manager
+    import model_capacity
     current = _invocation.get()
     assert_result_known()
     if current is None:
@@ -821,6 +954,10 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
         raise TrialProviderStopped("COVER_REQUIRES_SEPARATE_BUDGET")
     acceptance = cover and budget_id == cover_settings.BUDGET_ID
     with db.transaction(write=True) as tx:
+        # One global capacity lock precedes all budget row locks, so calls from
+        # ordinary and cover budgets cannot overbook the shared account window.
+        if model_capacity.enabled():
+            model_capacity.acquire_transaction_lock(tx)
         lock = " FOR UPDATE" if tx.postgres else ""
         budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?" + lock, (budget_id,))
         metered = bool(budget and dict(budget).get("policy_mode") == "owner_metered")
@@ -836,6 +973,26 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                                  (usage_id, current.user_id))
             if not parent:
                 raise TrialProviderStopped("PUBLIC_MODEL_REQUIRES_ENTITLEMENT_USAGE")
+            if model_capacity.enabled():
+                claim = tx.fetchone("SELECT id,status,charge_source,lease_expires_at,refund_applied,complete_applied "
+                    "FROM idempotency_requests WHERE usage_id=? AND user_id=?" + lock,
+                    (usage_id, current.user_id))
+                is_v1 = claim and str(claim["charge_source"] or "").startswith("reservation_v1:")
+                if is_v1 or str(parent["source"] or "").startswith(("reservation_v1:", "reservation_released_v1:")):
+                    clock = tx.fetchone("SELECT clock_timestamp() AS now" if tx.postgres else
+                        "SELECT strftime('%Y-%m-%dT%H:%M:%f+00:00','now') AS now")["now"]
+                    try:
+                        instant = clock if isinstance(clock, datetime) else datetime.fromisoformat(clock)
+                        expiry = datetime.fromisoformat(claim["lease_expires_at"]) if claim else None
+                        active = (is_v1 and claim["status"] == "running" and not claim["refund_applied"]
+                                  and not claim["complete_applied"] and expiry is not None
+                                  and expiry.tzinfo is not None and expiry > instant)
+                    except (ValueError, TypeError):
+                        active = False
+                    if not active:
+                        # Expiry only prohibits a new dispatch. It never proves
+                        # an old provider result, frees its money or retries it.
+                        raise TrialProviderStopped("MODEL_TASK_LEASE_EXPIRED")
             if cover:
                 import cover_settings
                 if parent["operation"] != "cover_generate":
@@ -869,10 +1026,39 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
             _check_pending_media(tx, current.user_id, media)
         if cover and budget_id == cover_settings.FORMAL_BUDGET_ID:
             _check_cover_verification_budget(tx, current, usage_id, reserve, budget_id)
+        # Rate, money and physical identity commit together. Rate exhaustion
+        # rolls the transaction back; the caller waits without a DB lock.
+        quota_snapshot = {}
+        if model_capacity.policy_for(payload["model"]) is not None:
+            demand = payload.get("_capacity_demand")
+            if not isinstance(demand, model_capacity.Demand) or demand.model_id != payload["model"]:
+                raise model_capacity.CapacityDemandError("MODEL_CAPACITY_DEMAND_REQUIRED")
+            quota_snapshot = model_capacity.reserve_in_transaction(tx, demand, call_id=call_id)
         # The fair in-process queue is not a replacement for this shared DB guard.
         import model_admission
-        if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= model_admission.current().limits.physical:
+        manager = model_admission.current()
+        if tx.fetchone("SELECT COUNT(*) AS n FROM public_trial_calls WHERE state='dispatched'")["n"] >= manager.calls.capacity:
             raise _SlotsBusy()
+        if model_capacity.enabled():
+            provider = ("seedream" if payload.get("provider") == "seedream" else
+                        "claude" if payload["model"].startswith("claude") else
+                        "doubao" if payload["model"].startswith("doubao-") else "kimi")
+            family = ((provider, payload["model"])
+                      if (provider, payload["model"]) in manager.calls.families else provider)
+            active = tx.fetchall("SELECT provenance_json FROM public_trial_calls WHERE state='dispatched'")
+            used = 0
+            for row in active:
+                try:
+                    trace = json.loads(row["provenance_json"] or "{}")
+                except (ValueError, TypeError):
+                    trace = {}
+                old_provider, old_model = trace.get("provider"), trace.get("model")
+                old_family = ((old_provider, old_model)
+                              if (old_provider, old_model) in manager.calls.families else old_provider)
+                # Unclassified legacy calls conservatively count in each pool.
+                used += int(old_provider is None or old_family == family)
+            if used >= manager.calls.families.get(family, manager.calls.capacity):
+                raise _SlotsBusy()
         tx.execute("UPDATE public_trial_budget SET reserved_milli_cny=reserved_milli_cny+? WHERE id=?",
                    (reserve, budget_id))
         if metered:
@@ -892,6 +1078,13 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                 **({"media": media} if media is not None else {}),
                 "operation_id": payload.get("operation_id"),
                 "max_tokens": payload.get("max_tokens")}, separators=(",", ":"), sort_keys=True)
+            if quota_snapshot:
+                trace = json.loads(provenance_json)
+                trace["capacity"] = quota_snapshot
+                basis = payload.get("_capacity_estimate_basis")
+                if isinstance(basis, str) and re.fullmatch(r"[a-z0-9_]{1,80}", basis):
+                    trace["capacity"]["estimate_basis"] = basis
+                provenance_json = json.dumps(trace, separators=(",", ":"), sort_keys=True)
             tx.execute("INSERT INTO public_trial_calls(id,budget_id,user_id,request_hash,state,reserve_milli_cny,created_at,usage_record_id,provenance_json) "
                        "VALUES(?,?,?,?,?,?,?,?,?)", (call_id,budget_id,current.user_id,request_hash,"dispatched",reserve,now,usage_id,provenance_json))
         else:
@@ -899,6 +1092,73 @@ def _reserve_payload(payload, reserve, *, call_id=None, require_metered=False, p
                        "VALUES(?,?,?,?,?,?,?)", (call_id,budget_id,current.user_id,request_hash,"dispatched",reserve,now))
         current.call_ids.add(call_id)
     return call_id
+
+
+def reserve_payload_with_capacity(payload, reserve, *, call_id=None, require_metered=False,
+                                  provenance=None, deadline=None):
+    """Wait only before dispatch; never repeat an HTTP request or unknown commit.
+
+    Each deferral has rolled back both the rate bucket and money transaction.
+    While rate is exhausted, the same unissued ticket is parked outside the
+    remote execution pool, then fairly requeued. No DB lock is held asleep.
+    """
+    import model_capacity
+    if not model_capacity.enabled():
+        return _reserve_payload(payload, reserve, call_id=call_id,
+                                require_metered=require_metered, provenance=provenance)
+    import model_admission
+    current = _invocation.get()
+    operation = _admission_operation()
+    if deadline is None and _cover_scope():
+        import db
+        job = db.fetchone("SELECT deadline_at FROM cover_jobs WHERE id=? AND user_id=?",
+                          (current.request_id, current.user_id))
+        if job:
+            deadline = datetime.fromisoformat(job["deadline_at"]).timestamp()
+    if deadline is not None and (type(deadline) not in {int, float} or not math.isfinite(deadline)):
+        raise ValueError("invalid model capacity deadline")
+    wait_until = min(deadline if deadline is not None else float("inf"),
+                     time.time() + model_admission.current().limits.queue_seconds)
+    while True:
+        assert_result_known()
+        if operation.cancelled.is_set():
+            raise TrialProviderStopped("MODEL_OPERATION_CANCELLED")
+        if time.time() >= wait_until:
+            raise TrialProviderStopped("MODEL_QUEUE_WAIT_EXCEEDED")
+        try:
+            return _reserve_payload(payload, reserve, call_id=call_id,
+                                    require_metered=require_metered, provenance=provenance)
+        except model_capacity.QuotaDeferred as deferred:
+            wake_at = min(deferred.retry_at, wait_until)
+        except (model_capacity.CapacityDemandError, model_capacity.CapacityConfigurationError,
+                model_capacity.CapacityStateError) as error:
+            # These fixed local validation errors precede a committed new call.
+            # An unclassified DB/commit error still follows the original UNKNOWN
+            # path and is never caught here for another reservation attempt.
+            raise TrialProviderStopped(str(error)) from None
+        except _SlotsBusy:
+            # A different process or an ended-but-unreconciled call may still
+            # own a persisted slot. It is never reclaimed on a guessed timer.
+            wake_at = min(time.time() + .25, wait_until)
+        ticket = _model_lease.get()
+        queue = model_admission.current().calls
+        try:
+            if ticket is not None:
+                queue.defer(ticket)
+            _release_gateway_body()
+            # Event.wait makes explicit cancellation wake promptly. Another
+            # model may use the freed execution place during the whole window.
+            while time.time() < wake_at:
+                assert_result_known()
+                operation.cancelled.wait(max(.01, min(.25, wake_at - time.time())))
+            assert_result_known()
+            if time.time() >= wait_until:
+                raise TrialProviderStopped("MODEL_QUEUE_WAIT_EXCEEDED")
+            _acquire_gateway_body_sync()
+            if ticket is not None:
+                queue.resume(ticket)
+        except model_admission.AdmissionError as error:
+            raise TrialProviderStopped(str(error)) from None
 
 
 
@@ -986,8 +1246,13 @@ def _record_response(call_id: str, status: int | None, *, unknown=False, not_dis
 
 
 def _reserve_with_wait(request):
-    # Fair admission has already completed; DB contention is not a queue timer.
     try:
+        import model_capacity
+        if model_capacity.policy_for(MODEL) is not None:
+            payload = _prepare_kimi_reservation(request)
+            return reserve_payload_with_capacity(payload, RESERVE_MILLI_CNY,
+                call_id=request.extensions.get("noteai_operation_id"),
+                provenance=request.extensions.get("noteai_provenance"))
         return _reserve(request)
     except _SlotsBusy:
         raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
@@ -997,7 +1262,7 @@ def _reserve_with_wait(request):
         raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
 
 
-def _reserve_claude_once(request, body):
+def _prepare_claude_reservation(request, body):
     """Use the original Gateway operation identity; no payload is persisted."""
     import billing
     import claude_gateway_protocol as protocol
@@ -1015,9 +1280,15 @@ def _reserve_claude_once(request, body):
     input_rate = max(price[k] or 0 for k in ("input", "cache_write_5m", "cache_write_1h"))
     reserve = math.ceil((max(200000, len(body)) * input_rate + request.max_tokens * price["output"])
                         * price["usd_cny"] / 1000)
-    return _reserve_payload({"model": request.model, "max_tokens": request.max_tokens, "modality": "text",
-                             "operation_id": request.operation_id}, reserve,
-                            call_id=request.operation_id, require_metered=True,
+    payload = _text_capacity_payload({"model": request.model, "max_tokens": request.max_tokens,
+        "modality": "text", "operation_id": request.operation_id}, body,
+        len(getattr(request, "messages", ())), request.max_tokens)
+    return payload, reserve
+
+
+def _reserve_claude_once(request, body):
+    payload, reserve = _prepare_claude_reservation(request, body)
+    return _reserve_payload(payload, reserve, call_id=request.operation_id, require_metered=True,
                             provenance=request.call_state.get("provenance"))
 
 
@@ -1025,7 +1296,14 @@ def admit_claude_sync(request, body):
     if not enabled():
         return
     try:
-        request.call_state["id"] = _reserve_claude_once(request, body)
+        import model_capacity
+        if model_capacity.policy_for(request.model) is not None:
+            payload, reserve = _prepare_claude_reservation(request, body)
+            request.call_state["id"] = reserve_payload_with_capacity(payload, reserve,
+                call_id=request.operation_id, require_metered=True,
+                provenance=request.call_state.get("provenance"))
+        else:
+            request.call_state["id"] = _reserve_claude_once(request, body)
     except _SlotsBusy:
         raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
     except TrialProviderStopped:
@@ -1034,35 +1312,115 @@ def admit_claude_sync(request, body):
         raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
 
 
+async def _finish_short_reservation_after_cancel(attempt, cancelled, on_reserved, on_finalized):
+    """Join only an already-started short transaction; never retry a commit."""
+    import model_capacity
+    while not attempt.done():
+        try:
+            await asyncio.shield(attempt)
+        except asyncio.CancelledError:
+            continue
+        except BaseException:
+            break
+    try:
+        call_id = attempt.result()
+    except (_SlotsBusy, model_capacity.QuotaDeferred):
+        raise cancelled
+    except TrialProviderStopped:
+        raise
+    except model_capacity.CapacityError as error:
+        raise TrialProviderStopped(str(error)) from None
+    except Exception:
+        raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
+    if on_reserved is not None:
+        on_reserved(call_id)
+    cleanup = asyncio.create_task(asyncio.to_thread(_record_response, call_id, None,
+                                                   not_dispatched=True))
+    while not cleanup.done():
+        try:
+            await asyncio.shield(cleanup)
+        except asyncio.CancelledError:
+            continue
+        except BaseException:
+            break
+    cleanup.result()  # A terminal commit UNKNOWN must remain visible.
+    if on_finalized is not None:
+        on_finalized()
+    raise cancelled
+
+
+async def _short_reservation_async(function, args, *, on_reserved=None, on_finalized=None):
+    attempt = asyncio.create_task(asyncio.to_thread(function, *args))
+    try:
+        call_id = await asyncio.shield(attempt)
+    except asyncio.CancelledError as cancelled:
+        return await _finish_short_reservation_after_cancel(
+            attempt, cancelled, on_reserved, on_finalized)
+    if on_reserved is not None:
+        on_reserved(call_id)
+    return call_id
+
+
+async def _reserve_callable_with_capacity(function, *args, on_reserved=None,
+                                           on_finalized=None, deadline=None):
+    """Async quota waiting holds no thread, SQL transaction or remote ticket.
+
+    Only each single reservation attempt uses a worker thread. Rate deferrals
+    park the original unissued identity and fairly resume it asynchronously.
+    An unclassified database/commit error is never retried.
+    """
+    import model_capacity
+    import model_admission
+    active = model_capacity.enabled()
+    if not active:
+        return await _short_reservation_async(function, args, on_reserved=on_reserved,
+                                              on_finalized=on_finalized)
+    if deadline is not None and (type(deadline) not in {int, float} or not math.isfinite(deadline)):
+        raise ValueError("invalid model capacity deadline")
+    operation = _admission_operation()
+    queue = model_admission.current().calls
+    wait_until = min(deadline if deadline is not None else float("inf"),
+                     time.time() + model_admission.current().limits.queue_seconds)
+    while True:
+        assert_result_known()
+        if time.time() >= wait_until:
+            raise TrialProviderStopped("MODEL_QUEUE_WAIT_EXCEEDED")
+        try:
+            return await _short_reservation_async(function, args, on_reserved=on_reserved,
+                                                  on_finalized=on_finalized)
+        except model_capacity.QuotaDeferred as deferred:
+            wake_at = min(deferred.retry_at, wait_until)
+        except (model_capacity.CapacityDemandError, model_capacity.CapacityConfigurationError,
+                model_capacity.CapacityStateError) as error:
+            raise TrialProviderStopped(str(error)) from None
+        except _SlotsBusy:
+            wake_at = min(time.time() + .25, wait_until)
+        ticket = _model_lease.get()
+        try:
+            if ticket is not None:
+                queue.defer(ticket)
+            _release_gateway_body()
+            while time.time() < wake_at:
+                assert_result_known()
+                await asyncio.sleep(max(.01, min(.25, wake_at - time.time())))
+            assert_result_known()
+            if time.time() >= wait_until:
+                raise TrialProviderStopped("MODEL_QUEUE_WAIT_EXCEEDED")
+            await _acquire_gateway_body_async()
+            if ticket is not None:
+                await queue.resume_async(ticket)
+        except model_admission.AdmissionError as error:
+            raise TrialProviderStopped(str(error)) from None
+
+
 async def admit_claude(request, body):
     if not enabled():
         return
-    # Only this short reservation transaction runs in a thread. A queued user
-    # never occupies a worker, and cancellation cannot orphan a reservation.
-    attempt = asyncio.create_task(asyncio.to_thread(_reserve_claude_once, request, body))
     try:
-        request.call_state["id"] = await asyncio.shield(attempt)
-    except asyncio.CancelledError:
-        while not attempt.done():
-            try:
-                await asyncio.shield(attempt)
-            except asyncio.CancelledError:
-                continue
-            except BaseException:
-                break
-        try:
-            call_id = attempt.result()
-        except _SlotsBusy:
-            pass
-        except TrialProviderStopped:
-            raise
-        except Exception:
-            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
-        else:
-            request.call_state["id"] = call_id
-            _record_response(call_id, None, not_dispatched=True)
-            request.call_state["finalized"] = True
-        raise
+        request.call_state["id"] = await _reserve_callable_with_capacity(
+            _reserve_claude_once, request, body,
+            on_reserved=lambda call_id: request.call_state.__setitem__("id", call_id),
+            on_finalized=lambda: request.call_state.__setitem__("finalized", True))
     except _SlotsBusy:
         raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
     except TrialProviderStopped:
@@ -1186,26 +1544,14 @@ async def _kimi_settle_awaitable(awaitable, deadline, cancelled):
 
 
 async def _kimi_reserve_async(request):
-    attempt = asyncio.create_task(asyncio.to_thread(_reserve_with_wait, request))
     try:
-        return await asyncio.shield(attempt)
-    except asyncio.CancelledError:
-        while not attempt.done():
-            try:
-                await asyncio.shield(attempt)
-            except asyncio.CancelledError:
-                continue
-            except BaseException:
-                break
-        try:
-            call_id = attempt.result()
-        except TrialProviderStopped:
-            raise
-        except Exception:
-            raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
-        else:
-            _record_response(call_id, None, not_dispatched=True)
+        return await _reserve_callable_with_capacity(_reserve, request)
+    except _SlotsBusy:
+        raise TrialProviderStopped("MODEL_ADMISSION_UNRECONCILED") from None
+    except TrialProviderStopped:
         raise
+    except Exception:
+        raise TrialProviderStopped("PUBLIC_TRIAL_RESERVATION_UNKNOWN") from None
 
 
 def _meter_cancelled_kimi(model, usage, call_id):
@@ -1337,9 +1683,13 @@ class _KimiClient(httpx.Client):
     def send(self, request, **kwargs):
         operation_id = _kimi_operation_id(request)
         own_ticket = _model_lease.get() is None
-        with model_admission_sync(operation_id, "kimi") as ticket:
-            deadline = _kimi_settlement_deadline(request, self.timeout.as_dict())
+        with model_admission_sync(operation_id, "kimi", model_id=MODEL) as ticket:
+            import model_capacity
+            deadline = (None if model_capacity.enabled() else
+                        _kimi_settlement_deadline(request, self.timeout.as_dict()))
             call_id = _reserve_with_wait(request)
+            if model_capacity.enabled():
+                deadline = _kimi_settlement_deadline(request, self.timeout.as_dict())
             mark_model_dispatched(operation_id)
             try:
                 response = super().send(request, **kwargs)
@@ -1374,9 +1724,13 @@ class _KimiAsyncClient(httpx.AsyncClient):
     async def send(self, request, **kwargs):
         operation_id = _kimi_operation_id(request)
         own_ticket = _model_lease.get() is None
-        async with model_admission(operation_id, "kimi") as ticket:
-            deadline = _kimi_settlement_deadline(request, self.timeout.as_dict())
+        async with model_admission(operation_id, "kimi", model_id=MODEL) as ticket:
+            import model_capacity
+            deadline = (None if model_capacity.enabled() else
+                        _kimi_settlement_deadline(request, self.timeout.as_dict()))
             call_id = await _kimi_reserve_async(request)
+            if model_capacity.enabled():
+                deadline = _kimi_settlement_deadline(request, self.timeout.as_dict())
             mark_model_dispatched(operation_id)
             cancelled = {}
             try:

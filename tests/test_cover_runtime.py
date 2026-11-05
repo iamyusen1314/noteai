@@ -110,7 +110,7 @@ class CoverRuntimeTests(unittest.TestCase):
                        "visual_advice": "选清晰完整主体，顶部留白", "title_variants": ["咖啡时光"]}
         self.before, self.records, self.stages = [], [], []
         self.hooks = runtime.RuntimeHooks(lambda *args: self.before.append(args), self.records.append, self.stages.append)
-        self.admission = mock.patch("public_product.model_admission_sync", side_effect=lambda *_args: contextlib.nullcontext())
+        self.admission = mock.patch("public_product.model_admission_sync", side_effect=lambda *_args, **_kwargs: contextlib.nullcontext())
         self.admission.start()
         self.cost = mock.patch.object(runtime, "_text_usage_cost", side_effect=lambda _id, estimate: estimate)
         self.cost.start()

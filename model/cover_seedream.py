@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import re
+import time
 from typing import Callable
 
 import httpx
@@ -110,8 +111,23 @@ def _request_id(response):
     return value if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", value) else None
 
 
+def _request_window(deadline, call_id):
+    """Keep the existing cover useful-read/margin contract before image wire."""
+    read, admission_deadline = 240, None
+    if deadline is not None:
+        from cover_agent_provider import REQUEST_MARGIN_SECONDS, MIN_READ_WINDOW_SECONDS
+        if type(deadline) not in {int, float} or not math.isfinite(deadline):
+            raise SeedreamError("COVER_SEEDREAM_TASK_DEADLINE", call_id=call_id)
+        read = min(read, deadline - time.time() - REQUEST_MARGIN_SECONDS)
+        if read < MIN_READ_WINDOW_SECONDS:
+            raise SeedreamError("COVER_SEEDREAM_TASK_DEADLINE", call_id=call_id)
+        admission_deadline = deadline - REQUEST_MARGIN_SECONDS - MIN_READ_WINDOW_SECONDS
+    return httpx.Timeout(read, connect=10, write=90, pool=10), admission_deadline
+
+
 def generate_background(*, source_images: list[bytes], prompt: str, call_id: str,
-                        before_call: Callable, on_call: Callable, transport=None) -> tuple[bytes, dict]:
+                        before_call: Callable, on_call: Callable, transport=None,
+                        deadline=None) -> tuple[bytes, dict]:
     """Reserve, record intent, dispatch once, ledger the result, release the call.
 
     Hooks must persist through the existing cover job. In particular on_call
@@ -126,6 +142,7 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
     snapshot = estimate(len(source_images))
     if not callable(before_call) or not callable(on_call):
         raise SeedreamError("COVER_IMAGE_LEDGER_REQUIRED")
+    _request_window(deadline, call_id)
     images = [ark_media.image_part(payload)["image_url"]["url"] for payload in source_images]
     # No group/stream/search/layer-splitting parameters are sent to Pro.
     # Those capabilities have different model support and/or separate billing.
@@ -136,18 +153,32 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
     if len(encoded) > ark_media.MAX_REQUEST_BYTES:
         raise SeedreamError("COVER_SEEDREAM_INPUT_TOO_LARGE")
     headers = ark_media._headers()
-    status, sent, ledger_terminal = None, False, False
+    status, sent, ledger_terminal, intent_attempted = None, False, False, False
     response_hash, provider_request_id = None, None
-    with public_product.model_admission_sync(call_id, "seedream"):
+    with public_product.model_admission_sync(call_id, "seedream", model_id=MODEL):
         public_product.assert_result_known()
-        public_product._reserve_payload({"model": MODEL, "provider": "seedream",
-                "max_tokens": 0, "modality": "image_generation"},
+        timeout, admission_deadline = _request_window(deadline, call_id)
+        reservation = {"model": MODEL, "provider": "seedream",
+                       "max_tokens": 0, "modality": "image_generation"}
+        import model_capacity
+        if model_capacity.enabled():
+            reservation.update(_capacity_demand=model_capacity.Demand(MODEL, 0, 0, images=1),
+                               _capacity_estimate_basis="single_output_image")
+        public_product.reserve_payload_with_capacity(reservation,
                 math.ceil(float(snapshot["estimated_cost"]) * 1000), call_id=call_id,
+                deadline=admission_deadline,
                 require_metered=True, provenance={"task": "cover_generate", "step": "cover_background"})
         try:
+            timeout, _ = _request_window(deadline, call_id)
+            intent_attempted = True
             before_call("image", call_id, dict(snapshot))
+            timeout, _ = _request_window(deadline, call_id)
             with httpx.Client(transport=transport, trust_env=False, follow_redirects=False,
-                    timeout=httpx.Timeout(240, connect=10, write=90, pool=10)) as client:
+                    timeout=timeout) as client:
+                # A stalled local client setup cannot spend the image request
+                # after the original useful-response window is gone.
+                timeout, _ = _request_window(deadline, call_id)
+                client.timeout = timeout
                 public_product.mark_model_dispatched(call_id)
                 sent = True
                 with client.stream("POST", URL, content=encoded,
@@ -219,11 +250,12 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
                       "http_status": status, "provider_request_id": provider_request_id,
                       "response_hash": response_hash}
             ledger_failed = False
-            try:
-                on_call(record)
-                ledger_terminal = True
-            except Exception:
-                ledger_failed = True
+            if intent_attempted:
+                try:
+                    on_call(record)
+                    ledger_terminal = True
+                except Exception:
+                    ledger_failed = True
             try:
                 public_product._record_response(call_id, status, unknown=unknown, not_dispatched=not sent)
             except Exception:
@@ -234,7 +266,7 @@ def generate_background(*, source_images: list[bytes], prompt: str, call_id: str
         except BaseException as exc:
             # A failed local acknowledgement can follow a completed HTTP call.
             # Preserve UNKNOWN and stop, never infer that the supplier did no work.
-            if not ledger_terminal:
+            if not ledger_terminal and intent_attempted:
                 try:
                     on_call({**snapshot, "call_id": call_id, "status": "unknown" if sent else "failed",
                              "http_status": status, "provider_request_id": provider_request_id,

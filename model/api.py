@@ -22,7 +22,7 @@ import threading
 import time as _time
 import unicodedata
 import uuid as _uuid
-from contextlib import contextmanager
+from contextlib import AsyncExitStack, contextmanager
 from pathlib import Path
 from typing import Any, AsyncGenerator, Awaitable, Callable, Literal
 
@@ -204,6 +204,12 @@ async def _await_media_completion(coroutine):
                 continue
         worker.result()
         raise
+
+
+async def _await_remote_media_worker(function, *args, **kwargs):
+    """Use bounded model I/O workers and still join the original call on cancel."""
+    import model_admission
+    return await _await_media_completion(model_admission.run_remote(function, *args, **kwargs))
 
 
 def _original_video_metadata(payload: bytes | None = None, *, path: str | None = None) -> dict:
@@ -3890,9 +3896,7 @@ async def _run_five_agents(
 
 # ── Generation: image content understanding ───────────────────────
 
-def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str:
-    """深度图片理解：5维分析，供深度分析档位使用（图1用 _gent_visual，图2+ 用此函数）。"""
-    raw_bytes = _read_image_input(img_b64)
+def _image_observation_prompt(domain: str, brief: str | None) -> str:
     brief_hint = f"\n创作者补充说明：{brief}" if brief else ""
     prompt = (
         f"这是一张小红书{domain}领域的素材图，请深度分析并提炼创作素材。{brief_hint}\n\n"
@@ -3906,13 +3910,45 @@ def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str
     if _DOMAIN_ALIASES.get(domain, domain) == "休闲娱乐体验":
         prompt = prompt.replace("温暖治愈/精致高级/活力有趣/沉浸享受", "暖光松弛/雅致留白/活力色彩")
         prompt += "\n\n" + _prompt_composer._LEISURE_SCENE_POLICY + "\n" + _leisure_visual_expression_brief()
+    return prompt
+
+
+def _prepare_image_observation(img_b64: str, domain: str, brief: str | None) -> dict:
+    raw_bytes = _read_image_input(img_b64)
+    prompt = _image_observation_prompt(domain, brief)
     try:
-        return _ark_media.chat(prompt, [_ark_media.image_part(raw_bytes)], max_tokens=4096)
+        return {"prompt": prompt, "parts": [_ark_media.image_part(raw_bytes)]}
     except _public_product.TrialProviderStopped:
         raise
     except Exception as exc:
         _log_internal_failure("provider", exc, phase="image_understand")
         raise HTTPException(502, "图片理解未完成；未使用文字说明代替图片结果") from None
+
+
+def _call_prepared_image_observation(prepared: dict) -> str:
+    try:
+        return _ark_media.chat(prepared["prompt"], prepared["parts"], max_tokens=4096)
+    except _public_product.TrialProviderStopped:
+        raise
+    except Exception as exc:
+        _log_internal_failure("provider", exc, phase="image_understand")
+        raise HTTPException(502, "图片理解未完成；未使用文字说明代替图片结果") from None
+
+
+def _kimi_vision_understand(img_b64: str, domain: str, brief: str | None) -> str:
+    """深度图片理解：5维分析，供深度分析档位使用（图1用 _gent_visual，图2+ 用此函数）。"""
+    return _call_prepared_image_observation(_prepare_image_observation(img_b64, domain, brief))
+
+
+def _prepared_media_buffer_bytes(prepared: dict) -> int:
+    # Cover the retained data URL, UTF-8/wire copy and one temporary request
+    # copy. Framing also covers the provider's fixed model/options envelope.
+    return len(_json.dumps(prepared, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) * 3 + 65536
+
+
+def _prepare_buffered_image_observation(image, domain, brief):
+    prepared = _prepare_image_observation(image, domain, brief)
+    return prepared, _prepared_media_buffer_bytes(prepared)
 
 
 def _kimi_vision_quick(img_b64: str, domain: str, brief: str | None) -> str:
@@ -4351,6 +4387,15 @@ async def _gent_visual(img_b64: str | None, domain: str, brief: str | None, dk: 
 
 
 async def _generation_image_observation(image, domain, brief, image_index):
+    import model_capacity
+    if model_capacity.enabled():
+        async with AsyncExitStack() as buffers:
+            async with _public_product.media_worker_slot(image_index):
+                prepared, size = await _await_media_worker(_prepare_buffered_image_observation, image, domain, brief)
+                # Keep at most the bounded local preparations waiting for
+                # memory; issued HTTP needs no CPU slot to complete/release it.
+                await buffers.enter_async_context(_public_product.media_buffer_slot(size))
+            return await _await_remote_media_worker(_call_prepared_image_observation, prepared)
     # Wait asynchronously before occupying a worker thread. Only the original
     # image observation holds this slot; its later Claude summary does not.
     async with _public_product.media_worker_slot(image_index):
@@ -6335,38 +6380,81 @@ def _score_cover_vision(vision: dict) -> float:
     return round(min(max(score * 100, 0), 100), 1)
 
 
-def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
-    """Original cover dimensions, now understood by the configured Ark model."""
-
-    with open(img_path, "rb") as f:
-        data = f.read()
-
+def _cover_vision_prompt():
     prompt = (
         '分析这张小红书封面图片。只返回以下JSON，不要解释：\n'
         '{"has_text_overlay":true/false,"text_prominence":0.0-1.0,'
         '"composition_score":0.0-1.0,"aesthetic_score":0.0-1.0,'
         '"emotion_intensity":0.0-1.0,"visual_clarity":0.0-1.0}'
     )
+    return prompt
+
+
+def _parse_cover_vision_response(raw):
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    d = __import__('json').loads(raw)
+    dimensions = ("text_prominence", "composition_score", "aesthetic_score", "emotion_intensity", "visual_clarity")
+    if not isinstance(d, dict) or type(d.get("has_text_overlay")) is not bool or any(
+        type(d.get(name)) not in (int, float) or not 0 <= d[name] <= 1 for name in dimensions
+    ):
+        raise ValueError("cover_dimensions_incomplete")
+    return {
+        "cover_has_text": int(bool(d.get("has_text_overlay", False))),
+        "cover_text_prominence": float(d.get("text_prominence", 0.5)),
+        "cover_composition_score": float(d.get("composition_score", 0.5)),
+        "cover_aesthetic_score": float(d.get("aesthetic_score", 0.5)),
+        "cover_emotion_intensity": float(d.get("emotion_intensity", 0.5)),
+        "cover_visual_clarity": float(d.get("visual_clarity", 0.5)),
+    }
+
+
+def _call_kimi_vision_sync(img_path: Path, api_key: str) -> dict:
+    """Original cover dimensions, now understood by the configured Ark model."""
+
+    with open(img_path, "rb") as f:
+        data = f.read()
+
+    prompt = _cover_vision_prompt()
     try:
         raw = _ark_media.chat(prompt, [_ark_media.image_part(data)], max_tokens=2048, json_output=True)
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        d = __import__('json').loads(raw)
-        dimensions = ("text_prominence", "composition_score", "aesthetic_score", "emotion_intensity", "visual_clarity")
-        if not isinstance(d, dict) or type(d.get("has_text_overlay")) is not bool or any(
-            type(d.get(name)) not in (int, float) or not 0 <= d[name] <= 1 for name in dimensions
-        ):
-            raise ValueError("cover_dimensions_incomplete")
-        return {
-            "cover_has_text": int(bool(d.get("has_text_overlay", False))),
-            "cover_text_prominence": float(d.get("text_prominence", 0.5)),
-            "cover_composition_score": float(d.get("composition_score", 0.5)),
-            "cover_aesthetic_score": float(d.get("aesthetic_score", 0.5)),
-            "cover_emotion_intensity": float(d.get("emotion_intensity", 0.5)),
-            "cover_visual_clarity": float(d.get("visual_clarity", 0.5)),
-        }
+        return _parse_cover_vision_response(raw)
+    except _public_product.TrialProviderStopped:
+        raise
+    except Exception as exc:
+        _log_internal_failure("provider", exc, phase="cover_understand")
+        raise HTTPException(502, "封面语义分析未完成；未使用默认分数代替实际结果") from None
+
+
+def _prepare_buffered_cover_vision(image):
+    raw = _read_image_input(image)
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as source:
+        source.write(raw)
+        tmp_path = Path(source.name)
+    try:
+        det = extract_deterministic(tmp_path)
+        face = detect_faces(tmp_path)
+        all_feats = {**det, **face}
+        if not _ark_media.configured():
+            raise HTTPException(503, "封面语义分析服务未配置")
+        try:
+            prepared = {"prompt": _cover_vision_prompt(), "parts": [_ark_media.image_part(raw)]}
+        except _public_product.TrialProviderStopped:
+            raise
+        except Exception as exc:
+            _log_internal_failure("provider", exc, phase="cover_understand")
+            raise HTTPException(502, "封面语义分析未完成；未使用默认分数代替实际结果") from None
+        return all_feats, prepared, _prepared_media_buffer_bytes(prepared)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+def _call_prepared_cover_vision(prepared):
+    try:
+        raw = _ark_media.chat(prepared["prompt"], prepared["parts"], max_tokens=2048, json_output=True)
+        return _parse_cover_vision_response(raw)
     except _public_product.TrialProviderStopped:
         raise
     except Exception as exc:
@@ -6407,6 +6495,15 @@ def _extract_cover(image_b64: str, use_vision: bool = False) -> tuple[float, dic
 
 
 async def _bounded_extract_cover(image, use_vision=False):
+    import model_capacity
+    if model_capacity.enabled() and use_vision:
+        async with AsyncExitStack() as buffers:
+            async with _public_product.media_worker_slot(0):
+                all_feats, prepared, size = await _await_media_worker(_prepare_buffered_cover_vision, image)
+                await buffers.enter_async_context(_public_product.media_buffer_slot(size))
+            vision_feats = await _await_remote_media_worker(_call_prepared_cover_vision, prepared)
+            all_feats.update(vision_feats)
+            return _score_cover_vision(vision_feats), all_feats
     # P0 downloads and decodes the original image too. Queue before its thread,
     # using the same global media bound as P1, without changing pixel features.
     async with _public_product.media_worker_slot(0):
@@ -13773,6 +13870,12 @@ async def shutdown():
     cover_worker = getattr(app.state, "cover_worker", None)
     if cover_worker is not None:
         await cover_worker.stop()
+    # Requests and the original cover worker drain before pool shutdown. Join
+    # accepted vendor calls off the event loop, never cancel their accounting.
+    import model_admission
+    manager = getattr(model_admission, "_instance", None)
+    if manager is not None:
+        await _await_media_worker(manager.close_remote_workers)
     if _public_account.enabled():
         return
     runtime = getattr(app.state, "item31_canary_runtime", None)
@@ -20026,31 +20129,11 @@ async def _stream_upload_to_temp(
     return tmp_path, size_bytes, digest.hexdigest()
 
 
-@app.post("/upload-image")
-async def upload_image(
-    file: UploadFile = File(...),
-    user: dict = Depends(_auth.get_current_user),
-    existing_media_refs: list[str] = Form(default=[]),
-):
-    """Normalize one owner-bound image and persist it without metadata."""
-    if not _private_storage.object_backend_configured():
-        raise HTTPException(status_code=503, detail="私有素材存储暂不可用")
-    candidates = existing_media_refs if isinstance(existing_media_refs, list) else []
-    if len(candidates) > 9:
-        raise HTTPException(422, "一次最多核对9张本人素材")
-    filename = file.filename or "image.jpg"
-    suffix = Path(filename).suffix.lower() or ".jpg"
-    declared_type = str(file.content_type or "").lower()
-    if suffix not in _IMAGE_SUFFIXES or declared_type not in _IMAGE_CONTENT_TYPES:
-        raise HTTPException(status_code=415, detail="不支持的图片文件类型")
-    tmp_path, original_size, _upload_sha256 = await _stream_upload_to_temp(
-        file,
-        suffix=suffix,
-        maximum_bytes=_private_storage.MAX_IMAGE_BYTES,
-    )
-    try:
-        from PIL import Image, UnidentifiedImageError
+def _normalize_uploaded_image(tmp_path):
+    """Keep the original JPEG contract off the shared HTTP event loop."""
+    from PIL import Image, UnidentifiedImageError
 
+    try:
         with Image.open(tmp_path) as source:
             source.verify()
         with Image.open(tmp_path) as source:
@@ -20079,6 +20162,7 @@ async def upload_image(
                 body = output.read(_private_storage.MAX_IMAGE_BYTES + 1)
         if not body or len(body) >= _private_storage.MAX_IMAGE_BYTES:
             raise HTTPException(status_code=413, detail="规范化图片超过 10MB 限制")
+        return body, width, height
     except HTTPException:
         raise
     except (
@@ -20089,6 +20173,41 @@ async def upload_image(
     ) as exc:
         _log_internal_failure("image_file", exc, phase="parse")
         raise HTTPException(status_code=422, detail="图片解析失败") from exc
+
+
+@app.post("/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(_auth.get_current_user),
+    existing_media_refs: list[str] = Form(default=[]),
+):
+    """Normalize one owner-bound image and persist it without metadata."""
+    if not _private_storage.object_backend_configured():
+        raise HTTPException(status_code=503, detail="私有素材存储暂不可用")
+    candidates = existing_media_refs if isinstance(existing_media_refs, list) else []
+    if len(candidates) > 9:
+        raise HTTPException(422, "一次最多核对9张本人素材")
+    filename = file.filename or "image.jpg"
+    suffix = Path(filename).suffix.lower() or ".jpg"
+    declared_type = str(file.content_type or "").lower()
+    if suffix not in _IMAGE_SUFFIXES or declared_type not in _IMAGE_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail="不支持的图片文件类型")
+    tmp_path, original_size, _upload_sha256 = await _stream_upload_to_temp(
+        file,
+        suffix=suffix,
+        maximum_bytes=_private_storage.MAX_IMAGE_BYTES,
+    )
+    try:
+        # Decode/encode only after local image capacity is available. Waiting
+        # does not occupy a thread, and disconnect still joins this same work.
+        async with _public_product.media_worker_slot(0):
+            body, width, height = await _await_media_worker(_normalize_uploaded_image, tmp_path)
+    except _public_product.TrialProviderStopped as exc:
+        capacity = str(exc).startswith(("MODEL_QUEUE_", "MODEL_OPERATION_CANCELLED"))
+        raise HTTPException(429 if capacity else 503, detail={
+            "code": "IMAGE_UPLOAD_CAPACITY_BUSY" if capacity else "IMAGE_UPLOAD_CAPACITY_UNCONFIRMED",
+            "message": "图片处理队列暂满，请稍后重新上传；本次未扣积分。" if capacity else "图片处理容量暂不可用，请稍后重试。",
+        }) from None
     finally:
         try:
             os.unlink(tmp_path)

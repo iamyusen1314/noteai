@@ -11,6 +11,7 @@ import math
 import os
 import re
 import secrets
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator, Awaitable, Callable
@@ -71,6 +72,33 @@ def _int_env(name: str, default: int, minimum: int, maximum: int) -> int:
 
 def _max_body_bytes() -> int:
     return _int_env("NOTEAI_CLAUDE_GATEWAY_MAX_BODY_BYTES", 8 * 1024 * 1024, 1024, 16 * 1024 * 1024)
+
+
+def _capacity_enabled() -> bool:
+    return os.environ.get("NOTEAI_CLAUDE_GATEWAY_CAPACITY_ENABLED", "0").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+
+def _concurrency_limit() -> int:
+    return _int_env(
+        "NOTEAI_CLAUDE_GATEWAY_CONCURRENCY", 2, 1,
+        256 if _capacity_enabled() else 32,
+    )
+
+
+def _requests_per_minute() -> int:
+    return _int_env(
+        "NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1,
+        60000 if _capacity_enabled() else 600,
+    )
+
+
+def _inflight_body_bytes() -> int:
+    return _int_env(
+        "NOTEAI_CLAUDE_GATEWAY_INFLIGHT_BODY_BYTES",
+        32 * 1024 * 1024, 1024, 128 * 1024 * 1024,
+    )
 
 
 def _max_tokens() -> int:
@@ -281,13 +309,94 @@ class InMemoryRateLimiter:
             return True
 
 
+class AggregateBodyLimiter:
+    """One process-wide reservation for bodies retained through response cleanup."""
+
+    def __init__(self):
+        self.active_bytes = 0
+        self.active_requests = 0
+        self._lock = threading.Lock()
+
+    def try_acquire(self, amount: int, limit: int) -> bool:
+        with self._lock:
+            if self.active_bytes + amount > limit:
+                return False
+            self.active_bytes += amount
+            self.active_requests += 1
+            return True
+
+    def release(self, amount: int) -> None:
+        # No await: cancellation cannot strand a successful reservation.
+        with self._lock:
+            self.active_bytes -= amount
+            self.active_requests -= 1
+
+
+class AggregateBodyMiddleware:
+    """Reserve before reading; include the complete ASGI response/drain lifetime."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if (
+            not _capacity_enabled()
+            or scope["type"] != "http"
+            or scope.get("method") != "POST"
+            or scope.get("path") not in {MESSAGES_PATH, STREAM_PATH}
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        async def reject(code, status):
+            await JSONResponse(_error_payload(code), status_code=status)(scope, receive, send)
+
+        lengths = [value for name, value in scope.get("headers", [])
+                   if name.lower() == b"content-length"]
+        if len(lengths) > 1:
+            await reject("CONTENT_LENGTH_INVALID", 400)
+            return
+        if lengths:
+            try:
+                reservation = int(lengths[0])
+            except ValueError:
+                await reject("CONTENT_LENGTH_INVALID", 400)
+                return
+            if reservation < 0:
+                await reject("CONTENT_LENGTH_INVALID", 400)
+                return
+            if reservation > _max_body_bytes():
+                await reject("PAYLOAD_TOO_LARGE", 413)
+                return
+        else:
+            # A chunked sender cannot reserve an unbounded or inferred body size.
+            reservation = min(_max_body_bytes(), 8 * 1024 * 1024)
+        limiter = _BODY_LIMITER
+        if not limiter.try_acquire(reservation, _inflight_body_bytes()):
+            await reject("CONCURRENCY_LIMIT", 429)
+            return
+        received = 0
+
+        async def bounded_receive():
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > reservation:
+                    raise GatewayRejection("CONCURRENCY_LIMIT", 429)
+            return message
+
+        try:
+            await self.app(scope, bounded_receive, send)
+        finally:
+            limiter.release(reservation)
+
+
+_BODY_LIMITER = AggregateBodyLimiter()
+app.add_middleware(AggregateBodyMiddleware)
 _NONCES = InMemoryNonceStore()
-_LIMITER = ConcurrencyLimiter(
-    _int_env("NOTEAI_CLAUDE_GATEWAY_CONCURRENCY", 2, 1, 32)
-)
-_RATE_LIMITER = InMemoryRateLimiter(
-    _int_env("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1, 600)
-)
+_LIMITER = ConcurrencyLimiter(_concurrency_limit())
+_RATE_LIMITER = InMemoryRateLimiter(_requests_per_minute())
 _CONTROL_STORE = None
 
 
@@ -551,7 +660,7 @@ async def _authenticate(
         if not await store.admit_rate(
             principal_id,
             now,
-            _int_env("NOTEAI_CLAUDE_GATEWAY_REQUESTS_PER_MINUTE", 30, 1, 600),
+            _requests_per_minute(),
             60,
         ):
             raise GatewayRejection("RATE_LIMIT", 429)
@@ -759,7 +868,7 @@ class _SharedDispatch:
         try:
             lease = await store.acquire_lease(
                 payload["operation_id"],
-                _int_env("NOTEAI_CLAUDE_GATEWAY_CONCURRENCY", 2, 1, 32),
+                _concurrency_limit(),
                 now_epoch,
                 _lease_seconds(),
             )

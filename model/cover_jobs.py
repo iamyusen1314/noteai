@@ -367,15 +367,41 @@ def claim_job(job_id, *, lease_seconds=300, now=None):
         except ValueError:
             return None
         row = tx.fetchone("SELECT * FROM cover_jobs WHERE id=?" + _lock(tx), (job_id,))
+        import model_capacity
+        capacity_mode = model_capacity.enabled()
+        execution_start = capacity_mode and row["status"] == "queued" and row["lease_fence"] == 0
+        if execution_start:
+            financial = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?" + _lock(tx), (job_id,))
+        if capacity_mode:
+            # Waiting for either row lock must not revive an expired queue or
+            # consume a portion of the first execution window unnoticed.
+            clock = _now(now)
         if (row["status"] != "queued" or row["deadline_at"] <= clock.isoformat()
                 or json.loads(row["call_intents_json"])
                 or tx.fetchone("SELECT id FROM public_trial_calls WHERE usage_record_id=? LIMIT 1", (row["usage_id"],))):
             return None
+        deadline = datetime.fromisoformat(row["deadline_at"])
+        if execution_start:
+            if (not financial or financial["status"] != "running"
+                    or financial["refund_applied"] or financial["complete_applied"]
+                    or financial["user_id"] != row["user_id"] or financial["operation"] != OPERATION
+                    or financial["usage_id"] != row["usage_id"] or row["unknown_at"] is not None
+                    or postdelivery._version(dict(financial)) is None
+                    or datetime.fromisoformat(financial["lease_expires_at"]) <= clock):
+                return None
+            # Only the first live, provider-free claim separates queue time
+            # from execution. Recovery never renews this deadline a second time.
+            deadline = clock + timedelta(seconds=HOLD_SECONDS)
         token = secrets.token_urlsafe(32)
-        expiry = min(clock+timedelta(seconds=lease_seconds), datetime.fromisoformat(row["deadline_at"]))
+        expiry = min(clock+timedelta(seconds=lease_seconds), deadline)
         tx.execute("UPDATE cover_jobs SET status='running',stage='design',lease_fence=lease_fence+1,"
-            "lease_token_hash=?,lease_expires_at=?,updated_at=? WHERE id=?", (_sha(token),expiry.isoformat(),clock.isoformat(),job_id))
-        tx.execute("UPDATE idempotency_requests SET lease_token_hash=? WHERE id=? AND complete_applied=0 AND refund_applied=0", (_sha(token),job_id))
+            "lease_token_hash=?,lease_expires_at=?,deadline_at=?,updated_at=? WHERE id=?",
+            (_sha(token),expiry.isoformat(),deadline.isoformat(),clock.isoformat(),job_id))
+        if execution_start:
+            tx.execute("UPDATE idempotency_requests SET lease_token_hash=?,lease_expires_at=? "
+                "WHERE id=? AND complete_applied=0 AND refund_applied=0", (_sha(token),deadline.isoformat(),job_id))
+        else:
+            tx.execute("UPDATE idempotency_requests SET lease_token_hash=? WHERE id=? AND complete_applied=0 AND refund_applied=0", (_sha(token),job_id))
         row = tx.fetchone("SELECT * FROM cover_jobs WHERE id=?", (job_id,))
         financial = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (job_id,))
         if financial["refund_applied"] or financial["complete_applied"]:

@@ -521,20 +521,27 @@ def complete(payload: dict, *, call_id: str, transport=None, deadline=None) -> d
     request_timeout(deadline)  # Reject an invalid/expired host bound before admission.
     deadline = min(job_deadline, deadline) if deadline is not None else job_deadline
     request_timeout(deadline)
-    body, _ = prepare_payload(payload)
+    body, input_bound = prepare_payload(payload)
     _require_price()
     headers = ark_media._headers()
     encoded = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
     diagnostic = ark_media._ArkCallDiagnostics(call_id)
     terminal, status = False, None
-    with public_product.model_admission_sync(call_id, "doubao"):
+    with public_product.model_admission_sync(call_id, "doubao", model_id=MODEL):
         public_product.assert_result_known()
         # Waiting for the shared permit may have consumed the remaining time.
         timeout = request_timeout(deadline)
         reserve = int((Decimal(estimate(body["max_completion_tokens"])["estimated_cost"]) * 1000).to_integral_value(rounding=ROUND_CEILING))
+        reservation = {"model": MODEL, "provider": "doubao", "modality": "image",
+                       "max_tokens": body["max_completion_tokens"]}
+        import model_capacity
+        if model_capacity.enabled():
+            reservation.update(_capacity_demand=model_capacity.Demand(
+                MODEL, input_bound, body["max_completion_tokens"]),
+                _capacity_estimate_basis="prepared_input_bound")
         try:
-            public_product._reserve_payload({"model": MODEL, "provider": "doubao", "modality": "image",
-                "max_tokens": body["max_completion_tokens"]}, reserve, call_id=call_id,
+            public_product.reserve_payload_with_capacity(reservation, reserve, call_id=call_id,
+                deadline=deadline - REQUEST_MARGIN_SECONDS - MIN_READ_WINDOW_SECONDS,
                 require_metered=True, provenance={"task": "cover_generate", "step": "cover_skill_chat",
                     "prompt_scope": "cover_skill_host", "instruction_role": "system"})
         except public_product._SlotsBusy:
@@ -546,6 +553,9 @@ def complete(payload: dict, *, call_id: str, transport=None, deadline=None) -> d
                 outcome_unknown=True, call_id=call_id,
                 reservation_diagnostics=_reservation_diagnostics(error, call_id, reserve)) from None
         try:
+            # Quota waiting is separate from the wire timeout. Recheck the
+            # original useful-response window before any provider dispatch.
+            timeout = request_timeout(deadline)
             with ark_media._client(transport=transport) as client:
                 diagnostic.phase = "transport"
                 public_product.mark_model_dispatched(call_id)
@@ -582,6 +592,17 @@ def complete(payload: dict, *, call_id: str, transport=None, deadline=None) -> d
             _validate_result(data, body, dimensions)
             return data
         except CoverAgentProviderError as exc:
+            if not terminal and not diagnostic.post_entered:
+                # A useful-window rejection after quota/money admission is a
+                # known local non-dispatch, not another persistent live call.
+                try:
+                    public_product._record_response(call_id, None, not_dispatched=True)
+                    terminal = True
+                except BaseException as accounting_error:
+                    if not isinstance(accounting_error, Exception):
+                        raise
+                    raise CoverAgentProviderError("COVER_AGENT_OUTCOME_OR_ACCOUNTING_UNKNOWN_NO_REPLAY",
+                        outcome_unknown=True, call_id=call_id) from None
             if exc.call_id is None:
                 exc.call_id = call_id
             raise

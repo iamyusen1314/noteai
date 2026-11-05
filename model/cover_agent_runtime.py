@@ -1087,7 +1087,7 @@ class Bridge:
         self.ordinal += 1
         call_id = str(uuid.uuid5(uuid.UUID(self.job_id), "editable:" + stage + ":" + str(self.ordinal)))
         try:
-            with public_product.model_admission_sync(call_id, "doubao"):
+            with public_product.model_admission_sync(call_id, "doubao", model_id=provider.MODEL):
                 self._check_model_deadline("after_shared_permit", self.ordinal)
                 self.hooks.before_call(stage + ":" + str(self.ordinal), call_id, estimate)
                 body = provider.complete(prepared, call_id=call_id, transport=self.model_transport,
@@ -1209,7 +1209,8 @@ class Bridge:
             try:
                 image, record = cover_seedream.generate_background(source_images=[source["payload"] for source in self.sources],
                     prompt=arguments["prompt"], call_id=cover_runtime.physical_call_id(self.job_id, "image"),
-                    before_call=self.hooks.before_call, on_call=self.hooks.on_call, transport=self.image_transport)
+                    before_call=self.hooks.before_call, on_call=self.hooks.on_call, transport=self.image_transport,
+                    deadline=self.request_deadline)
             except cover_seedream.SeedreamError as error:
                 if error.response_diagnostics is not None:
                     self._record_seedream_rejection(error.response_diagnostics)

@@ -308,7 +308,7 @@ def run_cover(*, job_id: str, user_id: str, report: dict, sources: list[dict], h
     def vision(stage_name, prompt, parts, transport):
         call_id = physical_call_id(job_id, stage_name)
         snapshot = _estimate_text(stage_name)
-        with public_product.model_admission_sync(call_id, "doubao"):
+        with public_product.model_admission_sync(call_id, "doubao", model_id=ark_media.MODEL):
             before(stage_name, call_id, dict(snapshot))
             try:
                 text = call_vision(stage_name, prompt, parts, call_id=call_id, transport=transport)

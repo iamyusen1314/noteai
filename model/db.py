@@ -2987,6 +2987,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at  TEXT NOT NULL
 );
         """)
+        import model_capacity
+        model_capacity.init_sqlite_schema(conn)
 # ─────────────────────────────────────────────────────────────
 # 通用 CRUD helpers
 # ─────────────────────────────────────────────────────────────

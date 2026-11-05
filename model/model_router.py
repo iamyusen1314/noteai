@@ -87,6 +87,69 @@ _GATEWAY_DNS_EXECUTOR = _BoundedGatewayDNSExecutor(
     max_pending=2,
 )
 
+
+def _capacity_dns_scope():
+    import model_capacity
+    remote = _public_product._model_lease.get()
+    if not model_capacity.enabled() or remote is None:
+        return None
+    import model_admission
+    return model_admission.current(), remote
+
+
+def _resolve_gateway_sync(authority):
+    scope = _capacity_dns_scope()
+    if scope is None:
+        return _resolve_global_gateway_addresses(authority)
+    manager, remote = scope
+    ticket = None
+    try:
+        manager.calls.defer(remote)
+        ticket = manager.gateway_dns.acquire(remote.operation, secrets.token_hex(16), "gateway_dns")
+        addresses = _resolve_global_gateway_addresses(authority)
+    finally:
+        if ticket is not None:
+            manager.gateway_dns.release(ticket)
+    manager.calls.resume(remote)
+    return addresses
+
+
+async def _resolve_gateway_async(authority):
+    scope = _capacity_dns_scope()
+    ticket = None
+    try:
+        if scope is not None:
+            manager, remote = scope
+            manager.calls.defer(remote)
+            ticket = await manager.gateway_dns.acquire_async(
+                remote.operation, secrets.token_hex(16), "gateway_dns")
+        future = asyncio.get_running_loop().run_in_executor(
+            _GATEWAY_DNS_EXECUTOR, _resolve_global_gateway_addresses, authority)
+        try:
+            addresses = await asyncio.shield(future)
+        except asyncio.CancelledError as cancelled:
+            if scope is not None:
+                # A cancelled waiter cannot release its DNS place while the
+                # original resolver still owns a bounded executor submission.
+                while not future.done():
+                    try:
+                        await asyncio.shield(future)
+                    except asyncio.CancelledError:
+                        continue
+                    except Exception:
+                        break
+                try:
+                    future.result()
+                except Exception:
+                    pass
+            raise cancelled
+    finally:
+        if ticket is not None:
+            manager.gateway_dns.release(ticket)
+    if scope is not None:
+        await manager.calls.resume_async(remote)
+    return addresses
+
 # ── 任务路由表 ─────────────────────────────────────────────────────
 TASK_ROUTING: dict[str, dict] = {
     "diagnosis":   {"primary": CLAUDE_HAIKU,  "fallback": [KIMI_TEXT]},
@@ -1021,7 +1084,7 @@ class GatewayClaudeTransport:
     def _sync_http_transport(self):
         if self.http_transport is not None:
             return self.http_transport
-        address = _resolve_global_gateway_addresses(self.authority)[0]
+        address = _resolve_gateway_sync(self.authority)[0]
         transport = httpx.HTTPTransport(verify=True, trust_env=False, retries=0)
         return _pin_httpx_transport_backend(
             transport,
@@ -1034,12 +1097,7 @@ class GatewayClaudeTransport:
         if self.http_transport is not None:
             return self.http_transport
         try:
-            dns_future = asyncio.get_running_loop().run_in_executor(
-                _GATEWAY_DNS_EXECUTOR,
-                _resolve_global_gateway_addresses,
-                self.authority,
-            )
-            addresses = await asyncio.shield(dns_future)
+            addresses = await _resolve_gateway_async(self.authority)
         except asyncio.CancelledError:
             raise
         except ClaudeGatewayError:
@@ -1131,7 +1189,8 @@ class GatewayClaudeTransport:
     async def create_message(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
         self._require_config()
         body = self._body(request)
-        async with _public_product.model_admission(request.operation_id, "claude"):
+        async with _public_product.model_admission(request.operation_id, "claude", model_id=request.model), \
+                _public_product.claude_body_slot(body):
             request_dispatched = False
             try:
                 transport = await self._async_http_transport()
@@ -1170,7 +1229,8 @@ class GatewayClaudeTransport:
     def create_message_sync(self, request: ClaudeMessageRequest) -> ClaudeMessageResult:
         self._require_config()
         body = self._body(request)
-        with _public_product.model_admission_sync(request.operation_id, "claude"):
+        with _public_product.model_admission_sync(request.operation_id, "claude", model_id=request.model), \
+                _public_product.claude_body_slot_sync(body):
             request_dispatched = False
             try:
                 transport = self._sync_http_transport()
@@ -1208,7 +1268,8 @@ class GatewayClaudeTransport:
     ) -> AsyncGenerator[ClaudeStreamEvent, None]:
         self._require_config()
         body = self._body(request)
-        async with _public_product.model_admission(request.operation_id, "claude"):
+        async with _public_product.model_admission(request.operation_id, "claude", model_id=request.model), \
+                _public_product.claude_body_slot(body):
             terminal_seen = False
             usage_seen = False
             request_dispatched = False
@@ -1684,6 +1745,18 @@ def _discard_unstarted_awaitable(awaitable: Any) -> None:
         close()
 
 
+def _gateway_effective_deadline(deadline):
+    import model_capacity
+    if deadline is not None and model_capacity.enabled():
+        ticket = _public_product._model_lease.get()
+        if ticket is not None:
+            import model_admission
+            # Only verified pre-dispatch capacity waits are excluded. Actual
+            # vendor execution, streaming, and drain retain the original bound.
+            return deadline + model_admission.current().calls.deferred_seconds(ticket)
+    return deadline
+
+
 def _require_gateway_deadline_remaining(
     deadline: float | None,
     *,
@@ -1691,7 +1764,7 @@ def _require_gateway_deadline_remaining(
 ) -> float | None:
     if deadline is None:
         return None
-    remaining = deadline - asyncio.get_running_loop().time()
+    remaining = _gateway_effective_deadline(deadline) - asyncio.get_running_loop().time()
     if remaining <= 0:
         raise _gateway_deadline_error(pre_dispatch=pre_dispatch)
     return remaining
@@ -1721,6 +1794,11 @@ async def _await_with_gateway_deadline(
     while True:
         try:
             done, _pending = await asyncio.wait((task,), timeout=remaining)
+            if task not in done:
+                remaining = max(0., _gateway_effective_deadline(deadline)
+                                - asyncio.get_running_loop().time())
+                if remaining > 0:
+                    continue
             break
         except asyncio.CancelledError as exc:
             if (_public_product.enabled() and not pre_dispatch
@@ -1728,7 +1806,8 @@ async def _await_with_gateway_deadline(
                 # A cancelled consumer must not abandon or replay an already
                 # dispatched request. Its original deadline still bounds drain.
                 external_cancel = external_cancel or exc
-                remaining = max(0.0, deadline - asyncio.get_running_loop().time())
+                remaining = max(0.0, _gateway_effective_deadline(deadline)
+                                - asyncio.get_running_loop().time())
                 continue
             task.cancel()
             try:
@@ -2008,6 +2087,7 @@ async def call(
     operation_id = _new_operation_id()
     async with _public_product.model_admission(
         operation_id, "claude" if routing["primary"].startswith("claude") else "kimi",
+        model_id=routing["primary"],
     ):
         absolute_deadline = _gateway_absolute_deadline(
             task,
@@ -2048,7 +2128,7 @@ async def _claude_transport_stream(
     request: ClaudeMessageRequest,
     absolute_deadline: float | None = None,
 ) -> AsyncGenerator[ClaudeStreamEvent, None]:
-    async with _public_product.model_admission(request.operation_id, "claude"):
+    async with _public_product.model_admission(request.operation_id, "claude", model_id=request.model):
         complete = False
         failure = None
         content_seen = False
@@ -2258,6 +2338,7 @@ async def stream(
     operation_id = _new_operation_id()
     async with _public_product.model_admission(
         operation_id, "claude" if primary.startswith("claude") else "kimi",
+        model_id=primary,
     ):
         absolute_deadline = _gateway_absolute_deadline(
             "stream",
@@ -2382,6 +2463,7 @@ async def stream_chat(
         operation_id = _new_operation_id()
         async with _public_product.model_admission(
             operation_id, "claude" if selected_model.startswith("claude") else "kimi",
+            model_id=selected_model,
         ):
             deadline = _gateway_absolute_deadline("stream", thinking, max_tokens, [selected_model])
             if selected_model.startswith("claude"):
@@ -2502,6 +2584,7 @@ def call_claude_sync(
         model, max_tokens = _runtime_config.resolve("semantic", model, max_tokens)
     with _public_product.model_admission_sync(
         operation_id, "kimi" if model == KIMI_TEXT else "claude",
+        model_id=model,
     ):
         if _public_product.enabled() and model == KIMI_TEXT:
             selected_model = model
