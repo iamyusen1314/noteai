@@ -151,6 +151,11 @@ async function inspect(dir, manifest, edit = null, pngPath = null, approvedTitle
           }
         }
       }, edit);
+      // A newly used glyph can start another local unicode-range font load.
+      await page.evaluate(async () => {
+        document.body.getBoundingClientRect();
+        await document.fonts.ready;
+      });
       await fs.writeFile(path.join(dir, 'index.html'), await page.content());
     }
     const state = await page.evaluate(({ layers }) => {
