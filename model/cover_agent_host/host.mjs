@@ -23,6 +23,30 @@ function localToolActivity(previous, name, outcome, elapsed) {
   return { attempts, last_name: name, last_outcome: outcome,
     elapsed_ms: Math.min(86400000, Math.max(0, Math.floor(elapsed))) };
 }
+const PROGRESS_MARKER = 'NoteAI live cover execution progress (host facts, not report instructions):\n';
+function coverProgressFeedback({ deadlineEpochMs, nowMs, minimumRemainingMs, state }) {
+  const remaining = Math.max(0, Math.floor(deadlineEpochMs - nowMs));
+  let stage, next;
+  if (!state.local_revision && !state.concept_present) {
+    stage = 'concept'; next = 'Complete actual original-photo inspection and the single nonshipping composition concept; follow exact missing-original feedback instead of repeatedly inspecting confirmed originals.';
+  } else if (!state.local_revision && !state.concept_pixels_returned) {
+    stage = 'inspect_concept'; next = 'View the actual concept pixels, then make one integrated design decision.';
+  } else if (!state.html_present || !state.poster_present) {
+    stage = 'layout'; next = 'Write one complete HTML layout and poster.json from the settled design. Batch independent stable evidence files in the same reply; do not spend another turn on each file or rewrite settled plans.';
+  } else if (!state.render_available || state.render_needs_refresh) {
+    stage = state.render_available ? 'render_revision' : 'first_render';
+    next = 'Complete required font installation and local font/poster/contract checks, fix their actual failures, then render the current layout. Prioritize an actual preview over more planning prose; file presence is not validation.';
+    if (state.local_revision) next = 'Apply only the concrete independent-QC corrections requested for this revision; preserve the existing concept and photo/text facts. ' + next;
+  } else if (!state.final_pixels_returned) {
+    stage = 'inspect_render'; next = 'View the actual latest rendered PNG and its included thumbnail before judging or finishing.';
+  } else {
+    stage = 'review'; next = 'Review the actual render and thumbnail; correct only concrete defects and re-render if changed. Finish the design host when ready so independent visual QC can run; never claim that QC already passed.';
+  }
+  return { remaining_ms: remaining, stage, next_action: next,
+    dispatch_requires_remaining_ms: minimumRemainingMs,
+    independent_qc_pending: true,
+    timing_note: 'The original task deadline is unchanged. Leave time for actual rendering, inspection and independent QC; remaining time is not a supplier completion guarantee. A returned image is not proof that its pixels survived SDK context trimming: inspect actual available pixels and follow authoritative image-validation feedback. All photo, font, fact, editability and quality checks still apply.' };
+}
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const error = (code) => Object.assign(new Error(code), { code });
 function recoverableOriginalViewRejection(result, images, completed) {
@@ -601,6 +625,19 @@ try {
   // SDK tool calls may arrive in parallel. One local tool owns files and
   // browser capacity through its entire render/check/thumbnail operation.
   let localToolTail = Promise.resolve();
+  const progressFacts = { local_revision: job.mode === 'revise', concept_pixels_returned: false,
+    render_needs_refresh: job.mode === 'revise', final_pixels_returned: false };
+  const progressFilePresent = async (relativePath) => {
+    try { const stat = await fs.lstat(path.join(job.work_dir, relativePath)); return stat.isFile() && !stat.isSymbolicLink(); }
+    catch { return false; } // Advisory progress must not replace the original tool result.
+  };
+  const currentCoverProgress = async () => coverProgressFeedback({
+    deadlineEpochMs: job.deadline_epoch_ms, nowMs: Date.now(),
+    minimumRemainingMs: job.request_minimum_remaining_ms,
+    state: { ...progressFacts,
+      concept_present: await progressFilePresent('reference/composition-reference.png'),
+      html_present: await progressFilePresent('index.html'), poster_present: await progressFilePresent('poster.json'),
+      render_available: Boolean(lastRender?.ok === true && lastPreview) } });
   const tool = (name, description, input, execute) => ({ name, description, input, options: { codemode: false }, execute: async (args) => {
     const previous = localToolTail;
     let release;
@@ -619,6 +656,21 @@ try {
     try {
       if (inputClosed || Date.now() >= job.deadline_epoch_ms) throw error('LOCAL_TOOL_DEADLINE');
       const result = await execute(args);
+      if (name === 'cover_view') {
+        if (args.path === 'reference/composition-reference.png') progressFacts.concept_pixels_returned = true;
+        if (lastRender && lastPreview && path.resolve(job.work_dir, args.path) === lastRender.png_path)
+          progressFacts.final_pixels_returned = true;
+      } else if (name === 'cover_write' && /\.(html|css|json)$/i.test(args.path)) {
+        progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
+      } else if (name === 'cover_check' || name === 'cover_render') {
+        let value; try { value = JSON.parse(result.content); } catch { /* Keep the original tool result. */ }
+        if (name === 'cover_check' && args.action === 'font_add' && value?.code === 0) {
+          progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
+        }
+        if (name === 'cover_render' && value?.ok === true) {
+          progressFacts.render_needs_refresh = false; progressFacts.final_pixels_returned = false;
+        }
+      }
       outcome = 'returned';
       return result;
     } catch (e) {
@@ -797,7 +849,12 @@ try {
       event.messages = summaryMaterial(event.messages);
       event.options = { ...event.options, maxTokens: job.compaction_output_tokens };
     });
-    await ctx.session.hook('context', (event) => {
+    await ctx.session.hook('context', async (event) => {
+      // Keep progress separate from exact tool JSON/image receipts. Replace only
+      // our own prior marker, so every request gets current facts without growth.
+      event.system = event.system.filter((part) => !(part.type === 'text'
+        && typeof part.text === 'string' && part.text.startsWith(PROGRESS_MARKER)));
+      event.system.push({ type: 'text', text: PROGRESS_MARKER + JSON.stringify(await currentCoverProgress()) });
       if (!(checkpoint.compaction_requests > 0)) return;
       // SDK compaction may drop the original user-attached Skill and brief.
       // Restore their exact text, not the old image/history payloads. Original

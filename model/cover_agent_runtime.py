@@ -947,6 +947,13 @@ def _prompt(context, sources):
         "制作index.html/poster.json、完整brief/design-plan/asset-plan/prompts/render-review等原Skill留存；"
         "同阶段互不依赖的文件写入或检查可在同一条回复中调用多个工具，无需逐项等待模型；"
         "依赖前一步结果的字体安装、渲染和实际审图仍按原Skill顺序执行。"
+        "执行收敛：实际看完概念后，只做一次综合设计决定，将完整HTML/poster.json和同阶段独立留存文件"
+        "在同一轮工具调用中写好，不为每个说明文件另开一轮推理，也不反复改写已经确定的计划。"
+        "接着安装所选字体、执行原有字体/海报/契约检查并按真实错误局改，尽早取得第一张实际预览。"
+        "然后实际看成品大图和缩略图，修正具体缺陷；不能用继续补写设计说明代替渲染。"
+        "host每轮提供真实剩余时间和基于工具事实的进度提示；文件存在不代表有效、已看或已通过检查。"
+        "原任务时限不延长，还须留出独立视觉QC及必要局改时间，不能等设计期限耗尽才结束；"
+        "进度提示不允许跳过任何原照、文字、字体、主体保护、渲染或质检要求。"
         "项目放当前工作区根，cover_render.request.project_dir用'.'，原照已在assets/source-N内，不能改写原照。"
         "NoteAI适配器的技术交付格式：poster.json使用"
         '{"canvas":{"width":1776,"height":2368},"scale":1,"dpi":null}，'
@@ -1272,6 +1279,7 @@ class Bridge:
             "compaction_output_tokens": provider.COMPACTION_OUTPUT_TOKENS,
             "prompt": prompt, "images": [{"path": source["path"], "name": source["media_ref"], "sha256": source["sha256"]}
                 for source in self.sources], "max_model_requests": None,
+            "request_minimum_remaining_ms": int((provider.MIN_READ_WINDOW_SECONDS + provider.REQUEST_MARGIN_SECONDS) * 1000),
             "deadline_epoch_ms": int(deadline * 1000), **({"session_id": self.session_id, "mode": "revise"} if self.session_id else {})}
         process = subprocess.Popen([os.environ.get("NOTEAI_COVER_NODE", "node"), str(worker)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
