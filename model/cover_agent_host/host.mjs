@@ -702,7 +702,83 @@ try {
       concept_present: await progressFilePresent('reference/composition-reference.png'),
       html_present: await progressFilePresent('index.html'), poster_present: await progressFilePresent('poster.json'),
       render_available: Boolean(lastRender?.ok === true && lastPreview) } });
-  const tool = (name, description, input, execute) => ({ name, description, input, options: { codemode: false }, execute: async (args) => {
+  const localExecutors = new Map();
+  const markRenderChanged = () => {
+    progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
+    geometryRepair = textGeometryNeedsRecheck(geometryRepair);
+  };
+  const executePreparedRender = async ({ request, prepare }) => {
+    const record = (value) => value && typeof value === 'object' && !Array.isArray(value);
+    const exact = (value, keys) => record(value) && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
+    const paths = ['index.html', 'poster.json', 'brief.md', 'design-plan.md', 'asset-plan.json', 'prompts.md'];
+    const fonts = ['editorial-serif', 'luxury-serif', 'clean-sans', 'geometric-sans', 'condensed-sans', 'experimental-display', 'cjk-sans', 'cjk-serif', 'cjk-calligraphy', 'cjk-display'];
+    if (!record(request) || ![undefined, '.'].includes(request.project_dir)
+        || !exact(prepare, ['files', 'fonts']) || !Array.isArray(prepare.files)
+        || prepare.files.length < 1 || prepare.files.length > 6 || !Array.isArray(prepare.fonts)
+        || prepare.fonts.length > 3
+        || prepare.files.some((file) => !exact(file, ['path', 'text']) || !paths.includes(file.path) || typeof file.text !== 'string')
+        || new Set(prepare.files.map((file) => file.path)).size !== prepare.files.length
+        || prepare.fonts.some((font) => !record(font)
+          || !['font_id', 'css_var,font_id'].includes(Object.keys(font).sort().join(','))
+          || !fonts.includes(font.font_id) || (font.css_var !== undefined && typeof font.css_var !== 'string')))
+      throw error('RENDER_PREPARE_INVALID');
+    if (prepare.files.reduce((total, file) => total + Buffer.byteLength(file.text), 0) > 256 * 1024)
+      throw error('RENDER_PREPARE_TOO_LARGE');
+    // Validate the entire bounded authored packet before the first write. The
+    // existing writers still check the live filesystem and retain their receipts.
+    const htmlFile = prepare.files.find((file) => file.path === 'index.html');
+    let html = htmlFile ? guardedHTML(restoreManagedFonts('index.html', htmlFile.text)) : null;
+    if (prepare.fonts.length && html === null)
+      html = await fs.readFile(await safeExisting(job.work_dir, 'index.html'), 'utf8');
+    for (const font of prepare.fonts) if (font.css_var !== undefined) bindFontRole(html, font.font_id, font.css_var, true);
+    const result = { prepare: { files: [], fonts: [], failed_step: null, not_run: [] }, render: null };
+    const steps = [...prepare.files.map((_, index) => ({ kind: 'write', index })),
+      ...prepare.fonts.map((_, index) => ({ kind: 'font_add', index })), { kind: 'render', index: 0 }];
+    const fail = (at, code, detail) => {
+      result.prepare.failed_step = { ...steps[at], code };
+      result.prepare.not_run = steps.slice(at + 1);
+      if (detail !== undefined) result.prepare.error = { code, detail };
+      return { content: JSON.stringify(result) };
+    };
+    for (let at = 0; at < steps.length; at++) {
+      const step = steps[at];
+      try {
+        if (inputClosed || Date.now() >= job.deadline_epoch_ms) throw error('LOCAL_TOOL_DEADLINE');
+        if (step.kind === 'write') {
+          const file = prepare.files[step.index];
+          result.prepare.files.push(await writeWithin(job.work_dir, file.path, file.text));
+          if (/\.(html|json)$/i.test(file.path)) markRenderChanged();
+        } else if (step.kind === 'font_add') {
+          // Use the raw callback, never the serialized tool wrapper that this
+          // compound tool already owns. A failed install may change the HTML.
+          markRenderChanged();
+          const returned = await localExecutors.get('cover_check')({ action: 'font_add', html: 'index.html', ...prepare.fonts[step.index] });
+          const value = JSON.parse(returned.content); result.prepare.fonts.push(value);
+          if (value.code !== 0) return fail(at, value.code ?? 'FONT_RESPONSE_INVALID');
+        } else {
+          const returned = await localExecutors.get('cover_render')({ request });
+          result.render = JSON.parse(returned.content);
+          if (result.render?.ok !== true) return fail(at, result.render?.code || 'RENDER_NOT_COMPLETED');
+          // Font installation legitimately changes the stored HTML after its
+          // write receipt. Bind the final bytes to the original authored input
+          // only after the complete real render succeeded, never after failure.
+          if (htmlFile) {
+            const bytes = await fs.readFile(await safeExisting(job.work_dir, 'index.html'));
+            const index = result.prepare.files.findIndex((file) => file.path === 'index.html');
+            result.prepare.files[index] = { path: 'index.html', bytes: bytes.length, sha256: sha(bytes),
+              input_bytes: Buffer.byteLength(htmlFile.text), input_sha256: sha(htmlFile.text) };
+          }
+        }
+      } catch (e) {
+        if (/UNKNOWN/.test(e.code || '')) throw e;
+        return fail(at, e.code || 'LOCAL_TOOL_FAILED', e.message);
+      }
+    }
+    return { content: JSON.stringify(result) };
+  };
+  const tool = (name, description, input, execute) => {
+    localExecutors.set(name, execute);
+    return { name, description, input, options: { codemode: false }, execute: async (args) => {
     const previous = localToolTail;
     let release;
     localToolTail = new Promise((resolve) => { release = resolve; });
@@ -719,25 +795,25 @@ try {
     await remember('running');
     try {
       if (inputClosed || Date.now() >= job.deadline_epoch_ms) throw error('LOCAL_TOOL_DEADLINE');
-      const result = await execute(args);
+      const result = name === 'cover_render' && args.prepare !== undefined
+        ? await executePreparedRender(args) : await execute(args);
       if (name === 'cover_view') {
         if (args.path === 'reference/composition-reference.png') progressFacts.concept_pixels_returned = true;
         if (lastRender && lastPreview && path.resolve(job.work_dir, args.path) === lastRender.png_path)
           progressFacts.final_pixels_returned = true;
       } else if (name === 'cover_write' && /\.(html|css|json)$/i.test(args.path)) {
-        progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
-        geometryRepair = textGeometryNeedsRecheck(geometryRepair);
+        markRenderChanged();
       } else if (name === 'cover_check' || name === 'cover_render') {
         let value; try { value = JSON.parse(result.content); } catch { /* Keep the original tool result. */ }
         if (name === 'cover_check' && args.action === 'font_add' && value?.code === 0) {
-          progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
-          geometryRepair = textGeometryNeedsRecheck(geometryRepair);
+          markRenderChanged();
         }
         if (name === 'cover_render') {
+          if (args.prepare !== undefined) value = value?.render;
           if (value?.ok === true) {
             geometryRepair = null;
             progressFacts.render_needs_refresh = false; progressFacts.final_pixels_returned = false;
-          } else {
+          } else if (value) {
             try { geometryRepair = textGeometryRepairHint(renderRejection(value)); }
             catch { geometryRepair = null; } // Advisory hints never replace a tool result.
           }
@@ -751,7 +827,7 @@ try {
       if (/UNKNOWN/.test(e.code || '')) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
       return { content: JSON.stringify({ ok: false, code: e.code || 'LOCAL_TOOL_FAILED', detail: e.message }) };
     } finally { await remember(outcome); release(); }
-  } });
+  } }; };
   const tools = [
     tool('cover_read', 'Read a UTF-8 job file, or a complete Skill reference using skill:relative/path. Installed font-face boilerplate in HTML is elided into a JSON authored view: edit its complete text field; cover_write preserves the exact installed faces. The stored file is unchanged by reading. Images use cover_view.', objectSchema({ path: { type: 'string' } }), async ({ path: rel }) => {
       const fromSkill = rel.startsWith('skill:'); const file = await safeExisting(fromSkill ? job.skill_dir : job.work_dir, fromSkill ? rel.slice(6) : rel);
@@ -782,7 +858,7 @@ try {
       checkpoint.pending_tool = null; await atomicJSON(checkpointPath, checkpoint);
       return { content: JSON.stringify(answer.result) };
     }),
-    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. Choose original photos by their supplied path; Python derives canonical ref and SHA from actual frozen original bytes. Optional authored ref/sha256 are compatibility metadata, never authorization. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: objectSchema({
+    tool('cover_render', 'Validate and render the authored project with the complete pinned Editable-Design renderer. Optional prepare batches up to six core authored files (256KiB total) and three preinstalled fonts at the job root before the same real render; its CLI runs poster/font/contract checks once. Read prepare receipts and render separately; partial preparation or a rejected render is not success. Choose original photos by their supplied path; Python derives canonical ref and SHA from actual frozen original bytes. Optional authored ref/sha256 are compatibility metadata, never authorization. poster.json must contain canvas:{width:1776,height:2368},scale:1,dpi:null. Register all visible text as unique data-layer-id text leaves (text/BR only), with loaded self-hosted fonts. Return ok:true and PNG/manifest only after actual rendering; use returned code/detail to correct local contract errors. Python must approve original and concept image inspection before execution.', objectSchema({ request: objectSchema({
       project_dir: { type: 'string', minLength: 1 },
       sources: { type: 'array', minItems: 1, maxItems: 9, items: objectSchema({
         ref: { type: 'string' }, path: { type: 'string', minLength: 1 },
@@ -795,7 +871,16 @@ try {
       }) },
       protected_regions: { type: 'array', items: objectSchema({ x: { type: 'number' }, y: { type: 'number' },
         width: { type: 'number', exclusiveMinimum: 0 }, height: { type: 'number', exclusiveMinimum: 0 } }) },
-    }, ['sources', 'text_layers']) }), async ({ request }) => {
+    }, ['sources', 'text_layers']), prepare: objectSchema({
+      files: { type: 'array', minItems: 1, maxItems: 6, items: objectSchema({
+        path: { type: 'string', enum: ['index.html', 'poster.json', 'brief.md', 'design-plan.md', 'asset-plan.json', 'prompts.md'] },
+        text: { type: 'string' },
+      }) },
+      fonts: { type: 'array', maxItems: 3, items: objectSchema({
+        font_id: { type: 'string', enum: ['editorial-serif', 'luxury-serif', 'clean-sans', 'geometric-sans', 'condensed-sans', 'experimental-display', 'cjk-sans', 'cjk-serif', 'cjk-calligraphy', 'cjk-display'] },
+        css_var: { type: 'string' },
+      }, ['font_id']) },
+    }) }, ['request']), async ({ request }) => {
       request = { ...request, schema_version: 'noteai-cover-editable/v1', output_root: path.join(job.work_dir, 'revisions') };
       request.project_dir = path.resolve(job.work_dir, request.project_dir || '.');
       if (!inside(job.work_dir, await fs.realpath(request.project_dir))) throw error('PATH_OUTSIDE_JOB');
@@ -919,6 +1004,48 @@ try {
               + '. Use cover_read to retrieve it.]' } };
         } catch { /* Missing, changed or disallowed files keep their full input. */ }
       }
+      const preparedWrites = new Map();
+      for (const message of event.messages) for (const part of message.content || []) {
+        if (part.type !== 'tool-result' || part.name !== 'cover_render' || part.result?.type !== 'text') continue;
+        try {
+          const value = JSON.parse(part.result.value);
+          // Keep failed/partial preparations and original render errors whole.
+          if (value?.prepare?.failed_step !== null || value?.render?.ok !== true
+              || !Array.isArray(value.prepare.files) || value.prepare.files.length > 6) continue;
+          const receipts = value.prepare.files;
+          if (!receipts.every((receipt) => {
+            const keys = receipt && Object.keys(receipt).sort().join(',');
+            return receipt && ['bytes,path,sha256', 'bytes,input_bytes,input_sha256,path,sha256'].includes(keys)
+              && typeof receipt.path === 'string' && Number.isSafeInteger(receipt.bytes) && receipt.bytes >= 0
+              && /^[0-9a-f]{64}$/.test(receipt.sha256)
+              && (keys === 'bytes,path,sha256' || (Number.isSafeInteger(receipt.input_bytes)
+                && receipt.input_bytes >= 0 && /^[0-9a-f]{64}$/.test(receipt.input_sha256)));
+          })) continue;
+          preparedWrites.set(part.id, receipts);
+        } catch { /* Non-receipt results keep the complete authored input. */ }
+      }
+      for (const message of event.messages) for (let i = 0; i < (message.content || []).length; i++) {
+        const part = message.content[i], receipts = preparedWrites.get(part.id);
+        if (part.type !== 'tool-call' || part.name !== 'cover_render' || !receipts
+            || !Array.isArray(part.input?.prepare?.files)) continue;
+        const files = [...part.input.prepare.files];
+        for (let at = 0; at < files.length; at++) {
+          const file = files[at], receipt = receipts.find((item) => item.path === file.path);
+          if (!receipt || typeof file.text !== 'string'
+              || Buffer.byteLength(file.text) !== (receipt.input_bytes ?? receipt.bytes)
+              || sha(file.text) !== (receipt.input_sha256 ?? receipt.sha256)) continue;
+          try {
+            const bytes = await fs.readFile(await safeExisting(job.work_dir, receipt.path));
+            if (bytes.length !== receipt.bytes || sha(bytes) !== receipt.sha256) continue;
+            files[at] = { ...file, text: (receipt.input_sha256
+              ? '[Authored input verified; current stored file includes managed font/CSP in ' : '[Exact text saved in ')
+              + receipt.path + '; bytes=' + receipt.bytes + '; sha256=' + receipt.sha256
+              + (receipt.input_sha256 ? '; input_bytes=' + receipt.input_bytes + '; input_sha256=' + receipt.input_sha256 : '')
+              + '. Use cover_read to retrieve it.]' };
+          } catch { /* Changed, missing or disallowed files remain full text. */ }
+        }
+        message.content[i] = { ...part, input: { ...part.input, prepare: { ...part.input.prepare, files } } };
+      }
       event.messages = summaryMaterial(event.messages);
       event.options = { ...event.options, maxTokens: job.compaction_output_tokens };
     });
@@ -959,7 +1086,15 @@ try {
   if (job.mode !== 'inspect') {
     if (job.mode === 'revise') { checkpoint.revision_count = (checkpoint.revision_count || 0) + 1; await atomicJSON(checkpointPath, checkpoint); }
     const files = [];
-    for (const image of job.images || []) files.push({ ...await imageFile(job.work_dir, image.path), ...(image.name ? { name: image.name } : {}) });
+    for (const image of job.images || []) {
+      const preview = image.inspection_path !== undefined;
+      if ((preview && (typeof image.inspection_path !== 'string' || !/^[a-f0-9]{64}$/.test(image.inspection_sha256)))
+          || (!preview && image.inspection_sha256 !== undefined)) throw error('INSPECTION_IMAGE_BINDING_INVALID');
+      const file = await imageFile(job.work_dir, preview ? image.inspection_path : image.path);
+      if (preview && sha(Buffer.from(file.uri.slice(file.uri.indexOf(',') + 1), 'base64')) !== image.inspection_sha256)
+        throw error('INSPECTION_IMAGE_BINDING_INVALID');
+      files.push({ ...file, ...(image.name ? { name: image.name } : {}) });
+    }
     await sdk.sessions.prompt({ sessionID: session.id, text: job.prompt, skills: [{ id: 'editable-design' }], files });
     await sdk.sessions.wait({ sessionID: session.id });
   }
