@@ -1321,6 +1321,36 @@ def match_ready_image(user_id: str, reference_ids: Iterable[str], payload: bytes
     return None
 
 
+def get_ready_media_reference(
+    reference_id: str,
+    *,
+    user_id: str,
+    purpose: str | None = None,
+    now: datetime | None = None,
+) -> MediaReference:
+    """Read owner-bound metadata before reserving memory for the object body.
+
+    This does not access the object backend or establish object availability.
+    The later load_media_bytes call still verifies the original bytes/metadata.
+    """
+    subject_hash = idempotency.operation_subject_hash(str(user_id or ""))
+    row = db.fetchone(
+        "SELECT * FROM private_media_refs WHERE id=? AND subject_hash=?",
+        (str(uuid.UUID(reference_id)), subject_hash),
+    )
+    if not row:
+        raise MediaReferenceUnavailable()
+    reference = _media_reference_from_row(row)
+    if (
+        reference.state != "ready"
+        or _utc(now) >= datetime.fromisoformat(reference.expires_at)
+        or (purpose is not None and reference.purpose != purpose)
+        or _reference_key(reference) is None
+    ):
+        raise MediaReferenceUnavailable()
+    return reference
+
+
 def load_media_bytes(
     reference_id: str,
     *,
