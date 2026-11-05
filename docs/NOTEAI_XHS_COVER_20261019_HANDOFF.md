@@ -5576,3 +5576,97 @@ Root已将同一未答预算决定集中重述：A96→106/原总100→110（追
 E/CAPACITY-PRODUCTION-RELEASE.INDEPENDENT-REVIEW001.json5458/d17d238f已独立保存：真实FULL/stdout、15源指纹/六quota/资源值/重建netns保持核对，无确定发布偏差；补核首次激活前closed quiet61.5158秒（不是postOPEN压力测试）及05:08postOPEN身份、UNKNOWN保留。PC/H5只是signedout公开入口/正常登录弹层，完整身份流程、真实供应商吞吐、3140商家PNG/保存改字重开下载和唯一8分结算尚未完成。
 
 功能提交7081a6b8已生产，文档此前23416625已推；本轮仅追加真实审核引用，不重测试/云/模型或生产操作。唯一负责人仍Root，本窗口不向未启动的窗口假称交接完成。下一付费分支等待刚集中发出的A106/原总110明确决定，现A96/原100不变；认证UI当前signedout需正常9531登录/OTP，未发送短信或绕过。其余本轮非付费实现、受控Linux、原发布及公开页核验已完成，无正在运行的云/模型请求。没有后台自动续跑承诺；新明确答复后从同P当前指针、actualruntime7081/1c32继续，不重本次已成功发布/0033或旧未知请求。
+
+
+### 2026-11-05T05:23:17.306924+00:00 — CURRENT：收到充值内自主真实验收授权，先按实际失败查因，未创建新任务
+
+用户明确允许提高真实封面验收额度，在已充值范围内无需再逐小额询问，并要求结合修复版本查验原因、禁止盲重试。此新授权取代旧A96/原100及待答A106/110的小额度边界，但不清零任何已发生费用或UNKNOWN，不授权新充值/权限/资源。Root同官方费用中心实际刷新同account2104126036可用44.16元，E/COVER-R15-FINANCE-ACTUAL001.json/png；不是拿50本金当当前余额。先内部A106/合计110、新任务MAX13083m（priorA92917+preA3927保）逐次保护；若后续必要仅在实际充值余额内自主调节，不重复问。
+
+原生产仍7081/1c32/API7a014897/OPEN，实际HEADf06c9014，代码无未提交改动。R14失败精确COVER_VERIFY_BUDGET_EXHAUSTED，10physical全knownHTTP200/0supplierUNKNOWN、render/check0/无成品、已退8；R13首HASH_NOT_ORIGINAL已有bytes canonical修复，PREVIOUS_TOOL_UNKNOWN不能冒成供应商未知或新根因。Root安排独立三线只读查因、后半保存改字下载零模型核验、费用/caller核对；先限定当前原任务/9ref/原状态只读，再决定生成，不重原旧任务/未知调用。当前新UUID/新job/付费call均0。权威P current_resume_pointer已接续r15_repaired_real_acceptance，同noteai-xhs-cover-20261019，不建立另一任务/发布体系。
+
+
+### 2026-11-05T05:41:07.785858+00:00 — CURRENT：R14预算根因免费复现、九图与报价真有效；新工具衔接P1在调用前已拦
+
+原current7081只读precheck/t-sz07260l9vsqku8 actualSuccess0/D0，9张真实OSS读取逐byte/hash/owner/TTL与R14原report相同，总27817886B，最早expire07:48:21Z；当前policy formalV3/3天，quote8/可用262（月2+wallet260），R13/R14均failed/refund1/complete0/net0。E/COVER-R15-CURRENT-READONLY-PRECHECK001.POLL001.OUTPUT.txt。无新client/task/模型。
+
+独立后半链E/COVER-POSTHALF-7081.READONLY-LOCAL001.json6937/bc3f6cd0：限定9组件source=7081、原照canonical/保存重开唯一8/改字保存失败恢复/未交付不扣4target，实际download AST owner/expiry/free+六QCFalse必拒，未见当前新确定P0/P1；非真实商家成品。R14反事实E/R14-PREWIRE-BUDGET-CLASSIFICATION001.RESULT.json8031/a227b233：真实NodeSDK/Bridge/reserve/servicefail，9MockHTTP/9physical/9meter后第10个fullreserve3146被余3083拒，前后无新HTTP/physical UNKNOWN，业务failed/released8/net0；hostUNKNOWN只是Python未回本地pending10，不冒供应商未知。原fixture缺reasoningusage字段红保，无因此改产品。
+
+按新充值内授权，内部本任务MAX调15083m、A108000/合计112000（priorA92917/preA3927保），覆盖已知前段+后续QC和一次既有局改的13499m最坏预留；这只是执行保护而非重新问用户的边界，fresh44.16可用足够，旧已含的12.045未定价/UNKNOWN不双加累计或释放。原25min设计窗/质检/模型Prompt/3天/8分不改。
+
+真正新增P1是验收工具：原R15提交正常新任务后h.call reopen，而capacity wrapper仍要求所有activeFalse；新job queued/running会阻OPEN。独审用真实raw9b4/pub/WORK AST复现并封存R15-CAPACITY-TOOLS.INDEPENDENT-REVIEW001.json3459/07faf638 NO_GO，当前未调用该prepared/无付费。Root决定仅guardinstall且原operator/firsttask client-user-report-job-usage精准绑定时，核本guard实际61s/boot及Render证据后复用原R2/R4 reopen；其它phase保持capacitywrapper，全部停机前fullactive/fresh61不动，不造新的活动归因SQL或发布系统。唯一E修改owner quotaagent，resourceagent独审；Root仅P/docs/Git/云，功能源未改。下一修复独审→Root实际晚绑唯一UUID→原guardinstall/正常创建新任务→立刻复原OPEN→真实成品各项验收，不能以任一阶段当任务完成。
+
+
+### 2026-11-05T05:58:50.958694+00:00 — CURRENT：R15工具衔接修复独审通过，已派发同镜像费用保护，尚无新付费任务
+
+R2独审E/R15-CAPACITY-TOOLS.INDEPENDENT-REVIEW002.json5707/5452ce16 GO，旧NO_GO001保。实际SUBMIT→新jobactiveTrue→原0eaa h.call→R2/R4 once OPEN组合绿，不伪装idle；错firstusage/intentSource/Env/futurequiet/未知receipt及remove其他phase均拒。Root只晚绑数据：CLIENT d1db2e84-5162-41a1-a000-8e49697e2081、CASE cover-verify-budget-r15-install/remove-20261105-r1、MAX15083/A108000，normalchild10392/3c8d7dc5、SUBMIT/STATUS嵌体重算，原helper/业务行为不变。完整引用E/R15-CAPACITY-TOOLS.BOUND-CLOSURE.json；新job/usage仍None，不是已生成。
+
+3固定工具段t-sz07262fy657gg0/t-sz07262i3xjwy68/t-sz07262nok3bim8及assemble/t-sz072630bjuzu9s全部实际Success0/D0，7新私有source逐whole等Root绑定结果（install36812/08dafcb5、submit42517/20570829、status38254/0cb7f1c4、remove30435/cc1a6401、base27995/8a95f854），无模型/服务写。当前唯一INSTALL001/t-sz072636fafxips已派发，原同image3guardEnv prepare/close/drain fresh61/API+Pay重建/verify；Root先读此原终态，不重复。旧API7a014897/image1c32在该操作前准确绑定，新CID待实际回执；Admin/static/模型源/付款不改。费用仍旧A92917+preA3927，当前没有新的task/provider调用。
+
+实际成功verified且CLOSED后立即由Root执行同固定CLIENT的原SUBMIT001（已具体授权预算/真实9图/onecover），只创建一次，补好的normaloperator/firsttask证明后立刻原OPEN。接着原STATUS/hostdiag跟同job，结果未知不重发，终态先保账并移除临时guard，再保存重开/免费改字/真实PNG下载交付；没有后台独立controller。权威P当前r15恢复入口含所有实际Invoke及晚绑refs，阶段报告非停止条件。
+
+
+### 2026-11-05T06:31:04.643221+00:00 — CURRENT：R15真实终态已知deadline，停止新生成并定位首渲染前流程
+
+原SUBMIT001/t-sz07263hhlgka2o实际仅创建CLIENTd1db2e84-5162-41a1-a000-8e49697e2081、JOB63c50428-ed02-4df3-818a-dd8120f09838、USAGE99bf8e95-efaa-4c9d-81dd-842619ede822；新queued任务后原OPEN实际syntax0/reload0通过，工具衔接P1已真实消除。父API812c3d15/image1c32/profile222c仍3个临时guardenv；Payd4d/Adminc5d/static544c保持。正常worker于06:00:44承接。
+
+STATUS004/t-sz07265y3r4ndhc于06:28:14只读实际终态：06:21:45 failed/COVER_AGENT_TASK_DEADLINE、11physical全HTTP200、supplierUNKNOWN0、finalfalse/rev0；原8预留已全release（refund1/complete0/usage0），不是扣费交付。文本实价2.1260004元、1张concept未实账仍保0.760，逐call上取整本轮保守2.891；A92917+2891=95808m，外A3927不清。host下一primary11在sharedpermit前拒，remaining245040ms-margin140000=105040ms小于minimum180000，无此额外HTTP；localUNKNOWN不是供应商UNKNOWN。当前render/check0、view15/write7，无source/render/thinking拒绝，不能声称成品质量或存储失败。
+
+先恢复原3guardENV，再基于当前7081/精确时序定位模型交互为何未及时进入首渲染；独立分支仅看同scope host/Prompt，Root不盲目建R16、不重旧job或UNKNOWN。现有当前9refs最早07:48:21UTC过期，之后若确需新任务应按正常补传而非重跑报告。用户已授权实际充值内自主额度，后续不再小额询问。唯一权威P current_resume_pointer仍r15_repaired_real_acceptance，包含实际STATUS004/费用/无运行中paid；下一同REMOVE001只移3env且保全部容量参数/source7081，未知先查原Invoke。阶段失败不是整个任务结束，Root继续明确根因/最小修复/免费回归再真实验收。
+
+
+### 2026-11-05T06:34:42.452952+00:00 — CURRENT：R15临时guard已清、正常容量配置原样OPEN；首渲染前流程收敛修复中
+
+REMOVE001/t-sz072668itla41s实际Success0/D0，唯一同image1c32原publisher移除3guardenv并恢复OPEN（syntax0/reload0）；API7c588e831eda5feca7953e70a8327cf2a04717de23319bbfe23f5fd8edf93573/profile9524a3b4、Pay8ffeabbd055dfbf87ce299888b5d5b2c9ce5247138184af20feeaec243cd2d96/profilebb76、Adminc5d/static544c保持。source7081/原capacityENV/SDK2.1.2/JSAPI/历史UNKNOWN不变，SQL/provider0；无运行中paid或云controller。不能再重复REMOVE001。
+
+确定执行缺口不是渲染错误：当前host仅在内部使用25min期限，设计模型在Prompt/工具结果/系统上下文看不到实际剩余时间及阶段；R15在首次render前耗20m53s。Root授权单一sourceowner仅model/cover_agent_runtime.py+cover_agent_host/host.mjs补显式综合计划→同阶段批写→字体/契约→首预览→实际审图顺序，并在现有context hook追加独立、可替换的实际剩余时间/阶段反馈（不碰cover_write精确回执和图片结果，不延25min、不降Pro或跳QC）。7write不能证明7不同文件或重复循环。独立testowner仅新增定向Node入口验证；第三分支仅复用原builder/publisher准备2源delta，未新发布或模型。Root统一Git/真实发布/新任务，未重发R15。
+
+
+### 2026-11-05T06:52:04.068937+00:00 — CURRENT：74df两源最小修复已提交推送；真实时序补证完成，准备实际候选验证
+
+HEAD/功能74dfaa3e83100b51d071b32254aac3c50e3aa04d已推本codex分支，新增仅runtime Prompt/320000ms界传递、host已有context hook独立阶段/时钟反馈及一份定向test；无依赖、DB/报价/总期限/模型/原质量规则修改。最终runtime82321/d1fe036c、host70907/58cb16f4；QC局改mode由既有已验证revise事实决定，直接具体修正→重render→看图，不伪造concept已看或重复概念流程。初始两目标实际旧7081红2→新绿2（真实Node25+SDK+临时SQLite链2Mock200/1UNKNOWN不重发），追加revise helper实际1绿；原serial诊断4目标现proper.venv绿0.057s。barePython3.14第一次PIL导入失败属于环境、未进测试，换既有.venv3.12未装依赖；旧红均保。E/R15-PROGRESS-FEEDBACK-INDEPENDENT-REVIEW001.json及002为最终独审，当前test15466/8ca26a5d。
+
+原R15只读TIMING001/t-sz072671jnfszk0 actualSuccess：11 known调用reserve→meter总1218.025836s/首reserve到末meter1241.704569s，间隙23.678733s；末次Pro480.996427s/output14619，概念145.291207s。这些含HTTP/本地请求及计量处理，不是纯vendor推理网络；不能说本地写文件耗20min、每文件一轮或唯一原因已证。末次后write2→7，随后ordinal11被245040−140000<180000拒发。当前修复旨在帮助模型更早完整layout与首预览，不保证下一张时效/审美。E/COVER-R15-ACTUAL-TIMING-ANALYSIS001.json保边界。
+
+官方费用中心新实读可用41.29元（E/COVER-R16-FINANCE-ACTUAL001.json/png），用户充值内自主授权继续；priorA95808+preA3927保，旧UNKNOWN/未实价预留不释放或重复加。下一内部单任务保护20000m/A115808/合计119735m，低于余额扣旧未定价预留后的空间；这是执行保护，不再逐小额问。实际当前生产仍7081/image1c32/API7c588/Pay8ffe/profile9524/bb76、guardabsent/OPEN，Admin/static/WorkerC不变。
+
+Root以已审原replacementCOPY builder R4晚绑74df，精确runtime2/host4个linebyte delta从7081重建逐byte一致；26COPY/31closure/原SDK2.1.2/125层/同父保持，wire10934/Base6414580<24576。CAPACITY-BUILD004.PLAN已具体准备，尚未确认派发Invoke；先actualbuild→LinuxNode24同SDK三定向目标→原publisher仅imagepatch保完整capacityENV/回退1c32→真实verify/open。无重0033、100旧压力或生产支付。P current_resume_pointer现r16_progress_feedback_repaired_acceptance，唯一原任务体系；新cover client/job/usage仍None，只有实际候选上线后创建一次。Root继续到真实成品/保存改字重开下载/唯一8分，阶段提交不是停止。
+
+
+### 2026-11-05T07:15:50.520653+00:00 — CURRENT：74df真实候选36ec已构建；Linux验收工具错误已准确定位，仅环境窄修接续原候选
+
+BUILD004/t-sz072683k22szcw actualSuccess0/D0，36ec3e0bc33d84c42b8de51e69b0384ad3061dea8e357858ac660f4d7dbf4c7b/source74df，26COPY/31closure/29未改/125同层/SDK2.1.2，三正式服务未变。server build-model-capacity-20261105-r4.result.json7965/a0b5c20c；Root将stdout原JSON同sort字节封为E/CAPACITY-BUILD004.ACTUAL-RESULT.json，未冒已部署。三私有测试包parts实际t-sz07268m15e0xz4/t-sz07268p8p7fgg0/t-sz07268r9stgd8g全Success0/D0。
+
+QA1/t-sz0726964y0c6ww actualFailed1/D0，stdout0/stderr1544-61ca88fa。Root唯一readonly原错误t-sz07269l9pw4kcg核全字节：unittest导入fixture→cover_agent_artifacts→content_retention→db import init_db→sqliteconnect默认/app路径只读而unabletoopen。尚未进入任何目标，不是Pro/渲染/生产DB故障；候选/产品未因测试改动。工具最小R2只在所有测试/产品import前设置NOTEAI_SQLITE_PATH为owned/tmp/import.sqlite；保r1失败原件、同四模块包31461/191c84和三parts无需重传，unique r2 QA once/context/result。当前QA2/t-sz07269zzqzhngg已派发，必须先读同ID终态，未知不重发；Cloud计划E/COVER-PROGRESS-QA.R2.CLOUD.PLAN.json与工具元数据PLAN区分。先前一次Root把元数据PLAN直接给UI helper，因缺wire_path在填表/派发前失败；已固定规范化为准确RunCommand字段，无模型/外部任务副作用，不为该工具错误改产品。
+
+原薄publisher和闭窗回退独审已GO，E/COVER-PROGRESS-RELEASE.INDEPENDENT-REVIEW001.json6737/465aa025；adapter26087/69d24仅imagepatch保全部现有capacityENV，QA重用原资源/网关/0033证据并追加本新Node24三目标真收据；fresh61/fullactive/once与旧发布器函数相同，不重迁移。新closedhelper24137/9ccb8d06仅CASE/compat1c32两赋值变化、20原函数全同，未执行回退。Root正在原stage动作预置该私有helper，实际Invoke待UIACK，未close/switch任何生产。
+
+当前生产仍7081/1c32/API7c588/Pay8ffe/guardabsent/OPEN；WorkerC停、Admin/static/权益付款不变。新付费call0，R15成本/UNKNOWN未清，预算以充值内授权和fresh41.29继续。R16仅本机唯一CLIENT e102356c-b4fd-48ad-811c-7fb2f77f8112，job/usage仍None；私有R16 PARTIAL-BOUND索引/新replay server均保None拒执行，等待真正发布/正常创建后的实际身份。权威P仍r16_progress_feedback_repaired_acceptance，Root持续实际QA2→原发布→唯一新封面→保存重开改字下载，不将工具准备或提交当完成。
+
+
+### 2026-11-05T07:25:58.662138+00:00 — CURRENT生产切换前checkpoint：74df/36ec实际Linux3目标已过、原准备已成功
+
+QA2/t-sz07269zzqzhngg实际Success0/D0，Node24.22.1/SDK2.1.2三目标0fail/error/skip：模型真正收到单marker递减clock和concept→inspect_concept→first_render；原batchwrite/image/error结果保真，Mock2known200后1UNKNOWN不重发，revision仅具体QC修正导航。仅临时SQLite，networknone/无生产环境或mount/正式3CID未动/owned清理；server cover-progress-20261105-r2.qa.result.json2099/d987ecc7。QA1导入默认SQLite错误仅工具修复且原件保留；未把Mock当真实供应商/商家质量。
+
+新原publisher已真实prepare001/t-sz0726asxymu8sg Success0/D0，CASE release-cover-progress-feedback-20261105-r1 prepared，未close/switch。BOUND raw27726/ffabcf55与binding1346/259ba1d整pin存server cover-progress-release-adapter/binding-20261105-r1；newQA追加旧capacityQA3/Gateway/0033已知证据，未重历史。closedhelper实际stage/t-sz0726a50ce7k74 Success0/D0，24137/9ccb8d06，不执行回退。新PUBLISH001尾控制流/whole-reader与原PUBLISH003逐byte同，仅两个实际文件pin及终态标签；独立作者已GO，纠正一个只输出的source_expected旧7081标签为74df，判断/动作未变。原close/drain/fullactive/真实61quiet/配对切换/verify/config/signedready/OPEN，prestop失败原一次abort，stop后先读同Invoke原终态再已审closedrestore31closure→1c32，保护用户工作/UNKNOWN不清。
+
+Root下一唯一COVER-PROGRESS-RELEASE-PUBLISH001.PLAN.json token 344bb46d-d881-4486-ac93-eb0bfe74d1f6，尚未派发；wire5125/Base646836，无新控制器或SQL/模型。生产此刻7081/image1c32/API7c588/Pay8ffe/OPEN，静态544c/Admin/WorkerC停保持。权威P currentr16已含原prepare/QA/closedstage收据，只有Root切换。随后实际新runtime到后才晚绑R16已有CLIENTe102…与费用保护/正常handler，不复活R15。原9ref最早07:48:21UTC过期，启动前正常校验，若过期只正常补传原9张，不重报告或停全任务。用户充值内自主费用授权，fresh41.29、全部旧费用未知和A95808/pre3927保。真实PNG/保存改字重开下载仍未完成，Root持续执行。
+
+
+### 2026-11-05T08:03:49.254671+00:00 — CURRENT：74df/36ec实际已上线并OPEN；验收补传调用器缺新request context已准确查明，未新建付费封面
+
+PUBLISH001/t-sz0726baag6z7cw actualSuccess0/D0，07:28:04–07:29:28UTC，原close/drain/切换/31源/模型DB/AdminPay/config/signedready/OPEN真实通过；full实际回执E/COVER-PROGRESS-RELEASE-PUBLISH001.POLL001.RESULT.FULL.json与OUTPUT原件已保存。生产API116007df7b58fc89588e658d3cdc67c4d3f5eeac76777975dbc3fd9938c83567/image36ec/profile58a177db，Pay2cfa203c3b0cf606e40e6eecfc4dab61cca07dde734a86bad3097cd7470cafc6/原4e4d/bb76，Adminc5d/static544c/WorkerC停保持；全部capacityENV保留，source74df，guard仍absent。API新normalreadiness/SELECT1/localmodel/sources真通过，不冒PID1queue或实际供应商满载。
+
+曾遇UI证据传输错误，未重发原发布：旧tab.clipboard返回过时页面全文；大型响应的官方查看日志q只带RequestId，不能当完整响应。已用实际Chrome原生response编辑器全选复制→自己新建且显式保存在E/COVER-RECEIPT-LOCAL-SCRATCH-20261105.txt的本机纯文本→校验原Invoke后保存完整JSON，拿到11792字符真正PUB回执。TextEdit必须Raise后点击可见滚动区才paste/save，不能点击整个长文本文本框中心（offscreen）。CUA保留可复用coverUiSaveNativeActual；小响应可用coverUiSaveObservedResult读取实际DOM日志q，不能调用隐藏Monaco状态或臆造终态。
+
+R16.RUNTIME-BOUND已用实际新runtime+raw27726/ffabcf55/binding1346/259ba1d晚绑6源，唯一CLIENTe102不变；所有新工具包/INSTALL/SUBMIT仍未派发，job/usageNone、model0，预算/UNKNOWN全保。原9业务refs07:48即将/已过期，服务器实际原图fixture仍完整通过9JPEG/27827473B整pin；根本不需要重跑报告或因历史原件停工。NORMAL-NINE-REUPLOAD002/t-sz0726d122oakg0首步已知失败，原baselineknownread，upload1 HTTP503/failure_stage normal_upload_image，0model/0cover/无storedref。原readonly记录t-sz0726dl6j34we8全保两个回执；source精确证实旧直接CHILD缺当前public.dispatch的Invocation，media_worker_slot在normalize/store前拒绝，非普通网页同路径已坏。只有私有上传调用器修同正常route/owner/trace上下文；不改产品或假造usage积分，不重原失败CASE。旧META/parts包尚本机prepared未staged，刷新成功后4个CURRENT_SOURCE_*及post CURRENT_SOURCE_MANIFEST一起重绑，历史EXPECTED_SOURCE_*和CLIENT不动。
+
+独立R16-POST-COVER-DIRECT-ADMISSION.INDEPENDENT-REVIEW001.json2584/460eb2f3核容量on/InvocationNone的真实4薄入口：read/list/download/adjust无同类media_worker_slot必败，submit由真CoverWorker自建Invocation；免费改字用_EDIT_SLOT，不添假context。该证据仅真实入口+下游stub，未冒实际成品质量。新资金官方当前仍41.29（FINANCE-ACTUAL002），未新增paidcall；Root下一修上传caller并实补传→更新材料/包→原guardinstall→只创R16一张→全链交付。权威P/currentpointer仍r16，同一任务、唯Root发布，不在此阶段停止。
+
+
+### 2026-11-05T08:17:46.250106+00:00 — CURRENT真实验收调用前：新九图正常补传已成功，最终R16材料包已ready，尚未新增paid/job
+
+NORMAL-NINE-REUPLOAD003/t-sz0726ewllxj94w实际Success0/D0，服务器原九图逐byte验证后原api.upload_image+set_report_cover_sources正常保存9张/逐OSS GET owner/hash/bytes/expiry通过；新ref08:08:44–08:09:21UTC生成、次日同刻24h业务有效期/原OSS2d保持，报告core/旧jobs/financial指纹未变，0model/0cover。E/NORMAL-NINE-REUPLOAD003.NEW-MANIFEST.json4458/2eddf5ff，原图片27827473B正常归一化后27817886B，与旧正常素材同canonical bytes，只新refs。上次R2首步已知503在处理/存储前，旧失败保；本次只修私有CHILD与public.dispatch相同Invocation(USER/UUID,/upload-image)+finally close/reset，真实队列red→green且成功/异常票归零，没改产品/权限/usage/积分。
+
+R16材料绑定仅submit4个CURRENT_SOURCE/provenance及post CURRENT_SOURCE_MANIFEST数据；历史EXPECTED_SOURCE原九图身份、client e102、source74df/image36ec/API116/正常publisher/budget20/cases全不变。submit child10392/3ef64c7c，5commonbase SUBMIT_SHA同步，post28281/42184cdb；6源compile/归一AST原逻辑全等。最新索引MATERIAL-BOUND24976/e29123f2、PACKAGE7100/33b11d5d；旧短暂cf0/c1c只metadata快照，6源/wire/ClientToken始终没变。旧4片Runtime包只本机未用，绝不混派。final三片11000/11000/9931、packed31931/e554d303、最大官方Base6419352<24KB；3part→ASSEMBLE001→原COVER-R16-MATERIAL-INSTALL001→SUBMIT001各已有真正RunCommand参数，Root正接续第一片，实际Invoke待ACK，model/新job仍0。
+
+当前生产仍74df/36ec/API116/Pay2cfa/profile58a/bb76/guardabsent/OPEN、静态/Admin/WorkerC停不变；无运行中paid。fresh资金41.29/oldUNKNOWN及费用保守A95808+pre3927保持；单新任务内部20元逐次保护、预计4–8元，用户已明确充值内自主提高验收无需再问，不新增充值/权限/资源。只有真正合格保存才唯一8分，新封面3天；失败/未知按原状态处理，不重未知旧请求。Root从权威P r16持续到实际PNG与保存重开/免费改字/下载/PC-H5，不以此checkpoint或commit结束。
