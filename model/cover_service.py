@@ -24,6 +24,44 @@ import model_admission
 import private_storage
 import public_product
 
+_COVER_MAINTENANCE_SECONDS = 5
+_COVER_RECOVERY_LOCK = threading.Lock()
+_COVER_ACTIVE_LOCK = threading.Lock()
+_COVER_ACTIVE_CLAIMS = 0
+
+
+def _recover_cover_jobs(*, active_only=False):
+    # The dispatch loop and maintenance share the original recovery authority.
+    # Never overlap scans or enqueue a new recovery while an old one is running.
+    if active_only:
+        with _COVER_ACTIVE_LOCK:
+            if not _COVER_ACTIVE_CLAIMS:
+                return
+    with _COVER_RECOVERY_LOCK:
+        if active_only:
+            with _COVER_ACTIVE_LOCK:
+                if not _COVER_ACTIVE_CLAIMS:
+                    return
+        return cover_jobs.recover_jobs()
+
+
+async def _await_owned_work(awaitable):
+    """Drain the original thread/task on shutdown; cancellation is not replay."""
+    work = asyncio.ensure_future(awaitable)
+    try:
+        return await asyncio.shield(work)
+    except asyncio.CancelledError:
+        while not work.done():
+            try:
+                await asyncio.shield(work)
+            except asyncio.CancelledError:
+                continue
+            except Exception:
+                break
+        if not work.cancelled():
+            work.exception()  # Retrieve an error without replacing cancellation.
+        raise
+
 
 def _store_image(user_id, body, *, ttl_seconds=cover_settings.RETENTION_SECONDS, lifecycle="cover_3d_v1"):
     return private_storage.store_media_bytes(user_id, purpose="image", content_type="image/png",
@@ -163,7 +201,8 @@ def _run_claim(claim, *, runtime=None):
 
 def run_next(*, runtime=None):
     """One worker slot; blocked users do not monopolize the pending queue."""
-    cover_jobs.recover_jobs()
+    global _COVER_ACTIVE_CLAIMS
+    _recover_cover_jobs()
     import cover_agent_runtime
     cover_agent_runtime.cleanup_stale_workspaces(limit=16)
     rows = db.fetchall("SELECT q.id,q.user_id FROM cover_jobs q WHERE q.status='queued' AND NOT EXISTS "
@@ -179,12 +218,17 @@ def run_next(*, runtime=None):
                 continue
         claim = cover_jobs.claim_job(row["id"])
         if claim:
+            with _COVER_ACTIVE_LOCK:
+                _COVER_ACTIVE_CLAIMS += 1
             try:
                 return _run_claim(claim, runtime=runtime)
             except model_admission.AdmissionError:
                 # A report won the race before any cover provider call. Its
                 # original provider-free lease can be recovered after expiry.
                 return None
+            finally:
+                with _COVER_ACTIVE_LOCK:
+                    _COVER_ACTIVE_CLAIMS -= 1
     return None
 
 
@@ -192,29 +236,52 @@ class CoverWorker:
     def __init__(self):
         self.stopping = asyncio.Event()
         self.task = None
+        self.maintenance_task = None
 
     def start(self):
         if self.task is None:
             self.task = asyncio.create_task(self.loop())
+            self.maintenance_task = asyncio.create_task(self.maintenance_loop())
         return self
 
     async def loop(self):
-        while not self.stopping.is_set():
-            try:
-                await asyncio.to_thread(run_next)
-            except Exception:
-                logging.warning("cover_worker_state_requires_verification")
-            try:
-                await asyncio.wait_for(self.stopping.wait(), timeout=1)
-            except asyncio.TimeoutError:
-                pass
+        try:
+            while not self.stopping.is_set():
+                try:
+                    await _await_owned_work(asyncio.to_thread(run_next))
+                except Exception:
+                    logging.warning("cover_worker_state_requires_verification")
+                try:
+                    await asyncio.wait_for(self.stopping.wait(), timeout=1)
+                except asyncio.TimeoutError:
+                    pass
+        finally:
+            self.stopping.set()
+
+    async def maintenance_loop(self):
+        try:
+            while not self.stopping.is_set():
+                try:
+                    await asyncio.wait_for(self.stopping.wait(), timeout=_COVER_MAINTENANCE_SECONDS)
+                    return
+                except asyncio.TimeoutError:
+                    pass
+                if self.stopping.is_set():
+                    return
+                try:
+                    await _await_owned_work(asyncio.to_thread(_recover_cover_jobs, active_only=True))
+                except Exception:
+                    logging.warning("cover_maintenance_state_requires_verification")
+        finally:
+            self.stopping.set()
 
     async def stop(self):
         self.stopping.set()
-        if self.task is not None:
+        tasks = [task for task in (self.task, self.maintenance_task) if task is not None]
+        if tasks:
             # Never interpret API shutdown as a user cancellation. A forced
             # process loss is handled by the persisted original lease/intents.
-            await asyncio.shield(self.task)
+            await _await_owned_work(asyncio.gather(*tasks, return_exceptions=True))
 
 
 def adjust(user_id, job_id, *, text, position, expected_revision, layer_id=None):
