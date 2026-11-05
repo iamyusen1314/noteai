@@ -5707,3 +5707,25 @@ REMOVE001/t-sz0726kblchi0w0 actualSuccess0/D0，原same36ec移3guard并verify/re
 HOST003/t-sz0726kp6bqfsw0及TIMING001/t-sz0726kpsk0eolc均实际Success0/D0，保留最终receipt：lasttitle-a几何同上；18次模型请求计数含最后nextordinal18未发送（remaining289352−margin140000=useful149352<180000min）。hostUNKNOWN/pending字段不是供应商UNKNOWN，18真实physical全200，真实vendorUNKNOWN0。实际reserve→meter总1131.806152s/首reserve至末meter1191.419809s/间隙59.613657s，最大289.085149s输出8834tokens，concept132.229385s；这些含本地处理，不可冒纯推理时延或把所有后10次调用算成同一geometryloop。E/COVER-R16-ACTUAL-TIMING-ANALYSIS001.json封边界；4render尝试/7check只保last一条，不能说4次相同错误。
 
 下一sourceowner capacity_full_flow_resources唯一host.mjs：保原result不变，仅在已有replaceable progress/context补精确box/Range/overflow分类与CSS局改方向，成功render清旧提示，不自动修改HTML/图像/allowed，不降检查或延25min。testowner capacity_quota_scheduler_design仅定向tests，要求真实SDK下一payload有一份hint、成功后消旧，原CLI/实际Node+Chromium复现R16同几何拒→收紧纯文字leaf同safearea/subject/font/字后真PNG及免费改字过；不冒商家审美。reviewer capacity_final_release_review仅原builder/publisher必要元数据准备和最终独审。Root唯一Git/P/docs/云发布；新source/候选/新job均未发生，原充值内授权有效但实际修复/离线回归前不付费。
+
+
+### 2026-11-05T09:33:13.331539+00:00 — CURRENT：3ae9几何反馈最小修复已提交，本机真实SDK/CLI与独审GO，准备生产同款Linux候选
+
+功能commit3ae9f512fb3e3c43e2b0aaaaf3b7f0a8d18a0b87，唯一产品文件host.mjs76501/6eb719e0；runtime/CLI/provider/模型/25min/320s派发边界/照片字体主体/计量不变。安全hint按实际measuredrejection区分element/Range/paint；明确leaf CSS位置宽度修而非重换字体或扩大safearea。设计写入后RECHECK_REQUIRED不再带旧坐标，真render成功后null；closure独立于历史checkpoint，后续write不复活旧错误。原tool code/detail/image结果逐字保。新测试18122/e6cf3fa1归Root，旧progress15466/8ca26未动；无新依赖/DB/支付/页面改版。
+
+E/R16-TEXT-GEOMETRY-LOCAL-VERIFICATION001.json3003/51cb63db：实际Node+Chrome同R16fullwidth几何真拒（Range内/overflowfalse），仅leafleft210/width1380同字体文字allowed/subject后1776×2368真PNG及bundle capture/restore后普通改字过；真正SDK旧74df RED003因未含具体hint红，新SDK GREEN003实际8Mock200+1UNKNOWN一次/16.779s绿，下一payload单份具体坐标分类，改后无旧coords、render后hint消、原拒绝对象不改、真PNG/thumbnail送SDK。受影响回归5PASS/61.011s/0skip，包含原进度/9个clipping-allowed-canvas-subject负例。最初SDK夹具original-0.png不在正式assets下先ENOENT，已只修fixture为assets/source-1.png；旧失败原件保，不为夹具改产品或付费。以上是本机功能验证，非真实供应商/商家审美。
+
+独审E/COVER-GEOMETRY-HOST.INDEPENDENT-REVIEW001.json5316/c6d31760 GO/noP0P1，另实际helper恶意layer/rect额外字段/截断Range与clipping分支安全probe过。Root核精确source/testpins及gitdiffcheck，提交后不重复旧大验收。当前生产仍74df/36ec/APIa2fc/Pay99f/normalprofiles58a-bb76/guardabsent/OPEN。下一原BUILD005仅hostdelta基于R4/36ec重建原26COPY31closure125层，QAowner原R2机械适配2真实LinuxNode+Chromium目标；reviewer原publisher仅必要元数据更新，旧100mixedQA准确固定7081/1c32复用，不冒本新source或重0033/支付。Root唯一云派发/发布，未新paid/job。
+
+资金官方新只读实见36.54元（E/COVER-R17-FINANCE-ACTUAL001.json/png，临时tab已关闭），R16概念0.76仍未实价预留/旧UNKNOWN全保，实际模型成本与充值本金不混算；用户充值内自主授权持续，不重复小额问。现权威P仍R16分支记录实际失败+修复，后续真source发布后才创建下一唯一期待交付任务，不重旧R16请求。
+
+
+### 2026-11-05T09:49:26.027065+00:00 — CURRENT：3ae9候选1f34与生产同款Linux两目标真实通过；进入原发布前具体化
+
+BUILD005/t-sz0726mt0vs3gu8 actualSuccess0/D0：source3ae9/image1f341b6e38d8bfae2548acc93e006e54d6f666363e4cdc35740f85dd6090df15，原26COPY/31closure/125层，仅host58cb→6eb/其他30及权限不变，无新依赖/迁移；formal3CID未变。server build-model-capacity-20261105-r5.result.json7722/a90d8135由实际m.put同sortJSON与stdout规范化字节封存，下一QA已真实m.pinned核此原文件通过，不猜image。two delta parts t-sz0726n0b2mwq2o/t-sz0726n1inrmku8实际Success0/D0，旧31461/191c84四fixture包直接复用。两PART.PLAN本是metadata，Root误给UI helper在任何UI前typeerror；只新增标准化.CLOUD.PLAN完整字段/Base64小于24K，未改冻结原件/产品或重发外部任务。后续正式QA明确CLOUD.PLAN，避免混名。
+
+QA/t-sz0726nh051tnnk actualSuccess0/D0：Node24.22.1/SDK2.1.2/原277B Chromium wrapper，2targets0fail/error/skip；实际同几何CLI拒→仅leafleft/width局改真PNG+bundle restore/edit；真实SDK8Mock200+1UNKNOWN一次，下一request有具体hint、写后无旧坐标、真render后消旧、实际PNG/thumbnail送SDK。仅合成fixture图/临时SQLite，networknone/无prod环境或mount/正式3CID不变/owned清理确认，供应商0/生产DB0；不冒真实商家封面质量。server cover-geometry-20261105-r1.qa.result.json2310/2c0738ac，E/COVER-GEOMETRY-QA.POLL001.OUTPUT.txt完整实际证据。旧100mixed7081/1c32与原0033/Gateway证据正确复用，不冒新source或重测未变范围。
+
+原closedhelper onlyCASEgeometry-r1/兼容36ec数据变化20函数不变，实际stage t-sz0726njghhjhts Success0/D0，未执行回退。reviewer现用实际QA晚绑原publisher15关键函数不变，normalparent真实R16remove/a2fc-99f/profile58a-bb76/source74df-image36ec；新candidate3ae9/1f34/QA2c073，旧capacityQA basis独立固定7081/1c32，避免把继承证明冒成本轮。Root下一实际stage/prepare→同原fresh61/drain/成对切换verify/OPEN，仅Root生产发布；此刻生产尚未切，guardabsent/OPEN。
+
+同任务下一R17仅由原owner准备UNBOUND数据副本，CLIENT/newruntime/newpubpins保持None，待真正发布后晚绑；必须全替实际R16marker与with_name路径且保历史存在合同。原R3正常九图有效至Nov6可复用，不重传/重报告。下一internal taskMax20元/priorA101361→Acap121361/preA3927，官方余额36.54减旧UNKNOWN12.045及R16concept0.76预留后仍有空间，用户充值内自主授权持续；这只是执行保护，未新增budget批准、paid或任务。Root继续实际发布及真实单张保存/改字/下载交付，不在此里程碑结束。
