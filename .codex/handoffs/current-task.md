@@ -35843,3 +35843,65 @@ INSTALL001/t-sz07272jc3qd7nk外层SuccessExit0，但实际final为HOLD_KNOWN_BEF
 原onlyreader QUIET-READ001/t-sz07273ecd1uubk actualSuccess0/D0，E/COVER-R18-INSTALL-QUIET-READ001.POLL001.OUTPUT.txt。原installCASE/repair journal27750/cf194386：18实际观察/总91.046s/上限90s，2busy/2reset只有API own_other_active_transactions=1（单调9517418.4575和9517449.8990，约31.44s间隔）；所有模型/用户lease/cover/Node字段为0，最后连续quiet41.55s不足61。originaldrain真true，api-stop.intent/verified/quiet-success均false，close/abort once已消费。不能凭开始末尾activefalse或猜测healthcheck就放宽保护。当前source1bd5/image1f80/d8API/6ddPay/normalOPEN保持，taskCLIENT f59d固定、job/usageNone、0newpaid，全部旧费用和UNKNOWN保。
 
 作者正在定位该短TX的真实SQL类别（仅有界只读分类，不输出rawSQL/PII/密钥），再提出原known-before-stop技术续接；不删marker、不造verified、不新建第二套发布控制器或业务轮次，不在cause未明前再submit。新R2parts/assembler/status本机+实际server全成功/6pin相等证据继续复用；staging3旧失败保。Root继续，不因这可查故障停止或请用户代作技术判断。另existingworker串行/排队30min/initialrender未绑media2只读风险已交证E/COVER-WORKER-QUEUE-CAPACITY.READONLY001.json13713/fae7189，尚无额外产品改动。
+
+
+### 2026-11-05T13:46:56.072432+00:00 — CURRENT：TECH2已实暂存/独审GO，Ali正常登录恢复中；R18仍0任务/0新增付费
+
+实际HEAD ec408112/codex原worktree，functional1bd5/image1f80正常OPEN；无guard/新job/usage。TECH2三parts/assemble/status已actualSuccess0/D0且六源整pin匹配，sampler t-sz072759tncw54w已150读/150rollback/closed；只观察到一次literal BEGIN，不能归因旧两短事务。原失败INSTALL/SUBMIT不重放。新INSTALL计划047a780b的界面点击遇需要登录，无ACK，不能当作运行中。延原180s观察/61s连续quiet/all TX保护和业务installedverified判据；恢复登录后直接该soleINSTALL，再实际成功才同CLIENT f59d9b47唯一正常Submit。无第二轮client或供应商请求。
+
+正常Ali会话过期，原手机号授权恢复；短信表单输入事件与持续loading已实际观察，正常reload/官方独立登录页恢复中，未保存OTP/密码/凭据。当前没有云controller在途；只是该分支待正常登录，不扩为整任务停止。旧A105.627/外A3.927/总109.554、UNKNOWN12.045及R16/R17概念未实价预留保持，最新实际余额31.53未冒更新。
+
+并行最小worker维护修复仅本机：cover_service.py332af54d+test1fb8b962，3真实临时DB/worker受控目标已通过、原1bd5排队过期退分延迟有RED证；5s原recover/共锁/取消join，不加生成并发，不改claim/存储/结算/期限。E/COVER-WORKER-MAINTENANCE.LOCAL002.json为证，尚未提交/上线，R18已知终态且guard移除后再集成。真实单worker串行/queued30min容量仍未解决，不能冒10用户吞吐通过。Root继续登录恢复与同任务真PNG、3天保存找回/免费改字下载/唯一8分，checkpoint不是停止条件。
+
+
+### 2026-11-05T13:55:59.018565+00:00 — CURRENT：Ali已正常恢复，TECH2实际安装成功，唯一R18已受理并reopen0，跟踪同job
+
+TECH2INSTALL t-sz07279gsh5oge8 actualSuccess0/D0，实际业务末installedverified/closed而非HOLD；verify configuration_only true、MAX16000/since13:51:16.132730Z/owner3140、原image1f80/恢复两源/fullprofiles/normalSELECT1皆真。API7b200ba7f9cc12a40e13da37134ebac982b54b92f853225f4802bab3eb9ba786/profile1c209aa0、Payd64278734fcd332e3042397987a1eb26700e0b870fb4ee2f7a7d85fc93b50fc0/原image4e4d/profilebb76，Admin/static/容量ENV/WorkerC停不变。Ali正常独立官方登录组件恢复，无安全设置/权限更改或凭据存档。
+
+紧接唯一TECH2SUBMIT t-sz07279q10uj7cw actualSuccess0/D0，normalhandler13:54:10.949790Z创建JOB513ac703-6a9f-4d9a-ba06-33547938fccc、USAGE6964cadc-d77f-4921-b243-9fccfbcc83ce，同CLIENT f59d9b47；原九refs/hash/bytes再次正常核验，firsttask正常绑定、reopen0，不造session/token/新worker。8分reservation/usage0，尚无PNG，不冒生成或结算成功。E两完整POLL原件是证，不重派INSTALL/Submit。权威P已切实际job，当前无云controller在途；Root继续同任务状态与真实成品，模型任务可在运行。
+
+原NOEDIT只数据晚绑实际job，未completed前不执行；终态后真实PNG/6QC/3天持久化/normal重开免费改字下载/唯一8，再原guardremove恢复normal配置。维护候选仍未部署，不能在此任务中重启API。旧失败与A105.627/preA3.927/UNKNOWN12.045和两概念未实价继续保；新成本从同R18实际账本读，不清零历史、不重未知。
+
+
+### 2026-11-05T14:10:50.442783+00:00 — CURRENT：R18同job运行设计，维护缺口已修成active-only提交d5f4但未上线
+
+STATUS004/t-sz0727awwusbpxc actualSuccess0/D0，14:07:28Z同JOB513ac703运行design，8physical=7known200含概念+1Pro在途，UNKNOWN0；文本1.690872元，newbound5.601含在途3.146预留/概念0.76未实价，非实付总。8分仍reservation、complete0/usage0；不能把inflight当UNKNOWN或重发。原POST仅实际job/usage外7内2字段晚绑，Root核actualSubmit/AST与真实tempROOT合同，NOEDIT-STAGE/t-sz0727ai36ismbk actualSuccess0/D0，未执行reader；completed真实PNG后才读。PC/H5旧回放器只晚绑4实际provenance常量，13584/c678345d，DTO/PNG仍None/没开server，不冒真实用户会话。
+
+维护原离线候选无条件5srecover会新增idle短TX，可能干扰原61秒quiet；已局部修成真实claim活跃计数/恢复锁前后双查，idle新增DB0，原idle main recover照旧，最多一次已开始维护正常收尾。_run_claim/adjust/账本存储逐字不改，单worker不变，不忽略任何TX/不加release暂停层/不放宽61。最终source15462/2eb10fbf、test19587/4f8cdc43；实际4定向目标+增强真实mutex等待目标通过，旧无条件idle RED保，E/COVER-WORKER-MAINTENANCE.LOCAL003.json5477/c7b0ff58。Root本地功能提交d5f4fce9，仅此source/test，未push/构建/上线；R18终态且guard移除后再原发布集成，不在在途任务中重启API。
+
+剩余容量只读 E/COVER-WORKER-RENDER-RESIDENCY.READONLY001.json11570/d6f3d6ad：初始render/thumbnail旁路共享许可，整job不能持父buffer再嵌套预览子票。不能盲增worker/WEB_CONCURRENCY/64封面，需实际生命周期与真实3GiB峰值证后最小有界双job；这不是R18成品的新前置门禁。Root继续同任务实际执行诊断→真PNG/持久3天/找回免费改字下载/唯一8分，旧账/未知全保。
+
+
+### 2026-11-05T22:50:29.786524+00:00 — CURRENT：R18真实成品已成功、正常配置恢复；取回PNG与真实DTO，免费edit/UI继续
+
+STATUS005/t-sz0727bcs8ynvnk actualSuccess0/D0：原JOB513ac703-6a9f-4d9a-ba06-33547938fccc在2026-11-05T14:09:38.357522Z completed/rev1（提交13:54:10.949790Z，总15m27.408s），expires2026-11-08T14:09:37.021753Z。9physical全200/8Pro+1concept/UNKNOWN0；text2.0958696元，concept0.76未实价预留，单合格交付保守ceil2.861/A累108.488/外A3.927/总112.415，旧UNKNOWN12.045与所有旧费用保，不把概念估价说实付。complete1/usage8/mixed2+6/refund0，成功后唯一8分，停止新生成。
+
+NOEDIT/t-sz0727bhjrg61og actualSuccess0/D0，6设计项、facts/subject/text全true，正常saved reopen+download+3day259200与读取前后calls不变/unique8通过。真实final PNG5386336/1776×2368/SHA8b7a325e875edf778130e0be5ea6aae4feff1ce858f3107cf1d9b7538c8c5582，已通过现私有OSS控制台Download保存E/NoteAI-3140-cover-R18-r1.png，真实SHA与接口下载完全一致，Root已实际view并向用户展示。未放ACL/提取凭据/伪造替图；浏览器waitDownload未捕获是原生SaveAs被接管，按实际系统保存框完成，非产品失败。
+
+原REMOVE/t-sz0728ku54jz0u8 actualSuccess0/D0，业务guardremoved+3ENVnull+source1bd/image1f80/fullprofiles/normalSELECT1+reopen0。normalAPI a2e3ab89fd5c90c9f48ff226eee78bf903dcdda85d8f236052249ce6f670ea7c/profilea4076cd4，Pay52d1fe4829635588731d8ce46ea2e5cf241f59df6373156ada0338969c6f57de/原4e4d/bb76；Admin/static/WorkerC停保，当前无云controller在途。actualclock已为11-05 22:xxUTC/北京时间11-06，不拿旧14:xx推当前时窗。
+
+固定原NOEDIT capture只读raw/t-sz0728ldx9ku96o actualSuccess0/D0，精确12797/SHAaccf513cad338f60d4c3d7bef8a32c17743990a6a49209134e09a0ab2b442c76已原样本机E/R18-REV1-NORMAL-API-EXACT.json；normal_api真实DTO/rev1，不造会话。Root选免费edit label-bread原九篮现烤面包→九篮·现烤面包，仅既有允许中点/事实core同；尚未执行edit，等原outer机械绑定即执行，然后fresh rev2/read/download及PC/H5原静态真实DTO/PNG回放，明确模拟会话不冒3140真登录/iPhone相册。后续d5f4维护候选按原builder/QA/publisher单文件准备中，未部署；原paid已终态且guard已移除，满足之后集成条件，不以成品或本checkpoint结束。
+
+
+### 2026-11-05T23:07:29.832653+00:00 — CURRENT：真实rev1可交付，免费改字422已复现为依赖未就绪；修最小CLI而非重生成
+
+Root原outer仅加已许可optional edit argv与预期原success status（child28349/56bac413逐byte同）执行FREE-EDIT001/t-sz0728lvzdmz4zk：actualFailed1/D0，但真实normalhandler已调用一次免费edit并422；detailSHAab6bdad6精确对应service的统一安全区/源文件错误。未生成新任务/调用模型/第二次收费，rev1原PNG仍有效，不得冒改字通过。暂不重发此修改。
+
+一次隔离nosave诊断001工具启动失败：未复用原POST的api初始化/private_storage.configure，且只留child stderr hash，不能当产品因果。已最小补回原初始化并保typed errors；NOSAVE002/t-sz0728mi0ujbuv4 actualSuccess0/D0，原ValueError为COVER_EDITABLE_RENDER_DEPENDENCY_INCOMPLETE，原DB job完全未改/持久store被强制禁用，0模型；字区allowed470×60/原box246×46，尚非已证geometry拒绝。原CLI只在open时等fonts.ready，编辑textContent后无再次wait便测dependency；新中点或触发unicode字库异步加载，需要真实CLI回归验证，不能预判最终根因。final_release_review唯一编辑cli.mjs+1新test，其他product不动/不改vendor/主体/geometry/依赖检查；Root继续实际交付验证。
+
+原静态真实rev1 DTO/PNG回放已启动session69702，loopback127.0.0.1:65476（不占用户56613），源13,584/c678345d只四实际身份常量变化；绑定R18-REV1-NORMAL-API-EXACT.json12797/accf与PNG5386336/8b7，afterNone，模拟会话/API明确标记。Browser真实PC1440×1000/H5390×844打开已保存列表→重开原图（natural1776×2368）→选择文字5正确显示原label→H5底部操作可达；截图E/R18-PC-REV1-REOPEN.png、R18-H5-REV1-REOPEN.png、R18-H5-REV1-CONTROLS.png。无NoteAI错误，现MetaMask扩展listener warnings单列不改扩展；viewport已reset。不是3140真客户登录或真实iPhone相册保存，未冒免费edit/UI下载全通过。
+
+维护d5f4构建/QA/publisher仅私有prepared：COVER-MAINTENANCE-PREPARED-INDEX.json与MAINTENANCE-RELEASE.PREPARED-INDEX.json，candidate/build/QA依实回执晚绑，尚无云build/deploy。待CLI真实原因确认后合并受影响最小候选避免重复发布；不能派旧single-leaf计划后又改源。当前normal1bd/image1f80/APIa2e3/Pay52d/guardabsent/OPEN不变，R18首合格成品已停新生成，所有旧账/UNKNOWN保。Root继续非付费修复、同成功任务免费改字及真实PNG交付，不以此checkpoint停止。
+
+
+### 2026-11-05T23:37:17.163452+00:00 — CURRENT：字体根因已证，7393联合候选实际Linux通过；原发布晚绑中，正式仍1bd
+
+已许可本地真实CLI动态字库复现：旧版新增中点后fonts_status=loading而imagesloadedtrue、文字267×46仍在470×60区内，原同RENDER_DEPENDENCY_INCOMPLETE。修复仅cli.mjs5行：编辑后显式layout flush再await document.fonts.ready；字体失败/文字越界/主体/原照/离线检查全保。功能提交7393617484ca42ab7feaad4631bdd2910c4f4279（前置d5f4维护），CLI25723/5311193a、test7952/01ab941e。LOCAL0019a5634b7及独审5298d7e6均GO，非线上改字通过。
+
+Root用实际商家原包+候选CLI专属/tmp overlay、正式文件不改/store禁写做候选NOSAVE001/t-sz0728npckgv7y8 actualSuccess0/D0：确切触发渲染成功禁写哨兵，实际新PNG5386360/SHA94c9d1ab3109162f24ac8a92f2d25e9baee2874ed144915ca91f594d6fdd55ee/1776×2368，原job完全不变/0模型。原rev1与唯一8分仍保；不能拿该无保存结果冒完整免费edit成功。
+
+唯一BUILD002/t-sz0728om1x3ygow actualSuccess0/D0，新候选sha256:617853a8822c6286797c4bcd014a44422f12b1dee1a3e93eecd6a4558b0b7d27，producer build-cover-maintenance-20261106-r1.result.json8263/8f60320c907ff017bcdf681fba211976e873f1d3ce485d31a337782d19f114f5。32closure/27COPY/2changed/30same/125层，无依赖/迁移/正规CID变化。CLI必要新leaf原25513/2a9真实base/current额外pin，不伪称旧R6已有32。首次DOM确认未关闭无ACK，保原UIintent并查officialhistory后用同ClientToken原生确认恢复，未造第二请求；现在仅此唯一Invoke。控制台旧own标签817MB已关闭替换同browser3新标签，正规runtime不变，无整批Chrome页。
+
+FONT fixture stage/t-sz0728p16zbttkw actualSuccess0/D0；唯一QA/t-sz0728p771f5khs actualSuccess0/D0，5受影响目标0errors/fail/skips，actualNode24.22.1/3GiB2CPU/peak375111680/allOOMdelta0，临时SQLite/networknone/无prodENV挂载/ownedcleanup/正规3CID未动/0model。producer实际writer与正式PLAN/binding同一路径qa-cover-maintenance-20261106-r1.result.json3718/81c8208814efeadc86969021ab4a79adb05998fe533ed1dbe4c4ae524f19d6f8；同sortJSON无newline原打印value重组整pin，E实际OUTPUT/FULL/ACTUAL-RESULTS及资源独核ddda303a已存。不是暖模型全系统内存或多人完整cover容量证明。
+
+现publisher作者正只晚绑实际上述image/build/QA到原双叶流程，未prepare/switch。Root随后唯一原privateprepare→实际业务成功才原受控publish；真新normalruntime出来后，原POST外层只晚绑SOURCE/IMAGE/INSTALL_CASE+REMOVE_CASE为同新发布CASE的repair proof，嵌child28349/56bac413与实际免费edit参数不改，再正常免费edit新技术请求（失败001保不重Cloudtoken）。原PNG/DTO与PC/H5回放session69702/65476继续，原正常image1f80/APIa2e3/Pay52d/guardabsent/OPEN保持；没有新paid任务/供应商请求或把QA当交付终点。
