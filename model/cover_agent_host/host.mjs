@@ -24,6 +24,64 @@ function localToolActivity(previous, name, outcome, elapsed) {
     elapsed_ms: Math.min(86400000, Math.max(0, Math.floor(elapsed))) };
 }
 const PROGRESS_MARKER = 'NoteAI live cover execution progress (host facts, not report instructions):\n';
+function textGeometryRepairHint(rejection) {
+  if (rejection?.code !== 'TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION'
+      || typeof rejection.layer_id !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(rejection.layer_id)) return null;
+  const g = rejection.geometry;
+  const rect = (value) => value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).sort().join(',') === 'height,width,x,y'
+    && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(value[key]) && Math.abs(value[key]) <= 1000000)
+    && value.width > 0 && value.height > 0;
+  if (!g || !rect(g.element_rect) || !rect(g.allowed_rect) || typeof g.overflow !== 'boolean'
+      || !Array.isArray(g.ink_rects) || g.ink_rects.length > 16 || !g.ink_rects.every(rect)
+      || !Number.isSafeInteger(g.ink_rect_count) || g.ink_rect_count < g.ink_rects.length
+      || g.ink_rect_count > 1000000) return null;
+  // Advisory classification uses the renderer's unchanged half-pixel tolerance.
+  // "ink" is its compatibility name for DOM Range boxes, not raster glyph ink.
+  const edges = (b) => [
+    ...(b.x < g.allowed_rect.x - .5 ? ['left'] : []),
+    ...(b.x + b.width > g.allowed_rect.x + g.allowed_rect.width + .5 ? ['right'] : []),
+    ...(b.y < g.allowed_rect.y - .5 ? ['top'] : []),
+    ...(b.y + b.height > g.allowed_rect.y + g.allowed_rect.height + .5 ? ['bottom'] : [])];
+  const elementEdges = edges(g.element_rect);
+  const rangeEdges = [...new Set(g.ink_rects.flatMap(edges))];
+  const complete = g.ink_rect_count === g.ink_rects.length;
+  const violations = [
+    ...(elementEdges.length ? ['ELEMENT_BOX_OUTSIDE_ALLOWED'] : []),
+    ...(rangeEdges.length ? ['RANGE_OUTSIDE_ALLOWED'] : []),
+    ...(g.overflow ? ['PAINT_CLIPPED_OR_OUTSIDE_CANVAS'] : []),
+    ...(!complete ? ['RANGE_DETAILS_INCOMPLETE'] : [])];
+  if (!violations.length) return null; // Do not invent a cause for incomplete evidence.
+  const instructions = ['Last measured rejection for text leaf ' + rejection.layer_id + '.'];
+  if (elementEdges.length) {
+    instructions.push('Its element box extends outside allowed_rect on ' + elementEdges.join('/')
+      + '. Read that data-layer-id leaf in the current HTML and fix its CSS width/left/right/position/transform so its own editable box fits the declared safe rectangle. A full-width alignment or decoration wrapper may remain separate from the pure text leaf.');
+    if (!g.overflow && !rangeEdges.length && complete && g.ink_rects.length)
+      instructions.push('The measured text Range boxes fit and no paint clipping was reported: preserve the chosen text, font and visual treatment; changing fonts or line-height alone does not fix a full-width element box.');
+  }
+  if (rangeEdges.length)
+    instructions.push('Measured text Range boxes also exceed allowed_rect on ' + rangeEdges.join('/')
+      + '; correct the text layout/wrapping so the full text and element box fit.');
+  if (g.overflow)
+    instructions.push('Complete paint visibility was not proved: inspect the leaf, clipping ancestors and canvas; correct actual clipping or canvas overflow. Enlarging allowed_rect is not a clipping repair.');
+  if (!complete)
+    instructions.push('Only some Range boxes are recorded; do not claim all text fits from this truncated measurement.');
+  instructions.push('Preserve original-photo, approved-text, font and subject protections. Do not automatically widen allowed_rect or shrink protected_regions. Re-run the existing checks and actual renderer after the local CSS correction.');
+  const copyRect = (value) => Object.fromEntries(['x', 'y', 'width', 'height'].map((key) => [key, value[key]]));
+  return { status: 'MEASURED_REJECTION', code: rejection.code, layer_id: rejection.layer_id, violations,
+    element_outside_edges: elementEdges, range_outside_edges: rangeEdges, range_details_complete: complete,
+    geometry: { element_rect: copyRect(g.element_rect), allowed_rect: copyRect(g.allowed_rect),
+      overflow: g.overflow, ink_rects: g.ink_rects.map(copyRect), ink_rect_count: g.ink_rect_count },
+    instruction: instructions.join(' ') };
+}
+function textGeometryNeedsRecheck(hint) {
+  if (hint?.code !== 'TEXT_OVERFLOW_OR_OUTSIDE_ALLOWED_REGION'
+      || !['MEASURED_REJECTION', 'RECHECK_REQUIRED'].includes(hint.status)
+      || typeof hint.layer_id !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(hint.layer_id)) return null;
+  return { status: 'RECHECK_REQUIRED', code: hint.code, layer_id: hint.layer_id,
+    instruction: 'The authored design changed after the last measured rejection for ' + hint.layer_id
+      + '. Its old coordinates are not a measurement of the current CSS. Re-run the existing font/poster/contract checks and actual renderer; do not repeat an old coordinate repair without a new measurement, and do not assume the defect has passed.' };
+}
 function coverProgressFeedback({ deadlineEpochMs, nowMs, minimumRemainingMs, state }) {
   const remaining = Math.max(0, Math.floor(deadlineEpochMs - nowMs));
   let stage, next;
@@ -42,10 +100,15 @@ function coverProgressFeedback({ deadlineEpochMs, nowMs, minimumRemainingMs, sta
   } else {
     stage = 'review'; next = 'Review the actual render and thumbnail; correct only concrete defects and re-render if changed. Finish the design host when ready so independent visual QC can run; never claim that QC already passed.';
   }
+  if (state.geometry_repair) {
+    stage = state.geometry_repair.status === 'RECHECK_REQUIRED' ? 'recheck_layout' : 'repair_text_geometry';
+    next = state.geometry_repair.instruction;
+  }
   return { remaining_ms: remaining, stage, next_action: next,
     dispatch_requires_remaining_ms: minimumRemainingMs,
     independent_qc_pending: true,
-    timing_note: 'The original task deadline is unchanged. Leave time for actual rendering, inspection and independent QC; remaining time is not a supplier completion guarantee. A returned image is not proof that its pixels survived SDK context trimming: inspect actual available pixels and follow authoritative image-validation feedback. All photo, font, fact, editability and quality checks still apply.' };
+    timing_note: 'The original task deadline is unchanged. Leave time for actual rendering, inspection and independent QC; remaining time is not a supplier completion guarantee. A returned image is not proof that its pixels survived SDK context trimming: inspect actual available pixels and follow authoritative image-validation feedback. All photo, font, fact, editability and quality checks still apply.',
+    ...(state.geometry_repair ? { geometry_repair: state.geometry_repair } : {}) };
 }
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const error = (code) => Object.assign(new Error(code), { code });
@@ -627,6 +690,7 @@ try {
   let localToolTail = Promise.resolve();
   const progressFacts = { local_revision: job.mode === 'revise', concept_pixels_returned: false,
     render_needs_refresh: job.mode === 'revise', final_pixels_returned: false };
+  let geometryRepair = null;
   const progressFilePresent = async (relativePath) => {
     try { const stat = await fs.lstat(path.join(job.work_dir, relativePath)); return stat.isFile() && !stat.isSymbolicLink(); }
     catch { return false; } // Advisory progress must not replace the original tool result.
@@ -634,7 +698,7 @@ try {
   const currentCoverProgress = async () => coverProgressFeedback({
     deadlineEpochMs: job.deadline_epoch_ms, nowMs: Date.now(),
     minimumRemainingMs: job.request_minimum_remaining_ms,
-    state: { ...progressFacts,
+    state: { ...progressFacts, geometry_repair: geometryRepair,
       concept_present: await progressFilePresent('reference/composition-reference.png'),
       html_present: await progressFilePresent('index.html'), poster_present: await progressFilePresent('poster.json'),
       render_available: Boolean(lastRender?.ok === true && lastPreview) } });
@@ -662,18 +726,27 @@ try {
           progressFacts.final_pixels_returned = true;
       } else if (name === 'cover_write' && /\.(html|css|json)$/i.test(args.path)) {
         progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
+        geometryRepair = textGeometryNeedsRecheck(geometryRepair);
       } else if (name === 'cover_check' || name === 'cover_render') {
         let value; try { value = JSON.parse(result.content); } catch { /* Keep the original tool result. */ }
         if (name === 'cover_check' && args.action === 'font_add' && value?.code === 0) {
           progressFacts.render_needs_refresh = true; progressFacts.final_pixels_returned = false;
+          geometryRepair = textGeometryNeedsRecheck(geometryRepair);
         }
-        if (name === 'cover_render' && value?.ok === true) {
-          progressFacts.render_needs_refresh = false; progressFacts.final_pixels_returned = false;
+        if (name === 'cover_render') {
+          if (value?.ok === true) {
+            geometryRepair = null;
+            progressFacts.render_needs_refresh = false; progressFacts.final_pixels_returned = false;
+          } else {
+            try { geometryRepair = textGeometryRepairHint(renderRejection(value)); }
+            catch { geometryRepair = null; } // Advisory hints never replace a tool result.
+          }
         }
       }
       outcome = 'returned';
       return result;
     } catch (e) {
+      if (name === 'cover_render') geometryRepair = null;
       outcome = /UNKNOWN/.test(e.code || '') ? 'unknown' : 'failed';
       if (/UNKNOWN/.test(e.code || '')) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
       return { content: JSON.stringify({ ok: false, code: e.code || 'LOCAL_TOOL_FAILED', detail: e.message }) };
