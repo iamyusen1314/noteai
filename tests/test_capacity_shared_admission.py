@@ -128,7 +128,7 @@ class CapacitySharedAdmissionTests(unittest.TestCase):
 
     def test_ten_mixed_users_have_independent_known_pools_but_one_io_bound_and_legacy_rpm(self):
         manager = admission.Admission()
-        self.assertEqual((manager.calls.capacity, manager.limits.operations, manager.limits.pending_calls), (16, 100, 256))
+        self.assertEqual((manager.calls.capacity, manager.limits.operations, manager.limits.pending_calls), (16, 100, 512))
         self.assertEqual((manager.limits.claude_rpm, manager.limits.queue_seconds,
                           manager.limits.no_progress_seconds), (30, 1800, 300))
         models = [LITE, PRO, IMAGE] * 3 + ["claude-sonnet-4-6"]

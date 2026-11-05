@@ -95,6 +95,15 @@ class MixedImageAndRenderResourcesTests(unittest.TestCase):
         fixture = storage_fixture.PrivateStorageRecoveryContractTests()
         fixture.setUp()
         self.addCleanup(fixture.tearDown)
+        # Production already has the cover feature increment. The base storage
+        # fixture does not; real upload maintenance queries these tables while
+        # another user's Node workspace is live. Initialize, never bypass it.
+        api._cover_jobs.init_sqlite_schema()
+        feature_tables = {row["name"] for row in db.fetchall(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+            "('cover_jobs','cover_image_usage','cover_asset_revisions')")}
+        self.assertEqual(feature_tables, {"cover_jobs", "cover_image_usage", "cover_asset_revisions"})
+        proof["fixture_cover_feature_tables"] = sorted(feature_tables)
         root = Path(fixture.temp.name)
         backend = api._private_storage.LocalDirectoryObjectBackend(root / "objects")
         api._private_storage.configure_object_backend(backend, key_epoch="mixed-resource-fixture")
@@ -256,6 +265,18 @@ class MixedImageAndRenderResourcesTests(unittest.TestCase):
                                 raise AssertionError("Actual renderer did not overlap held model HTTP")
                             with gate:
                                 proof["wire_active_at_actual_render_dispatch"] = state["wire_active"]
+                            # Force the exact Linux-discovered maintenance path
+                            # while the real Node host and workspace are alive;
+                            # retain the other owner's directory and real query.
+                            self.assertTrue(bridge.directory.is_dir())
+                            live = [process.pid for process in hosts if process.poll() is None]
+                            self.assertEqual(len(live), 1)
+                            maintenance = api._private_storage.expire_media(user_id="mixed-upload-0", limit=20)
+                            self.assertTrue(bridge.directory.is_dir())
+                            self.assertTrue(all(process.poll() is None for process in hosts))
+                            proof["cleanup_during_owned_node"] = {"node_pid": live[0],
+                                "original_expire_media_called": True, "work_directory_preserved": True,
+                                "node_still_alive": True, "result": maintenance}
                         return super().tool(request)
 
                 def concept_stub(**kwargs):

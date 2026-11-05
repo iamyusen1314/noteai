@@ -62,7 +62,7 @@ class Limits:
             operations=_number("NOTEAI_MODEL_ADMITTED_OPERATIONS", 100 if capacity_mode else 10,
                                1, 1024 if capacity_mode else 64),
             operations_per_user=_number("NOTEAI_MODEL_OPERATIONS_PER_USER", 1, 1, 4),
-            pending_calls=_number("NOTEAI_MODEL_PENDING_CALLS", 256 if capacity_mode else 64,
+            pending_calls=_number("NOTEAI_MODEL_PENDING_CALLS", 512 if capacity_mode else 64,
                                   1, 4096 if capacity_mode else 256),
             queue_seconds=_number("NOTEAI_MODEL_QUEUE_SECONDS", 1800, 30, 1800),
             no_progress_seconds=_number("NOTEAI_MODEL_NO_PROGRESS_SECONDS", 300, 250, 900),
