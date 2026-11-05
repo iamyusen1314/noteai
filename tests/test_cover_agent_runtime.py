@@ -415,7 +415,11 @@ assert.equal(projected.omitted_font_faces,1);
 assert.equal(projected.text,before);
 assert(projected.text.includes(unknown));
 assert.equal(ctx.restoreManagedFonts('index.html',projected.text),after);
-assert.equal(ctx.authoredRead('unknown.html',after),after);
+const snapshot=JSON.parse(ctx.authoredRead('unknown.html',after));
+assert.equal(snapshot.path,'unknown.html');
+assert.equal(snapshot.omitted_font_faces,1);
+assert.equal(snapshot.text,before);
+assert(snapshot.text.includes(unknown));
 assert.equal(ctx.authoredRead('index.html',after.replace(known,known.replace('Installed','Different'))),
   after.replace(known,known.replace('Installed','Different')));
 ctx.checkpoint={last_input_measurement:{label:'PRIVATE_SENTINEL',text_bytes:'bad'}};
@@ -426,17 +430,19 @@ assert(!JSON.stringify(diagnostic).includes('PRIVATE_SENTINEL'));
 Object.defineProperty(ctx.checkpoint,'terminal_diagnostic',{set(){throw new Error('diagnostic denied')}});
 assert.doesNotThrow(()=>ctx.rememberFailure('MODEL_REQUEST_LIMIT','gateway'));
 const start=source.indexOf("      rememberFailure(e.code, 'gateway');");
-const catchBody=source.slice(start,source.indexOf('\n    }\n  });',start));
+const catchBody=source.slice(start,source.indexOf('\n    } finally {',start));
 ctx.atomicJSON=async()=>{throw new Error('core checkpoint denied')};
-ctx.checkpointPath='synthetic';ctx.checkpoint={};
+ctx.checkpointPath='synthetic';ctx.checkpoint={};ctx.ownIntent=null;
 const failure=vm.runInContext('(async function(e,physical,res){'+catchBody+'})',ctx);
 const response={writeHead(code){this.code=code},end(body){this.body=JSON.parse(body)}};
 await failure({code:'COMPACTION_CONTINUATION_NOT_ALLOWED'},false,response);
 assert.equal(response.code,502);
 assert.equal(response.body.error.message,'COMPACTION_CONTINUATION_NOT_ALLOWED');
 ctx.checkpoint={pending_request:{ordinal:1}};
-await assert.rejects(failure({code:'SUPPLIER_RESULT_UNKNOWN'},true,response),/core checkpoint denied/);
+await failure({code:'SUPPLIER_RESULT_UNKNOWN'},true,response);
 assert.equal(ctx.checkpoint.status,'UNKNOWN');
+assert.equal(response.code,502);
+assert.equal(response.body.error.message,'SUPPLIER_RESULT_UNKNOWN');
 console.log('PASS actual helpers: comments/strings, unknown fonts, exact authored roundtrip, diagnostic errors, strict UNKNOWN checkpoint');
 '''
         result = subprocess.run([node, "--input-type=module", "--eval", script, str(source)],
@@ -1341,6 +1347,9 @@ class ScriptedBridge(runtime.Bridge):
         call_id = str(uuid.uuid5(uuid.UUID(self.job_id), "offline:" + str(self.ordinal)))
         hashes = runtime._images_in(prepared)
         self.seen_images.update(hashes)
+        # This controlled override supplies known scripted responses in place
+        # of Bridge.model; record only the actual prepared image identities.
+        self._record_source_inspections(hashes, call_id)
         self.requests.append({"stage": stage, "input_bound": bound, "body": prepared,
             "image_sha256": sorted(hashes), "call_id": call_id})
         if stage == "qc":
@@ -1482,7 +1491,8 @@ class CoverAgentRuntimeSDKTests(unittest.TestCase):
             self.assertEqual(image.call_count, 1)
             self.assertEqual(bridge.design_turn, 7)
             self.assertEqual(sum(r["stage"] == "qc" for r in bridge.requests), 1)
-            self.assertIn(source["sha256"], bridge.requests[0]["image_sha256"])
+            self.assertIn(bridge.inspection_previews[source["sha256"]]["sha256"],
+                bridge.requests[0]["image_sha256"])
             self.assertIn(artifacts.digest(concept), bridge.requests[2]["image_sha256"])
             self.assertEqual(result.layout["final_sha256"], artifacts.digest(result.final_bytes))
             self.assertEqual(result.qc["source_hashes"], {source["media_ref"]: source["sha256"]})
