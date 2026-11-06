@@ -23,6 +23,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from claude_gateway_protocol import (
     ALLOWED_MODELS,
+    HAIKU_5_5,
+    HAIKU_5_5_EFFORTS,
+    HAIKU_5_5_SMALL_OUTPUT_CAP,
+    HAIKU_5_5_THINKING_MODES,
     HEADER_AUTHORITY,
     HEADER_CONFIG_EPOCH,
     HEADER_KEY_ID,
@@ -456,7 +460,11 @@ def _provider_kwargs(payload: dict[str, Any]) -> dict[str, Any]:
     }
     if payload.get("system") is not None:
         kwargs["system"] = payload["system"]
-    if payload.get("thinking_budget") is not None:
+    if payload["model"] == HAIKU_5_5:
+        effort, thinking_mode = _haiku_55_parameters(payload)
+        kwargs["thinking"] = {"type": thinking_mode}
+        kwargs["output_config"] = {"effort": effort}
+    elif payload.get("thinking_budget") is not None:
         kwargs["thinking"] = {
             "type": "enabled",
             "budget_tokens": payload["thinking_budget"],
@@ -671,6 +679,18 @@ async def _authenticate(
     return principal_id
 
 
+def _haiku_55_parameters(raw):
+    effort = raw.get("effort", "medium")
+    max_tokens = raw.get("max_tokens")
+    small_output = isinstance(max_tokens, int) and max_tokens <= HAIKU_5_5_SMALL_OUTPUT_CAP
+    thinking_mode = raw.get("thinking_mode", "disabled" if small_output else "adaptive")
+    if (not isinstance(effort, str) or effort not in HAIKU_5_5_EFFORTS
+            or not isinstance(thinking_mode, str) or thinking_mode not in HAIKU_5_5_THINKING_MODES
+            or thinking_mode == "disabled" and effort in {"xhigh", "max"}):
+        raise GatewayRejection("INVALID_REQUEST", 422)
+    return effort, thinking_mode
+
+
 def _validate_payload(raw: Any) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise GatewayRejection("INVALID_REQUEST", 422)
@@ -678,6 +698,8 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
         "operation_id", "model", "max_tokens", "system", "messages", "temperature",
         "thinking_budget",
     }
+    if raw.get("model") == HAIKU_5_5:
+        allowed_fields.update({"effort", "thinking_mode"})
     if set(raw) - allowed_fields:
         raise GatewayRejection("INVALID_REQUEST", 422)
     operation_id = raw.get("operation_id")
@@ -686,6 +708,11 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
     model = raw.get("model")
     if model not in ALLOWED_MODELS:
         raise GatewayRejection("MODEL_NOT_ALLOWED", 422)
+    options = None
+    if model == HAIKU_5_5:
+        if raw.get("temperature") is not None or raw.get("thinking_budget") is not None:
+            raise GatewayRejection("INVALID_REQUEST", 422)
+        options = _haiku_55_parameters(raw)
     max_tokens = raw.get("max_tokens")
     if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= _max_tokens():
         raise GatewayRejection("TOKEN_LIMIT_EXCEEDED", 422)
@@ -716,6 +743,8 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
                     raise GatewayRejection("INVALID_REQUEST", 422)
                 if len(block["text"]) > 2_000_000:
                     raise GatewayRejection("CONTENT_LIMIT_EXCEEDED", 422)
+    if options and messages[-1]["role"] != "user":
+        raise GatewayRejection("INVALID_REQUEST", 422)
     system = raw.get("system")
     if system is not None and not isinstance(system, str):
         raise GatewayRejection("INVALID_REQUEST", 422)
@@ -738,7 +767,7 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
         raise GatewayRejection("TOKEN_LIMIT_EXCEEDED", 422)
     if thinking_budget is not None and temperature is not None:
         raise GatewayRejection("INVALID_REQUEST", 422)
-    return {
+    payload = {
         "operation_id": operation_id,
         "model": model,
         "max_tokens": max_tokens,
@@ -747,6 +776,11 @@ def _validate_payload(raw: Any) -> dict[str, Any]:
         "temperature": float(temperature) if temperature is not None else None,
         "thinking_budget": thinking_budget,
     }
+    if options:
+        payload.pop("temperature")
+        payload.pop("thinking_budget")
+        payload.update(effort=options[0], thinking_mode=options[1])
+    return payload
 
 
 async def _read_and_validate(request: Request, expected_path: str) -> dict[str, Any]:

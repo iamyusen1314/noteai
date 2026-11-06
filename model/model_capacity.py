@@ -27,7 +27,11 @@ _DEFAULTS = {
     "doubao-seedream-5-0-pro-260628": ("doubao-seedream-5.0-pro", None, None, 500),
 }
 _KIMI = "kimi-k2.6"
-_CLAUDE = ("claude-haiku-4-5-20251001", "claude-sonnet-4-6")
+_HAIKU_5_5 = "claude-haiku-5-5"
+_CLAUDE = ("claude-haiku-4-5-20251001", "claude-sonnet-4-6", _HAIKU_5_5)
+_CLAUDE_QUOTA_KEYS = {"claude-haiku-4-5-20251001": "claude-haiku-4.5",
+                      "claude-sonnet-4-6": "claude-sonnet-4.6",
+                      _HAIKU_5_5: "claude-haiku-5.5"}
 _INTEGRATED = (*_DEFAULTS, _KIMI, *_CLAUDE)
 
 
@@ -141,7 +145,7 @@ def policy_for(model_id):
         if not values:
             return None
         scope = os.environ.get("NOTEAI_MODEL_CAPACITY_CLAUDE_SCOPE", "claude-primary")
-        key = "claude-haiku-4.5" if "haiku" in model_id else "claude-sonnet-4.6"
+        key = _CLAUDE_QUOTA_KEYS[model_id]
         defaults = (values["rpm"], None, None)
         reference = values["evidence_ref"]
     elif model_id == _KIMI:
@@ -162,6 +166,14 @@ def policy_for(model_id):
                   values.get("ipm", ipm), values.get("evidence_ref", reference),
                   values.get("concurrency", 50 if model_id == _KIMI else None),
                   values.get("itpm"), values.get("otpm"))
+
+
+def require_verified_policy(model_id):
+    """The new model must never borrow the old model's legacy admission limits."""
+    policy = policy_for(model_id)
+    if model_id == _HAIKU_5_5 and policy is None:
+        raise CapacityConfigurationError("MODEL_CAPACITY_POLICY_UNVERIFIED")
+    return policy
 
 
 SQLITE_SCHEMA = """
@@ -277,7 +289,7 @@ def read_available(tx, demand, *, now=None):
     """Read-only scheduling hint; reserve_in_transaction is authoritative."""
     if not isinstance(demand, Demand):
         raise CapacityDemandError("MODEL_CAPACITY_DEMAND_INVALID")
-    policy = policy_for(demand.model_id)
+    policy = require_verified_policy(demand.model_id)
     if policy is None:
         return Decision(True)
     timestamp = _database_now(tx, now)
@@ -296,7 +308,7 @@ def reserve_in_transaction(tx, demand, *, call_id, now=None):
     """
     if not isinstance(demand, Demand):
         raise CapacityDemandError("MODEL_CAPACITY_DEMAND_INVALID")
-    policy = policy_for(demand.model_id)
+    policy = require_verified_policy(demand.model_id)
     if policy is None:
         return {}
     if not isinstance(call_id, str) or not _NAME.fullmatch(call_id):

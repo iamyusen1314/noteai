@@ -22,6 +22,7 @@ PRO = "doubao-seed-2-1-pro-260915"
 IMAGE = "doubao-seedream-5-0-pro-260628"
 KIMI = "kimi-k2.6"
 HAIKU = "claude-haiku-4-5-20251001"
+HAIKU_5_5 = "claude-haiku-5-5"
 SONNET = "claude-sonnet-4-6"
 
 
@@ -101,9 +102,9 @@ class ModelCapacityTests(unittest.TestCase):
         with self.assertRaises(capacity.CapacityConfigurationError): capacity.policy_for(LITE)
 
     def test_known_model_ids_are_pure_and_malformed_policy_never_silently_falls_back(self):
-        self.assertEqual(set(capacity.model_ids()), {LITE, PRO, IMAGE, KIMI, HAIKU, SONNET})
+        self.assertEqual(set(capacity.model_ids()), {LITE, PRO, IMAGE, KIMI, HAIKU, SONNET, HAIKU_5_5})
         os.environ["NOTEAI_MODEL_CAPACITY_ENABLED"] = "0"
-        self.assertEqual(set(capacity.model_ids()), {LITE, PRO, IMAGE, KIMI, HAIKU, SONNET})
+        self.assertEqual(set(capacity.model_ids()), {LITE, PRO, IMAGE, KIMI, HAIKU, SONNET, HAIKU_5_5})
         self.assertIsNone(capacity.policy_for(LITE))
         os.environ["NOTEAI_MODEL_CAPACITY_ENABLED"] = "1"
         self.overrides(rpm=2)

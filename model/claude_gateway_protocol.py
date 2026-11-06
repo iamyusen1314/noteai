@@ -25,9 +25,14 @@ HEADER_KEY_EPOCH = "X-NoteAI-Key-Epoch"
 HEADER_READINESS_CHALLENGE = "X-NoteAI-Readiness-Challenge"
 
 PROTOCOL_VERSION = "claude-gateway.v2"
+HAIKU_5_5 = "claude-haiku-5-5"
+HAIKU_5_5_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
+HAIKU_5_5_THINKING_MODES = frozenset({"adaptive", "disabled"})
+HAIKU_5_5_SMALL_OUTPUT_CAP = 4096
 ALLOWED_MODELS = frozenset({
     "claude-haiku-4-5-20251001",
     "claude-sonnet-4-6",
+    HAIKU_5_5,
 })
 USAGE_COUNT_MAX = 1_000_000_000
 USAGE_FIELDS = frozenset({

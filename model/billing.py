@@ -245,6 +245,13 @@ def _billing_usd_cny() -> float:
 
 
 _PRICE_VERSION = "official-2026-07-12"
+_HAIKU_5_5 = "claude-haiku-5-5"
+_HAIKU_5_5_PRICES = {
+    "short_context": {"input": 0.1, "output": 0.5, "cache_read": 0.01,
+                      "cache_write_5m": 0.125, "cache_write_1h": 0.2},
+    "long_context": {"input": 0.5, "output": 2.5, "cache_read": 0.05,
+                     "cache_write_5m": 0.625, "cache_write_1h": 1.0},
+}
 _EXACT_MODEL_PRICES: dict[str, dict[str, float | str | None]] = {
     "claude-haiku-4-5-20251001": {
         "provider": "claude", "currency": "USD", "input": 1.0, "cache_read": 0.1,
@@ -280,7 +287,7 @@ def _exact_price(model: str, direction: str, currency: str, default: float | Non
     return value if value > 0 else None
 
 
-def _pricing_snapshot(provider: str, model: str, *, prompt_tokens: int = 0) -> dict:
+def _pricing_snapshot(provider: str, model: str, *, prompt_tokens: int | None = None) -> dict:
     """Resolve only product-confirmed exact model prices.
 
     Provider-wide variables remain supported by the old estimate helper, but
@@ -289,7 +296,7 @@ def _pricing_snapshot(provider: str, model: str, *, prompt_tokens: int = 0) -> d
     """
     if provider == "doubao" and model == "doubao-seed-2-1-pro-260915":
         import cover_agent_provider
-        rates = cover_agent_provider.pricing(prompt_tokens)
+        rates = cover_agent_provider.pricing(prompt_tokens or 0)
         return {"currency": "RMB", "usd_cny": _billing_usd_cny(),
                 "price_version": cover_agent_provider.PRICE_VERSION, "pricing_status": "exact",
                 "cache_write_5m": None, "cache_write_1h": None,
@@ -297,12 +304,34 @@ def _pricing_snapshot(provider: str, model: str, *, prompt_tokens: int = 0) -> d
                    for dimension, price in rates.items()}}
     if provider == "doubao" and model == "doubao-seed-2-0-lite-260428":
         import ark_media
-        rates = ark_media.pricing(prompt_tokens)
+        rates = ark_media.pricing(prompt_tokens or 0)
         return {"currency": "RMB", "usd_cny": _billing_usd_cny(),
                 "price_version": ark_media.PRICE_VERSION, "pricing_status": "exact",
                 "cache_write_5m": None, "cache_write_1h": None,
                 **{dimension: _exact_price(model, dimension, "RMB", price)
                    for dimension, price in rates.items()}}
+    if provider == "claude" and model == _HAIKU_5_5:
+        if prompt_tokens is not None and (type(prompt_tokens) is not int or prompt_tokens < 0):
+            raise ValueError("invalid model pricing input bound")
+        # Unknown pre-wire context reserves the higher whole-call rate. Actual
+        # settlement passes all input, including cache reads and writes.
+        tier = "long_context" if prompt_tokens is None or prompt_tokens > 100000 else "short_context"
+        rates = _HAIKU_5_5_PRICES[tier]
+        snapshot = {"currency": "USD", "usd_cny": _billing_usd_cny(),
+                    "price_version": "official-2026-11-06-haiku-5-5-" + tier,
+                    "pricing_status": "exact"}
+        for dimension, price in rates.items():
+            snapshot[dimension] = _exact_price(model + "_" + tier, dimension, "USD", price)
+        if any(snapshot[dimension] is None for dimension in rates):
+            snapshot["pricing_status"] = "unpriced"
+        if prompt_tokens is None and any(
+                _exact_price(model + "_" + other_tier, dimension, "USD", price) is None
+                for other_tier, other_rates in _HAIKU_5_5_PRICES.items()
+                for dimension, price in other_rates.items()):
+            # A conservative reserve must also know the possible short-tier
+            # settlement prices, not discover a broken override after dispatch.
+            snapshot["pricing_status"] = "unpriced"
+        return snapshot
     base = _EXACT_MODEL_PRICES.get(str(model or ""))
     if base and str(provider or "").lower() != str(base.get("provider") or "").lower():
         base = None
@@ -1306,7 +1335,8 @@ def _record_model_usage_for_usage_id(
 
     pricing = (_pricing_snapshot(provider, model, prompt_tokens=
                 tokens_in + unclassified + cache_read + cache_write + audio_input + audio_cache)
-               if provider == "doubao" else _pricing_snapshot(provider, model))
+               if provider == "doubao" or (provider == "claude" and model == _HAIKU_5_5)
+               else _pricing_snapshot(provider, model))
     pricing_status = str(pricing["pricing_status"])
     currency = str(pricing["currency"])
     fx = float(pricing["usd_cny"])

@@ -12,15 +12,17 @@ from fastapi import HTTPException
 
 import admin_operations as operations
 import db
+from claude_gateway_protocol import HAIKU_5_5, HAIKU_5_5_EFFORTS
 
 TASKS = ("diagnosis", "content_gen", "arbitrate", "chat", "semantic")
 MODEL = "kimi-k2.6"
 HAIKU = "claude-haiku-4-5-20251001"
 SONNET = "claude-sonnet-4-6"
-MODELS = (MODEL, HAIKU, SONNET)
+MODELS = (MODEL, HAIKU, SONNET, HAIKU_5_5)
 MODEL_LIMITS = {MODEL: {"min": 256, "max": 32768},
                 HAIKU: {"min": 1025, "max": 16000},
-                SONNET: {"min": 1025, "max": 16000}}
+                SONNET: {"min": 1025, "max": 16000},
+                HAIKU_5_5: {"min": 1025, "max": 16000}}
 
 
 def defaults():
@@ -39,7 +41,9 @@ def validate(config, *, existing=False):
         raise HTTPException(422, "需完整提供现有五类业务路由")
     result = {}
     for task, value in config.items():
-        if not isinstance(value, dict) or set(value) != {"model", "enabled", "max_tokens"}:
+        if (not isinstance(value, dict)
+                or not {"model", "enabled", "max_tokens"} <= set(value)
+                or set(value) - {"model", "enabled", "max_tokens", "effort"}):
             raise HTTPException(422, "配置只能包含模型、启停与输出上限")
         if value["model"] not in MODELS or type(value["enabled"]) is not bool:
             raise HTTPException(422, "请选择已接入的 Claude Haiku、Claude Sonnet 或 Kimi K2.6")
@@ -48,8 +52,24 @@ def validate(config, *, existing=False):
         limits = MODEL_LIMITS[value["model"]]
         if not existing and not limits["min"] <= value["max_tokens"] <= limits["max"]:
             raise HTTPException(422, f"{value['model']} 配置上限须为 {limits['min']}–{limits['max']}；Claude 须兼容思考步骤与现有 Gateway 上限")
+        if "effort" in value and (value["model"] != HAIKU_5_5
+                or type(value["effort"]) is not str
+                or value["effort"] not in HAIKU_5_5_EFFORTS):
+            raise HTTPException(422, "effort 仅适用于已接入的 Haiku 5.5")
+        if task in {"diagnosis", "content_gen", "semantic"} and value["model"] == HAIKU_5_5 and value.get("effort") in {"xhigh", "max"}:
+            raise HTTPException(422, "现有业务的小输出步骤使用 disabled thinking，effort 仅支持 low、medium 或 high")
         result[task] = dict(value)
     return result
+
+
+def haiku55_candidate_config(config):
+    """Pure upgrade draft; the active revision and old defaults are untouched."""
+    candidate = copy.deepcopy(validate(config, existing=True))
+    for task in ("diagnosis", "content_gen", "semantic"):
+        if candidate[task]["model"] == HAIKU:
+            candidate[task].update(model=HAIKU_5_5,
+                                   effort="low" if task == "semantic" else "medium")
+    return validate(candidate)
 
 
 def read(scope="production", tx=None):
@@ -120,3 +140,20 @@ def resolve(task, model, max_tokens, *, scope="production"):
             raise public_product.TrialProviderStopped("PUBLIC_MODEL_ROUTE_PAUSED")
         raise HTTPException(503, "此业务模型路由已由管理员暂停")
     return config["model"], min(max_tokens, config["max_tokens"])
+
+
+def resolve_effort(task, model, *, scope="production"):
+    """Only the new model uses effort; absent settings keep its route default."""
+    if model != HAIKU_5_5:
+        return None
+    default = "low" if task == "semantic" else "medium"
+    if os.environ.get("NOTEAI_MODEL_CONFIG_ENABLED") != "1":
+        return default
+    import public_product
+    context = public_product._invocation.get()
+    state = context.model_config if scope == "production" and context and context.model_config else read(scope)
+    config = state["active"][task if task in TASKS else "semantic"]
+    effort = config.get("effort", default) if config["model"] == HAIKU_5_5 else default
+    if type(effort) is not str or effort not in HAIKU_5_5_EFFORTS:
+        raise HTTPException(503, "Haiku 5.5 effort 配置无效")
+    return effort

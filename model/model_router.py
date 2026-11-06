@@ -359,6 +359,8 @@ class ClaudeMessageRequest:
     temperature: float | None = None
     thinking_budget: int | None = None
     call_state: dict = field(default_factory=dict, compare=False, repr=False)
+    effort: str | None = None
+    thinking_mode: str | None = None
 
 
 @dataclass(frozen=True)
@@ -450,6 +452,34 @@ def _thinking_budget(max_tokens, margin):
     return min(max_tokens - 1, max(min(max_tokens - margin, 10000), 1024))
 
 
+def _claude_model_options(model, provenance=None, *, max_tokens=None, effort=None, thinking_mode=None):
+    """Keep legacy parameters intact; pin 5.5's distinct effort/thinking contract."""
+    if model != _cgp.HAIKU_5_5:
+        if effort is not None or thinking_mode is not None:
+            raise ClaudeGatewayError("CLAUDE_MODEL_OPTIONS_INVALID", 422, fallback_safe=True)
+        return {}
+    context = provenance if isinstance(provenance, dict) else {}
+    semantic = context.get("step") == "semantic_features"
+    if effort is None:
+        task = context.get("task")
+        # The legacy synchronous wrapper also labels diagnosis calls semantic;
+        # only the actual feature extractor gets its short, non-thinking mode.
+        if semantic:
+            effort = _runtime_config.resolve_effort("semantic", model)
+        elif context.get("step") == "legacy_diagnosis":
+            effort = "medium"
+        else:
+            effort = _runtime_config.resolve_effort(task, model) if isinstance(task, str) else "medium"
+    if thinking_mode is None:
+        small_output = isinstance(max_tokens, int) and max_tokens <= _cgp.HAIKU_5_5_SMALL_OUTPUT_CAP
+        thinking_mode = "disabled" if semantic or small_output else "adaptive"
+    if (not isinstance(effort, str) or effort not in _cgp.HAIKU_5_5_EFFORTS
+            or not isinstance(thinking_mode, str) or thinking_mode not in _cgp.HAIKU_5_5_THINKING_MODES
+            or thinking_mode == "disabled" and effort in {"xhigh", "max"}):
+        raise ClaudeGatewayError("CLAUDE_MODEL_OPTIONS_INVALID", 422, fallback_safe=True)
+    return {"effort": effort, "thinking_mode": thinking_mode}
+
+
 class ClaudeTransport(Protocol):
     """SDK-independent Claude request/response/stream transport contract."""
 
@@ -474,7 +504,14 @@ def _local_claude_kwargs(request: ClaudeMessageRequest) -> dict:
     }
     if request.system is not None:
         kwargs["system"] = request.system
-    if request.thinking_budget is not None:
+    options = _claude_model_options(request.model, request.call_state.get("provenance"),
+        max_tokens=request.max_tokens, effort=request.effort, thinking_mode=request.thinking_mode)
+    if options:
+        if not request.messages or request.messages[-1].get("role") != "user":
+            raise ClaudeGatewayError("CLAUDE_HISTORY_INVALID", 422, fallback_safe=True)
+        kwargs["thinking"] = {"type": options["thinking_mode"]}
+        kwargs["output_config"] = {"effort": options["effort"]}
+    elif request.thinking_budget is not None:
         kwargs["thinking"] = {
             "type": "enabled",
             "budget_tokens": request.thinking_budget,
@@ -1140,7 +1177,7 @@ class GatewayClaudeTransport:
     def _body(request: ClaudeMessageRequest) -> bytes:
         if not _cgp.valid_operation_id(request.operation_id):
             raise ClaudeGatewayError("INVALID_REQUEST", 400, fallback_safe=True)
-        return json.dumps({
+        payload = {
             "operation_id": request.operation_id,
             "model": request.model,
             "max_tokens": request.max_tokens,
@@ -1148,7 +1185,16 @@ class GatewayClaudeTransport:
             "messages": list(request.messages),
             "temperature": request.temperature,
             "thinking_budget": request.thinking_budget,
-        }, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        }
+        options = _claude_model_options(request.model, request.call_state.get("provenance"),
+            max_tokens=request.max_tokens, effort=request.effort, thinking_mode=request.thinking_mode)
+        if options:
+            if not request.messages or request.messages[-1].get("role") != "user":
+                raise ClaudeGatewayError("CLAUDE_HISTORY_INVALID", 422, fallback_safe=True)
+            payload.pop("temperature")
+            payload.pop("thinking_budget")
+            payload.update(options)
+        return json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
     def _headers(self, path: str, body: bytes) -> dict[str, str]:
         return _cgp.auth_headers(
@@ -2039,13 +2085,15 @@ async def _call_claude(
 ) -> str:
     operation_id = operation_id or _new_operation_id()
     thinking_budget = None
-    if thinking:
+    if thinking and model != _cgp.HAIKU_5_5:
         thinking_budget = _thinking_budget(max_tokens, 1000)
     request = ClaudeMessageRequest(
         model=model, max_tokens=max_tokens, system=system,
         messages=({"role": "user", "content": user},), operation_id=operation_id,
-        temperature=None if thinking else 0.7, thinking_budget=thinking_budget,
+        temperature=None if thinking or model == _cgp.HAIKU_5_5 else 0.7,
+        thinking_budget=thinking_budget,
         call_state={"provenance": provenance},
+        **_claude_model_options(model, provenance, max_tokens=max_tokens),
     )
     complete = False
     failure = None
@@ -2275,7 +2323,7 @@ async def _stream_claude(
     messages = _claude_history(history, user)
     operation_id = operation_id or _new_operation_id()
     thinking_budget = None
-    if thinking:
+    if thinking and model != _cgp.HAIKU_5_5:
         thinking_budget = _thinking_budget(max_tokens, 2000)
     request = ClaudeMessageRequest(
         model=model,
@@ -2283,9 +2331,10 @@ async def _stream_claude(
         system=system,
         messages=tuple(messages),
         operation_id=operation_id,
-        temperature=None if thinking else 0.7,
+        temperature=None if thinking or model == _cgp.HAIKU_5_5 else 0.7,
         thinking_budget=thinking_budget,
         call_state={"provenance": provenance},
+        **_claude_model_options(model, provenance, max_tokens=max_tokens),
     )
     transport_stream = _claude_transport_stream(
         model,
@@ -2612,6 +2661,8 @@ def call_claude_sync(
     system: str | None = None,
     temperature: float | None = None,
     thinking_budget: int | None = None,
+    effort: str | None = None,
+    thinking_mode: str | None = None,
     first_text_block: bool = False,
     trace_step: str = "", prompt_keys: tuple[str, ...] | None = None,
     prompt_domain: str | None = None,
@@ -2621,6 +2672,10 @@ def call_claude_sync(
     operation_id = _new_operation_id()
     if _public_product.enabled():
         model, max_tokens = _runtime_config.resolve("semantic", model, max_tokens)
+    options = _claude_model_options(model, provenance, max_tokens=max_tokens, effort=effort,
+        thinking_mode=thinking_mode)
+    if options and trace_step == "semantic_features":
+        max_tokens = max(300, max_tokens)
     with _public_product.model_admission_sync(
         operation_id, "kimi" if model == KIMI_TEXT else "claude",
         model_id=model,
@@ -2646,9 +2701,10 @@ def call_claude_sync(
             system=system,
             messages=tuple(messages),
             operation_id=operation_id,
-            temperature=temperature,
-            thinking_budget=thinking_budget,
+            temperature=None if options else temperature,
+            thinking_budget=None if options else thinking_budget,
             call_state={"provenance": provenance},
+            **options,
         )
         complete = False
         failure = None

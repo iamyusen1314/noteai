@@ -209,6 +209,12 @@ class FairQueue:
         return key if key in self.families else ticket.provider
 
     def enqueue(self, operation, call_id, provider, *, model_id=None, weight=1):
+        if model_id == "claude-haiku-5-5":
+            import model_capacity
+            try:
+                model_capacity.require_verified_policy(model_id)
+            except model_capacity.CapacityError as exc:
+                raise AdmissionError(str(exc)) from None
         with self.lock:
             if type(weight) is not int or not 1 <= weight <= self.capacity:
                 raise AdmissionError("MODEL_BUFFER_SIZE_EXCEEDED")
