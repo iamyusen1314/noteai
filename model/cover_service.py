@@ -12,6 +12,7 @@ import logging
 import os
 import threading
 from datetime import datetime, timezone
+from functools import wraps
 
 from fastapi import HTTPException
 
@@ -28,6 +29,39 @@ _COVER_MAINTENANCE_SECONDS = 5
 _COVER_RECOVERY_LOCK = threading.Lock()
 _COVER_ACTIVE_LOCK = threading.Lock()
 _COVER_ACTIVE_CLAIMS = 0
+_COVER_ACTIVE_ADJUSTMENTS = 0
+
+
+def work_snapshot():
+    """Observe this process's work without creating queues or doing I/O."""
+    with _COVER_ACTIVE_LOCK:
+        counts = {"cover_claims": _COVER_ACTIVE_CLAIMS,
+            "cover_adjustments": _COVER_ACTIVE_ADJUSTMENTS}
+    manager = getattr(model_admission, "_instance", None)
+    for name in ("calls", "media", "buffers", "gateway_bodies", "gateway_dns"):
+        active = waiting = 0
+        if manager is not None:
+            queue = getattr(manager, name)
+            with queue.lock:
+                active, waiting = len(queue.active), len(queue._tickets())
+        counts[name + "_active"] = active
+        counts[name + "_waiting"] = waiting
+    return {"schema": "noteai.runtime_work", "version": 1, "confirmed": True,
+        "counts": counts, "active": any(counts.values())}
+
+
+def _track_adjustment(function):
+    @wraps(function)
+    def tracked(*args, **kwargs):
+        global _COVER_ACTIVE_ADJUSTMENTS
+        with _COVER_ACTIVE_LOCK:
+            _COVER_ACTIVE_ADJUSTMENTS += 1
+        try:
+            return function(*args, **kwargs)
+        finally:
+            with _COVER_ACTIVE_LOCK:
+                _COVER_ACTIVE_ADJUSTMENTS -= 1
+    return tracked
 
 
 def _recover_cover_jobs(*, active_only=False):
@@ -284,6 +318,7 @@ class CoverWorker:
             await _await_owned_work(asyncio.gather(*tasks, return_exceptions=True))
 
 
+@_track_adjustment
 def adjust(user_id, job_id, *, text, position, expected_revision, layer_id=None):
     job = cover_jobs.get_job(user_id, job_id)
     if not job or not job["has_final"]:
