@@ -151,7 +151,7 @@ lines.on('line', (line) => {
       receivedStart = true; startResolve(value); return;
     }
     const waiter = pending.get(value.id);
-    if (!waiter || !['model_response', 'model_preflight_response', 'tool_response'].includes(value.type)) throw error('UNEXPECTED_RESPONSE');
+    if (!waiter || !['model_response', 'model_preflight_response', 'tool_response', 'renderer_response'].includes(value.type)) throw error('UNEXPECTED_RESPONSE');
     pending.delete(value.id); clearTimeout(waiter.timer); waiter.resolve(value);
   } catch (e) {
     if (!receivedStart) startReject(e);
@@ -172,6 +172,25 @@ process.once('SIGTERM', () => {
 });
 
 function inside(root, value) { return value === root || value.startsWith(root + path.sep); }
+async function withRendererLease(bridge, operation, execute) {
+  const leaseID = randomUUID();
+  const answer = await bridge('renderer_begin', { lease_id: leaseID, operation });
+  if (answer.type !== 'renderer_response' || answer.result?.lease_id !== leaseID
+      || answer.result?.allowed !== true || Object.keys(answer.result).sort().join(',') !== 'allowed,lease_id')
+    throw error('RENDERER_BEGIN_NOT_ACKNOWLEDGED');
+  let completed = false;
+  try {
+    const result = await execute(); completed = true; return result;
+  } finally {
+    // A thrown subprocess/thumbnail error cannot prove its browser descendants
+    // exited. Python stops this host's entire group before releasing that lease.
+    const ended = await bridge('renderer_end', { lease_id: leaseID,
+      clean: completed && localChildren.size === 0 });
+    if (ended.type !== 'renderer_response' || ended.result?.lease_id !== leaseID
+        || ended.result?.released !== true || Object.keys(ended.result).sort().join(',') !== 'lease_id,released')
+      throw error('RENDERER_END_NOT_ACKNOWLEDGED');
+  }
+}
 function relative(value) {
   if (typeof value !== 'string' || !value || path.isAbsolute(value) || /[\\\0]/.test(value) || value.split('/').some((part) => !part || part === '.' || part === '..')) throw error('RELATIVE_PATH_REQUIRED');
   return value;
@@ -344,7 +363,11 @@ async function runLocal(command, args, cwd, stdin = null) {
     child.on('error', (e) => { clearTimeout(timer); reject(e); });
     child.stdout.on('data', (part) => { size += Buffer.byteLength(part); if (size > 8 * 1024 * 1024) child.kill('SIGTERM'); else stdout += part; });
     child.stderr.on('data', (part) => { if (stderr.length < 100000) stderr += part; });
-    child.on('close', (code) => { localChildren.delete(child); clearTimeout(timer); resolve({ code, stdout, stderr }); });
+    child.on('close', (code, signal) => {
+      localChildren.delete(child); clearTimeout(timer);
+      if (!Number.isInteger(code) || signal) { reject(error('LOCAL_TOOL_INTERRUPTED')); return; }
+      resolve({ code, stdout, stderr });
+    });
     child.stdin.end(stdin);
   });
 }
@@ -904,6 +927,7 @@ try {
       // Only the business bridge can supply the original report title scope.
       delete request.approved_titles;
       if (Array.isArray(answer.result.approved_titles)) request.approved_titles = answer.result.approved_titles;
+      return await withRendererLease(bridge, 'render', async () => {
       const run = await runLocal(process.execPath, [job.editable_cli, 'render'], request.project_dir, JSON.stringify(request));
       let result; try { result = JSON.parse(run.stdout); } catch { throw error('RENDER_RESPONSE_INVALID'); }
       if (run.code !== 0 || result.ok !== true) {
@@ -921,6 +945,7 @@ try {
       forAgent.image_path = forAgent.png_path;
       forAgent.thumbnail_path = path.relative(job.work_dir, lastPreview.path); forAgent.thumbnail_sha256 = lastPreview.sha256;
       send({ type: 'render_finished', artifact: result, preview: lastPreview }); return { content: JSON.stringify(forAgent) };
+      });
     }),
     tool('cover_check', 'Run only the pinned local Skill poster/font/contract checks, or install a preinstalled font. No shell commands or downloads. font_add may take css_var such as --font-title to bind that existing unique CSS custom property to the selected kit. This preserves all other design styles. Install before using var(--font-kit-ID).', objectSchema({ action: { type: 'string', enum: ['poster', 'fonts', 'contract', 'font_add'] }, html: { type: 'string' }, font_id: { type: 'string' }, css_var: { type: 'string' } }, ['action', 'html']), async ({ action, html, font_id, css_var }) => {
       const file = await safeExisting(job.work_dir, html); if (!file.endsWith('.html')) throw error('HTML_REQUIRED');
@@ -937,7 +962,9 @@ try {
         commands.font_add = [process.execPath, [path.join(scripts, 'font-kit.mjs'), 'add', font_id, file]];
       }
       const [cmd, args] = commands[action];
-      const result = await withBrowserTemporaryDirectory(() => runLocal(cmd, args, path.dirname(file)));
+      const execute = () => withBrowserTemporaryDirectory(() => runLocal(cmd, args, path.dirname(file)));
+      const result = action === 'font_add' ? await execute()
+        : await withRendererLease(bridge, 'check_' + action, execute);
       if (action === 'font_add' && result.code === 0) {
         const installed = await fs.readFile(file, 'utf8');
         const verified = (managedFonts(rel)[font_id]?.faces || []).filter((face) => installed.includes(face));

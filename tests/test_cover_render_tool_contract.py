@@ -50,14 +50,15 @@ import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 const [sourcePath, inputPath, directory, cli, skillDir] = process.argv.slice(1);
 const source = await fs.readFile(sourcePath, 'utf8');
 const input = JSON.parse(await fs.readFile(inputPath, 'utf8'));
 const {makeThumbnail} = await import(pathToFileURL(path.join(path.dirname(sourcePath), 'thumbnail.mjs')).href);
-let callback, schema, bridgeCalls = 0, runCalls = 0, rawResult, cliRequest;
+let callback, schema, bridgeCalls = 0, runCalls = 0, rawResult, cliRequest, rendererHeld = false;
 const sent = [], checkpointPath = path.join(directory, 'host-state/checkpoint.json');
-const ctx = vm.createContext({fs, path, spawn, process, Buffer, setTimeout, clearTimeout,
+const ctx = vm.createContext({fs, path, spawn, process, Buffer, setTimeout, clearTimeout, randomUUID,
   localChildren: new Set(), requests: 0, lastRender: null, lastPreview: null,
   checkpoint: {status: 'RUNNING', model_requests: 0, pending_request: null}, checkpointPath,
   job: {work_dir: directory, editable_cli: cli, skill_dir: skillDir},
@@ -66,6 +67,14 @@ const ctx = vm.createContext({fs, path, spawn, process, Buffer, setTimeout, clea
     assert.equal(name, 'cover_render'); schema = inputSchema; callback = execute;
   },
   bridge: async (type, value) => {
+    if(type==='renderer_begin'){
+      assert.equal(rendererHeld,false);rendererHeld=true;
+      return{type:'renderer_response',result:{allowed:true,lease_id:value.lease_id}};
+    }
+    if(type==='renderer_end'){
+      assert.equal(rendererHeld,true);assert.equal(value.clean,true);rendererHeld=false;
+      return{type:'renderer_response',result:{released:true,lease_id:value.lease_id}};
+    }
     assert.equal(type, 'tool_request'); assert.equal(value.name, 'cover_render');
     bridgeCalls++; return {result: {allowed: true, approved_titles: input.approved_titles,
       canonical_sources: input.request.sources}};
@@ -77,11 +86,13 @@ const oneLine = name => {
   assert(match, name + ' actual source anchor'); return match[0];
 };
 vm.runInContext(oneLine('inside') + '\n' + oneLine('objectSchema') + '\n'
+  + source.slice(source.indexOf('async function withRendererLease('), source.indexOf('function relative('))
   + source.slice(source.indexOf('async function atomicJSON('), source.indexOf('function imageMime('))
   + source.slice(source.indexOf('async function runLocal('), source.indexOf('function completionSSE('))
   + source.slice(source.indexOf('const RENDER_REJECTION_CODES ='), source.indexOf('function summaryMaterial(')), ctx);
 const runLocal = ctx.runLocal;
 ctx.runLocal = async (...args) => {
+  assert.equal(rendererHeld,true);
   runCalls++; cliRequest = JSON.parse(args[3]);
   assert.equal(cliRequest.schema_version, 'noteai-cover-editable/v1');
   assert.equal(cliRequest.output_root, path.join(directory, 'revisions'));

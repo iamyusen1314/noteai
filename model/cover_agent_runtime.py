@@ -37,6 +37,11 @@ import cover_seedream
 import public_product
 
 ROOT = Path(__file__).resolve().parent
+# An unconfirmed host-group cleanup must not let generator finalization return
+# its renderer permit to another browser. At most the shared single slot can be
+# quarantined; only confirmed cleanup or a process restart can resolve it.
+_UNCONFIRMED_RENDERER_LEASES = []
+_RENDERER_OPERATIONS = frozenset({"render", "check_poster", "check_fonts", "check_contract"})
 _INPUT_DIAGNOSTIC_FILE = "provider-input-limit.json"
 _OUTPUT_DIAGNOSTIC_FILE = "provider-output-diagnostic.json"
 _RESERVATION_DIAGNOSTIC_FILE = "provider-reservation-diagnostic.json"
@@ -768,6 +773,11 @@ def cleanup_workspace(job_id):
         if receipt is None:
             receipt = {"job_id": job_id, "status": "SOURCE_REJECTED_PRE_RENDER"}
         receipt["first_render_source_rejection"] = source_rejection
+    if any(held_job == job_id for held_job, _ in _UNCONFIRMED_RENDERER_LEASES):
+        if receipt is None:
+            receipt = {"job_id": job_id, "status": "RENDERER_CLEANUP_UNCONFIRMED"}
+        receipt["renderer_cleanup"] = {"code": "COVER_RENDERER_LEASE_RETAINED_CLEANUP_UNCONFIRMED",
+            "lease_retained": True}
     if receipt is not None:
         checkpoint = root / "receipts"
         checkpoint.mkdir(mode=0o700, exist_ok=True)
@@ -1150,6 +1160,59 @@ class Bridge:
         self.original_view_repairs = 0
         self.render_source_repairs = 0
         self.thinking = ThinkingState(job_id)
+        self._renderer_lease = None
+
+    def _renderer_event(self, event, *, deadline):
+        kind = event.get("type")
+        keys = {"type", "id", "lease_id", "operation"} if kind == "renderer_begin" else {
+            "type", "id", "lease_id", "clean"}
+        try:
+            if (set(event) != keys or str(uuid.UUID(event["id"])) != event["id"]
+                    or str(uuid.UUID(event["lease_id"])) != event["lease_id"]):
+                raise ValueError("invalid renderer packet")
+        except (ValueError, TypeError, KeyError, AttributeError):
+            raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_PROTOCOL_INVALID") from None
+        if kind == "renderer_begin":
+            if (self._renderer_lease is not None or type(event["operation"]) is not str
+                    or event["operation"] not in _RENDERER_OPERATIONS):
+                raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_PROTOCOL_INVALID")
+            context = artifacts.render_slot(deadline=deadline)
+            context.__enter__()
+            self._renderer_lease = (event["lease_id"], context)
+            return {"allowed": True, "lease_id": event["lease_id"]}
+        if (kind != "renderer_end" or self._renderer_lease is None
+                or event["lease_id"] != self._renderer_lease[0] or type(event["clean"]) is not bool):
+            raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_PROTOCOL_INVALID")
+        if not event["clean"]:
+            raise cover_runtime.CoverRuntimeError("COVER_AGENT_RENDER_ABORTED")
+        self._release_renderer()
+        return {"released": True, "lease_id": event["lease_id"]}
+
+    def _release_renderer(self):
+        lease, self._renderer_lease = self._renderer_lease, None
+        if lease is not None:
+            lease[1].__exit__(None, None, None)
+
+    def _quarantine_renderer(self):
+        lease, self._renderer_lease = self._renderer_lease, None
+        if lease is None:
+            return
+        _UNCONFIRMED_RENDERER_LEASES.append((self.job_id, lease[1]))
+        logging.error("cover_renderer_lease_retained_cleanup_unconfirmed job_id=%s", self.job_id)
+        try:
+            state = self.directory / "host-state"
+            if state.is_symlink():
+                raise OSError("renderer diagnostic directory is a link")
+            state.mkdir(mode=0o700, exist_ok=True)
+            body = json.dumps({"job_id": self.job_id,
+                "code": "COVER_RENDERER_LEASE_RETAINED_CLEANUP_UNCONFIRMED",
+                "lease_retained": True}, separators=(",", ":")).encode()
+            fd = os.open(state / "renderer-resource-diagnostic.json",
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(body)
+        except OSError:
+            logging.warning("cover_renderer_cleanup_diagnostic_unavailable")
 
     def _register_inspection_previews(self, previews):
         """Only run_cover's locally generated derivatives establish this mapping."""
@@ -1465,6 +1528,11 @@ class Bridge:
         raise cover_runtime.CoverRuntimeError("COVER_AGENT_TOOL_NOT_ALLOWED")
 
     def run(self, prompt, *, deadline):
+        if any(held_job == self.job_id for held_job, _ in _UNCONFIRMED_RENDERER_LEASES):
+            raise cover_runtime.CoverRuntimeError("COVER_RENDERER_LEASE_RETAINED_CLEANUP_UNCONFIRMED")
+        if self._renderer_lease is not None:
+            raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_PROTOCOL_INVALID")
+        renderer_deadline = time.monotonic() + max(0, deadline - time.time())
         self.request_deadline = deadline
         worker = ROOT / "cover_agent_host/worker.mjs"
         if not worker.is_file():
@@ -1522,6 +1590,9 @@ class Bridge:
                 if not isinstance(event, dict):
                     raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_INTERRUPTED")
                 kind = event.get("type")
+                if self._renderer_lease is not None and kind not in {
+                        "renderer_end", "render_finished", "request_hook", "retry_veto"}:
+                    raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_PROTOCOL_INVALID")
                 if kind == "ready":
                     self.session_id = event["session_id"]
                     (self.directory / "host-session.json").write_text(json.dumps({"session_id": self.session_id,
@@ -1547,6 +1618,9 @@ class Bridge:
                             raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_RESPONSE_UNDELIVERED") from error
                 elif kind == "tool_request":
                     send({"type": "tool_response", "id": event["id"], "result": self.tool(event)})
+                elif kind in {"renderer_begin", "renderer_end"}:
+                    result = self._renderer_event(event, deadline=renderer_deadline)
+                    send({"type": "renderer_response", "id": event["id"], "result": result})
                 elif kind == "result":
                     if event.get("ok") is not True or not isinstance(event.get("artifact"), dict):
                         try:
@@ -1567,7 +1641,20 @@ class Bridge:
             # Python call is synchronous and durably terminal before continuation.
             original_error = sys.exc_info()[1]
             cleanup_errors = []
-            for close in (lambda: _stop_host(process), process.stdin.close, process.stdout.close):
+            stopped = False
+            try:
+                _stop_host(process)
+                stopped = True
+            except BaseException as error:
+                cleanup_errors.append(error)
+            if self._renderer_lease is not None:
+                if stopped:
+                    self._release_renderer()
+                else:
+                    self._quarantine_renderer()
+                    if original_error is not None:
+                        original_error.add_note("COVER_RENDERER_LEASE_RETAINED_CLEANUP_UNCONFIRMED")
+            for close in (process.stdin.close, process.stdout.close):
                 try:
                     close()
                 except (OSError, subprocess.SubprocessError) as error:

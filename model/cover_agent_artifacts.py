@@ -6,15 +6,19 @@ served to the browser: only the server-side, network-disabled renderer reads it.
 from __future__ import annotations
 
 import base64
+import contextvars
+from contextlib import contextmanager, nullcontext
 from dataclasses import asdict
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
 import tempfile
 import threading
+import time
 import shutil
 import uuid
 
@@ -28,6 +32,70 @@ SCHEMA = "noteai-cover-editable/v1"
 ROOT = Path(__file__).resolve().parent
 MAX_BUNDLE = 120 * 1024 * 1024
 _EDIT_SLOT = threading.BoundedSemaphore(1)
+_RENDER_STATE = contextvars.ContextVar("cover_renderer_state", default=None)
+_QUARANTINED_RENDERERS = []
+
+
+@contextmanager
+def render_slot(*, deadline=None):
+    """Share one renderer with initial designs and the existing media queue.
+
+    The caller owns the complete browser/thumbnail cleanup, not just its
+    successful return. Never acquire this slot again inside a leased callback.
+    """
+    import model_admission
+    import model_capacity
+    import public_product
+    deadline = time.monotonic() + 30 if deadline is None else deadline
+    operation = (public_product._admission_operation()
+        if model_capacity.enabled() or public_product.enabled() else None)
+    acquired = False
+    ticket = None
+    queue = None
+    state = {"cleanup_unconfirmed": False}
+    marker = None
+
+    def remaining():
+        if operation is not None and operation.cancelled.is_set():
+            raise ValueError("COVER_EDITABLE_RENDER_BUSY")
+        value = deadline - time.monotonic()
+        if value <= 0:
+            raise ValueError("COVER_EDITABLE_RENDER_BUSY")
+        return min(.1, value)
+
+    try:
+        # Every editable browser path uses renderer -> media in this order.
+        # Preview preparation never acquires the renderer, so it can finish
+        # and release media while a renderer waits for its fair CPU ticket.
+        while not acquired:
+            acquired = _EDIT_SLOT.acquire(timeout=remaining())
+        remaining()
+        if operation is not None:
+            queue = model_admission.current().media
+            try:
+                ticket = queue.enqueue(operation, str(uuid.uuid4()), "media_worker")
+                while not queue._check(ticket):
+                    ticket.event.wait(remaining())
+                    ticket.event.clear()
+            except model_admission.AdmissionError:
+                raise ValueError("COVER_EDITABLE_RENDER_BUSY") from None
+        remaining()
+        marker = _RENDER_STATE.set(state)
+        yield
+    finally:
+        if marker is not None:
+            _RENDER_STATE.reset(marker)
+        if state["cleanup_unconfirmed"]:
+            # Keep both permits until actual process-group cleanup is known.
+            # An uncertain browser must not make room for another renderer.
+            _QUARANTINED_RENDERERS.append((queue, ticket, _EDIT_SLOT))
+            ticket, acquired = None, False
+        try:
+            if ticket is not None:
+                queue.release(ticket)
+        finally:
+            if acquired:
+                _EDIT_SLOT.release()
 
 
 def digest(body):
@@ -49,23 +117,49 @@ def cli(command, request, *, _has_slot=False):
     temporary = Path(request["output_root"]).parent / "tmp"
     temporary.mkdir(parents=True, exist_ok=True)
     env["TMPDIR"] = str(temporary)
-    if not _has_slot and not _EDIT_SLOT.acquire(timeout=30):
-        raise ValueError("COVER_EDITABLE_RENDER_BUSY")
-    try:
-        result = subprocess.run([os.environ.get("NOTEAI_COVER_NODE", "node"),
-            str(ROOT / "cover_editable/cli.mjs"), command],
-            input=json.dumps(request, ensure_ascii=False).encode(), stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, timeout=300, env=env, check=False)
-    finally:
-        if not _has_slot:
-            _EDIT_SLOT.release()
-    try:
-        output = json.loads(result.stdout)
-    except (ValueError, TypeError):
-        raise ValueError("COVER_EDITABLE_RENDER_FAILED") from None
-    if result.returncode or output.get("ok") is not True:
-        raise ValueError("COVER_EDITABLE_" + str(output.get("code", "RENDER_FAILED")))
-    return output
+    with (nullcontext() if _has_slot else render_slot()):
+        command_line = [os.environ.get("NOTEAI_COVER_NODE", "node"),
+            str(ROOT / "cover_editable/cli.mjs"), command]
+        process = subprocess.Popen(command_line, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=env, start_new_session=os.name == "posix")
+
+        def stop_original():
+            import cover_agent_runtime
+            try:
+                cover_agent_runtime._stop_host(process)
+            except BaseException as error:
+                state = _RENDER_STATE.get()
+                if state is not None:
+                    state["cleanup_unconfirmed"] = True
+                logging.warning("cover_renderer_cleanup_unconfirmed")
+                if isinstance(error, Exception):
+                    raise ValueError("COVER_EDITABLE_RENDER_BUSY") from None
+                raise
+
+        try:
+            try:
+                stdout, stderr = process.communicate(json.dumps(request, ensure_ascii=False).encode(), timeout=300)
+            except BaseException:
+                stop_original()
+                raise
+            if process.returncode:
+                stop_original()
+            try:
+                output = json.loads(stdout)
+                if not isinstance(output, dict):
+                    raise ValueError("object required")
+            except (ValueError, TypeError):
+                if not process.returncode:
+                    stop_original()
+                raise ValueError("COVER_EDITABLE_RENDER_FAILED") from None
+            if process.returncode or output.get("ok") is not True:
+                if not process.returncode:
+                    stop_original()
+                raise ValueError("COVER_EDITABLE_" + str(output.get("code", "RENDER_FAILED")))
+            return output
+        finally:
+            for pipe in (process.stdin, process.stdout, process.stderr):
+                pipe.close()
 
 
 def capture(result, *, expected_sources):
@@ -166,22 +260,20 @@ def adjust(user_id, job_id, layout, *, text, position, layer_id, revision, ttl_s
         if position not in options:
             raise ValueError("COVER_EDITABLE_POSITION_INVALID")
         delta["dy"] = options[position]
-    if not _EDIT_SLOT.acquire(timeout=30):
-        raise ValueError("COVER_EDITABLE_RENDER_BUSY")
     import cover_agent_runtime
     temporary = None
-    try:
-        bundle = validate_saved(user_id, layout)
-        temporary = cover_agent_runtime.prepare_edit_workspace(user_id, job_id)
-        source = restore(bundle, temporary / "source")
-        result = cli("edit", {"schema_version": SCHEMA, "output_root": str(Path(temporary) / "revisions"),
-            "parent_revision_dir": str(source), "expected_parent_manifest_sha256": layout["manifest_sha256"],
-            "edits": [delta], "initial_qc_ref": layout["initial_qc_ref"]}, _has_slot=True)
-        final, encoded, updated = capture(result, expected_sources=layout["input_source_hashes"])
-    finally:
-        if temporary is not None:
-            shutil.rmtree(temporary)
-        _EDIT_SLOT.release()
+    with render_slot():
+        try:
+            bundle = validate_saved(user_id, layout)
+            temporary = cover_agent_runtime.prepare_edit_workspace(user_id, job_id)
+            source = restore(bundle, temporary / "source")
+            result = cli("edit", {"schema_version": SCHEMA, "output_root": str(Path(temporary) / "revisions"),
+                "parent_revision_dir": str(source), "expected_parent_manifest_sha256": layout["manifest_sha256"],
+                "edits": [delta], "initial_qc_ref": layout["initial_qc_ref"]}, _has_slot=True)
+            final, encoded, updated = capture(result, expected_sources=layout["input_source_hashes"])
+        finally:
+            if temporary is not None:
+                shutil.rmtree(temporary)
     updated["editable_ref"] = store(user_id, job_id, encoded, revision=revision, ttl_seconds=ttl_seconds, lifecycle=lifecycle)
     return final, updated
 

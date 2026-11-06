@@ -152,7 +152,7 @@ class LocalRenderRejectionDiagnosticTests(unittest.TestCase):
             "_THINKING_DIAGNOSTIC_FILE", "_RESPONSE_DELIVERY_DIAGNOSTIC_FILE",
             "_POST_HOST_DIAGNOSTIC_FILE", "_CAPTURE_FAILURE_CODES", "_POST_HOST_EXCEPTION_TYPES",
             "_RENDER_SOURCE_DIAGNOSTIC_FILE", "_RENDER_SOURCE_REPAIR_REASONS", "_RENDER_SOURCE_HARD_REASONS",
-            "_LOCAL_TOOL_NAMES", "_DEADLINE_ADMISSION_DIAGNOSTIC_FILE"}
+            "_LOCAL_TOOL_NAMES", "_DEADLINE_ADMISSION_DIAGNOSTIC_FILE", "_UNCONFIRMED_RENDERER_LEASES"}
         selected = [node for node in tree.body if (
             isinstance(node, ast.FunctionDef) and node.name in functions) or (
             isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)
@@ -194,6 +194,9 @@ const ctx=vm.createContext({path,fs,process:{execPath:process.execPath},requests
  bridge:async()=>{bridgeCalls++;return {result:{allowed:true,approved_titles:['trusted title'],
   canonical_sources:[{ref:'trusted-original',path:'assets/source.jpg',sha256:'a'.repeat(64)}]}};},
  runLocal:async()=>{runCalls++;return {code:1,stdout:JSON.stringify(wire)};},
+ // Resource ACK ownership is exercised by test_cover_renderer_lease; this
+ // fixture isolates the unchanged rejection projection from its raw callback.
+ withRendererLease:async(_bridge,_operation,execute)=>await execute(),
  makeThumbnail:()=>assert.fail('Rejected render must not make a preview'),
  send:()=>assert.fail('Rejected render must not announce a finished render')});
 vm.runInContext(source.match(/^function inside\([^\n]+$/m)[0]
@@ -362,6 +365,7 @@ const ctx=vm.createContext({path,process:{execPath:process.execPath},
   inside:()=>true,error:code=>new Error(code),objectSchema:()=>({}),
   tool:(name,description,schema,callback)=>{assert.equal(name,'cover_render');handler=callback;},
   bridge:async()=>({result:{allowed:true,canonical_sources:[{ref:'trusted-original',path:'assets/source.jpg',sha256:'a'.repeat(64)}],...(scope===undefined?{}:{approved_titles:scope})}}),
+  withRendererLease:async(_bridge,_operation,execute)=>await execute(),
   runLocal:async(command,args,cwd,input)=>{rendered=JSON.parse(input);return {code:1,stdout:JSON.stringify(local)};}});
 vm.runInContext(segment,ctx);
 for (const trusted of [['原标题'],undefined]) {
