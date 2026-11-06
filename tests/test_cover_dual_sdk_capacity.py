@@ -31,6 +31,7 @@ import httpx
 
 R18_TAR_SHA256 = "220b18ff10ed696234f51f6546bbf08b409884b126ce6b532ba0f85cf4ea773c"
 R18_TAR_BYTES = 92631040
+CONTROLLED_SUMMARY = "NoteAI controlled resource summary from actual tool receipt:\n"
 
 
 def digest(body):
@@ -68,7 +69,7 @@ def filesystem(path):
     return result
 
 
-def resources(workspace):
+def resources(workspace, sdk_pids=()):
     result = {"workspace_fs": filesystem(workspace), "browser_tmp_fs": filesystem("/tmp")}
     cg = Path("/sys/fs/cgroup")
     if not (cg / "memory.current").is_file():
@@ -95,7 +96,149 @@ def resources(workspace):
         memory_events=events("memory.events"), cpu_max=(cg / "cpu.max").read_text().strip(),
         pids_current=count("pids.current"), pids_max=(cg / "pids.max").read_text().strip(),
         pids_events=events("pids.events"), process_states=states, namespace_threads=threads)
+    wanted = {"anon", "file", "shmem", "file_dirty", "slab"}
+    result["memory_stat"] = {key: int(value) for key, value in
+        (line.split() for line in (cg / "memory.stat").read_text().splitlines()) if key in wanted}
+    def rss(pid):
+        try:
+            text = (Path("/proc") / str(pid) / "status").read_text()
+        except (FileNotFoundError, ProcessLookupError):
+            return 0
+        return next((int(line.split()[1]) * 1024 for line in text.splitlines()
+            if line.startswith("VmRSS:")), 0)
+    result["process_rss_bytes"] = {"python": rss(os.getpid()),
+        "sdk": [rss(pid) for pid in sdk_pids]}
     return result
+
+
+def request_shape(payload, directory):
+    """Content-free evidence, not another copy of model/photo/tool payloads."""
+    def fixed(value):
+        return value if isinstance(value, str) and re.fullmatch(r"[A-Z0-9_]{1,100}", value) else None
+    roles, tools = {}, []
+    for message in payload.get("messages", []):
+        role = message.get("role", "other")
+        role = role if role in {"system", "user", "assistant", "tool"} else "other"
+        roles[role] = roles.get(role, 0) + 1
+        if role != "tool":
+            continue
+        call = str(message.get("tool_call_id", ""))
+        item = {"tool_call_id": call if re.fullmatch(r"dual_\d+_\d+", call) else digest(call.encode()),
+            "message_keys": sorted(message), "content_type": type(message.get("content")).__name__}
+        content = message.get("content")
+        item["content_bytes"] = len(content.encode()) if isinstance(content, str) else None
+        item["SDK_truncation_marker"] = bool(isinstance(content, str) and re.search(
+            r"showing \d+ lines|full output saved|output (?:has been )?truncated", content, re.I))
+        if isinstance(content, list):
+            item["content_part_types"] = [part.get("type") if isinstance(part, dict) else type(part).__name__
+                for part in content[:16]]
+        if isinstance(content, str) and len(content.encode()) <= 65536:
+            try:
+                value = json.loads(content)
+                if isinstance(value, dict):
+                    item.update(result_keys=sorted(value), ok=value.get("ok") if type(value.get("ok")) is bool else None,
+                        code=fixed(value.get("code")))
+                    detail = value.get("detail")
+                    if detail is not None:
+                        encoded = json.dumps(detail, sort_keys=True).encode()
+                        item["detail"] = {"bytes": len(encoded), "sha256": digest(encoded),
+                            "fixed_tokens": sorted(set(re.findall(r"\b(?:COVER_|SDK_|RENDER_|TEXT_|UPSTREAM_|SOURCE_|FONT_|LOCAL_|MODEL_|PATH_|ACTIVE_|IMAGE_|REQUEST_)[A-Z0-9_]{1,80}\b|\b(?:ENOSPC|ENOMEM|EAGAIN|EMFILE|ENFILE)\b", str(detail))))[:12]}
+                    render = value.get("render")
+                    if isinstance(render, dict):
+                        item["render"] = {"keys": sorted(render), "ok": render.get("ok"), "code": fixed(render.get("code"))}
+                    step = value.get("prepare", {}).get("failed_step") if isinstance(value.get("prepare"), dict) else None
+                    if isinstance(step, dict):
+                        item["failed_step"] = {"kind": step.get("kind") if step.get("kind") in {"write", "font_add", "render"} else None,
+                            "index": step.get("index") if type(step.get("index")) is int else None, "code": fixed(step.get("code"))}
+            except (ValueError, TypeError):
+                item["result_parseable"] = False
+        tools.append(item)
+    checkpoint = {}
+    try:
+        path = Path(directory) / "host-state/host-checkpoint.json"
+        if path.stat().st_size <= 2 * 1024 * 1024:
+            value = json.loads(path.read_bytes())
+            pending = value.get("pending_request") or {}
+            checkpoint = {key: value.get(key) for key in ("model_requests", "compaction_requests")
+                if type(value.get(key)) is int}
+            checkpoint.update(pending_ordinal=pending.get("ordinal") if type(pending.get("ordinal")) is int else None,
+                pending_label=pending.get("label") if pending.get("label") in {"primary", "compaction", "generate", "title"} else None)
+            rejection = value.get("last_render_rejection")
+            checkpoint.update(artifact_present=isinstance(value.get("artifact"), dict),
+                preview_present=isinstance(value.get("preview"), dict),
+                last_render_rejection_code=fixed(rejection.get("code")) if isinstance(rejection, dict) else None)
+    except (OSError, ValueError, TypeError, AttributeError):
+        checkpoint["unavailable"] = True
+    return {"payload_keys": sorted(payload), "role_counts": roles,
+        "tools_present": bool(payload.get("tools")), "last_tool_shapes": tools[-8:], "checkpoint": checkpoint}
+
+
+def message_texts(payload):
+    for message in payload.get("messages", []):
+        content = message.get("content")
+        if isinstance(content, str):
+            yield content
+        elif isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "text" and isinstance(part.get("text"), str):
+                    yield part["text"]
+
+
+def checked_render(value):
+    if not isinstance(value, dict) or value.get("ok") is not True:
+        raise AssertionError("Actual rendered tool receipt required")
+    if not all(isinstance(value.get(key), str) and re.fullmatch(r"[a-f0-9]{64}", value[key])
+            for key in ("png_sha256", "thumbnail_sha256", "manifest_sha256")):
+        raise AssertionError("Actual rendered receipt hashes required")
+    if value.get("width") != 1776 or value.get("height") != 2368 or not isinstance(value.get("image_path"), str):
+        raise AssertionError("Actual rendered receipt dimensions/path required")
+    return value
+
+
+def recorded_summary_render(payload):
+    """Read only the actual host.summaryMaterial tool transcript supplied to this call."""
+    found = []
+    prefix = "Recorded tool result: "
+    for text in message_texts(payload):
+        offset = 0
+        while (offset := text.find(prefix, offset)) >= 0:
+            offset += len(prefix)
+            try:
+                record, _ = json.JSONDecoder().raw_decode(text[offset:].lstrip())
+                if record.get("name") != "cover_render" or record.get("result", {}).get("type") != "text":
+                    continue
+                envelope = json.loads(record["result"]["value"])
+                if isinstance(envelope.get("render"), dict) and envelope["render"].get("ok") is True:
+                    found.append(checked_render(envelope["render"]))
+            except (ValueError, TypeError, KeyError, AttributeError):
+                continue
+    if not found or any(value != found[0] for value in found):
+        raise AssertionError("Summary request must expose one actual successful render receipt")
+    return found[0]
+
+
+def primary_render(payload, tool_id):
+    """A primary can consume a real tool response or the summary it actually received."""
+    for message in reversed(payload.get("messages", [])):
+        if message.get("role") != "tool" or message.get("tool_call_id") != tool_id:
+            continue
+        content = message.get("content")
+        if isinstance(content, str):
+            try:
+                return checked_render(json.loads(content)["render"]), "actual_tool"
+            except (ValueError, TypeError, KeyError):
+                pass
+    for text in reversed(list(message_texts(payload))):
+        at = text.rfind(CONTROLLED_SUMMARY)
+        if at < 0:
+            continue
+        try:
+            summary, _ = json.JSONDecoder().raw_decode(text[at + len(CONTROLLED_SUMMARY):].lstrip())
+            if summary.get("basis") == "actual_received_Recorded_tool_result":
+                return checked_render(summary["render"]), "actual_summary_received_by_primary"
+        except (ValueError, TypeError, KeyError, AttributeError):
+            continue
+    raise AssertionError("Primary did not receive an actual tool or summary render receipt")
 
 
 def model_reply(turn, calls=None, text="Controlled local resource response; not visual acceptance."):
@@ -204,7 +347,7 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
             renderer = {"active": 0, "peak": 0}
             resident = {}
             def sampled_point():
-                value = resources(root / "workspaces")
+                value = resources(root / "workspaces", [row["pid"] for row in host_rows])
                 with manager.calls.lock, manager.media.lock, manager.buffers.lock:
                     value.update(media_active=len(manager.media.active), remote_active=len(manager.calls.active),
                         buffers_active_bytes=sum(ticket.weight for ticket in manager.buffers.active.values()))
@@ -280,12 +423,47 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
                 result = fixture.submit(key="dual-sdk-" + str(index), user_id=user, report_id=report,
                     source_refs=[ref.id for ref in refs], input_snapshot=report_input, policy_snapshot=policy,
                     quote_version=jobs.policy_quote_version(policy))
-                state = {"job": result["job_id"], "user": user, "turns": 0, "bridge": None,
+                state = {"job": result["job_id"], "user": user, "turns": 0, "logical_turn": 0,
+                    "summary_count": 0, "summary_render": None, "receipt_source": None, "bridge": None,
                     "source_hashes": {ref.content_sha256 for ref in refs}, "wire_count": 0, "render": None,
                     "assertions": [], "report": report, "refs": [ref.id for ref in refs], "policy": policy,
                     "report_input": report_input}
                 states[state["job"]] = state
                 by_user[user] = state
+            def diagnostic_cleanup():
+                # Also runs after an assertion: preserve useful evidence before
+                # a future replay is considered, without payload/HTML copies.
+                try:
+                    extrema = {}
+                    for sample_value in samples:
+                        value = extrema.setdefault(sample_value["stage"], {"samples": 0,
+                            "memory_current_peak": 0, "memory_stat_peaks": {}, "python_RSS_peak": 0,
+                            "SDK_RSS_peak": 0, "pids_peak": 0, "tmp_available_min": None})
+                        value["samples"] += 1
+                        value["memory_current_peak"] = max(value["memory_current_peak"], sample_value.get("memory_current_bytes", 0))
+                        for key, size in sample_value.get("memory_stat", {}).items():
+                            value["memory_stat_peaks"][key] = max(value["memory_stat_peaks"].get(key, 0), size)
+                        rss = sample_value.get("process_rss_bytes", {})
+                        value["python_RSS_peak"] = max(value["python_RSS_peak"], rss.get("python", 0))
+                        value["SDK_RSS_peak"] = max(value["SDK_RSS_peak"], sum(rss.get("sdk", [])))
+                        value["pids_peak"] = max(value["pids_peak"], sample_value.get("pids_current", 0))
+                        available = sample_value["browser_tmp_fs"]["available_bytes"]
+                        value["tmp_available_min"] = available if value["tmp_available_min"] is None else min(value["tmp_available_min"], available)
+                    value = {"state": "DUAL_SDK_CONTENT_FREE_DIAGNOSTIC", "fixture_kind": kind,
+                        "requests": [{"physical_mock_requests": state["turns"],
+                            "logical_design_and_QC_requests": state["logical_turn"],
+                            "summary_requests": state["summary_count"],
+                            "fourth_request": state.get("turn4_shape")} for state in states.values()],
+                        "stage_resource_extrema": extrema, "render_lease_waits": render_rows,
+                        "renderer_active_at_cleanup": renderer["active"],
+                        "host_processes_reaped": [row["process"].poll() is not None for row in host_rows],
+                        "sampler_joined": not sampler.is_alive(), "sample_errors": sample_errors,
+                        "memory_stat_shmem_is_subset_of_file_not_additive": True,
+                        "diagnostic_observer_behavior_changed": False, "supplier_calls": 0}
+                except Exception as error:
+                    value = {"state": "DUAL_SDK_DIAGNOSTIC_CAPTURE_FAILED", "exception_class": type(error).__name__}
+                print("COVER_DUAL_SDK_DIAGNOSTIC=" + json.dumps(value, sort_keys=True))
+            self.addCleanup(diagnostic_cleanup)
             raw_source_bytes = sum(len(body) for body in raw_sources)
             del raw_sources, original_bundle
             gc.collect()
@@ -329,7 +507,26 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
                         payload = json.loads(http_request.content)
                         state["turns"] += 1
                         state["wire_count"] += 1
-                        turn, bridge = state["turns"], state["bridge"]
+                        physical, bridge = state["turns"], state["bridge"]
+                        shape = request_shape(payload, bridge.directory)
+                        if physical == 4:
+                            state["turn4_shape"] = shape
+                        if shape["checkpoint"].get("pending_label") == "compaction":
+                            self.assertEqual(state["logical_turn"], 3,
+                                "Only one summary of the actual rendered exchange is scripted")
+                            self.assertEqual(state["summary_count"], 0, "Controlled summary budget exhausted")
+                            value = recorded_summary_render(payload)
+                            state["summary_count"] += 1
+                            state["summary_render"] = value
+                            summary = {"basis": "actual_received_Recorded_tool_result", "render": value,
+                                "next_action": "Use cover_view for the actual final image and thumbnail before writing render-review.md; independent QC remains pending."}
+                            return httpx.Response(200, json=model_reply(physical,
+                                text="## Work State\n### Completed\n- The supplied recorded tool receipt confirms a successful local render.\n"
+                                    "### Active\n- Actual final/thumbnail pixel review and independent QC remain pending.\n"
+                                    "## Next Move\n1. View the actual rendered image and thumbnail before writing the review.\n"
+                                    "## Important Context\n" + CONTROLLED_SUMMARY + json.dumps(summary, ensure_ascii=False)))
+                        state["logical_turn"] += 1
+                        turn = state["logical_turn"]
                         if turn == 1:
                             self.assertEqual(len(runtime._images_in(payload)), 9)
                             self.assertEqual(set(bridge.inspection_previews), state["source_hashes"])
@@ -342,17 +539,20 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
                             calls = [("cover_view", {"path": "reference/composition-reference.png"})]
                         elif turn == 3:
                             self.assertIn(digest(concept), runtime._images_in(payload))
+                            state["render_call_id"] = "dual_" + str(physical) + "_0"
                             calls = [("cover_render", {"request": request, "prepare": packet})]
                         elif turn == 4:
-                            value = compound.fixtures.fixture.returned_value(payload, "render", tool_call_id="dual_3_0")
-                            self.assertTrue(value["render"]["ok"], str(value["render"].get("code")))
-                            state["render"] = value["render"]
+                            value, state["receipt_source"] = primary_render(payload, state["render_call_id"])
+                            if state["summary_count"]:
+                                self.assertEqual(value, state["summary_render"], "Primary must receive the actual summarized receipt")
+                                self.assertEqual(state["receipt_source"], "actual_summary_received_by_primary")
+                            state["render"] = value
                             calls = [("cover_view", {"path": state["render"]["image_path"]})]
                         elif turn == 5:
                             self.assertTrue({state["render"]["png_sha256"], state["render"]["thumbnail_sha256"]}.issubset(runtime._images_in(payload)))
                             calls = [("cover_write", {"path": "render-review.md", "text": "Controlled actual final and thumbnail pixels received. Mock aesthetic response, not merchant acceptance."})]
                         elif turn == 6:
-                            return httpx.Response(200, json=model_reply(turn, text="Controlled local design complete."))
+                            return httpx.Response(200, json=model_reply(physical, text="Controlled local design complete."))
                         else:
                             self.assertEqual(turn, 7)
                             self.assertTrue(set(bridge.inspected_sources) == state["source_hashes"])
@@ -360,8 +560,8 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
                                 "subject_preserved": True, "issues": [], "local_adjustment": None,
                                 "design_checks": {key: True for key in ("main_visual", "message_focus", "typographic_hierarchy",
                                     "layout_balance", "thumbnail_legibility", "style_fits_subject")}}
-                            return httpx.Response(200, json=model_reply(turn, text=json.dumps(qc)))
-                        return httpx.Response(200, json=model_reply(turn, calls))
+                            return httpx.Response(200, json=model_reply(physical, text=json.dumps(qc)))
+                        return httpx.Response(200, json=model_reply(physical, calls))
                     except AssertionError as error:
                         state["assertions"].append(str(error))
                         raise
@@ -454,7 +654,9 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
                 for state in states.values():
                     job = jobs.get_job(state["user"], state["job"])
                     self.assertEqual(job["status"], "completed", json.dumps({"failure": job["failure_code"], "assertions": state["assertions"]}))
-                    self.assertEqual(state["wire_count"], 7)
+                    self.assertEqual(state["logical_turn"], 7)
+                    self.assertEqual(state["wire_count"], 7 + state["summary_count"])
+                    self.assertLessEqual(state["summary_count"], 1)
                 await worker.stop()
             finally:
                 first_barrier.abort()
@@ -588,6 +790,11 @@ class DualSDKCapacityTests(unittest.IsolatedAsyncioTestCase):
                 "dedicated_executor_max_workers": worker.executor._max_workers,
                 "all_worker_and_maintenance_tasks_finished": True,
                 "first_known200_previews_per_session": 9, "renderer_peak": renderer["peak"],
+                "mock_model_requests_per_session": [{"physical": state["wire_count"],
+                    "logical_design_and_QC": state["logical_turn"], "actual_summary": state["summary_count"],
+                    "render_receipt_received_from": state["receipt_source"]} for state in states.values()],
+                "physical_response_cipher_and_tool_IDs_unique": True,
+                "summary_receipt_only_from_actual_model_messages": True,
                 "media_peak": max(item["media_active"] for item in samples), "remote_capacity": manager.calls.capacity,
                 "unrelated_report_admission_progressed": report_permit, "report_full_workflow_proved": False,
                 "raw_originals_per_task_bytes": raw_source_bytes, "actual_candidates_retained": resident,
