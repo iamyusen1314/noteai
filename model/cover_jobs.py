@@ -289,6 +289,14 @@ def submit_job(*, user_id, report_type, report_id, request_id, source_refs, inpu
         if any(ref.purpose != "image" or ref.content_sha256 != item["sha256"] or ref.size_bytes != item["size_bytes"]
                for ref, item in zip(locked, manifest)):
             raise ValueError("original cover source changed")
+        # The queue may wait only while every locked original is still usable.
+        # These factual descriptors also identify the new queue contract on a
+        # mode-off first claim, without changing the quote or financial type.
+        for ref, item in zip(locked, manifest):
+            item["source_expires_at"] = _now(datetime.fromisoformat(ref.expires_at)).isoformat()
+        queue_deadline = min(datetime.fromisoformat(item["source_expires_at"]) for item in manifest)
+        if queue_deadline <= _now(now):
+            raise HTTPException(422, "原图已过期，请补传后再制作封面")
         budget_id = policy_snapshot["budget_id"]
         budget = tx.fetchone("SELECT * FROM public_trial_budget WHERE id=?"+_lock(tx),(budget_id,))
         expected_limit = 100000 if budget_id == BUDGET_ID else 0
@@ -321,8 +329,8 @@ def submit_job(*, user_id, report_type, report_id, request_id, source_refs, inpu
             "source_manifest_json,policy_json,quote_version,status,stage,deadline_at,created_at,updated_at) "
             "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'queued','queued',?,?,?)", (job_id,user_id,report_type,report_id,request_key,budget_id,
             context["charge"]["usage_id"],digest,_json(input_snapshot),_json(manifest),_json(policy_snapshot),
-            expected_quote,(clock+timedelta(seconds=HOLD_SECONDS)).isoformat(),clock.isoformat(),clock.isoformat()))
-        tx.execute("UPDATE idempotency_requests SET lease_expires_at=? WHERE id=?", ((clock+timedelta(seconds=HOLD_SECONDS)).isoformat(),job_id))
+            expected_quote,queue_deadline.isoformat(),clock.isoformat(),clock.isoformat()))
+        tx.execute("UPDATE idempotency_requests SET lease_expires_at=? WHERE id=?", (queue_deadline.isoformat(),job_id))
         row = tx.fetchone("SELECT * FROM cover_jobs WHERE id=?", (job_id,))
         claim = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (job_id,))
         return {**_projection(row, claim), "created": True}
@@ -369,10 +377,20 @@ def claim_job(job_id, *, lease_seconds=300, now=None):
         row = tx.fetchone("SELECT * FROM cover_jobs WHERE id=?" + _lock(tx), (job_id,))
         import model_capacity
         capacity_mode = model_capacity.enabled()
-        execution_start = capacity_mode and row["status"] == "queued" and row["lease_fence"] == 0
+        manifest = json.loads(row["source_manifest_json"])
+        source_bounded_queue = any(isinstance(item, dict) and "source_expires_at" in item for item in manifest)
+        if source_bounded_queue:
+            if not all(isinstance(item, dict) and isinstance(item.get("source_expires_at"), str) for item in manifest):
+                raise ValueError("complete original cover source expiry required")
+            source_deadline = min(_now(datetime.fromisoformat(item["source_expires_at"])) for item in manifest)
+            # A new queue row must still have its exact original source bound;
+            # recovery of an already claimed row keeps its execution deadline.
+            if row["lease_fence"] == 0 and row["deadline_at"] != source_deadline.isoformat():
+                raise ValueError("original cover queue source deadline changed")
+        execution_start = (capacity_mode or source_bounded_queue) and row["status"] == "queued" and row["lease_fence"] == 0
         if execution_start:
             financial = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?" + _lock(tx), (job_id,))
-        if capacity_mode:
+        if capacity_mode or source_bounded_queue:
             # Waiting for either row lock must not revive an expired queue or
             # consume a portion of the first execution window unnoticed.
             clock = _now(now)

@@ -11,6 +11,8 @@ import json
 import logging
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from datetime import datetime, timezone
 from functools import wraps
 
@@ -109,13 +111,17 @@ def _retention_policy(policy):
     return retention, "cover_v1" if retention == cover_settings.LEGACY_RETENTION_SECONDS else "cover_3d_v1"
 
 
-def _run_claim(claim, *, runtime=None):
+def _run_claim(claim, *, runtime=None, operation=None):
     user_id, job_id = claim["user_id"], claim["request_id"]
     retention, lifecycle = _retention_policy(claim["policy_snapshot"])
     invocation = public_product.Invocation(user_id, job_id, route="/covers",
         budget_id=claim["policy_snapshot"].get("budget_id", cover_settings.BUDGET_ID))
-    operation, owns = model_admission.current().register(user_id,
-        hashlib.sha256(job_id.encode()).hexdigest(), route="/covers")
+    owns = operation is None
+    if owns:
+        operation, owns = model_admission.current().register(user_id,
+            hashlib.sha256(job_id.encode()).hexdigest(), route="/covers")
+        if not owns:
+            return None
     invocation.admission_state = operation
     marker = public_product._invocation.set(invocation)
     usage_marker = billing._ACTIVE_USAGE_ID.set(claim["charge"]["usage_id"])
@@ -182,7 +188,7 @@ def _run_claim(claim, *, runtime=None):
             _, body = private_storage.load_media_bytes(item["media_ref"], user_id=user_id, purpose="image")
             if hashlib.sha256(body).hexdigest() != item["sha256"]:
                 raise cover_runtime.CoverRuntimeError("COVER_SOURCE_HASH_CHANGED")
-            sources.append({**item, "payload": body})
+            sources.append({**{key: value for key, value in item.items() if key != "source_expires_at"}, "payload": body})
         result = (runtime or cover_runtime.run_cover)(job_id=job_id, user_id=user_id,
             report=claim["input_snapshot"], sources=sources,
             design_version=claim["policy_snapshot"].get("design_version", 1),
@@ -245,21 +251,24 @@ def run_next(*, runtime=None):
         "ORDER BY q.created_at,q.id LIMIT 32")
     for row in rows:
         admission = model_admission.current()
-        with admission.lock:
-            if len(admission.operations) >= admission.limits.operations:
+        try:
+            operation, owns = admission.register(row["user_id"],
+                hashlib.sha256(row["id"].encode()).hexdigest(), route="/covers")
+        except model_admission.AdmissionError as exc:
+            if str(exc) == "MODEL_OPERATIONS_BUSY":
                 return None
-            if sum(uid == row["user_id"] for uid, _ in admission.operations) >= admission.limits.operations_per_user:
-                continue
-        claim = cover_jobs.claim_job(row["id"])
-        if claim:
-            with _COVER_ACTIVE_LOCK:
-                _COVER_ACTIVE_CLAIMS += 1
+            continue
+        if not owns:
+            continue
+        with _COVER_ACTIVE_LOCK:
+            _COVER_ACTIVE_CLAIMS += 1
+        try:
+            claim = cover_jobs.claim_job(row["id"])
+            if claim:
+                return _run_claim(claim, runtime=runtime, operation=operation)
+        finally:
             try:
-                return _run_claim(claim, runtime=runtime)
-            except model_admission.AdmissionError:
-                # A report won the race before any cover provider call. Its
-                # original provider-free lease can be recovered after expiry.
-                return None
+                admission.finish(operation)
             finally:
                 with _COVER_ACTIVE_LOCK:
                     _COVER_ACTIVE_CLAIMS -= 1
@@ -268,13 +277,23 @@ def run_next(*, runtime=None):
 
 class CoverWorker:
     def __init__(self):
+        self.slots = int(os.getenv("NOTEAI_COVER_WORKER_SLOTS", "1"))
+        if self.slots not in (1, 2):
+            raise ValueError("bounded one or two cover worker slots required")
         self.stopping = asyncio.Event()
         self.task = None
+        self.tasks = []
         self.maintenance_task = None
+        self.executor = None
 
     def start(self):
         if self.task is None:
-            self.task = asyncio.create_task(self.loop())
+            # Exactly one awaited submission per slot, plus the existing
+            # maintenance loop, bounds both running work and executor backlog.
+            self.executor = ThreadPoolExecutor(max_workers=self.slots + 1,
+                thread_name_prefix="noteai-cover")
+            self.tasks = [asyncio.create_task(self.loop()) for _ in range(self.slots)]
+            self.task = self.tasks[0]
             self.maintenance_task = asyncio.create_task(self.maintenance_loop())
         return self
 
@@ -282,7 +301,7 @@ class CoverWorker:
         try:
             while not self.stopping.is_set():
                 try:
-                    await _await_owned_work(asyncio.to_thread(run_next))
+                    await _await_owned_work(asyncio.get_running_loop().run_in_executor(self.executor, copy_context().run, run_next))
                 except Exception:
                     logging.warning("cover_worker_state_requires_verification")
                 try:
@@ -303,7 +322,8 @@ class CoverWorker:
                 if self.stopping.is_set():
                     return
                 try:
-                    await _await_owned_work(asyncio.to_thread(_recover_cover_jobs, active_only=True))
+                    await _await_owned_work(asyncio.get_running_loop().run_in_executor(
+                        self.executor, copy_context().run, lambda: _recover_cover_jobs(active_only=True)))
                 except Exception:
                     logging.warning("cover_maintenance_state_requires_verification")
         finally:
@@ -311,11 +331,17 @@ class CoverWorker:
 
     async def stop(self):
         self.stopping.set()
-        tasks = [task for task in (self.task, self.maintenance_task) if task is not None]
-        if tasks:
-            # Never interpret API shutdown as a user cancellation. A forced
-            # process loss is handled by the persisted original lease/intents.
-            await _await_owned_work(asyncio.gather(*tasks, return_exceptions=True))
+        tasks = [task for task in (*self.tasks, self.maintenance_task) if task is not None]
+        try:
+            if tasks:
+                # Never interpret API shutdown as a user cancellation. A forced
+                # process loss is handled by the persisted original lease/intents.
+                await _await_owned_work(asyncio.gather(*tasks, return_exceptions=True))
+        finally:
+            if self.executor is not None:
+                # All owned futures above have reached their real terminal;
+                # this join cannot abandon a still-running cover thread.
+                self.executor.shutdown(wait=True)
 
 
 @_track_adjustment
