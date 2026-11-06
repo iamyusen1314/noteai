@@ -5972,3 +5972,49 @@ Root核实际middleware发现ready不开放，已在e259将原_readiness_payload
 实际生产sourcee259a2e4d51c8c7bc948f7f658acb828fb97cdf5，image9db3a6b9b14fa868d86e17171cbad973611ad8f94fffd6df64b0358fe1744d1a；API8be5e4c48c0c1e8ef11bfd25f8140df14ea0618cedd4be7d85efc23e052d2013/profile0bea8882e5ad8b4ca7281f3eddcf7ac94e098633c75d1915e1526ce41d8f680a；Payeb865e7b1be479611cfae6c357c7323bea37a82acfde1d4c1240f06084155017/原4e4d-image/bb76-profile；Adminc5d/原4a03/3249保持。原静态544cd530/OPEN/WorkerC停，无新依赖/迁移/资源/付费生成。实际PID1 HTTP/live130B严格四字段confirmedtrue/activefalse；原配置remote64/operations100/pending512/user1/media2/buffer256MiB及官方各模型quota核ok，不能把新子进程config当PID1队列。原6178为本次兼容回退像，沿同CASE原closed-helper或原runningrollback+freshpair61，不创建第二发布流程。
 
 R18真实rev2/PNG94c9/唯一8分/11月8日22:09截止已完成交付；接续final_release_review负责原normal READAFTER无再edit+同次实际workspace/tmp介质最小只读，Root真实执行；不因部署通过重跑PC/H5静态/历史支付/Amap或新paid生成。单CLI/t-sz07293uzbkjitc真实S0/D0：3模型warm+原包edit/capture/store禁写，CLI0/PNG8b7/peak750342144/pids154/OOM0；QA强制state_root位于/tmp，不据tmp29.65MB余量推生产容量，R4cause仍未知且停止整暖重复。队列/ownedworker最小2源+新test仅本地未提交（quota作者已返权），默认slot1未启2；双真实SDK/原九图受控target由resources已实际接手，待生产实际介质后才Linux验证，不以部分RSS或remote64声称10整cover通过。当前无云请求在途，P同current_resume_pointer含实际所有ref/恢复入口，Root继续下一只读验证与独立容量工程。
+
+
+### 2026-11-06T03:03:31.512497+00:00 — CURRENT短checkpoint：正式E259已正常成品复核；3ca排队/ownedworker候选实际构建通过，最终商家/Linux QA准备中
+
+HEAD4f92af2c（功能3ca97ba5d99853210e3876adb39cd97c9f9e0ac3+独立dual test），原branch/worktree不变，受控remote推至3ca。生产E259/9db3/API8be5/Payeb865/Adminc5d/OPEN/WorkerC停保持。POSTCHECK/t-sz07295gj5rnjls actualS0/D0：同R18 rev2/PNG94c9/5386360/唯一8分/原11-08T14:09:37Z期限/calls不变，0model/0write；旧helperFREE_EDIT_PENDING仅指本次只读不再edit。真实workspace /app/model/data/cover-agent在ext4，browser/tmp为256MiBtmpfs，不能把旧QA强制/tmp混合水位当生产限制。
+
+新3ca仅jobs/service：新queued最早原图expiry与同financiallease，原8预留/quote/payloadhash不变，source_expiry事实标记确保跨mode首claim仅原30m且恢复不续；旧rows不延。ownedoperation在claim前，cover_claims覆盖claim→runtime→finish/异常finally，专属bounded executor保持copy_context隔离；默认slot1、可配置2但未生产开启。LOCAL001/OWNED-SPAN001/CONTEXT-LOCAL001和独审19a772有效，原adjust/retention/UNKNOWN不改。e259兼容回退capacity1能处理新队列，但会把非密source_expiry额外入旧Prompt，不宣称逐字Prompt同、不因此新暂停/镜像门禁。
+
+BUILD001/t-sz07296rpsdf1ts实际S0/D0，image603e9d3a66d2d5a1b1534006a6f423026fb55c9f81475b5c91a84dfd4047a201；实际producer build-cover-queue-worker-20261106-r1.result.json8135/ba9b40fff3de185ff272301947fd23d417a5697f711aa84965b7ed2807c4fbfd，32closure27COPY2changed30same125层/3CID不改/0provider/0DBwrite，无部署。唯一新dual test40536/61ef已独审d424GO并commit4f92；两个本机technical小包运行仅工具联调eligiblefalse，未冒商家/3GiBLinux通过。resources现已实际接手原privateQA的8fixtures（6cached+2new）/4必要targets，sealed R18 tar220b只读，own /qa-data ext4而非遮镜像data，browser/tmp256/3GiB2CPU/init512pids/shm64；最后正式plans冻结后Root唯一执行。后继原pub作者只actualbuild/source晚绑，QA与TARGET_WORKER_SLOTS None拒派，恢复原liveness→strictwork→verified顺序；2激活仅在真实Linux eligible通过后。此刻无cloud在途，P current_resume_pointer记实refs与作者/下一步；继续原QA→独审→同一原发布→正常成品复核，不以checkpoint停止。
+
+
+### 2026-11-06T03:45:36.085714+00:00 — CURRENT短checkpoint：新候选3ca/603e的首次双任务失败已证是Mock遗漏compaction，产品不为此改；真实容量仍未通过
+
+正式仍E259/9db3/API8be5/Payeb865/Adminc5d/OPEN/slot1/WorkerC停，R18成品/8分/期限完整已交付。原QA001/t-sz07298ljalfmrk knownF1/D0，3项队列真PASS，dual Mock固定turn4缺render失败；Root唯一只读/t-sz072990dcxwagw取原stdout12923/0296be29，旧失败/日志不覆写。R2仅diagnostic采集（test a044）/t-sz0729b48iu5y4g actualS0/D0但NOT_CAPACITY_PASS/testfail1，0真实vendor/0prodDB/3CID不改/ownedcleanup确认。两session第四请求实际checkpoint pending_labelcompaction、compaction1、system1+user2/无tool role、artifact/previewtrue/no rejection，确定原Mock把合法summary当普通render结果。3ca/603e产品源无此故障修正必要；下一步只修唯一test的真实summary响应与物理ordinal/逻辑turn分离，摘要基于真实received Recorded tool result，不造render/跳过像素/检查。作者resources已实际接手，reviewer独立核，原3queuePASS不重跑、同image不新build/不调用付费。
+
+R2 peak3175276544/max0/OOM0/pids无max；anonpeak2552795136/file609255424/shmem188764160（属于file，不重复相加）/SDK总RSSpeak1991962624/Python761692160，各自峰不一定同时，不能据此当内存solecause或2任务全链通过。真实2SDK已reap、samplerjoin/rendereractive0。所有actual JSON在E/COVER-QUEUE-WORKER-QA-R2-001.POLL001.OUTPUT.txt；P同current_resume_pointer有完整invoke/shape/恢复入口，cloud在途空。后继原publisher仍actualbuild/source绑定、QA/slotsNone拒派；完整最终dual验收通过后才决定2并同原流程发布，继续自主工作而非以checkpoint停止。
+
+
+### 2026-11-06T04:40:32.313848+00:00 — CURRENT最终交付：封面正式3ca/603e/双任务已上线，原R18最终核验通过；仅剩只读交接确认
+
+任务仍noteai-xhs-cover-20261019，原worktree/branch不变。记录时HEAD 2106a86de5ea4c73e667cca5eab1150bd98edc3d；生产功能source **3ca97ba5d99853210e3876adb39cd97c9f9e0ac3**、image **sha256:603e9d3a66d2d5a1b1534006a6f423026fb55c9f81475b5c91a84dfd4047a201**；测试协议修复2106a86d，未改变生产模型/Prompt/图片/质量或价格。真实PUBLISH **t-sz0729fe3knfqbk Success0/D0**，7阶段业务 `COVER_QUEUE_WORKER_ORIGINAL_PAIR_VERIFIED_AND_REOPENED`。实际API be1eb720f29b365140c7d1a5c81922973ce06a2ff55adccc9a473df367a12a73/profile07d791d9a6a9df38584255d2a2c0bb92541115706dd42366a0465a11ce83186b；Pay3ea9aa92f876b5678efca17544868cef64abc304f3998143da573d5b8e4a092d（原image4e4d/profilebb76）；Adminc5d/原4a03/3249及静态544cd530保持。原DB/模型ready、真PID1 HTTP/live confirmedtrue/activefalse、完整profile及worker配置2/remote64/operations100/pending512/user1/media2/buffer256MiB均通过；配置子进程不冒PID1任务计数。Worker C独立云资源仍停机，无新增资源/依赖/迁移、无本轮付费生成。
+
+真实交付是3140原报告d9424446的原任务513ac703、usage6964cadc：**最终POSTCHECK t-sz0729fxu86zdog Success0/D0/child0**，新normal CID下job/history真rev2，可重开、私有下载，成品5386360B/1776×2368/SHA94c9d1ab3109162f24ac8a92f2d25e9baee2874ed144915ca91f594d6fdd55ee；完成marker1/净8（monthly2+wallet6）、model/image calls前后不变、4image refs/2design packages真可读。原截止 **2026-11-08T14:09:37.021753Z＝北京11月8日22:09** 不延长；新封面3天、旧封面原期限不追溯。实际免费改字来自739上线后的FREE-EDIT002，最终reader的FREE_EDIT_PENDING只指本次不再edit；路径AST未改、证据可复用。真实PNG位于 E/NoteAI-3140-cover-R18-final.png（E为本任务production-cover-incident-20261103私有证据目录），已实际下载/显示，浏览器UI下载文件同SHA。
+
+| 改动与负责人 | 风险及有效证据 | 结果/剩余 |
+|---|---|---|
+| 原9图、可管理成品/设计包、保留3天；Root集成 | 真实R18一次9供应商请求全known200、原照hash/主体/六项QC及保存/重开/免费改字/下载/唯一8实证 | 完成；不再paid重生 |
+| 字体就绪与共享render/media、实际工作观测；739/e259 | 新字形真CLI先红后绿、异常先清原组再退票、真实公开HTTP四字段、原61s全事务/进程静默及回退保留 | 已上线，无新auth/endpoint放宽 |
+| queued与owned worker；3ca | 新queued仅到最早原图expiry；首claim原30min、不续期/不改旧行；preclaim→finish全span、专用pool与copy_context；R1原3queue PASS独立复用12923/0296 | 已上线2槽；它不是全站2名额 |
+| 多任务资源；独立资源/审查代理 | R3真实2SDK重叠/真CLI/私有SQLite存取改字/各唯一8/MockUNKNOWN，source7pins/真R18tar/3GiB2CPU；20637/a2a26全回执，峰2799357952、余402.32MiB、全部memory/pids事件0、tmp最少61.85MB、所有原线程/host/tickets清理 | 有限资源GO；供应商Mock，未冒10/100完整报告压测 |
+| PC/H5；Root | 原静态+真实前后DTO/PNG受控会话验证保存重开/文字5中点/原生SaveAs，原UI证据R18-UI-FINAL-VERIFICATION001 | 真iPhone相册保存、3140手机正常登录未实测，不冒通过 |
+
+R3只有dual单目标完整PASS；原3queue来自同3ca/603e首次failed4/1批次中明确3PASS，不改旧失败/不称同批4PASS。原失败根因已通过R2实证是验收Mock漏了合法compaction：两session第4请求system1+user2/pending_labelcompaction；修复仅测试的摘要格式/实际received render回执/物理与逻辑计数，未改产品迎合Mock。旧RSS-R4具体ValueError未捕获，原记录仍留；新等价介质完整R3已独立完成，不再为旧工具扩大修复。真实R18模型直接成本：text2.0958696元＋concept0.76元未结实价估计，逐笔保守2.861元≈2.86；历史A108.488/外A3.927/合计112.415与UNKNOWN/未实价预留12.045保留，后续充值范围内授权未重置旧费，既有积分标准8不改。
+
+| 服务 | 当前用途/维护界限 |
+|---|---|
+| noteaipro.com/Nginx静态 | PC/H5、分享/支付入口；本轮static544不动 |
+| noteai-api-c | 原用户API、报告与有界2封面任务，3GiB/2CPU；供应商配额/公平队列不等于在线人数 |
+| noteai-payment | 原微信Native/JSAPI支付与回调；随原API netns配对启动，image/ENV不改，不重放支付 |
+| noteai-admin-c | 原Admin/运营账目，CID未动，不擅改用户权益 |
+| Render noteai-prod-claude-gateway＋原AWS | **仍用于Claude链路**，实际fresh signed readiness已通过；不能因双Pro封面不走它而关闭 |
+| 独立Worker C | 用户已节省停机；封面不需要启用；API内worker2不是该云资源 |
+
+发布/恢复只沿原 `release-cover-queue-worker-20261106-r1` CASE及E/COVER-QUEUE-WORKER-RELEASE-READY-INDEX.json。当前5个执行计划均已消费，不能直接重发。必要回退仍用原normal `prepare_running_rollback` 或适用的原closed-helper，保精确once marker、全DB/proc/真PID1静默、fresh pair/完整ENV、verify与原61s后reopen；本轮兼容image9db3/E259，worker恢复原配置。旧capacity1可以处理新queued，非密source_expiry会额外进入旧Prompt，不声称Prompt逐字同，不另造暂停/回退系统。结果未知先读原request/intent/CID/profile，不重发供应商请求。无必要迁移；0033旧配额迁移只复用已执行证据，禁止重跑。
+
+Root当前仍为唯一生产发布负责人。接手方为原“修复高德检索与休闲娱乐行业”窗口（01a13080-d8a9-7c50-88c0-09ffcebbef61），只读接收当前版本/用途/证据与后续维护，不转移生产发布权、不编辑此worktree、不重跑历史验收。此记录时尚未发送/核实接收，下一步Root发送具体交接并核实其实际开始读取，再登记回执。权威P current_resume_pointer已改实状态，旧R7/R18 running别名作为历史留存，真实在途为空；不把旧running当新派发指令，不宣称不存在的后台续跑。
