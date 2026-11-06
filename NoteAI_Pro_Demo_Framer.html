@@ -8299,6 +8299,57 @@ function coverTitleChoices(type) {
   return [...new Set([original,...(Array.isArray(variants) ? variants : [])]
     .filter(value => typeof value === 'string' && value.trim() && value.length <= 300))];
 }
+function coverSelectNoteVersion(ctx, noteId) {
+  const note = (ctx.noteVersions || []).find(item => item.id === noteId);
+  ctx.selectedNoteId = note?.id || null;
+  ctx.sourceNoteId = note && note.id !== ctx.originalNoteId ? note.id : null;
+  ctx.titleChoices = ctx.sourceNoteId ? [note.title] : coverTitleChoices(ctx.report_type);
+  const select = ctx.dialog.querySelector('[data-cover="title"]');
+  const automatic = document.createElement('option'); automatic.value = '';
+  automatic.textContent = ctx.sourceNoteId ? '根据所选优化稿标题设计' : '结合原题与备选标题自动优选';
+  select.replaceChildren(automatic,...ctx.titleChoices.map(title => {
+    const option = document.createElement('option'); option.value = title; option.textContent = title; return option;
+  }));
+  ctx.dialog.querySelector('[data-cover="version"]').value = note?.id || '';
+  ctx.dialog.querySelector('[data-cover="version-note"]').textContent = note
+    ? `使用已保存的 v${note.version || 1}：${note.title}。封面依据此版本的标题和正文制作。`
+    : '使用本报告原稿的标题和正文。';
+}
+async function coverLoadNoteVersions(ctx) {
+  if (ctx.savedOnly) return;
+  ctx.noteVersionsLoading = true; ctx.noteVersionError = ''; coverRender(ctx);
+  try {
+    const response = await coverFetch(ctx,ctx.path);
+    const report = await response.json(); if (!ctx.current()) return;
+    if (report.report_type !== ctx.report_type || report.report_id !== ctx.report_id || !report.result) throw Error('笔记版本尚未核对，请刷新后再制作');
+    const result = report.result, group = result.note_version_group || {};
+    ctx.originalNoteId = result.saved_note_id || result._saved_note_id || report.saved_note_id || null;
+    ctx.noteVersions = (Array.isArray(group.versions) ? group.versions : []).filter(note =>
+      typeof note.id === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(note.id)
+      && typeof note.title === 'string' && note.title.trim() && note.title.length <= 300 && typeof note.body === 'string');
+    const select = ctx.dialog.querySelector('[data-cover="version"]');
+    select.replaceChildren(...ctx.noteVersions.map(note => {
+      const option = document.createElement('option'); option.value = note.id;
+      option.textContent = `v${note.version || 1} · ${note.title}${note.id === ctx.originalNoteId ? '（原稿）' : ''}`; return option;
+    }));
+    ctx.dialog.querySelector('[data-cover="version-label"]').hidden = !ctx.noteVersions.length;
+    const frozenNoteId = ctx.pendingBody?.source_note_id;
+    if (ctx.pending && frozenNoteId && !ctx.noteVersions.some(note => note.id === frozenNoteId)) {
+      const original = document.createElement('option'); original.value = frozenNoteId;
+      original.textContent = '原提交笔记版本（暂不可读）'; select.replaceChildren(original);
+      ctx.dialog.querySelector('[data-cover="version-label"]').hidden = false;
+      ctx.noteVersionError = '原提交笔记版本暂不可读；核查保留原编号和原版本，不会改用其他稿件。';
+      return;
+    }
+    const chatNoteId = typeof _chatParentNoteId === 'string' ? _chatParentNoteId : null;
+    const preferred = ctx.pending ? (ctx.pendingBody?.source_note_id || ctx.originalNoteId)
+      : ctx.selectedNoteId || chatNoteId || group.latest?.id || ctx.originalNoteId;
+    const noteId = ctx.noteVersions.some(note => note.id === preferred) ? preferred
+      : ctx.noteVersions.some(note => note.id === group.latest?.id) ? group.latest.id : ctx.originalNoteId;
+    coverSelectNoteVersion(ctx,noteId);
+  } catch (error) { if (ctx.current()) ctx.noteVersionError = error.message || '笔记版本暂不可读，请刷新后再制作'; }
+  finally { ctx.noteVersionsLoading = false; coverRender(ctx); }
+}
 function coverPositionOptions(layout) {
   return [...new Set((Array.isArray(layout?.position_options) ? layout.position_options : [])
     .filter(value => ['top','bottom'].includes(value)))];
@@ -8330,7 +8381,8 @@ function coverAdmissionDiagnostic(requestId, error, responseStatus, phase) {
 function coverSubmitBody(ctx, pending) {
   const title = ctx.dialog.querySelector('[data-cover="title"]').value;
   if (title && !(ctx.titleChoices || []).includes(title)) throw Error('请选择本报告已有标题，不新增未确认事实');
-  return {...pending,source_media_refs:[...ctx.selected],...(title ? {title} : {})};
+  return {...pending,source_media_refs:[...ctx.selected],...(title ? {title} : {}),
+    ...(ctx.sourceNoteId ? {source_note_id:ctx.sourceNoteId} : {})};
 }
 function coverEntryMarkup(type) {
   const ref = coverReportRef(type);
@@ -8363,13 +8415,15 @@ function coverPendingKey(ctx) {
 function coverRestorableWire(value) {
   const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
   if (!value || typeof value !== 'object' || Array.isArray(value)
-      || Object.keys(value).some(key => !['request_id','quote_version','source_media_refs','title'].includes(key))
+      || Object.keys(value).some(key => !['request_id','quote_version','source_media_refs','title','source_note_id'].includes(key))
       || !uuid.test(value.request_id) || typeof value.quote_version !== 'string' || !value.quote_version || value.quote_version.length > 100
       || !Array.isArray(value.source_media_refs) || !value.source_media_refs.length || value.source_media_refs.length > 9
       || value.source_media_refs.some(ref => typeof ref !== 'string' || !uuid.test(ref))
-      || (Object.hasOwn(value,'title') && (typeof value.title !== 'string' || value.title.length > 300))) return null;
+      || (Object.hasOwn(value,'title') && (typeof value.title !== 'string' || value.title.length > 300))
+      || (Object.hasOwn(value,'source_note_id') && (typeof value.source_note_id !== 'string' || !uuid.test(value.source_note_id)))) return null;
   return {request_id:value.request_id,quote_version:value.quote_version,source_media_refs:[...value.source_media_refs],
-    ...(Object.hasOwn(value,'title') ? {title:value.title} : {})};
+    ...(Object.hasOwn(value,'title') ? {title:value.title} : {}),
+    ...(Object.hasOwn(value,'source_note_id') ? {source_note_id:value.source_note_id} : {})};
 }
 function coverReadPending(ctx) {
   try {
@@ -8444,7 +8498,9 @@ function coverRender(ctx) {
   el('create').textContent = releasedUnknown ? '新建封面 · 8 积分' : ctx.latest ? '重新设计 · 8 积分' : '生成封面 · 8 积分';
   const olderUnknown = (ctx.jobs || []).filter(item => item.job_id !== job?.job_id && ['outcome_unknown','unknown'].includes(item.status));
   el('unknown-history').textContent = olderUnknown.slice(0,3).map(item => `此前任务 ${item.job_id.slice(0,8)}：供应商结果仍待核查，${item.billing?.status === 'released' ? '预留已释放，不追扣原任务' : '请核对原预留'}。`).join('\n');
-  el('create').disabled = ctx.busy || ctx.reading || ctx.uploading || hasPending || !ctx.enabled || !coverQuoteReady(ctx.quote) || !ctx.selected.size;
+  el('create').disabled = ctx.busy || ctx.reading || ctx.uploading || ctx.noteVersionsLoading || !!ctx.noteVersionError || hasPending || !ctx.enabled || !coverQuoteReady(ctx.quote) || !ctx.selected.size;
+  el('version').disabled = ctx.busy || hasPending || ctx.noteVersionsLoading;
+  if (ctx.noteVersionError) el('version-note').textContent = ctx.noteVersionError;
   el('title').disabled = ctx.busy || hasPending;
   el('upload').disabled = ctx.busy || ctx.uploading || hasPending || !ctx.enabled || ctx.sourceAccessExpired === true;
   el('refresh').disabled = ctx.reading || ctx.busy;
@@ -8647,7 +8703,7 @@ async function coverRecoverPending(ctx) {
 }
 async function coverCreate(ctx) {
   if (!ctx.current() || ctx.busy || ctx.reading || ctx.uploading || ctx.pending || coverJobPending(ctx.active)
-      || !ctx.enabled || !coverQuoteReady(ctx.quote) || !ctx.selected.size) return;
+      || ctx.noteVersionsLoading || ctx.noteVersionError || !ctx.enabled || !coverQuoteReady(ctx.quote) || !ctx.selected.size) return;
   if (typeof crypto?.randomUUID !== 'function') { showToast('当前浏览器无法安全建立任务标识，请更新浏览器'); return; }
   const pending = {request_id:crypto.randomUUID(),quote_version:ctx.quote.quote_version};
   let body; try {body = coverSubmitBody(ctx,pending);} catch(error) {showToast(error.message);return;}
@@ -8736,7 +8792,7 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
   dialog.innerHTML = `<div class="cover-panel-head"><div><h2 id="report-cover-title">笔记封面</h2><p>复用这份报告、视觉建议和本人素材，独立制作并保存封面。</p></div><button type="button" data-cover="close" aria-label="关闭封面面板">关闭</button></div>
     <div class="cover-panel-body"><p data-cover="quote" class="cover-panel-note">正在读取独立封面报价…</p><p data-cover="availability" class="cover-panel-note"></p>
     <div data-cover="status" role="status" aria-live="polite" class="cover-panel-status">正在找回本报告封面任务…</div><p data-cover="unknown-history" class="cover-panel-note" style="white-space:pre-line"></p>
-    <section data-cover="source-form"><label for="report-cover-input-title">标题依据（从已有标题选择，设计自动短摘，不改原笔记）</label><select id="report-cover-input-title" data-cover="title"><option value="">结合原题与备选标题自动优选</option></select>
+    <section data-cover="source-form"><label data-cover="version-label" for="report-cover-note-version" hidden>封面对应笔记版本<select id="report-cover-note-version" data-cover="version"></select></label><p data-cover="version-note" class="cover-panel-note"></p><label for="report-cover-input-title">标题依据（从已有标题选择，设计自动短摘，不改原笔记）</label><select id="report-cover-input-title" data-cover="title"><option value="">结合原题与备选标题自动优选</option></select>
     <p data-cover="source-note" class="cover-panel-note">正在核对原图…</p><div data-cover="sources" class="cover-source-grid"></div>
     <div class="cover-panel-actions"><button type="button" data-cover="upload">补传或换候选图</button><button type="button" data-cover="create" class="cover-primary" disabled>生成封面 · 8 积分</button><button type="button" data-cover="refresh">刷新任务</button><button type="button" data-cover="recover" hidden>核查／重交原请求</button></div><p data-cover="recovery-note" class="cover-panel-note" hidden></p>
     <input data-cover="file" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden><p class="cover-panel-note">重新设计或换图后制作是新的8积分任务；关闭页面不取消后台任务。重新打开本报告可找回进度。</p></section>
@@ -8745,7 +8801,7 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
     <div class="cover-panel-actions"><button type="button" data-cover="adjust">免费保存排字</button><button type="button" data-cover="download" class="cover-primary">下载封面</button></div><p class="cover-panel-note">改字、断行、文字位置及下载不重复收费；修改失败保留上一张成功封面。</p></div></div></section></div>`;
   document.body.append(dialog);
   const ctx = {dialog,...ref,path:'/reports/' + reportType + '/' + encodeURIComponent(reportId),identity:_chatIdentitySnapshot(),token:_authToken,
-    urls:new Set(),selected:new Set(),sources:[],jobs:[],sourceStatus:'loading',enabled:false,quote:null,active:savedOnly?savedJob:null,latest:savedOnly?savedJob:null,savedOnly,savedJobId:savedOnly?savedJob.job_id:null};
+    urls:new Set(),selected:new Set(),sources:[],jobs:[],sourceStatus:'loading',enabled:false,quote:null,noteVersionsLoading:!savedOnly,active:savedOnly?savedJob:null,latest:savedOnly?savedJob:null,savedOnly,savedJobId:savedOnly?savedJob.job_id:null};
   ctx.current = () => _coverPanel === ctx && dialog.isConnected && _chatIdentityMatches(ctx.identity) && _authToken === ctx.token
     && (ctx.savedOnly || coverReportRef(reportType)?.report_id === reportId);
   _coverPanel = ctx; ctx.pending = ctx.savedOnly ? null : coverReadPending(ctx);
@@ -8754,14 +8810,15 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
   el('text-layer').addEventListener('change',() => coverSelectTextLayer(ctx));
   el('close').addEventListener('click',closeCoverPanel); dialog.addEventListener('cancel',event => { event.preventDefault(); closeCoverPanel(); });
   ctx.titleChoices.forEach(title => {const option=document.createElement('option');option.value=title;option.textContent=title;el('title').append(option);});
-  el('refresh').addEventListener('click',() => coverRefresh(ctx));
+  el('version').addEventListener('change',() => {if (!ctx.busy && !ctx.pending && !coverJobPending(ctx.active)) {coverSelectNoteVersion(ctx,el('version').value);coverRender(ctx);}});
+  el('refresh').addEventListener('click',() => Promise.all([coverRefresh(ctx),coverLoadNoteVersions(ctx)]));
   el('recover').addEventListener('click',() => coverRecoverPending(ctx));
   el('create').addEventListener('click',() => coverCreate(ctx)); el('adjust').addEventListener('click',() => coverAdjust(ctx));
   el('download').addEventListener('click',() => coverDownload(ctx)); el('upload').addEventListener('click',() => el('file').click());
   el('file').addEventListener('change',() => { const files = [...el('file').files]; el('file').value = ''; void coverUploadSources(ctx,files); });
   if (savedOnly) dialog.querySelector('.cover-panel-head p').textContent = '读取本人已保存封面，不需要原报告仍在保存期。';
   dialog.showModal(); coverRender(ctx);
-  await Promise.all([coverRefresh(ctx),coverLoadSources(ctx)]);
+  await Promise.all([coverRefresh(ctx),coverLoadSources(ctx),coverLoadNoteVersions(ctx)]);
 }
 
 function coverSavedJobReadable(job) {

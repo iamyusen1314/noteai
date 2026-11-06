@@ -16562,6 +16562,7 @@ class CoverSubmitInput(BaseModel):
     quote_version: str = Field(min_length=1, max_length=100)
     source_media_refs: list[str] | None = Field(default=None, max_length=9)
     title: str | None = Field(default=None, max_length=300)
+    source_note_id: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 class CoverAdjustInput(BaseModel):
@@ -16571,12 +16572,32 @@ class CoverAdjustInput(BaseModel):
     layer_id: str | None = Field(default=None, min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
 
 
-def _cover_report_snapshot(report, *, title=None, refs=()):
+def _cover_selected_note(report, source_note_id, user_id):
+    """Select only an owned, retained version descending from this report's note."""
+    original_id = report["result"].get("saved_note_id") or report["result"].get("_saved_note_id")
+    selected = _fetch_user_note(source_note_id, user_id)
+    if not selected:
+        raise HTTPException(404, "笔记版本不存在或已到保存期限")
+    selected = dict(selected)
+    if type(selected.get("version")) is not int or selected["version"] < 1:
+        raise HTTPException(422, "笔记版本信息不完整，请重新读取已保存笔记")
+    current, visited = selected, set()
+    while current and current["id"] not in visited:
+        if current["id"] == original_id:
+            return selected
+        visited.add(current["id"])
+        current = _fetch_user_note(current["parent_id"], user_id)
+    raise HTTPException(422, "所选笔记版本不属于本报告")
+
+
+def _cover_report_snapshot(report, *, title=None, refs=(), source_note=None):
     result = report["result"]
-    original = str(result.get("note_title") or (result.get("input_diagnostics") or {}).get("original_title") or "")
-    variants = result.get("title_variants") if report["report_type"] == "generate" else result.get("suggested_titles")
+    original = str(source_note.get("title") or "") if source_note is not None else str(
+        result.get("note_title") or (result.get("input_diagnostics") or {}).get("original_title") or "")
+    variants = [] if source_note is not None else (
+        result.get("title_variants") if report["report_type"] == "generate" else result.get("suggested_titles"))
     variants = [item for item in (variants or []) if isinstance(item, str)]
-    if title is not None and title.strip() not in [original, *variants]:
+    if title is not None and (title != original if source_note is not None else title.strip() not in [original, *variants]):
         raise HTTPException(422, "请选择当前笔记标题或本报告已有备选标题")
     opinions = [item for item in result.get("expert_opinions", []) if isinstance(item, dict)
                 and item.get("role") in {"视觉分析师", "视觉专家"}]
@@ -16584,15 +16605,22 @@ def _cover_report_snapshot(report, *, title=None, refs=()):
         "\n".join(str(s) for s in item.get("suggestions", []) if isinstance(s, str)) for item in opinions)
     mapping = [] if "cover_source_media_refs" in result else _cover_sources.project_source_items(
         result.get("source_media_items") or (result.get("input_diagnostics") or {}).get("source_media_items"))
-    return {"report_type": report["report_type"], "report_id": report["report_id"],
-            "title": title.strip() if title is not None else original,
-            "body": str(result.get("note_body") or result.get("desc") or
-                        (result.get("input_diagnostics") or {}).get("original_desc") or ""),
+    frozen_title = original if source_note is not None or title is None else title.strip()
+    snapshot = {"report_type": report["report_type"], "report_id": report["report_id"],
+            "title": frozen_title,
+            "body": str(source_note.get("body") or "") if source_note is not None else str(
+                result.get("note_body") or result.get("desc") or
+                (result.get("input_diagnostics") or {}).get("original_desc") or ""),
             "title_variants": variants, "visual_advice": advice,
-            "approved_titles": [title.strip()] if title is not None else
+            "approved_titles": [frozen_title] if title is not None or source_note is not None else
                 [value for value in [original, *variants] if value.strip()],
-            "domain": str(result.get("_domain") or result.get("domain") or ""),
+            "domain": str((source_note or {}).get("domain") or result.get("_domain") or result.get("domain") or ""),
             "source_items": [item for item in mapping if item["media_ref"] in refs]}
+    if source_note is not None:
+        snapshot.update(source_note_id=source_note["id"], source_note_version=source_note["version"],
+            title_sha256=hashlib.sha256(snapshot["title"].encode("utf-8")).hexdigest(),
+            body_sha256=hashlib.sha256(snapshot["body"].encode("utf-8")).hexdigest())
+    return snapshot
 
 
 @app.get("/reports/{report_type}/{report_id}/covers")
@@ -16645,7 +16673,10 @@ async def submit_report_cover(report_type: str, report_id: str, req: CoverSubmit
     try:
         refs = _cover_sources.normalize_source_refs(refs)
         policy = _cover_settings.policy_snapshot()
-        snapshot = _cover_report_snapshot(report, title=req.title, refs=refs)
+        source_note = None
+        if req.source_note_id is not None:
+            source_note = await asyncio.to_thread(_cover_selected_note, report, req.source_note_id, user["id"])
+        snapshot = _cover_report_snapshot(report, title=req.title, refs=refs, source_note=source_note)
         return await _await_media_worker(_cover_jobs.submit_job, user_id=user["id"],
             report_type=report_type, report_id=report_id, request_id=req.request_id,
             source_refs=refs, input_snapshot=snapshot, policy_snapshot=policy, quote_version=req.quote_version)

@@ -235,6 +235,44 @@ test('initial title accepts only existing original and variant choices and leave
  el('title').value='已有备选';const body=c.coverSubmitBody(ctx,{request_id:'original-id',quote_version:'v'});assert.equal(body.title,'已有备选');
  el('title').value='';assert.equal(c.coverSubmitBody(ctx,{request_id:'original-id',quote_version:'v'}).title,undefined);
 });
+test('cover reads saved versions and binds optimized text by note id while original variants remain available',async()=>{
+ const root='11111111-1111-4111-8111-111111111111',latest='22222222-2222-4222-8222-222222222222';
+ const versions=[{id:root,title:'真实原题',body:'原正文',version:1},{id:latest,title:'优化后标题',body:'已保存优化正文',version:2}];
+ const {c,ctx,el}=make({fetch:async()=>({ok:true,json:async()=>({report_type:'generate',report_id:'saved-report',result:{saved_note_id:root,note_version_group:{versions,latest:versions[1]}}})})});
+ c.reportGenerationResult=()=>({note_title:'真实原题',title_variants:['已有备选']});
+ await c.coverLoadNoteVersions(ctx);
+ assert.equal(ctx.sourceNoteId,latest);assert.deepEqual([...ctx.titleChoices],['优化后标题']);assert.match(el('version-note').textContent,/v2.*优化后标题/);
+ const body=c.coverSubmitBody(ctx,{request_id:'original-id',quote_version:'v'});
+ assert.equal(body.source_note_id,latest);assert.equal(Object.hasOwn(body,'body'),false);
+ c.coverSelectNoteVersion(ctx,root);assert.equal(ctx.sourceNoteId,null);assert.deepEqual([...ctx.titleChoices],['真实原题','已有备选']);
+ c._chatParentNoteId=latest;await c.coverLoadNoteVersions(ctx);assert.equal(ctx.sourceNoteId,null);assert.equal(ctx.selectedNoteId,root);
+ assert.equal(Object.hasOwn(c.coverSubmitBody(ctx,{request_id:'original-id',quote_version:'v'}),'source_note_id'),false);
+});
+test('unreadable or mismatched saved versions block new paid covers without hiding existing output',async()=>{
+ for(const response of [{ok:false,status:503,json:async()=>({detail:'版本读取暂不可用'})},{ok:true,json:async()=>({report_type:'generate',report_id:'another-report',result:{}})}]) {
+  let posts=0;const {c,ctx,el}=make({fetch:async(url,options={})=>{if(options.method==='POST')posts++;return response;}});ctx.latest={...completed};
+  await c.coverLoadNoteVersions(ctx);assert.ok(ctx.noteVersionError);await c.coverCreate(ctx);assert.equal(posts,0);assert.equal(el('create').disabled,true);assert.equal(el('result').hidden,false);
+ }
+});
+test('a pending optimized cover never labels another saved version as its frozen source',async()=>{
+ const root='11111111-1111-4111-8111-111111111111',missing='22222222-2222-4222-8222-222222222222';
+ const original={id:root,title:'原稿',body:'原正文',version:1};
+ const {c,ctx,el}=make({fetch:async()=>({ok:true,json:async()=>({report_type:'generate',report_id:'saved-report',result:{_saved_note_id:root,note_version_group:{versions:[original],latest:original}}})})});
+ ctx.pending={request_id:completed.request_id,quote_version:'v'};ctx.pendingBody={...ctx.pending,source_media_refs:[root],source_note_id:missing};
+ const wire=JSON.stringify(ctx.pendingBody);await c.coverLoadNoteVersions(ctx);
+ assert.equal(ctx.originalNoteId,root);assert.equal(el('version').value,missing);assert.match(el('version-note').textContent,/原提交.*暂不可读.*不会改用其他/);
+ assert.equal(JSON.stringify(ctx.pendingBody),wire);assert.equal(el('create').disabled,true);
+});
+test('optimized cover recovery freezes the saved version together with the original request and source refs',async()=>{
+ const version='22222222-2222-4222-8222-222222222222',requests=[];let first=true;
+ const {c,ctx}=make({fetch:async(url,options={})=>{
+  if(options.method==='POST'){requests.push(options.body);if(first){first=false;throw Error('ACK lost');}return {ok:true,json:async()=>({...completed,request_id:JSON.parse(options.body).request_id,status:'queued',has_final:false})};}
+  return {ok:true,json:async()=>({jobs:[]})};
+ }});ctx.sourceNoteId=version;await c.coverCreate(ctx);const frozen=JSON.stringify(ctx.pendingBody);
+ ctx.sourceNoteId=null;ctx.selected.clear();await c.coverRecoverPending(ctx);
+ assert.equal(requests.length,2);assert.equal(requests[0],requests[1]);assert.equal(requests[0],frozen);assert.equal(JSON.parse(requests[0]).source_note_id,version);
+ assert.equal(c.coverRestorableWire({...JSON.parse(frozen),source_note_id:'not-a-saved-id'}),null);
+});
 test('only explicit quote or balance rejection proving no admission and no hold clears the pending key',async()=>{
  for(const [status,code] of [[409,'BILLING_QUOTE_CHANGED'],[402,'QUOTA_EXCEEDED']]){
   const {c,ctx,storage}=make({fetch:async()=>({ok:false,status,json:async()=>({detail:{code,message:'明确未受理',admitted:false,reserved_credits:0}})})});
