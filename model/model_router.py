@@ -13,6 +13,7 @@ model_router.py — NoteAI Pro 统一模型路由层
 
 import asyncio
 import concurrent.futures
+import contextvars
 import hashlib
 import inspect
 import ipaddress
@@ -708,13 +709,34 @@ def _fixed_claude_error(exc: BaseException, code: str = "CLAUDE_OUTCOME_UNKNOWN"
     return ClaudeGatewayError(code, status_code)
 
 
-async def _close_async_iterator(iterator: Any) -> None:
+async def _close_async_iterator(
+    iterator: Any, *, execution_context: contextvars.Context | None = None,
+) -> None:
     close = getattr(iterator, "aclose", None)
     if close is None:
         return
     result = close()
     if inspect.isawaitable(result):
-        await result
+        if execution_context is None:
+            await result
+            return
+
+        async def close_in_context():
+            await result
+
+        # The iterator can own ContextVar tokens across yields. Close it in
+        # that same context, and join cleanup before releasing its caller's
+        # admission ticket even if the consumer is cancelled again.
+        task = asyncio.create_task(close_in_context(), context=execution_context)
+        cancelled = None
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError as exc:
+                cancelled = cancelled or exc
+        task.result()
+        if cancelled is not None:
+            raise cancelled
 
 
 _GATEWAY_AUTHORITY_PATTERN = re.compile(
@@ -1778,6 +1800,7 @@ async def _await_with_gateway_deadline(
     unstructured_cancel_usage_audit_required: bool = False,
     unstructured_cancel_usage_model: str | None = None,
     cancel_state: dict | None = None,
+    execution_context: contextvars.Context | None = None,
 ):
     try:
         remaining = _require_gateway_deadline_remaining(
@@ -1787,9 +1810,17 @@ async def _await_with_gateway_deadline(
     except BaseException:
         _discard_unstarted_awaitable(awaitable)
         raise
-    if remaining is None:
+    if remaining is None and execution_context is None:
         return await awaitable
-    task = asyncio.ensure_future(awaitable)
+    if execution_context is None:
+        task = asyncio.ensure_future(awaitable)
+    else:
+        async def await_in_context():
+            return await awaitable
+
+        task = asyncio.create_task(await_in_context(), context=execution_context)
+    if remaining is None:
+        return await task
     external_cancel = None
     while True:
         try:
@@ -2135,6 +2166,10 @@ async def _claude_transport_stream(
         usage_recorded = False
         provider_event_seen = False
         cancel_state = {}
+        # A transport async generator keeps body/admission contexts open
+        # across frames. Sequential frame tasks must share one private
+        # Context, rather than each copying a fresh one at every anext.
+        transport_context = contextvars.copy_context()
         transport_iterator = get_claude_transport().stream_message(request).__aiter__()
         gateway_deadline = absolute_deadline
         if gateway_deadline is None and claude_transport_mode() == "gateway":
@@ -2151,6 +2186,7 @@ async def _claude_transport_stream(
                         gateway_deadline,
                         unstructured_cancel_usage_audit_required=True,
                         cancel_state=cancel_state,
+                        execution_context=transport_context,
                     )
                 except StopAsyncIteration:
                     if _public_product.enabled() and (not usage_recorded or not content_seen):
@@ -2181,6 +2217,7 @@ async def _claude_transport_stream(
                             transport_iterator.__anext__(), gateway_deadline,
                             unstructured_cancel_usage_audit_required=True,
                             cancel_state=cancel_state,
+                            execution_context=transport_context,
                         )
                         if event.type == "usage":
                             _record_request_claude_usage(request, event.usage, event.model)
@@ -2219,7 +2256,9 @@ async def _claude_transport_stream(
             raise
         finally:
             try:
-                await _close_async_iterator(transport_iterator)
+                await _close_async_iterator(
+                    transport_iterator, execution_context=transport_context,
+                )
             finally:
                 _finish_claude_call(request, complete=complete, error=failure)
 
