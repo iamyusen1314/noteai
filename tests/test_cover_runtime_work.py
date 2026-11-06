@@ -14,12 +14,17 @@ import unittest
 from unittest import mock
 import uuid
 
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from starlette.responses import JSONResponse
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "model"))
 import cover_agent_artifacts as artifacts
 import cover_jobs as jobs
 import cover_service as service
 import db
 import model_admission as admission
+import public_account
 import public_product
 from tests import test_cover_agent_artifacts as fixtures
 
@@ -165,33 +170,65 @@ class CoverRuntimeWorkTests(unittest.TestCase):
             "active_and_waiting": True, "no_queue_mutation_or_new_manager": True,
             "database_calls": 0, "supplier_calls": 0}, sort_keys=True))
 
-    def test_actual_readiness_function_keeps_ready_truth_when_work_observation_fails(self):
-        # Compile the actual health function, avoiding unrelated API import/setup.
+    def test_public_live_http_projects_only_work_state_without_opening_ready(self):
+        # Register actual route functions in a tiny app with the real public
+        # middleware, avoiding unrelated API imports/startup or any auth bypass.
         tree = ast.parse((Path(__file__).resolve().parents[1] / "model/api.py").read_text())
-        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
-            and node.name == "_readiness_payload")
+        functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+            and node.name in {"_readiness_payload", "health_live", "health_ready"}]
+        for function in functions:
+            function.decorator_list = []
         namespace = {"_database_readiness_probe": SimpleNamespace(result=lambda: {"ok": True}),
             "USE_V04_COMPOSITE": True, "get_v04_composite_model": lambda: object(),
-            "_health_model_label": lambda: "local-fixture"}
-        exec(compile(ast.Module(body=[function], type_ignores=[]), "actual_api_readiness", "exec"), namespace)
+            "_health_model_label": lambda: "local-fixture", "JSONResponse": JSONResponse}
+        exec(compile(ast.Module(body=functions, type_ignores=[]), "actual_api_health_routes", "exec"), namespace)
         readiness = namespace["_readiness_payload"]
+        app = FastAPI()
+        app.add_api_route("/health/live", namespace["health_live"], methods=["GET"])
+        app.add_api_route("/health/ready", namespace["health_ready"], methods=["GET"])
+        app.add_middleware(public_account.PublicAccountBoundary)
+        allowed_before = public_account.ALLOWED_ROUTES, public_product.EXACT_ROUTES
+        operation = admission.Operation("private-live-owner", str(uuid.uuid4()))
         with mock.patch.object(admission, "current", side_effect=AssertionError("Do not instantiate")), \
-                mock.patch.object(db, "transaction", side_effect=AssertionError("No extra DB probe")):
+                mock.patch.object(db, "transaction", side_effect=AssertionError("No extra DB probe")), \
+                mock.patch.object(public_product, "authenticated_user", side_effect=AssertionError("Public live must not authenticate")):
+            with TestClient(app) as client:
+                idle = client.get("/health/live")
+                self.assertEqual(idle.status_code, 200)
+                self.assertEqual(idle.json(), {"status": "ok", "service": "noteai-api", "runtime_work": {
+                    "schema": "noteai.runtime_work", "version": 1, "confirmed": True, "active": False}})
+                self.assertEqual(idle.headers["cache-control"], "no-store")
+                ticket = self.manager.media.acquire(operation, str(uuid.uuid4()), "media_worker")
+                try:
+                    busy = client.get("/health/live")
+                    self.assertEqual(busy.status_code, 200)
+                    self.assertTrue(busy.json()["runtime_work"]["active"])
+                    self.assertEqual(set(busy.json()["runtime_work"]), {"schema", "version", "confirmed", "active"})
+                    self.assertNotIn("private-live-owner", busy.text)
+                    self.assertNotIn("counts", busy.text)
+                finally:
+                    self.manager.media.release(ticket)
+                self.assertFalse(client.get("/health/live").json()["runtime_work"]["active"])
+                with mock.patch.object(service, "work_snapshot", side_effect=RuntimeError("PRIVATE_ERROR_MUST_NOT_LEAK")):
+                    unconfirmed = client.get("/health/live")
+                    self.assertEqual(unconfirmed.status_code, 200)
+                    self.assertEqual(unconfirmed.json(), {"status": "ok", "service": "noteai-api", "runtime_work": {
+                        "schema": "noteai.runtime_work", "version": 1, "confirmed": False, "active": None}})
+                    self.assertNotIn("PRIVATE_ERROR", unconfirmed.text)
+                with mock.patch.dict(namespace, {"_readiness_payload": mock.Mock(side_effect=AssertionError("Blocked route executed"))}):
+                    self.assertEqual(client.get("/health/ready").status_code, 404)
+                    self.assertEqual(client.get("/health/ready", headers={"Authorization": "Bearer local-unused"}).status_code, 404)
             healthy, status = readiness()
             self.assertEqual((status, healthy["status"]), (200, "ready"))
-            self.assertTrue(healthy["runtime_work"]["confirmed"])
-            with mock.patch.object(service, "work_snapshot", side_effect=RuntimeError("PRIVATE_ERROR_MUST_NOT_LEAK")):
-                unconfirmed, status = readiness()
-                self.assertEqual((status, unconfirmed["status"]), (200, "ready"))
-                self.assertEqual(unconfirmed["checks"], healthy["checks"])
-                self.assertEqual(unconfirmed["runtime_work"], {"schema": "noteai.runtime_work", "version": 1,
-                    "confirmed": False, "counts": {}, "active": None})
-                self.assertNotIn("PRIVATE_ERROR", json.dumps(unconfirmed))
+            self.assertNotIn("runtime_work", healthy)
             namespace["_database_readiness_probe"] = SimpleNamespace(result=lambda: {"ok": False})
             unready, status = readiness()
             self.assertEqual((status, unready["status"]), (503, "not_ready"))
-            self.assertTrue(unready["runtime_work"]["confirmed"])
+            self.assertNotIn("runtime_work", unready)
+        self.assertEqual(allowed_before, (public_account.ALLOWED_ROUTES, public_product.EXACT_ROUTES))
         print("COVER_RUNTIME_WORK_HEALTH_PROOF=" + json.dumps({"actual_function_ast": True,
+            "actual_public_middleware_http": True, "public_live_four_fields_only": True,
+            "ready_still_404": True, "allowlists_unchanged": True,
             "ready_truth_unchanged": True, "observation_failure_unconfirmed": True,
             "no_private_error_leak": True, "supplier_calls": 0}, sort_keys=True))
 

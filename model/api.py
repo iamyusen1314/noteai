@@ -14482,20 +14482,20 @@ def _readiness_payload() -> tuple[dict, int]:
             "error": type(exc).__name__,
         }
 
-    try:
-        import cover_service
-        runtime_work = cover_service.work_snapshot()
-    except Exception:
-        runtime_work = {"schema": "noteai.runtime_work", "version": 1,
-            "confirmed": False, "counts": {}, "active": None}
     ready = checks["database"].get("ok") is True and checks["model"].get("ok") is True
-    return {"status": "ready" if ready else "not_ready", "service": "noteai-api",
-        "checks": checks, "runtime_work": runtime_work}, 200 if ready else 503
+    return {"status": "ready" if ready else "not_ready", "service": "noteai-api", "checks": checks}, 200 if ready else 503
 
 
 @app.get("/health/live")
 def health_live():
-    return {"status": "ok", "service": "noteai-api"}
+    try:
+        import cover_service
+        snapshot = cover_service.work_snapshot()
+        runtime_work = {key: snapshot[key] for key in ("schema", "version", "confirmed", "active")}
+    except Exception:
+        runtime_work = {"schema": "noteai.runtime_work", "version": 1,
+            "confirmed": False, "active": None}
+    return {"status": "ok", "service": "noteai-api", "runtime_work": runtime_work}
 
 
 @app.get("/health/ready")
