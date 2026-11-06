@@ -12137,6 +12137,71 @@ def _leisure_entitlement_claims(text: str) -> set[tuple[str | None, str, bool, s
     return facts
 
 
+def _leisure_confirmed_ticket_entitlements(text: str) -> set[tuple[str | None, str, bool, str]]:
+    """Resolve an explicit ticket answer only for this merchant's listed services."""
+    prefix, marker, confirmation = (text or "").partition("【本次商家确认；")
+    if not marker:
+        return set()
+    entity_key = lambda value: re.sub(r"[\s·.．]+", "", value).casefold()
+    targets = {entity_key(name) for name in re.findall(
+        r"(?:用户补充名称|门店名|商家名称|商家名|店名)[：:]\s*([^\n。；;，,]{2,60})", prefix)}
+    if len(targets) != 1:
+        return set()
+    target = next(iter(targets))
+    service = "(?:" + _LEISURE_SERVICE_RE.pattern + ")"
+    service_list = service + r"(?:\s*[、，,和及与/]\s*" + service + r")*(?:等(?:区域|项目|服务)|区域|项目|服务)?"
+    ticket_question = r"(?:包含|包括|含)(?:在|于)?门票(?:内|里|中)?(?:[，,](?:还是|或)(?:需要|需)?单独付费(?:或套餐选择)?)?[？?]?"
+    latest = {}
+    for block in re.split(r"(?m)^- 原问题范围：", confirmation)[1:]:
+        match = re.fullmatch(
+            r"门店：([^\n；]+)；套餐/对象：([^\n；]+)；时间：([^\n]+)\n"
+            r"问题：([^\n]+)\n当前回答：(.+)", block.strip(), re.S)
+        if not match:
+            continue
+        merchant, subject, time_range, question, answer = match.groups()
+        if entity_key(merchant) != target or entity_key(subject) != target:
+            continue
+        services, separator, question_tail = question.partition("是否")
+        if not separator or "门票" not in question_tail or not _LEISURE_SERVICE_RE.search(services):
+            continue
+        if (not re.fullmatch(service_list, services.strip(), re.I)
+                or not re.fullmatch(ticket_question, question_tail.strip())):
+            # Do not retain an earlier unconditional answer when the same
+            # merchant's later ticket question introduces an unresolved limit.
+            return set()
+        included = (time_range == "仅本次，未声明长期有效" and re.fullmatch(
+            r"(?:全部|全|都|均)(?:已经|已)?(?:包含|包括|含)(?:在|于)?门票(?:内|里|中)?[。.!！]?",
+            answer.strip()) is not None)
+        # An explicit later unknown, denial or qualified answer must not leave
+        # an earlier unconditional inclusion active for the same service.
+        for service in _LEISURE_SERVICE_RE.finditer(services):
+            latest[("门票", _leisure_project_key(service.group()), True, "included")] = included
+    return {fact for fact, included in latest.items() if included}
+
+
+def _leisure_medical_claim_text(text: str) -> str:
+    """Exclude a scene adjective, without hiding clinical claims in its sentence."""
+    clinical_context = re.compile(
+        r"治疗|疗效|康复|医疗|医学|疾病|症状|病症|患者|病人|失眠|睡眠|颈椎|肩颈|颈肩|"
+        r"颈部|肩部|僵紧|僵硬|紧绷|疼痛|酸痛|腰痛|关节|炎症|焦虑|抑郁|排毒|祛湿|祛寒|经络|血液循环"
+    )
+    scene_adjective = re.compile(
+        r"((?:落日|日落|夕阳|风景|景色|画面|窗景|夜景|光影|灯光|氛围|"
+        r"配色|色调|布置|绿植)[^。！？!?；;，,\n]{0,32}?(?:很|特别|非常|十分|挺|真|太|好))"
+        r"治愈(?=了?(?:[，,。！？!?；;\s]|$))"
+    )
+
+    def scene_sentence(match):
+        sentence = match.group()
+        # Keep commas/conjunctions here: a later symptom in the same sentence
+        # must not be hidden by _fact_assertions splitting the earlier clause.
+        if clinical_context.search(sentence):
+            return sentence
+        return scene_adjective.sub(r"\1", sentence)
+
+    return re.sub(r"[^。！？!?；;\n]+", scene_sentence, text or "")
+
+
 def _structured_fact_boundary_issues(text: str, source_context: str | None, domain: str | None = None,
                                      *, observation_context: str = "") -> list[str]:
     """Guard only structured facts. Do not block narrative details such as feelings or scene description."""
@@ -12157,7 +12222,8 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
         assertions = "\n".join(_fact_assertions(out))
         factual_out = assertions
         # One denial cannot negate a separate, affirmative recommendation.
-        medical_assertions = ";\n".join(_fact_assertions(out, only_explicit_rejections=True))
+        medical_assertions = ";\n".join(_fact_assertions(
+            _leisure_medical_claim_text(out), only_explicit_rejections=True))
         evidence = "\n".join(_fact_assertions(src))
         issues.extend(_leisure_observation_fact_issues(out, src, observation_context=observation_context))
         symptom = (r"失眠|睡眠质量(?:不稳定|不好|差)|睡眠障碍|"
@@ -12195,7 +12261,8 @@ def _structured_fact_boundary_issues(text: str, source_context: str | None, doma
             if any(not _leisure_duration_supported(claim, known_durations)
                    for claim in _leisure_duration_claims(out, project_context=duration_source)):
                 issues.append("休闲娱乐体验出现未提供或与项目不符的项目时长，结构化事实不能编造")
-            if _leisure_entitlement_claims(out) - _leisure_entitlement_claims(src):
+            known_entitlements = _leisure_entitlement_claims(src) | _leisure_confirmed_ticket_entitlements(src)
+            if _leisure_entitlement_claims(out) - known_entitlements:
                 issues.append("休闲娱乐体验出现未核验的套餐服务权益，结构化事实不能编造")
             if _PRICE_VALUE_CLAIM_RE.search(assertions) and not _source_has_price_evidence(evidence):
                 issues.append("出现未提供价格依据的划算/不贵/性价比判断，结构化事实不能编造")
