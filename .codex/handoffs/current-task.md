@@ -36375,3 +36375,62 @@ R3原请求t-sz072cld6c14o3k/c-sz072cld6br52ps实际Finished/exit0/Dropped0，CO
 新card已实证队列→2/6设计→4/6原照排版、真实持续累计/本步/worker确认、关闭刷新后继续原任务；5分14秒时实显当前工作和可关闭重开、不取消、不交付不扣文案；H5真实393×852/scrollWidth393，无横溢，DevTools已关且恢复PC。旧D3图在新任务进行时保留，未冒新成果。现场一次只读checkpoint t-sz072cnceq5ga2o S0/D0：3模型请求（含在途），已完成1=79.747s、2=293.495s均200，render工具1次failed/first_draft_fallback=true，原流程恢复，无compaction/input rejection/未知；只能断言本地工具抛错，不能编为字体或几何根因。后续code-only只读t-sz072cntha4madc S0/D0，终态正常cleanup已清私有SDK原件，结果unavailable/FileNotFound；未重建/重发/篡造原请求。
 
 目前真实功能闭环尚在免费末节验收，提速未验收。下一Root原finalRO拿精确阶段/调用/成本和账→独审真实成品及保存库重开→依据实测作最小收敛修正；不盲增上限或付费重试。权威P状态REAL_COVER_SAVED_DOWNLOADED_LATENCY_NOT_ACCEPTED、原job/PNG全存。维护原窗口已发进行中只读交接，send成功但一次wait工具失败，不能声称已实收；最终仍要核实接手方实际读证据。Root仍唯一发布方，当前生产91b71/API79071/static3ad65/config2，旧所有费用/UNKNOWN保留。
+
+
+### CURRENT 2026-11-07 实际功能闭环验收通过；首稿延迟需继续收敛
+
+1afb唯一生成、PC/H5真实进度、关闭刷新继续同任务、原照成品、免费改字、保存库重开、正常下载和唯一8积分均已实证。实际最终只读 t-sz072co5gsbnvgg/c-sz072co5grrooow S0/D0，E/COVER-SPEED-PROGRESS-FINAL-READ-EXEC001.ACTUAL-RESULT.json10473/SHA cdd38a05dffd3ecb5cc32b375d1d3e366ea98a1075b6cecc90871a5ce3321e29：normalGET2仅排除transient server_time，v2冻结四身份hash，QC pass，rev2/下载bytehash一致，259200s留存，旧D3账独立、旧2db身份和旧UNKNOWN14+anchor保留。实际金融新增仅8、非19，free edit/重开/下载不另收。图片0.70估值/actualNULL，文字实测计价1.7389248元，合计估算2.4389248元，不冒已出账；6Pro（5设计+1独立QC）+1概念=7全HTTP200、0未知。原PNG真实独审GO：主图#1星顶泳池、#3汤泉及#6书吧，原照事实/裁切/排字/主体均符合；一票进沿既有确认事实，非照片独证票务，不宣称市场热度。
+
+精确后端墙钟736.977893秒（12分17秒，含排队、工具、保存等），UI制作约12分15；旧D3 692.25秒、12Pro+1概念，新文字轮次减半但同一真实样本总时长慢约45秒，不称提速通过。计时7 adapter=79.627s设计、105.251s概念、293.242/76.935/77.777/28.307s排版、57.594s质检；累计718.733秒是调用边界含网络，非纯模型推理。一次本地工具拒绝后原恢复成功，没有输出其具体code；终态按原隐私策略清理SDK session，不凭猜测改字体或安全门。继续针对真实首稿长调用/恢复代价做最小离线分析/修正，保护已交付1afb与91b71线上服务，暂无新增真实任务/供应商请求在途。
+
+原维护接收thread01a13080-d8a9-7c50-88c0-09ffcebbef61已实收进行中发布交接（只读turn01a1b3bd-1a0b-7913-a10d-29b3213bb6da完成），实际核API79071/静态3ad65/OPEN及原同CASE回退，明示下一步只接同1afb终态/成品，不查询重发、不并行发布。原wait工具两次失败后用read_thread核实实收；Root现在补实际终态给该窗口，继续未通过提速项。四阶段仍使用原任务/权威P，不立新任务体系。
+
+
+### CURRENT 2026-11-07 二叶首稿减负实施与验证中；1afb成品保持
+
+原维护窗口实收同一1afb终态，turn01a1b3cb-c479-7170-9022-404177315520 completed，实际读两CURRENT、终态账和真实PNG，核结算8、PNG、PC/H5/重开/免费改字下载通过、提速未通过；维护侧只读接后续证据，Root继续唯一发布，未并行云操作。
+
+一次最小原终态诊断t-sz072cp537zh6gw S0/D0、ROLLBACK/close真、DB/模型0，E/COVER-SPEED-PROGRESS-TERMINAL-DIAG001.ACTUAL-RESULT.json1079/afb14b5d：同1afb六条Pro completion为3210,13471,5044,2527,552,2725 tokens，最慢首稿293.242秒对应13471（思考未单列）；实际收据保两render/两write/一concept/零view，旧wrapper具体拒绝码缺失，不能声称字体、路径或六份文件是已证根因。
+
+后续仅两产品叶host.mjs/runtime.py及原latency SDK测试由cover_latency_code独占修改：用实际冻结报告/相对原照路径准备brief，固定poster与真实prompts来源说明；可信同工作区字节SHA后指导首稿仅HTML+实际design/asset三件。可选预置OSError退原完整路径，原底层prepare1–6、原恢复、实际像素SHA、双Pro/思考档/期限、独立QC+最多一次局改、8分和3天不改。已有checkpoint/cleanup保首个实际本地失败的内容无关code/步骤/数值，非新交付门。独审正在核两叶、作者定向实际SDK/UNKNOWN续验，尚未提交/构建/发布。Root只用原R3 Linux资源/profile/state-root和缓存7份，更新一段实际变更夹具。现新发布adapter惰性准备E/COVER-SPEED-CONVERGENCE-FOLLOWUP-PREPARED-INDEX.json4990/2e90ed27，待实际最终源码＋build＋Linux通过才绑，原61/90、全部排空及同CASE79071回退；静态3ad65无变更也不重发。当前无付费模型请求、无云在途，生产91b71/79071/config2正常。本窗口不重发1afb、D3或旧UNKNOWN，下一Root在真实证据齐全后继续，不停在交接。
+
+
+### CURRENT 2026-11-07 355e10ac两叶收敛候选实构建；同款Linux23在途
+
+功能commit/HEAD/origin **355e10acca1a30a418257d952f0b4ef18bfce597**，原worktree分支不变。仅host/runtime和既有latency test；产品host99405/ec47b1bf04243dfd3a29a266edf0e9d91555c05a8c145b113c26a39021f4d269、runtime109092/52a37fbee961f0dd6f2d9af967993044233438b40bbdacd18e6fbd21f9a4db73。实际SDK离线10 PASS83.001s，含三件/真实PNG审图/设计包恢复免费改字/预置半写OSError六件退回/两类本地失败码留存/独立QC唯一局改/UNKNOWN原请求不重发，E/COVER-SPEED-CONVERGENCE-FOLLOWUP-OFFLINE001.log5492/71e7e4cf；初始两清理fixture错误已修，未放宽产品。独立两叶review GO无P0/P1，原工具底层1–6、模型/质检/计费/留存与UI均不改。
+
+实际flat COPY两叶构建t-sz072cpma93lmv4 S0/D0，E/COVER-SPEED-CONVERGENCE-FOLLOWUP-API-BUILD001.ACTUAL-RESULT.json8703/1a799b61，image **sha256:5a13db2094f3362d1dd34f96408522bc270286c6f7664e895c9882e31c744dd7**，33其余source一致、35closure/30COPY/125层，生产仍91b71/API79071/static3ad65/config2。复用原R3 Node24/browser/state root/无网/3GiB2CPU及7份已验fixture，只补单段changed latency test t-sz072cpqlbc6tq8 S0/D0，实际QA23原请求t-sz072cpsan1xwxs/c-sz072cpsamhyq68在途，只查询同ID。E/COVER-SPEED-CONVERGENCE-FOLLOWUP-QA-READY-INDEX.json5685/381c6ff3。权威P已录；PASS才把实际refs绑原publisher，沿原成对排空/同CASE79071回退，静态不动。已交1afb/原D3和历史费用/UNKNOWN均保留。暂无新付费请求；下一只在修复证据成立、当前充值可用范围内完成一次同素材真实对照，不重发旧请求，不宣称5分钟保证。
+
+
+### CURRENT 2026-11-07 后续355e10ac已实际发布，唯一同素材对照待受理
+
+原Linux23实际t-sz072cpsan1xwxs S0/D0，23/0/0/0、Nodev24.22.1、3GiB2CPU/noOOM/peak735391744、cleanup和正式三CID原样，E/COVER-SPEED-CONVERGENCE-FOLLOWUP-QA001.ACTUAL-RESULT.json14420/c7892771。后续原publisher4stage及PREPARE实际S0/D0；唯一原PUBLISH t-sz072cqmg3a0nb4/c-sz072cqmg2xj5kw，实际S0/D0/verify/config2/2/OPEN，E/COVER-SPEED-CONVERGENCE-FOLLOWUP-RELEASE-PUBLISH001.ACTUAL-RESULT.json1929/SHA75a660a2764366eda06fe89909b017e37b6860a34923eeac3b0f655d16371a7c。生产API image5a13db2094f3362d1dd34f96408522bc270286c6f7664e895c9882e31c744dd7/CIDe8e4615b0582437bdd54d0a34aa4e90c5790e67d3d6a57f9b5ed866ddcc148ae/profiled1d000e73fc8ab8f007f71c1d14c9c499392f4cc9e58ee3c082f06b15139ce49，PayCIDbf30269011a8b3e47f0697ba318d53eba79755b5189c1420fc8bbe296a18e4ba/原4e4/bb76，Admin14b原不变。static3ad65e1f/pointer原91b版本完全不动，未再发前端；原模型/容量/worker2/8分3天/WorkerC停机均保。必要时仅同CASE release-cover-speed-convergence-followup-20261107-r1原整组API/Pay rollback→79071，静态无回退需要；保active2。
+
+当前新source暂未付费：原火山同账号实际可用17.29元已核，无需充值，E/COVER-SPEED-CONVERGENCE-FOLLOWUP-VOLC-BALANCE001.json。Root唯一在正常9531原82f/v2/6照上新建一个不同版本真实对照，预计2–4元，固定双Pro/1概念/既有1次QC局改，首张合格保存后停，未知查原请求不重发；不重跑报告/优化、不覆盖1afb和旧D3。实际任务、原UUID和账须待正常UI与原只读回执，不先冒PASS。权威P followup已写实际runtime；后续原终态reader已惰性备妥，仅晚绑实际新job/PNG/rev2。
+
+
+### CURRENT 2026-11-07 7229真实对照在途；发现并纠正单一阶段顺序
+
+正常9531原82f/v2/6图唯一创建新版本对照job **72290932-bc36-45e5-8c8c-b10f70c233c9** / requeste29df989-8509-4a5c-b6cf-ba41b35d9eaa / usage2bfdd4d0-4226-4383-9939-06c78d8816b9，created2026-11-07T02:45:28.744534Z，原DevTools POSTDTO `E/COVER-SPEED-CONVERGENCE-FOLLOWUP-REAL-POST001.UI-RESPONSE.json`、8分预留，来源355e10ac/5a13已实际OPEN。只查同一任务，当前未交付/未重发/无新UNKNOWN证据。
+
+新实际进度边界：同任务H5真实393×852在累计1m32/本步31s已第4/6“正在安排原照、文字与留白”；一次安全原checkpoint只读 t-sz072cr9kjgbzsw S0/D0 `E/COVER-SPEED-CONVERGENCE-FOLLOWUP-LIVE-READ001.POLL001.OUTPUT.txt` 显示cover_write1/render0、概念在host166137ms才返回。host在首次概念前写草案也升layout，单调阶段挡住应出现的concept；此前“实际进度通过”限真实时钟/恢复/状态及已见阶段，不能把这条顺序偏差遗漏。旧H5 1m32截图为缺陷证据，不能宣传phase已正确。
+
+作者cover_latency_code只改host进度通知＋既有progress feedback定向test，实际concept成功receipt后才允许草案/检查/渲染升layout；不挪业务顺序/模型/文件/账/期限/UNKNOWN或改UI；现真实7229不打断，先收终态＋实际提速证据/免费改字/下载/唯一账。发布作者仅本机准备原flat COPY/原成对publisher单叶数据绑定，终态前不正式切换，回退5a13，static3ad65不重发，原程序保护不放宽。该仅通知修复做真实SDK受控顺序测试与原同款Linux定向复验，无第三个付费任务。权威P followup.phase_order_fix精确状态，原PUBLISH、首1afb历史及费用保持。
+
+
+### CURRENT 2026-11-07 同素材第二张已交付；等待单叶阶段修正的隔离回执
+
+72290932-bc36-45e5-8c8c-b10f70c233c9（355e10ac）实际合格保存并正常下载，保存库再次打开保留免费改字“番禺万博·9层”，至北京时间11月10日10:56。真实 PNG `E/NoteAI-9531-cover-convergence.png` 1776×2368 RGB / 2948065 B / 81defaf46936198a10f7e1df8f22d0b354e8c2bfa7892a97761e8462b303dc6a；独立核原照 #1星顶泳池、#2汤泉、#6书吧，主体完整、文字不压图，浅金标题在小缩略图对比略弱。原正常 UI 重开见 `E/COVER-SPEED-CONVERGENCE-FOLLOWUP-REAL-SAVED-REOPEN001.{UI.txt,png}`。同一 82f/1f35 与6张原照，未重跑原笔记和改写。
+
+终态原 app-role 只读 t-sz072csp1qjec5c/c-sz072csp1pzf5ds，Finished/exit0/Drop0，`E/COVER-SPEED-CONVERGENCE-FOLLOWUP-FINAL-READ-EXEC001.ACTUAL-RESULT.json` 11788/3622900d641f512a36890c9e391cc2b0fed5c367443962f5f17ffd8e7a4b9ce2。QC、普通GET×2、rev2、PNG hash、唯一8积分、3天及历史UNKNOWN保持；DB写/模型调用0。10文字Pro＋1概念图全部HTTP200、无新增UNKNOWN，文字已知计价2.2295688元、图0.70元估值（实际未出）、估合2.9295688元。端到端671.253s（约11分11秒，UI制作11分10秒），较首轮736.978s少65.725s、较旧D3 692.25s少20.997s（约3%）。仅单样本比较，无5分钟承诺。供应商调用墙钟含网络646.292s，其中最长排版一次187.371s，首次prepare仍出现FONT_ROLE_DECLARATION_MUST_BE_UNIQUE并由原校验后续收敛完成；不等于此错误消耗646s，不放宽校验，不再建第三个付费任务。
+
+阶段单叶source1edc4b65实际私有构建S0/D0 t-sz072crv80jnv28，candidate sha256:4bc1b018d131d55afb862aa9e969ab1b17f2a329f05839ea949e0e1d510ff01a，1改34同；只通知不改原模型/任务/文件/结算。实际SDK早写红→绿及独审通过。唯一fixture delta t-sz072csojg95pmo完成，原隔离Linux12实际 t-sz072csqiz1zs3k/c-sz072csqiykihog 在途；仅查询同ID。核实际通过后才按原配对排空发布、5a13配对回退，static3ad65不动，正常已保存成品重开验收；Root唯一发布方，接续状态见权威P followup.phase_order_fix。
+
+
+### CURRENT 2026-11-07 封面提速与真实进度完成发布；线上成品重开通过
+
+最终封面 API 功能源 **1edc4b655e9179daad2201fb753fa29aa4dbd017**，真实配对发布 t-sz072ctqojit24g/c-sz072ctqoj3to1s 实际 Finished/exit0/Drop0，正常就绪200、配置2/2、OPEN。实际凭据 `E/COVER-SPEED-PHASE-ORDER-RELEASE-PUBLISH001.ACTUAL-RESULT.json` 2041/SHA2ce434a9c6d58fca9fb5a5260e9fa2a446395b9e87f66a9fab9badf3e0861c78。API CID6225d8165b6a4d5bd6bba35b8de0f0e069f92b8c9851a9bf44c24e6a3b0b04a5/image4bc1b018d131d55afb862aa9e969ab1b17f2a329f05839ea949e0e1d510ff01a/profile39209225ab1d397bed274996a795a2c5824b1b78ba2d11b7d45bcabe193b5d7c；Pay CIDde4d9b263a6c91198c916c78e7b799f39ac69c52207c2b7aab936b5d70bf742d/原image4e4/profilebb76，Admin14b/原b64b/profile0fc7未重启。原61s/90s静默、全事务/PID1/本地渲染排空及OPEN回读；静态仍91b71/manifest3ad65e1fddcfc544a81954f39523bd1d03ce3bbb284b00a042ce75046be6558e，未重发。原模型路由、共享容量、worker2、Worker C节省停机、8积分和新3天期限维持。未增加依赖、迁移、权限、资源或模型调用。
+
+单叶进度顺序的实际Linux证据 `E/COVER-SPEED-PHASE-ORDER-QA001.ACTUAL-RESULT.json` 12861/99a3d58b871cf1114e8f79b00cb18a0eceae72012249a99aa2a85d8c87b5bd37，12/0/0/0，Node24.22.1、netnone、3GiB/2CPU/PIDs512、峰值722329600/OOM0、无生产挂载或供应商调用。实际SDK复现旧“早写→跳第4步”及修正后“设计→构图参考→原照排版”，保留进程重开、5分钟说明、不交付不扣与UNKNOWN不重发。正式切换后使用原登录从报告→已保存封面正常找回 **7229**，已改文字及下载入口仍在，图片实际加载1776×2368。证据 `E/COVER-SPEED-PHASE-ORDER-POSTRELEASE-SAVED-REOPEN001.UI.txt` 和 `E/COVER-SPEED-PHASE-ORDER-POSTRELEASE-COVER-PANEL001.png`。真实PC/H5动态证据来自前两张付费样本；最后这处阶段顺序通过受控验证，未在最终版再创建第三张。未做真iPhone保存。
+
+两张线上均成功，仅各自唯一结算8。第二张真实模型调用11次（首张7次），同素材用时缩短一次，不能据此推出稳定提速或成本下降。长尾仍在排版模型等待及字体角色校验触发的重做；先用后续自然任务的现有耗时和错误码只读监测，保留原校验，禁止用重复付费验收替代分析。原UNKNOWN/账/产物保留。必要时由本封面窗口沿同CASE `release-cover-speed-phase-order-20261107-r1` 成对回退至355e/5a13，静态不动，保留配置2/2；未执行回退。交接接收人为原“修复高德检索与休闲娱乐行业”窗口，仅接续只读核对，不接管或并行执行生产发布。
