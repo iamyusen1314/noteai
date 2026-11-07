@@ -6335,3 +6335,25 @@ API原发布 **t-sz072akls2fpxq8 S0/D0**，原close→61秒连续quiet/90上限�
 现host已有concept/inspect_concept/layout/first_render/render_revision/inspect_render/review事实及工具起止，仅私有checkpoint/反馈模型，未公开用户进度。公共stage仅design/image/qc/saving，render映射image，概念后及QC修正回design，会视觉倒退；worker每30秒心跳复写updated_at，不能把它当实质进展时间。推荐原封面面板六步：素材核对→设计方向→构图参考→原照排版→质量检查与必要调整→保存交付；排队另显。复用现stdio→hooks→原job持久白名单快照→原GET，保stage兼容，分开execution/phase开始时刻、worker最近确认、detail_code与revision。界面显示真实当前第几步/总步数、累计及本步用时、最近worker确认；超过5分钟显示当前工作和可离开后找回，质检局改留在检查步；断线/结果未知核原任务，不能靠前端计时判失败/自动付费重试。不显示假百分比/无依据倒计时或排队位次，ETA需积累真实样本；不承诺未经实现的离站微信/短信提醒。
 
 这是供用户判断的最小优化建议，不是已批准/已上线的新工作流或UI；真实完整链及原费用/UNKNOWN继续按上节保留。
+
+
+### 2026-11-07T00:52:21.681703+00:00 — CURRENT 已授权最小更新：流程收敛提速＋真实进度可见，实施中
+
+用户已明确开始本次两项最小更新并要求不中断核心链。本任务/原worktree/codex分支不变，实际HEAD1c87bbe20d0f736fb258c5ef3d0a0f658d44995c、clean；生产仍4b9/API3c9/static62f7/config2/2，原D3已成功交付不重发。Root唯一生产发布负责人；latency代理独占host/runtime及窄测试，progress代理独占jobs/service及窄测试，UI代理独占原HTML/frontend测试，Root统一集成/真实验证/原发布回退。
+
+先减少只为要求查看概念/渲染像素的模型往返并保真实送达hash校验，复用现有批量prepare收敛流程；现有stdio/hooks→原任务持久白名单进度→原GET→原PC/H5六步卡，区分心跳/阶段/查询断线、队列/局部修正。保双Pro/OpenCode/EditableDesign、独立质检、8分与保存成功唯一结算、3天新封面/旧期限、原v2冻结、全部旧UNKNOWN/费用；无新依赖/平台/资源，无整站或支付/高德扩修。≤5分钟是待验证目标，不承诺零bug或虚构百分比/ETA。
+
+权威P.fullchain9531_20261106.latency_progress_update_20261107=IMPLEMENTING_AUTHORIZED_MINIMAL_UPDATE；当前新供应商/生产操作0、无在途/新UNKNOWN。接续定向离线与受控集成→PC/H5实际渲染/恢复→独立diff审查→沿已授权充值范围少量真实成品验证→原成对发布/回退与实收交接。使用已读frontend-testing-debugging技能；Browser plugin/skill未列，局部本机UI可用现有Playwright，正常生产会话用现有CUA，不另开大量页面。
+
+
+### 2026-11-07T01:19:34.102859+00:00 — CURRENT 收敛与真实进度91b71已完成离线/源码审查，进入同款Linux验证与原发布
+
+功能commit **91b71e1a29b9ffb2c6716b0ef04f3097f69be7db**，仅6产品叶（原HTML、host、agent_runtime、jobs、service、RuntimeHooks）及6相关测试；无新依赖/迁移/模型/配额/计费/保存期变更。host实际概念与成品/240px缩略图回执附像素，下一实际prepared请求仍须验SHA；首稿在当前确含概念像素时聚焦cover_view+整包render.prepare，保原照精查，首次本地拒绝后恢复原完整工具。没有新增调用硬限，不削独立QC/一次外层局改。计时仅既有checkpoint/optional design.execution_summary有界观测，不能作交付门或纯推理耗时。
+
+v3真实进度在design_json独立_execution_progress，input_json/v2/幂等hash不改；原claim/heartbeat主事务先提交，辅助进度另短事务失败回滚降级，心跳不重置阶段开始。API仅白名单progress/真实时刻，旧任务null兼容。原PC/H5面板六步+队列独立/真实用时/worker确认与GET断线分开，QC局改仍5，>5分钟可离开后找回；visibility仅GET原任务，关闭清理，不假百分比/ETA/超时自动重发。
+
+Root后端67 PASS11.885s，含新进度10、旧jobs/service/API/冻结v2；实际SDK新6 PASS44.519s：正常4设计+1独立QC对旧受控7+1，prepare拒绝恢复5+1，QC拒绝后唯一局改7设计+2QC/仅1概念。旧SDK58首跑57过+1旧夹具工具菜单不符；精确修夹具合法prepare后UNKNOWN3 PASS，timeout仅1次并保未知，非供应商或产品失败。UI46DOM及原/新PC1280×900/H5390×844 browser PASS；旧fixture缺版本GET在1c87同样复现，补真实DTO后同基线也通过，未放宽生产校验；最初底部截图不是卡证据，最终r4真看卡顶/改局部对比度。独审capacity_final_release_review同host a02981c1/runtime fe164515 GO无P0/P1。全部是合成provider/临时DB/本机Node25证据，不冒真实≤5min/iPhone或线上多人通过。
+
+根证据E/COVER-SPEED-PROGRESS-OFFLINE-READY001.json3356/SHA0a06bed3，backend3189/3855a195，UI final-ui-r4/UI-FINAL-EVIDENCE.json2594/fae667ed；原失败logs保留。真实正常9531页面已确认原82f/v2、6素材可用、旧D3成品/2855.5分，无新任务；E/COVER-SPEED-PROGRESS-BASELINE-UI.txt。权威P.fullchain9531_20261106.latency_progress_update_20261107：阶段1/2完成、阶段3进行、阶段4源码GO待实际交付，生产仍4b9/3c9/config2/2/static62f7；新供应商/生产操作0，无在途或新UNKNOWN。
+
+下一Root按source-bound既有flat COPY builder（wire16663/Base6422220）构建并复用原networknone/3GiB/2CPU同款Linux runner精确50相关目标，之后沿原61/90排空API/Pay成对切换、两leaf静态指针与原回退；实际supplier验收只复用82f已保存v2/6原照新建1封面，沿已批准充值范围记真实调用/耗时/成本、保存找回/免费改字/下载/唯一8。release作者只编新惰性适配，final-reader作者只编原app-role只读适配，Root唯一云/生产操作者；生产配置/其他服务/WorkerC不改，旧所有UNKNOWN/成本不清零。
